@@ -258,6 +258,7 @@ set(LIBS
 	vcdcom
 	vcddec
 	vcdenc
+	videonull
 	videoogl
 	videosoftware
 	z
