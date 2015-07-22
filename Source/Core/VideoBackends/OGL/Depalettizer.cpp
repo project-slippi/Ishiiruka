@@ -273,7 +273,7 @@ void Depalettizer::UploadPalette(u32 tlutFmt, void* addr, u32 size)
 {
 	InternalPaletteFormat format = IA;
 	BaseType source_type = BaseType::Unorm4;
-	UINT numColors = size / sizeof(u16);
+	u32 numColors = size / sizeof(u16);
 	if (numColors <= 16)
 	{
 		source_type = BaseType::Unorm4;

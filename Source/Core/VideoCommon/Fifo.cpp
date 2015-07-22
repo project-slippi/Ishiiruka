@@ -18,7 +18,9 @@
 #include "VideoCommon/CommandProcessor.h"
 #include "VideoCommon/DataReader.h"
 #include "VideoCommon/Fifo.h"
+#ifdef _WIN32
 #include "VideoCommon/HLSLCompiler.h"
+#endif
 #include "VideoCommon/OpcodeDecoding.h"
 #include "VideoCommon/OpcodeDecodingSC.h"
 #include "VideoCommon/PixelEngine.h"
@@ -334,8 +336,10 @@ void PreProcessingFifo(bool GPReadEnabled)
 		CPReadFifoSC = fifo.CPWritePointer;
 
 		OpcodeDecoderSC_Run(GetVideoBufferEndPtrSC());
+#ifdef _WIN32
 		if (g_ActiveConfig.bWaitForShaderCompilation)
 			HLSLAsyncCompiler::getInstance().WaitForCompilationFinished();
+#endif
 	}
 
 }

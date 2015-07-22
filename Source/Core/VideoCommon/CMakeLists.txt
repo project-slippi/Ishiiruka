@@ -6,31 +6,55 @@ set(SRCS	AsyncRequests.cpp
 			CPMemory.cpp
 			CommandProcessor.cpp
 			Debugger.cpp
+			DDSLoader.cpp
 			DriverDetails.cpp
 			Fifo.cpp
 			FPSCounter.cpp
 			FramebufferManagerBase.cpp
 			GeometryShaderGen.cpp
 			GeometryShaderManager.cpp
+			G_G4BP08_pvt.cpp
+			G_GB4P51_pvt.cpp
+			G_GFZE01_pvt.cpp
+			G_GLMP01_pvt.cpp
+			G_GM8E01_pvt.cpp
+			G_GNUEDA_pvt.cpp
+			G_GSAE01_pvt.cpp
+			G_GZ2P01_pvt.cpp
+			G_R5WEA4_pvt.cpp
+			G_RBUP08_pvt.cpp
+			G_RMCP01_pvt.cpp
+			G_RMGP01_pvt.cpp
+			G_RSBP01_pvt.cpp
+			G_SDWP18_pvt.cpp
+			G_SMNP01_pvt.cpp
+			G_SPDE52_pvt.cpp
+			G_SPXP41_pvt.cpp
+			G_SX4E01_pvt.cpp
 			HiresTextures.cpp
 			ImageWrite.cpp
 			IndexGenerator.cpp
 			MainBase.cpp
+			memcpy_amd.cpp
 			OnScreenDisplay.cpp
 			OpcodeDecoding.cpp
+			OpcodeDecodingSC.cpp
 			PerfQueryBase.cpp
 			PixelEngine.cpp
 			PixelShaderGen.cpp
 			PixelShaderManager.cpp
+			PNGLoader.cpp
 			PostProcessing.cpp
 			RenderBase.cpp
 			Statistics.cpp
 			TextureCacheBase.cpp
-			TextureConversionShader.cpp
-			TextureDecoder_Common.cpp
+			TextureConversionShaderGL.cpp
+			TextureUtil.cpp
 			VertexLoader.cpp
 			VertexLoaderBase.cpp
+			VertexLoaderCompiled.cpp
 			VertexLoaderManager.cpp
+			VertexLoader_Mtx.cpp
 			VertexLoader_Color.cpp
 			VertexLoader_Normal.cpp
 			VertexLoader_Position.cpp
@@ -46,7 +70,7 @@ set(SRCS	AsyncRequests.cpp
 set(LIBS core png)
 
 if(_M_X86)
-	set(SRCS ${SRCS} TextureDecoder_x64.cpp VertexLoaderX64.cpp)
+	set(SRCS ${SRCS} x64TextureDecoder.cpp VertexLoaderX64.cpp)
 elseif(_M_ARM_64)
 	set(SRCS ${SRCS} VertexLoaderARM64.cpp TextureDecoder_Generic.cpp)
 else()

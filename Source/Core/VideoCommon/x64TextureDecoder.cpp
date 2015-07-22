@@ -11,8 +11,10 @@
 #include "Common/Intrinsics.h"
 
 #include "VideoCommon/TextureDecoder.h"
+#ifdef _WIN32
 #include "OpenCL.h"
 #include "OpenCL/OCLTextureDecoder.h"
+#endif
 #include "VideoCommon/VideoConfig.h"
 
 #include "VideoCommon/LookUpTables.h"
@@ -2046,10 +2048,14 @@ void TexDecoder_SetTexFmtOverlayOptions(bool enable, bool center)
 
 PC_TexFormat TexDecoder_Decode(u8 *dst, const u8 *src, s32 width, s32 height, s32 texformat, s32 tlutaddr, TlutFormat tlutfmt, bool rgbaOnly, bool compressed_supported)
 {
-	PC_TexFormat retval = TexDecoder_Decode_OpenCL(dst, src,
+	PC_TexFormat retval = PC_TEX_FMT_NONE;
+#ifdef _WIN32
+	retval = TexDecoder_Decode_OpenCL(dst, src,
 		width, height, texformat, tlutaddr, tlutfmt, rgbaOnly);
+
 	if (retval == PC_TEX_FMT_NONE)
 	{
+#endif
 		if (rgbaOnly)
 		{
 			retval = TexDecoder_Decode_RGBA((u32*)dst, src, width, height, texformat, tlutaddr, tlutfmt);
@@ -2058,8 +2064,9 @@ PC_TexFormat TexDecoder_Decode(u8 *dst, const u8 *src, s32 width, s32 height, s3
 		{
 			retval = TexDecoder_Decode_real(dst, src, width, height, texformat, tlutaddr, tlutfmt, compressed_supported);
 		}
-		
+#ifdef _WIN32
 	}
+#endif
 	if ((!TexFmt_Overlay_Enable)|| (retval == PC_TEX_FMT_NONE))
 		return retval;
 

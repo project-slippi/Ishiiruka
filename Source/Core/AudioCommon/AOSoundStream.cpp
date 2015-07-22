@@ -30,15 +30,15 @@ void AOSound::SoundLoop()
 		return;
 	}
 
-	buf_size = format.bits / 8 * format.channels * format.rate;
+	buf_size = format.bits/8 * format.channels * format.rate;
 
 	while (m_run_thread.load())
 	{
 		m_mixer->Mix(realtimeBuffer, numBytesToRender >> 2);
 
 		{
-			std::lock_guard<std::mutex> lk(soundCriticalSection);
-			ao_play(device, (char*)realtimeBuffer, numBytesToRender);
+		std::lock_guard<std::mutex> lk(soundCriticalSection);
+		ao_play(device, (char*)realtimeBuffer, numBytesToRender);
 		}
 
 		soundSyncEvent.Wait();
@@ -65,15 +65,15 @@ void AOSound::Stop()
 	soundSyncEvent.Set();
 
 	{
-		std::lock_guard<std::mutex> lk(soundCriticalSection);
-		thread.join();
+	std::lock_guard<std::mutex> lk(soundCriticalSection);
+	thread.join();
 
-		if (device)
-			ao_close(device);
+	if (device)
+		ao_close(device);
 
-		ao_shutdown();
+	ao_shutdown();
 
-		device = nullptr;
+	device = nullptr;
 	}
 }
 

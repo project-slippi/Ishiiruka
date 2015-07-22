@@ -186,6 +186,8 @@ void LoadCPRegSC(u32 sub_cmd, u32 value)
 	}
 }
 
+static void InterpretDisplayList(u32 address, u32 size);
+
 template<bool sizeCheck>
 inline bool DecodeSC(const u8* end)
 {

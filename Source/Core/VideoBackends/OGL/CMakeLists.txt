@@ -1,5 +1,6 @@
 set(SRCS GLExtensions/GLExtensions.cpp
 	   BoundingBox.cpp
+           Depalettizer.cpp
 	   FramebufferManager.cpp
 	   GLUtil.cpp
 	   main.cpp

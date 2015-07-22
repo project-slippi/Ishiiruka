@@ -65,7 +65,7 @@ bool OpenSLESStream::Start()
 	result = (*outputMixObject)->Realize(outputMixObject, SL_BOOLEAN_FALSE);
 	assert(SL_RESULT_SUCCESS == result);
 
-	SLDataLocator_AndroidSimpleBufferQueue loc_bufq = { SL_DATALOCATOR_ANDROIDSIMPLEBUFFERQUEUE, 2 };
+	SLDataLocator_AndroidSimpleBufferQueue loc_bufq = {SL_DATALOCATOR_ANDROIDSIMPLEBUFFERQUEUE, 2};
 	SLDataFormat_PCM format_pcm = {
 		SL_DATAFORMAT_PCM,
 		2,
@@ -76,15 +76,15 @@ bool OpenSLESStream::Start()
 		SL_BYTEORDER_LITTLEENDIAN
 	};
 
-	SLDataSource audioSrc = { &loc_bufq, &format_pcm };
+	SLDataSource audioSrc = {&loc_bufq, &format_pcm};
 
 	// configure audio sink
-	SLDataLocator_OutputMix loc_outmix = { SL_DATALOCATOR_OUTPUTMIX, outputMixObject };
-	SLDataSink audioSnk = { &loc_outmix, nullptr };
+	SLDataLocator_OutputMix loc_outmix = {SL_DATALOCATOR_OUTPUTMIX, outputMixObject};
+	SLDataSink audioSnk = {&loc_outmix, nullptr};
 
 	// create audio player
-	const SLInterfaceID ids[2] = { SL_IID_BUFFERQUEUE, SL_IID_VOLUME };
-	const SLboolean req[2] = { SL_BOOLEAN_TRUE, SL_BOOLEAN_TRUE };
+	const SLInterfaceID ids[2] = {SL_IID_BUFFERQUEUE, SL_IID_VOLUME};
+	const SLboolean req[2] = {SL_BOOLEAN_TRUE, SL_BOOLEAN_TRUE};
 	result = (*engineEngine)->CreateAudioPlayer(engineEngine, &bqPlayerObject, &audioSrc, &audioSnk, 2, ids, req);
 	assert(SL_RESULT_SUCCESS == result);
 

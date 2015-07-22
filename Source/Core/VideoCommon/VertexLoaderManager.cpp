@@ -92,7 +92,7 @@ namespace VertexLoaderManager
 		{
 			return;
 		}		
-		std::string filename = StringFromFormat("%sG_%s_pvt.h", File::GetUserPath(D_DUMP_IDX), LastGameCode);		
+		std::string filename = StringFromFormat("%sG_%s_pvt.h", File::GetUserPath(D_DUMP_IDX).c_str(), LastGameCode.c_str());		
 		std::string header;
 		header.append("// Copyright 2013 Dolphin Emulator Project\n");
 		header.append("// Licensed under GPLv2+\n");
@@ -109,7 +109,7 @@ namespace VertexLoaderManager
 		std::ofstream headerfile(filename);
 		headerfile << header;
 		headerfile.close();
-		filename = StringFromFormat("%sG_%s_pvt.cpp", File::GetUserPath(D_DUMP_IDX), LastGameCode);		
+		filename = StringFromFormat("%sG_%s_pvt.cpp", File::GetUserPath(D_DUMP_IDX).c_str(), LastGameCode.c_str());		
 		sort(entries.begin(), entries.end());
 		std::string sourcecode;
 		sourcecode.append("#include \"VideoCommon/G_");

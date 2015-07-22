@@ -34,14 +34,14 @@ protected:
 	WaveFileWriter g_wave_writer;
 	bool m_muted;
 	std::unique_ptr<std::thread> thread;
-	void SoundLoop();
+	virtual void SoundLoop();
 	virtual void InitializeSoundLoop() {}
 	virtual u32 SamplesNeeded(){ return 0; }
 	virtual void WriteSamples(s16 *src, u32 numsamples){}
 	virtual bool SupportSurroundOutput(){ return false; };
 public:
 	SoundStream();
-	~SoundStream();
+	virtual ~SoundStream();
 
 	static  bool isValid() { return false; }
 	CMixer *GetMixer() const { return m_mixer.get(); }

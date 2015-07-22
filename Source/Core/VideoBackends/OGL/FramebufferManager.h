@@ -49,8 +49,9 @@ struct XFBSource : public XFBSourceBase
 {
 	XFBSource(GLuint tex, int layers) :
 		texture(tex),
-		m_layers(layers),
-		depthtexture(0){}
+		depthtexture(0),
+		m_layers(layers){}
+
 	~XFBSource();
 
 	void CopyEFB(float Gamma) override;

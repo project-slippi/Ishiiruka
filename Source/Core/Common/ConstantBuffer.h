@@ -59,8 +59,8 @@ private:
 		{
 			std::pair<u32, u32> &currentregion = m_dirtyRegions[i];
 			// overlaps
-			if (x <= currentregion.second && currentregion.first <= y
-				|| y + 1 == currentregion.first || currentregion.second + 1 == x)
+			if (((x <= currentregion.second) && (currentregion.first <= y))
+				|| (y + 1 == currentregion.first) || (currentregion.second + 1 == x))
 			{
 				currentregion.first = std::min(currentregion.first, x);
 				currentregion.second = std::max(currentregion.second, y);
@@ -77,8 +77,8 @@ private:
 public:
 	ConstatBuffer(void* buffer, size_t size) :
 		m_buffer(buffer),
-		m_size(size),
 		m_dirtyRegions(),
+		m_size(size),
 		m_dirty(false),
 		m_dirtyregiondisabled(false)
 	{

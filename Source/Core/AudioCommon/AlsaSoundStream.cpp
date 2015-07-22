@@ -20,7 +20,7 @@ AlsaSound::AlsaSound()
 
 AlsaSound::~AlsaSound()
 {
-	delete[] mix_buffer;
+	delete [] mix_buffer;
 }
 
 bool AlsaSound::Start()
@@ -74,7 +74,7 @@ bool AlsaSound::AlsaInit()
 	int dir;
 	snd_pcm_sw_params_t *swparams;
 	snd_pcm_hw_params_t *hwparams;
-	snd_pcm_uframes_t buffer_size, buffer_size_max;
+	snd_pcm_uframes_t buffer_size,buffer_size_max;
 	unsigned int periods;
 
 	err = snd_pcm_open(&handle, "default", SND_PCM_STREAM_PLAYBACK, 0);

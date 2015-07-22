@@ -79,7 +79,12 @@ public:
 	typedef std::map<std::string, ConfigurationOption> ConfigMap;
 	typedef std::vector<StageOption> StageList;
 
-	PostProcessingShaderConfiguration() : m_current_shader(""), m_requires_depth_input(false), m_requires_recompilation(true){}
+	PostProcessingShaderConfiguration() :
+		m_any_options_dirty(true),
+		m_requires_depth_input(false),
+		m_requires_recompilation(true),
+		m_last_stage(0),
+		m_current_shader(""){}
 	virtual ~PostProcessingShaderConfiguration() {}
 
 	// Loads the configuration with a shader

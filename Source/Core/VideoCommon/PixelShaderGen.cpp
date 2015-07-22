@@ -287,6 +287,10 @@ template<class T, API_TYPE ApiType> inline void SampleTexture(T& out, const char
 template<class T, bool Write_Code, API_TYPE ApiType, bool use_integer_math> inline void WriteAlphaTest(T& out, pixel_shader_uid_data& uid_data, DSTALPHA_MODE dstAlphaMode, bool per_pixel_depth, const BPMemory &bpm);
 template<class T, bool Write_Code, bool use_integer_math> inline void WriteFog(T& out, pixel_shader_uid_data& uid_data, const BPMemory &bpm);
 template<class T, bool use_integer_math, API_TYPE ApiType> inline void WritePerPixelDepth(T& out, const BPMemory &bpm);
+template<int TEVARG_ZERO, int TEVARG_ONE, class T>
+static inline void WriteTevRegular(T& out, const char* components, int bias, int op, int clamp, int shift, int a, int b, int c, int d);
+template<int TEVARG_ZERO, int TEVARG_ONE, class T>
+static inline void WriteTevRegularI(T& out, const char* components, int bias, int op, int clamp, int shift, int a, int b, int c, int d);
 
 template<class T, bool Write_Code, API_TYPE ApiType, bool Use_integer_math = false>
 inline void GeneratePixelShader(T& out, DSTALPHA_MODE dstAlphaMode, u32 components, const XFMemory &xfr, const BPMemory &bpm)

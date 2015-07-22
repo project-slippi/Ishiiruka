@@ -9,7 +9,7 @@
 
 namespace TextureUtil
 {
-
+#ifdef _WIN32
 	void ConvertRGBA_BGRA_SSE2(u32 *dst, const s32 dstPitch, u32 *pIn, const s32 width, const s32 height, const s32 pitch)
 	{
 		// Converts RGBA to BGRA:
@@ -158,7 +158,7 @@ namespace TextureUtil
 			currentsrc += pitch;
 		}
 	}
-
+#endif
 	void ConvertRGBA565_RGBA(u32 *dst, const s32 dstPitch, u16 *pIn, const s32 width, const s32 height, const s32 pitch)
 	{
 		u16 *currentsrc = pIn;

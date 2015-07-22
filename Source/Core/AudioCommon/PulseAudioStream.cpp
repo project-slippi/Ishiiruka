@@ -10,7 +10,7 @@
 
 namespace
 {
-	const size_t BUFFER_SAMPLES = 512; // ~10 ms - needs to be at least 240 for surround
+const size_t BUFFER_SAMPLES = 512; // ~10 ms - needs to be at least 240 for surround
 }
 
 PulseAudio::PulseAudio()
@@ -21,7 +21,7 @@ PulseAudio::PulseAudio()
 
 bool PulseAudio::Start()
 {
-	m_stereo = !SConfig::GetInstance().m_LocalCoreStartupParameter.bDPL2Decoder;
+	m_stereo = !SConfig::GetInstance().bDPL2Decoder;
 	m_channels = m_stereo ? 2 : 5; // will tell PA we use a Stereo or 5.0 channel setup
 
 	NOTICE_LOG(AUDIO, "PulseAudio backend using %d channels", m_channels);
@@ -184,7 +184,7 @@ void PulseAudio::WriteCallback(pa_stream* s, size_t length)
 	if (m_stereo)
 	{
 		// use the raw s16 stereo mix
-		m_mixer->Mix((s16*)buffer, frames);
+		m_mixer->Mix((s16*) buffer, frames);
 	}
 	else
 	{
@@ -194,7 +194,7 @@ void PulseAudio::WriteCallback(pa_stream* s, size_t length)
 
 		float floatbuffer_stereo[frames * 2];
 		// s16 to float
-		for (int i = 0; i < frames * 2; ++i)
+		for (int i=0; i < frames * 2; ++i)
 		{
 			floatbuffer_stereo[i] = s16buffer_stereo[i] / float(1 << 15);
 		}
@@ -207,10 +207,10 @@ void PulseAudio::WriteCallback(pa_stream* s, size_t length)
 
 			// Discard the subwoofer channel - DPL2Decode generates a pretty
 			// good 5.0 but not a good 5.1 output.
-			const int dpl2_to_5chan[] = { 0, 1, 2, 4, 5 };
-			for (int i = 0; i < frames; ++i)
+			const int dpl2_to_5chan[] = {0,1,2,4,5};
+			for (int i=0; i < frames; ++i)
 			{
-				for (int j = 0; j < m_channels; ++j)
+				for (int j=0; j < m_channels; ++j)
 				{
 					((float*)buffer)[m_channels * i + j] = floatbuffer_6chan[6 * i + dpl2_to_5chan[j]];
 				}
@@ -230,18 +230,18 @@ void PulseAudio::WriteCallback(pa_stream* s, size_t length)
 
 void PulseAudio::StateCallback(pa_context* c, void* userdata)
 {
-	PulseAudio* p = (PulseAudio*)userdata;
+	PulseAudio* p = (PulseAudio*) userdata;
 	p->StateCallback(c);
 }
 
 void PulseAudio::UnderflowCallback(pa_stream* s, void* userdata)
 {
-	PulseAudio* p = (PulseAudio*)userdata;
+	PulseAudio* p = (PulseAudio*) userdata;
 	p->UnderflowCallback(s);
 }
 
 void PulseAudio::WriteCallback(pa_stream* s, size_t length, void* userdata)
 {
-	PulseAudio* p = (PulseAudio*)userdata;
+	PulseAudio* p = (PulseAudio*) userdata;
 	p->WriteCallback(s, length);
 }

@@ -22,7 +22,9 @@
 #include "VideoCommon/DataReader.h"
 #include "VideoCommon/Fifo.h"
 #include "VideoCommon/OpcodeDecoding.h"
+#ifdef _WIN32
 #include "VideoCommon/OpenCL.h"
+#endif
 #include "VideoCommon/OpenCL/OCLTextureDecoder.h"
 #include "VideoCommon/Statistics.h"
 #include "VideoCommon/VertexLoaderManager.h"
@@ -40,24 +42,8 @@ void ReadU32xn(u32 *bufx16)
 	g_VideoData.ReadU32xN<count>(bufx16);
 }
 
-DataReadU32xNfunc DataReadU32xFuncs[16] = {
-	ReadU32xn<1>,
-	ReadU32xn<2>,
-	ReadU32xn<3>,
-	ReadU32xn<4>,
-	ReadU32xn<5>,
-	ReadU32xn<6>,
-	ReadU32xn<7>,
-	ReadU32xn<8>,
-	ReadU32xn<9>,
-	ReadU32xn<10>,
-	ReadU32xn<11>,
-	ReadU32xn<12>,
-	ReadU32xn<13>,
-	ReadU32xn<14>,
-	ReadU32xn<15>,
-	ReadU32xn<16>
-};
+static u32 InterpretDisplayList(u32 address, u32 size);
+static void UnknownOpcode(u8 cmd_byte, const void *buffer);
 
 template<bool sizeCheck>
 inline u32 Decode(const u8* end)
@@ -234,6 +220,25 @@ inline u32 Decode(const u8* end)
 }
 
 
+DataReadU32xNfunc DataReadU32xFuncs[16] = {
+	ReadU32xn<1>,
+	ReadU32xn<2>,
+	ReadU32xn<3>,
+	ReadU32xn<4>,
+	ReadU32xn<5>,
+	ReadU32xn<6>,
+	ReadU32xn<7>,
+	ReadU32xn<8>,
+	ReadU32xn<9>,
+	ReadU32xn<10>,
+	ReadU32xn<11>,
+	ReadU32xn<12>,
+	ReadU32xn<13>,
+	ReadU32xn<14>,
+	ReadU32xn<15>,
+	ReadU32xn<16>
+};
+
 static u32 InterpretDisplayList(u32 address, u32 size)
 {
 	const u8* old_pVideoData = g_VideoData.GetReadPosition();
@@ -306,12 +311,13 @@ void OpcodeDecoder_Init()
 {
 	s_bFifoErrorSeen = false;
 	g_VideoData.SetReadPosition(GetVideoBufferStartPtr());
-
+#ifdef _WIN32
 	if (g_Config.bEnableOpenCL)
 	{
 		OpenCL::Initialize();
 		TexDecoder_OpenCL_Initialize();
 	}
+#endif
 }
 
 void ResetStates()
@@ -329,11 +335,13 @@ void ResetStates()
 
 void OpcodeDecoder_Shutdown()
 {
+#ifdef _WIN32
 	if (g_Config.bEnableOpenCL)
 	{
 		TexDecoder_OpenCL_Shutdown();
 		OpenCL::Destroy();
 	}
+#endif
 }
 
 u32 OpcodeDecoder_Run(const u8* end)

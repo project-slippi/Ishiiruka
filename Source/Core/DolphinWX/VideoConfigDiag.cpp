@@ -159,7 +159,7 @@ static const char *s_bbox_mode_text[] = { "Disabled", "CPU", "GPU" };
 static  wxArrayString GetListOfResolutions()
 {
 	wxArrayString retlist;
-	retlist.Add("Auto");
+	retlist.Add(_("Auto"));
 #ifdef _WIN32
 	DWORD iModeNum = 0;
 	DEVMODE dmi;
@@ -167,7 +167,7 @@ static  wxArrayString GetListOfResolutions()
 	dmi.dmSize = sizeof(dmi);
 	std::vector<std::string> resos;
 
-	while (EnumDisplaySettings(NULL, iModeNum++, &dmi) != 0)
+	while (EnumDisplaySettings(nullptr, iModeNum++, &dmi) != 0)
 	{
 		char res[100];
 		sprintf(res, "%dx%d", dmi.dmPelsWidth, dmi.dmPelsHeight);
@@ -181,9 +181,12 @@ static  wxArrayString GetListOfResolutions()
 		ZeroMemory(&dmi, sizeof(dmi));
 	}
 #elif defined(HAVE_XRANDR) && HAVE_XRANDR
-	main_frame->m_XRRConfig->AddResolutions(retlist);
+	std::vector<std::string> resos;
+	main_frame->m_XRRConfig->AddResolutions(resos);
+	for (auto res : resos)
+		retlist.Add(StrToWxStr(res));
 #elif defined(__APPLE__)
-	CFArrayRef modes = CGDisplayCopyAllDisplayModes(CGMainDisplayID(), NULL);
+	CFArrayRef modes = CGDisplayCopyAllDisplayModes(CGMainDisplayID(), nullptr);
 	for (CFIndex i = 0; i < CFArrayGetCount(modes); i++)
 	{
 		std::stringstream res;

@@ -847,6 +847,7 @@ endif()
 
 file(WRITE ${PROJECT_BINARY_DIR}/Source/Core/Common/scmrev.h
 	"#define SCM_REV_STR \"" ${DOLPHIN_WC_REVISION} "\"\n"
+	"#define SCM_CACHE_STR \"" ${DOLPHIN_WC_REVISION} "\"\n"
 	"#define SCM_DESC_STR \"" ${DOLPHIN_WC_DESCRIBE} "\"\n"
 	"#define SCM_BRANCH_STR \"" ${DOLPHIN_WC_BRANCH} "\"\n"
 	"#define SCM_IS_MASTER " ${DOLPHIN_WC_IS_STABLE} "\n"

@@ -47,8 +47,12 @@ static const char s_vertex_shader[] =
 	"	uv2 = uv0.xyyx + (vec4(0.375f, 0.125f, 0.375f, -0.125f) * dstscale.zwwz);\n"
 	"}\n";
 
-OpenGLPostProcessing::OpenGLPostProcessing()
-	: m_initialized(false), m_prev_dst_height(0), m_prev_dst_width(0), m_prev_src_height(0), m_prev_src_width(0)
+OpenGLPostProcessing::OpenGLPostProcessing() :
+	m_prev_dst_width(0),
+	m_prev_dst_height(0),
+	m_prev_src_width(0),
+	m_prev_src_height(0),
+	m_initialized(false)  
 {
 	CreateHeader();
 
