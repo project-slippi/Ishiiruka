@@ -107,7 +107,6 @@ void HiresTexture::Update()
 		std::string FileName;
 		std::string Extension;
 		SplitPath(rFilenames[i], nullptr, &FileName, &Extension);
-		bool newformat = false;
 		bool dds_file = Extension.compare(ddscode) == 0 || Extension.compare(cddscode) == 0;
 		if (FileName.substr(0, code.length()) == code)
 		{
@@ -116,7 +115,6 @@ void HiresTexture::Update()
 		else if (FileName.substr(0, s_format_prefix.length()) == s_format_prefix)
 		{
 			s_check_new_format = true;
-			newformat = true;
 		}
 		else
 		{
@@ -298,7 +296,7 @@ std::string HiresTexture::GenBaseName(
 			{
 				HiresTextureCacheItem newitem;
 				newitem.resize(convert_iter->second.size());
-				for (int level = 0; level < convert_iter->second.size(); level++)
+				for (size_t level = 0; level < convert_iter->second.size(); level++)
 				{
 					std::string newname = fullname;
 					if (level)
@@ -322,7 +320,7 @@ std::string HiresTexture::GenBaseName(
 			}
 			else
 			{
-				for (int level = 0; level < convert_iter->second.size(); level++)
+				for (size_t level = 0; level < convert_iter->second.size(); level++)
 				{
 					if (File::Delete(convert_iter->second[level].first))
 					{
@@ -433,8 +431,8 @@ HiresTexture* HiresTexture::Load(const std::string& basename,
 	}
 	HiresTexture* ret = nullptr;
 	u8* buffer_pointer;
-	u32 maxwidth;
-	u32 maxheight;
+	u32 maxwidth = 0;
+	u32 maxheight = 0;
 	bool last_level_is_dds = false;
 	bool allocated_data = false;
 	bool mipmapsize_included = false;
@@ -494,7 +492,7 @@ HiresTexture* HiresTexture::Load(const std::string& basename,
 			{
 				delete [] imgInfo.dst;
 			}
-			ERROR_LOG(VIDEO, "Custom texture %s failed to load level %i", imgInfo.Path, level);
+			ERROR_LOG(VIDEO, "Custom texture %s failed to load level %zu", imgInfo.Path, level);
 			break;
 		}
 		if (level == 0)
@@ -523,7 +521,7 @@ HiresTexture* HiresTexture::Load(const std::string& basename,
 				|| ret->m_format != imgInfo.resultTex)
 			{
 				ERROR_LOG(VIDEO, 
-					"Custom texture %s invalid level %i size: %i %i required: %i %i format: %i", 
+					"Custom texture %s invalid level %zu size: %zu %zu required: %zu %zu format: %i", 
 					imgInfo.Path, 
 					level, 
 					imgInfo.Width, 

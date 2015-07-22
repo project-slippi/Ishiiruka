@@ -25,7 +25,7 @@
 
 #include "Common/MathUtil.h"
 
-SoundStream::SoundStream() : m_mixer(new CMixer(48000)), threadData(true), m_logAudio(false), m_muted(false), m_enablesoundloop(true)
+SoundStream::SoundStream() : m_enablesoundloop(true), m_mixer(new CMixer(48000)), threadData(true), m_logAudio(false), m_muted(false)
 {
 
 }

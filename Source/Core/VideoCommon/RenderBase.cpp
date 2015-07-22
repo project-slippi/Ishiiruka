@@ -175,7 +175,8 @@ void Renderer::CalculateTargetScale(int x, int y, int &scaledX, int &scaledY)
 // return true if target size changed
 bool Renderer::CalculateTargetSize(unsigned int framebuffer_width, unsigned int framebuffer_height, int multiplier)
 {
-	int newEFBWidth, newEFBHeight;
+	int newEFBWidth = 0;
+	int newEFBHeight = 0;
 
 	// TODO: Ugly. Clean up
 	switch (s_last_efb_scale)

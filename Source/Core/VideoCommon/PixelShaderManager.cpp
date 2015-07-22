@@ -285,7 +285,7 @@ void PixelShaderManager::SetConstants()
 						(float)bpmem.indmtx[i].col2.mf,
 						(float)scale);
 				}
-				PRIM_LOG("indmtx%d: scale=%f, mat=(%f %f %f; %f %f %f)\n",
+				PRIM_LOG("indmtx%d: scale=%i, mat=(%i %i %i; %i %i %i)\n",
 					i, scale,
 					bpmem.indmtx[i].col0.ma, bpmem.indmtx[i].col1.mc, bpmem.indmtx[i].col2.me,
 					bpmem.indmtx[i].col0.mb, bpmem.indmtx[i].col1.md, bpmem.indmtx[i].col2.mf);

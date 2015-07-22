@@ -99,7 +99,7 @@ void VertexLoader::CompileVertexTranslator()
 
 		if (pFunc == 0)
 		{
-			PanicAlert("VertexLoader_Normal::GetFunction(%i %i %i %i) returned zero!",
+			PanicAlert("VertexLoader_Normal::GetFunction(%ull %i %i %i) returned zero!",
 				m_VtxDesc.Normal, m_VtxAttr.NormalFormat,
 				m_VtxAttr.NormalElements, m_VtxAttr.NormalIndex3);
 		}
@@ -183,7 +183,7 @@ void VertexLoader::CompileVertexTranslator()
 
 		if (tc[i] != NOT_PRESENT)
 		{
-			_assert_msg_(VIDEO, DIRECT <= tc[i] && tc[i] <= INDEX16, "Invalid texture coordinates!\n(tc[i] = %d)", tc[i]);
+			_assert_msg_(VIDEO, DIRECT <= tc[i] && tc[i] <= INDEX16, "Invalid texture coordinates!\n(tc[i] = %ull)", tc[i]);
 			_assert_msg_(VIDEO, FORMAT_UBYTE <= format && format <= FORMAT_FLOAT, "Invalid texture coordinates format!\n(format = %d)", format);
 			_assert_msg_(VIDEO, 0 <= elements && elements <= 1, "Invalid number of texture coordinates elements!\n(elements = %d)", elements);
 

@@ -39,7 +39,7 @@ public:
 		bool rendertarget;
 		PC_TexFormat pcformat;
 
-		const u32 GetSizeInBytes() const
+		u32 GetSizeInBytes() const
 		{
 			u32 result = 0; 
 			switch (pcformat)

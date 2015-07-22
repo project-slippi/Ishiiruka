@@ -14,8 +14,6 @@
 //
 bool OpenALStream::Start()
 {
-	bool bReturn = false;
-
 	ALDeviceList pDeviceList;
 	if (pDeviceList.GetNumDevices())
 	{

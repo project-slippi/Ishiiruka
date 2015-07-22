@@ -294,12 +294,12 @@ std::string PostProcessingShaderConfiguration::LoadOptions(const std::string& co
 					size_t stage_limit = std::min(m_stages.size(), size_t(4));
 					if (option.m_inputs.size() > stage_limit)
 						option.m_inputs.erase(option.m_inputs.begin() + stage_limit, option.m_inputs.end());
-					for (u32& it : option.m_inputs)
+					for (u32& inp : option.m_inputs)
 					{
 						// Allow only inputs from previous stages
-						if (it >= m_stages.size())
+						if (inp >= m_stages.size())
 						{
-							it = u32(m_stages.size() - 1);
+							inp = u32(m_stages.size() - 1);
 						}
 					}
 				}
@@ -457,8 +457,8 @@ void PostProcessingShaderConfiguration::LoadOptionsConfiguration()
 			{
 				//Override with specific game settings
 				ini.Load(PresetPath);
-				IniFile::Section* section = ini.GetOrCreateSection("options");
-				LoadOptionsConfigurationFromSection(section);
+				IniFile::Section* gameini_section = ini.GetOrCreateSection("options");
+				LoadOptionsConfigurationFromSection(gameini_section);
 			}
 		}
 	}

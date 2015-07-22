@@ -120,10 +120,10 @@ void OpenGLPostProcessing::BlitFromTexture(const TargetRectangle &src, const Tar
 	const auto& stages = m_config.GetStages();
 	size_t finalstage = stages.size() - 1;
 	if (finalstage > 0 &&
-		(m_prev_dst_width != dst.GetWidth()
-		|| m_prev_dst_height != dst.GetHeight()
-		|| m_prev_src_width != src.GetWidth()
-		|| m_prev_src_height != src.GetHeight()
+		(m_prev_dst_width != u32(dst.GetWidth())
+		|| m_prev_dst_height != u32(dst.GetHeight())
+		|| m_prev_src_width != u32(src.GetWidth())
+		|| m_prev_src_height != u32(src.GetHeight())
 		|| m_stageOutput.size() != finalstage))
 	{
 		m_prev_dst_width = dst.GetWidth();
