@@ -1,10 +1,11 @@
 /*===============================================================================*\
-|########################        [Ishiiruka FX 0.3]        ######################||
+|########################        [Ishiiruka FX 0.4]        ######################||
 || Credist to:                                                                   ||
 || Asmodean (DolphinFX)                                                          ||
 || Matso (MATSODOF)                                                              ||
 || Gilcher Pascal aka Marty McFly (MATSODOF original port to MCFX)               ||
 || Daniel Rákos (Efficient Gaussian blur with linear sampling)                   ||
+|| mudlord (FXAA)
 |############################        By Tino          ############################|
 \*===============================================================================*/
 /*
@@ -13,6 +14,11 @@
 GUIName = Ambient Only
 OptionName = A_SSAO_ONLY
 DefaultValue = False
+
+[OptionBool]
+GUIName = FXAA
+OptionName = E_FXAA_ENABLED
+DefaultValue = false
 
 [OptionBool]
 GUIName = SSAO
@@ -389,6 +395,9 @@ DependentOption = MATSODOF
 [Stage]
 EntryPoint = Barrel_distortion
 DependentOption = E_BARREL
+[Stage]
+EntryPoint = FXAAPS
+DependentOption = E_FXAA_ENABLED
 [/configuration]
 */
 float3 GetNormalFromDepth(float fDepth)
@@ -993,4 +1002,59 @@ void Barrel_distortion(){
 	{
 		SetOutput(SamplePrevLocation(ToSRCCoords(actualTextureCoords)));
 	}
+}
+
+#define FXAA_REDUCE_MIN		(1.0/ 128.0)
+#define FXAA_REDUCE_MUL		(1.0 / 8.0)
+#define FXAA_SPAN_MAX		8.0
+
+
+float4 applyFXAA(float2 fragCoord)
+{
+	float4 color;
+	float2 inverseVP = GetInvResolution();
+	float3 rgbNW = SamplePrevLocation((fragCoord + float2(-1.0, -1.0)) * inverseVP).xyz;
+	float3 rgbNE = SamplePrevLocation((fragCoord + float2(1.0, -1.0)) * inverseVP).xyz;
+	float3 rgbSW = SamplePrevLocation((fragCoord + float2(-1.0, 1.0)) * inverseVP).xyz;
+	float3 rgbSE = SamplePrevLocation((fragCoord + float2(1.0, 1.0)) * inverseVP).xyz;
+	float3 rgbM = SamplePrevLocation(fragCoord  * inverseVP).xyz;
+	float3 luma = lumCoeff;
+	float lumaNW = dot(rgbNW, luma);
+	float lumaNE = dot(rgbNE, luma);
+	float lumaSW = dot(rgbSW, luma);
+	float lumaSE = dot(rgbSE, luma);
+	float lumaM = dot(rgbM, luma);
+	float lumaMin = min(lumaM, min(min(lumaNW, lumaNE), min(lumaSW, lumaSE)));
+	float lumaMax = max(lumaM, max(max(lumaNW, lumaNE), max(lumaSW, lumaSE)));
+
+	float2 dir;
+	dir.x = -((lumaNW + lumaNE) - (lumaSW + lumaSE));
+	dir.y = ((lumaNW + lumaSW) - (lumaNE + lumaSE));
+
+	float dirReduce = max((lumaNW + lumaNE + lumaSW + lumaSE) *
+		(0.25 * FXAA_REDUCE_MUL), FXAA_REDUCE_MIN);
+
+	float rcpDirMin = 1.0 / (min(abs(dir.x), abs(dir.y)) + dirReduce);
+	dir = min(float2(FXAA_SPAN_MAX, FXAA_SPAN_MAX),
+		max(float2(-FXAA_SPAN_MAX, -FXAA_SPAN_MAX),
+		dir * rcpDirMin)) * inverseVP;
+
+	float3 rgbA = 0.5 * (
+		SamplePrevLocation(fragCoord * inverseVP + dir * (1.0 / 3.0 - 0.5)).xyz +
+		SamplePrevLocation(fragCoord * inverseVP + dir * (2.0 / 3.0 - 0.5)).xyz);
+	float3 rgbB = rgbA * 0.5 + 0.25 * (
+		SamplePrevLocation(fragCoord * inverseVP + dir * -0.5).xyz +
+		SamplePrevLocation(fragCoord * inverseVP + dir * 0.5).xyz);
+
+	float lumaB = dot(rgbB, luma);
+	if ((lumaB < lumaMin) || (lumaB > lumaMax))
+		color = float4(rgbA, 1.0);
+	else
+		color = float4(rgbB, 1.0);
+	return color;
+}
+
+void FXAAPS()
+{
+	SetOutput(applyFXAA(GetCoordinates() * GetResolution()));
 }
