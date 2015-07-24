@@ -3,8 +3,10 @@
 // Refer to the license.txt file included.
 
 #include "Common/Common.h"
-#include "VideoCommon/VideoConfig.h"
 #include "Common/MathUtil.h"
+
+#include "Core/ConfigManager.h"
+#include "Core/Core.h"
 
 #include <cmath>
 #include <sstream>
@@ -17,6 +19,7 @@
 #include "VideoCommon/CPMemory.h"
 #include "VideoCommon/XFMemory.h"
 #include "VideoCommon/VideoCommon.h"
+#include "VideoCommon/VideoConfig.h"
 #include "VideoCommon/VertexManagerBase.h"
 
 #include "VideoCommon/RenderBase.h"
@@ -429,6 +432,16 @@ void VertexShaderManager::SetConstants()
 			// -(1 + epsilon) so objects are clipped as they are on the real HW
 			g_fProjectionMatrix[14] = -1.0f;
 			g_fProjectionMatrix[15] = 0.0f;
+
+			if (!SConfig::GetInstance().bWii)
+			{
+				// heuristic to detect if a gamecube game is in 16:9 anamorphic widescreen mode
+				float aspect = fabs(rawProjection[2] / rawProjection[0]);
+				if (aspect > 1.7f && aspect < 1.85)
+					g_aspect_wide = true;
+				else if (aspect > 1.25 && aspect < 1.4)
+					g_aspect_wide = false;
+			}
 
 			SETSTAT_FT(stats.gproj_0, g_fProjectionMatrix[0]);
 			SETSTAT_FT(stats.gproj_1, g_fProjectionMatrix[1]);
