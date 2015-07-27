@@ -114,23 +114,23 @@ Renderer::~Renderer()
 #endif
 }
 
-void Renderer::RenderToXFB(u32 xfbAddr, u32 fbWidth, u32 fbHeight, const EFBRectangle& sourceRc, float Gamma)
+void Renderer::RenderToXFB(u32 xfbAddr, const EFBRectangle& sourceRc, u32 fbStride, u32 fbHeight, float Gamma)
 {
 	CheckFifoRecording();
 
-	if (!fbWidth || !fbHeight)
+	if (!fbStride || !fbHeight)
 		return;
 
 	XFBWrited = true;
 
 	if (g_ActiveConfig.bUseXFB)
 	{
-		FramebufferManagerBase::CopyToXFB(xfbAddr, fbWidth, fbHeight, sourceRc,Gamma);
+		FramebufferManagerBase::CopyToXFB(xfbAddr, fbStride, fbHeight, sourceRc, Gamma);
 	}
 	else
 	{
-		Swap(xfbAddr, fbWidth, fbWidth, fbHeight, sourceRc, Gamma);
-		Common::AtomicIncrement(s_EFB_PCache_Frame);
+		// below div two to convert from bytes to pixels - it expects width, not stride
+		Swap(xfbAddr, fbStride / 2, fbStride / 2, fbHeight, sourceRc, Gamma);
 	}
 }
 

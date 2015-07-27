@@ -161,7 +161,7 @@ void XFBSource::DecodeToTexture(u32 xfbAddr, u32 fbWidth, u32 fbHeight)
 	TextureConverter::DecodeToTexture(xfbAddr, fbWidth, fbHeight, texture);
 }
 
-void FramebufferManager::CopyToRealXFB(u32 xfbAddr, u32 fbWidth, u32 fbHeight, const EFBRectangle& sourceRc,float Gamma)
+void FramebufferManager::CopyToRealXFB(u32 xfbAddr, u32 fbStride, u32 fbHeight, const EFBRectangle& sourceRc, float Gamma)
 {
 	u8* xfb_in_ram = Memory::GetPointer(xfbAddr);
 	if (!xfb_in_ram)
@@ -171,7 +171,7 @@ void FramebufferManager::CopyToRealXFB(u32 xfbAddr, u32 fbWidth, u32 fbHeight, c
 	}
 
 	TargetRectangle targetRc = g_renderer->ConvertEFBRectangle(sourceRc);
-	TextureConverter::EncodeToRamYUYV(GetEFBColorTexture(), targetRc, xfb_in_ram, fbWidth, fbHeight,Gamma);
+	TextureConverter::EncodeToRamYUYV(GetEFBColorTexture(), targetRc, xfb_in_ram, sourceRc.GetWidth(), fbStride, fbHeight, Gamma);
 }
 
 void XFBSource::CopyEFB(float Gamma)
@@ -193,30 +193,18 @@ void XFBSource::CopyEFB(float Gamma)
 	vp.MaxZ = 1.0f;
 	D3D::dev->SetViewport(&vp);
 
-	RECT sourcerect;
-	sourcerect.bottom = sourceRc.bottom;
-	sourcerect.left = sourceRc.left;
-	sourcerect.right = sourceRc.right;
-	sourcerect.top = sourceRc.top;
-
-	D3D::ChangeSamplerState(0, D3DSAMP_MINFILTER, D3DTEXF_LINEAR);
-	D3D::ChangeSamplerState(0, D3DSAMP_MAGFILTER, D3DTEXF_LINEAR);
-	
-	int multisamplemode = g_ActiveConfig.iMultisampleMode;
-	if (multisamplemode == 0 && g_ActiveConfig.bUseScalingFilter)
-	{
-		multisamplemode = std::max(std::min((int)((sourcerect.right - sourcerect.left) / texWidth) - 1, 2), 0);
-	}
+	D3D::ChangeSamplerState(0, D3DSAMP_MINFILTER, D3DTEXF_POINT);
+	D3D::ChangeSamplerState(0, D3DSAMP_MAGFILTER, D3DTEXF_POINT);
 
 	D3D::drawShadedTexQuad(
 		FramebufferManager::GetEFBColorTexture(), 
-		&sourcerect, 
+		nullptr, 
 		Renderer::GetTargetWidth(), 
 		Renderer::GetTargetHeight(), 
 		texWidth, 
 		texHeight, 
-		PixelShaderCache::GetColorCopyProgram(multisamplemode),
-		VertexShaderCache::GetSimpleVertexShader(multisamplemode),
+		PixelShaderCache::GetColorCopyProgram(0),
+		VertexShaderCache::GetSimpleVertexShader(0),
 		Gamma);
 
 	D3D::RefreshSamplerState(0, D3DSAMP_MINFILTER);

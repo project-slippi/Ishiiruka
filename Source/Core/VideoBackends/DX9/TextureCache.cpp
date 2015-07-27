@@ -262,7 +262,8 @@ void TextureCache::TCacheEntry::FromRenderTarget(
 					isIntensity, 
 					format, 
 					scaleByHalf, 
-					srcRect);
+					srcRect,
+					copyMipMapStrideChannels * 32);
 
 		u8* dst = Memory::GetPointer(addr);
 		TextureCache::MakeRangeDynamic(addr, size_in_bytes);

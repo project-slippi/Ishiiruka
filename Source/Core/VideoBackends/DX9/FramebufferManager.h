@@ -90,7 +90,7 @@ private:
 	XFBSourceBase* CreateXFBSource(u32 target_width, u32 target_height, u32 layers);
 	void GetTargetSize(u32 *width, u32 *height);
 
-	void CopyToRealXFB(u32 xfbAddr, u32 fbWidth, u32 fbHeight, const EFBRectangle& sourceRc,float Gamma);
+	void CopyToRealXFB(u32 xfbAddr, u32 fbStride, u32 fbHeight, const EFBRectangle& sourceRc, float Gamma);
 
 	static struct Efb
 	{

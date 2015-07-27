@@ -691,24 +691,21 @@ void Renderer::SwapImpl(u32 xfbAddr, u32 fbWidth, u32 fbStride, u32 fbHeight, co
 		for (u32 i = 0; i < xfbCount; ++i)
 		{
 			xfbSource = (XFBSource*)xfbSourceList[i];
-
+			
+			MathUtil::Rectangle<float> drawRc;
 			MathUtil::Rectangle<float> sourceRc;
 
-			sourceRc.left = 0;
-			sourceRc.top = 0;
-			sourceRc.right = (float)xfbSource->texWidth;
-			sourceRc.bottom = (float)xfbSource->texHeight;
-
-			sourceRc.right -= Renderer::EFBToScaledX(fbStride - fbWidth);
-
-			MathUtil::Rectangle<float> drawRc;
-
+			sourceRc.left = (float)xfbSource->sourceRc.left;
+			sourceRc.right = (float)xfbSource->sourceRc.right;
+			sourceRc.top = (float)xfbSource->sourceRc.top;
+			sourceRc.bottom = (float)xfbSource->sourceRc.bottom;
 			if (g_ActiveConfig.bUseRealXFB)
 			{
 				drawRc.top = -1;
 				drawRc.bottom = 1;
 				drawRc.left = -1;
 				drawRc.right = 1;
+				sourceRc.right -= fbStride - fbWidth;
 			}
 			else
 			{
@@ -730,6 +727,7 @@ void Renderer::SwapImpl(u32 xfbAddr, u32 fbWidth, u32 fbStride, u32 fbHeight, co
 				//drawRc.bottom *= vScale;
 				//drawRc.left *= hScale;
 				//drawRc.right *= hScale;
+				sourceRc.right -= Renderer::EFBToScaledX(fbStride - fbWidth);
 			}
 
 			xfbSource->Draw(sourceRc, drawRc, Width, Height);

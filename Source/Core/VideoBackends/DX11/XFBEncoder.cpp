@@ -299,7 +299,7 @@ void XFBEncoder::Encode(u8* dst, u32 width, u32 height, const EFBRectangle& srcR
 	TargetRectangle targetRect = g_renderer->ConvertEFBRectangle(srcRect);
 
 	XFBEncodeParams params = { 0 };
-	params.Width = FLOAT(width);
+	params.Width = FLOAT(width / 2);
 	params.Height = FLOAT(height);
 	params.TexLeft = FLOAT(targetRect.left) / g_renderer->GetTargetWidth();
 	params.TexTop = FLOAT(targetRect.top) / g_renderer->GetTargetHeight();

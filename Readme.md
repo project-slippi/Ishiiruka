@@ -9,6 +9,7 @@ the terms of the GNU General Public License, version 2 or later (GPLv2+).
 Please read the [FAQ](https://dolphin-emu.org/docs/faq/) before using Dolphin.
 
 ## System Requirements
+### Desktop
 * OS
     * Microsoft Windows (Vista or higher).
     * Linux.
@@ -21,7 +22,18 @@ Please read the [FAQ](https://dolphin-emu.org/docs/faq/) before using Dolphin.
     * A reasonably modern graphics card (Direct3D 10.0 / OpenGL 3.0).
     * A graphics card that supports Direct3D 11 / OpenGL 4.4 is recommended.
 
-## Installation on Windows
+### Android
+* OS
+    * Android 5.0 (Lollipop) or higher.
+* Processor
+    * An ARM processor with support for 64-bit applications. (An Intel x86 processor could also work in theory, but no known x86 devices support 64-bit applications.)
+* Graphics
+    * A graphics processor that supports OpenGL ES 3.0 or higher. Performance varies heavily with [driver quality](https://dolphin-emu.org/blog/2013/09/26/dolphin-emulator-and-opengl-drivers-hall-fameshame/).
+    * A graphics processor that supports standard desktop OpenGL features is recommended for best performance.
+
+Dolphin can only be installed on devices that satisfy the above requirements. Attempting to install on an unsupported device will fail and display an error message.
+
+## Building for Windows
 Use the solution file `Source/dolphin-emu.sln` to build Dolphin on Windows.
 Visual Studio 2013 is a hard requirement since previous versions don't support
 many C++ features that we use. Other compilers might be able to build Dolphin
@@ -33,7 +45,7 @@ Nullsoft Scriptable Install System (NSIS) to be installed. Creating an
 installer is not necessary to run Dolphin since the Build directory contains
 a working Dolphin distribution.
 
-## Installation on Linux and OS X
+## Building for Linux and OS X
 Dolphin requires [CMake](http://www.cmake.org/) for systems other than Windows. Many libraries are
 bundled with Dolphin and used if they're not installed on your system. CMake
 will inform you if a bundled library is used or if you need to install any
@@ -49,7 +61,7 @@ On OS X, an application bundle will be created in `./Binaries`.
 
 On Linux, it's strongly recommended to perform a global installation via `sudo make install`.
 
-## Installation on Android
+## Building for Android
 
 These instructions assume familiarity with Android development. If you do not have an
 Android dev environment set up, see [AndroidSetup.md](AndroidSetup.md).

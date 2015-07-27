@@ -360,10 +360,17 @@ void drawShadedTexQuad(IDirect3DTexture9 *texture,
 	float sh = 1.0f /(float) SourceHeight;
 	float dw = 1.0f /(float) DestWidth;
 	float dh = 1.0f /(float) DestHeight;
-	float u1=((float)rSource->left) * sw;
-	float u2=((float)rSource->right) * sw;
-	float v1=((float)rSource->top) * sh;
-	float v2=((float)rSource->bottom) * sh;
+	float u1 = 0.0f;
+	float u2 = 1.0f;
+	float v1 = 0.0f;
+	float v2 = 1.0f;
+	if (rSource != nullptr)
+	{
+		u1 = ((float)rSource->left) * sw;
+		u2 = ((float)rSource->right) * sw;
+		v1 = ((float)rSource->top) * sh;
+		v2 = ((float)rSource->bottom) * sh;
+	}
 	float g = 1.0f/Gamma;
 
 	const struct Q2DVertex { float x,y,z,rhw,u,v,w,h,G; } coords[4] = {
