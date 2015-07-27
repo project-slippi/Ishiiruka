@@ -442,8 +442,15 @@ void Close()
 	SAFE_RELEASE(swapchain);
 	SAFE_DELETE(stateman);
 	context->Flush();  // immediately destroy device objects
+	if (context1)
+	{
+		SAFE_RELEASE(context1);
+	}
 	SAFE_RELEASE(context);
-	context1 = nullptr;
+	if (device1)
+	{
+		SAFE_RELEASE(device1);
+	}
 	ULONG references = device->Release();
 	if (references)
 	{
@@ -453,7 +460,6 @@ void Close()
 	{
 		NOTICE_LOG(VIDEO, "Successfully released all device references!");
 	}
-	device1 = nullptr;
 	device = nullptr;
 
 	// unload DLLs
