@@ -293,21 +293,24 @@ void XAudio2::Clear(bool mute)
 
 void XAudio2::Stop()
 {
-	SoundStream::Stop();
-	m_voice_context.reset();
-
-	if (m_mastering_voice)
+	if (m_xaudio2)
 	{
-		m_mastering_voice->DestroyVoice();
-		m_mastering_voice = nullptr;
-	}
+		SoundStream::Stop();
+		m_voice_context.reset();
 
-	m_xaudio2.reset(); // release interface
+		if (m_mastering_voice)
+		{
+			m_mastering_voice->DestroyVoice();
+			m_mastering_voice = nullptr;
+		}
 
-	if (m_xaudio2_dll)
-	{
-		::FreeLibrary(m_xaudio2_dll);
-		m_xaudio2_dll = nullptr;
-		PXAudio2Create = nullptr;
+		m_xaudio2.reset(); // release interface
+
+		if (m_xaudio2_dll)
+		{
+			::FreeLibrary(m_xaudio2_dll);
+			m_xaudio2_dll = nullptr;
+			PXAudio2Create = nullptr;
+		}
 	}
 }
