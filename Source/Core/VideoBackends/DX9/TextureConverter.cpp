@@ -252,7 +252,7 @@ void Shutdown()
 }
 
 void EncodeToRamUsingShader(LPDIRECT3DPIXELSHADER9 shader, LPDIRECT3DTEXTURE9 srcTexture, const TargetRectangle& sourceRc,
-	u8* destAddr, int dst_line_size, int dstHeight, int writeStride, bool toTexture, bool linearFilter, float Gamma)
+	u8* destAddr, int dst_line_size, int dstHeight, int writeStride, int readStride, bool linearFilter, float Gamma)
 {
 	HRESULT hr;
 	u32 index =0;
@@ -342,13 +342,15 @@ void EncodeToRamUsingShader(LPDIRECT3DPIXELSHADER9 shader, LPDIRECT3DTEXTURE9 sr
 	hr = s_texConvReadSurface->LockRect(&drect, &DstRect, D3DLOCK_READONLY);
 
 	u8* Source = (u8*)drect.pBits;
-	int dstSize = dst_line_size * dstHeight;
-	if ((writeStride != dst_line_size) && (dstHeight > 1))
+	int readHeight = readStride / dst_line_size;
+	int readLoops = dstHeight / readHeight;
+	int dstSize = dst_line_size * dstHeight;	
+	if ((writeStride != readStride) && (readLoops > 1))
 	{
-		for (int i = 0; i < dstHeight; i++)
+		for (int i = 0; i < readLoops; i++)
 		{
-			memcpy(destAddr, Source, dst_line_size);
-			Source += dst_line_size;
+			memcpy(destAddr, Source, readStride);
+			Source += readStride;
 			destAddr += writeStride;
 		}
 	}
@@ -416,15 +418,15 @@ int EncodeToRamFromTexture(u32 address, LPDIRECT3DTEXTURE9 source_texture, u32 S
 	int cacheBytes = 32;
 	if ((format & 0x0f) == 6)
 		cacheBytes = 64;
-
-	EncodeToRamUsingShader(texconv_shader, source_texture, scaledSource, dest_ptr, expandedWidth / samples, expandedHeight, writeStride, true, bScaleByHalf > 0, 1.0f);
+	int readStride = (expandedWidth * cacheBytes) / TexDecoder_GetBlockWidthInTexels(format);
+	EncodeToRamUsingShader(texconv_shader, source_texture, scaledSource, dest_ptr, (expandedWidth / samples) * 4, expandedHeight, writeStride, readStride, bScaleByHalf > 0, 1.0f);
 	return size_in_bytes; // TODO: D3D11 is calculating this value differently!
 }
 
 void EncodeToRamYUYV(LPDIRECT3DTEXTURE9 srcTexture, const TargetRectangle& sourceRc, u8* destAddr, u32 dstwidth, u32 dstStride, u32 dstHeight, float Gamma)
 {
 	TextureConversionShaderLegacy::SetShaderParameters(
-		(float)dstStride / 2,
+		(float)dstwidth,
 		(float)dstHeight, 
 		0.0f,
 		0.0f,
@@ -435,7 +437,7 @@ void EncodeToRamYUYV(LPDIRECT3DTEXTURE9 srcTexture, const TargetRectangle& sourc
 	D3D::dev->SetPixelShaderConstantF(C_COLORMATRIX, PixelShaderManager::GetBuffer(), 2);
 	g_renderer->ResetAPIState();
 	EncodeToRamUsingShader(s_rgbToYuyvProgram, srcTexture, sourceRc, destAddr,
-		dstwidth * 2, dstHeight, dstStride, false, false, Gamma);
+		dstwidth * 2, dstHeight, dstStride, dstStride, false, Gamma);
 	D3D::dev->SetRenderTarget(0, FramebufferManager::GetEFBColorRTSurface());
 	D3D::dev->SetDepthStencilSurface(FramebufferManager::GetEFBDepthRTSurface());
 	g_renderer->RestoreAPIState();
