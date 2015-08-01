@@ -952,7 +952,7 @@ public:
 		Create();
 	}
 
-	virtual ExitCode Entry() override
+	ExitCode Entry() override
 	{
 		return (ExitCode)m_Partition.Partition->CheckIntegrity();
 	}

@@ -37,6 +37,14 @@ FramebufferManager::FramebufferManager()
 	bool depth_textures_supported = true;
 	m_target_width = Renderer::GetTargetWidth();
 	m_target_height = Renderer::GetTargetHeight();
+	if (m_target_height < 1)
+	{
+		m_target_height = 1;
+	}
+	if (m_target_width < 1)
+	{
+		m_target_width = 1;
+	}
 	s_efb.color_surface_Format = D3DFMT_A8R8G8B8;
 
 	// EFB color texture - primary render target

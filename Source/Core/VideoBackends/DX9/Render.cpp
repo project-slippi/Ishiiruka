@@ -867,7 +867,8 @@ void Renderer::SwapImpl(u32 xfbAddr, u32 fbWidth, u32 fbStride, u32 fbHeight, co
 
 	u32 newAA = g_ActiveConfig.iMultisampleMode;
 
-	if (xfbchanged 
+	if (CalculateTargetSize(s_backbuffer_width, s_backbuffer_height, (newAA % 3) + 1)
+		|| xfbchanged
 		|| windowResized 
 		|| fullscreen_changed
 		|| s_last_efb_scale != g_ActiveConfig.iEFBScale 
@@ -879,8 +880,7 @@ void Renderer::SwapImpl(u32 xfbAddr, u32 fbWidth, u32 fbStride, u32 fbHeight, co
 
 		int SupersampleCoeficient = (s_LastAA % 3) + 1;
 
-		s_last_efb_scale = g_ActiveConfig.iEFBScale;
-		CalculateTargetSize(s_backbuffer_width, s_backbuffer_height, SupersampleCoeficient);
+		s_last_efb_scale = g_ActiveConfig.iEFBScale;		
 		PixelShaderManager::SetEfbScaleChanged();
 		D3D::dev->SetRenderTarget(0, D3D::GetBackBufferSurface());
 		D3D::dev->SetDepthStencilSurface(D3D::GetBackBufferDepthSurface());

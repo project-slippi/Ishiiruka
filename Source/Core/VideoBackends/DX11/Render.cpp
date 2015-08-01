@@ -952,12 +952,13 @@ void Renderer::SwapImpl(u32 xfbAddr, u32 fbWidth, u32 fbStride, u32 fbHeight, co
 	}
 
 	// Resize the back buffers NOW to avoid flickering
-	if (xfbchanged ||
-		windowResized ||
-		fullscreen_changed ||
-		s_last_efb_scale != g_ActiveConfig.iEFBScale ||
-		s_last_multisample_mode != g_ActiveConfig.iMultisampleMode ||
-		s_last_stereo_mode != (g_ActiveConfig.iStereoMode > 0))
+	if (CalculateTargetSize(s_backbuffer_width, s_backbuffer_height)
+		|| xfbchanged
+		|| windowResized
+		|| fullscreen_changed
+		|| s_last_efb_scale != g_ActiveConfig.iEFBScale
+		|| s_last_multisample_mode != g_ActiveConfig.iMultisampleMode
+		|| s_last_stereo_mode != (g_ActiveConfig.iStereoMode > 0))
 	{
 		s_last_xfb_mode = g_ActiveConfig.bUseRealXFB;
 		s_last_multisample_mode = g_ActiveConfig.iMultisampleMode;
@@ -991,7 +992,7 @@ void Renderer::SwapImpl(u32 xfbAddr, u32 fbWidth, u32 fbStride, u32 fbHeight, co
 
 		s_last_efb_scale = g_ActiveConfig.iEFBScale;
 		s_last_stereo_mode = g_ActiveConfig.iStereoMode > 0;
-		CalculateTargetSize(s_backbuffer_width, s_backbuffer_height);
+		
 		PixelShaderManager::SetEfbScaleChanged();
 		D3D::context->OMSetRenderTargets(1, &D3D::GetBackBuffer()->GetRTV(), nullptr);
 

@@ -24,8 +24,8 @@ public:
 		const BPMemory &bpm,
 		bool fromgputhread = true);
 protected:
-	virtual void ResetBuffer(u32 stride) override;
-	virtual u16* GetIndexBuffer() override { return m_index_buffer_start; }
+	void ResetBuffer(u32 stride) override;
+	u16* GetIndexBuffer() override { return m_index_buffer_start; }
 private:
 
 	void PrepareDrawBuffers(u32 stride);

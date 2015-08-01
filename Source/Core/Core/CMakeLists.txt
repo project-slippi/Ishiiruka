@@ -149,7 +149,6 @@ set(SRCS	ActionReplay.cpp
 			IPC_HLE/WII_IPC_HLE_Device_usb.cpp
 			IPC_HLE/WII_IPC_HLE_Device_usb_kbd.cpp
 			IPC_HLE/WII_IPC_HLE_WiiMote.cpp
-			IPC_HLE/WII_IPC_HLE_WiiSpeak.cpp
 			IPC_HLE/WiiMote_HID_Attr.cpp
 			PowerPC/MMU.cpp
 			PowerPC/PowerPC.cpp
@@ -172,6 +171,7 @@ set(SRCS	ActionReplay.cpp
 			PowerPC/JitCommon/JitAsmCommon.cpp
 			PowerPC/JitCommon/JitBase.cpp
 			PowerPC/JitCommon/JitCache.cpp
+			PowerPC/CachedInterpreter.cpp
 			PowerPC/JitILCommon/IR.cpp
 			PowerPC/JitILCommon/JitILBase_Branch.cpp
 			PowerPC/JitILCommon/JitILBase_LoadStore.cpp

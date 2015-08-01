@@ -101,7 +101,7 @@ static wxString keep_window_on_top_desc = _("Keep the game window on top of all 
 static wxString hide_mouse_cursor_desc = _("Hides the mouse cursor if it's on top of the emulation window.\n\nIf unsure, leave this checked.");
 static wxString render_to_main_win_desc = _("Enable this if you want to use the main Dolphin window for rendering rather than a separate render window.\n\nIf unsure, leave this unchecked.");
 static wxString prog_scan_desc = _("Enables progressive scan if supported by the emulated software.\nMost games don't care about this.\n\nIf unsure, leave this unchecked.");
-static wxString ar_desc = _("Select what aspect ratio to use when rendering:\nAuto: Use the native aspect ratio\nForce 16:9: Stretch the picture to an aspect ratio of 16:9.\nForce 4:3: Stretch the picture to an aspect ratio of 4:3.\nStretch to Window: Stretch the picture to the window size.\n\nIf unsure, select Auto.");
+static wxString ar_desc = _("Select what aspect ratio to use when rendering:\nAuto: Use the native aspect ratio\nForce 16:9: Mimic an analog TV with a widescreen aspect ratio.\nForce 4:3: Mimic a standard 4:3 analog TV.\nStretch to Window: Stretch the picture to the window size.\n\nIf unsure, select Auto.");
 static wxString ws_hack_desc = _("Force the game to output graphics for widescreen resolutions.\nCauses graphical glitches is some games.\n\nIf unsure, leave this unchecked.");
 static wxString vsync_desc = _("Wait for vertical blanks in order to reduce tearing.\nDecreases performance if emulation speed is below 100%.\n\nIf unsure, leave this unchecked.");
 static wxString af_desc = _("Enable anisotropic filtering.\nEnhances visual quality of textures that are at oblique viewing angles.\nMight cause issues in a small number of games.\n\nIf unsure, select 1x.");
@@ -145,7 +145,7 @@ static wxString dump_frames_desc = _("Dump all rendered frames to an AVI file in
 static wxString use_ffv1_desc = _("Encode frame dumps using the FFV1 codec.\n\nIf unsure, leave this unchecked.");
 #endif
 static wxString free_look_desc = _("This feature allows you to change the game's camera.\nMove the mouse while holding the right mouse button to pan and while holding the middle button to move.\nHold SHIFT and press one of the WASD keys to move the camera by a certain step distance (SHIFT+0 to move faster and SHIFT+9 to move slower). Press SHIFT+R to reset the camera.\n\nIf unsure, leave this unchecked.");
-static wxString crop_desc = _("Crop the picture from 4:3 to 5:4 or from 16:9 to 16:10.\n\nIf unsure, leave this unchecked.");
+static wxString crop_desc = _("Crop the picture from its native aspect ratio to 4:3 or 16:9.\n\nIf unsure, leave this unchecked.");
 static wxString opencl_desc = _("[EXPERIMENTAL]\nAims to speed up emulation by offloading texture decoding to the GPU using the OpenCL framework.\nHowever, right now it's known to cause texture defects in various games. Also it's slower than regular CPU texture decoding in most cases.\n\nIf unsure, leave this unchecked.");
 static wxString ppshader_desc = _("Apply a post-processing effect after finishing a frame.\n\nIf unsure, select (off).");
 static wxString shader_errors_desc = _("Usually if shader compilation fails, an error message is displayed.\nHowever, one may skip the popups to allow interruption free gameplay by checking this option.\n\nIf unsure, leave this unchecked.");

@@ -1657,14 +1657,19 @@ void Renderer::SwapImpl(u32 xfbAddr, u32 fbWidth, u32 fbStride, u32 fbHeight, co
 		s_backbuffer_height = H;
 		s_last_efb_scale = g_ActiveConfig.iEFBScale;
 	}
+	bool TargetSizeChanged = false;
+	if (CalculateTargetSize(s_backbuffer_width, s_backbuffer_height))
+	{
+		TargetSizeChanged = true;
+	}
 
-	if (xfbchanged || WindowResized || (s_last_multisample_mode != g_ActiveConfig.iMultisampleMode) || (s_last_stereo_mode != (g_ActiveConfig.iStereoMode > 0)))
+	if (TargetSizeChanged || xfbchanged || WindowResized || (s_last_multisample_mode != g_ActiveConfig.iMultisampleMode) || (s_last_stereo_mode != (g_ActiveConfig.iStereoMode > 0)))
 	{
 		s_last_xfb_mode = g_ActiveConfig.bUseRealXFB;
 
 		UpdateDrawRectangle(s_backbuffer_width, s_backbuffer_height);
 
-		if (CalculateTargetSize(s_backbuffer_width, s_backbuffer_height) || s_last_multisample_mode != g_ActiveConfig.iMultisampleMode || s_last_stereo_mode != (g_ActiveConfig.iStereoMode > 0))
+		if (TargetSizeChanged || s_last_multisample_mode != g_ActiveConfig.iMultisampleMode || s_last_stereo_mode != (g_ActiveConfig.iStereoMode > 0))
 		{
 			s_last_stereo_mode = g_ActiveConfig.iStereoMode > 0;
 			s_last_multisample_mode = g_ActiveConfig.iMultisampleMode;

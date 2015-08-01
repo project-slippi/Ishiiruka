@@ -39,8 +39,8 @@ public:
 	GLuint m_index_buffers;
 	GLuint m_last_vao;
 protected:
-	virtual void ResetBuffer(u32 stride) override;
-	virtual u16* GetIndexBuffer() override;
+	void ResetBuffer(u32 stride) override;
+	u16* GetIndexBuffer() override;
 private:
 	void Draw(u32 stride);
 	void vFlush(bool useDstAlpha) override;
