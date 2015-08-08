@@ -108,22 +108,21 @@ float3 GetNormalFromDepth(float fDepth)
 }
 #define FILTER_RADIUS 4
 
-float4 BlurPrev(int2 offsetmask, float depth)
-{	
+float BilateralR(int2 offsetmask, float depth)
+{
 	float limit = GetOption(D_FILTER_LIMIT);
-	float4 Weight = float4(1,1,1,1);
-	float4 count = Weight;
-	float4 value = SamplePrev();
-	
-	for(int i = 1; i < (FILTER_RADIUS + 1); i++)
+	float count = 1.0;
+	float value = SamplePrev().r;
+
+	for (int i = 1; i < (FILTER_RADIUS + 1); i++)
 	{
 		int2 offset = offsetmask * i;
-		Weight.w = min(sign(limit - abs(SampleDepthOffset(offset) - depth)) + 1.0, 1.0);
-		value +=  SamplePrevOffset(offset) * Weight;
+		float Weight = min(sign(limit - abs(SampleDepthOffset(offset) - depth)) + 1.0, 1.0);
+		value += SamplePrevOffset(offset).r * Weight;
 		count += Weight;
 		offset = -offset;
-		Weight.w = min(sign(limit - abs(SampleDepthOffset(offset) - depth)) + 1.0, 1.0);
-		value +=  SamplePrevOffset(offset) * Weight;
+		Weight = min(sign(limit - abs(SampleDepthOffset(offset) - depth)) + 1.0, 1.0);
+		value += SamplePrevOffset(offset).r * Weight;
 		count += Weight;
 	}
 	return value / count;
@@ -131,7 +130,7 @@ float4 BlurPrev(int2 offsetmask, float depth)
 
 void BlurH()
 {
-	SetOutput(BlurPrev(int2(1,0), SampleDepth()));
+	SetOutput(float4(1, 1, 1, 1) * BilateralR(int2(1, 0), SampleDepth()));
 }
 
 void Merger()
@@ -142,9 +141,8 @@ void Merger()
 		value = Sample();
 	}
 #if A_SSAO_ENABLED == 1
-	float depth = SampleDepth();
-	float4 blur = BlurPrev(int2(0,1), depth);
-	value *= blur.wwww;
+	float blur = BilateralR(int2(0, 1), SampleDepth());
+	value *= blur;
 #endif
 	SetOutput(value);
 }
