@@ -116,12 +116,10 @@ bool DolphinApp::OnInit()
 	bool UseLogger = false;
 	bool selectVideoBackend = false;
 	bool selectAudioEmulation = false;
-	bool selectPerfDir = false;
 
 	wxString videoBackendName;
 	wxString audioEmulationName;
 	wxString userPath;
-	wxString perfDir;
 
 #if wxUSE_CMDLINE_PARSER // Parse command lines
 	wxCmdLineEntryDesc cmdLineDesc[] =
@@ -172,11 +170,6 @@ bool DolphinApp::OnInit()
 			wxCMD_LINE_VAL_STRING, wxCMD_LINE_PARAM_OPTIONAL
 		},
 		{
-			wxCMD_LINE_OPTION, "P", "perf_dir",
-			"Directory for Linux perf perf-$pid.map file",
-			wxCMD_LINE_VAL_STRING, wxCMD_LINE_PARAM_OPTIONAL
-		},
-		{
 			wxCMD_LINE_NONE, nullptr, nullptr, nullptr, wxCMD_LINE_VAL_NONE, 0
 		}
 	};
@@ -201,7 +194,6 @@ bool DolphinApp::OnInit()
 	BatchMode = parser.Found("batch");
 	selectVideoBackend = parser.Found("video_backend", &videoBackendName);
 	selectAudioEmulation = parser.Found("audio_emulation", &audioEmulationName);
-	selectPerfDir = parser.Found("perf_dir", &perfDir);
 	playMovie = parser.Found("movie", &movieFile);
 	parser.Found("user", &userPath);
 #endif // wxUSE_CMDLINE_PARSER
@@ -218,12 +210,6 @@ bool DolphinApp::OnInit()
 	UICommon::CreateDirectories();
 	InitLanguageSupport();	// The language setting is loaded from the user directory
 	UICommon::Init();
-
-	if (selectPerfDir)
-	{
-		SConfig::GetInstance().m_perfDir =
-			WxStrToStr(perfDir);
-	}
 
 	if (selectVideoBackend && videoBackendName != wxEmptyString)
 		SConfig::GetInstance().m_strVideoBackend =

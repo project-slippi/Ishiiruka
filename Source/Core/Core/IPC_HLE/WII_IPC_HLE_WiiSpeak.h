@@ -14,15 +14,13 @@ public:
 
 	virtual ~CWII_IPC_HLE_Device_usb_oh0();
 
-	virtual IPCCommandResult Open(u32 CommandAddress, u32 Mode);
-	virtual IPCCommandResult Close(u32 CommandAddress, bool Force);
+	IPCCommandResult Open(u32 CommandAddress, u32 Mode) override;
+	IPCCommandResult Close(u32 CommandAddress, bool Force) override;
 
-	virtual IPCCommandResult IOCtlV(u32 CommandAddress);
-	virtual IPCCommandResult IOCtl(u32 CommandAddress);
+	IPCCommandResult IOCtlV(u32 CommandAddress) override;
+	IPCCommandResult IOCtl(u32 CommandAddress) override;
 
-	virtual u32 Update();
-
-	void DoState(PointerWrap &p);
+	void DoState(PointerWrap &p) override;
 
 private:
 	enum USBIOCtl
@@ -48,15 +46,13 @@ public:
 
 	virtual ~CWII_IPC_HLE_Device_usb_ven();
 
-	virtual IPCCommandResult Open(u32 CommandAddress, u32 Mode);
-	virtual IPCCommandResult Close(u32 CommandAddress, bool Force);
+	IPCCommandResult Open(u32 CommandAddress, u32 Mode) override;
+	IPCCommandResult Close(u32 CommandAddress, bool Force) override;
 
-	virtual IPCCommandResult IOCtlV(u32 CommandAddress);
-	virtual IPCCommandResult IOCtl(u32 CommandAddress);
+	IPCCommandResult IOCtlV(u32 CommandAddress) override;
+	IPCCommandResult IOCtl(u32 CommandAddress) override;
 
-	virtual u32 Update();
-
-	void DoState(PointerWrap &p);
+	void DoState(PointerWrap &p) override;
 
 private:
 	enum USBIOCtl
@@ -174,15 +170,13 @@ public:
 
 	virtual ~CWII_IPC_HLE_Device_usb_oh0_57e_308();
 
-	virtual IPCCommandResult Open(u32 CommandAddress, u32 Mode);
-	virtual IPCCommandResult Close(u32 CommandAddress, bool Force);
+	IPCCommandResult Open(u32 CommandAddress, u32 Mode) override;
+	IPCCommandResult Close(u32 CommandAddress, bool Force) override;
 
-	virtual IPCCommandResult IOCtlV(u32 CommandAddress);
-	virtual IPCCommandResult IOCtl(u32 CommandAddress);
+	IPCCommandResult IOCtlV(u32 CommandAddress) override;
+	IPCCommandResult IOCtl(u32 CommandAddress) override;
 
-	virtual u32 Update();
-
-	void DoState(PointerWrap &p);
+	void DoState(PointerWrap &p) override;
 
 	s16 *stream_buffer;
 
@@ -272,15 +266,13 @@ public:
 
 	virtual ~CWII_IPC_HLE_Device_usb_oh0_46d_a03();
 
-	virtual IPCCommandResult Open(u32 CommandAddress, u32 Mode);
-	virtual IPCCommandResult Close(u32 CommandAddress, bool Force);
+	IPCCommandResult Open(u32 CommandAddress, u32 Mode) override;
+	IPCCommandResult Close(u32 CommandAddress, bool Force) override;
 
-	virtual IPCCommandResult IOCtlV(u32 CommandAddress);
-	virtual IPCCommandResult IOCtl(u32 CommandAddress);
+	IPCCommandResult IOCtlV(u32 CommandAddress) override;
+	IPCCommandResult IOCtl(u32 CommandAddress) override;
 
-	virtual u32 Update();
-
-	void DoState(PointerWrap &p);
+	void DoState(PointerWrap &p) override;
 
 	s16 *stream_buffer;
 

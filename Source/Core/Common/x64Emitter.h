@@ -581,9 +581,12 @@ public:
 	void SHUFPS(X64Reg regOp, const OpArg& arg, u8 shuffle);
 	void SHUFPD(X64Reg regOp, const OpArg& arg, u8 shuffle);
 
-	// SSE/SSE2: Useful alternative to shuffle in some cases.
+	// SSE3
+	void MOVSLDUP(X64Reg regOp, const OpArg& arg);
+	void MOVSHDUP(X64Reg regOp, const OpArg& arg);
 	void MOVDDUP(X64Reg regOp, const OpArg& arg);
 
+	// SSE/SSE2: Useful alternative to shuffle in some cases.
 	void UNPCKLPS(X64Reg dest, const OpArg& src);
 	void UNPCKHPS(X64Reg dest, const OpArg& src);
 	void UNPCKLPD(X64Reg dest, const OpArg& src);
@@ -980,8 +983,8 @@ public:
 	void ABI_CallLambdaC(const std::function<T(Args...)>* f, u32 p1)
 	{
 		// Double casting is required by VC++ for some reason.
-		void* trampoline = (void*)((T(*)(Args...))&XEmitter::CallLambdaTrampoline<T, Args...>);
-		ABI_CallFunctionPC(trampoline, const_cast<void*>((const void*)f), p1);
+		auto trampoline = (void(*)())&XEmitter::CallLambdaTrampoline<T, Args...>;
+		ABI_CallFunctionPC((void*)trampoline, const_cast<void*>((const void*)f), p1);
 	}
 };  // class XEmitter
 

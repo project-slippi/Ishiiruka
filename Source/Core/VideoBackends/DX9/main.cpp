@@ -90,7 +90,7 @@ void InitBackendInfo()
 	g_Config.backend_info.bSupportsPrimitiveRestart = false; // D3D9 does not support primitive restart
 	g_Config.backend_info.bSupportsSeparateAlphaFunction = (device_caps.PrimitiveMiscCaps & D3DPMISCCAPS_SEPARATEALPHABLEND) == D3DPMISCCAPS_SEPARATEALPHABLEND;
 	// Dual source blend disabled by default until a proper method to test for support is found	
-	g_Config.backend_info.bSupportsDualSourceBlend = false;	
+	g_Config.backend_info.bSupportsDualSourceBlend = false;
 	g_Config.backend_info.bSupportsPixelLighting = C_PENVCONST_END <= maxConstants;
 	g_Config.backend_info.bSupportsEarlyZ = true;
 	g_Config.backend_info.bNeedBlendIndices = true;
@@ -100,7 +100,6 @@ void InitBackendInfo()
 	g_Config.backend_info.bSupports3DVision = false;
 	g_Config.backend_info.bSupportsPostProcessing = false;
 	g_Config.backend_info.bSupportsClipControl = false;
-	g_Config.backend_info.bSupportsCopySubImage = (device_caps.DevCaps2 & D3DDEVCAPS2_CAN_STRETCHRECT_FROM_TEXTURES) != 0;
 	// adapters
 	g_Config.backend_info.Adapters.clear();
 	for (int i = 0; i < DX9::D3D::GetNumAdapters(); ++i)
@@ -170,7 +169,7 @@ void VideoBackend::Video_Prepare()
 	g_vertex_manager = new VertexManager;
 	g_perf_query = new PerfQuery;
 	g_renderer = new Renderer(m_window_handle);
-	g_texture_cache = new TextureCache;	
+	g_texture_cache = new TextureCache;
 	// VideoCommon
 	BPInit();
 	Fifo_Init();

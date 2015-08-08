@@ -84,11 +84,6 @@ IPCCommandResult CWII_IPC_HLE_Device_usb_oh0::IOCtl(u32 CommandAddress)
 	return IOCtlV(CommandAddress);
 }
 
-u32 CWII_IPC_HLE_Device_usb_oh0::Update()
-{
-	return IWII_IPC_HLE_Device::Update();
-}
-
 void CWII_IPC_HLE_Device_usb_oh0::DoState(PointerWrap &p)
 {
 
@@ -245,11 +240,6 @@ IPCCommandResult CWII_IPC_HLE_Device_usb_ven::IOCtl(u32 CommandAddress)
 
 	Memory::Write_U32(0, CommandAddress + 4);
 	return SendReply;
-}
-
-u32 CWII_IPC_HLE_Device_usb_ven::Update()
-{
-	return IWII_IPC_HLE_Device::Update();
 }
 
 void CWII_IPC_HLE_Device_usb_ven::DoState(PointerWrap &p)
@@ -718,11 +708,6 @@ IPCCommandResult CWII_IPC_HLE_Device_usb_oh0_57e_308::IOCtl(u32 CommandAddress)
 	return SendReply;
 }
 
-u32 CWII_IPC_HLE_Device_usb_oh0_57e_308::Update()
-{
-	return IWII_IPC_HLE_Device::Update();
-}
-
 void CWII_IPC_HLE_Device_usb_oh0_57e_308::DoState(PointerWrap &p)
 {
 
@@ -1001,11 +986,6 @@ IPCCommandResult CWII_IPC_HLE_Device_usb_oh0_46d_a03::IOCtl(u32 CommandAddress)
 
 	Memory::Write_U32(0, CommandAddress + 4);
 	return SendReply;
-}
-
-u32 CWII_IPC_HLE_Device_usb_oh0_46d_a03::Update()
-{
-	return IWII_IPC_HLE_Device::Update();
 }
 
 void CWII_IPC_HLE_Device_usb_oh0_46d_a03::DoState(PointerWrap &p)
