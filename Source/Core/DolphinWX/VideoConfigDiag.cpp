@@ -870,11 +870,11 @@ void VideoConfigDiag::OnUpdateUI(wxUpdateUIEvent& ev)
 
 	// pixel lighting
 	pixel_lighting->Enable(vconfig.backend_info.bSupportsPixelLighting);
-
+#if defined WIN32
 	// Borderless Fullscreen
 	borderless_fullscreen->Enable((vconfig.backend_info.APIType & API_D3D9) == 0);
 	borderless_fullscreen->Show((vconfig.backend_info.APIType & API_D3D9) == 0);
-	
+#endif	
 	// EFB Access Cache
 	Fast_efb_cache->Show(vconfig.bEFBAccessEnable);
 	// XFB

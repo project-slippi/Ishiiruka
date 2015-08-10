@@ -149,6 +149,7 @@ set(SRCS	ActionReplay.cpp
 			IPC_HLE/WII_IPC_HLE_Device_usb.cpp
 			IPC_HLE/WII_IPC_HLE_Device_usb_kbd.cpp
 			IPC_HLE/WII_IPC_HLE_WiiMote.cpp
+			IPC_HLE/WII_IPC_HLE_WiiSpeak.cpp
 			IPC_HLE/WiiMote_HID_Attr.cpp
 			PowerPC/MMU.cpp
 			PowerPC/PowerPC.cpp
