@@ -112,6 +112,7 @@ static std::vector<std::string> GetShaders(const std::string &sub_dir = "")
 static void InitBackendInfo()
 {
 	g_Config.backend_info.APIType = API_OPENGL;
+#ifdef _WIN32
 	g_Config.backend_info.bSupportedFormats[PC_TEX_FMT_BGRA32] = true;
 	g_Config.backend_info.bSupportedFormats[PC_TEX_FMT_RGBA32] = true;
 	g_Config.backend_info.bSupportedFormats[PC_TEX_FMT_I4_AS_I8] = false;
@@ -122,6 +123,7 @@ static void InitBackendInfo()
 	g_Config.backend_info.bSupportedFormats[PC_TEX_FMT_DXT1] = true;
 	g_Config.backend_info.bSupportedFormats[PC_TEX_FMT_DXT3] = true;
 	g_Config.backend_info.bSupportedFormats[PC_TEX_FMT_DXT5] = true;
+#endif
 	g_Config.backend_info.bSupportsExclusiveFullscreen = false;
 	g_Config.backend_info.bSupportsPrimitiveRestart = false; 
 	g_Config.backend_info.bSupportsOversizedViewports = true;

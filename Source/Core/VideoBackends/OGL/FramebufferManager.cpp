@@ -92,7 +92,7 @@ FramebufferManager::FramebufferManager(int targetWidth, int targetHeight, int ms
 
 		glBindTexture(m_textureType, m_efbDepth);
 		glTexParameteri(m_textureType, GL_TEXTURE_MAX_LEVEL, 0);
-		glTexImage3D(m_textureType, 0, GL_DEPTH_COMPONENT32F, m_targetWidth, m_targetHeight, m_EFBLayers, 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT, nullptr);
+		glTexImage3D(m_textureType, 0, GL_DEPTH_COMPONENT32F, m_targetWidth, m_targetHeight, m_EFBLayers, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
 
 		glBindTexture(m_textureType, m_efbColorSwap);
 		glTexParameteri(m_textureType, GL_TEXTURE_MAX_LEVEL, 0);
@@ -147,7 +147,7 @@ FramebufferManager::FramebufferManager(int targetWidth, int targetHeight, int ms
 
 		glBindTexture(resolvedType, m_resolvedDepthTexture);
 		glTexParameteri(resolvedType, GL_TEXTURE_MAX_LEVEL, 0);
-		glTexImage3D(resolvedType, 0, GL_DEPTH_COMPONENT32F, m_targetWidth, m_targetHeight, m_EFBLayers, 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT, nullptr);
+		glTexImage3D(resolvedType, 0, GL_DEPTH_COMPONENT32F, m_targetWidth, m_targetHeight, m_EFBLayers, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
 
 		// Bind resolved textures to resolved framebuffer.
 		glGenFramebuffers(m_EFBLayers, m_resolvedFramebuffer);
@@ -327,7 +327,7 @@ FramebufferManager::FramebufferManager(int targetWidth, int targetHeight, int ms
 		"	gl_Position = vec4(((rawpos + 0.5) / vec2(640.0, 528.0) * 2.0 - 1.0) * vec2(1.0, -1.0), 0.0, 1.0);\n"
 		"	gl_PointSize = %d.0 / 640.0;\n"
 		"	v_c = color0.bgra;\n"
-		"	v_z = (color1 & 0xFFFFFF) / 16777216.0;\n"
+		"	v_z = float(color1 & 0xFFFFFF) / 16777216.0;\n"
 		"}\n", m_targetWidth).c_str(),
 
 		StringFromFormat(

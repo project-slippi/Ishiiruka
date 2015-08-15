@@ -536,11 +536,13 @@ Renderer::Renderer()
 		{
 			g_ogl_config.eSupportedGLSLVersion = GLSL_150;
 		}
+#ifdef _WIN32
 		g_Config.backend_info.bSupportedFormats[PC_TEX_FMT_I4_AS_I8] = true;
 		g_Config.backend_info.bSupportedFormats[PC_TEX_FMT_IA4_AS_IA8] = true;
 		g_Config.backend_info.bSupportedFormats[PC_TEX_FMT_I8] = true;
 		g_Config.backend_info.bSupportedFormats[PC_TEX_FMT_IA8] = true;
 		g_Config.backend_info.bSupportedFormats[PC_TEX_FMT_RGB565] = true;
+#endif
 		// Desktop OpenGL can't have the Android Extension Pack
 		g_ogl_config.bSupportsAEP = false;
 	}
