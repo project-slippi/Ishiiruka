@@ -37,7 +37,6 @@ void JitArm64::SafeLoadToReg(u32 dest, s32 addr, s32 offsetReg, u32 flags, s32 o
 	BitSet32 regs_in_use = gpr.GetCallerSavedUsed();
 	BitSet32 fprs_in_use = fpr.GetCallerSavedUsed();
 	regs_in_use[W0] = 0;
-	regs_in_use[W30] = 0;
 	regs_in_use[dest_reg] = 0;
 
 	ARM64Reg addr_reg = W0;
@@ -148,7 +147,7 @@ void JitArm64::SafeLoadToReg(u32 dest, s32 addr, s32 offsetReg, u32 flags, s32 o
 
 	if (is_immediate && PowerPC::IsOptimizableRAMAddress(imm_addr))
 	{
-		EmitBackpatchRoutine(this, flags, true, false, dest_reg, XA);
+		EmitBackpatchRoutine(flags, true, false, dest_reg, XA, BitSet32(0), BitSet32(0));
 	}
 	else if (mmio_address)
 	{
@@ -158,16 +157,11 @@ void JitArm64::SafeLoadToReg(u32 dest, s32 addr, s32 offsetReg, u32 flags, s32 o
 	}
 	else
 	{
-		// Has a chance of being backpatched which will destroy our state
-		// push and pop everything in this instance
-		ABI_PushRegisters(regs_in_use);
-		m_float_emit.ABI_PushRegisters(fprs_in_use, X30);
-		EmitBackpatchRoutine(this, flags,
+		EmitBackpatchRoutine(flags,
 			jo.fastmem,
 			jo.fastmem,
-			dest_reg, XA);
-		m_float_emit.ABI_PopRegisters(fprs_in_use, X30);
-		ABI_PopRegisters(regs_in_use);
+			dest_reg, XA,
+			regs_in_use, fprs_in_use);
 	}
 
 	gpr.Unlock(W0, W30);
@@ -192,7 +186,6 @@ void JitArm64::SafeStoreFromReg(s32 dest, u32 value, s32 regOffset, u32 flags, s
 	BitSet32 fprs_in_use = fpr.GetCallerSavedUsed();
 	regs_in_use[W0] = 0;
 	regs_in_use[W1] = 0;
-	regs_in_use[W30] = 0;
 
 	ARM64Reg addr_reg = W1;
 
@@ -296,7 +289,7 @@ void JitArm64::SafeStoreFromReg(s32 dest, u32 value, s32 regOffset, u32 flags, s
 	{
 		MOVI2R(XA, imm_addr);
 
-		EmitBackpatchRoutine(this, flags, true, false, RS, XA);
+		EmitBackpatchRoutine(flags, true, false, RS, XA, BitSet32(0), BitSet32(0));
 	}
 	else if (mmio_address && !(flags & BackPatchInfo::FLAG_REVERSE))
 	{
@@ -309,16 +302,12 @@ void JitArm64::SafeStoreFromReg(s32 dest, u32 value, s32 regOffset, u32 flags, s
 		if (is_immediate)
 			MOVI2R(XA, imm_addr);
 
-		// Has a chance of being backpatched which will destroy our state
-		// push and pop everything in this instance
-		ABI_PushRegisters(regs_in_use);
-		m_float_emit.ABI_PushRegisters(fprs_in_use, X30);
-		EmitBackpatchRoutine(this, flags,
+		EmitBackpatchRoutine(flags,
 			jo.fastmem,
 			jo.fastmem,
-			RS, XA);
-		m_float_emit.ABI_PopRegisters(fprs_in_use, X30);
-		ABI_PopRegisters(regs_in_use);
+			RS, XA,
+			regs_in_use,
+			fprs_in_use);
 	}
 
 	gpr.Unlock(W0, W1, W30);
@@ -622,4 +611,24 @@ void JitArm64::stmw(UGeckoInstruction inst)
 	}
 
 	gpr.Unlock(WA, WB);
+}
+
+void JitArm64::dcbt(UGeckoInstruction inst)
+{
+	INSTRUCTION_START
+	JITDISABLE(bJITLoadStoreOff);
+
+	// Prefetch. Since we don't emulate the data cache, we don't need to do anything.
+
+	// If a dcbst follows a dcbt, it probably isn't a case of dynamic code
+	// modification, so don't bother invalidating the jit block cache.
+	// This is important because invalidating the block cache when we don't
+	// need to is terrible for performance.
+	// (Invalidating the jit block cache on dcbst is a heuristic.)
+	if (MergeAllowedNextInstructions(1) &&
+	    js.op[1].inst.OPCD == 31 && js.op[1].inst.SUBOP10 == 54 &&
+	    js.op[1].inst.RA == inst.RA && js.op[1].inst.RB == inst.RB)
+	{
+		js.skipInstructions = 1;
+	}
 }

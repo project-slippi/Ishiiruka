@@ -268,11 +268,15 @@ bool IsImmLogical(uint64_t value, unsigned int width, unsigned int *n, unsigned 
 	return true;
 }
 
-void ARM64XEmitter::SetCodePtr(u8* ptr)
+void ARM64XEmitter::SetCodePtrUnsafe(u8* ptr)
 {
 	m_code = ptr;
-	if (!m_lastCacheFlushEnd)
-		m_lastCacheFlushEnd = ptr;
+}
+
+void ARM64XEmitter::SetCodePtr(u8* ptr)
+{
+	SetCodePtrUnsafe(ptr);
+	m_lastCacheFlushEnd = ptr;
 }
 
 const u8* ARM64XEmitter::GetCodePtr() const
@@ -3414,7 +3418,7 @@ void ARM64FloatEmitter::FCMEQ(u8 size, ARM64Reg Rd, ARM64Reg Rn, ARM64Reg Rm)
 }
 void ARM64FloatEmitter::FCMEQ(u8 size, ARM64Reg Rd, ARM64Reg Rn)
 {
-	Emit2RegMisc(IsQuad(Rd), 0, 2 | (size >> 6), 0x1D, Rd, Rn);
+	Emit2RegMisc(IsQuad(Rd), 0, 2 | (size >> 6), 0xD, Rd, Rn);
 }
 void ARM64FloatEmitter::FCMGE(u8 size, ARM64Reg Rd, ARM64Reg Rn, ARM64Reg Rm)
 {
@@ -3422,7 +3426,7 @@ void ARM64FloatEmitter::FCMGE(u8 size, ARM64Reg Rd, ARM64Reg Rn, ARM64Reg Rm)
 }
 void ARM64FloatEmitter::FCMGE(u8 size, ARM64Reg Rd, ARM64Reg Rn)
 {
-	Emit2RegMisc(IsQuad(Rd), 1, 2 | (size >> 6), 0x1C, Rd, Rn);
+	Emit2RegMisc(IsQuad(Rd), 1, 2 | (size >> 6), 0x0C, Rd, Rn);
 }
 void ARM64FloatEmitter::FCMGT(u8 size, ARM64Reg Rd, ARM64Reg Rn, ARM64Reg Rm)
 {

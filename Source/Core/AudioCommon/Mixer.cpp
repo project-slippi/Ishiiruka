@@ -271,3 +271,61 @@ void CMixer::MixerFifo::GetVolume(u32* lvolume, u32* rvolume) const
 	*lvolume = m_lvolume.load();
 	*rvolume = m_rvolume.load();
 }
+
+void CMixer::StartLogDTKAudio(const std::string& filename)
+{
+	if (!m_log_dtk_audio)
+	{
+		m_log_dtk_audio = true;
+		g_wave_writer_dtk.Start(filename, 48000);
+		g_wave_writer_dtk.SetSkipSilence(false);
+		NOTICE_LOG(AUDIO, "Starting DTK Audio logging");
+	}
+	else
+	{
+		WARN_LOG(AUDIO, "DTK Audio logging has already been started");
+	}
+}
+
+void CMixer::StopLogDTKAudio()
+{
+	if (m_log_dtk_audio)
+	{
+		m_log_dtk_audio = false;
+		g_wave_writer_dtk.Stop();
+		NOTICE_LOG(AUDIO, "Stopping DTK Audio logging");
+	}
+	else
+	{
+		WARN_LOG(AUDIO, "DTK Audio logging has already been stopped");
+	}
+}
+
+void CMixer::StartLogDSPAudio(const std::string& filename)
+{
+	if (!m_log_dsp_audio)
+	{
+		m_log_dsp_audio = true;
+		g_wave_writer_dsp.Start(filename, 32000);
+		g_wave_writer_dsp.SetSkipSilence(false);
+		NOTICE_LOG(AUDIO, "Starting DSP Audio logging");
+	}
+	else
+	{
+		WARN_LOG(AUDIO, "DSP Audio logging has already been started");
+	}
+}
+
+void CMixer::StopLogDSPAudio()
+{
+	if (m_log_dsp_audio)
+	{
+		m_log_dsp_audio = false;
+		g_wave_writer_dsp.Stop();
+		NOTICE_LOG(AUDIO, "Stopping DSP Audio logging");
+	}
+	else
+	{
+		WARN_LOG(AUDIO, "DSP Audio logging has already been stopped");
+	}
+}

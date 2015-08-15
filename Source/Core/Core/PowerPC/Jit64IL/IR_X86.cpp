@@ -22,8 +22,6 @@ The register allocation is linear scan allocation.
 
 #ifdef _MSC_VER
 #pragma warning(disable:4146)   // unary minus operator applied to unsigned type, result still unsigned
-#pragma warning(disable:4351)   // new behavior: elements of array will be default initialized
-
 #endif
 
 #include <algorithm>
