@@ -27,59 +27,69 @@ void cInterfaceEGL::DetectMode()
 		return;
 
 	EGLint num_configs;
-	EGLConfig *config = nullptr;
 	bool supportsGL = false, supportsGLES2 = false, supportsGLES3 = false;
+	std::array<int, 3> renderable_types = {
+		EGL_OPENGL_BIT,
+		(1 << 6), /* EGL_OPENGL_ES3_BIT_KHR */
+		EGL_OPENGL_ES2_BIT,
+	};
 
-	// attributes for a visual in RGBA format with at least
-	// 8 bits per color
-	int attribs[] = {
-		EGL_RED_SIZE, 8,
-		EGL_GREEN_SIZE, 8,
-		EGL_BLUE_SIZE, 8,
-		EGL_NONE };
-
-	// Get how many configs there are
-	if (!eglChooseConfig( egl_dpy, attribs, nullptr, 0, &num_configs))
+	for (auto renderable_type : renderable_types)
 	{
-		INFO_LOG(VIDEO, "Error: couldn't get an EGL visual config\n");
-		goto err_exit;
-	}
+		// attributes for a visual in RGBA format with at least
+		// 8 bits per color
+		int attribs[] = {
+			EGL_RED_SIZE, 8,
+			EGL_GREEN_SIZE, 8,
+			EGL_BLUE_SIZE, 8,
+			EGL_RENDERABLE_TYPE, renderable_type,
+			EGL_NONE
+		};
 
-	config = new EGLConfig[num_configs];
-
-	// Get all the configurations
-	if (!eglChooseConfig(egl_dpy, attribs, config, num_configs, &num_configs))
-	{
-		INFO_LOG(VIDEO, "Error: couldn't get an EGL visual config\n");
-		goto err_exit;
-	}
-
-	for (int i = 0; i < num_configs; ++i)
-	{
-		EGLint attribVal;
-		bool ret;
-		ret = eglGetConfigAttrib(egl_dpy, config[i], EGL_RENDERABLE_TYPE, &attribVal);
-		if (ret)
+		// Get how many configs there are
+		if (!eglChooseConfig(egl_dpy, attribs, nullptr, 0, &num_configs))
 		{
-			if (attribVal & EGL_OPENGL_BIT)
-				supportsGL = true;
-			if (attribVal & (1 << 6)) /* EGL_OPENGL_ES3_BIT_KHR */
-				supportsGLES3 = true;
-			if (attribVal & EGL_OPENGL_ES2_BIT)
-				supportsGLES2 = true;
+			INFO_LOG(VIDEO, "Error: couldn't get an EGL visual config\n");
+			continue;
 		}
+
+		EGLConfig* config = new EGLConfig[num_configs];
+
+		// Get all the configurations
+		if (!eglChooseConfig(egl_dpy, attribs, config, num_configs, &num_configs))
+		{
+			INFO_LOG(VIDEO, "Error: couldn't get an EGL visual config\n");
+			delete[] config;
+			continue;
+		}
+
+		for (int i = 0; i < num_configs; ++i)
+		{
+			EGLint attribVal;
+			bool ret;
+			ret = eglGetConfigAttrib(egl_dpy, config[i], EGL_RENDERABLE_TYPE, &attribVal);
+			if (ret)
+			{
+				if (attribVal & EGL_OPENGL_BIT)
+					supportsGL = true;
+				if (attribVal & (1 << 6)) /* EGL_OPENGL_ES3_BIT_KHR */
+					supportsGLES3 = true;
+				if (attribVal & EGL_OPENGL_ES2_BIT)
+					supportsGLES2 = true;
+			}
+		}
+		delete[] config;
 	}
+
 	if (supportsGL)
 		s_opengl_mode = GLInterfaceMode::MODE_OPENGL;
 	else if (supportsGLES3)
 		s_opengl_mode = GLInterfaceMode::MODE_OPENGLES3;
 	else if (supportsGLES2)
 		s_opengl_mode = GLInterfaceMode::MODE_OPENGLES2;
-err_exit:
+
 	if (s_opengl_mode == GLInterfaceMode::MODE_DETECT) // Errored before we found a mode
 		s_opengl_mode = GLInterfaceMode::MODE_OPENGL; // Fall back to OpenGL
-	if (config)
-		delete[] config;
 }
 
 // Create rendering window.
@@ -124,25 +134,25 @@ bool cInterfaceEGL::Create(void *window_handle)
 	};
 	switch (s_opengl_mode)
 	{
-		case MODE_OPENGL:
-			attribs[1] = EGL_OPENGL_BIT;
-			ctx_attribs[0] = EGL_NONE;
+	case MODE_OPENGL:
+		attribs[1] = EGL_OPENGL_BIT;
+		ctx_attribs[0] = EGL_NONE;
 		break;
-		case MODE_OPENGLES2:
-			attribs[1] = EGL_OPENGL_ES2_BIT;
-			ctx_attribs[1] = 2;
+	case MODE_OPENGLES2:
+		attribs[1] = EGL_OPENGL_ES2_BIT;
+		ctx_attribs[1] = 2;
 		break;
-		case MODE_OPENGLES3:
-			attribs[1] = (1 << 6); /* EGL_OPENGL_ES3_BIT_KHR */
-			ctx_attribs[1] = 3;
+	case MODE_OPENGLES3:
+		attribs[1] = (1 << 6); /* EGL_OPENGL_ES3_BIT_KHR */
+		ctx_attribs[1] = 3;
 		break;
-		default:
-			ERROR_LOG(VIDEO, "Unknown opengl mode set\n");
-			return false;
+	default:
+		ERROR_LOG(VIDEO, "Unknown opengl mode set\n");
+		return false;
 		break;
 	}
 
-	if (!eglChooseConfig( egl_dpy, attribs, &config, 1, &num_configs))
+	if (!eglChooseConfig(egl_dpy, attribs, &config, 1, &num_configs))
 	{
 		INFO_LOG(VIDEO, "Error: couldn't get an EGL visual config\n");
 		exit(1);
@@ -153,7 +163,7 @@ bool cInterfaceEGL::Create(void *window_handle)
 	else
 		eglBindAPI(EGL_OPENGL_ES_API);
 
-	EGLNativeWindowType host_window = (EGLNativeWindowType) window_handle;
+	EGLNativeWindowType host_window = (EGLNativeWindowType)window_handle;
 	EGLNativeWindowType native_window = InitializePlatform(host_window, config);
 
 	s = eglQueryString(egl_dpy, EGL_VERSION);
@@ -168,7 +178,7 @@ bool cInterfaceEGL::Create(void *window_handle)
 	s = eglQueryString(egl_dpy, EGL_CLIENT_APIS);
 	INFO_LOG(VIDEO, "EGL_CLIENT_APIS = %s\n", s);
 
-	egl_ctx = eglCreateContext(egl_dpy, config, EGL_NO_CONTEXT, ctx_attribs );
+	egl_ctx = eglCreateContext(egl_dpy, config, EGL_NO_CONTEXT, ctx_attribs);
 	if (!egl_ctx)
 	{
 		INFO_LOG(VIDEO, "Error: eglCreateContext failed\n");

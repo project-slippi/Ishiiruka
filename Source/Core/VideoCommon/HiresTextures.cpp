@@ -47,7 +47,10 @@ static const std::string s_format_prefix = "tex1_";
 void HiresTexture::Init()
 {
 	size_sum.store(0);
-	max_mem = MemPhysical() / 2;
+	size_t sys_mem = MemPhysical();
+	size_t recommended_min_mem = 2 * size_t(1024 * 1024 * 1024);
+	// keep 2GB memory for system stability if system RAM is 4GB+ - use half of memory in other cases
+	max_mem = (sys_mem / 2 < recommended_min_mem) ? (sys_mem / 2) : (sys_mem - recommended_min_mem);
 	Update();
 }
 

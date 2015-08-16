@@ -165,7 +165,6 @@ static GekkoOPTemplate table19[] =
 	{0,   &JitArm64::mcrf},                     // mcrf
 
 	{50,  &JitArm64::rfi},                      // rfi
-	{18,  &JitArm64::Break},                    // rfid
 };
 
 
@@ -309,7 +308,6 @@ static GekkoOPTemplate table31[] =
 	{438, &JitArm64::FallBackToInterpreter},    // ecowx
 	{854, &JitArm64::DoNothing},                // eieio
 	{306, &JitArm64::FallBackToInterpreter},    // tlbie
-	{370, &JitArm64::FallBackToInterpreter},    // tlbia
 	{566, &JitArm64::DoNothing},                // tlbsync
 };
 
@@ -318,7 +316,6 @@ static GekkoOPTemplate table59[] =
 	{18, &JitArm64::FallBackToInterpreter},     // fdivsx
 	{20, &JitArm64::fsubsx},                    // fsubsx
 	{21, &JitArm64::faddsx},                    // faddsx
-//  {22, &JitArm64::FallBackToInterpreter},       // fsqrtsx
 	{24, &JitArm64::FallBackToInterpreter},     // fresx
 	{25, &JitArm64::fmulsx},                    // fmulsx
 	{28, &JitArm64::fmsubsx},                   // fmsubsx
@@ -330,14 +327,14 @@ static GekkoOPTemplate table59[] =
 static GekkoOPTemplate table63[] =
 {
 	{264, &JitArm64::fabsx},                    // fabsx
-	{32,  &JitArm64::FallBackToInterpreter},    // fcmpo
-	{0,   &JitArm64::FallBackToInterpreter},    // fcmpu
+	{32,  &JitArm64::fcmpx},                    // fcmpo
+	{0,   &JitArm64::fcmpx},                    // fcmpu
 	{14,  &JitArm64::FallBackToInterpreter},    // fctiwx
 	{15,  &JitArm64::FallBackToInterpreter},    // fctiwzx
 	{72,  &JitArm64::fmrx},                     // fmrx
 	{136, &JitArm64::fnabsx},                   // fnabsx
 	{40,  &JitArm64::fnegx},                    // fnegx
-	{12,  &JitArm64::FallBackToInterpreter},    // frspx
+	{12,  &JitArm64::frspx},                    // frspx
 
 	{64,  &JitArm64::FallBackToInterpreter},    // mcrfs
 	{583, &JitArm64::FallBackToInterpreter},    // mffsx
@@ -352,7 +349,6 @@ static GekkoOPTemplate table63_2[] =
 	{18, &JitArm64::FallBackToInterpreter},     // fdivx
 	{20, &JitArm64::fsubx},                     // fsubx
 	{21, &JitArm64::faddx},                     // faddx
-	{22, &JitArm64::FallBackToInterpreter},     // fsqrtx
 	{23, &JitArm64::fselx},                     // fselx
 	{25, &JitArm64::fmulx},                     // fmulx
 	{26, &JitArm64::FallBackToInterpreter},     // frsqrtex

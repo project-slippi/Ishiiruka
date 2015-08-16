@@ -22,7 +22,7 @@ void Interpreter::Helper_FloatCompareOrdered(UGeckoInstruction _inst, double fa,
 {
 	int compareResult;
 
-	if (IsNAN(fa) || IsNAN(fb))
+	if (std::isnan(fa) || std::isnan(fb))
 	{
 		FPSCR.FX = 1;
 		compareResult = FPCC::FU;
@@ -62,7 +62,7 @@ void Interpreter::Helper_FloatCompareUnordered(UGeckoInstruction _inst, double f
 {
 	int compareResult;
 
-	if (IsNAN(fa) || IsNAN(fb))
+	if (std::isnan(fa) || std::isnan(fb))
 	{
 		compareResult = FPCC::FU;
 
@@ -477,24 +477,6 @@ void Interpreter::fsubx(UGeckoInstruction _inst)
 void Interpreter::fsubsx(UGeckoInstruction _inst)
 {
 	rPS0(_inst.FD) = rPS1(_inst.FD) = ForceSingle(NI_sub(rPS0(_inst.FA), rPS0(_inst.FB)));
-	UpdateFPRF(rPS0(_inst.FD));
-
-	if (_inst.Rc)
-		Helper_UpdateCR1();
-}
-
-void Interpreter::fsqrtx(UGeckoInstruction _inst)
-{
-	// GEKKO is not supposed to support this instruction.
-	// PanicAlert("fsqrtx");
-	double b = rPS0(_inst.FB);
-
-	if (b < 0.0)
-	{
-		FPSCR.VXSQRT = 1;
-	}
-
-	rPS0(_inst.FD) = sqrt(b);
 	UpdateFPRF(rPS0(_inst.FD));
 
 	if (_inst.Rc)

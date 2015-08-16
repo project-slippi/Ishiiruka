@@ -208,7 +208,6 @@ void TASInputDlg::FinishLayout()
 	Bind(wxEVT_CLOSE_WINDOW, &TASInputDlg::OnCloseWindow, this);
 	Bind(GCPAD_UPDATE_CALLBACK, &TASInputDlg::GetValuesCallback, this);
 	Bind(WIIMOTE_UPDATE_CALLBACK, &TASInputDlg::GetValuesCallback, this);
-	Bind(wxEVT_TEXT, &TASInputDlg::UpdateFromText, this);
 	m_has_layout = true;
 }
 
@@ -508,22 +507,14 @@ void TASInputDlg::SetSliderValue(Control* control, int CurrentValue)
 	{
 		control->value = CurrentValue;
 		control->set_by_keyboard = true;
-		control->text->ChangeValue(std::to_string(CurrentValue));
+		control->text->SetValue(std::to_string(CurrentValue));
 	}
 	else if (control->set_by_keyboard)
 	{
 		control->value = control->default_value;
 		control->set_by_keyboard = false;
-		control->text->ChangeValue(std::to_string(control->default_value));
+		control->text->SetValue(std::to_string(control->default_value));
 	}
-	else
-	{
-		return;
-	}
-
-	wxCommandEvent* evt = new wxCommandEvent(wxEVT_TEXT, control->text_id);
-	evt->SetEventObject(control->text);
-	wxQueueEvent(this, evt);
 }
 
 void TASInputDlg::SetButtonValue(Button* button, bool CurrentState)
@@ -927,25 +918,6 @@ void TASInputDlg::OnCloseWindow(wxCloseEvent& event)
 		Show(false);
 		ResetValues();
 	}
-}
-
-bool TASInputDlg::TASHasFocus()
-{
-	if (!m_has_layout)
-		return false;
-	//allows numbers to be used as hotkeys
-	for (Control* const control : m_controls)
-	{
-		if (control != nullptr && wxWindow::FindFocus() == control->text)
-			return false;
-	}
-
-	if (wxWindow::FindFocus() == this)
-		return true;
-	else if (wxWindow::FindFocus() != nullptr && wxWindow::FindFocus()->GetParent() == this)
-		return true;
-	else
-		return false;
 }
 
 TASInputDlg::Stick* TASInputDlg::FindStickByID(int id)

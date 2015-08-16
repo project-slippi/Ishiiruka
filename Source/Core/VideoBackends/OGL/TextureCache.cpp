@@ -514,7 +514,7 @@ void TextureCache::CompileShaders()
 		"void main(){\n"
 		"	vec4 texcol = texture(samp9, vec3(f_uv0.xy, %s));\n"
 
-		"	int workspace = int(texcol.x * 16777215.0f);\n"
+		"	int workspace = int(texcol.x * 16777216.0f);\n"
 		"	texcol.z = float(workspace & 255);\n"   // z component
 		"	workspace = workspace >> 8;\n"
 		"	texcol.y = float(workspace & 255);\n"   // y component

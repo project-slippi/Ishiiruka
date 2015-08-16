@@ -3,6 +3,7 @@
 // Refer to the license.txt file included.
 
 #include <cinttypes>
+#include <cstring>
 
 #include "Common/CommonTypes.h"
 #include "Common/CPUDetect.h"
@@ -89,6 +90,29 @@ const u8* XEmitter::GetCodePtr() const
 u8* XEmitter::GetWritableCodePtr()
 {
 	return code;
+}
+
+void XEmitter::Write8(u8 value)
+{
+	*code++ = value;
+}
+
+void XEmitter::Write16(u16 value)
+{
+	std::memcpy(code, &value, sizeof(u16));
+	code += sizeof(u16);
+}
+
+void XEmitter::Write32(u32 value)
+{
+	std::memcpy(code, &value, sizeof(u32));
+	code += sizeof(u32);
+}
+
+void XEmitter::Write64(u64 value)
+{
+	std::memcpy(code, &value, sizeof(u64));
+	code += sizeof(u64);
 }
 
 void XEmitter::ReserveCodeSpace(int bytes)
@@ -472,30 +496,6 @@ void XEmitter::SetJumpTarget(const FixupBranch& branch)
 		((s32*)branch.ptr)[-1] = (s32)distance;
 	}
 }
-
-// INC/DEC considered harmful on newer CPUs due to partial flag set.
-// Use ADD, SUB instead.
-
-/*
-void XEmitter::INC(int bits, OpArg arg)
-{
-	if (arg.IsImm()) _assert_msg_(DYNA_REC, 0, "INC - Imm argument");
-	arg.operandReg = 0;
-	if (bits == 16) {Write8(0x66);}
-	arg.WriteREX(this, bits, bits);
-	Write8(bits == 8 ? 0xFE : 0xFF);
-	arg.WriteRest(this);
-}
-void XEmitter::DEC(int bits, OpArg arg)
-{
-	if (arg.IsImm()) _assert_msg_(DYNA_REC, 0, "DEC - Imm argument");
-	arg.operandReg = 1;
-	if (bits == 16) {Write8(0x66);}
-	arg.WriteREX(this, bits, bits);
-	Write8(bits == 8 ? 0xFE : 0xFF);
-	arg.WriteRest(this);
-}
-*/
 
 //Single byte opcodes
 //There is no PUSHAD/POPAD in 64-bit mode.
@@ -1446,7 +1446,6 @@ void XEmitter::WriteFMA4Op(u8 op, X64Reg dest, X64Reg regOp1, X64Reg regOp2, con
 
 void XEmitter::WriteBMIOp(int size, u8 opPrefix, u16 op, X64Reg regOp1, X64Reg regOp2, const OpArg& arg, int extrabytes)
 {
-	CheckFlags();
 	if (arg.IsImm())
 		PanicAlert("BMI1/2 instructions don't support immediate operands.");
 	if (size != 32 && size != 64)
@@ -1457,6 +1456,7 @@ void XEmitter::WriteBMIOp(int size, u8 opPrefix, u16 op, X64Reg regOp1, X64Reg r
 
 void XEmitter::WriteBMI1Op(int size, u8 opPrefix, u16 op, X64Reg regOp1, X64Reg regOp2, const OpArg& arg, int extrabytes)
 {
+	CheckFlags();
 	if (!cpu_info.bBMI1)
 		PanicAlert("Trying to use BMI1 on a system that doesn't support it. Bad programmer.");
 	WriteBMIOp(size, opPrefix, op, regOp1, regOp2, arg, extrabytes);
@@ -1989,7 +1989,7 @@ void XEmitter::RORX(int bits, X64Reg regOp, const OpArg& arg, u8 rotate)      {W
 void XEmitter::PEXT(int bits, X64Reg regOp1, X64Reg regOp2, const OpArg& arg) {WriteBMI2Op(bits, 0xF3, 0x38F5, regOp1, regOp2, arg);}
 void XEmitter::PDEP(int bits, X64Reg regOp1, X64Reg regOp2, const OpArg& arg) {WriteBMI2Op(bits, 0xF2, 0x38F5, regOp1, regOp2, arg);}
 void XEmitter::MULX(int bits, X64Reg regOp1, X64Reg regOp2, const OpArg& arg) {WriteBMI2Op(bits, 0xF2, 0x38F6, regOp2, regOp1, arg);}
-void XEmitter::BZHI(int bits, X64Reg regOp1, const OpArg& arg, X64Reg regOp2) {WriteBMI2Op(bits, 0x00, 0x38F5, regOp1, regOp2, arg);}
+void XEmitter::BZHI(int bits, X64Reg regOp1, const OpArg& arg, X64Reg regOp2) {CheckFlags(); WriteBMI2Op(bits, 0x00, 0x38F5, regOp1, regOp2, arg);}
 void XEmitter::BLSR(int bits, X64Reg regOp, const OpArg& arg)                 {WriteBMI1Op(bits, 0x00, 0x38F3, (X64Reg)0x1, regOp, arg);}
 void XEmitter::BLSMSK(int bits, X64Reg regOp, const OpArg& arg)               {WriteBMI1Op(bits, 0x00, 0x38F3, (X64Reg)0x2, regOp, arg);}
 void XEmitter::BLSI(int bits, X64Reg regOp, const OpArg& arg)                 {WriteBMI1Op(bits, 0x00, 0x38F3, (X64Reg)0x3, regOp, arg);}
@@ -2034,114 +2034,5 @@ void XEmitter::FSTP(int bits, const OpArg& dest) { WriteFloatLoadStore(bits, flo
 void XEmitter::FNSTSW_AX() { Write8(0xDF); Write8(0xE0); }
 
 void XEmitter::RDTSC() { Write8(0x0F); Write8(0x31); }
-
-// helper routines for setting pointers
-void XEmitter::CallCdeclFunction3(void* fnptr, u32 arg0, u32 arg1, u32 arg2)
-{
-#ifdef _MSC_VER
-	MOV(32, R(RCX), Imm32(arg0));
-	MOV(32, R(RDX), Imm32(arg1));
-	MOV(32, R(R8),  Imm32(arg2));
-	CALL(fnptr);
-#else
-	MOV(32, R(RDI), Imm32(arg0));
-	MOV(32, R(RSI), Imm32(arg1));
-	MOV(32, R(RDX), Imm32(arg2));
-	CALL(fnptr);
-#endif
-}
-
-void XEmitter::CallCdeclFunction4(void* fnptr, u32 arg0, u32 arg1, u32 arg2, u32 arg3)
-{
-#ifdef _MSC_VER
-	MOV(32, R(RCX), Imm32(arg0));
-	MOV(32, R(RDX), Imm32(arg1));
-	MOV(32, R(R8), Imm32(arg2));
-	MOV(32, R(R9), Imm32(arg3));
-	CALL(fnptr);
-#else
-	MOV(32, R(RDI), Imm32(arg0));
-	MOV(32, R(RSI), Imm32(arg1));
-	MOV(32, R(RDX), Imm32(arg2));
-	MOV(32, R(RCX), Imm32(arg3));
-	CALL(fnptr);
-#endif
-}
-
-void XEmitter::CallCdeclFunction5(void* fnptr, u32 arg0, u32 arg1, u32 arg2, u32 arg3, u32 arg4)
-{
-#ifdef _MSC_VER
-	MOV(32, R(RCX), Imm32(arg0));
-	MOV(32, R(RDX), Imm32(arg1));
-	MOV(32, R(R8),  Imm32(arg2));
-	MOV(32, R(R9),  Imm32(arg3));
-	MOV(32, MDisp(RSP, 0x20), Imm32(arg4));
-	CALL(fnptr);
-#else
-	MOV(32, R(RDI), Imm32(arg0));
-	MOV(32, R(RSI), Imm32(arg1));
-	MOV(32, R(RDX), Imm32(arg2));
-	MOV(32, R(RCX), Imm32(arg3));
-	MOV(32, R(R8),  Imm32(arg4));
-	CALL(fnptr);
-#endif
-}
-
-void XEmitter::CallCdeclFunction6(void* fnptr, u32 arg0, u32 arg1, u32 arg2, u32 arg3, u32 arg4, u32 arg5)
-{
-#ifdef _MSC_VER
-	MOV(32, R(RCX), Imm32(arg0));
-	MOV(32, R(RDX), Imm32(arg1));
-	MOV(32, R(R8), Imm32(arg2));
-	MOV(32, R(R9), Imm32(arg3));
-	MOV(32, MDisp(RSP, 0x20), Imm32(arg4));
-	MOV(32, MDisp(RSP, 0x28), Imm32(arg5));
-	CALL(fnptr);
-#else
-	MOV(32, R(RDI), Imm32(arg0));
-	MOV(32, R(RSI), Imm32(arg1));
-	MOV(32, R(RDX), Imm32(arg2));
-	MOV(32, R(RCX), Imm32(arg3));
-	MOV(32, R(R8), Imm32(arg4));
-	MOV(32, R(R9), Imm32(arg5));
-	CALL(fnptr);
-#endif
-}
-
-// See header
-void XEmitter::___CallCdeclImport3(void* impptr, u32 arg0, u32 arg1, u32 arg2)
-{
-	MOV(32, R(RCX), Imm32(arg0));
-	MOV(32, R(RDX), Imm32(arg1));
-	MOV(32, R(R8), Imm32(arg2));
-	CALLptr(M(impptr));
-}
-void XEmitter::___CallCdeclImport4(void* impptr, u32 arg0, u32 arg1, u32 arg2, u32 arg3)
-{
-	MOV(32, R(RCX), Imm32(arg0));
-	MOV(32, R(RDX), Imm32(arg1));
-	MOV(32, R(R8), Imm32(arg2));
-	MOV(32, R(R9), Imm32(arg3));
-	CALLptr(M(impptr));
-}
-void XEmitter::___CallCdeclImport5(void* impptr, u32 arg0, u32 arg1, u32 arg2, u32 arg3, u32 arg4)
-{
-	MOV(32, R(RCX), Imm32(arg0));
-	MOV(32, R(RDX), Imm32(arg1));
-	MOV(32, R(R8), Imm32(arg2));
-	MOV(32, R(R9), Imm32(arg3));
-	MOV(32, MDisp(RSP, 0x20), Imm32(arg4));
-	CALLptr(M(impptr));
-}
-void XEmitter::___CallCdeclImport6(void* impptr, u32 arg0, u32 arg1, u32 arg2, u32 arg3, u32 arg4, u32 arg5)
-{
-	MOV(32, R(RCX), Imm32(arg0));
-	MOV(32, R(RDX), Imm32(arg1));
-	MOV(32, R(R8), Imm32(arg2));
-	MOV(32, R(R9), Imm32(arg3));
-	MOV(32, MDisp(RSP, 0x20), Imm32(arg4));
-	MOV(32, MDisp(RSP, 0x28), Imm32(arg5));
-	CALLptr(M(impptr));
-}
 
 }

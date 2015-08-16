@@ -163,7 +163,6 @@ static GekkoOPTemplate table19[] =
 	{0,   &Jit64::mcrf},                  // mcrf
 
 	{50,  &Jit64::rfi},                   // rfi
-	{18,  &Jit64::FallBackToInterpreter}, // rfid
 };
 
 
@@ -307,7 +306,6 @@ static GekkoOPTemplate table31[] =
 	{438, &Jit64::FallBackToInterpreter},  // ecowx
 	{854, &Jit64::DoNothing},              // eieio
 	{306, &Jit64::FallBackToInterpreter},  // tlbie
-	{370, &Jit64::FallBackToInterpreter},  // tlbia
 	{566, &Jit64::DoNothing},              // tlbsync
 };
 
@@ -316,7 +314,6 @@ static GekkoOPTemplate table59[] =
 	{18, &Jit64::fp_arith},              // fdivsx
 	{20, &Jit64::fp_arith},              // fsubsx
 	{21, &Jit64::fp_arith},              // faddsx
-//	{22, &Jit64::FallBackToInterpreter},   // fsqrtsx
 	{24, &Jit64::fresx},                 // fresx
 	{25, &Jit64::fp_arith},              // fmulsx
 	{28, &Jit64::fmaddXX},               // fmsubsx
@@ -337,12 +334,12 @@ static GekkoOPTemplate table63[] =
 	{40,  &Jit64::fsign},                 // fnegx
 	{12,  &Jit64::frspx},                 // frspx
 
-	{64,  &Jit64::FallBackToInterpreter}, // mcrfs
-	{583, &Jit64::FallBackToInterpreter}, // mffsx
-	{70,  &Jit64::FallBackToInterpreter}, // mtfsb0x
-	{38,  &Jit64::FallBackToInterpreter}, // mtfsb1x
-	{134, &Jit64::FallBackToInterpreter}, // mtfsfix
-	{711, &Jit64::FallBackToInterpreter}, // mtfsfx
+	{64,  &Jit64::mcrfs},                 // mcrfs
+	{583, &Jit64::mffsx},                 // mffsx
+	{70,  &Jit64::mtfsb0x},               // mtfsb0x
+	{38,  &Jit64::mtfsb1x},               // mtfsb1x
+	{134, &Jit64::mtfsfix},               // mtfsfix
+	{711, &Jit64::mtfsfx},                // mtfsfx
 };
 
 static GekkoOPTemplate table63_2[] =
@@ -350,7 +347,6 @@ static GekkoOPTemplate table63_2[] =
 	{18, &Jit64::fp_arith},              // fdivx
 	{20, &Jit64::fp_arith},              // fsubx
 	{21, &Jit64::fp_arith},              // faddx
-	{22, &Jit64::FallBackToInterpreter}, // fsqrtx
 	{23, &Jit64::fselx},                 // fselx
 	{25, &Jit64::fp_arith},              // fmulx
 	{26, &Jit64::frsqrtex},              // frsqrtex

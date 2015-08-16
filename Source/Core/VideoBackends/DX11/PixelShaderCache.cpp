@@ -165,7 +165,7 @@ void main(
 	in float4 uv3 : TEXCOORD3)
 {
 	float4 texcol = Tex0.Sample(samp0,uv0);
-	int depth = clamp(int((1.0 - texcol.x) * 16777216.0), 0, 0xFFFFFF);
+	int depth = int((1.0 - texcol.x) * 16777216.0);
 	texcol.z = float(depth & 255);   // z component
 	depth = depth >> 8;
 	texcol.y = float(depth & 255);   // y component
@@ -195,7 +195,7 @@ void main(
 	for(int i = 0; i < samples; ++i)
 		texcol += Tex0.Load(int3(uv0.x*(width), uv0.y*(height), uv0.z), i);
 	texcol /= samples;
-	int depth = clamp(int((1.0 - texcol.x) * 16777216.0), 0, 0xFFFFFF);
+	int depth = int((1.0 - texcol.x) * 16777216.0);
 	texcol.z = float(depth & 255);   // z component
 	depth = depth >> 8;
 	texcol.y = float(depth & 255);   // y component
