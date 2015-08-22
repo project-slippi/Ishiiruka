@@ -696,7 +696,7 @@ float3 RGBtoXYZ(float3 rgb)
 		0.2126729, 0.7151522, 0.0721750,
 		0.0193339, 0.1191920, 0.9503041);
 
-	return mult(m, rgb);
+	return mul(rgb, m);
 }
 
 float3 XYZtoRGB(float3 xyz)
@@ -706,7 +706,7 @@ float3 XYZtoRGB(float3 xyz)
 		-0.9692660, 1.8760108, 0.0415560,
 		0.0556434, -0.2040259, 1.0572252);
 
-	return mult(m, xyz);
+	return mul(xyz, m);
 }
 
 float3 RGBtoYUV(float3 RGB)
@@ -716,7 +716,7 @@ float3 RGBtoYUV(float3 RGB)
 		-0.09991, -0.33609, 0.436,
 		0.615, -0.55861, -0.05639);
 
-	return mult(m, RGB);
+	return mul(RGB, m);
 }
 
 float3 YUVtoRGB(float3 YUV)
@@ -726,7 +726,7 @@ float3 YUVtoRGB(float3 YUV)
 		1.000, -0.21482, -0.38059,
 		1.000, 2.12798, 0.000);
 
-	return mult(m, YUV);
+	return mul(YUV, m);
 }
 
 //Converting XYZ to Yxy

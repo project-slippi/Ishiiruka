@@ -762,7 +762,7 @@ float3 RGBtoXYZ(float3 rgb)
 		0.2126729, 0.7151522, 0.0721750,
 		0.0193339, 0.1191920, 0.9503041);
 
-	return mult(m, rgb);
+	return mul(rgb, m);
 }
 
 float3 XYZtoRGB(float3 xyz)
@@ -772,7 +772,7 @@ float3 XYZtoRGB(float3 xyz)
 		-0.9692660, 1.8760108, 0.0415560,
 		0.0556434, -0.2040259, 1.0572252);
 
-	return mult(m, xyz);
+	return mul(xyz, m);
 }
 
 float3 RGBtoYUV(float3 RGB)
@@ -782,7 +782,7 @@ float3 RGBtoYUV(float3 RGB)
 		-0.09991, -0.33609, 0.436,
 		0.615, -0.55861, -0.05639);
 
-	return mult(m, RGB);
+	return mul(RGB, m);
 }
 
 float3 YUVtoRGB(float3 YUV)
@@ -792,7 +792,7 @@ float3 YUVtoRGB(float3 YUV)
 		1.000, -0.21482, -0.38059,
 		1.000, 2.12798, 0.000);
 
-	return mult(m, YUV);
+	return mul(YUV, m);
 }
 
 //Converting XYZ to Yxy
@@ -843,8 +843,8 @@ float4 BicubicScaler(float2 uv, float2 txSize)
 		-3.0, 0.0, 3.0, 0.0, 1.0, 4.0, 1.0, 0.0);
 	M /= 6.0;
 
-	float4 wx = mult(M ,float4(f.x*f.x*f.x, f.x*f.x, f.x, 1.0));
-	float4 wy = mult(M ,float4(f.y*f.y*f.y, f.y*f.y, f.y, 1.0));
+	float4 wx = mul(float4(f.x*f.x*f.x, f.x*f.x, f.x, 1.0), M);
+	float4 wy = mul(float4(f.y*f.y*f.y, f.y*f.y, f.y, 1.0), M);
 	float2 w0 = float2(wx.x, wy.x);
 	float2 w1 = float2(wx.y, wy.y);
 	float2 w2 = float2(wx.z, wy.z);
@@ -909,7 +909,7 @@ float3 LineRun(float ypos, float4 xpos, float4 linetaps)
 		PixelPos(xpos.y, ypos),
 		PixelPos(xpos.z, ypos),
 		PixelPos(xpos.w, ypos));
-	return mult( m, linetaps);
+	return mul(linetaps, m);
 }
 
 float4 LanczosScaler(float2 inputSize)
@@ -932,7 +932,7 @@ float4 LanczosScaler(float2 inputSize)
 		LineRun(xystart.y + stepxy.y, xpos, linetaps),
 		LineRun(xystart.y + stepxy.y * 2.0, xpos, linetaps),
 		LineRun(xystart.y + stepxy.y * 3.0, xpos, linetaps));
-	return float4( mult(m, columntaps), 1.0);
+	return float4( mul(columntaps, m), 1.0);
 }
 
 float4 LanczosScalerPass(float4 color)
@@ -1110,8 +1110,8 @@ float4 BloomPass(float4 color)
 	float2 dx = float2(pixelSize.x * GetOption(D_BLOOM_WIDTH), 0.0);
 	float2 dy = float2(0.0, pixelSize.y * GetOption(D_BLOOM_WIDTH));
 
-	float2 mdx = mult(dx, 2.0);
-	float2 mdy = mult(dy, 2.0);
+	float2 mdx = mul(dx, 2.0);
+	float2 mdy = mul(dy, 2.0);
 
 	float4 blend = bloom * 0.22520613262190495;
 

@@ -644,7 +644,6 @@ uint GetTime()
 }
 
 #define SetOutput(color) ocol0 = color
-#define mult(a, b) mul(b, a)
 #define GetOption(x) (option_##x)
 #define OptionEnabled(x) (option_##x != 0)
 

@@ -589,7 +589,6 @@ void SetOutput(float4 color)
 {
 	ocol0 = color;
 }
-#define mult(a, b) (a * b)
 #define GetOption(x) (option_##x)
 #define OptionEnabled(x) (option_##x != 0)
 //Random

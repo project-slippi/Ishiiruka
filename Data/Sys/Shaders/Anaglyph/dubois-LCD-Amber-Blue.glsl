@@ -13,5 +13,5 @@ void main()
 	float3x3 r = float3x3(-0.016, -0.123, -0.017,
 	               0.006, 0.062, 0.017,
 	              -0.094,-0.185, 0.991);
-	SetOutput(float4(mult(c0.rgb, l) + mult(c1.rgb, r), c0.a));
+	SetOutput(float4(mul(c0.rgb, l) + mul(c1.rgb, r), c0.a));
 }
