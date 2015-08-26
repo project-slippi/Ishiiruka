@@ -758,7 +758,8 @@ void Renderer::SwapImpl(u32 xfbAddr, u32 fbWidth, u32 fbStride, u32 fbHeight, co
 	const TargetRectangle targetRc = GetTargetRectangle();
 
 	D3D::context->OMSetRenderTargets(1, &D3D::GetBackBuffer()->GetRTV(), nullptr);
-
+	float ClearColor[4] = { 0.f, 0.f, 0.f, 1.f };
+	D3D::context->ClearRenderTargetView(D3D::GetBackBuffer()->GetRTV(), ClearColor);
 	// activate linear filtering for the buffer copies
 	D3D::SetLinearCopySampler();
 

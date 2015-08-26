@@ -600,7 +600,7 @@ void Renderer::SwapImpl(u32 xfbAddr, u32 fbWidth, u32 fbStride, u32 fbHeight, co
 	// Prepare to copy the XFBs to our backbuffer
 	D3D::dev->SetDepthStencilSurface(NULL);
 	D3D::dev->SetRenderTarget(0, D3D::GetBackBufferSurface());
-
+	D3D::dev->Clear(0, NULL, D3DCLEAR_TARGET, 0x0, 0, 0);
 	UpdateDrawRectangle(s_backbuffer_width, s_backbuffer_height);
 	D3DVIEWPORT9 vp;
 	const TargetRectangle Tr = GetTargetRectangle();
