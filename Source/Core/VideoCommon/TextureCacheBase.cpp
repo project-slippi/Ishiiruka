@@ -122,6 +122,9 @@ void TextureCache::OnConfigChanged(VideoConfig& config)
 			config.bTexFmtOverlayEnable != backup_config.s_texfmt_overlay ||
 			config.bTexFmtOverlayCenter != backup_config.s_texfmt_overlay_center ||
 			config.bHiresTextures != backup_config.s_hires_textures ||
+			config.iTexScalingFactor != backup_config.s_scaling_factor ||
+			config.iTexScalingType != backup_config.s_scaling_mode ||
+			config.bTexDeposterize != backup_config.s_scaling_deposterize ||
 			invalidate_texture_cache_requested)
 		{
 			g_texture_cache->Invalidate();
@@ -155,6 +158,9 @@ void TextureCache::OnConfigChanged(VideoConfig& config)
 	backup_config.s_cache_hires_textures = config.bCacheHiresTextures;
 	backup_config.s_stereo_3d = config.iStereoMode > 0;
 	backup_config.s_efb_mono_depth = config.bStereoEFBMonoDepth;
+	backup_config.s_scaling_factor = config.iTexScalingFactor;
+	backup_config.s_scaling_mode = config.iTexScalingType;
+	backup_config.s_scaling_deposterize = config.bTexDeposterize;
 }
 
 void TextureCache::Cleanup(int _frameCount)
@@ -688,6 +694,12 @@ TextureCache::TCacheEntryBase* TextureCache::Load(const u32 stage)
 	config.height = height;
 	config.levels = texLevels;
 	config.pcformat = pcfmt;
+	if (g_ActiveConfig.iTexScalingType && !hires_tex)
+	{
+		config.width *= g_ActiveConfig.iTexScalingFactor;
+		config.height *= g_ActiveConfig.iTexScalingFactor;
+		config.pcformat = PC_TEX_FMT_RGBA32;
+	}
 	TCacheEntryBase* entry = AllocateTexture(config);
 	GFX_DEBUGGER_PAUSE_AT(NEXT_NEW_TEXTURE, true);
 

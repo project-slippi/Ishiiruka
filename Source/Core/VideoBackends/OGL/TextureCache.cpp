@@ -33,6 +33,7 @@
 #include "VideoCommon/ImageWrite.h"
 #include "VideoCommon/Statistics.h"
 #include "VideoCommon/TextureDecoder.h"
+#include "VideoCommon/TextureScalerCommon.h"
 #include "VideoCommon/VideoConfig.h"
 
 namespace OGL
@@ -58,6 +59,7 @@ static GLuint s_palette_buffer_offset_uniform[3];
 static GLuint s_palette_multiplier_uniform[3];
 static GLuint s_palette_copy_position_uniform[3];
 static Depalettizer* s_depaletizer = nullptr;
+static TextureScaler* s_scaler = nullptr;
 static std::pair<u8*, u32> s_last_pallet_Buffer;
 static TlutFormat s_last_TlutFormat = TlutFormat::GX_TL_IA8;
 bool SaveTexture(const std::string& filename, u32 textarget, u32 tex, int virtual_width, int virtual_height, u32 level)
@@ -327,8 +329,16 @@ void TextureCache::TCacheEntry::Load(const u8* src, u32 width, u32 height, u32 e
 	u32 expandedHeight, const s32 texformat, const u32 tlutaddr, const TlutFormat tlutfmt, u32 level)
 {
 	config.pcformat = TexDecoder_Decode(TextureCache::temp, src, expandedWidth, expandedHeight, texformat, tlutaddr, tlutfmt, PC_TEX_FMT_RGBA32 == config.pcformat, compressed);
+	u8* data = TextureCache::temp;
+	if (g_ActiveConfig.iTexScalingType)
+	{
+		data = (u8*)s_scaler->Scale((u32*)data, expandedWidth, height);
+		width *= g_ActiveConfig.iTexScalingFactor;
+		height *= g_ActiveConfig.iTexScalingFactor;
+		expandedWidth *= g_ActiveConfig.iTexScalingFactor;
+	}
 	SetFormat();
-	Load(TextureCache::temp, width, height, expandedWidth, level);
+	Load(data, width, height, expandedWidth, level);
 }
 void TextureCache::TCacheEntry::LoadFromTmem(const u8* ar_src, const u8* gb_src, u32 width, u32 height,
 	u32 expanded_width, u32 expanded_Height, u32 level)
@@ -338,7 +348,15 @@ void TextureCache::TCacheEntry::LoadFromTmem(const u8* ar_src, const u8* gb_src,
 	gl_iformat = GL_RGBA;
 	gl_type = GL_UNSIGNED_BYTE;
 	TexDecoder_DecodeRGBA8FromTmem((u32*)TextureCache::temp, ar_src, gb_src, expanded_width, expanded_Height);
-	Load(TextureCache::temp, width, height, expanded_width, level);
+	u8* data = TextureCache::temp;
+	if (g_ActiveConfig.iTexScalingType)
+	{
+		data = (u8*)s_scaler->Scale((u32*)data, expanded_width, height);
+		width *= g_ActiveConfig.iTexScalingFactor;
+		height *= g_ActiveConfig.iTexScalingFactor;
+		expanded_width *= g_ActiveConfig.iTexScalingFactor;
+	}
+	Load(data, width, height, expanded_width, level);
 }
 
 void TextureCache::TCacheEntry::FromRenderTarget(
@@ -478,6 +496,7 @@ TextureCache::TextureCache()
 	{
 		s_depaletizer = new Depalettizer();
 	}
+	s_scaler = new TextureScaler();
 }
 
 void TextureCache::CompileShaders()
@@ -711,6 +730,11 @@ TextureCache::~TextureCache()
 			delete s_depaletizer;
 			s_depaletizer = nullptr;
 		}
+	}
+	if (s_scaler)
+	{
+		delete s_scaler;
+		s_scaler = nullptr;
 	}
 }
 

@@ -97,6 +97,7 @@
     <ClCompile Include="TextureCacheBase.cpp" />
     <ClCompile Include="TextureConversionShader.cpp" />
     <ClCompile Include="TextureConversionShaderGL.cpp" />
+    <ClCompile Include="TextureScalerCommon.cpp" />
     <ClCompile Include="TextureUtil.cpp" />
     <ClCompile Include="VertexLoader.cpp" />
     <ClCompile Include="VertexLoaderBase.cpp" />
@@ -179,6 +180,7 @@
     <ClInclude Include="TextureCacheBase.h" />
     <ClInclude Include="TextureConversionShader.h" />
     <ClInclude Include="TextureDecoder.h" />
+    <ClInclude Include="TextureScalerCommon.h" />
     <ClInclude Include="TextureUtil.h" />
     <ClInclude Include="VertexLoader.h" />
     <ClInclude Include="VertexLoaderBase.h" />
@@ -219,6 +221,9 @@
     </ProjectReference>
     <ProjectReference Include="$(ExternalsDir)xxhash\xxhash.vcxproj">
       <Project>{677EA016-1182-440C-9345-DC88D1E98C0C}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\..\Externals\xbrz\xbrz.vcxproj">
+      <Project>{869ea016-4458-2a45-25af-dc44d6e98c0a}</Project>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

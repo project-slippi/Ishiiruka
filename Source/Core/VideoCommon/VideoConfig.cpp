@@ -50,6 +50,9 @@ VideoConfig::VideoConfig()
 	iStereoDepthPercentage = 100;
 	iStereoConvergenceMinimum = 0;
 	bUseScalingFilter = false;
+	bTexDeposterize = false;
+	iTexScalingType = 0;
+	iTexScalingFactor = 2;
 }
 
 void VideoConfig::Load(const std::string& ini_file)
@@ -105,6 +108,9 @@ void VideoConfig::Load(const std::string& ini_file)
 	enhancements->Get("StereoConvergence", &iStereoConvergence, 20);
 	enhancements->Get("StereoSwapEyes", &bStereoSwapEyes, false);
 	enhancements->Get("UseScalingFilter", &bUseScalingFilter, false);
+	enhancements->Get("TextureScalingType", &iTexScalingType, 0);
+	enhancements->Get("TextureScalingFactor", &iTexScalingFactor, 2);
+	enhancements->Get("UseDePosterize", &bTexDeposterize, false);
 	
 	IniFile::Section* hacks = iniFile.GetOrCreateSection("Hacks");
 	hacks->Get("EFBAccessEnable", &bEFBAccessEnable, true);
@@ -214,6 +220,9 @@ void VideoConfig::GameIniLoad()
 	CHECK_SETTING("Video_Enhancements", "StereoConvergence", iStereoConvergence);
 	CHECK_SETTING("Video_Enhancements", "StereoSwapEyes", bStereoSwapEyes);
 	CHECK_SETTING("Video_Enhancements", "UseScalingFilter", bUseScalingFilter);
+	CHECK_SETTING("Video_Enhancements", "TextureScalingType", iTexScalingType);
+	CHECK_SETTING("Video_Enhancements", "TextureScalingFactor", iTexScalingFactor);
+	CHECK_SETTING("Video_Enhancements", "UseDePosterize", bTexDeposterize);
 
 	CHECK_SETTING("Video_Stereoscopy", "StereoEFBMonoDepth", bStereoEFBMonoDepth);
 	CHECK_SETTING("Video_Stereoscopy", "StereoDepthPercentage", iStereoDepthPercentage);
@@ -278,6 +287,22 @@ void VideoConfig::VerifyValidity()
 	{
 		iBBoxMode = BBoxCPU;
 	}
+	if (iTexScalingFactor < 2)
+	{
+		iTexScalingFactor = 2;
+	}
+	else if (iTexScalingFactor > 5)
+	{
+		iTexScalingFactor = 5;
+	}
+	if (iTexScalingType < 0)
+	{
+		iTexScalingType = 0;
+	}
+	else if(iTexScalingType > 4)
+	{
+		iTexScalingType = 4;
+	}
 	
 }
 
@@ -334,6 +359,9 @@ void VideoConfig::Save(const std::string& ini_file)
 	enhancements->Set("StereoConvergence", iStereoConvergence);
 	enhancements->Set("StereoSwapEyes", bStereoSwapEyes);
 	enhancements->Set("UseScalingFilter", bUseScalingFilter);
+	enhancements->Set("TextureScalingType", iTexScalingType);
+	enhancements->Set("TextureScalingFactor", iTexScalingFactor);
+	enhancements->Set("UseDePosterize", bTexDeposterize);
 	
 
 	IniFile::Section* hacks = iniFile.GetOrCreateSection("Hacks");

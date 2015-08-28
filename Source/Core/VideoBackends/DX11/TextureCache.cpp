@@ -18,12 +18,14 @@
 #include "VideoCommon/ImageWrite.h"
 #include "VideoCommon/RenderBase.h"
 #include "VideoCommon/VideoConfig.h"
+#include "VideoCommon/TextureScalerCommon.h"
 
 namespace DX11
 {
 
 static TextureEncoder* s_encoder = nullptr;
 static TextureDecoder* s_decoder = nullptr;
+static TextureScaler* s_scaler = nullptr;
 const size_t MAX_COPY_BUFFERS = 33;
 D3D::BufferPtr efbcopycbuf[MAX_COPY_BUFFERS];
 
@@ -167,14 +169,20 @@ void TextureCache::TCacheEntry::Load(const u8* src, u32 width, u32 height,
 void TextureCache::TCacheEntry::Load(const u8* src, u32 width, u32 height, u32 expandedWidth,
 	u32 expandedHeight, const s32 texformat, const u32 tlutaddr, const TlutFormat tlutfmt, u32 level)
 {
-	if (!s_decoder->Decode(
-		src, 
-		TexDecoder_GetTextureSizeInBytes(expandedWidth, expandedHeight, texformat), 
-		texformat, 
-		width, 
-		height, 
-		level, 
-		*texture))
+	bool need_cpu_decode = g_ActiveConfig.iTexScalingType > 0;
+
+	if (!need_cpu_decode)
+	{
+		need_cpu_decode = !s_decoder->Decode(
+			src,
+			TexDecoder_GetTextureSizeInBytes(expandedWidth, expandedHeight, texformat),
+			texformat,
+			width,
+			height,
+			level,
+			*texture);
+	}
+	if (need_cpu_decode)
 	{
 		TexDecoder_Decode(
 			TextureCache::temp,
@@ -186,9 +194,17 @@ void TextureCache::TCacheEntry::Load(const u8* src, u32 width, u32 height, u32 e
 			tlutfmt,
 			PC_TEX_FMT_RGBA32 == config.pcformat,
 			compressed);
+		u8* data = TextureCache::temp;
+		if (g_ActiveConfig.iTexScalingType)
+		{
+			data = (u8*)s_scaler->Scale((u32*)data, expandedWidth, height);
+			width *= g_ActiveConfig.iTexScalingFactor;
+			height *= g_ActiveConfig.iTexScalingFactor;
+			expandedWidth *= g_ActiveConfig.iTexScalingFactor;
+		}
 		D3D::ReplaceTexture2D(
 			texture->GetTex(),
-			TextureCache::temp,
+			data,
 			width,
 			height,
 			expandedWidth,
@@ -202,7 +218,13 @@ void TextureCache::TCacheEntry::Load(const u8* src, u32 width, u32 height, u32 e
 void TextureCache::TCacheEntry::LoadFromTmem(const u8* ar_src, const u8* gb_src, u32 width, u32 height,
 	u32 expanded_width, u32 expanded_Height, u32 level)
 {
-	if (!s_decoder->DecodeRGBAFromTMEM(ar_src, gb_src,width, height,*texture))
+	bool need_cpu_decode = g_ActiveConfig.iTexScalingType > 0;
+
+	if (!need_cpu_decode)
+	{
+		need_cpu_decode = !s_decoder->DecodeRGBAFromTMEM(ar_src, gb_src, width, height, *texture);
+	}
+	if (need_cpu_decode)
 	{
 		TexDecoder_DecodeRGBA8FromTmem(
 			(u32*)TextureCache::temp,
@@ -210,9 +232,17 @@ void TextureCache::TCacheEntry::LoadFromTmem(const u8* ar_src, const u8* gb_src,
 			gb_src,
 			expanded_width,
 			expanded_Height);
+		u8* data = TextureCache::temp;
+		if (g_ActiveConfig.iTexScalingType)
+		{
+			data = (u8*)s_scaler->Scale((u32*)data, expanded_width, height);
+			width *= g_ActiveConfig.iTexScalingFactor;
+			height *= g_ActiveConfig.iTexScalingFactor;
+			expanded_width *= g_ActiveConfig.iTexScalingFactor;
+		}
 		D3D::ReplaceTexture2D(
 			texture->GetTex(),
-			TextureCache::temp,
+			data,
 			width,
 			height,
 			expanded_width,
@@ -222,7 +252,6 @@ void TextureCache::TCacheEntry::LoadFromTmem(const u8* ar_src, const u8* gb_src,
 			swap_rg,
 			convertrgb565);
 	}
-	
 }
 
 PC_TexFormat TextureCache::GetNativeTextureFormat(const s32 texformat, const TlutFormat tlutfmt, u32 width, u32 height)
@@ -397,6 +426,7 @@ TextureCache::TextureCache()
 	s_encoder->Init();
 	s_decoder = new CSTextureDecoder;
 	s_decoder->Init();
+	s_scaler = new TextureScaler();
 }
 
 TextureCache::~TextureCache()
@@ -411,6 +441,11 @@ TextureCache::~TextureCache()
 	s_decoder->Shutdown();
 	delete s_decoder;
 	s_decoder = nullptr;
+	if (s_scaler)
+	{
+		delete s_scaler;
+		s_scaler = nullptr;
+	}
 }
 
 }

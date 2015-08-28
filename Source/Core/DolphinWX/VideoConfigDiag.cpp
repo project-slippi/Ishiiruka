@@ -154,6 +154,9 @@ static wxString stereo_separation_desc = _("Control the separation distance, thi
 static wxString stereo_convergence_desc = _("Control the convergence distance, this controls the apparant distance of virtual objects.\nA higher value creates stronger out-of-screen effects while a lower value is more comfortable.");
 static wxString stereo_swap_desc = _("Swap the left and right eye, mostly useful if you want to view side-by-side cross-eyed.\n\nIf unsure, leave this unchecked.");
 static const char *s_bbox_mode_text[] = { "Disabled", "CPU", "GPU" };
+static wxString texture_scaling_desc = _("Apply the selected scaling algorithm to improve texture quality.");
+static wxString scaling_factor_desc = _("Multiplier applied to the texture size.");
+static wxString texture_deposterize_desc = _("Decrease some gradient's artifacts caused by scaling.");
 
 // Search for available resolutions - TODO: Move to Common?
 static  wxArrayString GetListOfResolutions()
@@ -467,6 +470,27 @@ VideoConfigDiag::VideoConfigDiag(wxWindow* parent, const std::string &title, con
 		szr_enh_main->Add(group_stereo, 0, wxEXPAND | wxALL, 5);
 	}
 
+	wxFlexGridSizer* const szr_texturescaling = new wxFlexGridSizer(2, 5, 5);
+
+	szr_texturescaling->Add(new wxStaticText(page_enh, wxID_ANY, _("Texture Scaling Mode:")), 1, wxALIGN_CENTER_VERTICAL, 0);
+
+	const wxString scaling_choices[] = { "Off", "XBRZ", "Hybrid", "Bicubic", "Hybrid-Bicubic" };
+	wxChoice* scaling_choice = CreateChoice(page_enh, vconfig.iTexScalingType, (texture_scaling_desc), ArraySize(scaling_choices), scaling_choices);
+	szr_texturescaling->Add(scaling_choice);
+
+	wxSlider* const factor_slider = new wxSlider(page_enh, wxID_ANY, vconfig.iTexScalingFactor, 2, 5, wxDefaultPosition, wxDefaultSize);
+	factor_slider->Bind(wxEVT_SLIDER, &VideoConfigDiag::Event_ScalingFactor, this);
+	RegisterControl(factor_slider, (scaling_factor_desc));
+
+	szr_texturescaling->Add(new wxStaticText(page_enh, wxID_ANY, _("Scaling factor:")), 1, wxALIGN_CENTER_VERTICAL, 0);
+	szr_texturescaling->Add(factor_slider, 0, wxEXPAND | wxRIGHT);
+
+	szr_texturescaling->Add(CreateCheckBox(page_enh, _("DePosterize"), (stereo_swap_desc), vconfig.bTexDeposterize));
+
+	wxStaticBoxSizer* const group_scaling = new wxStaticBoxSizer(wxVERTICAL, page_enh, _("Texture Scaling"));
+	group_scaling->Add(szr_texturescaling, 1, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 5);
+	szr_enh_main->Add(group_scaling, 0, wxEXPAND | wxALL, 5);
+	
 	szr_enh_main->AddStretchSpacer();
 	CreateDescriptionArea(page_enh, szr_enh_main);
 	page_enh->SetSizerAndFit(szr_enh_main);
@@ -839,6 +863,13 @@ void VideoConfigDiag::Event_ConfigurePPShader(wxCommandEvent &ev)
 void VideoConfigDiag::Event_StereoDepth(wxCommandEvent &ev)
 {
 	vconfig.iStereoDepth = ev.GetInt();
+
+	ev.Skip();
+}
+
+void VideoConfigDiag::Event_ScalingFactor(wxCommandEvent &ev)
+{
+	vconfig.iTexScalingFactor = ev.GetInt();
 
 	ev.Skip();
 }

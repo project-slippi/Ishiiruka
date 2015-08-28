@@ -241,6 +241,9 @@ private:
 		bool s_cache_hires_textures;
 		bool s_stereo_3d;
 		bool s_efb_mono_depth;
+		s32 s_scaling_mode;
+		s32 s_scaling_factor;
+		bool s_scaling_deposterize;
 	} backup_config;
 };
 

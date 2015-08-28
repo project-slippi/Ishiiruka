@@ -22,3 +22,48 @@ void GuardMemoryMake(void* ptr, size_t size);
 void GuardMemoryUnmake(void* ptr, size_t size);
 
 inline int GetPageSize() { return 4096; }
+
+template <typename T>
+class SimpleBuf {
+public:
+	SimpleBuf() : buf_(0), size_(0) {
+	}
+
+	SimpleBuf(size_t size) : buf_(0) {
+		resize(size);
+	}
+
+	~SimpleBuf() {
+		if (buf_ != 0) {
+			FreeMemoryPages(buf_, size_ * sizeof(T));
+		}
+	}
+
+	inline T &operator[](size_t index) {
+		return buf_[index];
+	}
+
+	// Doesn't preserve contents.
+	void resize(size_t size) {
+		if (size_ < size) {
+			if (buf_ != 0) {
+				FreeMemoryPages(buf_, size_ * sizeof(T));
+			}
+			buf_ = (T *)AllocateMemoryPages(size * sizeof(T));
+			size_ = size;
+		}
+	}
+
+	T *data() {
+		return buf_;
+	}
+
+	size_t size() const {
+		return size_;
+	}
+
+private:
+	T *buf_;
+	size_t size_;
+};
+

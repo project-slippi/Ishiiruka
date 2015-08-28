@@ -28,6 +28,7 @@
 #include "VideoCommon/PixelShaderManager.h"
 #include "VideoCommon/Statistics.h"
 #include "VideoCommon/TextureDecoder.h"
+#include "VideoCommon/TextureScalerCommon.h"
 #include "VideoCommon/VertexShaderManager.h"
 
 
@@ -56,6 +57,7 @@ static u32 s_memPoolTextureW[MEM_TEXTURE_POOL_SIZE];
 static u32 s_memPoolTextureH[MEM_TEXTURE_POOL_SIZE];
 
 static Depalettizer *s_depaletizer = nullptr;
+static TextureScaler* s_scaler = nullptr;
 
 TextureCache::TCacheEntry::~TCacheEntry()
 {
@@ -170,14 +172,32 @@ void TextureCache::TCacheEntry::Load(const u8* src, u32 width, u32 height,
 void TextureCache::TCacheEntry::Load(const u8* src, u32 width, u32 height, u32 expandedWidth,
 	u32 expandedHeight, const s32 texformat, const u32 tlutaddr, const TlutFormat tlutfmt, u32 level)
 {
-	config.pcformat = TexDecoder_Decode(TextureCache::temp, src, expandedWidth, expandedHeight, texformat, tlutaddr, tlutfmt, false, compressed);
-	ReplaceTexture(TextureCache::temp, width, height, expandedWidth, level);
+	config.pcformat = TexDecoder_Decode(TextureCache::temp, src, expandedWidth, expandedHeight, texformat, tlutaddr, tlutfmt, g_ActiveConfig.iTexScalingType > 0, compressed);
+	u8* data = TextureCache::temp;
+	if (g_ActiveConfig.iTexScalingType)
+	{
+		data = (u8*)s_scaler->Scale((u32*)data, expandedWidth, height);
+		width *= g_ActiveConfig.iTexScalingFactor;
+		height *= g_ActiveConfig.iTexScalingFactor;
+		expandedWidth *= g_ActiveConfig.iTexScalingFactor;
+	}
+	ReplaceTexture(data, width, height, expandedWidth, level);
 }
 void TextureCache::TCacheEntry::LoadFromTmem(const u8* ar_src, const u8* gb_src, u32 width, u32 height,
 	u32 expanded_width, u32 expanded_Height, u32 level)
 {
+	config.pcformat = PC_TEX_FMT_BGRA32;
+	swap_r_b = false;
 	TexDecoder_DecodeBGRA8FromTmem((u32*)TextureCache::temp, ar_src, gb_src, expanded_width, expanded_Height);
-	ReplaceTexture(TextureCache::temp, width, height, expanded_width, level);
+	u8* data = TextureCache::temp;
+	if (g_ActiveConfig.iTexScalingType)
+	{
+		data = (u8*)s_scaler->Scale((u32*)data, expanded_width, height);
+		width *= g_ActiveConfig.iTexScalingFactor;
+		height *= g_ActiveConfig.iTexScalingFactor;
+		expanded_width *= g_ActiveConfig.iTexScalingFactor;
+	}
+	ReplaceTexture(data, width, height, expanded_width, level);
 }
 
 void TextureCache::TCacheEntry::FromRenderTarget(
@@ -336,6 +356,7 @@ TextureCache::TextureCache()
 		s_memPoolTextureH[i] = 1024u;
 	}
 	s_depaletizer = new Depalettizer();
+	s_scaler = new TextureScaler();
 }
 
 TextureCache::~TextureCache()
@@ -352,6 +373,11 @@ TextureCache::~TextureCache()
 	{
 		delete s_depaletizer;
 		s_depaletizer = nullptr;
+	}
+	if (s_scaler)
+	{
+		delete s_scaler;
+		s_scaler = nullptr;
 	}
 }
 

@@ -217,6 +217,9 @@
     <ClCompile Include="GeometryShaderManager.cpp">
       <Filter>Shader Managers</Filter>
     </ClCompile>
+    <ClCompile Include="TextureScalerCommon.cpp">
+      <Filter>Util</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="CommandProcessor.h" />
@@ -462,6 +465,9 @@
     </ClInclude>
     <ClInclude Include="ConstantManager.h">
       <Filter>Shader Managers</Filter>
+    </ClInclude>
+    <ClInclude Include="TextureScalerCommon.h">
+      <Filter>Util</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2013
-VisualStudioVersion = 12.0.31101.0
+VisualStudioVersion = 12.0.40629.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Dolphin", "Core\DolphinWX\Dolphin.vcxproj", "{1B099EF8-6F87-47A2-A3E7-898A24584F49}"
 	ProjectSection(ProjectDependencies) = postProject
@@ -137,6 +137,8 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "UICommon", "Core\UICommon\UICommon.vcxproj", "{604C8368-F34A-4D55-82C8-CC92A0C13254}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "enet", "..\Externals\enet\enet.vcxproj", "{CBC76802-C128-4B17-BF6C-23B08C313E5E}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "xbrz", "..\Externals\xbrz\xbrz.vcxproj", "{869EA016-4458-2A45-25AF-DC44D6E98C0A}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -356,6 +358,12 @@ Global
 		{CBC76802-C128-4B17-BF6C-23B08C313E5E}.Release|Win32.ActiveCfg = Release|x64
 		{CBC76802-C128-4B17-BF6C-23B08C313E5E}.Release|x64.ActiveCfg = Release|x64
 		{CBC76802-C128-4B17-BF6C-23B08C313E5E}.Release|x64.Build.0 = Release|x64
+		{869EA016-4458-2A45-25AF-DC44D6E98C0A}.Debug|Win32.ActiveCfg = Debug|x64
+		{869EA016-4458-2A45-25AF-DC44D6E98C0A}.Debug|x64.ActiveCfg = Debug|x64
+		{869EA016-4458-2A45-25AF-DC44D6E98C0A}.Debug|x64.Build.0 = Debug|x64
+		{869EA016-4458-2A45-25AF-DC44D6E98C0A}.Release|Win32.ActiveCfg = Release|x64
+		{869EA016-4458-2A45-25AF-DC44D6E98C0A}.Release|x64.ActiveCfg = Release|x64
+		{869EA016-4458-2A45-25AF-DC44D6E98C0A}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -387,5 +395,6 @@ Global
 		{3ECEBBE7-1A0B-4056-99F4-0C0848DA8494} = {701E4F10-DED0-4ECB-A486-91188247EDBD}
 		{604C8368-F34A-4D55-82C8-CC92A0C13254} = {701E4F10-DED0-4ECB-A486-91188247EDBD}
 		{CBC76802-C128-4B17-BF6C-23B08C313E5E} = {39DB5AF5-003D-412B-8FF1-FB195541DB7A}
+		{869EA016-4458-2A45-25AF-DC44D6E98C0A} = {39DB5AF5-003D-412B-8FF1-FB195541DB7A}
 	EndGlobalSection
 EndGlobal

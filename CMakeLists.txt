@@ -594,6 +594,13 @@ if(NOT XXHASH_FOUND)
 endif()
 LIST(APPEND LIBS xxhash)
 
+if(NOT XBRZ_FOUND)
+	message("Using static xbrz from Externals")
+	add_subdirectory(Externals/xbrz)
+	include_directories(Externals/xbrz)
+endif()
+LIST(APPEND LIBS xbrz)
+
 # If zlib has already been found on a previous run of cmake don't check again
 # as the check seems to take a long time.
 if(NOT ZLIB_FOUND)
