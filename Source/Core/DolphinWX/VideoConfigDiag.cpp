@@ -485,7 +485,7 @@ VideoConfigDiag::VideoConfigDiag(wxWindow* parent, const std::string &title, con
 	szr_texturescaling->Add(new wxStaticText(page_enh, wxID_ANY, _("Scaling factor:")), 1, wxALIGN_CENTER_VERTICAL, 0);
 	szr_texturescaling->Add(factor_slider, 0, wxEXPAND | wxRIGHT);
 
-	szr_texturescaling->Add(CreateCheckBox(page_enh, _("DePosterize"), (stereo_swap_desc), vconfig.bTexDeposterize));
+	szr_texturescaling->Add(CreateCheckBox(page_enh, _("DePosterize"), (texture_deposterize_desc), vconfig.bTexDeposterize));
 
 	wxStaticBoxSizer* const group_scaling = new wxStaticBoxSizer(wxVERTICAL, page_enh, _("Texture Scaling"));
 	group_scaling->Add(szr_texturescaling, 1, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 5);
