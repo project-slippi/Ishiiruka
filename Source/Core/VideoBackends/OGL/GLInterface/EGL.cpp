@@ -4,6 +4,7 @@
 
 #include "VideoBackends/OGL/GLInterfaceBase.h"
 #include "VideoBackends/OGL/GLInterface/EGL.h"
+#include "VideoCommon/DriverDetails.h"
 #include "VideoCommon/RenderBase.h"
 
 // Show the current FPS
@@ -13,7 +14,8 @@ void cInterfaceEGL::Swap()
 }
 void cInterfaceEGL::SwapInterval(int Interval)
 {
-	eglSwapInterval(egl_dpy, Interval);
+	if (!DriverDetails::HasBug(DriverDetails::BUG_BROKENVSYNC))
+		eglSwapInterval(egl_dpy, Interval);
 }
 
 void* cInterfaceEGL::GetFuncAddress(const std::string& name)
@@ -47,7 +49,7 @@ void cInterfaceEGL::DetectMode()
 		};
 
 		// Get how many configs there are
-		if (!eglChooseConfig(egl_dpy, attribs, nullptr, 0, &num_configs))
+		if (!eglChooseConfig( egl_dpy, attribs, nullptr, 0, &num_configs))
 		{
 			INFO_LOG(VIDEO, "Error: couldn't get an EGL visual config\n");
 			continue;
@@ -134,25 +136,25 @@ bool cInterfaceEGL::Create(void *window_handle)
 	};
 	switch (s_opengl_mode)
 	{
-	case MODE_OPENGL:
-		attribs[1] = EGL_OPENGL_BIT;
-		ctx_attribs[0] = EGL_NONE;
+		case MODE_OPENGL:
+			attribs[1] = EGL_OPENGL_BIT;
+			ctx_attribs[0] = EGL_NONE;
 		break;
-	case MODE_OPENGLES2:
-		attribs[1] = EGL_OPENGL_ES2_BIT;
-		ctx_attribs[1] = 2;
+		case MODE_OPENGLES2:
+			attribs[1] = EGL_OPENGL_ES2_BIT;
+			ctx_attribs[1] = 2;
 		break;
-	case MODE_OPENGLES3:
-		attribs[1] = (1 << 6); /* EGL_OPENGL_ES3_BIT_KHR */
-		ctx_attribs[1] = 3;
+		case MODE_OPENGLES3:
+			attribs[1] = (1 << 6); /* EGL_OPENGL_ES3_BIT_KHR */
+			ctx_attribs[1] = 3;
 		break;
-	default:
-		ERROR_LOG(VIDEO, "Unknown opengl mode set\n");
-		return false;
+		default:
+			ERROR_LOG(VIDEO, "Unknown opengl mode set\n");
+			return false;
 		break;
 	}
 
-	if (!eglChooseConfig(egl_dpy, attribs, &config, 1, &num_configs))
+	if (!eglChooseConfig( egl_dpy, attribs, &config, 1, &num_configs))
 	{
 		INFO_LOG(VIDEO, "Error: couldn't get an EGL visual config\n");
 		exit(1);
@@ -163,7 +165,7 @@ bool cInterfaceEGL::Create(void *window_handle)
 	else
 		eglBindAPI(EGL_OPENGL_ES_API);
 
-	EGLNativeWindowType host_window = (EGLNativeWindowType)window_handle;
+	EGLNativeWindowType host_window = (EGLNativeWindowType) window_handle;
 	EGLNativeWindowType native_window = InitializePlatform(host_window, config);
 
 	s = eglQueryString(egl_dpy, EGL_VERSION);
@@ -178,7 +180,7 @@ bool cInterfaceEGL::Create(void *window_handle)
 	s = eglQueryString(egl_dpy, EGL_CLIENT_APIS);
 	INFO_LOG(VIDEO, "EGL_CLIENT_APIS = %s\n", s);
 
-	egl_ctx = eglCreateContext(egl_dpy, config, EGL_NO_CONTEXT, ctx_attribs);
+	egl_ctx = eglCreateContext(egl_dpy, config, EGL_NO_CONTEXT, ctx_attribs );
 	if (!egl_ctx)
 	{
 		INFO_LOG(VIDEO, "Error: eglCreateContext failed\n");

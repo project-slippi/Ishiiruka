@@ -90,6 +90,7 @@ public:
 	void cmpi(UGeckoInstruction inst);
 	void cmpli(UGeckoInstruction inst);
 	void rlwinmx(UGeckoInstruction inst);
+	void rlwnmx(UGeckoInstruction inst);
 	void srawix(UGeckoInstruction inst);
 	void mullwx(UGeckoInstruction inst);
 	void addic(UGeckoInstruction inst);
@@ -98,7 +99,13 @@ public:
 	void subfx(UGeckoInstruction inst);
 	void addcx(UGeckoInstruction inst);
 	void slwx(UGeckoInstruction inst);
+	void srwx(UGeckoInstruction inst);
 	void rlwimix(UGeckoInstruction inst);
+	void subfex(UGeckoInstruction inst);
+	void subfcx(UGeckoInstruction inst);
+	void subfic(UGeckoInstruction inst);
+	void addex(UGeckoInstruction inst);
+	void divwux(UGeckoInstruction inst);
 
 	// System Registers
 	void mtmsr(UGeckoInstruction inst);
@@ -112,6 +119,9 @@ public:
 	void mfspr(UGeckoInstruction inst);
 	void mftb(UGeckoInstruction inst);
 	void mtspr(UGeckoInstruction inst);
+	void crXXX(UGeckoInstruction inst);
+	void mfcr(UGeckoInstruction inst);
+	void mtcrf(UGeckoInstruction inst);
 
 	// LoadStore
 	void lXX(UGeckoInstruction inst);
@@ -146,6 +156,9 @@ public:
 	void fsubx(UGeckoInstruction inst);
 	void fcmpx(UGeckoInstruction inst);
 	void frspx(UGeckoInstruction inst);
+	void fctiwzx(UGeckoInstruction inst);
+	void fdivx(UGeckoInstruction inst);
+	void fdivsx(UGeckoInstruction inst);
 
 	// Paired
 	void ps_abs(UGeckoInstruction inst);

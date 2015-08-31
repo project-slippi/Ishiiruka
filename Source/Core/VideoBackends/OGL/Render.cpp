@@ -150,7 +150,7 @@ static void ApplySSAASettings()
 			{
 				glEnable(GL_SAMPLE_SHADING_ARB);
 				GLfloat min_sample_shading_value = static_cast<GLfloat>(s_MSAASamples);
-				glMinSampleShadingARB(min_sample_shading_value);
+				glMinSampleShading(min_sample_shading_value);
 			}
 			else
 			{
@@ -470,10 +470,10 @@ Renderer::Renderer()
 	g_Config.backend_info.bSupportsPaletteConversion = GLExtensions::Supports("GL_ARB_texture_buffer_object");
 	g_Config.backend_info.bSupportsClipControl = GLExtensions::Supports("GL_ARB_clip_control");
 	g_ogl_config.bSupportsCopySubImage = (GLExtensions::Supports("GL_ARB_copy_image") ||
-		GLExtensions::Supports("GL_NV_copy_image") ||
-		GLExtensions::Supports("GL_EXT_copy_image") ||
-		GLExtensions::Supports("GL_OES_copy_image")) &&
-		!DriverDetails::HasBug(DriverDetails::BUG_BROKENCOPYIMAGE);
+	                                      GLExtensions::Supports("GL_NV_copy_image") ||
+	                                      GLExtensions::Supports("GL_EXT_copy_image") ||
+	                                      GLExtensions::Supports("GL_OES_copy_image")) &&
+	                                      !DriverDetails::HasBug(DriverDetails::BUG_BROKENCOPYIMAGE);
 
 	// Desktop OpenGL supports the binding layout if it supports 420pack
 	// OpenGL ES 3.1 supports it implicitly without an extension
@@ -491,24 +491,41 @@ Renderer::Renderer()
 	g_ogl_config.bSupportSampleShading = GLExtensions::Supports("GL_ARB_sample_shading");
 	g_ogl_config.bSupportOGL31 = GLExtensions::Version() >= 310;
 	g_ogl_config.bSupportViewportFloat = GLExtensions::Supports("GL_ARB_viewport_array");
-	g_ogl_config.bSupportsDebug = GLExtensions::Supports("GL_KHR_debug") || GLExtensions::Supports("GL_ARB_debug_output");
+	g_ogl_config.bSupportsDebug = GLExtensions::Supports("GL_KHR_debug") ||
+	                              GLExtensions::Supports("GL_ARB_debug_output");
 
 	if (GLInterface->GetMode() == GLInterfaceMode::MODE_OPENGLES3)
 	{
-		if (strstr(g_ogl_config.glsl_version, "3.0"))
+		g_ogl_config.SupportedESPointSize = GLExtensions::Supports("GL_OES_geometry_point_size") ? 1 : GLExtensions::Supports("GL_EXT_geometry_point_size") ? 2 : 0;
+
+		if (strstr(g_ogl_config.glsl_version, "3.0") || DriverDetails::HasBug(DriverDetails::BUG_BROKENGLES31))
 		{
 			g_ogl_config.eSupportedGLSLVersion = GLSLES_300;
 			g_ogl_config.bSupportsAEP = false;
 			g_Config.backend_info.bSupportsGeometryShaders = false;
 		}
-		else
+		else if (strstr(g_ogl_config.glsl_version, "3.1"))
 		{
 			g_ogl_config.eSupportedGLSLVersion = GLSLES_310;
 			g_ogl_config.bSupportsAEP = GLExtensions::Supports("GL_ANDROID_extension_pack_es31a");
 			g_Config.backend_info.bSupportsBindingLayout = true;
 			g_Config.backend_info.bSupportsEarlyZ = true;
 			g_Config.backend_info.bSupportsGeometryShaders = g_ogl_config.bSupportsAEP;
+			g_Config.backend_info.bSupportsGSInstancing = g_Config.backend_info.bSupportsGeometryShaders && g_ogl_config.SupportedESPointSize > 0;
 			//g_Config.backend_info.bSupportsPaletteConversion = GLExtensions::Supports("GL_EXT_texture_buffer");
+		}
+		else
+		{
+			g_ogl_config.eSupportedGLSLVersion = GLSLES_320;
+			g_ogl_config.bSupportsAEP = GLExtensions::Supports("GL_ANDROID_extension_pack_es31a");
+			g_Config.backend_info.bSupportsBindingLayout = true;
+			g_Config.backend_info.bSupportsEarlyZ = true;
+			g_Config.backend_info.bSupportsGeometryShaders = true;
+			g_Config.backend_info.bSupportsGSInstancing = g_ogl_config.SupportedESPointSize > 0;
+			g_ogl_config.bSupportsCopySubImage = true;
+			g_ogl_config.bSupportsGLBaseVertex = true;
+			g_ogl_config.bSupportSampleShading = true;
+			g_ogl_config.bSupportsDebug = true;
 		}
 	}
 	else
@@ -1493,6 +1510,7 @@ void Renderer::SwapImpl(u32 xfbAddr, u32 fbWidth, u32 fbStride, u32 fbHeight, co
 				//drawRc.bottom *= vScale;
 				//drawRc.left *= hScale;
 				//drawRc.right *= hScale;
+
 				sourceRc.right -= Renderer::EFBToScaledX(fbStride - fbWidth);
 			}
 			// Tell the OSD Menu about the current internal resolution
@@ -1521,10 +1539,14 @@ void Renderer::SwapImpl(u32 xfbAddr, u32 fbWidth, u32 fbStride, u32 fbHeight, co
 	if (s_bScreenshot)
 	{
 		std::lock_guard<std::mutex> lk(s_criticalScreenshot);
-		SaveScreenshot(s_sScreenshotName, flipped_trc);
+
+		if (SaveScreenshot(s_sScreenshotName, flipped_trc))
+			OSD::AddMessage("Screenshot saved to " + s_sScreenshotName);
+
 		// Reset settings
 		s_sScreenshotName.clear();
 		s_bScreenshot = false;
+		s_screenshotCompleted.Set();
 	}
 
 	// Frame dumps are handled a little differently in Windows
@@ -1665,7 +1687,6 @@ void Renderer::SwapImpl(u32 xfbAddr, u32 fbWidth, u32 fbStride, u32 fbHeight, co
 	{
 		TargetSizeChanged = true;
 	}
-
 	if (TargetSizeChanged || xfbchanged || WindowResized || (s_last_multisample_mode != g_ActiveConfig.iMultisampleMode) || (s_last_stereo_mode != (g_ActiveConfig.iStereoMode > 0)))
 	{
 		s_last_xfb_mode = g_ActiveConfig.bUseRealXFB;

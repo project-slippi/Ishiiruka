@@ -480,8 +480,8 @@ public:
 	// Available only on Atom or >= Haswell so far. Test with cpu_info.bMOVBE.
 	void MOVBE(int bits, X64Reg dest, const OpArg& src);
 	void MOVBE(int bits, const OpArg& dest, X64Reg src);
-	void LoadAndSwap(int size, X64Reg dst, const OpArg& src);
-	void SwapAndStore(int size, const OpArg& dst, X64Reg src);
+	void LoadAndSwap(int size, X64Reg dst, const OpArg& src, bool sign_extend = false);
+	u8* SwapAndStore(int size, const OpArg& dst, X64Reg src);
 
 	// Available only on AMD >= Phenom or Intel >= Haswell
 	void LZCNT(int bits, X64Reg dest, const OpArg& src);
@@ -538,6 +538,7 @@ public:
 	void MAXSD(X64Reg regOp, const OpArg& arg);
 	void SQRTSS(X64Reg regOp, const OpArg& arg);
 	void SQRTSD(X64Reg regOp, const OpArg& arg);
+	void RCPSS(X64Reg regOp, const OpArg& arg);
 	void RSQRTSS(X64Reg regOp, const OpArg& arg);
 
 	// SSE/SSE2: Floating point bitwise (yes)
@@ -561,6 +562,7 @@ public:
 	void MAXPD(X64Reg regOp, const OpArg& arg);
 	void SQRTPS(X64Reg regOp, const OpArg& arg);
 	void SQRTPD(X64Reg regOp, const OpArg& arg);
+	void RCPPS(X64Reg regOp, const OpArg& arg);
 	void RSQRTPS(X64Reg regOp, const OpArg& arg);
 
 	// SSE/SSE2: Floating point packed bitwise (x4 for float, x2 for double)

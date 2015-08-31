@@ -70,7 +70,7 @@ void JitArm64::FallBackToInterpreter(UGeckoInstruction inst)
 		gpr.Unlock(WA);
 	}
 
-	Interpreter::_interpreterInstruction instr = GetInterpreterOp(inst);
+	Interpreter::Instruction instr = GetInterpreterOp(inst);
 	MOVI2R(W0, inst.hex);
 	MOVI2R(X30, (u64)instr);
 	BLR(X30);
@@ -160,24 +160,14 @@ void JitArm64::WriteExit(u32 destination)
 	linkData.exitPtrs = GetWritableCodePtr();
 	linkData.linkStatus = false;
 
-	// Link opportunity!
-	int block;
-	if (jo.enableBlocklink && (block = blocks.GetBlockNumberFromStartAddress(destination)) >= 0)
-	{
-		// It exists! Joy of joy!
-		B(blocks.GetBlock(block)->checkedEntry);
-		linkData.linkStatus = true;
-	}
-	else
-	{
-		ARM64Reg WA = gpr.GetReg();
-		ARM64Reg XA = EncodeRegTo64(WA);
-		MOVI2R(WA, destination);
-		STR(INDEX_UNSIGNED, WA, X29, PPCSTATE_OFF(pc));
-		MOVI2R(XA, (u64)asm_routines.dispatcher);
-		BR(XA);
-		gpr.Unlock(WA);
-	}
+	// the code generated in JitArm64BlockCache::WriteDestroyBlock must fit in this block
+	ARM64Reg WA = gpr.GetReg();
+	ARM64Reg XA = EncodeRegTo64(WA);
+	MOVI2R(WA, destination);
+	STR(INDEX_UNSIGNED, WA, X29, PPCSTATE_OFF(pc));
+	MOVI2R(XA, (u64)asm_routines.dispatcher);
+	BR(XA);
+	gpr.Unlock(WA);
 
 	b->linkData.push_back(linkData);
 }
