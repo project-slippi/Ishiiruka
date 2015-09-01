@@ -125,7 +125,7 @@ protected:
 	wxStaticText* label_display_resolution;
 
 	SettingCheckBox* pixel_lighting;
-
+	wxStaticText* label_TextureScale;
 	SettingCheckBox* borderless_fullscreen;
 	SettingCheckBox* render_to_main_checkbox;
 

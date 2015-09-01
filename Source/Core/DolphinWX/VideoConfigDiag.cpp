@@ -355,14 +355,14 @@ VideoConfigDiag::VideoConfigDiag(wxWindow* parent, const std::string &title, con
 	wxBoxSizer* const szr_enh_main = new wxBoxSizer(wxVERTICAL);
 
 	// - enhancements
-	wxFlexGridSizer* const szr_enh = new wxFlexGridSizer(2, 5, 5);
+	wxFlexGridSizer* const szr_enh = new wxFlexGridSizer(3, 5, 5);
 
 	// Internal resolution
 	{
 	const wxString efbscale_choices[] = { _("Auto (Window Size)"), _("Auto (Multiple of 640x528)"),
-		_("1x Native (640x528)"), _("1.5x Native (960x792)"), _("2x Native (1280x1056) for 720p"), _("2.5x Native (1600x1320)"),
-		_("3x Native (1920x1584) for 1080p"), _("4x Native (2560x2112) for WQHD"), _("5x Native (3200x2640)"),
-		_("6x Native (3840x3168) for 4K UHD"), _("7x Native (4480x3696)"), _("8x Native (5120x4224)"), _("Custom") };
+		_("1x (640x528)"), _("1.5x (960x792)"), _("2x (1280x1056) for 720p"), _("2.5x (1600x1320)"),
+		_("3x (1920x1584) for 1080p"), _("4x (2560x2112) for WQHD"), _("5x (3200x2640)"),
+		_("6x (3840x3168) for 4K UHD"), _("7x (4480x3696)"), _("8x (5120x4224)"), _("Custom") };
 
 
 	wxChoice *const choice_efbscale = CreateChoice(page_enh,
@@ -375,6 +375,7 @@ VideoConfigDiag::VideoConfigDiag(wxWindow* parent, const std::string &title, con
 
 	szr_enh->Add(new wxStaticText(page_enh, wxID_ANY, _("Internal Resolution:")), 1, wxALIGN_CENTER_VERTICAL, 0);
 	szr_enh->Add(choice_efbscale);
+	szr_enh->AddSpacer(0);
 	}
 	
 	// AA
@@ -390,6 +391,7 @@ VideoConfigDiag::VideoConfigDiag(wxWindow* parent, const std::string &title, con
 	choice_aamode->Select(vconfig.iMultisampleMode);
 	szr_enh->Add(text_aamode, 1, wxALIGN_CENTER_VERTICAL, 0);
 	szr_enh->Add(choice_aamode);
+	szr_enh->AddSpacer(0);
 	}
 
 	// AF
@@ -397,12 +399,12 @@ VideoConfigDiag::VideoConfigDiag(wxWindow* parent, const std::string &title, con
 	const wxString af_choices[] = {wxT("1x"), wxT("2x"), wxT("4x"), wxT("8x"), wxT("16x")};
 	szr_enh->Add(new wxStaticText(page_enh, wxID_ANY, _("Anisotropic Filtering:")), 1, wxALIGN_CENTER_VERTICAL, 0);
 	szr_enh->Add(CreateChoice(page_enh, vconfig.iMaxAnisotropy, (af_desc), 5, af_choices));
+	szr_enh->AddSpacer(0);
 	}
 
 	// postproc shader
 	if (vconfig.backend_info.PPShaders.size())
 	{
-		wxFlexGridSizer* const szr_pp = new wxFlexGridSizer(3, 5, 5);
 		choice_ppshader = new wxChoice(page_enh, wxID_ANY);
 		RegisterControl(choice_ppshader, (ppshader_desc));
 		button_config_pp = new wxButton(page_enh, wxID_ANY, _("Config"));
@@ -413,9 +415,8 @@ VideoConfigDiag::VideoConfigDiag(wxWindow* parent, const std::string &title, con
 		button_config_pp->Bind(wxEVT_BUTTON, &VideoConfigDiag::Event_ConfigurePPShader, this);
 
 		szr_enh->Add(new wxStaticText(page_enh, wxID_ANY, _("Post-Processing Effect:")), 1, wxALIGN_CENTER_VERTICAL, 0);
-		szr_pp->Add(choice_ppshader);
-		szr_pp->Add(button_config_pp);
-		szr_enh->Add(szr_pp);
+		szr_enh->Add(choice_ppshader);
+		szr_enh->Add(button_config_pp);
 	}
 	else
 	{
@@ -425,12 +426,12 @@ VideoConfigDiag::VideoConfigDiag(wxWindow* parent, const std::string &title, con
 
 	// Scaled copy, PL, Bilinear filter, 3D Vision
 	szr_enh->Add(CreateCheckBox(page_enh, _("Scaled EFB Copy"), (scaled_efb_copy_desc), vconfig.bCopyEFBScaled));
-	szr_enh->Add(pixel_lighting = CreateCheckBox(page_enh, _("Per-Pixel Lighting"), (pixel_lighting_desc), vconfig.bEnablePixelLighting));
-	szr_enh->Add(CreateCheckBox(page_enh, _("Force Texture Filtering"), (force_filtering_desc), vconfig.bForceFiltering));
 	szr_enh->Add(CreateCheckBox(page_enh, _("Use Scaling Filter"), (Use_Scaling_filter_desc), vconfig.bUseScalingFilter));
-
+	szr_enh->Add(CreateCheckBox(page_enh, _("Force Texture Filtering"), (force_filtering_desc), vconfig.bForceFiltering));
+	
 	szr_enh->Add(CreateCheckBox(page_enh, _("Widescreen Hack"), (ws_hack_desc), vconfig.bWidescreenHack));
 	szr_enh->Add(CreateCheckBox(page_enh, _("Disable Fog"), (disable_fog_desc), vconfig.bDisableFog));
+	szr_enh->Add(pixel_lighting = CreateCheckBox(page_enh, _("Per-Pixel Lighting"), (pixel_lighting_desc), vconfig.bEnablePixelLighting));
 
 	wxStaticBoxSizer* const group_enh = new wxStaticBoxSizer(wxVERTICAL, page_enh, _("Enhancements"));
 	group_enh->Add(szr_enh, 1, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 5);
@@ -440,7 +441,7 @@ VideoConfigDiag::VideoConfigDiag(wxWindow* parent, const std::string &title, con
 
 	if (vconfig.backend_info.bSupportsGeometryShaders)
 	{
-		wxFlexGridSizer* const szr_stereo = new wxFlexGridSizer(2, 5, 5);
+		wxFlexGridSizer* const szr_stereo = new wxFlexGridSizer(3, 5, 5);
 
 		szr_stereo->Add(new wxStaticText(page_enh, wxID_ANY, _("Stereoscopic 3D Mode:")), 1, wxALIGN_CENTER_VERTICAL, 0);
 
@@ -449,43 +450,54 @@ VideoConfigDiag::VideoConfigDiag(wxWindow* parent, const std::string &title, con
 		stereo_choice->Bind(wxEVT_CHOICE, &VideoConfigDiag::Event_StereoMode, this);
 		szr_stereo->Add(stereo_choice);
 
+		szr_stereo->Add(CreateCheckBox(page_enh, _("Swap Eyes"), (stereo_swap_desc), vconfig.bStereoSwapEyes), 1, wxALIGN_CENTER_VERTICAL, 0);
+
 		wxSlider* const sep_slider = new wxSlider(page_enh, wxID_ANY, vconfig.iStereoDepth, 0, 100, wxDefaultPosition, wxDefaultSize);
 		sep_slider->Bind(wxEVT_SLIDER, &VideoConfigDiag::Event_StereoDepth, this);
 		RegisterControl(sep_slider, (stereo_separation_desc));
 
 		szr_stereo->Add(new wxStaticText(page_enh, wxID_ANY, _("Separation:")), 1, wxALIGN_CENTER_VERTICAL, 0);
-		szr_stereo->Add(sep_slider, 0, wxEXPAND | wxRIGHT);
-
+		szr_stereo->Add(sep_slider, 1, wxEXPAND | wxRIGHT);
+		szr_stereo->AddSpacer(0);
 		wxSlider* const conv_slider = new wxSlider(page_enh, wxID_ANY, vconfig.iStereoConvergence, 0, 500, wxDefaultPosition, wxDefaultSize);
 		conv_slider->Bind(wxEVT_SLIDER, &VideoConfigDiag::Event_StereoConvergence, this);
 		RegisterControl(conv_slider, (stereo_convergence_desc));
 
 		szr_stereo->Add(new wxStaticText(page_enh, wxID_ANY, _("Convergence:")), 1, wxALIGN_CENTER_VERTICAL, 0);
-		szr_stereo->Add(conv_slider, 0, wxEXPAND | wxRIGHT);
-
-		szr_stereo->Add(CreateCheckBox(page_enh, _("Swap Eyes"), (stereo_swap_desc), vconfig.bStereoSwapEyes));
+		szr_stereo->Add(conv_slider, 1, wxEXPAND | wxRIGHT);
 
 		wxStaticBoxSizer* const group_stereo = new wxStaticBoxSizer(wxVERTICAL, page_enh, _("Stereoscopy"));
 		group_stereo->Add(szr_stereo, 1, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 5);
-		szr_enh_main->Add(group_stereo, 0, wxEXPAND | wxALL, 5);
+		szr_enh_main->Add(group_stereo, 2, wxEXPAND | wxALL, 5);
 	}
 
-	wxFlexGridSizer* const szr_texturescaling = new wxFlexGridSizer(2, 5, 5);
+	wxFlexGridSizer* const szr_texturescaling = new wxFlexGridSizer(3, 5, 5);
 
 	szr_texturescaling->Add(new wxStaticText(page_enh, wxID_ANY, _("Texture Scaling Mode:")), 1, wxALIGN_CENTER_VERTICAL, 0);
 
 	const wxString scaling_choices[] = { "Off", "XBRZ", "Hybrid", "Bicubic", "Hybrid-Bicubic" };
 	wxChoice* scaling_choice = CreateChoice(page_enh, vconfig.iTexScalingType, (texture_scaling_desc), ArraySize(scaling_choices), scaling_choices);
 	szr_texturescaling->Add(scaling_choice);
+	
+	szr_texturescaling->Add(CreateCheckBox(page_enh, _("DePosterize"), (texture_deposterize_desc), vconfig.bTexDeposterize), 1, wxALIGN_CENTER_VERTICAL);
 
-	wxSlider* const factor_slider = new wxSlider(page_enh, wxID_ANY, vconfig.iTexScalingFactor, 2, 5, wxDefaultPosition, wxDefaultSize);
+	wxSlider* const factor_slider = new wxSlider(
+		page_enh,
+		wxID_ANY,
+		vconfig.iTexScalingFactor,
+		2,
+		5,
+		wxDefaultPosition, wxDefaultSize,
+		wxSL_HORIZONTAL | wxSL_BOTTOM);
 	factor_slider->Bind(wxEVT_SLIDER, &VideoConfigDiag::Event_ScalingFactor, this);
 	RegisterControl(factor_slider, (scaling_factor_desc));
+	
+	szr_texturescaling->Add(new wxStaticText(page_enh, wxID_ANY, _("Scaling factor:")), 0, wxALL, 5);
+	szr_texturescaling->Add(factor_slider, 3, wxRIGHT, 0);
+	const wxString sf_choices[] = { wxT("1x"), wxT("2x"), wxT("3x"), wxT("4x"), wxT("5x") };
+	szr_texturescaling->Add(label_TextureScale = new wxStaticText(page_enh, wxID_ANY, sf_choices[vconfig.iTexScalingFactor - 1]), 1, wxRIGHT | wxTOP | wxBOTTOM, 5);
 
-	szr_texturescaling->Add(new wxStaticText(page_enh, wxID_ANY, _("Scaling factor:")), 1, wxALIGN_CENTER_VERTICAL, 0);
-	szr_texturescaling->Add(factor_slider, 0, wxEXPAND | wxRIGHT);
-
-	szr_texturescaling->Add(CreateCheckBox(page_enh, _("DePosterize"), (texture_deposterize_desc), vconfig.bTexDeposterize));
+	
 
 	wxStaticBoxSizer* const group_scaling = new wxStaticBoxSizer(wxVERTICAL, page_enh, _("Texture Scaling"));
 	group_scaling->Add(szr_texturescaling, 1, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 5);
@@ -869,8 +881,9 @@ void VideoConfigDiag::Event_StereoDepth(wxCommandEvent &ev)
 
 void VideoConfigDiag::Event_ScalingFactor(wxCommandEvent &ev)
 {
+	const wxString sf_choices[] = { wxT("1x"), wxT("2x"), wxT("3x"), wxT("4x"), wxT("5x") };
 	vconfig.iTexScalingFactor = ev.GetInt();
-
+	label_TextureScale->SetLabel(sf_choices[vconfig.iTexScalingFactor - 1]);
 	ev.Skip();
 }
 
