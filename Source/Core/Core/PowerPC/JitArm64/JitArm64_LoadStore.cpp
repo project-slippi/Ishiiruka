@@ -543,15 +543,46 @@ void JitArm64::lmw(UGeckoInstruction inst)
 		MOVI2R(WA, (u32)(s32)(s16)inst.SIMM_16);
 	}
 
-	u8* base = UReg_MSR(MSR).DR ? Memory::logical_base : Memory::physical_base;
-	MOVK(XA, ((u64)base >> 32) & 0xFFFF, SHIFT_32);
+	ADD(XA, XA, X28);
 
 	for (int i = inst.RD; i < 32; i++)
 	{
-		gpr.BindToRegister(i, false);
-		ARM64Reg RX = gpr.R(i);
-		LDR(INDEX_UNSIGNED, RX, XA, (i - inst.RD) * 4);
-		REV32(RX, RX);
+		int remaining = 32 - i;
+		if (remaining >= 4)
+		{
+			gpr.BindToRegister(i + 3, false);
+			gpr.BindToRegister(i + 2, false);
+			gpr.BindToRegister(i + 1, false);
+			gpr.BindToRegister(i, false);
+			ARM64Reg RX4 = gpr.R(i + 3);
+			ARM64Reg RX3 = gpr.R(i + 2);
+			ARM64Reg RX2 = gpr.R(i + 1);
+			ARM64Reg RX1 = gpr.R(i);
+			LDP(INDEX_POST, EncodeRegTo64(RX1), EncodeRegTo64(RX3), XA, 16);
+			REV32(EncodeRegTo64(RX1), EncodeRegTo64(RX1));
+			REV32(EncodeRegTo64(RX3), EncodeRegTo64(RX3));
+			ORR(EncodeRegTo64(RX2), ZR, EncodeRegTo64(RX1), ArithOption(EncodeRegTo64(RX1), ST_LSR, 32));
+			ORR(EncodeRegTo64(RX4), ZR, EncodeRegTo64(RX3), ArithOption(EncodeRegTo64(RX3), ST_LSR, 32));
+			i+=3;
+		}
+		else if (remaining >= 2)
+		{
+			gpr.BindToRegister(i + 1, false);
+			gpr.BindToRegister(i, false);
+			ARM64Reg RX2 = gpr.R(i + 1);
+			ARM64Reg RX1 = gpr.R(i);
+			LDP(INDEX_POST, RX1, RX2, XA, 8);
+			REV32(RX1, RX1);
+			REV32(RX2, RX2);
+			++i;
+		}
+		else
+		{
+			gpr.BindToRegister(i, false);
+			ARM64Reg RX = gpr.R(i);
+			LDR(INDEX_POST, RX, XA, 4);
+			REV32(RX, RX);
+		}
 	}
 
 	gpr.Unlock(WA);
@@ -631,4 +662,79 @@ void JitArm64::dcbt(UGeckoInstruction inst)
 	{
 		js.skipInstructions = 1;
 	}
+}
+
+void JitArm64::dcbz(UGeckoInstruction inst)
+{
+	INSTRUCTION_START
+	JITDISABLE(bJITLoadStoreOff);
+
+	int a = inst.RA, b = inst.RB;
+
+	u32 mem_mask = Memory::ADDR_MASK_HW_ACCESS;
+
+	// The following masks the region used by the GC/Wii virtual memory lib
+	mem_mask |= Memory::ADDR_MASK_MEM1;
+
+	gpr.Lock(W0);
+
+	ARM64Reg addr_reg = W0;
+
+	if (a)
+	{
+		bool is_imm_a, is_imm_b;
+		is_imm_a = gpr.IsImm(a);
+		is_imm_b = gpr.IsImm(b);
+		if (is_imm_a && is_imm_b)
+		{
+			// full imm_addr
+			u32 imm_addr = gpr.GetImm(b) + gpr.GetImm(a);
+			MOVI2R(addr_reg, imm_addr);
+		}
+		else if (is_imm_a || is_imm_b)
+		{
+			// Only one register is an immediate
+			ARM64Reg base = is_imm_a ? gpr.R(b) : gpr.R(a);
+			u32 imm_offset = is_imm_a ? gpr.GetImm(a) : gpr.GetImm(b);
+			if (imm_offset < 4096)
+			{
+				ADD(addr_reg, base, imm_offset);
+			}
+			else
+			{
+				MOVI2R(addr_reg, imm_offset);
+				ADD(addr_reg, addr_reg, base);
+			}
+		}
+		else
+		{
+			// Both are registers
+			ADD(addr_reg, gpr.R(a), gpr.R(b));
+		}
+	}
+	else
+	{
+		// RA isn't used, only RB
+		if (gpr.IsImm(b))
+		{
+			u32 imm_addr = gpr.GetImm(b);
+			MOVI2R(addr_reg, imm_addr);
+		}
+		else
+		{
+			MOV(addr_reg, gpr.R(b));
+		}
+	}
+
+	// We don't care about being /too/ terribly efficient here
+	// As long as we aren't falling back to interpreter we're winning a lot
+
+	BitSet32 gprs_to_push = gpr.GetCallerSavedUsed();
+	BitSet32 fprs_to_push = fpr.GetCallerSavedUsed();
+	gprs_to_push[W0] = 0;
+
+	EmitBackpatchRoutine(BackPatchInfo::FLAG_ZERO_256, true, true, W0, EncodeRegTo64(addr_reg), gprs_to_push, fprs_to_push);
+
+	gpr.Unlock(W0);
+
 }

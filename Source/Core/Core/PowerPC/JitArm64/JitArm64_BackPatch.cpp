@@ -76,23 +76,13 @@ void JitArm64::EmitBackpatchRoutine(u32 flags, bool fastmem, bool do_farcode,
 			if (flags & BackPatchInfo::FLAG_SIZE_F32)
 			{
 				m_float_emit.LDR(32, EncodeRegToDouble(RS), X28, addr);
-				m_float_emit.INS(32, RS, 1, RS, 0);
 				m_float_emit.REV32(8, EncodeRegToDouble(RS), EncodeRegToDouble(RS));
 				m_float_emit.FCVTL(64, EncodeRegToDouble(RS), EncodeRegToDouble(RS));
 			}
 			else
 			{
-				if (flags & BackPatchInfo::FLAG_ONLY_LOWER)
-				{
-					m_float_emit.LDR(64, EncodeRegToDouble(RS), X28, addr);
-					m_float_emit.REV64(8, EncodeRegToDouble(RS), EncodeRegToDouble(RS));
-				}
-				else
-				{
-					m_float_emit.LDR(64, Q0, X28, addr);
-					m_float_emit.REV64(8, D0, D0);
-					m_float_emit.INS(64, RS, 0, Q0, 0);
-				}
+				m_float_emit.LDR(64, EncodeRegToDouble(RS), X28, addr);
+				m_float_emit.REV64(8, EncodeRegToDouble(RS), EncodeRegToDouble(RS));
 			}
 		}
 		else if (flags & BackPatchInfo::FLAG_STORE)
@@ -109,6 +99,13 @@ void JitArm64::EmitBackpatchRoutine(u32 flags, bool fastmem, bool do_farcode,
 				STRH(temp, X28, addr);
 			else
 				STRB(RS, X28, addr);
+		}
+		else if (flags & BackPatchInfo::FLAG_ZERO_256)
+		{
+			// This literally only stores 32bytes of zeros to the target address
+			ADD(addr, addr, X28);
+			STP(INDEX_SIGNED, ZR, ZR, addr, 0);
+			STP(INDEX_SIGNED, ZR, ZR, addr, 16);
 		}
 		else
 		{
@@ -142,7 +139,7 @@ void JitArm64::EmitBackpatchRoutine(u32 flags, bool fastmem, bool do_farcode,
 			handler.addr_reg = addr;
 			handler.gprs = gprs_to_push;
 			handler.fprs = fprs_to_push;
-			handler.flags = flags & ~BackPatchInfo::FLAG_ONLY_LOWER;
+			handler.flags = flags;
 
 			FastmemArea* fastmem_area = &m_fault_to_handler[fastmem_start];
 			auto handler_loc_iter = m_handler_to_loc.find(handler);
@@ -199,7 +196,7 @@ void JitArm64::EmitBackpatchRoutine(u32 flags, bool fastmem, bool do_farcode,
 			{
 				MOVI2R(X30, (u64)&PowerPC::Read_U32);
 				BLR(X30);
-				m_float_emit.DUP(32, RS, X0);
+				m_float_emit.INS(32, RS, 0, X0);
 				m_float_emit.FCVTL(64, RS, RS);
 			}
 			else
@@ -220,6 +217,11 @@ void JitArm64::EmitBackpatchRoutine(u32 flags, bool fastmem, bool do_farcode,
 			else
 				MOVI2R(X30, (u64)&PowerPC::Write_U8);
 
+			BLR(X30);
+		}
+		else if (flags & BackPatchInfo::FLAG_ZERO_256)
+		{
+			MOVI2R(X30, (u64)&PowerPC::ClearCacheLine);
 			BLR(X30);
 		}
 		else

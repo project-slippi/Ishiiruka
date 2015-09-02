@@ -39,7 +39,7 @@ SConfig::SConfig()
   bCPUThread(true), bDSPThread(false), bDSPHLE(true),
   bSkipIdle(true), bSyncGPUOnSkipIdleHack(true), bNTSC(false), bForceNTSCJ(false),
   bHLE_BS2(true), bEnableCheats(false),
-  bEnableMemcardSaving(true),
+  bEnableMemcardSdWriting(true),
   bDPL2Decoder(false), bTimeStretching(false), iLatency(14), bWiiSpeakSupport(false),
   bRunCompareServer(false), bRunCompareClient(false),
   bMMU(false), bDCBZOFF(false),
@@ -610,7 +610,7 @@ void SConfig::LoadDefaults()
 	bDoubleVideoRate = false;
 	bSyncGPU = false;
 	bFastDiscSpeed = false;
-	bEnableMemcardSaving = true;
+	bEnableMemcardSdWriting = true;
 	SelectedLanguage = 0;
 	bOverrideGCLanguage = false;
 	bWii = false;

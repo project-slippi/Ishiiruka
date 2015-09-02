@@ -766,7 +766,7 @@ void ARM64XEmitter::EncodeLoadStorePair(u32 op, u32 load, IndexType type, ARM64R
 
 	switch (type)
 	{
-	case INDEX_UNSIGNED:
+	case INDEX_SIGNED:
 		type_encode = 0b010;
 		break;
 	case INDEX_POST:
@@ -775,8 +775,8 @@ void ARM64XEmitter::EncodeLoadStorePair(u32 op, u32 load, IndexType type, ARM64R
 	case INDEX_PRE:
 		type_encode = 0b011;
 		break;
-	case INDEX_SIGNED:
-		_assert_msg_(DYNA_REC, false, "%s doesn't support INDEX_SIGNED!", __FUNCTION__);
+	case INDEX_UNSIGNED:
+		_assert_msg_(DYNA_REC, false, "%s doesn't support INDEX_UNSIGNED!", __FUNCTION__);
 		break;
 	}
 
@@ -1101,6 +1101,12 @@ static void GetSystemReg(PStateField field, int &o0, int &op1, int &CRn, int &CR
 		break;
 	case FIELD_FPSR:
 		o0 = 3; op1 = 3; CRn = 4; CRm = 4; op2 = 1;
+		break;
+	case FIELD_PMCR_EL0:
+		o0 = 3; op1 = 3; CRn = 9; CRm = 6; op2 = 0;
+		break;
+	case FIELD_PMCCNTR_EL0:
+		o0 = 3; op1 = 3; CRn = 9; CRm = 7; op2 = 0;
 		break;
 	default:
 		_assert_msg_(DYNA_REC, false, "Invalid PStateField to do a register move from/to");
@@ -1992,7 +1998,7 @@ void ARM64XEmitter::ABI_PushRegisters(BitSet32 registers)
 				reg_pair.push_back((ARM64Reg)(X0 + it));
 				if (reg_pair.size() == 2)
 				{
-					STP(INDEX_UNSIGNED, reg_pair[0], reg_pair[1], SP, current_offset);
+					STP(INDEX_SIGNED, reg_pair[0], reg_pair[1], SP, current_offset);
 					reg_pair.clear();
 					current_offset += 16;
 				}

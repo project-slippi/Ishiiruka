@@ -4,7 +4,9 @@
 
 #include <cstddef>
 #include <map>
+#include <memory>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "Common/CommonTypes.h"
@@ -18,8 +20,8 @@
 
 namespace DiscIO
 {
-CVolumeWAD::CVolumeWAD(IBlobReader* _pReader)
-	: m_pReader(_pReader), m_offset(0), m_tmd_offset(0), m_opening_bnr_offset(0),
+CVolumeWAD::CVolumeWAD(std::unique_ptr<IBlobReader> reader)
+	: m_pReader(std::move(reader)), m_offset(0), m_tmd_offset(0), m_opening_bnr_offset(0),
 	m_hdr_size(0), m_cert_size(0), m_tick_size(0), m_tmd_size(0), m_data_size(0)
 {
 	// Source: http://wiibrew.org/wiki/WAD_files
@@ -83,7 +85,7 @@ std::string CVolumeWAD::GetUniqueID() const
 
 std::string CVolumeWAD::GetMakerID() const
 {
-	char temp[2] = { 1 };
+	char temp[2] = {1};
 	// Some weird channels use 0x0000 in place of the MakerID, so we need a check there
 	if (!Read(0x198 + m_tmd_offset, 2, (u8*)temp) || temp[0] == 0 || temp[1] == 0)
 		return "00";
