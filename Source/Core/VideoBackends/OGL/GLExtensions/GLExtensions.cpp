@@ -718,6 +718,10 @@ PFNGLTEXIMAGE3DMULTISAMPLEPROC glTexImage3DMultisample;
 PFNGLGETMULTISAMPLEFVPROC glGetMultisamplefv;
 PFNGLSAMPLEMASKIPROC glSampleMaski;
 
+// ARB_texture_storage_multisample
+PFNGLTEXSTORAGE2DMULTISAMPLEPROC glTexStorage2DMultisample;
+PFNGLTEXSTORAGE3DMULTISAMPLEPROC glTexStorage3DMultisample;
+
 // ARB_ES2_compatibility
 PFNGLCLEARDEPTHFPROC glClearDepthf;
 PFNGLDEPTHRANGEFPROC glDepthRangef;
@@ -1183,6 +1187,11 @@ const GLFunc gl_function_array[] =
 	GLFUNC_REQUIRES(glGetMultisamplefv,      "GL_ARB_texture_multisample"),
 	GLFUNC_REQUIRES(glSampleMaski,           "GL_ARB_texture_multisample"),
 
+	// ARB_texture_storage_multisample
+	GLFUNC_REQUIRES(glTexStorage2DMultisample, "GL_ARB_texture_storage_multisample"),
+	GLFUNC_REQUIRES(glTexStorage3DMultisample, "GL_ARB_texture_storage_multisample"),
+	GLFUNC_SUFFIX(glTexStorage3DMultisample, OES, "GL_OES_texture_storage_multisample_2d_array !VERSION_GLES_3_2"),
+
 	// ARB_ES2_compatibility
 	GLFUNC_REQUIRES(glClearDepthf,              "GL_ARB_ES2_compatibility"),
 	GLFUNC_REQUIRES(glDepthRangef,              "GL_ARB_ES2_compatibility"),
@@ -1230,6 +1239,9 @@ const GLFunc gl_function_array[] =
 
 	// ARB_sample_shading
 	GLFUNC_SUFFIX(glMinSampleShading, ARB, "GL_ARB_sample_shading"),
+
+	// OES_sample_shading
+	GLFUNC_SUFFIX(glMinSampleShading, OES, "GL_OES_sample_shading !VERSION_GLES_3_2"),
 
 	// ARB_debug_output
 	GLFUNC_REQUIRES(glDebugMessageCallbackARB, "GL_ARB_debug_output"),
@@ -1293,19 +1305,33 @@ const GLFunc gl_function_array[] =
 	// EXT_copy_image
 	GLFUNC_SUFFIX(glCopyImageSubData, EXT, "GL_EXT_copy_image !GL_OES_copy_image !VERSION_GLES_3_2"),
 
+	// EXT_texture_buffer
+	GLFUNC_SUFFIX(glTexBuffer, OES, "GL_OES_texture_buffer !VERSION_GLES_3_2"),
+
+	// EXT_texture_buffer
+	GLFUNC_SUFFIX(glTexBuffer, EXT, "GL_EXT_texture_buffer !GL_OES_texture_buffer !VERSION_GLES_3_2"),
+	// GLES 3.1
+	GLFUNC_REQUIRES(glTexStorage2DMultisample, "VERSION_GLES_3_1"),
+
+	// EXT_blend_func_extended
+	GLFUNC_SUFFIX(glBindFragDataLocationIndexed, EXT, "GL_EXT_blend_func_extended"),
+	GLFUNC_SUFFIX(glGetFragDataIndex, EXT,            "GL_EXT_blend_func_extended"),
+
 	// GLES 3.2
-	GLFUNC_REQUIRES(glMinSampleShading,     "VERSION_GLES_3_2"),
-	GLFUNC_REQUIRES(glDebugMessageCallback, "VERSION_GLES_3_2"),
-	GLFUNC_REQUIRES(glDebugMessageControl,  "VERSION_GLES_3_2"),
-	GLFUNC_REQUIRES(glDebugMessageInsert,   "VERSION_GLES_3_2"),
-	GLFUNC_REQUIRES(glGetDebugMessageLog,   "VERSION_GLES_3_2"),
-	GLFUNC_REQUIRES(glGetObjectLabel,       "VERSION_GLES_3_2"),
-	GLFUNC_REQUIRES(glGetObjectPtrLabel,    "VERSION_GLES_3_2"),
-	GLFUNC_REQUIRES(glObjectLabel,          "VERSION_GLES_3_2"),
-	GLFUNC_REQUIRES(glObjectPtrLabel,       "VERSION_GLES_3_2"),
-	GLFUNC_REQUIRES(glPopDebugGroup,        "VERSION_GLES_3_2"),
-	GLFUNC_REQUIRES(glPushDebugGroup,       "VERSION_GLES_3_2"),
-	GLFUNC_REQUIRES(glCopyImageSubData,     "VERSION_GLES_3_2"),
+	GLFUNC_REQUIRES(glMinSampleShading,        "VERSION_GLES_3_2"),
+	GLFUNC_REQUIRES(glDebugMessageCallback,    "VERSION_GLES_3_2"),
+	GLFUNC_REQUIRES(glDebugMessageControl,     "VERSION_GLES_3_2"),
+	GLFUNC_REQUIRES(glDebugMessageInsert,      "VERSION_GLES_3_2"),
+	GLFUNC_REQUIRES(glGetDebugMessageLog,      "VERSION_GLES_3_2"),
+	GLFUNC_REQUIRES(glGetObjectLabel,          "VERSION_GLES_3_2"),
+	GLFUNC_REQUIRES(glGetObjectPtrLabel,       "VERSION_GLES_3_2"),
+	GLFUNC_REQUIRES(glObjectLabel,             "VERSION_GLES_3_2"),
+	GLFUNC_REQUIRES(glObjectPtrLabel,          "VERSION_GLES_3_2"),
+	GLFUNC_REQUIRES(glPopDebugGroup,           "VERSION_GLES_3_2"),
+	GLFUNC_REQUIRES(glPushDebugGroup,          "VERSION_GLES_3_2"),
+	GLFUNC_REQUIRES(glCopyImageSubData,        "VERSION_GLES_3_2"),
+	GLFUNC_REQUIRES(glTexBuffer,               "VERSION_GLES_3_2"),
+	GLFUNC_REQUIRES(glTexStorage3DMultisample, "VERSION_GLES_3_2"),
 
 	// gl_1_1
 	// OpenGL 1.1 is at the end due to a bug in Android's EGL stack.
@@ -1691,6 +1717,14 @@ namespace GLExtensions
 						m_extension_list[it] = true;
 				}
 				case 310:
+				{
+					std::string gles310exts[] = {
+						"GL_ARB_texture_storage_multisample",
+						"VERSION_GLES_3_1",
+					};
+					for (auto it : gles310exts)
+						m_extension_list[it] = true;
+				}
 				case 300:
 				{
 					std::string gles3exts[] = {

@@ -139,6 +139,7 @@ static wxString waitforshadercompilation_desc = _("Wait for shader compilation i
 static wxString predictiveFifo_desc = _("Generate a secondary fifo to predict resource usage and improve loading time.");
 static wxString load_hires_textures_desc = _("Load custom textures from User/Load/Textures/<game_id>/\n\nIf unsure, leave this unchecked.");
 static wxString cache_hires_textures_desc = _("Cache custom textures to system RAM on startup.\nThis can require exponentially more RAM but fixes possible stuttering.\n\nIf unsure, leave this unchecked.");
+static wxString cache_hires_textures_gpu_desc = _("Cache custom textures to GPU RAM after loading.\nThis can require exponentially more RAM but fixes stuttering the second time the texture is required.\n\nIf unsure, leave this unchecked.");
 static wxString dump_efb_desc = _("Dump the contents of EFB copies to User/Dump/Textures/\n\nIf unsure, leave this unchecked.");
 static wxString dump_frames_desc = _("Dump all rendered frames to an AVI file in User/Dump/Frames/\n\nIf unsure, leave this unchecked.");
 #if !defined WIN32 && defined HAVE_LIBAV
@@ -432,7 +433,15 @@ VideoConfigDiag::VideoConfigDiag(wxWindow* parent, const std::string &title, con
 	szr_enh->Add(CreateCheckBox(page_enh, _("Widescreen Hack"), (ws_hack_desc), vconfig.bWidescreenHack));
 	szr_enh->Add(CreateCheckBox(page_enh, _("Disable Fog"), (disable_fog_desc), vconfig.bDisableFog));
 	szr_enh->Add(pixel_lighting = CreateCheckBox(page_enh, _("Per-Pixel Lighting"), (pixel_lighting_desc), vconfig.bEnablePixelLighting));
-
+	if (vconfig.backend_info.bSupportsSSAA)
+	{
+		ssaa_checkbox = CreateCheckBox(page_enh, _("SSAA"), wxGetTranslation(aa_desc), vconfig.bSSAA);
+		szr_enh->Add(ssaa_checkbox);
+	}
+	else
+	{
+		ssaa_checkbox = nullptr;
+	}
 	wxStaticBoxSizer* const group_enh = new wxStaticBoxSizer(wxVERTICAL, page_enh, _("Enhancements"));
 	group_enh->Add(szr_enh, 1, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 5);
 	szr_enh_main->Add(group_enh, 0, wxEXPAND | wxALL, 5);
@@ -635,7 +644,9 @@ VideoConfigDiag::VideoConfigDiag(wxWindow* parent, const std::string &title, con
 	szr_utility->Add(CreateCheckBox(page_advanced, _("Dump Vertex Loaders"), (dump_VertexTranslators_desc), vconfig.bDumpVertexLoaders));
 	szr_utility->Add(CreateCheckBox(page_advanced, _("Load Custom Textures"), (load_hires_textures_desc), vconfig.bHiresTextures));
 	cache_hires_textures = CreateCheckBox(page_advanced, _("Prefetch Custom Textures"), cache_hires_textures_desc, vconfig.bCacheHiresTextures);
+	cache_hires_texturesGPU = CreateCheckBox(page_advanced, _("Cache Custom Textures on GPU"), cache_hires_textures_gpu_desc, vconfig.bCacheHiresTexturesGPU);
 	szr_utility->Add(cache_hires_textures);
+	szr_utility->Add(cache_hires_texturesGPU);
 	szr_utility->Add(CreateCheckBox(page_advanced, _("Dump EFB Target"), (dump_efb_desc), vconfig.bDumpEFBTarget));
 	szr_utility->Add(CreateCheckBox(page_advanced, _("Free Look"), (free_look_desc), vconfig.bFreeLook));
 #if !defined WIN32 && defined HAVE_LIBAV
@@ -911,6 +922,8 @@ void VideoConfigDiag::OnUpdateUI(wxUpdateUIEvent& ev)
 	// Anti-aliasing
 	choice_aamode->Enable(vconfig.backend_info.AAModes.size() > 1);
 	text_aamode->Enable(vconfig.backend_info.AAModes.size() > 1);
+	if (vconfig.backend_info.bSupportsSSAA && ssaa_checkbox)
+		ssaa_checkbox->Enable(vconfig.iMultisampleMode > 0);
 
 	// pixel lighting
 	pixel_lighting->Enable(vconfig.backend_info.bSupportsPixelLighting);
@@ -927,6 +940,7 @@ void VideoConfigDiag::OnUpdateUI(wxUpdateUIEvent& ev)
 
 	// custom textures
 	cache_hires_textures->Enable(vconfig.bHiresTextures);
+	cache_hires_texturesGPU->Enable(vconfig.bHiresTextures);
 	
 	// Repopulating the post-processing shaders can't be done from an event
 	if (choice_ppshader && choice_ppshader->IsEmpty())

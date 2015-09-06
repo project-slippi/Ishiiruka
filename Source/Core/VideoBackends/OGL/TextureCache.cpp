@@ -359,14 +359,14 @@ void TextureCache::TCacheEntry::LoadFromTmem(const u8* ar_src, const u8* gb_src,
 	Load(data, width, height, expanded_width, level);
 }
 
-void TextureCache::TCacheEntry::FromRenderTarget(
+void TextureCache::TCacheEntry::FromRenderTarget(u8* dstPointer, unsigned int dstFormat, u32 dstStride,
 	PEControl::PixelFormat srcFormat, const EFBRectangle& srcRect,
-	bool isIntensity, bool scaleByHalf, u32 cbufid,
+	bool isIntensity, bool scaleByHalf, unsigned int cbufid,
 	const float *colmat)
 {
 	g_renderer->ResetAPIState(); // reset any game specific settings
 
-	// Make sure to resolve anything we need to read from.
+								 // Make sure to resolve anything we need to read from.
 	const GLuint read_texture = (srcFormat == PEControl::Z24) ?
 		FramebufferManager::ResolveAndGetDepthTarget(srcRect) :
 		FramebufferManager::ResolveAndGetRenderTarget(srcRect);
@@ -381,6 +381,7 @@ void TextureCache::TCacheEntry::FromRenderTarget(
 		g_sampler_cache->BindLinearSampler(9);
 	else
 		g_sampler_cache->BindNearestSampler(9);
+
 	glViewport(0, 0, config.width, config.height);
 
 	GLuint uniform_location;
@@ -407,32 +408,19 @@ void TextureCache::TCacheEntry::FromRenderTarget(
 
 	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
-	if (false == g_ActiveConfig.bSkipEFBCopyToRam)
+	if (!g_ActiveConfig.bSkipEFBCopyToRam)
 	{
-		size_in_bytes = (u32)TextureConverter::EncodeToRamFromTexture(
-			addr,
+		TextureConverter::EncodeToRamFromTexture(
+			dstPointer,
+			this,
 			read_texture,
 			srcFormat == PEControl::Z24,
 			isIntensity,
-			format,
 			scaleByHalf,
-			srcRect,
-			copyMipMapStrideChannels * 32);
-
-		u8* dst = Memory::GetPointer(addr);
-		TextureCache::MakeRangeDynamic(addr, size_in_bytes);
-		hash = GetHash64(dst, size_in_bytes, g_ActiveConfig.iSafeTextureCache_ColorSamples);
-		base_hash = hash;
+			srcRect);
 	}
 
 	FramebufferManager::SetFramebuffer(0);
-
-	if (g_ActiveConfig.bDumpEFBTarget)
-	{
-		static int count = 0;
-		SaveTexture(StringFromFormat("%sefb_frame_%i.png", File::GetUserPath(D_DUMPTEXTURES_IDX).c_str(),
-			count++), GL_TEXTURE_2D_ARRAY, texture, config.width, config.height, 0);
-	}
 
 	g_renderer->RestoreAPIState();
 }

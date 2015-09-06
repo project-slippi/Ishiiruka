@@ -6,7 +6,7 @@
 
 #include "VideoCommon/BPMemory.h"
 #include "VideoCommon/VideoCommon.h"
-
+#include "VideoCommon/TextureCacheBase.h"
 namespace DX11
 {
 
@@ -116,9 +116,8 @@ namespace DX11
 
 		virtual void Init() = 0;
 		virtual void Shutdown() = 0;
-		// Returns size in bytes of encoded block of memory
-		virtual size_t Encode(u8* dst, unsigned int dstFormat,
-			unsigned int srcFormat, const EFBRectangle& srcRect,
+		virtual void Encode(u8* dst, const TextureCache::TCacheEntryBase *texture_entry,
+			PEControl::PixelFormat srcFormat, const EFBRectangle& srcRect,
 			bool isIntensity, bool scaleByHalf) = 0;
 
 	};

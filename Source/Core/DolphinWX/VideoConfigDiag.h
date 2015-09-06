@@ -121,6 +121,7 @@ protected:
 	wxStaticText* text_aamode;
 	wxStaticText* text_bboxmode;
 	SettingChoice* choice_aamode;
+	wxCheckBox* ssaa_checkbox;
 
 	wxStaticText* label_display_resolution;
 
@@ -139,6 +140,7 @@ protected:
 	SettingRadioButton* real_xfb;
 
 	SettingCheckBox* cache_hires_textures;
+	SettingCheckBox* cache_hires_texturesGPU;
 	
 	wxButton* button_config_pp;
 

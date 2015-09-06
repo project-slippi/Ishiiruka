@@ -647,9 +647,11 @@ const char *GenerateEncodingShader(u32 format)
 	case GX_CTF_GB8:
 		WriteCC8Encoder(p, "gb");
 		break;
+	case GX_CTF_Z8H:
 	case GX_TF_Z8:
 		WriteC8Encoder(p, "b");
 		break;
+	case GX_CTF_Z16R:
 	case GX_TF_Z16:
 		WriteZ16Encoder(p);
 		break;

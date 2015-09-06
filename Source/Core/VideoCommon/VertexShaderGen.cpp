@@ -45,6 +45,11 @@ inline void GenerateVertexShader(T& out, u32 components, const XFMemory &xfr, co
 	}
 	uid_data.pixel_lighting = enable_pl;
 	uid_data.numColorChans = xfr.numChan.numColorChans;
+	if (!(api_type & API_D3D9))
+	{
+		uid_data.msaa = g_ActiveConfig.iMultisampleMode > 0;
+		uid_data.ssaa = g_ActiveConfig.iMultisampleMode > 0 && g_ActiveConfig.bSSAA;
+	}
 	char * buffer = nullptr;
 	if (Write_Code)
 	{
@@ -103,20 +108,21 @@ inline void GenerateVertexShader(T& out, u32 components, const XFMemory &xfr, co
 			if (g_ActiveConfig.backend_info.bSupportsGeometryShaders)
 			{
 				out.Write("out VertexData {\n");
-				GenerateVSOutputMembers<T, api_type>(out, enable_pl, xfr, g_ActiveConfig.backend_info.bSupportsBindingLayout ? "centroid" : "centroid out");
+				GenerateVSOutputMembers<T, api_type>(out, enable_pl, xfr, GetInterpolationQualifier(api_type, false, true));
 				out.Write("} vs;\n");
 			}
 			else
 			{
+				const char* optCentroid = GetInterpolationQualifier(api_type);
 
 				// Let's set up attributes
 				if (xfr.numTexGen.numTexGens < 7)
 				{
 					for (int i = 0; i < 8; ++i)
-						out.Write("centroid out float3 uv%d_2;\n", i);
-					out.Write("centroid out float4 clipPos_2;\n");
+						out.Write("%s out float3 uv%d_2;\n", optCentroid, i);
+					out.Write("%s out float4 clipPos_2;\n", optCentroid);
 					if (enable_pl)
-						out.Write("centroid out float4 Normal_2;\n");
+						out.Write("%s out float4 Normal_2;\n", optCentroid);
 				}
 				else
 				{
@@ -124,16 +130,16 @@ inline void GenerateVertexShader(T& out, u32 components, const XFMemory &xfr, co
 					if (enable_pl)
 					{
 						for (int i = 0; i < 8; ++i)
-							out.Write("centroid out float4 uv%d_2;\n", i);
+							out.Write("%s out float4 uv%d_2;\n", optCentroid, i);
 					}
 					else
 					{
 						for (unsigned int i = 0; i < xfr.numTexGen.numTexGens; ++i)
-							out.Write("centroid out float%d uv%d_2;\n", i < 4 ? 4 : 3, i);
+							out.Write("%s out float%d uv%d_2;\n", optCentroid, i < 4 ? 4 : 3, i);
 					}
 				}
-				out.Write("centroid out float4 colors_0;\n");
-				out.Write("centroid out float4 colors_1;\n");
+				out.Write("%s out float4 colors_0;\n", optCentroid);
+				out.Write("%s out float4 colors_1;\n", optCentroid);
 			}
 
 			out.Write("void main()\n{\n");
@@ -182,22 +188,13 @@ inline void GenerateVertexShader(T& out, u32 components, const XFMemory &xfr, co
 			out.Write("int posmtx = int(fposmtx);\n");
 		}
 
-		if ((DriverDetails::HasBug(DriverDetails::BUG_NODYNUBOACCESS) && !DriverDetails::HasBug(DriverDetails::BUG_ANNIHILATEDUBOS)))
-		{
-			// This'll cause issues, but  it can't be helped
-			out.Write("float4 pos = float4(dot(" I_TRANSFORMMATRICES"[0], rawpos), dot(" I_TRANSFORMMATRICES"[1], rawpos), dot(" I_TRANSFORMMATRICES"[2], rawpos), 1);\n");
-			if (components & VB_HAS_NRMALL)
-				out.Write("float3 N0 = " I_NORMALMATRICES"[0].xyz, N1 = " I_NORMALMATRICES"[1].xyz, N2 = " I_NORMALMATRICES"[2].xyz;\n");
-		}
-		else
-		{
-			out.Write("float4 pos = float4(dot(" I_TRANSFORMMATRICES"[posmtx], rawpos), dot(" I_TRANSFORMMATRICES"[posmtx+1], rawpos), dot(" I_TRANSFORMMATRICES"[posmtx+2], rawpos), 1);\n");
+		out.Write("float4 pos = float4(dot(" I_TRANSFORMMATRICES"[posmtx], rawpos), dot(" I_TRANSFORMMATRICES"[posmtx+1], rawpos), dot(" I_TRANSFORMMATRICES"[posmtx+2], rawpos), 1);\n");
 
-			if (components & VB_HAS_NRMALL) {
-				out.Write("int normidx = posmtx >= 32 ? (posmtx-32) : posmtx;\n");
-				out.Write("float3 N0 = " I_NORMALMATRICES"[normidx].xyz, N1 = " I_NORMALMATRICES"[normidx+1].xyz, N2 = " I_NORMALMATRICES"[normidx+2].xyz;\n");
-			}
+		if (components & VB_HAS_NRMALL) {
+			out.Write("int normidx = posmtx >= 32 ? (posmtx-32) : posmtx;\n");
+			out.Write("float3 N0 = " I_NORMALMATRICES"[normidx].xyz, N1 = " I_NORMALMATRICES"[normidx+1].xyz, N2 = " I_NORMALMATRICES"[normidx+2].xyz;\n");
 		}
+
 		if (components & VB_HAS_NRM0)
 			out.Write("float3 _norm0 = normalize(float3(dot(N0, rawnorm0), dot(N1, rawnorm0), dot(N2, rawnorm0)));\n");
 		if (components & VB_HAS_NRM1)

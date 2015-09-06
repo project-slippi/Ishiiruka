@@ -20,9 +20,9 @@ namespace DX11
 
 		void Init();
 		void Shutdown();
-		size_t Encode(u8* dst, u32 dstFormat,
-			u32 srcFormat, const EFBRectangle& srcRect, bool isIntensity,
-			bool scaleByHalf);
+		void Encode(u8* dst, const TextureCache::TCacheEntryBase *texture_entry,
+			PEControl::PixelFormat srcFormat, const EFBRectangle& srcRect,
+			bool isIntensity, bool scaleByHalf) override;
 
 	private:
 

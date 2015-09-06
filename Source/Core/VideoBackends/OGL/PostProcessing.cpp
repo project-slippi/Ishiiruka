@@ -19,20 +19,6 @@
 namespace OGL
 {
 
-static const char s_vertex_workaround_shader[] =
-	"in vec4 rawpos;\n"
-	"out vec2 uv0;\n"
-	"out vec4 uv1;\n"
-	"out vec4 uv2;\n"
-	"uniform vec4 src_rect;\n"
-	"uniform vec4 dstscale;\n"
-	"void main(void) {\n"
-	"	gl_Position = vec4(rawpos.xy, 0.0, 1.0);\n"
-	"	uv0 = rawpos.zw * src_rect.zw + src_rect.xy;\n"
-	"	uv1 = uv0.xyyx + (vec4(-0.375f, -0.125f, -0.375f, 0.125f) * dstscale.zwwz);\n"
-	"	uv2 = uv0.xyyx + (vec4(0.375f, 0.125f, 0.375f, -0.125f) * dstscale.zwwz);\n"
-	"}\n";
-
 static const char s_vertex_shader[] =
 	"out vec2 uv0;\n"
 	"out vec4 uv1;\n"
@@ -55,13 +41,6 @@ OpenGLPostProcessing::OpenGLPostProcessing() :
 	m_initialized(false)  
 {
 	CreateHeader();
-
-	m_attribute_workaround = DriverDetails::HasBug(DriverDetails::BUG_BROKENATTRIBUTELESS);
-	if (m_attribute_workaround)
-	{
-		glGenBuffers(1, &m_attribute_vbo);
-		glGenVertexArrays(1, &m_attribute_vao);
-	}
 }
 
 void OpenGLPostProcessing::DestroyStageOutput()
@@ -89,11 +68,6 @@ OpenGLPostProcessing::~OpenGLPostProcessing()
 	{
 		shader.shader.Destroy();
 	}
-	if (m_attribute_workaround)
-	{
-		glDeleteBuffers(1, &m_attribute_vbo);
-		glDeleteVertexArrays(1, &m_attribute_vao);
-	}
 }
 
 void OpenGLPostProcessing::BlitFromTexture(const TargetRectangle &src, const TargetRectangle &dst,
@@ -103,10 +77,7 @@ void OpenGLPostProcessing::BlitFromTexture(const TargetRectangle &src, const Tar
 	int src_texture_depth = *((int*)src_depth_texture_ptr);
 	ApplyShader();
 
-	if (m_attribute_workaround)
-		glBindVertexArray(m_attribute_vao);
-	else
-		OpenGL_BindAttributelessVAO();		
+	OpenGL_BindAttributelessVAO();		
 
 	glActiveTexture(GL_TEXTURE9);
 	glBindTexture(GL_TEXTURE_2D_ARRAY, src_texture);
@@ -321,9 +292,6 @@ void OpenGLPostProcessing::ApplyShader()
 
 	const char* vertex_shader = s_vertex_shader;
 
-	if (m_attribute_workaround)
-		vertex_shader = s_vertex_workaround_shader;
-
 	m_initialized = true;
 	const auto& stages = m_config.GetStages();
 	m_shaders.resize(stages.size());
@@ -375,26 +343,6 @@ void OpenGLPostProcessing::ApplyShader()
 			shader.m_uniform_bindings[it.first] = glGetUniformLocation(shader.shader.glprogid, glsl_name.c_str());
 		}
 	}
-	// read uniform locations
-	
-
-	if (m_attribute_workaround)
-	{
-		GLfloat vertices[] = {
-			-1.f, -1.f, 0.f, 0.f,
-			 1.f, -1.f, 1.f, 0.f,
-			-1.f,  1.f, 0.f, 1.f,
-			 1.f,  1.f, 1.f, 1.f,
-		};
-
-		glBindBuffer(GL_ARRAY_BUFFER, m_attribute_vbo);
-		glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
-		glBindVertexArray(m_attribute_vao);
-		glEnableVertexAttribArray(SHADER_POSITION_ATTRIB);
-		glVertexAttribPointer(SHADER_POSITION_ATTRIB, 4, GL_FLOAT, 0, 0, nullptr);
-	}
-
 	
 	m_initialized = true;
 }

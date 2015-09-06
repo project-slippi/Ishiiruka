@@ -13,6 +13,7 @@
 #include "Common/CommonTypes.h"
 #include "Common/Hash.h"
 #include "VideoCommon/VideoCommon.h"
+#include "VideoCommon/VideoConfig.h"
 #include "VideoCommon/XFMemory.h"
 
 /**
@@ -321,4 +322,27 @@ static inline void AssignVSOutputMembers(T& object, const char* a, const char* b
 		for (int i = 0; i < num_texcoords; ++i)
 			object.Write("\t%s.tex%d = %s.tex%d;\n", a, i, b, i);
 	}
+}
+
+// We use the flag "centroid" to fix some MSAA rendering bugs. With MSAA, the
+// pixel shader will be executed for each pixel which has at least one passed sample.
+// So there may be rendered pixels where the center of the pixel isn't in the primitive.
+// As the pixel shader usually renders at the center of the pixel, this position may be
+// outside the primitive. This will lead to sampling outside the texture, sign changes, ...
+// As a workaround, we interpolate at the centroid of the coveraged pixel, which
+// is always inside the primitive.
+// Without MSAA, this flag is defined to have no effect.
+static inline const char* GetInterpolationQualifier(API_TYPE api_type, bool in = true, bool in_out = false)
+{
+	if (!g_ActiveConfig.iMultisampleMode || (api_type & API_D3D9))
+		return "";
+
+	if (!g_ActiveConfig.bSSAA)
+	{
+		if (in_out && api_type == API_OPENGL && !g_ActiveConfig.backend_info.bSupportsBindingLayout)
+			return in ? "centroid in" : "centroid out";
+		return "centroid";
+	}
+
+	return "sample";
 }

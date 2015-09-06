@@ -10,8 +10,10 @@
 #include <xlocale.h>
 #endif
 #include "VideoCommon/BoundingBox.h"
+#include "VideoCommon/BPMemory.h"
 #include "VideoCommon/PixelShaderGen.h"
 #include "VideoCommon/XFMemory.h"  // for texture projection mode
+
 #include "VideoCommon/VideoConfig.h"
 
 
@@ -339,6 +341,12 @@ inline void GeneratePixelShader(T& out, DSTALPHA_MODE dstAlphaMode, u32 componen
 	uid_data.genMode_numtexgens = bpm.genMode.numtexgens;
 	uid_data.zfreeze = bpm.genMode.zfreeze;
 	uid_data.stereo = g_ActiveConfig.iStereoMode > 0;
+	if (!(ApiType & API_D3D9))
+	{
+		uid_data.msaa = g_ActiveConfig.iMultisampleMode > 0;
+		uid_data.ssaa = g_ActiveConfig.iMultisampleMode > 0 && g_ActiveConfig.bSSAA;
+	}
+
 	if (Write_Code)
 	{
 		InitializeRegisterState();
@@ -446,7 +454,7 @@ inline void GeneratePixelShader(T& out, DSTALPHA_MODE dstAlphaMode, u32 componen
 			if (g_ActiveConfig.backend_info.bSupportsGeometryShaders)
 			{
 				out.Write("in VertexData {\n");
-				GenerateVSOutputMembers<T, ApiType>(out, enable_pl, xfr, g_ActiveConfig.backend_info.bSupportsBindingLayout ? "centroid" : "centroid in");
+				GenerateVSOutputMembers<T, ApiType>(out, enable_pl, xfr, GetInterpolationQualifier(ApiType, true, true));
 
 				if (g_ActiveConfig.iStereoMode > 0)
 					out.Write("\tflat int layer;\n");
@@ -455,9 +463,11 @@ inline void GeneratePixelShader(T& out, DSTALPHA_MODE dstAlphaMode, u32 componen
 			}
 			else
 			{
+				// "centroid" attribute is only supported by D3D11
+				const char* optCentroid = GetInterpolationQualifier(ApiType);
 
-				out.Write("centroid in float4 colors_0;\n");
-				out.Write("centroid in float4 colors_1;\n");
+				out.Write("%s in float4 colors_0;\n", optCentroid);
+				out.Write("%s in float4 colors_1;\n", optCentroid);
 
 				// compute window position if needed because binding semantic WPOS is not widely supported
 				// Let's set up attributes
@@ -465,12 +475,12 @@ inline void GeneratePixelShader(T& out, DSTALPHA_MODE dstAlphaMode, u32 componen
 				{
 					for (u32 i = 0; i < numTexgen; ++i)
 					{
-						out.Write("centroid in float3 uv%d_2;\n", i);
+						out.Write("%s in float3 uv%d_2;\n", optCentroid, i);
 					}
-					out.Write("centroid in float4 clipPos_2;\n");
+					out.Write("%s in float4 clipPos_2;\n", optCentroid);
 					if (enable_pl)
 					{
-						out.Write("centroid in float4 Normal_2;\n");
+						out.Write("%s in float4 Normal_2;\n", optCentroid);
 					}
 				}
 				else
@@ -480,14 +490,14 @@ inline void GeneratePixelShader(T& out, DSTALPHA_MODE dstAlphaMode, u32 componen
 					{
 						for (u32 i = 0; i < 8; ++i)
 						{
-							out.Write("centroid in float4 uv%d_2;\n", i);
+							out.Write("%s in float4 uv%d_2;\n", optCentroid, i);
 						}
 					}
 					else
 					{
 						for (u32 i = 0; i < numTexgen; ++i)
 						{
-							out.Write("centroid in float%d uv%d_2;\n", i < 4 ? 4 : 3, i);
+							out.Write("%s in float%d uv%d_2;\n", optCentroid, i < 4 ? 4 : 3, i);
 						}
 					}
 				}
@@ -536,7 +546,7 @@ inline void GeneratePixelShader(T& out, DSTALPHA_MODE dstAlphaMode, u32 componen
 			}
 
 			// "centroid" attribute is only supported by D3D11
-			const char* optCentroid = (ApiType == API_D3D11 ? "centroid" : "");
+			const char* optCentroid = GetInterpolationQualifier(ApiType);
 
 			out.Write("  in %s float4 colors_0 : COLOR0,\n", optCentroid);
 			out.Write("  in %s float4 colors_1 : COLOR1", optCentroid);
@@ -559,12 +569,12 @@ inline void GeneratePixelShader(T& out, DSTALPHA_MODE dstAlphaMode, u32 componen
 				if (enable_pl)
 				{
 					for (u32 i = 0; i < 8; ++i)
-						out.Write(",\n  in float4 uv%d : TEXCOORD%d", i, i);
+						out.Write(",\n  in %s float4 uv%d : TEXCOORD%d", optCentroid, i, i);
 				}
 				else
 				{
 					for (u32 i = 0; i < numTexgen; ++i)
-						out.Write(",\n  in float%d uv%d : TEXCOORD%d", i < 4 ? 4 : 3, i, i);
+						out.Write(",\n in %s float%d uv%d : TEXCOORD%d", optCentroid, i < 4 ? 4 : 3, i, i);
 				}
 				if (g_ActiveConfig.iStereoMode > 0)
 					out.Write(",\n  in uint layer : SV_RenderTargetArrayIndex\n");
@@ -684,7 +694,7 @@ inline void GeneratePixelShader(T& out, DSTALPHA_MODE dstAlphaMode, u32 componen
 			out.Write("\tfloat4 col0 = float4(0.0,0.0,0.0,0.0), col1 = float4(0.0,0.0,0.0,0.0);\n");
 		}
 		// Only col0 and col1 are needed so discard the remaining components
-		uid_data.components = components & (VB_HAS_COL0 | VB_HAS_COL1);
+		uid_data.components = (components >> 11) & 3;
 		GenerateLightingShader<T, Write_Code>(out, uid_data.lighting, components, I_PMATERIALS, I_PLIGHTS, "colors_", "col", xfr, Use_integer_math);
 	}
 	else
@@ -1262,8 +1272,8 @@ static inline void WriteStage(T& out, pixel_shader_uid_data& uid_data, int n, co
 		out.Write("tin_b = %s(wu4(%s,%s));\n", TevOverflowState[cc.b] || TevOverflowState[AInputSourceMap[ac.b]] ? "CHK_O_U8" : "", tevCInputTable[cc.b], tevAInputTable[ac.b]);
 		out.Write("tin_c = %s(wu4(%s,%s));\n", TevOverflowState[cc.c] || TevOverflowState[AInputSourceMap[ac.c]] ? "CHK_O_U8" : "", tevCInputTable[cc.c], tevAInputTable[ac.c]);
 
-		bool normalize_c_rgb = cc.c != TEVCOLORARG_ZERO &&  cc.bias != TevBias_COMPARE;
-		bool normalize_c_a = ac.c != TEVALPHAARG_ZERO &&  ac.bias != TevBias_COMPARE;
+		bool normalize_c_rgb = cc.c != TEVCOLORARG_ZERO &&  cc.bias != TEVBIAS_COMPARE;
+		bool normalize_c_a = ac.c != TEVALPHAARG_ZERO &&  ac.bias != TEVBIAS_COMPARE;
 		if (normalize_c_rgb || normalize_c_a)
 		{
 			const char* cswisle = normalize_c_rgb && normalize_c_a ? "" : (normalize_c_rgb ? ".rgb" : ".a");
@@ -1277,7 +1287,7 @@ static inline void WriteStage(T& out, pixel_shader_uid_data& uid_data, int n, co
 		out.Write("// color combine\n");
 		out.Write("%s = clamp(", tevCOutputTable[cc.dest]);
 		// combine the color channel
-		if (cc.bias != TevBias_COMPARE) // if not compare
+		if (cc.bias != TEVBIAS_COMPARE) // if not compare
 		{
 			//normal color combiner goes here
 			if (use_integer_math)
@@ -1306,7 +1316,7 @@ static inline void WriteStage(T& out, pixel_shader_uid_data& uid_data, int n, co
 
 		out.Write("// alpha combine\n");
 		out.Write("%s = clamp(", tevAOutputTable[ac.dest]);
-		if (ac.bias != TevBias_COMPARE) // if not compare
+		if (ac.bias != TEVBIAS_COMPARE) // if not compare
 		{
 			// 8 is used because alpha stage don't have ONE input so a number outside range is used
 			if (use_integer_math)

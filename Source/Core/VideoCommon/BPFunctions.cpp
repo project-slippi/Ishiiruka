@@ -14,7 +14,6 @@
 #include "VideoCommon/VertexManagerBase.h"
 #include "VideoCommon/VertexShaderManager.h"
 #include "VideoCommon/VideoConfig.h"
-#include "VideoCommon/TextureCacheBase.h"
 
 
 namespace BPFunctions
@@ -95,15 +94,6 @@ void SetLogicOpMode()
 void SetColorMask()
 {
 	g_renderer->SetColorMask();
-}
-
-void CopyEFB(u32 dstAddr, const EFBRectangle& srcRect,
-	unsigned int dstFormat, PEControl::PixelFormat srcFormat,
-	bool isIntensity, bool scaleByHalf)
-{
-	// bpmem.zcontrol.pixel_format to PEControl::Z24 is when the game wants to copy from ZBuffer (Zbuffer uses 24-bit Format)
-	TextureCache::CopyRenderTargetToTexture(dstAddr, dstFormat, srcFormat,
-		srcRect, isIntensity, scaleByHalf);
 }
 
 /* Explanation of the magic behind ClearScreen:

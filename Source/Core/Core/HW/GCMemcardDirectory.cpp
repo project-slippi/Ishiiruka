@@ -1,12 +1,14 @@
 // Copyright 2014 Dolphin Emulator Project
 // Licensed under GPLv2+
 // Refer to the license.txt file included.
+
 #include <cinttypes>
+#include <memory>
+
 #include "Common/ChunkFile.h"
 #include "Common/CommonTypes.h"
 #include "Common/FileSearch.h"
 #include "Common/FileUtil.h"
-#include "Common/StdMakeUnique.h"
 #include "Common/Thread.h"
 #include "Core/ConfigManager.h"
 #include "Core/Core.h"
@@ -83,7 +85,7 @@ int GCMemcardDirectory::LoadGCI(const std::string& fileName, DiscIO::IVolume::EC
 		u64 file_size = gcifile.GetSize();
 		if (file_size != size + DENTRY_SIZE)
 		{
-			PanicAlertT("%s\nwas not loaded because it is an invalid GCI.\n File size (0x%" PRIx64
+			PanicAlertT("%s\nwas not loaded because it is an invalid GCI.\n File size (0x%llx"
 						") does not match the size recorded in the header (0x%x)",
 						gci.m_filename.c_str(), file_size, size + DENTRY_SIZE);
 			return NO_INDEX;

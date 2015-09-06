@@ -82,6 +82,7 @@ void VideoConfig::Load(const std::string& ini_file)
 	settings->Get("HiresTextures", &bHiresTextures, 0);
 	settings->Get("ConvertHiresTextures", &bConvertHiresTextures, 0);
 	settings->Get("CacheHiresTextures", &bCacheHiresTextures, 0);
+	settings->Get("CacheHiresTexturesonGPU", &bCacheHiresTexturesGPU, 0);
 	settings->Get("DumpEFBTarget", &bDumpEFBTarget, 0);
 	settings->Get("FreeLook", &bFreeLook, 0);
 	settings->Get("UseFFV1", &bUseFFV1, 0);
@@ -94,7 +95,7 @@ void VideoConfig::Load(const std::string& ini_file)
 	settings->Get("TexFmtOverlayCenter", &bTexFmtOverlayCenter, 0);
 	settings->Get("WireFrame", &bWireFrame, 0);
 	settings->Get("DisableFog", &bDisableFog, 0);
-
+	settings->Get("SSAA", &bSSAA, false);
 	settings->Get("EnableOpenCL", &bEnableOpenCL, false);	
 	settings->Get("EnableShaderDebugging", &bEnableShaderDebugging, false);
 	settings->Get("BorderlessFullscreen", &bBorderlessFullscreen, false);
@@ -115,7 +116,7 @@ void VideoConfig::Load(const std::string& ini_file)
 	IniFile::Section* hacks = iniFile.GetOrCreateSection("Hacks");
 	hacks->Get("EFBAccessEnable", &bEFBAccessEnable, true);
 	hacks->Get("EFBFastAccess", &bEFBFastAccess, false);
-	hacks->Get("DlistCachingEnable", &bDlistCachingEnable, false);
+	hacks->Get("ForceProgressive", &bForceProgressive, true);
 	hacks->Get("EFBToTextureEnable", &bSkipEFBCopyToRam, true);
 	hacks->Get("EFBScaledCopy", &bCopyEFBScaled, true);
 	hacks->Get("EFBEmulateFormatChanges", &bEFBEmulateFormatChanges, false);
@@ -178,9 +179,11 @@ void VideoConfig::GameIniLoad()
 	CHECK_SETTING("Video_Settings", "HiresTextures", bHiresTextures);
 	CHECK_SETTING("Video_Settings", "ConvertHiresTextures", bConvertHiresTextures);
 	CHECK_SETTING("Video_Settings", "CacheHiresTextures", bCacheHiresTextures);
+	CHECK_SETTING("Video_Settings", "CacheHiresTexturesonGPU", bCacheHiresTexturesGPU);
 	CHECK_SETTING("Video_Settings", "EnablePixelLighting", bEnablePixelLighting);	
 	CHECK_SETTING("Video_Settings", "FastDepthCalc", bFastDepthCalc);
 	CHECK_SETTING("Video_Settings", "MSAA", iMultisampleMode);
+	CHECK_SETTING("Video_Settings", "SSAA", bSSAA);
 	int tmp = -9000;
 	CHECK_SETTING("Video_Settings", "EFBScale", tmp); // integral
 	if (tmp != -9000)
@@ -230,7 +233,7 @@ void VideoConfig::GameIniLoad()
 
 	CHECK_SETTING("Video_Hacks", "EFBAccessEnable", bEFBAccessEnable);
 	CHECK_SETTING("Video_Hacks", "EFBFastAccess", bEFBFastAccess);
-	CHECK_SETTING("Video_Hacks", "DlistCachingEnable", bDlistCachingEnable);
+	CHECK_SETTING("Video_Hacks", "ForceProgressive", bForceProgressive);
 	CHECK_SETTING("Video_Hacks", "EFBToTextureEnable", bSkipEFBCopyToRam);
 	CHECK_SETTING("Video_Hacks", "EFBScaledCopy", bCopyEFBScaled);
 	CHECK_SETTING("Video_Hacks", "EFBEmulateFormatChanges", bEFBEmulateFormatChanges);
@@ -332,6 +335,7 @@ void VideoConfig::Save(const std::string& ini_file)
 	settings->Set("HiresTextures", bHiresTextures);
 	settings->Set("ConvertHiresTextures", bConvertHiresTextures);
 	settings->Set("CacheHiresTextures", bCacheHiresTextures);
+	settings->Set("CacheHiresTexturesonGPU", bCacheHiresTexturesGPU);
 	settings->Set("DumpEFBTarget", bDumpEFBTarget);
 	settings->Set("FreeLook", bFreeLook);
 	settings->Set("UseFFV1", bUseFFV1);
@@ -339,6 +343,7 @@ void VideoConfig::Save(const std::string& ini_file)
 	settings->Set("FastDepthCalc", bFastDepthCalc);
 	settings->Set("ShowEFBCopyRegions", bShowEFBCopyRegions);
 	settings->Set("MSAA", iMultisampleMode);
+	settings->Set("SSAA", bSSAA);
 	settings->Set("EFBScale", iEFBScale);
 	settings->Set("TexFmtOverlayEnable", bTexFmtOverlayEnable);
 	settings->Set("TexFmtOverlayCenter", bTexFmtOverlayCenter);
@@ -367,7 +372,7 @@ void VideoConfig::Save(const std::string& ini_file)
 	IniFile::Section* hacks = iniFile.GetOrCreateSection("Hacks");
 	hacks->Set("EFBAccessEnable", bEFBAccessEnable);
 	hacks->Set("EFBFastAccess", bEFBFastAccess);
-	hacks->Set("DlistCachingEnable", bDlistCachingEnable);
+	hacks->Set("ForceProgressive", bForceProgressive);
 	hacks->Set("EFBToTextureEnable", bSkipEFBCopyToRam);
 	hacks->Set("EFBScaledCopy", bCopyEFBScaled);
 	hacks->Set("EFBEmulateFormatChanges", bEFBEmulateFormatChanges);

@@ -114,7 +114,7 @@ void InitBackendInfo()
 	g_Config.backend_info.bSupports3DVision = true;
 	g_Config.backend_info.bSupportsPostProcessing = true;
 	g_Config.backend_info.bSupportsClipControl = false;
-
+	g_Config.backend_info.bSupportsSSAA = true;
 	IDXGIFactory* factory;
 	IDXGIAdapter* ad;
 	hr = DX11::PCreateDXGIFactory(__uuidof(IDXGIFactory), (void**)&factory);

@@ -723,7 +723,7 @@ GetUPNPUrls(struct UPNPUrls * urls, struct IGDdatas * data,
 {
 	char * p;
 	int n1, n2, n3, n4;
-#if defined(IF_NAMESIZE) && !defined(_WIN32)
+#ifdef IF_NAMESIZE
 	char ifname[IF_NAMESIZE];
 #else
 	char scope_str[8];
@@ -733,7 +733,7 @@ GetUPNPUrls(struct UPNPUrls * urls, struct IGDdatas * data,
 	if(n1==0)
 		n1 = strlen(descURL);
 	if(scope_id != 0) {
-#if defined(IF_NAMESIZE) && !defined(_WIN32)
+#ifdef IF_NAMESIZE
 		if(if_indextoname(scope_id, ifname)) {
 			n1 += 3 + strlen(ifname);	/* 3 == strlen(%25) */
 		}
@@ -771,7 +771,7 @@ GetUPNPUrls(struct UPNPUrls * urls, struct IGDdatas * data,
 			p = strchr(urls->ipcondescURL, ']');
 			if(p) {
 				/* insert %25<scope> into URL */
-#if defined(IF_NAMESIZE) && !defined(_WIN32)
+#ifdef IF_NAMESIZE
 				memmove(p + 3 + strlen(ifname), p, strlen(p) + 1);
 				memcpy(p, "%25", 3);
 				memcpy(p + 3, ifname, strlen(ifname));

@@ -12,8 +12,8 @@
 #define GLX_CONTEXT_MAJOR_VERSION_ARB       0x2091
 #define GLX_CONTEXT_MINOR_VERSION_ARB       0x2092
 
-typedef GLXContext (*PFNGLXCREATECONTEXTATTRIBSPROC)(Display*, GLXFBConfig, GLXContext, Bool, const int*);
-typedef int ( * PFNGLXSWAPINTERVALSGIPROC) (int interval);
+typedef GLXContext(*PFNGLXCREATECONTEXTATTRIBSPROC)(Display*, GLXFBConfig, GLXContext, Bool, const int*);
+typedef int(*PFNGLXSWAPINTERVALSGIPROC) (int interval);
 
 static PFNGLXCREATECONTEXTATTRIBSPROC glXCreateContextAttribs = nullptr;
 static PFNGLXSWAPINTERVALSGIPROC glXSwapIntervalSGI = nullptr;
@@ -55,7 +55,7 @@ bool cInterfaceGLX::Create(void *window_handle)
 	if (glxMajorVersion < 1 || (glxMajorVersion == 1 && glxMinorVersion < 4))
 	{
 		ERROR_LOG(VIDEO, "glX-Version %d.%d detected, but need at least 1.4",
-		          glxMajorVersion, glxMinorVersion);
+			glxMajorVersion, glxMinorVersion);
 		return false;
 	}
 
@@ -94,20 +94,36 @@ bool cInterfaceGLX::Create(void *window_handle)
 	// Get an appropriate visual
 	XVisualInfo* vi = glXGetVisualFromFBConfig(dpy, fbconfig);
 
+	s_glxError = false;
+	XErrorHandler oldHandler = XSetErrorHandler(&ctxErrorHandler);
+
 	// Create a GLX context.
-	// We try to get a 3.3 core profile, else we try it with anything we get.
+	// We try to get a 4.0 core profile, else we try 3.3, else try it with anything we get.
 	int context_attribs[] =
 	{
-		GLX_CONTEXT_MAJOR_VERSION_ARB, 3,
-		GLX_CONTEXT_MINOR_VERSION_ARB, 3,
+		GLX_CONTEXT_MAJOR_VERSION_ARB, 4,
+		GLX_CONTEXT_MINOR_VERSION_ARB, 0,
 		GLX_CONTEXT_PROFILE_MASK_ARB,  GLX_CONTEXT_CORE_PROFILE_BIT_ARB,
 		GLX_CONTEXT_FLAGS_ARB,         GLX_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB,
 		None
 	};
-	s_glxError = false;
-	XErrorHandler oldHandler = XSetErrorHandler(&ctxErrorHandler);
 	ctx = glXCreateContextAttribs(dpy, fbconfig, 0, True, context_attribs);
 	XSync(dpy, False);
+	if (!ctx || s_glxError)
+	{
+		int context_attribs_33[] =
+		{
+			GLX_CONTEXT_MAJOR_VERSION_ARB, 3,
+			GLX_CONTEXT_MINOR_VERSION_ARB, 3,
+			GLX_CONTEXT_PROFILE_MASK_ARB,  GLX_CONTEXT_CORE_PROFILE_BIT_ARB,
+			GLX_CONTEXT_FLAGS_ARB,         GLX_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB,
+			None
+		};
+		s_glxError = false;
+		ctx = glXCreateContextAttribs(dpy, fbconfig, 0, True, context_attribs_33);
+		XSync(dpy, False);
+
+	}
 	if (!ctx || s_glxError)
 	{
 		int context_attribs_legacy[] =
@@ -119,11 +135,12 @@ bool cInterfaceGLX::Create(void *window_handle)
 		s_glxError = false;
 		ctx = glXCreateContextAttribs(dpy, fbconfig, 0, True, context_attribs_legacy);
 		XSync(dpy, False);
-		if (!ctx || s_glxError)
-		{
-			ERROR_LOG(VIDEO, "Unable to create GL context.");
-			return false;
-		}
+
+	}
+	if (!ctx || s_glxError)
+	{
+		ERROR_LOG(VIDEO, "Unable to create GL context.");
+		return false;
 	}
 	XSetErrorHandler(oldHandler);
 
@@ -138,7 +155,7 @@ bool cInterfaceGLX::Create(void *window_handle)
 		return false;
 	}
 
-	s_backbuffer_width  = attribs.width;
+	s_backbuffer_width = attribs.width;
 	s_backbuffer_height = attribs.height;
 
 	win = XWindow.CreateXWindow(parent, vi);

@@ -117,7 +117,7 @@ public:
 		std::multimap<u64, TCacheEntryBase*>::iterator textures_by_hash_iter;
 		bool is_custom_tex;
 		std::string basename;
-		u32 copyMipMapStrideChannels;
+		u32 memory_stride;
 
 		void SetGeneralParameters(u32 _addr, u32 _size, u32 _format)
 		{
@@ -131,6 +131,7 @@ public:
 			native_width = _native_width;
 			native_height = _native_height;
 			native_levels = _native_levels;
+			memory_stride = _native_width;
 		}
 
 		void SetHiresParams(bool _is_custom_tex, const std::string & _basename)
@@ -144,6 +145,8 @@ public:
 			hash = _hash;
 			base_hash = _base_hash;
 		}
+
+		void SetEfbCopy(u32 stride);
 
 		TCacheEntryBase(const TCacheEntryConfig& c) : config(c), is_custom_tex(false), basename()
 		{
@@ -165,7 +168,7 @@ public:
 			u32 expandedHeight, const s32 texformat, const u32 tlutaddr, const TlutFormat tlutfmt, u32 level) = 0;
 		virtual void LoadFromTmem(const u8* ar_src, const u8* gb_src, u32 width, u32 height,
 			u32 expanded_width, u32 expanded_Height, u32 level) = 0;
-		virtual void FromRenderTarget(
+		virtual void FromRenderTarget(u8* dst, unsigned int dstFormat, u32 dstStride,
 			PEControl::PixelFormat srcFormat, const EFBRectangle& srcRect,
 			bool isIntensity, bool scaleByHalf, unsigned int cbufid,
 			const float *colmat) = 0;
@@ -173,6 +176,11 @@ public:
 		bool OverlapsMemoryRange(u32 range_address, u32 range_size) const;
 
 		bool IsEfbCopy() { return is_efb_copy; }
+
+		u32 NumBlocksY() const;
+		u32 CacheLinesPerRow() const;
+
+		void Memset(u8* ptr, u32 tag);
 	};
 
 	virtual ~TextureCache(); // needs virtual for DX11 dtor
@@ -183,7 +191,6 @@ public:
 	static void Cleanup(int frameCount);
 
 	static void Invalidate();
-	static void MakeRangeDynamic(u32 start_address, u32 size);
 
 	virtual PC_TexFormat GetNativeTextureFormat(const s32 texformat,
 		const TlutFormat tlutfmt, u32 width, u32 height) = 0;
@@ -195,8 +202,8 @@ public:
 	static TCacheEntryBase* Load(const u32 stage);
 	static void UnbindTextures();
 	static void BindTextures();
-	static void CopyRenderTargetToTexture(u32 dstAddr, u32 dstFormat, PEControl::PixelFormat srcFormat,
-		const EFBRectangle& srcRect, bool isIntensity, bool scaleByHalf);
+	static void CopyRenderTargetToTexture(u32 dstAddr, unsigned int dstFormat, u32 dstStride,
+		PEControl::PixelFormat srcFormat, const EFBRectangle& srcRect, bool isIntensity, bool scaleByHalf);
 
 	static void RequestInvalidateTextureCache();
 

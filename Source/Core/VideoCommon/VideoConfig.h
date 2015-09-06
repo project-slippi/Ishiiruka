@@ -97,6 +97,7 @@ struct VideoConfig final
 
 	// Enhancements
 	int iMultisampleMode;
+	bool bSSAA;
 	int iEFBScale;
 	bool bForceFiltering;
 	int iMaxAnisotropy;
@@ -131,6 +132,7 @@ struct VideoConfig final
 	bool bHiresTextures;
 	bool bConvertHiresTextures;
 	bool bCacheHiresTextures;
+	bool bCacheHiresTexturesGPU;
 	bool bDumpEFBTarget;
 	bool bUseFFV1;
 	bool bFreeLook;
@@ -139,7 +141,7 @@ struct VideoConfig final
 	// Hacks
 	bool bEFBAccessEnable;
 	bool bEFBFastAccess;
-	bool bDlistCachingEnable;
+	bool bForceProgressive;
 	bool bPerfQueriesEnable;
 	bool bFullAsyncShaderCompilation;
 	bool bPredictiveFifo;
@@ -199,6 +201,7 @@ struct VideoConfig final
 		bool bSupportsGSInstancing; // Needed by GeometryShaderGen, so must stay in VideoCommon
 		bool bSupportsPaletteConversion;
 		bool bSupportsClipControl; // Needed by VertexShaderGen, so must stay in VideoCommon		
+		bool bSupportsSSAA;
 	} backend_info;
 
 	// Utility

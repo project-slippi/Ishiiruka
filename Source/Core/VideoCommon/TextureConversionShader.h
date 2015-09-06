@@ -29,7 +29,9 @@ namespace TextureConversionShader
 		case GX_CTF_B8: return 4;
 		case GX_CTF_RG8: return 2;
 		case GX_CTF_GB8: return 2;
+		case GX_CTF_Z8H: return 4;
 		case GX_TF_Z8: return 4;
+		case GX_CTF_Z16R: return 2;
 		case GX_TF_Z16: return 2;
 		case GX_TF_Z24X8: return 1;
 		case GX_CTF_Z4: return 8;

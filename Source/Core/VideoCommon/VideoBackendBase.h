@@ -23,9 +23,8 @@ typedef struct _EFBPeekCacheElement
 
 enum FieldType
 {
-	FIELD_PROGRESSIVE = 0,
-	FIELD_UPPER,
-	FIELD_LOWER
+	FIELD_ODD = 0,
+	FIELD_EVEN = 1,
 };
 
 enum EFBAccessType
@@ -182,7 +181,6 @@ public:
 	 ~VideoBackendHardware();
 protected:
 	void InitializeShared();
-	void InvalidState();
 };
 
 #endif

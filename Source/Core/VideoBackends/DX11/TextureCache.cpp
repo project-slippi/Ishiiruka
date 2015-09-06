@@ -339,7 +339,7 @@ TextureCache::TCacheEntryBase* TextureCache::CreateTexture(const TCacheEntryConf
 	return entry;
 }
 
-void TextureCache::TCacheEntry::FromRenderTarget(
+void TextureCache::TCacheEntry::FromRenderTarget(u8* dst, unsigned int dstFormat, u32 dstStride,
 	PEControl::PixelFormat srcFormat, const EFBRectangle& srcRect,
 	bool isIntensity, bool scaleByHalf, u32 cbufid,
 	const float *colmat)
@@ -377,7 +377,7 @@ void TextureCache::TCacheEntry::FromRenderTarget(
 	D3D::context->OMSetRenderTargets(1, &texture->GetRTV(), nullptr);
 	// Create texture copy
 	D3D::drawShadedTexQuad(
-		(srcFormat == PEControl::Z24) ? FramebufferManager::GetEFBDepthTexture()->GetSRV() : FramebufferManager::GetEFBColorTexture()->GetSRV(),
+		((srcFormat == PEControl::Z24) ? FramebufferManager::GetEFBDepthTexture() : FramebufferManager::GetEFBColorTexture())->GetSRV(),
 		&sourcerect, Renderer::GetTargetWidth(), Renderer::GetTargetHeight(),
 		(srcFormat == PEControl::Z24) ? PixelShaderCache::GetDepthMatrixProgram(true) : PixelShaderCache::GetColorMatrixProgram(true),
 		VertexShaderCache::GetSimpleVertexShader(),
@@ -390,11 +390,7 @@ void TextureCache::TCacheEntry::FromRenderTarget(
 
 	if (!g_ActiveConfig.bSkipEFBCopyToRam)
 	{
-		u8* dst = Memory::GetPointer(addr);
-		size_in_bytes = (u32)s_encoder->Encode(dst, format, srcFormat, srcRect, isIntensity, scaleByHalf);
-		TextureCache::MakeRangeDynamic(addr, size_in_bytes);
-		hash = GetHash64(dst, size_in_bytes, g_ActiveConfig.iSafeTextureCache_ColorSamples);
-		base_hash = hash;
+		s_encoder->Encode(dst, this, srcFormat, srcRect, isIntensity, scaleByHalf);
 	}
 }
 

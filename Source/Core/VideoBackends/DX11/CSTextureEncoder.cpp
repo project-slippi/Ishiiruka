@@ -934,48 +934,18 @@ void CSTextureEncoder::Shutdown()
 	m_shaderCache.Close();
 }
 
-size_t CSTextureEncoder::Encode(u8* dst, u32 dstFormat,
-	u32 srcFormat, const EFBRectangle& srcRect,
-	bool isIntensity, bool scaleByHalf)
+void CSTextureEncoder::Encode(u8* dst, const TextureCache::TCacheEntryBase *texture_entry,
+			PEControl::PixelFormat srcFormat, const EFBRectangle& srcRect,
+			bool isIntensity, bool scaleByHalf)
 {
 	if (!m_ready) // Make sure we initialized OK
-		return 0;
-
-	// Clamp srcRect to 640x528. BPS: The Strike tries to encode an 800x600
-	// texture, which is invalid.
-	EFBRectangle correctSrc = srcRect;
-	correctSrc.ClampUL(0, 0, EFB_WIDTH, EFB_HEIGHT);
-
-	// Validate source rect size
-	if (correctSrc.GetWidth() <= 0 || correctSrc.GetHeight() <= 0)
-		return 0;
-
+		return;
+	
 	HRESULT hr;
-
-	u32 blockW = BLOCK_WIDTHS[dstFormat];
-	u32 blockH = BLOCK_HEIGHTS[dstFormat];
-
-	// Round up source dims to multiple of block size
-	u32 width = correctSrc.GetWidth() >> (scaleByHalf ? 1 : 0);
-	u32 expandedWidth = (width + blockW - 1) & ~(blockW - 1);
-	u32 height = correctSrc.GetHeight() >> (scaleByHalf ? 1 : 0);
-	u32 expandedHeight = (height + blockH - 1) & ~(blockH - 1);
-
-	u32 numBlocksX = expandedWidth / blockW;
-	u32 numBlocksY = expandedHeight / blockH;
-
-	u32 cacheLinesPerRow;
-	if (dstFormat == 0x6) // RGBA takes two cache lines per block; all others take one
-		cacheLinesPerRow = numBlocksX * 2;
-	else
-		cacheLinesPerRow = numBlocksX;
-	_assert_msg_(VIDEO, cacheLinesPerRow * 32 <= MAX_BYTES_PER_BLOCK_ROW, "cache lines per row sanity check");
-
-	u32 totalCacheLines = cacheLinesPerRow * numBlocksY;
-	_assert_msg_(VIDEO, totalCacheLines * 32 <= MAX_BYTES_PER_ENCODE, "total encode size sanity check");
-
-	size_t encodeSize = 0;
-
+	u32 numBlocksY = texture_entry->NumBlocksY();
+	u32 cacheLinesPerRow = texture_entry->CacheLinesPerRow();
+	if ((texture_entry->format & 0xF) == 0x6 && texture_entry->format != GX_TF_RGBA8)
+		cacheLinesPerRow *= 2;
 	// Reset API
 
 	g_renderer->ResetAPIState();
@@ -983,9 +953,9 @@ size_t CSTextureEncoder::Encode(u8* dst, u32 dstFormat,
 	// Set up all the state for EFB encoding
 
 #ifdef USE_DYNAMIC_MODE
-	if (SetDynamicShader(dstFormat, srcFormat, isIntensity, scaleByHalf))
+	if (SetDynamicShader(texture_entry->format, srcFormat, isIntensity, scaleByHalf))
 #else
-	if (SetStaticShader(dstFormat, srcFormat, isIntensity, scaleByHalf))
+	if (SetStaticShader(texture_entry->format, srcFormat, isIntensity, scaleByHalf))
 #endif
 	{
 		D3D::context->OMSetRenderTargets(0, nullptr, nullptr);
@@ -1000,8 +970,8 @@ size_t CSTextureEncoder::Encode(u8* dst, u32 dstFormat,
 		EFBEncodeParams params = { 0 };
 		params.NumHalfCacheLinesX = FLOAT(cacheLinesPerRow * 2);
 		params.NumBlocksY = FLOAT(numBlocksY);
-		params.PosX = FLOAT(correctSrc.left);
-		params.PosY = FLOAT(correctSrc.top);
+		params.PosX = FLOAT(srcRect.left);
+		params.PosY = FLOAT(srcRect.top);
 		params.TexLeft = float(targetRect.left) / g_renderer->GetTargetWidth();
 		params.TexTop = float(targetRect.top) / g_renderer->GetTargetHeight();
 		params.TexRight = float(targetRect.right) / g_renderer->GetTargetWidth();
@@ -1053,13 +1023,12 @@ size_t CSTextureEncoder::Encode(u8* dst, u32 dstFormat,
 			for (u32 y = 0; y < numBlocksY; ++y)
 			{
 				memcpy(dst, src, cacheLinesPerRow * 32);
-				dst += bpmem.copyMipMapStrideChannels * 32;
+				dst += texture_entry->memory_stride;
 				src += cacheLinesPerRow * 32;
 			}
 
 			D3D::context->Unmap(m_outStage.get(), 0);
 		}
-		encodeSize = bpmem.copyMipMapStrideChannels * 32 * numBlocksY;
 	}
 
 	// Restore API
@@ -1067,8 +1036,6 @@ size_t CSTextureEncoder::Encode(u8* dst, u32 dstFormat,
 	D3D::context->OMSetRenderTargets(1,
 		&FramebufferManager::GetEFBColorTexture()->GetRTV(),
 		FramebufferManager::GetEFBDepthTexture()->GetDSV());
-
-	return encodeSize;
 }
 
 bool CSTextureEncoder::InitStaticMode()
@@ -1095,7 +1062,7 @@ bool CSTextureEncoder::SetStaticShader(u32 dstFormat, u32 srcFormat,
 	size_t fetchNum = static_cast<size_t>(srcFormat);
 	size_t scaledFetchNum = scaleByHalf ? 1 : 0;
 	size_t intensityNum = isIntensity ? 1 : 0;
-	size_t generatorNum = dstFormat;
+	size_t generatorNum = dstFormat & 0xF;
 
 	ComboKey key = MakeComboKey(dstFormat, srcFormat, isIntensity, scaleByHalf, DX11::D3D::GetFeatureLevel() >= D3D_FEATURE_LEVEL_11_0);
 
@@ -1258,7 +1225,7 @@ bool CSTextureEncoder::SetDynamicShader(u32 dstFormat,
 	size_t fetchNum = static_cast<size_t>(srcFormat);
 	size_t scaledFetchNum = scaleByHalf ? 1 : 0;
 	size_t intensityNum = isIntensity ? 1 : 0;
-	size_t generatorNum = dstFormat;
+	size_t generatorNum = dstFormat & 0xF;
 
 	// FIXME: Not all the possible generators are available as classes yet.
 	// When dynamic mode is usable, implement them.

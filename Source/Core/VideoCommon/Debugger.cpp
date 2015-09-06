@@ -58,7 +58,7 @@ void GFXDebuggerCheckAndPause(bool update)
 		while (GFXDebuggerPauseFlag)
 		{
 			if (update) GFXDebuggerUpdateScreen();
-			SLEEP(5);
+			Common::SleepCurrentThread(5);
 		}
 		g_pdebugger->OnContinue();
 	}

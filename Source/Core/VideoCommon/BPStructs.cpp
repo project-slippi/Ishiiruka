@@ -20,6 +20,7 @@
 #include "VideoCommon/PixelShaderManager.h"
 #include "VideoCommon/RenderBase.h"
 #include "VideoCommon/Statistics.h"
+#include "VideoCommon/TextureCacheBase.h"
 #include "VideoCommon/TextureDecoder.h"
 #include "VideoCommon/VertexLoader.h"
 #include "VideoCommon/VertexShaderManager.h"
@@ -262,6 +263,7 @@ void BPWritten(const BPCmd& bp)
 		// The values in bpmem.copyTexSrcXY and bpmem.copyTexSrcWH are updated in case 0x49 and 0x4a in this function
 
 		u32 destAddr = bpmem.copyTexDest << 5;
+		u32 destStride = bpmem.copyMipMapStrideChannels << 5;
 
 		EFBRectangle srcRect;
 		srcRect.left = (int)bpmem.copyTexSrcXY.x;
@@ -280,8 +282,9 @@ void BPWritten(const BPCmd& bp)
 			if (g_ActiveConfig.bShowEFBCopyRegions)
 				stats.efb_regions.push_back(srcRect);
 
-			CopyEFB(destAddr, srcRect,
-				PE_copy.tp_realFormat(), bpmem.zcontrol.pixel_format,
+			// bpmem.zcontrol.pixel_format to PEControl::Z24 is when the game wants to copy from ZBuffer (Zbuffer uses 24-bit Format)
+			TextureCache::CopyRenderTargetToTexture(destAddr, PE_copy.tp_realFormat(), destStride,
+				bpmem.zcontrol.pixel_format, srcRect,
 				!!PE_copy.intensity_fmt, !!PE_copy.half_scale);
 		}
 		else
@@ -298,7 +301,7 @@ void BPWritten(const BPCmd& bp)
 			else
 				yScale = (float)bpmem.dispcopyyscale / 256.0f;
 
-			float num_xfb_lines = ((bpmem.copyTexSrcWH.y + 1.0f) * yScale);
+			float num_xfb_lines = 1.0f + bpmem.copyTexSrcWH.y * yScale;
 
 			u32 height = static_cast<u32>(num_xfb_lines);
 			if (height > MAX_XFB_HEIGHT)
@@ -308,10 +311,9 @@ void BPWritten(const BPCmd& bp)
 				height = MAX_XFB_HEIGHT;
 			}
 
-			u32 stride = bpmem.copyMipMapStrideChannels << 5;
 			DEBUG_LOG(VIDEO, "RenderToXFB: destAddr: %08x | srcRect {%d %d %d %d} | fbWidth: %u | fbStride: %u | fbHeight: %u",
-				destAddr, srcRect.left, srcRect.top, srcRect.right, srcRect.bottom, bpmem.copyTexSrcWH.x + 1, stride, height);
-			Renderer::RenderToXFB(destAddr, srcRect, stride, height, s_gammaLUT[PE_copy.gamma]);
+				destAddr, srcRect.left, srcRect.top, srcRect.right, srcRect.bottom, bpmem.copyTexSrcWH.x + 1, destStride, height);
+			Renderer::RenderToXFB(destAddr, srcRect, destStride, height, s_gammaLUT[PE_copy.gamma]);
 		}
 
 		// Clear the rectangular region after copying it.

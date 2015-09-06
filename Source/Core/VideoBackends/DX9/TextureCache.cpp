@@ -200,7 +200,7 @@ void TextureCache::TCacheEntry::LoadFromTmem(const u8* ar_src, const u8* gb_src,
 	ReplaceTexture(data, width, height, expanded_width, level);
 }
 
-void TextureCache::TCacheEntry::FromRenderTarget(
+void TextureCache::TCacheEntry::FromRenderTarget(u8* dst, unsigned int dstFormat, u32 dstStride,
 	PEControl::PixelFormat srcFormat, const EFBRectangle& srcRect,
 	bool isIntensity, bool scaleByHalf, u32 cbufid,
 	const float *colmat)
@@ -273,22 +273,16 @@ void TextureCache::TCacheEntry::FromRenderTarget(
 
 	if (!g_ActiveConfig.bSkipEFBCopyToRam)
 	{
-		size_in_bytes = (u32)TextureConverter::EncodeToRamFromTexture(
-					addr,
-					read_texture,
-					Renderer::GetTargetWidth(), 
-					Renderer::GetTargetHeight(),
-					srcFormat == PEControl::Z24, 
-					isIntensity, 
-					format, 
-					scaleByHalf, 
-					srcRect,
-					copyMipMapStrideChannels * 32);
-
-		u8* dst = Memory::GetPointer(addr);
-		TextureCache::MakeRangeDynamic(addr, size_in_bytes);
-		this->hash = GetHash64(dst, size_in_bytes, g_ActiveConfig.iSafeTextureCache_ColorSamples);
-		this->base_hash = this->hash;
+		TextureConverter::EncodeToRamFromTexture(
+			dst,
+			this,			
+			Renderer::GetTargetWidth(), 
+			Renderer::GetTargetHeight(),
+			read_texture,
+			srcFormat == PEControl::Z24, 
+			isIntensity, 			
+			scaleByHalf, 
+			srcRect);
 	}
 	
 	D3D::RefreshSamplerState(0, D3DSAMP_MINFILTER);

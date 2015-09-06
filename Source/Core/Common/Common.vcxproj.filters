@@ -45,7 +45,6 @@
     <ClInclude Include="Profiler.h" />
     <ClInclude Include="SDCardUtil.h" />
     <ClInclude Include="SettingsHandler.h" />
-    <ClInclude Include="StdMakeUnique.h" />
     <ClInclude Include="StringUtil.h" />
     <ClInclude Include="SymbolDB.h" />
     <ClInclude Include="SysConf.h" />
@@ -75,6 +74,7 @@
     <ClInclude Include="TraversalClient.h" />
     <ClInclude Include="TraversalProto.h" />
     <ClInclude Include="ThreadPool.h" />
+    <ClInclude Include="BlockingLoop.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="BreakPoints.cpp" />
@@ -120,7 +120,7 @@
     <ClCompile Include="GekkoDisassembler.cpp" />
     <ClCompile Include="JitRegister.cpp" />
     <ClCompile Include="TraversalClient.cpp" />
-    <ClCompile Include="ThreadPool.cpp" /> 
+    <ClCompile Include="ThreadPool.cpp" />
     <ClCompile Include="Logging\ConsoleListenerWin.cpp">
       <Filter>Logging</Filter>
     </ClCompile>
