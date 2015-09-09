@@ -271,7 +271,11 @@ void TextureCache::TCacheEntry::FromRenderTarget(u8* dst, unsigned int dstFormat
 
 	Rendersurf->Release();
 
-	if (!g_ActiveConfig.bSkipEFBCopyToRam)
+	if (g_ActiveConfig.bSkipEFBCopyToRam)
+	{
+		this->Zero(dst);
+	}
+	else 
 	{
 		TextureConverter::EncodeToRamFromTexture(
 			dst,
