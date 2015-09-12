@@ -208,9 +208,9 @@ void VertexManager::Flush()
 		for (u32 i = 0; i < bpmem.genMode.numtevstages + 1u; ++i)
 			if (bpmem.tevind[i].IsActive() && bpmem.tevind[i].bt < bpmem.genMode.numindstages)
 				usedtextures |= 1 << bpmem.tevindref.getTexMap(bpmem.tevind[i].bt);
-	
 
 	TextureCache::UnbindTextures();
+	s32 mask = 0;
 	for (unsigned int i = 0; i < 8; i++)
 	{
 		if (usedtextures & (1 << i))
@@ -218,12 +218,20 @@ void VertexManager::Flush()
 			const TextureCache::TCacheEntryBase* tentry = TextureCache::Load(i);
 			if (tentry)
 			{
+				if (g_ActiveConfig.HiresMaterialMapsEnabled() && tentry->SupportsMaterialMap())
+				{
+					mask |= 1 << i;
+				}
 				PixelShaderManager::SetTexDims(i, tentry->native_width, tentry->native_height);
 				g_renderer->SetSamplerState(i & 3, i >> 2, tentry->is_custom_tex);
 			}
 			else
 				ERROR_LOG(VIDEO, "error loading texture");
 		}
+	}
+	if (g_ActiveConfig.HiresMaterialMapsEnabled())
+	{
+		PixelShaderManager::SetFlags(0, ~0, mask);
 	}
 	TextureCache::BindTextures();
 

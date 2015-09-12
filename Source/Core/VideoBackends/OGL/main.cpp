@@ -132,6 +132,7 @@ static void InitBackendInfo()
 	g_Config.backend_info.bSupportsPostProcessing = true;
 	g_Config.backend_info.bSupportsSSAA = true;
 	g_Config.backend_info.bSupportsPixelLighting = true;
+	g_Config.backend_info.bSupportsNormalMaps = true;
 	g_Config.backend_info.Adapters.clear();
 
 	// aamodes

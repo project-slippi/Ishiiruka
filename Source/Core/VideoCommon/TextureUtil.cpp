@@ -261,4 +261,9 @@ namespace TextureUtil
 		}
 		return width * height * formatSize[fmt];
 	}
+
+	u32 CalculateLevelSize(u32 level_0_size, u32 level)
+	{
+		return (level_0_size + ((1 << level) - 1)) >> level;
+	}
 }

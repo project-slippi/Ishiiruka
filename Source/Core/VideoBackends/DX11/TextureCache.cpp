@@ -32,11 +32,22 @@ D3D::BufferPtr efbcopycbuf[MAX_COPY_BUFFERS];
 TextureCache::TCacheEntry::~TCacheEntry()
 {
 	texture->Release();
+	if (nrm_texture)
+	{
+		nrm_texture->Release();
+	}
 }
 
 void TextureCache::TCacheEntry::Bind(u32 stage)
 {
 	D3D::stateman->SetTexture(stage, texture->GetSRV());
+	if (nrm_texture && g_ActiveConfig.HiresMaterialMapsEnabled())
+	{
+		ID3D11ShaderResourceView* views[1] = {
+			nrm_texture->GetSRV()
+		};
+		D3D::context->PSSetShaderResources(8 + stage, 1, views);
+	}
 }
 
 bool TextureCache::TCacheEntry::Save(const std::string& filename, u32 level)
@@ -160,6 +171,20 @@ void TextureCache::TCacheEntry::Load(const u8* src, u32 width, u32 height,
 		width,
 		height,
 		expanded_width,
+		level,
+		usage,
+		DXGI_format,
+		swap_rg,
+		convertrgb565);
+}
+void TextureCache::TCacheEntry::LoadMaterialMap(const u8* src, u32 width, u32 height, u32 level)
+{
+	D3D::ReplaceTexture2D(
+		nrm_texture->GetTex(),
+		src,
+		width,
+		height,
+		width,
 		level,
 		usage,
 		DXGI_format,
@@ -334,8 +359,20 @@ TextureCache::TCacheEntryBase* TextureCache::CreateTexture(const TCacheEntryConf
 	// TODO: better debug names
 	D3D::SetDebugObjectName(entry->texture->GetTex(), "a texture of the TextureCache");
 	D3D::SetDebugObjectName(entry->texture->GetSRV(), "shader resource view of a texture of the TextureCache");
-
 	SAFE_RELEASE(pTexture);
+	if (config.materialmap)
+	{
+		const D3D11_TEXTURE2D_DESC texdesc = CD3D11_TEXTURE2D_DESC(format,
+			config.width, config.height, config.layers, config.levels, D3D11_BIND_SHADER_RESOURCE, usage, cpu_access);
+
+		const HRESULT hr = D3D::device->CreateTexture2D(&texdesc, NULL, &pTexture);
+		CHECK(SUCCEEDED(hr), "Create material texture of the TextureCache");
+		entry->nrm_texture = new D3DTexture2D(pTexture, D3D11_BIND_SHADER_RESOURCE);
+		// TODO: better debug names
+		D3D::SetDebugObjectName(entry->nrm_texture->GetTex(), "a material texture of the TextureCache");
+		D3D::SetDebugObjectName(entry->nrm_texture->GetSRV(), "shader resource view of a material texture of the TextureCache");
+		SAFE_RELEASE(pTexture);
+	}
 	return entry;
 }
 

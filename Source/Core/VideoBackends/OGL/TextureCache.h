@@ -25,6 +25,7 @@ private:
 	struct TCacheEntry : TCacheEntryBase
 	{
 		GLuint texture;
+		GLuint nrm_texture;
 		GLuint framebuffer;
 		bool compressed;
 
@@ -44,19 +45,19 @@ private:
 			const MathUtil::Rectangle<int> &dstrect) override;
 
 		void Load(const u8* src, u32 width, u32 height,
-			u32 expanded_width, u32 level);
+			u32 expanded_width, u32 level) override;
+		void LoadMaterialMap(const u8* src, u32 width, u32 height, u32 level) override;
 		void Load(const u8* src, u32 width, u32 height, u32 expandedWidth,
-			u32 expandedHeight, const s32 texformat, const u32 tlutaddr, const TlutFormat tlutfmt, u32 level);
+			u32 expandedHeight, const s32 texformat, const u32 tlutaddr, const TlutFormat tlutfmt, u32 level) override;
 		void LoadFromTmem(const u8* ar_src, const u8* gb_src, u32 width, u32 height,
-			u32 expanded_width, u32 expanded_Height, u32 level);
+			u32 expanded_width, u32 expanded_Height, u32 level) override;
 
 		void FromRenderTarget(u8 *dst, unsigned int dstFormat, u32 dstStride,
 			PEControl::PixelFormat srcFormat, const EFBRectangle& srcRect,
-			bool isIntensity, bool scaleByHalf, unsigned int cbufid,
+			bool isIntensity, bool scaleByHalf, u32 cbufid,
 			const float *colmat) override;
-
-		bool PalettizeFromBase(const TCacheEntryBase* base_entry);
-
+		bool SupportsMaterialMap() const override { return nrm_texture != 0; };
+		bool PalettizeFromBase(const TCacheEntryBase* base_entry) override;
 		void Bind(u32 stage) override;
 		bool Save(const std::string& filename, u32 level) override;
 	};

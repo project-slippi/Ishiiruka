@@ -31,6 +31,8 @@ static u32 lastAlpha;
 static u32 lastTexDims[8]; // width | height << 16 | wrap_s << 28 | wrap_t << 30
 static u32 lastZBias;
 static int nMaterialsChanged;
+static int sflags[4];
+static bool sbflagschanged;
 
 const float U24_NORM_COEF = 1 / 16777216.0f;
 static bool s_use_integer_constants = false;
@@ -43,6 +45,8 @@ void PixelShaderManager::Init(bool use_integer_constants)
 	memset(lastTexDims, 0, sizeof(lastTexDims));
 	lastZBias = 0;
 	memset(lastRGBAfull, 0, sizeof(lastRGBAfull));
+	memset(sflags, 0, sizeof(sflags));
+	
 	Dirty();
 }
 
@@ -56,6 +60,7 @@ void PixelShaderManager::Dirty()
 	s_bFogRangeAdjustChanged = s_bFogColorChanged = s_bFogParamChanged = true;
 	nLightsChanged[0] = 0; nLightsChanged[1] = 0x80;
 	nMaterialsChanged = 15;
+	sbflagschanged = true;
 }
 
 void PixelShaderManager::Shutdown()
@@ -430,6 +435,11 @@ void PixelShaderManager::SetConstants()
 			nMaterialsChanged = 0;
 		}
 	}
+	if (sbflagschanged)
+	{
+		sbflagschanged = false;
+		m_buffer.SetConstant4v<int>(C_FLAGS, sflags);
+	}
 }
 
 void PixelShaderManager::SetPSTextureDims(int texid)
@@ -590,6 +600,16 @@ void PixelShaderManager::SetZSlope(float dfdx, float dfdy, float f0)
 		dfdy, 
 		f0, 
 		0.0f);
+}
+
+void PixelShaderManager::SetFlags(int index, int mask, int value)
+{
+	int newflag = (sflags[index] & (~mask)) | (value & mask);
+	if (newflag != sflags[index])
+	{
+		sbflagschanged = true;
+		sflags[index] = newflag;
+	}
 }
 
 void PixelShaderManager::DoState(PointerWrap &p)

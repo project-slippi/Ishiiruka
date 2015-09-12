@@ -323,8 +323,6 @@ int CD3DFont::Init()
 		return hr;
 	}
 	D3D::SetDebugObjectName(m_pVB.get(), "vertex buffer of a CD3DFont object");
-	ID3D11ShaderResourceView* view = m_pTexture.get();
-	D3D::context->PSSetShaderResources(8, 1, &view);
 	return S_OK;
 }
 
@@ -374,6 +372,8 @@ int CD3DFont::DrawTextScaled(float x, float y, float size, float spacing, u32 dw
 
 	D3D::stateman->SetInputLayout(m_InputLayout.get());
 	D3D::stateman->SetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);	
+	ID3D11ShaderResourceView* view = m_pTexture.get();
+	D3D::context->PSSetShaderResources(8, 1, &view);
 
 	float fStartX = sx;
 	for (char c : Text)

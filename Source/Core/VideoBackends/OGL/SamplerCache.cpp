@@ -75,6 +75,10 @@ void SamplerCache::SetSamplerState(int stage, const TexMode0& tm0, const TexMode
 		active_sampler.second = GetEntry(params);
 		glBindSampler(stage, active_sampler.second.sampler_id);
 	}
+	if (custom_tex)
+	{
+		glBindSampler(stage + 8, active_sampler.second.sampler_id);
+	}
 }
 
 SamplerCache::Value& SamplerCache::GetEntry(const Params& params)

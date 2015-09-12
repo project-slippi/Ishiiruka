@@ -49,7 +49,7 @@ VideoConfig::VideoConfig()
 	bStereoEFBMonoDepth = false;
 	iStereoDepthPercentage = 100;
 	iStereoConvergenceMinimum = 0;
-	bUseScalingFilter = false;
+	bUseScalingFilter = false;	
 	bTexDeposterize = false;
 	iTexScalingType = 0;
 	iTexScalingFactor = 2;
@@ -80,6 +80,7 @@ void VideoConfig::Load(const std::string& ini_file)
 	settings->Get("DumpTextures", &bDumpTextures, 0);
 	settings->Get("DumpVertexLoader", &bDumpVertexLoaders, 0);
 	settings->Get("HiresTextures", &bHiresTextures, 0);
+	settings->Get("HiresMaterialMaps", &bHiresMaterialMaps, 0);	
 	settings->Get("ConvertHiresTextures", &bConvertHiresTextures, 0);
 	settings->Get("CacheHiresTextures", &bCacheHiresTextures, 0);
 	settings->Get("CacheHiresTexturesonGPU", &bCacheHiresTexturesGPU, 0);
@@ -177,6 +178,8 @@ void VideoConfig::GameIniLoad()
 	CHECK_SETTING("Video_Settings", "UseRealXFB", bUseRealXFB);
 	CHECK_SETTING("Video_Settings", "SafeTextureCacheColorSamples", iSafeTextureCache_ColorSamples);
 	CHECK_SETTING("Video_Settings", "HiresTextures", bHiresTextures);
+	CHECK_SETTING("Video_Settings", "HiresMaterialMaps", bHiresMaterialMaps);
+	
 	CHECK_SETTING("Video_Settings", "ConvertHiresTextures", bConvertHiresTextures);
 	CHECK_SETTING("Video_Settings", "CacheHiresTextures", bCacheHiresTextures);
 	CHECK_SETTING("Video_Settings", "CacheHiresTexturesonGPU", bCacheHiresTexturesGPU);
@@ -306,7 +309,7 @@ void VideoConfig::VerifyValidity()
 	{
 		iTexScalingType = 4;
 	}
-	
+	bHiresMaterialMaps = bHiresMaterialMaps && bHiresTextures && bEnablePixelLighting;
 }
 
 void VideoConfig::Save(const std::string& ini_file)
@@ -333,6 +336,8 @@ void VideoConfig::Save(const std::string& ini_file)
 	settings->Set("DumpTextures", bDumpTextures);
 	settings->Set("DumpVertexLoader", bDumpVertexLoaders);
 	settings->Set("HiresTextures", bHiresTextures);
+	settings->Set("HiresMaterialMaps", bHiresMaterialMaps);
+	
 	settings->Set("ConvertHiresTextures", bConvertHiresTextures);
 	settings->Set("CacheHiresTextures", bCacheHiresTextures);
 	settings->Set("CacheHiresTexturesonGPU", bCacheHiresTexturesGPU);

@@ -20,6 +20,7 @@
 #define I_FOGI        "cfogi"
 #define I_FOGF        "cfogf"
 #define I_ZSLOPE      "czslope"
+#define I_FLAGS       "cflags"
 #define I_EFBSCALE    "cefbscale"
 #define I_PLIGHTS     "cPLights"
 #define I_PMATERIALS  "cPmtrl"
@@ -36,7 +37,8 @@
 #define C_FOGI			(C_FOGCOLOR + 1)	//28
 #define C_FOGF			(C_FOGI + 1)		//29
 #define C_ZSLOPE		(C_FOGF + 2)		//31
-#define C_EFBSCALE		(C_ZSLOPE + 1)		//32
+#define C_FLAGS			(C_ZSLOPE + 1)		//32
+#define C_EFBSCALE		(C_FLAGS + 1)		//33
 
 #define C_PLIGHTS		(C_EFBSCALE + 1)
 #define C_PMATERIALS	(C_PLIGHTS + 40)
@@ -92,10 +94,11 @@ struct pixel_shader_uid_data
 	u32 components : 2;
 	u32 zfreeze : 1;
 	u32 pixel_lighting : 1;
+	u32 pixel_normals : 1;
 	u32 stereo : 1;
 	u32 msaa : 1;
 	u32 ssaa : 1;
-	u32 pad0 : 17;
+	u32 pad0 : 16;
 
 	u32 dstAlphaMode : 2;
 	u32 Pretest : 2;

@@ -88,6 +88,12 @@ TextureCache::TCacheEntry::~TCacheEntry()
 		texture = 0;
 	}
 
+	if (nrm_texture)
+	{
+		glDeleteTextures(1, &nrm_texture);
+		nrm_texture = 0;
+	}
+
 	if (framebuffer)
 	{
 		glDeleteFramebuffers(1, &framebuffer);
@@ -99,7 +105,7 @@ TextureCache::TCacheEntry::TCacheEntry(const TCacheEntryConfig& _config)
 : TCacheEntryBase(_config)
 {
 	glGenTextures(1, &texture);
-
+	nrm_texture = 0;
 	framebuffer = 0;
 }
 
@@ -115,6 +121,12 @@ void TextureCache::TCacheEntry::Bind(u32 stage)
 
 		glBindTexture(GL_TEXTURE_2D_ARRAY, texture);
 		s_Textures[stage] = texture;
+	}
+	if (nrm_texture && g_ActiveConfig.HiresMaterialMapsEnabled())
+	{
+		glActiveTexture(GL_TEXTURE8 + stage);
+		s_ActiveTexture = 8 + stage;
+		glBindTexture(GL_TEXTURE_2D_ARRAY, nrm_texture);
 	}
 }
 
@@ -222,6 +234,13 @@ TextureCache::TCacheEntryBase* TextureCache::CreateTexture(const TCacheEntryConf
 	}
 	else
 	{
+		if (config.materialmap)
+		{
+			glGenTextures(1, &entry->nrm_texture);
+			glActiveTexture(GL_TEXTURE9);
+			glBindTexture(GL_TEXTURE_2D_ARRAY, entry->nrm_texture);
+			glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAX_LEVEL, config.levels - 1);
+		}
 		entry->SetFormat();
 	}
 
@@ -283,7 +302,7 @@ void TextureCache::TCacheEntry::CopyRectangleFromTexture(
 void TextureCache::TCacheEntry::Load(const u8* src, u32 width, u32 height,
 	u32 expanded_width, u32 level)
 {
-	glActiveTexture(GL_TEXTURE0 + 9);
+	glActiveTexture(GL_TEXTURE9);
 	glBindTexture(GL_TEXTURE_2D_ARRAY, texture);	
 
 	u32 blocksize = (config.pcformat == PC_TEX_FMT_DXT1) ? 8u : 16u;
@@ -325,6 +344,30 @@ void TextureCache::TCacheEntry::Load(const u8* src, u32 width, u32 height,
 	}
 	TextureCache::SetStage();
 }
+
+void TextureCache::TCacheEntry::LoadMaterialMap(const u8* src, u32 width, u32 height,u32 level)
+{
+	glActiveTexture(GL_TEXTURE9);
+	glBindTexture(GL_TEXTURE_2D_ARRAY, nrm_texture);
+
+	u32 blocksize = (config.pcformat == PC_TEX_FMT_DXT1) ? 8u : 16u;
+	switch (config.pcformat)
+	{
+	case PC_TEX_FMT_DXT1:
+	case PC_TEX_FMT_DXT3:
+	case PC_TEX_FMT_DXT5:
+	{
+		glCompressedTexImage3D(GL_TEXTURE_2D_ARRAY, level, gl_iformat,
+			width, height, 1, 0, ((width + 3) >> 2) * ((height + 3) >> 2) * blocksize, src);
+	}
+	break;
+	default:
+		glTexImage3D(GL_TEXTURE_2D_ARRAY, level, gl_iformat, width, height, 1, 0, gl_format, gl_type, src);
+		break;
+	}
+	TextureCache::SetStage();
+}
+
 void TextureCache::TCacheEntry::Load(const u8* src, u32 width, u32 height, u32 expandedWidth,
 	u32 expandedHeight, const s32 texformat, const u32 tlutaddr, const TlutFormat tlutfmt, u32 level)
 {
@@ -361,12 +404,12 @@ void TextureCache::TCacheEntry::LoadFromTmem(const u8* ar_src, const u8* gb_src,
 
 void TextureCache::TCacheEntry::FromRenderTarget(u8* dstPointer, unsigned int dstFormat, u32 dstStride,
 	PEControl::PixelFormat srcFormat, const EFBRectangle& srcRect,
-	bool isIntensity, bool scaleByHalf, unsigned int cbufid,
+	bool isIntensity, bool scaleByHalf, u32 cbufid,
 	const float *colmat)
 {
 	g_renderer->ResetAPIState(); // reset any game specific settings
 
-								 // Make sure to resolve anything we need to read from.
+	// Make sure to resolve anything we need to read from.
 	const GLuint read_texture = (srcFormat == PEControl::Z24) ?
 		FramebufferManager::ResolveAndGetDepthTarget(srcRect) :
 		FramebufferManager::ResolveAndGetRenderTarget(srcRect);
@@ -381,7 +424,6 @@ void TextureCache::TCacheEntry::FromRenderTarget(u8* dstPointer, unsigned int ds
 		g_sampler_cache->BindLinearSampler(9);
 	else
 		g_sampler_cache->BindNearestSampler(9);
-
 	glViewport(0, 0, config.width, config.height);
 
 	GLuint uniform_location;

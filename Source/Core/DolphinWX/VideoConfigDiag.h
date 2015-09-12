@@ -139,6 +139,7 @@ protected:
 	SettingRadioButton* virtual_xfb;
 	SettingRadioButton* real_xfb;
 
+	SettingCheckBox* hires_texturemaps;
 	SettingCheckBox* cache_hires_textures;
 	SettingCheckBox* cache_hires_texturesGPU;
 	

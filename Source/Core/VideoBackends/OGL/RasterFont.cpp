@@ -258,7 +258,8 @@ void RasterFont::printMultilineText(const std::string& text, double start_x, dou
 	{
 		return;
 	}
-
+	glActiveTexture(GL_TEXTURE8);
+	glBindTexture(GL_TEXTURE_2D, texture);
 	glBindVertexArray(VAO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
 	glBufferData(GL_ARRAY_BUFFER, usage*sizeof(GLfloat), vertices.data(), GL_STREAM_DRAW);

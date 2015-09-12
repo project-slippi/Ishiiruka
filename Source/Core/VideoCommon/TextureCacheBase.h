@@ -32,11 +32,12 @@ class TextureCache
 public:
 	struct TCacheEntryConfig
 	{
-		TCacheEntryConfig() : width(0), height(0), levels(1), layers(1), rendertarget(false), pcformat(PC_TEX_FMT_NONE) {}
+		TCacheEntryConfig() : width(0), height(0), levels(1), layers(1), rendertarget(false), materialmap(false), pcformat(PC_TEX_FMT_NONE) {}
 
 		u32 width, height;
 		u32 levels, layers;
 		bool rendertarget;
+		bool materialmap;
 		PC_TexFormat pcformat;
 
 		u32 GetSizeInBytes() const
@@ -67,6 +68,10 @@ public:
 			{
 				result += result * 2;
 			}
+			if (materialmap)
+			{
+				result *= 2;
+			}
 			result = std::max(result, 4096u);
 			return result;
 		}
@@ -78,19 +83,21 @@ public:
 				&& levels == b.levels
 				&& layers == b.layers
 				&& rendertarget == b.rendertarget
-				&& pcformat == b.pcformat;
+				&& pcformat == b.pcformat
+				&& materialmap == b.materialmap;
 		}
 
 		struct Hasher
 		{
 			size_t operator()(const TextureCache::TCacheEntryConfig& c) const
 			{
-				return (u64)c.rendertarget << 56	// 1 bit
-					| (u64)c.pcformat << 48			// 8 bits
-					| (u64)c.layers << 40			// 8 bits 
-					| (u64)c.levels << 32			// 8 bits 
-					| (u64)c.height << 16			// 16 bits 
-					| (u64)c.width;					// 16 bits
+				return (u64)c.materialmap << 57	// 1 bit
+					| (u64)c.rendertarget << 56	// 1 bit
+					| (u64)c.pcformat << 48		// 8 bits
+					| (u64)c.layers << 40		// 8 bits 
+					| (u64)c.levels << 32		// 8 bits 
+					| (u64)c.height << 16		// 16 bits 
+					| (u64)c.width;				// 16 bits
 			}
 		};
 	};
@@ -164,6 +171,7 @@ public:
 
 		virtual void Load(const u8* src, u32 width, u32 height,
 			u32 expanded_width, u32 level) = 0;
+		virtual void LoadMaterialMap(const u8* src, u32 width, u32 height, u32 level) = 0;
 		virtual void Load(const u8* src, u32 width, u32 height, u32 expandedWidth,
 			u32 expandedHeight, const s32 texformat, const u32 tlutaddr, const TlutFormat tlutfmt, u32 level) = 0;
 		virtual void LoadFromTmem(const u8* ar_src, const u8* gb_src, u32 width, u32 height,
@@ -174,7 +182,7 @@ public:
 			const float *colmat) = 0;
 		virtual bool PalettizeFromBase(const TCacheEntryBase* base_entry) = 0;
 		bool OverlapsMemoryRange(u32 range_address, u32 range_size) const;
-
+		virtual bool SupportsMaterialMap() const = 0;
 		bool IsEfbCopy() { return is_efb_copy; }
 
 		u32 NumBlocksY() const;

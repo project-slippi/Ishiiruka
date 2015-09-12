@@ -106,7 +106,7 @@ struct VideoConfig final
 	int iStereoDepth;
 	int iStereoConvergence;
 	bool bStereoSwapEyes;
-	bool bUseScalingFilter;
+	bool bUseScalingFilter;	
 	bool bTexDeposterize;
 	int iTexScalingType;
 	int iTexScalingFactor;
@@ -130,6 +130,7 @@ struct VideoConfig final
 	bool bDumpTextures;
 	bool bDumpVertexLoaders;
 	bool bHiresTextures;
+	bool bHiresMaterialMaps;
 	bool bConvertHiresTextures;
 	bool bCacheHiresTextures;
 	bool bCacheHiresTexturesGPU;
@@ -187,6 +188,7 @@ struct VideoConfig final
 		bool bSupportedFormats[16]; // used for D3D9 in TextureCache		
 		bool bSupportsDualSourceBlend; // only supported by D3D11 and OpenGL
 		bool bSupportsPixelLighting;
+		bool bSupportsNormalMaps;
 		bool bSupportsPrimitiveRestart;
 		bool bSupportsSeparateAlphaFunction;
 		bool bSupportsBindingLayout; // needed by PixelShaderGen, so must stay in VideoCommon
@@ -208,6 +210,7 @@ struct VideoConfig final
 	bool RealXFBEnabled() const { return bUseXFB && bUseRealXFB; }
 	bool VirtualXFBEnabled() const { return bUseXFB && !bUseRealXFB; }
 	bool ExclusiveFullscreenEnabled() const { return backend_info.bSupportsExclusiveFullscreen && !bBorderlessFullscreen; }
+	bool HiresMaterialMapsEnabled() const { return backend_info.bSupportsNormalMaps && bHiresTextures && bHiresMaterialMaps; }
 };
 
 extern VideoConfig g_Config;

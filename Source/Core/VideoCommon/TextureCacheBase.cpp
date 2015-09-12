@@ -2,7 +2,6 @@
 // Licensed under GPLv2+
 // Refer to the license.txt file included.
 
-#include "Common/FileUtil.h"
 #include "Common/MemoryUtil.h"
 
 #include "Core/ConfigManager.h"
@@ -359,11 +358,6 @@ void TextureCache::DumpTexture(TCacheEntryBase* entry, std::string basename, u32
 		entry->Save(filename, level);
 }
 
-static u32 CalculateLevelSize(u32 level_0_size, u32 level)
-{
-	return (level_0_size + ((1 << level) - 1)) >> level;
-}
-
 // Used by TextureCache::Load
 TextureCache::TCacheEntryBase* TextureCache::ReturnEntry(unsigned int stage, TCacheEntryBase* entry)
 {
@@ -680,6 +674,7 @@ TextureCache::TCacheEntryBase* TextureCache::Load(const u32 stage)
 	config.height = height;
 	config.levels = texLevels;
 	config.pcformat = pcfmt;
+	config.materialmap = hires_tex && hires_tex->m_nrm_levels && g_ActiveConfig.HiresMaterialMapsEnabled();
 	if (g_ActiveConfig.iTexScalingType && !hires_tex)
 	{
 		config.width *= g_ActiveConfig.iTexScalingFactor;
@@ -710,10 +705,22 @@ TextureCache::TCacheEntryBase* TextureCache::Load(const u32 stage)
 		Bufferptr += TextureUtil::GetTextureSizeInBytes(width, height, pcfmt);
 		for (u32 level = 1; level != texLevels; ++level)
 		{
-			u32 mip_width = CalculateLevelSize(width, level);
-			u32 mip_height = CalculateLevelSize(height, level);
+			u32 mip_width = TextureUtil::CalculateLevelSize(width, level);
+			u32 mip_height = TextureUtil::CalculateLevelSize(height, level);
 			entry->Load(Bufferptr, mip_width, mip_height, mip_width, level);
 			Bufferptr += TextureUtil::GetTextureSizeInBytes(mip_width, mip_height, pcfmt);
+		}
+		if (config.materialmap)
+		{
+			entry->LoadMaterialMap(Bufferptr, width, height, 0);
+			Bufferptr += TextureUtil::GetTextureSizeInBytes(width, height, pcfmt);
+			for (u32 level = 1; level != texLevels; ++level)
+			{
+				u32 mip_width = TextureUtil::CalculateLevelSize(width, level);
+				u32 mip_height = TextureUtil::CalculateLevelSize(height, level);
+				entry->LoadMaterialMap(Bufferptr, mip_width, mip_height, level);
+				Bufferptr += TextureUtil::GetTextureSizeInBytes(mip_width, mip_height, pcfmt);
+			}
 		}
 	}
 	else
@@ -745,8 +752,8 @@ TextureCache::TCacheEntryBase* TextureCache::Load(const u32 stage)
 
 		for (u32 level = 1; level != texLevels; ++level)
 		{
-			const u32 mip_width = CalculateLevelSize(width, level);
-			const u32 mip_height = CalculateLevelSize(height, level);
+			const u32 mip_width = TextureUtil::CalculateLevelSize(width, level);
+			const u32 mip_height = TextureUtil::CalculateLevelSize(height, level);
 			const u32 expanded_mip_width = ROUND_UP(mip_width, bsw);
 			const u32 expanded_mip_height = ROUND_UP(mip_height, bsh);
 
