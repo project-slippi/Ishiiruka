@@ -80,6 +80,8 @@ static int et_IPC_HLE;
 static int et_PatchEngine; // PatchEngine updates every 1/60th of a second by default
 static int et_Throttle;
 
+static u64 s_last_sync_gpu_tick;
+
 // These are badly educated guesses
 // Feel free to experiment. Set these in Init below.
 static int

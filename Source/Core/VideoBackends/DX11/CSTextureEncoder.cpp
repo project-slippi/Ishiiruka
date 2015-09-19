@@ -1020,11 +1020,12 @@ void CSTextureEncoder::Encode(u8* dst, const TextureCache::TCacheEntryBase *text
 		if (hr == S_OK)
 		{
 			u8* src = (u8*)map.pData;
+			u32 readStride = std::min(texture_entry->CacheLinesPerRow() * 32, map.RowPitch);
 			for (u32 y = 0; y < numBlocksY; ++y)
 			{
-				memcpy(dst, src, cacheLinesPerRow * 32);
+				memcpy(dst, src, readStride);
 				dst += texture_entry->memory_stride;
-				src += cacheLinesPerRow * 32;
+				src += map.RowPitch;
 			}
 
 			D3D::context->Unmap(m_outStage.get(), 0);

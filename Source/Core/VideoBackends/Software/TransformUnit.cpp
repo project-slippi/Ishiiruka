@@ -415,9 +415,9 @@ void TransformColor(const InputVertexData *src, OutputVertexData *dst)
 			int light_x = int(lightCol.x);
 			int light_y = int(lightCol.y);
 			int light_z = int(lightCol.z);
-			MathUtil::Clamp(&light_x, 0, 255);
-			MathUtil::Clamp(&light_y, 0, 255);
-			MathUtil::Clamp(&light_z, 0, 255);
+			light_x = MathUtil::Clamp(light_x, 0, 255);
+			light_y = MathUtil::Clamp(light_y, 0, 255);
+			light_z = MathUtil::Clamp(light_z, 0, 255);
 			chancolor[1] = (matcolor[1] * (light_x + (light_x >> 7))) >> 8;
 			chancolor[2] = (matcolor[2] * (light_y + (light_y >> 7))) >> 8;
 			chancolor[3] = (matcolor[3] * (light_z + (light_z >> 7))) >> 8;
@@ -450,7 +450,7 @@ void TransformColor(const InputVertexData *src, OutputVertexData *dst)
 			}
 
 			int light_a = int(lightCol);
-			MathUtil::Clamp(&light_a, 0, 255);
+			light_a = MathUtil::Clamp(light_a, 0, 255);
 			chancolor[0] = (matcolor[0] * (light_a + (light_a >> 7))) >> 8;
 		}
 		else

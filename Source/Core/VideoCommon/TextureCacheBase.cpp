@@ -17,7 +17,7 @@
 #include "VideoCommon/VideoConfig.h"
 
 TextureCache *g_texture_cache;
-GC_ALIGNED16(u8 *TextureCache::temp) = nullptr;
+alignas(16) u8 *TextureCache::temp = nullptr;
 size_t TextureCache::temp_size;
 u32 TextureCache::s_prev_tlut_address = 0;
 u64 TextureCache::s_prev_tlut_hash = 0;

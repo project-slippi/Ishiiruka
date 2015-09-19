@@ -84,9 +84,9 @@ void SoundStream::Stop()
 	}
 }
 
-GC_ALIGNED16(static short realtimeBuffer[SOUND_MAX_FRAME_SIZE]);
-GC_ALIGNED16(static soundtouch::SAMPLETYPE dpl2buffer[SOUND_MAX_FRAME_SIZE]);
-GC_ALIGNED16(static soundtouch::SAMPLETYPE samplebuffer[SOUND_MAX_FRAME_SIZE]);
+alignas(16) static short realtimeBuffer[SOUND_MAX_FRAME_SIZE];
+alignas(16) static soundtouch::SAMPLETYPE dpl2buffer[SOUND_MAX_FRAME_SIZE];
+alignas(16) static soundtouch::SAMPLETYPE samplebuffer[SOUND_MAX_FRAME_SIZE];
 
 float s_dither_prev[SOUND_SAMPLES_SURROUND];
 
@@ -98,7 +98,7 @@ __forceinline void floatTos16(s16* dst, const float *src, u32 numsamples, u32 nu
 		{
 			float sample = src[i * numchannels + j] * 32768.0f;
 			TriangleDither(sample, s_dither_prev[j]);
-			MathUtil::Clamp(&sample, -32768.f, 32767.f);
+			sample = MathUtil::Clamp(sample, -32768.f, 32767.f);
 			dst[i * numchannels + j] = s16(sample);
 		}
 	}

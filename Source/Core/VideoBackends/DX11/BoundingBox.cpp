@@ -14,7 +14,7 @@ namespace DX11
 static D3D::BufferPtr s_bbox_buffer;
 static D3D::BufferPtr s_bbox_staging_buffer;
 static D3D::UavPtr  s_bbox_uav;
-static GC_ALIGNED128(s32 s_values[4]);
+alignas(128) static s32 s_values[4];
 static bool s_cpu_dirty;
 static bool s_gpu_dirty;
 

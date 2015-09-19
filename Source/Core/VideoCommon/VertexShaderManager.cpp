@@ -24,10 +24,10 @@
 
 #include "VideoCommon/RenderBase.h"
 
-GC_ALIGNED16(float VertexShaderManager::vsconstants[VertexShaderManager::ConstantBufferSize]);
+alignas(16) float VertexShaderManager::vsconstants[VertexShaderManager::ConstantBufferSize];
 ConstatBuffer VertexShaderManager::m_buffer(VertexShaderManager::vsconstants, VertexShaderManager::ConstantBufferSize);
 
-float GC_ALIGNED16(g_fProjectionMatrix[16]);
+alignas(16) float g_fProjectionMatrix[16];
 
 // track changes
 static bool bTexMatricesChanged[2], bProjectionChanged, bViewportChanged;

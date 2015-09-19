@@ -319,8 +319,8 @@ std::string HiresTexture::GenBaseName(
 		u64 tlut_hash = 0;
 		if(tlut_size)
 			tlut_hash = XXH64(tlut, tlut_size);
-		std::string basename = s_format_prefix + StringFromFormat("%dx%d%s_%016llx", width, height, has_mipmaps ? "_m" : "", tex_hash);
-		std::string tlutname = tlut_size ? StringFromFormat("_%016llx", tlut_hash) : "";
+		std::string basename = s_format_prefix + StringFromFormat("%dx%d%s_%0016" PRIx64, width, height, has_mipmaps ? "_m" : "", tex_hash);
+		std::string tlutname = tlut_size ? StringFromFormat("_%0016" PRIx64, tlut_hash) : "";
 		std::string formatname = StringFromFormat("_%d", format);
 		std::string fullname = basename + tlutname + formatname;
 		if (convert)

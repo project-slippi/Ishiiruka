@@ -70,7 +70,7 @@ void CMixer::MixerFifo::Mix(float* samples, u32 numSamples, bool consider_framel
 	float num_left = (float)(((write_index - read_index) & INDEX_MASK) / 2);
 	m_num_left_i = (num_left + m_num_left_i * (CONTROL_AVG - 1)) / CONTROL_AVG;
 	float offset = (m_num_left_i - LOW_WATERMARK) * CONTROL_FACTOR;
-	MathUtil::Clamp(&offset, -MAX_FREQ_SHIFT, MAX_FREQ_SHIFT);
+	offset = MathUtil::Clamp(offset, -MAX_FREQ_SHIFT, MAX_FREQ_SHIFT);
 	// adjust framerate with framelimit
 	u32 framelimit = SConfig::GetInstance().m_Framelimit;
 	float aid_sample_rate = m_input_sample_rate + offset;
@@ -156,8 +156,8 @@ u32 CMixer::Mix(s16* samples, u32 num_samples, bool consider_framelimit)
 		float l_output = m_output_buffer[i + 1] * 38768.0f;
 		TriangleDither(l_output, m_l_dither_prev);
 		TriangleDither(r_output, m_r_dither_prev);
-		MathUtil::Clamp(&l_output, -32768.f, 32767.f);
-		MathUtil::Clamp(&r_output, -32768.f, 32767.f);
+		l_output = MathUtil::Clamp(l_output, -32768.f, 32767.f);
+		r_output = MathUtil::Clamp(r_output, -32768.f, 32767.f);
 		samples[i] = s16(r_output);
 		samples[i + 1] = s16(l_output);
 	}

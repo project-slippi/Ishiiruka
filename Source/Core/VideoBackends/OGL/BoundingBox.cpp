@@ -9,7 +9,7 @@
 #include "VideoCommon/BoundingBox.h"
 
 static GLuint s_bbox_buffer_id;
-static GC_ALIGNED128(s32 s_values[4]);
+alignas(128) static s32 s_values[4];
 static bool s_cpu_dirty;
 static bool s_gpu_dirty;
 

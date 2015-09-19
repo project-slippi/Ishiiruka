@@ -46,7 +46,6 @@ public final class UserPreferences
 			editor.putString("cpuCorePref",   getConfig("Dolphin.ini", "Core", "CPUCore", "3"));
 
 		editor.putBoolean("dualCorePref", getConfig("Dolphin.ini", "Core", "CPUThread", "True").equals("True"));
-		editor.putBoolean("fastmemPref", getConfig("Dolphin.ini", "Core", "Fastmem", "True").equals("True"));
 
 		editor.putString("gpuPref",               getConfig("Dolphin.ini", "Core", "GFXBackend", "OGL"));
 		editor.putBoolean("showFPS",              getConfig("gfx_opengl.ini", "Settings", "ShowFPS", "False").equals("True"));
@@ -110,7 +109,6 @@ public final class UserPreferences
 			editor.putString("externalFrameBuffer", "Real");
 		}
 
-		editor.putBoolean("disableDestinationAlpha", getConfig("gfx_opengl.ini", "Settings", "DstAlphaPass", "False").equals("True"));
 		editor.putBoolean("fastDepthCalculation",    getConfig("gfx_opengl.ini", "Settings", "FastDepthCalc", "True").equals("True"));
 		editor.putString("aspectRatio", getConfig("gfx_opengl.ini", "Settings", "AspectRatio", "0"));
 
@@ -139,9 +137,6 @@ public final class UserPreferences
 		// Current CPU core being used. Falls back to interpreter upon error.
 		String currentEmuCore   = prefs.getString("cpuCorePref", "0");
 
-		// Fastmem JIT core usage
-		boolean isUsingFastmem = prefs.getBoolean("fastmemPref", true);
-
 		// Current video backend being used. Falls back to software rendering upon error.
 		String currentVideoBackend = prefs.getString("gpuPref", "Software Rendering");
 
@@ -165,9 +160,6 @@ public final class UserPreferences
 
 		// External frame buffer emulation. Falls back to disabled upon error.
 		String externalFrameBuffer = prefs.getString("externalFrameBuffer", "Disabled");
-
-		// Whether or not to disable destination alpha.
-		boolean disableDstAlphaPass = prefs.getBoolean("disableDestinationAlpha", false);
 
 		// Whether or not to use fast depth calculation.
 		boolean useFastDepthCalc = prefs.getBoolean("fastDepthCalculation", true);
@@ -221,7 +213,6 @@ public final class UserPreferences
 		// CPU related Settings
 		NativeLibrary.SetConfig("Dolphin.ini", "Core", "CPUCore", currentEmuCore);
 		NativeLibrary.SetConfig("Dolphin.ini", "Core", "CPUThread", isUsingDualCore ? "True" : "False");
-		NativeLibrary.SetConfig("Dolphin.ini", "Core", "Fastmem", isUsingFastmem ? "True" : "False");
 
 		// General Video Settings
 		NativeLibrary.SetConfig("Dolphin.ini", "Core", "GFXBackend", currentVideoBackend);
@@ -275,7 +266,6 @@ public final class UserPreferences
 			NativeLibrary.SetConfig("gfx_opengl.ini", "Settings", "UseRealXFB", "True");
 		}
 
-		NativeLibrary.SetConfig("gfx_opengl.ini", "Settings", "DstAlphaPass", disableDstAlphaPass ? "True" : "False");
 		NativeLibrary.SetConfig("gfx_opengl.ini", "Settings", "FastDepthCalc", useFastDepthCalc ? "True" : "False");
 
 		//-- Enhancement Settings --//

@@ -36,7 +36,7 @@ extern const unsigned char sfont_raw[][9*10];
 
 // TRAM
 // STATE_TO_SAVE
- GC_ALIGNED16(u8 texMem[TMEM_SIZE]);
+alignas(16) u8 texMem[TMEM_SIZE];
 
 
 // Gamecube/Wii texture decoder
@@ -1838,7 +1838,7 @@ PC_TexFormat TexDecoder_Decode_RGBA(u32 * dst, const u8 * src, s32 width, s32 he
 						const __m128i dxt = _mm_loadu_si128((__m128i *)(src + sizeof(struct DXT1Block) * 2 * xStep));
 
 						// Copy the 2-bit indices from each DXT block:
-						GC_ALIGNED16( u32 dxttmp[4] );
+						alignas(16) u32 dxttmp[4];
 						_mm_store_si128((__m128i *)dxttmp, dxt);
 
 						u32 dxt0sel = dxttmp[1];
@@ -1977,8 +1977,8 @@ PC_TexFormat TexDecoder_Decode_RGBA(u32 * dst, const u8 * src, s32 width, s32 he
 						u32 *dst32 = ( dst + (y + z*4) * width + x );
 
 						// Copy the colors here:
-						GC_ALIGNED16( u32 colors0[4] );
-						GC_ALIGNED16( u32 colors1[4] );
+						alignas(16) u32 colors0[4];
+						alignas(16) u32 colors1[4];
 						_mm_store_si128((__m128i *)colors0, mmcolors0);
 						_mm_store_si128((__m128i *)colors1, mmcolors1);
 

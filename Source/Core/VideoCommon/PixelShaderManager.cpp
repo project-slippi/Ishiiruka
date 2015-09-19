@@ -12,7 +12,7 @@
 
 #include "VideoCommon/RenderBase.h"
 
-GC_ALIGNED16(float PixelShaderManager::psconstants[PixelShaderManager::ConstantBufferSize]);
+alignas(16) float PixelShaderManager::psconstants[PixelShaderManager::ConstantBufferSize];
 ConstatBuffer PixelShaderManager::m_buffer(PixelShaderManager::psconstants, PixelShaderManager::ConstantBufferSize);
 static int s_nColorsChanged[2]; // 0 - regular colors, 1 - k colors
 static int s_nIndTexMtxChanged;

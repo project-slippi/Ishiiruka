@@ -45,6 +45,6 @@ public:
 	// (i.e. VertexShaderManager::SetConstants needs to be called before using this!)
 	static void TransformToClipSpace(const u8* data, const PortableVertexDeclaration &vtx_dcl, float *out);
 private:
-	static float vsconstants[ConstantBufferSize];
+	alignas(16) static float vsconstants[ConstantBufferSize];
 	static ConstatBuffer m_buffer;
 };

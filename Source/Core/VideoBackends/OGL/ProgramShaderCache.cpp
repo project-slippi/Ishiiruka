@@ -570,6 +570,7 @@ void ProgramShaderCache::CreateHeader()
 		"%s\n" // Sampler binding
 		"%s\n" // storage buffer
 		"%s\n" // shader5
+		"%s\n" // SSAA
 		"%s\n" // Geometry point size
 		"%s\n" // AEP
 		"%s\n" // texture buffer
@@ -623,6 +624,7 @@ void ProgramShaderCache::CreateHeader()
 		, SupportedESPointSize.c_str()
 		, g_ogl_config.bSupportsAEP ? "#extension GL_ANDROID_extension_pack_es31a : enable" : ""
 		, v<GLSL_140 && g_ActiveConfig.backend_info.bSupportsPaletteConversion ? "#extension GL_ARB_texture_buffer_object : enable" : ""
+		, v < GLSL_400 && g_ActiveConfig.backend_info.bSupportsSSAA ? "#extension GL_ARB_sample_shading : enable" : ""
 		, SupportedESTextureBuffer.c_str()
 		, is_glsles && g_ActiveConfig.backend_info.bSupportsDualSourceBlend ? "#extension GL_EXT_blend_func_extended : enable" : ""
 		, is_glsles ? "precision highp float;" : ""

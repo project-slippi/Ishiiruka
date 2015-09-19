@@ -52,6 +52,6 @@ public:
 	static void SetFlags(int index, int mask, int value);
 private:
 	static void SetPSTextureDims(int texid);
-	static float psconstants[ConstantBufferSize];
+	alignas(16) static float psconstants[ConstantBufferSize];
 	static ConstatBuffer m_buffer;
 };
