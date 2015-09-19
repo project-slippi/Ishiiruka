@@ -9,6 +9,13 @@ DefaultValue = True
 ResolveAtCompilation = True
 
 [OptionBool]
+GUIName = SSGI
+OptionName = A_SSGI_ENABLED
+DefaultValue = false
+ResolveAtCompilation = True
+DependentOption = A_SSAO_ENABLED
+
+[OptionBool]
 GUIName = Ambient Only
 OptionName = A_SSAO_ONLY
 DefaultValue = False
@@ -28,7 +35,7 @@ ResolveAtCompilation = True
 GUIName = Sample Range
 OptionName = C_SAMPLE_RANGE
 MinValue = 0.001
-MaxValue = 0.04
+MaxValue = 0.05
 StepAmount = 0.0001
 DefaultValue = 0.01
 DependentOption = A_SSAO_ENABLED
@@ -46,7 +53,7 @@ DependentOption = A_SSAO_ENABLED
 GUIName = Max Depth
 OptionName = E_MAX_DEPTH
 MinValue = 0.0001
-MaxValue = 0.02
+MaxValue = 0.03
 StepAmount = 0.0001
 DefaultValue = 0.015
 DependentOption = A_SSAO_ENABLED
@@ -108,21 +115,21 @@ float3 GetNormalFromDepth(float fDepth)
 }
 #define FILTER_RADIUS 4
 
-float BilateralR(int2 offsetmask, float depth)
+float4 Bilateral(int2 offsetmask, float depth)
 {
 	float limit = GetOption(D_FILTER_LIMIT);
 	float count = 1.0;
-	float value = SamplePrev().r;
+	float4 value = SamplePrev();
 
 	for (int i = 1; i < (FILTER_RADIUS + 1); i++)
 	{
 		int2 offset = offsetmask * i;
 		float Weight = min(sign(limit - abs(SampleDepthOffset(offset) - depth)) + 1.0, 1.0);
-		value += SamplePrevOffset(offset).r * Weight;
+		value += SamplePrevOffset(offset) * Weight;
 		count += Weight;
 		offset = -offset;
 		Weight = min(sign(limit - abs(SampleDepthOffset(offset) - depth)) + 1.0, 1.0);
-		value += SamplePrevOffset(offset).r * Weight;
+		value += SamplePrevOffset(offset) * Weight;
 		count += Weight;
 	}
 	return value / count;
@@ -130,7 +137,7 @@ float BilateralR(int2 offsetmask, float depth)
 
 void BlurH()
 {
-	SetOutput(float4(1, 1, 1, 1) * BilateralR(int2(1, 0), SampleDepth()));
+	SetOutput(Bilateral(int2(1, 0), SampleDepth()));
 }
 
 void Merger()
@@ -141,8 +148,8 @@ void Merger()
 		value = Sample();
 	}
 #if A_SSAO_ENABLED == 1
-	float blur = BilateralR(int2(0, 1), SampleDepth());
-	value *= blur;
+	float4 blur = Bilateral(int2(0, 1), SampleDepth());
+	value.rgb = (1 + blur.rgb) * blur.a * value.rgb;
 #endif
 	SetOutput(value);
 }
@@ -260,7 +267,7 @@ void SSAO()
 
 	float2 coords = GetCoordinates();
 	float fCurrDepth = SampleDepth();
-	float Occlusion = 1.0;
+	float4 Occlusion = float4(0.0, 0.0, 0.0, 1.0);
 	if(fCurrDepth<0.9999) 
 	{
 		float sample_range = GetOption(C_SAMPLE_RANGE) * fCurrDepth;
@@ -280,15 +287,26 @@ void SSAO()
         	vReflRay   *= fFlip;
 		
 			float sD = fCurrDepth - (vReflRay.z * sample_range);
-			float fSampleDepth = SampleDepthLocation(saturate(coords + (sample_range * vReflRay.xy / fCurrDepth)));
+			float2 location = saturate(coords + (sample_range * vReflRay.xy / fCurrDepth));
+			float fSampleDepth = SampleDepthLocation(location);
 			float fDepthDelta = saturate(sD - fSampleDepth);
 
 			fDepthDelta *= 1-smoothstep(0,GetOption(E_MAX_DEPTH),fDepthDelta);
 
-			if ( fDepthDelta > GetOption(F_MIN_DEPTH) && fDepthDelta < GetOption(E_MAX_DEPTH))
+			if (fDepthDelta > GetOption(F_MIN_DEPTH) && fDepthDelta < GetOption(E_MAX_DEPTH))
+			{
 				fAO += pow(1 - fDepthDelta, 2.5);
+#if A_SSGI_ENABLED == 1
+				Occlusion.rgb += SampleLocation(location);
+#endif
+			}
+
 		}
-		Occlusion = saturate(1.0 - (fAO / float(NUMSAMPLES)));
+		Occlusion.a = 1.0 - (fAO / float(NUMSAMPLES));
+#if A_SSGI_ENABLED == 1
+		Occlusion.rgb = Occlusion.rgb / float(NUMSAMPLES);
+#endif
+		Occlusion = saturate(Occlusion);
 	}
-	SetOutput(float4(Occlusion,Occlusion,Occlusion,Occlusion));
+	SetOutput(Occlusion);
 }
