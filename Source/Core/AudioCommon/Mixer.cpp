@@ -152,8 +152,8 @@ u32 CMixer::Mix(s16* samples, u32 num_samples, bool consider_framelimit)
 	// dither and clamp
 	for (u32 i = 0; i < num_samples * 2; i += 2)
 	{
-		float r_output = m_output_buffer[i] * 38768.0f;
-		float l_output = m_output_buffer[i + 1] * 38768.0f;
+		float r_output = m_output_buffer[i] * 32768.0f;
+		float l_output = m_output_buffer[i + 1] * 32768.0f;
 		TriangleDither(l_output, m_l_dither_prev);
 		TriangleDither(r_output, m_r_dither_prev);
 		l_output = MathUtil::Clamp(l_output, -32768.f, 32767.f);
