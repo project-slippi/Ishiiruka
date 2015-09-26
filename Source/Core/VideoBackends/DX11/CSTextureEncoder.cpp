@@ -1025,9 +1025,8 @@ void CSTextureEncoder::Encode(u8* dst, const TextureCache::TCacheEntryBase *text
 			{
 				memcpy(dst, src, readStride);
 				dst += texture_entry->memory_stride;
-				src += map.RowPitch;
+				src += readStride;
 			}
-
 			D3D::context->Unmap(m_outStage.get(), 0);
 		}
 	}

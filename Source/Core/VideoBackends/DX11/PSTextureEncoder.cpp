@@ -1119,8 +1119,8 @@ void PSTextureEncoder::Encode(u8* dst, const TextureCache::TCacheEntryBase *text
 		for (u32 y = 0; y < numBlocksY; ++y)
 		{
 			memcpy(dst, src, readStride);
-			dst += texture_entry->memory_stride * 32;
-			src += map.RowPitch;
+			dst += texture_entry->memory_stride;
+			src += readStride;
 		}
 
 		D3D::context->Unmap(m_outStage.get(), 0);
