@@ -370,7 +370,21 @@ inline void GeneratePixelShader(T& out, DSTALPHA_MODE dstAlphaMode, u32 componen
 	bool enable_pl = g_ActiveConfig.bEnablePixelLighting
 		&& g_ActiveConfig.backend_info.bSupportsPixelLighting
 		&& lightingEnabled;
-	bool enablenormalmaps = enable_pl && g_ActiveConfig.HiresMaterialMapsEnabled();
+	bool enable_diffuse_ligthing = false;
+	if (enable_pl)
+	{
+		for (u32 i = 0; i < xfr.numChan.numColorChans; i++)
+		{
+			const LitChannel& color = xfr.color[i];
+			const LitChannel& alpha = xfr.alpha[i];
+			if (color.enablelighting || alpha.enablelighting)
+			{
+				enable_diffuse_ligthing = true;
+				break;
+			}
+		}
+	}
+	bool enablenormalmaps = enable_diffuse_ligthing && g_ActiveConfig.HiresMaterialMapsEnabled();
 	uid_data.bounding_box = g_ActiveConfig.backend_info.bSupportsBBox && BoundingBox::active && g_ActiveConfig.iBBoxMode == BBoxGPU;
 	uid_data.per_pixel_depth = per_pixel_depth;
 	uid_data.dstAlphaMode = dstAlphaMode;
@@ -396,6 +410,8 @@ inline void GeneratePixelShader(T& out, DSTALPHA_MODE dstAlphaMode, u32 componen
 		}
 	}
 	uid_data.pixel_normals = enablenormalmaps ? 1 : 0;
+	bool forcePhong = g_ActiveConfig.bForcePhongShading && enable_diffuse_ligthing;
+	uid_data.force_phong = forcePhong ? 1 : 0;
 	if (Write_Code)
 	{
 		InitializeRegisterState();
@@ -785,10 +801,15 @@ inline void GeneratePixelShader(T& out, DSTALPHA_MODE dstAlphaMode, u32 componen
 	char swapModeTable[4][5];
 	if (Write_Code)
 	{
+		if (enablenormalmaps || forcePhong)
+		{
+			out.Write("\tfloat4 normalmap = float4(0.0,0.0,1.0,0.3);\n");
+		}
 		if (enablenormalmaps)
 		{
 			out.Write("\tfloat2 mapcoord = float2(0.0,0.0);\n");
-			out.Write("\tfloat3 normalmap = float3(0.0,0.0,1.0);\n");
+			out.Write("\tfloat normalmapcount = 0.0;\n");
+			
 		}
 		const char* swapColors = "rgba";
 		for (int i = 0; i < 4; i++)
@@ -819,7 +840,11 @@ inline void GeneratePixelShader(T& out, DSTALPHA_MODE dstAlphaMode, u32 componen
 				out.Write("float3 _norm0 = normalize(float3(uv4.w,uv5.w,uv6.w));\n\n");
 				out.Write("float3 pos = float3(uv0.w,uv1.w,uv7.w);\n");
 			}
-
+			if (forcePhong)
+			{
+				out.Write("float4 spec = float4(0.0,0.0,0.0,0.0);\n");
+				out.Write("float3 View = normalize(-pos);\n");
+			}
 			out.Write("float4 mat, lacc;\n"
 				"float3 ldir, h;\n"
 				"float dist, dist2, attn;\n");
@@ -834,13 +859,13 @@ inline void GeneratePixelShader(T& out, DSTALPHA_MODE dstAlphaMode, u32 componen
 			if (enablenormalmaps)
 			{
 				out.Write("if(" I_FLAGS ".x != 0)\n{\n");
-				out.Write("_norm0 = perturb_normal(_norm0, pos, mapcoord, normalmap);\n");
+				out.Write("_norm0 = perturb_normal(_norm0, pos, mapcoord, normalmap.xyz);\n");
 				out.Write("}\n");
 			}
 		}
 		// Only col0 and col1 are needed so discard the remaining components
 		uid_data.components = (components >> 11) & 3;
-		GenerateLightingShader<T, Write_Code>(out, uid_data.lighting, components, I_PMATERIALS, I_PLIGHTS, "colors_", "col", xfr, Use_integer_math);
+		GenerateLightingShader<T, Write_Code>(out, uid_data.lighting, components, I_PMATERIALS, I_PLIGHTS, "colors_", "col", xfr, Use_integer_math,forcePhong);
 	}
 	else
 	{
@@ -979,6 +1004,10 @@ inline void GeneratePixelShader(T& out, DSTALPHA_MODE dstAlphaMode, u32 componen
 			else
 				out.Write("\tdepth = %s zCoord;\n", ApiType == API_OPENGL ? "" : "1.0 - ");
 		}
+	}
+	if (Write_Code && forcePhong)
+	{
+		out.Write("prev.rgb += wu3(spec.rgb*normalmap.w);\n");
 	}
 	if (dstAlphaMode == DSTALPHA_ALPHA_PASS)
 	{
@@ -1252,15 +1281,21 @@ static inline void WriteFetchStageTexture(T& out, int n, const bool LoadMaterial
 		SampleTexture<T, ApiType>(out, "stagecoord", texswap, texmap);
 		if (LoadMaterial)
 		{
-			out.Write("if(" I_FLAGS ".x & %i)\n{\n", 1 << texmap);
+			out.Write("if((" I_FLAGS ".x & %i) != 0)\n{\n", 1 << texmap);
 			out.Write("mapcoord = stagecoord;");
-			out.Write("float3 nrmap = ");
-			SampleTextureRAW<T, ApiType>(out, "(stagecoord)", "rgb", "0.0", texmap);
-			out.Write("nrmap = normalize(nrmap * 255.0/127.0 - 128.0/127.0);\n");
+			out.Write("float4 nrmap = ");
+			SampleTextureRAW<T, ApiType>(out, "(stagecoord)", "rgba", "0.0", texmap);
+			out.Write("nrmap.xy = nrmap.xy * 255.0/127.0 - 128.0/127.0;\n");
 			// Extact z value from x and y
-			// Disabled until specular light is implemented
-			//out.Write("nrmap.z = sqrt(1.0 - dot(nrmap.xy, nrmap.xy));\n");
-			out.Write("normalmap = normalize(float3(nrmap.xy + normalmap.xy, nrmap.z * normalmap.z));\n}\n");
+			out.Write("nrmap.z = sqrt(1.0 - dot(nrmap.xy, nrmap.xy));\n");
+			out.Write("nrmap.xyz = normalize(nrmap.xyz);\n");
+			// Combine Normals
+			out.Write("normalmap.xyz = normalize(float3(nrmap.xy + normalmap.xy, nrmap.z * normalmap.z));\n");
+			// Combine Specular intensity
+			out.Write("normalmap.w = normalmap.w * normalmapcount + nrmap.w;\n");
+			// finalize Running average
+			out.Write("normalmapcount+=1.0;\n");
+			out.Write("normalmap.w /= normalmapcount;\n}\n");
 		}
 	}
 	else

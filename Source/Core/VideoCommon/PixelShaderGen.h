@@ -95,10 +95,11 @@ struct pixel_shader_uid_data
 	u32 zfreeze : 1;
 	u32 pixel_lighting : 1;
 	u32 pixel_normals : 1;
+	u32 force_phong : 1;
 	u32 stereo : 1;
 	u32 msaa : 1;
 	u32 ssaa : 1;
-	u32 pad0 : 16;
+	u32 pad0 : 15;
 
 	u32 dstAlphaMode : 2;
 	u32 Pretest : 2;

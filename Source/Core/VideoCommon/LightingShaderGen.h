@@ -47,7 +47,8 @@ static void GenerateLightShader(T& object,
 	int litchan_index,
 	const char* lightsName,
 	int coloralpha,
-	const XFMemory &xfr)
+	const XFMemory &xfr,
+	bool forcephong = false)
 {
 	const LitChannel& chan = (litchan_index > 1) ? xfr.alpha[litchan_index - 2] : xfr.color[litchan_index];
 	uid_data.attnfunc |= chan.attnfunc << (2 * litchan_index);
@@ -101,6 +102,12 @@ static void GenerateLightShader(T& object,
 				swizzle,
 				chan.diffusefunc != LIGHTDIF_SIGN ? "max(0.0," : "(",
 				LIGHT_COL_PARAMS(lightsName, index, swizzle));
+			if (forcephong)
+			{
+				object.Write("spec.%s += attn * pow(saturate(dot(View,reflect(ldir,_norm0))), 4.0 + 60.0 * normalmap.w) * " LIGHT_COL";\n",
+					swizzle,
+					LIGHT_COL_PARAMS(lightsName, index, swizzle));
+			}
 			break;
 		default: _assert_(0);
 		}
@@ -114,13 +121,13 @@ static void GenerateLightShader(T& object,
 // inColorName is color in vs and colors_ in ps
 // dest is o.colors_ in vs and colors_ in ps
 template<class T, bool Write_Code>
-static void GenerateLightingShader(T& object, LightingUidData& uid_data, int components, const char* materialsName, const char* lightsName, const char* inColorName, const char* dest, const  XFMemory &xfr, bool use_integer_math)
+static void GenerateLightingShader(T& object, LightingUidData& uid_data, int components, const char* materialsName, const char* lightsName, const char* inColorName, const char* dest, const  XFMemory &xfr, bool use_integer_math, bool forcephong = false)
 {
 	for (unsigned int j = 0; j < xfr.numChan.numColorChans; j++)
 	{
 		const LitChannel& color = xfr.color[j];
 		const LitChannel& alpha = xfr.alpha[j];
-		uid_data.matsource |= xfr.color[j].matsource << j;
+		uid_data.matsource |= color.matsource << j;
 		if (Write_Code)
 		{
 			object.Write("{\n");
@@ -139,10 +146,10 @@ static void GenerateLightingShader(T& object, LightingUidData& uid_data, int com
 			}
 		}
 
-		uid_data.enablelighting |= xfr.color[j].enablelighting << j;
+		uid_data.enablelighting |= color.enablelighting << j;
 		if (color.enablelighting)
 		{
-			uid_data.ambsource |= xfr.color[j].ambsource << j;
+			uid_data.ambsource |= color.ambsource << j;
 			if (Write_Code)
 			{
 				if (color.ambsource) // from vertex
@@ -169,7 +176,7 @@ static void GenerateLightingShader(T& object, LightingUidData& uid_data, int com
 		}
 
 		// check if alpha is different
-		uid_data.matsource |= xfr.alpha[j].matsource << (j + 2);
+		uid_data.matsource |= alpha.matsource << (j + 2);
 		if (Write_Code)
 		{
 			if (alpha.matsource != color.matsource)
@@ -190,10 +197,10 @@ static void GenerateLightingShader(T& object, LightingUidData& uid_data, int com
 		}
 
 
-		uid_data.enablelighting |= xfr.alpha[j].enablelighting << (j + 2);
+		uid_data.enablelighting |= alpha.enablelighting << (j + 2);
 		if (alpha.enablelighting)
 		{
-			uid_data.ambsource |= xfr.alpha[j].ambsource << (j + 2);
+			uid_data.ambsource |= alpha.ambsource << (j + 2);
 			if (Write_Code)
 			{
 				if (alpha.ambsource) // from vertex
@@ -236,7 +243,7 @@ static void GenerateLightingShader(T& object, LightingUidData& uid_data, int com
 					{
 						if (mask & (1 << i))
 						{
-							GenerateLightShader<T, Write_Code>(object, uid_data, i, j, lightsName, 3, xfr);
+							GenerateLightShader<T, Write_Code>(object, uid_data, i, j, lightsName, 3, xfr, forcephong);
 						}
 					}
 				}
@@ -246,7 +253,7 @@ static void GenerateLightingShader(T& object, LightingUidData& uid_data, int com
 			for (int i = 0; i < 8; ++i)
 			{
 				if (!(mask&(1 << i)) && (color.GetFullLightMask() & (1 << i)))
-					GenerateLightShader<T, Write_Code>(object, uid_data, i, j, lightsName, 1, xfr);
+					GenerateLightShader<T, Write_Code>(object, uid_data, i, j, lightsName, 1, xfr, forcephong);
 				if (!(mask&(1 << i)) && (alpha.GetFullLightMask() & (1 << i)))
 					GenerateLightShader<T, Write_Code>(object, uid_data, i, j + 2, lightsName, 2, xfr);
 			}
@@ -262,12 +269,12 @@ static void GenerateLightingShader(T& object, LightingUidData& uid_data, int com
 			for (int i = 0; i < 8; ++i)
 			{
 				if (workingchannel.GetFullLightMask() & (1 << i))
-					GenerateLightShader<T, Write_Code>(object, uid_data, i, lit_index, lightsName, coloralpha, xfr);
+					GenerateLightShader<T, Write_Code>(object, uid_data, i, lit_index, lightsName, coloralpha, xfr, forcephong && color.enablelighting);
 			}
 		}
 		if (Write_Code)
 		{
-			if (use_integer_math)
+			if (use_integer_math && !forcephong)
 			{
 				object.Write("ilacc = int4(round(lacc));\n");
 				object.Write("ilacc = clamp(ilacc, 0, 255);\n");

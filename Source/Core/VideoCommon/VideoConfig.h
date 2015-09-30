@@ -155,7 +155,8 @@ struct VideoConfig final
 	std::string sPhackvalue[2];
 	float fAspectRatioHackW, fAspectRatioHackH;
 	bool bZTPSpeedHack; // The Legend of Zelda: Twilight Princess
-	bool bEnablePixelLighting;	
+	bool bEnablePixelLighting;
+	bool bForcePhongShading;
 	bool bFastDepthCalc;
 	int iBBoxMode;
 	//for dx9-backend

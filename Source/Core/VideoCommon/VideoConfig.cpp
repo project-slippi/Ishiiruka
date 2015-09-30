@@ -49,7 +49,7 @@ VideoConfig::VideoConfig()
 	bStereoEFBMonoDepth = false;
 	iStereoDepthPercentage = 100;
 	iStereoConvergenceMinimum = 0;
-	bUseScalingFilter = false;	
+	bUseScalingFilter = false;
 	bTexDeposterize = false;
 	iTexScalingType = 0;
 	iTexScalingFactor = 2;
@@ -70,7 +70,7 @@ void VideoConfig::Load(const std::string& ini_file)
 	settings->Get("Crop", &bCrop, false);
 	settings->Get("UseXFB", &bUseXFB, 0);
 	settings->Get("UseRealXFB", &bUseRealXFB, 0);
-	settings->Get("SafeTextureCacheColorSamples", &iSafeTextureCache_ColorSamples,128);
+	settings->Get("SafeTextureCacheColorSamples", &iSafeTextureCache_ColorSamples, 128);
 	settings->Get("ShowFPS", &bShowFPS, false);
 	settings->Get("LogRenderTimeToFile", &bLogRenderTimeToFile, false);
 	settings->Get("ShowInputDisplay", &bShowInputDisplay, false);
@@ -80,24 +80,26 @@ void VideoConfig::Load(const std::string& ini_file)
 	settings->Get("DumpTextures", &bDumpTextures, 0);
 	settings->Get("DumpVertexLoader", &bDumpVertexLoaders, 0);
 	settings->Get("HiresTextures", &bHiresTextures, 0);
-	settings->Get("HiresMaterialMaps", &bHiresMaterialMaps, 0);	
+	settings->Get("HiresMaterialMaps", &bHiresMaterialMaps, 0);
 	settings->Get("ConvertHiresTextures", &bConvertHiresTextures, 0);
 	settings->Get("CacheHiresTextures", &bCacheHiresTextures, 0);
 	settings->Get("CacheHiresTexturesonGPU", &bCacheHiresTexturesGPU, 0);
 	settings->Get("DumpEFBTarget", &bDumpEFBTarget, 0);
 	settings->Get("FreeLook", &bFreeLook, 0);
 	settings->Get("UseFFV1", &bUseFFV1, 0);
-	settings->Get("EnablePixelLighting", &bEnablePixelLighting, 0);	
+	settings->Get("EnablePixelLighting", &bEnablePixelLighting, 0);
+	settings->Get("ForcePhongShading", &bForcePhongShading, 0);
+
 	settings->Get("FastDepthCalc", &bFastDepthCalc, true);
 	settings->Get("MSAA", &iMultisampleMode, 0);
-	settings->Get("EFBScale", &iEFBScale, (int) SCALE_1X); // native
+	settings->Get("EFBScale", &iEFBScale, (int)SCALE_1X); // native
 	settings->Get("DstAlphaPass", &bDstAlphaPass, false);
 	settings->Get("TexFmtOverlayEnable", &bTexFmtOverlayEnable, 0);
 	settings->Get("TexFmtOverlayCenter", &bTexFmtOverlayCenter, 0);
 	settings->Get("WireFrame", &bWireFrame, 0);
 	settings->Get("DisableFog", &bDisableFog, 0);
 	settings->Get("SSAA", &bSSAA, false);
-	settings->Get("EnableOpenCL", &bEnableOpenCL, false);	
+	settings->Get("EnableOpenCL", &bEnableOpenCL, false);
 	settings->Get("EnableShaderDebugging", &bEnableShaderDebugging, false);
 	settings->Get("BorderlessFullscreen", &bBorderlessFullscreen, false);
 
@@ -113,7 +115,7 @@ void VideoConfig::Load(const std::string& ini_file)
 	enhancements->Get("TextureScalingType", &iTexScalingType, 0);
 	enhancements->Get("TextureScalingFactor", &iTexScalingFactor, 2);
 	enhancements->Get("UseDePosterize", &bTexDeposterize, false);
-	
+
 	IniFile::Section* hacks = iniFile.GetOrCreateSection("Hacks");
 	hacks->Get("EFBAccessEnable", &bEFBAccessEnable, true);
 	hacks->Get("EFBFastAccess", &bEFBFastAccess, false);
@@ -179,11 +181,13 @@ void VideoConfig::GameIniLoad()
 	CHECK_SETTING("Video_Settings", "SafeTextureCacheColorSamples", iSafeTextureCache_ColorSamples);
 	CHECK_SETTING("Video_Settings", "HiresTextures", bHiresTextures);
 	CHECK_SETTING("Video_Settings", "HiresMaterialMaps", bHiresMaterialMaps);
-	
+
 	CHECK_SETTING("Video_Settings", "ConvertHiresTextures", bConvertHiresTextures);
 	CHECK_SETTING("Video_Settings", "CacheHiresTextures", bCacheHiresTextures);
 	CHECK_SETTING("Video_Settings", "CacheHiresTexturesonGPU", bCacheHiresTexturesGPU);
-	CHECK_SETTING("Video_Settings", "EnablePixelLighting", bEnablePixelLighting);	
+	CHECK_SETTING("Video_Settings", "EnablePixelLighting", bEnablePixelLighting);
+	CHECK_SETTING("Video_Settings", "ForcePhongShading", bForcePhongShading);
+
 	CHECK_SETTING("Video_Settings", "FastDepthCalc", bFastDepthCalc);
 	CHECK_SETTING("Video_Settings", "MSAA", iMultisampleMode);
 	CHECK_SETTING("Video_Settings", "SSAA", bSSAA);
@@ -216,7 +220,7 @@ void VideoConfig::GameIniLoad()
 
 	CHECK_SETTING("Video_Settings", "DstAlphaPass", bDstAlphaPass);
 	CHECK_SETTING("Video_Settings", "DisableFog", bDisableFog);
-	CHECK_SETTING("Video_Settings", "EnableOpenCL", bEnableOpenCL);	
+	CHECK_SETTING("Video_Settings", "EnableOpenCL", bEnableOpenCL);
 
 	CHECK_SETTING("Video_Enhancements", "ForceFiltering", bForceFiltering);
 	CHECK_SETTING("Video_Enhancements", "MaxAnisotropy", iMaxAnisotropy);  // NOTE - this is x in (1 << x)
@@ -262,9 +266,10 @@ void VideoConfig::VerifyValidity()
 	// Disable while is unstable
 	bEnableOpenCL = false;
 	// TODO: Check iMaxAnisotropy value
-	if (iAdapter < 0 || iAdapter > ((int)backend_info.Adapters.size() - 1)) iAdapter = 0;
+	if (iAdapter < 0 || iAdapter >((int)backend_info.Adapters.size() - 1)) iAdapter = 0;
 	if (iMultisampleMode < 0 || iMultisampleMode >= (int)backend_info.AAModes.size()) iMultisampleMode = 0;
-	if (!backend_info.bSupportsPixelLighting) bEnablePixelLighting = false;	
+	if (!backend_info.bSupportsPixelLighting) bEnablePixelLighting = false;
+	bForcePhongShading = bForcePhongShading & bEnablePixelLighting;
 	if (iStereoMode > 0)
 	{
 		if (!backend_info.bSupportsGeometryShaders)
@@ -305,7 +310,7 @@ void VideoConfig::VerifyValidity()
 	{
 		iTexScalingType = 0;
 	}
-	else if(iTexScalingType > 4)
+	else if (iTexScalingType > 4)
 	{
 		iTexScalingType = 4;
 	}
@@ -337,14 +342,16 @@ void VideoConfig::Save(const std::string& ini_file)
 	settings->Set("DumpVertexLoader", bDumpVertexLoaders);
 	settings->Set("HiresTextures", bHiresTextures);
 	settings->Set("HiresMaterialMaps", bHiresMaterialMaps);
-	
+
 	settings->Set("ConvertHiresTextures", bConvertHiresTextures);
 	settings->Set("CacheHiresTextures", bCacheHiresTextures);
 	settings->Set("CacheHiresTexturesonGPU", bCacheHiresTexturesGPU);
 	settings->Set("DumpEFBTarget", bDumpEFBTarget);
 	settings->Set("FreeLook", bFreeLook);
 	settings->Set("UseFFV1", bUseFFV1);
-	settings->Set("EnablePixelLighting", bEnablePixelLighting);	
+	settings->Set("EnablePixelLighting", bEnablePixelLighting);
+	settings->Set("ForcePhongShading", bForcePhongShading);
+	
 	settings->Set("FastDepthCalc", bFastDepthCalc);
 	settings->Set("ShowEFBCopyRegions", bShowEFBCopyRegions);
 	settings->Set("MSAA", iMultisampleMode);
@@ -356,7 +363,7 @@ void VideoConfig::Save(const std::string& ini_file)
 	settings->Set("DstAlphaPass", bDstAlphaPass);
 	settings->Set("DisableFog", bDisableFog);
 
-	settings->Set("EnableOpenCL", bEnableOpenCL);	
+	settings->Set("EnableOpenCL", bEnableOpenCL);
 	settings->Set("EnableShaderDebugging", bEnableShaderDebugging);
 	settings->Set("BorderlessFullscreen", bBorderlessFullscreen);
 
@@ -372,7 +379,7 @@ void VideoConfig::Save(const std::string& ini_file)
 	enhancements->Set("TextureScalingType", iTexScalingType);
 	enhancements->Set("TextureScalingFactor", iTexScalingFactor);
 	enhancements->Set("UseDePosterize", bTexDeposterize);
-	
+
 
 	IniFile::Section* hacks = iniFile.GetOrCreateSection("Hacks");
 	hacks->Set("EFBAccessEnable", bEFBAccessEnable);
