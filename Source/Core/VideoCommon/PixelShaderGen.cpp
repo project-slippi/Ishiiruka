@@ -1284,7 +1284,7 @@ static inline void WriteFetchStageTexture(T& out, int n, const bool LoadMaterial
 			out.Write("if((" I_FLAGS ".x & %i) != 0)\n{\n", 1 << texmap);
 			out.Write("mapcoord = stagecoord;");
 			out.Write("float4 nrmap = ");
-			SampleTextureRAW<T, ApiType>(out, "(stagecoord)", "rgba", "0.0", texmap);
+			SampleTextureRAW<T, ApiType>(out, "(stagecoord)", "agbr", "0.0", texmap);
 			out.Write("nrmap.xy = nrmap.xy * 255.0/127.0 - 128.0/127.0;\n");
 			// Extact z value from x and y
 			out.Write("nrmap.z = sqrt(1.0 - dot(nrmap.xy, nrmap.xy));\n");
