@@ -8,7 +8,7 @@
 #include "Common/CommonTypes.h"
 #include "Common/StringUtil.h"
 #include "Core/Core.h"
-#include "VideoBackends/OGL/GLInterfaceBase.h"
+#include "Common/GL/GLInterfaceBase.h"
 #include "VideoBackends/OGL/GLUtil.h"
 #include "VideoBackends/Software/RasterFont.h"
 #include "VideoBackends/Software/SWCommandProcessor.h"

@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include "VideoBackends/OGL/GLUtil.h"
+#include "Common/GL/GLUtil.h"
 
 namespace OGL
 {

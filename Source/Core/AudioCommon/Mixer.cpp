@@ -25,6 +25,20 @@ const float CMixer::MAX_FREQ_SHIFT = 200;
 const float CMixer::CONTROL_FACTOR = 0.2f;
 const float CMixer::CONTROL_AVG = 32;
 
+CMixer::CMixer(u32 BackendSampleRate)
+	: m_dma_mixer(this, 32000)
+	, m_streaming_mixer(this, 48000)
+	, m_wiimote_speaker_mixer(this, 3000)
+	, m_sample_rate(BackendSampleRate)
+	, m_log_dtk_audio(0)
+	, m_log_dsp_audio(0)
+	, m_speed(0)
+	, m_l_dither_prev(0)
+	, m_r_dither_prev(0)
+{
+	INFO_LOG(AUDIO_INTERFACE, "Mixer is initialized");
+}
+
 void CMixer::LinearMixerFifo::Interpolate(u32 left_input_index, float* left_output, float* right_output)
 {
 	*left_output = (1 - m_fraction) * m_float_buffer[left_input_index & INDEX_MASK]

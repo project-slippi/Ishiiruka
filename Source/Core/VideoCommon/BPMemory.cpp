@@ -3,6 +3,7 @@
 // Refer to the license.txt file included.
 
 #include "Common/Common.h"
+#include "Common/CommonFuncs.h"
 #include "VideoCommon/BPMemory.h"
 #include "Common/StringUtil.h"
 // BP state

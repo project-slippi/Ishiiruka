@@ -34,19 +34,7 @@ __forceinline void TriangleDither(float& sample, float& prev_dither)
 class CMixer {
 
 public:
-	CMixer(u32 BackendSampleRate)
-		: m_dma_mixer(this, 32000)
-		, m_streaming_mixer(this, 48000)
-		, m_wiimote_speaker_mixer(this, 3000)
-		, m_sample_rate(BackendSampleRate)
-		, m_log_dtk_audio(0)
-		, m_log_dsp_audio(0)
-		, m_speed(0)
-		, m_l_dither_prev(0)
-		, m_r_dither_prev(0)
-	{
-		INFO_LOG(AUDIO_INTERFACE, "Mixer is initialized");
-	}
+	CMixer(u32 BackendSampleRate);
 
 	static const u32 MAX_SAMPLES = 2048;
 	static const u32 INDEX_MASK = MAX_SAMPLES * 2 - 1;

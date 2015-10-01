@@ -68,7 +68,7 @@ void WiiConfigPane::InitializeGUI()
 	misc_settings_grid_sizer->Add(new wxStaticText(this, wxID_ANY, _("Aspect Ratio:")), wxGBPosition(2, 0), wxDefaultSpan, wxALIGN_CENTER_VERTICAL | wxALL, 5);
 	misc_settings_grid_sizer->Add(m_aspect_ratio_choice, wxGBPosition(2, 1), wxDefaultSpan, wxALL, 5);
 	misc_settings_grid_sizer->Add(new wxStaticText(this, wxID_ANY, _("System Language:")), wxGBPosition(3, 0), wxDefaultSpan, wxALIGN_CENTER_VERTICAL | wxALL, 5);
-	misc_settings_grid_sizer->Add(m_system_language_choice, wxGBPosition(3, 1), wxDefaultSpan, wxALL, 5);	
+	misc_settings_grid_sizer->Add(m_system_language_choice, wxGBPosition(3, 1), wxDefaultSpan, wxALL, 5);
 
 	wxStaticBoxSizer* const misc_settings_static_sizer = new wxStaticBoxSizer(wxVERTICAL, this, _("Misc Settings"));
 	misc_settings_static_sizer->Add(misc_settings_grid_sizer);

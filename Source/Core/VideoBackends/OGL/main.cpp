@@ -52,7 +52,7 @@ Make AA apply instantly during gameplay if possible
 
 #include "VideoBackends/OGL/BoundingBox.h"
 #include "VideoBackends/OGL/FramebufferManager.h"
-#include "VideoBackends/OGL/GLInterfaceBase.h"
+#include "Common/GL/GLInterfaceBase.h"
 #include "VideoBackends/OGL/GLUtil.h"
 #include "VideoBackends/OGL/PerfQuery.h"
 #include "VideoBackends/OGL/PostProcessing.h"
@@ -83,6 +83,12 @@ Make AA apply instantly during gameplay if possible
 
 namespace OGL
 {
+
+// Draw messages on top of the screen
+unsigned int VideoBackend::PeekMessages()
+{
+	return GLInterface->PeekMessages();
+}
 
 std::string VideoBackend::GetName() const
 {

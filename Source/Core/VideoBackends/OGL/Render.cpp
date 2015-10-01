@@ -24,8 +24,8 @@
 
 #include "VideoBackends/OGL/BoundingBox.h"
 #include "VideoBackends/OGL/FramebufferManager.h"
-#include "VideoBackends/OGL/GLInterfaceBase.h"
-#include "VideoBackends/OGL/GLUtil.h"
+#include "Common/GL/GLInterfaceBase.h"
+#include "Common/GL/GLUtil.h"
 #include "VideoBackends/OGL/main.h"
 #include "VideoBackends/OGL/PostProcessing.h"
 #include "VideoBackends/OGL/ProgramShaderCache.h"
@@ -41,7 +41,6 @@
 #include "VideoCommon/BPStructs.h"
 #include "VideoCommon/DriverDetails.h"
 #include "VideoCommon/Fifo.h"
-#include "VideoCommon/FPSCounter.h"
 #include "VideoCommon/ImageWrite.h"
 #include "VideoCommon/OnScreenDisplay.h"
 #include "VideoCommon/PixelEngine.h"
@@ -645,7 +644,8 @@ Renderer::Renderer()
 
 	// Handle VSync on/off
 	s_vsync = g_ActiveConfig.IsVSync();
-	GLInterface->SwapInterval(s_vsync);
+	if (!DriverDetails::HasBug(DriverDetails::BUG_BROKENVSYNC))
+		GLInterface->SwapInterval(s_vsync);
 
 	// TODO: Move these somewhere else?
 	FramebufferManagerBase::SetLastXfbWidth(MAX_XFB_WIDTH);
@@ -1739,7 +1739,8 @@ void Renderer::SwapImpl(u32 xfbAddr, u32 fbWidth, u32 fbStride, u32 fbHeight, co
 	if (s_vsync != g_ActiveConfig.IsVSync())
 	{
 		s_vsync = g_ActiveConfig.IsVSync();
-		GLInterface->SwapInterval(s_vsync);
+		if (!DriverDetails::HasBug(DriverDetails::BUG_BROKENVSYNC))
+			GLInterface->SwapInterval(s_vsync);
 	}
 
 	// Clean out old stuff from caches. It's not worth it to clean out the shader caches.

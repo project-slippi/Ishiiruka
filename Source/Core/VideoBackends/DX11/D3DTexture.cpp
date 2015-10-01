@@ -4,6 +4,8 @@
 #include "VideoCommon/TextureUtil.h"
 #include "VideoBackends/DX11/D3DBase.h"
 #include "VideoBackends/DX11/D3DTexture.h"
+#include "Common/CommonTypes.h"
+#include "Common/MsgHandler.h"
 
 namespace DX11
 {

@@ -17,7 +17,8 @@
 #include "AudioCommon/XAudio2Stream.h"
 
 #include "Common/FileUtil.h"
-
+#include "Common/MsgHandler.h"
+#include "Common/Logging/Log.h"
 #include "Core/ConfigManager.h"
 #include "Core/Movie.h"
 

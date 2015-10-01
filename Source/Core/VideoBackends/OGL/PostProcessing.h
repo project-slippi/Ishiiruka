@@ -8,7 +8,7 @@
 #include <unordered_map>
 #include <vector>
 
-#include "VideoBackends/OGL/GLUtil.h"
+#include "Common/GL/GLUtil.h"
 #include "VideoBackends/OGL/ProgramShaderCache.h"
 
 #include "VideoCommon/PostProcessing.h"

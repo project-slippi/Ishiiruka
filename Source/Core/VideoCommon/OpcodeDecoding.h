@@ -78,8 +78,6 @@ enum GxDrawMode : u32
 	GX_DRAW_POINTS = 0x7,			// 0xB8
 };
 
-extern bool g_bRecordFifoData;
-
 void OpcodeDecoder_Init();
 void OpcodeDecoder_Shutdown();
 void ResetStates();

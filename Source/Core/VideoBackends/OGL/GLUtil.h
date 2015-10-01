@@ -5,7 +5,8 @@
 #pragma once
 
 #include "Common/MathUtil.h"
-#include "VideoBackends/OGL/GLExtensions/GLExtensions.h"
+#include "Common/GL/GLExtensions/GLExtensions.h"
+#include "Common/GL/GLExtensions/GLExtensions.h"
 #include "VideoCommon/VideoConfig.h"
 
 #ifndef _WIN32

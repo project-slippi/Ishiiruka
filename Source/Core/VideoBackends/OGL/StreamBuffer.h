@@ -6,7 +6,7 @@
 
 #include <utility>
 #include "VideoBackends/OGL/FramebufferManager.h"
-#include "VideoBackends/OGL/GLUtil.h"
+#include "Common/GL/GLUtil.h"
 #include "VideoCommon/VideoCommon.h"
 
 namespace OGL

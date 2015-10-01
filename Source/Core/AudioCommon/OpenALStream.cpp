@@ -6,6 +6,7 @@
 #include "AudioCommon/DPL2Decoder.h"
 #include "AudioCommon/OpenALStream.h"
 #include "Core/Core.h"
+#include "Common/Logging/Log.h"
 #include "Core/ConfigManager.h"
 
 #if defined HAVE_OPENAL && HAVE_OPENAL

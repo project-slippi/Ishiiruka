@@ -7,6 +7,8 @@
 #include "../OpenCL.h"
 #include "Common/CommonPaths.h"
 #include "Common/FileUtil.h"
+#include "Common/Logging/Log.h"
+#include "Common/MsgHandler.h"
 
 #include <fcntl.h>
 #include <stdio.h>

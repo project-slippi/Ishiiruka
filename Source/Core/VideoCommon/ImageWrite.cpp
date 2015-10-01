@@ -9,6 +9,7 @@
 #include "png.h"
 #include "Common/FileUtil.h"
 #include "VideoCommon/ImageWrite.h"
+#include "Common/MsgHandler.h"
 
 bool SaveData(const std::string& filename, const char* data)
 {

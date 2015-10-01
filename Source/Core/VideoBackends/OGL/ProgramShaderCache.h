@@ -6,7 +6,7 @@
 
 #include "Common/LinearDiskCache.h"
 #include "Core/ConfigManager.h"
-#include "VideoBackends/OGL/GLUtil.h"
+#include "Common/GL/GLUtil.h"
 #include "VideoCommon/GeometryShaderGen.h"
 #include "VideoCommon/PixelShaderGen.h"
 #include "VideoCommon/VertexShaderGen.h"

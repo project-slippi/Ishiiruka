@@ -4,6 +4,7 @@
 // Modified For Ishiiruka By Tino
 #pragma once
 #include "Common/Common.h"
+#include "Common/CommonFuncs.h"
 
 class DataReader
 {

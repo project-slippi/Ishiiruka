@@ -6,6 +6,7 @@
 
 #include "Core/ConfigManager.h"
 #include "Core/FifoPlayer/FifoPlayer.h"
+#include "Core/FifoPlayer/FifoRecorder.h"
 #include "Core/HW/Memmap.h"
 
 #include "VideoCommon/Debugger.h"
@@ -14,6 +15,7 @@
 #include "VideoCommon/Statistics.h"
 #include "VideoCommon/TextureCacheBase.h"
 #include "VideoCommon/TextureUtil.h"
+#include "VideoCommon/VideoCommon.h"
 #include "VideoCommon/VideoConfig.h"
 
 TextureCache *g_texture_cache;
@@ -179,11 +181,26 @@ void TextureCache::Cleanup(int _frameCount)
 		{
 			iter->second->frameCount = _frameCount;
 		}
-		if (_frameCount > texture_kill_threshold + iter->second->frameCount &&
-			// EFB copies living on the host GPU are unrecoverable and thus shouldn't be deleted
-			!iter->second->IsEfbCopy())
+		if (_frameCount > texture_kill_threshold + iter->second->frameCount)
 		{
-			iter = FreeTexture(iter);
+			if (iter->second->IsEfbCopy())
+			{
+				// Only remove EFB copies when they wouldn't be used anymore(changed hash), because EFB copies living on the
+				// host GPU are unrecoverable. Perform this check only every TEXTURE_KILL_THRESHOLD for performance reasons
+				if ((_frameCount - iter->second->frameCount) % TEXTURE_KILL_THRESHOLD == 1 &&
+					iter->second->hash != iter->second->CalculateHash())
+				{
+					iter = FreeTexture(iter);
+				}
+				else
+				{
+					++iter;
+				}
+			}
+			else
+			{
+				iter = FreeTexture(iter);
+			}
 		}
 		else
 		{
@@ -426,6 +443,26 @@ TextureCache::TCacheEntryBase* TextureCache::Load(const u32 stage)
 
 	const u32 texture_size = TexDecoder_GetTextureSizeInBytes(expandedWidth, expandedHeight, texformat);
 
+	u32 additional_mips_size = 0; // not including level 0, which is texture_size
+
+											// GPUs don't like when the specified mipmap count would require more than one 1x1-sized LOD in the mipmap chain
+											// e.g. 64x64 with 7 LODs would have the mipmap chain 64x64,32x32,16x16,8x8,4x4,2x2,1x1,0x0, so we limit the mipmap count to 6 there
+	tex_levels = std::min<u32>(IntLog2(std::max(width, height)) + 1, tex_levels);
+
+	for (u32 level = 1; level != tex_levels; ++level)
+	{
+		// We still need to calculate the original size of the mips
+		const u32 expanded_mip_width = ROUND_UP(TextureUtil::CalculateLevelSize(width, level), bsw);
+		const u32 expanded_mip_height = ROUND_UP(TextureUtil::CalculateLevelSize(height, level), bsh);
+
+		additional_mips_size += TexDecoder_GetTextureSizeInBytes(expanded_mip_width, expanded_mip_height, texformat);
+	}
+
+	// If we are recording a FifoLog, keep track of what memory we read.
+	// FifiRecorder does it's own memory modification tracking independant of the texture hashing below.
+	if (g_bRecordFifoData && !from_tmem)
+		FifoRecorder::GetInstance().UseMemory(address, texture_size + additional_mips_size, MemoryUpdate::TEXTURE_MAP);
+
 	const u8* src_data;
 	if (from_tmem)
 		src_data = &texMem[bpmem.tex[stage / 4].texImage1[stage % 4].tmem_even * TMEM_LINE_SIZE];
@@ -455,11 +492,6 @@ TextureCache::TCacheEntryBase* TextureCache::Load(const u32 stage)
 	{
 		full_hash = tex_hash;
 	}
-
-	// GPUs don't like when the specified mipmap count would require more than one 1x1-sized LOD in the mipmap chain
-	// e.g. 64x64 with 7 LODs would have the mipmap chain 64x64,32x32,16x16,8x8,4x4,2x2,1x1,0x0, so we limit the mipmap count to 6 there
-	tex_levels = std::min<u32>(IntLog2(std::max(width, height)) + 1, tex_levels);
-
 	// Search the texture cache for textures by address
 	//
 	// Find all texture cache entries for the current texture address, and decide whether to use one of
@@ -1113,7 +1145,7 @@ void TextureCache::CopyRenderTargetToTexture(u32 dstAddr, unsigned int dstFormat
 	entry->is_custom_tex = false;
 
 	entry->FromRenderTarget(dst, dstFormat, dstStride, srcFormat, srcRect, isIntensity, scaleByHalf, cbufid, colmat);
-	entry->hash = GetHash64(dst, (int)entry->size_in_bytes, g_ActiveConfig.iSafeTextureCache_ColorSamples);
+	entry->hash = entry->CalculateHash();
 
 	// Invalidate all textures that overlap the range of our efb copy.
 	// Unless our efb copy has a weird stride, then we want avoid invalidating textures which
@@ -1135,6 +1167,17 @@ void TextureCache::CopyRenderTargetToTexture(u32 dstAddr, unsigned int dstFormat
 		static int count = 0;
 		entry->Save(StringFromFormat("%sefb_frame_%i.png", File::GetUserPath(D_DUMPTEXTURES_IDX).c_str(),
 			count++), 0);
+	}
+
+	if (g_bRecordFifoData)
+	{
+		// Mark the memory behind this efb copy as dynamicly generated for the Fifo log
+		u32 address = dstAddr;
+		for (u32 i = 0; i < entry->NumBlocksY(); i++)
+		{
+			FifoRecorder::GetInstance().UseMemory(address, entry->CacheLinesPerRow() * 32, MemoryUpdate::TEXTURE_MAP, true);
+			address += entry->memory_stride;
+		}
 	}
 
 	textures_by_address.emplace(dstAddr, entry);
@@ -1227,5 +1270,33 @@ void TextureCache::TCacheEntryBase::Zero(u8* ptr)
 			ptr += memory_stride;
 		}
 	}
-	
+}
+
+u64 TextureCache::TCacheEntryBase::CalculateHash() const
+{
+	u8* ptr = Memory::GetPointer(addr);
+	if (memory_stride == CacheLinesPerRow() * 32)
+	{
+		return GetHash64(ptr, size_in_bytes, g_ActiveConfig.iSafeTextureCache_ColorSamples);
+	}
+	else
+	{
+		u32 blocks = NumBlocksY();
+		u64 temp_hash = size_in_bytes;
+
+		u32 samples_per_row = 0;
+		if (g_ActiveConfig.iSafeTextureCache_ColorSamples != 0)
+		{
+			// Hash at least 4 samples per row to avoid hashing in a bad pattern, like just on the left side of the efb copy
+			samples_per_row = std::max(g_ActiveConfig.iSafeTextureCache_ColorSamples / blocks, 4u);
+		}
+
+		for (u32 i = 0; i < blocks; i++)
+		{
+			// Multiply by a prime number to mix the hash up a bit. This prevents identical blocks from canceling each other out
+			temp_hash = (temp_hash * 397) ^ GetHash64(ptr, CacheLinesPerRow() * 32, samples_per_row);
+			ptr += memory_stride;
+		}
+		return temp_hash;
+	}
 }

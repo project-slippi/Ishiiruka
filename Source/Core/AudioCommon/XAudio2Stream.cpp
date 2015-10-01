@@ -8,6 +8,8 @@
 #include "Core/Core.h"
 #include "Core/ConfigManager.h"
 #include "Common/Event.h"
+#include "Common/MsgHandler.h"
+#include "Common/Logging/Log.h"
 
 struct StreamingVoiceContext : public IXAudio2VoiceCallback
 {

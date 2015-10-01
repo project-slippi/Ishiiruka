@@ -6,7 +6,7 @@
 #pragma once
 #include "VideoCommon/CPMemory.h"
 #include "VideoCommon/DataReader.h"
-
+#include "Common/NonCopyable.h"
 // m_components
 enum
 {

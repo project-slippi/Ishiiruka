@@ -16,8 +16,8 @@
 #include "Core/HW/Memmap.h"
 #include "Core/HW/VideoInterface.h"
 
-#include "VideoBackends/OGL/GLInterfaceBase.h"
-#include "VideoBackends/OGL/GLExtensions/GLExtensions.h"
+#include "Common/GL/GLInterfaceBase.h"
+#include "Common/GL/GLExtensions/GLExtensions.h"
 #include "VideoBackends/Software/BPMemLoader.h"
 #include "VideoBackends/Software/Clipper.h"
 #include "VideoBackends/Software/DebugUtil.h"

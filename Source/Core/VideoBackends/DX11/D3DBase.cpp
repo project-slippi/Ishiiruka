@@ -168,13 +168,14 @@ std::vector<DXGI_SAMPLE_DESC> EnumAAModes(IDXGIAdapter* adapter)
 		for (int samples = 0; samples < D3D11_MAX_MULTISAMPLE_SAMPLE_COUNT; ++samples)
 		{
 			UINT quality_levels = 0;
-			_device->CheckMultisampleQualityLevels(GetBaseBufferFormat(), samples, &quality_levels);
-			if (quality_levels > 0) {
-				DXGI_SAMPLE_DESC desc;
-				desc.Count = samples;
-				for (desc.Quality = 0; desc.Quality < quality_levels; ++desc.Quality)
-					_aa_modes.push_back(desc);
-			}
+			_device->CheckMultisampleQualityLevels(DXGI_FORMAT_R8G8B8A8_UNORM, samples, &quality_levels);
+
+			DXGI_SAMPLE_DESC desc;
+			desc.Count = samples;
+			desc.Quality = 0;
+
+			if (quality_levels > 0)
+				_aa_modes.push_back(desc);
 		}
 		_context->Release();
 		_device->Release();

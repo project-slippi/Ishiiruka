@@ -7,7 +7,8 @@
 #include "OpenCL.h"
 #include "Common/Common.h"
 #include "Common/Timer.h"
-
+#include "Common/Logging/Log.h"
+#include "Common/MsgHandler.h"
 namespace OpenCL
 {
 

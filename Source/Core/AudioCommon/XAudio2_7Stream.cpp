@@ -12,6 +12,8 @@
 #include "Core/Core.h"
 #include "Core/ConfigManager.h"
 #include "Common/Event.h"
+#include "Common/MsgHandler.h"
+#include "Common/Logging/Log.h"
 
 struct StreamingVoiceContext2_7 : public IXAudio2VoiceCallback
 {
