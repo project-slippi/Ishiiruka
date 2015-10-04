@@ -1,5 +1,4 @@
-set(SRCS GLExtensions/GLExtensions.cpp
-	   BoundingBox.cpp
+set(SRCS BoundingBox.cpp
            Depalettizer.cpp
 	   FramebufferManager.cpp
 	   main.cpp
@@ -26,4 +25,4 @@ if(${CMAKE_SYSTEM_NAME} MATCHES "FreeBSD|NetBSD")
 	set(LIBS	${LIBS} usbhid)
 endif()
 
-add_dolphin_library(videoogl "${S
+add_dolphin_library(videoogl "${SRCS}" "${LIBS}")

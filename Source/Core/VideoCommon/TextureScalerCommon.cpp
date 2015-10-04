@@ -23,7 +23,7 @@
 #include <algorithm>
 #include <cstdlib>
 #include <cmath>
-
+#include <xbrz.h>
 
 
 #include "Common/Common.h"
@@ -35,7 +35,7 @@
 #include "Common/Intrinsics.h"
 #include "VideoCommon/VideoConfig.h"
 #include "VideoCommon/TextureScalerCommon.h"
-#include "xbrz/xbrz.h"
+
 
 #if _M_SSE >= 0x401
 #include <smmintrin.h>

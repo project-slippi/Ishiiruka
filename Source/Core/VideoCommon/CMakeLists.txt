@@ -50,6 +50,7 @@ set(SRCS	AsyncRequests.cpp
 			TextureCacheBase.cpp
 			TextureConversionShaderGL.cpp
 			TextureUtil.cpp
+			TextureScalerCommon.cpp
 			VertexLoader.cpp
 			VertexLoaderBase.cpp
 			VertexLoaderCompiled.cpp
@@ -67,7 +68,7 @@ set(SRCS	AsyncRequests.cpp
 			VideoState.cpp
 			XFMemory.cpp
 			XFStructs.cpp)
-set(LIBS core png)
+set(LIBS core png xbrz)
 
 if(_M_X86)
 	set(SRCS ${SRCS} x64TextureDecoder.cpp VertexLoaderX64.cpp)

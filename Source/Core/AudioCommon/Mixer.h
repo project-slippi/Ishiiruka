@@ -18,13 +18,13 @@ const float rndrcp = 8.f / float(RAND_MAX);
 #define DITHER_NOISE ((rand() * rndrcp) - 4.f)
 
 // converts [-32768, 32767] -> [-1.0, 1.0)
-__forceinline float Signed16ToFloat(const s16 s)
+inline float Signed16ToFloat(const s16 s)
 {
 	return s * 0.000030517578125f;
 }
 
 // we NEED dithering going from float -> 16bit
-__forceinline void TriangleDither(float& sample, float& prev_dither)
+inline void TriangleDither(float& sample, float& prev_dither)
 {
 	float dither = DITHER_NOISE;	
 	sample += dither - prev_dither;

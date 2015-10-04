@@ -593,12 +593,7 @@ if(NOT XXHASH_FOUND)
 	include_directories(Externals/xxhash)
 endif()
 LIST(APPEND LIBS xxhash)
-
-if(NOT XBRZ_FOUND)
-	message("Using static xbrz from Externals")
-	add_subdirectory(Externals/xbrz)
-	include_directories(Externals/xbrz)
-endif()
+include_directories(Externals/xbrz)
 LIST(APPEND LIBS xbrz)
 
 # If zlib has already been found on a previous run of cmake don't check again
@@ -892,7 +887,7 @@ if(APPLE)
 	# Avoid mistaking an object file for a source file on the link command line.
 	set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -x none")
 endif()
-
+add_subdirectory(Externals/xbrz)
 add_subdirectory(Source)
 
 

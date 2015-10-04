@@ -26,44 +26,44 @@ inline int GetPageSize() { return 4096; }
 template <typename T>
 class SimpleBuf {
 public:
-	SimpleBuf() : buf_(0), size_(0) {
+	SimpleBuf() : m_buf(0), m_size(0) {
 	}
 
-	SimpleBuf(size_t size) : buf_(0) {
-		resize(size);
+	SimpleBuf(size_t s) : m_buf(0) {
+		resize(s);
 	}
 
 	~SimpleBuf() {
-		if (buf_ != 0) {
-			FreeMemoryPages(buf_, size_ * sizeof(T));
+		if (m_buf != 0) {
+			FreeMemoryPages(m_buf, m_size * sizeof(T));
 		}
 	}
 
 	inline T &operator[](size_t index) {
-		return buf_[index];
+		return m_buf[index];
 	}
 
 	// Doesn't preserve contents.
-	void resize(size_t size) {
-		if (size_ < size) {
-			if (buf_ != 0) {
-				FreeMemoryPages(buf_, size_ * sizeof(T));
+	void resize(size_t s) {
+		if (m_size < s) {
+			if (m_buf != 0) {
+				FreeMemoryPages(m_buf, m_size * sizeof(T));
 			}
-			buf_ = (T *)AllocateMemoryPages(size * sizeof(T));
-			size_ = size;
+			m_buf = (T *)AllocateMemoryPages(s * sizeof(T));
+			m_size = s;
 		}
 	}
 
 	T *data() {
-		return buf_;
+		return m_buf;
 	}
 
 	size_t size() const {
-		return size_;
+		return m_size;
 	}
 
 private:
-	T *buf_;
-	size_t size_;
+	T *m_buf;
+	size_t m_size;
 };
 
