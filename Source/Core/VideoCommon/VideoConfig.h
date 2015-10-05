@@ -58,6 +58,15 @@ enum StereoMode
 	STEREO_3DVISION,	
 };
 
+constexpr int STEREOSCOPY_PRESETS_NUM = 3;
+
+struct StereoscopyPreset final
+{
+   int depth;
+   int convergence;
+};
+
+
 enum BBoxMode : s32
 {
 	BBoxNone = 0,
@@ -110,7 +119,8 @@ struct VideoConfig final
 	bool bTexDeposterize;
 	int iTexScalingType;
 	int iTexScalingFactor;
-
+	std::array<StereoscopyPreset, STEREOSCOPY_PRESETS_NUM> oStereoPresets;
+	int iStereoActivePreset;
 	// Information
 	bool bShowFPS;
 	bool bShowInputDisplay;

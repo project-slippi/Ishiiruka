@@ -5,6 +5,7 @@
 #include <cinttypes>
 #include <vector>
 
+#include "Common/Common.h"
 #include "Common/CPUDetect.h"
 #include "Common/StringUtil.h"
 

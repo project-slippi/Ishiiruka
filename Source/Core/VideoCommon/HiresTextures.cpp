@@ -119,8 +119,8 @@ void HiresTexture::Update()
 	std::string ddscode(".dds");
 	std::string cddscode(".DDS");
 	std::vector<std::string> Extensions = {
-		"*.png",
-		"*.dds"
+		".png",
+		".dds"
 	};
 
 	auto rFilenames = DoFileSearch(Extensions, { szDir }, /*recursive*/ true);

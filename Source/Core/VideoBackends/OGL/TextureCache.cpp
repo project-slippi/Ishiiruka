@@ -10,6 +10,7 @@
 #include <intrin.h>
 #endif
 
+#include "Common/Common.h"
 #include "Common/CommonPaths.h"
 #include "Common/FileUtil.h"
 #include "Common/Hash.h"

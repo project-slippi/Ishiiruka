@@ -93,6 +93,7 @@ static int s_ipc_hle_period;
 static int s_cp_period;
 
 
+
 u32 GetTicksPerSecond()
 {
 	return s_cpu_core_clock;

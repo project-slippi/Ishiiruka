@@ -2,6 +2,8 @@
 // Licensed under GPLv2+
 // Refer to the license.txt file included.
 
+#include <cstring>
+
 #include "AudioCommon/NullSoundStream.h"
 #include "Core/HW/AudioInterface.h"
 #include "Core/HW/SystemTimers.h"
@@ -29,5 +31,4 @@ void NullSound::Clear(bool mute)
 
 void NullSound::Stop()
 {
-
 }

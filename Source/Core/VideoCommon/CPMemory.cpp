@@ -13,12 +13,12 @@ CPState g_main_cp_state;
 
 void DoCPState(PointerWrap& p)
 {
-	p.DoArray(g_main_cp_state.array_bases, 16);
-	p.DoArray(g_main_cp_state.array_strides, 16);
+	p.DoArray(g_main_cp_state.array_bases);
+	p.DoArray(g_main_cp_state.array_strides);
 	p.Do(g_main_cp_state.matrix_index_a);
 	p.Do(g_main_cp_state.matrix_index_b);
 	p.Do(g_main_cp_state.vtx_desc.Hex);
-	p.DoArray(g_main_cp_state.vtx_attr, 8);
+	p.DoArray(g_main_cp_state.vtx_attr);
 	p.DoMarker("CP Memory");
 	if (p.mode == PointerWrap::MODE_READ)
 	{

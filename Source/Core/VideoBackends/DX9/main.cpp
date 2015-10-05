@@ -69,6 +69,11 @@ std::string VideoBackend::GetDisplayName() const
 	return "Direct3D9";
 }
 
+std::string VideoBackend::GetConfigName() const
+{
+   return "gfx_dx9";
+}
+
 void InitBackendInfo()
 {
 	DX9::D3D::Init();
@@ -128,7 +133,7 @@ void VideoBackend::ShowConfig(void* parent)
 {
 #if defined(HAVE_WX) && HAVE_WX
 	InitBackendInfo();
-	VideoConfigDiag diag((wxWindow*)parent, _trans("Direct3D9"), "gfx_dx9");
+	VideoConfigDiag diag((wxWindow*)parent, _trans("Direct3D9"), GetConfigName());
 	diag.ShowModal();
 #endif
 }
@@ -140,7 +145,7 @@ bool VideoBackend::Initialize(void *window_handle)
 
 	frameCount = 0;
 
-	g_Config.Load((File::GetUserPath(D_CONFIG_IDX) + "gfx_dx9.ini").c_str());
+	g_Config.Load((File::GetUserPath(D_CONFIG_IDX) + GetConfigName() + ".ini").c_str());
 	g_Config.GameIniLoad();
 	g_Config.UpdateProjectionHack();
 	g_Config.VerifyValidity();

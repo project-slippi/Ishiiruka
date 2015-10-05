@@ -3,7 +3,6 @@
 // Refer to the license.txt file included.
 
 #include <wx/wx.h>
-#include <regex>
 
 #include "Common/Logging/LogManager.h"
 #include "Common/CommonPaths.h"
@@ -69,15 +68,24 @@ std::string VideoBackend::GetDisplayName() const
 	return "Direct3D11";
 }
 
+std::string VideoBackend::GetConfigName() const
+{
+   return "gfx_dx11";
+}
+
 static std::vector<std::string> GetShaders(const std::string &sub_dir = "")
 {
-	std::vector<std::string> paths = DoFileSearch({ "*.glsl" }, {
+	std::vector<std::string> paths = DoFileSearch({ ".glsl" }, {
 		File::GetUserPath(D_SHADERS_IDX) + sub_dir,
 		File::GetSysDirectory() + SHADERS_DIR DIR_SEP + sub_dir
 	});
 	std::vector<std::string> result;
 	for (std::string path : paths)
-		result.push_back(std::regex_replace(path, std::regex("^.*/(.*)\\.glsl$"), "$1"));
+	{
+	   std::string name;
+	   SplitPath(path, nullptr, &name, nullptr);
+	   result.push_back(name);
+	}
 	return result;
 }
 
@@ -173,7 +181,7 @@ void VideoBackend::ShowConfig(void *_hParent)
 #if defined(HAVE_WX) && HAVE_WX
 	if (!s_BackendInitialized)
 		InitBackendInfo();
-	VideoConfigDiag diag((wxWindow*)_hParent, _trans("Direct3D11"), "gfx_dx11");
+	VideoConfigDiag diag((wxWindow*)_hParent, _trans("Direct3D11"), GetConfigName());
 	diag.ShowModal();
 #endif
 }
@@ -187,7 +195,7 @@ bool VideoBackend::Initialize(void *window_handle)
 
 	const SConfig& core_params = SConfig::GetInstance();
 
-	g_Config.Load((File::GetUserPath(D_CONFIG_IDX) + "gfx_dx11.ini").c_str());
+	g_Config.Load((File::GetUserPath(D_CONFIG_IDX) + GetConfigName() + ".ini").c_str());
 	g_Config.GameIniLoad();
 	g_Config.UpdateProjectionHack();
 	g_Config.VerifyValidity();
