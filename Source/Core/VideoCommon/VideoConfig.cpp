@@ -92,8 +92,7 @@ void VideoConfig::Load(const std::string& ini_file)
 
 	settings->Get("FastDepthCalc", &bFastDepthCalc, true);
 	settings->Get("MSAA", &iMultisampleMode, 0);
-	settings->Get("EFBScale", &iEFBScale, (int)SCALE_1X); // native
-	settings->Get("DstAlphaPass", &bDstAlphaPass, false);
+	settings->Get("EFBScale", &iEFBScale, (int)SCALE_1X); // native	
 	settings->Get("TexFmtOverlayEnable", &bTexFmtOverlayEnable, 0);
 	settings->Get("TexFmtOverlayCenter", &bTexFmtOverlayCenter, 0);
 	settings->Get("WireFrame", &bWireFrame, 0);
@@ -228,7 +227,6 @@ void VideoConfig::GameIniLoad()
 		}
 	}
 
-	CHECK_SETTING("Video_Settings", "DstAlphaPass", bDstAlphaPass);
 	CHECK_SETTING("Video_Settings", "DisableFog", bDisableFog);
 	CHECK_SETTING("Video_Settings", "EnableOpenCL", bEnableOpenCL);
 
@@ -382,7 +380,6 @@ void VideoConfig::Save(const std::string& ini_file)
 	settings->Set("TexFmtOverlayEnable", bTexFmtOverlayEnable);
 	settings->Set("TexFmtOverlayCenter", bTexFmtOverlayCenter);
 	settings->Set("Wireframe", bWireFrame);
-	settings->Set("DstAlphaPass", bDstAlphaPass);
 	settings->Set("DisableFog", bDisableFog);
 
 	settings->Set("EnableOpenCL", bEnableOpenCL);

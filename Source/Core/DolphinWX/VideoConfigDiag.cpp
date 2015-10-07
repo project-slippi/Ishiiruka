@@ -603,7 +603,6 @@ VideoConfigDiag::VideoConfigDiag(wxWindow* parent, const std::string &title, con
 	// - other hacks
 	{
 	wxGridSizer* const szr_other = new wxGridSizer(2, 5, 5);	
-	szr_other->Add(CreateCheckBox(page_hacks, _("Disable Destination Alpha"), (disable_dstalpha_desc), vconfig.bDstAlphaPass));
 	// Disable while i fix opencl
 	//szr_other->Add(CreateCheckBox(page_hacks, _("OpenCL Texture Decoder"), (opencl_desc), vconfig.bEnableOpenCL));	
 	szr_other->Add(CreateCheckBox(page_hacks, _("Fast Depth Calculation"), (fast_depth_calc_desc), vconfig.bFastDepthCalc));

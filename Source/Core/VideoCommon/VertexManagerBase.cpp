@@ -163,8 +163,7 @@ void VertexManager::Flush()
 	s_Shader_Refresh_Required = true;
 	if (IsFlushed)
 		return;
-	bool useDstAlpha = !g_ActiveConfig.bDstAlphaPass &&
-		bpmem.dstalpha.enable &&
+	bool useDstAlpha = bpmem.dstalpha.enable &&
 		bpmem.blendmode.alphaupdate &&
 		bpmem.zcontrol.pixel_format == PEControl::RGBA6_Z24;
 	// loading a state will invalidate BP, so check for it

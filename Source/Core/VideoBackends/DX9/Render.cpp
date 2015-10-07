@@ -1123,9 +1123,8 @@ void Renderer::_SetBlendMode(bool forceUpdate)
 	// Our render target always uses an alpha channel, so we need to override the blend functions to assume a destination alpha of 1 if the render target isn't supposed to have an alpha channel
 	// Example: D3DBLEND_DESTALPHA needs to be D3DBLEND_ONE since the result without an alpha channel is assumed to always be 1.
 	bool target_has_alpha = bpmem.zcontrol.pixel_format == PEControl::RGBA6_Z24;
-	//bDstAlphaPass is taken into account because the ability to disable alpha composition is
 	//really useful for debugging shader and blending errors
-	bool use_DstAlpha = !g_ActiveConfig.bDstAlphaPass && bpmem.dstalpha.enable && bpmem.blendmode.alphaupdate && target_has_alpha;
+	bool use_DstAlpha = bpmem.dstalpha.enable && bpmem.blendmode.alphaupdate && target_has_alpha;
 	bool use_DualSource = use_DstAlpha && g_ActiveConfig.backend_info.bSupportsDualSourceBlend;
 	const D3DBLEND d3dSrcFactors[8] =
 	{

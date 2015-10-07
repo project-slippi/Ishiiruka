@@ -164,7 +164,7 @@ void VertexManager::PrepareShaders(u32 primitive, u32 components, const XFMemory
 		}
 		s_Shader_Refresh_Required = false;
 	}
-	bool useDstAlpha = !g_ActiveConfig.bDstAlphaPass && bpm.dstalpha.enable && bpm.blendmode.alphaupdate &&
+	bool useDstAlpha = bpm.dstalpha.enable && bpm.blendmode.alphaupdate &&
 		bpm.zcontrol.pixel_format == PEControl::RGBA6_Z24;
 	VertexShaderCache::PrepareShader(components, xfr, bpm, ongputhread);
 	GeometryShaderCache::PrepareShader(primitive, xfr, ongputhread);

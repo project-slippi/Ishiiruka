@@ -470,7 +470,7 @@ void DX9::VertexManager::PrepareShaders(u32 primitive, u32 components, const XFM
 		}
 		s_Shader_Refresh_Required = false;
 	}
-	const bool useDstAlpha = !g_ActiveConfig.bDstAlphaPass && bpm.dstalpha.enable && bpm.blendmode.alphaupdate &&
+	const bool useDstAlpha = bpm.dstalpha.enable && bpm.blendmode.alphaupdate &&
 		bpm.zcontrol.pixel_format == PEControl::RGBA6_Z24;
 	const bool useDualSource = useDstAlpha && g_ActiveConfig.backend_info.bSupportsDualSourceBlend;
 	const bool forced_early_z = bpm.UseEarlyDepthTest() && bpm.zmode.updateenable && bpm.alpha_test.TestResult() == AlphaTest::UNDETERMINED && !g_ActiveConfig.bFastDepthCalc;
