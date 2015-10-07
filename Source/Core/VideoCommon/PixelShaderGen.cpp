@@ -285,9 +285,9 @@ float3x3 cotangent_frame( float3 N, float3 p, float2 uv )
 {
     // get edge vectors of the pixel triangle
     float3 dp1 = ddx( p );
-    float3 dp2 = -ddy( p );
+    float3 dp2 = ddy( p );
     float2 duv1 = ddx( uv );
-    float2 duv2 = -ddy( uv );
+    float2 duv2 = ddy( uv );
  
     // solve the linear system
     float3 dp2perp = cross( dp2, N );
@@ -364,8 +364,8 @@ inline void GeneratePixelShader(T& out, DSTALPHA_MODE dstAlphaMode, u32 componen
 		&& !(bpm.zmode.testenable && bpm.genMode.zfreeze);
 	const bool per_pixel_depth = bpm.zmode.testenable
 		&& ((bpm.ztex2.op != ZTEXTURE_DISABLE && bpm.UseLateDepthTest())
-			|| (!g_ActiveConfig.bFastDepthCalc && !forced_early_z)
-			|| bpm.genMode.zfreeze);
+		|| (!g_ActiveConfig.bFastDepthCalc && !forced_early_z)
+		|| bpm.genMode.zfreeze);
 	bool lightingEnabled = xfr.numChan.numColorChans > 0;
 	bool enable_pl = g_ActiveConfig.bEnablePixelLighting
 		&& g_ActiveConfig.backend_info.bSupportsPixelLighting
@@ -670,6 +670,7 @@ inline void GeneratePixelShader(T& out, DSTALPHA_MODE dstAlphaMode, u32 componen
 			"wu4 tex_ta[%i], tex_t = wu4(0,0,0,0), ras_t = wu4(0,0,0,0), konst_t = wu4(0,0,0,0);\n"
 			"wu3 c16 = wu3(1,256,0), c24 = wu3(1,256,256*256);\n"
 			"wu a_bump=0;\n"
+			"wu3 tevcoord=wu3(0,0,0);\n"
 			"wu2 wrappedcoord=wu2(0,0), t_coord=wu2(0,0),ittmpexp=wu2(0,0);\n"
 			"wu4 tin_a = wu4(0,0,0,0), tin_b = wu4(0,0,0,0), tin_c = wu4(0,0,0,0), tin_d = wu4(0,0,0,0);\n\n", numStages);
 
@@ -809,7 +810,6 @@ inline void GeneratePixelShader(T& out, DSTALPHA_MODE dstAlphaMode, u32 componen
 		{
 			out.Write("\tfloat2 mapcoord = float2(0.0,0.0);\n");
 			out.Write("\tfloat normalmapcount = 0.0;\n");
-			
 		}
 		const char* swapColors = "rgba";
 		for (int i = 0; i < 4; i++)
@@ -865,7 +865,7 @@ inline void GeneratePixelShader(T& out, DSTALPHA_MODE dstAlphaMode, u32 componen
 		}
 		// Only col0 and col1 are needed so discard the remaining components
 		uid_data.components = (components >> 11) & 3;
-		GenerateLightingShader<T, Write_Code>(out, uid_data.lighting, components, I_PMATERIALS, I_PLIGHTS, "colors_", "col", xfr, Use_integer_math,forcePhong);
+		GenerateLightingShader<T, Write_Code>(out, uid_data.lighting, components, I_PMATERIALS, I_PLIGHTS, "colors_", "col", xfr, Use_integer_math, forcePhong);
 	}
 	else
 	{
@@ -1076,8 +1076,7 @@ static inline void WriteFetchStageTexture(T& out, int n, const bool LoadMaterial
 	// HACK to handle cases where the tex gen is not enabled
 	if (!bHasTexCoord)
 		texcoord = 0;
-	out.Write("\n{\n");
-	out.Write("wu3 tevcoord=wu3(0,0,0);\n");
+	out.Write("\n{\n");	
 	if (bHasIndStage)
 	{
 		out.Write("// indirect op\n");
@@ -1374,7 +1373,6 @@ static inline void WriteStage(T& out, pixel_shader_uid_data& uid_data, int n, co
 
 		uid_data.stagehash[n].tevorders_texmap = bpm.tevorders[n / 2].getTexMap(n & 1);
 
-		const char *texswap = swapModeTable[bpm.combiners[n].alphaC.tswap];
 		int texmap = bpm.tevorders[n / 2].getTexMap(n & 1);
 		uid_data.SetTevindrefTexmap(i, texmap);
 

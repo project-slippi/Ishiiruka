@@ -608,7 +608,7 @@ void ProgramShaderCache::CreateHeader()
 		"#define saturate(x) clamp(x, 0.0, 1.0)\n"
 		"#define mul(x, y) (y * x)\n"
 		"#define ddx dFdx\n"
-		"#define ddy(a) (-dFdy(a))\n"
+		"#define ddy dFdy\n"
 		"#define rsqrt inversesqrt\n"
 		
 
