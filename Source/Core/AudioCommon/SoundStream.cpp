@@ -64,7 +64,7 @@ bool SoundStream::Start()
 		DPL2Reset();
 		thread.reset(new std::thread(std::mem_fn(&SoundStream::SoundLoop), this));
 #ifdef _WIN32
-		SetThreadPriority(thread.get()->native_handle(), THREAD_PRIORITY_HIGHEST);
+		SetThreadPriority(thread.get()->native_handle(), THREAD_PRIORITY_TIME_CRITICAL);
 #endif
 	}
 	return true;
@@ -88,23 +88,17 @@ alignas(16) static short realtimeBuffer[SOUND_MAX_FRAME_SIZE];
 alignas(16) static soundtouch::SAMPLETYPE dpl2buffer[SOUND_MAX_FRAME_SIZE];
 alignas(16) static soundtouch::SAMPLETYPE samplebuffer[SOUND_MAX_FRAME_SIZE];
 
-float s_dither_prev[SOUND_SAMPLES_SURROUND];
-
-__forceinline void floatTos16(s16* dst, const float *src, u32 numsamples, u32 numchannels)
+inline void floatTos16(s16* dst, const float *src, u32 numsamples, u32 numchannels)
 {
-	for (u32 i = 0; i < numsamples; i++)
+	for (u32 i = 0; i < numsamples * numchannels; i++)
 	{
-		for (u32 j = 0; j < numchannels; j++)
-		{
-			float sample = src[i * numchannels + j] * 32768.0f;
-			TriangleDither(sample, s_dither_prev[j]);
-			sample = MathUtil::Clamp(sample, -32768.f, 32767.f);
-			dst[i * numchannels + j] = s16(sample);
-		}
+		float sample = src[i] * 32768.0f;
+		sample = MathUtil::Clamp(sample, -32768.f, 32767.f);
+		dst[i] = s16(sample);
 	}
 }
 
-__forceinline void s16ToFloat(float* dst, const s16 *src, u32 numsamples)
+inline void s16ToFloat(float* dst, const s16 *src, u32 numsamples)
 {
 	for (u32 i = 0; i < numsamples; i++)
 	{
@@ -122,7 +116,6 @@ void SoundStream::SoundLoop()
 	memset(realtimeBuffer, 0, SOUND_MAX_FRAME_SIZE * sizeof(u16));
 	memset(dpl2buffer, 0, SOUND_MAX_FRAME_SIZE * sizeof(soundtouch::SAMPLETYPE));
 	memset(samplebuffer, 0, SOUND_MAX_FRAME_SIZE * sizeof(soundtouch::SAMPLETYPE));
-	memset(s_dither_prev, 0, sizeof(s_dither_prev));
 	u32 channelmultiplier = surroundSupported ? SOUND_SAMPLES_SURROUND : SOUND_SAMPLES_STEREO;
 	CMixer* mixer = GetMixer();
 	if (SConfig::GetInstance().bTimeStretching)
@@ -162,14 +155,6 @@ void SoundStream::SoundLoop()
 				{
 					numsamples = sTouch.receiveSamples(dpl2buffer, numsamples);
 					DPL2Decode(dpl2buffer, numsamples, samplebuffer);
-					// zero-out the subwoofer channel - DPL2Decode generates a pretty
-					// good 5.0 but not a good 5.1 output.  Sadly there is not a 5.0
-					// AL_FORMAT_50CHN32 to make this super-explicit.
-					// DPL2Decode output: LEFTFRONT, RIGHTFRONT, CENTREFRONT, (sub), LEFTREAR, RIGHTREAR
-					for (u32 i = 0; i < numsamples; ++i)
-					{
-						samplebuffer[i*SOUND_SAMPLES_SURROUND + 3 /*sub/lfe*/] = 0.0f;
-					}
 				}
 				else
 				{
@@ -193,12 +178,15 @@ void SoundStream::SoundLoop()
 			if (neededsamples == SOUND_FRAME_SIZE && availablesamples > 0)
 			{
 				u32 numsamples = std::min(availablesamples, neededsamples);
-				numsamples = mixer->Mix(realtimeBuffer, numsamples);
 				if (surroundSupported)
 				{
-					s16ToFloat(dpl2buffer, realtimeBuffer, numsamples * SOUND_SAMPLES_STEREO);
+					numsamples = mixer->Mix(dpl2buffer, numsamples);
 					DPL2Decode(dpl2buffer, numsamples, samplebuffer);
 					floatTos16(realtimeBuffer, samplebuffer, numsamples, channelmultiplier);
+				}
+				else
+				{
+					numsamples = mixer->Mix(realtimeBuffer, numsamples);
 				}
 				WriteSamples(realtimeBuffer, numsamples);
 			}

@@ -30,204 +30,204 @@ static bool s_audio_dump_start = false;
 
 namespace AudioCommon
 {
-	static const int AUDIO_VOLUME_MIN = 0;
-	static const int AUDIO_VOLUME_MAX = 100;
+static const int AUDIO_VOLUME_MIN = 0;
+static const int AUDIO_VOLUME_MAX = 100;
 
-	SoundStream* InitSoundStream(void *hWnd)
+SoundStream* InitSoundStream(void *hWnd)
+{
+	std::string backend = SConfig::GetInstance().sBackend;
+	if (backend == BACKEND_OPENAL           && OpenALStream::isValid())
+		g_sound_stream = new OpenALStream();
+	else if (backend == BACKEND_NULLSOUND   && NullSound::isValid())
+		g_sound_stream = new NullSound();
+	else if (backend == BACKEND_DIRECTSOUND && DSound::isValid())
+		g_sound_stream = new DSound(hWnd);
+	else if (backend == BACKEND_XAUDIO2)
 	{
-		std::string backend = SConfig::GetInstance().sBackend;
-		if (backend == BACKEND_OPENAL           && OpenALStream::isValid())
-			g_sound_stream = new OpenALStream();
-		else if (backend == BACKEND_NULLSOUND   && NullSound::isValid())
-			g_sound_stream = new NullSound();
-		else if (backend == BACKEND_DIRECTSOUND && DSound::isValid())
-			g_sound_stream = new DSound(hWnd);
-		else if (backend == BACKEND_XAUDIO2)
+		if (XAudio2::isValid())
+			g_sound_stream = new XAudio2();
+		else if (XAudio2_7::isValid())
+			g_sound_stream = new XAudio2_7();
+	}
+	else if (backend == BACKEND_AOSOUND     && AOSound::isValid())
+		g_sound_stream = new AOSound();
+	else if (backend == BACKEND_ALSA        && AlsaSound::isValid())
+		g_sound_stream = new AlsaSound();
+	else if (backend == BACKEND_COREAUDIO   && CoreAudioSound::isValid())
+		g_sound_stream = new CoreAudioSound();
+	else if (backend == BACKEND_PULSEAUDIO  && PulseAudio::isValid())
+		g_sound_stream = new PulseAudio();
+	else if (backend == BACKEND_OPENSLES && OpenSLESStream::isValid())
+		g_sound_stream = new OpenSLESStream();
+
+	if (!g_sound_stream && NullSound::isValid())
+	{
+		WARN_LOG(DSPHLE, "Could not initialize backend %s, using %s instead.",
+			backend.c_str(), BACKEND_NULLSOUND);
+		g_sound_stream = new NullSound();
+	}
+
+	if (g_sound_stream)
+	{
+		UpdateSoundStream();
+		if (g_sound_stream->Start())
 		{
-			if (XAudio2::isValid())
-				g_sound_stream = new XAudio2();
-			else if (XAudio2_7::isValid())
-				g_sound_stream = new XAudio2_7();
+			if (SConfig::GetInstance().m_DumpAudio && !s_audio_dump_start)
+				StartAudioDump();
+
+			return g_sound_stream;
 		}
-		else if (backend == BACKEND_AOSOUND     && AOSound::isValid())
-			g_sound_stream = new AOSound();
-		else if (backend == BACKEND_ALSA        && AlsaSound::isValid())
-			g_sound_stream = new AlsaSound();
-		else if (backend == BACKEND_COREAUDIO   && CoreAudioSound::isValid())
-			g_sound_stream = new CoreAudioSound();
-		else if (backend == BACKEND_PULSEAUDIO  && PulseAudio::isValid())
-			g_sound_stream = new PulseAudio();
-		else if (backend == BACKEND_OPENSLES && OpenSLESStream::isValid())
-			g_sound_stream = new OpenSLESStream();
+		PanicAlertT("Could not initialize backend %s.", backend.c_str());
+	}
 
-		if (!g_sound_stream && NullSound::isValid())
-		{
-			WARN_LOG(DSPHLE, "Could not initialize backend %s, using %s instead.",
-				backend.c_str(), BACKEND_NULLSOUND);
-			g_sound_stream = new NullSound();
-		}
+	PanicAlertT("Sound backend %s is not valid.", backend.c_str());
 
-		if (g_sound_stream)
-		{
-			UpdateSoundStream();
-			if (g_sound_stream->Start())
-			{
-				if (SConfig::GetInstance().m_DumpAudio && !s_audio_dump_start)
-					StartAudioDump();
+	delete g_sound_stream;
+	g_sound_stream = nullptr;
+	return nullptr;
+}
 
-				return g_sound_stream;
-			}
-			PanicAlertT("Could not initialize backend %s.", backend.c_str());
-		}
+void ShutdownSoundStream()
+{
+	INFO_LOG(DSPHLE, "Shutting down sound stream");
 
-		PanicAlertT("Sound backend %s is not valid.", backend.c_str());
-
+	if (g_sound_stream)
+	{
+		g_sound_stream->Stop();
+		if (SConfig::GetInstance().m_DumpAudio && s_audio_dump_start)
+			StopAudioDump();
 		delete g_sound_stream;
 		g_sound_stream = nullptr;
-		return nullptr;
 	}
 
-	void ShutdownSoundStream()
-	{
-		INFO_LOG(DSPHLE, "Shutting down sound stream");
+	INFO_LOG(DSPHLE, "Done shutting down sound stream");
+}
 
-		if (g_sound_stream)
-		{
-			g_sound_stream->Stop();
-			if (SConfig::GetInstance().m_DumpAudio && s_audio_dump_start)
-				StopAudioDump();
-			delete g_sound_stream;
-			g_sound_stream = nullptr;
-		}
+std::vector<std::string> GetSoundBackends()
+{
+	std::vector<std::string> backends;
 
-		INFO_LOG(DSPHLE, "Done shutting down sound stream");
-	}
-
-	std::vector<std::string> GetSoundBackends()
-	{
-		std::vector<std::string> backends;
-
-		if (NullSound::isValid())
-			backends.push_back(BACKEND_NULLSOUND);
-		if (DSound::isValid())
-			backends.push_back(BACKEND_DIRECTSOUND);
-		if (XAudio2_7::isValid() 
+	if (NullSound::isValid())
+		backends.push_back(BACKEND_NULLSOUND);
+	if (DSound::isValid())
+		backends.push_back(BACKEND_DIRECTSOUND);
+	if (XAudio2_7::isValid()
 #ifndef HAVE_DXSDK
-			|| XAudio2::isValid()
+		|| XAudio2::isValid()
 #endif
-			)
-			backends.push_back(BACKEND_XAUDIO2);
-		if (AOSound::isValid())
-			backends.push_back(BACKEND_AOSOUND);
-		if (AlsaSound::isValid())
-			backends.push_back(BACKEND_ALSA);
-		if (CoreAudioSound::isValid())
-			backends.push_back(BACKEND_COREAUDIO);
-		if (PulseAudio::isValid())
-			backends.push_back(BACKEND_PULSEAUDIO);
-		if (OpenALStream::isValid())
-			backends.push_back(BACKEND_OPENAL);
-		if (OpenSLESStream::isValid())
-			backends.push_back(BACKEND_OPENSLES);
-		return backends;
-	}
+		)
+		backends.push_back(BACKEND_XAUDIO2);
+	if (AOSound::isValid())
+		backends.push_back(BACKEND_AOSOUND);
+	if (AlsaSound::isValid())
+		backends.push_back(BACKEND_ALSA);
+	if (CoreAudioSound::isValid())
+		backends.push_back(BACKEND_COREAUDIO);
+	if (PulseAudio::isValid())
+		backends.push_back(BACKEND_PULSEAUDIO);
+	if (OpenALStream::isValid())
+		backends.push_back(BACKEND_OPENAL);
+	if (OpenSLESStream::isValid())
+		backends.push_back(BACKEND_OPENSLES);
+	return backends;
+}
 
-	void PauseAndLock(bool doLock, bool unpauseOnUnlock)
+void PauseAndLock(bool doLock, bool unpauseOnUnlock)
+{
+	if (g_sound_stream)
 	{
-		if (g_sound_stream)
-		{
-			// audio typically doesn't maintain its own "paused" state
-			// (that's already handled by the CPU and whatever else being paused)
-			// so it should be good enough to only lock/unlock here.
-			CMixer* pMixer = g_sound_stream->GetMixer();
-			if (pMixer)
-			{
-				std::mutex& csMixing = pMixer->MixerCritical();
-				if (doLock)
-					csMixing.lock();
-				else
-					csMixing.unlock();
-			}
-		}
-	}
-
-	void UpdateSoundStream()
-	{
-		if (g_sound_stream)
-		{
-			int volume = SConfig::GetInstance().m_IsMuted ? 0 : SConfig::GetInstance().m_Volume;
-			g_sound_stream->SetVolume(volume);
-		}
-	}
-
-	void ClearAudioBuffer(bool mute)
-	{
-		if (g_sound_stream)
-			g_sound_stream->Clear(mute);
-	}
-
-	void SendAIBuffer(short *samples, unsigned int num_samples)
-	{
-		if (!g_sound_stream)
-			return;
-
-		if (SConfig::GetInstance().m_DumpAudio && !s_audio_dump_start)
-			StartAudioDump();
-		else if (!SConfig::GetInstance().m_DumpAudio && s_audio_dump_start)
-			StopAudioDump();
-
+		// audio typically doesn't maintain its own "paused" state
+		// (that's already handled by the CPU and whatever else being paused)
+		// so it should be good enough to only lock/unlock here.
 		CMixer* pMixer = g_sound_stream->GetMixer();
-
-		if (pMixer && samples)
+		if (pMixer)
 		{
-			pMixer->PushSamples(samples, num_samples);
+			std::mutex& csMixing = pMixer->MixerCritical();
+			if (doLock)
+				csMixing.lock();
+			else
+				csMixing.unlock();
 		}
-
-		g_sound_stream->Update();
 	}
+}
 
-	void StartAudioDump()
+void UpdateSoundStream()
+{
+	if (g_sound_stream)
 	{
-		std::string audio_file_name_dtk = File::GetUserPath(D_DUMPAUDIO_IDX) + "dtkdump.wav";
-		std::string audio_file_name_dsp = File::GetUserPath(D_DUMPAUDIO_IDX) + "dspdump.wav";
-		File::CreateFullPath(audio_file_name_dtk);
-		File::CreateFullPath(audio_file_name_dsp);
-		g_sound_stream->GetMixer()->StartLogDTKAudio(audio_file_name_dtk);
-		g_sound_stream->GetMixer()->StartLogDSPAudio(audio_file_name_dsp);
-		s_audio_dump_start = true;
+		int volume = SConfig::GetInstance().m_IsMuted ? 0 : SConfig::GetInstance().m_Volume;
+		g_sound_stream->SetVolume(volume);
+	}
+}
+
+void ClearAudioBuffer(bool mute)
+{
+	if (g_sound_stream)
+		g_sound_stream->Clear(mute);
+}
+
+void SendAIBuffer(short *samples, unsigned int num_samples)
+{
+	if (!g_sound_stream)
+		return;
+
+	if (SConfig::GetInstance().m_DumpAudio && !s_audio_dump_start)
+		StartAudioDump();
+	else if (!SConfig::GetInstance().m_DumpAudio && s_audio_dump_start)
+		StopAudioDump();
+
+	CMixer* pMixer = g_sound_stream->GetMixer();
+
+	if (pMixer && samples)
+	{
+		pMixer->PushSamples(samples, num_samples);
 	}
 
-	void StopAudioDump()
-	{
-		g_sound_stream->GetMixer()->StopLogDTKAudio();
-		g_sound_stream->GetMixer()->StopLogDSPAudio();
-		s_audio_dump_start = false;
-	}
+	g_sound_stream->Update();
+}
 
-	void IncreaseVolume(unsigned short offset)
-	{
-		SConfig::GetInstance().m_IsMuted = false;
-		int& currentVolume = SConfig::GetInstance().m_Volume;
-		currentVolume += offset;
-		if (currentVolume > AUDIO_VOLUME_MAX)
-			currentVolume = AUDIO_VOLUME_MAX;
-		UpdateSoundStream();
-	}
+void StartAudioDump()
+{
+	std::string audio_file_name_dtk = File::GetUserPath(D_DUMPAUDIO_IDX) + "dtkdump.wav";
+	std::string audio_file_name_dsp = File::GetUserPath(D_DUMPAUDIO_IDX) + "dspdump.wav";
+	File::CreateFullPath(audio_file_name_dtk);
+	File::CreateFullPath(audio_file_name_dsp);
+	g_sound_stream->GetMixer()->StartLogDTKAudio(audio_file_name_dtk);
+	g_sound_stream->GetMixer()->StartLogDSPAudio(audio_file_name_dsp);
+	s_audio_dump_start = true;
+}
 
-	void DecreaseVolume(unsigned short offset)
-	{
-		SConfig::GetInstance().m_IsMuted = false;
-		int& currentVolume = SConfig::GetInstance().m_Volume;
-		currentVolume -= offset;
-		if (currentVolume < AUDIO_VOLUME_MIN)
-			currentVolume = AUDIO_VOLUME_MIN;
-		UpdateSoundStream();
-	}
+void StopAudioDump()
+{
+	g_sound_stream->GetMixer()->StopLogDTKAudio();
+	g_sound_stream->GetMixer()->StopLogDSPAudio();
+	s_audio_dump_start = false;
+}
 
-	void ToggleMuteVolume()
-	{
-		bool& isMuted = SConfig::GetInstance().m_IsMuted;
-		isMuted = !isMuted;
-		UpdateSoundStream();
-	}
+void IncreaseVolume(unsigned short offset)
+{
+	SConfig::GetInstance().m_IsMuted = false;
+	int& currentVolume = SConfig::GetInstance().m_Volume;
+	currentVolume += offset;
+	if (currentVolume > AUDIO_VOLUME_MAX)
+		currentVolume = AUDIO_VOLUME_MAX;
+	UpdateSoundStream();
+}
+
+void DecreaseVolume(unsigned short offset)
+{
+	SConfig::GetInstance().m_IsMuted = false;
+	int& currentVolume = SConfig::GetInstance().m_Volume;
+	currentVolume -= offset;
+	if (currentVolume < AUDIO_VOLUME_MIN)
+		currentVolume = AUDIO_VOLUME_MIN;
+	UpdateSoundStream();
+}
+
+void ToggleMuteVolume()
+{
+	bool& isMuted = SConfig::GetInstance().m_IsMuted;
+	isMuted = !isMuted;
+	UpdateSoundStream();
+}
 }

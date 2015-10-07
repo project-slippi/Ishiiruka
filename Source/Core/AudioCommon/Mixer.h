@@ -12,23 +12,10 @@
 
 #include "AudioCommon/WaveFile.h"
 
-// Produces white noise in the range of [-4.f, 4.f]
-// Note: for me this values produces more natural results than master [-0.5, 0.5]
-const float rndrcp = 8.f / float(RAND_MAX);
-#define DITHER_NOISE ((rand() * rndrcp) - 4.f)
-
 // converts [-32768, 32767] -> [-1.0, 1.0)
 inline float Signed16ToFloat(const s16 s)
 {
-	return s * 0.000030517578125f;
-}
-
-// we NEED dithering going from float -> 16bit
-inline void TriangleDither(float& sample, float& prev_dither)
-{
-	float dither = DITHER_NOISE;	
-	sample += dither - prev_dither;
-	prev_dither = dither;
+	return s * 0.000030517578125f;//(1.0f/32768.0f)
 }
 
 class CMixer {
@@ -88,7 +75,7 @@ protected:
 			srand((u32)time(nullptr));
 			m_float_buffer.fill(0.0f);
 		}
-
+		virtual u32 GetWindowSize() = 0;
 		virtual void Interpolate(u32 left_input_index, float* left_output, float* right_output) = 0;
 		void PushSamples(const s16* samples, u32 num_samples);
 		void Mix(float* samples, u32 numSamples, bool consider_framelimit = true);
@@ -118,6 +105,7 @@ protected:
 	public:
 		LinearMixerFifo(CMixer* mixer, u32 sample_rate) : MixerFifo(mixer, sample_rate) {}
 		void Interpolate(u32 left_input_index, float* left_output, float* right_output) override;
+		u32 GetWindowSize() override { return 4; };
 	};
 
 	class CubicMixerFifo : public MixerFifo
@@ -125,6 +113,7 @@ protected:
 	public:
 		CubicMixerFifo(CMixer* mixer, u32 sample_rate) : MixerFifo(mixer, sample_rate) {}
 		void Interpolate(u32 left_input_index, float* left_output, float* right_output) override;
+		u32 GetWindowSize() override { return 8; };
 	};
 
 	CubicMixerFifo m_dma_mixer;
@@ -149,7 +138,5 @@ protected:
 private:
 
 	std::vector<float> m_output_buffer;
-	float m_l_dither_prev;
-	float m_r_dither_prev;
 };
 

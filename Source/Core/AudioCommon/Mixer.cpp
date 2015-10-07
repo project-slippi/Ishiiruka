@@ -33,8 +33,6 @@ CMixer::CMixer(u32 BackendSampleRate)
 	, m_log_dtk_audio(0)
 	, m_log_dsp_audio(0)
 	, m_speed(0)
-	, m_l_dither_prev(0)
-	, m_r_dither_prev(0)
 {
 	INFO_LOG(AUDIO_INTERFACE, "Mixer is initialized");
 }
@@ -47,22 +45,24 @@ void CMixer::LinearMixerFifo::Interpolate(u32 left_input_index, float* left_outp
 		+ m_fraction * m_float_buffer[(left_input_index + 3) & INDEX_MASK];
 }
 
-static const float _coeffs[] =
-{ -0.5f, 1.0f, -0.5f, 0.0f,
-1.5f, -2.5f, 0.0f, 1.0f,
--1.5f, 2.0f, 0.5f, 0.0f,
-0.5f, -0.5f, 0.0f, 0.0f };
-
 void CMixer::CubicMixerFifo::Interpolate(u32 left_input_index, float* left_output, float* right_output)
 {
+	static const float cubic_coef[] =
+	{
+	  -0.5f, 1.0f, -0.5f, 0.0f,
+	  1.5f, -2.5f, 0.0f, 1.0f,
+	  -1.5f, 2.0f, 0.5f, 0.0f,
+	  0.5f, -0.5f, 0.0f, 0.0f
+	};
+
 	const float x2 = m_fraction;		// x
 	const float x1 = x2*x2;          // x^2
 	const float x0 = x1*x2;          // x^3
 
-	float y0 = _coeffs[0] * x0 + _coeffs[1] * x1 + _coeffs[2] * x2 + _coeffs[3];
-	float y1 = _coeffs[4] * x0 + _coeffs[5] * x1 + _coeffs[6] * x2 + _coeffs[7];
-	float y2 = _coeffs[8] * x0 + _coeffs[9] * x1 + _coeffs[10] * x2 + _coeffs[11];
-	float y3 = _coeffs[12] * x0 + _coeffs[13] * x1 + _coeffs[14] * x2 + _coeffs[15];
+	float y0 = cubic_coef[0] * x0 + cubic_coef[1] * x1 + cubic_coef[2] * x2 + cubic_coef[3];
+	float y1 = cubic_coef[4] * x0 + cubic_coef[5] * x1 + cubic_coef[6] * x2 + cubic_coef[7];
+	float y2 = cubic_coef[8] * x0 + cubic_coef[9] * x1 + cubic_coef[10] * x2 + cubic_coef[11];
+	float y3 = cubic_coef[12] * x0 + cubic_coef[13] * x1 + cubic_coef[14] * x2 + cubic_coef[15];
 
 	*left_output = y0 * m_float_buffer[left_input_index & INDEX_MASK]
 		+ y1 * m_float_buffer[(left_input_index + 2) & INDEX_MASK]
@@ -70,7 +70,7 @@ void CMixer::CubicMixerFifo::Interpolate(u32 left_input_index, float* left_outpu
 		+ y3 * m_float_buffer[(left_input_index + 6) & INDEX_MASK];
 	*right_output = y0 * m_float_buffer[(left_input_index + 1) & INDEX_MASK]
 		+ y1 * m_float_buffer[(left_input_index + 3) & INDEX_MASK]
-		+ y2 * m_float_buffer[(left_input_index + 5) & INDEX_MASK] 
+		+ y2 * m_float_buffer[(left_input_index + 5) & INDEX_MASK]
 		+ y3 * m_float_buffer[(left_input_index + 7) & INDEX_MASK];
 }
 
@@ -104,7 +104,7 @@ void CMixer::MixerFifo::Mix(float* samples, u32 numSamples, bool consider_framel
 	// increment input sample position by ratio, store fraction
 	// QUESTION: do we need to check for NUM_CROSSINGS samples before we interpolate?
 	// seems to work fine as is
-	for (; current_sample < numSamples * 2 && ((write_index - read_index) & INDEX_MASK) > 0; current_sample += 2)
+	for (; current_sample < numSamples * 2 && ((write_index - read_index) & INDEX_MASK) > GetWindowSize(); current_sample += 2)
 	{
 		float l_output, r_output;
 		Interpolate(read_index, &l_output, &r_output);
@@ -168,8 +168,6 @@ u32 CMixer::Mix(s16* samples, u32 num_samples, bool consider_framelimit)
 	{
 		float r_output = m_output_buffer[i] * 32768.0f;
 		float l_output = m_output_buffer[i + 1] * 32768.0f;
-		TriangleDither(l_output, m_l_dither_prev);
-		TriangleDither(r_output, m_r_dither_prev);
 		l_output = MathUtil::Clamp(l_output, -32768.f, 32767.f);
 		r_output = MathUtil::Clamp(r_output, -32768.f, 32767.f);
 		samples[i] = s16(r_output);
