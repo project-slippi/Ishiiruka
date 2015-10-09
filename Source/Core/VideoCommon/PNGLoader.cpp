@@ -11,7 +11,6 @@
 static void PNGErrorFn(png_structp png_ptr, png_const_charp error_message)
 {
 	ERROR_LOG(VIDEO, "libpng error %s", error_message);
-	longjmp(png_ptr->jmpbuf, 1);
 }
 
 static void PNGWarnFn(png_structp png_ptr, png_const_charp error_message)
