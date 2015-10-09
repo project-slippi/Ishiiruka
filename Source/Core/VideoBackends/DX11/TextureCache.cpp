@@ -338,7 +338,7 @@ TextureCache::TCacheEntryBase* TextureCache::CreateTexture(const TCacheEntryConf
 	D3D11_USAGE usage = D3D11_USAGE_DEFAULT;
 	D3D11_CPU_ACCESS_FLAG cpu_access = (D3D11_CPU_ACCESS_FLAG)0;
 
-	if (config.levels == 1 || format == DXGI_FORMAT_B5G6R5_UNORM)
+	if ((config.levels == 1 || format == DXGI_FORMAT_B5G6R5_UNORM) && !compressed)
 	{
 		usage = D3D11_USAGE_DYNAMIC;
 		cpu_access = D3D11_CPU_ACCESS_WRITE;

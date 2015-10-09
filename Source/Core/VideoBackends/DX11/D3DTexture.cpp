@@ -15,7 +15,12 @@ namespace D3D
 inline void LoadDataMap(ID3D11Texture2D* pTexture, const u8* buffer, const s32 level, s32 width, s32 height, s32 pitch, DXGI_FORMAT fmt, bool swap_rb, bool convert_rgb565)
 {
 	D3D11_MAPPED_SUBRESOURCE map;
-	D3D::context->Map(pTexture, level, D3D11_MAP_WRITE_DISCARD, 0, &map);
+	HRESULT hr = D3D::context->Map(pTexture, level, D3D11_MAP_WRITE_DISCARD, 0, &map);
+	if (FAILED(hr) || !map.pData)
+	{
+		PanicAlert("Failed to map texture in %s %d\n", __FILE__, __LINE__);
+		return;
+	}
 	s32 pixelsize = 0;
 	switch (fmt)
 	{

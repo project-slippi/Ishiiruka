@@ -260,8 +260,10 @@ DDSCompression ImageLoader::ReadDDS(ImageLoaderParams& loader_params)
 		loader_params.data_size += block_size;
 		u32 w = ddsd.dwWidth;
 		u32 h = ddsd.dwHeight;
-		while (w > 1 || h > 1)
+		u32 level = 0;
+		while ((w > 1 || h > 1) && level < ddsd.dwMipMapCount)
 		{
+			level++;
 			w = std::max(w >> 1, 1u);
 			h = std::max(h >> 1, 1u);
 			loader_params.data_size += ((w + 3) >> 2)*((h + 3) >> 2) * block_size;
