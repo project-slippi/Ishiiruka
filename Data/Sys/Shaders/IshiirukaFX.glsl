@@ -1,5 +1,5 @@
 /*===============================================================================*\
-|########################        [Ishiiruka FX 0.5]        ######################||
+|########################        [Ishiiruka FX 0.6]        ######################||
 || Credist to:                                                                   ||
 || Asmodean (DolphinFX)                                                          ||
 || Matso (MATSODOF)                                                              ||
@@ -395,8 +395,8 @@ DefaultValue = true
 GUIName = Bloom Width
 OptionName = A_BLOOMWIDTH
 MinValue = 1.0
-MaxValue = 3.0
-StepAmount = 0.001
+MaxValue = 2.0
+StepAmount = 0.01
 DefaultValue = 3.0
 DependentOption = D_BLOOM
 
@@ -450,15 +450,7 @@ DependentOption = A_SSAO_ENABLED,A_SSGI_ENABLED
 [Stage]
 EntryPoint = Merger
 [Stage]
-EntryPoint = BloomR
-DependentOption = D_BLOOM
-OutputScale = 0.25
-[Stage]
-EntryPoint = BloomH
-DependentOption = D_BLOOM
-OutputScale = 0.25
-[Stage]
-EntryPoint = BloomR
+EntryPoint = ReduceSize
 DependentOption = D_BLOOM
 OutputScale = 0.25
 [Stage]
@@ -468,7 +460,19 @@ OutputScale = 0.25
 [Stage]
 EntryPoint = BloomV
 DependentOption = D_BLOOM
-Inputs = 4, 2
+OutputScale = 0.25
+[Stage]
+EntryPoint = BloomH
+DependentOption = D_BLOOM
+OutputScale = 0.25
+[Stage]
+EntryPoint = BloomV
+DependentOption = D_BLOOM
+OutputScale = 0.25
+[Stage]
+EntryPoint = BloomMerger
+DependentOption = D_BLOOM
+Inputs = 7, 2
 [Stage]
 EntryPoint = PS_DOF_MatsoDOF1
 DependentOption = MATSODOF
@@ -690,7 +694,7 @@ float4 SSAO()
 			if (fDepthDelta > GetOption(F_MIN_DEPTH) && fDepthDelta < GetOption(E_MAX_DEPTH))
 			{
 #if A_SSAO_SSGI_ENABLED == 1
-				Occlusion.rgb += SampleLocation(location);
+				Occlusion.rgb += SampleLocation(location).rgb;
 #endif
 				fAO += pow(1 - fDepthDelta, 2.5);
 			}
@@ -1155,34 +1159,50 @@ float4 Gauss1dPrev(float2 location, float2 baseoffset)
 {
 	const float offset[] = { 0, 1.4, 4459.0 / 1365.0, 539.0 / 105.0 };
 	const float weight[] = { 0.20947265625, 0.30548095703125, 0.08331298828125, 0.00640869140625 };
-	float4 Color = SamplePrevLocation(location) * weight[0];
-	float4 power = float4(1, 1, 1, 1) * GetOption(B_BLOOMPOWER);
-	baseoffset *= GetInvResolution() * GetOption(A_BLOOMWIDTH);
+	float4 Color = SamplePrevLocation(location) * weight[0];	
+	baseoffset *= GetInvResolution() * 4.0 * GetOption(A_BLOOMWIDTH);
 	for (int i = 1; i < 4; i++)
 	{
 		float4 color0 = SamplePrevLocation(location + offset[i] * baseoffset);
 		float4 color1 = SamplePrevLocation(location - offset[i] * baseoffset);
-		Color += (pow(color0, power) + pow(color1, power)) * weight[i];
+		Color += (color0 + color1) * weight[i];
 	}
 	return Color;
 }
 
-void BloomR()
+void ReduceSize()
 {
+	float3 power = float3(1, 1, 1) * GetOption(B_BLOOMPOWER);
 	float2 texcoord = GetCoordinates();
-	SetOutput(Gauss1dPrev(texcoord, float2(1.0, 0.0)));
+	float3 sceneLighting = SamplePrevLocation(float2(0.25, 0.25)).rgb;
+	sceneLighting += SamplePrevLocation(float2(0.5, 0.25)).rgb;
+	sceneLighting += SamplePrevLocation(float2(0.75, 0.25)).rgb;
+	sceneLighting += SamplePrevLocation(float2(0.25, 0.5)).rgb;	
+	sceneLighting += SamplePrevLocation(float2(0.75, 0.5)).rgb;
+	sceneLighting += SamplePrevLocation(float2(0.25, 0.75)).rgb;
+	sceneLighting += SamplePrevLocation(float2(0.5, 0.75)).rgb;
+	sceneLighting += SamplePrevLocation(float2(0.75, 0.75)).rgb;
+	sceneLighting *= 0.125;
+	sceneLighting = (1.0 + (1.0 - GetOption(B_BLOOMINTENSITY)) * 7.0) * sceneLighting * sceneLighting;
+	SetOutput(float4(pow(SamplePrev().rgb, power), dot(sceneLighting, lumCoeff)));
 }
 
 void BloomH()
 {
 	float2 texcoord = GetCoordinates();
-	SetOutput(Gauss1dPrev(texcoord, float2(0.0, 1.0)));
+	SetOutput(Gauss1dPrev(texcoord, float2(1.0, 0.0)));
 }
 
 void BloomV()
 {
+	float2 texcoord = GetCoordinates();
+	SetOutput(Gauss1dPrev(texcoord, float2(0.0, 1.0)));
+}
+
+void BloomMerger()
+{
 	float4 blur = SamplePrev();
-	SetOutput(SamplePrev(1) + (blur * GetOption(B_BLOOMINTENSITY)));
+	SetOutput(float4(SamplePrev(1).rgb + (blur.rgb * (1.0 - blur.a)), 1.0));
 }
 
 //------------------------------------------------------------------------------
