@@ -32,7 +32,7 @@ struct geometry_shader_uid_data
 #define I_LINEPTPARAMS  "clinept"
 #define I_TEXOFFSET     "ctexoffset"
 
-#define GEOMETRYSHADERGEN_BUFFERSIZE 16768
+#define GEOMETRYSHADERGEN_BUFFERSIZE 32768
 typedef ShaderUid<geometry_shader_uid_data> GeometryShaderUid;
 
 void GenerateGeometryShaderCode(ShaderCode& object, u32 primitive_type, API_TYPE ApiType, const XFMemory &xfr);

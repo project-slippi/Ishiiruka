@@ -461,22 +461,25 @@ inline void GeneratePixelShader(T& out, DSTALPHA_MODE dstAlphaMode, u32 componen
 		if (ApiType == API_OPENGL)
 		{
 			// Declare samplers
-			for (u32 i = 0; i < samplercount; ++i)
-				out.Write("SAMPLER_BINDING(%d) uniform sampler2DArray samp%d;\n", i, i);
+			out.Write("SAMPLER_BINDING(0) uniform sampler2DArray samp[%d];\n", samplercount);
 		}
 		else
 		{
 			// Declare samplers
-			for (u32 i = 0; i < 8; ++i)
-				out.Write("%s samp%d : register(s%d);\n", (ApiType == API_D3D11) ? "sampler" : "uniform sampler2D", i, i);
+			if (ApiType == API_D3D11)
+			{
+				out.Write("SamplerState samp[8] : register(s0);\n");
+			}
+			else
+			{
+				out.Write("uniform sampler2D samp[8] : register(s0);\n");
+			}
+			
 
 			if (ApiType == API_D3D11)
 			{
 				out.Write("\n");
-				for (u32 i = 0; i < samplercount; ++i)
-				{
-					out.Write("Texture2DArray Tex%d : register(t%d);\n", i, i);
-				}
+				out.Write("Texture2DArray Tex[%d] : register(t0);\n", samplercount);
 			}
 		}
 		out.Write("\n");
@@ -1722,11 +1725,11 @@ void SampleTextureRAW(T& out, const char *texcoords, const char *texswap, const 
 {
 	if (ApiType == API_D3D11)
 	{
-		out.Write("Tex%d.Sample(samp%d, float3(%s.xy * " I_TEXDIMS"[%d].xy, %s)).%s;\n", 8 + texmap, texmap, texcoords, texmap, layer, texswap);
+		out.Write("Tex[%d].Sample(samp[%d], float3(%s.xy * " I_TEXDIMS"[%d].xy, %s)).%s;\n", 8 + texmap, texmap, texcoords, texmap, layer, texswap);
 	}
 	else
 	{
-		out.Write("texture(samp%d,float3(%s.xy * " I_TEXDIMS"[%d].xy, %s)).%s;\n", 8 + texmap, texcoords, texmap, layer, texswap);
+		out.Write("texture(samp[%d],float3(%s.xy * " I_TEXDIMS"[%d].xy, %s)).%s;\n", 8 + texmap, texcoords, texmap, layer, texswap);
 	}
 }
 
@@ -1735,15 +1738,15 @@ void SampleTexture(T& out, const char *texcoords, const char *texswap, int texma
 {
 	if (ApiType == API_D3D11)
 	{
-		out.Write("wuround((Tex%d.Sample(samp%d, float3(%s.xy * " I_TEXDIMS"[%d].xy, %s))).%s * 255.0);\n", texmap, texmap, texcoords, texmap, g_ActiveConfig.iStereoMode > 0 ? "layer" : "0.0", texswap);
+		out.Write("wuround((Tex[%d].Sample(samp[%d], float3(%s.xy * " I_TEXDIMS"[%d].xy, %s))).%s * 255.0);\n", texmap, texmap, texcoords, texmap, g_ActiveConfig.iStereoMode > 0 ? "layer" : "0.0", texswap);
 	}
 	else if (ApiType == API_OPENGL)
 	{
-		out.Write("wuround(texture(samp%d,float3(%s.xy * " I_TEXDIMS"[%d].xy, %s)).%s * 255.0);\n", texmap, texcoords, texmap, g_ActiveConfig.iStereoMode > 0 ? "layer" : "0.0", texswap);
+		out.Write("wuround(texture(samp[%d],float3(%s.xy * " I_TEXDIMS"[%d].xy, %s)).%s * 255.0);\n", texmap, texcoords, texmap, g_ActiveConfig.iStereoMode > 0 ? "layer" : "0.0", texswap);
 	}
 	else
 	{
-		out.Write("wuround(tex2D(samp%d,%s.xy * " I_TEXDIMS"[%d].xy).%s * 255.0);\n", texmap, texcoords, texmap, texswap);
+		out.Write("wuround(tex2D(samp[%d],%s.xy * " I_TEXDIMS"[%d].xy).%s * 255.0);\n", texmap, texcoords, texmap, texswap);
 	}
 }
 

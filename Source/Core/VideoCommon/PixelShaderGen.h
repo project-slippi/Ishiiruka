@@ -152,7 +152,7 @@ struct pixel_shader_uid_data
 	}
 };
 #pragma pack()
-#define PIXELSHADERGEN_BUFFERSIZE 16768
+#define PIXELSHADERGEN_BUFFERSIZE 32768
 typedef ShaderUid<pixel_shader_uid_data> PixelShaderUid;
 
 void GetPixelShaderUidD3D9(PixelShaderUid& object, DSTALPHA_MODE dstAlphaMode, u32 components, const XFMemory &xfr, const BPMemory &bpm);

@@ -84,7 +84,7 @@ struct vertex_shader_uid_data
 	LightingUidData lighting;
 };
 #pragma pack()
-#define VERTEXSHADERGEN_BUFFERSIZE 16768
+#define VERTEXSHADERGEN_BUFFERSIZE 32768
 typedef ShaderUid<vertex_shader_uid_data> VertexShaderUid;
 
 void GetVertexShaderUidD3D9(VertexShaderUid& object, u32 components, const XFMemory &xfr, const BPMemory &bpm);
