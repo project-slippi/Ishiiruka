@@ -395,7 +395,7 @@ DefaultValue = true
 GUIName = Bloom Width
 OptionName = A_BLOOMWIDTH
 MinValue = 1.0
-MaxValue = 2.0
+MaxValue = 1.5
 StepAmount = 0.01
 DefaultValue = 3.0
 DependentOption = D_BLOOM
@@ -405,7 +405,7 @@ GUIName = Bloom Power
 OptionName = B_BLOOMPOWER
 MinValue = 1.0
 MaxValue = 8.0
-StepAmount = 0.001
+StepAmount = 0.1
 DefaultValue = 3.0
 DependentOption = D_BLOOM
 
@@ -414,7 +414,7 @@ GUIName = Bloom Intensity
 OptionName = B_BLOOMINTENSITY
 MinValue = 0.5
 MaxValue = 1.0
-StepAmount = 0.001
+StepAmount = 0.01
 DefaultValue = 1.0
 DependentOption = D_BLOOM
 
@@ -1174,14 +1174,14 @@ void ReduceSize()
 {
 	float3 power = float3(1, 1, 1) * GetOption(B_BLOOMPOWER);
 	float2 texcoord = GetCoordinates();
-	float3 sceneLighting = SamplePrevLocation(float2(0.25, 0.25)).rgb;
-	sceneLighting += SamplePrevLocation(float2(0.5, 0.25)).rgb;
-	sceneLighting += SamplePrevLocation(float2(0.75, 0.25)).rgb;
-	sceneLighting += SamplePrevLocation(float2(0.25, 0.5)).rgb;	
-	sceneLighting += SamplePrevLocation(float2(0.75, 0.5)).rgb;
-	sceneLighting += SamplePrevLocation(float2(0.25, 0.75)).rgb;
-	sceneLighting += SamplePrevLocation(float2(0.5, 0.75)).rgb;
-	sceneLighting += SamplePrevLocation(float2(0.75, 0.75)).rgb;
+	float3 sceneLighting = SamplePrevLocation(texcoord + float2(-0.25, -0.25)).rgb;
+	sceneLighting += SamplePrevLocation(texcoord + float2(0.0, -0.25)).rgb;
+	sceneLighting += SamplePrevLocation(texcoord + float2(0.25, -0.25)).rgb;
+	sceneLighting += SamplePrevLocation(texcoord + float2(-0.25, 0.0)).rgb;
+	sceneLighting += SamplePrevLocation(texcoord + float2(0.25, 0.0)).rgb;
+	sceneLighting += SamplePrevLocation(texcoord + float2(-0.25, 0.25)).rgb;
+	sceneLighting += SamplePrevLocation(texcoord + float2(0.0, 0.25)).rgb;
+	sceneLighting += SamplePrevLocation(texcoord + float2(0.25, 0.25)).rgb;
 	sceneLighting *= 0.125;
 	sceneLighting = (1.0 + (1.0 - GetOption(B_BLOOMINTENSITY)) * 7.0) * sceneLighting * sceneLighting;
 	SetOutput(float4(pow(SamplePrev().rgb, power), dot(sceneLighting, lumCoeff)));
