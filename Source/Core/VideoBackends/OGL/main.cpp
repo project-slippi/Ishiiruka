@@ -150,8 +150,7 @@ static void InitBackendInfo()
 	g_Config.backend_info.Adapters.clear();
 
 	// aamodes
-	const char* caamodes[] = {_trans("None"), "2x MSAA", "4x MSAA", "8x MSAA"};
-	g_Config.backend_info.AAModes.assign(caamodes, caamodes + sizeof(caamodes)/sizeof(*caamodes));
+	g_Config.backend_info.AAModes = { _trans("None"), "2x MSAA", "4x MSAA", "8x MSAA" };
 
 	// pp shaders
 	g_Config.backend_info.PPShaders = GetShaders("");
