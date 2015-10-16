@@ -707,7 +707,7 @@ TextureCache::TCacheEntryBase* TextureCache::Load(const u32 stage)
 	config.levels = texLevels;
 	config.pcformat = pcfmt;
 	config.materialmap = hires_tex && hires_tex->m_nrm_levels && g_ActiveConfig.HiresMaterialMapsEnabled();
-	if (g_ActiveConfig.iTexScalingType && !hires_tex)
+	if (g_ActiveConfig.iTexScalingType > 0 && !hires_tex && width < 384 && height < 384)
 	{
 		config.width *= g_ActiveConfig.iTexScalingFactor;
 		config.height *= g_ActiveConfig.iTexScalingFactor;

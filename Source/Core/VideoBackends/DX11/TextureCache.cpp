@@ -194,7 +194,16 @@ void TextureCache::TCacheEntry::LoadMaterialMap(const u8* src, u32 width, u32 he
 void TextureCache::TCacheEntry::Load(const u8* src, u32 width, u32 height, u32 expandedWidth,
 	u32 expandedHeight, const s32 texformat, const u32 tlutaddr, const TlutFormat tlutfmt, u32 level)
 {
-	bool need_cpu_decode = g_ActiveConfig.iTexScalingType > 0;
+	u32 scaled_width = width;
+	u32 scaled_height = height;
+	bool use_scaling = g_ActiveConfig.iTexScalingType > 0;
+	if (use_scaling)
+	{
+		scaled_width *= g_ActiveConfig.iTexScalingFactor;
+		scaled_height *= g_ActiveConfig.iTexScalingFactor;
+		use_scaling = config.width == scaled_width && config.height == scaled_height;
+	}
+	bool need_cpu_decode = use_scaling;
 
 	if (!need_cpu_decode)
 	{
@@ -220,7 +229,7 @@ void TextureCache::TCacheEntry::Load(const u8* src, u32 width, u32 height, u32 e
 			PC_TEX_FMT_RGBA32 == config.pcformat,
 			compressed);
 		u8* data = TextureCache::temp;
-		if (g_ActiveConfig.iTexScalingType)
+		if (use_scaling)
 		{
 			data = (u8*)s_scaler->Scale((u32*)data, expandedWidth, height);
 			width *= g_ActiveConfig.iTexScalingFactor;
@@ -243,7 +252,16 @@ void TextureCache::TCacheEntry::Load(const u8* src, u32 width, u32 height, u32 e
 void TextureCache::TCacheEntry::LoadFromTmem(const u8* ar_src, const u8* gb_src, u32 width, u32 height,
 	u32 expanded_width, u32 expanded_Height, u32 level)
 {
-	bool need_cpu_decode = g_ActiveConfig.iTexScalingType > 0;
+	u32 scaled_width = width;
+	u32 scaled_height = height;	
+	bool use_scaling = g_ActiveConfig.iTexScalingType > 0;
+	if (use_scaling)
+	{
+		scaled_width *= g_ActiveConfig.iTexScalingFactor;
+		scaled_height *= g_ActiveConfig.iTexScalingFactor;
+		use_scaling = config.width == scaled_width && config.height == scaled_height;
+	}
+	bool need_cpu_decode = use_scaling;
 
 	if (!need_cpu_decode)
 	{
@@ -258,11 +276,11 @@ void TextureCache::TCacheEntry::LoadFromTmem(const u8* ar_src, const u8* gb_src,
 			expanded_width,
 			expanded_Height);
 		u8* data = TextureCache::temp;
-		if (g_ActiveConfig.iTexScalingType)
+		if (use_scaling)
 		{
 			data = (u8*)s_scaler->Scale((u32*)data, expanded_width, height);
-			width *= g_ActiveConfig.iTexScalingFactor;
-			height *= g_ActiveConfig.iTexScalingFactor;
+			width = scaled_width;
+			height = scaled_height;
 			expanded_width *= g_ActiveConfig.iTexScalingFactor;
 		}
 		D3D::ReplaceTexture2D(
