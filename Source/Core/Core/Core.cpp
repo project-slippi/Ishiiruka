@@ -74,12 +74,10 @@
 #define ThreadLocalStorage __thread
 #endif
 
-// TODO: ugly, remove
-bool g_aspect_wide;
-
 namespace Core
 {
-
+// TODO: ugly, remove
+bool g_aspect_wide;
 bool g_want_determinism;
 
 // Declarations and definitions

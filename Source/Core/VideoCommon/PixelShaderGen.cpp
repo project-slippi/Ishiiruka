@@ -354,9 +354,9 @@ inline void GeneratePixelShader(T& out, DSTALPHA_MODE dstAlphaMode, u32 componen
 		out.ClearUID();
 	}
 
-	u32 numStages = bpm.genMode.numtevstages + 1;
-	u32 numTexgen = bpm.genMode.numtexgens;
-	u32 numindStages = bpm.genMode.numindstages;
+	u32 numStages = bpm.genMode.numtevstages.Value() + 1;
+	u32 numTexgen = bpm.genMode.numtexgens.Value();
+	u32 numindStages = bpm.genMode.numindstages.Value();
 	const AlphaTest::TEST_RESULT Pretest = bpm.alpha_test.TestResult();
 	const bool forced_early_z = g_ActiveConfig.backend_info.bSupportsEarlyZ
 		&& bpm.UseEarlyDepthTest()
@@ -578,9 +578,27 @@ inline void GeneratePixelShader(T& out, DSTALPHA_MODE dstAlphaMode, u32 componen
 			}
 			if (forced_early_z)
 			{
-				// HACK: This doesn't force the driver to write to depth buffer if alpha test fails.
-				// It just allows it, but it seems that all drivers do.
-				out.Write("layout(early_fragment_tests) in;\n");
+				// OpenGL 4.2 actually provides two extensions which can force an early z test:
+				//  * ARB_image_load_store has 'layout(early_fragment_tests)' which forces the driver to do z and stencil tests early.
+				//  * ARB_conservative_depth has 'layout(depth_unchanged) which signals to the driver that it can make optimisations
+				//    which assume the pixel shader won't update the depth buffer.
+
+				// early_fragment_tests is the best option, as it requires the driver to do early-z and defines early-z excatly as
+				// we expect, with discard causing the shader to exit with only the depth buffer updated.
+
+				// Conservative depth's 'depth_unchanged' only hints to the driver that an early-z optimistaion can be made and
+				// doesn't define what will happen if we discard the fragment. But the way modern graphics hardware is implemented
+				// means it is not unreasonable to expect the the same behaviour as early_fragment_tests.
+				// We can also assume that if a driver has gone out of it's way to support conservative depth and not image_load_store
+				// as required by OpenGL 4.2 that it will be doing the optimisation.
+				// If the driver doesn't actually do an early z optimisation, ZCompLoc will be broken and depth will only be written
+				// if the alpha test passes.
+
+				// We support Conservative as a fallback, because many drivers based on Mesa haven't implemented all of the
+				// ARB_image_load_store extension yet.
+
+				// This is a #define which signals whatever early-z method the driver supports.
+				out.Write("FORCE_EARLY_Z; \n");
 			}
 			out.Write("void main()\n{\n");
 			if (numTexgen >= 7)
@@ -1074,8 +1092,8 @@ template<class T, API_TYPE ApiType, bool use_integer_math>
 static inline void WriteFetchStageTexture(T& out, int n, const bool LoadMaterial, const char swapModeTable[4][5], const BPMemory &bpm)
 {
 	int texcoord = bpm.tevorders[n / 2].getTexCoord(n & 1);
-	bool bHasTexCoord = (u32)texcoord < bpm.genMode.numtexgens;
-	bool bHasIndStage = bpm.tevind[n].bt < bpm.genMode.numindstages;
+	bool bHasTexCoord = (u32)texcoord < bpm.genMode.numtexgens.Value();
+	bool bHasIndStage = bpm.tevind[n].bt < bpm.genMode.numindstages.Value();
 	// HACK to handle cases where the tex gen is not enabled
 	if (!bHasTexCoord)
 		texcoord = 0;
@@ -1311,8 +1329,8 @@ template<class T, bool Write_Code, API_TYPE ApiType, bool use_integer_math>
 static inline void WriteStage(T& out, pixel_shader_uid_data& uid_data, int n, const char swapModeTable[4][5], const BPMemory &bpm)
 {
 	int texcoord = bpm.tevorders[n / 2].getTexCoord(n & 1);
-	bool bHasTexCoord = (u32)texcoord < bpm.genMode.numtexgens;
-	bool bHasIndStage = bpm.tevind[n].bt < bpm.genMode.numindstages;
+	bool bHasTexCoord = (u32)texcoord < bpm.genMode.numtexgens.Value();
+	bool bHasIndStage = bpm.tevind[n].bt < bpm.genMode.numindstages.Value();
 	// HACK to handle cases where the tex gen is not enabled
 	if (!bHasTexCoord)
 		texcoord = 0;

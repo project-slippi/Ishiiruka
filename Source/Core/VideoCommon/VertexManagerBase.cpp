@@ -194,7 +194,7 @@ void VertexManager::Flush()
 			xfmem.postMtxInfo[i].index, xfmem.postMtxInfo[i].normalize);
 	}
 
-	PRIM_LOG("pixel: tev=%d, ind=%d, texgen=%d, dstalpha=%d, alphatest=0x%x", (int)bpmem.genMode.numtevstages + 1, (int)bpmem.genMode.numindstages,
+	PRIM_LOG("pixel: tev=%d, ind=%d, texgen=%d, dstalpha=%d, alphatest=0x%x", (int)bpmem.genMode.numtevstages + 1, (int)bpmem.genMode.numindstages.Value(),
 		(int)bpmem.genMode.numtexgens, (u32)bpmem.dstalpha.enable, (bpmem.alpha_test.hex >> 16) & 0xff);
 #endif
 
@@ -203,9 +203,9 @@ void VertexManager::Flush()
 		if (bpmem.tevorders[i / 2].getEnable(i & 1))
 			usedtextures |= 1 << bpmem.tevorders[i / 2].getTexMap(i & 1);
 
-	if (bpmem.genMode.numindstages > 0)
+	if (bpmem.genMode.numindstages.Value() > 0)
 		for (u32 i = 0; i < bpmem.genMode.numtevstages + 1u; ++i)
-			if (bpmem.tevind[i].IsActive() && bpmem.tevind[i].bt < bpmem.genMode.numindstages)
+			if (bpmem.tevind[i].IsActive() && bpmem.tevind[i].bt < bpmem.genMode.numindstages.Value())
 				usedtextures |= 1 << bpmem.tevindref.getTexMap(bpmem.tevind[i].bt);
 
 	TextureCache::UnbindTextures();

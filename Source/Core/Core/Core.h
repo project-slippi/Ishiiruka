@@ -16,12 +16,10 @@
 
 #include "Common/CommonTypes.h"
 
-// TODO: ugly, remove
-extern bool g_aspect_wide;
-
 namespace Core
 {
-
+// TODO: ugly, remove
+extern bool g_aspect_wide;
 extern bool g_want_determinism;
 
 bool GetIsFramelimiterTempDisabled();

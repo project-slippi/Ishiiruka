@@ -103,7 +103,7 @@ static s32 GetMaxTextureLod(u32 texmap)
 
 void DumpActiveTextures()
 {
-	for (unsigned int stageNum = 0; stageNum < bpmem.genMode.numindstages; stageNum++)
+	for (unsigned int stageNum = 0; stageNum < bpmem.genMode.numindstages.Value(); stageNum++)
 	{
 		u32 texmap = bpmem.tevindref.getTexMap(stageNum);
 

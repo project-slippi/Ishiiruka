@@ -265,7 +265,7 @@ void VertexShaderManager::SetConstants()
 	{
 		int startn = nTransformMatricesChanged[0] / 4;
 		int endn = (nTransformMatricesChanged[1] + 3) / 4;
-		const float* pstart = (const float*)&xfmem.posMatrices[startn * 4];
+		const float* pstart = &xfmem.posMatrices[startn * 4];
 		m_buffer.SetMultiConstant4v(C_TRANSFORMMATRICES + startn, endn - startn, pstart);
 		nTransformMatricesChanged[0] = nTransformMatricesChanged[1] = -1;
 	}
@@ -274,7 +274,7 @@ void VertexShaderManager::SetConstants()
 	{
 		int startn = nNormalMatricesChanged[0] / 3;
 		int endn = (nNormalMatricesChanged[1] + 2) / 3;
-		const float *pnstart = (const float*)&xfmem.normalMatrices[3 * startn];
+		const float* pnstart = &xfmem.normalMatrices[3 * startn];
 		m_buffer.SetMultiConstant3v(C_NORMALMATRICES + startn, endn - startn, pnstart);
 		nNormalMatricesChanged[0] = nNormalMatricesChanged[1] = -1;
 	}
@@ -283,7 +283,7 @@ void VertexShaderManager::SetConstants()
 	{
 		int startn = nPostTransformMatricesChanged[0] / 4;
 		int endn = (nPostTransformMatricesChanged[1] + 3) / 4;
-		const float* pstart = (const float*)&xfmem.postMatrices[startn * 4];
+		const float* pstart = &xfmem.postMatrices[startn * 4];
 		m_buffer.SetMultiConstant4v(C_POSTTRANSFORMMATRICES + startn, endn - startn, pstart);
 		nPostTransformMatricesChanged[0] = nPostTransformMatricesChanged[1] = -1;
 	}
@@ -361,19 +361,19 @@ void VertexShaderManager::SetConstants()
 	if (bTexMatricesChanged[0])
 	{
 		bTexMatricesChanged[0] = false;
-		m_buffer.SetMultiConstant4v(C_TEXMATRICES + 3 * 0, 3, (const float *)xfmem.posMatrices + g_main_cp_state.matrix_index_a.Tex0MtxIdx * 4);
-		m_buffer.SetMultiConstant4v(C_TEXMATRICES + 3 * 1, 3, (const float *)xfmem.posMatrices + g_main_cp_state.matrix_index_a.Tex1MtxIdx * 4);
-		m_buffer.SetMultiConstant4v(C_TEXMATRICES + 3 * 2, 3, (const float *)xfmem.posMatrices + g_main_cp_state.matrix_index_a.Tex2MtxIdx * 4);
-		m_buffer.SetMultiConstant4v(C_TEXMATRICES + 3 * 3, 3, (const float *)xfmem.posMatrices + g_main_cp_state.matrix_index_a.Tex3MtxIdx * 4);
+		m_buffer.SetMultiConstant4v(C_TEXMATRICES + 3 * 0, 3, xfmem.posMatrices + g_main_cp_state.matrix_index_a.Tex0MtxIdx * 4);
+		m_buffer.SetMultiConstant4v(C_TEXMATRICES + 3 * 1, 3, xfmem.posMatrices + g_main_cp_state.matrix_index_a.Tex1MtxIdx * 4);
+		m_buffer.SetMultiConstant4v(C_TEXMATRICES + 3 * 2, 3, xfmem.posMatrices + g_main_cp_state.matrix_index_a.Tex2MtxIdx * 4);
+		m_buffer.SetMultiConstant4v(C_TEXMATRICES + 3 * 3, 3, xfmem.posMatrices + g_main_cp_state.matrix_index_a.Tex3MtxIdx * 4);
 	}
 
 	if (bTexMatricesChanged[1])
 	{
 		bTexMatricesChanged[1] = false;
-		m_buffer.SetMultiConstant4v(C_TEXMATRICES + 3 * 0 + 12, 3, (const float *)xfmem.posMatrices + g_main_cp_state.matrix_index_b.Tex4MtxIdx * 4);
-		m_buffer.SetMultiConstant4v(C_TEXMATRICES + 3 * 1 + 12, 3, (const float *)xfmem.posMatrices + g_main_cp_state.matrix_index_b.Tex5MtxIdx * 4);
-		m_buffer.SetMultiConstant4v(C_TEXMATRICES + 3 * 2 + 12, 3, (const float *)xfmem.posMatrices + g_main_cp_state.matrix_index_b.Tex6MtxIdx * 4);
-		m_buffer.SetMultiConstant4v(C_TEXMATRICES + 3 * 3 + 12, 3, (const float *)xfmem.posMatrices + g_main_cp_state.matrix_index_b.Tex7MtxIdx * 4);
+		m_buffer.SetMultiConstant4v(C_TEXMATRICES + 3 * 0 + 12, 3, xfmem.posMatrices + g_main_cp_state.matrix_index_b.Tex4MtxIdx * 4);
+		m_buffer.SetMultiConstant4v(C_TEXMATRICES + 3 * 1 + 12, 3, xfmem.posMatrices + g_main_cp_state.matrix_index_b.Tex5MtxIdx * 4);
+		m_buffer.SetMultiConstant4v(C_TEXMATRICES + 3 * 2 + 12, 3, xfmem.posMatrices + g_main_cp_state.matrix_index_b.Tex6MtxIdx * 4);
+		m_buffer.SetMultiConstant4v(C_TEXMATRICES + 3 * 3 + 12, 3, xfmem.posMatrices + g_main_cp_state.matrix_index_b.Tex7MtxIdx * 4);
 	}
 
 	if (bViewportChanged)
@@ -455,9 +455,9 @@ void VertexShaderManager::SetConstants()
 			{
 				bool viewport_is_4_3 = AspectIs4_3(xfmem.viewport.wd, xfmem.viewport.ht);
 				if (AspectIs16_9(rawProjection[2], rawProjection[0]) && viewport_is_4_3)
-					g_aspect_wide = true; // Projection is 16:9 and viewport is 4:3, we are rendering an anamorphic widescreen picture
+					Core::g_aspect_wide = true; // Projection is 16:9 and viewport is 4:3, we are rendering an anamorphic widescreen picture
 				else if (AspectIs4_3(rawProjection[2], rawProjection[0]) && viewport_is_4_3)
-					g_aspect_wide = false; // Project and viewports are both 4:3, we are rendering a normal image.
+					Core::g_aspect_wide = false; // Project and viewports are both 4:3, we are rendering a normal image.
 			}
 
 			SETSTAT_FT(stats.gproj_0, g_fProjectionMatrix[0]);
@@ -732,7 +732,7 @@ void VertexShaderManager::TransformToClipSpace(const u8* data, const PortableVer
 	pos[2] = vtx_dcl.position.components == 3 ? possrc[2] : 0;
 
 	const int mtx_idx = *((const u32*)(data + vtx_dcl.posmtx.offset));
-	const float *world_matrix = ((const float *)xfmem.posMatrices) + mtx_idx * 4;
+	const float *world_matrix = xfmem.posMatrices + mtx_idx * 4;
 	const float *proj_matrix = &g_fProjectionMatrix[0];
 	float t[3];
 	t[0] = pos[0] * world_matrix[0] + pos[1] * world_matrix[1] + pos[2] * world_matrix[2] + world_matrix[3];

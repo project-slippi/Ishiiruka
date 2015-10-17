@@ -511,7 +511,7 @@ void Tev::Draw()
 
 	INCSTAT(swstats.thisFrame.tevPixelsIn);
 
-	for (unsigned int stageNum = 0; stageNum < bpmem.genMode.numindstages; stageNum++)
+	for (unsigned int stageNum = 0; stageNum < bpmem.genMode.numindstages.Value(); stageNum++)
 	{
 		int stageNum2 = stageNum >> 1;
 		int stageOdd = stageNum&1;
@@ -786,7 +786,7 @@ void Tev::Draw()
 #if ALLOW_TEV_DUMPS
 	if (g_SWVideoConfig.bDumpTevStages)
 	{
-		for (u32 i = 0; i < bpmem.genMode.numindstages; ++i)
+		for (u32 i = 0; i < bpmem.genMode.numindstages.Value(); ++i)
 			DebugUtil::CopyTempBuffer(Position[0], Position[1], INDIRECT, i, "Indirect");
 		for (u32 i = 0; i <= bpmem.genMode.numtevstages; ++i)
 			DebugUtil::CopyTempBuffer(Position[0], Position[1], DIRECT, i, "Stage");

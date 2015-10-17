@@ -155,7 +155,7 @@ void BPWritten(const BPCmd& bp)
 		PRIM_LOG("genmode: texgen=%d, col=%d, multisampling=%d, tev=%d, cullmode=%d, ind=%d, zfeeze=%d",
 			(u32)bpmem.genMode.numtexgens, (u32)bpmem.genMode.numcolchans,
 			(u32)bpmem.genMode.multisampling, (u32)bpmem.genMode.numtevstages + 1, (u32)bpmem.genMode.cullmode,
-			(u32)bpmem.genMode.numindstages, (u32)bpmem.genMode.zfreeze);
+			(u32)bpmem.genMode.numindstages.Value(), (u32)bpmem.genMode.zfreeze);
 
 		// Only call SetGenerationMode when cull mode changes.
 		if (bp.changes & 0xC000)

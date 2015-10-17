@@ -23,7 +23,7 @@
 namespace OGL
 {
 
-static const u32 UBO_LENGTH = 32*1024*1024;
+static const u32 UBO_LENGTH = 32 * 1024 * 1024;
 
 u32 ProgramShaderCache::s_ubo_buffer_size;
 s32 ProgramShaderCache::s_ubo_align;
@@ -38,34 +38,34 @@ ProgramShaderCache::PCacheEntry* ProgramShaderCache::last_entry;
 SHADERUID ProgramShaderCache::last_uid;
 UidChecker<PixelShaderUid, ShaderCode> ProgramShaderCache::pixel_uid_checker;
 UidChecker<VertexShaderUid, ShaderCode> ProgramShaderCache::vertex_uid_checker;
-UidChecker<GeometryShaderUid,ShaderCode> ProgramShaderCache::geometry_uid_checker;
+UidChecker<GeometryShaderUid, ShaderCode> ProgramShaderCache::geometry_uid_checker;
 
 static char s_glsl_header[1024] = "";
 
 static std::string GetGLSLVersionString()
 {
 	GLSL_VERSION v = g_ogl_config.eSupportedGLSLVersion;
-	switch(v)
+	switch (v)
 	{
-		case GLSLES_300:
-			return "#version 300 es";
-		case GLSLES_310:
-			return "#version 310 es";
-		case GLSLES_320:
-			return "#version 320 es";
-		case GLSL_130:
-			return "#version 130";
-		case GLSL_140:
-			return "#version 140";
-		case GLSL_150:
-			return "#version 150";
-		case GLSL_330:
-			return "#version 330";
-		case GLSL_400:
-			return "#version 400";
-		default:
-			// Shouldn't ever hit this
-			return "#version ERROR";
+	case GLSLES_300:
+		return "#version 300 es";
+	case GLSLES_310:
+		return "#version 310 es";
+	case GLSLES_320:
+		return "#version 320 es";
+	case GLSL_130:
+		return "#version 130";
+	case GLSL_140:
+		return "#version 140";
+	case GLSL_150:
+		return "#version 150";
+	case GLSL_330:
+		return "#version 330";
+	case GLSL_400:
+		return "#version 400";
+	default:
+		// Shouldn't ever hit this
+		return "#version ERROR";
 	}
 }
 
@@ -96,7 +96,7 @@ void SHADER::SetProgramVariables()
 
 			// Still need to get sampler locations since we aren't binding them statically in the shaders
 			int loc = glGetUniformLocation(glprogid, name);
-			
+
 			if (loc == -1)
 			{
 				snprintf(name, 10, "samp%d", a);
@@ -121,20 +121,20 @@ void SHADER::SetProgramBindings()
 	// Need to set some attribute locations
 	glBindAttribLocation(glprogid, SHADER_POSITION_ATTRIB, "rawpos");
 
-	glBindAttribLocation(glprogid, SHADER_POSMTX_ATTRIB,   "fposmtx");
+	glBindAttribLocation(glprogid, SHADER_POSMTX_ATTRIB, "fposmtx");
 
-	glBindAttribLocation(glprogid, SHADER_COLOR0_ATTRIB,   "color0");
-	glBindAttribLocation(glprogid, SHADER_COLOR1_ATTRIB,   "color1");
+	glBindAttribLocation(glprogid, SHADER_COLOR0_ATTRIB, "color0");
+	glBindAttribLocation(glprogid, SHADER_COLOR1_ATTRIB, "color1");
 
-	glBindAttribLocation(glprogid, SHADER_NORM0_ATTRIB,    "rawnorm0");
-	glBindAttribLocation(glprogid, SHADER_NORM1_ATTRIB,    "rawnorm1");
-	glBindAttribLocation(glprogid, SHADER_NORM2_ATTRIB,    "rawnorm2");
+	glBindAttribLocation(glprogid, SHADER_NORM0_ATTRIB, "rawnorm0");
+	glBindAttribLocation(glprogid, SHADER_NORM1_ATTRIB, "rawnorm1");
+	glBindAttribLocation(glprogid, SHADER_NORM2_ATTRIB, "rawnorm2");
 
 	for (int i = 0; i < 8; i++)
 	{
 		char attrib_name[8];
 		snprintf(attrib_name, 8, "tex%d", i);
-		glBindAttribLocation(glprogid, SHADER_TEXTURE0_ATTRIB+i, attrib_name);
+		glBindAttribLocation(glprogid, SHADER_TEXTURE0_ATTRIB + i, attrib_name);
 	}
 }
 
@@ -153,7 +153,7 @@ void ProgramShaderCache::UploadConstants()
 	if (PixelShaderManager::IsDirty() || VertexShaderManager::IsDirty() || GeometryShaderManager::IsDirty())
 	{
 		auto buffer = s_buffer->Map(s_ubo_buffer_size, s_ubo_align);
-		u8* dst = buffer.first;		
+		u8* dst = buffer.first;
 		size_t pixel_buffer_size = PixelShaderManager::ConstantBufferSize * sizeof(float);
 		memcpy(buffer.first, PixelShaderManager::GetBuffer(), pixel_buffer_size);
 		dst += ROUND_UP(pixel_buffer_size, s_ubo_align);
@@ -163,15 +163,15 @@ void ProgramShaderCache::UploadConstants()
 		memcpy(dst, &GeometryShaderManager::constants, sizeof(GeometryShaderConstants));
 
 		s_buffer->Unmap(s_ubo_buffer_size);
-		glBindBufferRange(GL_UNIFORM_BUFFER, 1, s_buffer->m_buffer, 
-			buffer.second, 
+		glBindBufferRange(GL_UNIFORM_BUFFER, 1, s_buffer->m_buffer,
+			buffer.second,
 			pixel_buffer_size);
-		glBindBufferRange(GL_UNIFORM_BUFFER, 2, s_buffer->m_buffer, 
-			buffer.second + ROUND_UP(pixel_buffer_size, s_ubo_align), 
+		glBindBufferRange(GL_UNIFORM_BUFFER, 2, s_buffer->m_buffer,
+			buffer.second + ROUND_UP(pixel_buffer_size, s_ubo_align),
 			vertex_buffer_size);
 		glBindBufferRange(GL_UNIFORM_BUFFER, 3, s_buffer->m_buffer,
 			buffer.second + ROUND_UP(pixel_buffer_size, s_ubo_align) + ROUND_UP(vertex_buffer_size, s_ubo_align),
-					sizeof(GeometryShaderConstants));
+			sizeof(GeometryShaderConstants));
 
 		PixelShaderManager::Clear();
 		VertexShaderManager::Clear();
@@ -240,7 +240,7 @@ SHADER* ProgramShaderCache::SetShader(DSTALPHA_MODE dstAlphaMode, u32 components
 	if (g_ActiveConfig.iLog & CONF_SAVESHADERS)
 	{
 		static int counter = 0;
-		std::string filename =  StringFromFormat("%svs_%04i.txt", File::GetUserPath(D_DUMP_IDX).c_str(), counter++);
+		std::string filename = StringFromFormat("%svs_%04i.txt", File::GetUserPath(D_DUMP_IDX).c_str(), counter++);
 		SaveData(filename, vcode.GetBuffer());
 
 		filename = StringFromFormat("%sps_%04i.txt", File::GetUserPath(D_DUMP_IDX).c_str(), counter++);
@@ -328,12 +328,12 @@ bool ProgramShaderCache::CompileShader(SHADER& shader, const char* vcode, const 
 		if (linkStatus != GL_TRUE)
 		{
 			PanicAlert("Failed to link shaders: %s\n"
-			           "Debug info (%s, %s, %s):\n%s",
-			           filename.c_str(),
-			           g_ogl_config.gl_vendor, g_ogl_config.gl_renderer, g_ogl_config.gl_version, infoLog);
+				"Debug info (%s, %s, %s):\n%s",
+				filename.c_str(),
+				g_ogl_config.gl_vendor, g_ogl_config.gl_renderer, g_ogl_config.gl_version, infoLog);
 		}
 
-		delete [] infoLog;
+		delete[] infoLog;
 	}
 	if (linkStatus != GL_TRUE)
 	{
@@ -377,11 +377,11 @@ GLuint ProgramShaderCache::CompileSingleShader(GLuint type, const char* code, co
 		GLsizei charsWritten;
 		GLchar* infoLog = new GLchar[length];
 		glGetShaderInfoLog(result, length, &charsWritten, infoLog);
-		ERROR_LOG(VIDEO, "%s Shader info log:\n%s", type==GL_VERTEX_SHADER ? "VS" : type==GL_FRAGMENT_SHADER ? "PS" : "GS", infoLog);
+		ERROR_LOG(VIDEO, "%s Shader info log:\n%s", type == GL_VERTEX_SHADER ? "VS" : type == GL_FRAGMENT_SHADER ? "PS" : "GS", infoLog);
 
 		std::string filename = StringFromFormat("%sbad_%s_%04i.txt",
 			File::GetUserPath(D_DUMP_IDX).c_str(),
-			type==GL_VERTEX_SHADER ? "vs" : type==GL_FRAGMENT_SHADER ? "ps" : "gs",
+			type == GL_VERTEX_SHADER ? "vs" : type == GL_FRAGMENT_SHADER ? "ps" : "gs",
 			num_failures++);
 		std::ofstream file;
 		OpenFStream(file, filename, std::ios_base::out);
@@ -391,10 +391,10 @@ GLuint ProgramShaderCache::CompileSingleShader(GLuint type, const char* code, co
 		if (compileStatus != GL_TRUE)
 		{
 			PanicAlert("Failed to compile %s shader: %s\n"
-			           "Debug info (%s, %s, %s):\n%s",
-			           type == GL_VERTEX_SHADER ? "vertex" : type==GL_FRAGMENT_SHADER ? "pixel" : "geometry",
-			           filename.c_str(),
-			           g_ogl_config.gl_vendor, g_ogl_config.gl_renderer, g_ogl_config.gl_version, infoLog);
+				"Debug info (%s, %s, %s):\n%s",
+				type == GL_VERTEX_SHADER ? "vertex" : type == GL_FRAGMENT_SHADER ? "pixel" : "geometry",
+				filename.c_str(),
+				g_ogl_config.gl_vendor, g_ogl_config.gl_renderer, g_ogl_config.gl_version, infoLog);
 		}
 
 		delete[] infoLog;
@@ -447,8 +447,8 @@ void ProgramShaderCache::Init()
 	glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &s_ubo_align);
 
 	s_ubo_buffer_size = ROUND_UP(PixelShaderManager::ConstantBufferSize * sizeof(float), s_ubo_align)
-	+ ROUND_UP(VertexShaderManager::ConstantBufferSize * sizeof(float), s_ubo_align)
-	+ ROUND_UP(sizeof(GeometryShaderConstants), s_ubo_align);
+		+ ROUND_UP(VertexShaderManager::ConstantBufferSize * sizeof(float), s_ubo_align)
+		+ ROUND_UP(sizeof(GeometryShaderConstants), s_ubo_align);
 
 	// We multiply by *4*4 because we need to get down to basic machine units.
 	// So multiply by four to get how many floats we have from vec4s
@@ -567,6 +567,23 @@ void ProgramShaderCache::CreateHeader()
 		break;
 	}
 
+	std::string earlyz_string = "";
+	if (g_ActiveConfig.backend_info.bSupportsEarlyZ)
+	{
+		if (g_ogl_config.bSupportsEarlyFragmentTests)
+		{
+			earlyz_string = "#define FORCE_EARLY_Z layout(early_fragment_tests) in\n";
+			if (!is_glsles) // GLES supports this by default
+				earlyz_string += "#extension GL_ARB_shader_image_load_store : enable\n";
+		}
+		else if (g_ogl_config.bSupportsConservativeDepth)
+		{
+			// See PixelShaderGen for details about this fallback.
+			earlyz_string = "#define FORCE_EARLY_Z layout(depth_unchanged) out float gl_FragDepth\n";
+			earlyz_string += "#extension GL_ARB_conservative_depth : enable\n";
+		}
+	}
+
 	snprintf(s_glsl_header, sizeof(s_glsl_header),
 		"%s\n"
 		"%s\n" // ubo
@@ -616,12 +633,12 @@ void ProgramShaderCache::CreateHeader()
 		"#define ddx dFdx\n"
 		"#define ddy dFdy\n"
 		"#define rsqrt inversesqrt\n"
-		
+
 
 
 		, GetGLSLVersionString().c_str()
-		, v<GLSL_140 ? "#extension GL_ARB_uniform_buffer_object : enable" : ""
-		, !is_glsles && g_ActiveConfig.backend_info.bSupportsEarlyZ ? "#extension GL_ARB_shader_image_load_store : enable" : ""
+		, v < GLSL_140 ? "#extension GL_ARB_uniform_buffer_object : enable" : ""
+		, earlyz_string.c_str()
 		, (g_ActiveConfig.backend_info.bSupportsBindingLayout && v < GLSLES_310) ? "#extension GL_ARB_shading_language_420pack : enable" : ""
 		, (g_ogl_config.bSupportsMSAA && v < GLSL_150) ? "#extension GL_ARB_texture_multisample : enable" : ""
 		, (v < GLSLES_300 && g_ActiveConfig.backend_info.bSupportsSSAA) ? "#extension GL_ARB_sample_shading : enable" : ""
@@ -630,7 +647,7 @@ void ProgramShaderCache::CreateHeader()
 		, !is_glsles && g_ActiveConfig.backend_info.bSupportsGSInstancing ? "#extension GL_ARB_gpu_shader5 : enable" : ""
 		, SupportedESPointSize.c_str()
 		, g_ogl_config.bSupportsAEP ? "#extension GL_ANDROID_extension_pack_es31a : enable" : ""
-		, v<GLSL_140 && g_ActiveConfig.backend_info.bSupportsPaletteConversion ? "#extension GL_ARB_texture_buffer_object : enable" : ""
+		, v < GLSL_140 && g_ActiveConfig.backend_info.bSupportsPaletteConversion ? "#extension GL_ARB_texture_buffer_object : enable" : ""
 		, v < GLSL_400 && g_ActiveConfig.backend_info.bSupportsSSAA ? "#extension GL_ARB_sample_shading : enable" : ""
 		, SupportedESTextureBuffer.c_str()
 		, is_glsles && g_ActiveConfig.backend_info.bSupportsDualSourceBlend ? "#extension GL_EXT_blend_func_extended : enable" : ""
@@ -639,15 +656,15 @@ void ProgramShaderCache::CreateHeader()
 		, is_glsles ? "precision highp sampler2DArray;" : ""
 		, (is_glsles && g_ActiveConfig.backend_info.bSupportsPaletteConversion) ? "precision highp usamplerBuffer;" : ""
 		, v > GLSLES_300 ? "precision highp sampler2DMS;" : ""
-	);
+		);
 }
 
 
 void ProgramShaderCache::ProgramShaderCacheInserter::Read(const SHADERUID& key, const u8* value, u32 value_size)
 {
-	const u8 *binary = value+sizeof(GLenum);
+	const u8 *binary = value + sizeof(GLenum);
 	GLenum *prog_format = (GLenum*)value;
-	GLint binary_size = value_size-sizeof(GLenum);
+	GLint binary_size = value_size - sizeof(GLenum);
 
 	PCacheEntry entry;
 	entry.in_cache = 1;

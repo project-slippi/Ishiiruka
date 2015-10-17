@@ -232,7 +232,6 @@
     <ClCompile Include="Logging\LogManager.cpp">
       <Filter>Logging</Filter>
     </ClCompile>
-    <ClCompile Include="XSaveWorkaround.cpp" />
     <ClCompile Include="GekkoDisassembler.cpp" />
     <ClCompile Include="JitRegister.cpp" />
     <ClCompile Include="TraversalClient.cpp" />
@@ -251,6 +250,7 @@
     <ClCompile Include="GL\GLInterface\GLInterface.cpp">
       <Filter>GL\GLInterface</Filter>
     </ClCompile>
+    <ClCompile Include="ucrtFreadWorkaround.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="CMakeLists.txt" />

@@ -9,7 +9,7 @@
 #include "Common/StringUtil.h"
 #include "Core/Core.h"
 #include "Common/GL/GLInterfaceBase.h"
-#include "VideoBackends/OGL/GLUtil.h"
+#include "Common/GL/GLUtil.h"
 #include "VideoBackends/Software/RasterFont.h"
 #include "VideoBackends/Software/SWCommandProcessor.h"
 #include "VideoBackends/Software/SWRenderer.h"

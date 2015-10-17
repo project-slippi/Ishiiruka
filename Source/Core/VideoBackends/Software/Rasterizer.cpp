@@ -172,13 +172,13 @@ inline void Draw(s32 x, s32 y, s32 xi, s32 yi)
 		tev.Uv[i].t = (s32)(pixel.Uv[i][1] * 128);
 	}
 
-	for (unsigned int i = 0; i < bpmem.genMode.numindstages; i++)
+	for (unsigned int i = 0; i < bpmem.genMode.numindstages.Value(); i++)
 	{
 		tev.IndirectLod[i] = rasterBlock.IndirectLod[i];
 		tev.IndirectLinear[i] = rasterBlock.IndirectLinear[i];
 	}
 
-	for (unsigned int i = 0; i <= bpmem.genMode.numtevstages; i++)
+	for (unsigned int i = 0; i <= bpmem.genMode.numtevstages.Value(); i++)
 	{
 		tev.TextureLod[i] = rasterBlock.TextureLod[i];
 		tev.TextureLinear[i] = rasterBlock.TextureLinear[i];

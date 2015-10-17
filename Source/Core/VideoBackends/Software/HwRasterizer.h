@@ -6,7 +6,7 @@
 
 #include <map>
 
-#include "VideoBackends/OGL/GLUtil.h"
+#include "Common/GL/GLUtil.h"
 #include "VideoBackends/Software/BPMemLoader.h"
 
 struct OutputVertexData;

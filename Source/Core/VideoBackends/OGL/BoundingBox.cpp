@@ -5,7 +5,6 @@
 #include "Common/GL/GLUtil.h"
 
 #include "VideoBackends/OGL/BoundingBox.h"
-#include "VideoBackends/OGL/GLUtil.h"
 
 #include "VideoCommon/VideoConfig.h"
 #include "VideoCommon/BoundingBox.h"

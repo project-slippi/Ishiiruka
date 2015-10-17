@@ -527,7 +527,9 @@ TextureCache::TCacheEntryBase* TextureCache::Load(const u32 stage)
 	while (iter != iter_range.second)
 	{
 		TCacheEntryBase* entry = iter->second;
-		if (entry->IsEfbCopy())
+		// Do not load strided EFB copies, they are not meant to be used directly
+		if (entry->IsEfbCopy() && entry->native_width == nativeW && entry->native_height == nativeH &&
+			entry->memory_stride == entry->CacheLinesPerRow() * 32)
 		{
 			// EFB copies have slightly different rules: the hash doesn't need to match
 			// in EFB2Tex mode, and EFB copy formats have different meanings from texture
@@ -566,13 +568,13 @@ TextureCache::TCacheEntryBase* TextureCache::Load(const u32 stage)
 				return ReturnEntry(stage, entry);
 			}
 		}
-		// Find the entry which hasn't been used for the longest time. Some games create
-		// animations by only changing the palette. Keeping all these textures in the cache
-		// improves the performance a lot for these games, so ignore paletted textures with
-		// the same base texture here. Example: Sonic the Fighters (inside Sonic Gems
-		// Collection) loops a 64 frames animation and some others
+		// Find the texture which hasn't been used for the longest time. Count paletted
+		// textures as the same texture here, when the texture itself is the same. This
+		// improves the performance a lot in some games that use paletted textures.
+		// Example: Sonic the Fighters (inside Sonic Gems Collection)
+		// Skip EFB copies here, so they can be used for partial texture updates
 		if (entry->frameCount != FRAMECOUNT_INVALID && entry->frameCount < temp_frameCount &&
-			!(isPaletteTexture && entry->base_hash == tex_hash))
+			!entry->IsEfbCopy() && !(isPaletteTexture && entry->base_hash == tex_hash))
 		{
 			temp_frameCount = entry->frameCount;
 			oldest_entry = iter;
