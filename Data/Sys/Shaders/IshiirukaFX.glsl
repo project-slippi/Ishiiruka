@@ -1200,7 +1200,7 @@ float4 SampleBicubic(float2 texcoord)
 	for (int m = -1; m <= 2; m++) {
 		for (int n = -1; n <= 2; n++) {
 
-			float4 Samples = SamplePrevLocation(uvCoord +
+			float4 Samples = SampleLocation(uvCoord +
 				float2(texelSizeX * float(m), texelSizeY * float(n)));
 
 			float vc1 = Cubic(float(m) - a);
