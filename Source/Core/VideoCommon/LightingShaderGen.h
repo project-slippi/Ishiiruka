@@ -64,13 +64,13 @@ static void GenerateLightShader(T& object,
 		object.Write("ldir = " LIGHT_POS".xyz - pos.xyz;\n",
 			LIGHT_POS_PARAMS(lightsName, index));
 
-		object.Write("if (dot(ldir,ldir) < 0.00001)\n\t ldir = _norm0;\n");
 		switch (chan.attnfunc)
 		{
 		case LIGHTATTN_NONE:
 		case LIGHTATTN_DIR:
 			object.Write("ldir = normalize(ldir);\n");
 			object.Write("attn = 1.0f;\n");
+			object.Write("if (length(ldir) == 0.0)\n\t ldir = _norm0;\n");
 			break;
 		case LIGHTATTN_SPEC:
 			object.Write("ldir = normalize(ldir);\n");
