@@ -387,6 +387,47 @@ DefaultValue = 1.00
 DependentOption = C_TONEMAP_PASS
 
 [OptionBool]
+GUIName = Texture Sharpen
+OptionName = G_TEXTURE_SHARPEN
+DefaultValue = false
+
+[OptionRangeFloat]
+GUIName = SharpenStrength
+OptionName = A_SHARPEN_STRENGTH
+MinValue = 0.00
+MaxValue = 2.00
+StepAmount = 0.01
+DefaultValue = 0.75
+DependentOption = G_TEXTURE_SHARPEN
+
+[OptionRangeFloat]
+GUIName = SharpenClamp
+OptionName = B_SHARPEN_CLAMP
+MinValue = 0.005
+MaxValue = 0.250
+StepAmount = 0.001
+DefaultValue = 0.012
+DependentOption = G_TEXTURE_SHARPEN
+
+[OptionRangeFloat]
+GUIName = SharpenBias
+OptionName = C_SHARPEN_BIAS
+MinValue = 1.00
+MaxValue = 4.00
+StepAmount = 0.05
+DefaultValue = 1.00
+DependentOption = G_TEXTURE_SHARPEN
+
+[OptionRangeInteger]
+GUIName = ShowEdgeMask
+OptionName = D_SEDGE_DETECTION
+MinValue = 0
+MaxValue = 1
+StepAmount = 1
+DefaultValue = 0
+DependentOption = G_TEXTURE_SHARPEN
+
+[OptionBool]
 GUIName = Bloom
 OptionName = D_BLOOM
 DefaultValue = true
@@ -1122,6 +1163,81 @@ float4 VibrancePass(float4 color)
 	return saturate(color); //Debug: return colorSaturation.xxxx;
 }
 
+/*------------------------------------------------------------------------------
+[TEXTURE SHARPEN CODE SECTION]
+------------------------------------------------------------------------------*/
+
+float Cubic(float coeff)
+{
+	float4 n = float4(1.0, 2.0, 3.0, 4.0) - coeff;
+	float4 s = n * n * n;
+
+	float x = s.x;
+	float y = s.y - 4.0 * s.x;
+	float z = s.z - 4.0 * s.y + 6.0 * s.x;
+	float w = 6.0 - x - y - z;
+
+	return (x + y + z + w) / 4.0;
+}
+
+float4 SampleBicubic(float2 texcoord)
+{
+	float2 texSize = GetResolution();
+	float texelSizeX = (1.0 / texSize.x) * GetOption(C_SHARPEN_BIAS);
+	float texelSizeY = (1.0 / texSize.y) * GetOption(C_SHARPEN_BIAS);
+
+	float4 nSum = float4(0.0, 0.0, 0.0, 0.0);
+	float4 nDenom = float4(0.0, 0.0, 0.0, 0.0);
+
+	float a = frac(texcoord.x * texSize.x);
+	float b = frac(texcoord.y * texSize.y);
+
+	int nX = int(texcoord.x * texSize.x);
+	int nY = int(texcoord.y * texSize.y);
+
+	float2 uvCoord = float2(float(nX) / texSize.x, float(nY) / texSize.y);
+
+	for (int m = -1; m <= 2; m++) {
+		for (int n = -1; n <= 2; n++) {
+
+			float4 Samples = SamplePrevLocation(uvCoord +
+				float2(texelSizeX * float(m), texelSizeY * float(n)));
+
+			float vc1 = Cubic(float(m) - a);
+			float4 vecCoeff1 = float4(vc1, vc1, vc1, vc1);
+
+			float vc2 = Cubic(-(float(n) - b));
+			float4 vecCoeff2 = float4(vc2, vc2, vc2, vc2);
+
+			nSum = nSum + (Samples * vecCoeff2 * vecCoeff1);
+			nDenom = nDenom + (vecCoeff2 * vecCoeff1);
+		}
+	}
+
+	return nSum / nDenom;
+}
+
+float4 TexSharpenPass(float4 color)
+{
+	float3 calcSharpen = lumCoeff * GetOption(A_SHARPEN_STRENGTH);
+
+	float4 blurredColor = SampleBicubic(GetCoordinates());
+	float3 sharpenedColor = (color.rgb - blurredColor.rgb);
+
+	float sharpenLuma = dot(sharpenedColor, calcSharpen);
+	sharpenLuma = clamp(sharpenLuma, -GetOption(B_SHARPEN_CLAMP), GetOption(B_SHARPEN_CLAMP));
+
+	color.rgb = color.rgb + sharpenLuma;
+	color.a = AvgLuminance(color.rgb);
+
+	if (GetOption(D_SEDGE_DETECTION) == 1)
+	{
+		color = (0.5 + (sharpenLuma * 4)).xxxx;
+	}
+
+	return color;
+}
+
 void Merger()
 {
 	float4 value = float4(1.0, 1.0, 1.0, 1.0);
@@ -1146,6 +1262,7 @@ void Merger()
 		value = gi.xyzz;
 	}
 #endif
+	if (OptionEnabled(G_TEXTURE_SHARPEN)) { value = TexSharpenPass(value); }
 	if (OptionEnabled(H_PIXEL_VIBRANCE)) { value = VibrancePass(value); }
 	if (OptionEnabled(C_TONEMAP_PASS)) { value = TonemapPass(value); }
 	SetOutput(value);
@@ -1332,3 +1449,5 @@ void FXAAPS()
 {
 	SetOutput(applyFXAA(GetCoordinates() * GetResolution()));
 }
+
+
