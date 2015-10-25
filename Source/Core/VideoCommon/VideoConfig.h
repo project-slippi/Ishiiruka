@@ -16,6 +16,7 @@
 
 #include "Common/CommonTypes.h"
 #include "VideoCommon/VideoCommon.h"
+#include "VideoCommon/XFMemory.h"
 
 // Log in two categories, and save three other options in the same byte
 #define CONF_LOG          1
@@ -87,7 +88,8 @@ struct VideoConfig final
 	void VerifyValidity();
 	void Save(const std::string& ini_file);
 	void UpdateProjectionHack();
-	bool IsVSync();
+	bool IsVSync() const;
+	bool PixelLightingEnabled(const XFMemory& xfr, const u32 components) const;
 
 	// General
 	bool bVSync;
@@ -121,6 +123,10 @@ struct VideoConfig final
 	int iTexScalingFactor;
 	std::array<StereoscopyPreset, STEREOSCOPY_PRESETS_NUM> oStereoPresets;
 	int iStereoActivePreset;
+	bool bTessellation;
+	int iTessellationMin;
+	int iTessellationMax;
+	int iTessellationRoundingIntensity;
 	// Information
 	bool bShowFPS;
 	bool bShowInputDisplay;
@@ -130,6 +136,7 @@ struct VideoConfig final
 	bool bTexFmtOverlayCenter;
 	bool bShowEFBCopyRegions;
 	bool bLogRenderTimeToFile;
+	
 
 	// Render
 	bool bWireFrame;
@@ -164,7 +171,7 @@ struct VideoConfig final
 	std::string sPhackvalue[2];
 	float fAspectRatioHackW, fAspectRatioHackH;
 	bool bEnablePixelLighting;
-	bool bForcePhongShading;
+	bool bForcePhongShading;	
 	bool bFastDepthCalc;
 	int iBBoxMode;
 	//for dx9-backend
@@ -198,7 +205,6 @@ struct VideoConfig final
 		bool bSupportsDualSourceBlend; // only supported by D3D11 and OpenGL
 		bool bSupportsPixelLighting;
 		bool bSupportsNormalMaps;
-		bool bSupportsPrimitiveRestart;
 		bool bSupportsSeparateAlphaFunction;
 		bool bSupportsBindingLayout; // needed by PixelShaderGen, so must stay in VideoCommon
 		bool bSupportsEarlyZ; // needed by PixelShaderGen, so must stay in VideoCommon
@@ -213,13 +219,15 @@ struct VideoConfig final
 		bool bSupportsPaletteConversion;
 		bool bSupportsClipControl; // Needed by VertexShaderGen, so must stay in VideoCommon		
 		bool bSupportsSSAA;
+		bool bSupportsTessellation;
 	} backend_info;
 
 	// Utility
-	bool RealXFBEnabled() const { return bUseXFB && bUseRealXFB; }
-	bool VirtualXFBEnabled() const { return bUseXFB && !bUseRealXFB; }
-	bool ExclusiveFullscreenEnabled() const { return backend_info.bSupportsExclusiveFullscreen && !bBorderlessFullscreen; }
-	bool HiresMaterialMapsEnabled() const { return backend_info.bSupportsNormalMaps && bHiresTextures && bHiresMaterialMaps; }
+	inline bool RealXFBEnabled() const { return bUseXFB && bUseRealXFB; }
+	inline bool VirtualXFBEnabled() const { return bUseXFB && !bUseRealXFB; }
+	inline bool ExclusiveFullscreenEnabled() const { return backend_info.bSupportsExclusiveFullscreen && !bBorderlessFullscreen; }
+	inline bool HiresMaterialMapsEnabled() const { return backend_info.bSupportsNormalMaps && bHiresTextures && bHiresMaterialMaps; }
+	inline bool TessellationEnabled() const { return backend_info.bSupportsTessellation && bTessellation; }
 };
 
 extern VideoConfig g_Config;

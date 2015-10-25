@@ -282,7 +282,8 @@ void XFBEncoder::Encode(u8* dst, u32 width, u32 height, const EFBRectangle& srcR
 	D3D::stateman->SetPixelShader(m_pShader.get());
 	D3D::stateman->SetVertexShader(m_vShader.get());
 	D3D::stateman->SetGeometryShader(nullptr);
-
+	D3D::stateman->SetHullShader(nullptr);
+	D3D::stateman->SetDomainShader(nullptr);
 	D3D::stateman->PushBlendState(m_xfbEncodeBlendState.get());
 	D3D::stateman->PushDepthState(m_xfbEncodeDepthState.get());
 	D3D::stateman->PushRasterizerState(m_xfbEncodeRastState.get());

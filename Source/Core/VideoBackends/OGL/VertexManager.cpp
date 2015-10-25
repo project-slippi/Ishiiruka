@@ -113,7 +113,7 @@ void VertexManager::Draw(u32 stride)
 			glDisable(GL_CULL_FACE);
 			break;
 		case PRIMITIVE_TRIANGLES:
-			primitive_mode = g_ActiveConfig.backend_info.bSupportsPrimitiveRestart ? GL_TRIANGLE_STRIP : GL_TRIANGLES;
+			primitive_mode = GL_TRIANGLES;
 			break;
 	}
 

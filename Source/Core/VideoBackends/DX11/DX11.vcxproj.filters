@@ -68,6 +68,9 @@
     <ClCompile Include="PostProcessing.cpp">
       <Filter>Render</Filter>
     </ClCompile>
+    <ClCompile Include="HullDomainShaderCache.cpp">
+      <Filter>Render</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Globals.h" />
@@ -140,6 +143,9 @@
       <Filter>Render</Filter>
     </ClInclude>
     <ClInclude Include="PostProcessing.h">
+      <Filter>Render</Filter>
+    </ClInclude>
+    <ClInclude Include="HullDomainShaderCache.h">
       <Filter>Render</Filter>
     </ClInclude>
   </ItemGroup>

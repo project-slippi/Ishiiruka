@@ -366,10 +366,7 @@ inline void GeneratePixelShader(T& out, DSTALPHA_MODE dstAlphaMode, u32 componen
 		&& ((bpm.ztex2.op != ZTEXTURE_DISABLE && bpm.UseLateDepthTest())
 		|| (!g_ActiveConfig.bFastDepthCalc && !forced_early_z)
 		|| bpm.genMode.zfreeze);
-	bool lightingEnabled = xfr.numChan.numColorChans > 0;
-	bool enable_pl = g_ActiveConfig.bEnablePixelLighting
-		&& g_ActiveConfig.backend_info.bSupportsPixelLighting
-		&& lightingEnabled;
+	bool enable_pl = g_ActiveConfig.PixelLightingEnabled(xfr, components);
 	bool enable_diffuse_ligthing = false;
 	if (enable_pl)
 	{

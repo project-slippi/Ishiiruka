@@ -11,6 +11,8 @@
 #include "VideoCommon/BPStructs.h"
 #include "VideoCommon/CommandProcessor.h"
 #include "VideoCommon/Fifo.h"
+#include "VideoCommon/GeometryShaderManager.h"
+#include "VideoCommon/HullDomainShaderManager.h"
 #include "VideoCommon/OnScreenDisplay.h"
 #include "VideoCommon/OpcodeDecoding.h"
 #include "VideoCommon/PixelEngine.h"
@@ -32,6 +34,7 @@
 #include "VideoBackends/DX11/D3DUtil.h"
 #include "VideoBackends/DX11/D3DBase.h"
 #include "VideoBackends/DX11/GeometryShaderCache.h"
+#include "VideoBackends/DX11/HullDomainShaderCache.h"
 #include "VideoBackends/DX11/PerfQuery.h"
 #include "VideoBackends/DX11/PixelShaderCache.h"
 #include "VideoBackends/DX11/Render.h"
@@ -114,8 +117,6 @@ void InitBackendInfo()
 	g_Config.backend_info.bSupportsExclusiveFullscreen = true;
 	g_Config.backend_info.bSupportsDualSourceBlend = true;
 	g_Config.backend_info.bSupportsPixelLighting = true;
-	// not worth the effort, less efficient index generation, too much reset ratio over real primitives
-	g_Config.backend_info.bSupportsPrimitiveRestart = false;
 	g_Config.backend_info.bNeedBlendIndices = false;
 	g_Config.backend_info.bSupportsOversizedViewports = false;
 	g_Config.backend_info.bSupportsGeometryShaders = true;
@@ -160,6 +161,7 @@ void InitBackendInfo()
 			g_Config.backend_info.bSupportsBBox = shader_model_5_supported;
 			// Requires the instance attribute (only available in shader model 5)
 			g_Config.backend_info.bSupportsGSInstancing = shader_model_5_supported;
+			g_Config.backend_info.bSupportsTessellation = shader_model_5_supported;
 		}
 
 		g_Config.backend_info.Adapters.push_back(UTF16ToUTF8(desc.Description));
@@ -226,6 +228,9 @@ void VideoBackend::Video_Prepare()
 	VertexLoaderManager::Init();
 	OpcodeDecoder_Init();
 	VertexShaderManager::Init();
+	GeometryShaderManager::Init();
+	HullDomainShaderManager::Init();
+	HullDomainShaderCache::Init();
 	GeometryShaderCache::Init();
 	PixelShaderManager::Init(true);
 	CommandProcessor::Init();
@@ -247,6 +252,8 @@ void VideoBackend::Shutdown()
 		CommandProcessor::Shutdown();
 		PixelShaderManager::Shutdown();
 		VertexShaderManager::Shutdown();
+		GeometryShaderManager::Shutdown();
+		HullDomainShaderManager::Shutdown();
 		OpcodeDecoder_Shutdown();
 		VertexLoaderManager::Shutdown();
 
@@ -254,6 +261,7 @@ void VideoBackend::Shutdown()
 		D3D::ShutdownUtils();
 		PixelShaderCache::Shutdown();
 		GeometryShaderCache::Shutdown();
+		HullDomainShaderCache::Shutdown();
 		VertexShaderCache::Shutdown();
 		BBox::Shutdown();
 		delete g_perf_query;

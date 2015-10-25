@@ -158,6 +158,10 @@ static wxString stereo_convergence_desc = _("Control the convergence distance, t
 static wxString stereo_swap_desc = _("Swap the left and right eye, mostly useful if you want to view side-by-side cross-eyed.\n\nIf unsure, leave this unchecked.");
 static const char *s_bbox_mode_text[] = { "Disabled", "CPU", "GPU" };
 static wxString texture_scaling_desc = _("Apply the selected scaling algorithm to improve texture quality.");
+static wxString Tessellation_desc = _("Apply the selected Tessellation levels to increase geometry detail.");
+static wxString Tessellation_min_desc = _("Minimun Tessellation level applyed.");
+static wxString Tessellation_max_desc = _("Maximun Tessellation level applyed.");
+static wxString Tessellation_round_desc = _("Select the intensity of the rounding filter. large values can cause holes and cracks in some games.");;
 static wxString scaling_factor_desc = _("Multiplier applied to the texture size.");
 static wxString texture_deposterize_desc = _("Decrease some gradient's artifacts caused by scaling.");
 
@@ -482,6 +486,41 @@ VideoConfigDiag::VideoConfigDiag(wxWindow* parent, const std::string &title, con
 		wxStaticBoxSizer* const group_stereo = new wxStaticBoxSizer(wxVERTICAL, page_enh, _("Stereoscopy"));
 		group_stereo->Add(szr_stereo, 1, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 5);
 		szr_enh_main->Add(group_stereo, 2, wxEXPAND | wxALL, 5);
+	}
+
+	if (vconfig.backend_info.bSupportsTessellation)
+	{
+		wxFlexGridSizer* const szr_tessellation = new wxFlexGridSizer(3, 5, 5);
+
+		szr_tessellation->Add(CreateCheckBox(page_enh, _("Enable"), (Tessellation_desc), vconfig.bTessellation), 1, wxALIGN_CENTER_VERTICAL, 0);
+
+		wxSlider* const min_slider = new wxSlider(page_enh, wxID_ANY, vconfig.iTessellationMin, 1, 63, wxDefaultPosition, wxDefaultSize);
+		min_slider->Bind(wxEVT_SLIDER, &VideoConfigDiag::Event_TessellationMin, this);
+		RegisterControl(min_slider, (Tessellation_min_desc));
+
+		szr_tessellation->Add(new wxStaticText(page_enh, wxID_ANY, _("Minimun Detail:")), 1, wxALIGN_CENTER_VERTICAL, 0);
+		szr_tessellation->Add(min_slider, 1, wxEXPAND | wxRIGHT);
+		szr_tessellation->AddSpacer(0);
+		
+		wxSlider* const max_slider = new wxSlider(page_enh, wxID_ANY, vconfig.iTessellationMax, 2, 63, wxDefaultPosition, wxDefaultSize);
+		max_slider->Bind(wxEVT_SLIDER, &VideoConfigDiag::Event_TessellationMax, this);
+		RegisterControl(max_slider, (Tessellation_max_desc));
+
+		szr_tessellation->Add(new wxStaticText(page_enh, wxID_ANY, _("Maximun Detail:")), 1, wxALIGN_CENTER_VERTICAL, 0);
+		szr_tessellation->Add(max_slider, 1, wxEXPAND | wxRIGHT);
+		szr_tessellation->AddSpacer(0);
+
+		wxSlider* const round_slider = new wxSlider(page_enh, wxID_ANY, vconfig.iTessellationRoundingIntensity, 0, 100, wxDefaultPosition, wxDefaultSize);
+		round_slider->Bind(wxEVT_SLIDER, &VideoConfigDiag::Event_TessellationRounding, this);
+		RegisterControl(round_slider, (Tessellation_round_desc));
+
+		szr_tessellation->Add(new wxStaticText(page_enh, wxID_ANY, _("Rounding Intensity:")), 1, wxALIGN_CENTER_VERTICAL, 0);
+		szr_tessellation->Add(round_slider, 1, wxEXPAND | wxRIGHT);
+
+
+		wxStaticBoxSizer* const group_Tessellation = new wxStaticBoxSizer(wxVERTICAL, page_enh, _("Tessellation"));
+		group_Tessellation->Add(szr_tessellation, 1, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 5);
+		szr_enh_main->Add(group_Tessellation, 2, wxEXPAND | wxALL, 5);
 	}
 
 	wxFlexGridSizer* const szr_texturescaling = new wxFlexGridSizer(3, 5, 5);
@@ -906,6 +945,27 @@ void VideoConfigDiag::Event_ScalingFactor(wxCommandEvent &ev)
 void VideoConfigDiag::Event_StereoConvergence(wxCommandEvent &ev)
 {
 	vconfig.iStereoConvergence = ev.GetInt();
+
+	ev.Skip();
+}
+
+void VideoConfigDiag::Event_TessellationMin(wxCommandEvent &ev)
+{
+	vconfig.iTessellationMin = ev.GetInt();
+
+	ev.Skip();
+}
+
+void VideoConfigDiag::Event_TessellationMax(wxCommandEvent &ev)
+{
+	vconfig.iTessellationMax = ev.GetInt();
+
+	ev.Skip();
+}
+
+void VideoConfigDiag::Event_TessellationRounding(wxCommandEvent &ev)
+{
+	vconfig.iTessellationRoundingIntensity = ev.GetInt();
 
 	ev.Skip();
 }

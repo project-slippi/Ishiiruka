@@ -29,7 +29,7 @@ template<class T, API_TYPE ApiType> static inline void EmitVertex(T& out, const 
 template<class T, API_TYPE ApiType> static inline void EndPrimitive(T& out, bool enable_pl, const XFMemory &xfr);
 
 template<class T, API_TYPE ApiType, bool is_writing_shadercode>
-static inline void GenerateGeometryShader(T& out, u32 primitive_type, const XFMemory &xfr)
+static inline void GenerateGeometryShader(T& out, u32 primitive_type, const XFMemory &xfr, const u32 components)
 {
 	// Non-uid template parameters will write to the dummy data (=> gets optimized out)
 	geometry_shader_uid_data dummy_data;
@@ -52,8 +52,7 @@ static inline void GenerateGeometryShader(T& out, u32 primitive_type, const XFMe
 	uid_data.stereo = g_ActiveConfig.iStereoMode > 0;
 
 	uid_data.numTexGens = xfr.numTexGen.numTexGens;
-	bool lightingEnabled = xfr.numChan.numColorChans > 0 && g_ActiveConfig.bEnablePixelLighting
-		&& g_ActiveConfig.backend_info.bSupportsPixelLighting;
+	bool lightingEnabled = g_ActiveConfig.PixelLightingEnabled(xfr, components);
 	uid_data.pixel_lighting = lightingEnabled;
 
 	char* codebuffer = nullptr;
@@ -343,26 +342,26 @@ static inline void EndPrimitive(T& out, bool enable_pl, const XFMemory &xfr)
 		out.Write("\toutput.RestartStrip();\n");
 }
 
-void GetGeometryShaderUid(GeometryShaderUid& object, u32 primitive_type, API_TYPE ApiType, const XFMemory &xfr)
+void GetGeometryShaderUid(GeometryShaderUid& object, u32 primitive_type, API_TYPE ApiType, const XFMemory &xfr, const u32 components)
 {
 	if (ApiType == API_OPENGL)
 	{
-		GenerateGeometryShader<GeometryShaderUid, API_OPENGL, false>(object, primitive_type, xfr);
+		GenerateGeometryShader<GeometryShaderUid, API_OPENGL, false>(object, primitive_type, xfr, components);
 	}
 	else
 	{
-		GenerateGeometryShader<GeometryShaderUid, API_D3D11, false>(object, primitive_type, xfr);
+		GenerateGeometryShader<GeometryShaderUid, API_D3D11, false>(object, primitive_type, xfr, components);
 	}
 }
 
-void GenerateGeometryShaderCode(ShaderCode& object, u32 primitive_type, API_TYPE ApiType, const XFMemory &xfr)
+void GenerateGeometryShaderCode(ShaderCode& object, u32 primitive_type, API_TYPE ApiType, const XFMemory &xfr, const u32 components)
 {
 	if (ApiType == API_OPENGL)
 	{
-		GenerateGeometryShader<ShaderCode, API_OPENGL, true>(object, primitive_type, xfr);
+		GenerateGeometryShader<ShaderCode, API_OPENGL, true>(object, primitive_type, xfr, components);
 	}
 	else
 	{
-		GenerateGeometryShader<ShaderCode, API_D3D11, true>(object, primitive_type, xfr);
+		GenerateGeometryShader<ShaderCode, API_D3D11, true>(object, primitive_type, xfr, components);
 	}
 }

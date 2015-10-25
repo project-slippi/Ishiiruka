@@ -21,6 +21,7 @@ namespace DX11
 		static void PrepareShader(
 			u32 primitive_type,
 			const XFMemory &xfr,
+			const u32 components,
 			bool ongputhread);
 		static bool TestShader();		
 		static void InsertByteCode(const GeometryShaderUid &uid, const void* bytecode, unsigned int bytecodelen);

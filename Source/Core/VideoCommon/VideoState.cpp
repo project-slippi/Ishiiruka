@@ -9,6 +9,7 @@
 #include "VideoCommon/CPMemory.h"
 #include "VideoCommon/Fifo.h"
 #include "VideoCommon/GeometryShaderManager.h"
+#include "VideoCommon/HullDomainShaderManager.h"
 #include "VideoCommon/PixelEngine.h"
 #include "VideoCommon/PixelShaderManager.h"
 #include "VideoCommon/TextureDecoder.h"
@@ -53,6 +54,9 @@ static void DoState(PointerWrap &p)
 
 	GeometryShaderManager::DoState(p);
 	p.DoMarker("GeometryShaderManager");
+
+	HullDomainShaderManager::DoState(p);
+	p.DoMarker("HullDomainShaderManager");
 
 	VertexManager::DoState(p);
 	p.DoMarker("VertexManager");

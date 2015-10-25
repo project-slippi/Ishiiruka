@@ -622,9 +622,8 @@ Renderer::Renderer()
 				g_ogl_config.gl_renderer,
 				g_ogl_config.gl_version), 5000);
 
-	WARN_LOG(VIDEO,"Missing OGL Extensions: %s%s%s%s%s%s%s%s%s%s%s%s%s",
+	WARN_LOG(VIDEO,"Missing OGL Extensions: %s%s%s%s%s%s%s%s%s%s%s%s",
 			g_ActiveConfig.backend_info.bSupportsDualSourceBlend ? "" : "DualSourceBlend ",
-			g_ActiveConfig.backend_info.bSupportsPrimitiveRestart ? "" : "PrimitiveRestart ",
 			g_ActiveConfig.backend_info.bSupportsEarlyZ ? "" : "EarlyZ ",
 			g_ogl_config.bSupportsGLPinnedMemory ? "" : "PinnedMemory ",
 			g_ogl_config.bSupportsGLSLCache ? "" : "ShaderCache ",
@@ -688,27 +687,6 @@ Renderer::Renderer()
 	glScissor(0, 0, GetTargetWidth(), GetTargetHeight());
 	glBlendColor(0, 0, 0, 0.5f);
 	glClearDepthf(1.0f);
-
-	if (g_ActiveConfig.backend_info.bSupportsPrimitiveRestart)
-	{
-		if (GLInterface->GetMode() == GLInterfaceMode::MODE_OPENGLES3)
-		{
-			glEnable(GL_PRIMITIVE_RESTART_FIXED_INDEX);
-		}
-		else
-		{
-			if (g_ogl_config.bSupportOGL31)
-			{
-				glEnable(GL_PRIMITIVE_RESTART);
-				glPrimitiveRestartIndex(65535);
-			}
-			else
-			{
-				glEnableClientState(GL_PRIMITIVE_RESTART_NV);
-				glPrimitiveRestartIndexNV(65535);
-			}
-		}
-	}
 	UpdateActiveConfig();
 	ClearEFBCache();
 }

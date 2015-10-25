@@ -27,6 +27,27 @@ VertexShaderPtr CreateVertexShaderFromByteCode(const void* bytecode, size_t len)
 	return v_shader;
 }
 
+HullShaderPtr CreateHullShaderFromByteCode(const void* bytecode, size_t len)
+{
+	HullShaderPtr h_shader;
+	HRESULT hr = D3D::device->CreateHullShader(bytecode, len, nullptr, ToAddr(h_shader));
+	if (FAILED(hr))
+	{
+		PanicAlert("CreatHullShaderFromByteCode failed at %s %d\n", __FILE__, __LINE__);
+	}
+	return h_shader;
+}
+
+DomainShaderPtr CreateDomainShaderFromByteCode(const void* bytecode, size_t len)
+{
+	DomainShaderPtr d_shader;
+	HRESULT hr = D3D::device->CreateDomainShader(bytecode, len, nullptr, ToAddr(d_shader));
+	if (FAILED(hr))
+	{
+		PanicAlert("CreatHullShaderFromByteCode failed at %s %d\n", __FILE__, __LINE__);
+	}
+	return d_shader;
+}
 
 GeometryShaderPtr CreateGeometryShaderFromByteCode(const void* bytecode, size_t len)
 {
@@ -68,8 +89,22 @@ bool CompileShader(
 	const std::string& code,
 	D3DBlob& blob,
 	const D3D_SHADER_MACRO* pDefines,
-	const char* pEntry)
+	const char* pEntry, bool throwerror)
 {
+#if defined(_DEBUG) || defined(DEBUGFAST)
+	UINT flags = D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
+#else
+	UINT flags = D3DCOMPILE_SKIP_VALIDATION;
+	if (!(type == DX11::D3D::ShaderType::Hull || type == DX11::D3D::ShaderType::Domain))
+	{
+		flags |= D3D10_SHADER_ENABLE_BACKWARDS_COMPATIBILITY | D3DCOMPILE_OPTIMIZATION_LEVEL3;
+	}
+	else
+	{
+		flags |= D3DCOMPILE_SKIP_OPTIMIZATION;
+	}
+#endif
+	
 	char const *profile = nullptr;
 	char const *sufix = nullptr;
 	switch (type) {
@@ -85,6 +120,14 @@ bool CompileShader(
 		profile = D3D::GeometryShaderVersionString();
 		sufix = "gs";
 		break;
+	case DX11::D3D::ShaderType::Hull:
+		profile = D3D::HullShaderVersionString();
+		sufix = "hs";
+		break;
+	case DX11::D3D::ShaderType::Domain:
+		profile = D3D::DomainShaderVersionString();
+		sufix = "ds";
+		break;
 	case DX11::D3D::ShaderType::Compute:
 		profile = D3D::ComputeShaderVersionString();
 		sufix = "cs";
@@ -94,11 +137,7 @@ bool CompileShader(
 		break;
 	}
 
-#if defined(_DEBUG) || defined(DEBUGFAST)
-	UINT flags = D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
-#else
-	UINT flags = D3D10_SHADER_ENABLE_BACKWARDS_COMPATIBILITY | D3DCOMPILE_OPTIMIZATION_LEVEL3 | D3DCOMPILE_SKIP_VALIDATION;
-#endif
+
 
 	ID3DBlobPtr shaderBuffer;
 	ID3DBlobPtr errorBuffer;
@@ -122,12 +161,13 @@ bool CompileShader(
 		file << "\n";
 		file << (const char*)errorBuffer->GetBufferPointer();
 		file.close();
-
-		PanicAlert("Failed to compile shader: %s\nDebug info (%s):\n%s",
-			filename.c_str(),
-			profile,
-			(char*)errorBuffer->GetBufferPointer());
-
+		if (throwerror)
+		{
+			PanicAlert("Failed to compile shader: %s\nDebug info (%s):\n%s",
+				filename.c_str(),
+				profile,
+				(char*)errorBuffer->GetBufferPointer());
+		}
 		blob = nullptr;
 	}
 	else
@@ -144,6 +184,26 @@ VertexShaderPtr CompileAndCreateVertexShader(const std::string& code, const D3D_
 	if (CompileShader(DX11::D3D::ShaderType::Vertex, code, blob, pDefines, pEntry))
 	{
 		return CreateVertexShaderFromByteCode(blob);
+	}
+	return nullptr;
+}
+
+HullShaderPtr CompileAndCreateHullShader(const std::string& code, const D3D_SHADER_MACRO* pDefines, const char* pEntry, bool throwError)
+{
+	D3DBlob blob;
+	if (CompileShader(DX11::D3D::ShaderType::Hull, code, blob, pDefines, pEntry, throwError))
+	{
+		return CreateHullShaderFromByteCode(blob);
+	}
+	return nullptr;
+}
+
+DomainShaderPtr CompileAndCreateDomainShader(const std::string& code, const D3D_SHADER_MACRO* pDefines, const char* pEntry, bool throwError)
+{
+	D3DBlob blob;
+	if (CompileShader(DX11::D3D::ShaderType::Domain, code, blob, pDefines, pEntry, throwError))
+	{
+		return CreateDomainShaderFromByteCode(blob);
 	}
 	return nullptr;
 }

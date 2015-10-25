@@ -482,6 +482,15 @@ const char* GeometryShaderVersionString()
 	else /*if(featlevel == D3D_FEATURE_LEVEL_10_0)*/ return "gs_4_0";
 }
 
+const char* HullShaderVersionString()
+{
+	return "hs_5_0";
+}
+const char* DomainShaderVersionString()
+{
+	return "ds_5_0";
+}
+
 const char* PixelShaderVersionString()
 {
 	if (featlevel >= D3D_FEATURE_LEVEL_11_0) return "ps_5_0";

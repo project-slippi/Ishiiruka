@@ -241,6 +241,8 @@ void DX11PostProcessing::BlitFromTexture(const TargetRectangle &src, const Targe
 	}
 	D3D::stateman->SetVertexShader(m_vshader.get());
 	D3D::stateman->SetGeometryShader(nullptr);
+	D3D::stateman->SetHullShader(nullptr);
+	D3D::stateman->SetDomainShader(nullptr);
 	D3D::context->PSSetShaderResources(9, 3, views);
 	ID3D11RenderTargetView* OutRTV = nullptr;
 	const auto& stages = m_config.GetStages();

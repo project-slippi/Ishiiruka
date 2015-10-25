@@ -54,7 +54,6 @@ static UINT s_gscbuf_size = 0;
 
 std::tuple<ID3D11Buffer*, UINT, UINT>  GeometryShaderCache::GetConstantBuffer()
 {
-	// TODO: divide the global variables of the generated shaders into about 5 constant buffers to speed this up
 	if (GeometryShaderManager::IsDirty())
 	{
 		s_gscbuf_size = sizeof(GeometryShaderConstants);
@@ -218,10 +217,11 @@ void GeometryShaderCache::Shutdown()
 void GeometryShaderCache::PrepareShader(
 	u32 primitive_type,
 	const XFMemory &xfr,
+	const u32 components,
 	bool ongputhread)
 {
 	GeometryShaderUid uid;
-	GetGeometryShaderUid(uid, primitive_type, API_D3D11, xfr);
+	GetGeometryShaderUid(uid, primitive_type, API_D3D11, xfr, components);
 	if (ongputhread)
 	{
 		s_compiler->ProcCompilationResults();
@@ -229,7 +229,7 @@ void GeometryShaderCache::PrepareShader(
 		if (g_ActiveConfig.bEnableShaderDebugging)
 		{
 			ShaderCode code;
-			GenerateGeometryShaderCode(code, primitive_type, API_D3D11, xfr);
+			GenerateGeometryShaderCode(code, primitive_type, API_D3D11, xfr, components);
 			geometry_uid_checker.AddToIndexAndCheck(code, uid, "Geometry", "g");
 		}
 #endif
@@ -278,7 +278,7 @@ void GeometryShaderCache::PrepareShader(
 	ShaderCode code;
 	ShaderCompilerWorkUnit *wunit = s_compiler->NewUnit(GEOMETRYSHADERGEN_BUFFERSIZE);
 	code.SetBuffer(wunit->code.data());
-	GenerateGeometryShaderCode(code, primitive_type, API_D3D11, xfr);
+	GenerateGeometryShaderCode(code, primitive_type, API_D3D11, xfr, components);
 	wunit->codesize = (u32)code.BufferSize();
 	wunit->entrypoint = "main";
 	wunit->flags = D3DCOMPILE_SKIP_VALIDATION | D3DCOMPILE_OPTIMIZATION_LEVEL3;

@@ -36,7 +36,7 @@ inline void GenerateVertexShader(T& out, u32 components, const XFMemory &xfr, co
 	uid_data.numTexGens = xfr.numTexGen.numTexGens;
 	uid_data.components = components;
 	bool lightingEnabled = xfr.numChan.numColorChans > 0;
-	bool enable_pl = g_ActiveConfig.bEnablePixelLighting && g_ActiveConfig.backend_info.bSupportsPixelLighting && lightingEnabled;
+	bool enable_pl = g_ActiveConfig.PixelLightingEnabled(xfr, components);
 	bool needLightShader = lightingEnabled && !enable_pl;
 	for (unsigned int i = 0; i < xfr.numTexGen.numTexGens; ++i)
 	{

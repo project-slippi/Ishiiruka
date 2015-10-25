@@ -138,7 +138,6 @@ static void InitBackendInfo()
 	g_Config.backend_info.bSupportedFormats[PC_TEX_FMT_DXT5] = true;
 #endif
 	g_Config.backend_info.bSupportsExclusiveFullscreen = false;
-	g_Config.backend_info.bSupportsPrimitiveRestart = false; 
 	g_Config.backend_info.bSupportsOversizedViewports = true;
 	g_Config.backend_info.bSupportsGeometryShaders = true;
 	g_Config.backend_info.bSupports3DVision = false;
@@ -146,6 +145,7 @@ static void InitBackendInfo()
 	g_Config.backend_info.bSupportsSSAA = true;
 	g_Config.backend_info.bSupportsPixelLighting = true;
 	g_Config.backend_info.bSupportsNormalMaps = true;
+	g_Config.backend_info.bSupportsTessellation = false;
 	g_Config.backend_info.Adapters.clear();
 
 	// aamodes

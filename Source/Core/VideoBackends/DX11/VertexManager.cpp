@@ -6,6 +6,7 @@
 #include "VideoBackends/DX11/D3DBase.h"
 #include "VideoBackends/DX11/D3DState.h"
 #include "VideoBackends/DX11/GeometryShaderCache.h"
+#include "VideoBackends/DX11/HullDomainShaderCache.h"
 #include "VideoBackends/DX11/PixelShaderCache.h"
 #include "VideoBackends/DX11/Render.h"
 #include "VideoBackends/DX11/VertexManager.h"
@@ -127,8 +128,8 @@ void VertexManager::Draw(UINT stride)
 
 	if (current_primitive_type == PRIMITIVE_TRIANGLES)
 	{
-		auto pt = g_ActiveConfig.backend_info.bSupportsPrimitiveRestart ?
-		D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP :
+		auto pt = HullDomainShaderCache::GetActiveHullShader() != nullptr ?
+		D3D11_PRIMITIVE_TOPOLOGY_3_CONTROL_POINT_PATCHLIST :
 		D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 
 		D3D::stateman->SetPrimitiveTopology(pt);		
@@ -167,7 +168,7 @@ void VertexManager::PrepareShaders(u32 primitive, u32 components, const XFMemory
 	bool useDstAlpha = bpm.dstalpha.enable && bpm.blendmode.alphaupdate &&
 		bpm.zcontrol.pixel_format == PEControl::RGBA6_Z24;
 	VertexShaderCache::PrepareShader(components, xfr, bpm, ongputhread);
-	GeometryShaderCache::PrepareShader(primitive, xfr, ongputhread);
+	GeometryShaderCache::PrepareShader(primitive, xfr, components, ongputhread);
 	PixelShaderCache::PrepareShader(useDstAlpha ? DSTALPHA_DUAL_SOURCE_BLEND : DSTALPHA_NONE, components, xfr, bpm, ongputhread);
 }
 
@@ -188,7 +189,10 @@ void VertexManager::vFlush(bool useDstAlpha)
 	{
 		return;
 	}
-	
+	if (g_ActiveConfig.backend_info.bSupportsTessellation)
+	{
+		HullDomainShaderCache::SetShader(xfmem, current_primitive_type, g_nativeVertexFmt->m_components);
+	}
 	BBox::Update();
 	u32 stride = g_nativeVertexFmt->GetVertexStride();
 	PrepareDrawBuffers(stride);

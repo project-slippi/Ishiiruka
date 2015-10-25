@@ -21,10 +21,14 @@ enum class ShaderType : u32 {
 	Vertex,
 	Pixel,
 	Geometry,
+	Hull,
+	Domain,
 	Compute
 };
 
 VertexShaderPtr CreateVertexShaderFromByteCode(const void* bytecode, size_t len);
+HullShaderPtr CreateHullShaderFromByteCode(const void* bytecode, size_t len);
+DomainShaderPtr CreateDomainShaderFromByteCode(const void* bytecode, size_t len);
 GeometryShaderPtr CreateGeometryShaderFromByteCode(const void* bytecode, size_t len);
 PixelShaderPtr CreatePixelShaderFromByteCode(const void* bytecode, size_t len);
 ComputeShaderPtr CreateComputeShaderFromByteCode(const void* bytecode, size_t len);
@@ -34,13 +38,21 @@ bool CompileShader(
 	const std::string& code,
 	D3DBlob& blob, 
 	const D3D_SHADER_MACRO* pDefines = nullptr,
-	const char* pEntry = nullptr);
+	const char* pEntry = nullptr, bool throwError = true);
 
 // Utility functions
 VertexShaderPtr CompileAndCreateVertexShader(
 	const std::string& code,
 	const D3D_SHADER_MACRO* pDefines = nullptr,
 	const char* pEntry = nullptr);
+HullShaderPtr CompileAndCreateHullShader(
+	const std::string& code,
+	const D3D_SHADER_MACRO* pDefines = nullptr,
+	const char* pEntry = nullptr, bool throwError = true);
+DomainShaderPtr CompileAndCreateDomainShader(
+	const std::string& code,
+	const D3D_SHADER_MACRO* pDefines = nullptr,
+	const char* pEntry = nullptr, bool throwError = true);
 GeometryShaderPtr CompileAndCreateGeometryShader(
 	const std::string& code,
 	const D3D_SHADER_MACRO* pDefines = nullptr,
@@ -58,6 +70,17 @@ inline VertexShaderPtr CreateVertexShaderFromByteCode(D3DBlob& bytecode)
 {
 	return CreateVertexShaderFromByteCode(bytecode.Data(), bytecode.Size());
 }
+
+inline HullShaderPtr CreateHullShaderFromByteCode(D3DBlob& bytecode)
+{
+	return CreateHullShaderFromByteCode(bytecode.Data(), bytecode.Size());
+}
+
+inline DomainShaderPtr CreateDomainShaderFromByteCode(D3DBlob& bytecode)
+{
+	return CreateDomainShaderFromByteCode(bytecode.Data(), bytecode.Size());
+}
+
 inline GeometryShaderPtr CreateGeometryShaderFromByteCode(D3DBlob& bytecode)
 {
 	return CreateGeometryShaderFromByteCode(bytecode.Data(), bytecode.Size());

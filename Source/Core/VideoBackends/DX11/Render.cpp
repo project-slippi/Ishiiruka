@@ -25,6 +25,7 @@
 
 #include "VideoBackends/DX11/PixelShaderCache.h"
 #include "VideoBackends/DX11/GeometryShaderCache.h"
+#include "VideoBackends/DX11/HullDomainShaderCache.h"
 #include "VideoBackends/DX11/Render.h"
 #include "VideoBackends/DX11/Television.h"
 #include "VideoBackends/DX11/TextureCache.h"
@@ -1050,10 +1051,13 @@ void Renderer::ApplyState(bool bUseDstAlpha)
 
 	D3D::stateman->SetVertexConstants(VertexShaderCache::GetConstantBuffer());
 	D3D::stateman->SetGeometryConstants(GeometryShaderCache::GetConstantBuffer());
+	D3D::stateman->SetHullDomainConstants(HullDomainShaderCache::GetConstantBuffer());
 	D3D::stateman->SetPixelConstants(PixelShaderCache::GetConstantBuffer());
 
 	D3D::stateman->SetVertexShader(VertexShaderCache::GetActiveShader());
 	D3D::stateman->SetGeometryShader(GeometryShaderCache::GetActiveShader());
+	D3D::stateman->SetHullShader(HullDomainShaderCache::GetActiveHullShader());
+	D3D::stateman->SetDomainShader(HullDomainShaderCache::GetActiveDomainShader());
 	D3D::stateman->SetPixelShader(PixelShaderCache::GetActiveShader());
 
 }

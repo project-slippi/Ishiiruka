@@ -12,6 +12,7 @@
 #include "Core/Core.h"
 #include "Core/Movie.h"
 #include "VideoCommon/OnScreenDisplay.h"
+#include "VideoCommon/NativeVertexFormat.h"
 #include "VideoCommon/VideoCommon.h"
 #include "VideoCommon/VideoConfig.h"
 
@@ -89,7 +90,8 @@ void VideoConfig::Load(const std::string& ini_file)
 	settings->Get("UseFFV1", &bUseFFV1, 0);
 	settings->Get("EnablePixelLighting", &bEnablePixelLighting, 0);
 	settings->Get("ForcePhongShading", &bForcePhongShading, 0);
-
+	
+	
 	settings->Get("FastDepthCalc", &bFastDepthCalc, true);
 	settings->Get("MSAA", &iMultisampleMode, 0);
 	settings->Get("EFBScale", &iEFBScale, (int)SCALE_1X); // native	
@@ -114,7 +116,10 @@ void VideoConfig::Load(const std::string& ini_file)
 	enhancements->Get("TextureScalingType", &iTexScalingType, 0);
 	enhancements->Get("TextureScalingFactor", &iTexScalingFactor, 2);
 	enhancements->Get("UseDePosterize", &bTexDeposterize, false);
-
+	enhancements->Get("Tessellation", &bTessellation, 0);
+	enhancements->Get("TessellationMin", &iTessellationMin, 1);
+	enhancements->Get("TessellationMax", &iTessellationMax, 6);
+	enhancements->Get("TessellationRoundingIntensity", &iTessellationRoundingIntensity, 0);
 	//currently these settings are not saved in global config, so we could've initialized them directly
 	for (size_t i = 0; i < oStereoPresets.size(); ++i)
 	{
@@ -196,7 +201,8 @@ void VideoConfig::GameIniLoad()
 	CHECK_SETTING("Video_Settings", "CacheHiresTexturesonGPU", bCacheHiresTexturesGPU);
 	CHECK_SETTING("Video_Settings", "EnablePixelLighting", bEnablePixelLighting);
 	CHECK_SETTING("Video_Settings", "ForcePhongShading", bForcePhongShading);
-
+	
+	
 	CHECK_SETTING("Video_Settings", "FastDepthCalc", bFastDepthCalc);
 	CHECK_SETTING("Video_Settings", "MSAA", iMultisampleMode);
 	CHECK_SETTING("Video_Settings", "SSAA", bSSAA);
@@ -241,7 +247,11 @@ void VideoConfig::GameIniLoad()
 	CHECK_SETTING("Video_Enhancements", "TextureScalingType", iTexScalingType);
 	CHECK_SETTING("Video_Enhancements", "TextureScalingFactor", iTexScalingFactor);
 	CHECK_SETTING("Video_Enhancements", "UseDePosterize", bTexDeposterize);
-
+	CHECK_SETTING("Video_Enhancements", "Tessellation", bTessellation);
+	CHECK_SETTING("Video_Enhancements", "TessellationMin", iTessellationMin);
+	CHECK_SETTING("Video_Enhancements", "TessellationMax", iTessellationMax);
+	CHECK_SETTING("Video_Enhancements", "TessellationRoundingIntensity", iTessellationRoundingIntensity);
+	
 	//these are not overrides, they are per-game settings, hence no warning
 	IniFile::Section* enhancements = iniFile.GetOrCreateSection("Enhancements");
 	for (size_t i = 0; i < oStereoPresets.size(); ++i)
@@ -288,7 +298,9 @@ void VideoConfig::VerifyValidity()
 	if (iAdapter < 0 || iAdapter >((int)backend_info.Adapters.size() - 1)) iAdapter = 0;
 	if (iMultisampleMode < 0 || iMultisampleMode >= (int)backend_info.AAModes.size()) iMultisampleMode = 0;
 	if (!backend_info.bSupportsPixelLighting) bEnablePixelLighting = false;
-	bForcePhongShading = bForcePhongShading & bEnablePixelLighting;
+	bForcePhongShading = bForcePhongShading && bEnablePixelLighting;
+	iTessellationMax = iTessellationMax < 2 ? 2 : (iTessellationMax > 63 ? 63 : iTessellationMax);
+	iTessellationMin = iTessellationMin < 1 ? 1 : (iTessellationMin > iTessellationMax ? iTessellationMax : iTessellationMin);
 	if (iStereoMode > 0)
 	{
 		if (!backend_info.bSupportsGeometryShaders)
@@ -371,6 +383,7 @@ void VideoConfig::Save(const std::string& ini_file)
 	settings->Set("EnablePixelLighting", bEnablePixelLighting);
 	settings->Set("ForcePhongShading", bForcePhongShading);
 	
+	
 	settings->Set("FastDepthCalc", bFastDepthCalc);
 	settings->Set("ShowEFBCopyRegions", bShowEFBCopyRegions);
 	settings->Set("MSAA", iMultisampleMode);
@@ -397,7 +410,10 @@ void VideoConfig::Save(const std::string& ini_file)
 	enhancements->Set("TextureScalingType", iTexScalingType);
 	enhancements->Set("TextureScalingFactor", iTexScalingFactor);
 	enhancements->Set("UseDePosterize", bTexDeposterize);
-
+	enhancements->Set("Tessellation", bTessellation);
+	enhancements->Set("TessellationMin", iTessellationMin);
+	enhancements->Set("TessellationMax", iTessellationMax);
+	enhancements->Set("TessellationRoundingIntensity", iTessellationRoundingIntensity);
 
 	IniFile::Section* hacks = iniFile.GetOrCreateSection("Hacks");
 	hacks->Set("EFBAccessEnable", bEFBAccessEnable);
@@ -415,7 +431,12 @@ void VideoConfig::Save(const std::string& ini_file)
 	iniFile.Save(ini_file);
 }
 
-bool VideoConfig::IsVSync()
+bool VideoConfig::IsVSync() const
 {
 	return bVSync && !Core::GetIsFramelimiterTempDisabled();
+}
+
+bool VideoConfig::PixelLightingEnabled(const XFMemory& xfr, const u32 components) const
+{
+	return (xfr.numChan.numColorChans > 0) && bEnablePixelLighting && backend_info.bSupportsPixelLighting && ((components & VB_HAS_NRM0) == VB_HAS_NRM0);
 }

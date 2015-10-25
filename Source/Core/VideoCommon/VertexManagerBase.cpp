@@ -7,6 +7,7 @@
 #include "VideoCommon/BPStructs.h"
 #include "VideoCommon/Debugger.h"
 #include "VideoCommon/GeometryShaderManager.h"
+#include "VideoCommon/HullDomainShaderManager.h"
 #include "VideoCommon/IndexGenerator.h"
 #include "VideoCommon/MainBase.h"
 #include "VideoCommon/NativeVertexFormat.h"
@@ -104,57 +105,25 @@ u32 VertexManager::GetRemainingIndices(int primitive)
 {	
 	u32 index_len = MAXIBUFFERSIZE - IndexGenerator::GetIndexLen();
 
-	if (g_Config.backend_info.bSupportsPrimitiveRestart)
+	switch (primitive)
 	{
-		switch (primitive)
-		{
-		case GX_DRAW_QUADS:
-		case GX_DRAW_QUADS_2:
-			return index_len / 5 * 4;
-		case GX_DRAW_TRIANGLES:
-			return index_len / 4 * 3;
-		case GX_DRAW_TRIANGLE_STRIP:
-			return index_len / 1 - 1;
-		case GX_DRAW_TRIANGLE_FAN:
-			return index_len / 6 * 4 + 1;
-
-		case GX_DRAW_LINES:
-			return index_len;
-		case GX_DRAW_LINE_STRIP:
-			return index_len / 2 + 1;
-
-		case GX_DRAW_POINTS:
-			return index_len;
-
-		default:
-			return 0;
-		}
-	}
-	else
-	{
-		switch (primitive)
-		{
-		case GX_DRAW_QUADS:
-		case GX_DRAW_QUADS_2:
-			return index_len / 6 * 4;
-		case GX_DRAW_TRIANGLES:
-			return index_len;
-		case GX_DRAW_TRIANGLE_STRIP:
-			return index_len / 3 + 2;
-		case GX_DRAW_TRIANGLE_FAN:
-			return index_len / 3 + 2;
-
-		case GX_DRAW_LINES:
-			return index_len;
-		case GX_DRAW_LINE_STRIP:
-			return index_len / 2 + 1;
-
-		case GX_DRAW_POINTS:
-			return index_len;
-
-		default:
-			return 0;
-		}
+	case GX_DRAW_QUADS:
+	case GX_DRAW_QUADS_2:
+		return index_len / 6 * 4;
+	case GX_DRAW_TRIANGLES:
+		return index_len;
+	case GX_DRAW_TRIANGLE_STRIP:
+		return index_len / 3 + 2;
+	case GX_DRAW_TRIANGLE_FAN:
+		return index_len / 3 + 2;
+	case GX_DRAW_LINES:
+		return index_len;
+	case GX_DRAW_LINE_STRIP:
+		return index_len / 2 + 1;
+	case GX_DRAW_POINTS:
+		return index_len;
+	default:
+		return 0;
 	}
 }
 
@@ -237,6 +206,7 @@ void VertexManager::Flush()
 	// set global constants
 	VertexShaderManager::SetConstants();
 	GeometryShaderManager::SetConstants();
+	HullDomainShaderManager::SetConstants();
 	PixelShaderManager::SetConstants();
 	if (current_primitive_type == PRIMITIVE_TRIANGLES)
 	{

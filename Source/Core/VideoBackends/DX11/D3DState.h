@@ -194,6 +194,19 @@ namespace D3D
 			m_pending.geometryConstantsSize = 0;
 		}
 
+
+		void SetHullDomainConstants(std::tuple<ID3D11Buffer*, UINT, UINT> &buffer)
+		{
+			if (m_current.hulldomainConstants != std::get<0>(buffer)
+				|| m_current.hulldomainConstantsOffset != std::get<1>(buffer)
+				|| m_current.hulldomainConstantsSize != std::get<2>(buffer))
+				m_dirtyFlags |= DirtyFlag_HullDomainConstants;
+
+			m_pending.hulldomainConstants = std::get<0>(buffer);
+			m_pending.hulldomainConstantsOffset = std::get<1>(buffer);
+			m_pending.hulldomainConstantsSize = std::get<2>(buffer);
+		}
+
 		void SetVertexBuffer(ID3D11Buffer* buffer, u32 stride, u32 offset)
 		{
 			if (m_current.vertexBuffer != buffer ||
@@ -261,6 +274,22 @@ namespace D3D
 			m_pending.geometryShader = shader;
 		}
 
+		void SetHullShader(ID3D11HullShader* shader)
+		{
+			if (m_current.hullShader != shader)
+				m_dirtyFlags |= DirtyFlag_HullShader;
+
+			m_pending.hullShader = shader;
+		}
+
+		void SetDomainShader(ID3D11DomainShader* shader)
+		{
+			if (m_current.domainShader != shader)
+				m_dirtyFlags |= DirtyFlag_DomainShader;
+
+			m_pending.domainShader = shader;
+		}
+
 		// removes currently set texture from all slots, returns mask of previously bound slots
 		u32 UnsetTexture(ID3D11ShaderResourceView* srv);
 		void SetTextureByMask(u32 textureSlotMask, ID3D11ShaderResourceView* srv);
@@ -303,18 +332,21 @@ namespace D3D
 			DirtyFlag_PixelConstants = 1 << 16,
 			DirtyFlag_VertexConstants = 1 << 17,
 			DirtyFlag_GeometryConstants = 1 << 18,
-			DirtyFlag_Constants = 1 << 16 | 1 << 17 | 1 << 18,
+			DirtyFlag_HullDomainConstants = 1 << 19,
+			DirtyFlag_Constants = 1 << 16 | 1 << 17 | 1 << 18 | 1 << 19,
 
-			DirtyFlag_VertexBuffer = 1 << 19,
-			DirtyFlag_IndexBuffer = 1 << 20,
-			DirtyFlag_Buffers = 1 << 19 | 1 << 20,
+			DirtyFlag_VertexBuffer = 1 << 20,
+			DirtyFlag_IndexBuffer = 1 << 21,
+			DirtyFlag_Buffers = 1 << 20 | 1 << 21,
 
-			DirtyFlag_PixelShader = 1 << 21,
-			DirtyFlag_VertexShader = 1 << 22,
-			DirtyFlag_GeometryShader = 1 << 23,
-			DirtyFlag_Shaders = 1 << 21 | 1 << 22 | 1 << 23,
+			DirtyFlag_PixelShader = 1 << 22,
+			DirtyFlag_VertexShader = 1 << 23,
+			DirtyFlag_GeometryShader = 1 << 24,
+			DirtyFlag_HullShader = 1 << 25,
+			DirtyFlag_DomainShader = 1 << 26,
+			DirtyFlag_Shaders = 1 << 22 | 1 << 23 | 1 << 24 | 1 << 25 | 1 << 26,
 
-			DirtyFlag_InputAssembler = 1 << 24,
+			DirtyFlag_InputAssembler = 1 << 27,
 		};
 
 		u32 m_dirtyFlags;
@@ -332,6 +364,11 @@ namespace D3D
 			ID3D11Buffer* geometryConstants;
 			UINT geometryConstantsOffset;
 			UINT geometryConstantsSize;
+
+			ID3D11Buffer* hulldomainConstants;
+			UINT hulldomainConstantsOffset;
+			UINT hulldomainConstantsSize;
+
 			ID3D11Buffer* vertexBuffer;
 			ID3D11Buffer* indexBuffer;
 			u32 vertexBufferStride;
@@ -341,6 +378,8 @@ namespace D3D
 			ID3D11PixelShader* pixelShader;
 			ID3D11VertexShader* vertexShader;
 			ID3D11GeometryShader* geometryShader;
+			ID3D11HullShader* hullShader;
+			ID3D11DomainShader* domainShader;
 		};
 
 		Resources m_pending;

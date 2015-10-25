@@ -122,6 +122,8 @@ private:
 using VertexShaderPtr = UniquePtr<ID3D11VertexShader>;
 using PixelShaderPtr = UniquePtr<ID3D11PixelShader>;
 using GeometryShaderPtr = UniquePtr<ID3D11GeometryShader>;
+using HullShaderPtr = UniquePtr<ID3D11HullShader>;
+using DomainShaderPtr = UniquePtr<ID3D11DomainShader>;
 using ComputeShaderPtr = UniquePtr<ID3D11ComputeShader>;
 using BufferPtr = UniquePtr<ID3D11Buffer>;
 using SrvPtr = UniquePtr<ID3D11ShaderResourceView>;

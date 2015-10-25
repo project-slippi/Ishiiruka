@@ -220,6 +220,12 @@
     <ClCompile Include="TextureScalerCommon.cpp">
       <Filter>Util</Filter>
     </ClCompile>
+    <ClCompile Include="HullDomainShaderGen.cpp">
+      <Filter>Shader Generators</Filter>
+    </ClCompile>
+    <ClCompile Include="HullDomainShaderManager.cpp">
+      <Filter>Shader Managers</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="CommandProcessor.h" />
@@ -468,6 +474,12 @@
     </ClInclude>
     <ClInclude Include="TextureScalerCommon.h">
       <Filter>Util</Filter>
+    </ClInclude>
+    <ClInclude Include="HullDomainShaderGen.h">
+      <Filter>Shader Generators</Filter>
+    </ClInclude>
+    <ClInclude Include="HullDomainShaderManager.h">
+      <Filter>Shader Managers</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -9,6 +9,8 @@
 #include "VideoBackends/DX11/D3DBase.h"
 #include "VideoBackends/DX11/D3DState.h"
 
+#include "VideoCommon/VideoConfig.h"
+
 namespace DX11
 {
 
@@ -138,6 +140,23 @@ namespace D3D
 					m_current.geometryConstantsOffset = m_pending.geometryConstantsOffset;
 					m_current.geometryConstantsSize = m_pending.geometryConstantsSize;
 				}
+				if (m_dirtyFlags & DirtyFlag_HullDomainConstants)
+				{
+					if (m_pending.hulldomainConstantsSize == 0)
+					{
+						D3D::context->HSSetConstantBuffers(0, 1, &m_pending.hulldomainConstants);
+						D3D::context->DSSetConstantBuffers(0, 1, &m_pending.hulldomainConstants);
+					}
+					else
+					{
+						D3D::context1->HSSetConstantBuffers1(0, 1, &m_pending.hulldomainConstants, &m_pending.hulldomainConstantsOffset, &m_pending.hulldomainConstantsSize);
+						D3D::context1->DSSetConstantBuffers1(0, 1, &m_pending.hulldomainConstants, &m_pending.hulldomainConstantsOffset, &m_pending.hulldomainConstantsSize);
+					}
+					m_current.hulldomainConstants = m_pending.hulldomainConstants;
+					m_current.hulldomainConstantsOffset = m_pending.hulldomainConstantsOffset;
+					m_current.hulldomainConstantsSize = m_pending.hulldomainConstantsSize;
+				}
+
 			}
 			else
 			{
@@ -157,8 +176,16 @@ namespace D3D
 					D3D::context->GSSetConstantBuffers(0, 1, &m_pending.geometryConstants);
 					m_current.geometryConstants = m_pending.geometryConstants;
 				}
+				if (m_dirtyFlags & DirtyFlag_HullDomainConstants)
+				{
+					if (g_ActiveConfig.backend_info.bSupportsTessellation)
+					{
+						D3D::context->HSSetConstantBuffers(0, 1, &m_pending.hulldomainConstants);
+						D3D::context->DSSetConstantBuffers(0, 1, &m_pending.hulldomainConstants);
+					}
+					m_current.hulldomainConstants = m_pending.hulldomainConstants;
+				}
 			}
-			
 		}
 
 		if (m_dirtyFlags & (DirtyFlag_Buffers | DirtyFlag_InputAssembler))
@@ -232,6 +259,20 @@ namespace D3D
 			{
 				D3D::context->GSSetShader(m_pending.geometryShader, nullptr, 0);
 				m_current.geometryShader = m_pending.geometryShader;
+			}
+			if (g_ActiveConfig.backend_info.bSupportsTessellation)
+			{
+				if (m_current.hullShader != m_pending.hullShader)
+				{
+					D3D::context->HSSetShader(m_pending.hullShader, nullptr, 0);
+					m_current.hullShader = m_pending.hullShader;
+				}
+
+				if (m_current.domainShader != m_pending.domainShader)
+				{
+					D3D::context->DSSetShader(m_pending.domainShader, nullptr, 0);
+					m_current.domainShader = m_pending.domainShader;
+				}
 			}
 		}
 

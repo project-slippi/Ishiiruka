@@ -49,6 +49,7 @@
     <ClCompile Include="D3DUtil.cpp" />
     <ClCompile Include="FramebufferManager.cpp" />
     <ClCompile Include="GeometryShaderCache.cpp" />
+    <ClCompile Include="HullDomainShaderCache.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="NativeVertexFormat.cpp" />
     <ClCompile Include="PerfQuery.cpp" />
@@ -76,6 +77,7 @@
     <ClInclude Include="FramebufferManager.h" />
     <ClInclude Include="GeometryShaderCache.h" />
     <ClInclude Include="Globals.h" />
+    <ClInclude Include="HullDomainShaderCache.h" />
     <ClInclude Include="main.h" />
     <ClInclude Include="PerfQuery.h" />
     <ClInclude Include="PixelShaderCache.h" />

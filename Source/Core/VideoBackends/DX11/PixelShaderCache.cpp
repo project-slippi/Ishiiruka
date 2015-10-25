@@ -21,6 +21,8 @@
 #include "VideoCommon/PixelShaderManager.h"
 
 static bool s_previous_per_pixel_lighting = false;
+// internal state for loading vertices
+extern NativeVertexFormat *g_nativeVertexFmt;
 
 namespace DX11
 {
@@ -417,7 +419,7 @@ ID3D11PixelShader* PixelShaderCache::GetClearProgram()
 std::tuple<ID3D11Buffer*, UINT, UINT> PixelShaderCache::GetConstantBuffer()
 {
 	bool lightingEnabled = xfmem.numChan.numColorChans > 0;
-	bool enable_pl = g_ActiveConfig.bEnablePixelLighting && g_ActiveConfig.backend_info.bSupportsPixelLighting && lightingEnabled;
+	bool enable_pl = g_ActiveConfig.PixelLightingEnabled(xfmem, g_nativeVertexFmt->m_components);
 	D3D::ConstantStreamBuffer* buf = enable_pl ? pscbuf_alt : pscbuf;
 	if (PixelShaderManager::IsDirty() || s_previous_per_pixel_lighting != enable_pl)
 	{

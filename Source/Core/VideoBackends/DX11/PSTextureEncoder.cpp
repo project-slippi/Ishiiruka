@@ -1035,6 +1035,8 @@ void PSTextureEncoder::Encode(u8* dst, const TextureCache::TCacheEntryBase *text
 	{
 		D3D::stateman->SetVertexShader(m_vShader.get());
 		D3D::stateman->SetGeometryShader(nullptr);
+		D3D::stateman->SetHullShader(nullptr);
+		D3D::stateman->SetDomainShader(nullptr);
 
 		D3D::stateman->PushBlendState(m_efbEncodeBlendState.get());
 		D3D::stateman->PushDepthState(m_efbEncodeDepthState.get());

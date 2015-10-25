@@ -53,3 +53,10 @@ struct GeometryShaderConstants
 	float4 lineptparams;
 	int4 texoffset;
 };
+
+struct HullDomainShaderConstants
+{
+	float4 tessparams;
+	float4 depthparams;
+	float4 projection[4];
+};

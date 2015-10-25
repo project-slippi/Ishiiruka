@@ -595,6 +595,8 @@ void drawShadedTexQuad(
 	D3D::stateman->SetTexture(0, texture);
 	D3D::stateman->SetVertexShader(VShader);
 	D3D::stateman->SetGeometryShader(GShader);
+	D3D::stateman->SetHullShader(nullptr);
+	D3D::stateman->SetDomainShader(nullptr);
 
 	D3D::stateman->Apply();
 	D3D::context->Draw(4, stq_offset);
@@ -634,6 +636,8 @@ void drawColorQuad(u32 Color, float z, float x1, float y1, float x2, float y2)
 	stateman->SetVertexShader(VertexShaderCache::GetClearVertexShader());
 	stateman->SetGeometryShader(GeometryShaderCache::GetClearGeometryShader());
 	stateman->SetPixelShader(PixelShaderCache::GetClearProgram());
+	D3D::stateman->SetHullShader(nullptr);
+	D3D::stateman->SetDomainShader(nullptr);
 	stateman->SetInputLayout(VertexShaderCache::GetClearInputLayout());
 
 	UINT stride = sizeof(ColVertex);
@@ -670,6 +674,8 @@ void drawClearQuad(
 	stateman->SetVertexShader(VertexShaderCache::GetClearVertexShader());
 	stateman->SetGeometryShader(GeometryShaderCache::GetClearGeometryShader());
 	stateman->SetPixelShader(PixelShaderCache::GetClearProgram());
+	D3D::stateman->SetHullShader(nullptr);
+	D3D::stateman->SetDomainShader(nullptr);
 	stateman->SetInputLayout(VertexShaderCache::GetClearInputLayout());
 
 	UINT stride = sizeof(ColVertex);

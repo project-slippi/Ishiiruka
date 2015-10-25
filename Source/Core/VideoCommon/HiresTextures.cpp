@@ -708,7 +708,7 @@ HiresTexture* HiresTexture::Load(const std::string& basename,
 			}
 		}
 	}
-	if (ret->m_nrm_levels != ret->m_levels)
+	if (ret != nullptr && ret->m_nrm_levels != ret->m_levels)
 	{
 		// disable normal map if the size or levels are different
 		ret->m_nrm_levels = 0;
