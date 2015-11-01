@@ -24,6 +24,11 @@ public:
 	static void SetConstants();
 	static void SetViewportChanged();
 	static void SetProjectionChanged();
-
+	static void SetHDSTextureDims(int texid);
+	static void SetTexDims(int texmapid, u32 width, u32 height);
+	static void SetIndMatrixChanged(int matrixidx);
+	static void SetIndTexScaleChanged(bool high);
+	static void SetTexCoordChanged(u8 texmapid);
+	static void SetFlags(int index, int mask, int value);
 	static HullDomainShaderConstants constants;
 };

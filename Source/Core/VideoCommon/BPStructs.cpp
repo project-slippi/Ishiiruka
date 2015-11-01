@@ -16,6 +16,7 @@
 #include "VideoCommon/BPStructs.h"
 #include "VideoCommon/Fifo.h"
 #include "VideoCommon/GeometryShaderManager.h"
+#include "VideoCommon/HullDomainShaderManager.h"
 #include "VideoCommon/PerfQueryBase.h"
 #include "VideoCommon/PixelEngine.h"
 #include "VideoCommon/PixelShaderManager.h"
@@ -139,15 +140,24 @@ void BPWritten(const BPCmd& bp)
 	case BPMEM_IND_MTXB + 6:
 	case BPMEM_IND_MTXC + 6:
 		if (bp.changes)
+		{
 			PixelShaderManager::SetIndMatrixChanged((bp.address - BPMEM_IND_MTXA) / 3);
+			HullDomainShaderManager::SetIndMatrixChanged((bp.address - BPMEM_IND_MTXA) / 3);
+		}
 		return;
 	case BPMEM_RAS1_SS0: // Index Texture Coordinate Scale 0
 		if (bp.changes)
+		{
 			PixelShaderManager::SetIndTexScaleChanged(false);
+			HullDomainShaderManager::SetIndTexScaleChanged(false);
+		}
 		return;
 	case BPMEM_RAS1_SS1: // Index Texture Coordinate Scale 1
 		if (bp.changes)
+		{
 			PixelShaderManager::SetIndTexScaleChanged(true);
+			HullDomainShaderManager::SetIndTexScaleChanged(true);
+		}
 		return;
 		// ----------------
 		// Scissor Control
@@ -608,6 +618,7 @@ void BPWritten(const BPCmd& bp)
 		{
 			PixelShaderManager::SetTexCoordChanged((bp.address - BPMEM_SU_SSIZE) >> 1);
 			GeometryShaderManager::SetTexCoordChanged((bp.address - BPMEM_SU_SSIZE) >> 1);
+			HullDomainShaderManager::SetTexCoordChanged((bp.address - BPMEM_SU_SSIZE) >> 1);
 		}
 		return;
 		// ------------------------

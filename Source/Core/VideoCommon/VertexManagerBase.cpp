@@ -191,6 +191,7 @@ void VertexManager::Flush()
 					mask |= 1 << i;
 				}
 				PixelShaderManager::SetTexDims(i, tentry->native_width, tentry->native_height);
+				HullDomainShaderManager::SetTexDims(i, tentry->native_width, tentry->native_height);
 				g_renderer->SetSamplerState(i & 3, i >> 2, tentry->is_custom_tex);
 			}
 			else
@@ -200,6 +201,7 @@ void VertexManager::Flush()
 	if (g_ActiveConfig.HiresMaterialMapsEnabled())
 	{
 		PixelShaderManager::SetFlags(0, ~0, mask);
+		HullDomainShaderManager::SetFlags(0, ~0, mask);
 	}
 	TextureCache::BindTextures();
 

@@ -170,6 +170,10 @@ void VertexManager::PrepareShaders(u32 primitive, u32 components, const XFMemory
 	VertexShaderCache::PrepareShader(components, xfr, bpm, ongputhread);
 	GeometryShaderCache::PrepareShader(primitive, xfr, components, ongputhread);
 	PixelShaderCache::PrepareShader(useDstAlpha ? DSTALPHA_DUAL_SOURCE_BLEND : DSTALPHA_NONE, components, xfr, bpm, ongputhread);
+	if (g_ActiveConfig.backend_info.bSupportsTessellation)
+	{
+		HullDomainShaderCache::PrepareShader(xfmem, bpmem, current_primitive_type, g_nativeVertexFmt->m_components, ongputhread);
+	}
 }
 
 void VertexManager::vFlush(bool useDstAlpha)
@@ -189,9 +193,12 @@ void VertexManager::vFlush(bool useDstAlpha)
 	{
 		return;
 	}
-	if (g_ActiveConfig.backend_info.bSupportsTessellation)
+	if (g_ActiveConfig.backend_info.bSupportsTessellation && g_ActiveConfig.bTessellation)
 	{
-		HullDomainShaderCache::SetShader(xfmem, current_primitive_type, g_nativeVertexFmt->m_components);
+		if (!HullDomainShaderCache::TestShader())
+		{
+			return;
+		}
 	}
 	BBox::Update();
 	u32 stride = g_nativeVertexFmt->GetVertexStride();

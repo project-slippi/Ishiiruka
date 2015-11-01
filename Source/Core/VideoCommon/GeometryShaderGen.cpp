@@ -307,6 +307,10 @@ static inline void GenerateGeometryShader(T& out, u32 primitive_type, const XFMe
 		if (codebuffer[GEOMETRYSHADERGEN_BUFFERSIZE - 1] != 0x7C)
 			PanicAlert("GeometryShader generator - buffer too small, canary has been eaten!");
 	}
+	if (uidPresent)
+	{
+		out.CalculateUIDHash();
+	}
 }
 
 template<class T, API_TYPE ApiType>

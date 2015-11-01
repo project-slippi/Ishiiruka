@@ -44,7 +44,7 @@ DomainShaderPtr CreateDomainShaderFromByteCode(const void* bytecode, size_t len)
 	HRESULT hr = D3D::device->CreateDomainShader(bytecode, len, nullptr, ToAddr(d_shader));
 	if (FAILED(hr))
 	{
-		PanicAlert("CreatHullShaderFromByteCode failed at %s %d\n", __FILE__, __LINE__);
+		PanicAlert("CreateDomainShaderFromByteCode failed at %s %d\n", __FILE__, __LINE__);
 	}
 	return d_shader;
 }
@@ -95,7 +95,7 @@ bool CompileShader(
 	UINT flags = D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
 #else
 	UINT flags = D3DCOMPILE_SKIP_VALIDATION;
-	if (!(type == DX11::D3D::ShaderType::Hull || type == DX11::D3D::ShaderType::Domain))
+	if (type != DX11::D3D::ShaderType::Hull)
 	{
 		flags |= D3D10_SHADER_ENABLE_BACKWARDS_COMPATIBILITY | D3DCOMPILE_OPTIMIZATION_LEVEL3;
 	}

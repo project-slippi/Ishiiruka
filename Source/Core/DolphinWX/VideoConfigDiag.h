@@ -92,6 +92,7 @@ protected:
 	void Event_TessellationMin(wxCommandEvent &ev);
 	void Event_TessellationMax(wxCommandEvent &ev);
 	void Event_TessellationRounding(wxCommandEvent &ev);
+	void Event_TessellationDisplacement(wxCommandEvent &ev);
 	void Event_StereoConvergence(wxCommandEvent &ev);
 	void Event_StereoMode(wxCommandEvent &ev);
 	void Event_ScalingFactor(wxCommandEvent &ev);

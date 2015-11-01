@@ -47,6 +47,7 @@ void TextureCache::TCacheEntry::Bind(u32 stage)
 			nrm_texture->GetSRV()
 		};
 		D3D::context->PSSetShaderResources(8 + stage, 1, views);
+		D3D::context->DSSetShaderResources(8 + stage, 1, views);
 	}
 }
 

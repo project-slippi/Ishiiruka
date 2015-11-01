@@ -120,6 +120,8 @@ void VideoConfig::Load(const std::string& ini_file)
 	enhancements->Get("TessellationMin", &iTessellationMin, 1);
 	enhancements->Get("TessellationMax", &iTessellationMax, 6);
 	enhancements->Get("TessellationRoundingIntensity", &iTessellationRoundingIntensity, 0);
+	enhancements->Get("TessellationDisplacementIntensity", &iTessellationDisplacementIntensity, 0);
+	
 	//currently these settings are not saved in global config, so we could've initialized them directly
 	for (size_t i = 0; i < oStereoPresets.size(); ++i)
 	{
@@ -251,6 +253,7 @@ void VideoConfig::GameIniLoad()
 	CHECK_SETTING("Video_Enhancements", "TessellationMin", iTessellationMin);
 	CHECK_SETTING("Video_Enhancements", "TessellationMax", iTessellationMax);
 	CHECK_SETTING("Video_Enhancements", "TessellationRoundingIntensity", iTessellationRoundingIntensity);
+	CHECK_SETTING("Video_Enhancements", "TessellationDisplacementIntensity", iTessellationDisplacementIntensity);
 	
 	//these are not overrides, they are per-game settings, hence no warning
 	IniFile::Section* enhancements = iniFile.GetOrCreateSection("Enhancements");
@@ -301,6 +304,8 @@ void VideoConfig::VerifyValidity()
 	bForcePhongShading = bForcePhongShading && bEnablePixelLighting;
 	iTessellationMax = iTessellationMax < 2 ? 2 : (iTessellationMax > 63 ? 63 : iTessellationMax);
 	iTessellationMin = iTessellationMin < 1 ? 1 : (iTessellationMin > iTessellationMax ? iTessellationMax : iTessellationMin);
+	iTessellationRoundingIntensity = iTessellationRoundingIntensity > 100 ? 100 : (iTessellationRoundingIntensity < 0 ? 0 : iTessellationRoundingIntensity);
+	iTessellationDisplacementIntensity = iTessellationDisplacementIntensity > 300 ? 300 : (iTessellationDisplacementIntensity < 0 ? 0 : iTessellationDisplacementIntensity);
 	if (iStereoMode > 0)
 	{
 		if (!backend_info.bSupportsGeometryShaders)
@@ -414,7 +419,8 @@ void VideoConfig::Save(const std::string& ini_file)
 	enhancements->Set("TessellationMin", iTessellationMin);
 	enhancements->Set("TessellationMax", iTessellationMax);
 	enhancements->Set("TessellationRoundingIntensity", iTessellationRoundingIntensity);
-
+	enhancements->Set("TessellationDisplacementIntensity", iTessellationDisplacementIntensity);
+	
 	IniFile::Section* hacks = iniFile.GetOrCreateSection("Hacks");
 	hacks->Set("EFBAccessEnable", bEFBAccessEnable);
 	hacks->Set("EFBFastAccess", bEFBFastAccess);

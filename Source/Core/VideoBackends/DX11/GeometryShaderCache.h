@@ -23,7 +23,7 @@ namespace DX11
 			const XFMemory &xfr,
 			const u32 components,
 			bool ongputhread);
-		static bool TestShader();		
+		static bool TestShader();
 		static void InsertByteCode(const GeometryShaderUid &uid, const void* bytecode, unsigned int bytecodelen);
 
 		static ID3D11GeometryShader* GeometryShaderCache::GetClearGeometryShader();

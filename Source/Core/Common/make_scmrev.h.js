@@ -15,7 +15,10 @@ var cache_modifier_files = new Array(
 	"../VideoCommon/ShaderGenCommon.h",
 	"../VideoCommon/VertexShaderGen.h",
 	"../VideoCommon/GeometryShaderGen.cpp",
-	"../VideoCommon/GeometryShaderGen.h");
+	"../VideoCommon/GeometryShaderGen.h",
+	"../VideoCommon/HullDomainShaderGen.cpp",
+	"../VideoCommon/HullDomainShaderGen.h"
+	);
 function GetGitExe()
 {
 	try {

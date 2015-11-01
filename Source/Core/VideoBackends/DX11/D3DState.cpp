@@ -224,6 +224,7 @@ namespace D3D
 				unsigned long index;
 				_BitScanForward(&index, dirty_elements);
 				D3D::context->PSSetShaderResources(index, 1, &m_pending.textures[index]);
+				D3D::context->DSSetShaderResources(index, 1, &m_pending.textures[index]);
 				m_current.textures[index] = m_pending.textures[index];
 				dirty_elements &= ~(1 << index);
 			}
@@ -236,6 +237,7 @@ namespace D3D
 				unsigned long index;
 				_BitScanForward(&index, dirty_elements);
 				D3D::context->PSSetSamplers(index, 1, &m_pending.samplers[index]);
+				D3D::context->DSSetSamplers(index, 1, &m_pending.samplers[index]);
 				m_current.samplers[index] = m_pending.samplers[index];
 				dirty_elements &= ~(1 << index);
 			}

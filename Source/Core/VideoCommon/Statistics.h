@@ -12,6 +12,10 @@
 
 struct Statistics
 {
+	int numDomainShadersCreated;
+	int numDomainShadersAlive;
+	int numHullShadersCreated;
+	int numHullShadersAlive;
 	int numGeometryShadersCreated;
 	int numGeometryShadersAlive;
 	int numPixelShadersCreated;

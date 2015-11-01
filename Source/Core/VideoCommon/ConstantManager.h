@@ -59,4 +59,8 @@ struct HullDomainShaderConstants
 	float4 tessparams;
 	float4 depthparams;
 	float4 projection[4];
+	float4 texdims[8];
+	int4 indtexscale[2];
+	int4 indtexmtx[6];
+	int4 flags;
 };

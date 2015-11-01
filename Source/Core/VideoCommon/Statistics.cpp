@@ -33,6 +33,12 @@ std::string Statistics::ToString()
 	str += StringFromFormat("pshaders alive: %i\n", stats.numPixelShadersAlive);
 	str += StringFromFormat("vshaders created: %i\n", stats.numVertexShadersCreated);
 	str += StringFromFormat("vshaders alive: %i\n", stats.numVertexShadersAlive);
+	str += StringFromFormat("gshaders created: %i\n", stats.numGeometryShadersCreated);
+	str += StringFromFormat("gshaders alive: %i\n", stats.numGeometryShadersAlive);
+	str += StringFromFormat("hshaders created: %i\n", stats.numHullShadersCreated);
+	str += StringFromFormat("hshaders alive: %i\n", stats.numHullShadersAlive);
+	str += StringFromFormat("dshaders created: %i\n", stats.numDomainShadersCreated);
+	str += StringFromFormat("dshaders alive: %i\n", stats.numDomainShadersAlive);
 	str += StringFromFormat("shaders changes: %i\n", stats.thisFrame.numShaderChanges);
 	str += StringFromFormat("dlists called: %i\n", stats.thisFrame.numDListsCalled);
 	str += StringFromFormat("Primitive joins: %i\n", stats.thisFrame.numPrimitiveJoins);
