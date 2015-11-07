@@ -27,7 +27,7 @@ enum TextureCacheParams
 	TEXTURE_POOL_MEMORY_LIMIT = 64 * 1024 * 1024
 };
 
-class TextureCache
+class TextureCacheBase
 {
 public:
 	struct TCacheEntryConfig
@@ -89,7 +89,7 @@ public:
 
 		struct Hasher
 		{
-			size_t operator()(const TextureCache::TCacheEntryConfig& c) const
+			size_t operator()(const TextureCacheBase::TCacheEntryConfig& c) const
 			{
 				return (u64)c.materialmap << 57	// 1 bit
 					| (u64)c.rendertarget << 56	// 1 bit
@@ -186,13 +186,13 @@ public:
 		bool IsEfbCopy() { return is_efb_copy; }
 
 		u32 NumBlocksY() const;
-		u32 CacheLinesPerRow() const;
+		u32 BytesPerRow() const;
 
 		void Zero(u8* ptr);
 		u64 CalculateHash() const;
 	};
 
-	virtual ~TextureCache(); // needs virtual for DX11 dtor
+	virtual ~TextureCacheBase(); // needs virtual for DX11 dtor
 
 	static void OnConfigChanged(VideoConfig& config);
 	// Removes textures which aren't used for more than TEXTURE_KILL_THRESHOLD frames,
@@ -221,7 +221,7 @@ public:
 protected:
 	alignas(16) static u8 *temp;
 	static size_t temp_size;
-	TextureCache();
+	TextureCacheBase();
 private:
 	typedef std::multimap<u64, TCacheEntryBase*> TexCache;
 	typedef std::unordered_multimap<TCacheEntryConfig, TCacheEntryBase*, TCacheEntryConfig::Hasher> TexPool;
@@ -235,7 +235,7 @@ private:
 	static u32 s_prev_tlut_size;
 	static u64 s_prev_tlut_hash;
 	static TCacheEntryBase* AllocateTexture(const TCacheEntryConfig& config);
-	static TextureCache::TexCache::iterator FreeTexture(TexCache::iterator t_iter);
+	static TextureCacheBase::TexCache::iterator FreeTexture(TexCache::iterator t_iter);
 	static TCacheEntryBase* ReturnEntry(unsigned int stage, TCacheEntryBase* entry);
 
 	
@@ -263,4 +263,4 @@ private:
 	} backup_config;
 };
 
-extern TextureCache *g_texture_cache;
+extern TextureCacheBase *g_texture_cache;

@@ -135,7 +135,6 @@ struct VideoConfig final
 	bool bOverlayProjStats;
 	bool bTexFmtOverlayEnable;
 	bool bTexFmtOverlayCenter;
-	bool bShowEFBCopyRegions;
 	bool bLogRenderTimeToFile;
 	
 

@@ -58,7 +58,7 @@ static void DoState(PointerWrap &p)
 	HullDomainShaderManager::DoState(p);
 	p.DoMarker("HullDomainShaderManager");
 
-	VertexManager::DoState(p);
+	VertexManagerBase::DoState(p);
 	p.DoMarker("VertexManager");
 
 	BoundingBox::DoState(p);

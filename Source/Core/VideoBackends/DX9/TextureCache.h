@@ -15,7 +15,7 @@
 namespace DX9
 {
 
-class TextureCache : public ::TextureCache
+class TextureCache : public ::TextureCacheBase
 {
 public:
 	TextureCache();

@@ -27,7 +27,7 @@ namespace BPFunctions
 
 void FlushPipeline()
 {
-	VertexManager::Flush();
+	VertexManagerBase::Flush();
 }
 
 void SetGenerationMode()

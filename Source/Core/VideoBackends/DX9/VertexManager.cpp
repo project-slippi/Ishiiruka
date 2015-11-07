@@ -27,8 +27,8 @@ extern NativeVertexFormat *g_nativeVertexFmt;
 namespace DX9
 {
 // This are the initially requeted size for the buffers expresed in elements
-const u32 MAX_IBUFFER_SIZE = VertexManager::MAXIBUFFERSIZE * sizeof(u16) * 8;
-const u32 MAX_VBUFFER_SIZE = VertexManager::MAXVBUFFERSIZE;
+const u32 MAX_IBUFFER_SIZE = VertexManagerBase::MAXIBUFFERSIZE * sizeof(u16) * 8;
+const u32 MAX_VBUFFER_SIZE = VertexManagerBase::MAXVBUFFERSIZE;
 const u32 MAX_VBUFFER_COUNT = 2;
 // Register count for line/point offset storage
 const u32 LINE_PT_OFFSETS_PARAMS_LEN = C_VENVCONST_END - C_PLOFFSETPARAMS;

@@ -753,128 +753,6 @@ void Renderer::Init()
 	glVertexAttribPointer(SHADER_COLOR0_ATTRIB, 3, GL_FLOAT, 0, sizeof(GLfloat)*5, (GLfloat*)nullptr+2);
 }
 
-// Create On-Screen-Messages
-void Renderer::ShowEfbCopyRegions()
-{
-	if (GLInterface->GetMode() == GLInterfaceMode::MODE_OPENGL && g_ActiveConfig.bShowEFBCopyRegions)
-	{
-		// Set Line Size
-		glLineWidth(3.0f);
-
-		// 2*Coords + 3*Color
-		GLsizeiptr length = stats.efb_regions.size() * sizeof(GLfloat) * (2 + 3) * 2 * 6;
-		glBindBuffer(GL_ARRAY_BUFFER, s_ShowEFBCopyRegions_VBO);
-		glBufferData(GL_ARRAY_BUFFER, length, nullptr, GL_STREAM_DRAW);
-		GLfloat *Vertices = (GLfloat*)glMapBufferRange(GL_ARRAY_BUFFER, 0, length, GL_MAP_WRITE_BIT);
-
-		// Draw EFB copy regions rectangles
-		int a = 0;
-		GLfloat color[3] = {0.0f, 1.0f, 1.0f};
-
-		for (const EFBRectangle& rect : stats.efb_regions)
-		{
-			GLfloat halfWidth = EFB_WIDTH / 2.0f;
-			GLfloat halfHeight = EFB_HEIGHT / 2.0f;
-			GLfloat x =  (GLfloat) -1.0f + ((GLfloat)rect.left / halfWidth);
-			GLfloat y =  (GLfloat) 1.0f - ((GLfloat)rect.top / halfHeight);
-			GLfloat x2 = (GLfloat) -1.0f + ((GLfloat)rect.right / halfWidth);
-			GLfloat y2 = (GLfloat) 1.0f - ((GLfloat)rect.bottom / halfHeight);
-
-			Vertices[a++] = x;
-			Vertices[a++] = y;
-			Vertices[a++] = color[0];
-			Vertices[a++] = color[1];
-			Vertices[a++] = color[2];
-
-			Vertices[a++] = x2;
-			Vertices[a++] = y;
-			Vertices[a++] = color[0];
-			Vertices[a++] = color[1];
-			Vertices[a++] = color[2];
-
-
-			Vertices[a++] = x2;
-			Vertices[a++] = y;
-			Vertices[a++] = color[0];
-			Vertices[a++] = color[1];
-			Vertices[a++] = color[2];
-
-			Vertices[a++] = x2;
-			Vertices[a++] = y2;
-			Vertices[a++] = color[0];
-			Vertices[a++] = color[1];
-			Vertices[a++] = color[2];
-
-
-			Vertices[a++] = x2;
-			Vertices[a++] = y2;
-			Vertices[a++] = color[0];
-			Vertices[a++] = color[1];
-			Vertices[a++] = color[2];
-
-			Vertices[a++] = x;
-			Vertices[a++] = y2;
-			Vertices[a++] = color[0];
-			Vertices[a++] = color[1];
-			Vertices[a++] = color[2];
-
-
-			Vertices[a++] = x;
-			Vertices[a++] = y2;
-			Vertices[a++] = color[0];
-			Vertices[a++] = color[1];
-			Vertices[a++] = color[2];
-
-			Vertices[a++] = x;
-			Vertices[a++] = y;
-			Vertices[a++] = color[0];
-			Vertices[a++] = color[1];
-			Vertices[a++] = color[2];
-
-
-			Vertices[a++] = x;
-			Vertices[a++] = y;
-			Vertices[a++] = color[0];
-			Vertices[a++] = color[1];
-			Vertices[a++] = color[2];
-
-			Vertices[a++] = x2;
-			Vertices[a++] = y2;
-			Vertices[a++] = color[0];
-			Vertices[a++] = color[1];
-			Vertices[a++] = color[2];
-
-
-			Vertices[a++] = x2;
-			Vertices[a++] = y;
-			Vertices[a++] = color[0];
-			Vertices[a++] = color[1];
-			Vertices[a++] = color[2];
-
-			Vertices[a++] = x;
-			Vertices[a++] = y2;
-			Vertices[a++] = color[0];
-			Vertices[a++] = color[1];
-			Vertices[a++] = color[2];
-
-			// TO DO: build something nicer here
-			GLfloat temp = color[0];
-			color[0] = color[1];
-			color[1] = color[2];
-			color[2] = temp;
-		}
-		glUnmapBuffer(GL_ARRAY_BUFFER);
-
-		s_ShowEFBCopyRegions.Bind();
-		glBindVertexArray(s_ShowEFBCopyRegions_VAO);
-		GLsizei count = static_cast<GLsizei>(stats.efb_regions.size() * 2*6);
-		glDrawArrays(GL_LINES, 0, count);
-
-		// Clear stored regions
-		stats.efb_regions.clear();
-	}
-}
-
 void Renderer::RenderText(const std::string& text, int left, int top, u32 color)
 {
 	const int nBackbufferWidth = (int)GLInterface->GetBackBufferWidth();
@@ -1706,7 +1584,6 @@ void Renderer::SwapImpl(u32 xfbAddr, u32 fbWidth, u32 fbStride, u32 fbHeight, co
 	// Reset viewport for drawing text
 	glViewport(0, 0, GLInterface->GetBackBufferWidth(), GLInterface->GetBackBufferHeight());
 
-	ShowEfbCopyRegions();
 	DrawDebugText();
 
 	// Do our OSD callbacks

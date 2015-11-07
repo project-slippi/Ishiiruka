@@ -649,7 +649,7 @@ void VertexShaderManager::SetTexMatrixChangedA(u32 Value)
 {
 	if (g_main_cp_state.matrix_index_a.Hex != Value)
 	{
-		VertexManager::Flush();
+		VertexManagerBase::Flush();
 		bTexMatricesChanged[0] = true;
 		g_main_cp_state.matrix_index_a.Hex = Value;
 	}
@@ -659,7 +659,7 @@ void VertexShaderManager::SetTexMatrixChangedB(u32 Value)
 {
 	if (g_main_cp_state.matrix_index_b.Hex != Value)
 	{
-		VertexManager::Flush();
+		VertexManagerBase::Flush();
 		bTexMatricesChanged[1] = true;
 		g_main_cp_state.matrix_index_b.Hex = Value;
 	}

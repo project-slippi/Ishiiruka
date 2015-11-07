@@ -28,7 +28,7 @@ void EncodeToRamYUYV(LPDIRECT3DTEXTURE9 srcTexture, const TargetRectangle& sourc
 void DecodeToTexture(u32 xfbAddr, int srcWidth, int srcHeight, LPDIRECT3DTEXTURE9 destTexture);
 
 // returns size of the encoded data (in bytes)
-void EncodeToRamFromTexture(u8 *dest_ptr, const TextureCache::TCacheEntryBase *texture_entry, u32 SourceW, u32 SourceH,
+void EncodeToRamFromTexture(u8 *dest_ptr, const TextureCacheBase::TCacheEntryBase *texture_entry, u32 SourceW, u32 SourceH,
 	LPDIRECT3DTEXTURE9 source_texture, bool bFromZBuffer, bool bIsIntensityFmt, int bScaleByHalf, const EFBRectangle& source);
 
 

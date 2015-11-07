@@ -129,7 +129,6 @@ static wxString log_fps_to_file_desc = _("Log the number of frames rendered per 
 static wxString show_input_display_desc = _("Display the inputs read by the emulator.\n\nIf unsure, leave this unchecked.");
 static wxString show_stats_desc = _("Show various statistics.\n\nIf unsure, leave this unchecked.");
 static wxString texfmt_desc = _("Modify textures to show the format they're encoded in. Needs an emulation reset in most cases.\n\nIf unsure, leave this unchecked.");
-static wxString efb_copy_regions_desc = _("[BROKEN]\nHighlight regions the EFB was copied from.\n\nIf unsure, leave this unchecked.");
 static wxString xfb_desc = _("Disable any XFB emulation.\nSpeeds up emulation a lot but causes heavy glitches in many games which rely on them (especially homebrew applications).\n\nIf unsure, leave this checked.");
 static wxString xfb_virtual_desc = _("Emulate XFBs using GPU texture objects.\nFixes many games which don't work without XFB emulation while not being as slow as real XFB emulation. However, it may still fail for a lot of other games (especially homebrew applications).\n\nIf unsure, leave this checked.");
 static wxString xfb_real_desc = _("Emulate XFBs accurately.\nSlows down emulation a lot and prohibits high-resolution rendering but is necessary to emulate a number of games properly.\n\nIf unsure, check virtual XFB emulation instead.");
@@ -680,7 +679,6 @@ VideoConfigDiag::VideoConfigDiag(wxWindow* parent, const std::string &title, con
 	wxGridSizer* const szr_debug = new wxGridSizer(2, 5, 5);
 
 	szr_debug->Add(CreateCheckBox(page_advanced, _("Enable Wireframe"), (wireframe_desc), vconfig.bWireFrame));
-	szr_debug->Add(CreateCheckBox(page_advanced, _("Show EFB Copy Regions"), (efb_copy_regions_desc), vconfig.bShowEFBCopyRegions));
 	szr_debug->Add(CreateCheckBox(page_advanced, _("Show Statistics"), (show_stats_desc), vconfig.bOverlayStats));
 	szr_debug->Add(CreateCheckBox(page_advanced, _("Texture Format Overlay"), (texfmt_desc), vconfig.bTexFmtOverlayEnable));
 

@@ -298,7 +298,7 @@ inline bool DecodeSC(const u8* end)
 			vertexSize *= numVertices;
 			if (shaderGenDirty)
 			{
-				g_vertex_manager->PrepareShaders(VertexManager::GetPrimitiveType((cmd_byte & GX_PRIMITIVE_MASK) >> GX_PRIMITIVE_SHIFT), 
+				g_vertex_manager->PrepareShaders(VertexManagerBase::GetPrimitiveType((cmd_byte & GX_PRIMITIVE_MASK) >> GX_PRIMITIVE_SHIFT),
 					components, 
 					xfmemSC, 
 					bpmemSC, 

@@ -14,7 +14,7 @@
 namespace OGL
 {
 
-class TextureCache : public ::TextureCache
+class TextureCache : public ::TextureCacheBase
 {
 public:
 	TextureCache();
@@ -22,7 +22,7 @@ public:
 	static void SetStage();
 
 private:
-	struct TCacheEntry : TCacheEntryBase
+	struct TCacheEntry : TextureCacheBase::TCacheEntryBase
 	{
 		GLuint texture;
 		GLuint nrm_texture;

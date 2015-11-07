@@ -28,7 +28,7 @@ struct Slope
 	float f0;
 };
 
-class VertexManager
+class VertexManagerBase
 {
 private:
 	static const u32 SMALLEST_POSSIBLE_VERTEX = sizeof(float)*3;                 // 3 pos
@@ -41,9 +41,9 @@ public:
 	// We may convert triangle-fans to triangle-lists, almost 3x as many indices.
 	static const u32 MAXIBUFFERSIZE = ROUND_UP_POW2 (MAX_PRIMITIVES_PER_COMMAND * 3);
 
-	VertexManager();
+	VertexManagerBase();
 	// needs to be virtual for DX11's dtor
-	virtual ~VertexManager();
+	virtual ~VertexManagerBase();
 
 	static u8 *s_pCurBufferPointer;
 	static u8 *s_pBaseBufferPointer;
@@ -84,4 +84,4 @@ private:
 	virtual u16* GetIndexBuffer() = 0;
 };
 
-extern VertexManager *g_vertex_manager;
+extern VertexManagerBase *g_vertex_manager;

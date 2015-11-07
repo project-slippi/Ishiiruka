@@ -14,7 +14,7 @@
 namespace DX9
 {
 
-class VertexManager : public ::VertexManager
+class VertexManager : public ::VertexManagerBase
 {
 public:
 	VertexManager();

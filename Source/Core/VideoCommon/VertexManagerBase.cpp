@@ -22,20 +22,20 @@
 #include "VideoCommon/VideoConfig.h"
 #include "VideoCommon/XFMemory.h"
 
-VertexManager *g_vertex_manager;
+VertexManagerBase *g_vertex_manager;
 extern NativeVertexFormat *g_nativeVertexFmt;
 
-u8 *VertexManager::s_pCurBufferPointer;
-u8 *VertexManager::s_pBaseBufferPointer;
-u8 *VertexManager::s_pEndBufferPointer;
+u8 *VertexManagerBase::s_pCurBufferPointer;
+u8 *VertexManagerBase::s_pBaseBufferPointer;
+u8 *VertexManagerBase::s_pEndBufferPointer;
 
-bool VertexManager::s_Shader_Refresh_Required = true;
-bool VertexManager::s_Zslope_Refresh_Required = true;
-Slope VertexManager::s_ZSlope = {0.0f, 0.0f, float(0xFFFFFF)};
+bool VertexManagerBase::s_Shader_Refresh_Required = true;
+bool VertexManagerBase::s_Zslope_Refresh_Required = true;
+Slope VertexManagerBase::s_ZSlope = {0.0f, 0.0f, float(0xFFFFFF)};
 
-PrimitiveType VertexManager::current_primitive_type;
+PrimitiveType VertexManagerBase::current_primitive_type;
 
-bool VertexManager::IsFlushed;
+bool VertexManagerBase::IsFlushed;
 
 static const PrimitiveType primitive_from_gx[8] = {
 	PRIMITIVE_TRIANGLES, // GX_DRAW_QUADS
@@ -48,26 +48,26 @@ static const PrimitiveType primitive_from_gx[8] = {
 	PRIMITIVE_POINTS,    // GX_DRAW_POINTS
 };
 
-u32 VertexManager::GetPrimitiveType(int primitive)
+u32 VertexManagerBase::GetPrimitiveType(int primitive)
 {
 	return primitive_from_gx[primitive & 7];
 }
 
-VertexManager::VertexManager()
+VertexManagerBase::VertexManagerBase()
 {
 	IsFlushed = true;
 }
 
-VertexManager::~VertexManager()
+VertexManagerBase::~VertexManagerBase()
 {
 }
 
-u32 VertexManager::GetRemainingSize()
+u32 VertexManagerBase::GetRemainingSize()
 {
 	return (u32)(s_pEndBufferPointer - s_pCurBufferPointer);
 }
 
-void VertexManager::PrepareForAdditionalData(int primitive, u32 count, u32 stride)
+void VertexManagerBase::PrepareForAdditionalData(int primitive, u32 count, u32 stride)
 {	
 	// The SSE vertex loader can write up to 4 bytes past the end
 	u32 const needed_vertex_bytes = count * stride + 4;
@@ -86,10 +86,10 @@ void VertexManager::PrepareForAdditionalData(int primitive, u32 count, u32 strid
 		if (count > IndexGenerator::GetRemainingIndices())
 			ERROR_LOG(VIDEO, "Too little remaining index values. Use 32-bit or reset them on flush.");
 		if (count > GetRemainingIndices(primitive))
-			ERROR_LOG(VIDEO, "VertexManager: Buffer not large enough for all indices! "
+			ERROR_LOG(VIDEO, "VertexManagerBase: Buffer not large enough for all indices! "
 			"Increase MAXIBUFFERSIZE or we need primitive breaking after all.");
 		if (needed_vertex_bytes > GetRemainingSize())
-			ERROR_LOG(VIDEO, "VertexManager: Buffer not large enough for all vertices! "
+			ERROR_LOG(VIDEO, "VertexManagerBase: Buffer not large enough for all vertices! "
 			"Increase MAXVBUFFERSIZE or we need primitive breaking after all.");
 	}
 
@@ -101,7 +101,7 @@ void VertexManager::PrepareForAdditionalData(int primitive, u32 count, u32 strid
 	}
 }
 
-u32 VertexManager::GetRemainingIndices(int primitive)
+u32 VertexManagerBase::GetRemainingIndices(int primitive)
 {	
 	u32 index_len = MAXIBUFFERSIZE - IndexGenerator::GetIndexLen();
 
@@ -127,7 +127,7 @@ u32 VertexManager::GetRemainingIndices(int primitive)
 	}
 }
 
-void VertexManager::Flush()
+void VertexManagerBase::Flush()
 {
 	s_Shader_Refresh_Required = true;
 	if (IsFlushed)
@@ -177,13 +177,13 @@ void VertexManager::Flush()
 			if (bpmem.tevind[i].IsActive() && bpmem.tevind[i].bt < bpmem.genMode.numindstages.Value())
 				usedtextures |= 1 << bpmem.tevindref.getTexMap(bpmem.tevind[i].bt);
 
-	TextureCache::UnbindTextures();
+	TextureCacheBase::UnbindTextures();
 	s32 mask = 0;
 	for (unsigned int i = 0; i < 8; i++)
 	{
 		if (usedtextures & (1 << i))
 		{
-			const TextureCache::TCacheEntryBase* tentry = TextureCache::Load(i);
+			const TextureCacheBase::TCacheEntryBase* tentry = TextureCacheBase::Load(i);
 			if (tentry)
 			{
 				if (g_ActiveConfig.HiresMaterialMapsEnabled() && tentry->SupportsMaterialMap())
@@ -203,7 +203,7 @@ void VertexManager::Flush()
 		PixelShaderManager::SetFlags(0, ~0, mask);
 		HullDomainShaderManager::SetFlags(0, ~0, mask);
 	}
-	TextureCache::BindTextures();
+	TextureCacheBase::BindTextures();
 
 	// set global constants
 	VertexShaderManager::SetConstants();
@@ -243,12 +243,12 @@ void VertexManager::Flush()
 	IsFlushed = true;
 }
 
-void VertexManager::DoState(PointerWrap& p)
+void VertexManagerBase::DoState(PointerWrap& p)
 {
 	g_vertex_manager->vDoState(p);
 }
 
-void VertexManager::CalculateZSlope(const PortableVertexDeclaration &vert_decl, const u16* indices)
+void VertexManagerBase::CalculateZSlope(const PortableVertexDeclaration &vert_decl, const u16* indices)
 {
 	float out[12];
 	float viewOffset[2] = { 
@@ -290,7 +290,7 @@ void VertexManager::CalculateZSlope(const PortableVertexDeclaration &vert_decl, 
 	s_Zslope_Refresh_Required = true;
 }
 
-void VertexManager::SetZSlope()
+void VertexManagerBase::SetZSlope()
 {
 	if (s_Zslope_Refresh_Required)
 	{

@@ -190,6 +190,8 @@
     <ClInclude Include="GL\GLInterfaceBase.h">
       <Filter>GL\GLInterface</Filter>
     </ClInclude>
+    <ClInclude Include="Assert.h" />
+    <ClInclude Include="NonCopyable.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="BreakPoints.cpp" />
@@ -254,5 +256,8 @@
   </ItemGroup>
   <ItemGroup>
     <Text Include="CMakeLists.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <Natvis Include="BitField.natvis" />
   </ItemGroup>
 </Project>

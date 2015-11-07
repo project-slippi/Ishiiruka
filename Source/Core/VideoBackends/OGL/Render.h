@@ -86,8 +86,7 @@ public:
 	void ApplyState(bool bUseDstAlpha) override {}
 	void RestoreState() override {}
 
-	void RenderText(const std::string& text, int left, int top, u32 color) override;
-	void ShowEfbCopyRegions();
+	void RenderText(const std::string& text, int left, int top, u32 color) override;	
 	void FlipImageData(u8 *data, int w, int h, int pixel_width = 3);
 
 	u32 AccessEFB(EFBAccessType type, u32 x, u32 y, u32 poke_data) override;

@@ -943,7 +943,7 @@ void CSTextureEncoder::Encode(u8* dst, const TextureCache::TCacheEntryBase *text
 	
 	HRESULT hr;
 	u32 numBlocksY = texture_entry->NumBlocksY();
-	u32 cacheLinesPerRow = texture_entry->CacheLinesPerRow();
+	u32 cacheLinesPerRow = texture_entry->BytesPerRow() / 32;
 	if ((texture_entry->format & 0xF) == 0x6 && texture_entry->format != GX_TF_RGBA8)
 		cacheLinesPerRow *= 2;
 	// Reset API
@@ -1020,7 +1020,7 @@ void CSTextureEncoder::Encode(u8* dst, const TextureCache::TCacheEntryBase *text
 		if (hr == S_OK)
 		{
 			u8* src = (u8*)map.pData;
-			u32 readStride = std::min(texture_entry->CacheLinesPerRow() * 32, map.RowPitch);
+			u32 readStride = std::min(texture_entry->BytesPerRow(), map.RowPitch);
 			for (u32 y = 0; y < numBlocksY; ++y)
 			{
 				memcpy(dst, src, readStride);

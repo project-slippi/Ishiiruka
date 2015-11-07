@@ -116,7 +116,7 @@ namespace DX11
 
 		virtual void Init() = 0;
 		virtual void Shutdown() = 0;
-		virtual void Encode(u8* dst, const TextureCache::TCacheEntryBase *texture_entry,
+		virtual void Encode(u8* dst, const TextureCacheBase::TCacheEntryBase *texture_entry,
 			PEControl::PixelFormat srcFormat, const EFBRectangle& srcRect,
 			bool isIntensity, bool scaleByHalf) = 0;
 

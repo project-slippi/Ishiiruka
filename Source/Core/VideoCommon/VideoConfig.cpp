@@ -77,7 +77,6 @@ void VideoConfig::Load(const std::string& ini_file)
 	settings->Get("ShowInputDisplay", &bShowInputDisplay, false);
 	settings->Get("OverlayStats", &bOverlayStats, false);
 	settings->Get("OverlayProjStats", &bOverlayProjStats, false);
-	settings->Get("ShowEFBCopyRegions", &bShowEFBCopyRegions, false);
 	settings->Get("DumpTextures", &bDumpTextures, 0);
 	settings->Get("DumpVertexLoader", &bDumpVertexLoaders, 0);
 	settings->Get("HiresTextures", &bHiresTextures, 0);
@@ -390,7 +389,6 @@ void VideoConfig::Save(const std::string& ini_file)
 	
 	
 	settings->Set("FastDepthCalc", bFastDepthCalc);
-	settings->Set("ShowEFBCopyRegions", bShowEFBCopyRegions);
 	settings->Set("MSAA", iMultisampleMode);
 	settings->Set("SSAA", bSSAA);
 	settings->Set("EFBScale", iEFBScale);

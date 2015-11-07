@@ -188,7 +188,7 @@ inline u32 Decode(const u8* end)
 				{
 					cycles = GX_NOP_CYCLES + GX_DRAW_PRIMITIVES_CYCLES * parameters.count;
 					g_VideoData.ReadSkip(readsize);
-					VertexManager::s_pCurBufferPointer += writesize;
+					VertexManagerBase::s_pCurBufferPointer += writesize;
 				}
 				else
 				{

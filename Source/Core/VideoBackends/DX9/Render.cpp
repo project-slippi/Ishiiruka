@@ -88,7 +88,7 @@ void TeardownDeviceObjects()
 	delete g_framebuffer_manager;
 	((PerfQuery*)g_perf_query)->DestroyDeviceObjects();
 	D3D::font.Shutdown();
-	TextureCache::Invalidate();
+	TextureCacheBase::Invalidate();
 	VertexLoaderManager::Shutdown();
 	VertexShaderCache::Shutdown();
 	PixelShaderCache::Shutdown();
@@ -840,12 +840,12 @@ void Renderer::SwapImpl(u32 xfbAddr, u32 fbWidth, u32 fbStride, u32 fbHeight, co
 
 	GFX_DEBUGGER_PAUSE_AT(NEXT_FRAME, true);
 	
-	TextureCache::Cleanup(frameCount);
+	TextureCacheBase::Cleanup(frameCount);
 	// Flip/present backbuffer to frontbuffer here
 	D3D::Present();
 	// Enable configuration changes
 	UpdateActiveConfig();
-	TextureCache::OnConfigChanged(g_ActiveConfig);
+	TextureCacheBase::OnConfigChanged(g_ActiveConfig);
 
 	SetWindowSize(fbStride, fbHeight);
 

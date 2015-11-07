@@ -399,7 +399,7 @@ void EncodeToRamFromTexture(u8 *dest_ptr, const TextureCache::TCacheEntryBase *t
 	if ((texture_entry->format & 0x0f) == 6)
 		cacheBytes = 64;
 	int readStride = (expandedWidth * cacheBytes) / TexDecoder_GetBlockWidthInTexels(texture_entry->format);
-	EncodeToRamUsingShader(texconv_shader, source_texture, scaledSource, dest_ptr, (expandedWidth / samples) * 4, expandedHeight, texture_entry->CacheLinesPerRow() * 32, readStride, bScaleByHalf > 0, 1.0f);
+	EncodeToRamUsingShader(texconv_shader, source_texture, scaledSource, dest_ptr, (expandedWidth / samples) * 4, expandedHeight, texture_entry->BytesPerRow(), readStride, bScaleByHalf > 0, 1.0f);
 }
 
 void EncodeToRamYUYV(LPDIRECT3DTEXTURE9 srcTexture, const TargetRectangle& sourceRc, u8* destAddr, u32 dstwidth, u32 dstStride, u32 dstHeight, float Gamma)

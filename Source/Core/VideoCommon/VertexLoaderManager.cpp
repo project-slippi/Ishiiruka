@@ -287,10 +287,10 @@ namespace VertexLoaderManager
 		// Flush if our vertex format is different from the currently set.
 		if (g_nativeVertexFmt != nullptr && g_nativeVertexFmt != nativefmt)
 		{
-			VertexManager::Flush();
+			VertexManagerBase::Flush();
 		}
-		VertexManager::PrepareForAdditionalData(parameters.primitive, parameters.count, loader->m_native_stride);
-		parameters.destination = VertexManager::s_pCurBufferPointer;		
+		VertexManagerBase::PrepareForAdditionalData(parameters.primitive, parameters.count, loader->m_native_stride);
+		parameters.destination = VertexManagerBase::s_pCurBufferPointer;
 		g_nativeVertexFmt = nativefmt;
 		s32 finalcount = loader->RunVertices(parameters);
 		writesize = loader->m_native_stride * finalcount;
