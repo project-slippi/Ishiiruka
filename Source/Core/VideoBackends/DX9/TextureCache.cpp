@@ -41,7 +41,7 @@ static const D3DFORMAT PC_TexFormat_To_D3DFORMAT[11]
 {
 	D3DFMT_UNKNOWN,//PC_TEX_FMT_NONE
 	D3DFMT_A8R8G8B8,//PC_TEX_FMT_BGRA32
-	D3DFMT_A8B8G8R8,//PC_TEX_FMT_RGBA32
+	D3DFMT_A8R8G8B8,//PC_TEX_FMT_RGBA32
 	D3DFMT_A8P8,//PC_TEX_FMT_I4_AS_I8 A hack which means the format is a packed 8-bit intensity texture. It is unpacked to A8L8 in D3DTexture.cpp
 	D3DFMT_A8L8,//PC_TEX_FMT_IA4_AS_IA8
 	D3DFMT_A8P8,//PC_TEX_FMT_I8
@@ -51,12 +51,28 @@ static const D3DFORMAT PC_TexFormat_To_D3DFORMAT[11]
 	D3DFMT_DXT3,//PC_TEX_FMT_DXT3
 	D3DFMT_DXT5,//PC_TEX_FMT_DXT5
 };
-#define MEM_TEXTURE_POOL_SIZE 11
+
+static const u32 PC_TexFormat_To_Buffer_Index[11]
+{
+	0,//PC_TEX_FMT_NONE
+	0,//PC_TEX_FMT_BGRA32
+	0,//PC_TEX_FMT_RGBA32
+	1,//PC_TEX_FMT_I4_AS_I8 A hack which means the format is a packed 8-bit intensity texture. It is unpacked to A8L8 in D3DTexture.cpp
+	1,//PC_TEX_FMT_IA4_AS_IA8
+	1,//PC_TEX_FMT_I8
+	1,//PC_TEX_FMT_IA8
+	2,//PC_TEX_FMT_RGB565
+	3,//PC_TEX_FMT_DXT1
+	4,//PC_TEX_FMT_DXT3
+	5,//PC_TEX_FMT_DXT5
+};
+
+#define MEM_TEXTURE_POOL_SIZE 6
 static LPDIRECT3DTEXTURE9 s_memPoolTexture[MEM_TEXTURE_POOL_SIZE];
 static u32 s_memPoolTextureW[MEM_TEXTURE_POOL_SIZE];
 static u32 s_memPoolTextureH[MEM_TEXTURE_POOL_SIZE];
 
-static Depalettizer *s_depaletizer = nullptr;
+static Depalettizer* s_depaletizer = nullptr;
 static TextureScaler* s_scaler = nullptr;
 
 TextureCache::TCacheEntry::~TCacheEntry()
@@ -130,30 +146,29 @@ void TextureCache::TCacheEntry::CopyRectangleFromTexture(
 }
 
 void TextureCache::TCacheEntry::ReplaceTexture(const u8* src, u32 width, u32 height,
-	u32 expanded_width, u32 level)
+	u32 expanded_width, u32 level, bool swap_r_b)
 {
-	d3d_fmt = PC_TexFormat_To_D3DFORMAT[config.pcformat];
-	d3d_fmt = swap_r_b ? D3DFMT_A8R8G8B8 : d3d_fmt;
-	if (s_memPoolTexture[config.pcformat] == nullptr || width > s_memPoolTextureW[config.pcformat] || height > s_memPoolTextureH[config.pcformat])
+	u32 pcformatidx = PC_TexFormat_To_Buffer_Index[config.pcformat];
+	if (s_memPoolTexture[pcformatidx] == nullptr || width > s_memPoolTextureW[pcformatidx] || height > s_memPoolTextureH[pcformatidx])
 	{
-		if (s_memPoolTexture[config.pcformat] != nullptr)
+		if (s_memPoolTexture[pcformatidx] != nullptr)
 		{
-			s_memPoolTexture[config.pcformat]->Release();
-			s_memPoolTexture[config.pcformat] = nullptr;
+			s_memPoolTexture[pcformatidx]->Release();
+			s_memPoolTexture[pcformatidx] = nullptr;
 		}
 		u32 max = std::max(width, height);
-		u32 nextsize = s_memPoolTextureW[config.pcformat];
+		u32 nextsize = s_memPoolTextureW[pcformatidx];
 		while (nextsize < max)
 		{
 			nextsize *= 2;
 		}
-		s_memPoolTextureW[config.pcformat] = nextsize;
-		s_memPoolTextureH[config.pcformat] = nextsize;
-		s_memPoolTexture[config.pcformat] = D3D::CreateTexture2D(s_memPoolTextureW[config.pcformat], s_memPoolTextureH[config.pcformat], d3d_fmt, 1, D3DPOOL_SYSTEMMEM);
+		s_memPoolTextureW[pcformatidx] = nextsize;
+		s_memPoolTextureH[pcformatidx] = nextsize;
+		s_memPoolTexture[pcformatidx] = D3D::CreateTexture2D(s_memPoolTextureW[pcformatidx], s_memPoolTextureH[pcformatidx], d3d_fmt, 1, D3DPOOL_SYSTEMMEM);
 	}
-	D3D::ReplaceTexture2D(s_memPoolTexture[config.pcformat], src, width, height, expanded_width, d3d_fmt, swap_r_b);
+	D3D::ReplaceTexture2D(s_memPoolTexture[pcformatidx], src, width, height, expanded_width, d3d_fmt, swap_r_b);
 	PDIRECT3DSURFACE9 srcsurf;
-	s_memPoolTexture[config.pcformat]->GetSurfaceLevel(0, &srcsurf);
+	s_memPoolTexture[pcformatidx]->GetSurfaceLevel(0, &srcsurf);
 	PDIRECT3DSURFACE9 dstsurface;
 	texture->GetSurfaceLevel(level, &dstsurface);
 	RECT srcr{ 0, 0, LONG(width), LONG(height) };
@@ -166,48 +181,39 @@ void TextureCache::TCacheEntry::ReplaceTexture(const u8* src, u32 width, u32 hei
 void TextureCache::TCacheEntry::Load(const u8* src, u32 width, u32 height,
 	u32 expanded_width, u32 level)
 {
-	ReplaceTexture(src, width, height, expanded_width, level);
+	bool swap_r_b = PC_TEX_FMT_RGBA32 == config.pcformat;
+	ReplaceTexture(src, width, height, expanded_width, level, swap_r_b);
 }
 
 void TextureCache::TCacheEntry::Load(const u8* src, u32 width, u32 height, u32 expandedWidth,
 	u32 expandedHeight, const s32 texformat, const u32 tlutaddr, const TlutFormat tlutfmt, u32 level)
 {
-	config.pcformat = TexDecoder_Decode(TextureCache::temp, src, expandedWidth, expandedHeight, texformat, tlutaddr, tlutfmt, g_ActiveConfig.iTexScalingType > 0, compressed);
+	bool swap_r_b = PC_TEX_FMT_RGBA32 == config.pcformat;
+	TexDecoder_Decode(TextureCache::temp, src, expandedWidth, expandedHeight, texformat, tlutaddr, tlutfmt, swap_r_b, compressed);
 	u8* data = TextureCache::temp;
-	if (g_ActiveConfig.iTexScalingType > 0)
+	if (is_scaled)
 	{
-		u32 scaled_width = width * g_ActiveConfig.iTexScalingFactor;
-		u32 scaled_height = height * g_ActiveConfig.iTexScalingFactor;
-		if (config.width == scaled_width && config.height == scaled_height)
-		{
-			data = (u8*)s_scaler->Scale((u32*)data, expandedWidth, height);
-			width = scaled_width;
-			height = scaled_height;
-			expandedWidth *= g_ActiveConfig.iTexScalingFactor;
-		}
+		swap_r_b = true;
+		data = (u8*)s_scaler->Scale((u32*)data, expandedWidth, height);
+		width *= g_ActiveConfig.iTexScalingFactor;
+		height *= g_ActiveConfig.iTexScalingFactor;
+		expandedWidth *= g_ActiveConfig.iTexScalingFactor;
 	}
-	ReplaceTexture(data, width, height, expandedWidth, level);
+	ReplaceTexture(data, width, height, expandedWidth, level, swap_r_b);
 }
 void TextureCache::TCacheEntry::LoadFromTmem(const u8* ar_src, const u8* gb_src, u32 width, u32 height,
 	u32 expanded_width, u32 expanded_Height, u32 level)
 {
-	config.pcformat = PC_TEX_FMT_BGRA32;
-	swap_r_b = false;
 	TexDecoder_DecodeBGRA8FromTmem((u32*)TextureCache::temp, ar_src, gb_src, expanded_width, expanded_Height);
 	u8* data = TextureCache::temp;
-	if (g_ActiveConfig.iTexScalingType > 0)
+	if (is_scaled)
 	{
-		u32 scaled_width = width * g_ActiveConfig.iTexScalingFactor;
-		u32 scaled_height = height * g_ActiveConfig.iTexScalingFactor;
-		if (config.width == scaled_width && config.height == scaled_height)
-		{
-			data = (u8*)s_scaler->Scale((u32*)data, expanded_width, height);
-			width = scaled_width;
-			height = scaled_height;
-			expanded_width *= g_ActiveConfig.iTexScalingFactor;
-		}
+		data = (u8*)s_scaler->Scale((u32*)data, expanded_width, height);
+		width *= g_ActiveConfig.iTexScalingFactor;
+		height *= g_ActiveConfig.iTexScalingFactor;
+		expanded_width *= g_ActiveConfig.iTexScalingFactor;
 	}
-	ReplaceTexture(data, width, height, expanded_width, level);
+	ReplaceTexture(data, width, height, expanded_width, level, false);
 }
 
 void TextureCache::TCacheEntry::FromRenderTarget(u8* dst, unsigned int dstFormat, u32 dstStride,
@@ -339,10 +345,8 @@ TextureCache::TCacheEntryBase* TextureCache::CreateTexture(const TCacheEntryConf
 		return entry;
 	}
 	// if no rgba support so swap is needed
-	bool swap_r_b = !g_ActiveConfig.backend_info.bSupportedFormats[PC_TEX_FMT_RGBA32] && config.pcformat == PC_TEX_FMT_RGBA32;
-	D3DFORMAT d3d_fmt = swap_r_b ? D3DFMT_A8R8G8B8 : PC_TexFormat_To_D3DFORMAT[config.pcformat];
+	D3DFORMAT d3d_fmt = PC_TexFormat_To_D3DFORMAT[config.pcformat];
 	TCacheEntry* entry = new TCacheEntry(config, D3D::CreateTexture2D(config.width, config.height, d3d_fmt, config.levels));
-	entry->swap_r_b = swap_r_b;
 	entry->d3d_fmt = d3d_fmt;
 	entry->compressed = d3d_fmt == D3DFMT_DXT1
 		|| d3d_fmt == D3DFMT_DXT3

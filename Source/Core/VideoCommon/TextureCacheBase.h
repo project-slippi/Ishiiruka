@@ -123,6 +123,7 @@ public:
 		// Keep an iterator to the entry in textures_by_hash, so it does not need to be searched when removing the cache entry
 		std::multimap<u64, TCacheEntryBase*>::iterator textures_by_hash_iter;
 		bool is_custom_tex;
+		bool is_scaled;
 		std::string basename;
 		u32 memory_stride;
 
@@ -141,10 +142,11 @@ public:
 			memory_stride = _native_width;
 		}
 
-		void SetHiresParams(bool _is_custom_tex, const std::string & _basename)
+		void SetHiresParams(bool _is_custom_tex, const std::string & _basename, bool _is_scaled)
 		{
 			is_custom_tex = _is_custom_tex;
 			basename = _basename;
+			is_scaled = _is_scaled;
 		}
 
 		void SetHashes(u64 _hash, u64 _base_hash)

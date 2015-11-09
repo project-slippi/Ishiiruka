@@ -372,43 +372,28 @@ void TextureCache::TCacheEntry::LoadMaterialMap(const u8* src, u32 width, u32 he
 void TextureCache::TCacheEntry::Load(const u8* src, u32 width, u32 height, u32 expandedWidth,
 	u32 expandedHeight, const s32 texformat, const u32 tlutaddr, const TlutFormat tlutfmt, u32 level)
 {
-	config.pcformat = TexDecoder_Decode(TextureCache::temp, src, expandedWidth, expandedHeight, texformat, tlutaddr, tlutfmt, PC_TEX_FMT_RGBA32 == config.pcformat, compressed);
+	TexDecoder_Decode(TextureCache::temp, src, expandedWidth, expandedHeight, texformat, tlutaddr, tlutfmt, PC_TEX_FMT_RGBA32 == config.pcformat, compressed);
 	u8* data = TextureCache::temp;
-	if (g_ActiveConfig.iTexScalingType > 0)
+	if (is_scaled)
 	{
-		u32 scaled_width = width * g_ActiveConfig.iTexScalingFactor;
-		u32 scaled_height = height * g_ActiveConfig.iTexScalingFactor;
-		if (config.width == scaled_width && config.height == scaled_height)
-		{
-			data = (u8*)s_scaler->Scale((u32*)data, expandedWidth, height);
-			width = scaled_width;
-			height = scaled_height;
-			expandedWidth *= g_ActiveConfig.iTexScalingFactor;
-		}
-	}
-	SetFormat();
+		data = (u8*)s_scaler->Scale((u32*)data, expandedWidth, height);
+		width *= g_ActiveConfig.iTexScalingFactor;
+		height *= g_ActiveConfig.iTexScalingFactor;
+		expandedWidth *= g_ActiveConfig.iTexScalingFactor;
+	}	
 	Load(data, width, height, expandedWidth, level);
 }
 void TextureCache::TCacheEntry::LoadFromTmem(const u8* ar_src, const u8* gb_src, u32 width, u32 height,
 	u32 expanded_width, u32 expanded_Height, u32 level)
 {
-	config.pcformat = PC_TexFormat::PC_TEX_FMT_RGBA32;
-	gl_format = GL_RGBA;
-	gl_iformat = GL_RGBA;
-	gl_type = GL_UNSIGNED_BYTE;
 	TexDecoder_DecodeRGBA8FromTmem((u32*)TextureCache::temp, ar_src, gb_src, expanded_width, expanded_Height);
 	u8* data = TextureCache::temp;
-	if (g_ActiveConfig.iTexScalingType > 0)
+	if (is_scaled)
 	{
-		u32 scaled_width = width * g_ActiveConfig.iTexScalingFactor;
-		u32 scaled_height = height * g_ActiveConfig.iTexScalingFactor;
-		if (config.width == scaled_width && config.height == scaled_height)
-		{
-			data = (u8*)s_scaler->Scale((u32*)data, expanded_width, height);
-			width = scaled_width;
-			height = scaled_height;
-			expanded_width *= g_ActiveConfig.iTexScalingFactor;
-		}
+		data = (u8*)s_scaler->Scale((u32*)data, expanded_width, height);
+		width *= g_ActiveConfig.iTexScalingFactor;
+		height *= g_ActiveConfig.iTexScalingFactor;
+		expanded_width *= g_ActiveConfig.iTexScalingFactor;
 	}
 	Load(data, width, height, expanded_width, level);
 }

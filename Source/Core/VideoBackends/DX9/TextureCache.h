@@ -26,9 +26,10 @@ private:
 		LPDIRECT3DTEXTURE9 texture;
 
 		D3DFORMAT d3d_fmt;
-		bool swap_r_b;
 		bool compressed;
-		TCacheEntry(const TCacheEntryConfig& config, LPDIRECT3DTEXTURE9 _tex) : TCacheEntryBase(config), texture(_tex) {}
+		TCacheEntry(const TCacheEntryConfig& config, LPDIRECT3DTEXTURE9 _tex) : TCacheEntryBase(config), texture(_tex), compressed(false)
+		{
+		}
 		~TCacheEntry();
 
 		void CopyRectangleFromTexture(
@@ -37,7 +38,7 @@ private:
 			const MathUtil::Rectangle<int> &dstrect) override;
 		
 		void ReplaceTexture(const u8* src, u32 width, u32 height,
-			u32 expanded_width, u32 level);
+			u32 expanded_width, u32 level, bool swap_r_b);
 
 		void Load(const u8* src, u32 width, u32 height,
 			u32 expanded_width, u32 level) override;

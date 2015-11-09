@@ -195,17 +195,7 @@ void TextureCache::TCacheEntry::LoadMaterialMap(const u8* src, u32 width, u32 he
 void TextureCache::TCacheEntry::Load(const u8* src, u32 width, u32 height, u32 expandedWidth,
 	u32 expandedHeight, const s32 texformat, const u32 tlutaddr, const TlutFormat tlutfmt, u32 level)
 {
-	u32 scaled_width = width;
-	u32 scaled_height = height;
-	bool use_scaling = g_ActiveConfig.iTexScalingType > 0;
-	if (use_scaling)
-	{
-		scaled_width *= g_ActiveConfig.iTexScalingFactor;
-		scaled_height *= g_ActiveConfig.iTexScalingFactor;
-		use_scaling = config.width == scaled_width && config.height == scaled_height;
-	}
-	bool need_cpu_decode = use_scaling;
-
+	bool need_cpu_decode = is_scaled;
 	if (!need_cpu_decode)
 	{
 		need_cpu_decode = !s_decoder->Decode(
@@ -230,7 +220,7 @@ void TextureCache::TCacheEntry::Load(const u8* src, u32 width, u32 height, u32 e
 			PC_TEX_FMT_RGBA32 == config.pcformat,
 			compressed);
 		u8* data = TextureCache::temp;
-		if (use_scaling)
+		if (is_scaled)
 		{
 			data = (u8*)s_scaler->Scale((u32*)data, expandedWidth, height);
 			width *= g_ActiveConfig.iTexScalingFactor;
@@ -253,17 +243,7 @@ void TextureCache::TCacheEntry::Load(const u8* src, u32 width, u32 height, u32 e
 void TextureCache::TCacheEntry::LoadFromTmem(const u8* ar_src, const u8* gb_src, u32 width, u32 height,
 	u32 expanded_width, u32 expanded_Height, u32 level)
 {
-	u32 scaled_width = width;
-	u32 scaled_height = height;	
-	bool use_scaling = g_ActiveConfig.iTexScalingType > 0;
-	if (use_scaling)
-	{
-		scaled_width *= g_ActiveConfig.iTexScalingFactor;
-		scaled_height *= g_ActiveConfig.iTexScalingFactor;
-		use_scaling = config.width == scaled_width && config.height == scaled_height;
-	}
-	bool need_cpu_decode = use_scaling;
-
+	bool need_cpu_decode = is_scaled;
 	if (!need_cpu_decode)
 	{
 		need_cpu_decode = !s_decoder->DecodeRGBAFromTMEM(ar_src, gb_src, width, height, *texture);
@@ -277,11 +257,11 @@ void TextureCache::TCacheEntry::LoadFromTmem(const u8* ar_src, const u8* gb_src,
 			expanded_width,
 			expanded_Height);
 		u8* data = TextureCache::temp;
-		if (use_scaling)
+		if (is_scaled)
 		{
 			data = (u8*)s_scaler->Scale((u32*)data, expanded_width, height);
-			width = scaled_width;
-			height = scaled_height;
+			width *= g_ActiveConfig.iTexScalingFactor;
+			height *= g_ActiveConfig.iTexScalingFactor;
 			expanded_width *= g_ActiveConfig.iTexScalingFactor;
 		}
 		D3D::ReplaceTexture2D(

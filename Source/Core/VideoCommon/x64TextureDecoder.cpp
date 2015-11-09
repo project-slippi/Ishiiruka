@@ -708,42 +708,42 @@ static PC_TexFormat GetPCFormatFromTLUTFormat(TlutFormat tlutfmt)
 
 PC_TexFormat GetPC_TexFormat(s32 texformat, TlutFormat tlutfmt, bool compressed_supported)
 {
+	PC_TexFormat fmt = PC_TEX_FMT_NONE;
 	switch (texformat)
 	{
 	case GX_TF_C4:
-		return GetPCFormatFromTLUTFormat(tlutfmt);
+		fmt = GetPCFormatFromTLUTFormat(tlutfmt); break;
 	case GX_TF_I4:
-		return PC_TEX_FMT_IA8;
+		fmt = PC_TEX_FMT_I4_AS_I8; break;
 	case GX_TF_I8:  // speed critical
-		return PC_TEX_FMT_IA8;
+		fmt = PC_TEX_FMT_I8; break;
 	case GX_TF_C8:
-		return GetPCFormatFromTLUTFormat(tlutfmt);
+		fmt = GetPCFormatFromTLUTFormat(tlutfmt); break;
 	case GX_TF_IA4:
-		return PC_TEX_FMT_IA4_AS_IA8;
+		fmt = PC_TEX_FMT_IA4_AS_IA8; break;
 	case GX_TF_IA8:
-		return PC_TEX_FMT_IA8;
-	case GX_TF_C14X2: 
-		return GetPCFormatFromTLUTFormat(tlutfmt);
+		fmt = PC_TEX_FMT_IA8; break;
+	case GX_TF_C14X2:
+		fmt = GetPCFormatFromTLUTFormat(tlutfmt); break;
 	case GX_TF_RGB565:
-		return PC_TEX_FMT_RGB565;
+		fmt = PC_TEX_FMT_RGB565; break;
 	case GX_TF_RGB5A3:
-		return PC_TEX_FMT_BGRA32;
+		fmt = PC_TEX_FMT_BGRA32; break;
 	case GX_TF_RGBA8:  // speed critical
-		return PC_TEX_FMT_BGRA32;
+		fmt = PC_TEX_FMT_BGRA32; break;
 	case GX_TF_CMPR:  // speed critical
-		// The metroid games use this format almost exclusively.
+							// The metroid games use this format almost exclusively.
 		if (compressed_supported)
 		{
-			return PC_TEX_FMT_DXT3;
+			fmt = PC_TEX_FMT_DXT3;
 		}
 		else
 		{
-			return PC_TEX_FMT_BGRA32;
+			fmt = PC_TEX_FMT_BGRA32;
 		}
+		break;
 	}
-
-	// The "copy" texture formats, too?
-	return PC_TEX_FMT_NONE;
+	return fmt;
 }
 
 //switch endianness, unswizzle

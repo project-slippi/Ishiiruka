@@ -709,7 +709,8 @@ TextureCacheBase::TCacheEntryBase* TextureCacheBase::Load(const u32 stage)
 	config.levels = texLevels;
 	config.pcformat = pcfmt;
 	config.materialmap = hires_tex && hires_tex->m_nrm_levels && g_ActiveConfig.HiresMaterialMapsEnabled();
-	if (g_ActiveConfig.iTexScalingType > 0 && !hires_tex && width < 384 && height < 384)
+	const bool use_scaling = (g_ActiveConfig.iTexScalingType > 0) && !hires_tex && (width < 384) && (height < 384);
+	if (use_scaling)
 	{
 		config.width *= g_ActiveConfig.iTexScalingFactor;
 		config.height *= g_ActiveConfig.iTexScalingFactor;
@@ -727,7 +728,7 @@ TextureCacheBase::TCacheEntryBase* TextureCacheBase::Load(const u32 stage)
 
 	entry->SetGeneralParameters(address, texture_size, full_format);
 	entry->SetDimensions(nativeW, nativeH, tex_levels);
-	entry->SetHiresParams(!!hires_tex, basename);
+	entry->SetHiresParams(!!hires_tex, basename, use_scaling);
 	entry->SetHashes(full_hash, tex_hash);
 	entry->is_efb_copy = false;
 
