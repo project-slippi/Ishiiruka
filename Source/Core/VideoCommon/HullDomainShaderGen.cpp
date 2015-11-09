@@ -50,10 +50,12 @@ int3 wuround(float3 x) { return int3(round(x)); }
 int4 wuround(float4 x) { return int4(round(x)); }
 )hlsl";
 
-static const char* s_hlsl_header_str = R"hlsl(
+static const char* s_hlsl_hull_header_str = R"hlsl(
 struct HSOutput
 {
 	float4 pos: BEZIERPOS;
+	float4 colors_0: COLOR0;
+	float4 colors_1: COLOR1;
 };
 
 [domain("tri")]
@@ -64,8 +66,8 @@ struct HSOutput
 HSOutput HS_TFO(InputPatch<VS_OUTPUT, 3> patch, uint id : SV_OutputControlPointID,uint patchID : SV_PrimitiveID)
 {
 HSOutput result = (HSOutput)0;
-return result;
-}
+)hlsl";
+static const char* s_hlsl_constant_header_str = R"hlsl(
 
 float GetScreenSize(float3 Origin, float Diameter)
 {
@@ -438,35 +440,43 @@ static inline void GenerateHullDomainShader(T& out, const XFMemory& xfr, const B
 			"{\n"
 			"float EFactor[3] : SV_TessFactor;\n"
 			"float InsideFactor : SV_InsideTessFactor;\n"
-			"float4 edgesize : TEXCOORD1;\n"
-			"float4 pos[3] : TEXCOORD2;\n"
-			"float4 colors_0[3] : TEXCOORD5;\n"
-			"float4 colors_1[3] : TEXCOORD8;\n");
+			"float4 edgesize : TEXCOORD0;\n");
 		u32 texcount = xfr.numTexGen.numTexGens < 7 ? xfr.numTexGen.numTexGens : 8;
 		for (unsigned int i = 0; i < texcount; ++i)
-			out.Write("float4 tex%d[3] : TEXCOORD%d;\n", i, i * 3 + 11);
+			out.Write("float4 tex%d[3] : TEXCOORD%d;\n", i, i * 3 + 1);
 
 		if (xfr.numTexGen.numTexGens < 7 && normalpresent)
 		{
-			out.Write("float4 Normal[3]: TEXCOORD%d;\n", xfr.numTexGen.numTexGens * 3 + 11);
+			out.Write("float4 Normal[3]: TEXCOORD%d;\n", xfr.numTexGen.numTexGens * 3 + 1);
 		}
 		out.Write("};\n");
-		out.Write(s_hlsl_header_str);
-		out.Write("[unroll]\n"
-			"for(int i = 0; i < 3; i++)\n{\n");
+		out.Write(s_hlsl_hull_header_str);
 		if (xfr.numTexGen.numTexGens < 7)
 		{
-			out.Write("result.pos[i] = float4(patch[i].clipPos.x,patch[i].clipPos.y,patch[i].Normal.w, 1.0);\n");
+			out.Write("result.pos = float4(patch[id].clipPos.x,patch[id].clipPos.y,patch[id].Normal.w, 1.0);\n");
 		}
 		else
 		{
-			out.Write("result.pos[i] = float4(patch[i].tex0.w, patch[i].tex1.w, patch[i].tex7.w, 1.0);\n");
+			out.Write("result.pos = float4(patch[id].tex0.w, patch[id].tex1.w, patch[id].tex7.w, 1.0);\n");
 		}
-		out.Write("result.colors_0[i] = patch[i].colors_0;\n"
-			"result.colors_1[i] = patch[i].colors_1;\n");
+		out.Write("result.colors_0 = patch[id].colors_0;\n"
+			"result.colors_1 = patch[id].colors_1;\n"
+			"return result;\n}\n");
+		out.Write(s_hlsl_constant_header_str);
+		out.Write("float4 pos[3];\n");
+		out.Write("[unroll]\n"
+			"for(int i = 0; i < 3; i++)\n{\n");		
 		for (u32 i = 0; i < texcount; ++i)
 		{
-			out.Write("result.tex%d[i] = float4(patch[i].tex%d, 1.0);\n", i, i);
+			if (xfr.numTexGen.numTexGens < 7)
+			{
+				out.Write("pos[i] = float4(patch[i].clipPos.x,patch[i].clipPos.y,patch[i].Normal.w, 1.0);\n");
+			}
+			else
+			{
+				out.Write("pos[i] = float4(patch[i].tex0.w, patch[i].tex1.w, patch[i].tex7.w, 1.0);\n");
+			}
+			out.Write("result.tex%d[i].xyz = patch[i].tex%d.xyz;\n", i, i);
 			if (xfr.texMtxInfo[i].projection == XF_TEXPROJ_STQ)
 			{
 				out.Write("{\n");
@@ -493,20 +503,20 @@ static inline void GenerateHullDomainShader(T& out, const XFMemory& xfr, const B
 		out.Write("}\n");
 
 		out.Write(
-			"float l0 = distance(result.pos[1].xyz,result.pos[2].xyz);\n"
-			"float l1 = distance(result.pos[2].xyz,result.pos[0].xyz);\n"
-			"float l2 = distance(result.pos[0].xyz,result.pos[1].xyz);\n"
+			"float l0 = distance(pos[1].xyz,pos[2].xyz);\n"
+			"float l1 = distance(pos[2].xyz,pos[0].xyz);\n"
+			"float l2 = distance(pos[0].xyz,pos[1].xyz);\n"
 			"result.edgesize = float4(l0, l1, l2, 1.0);\n"
-			"result.EFactor[0] = CalcTessFactor((result.pos[1].xyz+result.pos[2].xyz) * 0.5, l0);\n"
-			"result.EFactor[1] = CalcTessFactor((result.pos[2].xyz+result.pos[0].xyz) * 0.5, l1);\n"
-			"result.EFactor[2] = CalcTessFactor((result.pos[0].xyz+result.pos[1].xyz) * 0.5, l2);\n"
+			"result.EFactor[0] = CalcTessFactor((pos[1].xyz+pos[2].xyz) * 0.5, l0);\n"
+			"result.EFactor[1] = CalcTessFactor((pos[2].xyz+pos[0].xyz) * 0.5, l1);\n"
+			"result.EFactor[2] = CalcTessFactor((pos[0].xyz+pos[1].xyz) * 0.5, l2);\n"
 			"result.InsideFactor = (result.EFactor[0] + result.EFactor[1] + result.EFactor[2]) / 3;\n"
 			"return result;\n};\n"
 			);
 		out.Write(s_hlsl_ds_str);
 
 		for (u32 i = 0; i < texcount; ++i)
-			out.Write("result.tex%d = BInterpolate(pconstans.tex%d, bCoords).xyz;\n", i, i, i, i);
+			out.Write("result.tex%d.xyz = BInterpolate(pconstans.tex%d, bCoords).xyz;\n", i, i, i, i);
 
 		out.Write("float displacement = 0.0, displacementcount = 0.0;\n");
 		out.Write("int3 tevcoord=int3(0,0,0);\n");
@@ -558,9 +568,9 @@ static inline void GenerateHullDomainShader(T& out, const XFMemory& xfr, const B
 			out.Write("}\n");
 		}
 
-		out.Write("float3 pos0 = pconstans.pos[0].xyz;\n"
-			"float3 pos1 = pconstans.pos[1].xyz;\n"
-			"float3 pos2 = pconstans.pos[2].xyz;\n"
+		out.Write("float3 pos0 = patch[0].pos.xyz;\n"
+			"float3 pos1 = patch[1].pos.xyz;\n"
+			"float3 pos2 = patch[2].pos.xyz;\n"
 			"float3 position = BInterpolate(pos0, pos1, pos2, bCoords);\n");
 
 		if (normalpresent)
@@ -578,7 +588,7 @@ static inline void GenerateHullDomainShader(T& out, const XFMemory& xfr, const B
 					"float3 norm1 = float3(pconstans.tex4[1].w, pconstans.tex5[1].w, pconstans.tex6[1].w);\n"
 					"float3 norm2 = float3(pconstans.tex4[2].w, pconstans.tex5[2].w, pconstans.tex6[2].w);\n");
 			}
-			out.Write("float3 normal = BInterpolate(norm0, norm1, norm2, bCoords);\n"
+			out.Write("float3 normal = normalize(BInterpolate(norm0, norm1, norm2, bCoords));\n"
 				"pos0 = PrjToPlane(norm0, pos0, position);\n"
 				"pos1 = PrjToPlane(norm1, pos1, position);\n"
 				"pos2 = PrjToPlane(norm2, pos2, position);\n"
@@ -590,8 +600,8 @@ static inline void GenerateHullDomainShader(T& out, const XFMemory& xfr, const B
 			"result.pos = float4(dot(" I_PROJECTION "[0], pos), dot(" I_PROJECTION "[1], pos), dot(" I_PROJECTION "[2], pos), dot(" I_PROJECTION "[3], pos));\n"
 			"result.pos.z = -((" I_DEPTHPARAMS".x - 1.0) * result.pos.w + result.pos.z * " I_DEPTHPARAMS".y);\n"
 			"result.pos.xy = result.pos.xy + result.pos.w * " I_DEPTHPARAMS".zw;\n"
-			"result.colors_0 = BInterpolate(pconstans.colors_0, bCoords);\n"
-			"result.colors_1 = BInterpolate(pconstans.colors_1, bCoords);\n");
+			"result.colors_0 = BInterpolate(patch[0].colors_0, patch[1].colors_0, patch[2].colors_0, bCoords);\n"
+			"result.colors_1 = BInterpolate(patch[0].colors_1, patch[1].colors_1, patch[2].colors_1, bCoords);\n");
 		if (xfr.numTexGen.numTexGens < 7)
 		{
 			out.Write("result.clipPos = float4(position.xy, result.pos.zw);\n");
