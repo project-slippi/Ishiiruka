@@ -1187,8 +1187,12 @@ void Renderer::ReinterpretPixelData(unsigned int convtype)
 
 void Renderer::SetBlendMode(bool forceUpdate)
 {
+	if (bpmem.blendmode.logicopenable && !bpmem.blendmode.blendenable && !forceUpdate)
+	{
+		return;
+	}
 	// Our render target always uses an alpha channel, so we need to override the blend functions to assume a destination alpha of 1 if the render target isn't supposed to have an alpha channel
-	// Example: D3DBLEND_DESTALPHA needs to be D3DBLEND_ONE since the result without an alpha channel is assumed to always be 1.
+	// Example: D3DBLEND_DESTALPHA needs to be GL_ONE since the result without an alpha channel is assumed to always be 1.
 	bool target_has_alpha = bpmem.zcontrol.pixel_format == PEControl::RGBA6_Z24;
 
 	bool useDstAlpha = bpmem.dstalpha.enable && bpmem.blendmode.alphaupdate && target_has_alpha;
@@ -1649,8 +1653,8 @@ void Renderer::RestoreAPIState()
 	BPFunctions::SetScissor();
 	SetColorMask();
 	SetDepthMode();
-	SetBlendMode(true);
 	SetLogicOpMode();
+	SetBlendMode(true);
 	SetViewport();
 
 	VertexManager *vm = (OGL::VertexManager*)g_vertex_manager;
@@ -1707,37 +1711,126 @@ void Renderer::SetDepthMode()
 
 void Renderer::SetLogicOpMode()
 {
-	if (GLInterface->GetMode() != GLInterfaceMode::MODE_OPENGL)
-		return;
-	// Logic ops aren't available in GLES3/GLES2
-	const GLenum glLogicOpCodes[16] =
-	{
-		GL_CLEAR,
-		GL_AND,
-		GL_AND_REVERSE,
-		GL_COPY,
-		GL_AND_INVERTED,
-		GL_NOOP,
-		GL_XOR,
-		GL_OR,
-		GL_NOR,
-		GL_EQUIV,
-		GL_INVERT,
-		GL_OR_REVERSE,
-		GL_COPY_INVERTED,
-		GL_OR_INVERTED,
-		GL_NAND,
-		GL_SET
-	};
-
 	if (bpmem.blendmode.logicopenable && !bpmem.blendmode.blendenable)
 	{
-		glEnable(GL_COLOR_LOGIC_OP);
-		glLogicOp(glLogicOpCodes[bpmem.blendmode.logicmode]);
+		if (GLInterface->GetMode() == GLInterfaceMode::MODE_OPENGL)
+		{
+			const GLenum glLogicOpCodes[16] =
+			{
+				GL_CLEAR,
+				GL_AND,
+				GL_AND_REVERSE,
+				GL_COPY,
+				GL_AND_INVERTED,
+				GL_NOOP,
+				GL_XOR,
+				GL_OR,
+				GL_NOR,
+				GL_EQUIV,
+				GL_INVERT,
+				GL_OR_REVERSE,
+				GL_COPY_INVERTED,
+				GL_OR_INVERTED,
+				GL_NAND,
+				GL_SET
+			};
+			glEnable(GL_COLOR_LOGIC_OP);
+			glLogicOp(glLogicOpCodes[bpmem.blendmode.logicmode]);
+		}
+		else
+		{
+			// Logic ops aren't available in GLES3/GLES2
+
+			//		0	0x00
+			//		1	Source & destination
+			//		2	Source & ~destination
+			//		3	Source
+			//		4	~Source & destination
+			//		5	Destination
+			//		6	Source ^ destination =  Source & ~destination | ~Source & destination
+			//		7	Source | destination
+			//		8	~(Source | destination)
+			//		9	~(Source ^ destination) = ~Source & ~destination | Source & destination
+			//		10	~Destination
+			//		11	Source | ~destination
+			//		12	~Source
+			//		13	~Source | destination
+			//		14	~(Source & destination)
+			//		15	0xff
+			const GLenum glLogicOpop[16] =
+			{
+				GL_FUNC_ADD,
+				GL_FUNC_ADD,
+				GL_FUNC_REVERSE_SUBTRACT,
+				GL_FUNC_ADD,
+				GL_FUNC_REVERSE_SUBTRACT,
+				GL_FUNC_ADD,
+				GL_MAX,
+				GL_FUNC_ADD,
+				GL_MAX,
+				GL_MAX,
+				GL_FUNC_ADD,
+				GL_FUNC_ADD,
+				GL_FUNC_ADD,
+				GL_FUNC_ADD,
+				GL_FUNC_ADD,
+				GL_FUNC_ADD
+			};
+			const GLenum glLogicOpSrcFactors[16] =
+			{
+				GL_ZERO, GL_DST_COLOR, GL_ONE, GL_ONE, GL_DST_COLOR,
+				GL_ZERO, GL_ONE_MINUS_DST_COLOR, GL_ONE_MINUS_DST_COLOR,
+				GL_ONE_MINUS_SRC_COLOR, GL_ONE_MINUS_SRC_COLOR,
+				GL_ONE_MINUS_DST_COLOR, GL_ONE, GL_ONE_MINUS_SRC_COLOR,
+				GL_ONE_MINUS_SRC_COLOR, GL_ONE_MINUS_DST_COLOR, GL_ONE
+			};
+
+			const GLenum glLogicOpSrcFactorsAlpha[16] =
+			{
+				GL_ZERO, GL_DST_ALPHA, GL_ONE, GL_ONE, GL_DST_ALPHA,
+				GL_ZERO, GL_ONE_MINUS_DST_ALPHA, GL_ONE_MINUS_DST_ALPHA,
+				GL_ONE_MINUS_SRC_ALPHA, GL_ONE_MINUS_SRC_COLOR,
+				GL_ONE_MINUS_DST_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA,
+				GL_ONE_MINUS_SRC_ALPHA, GL_ONE_MINUS_DST_ALPHA, GL_ONE
+			};
+
+			const GLenum glLogicOpDestFactors[16] =
+			{
+				GL_ZERO, GL_ZERO, GL_ONE_MINUS_SRC_COLOR, GL_ZERO,
+				GL_ONE, GL_ONE, GL_ONE_MINUS_SRC_COLOR, GL_ONE,
+				GL_ONE_MINUS_DST_COLOR, GL_SRC_COLOR, GL_ONE_MINUS_DST_COLOR,
+				GL_ONE_MINUS_DST_COLOR, GL_ONE_MINUS_SRC_COLOR, GL_ONE,
+				GL_ONE_MINUS_SRC_COLOR,GL_ONE
+			};
+			
+			const GLenum glLogicOpDestFactorsAlpha[16] =
+			{
+				GL_ZERO, GL_ZERO, GL_ONE_MINUS_SRC_ALPHA, GL_ZERO,
+				GL_ONE, GL_ONE, GL_ONE_MINUS_SRC_ALPHA, GL_ONE,
+				GL_ONE_MINUS_DST_ALPHA, GL_SRC_ALPHA, GL_ONE_MINUS_DST_ALPHA,
+				GL_ONE_MINUS_DST_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE,
+				GL_ONE_MINUS_SRC_ALPHA,GL_ONE
+			};
+			GLenum equation = glLogicOpop[bpmem.blendmode.logicmode];
+			GLenum srcFactor = glLogicOpSrcFactors[bpmem.blendmode.logicmode];
+			GLenum dstFactor = glLogicOpDestFactors[bpmem.blendmode.logicmode];
+			GLenum srcFactorAlpha = glLogicOpSrcFactorsAlpha[bpmem.blendmode.logicmode];
+			GLenum dstFactorAlpha = glLogicOpDestFactorsAlpha[bpmem.blendmode.logicmode];
+			glEnable(GL_BLEND);
+			glBlendEquationSeparate(equation, equation);
+			glBlendFuncSeparate(srcFactor, dstFactor, srcFactorAlpha, dstFactorAlpha);
+		}
 	}
 	else
 	{
-		glDisable(GL_COLOR_LOGIC_OP);
+		if (GLInterface->GetMode() == GLInterfaceMode::MODE_OPENGL)
+		{
+			glDisable(GL_COLOR_LOGIC_OP);
+		}
+		else
+		{
+			SetBlendMode(false);
+		}
 	}
 }
 

@@ -1332,7 +1332,7 @@ void Renderer::_SetLogicOpMode()
 		D3DBLEND_ONE
 	};
 
-	if (bpmem.blendmode.logicopenable)
+	if (bpmem.blendmode.logicopenable && !bpmem.blendmode.blendenable)
 	{
 		D3D::SetRenderState(D3DRS_ALPHABLENDENABLE, true);
 		D3D::SetRenderState(D3DRS_BLENDOP, d3dLogicOpop[bpmem.blendmode.logicmode]);
