@@ -507,12 +507,22 @@ float SampleDepth(float2 location, int l)
 	depth = 1.0 / (A * depth + B);
 	return depth;
 }
+float SampleDepthRaw(float2 location, int l)
+{
+	float depth = 1.0 - Tex10.Sample(samp10, float3(location, l)).x;
+	return depth;
+}
 float SampleDepthLoacationOffset(float2 location, int2 offset)
 {
 	float A = -499.5;
 	float B =  500.5;
 	float depth = 1.0 - Tex10.Sample(samp10, float3(location, layer), offset).x;
 	depth = 1.0 / (A * depth + B);
+	return depth;
+}
+float SampleDepthLoacationOffsetRaw(float2 location, int2 offset)
+{
+	float depth = 1.0 - Tex10.Sample(samp10, float3(location, layer), offset).x;
 	return depth;
 }
 )hlsl";
@@ -584,13 +594,22 @@ float SampleDepth(float2 location, int l)
 	depth = 1.0 / (A * depth + B);
 	return depth;
 }
+float SampleDepthRaw(float2 location, int l)
+{
+	float depth = 1.0 - Tex10.Load(int3(int2(resolution.xy * location), l), 0).x;
+	return depth;
+}
 float SampleDepthLoacationOffset(float2 location, int2 offset)
 {
 	float A = -499.5;
 	float B =  500.5;
-	const int samples = %d;
 	float depth = 1.0 - Tex10.Load(int3(int2(resolution.xy * location), layer), 0, offset).x;
 	depth = 1.0 / (A * depth + B);
+	return depth;
+}
+float SampleDepthLoacationOffsetRaw(float2 location, int2 offset)
+{
+	float depth = 1.0 - Tex10.Load(int3(int2(resolution.xy * location), layer), 0, offset).x;
 	return depth;
 }
 )hlsl";
@@ -615,13 +634,17 @@ float4 SamplePrev(int idx) { return SamplePrev(idx, uv0); }
 float4 SamplePrevOffset(int2 offset) { return SamplePrevLocationOffset(0, uv0, offset); }
 float4 SamplePrevOffset(int idx, int2 offset) { return SamplePrevLocationOffset(idx, uv0, offset); }
 float SampleDepth() { return SampleDepth(uv0, layer); }
+float SampleDepthRaw() { return SampleDepthRaw(uv0, layer); }
 float SampleDepthOffset(int2 offset) { return SampleDepthLoacationOffset(uv0, offset); }
+float SampleDepthOffsetRaw(int2 offset) { return SampleDepthLoacationOffsetRaw(uv0, offset); }
 float4 SampleLocation(float2 location) { return Sample(location, layer); }
 float SampleDepthLocation(float2 location) { return SampleDepth(location, layer); }
+float SampleDepthLocationRaw(float2 location) { return SampleDepthRaw(location, layer); }
 float4 SamplePrevLocation(float2 location) { return SamplePrev(0, location); }
 float4 SamplePrevLocation(int idx, float2 location) { return SamplePrev(idx, location); }
 float4 SampleLayer(int l) { return Sample(uv0, l); }
 float SampleDepthLayer(int l) { return SampleDepth(uv0, l); }
+float SampleDepthLayerRaw(int l) { return SampleDepthRaw(uv0, l); }
 float4 SampleFontLocation(float2 location) { return Tex8.Sample(samp8, location); }
 
 float4 ApplyGCGamma(float4 col)

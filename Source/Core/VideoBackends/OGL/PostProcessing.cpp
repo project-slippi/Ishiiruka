@@ -461,12 +461,24 @@ float SampleDepth(float2 location, int l)
 	return depth;
 }
 
+float SampleDepthRaw(float2 location, int l)
+{
+	float depth = texture(samp10, float3(location, l)).x;
+	return depth;
+}
+
 float SampleDepthLocationOffset(float2 location, int2 offset)
 {
 	float A = -499.5;
 	float B =  500.5;
 	float depth = texture(samp10, float3(location + offset * resolution.zw, layer)).x;
 	depth = 1.0 / (A * depth + B);
+	return depth;	
+}
+
+float SampleDepthLocationOffsetRaw(float2 location, int2 offset)
+{
+	float depth = texture(samp10, float3(location + offset * resolution.zw, layer)).x;
 	return depth;	
 }
 
@@ -490,6 +502,11 @@ float SampleDepthOffset(int2 offset)
 	return SampleDepthLocationOffset(uv0, offset);
 }
 
+float SampleDepthOffsetRaw(int2 offset)
+{
+	return SampleDepthLocationOffsetRaw(uv0, offset);
+}
+
 float4 Sample()
 { 
 	float4 outputcolor = Sample(uv0, layer);
@@ -506,12 +523,15 @@ float4 Sample()
 float4 SamplePrev(){ return SamplePrev(0, uv0); }
 float4 SamplePrev(int idx){ return SamplePrev(idx, uv0); }
 float SampleDepth() { return SampleDepth(uv0, layer); }
+float SampleDepthRaw() { return SampleDepthRaw(uv0, layer); }
 float4 SampleLocation(float2 location) { return Sample(location, layer); }
 float4 SamplePrevLocation(float2 location) { return SamplePrev(0, location); }
 float4 SamplePrevLocation(int idx, float2 location) { return SamplePrev(idx, location); }
 float SampleDepthLocation(float2 location) { return SampleDepth(location, layer); }
+float SampleDepthLocationRaw(float2 location) { return SampleDepthRaw(location, layer); }
 float4 SampleLayer(int l) { return Sample(uv0, l); }
 float SampleDepthLayer(int l) { return SampleDepth(uv0, l); }
+float SampleDepthLayerRaw(int l) { return SampleDepthRaw(uv0, l); }
 float4 SampleFontLocation(float2 location) { return texture(samp8, location); }
 
 float4 ApplyGCGamma(float4 col)
