@@ -132,7 +132,7 @@ void VertexManager::Draw(u32 stride)
 		((OGL::Renderer*)g_renderer)->SetGenerationMode();
 }
 
-void VertexManager::PrepareShaders(u32 primitive, u32 components, const XFMemory &xfr, const BPMemory &bpm, bool ongputhread)
+void VertexManager::PrepareShaders(PrimitiveType primitive, u32 components, const XFMemory &xfr, const BPMemory &bpm, bool ongputhread)
 {
 
 }

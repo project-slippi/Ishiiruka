@@ -66,13 +66,13 @@ inline void GenerateVertexShader(T& out, u32 components, const XFMemory &xfr, co
 			out.Write("layout(std140%s) uniform VSBlock {\n", g_ActiveConfig.backend_info.bSupportsBindingLayout ? ", binding = 2" : "");
 
 		DeclareUniform<T, api_type>(out, C_PROJECTION, "float4", I_PROJECTION"[4]");
+		DeclareUniform<T, api_type>(out, C_DEPTHPARAMS, "float4", I_DEPTHPARAMS);
 		DeclareUniform<T, api_type>(out, C_MATERIALS, "float4", I_MATERIALS"[4]");
 		DeclareUniform<T, api_type>(out, C_LIGHTS, "float4", I_LIGHTS"[40]");
 		DeclareUniform<T, api_type>(out, C_TEXMATRICES, "float4", I_TEXMATRICES"[24]");
 		DeclareUniform<T, api_type>(out, C_TRANSFORMMATRICES, "float4", I_TRANSFORMMATRICES"[64]");
 		DeclareUniform<T, api_type>(out, C_NORMALMATRICES, "float4", I_NORMALMATRICES"[32]");
-		DeclareUniform<T, api_type>(out, C_POSTTRANSFORMMATRICES, "float4", I_POSTTRANSFORMMATRICES"[64]");
-		DeclareUniform<T, api_type>(out, C_DEPTHPARAMS, "float4", I_DEPTHPARAMS);
+		DeclareUniform<T, api_type>(out, C_POSTTRANSFORMMATRICES, "float4", I_POSTTRANSFORMMATRICES"[64]");		
 		DeclareUniform<T, api_type>(out, C_PLOFFSETPARAMS, "float4", I_PLOFFSETPARAMS"[13]");
 
 		if (api_type == API_OPENGL)

@@ -100,10 +100,20 @@ namespace D3D
 					if (m_pending.pixelConstantsSize[0] == 0 && m_pending.pixelConstantsSize[1] == 0)
 					{
 						D3D::context->PSSetConstantBuffers(0,  m_pending.pixelConstants[1] ? 2 : 1, m_pending.pixelConstants);
+						if (g_ActiveConfig.backend_info.bSupportsTessellation)
+						{
+							D3D::context->HSSetConstantBuffers(2, 1, m_pending.pixelConstants);
+							D3D::context->DSSetConstantBuffers(2, 1, m_pending.pixelConstants);
+						}
 					}
 					else
 					{
 						D3D::context1->PSSetConstantBuffers1(0, 1, m_pending.pixelConstants, m_pending.pixelConstantsOffset, m_pending.pixelConstantsSize);
+						if (g_ActiveConfig.backend_info.bSupportsTessellation)
+						{
+							D3D::context1->HSSetConstantBuffers1(2, 1, m_pending.pixelConstants, m_pending.pixelConstantsOffset, m_pending.pixelConstantsSize);
+							D3D::context1->DSSetConstantBuffers1(2, 1, m_pending.pixelConstants, m_pending.pixelConstantsOffset, m_pending.pixelConstantsSize);
+						}
 					}
 					m_current.pixelConstants[0] = m_pending.pixelConstants[0];
 					m_current.pixelConstantsOffset[0] = m_pending.pixelConstantsOffset[0];
@@ -117,10 +127,20 @@ namespace D3D
 					if (m_pending.vertexConstantsSize == 0)
 					{
 						D3D::context1->VSSetConstantBuffers(0, 1, &m_pending.vertexConstants);
+						if (g_ActiveConfig.backend_info.bSupportsTessellation)
+						{
+							D3D::context1->HSSetConstantBuffers(1, 1, &m_pending.vertexConstants);
+							D3D::context1->DSSetConstantBuffers(1, 1, &m_pending.vertexConstants);
+						}
 					}
 					else
 					{
 						D3D::context1->VSSetConstantBuffers1(0, 1, &m_pending.vertexConstants, &m_pending.vertexConstantsOffset, &m_pending.vertexConstantsSize);
+						if (g_ActiveConfig.backend_info.bSupportsTessellation)
+						{
+							D3D::context1->HSSetConstantBuffers1(1, 1, &m_pending.vertexConstants, &m_pending.vertexConstantsOffset, &m_pending.vertexConstantsSize);
+							D3D::context1->DSSetConstantBuffers1(1, 1, &m_pending.vertexConstants, &m_pending.vertexConstantsOffset, &m_pending.vertexConstantsSize);
+						}
 					}
 					m_current.vertexConstants = m_pending.vertexConstants;
 					m_current.vertexConstantsOffset = m_pending.vertexConstantsOffset;
@@ -156,7 +176,6 @@ namespace D3D
 					m_current.hulldomainConstantsOffset = m_pending.hulldomainConstantsOffset;
 					m_current.hulldomainConstantsSize = m_pending.hulldomainConstantsSize;
 				}
-
 			}
 			else
 			{

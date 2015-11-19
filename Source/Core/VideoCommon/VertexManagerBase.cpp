@@ -7,7 +7,7 @@
 #include "VideoCommon/BPStructs.h"
 #include "VideoCommon/Debugger.h"
 #include "VideoCommon/GeometryShaderManager.h"
-#include "VideoCommon/HullDomainShaderManager.h"
+#include "VideoCommon/TessellationShaderManager.h"
 #include "VideoCommon/IndexGenerator.h"
 #include "VideoCommon/MainBase.h"
 #include "VideoCommon/NativeVertexFormat.h"
@@ -48,7 +48,7 @@ static const PrimitiveType primitive_from_gx[8] = {
 	PRIMITIVE_POINTS,    // GX_DRAW_POINTS
 };
 
-u32 VertexManagerBase::GetPrimitiveType(int primitive)
+PrimitiveType VertexManagerBase::GetPrimitiveType(int primitive)
 {
 	return primitive_from_gx[primitive & 7];
 }
@@ -191,7 +191,6 @@ void VertexManagerBase::Flush()
 					mask |= 1 << i;
 				}
 				PixelShaderManager::SetTexDims(i, tentry->native_width, tentry->native_height);
-				HullDomainShaderManager::SetTexDims(i, tentry->native_width, tentry->native_height);
 				g_renderer->SetSamplerState(i & 3, i >> 2, tentry->is_custom_tex);
 			}
 			else
@@ -201,14 +200,13 @@ void VertexManagerBase::Flush()
 	if (g_ActiveConfig.HiresMaterialMapsEnabled())
 	{
 		PixelShaderManager::SetFlags(0, ~0, mask);
-		HullDomainShaderManager::SetFlags(0, ~0, mask);
 	}
 	TextureCacheBase::BindTextures();
 
 	// set global constants
 	VertexShaderManager::SetConstants();
 	GeometryShaderManager::SetConstants();
-	HullDomainShaderManager::SetConstants();
+	TessellationShaderManager::SetConstants();
 	PixelShaderManager::SetConstants();
 	if (current_primitive_type == PRIMITIVE_TRIANGLES)
 	{

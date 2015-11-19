@@ -460,7 +460,7 @@ void VertexManager::SetPLRasterOffsets()
 	line_pt_params[PLO_POS_LINE_POSITIVE_Y].y = lsizey;
 }
 
-void DX9::VertexManager::PrepareShaders(u32 primitive, u32 components, const XFMemory &xfr, const BPMemory &bpm, bool ongputhread)
+void DX9::VertexManager::PrepareShaders(PrimitiveType primitive, u32 components, const XFMemory &xfr, const BPMemory &bpm, bool ongputhread)
 {
 	if (ongputhread)
 	{

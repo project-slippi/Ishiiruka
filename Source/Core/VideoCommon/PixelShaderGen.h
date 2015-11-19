@@ -25,23 +25,23 @@
 #define I_PLIGHTS     "cPLights"
 #define I_PMATERIALS  "cPmtrl"
 
-#define C_COLORMATRIX	0					// 0
-#define C_COLORS		0					// 0
-#define C_KCOLORS		(C_COLORS + 4)		// 4
-#define C_ALPHA			(C_KCOLORS + 4)		// 8
-#define C_TEXDIMS		(C_ALPHA + 1)		// 9
-#define C_ZBIAS			(C_TEXDIMS + 8)		//17
-#define C_INDTEXSCALE	(C_ZBIAS + 2)		//19
-#define C_INDTEXMTX		(C_INDTEXSCALE + 2)	//21
-#define C_FOGCOLOR		(C_INDTEXMTX + 6)	//27
-#define C_FOGI			(C_FOGCOLOR + 1)	//28
-#define C_FOGF			(C_FOGI + 1)		//29
-#define C_ZSLOPE		(C_FOGF + 2)		//31
-#define C_FLAGS			(C_ZSLOPE + 1)		//32
-#define C_EFBSCALE		(C_FLAGS + 1)		//33
+#define C_COLORMATRIX   0                   // 0
+#define C_COLORS        0                   // 0
+#define C_KCOLORS       (C_COLORS + 4)      // 4
+#define C_ALPHA         (C_KCOLORS + 4)     // 8
+#define C_TEXDIMS       (C_ALPHA + 1)       // 9
+#define C_ZBIAS         (C_TEXDIMS + 8)     //17
+#define C_INDTEXSCALE   (C_ZBIAS + 2)       //19
+#define C_INDTEXMTX     (C_INDTEXSCALE + 2) //21
+#define C_FOGCOLOR      (C_INDTEXMTX + 6)   //27
+#define C_FOGI          (C_FOGCOLOR + 1)    //28
+#define C_FOGF          (C_FOGI + 1)        //29
+#define C_ZSLOPE        (C_FOGF + 2)        //31
+#define C_FLAGS         (C_ZSLOPE + 1)      //32
+#define C_EFBSCALE      (C_FLAGS + 1)       //33
 
-#define C_PLIGHTS		(C_EFBSCALE + 1)
-#define C_PMATERIALS	(C_PLIGHTS + 40)
+#define C_PLIGHTS       (C_EFBSCALE + 1)
+#define C_PMATERIALS    (C_PLIGHTS + 40)
 #define C_PENVCONST_END (C_PMATERIALS + 4)
 
 // Different ways to achieve rendering with destination alpha

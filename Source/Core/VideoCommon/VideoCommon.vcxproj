@@ -77,8 +77,8 @@
     <ClCompile Include="G_SX4E01_pvt.cpp" />
     <ClCompile Include="HiresTextures.cpp" />
     <ClCompile Include="HLSLCompiler.cpp" />
-    <ClCompile Include="HullDomainShaderGen.cpp" />
-    <ClCompile Include="HullDomainShaderManager.cpp" />
+    <ClCompile Include="TessellationShaderGen.cpp" />
+    <ClCompile Include="TessellationShaderManager.cpp" />
     <ClCompile Include="ImageWrite.cpp" />
     <ClCompile Include="IndexGenerator.cpp" />
     <ClCompile Include="MainBase.cpp" />
@@ -134,8 +134,8 @@
     <ClInclude Include="DataReader.h" />
     <ClInclude Include="GeometryShaderGen.h" />
     <ClInclude Include="GeometryShaderManager.h" />
-    <ClInclude Include="HullDomainShaderGen.h" />
-    <ClInclude Include="HullDomainShaderManager.h" />
+    <ClInclude Include="TessellationShaderGen.h" />
+    <ClInclude Include="TessellationShaderManager.h" />
     <ClInclude Include="ImageLoader.h" />
     <ClInclude Include="Debugger.h" />
     <ClInclude Include="DriverDetails.h" />

@@ -4,11 +4,12 @@
 
 #include <cmath>
 
-#include "VideoCommon/HullDomainShaderGen.h"
+#include "VideoCommon/TessellationShaderGen.h"
 #include "VideoCommon/LightingShaderGen.h"
 #include "VideoCommon/VertexShaderGen.h"
+#include "VideoCommon/PixelShaderGen.h"
 #include "VideoCommon/VideoConfig.h"
-static char text[HULLDOMAINSHADERGEN_BUFFERSIZE];
+static char text[TESSELLATIONSHADERGEN_BUFFERSIZE];
 
 static const char* headerUtilI = R"hlsl(
 int4 CHK_O_U8(int4 x)
@@ -133,7 +134,7 @@ void SampleTextureRAW(T& out, const char *texcoords, const char *texswap, const 
 {
 	if (ApiType == API_D3D11)
 	{
-		out.Write("Tex[%d].SampleLevel(samp[%d], float3(%s.xy * " I_TEXDIMS"[%d].xy, %s), log2(1.0 / " I_TEXDIMS "[%d].x) * uv[%d].w).%s;\n", 8 + texmap, texmap, texcoords, texmap, layer, texmap, tcoord, texswap);
+		out.Write("Tex[%d].SampleLevel(samp[%d], float3(%s.xy * " I_TEXDIMS"[%d].xy, %s), round(log2(1.0 / " I_TEXDIMS "[%d].x)) * uv[%d].w).%s;\n", 8 + texmap, texmap, texcoords, texmap, layer, texmap, tcoord, texswap);
 	}
 	else
 	{
@@ -158,7 +159,7 @@ void SampleTexture(T& out, const char *texcoords, const char *texswap, int texma
 	}
 }
 
-static inline void WriteStageUID(HullDomain_shader_uid_data& uid_data, int n, const BPMemory &bpm)
+static inline void WriteStageUID(Tessellation_shader_uid_data& uid_data, int n, const BPMemory &bpm)
 {
 	int texcoord = bpm.tevorders[n / 2].getTexCoord(n & 1);
 	bool bHasTexCoord = (u32)texcoord < bpm.genMode.numtexgens.Value();
@@ -302,12 +303,12 @@ static inline void WriteFetchDisplacement(T& out, int n, const BPMemory &bpm)
 }
 
 template<class T, API_TYPE ApiType, bool is_writing_shadercode>
-static inline void GenerateHullDomainShader(T& out, const XFMemory& xfr, const BPMemory& bpm, const u32 components)
+static inline void GenerateTessellationShader(T& out, const XFMemory& xfr, const BPMemory& bpm, const u32 components)
 {
 	// Non-uid template parameters will Write to the dummy data (=> gets optimized out)
-	HullDomain_shader_uid_data dummy_data;
-	bool uidPresent = (&out.template GetUidData<HullDomain_shader_uid_data>() != nullptr);
-	HullDomain_shader_uid_data& uid_data = uidPresent ? out.template GetUidData<HullDomain_shader_uid_data>() : dummy_data;
+	Tessellation_shader_uid_data dummy_data;
+	bool uidPresent = (&out.template GetUidData<Tessellation_shader_uid_data>() != nullptr);
+	Tessellation_shader_uid_data& uid_data = uidPresent ? out.template GetUidData<Tessellation_shader_uid_data>() : dummy_data;
 
 	if (uidPresent)
 	{
@@ -415,15 +416,38 @@ static inline void GenerateHullDomainShader(T& out, const XFMemory& xfr, const B
 	if (ApiType == API_OPENGL)
 		out.Write("layout(std140%s) uniform GSBlock {\n", g_ActiveConfig.backend_info.bSupportsBindingLayout ? ", binding = 3" : "");
 	else
-		out.Write("cbuffer GSBlock {\n");
+		out.Write("cbuffer GSBlock : register(b0) {\n");
 	out.Write(
 		"\tfloat4 " I_TESSPARAMS";\n"
-		"\tfloat4 " I_DEPTHPARAMS";\n"
-		"\tfloat4 " I_PROJECTION"[4];\n"
-		"\tfloat4 " I_TEXDIMS"[8];\n"
-		"\tint4 " I_INDTEXSCALE"[2];\n"
-		"\tint4 " I_INDTEXMTX"[6];\n"
-		"\tint4 " I_FLAGS";\n"
+		"};\n");
+	
+	if (ApiType == API_OPENGL)
+		out.Write("layout(std140%s) uniform VSBlock {\n", g_ActiveConfig.backend_info.bSupportsBindingLayout ? ", binding = 2" : "");
+	else
+		out.Write("cbuffer VSBlock : register(b1) {\n");
+	out.Write(
+		"\tfloat4 " I_PROJECTION "[4];\n"
+		"\tfloat4 " I_DEPTHPARAMS ";\n"
+		"};\n");
+
+	if (ApiType == API_OPENGL)
+		out.Write("layout(std140%s) uniform PSBlock {\n", g_ActiveConfig.backend_info.bSupportsBindingLayout ? ", binding = 1" : "");
+	else
+		out.Write("cbuffer PSBlock : register(b2) {\n");
+	out.Write(
+		"\tint4 " I_COLORS "[4];\n"
+		"\tint4 " I_KCOLORS "[4];\n"
+		"\tint4 " I_ALPHA ";\n"
+		"\tfloat4 " I_TEXDIMS "[8];\n"
+		"\tint4 " I_ZBIAS "[2];\n"
+		"\tint4 " I_INDTEXSCALE "[2];\n"
+		"\tint4 " I_INDTEXMTX "[6];\n"
+		"\tint4 " I_FOGCOLOR ";\n"
+		"\tint4 " I_FOGI ";\n"
+		"\tfloat4 " I_FOGF "[2];\n"
+		"\tfloat4 " I_ZSLOPE ";\n"
+		"\tint4 "  I_FLAGS ";\n"
+		"\tfloat4 " I_EFBSCALE ";\n"
 		"};\n");
 
 	out.Write("struct VS_OUTPUT {\n");
@@ -465,7 +489,7 @@ static inline void GenerateHullDomainShader(T& out, const XFMemory& xfr, const B
 		out.Write(s_hlsl_constant_header_str);
 		out.Write("float4 pos[3];\n");
 		out.Write("[unroll]\n"
-			"for(int i = 0; i < 3; i++)\n{\n");		
+			"for(int i = 0; i < 3; i++)\n{\n");
 		for (u32 i = 0; i < texcount; ++i)
 		{
 			if (xfr.numTexGen.numTexGens < 7)
@@ -481,7 +505,7 @@ static inline void GenerateHullDomainShader(T& out, const XFMemory& xfr, const B
 			{
 				out.Write("{\n");
 				out.Write("float2 t0 = patch[i].tex%d.xy;", i);
-				out.Write("if (patch[i].tex%d.z != 0.0) t0 = t0 /patch[i].tex%d.z;", i, i);				
+				out.Write("if (patch[i].tex%d.z != 0.0) t0 = t0 /patch[i].tex%d.z;", i, i);
 				out.Write("float2 t1 = patch[(i + 1) %% 3].tex%d.xy;", i);
 				out.Write("if (patch[(i + 1) %% 3].tex%d.z != 0.0) t0 = t0 /patch[(i + 1) %% 3].tex%d.z;", i, i);
 				out.Write("result.tex%d[i].w = distance(t0, t1);\n", i);
@@ -493,7 +517,7 @@ static inline void GenerateHullDomainShader(T& out, const XFMemory& xfr, const B
 				out.Write("float2 t0 = patch[i].tex%d.xy;", i);
 				out.Write("float2 t1 = patch[(i + 1) %% 3].tex%d.xy;", i);
 				out.Write("result.tex%d[i].w = distance(t0, t1);\n", i);
-				out.Write("}\n");				
+				out.Write("}\n");
 			}
 		}
 		if (xfr.numTexGen.numTexGens < 7 && normalpresent)
@@ -518,7 +542,7 @@ static inline void GenerateHullDomainShader(T& out, const XFMemory& xfr, const B
 		for (u32 i = 0; i < texcount; ++i)
 			out.Write("result.tex%d.xyz = BInterpolate(pconstans.tex%d, bCoords).xyz;\n", i, i, i, i);
 
-		out.Write("float displacement = 0.0, displacementcount = 0.0;\n");
+		out.Write("float displacement = 0.0, displacementcount = 0.0, borderdistance = bCoords.x * bCoords.y * bCoords.z;\n");
 		out.Write("int3 tevcoord=int3(0,0,0);\n");
 		out.Write("int2 wrappedcoord = int2(0, 0);\n");
 		if (enablenormalmaps)
@@ -539,9 +563,9 @@ static inline void GenerateHullDomainShader(T& out, const XFMemory& xfr, const B
 				}
 				out.Write("uv[%d].xy = trunc(128.0 * uv[%d].xy * " I_TEXDIMS"[%d].zw);\n", i, i, i);
 				out.Write("uv[%d].z = dot(pconstans.edgesize.zxy, bCoords)/dot(float3(pconstans.tex%d[0].w, pconstans.tex%d[1].w, pconstans.tex%d[2].w), bCoords);\n", i, i, i, i);
-				out.Write("uv[%d].w = dot(log2(4.0*float3(pconstans.tex%d[0].w,pconstans.tex%d[1].w,pconstans.tex%d[2].w) / float3(pconstans.EFactor[2], pconstans.EFactor[0], pconstans.EFactor[1])),bCoords);\n", i, i, i, i);
-				out.Write("uv[%d].z = all(bCoords) ?  uv[%d].z : 1.0;\n", i, i);
-				out.Write("uv[%d].w = all(bCoords) ?  uv[%d].w : 0.5;\n", i, i);
+				out.Write("uv[%d].w = dot(log2(8.0*float3(pconstans.tex%d[0].w,pconstans.tex%d[1].w,pconstans.tex%d[2].w) / float3(pconstans.EFactor[2], pconstans.EFactor[0], pconstans.EFactor[1])),bCoords);\n", i, i, i, i);
+				out.Write("uv[%d].z = borderdistance * 2.0 * uv[%d].z;\n", i, i);
+				out.Write("uv[%d].w = ceil(saturate(uv[%d].w) * 8.0) * 0.125;\n", i, i);
 			}
 			for (u32 i = 0; i < numindStages; ++i)
 			{
@@ -592,8 +616,8 @@ static inline void GenerateHullDomainShader(T& out, const XFMemory& xfr, const B
 				"pos0 = PrjToPlane(norm0, pos0, position);\n"
 				"pos1 = PrjToPlane(norm1, pos1, position);\n"
 				"pos2 = PrjToPlane(norm2, pos2, position);\n"
-				"position = lerp(position, BInterpolate(pos0, pos1, pos2, bCoords)," I_TESSPARAMS ".zzz);\n"
-				"position += displacement * normal * 0.0625 * " I_TESSPARAMS ".w;\n");
+				"position = lerp(position, BInterpolate(pos0, pos1, pos2, bCoords),saturate(" I_TESSPARAMS ".zzz * borderdistance * 16.0));\n"
+				"position += displacement * normal * " I_TESSPARAMS ".w;\n");
 		}
 		// Transform world position to view-projection
 		out.Write("float4 pos = float4(position, 1.0);\n"
@@ -632,7 +656,7 @@ static inline void GenerateHullDomainShader(T& out, const XFMemory& xfr, const B
 
 	if (is_writing_shadercode)
 	{
-		if (codebuffer[HULLDOMAINSHADERGEN_BUFFERSIZE - 1] != 0x7C)
+		if (codebuffer[TESSELLATIONSHADERGEN_BUFFERSIZE - 1] != 0x7C)
 			PanicAlert("GeometryShader generator - buffer too small, canary has been eaten!");
 	}
 	if (uidPresent)
@@ -641,26 +665,26 @@ static inline void GenerateHullDomainShader(T& out, const XFMemory& xfr, const B
 	}
 }
 
-void GenerateHullDomainShaderCode(ShaderCode& object, API_TYPE ApiType, const XFMemory &xfr, const BPMemory &bpm, const u32 components)
+void GenerateTessellationShaderCode(ShaderCode& object, API_TYPE ApiType, const XFMemory &xfr, const BPMemory &bpm, const u32 components)
 {
 	if (ApiType == API_OPENGL)
 	{
-		GenerateHullDomainShader<ShaderCode, API_OPENGL, true>(object, xfr, bpm, components);
+		GenerateTessellationShader<ShaderCode, API_OPENGL, true>(object, xfr, bpm, components);
 	}
 	else
 	{
-		GenerateHullDomainShader<ShaderCode, API_D3D11, true>(object, xfr, bpm, components);
+		GenerateTessellationShader<ShaderCode, API_D3D11, true>(object, xfr, bpm, components);
 	}
 }
 
-void GetHullDomainShaderUid(HullDomainShaderUid& object, API_TYPE ApiType, const XFMemory &xfr, const BPMemory &bpm, const u32 components)
+void GetTessellationShaderUid(TessellationShaderUid& object, API_TYPE ApiType, const XFMemory &xfr, const BPMemory &bpm, const u32 components)
 {
 	if (ApiType == API_OPENGL)
 	{
-		GenerateHullDomainShader<HullDomainShaderUid, API_OPENGL, false>(object, xfr, bpm, components);
+		GenerateTessellationShader<TessellationShaderUid, API_OPENGL, false>(object, xfr, bpm, components);
 	}
 	else
 	{
-		GenerateHullDomainShader<HullDomainShaderUid, API_D3D11, false>(object, xfr, bpm, components);
+		GenerateTessellationShader<TessellationShaderUid, API_D3D11, false>(object, xfr, bpm, components);
 	}
 }

@@ -18,7 +18,7 @@ public:
 	NativeVertexFormat* CreateNativeVertexFormat();
 	void CreateDeviceObjects();
 	void DestroyDeviceObjects();
-	void PrepareShaders(u32 primitive,
+	void PrepareShaders(PrimitiveType primitive,
 		u32 components,
 		const XFMemory &xfr,
 		const BPMemory &bpm,

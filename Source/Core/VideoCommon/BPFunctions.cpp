@@ -9,7 +9,6 @@
 
 #include "VideoCommon/BPFunctions.h"
 #include "VideoCommon/GeometryShaderManager.h"
-#include "VideoCommon/HullDomainShaderManager.h"
 #include "VideoCommon/PixelShaderManager.h"
 #include "VideoCommon/RenderBase.h"
 #include "VideoCommon/VertexManagerBase.h"
@@ -66,7 +65,6 @@ void SetScissor()
 	g_renderer->SetScissorRect(trc);
 	VertexShaderManager::SetViewportChanged();
 	GeometryShaderManager::SetViewportChanged();
-	HullDomainShaderManager::SetViewportChanged();
 	PixelShaderManager::SetViewportChanged();
 }
 

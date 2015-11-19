@@ -33,25 +33,25 @@
 
 // shader variables
 #define I_PROJECTION            "cproj"
+#define I_DEPTHPARAMS           "cDepth" // farZ, zRange, scaled viewport width, scaled viewport height
 #define I_MATERIALS             "cmtrl"
 #define I_LIGHTS                "clights"
 #define I_TEXMATRICES           "ctexmtx"
 #define I_TRANSFORMMATRICES     "ctrmtx"
 #define I_NORMALMATRICES        "cnmtx"
 #define I_POSTTRANSFORMMATRICES "cpostmtx"
-#define I_DEPTHPARAMS           "cDepth" // farZ, zRange, scaled viewport width, scaled viewport height
 #define I_PLOFFSETPARAMS        "cPLOffset" // line/point offset for correct emulation 
 
 #define C_PROJECTION            0
-#define C_MATERIALS             (C_PROJECTION + 4)
+#define C_DEPTHPARAMS           (C_PROJECTION + 4)
+#define C_MATERIALS             (C_DEPTHPARAMS + 1)
 #define C_LIGHTS                (C_MATERIALS + 4)
 #define C_TEXMATRICES           (C_LIGHTS + 40)
 #define C_TRANSFORMMATRICES     (C_TEXMATRICES + 24)
 #define C_NORMALMATRICES        (C_TRANSFORMMATRICES + 64)
 #define C_POSTTRANSFORMMATRICES (C_NORMALMATRICES + 32)
-#define C_DEPTHPARAMS           (C_POSTTRANSFORMMATRICES + 64)
-#define C_PLOFFSETPARAMS		(C_DEPTHPARAMS + 1)
-#define C_VENVCONST_END			(C_PLOFFSETPARAMS + 13)
+#define C_PLOFFSETPARAMS        (C_POSTTRANSFORMMATRICES + 64)
+#define C_VENVCONST_END         (C_PLOFFSETPARAMS + 13)
 
 #pragma pack(1)
 struct vertex_shader_uid_data

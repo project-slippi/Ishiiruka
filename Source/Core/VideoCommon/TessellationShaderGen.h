@@ -12,7 +12,7 @@
 
 #pragma pack(1)
 
-struct HDstage_hash_data
+struct Tessellationstage_hash_data
 {
 	// Align Everything to 32 bits words to speed up things
 	u32 tevorders_enable : 1;
@@ -23,9 +23,9 @@ struct HDstage_hash_data
 	u32 tevind : 21;
 };
 
-struct HullDomain_shader_uid_data
+struct Tessellation_shader_uid_data
 {
-	u32 NumValues() const { return sizeof(HullDomain_shader_uid_data); }
+	u32 NumValues() const { return sizeof(Tessellation_shader_uid_data); }
 	u32 StartValue() const { return 0; }
 
 	u32 numTexGens : 4;
@@ -47,7 +47,7 @@ struct HullDomain_shader_uid_data
 	u32 tevindref_bi4 : 3;
 	u32 tevindref_bc4 : 3;
 
-	HDstage_hash_data stagehash[16];
+	Tessellationstage_hash_data stagehash[16];
 
 	inline void SetTevindrefValues(int index, u32 texcoord, u32 texmap)
 	{
@@ -68,15 +68,9 @@ struct HullDomain_shader_uid_data
 #pragma pack()
 
 #define I_TESSPARAMS  "ctess"
-#define I_PROJECTION  "cproj"
-#define I_DEPTHPARAMS "cDepth" // farZ, zRange, scaled viewport width, scaled viewport height
-#define I_TEXDIMS     "texdim"
-#define I_INDTEXSCALE "cindscale"
-#define I_INDTEXMTX   "cindmtx"
-#define I_FLAGS       "cflags"
 
-#define HULLDOMAINSHADERGEN_BUFFERSIZE 32768
-typedef ShaderUid<HullDomain_shader_uid_data> HullDomainShaderUid;
+#define TESSELLATIONSHADERGEN_BUFFERSIZE 32768
+typedef ShaderUid<Tessellation_shader_uid_data> TessellationShaderUid;
 
-void GenerateHullDomainShaderCode(ShaderCode& object, API_TYPE ApiType, const XFMemory &xfr, const BPMemory &bpm, const u32 components);
-void GetHullDomainShaderUid(HullDomainShaderUid& object, API_TYPE ApiType, const XFMemory &xfr, const BPMemory &bpm, const u32 components);
+void GenerateTessellationShaderCode(ShaderCode& object, API_TYPE ApiType, const XFMemory &xfr, const BPMemory &bpm, const u32 components);
+void GetTessellationShaderUid(TessellationShaderUid& object, API_TYPE ApiType, const XFMemory &xfr, const BPMemory &bpm, const u32 components);

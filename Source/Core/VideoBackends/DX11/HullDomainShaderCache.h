@@ -7,7 +7,7 @@
 #include <d3d11.h>
 #include <unordered_map>
 
-#include "VideoCommon/HullDomainShaderGen.h"
+#include "VideoCommon/TessellationShaderGen.h"
 
 namespace DX11
 {
@@ -26,7 +26,7 @@ namespace DX11
 			bool ongputhread);
 		static bool TestShader();
 		static void InsertByteCode(
-			const HullDomainShaderUid &uid,
+			const TessellationShaderUid &uid,
 			const void* bytecode,
 			unsigned int bytecodelen, bool isdomain);
 		static std::tuple<ID3D11Buffer*, UINT, UINT> GetConstantBuffer();
@@ -53,14 +53,14 @@ namespace DX11
 			const void* bytecode,
 			unsigned int bytecodelen,
 			HDCacheEntry* entry, bool isdomain);
-		typedef std::unordered_map<HullDomainShaderUid, HDCacheEntry, HullDomainShaderUid::ShaderUidHasher> HDCache;
+		typedef std::unordered_map<TessellationShaderUid, HDCacheEntry, TessellationShaderUid::ShaderUidHasher> HDCache;
 
 		static HDCache s_hulldomain_shaders;
 		static const HDCacheEntry* s_last_entry;
-		static HullDomainShaderUid s_last_uid;
-		static HullDomainShaderUid s_external_last_uid;
+		static TessellationShaderUid s_last_uid;
+		static TessellationShaderUid s_external_last_uid;
 
-		static UidChecker<HullDomainShaderUid, ShaderCode> HullDomain_uid_checker;
+		static UidChecker<TessellationShaderUid, ShaderCode> HullDomain_uid_checker;
 	};
 
 }  // namespace DX11

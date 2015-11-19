@@ -220,10 +220,10 @@
     <ClCompile Include="TextureScalerCommon.cpp">
       <Filter>Util</Filter>
     </ClCompile>
-    <ClCompile Include="HullDomainShaderGen.cpp">
+    <ClCompile Include="TessellationShaderGen.cpp">
       <Filter>Shader Generators</Filter>
     </ClCompile>
-    <ClCompile Include="HullDomainShaderManager.cpp">
+    <ClCompile Include="TessellationShaderManager.cpp">
       <Filter>Shader Managers</Filter>
     </ClCompile>
   </ItemGroup>
@@ -475,10 +475,10 @@
     <ClInclude Include="TextureScalerCommon.h">
       <Filter>Util</Filter>
     </ClInclude>
-    <ClInclude Include="HullDomainShaderGen.h">
+    <ClInclude Include="TessellationShaderGen.h">
       <Filter>Shader Generators</Filter>
     </ClInclude>
-    <ClInclude Include="HullDomainShaderManager.h">
+    <ClInclude Include="TessellationShaderManager.h">
       <Filter>Shader Managers</Filter>
     </ClInclude>
   </ItemGroup>

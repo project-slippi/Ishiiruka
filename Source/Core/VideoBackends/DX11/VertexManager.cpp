@@ -155,7 +155,7 @@ void VertexManager::Draw(UINT stride)
 	}
 }
 
-void VertexManager::PrepareShaders(u32 primitive, u32 components, const XFMemory &xfr, const BPMemory &bpm, bool ongputhread)
+void VertexManager::PrepareShaders(PrimitiveType primitive, u32 components, const XFMemory &xfr, const BPMemory &bpm, bool ongputhread)
 {
 	if (ongputhread)
 	{
@@ -172,7 +172,7 @@ void VertexManager::PrepareShaders(u32 primitive, u32 components, const XFMemory
 	PixelShaderCache::PrepareShader(useDstAlpha ? DSTALPHA_DUAL_SOURCE_BLEND : DSTALPHA_NONE, components, xfr, bpm, ongputhread);
 	if (g_ActiveConfig.backend_info.bSupportsTessellation)
 	{
-		HullDomainShaderCache::PrepareShader(xfmem, bpmem, current_primitive_type, g_nativeVertexFmt->m_components, ongputhread);
+		HullDomainShaderCache::PrepareShader(xfr, bpm, primitive, components, ongputhread);
 	}
 }
 
@@ -193,7 +193,7 @@ void VertexManager::vFlush(bool useDstAlpha)
 	{
 		return;
 	}
-	if (g_ActiveConfig.backend_info.bSupportsTessellation && g_ActiveConfig.bTessellation)
+	if (g_ActiveConfig.TessellationEnabled())
 	{
 		if (!HullDomainShaderCache::TestShader())
 		{

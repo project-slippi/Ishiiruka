@@ -27,7 +27,7 @@ public:
 	void CreateDeviceObjects();
 	void DestroyDeviceObjects();
 	
-	void PrepareShaders(u32 primitive, u32 components, const XFMemory &xfr, const BPMemory &bpm, bool ongputhread = true);
+	void PrepareShaders(PrimitiveType primitive, u32 components, const XFMemory &xfr, const BPMemory &bpm, bool ongputhread = true);
 protected:
 	void ResetBuffer(u32 stride) override;
 	u16* GetIndexBuffer() override { return &LocalIBuffer[0]; }

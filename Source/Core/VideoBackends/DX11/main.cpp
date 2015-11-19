@@ -12,7 +12,7 @@
 #include "VideoCommon/CommandProcessor.h"
 #include "VideoCommon/Fifo.h"
 #include "VideoCommon/GeometryShaderManager.h"
-#include "VideoCommon/HullDomainShaderManager.h"
+#include "VideoCommon/TessellationShaderManager.h"
 #include "VideoCommon/OnScreenDisplay.h"
 #include "VideoCommon/OpcodeDecoding.h"
 #include "VideoCommon/PixelEngine.h"
@@ -229,7 +229,7 @@ void VideoBackend::Video_Prepare()
 	OpcodeDecoder_Init();
 	VertexShaderManager::Init();
 	GeometryShaderManager::Init();
-	HullDomainShaderManager::Init();
+	TessellationShaderManager::Init();
 	HullDomainShaderCache::Init();
 	GeometryShaderCache::Init();
 	PixelShaderManager::Init(true);
@@ -253,7 +253,7 @@ void VideoBackend::Shutdown()
 		PixelShaderManager::Shutdown();
 		VertexShaderManager::Shutdown();
 		GeometryShaderManager::Shutdown();
-		HullDomainShaderManager::Shutdown();
+		TessellationShaderManager::Shutdown();
 		OpcodeDecoder_Shutdown();
 		VertexLoaderManager::Shutdown();
 

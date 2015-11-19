@@ -50,11 +50,11 @@ public:
 	static u8 *s_pEndBufferPointer;
 
 	static u32 GetRemainingSize();
-	static u32 GetPrimitiveType(int primitive);
+	static PrimitiveType GetPrimitiveType(int primitive);
 	static void PrepareForAdditionalData(int primitive, u32 count, u32 stride);
 	static u32 GetRemainingIndices(int primitive);
 
-	virtual void PrepareShaders(u32 primitive, u32 components, const XFMemory &xfr, const BPMemory &bpm, bool ongputhread) = 0;
+	virtual void PrepareShaders(PrimitiveType primitive, u32 components, const XFMemory &xfr, const BPMemory &bpm, bool ongputhread) = 0;
 	static void Flush();
 
 	virtual ::NativeVertexFormat* CreateNativeVertexFormat() = 0;	

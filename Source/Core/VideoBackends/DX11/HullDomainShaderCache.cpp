@@ -19,8 +19,7 @@
 #include "VideoBackends/DX11/Globals.h"
 
 #include "VideoCommon/Debugger.h"
-#include "VideoCommon/GeometryShaderGen.h"
-#include "VideoCommon/HullDomainShaderManager.h"
+#include "VideoCommon/TessellationShaderManager.h"
 #include "VideoCommon/HLSLCompiler.h"
 #include "VideoCommon/Statistics.h"
 #include "VideoCommon/VideoConfig.h"
@@ -30,9 +29,9 @@ namespace DX11
 
 	HullDomainShaderCache::HDCache HullDomainShaderCache::s_hulldomain_shaders;
 	const HullDomainShaderCache::HDCacheEntry* HullDomainShaderCache::s_last_entry;
-	HullDomainShaderUid HullDomainShaderCache::s_last_uid;
-	HullDomainShaderUid HullDomainShaderCache::s_external_last_uid;
-	UidChecker<HullDomainShaderUid, ShaderCode> HullDomainShaderCache::HullDomain_uid_checker;
+	TessellationShaderUid HullDomainShaderCache::s_last_uid;
+	TessellationShaderUid HullDomainShaderCache::s_external_last_uid;
+	UidChecker<TessellationShaderUid, ShaderCode> HullDomainShaderCache::HullDomain_uid_checker;
 
 	static HLSLAsyncCompiler *s_compiler;
 	static Common::SpinLock<true> s_hulldomain_shaders_lock;
@@ -41,16 +40,16 @@ namespace DX11
 	static UINT s_hdscbuf_offset = 0;
 	static UINT s_hdscbuf_size = 0;
 
-	LinearDiskCache<HullDomainShaderUid, u8> g_hs_disk_cache;
-	LinearDiskCache<HullDomainShaderUid, u8> g_ds_disk_cache;
+	LinearDiskCache<TessellationShaderUid, u8> g_hs_disk_cache;
+	LinearDiskCache<TessellationShaderUid, u8> g_ds_disk_cache;
 
 	std::tuple<ID3D11Buffer*, UINT, UINT>  HullDomainShaderCache::GetConstantBuffer()
 	{
-		if (HullDomainShaderManager::IsDirty())
+		if (TessellationShaderManager::IsDirty())
 		{
-			s_hdscbuf_size = sizeof(HullDomainShaderConstants);
-			s_hdscbuf_offset = hdscbuf->AppendData((void*)&HullDomainShaderManager::constants, s_hdscbuf_size);
-			HullDomainShaderManager::Clear();
+			s_hdscbuf_size = sizeof(TessellationShaderConstants);
+			s_hdscbuf_offset = hdscbuf->AppendData((void*)&TessellationShaderManager::constants, s_hdscbuf_size);
+			TessellationShaderManager::Clear();
 			ADDSTAT(stats.thisFrame.bytesUniformStreamed, s_hdscbuf_size);
 			s_hdscbuf_size = (UINT)(((s_hdscbuf_size + 255) & (~255)) / 16);
 		}
@@ -58,19 +57,19 @@ namespace DX11
 	}
 
 	// this class will load the precompiled shaders into our cache
-	class HullShaderCacheInserter : public LinearDiskCacheReader<HullDomainShaderUid, u8>
+	class HullShaderCacheInserter : public LinearDiskCacheReader<TessellationShaderUid, u8>
 	{
 	public:
-		void Read(const HullDomainShaderUid &key, const u8* value, u32 value_size)
+		void Read(const TessellationShaderUid &key, const u8* value, u32 value_size)
 		{
 			HullDomainShaderCache::InsertByteCode(key, value, value_size, false);
 		}
 	};
 
-	class DomainShaderCacheInserter : public LinearDiskCacheReader<HullDomainShaderUid, u8>
+	class DomainShaderCacheInserter : public LinearDiskCacheReader<TessellationShaderUid, u8>
 	{
 	public:
-		void Read(const HullDomainShaderUid &key, const u8* value, u32 value_size)
+		void Read(const TessellationShaderUid &key, const u8* value, u32 value_size)
 		{
 			HullDomainShaderCache::InsertByteCode(key, value, value_size, true);
 		}
@@ -82,7 +81,7 @@ namespace DX11
 		s_hulldomain_shaders_lock.unlock();
 
 		bool use_partial_buffer_update = D3D::SupportPartialContantBufferUpdate();
-		u32 gbsize = use_partial_buffer_update ? 4 * 1024 * 1024 : ROUND_UP(sizeof(HullDomainShaderConstants), 16); // must be a multiple of 16
+		u32 gbsize = ROUND_UP(sizeof(TessellationShaderConstants), 16) * (use_partial_buffer_update ? 1024 : 1); // must be a multiple of 16
 		hdscbuf.reset(new D3D::ConstantStreamBuffer(gbsize));
 		ID3D11Buffer* buf = hdscbuf->GetBuffer();
 		CHECK(buf != nullptr, "Create Hull Domain shader constant buffer (size=%u)", gbsize);
@@ -154,8 +153,8 @@ namespace DX11
 			}
 			return;
 		}
-		HullDomainShaderUid uid;
-		GetHullDomainShaderUid(uid, API_D3D11, xfr, bpm, components);
+		TessellationShaderUid uid;
+		GetTessellationShaderUid(uid, API_D3D11, xfr, bpm, components);
 		if (ongputhread)
 		{
 			s_compiler->ProcCompilationResults();
@@ -193,10 +192,10 @@ namespace DX11
 
 		// Need to compile a new shader
 		ShaderCode code;
-		ShaderCompilerWorkUnit *wunit = s_compiler->NewUnit(HULLDOMAINSHADERGEN_BUFFERSIZE);
-		ShaderCompilerWorkUnit *wunitd = s_compiler->NewUnit(HULLDOMAINSHADERGEN_BUFFERSIZE);
+		ShaderCompilerWorkUnit *wunit = s_compiler->NewUnit(TESSELLATIONSHADERGEN_BUFFERSIZE);
+		ShaderCompilerWorkUnit *wunitd = s_compiler->NewUnit(TESSELLATIONSHADERGEN_BUFFERSIZE);
 		code.SetBuffer(wunit->code.data());
-		GenerateHullDomainShaderCode(code, API_D3D11, xfr, bpm, components);
+		GenerateTessellationShaderCode(code, API_D3D11, xfr, bpm, components);
 		memcpy(wunitd->code.data(), wunit->code.data(), code.BufferSize());
 		
 		wunit->codesize = (u32)code.BufferSize();
@@ -316,7 +315,7 @@ namespace DX11
 		}
 	}
 
-	void HullDomainShaderCache::InsertByteCode(const HullDomainShaderUid &uid, const void* bytecode, u32 bytecodelen, bool isdomain)
+	void HullDomainShaderCache::InsertByteCode(const TessellationShaderUid &uid, const void* bytecode, u32 bytecodelen, bool isdomain)
 	{
 		HDCacheEntry* entry = &s_hulldomain_shaders[uid];
 		entry->initialized.test_and_set();

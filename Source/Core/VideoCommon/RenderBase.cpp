@@ -37,7 +37,6 @@
 #include "VideoCommon/FPSCounter.h"
 #include "VideoCommon/FramebufferManagerBase.h"
 #include "VideoCommon/GeometryShaderManager.h"
-#include "VideoCommon/HullDomainShaderManager.h"
 #include "VideoCommon/MainBase.h"
 #include "VideoCommon/OpcodeDecoding.h"
 #include "VideoCommon/PixelShaderManager.h"
@@ -243,7 +242,6 @@ bool Renderer::CalculateTargetSize(unsigned int framebuffer_width, unsigned int 
 		s_target_height = newEFBHeight;
 		VertexShaderManager::SetViewportChanged();
 		GeometryShaderManager::SetViewportChanged();
-		HullDomainShaderManager::SetViewportChanged();
 		PixelShaderManager::SetViewportChanged();
 		return true;
 	}
