@@ -184,7 +184,8 @@ void XFRegWritten(int transferSize, u32 baseAddress)
 		case 0x1017:
 
 		default:
-			WARN_LOG(VIDEO, "Unknown XF Reg: %x=%x", address, newValue);
+			if (newValue != 0) // Ignore writes of zero.
+				WARN_LOG(VIDEO, "Unknown XF Reg: %x=%x", address, newValue);
 			break;
 		}
 

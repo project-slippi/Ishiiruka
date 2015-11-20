@@ -315,6 +315,9 @@
     <ClCompile Include="HW\DVDInterface.cpp">
       <Filter>HW %28Flipper/Hollywood%29\DI - Drive Interface</Filter>
     </ClCompile>
+    <ClCompile Include="HW\DVDThread.cpp">
+      <Filter>HW %28Flipper/Hollywood%29\DI - Drive Interface</Filter>
+    </ClCompile>
     <ClCompile Include="HW\DSPHLE\UCodes\AX.cpp">
       <Filter>HW %28Flipper/Hollywood%29\DSP Interface + HLE\HLE\uCodes</Filter>
     </ClCompile>
@@ -1232,9 +1235,6 @@
       <Filter>PowerPC\JitILCommon</Filter>
     </ClInclude>
     <ClInclude Include="MachineContext.h" />
-    <ClInclude Include="IPC_HLE\WII_IPC_HLE_WiiSpeak.h">
-      <Filter>IPC HLE %28IOS/Starlet%29</Filter>
-    </ClInclude>
     <ClInclude Include="HW\GCKeyboardEmu.h">
       <Filter>HW %28Flipper/Hollywood%29\GCKeyboard</Filter>
     </ClInclude>

@@ -178,12 +178,6 @@ u32 CFileSystemGCWii::GetBootDOLSize(u64 dol_offset) const
 	return dol_size;
 }
 
-bool CFileSystemGCWii::GetBootDOL(u8* &buffer, u32 DolSize) const
-{
-	u32 DolOffset = m_rVolume->Read32(0x420, m_Wii) << GetOffsetShift();
-	return m_rVolume->Read(DolOffset, DolSize, buffer, m_Wii);
-}
-
 bool CFileSystemGCWii::ExportDOL(const std::string& _rExportFolder) const
 {
 	u32 DolOffset = m_rVolume->Read32(0x420, m_Wii) << GetOffsetShift();
@@ -275,6 +269,18 @@ void CFileSystemGCWii::InitFileSystem()
 
 	if (!Root.IsDirectory())
 		return;
+
+	// 12 bytes (the size of a file entry) times 10 * 1024 * 1024 is 120 MiB,
+	// more than total RAM in a Wii. No file system should use anywhere near that much.
+	static const u32 ARBITRARY_FILE_SYSTEM_SIZE_LIMIT = 10 * 1024 * 1024;
+	if (Root.m_FileSize > ARBITRARY_FILE_SYSTEM_SIZE_LIMIT)
+	{
+		// Without this check, Dolphin can crash by trying to allocate too much
+		// memory when loading the file systems of certain malformed disc images.
+
+		ERROR_LOG(DISCIO, "File system is abnormally large! Aborting loading");
+		return;
+	}
 
 	if (m_FileInfoVector.size())
 		PanicAlert("Wtf?");
