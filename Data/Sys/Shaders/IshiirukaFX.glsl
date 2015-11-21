@@ -1,5 +1,5 @@
 /*===============================================================================*\
-|########################        [Ishiiruka FX 0.6]        ######################||
+|########################        [Ishiiruka FX 0.7]        ######################||
 || Credist to:                                                                   ||
 || Asmodean (DolphinFX)                                                          ||
 || Matso (MATSODOF)                                                              ||
@@ -17,8 +17,24 @@ DefaultValue = False
 
 [OptionBool]
 GUIName = FXAA
-OptionName = E_FXAA_ENABLED
+OptionName = B_FXAA_ENABLED
 DefaultValue = false
+
+[OptionRangeFloat]
+GUIName = Occlusion Attenuation Start
+OptionName = C_AOASTART
+MinValue = 0.0
+MaxValue = 0.4
+StepAmount = 0.01
+DefaultValue = 0.4
+
+[OptionRangeFloat]
+GUIName = End
+OptionName = D_AOAEND
+MinValue = 0.5
+MaxValue = 2.0
+StepAmount = 0.01
+DefaultValue = 2.0
 
 [OptionBool]
 GUIName = SSAO
@@ -452,11 +468,62 @@ DependentOption = D_BLOOM
 
 [OptionRangeFloat]
 GUIName = Bloom Intensity
-OptionName = B_BLOOMINTENSITY
+OptionName = C_BLOOMINTENSITY
 MinValue = 0.5
 MaxValue = 1.0
 StepAmount = 0.01
 DefaultValue = 1.0
+DependentOption = D_BLOOM
+
+[OptionBool]
+GUIName = Ligth Scattering
+OptionName = D_SCATTERRING
+DefaultValue = False
+DependentOption = D_BLOOM
+
+[OptionRangeFloat]
+GUIName = Density
+OptionName = E_SDENSITY
+MinValue = 0.0
+MaxValue = 1.0
+StepAmount = 0.01
+DefaultValue = 0.5
+DependentOption = D_BLOOM
+
+[OptionRangeFloat]
+GUIName = Start
+OptionName = F_SSTART
+MinValue = 0.0
+MaxValue = 0.5
+StepAmount = 0.01
+DefaultValue = 0.0
+DependentOption = D_BLOOM
+
+[OptionRangeFloat]
+GUIName = End
+OptionName = G_SEND
+MinValue = 0.5
+MaxValue = 2.0
+StepAmount = 0.01
+DefaultValue = 2.0
+DependentOption = D_BLOOM
+
+[OptionRangeFloat]
+GUIName = Default Color
+OptionName = H_SCOLOR
+MinValue = 0.1, 0.1, 0.1
+MaxValue = 1.0, 1.0, 1.0
+StepAmount = 0.01, 0.01, 0.01
+DefaultValue = 0.8, 0.9, 1.0
+DependentOption = D_BLOOM
+
+[OptionRangeFloat]
+GUIName = Scattering Intensity
+OptionName = I_SINTENSITY
+MinValue = 0.0
+MaxValue = 1.0
+StepAmount = 0.01
+DefaultValue = 0.1
 DependentOption = D_BLOOM
 
 [OptionBool]
@@ -1245,22 +1312,30 @@ void Merger()
 	{
 		value = Sample();
 	}
+#if A_SSAO_ENABLED != 0 || A_SSGI_ENABLED != 0
+	float3 AOCOmponent = float3(1.0, 1.0, 1.0);
 #if A_SSAO_ENABLED != 0
 	float4 blur = Bilateral(int2(0, 1), SampleDepth());
-	value.rgb = (1 + blur.rgb) * blur.a * value.rgb;
+	AOCOmponent = (1.0 + blur.rgb) * blur.a;
 #elif A_SSGI_ENABLED != 0
-	float2 axis = float2(1, 0);
+	float2 axis = float2(1.0, 0.0);
 	float4 gi = PS_AO_Blur(axis);
 
-	value.xyz = (gi.w + gi.xyz)*value.xyz;
+	AOCOmponent = (gi.w + gi.xyz);
 	if (GetOption(A_AO_ONLY) == 1)
 	{
-		value = gi.wwww;
+		AOCOmponent = gi.www;
+		value = float4(1.0, 1.0, 1.0, 1.0);
 	}
 	else if (GetOption(A_ILUMINATION_ONLY) == 1)
 	{
-		value = gi.xyzz;
+		AOCOmponent = gi.xyz;
+		value = float4(1.0, 1.0, 1.0, 1.0);
 	}
+#endif
+	float depth = SampleDepth();
+	float AOA = (GetOption(D_AOAEND) - depth) / (GetOption(D_AOAEND) - GetOption(C_AOASTART));
+	value.xyz =lerp(value.xyz, value.xyz * AOCOmponent, AOA);
 #endif
 	if (OptionEnabled(G_TEXTURE_SHARPEN)) { value = TexSharpenPass(value); }
 	if (OptionEnabled(H_PIXEL_VIBRANCE)) { value = VibrancePass(value); }
@@ -1290,17 +1365,17 @@ float4 Gauss1dPrev(float2 location, float2 baseoffset)
 void ReduceSize()
 {
 	float3 power = float3(1, 1, 1) * GetOption(B_BLOOMPOWER);
-	float2 texcoord = GetCoordinates();
-	float3 sceneLighting = SamplePrevLocation(texcoord + float2(-0.25, -0.25)).rgb;
-	sceneLighting += SamplePrevLocation(texcoord + float2(0.0, -0.25)).rgb;
-	sceneLighting += SamplePrevLocation(texcoord + float2(0.25, -0.25)).rgb;
-	sceneLighting += SamplePrevLocation(texcoord + float2(-0.25, 0.0)).rgb;
-	sceneLighting += SamplePrevLocation(texcoord + float2(0.25, 0.0)).rgb;
-	sceneLighting += SamplePrevLocation(texcoord + float2(-0.25, 0.25)).rgb;
-	sceneLighting += SamplePrevLocation(texcoord + float2(0.0, 0.25)).rgb;
-	sceneLighting += SamplePrevLocation(texcoord + float2(0.25, 0.25)).rgb;
+	float2 texcoord = GetCoordinates() + float2(1.0,1.0);
+	float3 sceneLighting = SamplePrevLocation(frac(texcoord + float2(-0.25, -0.25))).rgb;
+	sceneLighting += SamplePrevLocation(frac(texcoord + float2(0.0, -0.25))).rgb;
+	sceneLighting += SamplePrevLocation(frac(texcoord + float2(0.25, -0.25))).rgb;
+	sceneLighting += SamplePrevLocation(frac(texcoord + float2(-0.25, 0.0))).rgb;
+	sceneLighting += SamplePrevLocation(frac(texcoord + float2(0.25, 0.0))).rgb;
+	sceneLighting += SamplePrevLocation(frac(texcoord + float2(-0.25, 0.25))).rgb;
+	sceneLighting += SamplePrevLocation(frac(texcoord + float2(0.0, 0.25))).rgb;
+	sceneLighting += SamplePrevLocation(frac(texcoord + float2(0.25, 0.25))).rgb;
 	sceneLighting *= 0.125;
-	sceneLighting = (1.0 + (1.0 - GetOption(B_BLOOMINTENSITY)) * 7.0) * sceneLighting * sceneLighting;
+	sceneLighting = (1.0 + (1.0 - GetOption(C_BLOOMINTENSITY)) * 7.0) * sceneLighting * sceneLighting;
 	SetOutput(float4(pow(SamplePrev().rgb, power), dot(sceneLighting, lumCoeff)));
 }
 
@@ -1319,7 +1394,58 @@ void BloomV()
 void BloomMerger()
 {
 	float4 blur = SamplePrev();
-	SetOutput(float4(SamplePrev(1).rgb + (blur.rgb * (1.0 - blur.a)), 1.0));
+	blur.rgb = blur.rgb * (1.0 - blur.a);
+	float3 basecolor = SamplePrev(1).rgb;
+	if (OptionEnabled(D_SCATTERRING))
+	{
+		float depth = SampleDepth();
+		float linearcomponent = (GetOption(G_SEND) - depth) / (GetOption(G_SEND) - GetOption(F_SSTART));
+		depth = depth * GetOption(E_SDENSITY);
+		float2 SamplePos[20] = {
+			float2(0.25, 0.125),
+			float2(0.375, 0.125),
+			float2(0.5, 0.125),
+			float2(0.625, 0.125),
+			float2(0.75, 0.125),
+
+			float2(0.25, 0.25),
+			float2(0.375, 0.25),
+			float2(0.5, 0.25),
+			float2(0.625, 0.25),
+			float2(0.75, 0.25),
+
+			float2(0.25, 0.75),
+			float2(0.375, 0.75),
+			float2(0.5, 0.75),
+			float2(0.625, 0.75),
+			float2(0.75, 0.75),
+
+			float2(0.25, 0.875),
+			float2(0.375, 0.875),
+			float2(0.5, 0.875),
+			float2(0.625, 0.875),
+			float2(0.75, 0.875),
+		};
+		float3 lumColor = GetOption(H_SCOLOR) * 3.0;
+		float3 maxColor = float3(0.0, 0.0, 0.0);
+		float3 minColor = float3(1.0, 1.0, 1.0);
+		float samplecount = 3.0;
+		for (int i = 0; i < 20; i++)
+		{
+			float3 color = SamplePrevLocation(SamplePos[i]).rgb;
+			maxColor = max(maxColor, color);
+			minColor = min(minColor, color);
+			lumColor += color;
+			samplecount += 1.0;
+		}
+		lumColor -= maxColor + minColor;
+		lumColor /= samplecount;
+		float maxval = max(max(lumColor.r, lumColor.g), lumColor.b);
+		lumColor /= maxval;
+		lumColor = lerp(basecolor, lumColor, saturate(GetOption(I_SINTENSITY) + maxval * maxval));
+		basecolor = lerp(lumColor, basecolor, clamp(linearcomponent / exp(depth * depth), 0.0, 1.0));
+	}
+	SetOutput(float4(basecolor + blur.rgb, 1.0));
 }
 
 //------------------------------------------------------------------------------
