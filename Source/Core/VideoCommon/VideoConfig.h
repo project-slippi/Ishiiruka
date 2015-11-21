@@ -124,7 +124,8 @@ struct VideoConfig final
 	std::array<StereoscopyPreset, STEREOSCOPY_PRESETS_NUM> oStereoPresets;
 	int iStereoActivePreset;
 	bool bTessellation;
-	int iTessellationMin;
+	bool bTessellationEarlyCulling;
+	int iTessellationDistance;
 	int iTessellationMax;
 	int iTessellationRoundingIntensity;
 	int iTessellationDisplacementIntensity;

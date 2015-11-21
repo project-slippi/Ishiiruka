@@ -158,7 +158,8 @@ static wxString stereo_swap_desc = _("Swap the left and right eye, mostly useful
 static const char *s_bbox_mode_text[] = { "Disabled", "CPU", "GPU" };
 static wxString texture_scaling_desc = _("Apply the selected scaling algorithm to improve texture quality.");
 static wxString Tessellation_desc = _("Apply the selected Tessellation levels to increase geometry detail.");
-static wxString Tessellation_min_desc = _("Minimum Tessellation level applied. The real tessellation level will depend on the size in pixels of the triangle and will be at least the value selected here.");
+static wxString Tessellation_early_culling_desc = _("Remove surfaces outside the viewport before Tessellation to increase performace. Can cause glitches if the camera is near a surface.");
+static wxString Tessellation_distance_desc = _("Decay of Tessellation level in the distance. High values reduce tesselation amounts depending on the distance to the camera.");
 static wxString Tessellation_max_desc = _("Maximum Tessellation level applied. The real tessellation level will depend on the size in pixels of the triangle and will be at most the value selected here.");
 static wxString Tessellation_round_desc = _("Select the intensity of the rounding filter. Phong Smoothing is used but can cause holes and cracks in geometry with divergent normals.");
 static wxString Tessellation_displacement_desc = _("Select the intensity of the displacement effect when using custom materials.");
@@ -493,12 +494,12 @@ VideoConfigDiag::VideoConfigDiag(wxWindow* parent, const std::string &title, con
 		wxFlexGridSizer* const szr_tessellation = new wxFlexGridSizer(2, 5, 5);
 
 		szr_tessellation->Add(CreateCheckBox(page_enh, _("Enable"), (Tessellation_desc), vconfig.bTessellation), 1, wxALIGN_CENTER_VERTICAL, 0);
-		szr_tessellation->AddSpacer(0);
-		wxSlider* const min_slider = new wxSlider(page_enh, wxID_ANY, vconfig.iTessellationMin, 1, 63, wxDefaultPosition, wxDefaultSize);
-		min_slider->Bind(wxEVT_SLIDER, &VideoConfigDiag::Event_TessellationMin, this);
-		RegisterControl(min_slider, (Tessellation_min_desc));
+		szr_tessellation->Add(CreateCheckBox(page_enh, _("Early Culling"), (Tessellation_early_culling_desc), vconfig.bTessellationEarlyCulling), 1, wxALIGN_CENTER_VERTICAL, 0);
+		wxSlider* const min_slider = new wxSlider(page_enh, wxID_ANY, vconfig.iTessellationDistance, 5, 1000, wxDefaultPosition, wxDefaultSize);
+		min_slider->Bind(wxEVT_SLIDER, &VideoConfigDiag::Event_TessellationDistance, this);
+		RegisterControl(min_slider, (Tessellation_distance_desc));
 
-		szr_tessellation->Add(new wxStaticText(page_enh, wxID_ANY, _("Minimun Detail:")), 1, wxALIGN_CENTER_VERTICAL, 0);
+		szr_tessellation->Add(new wxStaticText(page_enh, wxID_ANY, _("Distance Decay:")), 1, wxALIGN_CENTER_VERTICAL, 0);
 		szr_tessellation->Add(min_slider, 1, wxEXPAND | wxRIGHT);
 		
 		
@@ -958,9 +959,9 @@ void VideoConfigDiag::Event_StereoConvergence(wxCommandEvent &ev)
 	ev.Skip();
 }
 
-void VideoConfigDiag::Event_TessellationMin(wxCommandEvent &ev)
+void VideoConfigDiag::Event_TessellationDistance(wxCommandEvent &ev)
 {
-	vconfig.iTessellationMin = ev.GetInt();
+	vconfig.iTessellationDistance = ev.GetInt();
 
 	ev.Skip();
 }

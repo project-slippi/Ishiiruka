@@ -68,6 +68,7 @@ struct Tessellation_shader_uid_data
 #pragma pack()
 
 #define I_TESSPARAMS  "ctess"
+#define I_CULLPARAMS  "ccullp"
 
 #define TESSELLATIONSHADERGEN_BUFFERSIZE 32768
 typedef ShaderUid<Tessellation_shader_uid_data> TessellationShaderUid;

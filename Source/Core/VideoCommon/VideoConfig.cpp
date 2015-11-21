@@ -116,7 +116,8 @@ void VideoConfig::Load(const std::string& ini_file)
 	enhancements->Get("TextureScalingFactor", &iTexScalingFactor, 2);
 	enhancements->Get("UseDePosterize", &bTexDeposterize, false);
 	enhancements->Get("Tessellation", &bTessellation, 0);
-	enhancements->Get("TessellationMin", &iTessellationMin, 1);
+	enhancements->Get("TessellationEarlyCulling", &bTessellationEarlyCulling, 0);	
+	enhancements->Get("TessellationDistance", &iTessellationDistance, 0);
 	enhancements->Get("TessellationMax", &iTessellationMax, 6);
 	enhancements->Get("TessellationRoundingIntensity", &iTessellationRoundingIntensity, 0);
 	enhancements->Get("TessellationDisplacementIntensity", &iTessellationDisplacementIntensity, 0);
@@ -249,7 +250,8 @@ void VideoConfig::GameIniLoad()
 	CHECK_SETTING("Video_Enhancements", "TextureScalingFactor", iTexScalingFactor);
 	CHECK_SETTING("Video_Enhancements", "UseDePosterize", bTexDeposterize);
 	CHECK_SETTING("Video_Enhancements", "Tessellation", bTessellation);
-	CHECK_SETTING("Video_Enhancements", "TessellationMin", iTessellationMin);
+	CHECK_SETTING("Video_Enhancements", "TessellationEarlyCulling", bTessellationEarlyCulling);	
+	CHECK_SETTING("Video_Enhancements", "TessellationDistance", iTessellationDistance);
 	CHECK_SETTING("Video_Enhancements", "TessellationMax", iTessellationMax);
 	CHECK_SETTING("Video_Enhancements", "TessellationRoundingIntensity", iTessellationRoundingIntensity);
 	CHECK_SETTING("Video_Enhancements", "TessellationDisplacementIntensity", iTessellationDisplacementIntensity);
@@ -302,7 +304,6 @@ void VideoConfig::VerifyValidity()
 	if (!backend_info.bSupportsPixelLighting) bEnablePixelLighting = false;
 	bForcePhongShading = bForcePhongShading && bEnablePixelLighting;
 	iTessellationMax = iTessellationMax < 2 ? 2 : (iTessellationMax > 63 ? 63 : iTessellationMax);
-	iTessellationMin = iTessellationMin < 1 ? 1 : (iTessellationMin > iTessellationMax ? iTessellationMax : iTessellationMin);
 	iTessellationRoundingIntensity = iTessellationRoundingIntensity > 100 ? 100 : (iTessellationRoundingIntensity < 0 ? 0 : iTessellationRoundingIntensity);
 	iTessellationDisplacementIntensity = iTessellationDisplacementIntensity > 300 ? 300 : (iTessellationDisplacementIntensity < 0 ? 0 : iTessellationDisplacementIntensity);
 	if (iStereoMode > 0)
@@ -414,7 +415,8 @@ void VideoConfig::Save(const std::string& ini_file)
 	enhancements->Set("TextureScalingFactor", iTexScalingFactor);
 	enhancements->Set("UseDePosterize", bTexDeposterize);
 	enhancements->Set("Tessellation", bTessellation);
-	enhancements->Set("TessellationMin", iTessellationMin);
+	enhancements->Set("TessellationEarlyCulling", bTessellationEarlyCulling);
+	enhancements->Set("TessellationDistance", iTessellationDistance);
 	enhancements->Set("TessellationMax", iTessellationMax);
 	enhancements->Set("TessellationRoundingIntensity", iTessellationRoundingIntensity);
 	enhancements->Set("TessellationDisplacementIntensity", iTessellationDisplacementIntensity);

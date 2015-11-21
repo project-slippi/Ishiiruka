@@ -57,4 +57,5 @@ struct GeometryShaderConstants
 struct TessellationShaderConstants
 {
 	float4 tessparams;
+	int4 cullparams;
 };

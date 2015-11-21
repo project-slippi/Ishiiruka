@@ -39,7 +39,7 @@ void TessellationShaderManager::SetConstants()
 {
 	if (g_ActiveConfig.TessellationEnabled())
 	{
-		float tessmin = float(g_ActiveConfig.iTessellationMin);
+		float tessmin = 1.0f / ((500000 - float(g_ActiveConfig.iTessellationDistance) * 500.0f) + 0.01f);
 		float tessmax = float(g_ActiveConfig.iTessellationMax);
 		float rounding = float(g_ActiveConfig.iTessellationRoundingIntensity) * 0.01f;
 		float displacement = float(g_ActiveConfig.iTessellationDisplacementIntensity) * 0.01f;
@@ -52,6 +52,14 @@ void TessellationShaderManager::SetConstants()
 			constants.tessparams[1] = tessmax;
 			constants.tessparams[2] = rounding;
 			constants.tessparams[3] = displacement;
+			dirty = true;
+		}
+		int cull = bpmem.genMode.cullmode > 0 ? (bpmem.genMode.cullmode == 2 ? 1 : -1) : 0;
+		int earlycull = g_ActiveConfig.bTessellationEarlyCulling ? 1 : 0;
+		if (constants.cullparams[0] != cull || constants.cullparams[1] != earlycull)
+		{
+			constants.cullparams[0] = cull;
+			constants.cullparams[1] = earlycull;
 			dirty = true;
 		}
 	}

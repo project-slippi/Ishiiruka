@@ -78,7 +78,9 @@ float GetScreenSize(float3 Origin, float Diameter)
 
 float CalcTessFactor(float3 Origin, float Diameter)
 {
-    return round(max()hlsl" I_TESSPARAMS ".x, " I_TESSPARAMS R"hlsl(.y * GetScreenSize(Origin,Diameter)));
+	float distance = 1.0 - saturate(length(Origin) * )hlsl" I_TESSPARAMS R"hlsl(.x);
+	distance = distance * distance;
+	return round(max(1.0,)hlsl" I_TESSPARAMS R"hlsl(.y * GetScreenSize(Origin,Diameter) * distance));
 }
 ConstantOutput TConstFunc(InputPatch<VS_OUTPUT, 3> patch)
 {
@@ -419,6 +421,7 @@ static inline void GenerateTessellationShader(T& out, const XFMemory& xfr, const
 		out.Write("cbuffer GSBlock : register(b0) {\n");
 	out.Write(
 		"\tfloat4 " I_TESSPARAMS";\n"
+		"\tint4 " I_CULLPARAMS";\n"
 		"};\n");
 	
 	if (ApiType == API_OPENGL)
@@ -474,7 +477,7 @@ static inline void GenerateTessellationShader(T& out, const XFMemory& xfr, const
 			out.Write("float4 Normal[3]: TEXCOORD%d;\n", xfr.numTexGen.numTexGens * 3 + 1);
 		}
 		out.Write("};\n");
-		out.Write(s_hlsl_hull_header_str);
+		out.Write(s_hlsl_hull_header_str);		
 		if (xfr.numTexGen.numTexGens < 7)
 		{
 			out.Write("result.pos = float4(patch[id].clipPos.x,patch[id].clipPos.y,patch[id].Normal.w, 1.0);\n");
@@ -487,6 +490,23 @@ static inline void GenerateTessellationShader(T& out, const XFMemory& xfr, const
 			"result.colors_1 = patch[id].colors_1;\n"
 			"return result;\n}\n");
 		out.Write(s_hlsl_constant_header_str);
+		out.Write(
+		"if (" I_CULLPARAMS ".y != 0) {\n"
+		"float3 spos0 = patch[0].pos.xyz / patch[0].pos.w;\n"
+		"float3 spos1 = patch[1].pos.xyz / patch[1].pos.w;\n"
+		"float3 spos2 = patch[2].pos.xyz / patch[2].pos.w;\n"
+		"float3 posmax = max(max(spos0, spos1), spos2);\n"
+		"float3 posmin = min(min(spos0, spos1), spos2);\n"		
+		"if (\n"
+			"(posmin.x > 1.25 || posmax.x < -1.25 || posmin.y > 1.25 || posmax.y < -1.25 || posmin.z > 1.25 || posmax.z < -1.25)"
+			")\n"
+		"{\n"
+			"result.EFactor[0] = 0;\n"
+			"result.EFactor[1] = 0;\n"
+			"result.EFactor[2] = 0;\n"
+			"result.InsideFactor = 0;\n"
+			"return result; // culled, so no further processing\n"
+		"}\n}\n");
 		out.Write("float4 pos[3];\n");
 		out.Write("[unroll]\n"
 			"for(int i = 0; i < 3; i++)\n{\n");
@@ -525,7 +545,21 @@ static inline void GenerateTessellationShader(T& out, const XFMemory& xfr, const
 			out.Write("result.Normal[i] = patch[i].Normal;\n");
 		}
 		out.Write("}\n");
-
+		out.Write(
+			"if (" I_CULLPARAMS ".x != 0) {\n"
+			"float3 edge0 = pos[1].xyz - pos[0].xyz;\n"
+			"float3 edge2 = pos[2].xyz - pos[0].xyz;\n"
+			"float3 faceNormal = normalize(cross(edge2, edge0));\n"
+			"float3 view = normalize(-pos[0].xyz);\n"
+			"float visibility = dot(view, faceNormal);\n"
+			"bool notvisible = " I_CULLPARAMS ".x < 0 ? (visibility < -0.25) : (visibility > 0.25);\n"
+			"if (notvisible) {\n"
+			"result.EFactor[0] = 0;\n"
+			"result.EFactor[1] = 0;\n"
+			"result.EFactor[2] = 0;\n"
+			"result.InsideFactor = 0;\n"
+			"return result; // culled, so no further processing\n"
+			"}\n}\n");
 		out.Write(
 			"float l0 = distance(pos[1].xyz,pos[2].xyz);\n"
 			"float l1 = distance(pos[2].xyz,pos[0].xyz);\n"

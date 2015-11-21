@@ -89,7 +89,7 @@ protected:
 	void Event_PPShader(wxCommandEvent &ev);
 	void Event_ConfigurePPShader(wxCommandEvent &ev);
 	void Event_StereoDepth(wxCommandEvent &ev);
-	void Event_TessellationMin(wxCommandEvent &ev);
+	void Event_TessellationDistance(wxCommandEvent &ev);
 	void Event_TessellationMax(wxCommandEvent &ev);
 	void Event_TessellationRounding(wxCommandEvent &ev);
 	void Event_TessellationDisplacement(wxCommandEvent &ev);
