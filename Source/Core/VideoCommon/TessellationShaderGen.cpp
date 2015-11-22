@@ -656,7 +656,6 @@ static inline void GenerateTessellationShader(T& out, const XFMemory& xfr, const
 		// Transform world position to view-projection
 		out.Write("float4 pos = float4(position, 1.0);\n"
 			"result.pos = float4(dot(" I_PROJECTION "[0], pos), dot(" I_PROJECTION "[1], pos), dot(" I_PROJECTION "[2], pos), dot(" I_PROJECTION "[3], pos));\n"
-			"result.pos.z = -((" I_DEPTHPARAMS".x - 1.0) * result.pos.w + result.pos.z * " I_DEPTHPARAMS".y);\n"
 			"result.pos.xy = result.pos.xy + result.pos.w * " I_DEPTHPARAMS".zw;\n"
 			"result.colors_0 = BInterpolate(patch[0].colors_0, patch[1].colors_0, patch[2].colors_0, bCoords);\n"
 			"result.colors_1 = BInterpolate(patch[0].colors_1, patch[1].colors_1, patch[2].colors_1, bCoords);\n");
@@ -671,8 +670,11 @@ static inline void GenerateTessellationShader(T& out, const XFMemory& xfr, const
 		else
 		{
 			// Store clip position in the w component of first 4 texcoords
-			out.Write("result.tex0.w = position.x;\n"
-				"result.tex1.w = position.y;\n");
+			out.Write(
+				"result.tex0.w = position.x;\n"
+				"result.tex1.w = position.y;\n"
+				"result.tex2.w = result.pos.z;\n"
+				"result.tex3.w = result.pos.w;\n");
 			if (normalpresent)
 			{
 				out.Write("result.tex4.w = normal.x;\n"
@@ -685,6 +687,7 @@ static inline void GenerateTessellationShader(T& out, const XFMemory& xfr, const
 			else
 				out.Write("result.tex7.w = position.z;\n");
 		}
+		out.Write("result.pos.z = -((" I_DEPTHPARAMS".x - 1.0) * result.pos.w + result.pos.z * " I_DEPTHPARAMS".y);\n");
 		out.Write("return result;\n}");
 	}
 
