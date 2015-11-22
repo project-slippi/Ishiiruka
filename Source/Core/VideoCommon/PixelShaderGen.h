@@ -22,8 +22,6 @@
 #define I_ZSLOPE      "czslope"
 #define I_FLAGS       "cflags"
 #define I_EFBSCALE    "cefbscale"
-#define I_PLIGHTS     "cPLights"
-#define I_PMATERIALS  "cPmtrl"
 
 #define C_COLORMATRIX   0                   // 0
 #define C_COLORS        0                   // 0
@@ -40,10 +38,10 @@
 #define C_FLAGS         (C_ZSLOPE + 1)      //32
 #define C_EFBSCALE      (C_FLAGS + 1)       //33
 
-#define C_PLIGHTS       (C_EFBSCALE + 1)
-#define C_PMATERIALS    (C_PLIGHTS + 40)
-#define C_PENVCONST_END (C_PMATERIALS + 4)
-
+#define C_PMATERIALS    (C_EFBSCALE + 1)
+#define C_PLIGHTS       (C_PMATERIALS + 4)
+#define C_PENVCONST_END (C_PLIGHTS + 40)
+#define C_PCONST_END    (C_PMATERIALS)
 // Different ways to achieve rendering with destination alpha
 enum DSTALPHA_MODE
 {

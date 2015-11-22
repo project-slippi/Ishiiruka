@@ -157,7 +157,7 @@ private:
 template<class T, API_TYPE api_type>
 static inline void WriteRegister(T& object, const char *prefix, const u32 num)
 {
-	if (api_type == API_OPENGL)
+	if (api_type == API_OPENGL || api_type == API_D3D11)
 		return; // Nothing to do here
 
 	object.Write(" : register(%s%d)", prefix, num);
@@ -166,7 +166,7 @@ static inline void WriteRegister(T& object, const char *prefix, const u32 num)
 template<class T, API_TYPE api_type>
 static inline void WriteLocation(T& object)
 {
-	if (api_type == API_OPENGL)
+	if (api_type == API_OPENGL || api_type == API_D3D11)
 		return;
 
 	object.Write("uniform ");

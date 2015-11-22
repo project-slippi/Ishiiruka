@@ -365,7 +365,7 @@ void PixelShaderManager::SetConstants()
 		s_bFogRangeAdjustChanged = false;
 	}
 
-	if (g_ActiveConfig.PixelLightingEnabled(xfmem, g_nativeVertexFmt->m_components))
+	if ((g_ActiveConfig.backend_info.APIType & API_D3D9) != 0 && g_ActiveConfig.PixelLightingEnabled(xfmem, g_nativeVertexFmt->m_components))
 	{
 		if (nLightsChanged[0] >= 0)
 		{

@@ -11,6 +11,7 @@
 #endif
 #include "VideoCommon/BoundingBox.h"
 #include "VideoCommon/PixelShaderGen.h"
+#include "VideoCommon/VertexShaderGen.h"
 #include "VideoCommon/XFMemory.h"  // for texture projection mode
 #include "VideoCommon/VideoConfig.h"
 
@@ -483,6 +484,8 @@ inline void GeneratePixelShader(T& out, DSTALPHA_MODE dstAlphaMode, u32 componen
 
 		if (ApiType == API_OPENGL)
 			out.Write("layout(std140%s) uniform PSBlock {\n", g_ActiveConfig.backend_info.bSupportsBindingLayout ? ", binding = 1" : "");
+		else if (ApiType == API_D3D11)
+			out.Write("cbuffer PSBlock : register(b0) {\n");
 
 		DeclareUniform<T, ApiType>(out, C_COLORS, "wu4", I_COLORS "[4]");
 		DeclareUniform<T, ApiType>(out, C_KCOLORS, "wu4", I_KCOLORS "[4]");
@@ -497,16 +500,39 @@ inline void GeneratePixelShader(T& out, DSTALPHA_MODE dstAlphaMode, u32 componen
 		DeclareUniform<T, ApiType>(out, C_ZSLOPE, "float4", I_ZSLOPE);
 		DeclareUniform<T, ApiType>(out, C_FLAGS, "wu4", I_FLAGS);
 		DeclareUniform<T, ApiType>(out, C_EFBSCALE, "float4", I_EFBSCALE);
+		
+		if (ApiType == API_OPENGL || ApiType == API_D3D11)
+			out.Write("};\n");
 
 		if (enable_pl)
 		{
-			DeclareUniform<T, ApiType>(out, C_PLIGHTS, "float4", I_PLIGHTS "[40]");
-			DeclareUniform<T, ApiType>(out, C_PMATERIALS, "float4", I_PMATERIALS "[4]");
+			if (ApiType == API_OPENGL)
+				out.Write("layout(std140%s) uniform VSBlock {\n", g_ActiveConfig.backend_info.bSupportsBindingLayout ? ", binding = 2" : "");
+			else if (ApiType == API_D3D11)
+				out.Write("cbuffer VSBlock : register(b1) {\n");
+			
+			if (ApiType == API_OPENGL || ApiType == API_D3D11)
+			{
+				DeclareUniform<T, ApiType>(out, C_PROJECTION, "float4", I_PROJECTION"[4]");
+				DeclareUniform<T, ApiType>(out, C_DEPTHPARAMS, "float4", I_DEPTHPARAMS);
+			}
+			
+			DeclareUniform<T, ApiType>(out, C_PMATERIALS, "float4", I_MATERIALS "[4]");
+			DeclareUniform<T, ApiType>(out, C_PLIGHTS, "float4", I_LIGHTS "[40]");
+
+			if (ApiType == API_OPENGL || ApiType == API_D3D11)
+			{
+				DeclareUniform<T, ApiType>(out, C_TEXMATRICES, "float4", I_TEXMATRICES"[24]");
+				DeclareUniform<T, ApiType>(out, C_TRANSFORMMATRICES, "float4", I_TRANSFORMMATRICES"[64]");
+				DeclareUniform<T, ApiType>(out, C_NORMALMATRICES, "float4", I_NORMALMATRICES"[32]");
+				DeclareUniform<T, ApiType>(out, C_POSTTRANSFORMMATRICES, "float4", I_POSTTRANSFORMMATRICES"[64]");
+				DeclareUniform<T, ApiType>(out, C_PLOFFSETPARAMS, "float4", I_PLOFFSETPARAMS"[13]");
+				out.Write("};\n");
+			}	
 		}
 
 		if (ApiType == API_OPENGL)
 		{
-			out.Write("};\n");
 			if (uid_data.bounding_box)
 			{
 				out.Write(
@@ -883,7 +909,7 @@ inline void GeneratePixelShader(T& out, DSTALPHA_MODE dstAlphaMode, u32 componen
 		}
 		// Only col0 and col1 are needed so discard the remaining components
 		uid_data.components = (components >> 11) & 3;
-		GenerateLightingShader<T, Write_Code>(out, uid_data.lighting, components, I_PMATERIALS, I_PLIGHTS, "colors_", "col", xfr, Use_integer_math, forcePhong);
+		GenerateLightingShader<T, Write_Code>(out, uid_data.lighting, components, I_MATERIALS, I_LIGHTS, "colors_", "col", xfr, Use_integer_math, forcePhong);
 	}
 	else
 	{

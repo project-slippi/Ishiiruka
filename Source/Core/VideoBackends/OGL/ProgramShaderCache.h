@@ -114,7 +114,9 @@ private:
 	static UidChecker<VertexShaderUid, ShaderCode> vertex_uid_checker;
 	static UidChecker<GeometryShaderUid,ShaderCode> geometry_uid_checker;
 
-	static u32 s_ubo_buffer_size;
+	static u32 s_v_ubo_buffer_size;
+	static u32 s_p_ubo_buffer_size;
+	static u32 s_g_ubo_buffer_size;
 	static s32 s_ubo_align;
 };
 

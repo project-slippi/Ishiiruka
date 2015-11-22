@@ -64,6 +64,8 @@ inline void GenerateVertexShader(T& out, u32 components, const XFMemory &xfr, co
 		// uniforms
 		if (api_type == API_OPENGL)
 			out.Write("layout(std140%s) uniform VSBlock {\n", g_ActiveConfig.backend_info.bSupportsBindingLayout ? ", binding = 2" : "");
+		else if (api_type == API_D3D11)
+			out.Write("cbuffer VSBlock : register(b0) {\n");
 
 		DeclareUniform<T, api_type>(out, C_PROJECTION, "float4", I_PROJECTION"[4]");
 		DeclareUniform<T, api_type>(out, C_DEPTHPARAMS, "float4", I_DEPTHPARAMS);
@@ -75,7 +77,7 @@ inline void GenerateVertexShader(T& out, u32 components, const XFMemory &xfr, co
 		DeclareUniform<T, api_type>(out, C_POSTTRANSFORMMATRICES, "float4", I_POSTTRANSFORMMATRICES"[64]");		
 		DeclareUniform<T, api_type>(out, C_PLOFFSETPARAMS, "float4", I_PLOFFSETPARAMS"[13]");
 
-		if (api_type == API_OPENGL)
+		if (api_type == API_OPENGL || api_type == API_D3D11)
 			out.Write("};\n");
 
 		out.Write("struct VS_OUTPUT {\n");

@@ -23,12 +23,14 @@
 namespace OGL
 {
 
-static const u32 UBO_LENGTH = 32 * 1024 * 1024;
-
-u32 ProgramShaderCache::s_ubo_buffer_size;
+u32 ProgramShaderCache::s_v_ubo_buffer_size;
+u32 ProgramShaderCache::s_p_ubo_buffer_size;
+u32 ProgramShaderCache::s_g_ubo_buffer_size;
 s32 ProgramShaderCache::s_ubo_align;
 
-static StreamBuffer *s_buffer;
+static std::unique_ptr<StreamBuffer> s_v_buffer;
+static std::unique_ptr<StreamBuffer> s_p_buffer;
+static std::unique_ptr<StreamBuffer> s_g_buffer;
 static int num_failures = 0;
 
 static LinearDiskCache<SHADERUID, u8> g_program_disk_cache;
@@ -150,34 +152,47 @@ void SHADER::Bind()
 
 void ProgramShaderCache::UploadConstants()
 {
-	if (PixelShaderManager::IsDirty() || VertexShaderManager::IsDirty() || GeometryShaderManager::IsDirty())
+	if (VertexShaderManager::IsDirty())
 	{
-		auto buffer = s_buffer->Map(s_ubo_buffer_size, s_ubo_align);
+		auto buffer = s_v_buffer->Map(s_v_ubo_buffer_size, s_ubo_align);
 		u8* dst = buffer.first;
-		size_t pixel_buffer_size = PixelShaderManager::ConstantBufferSize * sizeof(float);
-		memcpy(buffer.first, PixelShaderManager::GetBuffer(), pixel_buffer_size);
-		dst += ROUND_UP(pixel_buffer_size, s_ubo_align);
 		size_t vertex_buffer_size = VertexShaderManager::ConstantBufferSize * sizeof(float);
-		memcpy(dst, VertexShaderManager::GetBuffer(), vertex_buffer_size);
-		dst += ROUND_UP(vertex_buffer_size, s_ubo_align);
-		memcpy(dst, &GeometryShaderManager::constants, sizeof(GeometryShaderConstants));
+		memcpy(dst, VertexShaderManager::GetBuffer(), vertex_buffer_size);	
 
-		s_buffer->Unmap(s_ubo_buffer_size);
-		glBindBufferRange(GL_UNIFORM_BUFFER, 1, s_buffer->m_buffer,
+		s_v_buffer->Unmap(s_v_ubo_buffer_size);
+		glBindBufferRange(GL_UNIFORM_BUFFER, 2, s_v_buffer->m_buffer,
+			buffer.second,
+			vertex_buffer_size);
+		VertexShaderManager::Clear();
+		ADDSTAT(stats.thisFrame.bytesUniformStreamed, s_v_ubo_buffer_size);
+	}
+	if (PixelShaderManager::IsDirty())
+	{
+		auto buffer = s_p_buffer->Map(s_p_ubo_buffer_size, s_ubo_align);
+		u8* dst = buffer.first;
+		size_t pixel_buffer_size = C_PCONST_END * 4 * sizeof(float);
+		memcpy(buffer.first, PixelShaderManager::GetBuffer(), pixel_buffer_size);
+
+		s_p_buffer->Unmap(s_p_ubo_buffer_size);
+		glBindBufferRange(GL_UNIFORM_BUFFER, 1, s_p_buffer->m_buffer,
 			buffer.second,
 			pixel_buffer_size);
-		glBindBufferRange(GL_UNIFORM_BUFFER, 2, s_buffer->m_buffer,
-			buffer.second + ROUND_UP(pixel_buffer_size, s_ubo_align),
-			vertex_buffer_size);
-		glBindBufferRange(GL_UNIFORM_BUFFER, 3, s_buffer->m_buffer,
-			buffer.second + ROUND_UP(pixel_buffer_size, s_ubo_align) + ROUND_UP(vertex_buffer_size, s_ubo_align),
-			sizeof(GeometryShaderConstants));
 
 		PixelShaderManager::Clear();
-		VertexShaderManager::Clear();
+		ADDSTAT(stats.thisFrame.bytesUniformStreamed, s_p_ubo_buffer_size);
+	}
+	if (GeometryShaderManager::IsDirty())
+	{
+		auto buffer = s_g_buffer->Map(s_g_ubo_buffer_size, s_ubo_align);
+		u8* dst = buffer.first;
+		memcpy(dst, &GeometryShaderManager::constants, sizeof(GeometryShaderConstants));
+
+		s_g_buffer->Unmap(s_g_ubo_buffer_size);
+		glBindBufferRange(GL_UNIFORM_BUFFER, 3, s_g_buffer->m_buffer, buffer.second, sizeof(GeometryShaderConstants));
+
 		GeometryShaderManager::Clear();
 
-		ADDSTAT(stats.thisFrame.bytesUniformStreamed, s_ubo_buffer_size);
+		ADDSTAT(stats.thisFrame.bytesUniformStreamed, s_g_ubo_buffer_size);
 	}
 }
 
@@ -443,14 +458,16 @@ void ProgramShaderCache::Init()
 	// then the UBO will fail.
 	glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &s_ubo_align);
 
-	s_ubo_buffer_size = ROUND_UP(PixelShaderManager::ConstantBufferSize * sizeof(float), s_ubo_align)
-		+ ROUND_UP(VertexShaderManager::ConstantBufferSize * sizeof(float), s_ubo_align)
-		+ ROUND_UP(sizeof(GeometryShaderConstants), s_ubo_align);
+	s_p_ubo_buffer_size = ROUND_UP(C_PCONST_END * 4 * sizeof(float), s_ubo_align);
+	s_v_ubo_buffer_size = ROUND_UP(VertexShaderManager::ConstantBufferSize * sizeof(float), s_ubo_align);
+	s_g_ubo_buffer_size = ROUND_UP(sizeof(GeometryShaderConstants), s_ubo_align);
 
 	// We multiply by *4*4 because we need to get down to basic machine units.
 	// So multiply by four to get how many floats we have from vec4s
 	// Then once more to get bytes
-	s_buffer = StreamBuffer::Create(GL_UNIFORM_BUFFER, UBO_LENGTH);
+	s_p_buffer.reset(StreamBuffer::Create(GL_UNIFORM_BUFFER, s_p_ubo_buffer_size * 1024));
+	s_v_buffer.reset(StreamBuffer::Create(GL_UNIFORM_BUFFER, s_v_ubo_buffer_size * 1024));
+	s_g_buffer.reset(StreamBuffer::Create(GL_UNIFORM_BUFFER, s_g_ubo_buffer_size * 1024));
 
 	// Read our shader cache, only if supported
 	if (g_ogl_config.bSupportsGLSLCache && !g_Config.bEnableShaderDebugging)
@@ -532,9 +549,9 @@ void ProgramShaderCache::Shutdown()
 
 	pixel_uid_checker.Invalidate();
 	vertex_uid_checker.Invalidate();
-
-	delete s_buffer;
-	s_buffer = nullptr;
+	s_v_buffer.reset();
+	s_g_buffer.reset();
+	s_p_buffer.reset();
 }
 
 void ProgramShaderCache::CreateHeader()

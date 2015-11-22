@@ -126,16 +126,18 @@ namespace D3D
 				{
 					if (m_pending.vertexConstantsSize == 0)
 					{
-						D3D::context1->VSSetConstantBuffers(0, 1, &m_pending.vertexConstants);
+						D3D::context->VSSetConstantBuffers(0, 1, &m_pending.vertexConstants);
+						D3D::context->PSSetConstantBuffers(1, 1, &m_pending.vertexConstants);
 						if (g_ActiveConfig.backend_info.bSupportsTessellation)
 						{
-							D3D::context1->HSSetConstantBuffers(1, 1, &m_pending.vertexConstants);
-							D3D::context1->DSSetConstantBuffers(1, 1, &m_pending.vertexConstants);
+							D3D::context->HSSetConstantBuffers(1, 1, &m_pending.vertexConstants);
+							D3D::context->DSSetConstantBuffers(1, 1, &m_pending.vertexConstants);
 						}
 					}
 					else
 					{
 						D3D::context1->VSSetConstantBuffers1(0, 1, &m_pending.vertexConstants, &m_pending.vertexConstantsOffset, &m_pending.vertexConstantsSize);
+						D3D::context1->PSSetConstantBuffers1(1, 1, &m_pending.vertexConstants, &m_pending.vertexConstantsOffset, &m_pending.vertexConstantsSize);
 						if (g_ActiveConfig.backend_info.bSupportsTessellation)
 						{
 							D3D::context1->HSSetConstantBuffers1(1, 1, &m_pending.vertexConstants, &m_pending.vertexConstantsOffset, &m_pending.vertexConstantsSize);

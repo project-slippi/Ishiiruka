@@ -150,7 +150,7 @@ void GeometryShaderCache::Init()
 	s_compiler = &HLSLAsyncCompiler::getInstance();
 	s_geometry_shaders_lock.unlock();
 	bool use_partial_buffer_update = D3D::SupportPartialContantBufferUpdate();
-	u32 gbsize = use_partial_buffer_update ? 4 * 1024 * 1024 : ROUND_UP(sizeof(GeometryShaderConstants), 16); // must be a multiple of 16
+	u32 gbsize = ROUND_UP(sizeof(GeometryShaderConstants), 16) * (use_partial_buffer_update ? 1024 : 1); // must be a multiple of 16
 	gscbuf = new D3D::ConstantStreamBuffer(gbsize);
 	ID3D11Buffer* buf = gscbuf->GetBuffer();
 	CHECK(buf != nullptr, "Create geometry shader constant buffer (size=%u)", gbsize);

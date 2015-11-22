@@ -121,7 +121,7 @@ void VertexShaderCache::Init()
 	};
 	
 	bool use_partial_buffer_update = D3D::SupportPartialContantBufferUpdate();
-	unsigned int cbsize = use_partial_buffer_update ? 4 * 1024 * 1024 : VertexShaderManager::ConstantBufferSize * sizeof(float); // is always multiple of 16
+	u32 cbsize = VertexShaderManager::ConstantBufferSize * sizeof(float) * (use_partial_buffer_update ? 1024 : 1); // is always multiple of 16
 	vscbuf = new D3D::ConstantStreamBuffer(cbsize);
 	ID3D11Buffer* buf = vscbuf->GetBuffer();
 	
