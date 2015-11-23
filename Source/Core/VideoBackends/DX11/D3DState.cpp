@@ -89,7 +89,7 @@ namespace D3D
 		if (!m_dirtyFlags)
 		{
 			return;
-		}		
+		}
 
 		if (m_dirtyFlags & DirtyFlag_Constants)
 		{
@@ -99,21 +99,11 @@ namespace D3D
 				{
 					if (m_pending.pixelConstantsSize[0] == 0 && m_pending.pixelConstantsSize[1] == 0)
 					{
-						D3D::context->PSSetConstantBuffers(0,  m_pending.pixelConstants[1] ? 2 : 1, m_pending.pixelConstants);
-						if (g_ActiveConfig.backend_info.bSupportsTessellation)
-						{
-							D3D::context->HSSetConstantBuffers(2, 1, m_pending.pixelConstants);
-							D3D::context->DSSetConstantBuffers(2, 1, m_pending.pixelConstants);
-						}
+						D3D::context->PSSetConstantBuffers(0, m_pending.pixelConstants[1] ? 2 : 1, m_pending.pixelConstants);
 					}
 					else
 					{
-						D3D::context1->PSSetConstantBuffers1(0, 1, m_pending.pixelConstants, m_pending.pixelConstantsOffset, m_pending.pixelConstantsSize);
-						if (g_ActiveConfig.backend_info.bSupportsTessellation)
-						{
-							D3D::context1->HSSetConstantBuffers1(2, 1, m_pending.pixelConstants, m_pending.pixelConstantsOffset, m_pending.pixelConstantsSize);
-							D3D::context1->DSSetConstantBuffers1(2, 1, m_pending.pixelConstants, m_pending.pixelConstantsOffset, m_pending.pixelConstantsSize);
-						}
+						D3D::context1->PSSetConstantBuffers1(0, m_pending.pixelConstants[1] ? 2 : 1, m_pending.pixelConstants, m_pending.pixelConstantsOffset, m_pending.pixelConstantsSize);
 					}
 					m_current.pixelConstants[0] = m_pending.pixelConstants[0];
 					m_current.pixelConstantsOffset[0] = m_pending.pixelConstantsOffset[0];
@@ -127,22 +117,10 @@ namespace D3D
 					if (m_pending.vertexConstantsSize == 0)
 					{
 						D3D::context->VSSetConstantBuffers(0, 1, &m_pending.vertexConstants);
-						D3D::context->PSSetConstantBuffers(1, 1, &m_pending.vertexConstants);
-						if (g_ActiveConfig.backend_info.bSupportsTessellation)
-						{
-							D3D::context->HSSetConstantBuffers(1, 1, &m_pending.vertexConstants);
-							D3D::context->DSSetConstantBuffers(1, 1, &m_pending.vertexConstants);
-						}
 					}
 					else
 					{
 						D3D::context1->VSSetConstantBuffers1(0, 1, &m_pending.vertexConstants, &m_pending.vertexConstantsOffset, &m_pending.vertexConstantsSize);
-						D3D::context1->PSSetConstantBuffers1(1, 1, &m_pending.vertexConstants, &m_pending.vertexConstantsOffset, &m_pending.vertexConstantsSize);
-						if (g_ActiveConfig.backend_info.bSupportsTessellation)
-						{
-							D3D::context1->HSSetConstantBuffers1(1, 1, &m_pending.vertexConstants, &m_pending.vertexConstantsOffset, &m_pending.vertexConstantsSize);
-							D3D::context1->DSSetConstantBuffers1(1, 1, &m_pending.vertexConstants, &m_pending.vertexConstantsOffset, &m_pending.vertexConstantsSize);
-						}
 					}
 					m_current.vertexConstants = m_pending.vertexConstants;
 					m_current.vertexConstantsOffset = m_pending.vertexConstantsOffset;
@@ -164,26 +142,35 @@ namespace D3D
 				}
 				if (m_dirtyFlags & DirtyFlag_HullDomainConstants)
 				{
-					if (m_pending.hulldomainConstantsSize == 0)
+					if (g_ActiveConfig.backend_info.bSupportsTessellation)
 					{
-						D3D::context->HSSetConstantBuffers(0, 1, &m_pending.hulldomainConstants);
-						D3D::context->DSSetConstantBuffers(0, 1, &m_pending.hulldomainConstants);
+						if (m_pending.hulldomainConstantsSize == 0)
+						{
+							D3D::context->HSSetConstantBuffers(0, 3, m_pending.hulldomainConstants);
+							D3D::context->DSSetConstantBuffers(0, 3, m_pending.hulldomainConstants);
+						}
+						else
+						{
+							D3D::context1->HSSetConstantBuffers1(0, 3, m_pending.hulldomainConstants, m_pending.hulldomainConstantsOffset, m_pending.hulldomainConstantsSize);
+							D3D::context1->DSSetConstantBuffers1(0, 3, m_pending.hulldomainConstants, m_pending.hulldomainConstantsOffset, m_pending.hulldomainConstantsSize);
+						}
 					}
-					else
-					{
-						D3D::context1->HSSetConstantBuffers1(0, 1, &m_pending.hulldomainConstants, &m_pending.hulldomainConstantsOffset, &m_pending.hulldomainConstantsSize);
-						D3D::context1->DSSetConstantBuffers1(0, 1, &m_pending.hulldomainConstants, &m_pending.hulldomainConstantsOffset, &m_pending.hulldomainConstantsSize);
-					}
-					m_current.hulldomainConstants = m_pending.hulldomainConstants;
-					m_current.hulldomainConstantsOffset = m_pending.hulldomainConstantsOffset;
-					m_current.hulldomainConstantsSize = m_pending.hulldomainConstantsSize;
+					m_current.hulldomainConstants[0] = m_pending.hulldomainConstants[0];
+					m_current.hulldomainConstantsOffset[0] = m_pending.hulldomainConstantsOffset[0];
+					m_current.hulldomainConstantsSize[0] = m_pending.hulldomainConstantsSize[0];
+					m_current.hulldomainConstants[1] = m_pending.hulldomainConstants[1];
+					m_current.hulldomainConstantsOffset[1] = m_pending.hulldomainConstantsOffset[1];
+					m_current.hulldomainConstantsSize[1] = m_pending.hulldomainConstantsSize[1];
+					m_current.hulldomainConstants[2] = m_pending.hulldomainConstants[2];
+					m_current.hulldomainConstantsOffset[2] = m_pending.hulldomainConstantsOffset[2];
+					m_current.hulldomainConstantsSize[2] = m_pending.hulldomainConstantsSize[2];
 				}
 			}
 			else
 			{
 				if (m_dirtyFlags & DirtyFlag_PixelConstants)
 				{
-					D3D::context->PSSetConstantBuffers(0,  m_pending.pixelConstants[1] ? 2 : 1, m_pending.pixelConstants);
+					D3D::context->PSSetConstantBuffers(0, m_pending.pixelConstants[1] ? 2 : 1, m_pending.pixelConstants);
 					m_current.pixelConstants[0] = m_pending.pixelConstants[0];
 					m_current.pixelConstants[1] = m_pending.pixelConstants[1];
 				}
@@ -201,10 +188,12 @@ namespace D3D
 				{
 					if (g_ActiveConfig.backend_info.bSupportsTessellation)
 					{
-						D3D::context->HSSetConstantBuffers(0, 1, &m_pending.hulldomainConstants);
-						D3D::context->DSSetConstantBuffers(0, 1, &m_pending.hulldomainConstants);
+						D3D::context->HSSetConstantBuffers(0, 3, m_pending.hulldomainConstants);
+						D3D::context->DSSetConstantBuffers(0, 3, m_pending.hulldomainConstants);
 					}
-					m_current.hulldomainConstants = m_pending.hulldomainConstants;
+					m_current.hulldomainConstants[0] = m_pending.hulldomainConstants[0];
+					m_current.hulldomainConstants[1] = m_pending.hulldomainConstants[1];
+					m_current.hulldomainConstants[2] = m_pending.hulldomainConstants[2];
 				}
 			}
 		}
@@ -421,7 +410,7 @@ ID3D11SamplerState* StateCache::Get(SamplerState state)
 		D3D::SetDebugObjectName((ID3D11DeviceChild*)res, "sampler state used to emulate the GX pipeline");
 	else
 		PanicAlert("Fail %s %d\n", __FILE__, __LINE__);
-	
+
 	m_sampler.emplace(state.packed, std::move(D3D::SamplerStatePtr(res)));
 
 	return res;
@@ -503,7 +492,7 @@ ID3D11BlendState* StateCache::Get(BlendState state)
 		D3D::SetDebugObjectName((ID3D11DeviceChild*)res, "blend state used to emulate the GX pipeline");
 	else
 		PanicAlert("Failed to create blend state at %s %d\n", __FILE__, __LINE__);
-	
+
 	m_blend.emplace(state.packed, std::move(D3D::BlendStatePtr(res)));
 
 	return res;
@@ -527,7 +516,7 @@ ID3D11RasterizerState* StateCache::Get(RasterizerState state)
 		D3D::SetDebugObjectName((ID3D11DeviceChild*)res, "rasterizer state used to emulate the GX pipeline");
 	else
 		PanicAlert("Failed to create rasterizer state at %s %d\n", __FILE__, __LINE__);
-	
+
 	m_raster.emplace(state.packed, std::move(D3D::RasterizerStatePtr(res)));
 
 	return res;
@@ -577,7 +566,7 @@ ID3D11DepthStencilState* StateCache::Get(ZMode state)
 	ID3D11DepthStencilState* res = nullptr;
 
 	HRESULT hr = D3D::device->CreateDepthStencilState(&depthdc, &res);
-	if (SUCCEEDED(hr)) 
+	if (SUCCEEDED(hr))
 		D3D::SetDebugObjectName((ID3D11DeviceChild*)res, "depth-stencil state used to emulate the GX pipeline");
 	else
 		PanicAlert("Failed to create depth state at %s %d\n", __FILE__, __LINE__);

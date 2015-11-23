@@ -29,7 +29,7 @@ namespace DX11
 			const TessellationShaderUid &uid,
 			const void* bytecode,
 			unsigned int bytecodelen, bool isdomain);
-		static std::tuple<ID3D11Buffer*, UINT, UINT> GetConstantBuffer();
+		static D3D::BufferDescriptor GetConstantBuffer();
 		static ID3D11HullShader* GetActiveHullShader() { return s_last_entry != nullptr && s_last_entry->dcompiled && s_last_entry->hcompiled ? s_last_entry->hullshader.get() : nullptr; }
 		static ID3D11DomainShader* GetActiveDomainShader() { return s_last_entry != nullptr && s_last_entry->dcompiled && s_last_entry->hcompiled ? s_last_entry->domainshader.get() : nullptr; }
 

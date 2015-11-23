@@ -113,7 +113,7 @@ namespace D3D
 		{
 			if (m_current.textures[index] != texture)
 				m_dirtyFlags |= DirtyFlag_Texture0 << index;
-			
+
 			m_pending.textures[index] = texture;
 		}
 
@@ -125,16 +125,16 @@ namespace D3D
 			m_pending.samplers[index] = sampler;
 		}
 
-		void SetPixelConstants(std::tuple<ID3D11Buffer*, UINT, UINT> &buffer0)
+		void SetPixelConstants(u32 idx, BufferDescriptor& buffer0)
 		{
-			if (m_current.pixelConstants[0] != std::get<0>(buffer0) 
-				|| m_current.pixelConstantsOffset[0] != std::get<1>(buffer0)
-				|| m_current.pixelConstantsSize[0] != std::get<2>(buffer0))
+			if (m_current.pixelConstants[idx] != std::get<0>(buffer0)
+				|| m_current.pixelConstantsOffset[idx] != std::get<1>(buffer0)
+				|| m_current.pixelConstantsSize[idx] != std::get<2>(buffer0))
 				m_dirtyFlags |= DirtyFlag_PixelConstants;
 
-			m_pending.pixelConstants[0] = std::get<0>(buffer0);
-			m_pending.pixelConstantsOffset[0] = std::get<1>(buffer0);
-			m_pending.pixelConstantsSize[0] = std::get<2>(buffer0);
+			m_pending.pixelConstants[idx] = std::get<0>(buffer0);
+			m_pending.pixelConstantsOffset[idx] = std::get<1>(buffer0);
+			m_pending.pixelConstantsSize[idx] = std::get<2>(buffer0);
 		}
 
 		void SetPixelConstants(ID3D11Buffer* buffer0, ID3D11Buffer* buffer1 = nullptr)
@@ -150,7 +150,7 @@ namespace D3D
 			m_pending.pixelConstantsSize[1] = 0;
 		}
 
-		void SetVertexConstants(std::tuple<ID3D11Buffer*, UINT, UINT> &buffer)
+		void SetVertexConstants(BufferDescriptor& buffer)
 		{
 			if (m_current.vertexConstants != std::get<0>(buffer)
 				|| m_current.vertexConstantsOffset != std::get<1>(buffer)
@@ -172,7 +172,7 @@ namespace D3D
 			m_pending.vertexConstantsSize = 0;
 		}
 
-		void SetGeometryConstants(std::tuple<ID3D11Buffer*, UINT, UINT> &buffer)
+		void SetGeometryConstants(BufferDescriptor& buffer)
 		{
 			if (m_current.geometryConstants != std::get<0>(buffer)
 				|| m_current.geometryConstantsOffset != std::get<1>(buffer)
@@ -195,16 +195,16 @@ namespace D3D
 		}
 
 
-		void SetHullDomainConstants(std::tuple<ID3D11Buffer*, UINT, UINT> &buffer)
+		void SetHullDomainConstants(u32 idx, BufferDescriptor& buffer)
 		{
-			if (m_current.hulldomainConstants != std::get<0>(buffer)
-				|| m_current.hulldomainConstantsOffset != std::get<1>(buffer)
-				|| m_current.hulldomainConstantsSize != std::get<2>(buffer))
+			if (m_current.hulldomainConstants[idx] != std::get<0>(buffer)
+				|| m_current.hulldomainConstantsOffset[idx] != std::get<1>(buffer)
+				|| m_current.hulldomainConstantsSize[idx] != std::get<2>(buffer))
 				m_dirtyFlags |= DirtyFlag_HullDomainConstants;
 
-			m_pending.hulldomainConstants = std::get<0>(buffer);
-			m_pending.hulldomainConstantsOffset = std::get<1>(buffer);
-			m_pending.hulldomainConstantsSize = std::get<2>(buffer);
+			m_pending.hulldomainConstants[idx] = std::get<0>(buffer);
+			m_pending.hulldomainConstantsOffset[idx] = std::get<1>(buffer);
+			m_pending.hulldomainConstantsSize[idx] = std::get<2>(buffer);
 		}
 
 		void SetVertexBuffer(ID3D11Buffer* buffer, u32 stride, u32 offset)
@@ -365,9 +365,9 @@ namespace D3D
 			UINT geometryConstantsOffset;
 			UINT geometryConstantsSize;
 
-			ID3D11Buffer* hulldomainConstants;
-			UINT hulldomainConstantsOffset;
-			UINT hulldomainConstantsSize;
+			ID3D11Buffer* hulldomainConstants[3];
+			UINT hulldomainConstantsOffset[3];
+			UINT hulldomainConstantsSize[3];
 
 			ID3D11Buffer* vertexBuffer;
 			ID3D11Buffer* indexBuffer;

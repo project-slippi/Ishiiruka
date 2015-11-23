@@ -30,7 +30,7 @@ namespace DX11
 		static ID3D11GeometryShader* GeometryShaderCache::GetCopyGeometryShader();
 
 		static ID3D11GeometryShader* GetActiveShader() { return s_last_entry->shader.get(); }
-		static std::tuple<ID3D11Buffer*, UINT, UINT> GetConstantBuffer();
+		static D3D::BufferDescriptor GetConstantBuffer();
 
 	private:
 		struct GSCacheEntry

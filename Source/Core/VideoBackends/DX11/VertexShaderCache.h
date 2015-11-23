@@ -24,7 +24,7 @@ public:
 	static bool TestShader();
 	static ID3D11VertexShader* GetActiveShader() { return s_last_entry->shader.get(); }
 	static D3DBlob const& GetActiveShaderBytecode() { return s_last_entry->bytecode; }
-	static std::tuple<ID3D11Buffer*, UINT, UINT> GetConstantBuffer();
+	static D3D::BufferDescriptor GetConstantBuffer();
 
 	static ID3D11VertexShader* GetSimpleVertexShader();
 	static ID3D11VertexShader* GetClearVertexShader();

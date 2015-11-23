@@ -45,7 +45,7 @@ D3D::ConstantStreamBuffer* vscbuf = nullptr;
 static UINT s_vscbuf_offset = 0;
 static UINT s_vscbuf_size = 0;
 
-std::tuple<ID3D11Buffer*, UINT, UINT> VertexShaderCache::GetConstantBuffer()
+D3D::BufferDescriptor VertexShaderCache::GetConstantBuffer()
 {
 	// TODO: divide the global variables of the generated shaders into about 5 constant buffers to speed this up
 	if (VertexShaderManager::IsDirty())
@@ -56,7 +56,7 @@ std::tuple<ID3D11Buffer*, UINT, UINT> VertexShaderCache::GetConstantBuffer()
 		ADDSTAT(stats.thisFrame.bytesUniformStreamed, size);
 		s_vscbuf_size = (UINT)(((size + 255) & (~255)) / 16);// transform to aligned buffer units
 	}
-	return std::tuple<ID3D11Buffer*, UINT, UINT>(vscbuf->GetBuffer(), s_vscbuf_offset, s_vscbuf_size);
+	return D3D::BufferDescriptor(vscbuf->GetBuffer(), s_vscbuf_offset, s_vscbuf_size);
 }
 
 // this class will load the precompiled shaders into our cache

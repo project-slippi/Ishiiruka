@@ -1048,11 +1048,15 @@ void Renderer::ApplyState(bool bUseDstAlpha)
 		SetBlendMode(false);
 		SetLogicOpMode();
 	}
-
-	D3D::stateman->SetVertexConstants(VertexShaderCache::GetConstantBuffer());
+	D3D::BufferDescriptor vbuffer = VertexShaderCache::GetConstantBuffer();
+	D3D::BufferDescriptor pbuffer = PixelShaderCache::GetConstantBuffer();
+	D3D::stateman->SetVertexConstants(vbuffer);
 	D3D::stateman->SetGeometryConstants(GeometryShaderCache::GetConstantBuffer());
-	D3D::stateman->SetHullDomainConstants(HullDomainShaderCache::GetConstantBuffer());
-	D3D::stateman->SetPixelConstants(PixelShaderCache::GetConstantBuffer());
+	D3D::stateman->SetHullDomainConstants(0, HullDomainShaderCache::GetConstantBuffer());
+	D3D::stateman->SetHullDomainConstants(1, vbuffer);
+	D3D::stateman->SetHullDomainConstants(2, pbuffer);
+	D3D::stateman->SetPixelConstants(0, pbuffer);
+	D3D::stateman->SetPixelConstants(1, vbuffer);
 
 	D3D::stateman->SetVertexShader(VertexShaderCache::GetActiveShader());
 	D3D::stateman->SetGeometryShader(GeometryShaderCache::GetActiveShader());

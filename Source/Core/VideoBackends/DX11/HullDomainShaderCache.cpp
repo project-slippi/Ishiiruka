@@ -43,7 +43,7 @@ namespace DX11
 	LinearDiskCache<TessellationShaderUid, u8> g_hs_disk_cache;
 	LinearDiskCache<TessellationShaderUid, u8> g_ds_disk_cache;
 
-	std::tuple<ID3D11Buffer*, UINT, UINT>  HullDomainShaderCache::GetConstantBuffer()
+	D3D::BufferDescriptor  HullDomainShaderCache::GetConstantBuffer()
 	{
 		if (TessellationShaderManager::IsDirty())
 		{
@@ -53,7 +53,7 @@ namespace DX11
 			ADDSTAT(stats.thisFrame.bytesUniformStreamed, s_hdscbuf_size);
 			s_hdscbuf_size = (UINT)(((s_hdscbuf_size + 255) & (~255)) / 16);
 		}
-		return std::tuple<ID3D11Buffer*, UINT, UINT>(hdscbuf->GetBuffer(), s_hdscbuf_offset, s_hdscbuf_size);
+		return D3D::BufferDescriptor(hdscbuf->GetBuffer(), s_hdscbuf_offset, s_hdscbuf_size);
 	}
 
 	// this class will load the precompiled shaders into our cache

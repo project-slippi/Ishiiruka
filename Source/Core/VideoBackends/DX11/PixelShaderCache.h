@@ -29,7 +29,7 @@ public:
 	static void InsertByteCode(const PixelShaderUid &uid, const void* bytecode, u32 bytecodelen);
 
 	static ID3D11PixelShader* GetActiveShader() { return s_last_entry->shader.get(); }
-	static std::tuple<ID3D11Buffer*, UINT, UINT> GetConstantBuffer();
+	static D3D::BufferDescriptor GetConstantBuffer();
 
 	static ID3D11PixelShader* GetColorMatrixProgram(bool multisampled);
 	static ID3D11PixelShader* GetColorCopyProgram(bool multisampled, bool ssaa = false);

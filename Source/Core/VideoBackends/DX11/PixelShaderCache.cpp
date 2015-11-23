@@ -416,7 +416,7 @@ ID3D11PixelShader* PixelShaderCache::GetClearProgram()
 	return s_ClearProgram.get();
 }
 
-std::tuple<ID3D11Buffer*, UINT, UINT> PixelShaderCache::GetConstantBuffer()
+D3D::BufferDescriptor PixelShaderCache::GetConstantBuffer()
 {
 	if (PixelShaderManager::IsDirty())
 	{
@@ -428,7 +428,7 @@ std::tuple<ID3D11Buffer*, UINT, UINT> PixelShaderCache::GetConstantBuffer()
 		ADDSTAT(stats.thisFrame.bytesUniformStreamed, sz);
 		s_pscbuf_size = (UINT)(((sz + 255) & (~255)) / 16);// transform to aligned buffer units
 	}
-	return std::tuple<ID3D11Buffer*, UINT, UINT>(pscbuf->GetBuffer(), s_pscbuf_offset, s_pscbuf_size);
+	return D3D::BufferDescriptor(pscbuf->GetBuffer(), s_pscbuf_offset, s_pscbuf_size);
 }
 
 // this class will load the precompiled shaders into our cache

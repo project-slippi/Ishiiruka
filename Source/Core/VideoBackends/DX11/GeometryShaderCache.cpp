@@ -52,7 +52,7 @@ D3D::ConstantStreamBuffer* gscbuf = nullptr;
 static UINT s_gscbuf_offset = 0;
 static UINT s_gscbuf_size = 0;
 
-std::tuple<ID3D11Buffer*, UINT, UINT>  GeometryShaderCache::GetConstantBuffer()
+D3D::BufferDescriptor  GeometryShaderCache::GetConstantBuffer()
 {
 	if (GeometryShaderManager::IsDirty())
 	{
@@ -62,7 +62,7 @@ std::tuple<ID3D11Buffer*, UINT, UINT>  GeometryShaderCache::GetConstantBuffer()
 		ADDSTAT(stats.thisFrame.bytesUniformStreamed, s_gscbuf_size);
 		s_gscbuf_size = (UINT)(((s_gscbuf_size + 255) & (~255)) / 16);
 	}
-	return std::tuple<ID3D11Buffer*, UINT, UINT>(gscbuf->GetBuffer(), s_gscbuf_offset, s_gscbuf_size);
+	return D3D::BufferDescriptor(gscbuf->GetBuffer(), s_gscbuf_offset, s_gscbuf_size);
 }
 
 // this class will load the precompiled shaders into our cache

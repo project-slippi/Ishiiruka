@@ -140,7 +140,7 @@ using BlendStatePtr = UniquePtr<ID3D11BlendState>;
 using RasterizerStatePtr = UniquePtr<ID3D11RasterizerState>;
 using DepthStencilStatePtr = UniquePtr<ID3D11DepthStencilState>;
 using SamplerStatePtr = UniquePtr<ID3D11SamplerState>;
-
+using BufferDescriptor = std::tuple<ID3D11Buffer*, UINT, UINT>;
 
 
 // helper class to use a UniquePtr in the various CreateSomething( (T**)/(void**) result )
