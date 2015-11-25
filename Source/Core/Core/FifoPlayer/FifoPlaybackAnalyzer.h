@@ -33,7 +33,7 @@ private:
 
 	void AddMemoryUpdate(MemoryUpdate memUpdate, AnalyzedFrameInfo& frameInfo);
 
-	u32 DecodeCommand(const u8 *data);
+	u32 DecodeCommand(u8* data);
 
 	void StoreEfbCopyRegion();
 	void StoreWrittenRegion(u32 address, u32 size);

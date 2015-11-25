@@ -250,9 +250,9 @@ void RegisterMMIO(MMIO::Mapping* mmio, u32 base)
 		mmio->Register(base | mapped_var.addr,
 			MMIO::DirectRead<u16>(mapped_var.ptr),
 			MMIO::ComplexWrite<u16>([mapped_var](u32, u16 val) {
-				*mapped_var.ptr = val;
-				UpdateParameters();
-			})
+			*mapped_var.ptr = val;
+			UpdateParameters();
+		})
 		);
 	}
 
@@ -260,49 +260,49 @@ void RegisterMMIO(MMIO::Mapping* mmio, u32 base)
 	mmio->Register(base | VI_FB_LEFT_TOP_HI,
 		MMIO::DirectRead<u16>(&m_XFBInfoTop.Hi),
 		MMIO::ComplexWrite<u16>([](u32, u16 val) {
-			m_XFBInfoTop.Hi = val;
-			if (m_XFBInfoTop.CLRPOFF) m_XFBInfoTop.POFF = 0;
-		})
+		m_XFBInfoTop.Hi = val;
+		if (m_XFBInfoTop.CLRPOFF) m_XFBInfoTop.POFF = 0;
+	})
 	);
 	mmio->Register(base | VI_FB_LEFT_BOTTOM_HI,
 		MMIO::DirectRead<u16>(&m_XFBInfoBottom.Hi),
 		MMIO::ComplexWrite<u16>([](u32, u16 val) {
-			m_XFBInfoBottom.Hi = val;
-			if (m_XFBInfoBottom.CLRPOFF) m_XFBInfoBottom.POFF = 0;
-		})
+		m_XFBInfoBottom.Hi = val;
+		if (m_XFBInfoBottom.CLRPOFF) m_XFBInfoBottom.POFF = 0;
+	})
 	);
 	mmio->Register(base | VI_FB_RIGHT_TOP_HI,
 		MMIO::DirectRead<u16>(&m_3DFBInfoTop.Hi),
 		MMIO::ComplexWrite<u16>([](u32, u16 val) {
-			m_3DFBInfoTop.Hi = val;
-			if (m_3DFBInfoTop.CLRPOFF) m_3DFBInfoTop.POFF = 0;
-		})
+		m_3DFBInfoTop.Hi = val;
+		if (m_3DFBInfoTop.CLRPOFF) m_3DFBInfoTop.POFF = 0;
+	})
 	);
 	mmio->Register(base | VI_FB_RIGHT_BOTTOM_HI,
 		MMIO::DirectRead<u16>(&m_3DFBInfoBottom.Hi),
 		MMIO::ComplexWrite<u16>([](u32, u16 val) {
-			m_3DFBInfoBottom.Hi = val;
-			if (m_3DFBInfoBottom.CLRPOFF) m_3DFBInfoBottom.POFF = 0;
-		})
+		m_3DFBInfoBottom.Hi = val;
+		if (m_3DFBInfoBottom.CLRPOFF) m_3DFBInfoBottom.POFF = 0;
+	})
 	);
 
 	// MMIOs with unimplemented writes that trigger warnings.
 	mmio->Register(base | VI_VERTICAL_BEAM_POSITION,
 		MMIO::ComplexRead<u16>([](u32) {
-			return 1 + (s_half_line_count-1) / 2;
-		}),
+		return 1 + (s_half_line_count - 1) / 2;
+	}),
 		MMIO::ComplexWrite<u16>([](u32, u16 val) {
-			WARN_LOG(VIDEOINTERFACE, "Changing vertical beam position to 0x%04x - not documented or implemented yet", val);
-		})
+		WARN_LOG(VIDEOINTERFACE, "Changing vertical beam position to 0x%04x - not documented or implemented yet", val);
+	})
 	);
 	mmio->Register(base | VI_HORIZONTAL_BEAM_POSITION,
 		MMIO::ComplexRead<u16>([](u32) {
-			u16 value = static_cast<u16>(1 +  m_HTiming0.HLW * (CoreTiming::GetTicks() - s_ticks_last_line_start) / (GetTicksPerHalfLine()));
-			return MathUtil::Clamp(value, static_cast<u16>(1), static_cast<u16>(m_HTiming0.HLW * 2));
-		}),
+		u16 value = static_cast<u16>(1 + m_HTiming0.HLW * (CoreTiming::GetTicks() - s_ticks_last_line_start) / (GetTicksPerHalfLine()));
+		return MathUtil::Clamp(value, static_cast<u16>(1), static_cast<u16>(m_HTiming0.HLW * 2));
+	}),
 		MMIO::ComplexWrite<u16>([](u32, u16 val) {
-			WARN_LOG(VIDEOINTERFACE, "Changing horizontal beam position to 0x%04x - not documented or implemented yet", val);
-		})
+		WARN_LOG(VIDEOINTERFACE, "Changing horizontal beam position to 0x%04x - not documented or implemented yet", val);
+	})
 	);
 
 	// The following MMIOs are interrupts related and update interrupt status
@@ -310,51 +310,51 @@ void RegisterMMIO(MMIO::Mapping* mmio, u32 base)
 	mmio->Register(base | VI_PRERETRACE_HI,
 		MMIO::DirectRead<u16>(&m_InterruptRegister[0].Hi),
 		MMIO::ComplexWrite<u16>([](u32, u16 val) {
-			m_InterruptRegister[0].Hi = val;
-			UpdateInterrupts();
-		})
-	);
+		m_InterruptRegister[0].Hi = val;
+		UpdateInterrupts();
+	})
+		);
 	mmio->Register(base | VI_POSTRETRACE_HI,
 		MMIO::DirectRead<u16>(&m_InterruptRegister[1].Hi),
 		MMIO::ComplexWrite<u16>([](u32, u16 val) {
-			m_InterruptRegister[1].Hi = val;
-			UpdateInterrupts();
-		})
+		m_InterruptRegister[1].Hi = val;
+		UpdateInterrupts();
+	})
 	);
 	mmio->Register(base | VI_DISPLAY_INTERRUPT_2_HI,
 		MMIO::DirectRead<u16>(&m_InterruptRegister[2].Hi),
 		MMIO::ComplexWrite<u16>([](u32, u16 val) {
-			m_InterruptRegister[2].Hi = val;
-			UpdateInterrupts();
-		})
+		m_InterruptRegister[2].Hi = val;
+		UpdateInterrupts();
+	})
 	);
 	mmio->Register(base | VI_DISPLAY_INTERRUPT_3_HI,
 		MMIO::DirectRead<u16>(&m_InterruptRegister[3].Hi),
 		MMIO::ComplexWrite<u16>([](u32, u16 val) {
-			m_InterruptRegister[3].Hi = val;
-			UpdateInterrupts();
-		})
+		m_InterruptRegister[3].Hi = val;
+		UpdateInterrupts();
+	})
 	);
 
 	// Unknown anti-aliasing related MMIO register: puts a warning on log and
 	// needs to shift/mask when reading/writing.
 	mmio->Register(base | VI_UNK_AA_REG_HI,
 		MMIO::ComplexRead<u16>([](u32) {
-			return m_UnkAARegister >> 16;
-		}),
+		return m_UnkAARegister >> 16;
+	}),
 		MMIO::ComplexWrite<u16>([](u32, u16 val) {
-			m_UnkAARegister = (m_UnkAARegister & 0x0000FFFF) | ((u32)val << 16);
-			WARN_LOG(VIDEOINTERFACE, "Writing to the unknown AA register (hi)");
-		})
+		m_UnkAARegister = (m_UnkAARegister & 0x0000FFFF) | ((u32)val << 16);
+		WARN_LOG(VIDEOINTERFACE, "Writing to the unknown AA register (hi)");
+	})
 	);
 	mmio->Register(base | VI_UNK_AA_REG_LO,
 		MMIO::ComplexRead<u16>([](u32) {
-			return m_UnkAARegister & 0xFFFF;
-		}),
+		return m_UnkAARegister & 0xFFFF;
+	}),
 		MMIO::ComplexWrite<u16>([](u32, u16 val) {
-			m_UnkAARegister = (m_UnkAARegister & 0xFFFF0000) | val;
-			WARN_LOG(VIDEOINTERFACE, "Writing to the unknown AA register (lo)");
-		})
+		m_UnkAARegister = (m_UnkAARegister & 0xFFFF0000) | val;
+		WARN_LOG(VIDEOINTERFACE, "Writing to the unknown AA register (lo)");
+	})
 	);
 
 	// Control register writes only updates some select bits, and additional
@@ -362,28 +362,28 @@ void RegisterMMIO(MMIO::Mapping* mmio, u32 base)
 	mmio->Register(base | VI_CONTROL_REGISTER,
 		MMIO::DirectRead<u16>(&m_DisplayControlRegister.Hex),
 		MMIO::ComplexWrite<u16>([](u32, u16 val) {
-			UVIDisplayControlRegister tmpConfig(val);
-			m_DisplayControlRegister.ENB = tmpConfig.ENB;
-			m_DisplayControlRegister.NIN = tmpConfig.NIN;
-			m_DisplayControlRegister.DLR = tmpConfig.DLR;
-			m_DisplayControlRegister.LE0 = tmpConfig.LE0;
-			m_DisplayControlRegister.LE1 = tmpConfig.LE1;
-			m_DisplayControlRegister.FMT = tmpConfig.FMT;
+		UVIDisplayControlRegister tmpConfig(val);
+		m_DisplayControlRegister.ENB = tmpConfig.ENB;
+		m_DisplayControlRegister.NIN = tmpConfig.NIN;
+		m_DisplayControlRegister.DLR = tmpConfig.DLR;
+		m_DisplayControlRegister.LE0 = tmpConfig.LE0;
+		m_DisplayControlRegister.LE1 = tmpConfig.LE1;
+		m_DisplayControlRegister.FMT = tmpConfig.FMT;
 
-			if (tmpConfig.RST)
+		if (tmpConfig.RST)
+		{
+			// shuffle2 clear all data, reset to default vals, and enter idle mode
+			m_DisplayControlRegister.RST = 0;
+			for (UVIInterruptRegister& reg : m_InterruptRegister)
 			{
-				// shuffle2 clear all data, reset to default vals, and enter idle mode
-				m_DisplayControlRegister.RST = 0;
-				for (UVIInterruptRegister& reg : m_InterruptRegister)
-				{
-					reg.Hex = 0;
-				}
-				UpdateInterrupts();
+				reg.Hex = 0;
 			}
+			UpdateInterrupts();
+		}
 
-			UpdateParameters();
-		})
-	);
+		UpdateParameters();
+	})
+		);
 
 	// Map 8 bit reads (not writes) to 16 bit reads.
 	for (int i = 0; i < 0x1000; i += 2)
@@ -520,10 +520,10 @@ float GetAspectRatio(bool wide)
 
 void UpdateParameters()
 {
-	s_even_field_first_hl = 1;
-	s_odd_field_first_hl = s_even_field_first_hl + GetHalfLinesPerEvenField();
-	s_even_field_last_hl = s_odd_field_first_hl - 1;
-	s_odd_field_last_hl = s_odd_field_first_hl + GetHalfLinesPerOddField() - 1;
+	s_even_field_first_hl = 3 * m_VerticalTimingRegister.EQU + m_VBlankTimingEven.PRB + 1;
+	s_odd_field_first_hl = GetHalfLinesPerEvenField() + 3 * m_VerticalTimingRegister.EQU + m_VBlankTimingOdd.PRB + 1;
+	s_even_field_last_hl = s_even_field_first_hl + m_VerticalTimingRegister.ACV * 2;
+	s_odd_field_last_hl = s_odd_field_first_hl + m_VerticalTimingRegister.ACV * 2;
 
 	TargetRefreshRate = lround(2.0 * SystemTimers::GetTicksPerSecond() / (GetTicksPerEvenField() + GetTicksPerOddField()));
 }
@@ -542,12 +542,21 @@ u32 GetTicksPerField()
 
 static void BeginField(FieldType field)
 {
-	bool interlaced_xfb = ((m_PictureConfiguration.STD / m_PictureConfiguration.WPL)==2);
+	bool interlaced_xfb = ((m_PictureConfiguration.STD / m_PictureConfiguration.WPL) == 2);
 	u32 fbStride = m_PictureConfiguration.STD * 16;
 	u32 fbWidth = m_PictureConfiguration.WPL * 16;
 	u32 fbHeight = m_VerticalTimingRegister.ACV;
 
 	u32 xfbAddr;
+
+	if (field == FieldType::FIELD_EVEN)
+	{
+		xfbAddr = GetXFBAddressBottom();
+	}
+	else
+	{
+		xfbAddr = GetXFBAddressTop();
+	}
 
 	if (interlaced_xfb && g_ActiveConfig.bForceProgressive) {
 		// Strictly speaking, in interlaced mode, we're only supposed to read
@@ -559,24 +568,11 @@ static void BeginField(FieldType field)
 		// videos in Metroid Prime don't render correctly using this hack.
 		fbStride /= 2;
 		fbHeight *= 2;
-		if (m_VBlankTimingOdd.PRB < m_VBlankTimingEven.PRB)
-		{
-			xfbAddr = GetXFBAddressTop();
+		if ((field == FieldType::FIELD_ODD) && (m_VBlankTimingOdd.PRB == m_VBlankTimingEven.PRB + 1)) {
+			xfbAddr -= (fbStride * 2);
 		}
-		else
-		{
-			xfbAddr = GetXFBAddressBottom();
-		}
-	}
-	else
-	{
-		if (field == FieldType::FIELD_EVEN)
-		{
-			xfbAddr = GetXFBAddressTop();
-		}
-		else
-		{
-			xfbAddr = GetXFBAddressBottom();
+		if ((field == FieldType::FIELD_EVEN) && (m_VBlankTimingOdd.PRB == m_VBlankTimingEven.PRB - 1)) {
+			xfbAddr -= (fbStride * 2);
 		}
 	}
 
@@ -588,13 +584,13 @@ static void BeginField(FieldType field)
 	};
 
 	DEBUG_LOG(VIDEOINTERFACE,
-				"(VI->BeginField): Address: %.08X | WPL %u | STD %u | EQ %u | PRB %u | ACV %u | PSB %u | Field %s",
-				xfbAddr, m_PictureConfiguration.WPL, m_PictureConfiguration.STD, m_VerticalTimingRegister.EQU,
-				vert_timing[field]->PRB, m_VerticalTimingRegister.ACV, vert_timing[field]->PSB, fieldTypeNames[field]);
+		"(VI->BeginField): Address: %.08X | WPL %u | STD %u | EQ %u | PRB %u | ACV %u | PSB %u | Field %s",
+		xfbAddr, m_PictureConfiguration.WPL, m_PictureConfiguration.STD, m_VerticalTimingRegister.EQU,
+		vert_timing[field]->PRB, m_VerticalTimingRegister.ACV, vert_timing[field]->PSB, fieldTypeNames[field]);
 
 	DEBUG_LOG(VIDEOINTERFACE,
-			"HorizScaling: %04x | fbwidth %d | %u | %u",
-			m_HorizontalScaling.Hex, m_FBWidth.Hex, GetTicksPerEvenField(), GetTicksPerOddField());
+		"HorizScaling: %04x | fbwidth %d | %u | %u",
+		m_HorizontalScaling.Hex, m_FBWidth.Hex, GetTicksPerEvenField(), GetTicksPerOddField());
 
 	if (xfbAddr)
 		g_video_backend->Video_BeginField(xfbAddr, fbWidth, fbStride, fbHeight);
@@ -637,7 +633,7 @@ void Update()
 
 	s_half_line_count++;
 
-	if (s_half_line_count > s_odd_field_last_hl) {
+	if (s_half_line_count > GetHalfLinesPerEvenField() + GetHalfLinesPerOddField()) {
 		s_half_line_count = 1;
 	}
 

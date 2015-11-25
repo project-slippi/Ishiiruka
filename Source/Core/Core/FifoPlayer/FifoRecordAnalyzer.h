@@ -20,15 +20,15 @@ public:
 
 	// Assumes data contains all information for the command
 	// Calls FifoRecorder::UseMemory
-	void AnalyzeGPCommand(const u8 *data);
+	void AnalyzeGPCommand(u8* data);
 
 private:
-	void DecodeOpcode(const u8 *data);
+	void DecodeOpcode(u8* data);
 
 	void ProcessLoadIndexedXf(u32 val, int array);
-	void ProcessVertexArrays(const u8 *data, u8 vtxAttrGroup);
+	void ProcessVertexArrays(u8* data, u8 vtxAttrGroup);
 
-	void WriteVertexArray(int arrayIndex, const u8* vertexData, int vertexSize, int numVertices);
+	void WriteVertexArray(int arrayIndex, u8* vertexData, int vertexSize, int numVertices);
 
 	bool m_DrawingObject;
 

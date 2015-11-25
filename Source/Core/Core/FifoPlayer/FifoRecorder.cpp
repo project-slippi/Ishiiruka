@@ -64,7 +64,7 @@ void FifoRecorder::StopRecording()
 	m_RequestedRecordingEnd = true;
 }
 
-void FifoRecorder::WriteGPCommand(const u8 *data, u32 size)
+void FifoRecorder::WriteGPCommand(u8* data, u32 size)
 {
 	if (!m_SkipNextData)
 	{

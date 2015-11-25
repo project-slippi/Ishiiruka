@@ -151,9 +151,9 @@ void FifoPlaybackAnalyzer::AddMemoryUpdate(MemoryUpdate memUpdate, AnalyzedFrame
 	frameInfo.memoryUpdates.push_back(memUpdate);
 }
 
-u32 FifoPlaybackAnalyzer::DecodeCommand(const u8 *data)
+u32 FifoPlaybackAnalyzer::DecodeCommand(u8* data)
 {
-	const u8 *dataStart = data;
+	u8* dataStart = data;
 
 	int cmd = ReadFifo8(data);
 
