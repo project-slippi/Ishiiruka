@@ -101,7 +101,7 @@ __forceinline void _Normal_Index_Offset3(TPipelineState &pipelinestate)
 template <int N>
 __forceinline void _Normal_Direct_UByte_SSSE3(TPipelineState &pipelinestate)
 {
-	const u8* src = pipelinestate.GetReadPosition();
+	u8* src = pipelinestate.GetReadPosition();
 	float* dst = reinterpret_cast<float*>(pipelinestate.GetWritePosition());
 	const float frac = (1.0f / float(1U << 7));
 	const __m128 scale = _mm_set_ps(frac, frac, frac, frac);
@@ -124,7 +124,7 @@ __forceinline void _Normal_Direct_UByte_SSSE3(TPipelineState &pipelinestate)
 template <int N>
 __forceinline void _Normal_Direct_SByte_SSSE3(TPipelineState &pipelinestate)
 {
-	const u8* src = pipelinestate.GetReadPosition();
+	u8* src = pipelinestate.GetReadPosition();
 	float* dst = reinterpret_cast<float*>(pipelinestate.GetWritePosition());
 	const float frac = (1.0f / float(1U << 6));
 	const __m128 scale = _mm_set_ps(frac, frac, frac, frac);
@@ -147,7 +147,7 @@ __forceinline void _Normal_Direct_SByte_SSSE3(TPipelineState &pipelinestate)
 template <int N>
 __forceinline void _Normal_Direct_UShort_SSSE3(TPipelineState &pipelinestate)
 {
-	const u8* src = pipelinestate.GetReadPosition();
+	u8* src = pipelinestate.GetReadPosition();
 	float* dst = reinterpret_cast<float*>(pipelinestate.GetWritePosition());
 	const float frac = (1.0f / float(1U << 15));
 	const __m128 scale = _mm_set_ps(frac, frac, frac, frac);
@@ -170,7 +170,7 @@ __forceinline void _Normal_Direct_UShort_SSSE3(TPipelineState &pipelinestate)
 template <int N>
 __forceinline void _Normal_Direct_Short_SSSE3(TPipelineState &pipelinestate)
 {
-	const u8* src = pipelinestate.GetReadPosition();
+	u8* src = pipelinestate.GetReadPosition();
 	float* dst = reinterpret_cast<float*>(pipelinestate.GetWritePosition());
 	const float frac = (1.0f / float(1U << 14));
 	const __m128 scale = _mm_set_ps(frac, frac, frac, frac);
@@ -193,7 +193,7 @@ __forceinline void _Normal_Direct_Short_SSSE3(TPipelineState &pipelinestate)
 template <int N>
 __forceinline void _Normal_Direct_FLOAT_SSSE3(TPipelineState &pipelinestate)
 {
-	const float* src = reinterpret_cast<const float*>(pipelinestate.GetReadPosition());
+	float* src = reinterpret_cast<float*>(pipelinestate.GetReadPosition());
 	float* dst = reinterpret_cast<float*>(pipelinestate.GetWritePosition());
 	Float3ToFloat3sse3((__m128i*)dst, (const __m128i*)src);
 	if (N > 1)
@@ -207,7 +207,7 @@ __forceinline void _Normal_Direct_FLOAT_SSSE3(TPipelineState &pipelinestate)
 	}
 	src += 3;
 	dst += 3;
-	pipelinestate.SetReadPosition(reinterpret_cast<const u8*>(src));
+	pipelinestate.SetReadPosition(reinterpret_cast<u8*>(src));
 	pipelinestate.SetWritePosition(reinterpret_cast<u8*>(dst));
 }
 
@@ -215,7 +215,7 @@ template <typename I, int N>
 __forceinline void _Normal_Index_UByte_SSSE3(TPipelineState &pipelinestate)
 {
 	static_assert(!std::numeric_limits<I>::is_signed, "Only unsigned I is sane!");
-	const u8* src = IndexedNormalPosition<I, u8, 0>(pipelinestate);
+	u8* src = IndexedNormalPosition<I, u8, 0>(pipelinestate);
 	float* dst = reinterpret_cast<float*>(pipelinestate.GetWritePosition());
 	const float frac = (1.0f / float(1U << 7));
 	const __m128 scale = _mm_set_ps(frac, frac, frac, frac);
@@ -237,7 +237,7 @@ template <typename I, int N>
 __forceinline void _Normal_Index_SByte_SSSE3(TPipelineState &pipelinestate)
 {
 	static_assert(!std::numeric_limits<I>::is_signed, "Only unsigned I is sane!");
-	const u8* src = IndexedNormalPosition<I, s8, 0>(pipelinestate);
+	u8* src = IndexedNormalPosition<I, s8, 0>(pipelinestate);
 	float* dst = reinterpret_cast<float*>(pipelinestate.GetWritePosition());
 	const float frac = (1.0f / float(1U << 6));
 	const __m128 scale = _mm_set_ps(frac, frac, frac, frac);
@@ -259,7 +259,7 @@ template <typename I, int N>
 __forceinline void _Normal_Index_UShort_SSSE3(TPipelineState &pipelinestate)
 {
 	static_assert(!std::numeric_limits<I>::is_signed, "Only unsigned I is sane!");
-	const u8* src = IndexedNormalPosition<I, u16, 0>(pipelinestate);
+	u8* src = IndexedNormalPosition<I, u16, 0>(pipelinestate);
 	float* dst = reinterpret_cast<float*>(pipelinestate.GetWritePosition());
 	const float frac = (1.0f / float(1U << 15));
 	const __m128 scale = _mm_set_ps(frac, frac, frac, frac);
@@ -281,7 +281,7 @@ template <typename I, int N>
 __forceinline void _Normal_Index_Short_SSSE3(TPipelineState &pipelinestate)
 {
 	static_assert(!std::numeric_limits<I>::is_signed, "Only unsigned I is sane!");
-	const u8* src = IndexedNormalPosition<I, s16, 0>(pipelinestate);
+	u8* src = IndexedNormalPosition<I, s16, 0>(pipelinestate);
 	float* dst = reinterpret_cast<float*>(pipelinestate.GetWritePosition());
 	const float frac = (1.0f / float(1U << 14));
 	const __m128 scale = _mm_set_ps(frac, frac, frac, frac);
@@ -304,7 +304,7 @@ __forceinline void _Normal_Index_FLOAT_SSSE3(TPipelineState &pipelinestate)
 {
 	static_assert(!std::numeric_limits<I>::is_signed, "Only unsigned I is sane!");
 
-	const float* src = reinterpret_cast<const float*>(IndexedNormalPosition<I, float, 0>(pipelinestate));
+	float* src = reinterpret_cast<float*>(IndexedNormalPosition<I, float, 0>(pipelinestate));
 	float* dst = reinterpret_cast<float*>(pipelinestate.GetWritePosition());
 	Float3ToFloat3sse3((__m128i*)dst, (const __m128i*)src);
 	if (N > 1)
@@ -324,16 +324,16 @@ template <typename I>
 __forceinline void _Normal_Index3_UByte_SSSE3(TPipelineState &pipelinestate)
 {
 	static_assert(!std::numeric_limits<I>::is_signed, "Only unsigned I is sane!");
-	const u32* src = reinterpret_cast<const u32*>(IndexedNormalPosition<I, u8, 0>(pipelinestate));
+	u32* src = reinterpret_cast<u32*>(IndexedNormalPosition<I, u8, 0>(pipelinestate));
 	float* dst = reinterpret_cast<float*>(pipelinestate.GetWritePosition());
 	const float frac = (1.0f / float(1U << 7));
 	const __m128 scale = _mm_set_ps(frac, frac, frac, frac);
 	UByte3ToFloat3_SSSE3(src, scale, dst);
 	dst += 3;
-	src = reinterpret_cast<const u32*>(IndexedNormalPosition<I, u8, 1>(pipelinestate));
+	src = reinterpret_cast<u32*>(IndexedNormalPosition<I, u8, 1>(pipelinestate));
 	UByte3ToFloat3_SSSE3(src, scale, dst);
 	dst += 3;
-	src = reinterpret_cast<const u32*>(IndexedNormalPosition<I, u8, 2>(pipelinestate));
+	src = reinterpret_cast<u32*>(IndexedNormalPosition<I, u8, 2>(pipelinestate));
 	UByte3ToFloat3_SSSE3(src, scale, dst);
 	dst += 3;
 	pipelinestate.SetWritePosition(reinterpret_cast<u8*>(dst));
@@ -343,16 +343,16 @@ template <typename I>
 __forceinline void _Normal_Index3_SByte_SSSE3(TPipelineState &pipelinestate)
 {
 	static_assert(!std::numeric_limits<I>::is_signed, "Only unsigned I is sane!");
-	const u32* src = reinterpret_cast<const u32*>(IndexedNormalPosition<I, s8, 0>(pipelinestate));
+	u32* src = reinterpret_cast<u32*>(IndexedNormalPosition<I, s8, 0>(pipelinestate));
 	float* dst = reinterpret_cast<float*>(pipelinestate.GetWritePosition());
 	const float frac = (1.0f / float(1U << 6));
 	const __m128 scale = _mm_set_ps(frac, frac, frac, frac);
 	SByte3ToFloat3_SSSE3(src, scale, dst);
 	dst += 3;
-	src = reinterpret_cast<const u32*>(IndexedNormalPosition<I, s8, 1>(pipelinestate));
+	src = reinterpret_cast<u32*>(IndexedNormalPosition<I, s8, 1>(pipelinestate));
 	SByte3ToFloat3_SSSE3(src, scale, dst);
 	dst += 3;
-	src = reinterpret_cast<const u32*>(IndexedNormalPosition<I, s8, 2>(pipelinestate));
+	src = reinterpret_cast<u32*>(IndexedNormalPosition<I, s8, 2>(pipelinestate));
 	SByte3ToFloat3_SSSE3(src, scale, dst);
 	dst += 3;
 	pipelinestate.SetWritePosition(reinterpret_cast<u8*>(dst));
@@ -362,16 +362,16 @@ template <typename I>
 __forceinline void _Normal_Index3_UShort_SSSE3(TPipelineState &pipelinestate)
 {
 	static_assert(!std::numeric_limits<I>::is_signed, "Only unsigned I is sane!");
-	const __m128i* src = reinterpret_cast<const __m128i*>(IndexedNormalPosition<I, u16, 0>(pipelinestate));
+	__m128i* src = reinterpret_cast<__m128i*>(IndexedNormalPosition<I, u16, 0>(pipelinestate));
 	float* dst = reinterpret_cast<float*>(pipelinestate.GetWritePosition());
 	const float frac = (1.0f / float(1U << 15));
 	const __m128 scale = _mm_set_ps(frac, frac, frac, frac);
 	UShort3ToFloat3_SSSE3(src, scale, dst);
 	dst += 3;
-	src = reinterpret_cast<const __m128i*>(IndexedNormalPosition<I, u16, 1>(pipelinestate));
+	src = reinterpret_cast<__m128i*>(IndexedNormalPosition<I, u16, 1>(pipelinestate));
 	UShort3ToFloat3_SSSE3(src, scale, dst);
 	dst += 3;
-	src = reinterpret_cast<const __m128i*>(IndexedNormalPosition<I, u16, 2>(pipelinestate));
+	src = reinterpret_cast<__m128i*>(IndexedNormalPosition<I, u16, 2>(pipelinestate));
 	UShort3ToFloat3_SSSE3(src, scale, dst);
 	dst += 3;
 	pipelinestate.SetWritePosition(reinterpret_cast<u8*>(dst));
@@ -381,16 +381,16 @@ template <typename I>
 __forceinline void _Normal_Index3_Short_SSSE3(TPipelineState &pipelinestate)
 {
 	static_assert(!std::numeric_limits<I>::is_signed, "Only unsigned I is sane!");
-	const __m128i* src = reinterpret_cast<const __m128i*>(IndexedNormalPosition<I, s16, 0>(pipelinestate));
+	__m128i* src = reinterpret_cast<__m128i*>(IndexedNormalPosition<I, s16, 0>(pipelinestate));
 	float* dst = reinterpret_cast<float*>(pipelinestate.GetWritePosition());
 	const float frac = (1.0f / float(1U << 14));
 	const __m128 scale = _mm_set_ps(frac, frac, frac, frac);
 	Short3ToFloat3_SSSE3(src, scale, dst);
 	dst += 3;
-	src = reinterpret_cast<const __m128i*>(IndexedNormalPosition<I, s16, 1>(pipelinestate));
+	src = reinterpret_cast<__m128i*>(IndexedNormalPosition<I, s16, 1>(pipelinestate));
 	Short3ToFloat3_SSSE3(src, scale, dst);
 	dst += 3;
-	src = reinterpret_cast<const __m128i*>(IndexedNormalPosition<I, s16, 2>(pipelinestate));
+	src = reinterpret_cast<__m128i*>(IndexedNormalPosition<I, s16, 2>(pipelinestate));
 	Short3ToFloat3_SSSE3(src, scale, dst);
 	dst += 3;
 	pipelinestate.SetWritePosition(reinterpret_cast<u8*>(dst));
@@ -401,13 +401,13 @@ __forceinline void _Normal_Index3_FLOAT_SSSE3(TPipelineState &pipelinestate)
 {
 	static_assert(!std::numeric_limits<I>::is_signed, "Only unsigned I is sane!");
 	float* dst = reinterpret_cast<float*>(pipelinestate.GetWritePosition());
-	const float* src = reinterpret_cast<const float*>(IndexedNormalPosition<I, float, 0>(pipelinestate));
+	float* src = reinterpret_cast<float*>(IndexedNormalPosition<I, float, 0>(pipelinestate));
 	Float3ToFloat3sse3((__m128i*)dst, (const __m128i*)src);
 	dst += 3;
-	src = reinterpret_cast<const float*>(IndexedNormalPosition<I, float, 1>(pipelinestate));
+	src = reinterpret_cast<float*>(IndexedNormalPosition<I, float, 1>(pipelinestate));
 	Float3ToFloat3sse3((__m128i*)dst, (const __m128i*)src);
 	dst += 3;
-	src = reinterpret_cast<const float*>(IndexedNormalPosition<I, float, 2>(pipelinestate));
+	src = reinterpret_cast<float*>(IndexedNormalPosition<I, float, 2>(pipelinestate));
 	Float3ToFloat3sse3((__m128i*)dst, (const __m128i*)src);
 	dst += 3;
 	pipelinestate.SetWritePosition(reinterpret_cast<u8*>(dst));

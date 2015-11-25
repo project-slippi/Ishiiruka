@@ -12,6 +12,8 @@ namespace VertexLoaderManager
 {
 	void Init();
 	void Shutdown();
+	
+	void MarkAllDirty();
 
 	int GetVertexSize(const VertexLoaderParameters &parameters);
 

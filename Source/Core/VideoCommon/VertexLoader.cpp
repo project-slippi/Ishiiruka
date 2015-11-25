@@ -289,7 +289,7 @@ s32 VertexLoader::RunVertices(const VertexLoaderParameters &parameters)
 	if (g_ActiveConfig.iBBoxMode == BBoxCPU)
 		BoundingBox::Prepare(vat, parameters.primitive, m_VtxDesc, m_native_vtx_decl);
 	g_PipelineState.count = parameters.count;
-	g_PipelineState.Initialize(parameters.source, parameters.destination);
+	g_PipelineState.Initialize(parameters.source, parameters.source + parameters.buf_size, parameters.destination);
 	s32 count = g_PipelineState.count;
 	while (count)
 	{

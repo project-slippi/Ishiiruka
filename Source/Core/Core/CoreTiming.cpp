@@ -226,8 +226,8 @@ void ScheduleEvent_Threadsafe(int cyclesIntoFuture, int event_type, u64 userdata
 	if (Core::g_want_determinism)
 	{
 		ERROR_LOG(POWERPC, "Someone scheduled an off-thread \"%s\" event while netplay or movie play/record "
-		                   "was active.  This is likely to cause a desync.",
-		                   event_types[event_type].name.c_str());
+			"was active.  This is likely to cause a desync.",
+			event_types[event_type].name.c_str());
 	}
 	std::lock_guard<std::mutex> lk(tsWriteLock);
 	Event ne;
@@ -292,7 +292,7 @@ static void AddEventToQueue(Event* ne)
 void ScheduleEvent(int cyclesIntoFuture, int event_type, u64 userdata)
 {
 	_assert_msg_(POWERPC, Core::IsCPUThread() || Core::GetState() == Core::CORE_PAUSE,
-				 "ScheduleEvent from wrong thread");
+		"ScheduleEvent from wrong thread");
 	Event *ne = GetNewEvent();
 	ne->userdata = userdata;
 	ne->type = event_type;
@@ -435,11 +435,8 @@ void Idle()
 		//When the FIFO is processing data we must not advance because in this way
 		//the VI will be desynchronized. So, We are waiting until the FIFO finish and
 		//while we process only the events required by the FIFO.
-		while (g_video_backend->Video_IsPossibleWaitingSetDrawDone())
-		{
-			ProcessFifoWaitEvents();
-			Common::YieldCPU();
-		}
+		ProcessFifoWaitEvents();
+		g_video_backend->Video_Sync(0);
 	}
 
 	idledCycles += DowncountToCycles(PowerPC::ppcState.downcount);

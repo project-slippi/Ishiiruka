@@ -8,7 +8,7 @@ extern const float fractionTable[32];
 
 struct VertexLoaderParameters
 {
-	const u8* source;
+	u8* source;
 	u8* destination;
 	const TVtxDesc *VtxDesc;
 	const VAT *VtxAttr;

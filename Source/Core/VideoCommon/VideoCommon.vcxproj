@@ -85,7 +85,6 @@
     <ClCompile Include="memcpy_amd.cpp" />
     <ClCompile Include="OnScreenDisplay.cpp" />
     <ClCompile Include="OpcodeDecoding.cpp" />
-    <ClCompile Include="OpcodeDecodingSC.cpp" />
     <ClCompile Include="OpenCL.cpp" />
     <ClCompile Include="OpenCL\OCLTextureDecoder.cpp" />
     <ClCompile Include="PerfQueryBase.cpp" />
@@ -170,7 +169,6 @@
     <ClInclude Include="NativeVertexFormat.h" />
     <ClInclude Include="OnScreenDisplay.h" />
     <ClInclude Include="OpcodeDecoding.h" />
-    <ClInclude Include="OpcodeDecodingSC.h" />
     <ClInclude Include="OpenCL.h" />
     <ClInclude Include="OpenCL\OCLTextureDecoder.h" />
     <ClInclude Include="PerfQueryBase.h" />

@@ -10,6 +10,7 @@
 u8 *cached_arraybases[16];
 
 CPState g_main_cp_state;
+CPState g_preprocess_cp_state;
 
 void DoCPState(PointerWrap& p)
 {
@@ -22,68 +23,72 @@ void DoCPState(PointerWrap& p)
 	p.DoMarker("CP Memory");
 	if (p.mode == PointerWrap::MODE_READ)
 	{
+		CopyPreprocessCPStateFromMain();
 		g_main_cp_state.bases_dirty = true;
 	}
 }
 
-void MarkAllAttrDirty()
+void CopyPreprocessCPStateFromMain()
 {
-	g_main_cp_state.attr_dirty = 0xff;
-	g_main_cp_state.bases_dirty = true;
+	memcpy(&g_preprocess_cp_state, &g_main_cp_state, sizeof(CPState));
 }
 
-void LoadCPReg(u32 sub_cmd, u32 value)
+void LoadCPReg(u32 sub_cmd, u32 value, bool is_preprocess)
 {
+	bool update_global_state = !is_preprocess;
+	CPState* state = is_preprocess ? &g_preprocess_cp_state : &g_main_cp_state;
 	switch (sub_cmd & 0xF0)
 	{
 	case 0x30:
-		VertexShaderManager::SetTexMatrixChangedA(value);
+		if (update_global_state)
+			VertexShaderManager::SetTexMatrixChangedA(value);
 		break;
 
 	case 0x40:
-		VertexShaderManager::SetTexMatrixChangedB(value);
+		if (update_global_state)
+			VertexShaderManager::SetTexMatrixChangedB(value);
 		break;
 
 	case 0x50:
-		g_main_cp_state.vtx_desc.Hex &= ~0x1FFFF;  // keep the Upper bits
-		g_main_cp_state.vtx_desc.Hex |= value;
-		g_main_cp_state.attr_dirty = 0xFF;
-		g_main_cp_state.bases_dirty = true;
+		state->vtx_desc.Hex &= ~0x1FFFF;  // keep the Upper bits
+		state->vtx_desc.Hex |= value;
+		state->attr_dirty = 0xFF;
+		state->bases_dirty = true;
 		break;
 
 	case 0x60:
-		g_main_cp_state.vtx_desc.Hex &= 0x1FFFF;  // keep the lower 17Bits
-		g_main_cp_state.vtx_desc.Hex |= (u64)value << 17;
-		g_main_cp_state.attr_dirty = 0xFF;
-		g_main_cp_state.bases_dirty = true;
+		state->vtx_desc.Hex &= 0x1FFFF;  // keep the lower 17Bits
+		state->vtx_desc.Hex |= (u64)value << 17;
+		state->attr_dirty = 0xFF;
+		state->bases_dirty = true;
 		break;
 
 	case 0x70:
 		_assert_((sub_cmd & 0x0F) < 8);
-		g_main_cp_state.vtx_attr[sub_cmd & 7].g0.Hex = value;
-		g_main_cp_state.attr_dirty |= 1 << (sub_cmd & 7);
+		state->vtx_attr[sub_cmd & 7].g0.Hex = value;
+		state->attr_dirty |= 1 << (sub_cmd & 7);
 		break;
 
 	case 0x80:
 		_assert_((sub_cmd & 0x0F) < 8);
-		g_main_cp_state.vtx_attr[sub_cmd & 7].g1.Hex = value;
-		g_main_cp_state.attr_dirty |= 1 << (sub_cmd & 7);
+		state->vtx_attr[sub_cmd & 7].g1.Hex = value;
+		state->attr_dirty |= 1 << (sub_cmd & 7);
 		break;
 
 	case 0x90:
 		_assert_((sub_cmd & 0x0F) < 8);
-		g_main_cp_state.vtx_attr[sub_cmd & 7].g2.Hex = value;
-		g_main_cp_state.attr_dirty |= 1 << (sub_cmd & 7);
+		state->vtx_attr[sub_cmd & 7].g2.Hex = value;
+		state->attr_dirty |= 1 << (sub_cmd & 7);
 		break;
 
 		// Pointers to vertex arrays in GC RAM
 	case 0xA0:
-		g_main_cp_state.array_bases[sub_cmd & 0xF] = value;
-		g_main_cp_state.bases_dirty = true;
+		state->array_bases[sub_cmd & 0xF] = value;
+		state->bases_dirty = true;
 		break;
 
 	case 0xB0:
-		g_main_cp_state.array_strides[sub_cmd & 0xF] = value & 0xFF;
+		state->array_strides[sub_cmd & 0xF] = value & 0xFF;
 		break;
 	}
 }

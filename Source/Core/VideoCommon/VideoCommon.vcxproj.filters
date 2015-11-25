@@ -154,9 +154,6 @@
     <ClCompile Include="HLSLCompiler.cpp">
       <Filter>Shader Managers</Filter>
     </ClCompile>
-    <ClCompile Include="OpcodeDecodingSC.cpp">
-      <Filter>Decoding</Filter>
-    </ClCompile>
     <ClCompile Include="G_GM8E01_pvt.cpp">
       <Filter>Vertex Loading\Compiled Loaders</Filter>
     </ClCompile>
@@ -408,9 +405,6 @@
     </ClInclude>
     <ClInclude Include="HLSLCompiler.h">
       <Filter>Shader Managers</Filter>
-    </ClInclude>
-    <ClInclude Include="OpcodeDecodingSC.h">
-      <Filter>Decoding</Filter>
     </ClInclude>
     <ClInclude Include="G_GM8E01_pvt.h">
       <Filter>Vertex Loading\Compiled Loaders</Filter>

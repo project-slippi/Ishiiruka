@@ -25,21 +25,21 @@ frame.
 
 
 IPC_HLE_PERIOD: For the Wiimote this is the call schedule:
-	IPC_HLE_UpdateCallback() // In this file
+IPC_HLE_UpdateCallback() // In this file
 
-		// This function seems to call all devices' Update() function four times per frame
-		WII_IPC_HLE_Interface::Update()
+// This function seems to call all devices' Update() function four times per frame
+WII_IPC_HLE_Interface::Update()
 
-			// If the AclFrameQue is empty this will call Wiimote_Update() and make it send
-			the current input status to the game. I'm not sure if this occurs approximately
-			once every frame or if the frequency is not exactly tied to rendered frames
-			CWII_IPC_HLE_Device_usb_oh1_57e_305::Update()
-			PluginWiimote::Wiimote_Update()
+// If the AclFrameQue is empty this will call Wiimote_Update() and make it send
+the current input status to the game. I'm not sure if this occurs approximately
+once every frame or if the frequency is not exactly tied to rendered frames
+CWII_IPC_HLE_Device_usb_oh1_57e_305::Update()
+PluginWiimote::Wiimote_Update()
 
-			// This is also a device updated by WII_IPC_HLE_Interface::Update() but it doesn't
-			seem to ultimately call PluginWiimote::Wiimote_Update(). However it can be called
-			by the /dev/usb/oh1 device if the AclFrameQue is empty.
-			CWII_IPC_HLE_WiiMote::Update()
+// This is also a device updated by WII_IPC_HLE_Interface::Update() but it doesn't
+seem to ultimately call PluginWiimote::Wiimote_Update(). However it can be called
+by the /dev/usb/oh1 device if the AclFrameQue is empty.
+CWII_IPC_HLE_WiiMote::Update()
 */
 
 #include "Common/Atomic.h"
@@ -61,7 +61,6 @@ IPC_HLE_PERIOD: For the Wiimote this is the call schedule:
 #include "Core/IPC_HLE/WII_IPC_HLE.h"
 #include "Core/PowerPC/PowerPC.h"
 
-#include "VideoCommon/CommandProcessor.h"
 #include "VideoCommon/Fifo.h"
 #include "VideoCommon/VideoBackendBase.h"
 
@@ -89,8 +88,6 @@ static int s_audio_dma_period;
 // This is completely arbitrary. If we find that we need lower latency,
 // we can just increase this number.
 static int s_ipc_hle_period;
-// Regulates the speed of the Command Processor
-static int s_cp_period;
 
 
 
@@ -138,8 +135,12 @@ static void SICallback(u64 userdata, int cyclesLate)
 
 static void CPCallback(u64 userdata, int cyclesLate)
 {
-	CommandProcessor::Update();
-	CoreTiming::ScheduleEvent(s_cp_period - cyclesLate, et_CP);
+	u64 now = CoreTiming::GetTicks();
+	int next = g_video_backend->Video_Sync((int)(now - s_last_sync_gpu_tick));
+	s_last_sync_gpu_tick = now;
+
+	if (next > 0)
+		CoreTiming::ScheduleEvent(next, et_CP);
 }
 
 static void DecrementerCallback(u64 userdata, int cyclesLate)
@@ -188,14 +189,14 @@ static void PatchEngineCallback(u64 userdata, int cyclesLate)
 static void ThrottleCallback(u64 last_time, int cyclesLate)
 {
 	// Allow the GPU thread to sleep. Setting this flag here limits the wakeups to 1 kHz.
-	//GpuMaySleep();
+	GpuMaySleep();
 
 	u32 time = Common::Timer::GetTimeMs();
 
 	int diff = (u32)last_time - time;
 	const SConfig& config = SConfig::GetInstance();
 	bool frame_limiter = config.m_Framelimit && !Core::GetIsFramelimiterTempDisabled();
-	u32 next_event = GetTicksPerSecond()/1000;
+	u32 next_event = GetTicksPerSecond() / 1000;
 	if (SConfig::GetInstance().m_Framelimit > 1)
 	{
 		next_event = next_event * (SConfig::GetInstance().m_Framelimit - 1) * 5 / VideoInterface::TargetRefreshRate;
@@ -237,9 +238,6 @@ void Init()
 	// System internal sample rate is fixed at 32KHz * 4 (16bit Stereo) / 32 bytes DMA
 	s_audio_dma_period = s_cpu_core_clock / (AudioInterface::GetAIDSampleRate() * 4 / 32);
 
-	// Emulated gekko <-> flipper bus speed ratio (CPU clock / flipper clock)
-	s_cp_period = GetTicksPerSecond() / 10000;
-
 	Common::Timer::IncreaseResolution();
 	// store and convert localtime at boot to timebase ticks
 	CoreTiming::SetFakeTBStartValue((u64)(s_cpu_core_clock / TIMER_RATIO) * (u64)CEXIIPL::GetGCTime());
@@ -265,7 +263,8 @@ void Init()
 	CoreTiming::ScheduleEvent(s_audio_dma_period, et_AudioDMA);
 	CoreTiming::ScheduleEvent(0, et_Throttle, Common::Timer::GetTimeMs());
 	if (SConfig::GetInstance().bCPUThread && SConfig::GetInstance().bSyncGPU)
-		CoreTiming::ScheduleEvent(s_cp_period, et_CP);
+		CoreTiming::ScheduleEvent(0, et_CP);
+	s_last_sync_gpu_tick = CoreTiming::GetTicks();
 
 	CoreTiming::ScheduleEvent(VideoInterface::GetTicksPerField(), et_PatchEngine);
 

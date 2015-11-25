@@ -75,9 +75,12 @@ void VideoBackendHardware::Video_EndField()
 {
 	if (s_BackendInitialized && g_ActiveConfig.bUseXFB && g_renderer)
 	{
+		SyncGPU(SYNC_GPU_SWAP);
+
 		AsyncRequests::Event e;
 		e.time = 0;
 		e.type = AsyncRequests::Event::SWAP_EVENT;
+
 		e.swap_event.xfbAddr = s_beginFieldArgs.xfbAddr;
 		e.swap_event.fbWidth = s_beginFieldArgs.fbWidth;
 		e.swap_event.fbStride = s_beginFieldArgs.fbStride;
@@ -186,17 +189,34 @@ u32 VideoBackendHardware::Video_GetQueryResult(PerfQueryType type)
 	{
 		return 0;
 	}
+
+	SyncGPU(SYNC_GPU_PERFQUERY);
+
 	AsyncRequests::Event e;
 	e.time = 0;
 	e.type = AsyncRequests::Event::PERF_QUERY;
+
 	if (!g_perf_query->IsFlushed())
 		AsyncRequests::GetInstance()->PushEvent(e, true);
+
 	return g_perf_query->GetQueryResult(type);
 }
 u16 VideoBackendHardware::Video_GetBoundingBox(int index)
 {
 	if (!g_ActiveConfig.backend_info.bSupportsBBox || g_ActiveConfig.iBBoxMode != BBoxGPU)
 		return BoundingBox::coords[index];
+
+	if (!g_ActiveConfig.iBBoxMode == BBoxNone)
+	{
+		static bool warn_once = true;
+		if (warn_once)
+			ERROR_LOG(VIDEO, "BBox shall be used but it is disabled. Please use a gameini to enable it for this game.");
+		warn_once = false;
+		return 0;
+	}
+	
+	SyncGPU(SYNC_GPU_BBOX);
+
 	AsyncRequests::Event e;
 	u16 result;
 	e.time = 0;
@@ -242,7 +262,7 @@ void VideoBackendHardware::DoState(PointerWrap& p)
 		m_invalid = true;
 		// Clear all caches that touch RAM
 		// (? these don't appear to touch any emulation state that gets saved. moved to on load only.)
-		MarkAllAttrDirty();
+		VertexLoaderManager::MarkAllDirty();
 	}
 }
 
@@ -273,9 +293,9 @@ void VideoBackendHardware::Video_GatherPipeBursted()
 	CommandProcessor::GatherPipeBursted();
 }
 
-bool VideoBackendHardware::Video_IsPossibleWaitingSetDrawDone()
+int VideoBackendHardware::Video_Sync(int ticks)
 {
-	return CommandProcessor::isPossibleWaitingSetDrawDone;
+	return Fifo_Update(ticks);
 }
 
 void VideoBackendHardware::RegisterCPMMIO(MMIO::Mapping* mmio, u32 base)
@@ -285,6 +305,5 @@ void VideoBackendHardware::RegisterCPMMIO(MMIO::Mapping* mmio, u32 base)
 
 void VideoBackendHardware::UpdateWantDeterminism(bool want)
 {
-	//TODO: Implement
-	//Fifo_UpdateWantDeterminism(want);
+	Fifo_UpdateWantDeterminism(want);
 }

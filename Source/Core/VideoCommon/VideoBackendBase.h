@@ -109,7 +109,7 @@ public:
 
 	virtual void Video_GatherPipeBursted() = 0;
 
-	virtual bool Video_IsPossibleWaitingSetDrawDone() = 0;
+	virtual int Video_Sync(int ticks) = 0;
 
 	// Registers MMIO handlers for the CommandProcessor registers.
 	virtual void RegisterCPMMIO(MMIO::Mapping* mmio, u32 base) = 0;
@@ -158,7 +158,7 @@ class VideoBackendHardware : public VideoBackend
 
 	void Video_GatherPipeBursted() override;
 
-	bool Video_IsPossibleWaitingSetDrawDone() override;
+	int Video_Sync(int ticks) override;
 
 	// Registers MMIO handlers for the CommandProcessor registers.
 	void RegisterCPMMIO(MMIO::Mapping* mmio, u32 base) override;

@@ -3,14 +3,34 @@
 // Refer to the license.txt file included.
 // Modified For Ishiiruka By Tino
 #pragma once
-#include "Common/Common.h"
+#include <cstring>
 #include "Common/CommonFuncs.h"
+#include "Common/CommonTypes.h"
 
 class DataReader
 {
 public:
-	inline DataReader(const u8 *source) : Rbuffer(source) {}
-	inline DataReader() : Rbuffer(nullptr) {}
+	__forceinline DataReader()
+		: Rbuffer(nullptr), end(nullptr) {}
+
+	__forceinline DataReader(u8* src, u8* _end)
+		: Rbuffer(src), end(_end) {}
+
+	__forceinline const u8* GetPointer()
+	{
+		return Rbuffer;
+	}
+
+	__forceinline u8* operator=(u8* src)
+	{
+		Rbuffer = src;
+		return src;
+	}
+
+	__forceinline size_t size()
+	{
+		return end - Rbuffer;
+	}
 	__forceinline void ReadSkip(u32 skip)
 	{
 		Rbuffer += skip;
@@ -54,12 +74,23 @@ public:
 		return result;
 	}
 
-	__forceinline const u8* GetReadPosition() const
+	__forceinline u8* GetReadPosition() const
 	{
 		return Rbuffer;
 	}
 
-	__forceinline void SetReadPosition(const u8 *source)
+	__forceinline u8* GetEnd() const
+	{
+		return end;
+	}
+
+	__forceinline void SetReadPosition(u8 *source, u8 *e)
+	{
+		Rbuffer = source;
+		end = e;
+	}
+
+	__forceinline void SetReadPosition(u8 *source)
 	{
 		Rbuffer = source;
 	}
@@ -67,7 +98,7 @@ public:
 	template<unsigned int N>
 	__forceinline void ReadU32xN(u32 *dst)
 	{
-		const u32* src = (u32*)Rbuffer;
+		u32* src = (u32*)Rbuffer;
 		if (N >= 1) *dst++ = Common::swap32(*src++);
 		if (N >= 2) *dst++ = Common::swap32(*src++);
 		if (N >= 3) *dst++ = Common::swap32(*src++);
@@ -84,10 +115,11 @@ public:
 		if (N >= 14) *dst++ = Common::swap32(*src++);
 		if (N >= 15) *dst++ = Common::swap32(*src++);
 		if (N >= 16) *dst++ = Common::swap32(*src++);
-		Rbuffer = (const u8*)src;
+		Rbuffer = (u8*)src;
 	}
 protected:
-	const u8* __restrict Rbuffer;
+	u8* __restrict Rbuffer;
+	u8* end;
 };
 
 class DataWriter

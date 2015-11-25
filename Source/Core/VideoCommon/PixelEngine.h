@@ -17,10 +17,10 @@ enum
 	PE_ALPHAREAD	 = 0x08, // Alpha Read
 	PE_CTRL_REGISTER = 0x0a, // Control
 	PE_TOKEN_REG	 = 0x0e, // Token
-	PE_BBOX_LEFT	 = 0x10, // Flip Left
-	PE_BBOX_RIGHT	 = 0x12, // Flip Right
-	PE_BBOX_TOP		 = 0x14, // Flip Top
-	PE_BBOX_BOTTOM	 = 0x16, // Flip Bottom
+	PE_BBOX_LEFT	 = 0x10, // Bounding Box Left
+	PE_BBOX_RIGHT	 = 0x12, // Bounding Box Right
+	PE_BBOX_TOP		 = 0x14, // Bounding Box Top
+	PE_BBOX_BOTTOM	 = 0x16, // Bounding Box Bottom
 
 	// NOTE: Order not verified
 	// These indicate the number of quads that are being used as input/output for each particular stage

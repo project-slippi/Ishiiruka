@@ -112,7 +112,7 @@ s32 VertexLoaderCompiled::RunVertices(const VertexLoaderParameters &parameters)
 	if (g_ActiveConfig.iBBoxMode == BBoxCPU && BoundingBox::active)
 		BoundingBox::Prepare(vat, parameters.primitive, m_VtxDesc, m_native_vtx_decl);
 	g_PipelineState.count = parameters.count;
-	g_PipelineState.Initialize(parameters.source, parameters.destination);
+	g_PipelineState.Initialize(parameters.source, parameters.source + parameters.buf_size, parameters.destination);
 	m_precompiledfunc(g_PipelineState);
 	return parameters.count - g_PipelineState.skippedVertices;
 }

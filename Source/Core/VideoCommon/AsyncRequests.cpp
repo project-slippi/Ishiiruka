@@ -80,7 +80,7 @@ void AsyncRequests::PushEvent(const AsyncRequests::Event& event, bool blocking)
 		return;
 
 	m_queue.push(event);
-
+	RunGpu();
 	if (blocking)
 	{
 		m_cond.wait(lock, [this]{return m_queue.empty(); });

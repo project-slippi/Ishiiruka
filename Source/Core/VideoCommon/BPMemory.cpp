@@ -4,8 +4,10 @@
 
 #include "Common/Common.h"
 #include "Common/CommonFuncs.h"
-#include "VideoCommon/BPMemory.h"
 #include "Common/StringUtil.h"
+
+#include "VideoCommon/BPMemory.h"
+#include "VideoCommon/PixelEngine.h"
 // BP state
 // STATE_TO_SAVE
 BPMemory bpmem;
@@ -29,6 +31,26 @@ void LoadBPReg(u32 value0)
 		bpmem.bpMask = 0xFFFFFF;
 
 	BPWritten(bp);
+}
+
+void LoadBPRegPreprocess(u32 value0)
+{
+	int regNum = value0 >> 24;
+	// masking could hypothetically be a problem
+	u32 newval = value0 & 0xffffff;
+	switch (regNum)
+	{
+	case BPMEM_SETDRAWDONE:
+		if ((newval & 0xff) == 0x02)
+			PixelEngine::SetFinish();
+		break;
+	case BPMEM_PE_TOKEN_ID:
+		PixelEngine::SetToken(newval & 0xffff, false);
+		break;
+	case BPMEM_PE_TOKEN_INT_ID: // Pixel Engine Interrupt Token ID
+		PixelEngine::SetToken(newval & 0xffff, true);
+		break;
+	}
 }
 
 void GetBPRegInfo(const u8* data, std::string* name, std::string* desc)

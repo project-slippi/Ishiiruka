@@ -319,12 +319,15 @@ void VideoConfig::VerifyValidity()
 			iStereoMode = 0;
 		}
 	}
+	// Disable while reimplementing predictive fifo
+	bPredictiveFifo = false;
+	bWaitForShaderCompilation = false;
 	if (backend_info.APIType == API_OPENGL)
 	{
 		//disable until is properly implemneted
-		bPredictiveFifo = false;
+		//bPredictiveFifo = false;
 		bFullAsyncShaderCompilation = false;
-		bWaitForShaderCompilation = false;
+		//bWaitForShaderCompilation = false;
 	}
 	if (iBBoxMode > BBoxGPU || iBBoxMode < BBoxNone)
 	{

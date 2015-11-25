@@ -3,7 +3,7 @@
 // Refer to the license.txt file included.
 
 #pragma once
-#include "Common/Common.h"
+#include "Common/CommonTypes.h"
 #include "VideoCommon/DataReader.h"
 
 enum GxOpCodes : u8
@@ -80,8 +80,9 @@ enum GxDrawMode : u32
 
 void OpcodeDecoder_Init();
 void OpcodeDecoder_Shutdown();
-void ResetStates();
-u32 OpcodeDecoder_Run(const u8* end);
+
+template <bool is_preprocess = false>
+u8* OpcodeDecoder_Run(u32* cycles, bool in_display_list);
 
 typedef void(*DataReadU32xNfunc)(u32 *buf);
 extern DataReadU32xNfunc DataReadU32xFuncs[16];

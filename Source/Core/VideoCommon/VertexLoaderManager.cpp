@@ -176,7 +176,7 @@ namespace VertexLoaderManager
 
 	void Init()
 	{
-		MarkAllAttrDirty();
+		MarkAllDirty();
 		for (VertexLoaderBase*& vertexLoader : g_main_cp_state.vertex_loaders)
 			vertexLoader = nullptr;
 		LastGameCode = SConfig::GetInstance().m_strUniqueID;
@@ -226,6 +226,14 @@ namespace VertexLoaderManager
 			native->Initialize(format);
 		}
 		return native.get();
+	}
+
+	void MarkAllDirty()
+	{
+		g_main_cp_state.attr_dirty = 0xff;
+		g_main_cp_state.bases_dirty = true;
+		g_preprocess_cp_state.attr_dirty = 0xff;
+		g_preprocess_cp_state.bases_dirty = true;
 	}
 	
 	inline VertexLoaderBase *GetOrAddLoader(const TVtxDesc &VtxDesc, const VAT &VtxAttr)

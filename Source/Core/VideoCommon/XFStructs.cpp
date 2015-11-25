@@ -5,6 +5,7 @@
 #include "Common/Common.h"
 #include "Core/HW/Memmap.h"
 #include "VideoCommon/CPMemory.h"
+#include "VideoCommon/Fifo.h"
 #include "VideoCommon/GeometryShaderManager.h"
 #include "VideoCommon/VideoCommon.h"
 #include "VideoCommon/XFMemory.h"
@@ -267,4 +268,15 @@ void LoadIndexedXF(u32 val, int refarray)
 		for (int i = 0; i < size; ++i)
 			currData[i] = Common::swap32(newData[i]);
 	}
+}
+
+void PreprocessIndexedXF(u32 val, int refarray)
+{
+	int index = val >> 16;
+	int size = ((val >> 12) & 0xF) + 1;
+
+	u32* new_data = (u32*)Memory::GetPointer(g_preprocess_cp_state.array_bases[refarray] + g_preprocess_cp_state.array_strides[refarray] * index);
+
+	size_t buf_size = size * sizeof(u32);
+	PushFifoAuxBuffer(new_data, buf_size);
 }

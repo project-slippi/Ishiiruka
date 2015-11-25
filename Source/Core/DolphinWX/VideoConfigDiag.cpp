@@ -656,8 +656,8 @@ VideoConfigDiag::VideoConfigDiag(wxWindow* parent, const std::string &title, con
 	// Disable while i fix opencl
 	//szr_other->Add(CreateCheckBox(page_hacks, _("OpenCL Texture Decoder"), (opencl_desc), vconfig.bEnableOpenCL));	
 	szr_other->Add(CreateCheckBox(page_hacks, _("Fast Depth Calculation"), (fast_depth_calc_desc), vconfig.bFastDepthCalc));
-	szr_other->Add(Predictive_FIFO = CreateCheckBox(page_hacks, _("Predictive FIFO"), (predictiveFifo_desc), vconfig.bPredictiveFifo));
-	szr_other->Add(Wait_For_Shaders = CreateCheckBox(page_hacks, _("Wait for Shader Compilation"), (waitforshadercompilation_desc), vconfig.bWaitForShaderCompilation));
+	//szr_other->Add(Predictive_FIFO = CreateCheckBox(page_hacks, _("Predictive FIFO"), (predictiveFifo_desc), vconfig.bPredictiveFifo));
+	//szr_other->Add(Wait_For_Shaders = CreateCheckBox(page_hacks, _("Wait for Shader Compilation"), (waitforshadercompilation_desc), vconfig.bWaitForShaderCompilation));
 	szr_other->Add(Async_Shader_compilation = CreateCheckBox(page_hacks, _("Full Async Shader Compilation"), (fullAsyncShaderCompilation_desc), vconfig.bFullAsyncShaderCompilation));	
 	wxStaticBoxSizer* const group_other = new wxStaticBoxSizer(wxVERTICAL, page_hacks, _("Other"));
 	group_other->Add(szr_other, 1, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 5);
@@ -1032,12 +1032,12 @@ void VideoConfigDiag::OnUpdateUI(wxUpdateUIEvent& ev)
 
 	// Predictive Fifo
 	Async_Shader_compilation->Show(vconfig.backend_info.APIType != API_OPENGL);
-	Predictive_FIFO->Show(vconfig.backend_info.APIType != API_OPENGL);
+	/*Predictive_FIFO->Show(vconfig.backend_info.APIType != API_OPENGL);
 	Wait_For_Shaders->Show(vconfig.backend_info.APIType != API_OPENGL);
 	bool WaitForShaderCompilationenabled = vconfig.bPredictiveFifo && !vconfig.bFullAsyncShaderCompilation;
 	vconfig.bWaitForShaderCompilation = vconfig.bWaitForShaderCompilation && WaitForShaderCompilationenabled;
 	Wait_For_Shaders->Enable(WaitForShaderCompilationenabled);
-	Async_Shader_compilation->Enable(!vconfig.bWaitForShaderCompilation);
+	Async_Shader_compilation->Enable(!vconfig.bWaitForShaderCompilation);*/
 	// Things which shouldn't be changed during emulation
 	if (Core::IsRunning())
 	{
@@ -1060,11 +1060,11 @@ void VideoConfigDiag::OnUpdateUI(wxUpdateUIEvent& ev)
 
 		progressive_scan_checkbox->Disable();
 		render_to_main_checkbox->Disable();
-		Predictive_FIFO->Disable();
+		//Predictive_FIFO->Disable();
 	}
 	else
 	{
-		Predictive_FIFO->Enable(!vconfig.bWaitForShaderCompilation);
+		//Predictive_FIFO->Enable(!vconfig.bWaitForShaderCompilation);
 	}
 
 	ev.Skip();

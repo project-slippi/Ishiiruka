@@ -67,7 +67,7 @@ static void DecodePrimitiveStream(u32 iBufferSize)
 	}
 	else
 	{
-		g_PipelineState.SetReadPosition(g_VideoData.GetReadPosition());
+		g_PipelineState.SetReadPosition(g_VideoData.GetReadPosition(), g_VideoData.GetEnd());
 		while (streamSize > 0 && iBufferSize >= vertexSize)
 		{
 			vertexLoader.LoadVertex();
@@ -99,11 +99,11 @@ static void ReadXFData(u32 iBufferSize)
 
 static void ExecuteDisplayList(u32 addr, u32 count)
 {
-	const u8 *videoDataSave = g_VideoData.GetReadPosition();
+	u8 *videoDataSave = g_VideoData.GetReadPosition();
 
-	const u8 *dlStart = Memory::GetPointer(addr);
+	u8 *dlStart = Memory::GetPointer(addr);
 
-	g_VideoData.SetReadPosition(dlStart);
+	g_VideoData.SetReadPosition(dlStart, dlStart + count);
 
 	while (OpcodeDecoder::CommandRunnable(count))
 	{
