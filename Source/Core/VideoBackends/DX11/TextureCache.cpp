@@ -109,16 +109,13 @@ void TextureCache::TCacheEntry::CopyRectangleFromTexture(
 	if (srcrect.GetWidth() == dstrect.GetWidth()
 		&& srcrect.GetHeight() == dstrect.GetHeight())
 	{
-		const D3D11_BOX *psrcbox = nullptr;
 		D3D11_BOX srcbox;
-		if (srcrect.left != 0 || srcrect.top != 0)
-		{
-			srcbox.left = srcrect.left;
-			srcbox.top = srcrect.top;
-			srcbox.right = srcrect.right;
-			srcbox.bottom = srcrect.bottom;
-			psrcbox = &srcbox;
-		}
+		srcbox.left = srcrect.left;
+		srcbox.top = srcrect.top;
+		srcbox.right = srcrect.right;
+		srcbox.bottom = srcrect.bottom;
+		srcbox.front = 0;
+		srcbox.back = 1;
 		D3D::context->CopySubresourceRegion(
 			texture->GetTex(),
 			0,
@@ -127,12 +124,21 @@ void TextureCache::TCacheEntry::CopyRectangleFromTexture(
 			0,
 			srcentry->texture->GetTex(),
 			0,
-			psrcbox);
+			&srcbox);
 		return;
 	}
 	else if (!config.rendertarget)
 	{
-		return;
+		config.rendertarget = true;
+		texture->Release();
+		int flags = ((int)D3D11_BIND_RENDER_TARGET | (int)D3D11_BIND_SHADER_RESOURCE);
+		if (D3D::GetFeatureLevel() >= D3D_FEATURE_LEVEL_11_0)
+		{
+			flags |= D3D11_BIND_UNORDERED_ACCESS;
+		}
+		texture = D3DTexture2D::Create(config.width, config.height,
+			(D3D11_BIND_FLAG)flags,
+			D3D11_USAGE_DEFAULT, DXGI_FORMAT_R8G8B8A8_UNORM, 1, config.layers);
 	}
 	g_renderer->ResetAPIState(); // reset any game specific settings
 

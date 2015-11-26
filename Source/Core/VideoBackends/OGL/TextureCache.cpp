@@ -279,6 +279,7 @@ void TextureCache::TCacheEntry::CopyRectangleFromTexture(
 	}
 	else if (!framebuffer)
 	{
+		config.rendertarget = true;
 		glGenFramebuffers(1, &framebuffer);
 		FramebufferManager::SetFramebuffer(framebuffer);
 		FramebufferManager::FramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D_ARRAY, texture, 0);

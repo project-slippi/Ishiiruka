@@ -222,7 +222,7 @@ void TextureCache::TCacheEntry::FromRenderTarget(u8* dst, unsigned int dstFormat
 	const float *colmat)
 {
 	g_renderer->ResetAPIState(); // reset any game specific settings
-	
+
 	const LPDIRECT3DTEXTURE9 read_texture = (srcFormat == PEControl::Z24) ?
 		FramebufferManager::GetEFBDepthTexture() :
 		FramebufferManager::GetEFBColorTexture();
@@ -291,20 +291,20 @@ void TextureCache::TCacheEntry::FromRenderTarget(u8* dst, unsigned int dstFormat
 	{
 		this->Zero(dst);
 	}
-	else 
+	else
 	{
 		TextureConverter::EncodeToRamFromTexture(
 			dst,
-			this,			
-			Renderer::GetTargetWidth(), 
+			this,
+			Renderer::GetTargetWidth(),
 			Renderer::GetTargetHeight(),
 			read_texture,
-			srcFormat == PEControl::Z24, 
-			isIntensity, 			
-			scaleByHalf, 
+			srcFormat == PEControl::Z24,
+			isIntensity,
+			scaleByHalf,
 			srcRect);
 	}
-	
+
 	D3D::RefreshSamplerState(0, D3DSAMP_MINFILTER);
 	D3D::RefreshSamplerState(0, D3DSAMP_MAGFILTER);
 	D3D::SetTexture(0, NULL);
