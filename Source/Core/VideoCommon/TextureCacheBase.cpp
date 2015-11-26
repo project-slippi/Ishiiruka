@@ -899,7 +899,7 @@ void TextureCacheBase::CopyRenderTargetToTexture(u32 dstAddr, unsigned int dstFo
 			cbufid = 0;
 			dstFormat |= _GX_TF_CTF;
 			break;
-		case 8: // Z8
+		case 8: // Z8H
 			dstFormat |= _GX_TF_CTF;
 		case 1: // Z8		
 			colmat[0] = colmat[4] = colmat[8] = colmat[12] = 1.0f;
@@ -1262,7 +1262,7 @@ u32 TextureCacheBase::TCacheEntryBase::BytesPerRow() const
 	const u32 numBlocksX = actualWidth / blockW;
 
 	// RGBA takes two cache lines per block; all others take one
-	const u32 bytes_per_block = format == GX_TF_RGBA8 ? 64 : 32;
+	const u32 bytes_per_block = (format & 0xF) == GX_TF_RGBA8 ? 64 : 32;
 
 	return numBlocksX * bytes_per_block;
 }

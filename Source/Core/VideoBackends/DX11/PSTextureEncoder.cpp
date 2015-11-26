@@ -1020,8 +1020,6 @@ void PSTextureEncoder::Encode(u8* dst, const TextureCache::TCacheEntryBase *text
 	HRESULT hr;
 	u32 numBlocksY = texture_entry->NumBlocksY();
 	u32 cacheLinesPerRow = texture_entry->BytesPerRow() / 32;
-	if ((texture_entry->format & 0xF) == 0x6 && texture_entry->format != GX_TF_RGBA8)
-		cacheLinesPerRow *= 2;
 	// Reset API
 	g_renderer->ResetAPIState();
 
