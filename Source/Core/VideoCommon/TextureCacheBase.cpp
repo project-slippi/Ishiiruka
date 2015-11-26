@@ -1175,6 +1175,10 @@ void TextureCacheBase::CopyRenderTargetToTexture(u32 dstAddr, unsigned int dstFo
 	entry->is_custom_tex = false;
 
 	entry->FromRenderTarget(dst, dstFormat, dstStride, srcFormat, srcRect, isIntensity, scaleByHalf, cbufid, colmat);
+	if (g_ActiveConfig.bSkipEFBCopyToRam)
+	{
+		entry->Zero(dst);
+	}
 	entry->hash = entry->CalculateHash();
 
 	// Invalidate all textures that overlap the range of our efb copy.

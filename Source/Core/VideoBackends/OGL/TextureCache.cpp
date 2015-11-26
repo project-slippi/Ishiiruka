@@ -447,11 +447,7 @@ void TextureCache::TCacheEntry::FromRenderTarget(u8* dstPointer, unsigned int ds
 
 	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
-	if (g_ActiveConfig.bSkipEFBCopyToRam)
-	{
-		this->Zero(dstPointer);
-	}
-	else
+	if (!g_ActiveConfig.bSkipEFBCopyToRam)
 	{
 		TextureConverter::EncodeToRamFromTexture(
 			dstPointer,
