@@ -8,6 +8,7 @@
 
 #include "VideoCommon/FramebufferManagerBase.h"
 
+#include "D3DPtr.h"
 #include "D3DTexture.h"
 
 namespace DX11 {
@@ -114,7 +115,7 @@ private:
 
 	static u32 m_target_width;
 	static u32 m_target_height;
-
+	static D3D::DepthStencilStatePtr m_depth_resolve_depth_state;
 };
 
 }  // namespace DX11

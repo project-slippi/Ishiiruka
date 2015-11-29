@@ -123,8 +123,8 @@ void InitBackendInfo()
 	g_Config.backend_info.bSupports3DVision = true;
 	g_Config.backend_info.bSupportsPostProcessing = true;
 	g_Config.backend_info.bSupportsClipControl = false;
-	g_Config.backend_info.bSupportsSSAA = true;
-	g_Config.backend_info.bSupportsNormalMaps = true;	IDXGIFactory* factory;
+	g_Config.backend_info.bSupportsNormalMaps = true;
+	IDXGIFactory* factory;
 	IDXGIAdapter* ad;
 	hr = DX11::PCreateDXGIFactory(__uuidof(IDXGIFactory), (void**)&factory);
 	if (FAILED(hr))
@@ -162,6 +162,7 @@ void InitBackendInfo()
 			// Requires the instance attribute (only available in shader model 5)
 			g_Config.backend_info.bSupportsGSInstancing = shader_model_5_supported;
 			g_Config.backend_info.bSupportsTessellation = shader_model_5_supported;
+			g_Config.backend_info.bSupportsSSAA = shader_model_5_supported;
 		}
 
 		g_Config.backend_info.Adapters.push_back(UTF16ToUTF8(desc.Description));

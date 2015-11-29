@@ -37,7 +37,7 @@ public:
 	static ID3D11PixelShader* GetClearProgram();
 	static ID3D11PixelShader* ReinterpRGBA6ToRGB8(bool multisampled);
 	static ID3D11PixelShader* ReinterpRGB8ToRGBA6(bool multisampled);
-
+	static ID3D11PixelShader* GetDepthResolveProgram();
 	static void InvalidateMSAAShaders();
 
 private:

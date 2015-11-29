@@ -386,6 +386,26 @@ void TextureCache::TCacheEntry::FromRenderTarget(u8* dst, unsigned int dstFormat
 	bool isIntensity, bool scaleByHalf, u32 cbufid,
 	const float *colmat)
 {
+	// When copying at half size, in multisampled mode, resolve the color/depth buffer first.
+	// This is because multisampled texture reads go through Load, not Sample, and the linear
+	// filter is ignored.
+	bool multisampled = (g_ActiveConfig.iMultisampleMode != 0);
+	ID3D11ShaderResourceView* efb_texture_srv;
+
+	if (multisampled && scaleByHalf)
+	{
+		multisampled = false;
+		efb_texture_srv = (srcFormat == PEControl::Z24) ?
+			FramebufferManager::GetResolvedEFBDepthTexture()->GetSRV() :
+			FramebufferManager::GetResolvedEFBColorTexture()->GetSRV();
+	}
+	else
+	{
+		efb_texture_srv = (srcFormat == PEControl::Z24) ?
+			FramebufferManager::GetEFBDepthTexture()->GetSRV() :
+			FramebufferManager::GetEFBColorTexture()->GetSRV();
+	}
+
 	g_renderer->ResetAPIState();
 	// stretch picture with increased internal resolution
 	const D3D11_VIEWPORT vp = CD3D11_VIEWPORT(0.f, 0.f, (float)config.width, (float)config.height);
@@ -419,9 +439,9 @@ void TextureCache::TCacheEntry::FromRenderTarget(u8* dst, unsigned int dstFormat
 	D3D::context->OMSetRenderTargets(1, &texture->GetRTV(), nullptr);
 	// Create texture copy
 	D3D::drawShadedTexQuad(
-		((srcFormat == PEControl::Z24) ? FramebufferManager::GetEFBDepthTexture() : FramebufferManager::GetEFBColorTexture())->GetSRV(),
+		efb_texture_srv,
 		&sourcerect, Renderer::GetTargetWidth(), Renderer::GetTargetHeight(),
-		(srcFormat == PEControl::Z24) ? PixelShaderCache::GetDepthMatrixProgram(true) : PixelShaderCache::GetColorMatrixProgram(true),
+		(srcFormat == PEControl::Z24) ? PixelShaderCache::GetDepthMatrixProgram(multisampled) : PixelShaderCache::GetColorMatrixProgram(multisampled),
 		VertexShaderCache::GetSimpleVertexShader(),
 		VertexShaderCache::GetSimpleInputLayout(),
 		(g_Config.iStereoMode > 0) ? GeometryShaderCache::GetCopyGeometryShader() : nullptr);

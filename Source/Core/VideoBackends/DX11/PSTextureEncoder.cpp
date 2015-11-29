@@ -1071,7 +1071,7 @@ void PSTextureEncoder::Encode(u8* dst, const TextureCache::TCacheEntryBase *text
 		D3D::stateman->SetVertexConstants(m_encodeParams.get());
 
 		ID3D11ShaderResourceView* pEFB = (srcFormat == PEControl::Z24) ?
-			FramebufferManager::GetEFBDepthTexture()->GetSRV() :
+			FramebufferManager::GetResolvedEFBDepthTexture()->GetSRV() :
 			// FIXME: Instead of resolving EFB, it would be better to pick out a
 			// single sample from each pixel. The game may break if it isn't
 			// expecting the blurred edges around multisampled shapes.
