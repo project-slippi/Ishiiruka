@@ -111,7 +111,7 @@ void InitBackendInfo()
 	g_Config.backend_info.bSupportedFormats[PC_TEX_FMT_IA8] = false;
 	g_Config.backend_info.bSupportedFormats[PC_TEX_FMT_RGB565] = false;
 	g_Config.backend_info.bSupportedFormats[PC_TEX_FMT_DXT1] = true;
-	g_Config.backend_info.bSupportedFormats[PC_TEX_FMT_DXT3] = false;
+	g_Config.backend_info.bSupportedFormats[PC_TEX_FMT_DXT3] = true;
 	g_Config.backend_info.bSupportedFormats[PC_TEX_FMT_DXT5] = true;
 
 	g_Config.backend_info.bSupportsExclusiveFullscreen = true;
