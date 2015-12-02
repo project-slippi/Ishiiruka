@@ -178,9 +178,9 @@ public:
 			u32 expandedHeight, const s32 texformat, const u32 tlutaddr, const TlutFormat tlutfmt, u32 level) = 0;
 		virtual void LoadFromTmem(const u8* ar_src, const u8* gb_src, u32 width, u32 height,
 			u32 expanded_width, u32 expanded_Height, u32 level) = 0;
-		virtual void FromRenderTarget(u8* dst, unsigned int dstFormat, u32 dstStride,
+		virtual void FromRenderTarget(u8* dst, u32 dstFormat, u32 dstStride,
 			PEControl::PixelFormat srcFormat, const EFBRectangle& srcRect,
-			bool isIntensity, bool scaleByHalf, unsigned int cbufid,
+			bool isIntensity, bool scaleByHalf, u32 cbufid,
 			const float *colmat) = 0;
 		virtual bool PalettizeFromBase(const TCacheEntryBase* base_entry) = 0;
 		bool OverlapsMemoryRange(u32 range_address, u32 range_size) const;
@@ -213,7 +213,7 @@ public:
 	static TCacheEntryBase* Load(const u32 stage);
 	static void UnbindTextures();
 	static void BindTextures();
-	static void CopyRenderTargetToTexture(u32 dstAddr, unsigned int dstFormat, u32 dstStride,
+	static void CopyRenderTargetToTexture(u32 dstAddr, u32 dstFormat, u32 dstStride,
 		PEControl::PixelFormat srcFormat, const EFBRectangle& srcRect, bool isIntensity, bool scaleByHalf);
 
 	static void RequestInvalidateTextureCache();
@@ -238,7 +238,7 @@ private:
 	static u64 s_prev_tlut_hash;
 	static TCacheEntryBase* AllocateTexture(const TCacheEntryConfig& config);
 	static TextureCacheBase::TexCache::iterator FreeTexture(TexCache::iterator t_iter);
-	static TCacheEntryBase* ReturnEntry(unsigned int stage, TCacheEntryBase* entry);
+	static TCacheEntryBase* ReturnEntry(u32 stage, TCacheEntryBase* entry);
 
 	
 

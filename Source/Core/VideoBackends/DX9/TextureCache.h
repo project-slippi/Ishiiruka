@@ -48,7 +48,7 @@ private:
 		void LoadFromTmem(const u8* ar_src, const u8* gb_src, u32 width, u32 height,
 			u32 expanded_width, u32 expanded_Height, u32 level) override;
 
-		void FromRenderTarget(u8* dst, unsigned int dstFormat, u32 dstStride,
+		void FromRenderTarget(u8* dst, u32 dstFormat, u32 dstStride,
 			PEControl::PixelFormat srcFormat, const EFBRectangle& srcRect,
 			bool isIntensity, bool scaleByHalf, u32 cbufid,
 			const float *colmat) override;

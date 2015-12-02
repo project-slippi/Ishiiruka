@@ -399,7 +399,7 @@ void TextureCache::TCacheEntry::LoadFromTmem(const u8* ar_src, const u8* gb_src,
 	Load(data, width, height, expanded_width, level);
 }
 
-void TextureCache::TCacheEntry::FromRenderTarget(u8* dstPointer, unsigned int dstFormat, u32 dstStride,
+void TextureCache::TCacheEntry::FromRenderTarget(u8* dstPointer, u32 dstFormat, u32 dstStride,
 	PEControl::PixelFormat srcFormat, const EFBRectangle& srcRect,
 	bool isIntensity, bool scaleByHalf, u32 cbufid,
 	const float *colmat)

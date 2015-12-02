@@ -3,15 +3,16 @@
 // Refer to the license.txt file included.
 
 #pragma once
+#include "Common/CommonTypes.h"
 #include "Common/Hash.h"
-enum 
+enum TMEM_S : u32
 {
 	TMEM_SIZE = 1024*1024,
 	TMEM_LINE_SIZE = 32,
 };
 alignas(16) extern u8 texMem[TMEM_SIZE];
 
-enum TextureFormat
+enum TextureFormat : u32
 {
 	// These are the texture formats that can be read by the texture mapper.
 	GX_TF_I4     = 0x0,
@@ -64,11 +65,11 @@ enum TlutFormat
 	GX_TL_RGB5A3 = 0x2,
 };
 
-s32 TexDecoder_GetTexelSizeInNibbles(s32 format);
-s32 TexDecoder_GetTextureSizeInBytes(s32 width, s32 height, s32 format);
-s32 TexDecoder_GetBlockWidthInTexels(u32 format);
-s32 TexDecoder_GetBlockHeightInTexels(u32 format);
-s32 TexDecoder_GetPaletteSize(s32 fmt);
+u32 TexDecoder_GetTexelSizeInNibbles(u32 format);
+u32 TexDecoder_GetTextureSizeInBytes(u32 width, u32 height, u32 format);
+u32 TexDecoder_GetBlockWidthInTexels(u32 format);
+u32 TexDecoder_GetBlockHeightInTexels(u32 format);
+u32 TexDecoder_GetPaletteSize(u32 fmt);
 
 enum PC_TexFormat
 {
@@ -84,11 +85,11 @@ enum PC_TexFormat
 	PC_TEX_FMT_DXT3,
 	PC_TEX_FMT_DXT5,
 };
-PC_TexFormat TexDecoder_Decode(u8 *dst, const u8 *src, s32 width, s32 height, s32 texformat, s32 tlutaddr, TlutFormat tlutfmt, bool rgbaOnly = false, bool compressed_supported = false);
-PC_TexFormat GetPC_TexFormat(s32 texformat, TlutFormat tlutfmt, bool compressed_supported = false);
-PC_TexFormat TexDecoder_DecodeRGBA8FromTmem(u32* dst, const u8 *src_ar, const u8 *src_gb, s32 width, s32 height);
-PC_TexFormat TexDecoder_DecodeBGRA8FromTmem(u32* dst, const u8 *src_ar, const u8 *src_gb, s32 width, s32 height);
-void TexDecoder_DecodeTexel(u8 *dst, const u8 *src, s32 s, s32 t, s32 imageWidth, s32 texformat, s32 tlutaddr, TlutFormat tlutfmt);
-void TexDecoder_DecodeTexelRGBA8FromTmem(u8 *dst, const u8 *src_ar, const u8* src_gb, s32 s, s32 t, s32 imageWidth);
-void TexDecoder_DecodeTexelBGRA8FromTmem(u8 *dst, const u8 *src_ar, const u8* src_gb, s32 s, s32 t, s32 imageWidth);
+PC_TexFormat TexDecoder_Decode(u8 *dst, const u8 *src, u32 width, u32 height, u32 texformat, u32 tlutaddr, TlutFormat tlutfmt, bool rgbaOnly = false, bool compressed_supported = false);
+PC_TexFormat GetPC_TexFormat(u32 texformat, TlutFormat tlutfmt, bool compressed_supported = false);
+PC_TexFormat TexDecoder_DecodeRGBA8FromTmem(u32* dst, const u8 *src_ar, const u8 *src_gb, u32 width, u32 height);
+PC_TexFormat TexDecoder_DecodeBGRA8FromTmem(u32* dst, const u8 *src_ar, const u8 *src_gb, u32 width, u32 height);
+void TexDecoder_DecodeTexel(u8 *dst, const u8 *src, u32 s, u32 t, u32 imageWidth, u32 texformat, u32 tlutaddr, TlutFormat tlutfmt);
+void TexDecoder_DecodeTexelRGBA8FromTmem(u8 *dst, const u8 *src_ar, const u8* src_gb, u32 s, u32 t, u32 imageWidth);
+void TexDecoder_DecodeTexelBGRA8FromTmem(u8 *dst, const u8 *src_ar, const u8* src_gb, u32 s, u32 t, u32 imageWidth);
 void TexDecoder_SetTexFmtOverlayOptions(bool enable, bool center);

@@ -165,9 +165,9 @@ void TextureCacheBase::OnConfigChanged(VideoConfig& config)
 	backup_config.s_scaling_deposterize = config.bTexDeposterize;
 }
 
-void TextureCacheBase::Cleanup(int _frameCount)
+void TextureCacheBase::Cleanup(s32 _frameCount)
 {
-	int texture_kill_threshold = TEXTURE_KILL_THRESHOLD;
+	s32 texture_kill_threshold = TEXTURE_KILL_THRESHOLD;
 	if (texture_pool_memory_usage < (TEXTURE_POOL_MEMORY_LIMIT / 2))
 	{
 		// if we are using less than the memory limit increase kill threshold
@@ -296,9 +296,9 @@ TextureCacheBase::TCacheEntryBase* TextureCacheBase::DoPartialTextureUpdates(Tex
 			&& entry->memory_stride == numBlocksX * block_size)
 		{
 			u32 src_x, src_y, dst_x, dst_y;
-			MathUtil::Rectangle<int> srcrect, dstrect;
+			MathUtil::Rectangle<s32> srcrect, dstrect;
 
-			u32 block_offset = std::abs((int)((entry->addr - entry_to_update->addr) / block_size));
+			u32 block_offset = std::abs((s32)((entry->addr - entry_to_update->addr) / block_size));
 			u32 block_x = block_offset % numBlocksX;
 			u32 block_y = block_offset / numBlocksX;
 
@@ -403,7 +403,7 @@ void TextureCacheBase::DumpTexture(TCacheEntryBase* entry, std::string basename,
 }
 
 // Used by TextureCacheBase::Load
-TextureCacheBase::TCacheEntryBase* TextureCacheBase::ReturnEntry(unsigned int stage, TCacheEntryBase* entry)
+TextureCacheBase::TCacheEntryBase* TextureCacheBase::ReturnEntry(u32 stage, TCacheEntryBase* entry)
 {
 	entry->frameCount = FRAMECOUNT_INVALID;
 	bound_textures[stage] = entry;
@@ -412,7 +412,7 @@ TextureCacheBase::TCacheEntryBase* TextureCacheBase::ReturnEntry(unsigned int st
 }
 void TextureCacheBase::BindTextures()
 {
-	for (int i = 0; i < 8; ++i)
+	for (s32 i = 0; i < 8; ++i)
 	{
 		if (bound_textures[i])
 			bound_textures[i]->Bind(i);
@@ -430,7 +430,7 @@ TextureCacheBase::TCacheEntryBase* TextureCacheBase::Load(const u32 stage)
 	const u32 address = (tex.texImage3[id].image_base/* & 0x1FFFFF*/) << 5;
 	u32 width = tex.texImage0[id].width + 1;
 	u32 height = tex.texImage0[id].height + 1;
-	const s32 texformat = tex.texImage0[id].format;
+	const u32 texformat = tex.texImage0[id].format;
 	const u32 tlutaddr = tex.texTlut[id].tmem_offset << 9;
 	const u32 tlutfmt = tex.texTlut[id].tlut_format;
 	const bool use_mipmaps = (tex.texMode0[id].min_filter & 3) != 0;
@@ -508,7 +508,7 @@ TextureCacheBase::TCacheEntryBase* TextureCacheBase::Load(const u32 stage)
 	bool palette_upload_required = false;
 	if (isPaletteTexture)
 	{
-		palette_size = std::min(TexDecoder_GetPaletteSize(texformat), (s32)(TMEM_SIZE - tlutaddr));
+		palette_size = std::min(TexDecoder_GetPaletteSize(texformat), TMEM_SIZE - tlutaddr);
 		tlut_hash = GetHash64(&texMem[tlutaddr], palette_size, g_ActiveConfig.iSafeTextureCache_ColorSamples);
 		palette_upload_required = s_prev_tlut_address != tlutaddr
 			|| s_prev_tlut_hash != tlut_hash
@@ -548,7 +548,7 @@ TextureCacheBase::TCacheEntryBase* TextureCacheBase::Load(const u32 stage)
 	std::pair <TexCache::iterator, TexCache::iterator> iter_range = textures_by_address.equal_range((u64)address);
 	TexCache::iterator iter = iter_range.first;
 	TexCache::iterator oldest_entry = iter;
-	int temp_frameCount = 0x7fffffff;
+	s32 temp_frameCount = 0x7fffffff;
 	TexCache::iterator unconverted_copy = textures_by_address.end();
 
 	while (iter != iter_range.second)
@@ -837,7 +837,7 @@ TextureCacheBase::TCacheEntryBase* TextureCacheBase::Load(const u32 stage)
 	return ReturnEntry(stage, entry);
 }
 
-void TextureCacheBase::CopyRenderTargetToTexture(u32 dstAddr, unsigned int dstFormat, u32 dstStride, PEControl::PixelFormat srcFormat,
+void TextureCacheBase::CopyRenderTargetToTexture(u32 dstAddr, u32 dstFormat, u32 dstStride, PEControl::PixelFormat srcFormat,
 	const EFBRectangle& srcRect, bool isIntensity, bool scaleByHalf)
 {
 	// Emulation methods:
@@ -1029,7 +1029,7 @@ void TextureCacheBase::CopyRenderTargetToTexture(u32 dstAddr, unsigned int dstFo
 		case 8: // R8
 			colmat[0] = colmat[4] = colmat[8] = colmat[12] = 1;
 			cbufid = 16;
-			dstFormat |= _GX_TF_CTF;
+			dstFormat = GX_CTF_R8;
 			break;
 
 		case 2: // RA4
@@ -1165,7 +1165,6 @@ void TextureCacheBase::CopyRenderTargetToTexture(u32 dstAddr, unsigned int dstFo
 
 	TCacheEntryBase* entry = AllocateTexture(config);
 
-
 	entry->SetGeneralParameters(dstAddr, 0, dstFormat);
 	entry->SetDimensions(tex_w, tex_h, 1);
 	entry->SetHashes(TEXHASH_INVALID, TEXHASH_INVALID);
@@ -1198,7 +1197,7 @@ void TextureCacheBase::CopyRenderTargetToTexture(u32 dstAddr, unsigned int dstFo
 
 	if (g_ActiveConfig.bDumpEFBTarget)
 	{
-		static int count = 0;
+		static s32 count = 0;
 		entry->Save(StringFromFormat("%sefb_frame_%i.png", File::GetUserPath(D_DUMPTEXTURES_IDX).c_str(),
 			count++), 0);
 	}

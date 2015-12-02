@@ -381,7 +381,7 @@ TextureCache::TCacheEntryBase* TextureCache::CreateTexture(const TCacheEntryConf
 	return entry;
 }
 
-void TextureCache::TCacheEntry::FromRenderTarget(u8* dst, unsigned int dstFormat, u32 dstStride,
+void TextureCache::TCacheEntry::FromRenderTarget(u8* dst, u32 dstFormat, u32 dstStride,
 	PEControl::PixelFormat srcFormat, const EFBRectangle& srcRect,
 	bool isIntensity, bool scaleByHalf, u32 cbufid,
 	const float *colmat)
