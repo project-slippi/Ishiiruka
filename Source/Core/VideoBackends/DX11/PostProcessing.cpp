@@ -745,6 +745,66 @@ float4 Rndfloat4()
 	return val;
 }
 
+
+float4 GetBicubicSampleLocation(float2 location, out float4 scalingFactor, float resolutionmultiplier = 1.0)
+{
+	float2 textureDimensions    = GetResolution() * resolutionmultiplier;
+	float2 invTextureDimensions = 1.f / textureDimensions;
+
+			location *= textureDimensions;
+
+					float2 texelCenter   = floor( location - 0.5f ) + 0.5f;
+	float2 fracOffset    = location - texelCenter;
+	float2 fracOffset_x2 = fracOffset * fracOffset;
+	float2 fracOffset_x3 = fracOffset * fracOffset_x2;
+	float2 weight0 = fracOffset_x2 - 0.5f * ( fracOffset_x3 + fracOffset );
+	float2 weight1 = 1.5f * fracOffset_x3 - 2.5f * fracOffset_x2 + 1.f;
+	float2 weight3 = 0.5f * ( fracOffset_x3 - fracOffset_x2 );
+	float2 weight2 = 1.f - weight0 - weight1 - weight3;
+
+			scalingFactor = float4(weight0 + weight1,  weight2 + weight3);	
+	scalingFactor = scalingFactor.xzxz * scalingFactor.yyww;
+	float2 f0 = weight1 / ( weight0 + weight1 );
+	float2 f1 = weight3 / ( weight2 + weight3 );
+
+			return float4(texelCenter - 1.f + f0,texelCenter + 1.f + f1) * invTextureDimensions.xyxy;
+}
+
+float4 SampleBicubic(float2 location, float resolutionmultiplier = 1.0)
+{
+	float4 scalingFactor;
+	float4 texCoord = GetBicubicSampleLocation(location, scalingFactor, resolutionmultiplier);
+	return
+		SampleLocation(texCoord.xy) * scalingFactor.x +
+		SampleLocation(texCoord.zy) * scalingFactor.y +
+		SampleLocation(texCoord.xw) * scalingFactor.z +
+		SampleLocation(texCoord.zw) * scalingFactor.w;
+}
+
+float4 SamplePrevBicubic(float2 location, int idx = 0, float resolutionmultiplier = 1.0)
+{
+	float4 scalingFactor;
+	float4 texCoord = GetBicubicSampleLocation(location, scalingFactor, resolutionmultiplier);
+	return
+		SamplePrevLocation(idx, texCoord.xy) * scalingFactor.x +
+		SamplePrevLocation(idx, texCoord.zy) * scalingFactor.y +
+		SamplePrevLocation(idx, texCoord.xw) * scalingFactor.z +
+		SamplePrevLocation(idx, texCoord.zw) * scalingFactor.w;
+}
+
+float4 SampleBicubic()
+{ 
+	float4 outputcolor = SampleBicubic(uv0);
+	if (ScalingFilter != 0)
+	{
+		outputcolor += SampleBicubic(uv1.xy);
+		outputcolor += SampleBicubic(uv1.wz);
+		outputcolor += SampleBicubic(uv2.xy);
+		outputcolor += SampleBicubic(uv2.wz);
+		outputcolor *= 0.2;
+	}
+	return outputcolor;
+}
 )hlsl";
 
 std::string DX11PostProcessing::LoadShaderOptions(const std::string& code)

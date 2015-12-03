@@ -1247,7 +1247,7 @@ float Cubic(float coeff)
 	return (x + y + z + w) / 4.0;
 }
 
-float4 SampleBicubic(float2 texcoord)
+float4 SampleSharpenBicubic(float2 texcoord)
 {
 	float2 texSize = GetResolution();
 	float texelSizeX = (1.0 / texSize.x) * GetOption(C_SHARPEN_BIAS);
@@ -1288,7 +1288,7 @@ float4 TexSharpenPass(float4 color)
 {
 	float3 calcSharpen = lumCoeff * GetOption(A_SHARPEN_STRENGTH);
 
-	float4 blurredColor = SampleBicubic(GetCoordinates());
+	float4 blurredColor = SampleSharpenBicubic(GetCoordinates());
 	float3 sharpenedColor = (color.rgb - blurredColor.rgb);
 
 	float sharpenLuma = dot(sharpenedColor, calcSharpen);
