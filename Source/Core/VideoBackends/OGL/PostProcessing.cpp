@@ -25,13 +25,13 @@ static const char s_vertex_shader[] =
 	"out vec4 uv1;\n"
 	"out vec4 uv2;\n"
 	"uniform vec4 src_rect;\n"
-	"uniform vec4 dstscale;\n"
+	"uniform vec4 dst_scale;\n"
 	"void main(void) {\n"
 	"	vec2 rawpos = vec2(gl_VertexID&1, gl_VertexID&2);\n"
 	"	gl_Position = vec4(rawpos*2.0-1.0, 0.0, 1.0);\n"
 	"	uv0 = rawpos * src_rect.zw + src_rect.xy;\n"
-	"	uv1 = uv0.xyyx + (vec4(-0.375f, -0.125f, -0.375f, 0.125f) * dstscale.zwwz);\n"
-	"	uv2 = uv0.xyyx + (vec4(0.375f, 0.125f, 0.375f, -0.125f) * dstscale.zwwz);\n"
+	"	uv1 = uv0.xyyx + (vec4(-0.375f, -0.125f, -0.375f, 0.125f) * dst_scale.zwwz);\n"
+	"	uv2 = uv0.xyyx + (vec4(0.375f, 0.125f, 0.375f, -0.125f) * dst_scale.zwwz);\n"
 	"}\n";
 
 OpenGLPostProcessing::OpenGLPostProcessing() :
@@ -335,8 +335,8 @@ void OpenGLPostProcessing::ApplyShader()
 		shader.m_uniform_time = glGetUniformLocation(shader.shader.glprogid, "time");
 		shader.m_uniform_src_rect = glGetUniformLocation(shader.shader.glprogid, "src_rect");
 		shader.m_uniform_layer = glGetUniformLocation(shader.shader.glprogid, "layer");
-		shader.m_uniform_dstscale = glGetUniformLocation(shader.shader.glprogid, "dstscale");
-		shader.m_uniform_ScalingFilter = glGetUniformLocation(shader.shader.glprogid, "ScalingFilter");
+		shader.m_uniform_dstscale = glGetUniformLocation(shader.shader.glprogid, "dst_scale");
+		shader.m_uniform_ScalingFilter = glGetUniformLocation(shader.shader.glprogid, "scaling_filter");
 		shader.m_uniform_bindings.clear();
 		for (const auto& it : m_config.GetOptions())
 		{
@@ -379,7 +379,7 @@ uniform float native_gamma;
 // Source Rect
 uniform vec4 src_rect;
 
-uniform int ScalingFilter;
+uniform int scaling_filter;
 
 // Interfacing functions		
 float2 GetFragmentCoord()
@@ -510,7 +510,7 @@ float SampleDepthOffsetRaw(int2 offset)
 float4 Sample()
 { 
 	float4 outputcolor = Sample(uv0, layer);
-	if (ScalingFilter != 0)
+	if (scaling_filter != 0)
 	{
 		outputcolor += Sample(uv1.xy, layer);
 		outputcolor += Sample(uv1.wz, layer);
@@ -703,7 +703,7 @@ float4 SamplePrevBicubic(float2 location, int idx, float resolutionmultiplier)
 float4 SampleBicubic() 
 { 
 	float4 outputcolor = SampleBicubic(uv0);
-	if (ScalingFilter != 0)
+	if (scaling_filter != 0)
 	{
 		outputcolor += SampleBicubic(uv1.xy);
 		outputcolor += SampleBicubic(uv1.wz);
