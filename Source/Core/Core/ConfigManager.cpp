@@ -40,7 +40,7 @@ SConfig::SConfig()
   bSkipIdle(true), bSyncGPUOnSkipIdleHack(true), bNTSC(false), bForceNTSCJ(false),
   bHLE_BS2(true), bEnableCheats(false),
   bEnableMemcardSdWriting(true),
-  bDPL2Decoder(false), bTimeStretching(false), iLatency(14), bWiiSpeakSupport(false),
+  bDPL2Decoder(false), bTimeStretching(false), bRSHACK(false), iLatency(14), bWiiSpeakSupport(false),
   bRunCompareServer(false), bRunCompareClient(false),
   bMMU(false), bDCBZOFF(false),
   iBBDumpPort(0), bDoubleVideoRate(false),
@@ -239,6 +239,7 @@ void SConfig::SaveCoreSettings(IniFile& ini)
 	core->Set("OverrideGCLang", bOverrideGCLanguage);
 	core->Set("DPL2Decoder", bDPL2Decoder);
 	core->Set("TimeStretching", bTimeStretching);
+	core->Set("RSHACK", bRSHACK);	
 	core->Set("WiiSpeakSupport", bWiiSpeakSupport);
 	core->Set("Latency", iLatency);
 	core->Set("MemcardAPath", m_strMemoryCardA);
@@ -492,6 +493,7 @@ void SConfig::LoadCoreSettings(IniFile& ini)
 	core->Get("OverrideGCLang",    &bOverrideGCLanguage, false);
 	core->Get("DPL2Decoder",       &bDPL2Decoder, false);
 	core->Get("TimeStretching",    &bTimeStretching, false);
+	core->Get("RSHACK",            &bRSHACK,         false);
 	core->Get("WiiSpeakSupport",    &bWiiSpeakSupport, false);
 	core->Get("Latency",           &iLatency, 2);
 	core->Get("MemcardAPath",      &m_strMemoryCardA);
@@ -616,6 +618,7 @@ void SConfig::LoadDefaults()
 	bWii = false;
 	bDPL2Decoder = false;
 	bTimeStretching = false;
+	bRSHACK = false;
 	bWiiSpeakSupport = false;
 	iLatency = 14;
 

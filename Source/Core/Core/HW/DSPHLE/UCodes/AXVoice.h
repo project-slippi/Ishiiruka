@@ -16,6 +16,8 @@
 
 #include "Common/CommonTypes.h"
 #include "Common/MathUtil.h"
+
+#include "Core/ConfigManager.h"
 #include "Core/HW/DSP.h"
 #include "Core/HW/Memmap.h"
 #include "Core/HW/DSPHLE/UCodes/AX.h"
@@ -218,11 +220,30 @@ u16 AcceleratorGetSample()
 			// stream type. This is what the AX UCode does and I don't really
 			// know why.
 			acc_pb->adpcm.pred_scale = acc_pb->adpcm_loop_info.pred_scale;
-			if (!acc_pb->is_stream)
+			if (SConfig::GetInstance().bRSHACK)
 			{
 				acc_pb->adpcm.yn1 = acc_pb->adpcm_loop_info.yn1;
 				acc_pb->adpcm.yn2 = acc_pb->adpcm_loop_info.yn2;
+				if (acc_pb->is_stream)
+				{
+					// HORRIBLE HACK: this behavior changed between versions at some point; needs some sort
+					// of branch. delroth says anyone who submits this code as a serious PR will be banned
+					// from Dolphin.
+					// needed for RS2
+					acc_pb->lpf.enabled += 1;
+					// needed for RS3
+					acc_pb->padding[0] += 1;
+				}
 			}
+			else
+			{
+				if (!acc_pb->is_stream)
+				{
+					acc_pb->adpcm.yn1 = acc_pb->adpcm_loop_info.yn1;
+					acc_pb->adpcm.yn2 = acc_pb->adpcm_loop_info.yn2;
+				}
+			}
+			
 		}
 		else
 		{

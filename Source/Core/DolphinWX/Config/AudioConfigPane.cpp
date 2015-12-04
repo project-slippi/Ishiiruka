@@ -41,13 +41,14 @@ void AudioConfigPane::InitializeGUI()
 	m_audio_backend_choice = new wxChoice(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, m_audio_backend_strings);
 	m_audio_latency_spinctrl = new wxSpinCtrl(this, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, wxSP_ARROW_KEYS, 0, 30);
 	m_time_stretching_checkbox = new wxCheckBox(this, wxID_ANY, _("Time Stretching"));
-
+	m_RS_Hack_checkbox = new wxCheckBox(this, wxID_ANY, _("Rogue Squadron 2/3 Hack"));
 	m_dsp_engine_radiobox->Bind(wxEVT_RADIOBOX, &AudioConfigPane::OnDSPEngineRadioBoxChanged, this);
 	m_dpl2_decoder_checkbox->Bind(wxEVT_CHECKBOX, &AudioConfigPane::OnDPL2DecoderCheckBoxChanged, this);
 	m_volume_slider->Bind(wxEVT_SLIDER, &AudioConfigPane::OnVolumeSliderChanged, this);
 	m_audio_backend_choice->Bind(wxEVT_CHOICE, &AudioConfigPane::OnAudioBackendChanged, this);
 	m_audio_latency_spinctrl->Bind(wxEVT_SPINCTRL, &AudioConfigPane::OnLatencySpinCtrlChanged, this);
 	m_time_stretching_checkbox->Bind(wxEVT_CHECKBOX, &AudioConfigPane::OnTimeStretchingCheckBoxChanged, this);
+	m_RS_Hack_checkbox->Bind(wxEVT_CHECKBOX, &AudioConfigPane::OnRS_Hack_checkboxChanged, this);
 
 	m_audio_backend_choice->SetToolTip(_("Changing this will have no effect while the emulator is running."));
 	m_audio_latency_spinctrl->SetToolTip(_("Sets the latency (in ms). Higher values may reduce audio crackling."));
@@ -57,11 +58,13 @@ void AudioConfigPane::InitializeGUI()
 	m_dpl2_decoder_checkbox->SetToolTip(_("Enables Dolby Pro Logic II emulation using 5.1 surround"));
 #endif
 	m_time_stretching_checkbox->SetToolTip(_("Enables Audio speed stretching to reduce artifacts in games running slower or faster than the original game."));
+	m_RS_Hack_checkbox->SetToolTip(_("HACK to fix HLE audio under Rogue Squadron 2/3. This will break everything else so use carefully."));
 
 	wxStaticBoxSizer* const dsp_engine_sizer = new wxStaticBoxSizer(wxVERTICAL, this, _("Sound Settings"));
 	dsp_engine_sizer->Add(m_dsp_engine_radiobox, 0, wxALL | wxEXPAND, 5);
 	dsp_engine_sizer->Add(m_dpl2_decoder_checkbox, 0, wxALL, 5);
 	dsp_engine_sizer->Add(m_time_stretching_checkbox, 0, wxALL, 5);
+	dsp_engine_sizer->Add(m_RS_Hack_checkbox, 0, wxALL, 5);
 
 	wxStaticBoxSizer* const volume_sizer = new wxStaticBoxSizer(wxVERTICAL, this, _("Volume"));
 	volume_sizer->Add(m_volume_slider, 1, wxLEFT | wxRIGHT, 13);
@@ -109,6 +112,7 @@ void AudioConfigPane::LoadGUIValues()
 	m_audio_latency_spinctrl->SetValue(startup_params.iLatency);
 
 	m_time_stretching_checkbox->SetValue(startup_params.bTimeStretching);
+	m_RS_Hack_checkbox->SetValue(startup_params.bRSHACK);
 }
 
 void AudioConfigPane::RefreshGUI()
@@ -120,6 +124,7 @@ void AudioConfigPane::RefreshGUI()
 		m_dpl2_decoder_checkbox->Disable();
 		m_dsp_engine_radiobox->Disable();
 		m_time_stretching_checkbox->Disable();
+		m_RS_Hack_checkbox->Disable();
 	}
 }
 
@@ -138,6 +143,11 @@ void AudioConfigPane::OnDPL2DecoderCheckBoxChanged(wxCommandEvent&)
 void AudioConfigPane::OnTimeStretchingCheckBoxChanged(wxCommandEvent&)
 {
 	SConfig::GetInstance().bTimeStretching = m_time_stretching_checkbox->IsChecked();
+}
+
+void AudioConfigPane::OnRS_Hack_checkboxChanged(wxCommandEvent&)
+{
+	SConfig::GetInstance().bRSHACK = m_RS_Hack_checkbox->IsChecked();
 }
 
 void AudioConfigPane::OnVolumeSliderChanged(wxCommandEvent& event)
