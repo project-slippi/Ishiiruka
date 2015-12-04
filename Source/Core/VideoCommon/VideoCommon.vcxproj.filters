@@ -2,7 +2,6 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <ClCompile Include="CommandProcessor.cpp" />
-    <ClCompile Include="memcpy_amd.cpp" />
     <ClCompile Include="PixelEngine.cpp" />
     <ClCompile Include="VideoBackendBase.cpp" />
     <ClCompile Include="VideoConfig.cpp" />

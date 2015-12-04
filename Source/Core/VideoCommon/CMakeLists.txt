@@ -37,7 +37,6 @@ set(SRCS	AsyncRequests.cpp
 			ImageWrite.cpp
 			IndexGenerator.cpp
 			MainBase.cpp
-			memcpy_amd.cpp
 			OnScreenDisplay.cpp
 			OpcodeDecoding.cpp
 			OpcodeDecodingSC.cpp
