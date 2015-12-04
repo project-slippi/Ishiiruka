@@ -978,7 +978,7 @@ inline void GeneratePixelShader(T& out, DSTALPHA_MODE dstAlphaMode, u32 componen
 			// Opengl has reversed vertical screenspace coordiantes
 			if (ApiType == API_OPENGL)
 			{
-				out.Write("\tscreenpos.y = %i - screenpos.y;\n", EFB_HEIGHT);
+				out.Write("\tscreenpos.y = %i.0 - screenpos.y;\n", EFB_HEIGHT);
 			}
 			if (Use_integer_math)
 			{
@@ -1971,7 +1971,7 @@ inline void WritePerPixelDepth(T& out, const BPMemory &bpm)
 		// Opengl has reversed vertical screenspace coordiantes
 		if (ApiType == API_OPENGL)
 		{
-			out.Write("\tscreenpos.y = %i - screenpos.y - 1;\n", EFB_HEIGHT);
+			out.Write("\tscreenpos.y = %i.0 - screenpos.y - 1;\n", EFB_HEIGHT);
 			out.Write("\tdepth = (" I_ZSLOPE".z + " I_ZSLOPE".x * screenpos.x + " I_ZSLOPE".y * screenpos.y) / 16777216.0;\n");
 		}
 		else
