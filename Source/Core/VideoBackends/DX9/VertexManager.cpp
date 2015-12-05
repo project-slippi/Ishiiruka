@@ -495,6 +495,7 @@ void VertexManager::vFlush(bool useDstAlpha)
 	m_num_verts = IndexGenerator::GetNumVerts();
 	m_total_num_verts = m_num_verts;
 	m_total_index_len = m_index_len;
+	const u32 stride = g_nativeVertexFmt->GetVertexStride();
 	switch (current_primitive_type)
 	{
 	case PRIMITIVE_POINTS:
@@ -557,8 +558,7 @@ void VertexManager::vFlush(bool useDstAlpha)
 			DX9::D3D::dev->SetPixelShaderConstantF(region.first, &buffer[region.first * 4], region.second - region.first + 1);
 		}
 		PixelShaderManager::Clear();
-	}
-	u32 stride = g_nativeVertexFmt->GetVertexStride();
+	}	
 	PrepareDrawBuffers(stride);
 	if (forced_early_z)
 	{

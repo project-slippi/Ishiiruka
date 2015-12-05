@@ -297,7 +297,7 @@ namespace D3D
 
 		for (u32 index = 0; index < 8; ++index)
 		{
-			if (m_current.textures[index] == srv)
+			if (m_current.textures[index] == srv || m_pending.textures[index] == srv)
 			{
 				SetTexture(index, nullptr);
 				mask |= 1 << index;
