@@ -82,7 +82,7 @@ void OpcodeDecoder_Init();
 void OpcodeDecoder_Shutdown();
 
 template <bool is_preprocess = false>
-u8* OpcodeDecoder_Run(u32* cycles, bool in_display_list);
+u8* OpcodeDecoder_Run(DataReader& reader, u32* cycles, bool in_display_list);
 
 typedef void(*DataReadU32xNfunc)(u32 *buf);
 extern DataReadU32xNfunc DataReadU32xFuncs[16];

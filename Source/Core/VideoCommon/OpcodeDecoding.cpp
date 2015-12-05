@@ -11,6 +11,7 @@
 // Note that it IS NOT GENERALLY POSSIBLE to precompile display lists! You can compile them as they are
 // while interpreting them, and hope that the vertex format doesn't change, though, if you do it right
 // when they are called. The reason is that the vertex format affects the sizes of the vertices.
+
 #include "Common/CommonTypes.h"
 #include "Common/CPUDetect.h"
 #include "Core/Core.h"
@@ -42,8 +43,6 @@ void ReadU32xn(u32 *bufx16)
 
 static u32 InterpretDisplayList(u32 address, u32 size)
 {
-	u8* old_pVideoData = g_VideoData.GetReadPosition();
-	u8* old_pVideoDataEnd = g_VideoData.GetEnd();
 	u8* startAddress;
 
 	if (g_use_deterministic_gpu_thread)
@@ -56,11 +55,14 @@ static u32 InterpretDisplayList(u32 address, u32 size)
 	// Avoid the crash if Memory::GetPointer failed ..
 	if (startAddress != nullptr)
 	{
+		u8* old_pVideoData = g_VideoData.GetReadPosition();
+		u8* old_pVideoDataEnd = g_VideoData.GetEnd();
+
 		g_VideoData.SetReadPosition(startAddress, startAddress + size);
 
 		// temporarily swap dl and non-dl (small "hack" for the stats)
 		Statistics::SwapDL();
-		OpcodeDecoder_Run(&cycles, true);
+		OpcodeDecoder_Run(g_VideoData, &cycles, true);
 		INCSTAT(stats.thisFrame.numDListsCalled);
 		// un-swap
 		Statistics::SwapDL();
@@ -72,18 +74,13 @@ static u32 InterpretDisplayList(u32 address, u32 size)
 
 static void InterpretDisplayListPreprocess(u32 address, u32 size)
 {
-	u8* old_pVideoData = g_VideoData.GetReadPosition();
-	u8* old_pVideoDataEnd = g_VideoData.GetEnd();
 	u8* startAddress = Memory::GetPointer(address);
 
 	PushFifoAuxBuffer(startAddress, size);
 
 	if (startAddress != nullptr)
 	{
-		g_VideoData.SetReadPosition(startAddress, startAddress + size);
-		OpcodeDecoder_Run<true>(nullptr, true);
-		// reset to the old pointer
-		g_VideoData.SetReadPosition(old_pVideoData, old_pVideoDataEnd);
+		OpcodeDecoder_Run<true>(DataReader(startAddress, startAddress + size) , nullptr, true);
 	}
 }
 
@@ -136,15 +133,6 @@ static void UnknownOpcode(u8 cmd_byte, const void *buffer, bool preprocess)
 	}
 }
 
-template<bool sizeCheck, bool is_preprocess>
-__forceinline u32 Decode(bool in_display_list)
-{
-	
-
-	return cycles;
-}
-
-
 DataReadU32xNfunc DataReadU32xFuncs[16] = {
 	ReadU32xn<1>,
 	ReadU32xn<2>,
@@ -175,18 +163,18 @@ void OpcodeDecoder_Shutdown()
 }
 
 template <bool is_preprocess>
-u8* OpcodeDecoder_Run(u32* cycles, bool in_display_list)
+u8* OpcodeDecoder_Run(DataReader& reader, u32* cycles, bool in_display_list)
 {
 	u32 totalCycles = 0;
 	u8* opcodeStart;
 	while (true)
 	{
-		opcodeStart = g_VideoData.GetReadPosition();
-		if (!g_VideoData.size())
+		opcodeStart = reader.GetReadPosition();
+		if (!reader.size())
 			goto end;
 
-		u8 cmd_byte = g_VideoData.Read<u8>();
-		size_t distance = g_VideoData.size();
+		u8 cmd_byte = reader.Read<u8>();
+		size_t distance = reader.size();
 
 		switch (cmd_byte)
 		{
@@ -206,8 +194,8 @@ u8* OpcodeDecoder_Run(u32* cycles, bool in_display_list)
 			if (distance < GX_LOAD_CP_REG_SIZE)
 				goto end;
 			totalCycles += GX_LOAD_CP_REG_CYCLES;
-			u8 sub_cmd = g_VideoData.Read<u8>();
-			u32 value = g_VideoData.Read<u32>();
+			u8 sub_cmd = reader.Read<u8>();
+			u32 value = reader.Read<u32>();
 			LoadCPReg(sub_cmd, value, is_preprocess);
 			if (!is_preprocess)
 				INCSTAT(stats.thisFrame.numCPLoads);
@@ -217,13 +205,17 @@ u8* OpcodeDecoder_Run(u32* cycles, bool in_display_list)
 		{
 			if (distance < GX_LOAD_XF_REG_SIZE)
 				goto end;
-			u32 Cmd2 = g_VideoData.Read<u32>();
+			u32 Cmd2 = reader.Read<u32>();
 			distance -= GX_LOAD_XF_REG_SIZE;
 			int transfer_size = ((Cmd2 >> 16) & 15) + 1;
 			if (distance < (transfer_size * sizeof(u32)))
 				goto end;
 			totalCycles += GX_LOAD_XF_REG_BASE_CYCLES + GX_LOAD_XF_REG_TRANSFER_CYCLES * transfer_size;
-			if (!is_preprocess)
+			if (is_preprocess)
+			{
+				reader.ReadSkip(transfer_size * sizeof(u32));
+			}
+			else
 			{
 				u32 xf_address = Cmd2 & 0xFFFF;
 				LoadXFReg(transfer_size, xf_address);
@@ -237,9 +229,9 @@ u8* OpcodeDecoder_Run(u32* cycles, bool in_display_list)
 				goto end;
 			totalCycles += GX_LOAD_INDX_A_CYCLES;
 			if (is_preprocess)
-				PreprocessIndexedXF(g_VideoData.Read<u32>(), 0xC);
+				PreprocessIndexedXF(reader.Read<u32>(), 0xC);
 			else
-				LoadIndexedXF(g_VideoData.Read<u32>(), 0xC);
+				LoadIndexedXF(reader.Read<u32>(), 0xC);
 		}
 		break;
 		case GX_LOAD_INDX_B: //used for normal matrices
@@ -248,9 +240,9 @@ u8* OpcodeDecoder_Run(u32* cycles, bool in_display_list)
 				goto end;
 			totalCycles += GX_LOAD_INDX_B_CYCLES;
 			if (is_preprocess)
-				PreprocessIndexedXF(g_VideoData.Read<u32>(), 0xD);
+				PreprocessIndexedXF(reader.Read<u32>(), 0xD);
 			else
-				LoadIndexedXF(g_VideoData.Read<u32>(), 0xD);
+				LoadIndexedXF(reader.Read<u32>(), 0xD);
 		}
 		break;
 		case GX_LOAD_INDX_C: //used for postmatrices
@@ -259,9 +251,9 @@ u8* OpcodeDecoder_Run(u32* cycles, bool in_display_list)
 				goto end;
 			totalCycles += GX_LOAD_INDX_C_CYCLES;
 			if (is_preprocess)
-				PreprocessIndexedXF(g_VideoData.Read<u32>(), 0xE);
+				PreprocessIndexedXF(reader.Read<u32>(), 0xE);
 			else
-				LoadIndexedXF(g_VideoData.Read<u32>(), 0xE);
+				LoadIndexedXF(reader.Read<u32>(), 0xE);
 		}
 		break;
 		case GX_LOAD_INDX_D: //used for lights
@@ -270,17 +262,17 @@ u8* OpcodeDecoder_Run(u32* cycles, bool in_display_list)
 				goto end;
 			totalCycles += GX_LOAD_INDX_D_CYCLES;
 			if (is_preprocess)
-				PreprocessIndexedXF(g_VideoData.Read<u32>(), 0xF);
+				PreprocessIndexedXF(reader.Read<u32>(), 0xF);
 			else
-				LoadIndexedXF(g_VideoData.Read<u32>(), 0xF);
+				LoadIndexedXF(reader.Read<u32>(), 0xF);
 		}
 		break;
 		case GX_CMD_CALL_DL:
 		{
 			if (distance < GX_CMD_CALL_DL_SIZE)
 				goto end;
-			u32 address = g_VideoData.Read<u32>();
-			u32 count = g_VideoData.Read<u32>();
+			u32 address = reader.Read<u32>();
+			u32 count = reader.Read<u32>();
 			if (in_display_list)
 			{
 				totalCycles += GX_CMD_CALL_DL_BASE_CYCLES;
@@ -312,7 +304,7 @@ u8* OpcodeDecoder_Run(u32* cycles, bool in_display_list)
 			if (distance < GX_LOAD_BP_REG_SIZE)
 				goto end;
 			totalCycles += GX_LOAD_BP_REG_CYCLES;
-			u32 bp_cmd = g_VideoData.Read<u32>();
+			u32 bp_cmd = reader.Read<u32>();
 			if (is_preprocess)
 			{
 				LoadBPRegPreprocess(bp_cmd);
@@ -332,32 +324,51 @@ u8* OpcodeDecoder_Run(u32* cycles, bool in_display_list)
 				if (distance < GX_DRAW_PRIMITIVES_SIZE)
 					goto end;
 
-				u32 count = g_VideoData.Read<u16>();
+				u32 count = reader.Read<u16>();
 				distance -= GX_DRAW_PRIMITIVES_SIZE;
 				if (count)
 				{
+					CPState state = is_preprocess ? g_preprocess_cp_state : g_main_cp_state;
 					VertexLoaderParameters parameters;
 					parameters.count = count;
 					parameters.buf_size = distance;
 					parameters.primitive = (cmd_byte & GX_PRIMITIVE_MASK) >> GX_PRIMITIVE_SHIFT;
 					parameters.vtx_attr_group = cmd_byte & GX_VAT_MASK;
-					parameters.needloaderrefresh = (g_main_cp_state.attr_dirty & (1 << parameters.vtx_attr_group)) != 0;
+					parameters.needloaderrefresh = (state.attr_dirty & (1 << parameters.vtx_attr_group)) != 0;
 					parameters.skip_draw = g_bSkipCurrentFrame;
-					parameters.VtxDesc = &g_main_cp_state.vtx_desc;
-					parameters.VtxAttr = &g_main_cp_state.vtx_attr[parameters.vtx_attr_group];
-					parameters.source = g_VideoData.GetReadPosition();
-					g_main_cp_state.attr_dirty &= ~(1 << parameters.vtx_attr_group);
-					u32 readsize = 0;
-					u32 writesize = 0;
-					if (VertexLoaderManager::ConvertVertices(parameters, readsize, writesize))
+					parameters.VtxDesc = &state.vtx_desc;
+					parameters.VtxAttr = &state.vtx_attr[parameters.vtx_attr_group];
+					parameters.source = reader.GetReadPosition();
+					state.attr_dirty &= ~(1 << parameters.vtx_attr_group);
+					u32 readsize = 0;					
+					if (is_preprocess)
 					{
-						totalCycles += GX_NOP_CYCLES + GX_DRAW_PRIMITIVES_CYCLES * parameters.count;
-						g_VideoData.ReadSkip(readsize);
-						VertexManagerBase::s_pCurBufferPointer += writesize;
+						u32 components = 0;
+						VertexLoaderManager::GetVertexSizeAndComponents(parameters, readsize, components);
+						readsize *= count;
+						if (distance >= readsize)
+						{
+							totalCycles += GX_NOP_CYCLES + GX_DRAW_PRIMITIVES_CYCLES * parameters.count;
+							reader.ReadSkip(readsize);
+						}
+						else
+						{
+							goto end;
+						}
 					}
 					else
 					{
-						goto end;
+						u32 writesize = 0;
+						if (VertexLoaderManager::ConvertVertices(parameters, readsize, writesize))
+						{
+							totalCycles += GX_NOP_CYCLES + GX_DRAW_PRIMITIVES_CYCLES * parameters.count;
+							reader.ReadSkip(readsize);
+							VertexManagerBase::s_pCurBufferPointer += writesize;
+						}
+						else
+						{
+							goto end;
+						}
 					}
 				}
 				else
@@ -380,7 +391,7 @@ u8* OpcodeDecoder_Run(u32* cycles, bool in_display_list)
 		if (!is_preprocess && g_bRecordFifoData && cmd_byte != GX_CMD_CALL_DL)
 		{
 			const u8* opcodeEnd;
-			opcodeEnd = g_VideoData.GetReadPosition();
+			opcodeEnd = reader.GetReadPosition();
 			FifoRecorder::GetInstance().WriteGPCommand(opcodeStart, u32(opcodeEnd - opcodeStart));
 		}
 	}
@@ -392,5 +403,5 @@ end:
 	return opcodeStart;
 }
 
-template u8* OpcodeDecoder_Run<true>(u32* cycles, bool in_display_list);
-template u8* OpcodeDecoder_Run<false>(u32* cycles, bool in_display_list);
+template u8* OpcodeDecoder_Run<true>(DataReader& reader, u32* cycles, bool in_display_list);
+template u8* OpcodeDecoder_Run<false>(DataReader& reader, u32* cycles, bool in_display_list);

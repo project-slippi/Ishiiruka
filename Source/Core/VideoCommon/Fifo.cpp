@@ -263,9 +263,8 @@ static void ReadDataFromFifoOnCPU(u32 readPtr)
 			return;
 		}
 	}
-	Memory::CopyFromEmu(s_video_buffer_write_ptr, readPtr, len);
-	g_VideoData.SetReadPosition(s_video_buffer_pp_read_ptr, write_ptr + len);
-	s_video_buffer_pp_read_ptr = OpcodeDecoder_Run<true>(nullptr, false);
+	Memory::CopyFromEmu(s_video_buffer_write_ptr, readPtr, len);	
+	s_video_buffer_pp_read_ptr = OpcodeDecoder_Run<true>(DataReader(s_video_buffer_pp_read_ptr, write_ptr + len), nullptr, false);
 	// This would have to be locked if the GPU thread didn't spin.
 	s_video_buffer_write_ptr = write_ptr + len;
 }
@@ -310,7 +309,7 @@ void RunGpuLoop()
 			if (write_ptr > seen_ptr)
 			{
 				g_VideoData.SetReadPosition(s_video_buffer_read_ptr, write_ptr);
-				s_video_buffer_read_ptr = OpcodeDecoder_Run(nullptr, false);
+				s_video_buffer_read_ptr = OpcodeDecoder_Run(g_VideoData, nullptr, false);
 				s_video_buffer_seen_ptr = write_ptr;
 			}
 		}
@@ -342,7 +341,7 @@ void RunGpuLoop()
 
 				u8* write_ptr = s_video_buffer_write_ptr;
 				g_VideoData.SetReadPosition(s_video_buffer_read_ptr, write_ptr);
-				s_video_buffer_read_ptr = OpcodeDecoder_Run(&cyclesExecuted, false);
+				s_video_buffer_read_ptr = OpcodeDecoder_Run(g_VideoData, &cyclesExecuted, false);
 
 				Common::AtomicStore(fifo.CPReadPointer, readPtr);
 				Common::AtomicAdd(fifo.CPReadWriteDistance, -32);
@@ -430,7 +429,7 @@ void RunGpu()
 				}
 				ReadDataFromFifo(fifo.CPReadPointer);
 				g_VideoData.SetReadPosition(s_video_buffer_read_ptr, s_video_buffer_write_ptr);
-				s_video_buffer_read_ptr = OpcodeDecoder_Run(nullptr, false);
+				s_video_buffer_read_ptr = OpcodeDecoder_Run(g_VideoData, nullptr, false);
 			}
 
 			//DEBUG_LOG(COMMANDPROCESSOR, "Fifo wraps to base");
