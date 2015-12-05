@@ -23,9 +23,8 @@
 #include "DiscIO/VolumeCreator.h"
 
 #include "DolphinQt/GameList/GameFile.h"
-#include "DolphinQt/Utils/Utils.h"
 
-static const u32 CACHE_REVISION = 0x00D; // Last changed in PR 3097
+static const u32 CACHE_REVISION = 0x00E; // Last changed in PR 3309
 static const u32 DATASTREAM_REVISION = 15; // Introduced in Qt 5.2
 
 static QMap<DiscIO::IVolume::ELanguage, QString> ConvertLocalizedStrings(std::map<DiscIO::IVolume::ELanguage, std::string> strings)
@@ -66,11 +65,11 @@ static QString GetLanguageString(DiscIO::IVolume::ELanguage language, QMap<DiscI
 	if (!strings.empty())
 		return strings.cbegin().value();
 
-	return SL("");
+	return QStringLiteral("");
 }
 
 GameFile::GameFile(const QString& fileName)
-    : m_file_name(fileName)
+	: m_file_name(fileName)
 {
 	QFileInfo info(m_file_name);
 	QDir directory = info.absoluteDir();
@@ -85,13 +84,11 @@ GameFile::GameFile(const QString& fileName)
 		// if a banner has become available after the cache was made.
 		if (m_banner.isNull())
 		{
-			std::unique_ptr<DiscIO::IVolume> volume(DiscIO::CreateVolumeFromFilename(fileName.toStdString()));
-			if (volume != nullptr)
-			{
-				ReadBanner(*volume);
-				if (!m_banner.isNull())
-					SaveToCache();
-			}
+			int width, height;
+			std::vector<u32> buffer = DiscIO::IVolume::GetWiiBanner(&width, &height, m_title_id);
+			ReadBanner(buffer, width, height);
+			if (!m_banner.isNull())
+				SaveToCache();
 		}
 	}
 	else
@@ -113,10 +110,13 @@ GameFile::GameFile(const QString& fileName)
 			m_volume_size = volume->GetSize();
 
 			m_unique_id = QString::fromStdString(volume->GetUniqueID());
+			volume->GetTitleID(&m_title_id);
 			m_disc_number = volume->GetDiscNumber();
 			m_revision = volume->GetRevision();
 
-			ReadBanner(*volume);
+			int width, height;
+			std::vector<u32> buffer = volume->GetBanner(&width, &height);
+			ReadBanner(buffer, width, height);
 
 			m_valid = true;
 			SaveToCache();
@@ -147,12 +147,12 @@ GameFile::GameFile(const QString& fileName)
 	// files with the same name as the main file is provided as an alternative for those who want to have
 	// multiple files in one folder instead of having a Homebrew Channel-style folder structure.
 
-	if (!ReadXML(directory.filePath(info.baseName() + SL(".xml"))))
-		ReadXML(directory.filePath(SL("meta.xml")));
+	if (!ReadXML(directory.filePath(info.baseName() + QStringLiteral(".xml"))))
+		ReadXML(directory.filePath(QStringLiteral("meta.xml")));
 
-	QImage banner(directory.filePath(info.baseName() + SL(".png")));
+	QImage banner(directory.filePath(info.baseName() + QStringLiteral(".png")));
 	if (banner.isNull())
-		banner.load(directory.filePath(SL("icon.png")));
+		banner.load(directory.filePath(QStringLiteral("icon.png")));
 	if (!banner.isNull())
 		m_banner = QPixmap::fromImage(banner);
 }
@@ -185,18 +185,19 @@ bool GameFile::LoadFromCache()
 	QMap<u8, QString> long_names;
 	QMap<u8, QString> descriptions;
 	stream >> short_names
-	       >> long_names
-	       >> descriptions
-	       >> m_company
-	       >> m_unique_id
-	       >> blob_type
-	       >> m_file_size
-	       >> m_volume_size
-	       >> country
-	       >> m_banner
-	       >> platform
-	       >> m_disc_number
-	       >> m_revision;
+		>> long_names
+		>> descriptions
+		>> m_company
+		>> m_unique_id
+		>> m_title_id
+		>> blob_type
+		>> m_file_size
+		>> m_volume_size
+		>> country
+		>> m_banner
+		>> platform
+		>> m_disc_number
+		>> m_revision;
 	m_country = (DiscIO::IVolume::ECountry)country;
 	m_platform = (DiscIO::IVolume::EPlatform)platform;
 	m_blob_type = (DiscIO::BlobType)blob_type;
@@ -228,33 +229,25 @@ void GameFile::SaveToCache()
 	stream << CACHE_REVISION;
 
 	stream << CastLocalizedStrings<u8>(m_short_names)
-	       << CastLocalizedStrings<u8>(m_long_names)
-	       << CastLocalizedStrings<u8>(m_descriptions)
-	       << m_company
-	       << m_unique_id
-	       << (u32)m_blob_type
-	       << m_file_size
-	       << m_volume_size
-	       << (u32)m_country
-	       << m_banner
-	       << (u32)m_platform
-	       << m_disc_number
-	       << m_revision;
+		<< CastLocalizedStrings<u8>(m_long_names)
+		<< CastLocalizedStrings<u8>(m_descriptions)
+		<< m_company
+		<< m_unique_id
+		<< m_title_id
+		<< (u32)m_blob_type
+		<< m_file_size
+		<< m_volume_size
+		<< (u32)m_country
+		<< m_banner
+		<< (u32)m_platform
+		<< m_disc_number
+		<< m_revision;
 }
 
 bool GameFile::IsElfOrDol() const
 {
-	const std::string name = m_file_name.toStdString();
-	const size_t pos = name.rfind('.');
-
-	if (pos != std::string::npos)
-	{
-		std::string ext = name.substr(pos);
-		std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
-
-		return ext == ".elf" || ext == ".dol";
-	}
-	return false;
+	return m_file_name.endsWith(QStringLiteral(".elf"), Qt::CaseInsensitive) ||
+		m_file_name.endsWith(QStringLiteral(".dol"), Qt::CaseInsensitive);
 }
 
 QString GameFile::CreateCacheFilename() const
@@ -263,10 +256,10 @@ QString GameFile::CreateCacheFilename() const
 	SplitPath(m_file_name.toStdString(), &pathname, &filename, &extension);
 
 	if (filename.empty())
-		return SL(""); // must be a disc drive
+		return QStringLiteral(""); // must be a disc drive
 
-	// Filename.extension_HashOfFolderPath_Size.cache
-	// Append hash to prevent ISO name-clashing in different folders.
+											// Filename.extension_HashOfFolderPath_Size.cache
+											// Append hash to prevent ISO name-clashing in different folders.
 	filename.append(StringFromFormat("%s_%x_%llx.qcache",
 		extension.c_str(), HashFletcher((const u8*)pathname.c_str(), pathname.size()),
 		(unsigned long long)File::GetSize(m_file_name.toStdString())));
@@ -277,17 +270,15 @@ QString GameFile::CreateCacheFilename() const
 }
 
 // Outputs to m_banner
-void GameFile::ReadBanner(const DiscIO::IVolume& volume)
+void GameFile::ReadBanner(const std::vector<u32>& buffer, int width, int height)
 {
-	int width, height;
-	std::vector<u32> buffer = volume.GetBanner(&width, &height);
 	QImage banner(width, height, QImage::Format_RGB888);
 	for (int i = 0; i < width * height; i++)
 	{
 		int x = i % width, y = i / width;
 		banner.setPixel(x, y, qRgb((buffer[i] & 0xFF0000) >> 16,
-		                           (buffer[i] & 0x00FF00) >> 8,
-		                           (buffer[i] & 0x0000FF) >> 0));
+			(buffer[i] & 0x00FF00) >> 8,
+			(buffer[i] & 0x0000FF) >> 0));
 	}
 
 	if (!banner.isNull())
@@ -306,21 +297,21 @@ bool GameFile::ReadXML(const QString& file_path)
 		return false;
 
 	QXmlStreamReader reader(&file);
-	if (reader.readNextStartElement() && reader.name() == SL("app"))
+	if (reader.readNextStartElement() && reader.name() == QStringLiteral("app"))
 	{
 		while (reader.readNextStartElement())
 		{
 			QStringRef name = reader.name();
-			if (name == SL("name"))
+			if (name == QStringLiteral("name"))
 			{
 				m_short_names = { { DiscIO::IVolume::LANGUAGE_UNKNOWN, reader.readElementText() } };
 				m_long_names = m_short_names;
 			}
-			else if (name == SL("short_description"))
+			else if (name == QStringLiteral("short_description"))
 			{
 				m_descriptions = { { DiscIO::IVolume::LANGUAGE_UNKNOWN, reader.readElementText() } };
 			}
-			else if (name == SL("coder"))
+			else if (name == QStringLiteral("coder"))
 			{
 				m_company = reader.readElementText();
 			}
@@ -382,7 +373,7 @@ const QString GameFile::GetWiiFSPath() const
 		volume->GetTitleID(&title_id);
 
 		std::string path = StringFromFormat("%s/title/%08x/%08x/data/",
-				File::GetUserPath(D_WIIROOT_IDX).c_str(), (u32)(title_id >> 32), (u32)title_id);
+			File::GetUserPath(D_WIIROOT_IDX).c_str(), (u32)(title_id >> 32), (u32)title_id);
 
 		if (!File::Exists(path))
 			File::CreateFullPath(path);
