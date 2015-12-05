@@ -229,7 +229,7 @@ inline void GenerateVertexShader(T& out, u32 components, const XFMemory &xfr, co
 			if (components & VB_HAS_COL0)
 				out.Write("o.colors_0 = color0;\n");
 			else
-				out.Write("o.colors_0 = float4(1.0, 1.0, 1.0, 1.0);\n");
+				out.Write("o.colors_0 = float4(0.0, 0.0, 0.0, 0.0);\n");
 
 			if (components & VB_HAS_COL1)
 				out.Write("o.colors_1 = color1;\n");

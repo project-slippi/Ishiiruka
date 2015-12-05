@@ -138,7 +138,7 @@ static void GenerateLightingShader(T& object, LightingUidData& uid_data, int com
 				else if (components & VB_HAS_COL0)
 					object.Write("mat = round(%s0 * 255.0);\n", inColorName);
 				else
-					object.Write("mat = float4(255.0,255.0,255.0,255.0);\n");
+					object.Write("mat = float4(0.0,0.0,0.0,0.0);\n");
 			}
 			else // from color
 			{
@@ -161,8 +161,8 @@ static void GenerateLightingShader(T& object, LightingUidData& uid_data, int com
 					else
 						// TODO: this isn't verified. Here we want to read the ambient from the vertex,
 						// but the vertex itself has no color. So we don't know which value to read.
-						// Returing 1.0 is the same as disabled lightning, so this could be fine
-						object.Write("lacc = float4(255.0,255.0,255.0,255.0);\n");
+						// Returing 0.0 is Required in SMS to make Debug boxes invisible in the Bonus level
+						object.Write("lacc = float4(0.0,0.0,0.0,0.0);\n");
 				}
 				else // from color
 				{
@@ -187,7 +187,7 @@ static void GenerateLightingShader(T& object, LightingUidData& uid_data, int com
 						object.Write("mat.w = round(%s%d.w * 255.0);\n", inColorName, j);
 					else if (components & VB_HAS_COL0)
 						object.Write("mat.w = round(%s0.w * 255.0);\n", inColorName);
-					else object.Write("mat.w = 255.0;\n");
+					else object.Write("mat.w = 0.0;\n");
 				}
 				else // from color
 				{
@@ -211,7 +211,7 @@ static void GenerateLightingShader(T& object, LightingUidData& uid_data, int com
 						object.Write("lacc.w = round(%s0.w * 255.0);\n", inColorName);
 					else
 						// TODO: The same for alpha: We want to read from vertex, but the vertex has no color
-						object.Write("lacc.w = 255.0;\n");
+						object.Write("lacc.w = 0.0;\n");
 				}
 				else // from color
 				{
