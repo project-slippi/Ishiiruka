@@ -31,8 +31,11 @@ inline void GenerateVertexShader(T& out, u32 components, const XFMemory &xfr, co
 	{
 		out.ClearUID();
 	}
-	_assert_(bpm.genMode.numtexgens == xfr.numTexGen.numTexGens);
-	_assert_(bpm.genMode.numcolchans == xfr.numChan.numColorChans);
+	if (Write_Code)
+	{
+		_dbg_assert_log_(VIDEO, bpm.genMode.numtexgens == xfr.numTexGen.numTexGens, "numTexGens mismatch bpmem: %u xfmem: %u", bpm.genMode.numtexgens.Value(), xfr.numTexGen.numTexGens);
+		_dbg_assert_log_(VIDEO, bpm.genMode.numcolchans == xfr.numChan.numColorChans, "numColorChans mismatch bpmem: %u xfmem: %u", bpm.genMode.numcolchans.Value(), xfr.numChan.numColorChans);
+	}
 	uid_data.numTexGens = xfr.numTexGen.numTexGens;
 	uid_data.components = components;
 	bool lightingEnabled = xfr.numChan.numColorChans > 0;
@@ -273,36 +276,35 @@ inline void GenerateVertexShader(T& out, u32 components, const XFMemory &xfr, co
 			switch (texinfo.sourcerow)
 			{
 			case XF_SRCGEOM_INROW:
-				// The following assert was triggered in Super Smash Bros. Project M 3.6.
-				//_assert_(texinfo.inputform == XF_TEXINPUT_ABC1);
+				_dbg_assert_log_(VIDEO, texinfo.inputform == XF_TEXINPUT_ABC1, "Incorrect inputform sourcerow: XF_SRCGEOM_INROW inputform: %u", texinfo.inputform);
 				out.Write("coord = rawpos;\n"); // pos.w is 1
 				break;
 			case XF_SRCNORMAL_INROW:
 				if (components & VB_HAS_NRM0)
 				{
-					_assert_(texinfo.inputform == XF_TEXINPUT_ABC1);
+					_dbg_assert_log_(VIDEO, texinfo.inputform == XF_TEXINPUT_ABC1, "Incorrect inputform sourcerow: XF_SRCNORMAL_INROW inputform: %u", texinfo.inputform);
 					out.Write("coord = float4(rawnorm0.xyz, 1.0);\n");
 				}
 				break;
 			case XF_SRCCOLORS_INROW:
-				_assert_(texinfo.texgentype == XF_TEXGEN_COLOR_STRGBC0 || texinfo.texgentype == XF_TEXGEN_COLOR_STRGBC1);
+				_dbg_assert_log_(VIDEO, texinfo.texgentype == XF_TEXGEN_COLOR_STRGBC0 || texinfo.texgentype == XF_TEXGEN_COLOR_STRGBC1, "texgentype missmatch: %u", texinfo.texgentype);
 				break;
 			case XF_SRCBINORMAL_T_INROW:
 				if (components & VB_HAS_NRM1)
 				{
-					_assert_(texinfo.inputform == XF_TEXINPUT_ABC1);
+					_dbg_assert_log_(VIDEO, texinfo.inputform == XF_TEXINPUT_ABC1, "Incorrect inputform sourcerow: XF_SRCBINORMAL_T_INROW inputform: %u", texinfo.inputform);
 					out.Write("coord = float4(rawnorm1.xyz, 1.0);\n");
 				}
 				break;
 			case XF_SRCBINORMAL_B_INROW:
 				if (components & VB_HAS_NRM2)
 				{
-					_assert_(texinfo.inputform == XF_TEXINPUT_ABC1);
+					_dbg_assert_log_(VIDEO, texinfo.inputform == XF_TEXINPUT_ABC1, "Incorrect inputform sourcerow: XF_SRCBINORMAL_B_INROW inputform: %u", texinfo.inputform);
 					out.Write("coord = float4(rawnorm2.xyz, 1.0);\n");
 				}
 				break;
 			default:
-				_assert_(texinfo.sourcerow <= XF_SRCTEX7_INROW);
+				_dbg_assert_log_(VIDEO, texinfo.sourcerow <= XF_SRCTEX7_INROW, "sourcerow missmatch: %u", texinfo.sourcerow);
 				if (components & (VB_HAS_UV0 << (texinfo.sourcerow - XF_SRCTEX0_INROW)))
 					out.Write("coord = float4(tex%d.x, tex%d.y, 1.0, 1.0);\n", texinfo.sourcerow - XF_SRCTEX0_INROW, texinfo.sourcerow - XF_SRCTEX0_INROW);
 				break;
@@ -329,24 +331,29 @@ inline void GenerateVertexShader(T& out, u32 components, const XFMemory &xfr, co
 			else
 			{
 				// The following assert was triggered in House of the Dead Overkill and Star Wars Rogue Squadron 2
-				//_assert_(0); // should have normals
+				//
 				uid_data.texMtxInfo[i].embosssourceshift = xfr.texMtxInfo[i].embosssourceshift;
 				if (Write_Code)
 				{
+					_dbg_assert_log_(VIDEO, 0, "vertex normals spected");
 					out.Write("o.tex%d.xyz = o.tex%d.xyz;\n", i, texinfo.embosssourceshift);
 				}
 			}
 
 			break;
 		case XF_TEXGEN_COLOR_STRGBC0:
-			_assert_(texinfo.sourcerow == XF_SRCCOLORS_INROW);
 			if (Write_Code)
+			{
+				_dbg_assert_log_(VIDEO, texinfo.sourcerow == XF_SRCCOLORS_INROW, "sourcerow missmatch spected: XF_SRCCOLORS_INROW found: %u", texinfo.sourcerow);
 				out.Write("o.tex%d.xyz = float3(o.colors_0.x, o.colors_0.y, 1);\n", i);
+			}
 			break;
 		case XF_TEXGEN_COLOR_STRGBC1:
-			_assert_(texinfo.sourcerow == XF_SRCCOLORS_INROW);
 			if (Write_Code)
+			{
+				_dbg_assert_log_(VIDEO, texinfo.sourcerow == XF_SRCCOLORS_INROW, "sourcerow missmatch spected: XF_SRCCOLORS_INROW found: %u", texinfo.sourcerow);
 				out.Write("o.tex%d.xyz = float3(o.colors_1.x, o.colors_1.y, 1);\n", i);
+			}
 			break;
 		case XF_TEXGEN_REGULAR:
 		default:

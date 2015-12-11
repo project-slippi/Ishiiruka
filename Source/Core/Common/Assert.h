@@ -21,6 +21,11 @@
 		if (!PanicYesNo(_msg_, __VA_ARGS__)) \
 			Crash(); \
 	}
+
+#define _dbg_assert_log_(_t_, _a_, _msg_, ...)\
+	if (MAX_LOGLEVEL >= LogTypes::LOG_LEVELS::LDEBUG && !(_a_)) {\
+		ERROR_LOG(_t_, _msg_, __VA_ARGS__); \
+	}
 #else
 #define _assert_msg_(_t_, _a_, _fmt_, ...) \
 	if (!(_a_)) {\
@@ -33,6 +38,10 @@
 		ERROR_LOG(_t_, _msg_, ##__VA_ARGS__); \
 		if (!PanicYesNo(_msg_, ##__VA_ARGS__)) \
 			Crash(); \
+	}
+#define _dbg_assert_log_(_t_, _a_, _msg_, ...)\
+	if (MAX_LOGLEVEL >= LogTypes::LOG_LEVELS::LDEBUG && !(_a_)) {\
+		ERROR_LOG(_t_, _msg_, ##__VA_ARGS__); \
 	}
 #endif
 
