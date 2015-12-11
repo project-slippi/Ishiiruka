@@ -20,7 +20,6 @@
 #define M_PI 3.14159265358979323846
 #endif
 
-const float CMixer::LOW_WATERMARK = 1280;
 const float CMixer::MAX_FREQ_SHIFT = 200;
 const float CMixer::CONTROL_FACTOR = 0.2f;
 const float CMixer::CONTROL_AVG = 32;
@@ -83,7 +82,11 @@ void CMixer::MixerFifo::Mix(float* samples, u32 numSamples, bool consider_framel
 	// Sync input rate by fifo size
 	float num_left = (float)(((write_index - read_index) & INDEX_MASK) / 2);
 	m_num_left_i = (num_left + m_num_left_i * (CONTROL_AVG - 1)) / CONTROL_AVG;
-	float offset = (m_num_left_i - LOW_WATERMARK) * CONTROL_FACTOR;
+
+	u32 low_waterwark = m_input_sample_rate * SConfig::GetInstance().iTimingVariance / 1000;
+	low_waterwark = std::min(low_waterwark, MAX_SAMPLES / 2);
+
+	float offset = (m_num_left_i - low_waterwark) * CONTROL_FACTOR;
 	offset = MathUtil::Clamp(offset, -MAX_FREQ_SHIFT, MAX_FREQ_SHIFT);
 	// adjust framerate with framelimit
 	u32 framelimit = SConfig::GetInstance().m_Framelimit;

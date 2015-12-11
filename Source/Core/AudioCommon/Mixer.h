@@ -23,9 +23,8 @@ class CMixer {
 public:
 	CMixer(u32 BackendSampleRate);
 
-	static const u32 MAX_SAMPLES = 2048;
+	static const u32 MAX_SAMPLES = (1024 * 4); // 128 ms
 	static const u32 INDEX_MASK = MAX_SAMPLES * 2 - 1;
-	static const float LOW_WATERMARK;
 	static const float MAX_FREQ_SHIFT;
 	static const float CONTROL_FACTOR;
 	static const float CONTROL_AVG;
