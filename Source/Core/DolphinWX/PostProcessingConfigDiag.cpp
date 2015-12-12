@@ -43,14 +43,14 @@ PostProcessingConfigDiag::PostProcessingConfigDiag(wxWindow* parent, const std::
 		if (it.second.m_type == PostProcessingShaderConfiguration::ConfigurationOption::OptionType::OPTION_BOOL)
 		{
 			ConfigGrouping* group = new ConfigGrouping(ConfigGrouping::WidgetType::TYPE_TOGGLE,
-				it.second.m_gui_name, it.first, it.second.m_dependent_option,
+				it.second.m_gui_name, it.second.m_gui_description, it.first, it.second.m_dependent_option,
 				&it.second);
 			m_config_map[it.first] = group;
 		}
 		else
 		{
 			ConfigGrouping* group = new ConfigGrouping(ConfigGrouping::WidgetType::TYPE_SLIDER,
-				it.second.m_gui_name, it.first, it.second.m_dependent_option,
+				it.second.m_gui_name, it.second.m_gui_description, it.first, it.second.m_dependent_option,
 				&it.second);
 			m_config_map[it.first] = group;
 		}
@@ -75,8 +75,8 @@ PostProcessingConfigDiag::PostProcessingConfigDiag(wxWindow* parent, const std::
 	// Generate our UI
 	wxNotebook* const notebook = new wxNotebook(this, wxID_ANY);
 	wxPanel* const page_general = new wxPanel(notebook);
-	wxFlexGridSizer* const szr_general = new wxFlexGridSizer(2, 5, 5);
-
+	wxBoxSizer* const szr_general = new wxBoxSizer(wxVERTICAL);
+	wxFlexGridSizer* grid_general = new	wxFlexGridSizer(2, 5, 5);
 	// Now let's actually populate our window with our information
 	bool add_general_page = false;
 	for (const auto& it : m_config_groups)
@@ -85,33 +85,41 @@ PostProcessingConfigDiag::PostProcessingConfigDiag(wxWindow* parent, const std::
 		{
 			// Options with children get their own tab
 			wxPanel* const page_option = new wxPanel(notebook);
-			wxFlexGridSizer* const szr_option = new wxFlexGridSizer(2, 10, 5);
-			it->GenerateUI(this, page_option, szr_option);
+			wxBoxSizer* const szr_option = new wxBoxSizer(wxVERTICAL);
+			wxFlexGridSizer* grid = new	wxFlexGridSizer(2, 10, 5);
+			it->GenerateUI(this, page_option, grid);
 
 			// Add all the children
 			for (const auto& child : it->GetChildren())
 			{
-				child->GenerateUI(this, page_option, szr_option);
+				child->GenerateUI(this, page_option, grid);
 			}
+			szr_option->Add(grid);
+			CreateDescriptionArea(page_option, szr_option);		
 			page_option->SetSizerAndFit(szr_option);
 			notebook->AddPage(page_option, _(it->GetGUIName()));
 		}
 		else
 		{
 			// Options with no children go in to the general tab
-			if (!add_general_page)
-			{
-				// Make it so it doesn't show up if there aren't any options without children.
-				add_general_page = true;
-			}
-			it->GenerateUI(this, page_general, szr_general);
+			// Make it so it doesn't show up if there aren't any options without children.
+			add_general_page = true;
+			it->GenerateUI(this, page_general, grid_general);
 		}
 	}
 
 	if (add_general_page)
 	{
+		szr_general->Add(grid_general);
+		CreateDescriptionArea(page_general, szr_general);
 		page_general->SetSizerAndFit(szr_general);
 		notebook->InsertPage(0, page_general, _("General"));
+	}
+	else
+	{
+		delete grid_general;
+		delete szr_general;
+		delete page_general;
 	}
 
 	// Close Button
@@ -142,6 +150,7 @@ PostProcessingConfigDiag::~PostProcessingConfigDiag()
 
 void PostProcessingConfigDiag::ConfigGrouping::GenerateUI(PostProcessingConfigDiag* dialog, wxWindow* parent, wxFlexGridSizer* sizer)
 {
+
 	if (m_type == WidgetType::TYPE_TOGGLE)
 	{
 		m_option_checkbox = new wxCheckBox(parent, wxID_ANY, _(m_gui_name));
@@ -149,7 +158,7 @@ void PostProcessingConfigDiag::ConfigGrouping::GenerateUI(PostProcessingConfigDi
 		m_option_checkbox->Bind(wxEVT_CHECKBOX, &PostProcessingConfigDiag::Event_CheckBox,
 		                        dialog, wxID_ANY, wxID_ANY, new UserEventData(m_option));
 
-		sizer->Add(m_option_checkbox);
+		sizer->Add(dialog->RegisterControl(m_option_checkbox, _(m_gui_description)));
 		sizer->AddStretchSpacer();
 	}
 	else
@@ -161,8 +170,8 @@ void PostProcessingConfigDiag::ConfigGrouping::GenerateUI(PostProcessingConfigDi
 			vector_size = m_config_option->m_float_values.size();
 
 		wxFlexGridSizer* const szr_values = new wxFlexGridSizer(vector_size + 1, 0, 0);
-		wxStaticText* const option_static_text = new wxStaticText(parent, wxID_ANY, _(m_gui_name));
-		sizer->Add(option_static_text);
+		wxStaticText* const option_static_text = new wxStaticText(parent, wxID_ANY, m_gui_name);
+		sizer->Add(dialog->RegisterControl(option_static_text, m_gui_description));
 
 		for (size_t i = 0; i < vector_size; ++i)
 		{
@@ -210,7 +219,8 @@ void PostProcessingConfigDiag::ConfigGrouping::GenerateUI(PostProcessingConfigDi
 					 dialog, wxID_ANY, wxID_ANY, new UserEventData(m_option));
 			slider->Bind(wxEVT_SCROLL_THUMBRELEASE, &PostProcessingConfigDiag::Event_Slider_Finish,
 				dialog, wxID_ANY, wxID_ANY, new UserEventData(m_option));
-
+			dialog->RegisterControl(slider, m_gui_description);
+			dialog->RegisterControl(text_ctrl, m_gui_description);
 			m_option_sliders.push_back(slider);
 			m_option_text_ctrls.push_back(text_ctrl);
 		}
@@ -355,3 +365,64 @@ void PostProcessingConfigDiag::Event_Close(wxCloseEvent& ev)
 	EndModal(wxID_OK);
 }
 
+wxControl* PostProcessingConfigDiag::RegisterControl(wxControl* const control, const wxString& description)
+{
+	ctrl_descs.insert(std::pair<wxWindow*, wxString>(control, description));
+	control->Bind(wxEVT_ENTER_WINDOW, &PostProcessingConfigDiag::Evt_EnterControl, this);
+	control->Bind(wxEVT_LEAVE_WINDOW, &PostProcessingConfigDiag::Evt_LeaveControl, this);
+	return control;
+}
+
+void PostProcessingConfigDiag::Evt_EnterControl(wxMouseEvent& ev)
+{
+	// TODO: Re-Fit the sizer if necessary!
+
+	// Get settings control object from event
+	wxWindow* ctrl = (wxWindow*)ev.GetEventObject();
+	if (!ctrl) return;
+
+	// look up description text object from the control's parent (which is the wxPanel of the current tab)
+	wxStaticText* descr_text = desc_texts[ctrl->GetParent()];
+	if (!descr_text) return;
+	if (ctrl_descs[ctrl].size() > 0)
+	{
+		// look up the description of the selected control and assign it to the current description text object's label
+		descr_text->SetLabel(ctrl_descs[ctrl]);
+		descr_text->Wrap(descr_text->GetContainingSizer()->GetSize().x - 20);
+	}
+	ev.Skip();
+}
+
+// TODO: Don't hardcode the size of the description area via line breaks
+#define DEFAULT_DESC_TEXT _("Move the mouse pointer over an option to display a detailed description.\n\n\n\n\n\n\n")
+void PostProcessingConfigDiag::Evt_LeaveControl(wxMouseEvent& ev)
+{
+	// look up description text control and reset its label
+	wxWindow* ctrl = (wxWindow*)ev.GetEventObject();
+	if (!ctrl) return;
+	wxStaticText* descr_text = desc_texts[ctrl->GetParent()];
+	if (!descr_text) return;
+
+	descr_text->SetLabel(DEFAULT_DESC_TEXT);
+	descr_text->Wrap(descr_text->GetContainingSizer()->GetSize().x - 20);
+	ev.Skip();
+}
+
+void PostProcessingConfigDiag::CreateDescriptionArea(wxPanel* const page, wxBoxSizer* const sizer)
+{
+	sizer->AddStretchSpacer();
+	// Create description frame
+	wxStaticBoxSizer* const desc_sizer = new wxStaticBoxSizer(wxVERTICAL, page, _("Description"));
+	sizer->Add(desc_sizer, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 5);
+
+	// Need to call SetSizerAndFit here, since we don't want the description texts to change the dialog width
+	page->SetSizerAndFit(sizer);
+
+	// Create description text
+	wxStaticText* const desc_text = new wxStaticText(page, wxID_ANY, DEFAULT_DESC_TEXT);
+	desc_text->Wrap(desc_sizer->GetSize().x - 20);
+	desc_sizer->Add(desc_text, 1, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 5);
+
+	// Store description text object for later lookup
+	desc_texts.insert(std::pair<wxWindow*, wxStaticText*>(page, desc_text));
+}

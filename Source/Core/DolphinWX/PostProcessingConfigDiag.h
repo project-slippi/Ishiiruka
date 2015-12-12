@@ -47,10 +47,10 @@ private:
 			TYPE_SLIDER,
 		};
 
-		ConfigGrouping(WidgetType type, const std::string& gui_name,
+		ConfigGrouping(WidgetType type, const std::string& gui_name, const std::string& gui_description,
 		               const std::string& option_name, const std::string& parent,
 				   const PostProcessingShaderConfiguration::ConfigurationOption* config_option)
-			: m_type(type), m_gui_name(gui_name),
+			: m_type(type), m_gui_name(gui_name), m_gui_description(gui_description),
 			  m_option(option_name), m_parent(parent),
 			  m_config_option(config_option) {}
 
@@ -60,6 +60,8 @@ private:
 
 		// Gets the string that is shown in the UI for the option
 		const std::string& GetGUIName() { return m_gui_name; }
+		// Gets the string that is shown in the UI as a description for the option
+		const std::string& GetGUIDescription() { return m_gui_description; }
 		// Gets the option name for use in the shader
 		// Also is a unique identifier for the option's configuration
 		const std::string& GetOption() { return m_option; }
@@ -76,6 +78,7 @@ private:
 	private:
 		const WidgetType m_type;
 		const std::string m_gui_name;
+		const std::string m_gui_description;
 		const std::string m_option;
 		const std::string m_parent;
 		const PostProcessingShaderConfiguration::ConfigurationOption* m_config_option;
@@ -103,5 +106,14 @@ private:
 
 	std::map<std::string, ConfigGrouping*> m_config_map;
 	std::vector<ConfigGrouping*> m_config_groups;
+
+	// Tooltips
+	wxControl* RegisterControl(wxControl* const control, const wxString& description);
+
+	void Evt_EnterControl(wxMouseEvent& ev);
+	void Evt_LeaveControl(wxMouseEvent& ev);
+	void CreateDescriptionArea(wxPanel* const page, wxBoxSizer* const sizer);
+	std::map<wxWindow*, wxString> ctrl_descs; // maps setting controls to their descriptions
+	std::map<wxWindow*, wxStaticText*> desc_texts; // maps dialog tabs (which are the parents of the setting controls) to their description text objects
 };
 

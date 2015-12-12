@@ -14,8 +14,63 @@
 #include "VideoCommon/PostProcessing.h"
 #include "VideoCommon/VideoConfig.h"
 
+#include <wx/language.h>
+
 
 static const char s_default_shader[] = "void main() { SetOutput(ApplyGCGamma(Sample())); }\n";
+struct LangDescriptor
+{
+	wxLanguage Lang;
+	const char* Code;
+};
+
+#define LANGUAGE_ID_COUNT 26
+
+static const LangDescriptor language_ids[LANGUAGE_ID_COUNT] =
+{
+	{ wxLANGUAGE_DEFAULT, ""},
+
+	{ wxLANGUAGE_CATALAN, ".CAT" },
+	{ wxLANGUAGE_CZECH, ".CZE" },
+	{ wxLANGUAGE_GERMAN, ".GER" },
+	{ wxLANGUAGE_ENGLISH, ".ENG" },
+	{ wxLANGUAGE_SPANISH, ".SPA" },
+	{ wxLANGUAGE_FRENCH, ".FRE" },
+	{ wxLANGUAGE_ITALIAN, ".ITA" },
+	{ wxLANGUAGE_HUNGARIAN, ".HUN" },
+	{ wxLANGUAGE_DUTCH, ".DUT" },
+	{ wxLANGUAGE_NORWEGIAN_BOKMAL, ".NOR" },
+	{ wxLANGUAGE_POLISH, ".POL" },
+	{ wxLANGUAGE_PORTUGUESE, ".POR" },
+	{ wxLANGUAGE_PORTUGUESE_BRAZILIAN, ".BRA" },
+	{ wxLANGUAGE_SERBIAN, ".SER" },
+	{ wxLANGUAGE_SWEDISH, ".SWE" },
+	{ wxLANGUAGE_TURKISH, ".TUR" },
+	
+	{ wxLANGUAGE_GREEK, ".GRE" },
+	{ wxLANGUAGE_RUSSIAN, ".RUS" },
+	{ wxLANGUAGE_HEBREW, ".HEB" },
+	{ wxLANGUAGE_ARABIC, ".ARA" },
+	{ wxLANGUAGE_FARSI, ".FAR" },
+	{ wxLANGUAGE_KOREAN, ".KOR" },
+	{ wxLANGUAGE_JAPANESE, ".JAP" },
+	{ wxLANGUAGE_CHINESE_SIMPLIFIED, ".CHS" },
+	{ wxLANGUAGE_CHINESE_TRADITIONAL, ".CHT" }
+};
+
+inline bool StartsWith(const std::string& str, const std::string& prefix)
+{
+	return str.compare(0, prefix.size(), prefix) == 0;
+}
+
+inline bool EndsWith(const std::string& str, const std::string& ending) {
+	if (str.length() >= ending.length()) {
+		return (0 == str.compare(str.length() - ending.length(), ending.length(), ending));
+	}
+	else {
+		return false;
+	}
+}
 
 PostProcessingShaderImplementation::PostProcessingShaderImplementation()
 {
@@ -151,7 +206,15 @@ std::string PostProcessingShaderConfiguration::LoadOptions(const std::string& co
 			}
 		}
 	}
-
+	const char* LangCode = nullptr;
+	for (size_t i = 1; i < LANGUAGE_ID_COUNT; i++)
+	{
+		if (language_ids[i].Lang == SConfig::GetInstance().m_InterfaceLanguage)
+		{
+			LangCode = language_ids[i].Code;
+			break;
+		}
+	}
 	for (const auto& it : option_strings)
 	{
 		ConfigurationOption option;
@@ -163,12 +226,30 @@ std::string PostProcessingShaderConfiguration::LoadOptions(const std::string& co
 			option.m_type = ConfigurationOption::OptionType::OPTION_FLOAT;
 		else if (it.m_type == "OptionRangeInteger")
 			option.m_type = ConfigurationOption::OptionType::OPTION_INTEGER;
-
+		
 		for (const auto& string_option : it.m_options)
 		{
-			if (string_option.first == "GUIName")
+			if (StartsWith(string_option.first, "GUIName"))
 			{
-				option.m_gui_name = string_option.second;
+				if (string_option.first == "GUIName")
+				{
+					option.m_gui_name = string_option.second;
+				}
+				else if(LangCode != nullptr && EndsWith(string_option.first, LangCode))
+				{
+					option.m_gui_name = string_option.second;
+				}
+			}
+			else if (StartsWith(string_option.first, "GUIDescription"))
+			{
+				if (string_option.first == "GUIDescription")
+				{
+					option.m_gui_description = string_option.second;
+				}
+				else if (LangCode != nullptr && EndsWith(string_option.first, LangCode))
+				{
+					option.m_gui_description = string_option.second;
+				}
 			}
 			else if (string_option.first == "OptionName")
 			{
@@ -328,80 +409,81 @@ void PostProcessingShaderConfiguration::PrintCompilationTimeOptions(std::string 
 {
 	for (auto& it : m_options)
 	{
-		if (!it.second.m_resolve_at_compilation)
+		auto& option = it.second;
+		if (!option.m_resolve_at_compilation)
 		{
 			continue;
 		}
-		it.second.m_dirty = false;
-		if (it.second.m_type == PostProcessingShaderConfiguration::ConfigurationOption::OptionType::OPTION_BOOL)
+		option.m_dirty = false;
+		if (option.m_type == PostProcessingShaderConfiguration::ConfigurationOption::OptionType::OPTION_BOOL)
 		{
-			options += StringFromFormat("#define %s %d\n", it.first.c_str(), it.second.m_bool_value ? 1 : 0);
+			options += StringFromFormat("#define %s %d\n", it.first.c_str(), option.m_bool_value ? 1 : 0);
 		}
-		else if (it.second.m_type == PostProcessingShaderConfiguration::ConfigurationOption::OptionType::OPTION_INTEGER)
+		else if (option.m_type == PostProcessingShaderConfiguration::ConfigurationOption::OptionType::OPTION_INTEGER)
 		{
-			u32 count = static_cast<u32>(it.second.m_integer_values.size());
+			u32 count = static_cast<u32>(option.m_integer_values.size());
 			switch (count)
 			{
 			case 1:
 				options += StringFromFormat("#define %s %d\n",
 					it.first.c_str(),
-					it.second.m_integer_values[0]);
+					option.m_integer_values[0]);
 				break;
 			case 2:
 				options += StringFromFormat("#define %s int2(%d,%d)\n",
 					it.first.c_str(),
-					it.second.m_integer_values[0],
-					it.second.m_integer_values[1]);
+					option.m_integer_values[0],
+					option.m_integer_values[1]);
 				break;
 			case 3:
 				options += StringFromFormat("#define %s int3(%d,%d,%d)\n",
 					it.first.c_str(),
-					it.second.m_integer_values[0],
-					it.second.m_integer_values[1],
-					it.second.m_integer_values[2]);
+					option.m_integer_values[0],
+					option.m_integer_values[1],
+					option.m_integer_values[2]);
 				break;
 			case 4:
 				options += StringFromFormat("#define %s int4(%d,%d,%d, %d)\n",
 					it.first.c_str(),
-					it.second.m_integer_values[0],
-					it.second.m_integer_values[1],
-					it.second.m_integer_values[2],
-					it.second.m_integer_values[3]);
+					option.m_integer_values[0],
+					option.m_integer_values[1],
+					option.m_integer_values[2],
+					option.m_integer_values[3]);
 				break;
 			default:
 				break;
 			}
 		}
-		else if (it.second.m_type == PostProcessingShaderConfiguration::ConfigurationOption::OptionType::OPTION_FLOAT)
+		else if (option.m_type == PostProcessingShaderConfiguration::ConfigurationOption::OptionType::OPTION_FLOAT)
 		{
-			u32 count = static_cast<u32>(it.second.m_float_values.size());
+			u32 count = static_cast<u32>(option.m_float_values.size());
 			switch (count)
 			{
 			case 1:
 				options += StringFromFormat("#define %s %f\n",
 					it.first.c_str(),
-					it.second.m_float_values[0]);
+					option.m_float_values[0]);
 				break;
 			case 2:
 				options += StringFromFormat("#define %s float2(%f,%f)\n",
 					it.first.c_str(),
-					it.second.m_float_values[0],
-					it.second.m_float_values[1]);
+					option.m_float_values[0],
+					option.m_float_values[1]);
 				break;
 			case 3:
 				options += StringFromFormat("#define %s float3(%f,%f,%f)\n",
 					it.first.c_str(),
-					it.second.m_float_values[0],
-					it.second.m_float_values[1],
-					it.second.m_float_values[2]);
+					option.m_float_values[0],
+					option.m_float_values[1],
+					option.m_float_values[2]);
 				break;
 			case 4:
 				options += StringFromFormat("#define %s float4(%f,%f,%f,%f)\n",
 					it.first.c_str(),
-					it.second.m_float_values[0],
-					it.second.m_float_values[1],
-					it.second.m_float_values[2],
-					it.second.m_float_values[3]);
+					option.m_float_values[0],
+					option.m_float_values[1],
+					option.m_float_values[2],
+					option.m_float_values[3]);
 				break;
 			default:
 				break;
@@ -414,25 +496,40 @@ void PostProcessingShaderConfiguration::LoadOptionsConfigurationFromSection(IniF
 {
 	for (auto& it : m_options)
 	{
-		switch (it.second.m_type)
+		auto& current = it.second;
+		switch (current.m_type)
 		{
 		case ConfigurationOption::OptionType::OPTION_BOOL:
-			section->Get(it.second.m_option_name, &it.second.m_bool_value, it.second.m_bool_value);
+			section->Get(current.m_option_name, &current.m_bool_value, current.m_bool_value);
 			break;
 		case ConfigurationOption::OptionType::OPTION_INTEGER:
 		{
 			std::string value;
-			section->Get(it.second.m_option_name, &value);
+			section->Get(current.m_option_name, &value);
 			if (value != "")
-				TryParseVector(value, &it.second.m_integer_values);
+				TryParseVector(value, &current.m_integer_values);
+			for (size_t i = 0; i < current.m_integer_values.size(); i++)
+			{
+				s32 value = current.m_integer_values[i];
+				value = std::max(value, current.m_integer_min_values[i]);
+				value = std::min(value, current.m_integer_max_values[i]);
+				current.m_integer_values[i] = value;
+			}
 		}
 		break;
 		case ConfigurationOption::OptionType::OPTION_FLOAT:
 		{
 			std::string value;
-			section->Get(it.second.m_option_name, &value);
+			section->Get(current.m_option_name, &value);
 			if (value != "")
-				TryParseVector(value, &it.second.m_float_values);
+				TryParseVector(value, &current.m_float_values);
+			for (size_t i = 0; i < current.m_float_values.size(); i++)
+			{
+				float value = current.m_float_values[i];
+				value = std::max(value, current.m_float_min_values[i]);
+				value = std::min(value, current.m_float_max_values[i]);
+				current.m_float_values[i] = value;
+			}
 		}
 		break;
 		}
@@ -499,19 +596,20 @@ void PostProcessingShaderConfiguration::SaveOptionsConfiguration()
 
 	for (auto& it : m_options)
 	{
-		switch (it.second.m_type)
+		auto& current = it.second;
+		switch (current.m_type)
 		{
 		case ConfigurationOption::OptionType::OPTION_BOOL:
 		{
-			section->Set(it.second.m_option_name, it.second.m_bool_value);
+			section->Set(current.m_option_name, current.m_bool_value);
 		}
 		break;
 		case ConfigurationOption::OptionType::OPTION_INTEGER:
 		{
 			std::string value = "";
-			for (size_t i = 0; i < it.second.m_integer_values.size(); ++i)
-				value += StringFromFormat("%d%s", it.second.m_integer_values[i], i == (it.second.m_integer_values.size() - 1) ? "" : ", ");
-			section->Set(it.second.m_option_name, value);
+			for (size_t i = 0; i < current.m_integer_values.size(); ++i)
+				value += StringFromFormat("%d%s", current.m_integer_values[i], i == (current.m_integer_values.size() - 1) ? "" : ", ");
+			section->Set(current.m_option_name, value);
 		}
 		break;
 		case ConfigurationOption::OptionType::OPTION_FLOAT:
@@ -519,13 +617,13 @@ void PostProcessingShaderConfiguration::SaveOptionsConfiguration()
 			std::ostringstream value;
 			value.imbue(std::locale("C"));
 
-			for (size_t i = 0; i < it.second.m_float_values.size(); ++i)
+			for (size_t i = 0; i < current.m_float_values.size(); ++i)
 			{
-				value << it.second.m_float_values[i];
-				if (i != (it.second.m_float_values.size() - 1))
+				value << current.m_float_values[i];
+				if (i != (current.m_float_values.size() - 1))
 					value << ", ";
 			}
-			section->Set(it.second.m_option_name, value.str());
+			section->Set(current.m_option_name, value.str());
 		}
 		break;
 		}

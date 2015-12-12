@@ -43,6 +43,7 @@ public:
 		OptionType m_type;
 
 		std::string m_gui_name;
+		std::string m_gui_description;
 		std::string m_option_name;
 		std::string m_dependent_option;
 		bool m_dirty;

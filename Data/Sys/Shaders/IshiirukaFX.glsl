@@ -12,30 +12,41 @@
 [configuration]
 [OptionBool]
 GUIName = Ambient Only
+GUIName.SPA = Solo Oclusión Ambiental
 OptionName = A_SSAO_ONLY
 DefaultValue = False
+GUIDescription = Displays SSAO/SSGI ambient color only.
+GUIDescription.SPA = Muestra solo el componente de Oclusión Ambiental.
 
 [OptionRangeFloat]
 GUIName = Occlusion Attenuation Start
+GUIName.SPA = Inicio de atenuación en la oclusión.
 OptionName = C_AOASTART
 MinValue = 0.0
 MaxValue = 0.4
 StepAmount = 0.01
 DefaultValue = 0.4
+GUIDescription = Depth where the attenuation to the SSAO effect starts.
+GUIDescription.SPA = Profundidad a partir de la cual se comienza a atenuar la Oclusión Ambiental.
 
 [OptionRangeFloat]
-GUIName = End
+GUIName = Occlusion Attenuation End
+GUIName.SPA = Final de atenuación en la oclusión.
 OptionName = D_AOAEND
 MinValue = 0.5
 MaxValue = 2.0
 StepAmount = 0.01
 DefaultValue = 2.0
+GUIDescription = Deph where the SSAO attenuation ends, after this value no SSAO is applyed.
+GUIDescription.SPA = Profundidad a partir de la cual finaliza la aplicación de la Oclusión Ambiental.
 
 [OptionBool]
 GUIName = SSAO
 OptionName = A_SSAO_ENABLED
 DefaultValue = True
 ResolveAtCompilation = True
+GUIDescription = Enables Screen Space Ambient Occlusion.
+GUIDescription.SPA = Habilita la Oclusión Ambiental.
 
 [OptionBool]
 GUIName = SSGI
@@ -43,9 +54,12 @@ OptionName = A_SSAO_SSGI_ENABLED
 DefaultValue = false
 ResolveAtCompilation = True
 DependentOption = A_SSAO_ENABLED
+GUIDescription = Enables Screen Space Global Ilumination simulation.
+GUIDescription.SPA = Habilita la simulación de Iluminación global.
 
 [OptionRangeInteger]
 GUIName = SSAO Quality
+GUIName.SPA = Calidad SSAO
 OptionName = B_SSAO_SAMPLES
 MinValue = 16
 MaxValue = 64
@@ -53,27 +67,36 @@ StepAmount = 4
 DefaultValue = 16
 DependentOption = A_SSAO_ENABLED
 ResolveAtCompilation = True
+GUIDescription = Number of samples used to calculate SSAO component, large values gives more quality but may cause performance drops.
+GUIDescription.SPA = Cantidad de muestras utilizadas para el calculo del componente de oclusión, valores muly altos producen una mejor calidad pero pueden acarrear una perdida de performance.
 
 [OptionRangeFloat]
 GUIName = Sample Range
+GUIName.SPA = Rango de Muestras
 OptionName = C_SAMPLE_RANGE
 MinValue = 0.001
 MaxValue = 0.04
 StepAmount = 0.0001
 DefaultValue = 0.0064
 DependentOption = A_SSAO_ENABLED
+GUIDescription = Max distance from the center sample.
+GUIDescription.SPA = Distancia maxima de las muestras a partir de la muestra central.
 
 [OptionRangeFloat]
 GUIName = Filter Limit
+GUIName.SPA = Limite de Filtrado
 OptionName = D_FILTER_LIMIT
 MinValue = 0.001
 MaxValue = 0.01
 StepAmount = 0.0001
 DefaultValue = 0.002
 DependentOption = A_SSAO_ENABLED
+GUIDescription = Amount of filtering applyed to the AO component.
+GUIDescription.SPA = Intensidad de filtrado aplicada al Componente de Oclusión.
 
 [OptionRangeFloat]
 GUIName = Max Depth
+GUIName.SPA = Profundidad Maxima
 OptionName = E_MAX_DEPTH
 MinValue = 0.0001
 MaxValue = 0.02
@@ -83,6 +106,7 @@ DependentOption = A_SSAO_ENABLED
 
 [OptionRangeFloat]
 GUIName = Min Depth
+GUIName.SPA = Profundidad Minima
 OptionName = F_MIN_DEPTH
 MinValue = 0.0
 MaxValue = 0.02
@@ -175,7 +199,7 @@ DependentOption = A_SSGI_ENABLED
 [OptionBool]
 GUIName = MATSO DOF
 OptionName = MATSODOF
-DefaultValue = True
+DefaultValue = false
 
 [OptionBool]
 GUIName = Use depth range focus
@@ -470,10 +494,10 @@ DependentOption = D_BLOOM
 [OptionRangeFloat]
 GUIName = Bloom Intensity
 OptionName = C_BLOOMINTENSITY
-MinValue = 0.5
+MinValue = 0.1
 MaxValue = 1.0
 StepAmount = 0.01
-DefaultValue = 1.0
+DefaultValue = 0.5
 DependentOption = D_BLOOM
 
 [OptionBool]
