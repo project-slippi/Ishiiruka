@@ -58,14 +58,14 @@ enum PipelineStateFlags : u8
 class TPipelineState : public DataReader, public DataWriter
 {
 public:
-	TPipelineState(u8* source, u8* end, u8* destination) : DataReader(source, end), DataWriter(destination)
+	TPipelineState(u8* source, u8* _end, u8* destination) : DataReader(source, _end), DataWriter(destination)
 	{
 		Clear();
 	};
 	TPipelineState() : DataReader(), DataWriter(){ Clear(); };
-	void Initialize(u8* source, u8* end, u8* destination)
+	void Initialize(u8* source, u8* _end, u8* destination)
 	{
-		DataReader::SetReadPosition(source, end);
+		DataReader::SetReadPosition(source, _end);
 		DataWriter::SetWritePosition(destination);
 	}
 	void Clear()

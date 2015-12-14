@@ -80,7 +80,8 @@ static void InterpretDisplayListPreprocess(u32 address, u32 size)
 
 	if (startAddress != nullptr)
 	{
-		OpcodeDecoder_Run<true>(DataReader(startAddress, startAddress + size) , nullptr, true);
+		DataReader dlist_reader(startAddress, startAddress + size);
+		OpcodeDecoder_Run<true>(dlist_reader , nullptr, true);
 	}
 }
 

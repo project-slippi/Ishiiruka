@@ -13,7 +13,6 @@ set(SRCS	AsyncRequests.cpp
 			FramebufferManagerBase.cpp
 			GeometryShaderGen.cpp
 			GeometryShaderManager.cpp
-			HullDomainShaderManager.cpp
 			G_G4BP08_pvt.cpp
 			G_GB4P51_pvt.cpp
 			G_GFZE01_pvt.cpp
@@ -33,13 +32,11 @@ set(SRCS	AsyncRequests.cpp
 			G_SPXP41_pvt.cpp
 			G_SX4E01_pvt.cpp
 			HiresTextures.cpp
-			HullDomainShaderGen.cpp
 			ImageWrite.cpp
 			IndexGenerator.cpp
 			MainBase.cpp
 			OnScreenDisplay.cpp
 			OpcodeDecoding.cpp
-			OpcodeDecodingSC.cpp
 			PerfQueryBase.cpp
 			PixelEngine.cpp
 			PixelShaderGen.cpp
@@ -48,6 +45,8 @@ set(SRCS	AsyncRequests.cpp
 			PostProcessing.cpp
 			RenderBase.cpp
 			Statistics.cpp
+			TessellationShaderGen.cpp
+			TessellationShaderManager.cpp
 			TextureCacheBase.cpp
 			TextureConversionShaderGL.cpp
 			TextureUtil.cpp
