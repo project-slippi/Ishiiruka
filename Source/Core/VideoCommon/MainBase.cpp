@@ -206,7 +206,7 @@ u16 VideoBackendHardware::Video_GetBoundingBox(int index)
 	if (!g_ActiveConfig.backend_info.bSupportsBBox || g_ActiveConfig.iBBoxMode != BBoxGPU)
 		return BoundingBox::coords[index];
 
-	if (!g_ActiveConfig.iBBoxMode == BBoxNone)
+	if (g_ActiveConfig.iBBoxMode == BBoxNone)
 	{
 		static bool warn_once = true;
 		if (warn_once)
