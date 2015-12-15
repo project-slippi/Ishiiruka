@@ -126,6 +126,7 @@ protected:
 	wxStaticText* text_bboxmode;
 	SettingChoice* choice_aamode;
 	wxCheckBox* ssaa_checkbox;
+	wxSlider* conv_slider;
 
 	wxStaticText* label_display_resolution;
 

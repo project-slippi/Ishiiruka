@@ -477,7 +477,9 @@ VideoConfigDiag::VideoConfigDiag(wxWindow* parent, const std::string &title, con
 		szr_stereo->Add(new wxStaticText(page_enh, wxID_ANY, _("Separation:")), 1, wxALIGN_CENTER_VERTICAL, 0);
 		szr_stereo->Add(sep_slider, 1, wxEXPAND | wxRIGHT);
 		szr_stereo->AddSpacer(0);
-		wxSlider* const conv_slider = new wxSlider(page_enh, wxID_ANY, vconfig.iStereoConvergence, 0, 500, wxDefaultPosition, wxDefaultSize);
+		conv_slider = new wxSlider(page_enh, wxID_ANY, vconfig.iStereoConvergencePercentage, 0, 200, wxDefaultPosition, wxDefaultSize, wxSL_AUTOTICKS);
+		conv_slider->ClearTicks();
+		conv_slider->SetTick(100);
 		conv_slider->Bind(wxEVT_SLIDER, &VideoConfigDiag::Event_StereoConvergence, this);
 		RegisterControl(conv_slider, (stereo_convergence_desc));
 
@@ -954,7 +956,12 @@ void VideoConfigDiag::Event_ScalingFactor(wxCommandEvent &ev)
 
 void VideoConfigDiag::Event_StereoConvergence(wxCommandEvent &ev)
 {
-	vconfig.iStereoConvergence = ev.GetInt();
+	// Snap the slider
+	int value = ev.GetInt();
+	if (90 < value && value < 110)
+		conv_slider->SetValue(100);
+
+	vconfig.iStereoConvergencePercentage = conv_slider->GetValue();
 
 	ev.Skip();
 }

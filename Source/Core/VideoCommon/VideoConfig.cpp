@@ -49,7 +49,7 @@ VideoConfig::VideoConfig()
 	// Game-specific stereoscopy settings
 	bStereoEFBMonoDepth = false;
 	iStereoDepthPercentage = 100;
-	iStereoConvergenceMinimum = 0;
+	iStereoConvergence = 20;
 	bUseScalingFilter = false;
 	bTexDeposterize = false;
 	iTexScalingType = 0;
@@ -109,7 +109,7 @@ void VideoConfig::Load(const std::string& ini_file)
 	enhancements->Get("PostProcessingShader", &sPostProcessingShader, "");
 	enhancements->Get("StereoMode", &iStereoMode, 0);
 	enhancements->Get("StereoDepth", &iStereoDepth, 20);
-	enhancements->Get("StereoConvergence", &iStereoConvergence, 20);
+	enhancements->Get("StereoConvergencePercentage", &iStereoConvergencePercentage, 100);
 	enhancements->Get("StereoSwapEyes", &bStereoSwapEyes, false);
 	enhancements->Get("UseScalingFilter", &bUseScalingFilter, false);
 	enhancements->Get("TextureScalingType", &iTexScalingType, 0);
@@ -270,7 +270,6 @@ void VideoConfig::GameIniLoad()
 
 	CHECK_SETTING("Video_Stereoscopy", "StereoEFBMonoDepth", bStereoEFBMonoDepth);
 	CHECK_SETTING("Video_Stereoscopy", "StereoDepthPercentage", iStereoDepthPercentage);
-	CHECK_SETTING("Video_Stereoscopy", "StereoConvergenceMinimum", iStereoConvergenceMinimum);
 
 	CHECK_SETTING("Video_Hacks", "EFBAccessEnable", bEFBAccessEnable);
 	CHECK_SETTING("Video_Hacks", "EFBFastAccess", bEFBFastAccess);
@@ -411,7 +410,7 @@ void VideoConfig::Save(const std::string& ini_file)
 	enhancements->Set("PostProcessingShader", sPostProcessingShader);
 	enhancements->Set("StereoMode", iStereoMode);
 	enhancements->Set("StereoDepth", iStereoDepth);
-	enhancements->Set("StereoConvergence", iStereoConvergence);
+	enhancements->Set("StereoConvergencePercentage", iStereoConvergencePercentage);
 	enhancements->Set("StereoSwapEyes", bStereoSwapEyes);
 	enhancements->Set("UseScalingFilter", bUseScalingFilter);
 	enhancements->Set("TextureScalingType", iTexScalingType);
