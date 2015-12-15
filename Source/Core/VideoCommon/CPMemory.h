@@ -287,7 +287,7 @@ extern void DoCPState(PointerWrap& p);
 extern void CopyPreprocessCPStateFromMain();
 
 // Might move this into its own file later.
-void LoadCPReg(u32 SubCmd, u32 Value, bool is_preprocess = false);
+template <bool is_preprocess> void LoadCPReg(u32 SubCmd, u32 Value);
 
 // Fills memory with data from CP regs
 void FillCPMemoryArray(u32 *memory);

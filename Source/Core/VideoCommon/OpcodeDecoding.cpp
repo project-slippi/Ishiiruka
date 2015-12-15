@@ -36,12 +36,12 @@ bool g_bRecordFifoData = false;
 static bool s_bFifoErrorSeen = false;
 
 template <int count>
-void ReadU32xn(u32 *bufx16)
+__forceinline void ReadU32xn(u32 *bufx16)
 {
 	g_VideoData.ReadU32xN<count>(bufx16);
 }
 
-static u32 InterpretDisplayList(u32 address, u32 size)
+__forceinline u32 InterpretDisplayList(u32 address, u32 size)
 {
 	u8* startAddress;
 
@@ -62,7 +62,7 @@ static u32 InterpretDisplayList(u32 address, u32 size)
 
 		// temporarily swap dl and non-dl (small "hack" for the stats)
 		Statistics::SwapDL();
-		OpcodeDecoder_Run(g_VideoData, &cycles, true);
+		OpcodeDecoder_Run<false, false>(g_VideoData, &cycles);
 		INCSTAT(stats.thisFrame.numDListsCalled);
 		// un-swap
 		Statistics::SwapDL();
@@ -72,7 +72,7 @@ static u32 InterpretDisplayList(u32 address, u32 size)
 	return cycles;
 }
 
-static void InterpretDisplayListPreprocess(u32 address, u32 size)
+__forceinline void InterpretDisplayListPreprocess(u32 address, u32 size)
 {
 	u8* startAddress = Memory::GetPointer(address);
 
@@ -81,7 +81,7 @@ static void InterpretDisplayListPreprocess(u32 address, u32 size)
 	if (startAddress != nullptr)
 	{
 		DataReader dlist_reader(startAddress, startAddress + size);
-		OpcodeDecoder_Run<true>(dlist_reader , nullptr, true);
+		OpcodeDecoder_Run<true, false>(dlist_reader , nullptr);
 	}
 }
 
@@ -163,8 +163,8 @@ void OpcodeDecoder_Shutdown()
 {
 }
 
-template <bool is_preprocess>
-u8* OpcodeDecoder_Run(DataReader& reader, u32* cycles, bool in_display_list)
+template <bool is_preprocess, bool sizeCheck>
+u8* OpcodeDecoder_Run(DataReader& reader, u32* cycles)
 {
 	u32 totalCycles = 0;
 	u8* opcodeStart;
@@ -192,24 +192,24 @@ u8* OpcodeDecoder_Run(DataReader& reader, u32* cycles, bool in_display_list)
 		break;
 		case GX_LOAD_CP_REG:
 		{
-			if (distance < GX_LOAD_CP_REG_SIZE)
+			if (sizeCheck && distance < GX_LOAD_CP_REG_SIZE)
 				goto end;
 			totalCycles += GX_LOAD_CP_REG_CYCLES;
 			u8 sub_cmd = reader.Read<u8>();
 			u32 value = reader.Read<u32>();
-			LoadCPReg(sub_cmd, value, is_preprocess);
+			LoadCPReg<is_preprocess>(sub_cmd, value);
 			if (!is_preprocess)
 				INCSTAT(stats.thisFrame.numCPLoads);
 		}
 		break;
 		case GX_LOAD_XF_REG:
 		{
-			if (distance < GX_LOAD_XF_REG_SIZE)
+			if (sizeCheck && distance < GX_LOAD_XF_REG_SIZE)
 				goto end;
 			u32 Cmd2 = reader.Read<u32>();
 			distance -= GX_LOAD_XF_REG_SIZE;
 			int transfer_size = ((Cmd2 >> 16) & 15) + 1;
-			if (distance < (transfer_size * sizeof(u32)))
+			if (sizeCheck && distance < (transfer_size * sizeof(u32)))
 				goto end;
 			totalCycles += GX_LOAD_XF_REG_BASE_CYCLES + GX_LOAD_XF_REG_TRANSFER_CYCLES * transfer_size;
 			if (is_preprocess)
@@ -225,67 +225,30 @@ u8* OpcodeDecoder_Run(DataReader& reader, u32* cycles, bool in_display_list)
 		}
 		break;
 		case GX_LOAD_INDX_A: //used for position matrices
-		{
-			if (distance < GX_LOAD_INDX_A_SIZE)
-				goto end;
-			totalCycles += GX_LOAD_INDX_A_CYCLES;
-			if (is_preprocess)
-				PreprocessIndexedXF(reader.Read<u32>(), 0xC);
-			else
-				LoadIndexedXF(reader.Read<u32>(), 0xC);
-		}
-		break;
 		case GX_LOAD_INDX_B: //used for normal matrices
-		{
-			if (distance < GX_LOAD_INDX_B_SIZE)
-				goto end;
-			totalCycles += GX_LOAD_INDX_B_CYCLES;
-			if (is_preprocess)
-				PreprocessIndexedXF(reader.Read<u32>(), 0xD);
-			else
-				LoadIndexedXF(reader.Read<u32>(), 0xD);
-		}
-		break;
 		case GX_LOAD_INDX_C: //used for postmatrices
-		{
-			if (distance < GX_LOAD_INDX_C_SIZE)
-				goto end;
-			totalCycles += GX_LOAD_INDX_C_CYCLES;
-			if (is_preprocess)
-				PreprocessIndexedXF(reader.Read<u32>(), 0xE);
-			else
-				LoadIndexedXF(reader.Read<u32>(), 0xE);
-		}
-		break;
 		case GX_LOAD_INDX_D: //used for lights
 		{
-			if (distance < GX_LOAD_INDX_D_SIZE)
+			if (sizeCheck && distance < GX_LOAD_INDX_SIZE)
 				goto end;
-			totalCycles += GX_LOAD_INDX_D_CYCLES;
+			totalCycles += GX_LOAD_INDX_CYCLES;
+			const s32 ref_array = (cmd_byte >> 3) + 8;
 			if (is_preprocess)
-				PreprocessIndexedXF(reader.Read<u32>(), 0xF);
+				PreprocessIndexedXF(reader.Read<u32>(), ref_array);
 			else
-				LoadIndexedXF(reader.Read<u32>(), 0xF);
+				LoadIndexedXF(reader.Read<u32>(), ref_array);
 		}
 		break;
 		case GX_CMD_CALL_DL:
 		{
-			if (distance < GX_CMD_CALL_DL_SIZE)
+			if (sizeCheck && distance < GX_CMD_CALL_DL_SIZE)
 				goto end;
 			u32 address = reader.Read<u32>();
 			u32 count = reader.Read<u32>();
-			if (in_display_list)
-			{
-				totalCycles += GX_CMD_CALL_DL_BASE_CYCLES;
-				WARN_LOG(VIDEO, "recursive display list detected");
-			}
+			if (is_preprocess)
+				InterpretDisplayListPreprocess(address, count);
 			else
-			{
-				if (is_preprocess)
-					InterpretDisplayListPreprocess(address, count);
-				else
-					totalCycles += GX_CMD_CALL_DL_BASE_CYCLES + InterpretDisplayList(address, count);
-			}
+				totalCycles += GX_CMD_CALL_DL_BASE_CYCLES + InterpretDisplayList(address, count);
 		}
 		break;
 		case GX_CMD_UNKNOWN_METRICS: // zelda 4 swords calls it and checks the metrics registers after that
@@ -302,7 +265,7 @@ u8* OpcodeDecoder_Run(DataReader& reader, u32* cycles, bool in_display_list)
 		break;
 		case GX_LOAD_BP_REG:
 		{
-			if (distance < GX_LOAD_BP_REG_SIZE)
+			if (sizeCheck && distance < GX_LOAD_BP_REG_SIZE)
 				goto end;
 			totalCycles += GX_LOAD_BP_REG_CYCLES;
 			u32 bp_cmd = reader.Read<u32>();
@@ -322,25 +285,26 @@ u8* OpcodeDecoder_Run(DataReader& reader, u32* cycles, bool in_display_list)
 			if ((cmd_byte & GX_DRAW_PRIMITIVES) == 0x80)
 			{
 				// load vertices
-				if (distance < GX_DRAW_PRIMITIVES_SIZE)
+				if (sizeCheck && distance < GX_DRAW_PRIMITIVES_SIZE)
 					goto end;
 
 				u32 count = reader.Read<u16>();
 				distance -= GX_DRAW_PRIMITIVES_SIZE;
 				if (count)
 				{
-					CPState state = is_preprocess ? g_preprocess_cp_state : g_main_cp_state;
+					CPState& state = is_preprocess ? g_preprocess_cp_state : g_main_cp_state;
 					VertexLoaderParameters parameters;
 					parameters.count = count;
 					parameters.buf_size = distance;
 					parameters.primitive = (cmd_byte & GX_PRIMITIVE_MASK) >> GX_PRIMITIVE_SHIFT;
-					parameters.vtx_attr_group = cmd_byte & GX_VAT_MASK;
-					parameters.needloaderrefresh = (state.attr_dirty & (1 << parameters.vtx_attr_group)) != 0;
+					u32 vtx_attr_group = cmd_byte & GX_VAT_MASK;
+					parameters.vtx_attr_group = vtx_attr_group;
+					parameters.needloaderrefresh = (state.attr_dirty & (1u << vtx_attr_group)) != 0;
 					parameters.skip_draw = g_bSkipCurrentFrame;
 					parameters.VtxDesc = &state.vtx_desc;
-					parameters.VtxAttr = &state.vtx_attr[parameters.vtx_attr_group];
+					parameters.VtxAttr = &state.vtx_attr[vtx_attr_group];
 					parameters.source = reader.GetReadPosition();
-					state.attr_dirty &= ~(1 << parameters.vtx_attr_group);
+					state.attr_dirty &= ~(1 << vtx_attr_group);
 					u32 readsize = 0;					
 					if (is_preprocess)
 					{
@@ -404,5 +368,7 @@ end:
 	return opcodeStart;
 }
 
-template u8* OpcodeDecoder_Run<true>(DataReader& reader, u32* cycles, bool in_display_list);
-template u8* OpcodeDecoder_Run<false>(DataReader& reader, u32* cycles, bool in_display_list);
+template u8* OpcodeDecoder_Run<true, false>(DataReader& reader, u32* cycles);
+template u8* OpcodeDecoder_Run<false, false>(DataReader& reader, u32* cycles);
+template u8* OpcodeDecoder_Run<true, true>(DataReader& reader, u32* cycles);
+template u8* OpcodeDecoder_Run<false, true>(DataReader& reader, u32* cycles);

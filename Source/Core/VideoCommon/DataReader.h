@@ -16,7 +16,7 @@ public:
 	__forceinline DataReader(u8* src, u8* _end)
 		: Rbuffer(src), end(_end) {}
 
-	__forceinline const u8* GetPointer()
+	__forceinline const u8* GetPointer() const
 	{
 		return Rbuffer;
 	}
@@ -27,7 +27,7 @@ public:
 		return src;
 	}
 
-	__forceinline size_t size()
+	__forceinline size_t size() const
 	{
 		return end - Rbuffer;
 	}
@@ -36,25 +36,25 @@ public:
 		Rbuffer += skip;
 	}
 
-	template <typename T> __forceinline T Peek(s32 _uOffset)
+	template <typename T> __forceinline T Peek(s32 _uOffset) const
 	{
 		auto const result = Common::FromBigEndian(*reinterpret_cast<const T*>(Rbuffer + _uOffset));
 		return result;
 	}
 
-	template <typename T> __forceinline T Peek()
+	template <typename T> __forceinline T Peek() const
 	{
 		auto const result = Common::FromBigEndian(*reinterpret_cast<const T*>(Rbuffer));
 		return result;
 	}
 
-	template <typename T> __forceinline T PeekUnswapped(s32 _uOffset)
+	template <typename T> __forceinline T PeekUnswapped(s32 _uOffset) const
 	{
 		auto const result = *reinterpret_cast<const T*>(Rbuffer + _uOffset);
 		return result;
 	}
 
-	template <typename T> __forceinline T PeekUnswapped()
+	template <typename T> __forceinline T PeekUnswapped() const
 	{
 		auto const result = *reinterpret_cast<const T*>(Rbuffer);
 		return result;

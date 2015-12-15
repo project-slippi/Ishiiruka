@@ -33,19 +33,19 @@ void CopyPreprocessCPStateFromMain()
 	memcpy(&g_preprocess_cp_state, &g_main_cp_state, sizeof(CPState));
 }
 
-void LoadCPReg(u32 sub_cmd, u32 value, bool is_preprocess)
+template <bool is_preprocess>
+void LoadCPReg(u32 sub_cmd, u32 value)
 {
-	bool update_global_state = !is_preprocess;
 	CPState* state = is_preprocess ? &g_preprocess_cp_state : &g_main_cp_state;
 	switch (sub_cmd & 0xF0)
 	{
 	case 0x30:
-		if (update_global_state)
+		if (!is_preprocess)
 			VertexShaderManager::SetTexMatrixChangedA(value);
 		break;
 
 	case 0x40:
-		if (update_global_state)
+		if (!is_preprocess)
 			VertexShaderManager::SetTexMatrixChangedB(value);
 		break;
 
@@ -92,6 +92,9 @@ void LoadCPReg(u32 sub_cmd, u32 value, bool is_preprocess)
 		break;
 	}
 }
+
+template void LoadCPReg<true>(u32 sub_cmd, u32 value);
+template void LoadCPReg<false>(u32 sub_cmd, u32 value);
 
 void FillCPMemoryArray(u32 *memory)
 {

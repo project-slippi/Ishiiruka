@@ -28,10 +28,7 @@ enum GxOpCodesReadSize : s8
 	GX_NOP_SIZE	= 0,
 	GX_LOAD_CP_REG_SIZE = 5,
 	GX_LOAD_XF_REG_SIZE = 4,
-	GX_LOAD_INDX_A_SIZE = 4,
-	GX_LOAD_INDX_B_SIZE = 4,
-	GX_LOAD_INDX_C_SIZE = 4,
-	GX_LOAD_INDX_D_SIZE = 4,
+	GX_LOAD_INDX_SIZE = 4,
 	GX_CMD_CALL_DL_SIZE = 8,
 	GX_CMD_UNKNOWN_METRICS_SIZE = 0,
 	GX_CMD_INVL_VC_SIZE = 0,
@@ -45,10 +42,7 @@ enum GxOpcodesCycles : u32
 	GX_LOAD_CP_REG_CYCLES = 12,
 	GX_LOAD_XF_REG_BASE_CYCLES = 18,
 	GX_LOAD_XF_REG_TRANSFER_CYCLES = 6,
-	GX_LOAD_INDX_A_CYCLES = 6,
-	GX_LOAD_INDX_B_CYCLES = 6,
-	GX_LOAD_INDX_C_CYCLES = 6,
-	GX_LOAD_INDX_D_CYCLES = 6,
+	GX_LOAD_INDX_CYCLES = 6,
 	GX_CMD_CALL_DL_BASE_CYCLES = 6,
 	GX_CMD_UNKNOWN_METRICS_CYCLES = 6,
 	GX_CMD_INVL_VC_CYCLES = 6,
@@ -81,8 +75,8 @@ enum GxDrawMode : u32
 void OpcodeDecoder_Init();
 void OpcodeDecoder_Shutdown();
 
-template <bool is_preprocess = false>
-u8* OpcodeDecoder_Run(DataReader& reader, u32* cycles, bool in_display_list);
+template <bool is_preprocess = false, bool sizeCheck = true>
+u8* OpcodeDecoder_Run(DataReader& reader, u32* cycles);
 
 typedef void(*DataReadU32xNfunc)(u32 *buf);
 extern DataReadU32xNfunc DataReadU32xFuncs[16];
