@@ -3,8 +3,10 @@
 // Refer to the license.txt file included.
 
 #include "VideoCommon/AsyncRequests.h"
+#include "VideoCommon/BoundingBox.h"
 #include "VideoCommon/Fifo.h"
 #include "VideoCommon/RenderBase.h"
+#include "VideoCommon/VideoConfig.h"
 
 AsyncRequests AsyncRequests::s_singleton;
 
@@ -128,7 +130,7 @@ void AsyncRequests::HandleEvent(const AsyncRequests::Event& e)
 		break;
 
 	case Event::BBOX_READ:
-		*e.bbox.data = g_renderer->BBoxRead(e.bbox.index);
+		*e.bbox.data = g_ActiveConfig.iBBoxMode == BBoxGPU ? g_renderer->BBoxRead(e.bbox.index) : BoundingBox::coords[e.bbox.index];
 		break;
 
 	case Event::PERF_QUERY:
