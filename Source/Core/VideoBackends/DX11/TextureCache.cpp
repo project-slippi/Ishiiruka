@@ -449,7 +449,7 @@ void TextureCache::TCacheEntry::FromRenderTarget(u8* dst, u32 dstFormat, u32 dst
 	D3D::context->OMSetRenderTargets(1, &FramebufferManager::GetEFBColorTexture()->GetRTV(), FramebufferManager::GetEFBDepthTexture()->GetDSV());
 
 	g_renderer->RestoreAPIState();
-
+	D3D::stateman->SetTextureByMask(textureSlotMask, texture->GetSRV());
 	if (!g_ActiveConfig.bSkipEFBCopyToRam)
 	{
 		s_encoder->Encode(dst, this, srcFormat, srcRect, isIntensity, scaleByHalf);
@@ -468,7 +468,9 @@ bool TextureCache::TCacheEntry::PalettizeFromBase(const TCacheEntryBase* base_en
 		return false;
 	// if texture is currently in use, it needs to be temporarily unset
 	u32 textureSlotMask = D3D::stateman->UnsetTexture(texture->GetSRV());
-	return s_decoder->Depalettize(*texture, *((TextureCache::TCacheEntry*)base_entry)->texture, baseType, base_entry->config.width, base_entry->config.height);
+	bool result = s_decoder->Depalettize(*texture, *((TextureCache::TCacheEntry*)base_entry)->texture, baseType, base_entry->config.width, base_entry->config.height);
+	D3D::stateman->SetTextureByMask(textureSlotMask, texture->GetSRV());
+	return result;
 }
 
 TextureCache::TextureCache()

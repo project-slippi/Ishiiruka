@@ -1627,6 +1627,10 @@ void Merger()
 	if (GetOption(A_SSAO_ONLY) == 0)
 	{
 		value = Sample();
+		if (OptionEnabled(A_FXAA_PASS)) { value = FxaaPass(value); }
+		if (OptionEnabled(G_TEXTURE_SHARPEN)) { value = TexSharpenPass(value); }
+		if (OptionEnabled(H_PIXEL_VIBRANCE)) { value = VibrancePass(value); }
+		if (OptionEnabled(C_TONEMAP_PASS)) { value = TonemapPass(value); }
 	}
 #if A_SSAO_ENABLED != 0 || A_SSGI_ENABLED != 0
 	float3 AOCOmponent = float3(1.0, 1.0, 1.0);
@@ -1653,10 +1657,6 @@ void Merger()
 	float AOA = (GetOption(D_AOAEND) - depth) / (GetOption(D_AOAEND) - GetOption(C_AOASTART));
 	value.xyz =lerp(value.xyz, value.xyz * AOCOmponent, AOA);
 #endif
-	if (OptionEnabled(A_FXAA_PASS)) { value = FxaaPass(value); }
-	if (OptionEnabled(G_TEXTURE_SHARPEN)) { value = TexSharpenPass(value); }
-	if (OptionEnabled(H_PIXEL_VIBRANCE)) { value = VibrancePass(value); }
-	if (OptionEnabled(C_TONEMAP_PASS)) { value = TonemapPass(value); }
 	SetOutput(value);
 }
 
