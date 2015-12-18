@@ -232,8 +232,8 @@ std::string GameListItem::CreateCacheFilename() const
 
 	if (Filename.empty()) return Filename; // Disc Drive
 
-														// Filename.extension_HashOfFolderPath_Size.cache
-														// Append hash to prevent ISO name-clashing in different folders.
+	// Filename.extension_HashOfFolderPath_Size.cache
+	// Append hash to prevent ISO name-clashing in different folders.
 	Filename.append(StringFromFormat("%s_%x_%" PRIx64 ".cache",
 		extension.c_str(), HashFletcher((const u8 *)LegalPathname.c_str(), LegalPathname.size()),
 		File::GetSize(m_FileName)));
@@ -336,7 +336,7 @@ const std::string GameListItem::GetWiiFSPath() const
 		iso->GetTitleID(&title_id);
 
 		const std::string path = StringFromFormat("%s/title/%08x/%08x/data/",
-			File::GetUserPath(D_WIIROOT_IDX).c_str(), (u32)(title_id >> 32), (u32)title_id);
+				File::GetUserPath(D_WIIROOT_IDX).c_str(), (u32)(title_id >> 32), (u32)title_id);
 
 		if (!File::Exists(path))
 			File::CreateFullPath(path);

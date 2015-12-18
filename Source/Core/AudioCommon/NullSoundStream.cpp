@@ -5,6 +5,7 @@
 #include <cstring>
 
 #include "AudioCommon/NullSoundStream.h"
+#include "Common/CommonTypes.h"
 #include "Core/HW/AudioInterface.h"
 #include "Core/HW/SystemTimers.h"
 
@@ -21,7 +22,14 @@ void NullSound::SetVolume(int volume)
 
 void NullSound::Update()
 {
-	m_mixer->Mix(realtimeBuffer, 0);
+	// num_samples_to_render in this update - depends on SystemTimers::AUDIO_DMA_PERIOD.
+	constexpr u32 stereo_16_bit_size = 4;
+	constexpr u32 dma_length = 32;
+	const u64 audio_dma_period = SystemTimers::GetTicksPerSecond() / (AudioInterface::GetAIDSampleRate() * stereo_16_bit_size / dma_length);
+	const u64 ais_samples_per_second = 48000 * stereo_16_bit_size;
+	const u64 num_samples_to_render = (audio_dma_period * ais_samples_per_second) / SystemTimers::GetTicksPerSecond();
+
+	m_mixer->Mix(m_realtime_buffer.data(), (unsigned int)num_samples_to_render);
 }
 
 void NullSound::Clear(bool mute)

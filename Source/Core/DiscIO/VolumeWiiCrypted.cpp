@@ -213,11 +213,11 @@ std::vector<u32> CVolumeWiiCrypted::GetBanner(int* width, int* height) const
 {
 	*width = 0;
 	*height = 0;
-	
+
 	u64 title_id;
 	if (!GetTitleID(&title_id))
 		return std::vector<u32>();
-	
+
 	return GetWiiBanner(width, height, title_id);
 }
 
