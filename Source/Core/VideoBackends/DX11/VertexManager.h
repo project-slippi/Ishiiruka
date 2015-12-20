@@ -15,7 +15,7 @@ public:
 	VertexManager();
 	~VertexManager();
 
-	NativeVertexFormat* CreateNativeVertexFormat();
+	NativeVertexFormat* CreateNativeVertexFormat(const PortableVertexDeclaration &_vtx_decl) override;
 	void CreateDeviceObjects();
 	void DestroyDeviceObjects();
 	void PrepareShaders(PrimitiveType primitive,

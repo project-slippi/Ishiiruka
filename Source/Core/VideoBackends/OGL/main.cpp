@@ -38,6 +38,7 @@ Make AA apply instantly during gameplay if possible
 
 #include <algorithm>
 #include <cstdarg>
+#include <memory>
 
 #include "Common/Atomic.h"
 #include "Common/CommonPaths.h"
@@ -149,7 +150,7 @@ static void InitBackendInfo()
 	g_Config.backend_info.Adapters.clear();
 
 	// aamodes
-	g_Config.backend_info.AAModes = { _trans("None"), "2x MSAA", "4x MSAA", "8x MSAA" };
+	g_Config.backend_info.AAModes = { 1, 2, 4, 8 };
 
 	// pp shaders
 	g_Config.backend_info.PPShaders = GetShaders("");
@@ -195,13 +196,13 @@ void VideoBackend::Video_Prepare()
 {
 	GLInterface->MakeCurrent();
 
-	g_renderer = new Renderer;
+	g_renderer = std::make_unique<Renderer>();
 
 	CommandProcessor::Init();
 	PixelEngine::Init();
 
 	BPInit();
-	g_vertex_manager = new VertexManager;
+	g_vertex_manager = std::make_unique<VertexManager>();
 	g_perf_query = GetPerfQuery();
 	Fifo_Init(); // must be done before OpcodeDecoder_Init()
 	OpcodeDecoder_Init();
@@ -210,8 +211,8 @@ void VideoBackend::Video_Prepare()
 	PixelShaderManager::Init(true);
 	GeometryShaderManager::Init();
 	ProgramShaderCache::Init();
-	g_texture_cache = new TextureCache();
-	g_sampler_cache = new SamplerCache();
+	g_texture_cache = std::make_unique<TextureCache>();
+	g_sampler_cache = std::make_unique<SamplerCache>();
 	Renderer::Init();
 	VertexLoaderManager::Init();
 	TextureConverter::Init();
@@ -229,39 +230,32 @@ void VideoBackend::Shutdown()
 	OSD::DoCallbacks(OSD::OSD_SHUTDOWN);
 
 	GLInterface->Shutdown();
-	delete GLInterface;
-	GLInterface = nullptr;
+	GLInterface.reset();
 }
 
 void VideoBackend::Video_Cleanup()
 {
-	if (g_renderer)
-	{
-		Fifo_Shutdown();
+	if (!g_renderer)
+		return;
+	Fifo_Shutdown();
 
-		// The following calls are NOT Thread Safe
-		// And need to be called from the video thread
-		Renderer::Shutdown();
-		BBox::Shutdown();
-		TextureConverter::Shutdown();
-		VertexLoaderManager::Shutdown();
-		delete g_sampler_cache;
-		g_sampler_cache = nullptr;
-		delete g_texture_cache;
-		g_texture_cache = nullptr;
-		ProgramShaderCache::Shutdown();
-		VertexShaderManager::Shutdown();
-		PixelShaderManager::Shutdown();
-		GeometryShaderManager::Shutdown();
-		delete g_perf_query;
-		g_perf_query = nullptr;
-		delete g_vertex_manager;
-		g_vertex_manager = nullptr;
-		OpcodeDecoder_Shutdown();
-		delete g_renderer;
-		g_renderer = nullptr;
-		GLInterface->ClearCurrent();
-	}
+	// The following calls are NOT Thread Safe
+	// And need to be called from the video thread
+	Renderer::Shutdown();
+	BBox::Shutdown();
+	TextureConverter::Shutdown();
+	VertexLoaderManager::Shutdown();
+	g_sampler_cache.reset();
+	g_texture_cache.reset();
+	ProgramShaderCache::Shutdown();
+	VertexShaderManager::Shutdown();
+	PixelShaderManager::Shutdown();
+	GeometryShaderManager::Shutdown();
+	g_perf_query.reset();
+	g_vertex_manager.reset();
+	OpcodeDecoder_Shutdown();
+	g_renderer.reset();
+	GLInterface->ClearCurrent();
 }
 
 }

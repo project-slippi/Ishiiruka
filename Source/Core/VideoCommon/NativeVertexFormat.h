@@ -140,15 +140,11 @@ class NativeVertexFormat : NonCopyable
 public:
 	virtual ~NativeVertexFormat() {}
 
-	virtual void Initialize(const PortableVertexDeclaration &vtx_decl) = 0;
 	virtual void SetupVertexPointers() = 0;
 
 	u32 GetVertexStride() const { return vtx_decl.stride; }
 	const PortableVertexDeclaration& GetVertexDeclaration() const { return vtx_decl; }
-
-	// TODO: move this under private:
-	u32 m_components;  // VB_HAS_X. Bitmask telling what vertex components are present.
-
+	u32 m_components;
 protected:
 	// Let subclasses construct.
 	NativeVertexFormat() {}

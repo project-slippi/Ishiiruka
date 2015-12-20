@@ -3,6 +3,9 @@
 // Refer to the license.txt file included.
 // Modified for Ishiiruka By Tino
 #pragma once
+
+#include <memory>
+
 #include "VideoCommon/NativeVertexFormat.h"
 extern const float fractionTable[32];
 
@@ -52,21 +55,18 @@ namespace std
 class VertexLoaderBase
 {
 public:
-	static VertexLoaderBase* CreateVertexLoader(const TVtxDesc &vtx_desc, const VAT &vtx_attr);
+	static std::unique_ptr<VertexLoaderBase> CreateVertexLoader(const TVtxDesc &vtx_desc, const VAT &vtx_attr);
 	virtual ~VertexLoaderBase() 
 	{
-		if (m_fallback != nullptr)
-		{
-			delete m_fallback;
-		}
+		m_fallback.reset();
 	}
-	void SetFallback(VertexLoaderBase* obj)
+	void SetFallback(std::unique_ptr<VertexLoaderBase>& obj)
 	{
-		m_fallback = obj;
+		m_fallback = std::move(obj);
 	}
 	VertexLoaderBase* GetFallback()
 	{
-		return m_fallback;
+		return m_fallback.get();
 	}
 	virtual bool EnvironmentIsSupported(){ return true; }
 	virtual bool IsPrecompiled(){ return false; }
@@ -97,5 +97,5 @@ protected:
 	TVtxAttr m_VtxAttr;  // VAT decoded into easy format
 	TVtxDesc m_VtxDesc;  // Not really used currently - or well it is, but could be easily avoided.
 	VAT m_vat;
-	VertexLoaderBase* m_fallback;
+	std::unique_ptr<VertexLoaderBase> m_fallback;
 };

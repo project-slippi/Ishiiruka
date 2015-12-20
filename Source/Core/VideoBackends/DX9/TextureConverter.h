@@ -28,8 +28,8 @@ void EncodeToRamYUYV(LPDIRECT3DTEXTURE9 srcTexture, const TargetRectangle& sourc
 void DecodeToTexture(u32 xfbAddr, int srcWidth, int srcHeight, LPDIRECT3DTEXTURE9 destTexture);
 
 // returns size of the encoded data (in bytes)
-void EncodeToRamFromTexture(u8 *dest_ptr, const TextureCacheBase::TCacheEntryBase *texture_entry, u32 SourceW, u32 SourceH,
-	LPDIRECT3DTEXTURE9 source_texture, bool bFromZBuffer, bool bIsIntensityFmt, int bScaleByHalf, const EFBRectangle& source);
+void EncodeToRamFromTexture(u8* dest_ptr, u32 format, u32 native_width, u32 bytes_per_row, u32 num_blocks_y, u32 memory_stride,
+	PEControl::PixelFormat srcFormat, bool bIsIntensityFmt, bool bScaleByHalf, const EFBRectangle& source);
 
 
 }

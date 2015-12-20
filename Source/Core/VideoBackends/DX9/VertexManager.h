@@ -20,7 +20,7 @@ public:
 	VertexManager();
 	~VertexManager();
 
-	NativeVertexFormat* CreateNativeVertexFormat() override;
+	NativeVertexFormat* CreateNativeVertexFormat(const PortableVertexDeclaration &_vtx_decl) override;
 
 	void GetElements(NativeVertexFormat* format, D3DVERTEXELEMENT9** elems, int* num);
 

@@ -1,6 +1,7 @@
 // Copyright 2013 Dolphin Emulator Project
 // Licensed under GPLv2+
 // Refer to the license.txt file included.
+#include <memory>
 
 #include "Common/Atomic.h"
 #include "Common/Common.h"
@@ -119,7 +120,7 @@ void InitBackendInfo()
 		const DX9::D3D::Adapter &adapter = DX9::D3D::GetAdapter(g_Config.iAdapter);
 
 		for (int i = 0; i < (int)adapter.aa_levels.size(); ++i)
-			g_Config.backend_info.AAModes.push_back(adapter.aa_levels[i].name);
+			g_Config.backend_info.AAModes.push_back(i + 1);
 	}
 
 	// Clear ppshaders string vector
@@ -173,10 +174,10 @@ bool VideoBackend::Initialize(void *window_handle)
 void VideoBackend::Video_Prepare()
 {
 	// internal interfaces
-	g_vertex_manager = new VertexManager;
-	g_perf_query = new PerfQuery;
-	g_renderer = new Renderer(m_window_handle);
-	g_texture_cache = new TextureCache;
+	g_texture_cache = std::make_unique<TextureCache>();
+	g_vertex_manager = std::make_unique<VertexManager>();
+	g_perf_query = std::make_unique<PerfQuery>();
+	g_renderer = std::make_unique<Renderer>(m_window_handle);	
 	// VideoCommon
 	BPInit();
 	Fifo_Init();
@@ -194,28 +195,24 @@ void VideoBackend::Video_Prepare()
 void VideoBackend::Shutdown()
 {
 	s_BackendInitialized = false;
-
+	if (!g_renderer)
+		return;
 	// TODO: should be in Video_Cleanup
-	if (g_renderer)
-	{
-		// VideoCommon
-		Fifo_Shutdown();
-		CommandProcessor::Shutdown();
-		PixelShaderManager::Shutdown();
-		VertexShaderManager::Shutdown();
-		OpcodeDecoder_Shutdown();
-		VertexLoaderManager::Shutdown();
+	// VideoCommon
+	Fifo_Shutdown();
+	CommandProcessor::Shutdown();
+	PixelShaderManager::Shutdown();
+	VertexShaderManager::Shutdown();
+	OpcodeDecoder_Shutdown();
+	VertexLoaderManager::Shutdown();
 
-		// internal interfaces
-		PixelShaderCache::Shutdown();
-		VertexShaderCache::Shutdown();
-		delete g_texture_cache;
-		delete g_renderer;
-		delete g_perf_query;
-		delete g_vertex_manager;
-		g_renderer = NULL;
-		g_texture_cache = NULL;
-	}
+	// internal interfaces
+	PixelShaderCache::Shutdown();
+	VertexShaderCache::Shutdown();
+	g_renderer.reset();
+	g_perf_query.reset();
+	g_vertex_manager.reset();
+	g_texture_cache.reset();
 	D3D::Shutdown();
 }
 

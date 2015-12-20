@@ -5,6 +5,7 @@
 #include <list>
 #include <d3dx9.h>
 #include <cinttypes>
+#include <memory>
 
 #include "Common/StringUtil.h"
 #include "Common/Common.h"
@@ -63,7 +64,7 @@ void SetupDeviceObjects()
 {
 	D3D::font.Init();
 	VertexLoaderManager::Init();
-	g_framebuffer_manager = new FramebufferManager;
+	g_framebuffer_manager = std::make_unique<FramebufferManager>();
 
 	VertexShaderManager::Dirty();
 	PixelShaderManager::Dirty();
@@ -73,7 +74,7 @@ void SetupDeviceObjects()
 	VertexShaderCache::Init();
 	PixelShaderCache::Init();
 	g_vertex_manager->CreateDeviceObjects();
-	((PerfQuery*)g_perf_query)->CreateDeviceObjects();
+	static_cast<PerfQuery*>(g_perf_query.get())->CreateDeviceObjects();
 	// Texture cache will recreate themselves over time.
 }
 
@@ -85,8 +86,8 @@ void TeardownDeviceObjects()
 	ScreenShootMEMSurface = NULL;
 	D3D::dev->SetRenderTarget(0, D3D::GetBackBufferSurface());
 	D3D::dev->SetDepthStencilSurface(D3D::GetBackBufferDepthSurface());
-	delete g_framebuffer_manager;
-	((PerfQuery*)g_perf_query)->DestroyDeviceObjects();
+	g_framebuffer_manager.reset();
+	static_cast<PerfQuery*>(g_perf_query.get())->DestroyDeviceObjects();
 	D3D::font.Shutdown();
 	TextureCacheBase::Invalidate();
 	VertexLoaderManager::Shutdown();
@@ -132,7 +133,7 @@ Renderer::Renderer(void *&window_handle)
 
 	UpdateDrawRectangle(s_backbuffer_width, s_backbuffer_height);
 
-	s_LastAA = g_ActiveConfig.iMultisampleMode;
+	s_LastAA = g_ActiveConfig.iMultisamples - 1;
 	int SupersampleCoeficient = (s_LastAA % 3) + 1;
 
 	s_last_efb_scale = g_ActiveConfig.iEFBScale;
@@ -737,7 +738,7 @@ void Renderer::SwapImpl(u32 xfbAddr, u32 fbWidth, u32 fbStride, u32 fbHeight, co
 	{
 		TargetRectangle targetRc = ConvertEFBRectangle(rc);
 		LPDIRECT3DTEXTURE9 read_texture = FramebufferManager::GetEFBColorTexture();
-		int multisamplemode = g_ActiveConfig.iMultisampleMode;		
+		int multisamplemode = g_ActiveConfig.iMultisamples - 1;		
 		if (multisamplemode == 0 && g_ActiveConfig.bUseScalingFilter)
 		{
 			multisamplemode = std::max(std::min((targetRc.GetWidth() / Width) - 1, 2), 0);
@@ -865,7 +866,7 @@ void Renderer::SwapImpl(u32 xfbAddr, u32 fbWidth, u32 fbStride, u32 fbHeight, co
 		FramebufferManagerBase::SetLastXfbHeight(h);
 	}
 
-	u32 newAA = g_ActiveConfig.iMultisampleMode;
+	u32 newAA = g_ActiveConfig.iMultisamples - 1;
 
 	if (CalculateTargetSize(s_backbuffer_width, s_backbuffer_height, (newAA % 3) + 1)
 		|| xfbchanged
@@ -907,8 +908,8 @@ void Renderer::SwapImpl(u32 xfbAddr, u32 fbWidth, u32 fbStride, u32 fbHeight, co
 		else
 		{
 			// just resize the frame buffer
-			delete g_framebuffer_manager;
-			g_framebuffer_manager = new FramebufferManager;
+			g_framebuffer_manager.reset();
+			g_framebuffer_manager = std::make_unique<FramebufferManager>();
 		}
 		D3D::dev->SetRenderTarget(0, FramebufferManager::GetEFBColorRTSurface());
 		D3D::dev->SetDepthStencilSurface(FramebufferManager::GetEFBDepthRTSurface());

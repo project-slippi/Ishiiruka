@@ -14,10 +14,9 @@ namespace OGL
 	class GLVertexFormat : public NativeVertexFormat
 	{
 	public:
-		GLVertexFormat();
+		GLVertexFormat(const PortableVertexDeclaration &_vtx_decl);
 		~GLVertexFormat();
 
-		virtual void Initialize(const PortableVertexDeclaration &_vtx_decl) override;
 		virtual void SetupVertexPointers() override;
 
 		GLuint VAO;
@@ -30,7 +29,7 @@ class VertexManager : public ::VertexManagerBase
 public:
 	VertexManager();
 	~VertexManager();
-	NativeVertexFormat* CreateNativeVertexFormat() override;
+	NativeVertexFormat* CreateNativeVertexFormat(const PortableVertexDeclaration &_vtx_decl) override;
 	void CreateDeviceObjects() override;
 	void DestroyDeviceObjects() override;
 	void PrepareShaders(PrimitiveType primitive, u32 components, const XFMemory &xfr, const BPMemory &bpm, bool ongputhread);

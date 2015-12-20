@@ -137,13 +137,13 @@ FramebufferManager::~FramebufferManager()
 	s_efb.depth_ReadBuffer_Format = D3DFMT_UNKNOWN;
 }
 
-XFBSourceBase* FramebufferManager::CreateXFBSource(u32 target_width, u32 target_height, u32 layers)
+std::unique_ptr<XFBSourceBase> FramebufferManager::CreateXFBSource(u32 target_width, u32 target_height, u32 layers)
 {
 	LPDIRECT3DTEXTURE9 tex;
 	D3D::dev->CreateTexture(target_width, target_height, 1, D3DUSAGE_RENDERTARGET,
 		s_efb.color_surface_Format, D3DPOOL_DEFAULT, &tex, NULL);
 
-	return new XFBSource(tex);
+	return std::make_unique<XFBSource>(tex);
 }
 
 void FramebufferManager::GetTargetSize(u32 *width, u32 *height)
@@ -155,7 +155,7 @@ void FramebufferManager::GetTargetSize(u32 *width, u32 *height)
 void XFBSource::Draw(const MathUtil::Rectangle<float> &sourcerc,
 	const MathUtil::Rectangle<float> &drawrc, int width, int height) const
 {
-	int multisamplemode = g_ActiveConfig.iMultisampleMode;
+	int multisamplemode = g_ActiveConfig.iMultisamples - 1;
 	if (multisamplemode == 0 && g_ActiveConfig.bUseScalingFilter)
 	{
 		multisamplemode = std::max(std::min((int)(sourcerc.GetWidth() / drawrc.GetWidth()) - 1, 2), 0);

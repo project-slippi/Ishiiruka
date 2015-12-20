@@ -4,6 +4,7 @@
 
 #include <cinttypes>
 #include <cmath>
+#include <memory>
 #include <string>
 #include <strsafe.h>
 #include <array>
@@ -46,7 +47,7 @@
 namespace DX11
 {
 
-static u32 s_last_multisample_mode = 0;
+static u32 s_last_multisamples = 0;
 static bool s_last_stereo_mode = false;
 static bool s_last_xfb_mode = false;
 
@@ -90,7 +91,7 @@ static void SetupDeviceObjects()
 {
 	s_television.Init();
 
-	g_framebuffer_manager = new FramebufferManager;
+	g_framebuffer_manager = std::make_unique<FramebufferManager>();
 	HRESULT hr;
 	float colmat[20] = { 0.0f };
 	colmat[0] = colmat[5] = colmat[10] = 1.0f;
@@ -171,7 +172,7 @@ static void SetupDeviceObjects()
 // Kill off all device objects
 static void TeardownDeviceObjects()
 {
-	delete g_framebuffer_manager;
+	g_framebuffer_manager.reset();
 
 	access_efb_cbuf.reset();
 	clearblendstates[0].reset();
@@ -247,7 +248,7 @@ Renderer::Renderer(void *&window_handle)
 
 	UpdateDrawRectangle(s_backbuffer_width, s_backbuffer_height);
 
-	s_last_multisample_mode = g_ActiveConfig.iMultisampleMode;
+	s_last_multisamples = g_ActiveConfig.iMultisamples;
 	s_last_efb_scale = g_ActiveConfig.iEFBScale;
 	s_last_stereo_mode = g_ActiveConfig.iStereoMode > 0;
 	s_last_xfb_mode = g_ActiveConfig.bUseRealXFB;
@@ -284,12 +285,12 @@ Renderer::Renderer(void *&window_handle)
 	D3D::context->RSSetViewports(1, &vp);
 	D3D::context->OMSetRenderTargets(1, &FramebufferManager::GetEFBColorTexture()->GetRTV(), FramebufferManager::GetEFBDepthTexture()->GetDSV());
 	D3D::BeginFrame();
-	m_post_processor = new DX11PostProcessing();
+	m_post_processor = std::make_unique<DX11PostProcessing>();
 }
 
 Renderer::~Renderer()
 {
-	delete m_post_processor;
+	m_post_processor.reset();
 	m_post_processor = nullptr;
 	TeardownDeviceObjects();
 	D3D::EndFrame();
@@ -982,11 +983,11 @@ void Renderer::SwapImpl(u32 xfbAddr, u32 fbWidth, u32 fbStride, u32 fbHeight, co
 		|| windowResized
 		|| fullscreen_changed
 		|| s_last_efb_scale != g_ActiveConfig.iEFBScale
-		|| s_last_multisample_mode != g_ActiveConfig.iMultisampleMode
+		|| s_last_multisamples != g_ActiveConfig.iMultisamples
 		|| s_last_stereo_mode != (g_ActiveConfig.iStereoMode > 0))
 	{
 		s_last_xfb_mode = g_ActiveConfig.bUseRealXFB;
-		s_last_multisample_mode = g_ActiveConfig.iMultisampleMode;
+		s_last_multisamples = g_ActiveConfig.iMultisamples;
 		PixelShaderCache::InvalidateMSAAShaders();
 
 		if (windowResized || fullscreen_changed)
@@ -1021,8 +1022,8 @@ void Renderer::SwapImpl(u32 xfbAddr, u32 fbWidth, u32 fbStride, u32 fbHeight, co
 		PixelShaderManager::SetEfbScaleChanged();
 		D3D::context->OMSetRenderTargets(1, &D3D::GetBackBuffer()->GetRTV(), nullptr);
 
-		delete g_framebuffer_manager;
-		g_framebuffer_manager = new FramebufferManager;
+		g_framebuffer_manager.reset();
+		g_framebuffer_manager = std::make_unique<FramebufferManager>();
 		float clear_col[4] = { 0.f, 0.f, 0.f, 1.f };
 		D3D::context->ClearRenderTargetView(FramebufferManager::GetEFBColorTexture()->GetRTV(), clear_col);
 		D3D::context->ClearDepthStencilView(FramebufferManager::GetEFBDepthTexture()->GetDSV(), D3D11_CLEAR_DEPTH, 1.f, 0);

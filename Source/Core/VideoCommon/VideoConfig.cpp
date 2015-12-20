@@ -92,7 +92,7 @@ void VideoConfig::Load(const std::string& ini_file)
 	
 	
 	settings->Get("FastDepthCalc", &bFastDepthCalc, true);
-	settings->Get("MSAA", &iMultisampleMode, 0);
+	settings->Get("MSAA", &iMultisamples, 1);
 	settings->Get("EFBScale", &iEFBScale, (int)SCALE_1X); // native	
 	settings->Get("TexFmtOverlayEnable", &bTexFmtOverlayEnable, 0);
 	settings->Get("TexFmtOverlayCenter", &bTexFmtOverlayCenter, 0);
@@ -206,7 +206,7 @@ void VideoConfig::GameIniLoad()
 	
 	
 	CHECK_SETTING("Video_Settings", "FastDepthCalc", bFastDepthCalc);
-	CHECK_SETTING("Video_Settings", "MSAA", iMultisampleMode);
+	CHECK_SETTING("Video_Settings", "MSAA", iMultisamples);
 	CHECK_SETTING("Video_Settings", "SSAA", bSSAA);
 	int tmp = -9000;
 	CHECK_SETTING("Video_Settings", "EFBScale", tmp); // integral
@@ -298,8 +298,10 @@ void VideoConfig::VerifyValidity()
 	// Disable while is unstable
 	bEnableOpenCL = false;
 	// TODO: Check iMaxAnisotropy value
-	if (iAdapter < 0 || iAdapter >((int)backend_info.Adapters.size() - 1)) iAdapter = 0;
-	if (iMultisampleMode < 0 || iMultisampleMode >= (int)backend_info.AAModes.size()) iMultisampleMode = 0;
+	if (iAdapter < 0 || iAdapter >((int)backend_info.Adapters.size() - 1))
+		iAdapter = 0;
+	if (std::find(backend_info.AAModes.begin(), backend_info.AAModes.end(), iMultisamples) == backend_info.AAModes.end())
+		iMultisamples = 1;
 	if (!backend_info.bSupportsPixelLighting) bEnablePixelLighting = false;
 	bForcePhongShading = bForcePhongShading && bEnablePixelLighting;
 	iTessellationMax = iTessellationMax < 2 ? 2 : (iTessellationMax > 63 ? 63 : iTessellationMax);
@@ -392,7 +394,7 @@ void VideoConfig::Save(const std::string& ini_file)
 	
 	
 	settings->Set("FastDepthCalc", bFastDepthCalc);
-	settings->Set("MSAA", iMultisampleMode);
+	settings->Set("MSAA", iMultisamples);
 	settings->Set("SSAA", bSSAA);
 	settings->Set("EFBScale", iEFBScale);
 	settings->Set("TexFmtOverlayEnable", bTexFmtOverlayEnable);

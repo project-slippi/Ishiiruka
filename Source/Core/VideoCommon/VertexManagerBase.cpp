@@ -2,6 +2,8 @@
 // Licensed under GPLv2+
 // Refer to the license.txt file included.
 
+#include <memory>
+
 #include "Common/CommonTypes.h"
 
 #include "VideoCommon/BPStructs.h"
@@ -18,12 +20,12 @@
 #include "VideoCommon/Statistics.h"
 #include "VideoCommon/TextureCacheBase.h"
 #include "VideoCommon/VertexManagerBase.h"
+#include "VideoCommon/VertexLoaderManager.h"
 #include "VideoCommon/VertexShaderManager.h"
 #include "VideoCommon/VideoConfig.h"
 #include "VideoCommon/XFMemory.h"
 
-VertexManagerBase *g_vertex_manager;
-extern NativeVertexFormat *g_nativeVertexFmt;
+std::unique_ptr<VertexManagerBase> g_vertex_manager;
 
 u8 *VertexManagerBase::s_pCurBufferPointer;
 u8 *VertexManagerBase::s_pBaseBufferPointer;
@@ -36,6 +38,7 @@ Slope VertexManagerBase::s_ZSlope = {0.0f, 0.0f, float(0xFFFFFF)};
 PrimitiveType VertexManagerBase::current_primitive_type;
 
 bool VertexManagerBase::IsFlushed;
+bool VertexManagerBase::s_cull_all;
 
 static const PrimitiveType primitive_from_gx[8] = {
 	PRIMITIVE_TRIANGLES, // GX_DRAW_QUADS
@@ -56,6 +59,7 @@ PrimitiveType VertexManagerBase::GetPrimitiveType(int primitive)
 VertexManagerBase::VertexManagerBase()
 {
 	IsFlushed = true;
+	s_cull_all = false;
 }
 
 VertexManagerBase::~VertexManagerBase()
@@ -92,7 +96,7 @@ void VertexManagerBase::PrepareForAdditionalData(int primitive, u32 count, u32 s
 			ERROR_LOG(VIDEO, "VertexManagerBase: Buffer not large enough for all vertices! "
 			"Increase MAXVBUFFERSIZE or we need primitive breaking after all.");
 	}
-
+	s_cull_all = bpmem.genMode.cullmode == GenMode::CULL_ALL && primitive < 5;
 	// need to alloc new buffer
 	if (IsFlushed)
 	{
@@ -136,8 +140,9 @@ void VertexManagerBase::Flush()
 		bpmem.blendmode.alphaupdate &&
 		bpmem.zcontrol.pixel_format == PEControl::RGBA6_Z24;
 	// loading a state will invalidate BP, so check for it
+	NativeVertexFormat* current_vertex_format = VertexLoaderManager::GetCurrentVertexFormat();
 	g_video_backend->CheckInvalidState();
-	g_vertex_manager->PrepareShaders(current_primitive_type, g_nativeVertexFmt->m_components, xfmem, bpmem, true);
+	g_vertex_manager->PrepareShaders(current_primitive_type, current_vertex_format->m_components, xfmem, bpmem, true);
 
 #if defined(_DEBUG) || defined(DEBUGFAST)
 	PRIM_LOG("frame%d:\n texgen=%d, numchan=%d, dualtex=%d, ztex=%d, cole=%d, alpe=%d, ze=%d", g_ActiveConfig.iSaveTargetId, xfmem.numTexGen.numTexGens,
@@ -210,12 +215,12 @@ void VertexManagerBase::Flush()
 	PixelShaderManager::SetConstants();
 	if (current_primitive_type == PRIMITIVE_TRIANGLES)
 	{
-		const PortableVertexDeclaration &vtx_dcl = g_nativeVertexFmt->GetVertexDeclaration();
+		const PortableVertexDeclaration &vtx_dcl = current_vertex_format->GetVertexDeclaration();
 		if (bpmem.genMode.zfreeze)
 		{
 			SetZSlope();
 		}
-		else if (IndexGenerator::GetIndexLen() >= 3)
+		else if (IndexGenerator::GetIndexLen() >= 3 && !s_cull_all)
 		{
 			CalculateZSlope(vtx_dcl, g_vertex_manager->GetIndexBuffer() + IndexGenerator::GetIndexLen() - 3);
 		}
@@ -224,6 +229,7 @@ void VertexManagerBase::Flush()
 		if (bpmem.genMode.cullmode == GenMode::CULL_ALL)
 		{
 			IsFlushed = true;
+			s_cull_all = false;
 			return;
 		}
 	}
@@ -239,6 +245,7 @@ void VertexManagerBase::Flush()
 		ERROR_LOG(VIDEO, "xf.numtexgens (%d) does not match bp.numtexgens (%d). Error in command stream.", xfmem.numTexGen.numTexGens, bpmem.genMode.numtexgens.Value());
 
 	IsFlushed = true;
+	s_cull_all = false;
 }
 
 void VertexManagerBase::DoState(PointerWrap& p)

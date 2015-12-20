@@ -4,6 +4,9 @@
 
 #pragma once
 
+#include <memory>
+#include <vector>
+
 #include "Common/GL/GLUtil.h"
 #include "VideoBackends/OGL/ProgramShaderCache.h"
 #include "VideoBackends/OGL/Render.h"
@@ -73,7 +76,7 @@ public:
 	static GLuint GetEFBColorTexture(const EFBRectangle& sourceRc);
 	static GLuint GetEFBDepthTexture(const EFBRectangle& sourceRc);
 
-	static GLuint GetEFBFramebuffer(unsigned int layer = 0) { return (layer < m_EFBLayers) ? m_efbFramebuffer[layer] : m_efbFramebuffer[m_EFBLayers - 1]; }
+	static GLuint GetEFBFramebuffer(unsigned int layer = 0) { return (layer < m_EFBLayers) ? m_efbFramebuffer[layer] : m_efbFramebuffer.back(); }
 	static GLuint GetXFBFramebuffer() { return m_xfbFramebuffer; }
 
 	// Resolved framebuffer is only used in MSAA mode.
@@ -99,7 +102,7 @@ public:
 	static void PokeEFB(EFBAccessType type, const std::vector<EfbPokeData>& data);
 
 private:
-	XFBSourceBase* CreateXFBSource(unsigned int target_width, unsigned int target_height, unsigned int layers) override;
+	std::unique_ptr<XFBSourceBase> CreateXFBSource(unsigned int target_width, unsigned int target_height, unsigned int layers) override;
 	void GetTargetSize(unsigned int *width, unsigned int *height) override;
 
 	void CopyToRealXFB(u32 xfbAddr, u32 fbStride, u32 fbHeight, const EFBRectangle& sourceRc, float Gamma) override;
@@ -109,14 +112,14 @@ private:
 	static int m_msaaSamples;
 
 	static GLenum m_textureType;
-	static GLuint* m_efbFramebuffer;
+	static std::vector<GLuint> m_efbFramebuffer;
 	static GLuint m_xfbFramebuffer;
 	static GLuint m_efbColor;
 	static GLuint m_efbDepth;
 	static GLuint m_efbColorSwap;// will be hot swapped with m_efbColor when reinterpreting EFB pixel formats
 
 	// Only used in MSAA mode, TODO: try to avoid them
-	static GLuint* m_resolvedFramebuffer;
+	static std::vector<GLuint> m_resolvedFramebuffer;
 	static GLuint m_resolvedColorTexture;
 	static GLuint m_resolvedDepthTexture;
 

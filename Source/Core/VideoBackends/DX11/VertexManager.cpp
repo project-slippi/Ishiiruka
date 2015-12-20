@@ -25,9 +25,6 @@
 #include "VideoCommon/VertexShaderManager.h"
 #include "VideoCommon/VideoConfig.h"
 
-// internal state for loading vertices
-extern NativeVertexFormat *g_nativeVertexFmt;
-
 namespace DX11
 {
 
@@ -118,7 +115,6 @@ void VertexManager::PrepareDrawBuffers(u32 stride)
 
 void VertexManager::Draw(UINT stride)
 {
-	u32 components = g_nativeVertexFmt->m_components;
 	u32 indices = IndexGenerator::GetIndexLen();
 	D3D::stateman->SetIndexBuffer(m_buffers[m_currentBuffer].get());
 	D3D::stateman->SetVertexBuffer(m_buffers[m_currentBuffer].get(), stride, 0);
@@ -137,12 +133,12 @@ void VertexManager::Draw(UINT stride)
 	else if (current_primitive_type == PRIMITIVE_LINES)
 	{
 		D3D::stateman->SetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
-		((DX11::Renderer*)g_renderer)->ApplyCullDisable();
+		static_cast<Renderer*>(g_renderer.get())->ApplyCullDisable();
 	}
 	else
 	{
 		D3D::stateman->SetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
-		((DX11::Renderer*)g_renderer)->ApplyCullDisable();
+		static_cast<Renderer*>(g_renderer.get())->ApplyCullDisable();
 	}
 
 	D3D::stateman->Apply();
@@ -151,7 +147,7 @@ void VertexManager::Draw(UINT stride)
 
 	if (current_primitive_type != PRIMITIVE_TRIANGLES)
 	{
-		((DX11::Renderer*)g_renderer)->RestoreCull();
+		static_cast<Renderer*>(g_renderer.get())->RestoreCull();
 	}
 }
 
@@ -201,9 +197,10 @@ void VertexManager::vFlush(bool useDstAlpha)
 		}
 	}
 	BBox::Update();
-	u32 stride = g_nativeVertexFmt->GetVertexStride();
+	NativeVertexFormat* current_vertex_format = VertexLoaderManager::GetCurrentVertexFormat();
+	u32 stride = current_vertex_format->GetVertexStride();
 	PrepareDrawBuffers(stride);
-	g_nativeVertexFmt->SetupVertexPointers();
+	current_vertex_format->SetupVertexPointers();
 	g_renderer->ApplyState(useDstAlpha);
 
 	Draw(stride);

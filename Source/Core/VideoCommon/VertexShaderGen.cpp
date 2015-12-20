@@ -50,8 +50,8 @@ inline void GenerateVertexShader(T& out, u32 components, const XFMemory &xfr, co
 	uid_data.numColorChans = xfr.numChan.numColorChans;
 	if (!(api_type & API_D3D9))
 	{
-		uid_data.msaa = g_ActiveConfig.iMultisampleMode > 0;
-		uid_data.ssaa = g_ActiveConfig.iMultisampleMode > 0 && g_ActiveConfig.bSSAA;
+		uid_data.msaa = g_ActiveConfig.iMultisamples > 1;
+		uid_data.ssaa = g_ActiveConfig.iMultisamples > 1 && g_ActiveConfig.bSSAA;
 	}
 	char * buffer = nullptr;
 	if (Write_Code)

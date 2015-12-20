@@ -3,6 +3,7 @@
 // Refer to the license.txt file included.
 
 #pragma once
+#include <memory>
 
 #include "VideoBackends/DX9/D3DBase.h"
 #include "VideoCommon/FramebufferManagerBase.h"
@@ -87,7 +88,7 @@ public:
 	}
 
 private:
-	XFBSourceBase* CreateXFBSource(u32 target_width, u32 target_height, u32 layers);
+	std::unique_ptr<XFBSourceBase> CreateXFBSource(u32 target_width, u32 target_height, u32 layers);
 	void GetTargetSize(u32 *width, u32 *height);
 
 	void CopyToRealXFB(u32 xfbAddr, u32 fbStride, u32 fbHeight, const EFBRectangle& sourceRc, float Gamma);

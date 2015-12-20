@@ -18,6 +18,8 @@ class TextureCache : public ::TextureCacheBase
 {
 public:
 	TextureCache();
+	~TextureCache();
+
 	static void DisableStage(u32 stage);
 	static void SetStage();
 
@@ -52,22 +54,21 @@ private:
 		void LoadFromTmem(const u8* ar_src, const u8* gb_src, u32 width, u32 height,
 			u32 expanded_width, u32 expanded_Height, u32 level) override;
 
-		void FromRenderTarget(u8 *dst, u32 dstFormat, u32 dstStride,
-			PEControl::PixelFormat srcFormat, const EFBRectangle& srcRect,
-			bool isIntensity, bool scaleByHalf, u32 cbufid,
-			const float *colmat) override;
+		void FromRenderTarget(u8* dst, PEControl::PixelFormat srcFormat, const EFBRectangle& srcRect,
+			bool scaleByHalf, unsigned int cbufid, const float *colmat) override;
 		bool SupportsMaterialMap() const override { return nrm_texture != 0; };
-		bool PalettizeFromBase(const TCacheEntryBase* base_entry) override;
-		void Bind(u32 stage) override;
+		void Bind(u32 stage, u32 last_texture) override;
 		bool Save(const std::string& filename, u32 level) override;
 	};
-
-	~TextureCache();
 
 	PC_TexFormat GetNativeTextureFormat(const s32 texformat, const TlutFormat tlutfmt, u32 width, u32 height);
 
 	TCacheEntryBase* CreateTexture(const TCacheEntryConfig& config) override;
 
+	void CopyEFB(u8* dst, u32 format, u32 native_width, u32 bytes_per_row, u32 num_blocks_y, u32 memory_stride,
+		PEControl::PixelFormat srcFormat, const EFBRectangle& srcRect,
+		bool isIntensity, bool scaleByHalf) override;
+	bool Palettize(TCacheEntryBase* entry, const TCacheEntryBase* base_entry) override;
 	void LoadLut(u32 lutFmt, void* addr, u32 size);
 	void CompileShaders() override;
 	void DeleteShaders() override;

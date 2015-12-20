@@ -98,7 +98,7 @@ private:
 
 	// Stereoscopy
 	wxSlider* DepthPercentage;
-	wxSpinCtrl* ConvergenceMinimum;
+	wxSpinCtrl* Convergence;
 	wxCheckBox* MonoDepth;
 
 	wxArrayString arrayStringFor_EmuState;
@@ -172,7 +172,7 @@ private:
 		ID_REMOVECHEAT,
 		ID_GPUDETERMINISM,
 		ID_DEPTHPERCENTAGE,
-		ID_CONVERGENCEMINIMUM,
+		ID_CONVERGENCE,
 		ID_MONODEPTH,
 
 		ID_NAME,

@@ -18,12 +18,12 @@
 #include "VideoCommon/OpcodeDecoding.h"
 #include "VideoCommon/PixelShaderManager.h"
 #include "VideoCommon/Statistics.h"
+#include "VideoCommon/VertexLoaderManager.h"
 #include "VideoCommon/VertexShaderManager.h"
 #include "VideoCommon/VideoConfig.h"
 #include "VideoCommon/XFStructs.h"
 
 // internal state for loading vertices
-extern NativeVertexFormat *g_nativeVertexFmt;
 namespace DX9
 {
 // This are the initially requeted size for the buffers expresed in elements
@@ -495,7 +495,8 @@ void VertexManager::vFlush(bool useDstAlpha)
 	m_num_verts = IndexGenerator::GetNumVerts();
 	m_total_num_verts = m_num_verts;
 	m_total_index_len = m_index_len;
-	const u32 stride = g_nativeVertexFmt->GetVertexStride();
+	NativeVertexFormat* current_vertex_format = VertexLoaderManager::GetCurrentVertexFormat();
+	const u32 stride = current_vertex_format->GetVertexStride();
 	switch (current_primitive_type)
 	{
 	case PRIMITIVE_POINTS:
@@ -564,7 +565,7 @@ void VertexManager::vFlush(bool useDstAlpha)
 	{
 		D3D::ChangeRenderState(D3DRS_COLORWRITEENABLE, 0);
 	}
-	g_nativeVertexFmt->SetupVertexPointers();
+	current_vertex_format->SetupVertexPointers();
 	Draw(stride);
 	if (forced_early_z)
 	{

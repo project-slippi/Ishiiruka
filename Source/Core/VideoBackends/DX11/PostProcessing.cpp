@@ -382,7 +382,7 @@ std::string DX11PostProcessing::InitStages(const std::string &code)
 
 void DX11PostProcessing::ApplyShader()
 {
-	u32 new_samples = g_ActiveConfig.bUseXFB ? 1 : D3D::GetAAMode(g_ActiveConfig.iMultisampleMode).Count;
+	u32 new_samples = g_ActiveConfig.bUseXFB ? 1 : g_ActiveConfig.iMultisamples;
 	// shader didn't changed
 	if (m_initialized 
 		&& m_config.GetShader() == g_ActiveConfig.sPostProcessingShader 

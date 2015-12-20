@@ -10,10 +10,14 @@
 
 namespace VertexLoaderManager
 {
+	typedef std::map<PortableVertexDeclaration, std::unique_ptr<NativeVertexFormat>> NativeVertexLoaderMap;
+
 	void Init();
 	void Shutdown();
 	
 	void MarkAllDirty();
+
+	NativeVertexLoaderMap* GetNativeVertexFormatMap();
 
 	int GetVertexSize(const VertexLoaderParameters &parameters);
 
@@ -25,4 +29,6 @@ namespace VertexLoaderManager
 	void AppendListToString(std::string *dest);
 
 	void UpdateVertexArrayPointers();
+
+	NativeVertexFormat* GetCurrentVertexFormat();
 };

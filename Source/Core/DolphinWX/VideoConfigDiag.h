@@ -114,7 +114,8 @@ protected:
 	void Evt_LeaveControl(wxMouseEvent& ev);
 	void CreateDescriptionArea(wxPanel* const page, wxBoxSizer* const sizer);
 	void PopulatePostProcessingShaders();
-
+	void PopulateAAList();
+	void OnAAChanged(wxCommandEvent& ev);
 	wxChoice* choice_backend;
 	wxChoice* choice_adapter;
 	wxChoice* choice_display_resolution;
@@ -124,8 +125,7 @@ protected:
 
 	wxStaticText* text_aamode;
 	wxStaticText* text_bboxmode;
-	SettingChoice* choice_aamode;
-	wxCheckBox* ssaa_checkbox;
+	wxChoice* choice_aamode;
 	wxSlider* conv_slider;
 
 	wxStaticText* label_display_resolution;

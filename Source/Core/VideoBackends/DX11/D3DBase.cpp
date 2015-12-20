@@ -1,7 +1,10 @@
 // Copyright 2013 Dolphin Emulator Project
 // Licensed under GPLv2+
 // Refer to the license.txt file included.
+
+#include <algorithm>
 #include <unordered_map>
+
 #include "Common/CPUDetect.h"
 #include "Common/Hash.h"
 #include "Common/StringUtil.h"
@@ -208,11 +211,6 @@ D3D_FEATURE_LEVEL GetFeatureLevel(IDXGIAdapter* adapter)
 	return feat_level;
 }
 
-DXGI_SAMPLE_DESC GetAAMode(int index)
-{
-	return aa_modes[index];
-}
-
 HRESULT Create(HWND wnd)
 {
 	hWnd = wnd;
@@ -260,9 +258,14 @@ HRESULT Create(HWND wnd)
 
 	// get supported AA modes
 	aa_modes = EnumAAModes(adapter);
-	if (g_Config.iMultisampleMode >= (int)aa_modes.size())
+
+	if (std::find_if(
+		aa_modes.begin(),
+		aa_modes.end(),
+		[](const DXGI_SAMPLE_DESC& desc) {return desc.Count == g_Config.iMultisamples; }
+		) == aa_modes.end())
 	{
-		g_Config.iMultisampleMode = 0;
+		g_Config.iMultisamples = 1;
 		UpdateActiveConfig();
 	}
 

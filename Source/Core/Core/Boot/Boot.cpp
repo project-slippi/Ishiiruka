@@ -60,7 +60,10 @@ void CBoot::Load_FST(bool _bIsWii)
 	if (_bIsWii)
 		shift = 2;
 
-	u32 fst_offset, fst_size, max_fst_size;
+	u32 fst_offset = 0;
+	u32 fst_size = 0;
+	u32 max_fst_size = 0;
+
 	volume.ReadSwapped(0x0424, &fst_offset, _bIsWii);
 	volume.ReadSwapped(0x0428, &fst_size, _bIsWii);
 	volume.ReadSwapped(0x042c, &max_fst_size, _bIsWii);
@@ -268,11 +271,10 @@ bool CBoot::BootUp()
 		if (unique_id.size() >= 4)
 			VideoInterface::SetRegionReg(unique_id.at(3));
 
-		u32 tmd_size;
-		std::unique_ptr<u8[]> tmd_buf = pVolume.GetTMD(&tmd_size);
-		if (tmd_size)
+		std::vector<u8> tmd_buffer = pVolume.GetTMD();
+		if (!tmd_buffer.empty())
 		{
-			WII_IPC_HLE_Interface::ES_DIVerify(tmd_buf.get(), tmd_size);
+			WII_IPC_HLE_Interface::ES_DIVerify(tmd_buffer);
 		}
 
 		_StartupPara.bWii = pVolume.GetVolumeType() == DiscIO::IVolume::WII_DISC;

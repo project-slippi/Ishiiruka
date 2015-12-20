@@ -3,6 +3,7 @@
 // Refer to the license.txt file included.
 
 #include <cinttypes>
+#include <memory>
 #include <vector>
 
 #include "Common/Common.h"
@@ -247,8 +248,8 @@ void VertexLoaderBase::AppendToString(std::string *dest) const
 class VertexLoaderTester : public VertexLoaderBase
 {
 public:
-	VertexLoaderTester(VertexLoaderBase* _a, VertexLoaderBase* _b, const TVtxDesc& vtx_desc, const VAT& vtx_attr)
-		: VertexLoaderBase(vtx_desc, vtx_attr), a(_a), b(_b)
+	VertexLoaderTester(std::unique_ptr<VertexLoaderBase> _a, std::unique_ptr<VertexLoaderBase> _b, const TVtxDesc& vtx_desc, const VAT& vtx_attr)
+		: VertexLoaderBase(vtx_desc, vtx_attr), a(std::move(_a)), b(std::move(_b))
 	{
 		
 		m_initialized = a && b && a->IsInitialized() && b->IsInitialized();
@@ -281,8 +282,8 @@ public:
 	}
 	~VertexLoaderTester() override
 	{
-		delete a;
-		delete b;
+		a.reset();
+		b.reset();
 	}
 
 	s32 RunVertices(const VertexLoaderParameters &parameters) override
@@ -310,49 +311,50 @@ public:
 	bool IsInitialized() override { return m_initialized; }
 
 private:
-	VertexLoaderBase *a, *b;
+	std::unique_ptr<VertexLoaderBase> a;
+	std::unique_ptr<VertexLoaderBase> b;
+
 	bool m_initialized;
-	std::vector<u8> buffer_a, buffer_b;
+	std::vector<u8> buffer_a;
+	std::vector<u8> buffer_b;
 };
 
-VertexLoaderBase* VertexLoaderBase::CreateVertexLoader(const TVtxDesc& vtx_desc, const VAT& vtx_attr)
+std::unique_ptr<VertexLoaderBase> VertexLoaderBase::CreateVertexLoader(const TVtxDesc& vtx_desc, const VAT& vtx_attr)
 {
-	VertexLoaderBase* loader = nullptr;
+	std::unique_ptr<VertexLoaderBase> loader;
 
 	//#define COMPARE_VERTEXLOADERS
 
 #if defined(COMPARE_VERTEXLOADERS) && defined(_M_X86_64)
 	// first try: Any new VertexLoader vs the old one
-	loader = new VertexLoaderTester(
-		new VertexLoader(vtx_desc, vtx_attr), // the software one
-		new VertexLoaderX64(vtx_desc, vtx_attr), // the new one to compare
+	loader = std::make_unique<VertexLoaderTester>(
+		std::make_unique<VertexLoader>(vtx_desc, vtx_attr), // the software one
+		std::make_unique<VertexLoaderX64>(vtx_desc, vtx_attr), // the new one to compare
 		vtx_desc, vtx_attr);
 	if (loader->IsInitialized())
 		return loader;
-	delete loader;
+	loader.reset();
 #elif defined(_M_X86_64)
-	loader = new VertexLoaderX64(vtx_desc, vtx_attr);
+	loader = std::make_unique<VertexLoaderX64>(vtx_desc, vtx_attr);
 	if (!loader->IsInitialized())
 	{
-		delete loader;
-		loader = nullptr;
+		loader.reset();
 	}	
 #endif
-	VertexLoaderBase* fallback = new VertexLoaderCompiled(vtx_desc, vtx_attr);
+	std::unique_ptr<VertexLoaderBase> fallback = std::make_unique<VertexLoaderCompiled>(vtx_desc, vtx_attr);
 	if (!fallback->IsInitialized())
 	{
-		delete fallback;
-		fallback = nullptr;
+		fallback.reset();
 	}
-	if (fallback == nullptr)
+	if (!fallback)
 	{
 		// last try: The old VertexLoader
-		fallback = new VertexLoader(vtx_desc, vtx_attr);		
+		fallback = std::make_unique<VertexLoader>(vtx_desc, vtx_attr);
 	}
-	if (loader == nullptr)
+	if (!loader)
 	{
-		loader = fallback;
-		fallback = nullptr;
+		loader = std::move(fallback);
+		fallback.reset();
 	}
 	loader->SetFallback(fallback);	
 	return loader;	

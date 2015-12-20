@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include <memory>
 #include <vector>
 
 #include "Common/Common.h"
@@ -57,7 +58,7 @@ public:
 	virtual void PrepareShaders(PrimitiveType primitive, u32 components, const XFMemory &xfr, const BPMemory &bpm, bool ongputhread) = 0;
 	static void Flush();
 
-	virtual ::NativeVertexFormat* CreateNativeVertexFormat() = 0;	
+	virtual ::NativeVertexFormat* CreateNativeVertexFormat(const PortableVertexDeclaration& vtx_decl) = 0;
 
 	static void DoState(PointerWrap& p);
 	virtual void CreateDeviceObjects(){};
@@ -70,7 +71,7 @@ protected:
 
 	static void CalculateZSlope(const PortableVertexDeclaration &vert_decl, const u16* indices);
 	static void SetZSlope();
-
+	static bool s_cull_all;
 	virtual void vDoState(PointerWrap& p) {  }
 
 	static PrimitiveType current_primitive_type;
@@ -84,4 +85,4 @@ private:
 	virtual u16* GetIndexBuffer() = 0;
 };
 
-extern VertexManagerBase *g_vertex_manager;
+extern std::unique_ptr<VertexManagerBase> g_vertex_manager;
