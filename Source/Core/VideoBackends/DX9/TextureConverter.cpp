@@ -360,24 +360,25 @@ void EncodeToRamUsingShader(LPDIRECT3DPIXELSHADER9 shader, LPDIRECT3DTEXTURE9 sr
 	}
 	hr = s_texConvReadSurface->UnlockRect();
 }
-void EncodeToRamFromTexture(u8 *dest_ptr, const TextureCache::TCacheEntryBase *texture_entry, u32 SourceW, u32 SourceH,
-	LPDIRECT3DTEXTURE9 source_texture, bool bFromZBuffer, bool bIsIntensityFmt, int bScaleByHalf, const EFBRectangle& source)
+// returns size of the encoded data (in bytes)
+void EncodeToRamFromTexture(u8* dest_ptr, u32 format, u32 native_width, u32 bytes_per_row, u32 num_blocks_y, u32 memory_stride,
+	PEControl::PixelFormat srcFormat, bool bIsIntensityFmt, bool bScaleByHalf, const EFBRectangle& source)
 {
-	LPDIRECT3DPIXELSHADER9 texconv_shader = GetOrCreateEncodingShader(texture_entry->format);
+	LPDIRECT3DPIXELSHADER9 texconv_shader = GetOrCreateEncodingShader(format);
 	if (!texconv_shader)
 		return;
+	const LPDIRECT3DTEXTURE9 read_texture = (srcFormat == PEControl::Z24) ?
+		FramebufferManager::GetEFBDepthTexture() :
+		FramebufferManager::GetEFBColorTexture();
 
-	int width = (source.right - source.left) >> bScaleByHalf;
-	int height = (source.bottom - source.top) >> bScaleByHalf;
-
-	u16 blkW = TexDecoder_GetBlockWidthInTexels(texture_entry->format);
-	u16 blkH = TexDecoder_GetBlockHeightInTexels(texture_entry->format);
-	u16 samples = TextureConversionShader::GetEncodedSampleCount(texture_entry->format);
+	const u16 blkW = TexDecoder_GetBlockWidthInTexels(format);
+	const u16 blkH = TexDecoder_GetBlockHeightInTexels(format);
+	const u16 samples = TextureConversionShader::GetEncodedSampleCount(format);
 
 	// only copy on cache line boundaries
 	// extra pixels are copied but not displayed in the resulting texture
-	s32 expandedWidth = ROUND_UP(width, blkW);
-	s32 expandedHeight = ROUND_UP(height, blkH);
+	s32 expandedWidth = ROUND_UP(native_width, blkW);
+	s32 expandedHeight = num_blocks_y * blkH;
 
 	float sampleStride = bScaleByHalf ? 2.f : 1.f;
 	TextureConversionShaderLegacy::SetShaderParameters(
@@ -387,19 +388,19 @@ void EncodeToRamFromTexture(u8 *dest_ptr, const TextureCache::TCacheEntryBase *t
 		(float)Renderer::EFBToScaledY(source.top),
 		Renderer::EFBToScaledXf(sampleStride),
 		Renderer::EFBToScaledYf(sampleStride),
-		(float)SourceW,
-		(float)SourceH);
+		(float)Renderer::GetTargetWidth(),
+		(float)Renderer::GetTargetHeight());
 	D3D::dev->SetPixelShaderConstantF(C_COLORMATRIX, PixelShaderManager::GetBuffer(), 2);
 	TargetRectangle scaledSource;
 	scaledSource.top = 0;
 	scaledSource.bottom = expandedHeight;
 	scaledSource.left = 0;
-	scaledSource.right = expandedWidth / samples;
-	int cacheBytes = 32;
-	if ((texture_entry->format & 0x0f) == 6)
-		cacheBytes = 64;
-	int readStride = (expandedWidth * cacheBytes) / TexDecoder_GetBlockWidthInTexels(texture_entry->format);
-	EncodeToRamUsingShader(texconv_shader, source_texture, scaledSource, dest_ptr, (expandedWidth / samples) * 4, expandedHeight, texture_entry->BytesPerRow(), readStride, bScaleByHalf > 0, 1.0f);
+	scaledSource.right = expandedWidth / samples;	
+	EncodeToRamUsingShader(
+		texconv_shader, 
+		read_texture,
+		scaledSource,
+		dest_ptr, scaledSource.right * 4, expandedHeight, memory_stride, bytes_per_row, bScaleByHalf, 1.0f);
 }
 
 void EncodeToRamYUYV(LPDIRECT3DTEXTURE9 srcTexture, const TargetRectangle& sourceRc, u8* destAddr, u32 dstwidth, u32 dstStride, u32 dstHeight, float Gamma)

@@ -465,9 +465,13 @@ void ProgramShaderCache::Init()
 	// We multiply by *4*4 because we need to get down to basic machine units.
 	// So multiply by four to get how many floats we have from vec4s
 	// Then once more to get bytes
-	s_p_buffer.reset(StreamBuffer::Create(GL_UNIFORM_BUFFER, s_p_ubo_buffer_size * 1024));
-	s_v_buffer.reset(StreamBuffer::Create(GL_UNIFORM_BUFFER, s_v_ubo_buffer_size * 1024));
-	s_g_buffer.reset(StreamBuffer::Create(GL_UNIFORM_BUFFER, s_g_ubo_buffer_size * 1024));
+	s_p_buffer.reset();
+	s_v_buffer.reset();
+	s_g_buffer.reset();
+
+	s_p_buffer = std::move(StreamBuffer::Create(GL_UNIFORM_BUFFER, s_p_ubo_buffer_size * 1024));
+	s_v_buffer = std::move(StreamBuffer::Create(GL_UNIFORM_BUFFER, s_v_ubo_buffer_size * 1024));
+	s_g_buffer = std::move(StreamBuffer::Create(GL_UNIFORM_BUFFER, s_g_ubo_buffer_size * 1024));
 
 	// Read our shader cache, only if supported
 	if (g_ogl_config.bSupportsGLSLCache && !g_Config.bEnableShaderDebugging)

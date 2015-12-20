@@ -32,7 +32,6 @@ void UnloadD3D();
 
 D3D_FEATURE_LEVEL GetFeatureLevel(IDXGIAdapter* adapter);
 std::vector<DXGI_SAMPLE_DESC> EnumAAModes(IDXGIAdapter* adapter);
-DXGI_SAMPLE_DESC GetAAMode(int index);
 
 HRESULT Create(HWND wnd);
 void Close();

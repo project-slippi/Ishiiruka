@@ -2,22 +2,26 @@
 // Licensed under GPLv2+
 // Refer to the license.txt file included.
 
+#include <memory>
+
 #include "Common/GL/GLInterfaceBase.h"
 #include "Common/GL/GLUtil.h"
+
 #include "VideoBackends/OGL/PerfQuery.h"
 #include "VideoCommon/RenderBase.h"
 
 namespace OGL
 {
-PerfQueryBase* GetPerfQuery()
+std::unique_ptr<PerfQueryBase> GetPerfQuery()
 {
 	if (GLInterface->GetMode() == GLInterfaceMode::MODE_OPENGLES3 &&
-	    GLExtensions::Supports("GL_NV_occlusion_query_samples"))
-		return new PerfQueryGLESNV();
-	else if (GLInterface->GetMode() == GLInterfaceMode::MODE_OPENGLES3)
-		return new PerfQueryGL(GL_ANY_SAMPLES_PASSED);
-	else
-		return new PerfQueryGL(GL_SAMPLES_PASSED);
+		GLExtensions::Supports("GL_NV_occlusion_query_samples"))
+		return std::make_unique<PerfQueryGLESNV>();
+
+	if (GLInterface->GetMode() == GLInterfaceMode::MODE_OPENGLES3)
+		return std::make_unique<PerfQueryGL>(GL_ANY_SAMPLES_PASSED);
+
+	return std::make_unique<PerfQueryGL>(GL_SAMPLES_PASSED);
 }
 
 PerfQuery::PerfQuery()

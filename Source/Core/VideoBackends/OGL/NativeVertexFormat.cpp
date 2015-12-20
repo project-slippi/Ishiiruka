@@ -21,14 +21,9 @@
 namespace OGL
 {
 
-NativeVertexFormat* VertexManager::CreateNativeVertexFormat()
+NativeVertexFormat* VertexManager::CreateNativeVertexFormat(const PortableVertexDeclaration &_vtx_decl)
 {
-	return new GLVertexFormat();
-}
-
-GLVertexFormat::GLVertexFormat()
-{
-
+	return new GLVertexFormat(_vtx_decl);
 }
 
 GLVertexFormat::~GLVertexFormat()
@@ -53,7 +48,7 @@ static void SetPointer(u32 attrib, u32 stride, const AttributeFormat &format)
 		glVertexAttribPointer(attrib, format.components, VarToGL(format.type), true, stride, (u8*)nullptr + format.offset);
 }
 
-void GLVertexFormat::Initialize(const PortableVertexDeclaration &_vtx_decl)
+GLVertexFormat::GLVertexFormat(const PortableVertexDeclaration &_vtx_decl)
 {
 	vtx_decl = _vtx_decl;
 
@@ -61,7 +56,7 @@ void GLVertexFormat::Initialize(const PortableVertexDeclaration &_vtx_decl)
 	if (vtx_decl.stride & 3)
 		PanicAlert("Uneven vertex stride: %i", vtx_decl.stride);
 
-	VertexManager *vm = (OGL::VertexManager*)g_vertex_manager;
+	VertexManager* const vm = static_cast<VertexManager*>(g_vertex_manager.get());
 
 	glGenVertexArrays(1, &VAO);
 	glBindVertexArray(VAO);

@@ -3,6 +3,7 @@
 // Refer to the license.txt file included.
 
 #include <d3dx9.h>
+#include <memory>
 
 #include "Common/CommonPaths.h"
 #include "Common/MemoryUtil.h"
@@ -72,15 +73,15 @@ static LPDIRECT3DTEXTURE9 s_memPoolTexture[MEM_TEXTURE_POOL_SIZE];
 static u32 s_memPoolTextureW[MEM_TEXTURE_POOL_SIZE];
 static u32 s_memPoolTextureH[MEM_TEXTURE_POOL_SIZE];
 
-static Depalettizer* s_depaletizer = nullptr;
-static TextureScaler* s_scaler = nullptr;
+static std::unique_ptr<Depalettizer> s_depaletizer;
+static std::unique_ptr<TextureScaler> s_scaler;
 
 TextureCache::TCacheEntry::~TCacheEntry()
 {
 	texture->Release();
 }
 
-void TextureCache::TCacheEntry::Bind(u32 stage)
+void TextureCache::TCacheEntry::Bind(u32 stage, u32 last_texture)
 {
 	D3D::SetTexture(stage, texture);
 }
@@ -216,10 +217,8 @@ void TextureCache::TCacheEntry::LoadFromTmem(const u8* ar_src, const u8* gb_src,
 	ReplaceTexture(data, width, height, expanded_width, level, false);
 }
 
-void TextureCache::TCacheEntry::FromRenderTarget(u8* dst, u32 dstFormat, u32 dstStride,
-	PEControl::PixelFormat srcFormat, const EFBRectangle& srcRect,
-	bool isIntensity, bool scaleByHalf, u32 cbufid,
-	const float *colmat)
+void TextureCache::TCacheEntry::FromRenderTarget(u8* dst, PEControl::PixelFormat srcFormat, const EFBRectangle& srcRect,
+	bool scaleByHalf, unsigned int cbufid, const float *colmat)
 {
 	g_renderer->ResetAPIState(); // reset any game specific settings
 
@@ -259,7 +258,7 @@ void TextureCache::TCacheEntry::FromRenderTarget(u8* dst, u32 dstFormat, u32 dst
 
 	if (srcFormat == PEControl::Z24)
 	{
-		if (scaleByHalf || g_ActiveConfig.iMultisampleMode)
+		if (scaleByHalf || g_ActiveConfig.iMultisamples > 1)
 		{
 			D3D::ChangeSamplerState(0, D3DSAMP_MINFILTER, D3DTEXF_LINEAR);
 			D3D::ChangeSamplerState(0, D3DSAMP_MAGFILTER, D3DTEXF_LINEAR);
@@ -277,7 +276,7 @@ void TextureCache::TCacheEntry::FromRenderTarget(u8* dst, u32 dstFormat, u32 dst
 	}
 
 	D3DFORMAT bformat = FramebufferManager::GetEFBDepthRTSurfaceFormat();
-	s32 SSAAMode = g_ActiveConfig.iMultisampleMode;
+	s32 SSAAMode = g_ActiveConfig.iMultisamples - 1;
 
 	D3D::drawShadedTexQuad(read_texture, &sourcerect,
 		Renderer::GetTargetWidth(), Renderer::GetTargetHeight(),
@@ -286,20 +285,6 @@ void TextureCache::TCacheEntry::FromRenderTarget(u8* dst, u32 dstFormat, u32 dst
 		VertexShaderCache::GetSimpleVertexShader(SSAAMode));
 
 	Rendersurf->Release();
-
-	if (!g_ActiveConfig.bSkipEFBCopyToRam)
-	{
-		TextureConverter::EncodeToRamFromTexture(
-			dst,
-			this,
-			Renderer::GetTargetWidth(),
-			Renderer::GetTargetHeight(),
-			read_texture,
-			srcFormat == PEControl::Z24,
-			isIntensity,
-			scaleByHalf,
-			srcRect);
-	}
 
 	D3D::RefreshSamplerState(0, D3DSAMP_MINFILTER);
 	D3D::RefreshSamplerState(0, D3DSAMP_MAGFILTER);
@@ -310,9 +295,27 @@ void TextureCache::TCacheEntry::FromRenderTarget(u8* dst, u32 dstFormat, u32 dst
 	g_renderer->RestoreAPIState();
 }
 
-bool TextureCache::TCacheEntry::PalettizeFromBase(const TCacheEntryBase* base_entry)
+void TextureCache::CopyEFB(u8* dst, u32 format, u32 native_width, u32 bytes_per_row, u32 num_blocks_y, u32 memory_stride,
+	PEControl::PixelFormat srcFormat, const EFBRectangle& srcRect,
+	bool isIntensity, bool scaleByHalf)
 {
-	u32 texformat = format & 0xf;
+	TextureConverter::EncodeToRamFromTexture(
+		dst,
+		format,
+		native_width,
+		bytes_per_row,
+		num_blocks_y,
+		memory_stride,
+		srcFormat,
+		isIntensity,
+		scaleByHalf,
+		srcRect);
+}
+
+bool TextureCache::Palettize(TCacheEntryBase* entry, const TCacheEntryBase* base_entry)
+{
+	LPDIRECT3DTEXTURE9 texture = ((TCacheEntry*)entry)->texture;
+	u32 texformat = entry->format & 0xf;
 	Depalettizer::BaseType baseType = Depalettizer::Unorm8;
 	if (texformat == GX_TF_C4)
 		baseType = Depalettizer::Unorm4;
@@ -363,8 +366,8 @@ TextureCache::TextureCache()
 		s_memPoolTextureW[i] = 1024u;
 		s_memPoolTextureH[i] = 1024u;
 	}
-	s_depaletizer = new Depalettizer();
-	s_scaler = new TextureScaler();
+	s_depaletizer = std::make_unique<Depalettizer>();
+	s_scaler = std::make_unique<TextureScaler>();
 }
 
 TextureCache::~TextureCache()
@@ -377,18 +380,8 @@ TextureCache::~TextureCache()
 			s_memPoolTexture[i] = nullptr;
 		}
 	}
-	if (s_depaletizer)
-	{
-		delete s_depaletizer;
-		s_depaletizer = nullptr;
-	}
-	if (s_scaler)
-	{
-		delete s_scaler;
-		s_scaler = nullptr;
-	}
+	s_depaletizer.reset();
+	s_scaler.reset();
 }
-
-
 
 }

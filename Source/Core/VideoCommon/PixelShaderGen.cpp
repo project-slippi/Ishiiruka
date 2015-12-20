@@ -392,8 +392,8 @@ inline void GeneratePixelShader(T& out, DSTALPHA_MODE dstAlphaMode, u32 componen
 	uid_data.stereo = g_ActiveConfig.iStereoMode > 0;
 	if (!(ApiType & API_D3D9))
 	{
-		uid_data.msaa = g_ActiveConfig.iMultisampleMode > 0;
-		uid_data.ssaa = g_ActiveConfig.iMultisampleMode > 0 && g_ActiveConfig.bSSAA;
+		uid_data.msaa = g_ActiveConfig.iMultisamples > 1;
+		uid_data.ssaa = g_ActiveConfig.iMultisamples > 1 && g_ActiveConfig.bSSAA;
 	}
 	if (enablenormalmaps)
 	{

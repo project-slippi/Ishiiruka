@@ -20,6 +20,10 @@ public:
 	static u32 GetIndexLen() { return (u32)(index_buffer_current - BASEIptr); }
 
 	static u32 GetRemainingIndices();
+	static inline u16* GetBasePointer()
+	{
+		return BASEIptr;
+	}
 private:
 	// Triangles
 	template <bool pr> static void AddList(u32 numVerts);

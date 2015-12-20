@@ -23,9 +23,9 @@
 namespace DX11
 {
 
-static TextureEncoder* s_encoder = nullptr;
-static TextureDecoder* s_decoder = nullptr;
-static TextureScaler* s_scaler = nullptr;
+static std::unique_ptr<TextureEncoder> s_encoder;
+static std::unique_ptr<TextureDecoder> s_decoder;
+static std::unique_ptr<TextureScaler> s_scaler;
 const size_t MAX_COPY_BUFFERS = 33;
 D3D::BufferPtr efbcopycbuf[MAX_COPY_BUFFERS];
 
@@ -38,7 +38,7 @@ TextureCache::TCacheEntry::~TCacheEntry()
 	}
 }
 
-void TextureCache::TCacheEntry::Bind(u32 stage)
+void TextureCache::TCacheEntry::Bind(u32 stage, u32 last_texture)
 {
 	D3D::stateman->SetTexture(stage, texture->GetSRV());
 	if (nrm_texture && g_ActiveConfig.HiresMaterialMapsEnabled())
@@ -109,13 +109,18 @@ void TextureCache::TCacheEntry::CopyRectangleFromTexture(
 	if (srcrect.GetWidth() == dstrect.GetWidth()
 		&& srcrect.GetHeight() == dstrect.GetHeight())
 	{
+		const D3D11_BOX *psrcbox = nullptr;
 		D3D11_BOX srcbox;
-		srcbox.left = srcrect.left;
-		srcbox.top = srcrect.top;
-		srcbox.right = srcrect.right;
-		srcbox.bottom = srcrect.bottom;
-		srcbox.front = 0;
-		srcbox.back = 1;
+		if (srcrect.left != 0 || srcrect.top != 0)
+		{
+			srcbox.left = srcrect.left;
+			srcbox.top = srcrect.top;
+			srcbox.right = srcrect.right;
+			srcbox.bottom = srcrect.bottom;
+			srcbox.front = 0;
+			srcbox.back = 1;
+			psrcbox = &srcbox;
+		}
 		D3D::context->CopySubresourceRegion(
 			texture->GetTex(),
 			0,
@@ -124,7 +129,7 @@ void TextureCache::TCacheEntry::CopyRectangleFromTexture(
 			0,
 			srcentry->texture->GetTex(),
 			0,
-			&srcbox);
+			psrcbox);
 		return;
 	}
 	else if (!config.rendertarget)
@@ -381,15 +386,13 @@ TextureCache::TCacheEntryBase* TextureCache::CreateTexture(const TCacheEntryConf
 	return entry;
 }
 
-void TextureCache::TCacheEntry::FromRenderTarget(u8* dst, u32 dstFormat, u32 dstStride,
-	PEControl::PixelFormat srcFormat, const EFBRectangle& srcRect,
-	bool isIntensity, bool scaleByHalf, u32 cbufid,
-	const float *colmat)
+void TextureCache::TCacheEntry::FromRenderTarget(u8* dst, PEControl::PixelFormat srcFormat, const EFBRectangle& srcRect,
+	bool scaleByHalf, unsigned int cbufid, const float *colmat)
 {
 	// When copying at half size, in multisampled mode, resolve the color/depth buffer first.
 	// This is because multisampled texture reads go through Load, not Sample, and the linear
 	// filter is ignored.
-	bool multisampled = (g_ActiveConfig.iMultisampleMode != 0);
+	bool multisampled = (g_ActiveConfig.iMultisamples > 1);
 	ID3D11ShaderResourceView* efb_texture_srv;
 
 	if (multisampled && scaleByHalf)
@@ -452,13 +455,31 @@ void TextureCache::TCacheEntry::FromRenderTarget(u8* dst, u32 dstFormat, u32 dst
 	D3D::stateman->SetTextureByMask(textureSlotMask, texture->GetSRV());
 	if (!g_ActiveConfig.bSkipEFBCopyToRam)
 	{
-		s_encoder->Encode(dst, this, srcFormat, srcRect, isIntensity, scaleByHalf);
+		
 	}
 }
 
-bool TextureCache::TCacheEntry::PalettizeFromBase(const TCacheEntryBase* base_entry)
+void TextureCache::CopyEFB(u8* dst, u32 format, u32 native_width, u32 bytes_per_row, u32 num_blocks_y, u32 memory_stride,
+	PEControl::PixelFormat srcFormat, const EFBRectangle& srcRect,
+	bool isIntensity, bool scaleByHalf)
 {
-	u32 texformat = format & 0xf;
+	s_encoder->Encode(
+		dst,
+		format,
+		native_width,
+		bytes_per_row,
+		num_blocks_y,
+		memory_stride,
+		srcFormat,
+		isIntensity,
+		scaleByHalf,
+		srcRect);
+}
+
+bool TextureCache::Palettize(TCacheEntryBase* entry, const TCacheEntryBase* base_entry)
+{
+	DX11::D3DTexture2D* texture = ((TextureCache::TCacheEntry*)entry)->texture;
+	u32 texformat = entry->format & 0xf;
 	BaseType baseType = Unorm4;
 	if (texformat == GX_TF_C4)
 		baseType = Unorm4;
@@ -477,16 +498,16 @@ TextureCache::TextureCache()
 {
 	if (D3D::GetFeatureLevel() < D3D_FEATURE_LEVEL_11_0)
 	{
-		s_encoder = new PSTextureEncoder;
+		s_encoder = std::make_unique<PSTextureEncoder>();
 	}
 	else
 	{
-		s_encoder = new CSTextureEncoder;
+		s_encoder = std::make_unique<CSTextureEncoder>();
 	}
 	s_encoder->Init();
-	s_decoder = new CSTextureDecoder;
+	s_decoder = std::make_unique<CSTextureDecoder>();
 	s_decoder->Init();
-	s_scaler = new TextureScaler();
+	s_scaler = std::make_unique<TextureScaler>();
 }
 
 TextureCache::~TextureCache()
@@ -495,17 +516,11 @@ TextureCache::~TextureCache()
 		efbcopycbuf[k].reset();
 
 	s_encoder->Shutdown();
-	delete s_encoder;
-	s_encoder = nullptr;
+	s_encoder.reset();
 
 	s_decoder->Shutdown();
-	delete s_decoder;
-	s_decoder = nullptr;
-	if (s_scaler)
-	{
-		delete s_scaler;
-		s_scaler = nullptr;
-	}
+	s_decoder.reset();
+	s_scaler.reset();
 }
 
 }

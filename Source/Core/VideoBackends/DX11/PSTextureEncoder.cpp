@@ -1010,25 +1010,23 @@ void PSTextureEncoder::Shutdown()
 	m_out.reset();
 }
 
-void PSTextureEncoder::Encode(u8* dst, const TextureCache::TCacheEntryBase *texture_entry,
-	PEControl::PixelFormat srcFormat, const EFBRectangle& srcRect,
-	bool isIntensity, bool scaleByHalf)
+void PSTextureEncoder::Encode(u8* dest_ptr, u32 format, u32 native_width, u32 bytes_per_row, u32 num_blocks_y, u32 memory_stride,
+	PEControl::PixelFormat srcFormat, bool bIsIntensityFmt, bool bScaleByHalf, const EFBRectangle& source)
 {
 	if (!m_ready) // Make sure we initialized OK
 		return;
 
 	HRESULT hr;
-	u32 numBlocksY = texture_entry->NumBlocksY();
-	u32 cacheLinesPerRow = texture_entry->BytesPerRow() / 32;
+	u32 cacheLinesPerRow = bytes_per_row / 32;
 	// Reset API
 	g_renderer->ResetAPIState();
 
 	// Set up all the state for EFB encoding
 
 #ifdef USE_DYNAMIC_MODE
-	if (SetDynamicShader(texture_entry->format, srcFormat, isIntensity, scaleByHalf))
+	if (SetDynamicShader(format, srcFormat, bIsIntensityFmt, bScaleByHalf))
 #else
-	if (SetStaticShader(texture_entry->format, srcFormat, isIntensity, scaleByHalf))
+	if (SetStaticShader(format, (u32)srcFormat, bIsIntensityFmt, bScaleByHalf))
 #endif
 	{
 		D3D::stateman->SetVertexShader(m_vShader.get());
@@ -1041,7 +1039,7 @@ void PSTextureEncoder::Encode(u8* dst, const TextureCache::TCacheEntryBase *text
 		D3D::stateman->PushRasterizerState(m_efbEncodeRastState.get());
 			
 		D3D::context->OMSetRenderTargets(1, D3D::ToAddr(m_outRTV), nullptr);
-		D3D11_VIEWPORT vp = CD3D11_VIEWPORT(0.f, 0.f, FLOAT(cacheLinesPerRow * 2), FLOAT(numBlocksY));
+		D3D11_VIEWPORT vp = CD3D11_VIEWPORT(0.f, 0.f, FLOAT(cacheLinesPerRow * 2), FLOAT(num_blocks_y));
 		D3D::context->RSSetViewports(1, &vp);
 
 		D3D::stateman->SetInputLayout(m_quadLayout.get());
@@ -1059,9 +1057,9 @@ void PSTextureEncoder::Encode(u8* dst, const TextureCache::TCacheEntryBase *text
 
 		EFBEncodeParams params = { 0 };
 		params.NumHalfCacheLinesX = FLOAT(cacheLinesPerRow * 2);
-		params.NumBlocksY = FLOAT(numBlocksY);
-		params.PosX = FLOAT(srcRect.left);
-		params.PosY = FLOAT(srcRect.top);
+		params.NumBlocksY = FLOAT(num_blocks_y);
+		params.PosX = FLOAT(source.left);
+		params.PosY = FLOAT(source.top);
 		params.TexLeft = float(targetRect.left) / g_renderer->GetTargetWidth();
 		params.TexTop = float(targetRect.top) / g_renderer->GetTargetHeight();
 		params.TexRight = float(targetRect.right) / g_renderer->GetTargetWidth();
@@ -1087,7 +1085,7 @@ void PSTextureEncoder::Encode(u8* dst, const TextureCache::TCacheEntryBase *text
 
 		// Copy to staging buffer
 
-		D3D11_BOX srcBox = CD3D11_BOX(0, 0, 0, cacheLinesPerRow * 2, numBlocksY, 1);
+		D3D11_BOX srcBox = CD3D11_BOX(0, 0, 0, cacheLinesPerRow * 2, num_blocks_y, 1);
 		D3D::context->CopySubresourceRegion(m_outStage.get(), 0, 0, 0, 0, m_out.get(), 0, &srcBox);
 
 		// Clean up state
@@ -1115,11 +1113,11 @@ void PSTextureEncoder::Encode(u8* dst, const TextureCache::TCacheEntryBase *text
 		CHECK(SUCCEEDED(hr), "map staging buffer");
 
 		u8* src = (u8*)map.pData;
-		u32 readStride = std::min(texture_entry->BytesPerRow(), map.RowPitch);
-		for (u32 y = 0; y < numBlocksY; ++y)
+		u32 readStride = std::min(bytes_per_row, map.RowPitch);
+		for (u32 y = 0; y < num_blocks_y; ++y)
 		{
-			memcpy(dst, src, readStride);
-			dst += texture_entry->memory_stride;
+			memcpy(dest_ptr, src, readStride);
+			dest_ptr += memory_stride;
 			src += readStride;
 		}
 

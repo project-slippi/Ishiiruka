@@ -17,7 +17,6 @@ public:
 	static void Init();
 	static void Clear();
 	static void Shutdown();
-	static bool SetShader(u32 components); // TODO: Should be renamed to LoadShader
 	static void PrepareShader(u32 components, 
 		const XFMemory &xfr, 
 		const BPMemory &bpm, bool ongputhread);

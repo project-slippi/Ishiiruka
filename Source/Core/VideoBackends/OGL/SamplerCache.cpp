@@ -10,7 +10,7 @@
 namespace OGL
 {
 
-SamplerCache *g_sampler_cache;
+std::unique_ptr<SamplerCache> g_sampler_cache;
 
 SamplerCache::SamplerCache()
 	: m_last_max_anisotropy()

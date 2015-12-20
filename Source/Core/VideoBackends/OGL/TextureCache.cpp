@@ -4,6 +4,7 @@
 
 #include <cmath>
 #include <fstream>
+#include <memory>
 #include <vector>
 
 #ifdef _WIN32
@@ -54,13 +55,13 @@ static u32 s_Textures[8];
 static u32 s_ActiveTexture;
 
 static SHADER s_palette_pixel_shader[3];
-static StreamBuffer* s_palette_stream_buffer = nullptr;
+static std::unique_ptr<StreamBuffer> s_palette_stream_buffer;
 static GLuint s_palette_resolv_texture;
 static GLuint s_palette_buffer_offset_uniform[3];
 static GLuint s_palette_multiplier_uniform[3];
 static GLuint s_palette_copy_position_uniform[3];
-static Depalettizer* s_depaletizer = nullptr;
-static TextureScaler* s_scaler = nullptr;
+static std::unique_ptr<Depalettizer> s_depaletizer;
+static std::unique_ptr<TextureScaler> s_scaler;
 static std::pair<u8*, u32> s_last_pallet_Buffer;
 static TlutFormat s_last_TlutFormat = TlutFormat::GX_TL_IA8;
 bool SaveTexture(const std::string& filename, u32 textarget, u32 tex, int virtual_width, int virtual_height, u32 level)
@@ -110,7 +111,7 @@ TextureCache::TCacheEntry::TCacheEntry(const TCacheEntryConfig& _config)
 	framebuffer = 0;
 }
 
-void TextureCache::TCacheEntry::Bind(u32 stage)
+void TextureCache::TCacheEntry::Bind(u32 stage, u32 last_texture)
 {
 	if (s_Textures[stage] != texture)
 	{
@@ -399,10 +400,8 @@ void TextureCache::TCacheEntry::LoadFromTmem(const u8* ar_src, const u8* gb_src,
 	Load(data, width, height, expanded_width, level);
 }
 
-void TextureCache::TCacheEntry::FromRenderTarget(u8* dstPointer, u32 dstFormat, u32 dstStride,
-	PEControl::PixelFormat srcFormat, const EFBRectangle& srcRect,
-	bool isIntensity, bool scaleByHalf, u32 cbufid,
-	const float *colmat)
+void TextureCache::TCacheEntry::FromRenderTarget(u8* dst, PEControl::PixelFormat srcFormat, const EFBRectangle& srcRect,
+	bool scaleByHalf, unsigned int cbufid, const float *colmat)
 {
 	g_renderer->ResetAPIState(); // reset any game specific settings
 
@@ -447,26 +446,32 @@ void TextureCache::TCacheEntry::FromRenderTarget(u8* dstPointer, u32 dstFormat, 
 
 	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
-	if (!g_ActiveConfig.bSkipEFBCopyToRam)
-	{
-		TextureConverter::EncodeToRamFromTexture(
-			dstPointer,
-			this,
-			read_texture,
-			srcFormat == PEControl::Z24,
-			isIntensity,
-			scaleByHalf,
-			srcRect);
-	}
-
 	FramebufferManager::SetFramebuffer(0);
 
 	g_renderer->RestoreAPIState();
 }
 
-bool TextureCache::TCacheEntry::PalettizeFromBase(const TCacheEntryBase* base_entry)
+void TextureCache::CopyEFB(u8* dst, u32 format, u32 native_width, u32 bytes_per_row, u32 num_blocks_y, u32 memory_stride,
+	PEControl::PixelFormat srcFormat, const EFBRectangle& srcRect,
+	bool isIntensity, bool scaleByHalf)
 {
-	u32 texformat = format & 0xf;
+	TextureConverter::EncodeToRamFromTexture(
+		dst,
+		format,
+		native_width,
+		bytes_per_row,
+		num_blocks_y,
+		memory_stride,
+		srcFormat,
+		isIntensity,
+		scaleByHalf,
+		srcRect);
+}
+
+bool TextureCache::Palettize(TCacheEntryBase* src_entry,const TCacheEntryBase* base_entry)
+{
+	TextureCache::TCacheEntry* entry = (TextureCache::TCacheEntry*)src_entry;
+	u32 texformat = entry->format & 0xf;
 	if (!g_ActiveConfig.backend_info.bSupportsPaletteConversion)
 	{
 		
@@ -477,7 +482,7 @@ bool TextureCache::TCacheEntry::PalettizeFromBase(const TCacheEntryBase* base_en
 			baseType = Depalettizer::Unorm8;
 		else
 			return false;
-		return s_depaletizer->Depalettize(baseType, texture, ((TextureCache::TCacheEntry*)base_entry)->texture, config.width, config.height);
+		return s_depaletizer->Depalettize(baseType, entry->texture, ((TextureCache::TCacheEntry*)base_entry)->texture, entry->config.width, entry->config.height);
 	}
 	g_renderer->ResetAPIState();
 
@@ -485,14 +490,14 @@ bool TextureCache::TCacheEntry::PalettizeFromBase(const TCacheEntryBase* base_en
 	glBindTexture(GL_TEXTURE_2D_ARRAY, ((TextureCache::TCacheEntry*)base_entry)->texture);
 	g_sampler_cache->BindLinearSampler(9);
 	
-	FramebufferManager::SetFramebuffer(framebuffer);
-	glViewport(0, 0, config.width, config.height);
+	FramebufferManager::SetFramebuffer(entry->framebuffer);
+	glViewport(0, 0, entry->config.width, entry->config.height);
 	s_palette_pixel_shader[s_last_TlutFormat].Bind();
 
 	
 	glUniform1i(s_palette_buffer_offset_uniform[s_last_TlutFormat], s_last_pallet_Buffer.second / 2);
 	glUniform1f(s_palette_multiplier_uniform[s_last_TlutFormat], texformat == GX_TF_C4 ? 15.0f : 255.0f);
-	glUniform4f(s_palette_copy_position_uniform[s_last_TlutFormat], 0.0f, 0.0f, (float)config.width, (float)config.height);
+	glUniform4f(s_palette_copy_position_uniform[s_last_TlutFormat], 0.0f, 0.0f, (float)entry->config.width, (float)entry->config.height);
 
 	glActiveTexture(GL_TEXTURE10);
 	glBindTexture(GL_TEXTURE_BUFFER, s_palette_resolv_texture);
@@ -531,9 +536,9 @@ TextureCache::TextureCache()
 	}
 	else
 	{
-		s_depaletizer = new Depalettizer();
+		s_depaletizer = std::make_unique<Depalettizer>();
 	}
-	s_scaler = new TextureScaler();
+	s_scaler = std::make_unique<TextureScaler>();
 }
 
 void TextureCache::CompileShaders()
@@ -756,23 +761,14 @@ TextureCache::~TextureCache()
 	DeleteShaders();
 	if (g_ActiveConfig.backend_info.bSupportsPaletteConversion)
 	{
-		delete s_palette_stream_buffer;
-		s_palette_stream_buffer = nullptr;
+		s_palette_stream_buffer.reset();
 		glDeleteTextures(1, &s_palette_resolv_texture);
 	}
 	else
 	{
-		if (s_depaletizer != nullptr)
-		{
-			delete s_depaletizer;
-			s_depaletizer = nullptr;
-		}
+		s_depaletizer.reset();
 	}
-	if (s_scaler)
-	{
-		delete s_scaler;
-		s_scaler = nullptr;
-	}
+	s_scaler.reset();
 }
 
 void TextureCache::LoadLut(u32 lutFmt, void* addr, u32 size)

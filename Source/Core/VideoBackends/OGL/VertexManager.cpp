@@ -3,6 +3,7 @@
 // Refer to the license.txt file included.
 
 #include <fstream>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -31,16 +32,14 @@
 #include "VideoCommon/VertexShaderManager.h"
 #include "VideoCommon/VideoConfig.h"
 
-extern NativeVertexFormat *g_nativeVertexFmt;
-
 namespace OGL
 {
 //This are the initially requested size for the buffers expressed in bytes
 const u32 MAX_IBUFFER_SIZE =  2*1024*1024;
 const u32 MAX_VBUFFER_SIZE = 32*1024*1024;
 
-static StreamBuffer *s_vertexBuffer;
-static StreamBuffer *s_indexBuffer;
+static std::unique_ptr<StreamBuffer> s_vertexBuffer;
+static std::unique_ptr<StreamBuffer> s_indexBuffer;
 static size_t s_baseVertex;
 static size_t s_index_offset;
 static u16* s_index_buffer_base;
@@ -67,8 +66,8 @@ void VertexManager::CreateDeviceObjects()
 
 void VertexManager::DestroyDeviceObjects()
 {
-	delete s_vertexBuffer;
-	delete s_indexBuffer;
+	s_vertexBuffer.reset();
+	s_indexBuffer.reset();
 }
 
 void VertexManager::PrepareDrawBuffers(u32 stride)
@@ -129,7 +128,7 @@ void VertexManager::Draw(u32 stride)
 	INCSTAT(stats.thisFrame.numDrawCalls);
 
 	if (current_primitive_type != PRIMITIVE_TRIANGLES)
-		((OGL::Renderer*)g_renderer)->SetGenerationMode();
+		static_cast<Renderer*>(g_renderer.get())->SetGenerationMode();
 }
 
 void VertexManager::PrepareShaders(PrimitiveType primitive, u32 components, const XFMemory &xfr, const BPMemory &bpm, bool ongputhread)
@@ -143,7 +142,7 @@ u16* VertexManager::GetIndexBuffer()
 }
 void VertexManager::vFlush(bool useDstAlpha)
 {
-	GLVertexFormat *nativeVertexFmt = (GLVertexFormat*)g_nativeVertexFmt;
+	GLVertexFormat *nativeVertexFmt = (GLVertexFormat*)VertexLoaderManager::GetCurrentVertexFormat();
 	u32 stride  = nativeVertexFmt->GetVertexStride();
 
 	if (m_last_vao != nativeVertexFmt->VAO)

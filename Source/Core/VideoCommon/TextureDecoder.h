@@ -70,6 +70,7 @@ u32 TexDecoder_GetTextureSizeInBytes(u32 width, u32 height, u32 format);
 u32 TexDecoder_GetBlockWidthInTexels(u32 format);
 u32 TexDecoder_GetBlockHeightInTexels(u32 format);
 u32 TexDecoder_GetPaletteSize(u32 fmt);
+u32 TexDecoder_GetEfbCopyBaseFormat(u32 format);
 
 enum PC_TexFormat
 {

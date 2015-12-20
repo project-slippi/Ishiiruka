@@ -20,16 +20,13 @@ class D3DVertexFormat : public NativeVertexFormat
 	D3D::InputLayoutPtr m_layout;
 
 public:
-	D3DVertexFormat() : m_num_elems(0) {}
-	
-
-	void Initialize(const PortableVertexDeclaration &_vtx_decl) override;
+	D3DVertexFormat(const PortableVertexDeclaration &_vtx_decl);
 	void SetupVertexPointers() override;
 };
 
-NativeVertexFormat* VertexManager::CreateNativeVertexFormat()
+NativeVertexFormat* VertexManager::CreateNativeVertexFormat(const PortableVertexDeclaration &_vtx_decl)
 {
-	return new D3DVertexFormat();
+	return new D3DVertexFormat(_vtx_decl);
 }
 
 DXGI_FORMAT VarToD3D(EVTXComponentFormat t, int size)
@@ -61,7 +58,7 @@ DXGI_FORMAT VarToD3D(EVTXComponentFormat t, int size)
 	return retval;
 }
 
-void D3DVertexFormat::Initialize(const PortableVertexDeclaration &_vtx_decl)
+D3DVertexFormat::D3DVertexFormat(const PortableVertexDeclaration &_vtx_decl) : m_num_elems(0)
 {
 	vtx_decl = _vtx_decl;
 	memset(m_elems, 0, sizeof(m_elems));

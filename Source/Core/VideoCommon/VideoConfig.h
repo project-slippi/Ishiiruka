@@ -107,7 +107,7 @@ struct VideoConfig final
 	bool bOMPDecoder;
 
 	// Enhancements
-	int iMultisampleMode;
+	int iMultisamples;
 	bool bSSAA;
 	int iEFBScale;
 	bool bForceFiltering;
@@ -198,7 +198,7 @@ struct VideoConfig final
 		API_TYPE APIType;
 
 		std::vector<std::string> Adapters; // for D3D9 and D3D11
-		std::vector<std::string> AAModes;
+		std::vector<int> AAModes;
 		std::vector<std::string> PPShaders; // post-processing shaders
 		std::vector<std::string> AnaglyphShaders; // anaglyph shaders
 

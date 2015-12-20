@@ -2,6 +2,7 @@
 // Licensed under GPLv2+
 // Refer to the license.txt file included.
 
+#include <memory>
 #include <wx/wx.h>
 
 #include "Common/Logging/LogManager.h"
@@ -143,15 +144,12 @@ void InitBackendInfo()
 		// TODO: These don't get updated on adapter change, yet
 		if (adapter_index == g_Config.iAdapter)
 		{
-			char buf[32];
-			std::vector<DXGI_SAMPLE_DESC> modes;
-			modes = DX11::D3D::EnumAAModes(ad);
+			std::string samples;
+			std::vector<DXGI_SAMPLE_DESC> modes = DX11::D3D::EnumAAModes(ad);
+			// First iteration will be 1. This equals no AA.
 			for (unsigned int i = 0; i < modes.size(); ++i)
 			{
-				if (i == 0) sprintf_s(buf, 32, _trans("None"));
-				else if (modes[i].Quality) sprintf_s(buf, 32, _trans("%d samples (quality level %d)"), modes[i].Count, modes[i].Quality);
-				else sprintf_s(buf, 32, _trans("%d samples"), modes[i].Count);
-				g_Config.backend_info.AAModes.push_back(buf);
+				g_Config.backend_info.AAModes.push_back(modes[i].Count);
 			}
 
 			bool shader_model_5_supported = (DX11::D3D::GetFeatureLevel(ad) >= D3D_FEATURE_LEVEL_11_0);
@@ -214,10 +212,10 @@ bool VideoBackend::Initialize(void *window_handle)
 void VideoBackend::Video_Prepare()
 {
 	// internal interfaces
-	g_renderer = new Renderer(m_window_handle);
-	g_texture_cache = new TextureCache;
-	g_vertex_manager = new VertexManager;
-	g_perf_query = new PerfQuery;
+	g_renderer = std::make_unique<Renderer>(m_window_handle);
+	g_texture_cache = std::make_unique<TextureCache>();
+	g_vertex_manager = std::make_unique<VertexManager>();
+	g_perf_query = std::make_unique<PerfQuery>();
 	VertexShaderCache::Init();
 	PixelShaderCache::Init();
 	D3D::InitUtils();
@@ -244,34 +242,29 @@ void VideoBackend::Video_Prepare()
 void VideoBackend::Shutdown()
 {
 	s_BackendInitialized = false;
+	if (!g_renderer)
+		return;
+	// VideoCommon
+	Fifo_Shutdown();
+	CommandProcessor::Shutdown();
+	PixelShaderManager::Shutdown();
+	VertexShaderManager::Shutdown();
+	GeometryShaderManager::Shutdown();
+	TessellationShaderManager::Shutdown();
+	OpcodeDecoder_Shutdown();
+	VertexLoaderManager::Shutdown();
 
-	// TODO: should be in Video_Cleanup
-	if (g_renderer)
-	{
-		// VideoCommon
-		Fifo_Shutdown();
-		CommandProcessor::Shutdown();
-		PixelShaderManager::Shutdown();
-		VertexShaderManager::Shutdown();
-		GeometryShaderManager::Shutdown();
-		TessellationShaderManager::Shutdown();
-		OpcodeDecoder_Shutdown();
-		VertexLoaderManager::Shutdown();
-
-		// internal interfaces
-		D3D::ShutdownUtils();
-		PixelShaderCache::Shutdown();
-		GeometryShaderCache::Shutdown();
-		HullDomainShaderCache::Shutdown();
-		VertexShaderCache::Shutdown();
-		BBox::Shutdown();
-		delete g_perf_query;
-		delete g_vertex_manager;
-		delete g_texture_cache;
-		delete g_renderer;
-		g_renderer = nullptr;
-		g_texture_cache = nullptr;
-	}
+	// internal interfaces
+	D3D::ShutdownUtils();
+	PixelShaderCache::Shutdown();
+	GeometryShaderCache::Shutdown();
+	HullDomainShaderCache::Shutdown();
+	VertexShaderCache::Shutdown();
+	BBox::Shutdown();
+	g_perf_query.reset();
+	g_vertex_manager.reset();
+	g_texture_cache.reset();
+	g_renderer.reset();
 }
 
 void VideoBackend::Video_Cleanup() {

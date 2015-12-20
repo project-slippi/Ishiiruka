@@ -21,21 +21,29 @@
 
 
 
-NativeVertexFormat *g_nativeVertexFmt;
-static VertexLoaderBase *s_CPULoaders[8];
-static std::string LastGameCode;
+static VertexLoaderBase *s_cpu_loaders[8];
+static std::string last_game_code;
 
-typedef std::unordered_map<VertexLoaderUID, VertexLoaderBase*> VertexLoaderMap;
-typedef std::map<PortableVertexDeclaration, std::unique_ptr<NativeVertexFormat>> NativeVertexLoaderMap;
+typedef std::unordered_map<VertexLoaderUID, std::unique_ptr<VertexLoaderBase>> VertexLoaderMap;
 
 namespace VertexLoaderManager
 {
-	static bool s_PrecompiledLoadersInitialized = false;
-	
-	static VertexLoaderMap s_VertexLoaderMap;
+	static VertexLoaderMap s_vertex_loader_map;
 	static NativeVertexLoaderMap s_native_vertex_map;
+	static NativeVertexFormat* s_current_vtx_fmt;
+
 	// TODO - change into array of pointers. Keep a map of all seen so far.
-	
+	// Used in D3D12 backend, to populate input layouts used by cached-to-disk PSOs.
+	NativeVertexLoaderMap* GetNativeVertexFormatMap()
+	{
+		return &s_native_vertex_map;
+	}
+
+	NativeVertexFormat* GetCurrentVertexFormat()
+	{
+		return s_current_vtx_fmt;
+	}
+
 	namespace
 	{
 		struct entry
@@ -70,7 +78,7 @@ namespace VertexLoaderManager
 	void DumpLoadersCode()
 	{
 		std::vector<codeentry> entries;
-		for (VertexLoaderMap::const_iterator iter = s_VertexLoaderMap.begin(); iter != s_VertexLoaderMap.end(); ++iter)
+		for (VertexLoaderMap::const_iterator iter = s_vertex_loader_map.begin(); iter != s_vertex_loader_map.end(); ++iter)
 		{
 			if (!iter->second->IsPrecompiled())
 			{
@@ -92,7 +100,7 @@ namespace VertexLoaderManager
 		{
 			return;
 		}		
-		std::string filename = StringFromFormat("%sG_%s_pvt.h", File::GetUserPath(D_DUMP_IDX).c_str(), LastGameCode.c_str());		
+		std::string filename = StringFromFormat("%sG_%s_pvt.h", File::GetUserPath(D_DUMP_IDX).c_str(), last_game_code.c_str());		
 		std::string header;
 		header.append("// Copyright 2013 Dolphin Emulator Project\n");
 		header.append("// Licensed under GPLv2+\n");
@@ -102,22 +110,22 @@ namespace VertexLoaderManager
 		header.append("#include <map>\n");
 		header.append("#include \"VideoCommon/NativeVertexFormat.h\"\n");
 		header.append("class G_");
-		header.append(LastGameCode);
+		header.append(last_game_code);
 		header.append("_pvt\n{\npublic:\n");
 		header.append("static void Initialize(std::map<u64, TCompiledLoaderFunction> &pvlmap);\n");
 		header.append("};\n");
 		std::ofstream headerfile(filename);
 		headerfile << header;
 		headerfile.close();
-		filename = StringFromFormat("%sG_%s_pvt.cpp", File::GetUserPath(D_DUMP_IDX).c_str(), LastGameCode.c_str());		
+		filename = StringFromFormat("%sG_%s_pvt.cpp", File::GetUserPath(D_DUMP_IDX).c_str(), last_game_code.c_str());		
 		sort(entries.begin(), entries.end());
 		std::string sourcecode;
 		sourcecode.append("#include \"VideoCommon/G_");
-		sourcecode.append(LastGameCode);
+		sourcecode.append(last_game_code);
 		sourcecode.append("_pvt.h\"\n");
 		sourcecode.append("#include \"VideoCommon/VertexLoader_Template.h\"\n\n");
 		sourcecode.append("\n\nvoid G_");
-		sourcecode.append(LastGameCode);
+		sourcecode.append(last_game_code);
 		sourcecode.append("_pvt::Initialize(std::map<u64, TCompiledLoaderFunction> &pvlmap)\n{\n");
 		for (std::vector<codeentry>::const_iterator iter = entries.begin(); iter != entries.end(); ++iter)
 		{
@@ -158,7 +166,7 @@ namespace VertexLoaderManager
 		std::vector<entry> entries;
 
 		size_t total_size = 0;
-		for (VertexLoaderMap::const_iterator iter = s_VertexLoaderMap.begin(); iter != s_VertexLoaderMap.end(); ++iter)
+		for (VertexLoaderMap::const_iterator iter = s_vertex_loader_map.begin(); iter != s_vertex_loader_map.end(); ++iter)
 		{
 			entry e;
 			iter->second->AppendToString(&e.text);
@@ -179,18 +187,14 @@ namespace VertexLoaderManager
 		MarkAllDirty();
 		for (VertexLoaderBase*& vertexLoader : g_main_cp_state.vertex_loaders)
 			vertexLoader = nullptr;
-		LastGameCode = SConfig::GetInstance().m_strUniqueID;
+		last_game_code = SConfig::GetInstance().m_strUniqueID;
 	}
 
 	void Shutdown()
 	{
-		if (s_VertexLoaderMap.size() > 0 && g_ActiveConfig.bDumpVertexLoaders)
+		if (s_vertex_loader_map.size() > 0 && g_ActiveConfig.bDumpVertexLoaders)
 			DumpLoadersCode();
-		for (auto& p : s_VertexLoaderMap)
-		{
-			delete p.second;
-		}
-		s_VertexLoaderMap.clear();
+		s_vertex_loader_map.clear();
 		s_native_vertex_map.clear();
 	}
 
@@ -220,10 +224,9 @@ namespace VertexLoaderManager
 		auto& native = s_native_vertex_map[format];
 		if (!native)
 		{
-			auto raw_pointer = g_vertex_manager->CreateNativeVertexFormat();
+			auto raw_pointer = g_vertex_manager->CreateNativeVertexFormat(format);
 			native = std::unique_ptr<NativeVertexFormat>(raw_pointer);
 			native->m_components = components;
-			native->Initialize(format);
 		}
 		return native.get();
 	}
@@ -239,31 +242,31 @@ namespace VertexLoaderManager
 	inline VertexLoaderBase *GetOrAddLoader(const TVtxDesc &VtxDesc, const VAT &VtxAttr)
 	{
 		VertexLoaderUID uid(VtxDesc, VtxAttr);
-		VertexLoaderMap::iterator iter = s_VertexLoaderMap.find(uid);
-		if (iter == s_VertexLoaderMap.end())
+		VertexLoaderMap::iterator iter = s_vertex_loader_map.find(uid);
+		if (iter == s_vertex_loader_map.end())
 		{
-			VertexLoaderBase *loader = VertexLoaderBase::CreateVertexLoader(VtxDesc, VtxAttr);
+			s_vertex_loader_map[uid] = VertexLoaderBase::CreateVertexLoader(VtxDesc, VtxAttr);
+			VertexLoaderBase* loader = s_vertex_loader_map[uid].get();
 			loader->m_native_vertex_format = GetNativeVertexFormat(loader->m_native_vtx_decl, loader->m_native_components);
 			VertexLoaderBase * fallback = loader->GetFallback();
 			if (fallback)
 			{
 				fallback->m_native_vertex_format = GetNativeVertexFormat(fallback->m_native_vtx_decl, fallback->m_native_components);
 			}
-			s_VertexLoaderMap[uid] = loader;
 			INCSTAT(stats.numVertexLoaders);
 			return loader;
 		}
-		return iter->second;
+		return iter->second.get();
 	}
 
 	void GetVertexSizeAndComponents(const VertexLoaderParameters &parameters, u32 &vertexsize, u32 &components)
 	{
 		if (parameters.needloaderrefresh)
 		{
-			s_CPULoaders[parameters.vtx_attr_group] = GetOrAddLoader(*parameters.VtxDesc, *parameters.VtxAttr);
+			s_cpu_loaders[parameters.vtx_attr_group] = GetOrAddLoader(*parameters.VtxDesc, *parameters.VtxAttr);
 		}
-		vertexsize = s_CPULoaders[parameters.vtx_attr_group]->m_VertexSize;
-		components = s_CPULoaders[parameters.vtx_attr_group]->m_native_components;
+		vertexsize = s_cpu_loaders[parameters.vtx_attr_group]->m_VertexSize;
+		components = s_cpu_loaders[parameters.vtx_attr_group]->m_native_components;
 	}
 
 	inline void UpdateLoader(const VertexLoaderParameters &parameters)
@@ -293,13 +296,13 @@ namespace VertexLoaderManager
 		UpdateVertexArrayPointers();
 		NativeVertexFormat *nativefmt = loader->m_native_vertex_format;
 		// Flush if our vertex format is different from the currently set.
-		if (g_nativeVertexFmt != nullptr && g_nativeVertexFmt != nativefmt)
+		if (s_current_vtx_fmt != nullptr && s_current_vtx_fmt != nativefmt)
 		{
 			VertexManagerBase::Flush();
 		}
+		s_current_vtx_fmt = nativefmt;
 		VertexManagerBase::PrepareForAdditionalData(parameters.primitive, parameters.count, loader->m_native_stride);
-		parameters.destination = VertexManagerBase::s_pCurBufferPointer;
-		g_nativeVertexFmt = nativefmt;
+		parameters.destination = VertexManagerBase::s_pCurBufferPointer;		
 		s32 finalcount = loader->RunVertices(parameters);
 		writesize = loader->m_native_stride * finalcount;
 		IndexGenerator::AddIndices(parameters.primitive, finalcount);

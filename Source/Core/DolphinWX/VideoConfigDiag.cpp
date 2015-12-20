@@ -389,14 +389,9 @@ VideoConfigDiag::VideoConfigDiag(wxWindow* parent, const std::string &title, con
 	// AA
 	{
 	text_aamode = new wxStaticText(page_enh, wxID_ANY, _("Anti-Aliasing:"));
-	choice_aamode = CreateChoice(page_enh, vconfig.iMultisampleMode, (aa_desc));
-
-	for (const std::string& mode : vconfig.backend_info.AAModes)
-	{
-		choice_aamode->AppendString((StrToWxStr(mode)));
-	}
-
-	choice_aamode->Select(vconfig.iMultisampleMode);
+	choice_aamode = new wxChoice(page_enh, wxID_ANY);
+	PopulateAAList();
+	choice_aamode->Bind(wxEVT_CHOICE, &VideoConfigDiag::OnAAChanged, this);
 	szr_enh->Add(text_aamode, 1, wxALIGN_CENTER_VERTICAL, 0);
 	szr_enh->Add(choice_aamode);
 	szr_enh->AddSpacer(0);
@@ -442,15 +437,6 @@ VideoConfigDiag::VideoConfigDiag(wxWindow* parent, const std::string &title, con
 	szr_enh->Add(pixel_lighting = CreateCheckBox(page_enh, _("Per-Pixel Lighting"), (pixel_lighting_desc), vconfig.bEnablePixelLighting));
 	szr_enh->Add(phong_lighting = CreateCheckBox(page_enh, _("Phong Lighting"), (phong_lighting_desc), vconfig.bForcePhongShading));
 	
-	if (vconfig.backend_info.bSupportsSSAA)
-	{
-		ssaa_checkbox = CreateCheckBox(page_enh, _("SSAA"), wxGetTranslation(aa_desc), vconfig.bSSAA);
-		szr_enh->Add(ssaa_checkbox);
-	}
-	else
-	{
-		ssaa_checkbox = nullptr;
-	}
 	wxStaticBoxSizer* const group_enh = new wxStaticBoxSizer(wxVERTICAL, page_enh, _("Enhancements"));
 	group_enh->Add(szr_enh, 1, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 5);
 	szr_enh_main->Add(group_enh, 0, wxEXPAND | wxALL, 5);
@@ -1010,9 +996,7 @@ void VideoConfigDiag::OnUpdateUI(wxUpdateUIEvent& ev)
 {
 	// Anti-aliasing
 	choice_aamode->Enable(vconfig.backend_info.AAModes.size() > 1);
-	text_aamode->Enable(vconfig.backend_info.AAModes.size() > 1);
-	if (vconfig.backend_info.bSupportsSSAA && ssaa_checkbox)
-		ssaa_checkbox->Enable(vconfig.iMultisampleMode > 0);
+	text_aamode->Enable(vconfig.backend_info.AAModes.size() > 1);	
 
 	// pixel lighting
 	pixel_lighting->Enable(vconfig.backend_info.bSupportsPixelLighting);
@@ -1114,4 +1098,59 @@ void VideoConfigDiag::PopulatePostProcessingShaders()
 	PostProcessingShaderConfiguration postprocessing_shader;
 	postprocessing_shader.LoadShader(vconfig.sPostProcessingShader);
 	button_config_pp->Enable(postprocessing_shader.HasOptions());
+}
+
+void VideoConfigDiag::PopulateAAList()
+{
+	const std::vector<int>& aa_modes = vconfig.backend_info.AAModes;
+	const bool supports_ssaa = vconfig.backend_info.bSupportsSSAA;	
+	for (int mode : aa_modes)
+	{
+		if (mode == 1)
+		{
+			choice_aamode->AppendString(_("None"));
+		}
+		else
+		{
+			if ((vconfig.backend_info.APIType & API_D3D9) != 0)
+			{
+				choice_aamode->AppendString(std::to_string(mode * mode) + "x SSAA");
+			}
+			else
+			{
+				choice_aamode->AppendString(std::to_string(mode) + "x MSAA");
+			}
+		}
+	}
+
+	if (supports_ssaa)
+	{
+		for (int mode : aa_modes)
+		{
+			if (mode != 1)
+				choice_aamode->AppendString(std::to_string(mode) + "x SSAA");
+		}
+	}
+
+	int selected_mode_index = 0;
+
+	auto index = std::find(aa_modes.begin(), aa_modes.end(), vconfig.iMultisamples);
+	if (index != aa_modes.end())
+		selected_mode_index = index - aa_modes.begin();
+
+	// Select one of the SSAA modes at the end of the list if SSAA is enabled
+	if (supports_ssaa && vconfig.bSSAA && aa_modes[selected_mode_index] != 1)
+		selected_mode_index += aa_modes.size() - 1;
+
+	choice_aamode->SetSelection(selected_mode_index);
+}
+
+void VideoConfigDiag::OnAAChanged(wxCommandEvent& ev)
+{
+	int mode = ev.GetInt();
+	ev.Skip();
+	const std::vector<int>& aa_modes = vconfig.backend_info.AAModes;
+	vconfig.bSSAA = mode >= aa_modes.size();
+	mode -= vconfig.bSSAA * (aa_modes.size() - 1);
+	vconfig.iMultisamples = aa_modes[mode];
 }

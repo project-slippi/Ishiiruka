@@ -25,14 +25,14 @@ int FramebufferManager::m_targetHeight;
 int FramebufferManager::m_msaaSamples;
 
 GLenum FramebufferManager::m_textureType;
-GLuint* FramebufferManager::m_efbFramebuffer;
+std::vector<GLuint> FramebufferManager::m_efbFramebuffer;
 GLuint FramebufferManager::m_xfbFramebuffer;
 GLuint FramebufferManager::m_efbColor;
 GLuint FramebufferManager::m_efbDepth;
 GLuint FramebufferManager::m_efbColorSwap; // for hot swap when reinterpreting EFB pixel formats
 
 // Only used in MSAA mode.
-GLuint* FramebufferManager::m_resolvedFramebuffer;
+std::vector<GLuint> FramebufferManager::m_resolvedFramebuffer;
 GLuint FramebufferManager::m_resolvedColorTexture;
 GLuint FramebufferManager::m_resolvedDepthTexture;
 
@@ -78,8 +78,8 @@ FramebufferManager::FramebufferManager(int targetWidth, int targetHeight, int ms
 	m_efbColorSwap = glObj[2];
 
 	m_EFBLayers = (g_ActiveConfig.iStereoMode > 0) ? 2 : 1;
-	m_efbFramebuffer = new GLuint[m_EFBLayers]();
-	m_resolvedFramebuffer = new GLuint[m_EFBLayers]();
+	m_efbFramebuffer.resize(m_EFBLayers);
+	m_resolvedFramebuffer.resize(m_EFBLayers);
 
 	// OpenGL MSAA textures are a different kind of texture type and must be allocated
 	// with a different function, so we create them separately.
@@ -182,7 +182,7 @@ FramebufferManager::FramebufferManager(int targetWidth, int targetHeight, int ms
 		glTexImage3D(resolvedType, 0, GL_DEPTH_COMPONENT32F, m_targetWidth, m_targetHeight, m_EFBLayers, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
 
 		// Bind resolved textures to resolved framebuffer.
-		glGenFramebuffers(m_EFBLayers, m_resolvedFramebuffer);
+		glGenFramebuffers(m_EFBLayers, m_resolvedFramebuffer.data());
 		glBindFramebuffer(GL_FRAMEBUFFER, m_resolvedFramebuffer[0]);
 		FramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, resolvedType, m_resolvedColorTexture, 0);
 		FramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, resolvedType, m_resolvedDepthTexture, 0);
@@ -200,7 +200,7 @@ FramebufferManager::FramebufferManager(int targetWidth, int targetHeight, int ms
 	glGenFramebuffers(1, &m_xfbFramebuffer);
 
 	// Bind target textures to EFB framebuffer.
-	glGenFramebuffers(m_EFBLayers, m_efbFramebuffer);
+	glGenFramebuffers(m_EFBLayers, m_efbFramebuffer.data());
 	glBindFramebuffer(GL_FRAMEBUFFER, m_efbFramebuffer[0]);
 	FramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, m_textureType, m_efbColor, 0);
 	FramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, m_textureType, m_efbDepth, 0);
@@ -413,12 +413,10 @@ FramebufferManager::~FramebufferManager()
 
 	// Note: OpenGL deletion functions silently ignore parameters of "0".
 
-	glDeleteFramebuffers(m_EFBLayers, m_efbFramebuffer);
-	glDeleteFramebuffers(m_EFBLayers, m_resolvedFramebuffer);
-	delete [] m_efbFramebuffer;
-	delete [] m_resolvedFramebuffer;
-	m_efbFramebuffer = nullptr;
-	m_resolvedFramebuffer = nullptr;
+	glDeleteFramebuffers(m_EFBLayers, m_efbFramebuffer.data());
+	glDeleteFramebuffers(m_EFBLayers, m_resolvedFramebuffer.data());
+	m_efbFramebuffer.clear();
+	m_resolvedFramebuffer.clear();
 
 	glDeleteFramebuffers(1, &m_xfbFramebuffer);
 	m_xfbFramebuffer = 0;
@@ -624,7 +622,7 @@ void XFBSource::CopyEFB(float Gamma)
 
 }
 
-XFBSourceBase* FramebufferManager::CreateXFBSource(unsigned int target_width, unsigned int target_height, unsigned int layers)
+std::unique_ptr<XFBSourceBase> FramebufferManager::CreateXFBSource(unsigned int target_width, unsigned int target_height, unsigned int layers)
 {
 	GLuint texture;
 
@@ -635,7 +633,7 @@ XFBSourceBase* FramebufferManager::CreateXFBSource(unsigned int target_width, un
 	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAX_LEVEL, 0);
 	glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_RGBA, target_width, target_height, layers, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
 
-	return new XFBSource(texture, layers);
+	return std::make_unique<XFBSource>(texture, layers);
 }
 
 void FramebufferManager::GetTargetSize(unsigned int *width, unsigned int *height)

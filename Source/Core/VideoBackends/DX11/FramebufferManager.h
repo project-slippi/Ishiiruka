@@ -4,14 +4,16 @@
 
 #pragma once
 
-#include "d3d11_2.h"
+#include <d3d11_2.h>
+#include <memory>
 
 #include "VideoCommon/FramebufferManagerBase.h"
 
 #include "D3DPtr.h"
 #include "D3DTexture.h"
 
-namespace DX11 {
+namespace DX11
+{
 
 // On the GameCube, the game sends a request for the graphics processor to
 // transfer its internal EFB (Embedded Framebuffer) to an area in GameCube RAM
@@ -91,7 +93,7 @@ public:
 	}
 
 private:
-	XFBSourceBase* CreateXFBSource(u32 target_width, u32 target_height, u32 layers) override;
+	std::unique_ptr<XFBSourceBase> CreateXFBSource(u32 target_width, u32 target_height, u32 layers) override;
 	void GetTargetSize(u32 *width, u32 *height) override;
 
 	void CopyToRealXFB(u32 xfbAddr, u32 fbStride, u32 fbHeight, const EFBRectangle& sourceRc, float Gamma) override;

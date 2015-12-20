@@ -8,11 +8,12 @@
 #include <memory>
 
 #include "Common/GL/GLExtensions/GLExtensions.h"
+
 #include "VideoCommon/PerfQueryBase.h"
 
 namespace OGL
 {
-PerfQueryBase* GetPerfQuery();
+std::unique_ptr<PerfQueryBase> GetPerfQuery();
 
 class PerfQuery : public PerfQueryBase
 {

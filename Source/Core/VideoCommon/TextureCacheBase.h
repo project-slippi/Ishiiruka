@@ -5,6 +5,7 @@
 #pragma once
 #include <map>
 #include <unordered_map>
+#include <memory>
 
 #include "Common/CommonTypes.h"
 #include "Common/Thread.h"
@@ -163,7 +164,7 @@ public:
 		}
 		virtual ~TCacheEntryBase();
 
-		virtual void Bind(u32 stage) = 0;
+		virtual void Bind(u32 stage, u32 lastTexture) = 0;
 		virtual bool Save(const std::string& filename, u32 level) = 0;
 
 		virtual void CopyRectangleFromTexture(
@@ -178,11 +179,8 @@ public:
 			u32 expandedHeight, const s32 texformat, const u32 tlutaddr, const TlutFormat tlutfmt, u32 level) = 0;
 		virtual void LoadFromTmem(const u8* ar_src, const u8* gb_src, u32 width, u32 height,
 			u32 expanded_width, u32 expanded_Height, u32 level) = 0;
-		virtual void FromRenderTarget(u8* dst, u32 dstFormat, u32 dstStride,
-			PEControl::PixelFormat srcFormat, const EFBRectangle& srcRect,
-			bool isIntensity, bool scaleByHalf, u32 cbufid,
-			const float *colmat) = 0;
-		virtual bool PalettizeFromBase(const TCacheEntryBase* base_entry) = 0;
+		virtual void FromRenderTarget(u8* dst, PEControl::PixelFormat srcFormat, const EFBRectangle& srcRect,
+			bool scaleByHalf, unsigned int cbufid, const float *colmat) = 0;		
 		bool OverlapsMemoryRange(u32 range_address, u32 range_size) const;
 		virtual bool SupportsMaterialMap() const = 0;
 		bool IsEfbCopy() { return is_efb_copy; }
@@ -190,7 +188,6 @@ public:
 		u32 NumBlocksY() const;
 		u32 BytesPerRow() const;
 
-		void Zero(u8* ptr);
 		u64 CalculateHash() const;
 	};
 
@@ -206,6 +203,10 @@ public:
 	virtual PC_TexFormat GetNativeTextureFormat(const s32 texformat,
 		const TlutFormat tlutfmt, u32 width, u32 height) = 0;
 	virtual TCacheEntryBase* CreateTexture(const TCacheEntryConfig& config) = 0;
+	virtual bool Palettize(TCacheEntryBase* entry, const TCacheEntryBase* base_entry) = 0;
+	virtual void CopyEFB(u8* dst, u32 format, u32 native_width, u32 bytes_per_row, u32 num_blocks_y, u32 memory_stride,
+		PEControl::PixelFormat srcFormat, const EFBRectangle& srcRect,
+		bool isIntensity, bool scaleByHalf) = 0;
 
 	virtual void CompileShaders() = 0; // currently only implemented by OGL
 	virtual void DeleteShaders() = 0; // currently only implemented by OGL
@@ -248,6 +249,7 @@ private:
 	static size_t texture_pool_memory_usage;
 	static HiresTexPool hires_texture_pool;
 	static TCacheEntryBase* bound_textures[8];
+	static u32 last_texture;
 
 	// Backup configuration values
 	static struct BackupConfig
@@ -265,4 +267,4 @@ private:
 	} backup_config;
 };
 
-extern TextureCacheBase *g_texture_cache;
+extern std::unique_ptr<TextureCacheBase> g_texture_cache;

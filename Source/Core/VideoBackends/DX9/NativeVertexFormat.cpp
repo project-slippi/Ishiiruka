@@ -20,17 +20,16 @@ class D3DVertexFormat : public NativeVertexFormat
 {
 	LPDIRECT3DVERTEXDECLARATION9 d3d_decl;
 public:
-	D3DVertexFormat() : d3d_decl(nullptr){}
+	D3DVertexFormat(const PortableVertexDeclaration &_vtx_decl);
 	~D3DVertexFormat();
-	void Initialize(const PortableVertexDeclaration &_vtx_decl) override;
 	void SetupVertexPointers() override;
 	D3DVERTEXELEMENT9 m_elements[16];
 	int m_num_elements;
 };
 
-NativeVertexFormat* VertexManager::CreateNativeVertexFormat()
+NativeVertexFormat* VertexManager::CreateNativeVertexFormat(const PortableVertexDeclaration &_vtx_decl)
 {
-	return new D3DVertexFormat();
+	return new D3DVertexFormat(_vtx_decl);
 }
 
 void DX9::VertexManager::GetElements(NativeVertexFormat* format, D3DVERTEXELEMENT9** elems, int* num)
@@ -85,7 +84,7 @@ D3DDECLTYPE VarToD3D(EVTXComponentFormat t, int size)
 	return retval;
 }
 
-void D3DVertexFormat::Initialize(const PortableVertexDeclaration &_vtx_decl)
+D3DVertexFormat::D3DVertexFormat(const PortableVertexDeclaration &_vtx_decl) : d3d_decl(nullptr)
 {
 	vtx_decl = _vtx_decl;
 	memset(m_elements, 0, sizeof(m_elements));

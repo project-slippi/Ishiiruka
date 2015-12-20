@@ -7,6 +7,7 @@
 #include "Common/Common.h"
 #include "VideoCommon/Statistics.h"
 #include "VideoCommon/PixelShaderManager.h"
+#include "VideoCommon/VertexLoaderManager.h"
 #include "VideoCommon/VideoCommon.h"
 #include "VideoCommon/VideoConfig.h"
 
@@ -37,8 +38,6 @@ static bool sbflagschanged;
 const float U24_NORM_COEF = 1 / 16777216.0f;
 static bool s_use_integer_constants = false;
 
-// internal state for loading vertices
-extern NativeVertexFormat *g_nativeVertexFmt;
 
 void PixelShaderManager::Init(bool use_integer_constants)
 {
@@ -364,8 +363,8 @@ void PixelShaderManager::SetConstants()
 
 		s_bFogRangeAdjustChanged = false;
 	}
-
-	if ((g_ActiveConfig.backend_info.APIType & API_D3D9) != 0 && g_ActiveConfig.PixelLightingEnabled(xfmem, g_nativeVertexFmt->m_components))
+	NativeVertexFormat* current_vertex_format = VertexLoaderManager::GetCurrentVertexFormat();
+	if ((g_ActiveConfig.backend_info.APIType & API_D3D9) != 0 && g_ActiveConfig.PixelLightingEnabled(xfmem, current_vertex_format->m_components))
 	{
 		if (nLightsChanged[0] >= 0)
 		{
