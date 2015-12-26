@@ -34,6 +34,8 @@
 #include "VideoCommon/VertexManagerBase.h"
 #include "VideoCommon/VideoConfig.h"
 
+static constexpr u32 FIFO_SIZE = 2 * 1024 * 1024;
+
 bool g_bSkipCurrentFrame = false;
 DataReader g_VideoData;
 
