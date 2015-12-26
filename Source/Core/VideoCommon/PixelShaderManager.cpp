@@ -363,8 +363,7 @@ void PixelShaderManager::SetConstants()
 
 		s_bFogRangeAdjustChanged = false;
 	}
-	NativeVertexFormat* current_vertex_format = VertexLoaderManager::GetCurrentVertexFormat();
-	if ((g_ActiveConfig.backend_info.APIType & API_D3D9) != 0 && g_ActiveConfig.PixelLightingEnabled(xfmem, current_vertex_format->m_components))
+	if ((g_ActiveConfig.backend_info.APIType & API_D3D9) != 0 && g_ActiveConfig.PixelLightingEnabled(xfmem, VertexLoaderManager::g_current_components))
 	{
 		if (nLightsChanged[0] >= 0)
 		{

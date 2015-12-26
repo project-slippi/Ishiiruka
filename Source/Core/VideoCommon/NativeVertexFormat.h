@@ -144,7 +144,6 @@ public:
 
 	u32 GetVertexStride() const { return vtx_decl.stride; }
 	const PortableVertexDeclaration& GetVertexDeclaration() const { return vtx_decl; }
-	u32 m_components;
 protected:
 	// Let subclasses construct.
 	NativeVertexFormat() {}

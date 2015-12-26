@@ -31,7 +31,7 @@ namespace VertexLoaderManager
 	static VertexLoaderMap s_vertex_loader_map;
 	static NativeVertexLoaderMap s_native_vertex_map;
 	static NativeVertexFormat* s_current_vtx_fmt;
-
+	u32 g_current_components;
 	// TODO - change into array of pointers. Keep a map of all seen so far.
 	// Used in D3D12 backend, to populate input layouts used by cached-to-disk PSOs.
 	NativeVertexLoaderMap* GetNativeVertexFormatMap()
@@ -219,14 +219,13 @@ namespace VertexLoaderManager
 		g_main_cp_state.bases_dirty = false;
 	}
 
-	inline NativeVertexFormat* GetNativeVertexFormat(const PortableVertexDeclaration& format, u32 components)
+	inline NativeVertexFormat* GetNativeVertexFormat(const PortableVertexDeclaration& format)
 	{
 		auto& native = s_native_vertex_map[format];
 		if (!native)
 		{
 			auto raw_pointer = g_vertex_manager->CreateNativeVertexFormat(format);
 			native = std::unique_ptr<NativeVertexFormat>(raw_pointer);
-			native->m_components = components;
 		}
 		return native.get();
 	}
@@ -247,11 +246,11 @@ namespace VertexLoaderManager
 		{
 			s_vertex_loader_map[uid] = VertexLoaderBase::CreateVertexLoader(VtxDesc, VtxAttr);
 			VertexLoaderBase* loader = s_vertex_loader_map[uid].get();
-			loader->m_native_vertex_format = GetNativeVertexFormat(loader->m_native_vtx_decl, loader->m_native_components);
+			loader->m_native_vertex_format = GetNativeVertexFormat(loader->m_native_vtx_decl);
 			VertexLoaderBase * fallback = loader->GetFallback();
 			if (fallback)
 			{
-				fallback->m_native_vertex_format = GetNativeVertexFormat(fallback->m_native_vtx_decl, fallback->m_native_components);
+				fallback->m_native_vertex_format = GetNativeVertexFormat(fallback->m_native_vtx_decl);
 			}
 			INCSTAT(stats.numVertexLoaders);
 			return loader;
@@ -301,6 +300,7 @@ namespace VertexLoaderManager
 			VertexManagerBase::Flush();
 		}
 		s_current_vtx_fmt = nativefmt;
+		g_current_components = loader->m_native_components;
 		VertexManagerBase::PrepareForAdditionalData(parameters.primitive, parameters.count, loader->m_native_stride);
 		parameters.destination = VertexManagerBase::s_pCurBufferPointer;		
 		s32 finalcount = loader->RunVertices(parameters);

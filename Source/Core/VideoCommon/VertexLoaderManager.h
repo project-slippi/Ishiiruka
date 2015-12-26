@@ -31,4 +31,6 @@ namespace VertexLoaderManager
 	void UpdateVertexArrayPointers();
 
 	NativeVertexFormat* GetCurrentVertexFormat();
+	
+	extern u32 g_current_components;
 };

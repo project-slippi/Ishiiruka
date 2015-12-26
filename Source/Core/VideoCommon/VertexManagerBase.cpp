@@ -142,7 +142,7 @@ void VertexManagerBase::Flush()
 	// loading a state will invalidate BP, so check for it
 	NativeVertexFormat* current_vertex_format = VertexLoaderManager::GetCurrentVertexFormat();
 	g_video_backend->CheckInvalidState();
-	g_vertex_manager->PrepareShaders(current_primitive_type, current_vertex_format->m_components, xfmem, bpmem, true);
+	g_vertex_manager->PrepareShaders(current_primitive_type, VertexLoaderManager::g_current_components, xfmem, bpmem, true);
 
 #if defined(_DEBUG) || defined(DEBUGFAST)
 	PRIM_LOG("frame%d:\n texgen=%d, numchan=%d, dualtex=%d, ztex=%d, cole=%d, alpe=%d, ze=%d", g_ActiveConfig.iSaveTargetId, xfmem.numTexGen.numTexGens,
