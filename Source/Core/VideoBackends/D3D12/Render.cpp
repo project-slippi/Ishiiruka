@@ -664,10 +664,17 @@ void Renderer::SetViewport()
 	Wd = (X + Wd <= GetTargetWidth()) ? Wd : (GetTargetWidth() - X);
 	Ht = (Y + Ht <= GetTargetHeight()) ? Ht : (GetTargetHeight() - Y);
 
-	D3D12_VIEWPORT vp12 = { X, Y, Wd, Ht,
-		1.0f - MathUtil::Clamp<float>(xfmem.viewport.farZ, 0.0f, 16777215.0f) / 16777216.0f,
-		1.0f - MathUtil::Clamp<float>((xfmem.viewport.farZ - MathUtil::Clamp<float>(xfmem.viewport.zRange, 0.0f, 16777215.0f)), 0.0f, 16777215.0f) / 16777216.0f };
-	D3D::current_command_list->RSSetViewports(1, &vp12);
+	D3D12_VIEWPORT vp = { X, Y, Wd, Ht, 0.0f, 1.0f };
+	float nearz = xfmem.viewport.farZ - MathUtil::Clamp<float>(xfmem.viewport.zRange, 0.0f, 16777215.0f);
+	float farz = xfmem.viewport.farZ;
+
+	const bool nonStandartViewport = (nearz < 0.f || farz > 16777216.0f || nearz >= 16777216.0f || farz <= 0.f);
+	if (!nonStandartViewport)
+	{
+		vp.MaxDepth = 1.0f - (MathUtil::Clamp<float>(nearz, 0.0f, 16777215.0f) / 16777216.0f);
+		vp.MinDepth = 1.0f - (MathUtil::Clamp<float>(farz, 0.0f, 16777215.0f) / 16777216.0f);
+	}
+	D3D::current_command_list->RSSetViewports(1, &vp);
 }
 
 void Renderer::ClearScreen(const EFBRectangle& rc, bool colorEnable, bool alphaEnable, bool zEnable, u32 color, u32 z)
@@ -1218,6 +1225,7 @@ void Renderer::ApplyState(bool bUseDstAlpha)
 			gx_state.blend,                             // BlendState BlendState;
 			modifiableRastState,                        // RasterizerState RasterizerState;
 			gx_state.zmode,                             // ZMode DepthStencilState;
+			g_ActiveConfig.iMultisamples
 		};
 
 		if (bUseDstAlpha)

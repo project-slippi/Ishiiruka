@@ -43,8 +43,7 @@ public:
 		desc.IBStripCutValue = D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_0xFFFF;
 		desc.NumRenderTargets = 1;
 		desc.SampleMask = UINT_MAX;
-		desc.SampleDesc.Count = 1;
-		desc.SampleDesc.Quality = 0;
+		desc.SampleDesc = key.SampleDesc;
 
 		desc.PS = PixelShaderCache::GetShaderFromUid(key.psUid);
 		desc.VS = VertexShaderCache::GetShaderFromUid(key.vsUid);
@@ -401,7 +400,7 @@ HRESULT StateCache::GetPipelineStateObjectFromCache(SmallPsoDesc* pso_desc, ID3D
 	{
 		// Not found, create new PSO.
 
-		// RootSignature, SampleMask, SampleDesc, NumRenderTargets, RTVFormats, DSVFormat
+		// RootSignature, SampleMask, NumRenderTargets, RTVFormats, DSVFormat
 		// never change so they are set in constructor and forgotten.
 		m_current_pso_desc.PS = pso_desc->PS;
 		m_current_pso_desc.VS = pso_desc->VS;
@@ -410,7 +409,8 @@ HRESULT StateCache::GetPipelineStateObjectFromCache(SmallPsoDesc* pso_desc, ID3D
 		m_current_pso_desc.DepthStencilState = GetDesc12(pso_desc->DepthStencilState);
 		m_current_pso_desc.RasterizerState = GetDesc12(pso_desc->RasterizerState);
 		m_current_pso_desc.PrimitiveTopologyType = topology;
-		m_current_pso_desc.InputLayout = pso_desc->InputLayout->GetActiveInputLayout12();
+		m_current_pso_desc.InputLayout = pso_desc->InputLayout->GetActiveInputLayout12();		
+		m_current_pso_desc.SampleDesc.Count = pso_desc->samplecount;
 
 		ID3D12PipelineState* new_pso = nullptr;
 		HRESULT hr = D3D::device12->CreateGraphicsPipelineState(&m_current_pso_desc, IID_PPV_ARGS(&new_pso));
@@ -433,6 +433,7 @@ HRESULT StateCache::GetPipelineStateObjectFromCache(SmallPsoDesc* pso_desc, ID3D
 		diskDesc.gsUid = gsUid;
 		diskDesc.vertexDeclaration = pso_desc->InputLayout->GetVertexDeclaration();
 		diskDesc.topology = topology;
+		diskDesc.SampleDesc.Count = g_ActiveConfig.iMultisamples;
 		
 		// This shouldn't fail.. but if it does, don't cache to disk.
 		ID3DBlob* psoBlob = nullptr;

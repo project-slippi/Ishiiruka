@@ -60,6 +60,7 @@ struct SmallPsoDesc
 	BlendState BlendState;
 	RasterizerState RasterizerState;
 	ZMode DepthStencilState;
+	int samplecount;
 };
 
 struct SmallPsoDiskDesc
@@ -72,6 +73,7 @@ struct SmallPsoDiskDesc
 	GeometryShaderUid gsUid;
 	D3D12_PRIMITIVE_TOPOLOGY_TYPE topology;
 	PortableVertexDeclaration vertexDeclaration; // Used to construct the input layout.
+	DXGI_SAMPLE_DESC SampleDesc;
 };
 
 class PipelineStateCacheInserter;
@@ -148,10 +150,12 @@ private:
 	{
 		size_t operator()(const SmallPsoDesc pso_desc) const
 		{
-			return ((uintptr_t)pso_desc.VS.pShaderBytecode << 10) ^
-				((uintptr_t)pso_desc.PS.pShaderBytecode) +
-				pso_desc.BlendState.packed +
-				pso_desc.DepthStencilState.hex;
+			return ((uintptr_t)pso_desc.VS.pShaderBytecode << 7) ^
+				((uintptr_t)pso_desc.PS.pShaderBytecode << 5) ^
+				((uintptr_t)pso_desc.GS.pShaderBytecode << 3) ^
+				((uintptr_t)pso_desc.InputLayout) ^
+				(((uintptr_t)pso_desc.BlendState.packed << 32) |
+				pso_desc.DepthStencilState.hex | (pso_desc.RasterizerState.packed << 17)  | (((uintptr_t)pso_desc.samplecount) << 48));
 		}
 	};
 
@@ -160,9 +164,9 @@ private:
 		bool operator()(const SmallPsoDesc lhs, const SmallPsoDesc rhs) const
 		{
 			return std::tie(lhs.PS.pShaderBytecode, lhs.VS.pShaderBytecode, lhs.GS.pShaderBytecode,
-				            lhs.InputLayout, lhs.BlendState.packed, lhs.DepthStencilState.hex, lhs.RasterizerState.packed) ==
+				            lhs.InputLayout, lhs.BlendState.packed, lhs.DepthStencilState.hex, lhs.RasterizerState.packed, lhs.samplecount) ==
 				   std::tie(rhs.PS.pShaderBytecode, rhs.VS.pShaderBytecode, rhs.GS.pShaderBytecode,
-				            rhs.InputLayout, rhs.BlendState.packed, rhs.DepthStencilState.hex, rhs.RasterizerState.packed);
+				            rhs.InputLayout, rhs.BlendState.packed, rhs.DepthStencilState.hex, rhs.RasterizerState.packed, rhs.samplecount);
 		}
 	};
 

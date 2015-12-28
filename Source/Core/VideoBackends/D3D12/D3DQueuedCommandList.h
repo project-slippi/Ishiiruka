@@ -4,13 +4,15 @@
 
 #pragma once
 
+#include <atomic>
+#include <vector>
 #include <d3d12.h>
 
 
 namespace DX12
 {
 
-enum D3DQueueItemType
+enum D3DQueueItemType : unsigned int
 {
 	AbortProcessing = 0,
 	SetPipelineState,
@@ -63,14 +65,6 @@ struct SetVertexBuffersArguments
 struct SetIndexBufferArguments
 {
 	D3D12_INDEX_BUFFER_VIEW desc;
-};
-
-struct RSSetViewportsArguments
-{
-	FLOAT TopLeftX;
-	FLOAT TopLeftY;
-	FLOAT Width;
-	FLOAT Height;
 };
 
 struct RSSetScissorRectsArguments
@@ -138,7 +132,7 @@ struct CopyBufferRegionArguments
 struct CopyTextureRegionArguments
 {
 	D3D12_TEXTURE_COPY_LOCATION dst;
-	// UINT DstX, DstY, DstZ; Assuming always '0'. Checked at runtime with DEBUGCHECK.
+	UINT DstX, DstY, DstZ;
 	D3D12_TEXTURE_COPY_LOCATION src;
 	D3D12_BOX srcBox;
 };
@@ -210,7 +204,7 @@ struct D3DQueueItem
 		SetRenderTargetsArguments SetRenderTargets;
 		SetVertexBuffersArguments SetVertexBuffers;
 		SetIndexBufferArguments SetIndexBuffer;
-		RSSetViewportsArguments RSSetViewports;
+		D3D12_VIEWPORT RSSetViewports;
 		RSSetScissorRectsArguments RSSetScissorRects;
 		SetGraphicsRootDescriptorTableArguments SetGraphicsRootDescriptorTable;
 		SetGraphicsRootConstantBufferViewArguments SetGraphicsRootConstantBufferView;
@@ -595,14 +589,14 @@ public:
 
 private:
 
-	static const UINT s_queue_array_size = 24 * 1024 * 1024;
+	static constexpr UINT s_queue_array_size = 24 * 1024 * 1024;
 
 	~ID3D12QueuedCommandList();
 
 	static DWORD WINAPI BackgroundThreadFunction(LPVOID param);
 
-	byte m_queue_array[s_queue_array_size];
-	UINT m_queue_array_front = 0;
+	std::vector<byte> m_queue_array;
+	std::atomic<size_t> m_queue_array_front;
 	byte* m_queue_array_back;
 
 	DWORD m_background_thread_id;

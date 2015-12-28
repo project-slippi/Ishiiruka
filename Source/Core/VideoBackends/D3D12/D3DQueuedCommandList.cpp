@@ -13,23 +13,24 @@ DWORD WINAPI ID3D12QueuedCommandList::BackgroundThreadFunction(LPVOID param)
 	ID3D12QueuedCommandList* parent_queued_command_list = static_cast<ID3D12QueuedCommandList*>(param);
 	ID3D12GraphicsCommandList* command_list = parent_queued_command_list->m_command_list;
 
-	byte* queue_array = parent_queued_command_list->m_queue_array;
+	const byte* queue_array = parent_queued_command_list->m_queue_array.data();
 
 	while (true)
 	{
 		WaitForSingleObject(parent_queued_command_list->m_begin_execution_event, INFINITE);
 
-		UINT queue_array_front = parent_queued_command_list->m_queue_array_front;
+		size_t queue_array_front = parent_queued_command_list->m_queue_array_front.load();
 
-		byte* item = &queue_array[queue_array_front];
+		const byte* item = &queue_array[queue_array_front];
 
 		while (true)
 		{
-			switch (reinterpret_cast<D3DQueueItem*>(item)->Type)
+			const D3DQueueItem* qitem = reinterpret_cast<const D3DQueueItem*>(item);
+			switch (qitem->Type)
 			{
 				case D3DQueueItemType::ClearDepthStencilView:
 				{
-					command_list->ClearDepthStencilView(reinterpret_cast<D3DQueueItem*>(item)->ClearDepthStencilView.DepthStencilView, D3D12_CLEAR_FLAG_DEPTH, 0.f, 0, 0, nullptr);
+					command_list->ClearDepthStencilView(qitem->ClearDepthStencilView.DepthStencilView, D3D12_CLEAR_FLAG_DEPTH, 0.f, 0, 0, nullptr);
 						
 					item += sizeof(ClearDepthStencilViewArguments) + sizeof(D3DQueueItemType) * 2;
 					break;
@@ -38,7 +39,7 @@ DWORD WINAPI ID3D12QueuedCommandList::BackgroundThreadFunction(LPVOID param)
 				case D3DQueueItemType::ClearRenderTargetView:
 				{
 					float clearColor[4] = { 0.f, 0.f, 0.f, 1.f };
-					command_list->ClearRenderTargetView(reinterpret_cast<D3DQueueItem*>(item)->ClearRenderTargetView.RenderTargetView, clearColor, 0, nullptr);
+					command_list->ClearRenderTargetView(qitem->ClearRenderTargetView.RenderTargetView, clearColor, 0, nullptr);
 						
 					item += sizeof(ClearRenderTargetViewArguments) + sizeof(D3DQueueItemType) * 2;
 					break;
@@ -48,11 +49,11 @@ DWORD WINAPI ID3D12QueuedCommandList::BackgroundThreadFunction(LPVOID param)
 				{
 
 					command_list->CopyBufferRegion(
-						reinterpret_cast<D3DQueueItem*>(item)->CopyBufferRegion.pDstBuffer,
-						reinterpret_cast<D3DQueueItem*>(item)->CopyBufferRegion.DstOffset,
-						reinterpret_cast<D3DQueueItem*>(item)->CopyBufferRegion.pSrcBuffer,
-						reinterpret_cast<D3DQueueItem*>(item)->CopyBufferRegion.SrcOffset,
-						reinterpret_cast<D3DQueueItem*>(item)->CopyBufferRegion.NumBytes
+						qitem->CopyBufferRegion.pDstBuffer,
+						qitem->CopyBufferRegion.DstOffset,
+						qitem->CopyBufferRegion.pSrcBuffer,
+						qitem->CopyBufferRegion.SrcOffset,
+						qitem->CopyBufferRegion.NumBytes
 						);
 
 					item += sizeof(CopyBufferRegionArguments) + sizeof(D3DQueueItemType) * 2;
@@ -64,7 +65,7 @@ DWORD WINAPI ID3D12QueuedCommandList::BackgroundThreadFunction(LPVOID param)
 					// If box is completely empty, assume that the original API call has a NULL box (which means
 					// copy from the entire resource.
 
-					D3D12_BOX* src_box = &reinterpret_cast<D3DQueueItem*>(item)->CopyTextureRegion.srcBox;
+					const D3D12_BOX* src_box = &qitem->CopyTextureRegion.srcBox;
 
 					// Front/Back never used, so don't need to check.
 					bool empty_box =
@@ -74,11 +75,11 @@ DWORD WINAPI ID3D12QueuedCommandList::BackgroundThreadFunction(LPVOID param)
 						src_box->top == 0;
 
 					command_list->CopyTextureRegion(
-						&reinterpret_cast<D3DQueueItem*>(item)->CopyTextureRegion.dst,
-						0, // item->CopyTextureRegion.DstX, (always zero, checked at command enqueing time)
-						0, // item->CopyTextureRegion.DstY, (always zero, checked at command enqueing time)
-						0, // item->CopyTextureRegion.DstZ, (always zero, checked at command enqueing time)
-						&reinterpret_cast<D3DQueueItem*>(item)->CopyTextureRegion.src,
+						&qitem->CopyTextureRegion.dst,
+						qitem->CopyTextureRegion.DstX,
+						qitem->CopyTextureRegion.DstY,
+						qitem->CopyTextureRegion.DstZ,
+						&qitem->CopyTextureRegion.src,
 						empty_box ?
 							nullptr : src_box
 						);
@@ -90,10 +91,10 @@ DWORD WINAPI ID3D12QueuedCommandList::BackgroundThreadFunction(LPVOID param)
 				case D3DQueueItemType::DrawIndexedInstanced:
 				{
 					command_list->DrawIndexedInstanced(
-						reinterpret_cast<D3DQueueItem*>(item)->DrawIndexedInstanced.IndexCount,
+						qitem->DrawIndexedInstanced.IndexCount,
 						1,
-						reinterpret_cast<D3DQueueItem*>(item)->DrawIndexedInstanced.StartIndexLocation,
-						reinterpret_cast<D3DQueueItem*>(item)->DrawIndexedInstanced.BaseVertexLocation,
+						qitem->DrawIndexedInstanced.StartIndexLocation,
+						qitem->DrawIndexedInstanced.BaseVertexLocation,
 						0
 						);
 
@@ -104,9 +105,9 @@ DWORD WINAPI ID3D12QueuedCommandList::BackgroundThreadFunction(LPVOID param)
 				case D3DQueueItemType::DrawInstanced:
 				{
 					command_list->DrawInstanced(
-						reinterpret_cast<D3DQueueItem*>(item)->DrawInstanced.VertexCount,
+						qitem->DrawInstanced.VertexCount,
 						1,
-						reinterpret_cast<D3DQueueItem*>(item)->DrawInstanced.StartVertexLocation,
+						qitem->DrawInstanced.StartVertexLocation,
 						0
 						);
 
@@ -116,7 +117,7 @@ DWORD WINAPI ID3D12QueuedCommandList::BackgroundThreadFunction(LPVOID param)
 
 				case D3DQueueItemType::IASetPrimitiveTopology:
 				{
-					command_list->IASetPrimitiveTopology(reinterpret_cast<D3DQueueItem*>(item)->IASetPrimitiveTopology.PrimitiveTopology);
+					command_list->IASetPrimitiveTopology(qitem->IASetPrimitiveTopology.PrimitiveTopology);
 
 					item += sizeof(IASetPrimitiveTopologyArguments) + sizeof(D3DQueueItemType) * 2;
 					break;
@@ -124,7 +125,7 @@ DWORD WINAPI ID3D12QueuedCommandList::BackgroundThreadFunction(LPVOID param)
 
 				case D3DQueueItemType::ResourceBarrier:
 				{
-					command_list->ResourceBarrier(1, &reinterpret_cast<D3DQueueItem*>(item)->ResourceBarrier.barrier);
+					command_list->ResourceBarrier(1, &qitem->ResourceBarrier.barrier);
 
 					item += sizeof(ResourceBarrierArguments) + sizeof(D3DQueueItemType) * 2;
 					break;
@@ -133,10 +134,10 @@ DWORD WINAPI ID3D12QueuedCommandList::BackgroundThreadFunction(LPVOID param)
 				case D3DQueueItemType::RSSetScissorRects:
 				{
 					D3D12_RECT rect = {
-						reinterpret_cast<D3DQueueItem*>(item)->RSSetScissorRects.left,
-						reinterpret_cast<D3DQueueItem*>(item)->RSSetScissorRects.top,
-						reinterpret_cast<D3DQueueItem*>(item)->RSSetScissorRects.right,
-						reinterpret_cast<D3DQueueItem*>(item)->RSSetScissorRects.bottom
+						qitem->RSSetScissorRects.left,
+						qitem->RSSetScissorRects.top,
+						qitem->RSSetScissorRects.right,
+						qitem->RSSetScissorRects.bottom
 					};
 
 					command_list->RSSetScissorRects(1, &rect);
@@ -146,25 +147,16 @@ DWORD WINAPI ID3D12QueuedCommandList::BackgroundThreadFunction(LPVOID param)
 
 				case D3DQueueItemType::RSSetViewports:
 				{
-					D3D12_VIEWPORT viewport = {
-						reinterpret_cast<D3DQueueItem*>(item)->RSSetViewports.TopLeftX,
-						reinterpret_cast<D3DQueueItem*>(item)->RSSetViewports.TopLeftY,
-						reinterpret_cast<D3DQueueItem*>(item)->RSSetViewports.Width,
-						reinterpret_cast<D3DQueueItem*>(item)->RSSetViewports.Height,
-						D3D11_MIN_DEPTH,
-						D3D11_MAX_DEPTH
-					};
-
-					command_list->RSSetViewports(1, &viewport);
-					item += sizeof(RSSetViewportsArguments) + sizeof(D3DQueueItemType) * 2;
+					command_list->RSSetViewports(1, &qitem->RSSetViewports);
+					item += sizeof(D3D12_VIEWPORT) + sizeof(D3DQueueItemType) * 2;
 					break;
 				}
 
 				case D3DQueueItemType::SetDescriptorHeaps:
 				{
 					command_list->SetDescriptorHeaps(
-						reinterpret_cast<D3DQueueItem*>(item)->SetDescriptorHeaps.NumDescriptorHeaps,
-						reinterpret_cast<D3DQueueItem*>(item)->SetDescriptorHeaps.ppDescriptorHeap
+						qitem->SetDescriptorHeaps.NumDescriptorHeaps,
+						qitem->SetDescriptorHeaps.ppDescriptorHeap
 						);
 
 					item += sizeof(SetDescriptorHeapsArguments) + sizeof(D3DQueueItemType) * 2;
@@ -174,8 +166,8 @@ DWORD WINAPI ID3D12QueuedCommandList::BackgroundThreadFunction(LPVOID param)
 				case D3DQueueItemType::SetGraphicsRootConstantBufferView:
 				{
 					command_list->SetGraphicsRootConstantBufferView(
-						reinterpret_cast<D3DQueueItem*>(item)->SetGraphicsRootConstantBufferView.RootParameterIndex,
-						reinterpret_cast<D3DQueueItem*>(item)->SetGraphicsRootConstantBufferView.BufferLocation
+						qitem->SetGraphicsRootConstantBufferView.RootParameterIndex,
+						qitem->SetGraphicsRootConstantBufferView.BufferLocation
 						);
 
 					item += sizeof(SetGraphicsRootConstantBufferViewArguments) + sizeof(D3DQueueItemType) * 2;
@@ -185,8 +177,8 @@ DWORD WINAPI ID3D12QueuedCommandList::BackgroundThreadFunction(LPVOID param)
 				case D3DQueueItemType::SetGraphicsRootDescriptorTable:
 				{
 					command_list->SetGraphicsRootDescriptorTable(
-						reinterpret_cast<D3DQueueItem*>(item)->SetGraphicsRootDescriptorTable.RootParameterIndex,
-						reinterpret_cast<D3DQueueItem*>(item)->SetGraphicsRootDescriptorTable.BaseDescriptor
+						qitem->SetGraphicsRootDescriptorTable.RootParameterIndex,
+						qitem->SetGraphicsRootDescriptorTable.BaseDescriptor
 						);
 
 					item += sizeof(SetGraphicsRootDescriptorTableArguments) + sizeof(D3DQueueItemType) * 2;
@@ -196,7 +188,7 @@ DWORD WINAPI ID3D12QueuedCommandList::BackgroundThreadFunction(LPVOID param)
 				case D3DQueueItemType::SetGraphicsRootSignature:
 				{
 					command_list->SetGraphicsRootSignature(
-						reinterpret_cast<D3DQueueItem*>(item)->SetGraphicsRootSignature.pRootSignature
+						qitem->SetGraphicsRootSignature.pRootSignature
 						);
 
 					item += sizeof(SetGraphicsRootSignatureArguments) + sizeof(D3DQueueItemType) * 2;
@@ -206,7 +198,7 @@ DWORD WINAPI ID3D12QueuedCommandList::BackgroundThreadFunction(LPVOID param)
 				case D3DQueueItemType::SetIndexBuffer:
 				{
 					command_list->IASetIndexBuffer(
-						&reinterpret_cast<D3DQueueItem*>(item)->SetIndexBuffer.desc
+						&qitem->SetIndexBuffer.desc
 						);
 
 					item += sizeof(SetIndexBufferArguments) + sizeof(D3DQueueItemType) * 2;
@@ -218,7 +210,7 @@ DWORD WINAPI ID3D12QueuedCommandList::BackgroundThreadFunction(LPVOID param)
 					command_list->IASetVertexBuffers(
 						0,
 						1,
-						&reinterpret_cast<D3DQueueItem*>(item)->SetVertexBuffers.desc
+						&qitem->SetVertexBuffers.desc
 						);
 
 					item += sizeof(SetVertexBuffersArguments) + sizeof(D3DQueueItemType) * 2;
@@ -227,7 +219,7 @@ DWORD WINAPI ID3D12QueuedCommandList::BackgroundThreadFunction(LPVOID param)
 
 				case D3DQueueItemType::SetPipelineState:
 				{
-					command_list->SetPipelineState(reinterpret_cast<D3DQueueItem*>(item)->SetPipelineState.pPipelineStateObject);
+					command_list->SetPipelineState(qitem->SetPipelineState.pPipelineStateObject);
 					item += sizeof(SetPipelineStateArguments) + sizeof(D3DQueueItemType) * 2;
 					break;
 				}
@@ -236,20 +228,20 @@ DWORD WINAPI ID3D12QueuedCommandList::BackgroundThreadFunction(LPVOID param)
 				{
 					unsigned int render_target_count = 0;
 
-					if (reinterpret_cast<D3DQueueItem*>(item)->SetRenderTargets.RenderTargetDescriptor.ptr)
+					if (qitem->SetRenderTargets.RenderTargetDescriptor.ptr)
 					{
 						render_target_count = 1;
 					}
 
 					command_list->OMSetRenderTargets(
 						render_target_count,
-						reinterpret_cast<D3DQueueItem*>(item)->SetRenderTargets.RenderTargetDescriptor.ptr == NULL ?
+						qitem->SetRenderTargets.RenderTargetDescriptor.ptr == NULL ?
 						nullptr : 
-						&reinterpret_cast<D3DQueueItem*>(item)->SetRenderTargets.RenderTargetDescriptor,
+						&qitem->SetRenderTargets.RenderTargetDescriptor,
 						FALSE,
-						reinterpret_cast<D3DQueueItem*>(item)->SetRenderTargets.DepthStencilDescriptor.ptr == NULL ?
+						qitem->SetRenderTargets.DepthStencilDescriptor.ptr == NULL ?
 						nullptr :
-						&reinterpret_cast<D3DQueueItem*>(item)->SetRenderTargets.DepthStencilDescriptor
+						&qitem->SetRenderTargets.DepthStencilDescriptor
 						);
 
 					item += sizeof(SetRenderTargetsArguments) + sizeof(D3DQueueItemType) * 2;
@@ -259,11 +251,11 @@ DWORD WINAPI ID3D12QueuedCommandList::BackgroundThreadFunction(LPVOID param)
 				case D3DQueueItemType::ResolveSubresource:
 				{
 					command_list->ResolveSubresource(
-						reinterpret_cast<D3DQueueItem*>(item)->ResolveSubresource.pDstResource,
-						reinterpret_cast<D3DQueueItem*>(item)->ResolveSubresource.DstSubresource,
-						reinterpret_cast<D3DQueueItem*>(item)->ResolveSubresource.pSrcResource,
-						reinterpret_cast<D3DQueueItem*>(item)->ResolveSubresource.SrcSubresource,
-						reinterpret_cast<D3DQueueItem*>(item)->ResolveSubresource.Format
+						qitem->ResolveSubresource.pDstResource,
+						qitem->ResolveSubresource.DstSubresource,
+						qitem->ResolveSubresource.pSrcResource,
+						qitem->ResolveSubresource.SrcSubresource,
+						qitem->ResolveSubresource.Format
 						);
 
 					item += sizeof(ResolveSubresourceArguments) + sizeof(D3DQueueItemType) * 2;
@@ -288,7 +280,7 @@ DWORD WINAPI ID3D12QueuedCommandList::BackgroundThreadFunction(LPVOID param)
 
 				case D3DQueueItemType::Present:
 				{
-					CheckHR(reinterpret_cast<D3DQueueItem*>(item)->Present.swapChain->Present(reinterpret_cast<D3DQueueItem*>(item)->Present.syncInterval, reinterpret_cast<D3DQueueItem*>(item)->Present.flags));
+					CheckHR(qitem->Present.swapChain->Present(qitem->Present.syncInterval, qitem->Present.flags));
 						
 					item += sizeof(PresentArguments) + sizeof(D3DQueueItemType) * 2;
 					break;
@@ -296,7 +288,7 @@ DWORD WINAPI ID3D12QueuedCommandList::BackgroundThreadFunction(LPVOID param)
 
 				case D3DQueueItemType::ResetCommandList:
 				{
-					CheckHR(command_list->Reset(reinterpret_cast<D3DQueueItem*>(item)->ResetCommandList.allocator, nullptr));
+					CheckHR(command_list->Reset(qitem->ResetCommandList.allocator, nullptr));
 						
 					item += sizeof(ResetCommandListArguments) + sizeof(D3DQueueItemType) * 2;
 					break;
@@ -304,7 +296,7 @@ DWORD WINAPI ID3D12QueuedCommandList::BackgroundThreadFunction(LPVOID param)
 
 				case D3DQueueItemType::ResetCommandAllocator:
 				{
-					CheckHR(reinterpret_cast<D3DQueueItem*>(item)->ResetCommandAllocator.allocator->Reset());
+					CheckHR(qitem->ResetCommandAllocator.allocator->Reset());
 						
 					item += sizeof(ResetCommandAllocatorArguments) + sizeof(D3DQueueItemType) * 2;
 					break;
@@ -312,7 +304,7 @@ DWORD WINAPI ID3D12QueuedCommandList::BackgroundThreadFunction(LPVOID param)
 
 				case D3DQueueItemType::FenceGpuSignal:
 				{
-					CheckHR(parent_queued_command_list->m_command_queue->Signal(reinterpret_cast<D3DQueueItem*>(item)->FenceGpuSignal.fence, reinterpret_cast<D3DQueueItem*>(item)->FenceGpuSignal.fence_value));
+					CheckHR(parent_queued_command_list->m_command_queue->Signal(qitem->FenceGpuSignal.fence, qitem->FenceGpuSignal.fence_value));
 						
 					item += sizeof(FenceGpuSignalArguments) + sizeof(D3DQueueItemType) * 2;
 					break;
@@ -320,7 +312,7 @@ DWORD WINAPI ID3D12QueuedCommandList::BackgroundThreadFunction(LPVOID param)
 				
 				case D3DQueueItemType::FenceCpuSignal:
 				{
-					CheckHR(reinterpret_cast<D3DQueueItem*>(item)->FenceCpuSignal.fence->Signal(reinterpret_cast<D3DQueueItem*>(item)->FenceCpuSignal.fence_value));
+					CheckHR(qitem->FenceCpuSignal.fence->Signal(qitem->FenceCpuSignal.fence_value));
 						
 					item += sizeof(FenceCpuSignalArguments) + sizeof(D3DQueueItemType) * 2;
 					break;
@@ -346,7 +338,7 @@ DWORD WINAPI ID3D12QueuedCommandList::BackgroundThreadFunction(LPVOID param)
 
 		exitLoop:
 
-		parent_queued_command_list->m_queue_array_front = static_cast<UINT>(item - queue_array);
+		parent_queued_command_list->m_queue_array_front.store(static_cast<size_t>(item - queue_array));
 	}
 }
 
@@ -354,9 +346,9 @@ ID3D12QueuedCommandList::ID3D12QueuedCommandList(ID3D12GraphicsCommandList* back
 	m_command_list(backing_command_list),
 	m_command_queue(backing_command_queue)
 {
-	memset(m_queue_array, 0, sizeof(m_queue_array));
-
-	m_queue_array_back = m_queue_array;
+	m_queue_array.resize(s_queue_array_size);
+	m_queue_array_back = m_queue_array.data();
+	m_queue_array_front.store(0);
 
 	m_begin_execution_event = CreateSemaphore(nullptr, 0, 256, nullptr);
 
@@ -380,40 +372,34 @@ void ID3D12QueuedCommandList::QueueExecute()
 
 void ID3D12QueuedCommandList::QueueFenceGpuSignal(ID3D12Fence* fence_to_signal, UINT64 fence_value)
 {
-	D3DQueueItem item = {};
+	D3DQueueItem* item = reinterpret_cast<D3DQueueItem*>(m_queue_array_back);
 
-	item.Type = D3DQueueItemType::FenceGpuSignal;
-	item.FenceGpuSignal.fence = fence_to_signal;
-	item.FenceGpuSignal.fence_value = fence_value;
-
-	*reinterpret_cast<D3DQueueItem*>(m_queue_array_back) = item;
+	item->Type = D3DQueueItemType::FenceGpuSignal;
+	item->FenceGpuSignal.fence = fence_to_signal;
+	item->FenceGpuSignal.fence_value = fence_value;
 
 	m_queue_array_back += sizeof(FenceGpuSignalArguments) + sizeof(D3DQueueItemType) * 2;
 }
 
 void ID3D12QueuedCommandList::QueueFenceCpuSignal(ID3D12Fence* fence_to_signal, UINT64 fence_value)
 {
-	D3DQueueItem item = {};
+	D3DQueueItem* item = reinterpret_cast<D3DQueueItem*>(m_queue_array_back);
 
-	item.Type = D3DQueueItemType::FenceCpuSignal;
-	item.FenceCpuSignal.fence = fence_to_signal;
-	item.FenceCpuSignal.fence_value = fence_value;
-
-	*reinterpret_cast<D3DQueueItem*>(m_queue_array_back) = item;
+	item->Type = D3DQueueItemType::FenceCpuSignal;
+	item->FenceCpuSignal.fence = fence_to_signal;
+	item->FenceCpuSignal.fence_value = fence_value;
 
 	m_queue_array_back += sizeof(FenceCpuSignalArguments) + sizeof(D3DQueueItemType) * 2;
 }
 
 void ID3D12QueuedCommandList::QueuePresent(IDXGISwapChain* swap_chain, UINT sync_interval, UINT flags)
 {
-	D3DQueueItem item = {};
+	D3DQueueItem* item = reinterpret_cast<D3DQueueItem*>(m_queue_array_back);
 
-	item.Type = D3DQueueItemType::Present;
-	item.Present.swapChain = swap_chain;
-	item.Present.flags = flags;
-	item.Present.syncInterval = sync_interval;
-
-	*reinterpret_cast<D3DQueueItem*>(m_queue_array_back) = item;
+	item->Type = D3DQueueItemType::Present;
+	item->Present.swapChain = swap_chain;
+	item->Present.flags = flags;
+	item->Present.syncInterval = sync_interval;
 
 	m_queue_array_back += sizeof(PresentArguments) + sizeof(D3DQueueItemType) * 2;
 }
@@ -424,27 +410,24 @@ void ID3D12QueuedCommandList::ClearQueue()
 	while (WaitForSingleObject(m_begin_execution_event, 0) != WAIT_TIMEOUT) { } 
 		
 	// Assume that any inflight queued work will complete within 100ms. This is a safe assumption.
-	Sleep(100); 
+	Sleep(100);
 
-	memset(m_queue_array, 0, sizeof(m_queue_array));
-
-	m_queue_array_back = m_queue_array;
+	m_queue_array_back = m_queue_array.data();
 	
-	m_queue_array_front = 0;
+	m_queue_array_front.store(0);
 }
 
 void ID3D12QueuedCommandList::ProcessQueuedItems()
 {
-	D3DQueueItem item = {};
+	D3DQueueItem* item = reinterpret_cast<D3DQueueItem*>(m_queue_array_back);
 
-	item.Type = D3DQueueItemType::Stop;
-	*reinterpret_cast<D3DQueueItem*>(m_queue_array_back) = item;
+	item->Type = D3DQueueItemType::Stop;
 
 	m_queue_array_back += sizeof(D3DQueueItemType) * 2;
 
-	if (m_queue_array_back - m_queue_array > s_queue_array_size / 3)
+	if ((m_queue_array_back - m_queue_array.data()) > (s_queue_array_size / 3))
 	{
-		m_queue_array_back = m_queue_array;
+		m_queue_array_back = m_queue_array.data();
 	}
 
 	ReleaseSemaphore(m_begin_execution_event, 1, nullptr);
@@ -578,9 +561,11 @@ HRESULT STDMETHODCALLTYPE ID3D12QueuedCommandList::Reset(
 	)
 {
 	DEBUGCHECK(pInitialState == nullptr, "Error: Invalid assumption in ID3D12QueuedCommandList.");
-
-	reinterpret_cast<D3DQueueItem*>(m_queue_array_back)->Type = D3DQueueItemType::ResetCommandList;
-	reinterpret_cast<D3DQueueItem*>(m_queue_array_back)->ResetCommandList.allocator = pAllocator;
+	
+	D3DQueueItem* item = reinterpret_cast<D3DQueueItem*>(m_queue_array_back);
+	
+	item->Type = D3DQueueItemType::ResetCommandList;
+	item->ResetCommandList.allocator = pAllocator;
 		
 	m_queue_array_back += sizeof(ResetCommandListArguments) + sizeof(D3DQueueItemType) * 2;
 
@@ -605,9 +590,11 @@ void STDMETHODCALLTYPE ID3D12QueuedCommandList::DrawInstanced(
 	DEBUGCHECK(InstanceCount == 1, "Error: Invalid assumption in ID3D12QueuedCommandList.");
 	DEBUGCHECK(StartInstanceLocation == 0, "Error: Invalid assumption in ID3D12QueuedCommandList.");
 
-	reinterpret_cast<D3DQueueItem*>(m_queue_array_back)->Type = D3DQueueItemType::DrawInstanced;
-	reinterpret_cast<D3DQueueItem*>(m_queue_array_back)->DrawInstanced.StartVertexLocation = StartVertexLocation;
-	reinterpret_cast<D3DQueueItem*>(m_queue_array_back)->DrawInstanced.VertexCount = VertexCountPerInstance;
+	D3DQueueItem* item = reinterpret_cast<D3DQueueItem*>(m_queue_array_back);
+
+	item->Type = D3DQueueItemType::DrawInstanced;
+	item->DrawInstanced.StartVertexLocation = StartVertexLocation;
+	item->DrawInstanced.VertexCount = VertexCountPerInstance;
 
 	m_queue_array_back += sizeof(DrawInstancedArguments) + sizeof(D3DQueueItemType) * 2;
 }
@@ -660,12 +647,13 @@ void STDMETHODCALLTYPE ID3D12QueuedCommandList::CopyBufferRegion(
 	UINT64 NumBytes
 	)
 {
-	reinterpret_cast<D3DQueueItem*>(m_queue_array_back)->Type = D3DQueueItemType::CopyBufferRegion;
-	reinterpret_cast<D3DQueueItem*>(m_queue_array_back)->CopyBufferRegion.pDstBuffer = pDstBuffer;
-	reinterpret_cast<D3DQueueItem*>(m_queue_array_back)->CopyBufferRegion.DstOffset = static_cast<UINT>(DstOffset);
-	reinterpret_cast<D3DQueueItem*>(m_queue_array_back)->CopyBufferRegion.pSrcBuffer = pSrcBuffer;
-	reinterpret_cast<D3DQueueItem*>(m_queue_array_back)->CopyBufferRegion.SrcOffset = static_cast<UINT>(SrcOffset);
-	reinterpret_cast<D3DQueueItem*>(m_queue_array_back)->CopyBufferRegion.NumBytes = static_cast<UINT>(NumBytes);
+	D3DQueueItem* item = reinterpret_cast<D3DQueueItem*>(m_queue_array_back);
+	item->Type = D3DQueueItemType::CopyBufferRegion;
+	item->CopyBufferRegion.pDstBuffer = pDstBuffer;
+	item->CopyBufferRegion.DstOffset = static_cast<UINT>(DstOffset);
+	item->CopyBufferRegion.pSrcBuffer = pSrcBuffer;
+	item->CopyBufferRegion.SrcOffset = static_cast<UINT>(SrcOffset);
+	item->CopyBufferRegion.NumBytes = static_cast<UINT>(NumBytes);
 
 	m_queue_array_back += sizeof(CopyBufferRegionArguments) + sizeof(D3DQueueItemType) * 2;
 }
@@ -679,16 +667,18 @@ void STDMETHODCALLTYPE ID3D12QueuedCommandList::CopyTextureRegion(
 	_In_opt_  const D3D12_BOX* pSrcBox
 	)
 {
-	DEBUGCHECK(DstX == 0 && DstY == 0 && DstZ == 0, "Error: Invalid assumption in ID3D12QueuedCommandList.");
+	D3DQueueItem* item = reinterpret_cast<D3DQueueItem*>(m_queue_array_back);
 
-	reinterpret_cast<D3DQueueItem*>(m_queue_array_back)->Type = D3DQueueItemType::CopyTextureRegion;
-	reinterpret_cast<D3DQueueItem*>(m_queue_array_back)->CopyTextureRegion.dst =* pDst;
-	reinterpret_cast<D3DQueueItem*>(m_queue_array_back)->CopyTextureRegion.src =* pSrc;
-
+	item->Type = D3DQueueItemType::CopyTextureRegion;
+	item->CopyTextureRegion.dst =* pDst;
+	item->CopyTextureRegion.src =* pSrc;
+	item->CopyTextureRegion.DstX = DstX;
+	item->CopyTextureRegion.DstY = DstY;
+	item->CopyTextureRegion.DstZ = DstZ;
 	if (pSrcBox)
-		reinterpret_cast<D3DQueueItem*>(m_queue_array_back)->CopyTextureRegion.srcBox = *pSrcBox;
+		item->CopyTextureRegion.srcBox = *pSrcBox;
 	else
-		reinterpret_cast<D3DQueueItem*>(m_queue_array_back)->CopyTextureRegion.srcBox = {};
+		item->CopyTextureRegion.srcBox = {};
 
 	m_queue_array_back += sizeof(CopyTextureRegionArguments) + sizeof(D3DQueueItemType) * 2;
 }
@@ -724,13 +714,14 @@ void STDMETHODCALLTYPE ID3D12QueuedCommandList::ResolveSubresource(
 	)
 {
 	// No ignored parameters, no assumptions to DEBUGCHECK.
+	D3DQueueItem* item = reinterpret_cast<D3DQueueItem*>(m_queue_array_back);
 
-	reinterpret_cast<D3DQueueItem*>(m_queue_array_back)->Type = D3DQueueItemType::ResolveSubresource;
-	reinterpret_cast<D3DQueueItem*>(m_queue_array_back)->ResolveSubresource.pDstResource = pDstResource;
-	reinterpret_cast<D3DQueueItem*>(m_queue_array_back)->ResolveSubresource.DstSubresource = DstSubresource;
-	reinterpret_cast<D3DQueueItem*>(m_queue_array_back)->ResolveSubresource.pSrcResource = pSrcResource;
-	reinterpret_cast<D3DQueueItem*>(m_queue_array_back)->ResolveSubresource.SrcSubresource = SrcSubresource;
-	reinterpret_cast<D3DQueueItem*>(m_queue_array_back)->ResolveSubresource.Format = Format;
+	item->Type = D3DQueueItemType::ResolveSubresource;
+	item->ResolveSubresource.pDstResource = pDstResource;
+	item->ResolveSubresource.DstSubresource = DstSubresource;
+	item->ResolveSubresource.pSrcResource = pSrcResource;
+	item->ResolveSubresource.SrcSubresource = SrcSubresource;
+	item->ResolveSubresource.Format = Format;
 
 	m_queue_array_back += sizeof(ResolveSubresourceArguments) + sizeof(D3DQueueItemType) * 2;
 }
@@ -740,9 +731,9 @@ void STDMETHODCALLTYPE ID3D12QueuedCommandList::IASetPrimitiveTopology(
 	)
 {
 	// No ignored parameters, no assumptions to DEBUGCHECK.
-
-	reinterpret_cast<D3DQueueItem*>(m_queue_array_back)->Type = D3DQueueItemType::IASetPrimitiveTopology;
-	reinterpret_cast<D3DQueueItem*>(m_queue_array_back)->IASetPrimitiveTopology.PrimitiveTopology = PrimitiveTopology;
+	D3DQueueItem* item = reinterpret_cast<D3DQueueItem*>(m_queue_array_back);
+	item->Type = D3DQueueItemType::IASetPrimitiveTopology;
+	item->IASetPrimitiveTopology.PrimitiveTopology = PrimitiveTopology;
 
 	m_queue_array_back += sizeof(IASetPrimitiveTopologyArguments) + sizeof(D3DQueueItemType) * 2;
 }
@@ -753,14 +744,11 @@ void STDMETHODCALLTYPE ID3D12QueuedCommandList::RSSetViewports(
 	)
 {
 	DEBUGCHECK(Count == 1, "Error: Invalid assumption in ID3D12QueuedCommandList.");
+	D3DQueueItem* item = reinterpret_cast<D3DQueueItem*>(m_queue_array_back);
+	item->Type = D3DQueueItemType::RSSetViewports;
+	item->RSSetViewports = *pViewports;
 
-	reinterpret_cast<D3DQueueItem*>(m_queue_array_back)->Type = D3DQueueItemType::RSSetViewports;
-	reinterpret_cast<D3DQueueItem*>(m_queue_array_back)->RSSetViewports.Height = pViewports->Height;
-	reinterpret_cast<D3DQueueItem*>(m_queue_array_back)->RSSetViewports.Width = pViewports->Width;
-	reinterpret_cast<D3DQueueItem*>(m_queue_array_back)->RSSetViewports.TopLeftX = pViewports->TopLeftX;
-	reinterpret_cast<D3DQueueItem*>(m_queue_array_back)->RSSetViewports.TopLeftY = pViewports->TopLeftY;
-
-	m_queue_array_back += sizeof(RSSetViewportsArguments) + sizeof(D3DQueueItemType) * 2;
+	m_queue_array_back += sizeof(D3D12_VIEWPORT) + sizeof(D3DQueueItemType) * 2;
 }
 
 void STDMETHODCALLTYPE ID3D12QueuedCommandList::RSSetScissorRects(
@@ -769,12 +757,12 @@ void STDMETHODCALLTYPE ID3D12QueuedCommandList::RSSetScissorRects(
 	)
 {
 	DEBUGCHECK(Count == 1, "Error: Invalid assumption in ID3D12QueuedCommandList.");
-
-	reinterpret_cast<D3DQueueItem*>(m_queue_array_back)->Type = D3DQueueItemType::RSSetScissorRects;
-	reinterpret_cast<D3DQueueItem*>(m_queue_array_back)->RSSetScissorRects.bottom = pRects->bottom;
-	reinterpret_cast<D3DQueueItem*>(m_queue_array_back)->RSSetScissorRects.left = pRects->left;
-	reinterpret_cast<D3DQueueItem*>(m_queue_array_back)->RSSetScissorRects.right = pRects->right;
-	reinterpret_cast<D3DQueueItem*>(m_queue_array_back)->RSSetScissorRects.top = pRects->top;
+	D3DQueueItem* item = reinterpret_cast<D3DQueueItem*>(m_queue_array_back);
+	item->Type = D3DQueueItemType::RSSetScissorRects;
+	item->RSSetScissorRects.bottom = pRects->bottom;
+	item->RSSetScissorRects.left = pRects->left;
+	item->RSSetScissorRects.right = pRects->right;
+	item->RSSetScissorRects.top = pRects->top;
 
 	m_queue_array_back += sizeof(RSSetScissorRectsArguments) + sizeof(D3DQueueItemType) * 2;
 }
@@ -815,9 +803,10 @@ void STDMETHODCALLTYPE ID3D12QueuedCommandList::ResourceBarrier(
 	)
 {
 	DEBUGCHECK(NumBarriers == 1, "Error: Invalid assumption in ID3D12QueuedCommandList.");
+	D3DQueueItem* item = reinterpret_cast<D3DQueueItem*>(m_queue_array_back);
 
-	reinterpret_cast<D3DQueueItem*>(m_queue_array_back)->Type = D3DQueueItemType::ResourceBarrier;
-	reinterpret_cast<D3DQueueItem*>(m_queue_array_back)->ResourceBarrier.barrier = *pBarriers;
+	item->Type = D3DQueueItemType::ResourceBarrier;
+	item->ResourceBarrier.barrier = *pBarriers;
 
 	m_queue_array_back += sizeof(ResourceBarrierArguments) + sizeof(D3DQueueItemType) * 2;
 }
@@ -880,10 +869,11 @@ void STDMETHODCALLTYPE ID3D12QueuedCommandList::SetDescriptorHeaps(
 	)
 {
 	// No ignored parameters, no assumptions to DEBUGCHECK.
+	D3DQueueItem* item = reinterpret_cast<D3DQueueItem*>(m_queue_array_back);
 
-	reinterpret_cast<D3DQueueItem*>(m_queue_array_back)->Type = D3DQueueItemType::SetDescriptorHeaps;
-	reinterpret_cast<D3DQueueItem*>(m_queue_array_back)->SetDescriptorHeaps.ppDescriptorHeap = pDescriptorHeaps;
-	reinterpret_cast<D3DQueueItem*>(m_queue_array_back)->SetDescriptorHeaps.NumDescriptorHeaps = NumDescriptorHeaps;
+	item->Type = D3DQueueItemType::SetDescriptorHeaps;
+	item->SetDescriptorHeaps.ppDescriptorHeap = pDescriptorHeaps;
+	item->SetDescriptorHeaps.NumDescriptorHeaps = NumDescriptorHeaps;
 
 	m_queue_array_back += sizeof(SetDescriptorHeapsArguments) + sizeof(D3DQueueItemType) * 2;
 }
@@ -901,9 +891,10 @@ void STDMETHODCALLTYPE ID3D12QueuedCommandList::SetGraphicsRootSignature(
 	)
 {
 	// No ignored parameters, no assumptions to DEBUGCHECK.
+	D3DQueueItem* item = reinterpret_cast<D3DQueueItem*>(m_queue_array_back);
 
-	reinterpret_cast<D3DQueueItem*>(m_queue_array_back)->Type = D3DQueueItemType::SetGraphicsRootSignature;
-	reinterpret_cast<D3DQueueItem*>(m_queue_array_back)->SetGraphicsRootSignature.pRootSignature = pRootSignature;
+	item->Type = D3DQueueItemType::SetGraphicsRootSignature;
+	item->SetGraphicsRootSignature.pRootSignature = pRootSignature;
 
 	m_queue_array_back += sizeof(SetGraphicsRootSignatureArguments) + sizeof(D3DQueueItemType) * 2;
 }
@@ -925,6 +916,7 @@ void STDMETHODCALLTYPE ID3D12QueuedCommandList::SetGraphicsRootDescriptorTable(
 	// No ignored parameters, no assumptions to DEBUGCHECK.
 
 	D3DQueueItem* item = reinterpret_cast<D3DQueueItem*>(m_queue_array_back);
+
 
 	item->Type = D3DQueueItemType::SetGraphicsRootDescriptorTable;
 	item->SetGraphicsRootDescriptorTable.RootParameterIndex = RootParameterIndex;
@@ -984,6 +976,7 @@ void STDMETHODCALLTYPE ID3D12QueuedCommandList::SetGraphicsRootConstantBufferVie
 
 	D3DQueueItem* item = reinterpret_cast<D3DQueueItem*>(m_queue_array_back);
 
+
 	item->Type = D3DQueueItemType::SetGraphicsRootConstantBufferView;
 	item->SetGraphicsRootConstantBufferView.RootParameterIndex = RootParameterIndex;
 	item->SetGraphicsRootConstantBufferView.BufferLocation = BufferLocation;
@@ -1042,8 +1035,10 @@ void STDMETHODCALLTYPE ID3D12QueuedCommandList::IASetIndexBuffer(
 {
 	// No ignored parameters, no assumptions to DEBUGCHECK.
 
-	reinterpret_cast<D3DQueueItem*>(m_queue_array_back)->Type = D3DQueueItemType::SetIndexBuffer;
-	reinterpret_cast<D3DQueueItem*>(m_queue_array_back)->SetIndexBuffer.desc = *pDesc;
+	D3DQueueItem* item = reinterpret_cast<D3DQueueItem*>(m_queue_array_back);
+
+	item->Type = D3DQueueItemType::SetIndexBuffer;
+	item->SetIndexBuffer.desc = *pDesc;
 
 	m_queue_array_back += sizeof(SetIndexBufferArguments) + sizeof(D3DQueueItemType) * 2;
 }
@@ -1057,8 +1052,11 @@ void STDMETHODCALLTYPE ID3D12QueuedCommandList::IASetVertexBuffers(
 	DEBUGCHECK(StartSlot == 0, "Error: Invalid assumption in ID3D12QueuedCommandList.");
 	DEBUGCHECK(NumBuffers == 1, "Error: Invalid assumption in ID3D12QueuedCommandList.");
 
-	reinterpret_cast<D3DQueueItem*>(m_queue_array_back)->Type = D3DQueueItemType::SetVertexBuffers;
-	reinterpret_cast<D3DQueueItem*>(m_queue_array_back)->SetVertexBuffers.desc = *pDesc;
+	D3DQueueItem* item = reinterpret_cast<D3DQueueItem*>(m_queue_array_back);
+
+
+	item->Type = D3DQueueItemType::SetVertexBuffers;
+	item->SetVertexBuffers.desc = *pDesc;
 
 	m_queue_array_back += sizeof(SetVertexBuffersArguments) + sizeof(D3DQueueItemType) * 2;
 }
@@ -1081,18 +1079,19 @@ void STDMETHODCALLTYPE ID3D12QueuedCommandList::OMSetRenderTargets(
 	)
 {
 	DEBUGCHECK(RTsSingleHandleToDescriptorRange == FALSE, "Error: Invalid assumption in ID3D12QueuedCommandList.");
+	D3DQueueItem* item = reinterpret_cast<D3DQueueItem*>(m_queue_array_back);
 
-	reinterpret_cast<D3DQueueItem*>(m_queue_array_back)->Type = D3DQueueItemType::SetRenderTargets;
+	item->Type = D3DQueueItemType::SetRenderTargets;
 
 	if (pRenderTargetDescriptors)
-		reinterpret_cast<D3DQueueItem*>(m_queue_array_back)->SetRenderTargets.RenderTargetDescriptor = *pRenderTargetDescriptors;
+		item->SetRenderTargets.RenderTargetDescriptor = *pRenderTargetDescriptors;
 	else
-		reinterpret_cast<D3DQueueItem*>(m_queue_array_back)->SetRenderTargets.RenderTargetDescriptor = {};
+		item->SetRenderTargets.RenderTargetDescriptor = {};
 
 	if (pDepthStencilDescriptor)
-		reinterpret_cast<D3DQueueItem*>(m_queue_array_back)->SetRenderTargets.DepthStencilDescriptor = *pDepthStencilDescriptor;
+		item->SetRenderTargets.DepthStencilDescriptor = *pDepthStencilDescriptor;
 	else
-		reinterpret_cast<D3DQueueItem*>(m_queue_array_back)->SetRenderTargets.DepthStencilDescriptor = {};
+		item->SetRenderTargets.DepthStencilDescriptor = {};
 
 	m_queue_array_back += sizeof(SetRenderTargetsArguments) + sizeof(D3DQueueItemType) * 2;
 }
@@ -1112,8 +1111,10 @@ void STDMETHODCALLTYPE ID3D12QueuedCommandList::ClearDepthStencilView(
 	DEBUGCHECK(pRect == nullptr, "Error: Invalid assumption in ID3D12QueuedCommandList.");
 	DEBUGCHECK(NumRects == 0, "Error: Invalid assumption in ID3D12QueuedCommandList.");
 
-	reinterpret_cast<D3DQueueItem*>(m_queue_array_back)->Type = D3DQueueItemType::ClearDepthStencilView;
-	reinterpret_cast<D3DQueueItem*>(m_queue_array_back)->ClearDepthStencilView.DepthStencilView = DepthStencilView;
+	D3DQueueItem* item = reinterpret_cast<D3DQueueItem*>(m_queue_array_back);
+
+	item->Type = D3DQueueItemType::ClearDepthStencilView;
+	item->ClearDepthStencilView.DepthStencilView = DepthStencilView;
 
 	m_queue_array_back += sizeof(ClearDepthStencilViewArguments) + sizeof(D3DQueueItemType) * 2;
 }
@@ -1132,8 +1133,10 @@ void STDMETHODCALLTYPE ID3D12QueuedCommandList::ClearRenderTargetView(
 	DEBUGCHECK(pRects == nullptr, "Error: Invalid assumption in ID3D12QueuedCommandList.");
 	DEBUGCHECK(NumRects == 0, "Error: Invalid assumption in ID3D12QueuedCommandList.");
 
-	reinterpret_cast<D3DQueueItem*>(m_queue_array_back)->Type = D3DQueueItemType::ClearRenderTargetView;
-	reinterpret_cast<D3DQueueItem*>(m_queue_array_back)->ClearRenderTargetView.RenderTargetView = RenderTargetView;
+	D3DQueueItem* item = reinterpret_cast<D3DQueueItem*>(m_queue_array_back);
+
+	item->Type = D3DQueueItemType::ClearRenderTargetView;
+	item->ClearRenderTargetView.RenderTargetView = RenderTargetView;
 
 	m_queue_array_back += sizeof(ClearRenderTargetViewArguments) + sizeof(D3DQueueItemType) * 2;
 }
