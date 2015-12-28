@@ -48,12 +48,13 @@ D3D12_GPU_DESCRIPTOR_HANDLE groupBaseTextureGpuHandle;
 
 void TextureCache::TCacheEntry::Bind(unsigned int stage, unsigned int lastTexture)
 {
-	if (lastTexture == 0)
+	const bool use_materials = g_ActiveConfig.HiresMaterialMapsEnabled();
+	if (lastTexture == 0 && !use_materials)
 	{
 		DX12::D3D::current_command_list->SetGraphicsRootDescriptorTable(DESCRIPTOR_TABLE_PS_SRV, this->srvGpuHandle);
 		return;
 	}
-	const bool use_materials = g_ActiveConfig.HiresMaterialMapsEnabled();
+	
 	if (firstTextureInGroup)
 	{
 		const unsigned int num_handles = use_materials ? 16 : 8;
@@ -61,7 +62,7 @@ void TextureCache::TCacheEntry::Bind(unsigned int stage, unsigned int lastTextur
 		DX12::D3D::gpu_descriptor_heap_mgr->AllocateGroup(&groupBaseTextureCpuHandle, num_handles, &groupBaseTextureGpuHandle, nullptr, true);
 
 		// Pave over space with null textures.
-		for (unsigned int i = 0; i < num_handles; i++)
+		for (unsigned int i = 0; i < (8 + lastTexture); i++)
 		{
 			D3D12_CPU_DESCRIPTOR_HANDLE nullDestDescriptor;
 			nullDestDescriptor.ptr = groupBaseTextureCpuHandle.ptr + i * D3D::resource_descriptor_size;
