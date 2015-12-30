@@ -150,8 +150,5 @@
     <ClInclude Include="D3DQueuedCommandList.h">
       <Filter>D3D12</Filter>
     </ClInclude>
-    <ClInclude Include="d3dx12.h">
-      <Filter>D3D12</Filter>
-    </ClInclude>
   </ItemGroup>
 </Project>

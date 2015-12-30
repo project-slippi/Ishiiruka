@@ -36,7 +36,7 @@ TextureCacheBase::TexPool  TextureCacheBase::texture_pool;
 // Pool to save hires textures to avoid unnesessary reloads
 TextureCacheBase::HiresTexPool TextureCacheBase::hires_texture_pool;
 TextureCacheBase::TCacheEntryBase* TextureCacheBase::bound_textures[8];
-u32 TextureCacheBase::last_texture;
+u32 TextureCacheBase::s_last_texture;
 
 
 TextureCacheBase::BackupConfig TextureCacheBase::backup_config;
@@ -414,21 +414,21 @@ TextureCacheBase::TCacheEntryBase* TextureCacheBase::ReturnEntry(u32 stage, TCac
 {
 	entry->frameCount = FRAMECOUNT_INVALID;
 	bound_textures[stage] = entry;
-	last_texture = std::max(last_texture, stage);
+	s_last_texture = std::max(s_last_texture, stage);
 	GFX_DEBUGGER_PAUSE_AT(NEXT_TEXTURE_CHANGE, true);
 	return entry;
 }
 void TextureCacheBase::BindTextures()
 {
-	for (u32 i = 0; i <= last_texture; ++i)
+	for (u32 i = 0; i <= s_last_texture; ++i)
 	{
 		if (bound_textures[i])
-			bound_textures[i]->Bind(i, last_texture);
+			bound_textures[i]->Bind(i, s_last_texture);
 	}
 }
 void TextureCacheBase::UnbindTextures()
 {
-	last_texture = 0;
+	s_last_texture = 0;
 	std::fill(std::begin(bound_textures), std::end(bound_textures), nullptr);
 }
 
@@ -629,14 +629,12 @@ TextureCacheBase::TCacheEntryBase* TextureCacheBase::Load(const u32 stage)
 		entry->SetHashes(full_hash, tex_hash);
 		decoded_entry->frameCount = FRAMECOUNT_INVALID;
 		decoded_entry->is_efb_copy = false;
-		void* pallete_src = nullptr;
 		if (palette_upload_required)
 		{
 			palette_upload_required = false;
 			s_prev_tlut_address = tlutaddr;
 			s_prev_tlut_hash = tlut_hash;
 			s_prev_tlut_size = palette_size;
-			pallete_src = &texMem[tlutaddr];
 			g_texture_cache->LoadLut(tlutfmt, &texMem[tlutaddr], palette_size);
 		}
 

@@ -193,7 +193,10 @@ void TextureCache::TCacheEntry::CopyRectangleFromTexture(
 	{
 		const D3D12_BOX *psrcbox = nullptr;
 		D3D12_BOX srcbox;
-		if (srcrect.left != 0 || srcrect.top != 0)
+		if (srcrect.left != 0 
+			|| srcrect.top != 0 
+			|| srcrect.GetWidth() != srcentry->config.width 
+			|| srcrect.GetHeight() != srcentry->config.height)
 		{
 			srcbox.left = srcrect.left;
 			srcbox.top = srcrect.top;

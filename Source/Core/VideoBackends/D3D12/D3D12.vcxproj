@@ -71,7 +71,6 @@
     <ClInclude Include="D3DState.h" />
     <ClInclude Include="D3DTexture.h" />
     <ClInclude Include="D3DUtil.h" />
-    <ClInclude Include="d3dx12.h" />
     <ClInclude Include="FramebufferManager.h" />
     <ClInclude Include="GeometryShaderCache.h" />
     <ClInclude Include="Globals.h" />

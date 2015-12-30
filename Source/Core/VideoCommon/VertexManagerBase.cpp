@@ -33,7 +33,7 @@ u8 *VertexManagerBase::s_pEndBufferPointer;
 
 bool VertexManagerBase::s_Shader_Refresh_Required = true;
 bool VertexManagerBase::s_Zslope_Refresh_Required = true;
-Slope VertexManagerBase::s_ZSlope = {0.0f, 0.0f, float(0xFFFFFF)};
+Slope VertexManagerBase::s_ZSlope = { 0.0f, 0.0f, float(0xFFFFFF) };
 
 PrimitiveType VertexManagerBase::current_primitive_type;
 
@@ -72,7 +72,7 @@ u32 VertexManagerBase::GetRemainingSize()
 }
 
 void VertexManagerBase::PrepareForAdditionalData(int primitive, u32 count, u32 stride)
-{	
+{
 	// The SSE vertex loader can write up to 4 bytes past the end
 	u32 const needed_vertex_bytes = count * stride + 4;
 
@@ -91,10 +91,10 @@ void VertexManagerBase::PrepareForAdditionalData(int primitive, u32 count, u32 s
 			ERROR_LOG(VIDEO, "Too little remaining index values. Use 32-bit or reset them on flush.");
 		if (count > GetRemainingIndices(primitive))
 			ERROR_LOG(VIDEO, "VertexManagerBase: Buffer not large enough for all indices! "
-			"Increase MAXIBUFFERSIZE or we need primitive breaking after all.");
+				"Increase MAXIBUFFERSIZE or we need primitive breaking after all.");
 		if (needed_vertex_bytes > GetRemainingSize())
 			ERROR_LOG(VIDEO, "VertexManagerBase: Buffer not large enough for all vertices! "
-			"Increase MAXVBUFFERSIZE or we need primitive breaking after all.");
+				"Increase MAXVBUFFERSIZE or we need primitive breaking after all.");
 	}
 	s_cull_all = bpmem.genMode.cullmode == GenMode::CULL_ALL && primitive < 5;
 	// need to alloc new buffer
@@ -106,7 +106,7 @@ void VertexManagerBase::PrepareForAdditionalData(int primitive, u32 count, u32 s
 }
 
 u32 VertexManagerBase::GetRemainingIndices(int primitive)
-{	
+{
 	u32 index_len = MAXIBUFFERSIZE - IndexGenerator::GetIndexLen();
 
 	switch (primitive)
@@ -220,13 +220,13 @@ void VertexManagerBase::Flush()
 		{
 			SetZSlope();
 		}
-		else if (IndexGenerator::GetIndexLen() >= 3 && !s_cull_all)
+		else if (IndexGenerator::GetIndexLen() >= 3)
 		{
 			CalculateZSlope(vtx_dcl, g_vertex_manager->GetIndexBuffer() + IndexGenerator::GetIndexLen() - 3);
 		}
 
 		// if cull mode is CULL_ALL, ignore triangles and quads
-		if (bpmem.genMode.cullmode == GenMode::CULL_ALL)
+		if (s_cull_all)
 		{
 			IsFlushed = true;
 			s_cull_all = false;
@@ -256,7 +256,7 @@ void VertexManagerBase::DoState(PointerWrap& p)
 void VertexManagerBase::CalculateZSlope(const PortableVertexDeclaration &vert_decl, const u16* indices)
 {
 	float out[12];
-	float viewOffset[2] = { 
+	float viewOffset[2] = {
 		xfmem.viewport.xOrig - bpmem.scissorOffset.x * 2,
 		xfmem.viewport.yOrig - bpmem.scissorOffset.y * 2
 	};
@@ -281,7 +281,7 @@ void VertexManagerBase::CalculateZSlope(const PortableVertexDeclaration &vert_de
 	float dy12 = out[1] - out[5];
 	float dy31 = out[9] - out[1];
 	float c = -dx12 * dy31 - dx31 * -dy12;
-	
+
 	if (c == 0)
 		return;
 

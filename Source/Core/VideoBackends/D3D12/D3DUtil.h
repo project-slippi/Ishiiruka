@@ -9,7 +9,7 @@
 
 #include "Common/MathUtil.h"
 #include "VideoBackends/D3D12/D3DState.h"
-
+#include "VideoCommon/RenderBase.h"
 namespace DX12
 {
 
@@ -63,6 +63,31 @@ private:
 	float m_tex_coords[128-32][4];
 };
 
+
+// Ring buffer class, shared between the draw* functions
+class UtilVertexBuffer
+{
+public:
+	UtilVertexBuffer(int size);
+	~UtilVertexBuffer();
+
+	// returns vertex offset to the new data
+	int AppendData(void* data, int size, int vertex_size);
+	int ReserveData(void** write_ptr, int size, int vertex_size);
+	void AddWrapObserver(bool* observer);
+
+	inline ID3D12Resource* &GetBuffer() { return m_buf; }
+	inline int GetSize() const { return m_max_size; }
+private:
+	ID3D12Resource* m_buf = nullptr;
+	void* m_buf_data = nullptr;
+
+	int m_offset = 0;
+	int m_max_size = 0;
+
+	std::list<bool*> m_observers;
+};
+
 extern CD3DFont font;
 
 void InitUtils();
@@ -88,6 +113,7 @@ void DrawShadedTexQuad(D3DTexture2D* texture,
 
 void DrawClearQuad(u32 Color, float z, D3D12_BLEND_DESC* blend_desc, D3D12_DEPTH_STENCIL_DESC* depth_stencil_desc, bool rt_multisampled);
 void DrawColorQuad(u32 Color, float z, float x1, float y1, float x2, float y2, D3D12_BLEND_DESC* blend_desc, D3D12_DEPTH_STENCIL_DESC* depth_stencil_desc, bool rt_multisampled);
+void DrawEFBPokeQuads(EFBAccessType type, const EfbPokeData* points, size_t num_points, D3D12_BLEND_DESC* blend_desc, D3D12_DEPTH_STENCIL_DESC* depth_stencil_desc, bool rt_multisampled);
 }
 
 }

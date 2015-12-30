@@ -249,7 +249,7 @@ private:
 	static size_t texture_pool_memory_usage;
 	static HiresTexPool hires_texture_pool;
 	static TCacheEntryBase* bound_textures[8];
-	static u32 last_texture;
+	static u32 s_last_texture;
 
 	// Backup configuration values
 	static struct BackupConfig

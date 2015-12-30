@@ -35,10 +35,7 @@ namespace DX12
 #define DEBUGCHECK(cond, Message, ...)
 #endif
 
-inline void CheckHR(HRESULT hr)
-{
-	CHECK(SUCCEEDED(hr), "Failed HRESULT : %X", hr);
-}
+#define CheckHR(hr) CHECK(SUCCEEDED(hr), "Failed HRESULT : %X", hr)
 
 class D3DCommandListManager;
 class D3DDescriptorHeapManager;
