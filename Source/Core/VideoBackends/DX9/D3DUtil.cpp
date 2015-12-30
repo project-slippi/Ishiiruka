@@ -442,9 +442,11 @@ void drawColorQuad(u32 Color, float x1, float y1, float x2, float y2)
 	RestoreShaders();
 }
 
+struct Q2DVertex { float x, y, z, rhw; u32 color; };
+
 void drawClearQuad(u32 Color,float z,IDirect3DPixelShader9 *PShader,IDirect3DVertexShader9 *Vshader)
 {
-	struct Q2DVertex { float x,y,z,rhw;u32 color;} coords[4] = {
+	Q2DVertex coords[4] = {
 		{-1.0f,  1.0f, z, 1.0f, Color},
 		{ 1.0f,  1.0f, z, 1.0f, Color},
 		{ 1.0f, -1.0f, z, 1.0f, Color},
@@ -455,6 +457,42 @@ void drawClearQuad(u32 Color,float z,IDirect3DPixelShader9 *PShader,IDirect3DVer
 	D3D::ChangeVertexDeclaration(0);
 	dev->SetFVF(D3DFVF_XYZW | D3DFVF_DIFFUSE);
 	dev->DrawPrimitiveUP(D3DPT_TRIANGLEFAN, 2, coords, sizeof(Q2DVertex));
+	RestoreShaders();
+}
+static std::vector<Q2DVertex> PokeData;
+
+void DrawEFBPokeQuads(EFBAccessType type, const EfbPokeData* points, size_t num_points, IDirect3DPixelShader9 *PShader, IDirect3DVertexShader9 *Vshader)
+{
+	if (PokeData.size() < num_points * 6)
+	{
+		PokeData.resize(num_points * 6);
+	}
+	for (size_t i = 0; i < num_points; i++)
+	{
+		// generate quad from the single point (clip-space coordinates)
+		const EfbPokeData point = points[i];
+		float x1 = float(point.x) * 2.0f / EFB_WIDTH - 1.0f;
+		float y1 = -float(point.y) * 2.0f / EFB_HEIGHT + 1.0f;
+		float x2 = float(point.x + 1) * 2.0f / EFB_WIDTH - 1.0f;
+		float y2 = -float(point.y + 1) * 2.0f / EFB_HEIGHT + 1.0f;
+		float z = (type == POKE_Z) ? (1.0f - float(point.data & 0xFFFFFF) / 16777216.0f) : 0.0f;
+		u32 col = (type == POKE_Z) ? 0 : ((point.data & 0xFF00FF00) | ((point.data >> 16) & 0xFF) | ((point.data << 16) & 0xFF0000));
+		
+
+		// quad -> triangles
+		Q2DVertex* vertex = &PokeData[i * 6];
+		vertex[0] = { x1, y1, z, 1.0, col };
+		vertex[1] = { x2, y1, z, 1.0, col };
+		vertex[2] = { x1, y2, z, 1.0, col };
+		vertex[3] = { x1, y2, z, 1.0, col };
+		vertex[4] = { x2, y1, z, 1.0, col };
+		vertex[5] = { x2, y2, z, 1.0, col };
+	}
+	D3D::ChangeVertexShader(Vshader);
+	D3D::ChangePixelShader(PShader);
+	D3D::ChangeVertexDeclaration(0);
+	dev->SetFVF(D3DFVF_XYZW | D3DFVF_DIFFUSE);
+	dev->DrawPrimitiveUP(D3DPT_TRIANGLELIST, ((UINT)num_points) * 2, PokeData.data(), sizeof(Q2DVertex));
 	RestoreShaders();
 }
 

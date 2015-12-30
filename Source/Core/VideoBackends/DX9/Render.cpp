@@ -453,37 +453,52 @@ u32 Renderer::AccessEFB(EFBAccessType type, u32 x, u32 y, u32 poke_data)
 		else if(alpha_read_mode.ReadMode == 1) return (ret | 0xFF000000); // GX_READ_FF
 		else return (ret & 0x00FFFFFF); // GX_READ_00
 	}
-	else if(type == POKE_COLOR)
+	return poke_data;
+}
+
+void Renderer::PokeEFB(EFBAccessType type, const EfbPokeData* points, size_t num_points)
+{
+	ResetAPIState();
+	D3DVIEWPORT9 vp;
+	vp.X = 0;
+	vp.Y = 0;
+	vp.Width = GetTargetWidth();
+	vp.Height = GetTargetHeight();
+	float nearz = xfmem.viewport.farZ - MathUtil::Clamp<float>(xfmem.viewport.zRange, 0.0f, 16777215.0f);
+	float farz = xfmem.viewport.farZ;
+
+	const bool nonStandartViewport = (nearz < 0.f || farz > 16777216.0f || nearz >= 16777216.0f || farz <= 0.f);
+	if (nonStandartViewport)
 	{
-		// TODO: Speed this up by batching pokes?
-		ResetAPIState();
-		D3D::drawColorQuad(poke_data,
-			(float)RectToLock.left   * 2.f / (float)Renderer::GetTargetWidth()  - 1.f,
-			- (float)RectToLock.top    * 2.f / (float)Renderer::GetTargetHeight() + 1.f,
-			(float)RectToLock.right  * 2.f / (float)Renderer::GetTargetWidth()  - 1.f,
-			- (float)RectToLock.bottom * 2.f / (float)Renderer::GetTargetHeight() + 1.f);
-		RestoreAPIState();
-		return poke_data;
+		vp.MinZ = 0.0f;
+		vp.MaxZ = 1.0f;
 	}
-	else //(type == POKE_Z)
+	else
 	{
-		ResetAPIState();
+		// Some games set invalids values for z min and z max so fix them to the max an min alowed and let the shaders do this work
+		vp.MaxZ = 1.0f - (MathUtil::Clamp<float>(nearz, 0.0f, 16777215.0f) / 16777216.0f);
+		vp.MinZ = 1.0f - (MathUtil::Clamp<float>(farz, 0.0f, 16777215.0f) / 16777216.0f);
+	}
+	D3D::dev->SetRenderTarget(0, FramebufferManager::GetEFBColorRTSurface());
+	D3D::dev->SetDepthStencilSurface(FramebufferManager::GetEFBDepthRTSurface());
+	D3D::dev->SetViewport(&vp);
+	if (type == POKE_Z)
+	{
 		D3D::ChangeRenderState(D3DRS_COLORWRITEENABLE, 0);
 		D3D::ChangeRenderState(D3DRS_ZENABLE, TRUE);
 		D3D::ChangeRenderState(D3DRS_ZWRITEENABLE, TRUE);
 		D3D::ChangeRenderState(D3DRS_ZFUNC, D3DCMP_ALWAYS);
-		D3DVIEWPORT9 vp;
-		vp.X = RectToLock.left;
-		vp.Y = RectToLock.top;
-		vp.Width  = RectToLock.right - RectToLock.left;
-		vp.Height = RectToLock.bottom - RectToLock.top;
-		vp.MinZ = 0.0;
-		vp.MaxZ = 1.0;
-		D3D::dev->SetViewport(&vp);
-		D3D::drawClearQuad(0, (0xFFFFFF - (poke_data & 0xFFFFFF)) / float(0xFFFFFF), PixelShaderCache::GetClearProgram(), VertexShaderCache::GetClearVertexShader());
-		RestoreAPIState();
-		return poke_data;
-	}	
+	}
+	else
+	{
+		D3D::ChangeRenderState(D3DRS_COLORWRITEENABLE, true);
+		D3D::ChangeRenderState(D3DRS_ZENABLE, false);
+		D3D::ChangeRenderState(D3DRS_ZWRITEENABLE, false);
+		D3D::ChangeRenderState(D3DRS_ZFUNC, D3DCMP_ALWAYS);
+	}
+	D3D::DrawEFBPokeQuads(type, points, num_points, PixelShaderCache::GetClearProgram(), VertexShaderCache::GetClearVertexShader());
+
+	RestoreAPIState();
 }
 
 void Renderer::ClearScreen(const EFBRectangle& rc, bool colorEnable, bool alphaEnable, bool zEnable, u32 color, u32 z)

@@ -7,18 +7,18 @@
 #include <d3d11_2.h>
 #include "Common/MathUtil.h"
 #include "VideoBackends/DX11/D3DPtr.h"
-
+#include "VideoCommon/RenderBase.h"
 namespace DX11
 {
 
 namespace D3D
 {
 // Font creation flags
-#define D3DFONT_BOLD        0x0001
-#define D3DFONT_ITALIC      0x0002
+static constexpr unsigned int D3DFONT_BOLD = 0x0001;
+static constexpr unsigned int D3DFONT_ITALIC = 0x0002;
 
 // Font rendering flags
-#define D3DFONT_CENTERED    0x0001
+static constexpr unsigned int D3DFONT_CENTERED = 0x0001;
 
 class CD3DFont
 {
@@ -55,17 +55,18 @@ public:
 
 	// returns vertex offset to the new data
 	int AppendData(void* data, int size, int vertex_size);
-
+	int BeginAppendData(void** write_ptr, int size, int vertex_size);
+	void EndAppendData();
 	void AddWrapObserver(bool* observer);
 
-	inline ID3D11Buffer* &GetBuffer() { return buf; }
-
+	inline ID3D11Buffer* &GetBuffer() { return m_buf; }
+	inline int GetSize() const { return m_max_size; }
 private:
-	ID3D11Buffer* buf;
-	int offset;
-	int max_size;
+	ID3D11Buffer* m_buf;
+	int m_offset;
+	int m_max_size;
 
-	std::list<bool*> observers;
+	std::list<bool*> m_observers;
 };
 
 // Ring Constant buffer class, only works as a ring if
@@ -115,6 +116,7 @@ void drawShadedTexQuad(ID3D11ShaderResourceView* texture,
 	int DestHeight = 1);
 void drawClearQuad(u32 Color, float z);
 void drawColorQuad(u32 Color, float z, float x1, float y1, float x2, float y2);
+void DrawEFBPokeQuads(EFBAccessType type, const EfbPokeData* points, size_t num_points);
 }
 
 }

@@ -570,37 +570,28 @@ u32 Renderer::AccessEFB(EFBAccessType type, u32 x, u32 y, u32 poke_data)
 		if (alpha_read_mode.ReadMode == 2) return ret12; // GX_READ_NONE
 		else if (alpha_read_mode.ReadMode == 1) return (ret12 | 0xFF000000); // GX_READ_FF
 		else /*if(alpha_read_mode.ReadMode == 0)*/ return (ret12 & 0x00FFFFFF); // GX_READ_00
-	}
-	else if(type == POKE_COLOR)
+	}	
+	return poke_data;
+}
+
+void Renderer::PokeEFB(EFBAccessType type, const EfbPokeData* points, size_t num_points)
+{
+	D3D12_BLEND_DESC* blend_desc = nullptr;
+	D3D12_DEPTH_STENCIL_DESC* depth_desc = nullptr;
+	if (type == POKE_COLOR)
 	{
-		u32 rgbaColor = (poke_data & 0xFF00FF00) | ((poke_data >> 16) & 0xFF) | ((poke_data << 16) & 0xFF0000);
-
-		// TODO: The first five PE registers may change behavior of EFB pokes, this isn't implemented, yet.
-
+		blend_desc = &resetblendstate12;
+		depth_desc = &resetdepthstate12;
 		D3D12_VIEWPORT vp12 = { 0.0f, 0.0f, (float)GetTargetWidth(), (float)GetTargetHeight(), D3D12_MIN_DEPTH, D3D12_MAX_DEPTH };
 		D3D::current_command_list->RSSetViewports(1, &vp12);
 
 		FramebufferManager::GetEFBColorTexture()->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_RENDER_TARGET);
 		D3D::current_command_list->OMSetRenderTargets(1, &FramebufferManager::GetEFBColorTexture()->GetRTV12(), FALSE, nullptr);
-
-		D3D::DrawColorQuad(rgbaColor, 0.f,
-		 	  (float)RectToLock.left   * 2.f / GetTargetWidth() - 1.f,
-			- (float)RectToLock.top    * 2.f / GetTargetHeight() + 1.f,
-			  (float)RectToLock.right  * 2.f / GetTargetWidth() - 1.f,
-			- (float)RectToLock.bottom * 2.f / GetTargetHeight() + 1.f,
-			&resetblendstate12,
-			&resetdepthstate12,
-			FramebufferManager::GetEFBColorTexture()->GetMultisampled()
-			);
-
-		// Restores proper viewport/scissor settings.
-		g_renderer->RestoreAPIState();
-		return 0;
 	}
 	else // if (type == POKE_Z)
 	{
-		// TODO: The first five PE registers may change behavior of EFB pokes, this isn't implemented, yet.
-
+		blend_desc = &clearblendstates12[3];
+		depth_desc = &cleardepthstates12[1];
 		D3D12_VIEWPORT vp12 = { 0.0f, 0.0f, (float)GetTargetWidth(), (float)GetTargetHeight(),
 			1.0f - MathUtil::Clamp<float>(xfmem.viewport.farZ, 0.0f, 16777215.0f) / 16777216.0f,
 			1.0f - MathUtil::Clamp<float>((xfmem.viewport.farZ - MathUtil::Clamp<float>(xfmem.viewport.zRange, 0.0f, 16777215.0f)), 0.0f, 16777215.0f) / 16777216.0f };
@@ -609,21 +600,14 @@ u32 Renderer::AccessEFB(EFBAccessType type, u32 x, u32 y, u32 poke_data)
 		FramebufferManager::GetEFBColorTexture()->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_RENDER_TARGET);
 		FramebufferManager::GetEFBDepthTexture()->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_DEPTH_WRITE);
 		D3D::current_command_list->OMSetRenderTargets(1, &FramebufferManager::GetEFBColorTexture()->GetRTV12(), FALSE, &FramebufferManager::GetEFBDepthTexture()->GetDSV12());
-
-		D3D::DrawColorQuad(0, 1.0f - float(poke_data & 0xFFFFFF) / 16777216.0f,
-			(float)RectToLock.left   * 2.f / GetTargetWidth() - 1.f,
-			-(float)RectToLock.top    * 2.f / GetTargetHeight() + 1.f,
-			(float)RectToLock.right  * 2.f / GetTargetWidth() - 1.f,
-			-(float)RectToLock.bottom * 2.f / GetTargetHeight() + 1.f,
-			&clearblendstates12[3],
-			&cleardepthstates12[1],
-			FramebufferManager::GetEFBColorTexture()->GetMultisampled()
-			);
-
-		// Restores proper viewport/scissor settings.
-		g_renderer->RestoreAPIState();
-		return 0;
 	}
+
+	D3D::DrawEFBPokeQuads(type, points, num_points,
+		blend_desc,
+		depth_desc,
+		FramebufferManager::GetEFBColorTexture()->GetMultisampled());
+	
+	g_renderer->RestoreAPIState();
 }
 
 void Renderer::SetViewport()

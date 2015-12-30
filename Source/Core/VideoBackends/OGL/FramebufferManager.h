@@ -99,7 +99,7 @@ public:
 	// convtype=0 -> rgb8->rgba6, convtype=2 -> rgba6->rgb8
 	static void ReinterpretPixelData(unsigned int convtype);
 
-	static void PokeEFB(EFBAccessType type, const std::vector<EfbPokeData>& data);
+	static void PokeEFB(EFBAccessType type, const EfbPokeData* data, size_t num_points);
 
 private:
 	std::unique_ptr<XFBSourceBase> CreateXFBSource(unsigned int target_width, unsigned int target_height, unsigned int layers) override;

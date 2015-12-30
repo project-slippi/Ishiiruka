@@ -38,7 +38,8 @@ public:
 
 	void RenderText(const std::string& str, int left, int top, u32 color) override;
 
-	u32 AccessEFB(EFBAccessType type, u32 x, u32 y, u32 poke_data) override;	
+	u32 AccessEFB(EFBAccessType type, u32 x, u32 y, u32 poke_data) override;
+	void PokeEFB(EFBAccessType type, const EfbPokeData* data, size_t num_points) override;
 	u16 BBoxRead(int index) override;
 	void BBoxWrite(int index, u16 value) override;
 
