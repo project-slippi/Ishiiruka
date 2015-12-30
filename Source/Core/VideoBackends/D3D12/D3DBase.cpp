@@ -10,7 +10,6 @@
 #include "VideoBackends/D3D12/D3DDescriptorHeapManager.h"
 #include "VideoBackends/D3D12/D3DState.h"
 #include "VideoBackends/D3D12/D3DTexture.h"
-#include "VideoBackends/D3D12/VertexShaderCache.h"
 #include "VideoCommon/VideoConfig.h"
 
 static const unsigned int s_swap_chain_buffer_count = 4;
@@ -407,8 +406,8 @@ HRESULT Create(HWND wnd)
 		default_root_signature
 		);
 
-	command_list_mgr->Getcommand_list(&current_command_list);
-	command_list_mgr->SetInitialcommand_listState();
+	command_list_mgr->GetCommandList(&current_command_list);
+	command_list_mgr->SetInitialCommandListState();
 
 	for (UINT i = 0; i < s_swap_chain_buffer_count; i++)
 	{
@@ -555,13 +554,10 @@ void CreateRootSignatures()
 	root_parameters[DESCRIPTOR_TABLE_PS_CBVONE].Descriptor.ShaderRegister = 0;
 	root_parameters[DESCRIPTOR_TABLE_PS_CBVONE].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
 
-	if (g_ActiveConfig.bEnablePixelLighting)
-	{
-		root_parameters[DESCRIPTOR_TABLE_PS_CBVTWO].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
-		root_parameters[DESCRIPTOR_TABLE_PS_CBVTWO].Descriptor.RegisterSpace = 0;
-		root_parameters[DESCRIPTOR_TABLE_PS_CBVTWO].Descriptor.ShaderRegister = 1;
-		root_parameters[DESCRIPTOR_TABLE_PS_CBVTWO].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
-	}
+	root_parameters[DESCRIPTOR_TABLE_PS_CBVTWO].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
+	root_parameters[DESCRIPTOR_TABLE_PS_CBVTWO].Descriptor.RegisterSpace = 0;
+	root_parameters[DESCRIPTOR_TABLE_PS_CBVTWO].Descriptor.ShaderRegister = 1;
+	root_parameters[DESCRIPTOR_TABLE_PS_CBVTWO].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
 
 	// D3D12TODO: Add bounding box UAV to root signature.
 
@@ -573,9 +569,6 @@ void CreateRootSignatures()
 		D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS;
 
 	root_signature_desc.NumParameters = ARRAYSIZE(root_parameters);
-
-	if (!g_ActiveConfig.bEnablePixelLighting)
-		root_signature_desc.NumParameters--;
 
 	ID3DBlob* text_root_signature_blob;
 	ID3DBlob* text_root_signature_error_blob;
@@ -807,11 +800,9 @@ void Present()
 
 	backbuf[current_back_buf]->TransitionToResourceState(current_command_list, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
-#ifdef USE_D3D12_FREQUENT_EXECUTION
 	command_list_mgr->m_cpu_access_last_frame = command_list_mgr->m_cpu_access_this_frame;
 	command_list_mgr->m_cpu_access_this_frame = false;
 	command_list_mgr->m_draws_since_last_execution = 0;
-#endif
 }
 
 HRESULT SetFullscreenState(bool enable_fullscreen)

@@ -9,6 +9,7 @@
 #include "VideoBackends/D3D12/D3DTexture.h"
 
 #include "VideoBackends/D3D12/Render.h"
+#include "VideoBackends/D3D12/ShaderConstantsManager.h"
 #include "VideoBackends/D3D12/VertexManager.h"
 
 #include <vector>
@@ -78,10 +79,10 @@ D3DCommandListManager::D3DCommandListManager(
 	m_current_deferred_destruction_list = 0;
 }
 
-void D3DCommandListManager::SetInitialcommand_listState()
+void D3DCommandListManager::SetInitialCommandListState()
 {
 	ID3D12GraphicsCommandList* command_list = nullptr;
-	Getcommand_list(&command_list);
+	GetCommandList(&command_list);
 
 	command_list->SetDescriptorHeaps(m_gpu_descriptor_heaps_count, m_gpu_descriptor_heaps);
 	command_list->SetGraphicsRootSignature(m_default_root_signature);
@@ -90,8 +91,7 @@ void D3DCommandListManager::SetInitialcommand_listState()
 	{
 		// It is possible that we change command lists in the middle of the frame. In that case, restore
 		// the viewport/scissor to the current console GPU state.
-		g_renderer->SetScissorRect(static_cast<Renderer*>(g_renderer.get())->GetScissorRect());
-		g_renderer->SetViewport();
+		g_renderer->RestoreAPIState();
 	}
 
 	command_list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
@@ -108,7 +108,7 @@ void D3DCommandListManager::SetInitialcommand_listState()
 	m_current_topology = D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP;
 }
 
-void D3DCommandListManager::Getcommand_list(ID3D12GraphicsCommandList** command_list)
+void D3DCommandListManager::GetCommandList(ID3D12GraphicsCommandList** command_list)
 {
 #ifdef USE_D3D12_QUEUED_COMMAND_LISTS
 	*command_list = this->m_queued_command_list;
@@ -144,8 +144,8 @@ void D3DCommandListManager::ExecuteQueuedWork(bool wait_for_gpu_completion)
 #else
 	CheckHR(m_backing_command_list->Close());
 
-	ID3D12CommandList* const command_listsToExecute[1] = { m_backing_command_list };
-	m_command_queue->ExecuteCommandLists(1, command_listsToExecute);
+	ID3D12CommandList* const commandListsToExecute[1] = { m_backing_command_list };
+	m_command_queue->ExecuteCommandLists(1, commandListsToExecute);
 	
 	if (wait_for_gpu_completion)
 	{
@@ -160,7 +160,7 @@ void D3DCommandListManager::ExecuteQueuedWork(bool wait_for_gpu_completion)
 	ResetCommandListWithIdleCommandAllocator();
 #endif
 
-	SetInitialcommand_listState();
+	SetInitialCommandListState();
 
 	if (wait_for_gpu_completion)
 	{
@@ -185,7 +185,7 @@ void D3DCommandListManager::ExecuteQueuedWorkAndPresent(IDXGISwapChain* swap_cha
 
 	ResetCommandListWithIdleCommandAllocator();
 
-	SetInitialcommand_listState();
+	SetInitialCommandListState();
 #else
 	ExecuteQueuedWork();
 	CheckHR(swap_chain->Present(sync_interval, flags));
@@ -255,6 +255,8 @@ void D3DCommandListManager::PerformGpuRolloverChecks()
 		D3D::MoveToNextD3DTextureUploadHeap();
 	}
 
+	// Shader constant buffers are rolled-over independently of command allocator usage.
+	ShaderConstantsManager::CheckToResetIndexPositionInUploadHeaps();
 }
 
 void D3DCommandListManager::ResetCommandListWithIdleCommandAllocator()

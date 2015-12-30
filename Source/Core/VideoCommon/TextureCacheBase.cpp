@@ -56,14 +56,14 @@ void TextureCacheBase::CheckTempSize(size_t required_size)
 
 	temp_size = required_size;
 	FreeAlignedMemory(temp);
-	temp = (u8*)AllocateAlignedMemory(temp_size, 16);
+	temp = static_cast<u8*>(AllocateAlignedMemory(temp_size, 16));
 }
 
 TextureCacheBase::TextureCacheBase()
 {
 	temp_size = 2048 * 2048 * 4;
 	if (!TextureCacheBase::temp)
-		TextureCacheBase::temp = (u8*)AllocateAlignedMemory(temp_size, 16);
+		TextureCacheBase::temp = static_cast<u8*>(AllocateAlignedMemory(temp_size, 16));
 
 	TexDecoder_SetTexFmtOverlayOptions(g_ActiveConfig.bTexFmtOverlayEnable, g_ActiveConfig.bTexFmtOverlayCenter);
 

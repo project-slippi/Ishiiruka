@@ -19,24 +19,24 @@ public:
 private:
 	struct TCacheEntry : TCacheEntryBase
 	{
-		D3DTexture2D *const texture;
-		D3DTexture2D *nrm_texture;
-		D3D12_CPU_DESCRIPTOR_HANDLE srvCpuHandle;
-		D3D12_GPU_DESCRIPTOR_HANDLE srvGpuHandle;
-		D3D12_CPU_DESCRIPTOR_HANDLE srvGpuHandleCpuShadow;
-		D3D12_CPU_DESCRIPTOR_HANDLE nrm_srvCpuHandle;
-		D3D12_GPU_DESCRIPTOR_HANDLE nrm_srvGpuHandle;
-		D3D12_CPU_DESCRIPTOR_HANDLE nrm_srvGpuHandleCpuShadow;
+		D3DTexture2D *const m_texture;
+		D3DTexture2D *m_nrm_texture;
+		D3D12_CPU_DESCRIPTOR_HANDLE m_texture_srv_cpu_handle;
+		D3D12_GPU_DESCRIPTOR_HANDLE m_texture_srv_gpu_handle;
+		D3D12_CPU_DESCRIPTOR_HANDLE m_texture_srv_gpu_handle_cpu_shadow;
+		D3D12_CPU_DESCRIPTOR_HANDLE m_nrm_texture_srv_cpu_handle;
+		D3D12_GPU_DESCRIPTOR_HANDLE m_nrm_texture_srv_gpu_handle;
+		D3D12_CPU_DESCRIPTOR_HANDLE m_nrm_texture_srv_gpu_handle_cpu_shadow;
 		DXGI_FORMAT DXGI_format;
 		bool compressed;
 
-		TCacheEntry(const TCacheEntryConfig& config, D3DTexture2D *_tex) : TCacheEntryBase(config), texture(_tex), nrm_texture(nullptr), compressed(false) {}
+		TCacheEntry(const TCacheEntryConfig& config, D3DTexture2D *_tex) : TCacheEntryBase(config), m_texture(_tex), m_nrm_texture(nullptr), compressed(false) {}
 		~TCacheEntry();
 
 		void CopyRectangleFromTexture(
 			const TCacheEntryBase* source,
-			const MathUtil::Rectangle<int> &srcrect,
-			const MathUtil::Rectangle<int> &dstrect) override;
+			const MathUtil::Rectangle<int> &src_rect,
+			const MathUtil::Rectangle<int> &dst_rect) override;
 		void Load(const u8* src, u32 width, u32 height,
 			u32 expanded_width, u32 level) override;
 		void LoadMaterialMap(const u8* src, u32 width, u32 height, u32 level) override;
@@ -45,11 +45,11 @@ private:
 		void LoadFromTmem(const u8* ar_src, const u8* gb_src, u32 width, u32 height,
 			u32 expanded_width, u32 expanded_Height, u32 level) override;
 
-		void FromRenderTarget(u8* dst, PEControl::PixelFormat srcFormat, const EFBRectangle& srcRect,
-			bool scaleByHalf, unsigned int cbufid, const float *colmat) override;
-		bool SupportsMaterialMap() const override { return nrm_texture != nullptr; };
-		void Bind(unsigned int stage, unsigned int lastTexture) override;
-		bool Save(const std::string& filename, unsigned int level) override;
+		void FromRenderTarget(u8* dst, PEControl::PixelFormat src_format, const EFBRectangle& src_rect,
+			bool scale_by_half, u32 cbuf_id, const float* colmat) override;
+		bool SupportsMaterialMap() const override { return m_nrm_texture != nullptr; };
+		void Bind(u32 stage, u32 last_Texture) override;
+		bool Save(const std::string& filename, u32 level) override;
 	};
 
 	PC_TexFormat GetNativeTextureFormat(const s32 texformat, const TlutFormat tlutfmt, u32 width, u32 height);
@@ -57,23 +57,23 @@ private:
 	TCacheEntryBase* CreateTexture(const TCacheEntryConfig& config) override;
 	bool Palettize(TCacheEntryBase* entry, const TCacheEntryBase* base_entry) override;
 	void CopyEFB(u8* dst, u32 format, u32 native_width, u32 bytes_per_row, u32 num_blocks_y, u32 memory_stride,
-		PEControl::PixelFormat srcFormat, const EFBRectangle& srcRect,
-		bool isIntensity, bool scaleByHalf) override;
+		PEControl::PixelFormat src_format, const EFBRectangle& src_rect,
+		bool is_intensity, bool scale_by_half) override;
 	void LoadLut(u32 lutFmt, void* addr, u32 size) override;
 	void CompileShaders() override { }
 	void DeleteShaders() override { }
 
 	TlutFormat m_lut_format;
 	u32 m_lut_size;
-	ID3D12Resource* palette_buf12;
-	UINT palette_buf12index;
-	void* palette_buf12data;
-	D3D12_CPU_DESCRIPTOR_HANDLE palette_buf12cpu[1024];
-	D3D12_GPU_DESCRIPTOR_HANDLE palette_buf12gpu[1024];
-	ID3D12Resource* palette_uniform12;
-	UINT palette_uniform12offset;
-	void* palette_uniform12data;
-	D3D12_SHADER_BYTECODE palette_pixel_shader12[3];
+	ID3D12Resource* m_palette_buffer = nullptr;
+	unsigned int m_palette_buffer_index = 0;
+	void* m_palette_buffer_data = nullptr;
+	D3D12_CPU_DESCRIPTOR_HANDLE m_palette_buffer_cpu_handles[1024] = {};
+	D3D12_GPU_DESCRIPTOR_HANDLE m_palette_buffer_gpu_handles[1024] = {};
+	ID3D12Resource* m_palette_uniform_buffer = nullptr;
+	UINT m_palette_uniform_buffer_current_offset = 0;
+	void* m_palette_uniform_buffer_data = nullptr;
+	D3D12_SHADER_BYTECODE m_palette_pixel_shaders[3] = {};
 };
 
 }

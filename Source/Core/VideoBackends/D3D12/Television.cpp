@@ -10,7 +10,6 @@
 #include "VideoBackends/D3D12/D3DState.h"
 #include "VideoBackends/D3D12/D3DUtil.h"
 #include "VideoBackends/D3D12/Television.h"
-#include "VideoBackends/D3D12/VertexShaderCache.h"
 #include "VideoCommon/VideoConfig.h"
 
 // D3D12TODO: Add DX12 path for this file.
@@ -18,20 +17,20 @@
 namespace DX12
 {
 
-static const char YUYV_DECODER_PS[] =
-"// dolphin-emu YUYV decoder pixel shader\n"
+static const constexpr char s_yuyv_decoder_program_hlsl[] =
+	"// dolphin-emu YUYV decoder pixel shader\n"
 
-"Texture2D Tex0 : register(t0);\n"
-"sampler Samp0 : register(s0);\n"
+	"Texture2D Tex0 : register(t0);\n"
+	"sampler Samp0 : register(s0);\n"
 
-"static const float3x3 YCBCR_TO_RGB = float3x3(\n"
+	"static const float3x3 YCBCR_TO_RGB = float3x3(\n"
 	"1.164, 0.000, 1.596,\n"
 	"1.164, -0.392, -0.813,\n"
 	"1.164, 2.017, 0.000\n"
 	");\n"
 
-"void main(out float4 ocol0 : SV_Target, in float4 pos : SV_Position, in float2 uv0 : TEXCOORD0)\n"
-"{\n"
+	"void main(out float4 ocol0 : SV_Target, in float4 pos : SV_Position, in float2 uv0 : TEXCOORD0)\n"
+	"{\n"
 	"float3 sample = Tex0.Sample(Samp0, uv0).rgb;\n"
 
 	// GameCube/Wii XFB data is in YUYV format with ITU-R Rec. BT.601 color
@@ -58,11 +57,10 @@ static const char YUYV_DECODER_PS[] =
 	// <http://www.poynton.com/notes/colour_and_gamma/ColorFAQ.html#RTFToC20>
 
 	"ocol0 = float4(rgb_601, 1);\n"
-"}\n"
-;
+	"}\n"
+	;
 
 Television::Television()
-	: m_yuyvTexture(nullptr), m_yuyvTextureSRV(nullptr), m_pShader(nullptr)
 { }
 
 void Television::Init()
@@ -78,11 +76,11 @@ void Television::Init()
 	// Some games use narrower XFB widths (Nintendo titles are fond of 608),
 	// so the sampler's BorderColor won't cover the right side
 	// (see sampler state below)
-	const unsigned int MAX_XFB_SIZE = 2*(MAX_XFB_WIDTH) * MAX_XFB_HEIGHT;
+	const unsigned int MAX_XFB_SIZE = 2 * (MAX_XFB_WIDTH)* MAX_XFB_HEIGHT;
 	std::vector<u8> fill(MAX_XFB_SIZE);
 	for (size_t i = 0; i < MAX_XFB_SIZE / sizeof(u32); ++i)
 		reinterpret_cast<u32*>(fill.data())[i] = 0x80108010;
-	D3D11_SUBRESOURCE_DATA srd = { fill.data(), 2*(MAX_XFB_WIDTH), 0 };
+	D3D11_SUBRESOURCE_DATA srd = { fill.data(), 2 * (MAX_XFB_WIDTH), 0 };
 
 	// This texture format is designed for YUYV data.
 	D3D11_TEXTURE2D_DESC t2dd = CD3D11_TEXTURE2D_DESC(
@@ -113,7 +111,7 @@ void Television::Init()
 	// (remember, the XFB is being interpreted as YUYV, and 0,0,0,0
 	// is actually two green pixels in YUYV - black should be 16,128,16,128,
 	// but we reverse the order to match DXGI_FORMAT_G8R8_G8B8_UNORM's ordering)
-	float border[4] = { 128.0f/255.0f, 16.0f/255.0f, 128.0f/255.0f, 16.0f/255.0f };
+	float border[4] = { 128.0f / 255.0f, 16.0f / 255.0f, 128.0f / 255.0f, 16.0f / 255.0f };
 	D3D11_SAMPLER_DESC samDesc = CD3D11_SAMPLER_DESC(D3D11_FILTER_MIN_MAG_MIP_LINEAR,
 		D3D11_TEXTURE_ADDRESS_BORDER, D3D11_TEXTURE_ADDRESS_BORDER, D3D11_TEXTURE_ADDRESS_BORDER,
 		0.f, 1, D3D11_COMPARISON_ALWAYS, border, 0.f, 0.f);
@@ -134,11 +132,11 @@ void Television::Shutdown()
 #endif
 }
 
-void Television::Submit(u32 xfbAddr, u32 stride, u32 width, u32 height)
+void Television::Submit(u32 xfb_address, u32 stride, u32 width, u32 height)
 {
-	m_curAddr = xfbAddr;
-	m_curWidth = width;
-	m_curHeight = height;
+	m_current_address = xfb_address;
+	m_current_width = width;
+	m_current_height = height;
 
 	// Load data from GameCube RAM to YUYV texture
 #ifdef USE_D3D11

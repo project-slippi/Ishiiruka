@@ -17,6 +17,8 @@
 #include "VideoBackends/D3D12/D3DUtil.h"
 
 #include "VideoBackends/D3D12/NativeVertexFormat.h"
+#include "VideoBackends/D3D12/ShaderCache.h"
+#include "VideoBackends/D3D12/StaticShaderCache.h"
 
 #include "VideoCommon/VideoConfig.h"
 #include "VideoCommon/VertexLoaderManager.h"
@@ -45,9 +47,9 @@ public:
 		desc.SampleMask = UINT_MAX;
 		desc.SampleDesc = key.SampleDesc;
 
-		desc.PS = PixelShaderCache::GetShaderFromUid(key.psUid);
-		desc.VS = VertexShaderCache::GetShaderFromUid(key.vsUid);
-		desc.GS = GeometryShaderCache::GetShaderFromUid(key.gsUid);
+		desc.GS = ShaderCache::GetShaderFromUid(SHADER_STAGE_GEOMETRY_SHADER, &key.gsUid);
+		desc.PS = ShaderCache::GetShaderFromUid(SHADER_STAGE_PIXEL_SHADER, &key.psUid);
+		desc.VS = ShaderCache::GetShaderFromUid(SHADER_STAGE_VERTEX_SHADER, &key.vsUid);
 
 		if (!desc.PS.pShaderBytecode || !desc.VS.pShaderBytecode)
 		{
@@ -69,7 +71,7 @@ public:
 			native.reset(g_vertex_manager->CreateNativeVertexFormat(native_vtx_decl));
 		}
 		
-		desc.InputLayout = ((D3DVertexFormat*)native.get())->GetActiveInputLayout12();
+		desc.InputLayout = ((D3DVertexFormat*)native.get())->GetActiveInputLayout();
 
 		desc.CachedPSO.CachedBlobSizeInBytes = value_size;
 		desc.CachedPSO.pCachedBlob = value;
@@ -392,7 +394,7 @@ HRESULT StateCache::GetPipelineStateObjectFromCache(D3D12_GRAPHICS_PIPELINE_STAT
 	return S_OK;
 }
 
-HRESULT StateCache::GetPipelineStateObjectFromCache(SmallPsoDesc* pso_desc, ID3D12PipelineState** pso, D3D12_PRIMITIVE_TOPOLOGY_TYPE topology, PixelShaderUid psUid, VertexShaderUid vsUid, GeometryShaderUid gsUid)
+HRESULT StateCache::GetPipelineStateObjectFromCache(SmallPsoDesc* pso_desc, ID3D12PipelineState** pso, D3D12_PRIMITIVE_TOPOLOGY_TYPE topology, const PixelShaderUid* ps_uid, const VertexShaderUid* vs_uid, const GeometryShaderUid* gs_uid)
 {
 	auto it = m_small_pso_map.find(*pso_desc);
 
@@ -402,14 +404,15 @@ HRESULT StateCache::GetPipelineStateObjectFromCache(SmallPsoDesc* pso_desc, ID3D
 
 		// RootSignature, SampleMask, NumRenderTargets, RTVFormats, DSVFormat
 		// never change so they are set in constructor and forgotten.
+		m_current_pso_desc.GS = pso_desc->GS;
 		m_current_pso_desc.PS = pso_desc->PS;
 		m_current_pso_desc.VS = pso_desc->VS;
-		m_current_pso_desc.GS = pso_desc->GS;
+		
 		m_current_pso_desc.BlendState = GetDesc12(pso_desc->BlendState);
 		m_current_pso_desc.DepthStencilState = GetDesc12(pso_desc->DepthStencilState);
 		m_current_pso_desc.RasterizerState = GetDesc12(pso_desc->RasterizerState);
 		m_current_pso_desc.PrimitiveTopologyType = topology;
-		m_current_pso_desc.InputLayout = pso_desc->InputLayout->GetActiveInputLayout12();		
+		m_current_pso_desc.InputLayout = pso_desc->InputLayout->GetActiveInputLayout();		
 		m_current_pso_desc.SampleDesc.Count = pso_desc->samplecount;
 
 		ID3D12PipelineState* new_pso = nullptr;
@@ -428,9 +431,9 @@ HRESULT StateCache::GetPipelineStateObjectFromCache(SmallPsoDesc* pso_desc, ID3D
 		diskDesc.BlendState.packed = pso_desc->BlendState.packed;
 		diskDesc.DepthStencilState.hex = pso_desc->DepthStencilState.hex;
 		diskDesc.RasterizerState.packed = pso_desc->RasterizerState.packed;
-		diskDesc.psUid = psUid;
-		diskDesc.vsUid = vsUid;
-		diskDesc.gsUid = gsUid;
+		diskDesc.psUid = *ps_uid;
+		diskDesc.vsUid = *vs_uid;
+		diskDesc.gsUid = *gs_uid;
 		diskDesc.vertexDeclaration = pso_desc->InputLayout->GetVertexDeclaration();
 		diskDesc.topology = topology;
 		diskDesc.SampleDesc.Count = g_ActiveConfig.iMultisamples;

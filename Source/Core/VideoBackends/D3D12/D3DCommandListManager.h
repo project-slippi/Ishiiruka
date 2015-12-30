@@ -16,9 +16,9 @@ public:
 
 	D3DCommandListManager(D3D12_COMMAND_LIST_TYPE command_list_type, ID3D12Device* device, ID3D12CommandQueue* command_queue, ID3D12DescriptorHeap** gpu_descriptor_heaps, unsigned int num_gpu_descriptor_heaps, ID3D12RootSignature* default_root_signature);
 
-	void SetInitialcommand_listState();
+	void SetInitialCommandListState();
 
-	void Getcommand_list(ID3D12GraphicsCommandList** command_list);
+	void GetCommandList(ID3D12GraphicsCommandList** command_list);
 
 	void ExecuteQueuedWork(bool wait_for_gpu_completion = false);
 	void ExecuteQueuedWorkAndPresent(IDXGISwapChain* swap_chain, UINT sync_interval, UINT flags);

@@ -10,14 +10,16 @@
 #include "Common/BitField.h"
 #include "Common/CommonTypes.h"
 #include "VideoBackends/D3D12/D3DBase.h"
-#include "VideoBackends/D3D12/GeometryShaderCache.h"
 #include "VideoBackends/D3D12/NativeVertexFormat.h"
-#include "VideoBackends/D3D12/PixelShaderCache.h"
-#include "VideoBackends/D3D12/VertexShaderCache.h"
+#include "VideoBackends/D3D12/StaticShaderCache.h"
+#include "VideoBackends/D3D12/ShaderCache.h"
+
 #include "VideoCommon/BPMemory.h"
 
 namespace DX12
 {
+
+class PipelineStateCacheInserter;
 
 union RasterizerState
 {
@@ -76,8 +78,6 @@ struct SmallPsoDiskDesc
 	DXGI_SAMPLE_DESC SampleDesc;
 };
 
-class PipelineStateCacheInserter;
-
 class StateCache
 {
 public:
@@ -88,7 +88,7 @@ public:
 	static D3D12_DEPTH_STENCIL_DESC GetDesc12(ZMode state);
 
 	HRESULT GetPipelineStateObjectFromCache(D3D12_GRAPHICS_PIPELINE_STATE_DESC* pso_desc, ID3D12PipelineState** pso);
-	HRESULT GetPipelineStateObjectFromCache(SmallPsoDesc* pso_desc, ID3D12PipelineState** pso, D3D12_PRIMITIVE_TOPOLOGY_TYPE topology, PixelShaderUid ps_uid, VertexShaderUid vs_uid, GeometryShaderUid gs_uid);
+	HRESULT GetPipelineStateObjectFromCache(SmallPsoDesc* pso_desc, ID3D12PipelineState** pso, D3D12_PRIMITIVE_TOPOLOGY_TYPE topology, const PixelShaderUid* ps_uid, const VertexShaderUid* vs_uid, const GeometryShaderUid* gs_uid);
 
 	StateCache();
 

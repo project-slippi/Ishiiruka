@@ -18,7 +18,7 @@ extern StateCache gx_state_cache;
 namespace D3D
 {
 
-extern inline void ResourceBarrier(ID3D12GraphicsCommandList* commandList, ID3D12Resource* resource, D3D12_RESOURCE_STATES state_before, D3D12_RESOURCE_STATES state_after, UINT subresource);
+extern inline void ResourceBarrier(ID3D12GraphicsCommandList* command_list, ID3D12Resource* resource, D3D12_RESOURCE_STATES state_before, D3D12_RESOURCE_STATES state_after, UINT subresource);
 
 // Font creation flags
 static const unsigned int s_d3dfont_bold = 0x0001;
@@ -74,18 +74,16 @@ public:
 	// returns vertex offset to the new data
 	int AppendData(void* data, int size, int vertex_size);
 	int ReserveData(void** write_ptr, int size, int vertex_size);
-	void AddWrapObserver(bool* observer);
 
 	inline ID3D12Resource* &GetBuffer() { return m_buf; }
 	inline int GetSize() const { return m_max_size; }
+	inline int GetRoomLeftInBuffer() const { return m_max_size - m_offset; }
 private:
 	ID3D12Resource* m_buf = nullptr;
 	void* m_buf_data = nullptr;
 
 	int m_offset = 0;
 	int m_max_size = 0;
-
-	std::list<bool*> m_observers;
 };
 
 extern CD3DFont font;
@@ -97,23 +95,32 @@ void SetPointCopySampler();
 void SetLinearCopySampler();
 
 void DrawShadedTexQuad(D3DTexture2D* texture,
-					const D3D12_RECT* source,
-					int source_width,
-					int source_height,
-					D3D12_SHADER_BYTECODE pshader12 = {},
-					D3D12_SHADER_BYTECODE vshader12 = {},
-					D3D12_INPUT_LAYOUT_DESC layout12 = {},
-					D3D12_SHADER_BYTECODE gshader12 = {},
-					float gamma = 1.0f,
-					u32 slice = 0,
-					DXGI_FORMAT rt_format = DXGI_FORMAT_R8G8B8A8_UNORM,
-					bool inherit_srv_binding = false,
-					bool rt_multisampled = false
-					);
+	const D3D12_RECT* source,
+	int source_width,
+	int source_height,
+	D3D12_SHADER_BYTECODE pshader12 = {},
+	D3D12_SHADER_BYTECODE vshader12 = {},
+	D3D12_INPUT_LAYOUT_DESC layout12 = {},
+	D3D12_SHADER_BYTECODE gshader12 = {},
+	float gamma = 1.0f,
+	u32 slice = 0,
+	DXGI_FORMAT rt_format = DXGI_FORMAT_R8G8B8A8_UNORM,
+	bool inherit_srv_binding = false,
+	bool rt_multisampled = false,
+	D3D12_DEPTH_STENCIL_DESC* depth_stencil_desc_override = nullptr
+	);
 
 void DrawClearQuad(u32 Color, float z, D3D12_BLEND_DESC* blend_desc, D3D12_DEPTH_STENCIL_DESC* depth_stencil_desc, bool rt_multisampled);
 void DrawColorQuad(u32 Color, float z, float x1, float y1, float x2, float y2, D3D12_BLEND_DESC* blend_desc, D3D12_DEPTH_STENCIL_DESC* depth_stencil_desc, bool rt_multisampled);
-void DrawEFBPokeQuads(EFBAccessType type, const EfbPokeData* points, size_t num_points, D3D12_BLEND_DESC* blend_desc, D3D12_DEPTH_STENCIL_DESC* depth_stencil_desc, bool rt_multisampled);
+void DrawEFBPokeQuads(EFBAccessType type,
+	const EfbPokeData* points,
+	size_t num_points,
+	D3D12_BLEND_DESC* blend_desc,
+	D3D12_DEPTH_STENCIL_DESC* depth_stencil_desc,
+	D3D12_VIEWPORT* viewport,
+	D3D12_CPU_DESCRIPTOR_HANDLE* render_target,
+	D3D12_CPU_DESCRIPTOR_HANDLE* depth_buffer,
+	bool rt_multisampled);
 }
 
 }

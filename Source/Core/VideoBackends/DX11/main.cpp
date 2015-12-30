@@ -72,11 +72,6 @@ std::string VideoBackend::GetDisplayName() const
 	return "Direct3D11";
 }
 
-std::string VideoBackend::GetConfigName() const
-{
-   return "gfx_dx11";
-}
-
 static std::vector<std::string> GetShaders(const std::string &sub_dir = "")
 {
 	std::vector<std::string> paths = DoFileSearch({ ".glsl" }, {
@@ -182,7 +177,7 @@ void VideoBackend::ShowConfig(void *_hParent)
 #if defined(HAVE_WX) && HAVE_WX
 	if (!s_BackendInitialized)
 		InitBackendInfo();
-	VideoConfigDiag diag((wxWindow*)_hParent, _trans("Direct3D11"), GetConfigName());
+	VideoConfigDiag diag((wxWindow*)_hParent, _trans("Direct3D11"), "gfx_dx11");
 	diag.ShowModal();
 #endif
 }
@@ -196,7 +191,7 @@ bool VideoBackend::Initialize(void *window_handle)
 
 	const SConfig& core_params = SConfig::GetInstance();
 
-	g_Config.Load((File::GetUserPath(D_CONFIG_IDX) + GetConfigName() + ".ini").c_str());
+	g_Config.Load(File::GetUserPath(D_CONFIG_IDX) + "gfx_dx11.ini");
 	g_Config.GameIniLoad();
 	g_Config.UpdateProjectionHack();
 	g_Config.VerifyValidity();

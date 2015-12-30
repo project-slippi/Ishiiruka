@@ -35,7 +35,7 @@ enum D3DQueueItemType : unsigned int
 	ResourceBarrier,
 	ResolveSubresource,
 	ExecuteCommandList,
-	Closecommand_list,
+	CloseCommandList,
 	Present,
 	ResetCommandList,
 	ResetCommandAllocator,
@@ -157,7 +157,7 @@ struct ResolveSubresourceArguments
 	DXGI_FORMAT Format;
 };
 
-struct Closecommand_listArguments
+struct CloseCommandListArguments
 {
 };
 
@@ -219,7 +219,7 @@ struct D3DQueueItem
 		SetDescriptorHeapsArguments SetDescriptorHeaps;
 		ResourceBarrierArguments ResourceBarrier;
 		ResolveSubresourceArguments ResolveSubresource;
-		Closecommand_listArguments Closecommand_list;
+		CloseCommandListArguments Closecommand_list;
 		ExecuteCommandListArguments ExecuteCommandList;
 		PresentArguments Present;
 		ResetCommandListArguments ResetCommandList;

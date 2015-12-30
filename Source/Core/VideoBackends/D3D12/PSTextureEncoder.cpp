@@ -12,8 +12,8 @@
 #include "VideoBackends/D3D12/FramebufferManager.h"
 #include "VideoBackends/D3D12/PSTextureEncoder.h"
 #include "VideoBackends/D3D12/Render.h"
+#include "VideoBackends/D3D12/StaticShaderCache.h"
 #include "VideoBackends/D3D12/TextureCache.h"
-#include "VideoBackends/D3D12/VertexShaderCache.h"
 
 #include "VideoCommon/TextureConversionShader.h"
 
@@ -29,16 +29,13 @@ struct EFBEncodeParams
 };
 
 PSTextureEncoder::PSTextureEncoder()
-	: m_ready(false), m_out12(nullptr), m_outStage12(nullptr), m_encodeParams12(nullptr), m_encodeParams12data(nullptr)
 {
 }
 
 void PSTextureEncoder::Init()
 {
-	m_ready = false;
-
 	// Create output texture RGBA format
-	D3D12_RESOURCE_DESC t2dd12 = CD3DX12_RESOURCE_DESC::Tex2D(
+	D3D12_RESOURCE_DESC out_tex_desc = CD3DX12_RESOURCE_DESC::Tex2D(
 		DXGI_FORMAT_B8G8R8A8_UNORM,
 		EFB_WIDTH * 4,
 		EFB_HEIGHT / 4,
@@ -49,56 +46,69 @@ void PSTextureEncoder::Init()
 		D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET
 		);
 
-	D3D12_CLEAR_VALUE optimized_clear_value = { DXGI_FORMAT_B8G8R8A8_UNORM, { 0.0f, 0.0f, 0.0f, 1.0f } };
+	D3D12_CLEAR_VALUE optimized_clear_value = { DXGI_FORMAT_B8G8R8A8_UNORM,{ 0.0f, 0.0f, 0.0f, 1.0f } };
 
-	CheckHR(D3D::device12->CreateCommittedResource(&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT), D3D12_HEAP_FLAG_NONE, &t2dd12, D3D12_RESOURCE_STATE_COPY_SOURCE, &optimized_clear_value, IID_PPV_ARGS(&m_out12)));
-	D3D::SetDebugObjectName12(m_out12, "efb encoder output texture");
+	CheckHR(
+		D3D::device12->CreateCommittedResource(
+			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
+			D3D12_HEAP_FLAG_NONE,
+			&out_tex_desc,
+			D3D12_RESOURCE_STATE_COPY_SOURCE,
+			&optimized_clear_value,
+			IID_PPV_ARGS(&m_out)
+			)
+		);
+
+	D3D::SetDebugObjectName12(m_out, "efb encoder output texture");
 
 	// Create output render target view
-	D3D12_RENDER_TARGET_VIEW_DESC rtvd12 = {
+	D3D12_RENDER_TARGET_VIEW_DESC tex_rtv_desc = {
 		DXGI_FORMAT_B8G8R8A8_UNORM,    // DXGI_FORMAT Format;
 		D3D12_RTV_DIMENSION_TEXTURE2D  // D3D12_RTV_DIMENSION ViewDimension;
 	};
-	rtvd12.Texture2D.MipSlice = 0;
 
-	D3D::rtv_descriptor_heap_mgr->Allocate(&m_outRTV12cpu);
-	D3D::device12->CreateRenderTargetView(m_out12, &rtvd12, m_outRTV12cpu);
+	tex_rtv_desc.Texture2D.MipSlice = 0;
+
+	D3D::rtv_descriptor_heap_mgr->Allocate(&m_out_rtv_cpu);
+	D3D::device12->CreateRenderTargetView(m_out, &tex_rtv_desc, m_out_rtv_cpu);
 
 	// Create output staging buffer
 	CheckHR(
 		D3D::device12->CreateCommittedResource(
 			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_READBACK),
 			D3D12_HEAP_FLAG_NONE,
-			&CD3DX12_RESOURCE_DESC::Buffer(D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT + ((t2dd12.Width * 4 + D3D12_TEXTURE_DATA_PITCH_ALIGNMENT - 1) & ~(D3D12_TEXTURE_DATA_PITCH_ALIGNMENT - 1)) * t2dd12.Height),
+			&CD3DX12_RESOURCE_DESC::Buffer(
+				D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT +
+				((out_tex_desc.Width * 4 + D3D12_TEXTURE_DATA_PITCH_ALIGNMENT - 1) & ~(D3D12_TEXTURE_DATA_PITCH_ALIGNMENT - 1)) *
+				out_tex_desc.Height
+				),
 			D3D12_RESOURCE_STATE_COPY_DEST,
 			nullptr,
-			IID_PPV_ARGS(&m_outStage12)
+			IID_PPV_ARGS(&m_out_readback_buffer)
 			)
 		);
 
-	D3D::SetDebugObjectName12(m_outStage12, "efb encoder output staging buffer");
+	D3D::SetDebugObjectName12(m_out_readback_buffer, "efb encoder output staging buffer");
 
-	CheckHR(m_outStage12->Map(0, nullptr, &m_outStage12data));
+	CheckHR(m_out_readback_buffer->Map(0, nullptr, &m_out_readback_buffer_data));
 
-	// Create constant buffer for uploading data to shaders
-	UINT32 paddedSize = (sizeof(EFBEncodeParams) + 0xff) & ~0xff;
+	// Create constant buffer for uploading data to shaders. Need to align to 256 bytes.
+	unsigned int encode_params_buffer_size = (sizeof(EFBEncodeParams) + 0xff) & ~0xff;
 
 	CheckHR(
 		D3D::device12->CreateCommittedResource(
 			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
 			D3D12_HEAP_FLAG_NONE,
-			&CD3DX12_RESOURCE_DESC::Buffer(paddedSize),
+			&CD3DX12_RESOURCE_DESC::Buffer(encode_params_buffer_size),
 			D3D12_RESOURCE_STATE_GENERIC_READ,
 			nullptr,
-			IID_PPV_ARGS(&m_encodeParams12)
+			IID_PPV_ARGS(&m_encode_params_buffer)
 			)
 		);
 
-	D3D::SetDebugObjectName12(m_encodeParams12, "efb encoder params buffer");
+	D3D::SetDebugObjectName12(m_encode_params_buffer, "efb encoder params buffer");
 
-	CheckHR(m_encodeParams12->Map(0, nullptr, &m_encodeParams12data));
-
-	// Don't need to create a descriptor for the constant buffer, as we'll be creating it on the fly as a root descriptor.
+	CheckHR(m_encode_params_buffer->Map(0, nullptr, &m_encode_params_buffer_data));
 
 	m_ready = true;
 }
@@ -107,160 +117,160 @@ void PSTextureEncoder::Shutdown()
 {
 	m_ready = false;
 
-	D3D::command_list_mgr->DestroyResourceAfterCurrentCommandListExecuted(m_encodeParams12);
-	D3D::command_list_mgr->DestroyResourceAfterCurrentCommandListExecuted(m_out12);
-	D3D::command_list_mgr->DestroyResourceAfterCurrentCommandListExecuted(m_outStage12);
+	D3D::command_list_mgr->DestroyResourceAfterCurrentCommandListExecuted(m_out);
+	D3D::command_list_mgr->DestroyResourceAfterCurrentCommandListExecuted(m_out_readback_buffer);
+	D3D::command_list_mgr->DestroyResourceAfterCurrentCommandListExecuted(m_encode_params_buffer);
 
-	for (auto& it : m_staticShaders12blobs)
+	for (auto& it : m_static_shaders_blobs)
 	{
 		SAFE_RELEASE(it);
 	}
 
-	m_staticShaders12.clear();
-	m_staticShaders12blobs.clear();
+	m_static_shaders_blobs.clear();
+	m_static_shaders_map.clear();
 }
 
 void PSTextureEncoder::Encode(u8* dst, u32 format, u32 native_width, u32 bytes_per_row, u32 num_blocks_y, u32 memory_stride,
-	PEControl::PixelFormat srcFormat, const EFBRectangle& srcRect,
-	bool isIntensity, bool scaleByHalf)
+	PEControl::PixelFormat src_format, const EFBRectangle& src_rect,
+	bool is_intensity, bool scale_by_half)
 {
 	if (!m_ready) // Make sure we initialized OK
 		return;
 
+	D3D::command_list_mgr->CPUAccessNotify();
+
+	// Resolve MSAA targets before copying.
+	D3DTexture2D* efb_source = (src_format == PEControl::Z24) ?
+		FramebufferManager::GetResolvedEFBDepthTexture() :
+		// EXISTINGD3D11TODO: Instead of resolving EFB, it would be better to pick out a
+		// single sample from each pixel. The game may break if it isn't
+		// expecting the blurred edges around multisampled shapes.
+		FramebufferManager::GetResolvedEFBColorTexture();
+
+	// GetResolvedEFBDepthTexture will set the render targets, when MSAA is enabled 
+	// (since it needs to do a manual depth resolve). So make sure to set the RTs
+	// afterwards.
+
+	const u32 words_per_row = bytes_per_row / sizeof(u32);
+
+	D3D12_VIEWPORT vp = { 0.f, 0.f, FLOAT(words_per_row), FLOAT(num_blocks_y), D3D12_MIN_DEPTH, D3D12_MAX_DEPTH };
+	D3D::current_command_list->RSSetViewports(1, &vp);
+
+	constexpr EFBRectangle full_src_rect(0, 0, EFB_WIDTH, EFB_HEIGHT);
+
+	TargetRectangle target_rect = g_renderer->ConvertEFBRectangle(full_src_rect);
+
+	D3D::ResourceBarrier(D3D::current_command_list, m_out, D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET, 0);
+	D3D::current_command_list->OMSetRenderTargets(1, &m_out_rtv_cpu, FALSE, nullptr);
+
+	EFBEncodeParams params;
+	params.SrcLeft = src_rect.left;
+	params.SrcTop = src_rect.top;
+	params.DestWidth = native_width;
+	params.ScaleFactor = scale_by_half ? 2 : 1;
+
+	memcpy(m_encode_params_buffer_data, &params, sizeof(params));
+	D3D::current_command_list->SetGraphicsRootConstantBufferView(
+		DESCRIPTOR_TABLE_PS_CBVONE,
+		m_encode_params_buffer->GetGPUVirtualAddress()
+		);
+
+	D3D::command_list_mgr->m_dirty_ps_cbv = true;
+
+	// Use linear filtering if (bScaleByHalf), use point filtering otherwise
+	if (scale_by_half)
+		D3D::SetLinearCopySampler();
+	else
+		D3D::SetPointCopySampler();
+
+	D3D::DrawShadedTexQuad(efb_source,
+		target_rect.AsRECT(),
+		Renderer::GetTargetWidth(),
+		Renderer::GetTargetHeight(),
+		SetStaticShader(format, src_format, is_intensity, scale_by_half),
+		StaticShaderCache::GetSimpleVertexShader(),
+		StaticShaderCache::GetSimpleVertexShaderInputLayout(),
+		D3D12_SHADER_BYTECODE(),
+		1.0f,
+		0,
+		DXGI_FORMAT_B8G8R8A8_UNORM,
+		false,
+		false /* Render target is not multisampled */
+		);
+
+	// Copy to staging buffer
+	D3D12_BOX src_box = CD3DX12_BOX(0, 0, 0, words_per_row, num_blocks_y, 1);
+
+	D3D12_TEXTURE_COPY_LOCATION dst_location = {};
+	dst_location.pResource = m_out_readback_buffer;
+	dst_location.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
+	dst_location.PlacedFootprint.Offset = D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT;
+	dst_location.PlacedFootprint.Footprint.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
+	dst_location.PlacedFootprint.Footprint.Width = EFB_WIDTH * 4;
+	dst_location.PlacedFootprint.Footprint.Height = EFB_HEIGHT / 4;
+	dst_location.PlacedFootprint.Footprint.Depth = 1;
+	dst_location.PlacedFootprint.Footprint.RowPitch = dst_location.PlacedFootprint.Footprint.Width * 4 /* width * 32bpp */;
+	dst_location.PlacedFootprint.Footprint.RowPitch = (dst_location.PlacedFootprint.Footprint.RowPitch + D3D12_TEXTURE_DATA_PITCH_ALIGNMENT - 1) & ~(D3D12_TEXTURE_DATA_PITCH_ALIGNMENT - 1);
+
+	D3D12_TEXTURE_COPY_LOCATION src_location = {};
+	src_location.pResource = m_out;
+	src_location.SubresourceIndex = 0;
+	src_location.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+
+	D3D::ResourceBarrier(D3D::current_command_list, m_out, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_COPY_SOURCE, 0);
+	D3D::current_command_list->CopyTextureRegion(&dst_location, 0, 0, 0, &src_location, &src_box);
+
+	D3D::command_list_mgr->ExecuteQueuedWork(true);
+
+	// Transfer staging buffer to GameCube/Wii RAM
+
+	u8* src = static_cast<u8*>(m_out_readback_buffer_data) + D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT;
+	u32 read_stride = std::min(bytes_per_row, dst_location.PlacedFootprint.Footprint.RowPitch);
+	for (unsigned int y = 0; y < num_blocks_y; ++y)
 	{
-#ifdef USE_D3D12_FREQUENT_EXECUTION
-		D3D::command_list_mgr->CPUAccessNotify();
-#endif
+		memcpy(dst, src, read_stride);
 
-		const u32 words_per_row = bytes_per_row / sizeof(u32);
-
-		D3D12_VIEWPORT vp12 = { 0.f, 0.f, FLOAT(words_per_row), FLOAT(num_blocks_y), D3D12_MIN_DEPTH, D3D12_MAX_DEPTH };
-		D3D::current_command_list->RSSetViewports(1, &vp12);
-
-		constexpr EFBRectangle fullSrcRect(0, 0, EFB_WIDTH, EFB_HEIGHT);
-
-		TargetRectangle targetRect = g_renderer->ConvertEFBRectangle(fullSrcRect);
-
-		D3DTexture2D* pEFB = (srcFormat == PEControl::Z24) ?
-			FramebufferManager::GetResolvedEFBDepthTexture() :
-			// FIXME: Instead of resolving EFB, it would be better to pick out a
-			// single sample from each pixel. The game may break if it isn't
-			// expecting the blurred edges around multisampled shapes.
-			FramebufferManager::GetResolvedEFBColorTexture();
-
-		// GetResolvedEFBDepthTexture will set the render targets, when MSAA is enabled 
-		// (since it needs to do a manual depth resolve). So make sure to set the RTs
-		// afterwards.
-
-		D3D::ResourceBarrier(D3D::current_command_list, m_out12, D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET, 0);
-		D3D::current_command_list->OMSetRenderTargets(1, &m_outRTV12cpu, FALSE, nullptr);
-
-		EFBEncodeParams params;
-		params.SrcLeft = srcRect.left;
-		params.SrcTop = srcRect.top;
-		params.DestWidth = native_width;
-		params.ScaleFactor = scaleByHalf ? 2 : 1;
-
-		memcpy(m_encodeParams12data, &params, sizeof(params));
-		D3D::current_command_list->SetGraphicsRootConstantBufferView(DESCRIPTOR_TABLE_PS_CBVONE, m_encodeParams12->GetGPUVirtualAddress());
-		D3D::command_list_mgr->m_dirty_ps_cbv = true;
-
-		// Use linear filtering if (bScaleByHalf), use point filtering otherwise
-		if (scaleByHalf)
-			D3D::SetLinearCopySampler();
-		else
-			D3D::SetPointCopySampler();
-
-		D3D::DrawShadedTexQuad(pEFB,
-			targetRect.AsRECT(),
-			Renderer::GetTargetWidth(),
-			Renderer::GetTargetHeight(),
-			SetStaticShader12(format, srcFormat, isIntensity, scaleByHalf),
-			VertexShaderCache::GetSimpleVertexShader12(),
-			VertexShaderCache::GetSimpleInputLayout12(),
-			D3D12_SHADER_BYTECODE(),
-			1.0f,
-			0,
-			DXGI_FORMAT_B8G8R8A8_UNORM,
-			false,
-			false /* Render target is not multisampled */
-			);
-
-		// Copy to staging buffer
-		D3D12_BOX srcBox12 = CD3DX12_BOX(0, 0, 0, words_per_row, num_blocks_y, 1);
-
-		D3D12_TEXTURE_COPY_LOCATION dstLocation = {};
-		dstLocation.pResource = m_outStage12;
-		dstLocation.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
-		dstLocation.PlacedFootprint.Offset = D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT;
-		dstLocation.PlacedFootprint.Footprint.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
-		dstLocation.PlacedFootprint.Footprint.Width = EFB_WIDTH * 4;
-		dstLocation.PlacedFootprint.Footprint.Height = EFB_HEIGHT / 4;
-		dstLocation.PlacedFootprint.Footprint.Depth = 1;
-		dstLocation.PlacedFootprint.Footprint.RowPitch = dstLocation.PlacedFootprint.Footprint.Width * 4 /* width * 32bpp */;
-		dstLocation.PlacedFootprint.Footprint.RowPitch = (dstLocation.PlacedFootprint.Footprint.RowPitch + D3D12_TEXTURE_DATA_PITCH_ALIGNMENT - 1) & ~(D3D12_TEXTURE_DATA_PITCH_ALIGNMENT - 1);
-
-		D3D12_TEXTURE_COPY_LOCATION srcLocation = {};
-		srcLocation.pResource = m_out12;
-		srcLocation.SubresourceIndex = 0;
-		srcLocation.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
-
-		D3D::ResourceBarrier(D3D::current_command_list, m_out12, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_COPY_SOURCE, 0);
-		D3D::current_command_list->CopyTextureRegion(&dstLocation, 0, 0, 0, &srcLocation, &srcBox12);
-
-		D3D::command_list_mgr->ExecuteQueuedWork(true);
-		
-		// Transfer staging buffer to GameCube/Wii RAM
-
-		u8* src12 = (u8*)m_outStage12data + D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT;
-		u32 readStride = std::min(bytes_per_row, dstLocation.PlacedFootprint.Footprint.RowPitch);
-		for (unsigned int y = 0; y < num_blocks_y; ++y)
-		{
-			memcpy(dst, src12, readStride);
-
-			dst += memory_stride;
-
-			src12 += dstLocation.PlacedFootprint.Footprint.RowPitch;
-		}
+		dst += memory_stride;
+		src += read_stride;
 	}
 
 	// Restores proper viewport/scissor settings.
 	g_renderer->RestoreAPIState();
-	
+
 	FramebufferManager::GetEFBColorTexture()->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_RENDER_TARGET);
-	FramebufferManager::GetEFBDepthTexture()->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_DEPTH_WRITE );
+	FramebufferManager::GetEFBDepthTexture()->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_DEPTH_WRITE);
 	D3D::current_command_list->OMSetRenderTargets(1, &FramebufferManager::GetEFBColorTexture()->GetRTV12(), FALSE, &FramebufferManager::GetEFBDepthTexture()->GetDSV12());
 }
 
-D3D12_SHADER_BYTECODE PSTextureEncoder::SetStaticShader12(unsigned int dstFormat, PEControl::PixelFormat srcFormat,
-	bool isIntensity, bool scaleByHalf)
+D3D12_SHADER_BYTECODE PSTextureEncoder::SetStaticShader(unsigned int dst_format, PEControl::PixelFormat src_format,
+	bool is_intensity, bool scale_by_half)
 {
-	size_t fetchNum = static_cast<size_t>(srcFormat);
-	size_t scaledFetchNum = scaleByHalf ? 1 : 0;
-	size_t intensityNum = isIntensity ? 1 : 0;
-	size_t generatorNum = dstFormat;
+	size_t fetch_num = static_cast<size_t>(src_format);
+	size_t scaled_fetch_num = scale_by_half ? 1 : 0;
+	size_t intensity_num = is_intensity ? 1 : 0;
+	size_t generator_num = dst_format;
 
-	ComboKey key = MakeComboKey(dstFormat, srcFormat, isIntensity, scaleByHalf);
+	ComboKey key = MakeComboKey(dst_format, src_format, is_intensity, scale_by_half);
 
-	ComboMap12::iterator it = m_staticShaders12.find(key);
-	if (it == m_staticShaders12.end())
+	ComboMap::iterator it = m_static_shaders_map.find(key);
+	if (it == m_static_shaders_map.end())
 	{
-		INFO_LOG(VIDEO, "Compiling efb encoding shader for dstFormat 0x%X, srcFormat %d, isIntensity %d, scaleByHalf %d",
-			dstFormat, static_cast<int>(srcFormat), isIntensity ? 1 : 0, scaleByHalf ? 1 : 0);
+		INFO_LOG(VIDEO, "Compiling efb encoding shader for dst_format 0x%X, src_format %d, is_intensity %d, scale_by_half %d",
+			dst_format, static_cast<int>(src_format), is_intensity ? 1 : 0, scale_by_half ? 1 : 0);
 
-		u32 format = dstFormat;
+		u32 format = dst_format;
 
-		if (srcFormat == PEControl::Z24)
+		if (src_format == PEControl::Z24)
 		{
 			format |= _GX_TF_ZTF;
-			if (dstFormat == 11)
+			if (dst_format == 11)
 				format = GX_TF_Z16;
 			else if (format < GX_TF_Z8 || format > GX_TF_Z24X8)
 				format |= _GX_TF_CTF;
 		}
 		else
 		{
-			if (dstFormat > GX_TF_RGBA8 || (dstFormat < GX_TF_RGB565 && !isIntensity))
+			if (dst_format > GX_TF_RGBA8 || (dst_format < GX_TF_RGB565 && !is_intensity))
 				format |= _GX_TF_CTF;
 		}
 
@@ -268,21 +278,21 @@ D3D12_SHADER_BYTECODE PSTextureEncoder::SetStaticShader12(unsigned int dstFormat
 		const char* shader = TextureConversionShader::GenerateEncodingShader(format, API_D3D11);
 		if (!D3D::CompilePixelShader(shader, &bytecode))
 		{
-			WARN_LOG(VIDEO, "EFB encoder shader for dstFormat 0x%X, srcFormat %d, isIntensity %d, scaleByHalf %d failed to compile",
-				dstFormat, static_cast<int>(srcFormat), isIntensity ? 1 : 0, scaleByHalf ? 1 : 0);
-			m_staticShaders12[key] = {};
-			return {};
+			WARN_LOG(VIDEO, "EFB encoder shader for dst_format 0x%X, src_format %d, is_intensity %d, scale_by_half %d failed to compile",
+				dst_format, static_cast<int>(src_format), is_intensity ? 1 : 0, scale_by_half ? 1 : 0);
+			m_static_shaders_blobs[key] = {};
+			return{};
 		}
 
-		D3D12_SHADER_BYTECODE newShader = {
+		D3D12_SHADER_BYTECODE new_shader = {
 			bytecode->Data(),
 			bytecode->Size()
 		};
 
-		it = m_staticShaders12.insert(std::make_pair(key, newShader)).first;
-		
+		it = m_static_shaders_map.insert(std::make_pair(key, new_shader)).first;
+
 		// Keep track of the D3DBlobs, so we can free them upon shutdown.
-		m_staticShaders12blobs.push_back(bytecode);
+		m_static_shaders_blobs.push_back(bytecode);
 	}
 
 	return it->second;

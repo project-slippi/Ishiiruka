@@ -6,7 +6,8 @@
 #include "VideoBackends/D3D12/PerfQuery.h"
 #include "VideoCommon/RenderBase.h"
 
-namespace DX12 {
+namespace DX12
+{
 
 PerfQuery::PerfQuery()
 	: m_query_read_pos()
@@ -74,7 +75,7 @@ void PerfQuery::DisableQuery(PerfQueryGroup type)
 void PerfQuery::ResetQuery()
 {
 	m_query_count = 0;
-	std::fill_n(m_results, ArraySize(m_results), 0);
+	std::fill(std::begin(m_results), std::end(m_results), 0);
 }
 
 u32 PerfQuery::GetQueryResult(PerfQueryType type)
@@ -154,7 +155,7 @@ void PerfQuery::WeakFlush()
 
 bool PerfQuery::IsFlushed() const
 {
-	return 0 == m_query_count;
+	return m_query_count == 0;
 }
 
 } // namespace

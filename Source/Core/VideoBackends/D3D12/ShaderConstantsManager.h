@@ -1,0 +1,22 @@
+#pragma once
+
+// Copyright 2015 Dolphin Emulator Project
+// Licensed under GPLv2+
+// Refer to the license.txt file included.
+
+#include "ShaderCache.h"
+
+namespace DX12
+{
+
+class ShaderConstantsManager final
+{
+public:
+	static void Init();
+	static void Shutdown();
+
+	static void LoadAndSetShaderConstants();
+	static void CheckToResetIndexPositionInUploadHeaps();
+};
+
+}

@@ -18,12 +18,12 @@
 #include "VideoBackends/D3D12/D3DCommandListManager.h"
 #include "VideoBackends/D3D12/D3DBase.h"
 #include "VideoBackends/D3D12/D3DUtil.h"
-#include "VideoBackends/D3D12/GeometryShaderCache.h"
 #include "VideoBackends/D3D12/PerfQuery.h"
-#include "VideoBackends/D3D12/PixelShaderCache.h"
+#include "VideoBackends/D3D12/ShaderCache.h"
+#include "VideoBackends/D3D12/ShaderConstantsManager.h"
+#include "VideoBackends/D3D12/StaticShaderCache.h"
 #include "VideoBackends/D3D12/TextureCache.h"
 #include "VideoBackends/D3D12/VertexManager.h"
-#include "VideoBackends/D3D12/VertexShaderCache.h"
 #include "VideoBackends/D3D12/VideoBackend.h"
 
 #include "VideoBackends/D3D12/main.h"
@@ -65,11 +65,6 @@ std::string VideoBackend::GetName() const
 std::string VideoBackend::GetDisplayName() const
 {
 	return "Direct3D 12";
-}
-
-std::string VideoBackend::GetConfigName() const
-{
-	return "gfx_dx12";
 }
 
 void InitBackendInfo()
@@ -162,7 +157,7 @@ void InitBackendInfo()
 void VideoBackend::ShowConfig(void *hParent)
 {
 	InitBackendInfo();
-	Host_ShowVideoConfig(hParent, GetDisplayName(), GetConfigName());
+	Host_ShowVideoConfig(hParent, GetDisplayName(), "gfx_dx12");
 }
 
 bool VideoBackend::Initialize(void *window_handle)
@@ -175,7 +170,7 @@ bool VideoBackend::Initialize(void *window_handle)
 
 	frameCount = 0;
 
-	g_Config.Load(File::GetUserPath(D_CONFIG_IDX) + GetConfigName() + ".ini");
+	g_Config.Load(File::GetUserPath(D_CONFIG_IDX) + "gfx_dx12.ini");
 	g_Config.GameIniLoad();
 	g_Config.UpdateProjectionHack();
 	g_Config.VerifyValidity();
@@ -195,9 +190,9 @@ void VideoBackend::Video_Prepare()
 	g_texture_cache = std::make_unique<TextureCache>();
 	g_vertex_manager = std::make_unique<VertexManager>();
 	g_perf_query = std::make_unique<PerfQuery>();
-	VertexShaderCache::Init();
-	PixelShaderCache::Init();
-	GeometryShaderCache::Init();
+	ShaderCache::Init();
+	ShaderConstantsManager::Init();
+	StaticShaderCache::Init();
 	StateCache::Init(); // PSO cache is populated here, after constituent shaders are loaded.
 	D3D::InitUtils();
 
@@ -239,9 +234,9 @@ void VideoBackend::Shutdown()
 
 		// internal interfaces
 		D3D::ShutdownUtils();
-		PixelShaderCache::Shutdown();
-		VertexShaderCache::Shutdown();
-		GeometryShaderCache::Shutdown();
+		ShaderCache::Shutdown();
+		ShaderConstantsManager::Shutdown();
+		StaticShaderCache::Shutdown();
 		BBox::Shutdown();
 
 		g_perf_query.reset();

@@ -1,0 +1,580 @@
+// Copyright 2015 Dolphin Emulator Project
+// Licensed under GPLv2+
+// Refer to the license.txt file included.
+#include <unordered_map>
+
+#include "Common/LinearDiskCache.h"
+
+#include "Core/ConfigManager.h"
+
+#include "VideoBackends/D3D12/D3DCommandListManager.h"
+#include "VideoBackends/D3D12/D3DShader.h"
+#include "VideoBackends/D3D12/ShaderCache.h"
+
+#include "VideoCommon/Debugger.h"
+#include "VideoCommon/HLSLCompiler.h"
+#include "VideoCommon/Statistics.h"
+
+namespace DX12
+{
+
+// Primitive topology type is always triangle, unless the GS stage is used. This is consumed
+// by the PSO created in Renderer::ApplyState.
+static D3D12_PRIMITIVE_TOPOLOGY_TYPE s_current_primitive_topology = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+struct ByteCodeCacheEntry
+{
+	D3D12_SHADER_BYTECODE m_shader_bytecode;
+	bool m_compiled;
+	std::atomic_flag m_initialized;
+	// Only used for shader debugging..
+	std::string code;
+
+	ByteCodeCacheEntry() : m_compiled(false), m_shader_bytecode({})
+	{
+		m_initialized.clear();
+	}
+	void Release() {
+		SAFE_DELETE(m_shader_bytecode.pShaderBytecode);
+	}
+};
+
+static ByteCodeCacheEntry s_pass_entry;
+
+using GsBytecodeCache = std::unordered_map<GeometryShaderUid, ByteCodeCacheEntry, GeometryShaderUid::ShaderUidHasher>;
+using PsBytecodeCache = std::unordered_map<PixelShaderUid, ByteCodeCacheEntry, PixelShaderUid::ShaderUidHasher>;
+using VsBytecodeCache = std::unordered_map<VertexShaderUid, ByteCodeCacheEntry, VertexShaderUid::ShaderUidHasher>;
+static GsBytecodeCache s_gs_bytecode_cache;
+static PsBytecodeCache s_ps_bytecode_cache;
+static VsBytecodeCache s_vs_bytecode_cache;
+
+static LinearDiskCache<GeometryShaderUid, u8> s_gs_disk_cache;
+static LinearDiskCache<PixelShaderUid, u8> s_ps_disk_cache;
+static LinearDiskCache<VertexShaderUid, u8> s_vs_disk_cache;
+
+static UidChecker<GeometryShaderUid, ShaderCode> s_geometry_uid_checker;
+static UidChecker<PixelShaderUid, ShaderCode> s_pixel_uid_checker;
+static UidChecker<VertexShaderUid, ShaderCode> s_vertex_uid_checker;
+
+static ByteCodeCacheEntry* s_last_geometry_shader_bytecode;
+static ByteCodeCacheEntry* s_last_pixel_shader_bytecode;
+static ByteCodeCacheEntry* s_last_vertex_shader_bytecode;
+static GeometryShaderUid s_last_geometry_shader_uid;
+static PixelShaderUid s_last_pixel_shader_uid;
+static VertexShaderUid s_last_vertex_shader_uid;
+static GeometryShaderUid s_last_cpu_geometry_shader_uid;
+static PixelShaderUid s_last_cpu_pixel_shader_uid;
+static VertexShaderUid s_last_cpu_vertex_shader_uid;
+
+static HLSLAsyncCompiler *s_compiler;
+static Common::SpinLock<true> s_shaders_lock;
+
+template<SHADER_STAGE stage, typename T >
+class ShaderCacheInserter final : public LinearDiskCacheReader<T, u8>
+{
+public:
+	void Read(const T &key, const u8* value, u32 value_size)
+	{
+		D3DBlob* blob = new D3DBlob(value_size, value);
+		ShaderCache::InsertByteCode(key, stage, blob);
+	}
+};
+
+void ShaderCache::Init()
+{
+	s_compiler = &HLSLAsyncCompiler::getInstance();
+	s_shaders_lock.unlock();
+	s_pass_entry.m_compiled = true;
+	s_pass_entry.m_initialized.test_and_set();
+	// This class intentionally shares its shader cache files with DX11, as the shaders are (right now) identical.
+	// Reduces unnecessary compilation when switching between APIs.
+		
+	s_last_geometry_shader_bytecode = nullptr;
+	s_last_pixel_shader_bytecode = nullptr;
+	s_last_vertex_shader_bytecode = nullptr;
+	s_last_geometry_shader_uid = {};
+	s_last_pixel_shader_uid = {};
+	s_last_vertex_shader_uid = {};
+	s_last_cpu_geometry_shader_uid = {};
+	s_last_cpu_pixel_shader_uid = {};
+	s_last_cpu_vertex_shader_uid = {};
+
+	SETSTAT(stats.numPixelShadersAlive, 0);
+	SETSTAT(stats.numPixelShadersCreated, 0);
+	SETSTAT(stats.numVertexShadersAlive, 0);
+	SETSTAT(stats.numVertexShadersCreated, 0);
+
+	// Ensure shader cache directory exists..
+	std::string shader_cache_path = File::GetUserPath(D_SHADERCACHE_IDX);
+
+	if (!File::Exists(shader_cache_path))
+		File::CreateDir(File::GetUserPath(D_SHADERCACHE_IDX));
+
+	std::string title_unique_id = SConfig::GetInstance().m_strUniqueID.c_str();
+
+	std::string gs_cache_filename = StringFromFormat("%sIDX11-%s-gs.cache", shader_cache_path.c_str(), title_unique_id.c_str());
+	std::string ps_cache_filename = StringFromFormat("%sIDX11-%s-ps.cache", shader_cache_path.c_str(), title_unique_id.c_str());
+	std::string vs_cache_filename = StringFromFormat("%sIDX11-%s-vs.cache", shader_cache_path.c_str(), title_unique_id.c_str());
+
+	ShaderCacheInserter<SHADER_STAGE_GEOMETRY_SHADER, GeometryShaderUid> gs_inserter;
+	s_gs_disk_cache.OpenAndRead(gs_cache_filename, gs_inserter);
+
+	ShaderCacheInserter<SHADER_STAGE_PIXEL_SHADER, PixelShaderUid> ps_inserter;
+	s_ps_disk_cache.OpenAndRead(ps_cache_filename, ps_inserter);
+
+	ShaderCacheInserter<SHADER_STAGE_VERTEX_SHADER, VertexShaderUid> vs_inserter;
+	s_vs_disk_cache.OpenAndRead(vs_cache_filename, vs_inserter);
+
+	// Clear out disk cache when debugging shaders to ensure stale ones don't stick around..
+	if (g_Config.bEnableShaderDebugging)
+		Clear();
+}
+
+void ShaderCache::Clear()
+{
+
+}
+
+void ShaderCache::Shutdown()
+{
+	if (s_compiler)
+	{
+		s_compiler->WaitForFinish();
+	}
+
+	for (auto& iter : s_gs_bytecode_cache)
+		iter.second.Release();
+
+	for (auto& iter : s_ps_bytecode_cache)
+		iter.second.Release();
+
+	for (auto& iter : s_vs_bytecode_cache)
+		iter.second.Release();
+
+	s_gs_bytecode_cache.clear();
+	s_ps_bytecode_cache.clear();
+	s_vs_bytecode_cache.clear();
+
+	s_gs_disk_cache.Sync();
+	s_gs_disk_cache.Close();
+	s_ps_disk_cache.Sync();
+	s_ps_disk_cache.Close();
+	s_vs_disk_cache.Sync();
+	s_vs_disk_cache.Close();
+
+	s_geometry_uid_checker.Invalidate();
+	s_pixel_uid_checker.Invalidate();
+	s_vertex_uid_checker.Invalidate();
+}
+
+static void PushByteCode(const ShaderGeneratorInterface& uid, ByteCodeCacheEntry* entry, SHADER_STAGE stage, ID3DBlob* shaderBuffer)
+{
+	// Note: Don't release the incoming bytecode, we need it to stick around, since in D3D12
+	// the raw bytecode itself is bound. It is released at Shutdown() time.
+	const size_t bytecodelen = shaderBuffer->GetBufferSize();
+	void* shader_bytecode_copy = new u8[bytecodelen];
+	memcpy(shader_bytecode_copy, (const u8*)shaderBuffer->GetBufferPointer(), bytecodelen);
+
+	entry->m_shader_bytecode.pShaderBytecode = shader_bytecode_copy;
+	entry->m_shader_bytecode.BytecodeLength = bytecodelen;
+	entry->m_compiled = true;
+	switch (stage)
+	{
+	case SHADER_STAGE_GEOMETRY_SHADER:
+		INCSTAT(stats.numGeometryShadersCreated);
+		SETSTAT(stats.numGeometryShadersAlive, s_gs_bytecode_cache.size());
+		break;
+	case SHADER_STAGE_PIXEL_SHADER:
+		INCSTAT(stats.numPixelShadersCreated);
+		SETSTAT(stats.numPixelShadersAlive, (int)s_ps_bytecode_cache.size());
+		break;
+	case SHADER_STAGE_VERTEX_SHADER:
+		INCSTAT(stats.numVertexShadersCreated);
+		SETSTAT(stats.numVertexShadersAlive, (int)s_vs_bytecode_cache.size());
+		break;
+	default:
+		CHECK(0, "Invalid shader stage specified.");
+	}
+	shaderBuffer->Release();
+}
+
+void ShaderCache::PrepareShaders(DSTALPHA_MODE ps_dst_alpha_mode,
+u32 gs_primitive_type,
+u32 components,
+const XFMemory &xfr,
+const BPMemory &bpm, bool on_gpu_thread)
+{
+	switch (gs_primitive_type)
+	{
+	case PRIMITIVE_TRIANGLES:
+		s_current_primitive_topology = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+		break;
+	case PRIMITIVE_LINES:
+		s_current_primitive_topology = D3D12_PRIMITIVE_TOPOLOGY_TYPE_LINE;
+		break;
+	case PRIMITIVE_POINTS:
+		s_current_primitive_topology = D3D12_PRIMITIVE_TOPOLOGY_TYPE_POINT;
+		break;
+	default:
+		CHECK(0, "Invalid primitive type.");
+		break;
+	}
+	GeometryShaderUid gs_uid;
+	GetGeometryShaderUid(gs_uid, gs_primitive_type, API_D3D11, xfr, components);
+	PixelShaderUid ps_uid;
+	GetPixelShaderUidD3D11(ps_uid, ps_dst_alpha_mode, components, xfr, bpm);
+	VertexShaderUid vs_uid;
+	GetVertexShaderUidD3D11(vs_uid, components, xfr, bpm);
+	bool gs_changed = false;
+	bool ps_changed = false;
+	bool vs_changed = false;
+	if (on_gpu_thread)
+	{
+		s_compiler->ProcCompilationResults();
+		gs_changed = gs_uid != s_last_geometry_shader_uid;
+		ps_changed = ps_uid != s_last_pixel_shader_uid;
+		vs_changed = vs_uid != s_last_vertex_shader_uid;
+	}
+	else
+	{
+		gs_changed = gs_uid != s_last_cpu_geometry_shader_uid;
+		ps_changed = ps_uid != s_last_cpu_pixel_shader_uid;
+		vs_changed = vs_uid != s_last_cpu_vertex_shader_uid;
+	}
+
+	if (!gs_changed && !ps_changed && !vs_changed)
+	{
+		return;
+	}
+
+	if (on_gpu_thread)
+	{
+		s_last_geometry_shader_uid = gs_uid;
+		s_last_pixel_shader_uid = ps_uid;
+		s_last_vertex_shader_uid = vs_uid;
+		// A Uid has changed, so the PSO will need to be reset at next ApplyState.
+		D3D::command_list_mgr->m_dirty_pso = true;
+#if defined(_DEBUG) || defined(DEBUGFAST)
+		if (g_ActiveConfig.bEnableShaderDebugging)
+		{
+			ShaderCode code;
+			if (gs_changed)
+			{
+				GenerateGeometryShaderCode(code, gs_primitive_type, API_D3D11, xfr, components);
+				s_geometry_uid_checker.AddToIndexAndCheck(code, gs_uid, "Geometry", "g");
+			}
+			if (ps_changed)
+			{
+				ShaderCode code;
+				GeneratePixelShaderCodeD3D11(code, ps_dst_alpha_mode, components, xfr, bpm);
+				s_pixel_uid_checker.AddToIndexAndCheck(code, ps_uid, "Pixel", "p");
+			}
+			if (vs_changed)
+			{
+				GenerateVertexShaderCodeD3D11(code, components, xfr, bpm);
+				s_vertex_uid_checker.AddToIndexAndCheck(code, vs_uid, "Vertex", "v");
+			}
+		}
+#endif
+	}
+	else
+	{
+		s_last_cpu_geometry_shader_uid = gs_uid;
+		s_last_cpu_pixel_shader_uid = ps_uid;
+		s_last_cpu_vertex_shader_uid = vs_uid;
+	}
+
+	if (gs_changed)
+	{
+		if (gs_uid.GetUidData().IsPassthrough())
+		{
+			s_last_geometry_shader_bytecode = &s_pass_entry;
+		}
+		else
+		{
+			s_shaders_lock.lock();
+			ByteCodeCacheEntry* entry = &s_gs_bytecode_cache[gs_uid];
+			s_shaders_lock.unlock();
+			if (on_gpu_thread)
+			{
+				s_last_geometry_shader_bytecode = entry;
+			}
+			if (!entry->m_initialized.test_and_set())
+			{
+				// Need to compile a new shader
+				ShaderCode code;
+				ShaderCompilerWorkUnit *wunit = s_compiler->NewUnit(GEOMETRYSHADERGEN_BUFFERSIZE);
+				code.SetBuffer(wunit->code.data());
+				GenerateGeometryShaderCode(code, gs_primitive_type, API_D3D11, xfr, components);
+				wunit->codesize = (u32)code.BufferSize();
+				wunit->entrypoint = "main";
+				wunit->flags = D3DCOMPILE_SKIP_VALIDATION | D3DCOMPILE_OPTIMIZATION_LEVEL3;
+				wunit->target = D3D::GeometryShaderVersionString();
+
+				wunit->ResultHandler = [gs_uid, entry](ShaderCompilerWorkUnit* wunit)
+				{
+					if (SUCCEEDED(wunit->cresult))
+					{
+						ID3DBlob* shaderBuffer = wunit->shaderbytecode;
+						const u8* bytecode = (const u8*)shaderBuffer->GetBufferPointer();
+						u32 bytecodelen = (u32)shaderBuffer->GetBufferSize();
+						s_gs_disk_cache.Append(gs_uid, bytecode, bytecodelen);
+						PushByteCode(gs_uid, entry, SHADER_STAGE_GEOMETRY_SHADER, shaderBuffer);
+						wunit->shaderbytecode = nullptr;
+#if defined(_DEBUG) || defined(DEBUGFAST)
+						if (g_ActiveConfig.bEnableShaderDebugging)
+						{
+							entry->code = wunit->code.data();
+						}
+#endif
+					}
+					else
+					{
+						static int num_failures = 0;
+						char szTemp[MAX_PATH];
+						sprintf(szTemp, "%sbad_gs_%04i.txt", File::GetUserPath(D_DUMP_IDX).c_str(), num_failures++);
+						std::ofstream file;
+						OpenFStream(file, szTemp, std::ios_base::out);
+						file << ((const char *)wunit->code.data());
+						file << ((const char *)wunit->error->GetBufferPointer());
+						file.close();
+
+						PanicAlert("Failed to compile geometry shader!\nThis usually happens when trying to use Dolphin with an outdated GPU or integrated GPU like the Intel GMA series.\n\nIf you're sure this is Dolphin's error anyway, post the contents of %s along with this error message at the forums.\n\nDebug info (%s):\n%s",
+							szTemp,
+							D3D::GeometryShaderVersionString(),
+							(char*)wunit->error->GetBufferPointer());
+					}
+				};
+				s_compiler->CompileShaderAsync(wunit);
+			}
+		}
+	}
+
+	if (ps_changed)
+	{
+		s_shaders_lock.lock();
+		ByteCodeCacheEntry* entry = &s_ps_bytecode_cache[ps_uid];
+		s_shaders_lock.unlock();
+		if (on_gpu_thread)
+		{
+			s_last_pixel_shader_bytecode = entry;
+		}
+		if (!entry->m_initialized.test_and_set())
+		{
+			// Need to compile a new shader
+			ShaderCode code;
+			ShaderCompilerWorkUnit *wunit = s_compiler->NewUnit(PIXELSHADERGEN_BUFFERSIZE);
+			code.SetBuffer(wunit->code.data());
+			GeneratePixelShaderCodeD3D11(code, ps_dst_alpha_mode, components, xfr, bpm);
+			wunit->codesize = (u32)code.BufferSize();
+			wunit->entrypoint = "main";
+			wunit->flags = D3DCOMPILE_SKIP_VALIDATION | D3DCOMPILE_OPTIMIZATION_LEVEL3;
+			wunit->target = D3D::PixelShaderVersionString();
+			wunit->ResultHandler = [ps_uid, entry](ShaderCompilerWorkUnit* wunit)
+			{
+				if (SUCCEEDED(wunit->cresult))
+				{
+					ID3DBlob* shaderBuffer = wunit->shaderbytecode;
+					const u8* bytecode = (const u8*)shaderBuffer->GetBufferPointer();
+					u32 bytecodelen = (u32)shaderBuffer->GetBufferSize();
+					s_ps_disk_cache.Append(ps_uid, bytecode, bytecodelen);
+					PushByteCode(ps_uid, entry, SHADER_STAGE_PIXEL_SHADER, shaderBuffer);
+					wunit->shaderbytecode = nullptr;
+#if defined(_DEBUG) || defined(DEBUGFAST)
+					if (g_ActiveConfig.bEnableShaderDebugging)
+					{
+						entry->code = wunit->code.data();
+					}
+#endif
+				}
+				else
+				{
+					static int num_failures = 0;
+					std::string filename = StringFromFormat("%sbad_ps_%04i.txt", File::GetUserPath(D_DUMP_IDX).c_str(), num_failures++);
+					std::ofstream file;
+					OpenFStream(file, filename, std::ios_base::out);
+					file << ((const char *)wunit->code.data());
+					file << ((const char *)wunit->error->GetBufferPointer());
+					file.close();
+
+					PanicAlert("Failed to compile pixel shader!\nThis usually happens when trying to use Dolphin with an outdated GPU or integrated GPU like the Intel GMA series.\n\nIf you're sure this is Dolphin's error anyway, post the contents of %s along with this error message at the forums.\n\nDebug info (%s):\n%s",
+						filename,
+						D3D::PixelShaderVersionString(),
+						(char*)wunit->error->GetBufferPointer());
+				}
+			};
+			s_compiler->CompileShaderAsync(wunit);
+		}
+	}
+
+	if (vs_changed)
+	{
+		s_shaders_lock.lock();
+		ByteCodeCacheEntry* entry = &s_vs_bytecode_cache[vs_uid];
+		s_shaders_lock.unlock();
+		if (on_gpu_thread)
+		{
+			s_last_vertex_shader_bytecode = entry;
+		}
+		// Compile only when we have a new instance
+		if (!entry->m_initialized.test_and_set())
+		{
+			ShaderCode code;
+			ShaderCompilerWorkUnit *wunit = s_compiler->NewUnit(VERTEXSHADERGEN_BUFFERSIZE);
+			code.SetBuffer(wunit->code.data());
+			GenerateVertexShaderCodeD3D11(code, components, xfr, bpm);
+			wunit->codesize = (u32)code.BufferSize();
+			wunit->entrypoint = "main";
+			wunit->flags = D3DCOMPILE_SKIP_VALIDATION | D3DCOMPILE_OPTIMIZATION_LEVEL3 | D3DCOMPILE_ENABLE_BACKWARDS_COMPATIBILITY;
+			wunit->target = D3D::VertexShaderVersionString();
+			wunit->ResultHandler = [vs_uid, entry](ShaderCompilerWorkUnit* wunit)
+			{
+				if (SUCCEEDED(wunit->cresult))
+				{
+					ID3DBlob* shaderBuffer = wunit->shaderbytecode;
+					const u8* bytecode = (const u8*)shaderBuffer->GetBufferPointer();
+					u32 bytecodelen = (u32)shaderBuffer->GetBufferSize();
+					s_vs_disk_cache.Append(vs_uid, bytecode, bytecodelen);
+					PushByteCode(vs_uid, entry, SHADER_STAGE_VERTEX_SHADER, shaderBuffer);
+					wunit->shaderbytecode = nullptr;
+#if defined(_DEBUG) || defined(DEBUGFAST)
+					if (g_ActiveConfig.bEnableShaderDebugging)
+					{
+						entry->code = wunit->code.data();
+					}
+#endif
+				}
+				else
+				{
+					static int num_failures = 0;
+					std::string filename = StringFromFormat("%sbad_vs_%04i.txt", File::GetUserPath(D_DUMP_IDX).c_str(), num_failures++);
+					std::ofstream file;
+					OpenFStream(file, filename, std::ios_base::out);
+					file << ((const char*)wunit->code.data());
+					file.close();
+
+					PanicAlert("Failed to compile vertex shader!\nThis usually happens when trying to use Dolphin with an outdated GPU or integrated GPU like the Intel GMA series.\n\nIf you're sure this is Dolphin's error anyway, post the contents of %s along with this error message at the forums.\n\nDebug info (%s):\n%s",
+						filename,
+						D3D::VertexShaderVersionString(),
+						(char*)wunit->error->GetBufferPointer());
+				}
+			};
+			s_compiler->CompileShaderAsync(wunit);
+		}
+	}
+}
+
+bool ShaderCache::TestShaders()
+{
+	if (s_last_geometry_shader_bytecode == nullptr 
+		|| s_last_pixel_shader_bytecode == nullptr
+		|| s_last_vertex_shader_bytecode == nullptr)
+	{
+		return false;
+	}
+	int count = 0;
+	while (!(s_last_geometry_shader_bytecode->m_compiled
+		&& s_last_pixel_shader_bytecode->m_compiled
+		&& s_last_vertex_shader_bytecode->m_compiled))
+	{
+		s_compiler->ProcCompilationResults();
+		if (g_ActiveConfig.bFullAsyncShaderCompilation)
+		{
+			break;
+		}
+		Common::cYield(count++);
+	}
+	return s_last_geometry_shader_bytecode->m_compiled
+		&& s_last_pixel_shader_bytecode->m_compiled
+		&& s_last_vertex_shader_bytecode->m_compiled;
+}
+
+void ShaderCache::InsertByteCode(const ShaderGeneratorInterface& uid, SHADER_STAGE stage, D3DBlob* bytecode_blob)
+{
+	ByteCodeCacheEntry* entry = nullptr;
+	switch (stage)
+	{
+	case SHADER_STAGE_GEOMETRY_SHADER:
+		s_shaders_lock.lock();
+		entry = &s_gs_bytecode_cache[reinterpret_cast<const GeometryShaderUid&>(uid)];
+		s_shaders_lock.unlock();		
+		break;
+	case SHADER_STAGE_PIXEL_SHADER:
+		s_shaders_lock.lock();
+		entry = &s_ps_bytecode_cache[reinterpret_cast<const PixelShaderUid&>(uid)];
+		s_shaders_lock.unlock();
+		break;
+	case SHADER_STAGE_VERTEX_SHADER:
+		s_shaders_lock.lock();
+		entry = &s_vs_bytecode_cache[reinterpret_cast<const VertexShaderUid&>(uid)];
+		s_shaders_lock.unlock();
+		break;
+	default:
+		CHECK(0, "Invalid shader stage specified.");
+	}
+	// Note: Don't release the incoming bytecode, we need it to stick around, since in D3D12
+	// the raw bytecode itself is bound. It is released at Shutdown() time.
+
+	void* shader_bytecode_copy = new u8[bytecode_blob->Size()];
+	memcpy(shader_bytecode_copy, bytecode_blob->Data(), bytecode_blob->Size());
+
+	entry->m_shader_bytecode.pShaderBytecode = shader_bytecode_copy;
+	entry->m_shader_bytecode.BytecodeLength = bytecode_blob->Size();
+	entry->m_compiled = true;
+	entry->m_initialized.test_and_set();
+	bytecode_blob->Release();
+}
+
+D3D12_SHADER_BYTECODE ShaderCache::GetActiveShaderBytecode(SHADER_STAGE stage)
+{
+	switch (stage)
+	{
+	case SHADER_STAGE_GEOMETRY_SHADER:
+		return s_last_geometry_shader_bytecode->m_shader_bytecode;
+	case SHADER_STAGE_PIXEL_SHADER:
+		return s_last_pixel_shader_bytecode->m_shader_bytecode;
+	case SHADER_STAGE_VERTEX_SHADER:
+		return s_last_vertex_shader_bytecode->m_shader_bytecode;
+	default:
+		CHECK(0, "Invalid shader stage specified.");
+		return D3D12_SHADER_BYTECODE();
+	}
+}
+
+D3D12_PRIMITIVE_TOPOLOGY_TYPE ShaderCache::GetCurrentPrimitiveTopology()
+{
+	return s_current_primitive_topology;
+}
+
+const ShaderGeneratorInterface* ShaderCache::GetActiveShaderUid(SHADER_STAGE stage)
+{
+	switch (stage)
+	{
+	case SHADER_STAGE_GEOMETRY_SHADER:
+		return &s_last_geometry_shader_uid;
+	case SHADER_STAGE_PIXEL_SHADER:
+		return &s_last_pixel_shader_uid;
+	case SHADER_STAGE_VERTEX_SHADER:
+		return &s_last_vertex_shader_uid;
+	default:
+		CHECK(0, "Invalid shader stage specified.");
+		return nullptr;
+	}
+}
+
+D3D12_SHADER_BYTECODE ShaderCache::GetShaderFromUid(SHADER_STAGE stage, const ShaderGeneratorInterface* uid)
+{
+	switch (stage)
+	{
+	case SHADER_STAGE_GEOMETRY_SHADER:
+		return s_gs_bytecode_cache[*reinterpret_cast<const GeometryShaderUid*>(uid)].m_shader_bytecode;
+	case SHADER_STAGE_PIXEL_SHADER:
+		return s_ps_bytecode_cache[*reinterpret_cast<const PixelShaderUid*>(uid)].m_shader_bytecode;
+	case SHADER_STAGE_VERTEX_SHADER:
+		return s_vs_bytecode_cache[*reinterpret_cast<const VertexShaderUid*>(uid)].m_shader_bytecode;
+	default:
+		CHECK(0, "Invalid shader stage specified.");
+		return D3D12_SHADER_BYTECODE();
+	}
+}
+
+}

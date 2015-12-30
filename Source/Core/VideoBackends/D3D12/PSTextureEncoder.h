@@ -11,7 +11,7 @@
 namespace DX12
 {
 
-class PSTextureEncoder : public TextureEncoder
+class PSTextureEncoder final : public TextureEncoder
 {
 public:
 	PSTextureEncoder();
@@ -19,36 +19,35 @@ public:
 	void Init();
 	void Shutdown();
 	void Encode(u8* dst, u32 format, u32 native_width, u32 bytes_per_row, u32 num_blocks_y, u32 memory_stride,
-	              PEControl::PixelFormat srcFormat, const EFBRectangle& srcRect,
-	              bool isIntensity, bool scaleByHalf);
+		PEControl::PixelFormat src_format, const EFBRectangle& src_rect,
+		bool is_intensity, bool scale_by_half);
 
 private:
-	bool m_ready;
+	bool m_ready = false;
 
-	ID3D12Resource* m_out12;
-	D3D12_CPU_DESCRIPTOR_HANDLE m_outRTV12cpu;
+	ID3D12Resource* m_out = nullptr;
+	D3D12_CPU_DESCRIPTOR_HANDLE m_out_rtv_cpu = {};
 
-	ID3D12Resource* m_outStage12;
-	void* m_outStage12data;
+	ID3D12Resource* m_out_readback_buffer = nullptr;
+	void* m_out_readback_buffer_data = nullptr;
 
-	ID3D12Resource* m_encodeParams12;
-	void* m_encodeParams12data;
+	ID3D12Resource* m_encode_params_buffer = nullptr;
+	void* m_encode_params_buffer_data = nullptr;
 
-	D3D12_SHADER_BYTECODE SetStaticShader12(unsigned int dstFormat,
-		PEControl::PixelFormat srcFormat, bool isIntensity, bool scaleByHalf);
+	D3D12_SHADER_BYTECODE SetStaticShader(unsigned int dst_format,
+		PEControl::PixelFormat src_format, bool is_intensity, bool scale_by_half);
 
-	typedef unsigned int ComboKey; // Key for a shader combination
-
-	ComboKey MakeComboKey(unsigned int dstFormat,
-		PEControl::PixelFormat srcFormat, bool isIntensity, bool scaleByHalf)
+	using ComboKey = unsigned int; // Key for a shader combination
+	ComboKey MakeComboKey(unsigned int dst_format,
+		PEControl::PixelFormat src_format, bool is_intensity, bool scale_by_half)
 	{
-		return (dstFormat << 4) | (static_cast<int>(srcFormat) << 2) | (isIntensity ? (1<<1) : 0)
-			| (scaleByHalf ? (1<<0) : 0);
+		return (dst_format << 4) | (static_cast<int>(src_format) << 2) | (is_intensity ? (1 << 1) : 0)
+			| (scale_by_half ? (1 << 0) : 0);
 	}
 
-	typedef std::map<ComboKey, D3D12_SHADER_BYTECODE> ComboMap12;
-	ComboMap12 m_staticShaders12;
-	std::vector<D3DBlob*> m_staticShaders12blobs;
+	using ComboMap = std::map<ComboKey, D3D12_SHADER_BYTECODE>;
+	ComboMap m_static_shaders_map;
+	std::vector<D3DBlob*> m_static_shaders_blobs;
 };
 
 }

@@ -10,25 +10,25 @@
 namespace DX12
 {
 
-class Renderer : public ::Renderer
+class Renderer final : public ::Renderer
 {
 public:
 	Renderer(void *&window_handle);
 	~Renderer();
 
 	void SetColorMask() override;
-	void SetBlendMode(bool forceUpdate) override;
+	void SetBlendMode(bool force_Update) override;
 	void SetScissorRect(const TargetRectangle& rc) override;
 	void SetGenerationMode() override;
 	void SetDepthMode() override;
 	void SetLogicOpMode() override;
 	void SetDitherMode() override;
-	void SetSamplerState(int stage, int texindex, bool custom_tex) override;
+	void SetSamplerState(int stage, int tex_index, bool custom_tex) override;
 	void SetInterlacingMode() override;
 	void SetViewport() override;
 
 	// TODO: Fix confusing names (see ResetAPIState and RestoreAPIState)
-	void ApplyState(bool bUseDstAlpha) override;
+	void ApplyState(bool use_dst_alpha) override;
 	void RestoreState() override;
 
 	void ApplyCullDisable();
@@ -46,20 +46,17 @@ public:
 
 	TargetRectangle ConvertEFBRectangle(const EFBRectangle& rc) override;
 
-	void SwapImpl(u32 xfbAddr, u32 fbWidth, u32 fbStride, u32 fbHeight, const EFBRectangle& rc, float gamma) override;
+	void SwapImpl(u32 xfb_addr, u32 fb_width, u32 fb_stride, u32 fb_height, const EFBRectangle& rc, float gamma) override;
 
-	void ClearScreen(const EFBRectangle& rc, bool colorEnable, bool alphaEnable, bool zEnable, u32 color, u32 z) override;
+	void ClearScreen(const EFBRectangle& rc, bool color_enable, bool alpha_enable, bool z_enable, u32 color, u32 z) override;
 
-	void ReinterpretPixelData(unsigned int convtype) override;
+	void ReinterpretPixelData(unsigned int conv_type) override;
 
-	bool SaveScreenshot(const std::string &filename, const TargetRectangle &rc) override;
+	bool SaveScreenshot(const std::string& filename, const TargetRectangle& rc) override;
 
 	static bool CheckForResize();
 
 	int GetMaxTextureSize() override;
-
-	// New to D3D12, used to properly persist scissor rect state (since scissor-testing is always enabled in D3D12).
-	const TargetRectangle& GetScissorRect();
 
 private:
 	void BlitScreen(TargetRectangle src, TargetRectangle dst, D3DTexture2D* src_texture, u32 src_width, u32 src_height, float gamma);

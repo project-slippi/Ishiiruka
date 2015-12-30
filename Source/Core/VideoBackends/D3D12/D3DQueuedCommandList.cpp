@@ -262,11 +262,11 @@ DWORD WINAPI ID3D12QueuedCommandList::BackgroundThreadFunction(LPVOID param)
 					break;
 				}
 
-				case D3DQueueItemType::Closecommand_list:
+				case D3DQueueItemType::CloseCommandList:
 				{
 					CheckHR(command_list->Close());
 
-					item += sizeof(Closecommand_listArguments) + sizeof(D3DQueueItemType) * 2;
+					item += sizeof(CloseCommandListArguments) + sizeof(D3DQueueItemType) * 2;
 					break;
 				}
 
@@ -548,9 +548,9 @@ HRESULT STDMETHODCALLTYPE ID3D12QueuedCommandList::GetDevice(
 
 HRESULT STDMETHODCALLTYPE ID3D12QueuedCommandList::Close() {
 
-	reinterpret_cast<D3DQueueItem*>(m_queue_array_back)->Type = D3DQueueItemType::Closecommand_list;
+	reinterpret_cast<D3DQueueItem*>(m_queue_array_back)->Type = D3DQueueItemType::CloseCommandList;
 
-	m_queue_array_back += sizeof(Closecommand_listArguments) + sizeof(D3DQueueItemType) * 2;
+	m_queue_array_back += sizeof(CloseCommandListArguments) + sizeof(D3DQueueItemType) * 2;
 
 	return S_OK;
 }

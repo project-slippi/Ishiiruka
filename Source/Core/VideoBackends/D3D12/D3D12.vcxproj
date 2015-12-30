@@ -47,17 +47,17 @@
     <ClCompile Include="D3DTexture.cpp" />
     <ClCompile Include="D3DUtil.cpp" />
     <ClCompile Include="FramebufferManager.cpp" />
-    <ClCompile Include="GeometryShaderCache.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="NativeVertexFormat.cpp" />
     <ClCompile Include="PerfQuery.cpp" />
-    <ClCompile Include="PixelShaderCache.cpp" />
     <ClCompile Include="PSTextureEncoder.cpp" />
     <ClCompile Include="Render.cpp" />
+    <ClCompile Include="ShaderCache.cpp" />
+    <ClCompile Include="ShaderConstantsManager.cpp" />
+    <ClCompile Include="StaticShaderCache.cpp" />
     <ClCompile Include="Television.cpp" />
     <ClCompile Include="TextureCache.cpp" />
     <ClCompile Include="VertexManager.cpp" />
-    <ClCompile Include="VertexShaderCache.cpp" />
     <ClCompile Include="XFBEncoder.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -72,19 +72,19 @@
     <ClInclude Include="D3DTexture.h" />
     <ClInclude Include="D3DUtil.h" />
     <ClInclude Include="FramebufferManager.h" />
-    <ClInclude Include="GeometryShaderCache.h" />
     <ClInclude Include="Globals.h" />
     <ClInclude Include="main.h" />
     <ClInclude Include="NativeVertexFormat.h" />
     <ClInclude Include="PerfQuery.h" />
-    <ClInclude Include="PixelShaderCache.h" />
     <ClInclude Include="PSTextureEncoder.h" />
     <ClInclude Include="Render.h" />
+    <ClInclude Include="ShaderCache.h" />
+    <ClInclude Include="ShaderConstantsManager.h" />
+    <ClInclude Include="StaticShaderCache.h" />
     <ClInclude Include="Television.h" />
     <ClInclude Include="TextureCache.h" />
     <ClInclude Include="TextureEncoder.h" />
     <ClInclude Include="VertexManager.h" />
-    <ClInclude Include="VertexShaderCache.h" />
     <ClInclude Include="VideoBackend.h" />
     <ClInclude Include="XFBEncoder.h" />
   </ItemGroup>
