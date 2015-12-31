@@ -101,7 +101,6 @@ FramebufferManager::FramebufferManager()
 	hr = D3D::device->CreateTexture2D(&texdesc, nullptr, &buf);
 	CHECK(hr == S_OK, "create EFB color texture (size: %dx%d; hr=%#x)", m_target_width, m_target_height, hr);
 	m_efb.color_tex = new D3DTexture2D(buf, (D3D11_BIND_FLAG)(D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET), DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_FORMAT_UNKNOWN, DXGI_FORMAT_R8G8B8A8_UNORM, (sample_desc.Count > 1));
-	CHECK(m_efb.color_tex != nullptr, "create EFB color texture (size: %dx%d)", m_target_width, m_target_height);
 	SAFE_RELEASE(buf);
 	D3D::SetDebugObjectName((ID3D11DeviceChild*)m_efb.color_tex->GetTex(), "EFB color texture");
 	D3D::SetDebugObjectName((ID3D11DeviceChild*)m_efb.color_tex->GetSRV(), "EFB color texture shader resource view");
@@ -112,7 +111,6 @@ FramebufferManager::FramebufferManager()
 	hr = D3D::device->CreateTexture2D(&texdesc, nullptr, &buf);
 	CHECK(hr == S_OK, "create EFB color temp texture (size: %dx%d; hr=%#x)", m_target_width, m_target_height, hr);
 	m_efb.color_temp_tex = new D3DTexture2D(buf, (D3D11_BIND_FLAG)(D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET), DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_FORMAT_UNKNOWN, DXGI_FORMAT_R8G8B8A8_UNORM, (sample_desc.Count > 1));
-	CHECK(m_efb.color_temp_tex != nullptr, "create EFB color temp texture (size: %dx%d)", m_target_width, m_target_height);
 	SAFE_RELEASE(buf);
 	D3D::SetDebugObjectName((ID3D11DeviceChild*)m_efb.color_temp_tex->GetTex(), "EFB color temp texture");
 	D3D::SetDebugObjectName((ID3D11DeviceChild*)m_efb.color_temp_tex->GetSRV(), "EFB color temp texture shader resource view");
@@ -154,8 +152,8 @@ FramebufferManager::FramebufferManager()
 		// Framebuffer resolve textures (color+depth)
 		texdesc = CD3D11_TEXTURE2D_DESC(DXGI_FORMAT_R8G8B8A8_UNORM, m_target_width, m_target_height, m_efb.slices, 1, D3D11_BIND_SHADER_RESOURCE, D3D11_USAGE_DEFAULT, 0, 1);
 		hr = D3D::device->CreateTexture2D(&texdesc, nullptr, &buf);
+		CHECK(hr == S_OK, "create EFB color resolve texture (size: %dx%d; hr=%#x)", m_target_width, m_target_height, hr);
 		m_efb.resolved_color_tex = new D3DTexture2D(buf, D3D11_BIND_SHADER_RESOURCE, DXGI_FORMAT_R8G8B8A8_UNORM);
-		CHECK(m_efb.resolved_color_tex != nullptr, "create EFB color resolve texture (size: %dx%d)", m_target_width, m_target_height);
 		SAFE_RELEASE(buf);
 		D3D::SetDebugObjectName((ID3D11DeviceChild*)m_efb.resolved_color_tex->GetTex(), "EFB color resolve texture");
 		D3D::SetDebugObjectName((ID3D11DeviceChild*)m_efb.resolved_color_tex->GetSRV(), "EFB color resolve texture shader resource view");

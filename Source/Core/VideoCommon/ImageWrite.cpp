@@ -11,7 +11,7 @@
 #include "VideoCommon/ImageWrite.h"
 #include "Common/MsgHandler.h"
 
-bool SaveData(const std::string& filename, const char* data)
+bool SaveData(const std::string& filename, const std::string& data)
 {
 	std::ofstream f;
 	OpenFStream(f, filename, std::ios::binary);

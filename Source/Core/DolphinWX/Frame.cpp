@@ -879,7 +879,8 @@ void CFrame::OnGameListCtrlItemActivated(wxListEvent& WXUNUSED(event))
 	if (!m_GameListCtrl->GetISO(0) &&
 		!((SConfig::GetInstance().m_ListGC &&
 		SConfig::GetInstance().m_ListWii &&
-		SConfig::GetInstance().m_ListWad) &&
+		SConfig::GetInstance().m_ListWad &&
+		SConfig::GetInstance().m_ListElfDol) &&
 		(SConfig::GetInstance().m_ListJap &&
 		SConfig::GetInstance().m_ListUsa  &&
 		SConfig::GetInstance().m_ListPal  &&
@@ -898,6 +899,7 @@ void CFrame::OnGameListCtrlItemActivated(wxListEvent& WXUNUSED(event))
 		SConfig::GetInstance().m_ListGC =
 		SConfig::GetInstance().m_ListWii =
 		SConfig::GetInstance().m_ListWad =
+		SConfig::GetInstance().m_ListElfDol =
 		SConfig::GetInstance().m_ListJap =
 		SConfig::GetInstance().m_ListUsa =
 		SConfig::GetInstance().m_ListPal =
@@ -1482,72 +1484,29 @@ void CFrame::ParseHotkeys()
 		}
 	}
 
-	auto savePreset = [](const std::string& param, int value)
-	{
-		IniFile localIni = SConfig::GetInstance().LoadLocalGameIni();
-		localIni.GetOrCreateSection("Enhancements")->Set(
-			StringFromFormat("Stereo%s_%d", param.c_str(), g_Config.iStereoActivePreset),
-			value);
-		std::string iniFileName = File::GetUserPath(D_GAMESETTINGS_IDX) + SConfig::GetInstance().GetUniqueID() + ".ini";
-		OSD::AddMessage(StringFromFormat("%s: %d", param.c_str(), value) , 1000);
-		localIni.Save(iniFileName);
-	};
-
-	if (IsHotkey(HK_DECREASE_DEPTH))
+	if (IsHotkey(HK_DECREASE_DEPTH, true))
 	{
 		if (--g_Config.iStereoDepth < 0)
 			g_Config.iStereoDepth = 0;
-		g_Config.oStereoPresets[g_Config.iStereoActivePreset].depth = g_Config.iStereoDepth;
-		savePreset("Depth", g_Config.iStereoDepth);
 	}
-	if (IsHotkey(HK_INCREASE_DEPTH))
+	if (IsHotkey(HK_INCREASE_DEPTH, true))
 	{
 		if (++g_Config.iStereoDepth > 100)
 			g_Config.iStereoDepth = 100;
-		g_Config.oStereoPresets[g_Config.iStereoActivePreset].depth = g_Config.iStereoDepth;
-		savePreset("Depth", g_Config.iStereoDepth);
 	}
-	if (IsHotkey(HK_DECREASE_CONVERGENCE))
+	if (IsHotkey(HK_DECREASE_CONVERGENCE, true))
 	{
 		g_Config.iStereoConvergence -= 5;
 		if (g_Config.iStereoConvergence < 0)
 			g_Config.iStereoConvergence = 0;
-		g_Config.oStereoPresets[g_Config.iStereoActivePreset].convergence = g_Config.iStereoConvergence;
-		savePreset("Convergence", g_Config.iStereoConvergence);
 	}
-	if (IsHotkey(HK_INCREASE_CONVERGENCE))
+	if (IsHotkey(HK_INCREASE_CONVERGENCE, true))
 	{
 		g_Config.iStereoConvergence += 5;
 		if (g_Config.iStereoConvergence > 500)
 			g_Config.iStereoConvergence = 500;
-		g_Config.oStereoPresets[g_Config.iStereoActivePreset].convergence = g_Config.iStereoConvergence;
-		savePreset("Convergence", g_Config.iStereoConvergence);
 	}
 
-	if (IsHotkey(HK_SWITCH_STEREOSCOPY_PRESET))
-	{
-		g_Config.iStereoActivePreset = !g_Config.iStereoActivePreset;
-		g_Config.iStereoConvergence = g_Config.oStereoPresets[g_Config.iStereoActivePreset].convergence;
-		g_Config.iStereoDepth = g_Config.oStereoPresets[g_Config.iStereoActivePreset].depth;
-	}
-	if (IsHotkey(HK_USE_STEREOSCOPY_PRESET_0))
-	{
-		g_Config.iStereoActivePreset = 0;
-		g_Config.iStereoConvergence = g_Config.oStereoPresets[g_Config.iStereoActivePreset].convergence;
-		g_Config.iStereoDepth = g_Config.oStereoPresets[g_Config.iStereoActivePreset].depth;
-	}
-	if (IsHotkey(HK_USE_STEREOSCOPY_PRESET_1))
-	{
-		g_Config.iStereoActivePreset = 1;
-		g_Config.iStereoConvergence = g_Config.oStereoPresets[g_Config.iStereoActivePreset].convergence;
-		g_Config.iStereoDepth = g_Config.oStereoPresets[g_Config.iStereoActivePreset].depth;
-	}
-	if (IsHotkey(HK_USE_STEREOSCOPY_PRESET_2))
-	{
-		g_Config.iStereoActivePreset = 2;
-		g_Config.iStereoConvergence = g_Config.oStereoPresets[g_Config.iStereoActivePreset].convergence;
-		g_Config.iStereoDepth = g_Config.oStereoPresets[g_Config.iStereoActivePreset].depth;
-	}
 	static float debugSpeed = 1.0f;
 	if (IsHotkey(HK_FREELOOK_DECREASE_SPEED, true))
 		debugSpeed /= 1.1f;

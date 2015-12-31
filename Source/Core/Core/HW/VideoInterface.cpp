@@ -154,6 +154,7 @@ void Preset(bool _bNTSC)
 
 	// Say component cable is plugged
 	m_DTVStatus.component_plugged = SConfig::GetInstance().bProgressive;
+	m_DTVStatus.ntsc_j = SConfig::GetInstance().bForceNTSCJ;
 
 	s_ticks_last_line_start = 0;
 	s_half_line_count = 1;
@@ -470,15 +471,14 @@ static u32 GetTicksPerOddField()
 float GetAspectRatio(bool wide)
 {
 	u32 multiplier = static_cast<u32>(m_PictureConfiguration.STD / m_PictureConfiguration.WPL);
-	
-
 	// if this is doublestrike mode, each field has an even amount of halflines and
 	// it's effectively double the height
 	if ((m_Clock == 0) && ((GetHalfLinesPerEvenField() & 1) == 0) && ((GetHalfLinesPerOddField() & 1) == 0)) {
 		multiplier *= 2;
 	}
-	u32 height = (multiplier * m_VerticalTimingRegister.ACV);
-	u32 width = 2 * m_HTiming1.HBS640 - m_HTiming1.HBE640;
+	int height = (multiplier * m_VerticalTimingRegister.ACV);
+	int width = ((2 * m_HTiming0.HLW) - (m_HTiming0.HLW - m_HTiming1.HBS640)
+		- m_HTiming1.HBE640);
 	float pixelAR;
 	if (m_DisplayControlRegister.FMT == 1)
 	{

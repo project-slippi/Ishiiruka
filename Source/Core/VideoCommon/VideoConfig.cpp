@@ -122,16 +122,6 @@ void VideoConfig::Load(const std::string& ini_file)
 	enhancements->Get("TessellationRoundingIntensity", &iTessellationRoundingIntensity, 0);
 	enhancements->Get("TessellationDisplacementIntensity", &iTessellationDisplacementIntensity, 0);
 	
-	//currently these settings are not saved in global config, so we could've initialized them directly
-	for (size_t i = 0; i < oStereoPresets.size(); ++i)
-	{
-	   enhancements->Get(StringFromFormat("StereoConvergence_%zu", i), &oStereoPresets[i].depth, iStereoConvergence);
-	   enhancements->Get(StringFromFormat("StereoDepth_%zu", i), &oStereoPresets[i].convergence, iStereoDepth);
-	}
-	enhancements->Get("StereoActivePreset", &iStereoActivePreset, 0);
-	iStereoConvergence = oStereoPresets[iStereoActivePreset].convergence;
-	iStereoDepth = oStereoPresets[iStereoActivePreset].depth;
-
 	IniFile::Section* hacks = iniFile.GetOrCreateSection("Hacks");
 	hacks->Get("EFBAccessEnable", &bEFBAccessEnable, true);
 	hacks->Get("EFBFastAccess", &bEFBFastAccess, false);
@@ -255,18 +245,6 @@ void VideoConfig::GameIniLoad()
 	CHECK_SETTING("Video_Enhancements", "TessellationMax", iTessellationMax);
 	CHECK_SETTING("Video_Enhancements", "TessellationRoundingIntensity", iTessellationRoundingIntensity);
 	CHECK_SETTING("Video_Enhancements", "TessellationDisplacementIntensity", iTessellationDisplacementIntensity);
-	
-	//these are not overrides, they are per-game settings, hence no warning
-	IniFile::Section* enhancements = iniFile.GetOrCreateSection("Enhancements");
-	for (size_t i = 0; i < oStereoPresets.size(); ++i)
-	{
-	   enhancements->Get(StringFromFormat("StereoConvergence_%zu", i), &oStereoPresets[i].depth, iStereoConvergence);
-	   enhancements->Get(StringFromFormat("StereoDepth_%zu", i), &oStereoPresets[i].convergence, iStereoDepth);
-	}
-	enhancements->Get("StereoActivePreset", &iStereoActivePreset, 0);
-	iStereoConvergence = oStereoPresets[iStereoActivePreset].convergence;
-	iStereoDepth = oStereoPresets[iStereoActivePreset].depth;
-
 
 	CHECK_SETTING("Video_Stereoscopy", "StereoEFBMonoDepth", bStereoEFBMonoDepth);
 	CHECK_SETTING("Video_Stereoscopy", "StereoDepthPercentage", iStereoDepthPercentage);

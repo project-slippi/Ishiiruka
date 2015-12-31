@@ -720,12 +720,9 @@ void drawClearQuad(
 	stateman->SetGeometryShader(nullptr);
 }
 
-static void InitColVertex(ColVertex* vert, float x, float y, float z, u32 col)
+inline void InitColVertex(ColVertex* vert, float x, float y, float z, u32 col)
 {
-	vert->x = x;
-	vert->y = y;
-	vert->z = z;
-	vert->col = col;
+	*vert = { x, y, z, col };
 }
 
 void DrawEFBPokeQuads(EFBAccessType type, const EfbPokeData* points, size_t num_points)
