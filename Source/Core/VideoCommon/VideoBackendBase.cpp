@@ -34,8 +34,11 @@ void VideoBackend::PopulateList()
 	if (IsWindowsVistaOrGreater())
 	{
 		g_available_video_backends.push_back(backends[1] = new DX11::VideoBackend);
-		//if (IsWindowsVersionOrGreater(HIBYTE(_WIN32_WINNT_WIN10), LOBYTE(_WIN32_WINNT_WIN10), 0))
+		// More robust way to check for D3D12 support than (unreliable) OS version checks.
+		HMODULE d3d12_module = LoadLibraryA("d3d12.dll");
+		if (d3d12_module != NULL)
 		{
+			FreeLibrary(d3d12_module);
 			g_available_video_backends.push_back(backends[2] = new DX12::VideoBackend);
 		}
 	}

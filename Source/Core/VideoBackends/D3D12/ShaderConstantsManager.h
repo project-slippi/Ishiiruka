@@ -15,7 +15,9 @@ public:
 	static void Init();
 	static void Shutdown();
 
-	static void LoadAndSetShaderConstants();
+	static void LoadAndSetGeometryShaderConstants();
+	static void LoadAndSetPixelShaderConstants();
+	static void LoadAndSetVertexShaderConstants();
 	static void CheckToResetIndexPositionInUploadHeaps();
 };
 

@@ -13,14 +13,6 @@ namespace DX12
 
 class D3DBlob;
 
-enum SHADER_STAGE
-{
-	SHADER_STAGE_GEOMETRY_SHADER = 0,
-	SHADER_STAGE_PIXEL_SHADER = 1,
-	SHADER_STAGE_VERTEX_SHADER = 2,
-	SHADER_STAGE_COUNT = 3
-};
-
 class ShaderCache final
 {
 public:
@@ -37,16 +29,46 @@ public:
 
 	static bool TestShaders();
 
-	static void InsertByteCode(const ShaderGeneratorInterface& uid, SHADER_STAGE stage, D3DBlob* bytecode);
+	template<class UidType, class ShaderCacheType>
+	static void InsertByteCode(const UidType& uid, ShaderCacheType* shader_cache, D3DBlob* bytecode_blob);
 
-	static D3D12_SHADER_BYTECODE GetActiveShaderBytecode(SHADER_STAGE stage);
+	static D3D12_SHADER_BYTECODE GetActiveGeometryShaderBytecode();
+	static D3D12_SHADER_BYTECODE GetActivePixelShaderBytecode();
+	static D3D12_SHADER_BYTECODE GetActiveVertexShaderBytecode();
 
 	// The various uid flavors inherit from ShaderGeneratorInterface.
-	static const ShaderGeneratorInterface* GetActiveShaderUid(SHADER_STAGE stage);
-	static D3D12_SHADER_BYTECODE GetShaderFromUid(SHADER_STAGE stage, const ShaderGeneratorInterface* uid);
+	static const GeometryShaderUid* GetActiveGeometryShaderUid();
+	static const PixelShaderUid*    GetActivePixelShaderUid();
+	static const VertexShaderUid*   GetActiveVertexShaderUid();
+
+	static D3D12_SHADER_BYTECODE GetGeometryShaderFromUid(const GeometryShaderUid* uid);
+	static D3D12_SHADER_BYTECODE GetPixelShaderFromUid(const PixelShaderUid* uid);
+	static D3D12_SHADER_BYTECODE GetVertexShaderFromUid(const VertexShaderUid* uid);
 
 	static D3D12_PRIMITIVE_TOPOLOGY_TYPE GetCurrentPrimitiveTopology();
+private:
+	static void SetCurrentPrimitiveTopology(u32 gs_primitive_type);
 
+	static void HandleGSUIDChange(
+		const GeometryShaderUid& gs_uid,
+		u32 gs_primitive_type,
+		u32 components,
+		const XFMemory &xfr,
+		bool on_gpu_thread);
+	static void HandlePSUIDChange(
+		const PixelShaderUid& ps_uid,
+		DSTALPHA_MODE ps_dst_alpha_mode,
+		u32 components,
+		const XFMemory &xfr,
+		const BPMemory &bpm,
+		bool on_gpu_thread
+		);
+	static void HandleVSUIDChange(
+		const VertexShaderUid& vs_uid,
+		u32 components,
+		const XFMemory &xfr,
+		const BPMemory &bpm,
+		bool on_gpu_thread);
 };
 
 }

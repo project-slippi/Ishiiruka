@@ -231,7 +231,7 @@ void PSTextureEncoder::Encode(u8* dst, u32 format, u32 native_width, u32 bytes_p
 		memcpy(dst, src, read_stride);
 
 		dst += memory_stride;
-		src += read_stride;
+		src += dst_location.PlacedFootprint.Footprint.RowPitch;
 	}
 
 	// Restores proper viewport/scissor settings.

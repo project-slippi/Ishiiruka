@@ -185,7 +185,7 @@ void TextureCache::TCacheEntry::CopyRectangleFromTexture(
 	const MathUtil::Rectangle<int>& src_rect,
 	const MathUtil::Rectangle<int>& dst_rect)
 {
-	TCacheEntry* srcentry = (TCacheEntry*)source;
+	const TCacheEntry* srcentry = reinterpret_cast<const TCacheEntry*>(source);
 	if (src_rect.GetWidth() == dst_rect.GetWidth()
 		&& src_rect.GetHeight() == dst_rect.GetHeight())
 	{
@@ -280,7 +280,7 @@ void TextureCache::TCacheEntry::Load(const u8* src, u32 width, u32 height, u32 e
 	u8* data = TextureCache::temp;
 	if (is_scaled)
 	{
-		data = reinterpret_cast<u8*>(s_scaler->Scale((u32*)data, expandedWidth, height));
+		data = reinterpret_cast<u8*>(s_scaler->Scale(reinterpret_cast<u32*>(data), expandedWidth, height));
 		width *= g_ActiveConfig.iTexScalingFactor;
 		height *= g_ActiveConfig.iTexScalingFactor;
 		expandedWidth *= g_ActiveConfig.iTexScalingFactor;
@@ -291,7 +291,7 @@ void TextureCache::TCacheEntry::LoadFromTmem(const u8* ar_src, const u8* gb_src,
 	u32 expanded_width, u32 expanded_Height, u32 level)
 {
 	TexDecoder_DecodeRGBA8FromTmem(
-		(u32*)TextureCache::temp,
+		reinterpret_cast<u32*>(TextureCache::temp),
 		ar_src,
 		gb_src,
 		expanded_width,
@@ -299,7 +299,7 @@ void TextureCache::TCacheEntry::LoadFromTmem(const u8* ar_src, const u8* gb_src,
 	u8* data = TextureCache::temp;
 	if (is_scaled)
 	{
-		data = reinterpret_cast<u8*>(s_scaler->Scale((u32*)data, expanded_width, height));
+		data = reinterpret_cast<u8*>(s_scaler->Scale(reinterpret_cast<u32*>(data), expanded_width, height));
 		width *= g_ActiveConfig.iTexScalingFactor;
 		height *= g_ActiveConfig.iTexScalingFactor;
 		expanded_width *= g_ActiveConfig.iTexScalingFactor;

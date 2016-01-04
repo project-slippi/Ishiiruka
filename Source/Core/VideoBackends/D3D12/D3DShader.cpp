@@ -92,7 +92,7 @@ bool CompileShader(
 		OpenFStream(file, filename, std::ios_base::out);
 		file << code;
 		file << "\n";
-		file << (const char*)errorBuffer->GetBufferPointer();
+		file << static_cast<const char*>(errorBuffer->GetBufferPointer());
 		file.close();
 		if (throwerror)
 		{

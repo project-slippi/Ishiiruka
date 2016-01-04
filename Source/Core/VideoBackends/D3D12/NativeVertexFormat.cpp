@@ -70,7 +70,6 @@ D3DVertexFormat::~D3DVertexFormat()
 D3DVertexFormat::D3DVertexFormat(const PortableVertexDeclaration &vtx_decl) : m_num_elems(0), m_layout({}), m_elems()
 {
 	this->vtx_decl = vtx_decl;
-	memset(m_elems.data(), 0, sizeof(m_elems));
 	const AttributeFormat* format = &vtx_decl.position;
 
 	m_elems[m_num_elems] = GetInputElementDescFromAttributeFormat(format, "POSITION", 0);

@@ -47,9 +47,9 @@ public:
 		desc.SampleMask = UINT_MAX;
 		desc.SampleDesc = key.SampleDesc;
 
-		desc.GS = ShaderCache::GetShaderFromUid(SHADER_STAGE_GEOMETRY_SHADER, &key.gsUid);
-		desc.PS = ShaderCache::GetShaderFromUid(SHADER_STAGE_PIXEL_SHADER, &key.psUid);
-		desc.VS = ShaderCache::GetShaderFromUid(SHADER_STAGE_VERTEX_SHADER, &key.vsUid);
+		desc.GS = ShaderCache::GetGeometryShaderFromUid(&key.gsUid);
+		desc.PS = ShaderCache::GetPixelShaderFromUid(&key.psUid);
+		desc.VS = ShaderCache::GetVertexShaderFromUid(&key.vsUid);
 
 		if (!desc.PS.pShaderBytecode || !desc.VS.pShaderBytecode)
 		{
@@ -71,7 +71,7 @@ public:
 			native.reset(g_vertex_manager->CreateNativeVertexFormat(native_vtx_decl));
 		}
 		
-		desc.InputLayout = ((D3DVertexFormat*)native.get())->GetActiveInputLayout();
+		desc.InputLayout = reinterpret_cast<D3DVertexFormat*>(native.get())->GetActiveInputLayout();
 
 		desc.CachedPSO.CachedBlobSizeInBytes = value_size;
 		desc.CachedPSO.pCachedBlob = value;
@@ -394,7 +394,7 @@ HRESULT StateCache::GetPipelineStateObjectFromCache(D3D12_GRAPHICS_PIPELINE_STAT
 	return S_OK;
 }
 
-HRESULT StateCache::GetPipelineStateObjectFromCache(SmallPsoDesc* pso_desc, ID3D12PipelineState** pso, D3D12_PRIMITIVE_TOPOLOGY_TYPE topology, const PixelShaderUid* ps_uid, const VertexShaderUid* vs_uid, const GeometryShaderUid* gs_uid)
+HRESULT StateCache::GetPipelineStateObjectFromCache(SmallPsoDesc* pso_desc, ID3D12PipelineState** pso, D3D12_PRIMITIVE_TOPOLOGY_TYPE topology, const GeometryShaderUid* gs_uid, const PixelShaderUid* ps_uid, const VertexShaderUid* vs_uid)
 {
 	auto it = m_small_pso_map.find(*pso_desc);
 
@@ -420,6 +420,7 @@ HRESULT StateCache::GetPipelineStateObjectFromCache(SmallPsoDesc* pso_desc, ID3D
 
 		if (FAILED(hr))
 		{
+			CheckHR(hr);
 			return hr;
 		}
 
@@ -431,9 +432,9 @@ HRESULT StateCache::GetPipelineStateObjectFromCache(SmallPsoDesc* pso_desc, ID3D
 		diskDesc.BlendState.packed = pso_desc->BlendState.packed;
 		diskDesc.DepthStencilState.hex = pso_desc->DepthStencilState.hex;
 		diskDesc.RasterizerState.packed = pso_desc->RasterizerState.packed;
+		diskDesc.gsUid = *gs_uid;
 		diskDesc.psUid = *ps_uid;
 		diskDesc.vsUid = *vs_uid;
-		diskDesc.gsUid = *gs_uid;
 		diskDesc.vertexDeclaration = pso_desc->InputLayout->GetVertexDeclaration();
 		diskDesc.topology = topology;
 		diskDesc.SampleDesc.Count = g_ActiveConfig.iMultisamples;

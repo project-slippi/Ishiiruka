@@ -55,9 +55,9 @@ union SamplerState
 
 struct SmallPsoDesc
 {
-	D3D12_SHADER_BYTECODE VS;
-	D3D12_SHADER_BYTECODE PS;
 	D3D12_SHADER_BYTECODE GS;
+	D3D12_SHADER_BYTECODE PS;
+	D3D12_SHADER_BYTECODE VS;
 	D3DVertexFormat* InputLayout;
 	BlendState BlendState;
 	RasterizerState RasterizerState;
@@ -88,7 +88,7 @@ public:
 	static D3D12_DEPTH_STENCIL_DESC GetDesc12(ZMode state);
 
 	HRESULT GetPipelineStateObjectFromCache(D3D12_GRAPHICS_PIPELINE_STATE_DESC* pso_desc, ID3D12PipelineState** pso);
-	HRESULT GetPipelineStateObjectFromCache(SmallPsoDesc* pso_desc, ID3D12PipelineState** pso, D3D12_PRIMITIVE_TOPOLOGY_TYPE topology, const PixelShaderUid* ps_uid, const VertexShaderUid* vs_uid, const GeometryShaderUid* gs_uid);
+	HRESULT GetPipelineStateObjectFromCache(SmallPsoDesc* pso_desc, ID3D12PipelineState** pso, D3D12_PRIMITIVE_TOPOLOGY_TYPE topology, const GeometryShaderUid* gs_uid, const PixelShaderUid* ps_uid, const VertexShaderUid* vs_uid);
 
 	StateCache();
 

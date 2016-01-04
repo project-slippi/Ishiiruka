@@ -250,7 +250,7 @@ void VertexManager::ResetBuffer(u32 stride)
 		s_pBaseBufferPointer = m_vertex_cpu_buffer;
 		s_pEndBufferPointer = m_vertex_cpu_buffer + MAXVBUFFERSIZE;
 
-		IndexGenerator::Start((u16*)m_index_cpu_buffer);
+		IndexGenerator::Start(reinterpret_cast<u16*>(m_index_cpu_buffer));
 	}
 	else
 	{
