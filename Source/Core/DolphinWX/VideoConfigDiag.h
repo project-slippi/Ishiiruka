@@ -87,7 +87,10 @@ protected:
 	void Event_Bbox(wxCommandEvent &ev);
 
 	void Event_PPShader(wxCommandEvent &ev);
+	void Event_BlitShader(wxCommandEvent& ev);
+	void Event_AnaglyphShader(wxCommandEvent& ev);
 	void Event_ConfigurePPShader(wxCommandEvent &ev);
+	void Event_ConfigureDisplayShader(wxCommandEvent &ev);
 	void Event_StereoDepth(wxCommandEvent &ev);
 	void Event_TessellationDistance(wxCommandEvent &ev);
 	void Event_TessellationMax(wxCommandEvent &ev);
@@ -114,6 +117,8 @@ protected:
 	void Evt_LeaveControl(wxMouseEvent& ev);
 	void CreateDescriptionArea(wxPanel* const page, wxBoxSizer* const sizer);
 	void PopulatePostProcessingShaders();
+	void PopulateBlitShaders();
+	void PopulateAnaglyphShaders();
 	void PopulateAAList();
 	void OnAAChanged(wxCommandEvent& ev);
 	wxChoice* choice_backend;
@@ -150,10 +155,14 @@ protected:
 	SettingCheckBox* cache_hires_texturesGPU;
 	
 	wxButton* button_config_pp;
+	wxButton* button_config_d;
 
 	wxCheckBox* progressive_scan_checkbox;
 
 	wxChoice* choice_ppshader;
+	wxChoice* choice_pptrigger;
+	wxChoice* choice_blitshader;
+	wxChoice* choice_anaglyphshader;
 	
 	std::map<wxWindow*, wxString> ctrl_descs; // maps setting controls to their descriptions
 	std::map<wxWindow*, wxStaticText*> desc_texts; // maps dialog tabs (which are the parents of the setting controls) to their description text objects

@@ -52,7 +52,6 @@ struct XFBSource : public XFBSourceBase
 {
 	XFBSource(GLuint tex, int layers) :
 		texture(tex),
-		depthtexture(0),
 		m_layers(layers){}
 
 	~XFBSource();

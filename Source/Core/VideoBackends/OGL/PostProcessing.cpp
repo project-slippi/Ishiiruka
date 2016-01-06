@@ -1,4 +1,4 @@
-// Copyright 2013 Dolphin Emulator Project
+// Copyright 2009 Dolphin Emulator Project
 // Licensed under GPLv2+
 // Refer to the license.txt file included.
 
@@ -7,749 +7,742 @@
 #include "Common/FileUtil.h"
 #include "Common/StringUtil.h"
 
-#include "VideoBackends/OGL/FramebufferManager.h"
 #include "Common/GL/GLUtil.h"
+
+#include "VideoBackends/OGL/FramebufferManager.h"
 #include "VideoBackends/OGL/PostProcessing.h"
 #include "VideoBackends/OGL/ProgramShaderCache.h"
+#include "VideoBackends/OGL/Render.h"
 #include "VideoBackends/OGL/SamplerCache.h"
+#include "VideoBackends/OGL/TextureCache.h"
 
 #include "VideoCommon/DriverDetails.h"
+#include "VideoCommon/OnScreenDisplay.h"
 #include "VideoCommon/VideoCommon.h"
 #include "VideoCommon/VideoConfig.h"
 
 namespace OGL
 {
 
-static const char s_vertex_shader[] =
-	"out vec2 uv0;\n"
-	"out vec4 uv1;\n"
-	"out vec4 uv2;\n"
-	"uniform vec4 src_rect;\n"
-	"uniform vec4 dst_scale;\n"
-	"void main(void) {\n"
-	"	vec2 rawpos = vec2(gl_VertexID&1, gl_VertexID&2);\n"
-	"	gl_Position = vec4(rawpos*2.0-1.0, 0.0, 1.0);\n"
-	"	uv0 = rawpos * src_rect.zw + src_rect.xy;\n"
-	"	uv1 = uv0.xyyx + (vec4(-0.375f, -0.125f, -0.375f, 0.125f) * dst_scale.zwwz);\n"
-	"	uv2 = uv0.xyyx + (vec4(0.375f, 0.125f, 0.375f, -0.125f) * dst_scale.zwwz);\n"
-	"}\n";
+static const u32 FIRST_INPUT_TEXTURE_UNIT = 9;
+static const u32 UNIFORM_BUFFER_BIND_POINT = 4;
 
-OpenGLPostProcessing::OpenGLPostProcessing() :
-	m_prev_dst_width(0),
-	m_prev_dst_height(0),
-	m_prev_src_width(0),
-	m_prev_src_height(0),
-	m_initialized(false)  
+static const char* s_vertex_shader = R"(
+out vec2 uv0;
+flat out float layer;
+void main(void)
 {
-	CreateHeader();
+vec2 rawpos = vec2(gl_VertexID&1, gl_VertexID&2);
+gl_Position = vec4(rawpos*2.0-1.0, 0.0, 1.0);
+uv0 = rawpos * src_rect.zw + src_rect.xy;
+layer = src_layer;
 }
+)";
 
-void OpenGLPostProcessing::DestroyStageOutput()
+static const char* s_layered_vertex_shader = R"(
+out vec2 v_uv0;
+void main(void)
 {
-	for (auto& tex : m_stageOutput)
-	{
-		if (tex.first)
-		{
-			glDeleteTextures(1, &tex.first);
-			tex.first = 0;
-		}
-
-		if (tex.second)
-		{
-			glDeleteFramebuffers(1, &tex.second);
-			tex.second = 0;
-		}
-	}	
+vec2 rawpos = vec2(gl_VertexID&1, gl_VertexID&2);
+gl_Position = vec4(rawpos*2.0-1.0, 0.0, 1.0);
+v_uv0 = rawpos * src_rect.zw + src_rect.xy;
 }
+)";
 
-OpenGLPostProcessing::~OpenGLPostProcessing()
+static const char* s_geometry_shader = R"(
+
+	layout(triangles) in;
+layout(triangle_strip, max_vertices = %d) out;
+
+in vec2 v_uv0[3];
+out vec2 uv0;
+flat out float layer;
+
+void main()
 {
-	DestroyStageOutput();
-	for (auto& shader : m_shaders)
+for (int i = 0; i < %d; i++)
+{
+	for (int j = 0; j < 3; j++)
 	{
-		shader.shader.Destroy();
+		gl_Position = gl_in[j].gl_Position;
+		uv0 = v_uv0[j];
+		layer = float(i);
+		gl_Layer = i;
+		EmitVertex();
 	}
+
+			EndPrimitive();
+}
 }
 
-void OpenGLPostProcessing::BlitFromTexture(const TargetRectangle &src, const TargetRectangle &dst,
-	void* src_texture_ptr, void* src_depth_texture_ptr, int src_width, int src_height, int layer, float gamma)
+)";
+
+PostProcessingShader::~PostProcessingShader()
 {
-	int src_texture = *((int*)src_texture_ptr);
-	int src_texture_depth = *((int*)src_depth_texture_ptr);
-	ApplyShader();
-
-	OpenGL_BindAttributelessVAO();		
-
-	glActiveTexture(GL_TEXTURE9);
-	glBindTexture(GL_TEXTURE_2D_ARRAY, src_texture);
-	g_sampler_cache->BindLinearSampler(9);
-	glActiveTexture(GL_TEXTURE10);
-	glBindTexture(GL_TEXTURE_2D_ARRAY, src_texture_depth);
-	g_sampler_cache->BindNearestSampler(10);
-	glActiveTexture(GL_TEXTURE11);
-	glBindTexture(GL_TEXTURE_2D_ARRAY, src_texture); 
-	g_sampler_cache->BindLinearSampler(11);
-	const auto& stages = m_config.GetStages();
-	size_t finalstage = stages.size() - 1;
-	if (finalstage > 0 &&
-		(m_prev_dst_width != u32(dst.GetWidth())
-		|| m_prev_dst_height != u32(dst.GetHeight())
-		|| m_prev_src_width != u32(src.GetWidth())
-		|| m_prev_src_height != u32(src.GetHeight())
-		|| m_stageOutput.size() != finalstage))
+	// Delete texture objects that we own
+	for (RenderPassData& pass : m_passes)
 	{
-		m_prev_dst_width = dst.GetWidth();
-		m_prev_dst_height = dst.GetHeight();
-		m_prev_src_width = src.GetWidth();
-		m_prev_src_height = src.GetHeight();
-		DestroyStageOutput();
-		m_stageOutput.resize(finalstage);
-		for (size_t i = 0; i < finalstage; i++)
+		for (InputBinding& input : pass.inputs)
 		{
-			u32 stage_width = stages[i].m_use_source_resolution ? m_prev_src_width : m_prev_dst_width;
-			u32 stage_height = stages[i].m_use_source_resolution ? m_prev_src_height : m_prev_dst_height;
-			stage_width = (u32)(stage_width * stages[i].m_outputScale);
-			stage_height = (u32)(stage_height * stages[i].m_outputScale);
-			auto &stage_output = m_stageOutput[i];
-			glGenTextures(1, &stage_output.first);
-			glActiveTexture(GL_TEXTURE11);
-			glBindTexture(GL_TEXTURE_2D_ARRAY, stage_output.first);
-			glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAX_LEVEL, 0);
-			glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_RGBA, stage_width, stage_height, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
-			glGenFramebuffers(1, &stage_output.second);
-			FramebufferManager::SetFramebuffer(stage_output.second);
-			FramebufferManager::FramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D_ARRAY, stage_output.first, 0);
-			glDrawBuffer(GL_COLOR_ATTACHMENT0);
+			// External textures
+			if (input.texture_id != 0 && input.owned)
+			{
+				glDeleteTextures(1, &input.texture_id);
+				input.texture_id = 0;
+			}
+		}
+
+		if (pass.program != nullptr)
+		{
+			pass.program->Destroy();
+			pass.program.reset();
+		}
+
+		if (pass.output_texture_id != 0)
+		{
+			glDeleteTextures(1, &pass.output_texture_id);
+			pass.output_texture_id = 0;
 		}
 	}
-	for (size_t i = 0; i < stages.size(); i++)
+
+	if (m_framebuffer != 0)
+		glDeleteFramebuffers(1, &m_framebuffer);
+}
+
+bool PostProcessingShader::Initialize(const PostProcessingShaderConfiguration* config, int target_layers)
+{
+	m_internal_layers = target_layers;
+	m_config = config;
+	m_ready = false;
+
+	// In case we need to allocate texture objects
+	glActiveTexture(GL_TEXTURE0 + FIRST_INPUT_TEXTURE_UNIT);
+
+	m_passes.reserve(m_config->GetPasses().size());
+	for (const auto& pass_config : m_config->GetPasses())
 	{
-		const auto& stage = stages[i];
-		if (!stage.m_isEnabled)
+		RenderPassData pass;
+		pass.output_texture_id = 0;
+		pass.output_width = 0;
+		pass.output_height = 0;
+		pass.output_scale = pass_config.output_scale;
+		pass.enabled = true;
+
+		pass.inputs.reserve(pass_config.inputs.size());
+		for (const auto& input_config : pass_config.inputs)
 		{
-			continue;
+			// Non-external textures will be bound at run-time.
+			InputBinding input;
+			input.type = input_config.type;
+			input.texture_unit = input_config.texture_unit;
+			input.texture_id = 0;
+			input.sampler_id = 0;
+			input.width = 1;
+			input.height = 1;
+			input.owned = false;
+
+			// Only external images have to be set up here
+			if (input.type == POST_PROCESSING_INPUT_TYPE_IMAGE)
+			{
+				_dbg_assert_(VIDEO, input_config.external_image_width > 0 && input_config.external_image_height > 0);
+				input.width = input_config.external_image_width;
+				input.height = input_config.external_image_height;
+				input.owned = true;
+
+				// Copy the image across all layers
+				glGenTextures(1, &input.texture_id);
+				glActiveTexture(GL_TEXTURE0 + FIRST_INPUT_TEXTURE_UNIT);
+				glBindTexture(GL_TEXTURE_2D_ARRAY, input.texture_id);
+				glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_RGBA, input.width, input.height, target_layers, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+				glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAX_LEVEL, 0);
+				for (int layer = 0; layer < target_layers; layer++)
+					glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, layer, input.width, input.height, 1, GL_RGBA, GL_UNSIGNED_BYTE, input_config.external_image_data.get());
+			}
+
+			// Lookup tables for samplers, simple due to no mipmaps
+			static const GLenum gl_sampler_filters[] = { GL_NEAREST, GL_LINEAR };
+			static const GLenum gl_sampler_modes[] = { GL_CLAMP_TO_EDGE, GL_REPEAT,  GL_CLAMP_TO_BORDER };
+			static const float gl_border_color[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+
+			// Create sampler object matching the values from config
+			glGenSamplers(1, &input.sampler_id);
+			glSamplerParameteri(input.sampler_id, GL_TEXTURE_MIN_FILTER, gl_sampler_filters[input_config.filter]);
+			glSamplerParameteri(input.sampler_id, GL_TEXTURE_MAG_FILTER, gl_sampler_filters[input_config.filter]);
+			glSamplerParameteri(input.sampler_id, GL_TEXTURE_WRAP_S, gl_sampler_modes[input_config.address_mode]);
+			glSamplerParameteri(input.sampler_id, GL_TEXTURE_WRAP_T, gl_sampler_modes[input_config.address_mode]);
+			glSamplerParameterfv(input.sampler_id, GL_TEXTURE_BORDER_COLOR, gl_border_color);
+
+			pass.inputs.push_back(std::move(input));
 		}
-		if (i == m_config.GetLastActiveStage())
+		m_passes.push_back(std::move(pass));
+	}
+
+	// Allocate framebuffer object
+	glGenFramebuffers(1, &m_framebuffer);
+	if (m_framebuffer == 0)
+	{
+		ERROR_LOG(VIDEO, "Failed to create FBO");
+		TextureCache::SetStage();
+		return false;
+	}
+	
+	// Restore texture state
+	TextureCache::SetStage();
+	
+	// Compile shaders
+	if (!RecompileShaders())
+		return false;
+
+	// Determine which passes to execute
+	UpdateEnabledPasses();
+
+	// In case we created any textures
+	TextureCache::SetStage();
+	m_ready = true;
+	return true;
+}
+
+bool PostProcessingShader::ResizeIntermediateBuffers(int target_width, int target_height)
+{
+	_dbg_assert_(VIDEO, target_width > 0 && target_height > 0);
+	if (m_internal_width == target_width && m_internal_height == target_height)
+		return true;
+
+	m_ready = false;
+
+	glActiveTexture(GL_TEXTURE0 + FIRST_INPUT_TEXTURE_UNIT);
+
+	size_t previous_pass = 0;
+	for (size_t pass_index = 0; pass_index < m_passes.size(); pass_index++)
+	{
+		RenderPassData& pass = m_passes[pass_index];
+		const PostProcessingShaderConfiguration::RenderPass& pass_config = m_config->GetPass(pass_index);
+		PostProcessor::ScaleTargetSize(&pass.output_width, &pass.output_height, target_width, target_height, pass_config.output_scale);
+
+		// Re-use existing texture object if one already exists
+		if (pass.output_texture_id == 0)
+			glGenTextures(1, &pass.output_texture_id);
+
+		glBindTexture(GL_TEXTURE_2D_ARRAY, pass.output_texture_id);
+		glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_RGBA, pass.output_width, pass.output_height, m_internal_layers, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+		glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAX_LEVEL, 0);
+
+		// Hook up any inputs that are other passes
+		for (size_t input_index = 0; input_index < pass_config.inputs.size(); input_index++)
 		{
-			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-			glViewport(dst.left, dst.bottom, dst.GetWidth(), dst.GetHeight());
+			const PostProcessingShaderConfiguration::RenderPass::Input& input_config = pass_config.inputs[input_index];
+			InputBinding& input_binding = pass.inputs[input_index];
+			if (input_config.type == POST_PROCESSING_INPUT_TYPE_PASS_OUTPUT)
+			{
+				_dbg_assert_(VIDEO, input_config.pass_output_index < pass_index);
+				input_binding.texture_id = m_passes[input_config.pass_output_index].output_texture_id;
+				input_binding.width = m_passes[input_config.pass_output_index].output_width;
+				input_binding.height = m_passes[input_config.pass_output_index].output_height;
+			}
+			else if (input_config.type == POST_PROCESSING_INPUT_TYPE_PREVIOUS_PASS_OUTPUT)
+			{
+				_dbg_assert_(VIDEO, previous_pass < pass_index);
+				input_binding.texture_id = m_passes[previous_pass].output_texture_id;
+				input_binding.width = m_passes[previous_pass].output_width;
+				input_binding.height = m_passes[previous_pass].output_height;
+			}
+		}
+
+		if (pass.enabled)
+			previous_pass = pass_index;
+	}
+
+	TextureCache::SetStage();
+	m_internal_width = target_width;
+	m_internal_height = target_height;
+	m_ready = true;
+	return true;
+}
+
+void PostProcessingShader::Draw(OGLPostProcessor* parent,
+	const TargetRectangle& target_rect, GLuint target_texture,
+	const TargetRectangle& src_rect, int src_width, int src_height,
+	GLuint src_texture, GLuint src_depth_texture,
+	int src_layer, float gamma)
+{
+	_dbg_assert_(VIDEO, m_ready);
+	OpenGL_BindAttributelessVAO();
+
+	// Determine whether we can skip the final copy by writing directly to the output texture.
+	bool skip_final_copy = (target_texture != src_texture || !m_last_pass_uses_color_buffer);
+
+	// If the last pass is not at full scale, we can't skip the copy.
+	if (m_passes[m_last_pass_index].output_width != src_width || m_passes[m_last_pass_index].output_height != src_height)
+		skip_final_copy = false;
+
+	// Draw each pass.
+	TargetRectangle output_rect = {};
+	int input_resolutions[POST_PROCESSING_MAX_TEXTURE_INPUTS][2] = {};
+	for (size_t pass_index = 0; pass_index < m_passes.size(); pass_index++)
+	{
+		const RenderPassData& pass = m_passes[pass_index];
+		bool is_last_pass = (pass_index == m_last_pass_index);
+
+		// If this is the last pass and we can skip the final copy, write directly to output texture.
+		GLuint output_texture;
+		if (is_last_pass && skip_final_copy)
+		{
+			output_rect = target_rect;
+			output_texture = target_texture;
 		}
 		else
 		{
-			FramebufferManager::SetFramebuffer(m_stageOutput[i].second);
-			u32 stage_width = stage.m_use_source_resolution ? src.GetWidth() : dst.GetWidth();
-			u32 stage_height = stage.m_use_source_resolution ? src.GetHeight() : dst.GetHeight();
-			stage_width = (u32)(stage_width * stage.m_outputScale);
-			stage_height = (u32)(stage_height * stage.m_outputScale);
-			glViewport(0, 0, (GLsizei)(stage_width), (GLsizei)(stage_height));
+			output_rect = PostProcessor::ScaleTargetRectangle(API_OPENGL, src_rect, pass.output_scale);
+			output_texture = pass.output_texture_id;
 		}
-		ShaderInstance& currentshader = m_shaders[i];
-		currentshader.shader.Bind();
-		glUniform4f(currentshader.m_uniform_resolution, (float)src_width, (float)src_height, 1.0f / (float)src_width, 1.0f / (float)src_height);
-		glUniform4f(currentshader.m_uniform_src_rect, src.left / (float)src_width, src.bottom / (float)src_height,
-			src.GetWidth() / (float)src_width, src.GetHeight() / (float)src_height);
-		glUniform1ui(currentshader.m_uniform_time, (GLuint)m_timer.GetTimeElapsed());
-		glUniform1i(currentshader.m_uniform_layer, layer);
-		glUniform1f(currentshader.m_uniform_gamma, gamma);
-		glUniform4f(currentshader.m_uniform_dstscale, 
-			float(dst.GetWidth()), 
-			float(dst.GetHeight()), 
-			1.0f / float(dst.GetWidth()), 
-			1.0f / float(dst.GetHeight()));
-		glUniform1i(currentshader.m_uniform_ScalingFilter, 
-			(src.GetWidth() > dst.GetWidth() && src.GetHeight() > dst.GetHeight() && g_ActiveConfig.bUseScalingFilter) ? 1u : 0);
-		if (m_config.IsDirty())
+
+		// Setup framebuffer
+		if (output_texture != 0)
 		{
-			for (auto& it : m_config.GetOptions())
-			{
-				if (it.second.m_resolve_at_compilation)
-				{
-					continue;
-				}
-				if (it.second.m_dirty)
-				{
-					switch (it.second.m_type)
-					{
-					case PostProcessingShaderConfiguration::ConfigurationOption::OptionType::OPTION_BOOL:
-						glUniform1i(currentshader.m_uniform_bindings[it.first], it.second.m_bool_value);
-						break;
-					case PostProcessingShaderConfiguration::ConfigurationOption::OptionType::OPTION_INTEGER:
-						switch (it.second.m_integer_values.size())
-						{
-						case 1:
-							glUniform1i(currentshader.m_uniform_bindings[it.first], it.second.m_integer_values[0]);
-							break;
-						case 2:
-							glUniform2i(currentshader.m_uniform_bindings[it.first],
-								it.second.m_integer_values[0],
-								it.second.m_integer_values[1]);
-							break;
-						case 3:
-							glUniform3i(currentshader.m_uniform_bindings[it.first],
-								it.second.m_integer_values[0],
-								it.second.m_integer_values[1],
-								it.second.m_integer_values[2]);
-							break;
-						case 4:
-							glUniform4i(currentshader.m_uniform_bindings[it.first],
-								it.second.m_integer_values[0],
-								it.second.m_integer_values[1],
-								it.second.m_integer_values[2],
-								it.second.m_integer_values[3]);
-							break;
-						}
-						break;
-					case PostProcessingShaderConfiguration::ConfigurationOption::OptionType::OPTION_FLOAT:
-						switch (it.second.m_float_values.size())
-						{
-						case 1:
-							glUniform1f(currentshader.m_uniform_bindings[it.first], it.second.m_float_values[0]);
-							break;
-						case 2:
-							glUniform2f(currentshader.m_uniform_bindings[it.first],
-								it.second.m_float_values[0],
-								it.second.m_float_values[1]);
-							break;
-						case 3:
-							glUniform3f(currentshader.m_uniform_bindings[it.first],
-								it.second.m_float_values[0],
-								it.second.m_float_values[1],
-								it.second.m_float_values[2]);
-							break;
-						case 4:
-							glUniform4f(currentshader.m_uniform_bindings[it.first],
-								it.second.m_float_values[0],
-								it.second.m_float_values[1],
-								it.second.m_float_values[2],
-								it.second.m_float_values[3]);
-							break;
-						}
-						break;
-					}					
-				}
-			}			
-		}		
-		bool prev_stage_output_required = i > 0 && finalstage > 0;
-		if (prev_stage_output_required)
+			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, m_framebuffer);
+			if (src_layer < 0 && m_internal_layers > 1)
+				glFramebufferTexture(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, output_texture, 0);
+			else if (src_layer >= 0)
+				glFramebufferTextureLayer(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, output_texture, 0, src_layer);
+			else
+				glFramebufferTextureLayer(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, output_texture, 0, 0);
+		}
+		else
 		{
-			for (size_t stageidx = 0; stageidx < stage.m_inputs.size(); stageidx++)
+			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+		}
+
+		// Bind program and texture units here
+		if (src_layer < 0 && m_internal_layers > 1)
+			pass.gs_program->Bind();
+		else
+			pass.program->Bind();
+
+		for (size_t i = 0; i < pass.inputs.size(); i++)
+		{
+			const InputBinding& input = pass.inputs[i];
+			glActiveTexture(GL_TEXTURE0 + FIRST_INPUT_TEXTURE_UNIT + input.texture_unit);
+
+			switch (input.type)
 			{
-				u32 originalidx = stage.m_inputs[stageidx];
-				while (!stages[originalidx].m_isEnabled && originalidx > 0)
-				{
-					originalidx--;
-				}
-				glActiveTexture(GL_TEXTURE11 + GLenum(stageidx));
-				glBindTexture(GL_TEXTURE_2D_ARRAY, m_stageOutput[originalidx].first);
+			case POST_PROCESSING_INPUT_TYPE_COLOR_BUFFER:
+				glBindTexture(GL_TEXTURE_2D_ARRAY, src_texture);
+				input_resolutions[i][0] = src_width;
+				input_resolutions[i][1] = src_height;
+				break;
+
+			case POST_PROCESSING_INPUT_TYPE_DEPTH_BUFFER:
+				glBindTexture(GL_TEXTURE_2D_ARRAY, src_depth_texture);
+				input_resolutions[i][0] = src_width;
+				input_resolutions[i][1] = src_height;
+				break;
+
+			default:
+				glBindTexture(GL_TEXTURE_2D_ARRAY, input.texture_id);
+				input_resolutions[i][0] = input.width;
+				input_resolutions[i][1] = input.height;
+				break;
 			}
+
+			glBindSampler(FIRST_INPUT_TEXTURE_UNIT + input.texture_unit, input.sampler_id);
 		}
+
+		parent->MapAndUpdateUniformBuffer(m_config, input_resolutions, src_rect, target_rect, src_width, src_height, src_layer, gamma);
+		glViewport(output_rect.left, output_rect.bottom, output_rect.GetWidth(), output_rect.GetHeight());
 		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-		if (prev_stage_output_required)
+	}
+
+	// Copy the last pass output to the target if not done already
+	if (!skip_final_copy)
+		parent->CopyTexture(target_rect, target_texture, output_rect, m_passes[m_last_pass_index].output_texture_id, src_layer, false);
+}
+
+bool PostProcessingShader::RecompileShaders()
+{
+	for (size_t i = 0; i < m_passes.size(); i++)
+	{
+		RenderPassData& pass = m_passes[i];
+		const PostProcessingShaderConfiguration::RenderPass& pass_config = m_config->GetPass(i);
+
+		// Compile shader for this pass
+		std::unique_ptr<SHADER> program = std::make_unique<SHADER>();
+		std::string vertex_shader_source = PostProcessor::GetUniformBufferShaderSource(API_OPENGL, m_config) + s_vertex_shader;
+		std::string fragment_shader_source = PostProcessor::GetPassFragmentShaderSource(API_OPENGL, m_config, &pass_config);
+		if (!ProgramShaderCache::CompileShader(*program, vertex_shader_source.c_str(), fragment_shader_source.c_str()))
 		{
-			for (size_t stageidx = 0; stageidx < stage.m_inputs.size(); stageidx++)
+			ERROR_LOG(VIDEO, "Failed to compile post-processing shader %s (pass %s)", m_config->GetShader().c_str(), pass_config.entry_point.c_str());
+			m_ready = false;
+			return false;
+		}
+
+		// Bind our uniform block
+		GLuint block_index = glGetUniformBlockIndex(program->glprogid, "PostProcessingConstants");
+		if (block_index != GL_INVALID_INDEX)
+			glUniformBlockBinding(program->glprogid, block_index, UNIFORM_BUFFER_BIND_POINT);
+
+		// Only generate a GS-expanding program if needed
+		std::unique_ptr<SHADER> gs_program;
+		if (m_internal_layers > 1)
+		{
+			gs_program = std::make_unique<SHADER>();
+			vertex_shader_source = PostProcessor::GetUniformBufferShaderSource(API_OPENGL, m_config) + s_layered_vertex_shader;
+			std::string geometry_shader_source = StringFromFormat(s_geometry_shader, m_internal_layers * 3, m_internal_layers).c_str();
+
+			if (!ProgramShaderCache::CompileShader(*gs_program, vertex_shader_source.c_str(), fragment_shader_source.c_str(), geometry_shader_source.c_str()))
 			{
-				glActiveTexture(GL_TEXTURE11 + GLenum(stageidx));
-				glBindTexture(GL_TEXTURE_2D_ARRAY, 0);
+				ERROR_LOG(VIDEO, "Failed to compile GS post-processing shader %s (pass %s)", m_config->GetShader().c_str(), pass_config.entry_point.c_str());
+				m_ready = false;
+				return false;
+			}
+
+			block_index = glGetUniformBlockIndex(gs_program->glprogid, "PostProcessingConstants");
+			if (block_index != GL_INVALID_INDEX)
+				glUniformBlockBinding(gs_program->glprogid, block_index, UNIFORM_BUFFER_BIND_POINT);
+		}
+
+		// Store to struct
+		std::swap(pass.program, program);
+		std::swap(pass.gs_program, gs_program);
+	}
+
+	return true;
+}
+
+void PostProcessingShader::UpdateEnabledPasses()
+{
+	m_last_pass_index = 0;
+	m_last_pass_uses_color_buffer = false;
+
+	for (size_t pass_index = 0; pass_index < m_passes.size(); pass_index++)
+	{
+		const PostProcessingShaderConfiguration::RenderPass& pass_config = m_config->GetPass(pass_index);
+		RenderPassData& pass = m_passes[pass_index];
+		pass.enabled = pass_config.CheckEnabled();
+
+		// Check for color buffer reads, for copy optimization
+		if (pass.enabled)
+		{
+			m_last_pass_index = pass_index;
+			m_last_pass_uses_color_buffer = false;
+			for (size_t input_index = 0; input_index < pass.inputs.size(); input_index++)
+			{
+				InputBinding& input = pass.inputs[input_index];
+				if (input.type == POST_PROCESSING_INPUT_TYPE_COLOR_BUFFER)
+				{
+					m_last_pass_uses_color_buffer = true;
+					break;
+				}
 			}
 		}
 	}
+}
+
+OGLPostProcessor::~OGLPostProcessor()
+{
+	if (m_read_framebuffer != 0)
+		glDeleteFramebuffers(1, &m_read_framebuffer);
+	if (m_draw_framebuffer != 0)
+		glDeleteFramebuffers(1, &m_draw_framebuffer);
+	if (m_color_copy_texture != 0)
+		glDeleteTextures(1, &m_color_copy_texture);
+	if (m_depth_copy_texture != 0)
+		glDeleteTextures(1, &m_depth_copy_texture);
+}
+
+bool OGLPostProcessor::Initialize()
+{
+	// Create our framebuffer objects, since these are needed regardless of whether we're enabled.
+	glGenFramebuffers(1, &m_draw_framebuffer);
+	glGenFramebuffers(1, &m_read_framebuffer);
+	if (glGetError() != GL_NO_ERROR)
+	{
+		ERROR_LOG(VIDEO, "Failed to create postprocessing framebuffer objects.");
+		return false;
+	}
+
+	m_uniform_buffer = StreamBuffer::Create(GL_UNIFORM_BUFFER, UNIFORM_BUFFER_SIZE * 16);
+	if (m_uniform_buffer == nullptr)
+	{
+		ERROR_LOG(VIDEO, "Failed to create postprocessing uniform buffer.");
+		return false;
+	}
+
+	// Allocate copy texture names, the actual storage is done in ResizeCopyBuffers
+	glGenTextures(1, &m_color_copy_texture);
+	glGenTextures(1, &m_depth_copy_texture);
+	if (m_color_copy_texture == 0 || m_depth_copy_texture == 0)
+	{
+		ERROR_LOG(VIDEO, "Failed to create copy textures.");
+		return false;
+	}
+
+	// Load the currently-configured shader (this may fail, and that's okay)
+	ReloadShaders();
+	return true;
+}
+
+void OGLPostProcessor::ReloadShaders()
+{
+	// Delete current shaders
+	m_reload_flag.Clear();
+	m_post_processing_shader.reset();
+	m_blit_shader.reset();
+	m_active = false;
+
+	if (g_ActiveConfig.bPostProcessingEnable)
+	{
+		// Load current shader, and create program
+		const std::string& post_shader_name = g_ActiveConfig.sPostProcessingShader;
+		m_post_processing_shader = std::make_unique<PostProcessingShader>();
+		if (m_config.LoadShader("", post_shader_name) && m_post_processing_shader->Initialize(&m_config, FramebufferManager::GetEFBLayers()))
+		{
+			if (!post_shader_name.empty())
+			{
+				DEBUG_LOG(VIDEO, "Postprocessing shader loaded: '%s'", post_shader_name.c_str());
+				OSD::AddMessage(StringFromFormat("Postprocessing shader loaded: '%s'", post_shader_name.c_str()));
+			}
+
+			m_config.ClearDirty();
+			m_active = true;
+		}
+		else
+		{
+			ERROR_LOG(VIDEO, "Failed to load postprocessing shader ('%s'). Disabling post processor.", post_shader_name.c_str());
+			OSD::AddMessage(StringFromFormat("Failed to load postprocessing shader ('%s'). Disabling post processor.", post_shader_name.c_str()));
+
+			m_post_processing_shader.reset();
+		}
+	}
+
+	const std::string& blit_shader_subdir = (g_ActiveConfig.iStereoMode == STEREO_ANAGLYPH) ? ANAGLYPH_DIR : "";
+	const std::string& blit_shader_name = (g_ActiveConfig.iStereoMode == STEREO_ANAGLYPH) ? g_ActiveConfig.sAnaglyphShader : g_ActiveConfig.sBlitShader;
+	m_blit_shader = std::make_unique<PostProcessingShader>();
+	if (m_blit_config.LoadShader(blit_shader_subdir, blit_shader_name) && m_blit_shader->Initialize(&m_blit_config, FramebufferManager::GetEFBLayers()))
+	{
+		if (!blit_shader_name.empty())
+		{
+			DEBUG_LOG(VIDEO, "Blit shader loaded: '%s'", blit_shader_name.c_str());
+			OSD::AddMessage(StringFromFormat("Blit shader loaded: '%s'", blit_shader_name.c_str()));
+		}
+
+		m_blit_config.ClearDirty();
+	}
+	else
+	{
+		ERROR_LOG(VIDEO, "Failed to load blit shader ('%s'). Falling back to glBlitFramebuffer().", blit_shader_name.c_str());
+		OSD::AddMessage(StringFromFormat("Failed to load blit shader ('%s'). Falling back to glBlitFramebuffer().", blit_shader_name.c_str()));
+
+		m_blit_shader.reset();
+	}
+}
+
+void OGLPostProcessor::PostProcessEFB()
+{
+	// Uses the current viewport as the "visible" region to post-process.
+	g_renderer->ResetAPIState();
+
+	int scissorXOff = bpmem.scissorOffset.x * 2;
+	int scissorYOff = bpmem.scissorOffset.y * 2;
+	float X = Renderer::EFBToScaledXf(xfmem.viewport.xOrig - xfmem.viewport.wd - (float)scissorXOff);
+	float Y = Renderer::EFBToScaledYf((float)EFB_HEIGHT - xfmem.viewport.yOrig + xfmem.viewport.ht + (float)scissorYOff);
+	float Width = Renderer::EFBToScaledXf(2.0f * xfmem.viewport.wd);
+	float Height = Renderer::EFBToScaledYf(-2.0f * xfmem.viewport.ht);
+	if (Width < 0)
+	{
+		X += Width;
+		Width *= -1;
+	}
+	if (Height < 0)
+	{
+		Y += Height;
+		Height *= -1;
+	}
+
+	EFBRectangle efb_rect(0, EFB_HEIGHT, EFB_WIDTH, 0);
+	TargetRectangle target_rect(static_cast<int>(X), static_cast<int>(Y + Height),
+		static_cast<int>(X + Width), static_cast<int>(Y));
+
+	// Source and target textures, if MSAA is enabled, this needs to be resolved
+	GLuint efb_color_texture = FramebufferManager::GetEFBColorTexture(efb_rect);
+	GLuint efb_depth_texture = 0;
+	if (m_config.RequiresDepthBuffer())
+		efb_depth_texture = FramebufferManager::GetEFBDepthTexture(efb_rect);
+
+	// Invoke post-process process, this will write back to efb_color_texture
+	PostProcess(target_rect, g_renderer->GetTargetWidth(), g_renderer->GetTargetHeight(),
+		FramebufferManager::GetEFBLayers(), efb_color_texture, efb_depth_texture);
+
+	// Restore EFB framebuffer
+	FramebufferManager::SetFramebuffer(0);
+
+	// In msaa mode, we need to blit back to the original framebuffer.
+	// An accessor for the texture name means we could use CopyTexture here.
+	if (g_ActiveConfig.iMultisamples > 1)
+	{
+		glBindFramebuffer(GL_READ_FRAMEBUFFER, m_read_framebuffer);
+		FramebufferManager::FramebufferTexture(GL_READ_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
+			GL_TEXTURE_2D_ARRAY, efb_color_texture, 0);
+
+		glBlitFramebuffer(target_rect.left, target_rect.bottom, target_rect.right, target_rect.top,
+			target_rect.left, target_rect.bottom, target_rect.right, target_rect.top,
+			GL_COLOR_BUFFER_BIT, GL_NEAREST);
+
+		glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+	}
+
+	g_renderer->RestoreAPIState();
+}
+
+void OGLPostProcessor::BlitToFramebuffer(const TargetRectangle& dst, uintptr_t dst_texture,
+	const TargetRectangle& src, uintptr_t src_texture,
+	int src_width, int src_height, int src_layer, float gamma)
+{
+	GLuint real_dst_texture = static_cast<GLuint>(dst_texture);
+	GLuint real_src_texture = static_cast<GLuint>(src_texture);
+	_dbg_assert_msg_(VIDEO, src_layer >= 0, "BlitToFramebuffer should always be called with a single source layer");
+
+	// Options changed?
+	if (m_blit_shader != nullptr && m_blit_shader->IsReady())
+	{
+		if (m_blit_config.IsDirty())
+		{
+			if (m_blit_config.IsCompileTimeConstantsDirty())
+				m_blit_shader->RecompileShaders();
+
+			m_blit_shader->UpdateEnabledPasses();
+			m_blit_config.ClearDirty();
+		}
+		m_blit_shader->ResizeIntermediateBuffers(src_width, src_height);
+	}
+
+	// Use blit shader if one is set-up. Should only be a single pass in almost all cases.
+	if (m_blit_shader != nullptr && m_blit_shader->IsReady())
+	{
+		m_blit_shader->Draw(this, dst, real_dst_texture, src, src_width, src_height, real_src_texture, 0, src_layer, gamma);
+	}
+	else
+	{
+		CopyTexture(dst, real_dst_texture, src, real_src_texture, src_layer, false);
+	}
+}
+
+void OGLPostProcessor::PostProcess(const TargetRectangle& visible_rect, int tex_width, int tex_height, int tex_layers,
+	uintptr_t texture, uintptr_t depth_texture)
+{
+	GLuint real_texture = static_cast<GLuint>(texture);
+	GLuint real_depth_texture = static_cast<GLuint>(depth_texture);
+	_dbg_assert_(VIDEO, !m_active || m_post_processing_shader != nullptr);
+	if (!m_active)
+		return;
+
+	int visible_width = visible_rect.GetWidth();
+	int visible_height = visible_rect.GetHeight();
+	if (!m_post_processing_shader->IsReady() ||
+		!m_post_processing_shader->ResizeIntermediateBuffers(visible_width, visible_height) ||
+		!ResizeCopyBuffers(visible_width, visible_height, tex_layers) ||
+		(m_config.IsCompileTimeConstantsDirty() && !m_post_processing_shader->RecompileShaders()))
+	{
+		ERROR_LOG(VIDEO, "Failed to create post-process intermediate buffers. Disabling post processor.");
+		m_post_processing_shader.reset();
+		m_active = false;
+		return;
+	}
+
 	if (m_config.IsDirty())
 	{
-		for (auto& it : m_config.GetOptions())
+		m_post_processing_shader->UpdateEnabledPasses();
+		m_config.ClearDirty();
+	}
+
+	// Copy the visible region to our buffers.
+	TargetRectangle buffer_rect(0, visible_height, visible_width, 0);
+	CopyTexture(buffer_rect, m_color_copy_texture, visible_rect, real_texture, -1, false);
+	if (real_depth_texture != 0)
+		CopyTexture(buffer_rect, m_depth_copy_texture, visible_rect, real_depth_texture, -1, false);
+
+	m_post_processing_shader->Draw(this, visible_rect, real_texture, buffer_rect, visible_width, visible_height,
+		m_color_copy_texture, m_depth_copy_texture, -1);
+}
+
+void OGLPostProcessor::MapAndUpdateUniformBuffer(const PostProcessingShaderConfiguration* config,
+	int input_resolutions[POST_PROCESSING_MAX_TEXTURE_INPUTS][2],
+	const TargetRectangle& src_rect, const TargetRectangle& dst_rect, int src_width, int src_height, int src_layer, float gamma)
+{
+	std::pair<u8*, u32> ubo = m_uniform_buffer->Map(UNIFORM_BUFFER_SIZE, UNIFORM_BUFFER_SIZE);
+	UpdateUniformBuffer(API_OPENGL, config, ubo.first, input_resolutions, src_rect, dst_rect, src_width, src_height, src_layer, gamma);
+	m_uniform_buffer->Unmap(UNIFORM_BUFFER_SIZE);
+	glBindBufferRange(GL_UNIFORM_BUFFER, UNIFORM_BUFFER_BIND_POINT, m_uniform_buffer->m_buffer, ubo.second, UNIFORM_BUFFER_SIZE);
+}
+
+void OGLPostProcessor::CopyTexture(const TargetRectangle& dst_rect, GLuint dst_texture,
+	const TargetRectangle& src_rect, GLuint src_texture,
+	int src_layer, bool is_depth_texture,
+	bool force_blit)
+{
+	// Can we copy the image?
+	bool scaling = (dst_rect.GetWidth() != src_rect.GetWidth() || dst_rect.GetHeight() != src_rect.GetHeight());
+	int layers_to_copy = (src_layer < 0) ? FramebufferManager::GetEFBLayers() : 1;
+
+	// Copy each layer individually.
+	for (int i = 0; i < layers_to_copy; i++)
+	{
+		int layer = (src_layer < 0) ? i : src_layer;
+		if (g_ogl_config.bSupportsCopySubImage && dst_texture != 0 && !force_blit)
 		{
-			it.second.m_dirty = false;
+			// use (ARB|NV)_copy_image, but only for non-window-framebuffer cases
+			glCopyImageSubData(src_texture, GL_TEXTURE_2D_ARRAY, 0, src_rect.left, src_rect.bottom, layer,
+				dst_texture, GL_TEXTURE_2D_ARRAY, 0, dst_rect.left, dst_rect.bottom, layer,
+				src_rect.GetWidth(), src_rect.GetHeight(), 1);
 		}
-		m_config.SetDirty(false);
-	}
-	glActiveTexture(GL_TEXTURE9);
-	glBindTexture(GL_TEXTURE_2D_ARRAY, 0);
-	glActiveTexture(GL_TEXTURE10);
-	glBindTexture(GL_TEXTURE_2D_ARRAY, 0);
-	glActiveTexture(GL_TEXTURE11);
-	glBindTexture(GL_TEXTURE_2D_ARRAY, 0);
-}
-
-void OpenGLPostProcessing::ApplyShader()
-{
-	// shader didn't changed
-	if (m_initialized 
-		&& m_config.GetShader() == g_ActiveConfig.sPostProcessingShader
-		&& !m_config.NeedRecompile())
-		return;
-	if (m_config.NeedRecompile())
-	{
-		m_config.SaveOptionsConfiguration();
-		m_config.SetRecompile(false);
-	}
-	DestroyStageOutput();
-	m_stageOutput.resize(0);
-	for (auto& shader : m_shaders)
-	{
-		shader.shader.Destroy();
-	}
-	// load shader code
-	std::string code = m_config.LoadShader();
-	code = LoadShaderOptions(code);
-
-	const char* vertex_shader = s_vertex_shader;
-
-	m_initialized = true;
-	const auto& stages = m_config.GetStages();
-	m_shaders.resize(stages.size());
-	// and compile it
-	const char* macros[1];
-	for (size_t i = 0; i < stages.size(); i++)
-	{
-		// and compile it
-		std::string entry_point = "#define ";
-		entry_point += stages[i].m_stage_entry_point;
-		entry_point += " main\n";
-		macros[0] = entry_point.c_str();
-		if (!ProgramShaderCache::CompileShader(m_shaders[i].shader, vertex_shader, code.c_str(), nullptr, macros, 1))
+		else
 		{
-			ERROR_LOG(VIDEO, "Failed to compile post-processing shader %s", m_config.GetShader().c_str());
-			m_initialized = false;
-			break;
-		}
-	}
-
-	// and compile it
-	if (!m_initialized)
-	{
-		g_Config.sPostProcessingShader.clear();
-		g_ActiveConfig.sPostProcessingShader.clear();
-		for (auto& shader : m_shaders)
-		{
-			shader.shader.Destroy();
-		}
-		m_shaders.resize(1);
-		code = m_config.LoadShader();
-		code = LoadShaderOptions(code);
-		ProgramShaderCache::CompileShader(m_shaders[0].shader, vertex_shader, code.c_str());
-	}
-
-	for (auto& shader : m_shaders)
-	{
-		shader.m_uniform_resolution = glGetUniformLocation(shader.shader.glprogid, "resolution");
-		shader.m_uniform_gamma = glGetUniformLocation(shader.shader.glprogid, "native_gamma");
-		shader.m_uniform_time = glGetUniformLocation(shader.shader.glprogid, "time");
-		shader.m_uniform_src_rect = glGetUniformLocation(shader.shader.glprogid, "src_rect");
-		shader.m_uniform_layer = glGetUniformLocation(shader.shader.glprogid, "layer");
-		shader.m_uniform_dstscale = glGetUniformLocation(shader.shader.glprogid, "dst_scale");
-		shader.m_uniform_ScalingFilter = glGetUniformLocation(shader.shader.glprogid, "scaling_filter");
-		shader.m_uniform_bindings.clear();
-		for (const auto& it : m_config.GetOptions())
-		{
-			std::string glsl_name = "option_" + it.first;
-			shader.m_uniform_bindings[it.first] = glGetUniformLocation(shader.shader.glprogid, glsl_name.c_str());
-		}
-	}
-	
-	m_initialized = true;
-}
-
-void OpenGLPostProcessing::CreateHeader()
-{
-	m_glsl_header = R"GLSL(
-// Required variables
-// Shouldn't be accessed directly by the PP shader
-// Texture sampler
-SAMPLER_BINDING(8) uniform sampler2D samp8;
-SAMPLER_BINDING(9) uniform sampler2DArray samp9;
-SAMPLER_BINDING(10) uniform sampler2DArray samp10;
-SAMPLER_BINDING(11) uniform sampler2DArray samp11;
-SAMPLER_BINDING(12) uniform sampler2DArray samp12;
-SAMPLER_BINDING(13) uniform sampler2DArray samp13;
-SAMPLER_BINDING(14) uniform sampler2DArray samp14;
-
-// Output variable
-out float4 ocol0;
-// Input coordinates
-in float2 uv0;
-in float4 uv1;
-in float4 uv2;
-// Resolution
-uniform float4 resolution;
-// Time
-uniform uint time;
-// Layer
-uniform int layer;
-// Gamma
-uniform float native_gamma;
-// Source Rect
-uniform vec4 src_rect;
-
-uniform int scaling_filter;
-
-// Interfacing functions		
-float2 GetFragmentCoord()
-{
-	return gl_FragCoord.xy;
-}
-
-float4 Sample(float2 location, int l)
-{
-	return texture(samp9, float3(location, l));
-}
-
-float4 SampleLocationOffset(float2 location, int2 offset)
-{ 
-	return texture(samp9, float3(location + offset * resolution.zw, layer));
-}
-float2 FromSRCCoords(float2 location)
-{
-	return (location - src_rect.xy) / src_rect.zw;
-}
-float2 ToSRCCoords(float2 location)
-{
-	return location * src_rect.zw + src_rect.xy;
-}
-float4 SamplePrev(int idx, float2 location)
-{
-	float2 newlocation = FromSRCCoords(location);
-	if (idx == 0)
-	{
-		return texture(samp11, float3(newlocation, 0));
-	}
-	else if (idx == 1)
-	{
-		return texture(samp12, float3(newlocation, 0));
-	}
-	else if (idx == 2)
-	{
-		return texture(samp13, float3(newlocation, 0));
-	}
-	else
-	{
-		return texture(samp14, float3(newlocation, 0));
-	}
-}
-
-float4 SamplePrevLocationOffset(int idx, float2 location, int2 offset)
-{
-	float2 newlocation = FromSRCCoords(location);
-	newlocation += offset / (src_rect.zw * resolution.xy);
-	if (idx == 0)
-	{
-		return texture(samp11, float3(newlocation, 0));
-	}
-	else if (idx == 1)
-	{
-		return texture(samp12, float3(newlocation, 0));
-	}
-	else if (idx == 2)
-	{
-		return texture(samp13, float3(newlocation, 0));
-	}
-	else
-	{
-		return texture(samp14, float3(newlocation, 0));
-	}
-	
-}
-
-float SampleDepth(float2 location, int l)
-{
-	/*float Znear = 0.001;
-	float Zfar = 1.0;
-	float A  = (1 - ( Zfar / Znear ))/2;
-	float B = (1 + ( Zfar / Znear ))/2;*/
-	float A = -499.5;
-	float B =  500.5;
-	float depth = texture(samp10, float3(location, l)).x;
-	depth = 1.0 / (A * depth + B);
-	return depth;
-}
-
-float SampleDepthRaw(float2 location, int l)
-{
-	float depth = texture(samp10, float3(location, l)).x;
-	return depth;
-}
-
-float SampleDepthLocationOffset(float2 location, int2 offset)
-{
-	float A = -499.5;
-	float B =  500.5;
-	float depth = texture(samp10, float3(location + offset * resolution.zw, layer)).x;
-	depth = 1.0 / (A * depth + B);
-	return depth;	
-}
-
-float SampleDepthLocationOffsetRaw(float2 location, int2 offset)
-{
-	float depth = texture(samp10, float3(location + offset * resolution.zw, layer)).x;
-	return depth;	
-}
-
-float4 SampleOffset(int2 offset)
-{
-	return texture(samp9, float3(uv0 + offset * resolution.zw, layer));
-}
-
-float4 SamplePrevOffset(int2 offset)
-{
-	return SamplePrevLocationOffset(0, uv0, offset);
-}
-
-float4 SamplePrevOffset(int idx, int2 offset)
-{
-	return SamplePrevLocationOffset(idx, uv0, offset);
-}
-
-float SampleDepthOffset(int2 offset)
-{
-	return SampleDepthLocationOffset(uv0, offset);
-}
-
-float SampleDepthOffsetRaw(int2 offset)
-{
-	return SampleDepthLocationOffsetRaw(uv0, offset);
-}
-
-float4 Sample()
-{ 
-	float4 outputcolor = Sample(uv0, layer);
-	if (scaling_filter != 0)
-	{
-		outputcolor += Sample(uv1.xy, layer);
-		outputcolor += Sample(uv1.wz, layer);
-		outputcolor += Sample(uv2.xy, layer);
-		outputcolor += Sample(uv2.wz, layer);
-		outputcolor *= 0.2;
-	}
-	return outputcolor;
-}
-float4 SamplePrev(){ return SamplePrev(0, uv0); }
-float4 SamplePrev(int idx){ return SamplePrev(idx, uv0); }
-float SampleDepth() { return SampleDepth(uv0, layer); }
-float SampleDepthRaw() { return SampleDepthRaw(uv0, layer); }
-float4 SampleLocation(float2 location) { return Sample(location, layer); }
-float4 SamplePrevLocation(float2 location) { return SamplePrev(0, location); }
-float4 SamplePrevLocation(int idx, float2 location) { return SamplePrev(idx, location); }
-float SampleDepthLocation(float2 location) { return SampleDepth(location, layer); }
-float SampleDepthLocationRaw(float2 location) { return SampleDepthRaw(location, layer); }
-float4 SampleLayer(int l) { return Sample(uv0, l); }
-float SampleDepthLayer(int l) { return SampleDepth(uv0, l); }
-float SampleDepthLayerRaw(int l) { return SampleDepthRaw(uv0, l); }
-float4 SampleFontLocation(float2 location) { return texture(samp8, location); }
-
-float4 ApplyGCGamma(float4 col)
-{
-	return pow(col, float4(native_gamma, native_gamma, native_gamma, native_gamma));
-}
-float2 GetResolution()
-{
-	return resolution.xy;
-}
-float2 GetInvResolution()
-{
-	return resolution.zw;
-}
-float2 GetCoordinates()
-{
-	return uv0;
-}
-uint GetTime()
-{
-	return time;
-}
-void SetOutput(float4 color)
-{
-	ocol0 = color;
-}
-#define GetOption(x) (option_##x)
-#define OptionEnabled(x) (option_##x != 0)
-//Random
-float global_rnd_state;
-float RandomSeedfloat(float2 seed)
-{
-	float noise = frac(sin(dot(seed, float2(12.9898, 78.233)*2.0)) * 43758.5453);
-	return noise;
-}
-
-void rnd_advance()
-{
-    global_rnd_state = RandomSeedfloat(uv0 + global_rnd_state);
-}
-
-uint RandomSeeduint(float2 seed)
-{
-	float noise = RandomSeedfloat(seed);
-	return uint(noise * 0xFFFFFF);
-}
-
-void Randomize()
-{
-	global_rnd_state = frac(float(GetTime())*0.0001);
-}
-
-uint Rndint()
-{
-	rnd_advance();
-	return uint(global_rnd_state * 0xFFFFFF);
-}
-
-float Rndfloat()
-{
-	rnd_advance();
-	return global_rnd_state;
-}
-
-float2 Rndfloat2()
-{
-	float2 val;
-	rnd_advance();
-	val.x = global_rnd_state;
-	rnd_advance();
-	val.y = global_rnd_state;
-	return val;
-}
-
-float3 Rndfloat3()
-{
-	float3 val;
-	rnd_advance();
-	val.x = global_rnd_state;
-	rnd_advance();
-	val.y = global_rnd_state;
-	rnd_advance();
-	val.z = global_rnd_state;
-	return val;
-}
-
-float4 Rndfloat4()
-{
-	float4 val;
-	rnd_advance();
-	val.x = global_rnd_state;
-	rnd_advance();
-	val.y = global_rnd_state;
-	rnd_advance();
-	val.z = global_rnd_state;
-	rnd_advance();
-	val.w = global_rnd_state;
-	return val;
-}
-
-float4 GetBicubicSampleLocation(float2 location, out float4 scalingFactor, float resolutionmultiplier)
-{
-	float2 textureDimensions    = GetResolution() * resolutionmultiplier;
-	float2 invTextureDimensions = 1.f / textureDimensions;
-
-		location *= textureDimensions;
-
-			float2 texelCenter   = floor( location - 0.5f ) + 0.5f;
-	float2 fracOffset    = location - texelCenter;
-	float2 fracOffset_x2 = fracOffset * fracOffset;
-	float2 fracOffset_x3 = fracOffset * fracOffset_x2;
-	float2 weight0 = fracOffset_x2 - 0.5f * ( fracOffset_x3 + fracOffset );
-	float2 weight1 = 1.5f * fracOffset_x3 - 2.5f * fracOffset_x2 + 1.f;
-	float2 weight3 = 0.5f * ( fracOffset_x3 - fracOffset_x2 );
-	float2 weight2 = 1.f - weight0 - weight1 - weight3;
-
-		scalingFactor = float4(weight0 + weight1,  weight2 + weight3);	
-	scalingFactor = scalingFactor.xzxz * scalingFactor.yyww;
-	float2 f0 = weight1 / ( weight0 + weight1 );
-	float2 f1 = weight3 / ( weight2 + weight3 );
-
-		return float4(texelCenter - 1.f + f0,texelCenter + 1.f + f1) * invTextureDimensions.xyxy;
-}
-
-float4 SampleBicubic(float2 location)
-{
-	float4 scalingFactor;
-	float4 texCoord = GetBicubicSampleLocation(location, scalingFactor, 1.0);
-	return
-		SampleLocation(texCoord.xy) * scalingFactor.x +
-		SampleLocation(texCoord.zy) * scalingFactor.y +
-		SampleLocation(texCoord.xw) * scalingFactor.z +
-		SampleLocation(texCoord.zw) * scalingFactor.w;
-}
-
-float4 SampleBicubic(float2 location, float resolutionmultiplier)
-{
-	float4 scalingFactor;
-	float4 texCoord = GetBicubicSampleLocation(location, scalingFactor, resolutionmultiplier);
-	return
-		SampleLocation(texCoord.xy) * scalingFactor.x +
-		SampleLocation(texCoord.zy) * scalingFactor.y +
-		SampleLocation(texCoord.xw) * scalingFactor.z +
-		SampleLocation(texCoord.zw) * scalingFactor.w;
-}
-
-float4 SamplePrevBicubic(float2 location)
-{
-	float4 scalingFactor;
-	float4 texCoord = GetBicubicSampleLocation(location, scalingFactor, 1.0);
-	return
-		SamplePrevLocation(0, texCoord.xy) * scalingFactor.x +
-		SamplePrevLocation(0, texCoord.zy) * scalingFactor.y +
-		SamplePrevLocation(0, texCoord.xw) * scalingFactor.z +
-		SamplePrevLocation(0, texCoord.zw) * scalingFactor.w;
-}
-
-float4 SamplePrevBicubic(float2 location, int idx, float resolutionmultiplier)
-{
-	float4 scalingFactor;
-	float4 texCoord = GetBicubicSampleLocation(location, scalingFactor, resolutionmultiplier);
-	return
-		SamplePrevLocation(idx, texCoord.xy) * scalingFactor.x +
-		SamplePrevLocation(idx, texCoord.zy) * scalingFactor.y +
-		SamplePrevLocation(idx, texCoord.xw) * scalingFactor.z +
-		SamplePrevLocation(idx, texCoord.zw) * scalingFactor.w;
-}
-
-float4 SampleBicubic() 
-{ 
-	float4 outputcolor = SampleBicubic(uv0);
-	if (scaling_filter != 0)
-	{
-		outputcolor += SampleBicubic(uv1.xy);
-		outputcolor += SampleBicubic(uv1.wz);
-		outputcolor += SampleBicubic(uv2.xy);
-		outputcolor += SampleBicubic(uv2.wz);
-		outputcolor *= 0.2;
-	}
-	return outputcolor;
-}
-
-)GLSL";
-}
-
-std::string OpenGLPostProcessing::LoadShaderOptions(const std::string& code)
-{
-	std::string glsl_options = "";
-
-	for (const auto& it : m_config.GetOptions())
-	{
-		if (it.second.m_resolve_at_compilation)
-		{
-			continue;
-		}
-		if (it.second.m_type == PostProcessingShaderConfiguration::ConfigurationOption::OptionType::OPTION_BOOL)
-		{
-			glsl_options += StringFromFormat("uniform int     option_%s;\n", it.first.c_str());
-		}
-		else if (it.second.m_type == PostProcessingShaderConfiguration::ConfigurationOption::OptionType::OPTION_INTEGER)
-		{
-			u32 count = static_cast<u32>(it.second.m_integer_values.size());
-			if (count < 2)
-				glsl_options += StringFromFormat("uniform int     option_%s;\n", it.first.c_str());
+			// fallback to glBlitFramebuffer path
+			GLenum filter = (scaling) ? GL_LINEAR : GL_NEAREST;
+			GLbitfield bits = (!is_depth_texture) ? GL_COLOR_BUFFER_BIT : GL_DEPTH_BUFFER_BIT;
+			if (dst_texture != 0)
+			{
+				glBindFramebuffer(GL_DRAW_FRAMEBUFFER, m_draw_framebuffer);
+				if (!is_depth_texture)
+					glFramebufferTextureLayer(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, dst_texture, 0, layer);
+				else
+					glFramebufferTextureLayer(GL_DRAW_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, dst_texture, 0, layer);
+			}
 			else
-				glsl_options += StringFromFormat("uniform int%d   option_%s;\n", count, it.first.c_str());
-		}
-		else if (it.second.m_type == PostProcessingShaderConfiguration::ConfigurationOption::OptionType::OPTION_FLOAT)
-		{
-			u32 count = static_cast<u32>(it.second.m_float_values.size());
-			if (count < 2)
-				glsl_options += StringFromFormat("uniform float   option_%s;\n", it.first.c_str());
+			{
+				// window framebuffer
+				glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+			}
+
+			glBindFramebuffer(GL_READ_FRAMEBUFFER, m_read_framebuffer);
+			if (!is_depth_texture)
+				glFramebufferTextureLayer(GL_READ_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, src_texture, 0, layer);
 			else
-				glsl_options += StringFromFormat("uniform float%d option_%s;\n", count, it.first.c_str());
+				glFramebufferTextureLayer(GL_READ_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, src_texture, 0, layer);
+
+			glBlitFramebuffer(src_rect.left, src_rect.bottom, src_rect.right, src_rect.top,
+				dst_rect.left, dst_rect.bottom, dst_rect.right, dst_rect.top,
+				bits, filter);
 		}
 	}
-	m_config.PrintCompilationTimeOptions(glsl_options);
-	return m_glsl_header + glsl_options + code;
+}
+
+bool OGLPostProcessor::ResizeCopyBuffers(int width, int height, int layers)
+{
+	if (m_copy_width == width && m_copy_height == height && m_copy_layers == layers)
+		return true;
+
+	m_copy_width = width;
+	m_copy_height = height;
+	m_copy_layers = layers;
+
+	glActiveTexture(GL_TEXTURE0 + FIRST_INPUT_TEXTURE_UNIT);
+	glBindTexture(GL_TEXTURE_2D_ARRAY, m_color_copy_texture);
+	glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_RGBA, width, height, FramebufferManager::GetEFBLayers(), 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+	glBindTexture(GL_TEXTURE_2D_ARRAY, m_depth_copy_texture);
+	glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_DEPTH_COMPONENT32F, width, height, FramebufferManager::GetEFBLayers(), 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_BYTE, nullptr);
+
+	TextureCache::SetStage();
+	return true;
 }
 
 }  // namespace OGL

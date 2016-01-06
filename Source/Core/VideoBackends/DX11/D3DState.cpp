@@ -226,26 +226,26 @@ namespace D3D
 				m_current.inputLayout = m_pending.inputLayout;
 			}
 		}
-		u32 dirty_elements = m_dirtyFlags & DirtyFlag_Textures;
+		u64 dirty_elements = m_dirtyFlags & DirtyFlag_Textures;
 		if (dirty_elements)
 		{
 			while (dirty_elements)
 			{
 				unsigned long index;
-				_BitScanForward(&index, dirty_elements);
+				_BitScanForward64(&index, dirty_elements);
 				D3D::context->PSSetShaderResources(index, 1, &m_pending.textures[index]);
 				D3D::context->DSSetShaderResources(index, 1, &m_pending.textures[index]);
 				m_current.textures[index] = m_pending.textures[index];
-				dirty_elements &= ~(1 << index);
+				dirty_elements &= ~(1ull << index);
 			}
 		}
-		dirty_elements = (m_dirtyFlags & DirtyFlag_Samplers) >> 8;
+		dirty_elements = (m_dirtyFlags & DirtyFlag_Samplers) >> 16;
 		if (dirty_elements)
 		{
 			while (dirty_elements)
 			{
 				unsigned long index;
-				_BitScanForward(&index, dirty_elements);
+				_BitScanForward64(&index, dirty_elements);
 				D3D::context->PSSetSamplers(index, 1, &m_pending.samplers[index]);
 				D3D::context->DSSetSamplers(index, 1, &m_pending.samplers[index]);
 				m_current.samplers[index] = m_pending.samplers[index];
@@ -291,30 +291,29 @@ namespace D3D
 		m_dirtyFlags = 0;
 	}
 
-	u32 StateManager::UnsetTexture(ID3D11ShaderResourceView* srv)
+	u64 StateManager::UnsetTexture(ID3D11ShaderResourceView* srv)
 	{
-		u32 mask = 0;
+		u64 mask = 0;
 
-		for (u32 index = 0; index < 8; ++index)
+		for (u32 index = 0; index < 16; ++index)
 		{
 			if (m_current.textures[index] == srv || m_pending.textures[index] == srv)
 			{
 				SetTexture(index, nullptr);
-				mask |= 1 << index;
+				mask |= 1ull << index;
 			}
 		}
-
 		return mask;
 	}
 
-	void StateManager::SetTextureByMask(u32 textureSlotMask, ID3D11ShaderResourceView* srv)
+	void StateManager::SetTextureByMask(u64 textureSlotMask, ID3D11ShaderResourceView* srv)
 	{
 		while (textureSlotMask)
 		{
 			unsigned long index;
-			_BitScanForward(&index, textureSlotMask);
+			_BitScanForward64(&index, textureSlotMask);
 			SetTexture(index, srv);
-			textureSlotMask &= ~(1 << index);
+			textureSlotMask &= ~(1ull << index);
 		}
 	}
 

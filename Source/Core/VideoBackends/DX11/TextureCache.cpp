@@ -43,11 +43,7 @@ void TextureCache::TCacheEntry::Bind(u32 stage, u32 last_texture)
 	D3D::stateman->SetTexture(stage, texture->GetSRV());
 	if (nrm_texture && g_ActiveConfig.HiresMaterialMapsEnabled())
 	{
-		ID3D11ShaderResourceView* views[1] = {
-			nrm_texture->GetSRV()
-		};
-		D3D::context->PSSetShaderResources(8 + stage, 1, views);
-		D3D::context->DSSetShaderResources(8 + stage, 1, views);
+		D3D::stateman->SetTexture(stage + 8, nrm_texture->GetSRV());
 	}
 }
 
@@ -440,7 +436,7 @@ void TextureCache::TCacheEntry::FromRenderTarget(u8* dst, PEControl::PixelFormat
 		D3D::SetPointCopySampler();
 
 	// if texture is currently in use, it needs to be temporarily unset
-	u32 textureSlotMask = D3D::stateman->UnsetTexture(texture->GetSRV());
+	u64 textureSlotMask = D3D::stateman->UnsetTexture(texture->GetSRV());
 	D3D::stateman->Apply();
 	D3D::context->OMSetRenderTargets(1, &texture->GetRTV(), nullptr);
 	// Create texture copy
@@ -491,7 +487,7 @@ bool TextureCache::Palettize(TCacheEntryBase* entry, const TCacheEntryBase* base
 	else
 		return false;
 	// if texture is currently in use, it needs to be temporarily unset
-	u32 textureSlotMask = D3D::stateman->UnsetTexture(texture->GetSRV());
+	u64 textureSlotMask = D3D::stateman->UnsetTexture(texture->GetSRV());
 	bool result = s_decoder->Depalettize(*texture, *((TextureCache::TCacheEntry*)base_entry)->texture, baseType, base_entry->config.width, base_entry->config.height);
 	D3D::stateman->SetTextureByMask(textureSlotMask, texture->GetSRV());
 	return result;

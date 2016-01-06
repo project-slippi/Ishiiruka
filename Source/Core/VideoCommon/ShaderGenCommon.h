@@ -76,31 +76,36 @@ public:
 
 	void ClearUID()
 	{
-		memset(values, 0, sizeof(uid_data));
+		memset(&data, 0, sizeof(uid_data));
 	}
 
 	void CalculateUIDHash()
 	{
 		if (HASH == 0)
 		{
-			HASH = (std::size_t)HashAdler32(values + data.StartValue(), data.NumValues());
+			HASH = (std::size_t)HashAdler32(reinterpret_cast<u8*>(&data) + data.StartValue(), data.NumValues());
 		}
 	}
 
 	bool operator == (const ShaderUid& obj) const
 	{
-		return memcmp(this->values + data.StartValue(), obj.values + data.StartValue(), data.NumValues() * sizeof(*values)) == 0;
+		return data.StartValue() == obj.data.StartValue()
+			&& data.NumValues() == obj.data.NumValues()
+			&& memcmp(reinterpret_cast<const u8*>(&data) + data.StartValue(), reinterpret_cast<const u8*>(&obj.data) + data.StartValue(), data.NumValues()) == 0;
 	}
 
 	bool operator != (const ShaderUid& obj) const
 	{
-		return memcmp(this->values + data.StartValue(), obj.values + data.StartValue(), data.NumValues() * sizeof(*values)) != 0;
+		return data.StartValue() != obj.data.StartValue()
+			|| data.NumValues() != obj.data.NumValues()
+			|| memcmp(reinterpret_cast<const u8*>(&data) + data.StartValue(), reinterpret_cast<const u8*>(&obj.data) + data.StartValue(), data.NumValues()) != 0;
 	}
 
 	// determines the storage order inside STL containers
 	bool operator < (const ShaderUid& obj) const
 	{
-		return memcmp(this->values + data.StartValue(), obj.values + data.StartValue(), data.NumValues() * sizeof(*values)) < 0;
+		return data.NumValues() < obj.data.NumValues()
+			|| memcmp(reinterpret_cast<const u8*>(&data) + data.StartValue(), reinterpret_cast<const u8*>(&obj.data) + obj.data.StartValue(), data.NumValues()) < 0;
 	}
 
 	template<class T>
@@ -116,11 +121,7 @@ public:
 		}
 	};
 private:
-	union
-	{
-		uid_data data;
-		u8 values[sizeof(uid_data)];
-	};
+	uid_data data;
 	std::size_t HASH;
 };
 

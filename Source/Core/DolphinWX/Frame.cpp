@@ -54,6 +54,7 @@
 #include "InputCommon/GCPadStatus.h"
 
 #include "VideoCommon/OnScreenDisplay.h"
+#include "VideoCommon/PostProcessing.h"
 #include "VideoCommon/RenderBase.h"
 #include "VideoCommon/VertexShaderManager.h"
 #include "VideoCommon/VideoConfig.h"
@@ -1505,6 +1506,11 @@ void CFrame::ParseHotkeys()
 		g_Config.iStereoConvergence += 5;
 		if (g_Config.iStereoConvergence > 500)
 			g_Config.iStereoConvergence = 500;
+	}
+	if (IsHotkey(HK_RELOAD_POSTPROCESS_SHADERS))
+	{
+		if (g_renderer && g_renderer->GetPostProcessor())
+			g_renderer->GetPostProcessor()->SetReloadFlag();
 	}
 
 	static float debugSpeed = 1.0f;

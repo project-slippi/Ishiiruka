@@ -105,14 +105,38 @@ DefaultValue = 0
 StepAmount = 1
 DependentOption = MATSODOF
 
-[Stage]
+[Pass]
 EntryPoint = PS_DOF_MatsoDOF1
-[Stage]
+Input0 = ColorBuffer
+Input0Filter = Linear
+Input0Mode = Clamp
+Input1 = DepthBuffer
+Input1Filter = Nearest
+Input1Mode = Clamp
+[Pass]
 EntryPoint = PS_DOF_MatsoDOF2
-[Stage]
+Input0 = PreviousPass
+Input0Filter = Linear
+Input0Mode = Clamp
+Input1 = DepthBuffer
+Input1Filter = Nearest
+Input1Mode = Clamp
+[Pass]
 EntryPoint = PS_DOF_MatsoDOF3
-[Stage]
+Input0 = PreviousPass
+Input0Filter = Linear
+Input0Mode = Clamp
+Input1 = DepthBuffer
+Input1Filter = Nearest
+Input1Mode = Clamp
+[Pass]
 EntryPoint = PS_DOF_MatsoDOF4
+Input0 = PreviousPass
+Input0Filter = Linear
+Input0Mode = Clamp
+Input1 = DepthBuffer
+Input1Filter = Nearest
+Input1Mode = Clamp
 
 [/configuration]
 
@@ -185,7 +209,7 @@ float4 GetMatsoDOFBlur(int axis, float2 coord)
 
 void PS_DOF_MatsoDOF1()
 {
-	SetOutput(GetMatsoDOFBlur(2, ToSRCCoords(GetCoordinates())));
+	SetOutput(GetMatsoDOFBlur(2, GetCoordinates()));
 }
 
 void PS_DOF_MatsoDOF2()

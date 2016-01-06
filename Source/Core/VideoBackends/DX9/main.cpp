@@ -118,10 +118,6 @@ void InitBackendInfo()
 			g_Config.backend_info.AAModes.push_back(i + 1);
 	}
 
-	// Clear ppshaders string vector
-	g_Config.backend_info.PPShaders.clear();
-	g_Config.backend_info.AnaglyphShaders.clear();
-
 	DX9::D3D::Shutdown();
 }
 

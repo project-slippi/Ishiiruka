@@ -103,7 +103,11 @@ struct VideoConfig final
 	int iEFBScale;
 	bool bForceFiltering;
 	int iMaxAnisotropy;
+	bool bPostProcessingEnable;
+	int iPostProcessingTrigger;
 	std::string sPostProcessingShader;
+	std::string sBlitShader;
+	std::string sAnaglyphShader;
 	bool bUseScalingFilter;	
 	bool bTexDeposterize;
 	int iTexScalingType;
@@ -188,8 +192,6 @@ struct VideoConfig final
 
 		std::vector<std::string> Adapters; // for D3D9 and D3D11
 		std::vector<int> AAModes;
-		std::vector<std::string> PPShaders; // post-processing shaders
-		std::vector<std::string> AnaglyphShaders; // anaglyph shaders
 
 		bool bSupportedFormats[16]; // used for D3D9 in TextureCache		
 		bool bSupportsDualSourceBlend; // only supported by D3D11 and OpenGL

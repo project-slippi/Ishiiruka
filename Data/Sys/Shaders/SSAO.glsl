@@ -87,17 +87,44 @@ MaxValue = 1.0, 1.0
 DefaultValue = 0.5, 0.5
 StepAmount = 0.01, 0.01
 DependentOption = G_DOF
-[Stage]
+[Pass]
 EntryPoint = SSAO
 DependentOption = A_SSAO_ENABLED
-[Stage]
+Input0=ColorBuffer
+Input0Filter=Linear
+Input0Mode=Clamp
+Input1=DepthBuffer
+Input1Filter=Nearest
+Input1Mode=Clamp
+[Pass]
 EntryPoint = BlurH
 DependentOption = A_SSAO_ENABLED
-[Stage]
+Input0=PreviousPass
+Input0Filter=Linear
+Input0Mode=Clamp
+Input1=DepthBuffer
+Input1Filter=Nearest
+Input1Mode=Clamp
+[Pass]
 EntryPoint = Merger
-[Stage]
+Input0=ColorBuffer
+Input0Filter=Linear
+Input0Mode=Clamp
+Input1=DepthBuffer
+Input1Filter=Nearest
+Input1Mode=Clamp
+Input2=PreviousPass
+Input2Filter=Linear
+Input2Mode=Clamp
+[Pass]
 EntryPoint = DOF
 DependentOption = G_DOF
+Input0=PreviousPass
+Input0Filter=Linear
+Input0Mode=Clamp
+Input1=DepthBuffer
+Input1Filter=Nearest
+Input1Mode=Clamp
 [/configuration]
 */
 float3 GetNormalFromDepth(float fDepth) 

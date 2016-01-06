@@ -291,8 +291,8 @@ namespace D3D
 		}
 
 		// removes currently set texture from all slots, returns mask of previously bound slots
-		u32 UnsetTexture(ID3D11ShaderResourceView* srv);
-		void SetTextureByMask(u32 textureSlotMask, ID3D11ShaderResourceView* srv);
+		u64 UnsetTexture(ID3D11ShaderResourceView* srv);
+		void SetTextureByMask(u64 textureSlotMask, ID3D11ShaderResourceView* srv);
 
 		// call this immediately before any drawing operation or to explicitly apply pending resource state changes
 		void Apply();
@@ -307,54 +307,70 @@ namespace D3D
 		ID3D11DepthStencilState* m_currentDepthState;
 		ID3D11RasterizerState* m_currentRasterizerState;
 
-		enum DirtyFlags
+		enum DirtyFlags : u64
 		{
-			DirtyFlag_Texture0 = 1 << 0,
-			DirtyFlag_Texture1 = 1 << 1,
-			DirtyFlag_Texture2 = 1 << 2,
-			DirtyFlag_Texture3 = 1 << 3,
-			DirtyFlag_Texture4 = 1 << 4,
-			DirtyFlag_Texture5 = 1 << 5,
-			DirtyFlag_Texture6 = 1 << 6,
-			DirtyFlag_Texture7 = 1 << 7,
-			DirtyFlag_Textures = 0xFF,
+			DirtyFlag_Texture0 = 1ull << 0,
+			DirtyFlag_Texture1 = 1ull << 1,
+			DirtyFlag_Texture2 = 1ull << 2,
+			DirtyFlag_Texture3 = 1ull << 3,
+			DirtyFlag_Texture4 = 1ull << 4,
+			DirtyFlag_Texture5 = 1ull << 5,
+			DirtyFlag_Texture6 = 1ull << 6,
+			DirtyFlag_Texture7 = 1ull << 7,
+			DirtyFlag_Texture8 = 1ull << 8,
+			DirtyFlag_Texture9 = 1ull << 9,
+			DirtyFlag_Texture10 = 1ull << 10,
+			DirtyFlag_Texture11 = 1ull << 11,
+			DirtyFlag_Texture12 = 1ull << 12,
+			DirtyFlag_Texture13 = 1ull << 13,
+			DirtyFlag_Texture14 = 1ull << 14,
+			DirtyFlag_Texture15 = 1ull << 15,
+			DirtyFlag_Textures = 0xFFFF,
 
-			DirtyFlag_Sampler0 = 1 << 8,
-			DirtyFlag_Sampler1 = 1 << 9,
-			DirtyFlag_Sampler2 = 1 << 10,
-			DirtyFlag_Sampler3 = 1 << 11,
-			DirtyFlag_Sampler4 = 1 << 12,
-			DirtyFlag_Sampler5 = 1 << 13,
-			DirtyFlag_Sampler6 = 1 << 14,
-			DirtyFlag_Sampler7 = 1 << 15,
-			DirtyFlag_Samplers = 0xFF00,
+			DirtyFlag_Sampler0 = 1ull << 16,
+			DirtyFlag_Sampler1 = 1ull << 17,
+			DirtyFlag_Sampler2 = 1ull << 18,
+			DirtyFlag_Sampler3 = 1ull << 19,
+			DirtyFlag_Sampler4 = 1ull << 20,
+			DirtyFlag_Sampler5 = 1ull << 21,
+			DirtyFlag_Sampler6 = 1ull << 22,
+			DirtyFlag_Sampler7 = 1ull << 23,
+			DirtyFlag_Sampler8 = 1ull << 24,
+			DirtyFlag_Sampler9 = 1ull << 25,
+			DirtyFlag_Sampler10 = 1ull << 26,
+			DirtyFlag_Sampler11 = 1ull << 27,
+			DirtyFlag_Sampler12 = 1ull << 28,
+			DirtyFlag_Sampler13 = 1ull << 29,
+			DirtyFlag_Sampler14 = 1ull << 30,
+			DirtyFlag_Sampler15 = 1ull << 31,
+			DirtyFlag_Samplers = 0xFFFF0000,
 
-			DirtyFlag_PixelConstants = 1 << 16,
-			DirtyFlag_VertexConstants = 1 << 17,
-			DirtyFlag_GeometryConstants = 1 << 18,
-			DirtyFlag_HullDomainConstants = 1 << 19,
-			DirtyFlag_Constants = 1 << 16 | 1 << 17 | 1 << 18 | 1 << 19,
+			DirtyFlag_PixelConstants = 1ull << 32,
+			DirtyFlag_VertexConstants = 1ull << 33,
+			DirtyFlag_GeometryConstants = 1ull << 34,
+			DirtyFlag_HullDomainConstants = 1ull << 35,
+			DirtyFlag_Constants = 1ull << 32 | 1ull << 33 | 1ull << 34 | 1ull << 35,
 
-			DirtyFlag_VertexBuffer = 1 << 20,
-			DirtyFlag_IndexBuffer = 1 << 21,
-			DirtyFlag_Buffers = 1 << 20 | 1 << 21,
+			DirtyFlag_VertexBuffer = 1ull << 36,
+			DirtyFlag_IndexBuffer = 1ull << 37,
+			DirtyFlag_Buffers = 1ull << 36 | 1ull << 37,
 
-			DirtyFlag_PixelShader = 1 << 22,
-			DirtyFlag_VertexShader = 1 << 23,
-			DirtyFlag_GeometryShader = 1 << 24,
-			DirtyFlag_HullShader = 1 << 25,
-			DirtyFlag_DomainShader = 1 << 26,
-			DirtyFlag_Shaders = 1 << 22 | 1 << 23 | 1 << 24 | 1 << 25 | 1 << 26,
+			DirtyFlag_PixelShader = 1ull << 38,
+			DirtyFlag_VertexShader = 1ull << 39,
+			DirtyFlag_GeometryShader = 1ull << 40,
+			DirtyFlag_HullShader = 1ull << 41,
+			DirtyFlag_DomainShader = 1ull << 42,
+			DirtyFlag_Shaders = 1ull << 38 | 1ull << 39 | 1ull << 40 | 1ull << 41 | 1ull << 42,
 
-			DirtyFlag_InputAssembler = 1 << 27,
+			DirtyFlag_InputAssembler = 1ull << 43,
 		};
 
-		u32 m_dirtyFlags;
+		u64 m_dirtyFlags;
 		bool use_partial_buffer_update;
 		struct Resources
 		{
-			ID3D11ShaderResourceView* textures[8];
-			ID3D11SamplerState* samplers[8];
+			ID3D11ShaderResourceView* textures[16];
+			ID3D11SamplerState* samplers[16];
 			ID3D11Buffer* pixelConstants[2];
 			UINT pixelConstantsOffset[2];
 			UINT pixelConstantsSize[2];

@@ -15,6 +15,7 @@
 
 #include "VideoCommon/DriverDetails.h"
 #include "VideoCommon/OnScreenDisplay.h"
+#include "VideoCommon/PostProcessing.h"
 #include "VideoCommon/VertexShaderGen.h"
 
 namespace OGL
@@ -597,6 +598,13 @@ void XFBSource::DecodeToTexture(u32 xfbAddr, u32 fbWidth, u32 fbHeight)
 
 void XFBSource::CopyEFB(float Gamma)
 {
+	g_renderer->GetPostProcessor()->OnEndFrame();
+	if (g_ActiveConfig.bPostProcessingEnable &&
+		g_ActiveConfig.iPostProcessingTrigger == POST_PROCESSING_TRIGGER_ON_SWAP &&
+		g_renderer->GetPostProcessor()->IsActive())
+	{
+		g_renderer->GetPostProcessor()->PostProcessEFB();
+	}
 	g_renderer->ResetAPIState();
 
 	// Copy EFB data to XFB and restore render target again

@@ -41,8 +41,6 @@ Make AA apply instantly during gameplay if possible
 #include <memory>
 
 #include "Common/Atomic.h"
-#include "Common/CommonPaths.h"
-#include "Common/FileSearch.h"
 #include "Common/Thread.h"
 #include "Common/Logging/LogManager.h"
 
@@ -102,22 +100,6 @@ std::string VideoBackend::GetDisplayName() const
 		return "OpenGL";
 }
 
-static std::vector<std::string> GetShaders(const std::string &sub_dir = "")
-{
-	std::vector<std::string> paths = DoFileSearch({".glsl"}, {
-		File::GetUserPath(D_SHADERS_IDX) + sub_dir,
-		File::GetSysDirectory() + SHADERS_DIR DIR_SEP + sub_dir
-	});
-	std::vector<std::string> result;
-	for (std::string path : paths)
-	{
-	   std::string name;
-	   SplitPath(path, nullptr, &name, nullptr);
-	   result.push_back(name);
-	}
-	return result;
-}
-
 static void InitBackendInfo()
 {
 	g_Config.backend_info.APIType = API_OPENGL;
@@ -146,10 +128,6 @@ static void InitBackendInfo()
 
 	// aamodes
 	g_Config.backend_info.AAModes = { 1, 2, 4, 8 };
-
-	// pp shaders
-	g_Config.backend_info.PPShaders = GetShaders("");
-	g_Config.backend_info.AnaglyphShaders = GetShaders(ANAGLYPH_DIR DIR_SEP);
 }
 
 void VideoBackend::ShowConfig(void *_hParent)

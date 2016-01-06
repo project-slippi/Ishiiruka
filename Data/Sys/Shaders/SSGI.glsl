@@ -84,14 +84,35 @@ OptionName = A_ILUMINATION_ONLY
 DefaultValue = False
 DependentOption = A_SSGI_ENABLED
 
-[Stage]
+[Pass]
 EntryPoint = PS_AO_SSGI
 DependentOption = A_SSGI_ENABLED
-[Stage]
+Input0=ColorBuffer
+Input0Filter=Linear
+Input0Mode=Clamp
+Input1=DepthBuffer
+Input1Filter=Nearest
+Input1Mode=Clamp
+[Pass]
 EntryPoint = PS_AO_BlurV
 DependentOption = A_SSGI_ENABLED
-[Stage]
+Input0=PreviousPass
+Input0Filter=Linear
+Input0Mode=Clamp
+Input1=DepthBuffer
+Input1Filter=Nearest
+Input1Mode=Clamp
+[Pass]
 EntryPoint = PS_AO_GICombine
+Input0=ColorBuffer
+Input0Filter=Linear
+Input0Mode=Clamp
+Input1=DepthBuffer
+Input1Filter=Nearest
+Input1Mode=Clamp
+Input2=PreviousPass
+Input2Filter=Linear
+Input2Mode=Clamp
 [/configuration]
 */
 

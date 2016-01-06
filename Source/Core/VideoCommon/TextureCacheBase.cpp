@@ -19,6 +19,7 @@
 #include "VideoCommon/RenderBase.h"
 #include "VideoCommon/Statistics.h"
 #include "VideoCommon/TextureCacheBase.h"
+#include "VideoCommon/PostProcessing.h"
 #include "VideoCommon/TextureUtil.h"
 #include "VideoCommon/VideoCommon.h"
 #include "VideoCommon/VideoConfig.h"
@@ -1185,7 +1186,12 @@ void TextureCacheBase::CopyRenderTargetToTexture(u32 dstAddr, u32 dstFormat, u32
 
 	bool copy_to_ram = !g_ActiveConfig.bSkipEFBCopyToRam;
 	bool copy_to_vram = true;
-
+	// Only apply triggered post-processing on specific formats, to avoid false positives.
+	// Skip depth copies, single-channel textures (basically RGB565/RGB5A3/RGBA8 only)
+	if (g_ActiveConfig.backend_info.bSupportsPostProcessing &&  srcFormat != PEControl::Z24 && !isIntensity && dstFormat >= 4 && dstFormat <= 6)		
+	{
+		g_renderer->GetPostProcessor()->OnEFBCopy();
+	}
 	if (copy_to_ram)
 	{
 		g_texture_cache->CopyEFB(

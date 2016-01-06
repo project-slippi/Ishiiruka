@@ -1,5 +1,5 @@
 /*===============================================================================*\
-|########################        [Ishiiruka FX 0.7]        ######################||
+|########################        [Ishiiruka FX 0.8]        ######################||
 || Credist to:                                                                   ||
 || Asmodean (DolphinFX)                                                          ||
 || Matso (MATSODOF)                                                              ||
@@ -477,7 +477,7 @@ DependentOption = D_BLOOM
 GUIName = Bloom Width
 OptionName = A_BLOOMWIDTH
 MinValue = 0.5
-MaxValue = 1.0
+MaxValue = 3.0
 StepAmount = 0.01
 DefaultValue = 1.0
 DependentOption = D_BLOOM
@@ -606,57 +606,134 @@ StepAmount = 1
 DefaultValue = 0
 DependentOption = A_FXAA_PASS
 
-[Stage]
+[Pass]
 EntryPoint = AmbientOcclusion
 DependentOption = A_SSAO_ENABLED,A_SSGI_ENABLED
-[Stage]
+Input0=ColorBuffer
+Input0Filter=Linear
+Input0Mode=Clamp
+Input1=DepthBuffer
+Input1Filter=Nearest
+Input1Mode=Clamp
+[Pass]
 EntryPoint = AOBlur
 DependentOption = A_SSAO_ENABLED,A_SSGI_ENABLED
-[Stage]
+Input0=PreviousPass
+Input0Filter=Linear
+Input0Mode=Clamp
+Input1=DepthBuffer
+Input1Filter=Nearest
+Input1Mode=Clamp
+[Pass]
 EntryPoint = Merger
-[Stage]
+Input0=ColorBuffer
+Input0Filter=Linear
+Input0Mode=Clamp
+Input1=DepthBuffer
+Input1Filter=Nearest
+Input1Mode=Clamp
+Input2=PreviousPass
+Input2Filter=Linear
+Input2Mode=Clamp
+[Pass]
 EntryPoint = A_ReduceSize
 DependentOption = D_BLOOM
 OutputScale = 0.5
-[Stage]
+Input0=PreviousPass
+Input0Filter=Linear
+Input0Mode=Clamp
+[Pass]
 EntryPoint = BloomH
 DependentOption = D_BLOOM
 OutputScale = 0.25
-[Stage]
+Input0=PreviousPass
+Input0Filter=Linear
+Input0Mode=Clamp
+[Pass]
 EntryPoint = BloomV
 DependentOption = D_BLOOM
 OutputScale = 0.125
-[Stage]
+Input0=PreviousPass
+Input0Filter=Linear
+Input0Mode=Clamp
+[Pass]
 EntryPoint = BloomH
 DependentOption = D_BLOOM
 OutputScale = 0.125
-[Stage]
+Input0=PreviousPass
+Input0Filter=Linear
+Input0Mode=Clamp
+[Pass]
 EntryPoint = BloomV
 DependentOption = D_BLOOM
 OutputScale = 0.125
-[Stage]
+Input0=PreviousPass
+Input0Filter=Linear
+Input0Mode=Clamp
+[Pass]
 EntryPoint = BloomScatering
 DependentOption = D_BLOOM
 OutputScale = 0.03125
-[Stage]
+Input0=PreviousPass
+Input0Filter=Linear
+Input0Mode=Clamp
+[Pass]
 EntryPoint = BloomMerger
 DependentOption = D_BLOOM
-Inputs = 2, 7, 8
-[Stage]
+Input0=Pass2
+Input0Filter=Linear
+Input0Mode=Clamp
+Input1=Pass7
+Input1Filter=Nearest
+Input1Mode=Clamp
+Input2=Pass8
+Input2Filter=Linear
+Input2Mode=Clamp
+Input3=DepthBuffer
+Input3Filter=Nearest
+Input3Mode=Clamp
+[Pass]
 EntryPoint = PS_DOF_MatsoDOF1
 DependentOption = MATSODOF
-[Stage]
+Input0=PreviousPass
+Input0Filter=Linear
+Input0Mode=Clamp
+Input1=DepthBuffer
+Input1Filter=Nearest
+Input1Mode=Clamp
+[Pass]
 EntryPoint = PS_DOF_MatsoDOF2
 DependentOption = MATSODOF
-[Stage]
+Input0=PreviousPass
+Input0Filter=Linear
+Input0Mode=Clamp
+Input1=DepthBuffer
+Input1Filter=Nearest
+Input1Mode=Clamp
+[Pass]
 EntryPoint = PS_DOF_MatsoDOF3
 DependentOption = MATSODOF
-[Stage]
+Input0=PreviousPass
+Input0Filter=Linear
+Input0Mode=Clamp
+Input1=DepthBuffer
+Input1Filter=Nearest
+Input1Mode=Clamp
+[Pass]
 EntryPoint = PS_DOF_MatsoDOF4
 DependentOption = MATSODOF
-[Stage]
+Input0=PreviousPass
+Input0Filter=Linear
+Input0Mode=Clamp
+Input1=DepthBuffer
+Input1Filter=Nearest
+Input1Mode=Clamp
+[Pass]
 EntryPoint = Barrel_distortion
 DependentOption = E_BARREL
+Input0=PreviousPass
+Input0Filter=Linear
+Input0Mode=Clamp
 [/configuration]
 */
 float3 GetNormalFromDepth(float fDepth)
@@ -1688,13 +1765,13 @@ void A_ReduceSize()
 void BloomH()
 {
 	float2 texcoord = GetCoordinates();
-	SetOutput(Gauss1dPrev(texcoord, float2(1.0, 0.0), 8.0 * GetOption(A_BLOOMWIDTH)));
+	SetOutput(Gauss1dPrev(texcoord, float2(1.0, 0.0), GetOption(A_BLOOMWIDTH)));
 }
 
 void BloomV()
 {
 	float2 texcoord = GetCoordinates();
-	SetOutput(Gauss1dPrev(texcoord, float2(0.0, 1.0), 8.0 * GetOption(A_BLOOMWIDTH)));
+	SetOutput(Gauss1dPrev(texcoord, float2(0.0, 1.0), GetOption(A_BLOOMWIDTH)));
 }
 
 void BloomScatering()
@@ -1741,13 +1818,13 @@ void BloomScatering()
 
 void BloomMerger()
 {
-	float4 lumColor = SamplePrevLocation(2, float2(0.5, 0.5));
-	float3 blur = SamplePrevBicubic(GetCoordinates(), 1, 8.0).rgb * GetOption(C_BLOOMINTENSITY);
+	float4 lumColor = SampleInputLocation(2, float2(0.5, 0.5));
+	float3 blur = SampleInputBicubic(1).rgb * GetOption(C_BLOOMINTENSITY);
 	blur.rgb = blur.rgb * (1.0 - saturate(lumColor.a * 2.0));
 	float3 basecolor = float3(0.0,0.0,0.0);
 	if (!OptionEnabled(A_BLOOMONLY))
 	{
-		basecolor = SamplePrev(0).rgb;
+		basecolor = SampleInput(0).rgb;
 	}
 	
 	if (OptionEnabled(D_SCATTERRING))
@@ -1812,7 +1889,7 @@ float2 distortionOffsetCoordsToTextureCoords(float2 offset) {
 
 void Barrel_distortion(){
 	// Grab the texture coordinate, which will be in the range 0-1 in both X and Y
-	float2 offset = textureCoordsToDistortionOffsetCoords(FromSRCCoords(GetCoordinates()));
+	float2 offset = textureCoordsToDistortionOffsetCoords(GetCoordinates());
 
 	// Determine the amount of distortion based on the distance from the lens center
 	float scale = distortionScale(offset);
@@ -1830,6 +1907,6 @@ void Barrel_distortion(){
 	}
 	else
 	{
-		SetOutput(SamplePrevLocation(ToSRCCoords(actualTextureCoords)));
+		SetOutput(SamplePrevLocation(actualTextureCoords));
 	}
 }

@@ -43,6 +43,11 @@ typedef MathUtil::Rectangle<int> EFBRectangle;
 // convert an EFBRectangle to a TargetRectangle.
 struct TargetRectangle : public MathUtil::Rectangle<int>
 {
+	constexpr TargetRectangle() = default;
+
+	constexpr TargetRectangle(int theLeft, int theTop, int theRight, int theBottom)
+		: Rectangle<int>(theLeft, theTop, theRight, theBottom) {}
+
 #ifdef _WIN32
 	// Only used by D3D backend.
 	const RECT *AsRECT() const

@@ -71,7 +71,7 @@ float2 distortionOffsetCoordsToTextureCoords(float2 offset) {
 
 void main(){
 	// Grab the texture coordinate, which will be in the range 0-1 in both X and Y
-	float2 offset = textureCoordsToDistortionOffsetCoords(FromSRCCoords(GetCoordinates()));
+	float2 offset = textureCoordsToDistortionOffsetCoords(GetCoordinates());
 
 	// Determine the amount of distortion based on the distance from the lens center
 	float scale = distortionScale(offset);
@@ -89,6 +89,6 @@ void main(){
 	}
 	else
 	{
-		SetOutput(SampleLocation(ToSRCCoords(actualTextureCoords)));
+		SetOutput(SampleLocation(actualTextureCoords));
 	}
 }

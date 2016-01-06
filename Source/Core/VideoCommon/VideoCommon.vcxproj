@@ -223,6 +223,9 @@
     <ProjectReference Include="$(ExternalsDir)xxhash\xxhash.vcxproj">
       <Project>{677EA016-1182-440C-9345-DC88D1E98C0C}</Project>
     </ProjectReference>
+    <ProjectReference Include="..\..\..\Externals\SOIL\SOIL.vcxproj">
+      <Project>{b441cc62-877e-4b3f-93e0-0de80544f705}</Project>
+    </ProjectReference>
     <ProjectReference Include="..\..\..\Externals\xbrz\xbrz.vcxproj">
       <Project>{869ea016-4458-2a45-25af-dc44d6e98c0a}</Project>
     </ProjectReference>

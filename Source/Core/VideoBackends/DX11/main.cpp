@@ -6,8 +6,6 @@
 #include <wx/wx.h>
 
 #include "Common/Logging/LogManager.h"
-#include "Common/CommonPaths.h"
-#include "Common/FileSearch.h"
 
 #include "VideoCommon/BPStructs.h"
 #include "VideoCommon/CommandProcessor.h"
@@ -70,22 +68,6 @@ std::string VideoBackend::GetName() const
 std::string VideoBackend::GetDisplayName() const
 {
 	return "Direct3D11";
-}
-
-static std::vector<std::string> GetShaders(const std::string &sub_dir = "")
-{
-	std::vector<std::string> paths = DoFileSearch({ ".glsl" }, {
-		File::GetUserPath(D_SHADERS_IDX) + sub_dir,
-		File::GetSysDirectory() + SHADERS_DIR DIR_SEP + sub_dir
-	});
-	std::vector<std::string> result;
-	for (std::string path : paths)
-	{
-	   std::string name;
-	   SplitPath(path, nullptr, &name, nullptr);
-	   result.push_back(name);
-	}
-	return result;
 }
 
 void InitBackendInfo()
@@ -163,10 +145,6 @@ void InitBackendInfo()
 	}
 
 	factory->Release();
-
-	// pp shaders
-	g_Config.backend_info.PPShaders = GetShaders("");
-	g_Config.backend_info.AnaglyphShaders = GetShaders(ANAGLYPH_DIR DIR_SEP);
 
 	DX11::D3D::UnloadDXGI();
 	DX11::D3D::UnloadD3D();

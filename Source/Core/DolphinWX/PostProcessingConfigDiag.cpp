@@ -33,14 +33,14 @@ PostProcessingConfigDiag::PostProcessingConfigDiag(wxWindow* parent, const std::
 	else
 	{
 		m_post_processor = new PostProcessingShaderConfiguration();
-		m_post_processor->LoadShader(m_shader);
+		m_post_processor->LoadShader("", m_shader);
 	}
 
 	// Create our UI classes
 	const PostProcessingShaderConfiguration::ConfigMap& config_map = m_post_processor->GetOptions();
 	for (const auto& it : config_map)
 	{
-		if (it.second.m_type == PostProcessingShaderConfiguration::ConfigurationOption::OptionType::OPTION_BOOL)
+		if (it.second.m_type == POST_PROCESSING_OPTION_TYPE_BOOL)
 		{
 			ConfigGrouping* group = new ConfigGrouping(ConfigGrouping::WidgetType::TYPE_TOGGLE,
 				it.second.m_gui_name, it.second.m_gui_description, it.first, it.second.m_dependent_option,
@@ -164,7 +164,7 @@ void PostProcessingConfigDiag::ConfigGrouping::GenerateUI(PostProcessingConfigDi
 	else
 	{
 		size_t vector_size = 0;
-		if (m_config_option->m_type == PostProcessingShaderConfiguration::ConfigurationOption::OptionType::OPTION_INTEGER)
+		if (m_config_option->m_type == POST_PROCESSING_OPTION_TYPE_INTEGER)
 			vector_size = m_config_option->m_integer_values.size();
 		else
 			vector_size = m_config_option->m_float_values.size();
@@ -181,7 +181,7 @@ void PostProcessingConfigDiag::ConfigGrouping::GenerateUI(PostProcessingConfigDi
 			int steps = 0;
 			int current_value = 0;
 			std::string string_value;
-			if (m_config_option->m_type == PostProcessingShaderConfiguration::ConfigurationOption::OptionType::OPTION_INTEGER)
+			if (m_config_option->m_type == POST_PROCESSING_OPTION_TYPE_INTEGER)
 			{
 				// Find out our range by taking the max subtracting the minimum.
 				double range = m_config_option->m_integer_max_values[i] - m_config_option->m_integer_min_values[i];
@@ -284,7 +284,7 @@ void PostProcessingConfigDiag::Event_Slider_Finish(wxScrollEvent &ev)
 	ConfigGrouping* config = m_config_map[config_option->GetData()];
 
 	const auto& option_data = m_post_processor->GetOption(config->GetOption());
-	if (!option_data.m_resolve_at_compilation)
+	if (!option_data.m_compile_time_constant)
 	{
 		// Just handle options that must be resolved at compilation time
 		ev.Skip();
@@ -292,7 +292,7 @@ void PostProcessingConfigDiag::Event_Slider_Finish(wxScrollEvent &ev)
 	}
 
 	size_t vector_size = 0;
-	if (option_data.m_type == PostProcessingShaderConfiguration::ConfigurationOption::OptionType::OPTION_INTEGER)
+	if (option_data.m_type == POST_PROCESSING_OPTION_TYPE_INTEGER)
 		vector_size = option_data.m_integer_values.size();
 	else
 		vector_size = option_data.m_float_values.size();
@@ -303,7 +303,7 @@ void PostProcessingConfigDiag::Event_Slider_Finish(wxScrollEvent &ev)
 		// Convert current step in to the real range value
 		int current_step = config->GetSliderValue(i);
 		std::string string_value;
-		if (option_data.m_type == PostProcessingShaderConfiguration::ConfigurationOption::OptionType::OPTION_INTEGER)
+		if (option_data.m_type == POST_PROCESSING_OPTION_TYPE_INTEGER)
 		{
 			s32 value = option_data.m_integer_step_values[i] * current_step + option_data.m_integer_min_values[i];
 			m_post_processor->SetOptioni(config->GetOption(), i, value);
@@ -324,7 +324,7 @@ void PostProcessingConfigDiag::Event_Slider(wxCommandEvent &ev)
 
 	const auto& option_data = m_post_processor->GetOption(config->GetOption());
 	size_t vector_size = 0;
-	if (option_data.m_type == PostProcessingShaderConfiguration::ConfigurationOption::OptionType::OPTION_INTEGER)
+	if (option_data.m_type == POST_PROCESSING_OPTION_TYPE_INTEGER)
 		vector_size = option_data.m_integer_values.size();
 	else
 		vector_size = option_data.m_float_values.size();
@@ -335,17 +335,17 @@ void PostProcessingConfigDiag::Event_Slider(wxCommandEvent &ev)
 		// Convert current step in to the real range value
 		int current_step = config->GetSliderValue(i);
 		std::string string_value;
-		if (option_data.m_type == PostProcessingShaderConfiguration::ConfigurationOption::OptionType::OPTION_INTEGER)
+		if (option_data.m_type == POST_PROCESSING_OPTION_TYPE_INTEGER)
 		{
 			s32 value = option_data.m_integer_step_values[i] * current_step + option_data.m_integer_min_values[i];
-			if (!option_data.m_resolve_at_compilation)
+			if (!option_data.m_compile_time_constant)
 				m_post_processor->SetOptioni(config->GetOption(), i, value);
 			string_value = std::to_string(value);
 		}
 		else
 		{
 			float value = option_data.m_float_step_values[i] * current_step + option_data.m_float_min_values[i];
-			if (!option_data.m_resolve_at_compilation)
+			if (!option_data.m_compile_time_constant)
 			m_post_processor->SetOptionf(config->GetOption(), i, value);
 			string_value = std::to_string(value);
 		}

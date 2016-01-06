@@ -667,7 +667,9 @@ void Renderer::Init()
 	g_framebuffer_manager = std::make_unique<FramebufferManager>(s_target_width, s_target_height,
 		s_MSAASamples);
 
-	m_post_processor = std::make_unique<OpenGLPostProcessing>();
+	m_post_processor = std::make_unique<OGLPostProcessor>();
+	if (!m_post_processor->Initialize())
+		PanicAlert("OGL: Failed to initialize post processor.");
 
 	s_raster_font = std::make_unique<RasterFont>();
 
@@ -1060,23 +1062,24 @@ void Renderer::ClearScreen(const EFBRectangle& rc, bool colorEnable, bool alphaE
 	ClearEFBCache();
 }
 
-void Renderer::BlitScreen(TargetRectangle src, TargetRectangle dst, GLuint src_texture, GLuint src_depth_texture, int src_width, int src_height, float gamma)
+void Renderer::BlitScreen(TargetRectangle dst, TargetRectangle src, GLuint src_texture, int src_width, int src_height, float gamma)
 {
 	if (g_ActiveConfig.iStereoMode == STEREO_SBS || g_ActiveConfig.iStereoMode == STEREO_TAB)
 	{
 		TargetRectangle leftRc, rightRc;
+
 		// Top-and-Bottom mode needs to compensate for inverted vertical screen coordinates.
 		if (g_ActiveConfig.iStereoMode == STEREO_TAB)
 			ConvertStereoRectangle(dst, rightRc, leftRc);
 		else
 			ConvertStereoRectangle(dst, leftRc, rightRc);
 
-		m_post_processor->BlitFromTexture(src, leftRc, &src_texture, &src_depth_texture, src_width, src_height, 0, gamma);
-		m_post_processor->BlitFromTexture(src, rightRc, &src_texture, &src_depth_texture, src_width, src_height, 1, gamma);
+		m_post_processor->BlitToFramebuffer(leftRc, 0, src, src_texture, src_width, src_height, 0, gamma);
+		m_post_processor->BlitToFramebuffer(rightRc, 0, src, src_texture, src_width, src_height, 1, gamma);
 	}
 	else
 	{
-		m_post_processor->BlitFromTexture(src, dst, &src_texture, &src_depth_texture, src_width, src_height, 0, gamma);
+		m_post_processor->BlitToFramebuffer(dst, 0, src, src_texture, src_width, src_height, 0, gamma);
 	}
 }
 
@@ -1220,8 +1223,7 @@ void Renderer::SwapImpl(u32 xfbAddr, u32 fbWidth, u32 fbStride, u32 fbHeight, co
 			glEnable(GL_DEBUG_OUTPUT);
 		else
 			glDisable(GL_DEBUG_OUTPUT);
-	}
-
+	}	
 	static int w = 0, h = 0;
 	if (g_bSkipCurrentFrame || (!XFBWrited && !g_ActiveConfig.RealXFBEnabled()) || !fbWidth || !fbHeight)
 	{
@@ -1295,21 +1297,34 @@ void Renderer::SwapImpl(u32 xfbAddr, u32 fbWidth, u32 fbStride, u32 fbHeight, co
 			// Tell the OSD Menu about the current internal resolution
 			OSDInternalW = xfbSource->sourceRc.GetWidth(); OSDInternalH = xfbSource->sourceRc.GetHeight();
 
-			BlitScreen(sourceRc, drawRc, xfbSource->texture, xfbSource->depthtexture, xfbSource->texWidth, xfbSource->texHeight);
+			BlitScreen(drawRc, sourceRc, xfbSource->texture, xfbSource->texWidth, xfbSource->texHeight);
 		}
 	}
 	else
 	{
-		TargetRectangle targetRc = ConvertEFBRectangle(rc);
+		m_post_processor->OnEndFrame();
+		TargetRectangle target_rc = ConvertEFBRectangle(rc);
 
 		// for msaa mode, we must resolve the efb content to non-msaa
 		GLuint tex = FramebufferManager::ResolveAndGetRenderTarget(rc);
-		GLuint depthtex = 0; 
-		if (m_post_processor->GetConfig()->IsDepthInputRequired())
+		int src_width = s_target_width;
+		int src_height = s_target_height;
+
+		// Post processing active?
+		if (g_ActiveConfig.bPostProcessingEnable &&
+			g_ActiveConfig.iPostProcessingTrigger == POST_PROCESSING_TRIGGER_ON_SWAP &&
+			m_post_processor->IsActive())
 		{
-			depthtex = FramebufferManager::ResolveAndGetDepthTarget(rc);
+			GLuint depth_tex = 0;
+			if (m_post_processor->GetConfig()->RequiresDepthBuffer())
+				depth_tex = FramebufferManager::ResolveAndGetDepthTarget(rc);
+
+			TargetRectangle source_rc(target_rc);
+			m_post_processor->PostProcess(target_rc, s_target_width, s_target_height,
+				FramebufferManager::GetEFBLayers(), tex, depth_tex);
 		}
-		BlitScreen(targetRc, flipped_trc, tex, depthtex, s_target_width, s_target_height);
+
+		BlitScreen(flipped_trc, target_rc, tex, src_width, src_height, Gamma);
 	}
 
 	glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
@@ -1476,6 +1491,8 @@ void Renderer::SwapImpl(u32 xfbAddr, u32 fbWidth, u32 fbStride, u32 fbHeight, co
 		if (TargetSizeChanged ||
 		    s_last_multisamples != g_ActiveConfig.iMultisamples || s_last_stereo_mode != (g_ActiveConfig.iStereoMode > 0))
 		{
+			// Reload post-processor when stereo mode changes (layers changed)
+			bool reload_post_processor = (s_last_stereo_mode != (g_ActiveConfig.iStereoMode > 0));
 			s_last_stereo_mode = g_ActiveConfig.iStereoMode > 0;
 			s_last_multisamples = g_ActiveConfig.iMultisamples;
 			s_MSAASamples = s_last_multisamples;
@@ -1489,6 +1506,8 @@ void Renderer::SwapImpl(u32 xfbAddr, u32 fbWidth, u32 fbStride, u32 fbHeight, co
 			g_framebuffer_manager = std::make_unique<FramebufferManager>(s_target_width, s_target_height, s_MSAASamples);
 
 			PixelShaderManager::SetEfbScaleChanged();
+			if (reload_post_processor)
+				m_post_processor->SetReloadFlag();
 		}
 	}
 
@@ -1539,6 +1558,10 @@ void Renderer::SwapImpl(u32 xfbAddr, u32 fbWidth, u32 fbStride, u32 fbHeight, co
 
 	// Invalidate EFB cache
 	ClearEFBCache();
+
+	// if the configuration has changed, reload post processor (can fail, which will deactivate it)
+	if (m_post_processor->RequiresReload())
+		m_post_processor->ReloadShaders();
 }
 
 // ALWAYS call RestoreAPIState for each ResetAPIState call you're doing

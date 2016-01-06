@@ -18,6 +18,9 @@
 #include <wx/slider.h>
 #include <wx/stattext.h>
 
+#include "Common/Assert.h"
+#include "Common/CommonPaths.h"
+#include "Common/FileSearch.h"
 #include "Common/FileUtil.h"
 #include "Common/SysConf.h"
 #include "Core/ConfigManager.h"
@@ -28,6 +31,7 @@
 #include "DolphinWX/VideoConfigDiag.h"
 #include "DolphinWX/WxUtils.h"
 #include "VideoCommon/PostProcessing.h"
+#include "VideoCommon/RenderBase.h"
 #include "VideoCommon/VideoBackendBase.h"
 #include "VideoCommon/VideoConfig.h"
 
@@ -118,7 +122,7 @@ static wxString internal_res_desc = _("Specifies the resolution used to render a
 static wxString efb_access_desc = _("Ignore any requests of the CPU to read from or write to the EFB.\nImproves performance in some games, but might disable some gameplay-related features or graphical effects.\n\nIf unsure, leave this unchecked.");
 static wxString efb_fast_access_desc = _("Use a fast efb caching method to speed up access. This method is inaccurate but will make games run faster and efb reads and writes will still work.");
 static wxString efb_emulate_format_changes_desc = _("Ignore any changes to the EFB format.\nImproves performance in many games without any negative effect. Causes graphical defects in a small number of other games though.\n\nIf unsure, leave this checked.");
-static wxString skip_efb_copy_to_ram_desc = wxTRANSLATE("Stores EFB Copies exclusively on the GPU, bypassing system memory. Causes graphical defects in a small number of games.\n\nEnabled = EFB Copies to Texture\nDisabled = EFB Copies to RAM (and Texture)\n\nIf unsure, leave this checked.");
+static wxString skip_efb_copy_to_ram_desc = _("Stores EFB Copies exclusively on the GPU, bypassing system memory. Causes graphical defects in a small number of games.\n\nEnabled = EFB Copies to Texture\nDisabled = EFB Copies to RAM (and Texture)\n\nIf unsure, leave this checked.");
 static wxString stc_desc = _("The safer you adjust this, the less likely the emulator will be missing any texture updates from RAM.\n\nIf unsure, use the rightmost value.");
 static wxString bbox_desc = _("Selects wish implementation is used to emulate Bounding Box. By Default GPU will be used if supported.");
 static wxString wireframe_desc = _("Render the scene as a wireframe.\n\nIf unsure, leave this unchecked.");
@@ -149,7 +153,9 @@ static wxString use_ffv1_desc = _("Encode frame dumps using the FFV1 codec.\n\nI
 static wxString free_look_desc = _("This feature allows you to change the game's camera.\nMove the mouse while holding the right mouse button to pan and while holding the middle button to move.\nHold SHIFT and press one of the WASD keys to move the camera by a certain step distance (SHIFT+0 to move faster and SHIFT+9 to move slower). Press SHIFT+R to reset the camera.\n\nIf unsure, leave this unchecked.");
 static wxString crop_desc = _("Crop the picture from its native aspect ratio to 4:3 or 16:9.\n\nIf unsure, leave this unchecked.");
 static wxString opencl_desc = _("[EXPERIMENTAL]\nAims to speed up emulation by offloading texture decoding to the GPU using the OpenCL framework.\nHowever, right now it's known to cause texture defects in various games. Also it's slower than regular CPU texture decoding in most cases.\n\nIf unsure, leave this unchecked.");
-static wxString ppshader_desc = _("Apply a post-processing effect after finishing a frame.\n\nIf unsure, select (off).");
+static wxString pptrigger_desc = wxTRANSLATE("When to apply post-processing effects.\nOn Swap will apply post effects before resizing to the screen.\nOn Projection attempts to render post effects before the game draws 2D elements on the screen, by triggering post-processing when a game changes projection types. However, this may not work with all games.\nOn EFB Copy is similar to On Projection, and applies post-processing when an copy of a scene rendered with perspective projection is requested. This may work for other games.\n\nIf unsure, select On Swap.");
+static wxString ppshader_desc = wxTRANSLATE("Applies a post-processing effect when the trigger chosen occurs, by default this is at the end of a frame.\nPost-processing is performed at the selected internal resolution.\n\nIf unsure, select (off).");
+static wxString blitshader_desc = wxTRANSLATE("Use a custom shader for resizing from internal resolution to display resolution. This shader can also perform additional post-processing effects.\n\nIf unsure, select (default).");
 static wxString shader_errors_desc = _("Usually if shader compilation fails, an error message is displayed.\nHowever, one may skip the popups to allow interruption free gameplay by checking this option.\n\nIf unsure, leave this unchecked.");
 static wxString stereo_3d_desc = _("Select the stereoscopic 3D  mode, stereoscopy allows you to get a better feeling of depth if you have the necessary hardware.\nSide-by-Side and Top-and-Bottom are used by most 3D TVs.\nAnaglyph is used for Red-Cyan colored glasses.\nHeavily decreases emulation speed and sometimes causes issues.\n\nIf unsure, select Off.");
 static wxString stereo_separation_desc = _("Control the separation distance, this is the distance between the virtual cameras.\nA higher value creates a stronger feeling of depth while a lower value is more comfortable.");
@@ -165,7 +171,7 @@ static wxString Tessellation_round_desc = _("Select the intensity of the roundin
 static wxString Tessellation_displacement_desc = _("Select the intensity of the displacement effect when using custom materials.");
 static wxString scaling_factor_desc = _("Multiplier applied to the texture size.");
 static wxString texture_deposterize_desc = _("Decrease some gradient's artifacts caused by scaling.");
-
+static wxString anaglyphshader_desc = _("Selects which shader will be used to transform the two images when stereo is enabled, and anaglyph is the chosen mode.");
 // Search for available resolutions - TODO: Move to Common?
 static  wxArrayString GetListOfResolutions()
 {
@@ -406,10 +412,10 @@ VideoConfigDiag::VideoConfigDiag(wxWindow* parent, const std::string &title, con
 	}
 
 	// postproc shader
-	if (vconfig.backend_info.PPShaders.size())
+	if (vconfig.backend_info.bSupportsPostProcessing)
 	{
 		choice_ppshader = new wxChoice(page_enh, wxID_ANY);
-		RegisterControl(choice_ppshader, (ppshader_desc));
+		RegisterControl(choice_ppshader, wxGetTranslation(ppshader_desc));
 		button_config_pp = new wxButton(page_enh, wxID_ANY, _("Config"));
 
 		PopulatePostProcessingShaders();
@@ -417,14 +423,27 @@ VideoConfigDiag::VideoConfigDiag(wxWindow* parent, const std::string &title, con
 		choice_ppshader->Bind(wxEVT_CHOICE, &VideoConfigDiag::Event_PPShader, this);
 		button_config_pp->Bind(wxEVT_BUTTON, &VideoConfigDiag::Event_ConfigurePPShader, this);
 
-		szr_enh->Add(new wxStaticText(page_enh, wxID_ANY, _("Post-Processing Effect:")), 1, wxALIGN_CENTER_VERTICAL, 0);
+		szr_enh->Add(new wxStaticText(page_enh, wxID_ANY, _("Post-Processing Shader:")), 1, wxALIGN_CENTER_VERTICAL, 0);
 		szr_enh->Add(choice_ppshader);
 		szr_enh->Add(button_config_pp);
+		choice_blitshader = new wxChoice(page_enh, wxID_ANY);
+		RegisterControl(choice_blitshader, wxGetTranslation(blitshader_desc));
+		button_config_d = new wxButton(page_enh, wxID_ANY, _("Config"));
+
+		choice_blitshader->Bind(wxEVT_CHOICE, &VideoConfigDiag::Event_BlitShader, this);
+		button_config_d->Bind(wxEVT_BUTTON, &VideoConfigDiag::Event_ConfigureDisplayShader, this);
+		szr_enh->Add(new wxStaticText(page_enh, wxID_ANY, _("Display Shader:")), 1, wxALIGN_CENTER_VERTICAL, 0);
+
+		szr_enh->Add(choice_blitshader);
+		szr_enh->Add(button_config_d);
+		PopulateBlitShaders();
 	}
 	else
 	{
 		choice_ppshader = nullptr;
+		choice_blitshader = nullptr;
 		button_config_pp = nullptr;
+		button_config_d = nullptr;
 	}
 
 	// Scaled copy, PL, Bilinear filter, 3D Vision
@@ -440,7 +459,26 @@ VideoConfigDiag::VideoConfigDiag(wxWindow* parent, const std::string &title, con
 	wxStaticBoxSizer* const group_enh = new wxStaticBoxSizer(wxVERTICAL, page_enh, _("Enhancements"));
 	group_enh->Add(szr_enh, 1, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 5);
 	szr_enh_main->Add(group_enh, 0, wxEXPAND | wxALL, 5);
+	if (vconfig.backend_info.bSupportsPostProcessing)
+	{
+		wxFlexGridSizer* const szr_postprocessing = new wxFlexGridSizer(2, 5, 5);
 
+		const wxString pptrigger_choices[] = { _("On Swap"), _("On Projection"), _("On EFB Copy") };
+		choice_pptrigger = CreateChoice(page_enh, vconfig.iPostProcessingTrigger, wxGetTranslation(pptrigger_desc), 3, pptrigger_choices);
+		szr_postprocessing->Add(new wxStaticText(page_enh, wxID_ANY, _("Post-Processing Trigger:")), 1, wxALIGN_CENTER_VERTICAL, 0);
+		szr_postprocessing->Add(choice_pptrigger);
+
+		choice_anaglyphshader = new wxChoice(page_enh, wxID_ANY);
+		RegisterControl(choice_anaglyphshader, wxGetTranslation(anaglyphshader_desc));
+		choice_anaglyphshader->Bind(wxEVT_CHOICE, &VideoConfigDiag::Event_AnaglyphShader, this);
+		szr_postprocessing->Add(new wxStaticText(page_enh, wxID_ANY, _("Anaglyph Shader:")), 1, wxALIGN_CENTER_VERTICAL, 0);
+		szr_postprocessing->Add(choice_anaglyphshader);
+		PopulateAnaglyphShaders();
+
+		wxStaticBoxSizer* const group_postprocessing = new wxStaticBoxSizer(wxVERTICAL, page_enh, _("Post-Processing"));
+		group_postprocessing->Add(szr_postprocessing, 1, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 5);
+		szr_enh_main->Add(group_postprocessing, 0, wxEXPAND | wxALL, 5);
+	}
 	// - stereoscopy
 
 	if (vconfig.backend_info.bSupportsGeometryShaders)
@@ -616,6 +654,7 @@ VideoConfigDiag::VideoConfigDiag(wxWindow* parent, const std::string &title, con
 	group_xfb->Add(real_xfb, 0, wxRIGHT, 5);
 	szr_hacks->Add(group_xfb, 0, wxEXPAND | wxALL, 5);
 	}	// xfb
+
 	// Bounding Box
 	{
 	wxStaticBoxSizer* const group_bbox = new wxStaticBoxSizer(wxHORIZONTAL, page_hacks, _("Bounding Box"));
@@ -901,18 +940,74 @@ void VideoConfigDiag::Event_Bbox(wxCommandEvent &ev)
 	ev.Skip();
 }
 
-void VideoConfigDiag::Event_PPShader(wxCommandEvent &ev)
+void VideoConfigDiag::Event_PPShader(wxCommandEvent& ev)
 {
 	const int sel = ev.GetInt();
 	if (sel)
+	{
+		vconfig.bPostProcessingEnable = true;
 		vconfig.sPostProcessingShader = WxStrToStr(ev.GetString());
+		choice_pptrigger->Enable(true);
+	}
 	else
+	{
+		vconfig.bPostProcessingEnable = false;
 		vconfig.sPostProcessingShader.clear();
+		choice_pptrigger->Enable(false);
+	}
 
 	// Should we enable the configuration button?
 	PostProcessingShaderConfiguration postprocessing_shader;
-	postprocessing_shader.LoadShader(vconfig.sPostProcessingShader);
-	button_config_pp->Enable(postprocessing_shader.HasOptions());
+	if (postprocessing_shader.LoadShader("", vconfig.sPostProcessingShader))
+	{
+		button_config_pp->Enable(postprocessing_shader.HasOptions());
+	}
+	else
+	{
+		wxMessageBox(_("Failed to parse post processing shader. Post-processing will be disabled at runtime."), _("Warning"), wxOK | wxICON_WARNING, this);
+		button_config_pp->Enable(false);
+	}
+
+	// Should we enable the configuration button?
+	if (postprocessing_shader.LoadShader("", vconfig.sBlitShader))
+	{
+		button_config_d->Enable(postprocessing_shader.HasOptions());
+	}
+	else
+	{
+		wxMessageBox(_("Failed to parse post processing shader. Post-processing will be disabled at runtime."), _("Warning"), wxOK | wxICON_WARNING, this);
+		button_config_d->Enable(false);
+	}
+
+	// Reload the shader next frame.
+	if (g_renderer)
+		g_renderer->GetPostProcessor()->SetReloadFlag();
+
+	ev.Skip();
+}
+
+void VideoConfigDiag::Event_BlitShader(wxCommandEvent& ev)
+{
+	const int sel = ev.GetInt();
+	if (sel)
+		vconfig.sBlitShader = WxStrToStr(ev.GetString());
+	else
+		vconfig.sBlitShader.clear();
+
+	// Reload the shader next frame.
+	if (g_renderer)
+		g_renderer->GetPostProcessor()->SetReloadFlag();
+
+	ev.Skip();
+}
+
+void VideoConfigDiag::Event_AnaglyphShader(wxCommandEvent& ev)
+{
+	vconfig.sAnaglyphShader = WxStrToStr(ev.GetString());
+
+	// Reload the shader next frame.
+	if (g_renderer)
+		g_renderer->GetPostProcessor()->SetReloadFlag();
 
 	ev.Skip();
 }
@@ -920,6 +1015,14 @@ void VideoConfigDiag::Event_PPShader(wxCommandEvent &ev)
 void VideoConfigDiag::Event_ConfigurePPShader(wxCommandEvent &ev)
 {
 	PostProcessingConfigDiag dialog(this, vconfig.sPostProcessingShader);
+	dialog.ShowModal();
+
+	ev.Skip();
+}
+
+void VideoConfigDiag::Event_ConfigureDisplayShader(wxCommandEvent &ev)
+{
+	PostProcessingConfigDiag dialog(this, vconfig.sBlitShader);
 	dialog.ShowModal();
 
 	ev.Skip();
@@ -982,12 +1085,13 @@ void VideoConfigDiag::Event_TessellationDisplacement(wxCommandEvent &ev)
 
 void VideoConfigDiag::Event_StereoMode(wxCommandEvent &ev)
 {
-	if (vconfig.backend_info.bSupportsPostProcessing)
-	{
-		// Anaglyph overrides post-processing shaders
-		choice_ppshader->Clear();
-	}
-
+	// Disable blit shader choice when anaglyph shader on
+	vconfig.iStereoMode = ev.GetInt();
+	choice_blitshader->Enable((ev.GetInt() != STEREO_ANAGLYPH));
+	choice_anaglyphshader->Enable((ev.GetInt() == STEREO_ANAGLYPH));
+	if (g_renderer)
+		g_renderer->GetPostProcessor()->SetReloadFlag();
+	
 	ev.Skip();
 }
 
@@ -1016,10 +1120,7 @@ void VideoConfigDiag::OnUpdateUI(wxUpdateUIEvent& ev)
 	cache_hires_textures->Enable(vconfig.bHiresTextures);
 	cache_hires_texturesGPU->Enable(vconfig.bHiresTextures);
 	hires_texturemaps->Enable(vconfig.bHiresTextures && vconfig.bEnablePixelLighting);
-	hires_texturemaps->Show(vconfig.backend_info.bSupportsNormalMaps);
-	// Repopulating the post-processing shaders can't be done from an event
-	if (choice_ppshader && choice_ppshader->IsEmpty())
-		PopulatePostProcessingShaders();
+	hires_texturemaps->Show(vconfig.backend_info.bSupportsNormalMaps);	
 
 	// Predictive Fifo
 	Async_Shader_compilation->Show(vconfig.backend_info.APIType != API_OPENGL);
@@ -1061,43 +1162,93 @@ void VideoConfigDiag::OnUpdateUI(wxUpdateUIEvent& ev)
 	ev.Skip();
 }
 
+static std::vector<std::string> GetShaders(const std::string& sub_dir = "")
+{
+	std::vector<std::string> paths = DoFileSearch({ ".glsl" }, {
+		File::GetUserPath(D_SHADERS_IDX) + sub_dir,
+		File::GetSysDirectory() + SHADERS_DIR DIR_SEP + sub_dir
+	});
+	std::vector<std::string> result;
+	for (std::string path : paths)
+	{
+		std::string name;
+		SplitPath(path, nullptr, &name, nullptr);
+		result.push_back(name);
+	}
+	return result;
+}
+
 void VideoConfigDiag::PopulatePostProcessingShaders()
 {
-	std::vector<std::string> &shaders = (vconfig.iStereoMode == STEREO_ANAGLYPH || vconfig.iStereoMode == STEREO_INTERLACED) ?
-		vconfig.backend_info.AnaglyphShaders : vconfig.backend_info.PPShaders;
-
-	if (shaders.empty())
-		return;
+	std::vector<std::string> shaders = GetShaders();
 
 	choice_ppshader->AppendString(_("(off)"));
 
-	for (const std::string& shader : shaders)
+	if (shaders.empty())
 	{
-		choice_ppshader->AppendString(StrToWxStr(shader));
+		choice_ppshader->Select(0);
+		return;
 	}
+
+	for (const std::string& shader : shaders)
+		choice_ppshader->AppendString(StrToWxStr(shader));
 
 	if (!choice_ppshader->SetStringSelection(StrToWxStr(vconfig.sPostProcessingShader)))
 	{
 		// Invalid shader, reset it to default
 		choice_ppshader->Select(0);
-		vconfig.sPostProcessingShader.clear();
-	}
-
-	if (vconfig.iStereoMode == STEREO_ANAGLYPH)
-	{
-		vconfig.sPostProcessingShader = "dubois";
-		choice_ppshader->SetStringSelection(StrToWxStr(vconfig.sPostProcessingShader));
-	}
-	else if (vconfig.iStereoMode == STEREO_INTERLACED)
-	{
-		vconfig.sPostProcessingShader = "interlaced";
-		choice_ppshader->SetStringSelection(StrToWxStr(vconfig.sPostProcessingShader));
 	}
 
 	// Should the configuration button be loaded by default?
 	PostProcessingShaderConfiguration postprocessing_shader;
-	postprocessing_shader.LoadShader(vconfig.sPostProcessingShader);
-	button_config_pp->Enable(postprocessing_shader.HasOptions());
+	if (postprocessing_shader.LoadShader("", vconfig.sPostProcessingShader))
+		button_config_pp->Enable(postprocessing_shader.HasOptions());
+}
+
+void VideoConfigDiag::PopulateBlitShaders()
+{
+	std::vector<std::string> shaders = GetShaders();
+
+	choice_blitshader->AppendString(_("(default)"));
+
+	if (shaders.empty())
+	{
+		choice_blitshader->Select(0);
+		return;
+	}
+
+	for (const std::string& shader : shaders)
+		choice_blitshader->AppendString(StrToWxStr(shader));
+
+	if (!choice_blitshader->SetStringSelection(StrToWxStr(vconfig.sBlitShader)))
+	{
+		// Invalid shader, reset it to default
+		choice_blitshader->Select(0);
+	}
+
+	// Should the configuration button be loaded by default?
+	PostProcessingShaderConfiguration postprocessing_shader;
+	if (postprocessing_shader.LoadShader("", vconfig.sBlitShader))
+		button_config_d->Enable(postprocessing_shader.HasOptions());
+}
+
+void VideoConfigDiag::PopulateAnaglyphShaders()
+{
+	std::vector<std::string> shaders = GetShaders(ANAGLYPH_DIR DIR_SEP);
+	if (!shaders.empty())
+	{
+		for (const std::string& shader : shaders)
+			choice_anaglyphshader->AppendString(StrToWxStr(shader));
+
+		if (!choice_anaglyphshader->SetStringSelection(StrToWxStr(vconfig.sAnaglyphShader)))
+		{
+			// Invalid shader, reset it to default
+			choice_anaglyphshader->Select(0);
+		}
+	}
+
+	// Set enabled based on stereo mode
+	choice_anaglyphshader->Enable(vconfig.iStereoMode == STEREO_ANAGLYPH);
 }
 
 void VideoConfigDiag::PopulateAAList()

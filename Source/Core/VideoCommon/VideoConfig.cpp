@@ -106,11 +106,10 @@ void VideoConfig::Load(const std::string& ini_file)
 	IniFile::Section* enhancements = iniFile.GetOrCreateSection("Enhancements");
 	enhancements->Get("ForceFiltering", &bForceFiltering, 0);
 	enhancements->Get("MaxAnisotropy", &iMaxAnisotropy, 0);  // NOTE - this is x in (1 << x)
+	enhancements->Get("PostProcessingEnable", &bPostProcessingEnable, false);
+	enhancements->Get("PostProcessingMode", &iPostProcessingTrigger, 0);
 	enhancements->Get("PostProcessingShader", &sPostProcessingShader, "");
-	enhancements->Get("StereoMode", &iStereoMode, 0);
-	enhancements->Get("StereoDepth", &iStereoDepth, 20);
-	enhancements->Get("StereoConvergencePercentage", &iStereoConvergencePercentage, 100);
-	enhancements->Get("StereoSwapEyes", &bStereoSwapEyes, false);
+	enhancements->Get("BlitShader", &sBlitShader, "");
 	enhancements->Get("UseScalingFilter", &bUseScalingFilter, false);
 	enhancements->Get("TextureScalingType", &iTexScalingType, 0);
 	enhancements->Get("TextureScalingFactor", &iTexScalingFactor, 2);
@@ -121,6 +120,13 @@ void VideoConfig::Load(const std::string& ini_file)
 	enhancements->Get("TessellationMax", &iTessellationMax, 6);
 	enhancements->Get("TessellationRoundingIntensity", &iTessellationRoundingIntensity, 0);
 	enhancements->Get("TessellationDisplacementIntensity", &iTessellationDisplacementIntensity, 0);
+
+	IniFile::Section* stereoscopy = iniFile.GetOrCreateSection("Stereoscopy");
+	stereoscopy->Get("StereoMode", &iStereoMode, 0);
+	stereoscopy->Get("StereoDepth", &iStereoDepth, 20);
+	stereoscopy->Get("StereoConvergencePercentage", &iStereoConvergencePercentage, 100);
+	stereoscopy->Get("StereoSwapEyes", &bStereoSwapEyes, false);
+	stereoscopy->Get("StereoAnaglyphShader", &sAnaglyphShader, "dubois");
 	
 	IniFile::Section* hacks = iniFile.GetOrCreateSection("Hacks");
 	hacks->Get("EFBAccessEnable", &bEFBAccessEnable, true);
@@ -230,11 +236,6 @@ void VideoConfig::GameIniLoad()
 
 	CHECK_SETTING("Video_Enhancements", "ForceFiltering", bForceFiltering);
 	CHECK_SETTING("Video_Enhancements", "MaxAnisotropy", iMaxAnisotropy);  // NOTE - this is x in (1 << x)
-	CHECK_SETTING("Video_Enhancements", "PostProcessingShader", sPostProcessingShader);
-	CHECK_SETTING("Video_Enhancements", "StereoMode", iStereoMode);
-	CHECK_SETTING("Video_Enhancements", "StereoDepth", iStereoDepth);
-	CHECK_SETTING("Video_Enhancements", "StereoConvergence", iStereoConvergence);
-	CHECK_SETTING("Video_Enhancements", "StereoSwapEyes", bStereoSwapEyes);
 	CHECK_SETTING("Video_Enhancements", "UseScalingFilter", bUseScalingFilter);
 	CHECK_SETTING("Video_Enhancements", "TextureScalingType", iTexScalingType);
 	CHECK_SETTING("Video_Enhancements", "TextureScalingFactor", iTexScalingFactor);
@@ -246,6 +247,10 @@ void VideoConfig::GameIniLoad()
 	CHECK_SETTING("Video_Enhancements", "TessellationRoundingIntensity", iTessellationRoundingIntensity);
 	CHECK_SETTING("Video_Enhancements", "TessellationDisplacementIntensity", iTessellationDisplacementIntensity);
 
+	CHECK_SETTING("Video_Stereoscopy", "StereoMode", iStereoMode);
+	CHECK_SETTING("Video_Stereoscopy", "StereoDepth", iStereoDepth);
+	CHECK_SETTING("Video_Stereoscopy", "StereoConvergence", iStereoConvergence);
+	CHECK_SETTING("Video_Stereoscopy", "StereoSwapEyes", bStereoSwapEyes);
 	CHECK_SETTING("Video_Stereoscopy", "StereoEFBMonoDepth", bStereoEFBMonoDepth);
 	CHECK_SETTING("Video_Stereoscopy", "StereoDepthPercentage", iStereoDepthPercentage);
 
@@ -387,11 +392,10 @@ void VideoConfig::Save(const std::string& ini_file)
 	IniFile::Section* enhancements = iniFile.GetOrCreateSection("Enhancements");
 	enhancements->Set("ForceFiltering", bForceFiltering);
 	enhancements->Set("MaxAnisotropy", iMaxAnisotropy);
+	enhancements->Set("PostProcessingEnable", bPostProcessingEnable);
+	enhancements->Set("PostProcessingMode", iPostProcessingTrigger);
 	enhancements->Set("PostProcessingShader", sPostProcessingShader);
-	enhancements->Set("StereoMode", iStereoMode);
-	enhancements->Set("StereoDepth", iStereoDepth);
-	enhancements->Set("StereoConvergencePercentage", iStereoConvergencePercentage);
-	enhancements->Set("StereoSwapEyes", bStereoSwapEyes);
+	enhancements->Set("BlitShader", sBlitShader);	
 	enhancements->Set("UseScalingFilter", bUseScalingFilter);
 	enhancements->Set("TextureScalingType", iTexScalingType);
 	enhancements->Set("TextureScalingFactor", iTexScalingFactor);
@@ -402,6 +406,13 @@ void VideoConfig::Save(const std::string& ini_file)
 	enhancements->Set("TessellationMax", iTessellationMax);
 	enhancements->Set("TessellationRoundingIntensity", iTessellationRoundingIntensity);
 	enhancements->Set("TessellationDisplacementIntensity", iTessellationDisplacementIntensity);
+
+	IniFile::Section* stereoscopy = iniFile.GetOrCreateSection("Stereoscopy");
+	stereoscopy->Set("StereoMode", iStereoMode);
+	stereoscopy->Set("StereoDepth", iStereoDepth);
+	stereoscopy->Set("StereoConvergencePercentage", iStereoConvergencePercentage);
+	stereoscopy->Set("StereoSwapEyes", bStereoSwapEyes);
+	stereoscopy->Set("StereoAnaglyphShader", sAnaglyphShader);
 	
 	IniFile::Section* hacks = iniFile.GetOrCreateSection("Hacks");
 	hacks->Set("EFBAccessEnable", bEFBAccessEnable);

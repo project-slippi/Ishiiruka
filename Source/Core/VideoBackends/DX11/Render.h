@@ -13,7 +13,7 @@ namespace DX11
 class Renderer : public ::Renderer
 {
 private:
-	void BlitScreen(TargetRectangle src, TargetRectangle dst, D3DTexture2D* src_texture, D3DTexture2D* src_depth_texture, u32 src_width, u32 src_height, float Gamma);
+	void BlitScreen(TargetRectangle dst, TargetRectangle src, D3DTexture2D* src_texture, u32 src_width, u32 src_height, float gamma = 1.0f);
 public:
 	Renderer(void *&window_handle);
 	~Renderer();

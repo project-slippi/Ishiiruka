@@ -142,14 +142,35 @@ MaxValue = 100.0
 StepAmount = 0.001
 DefaultValue = 100.0
 DependentOption = A_SSAO_ENABLED
-[Stage]
+[Pass]
 EntryPoint = SSAO
 DependentOption = A_SSAO_ENABLED
-[Stage]
+Input0=ColorBuffer
+Input0Filter=Linear
+Input0Mode=Clamp
+Input1=DepthBuffer
+Input1Filter=Nearest
+Input1Mode=Clamp
+[Pass]
 EntryPoint = BlurH
 DependentOption = A_SSAO_ENABLED
-[Stage]
+Input0=PreviousPass
+Input0Filter=Linear
+Input0Mode=Clamp
+Input1=DepthBuffer
+Input1Filter=Nearest
+Input1Mode=Clamp
+[Pass]
 EntryPoint = Merger
+Input0=ColorBuffer
+Input0Filter=Linear
+Input0Mode=Clamp
+Input1=DepthBuffer
+Input1Filter=Nearest
+Input1Mode=Clamp
+Input2=PreviousPass
+Input2Filter=Linear
+Input2Mode=Clamp
 [/configuration]
 */
    
