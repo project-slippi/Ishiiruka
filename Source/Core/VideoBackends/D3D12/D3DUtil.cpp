@@ -14,9 +14,8 @@
 #include "VideoBackends/D3D12/D3DState.h"
 #include "VideoBackends/D3D12/D3DTexture.h"
 #include "VideoBackends/D3D12/D3DUtil.h"
-#include "VideoBackends/D3D12/FramebufferManager.h"
-#include "VideoBackends/D3D12/StaticShaderCache.h"
 #include "VideoBackends/D3D12/Render.h"
+#include "VideoBackends/D3D12/StaticShaderCache.h"
 
 #include "VideoCommon/VideoConfig.h"
 
@@ -685,7 +684,7 @@ void DrawShadedTexQuad(D3DTexture2D* texture,
 	if (!inherit_srv_binding)
 	{
 		texture->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-		D3D::current_command_list->SetGraphicsRootDescriptorTable(DESCRIPTOR_TABLE_PS_SRV, texture->GetSRV12GPU());
+		D3D::current_command_list->SetGraphicsRootDescriptorTable(DESCRIPTOR_TABLE_PS_SRV, texture->GetSRVGPU());
 	}
 
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC pso_desc = {

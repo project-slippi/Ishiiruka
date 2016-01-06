@@ -4,13 +4,11 @@
 
 #pragma once
 
-#include "VideoBackends/D3D12/NativeVertexFormat.h"
-
-
 #include "VideoBackends/D3D12/D3DBase.h"
 #include "VideoBackends/D3D12/D3DBlob.h"
 #include "VideoBackends/D3D12/D3DState.h"
 #include "VideoBackends/D3D12/D3DUtil.h"
+#include "VideoBackends/D3D12/NativeVertexFormat.h"
 #include "VideoBackends/D3D12/VertexManager.h"
 
 namespace DX12

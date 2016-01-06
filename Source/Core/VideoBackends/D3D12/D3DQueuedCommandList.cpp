@@ -28,315 +28,315 @@ DWORD WINAPI ID3D12QueuedCommandList::BackgroundThreadFunction(LPVOID param)
 			const D3DQueueItem* qitem = reinterpret_cast<const D3DQueueItem*>(item);
 			switch (qitem->Type)
 			{
-				case D3DQueueItemType::ClearDepthStencilView:
+			case D3DQueueItemType::ClearDepthStencilView:
+			{
+				command_list->ClearDepthStencilView(qitem->ClearDepthStencilView.DepthStencilView, D3D12_CLEAR_FLAG_DEPTH, 0.f, 0, 0, nullptr);
+
+				item += sizeof(ClearDepthStencilViewArguments) + sizeof(D3DQueueItemType) * 2;
+				break;
+			}
+
+			case D3DQueueItemType::ClearRenderTargetView:
+			{
+				float clearColor[4] = { 0.f, 0.f, 0.f, 1.f };
+				command_list->ClearRenderTargetView(qitem->ClearRenderTargetView.RenderTargetView, clearColor, 0, nullptr);
+
+				item += sizeof(ClearRenderTargetViewArguments) + sizeof(D3DQueueItemType) * 2;
+				break;
+			}
+
+			case D3DQueueItemType::CopyBufferRegion:
+			{
+
+				command_list->CopyBufferRegion(
+					qitem->CopyBufferRegion.pDstBuffer,
+					qitem->CopyBufferRegion.DstOffset,
+					qitem->CopyBufferRegion.pSrcBuffer,
+					qitem->CopyBufferRegion.SrcOffset,
+					qitem->CopyBufferRegion.NumBytes
+					);
+
+				item += sizeof(CopyBufferRegionArguments) + sizeof(D3DQueueItemType) * 2;
+				break;
+			}
+
+			case D3DQueueItemType::CopyTextureRegion:
+			{
+				// If box is completely empty, assume that the original API call has a NULL box (which means
+				// copy from the entire resource.
+
+				const D3D12_BOX* src_box = &qitem->CopyTextureRegion.srcBox;
+
+				// Front/Back never used, so don't need to check.
+				bool empty_box =
+					src_box->bottom == 0 &&
+					src_box->left == 0 &&
+					src_box->right == 0 &&
+					src_box->top == 0;
+
+				command_list->CopyTextureRegion(
+					&qitem->CopyTextureRegion.dst,
+					qitem->CopyTextureRegion.DstX,
+					qitem->CopyTextureRegion.DstY,
+					qitem->CopyTextureRegion.DstZ,
+					&qitem->CopyTextureRegion.src,
+					empty_box ?
+					nullptr : src_box
+					);
+
+				item += sizeof(CopyTextureRegionArguments) + sizeof(D3DQueueItemType) * 2;
+				break;
+			}
+
+			case D3DQueueItemType::DrawIndexedInstanced:
+			{
+				command_list->DrawIndexedInstanced(
+					qitem->DrawIndexedInstanced.IndexCount,
+					1,
+					qitem->DrawIndexedInstanced.StartIndexLocation,
+					qitem->DrawIndexedInstanced.BaseVertexLocation,
+					0
+					);
+
+				item += sizeof(DrawIndexedInstancedArguments) + sizeof(D3DQueueItemType) * 2;
+				break;
+			}
+
+			case D3DQueueItemType::DrawInstanced:
+			{
+				command_list->DrawInstanced(
+					qitem->DrawInstanced.VertexCount,
+					1,
+					qitem->DrawInstanced.StartVertexLocation,
+					0
+					);
+
+				item += sizeof(DrawInstancedArguments) + sizeof(D3DQueueItemType) * 2;
+				break;
+			}
+
+			case D3DQueueItemType::IASetPrimitiveTopology:
+			{
+				command_list->IASetPrimitiveTopology(qitem->IASetPrimitiveTopology.PrimitiveTopology);
+
+				item += sizeof(IASetPrimitiveTopologyArguments) + sizeof(D3DQueueItemType) * 2;
+				break;
+			}
+
+			case D3DQueueItemType::ResourceBarrier:
+			{
+				command_list->ResourceBarrier(1, &qitem->ResourceBarrier.barrier);
+
+				item += sizeof(ResourceBarrierArguments) + sizeof(D3DQueueItemType) * 2;
+				break;
+			}
+
+			case D3DQueueItemType::RSSetScissorRects:
+			{
+				D3D12_RECT rect = {
+					qitem->RSSetScissorRects.left,
+					qitem->RSSetScissorRects.top,
+					qitem->RSSetScissorRects.right,
+					qitem->RSSetScissorRects.bottom
+				};
+
+				command_list->RSSetScissorRects(1, &rect);
+				item += sizeof(RSSetScissorRectsArguments) + sizeof(D3DQueueItemType) * 2;
+				break;
+			}
+
+			case D3DQueueItemType::RSSetViewports:
+			{
+				command_list->RSSetViewports(1, &qitem->RSSetViewports);
+				item += sizeof(D3D12_VIEWPORT) + sizeof(D3DQueueItemType) * 2;
+				break;
+			}
+
+			case D3DQueueItemType::SetDescriptorHeaps:
+			{
+				command_list->SetDescriptorHeaps(
+					qitem->SetDescriptorHeaps.NumDescriptorHeaps,
+					qitem->SetDescriptorHeaps.ppDescriptorHeap
+					);
+
+				item += sizeof(SetDescriptorHeapsArguments) + sizeof(D3DQueueItemType) * 2;
+				break;
+			}
+
+			case D3DQueueItemType::SetGraphicsRootConstantBufferView:
+			{
+				command_list->SetGraphicsRootConstantBufferView(
+					qitem->SetGraphicsRootConstantBufferView.RootParameterIndex,
+					qitem->SetGraphicsRootConstantBufferView.BufferLocation
+					);
+
+				item += sizeof(SetGraphicsRootConstantBufferViewArguments) + sizeof(D3DQueueItemType) * 2;
+				break;
+			}
+
+			case D3DQueueItemType::SetGraphicsRootDescriptorTable:
+			{
+				command_list->SetGraphicsRootDescriptorTable(
+					qitem->SetGraphicsRootDescriptorTable.RootParameterIndex,
+					qitem->SetGraphicsRootDescriptorTable.BaseDescriptor
+					);
+
+				item += sizeof(SetGraphicsRootDescriptorTableArguments) + sizeof(D3DQueueItemType) * 2;
+				break;
+			}
+
+			case D3DQueueItemType::SetGraphicsRootSignature:
+			{
+				command_list->SetGraphicsRootSignature(
+					qitem->SetGraphicsRootSignature.pRootSignature
+					);
+
+				item += sizeof(SetGraphicsRootSignatureArguments) + sizeof(D3DQueueItemType) * 2;
+				break;
+			}
+
+			case D3DQueueItemType::SetIndexBuffer:
+			{
+				command_list->IASetIndexBuffer(
+					&qitem->SetIndexBuffer.desc
+					);
+
+				item += sizeof(SetIndexBufferArguments) + sizeof(D3DQueueItemType) * 2;
+				break;
+			}
+
+			case D3DQueueItemType::SetVertexBuffers:
+			{
+				command_list->IASetVertexBuffers(
+					0,
+					1,
+					&qitem->SetVertexBuffers.desc
+					);
+
+				item += sizeof(SetVertexBuffersArguments) + sizeof(D3DQueueItemType) * 2;
+				break;
+			}
+
+			case D3DQueueItemType::SetPipelineState:
+			{
+				command_list->SetPipelineState(qitem->SetPipelineState.pPipelineStateObject);
+				item += sizeof(SetPipelineStateArguments) + sizeof(D3DQueueItemType) * 2;
+				break;
+			}
+
+			case D3DQueueItemType::SetRenderTargets:
+			{
+				unsigned int render_target_count = 0;
+
+				if (qitem->SetRenderTargets.RenderTargetDescriptor.ptr)
 				{
-					command_list->ClearDepthStencilView(qitem->ClearDepthStencilView.DepthStencilView, D3D12_CLEAR_FLAG_DEPTH, 0.f, 0, 0, nullptr);
-						
-					item += sizeof(ClearDepthStencilViewArguments) + sizeof(D3DQueueItemType) * 2;
-					break;
+					render_target_count = 1;
 				}
 
-				case D3DQueueItemType::ClearRenderTargetView:
+				command_list->OMSetRenderTargets(
+					render_target_count,
+					qitem->SetRenderTargets.RenderTargetDescriptor.ptr == NULL ?
+					nullptr :
+					&qitem->SetRenderTargets.RenderTargetDescriptor,
+					FALSE,
+					qitem->SetRenderTargets.DepthStencilDescriptor.ptr == NULL ?
+					nullptr :
+					&qitem->SetRenderTargets.DepthStencilDescriptor
+					);
+
+				item += sizeof(SetRenderTargetsArguments) + sizeof(D3DQueueItemType) * 2;
+				break;
+			}
+
+			case D3DQueueItemType::ResolveSubresource:
+			{
+				command_list->ResolveSubresource(
+					qitem->ResolveSubresource.pDstResource,
+					qitem->ResolveSubresource.DstSubresource,
+					qitem->ResolveSubresource.pSrcResource,
+					qitem->ResolveSubresource.SrcSubresource,
+					qitem->ResolveSubresource.Format
+					);
+
+				item += sizeof(ResolveSubresourceArguments) + sizeof(D3DQueueItemType) * 2;
+				break;
+			}
+
+			case D3DQueueItemType::CloseCommandList:
+			{
+				CheckHR(command_list->Close());
+
+				item += sizeof(CloseCommandListArguments) + sizeof(D3DQueueItemType) * 2;
+				break;
+			}
+
+			case D3DQueueItemType::ExecuteCommandList:
+			{
+				parent_queued_command_list->m_command_queue->ExecuteCommandLists(1, reinterpret_cast<ID3D12CommandList**>(&command_list));
+
+				item += sizeof(ExecuteCommandListArguments) + sizeof(D3DQueueItemType) * 2;
+				break;
+			}
+
+			case D3DQueueItemType::Present:
+			{
+				CheckHR(qitem->Present.swapChain->Present(qitem->Present.syncInterval, qitem->Present.flags));
+
+				item += sizeof(PresentArguments) + sizeof(D3DQueueItemType) * 2;
+				break;
+			}
+
+			case D3DQueueItemType::ResetCommandList:
+			{
+				CheckHR(command_list->Reset(qitem->ResetCommandList.allocator, nullptr));
+
+				item += sizeof(ResetCommandListArguments) + sizeof(D3DQueueItemType) * 2;
+				break;
+			}
+
+			case D3DQueueItemType::ResetCommandAllocator:
+			{
+				CheckHR(qitem->ResetCommandAllocator.allocator->Reset());
+
+				item += sizeof(ResetCommandAllocatorArguments) + sizeof(D3DQueueItemType) * 2;
+				break;
+			}
+
+			case D3DQueueItemType::FenceGpuSignal:
+			{
+				CheckHR(parent_queued_command_list->m_command_queue->Signal(qitem->FenceGpuSignal.fence, qitem->FenceGpuSignal.fence_value));
+
+				item += sizeof(FenceGpuSignalArguments) + sizeof(D3DQueueItemType) * 2;
+				break;
+			}
+
+			case D3DQueueItemType::FenceCpuSignal:
+			{
+				CheckHR(qitem->FenceCpuSignal.fence->Signal(qitem->FenceCpuSignal.fence_value));
+
+				item += sizeof(FenceCpuSignalArguments) + sizeof(D3DQueueItemType) * 2;
+				break;
+			}
+
+			case D3DQueueItemType::Stop:
+
+				// Use a goto to break out of the loop, since we can't exit the loop from
+				// within a switch statement. We could use a separate 'if' after the switch,
+				// but that was the highest source of overhead in the function after profiling.
+				// http://stackoverflow.com/questions/1420029/how-to-break-out-of-a-loop-from-inside-a-switch
+
+				item += sizeof(D3DQueueItemType) * 2;
+
+				if (item - queue_array > s_queue_array_size / 3)
 				{
-					float clearColor[4] = { 0.f, 0.f, 0.f, 1.f };
-					command_list->ClearRenderTargetView(qitem->ClearRenderTargetView.RenderTargetView, clearColor, 0, nullptr);
-						
-					item += sizeof(ClearRenderTargetViewArguments) + sizeof(D3DQueueItemType) * 2;
-					break;
+					item = queue_array;
 				}
 
-				case D3DQueueItemType::CopyBufferRegion:
-				{
-
-					command_list->CopyBufferRegion(
-						qitem->CopyBufferRegion.pDstBuffer,
-						qitem->CopyBufferRegion.DstOffset,
-						qitem->CopyBufferRegion.pSrcBuffer,
-						qitem->CopyBufferRegion.SrcOffset,
-						qitem->CopyBufferRegion.NumBytes
-						);
-
-					item += sizeof(CopyBufferRegionArguments) + sizeof(D3DQueueItemType) * 2;
-					break;
-				}
-
-				case D3DQueueItemType::CopyTextureRegion:
-				{
-					// If box is completely empty, assume that the original API call has a NULL box (which means
-					// copy from the entire resource.
-
-					const D3D12_BOX* src_box = &qitem->CopyTextureRegion.srcBox;
-
-					// Front/Back never used, so don't need to check.
-					bool empty_box =
-						src_box->bottom == 0 &&
-						src_box->left == 0 &&
-						src_box->right == 0 &&
-						src_box->top == 0;
-
-					command_list->CopyTextureRegion(
-						&qitem->CopyTextureRegion.dst,
-						qitem->CopyTextureRegion.DstX,
-						qitem->CopyTextureRegion.DstY,
-						qitem->CopyTextureRegion.DstZ,
-						&qitem->CopyTextureRegion.src,
-						empty_box ?
-							nullptr : src_box
-						);
-
-					item += sizeof(CopyTextureRegionArguments) + sizeof(D3DQueueItemType) * 2;
-					break;
-				}
-
-				case D3DQueueItemType::DrawIndexedInstanced:
-				{
-					command_list->DrawIndexedInstanced(
-						qitem->DrawIndexedInstanced.IndexCount,
-						1,
-						qitem->DrawIndexedInstanced.StartIndexLocation,
-						qitem->DrawIndexedInstanced.BaseVertexLocation,
-						0
-						);
-
-					item += sizeof(DrawIndexedInstancedArguments) + sizeof(D3DQueueItemType) * 2;
-					break;
-				}
-
-				case D3DQueueItemType::DrawInstanced:
-				{
-					command_list->DrawInstanced(
-						qitem->DrawInstanced.VertexCount,
-						1,
-						qitem->DrawInstanced.StartVertexLocation,
-						0
-						);
-
-					item += sizeof(DrawInstancedArguments) + sizeof(D3DQueueItemType) * 2;
-					break;
-				}
-
-				case D3DQueueItemType::IASetPrimitiveTopology:
-				{
-					command_list->IASetPrimitiveTopology(qitem->IASetPrimitiveTopology.PrimitiveTopology);
-
-					item += sizeof(IASetPrimitiveTopologyArguments) + sizeof(D3DQueueItemType) * 2;
-					break;
-				}
-
-				case D3DQueueItemType::ResourceBarrier:
-				{
-					command_list->ResourceBarrier(1, &qitem->ResourceBarrier.barrier);
-
-					item += sizeof(ResourceBarrierArguments) + sizeof(D3DQueueItemType) * 2;
-					break;
-				}
-
-				case D3DQueueItemType::RSSetScissorRects:
-				{
-					D3D12_RECT rect = {
-						qitem->RSSetScissorRects.left,
-						qitem->RSSetScissorRects.top,
-						qitem->RSSetScissorRects.right,
-						qitem->RSSetScissorRects.bottom
-					};
-
-					command_list->RSSetScissorRects(1, &rect);
-					item += sizeof(RSSetScissorRectsArguments) + sizeof(D3DQueueItemType) * 2;
-					break;
-				}
-
-				case D3DQueueItemType::RSSetViewports:
-				{
-					command_list->RSSetViewports(1, &qitem->RSSetViewports);
-					item += sizeof(D3D12_VIEWPORT) + sizeof(D3DQueueItemType) * 2;
-					break;
-				}
-
-				case D3DQueueItemType::SetDescriptorHeaps:
-				{
-					command_list->SetDescriptorHeaps(
-						qitem->SetDescriptorHeaps.NumDescriptorHeaps,
-						qitem->SetDescriptorHeaps.ppDescriptorHeap
-						);
-
-					item += sizeof(SetDescriptorHeapsArguments) + sizeof(D3DQueueItemType) * 2;
-					break;
-				}
-
-				case D3DQueueItemType::SetGraphicsRootConstantBufferView:
-				{
-					command_list->SetGraphicsRootConstantBufferView(
-						qitem->SetGraphicsRootConstantBufferView.RootParameterIndex,
-						qitem->SetGraphicsRootConstantBufferView.BufferLocation
-						);
-
-					item += sizeof(SetGraphicsRootConstantBufferViewArguments) + sizeof(D3DQueueItemType) * 2;
-					break;
-				}
-
-				case D3DQueueItemType::SetGraphicsRootDescriptorTable:
-				{
-					command_list->SetGraphicsRootDescriptorTable(
-						qitem->SetGraphicsRootDescriptorTable.RootParameterIndex,
-						qitem->SetGraphicsRootDescriptorTable.BaseDescriptor
-						);
-
-					item += sizeof(SetGraphicsRootDescriptorTableArguments) + sizeof(D3DQueueItemType) * 2;
-					break;
-				}
-
-				case D3DQueueItemType::SetGraphicsRootSignature:
-				{
-					command_list->SetGraphicsRootSignature(
-						qitem->SetGraphicsRootSignature.pRootSignature
-						);
-
-					item += sizeof(SetGraphicsRootSignatureArguments) + sizeof(D3DQueueItemType) * 2;
-					break;
-				}
-
-				case D3DQueueItemType::SetIndexBuffer:
-				{
-					command_list->IASetIndexBuffer(
-						&qitem->SetIndexBuffer.desc
-						);
-
-					item += sizeof(SetIndexBufferArguments) + sizeof(D3DQueueItemType) * 2;
-					break;
-				}
-
-				case D3DQueueItemType::SetVertexBuffers:
-				{
-					command_list->IASetVertexBuffers(
-						0,
-						1,
-						&qitem->SetVertexBuffers.desc
-						);
-
-					item += sizeof(SetVertexBuffersArguments) + sizeof(D3DQueueItemType) * 2;
-					break;
-				}
-
-				case D3DQueueItemType::SetPipelineState:
-				{
-					command_list->SetPipelineState(qitem->SetPipelineState.pPipelineStateObject);
-					item += sizeof(SetPipelineStateArguments) + sizeof(D3DQueueItemType) * 2;
-					break;
-				}
-
-				case D3DQueueItemType::SetRenderTargets:
-				{
-					unsigned int render_target_count = 0;
-
-					if (qitem->SetRenderTargets.RenderTargetDescriptor.ptr)
-					{
-						render_target_count = 1;
-					}
-
-					command_list->OMSetRenderTargets(
-						render_target_count,
-						qitem->SetRenderTargets.RenderTargetDescriptor.ptr == NULL ?
-						nullptr : 
-						&qitem->SetRenderTargets.RenderTargetDescriptor,
-						FALSE,
-						qitem->SetRenderTargets.DepthStencilDescriptor.ptr == NULL ?
-						nullptr :
-						&qitem->SetRenderTargets.DepthStencilDescriptor
-						);
-
-					item += sizeof(SetRenderTargetsArguments) + sizeof(D3DQueueItemType) * 2;
-					break;
-				}
-
-				case D3DQueueItemType::ResolveSubresource:
-				{
-					command_list->ResolveSubresource(
-						qitem->ResolveSubresource.pDstResource,
-						qitem->ResolveSubresource.DstSubresource,
-						qitem->ResolveSubresource.pSrcResource,
-						qitem->ResolveSubresource.SrcSubresource,
-						qitem->ResolveSubresource.Format
-						);
-
-					item += sizeof(ResolveSubresourceArguments) + sizeof(D3DQueueItemType) * 2;
-					break;
-				}
-
-				case D3DQueueItemType::CloseCommandList:
-				{
-					CheckHR(command_list->Close());
-
-					item += sizeof(CloseCommandListArguments) + sizeof(D3DQueueItemType) * 2;
-					break;
-				}
-
-				case D3DQueueItemType::ExecuteCommandList:
-				{
-					parent_queued_command_list->m_command_queue->ExecuteCommandLists(1, reinterpret_cast<ID3D12CommandList**>(&command_list));
-
-					item += sizeof(ExecuteCommandListArguments) + sizeof(D3DQueueItemType) * 2;
-					break;
-				}
-
-				case D3DQueueItemType::Present:
-				{
-					CheckHR(qitem->Present.swapChain->Present(qitem->Present.syncInterval, qitem->Present.flags));
-						
-					item += sizeof(PresentArguments) + sizeof(D3DQueueItemType) * 2;
-					break;
-				}
-
-				case D3DQueueItemType::ResetCommandList:
-				{
-					CheckHR(command_list->Reset(qitem->ResetCommandList.allocator, nullptr));
-						
-					item += sizeof(ResetCommandListArguments) + sizeof(D3DQueueItemType) * 2;
-					break;
-				}
-
-				case D3DQueueItemType::ResetCommandAllocator:
-				{
-					CheckHR(qitem->ResetCommandAllocator.allocator->Reset());
-						
-					item += sizeof(ResetCommandAllocatorArguments) + sizeof(D3DQueueItemType) * 2;
-					break;
-				}
-
-				case D3DQueueItemType::FenceGpuSignal:
-				{
-					CheckHR(parent_queued_command_list->m_command_queue->Signal(qitem->FenceGpuSignal.fence, qitem->FenceGpuSignal.fence_value));
-						
-					item += sizeof(FenceGpuSignalArguments) + sizeof(D3DQueueItemType) * 2;
-					break;
-				}
-				
-				case D3DQueueItemType::FenceCpuSignal:
-				{
-					CheckHR(qitem->FenceCpuSignal.fence->Signal(qitem->FenceCpuSignal.fence_value));
-						
-					item += sizeof(FenceCpuSignalArguments) + sizeof(D3DQueueItemType) * 2;
-					break;
-				}
-
-				case D3DQueueItemType::Stop:
-
-					// Use a goto to break out of the loop, since we can't exit the loop from
-					// within a switch statement. We could use a separate 'if' after the switch,
-					// but that was the highest source of overhead in the function after profiling.
-					// http://stackoverflow.com/questions/1420029/how-to-break-out-of-a-loop-from-inside-a-switch
-
-					item += sizeof(D3DQueueItemType) * 2;
-
-					if (item - queue_array > s_queue_array_size / 3)
-					{
-						item = queue_array;
-					}
-
-					goto exitLoop;
+				goto exitLoop;
 			}
 		}
 
-		exitLoop:
+	exitLoop:
 
 		parent_queued_command_list->m_queue_array_front.store(static_cast<size_t>(item - queue_array));
 	}
@@ -407,13 +407,13 @@ void ID3D12QueuedCommandList::QueuePresent(IDXGISwapChain* swap_chain, UINT sync
 void ID3D12QueuedCommandList::ClearQueue()
 {
 	// Drain semaphore to ensure no new previously queued work executes (though inflight work may continue).
-	while (WaitForSingleObject(m_begin_execution_event, 0) != WAIT_TIMEOUT) { } 
-		
+	while (WaitForSingleObject(m_begin_execution_event, 0) != WAIT_TIMEOUT) {}
+
 	// Assume that any inflight queued work will complete within 100ms. This is a safe assumption.
 	Sleep(100);
 
 	m_queue_array_back = m_queue_array.data();
-	
+
 	m_queue_array_front.store(0);
 }
 
@@ -460,7 +460,7 @@ HRESULT STDMETHODCALLTYPE ID3D12QueuedCommandList::QueryInterface(
 	if (riid == __uuidof(ID3D12GraphicsCommandList))
 	{
 		*ppvObject = reinterpret_cast<ID3D12GraphicsCommandList*>(this);
-}
+	}
 	else  if (riid == __uuidof(ID3D12CommandList))
 	{
 		*ppvObject = reinterpret_cast<ID3D12CommandList*>(this);
@@ -484,7 +484,7 @@ HRESULT STDMETHODCALLTYPE ID3D12QueuedCommandList::QueryInterface(
 	}
 
 	return hr;
-	}
+}
 
 // ID3D12Object
 
@@ -561,12 +561,12 @@ HRESULT STDMETHODCALLTYPE ID3D12QueuedCommandList::Reset(
 	)
 {
 	DEBUGCHECK(pInitialState == nullptr, "Error: Invalid assumption in ID3D12QueuedCommandList.");
-	
+
 	D3DQueueItem* item = reinterpret_cast<D3DQueueItem*>(m_queue_array_back);
-	
+
 	item->Type = D3DQueueItemType::ResetCommandList;
 	item->ResetCommandList.allocator = pAllocator;
-		
+
 	m_queue_array_back += sizeof(ResetCommandListArguments) + sizeof(D3DQueueItemType) * 2;
 
 	return S_OK;
@@ -670,8 +670,8 @@ void STDMETHODCALLTYPE ID3D12QueuedCommandList::CopyTextureRegion(
 	D3DQueueItem* item = reinterpret_cast<D3DQueueItem*>(m_queue_array_back);
 
 	item->Type = D3DQueueItemType::CopyTextureRegion;
-	item->CopyTextureRegion.dst =* pDst;
-	item->CopyTextureRegion.src =* pSrc;
+	item->CopyTextureRegion.dst = *pDst;
+	item->CopyTextureRegion.src = *pSrc;
 	item->CopyTextureRegion.DstX = DstX;
 	item->CopyTextureRegion.DstY = DstY;
 	item->CopyTextureRegion.DstZ = DstZ;

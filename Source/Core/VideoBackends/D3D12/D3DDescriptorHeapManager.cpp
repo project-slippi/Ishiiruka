@@ -19,7 +19,7 @@ D3DDescriptorHeapManager::D3DDescriptorHeapManager(D3D12_DESCRIPTOR_HEAP_DESC* d
 	m_device(device)
 {
 	CheckHR(device->CreateDescriptorHeap(desc, IID_PPV_ARGS(&m_descriptor_heap)));
-	
+
 	m_descriptor_heap_size = desc->NumDescriptors;
 	m_descriptor_increment_size = device->GetDescriptorHandleIncrementSize(desc->Type);
 	m_gpu_visible = (desc->Flags == D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE);
@@ -117,10 +117,10 @@ bool D3DDescriptorHeapManager::AllocateGroup(D3D12_CPU_DESCRIPTOR_HANDLE* base_c
 	{
 		m_current_permanent_offset_in_heap += num_handles;
 	}
-		
+
 	return allocated_from_current_heap;
 }
-	
+
 D3D12_GPU_DESCRIPTOR_HANDLE D3DDescriptorHeapManager::GetHandleForSamplerGroup(SamplerState* sampler_state, unsigned int num_sampler_samples)
 {
 	auto it = m_sampler_map.find(*reinterpret_cast<SamplerStateSet*>(sampler_state));
@@ -142,7 +142,7 @@ D3D12_GPU_DESCRIPTOR_HANDLE D3DDescriptorHeapManager::GetHandleForSamplerGroup(S
 			D3D12_CPU_DESCRIPTOR_HANDLE destinationDescriptor;
 			destinationDescriptor.ptr = base_sampler_cpu_handle.ptr + i * D3D::sampler_descriptor_size;
 
-			D3D::device12->CreateSampler(&StateCache::GetDesc12(sampler_state[i]), destinationDescriptor);
+			D3D::device12->CreateSampler(&StateCache::GetDesc(sampler_state[i]), destinationDescriptor);
 		}
 
 		m_sampler_map[*reinterpret_cast<SamplerStateSet*>(sampler_state)] = base_sampler_gpu_handle;

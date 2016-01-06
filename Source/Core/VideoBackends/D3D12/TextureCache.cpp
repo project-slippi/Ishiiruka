@@ -119,7 +119,7 @@ bool TextureCache::TCacheEntry::Save(const std::string& filename, unsigned int l
 		return false;
 	}
 
-	D3D12_RESOURCE_DESC textureDesc = m_texture->GetTex12()->GetDesc();
+	D3D12_RESOURCE_DESC textureDesc = m_texture->GetTex()->GetDesc();
 
 	UINT requiredReadbackBufferSize = D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT + ((textureDesc.Width * 4 + D3D12_TEXTURE_DATA_PITCH_ALIGNMENT - 1) & ~(D3D12_TEXTURE_DATA_PITCH_ALIGNMENT - 1)) * textureDesc.Height;
 
@@ -163,7 +163,7 @@ bool TextureCache::TCacheEntry::Save(const std::string& filename, unsigned int l
 	dst_location.PlacedFootprint.Footprint.Height = textureDesc.Height;
 	dst_location.PlacedFootprint.Footprint.RowPitch = ((textureDesc.Width * 4 + D3D12_TEXTURE_DATA_PITCH_ALIGNMENT - 1) & ~(D3D12_TEXTURE_DATA_PITCH_ALIGNMENT - 1));
 
-	D3D12_TEXTURE_COPY_LOCATION src_location = CD3DX12_TEXTURE_COPY_LOCATION(m_texture->GetTex12(), 0);
+	D3D12_TEXTURE_COPY_LOCATION src_location = CD3DX12_TEXTURE_COPY_LOCATION(m_texture->GetTex(), 0);
 
 	D3D::current_command_list->CopyTextureRegion(&dst_location, 0, 0, 0, &src_location, nullptr);
 
@@ -205,8 +205,8 @@ void TextureCache::TCacheEntry::CopyRectangleFromTexture(
 			psrcbox = &srcbox;
 		}
 		
-		D3D12_TEXTURE_COPY_LOCATION dst = CD3DX12_TEXTURE_COPY_LOCATION(m_texture->GetTex12(), 0);
-		D3D12_TEXTURE_COPY_LOCATION src = CD3DX12_TEXTURE_COPY_LOCATION(srcentry->m_texture->GetTex12(), 0);
+		D3D12_TEXTURE_COPY_LOCATION dst = CD3DX12_TEXTURE_COPY_LOCATION(m_texture->GetTex(), 0);
+		D3D12_TEXTURE_COPY_LOCATION src = CD3DX12_TEXTURE_COPY_LOCATION(srcentry->m_texture->GetTex(), 0);
 
 		m_texture->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_COPY_DEST);
 		srcentry->m_texture->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_COPY_SOURCE);
@@ -231,7 +231,7 @@ void TextureCache::TCacheEntry::CopyRectangleFromTexture(
 	D3D::current_command_list->RSSetViewports(1, &vp12);
 
 	m_texture->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_RENDER_TARGET);
-	D3D::current_command_list->OMSetRenderTargets(1, &m_texture->GetRTV12(), FALSE, nullptr);
+	D3D::current_command_list->OMSetRenderTargets(1, &m_texture->GetRTV(), FALSE, nullptr);
 
 	D3D::SetLinearCopySampler();
 	D3D12_RECT srcRC;
@@ -248,7 +248,7 @@ void TextureCache::TCacheEntry::CopyRectangleFromTexture(
 
 	FramebufferManager::GetEFBColorTexture()->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_RENDER_TARGET);
 	FramebufferManager::GetEFBDepthTexture()->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_DEPTH_WRITE);
-	D3D::current_command_list->OMSetRenderTargets(1, &FramebufferManager::GetEFBColorTexture()->GetRTV12(), FALSE, &FramebufferManager::GetEFBDepthTexture()->GetDSV12());
+	D3D::current_command_list->OMSetRenderTargets(1, &FramebufferManager::GetEFBColorTexture()->GetRTV(), FALSE, &FramebufferManager::GetEFBDepthTexture()->GetDSV());
 
 	g_renderer->RestoreAPIState();
 }
@@ -256,12 +256,12 @@ void TextureCache::TCacheEntry::CopyRectangleFromTexture(
 void TextureCache::TCacheEntry::Load(const u8* src, u32 width, u32 height,
 	u32 expanded_width, u32 level)
 {
-	D3D::ReplaceTexture2D(m_texture->GetTex12(), src, DXGI_format, width, height, expanded_width, level, m_texture->GetResourceUsageState());
+	D3D::ReplaceTexture2D(m_texture->GetTex(), src, DXGI_format, width, height, expanded_width, level, m_texture->GetResourceUsageState());
 }
 
 void TextureCache::TCacheEntry::LoadMaterialMap(const u8* src, u32 width, u32 height, u32 level)
 {
-	D3D::ReplaceTexture2D(m_nrm_texture->GetTex12(), src, DXGI_format, width, height, width, level, m_nrm_texture->GetResourceUsageState());
+	D3D::ReplaceTexture2D(m_nrm_texture->GetTex(), src, DXGI_format, width, height, width, level, m_nrm_texture->GetResourceUsageState());
 }
 
 void TextureCache::TCacheEntry::Load(const u8* src, u32 width, u32 height, u32 expandedWidth,
@@ -285,7 +285,7 @@ void TextureCache::TCacheEntry::Load(const u8* src, u32 width, u32 height, u32 e
 		height *= g_ActiveConfig.iTexScalingFactor;
 		expandedWidth *= g_ActiveConfig.iTexScalingFactor;
 	}
-	D3D::ReplaceTexture2D(m_texture->GetTex12(), data, DXGI_format, width, height, expandedWidth, level, m_texture->GetResourceUsageState());
+	D3D::ReplaceTexture2D(m_texture->GetTex(), data, DXGI_format, width, height, expandedWidth, level, m_texture->GetResourceUsageState());
 }
 void TextureCache::TCacheEntry::LoadFromTmem(const u8* ar_src, const u8* gb_src, u32 width, u32 height,
 	u32 expanded_width, u32 expanded_Height, u32 level)
@@ -304,7 +304,7 @@ void TextureCache::TCacheEntry::LoadFromTmem(const u8* ar_src, const u8* gb_src,
 		height *= g_ActiveConfig.iTexScalingFactor;
 		expanded_width *= g_ActiveConfig.iTexScalingFactor;
 	}
-	D3D::ReplaceTexture2D(m_texture->GetTex12(), data, DXGI_format, width, height, expanded_width, level, m_texture->GetResourceUsageState());
+	D3D::ReplaceTexture2D(m_texture->GetTex(), data, DXGI_format, width, height, expanded_width, level, m_texture->GetResourceUsageState());
 }
 
 PC_TexFormat TextureCache::GetNativeTextureFormat(const s32 texformat, const TlutFormat tlutfmt, u32 width, u32 height)
@@ -325,9 +325,9 @@ TextureCacheBase::TCacheEntryBase* TextureCache::CreateTexture(const TCacheEntry
 
 		TCacheEntry* entry = new TCacheEntry(config, texture);
 
-		entry->m_texture_srv_cpu_handle = texture->GetSRV12CPU();
-		entry->m_texture_srv_gpu_handle = texture->GetSRV12GPU();
-		entry->m_texture_srv_gpu_handle_cpu_shadow = texture->GetSRV12GPUCPUShadow();
+		entry->m_texture_srv_cpu_handle = texture->GetSRVCPU();
+		entry->m_texture_srv_gpu_handle = texture->GetSRVGPU();
+		entry->m_texture_srv_gpu_handle_cpu_shadow = texture->GetSRVGPUCPUShadow();
 
 		return entry;
 	}
@@ -378,16 +378,16 @@ TextureCacheBase::TCacheEntryBase* TextureCache::CreateTexture(const TCacheEntry
 			config, texture
 			);
 
-		entry->m_texture_srv_cpu_handle = texture->GetSRV12CPU();
-		entry->m_texture_srv_gpu_handle = texture->GetSRV12GPU();
-		entry->m_texture_srv_gpu_handle_cpu_shadow = texture->GetSRV12GPUCPUShadow();
+		entry->m_texture_srv_cpu_handle = texture->GetSRVCPU();
+		entry->m_texture_srv_gpu_handle = texture->GetSRVGPU();
+		entry->m_texture_srv_gpu_handle_cpu_shadow = texture->GetSRVGPUCPUShadow();
 		entry->DXGI_format = format;
 		if (format != DXGI_FORMAT_R8G8B8A8_UNORM)
 		{
 			entry->compressed = true;
 		}
 		// EXISTINGD3D11TODO: better debug names
-		D3D::SetDebugObjectName12(entry->m_texture->GetTex12(), "a texture of the TextureCache");
+		D3D::SetDebugObjectName12(entry->m_texture->GetTex(), "a texture of the TextureCache");
 
 		SAFE_RELEASE(pTexture12);
 		if (config.materialmap)
@@ -412,9 +412,9 @@ TextureCacheBase::TCacheEntryBase* TextureCache::CreateTexture(const TCacheEntry
 				false,
 				D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE
 				);
-			entry->m_nrm_texture_srv_cpu_handle = entry->m_nrm_texture->GetSRV12CPU();
-			entry->m_nrm_texture_srv_gpu_handle = entry->m_nrm_texture->GetSRV12GPU();
-			entry->m_nrm_texture_srv_gpu_handle_cpu_shadow = entry->m_nrm_texture->GetSRV12GPUCPUShadow();
+			entry->m_nrm_texture_srv_cpu_handle = entry->m_nrm_texture->GetSRVCPU();
+			entry->m_nrm_texture_srv_gpu_handle = entry->m_nrm_texture->GetSRVGPU();
+			entry->m_nrm_texture_srv_gpu_handle_cpu_shadow = entry->m_nrm_texture->GetSRVGPUCPUShadow();
 			SAFE_RELEASE(pTexture12);
 		}
 		return entry;
@@ -479,7 +479,7 @@ void TextureCache::TCacheEntry::FromRenderTarget(u8* dst, PEControl::PixelFormat
 	// (This can happen because we don't unbind textures when we free them.)
 
 	m_texture->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_RENDER_TARGET);
-	D3D::current_command_list->OMSetRenderTargets(1, &m_texture->GetRTV12(), FALSE, nullptr);
+	D3D::current_command_list->OMSetRenderTargets(1, &m_texture->GetRTV(), FALSE, nullptr);
 
 	// Create texture copy
 	D3D::DrawShadedTexQuad(
@@ -497,7 +497,7 @@ void TextureCache::TCacheEntry::FromRenderTarget(u8* dst, PEControl::PixelFormat
 	
 	FramebufferManager::GetEFBColorTexture()->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_RENDER_TARGET);
 	FramebufferManager::GetEFBDepthTexture()->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_DEPTH_WRITE);
-	D3D::current_command_list->OMSetRenderTargets(1, &FramebufferManager::GetEFBColorTexture()->GetRTV12(), FALSE, &FramebufferManager::GetEFBDepthTexture()->GetDSV12());
+	D3D::current_command_list->OMSetRenderTargets(1, &FramebufferManager::GetEFBColorTexture()->GetRTV(), FALSE, &FramebufferManager::GetEFBDepthTexture()->GetDSV());
 
 	g_renderer->RestoreAPIState();
 }
@@ -641,7 +641,7 @@ bool TextureCache::Palettize(TCacheEntryBase* entry, const TCacheEntryBase* unco
 	D3D::device12->CopyDescriptorsSimple(
 		1,
 		srv_group_cpu_handle[0],
-		base_entry->m_texture->GetSRV12GPUCPUShadow(),
+		base_entry->m_texture->GetSRVGPUCPUShadow(),
 		D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV
 		);
 
@@ -671,7 +671,7 @@ bool TextureCache::Palettize(TCacheEntryBase* entry, const TCacheEntryBase* unco
 	// (This can happen because we don't unbind textures when we free them.)
 
 	static_cast<TCacheEntry*>(entry)->m_texture->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_RENDER_TARGET);
-	D3D::current_command_list->OMSetRenderTargets(1, &static_cast<TCacheEntry*>(entry)->m_texture->GetRTV12(), FALSE, nullptr);
+	D3D::current_command_list->OMSetRenderTargets(1, &static_cast<TCacheEntry*>(entry)->m_texture->GetRTV(), FALSE, nullptr);
 
 	// Create texture copy
 	D3D::DrawShadedTexQuad(
@@ -691,7 +691,7 @@ bool TextureCache::Palettize(TCacheEntryBase* entry, const TCacheEntryBase* unco
 
 	FramebufferManager::GetEFBColorTexture()->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_RENDER_TARGET);
 	FramebufferManager::GetEFBDepthTexture()->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_DEPTH_WRITE );
-	D3D::current_command_list->OMSetRenderTargets(1, &FramebufferManager::GetEFBColorTexture()->GetRTV12(), FALSE, &FramebufferManager::GetEFBDepthTexture()->GetDSV12());
+	D3D::current_command_list->OMSetRenderTargets(1, &FramebufferManager::GetEFBColorTexture()->GetRTV(), FALSE, &FramebufferManager::GetEFBDepthTexture()->GetDSV());
 
 	g_renderer->RestoreAPIState();
 	return true;

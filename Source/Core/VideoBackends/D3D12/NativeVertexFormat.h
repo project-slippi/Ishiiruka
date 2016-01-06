@@ -2,9 +2,10 @@
 // Licensed under GPLv2+
 #pragma once
 
-#include "VideoCommon/NativeVertexFormat.h"
-#include <d3d11.h>
+#include <array>
 #include <d3d12.h>
+
+#include "VideoCommon/NativeVertexFormat.h"
 
 namespace DX12
 {

@@ -78,7 +78,7 @@ HRESULT LoadDXGI()
 
 	if (dxgi_dll)
 		return S_OK;
-	
+
 	dxgi_dll = LoadLibraryA("dxgi.dll");
 	if (!dxgi_dll)
 	{
@@ -87,7 +87,7 @@ HRESULT LoadDXGI()
 		return E_FAIL;
 	}
 	create_dxgi_factory = (CREATEDXGIFACTORY)GetProcAddress(dxgi_dll, "CreateDXGIFactory");
-	
+
 	if (create_dxgi_factory == nullptr)
 		MessageBoxA(nullptr, "GetProcAddress failed for CreateDXGIFactory!", "Critical error", MB_OK | MB_ICONERROR);
 
@@ -174,7 +174,7 @@ std::vector<DXGI_SAMPLE_DESC> EnumAAModes(IDXGIAdapter* adapter)
 		D3D12_FEATURE_DATA_MULTISAMPLE_QUALITY_LEVELS multisample_quality_levels = {};
 		multisample_quality_levels.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
 		multisample_quality_levels.SampleCount = samples;
-				
+
 		device12->CheckFeatureSupport(D3D12_FEATURE_MULTISAMPLE_QUALITY_LEVELS, &multisample_quality_levels, sizeof(multisample_quality_levels));
 
 		DXGI_SAMPLE_DESC desc;
@@ -355,7 +355,7 @@ HRESULT Create(HWND wnd)
 		SAFE_RELEASE(swapchain);
 		return E_FAIL;
 	}
-	
+
 	ID3D12InfoQueue* info_queue = nullptr;
 	if (SUCCEEDED(device12->QueryInterface(&info_queue)))
 	{
@@ -394,7 +394,7 @@ HRESULT Create(HWND wnd)
 	SAFE_RELEASE(output);
 	SAFE_RELEASE(adapter)
 
-	CreateDescriptorHeaps();
+		CreateDescriptorHeaps();
 	CreateRootSignatures();
 
 	command_list_mgr = new D3DCommandListManager(
@@ -426,11 +426,11 @@ HRESULT Create(HWND wnd)
 		CHECK(backbuf != nullptr, "Create back buffer texture");
 
 		SAFE_RELEASE(buf12);
-		SetDebugObjectName12(backbuf[i]->GetTex12(), "backbuffer texture");
-	}	
+		SetDebugObjectName12(backbuf[i]->GetTex(), "backbuffer texture");
+	}
 
 	backbuf[current_back_buf]->TransitionToResourceState(current_command_list, D3D12_RESOURCE_STATE_RENDER_TARGET);
-	current_command_list->OMSetRenderTargets(1, &backbuf[current_back_buf]->GetRTV12(), FALSE, nullptr);
+	current_command_list->OMSetRenderTargets(1, &backbuf[current_back_buf]->GetRTV(), FALSE, nullptr);
 
 	// BGRA textures are easier to deal with in TextureCache, but might not be supported by the hardware. But are always supported on D3D12.
 	bgra_textures_supported = true;
@@ -533,12 +533,12 @@ void CreateRootSignatures()
 	root_parameters[DESCRIPTOR_TABLE_PS_SRV].DescriptorTable.NumDescriptorRanges = 1;
 	root_parameters[DESCRIPTOR_TABLE_PS_SRV].DescriptorTable.pDescriptorRanges = &desc_range_srv;
 	root_parameters[DESCRIPTOR_TABLE_PS_SRV].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
-	
+
 	root_parameters[DESCRIPTOR_TABLE_PS_SAMPLER].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
 	root_parameters[DESCRIPTOR_TABLE_PS_SAMPLER].DescriptorTable.NumDescriptorRanges = 1;
 	root_parameters[DESCRIPTOR_TABLE_PS_SAMPLER].DescriptorTable.pDescriptorRanges = &desc_range_sampler;
 	root_parameters[DESCRIPTOR_TABLE_PS_SAMPLER].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
-	
+
 	root_parameters[DESCRIPTOR_TABLE_GS_CBV].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
 	root_parameters[DESCRIPTOR_TABLE_GS_CBV].Descriptor.RegisterSpace = 0;
 	root_parameters[DESCRIPTOR_TABLE_GS_CBV].Descriptor.ShaderRegister = 0;
@@ -741,7 +741,7 @@ void Reset()
 		CHECK(backbuf != nullptr, "Create back buffer texture");
 
 		SAFE_RELEASE(buf12);
-		SetDebugObjectName12(backbuf[i]->GetTex12(), "backbuffer texture");
+		SetDebugObjectName12(backbuf[i]->GetTex(), "backbuffer texture");
 	}
 
 	current_back_buf = 0;
@@ -785,7 +785,7 @@ void Present()
 
 	// Only present at most two times per vblank interval. If the application exhausts available back buffers, the
 	// the Present call will block until the next vblank.
-	
+
 	if ((UINT)g_ActiveConfig.IsVSync() || (((current_timestamp.QuadPart - last_present.QuadPart) * 1000) / frequency.QuadPart >= (16.667 / 2)))
 	{
 		last_present = current_timestamp;

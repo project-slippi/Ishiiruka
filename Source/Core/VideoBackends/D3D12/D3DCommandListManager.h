@@ -25,7 +25,6 @@ public:
 
 	void ProcessQueuedWork();
 
-	void WaitForQueuedWorkToBeRecordedOnCPU();
 	void WaitForQueuedWorkToBeExecutedOnGPU();
 
 	void ClearQueueAndWaitForCompletionOfInflightWork();
@@ -70,7 +69,7 @@ private:
 	UINT m_current_command_allocator;
 	UINT m_current_command_allocator_list;
 	std::vector<ID3D12CommandAllocator*> m_command_allocator_lists[2];
-		
+
 	ID3D12GraphicsCommandList* m_backing_command_list;
 	ID3D12QueuedCommandList* m_queued_command_list;
 

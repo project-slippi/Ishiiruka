@@ -2,6 +2,9 @@
 // Licensed under GPLv2+
 // Refer to the license.txt file included.
 
+#include <queue>
+#include <vector>
+
 #include "VideoBackends/D3D12/D3DBase.h"
 #include "VideoBackends/D3D12/D3DCommandListManager.h"
 #include "VideoBackends/D3D12/D3DQueuedCommandList.h"
@@ -11,9 +14,6 @@
 #include "VideoBackends/D3D12/Render.h"
 #include "VideoBackends/D3D12/ShaderConstantsManager.h"
 #include "VideoBackends/D3D12/VertexManager.h"
-
-#include <vector>
-#include <queue>
 
 static const UINT s_initial_command_allocator_count = 2;
 
@@ -65,7 +65,7 @@ D3DCommandListManager::D3DCommandListManager(
 	// Create fence that will be used to measure GPU progress of app rendering requests (e.g. CPU readback of GPU data).
 	m_queue_fence_value = 0;
 	CheckHR(m_device->CreateFence(m_queue_fence_value, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_queue_fence)));
-		
+
 	// Create fence that will be used internally by D3DCommandListManager to make sure we aren't using in-use resources.
 	m_queue_rollover_fence_value = 0;
 	CheckHR(m_device->CreateFence(m_queue_rollover_fence_value, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_queue_rollover_fence)));
@@ -132,7 +132,7 @@ void D3DCommandListManager::ExecuteQueuedWork(bool wait_for_gpu_completion)
 #ifdef USE_D3D12_QUEUED_COMMAND_LISTS
 	CheckHR(m_queued_command_list->Close());
 	m_queued_command_list->QueueExecute();
-		
+
 	if (wait_for_gpu_completion)
 	{
 		m_queued_command_list->QueueFenceGpuSignal(m_queue_fence, m_queue_fence_value);
@@ -146,7 +146,7 @@ void D3DCommandListManager::ExecuteQueuedWork(bool wait_for_gpu_completion)
 
 	ID3D12CommandList* const commandListsToExecute[1] = { m_backing_command_list };
 	m_command_queue->ExecuteCommandLists(1, commandListsToExecute);
-	
+
 	if (wait_for_gpu_completion)
 	{
 		CheckHR(m_command_queue->Signal(m_queue_fence, m_queue_fence_value));
@@ -169,7 +169,7 @@ void D3DCommandListManager::ExecuteQueuedWork(bool wait_for_gpu_completion)
 }
 
 void D3DCommandListManager::ExecuteQueuedWorkAndPresent(IDXGISwapChain* swap_chain, UINT sync_interval, UINT flags)
-{	
+{
 #ifdef USE_D3D12_QUEUED_COMMAND_LISTS
 	CheckHR(m_queued_command_list->Close());
 	m_queued_command_list->QueueExecute();

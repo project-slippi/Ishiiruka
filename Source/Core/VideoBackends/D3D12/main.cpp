@@ -4,21 +4,19 @@
 
 #include <string>
 
+#include "Common/CommonTypes.h"
 #include "Common/FileUtil.h"
-#include "Common/IniFile.h"
 #include "Common/StringUtil.h"
-#include "Common/Logging/LogManager.h"
 
 #include "Core/ConfigManager.h"
-#include "Core/Core.h"
 #include "Core/Host.h"
-
 
 #include "VideoBackends/D3D12/BoundingBox.h"
 #include "VideoBackends/D3D12/D3DCommandListManager.h"
 #include "VideoBackends/D3D12/D3DBase.h"
 #include "VideoBackends/D3D12/D3DUtil.h"
 #include "VideoBackends/D3D12/PerfQuery.h"
+#include "VideoBackends/D3D12/Render.h"
 #include "VideoBackends/D3D12/ShaderCache.h"
 #include "VideoBackends/D3D12/ShaderConstantsManager.h"
 #include "VideoBackends/D3D12/StaticShaderCache.h"
@@ -33,7 +31,6 @@
 #include "VideoCommon/Fifo.h"
 #include "VideoCommon/GeometryShaderManager.h"
 #include "VideoCommon/IndexGenerator.h"
-#include "VideoCommon/OnScreenDisplay.h"
 #include "VideoCommon/OpcodeDecoding.h"
 #include "VideoCommon/PixelEngine.h"
 #include "VideoCommon/PixelShaderManager.h"
@@ -145,10 +142,6 @@ void InitBackendInfo()
 		ad->Release();
 	}
 	factory->Release();
-
-	// Clear ppshaders string vector
-	g_Config.backend_info.PPShaders.clear();
-	g_Config.backend_info.AnaglyphShaders.clear();
 
 	DX12::D3D::UnloadDXGI();
 	DX12::D3D::UnloadD3D();

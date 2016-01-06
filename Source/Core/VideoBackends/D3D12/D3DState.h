@@ -11,7 +11,6 @@
 #include "Common/CommonTypes.h"
 #include "VideoBackends/D3D12/D3DBase.h"
 #include "VideoBackends/D3D12/NativeVertexFormat.h"
-#include "VideoBackends/D3D12/StaticShaderCache.h"
 #include "VideoBackends/D3D12/ShaderCache.h"
 
 #include "VideoCommon/BPMemory.h"
@@ -25,7 +24,7 @@ union RasterizerState
 {
 	BitField<0, 2, D3D12_CULL_MODE> cull_mode;
 
-	u32 packed;
+	u32 hex;
 };
 
 union BlendState
@@ -37,7 +36,7 @@ union BlendState
 	BitField<13, 5, D3D12_BLEND> dst_blend;
 	BitField<18, 1, u32> use_dst_alpha;
 
-	u32 packed;
+	u32 hex;
 };
 
 union SamplerState
@@ -50,42 +49,46 @@ union SamplerState
 	BitField<28, 2, u32> wrap_s;
 	BitField<30, 2, u32> wrap_t;
 
-	u32 packed;
+	u32 hex;
 };
 
 struct SmallPsoDesc
 {
-	D3D12_SHADER_BYTECODE GS;
-	D3D12_SHADER_BYTECODE PS;
-	D3D12_SHADER_BYTECODE VS;
-	D3DVertexFormat* InputLayout;
-	BlendState BlendState;
-	RasterizerState RasterizerState;
-	ZMode DepthStencilState;
-	int samplecount;
+	D3D12_SHADER_BYTECODE gs_bytecode;
+	D3D12_SHADER_BYTECODE ps_bytecode;
+	D3D12_SHADER_BYTECODE vs_bytecode;
+	D3DVertexFormat* input_Layout;
+	BlendState blend_state;
+	RasterizerState rasterizer_state;
+	ZMode depth_stencil_state;
+	int sample_count;
 };
+
+// The Bitfield members in BlendState, RasterizerState, and ZMode cause the..
+// static_assert(std::is_trivially_copyable<K>::value, "K must be a trivially copyable type");
+// .. check in LinearDiskCache to fail. So, just storing the packed u32 values.
 
 struct SmallPsoDiskDesc
 {
-	BlendState BlendState;
-	RasterizerState RasterizerState;
-	ZMode DepthStencilState;
-	PixelShaderUid psUid;
-	VertexShaderUid vsUid;
-	GeometryShaderUid gsUid;
+	u32 blend_state_hex;
+	u32 rasterizer_state_hex;
+	u32 depth_stencil_state_hex;
+	PixelShaderUid ps_uid;
+	VertexShaderUid vs_uid;
+	GeometryShaderUid gs_uid;
 	D3D12_PRIMITIVE_TOPOLOGY_TYPE topology;
-	PortableVertexDeclaration vertexDeclaration; // Used to construct the input layout.
-	DXGI_SAMPLE_DESC SampleDesc;
+	PortableVertexDeclaration vertex_declaration; // Used to construct the input layout.
+	DXGI_SAMPLE_DESC sample_desc;
 };
 
 class StateCache
 {
 public:
 	// Get D3D12 descs for the internal state bitfields.
-	static D3D12_SAMPLER_DESC GetDesc12(SamplerState state);
-	static D3D12_BLEND_DESC GetDesc12(BlendState state);
-	static D3D12_RASTERIZER_DESC GetDesc12(RasterizerState state);
-	static D3D12_DEPTH_STENCIL_DESC GetDesc12(ZMode state);
+	static D3D12_SAMPLER_DESC GetDesc(SamplerState state);
+	static D3D12_BLEND_DESC GetDesc(BlendState state);
+	static D3D12_RASTERIZER_DESC GetDesc(RasterizerState state);
+	static D3D12_DEPTH_STENCIL_DESC GetDesc(ZMode state);
 
 	HRESULT GetPipelineStateObjectFromCache(D3D12_GRAPHICS_PIPELINE_STATE_DESC* pso_desc, ID3D12PipelineState** pso);
 	HRESULT GetPipelineStateObjectFromCache(SmallPsoDesc* pso_desc, ID3D12PipelineState** pso, D3D12_PRIMITIVE_TOPOLOGY_TYPE topology, const GeometryShaderUid* gs_uid, const PixelShaderUid* ps_uid, const VertexShaderUid* vs_uid);
@@ -120,27 +123,27 @@ private:
 		bool operator()(const D3D12_GRAPHICS_PIPELINE_STATE_DESC lhs, const D3D12_GRAPHICS_PIPELINE_STATE_DESC rhs) const
 		{
 			return std::tie(lhs.PS.pShaderBytecode, lhs.VS.pShaderBytecode, lhs.GS.pShaderBytecode,
-				            lhs.RasterizerState.CullMode,
-				            lhs.DepthStencilState.DepthEnable,
-				            lhs.DepthStencilState.DepthFunc,
-				            lhs.DepthStencilState.DepthWriteMask,
-				            lhs.BlendState.RenderTarget[0].BlendEnable,
-				            lhs.BlendState.RenderTarget[0].BlendOp,
-				            lhs.BlendState.RenderTarget[0].DestBlend,
-				            lhs.BlendState.RenderTarget[0].SrcBlend,
-				            lhs.BlendState.RenderTarget[0].RenderTargetWriteMask,
-				            lhs.RTVFormats[0]) ==
-				   std::tie(rhs.PS.pShaderBytecode, rhs.VS.pShaderBytecode, rhs.GS.pShaderBytecode,
-				            rhs.RasterizerState.CullMode,
-				            rhs.DepthStencilState.DepthEnable,
-				            rhs.DepthStencilState.DepthFunc,
-				            rhs.DepthStencilState.DepthWriteMask,
-				            rhs.BlendState.RenderTarget[0].BlendEnable,
-				            rhs.BlendState.RenderTarget[0].BlendOp,
-				            rhs.BlendState.RenderTarget[0].DestBlend,
-				            rhs.BlendState.RenderTarget[0].SrcBlend,
-				            rhs.BlendState.RenderTarget[0].RenderTargetWriteMask,
-				            rhs.RTVFormats[0]);
+				lhs.RasterizerState.CullMode,
+				lhs.DepthStencilState.DepthEnable,
+				lhs.DepthStencilState.DepthFunc,
+				lhs.DepthStencilState.DepthWriteMask,
+				lhs.BlendState.RenderTarget[0].BlendEnable,
+				lhs.BlendState.RenderTarget[0].BlendOp,
+				lhs.BlendState.RenderTarget[0].DestBlend,
+				lhs.BlendState.RenderTarget[0].SrcBlend,
+				lhs.BlendState.RenderTarget[0].RenderTargetWriteMask,
+				lhs.RTVFormats[0]) ==
+				std::tie(rhs.PS.pShaderBytecode, rhs.VS.pShaderBytecode, rhs.GS.pShaderBytecode,
+					rhs.RasterizerState.CullMode,
+					rhs.DepthStencilState.DepthEnable,
+					rhs.DepthStencilState.DepthFunc,
+					rhs.DepthStencilState.DepthWriteMask,
+					rhs.BlendState.RenderTarget[0].BlendEnable,
+					rhs.BlendState.RenderTarget[0].BlendOp,
+					rhs.BlendState.RenderTarget[0].DestBlend,
+					rhs.BlendState.RenderTarget[0].SrcBlend,
+					rhs.BlendState.RenderTarget[0].RenderTargetWriteMask,
+					rhs.RTVFormats[0]);
 		}
 	};
 
@@ -150,12 +153,12 @@ private:
 	{
 		size_t operator()(const SmallPsoDesc pso_desc) const
 		{
-			return ((uintptr_t)pso_desc.VS.pShaderBytecode << 7) ^
-				((uintptr_t)pso_desc.PS.pShaderBytecode << 5) ^
-				((uintptr_t)pso_desc.GS.pShaderBytecode << 3) ^
-				((uintptr_t)pso_desc.InputLayout) ^
-				(((uintptr_t)pso_desc.BlendState.packed << 32) |
-				pso_desc.DepthStencilState.hex | (pso_desc.RasterizerState.packed << 17)  | (((uintptr_t)pso_desc.samplecount) << 48));
+			return ((uintptr_t)pso_desc.vs_bytecode.pShaderBytecode << 7) ^
+				((uintptr_t)pso_desc.ps_bytecode.pShaderBytecode << 5) ^
+				((uintptr_t)pso_desc.gs_bytecode.pShaderBytecode << 3) ^
+				((uintptr_t)pso_desc.input_Layout) ^
+				(((uintptr_t)pso_desc.blend_state.hex << 32) |
+					pso_desc.depth_stencil_state.hex | (pso_desc.rasterizer_state.hex << 17) | (((uintptr_t)pso_desc.sample_count) << 48));
 		}
 	};
 
@@ -163,10 +166,10 @@ private:
 	{
 		bool operator()(const SmallPsoDesc lhs, const SmallPsoDesc rhs) const
 		{
-			return std::tie(lhs.PS.pShaderBytecode, lhs.VS.pShaderBytecode, lhs.GS.pShaderBytecode,
-				            lhs.InputLayout, lhs.BlendState.packed, lhs.DepthStencilState.hex, lhs.RasterizerState.packed, lhs.samplecount) ==
-				   std::tie(rhs.PS.pShaderBytecode, rhs.VS.pShaderBytecode, rhs.GS.pShaderBytecode,
-				            rhs.InputLayout, rhs.BlendState.packed, rhs.DepthStencilState.hex, rhs.RasterizerState.packed, rhs.samplecount);
+			return std::tie(lhs.ps_bytecode.pShaderBytecode, lhs.vs_bytecode.pShaderBytecode, lhs.gs_bytecode.pShaderBytecode,
+				lhs.input_Layout, lhs.blend_state.hex, lhs.depth_stencil_state.hex, lhs.rasterizer_state.hex, lhs.sample_count) ==
+				std::tie(rhs.ps_bytecode.pShaderBytecode, rhs.vs_bytecode.pShaderBytecode, rhs.gs_bytecode.pShaderBytecode,
+					rhs.input_Layout, rhs.blend_state.hex, rhs.depth_stencil_state.hex, rhs.rasterizer_state.hex, rhs.sample_count);
 		}
 	};
 

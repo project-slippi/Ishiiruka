@@ -26,8 +26,8 @@
 #include "VideoBackends/D3D12/NativeVertexFormat.h"
 #include "VideoBackends/D3D12/Render.h"
 #include "VideoBackends/D3D12/ShaderCache.h"
-#include "VideoBackends/D3D12/StaticShaderCache.h"
 #include "VideoBackends/D3D12/ShaderConstantsManager.h"
+#include "VideoBackends/D3D12/StaticShaderCache.h"
 #include "VideoBackends/D3D12/Television.h"
 #include "VideoBackends/D3D12/TextureCache.h"
 
@@ -274,7 +274,7 @@ Renderer::Renderer(void*& window_handle)
 
 	for (unsigned int k = 0; k < 8; k++)
 	{
-		gx_state.sampler[k].packed = 0;
+		gx_state.sampler[k].hex = 0;
 	}
 
 	gx_state.zmode.testenable = false;
@@ -287,14 +287,14 @@ Renderer::Renderer(void*& window_handle)
 	float clear_color[4] = { 0.f, 0.f, 0.f, 1.f };
 	FramebufferManager::GetEFBColorTexture()->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_RENDER_TARGET);
 	FramebufferManager::GetEFBDepthTexture()->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_DEPTH_WRITE);
-	D3D::current_command_list->ClearRenderTargetView(FramebufferManager::GetEFBColorTexture()->GetRTV12(), clear_color, 0, nullptr);
-	D3D::current_command_list->ClearDepthStencilView(FramebufferManager::GetEFBDepthTexture()->GetDSV12(), D3D12_CLEAR_FLAG_DEPTH, 0.f, 0, 0, nullptr);
+	D3D::current_command_list->ClearRenderTargetView(FramebufferManager::GetEFBColorTexture()->GetRTV(), clear_color, 0, nullptr);
+	D3D::current_command_list->ClearDepthStencilView(FramebufferManager::GetEFBDepthTexture()->GetDSV(), D3D12_CLEAR_FLAG_DEPTH, 0.f, 0, 0, nullptr);
 
 	D3D12_VIEWPORT vp = { 0.f, 0.f, (float)s_target_width, (float)s_target_height, D3D12_MIN_DEPTH, D3D12_MAX_DEPTH };
 	D3D::current_command_list->RSSetViewports(1, &vp);
 
 	// Already transitioned to appropriate states a few lines up for the clears.
-	D3D::current_command_list->OMSetRenderTargets(1, &FramebufferManager::GetEFBColorTexture()->GetRTV12(), FALSE, &FramebufferManager::GetEFBDepthTexture()->GetDSV12());
+	D3D::current_command_list->OMSetRenderTargets(1, &FramebufferManager::GetEFBColorTexture()->GetRTV(), FALSE, &FramebufferManager::GetEFBDepthTexture()->GetDSV());
 
 	D3D::BeginFrame();
 }
@@ -421,7 +421,7 @@ u32 Renderer::AccessEFB(EFBAccessType type, u32 x, u32 y, u32 poke_data)
 		D3D::command_list_mgr->m_dirty_ps_cbv = true;
 
 		FramebufferManager::GetEFBDepthReadTexture()->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_RENDER_TARGET);
-		D3D::current_command_list->OMSetRenderTargets(1, &FramebufferManager::GetEFBDepthReadTexture()->GetRTV12(), FALSE, nullptr);
+		D3D::current_command_list->OMSetRenderTargets(1, &FramebufferManager::GetEFBDepthReadTexture()->GetRTV(), FALSE, nullptr);
 
 		D3D::SetPointCopySampler();
 
@@ -457,7 +457,7 @@ u32 Renderer::AccessEFB(EFBAccessType type, u32 x, u32 y, u32 poke_data)
 		dst_location.PlacedFootprint.Footprint.RowPitch = (dst_location.PlacedFootprint.Footprint.RowPitch + D3D12_TEXTURE_DATA_PITCH_ALIGNMENT - 1) & ~(D3D12_TEXTURE_DATA_PITCH_ALIGNMENT - 1);
 
 		D3D12_TEXTURE_COPY_LOCATION src_location = {};
-		src_location.pResource = FramebufferManager::GetEFBDepthReadTexture()->GetTex12();
+		src_location.pResource = FramebufferManager::GetEFBDepthReadTexture()->GetTex();
 		src_location.SubresourceIndex = 0;
 		src_location.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
 
@@ -469,7 +469,7 @@ u32 Renderer::AccessEFB(EFBAccessType type, u32 x, u32 y, u32 poke_data)
 
 		FramebufferManager::GetEFBColorTexture()->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_RENDER_TARGET);
 		FramebufferManager::GetEFBDepthTexture()->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_DEPTH_WRITE);
-		D3D::current_command_list->OMSetRenderTargets(1, &FramebufferManager::GetEFBColorTexture()->GetRTV12(), FALSE, &FramebufferManager::GetEFBDepthTexture()->GetDSV12());
+		D3D::current_command_list->OMSetRenderTargets(1, &FramebufferManager::GetEFBColorTexture()->GetRTV(), FALSE, &FramebufferManager::GetEFBDepthTexture()->GetDSV());
 
 		// Restores proper viewport/scissor settings.
 		g_renderer->RestoreAPIState();
@@ -518,7 +518,7 @@ u32 Renderer::AccessEFB(EFBAccessType type, u32 x, u32 y, u32 poke_data)
 		dst_location.PlacedFootprint.Footprint.RowPitch = (dst_location.PlacedFootprint.Footprint.RowPitch + D3D12_TEXTURE_DATA_PITCH_ALIGNMENT - 1) & ~(D3D12_TEXTURE_DATA_PITCH_ALIGNMENT - 1);
 
 		D3D12_TEXTURE_COPY_LOCATION src_location = {};
-		src_location.pResource = FramebufferManager::GetResolvedEFBColorTexture()->GetTex12();
+		src_location.pResource = FramebufferManager::GetResolvedEFBColorTexture()->GetTex();
 		src_location.SubresourceIndex = 0;
 		src_location.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
 
@@ -571,7 +571,7 @@ void Renderer::PokeEFB(EFBAccessType type, const EfbPokeData* points, size_t num
 			&g_reset_blend_desc,
 			&g_reset_depth_desc,
 			&vp,
-			&FramebufferManager::GetEFBColorTexture()->GetRTV12(),
+			&FramebufferManager::GetEFBColorTexture()->GetRTV(),
 			nullptr,
 			FramebufferManager::GetEFBColorTexture()->GetMultisampled()
 			);
@@ -589,8 +589,8 @@ void Renderer::PokeEFB(EFBAccessType type, const EfbPokeData* points, size_t num
 			&g_reset_blend_desc,
 			&g_reset_depth_desc,
 			&vp,
-			&FramebufferManager::GetEFBColorTexture()->GetRTV12(),
-			&FramebufferManager::GetEFBDepthTexture()->GetDSV12(),
+			&FramebufferManager::GetEFBColorTexture()->GetRTV(),
+			&FramebufferManager::GetEFBDepthTexture()->GetDSV(),
 			FramebufferManager::GetEFBColorTexture()->GetMultisampled()
 			);
 	}
@@ -704,7 +704,7 @@ void Renderer::ReinterpretPixelData(unsigned int convtype)
 	D3D::current_command_list->RSSetViewports(1, &vp);
 
 	FramebufferManager::GetEFBColorTempTexture()->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_RENDER_TARGET);
-	D3D::current_command_list->OMSetRenderTargets(1, &FramebufferManager::GetEFBColorTempTexture()->GetRTV12(), FALSE, nullptr);
+	D3D::current_command_list->OMSetRenderTargets(1, &FramebufferManager::GetEFBColorTempTexture()->GetRTV(), FALSE, nullptr);
 
 	D3D::SetPointCopySampler();
 	D3D::DrawShadedTexQuad(
@@ -730,7 +730,7 @@ void Renderer::ReinterpretPixelData(unsigned int convtype)
 
 	FramebufferManager::GetEFBColorTexture()->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_RENDER_TARGET);
 	FramebufferManager::GetEFBDepthTexture()->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_DEPTH_WRITE);
-	D3D::current_command_list->OMSetRenderTargets(1, &FramebufferManager::GetEFBColorTexture()->GetRTV12(), FALSE, &FramebufferManager::GetEFBDepthTexture()->GetDSV12());
+	D3D::current_command_list->OMSetRenderTargets(1, &FramebufferManager::GetEFBColorTexture()->GetRTV(), FALSE, &FramebufferManager::GetEFBDepthTexture()->GetDSV());
 }
 
 void Renderer::SetBlendMode(bool force_update)
@@ -808,7 +808,7 @@ bool Renderer::SaveScreenshot(const std::string& filename, const TargetRectangle
 	D3D12_TEXTURE_COPY_LOCATION src_location = {};
 	src_location.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
 	src_location.SubresourceIndex = 0;
-	src_location.pResource = D3D::GetBackBuffer()->GetTex12();
+	src_location.pResource = D3D::GetBackBuffer()->GetTex();
 
 	D3D::GetBackBuffer()->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_COPY_SOURCE);
 	D3D::current_command_list->CopyTextureRegion(&dst_location, 0, 0, 0, &src_location, &source_box);
@@ -874,10 +874,10 @@ void Renderer::SwapImpl(u32 xfb_addr, u32 fb_width, u32 fb_stride, u32 fb_height
 	TargetRectangle target_rc = GetTargetRectangle();
 
 	D3D::GetBackBuffer()->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_RENDER_TARGET);
-	D3D::current_command_list->OMSetRenderTargets(1, &D3D::GetBackBuffer()->GetRTV12(), FALSE, nullptr);
+	D3D::current_command_list->OMSetRenderTargets(1, &D3D::GetBackBuffer()->GetRTV(), FALSE, nullptr);
 
 	float clear_color[4] = { 0.f, 0.f, 0.f, 1.f };
-	D3D::current_command_list->ClearRenderTargetView(D3D::GetBackBuffer()->GetRTV12(), clear_color, 0, nullptr);
+	D3D::current_command_list->ClearRenderTargetView(D3D::GetBackBuffer()->GetRTV(), clear_color, 0, nullptr);
 
 	// D3D12: Because scissor-testing is always enabled, change scissor rect to backbuffer in case EFB is smaller
 	// than swap chain back buffer.
@@ -986,7 +986,7 @@ void Renderer::SwapImpl(u32 xfb_addr, u32 fb_width, u32 fb_stride, u32 fb_height
 		D3D12_TEXTURE_COPY_LOCATION src_location = {};
 		src_location.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
 		src_location.SubresourceIndex = 0;
-		src_location.pResource = D3D::GetBackBuffer()->GetTex12();
+		src_location.pResource = D3D::GetBackBuffer()->GetTex();
 
 		D3D::GetBackBuffer()->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_COPY_SOURCE);
 		D3D::current_command_list->CopyTextureRegion(&dst_location, 0, 0, 0, &src_location, &source_box);
@@ -1113,17 +1113,17 @@ void Renderer::SwapImpl(u32 xfb_addr, u32 fb_width, u32 fb_stride, u32 fb_height
 		PixelShaderManager::SetEfbScaleChanged();
 
 		D3D::GetBackBuffer()->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_RENDER_TARGET);
-		D3D::current_command_list->OMSetRenderTargets(1, &D3D::GetBackBuffer()->GetRTV12(), FALSE, nullptr);
+		D3D::current_command_list->OMSetRenderTargets(1, &D3D::GetBackBuffer()->GetRTV(), FALSE, nullptr);
 
 		g_framebuffer_manager.reset();
 		g_framebuffer_manager = std::make_unique<FramebufferManager>();
 		const float clear_color[4] = { 0.f, 0.f, 0.f, 1.f };
 
 		FramebufferManager::GetEFBColorTexture()->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_RENDER_TARGET);
-		D3D::current_command_list->ClearRenderTargetView(FramebufferManager::GetEFBColorTexture()->GetRTV12(), clear_color, 0, nullptr);
+		D3D::current_command_list->ClearRenderTargetView(FramebufferManager::GetEFBColorTexture()->GetRTV(), clear_color, 0, nullptr);
 
 		FramebufferManager::GetEFBDepthTexture()->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_DEPTH_WRITE);
-		D3D::current_command_list->ClearDepthStencilView(FramebufferManager::GetEFBDepthTexture()->GetDSV12(), D3D12_CLEAR_FLAG_DEPTH, 0.f, 0, 0, nullptr);
+		D3D::current_command_list->ClearDepthStencilView(FramebufferManager::GetEFBDepthTexture()->GetDSV(), D3D12_CLEAR_FLAG_DEPTH, 0.f, 0, 0, nullptr);
 	}
 
 	// begin next frame
@@ -1132,7 +1132,7 @@ void Renderer::SwapImpl(u32 xfb_addr, u32 fb_width, u32 fb_stride, u32 fb_height
 
 	FramebufferManager::GetEFBColorTexture()->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_RENDER_TARGET);
 	FramebufferManager::GetEFBDepthTexture()->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_DEPTH_WRITE);
-	D3D::current_command_list->OMSetRenderTargets(1, &FramebufferManager::GetEFBColorTexture()->GetRTV12(), FALSE, &FramebufferManager::GetEFBDepthTexture()->GetDSV12());
+	D3D::current_command_list->OMSetRenderTargets(1, &FramebufferManager::GetEFBColorTexture()->GetRTV(), FALSE, &FramebufferManager::GetEFBDepthTexture()->GetDSV());
 
 	SetViewport();
 }
@@ -1398,10 +1398,10 @@ void Renderer::SetSamplerState(int stage, int tex_index, bool custom_tex)
 		gx_state.sampler[stage].max_lod = 255;
 	}
 
-	if (gx_state.sampler[stage].packed != s_previous_sampler_state[stage].packed)
+	if (gx_state.sampler[stage].hex != s_previous_sampler_state[stage].hex)
 	{
 		D3D::command_list_mgr->m_dirty_samplers = true;
-		s_previous_sampler_state[stage].packed = gx_state.sampler[stage].packed;
+		s_previous_sampler_state[stage].hex = gx_state.sampler[stage].hex;
 	}
 }
 

@@ -15,9 +15,10 @@
 
 #include <d3dx12.h>
 
+#include "Common/Common.h"
 #include "Common/CommonTypes.h"
 #include "Common/MsgHandler.h"
-#include "Common/Common.h"
+
 
 namespace DX12
 {
@@ -134,14 +135,14 @@ static std::string GetDebugObjectName12(ID3D12Resource* resource)
 
 }  // namespace D3D
 
-typedef HRESULT (WINAPI* CREATEDXGIFACTORY)(REFIID, void**);
+typedef HRESULT(WINAPI* CREATEDXGIFACTORY)(REFIID, void**);
 extern CREATEDXGIFACTORY create_dxgi_factory;
 
 typedef HRESULT(WINAPI* D3D12CREATEDEVICE)(IUnknown*, D3D_FEATURE_LEVEL, REFIID, void**);
 typedef HRESULT(WINAPI* D3D12SERIALIZEROOTSIGNATURE)(const D3D12_ROOT_SIGNATURE_DESC* pRootSignature, D3D_ROOT_SIGNATURE_VERSION Version, ID3DBlob** ppBlob, ID3DBlob** ppErrorBlob);
 typedef HRESULT(WINAPI* D3D12GETDEBUGINTERFACE)(REFIID riid, void** ppvDebug);
 
-typedef HRESULT (WINAPI* D3DREFLECT)(LPCVOID, SIZE_T, REFIID, void**);
+typedef HRESULT(WINAPI* D3DREFLECT)(LPCVOID, SIZE_T, REFIID, void**);
 extern D3DREFLECT d3d_reflect;
 extern pD3DCompile d3d_compile;
 

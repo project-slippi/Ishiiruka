@@ -57,7 +57,7 @@ private:
 	{
 		size_t operator()(const SamplerStateSet sampler_state_set) const
 		{
-			return sampler_state_set.desc0.packed;
+			return sampler_state_set.desc0.hex;
 		}
 	};
 

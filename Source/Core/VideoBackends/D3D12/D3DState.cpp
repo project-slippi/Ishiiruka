@@ -7,8 +7,8 @@
 #include "Common/FileUtil.h"
 #include "Common/LinearDiskCache.h"
 #include "Common/MsgHandler.h"
-#include "Common/Logging/Log.h"
 #include "Common/StringUtil.h"
+#include "Common/Logging/Log.h"
 
 #include "Core/ConfigManager.h"
 
@@ -20,9 +20,8 @@
 #include "VideoBackends/D3D12/ShaderCache.h"
 #include "VideoBackends/D3D12/StaticShaderCache.h"
 
-#include "VideoCommon/VideoConfig.h"
 #include "VideoCommon/VertexLoaderManager.h"
-
+#include "VideoCommon/VideoConfig.h"
 
 namespace DX12
 {
@@ -45,11 +44,11 @@ public:
 		desc.IBStripCutValue = D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_0xFFFF;
 		desc.NumRenderTargets = 1;
 		desc.SampleMask = UINT_MAX;
-		desc.SampleDesc = key.SampleDesc;
+		desc.SampleDesc = key.sample_desc;
 
-		desc.GS = ShaderCache::GetGeometryShaderFromUid(&key.gsUid);
-		desc.PS = ShaderCache::GetPixelShaderFromUid(&key.psUid);
-		desc.VS = ShaderCache::GetVertexShaderFromUid(&key.vsUid);
+		desc.GS = ShaderCache::GetGeometryShaderFromUid(&key.gs_uid);
+		desc.PS = ShaderCache::GetPixelShaderFromUid(&key.ps_uid);
+		desc.VS = ShaderCache::GetVertexShaderFromUid(&key.vs_uid);
 
 		if (!desc.PS.pShaderBytecode || !desc.VS.pShaderBytecode)
 		{
@@ -57,20 +56,29 @@ public:
 			return;
 		}
 
-		desc.BlendState = StateCache::GetDesc12(key.BlendState);
-		desc.DepthStencilState = StateCache::GetDesc12(key.DepthStencilState);
-		desc.RasterizerState = StateCache::GetDesc12(key.RasterizerState);
+		BlendState blend_state = {};
+		blend_state.hex = key.blend_state_hex;
+		desc.BlendState = StateCache::GetDesc(blend_state);
+
+		ZMode depth_stencil_state = {};
+		depth_stencil_state.hex = key.depth_stencil_state_hex;
+		desc.DepthStencilState = StateCache::GetDesc(depth_stencil_state);
+
+		RasterizerState rasterizer_state = {};
+		rasterizer_state.hex = key.rasterizer_state_hex;
+		desc.RasterizerState = StateCache::GetDesc(rasterizer_state);
+
 		desc.PrimitiveTopologyType = key.topology;
 
 		// search for a cached native vertex format
-		const PortableVertexDeclaration& native_vtx_decl = key.vertexDeclaration;
+		const PortableVertexDeclaration& native_vtx_decl = key.vertex_declaration;
 		std::unique_ptr<NativeVertexFormat>& native = (*VertexLoaderManager::GetNativeVertexFormatMap())[native_vtx_decl];
 
 		if (!native)
 		{
 			native.reset(g_vertex_manager->CreateNativeVertexFormat(native_vtx_decl));
 		}
-		
+
 		desc.InputLayout = reinterpret_cast<D3DVertexFormat*>(native.get())->GetActiveInputLayout();
 
 		desc.CachedPSO.CachedBlobSizeInBytes = value_size;
@@ -88,16 +96,16 @@ public:
 			return;
 		}
 
-		SmallPsoDesc smallDesc = {};
-		smallDesc.BlendState.packed = key.BlendState.packed;
-		smallDesc.DepthStencilState.hex = key.DepthStencilState.hex;
-		smallDesc.RasterizerState.packed = key.RasterizerState.packed;
-		smallDesc.GS = desc.GS;
-		smallDesc.VS = desc.VS;
-		smallDesc.PS = desc.PS;
-		smallDesc.InputLayout = reinterpret_cast<D3DVertexFormat*>(native.get());
+		SmallPsoDesc small_desc = {};
+		small_desc.blend_state.hex = key.blend_state_hex;
+		small_desc.depth_stencil_state.hex = key.depth_stencil_state_hex;
+		small_desc.rasterizer_state.hex = key.rasterizer_state_hex;
+		small_desc.gs_bytecode = desc.GS;
+		small_desc.vs_bytecode = desc.VS;
+		small_desc.ps_bytecode = desc.PS;
+		small_desc.input_Layout = reinterpret_cast<D3DVertexFormat*>(native.get());
 
-		gx_state_cache.m_small_pso_map[smallDesc] = pso;
+		gx_state_cache.m_small_pso_map[small_desc] = pso;
 	}
 };
 
@@ -149,12 +157,12 @@ void StateCache::Init()
 		File::Delete(cache_filename);
 
 		g_pso_disk_cache.OpenAndRead(cache_filename, inserter);
-	
+
 		cache_is_corrupted = false;
 	}
 }
 
-D3D12_SAMPLER_DESC StateCache::GetDesc12(SamplerState state)
+D3D12_SAMPLER_DESC StateCache::GetDesc(SamplerState state)
 {
 	const unsigned int d3d_mip_filters[4] =
 	{
@@ -239,7 +247,7 @@ D3D12_SAMPLER_DESC StateCache::GetDesc12(SamplerState state)
 	return sampdc;
 }
 
-D3D12_BLEND_DESC StateCache::GetDesc12(BlendState state)
+D3D12_BLEND_DESC StateCache::GetDesc(BlendState state)
 {
 	if (!state.blend_enable)
 	{
@@ -310,9 +318,9 @@ D3D12_BLEND_DESC StateCache::GetDesc12(BlendState state)
 	return blenddc;
 }
 
-D3D12_RASTERIZER_DESC StateCache::GetDesc12(RasterizerState state)
+D3D12_RASTERIZER_DESC StateCache::GetDesc(RasterizerState state)
 {
-	return {
+	return{
 		D3D12_FILL_MODE_SOLID,
 		state.cull_mode,
 		false,
@@ -327,7 +335,7 @@ D3D12_RASTERIZER_DESC StateCache::GetDesc12(RasterizerState state)
 	};
 }
 
-inline D3D12_DEPTH_STENCIL_DESC StateCache::GetDesc12(ZMode state)
+inline D3D12_DEPTH_STENCIL_DESC StateCache::GetDesc(ZMode state)
 {
 	D3D12_DEPTH_STENCIL_DESC depthdc;
 
@@ -404,16 +412,16 @@ HRESULT StateCache::GetPipelineStateObjectFromCache(SmallPsoDesc* pso_desc, ID3D
 
 		// RootSignature, SampleMask, NumRenderTargets, RTVFormats, DSVFormat
 		// never change so they are set in constructor and forgotten.
-		m_current_pso_desc.GS = pso_desc->GS;
-		m_current_pso_desc.PS = pso_desc->PS;
-		m_current_pso_desc.VS = pso_desc->VS;
-		
-		m_current_pso_desc.BlendState = GetDesc12(pso_desc->BlendState);
-		m_current_pso_desc.DepthStencilState = GetDesc12(pso_desc->DepthStencilState);
-		m_current_pso_desc.RasterizerState = GetDesc12(pso_desc->RasterizerState);
+		m_current_pso_desc.GS = pso_desc->gs_bytecode;
+		m_current_pso_desc.PS = pso_desc->ps_bytecode;
+		m_current_pso_desc.VS = pso_desc->vs_bytecode;
+
+		m_current_pso_desc.BlendState = GetDesc(pso_desc->blend_state);
+		m_current_pso_desc.DepthStencilState = GetDesc(pso_desc->depth_stencil_state);
+		m_current_pso_desc.RasterizerState = GetDesc(pso_desc->rasterizer_state);
 		m_current_pso_desc.PrimitiveTopologyType = topology;
-		m_current_pso_desc.InputLayout = pso_desc->InputLayout->GetActiveInputLayout();		
-		m_current_pso_desc.SampleDesc.Count = pso_desc->samplecount;
+		m_current_pso_desc.InputLayout = pso_desc->input_Layout->GetActiveInputLayout();
+		m_current_pso_desc.SampleDesc.Count = pso_desc->sample_count;
 
 		ID3D12PipelineState* new_pso = nullptr;
 		HRESULT hr = D3D::device12->CreateGraphicsPipelineState(&m_current_pso_desc, IID_PPV_ARGS(&new_pso));
@@ -428,24 +436,24 @@ HRESULT StateCache::GetPipelineStateObjectFromCache(SmallPsoDesc* pso_desc, ID3D
 		*pso = new_pso;
 
 		// This contains all of the information needed to reconstruct a PSO at startup.
-		SmallPsoDiskDesc diskDesc = {};
-		diskDesc.BlendState.packed = pso_desc->BlendState.packed;
-		diskDesc.DepthStencilState.hex = pso_desc->DepthStencilState.hex;
-		diskDesc.RasterizerState.packed = pso_desc->RasterizerState.packed;
-		diskDesc.gsUid = *gs_uid;
-		diskDesc.psUid = *ps_uid;
-		diskDesc.vsUid = *vs_uid;
-		diskDesc.vertexDeclaration = pso_desc->InputLayout->GetVertexDeclaration();
-		diskDesc.topology = topology;
-		diskDesc.SampleDesc.Count = g_ActiveConfig.iMultisamples;
-		
+		SmallPsoDiskDesc disk_desc = {};
+		disk_desc.blend_state_hex = pso_desc->blend_state.hex;
+		disk_desc.depth_stencil_state_hex = pso_desc->depth_stencil_state.hex;
+		disk_desc.rasterizer_state_hex = pso_desc->rasterizer_state.hex;
+		disk_desc.gs_uid = *gs_uid;
+		disk_desc.ps_uid = *ps_uid;
+		disk_desc.vs_uid = *vs_uid;
+		disk_desc.vertex_declaration = pso_desc->input_Layout->GetVertexDeclaration();
+		disk_desc.topology = topology;
+		disk_desc.sample_desc.Count = g_ActiveConfig.iMultisamples;
+
 		// This shouldn't fail.. but if it does, don't cache to disk.
 		ID3DBlob* psoBlob = nullptr;
 		hr = new_pso->GetCachedBlob(&psoBlob);
-		
+
 		if (SUCCEEDED(hr))
 		{
-			g_pso_disk_cache.Append(diskDesc, reinterpret_cast<const u8*>(psoBlob->GetBufferPointer()), static_cast<u32>(psoBlob->GetBufferSize()));
+			g_pso_disk_cache.Append(disk_desc, reinterpret_cast<const u8*>(psoBlob->GetBufferPointer()), static_cast<u32>(psoBlob->GetBufferSize()));
 			psoBlob->Release();
 		}
 	}
