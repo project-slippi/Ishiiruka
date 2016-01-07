@@ -998,10 +998,8 @@ void PostProcessor::UpdateUniformBuffer(API_TYPE api, const PostProcessingShader
 }
 
 
-std::string PostProcessor::GetUniformBufferShaderSource(API_TYPE api, const PostProcessingShaderConfiguration* config)
+void PostProcessor::GetUniformBufferShaderSource(API_TYPE api, const PostProcessingShaderConfiguration* config, std::string& shader_source)
 {
-	std::string shader_source;
-	
 	// Add options resolved at compilation Time
 	config->PrintCompilationTimeOptions(shader_source);
 
@@ -1020,7 +1018,7 @@ std::string PostProcessor::GetUniformBufferShaderSource(API_TYPE api, const Post
 	shader_source += "\tfloat native_gamma;\n";
 	shader_source += "\tuint scaling_filter;\n";	
 
-																// User options
+	// User options
 	u32 unused_counter = 2;
 	for (const auto& it : config->GetOptions())
 	{
@@ -1059,14 +1057,19 @@ std::string PostProcessor::GetUniformBufferShaderSource(API_TYPE api, const Post
 	}
 
 	// End constant block
-	shader_source += "};\n";	
-	return shader_source;
+	shader_source += "};\n";
 }
 
 std::string PostProcessor::GetPassFragmentShaderSource(API_TYPE api, const PostProcessingShaderConfiguration* config,
 	const PostProcessingShaderConfiguration::RenderPass* pass)
 {
 	std::string shader_source;
+	size_t base_size = config->GetOptions().size() * 64 + s_post_fragment_header_common.size() + s_post_fragment_header_ogl.size() + 1024;
+	if (!pass->entry_point.empty())
+	{
+		base_size += config->GetShaderSource().size();
+	}
+	shader_source.reserve(base_size);
 	if (api == API_OPENGL)
 	{
 		shader_source += "#define API_OPENGL 1\n";
@@ -1077,9 +1080,9 @@ std::string PostProcessor::GetPassFragmentShaderSource(API_TYPE api, const PostP
 		shader_source += "#define API_D3D 1\n";
 		shader_source += s_post_fragment_header_d3d;
 	}
-
+	
 	// Add uniform buffer
-	shader_source += GetUniformBufferShaderSource(api, config);
+	GetUniformBufferShaderSource(api, config, shader_source);
 
 	// Figure out which input indices map to color/depth/previous buffers.
 	// If any of these buffers is not bound, defaults of zero are fine here,
@@ -1276,7 +1279,7 @@ float2 GetInvResolution() { return GetInputInvResolution(COLOR_BUFFER_INPUT_INDE
 float2 GetCoordinates() { return uv0; }
 float GetTime() { return time; }
 void SetOutput(float4 color) { ocol0 = color; }
-float4 ApplyGCGamma(float4 col) { return pow(col, native_gamma); }
+float4 ApplyGCGamma(float4 col) { return pow(col, float4(native_gamma, native_gamma, native_gamma, native_gamma)); }
 //Random
 float global_rnd_state;
 float RandomSeedfloat(float2 seed)

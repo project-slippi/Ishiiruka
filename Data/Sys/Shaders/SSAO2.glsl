@@ -238,7 +238,7 @@ float compareDepths(float depth1, float depth2, inout int far)
 	return gauss;
 } 
      
-float calAO(float depth,float d, float ao)
+float calAO(float depth,float2 d, float ao)
 {
 	float2 texCoord = GetCoordinates();
 	float dd = GetOption(F_RADIUS)-depth;
@@ -258,42 +258,74 @@ float calAO(float depth,float d, float ao)
 	return ao;
 }
 
-#define FILTER_RADIUS 4
-
-float BilateralR(int2 offsetmask, float depth)
+float BilateralX(float depth)
 {
 	float limit = GetOption(D_FILTER_LIMIT);
 	float count = 1.0;
 	float value = SamplePrev().r;
 
-	for (int i = 1; i < (FILTER_RADIUS + 1); i++)
-	{
-		int2 offset = offsetmask * i;
-		float Weight = min(sign(limit - abs(SampleDepthOffset(offset) - depth)) + 1.0, 1.0);
-		value += SamplePrevOffset(offset).r * Weight;
-		count += Weight;
-		offset = -offset;
-		Weight = min(sign(limit - abs(SampleDepthOffset(offset) - depth)) + 1.0, 1.0);
-		value += SamplePrevOffset(offset).r * Weight;
-		count += Weight;
-	}
+	float Weight = min(sign(limit - abs(SampleDepthOffset(int2(-3, 0)) - depth)) + 1.0, 1.0);
+	value += SamplePrevOffset(int2(-3, 0)).r * Weight;
+	count += Weight;
+	Weight = min(sign(limit - abs(SampleDepthOffset(int2(-2, 0)) - depth)) + 1.0, 1.0);
+	value += SamplePrevOffset(int2(-2, 0)).r * Weight;
+	count += Weight;
+	Weight = min(sign(limit - abs(SampleDepthOffset(int2(-1, 0)) - depth)) + 1.0, 1.0);
+	value += SamplePrevOffset(int2(-1, 0)).r * Weight;
+	count += Weight;
+	Weight = min(sign(limit - abs(SampleDepthOffset(int2(1, 0)) - depth)) + 1.0, 1.0);
+	value += SamplePrevOffset(int2(1, 0)).r * Weight;
+	count += Weight;
+	Weight = min(sign(limit - abs(SampleDepthOffset(int2(2, 0)) - depth)) + 1.0, 1.0);
+	value += SamplePrevOffset(int2(2, 0)).r * Weight;
+	count += Weight;
+	Weight = min(sign(limit - abs(SampleDepthOffset(int2(3, 0)) - depth)) + 1.0, 1.0);
+	value += SamplePrevOffset(int2(3, 0)).r * Weight;
+	count += Weight;
+	return value / count;
+}
+
+float BilateralY(float depth)
+{
+	float limit = GetOption(D_FILTER_LIMIT);
+	float count = 1.0;
+	float value = SamplePrev().r;
+
+	float Weight = min(sign(limit - abs(SampleDepthOffset(int2(0, -3)) - depth)) + 1.0, 1.0);
+	value += SamplePrevOffset(int2(0, -3)).r * Weight;
+	count += Weight;
+	Weight = min(sign(limit - abs(SampleDepthOffset(int2(0, -2)) - depth)) + 1.0, 1.0);
+	value += SamplePrevOffset(int2(0, -2)).r * Weight;
+	count += Weight;
+	Weight = min(sign(limit - abs(SampleDepthOffset(int2(0, -1)) - depth)) + 1.0, 1.0);
+	value += SamplePrevOffset(int2(0, -1)).r * Weight;
+	count += Weight;
+	Weight = min(sign(limit - abs(SampleDepthOffset(int2(0, 1)) - depth)) + 1.0, 1.0);
+	value += SamplePrevOffset(int2(0, 1)).r * Weight;
+	count += Weight;
+	Weight = min(sign(limit - abs(SampleDepthOffset(int2(0, 2)) - depth)) + 1.0, 1.0);
+	value += SamplePrevOffset(int2(0, 2)).r * Weight;
+	count += Weight;
+	Weight = min(sign(limit - abs(SampleDepthOffset(int2(0, 3)) - depth)) + 1.0, 1.0);
+	value += SamplePrevOffset(int2(0, 3)).r * Weight;
+	count += Weight;
 	return value / count;
 }
 
 void BlurH()
 {
-	SetOutput(float4(1, 1, 1, 1) * BilateralR(int2(1, 0), SampleDepth()));
+	SetOutput(float4(1, 1, 1, 1) * BilateralX(SampleDepth()));
 }
 
 void Merger()
 {
 	float4 value = float4(1.0,1.0,1.0,1.0);
-	if (GetOption(B_SSAO_ONLY) == 0)
+	if (!OptionEnabled(B_SSAO_ONLY))
 	{
 		value = Sample();
 	}
 #if A_SSAO_ENABLED == 1
-	float blur = BilateralR(int2(0, 1), SampleDepth());
+	float blur = BilateralY(SampleDepth());
 	value *= blur;
 #endif
 	SetOutput(value);

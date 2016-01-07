@@ -266,11 +266,11 @@ void PS_AO_GICombine()
 	float4 gi = PS_AO_Blur(axis);
 
 	color.xyz = (gi.w + gi.xyz)*color.xyz;
-	if (GetOption(A_AO_ONLY) == 1)
+	if (OptionEnabled(A_AO_ONLY))
 	{
 		color = gi.wwww;
 	}
-	else if (GetOption(A_ILUMINATION_ONLY) == 1)
+	else if (OptionEnabled(A_ILUMINATION_ONLY))
 	{
 		color = gi.xyzz;
 	}

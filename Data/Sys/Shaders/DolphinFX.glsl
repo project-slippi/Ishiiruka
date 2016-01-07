@@ -522,30 +522,34 @@ OptionName = J_PAINT_SHADING
 DefaultValue = false
 
 [OptionRangeInteger]
-GUIName = PaintMethod
-OptionName = A_PAINT_TYPE
+GUIName = Paint method
+GUIDescription = The algorithm used for paint effect. 1: water painting, 0: oil painting. You may want to readjust the radius between the two.
+OptionName = PaintMethod
 MinValue = 0
 MaxValue = 1
 StepAmount = 1
-DefaultValue = 1
+DefaultValue = 0
 DependentOption = J_PAINT_SHADING
 
 [OptionRangeInteger]
-GUIName = PaintRadius
-OptionName = B_PAINT_RAD
-MinValue = 1
+GUIName = Paint radius
+GUIDescription = Radius of the painted effect, increasing the radius also requires longer loops, so higher values require more performance.
+OptionName = PaintRadius
+MinValue = 2
 MaxValue = 8
 StepAmount = 1
 DefaultValue = 4
+ResolveAtCompilation = True
 DependentOption = J_PAINT_SHADING
 
 [OptionRangeFloat]
-GUIName = PaintStrength
-OptionName = C_PAINT_STR
-MinValue = 0.25
-MaxValue = 2.00
+GUIName = Paint radius
+GUIDescription = The overall interpolated strength of the paint effect. Where 1.0 equates to 100% strength.
+OptionName = PaintStrength
+MinValue = 0.0
+MaxValue = 1.0
 StepAmount = 0.01
-DefaultValue = 1.00
+DefaultValue = 1.0
 DependentOption = J_PAINT_SHADING
 
 [OptionBool]
@@ -711,6 +715,29 @@ MaxValue = 1
 StepAmount = 1
 DefaultValue = 0
 DependentOption = M_DITHER_PASS
+
+[OptionBool]
+GUIName = Pixel Border
+OptionName = N_PIXEL_BORDER
+DefaultValue = false
+
+[OptionRangeFloat]
+GUIName = Border Width
+OptionName = BorderWidth
+MinValue = 0.0, 0.0
+MaxValue = 1024.0, 1024.0
+StepAmount = 1.0, 1.0
+DefaultValue = 2.0, 2.0
+DependentOption = N_PIXEL_BORDER
+
+[OptionRangeFloat]
+GUIName = Border Color
+OptionName = BorderColor
+MinValue = 0.0, 0.0, 0.0
+MaxValue = 1.0, 1.0, 1.0
+StepAmount = 0.01, 0.01, 0.01
+DefaultValue = 0.0, 0.0, 0.0
+DependentOption = N_PIXEL_BORDER
 
 [/configuration]
 */
@@ -2129,6 +2156,152 @@ float4 FxaaPass(float4 color)
 	return color;
 }
 
+/*------------------------------------------------------------------------------
+[PAINT SHADING CODE SECTION]
+------------------------------------------------------------------------------*/
+
+float3 PaintShading(float3 color, float2 texcoord)
+{
+	float2 pixelSize = GetInvResolution();
+	if (GetOption(PaintMethod) == 1)
+	{
+		float2	tex;
+		int	k, j, lum, cmax = 0;
+
+		float	C0 = 0, C1 = 0, C2 = 0, C3 = 0, C4 = 0, C5 = 0, C6 = 0, C7 = 0, C8 = 0, C9 = 0;
+		float3	A = float3(0.0,0.0,0.0), B = float3(0.0, 0.0, 0.0), C = float3(0.0, 0.0, 0.0), D = float3(0.0, 0.0, 0.0), E = float3(0.0, 0.0, 0.0), F = float3(0.0, 0.0, 0.0), G = float3(0.0, 0.0, 0.0), H = float3(0.0, 0.0, 0.0), I = float3(0.0, 0.0, 0.0), J = float3(0.0, 0.0, 0.0), shade = float3(0.0, 0.0, 0.0);
+
+		for (k = int(-PaintRadius); k < (int(PaintRadius) + 1); k++) {
+			for (j = int(-PaintRadius); j < (int(PaintRadius) + 1); j++) {
+
+				tex.x = texcoord.x + pixelSize.x * k;
+				tex.y = texcoord.y + pixelSize.y * j;
+
+				shade = SampleLocation(tex).xyz;
+
+				lum = int(AvgLuminance(shade) * 9.0);
+
+				C0 = (lum == 0) ? C0 + 1 : C0;
+				C1 = (lum == 1) ? C1 + 1 : C1;
+				C2 = (lum == 2) ? C2 + 1 : C2;
+				C3 = (lum == 3) ? C3 + 1 : C3;
+				C4 = (lum == 4) ? C4 + 1 : C4;
+				C5 = (lum == 5) ? C5 + 1 : C5;
+				C6 = (lum == 6) ? C6 + 1 : C6;
+				C7 = (lum == 7) ? C7 + 1 : C7;
+				C8 = (lum == 8) ? C8 + 1 : C8;
+				C9 = (lum == 9) ? C9 + 1 : C9;
+
+				A = (lum == 0) ? A + shade : A;
+				B = (lum == 1) ? B + shade : B;
+				C = (lum == 2) ? C + shade : C;
+				D = (lum == 3) ? D + shade : D;
+				E = (lum == 4) ? E + shade : E;
+				F = (lum == 5) ? F + shade : F;
+				G = (lum == 6) ? G + shade : G;
+				H = (lum == 7) ? H + shade : H;
+				I = (lum == 8) ? I + shade : I;
+				J = (lum == 9) ? J + shade : J;
+			}
+		}
+
+		if (C0 > cmax) { cmax = int(C0); color.xyz = A / cmax; }
+		if (C1 > cmax) { cmax = int(C1); color.xyz = B / cmax; }
+		if (C2 > cmax) { cmax = int(C2); color.xyz = C / cmax; }
+		if (C3 > cmax) { cmax = int(C3); color.xyz = D / cmax; }
+		if (C4 > cmax) { cmax = int(C4); color.xyz = E / cmax; }
+		if (C5 > cmax) { cmax = int(C5); color.xyz = F / cmax; }
+		if (C6 > cmax) { cmax = int(C6); color.xyz = G / cmax; }
+		if (C7 > cmax) { cmax = int(C7); color.xyz = H / cmax; }
+		if (C8 > cmax) { cmax = int(C8); color.xyz = I / cmax; }
+		if (C9 > cmax) { cmax = int(C9); color.xyz = J / cmax; }
+	}
+	else
+	{
+		int j, i;
+		float2 screenSize = GetResolution();
+		float3 m0, m1, m2, m3, k0, k1, k2, k3, shade;
+		float n = float((PaintRadius + 1.0) * (PaintRadius + 1.0));
+
+		for (j = int(-PaintRadius); j <= 0; ++j) {
+			for (i = int(-PaintRadius); i <= 0; ++i) {
+
+				shade = SampleLocation(texcoord + float2(i, j) / screenSize).rgb;
+				m0 += shade; k0 += shade * shade;
+			}
+		}
+
+		for (j = int(-PaintRadius); j <= 0; ++j) {
+			for (i = 0; i <= int(PaintRadius); ++i) {
+				shade = SampleLocation(texcoord + float2(i, j) / screenSize).rgb;
+				m1 += shade; k1 += shade * shade;
+			}
+		}
+
+		for (j = 0; j <= int(PaintRadius); ++j) {
+			for (i = 0; i <= int(PaintRadius); ++i) {
+				shade = SampleLocation(texcoord + float2(i, j) / screenSize).rgb;
+				m2 += shade; k2 += shade * shade;
+			}
+		}
+
+		float min_sigma2 = 1e+2;
+		m0 /= n; k0 = abs(k0 / n - m0 * m0);
+
+		float sigma2 = k0.r + k0.g + k0.b;
+		if (sigma2 < min_sigma2) {
+			min_sigma2 = sigma2; color = m0;
+		}
+
+		m1 /= n; k1 = abs(k1 / n - m1 * m1);
+		sigma2 = k1.r + k1.g + k1.b;
+
+		if (sigma2 < min_sigma2) {
+			min_sigma2 = sigma2;
+			color = m1;
+		}
+
+		m2 /= n; k2 = abs(k2 / n - m2 * m2);
+		sigma2 = k2.r + k2.g + k2.b;
+
+		if (sigma2 < min_sigma2) {
+			min_sigma2 = sigma2;
+			color = m2;
+		}
+	}
+	return color;
+}
+
+float4 PaintPass(float4 color, float2 texcoord)
+{
+	float3 paint = PaintShading(color.rgb, texcoord);
+	color.rgb = lerp(color.rgb, paint, GetOption(PaintStrength));
+	color.a = AvgLuminance(color.rgb);
+
+	return color;
+}
+
+/*------------------------------------------------------------------------------
+[PX BORDER CODE SECTION]
+------------------------------------------------------------------------------*/
+
+float4 BorderPass(float4 colorInput, float2 tex)
+{
+	float3 border_color_float = GetOption(BorderColor);
+
+	float2 border = (GetInvResolution().xy * GetOption(BorderWidth));
+	float2 within_border = saturate((-tex * tex + tex) - (-border * border + border));
+
+#if API_OPENGL == 1
+	bvec2 cond = notEqual(within_border, vec2(0.0f, 0.0f));
+	colorInput.rgb = all(cond) ? colorInput.rgb : border_color_float;
+#else
+	colorInput.rgb = all(within_border) ? colorInput.rgb : border_color_float;
+#endif
+
+	return colorInput;
+
+}
 
 
 /*------------------------------------------------------------------------------
@@ -2158,6 +2331,8 @@ void main()
 		if (OptionEnabled(L_VIGNETTE_PASS)) { color = VignettePass(color); }
 		if (OptionEnabled(K_SCAN_LINES)) { color = ScanlinesPass(color); }
 		if (OptionEnabled(M_DITHER_PASS)) { color = DitherPass(color); }
+		if (OptionEnabled(J_PAINT_SHADING)) { color = PaintPass(color, GetCoordinates()); }
+		if (OptionEnabled(N_PIXEL_BORDER)) { color = BorderPass(color, GetCoordinates()); }
 	}
 
 	SetOutput(color);

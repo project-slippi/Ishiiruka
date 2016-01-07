@@ -749,25 +749,58 @@ float3 GetNormalFromDepth(float fDepth)
 
 	return normalize(normal);
 }
-#define FILTER_RADIUS 4
 
-float4 Bilateral(int2 offsetmask, float depth)
+float4 BilateralX(float depth)
+{
+	float limit = GetOption(D_FILTER_LIMIT);
+	float count = 1.0;
+	float4 value = SamplePrev();
+	
+	float Weight = min(sign(limit - abs(SampleDepthOffset(int2(-3, 0)) - depth)) + 1.0, 1.0);
+	value += SamplePrevOffset(int2(-3, 0)) * Weight;
+	count += Weight;
+	Weight = min(sign(limit - abs(SampleDepthOffset(int2(-2, 0)) - depth)) + 1.0, 1.0);
+	value += SamplePrevOffset(int2(-2, 0)) * Weight;
+	count += Weight;
+	Weight = min(sign(limit - abs(SampleDepthOffset(int2(-1, 0)) - depth)) + 1.0, 1.0);
+	value += SamplePrevOffset(int2(-1, 0)) * Weight;
+	count += Weight;
+	Weight = min(sign(limit - abs(SampleDepthOffset(int2(1, 0)) - depth)) + 1.0, 1.0);
+	value += SamplePrevOffset(int2(1, 0)) * Weight;
+	count += Weight;
+	Weight = min(sign(limit - abs(SampleDepthOffset(int2(2, 0)) - depth)) + 1.0, 1.0);
+	value += SamplePrevOffset(int2(2, 0)) * Weight;
+	count += Weight;
+	Weight = min(sign(limit - abs(SampleDepthOffset(int2(3, 0)) - depth)) + 1.0, 1.0);
+	value += SamplePrevOffset(int2(3, 0)) * Weight;
+	count += Weight;
+	return value / count;
+}
+
+float4 BilateralY(float depth)
 {
 	float limit = GetOption(D_FILTER_LIMIT);
 	float count = 1.0;
 	float4 value = SamplePrev();
 
-	for (int i = 1; i < (FILTER_RADIUS + 1); i++)
-	{
-		int2 offset = offsetmask * i;
-		float Weight = min(sign(limit - abs(SampleDepthOffset(offset) - depth)) + 1.0, 1.0);
-		value += SamplePrevOffset(offset) * Weight;
-		count += Weight;
-		offset = -offset;
-		Weight = min(sign(limit - abs(SampleDepthOffset(offset) - depth)) + 1.0, 1.0);
-		value += SamplePrevOffset(offset) * Weight;
-		count += Weight;
-	}
+	float Weight = min(sign(limit - abs(SampleDepthOffset(int2(0, -3)) - depth)) + 1.0, 1.0);
+	value += SamplePrevOffset(int2(0, -3)) * Weight;
+	count += Weight;
+	Weight = min(sign(limit - abs(SampleDepthOffset(int2(0, -2)) - depth)) + 1.0, 1.0);
+	value += SamplePrevOffset(int2(0, -2)) * Weight;
+	count += Weight;
+	Weight = min(sign(limit - abs(SampleDepthOffset(int2(0, -1)) - depth)) + 1.0, 1.0);
+	value += SamplePrevOffset(int2(0, -1)) * Weight;
+	count += Weight;
+	Weight = min(sign(limit - abs(SampleDepthOffset(int2(0, 1)) - depth)) + 1.0, 1.0);
+	value += SamplePrevOffset(int2(0, 1)) * Weight;
+	count += Weight;
+	Weight = min(sign(limit - abs(SampleDepthOffset(int2(0, 2)) - depth)) + 1.0, 1.0);
+	value += SamplePrevOffset(int2(0, 2)) * Weight;
+	count += Weight;
+	Weight = min(sign(limit - abs(SampleDepthOffset(int2(0, 3)) - depth)) + 1.0, 1.0);
+	value += SamplePrevOffset(int2(0, 3)) * Weight;
+	count += Weight;
 	return value / count;
 }
 
@@ -811,7 +844,7 @@ float4 PS_AO_Blur(float2 axis)
 void AOBlur()
 {
 #if A_SSAO_ENABLED != 0
-		SetOutput(Bilateral(int2(1, 0), SampleDepth()));
+		SetOutput(BilateralX(SampleDepth()));
 #elif A_SSGI_ENABLED != 0
 	float2 axis = float2(0, 1);
 	SetOutput(PS_AO_Blur(axis));
@@ -1432,7 +1465,7 @@ float4 TexSharpenPass(float4 color)
 	color.rgb = color.rgb + sharpenLuma;
 	color.a = AvgLuminance(color.rgb);
 
-	if (GetOption(D_SEDGE_DETECTION) == 1)
+	if (OptionEnabled(D_SEDGE_DETECTION))
 	{
 		color = (0.5 + (sharpenLuma * 4)).xxxx;
 	}
@@ -1701,7 +1734,7 @@ float4 FxaaPass(float4 color)
 void Merger()
 {
 	float4 value = float4(1.0, 1.0, 1.0, 1.0);
-	if (GetOption(A_SSAO_ONLY) == 0)
+	if (!OptionEnabled(A_SSAO_ONLY))
 	{
 		value = Sample();
 		if (OptionEnabled(A_FXAA_PASS)) { value = FxaaPass(value); }
@@ -1712,19 +1745,19 @@ void Merger()
 #if A_SSAO_ENABLED != 0 || A_SSGI_ENABLED != 0
 	float3 AOCOmponent = float3(1.0, 1.0, 1.0);
 #if A_SSAO_ENABLED != 0
-	float4 blur = Bilateral(int2(0, 1), SampleDepth());
+	float4 blur = BilateralY(SampleDepth());
 	AOCOmponent = (1.0 + blur.rgb) * blur.a;
 #elif A_SSGI_ENABLED != 0
 	float2 axis = float2(1.0, 0.0);
 	float4 gi = PS_AO_Blur(axis);
 
 	AOCOmponent = (gi.w + gi.xyz);
-	if (GetOption(A_AO_ONLY) == 1)
+	if (OptionEnabled(A_AO_ONLY))
 	{
 		AOCOmponent = gi.www;
 		value = float4(1.0, 1.0, 1.0, 1.0);
 	}
-	else if (GetOption(A_ILUMINATION_ONLY) == 1)
+	else if (OptionEnabled(A_ILUMINATION_ONLY))
 	{
 		AOCOmponent = gi.xyz;
 		value = float4(1.0, 1.0, 1.0, 1.0);

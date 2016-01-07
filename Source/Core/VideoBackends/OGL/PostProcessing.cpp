@@ -366,7 +366,9 @@ bool PostProcessingShader::RecompileShaders()
 
 		// Compile shader for this pass
 		std::unique_ptr<SHADER> program = std::make_unique<SHADER>();
-		std::string vertex_shader_source = PostProcessor::GetUniformBufferShaderSource(API_OPENGL, m_config) + s_vertex_shader;
+		std::string vertex_shader_source;
+		PostProcessor::GetUniformBufferShaderSource(API_OPENGL, m_config, vertex_shader_source);
+		vertex_shader_source += s_vertex_shader;
 		std::string fragment_shader_source = PostProcessor::GetPassFragmentShaderSource(API_OPENGL, m_config, &pass_config);
 		if (!ProgramShaderCache::CompileShader(*program, vertex_shader_source.c_str(), fragment_shader_source.c_str()))
 		{
@@ -385,7 +387,9 @@ bool PostProcessingShader::RecompileShaders()
 		if (m_internal_layers > 1)
 		{
 			gs_program = std::make_unique<SHADER>();
-			vertex_shader_source = PostProcessor::GetUniformBufferShaderSource(API_OPENGL, m_config) + s_layered_vertex_shader;
+			vertex_shader_source.clear();
+			PostProcessor::GetUniformBufferShaderSource(API_OPENGL, m_config, vertex_shader_source);
+			vertex_shader_source += s_layered_vertex_shader;
 			std::string geometry_shader_source = StringFromFormat(s_geometry_shader, m_internal_layers * 3, m_internal_layers).c_str();
 
 			if (!ProgramShaderCache::CompileShader(*gs_program, vertex_shader_source.c_str(), fragment_shader_source.c_str(), geometry_shader_source.c_str()))

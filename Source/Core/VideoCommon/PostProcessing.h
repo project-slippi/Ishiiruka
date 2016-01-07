@@ -208,7 +208,7 @@ public:
 		int target_layers, uintptr_t texture, uintptr_t depth_texture) = 0;
 
 	// Construct the options uniform buffer source for the specified config.
-	static std::string GetUniformBufferShaderSource(API_TYPE api, const PostProcessingShaderConfiguration* config);
+	static void GetUniformBufferShaderSource(API_TYPE api, const PostProcessingShaderConfiguration* config, std::string& shader_source);
 
 	// Construct a complete fragment shader (HLSL/GLSL) for the specified pass.
 	static std::string GetPassFragmentShaderSource(API_TYPE api, const PostProcessingShaderConfiguration* config,
