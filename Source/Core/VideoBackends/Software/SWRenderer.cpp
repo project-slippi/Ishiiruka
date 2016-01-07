@@ -3,6 +3,8 @@
 // Refer to the license.txt file included.
 
 #include <algorithm>
+#include <atomic>
+#include <mutex>
 #include <string>
 
 #include "Common/CommonTypes.h"
@@ -275,7 +277,7 @@ void SWRenderer::DrawTexture(u8 *texture, int width, int height)
 void SWRenderer::SwapBuffer()
 {
 	// Do our OSD callbacks
-	OSD::DoCallbacks(OSD::OSD_ONFRAME);
+	OSD::DoCallbacks(OSD::CallbackType::Shutdown);
 
 	DrawDebugText();
 

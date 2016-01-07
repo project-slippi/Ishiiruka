@@ -16,7 +16,6 @@
 #include <cmath>
 #include <string>
 
-#include "Common/Atomic.h"
 #include "Common/Profiler.h"
 #include "Common/StringUtil.h"
 #include "Common/Timer.h"
@@ -33,12 +32,9 @@
 #include "VideoCommon/CommandProcessor.h"
 #include "VideoCommon/CPMemory.h"
 #include "VideoCommon/Debugger.h"
-#include "VideoCommon/Fifo.h"
 #include "VideoCommon/FPSCounter.h"
 #include "VideoCommon/FramebufferManagerBase.h"
 #include "VideoCommon/GeometryShaderManager.h"
-#include "VideoCommon/MainBase.h"
-#include "VideoCommon/OpcodeDecoding.h"
 #include "VideoCommon/PixelShaderManager.h"
 #include "VideoCommon/PostProcessing.h"
 #include "VideoCommon/RenderBase.h"
@@ -378,6 +374,8 @@ void Renderer::DrawDebugText()
 			std::string("Aspect Ratio: ") + ar_text + (g_ActiveConfig.bCrop ? " (crop)" : ""),
 			std::string("Copy EFB: ") + efbcopy_text,
 			std::string("Fog: ") + (g_ActiveConfig.bDisableFog ? "Disabled" : "Enabled"),
+			SConfig::GetInstance().m_EmulationSpeed <= 0 ? "Speed Limit: Unlimited" :
+			StringFromFormat("Speed Limit: %li%%", std::lround(SConfig::GetInstance().m_EmulationSpeed * 100.f)),
 		};
 		enum { lines_count = sizeof(lines) / sizeof(*lines) };
 		// The latest changed setting in yellow

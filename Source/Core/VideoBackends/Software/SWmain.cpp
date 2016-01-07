@@ -94,7 +94,7 @@ bool VideoSoftware::Initialize(void *window_handle)
 	HwRasterizer::Init();
 	SWRenderer::Init();
 	DebugUtil::Init();
-
+	m_initialized = true;
 	return true;
 }
 
@@ -154,13 +154,14 @@ void VideoSoftware::EmuStateChange(EMUSTATE_CHANGE newState)
 
 void VideoSoftware::Shutdown()
 {
+	m_initialized = false;
 	// TODO: should be in Video_Cleanup
 	HwRasterizer::Shutdown();
 	SWRenderer::Shutdown();
 	DebugUtil::Shutdown();
 
 	// Do our OSD callbacks
-	OSD::DoCallbacks(OSD::OSD_SHUTDOWN);
+	OSD::DoCallbacks(OSD::CallbackType::Shutdown);
 
 	GLInterface->Shutdown();
 }
@@ -186,7 +187,7 @@ void VideoSoftware::Video_Prepare()
 	GLInterface->SwapInterval(VSYNC_ENABLED);
 
 	// Do our OSD callbacks
-	OSD::DoCallbacks(OSD::OSD_INIT);
+	OSD::DoCallbacks(OSD::CallbackType::Initialization);
 
 	HwRasterizer::Prepare();
 	SWRenderer::Prepare();

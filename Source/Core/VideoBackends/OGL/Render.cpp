@@ -11,12 +11,12 @@
 #include <vector>
 
 #include "Common/Atomic.h"
-#include "Common/CommonPaths.h"
+#include "Common/CommonTypes.h"
 #include "Common/FileUtil.h"
 #include "Common/MathUtil.h"
 #include "Common/StringUtil.h"
-#include "Common/Thread.h"
-#include "Common/Timer.h"
+#include "Common/GL/GLInterfaceBase.h"
+#include "Common/GL/GLUtil.h"
 #include "Common/Logging/LogManager.h"
 
 #include "Core/ConfigManager.h"
@@ -24,30 +24,21 @@
 
 #include "VideoBackends/OGL/BoundingBox.h"
 #include "VideoBackends/OGL/FramebufferManager.h"
-#include "Common/GL/GLInterfaceBase.h"
-#include "Common/GL/GLUtil.h"
-#include "VideoBackends/OGL/main.h"
 #include "VideoBackends/OGL/PostProcessing.h"
 #include "VideoBackends/OGL/ProgramShaderCache.h"
 #include "VideoBackends/OGL/RasterFont.h"
 #include "VideoBackends/OGL/Render.h"
 #include "VideoBackends/OGL/SamplerCache.h"
-#include "VideoBackends/OGL/StreamBuffer.h"
 #include "VideoBackends/OGL/TextureCache.h"
-#include "VideoBackends/OGL/TextureConverter.h"
 #include "VideoBackends/OGL/VertexManager.h"
 
 #include "VideoCommon/BPFunctions.h"
-#include "VideoCommon/BPStructs.h"
 #include "VideoCommon/DriverDetails.h"
 #include "VideoCommon/Fifo.h"
 #include "VideoCommon/ImageWrite.h"
 #include "VideoCommon/OnScreenDisplay.h"
 #include "VideoCommon/PixelEngine.h"
 #include "VideoCommon/PixelShaderManager.h"
-#include "VideoCommon/Statistics.h"
-#include "VideoCommon/VertexLoaderManager.h"
-#include "VideoCommon/VertexShaderGen.h"
 #include "VideoCommon/VertexShaderManager.h"
 #include "VideoCommon/VideoConfig.h"
 
@@ -294,6 +285,14 @@ Renderer::Renderer()
 
 	InitDriverInfo();
 
+	if (GLExtensions::Version() < 300)
+	{
+		// integer vertex attributes require a gl3 only function
+		PanicAlert("GPU: OGL ERROR: Need OpenGL version 3.\n"
+			"GPU: Does your video card support OpenGL 3?");
+		bSuccess = false;
+	}
+
 	// check for the max vertex attributes
 	GLint numvertexattribs = 0;
 	glGetIntegerv(GL_MAX_VERTEX_ATTRIBS, &numvertexattribs);
@@ -315,72 +314,67 @@ Renderer::Renderer()
 		bSuccess = false;
 	}
 
-	if (!GLExtensions::Supports("GL_ARB_framebuffer_object"))
+	if (GLInterface->GetMode() == GLInterfaceMode::MODE_OPENGL)
 	{
-		// We want the ogl3 framebuffer instead of the ogl2 one for better blitting support.
-		// It's also compatible with the gles3 one.
-		PanicAlert("GPU: ERROR: Need GL_ARB_framebuffer_object for multiple render targets.\n"
+		if (!GLExtensions::Supports("GL_ARB_framebuffer_object"))
+		{
+			// We want the ogl3 framebuffer instead of the ogl2 one for better blitting support.
+			// It's also compatible with the gles3 one.
+			PanicAlert("GPU: ERROR: Need GL_ARB_framebuffer_object for multiple render targets.\n"
 				"GPU: Does your video card support OpenGL 3.0?");
-		bSuccess = false;
-	}
+			bSuccess = false;
+		}
 
-	if (!GLExtensions::Supports("GL_ARB_vertex_array_object"))
-	{
-		// This extension is used to replace lots of pointer setting function.
-		// Also gles3 requires to use it.
-		PanicAlert("GPU: OGL ERROR: Need GL_ARB_vertex_array_object.\n"
+		if (!GLExtensions::Supports("GL_ARB_vertex_array_object"))
+		{
+			// This extension is used to replace lots of pointer setting function.
+			// Also gles3 requires to use it.
+			PanicAlert("GPU: OGL ERROR: Need GL_ARB_vertex_array_object.\n"
 				"GPU: Does your video card support OpenGL 3.0?");
-		bSuccess = false;
-	}
+			bSuccess = false;
+		}
 
-	if (!GLExtensions::Supports("GL_ARB_map_buffer_range"))
-	{
-		// ogl3 buffer mapping for better streaming support.
-		// The ogl2 one also isn't in gles3.
-		PanicAlert("GPU: OGL ERROR: Need GL_ARB_map_buffer_range.\n"
+		if (!GLExtensions::Supports("GL_ARB_map_buffer_range"))
+		{
+			// ogl3 buffer mapping for better streaming support.
+			// The ogl2 one also isn't in gles3.
+			PanicAlert("GPU: OGL ERROR: Need GL_ARB_map_buffer_range.\n"
 				"GPU: Does your video card support OpenGL 3.0?");
-		bSuccess = false;
-	}
+			bSuccess = false;
+		}
 
-	if (!GLExtensions::Supports("GL_ARB_uniform_buffer_object"))
-	{
-		// ubo allow us to keep the current constants on shader switches
-		// we also can stream them much nicer and pack into it whatever we want to
-		PanicAlert("GPU: OGL ERROR: Need GL_ARB_uniform_buffer_object.\n"
+		if (!GLExtensions::Supports("GL_ARB_uniform_buffer_object"))
+		{
+			// ubo allow us to keep the current constants on shader switches
+			// we also can stream them much nicer and pack into it whatever we want to
+			PanicAlert("GPU: OGL ERROR: Need GL_ARB_uniform_buffer_object.\n"
 				"GPU: Does your video card support OpenGL 3.1?");
-		bSuccess = false;
-	}
-	else if (DriverDetails::HasBug(DriverDetails::BUG_BROKENUBO))
-	{
-		PanicAlert("Buggy GPU driver detected.\n"
+			bSuccess = false;
+		}
+		else if (DriverDetails::HasBug(DriverDetails::BUG_BROKENUBO))
+		{
+			PanicAlert("Buggy GPU driver detected.\n"
 				"Please either install the closed-source GPU driver or update your Mesa 3D version.");
-		bSuccess = false;
-	}
+			bSuccess = false;
+		}
 
-	if (!GLExtensions::Supports("GL_ARB_sampler_objects"))
-	{
-		// Our sampler cache uses this extension. It could easyly be workaround and it's by far the
-		// highest requirement, but it seems that no driver lacks support for it.
-		PanicAlert("GPU: OGL ERROR: Need GL_ARB_sampler_objects.\n"
+		if (!GLExtensions::Supports("GL_ARB_sampler_objects"))
+		{
+			// Our sampler cache uses this extension. It could easyly be workaround and it's by far the
+			// highest requirement, but it seems that no driver lacks support for it.
+			PanicAlert("GPU: OGL ERROR: Need GL_ARB_sampler_objects.\n"
 				"GPU: Does your video card support OpenGL 3.3?");
-		bSuccess = false;
-	}
+			bSuccess = false;
+		}
 
-	if (GLExtensions::Version() < 300)
-	{
-		// integer vertex attributes require a gl3 only function
-		PanicAlert("GPU: OGL ERROR: Need OpenGL version 3.\n"
-				"GPU: Does your video card support OpenGL 3?");
-		bSuccess = false;
-	}
-
-	// OpenGL 3 doesn't provide GLES like float functions for depth.
-	// They are in core in OpenGL 4.1, so almost every driver should support them.
-	// But for the oldest ones, we provide fallbacks to the old double functions.
-	if (!GLExtensions::Supports("GL_ARB_ES2_compatibility") && GLInterface->GetMode() == GLInterfaceMode::MODE_OPENGL)
-	{
-		glDepthRangef = DepthRangef;
-		glClearDepthf = ClearDepthf;
+		// OpenGL 3 doesn't provide GLES like float functions for depth.
+		// They are in core in OpenGL 4.1, so almost every driver should support them.
+		// But for the oldest ones, we provide fallbacks to the old double functions.
+		if (!GLExtensions::Supports("GL_ARB_ES2_compatibility") && GLInterface->GetMode() == GLInterfaceMode::MODE_OPENGL)
+		{
+			glDepthRangef = DepthRangef;
+			glClearDepthf = ClearDepthf;
+		}
 	}
 
 	g_Config.backend_info.bSupportsDualSourceBlend = GLExtensions::Supports("GL_ARB_blend_func_extended") ||
@@ -414,7 +408,6 @@ Renderer::Renderer()
 	g_ogl_config.bSupportsGLBufferStorage = GLExtensions::Supports("GL_ARB_buffer_storage") ||
 	                                        GLExtensions::Supports("GL_EXT_buffer_storage");
 	g_ogl_config.bSupportsMSAA = GLExtensions::Supports("GL_ARB_texture_multisample");	
-	g_ogl_config.bSupportOGL31 = GLExtensions::Version() >= 310;
 	g_ogl_config.bSupportViewportFloat = GLExtensions::Supports("GL_ARB_viewport_array");
 	g_ogl_config.bSupportsDebug = GLExtensions::Supports("GL_KHR_debug") ||
 	                              GLExtensions::Supports("GL_ARB_debug_output");
@@ -431,6 +424,9 @@ Renderer::Renderer()
 		g_ogl_config.SupportedESTextureBuffer = GLExtensions::Supports("VERSION_GLES_3_2") ? ES_TEXBUF_TYPE::TEXBUF_CORE :
 		                                        GLExtensions::Supports("GL_OES_texture_buffer") ? ES_TEXBUF_TYPE::TEXBUF_OES :
 		                                        GLExtensions::Supports("GL_EXT_texture_buffer") ? ES_TEXBUF_TYPE::TEXBUF_EXT : ES_TEXBUF_TYPE::TEXBUF_NONE;
+
+		g_ogl_config.bSupportsGLSLCache = true;
+		g_ogl_config.bSupportsGLSync = true;
 
 		if (strstr(g_ogl_config.glsl_version, "3.0") || DriverDetails::HasBug(DriverDetails::BUG_BROKENGLES31))
 		{
@@ -835,7 +831,7 @@ u32 Renderer::AccessEFB(EFBAccessType type, u32 x, u32 y, u32 poke_data)
 					g_renderer->RestoreAPIState();
 				}
 
-				std::unique_ptr<float> depthMap(new float[targetPixelRcWidth * targetPixelRcHeight]);
+				std::unique_ptr<float[]> depthMap(new float[targetPixelRcWidth * targetPixelRcHeight]);
 
 				glReadPixels(targetPixelRc.left, targetPixelRc.bottom, targetPixelRcWidth, targetPixelRcHeight,
 					GL_DEPTH_COMPONENT, GL_FLOAT, depthMap.get());
@@ -874,7 +870,7 @@ u32 Renderer::AccessEFB(EFBAccessType type, u32 x, u32 y, u32 poke_data)
 					g_renderer->RestoreAPIState();
 				}
 
-				std::unique_ptr<u32> colorMap(new u32[targetPixelRcWidth * targetPixelRcHeight]);
+				std::unique_ptr<u32[]> colorMap(new u32[targetPixelRcWidth * targetPixelRcHeight]);
 
 				if (GLInterface->GetMode() == GLInterfaceMode::MODE_OPENGLES3)
 				// XXX: Swap colours
@@ -1521,7 +1517,7 @@ void Renderer::SwapImpl(u32 xfbAddr, u32 fbWidth, u32 fbStride, u32 fbHeight, co
 	DrawDebugText();
 
 	// Do our OSD callbacks
-	OSD::DoCallbacks(OSD::OSD_ONFRAME);
+	OSD::DoCallbacks(OSD::CallbackType::OnFrame);
 	OSD::DrawMessages();
 
 	// Copy the rendered frame to the real window

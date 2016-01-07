@@ -25,7 +25,6 @@
 #include "DolphinWX/Debugger/DebuggerPanel.h"
 #include "VideoCommon/IndexGenerator.h"
 #include "Common/FileUtil.h"
-#include "Globals.h"
 #include "Common/IniFile.h"
 #include "DolphinWX/VideoConfigDiag.h"
 
@@ -153,7 +152,7 @@ void InitBackendInfo()
 void VideoBackend::ShowConfig(void *_hParent)
 {
 #if defined(HAVE_WX) && HAVE_WX
-	if (!s_BackendInitialized)
+	if (!m_initialized)
 		InitBackendInfo();
 	VideoConfigDiag diag((wxWindow*)_hParent, _trans("Direct3D11"), "gfx_dx11");
 	diag.ShowModal();
@@ -177,7 +176,7 @@ bool VideoBackend::Initialize(void *window_handle)
 
 	m_window_handle = window_handle;
 
-	s_BackendInitialized = true;
+	m_initialized = true;
 
 	return true;
 }
@@ -214,7 +213,7 @@ void VideoBackend::Video_Prepare()
 
 void VideoBackend::Shutdown()
 {
-	s_BackendInitialized = false;
+	m_initialized = false;
 	if (!g_renderer)
 		return;
 	// VideoCommon

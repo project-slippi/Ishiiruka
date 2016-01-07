@@ -1,17 +1,14 @@
 // Copyright 2013 Dolphin Emulator Project
 // Licensed under GPLv2+
 // Refer to the license.txt file included.
+#include <cmath>
+#include <sstream>
 
 #include "Common/Common.h"
 #include "Common/MathUtil.h"
 
 #include "Core/ConfigManager.h"
 #include "Core/Core.h"
-
-#include <cmath>
-#include <sstream>
-
-#include "VideoCommon/Statistics.h"
 
 #include "VideoCommon/VertexShaderGen.h"
 #include "VideoCommon/VertexShaderManager.h"
@@ -23,6 +20,7 @@
 #include "VideoCommon/VertexManagerBase.h"
 #include "VideoCommon/PostProcessing.h"
 #include "VideoCommon/RenderBase.h"
+#include "VideoCommon/Statistics.h"
 
 alignas(16) float VertexShaderManager::vsconstants[VertexShaderManager::ConstantBufferSize];
 ConstatBuffer VertexShaderManager::m_buffer(VertexShaderManager::vsconstants, VertexShaderManager::ConstantBufferSize);

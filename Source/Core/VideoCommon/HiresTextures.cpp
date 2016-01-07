@@ -56,6 +56,15 @@ static size_t max_mem = 0;
 static std::thread s_prefetcher;
 
 static const std::string s_format_prefix = "tex1_";
+HiresTexture::HiresTexture() : 
+	m_format(PC_TEX_FMT_NONE),
+	m_height(0),
+	m_levels(0),
+	m_nrm_levels(0),
+	m_cached_data(nullptr),
+	m_cached_data_size(0) 
+{
+}
 
 void HiresTexture::Init()
 {
@@ -88,6 +97,11 @@ bool hasEnding(std::string const &fullString, std::string const &ending) {
 	}
 }
 
+std::string HiresTexture::GetTextureFolder(const std::string& game_id)
+{
+	return File::GetUserPath(D_HIRESTEXTURES_IDX) + game_id;
+}
+
 void HiresTexture::Update()
 {
 	s_check_native_format = false;
@@ -114,8 +128,13 @@ void HiresTexture::Update()
 	}
 	
 	s_textureMap.clear();
-	const std::string& gameCode = SConfig::GetInstance().m_strUniqueID;
-	std::string szDir = StringFromFormat("%s%s", File::GetUserPath(D_HIRESTEXTURES_IDX).c_str(), gameCode.c_str());	
+	const std::string& game_id = SConfig::GetInstance().m_strUniqueID;
+	std::string texture_directory = GetTextureFolder(game_id);
+	
+	// If there's no directory with the region-specific ID, look for a 3-character region-free one
+	if (!File::Exists(texture_directory))
+		texture_directory = GetTextureFolder(game_id.substr(0, 3));
+
 	std::string ddscode(".dds");
 	std::string cddscode(".DDS");
 	std::vector<std::string> Extensions = {
@@ -123,16 +142,16 @@ void HiresTexture::Update()
 		".dds"
 	};
 
-	auto rFilenames = DoFileSearch(Extensions, { szDir }, /*recursive*/ true);
+	std::vector<std::string> filenames = DoFileSearch(Extensions, { texture_directory }, /*recursive*/ true);
 
-	const std::string code = StringFromFormat("%s_", gameCode.c_str());
+	const std::string code = game_id + "_";
 	const std::string miptag = "mip";
 	const std::string normaltag = ".nrm";
-	for (u32 i = 0; i < rFilenames.size(); i++)
+	for (u32 i = 0; i < filenames.size(); i++)
 	{
 		std::string FileName;
 		std::string Extension;
-		SplitPath(rFilenames[i], nullptr, &FileName, &Extension);
+		SplitPath(filenames[i], nullptr, &FileName, &Extension);
 		if (FileName.substr(0, code.length()) == code)
 		{
 			s_check_native_format = true;
@@ -152,7 +171,7 @@ void HiresTexture::Update()
 		{
 			FileName = FileName.substr(0, FileName.size() - normaltag.size());
 		}
-		hires_mip_level mip_level_detail(rFilenames[i], Extension, is_compressed);
+		hires_mip_level mip_level_detail(filenames[i], Extension, is_compressed);
 		u32 level = 0;
 		size_t idx = FileName.find_last_of('_');
 		std::string miplevel = FileName.substr(idx + 1, std::string::npos);

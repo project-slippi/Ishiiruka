@@ -72,8 +72,6 @@
     <ClInclude Include="D3DTexture.h" />
     <ClInclude Include="D3DUtil.h" />
     <ClInclude Include="FramebufferManager.h" />
-    <ClInclude Include="Globals.h" />
-    <ClInclude Include="main.h" />
     <ClInclude Include="NativeVertexFormat.h" />
     <ClInclude Include="PerfQuery.h" />
     <ClInclude Include="PSTextureEncoder.h" />

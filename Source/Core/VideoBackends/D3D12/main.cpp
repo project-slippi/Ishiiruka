@@ -24,8 +24,6 @@
 #include "VideoBackends/D3D12/VertexManager.h"
 #include "VideoBackends/D3D12/VideoBackend.h"
 
-#include "VideoBackends/D3D12/main.h"
-
 #include "VideoCommon/BPStructs.h"
 #include "VideoCommon/CommandProcessor.h"
 #include "VideoCommon/Fifo.h"
@@ -171,7 +169,7 @@ bool VideoBackend::Initialize(void *window_handle)
 
 	m_window_handle = window_handle;
 
-	s_BackendInitialized = true;
+	m_initialized = true;
 
 	return true;
 }
@@ -208,7 +206,7 @@ void VideoBackend::Video_Prepare()
 
 void VideoBackend::Shutdown()
 {
-	s_BackendInitialized = false;
+	m_initialized = false;
 
 	// TODO: should be in Video_Cleanup
 	if (g_renderer)

@@ -2,6 +2,7 @@
 // Licensed under GPLv2+
 // Refer to the license.txt file included.
 
+#include "Common/CommonTypes.h"
 #include "Common/FileUtil.h"
 #include "Common/LinearDiskCache.h"
 
@@ -15,7 +16,6 @@
 
 #include "VideoBackends/DX11/D3DShader.h"
 #include "VideoBackends/DX11/D3DUtil.h"
-#include "VideoBackends/DX11/Globals.h"
 #include "VideoBackends/DX11/VertexShaderCache.h"
 
 namespace DX11 {

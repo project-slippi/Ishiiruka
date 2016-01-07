@@ -46,11 +46,70 @@ public final class UserPreferences
 			editor.putString("cpuCorePref",   getConfig("Dolphin.ini", "Core", "CPUCore", "3"));
 
 		editor.putBoolean("dualCorePref", getConfig("Dolphin.ini", "Core", "CPUThread", "True").equals("True"));
+		editor.putBoolean("OverclockEnable", getConfig("Dolphin.ini", "Core", "OverclockEnable", "False").equals("True"));
+		editor.putString("Overclock", getConfig("Dolphin.ini", "Core", "Overclock", "100"));
 
-		editor.putString("WiimoteExtension_4", getConfig("WiimoteNew.ini", "Wiimote1", "Extension", "None"));
-		editor.putString("WiimoteExtension_5", getConfig("WiimoteNew.ini", "Wiimote2", "Extension", "None"));
-		editor.putString("WiimoteExtension_6", getConfig("WiimoteNew.ini", "Wiimote3", "Extension", "None"));
-		editor.putString("WiimoteExtension_7", getConfig("WiimoteNew.ini", "Wiimote4", "Extension", "None"));
+		// Load analog ranges from GCPadNew.ini and WiimoteNew.ini
+		editor.putString("mainRadius0", getConfig("GCPadNew.ini", "GCPad1", "Main Stick/Radius", "100,000000"));
+		editor.putString("cStickRadius0", getConfig("GCPadNew.ini", "GCPad1", "C-Stick/Radius", "100,000000"));
+		editor.putString("inputThres0", getConfig("GCPadNew.ini", "GCPad1", "Triggers/Threshold", "90,000000"));
+		editor.putString("mainRadius1", getConfig("GCPadNew.ini", "GCPad2", "Main Stick/Radius", "100,000000"));
+		editor.putString("cStickRadius1", getConfig("GCPadNew.ini", "GCPad2", "C-Stick/Radius", "100,000000"));
+		editor.putString("inputThres1", getConfig("GCPadNew.ini", "GCPad2", "Triggers/Threshold", "90,000000"));
+		editor.putString("mainRadius2", getConfig("GCPadNew.ini", "GCPad3", "Main Stick/Radius", "100,000000"));
+		editor.putString("cStickRadius2", getConfig("GCPadNew.ini", "GCPad3", "C-Stick/Radius", "100,000000"));
+		editor.putString("inputThres2", getConfig("GCPadNew.ini", "GCPad3", "Triggers/Threshold", "90,000000"));
+		editor.putString("mainRadius3", getConfig("GCPadNew.ini", "GCPad4", "Main Stick/Radius", "100,000000"));
+		editor.putString("cStickRadius3", getConfig("GCPadNew.ini", "GCPad4", "C-Stick/Radius", "100,000000"));
+		editor.putString("inputThres3", getConfig("GCPadNew.ini", "GCPad4", "Triggers/Threshold", "90,000000"));
+
+		editor.putString("tiltRange4", getConfig("WiimoteNew.ini", "Wiimote1", "Tilt/Modifier/Range", "50,00000"));
+		editor.putString("tiltRange5", getConfig("WiimoteNew.ini", "Wiimote2", "Tilt/Modifier/Range", "50,00000"));
+		editor.putString("tiltRange6", getConfig("WiimoteNew.ini", "Wiimote3", "Tilt/Modifier/Range", "50,00000"));
+		editor.putString("tiltRange7", getConfig("WiimoteNew.ini", "Wiimote4", "Tilt/Modifier/Range", "50,00000"));
+
+		editor.putString("nunchukRadius4", getConfig("WiimoteNew.ini", "Wiimote1", "Nunchuk/Stick/Radius", "100,000000"));
+		editor.putString("nunchukRange4", getConfig("WiimoteNew.ini", "Wiimote1", "Nunchuk/Tilt/Modifier/Range", "50,00000"));
+		editor.putString("nunchukRadius5", getConfig("WiimoteNew.ini", "Wiimote2", "Nunchuk/Stick/Radius", "100,000000"));
+		editor.putString("nunchukRange5", getConfig("WiimoteNew.ini", "Wiimote2", "Nunchuk/Tilt/Modifier/Range", "50,00000"));
+		editor.putString("nunchukRadius6", getConfig("WiimoteNew.ini", "Wiimote3", "Nunchuk/Stick/Radius", "100,000000"));
+		editor.putString("nunchukRange6", getConfig("WiimoteNew.ini", "Wiimote3", "Nunchuk/Tilt/Modifier/Range", "50,00000"));
+		editor.putString("nunchukRadius7", getConfig("WiimoteNew.ini", "Wiimote4", "Nunchuk/Stick/Radius", "100,000000"));
+		editor.putString("nunchukRange7", getConfig("WiimoteNew.ini", "Wiimote4", "Nunchuk/Tilt/Modifier/Range", "50,00000"));
+
+		editor.putString("classicLRadius4", getConfig("WiimoteNew.ini", "Wiimote1", "Classic/Left Stick/Radius", "100,000000"));
+		editor.putString("classicRRadius4", getConfig("WiimoteNew.ini", "Wiimote1", "Classic/Right Stick/Radius", "100,000000"));
+		editor.putString("classicThres4", getConfig("WiimoteNew.ini", "Wiimote1", "Classic/Triggers/Threshold", "90,000000"));
+		editor.putString("classicLRadius5", getConfig("WiimoteNew.ini", "Wiimote2", "Classic/Left Stick/Radius", "100,000000"));
+		editor.putString("classicRRadius5", getConfig("WiimoteNew.ini", "Wiimote2", "Classic/Right Stick/Radius", "100,000000"));
+		editor.putString("classicThres5", getConfig("WiimoteNew.ini", "Wiimote2", "Classic/Triggers/Threshold", "90,000000"));
+		editor.putString("classicLRadius6", getConfig("WiimoteNew.ini", "Wiimote3", "Classic/Left Stick/Radius", "100,000000"));
+		editor.putString("classicRRadius6", getConfig("WiimoteNew.ini", "Wiimote3", "Classic/Right Stick/Radius", "100,000000"));
+		editor.putString("classicThres6", getConfig("WiimoteNew.ini", "Wiimote3", "Classic/Triggers/Threshold", "90,000000"));
+		editor.putString("classicLRadius7", getConfig("WiimoteNew.ini", "Wiimote4", "Classic/Left Stick/Radius", "100,000000"));
+		editor.putString("classicRRadius7", getConfig("WiimoteNew.ini", "Wiimote4", "Classic/Right Stick/Radius", "100,000000"));
+		editor.putString("classicThres7", getConfig("WiimoteNew.ini", "Wiimote4", "Classic/Triggers/Threshold", "90,000000"));
+
+		editor.putString("guitarRadius4", getConfig("WiimoteNew.ini", "Wiimote1", "Guitar/Stick/Radius", "100,000000"));
+		editor.putString("guitarRadius5", getConfig("WiimoteNew.ini", "Wiimote2", "Guitar/Stick/Radius", "100,000000"));
+		editor.putString("guitarRadius6", getConfig("WiimoteNew.ini", "Wiimote3", "Guitar/Stick/Radius", "100,000000"));
+		editor.putString("guitarRadius7", getConfig("WiimoteNew.ini", "Wiimote4", "Guitar/Stick/Radius", "100,000000"));
+
+		editor.putString("drumsRadius4", getConfig("WiimoteNew.ini", "Wiimote1", "Drums/Stick/Radius", "100,000000"));
+		editor.putString("drumsRadius5", getConfig("WiimoteNew.ini", "Wiimote2", "Drums/Stick/Radius", "100,000000"));
+		editor.putString("drumsRadius6", getConfig("WiimoteNew.ini", "Wiimote3", "Drums/Stick/Radius", "100,000000"));
+		editor.putString("drumsRadius7", getConfig("WiimoteNew.ini", "Wiimote4", "Drums/Stick/Radius", "100,000000"));
+
+		editor.putString("turntableRadius4", getConfig("WiimoteNew.ini", "Wiimote1", "Turntable/Stick/Radius", "100,000000"));
+		editor.putString("turntableRadius5", getConfig("WiimoteNew.ini", "Wiimote2", "Turntable/Stick/Radius", "100,000000"));
+		editor.putString("turntableRadius6", getConfig("WiimoteNew.ini", "Wiimote3", "Turntable/Stick/Radius", "100,000000"));
+		editor.putString("turntableRadius7", getConfig("WiimoteNew.ini", "Wiimote4", "Turntable/Stick/Radius", "100,000000"));
+
+		// Load Wiimote Extension settings from WiimoteNew.ini
+		editor.putString("wiimoteExtension4", getConfig("WiimoteNew.ini", "Wiimote1", "Extension", "None"));
+		editor.putString("wiimoteExtension5", getConfig("WiimoteNew.ini", "Wiimote2", "Extension", "None"));
+		editor.putString("wiimoteExtension6", getConfig("WiimoteNew.ini", "Wiimote3", "Extension", "None"));
+		editor.putString("wiimoteExtension7", getConfig("WiimoteNew.ini", "Wiimote4", "Extension", "None"));
 
 		editor.putString("gpuPref",               getConfig("Dolphin.ini", "Core", "GFXBackend", "OGL"));
 		editor.putBoolean("showFPS",              getConfig("gfx_opengl.ini", "Settings", "ShowFPS", "False").equals("True"));
@@ -66,14 +125,14 @@ public final class UserPreferences
 		editor.putBoolean("disableFog",            getConfig("gfx_opengl.ini", "Settings", "DisableFog", "False").equals("True"));
 		editor.putBoolean("skipEFBAccess",         getConfig("gfx_opengl.ini", "Hacks", "EFBAccessEnable", "False").equals("True"));
 		editor.putBoolean("ignoreFormatChanges",   getConfig("gfx_opengl.ini", "Hacks", "EFBEmulateFormatChanges", "False").equals("True"));
-		editor.putString("stereoscopyMode",        getConfig("gfx_opengl.ini", "Enhancements", "StereoMode", "0"));
-		editor.putBoolean("stereoSwapEyes",        getConfig("gfx_opengl.ini", "Enhancements", "StereoSwapEyes", "False").equals("True"));
-		editor.putString("stereoDepth",            getConfig("gfx_opengl.ini", "Enhancements", "StereoDepth", "20"));
-		editor.putString("stereoConvergence",      getConfig("gfx_opengl.ini", "Enhancements", "StereoConvergence", "20"));
-		editor.putBoolean("enableController1",     getConfig("Dolphin.ini", "Settings", "SIDevice0", "6") == "6");
-		editor.putBoolean("enableController2",     getConfig("Dolphin.ini", "Settings", "SIDevice1", "0") == "6");
-		editor.putBoolean("enableController3",     getConfig("Dolphin.ini", "Settings", "SIDevice2", "0") == "6");
-		editor.putBoolean("enableController4",     getConfig("Dolphin.ini", "Settings", "SIDevice3", "0") == "6");
+		editor.putString("stereoscopyMode",        getConfig("gfx_opengl.ini", "Stereoscopy", "StereoMode", "0"));
+		editor.putBoolean("stereoSwapEyes",        getConfig("gfx_opengl.ini", "Stereoscopy", "StereoSwapEyes", "False").equals("True"));
+		editor.putString("stereoDepth",            getConfig("gfx_opengl.ini", "Stereoscopy", "StereoDepth", "20"));
+		editor.putString("stereoConvergencePercentage", getConfig("gfx_opengl.ini", "Stereoscopy", "StereoConvergencePercentage", "100"));
+		editor.putBoolean("enableController1",     getConfig("Dolphin.ini", "Core", "SIDevice0", "6") == "6");
+		editor.putBoolean("enableController2",     getConfig("Dolphin.ini", "Core", "SIDevice1", "0") == "6");
+		editor.putBoolean("enableController3",     getConfig("Dolphin.ini", "Core", "SIDevice2", "0") == "6");
+		editor.putBoolean("enableController4",     getConfig("Dolphin.ini", "Core", "SIDevice3", "0") == "6");
 
 		String efbCopyOn     = getConfig("gfx_opengl.ini", "Hacks", "EFBCopyEnable", "True");
 		String efbToTexture  = getConfig("gfx_opengl.ini", "Hacks", "EFBToTextureEnable", "True");
@@ -142,11 +201,76 @@ public final class UserPreferences
 		// Current CPU core being used. Falls back to interpreter upon error.
 		String currentEmuCore = prefs.getString("cpuCorePref", "0");
 
+		boolean overclockEnabled = prefs.getBoolean("OverclockEnable", false);
+		String overclockSetting =  prefs.getString("Overclock", "100");
+
+		// Current GC analog range setup. Falls back to default upon error.
+		String currentMainRadius0 = prefs.getString("mainRadius0", "100,000000");
+		String currentCStickRadius0 = prefs.getString("cStickRadius0", "100,000000");
+		String currentInputThres0 = prefs.getString("inputThres0", "90,000000");
+		String currentMainRadius1 = prefs.getString("mainRadius1", "100,000000");
+		String currentCStickRadius1 = prefs.getString("cStickRadius1", "100,000000");
+		String currentInputThres1 = prefs.getString("inputThres1", "90,000000");
+		String currentMainRadius2 = prefs.getString("mainRadius2", "100,000000");
+		String currentCStickRadius2 = prefs.getString("cStickRadius2", "100,000000");
+		String currentInputThres2 = prefs.getString("inputThres2", "90,000000");
+		String currentMainRadius3 = prefs.getString("mainRadius3", "100,000000");
+		String currentCStickRadius3 = prefs.getString("cStickRadius3", "100,000000");
+		String currentInputThres3 = prefs.getString("inputThres3", "90,000000");
+
+		// Current Wii analog range setup. Falls back to default on error.
+		String currentTiltRange4 = prefs.getString("tiltRange4", "50,000000");
+		String currentTiltRange5 = prefs.getString("tiltRange5", "50,000000");
+		String currentTiltRange6 = prefs.getString("tiltRange6", "50,000000");
+		String currentTiltRange7 = prefs.getString("tiltRange7", "50,000000");
+
+		// Current Nunchuk analog range setup. Falls back to default upon error.
+		String currentNunchukRadius4 = prefs.getString("nunchukRadius4", "100,000000");
+		String currentNunchukRange4 = prefs.getString("nunchukRange4", "50,000000");
+		String currentNunchukRadius5 = prefs.getString("nunchukRadius5", "100,000000");
+		String currentNunchukRange5 = prefs.getString("nunchukRange5", "50,000000");
+		String currentNunchukRadius6 = prefs.getString("nunchukRadius6", "100,000000");
+		String currentNunchukRange6 = prefs.getString("nunchukRange6", "50,000000");
+		String currentNunchukRadius7 = prefs.getString("nunchukRadius7", "100,000000");
+		String currentNunchukRange7 = prefs.getString("nunchukRange7", "50,000000");
+
+		// Current Classic analog range setup. Falls back to 100,000000 upon error.
+		String currentClassicLRadius4 = prefs.getString("classicLRadius4", "100,000000");
+		String currentClassicRRadius4 = prefs.getString("classicRRadius4", "100,000000");
+		String currentClassicThres4 = prefs.getString("classicThres4", "90,000000");
+		String currentClassicLRadius5 = prefs.getString("classicLRadius5", "100,000000");
+		String currentClassicRRadius5 = prefs.getString("classicRRadius5", "100,000000");
+		String currentClassicThres5 = prefs.getString("classicThres5", "90,000000");
+		String currentClassicLRadius6 = prefs.getString("classicLRadius6", "100,000000");
+		String currentClassicRRadius6 = prefs.getString("classicRRadius6", "100,000000");
+		String currentClassicThres6 = prefs.getString("classicThres6", "90,000000");
+		String currentClassicLRadius7 = prefs.getString("classicLRadius7", "100,000000");
+		String currentClassicRRadius7 = prefs.getString("classicRRadius7", "100,000000");
+		String currentClassicThres7 = prefs.getString("classicThres7", "90,000000");
+
+		// Current Guitar analog range setup. Falls back to default upon error.
+		String currentGuitarRadius4 = prefs.getString("guitarRadius4", "100,000000");
+		String currentGuitarRadius5 = prefs.getString("guitarRadius5", "100,000000");
+		String currentGuitarRadius6 = prefs.getString("guitarRadius6", "100,000000");
+		String currentGuitarRadius7 = prefs.getString("guitarRadius7", "100,000000");
+
+		// Current Drums modifier Radius setup. Falls back to default upon error.
+		String currentDrumsRadius4 = prefs.getString("drumsRadius4", "100,000000");
+		String currentDrumsRadius5 = prefs.getString("drumsRadius5", "100,000000");
+		String currentDrumsRadius6 = prefs.getString("drumsRadius6", "100,000000");
+		String currentDrumsRadius7 = prefs.getString("drumsRadius7", "100,000000");
+
+		// Current Turntable analog range setup. Falls back to default upon error.
+		String currentTurntableRadius4 = prefs.getString("turntableRadius4", "100,000000");
+		String currentTurntableRadius5 = prefs.getString("turntableRadius5", "100,000000");
+		String currentTurntableRadius6 = prefs.getString("turntableRadius6", "100,000000");
+		String currentTurntableRadius7 = prefs.getString("turntableRadius7", "100,000000");
+
 		// Current wiimote extension setup. Falls back to no extension upon error.
-		String WiimoteExtension_4 = prefs.getString("WiimoteExtension_4", "None");
-		String WiimoteExtension_5 = prefs.getString("WiimoteExtension_5", "None");
-		String WiimoteExtension_6 = prefs.getString("WiimoteExtension_6", "None");
-		String WiimoteExtension_7 = prefs.getString("WiimoteExtension_7", "None");
+		String currentWiimoteExtension4 = prefs.getString("wiimoteExtension4", "None");
+		String currentWiimoteExtension5 = prefs.getString("wiimoteExtension5", "None");
+		String currentWiimoteExtension6 = prefs.getString("wiimoteExtension6", "None");
+		String currentWiimoteExtension7 = prefs.getString("wiimoteExtension7", "None");
 
 		// Current video backend being used. Falls back to software rendering upon error.
 		String currentVideoBackend = prefs.getString("gpuPref", "Software Rendering");
@@ -212,7 +336,7 @@ public final class UserPreferences
 		String stereoscopySeparation = prefs.getString("stereoDepth", "20");
 
 		// Stereoscopy convergence
-		String stereoscopyConvergence = prefs.getString("stereoConvergence", "20");
+		String stereoConvergencePercentage = prefs.getString("stereoConvergencePercentage", "100");
 
 		// Controllers
 		// Controller 1 never gets disconnected due to touch screen
@@ -224,12 +348,77 @@ public final class UserPreferences
 		// CPU related Settings
 		NativeLibrary.SetConfig("Dolphin.ini", "Core", "CPUCore", currentEmuCore);
 		NativeLibrary.SetConfig("Dolphin.ini", "Core", "CPUThread", isUsingDualCore ? "True" : "False");
-		
+
+		NativeLibrary.SetConfig("Dolphin.ini", "Core", "OverclockEnable", overclockEnabled ? "True" : "False");
+		NativeLibrary.SetConfig("Dolphin.ini", "Core", "Overclock", overclockSetting);
+
+		// GameCube analog ranges Setup
+		NativeLibrary.SetConfig("GCPadNew.ini", "GCPad1", "Main Stick/Radius", currentMainRadius0);
+		NativeLibrary.SetConfig("GCPadNew.ini", "GCPad1", "C-Stick/Radius", currentCStickRadius0);
+		NativeLibrary.SetConfig("GCPadNew.ini", "GCPad1", "Triggers/Threshold", currentInputThres0);
+		NativeLibrary.SetConfig("GCPadNew.ini", "GCPad2", "Main Stick/Radius", currentMainRadius1);
+		NativeLibrary.SetConfig("GCPadNew.ini", "GCPad2", "C-Stick/Radius", currentCStickRadius1);
+		NativeLibrary.SetConfig("GCPadNew.ini", "GCPad2", "Triggers/Threshold", currentInputThres1);
+		NativeLibrary.SetConfig("GCPadNew.ini", "GCPad3", "Main Stick/Radius", currentMainRadius2);
+		NativeLibrary.SetConfig("GCPadNew.ini", "GCPad3", "C-Stick/Radius", currentCStickRadius2);
+		NativeLibrary.SetConfig("GCPadNew.ini", "GCPad3", "Triggers/Threshold", currentInputThres2);
+		NativeLibrary.SetConfig("GCPadNew.ini", "GCPad4", "Main Stick/Radius", currentMainRadius3);
+		NativeLibrary.SetConfig("GCPadNew.ini", "GCPad4", "C-Stick/Radius", currentCStickRadius3);
+		NativeLibrary.SetConfig("GCPadNew.ini", "GCPad4", "Triggers/Threshold", currentInputThres3);
+
+		// Wiimote analog ranges Setup
+		NativeLibrary.SetConfig("WiimoteNew.ini", "Wiimote1", "Tilt/Modifier/Range", currentTiltRange4);
+		NativeLibrary.SetConfig("WiimoteNew.ini", "Wiimote2", "Tilt/Modifier/Range", currentTiltRange5);
+		NativeLibrary.SetConfig("WiimoteNew.ini", "Wiimote3", "Tilt/Modifier/Range", currentTiltRange6);
+		NativeLibrary.SetConfig("WiimoteNew.ini", "Wiimote4", "Tilt/Modifier/Range", currentTiltRange7);
+
+		// Nunchuk analog ranges Setup
+		NativeLibrary.SetConfig("WiimoteNew.ini", "Wiimote1", "Nunchuk/Stick/Radius", currentNunchukRadius4);
+		NativeLibrary.SetConfig("WiimoteNew.ini", "Wiimote1", "Nunchuk/Stick/Radius", currentNunchukRange4);
+		NativeLibrary.SetConfig("WiimoteNew.ini", "Wiimote2", "Nunchuk/Stick/Radius", currentNunchukRadius5);
+		NativeLibrary.SetConfig("WiimoteNew.ini", "Wiimote2", "Nunchuk/Stick/Radius", currentNunchukRange5);
+		NativeLibrary.SetConfig("WiimoteNew.ini", "Wiimote3", "Nunchuk/Stick/Radius", currentNunchukRadius6);
+		NativeLibrary.SetConfig("WiimoteNew.ini", "Wiimote3", "Nunchuk/Stick/Radius", currentNunchukRange6);
+		NativeLibrary.SetConfig("WiimoteNew.ini", "Wiimote4", "Nunchuk/Stick/Radius", currentNunchukRadius7);
+		NativeLibrary.SetConfig("WiimoteNew.ini", "Wiimote4", "Nunchuk/Stick/Radius", currentNunchukRange7);
+
+		// Classic analog ranges Setup
+		NativeLibrary.SetConfig("WiimoteNew.ini", "Wiimote1", "Classic/Left Stick/Radius", currentClassicLRadius4);
+		NativeLibrary.SetConfig("WiimoteNew.ini", "Wiimote1", "Classic/Right Stick/Radius", currentClassicRRadius4);
+		NativeLibrary.SetConfig("WiimoteNew.ini", "Wiimote1", "Classic/Triggers/Threshold", currentClassicThres4);
+		NativeLibrary.SetConfig("WiimoteNew.ini", "Wiimote2", "Classic/Left Stick/Radius", currentClassicLRadius5);
+		NativeLibrary.SetConfig("WiimoteNew.ini", "Wiimote2", "Classic/Right Stick/Radius", currentClassicRRadius5);
+		NativeLibrary.SetConfig("WiimoteNew.ini", "Wiimote2", "Classic/Triggers/Threshold", currentClassicThres5);
+		NativeLibrary.SetConfig("WiimoteNew.ini", "Wiimote3", "Classic/Left Stick/Radius", currentClassicLRadius6);
+		NativeLibrary.SetConfig("WiimoteNew.ini", "Wiimote3", "Classic/Right Stick/Radius", currentClassicRRadius6);
+		NativeLibrary.SetConfig("WiimoteNew.ini", "Wiimote3", "Classic/Triggers/Threshold", currentClassicThres6);
+		NativeLibrary.SetConfig("WiimoteNew.ini", "Wiimote4", "Classic/Left Stick/Radius", currentClassicLRadius7);
+		NativeLibrary.SetConfig("WiimoteNew.ini", "Wiimote4", "Classic/Right Stick/Radius", currentClassicRRadius7);
+		NativeLibrary.SetConfig("WiimoteNew.ini", "Wiimote4", "Classic/Triggers/Threshold", currentClassicThres7);
+
+		// Guitar analog ranges Setup
+		NativeLibrary.SetConfig("WiimoteNew.ini", "Wiimote1", "Guitar/Stick/Radius", currentGuitarRadius4);
+		NativeLibrary.SetConfig("WiimoteNew.ini", "Wiimote2", "Guitar/Stick/Radius", currentGuitarRadius5);
+		NativeLibrary.SetConfig("WiimoteNew.ini", "Wiimote3", "Guitar/Stick/Radius", currentGuitarRadius6);
+		NativeLibrary.SetConfig("WiimoteNew.ini", "Wiimote4", "Guitar/Stick/Radius", currentGuitarRadius7);
+
+		// Drums analog ranges Setup
+		NativeLibrary.SetConfig("WiimoteNew.ini", "Wiimote1", "Drums/Stick/Radius", currentDrumsRadius4);
+		NativeLibrary.SetConfig("WiimoteNew.ini", "Wiimote2", "Drums/Stick/Radius", currentDrumsRadius5);
+		NativeLibrary.SetConfig("WiimoteNew.ini", "Wiimote3", "Drums/Stick/Radius", currentDrumsRadius6);
+		NativeLibrary.SetConfig("WiimoteNew.ini", "Wiimote4", "Drums/Stick/Radius", currentDrumsRadius7);
+
+		// Turntable analog ranges Setup
+		NativeLibrary.SetConfig("WiimoteNew.ini", "Wiimote1", "Turntable/Stick/Radius", currentTurntableRadius4);
+		NativeLibrary.SetConfig("WiimoteNew.ini", "Wiimote2", "Turntable/Stick/Radius", currentTurntableRadius5);
+		NativeLibrary.SetConfig("WiimoteNew.ini", "Wiimote3", "Turntable/Stick/Radius", currentTurntableRadius6);
+		NativeLibrary.SetConfig("WiimoteNew.ini", "Wiimote4", "Turntable/Stick/Radius", currentTurntableRadius7);
+
 		// Wiimote Extension Settings
-		NativeLibrary.SetConfig("WiimoteNew.ini", "Wiimote1", "Extension", WiimoteExtension_4);
-		NativeLibrary.SetConfig("WiimoteNew.ini", "Wiimote2", "Extension", WiimoteExtension_5);
-		NativeLibrary.SetConfig("WiimoteNew.ini", "Wiimote3", "Extension", WiimoteExtension_6);
-		NativeLibrary.SetConfig("WiimoteNew.ini", "Wiimote4", "Extension", WiimoteExtension_7);
+		NativeLibrary.SetConfig("WiimoteNew.ini", "Wiimote1", "Extension", currentWiimoteExtension4);
+		NativeLibrary.SetConfig("WiimoteNew.ini", "Wiimote2", "Extension", currentWiimoteExtension5);
+		NativeLibrary.SetConfig("WiimoteNew.ini", "Wiimote3", "Extension", currentWiimoteExtension6);
+		NativeLibrary.SetConfig("WiimoteNew.ini", "Wiimote4", "Extension", currentWiimoteExtension7);
 
 		// General Video Settings
 		NativeLibrary.SetConfig("Dolphin.ini", "Core", "GFXBackend", currentVideoBackend);
@@ -294,13 +483,13 @@ public final class UserPreferences
 		NativeLibrary.SetConfig("gfx_opengl.ini", "Settings", "EnablePixelLighting", usingPerPixelLighting ? "True" : "False");
 		NativeLibrary.SetConfig("gfx_opengl.ini", "Enhancements", "ForceFiltering", isForcingTextureFiltering ? "True" : "False");
 		NativeLibrary.SetConfig("gfx_opengl.ini", "Settings", "DisableFog", fogIsDisabled ? "True" : "False");
-		NativeLibrary.SetConfig("gfx_opengl.ini", "Enhancements", "StereoMode", stereoscopyMode);
-		NativeLibrary.SetConfig("gfx_opengl.ini", "Enhancements", "StereoSwapEyes", stereoscopyEyeSwap ? "True" : "False");
-		NativeLibrary.SetConfig("gfx_opengl.ini", "Enhancements", "StereoDepth", stereoscopySeparation);
-		NativeLibrary.SetConfig("gfx_opengl.ini", "Enhancements", "StereoConvergence", stereoscopyConvergence);
-		NativeLibrary.SetConfig("Dolphin.ini", "Settings", "SIDevice0", "6");
-		NativeLibrary.SetConfig("Dolphin.ini", "Settings", "SIDevice1", enableController2 ? "6" : "0");
-		NativeLibrary.SetConfig("Dolphin.ini", "Settings", "SIDevice2", enableController3 ? "6" : "0");
-		NativeLibrary.SetConfig("Dolphin.ini", "Settings", "SIDevice3", enableController4 ? "6" : "0");
+		NativeLibrary.SetConfig("gfx_opengl.ini", "Stereoscopy", "StereoMode", stereoscopyMode);
+		NativeLibrary.SetConfig("gfx_opengl.ini", "Stereoscopy", "StereoSwapEyes", stereoscopyEyeSwap ? "True" : "False");
+		NativeLibrary.SetConfig("gfx_opengl.ini", "Stereoscopy", "StereoDepth", stereoscopySeparation);
+		NativeLibrary.SetConfig("gfx_opengl.ini", "Stereoscopy", "StereoConvergence", stereoConvergencePercentage);
+		NativeLibrary.SetConfig("Dolphin.ini", "Core", "SIDevice0", "6");
+		NativeLibrary.SetConfig("Dolphin.ini", "Core", "SIDevice1", enableController2 ? "6" : "0");
+		NativeLibrary.SetConfig("Dolphin.ini", "Core", "SIDevice2", enableController3 ? "6" : "0");
+		NativeLibrary.SetConfig("Dolphin.ini", "Core", "SIDevice3", enableController4 ? "6" : "0");
 	}
 }

@@ -329,9 +329,6 @@
     <ClInclude Include="FramebufferManagerBase.h">
       <Filter>Base</Filter>
     </ClInclude>
-    <ClInclude Include="MainBase.h">
-      <Filter>Base</Filter>
-    </ClInclude>
     <ClInclude Include="PerfQueryBase.h">
       <Filter>Base</Filter>
     </ClInclude>

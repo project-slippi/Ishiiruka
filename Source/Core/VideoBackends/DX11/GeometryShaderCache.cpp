@@ -16,7 +16,6 @@
 #include "VideoBackends/DX11/D3DUtil.h"
 #include "VideoBackends/DX11/FramebufferManager.h"
 #include "VideoBackends/DX11/GeometryShaderCache.h"
-#include "VideoBackends/DX11/Globals.h"
 
 #include "VideoCommon/Debugger.h"
 #include "VideoCommon/GeometryShaderGen.h"

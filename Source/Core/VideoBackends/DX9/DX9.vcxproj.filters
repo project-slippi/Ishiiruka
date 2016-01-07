@@ -46,7 +46,6 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="main.h" />
     <ClInclude Include="VideoBackend.h" />
     <ClInclude Include="FramebufferManager.h">
       <Filter>Render</Filter>

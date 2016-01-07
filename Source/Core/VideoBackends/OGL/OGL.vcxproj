@@ -55,7 +55,6 @@
     <ClInclude Include="BoundingBox.h" />
     <ClInclude Include="Depalettizer.h" />
     <ClInclude Include="FramebufferManager.h" />
-    <ClInclude Include="main.h" />
     <ClInclude Include="PerfQuery.h" />
     <ClInclude Include="PostProcessing.h" />
     <ClInclude Include="ProgramShaderCache.h" />

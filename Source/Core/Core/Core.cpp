@@ -110,7 +110,7 @@ static StoppedCallbackFunc s_on_stopped_callback = nullptr;
 static std::thread s_cpu_thread;
 static bool s_request_refresh_info = false;
 static int s_pause_and_lock_depth = 0;
-static bool s_is_framelimiter_temp_disabled = false;
+static bool s_is_throttler_temp_disabled = false;
 
 #ifdef USE_MEMORYWATCHER
 static std::unique_ptr<MemoryWatcher> s_memory_watcher;
@@ -127,14 +127,14 @@ static void InitIsCPUKey()
 }
 #endif
 
-bool GetIsFramelimiterTempDisabled()
+bool GetIsThrottlerTempDisabled()
 {
-	return s_is_framelimiter_temp_disabled;
+	return s_is_throttler_temp_disabled;
 }
 
-void SetIsFramelimiterTempDisabled(bool disable)
+void SetIsThrottlerTempDisabled(bool disable)
 {
-	s_is_framelimiter_temp_disabled = disable;
+	s_is_throttler_temp_disabled = disable;
 }
 
 std::string GetStateFileName() { return s_state_filename; }
@@ -747,7 +747,7 @@ bool PauseAndLock(bool doLock, bool unpauseOnUnlock)
 	return wasUnpaused;
 }
 
-// Apply Frame Limit and Display FPS info
+// Display FPS info
 // This should only be called from VI
 void VideoThrottle()
 {
@@ -772,19 +772,19 @@ void VideoThrottle()
 	// Update the audio timestretcher with the current speed
 	if (g_sound_stream && update_ss_speed)
 	{
-		float Speed = (float)(s_drawn_video * 1000.0 / (VideoInterface::TargetRefreshRate * ElapseTime));
+		float Speed = (float)(s_drawn_video.load() * 1000.0 / (VideoInterface::TargetRefreshRate * ElapseTime));
 		g_sound_stream->GetMixer()->UpdateSpeed((float)Speed);
 	}
 }
 
 // Executed from GPU thread
 // reports if a frame should be skipped or not
-// depending on the framelimit set
+// depending on the emulation speed set
 bool ShouldSkipFrame(int skipped)
 {
-	const u32 TargetFPS = (SConfig::GetInstance().m_Framelimit > 1)
-		? (SConfig::GetInstance().m_Framelimit - 1) * 5
-		: VideoInterface::TargetRefreshRate;
+	u32 TargetFPS = VideoInterface::TargetRefreshRate;
+	if (SConfig::GetInstance().m_EmulationSpeed > 0.0f)
+		TargetFPS = u32(TargetFPS * SConfig::GetInstance().m_EmulationSpeed);
 	const u32 frames = s_drawn_frame.load();
 	const bool fps_slow = !(s_timer.GetTimeDifference() < (frames + skipped) * 1000 / TargetFPS);
 

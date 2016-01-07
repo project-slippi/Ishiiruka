@@ -7,7 +7,10 @@
 #include <d3d11_2.h>
 #include "Common/MathUtil.h"
 #include "VideoBackends/DX11/D3DPtr.h"
+
 #include "VideoCommon/RenderBase.h"
+#include "VideoCommon/VideoBackendBase.h"
+
 namespace DX11
 {
 

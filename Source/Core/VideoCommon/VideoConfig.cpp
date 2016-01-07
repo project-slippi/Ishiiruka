@@ -432,7 +432,7 @@ void VideoConfig::Save(const std::string& ini_file)
 
 bool VideoConfig::IsVSync() const
 {
-	return bVSync && !Core::GetIsFramelimiterTempDisabled();
+	return bVSync && !Core::GetIsThrottlerTempDisabled();
 }
 
 bool VideoConfig::PixelLightingEnabled(const XFMemory& xfr, const u32 components) const

@@ -21,7 +21,6 @@
 #include "VideoBackends/DX9/D3DTexture.h"
 #include "VideoBackends/DX9/D3DUtil.h"
 #include "VideoBackends/DX9/FramebufferManager.h"
-#include "VideoBackends/DX9/main.h"
 #include "VideoBackends/DX9/PerfQuery.h"
 #include "VideoBackends/DX9/PixelShaderCache.h"
 #include "VideoBackends/DX9/Render.h"
@@ -34,7 +33,6 @@
 #include "VideoCommon/CommandProcessor.h"
 #include "VideoCommon/Fifo.h"
 #include "VideoCommon/IndexGenerator.h"
-#include "VideoCommon/MainBase.h"
 #include "VideoCommon/OnScreenDisplay.h"
 #include "VideoCommon/OpcodeDecoding.h"
 #include "VideoCommon/PixelEngine.h"
@@ -157,7 +155,7 @@ bool VideoBackend::Initialize(void *window_handle)
 		MessageBox(GetActiveWindow(), _T("Unable to initialize Direct3D. Please make sure that you have the latest version of DirectX 9.0c correctly installed."), _T("Fatal Error"), MB_ICONERROR | MB_OK);
 		return false;
 	}
-	s_BackendInitialized = true;
+	m_initialized = true;
 
 	return true;
 }
@@ -185,7 +183,7 @@ void VideoBackend::Video_Prepare()
 
 void VideoBackend::Shutdown()
 {
-	s_BackendInitialized = false;
+	m_initialized = false;
 	if (!g_renderer)
 		return;
 	// TODO: should be in Video_Cleanup

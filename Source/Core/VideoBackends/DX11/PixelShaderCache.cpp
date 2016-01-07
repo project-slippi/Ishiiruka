@@ -10,7 +10,6 @@
 #include "VideoBackends/DX11/D3DBase.h"
 #include "VideoBackends/DX11/D3DShader.h"
 #include "VideoBackends/DX11/D3DUtil.h"
-#include "VideoBackends/DX11/Globals.h"
 #include "VideoBackends/DX11/PixelShaderCache.h"
 #include "VideoBackends/DX11/VertexShaderCache.h"
 

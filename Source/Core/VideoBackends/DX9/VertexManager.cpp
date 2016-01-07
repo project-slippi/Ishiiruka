@@ -6,7 +6,6 @@
 #include "Common/FileUtil.h"
 
 #include "VideoBackends/DX9/D3DBase.h"
-#include "VideoBackends/DX9/main.h"
 #include "VideoBackends/DX9/PixelShaderCache.h"
 #include "VideoBackends/DX9/TextureCache.h"
 #include "VideoBackends/DX9/VertexManager.h"
@@ -17,6 +16,7 @@
 #include "VideoCommon/IndexGenerator.h"
 #include "VideoCommon/OpcodeDecoding.h"
 #include "VideoCommon/PixelShaderManager.h"
+#include "VideoCommon/RenderBase.h"
 #include "VideoCommon/Statistics.h"
 #include "VideoCommon/VertexLoaderManager.h"
 #include "VideoCommon/VertexShaderManager.h"

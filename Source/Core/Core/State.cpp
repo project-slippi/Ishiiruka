@@ -20,6 +20,7 @@
 #include "Core/CoreTiming.h"
 #include "Core/Host.h"
 #include "Core/Movie.h"
+#include "Core/NetPlayClient.h"
 #include "Core/State.h"
 #include "Core/HW/CPU.h"
 #include "Core/HW/DSP.h"
@@ -31,6 +32,7 @@
 #include "Core/PowerPC/JitCommon/JitBase.h"
 
 #include "VideoCommon/AVIDump.h"
+#include "VideoCommon/OnScreenDisplay.h"
 #include "VideoCommon/VideoBackendBase.h"
 
 namespace State
@@ -69,7 +71,7 @@ static Common::Event g_compressAndDumpStateSyncEvent;
 static std::thread g_save_thread;
 
 // Don't forget to increase this after doing changes on the savestate system
-static const u32 STATE_VERSION = 49; // Last changed in PR 2149
+static const u32 STATE_VERSION = 50; // Last changed in PR 3457
 
 // Maps savestate versions to Dolphin versions.
 // Versions after 42 don't need to be added to this list,
@@ -198,6 +200,12 @@ static std::string DoState(PointerWrap& p)
 
 void LoadFromBuffer(std::vector<u8>& buffer)
 {
+	if (NetPlay::IsNetPlayRunning())
+	{
+		OSD::AddMessage("Loading savestates is disabled in Netplay to prevent desyncs");
+		return;
+	}
+
 	bool wasUnpaused = Core::PauseAndLock(true);
 
 	u8* ptr = &buffer[0];
@@ -531,7 +539,14 @@ static void LoadFileStateData(const std::string& filename, std::vector<u8>& ret_
 void LoadAs(const std::string& filename)
 {
 	if (!Core::IsRunning())
+	{
 		return;
+	}
+	else if (NetPlay::IsNetPlayRunning())
+	{
+		OSD::AddMessage("Loading savestates is disabled in Netplay to prevent desyncs");
+		return;
+	}
 
 	// Stop the core while we load the state
 	bool wasUnpaused = Core::PauseAndLock(true);

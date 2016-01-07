@@ -113,7 +113,7 @@ public:
 		u32 native_size_in_bytes;
 		u64 hash;
 		u64 base_hash;
-		u32 format;
+		u32 format; // bits 0-3 will contain the in-memory format.
 		bool is_efb_copy;
 
 		u32 native_width, native_height; // Texture dimensions from the GameCube's point of view

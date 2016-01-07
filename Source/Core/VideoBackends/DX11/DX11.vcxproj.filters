@@ -73,8 +73,6 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Globals.h" />
-    <ClInclude Include="main.h" />
     <ClInclude Include="VideoBackend.h" />
     <ClInclude Include="D3DUtil.h">
       <Filter>D3D</Filter>

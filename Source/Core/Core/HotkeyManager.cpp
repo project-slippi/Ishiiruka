@@ -46,12 +46,13 @@ const std::string hotkey_labels[] =
 	_trans("Increase IR"),
 	_trans("Decrease IR"),
 
+	_trans("Toggle Crop"),
 	_trans("Toggle Aspect Ratio"),
 	_trans("Toggle EFB Copies"),
 	_trans("Toggle Fog"),
 	_trans("Toggle Frame limit"),
-	_trans("Decrease Frame limit"),
-	_trans("Increase Frame limit"),
+	_trans("Decrease Emulation Speed"),
+	_trans("Increase Emulation Speed"),
 
 	_trans("Freelook Decrease Speed"),
 	_trans("Freelook Increase Speed"),

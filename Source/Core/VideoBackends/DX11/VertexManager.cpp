@@ -2,6 +2,8 @@
 // Licensed under GPLv2+
 // Refer to the license.txt file included.
 
+#include "Common/CommonTypes.h"
+
 #include "VideoBackends/DX11/BoundingBox.h"
 #include "VideoBackends/DX11/D3DBase.h"
 #include "VideoBackends/DX11/D3DState.h"
@@ -16,13 +18,9 @@
 #include "VideoCommon/BPMemory.h"
 #include "VideoCommon/Debugger.h"
 #include "VideoCommon/IndexGenerator.h"
-#include "VideoCommon/MainBase.h"
-#include "VideoCommon/PixelShaderManager.h"
 #include "VideoCommon/RenderBase.h"
 #include "VideoCommon/Statistics.h"
-#include "VideoCommon/TextureCacheBase.h"
 #include "VideoCommon/VertexLoaderManager.h"
-#include "VideoCommon/VertexShaderManager.h"
 #include "VideoCommon/VideoConfig.h"
 
 namespace DX11

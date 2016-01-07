@@ -89,11 +89,11 @@ void CMixer::MixerFifo::Mix(float* samples, u32 numSamples, bool consider_framel
 	float offset = (m_num_left_i - low_waterwark) * CONTROL_FACTOR;
 	offset = MathUtil::Clamp(offset, -MAX_FREQ_SHIFT, MAX_FREQ_SHIFT);
 	// adjust framerate with framelimit
-	u32 framelimit = SConfig::GetInstance().m_Framelimit;
+	float emulationspeed = SConfig::GetInstance().m_EmulationSpeed;
 	float aid_sample_rate = m_input_sample_rate + offset;
-	if (consider_framelimit && framelimit > 1)
+	if (consider_framelimit && emulationspeed > 0.0f)
 	{
-		aid_sample_rate = aid_sample_rate * (framelimit - 1) * 5 / VideoInterface::TargetRefreshRate;
+		aid_sample_rate = aid_sample_rate * emulationspeed;
 	}
 	// ratio = 1 / upscale_factor = stepsize for each sample
 	// e.g. going from 32khz to 48khz is 1 / (3 / 2) = 2 / 3

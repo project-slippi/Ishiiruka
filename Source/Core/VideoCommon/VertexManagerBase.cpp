@@ -11,7 +11,6 @@
 #include "VideoCommon/GeometryShaderManager.h"
 #include "VideoCommon/TessellationShaderManager.h"
 #include "VideoCommon/IndexGenerator.h"
-#include "VideoCommon/MainBase.h"
 #include "VideoCommon/NativeVertexFormat.h"
 #include "VideoCommon/OpcodeDecoding.h"
 #include "VideoCommon/PerfQueryBase.h"

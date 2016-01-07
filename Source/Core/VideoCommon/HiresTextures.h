@@ -39,5 +39,6 @@ private:
 	static HiresTexture* Load(const std::string& base_filename,
 		std::function<u8*(size_t)> request_buffer_delegate, bool cacheresult);
 	static void Prefetch();
-	HiresTexture() : m_format(PC_TEX_FMT_NONE), m_height(0), m_levels(0), m_nrm_levels(0), m_cached_data(nullptr), m_cached_data_size(0){}
+	HiresTexture();
+	static std::string GetTextureFolder(const std::string& game_id);
 };

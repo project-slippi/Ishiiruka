@@ -88,7 +88,6 @@
     <ClInclude Include="TextureCache.h">
       <Filter>Render</Filter>
     </ClInclude>
-    <ClInclude Include="main.h" />
     <ClInclude Include="SamplerCache.h" />
     <ClInclude Include="VideoBackend.h" />
     <ClInclude Include="BoundingBox.h">
@@ -96,9 +95,6 @@
     </ClInclude>
     <ClInclude Include="Depalettizer.h">
       <Filter>Render</Filter>
-    </ClInclude>
-    <ClInclude Include="GLExtensions\NV_occlusion_query_samples.h">
-      <Filter>GLExtensions</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

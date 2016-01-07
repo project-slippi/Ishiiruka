@@ -21,7 +21,6 @@
 
 #include "VideoBackends/DX9/D3DUtil.h"
 #include "VideoBackends/DX9/FramebufferManager.h"
-#include "VideoBackends/DX9/main.h"
 #include "VideoBackends/DX9/PerfQuery.h"
 #include "VideoBackends/DX9/PixelShaderCache.h"
 #include "VideoBackends/DX9/Render.h"
