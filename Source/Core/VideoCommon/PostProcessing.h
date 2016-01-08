@@ -8,6 +8,7 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <unordered_map>
 
 #include "Common/Flag.h"
 #include "Common/IniFile.h"
@@ -62,7 +63,10 @@ public:
 	struct ConfigurationOption final
 	{
 		bool m_bool_value;
+		bool m_default_bool_value;
 
+		std::vector<float> m_default_float_values;
+		std::vector<s32> m_default_integer_values;
 		std::vector<float> m_float_values;
 		std::vector<s32> m_integer_values;
 
@@ -125,11 +129,7 @@ public:
 	typedef std::map<std::string, ConfigurationOption> ConfigMap;
 	typedef std::vector<RenderPass> RenderPassList;
 
-	PostProcessingShaderConfiguration() :
-		m_any_options_dirty(true),
-		m_requires_depth_buffer(false),
-		m_compile_time_constants_dirty(true),
-		m_current_shader("") {}
+	PostProcessingShaderConfiguration() = default;
 	virtual ~PostProcessingShaderConfiguration() {}
 
 	// Loads the configuration with a shader
@@ -141,7 +141,7 @@ public:
 	const std::string &GetShaderSource() const { return m_shader_source; }
 
 	bool IsDirty() const { return m_any_options_dirty; }
-	bool IsCompileTimeConstantsDirty() { return m_compile_time_constants_dirty; }
+	bool IsCompileTimeConstantsDirty() const { return m_compile_time_constants_dirty; }
 	void SetDirty(bool dirty = true) { m_any_options_dirty = dirty; }
 	void ClearDirty();
 	bool RequiresDepthBuffer() const { return m_requires_depth_buffer; }
@@ -161,9 +161,9 @@ public:
 
 	void PrintCompilationTimeOptions(std::string &options) const;
 private:
-	bool m_any_options_dirty;
-	bool m_compile_time_constants_dirty;
-	bool m_requires_depth_buffer;
+	bool m_any_options_dirty = false;
+	bool m_compile_time_constants_dirty = false;
+	bool m_requires_depth_buffer = false;
 	std::string m_current_shader;
 	std::string m_shader_source;
 	ConfigMap m_options;
@@ -180,9 +180,17 @@ public:
 	PostProcessor();
 	virtual ~PostProcessor();
 
-	PostProcessingShaderConfiguration* GetConfig() { return &m_config; }
+	// Get a list of post-processing shaders.
+
+
+	// Get the config for a shader in the current chain.
+	PostProcessingShaderConfiguration* GetPostShaderConfig(const std::string& shader_name);
+
+	// Get the current blit shader config.
+	PostProcessingShaderConfiguration* GetBlitShaderConfig() { return m_blit_config.get(); }
 
 	bool IsActive() const { return m_active; }
+	bool RequiresDepthBuffer() const { return m_requires_depth_buffer; }
 
 	void SetReloadFlag() { m_reload_flag.Set(); }
 	bool RequiresReload() { return m_reload_flag.TestAndClear(); }
@@ -238,21 +246,30 @@ protected:
 		void* buffer_ptr, int input_resolutions[POST_PROCESSING_MAX_TEXTURE_INPUTS][2],
 		const TargetRectangle& src_rect, const TargetRectangle& dst_rect, int src_width, int src_height, int src_layer, float gamma);
 
+	// Load m_configs with the selected post-processing shaders.
+	void ReloadShaderConfigs();
+
 	// Timer for determining our time value
 	Common::Timer m_timer;
 
 	// Set by UI thread when the shader changes
 	Common::Flag m_reload_flag;
 
+	// List of current post-processing shaders, ordered by application order
+	std::vector<std::string> m_shader_names;
+
 	// Current post-processing shader config
-	PostProcessingShaderConfiguration m_config;
-	PostProcessingShaderConfiguration m_blit_config;
+	std::unordered_map<std::string, std::unique_ptr<PostProcessingShaderConfiguration>> m_shader_configs;
+
+	// Blit/anaglyph shader config
+	std::unique_ptr<PostProcessingShaderConfiguration> m_blit_config;
 
 	// Projection state for detecting when to apply post
 	PROJECTION_STATE m_projection_state = PROJECTION_STATE_INITIAL;
 
 	// Global post-processing enable state
 	bool m_active = false;
+	bool m_requires_depth_buffer = false;
 
 	// common shader code between backends
 	static const std::string s_post_fragment_header_ogl;

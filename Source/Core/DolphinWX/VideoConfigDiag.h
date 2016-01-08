@@ -86,11 +86,17 @@ protected:
 	void Event_Stc(wxCommandEvent &ev);
 	void Event_Bbox(wxCommandEvent &ev);
 
-	void Event_PPShader(wxCommandEvent &ev);
+	// Post-processing shader list manipulation
+	void Event_PPShaderList(wxCommandEvent& ev);
+	void Event_PPShaderListMoveUp(wxCommandEvent& ev);
+	void Event_PPShaderListMoveDown(wxCommandEvent& ev);
+	void Event_PPShaderListOptions(wxCommandEvent& ev);
+	void Event_PPShaderListRemove(wxCommandEvent& ev);
+	void Event_PPShaderAdd(wxCommandEvent& ev);
 	void Event_BlitShader(wxCommandEvent& ev);
+	void Event_ConfigureBlitShader(wxCommandEvent &ev);
 	void Event_AnaglyphShader(wxCommandEvent& ev);
-	void Event_ConfigurePPShader(wxCommandEvent &ev);
-	void Event_ConfigureDisplayShader(wxCommandEvent &ev);
+	
 	void Event_StereoDepth(wxCommandEvent &ev);
 	void Event_TessellationDistance(wxCommandEvent &ev);
 	void Event_TessellationMax(wxCommandEvent &ev);
@@ -117,6 +123,8 @@ protected:
 	void Evt_LeaveControl(wxMouseEvent& ev);
 	void CreateDescriptionArea(wxPanel* const page, wxBoxSizer* const sizer);
 	void PopulatePostProcessingShaders();
+	void UpdatePostProcessingShadersConfig();
+	void UpdatePostProcessingShaderListButtons();
 	void PopulateBlitShaders();
 	void PopulateAnaglyphShaders();
 	void PopulateAAList();
@@ -154,12 +162,17 @@ protected:
 	SettingCheckBox* cache_hires_textures;
 	SettingCheckBox* cache_hires_texturesGPU;
 	
-	wxButton* button_config_pp;
-	wxButton* button_config_d;
+	wxButton* button_config_blitshader;
 
 	wxCheckBox* progressive_scan_checkbox;
 
+	wxListBox* listbox_selected_ppshaders;
+	wxButton* button_move_ppshader_up;
+	wxButton* button_move_ppshader_down;
+	wxButton* button_config_ppshader;
+	wxButton* button_remove_ppshader;
 	wxChoice* choice_ppshader;
+	wxButton* button_add_ppshader;;
 	wxChoice* choice_pptrigger;
 	wxChoice* choice_blitshader;
 	wxChoice* choice_anaglyphshader;

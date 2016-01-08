@@ -13,7 +13,10 @@
 #include "Core/ConfigManager.h"
 #include "Core/Core.h"
 
+#include "VideoCommon/BPMemory.h"
+#include "VideoCommon/OnScreenDisplay.h"
 #include "VideoCommon/PostProcessing.h"
+#include "VideoCommon/RenderBase.h"
 #include "VideoCommon/VideoConfig.h"
 
 #include <wx/language.h>
@@ -48,7 +51,7 @@ static const LangDescriptor language_ids[LANGUAGE_ID_COUNT] =
 	{ wxLANGUAGE_SERBIAN, ".SER" },
 	{ wxLANGUAGE_SWEDISH, ".SWE" },
 	{ wxLANGUAGE_TURKISH, ".TUR" },
-	
+
 	{ wxLANGUAGE_GREEK, ".GRE" },
 	{ wxLANGUAGE_RUSSIAN, ".RUS" },
 	{ wxLANGUAGE_HEBREW, ".HEB" },
@@ -172,7 +175,7 @@ bool  PostProcessingShaderConfiguration::LoadShader(const std::string& sub_dir, 
 		// Use pass-through (default) shader
 		code = s_default_shader;
 	}
-	
+
 	m_current_shader = shader;
 
 	DEBUG_LOG(VIDEO, "Postprocessing: Parsing shader at %s", path.c_str());
@@ -196,8 +199,6 @@ bool PostProcessingShaderConfiguration::ParseShader(const std::string& code)
 	m_render_passes.clear();
 	m_options.clear();
 	m_shader_source.clear();
-	m_any_options_dirty = true;
-	m_requires_depth_buffer = code.find("SampleDepth") != std::string::npos;
 
 	if (configuration_start != std::string::npos && configuration_end != std::string::npos)
 	{
@@ -288,6 +289,7 @@ bool PostProcessingShaderConfiguration::ParseShader(const std::string& code)
 			option.m_dirty = true;
 			option.m_type = POST_PROCESSING_OPTION_TYPE_FLOAT;
 			option.m_compile_time_constant = false;
+			option.m_dirty = false;
 
 			if (it.m_type == "OptionBool")
 			{
@@ -414,6 +416,9 @@ bool PostProcessingShaderConfiguration::ParseShader(const std::string& code)
 				if (option.m_float_step_values.size() < array_size) option.m_float_step_values.resize(array_size);
 				if (option.m_float_values.size() < array_size) option.m_float_values.resize(array_size);
 			}
+			option.m_default_bool_value = option.m_bool_value;
+			option.m_default_float_values = option.m_float_values;
+			option.m_default_integer_values = option.m_integer_values;
 			m_options[option.m_option_name] = option;
 		}
 		for (const auto& it : pass_strings)
@@ -877,6 +882,9 @@ void PostProcessingShaderConfiguration::ClearDirty()
 void PostProcessingShaderConfiguration::SetOptionf(const std::string& option, int index, float value)
 {
 	auto it = m_options.find(option);
+	
+	if (it->second.m_float_values[index] == value)
+		return;
 
 	it->second.m_float_values[index] = value;
 	it->second.m_dirty = true;
@@ -889,11 +897,14 @@ void PostProcessingShaderConfiguration::SetOptionf(const std::string& option, in
 void PostProcessingShaderConfiguration::SetOptioni(const std::string& option, int index, s32 value)
 {
 	auto it = m_options.find(option);
+	
+	if (it->second.m_integer_values[index] == value)
+		return;
 
 	it->second.m_integer_values[index] = value;
 	it->second.m_dirty = true;
 	m_any_options_dirty = true;
-	
+
 	if (it->second.m_compile_time_constant)
 		m_compile_time_constants_dirty = true;
 }
@@ -901,8 +912,11 @@ void PostProcessingShaderConfiguration::SetOptioni(const std::string& option, in
 void PostProcessingShaderConfiguration::SetOptionb(const std::string& option, bool value)
 {
 	auto it = m_options.find(option);
+	
+	if (it->second.m_bool_value == value)
+		return;
 
-	it->second.m_bool_value = value;	
+	it->second.m_bool_value = value;
 	it->second.m_dirty = true;
 	m_any_options_dirty = true;
 
@@ -934,7 +948,7 @@ void PostProcessor::UpdateUniformBuffer(API_TYPE api, const PostProcessingShader
 		constants[i].float_constant[3] = 1.0f / (float)input_resolutions[i][1];
 	}
 
-	constants[4].float_constant[0] = (float)src_rect.left / (float)src_width;	
+	constants[4].float_constant[0] = (float)src_rect.left / (float)src_width;
 	constants[4].float_constant[1] = (float)((api == API_OPENGL) ? src_rect.bottom : src_rect.top) / (float)src_height;
 	constants[4].float_constant[2] = (float)src_rect.GetWidth() / (float)src_width;
 	constants[4].float_constant[3] = (float)src_rect.GetHeight() / (float)src_height;
@@ -943,7 +957,7 @@ void PostProcessor::UpdateUniformBuffer(API_TYPE api, const PostProcessingShader
 	constants[5].float_constant[1] = float(dst_rect.GetHeight());
 	constants[5].float_constant[2] = 1.0f / constants[2].float_constant[0];
 	constants[5].float_constant[3] = 1.0f / constants[2].float_constant[1];
-	
+
 	constants[6].float_constant[0] = float(double(m_timer.GetTimeDifference()) / 1000.0);
 	constants[6].float_constant[1] = float(std::max(src_layer, 0));
 	constants[6].float_constant[2] = gamma;
@@ -951,7 +965,7 @@ void PostProcessor::UpdateUniformBuffer(API_TYPE api, const PostProcessingShader
 
 	// Set from options. This is an ordered map so it will always match the order in the shader code generated.
 	u32 current_slot = 7;
-	for (const auto& it : m_config.GetOptions())
+	for (const auto& it : config->GetOptions())
 	{
 		if (it.second.m_compile_time_constant)
 		{
@@ -997,6 +1011,55 @@ void PostProcessor::UpdateUniformBuffer(API_TYPE api, const PostProcessingShader
 	_dbg_assert_(VIDEO, current_slot <= (UNIFORM_BUFFER_SIZE / 16));
 }
 
+PostProcessingShaderConfiguration* PostProcessor::GetPostShaderConfig(const std::string& shader_name)
+{
+	const auto& it = m_shader_configs.find(shader_name);
+	if (it == m_shader_configs.end())
+		return nullptr;
+
+	return it->second.get();
+}
+
+void PostProcessor::ReloadShaderConfigs()
+{
+	// Load blit shader
+	const std::string& blit_shader_subdir = (g_ActiveConfig.iStereoMode == STEREO_ANAGLYPH) ? ANAGLYPH_DIR : "";
+	const std::string& blit_shader_name = (g_ActiveConfig.iStereoMode == STEREO_ANAGLYPH) ? g_ActiveConfig.sAnaglyphShader : g_ActiveConfig.sBlitShader;
+	m_blit_config = std::make_unique<PostProcessingShaderConfiguration>();
+	if (!m_blit_config->LoadShader(blit_shader_subdir, blit_shader_name))
+	{
+		ERROR_LOG(VIDEO, "Failed to load blit shader ('%s'). Falling back to copy shader.", blit_shader_name.c_str());
+		OSD::AddMessage(StringFromFormat("Failed to load blit shader ('%s'). Falling back to copy shader.", blit_shader_name.c_str()));
+		m_blit_config.reset();
+	}
+
+	// Load post-processing shader list
+	m_shader_names.clear();
+	SplitString(g_ActiveConfig.sPostProcessingShaders, ':', m_shader_names);
+
+	// Load shaders
+	m_shader_configs.clear();
+	m_requires_depth_buffer = false;
+	for (const std::string& shader_name : m_shader_names)
+	{
+		// Shaders can be repeated. In this case, only load it once.
+		if (m_shader_configs.find(shader_name) != m_shader_configs.end())
+			continue;
+
+		// Load this shader.
+		std::unique_ptr<PostProcessingShaderConfiguration> shader_config = std::make_unique<PostProcessingShaderConfiguration>();
+		if (!shader_config->LoadShader("", shader_name))
+		{
+			ERROR_LOG(VIDEO, "Failed to load postprocessing shader ('%s'). This shader will be ignored.", shader_name.c_str());
+			OSD::AddMessage(StringFromFormat("Failed to load postprocessing shader ('%s'). This shader will be ignored.", shader_name.c_str()));
+			continue;
+		}
+
+		// Store in map for use by backend
+		m_requires_depth_buffer |= shader_config->RequiresDepthBuffer();
+		m_shader_configs[shader_name] = std::move(shader_config);
+	}
+}
 
 void PostProcessor::GetUniformBufferShaderSource(API_TYPE api, const PostProcessingShaderConfiguration* config, std::string& shader_source)
 {
@@ -1016,7 +1079,7 @@ void PostProcessor::GetUniformBufferShaderSource(API_TYPE api, const PostProcess
 	shader_source += "\tfloat time;\n";
 	shader_source += "\tfloat src_layer;\n";
 	shader_source += "\tfloat native_gamma;\n";
-	shader_source += "\tuint scaling_filter;\n";	
+	shader_source += "\tuint scaling_filter;\n";
 
 	// User options
 	u32 unused_counter = 2;
@@ -1080,7 +1143,7 @@ std::string PostProcessor::GetPassFragmentShaderSource(API_TYPE api, const PostP
 		shader_source += "#define API_D3D 1\n";
 		shader_source += s_post_fragment_header_d3d;
 	}
-	
+
 	// Add uniform buffer
 	GetUniformBufferShaderSource(api, config, shader_source);
 
@@ -1104,6 +1167,9 @@ std::string PostProcessor::GetPassFragmentShaderSource(API_TYPE api, const PostP
 
 		case POST_PROCESSING_INPUT_TYPE_PREVIOUS_PASS_OUTPUT:
 			prev_output_index = input.texture_unit;
+			break;
+
+		default:
 			break;
 		}
 	}
@@ -1357,9 +1423,9 @@ float4 GetBicubicSampleLocation(int idx, float2 location, out float4 scalingFact
 	float2 textureDimensions    = GetInputResolution(idx);
 	float2 invTextureDimensions = 1.f / textureDimensions;
 
-				location *= textureDimensions;
+					location *= textureDimensions;
 
-					float2 texelCenter   = floor( location - 0.5f ) + 0.5f;
+						float2 texelCenter   = floor( location - 0.5f ) + 0.5f;
 	float2 fracOffset    = location - texelCenter;
 	float2 fracOffset_x2 = fracOffset * fracOffset;
 	float2 fracOffset_x3 = fracOffset * fracOffset_x2;
@@ -1368,12 +1434,12 @@ float4 GetBicubicSampleLocation(int idx, float2 location, out float4 scalingFact
 	float2 weight3 = 0.5f * ( fracOffset_x3 - fracOffset_x2 );
 	float2 weight2 = 1.f - weight0 - weight1 - weight3;
 
-				scalingFactor = float4(weight0 + weight1,  weight2 + weight3);	
+					scalingFactor = float4(weight0 + weight1,  weight2 + weight3);	
 	scalingFactor = scalingFactor.xzxz * scalingFactor.yyww;
 	float2 f0 = weight1 / ( weight0 + weight1 );
 	float2 f1 = weight3 / ( weight2 + weight3 );
 
-				return float4(texelCenter - 1.f + f0,texelCenter + 1.f + f1) * invTextureDimensions.xyxy;
+					return float4(texelCenter - 1.f + f0,texelCenter + 1.f + f1) * invTextureDimensions.xyxy;
 }
 float4 SampleInputBicubic(int idx, float2 location)
 {

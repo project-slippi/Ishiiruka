@@ -105,7 +105,7 @@ struct VideoConfig final
 	int iMaxAnisotropy;
 	bool bPostProcessingEnable;
 	int iPostProcessingTrigger;
-	std::string sPostProcessingShader;
+	std::string sPostProcessingShaders;
 	std::string sBlitShader;
 	std::string sAnaglyphShader;
 	bool bUseScalingFilter;	

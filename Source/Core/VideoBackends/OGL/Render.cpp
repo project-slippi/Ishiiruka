@@ -1312,10 +1312,9 @@ void Renderer::SwapImpl(u32 xfbAddr, u32 fbWidth, u32 fbStride, u32 fbHeight, co
 			m_post_processor->IsActive())
 		{
 			GLuint depth_tex = 0;
-			if (m_post_processor->GetConfig()->RequiresDepthBuffer())
+			if (m_post_processor->RequiresDepthBuffer())
 				depth_tex = FramebufferManager::ResolveAndGetDepthTarget(rc);
 
-			TargetRectangle source_rc(target_rc);
 			m_post_processor->PostProcess(target_rc, s_target_width, s_target_height,
 				FramebufferManager::GetEFBLayers(), tex, depth_tex);
 		}

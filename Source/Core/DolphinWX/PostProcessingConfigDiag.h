@@ -18,10 +18,10 @@ class wxButton;
 class wxCheckBox;
 class wxFlexGridSizer;
 
-class PostProcessingConfigDiag : public wxDialog
+class PostProcessingConfigDiag final : public wxDialog
 {
 public:
-	PostProcessingConfigDiag(wxWindow* parent, const std::string& shader);
+	PostProcessingConfigDiag(wxWindow* parent, const std::string& shader_name, PostProcessingShaderConfiguration* config);
 	~PostProcessingConfigDiag();
 
 private:
@@ -72,8 +72,10 @@ private:
 
 		void EnableDependentChildren(bool enable);
 
-		int GetSliderValue(const int index) { return m_option_sliders[index]->GetValue(); }
-		void SetSliderText(const int index, const std::string& text) { m_option_text_ctrls[index]->SetValue(text); }
+		int GetSliderValue(int index) { return m_option_sliders[index]->GetValue(); }
+		void SetSliderText(int index, const std::string& text) { m_option_text_ctrls[index]->SetValue(text); }
+		void SetSliderValue(int index, int value) { m_option_sliders[index]->SetValue(value); }
+		void SetToggleValue(bool value) { m_option_checkbox->SetValue(value); }
 
 	private:
 		const WidgetType m_type;
@@ -95,14 +97,15 @@ private:
 	};
 
 	// WX UI things
-	void Event_Close(wxCloseEvent&);
-	void Event_ClickClose(wxCommandEvent&);
+	void Event_Close(wxCloseEvent& ev);
+	void Event_ClickClose(wxCommandEvent& ev);
+	void Event_RestoreDefaults(wxCommandEvent& ev);
 	void Event_Slider(wxCommandEvent &ev);
 	void Event_Slider_Finish(wxScrollEvent &ev);
 	void Event_CheckBox(wxCommandEvent &ev);
 
-	const std::string& m_shader;
-	PostProcessingShaderConfiguration* m_post_processor;
+	PostProcessingShaderConfiguration* m_config;
+	std::unique_ptr<PostProcessingShaderConfiguration> m_temp_config;
 
 	std::map<std::string, ConfigGrouping*> m_config_map;
 	std::vector<ConfigGrouping*> m_config_groups;

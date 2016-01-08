@@ -26,16 +26,18 @@ class D3DPostProcessor;
 class PostProcessingShader final
 {
 public:
-	PostProcessingShader();
+	PostProcessingShader() = default;
 	~PostProcessingShader();
+
+	D3DTexture2D* GetLastPassOutputTexture();
 
 	bool IsReady() const { return m_ready; }
 
 	bool Initialize(const PostProcessingShaderConfiguration* config, int target_layers);
 	bool ResizeIntermediateBuffers(int target_width, int target_height);
 
+	bool UpdateOptions(bool force = false);
 	bool RecompileShaders();
-	void UpdateEnabledPasses();
 
 	void Draw(D3DPostProcessor* parent,
 		const TargetRectangle& target_rect, D3DTexture2D* target_texture,
@@ -117,8 +119,8 @@ protected:
 
 	D3D::BufferPtr m_uniform_buffer;
 
-	std::unique_ptr<PostProcessingShader> m_post_processing_shader;
 	std::unique_ptr<PostProcessingShader> m_blit_shader;
+	std::vector<std::unique_ptr<PostProcessingShader>> m_post_processing_shaders;
 
 	int m_copy_width = 0;
 	int m_copy_height = 0;

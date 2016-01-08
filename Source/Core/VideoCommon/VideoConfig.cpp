@@ -107,8 +107,8 @@ void VideoConfig::Load(const std::string& ini_file)
 	enhancements->Get("ForceFiltering", &bForceFiltering, 0);
 	enhancements->Get("MaxAnisotropy", &iMaxAnisotropy, 0);  // NOTE - this is x in (1 << x)
 	enhancements->Get("PostProcessingEnable", &bPostProcessingEnable, false);
-	enhancements->Get("PostProcessingMode", &iPostProcessingTrigger, 0);
-	enhancements->Get("PostProcessingShader", &sPostProcessingShader, "");
+	enhancements->Get("PostProcessingTrigger", &iPostProcessingTrigger, 0);
+	enhancements->Get("PostProcessingShaders", &sPostProcessingShaders, "");
 	enhancements->Get("BlitShader", &sBlitShader, "");
 	enhancements->Get("UseScalingFilter", &bUseScalingFilter, false);
 	enhancements->Get("TextureScalingType", &iTexScalingType, 0);
@@ -246,6 +246,11 @@ void VideoConfig::GameIniLoad()
 	CHECK_SETTING("Video_Enhancements", "TessellationMax", iTessellationMax);
 	CHECK_SETTING("Video_Enhancements", "TessellationRoundingIntensity", iTessellationRoundingIntensity);
 	CHECK_SETTING("Video_Enhancements", "TessellationDisplacementIntensity", iTessellationDisplacementIntensity);
+	CHECK_SETTING("Video_Enhancements", "PostProcessingEnable", bPostProcessingEnable);
+	CHECK_SETTING("Video_Enhancements", "PostProcessingTrigger", iPostProcessingTrigger);
+	CHECK_SETTING("Video_Enhancements", "PostProcessingShaders", sPostProcessingShaders);
+	CHECK_SETTING("Video_Enhancements", "BlitShader", sBlitShader);
+	CHECK_SETTING("Video_Enhancements", "AnaglyphShader", sAnaglyphShader);
 
 	CHECK_SETTING("Video_Stereoscopy", "StereoMode", iStereoMode);
 	CHECK_SETTING("Video_Stereoscopy", "StereoDepth", iStereoDepth);
@@ -253,6 +258,7 @@ void VideoConfig::GameIniLoad()
 	CHECK_SETTING("Video_Stereoscopy", "StereoSwapEyes", bStereoSwapEyes);
 	CHECK_SETTING("Video_Stereoscopy", "StereoEFBMonoDepth", bStereoEFBMonoDepth);
 	CHECK_SETTING("Video_Stereoscopy", "StereoDepthPercentage", iStereoDepthPercentage);
+	CHECK_SETTING("Video_Stereoscopy", "StereoAnaglyphShader", sAnaglyphShader);
 
 	CHECK_SETTING("Video_Hacks", "EFBAccessEnable", bEFBAccessEnable);
 	CHECK_SETTING("Video_Hacks", "EFBFastAccess", bEFBFastAccess);
@@ -393,8 +399,8 @@ void VideoConfig::Save(const std::string& ini_file)
 	enhancements->Set("ForceFiltering", bForceFiltering);
 	enhancements->Set("MaxAnisotropy", iMaxAnisotropy);
 	enhancements->Set("PostProcessingEnable", bPostProcessingEnable);
-	enhancements->Set("PostProcessingMode", iPostProcessingTrigger);
-	enhancements->Set("PostProcessingShader", sPostProcessingShader);
+	enhancements->Set("PostProcessingTrigger", iPostProcessingTrigger);
+	enhancements->Set("PostProcessingShaders", sPostProcessingShaders);
 	enhancements->Set("BlitShader", sBlitShader);	
 	enhancements->Set("UseScalingFilter", bUseScalingFilter);
 	enhancements->Set("TextureScalingType", iTexScalingType);

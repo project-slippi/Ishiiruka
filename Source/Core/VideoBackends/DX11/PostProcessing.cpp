@@ -20,14 +20,10 @@
 
 #include "VideoCommon/OnScreenDisplay.h"
 
-namespace DX11
-{
 static const u32 FIRST_INPUT_BINDING_SLOT = 9;
 
-PostProcessingShader::PostProcessingShader()
+namespace DX11
 {
-
-}
 
 PostProcessingShader::~PostProcessingShader()
 {
@@ -136,13 +132,13 @@ bool PostProcessingShader::Initialize(const PostProcessingShaderConfiguration* c
 	}
 
 	// Compile programs
-	if (!RecompileShaders())
+	// Determine which passes to execute
+	if (!UpdateOptions(true))
 		return false;
 
-	// Determine which passes to execute
-	UpdateEnabledPasses();
-	m_ready = true;
-	return true;
+	// Compile programs
+	m_ready = RecompileShaders();
+	return m_ready;
 }
 
 bool PostProcessingShader::ResizeIntermediateBuffers(int target_width, int target_height)
@@ -205,6 +201,65 @@ bool PostProcessingShader::ResizeIntermediateBuffers(int target_width, int targe
 	m_internal_width = target_width;
 	m_internal_height = target_height;
 	m_ready = true;
+	return true;
+}
+
+bool PostProcessingShader::RecompileShaders()
+{
+	for (size_t i = 0; i < m_passes.size(); i++)
+	{
+		RenderPassData& pass = m_passes[i];
+		const PostProcessingShaderConfiguration::RenderPass& pass_config = m_config->GetPass(i);
+
+		std::string hlsl_source = PostProcessor::GetPassFragmentShaderSource(API_D3D11, m_config, &pass_config);
+		pass.pixel_shader = D3D::CompileAndCreatePixelShader(hlsl_source);
+		if (pass.pixel_shader == nullptr)
+		{
+			ERROR_LOG(VIDEO, "Failed to compile post-processing shader %s (pass %s)", m_config->GetShader().c_str(), pass_config.entry_point.c_str());
+			m_ready = false;
+			return false;
+		}
+	}
+
+	return true;
+}
+
+bool PostProcessingShader::UpdateOptions(bool force)
+{
+	if (!m_config->IsDirty() && !m_config->IsCompileTimeConstantsDirty() && !force)
+		return true;
+
+	m_last_pass_index = 0;
+	m_last_pass_uses_color_buffer = false;
+
+	// Update dependant options (enable/disable passes)
+	size_t previous_pass_index = 0;
+	for (size_t pass_index = 0; pass_index < m_passes.size(); pass_index++)
+	{
+		const PostProcessingShaderConfiguration::RenderPass& pass_config = m_config->GetPass(pass_index);
+		RenderPassData& pass = m_passes[pass_index];
+		pass.enabled = pass_config.CheckEnabled();
+
+		// Check for color buffer reads, for copy optimization
+		if (pass.enabled)
+		{
+			m_last_pass_index = pass_index;
+			m_last_pass_uses_color_buffer = false;
+			for (size_t input_index = 0; input_index < pass.inputs.size(); input_index++)
+			{
+				InputBinding& input = pass.inputs[input_index];
+				if (input.type == POST_PROCESSING_INPUT_TYPE_COLOR_BUFFER)
+				{
+					m_last_pass_uses_color_buffer = true;
+					break;
+				}
+			}
+		}
+	}
+	// Recompile shaders if compile-time constants have changed
+	if (m_config->IsCompileTimeConstantsDirty() && !RecompileShaders())
+		return false;
+
 	return true;
 }
 
@@ -310,54 +365,9 @@ void PostProcessingShader::Draw(D3DPostProcessor* parent,
 	}
 }
 
-bool PostProcessingShader::RecompileShaders()
+D3DTexture2D* PostProcessingShader::GetLastPassOutputTexture()
 {
-	for (size_t i = 0; i < m_passes.size(); i++)
-	{
-		RenderPassData& pass = m_passes[i];
-		const PostProcessingShaderConfiguration::RenderPass& pass_config = m_config->GetPass(i);
-
-		std::string hlsl_source = PostProcessor::GetPassFragmentShaderSource(API_D3D11, m_config, &pass_config);
-		pass.pixel_shader = D3D::CompileAndCreatePixelShader(hlsl_source);
-		if (pass.pixel_shader == nullptr)
-		{
-			ERROR_LOG(VIDEO, "Failed to compile post-processing shader %s (pass %s)", m_config->GetShader().c_str(), pass_config.entry_point.c_str());
-			m_ready = false;
-			return false;
-		}
-	}
-
-	return true;
-}
-
-void PostProcessingShader::UpdateEnabledPasses()
-{
-	m_last_pass_index = 0;
-	m_last_pass_uses_color_buffer = false;
-
-	size_t previous_pass_index = 0;
-	for (size_t pass_index = 0; pass_index < m_passes.size(); pass_index++)
-	{
-		const PostProcessingShaderConfiguration::RenderPass& pass_config = m_config->GetPass(pass_index);
-		RenderPassData& pass = m_passes[pass_index];
-		pass.enabled = pass_config.CheckEnabled();
-
-		// Check for color buffer reads, for copy optimization
-		if (pass.enabled)
-		{
-			m_last_pass_index = pass_index;
-			m_last_pass_uses_color_buffer = false;
-			for (size_t input_index = 0; input_index < pass.inputs.size(); input_index++)
-			{
-				InputBinding& input = pass.inputs[input_index];
-				if (input.type == POST_PROCESSING_INPUT_TYPE_COLOR_BUFFER)
-				{
-					m_last_pass_uses_color_buffer = true;
-					break;
-				}
-			}
-		}
-	}
+	return m_passes[m_last_pass_index].output_texture;
 }
 
 D3DPostProcessor::~D3DPostProcessor()
@@ -388,52 +398,44 @@ bool D3DPostProcessor::Initialize()
 void D3DPostProcessor::ReloadShaders()
 {
 	m_reload_flag.Clear();
-	m_post_processing_shader.reset();
+	m_post_processing_shaders.clear();
 	m_blit_shader.reset();
 	m_active = false;
+
+	ReloadShaderConfigs();
+
 	if (g_ActiveConfig.bPostProcessingEnable)
 	{
-		const std::string& post_shader_name = g_ActiveConfig.sPostProcessingShader;
-		m_post_processing_shader = std::make_unique<PostProcessingShader>();
-		if (m_config.LoadShader("", post_shader_name) && m_post_processing_shader->Initialize(&m_config, FramebufferManager::GetEFBLayers()))
+		// Create a PostProcessingShader for each shader in the list
+		for (const std::string& shader_name : m_shader_names)
 		{
-			if (!post_shader_name.empty())
+			const auto& it = m_shader_configs.find(shader_name);
+			if (it == m_shader_configs.end())
+				continue;
+			std::unique_ptr<PostProcessingShader> shader = std::make_unique<PostProcessingShader>();
+			if (!shader->Initialize(it->second.get(), FramebufferManager::GetEFBLayers()))
 			{
-				DEBUG_LOG(VIDEO, "Postprocessing shader loaded: '%s'", post_shader_name.c_str());
-				OSD::AddMessage(StringFromFormat("Postprocessing shader loaded: '%s'", post_shader_name.c_str()));
+				ERROR_LOG(VIDEO, "Failed to initialize postprocessing shader ('%s'). This shader will be ignored.", shader_name.c_str());
+				OSD::AddMessage(StringFromFormat("Failed to initialize postprocessing shader ('%s'). This shader will be ignored.", shader_name.c_str()));
+				continue;
 			}
-
-			m_config.ClearDirty();
-			m_active = true;
+			m_post_processing_shaders.push_back(std::move(shader));
 		}
-		else
-		{
-			ERROR_LOG(VIDEO, "Failed to load postprocessing shader ('%s'). Disabling post processor.", post_shader_name.c_str());
-			OSD::AddMessage(StringFromFormat("Failed to load postprocessing shader ('%s'). Disabling post processor.", post_shader_name.c_str()));
-
-			m_post_processing_shader.reset();
-		}
+		// If no shaders initialized successfully, disable post processing
+		m_active = !m_post_processing_shaders.empty();
 	}
 
-	const std::string& blit_shader_subdir = (g_ActiveConfig.iStereoMode == STEREO_ANAGLYPH) ? ANAGLYPH_DIR : "";
-	const std::string& blit_shader_name = (g_ActiveConfig.iStereoMode == STEREO_ANAGLYPH) ? g_ActiveConfig.sAnaglyphShader : g_ActiveConfig.sBlitShader;
-	m_blit_shader = std::make_unique<PostProcessingShader>();
-	if (m_blit_config.LoadShader(blit_shader_subdir, blit_shader_name) && m_blit_shader->Initialize(&m_blit_config, FramebufferManager::GetEFBLayers()))
+	// Initialize blit shader, if specified
+	m_blit_shader.reset();
+	if (m_blit_config)
 	{
-		if (!blit_shader_name.empty())
+		m_blit_shader = std::make_unique<PostProcessingShader>();
+		if (!m_blit_shader->Initialize(m_blit_config.get(), FramebufferManager::GetEFBLayers()))
 		{
-			DEBUG_LOG(VIDEO, "Blit shader loaded: '%s'", blit_shader_name.c_str());
-			OSD::AddMessage(StringFromFormat("Blit shader loaded: '%s'", blit_shader_name.c_str()));
+			ERROR_LOG(VIDEO, "Failed to initialize blit shader ('%s'). Falling back to copy shader.", m_blit_config->GetShader().c_str());
+			OSD::AddMessage(StringFromFormat("Failed to initialize blit shader ('%s'). Falling back to copy shader.", m_blit_config->GetShader().c_str()));
+			m_blit_shader.reset();
 		}
-
-		m_blit_config.ClearDirty();
-	}
-	else
-	{
-		ERROR_LOG(VIDEO, "Failed to load blit shader ('%s'). Falling back to copy shader.", blit_shader_name.c_str());
-		OSD::AddMessage(StringFromFormat("Failed to load blit shader ('%s'). Falling back to copy shader.", blit_shader_name.c_str()));
-
-		m_blit_shader.reset();
 	}
 }
 
@@ -471,7 +473,7 @@ void D3DPostProcessor::PostProcessEFB()
 	// Source and target textures, if MSAA is enabled, this needs to be resolved
 	D3DTexture2D* color_texture = FramebufferManager::GetResolvedEFBColorTexture();
 	D3DTexture2D* depth_texture = nullptr;
-	if (m_config.RequiresDepthBuffer())
+	if (m_requires_depth_buffer)
 		depth_texture = FramebufferManager::GetResolvedEFBDepthTexture();
 
 	// Invoke post process process
@@ -501,20 +503,23 @@ void D3DPostProcessor::BlitToFramebuffer(const TargetRectangle& dst, uintptr_t d
 	_dbg_assert_msg_(VIDEO, src_layer >= 0, "BlitToFramebuffer should always be called with a single source layer");
 
 	// Options changed?
-	if (m_blit_shader != nullptr && m_blit_shader->IsReady())
+	if (m_blit_shader)
 	{
-		if (m_blit_config.IsDirty())
+		if (!m_blit_shader->IsReady() ||
+			!m_blit_shader->ResizeIntermediateBuffers(src_width, src_height) ||
+			!m_blit_shader->UpdateOptions())
 		{
-			if (m_blit_config.IsCompileTimeConstantsDirty())
-				m_blit_shader->RecompileShaders();
-
-			m_blit_shader->UpdateEnabledPasses();
-			m_blit_config.ClearDirty();
+			// Something failed, so deactivate
+			m_blit_shader.reset();
 		}
-		m_blit_shader->ResizeIntermediateBuffers(src_width, src_height);
+		else
+		{
+			// Clear dirty flag (if set)
+			m_blit_config->ClearDirty();
+		}
 	}
 	// Use blit shader if one is set-up. Should only be a single pass in almost all cases.
-	if (m_blit_shader != nullptr && m_blit_shader->IsReady())
+	if (m_blit_shader)
 	{
 		D3D::stateman->SetPixelConstants(m_uniform_buffer.get());
 		m_blit_shader->Draw(this, dst, real_dst_texture, src, src_width, src_height, real_src_texture, nullptr, src_layer);
@@ -530,28 +535,36 @@ void D3DPostProcessor::PostProcess(const TargetRectangle& visible_rect, int tex_
 {
 	D3DTexture2D* real_texture = reinterpret_cast<D3DTexture2D*>(texture);
 	D3DTexture2D* real_depth_texture = reinterpret_cast<D3DTexture2D*>(depth_texture);
-	_dbg_assert_(VIDEO, !m_active || m_post_processing_shader != nullptr);
-	if (!(m_active && m_post_processing_shader))
+	if (!m_active)
 		return;
 
+	// Setup copy buffers first
 	int visible_width = visible_rect.GetWidth();
 	int visible_height = visible_rect.GetHeight();
-	if (!m_post_processing_shader->IsReady() ||
-		!m_post_processing_shader->ResizeIntermediateBuffers(visible_width, visible_height) ||
-		!ResizeCopyBuffers(visible_width, visible_height, tex_layers) ||
-		(m_config.IsCompileTimeConstantsDirty() && !m_post_processing_shader->RecompileShaders()))
+	if (!ResizeCopyBuffers(visible_width, visible_height, tex_layers))
 	{
-		ERROR_LOG(VIDEO, "Failed to update post-processor state. Disabling post processor.");
-		m_post_processing_shader.reset();
+		ERROR_LOG(VIDEO, "Failed to resize post-processor copy buffers. Disabling post processor.");
+		m_post_processing_shaders.clear();
 		m_active = false;
 		return;
 	}
 
-	if (m_config.IsDirty())
+	// Update compile-time constants for all shaders, so they're all ready
+	for (size_t shader_index = 0; shader_index < m_post_processing_shaders.size(); shader_index++)
 	{
-		m_post_processing_shader->UpdateEnabledPasses();
-		m_config.ClearDirty();
+		PostProcessingShader* shader = m_post_processing_shaders[shader_index].get();
+		if (!shader->IsReady() || !shader->ResizeIntermediateBuffers(visible_width, visible_height) || !shader->UpdateOptions())
+		{
+			ERROR_LOG(VIDEO, "Failed to update post-processor state. Disabling post processor.");
+			m_post_processing_shaders.clear();
+			m_active = false;
+			return;
+		}
 	}
+
+	// Remove dirty flags afterwards. This is because we can have the same shader twice.
+	for (auto& it : m_shader_configs)
+		it.second->ClearDirty();
 
 	// Copy only the visible region to our buffers.
 	TargetRectangle buffer_rect(0, 0, visible_width, visible_height);
@@ -562,9 +575,29 @@ void D3DPostProcessor::PostProcess(const TargetRectangle& visible_rect, int tex_
 		CopyTexture(buffer_rect, m_depth_copy_texture, visible_rect, real_depth_texture, tex_width, tex_height, -1, true);
 	}
 
-	// Post-process, and output back to the original texture.
+	// Uniform buffer is shared across all shaders
 	D3D::stateman->SetPixelConstants(m_uniform_buffer.get());
-	m_post_processing_shader->Draw(this, visible_rect, real_texture, buffer_rect, visible_width, visible_height, m_color_copy_texture, m_depth_copy_texture, -1);
+
+	// Loop through the shader list, applying each of them in sequence.
+	D3DTexture2D* input_color_texture = m_color_copy_texture;
+	for (size_t shader_index = 0; shader_index < m_post_processing_shaders.size(); shader_index++)
+	{
+		PostProcessingShader* shader = m_post_processing_shaders[shader_index].get();
+
+		// Last shader in the list?
+		if (shader_index == (m_post_processing_shaders.size() - 1))
+		{
+			// Last shader in the list, so we write to the output texture.
+			shader->Draw(this, visible_rect, real_texture, buffer_rect, visible_width, visible_height, input_color_texture, m_depth_copy_texture, -1);
+		}
+		else
+		{
+			// To save a copy, we use the output of one shader as the input to the next.
+			D3DTexture2D* output_color_texture = shader->GetLastPassOutputTexture();
+			shader->Draw(this, buffer_rect, output_color_texture, buffer_rect, visible_width, visible_height, input_color_texture, m_depth_copy_texture, -1);
+			input_color_texture = output_color_texture;
+		}
+	}
 }
 
 void D3DPostProcessor::MapAndUpdateUniformBuffer(const PostProcessingShaderConfiguration* config,
@@ -613,7 +646,7 @@ bool D3DPostProcessor::ResizeCopyBuffers(int width, int height, int layers)
 	CD3D11_TEXTURE2D_DESC depth_desc(DXGI_FORMAT_R32_FLOAT, width, height, layers, 1, D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET, D3D11_USAGE_DEFAULT, 0, 1, 0, 0);
 	if (FAILED(hr = D3D::device->CreateTexture2D(&depth_desc, nullptr, D3D::ToAddr(depth_texture))))
 	{
-		ERROR_LOG(VIDEO, "CreateTexture2D failed, hr=0x%X", hr);		
+		ERROR_LOG(VIDEO, "CreateTexture2D failed, hr=0x%X", hr);
 		return false;
 	}
 

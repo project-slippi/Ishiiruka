@@ -29,13 +29,15 @@ public:
 	PostProcessingShader() = default;
 	~PostProcessingShader();
 
+	GLuint GetLastPassOutputTexture();
+
 	bool IsReady() const { return m_ready; }
 
 	bool Initialize(const PostProcessingShaderConfiguration* config, int target_layers);
 	bool ResizeIntermediateBuffers(int target_width, int target_height);
-	
+
 	bool RecompileShaders();
-	void UpdateEnabledPasses();
+	bool UpdateOptions(bool force = false);
 
 	void Draw(OGLPostProcessor* parent,
 		const TargetRectangle& target_rect, GLuint target_texture,
@@ -128,8 +130,8 @@ protected:
 
 	std::unique_ptr<StreamBuffer> m_uniform_buffer;
 
-	std::unique_ptr<PostProcessingShader> m_post_processing_shader;
 	std::unique_ptr<PostProcessingShader> m_blit_shader;
+	std::vector<std::unique_ptr<PostProcessingShader>> m_post_processing_shaders;
 };
 
 }  // namespace

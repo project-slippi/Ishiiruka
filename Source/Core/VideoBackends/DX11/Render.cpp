@@ -841,7 +841,7 @@ void Renderer::SwapImpl(u32 xfbAddr, u32 fbWidth, u32 fbStride, u32 fbHeight, co
 				m_post_processor->IsActive())
 			{
 				D3DTexture2D* depth_texture = nullptr;
-				if (m_post_processor->GetConfig()->RequiresDepthBuffer())
+				if (m_post_processor->RequiresDepthBuffer())
 					depth_texture = FramebufferManager::GetResolvedEFBDepthTexture();
 
 				m_post_processor->PostProcess(sourceRc, s_target_width, s_target_height, FramebufferManager::GetEFBLayers(),

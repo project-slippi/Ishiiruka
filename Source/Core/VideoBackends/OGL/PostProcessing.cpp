@@ -51,7 +51,7 @@ v_uv0 = rawpos * src_rect.zw + src_rect.xy;
 
 static const char* s_geometry_shader = R"(
 
-	layout(triangles) in;
+		layout(triangles) in;
 layout(triangle_strip, max_vertices = %d) out;
 
 in vec2 v_uv0[3];
@@ -62,16 +62,16 @@ void main()
 {
 for (int i = 0; i < %d; i++)
 {
-	for (int j = 0; j < 3; j++)
-	{
-		gl_Position = gl_in[j].gl_Position;
-		uv0 = v_uv0[j];
-		layer = float(i);
-		gl_Layer = i;
-		EmitVertex();
-	}
+for (int j = 0; j < 3; j++)
+{
+	gl_Position = gl_in[j].gl_Position;
+	uv0 = v_uv0[j];
+	layer = float(i);
+	gl_Layer = i;
+	EmitVertex();
+}
 
-			EndPrimitive();
+				EndPrimitive();
 }
 }
 
@@ -185,21 +185,17 @@ bool PostProcessingShader::Initialize(const PostProcessingShaderConfiguration* c
 		TextureCache::SetStage();
 		return false;
 	}
-	
-	// Restore texture state
-	TextureCache::SetStage();
-	
-	// Compile shaders
-	if (!RecompileShaders())
-		return false;
 
 	// Determine which passes to execute
-	UpdateEnabledPasses();
+	if (!UpdateOptions(true))
+		return false;
+
+	// Compile programs
+	m_ready = RecompileShaders();
 
 	// In case we created any textures
 	TextureCache::SetStage();
-	m_ready = true;
-	return true;
+	return m_ready;
 }
 
 bool PostProcessingShader::ResizeIntermediateBuffers(int target_width, int target_height)
@@ -252,10 +248,104 @@ bool PostProcessingShader::ResizeIntermediateBuffers(int target_width, int targe
 			previous_pass = pass_index;
 	}
 
-	TextureCache::SetStage();
+	// Restore state
+	m_ready = true;
 	m_internal_width = target_width;
 	m_internal_height = target_height;
-	m_ready = true;
+	TextureCache::SetStage();
+	return true;
+}
+
+bool PostProcessingShader::RecompileShaders()
+{
+	for (size_t i = 0; i < m_passes.size(); i++)
+	{
+		RenderPassData& pass = m_passes[i];
+		const PostProcessingShaderConfiguration::RenderPass& pass_config = m_config->GetPass(i);
+
+		// Compile shader for this pass
+		std::unique_ptr<SHADER> program = std::make_unique<SHADER>();
+		std::string vertex_shader_source;
+		PostProcessor::GetUniformBufferShaderSource(API_OPENGL, m_config, vertex_shader_source);
+		vertex_shader_source += s_vertex_shader;
+		std::string fragment_shader_source = PostProcessor::GetPassFragmentShaderSource(API_OPENGL, m_config, &pass_config);
+		if (!ProgramShaderCache::CompileShader(*program, vertex_shader_source.c_str(), fragment_shader_source.c_str()))
+		{
+			ERROR_LOG(VIDEO, "Failed to compile post-processing shader %s (pass %s)", m_config->GetShader().c_str(), pass_config.entry_point.c_str());
+			m_ready = false;
+			return false;
+		}
+
+		// Bind our uniform block
+		GLuint block_index = glGetUniformBlockIndex(program->glprogid, "PostProcessingConstants");
+		if (block_index != GL_INVALID_INDEX)
+			glUniformBlockBinding(program->glprogid, block_index, UNIFORM_BUFFER_BIND_POINT);
+
+		// Only generate a GS-expanding program if needed
+		std::unique_ptr<SHADER> gs_program;
+		if (m_internal_layers > 1)
+		{
+			gs_program = std::make_unique<SHADER>();
+			vertex_shader_source.clear();
+			PostProcessor::GetUniformBufferShaderSource(API_OPENGL, m_config, vertex_shader_source);
+			vertex_shader_source += s_layered_vertex_shader;
+			std::string geometry_shader_source = StringFromFormat(s_geometry_shader, m_internal_layers * 3, m_internal_layers).c_str();
+
+			if (!ProgramShaderCache::CompileShader(*gs_program, vertex_shader_source.c_str(), fragment_shader_source.c_str(), geometry_shader_source.c_str()))
+			{
+				ERROR_LOG(VIDEO, "Failed to compile GS post-processing shader %s (pass %s)", m_config->GetShader().c_str(), pass_config.entry_point.c_str());
+				m_ready = false;
+				return false;
+			}
+
+			block_index = glGetUniformBlockIndex(gs_program->glprogid, "PostProcessingConstants");
+			if (block_index != GL_INVALID_INDEX)
+				glUniformBlockBinding(gs_program->glprogid, block_index, UNIFORM_BUFFER_BIND_POINT);
+		}
+
+		// Store to struct
+		std::swap(pass.program, program);
+		std::swap(pass.gs_program, gs_program);
+	}
+
+	return true;
+}
+
+bool PostProcessingShader::UpdateOptions(bool force)
+{
+	if (!m_config->IsDirty() && !m_config->IsCompileTimeConstantsDirty() && !force)
+		return true;
+
+	m_last_pass_index = 0;
+	m_last_pass_uses_color_buffer = false;
+
+	for (size_t pass_index = 0; pass_index < m_passes.size(); pass_index++)
+	{
+		const PostProcessingShaderConfiguration::RenderPass& pass_config = m_config->GetPass(pass_index);
+		RenderPassData& pass = m_passes[pass_index];
+		pass.enabled = pass_config.CheckEnabled();
+
+		// Check for color buffer reads, for copy optimization
+		if (pass.enabled)
+		{
+			m_last_pass_index = pass_index;
+			m_last_pass_uses_color_buffer = false;
+			for (size_t input_index = 0; input_index < pass.inputs.size(); input_index++)
+			{
+				InputBinding& input = pass.inputs[input_index];
+				if (input.type == POST_PROCESSING_INPUT_TYPE_COLOR_BUFFER)
+				{
+					m_last_pass_uses_color_buffer = true;
+					break;
+				}
+			}
+		}
+	}
+
+	// Recompile shaders if compile-time constants have changed
+	if (m_config->IsCompileTimeConstantsDirty() && !RecompileShaders())
+		return false;
+
 	return true;
 }
 
@@ -357,88 +447,9 @@ void PostProcessingShader::Draw(OGLPostProcessor* parent,
 		parent->CopyTexture(target_rect, target_texture, output_rect, m_passes[m_last_pass_index].output_texture_id, src_layer, false);
 }
 
-bool PostProcessingShader::RecompileShaders()
+GLuint PostProcessingShader::GetLastPassOutputTexture()
 {
-	for (size_t i = 0; i < m_passes.size(); i++)
-	{
-		RenderPassData& pass = m_passes[i];
-		const PostProcessingShaderConfiguration::RenderPass& pass_config = m_config->GetPass(i);
-
-		// Compile shader for this pass
-		std::unique_ptr<SHADER> program = std::make_unique<SHADER>();
-		std::string vertex_shader_source;
-		PostProcessor::GetUniformBufferShaderSource(API_OPENGL, m_config, vertex_shader_source);
-		vertex_shader_source += s_vertex_shader;
-		std::string fragment_shader_source = PostProcessor::GetPassFragmentShaderSource(API_OPENGL, m_config, &pass_config);
-		if (!ProgramShaderCache::CompileShader(*program, vertex_shader_source.c_str(), fragment_shader_source.c_str()))
-		{
-			ERROR_LOG(VIDEO, "Failed to compile post-processing shader %s (pass %s)", m_config->GetShader().c_str(), pass_config.entry_point.c_str());
-			m_ready = false;
-			return false;
-		}
-
-		// Bind our uniform block
-		GLuint block_index = glGetUniformBlockIndex(program->glprogid, "PostProcessingConstants");
-		if (block_index != GL_INVALID_INDEX)
-			glUniformBlockBinding(program->glprogid, block_index, UNIFORM_BUFFER_BIND_POINT);
-
-		// Only generate a GS-expanding program if needed
-		std::unique_ptr<SHADER> gs_program;
-		if (m_internal_layers > 1)
-		{
-			gs_program = std::make_unique<SHADER>();
-			vertex_shader_source.clear();
-			PostProcessor::GetUniformBufferShaderSource(API_OPENGL, m_config, vertex_shader_source);
-			vertex_shader_source += s_layered_vertex_shader;
-			std::string geometry_shader_source = StringFromFormat(s_geometry_shader, m_internal_layers * 3, m_internal_layers).c_str();
-
-			if (!ProgramShaderCache::CompileShader(*gs_program, vertex_shader_source.c_str(), fragment_shader_source.c_str(), geometry_shader_source.c_str()))
-			{
-				ERROR_LOG(VIDEO, "Failed to compile GS post-processing shader %s (pass %s)", m_config->GetShader().c_str(), pass_config.entry_point.c_str());
-				m_ready = false;
-				return false;
-			}
-
-			block_index = glGetUniformBlockIndex(gs_program->glprogid, "PostProcessingConstants");
-			if (block_index != GL_INVALID_INDEX)
-				glUniformBlockBinding(gs_program->glprogid, block_index, UNIFORM_BUFFER_BIND_POINT);
-		}
-
-		// Store to struct
-		std::swap(pass.program, program);
-		std::swap(pass.gs_program, gs_program);
-	}
-
-	return true;
-}
-
-void PostProcessingShader::UpdateEnabledPasses()
-{
-	m_last_pass_index = 0;
-	m_last_pass_uses_color_buffer = false;
-
-	for (size_t pass_index = 0; pass_index < m_passes.size(); pass_index++)
-	{
-		const PostProcessingShaderConfiguration::RenderPass& pass_config = m_config->GetPass(pass_index);
-		RenderPassData& pass = m_passes[pass_index];
-		pass.enabled = pass_config.CheckEnabled();
-
-		// Check for color buffer reads, for copy optimization
-		if (pass.enabled)
-		{
-			m_last_pass_index = pass_index;
-			m_last_pass_uses_color_buffer = false;
-			for (size_t input_index = 0; input_index < pass.inputs.size(); input_index++)
-			{
-				InputBinding& input = pass.inputs[input_index];
-				if (input.type == POST_PROCESSING_INPUT_TYPE_COLOR_BUFFER)
-				{
-					m_last_pass_uses_color_buffer = true;
-					break;
-				}
-			}
-		}
-	}
+	return m_passes[m_last_pass_index].output_texture_id;
 }
 
 OGLPostProcessor::~OGLPostProcessor()
@@ -489,54 +500,47 @@ void OGLPostProcessor::ReloadShaders()
 {
 	// Delete current shaders
 	m_reload_flag.Clear();
-	m_post_processing_shader.reset();
+	m_post_processing_shaders.clear();
 	m_blit_shader.reset();
 	m_active = false;
 
+	ReloadShaderConfigs();
+
 	if (g_ActiveConfig.bPostProcessingEnable)
 	{
-		// Load current shader, and create program
-		const std::string& post_shader_name = g_ActiveConfig.sPostProcessingShader;
-		m_post_processing_shader = std::make_unique<PostProcessingShader>();
-		if (m_config.LoadShader("", post_shader_name) && m_post_processing_shader->Initialize(&m_config, FramebufferManager::GetEFBLayers()))
+		// Create a PostProcessingShader for each shader in the list
+		for (const std::string& shader_name : m_shader_names)
 		{
-			if (!post_shader_name.empty())
+			const auto& it = m_shader_configs.find(shader_name);
+			if (it == m_shader_configs.end())
+				continue;
+
+			std::unique_ptr<PostProcessingShader> shader = std::make_unique<PostProcessingShader>();
+			if (!shader->Initialize(it->second.get(), FramebufferManager::GetEFBLayers()))
 			{
-				DEBUG_LOG(VIDEO, "Postprocessing shader loaded: '%s'", post_shader_name.c_str());
-				OSD::AddMessage(StringFromFormat("Postprocessing shader loaded: '%s'", post_shader_name.c_str()));
+				ERROR_LOG(VIDEO, "Failed to initialize postprocessing shader ('%s'). This shader will be ignored.", shader_name.c_str());
+				OSD::AddMessage(StringFromFormat("Failed to initialize postprocessing shader ('%s'). This shader will be ignored.", shader_name.c_str()));
+				continue;
 			}
 
-			m_config.ClearDirty();
-			m_active = true;
+			m_post_processing_shaders.push_back(std::move(shader));
 		}
-		else
-		{
-			ERROR_LOG(VIDEO, "Failed to load postprocessing shader ('%s'). Disabling post processor.", post_shader_name.c_str());
-			OSD::AddMessage(StringFromFormat("Failed to load postprocessing shader ('%s'). Disabling post processor.", post_shader_name.c_str()));
 
-			m_post_processing_shader.reset();
-		}
+		// If no shaders initialized successfully, disable post processing
+		m_active = !m_post_processing_shaders.empty();
 	}
 
-	const std::string& blit_shader_subdir = (g_ActiveConfig.iStereoMode == STEREO_ANAGLYPH) ? ANAGLYPH_DIR : "";
-	const std::string& blit_shader_name = (g_ActiveConfig.iStereoMode == STEREO_ANAGLYPH) ? g_ActiveConfig.sAnaglyphShader : g_ActiveConfig.sBlitShader;
-	m_blit_shader = std::make_unique<PostProcessingShader>();
-	if (m_blit_config.LoadShader(blit_shader_subdir, blit_shader_name) && m_blit_shader->Initialize(&m_blit_config, FramebufferManager::GetEFBLayers()))
+	// Initialize blit shader, if specified
+	m_blit_shader.reset();
+	if (m_blit_config)
 	{
-		if (!blit_shader_name.empty())
+		m_blit_shader = std::make_unique<PostProcessingShader>();
+		if (!m_blit_shader->Initialize(m_blit_config.get(), FramebufferManager::GetEFBLayers()))
 		{
-			DEBUG_LOG(VIDEO, "Blit shader loaded: '%s'", blit_shader_name.c_str());
-			OSD::AddMessage(StringFromFormat("Blit shader loaded: '%s'", blit_shader_name.c_str()));
+			ERROR_LOG(VIDEO, "Failed to initialize blit shader ('%s'). Falling back to copy shader.", m_blit_config->GetShader().c_str());
+			OSD::AddMessage(StringFromFormat("Failed to initialize blit shader ('%s'). Falling back to copy shader.", m_blit_config->GetShader().c_str()));
+			m_blit_shader.reset();
 		}
-
-		m_blit_config.ClearDirty();
-	}
-	else
-	{
-		ERROR_LOG(VIDEO, "Failed to load blit shader ('%s'). Falling back to glBlitFramebuffer().", blit_shader_name.c_str());
-		OSD::AddMessage(StringFromFormat("Failed to load blit shader ('%s'). Falling back to glBlitFramebuffer().", blit_shader_name.c_str()));
-
-		m_blit_shader.reset();
 	}
 }
 
@@ -569,7 +573,7 @@ void OGLPostProcessor::PostProcessEFB()
 	// Source and target textures, if MSAA is enabled, this needs to be resolved
 	GLuint efb_color_texture = FramebufferManager::GetEFBColorTexture(efb_rect);
 	GLuint efb_depth_texture = 0;
-	if (m_config.RequiresDepthBuffer())
+	if (m_requires_depth_buffer)
 		efb_depth_texture = FramebufferManager::GetEFBDepthTexture(efb_rect);
 
 	// Invoke post-process process, this will write back to efb_color_texture
@@ -606,28 +610,27 @@ void OGLPostProcessor::BlitToFramebuffer(const TargetRectangle& dst, uintptr_t d
 	_dbg_assert_msg_(VIDEO, src_layer >= 0, "BlitToFramebuffer should always be called with a single source layer");
 
 	// Options changed?
-	if (m_blit_shader != nullptr && m_blit_shader->IsReady())
+	if (m_blit_shader)
 	{
-		if (m_blit_config.IsDirty())
+		if (!m_blit_shader->IsReady() ||
+			!m_blit_shader->ResizeIntermediateBuffers(src_width, src_height) ||
+			!m_blit_shader->UpdateOptions())
 		{
-			if (m_blit_config.IsCompileTimeConstantsDirty())
-				m_blit_shader->RecompileShaders();
-
-			m_blit_shader->UpdateEnabledPasses();
-			m_blit_config.ClearDirty();
+			// Something failed, so deactivate
+			m_blit_shader.reset();
 		}
-		m_blit_shader->ResizeIntermediateBuffers(src_width, src_height);
+		else
+		{
+			// Clear dirty flag (if set)
+			m_blit_config->ClearDirty();
+		}
 	}
 
 	// Use blit shader if one is set-up. Should only be a single pass in almost all cases.
-	if (m_blit_shader != nullptr && m_blit_shader->IsReady())
-	{
+	if (m_blit_shader)
 		m_blit_shader->Draw(this, dst, real_dst_texture, src, src_width, src_height, real_src_texture, 0, src_layer, gamma);
-	}
 	else
-	{
 		CopyTexture(dst, real_dst_texture, src, real_src_texture, src_layer, false);
-	}
 }
 
 void OGLPostProcessor::PostProcess(const TargetRectangle& visible_rect, int tex_width, int tex_height, int tex_layers,
@@ -635,28 +638,36 @@ void OGLPostProcessor::PostProcess(const TargetRectangle& visible_rect, int tex_
 {
 	GLuint real_texture = static_cast<GLuint>(texture);
 	GLuint real_depth_texture = static_cast<GLuint>(depth_texture);
-	_dbg_assert_(VIDEO, !m_active || m_post_processing_shader != nullptr);
 	if (!m_active)
 		return;
 
+	// Setup copy buffers first
 	int visible_width = visible_rect.GetWidth();
 	int visible_height = visible_rect.GetHeight();
-	if (!m_post_processing_shader->IsReady() ||
-		!m_post_processing_shader->ResizeIntermediateBuffers(visible_width, visible_height) ||
-		!ResizeCopyBuffers(visible_width, visible_height, tex_layers) ||
-		(m_config.IsCompileTimeConstantsDirty() && !m_post_processing_shader->RecompileShaders()))
+	if (!ResizeCopyBuffers(visible_width, visible_height, tex_layers))
 	{
-		ERROR_LOG(VIDEO, "Failed to create post-process intermediate buffers. Disabling post processor.");
-		m_post_processing_shader.reset();
+		ERROR_LOG(VIDEO, "Failed to resize post-processor copy buffers. Disabling post processor.");
+		m_post_processing_shaders.clear();
 		m_active = false;
 		return;
 	}
 
-	if (m_config.IsDirty())
+	// Update compile-time constants for all shaders, so they're all ready
+	for (size_t shader_index = 0; shader_index < m_post_processing_shaders.size(); shader_index++)
 	{
-		m_post_processing_shader->UpdateEnabledPasses();
-		m_config.ClearDirty();
+		PostProcessingShader* shader = m_post_processing_shaders[shader_index].get();
+		if (!shader->IsReady() || !shader->ResizeIntermediateBuffers(visible_width, visible_height) || !shader->UpdateOptions())
+		{
+			ERROR_LOG(VIDEO, "Failed to update post-processor state. Disabling post processor.");
+			m_post_processing_shaders.clear();
+			m_active = false;
+			return;
+		}
 	}
+
+	// Remove dirty flags afterwards. This is because we can have the same shader twice.
+	for (auto& it : m_shader_configs)
+		it.second->ClearDirty();
 
 	// Copy the visible region to our buffers.
 	TargetRectangle buffer_rect(0, visible_height, visible_width, 0);
@@ -664,8 +675,26 @@ void OGLPostProcessor::PostProcess(const TargetRectangle& visible_rect, int tex_
 	if (real_depth_texture != 0)
 		CopyTexture(buffer_rect, m_depth_copy_texture, visible_rect, real_depth_texture, -1, false);
 
-	m_post_processing_shader->Draw(this, visible_rect, real_texture, buffer_rect, visible_width, visible_height,
-		m_color_copy_texture, m_depth_copy_texture, -1);
+	// Loop through the shader list, applying each of them in sequence.
+	GLuint input_color_texture = m_color_copy_texture;
+	for (size_t shader_index = 0; shader_index < m_post_processing_shaders.size(); shader_index++)
+	{
+		PostProcessingShader* shader = m_post_processing_shaders[shader_index].get();
+
+		// Last shader in the list?
+		if (shader_index == (m_post_processing_shaders.size() - 1))
+		{
+			// Last shader in the list, so we write to the output texture.
+			shader->Draw(this, visible_rect, real_texture, buffer_rect, visible_width, visible_height, input_color_texture, m_depth_copy_texture, -1);
+		}
+		else
+		{
+			// To save a copy, we use the output of one shader as the input to the next.
+			GLuint output_color_texture = shader->GetLastPassOutputTexture();
+			shader->Draw(this, buffer_rect, output_color_texture, buffer_rect, visible_width, visible_height, input_color_texture, m_depth_copy_texture, -1);
+			input_color_texture = output_color_texture;
+		}
+	}
 }
 
 void OGLPostProcessor::MapAndUpdateUniformBuffer(const PostProcessingShaderConfiguration* config,

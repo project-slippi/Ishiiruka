@@ -20,24 +20,20 @@
 
 #include "VideoCommon/RenderBase.h"
 
-PostProcessingConfigDiag::PostProcessingConfigDiag(wxWindow* parent, const std::string& shader)
-	: wxDialog(parent, wxID_ANY, _("Post Processing Shader Configuration")),
-	  m_shader(shader)
+PostProcessingConfigDiag::PostProcessingConfigDiag(wxWindow* parent, const std::string& shader_name, PostProcessingShaderConfiguration* config)
+	: wxDialog(parent, wxID_ANY, _("Post Processing Shader Configuration"))
+	, m_config(config)
 {
-	// Depending on if we are running already, either use the one from the videobackend
-	// or generate our own.
-	if (g_renderer && g_renderer->GetPostProcessor())
+	if (!m_config)
 	{
-		m_post_processor = g_renderer->GetPostProcessor()->GetConfig();
-	}
-	else
-	{
-		m_post_processor = new PostProcessingShaderConfiguration();
-		m_post_processor->LoadShader("", m_shader);
+		// Config not active, so create a temporary config
+		m_temp_config = std::make_unique<PostProcessingShaderConfiguration>();
+		m_temp_config->LoadShader("", shader_name);
+		m_config = m_temp_config.get();
 	}
 
 	// Create our UI classes
-	const PostProcessingShaderConfiguration::ConfigMap& config_map = m_post_processor->GetOptions();
+	const PostProcessingShaderConfiguration::ConfigMap& config_map = m_config->GetOptions();
 	for (const auto& it : config_map)
 	{
 		if (it.second.m_type == POST_PROCESSING_OPTION_TYPE_BOOL)
@@ -74,11 +70,11 @@ PostProcessingConfigDiag::PostProcessingConfigDiag(wxWindow* parent, const std::
 
 	// Generate our UI
 	wxNotebook* const notebook = new wxNotebook(this, wxID_ANY);
-	wxPanel* const page_general = new wxPanel(notebook);
-	wxBoxSizer* const szr_general = new wxBoxSizer(wxVERTICAL);
-	wxFlexGridSizer* grid_general = new	wxFlexGridSizer(2, 5, 5);
+	wxPanel* page_general = nullptr;
+	wxBoxSizer* szr_general = nullptr;
+	wxFlexGridSizer* grid_general = nullptr;
+
 	// Now let's actually populate our window with our information
-	bool add_general_page = false;
 	for (const auto& it : m_config_groups)
 	{
 		if (it->HasChildren())
@@ -103,34 +99,38 @@ PostProcessingConfigDiag::PostProcessingConfigDiag(wxWindow* parent, const std::
 		{
 			// Options with no children go in to the general tab
 			// Make it so it doesn't show up if there aren't any options without children.
-			add_general_page = true;
+			if (!szr_general)
+			{
+				page_general = new wxPanel(notebook);
+				szr_general = new wxBoxSizer(wxVERTICAL);
+				grid_general = new	wxFlexGridSizer(2, 5, 5);
+			}
 			it->GenerateUI(this, page_general, grid_general);
 		}
 	}
 
-	if (add_general_page)
+	if (page_general)
 	{
 		szr_general->Add(grid_general);
 		CreateDescriptionArea(page_general, szr_general);
 		page_general->SetSizerAndFit(szr_general);
 		notebook->InsertPage(0, page_general, _("General"));
 	}
-	else
-	{
-		delete grid_general;
-		delete szr_general;
-		delete page_general;
-	}
 
 	// Close Button
-	wxButton* const btn_close = new wxButton(this, wxID_OK, _("Close"));
+	wxBoxSizer* const buttons_szr = new wxBoxSizer(wxHORIZONTAL);
+	wxButton* const btn_defaults = new wxButton(this, wxID_ANY, _("Restore &Defaults"));
+	btn_defaults->Bind(wxEVT_BUTTON, &PostProcessingConfigDiag::Event_RestoreDefaults, this);
+	buttons_szr->Add(btn_defaults, 0, wxRIGHT, 5);
+	wxButton* const btn_close = new wxButton(this, wxID_OK, _("Cl&ose"));
+	
 	btn_close->Bind(wxEVT_BUTTON, &PostProcessingConfigDiag::Event_ClickClose, this);
-
 	Bind(wxEVT_CLOSE_WINDOW, &PostProcessingConfigDiag::Event_Close, this);
+	buttons_szr->Add(btn_close, 0, wxRIGHT, 1);
 
 	wxBoxSizer* const szr_main = new wxBoxSizer(wxVERTICAL);
 	szr_main->Add(notebook, 1, wxEXPAND | wxALL, 5);
-	szr_main->Add(btn_close, 0, wxALIGN_RIGHT | wxRIGHT | wxBOTTOM, 5);
+	szr_main->Add(buttons_szr, 0, wxALIGN_RIGHT | wxRIGHT | wxBOTTOM, 5);
 
 	SetSizerAndFit(szr_main);
 	Center();
@@ -141,11 +141,7 @@ PostProcessingConfigDiag::PostProcessingConfigDiag(wxWindow* parent, const std::
 
 PostProcessingConfigDiag::~PostProcessingConfigDiag()
 {
-	m_post_processor->SaveOptionsConfiguration();
-	if (g_renderer && g_renderer->GetPostProcessor())
-		m_post_processor = nullptr;
-	else
-		delete m_post_processor;
+	m_config->SaveOptionsConfiguration();
 }
 
 void PostProcessingConfigDiag::ConfigGrouping::GenerateUI(PostProcessingConfigDiag* dialog, wxWindow* parent, wxFlexGridSizer* sizer)
@@ -192,7 +188,7 @@ void PostProcessingConfigDiag::ConfigGrouping::GenerateUI(PostProcessingConfigDi
 				steps = ceil(range / (double)m_config_option->m_integer_step_values[i]);
 
 				// Default value is just the currently set value here
-				current_value = (m_config_option->m_integer_values[i] - m_config_option->m_integer_min_values[i]) / m_config_option->m_integer_step_values[i];
+				current_value = std::max((m_config_option->m_integer_values[i] - m_config_option->m_integer_min_values[i]) / m_config_option->m_integer_step_values[i], 0);
 				string_value = std::to_string(m_config_option->m_integer_values[i]);
 			}
 			else
@@ -271,7 +267,7 @@ void PostProcessingConfigDiag::Event_CheckBox(wxCommandEvent &ev)
 	UserEventData* config_option = (UserEventData*)ev.GetEventUserData();
 	ConfigGrouping* config = m_config_map[config_option->GetData()];
 
-	m_post_processor->SetOptionb(config->GetOption(), ev.IsChecked());
+	m_config->SetOptionb(config->GetOption(), ev.IsChecked());
 
 	config->EnableDependentChildren(ev.IsChecked());
 
@@ -283,7 +279,7 @@ void PostProcessingConfigDiag::Event_Slider_Finish(wxScrollEvent &ev)
 	UserEventData* config_option = (UserEventData*)ev.GetEventUserData();
 	ConfigGrouping* config = m_config_map[config_option->GetData()];
 
-	const auto& option_data = m_post_processor->GetOption(config->GetOption());
+	const auto& option_data = m_config->GetOption(config->GetOption());
 	if (!option_data.m_compile_time_constant)
 	{
 		// Just handle options that must be resolved at compilation time
@@ -306,12 +302,12 @@ void PostProcessingConfigDiag::Event_Slider_Finish(wxScrollEvent &ev)
 		if (option_data.m_type == POST_PROCESSING_OPTION_TYPE_INTEGER)
 		{
 			s32 value = option_data.m_integer_step_values[i] * current_step + option_data.m_integer_min_values[i];
-			m_post_processor->SetOptioni(config->GetOption(), i, value);
+			m_config->SetOptioni(config->GetOption(), i, value);
 		}
 		else
 		{
 			float value = option_data.m_float_step_values[i] * current_step + option_data.m_float_min_values[i];
-			m_post_processor->SetOptionf(config->GetOption(), i, value);
+			m_config->SetOptionf(config->GetOption(), i, value);
 		}
 	}
 	ev.Skip();
@@ -322,7 +318,7 @@ void PostProcessingConfigDiag::Event_Slider(wxCommandEvent &ev)
 	UserEventData* config_option = (UserEventData*)ev.GetEventUserData();
 	ConfigGrouping* config = m_config_map[config_option->GetData()];
 
-	const auto& option_data = m_post_processor->GetOption(config->GetOption());
+	const auto& option_data = m_config->GetOption(config->GetOption());
 	size_t vector_size = 0;
 	if (option_data.m_type == POST_PROCESSING_OPTION_TYPE_INTEGER)
 		vector_size = option_data.m_integer_values.size();
@@ -339,14 +335,14 @@ void PostProcessingConfigDiag::Event_Slider(wxCommandEvent &ev)
 		{
 			s32 value = option_data.m_integer_step_values[i] * current_step + option_data.m_integer_min_values[i];
 			if (!option_data.m_compile_time_constant)
-				m_post_processor->SetOptioni(config->GetOption(), i, value);
+				m_config->SetOptioni(config->GetOption(), i, value);
 			string_value = std::to_string(value);
 		}
 		else
 		{
 			float value = option_data.m_float_step_values[i] * current_step + option_data.m_float_min_values[i];
 			if (!option_data.m_compile_time_constant)
-			m_post_processor->SetOptionf(config->GetOption(), i, value);
+			m_config->SetOptionf(config->GetOption(), i, value);
 			string_value = std::to_string(value);
 		}
 		// Update the text box to include the new value
@@ -425,4 +421,52 @@ void PostProcessingConfigDiag::CreateDescriptionArea(wxPanel* const page, wxBoxS
 
 	// Store description text object for later lookup
 	desc_texts.insert(std::pair<wxWindow*, wxStaticText*>(page, desc_text));
+}
+
+void PostProcessingConfigDiag::Event_RestoreDefaults(wxCommandEvent& ev)
+{
+	for (auto& it : m_config->GetOptions())
+	{
+		// Skip options that aren't in the UI, since those can't be changed anyway
+		ConfigGrouping* group;
+		auto group_it = m_config_map.find(it.first);
+		if (group_it != m_config_map.end())
+			group = group_it->second;
+		else
+			continue;
+
+		switch (it.second.m_type)
+		{
+		case POST_PROCESSING_OPTION_TYPE_BOOL:
+			m_config->SetOptionb(it.first, it.second.m_default_bool_value);
+			group->SetToggleValue(it.second.m_default_bool_value);
+			break;
+
+		case POST_PROCESSING_OPTION_TYPE_FLOAT:
+		{
+			for (size_t i = 0; i < it.second.m_default_float_values.size(); i++)
+			{
+				float value = it.second.m_default_float_values[i];
+				float pos = (value - it.second.m_float_min_values[i]) / it.second.m_float_step_values[i];
+				m_config->SetOptionf(it.first, i, value);
+				group->SetSliderValue(i, static_cast<int>(pos));
+				group->SetSliderText(i, std::to_string(value));
+			}
+		}
+		break;
+
+		case POST_PROCESSING_OPTION_TYPE_INTEGER:
+		{
+			for (size_t i = 0; i < it.second.m_default_integer_values.size(); i++)
+			{
+				int value = it.second.m_default_integer_values[i];
+				int pos = std::max((value - it.second.m_integer_min_values[i]) / std::max(it.second.m_integer_step_values[i], 0), 0);
+				m_config->SetOptioni(it.first, i, value);
+				group->SetSliderValue(i, pos);
+				group->SetSliderText(i, std::to_string(value));
+			}
+		}
+		break;
+		}
+	}
 }
