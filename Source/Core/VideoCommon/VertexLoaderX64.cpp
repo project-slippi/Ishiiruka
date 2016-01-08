@@ -487,7 +487,7 @@ void VertexLoaderX64::GenerateVertexLoader()
 	}
 	else
 	{
-		MOV(32, R(scratch1), M((u32*)&g_main_cp_state.matrix_index_a));
+		MOV(32, R(scratch1), MPIC(&g_main_cp_state.matrix_index_a));
 	}
 	AND(32, R(scratch1), Imm8(0x3F));
 	MOV(32, MDisp(dst_reg, m_dst_ofs), R(scratch1));
