@@ -49,6 +49,8 @@ public:
 		desc.GS = ShaderCache::GetGeometryShaderFromUid(&key.gs_uid);
 		desc.PS = ShaderCache::GetPixelShaderFromUid(&key.ps_uid);
 		desc.VS = ShaderCache::GetVertexShaderFromUid(&key.vs_uid);
+		desc.HS = ShaderCache::GetHullShaderFromUid(&key.hds_uid);
+		desc.DS = ShaderCache::GetDomainShaderFromUid(&key.hds_uid);
 
 		if (!desc.PS.pShaderBytecode || !desc.VS.pShaderBytecode)
 		{
@@ -103,6 +105,8 @@ public:
 		small_desc.gs_bytecode = desc.GS;
 		small_desc.vs_bytecode = desc.VS;
 		small_desc.ps_bytecode = desc.PS;
+		small_desc.hs_bytecode = desc.HS;
+		small_desc.ds_bytecode = desc.DS;
 		small_desc.input_Layout = reinterpret_cast<D3DVertexFormat*>(native.get());
 
 		gx_state_cache.m_small_pso_map[small_desc] = pso;
@@ -132,7 +136,7 @@ void StateCache::Init()
 	if (!File::Exists(File::GetUserPath(D_SHADERCACHE_IDX)))
 		File::CreateDir(File::GetUserPath(D_SHADERCACHE_IDX));
 
-	std::string cache_filename = StringFromFormat("%sdx12-%s-pso.cache", File::GetUserPath(D_SHADERCACHE_IDX).c_str(),
+	std::string cache_filename = StringFromFormat("%sIdx12-%s-pso.cache", File::GetUserPath(D_SHADERCACHE_IDX).c_str(),
 		SConfig::GetInstance().m_strUniqueID.c_str());
 
 	PipelineStateCacheInserter inserter;
@@ -402,7 +406,7 @@ HRESULT StateCache::GetPipelineStateObjectFromCache(D3D12_GRAPHICS_PIPELINE_STAT
 	return S_OK;
 }
 
-HRESULT StateCache::GetPipelineStateObjectFromCache(SmallPsoDesc* pso_desc, ID3D12PipelineState** pso, D3D12_PRIMITIVE_TOPOLOGY_TYPE topology, const GeometryShaderUid* gs_uid, const PixelShaderUid* ps_uid, const VertexShaderUid* vs_uid)
+HRESULT StateCache::GetPipelineStateObjectFromCache(SmallPsoDesc* pso_desc, ID3D12PipelineState** pso, D3D12_PRIMITIVE_TOPOLOGY_TYPE topology, const GeometryShaderUid* gs_uid, const PixelShaderUid* ps_uid, const VertexShaderUid* vs_uid, const TessellationShaderUid* hds_uid)
 {
 	auto it = m_small_pso_map.find(*pso_desc);
 
@@ -415,6 +419,8 @@ HRESULT StateCache::GetPipelineStateObjectFromCache(SmallPsoDesc* pso_desc, ID3D
 		m_current_pso_desc.GS = pso_desc->gs_bytecode;
 		m_current_pso_desc.PS = pso_desc->ps_bytecode;
 		m_current_pso_desc.VS = pso_desc->vs_bytecode;
+		m_current_pso_desc.HS = pso_desc->hs_bytecode;
+		m_current_pso_desc.DS = pso_desc->ds_bytecode;
 
 		m_current_pso_desc.BlendState = GetDesc(pso_desc->blend_state);
 		m_current_pso_desc.DepthStencilState = GetDesc(pso_desc->depth_stencil_state);
@@ -443,6 +449,7 @@ HRESULT StateCache::GetPipelineStateObjectFromCache(SmallPsoDesc* pso_desc, ID3D
 		disk_desc.gs_uid = *gs_uid;
 		disk_desc.ps_uid = *ps_uid;
 		disk_desc.vs_uid = *vs_uid;
+		disk_desc.hds_uid = *hds_uid;
 		disk_desc.vertex_declaration = pso_desc->input_Layout->GetVertexDeclaration();
 		disk_desc.topology = topology;
 		disk_desc.sample_desc.Count = g_ActiveConfig.iMultisamples;

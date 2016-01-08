@@ -83,7 +83,7 @@ public:
 	{
 		if (HASH == 0)
 		{
-			HASH = (std::size_t)HashAdler32(reinterpret_cast<u8*>(&data) + data.StartValue(), data.NumValues());
+			HASH = (std::size_t)GetCRC32(reinterpret_cast<u8*>(&data) + data.StartValue(), data.NumValues(), 0);
 		}
 	}
 

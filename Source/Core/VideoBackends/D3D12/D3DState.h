@@ -54,7 +54,9 @@ union SamplerState
 
 struct SmallPsoDesc
 {
+	D3D12_SHADER_BYTECODE ds_bytecode;
 	D3D12_SHADER_BYTECODE gs_bytecode;
+	D3D12_SHADER_BYTECODE hs_bytecode;
 	D3D12_SHADER_BYTECODE ps_bytecode;
 	D3D12_SHADER_BYTECODE vs_bytecode;
 	D3DVertexFormat* input_Layout;
@@ -76,6 +78,7 @@ struct SmallPsoDiskDesc
 	PixelShaderUid ps_uid;
 	VertexShaderUid vs_uid;
 	GeometryShaderUid gs_uid;
+	TessellationShaderUid hds_uid;
 	D3D12_PRIMITIVE_TOPOLOGY_TYPE topology;
 	PortableVertexDeclaration vertex_declaration; // Used to construct the input layout.
 	DXGI_SAMPLE_DESC sample_desc;
@@ -91,7 +94,7 @@ public:
 	static D3D12_DEPTH_STENCIL_DESC GetDesc(ZMode state);
 
 	HRESULT GetPipelineStateObjectFromCache(D3D12_GRAPHICS_PIPELINE_STATE_DESC* pso_desc, ID3D12PipelineState** pso);
-	HRESULT GetPipelineStateObjectFromCache(SmallPsoDesc* pso_desc, ID3D12PipelineState** pso, D3D12_PRIMITIVE_TOPOLOGY_TYPE topology, const GeometryShaderUid* gs_uid, const PixelShaderUid* ps_uid, const VertexShaderUid* vs_uid);
+	HRESULT GetPipelineStateObjectFromCache(SmallPsoDesc* pso_desc, ID3D12PipelineState** pso, D3D12_PRIMITIVE_TOPOLOGY_TYPE topology, const GeometryShaderUid* gs_uid, const PixelShaderUid* ps_uid, const VertexShaderUid* vs_uid, const TessellationShaderUid* hds_uid);
 
 	StateCache();
 
@@ -153,12 +156,16 @@ private:
 	{
 		size_t operator()(const SmallPsoDesc pso_desc) const
 		{
-			return ((uintptr_t)pso_desc.vs_bytecode.pShaderBytecode << 7) ^
-				((uintptr_t)pso_desc.ps_bytecode.pShaderBytecode << 5) ^
-				((uintptr_t)pso_desc.gs_bytecode.pShaderBytecode << 3) ^
-				((uintptr_t)pso_desc.input_Layout) ^
-				(((uintptr_t)pso_desc.blend_state.hex << 32) |
-					pso_desc.depth_stencil_state.hex | (pso_desc.rasterizer_state.hex << 17) | (((uintptr_t)pso_desc.sample_count) << 48));
+			size_t h = -1;
+			h = h * 137 + (uintptr_t)pso_desc.vs_bytecode.pShaderBytecode;
+			h = h * 137 + (uintptr_t)pso_desc.ps_bytecode.pShaderBytecode;
+			h = h * 137 + (uintptr_t)pso_desc.gs_bytecode.pShaderBytecode;
+			h = h * 137 + (uintptr_t)pso_desc.hs_bytecode.pShaderBytecode;
+			h = h * 137 + (uintptr_t)pso_desc.ds_bytecode.pShaderBytecode;
+			h = h * 137 + (uintptr_t)pso_desc.input_Layout;
+			h = h * 137 + (uintptr_t)(((uintptr_t)pso_desc.blend_state.hex << 32) |
+				pso_desc.depth_stencil_state.hex | (pso_desc.rasterizer_state.hex << 17) | (((uintptr_t)pso_desc.sample_count) << 48));
+			return h;
 		}
 	};
 
@@ -166,9 +173,9 @@ private:
 	{
 		bool operator()(const SmallPsoDesc lhs, const SmallPsoDesc rhs) const
 		{
-			return std::tie(lhs.ps_bytecode.pShaderBytecode, lhs.vs_bytecode.pShaderBytecode, lhs.gs_bytecode.pShaderBytecode,
+			return std::tie(lhs.ps_bytecode.pShaderBytecode, lhs.vs_bytecode.pShaderBytecode, lhs.gs_bytecode.pShaderBytecode, lhs.hs_bytecode.pShaderBytecode, lhs.ds_bytecode.pShaderBytecode,
 				lhs.input_Layout, lhs.blend_state.hex, lhs.depth_stencil_state.hex, lhs.rasterizer_state.hex, lhs.sample_count) ==
-				std::tie(rhs.ps_bytecode.pShaderBytecode, rhs.vs_bytecode.pShaderBytecode, rhs.gs_bytecode.pShaderBytecode,
+				std::tie(rhs.ps_bytecode.pShaderBytecode, rhs.vs_bytecode.pShaderBytecode, rhs.gs_bytecode.pShaderBytecode, rhs.hs_bytecode.pShaderBytecode, rhs.ds_bytecode.pShaderBytecode,
 					rhs.input_Layout, rhs.blend_state.hex, rhs.depth_stencil_state.hex, rhs.rasterizer_state.hex, rhs.sample_count);
 		}
 	};

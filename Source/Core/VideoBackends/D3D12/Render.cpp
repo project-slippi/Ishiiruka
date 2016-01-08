@@ -1169,7 +1169,10 @@ void Renderer::ApplyState(bool use_dst_alpha)
 		sample_group_gpu_handle = D3D::sampler_descriptor_heap_mgr->GetHandleForSamplerGroup(gx_state.sampler, 8);
 
 		D3D::current_command_list->SetGraphicsRootDescriptorTable(DESCRIPTOR_TABLE_PS_SAMPLER, sample_group_gpu_handle);
-
+		if (g_ActiveConfig.TessellationEnabled())
+		{
+			D3D::current_command_list->SetGraphicsRootDescriptorTable(DESCRIPTOR_TABLE_DS_SAMPLER, sample_group_gpu_handle);
+		}
 		D3D::command_list_mgr->m_dirty_samplers = false;
 	}
 
@@ -1177,6 +1180,7 @@ void Renderer::ApplyState(bool use_dst_alpha)
 	ShaderConstantsManager::LoadAndSetGeometryShaderConstants();
 	ShaderConstantsManager::LoadAndSetPixelShaderConstants();
 	ShaderConstantsManager::LoadAndSetVertexShaderConstants();
+	ShaderConstantsManager::LoadAndSetHullDomainShaderConstants();
 
 	if (D3D::command_list_mgr->m_dirty_pso || s_previous_vertex_format != reinterpret_cast<D3DVertexFormat*>(VertexLoaderManager::GetCurrentVertexFormat()))
 	{
@@ -1189,9 +1193,18 @@ void Renderer::ApplyState(bool use_dst_alpha)
 		{
 			modifiableRastState.cull_mode = D3D12_CULL_MODE_NONE;
 		}
+		else
+		{
+			if (ShaderCache::GetActiveDomainShaderBytecode().pShaderBytecode != nullptr)
+			{
+				topologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_PATCH;
+			}
+		}
 
 		SmallPsoDesc pso_desc = {
+			ShaderCache::GetActiveDomainShaderBytecode(),   // D3D12_SHADER_BYTECODE DS;			
 			ShaderCache::GetActiveGeometryShaderBytecode(),   // D3D12_SHADER_BYTECODE GS;
+			ShaderCache::GetActiveHullShaderBytecode(),   // D3D12_SHADER_BYTECODE HS;
 			ShaderCache::GetActivePixelShaderBytecode(),    // D3D12_SHADER_BYTECODE PS;
 			ShaderCache::GetActiveVertexShaderBytecode(), // D3D12_SHADER_BYTECODE VS;
 			s_previous_vertex_format,					// D3D12_INPUT_LAYOUT_DESC InputLayout;
@@ -1216,7 +1229,8 @@ void Renderer::ApplyState(bool use_dst_alpha)
 				topologyType,
 				ShaderCache::GetActiveGeometryShaderUid(),
 				ShaderCache::GetActivePixelShaderUid(),
-				ShaderCache::GetActiveVertexShaderUid()
+				ShaderCache::GetActiveVertexShaderUid(),
+				ShaderCache::GetActiveTessellationShaderUid()
 				)
 			);
 

@@ -12,16 +12,18 @@
 #include "VideoCommon/Statistics.h"
 #include "VideoCommon/VertexShaderManager.h"
 #include "VideoCommon/VideoConfig.h"
+#include "VideoCommon/TessellationShaderManager.h"
 
 namespace DX12
 {
 
 enum SHADER_STAGE
 {
-	SHADER_STAGE_GEOMETRY_SHADER = 0,
+	SHADER_STAGE_GEOMETRY_SHADER = 0,	
 	SHADER_STAGE_PIXEL_SHADER = 1,
 	SHADER_STAGE_VERTEX_SHADER = 2,
-	SHADER_STAGE_COUNT = 3
+	SHADER_STAGE_TESSELLATION_SHADER = 3,
+	SHADER_STAGE_COUNT = 4
 };
 
 ID3D12Resource* shader_constant_buffers[DX12::SHADER_STAGE_COUNT] = {};
@@ -31,22 +33,26 @@ D3D12_GPU_VIRTUAL_ADDRESS shader_constant_buffer_gpu_va[SHADER_STAGE_COUNT] = {}
 const unsigned int shader_constant_buffer_sizes[SHADER_STAGE_COUNT] = {
 	sizeof(GeometryShaderConstants),
 	C_PCONST_END * 4 * sizeof(float),
-	sizeof(float) * VertexShaderManager::ConstantBufferSize
+	sizeof(float) * VertexShaderManager::ConstantBufferSize,
+	sizeof(TessellationShaderConstants)
 };
 
 const unsigned int shader_constant_buffer_padded_sizes[SHADER_STAGE_COUNT] = {
 	(shader_constant_buffer_sizes[0] + 0xff) & ~0xff,
 	(shader_constant_buffer_sizes[1] + 0xff) & ~0xff,
-	(shader_constant_buffer_sizes[2] + 0xff) & ~0xff
+	(shader_constant_buffer_sizes[2] + 0xff) & ~0xff,
+	(shader_constant_buffer_sizes[3] + 0xff) & ~0xff
 };
 
 const unsigned int shader_constant_buffer_slot_count[SHADER_STAGE_COUNT] = {
+	50000,
 	50000,
 	50000,
 	50000
 };
 
 const unsigned int shader_constant_buffer_slot_rollover_threshold[SHADER_STAGE_COUNT] = {
+	10000,
 	10000,
 	10000,
 	10000
@@ -128,6 +134,49 @@ void ShaderConstantsManager::LoadAndSetGeometryShaderConstants()
 		D3D::command_list_mgr->m_dirty_gs_cbv = false;
 	}
 }
+
+void ShaderConstantsManager::LoadAndSetHullDomainShaderConstants()
+{
+	if (!g_ActiveConfig.TessellationEnabled())
+	{
+		return;
+	}
+	if (TessellationShaderManager::IsDirty())
+	{
+		shader_constant_buffer_current_slot_index[SHADER_STAGE_TESSELLATION_SHADER]++;
+
+		memcpy(
+			static_cast<u8*>(shader_constant_buffer_data[SHADER_STAGE_TESSELLATION_SHADER]) +
+			shader_constant_buffer_padded_sizes[SHADER_STAGE_TESSELLATION_SHADER] *
+			shader_constant_buffer_current_slot_index[SHADER_STAGE_TESSELLATION_SHADER],
+			&TessellationShaderManager::constants,
+			shader_constant_buffer_sizes[SHADER_STAGE_TESSELLATION_SHADER]);
+
+		TessellationShaderManager::Clear();
+
+		ADDSTAT(stats.thisFrame.bytesUniformStreamed, sizeof(TessellationShaderManager::constants));
+
+		D3D::command_list_mgr->m_dirty_hds_cbv = true;
+	}
+	if (D3D::command_list_mgr->m_dirty_hds_cbv)
+	{
+		D3D::current_command_list->SetGraphicsRootConstantBufferView(
+			DESCRIPTOR_TABLE_HS_CBV0,
+			shader_constant_buffer_gpu_va[SHADER_STAGE_TESSELLATION_SHADER] +
+			shader_constant_buffer_padded_sizes[SHADER_STAGE_TESSELLATION_SHADER] *
+			shader_constant_buffer_current_slot_index[SHADER_STAGE_TESSELLATION_SHADER]
+			);
+		D3D::current_command_list->SetGraphicsRootConstantBufferView(
+			DESCRIPTOR_TABLE_DS_CBV0,
+			shader_constant_buffer_gpu_va[SHADER_STAGE_TESSELLATION_SHADER] +
+			shader_constant_buffer_padded_sizes[SHADER_STAGE_TESSELLATION_SHADER] *
+			shader_constant_buffer_current_slot_index[SHADER_STAGE_TESSELLATION_SHADER]
+			);
+
+		D3D::command_list_mgr->m_dirty_hds_cbv = false;
+	}
+}
+
 void ShaderConstantsManager::LoadAndSetPixelShaderConstants()
 {
 	if (PixelShaderManager::IsDirty())
@@ -149,13 +198,25 @@ void ShaderConstantsManager::LoadAndSetPixelShaderConstants()
 	}
 	if (D3D::command_list_mgr->m_dirty_ps_cbv)
 	{
-		D3D::current_command_list->SetGraphicsRootConstantBufferView(
-			DESCRIPTOR_TABLE_PS_CBVONE,
+		const D3D12_GPU_VIRTUAL_ADDRESS calculated_gpu_va =
 			shader_constant_buffer_gpu_va[SHADER_STAGE_PIXEL_SHADER] +
 			shader_constant_buffer_padded_sizes[SHADER_STAGE_PIXEL_SHADER] *
-			shader_constant_buffer_current_slot_index[SHADER_STAGE_PIXEL_SHADER]
+			shader_constant_buffer_current_slot_index[SHADER_STAGE_PIXEL_SHADER];
+		D3D::current_command_list->SetGraphicsRootConstantBufferView(
+			DESCRIPTOR_TABLE_PS_CBVONE,
+			calculated_gpu_va
 			);
-
+		if (g_ActiveConfig.TessellationEnabled())
+		{
+			D3D::current_command_list->SetGraphicsRootConstantBufferView(
+				DESCRIPTOR_TABLE_HS_CBV2,
+				calculated_gpu_va
+				);
+			D3D::current_command_list->SetGraphicsRootConstantBufferView(
+				DESCRIPTOR_TABLE_DS_CBV2,
+				calculated_gpu_va
+				);
+		}
 		D3D::command_list_mgr->m_dirty_ps_cbv = false;
 	}
 }
@@ -195,7 +256,17 @@ void ShaderConstantsManager::LoadAndSetVertexShaderConstants()
 				DESCRIPTOR_TABLE_PS_CBVTWO,
 				calculated_gpu_va
 				);
-
+		if (g_ActiveConfig.TessellationEnabled())
+		{
+			D3D::current_command_list->SetGraphicsRootConstantBufferView(
+				DESCRIPTOR_TABLE_HS_CBV1,
+				calculated_gpu_va
+				);
+			D3D::current_command_list->SetGraphicsRootConstantBufferView(
+				DESCRIPTOR_TABLE_DS_CBV1,
+				calculated_gpu_va
+				);
+		}
 		D3D::command_list_mgr->m_dirty_vs_cbv = false;
 	}
 }

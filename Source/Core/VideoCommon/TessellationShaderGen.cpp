@@ -398,6 +398,10 @@ static inline void GenerateTessellationShader(T& out, const XFMemory& xfr, const
 	}
 	else
 	{
+		if (uidPresent)
+		{
+			out.CalculateUIDHash();
+		}
 		return;
 	}
 	if (enablenormalmaps)
@@ -416,9 +420,9 @@ static inline void GenerateTessellationShader(T& out, const XFMemory& xfr, const
 	}
 	// uniforms
 	if (ApiType == API_OPENGL)
-		out.Write("layout(std140%s) uniform GSBlock {\n", g_ActiveConfig.backend_info.bSupportsBindingLayout ? ", binding = 3" : "");
+		out.Write("layout(std140%s) uniform TSBlock {\n", g_ActiveConfig.backend_info.bSupportsBindingLayout ? ", binding = 3" : "");
 	else
-		out.Write("cbuffer GSBlock : register(b0) {\n");
+		out.Write("cbuffer TSBlock : register(b0) {\n");
 	out.Write(
 		"\tfloat4 " I_TESSPARAMS";\n"
 		"\tint4 " I_CULLPARAMS";\n"

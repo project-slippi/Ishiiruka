@@ -143,7 +143,7 @@ void VertexManager::Draw(u32 stride)
 		s_previous_stride = stride;
 	}
 
-	D3D_PRIMITIVE_TOPOLOGY d3d_primitive_topology = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+	D3D_PRIMITIVE_TOPOLOGY d3d_primitive_topology = ShaderCache::GetActiveDomainShaderBytecode().pShaderBytecode != nullptr ? D3D_PRIMITIVE_TOPOLOGY_3_CONTROL_POINT_PATCHLIST : D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 
 	switch (current_primitive_type)
 	{

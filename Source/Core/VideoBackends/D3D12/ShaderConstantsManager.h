@@ -15,6 +15,7 @@ public:
 	static void Init();
 	static void Shutdown();
 
+	static void LoadAndSetHullDomainShaderConstants();
 	static void LoadAndSetGeometryShaderConstants();
 	static void LoadAndSetPixelShaderConstants();
 	static void LoadAndSetVertexShaderConstants();

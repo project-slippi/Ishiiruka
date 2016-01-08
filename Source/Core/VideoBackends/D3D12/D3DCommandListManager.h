@@ -39,6 +39,7 @@ public:
 	bool m_dirty_ps_cbv;
 	bool m_dirty_vs_cbv;
 	bool m_dirty_gs_cbv;
+	bool m_dirty_hds_cbv;
 	bool m_dirty_samplers;
 	UINT m_current_topology;
 

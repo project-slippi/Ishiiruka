@@ -527,7 +527,7 @@ void CreateRootSignatures()
 		D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND // UINT OffsetInDescriptorsFromTableStart;
 	};
 
-	D3D12_ROOT_PARAMETER root_parameters[6];
+	D3D12_ROOT_PARAMETER root_parameters[DESCRIPTOR_TABLE_PS_CBVTWO + 1];
 
 	root_parameters[DESCRIPTOR_TABLE_PS_SRV].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
 	root_parameters[DESCRIPTOR_TABLE_PS_SRV].DescriptorTable.NumDescriptorRanges = 1;
@@ -539,10 +539,50 @@ void CreateRootSignatures()
 	root_parameters[DESCRIPTOR_TABLE_PS_SAMPLER].DescriptorTable.pDescriptorRanges = &desc_range_sampler;
 	root_parameters[DESCRIPTOR_TABLE_PS_SAMPLER].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
 
+	root_parameters[DESCRIPTOR_TABLE_DS_SRV].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+	root_parameters[DESCRIPTOR_TABLE_DS_SRV].DescriptorTable.NumDescriptorRanges = 1;
+	root_parameters[DESCRIPTOR_TABLE_DS_SRV].DescriptorTable.pDescriptorRanges = &desc_range_srv;
+	root_parameters[DESCRIPTOR_TABLE_DS_SRV].ShaderVisibility = D3D12_SHADER_VISIBILITY_DOMAIN;
+
+	root_parameters[DESCRIPTOR_TABLE_DS_SAMPLER].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+	root_parameters[DESCRIPTOR_TABLE_DS_SAMPLER].DescriptorTable.NumDescriptorRanges = 1;
+	root_parameters[DESCRIPTOR_TABLE_DS_SAMPLER].DescriptorTable.pDescriptorRanges = &desc_range_sampler;
+	root_parameters[DESCRIPTOR_TABLE_DS_SAMPLER].ShaderVisibility = D3D12_SHADER_VISIBILITY_DOMAIN;
+
+	root_parameters[DESCRIPTOR_TABLE_HS_CBV0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
+	root_parameters[DESCRIPTOR_TABLE_HS_CBV0].Descriptor.RegisterSpace = 0;
+	root_parameters[DESCRIPTOR_TABLE_HS_CBV0].Descriptor.ShaderRegister = 0;
+	root_parameters[DESCRIPTOR_TABLE_HS_CBV0].ShaderVisibility = D3D12_SHADER_VISIBILITY_HULL;
+
+	root_parameters[DESCRIPTOR_TABLE_HS_CBV1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
+	root_parameters[DESCRIPTOR_TABLE_HS_CBV1].Descriptor.RegisterSpace = 0;
+	root_parameters[DESCRIPTOR_TABLE_HS_CBV1].Descriptor.ShaderRegister = 1;
+	root_parameters[DESCRIPTOR_TABLE_HS_CBV1].ShaderVisibility = D3D12_SHADER_VISIBILITY_HULL;
+
+	root_parameters[DESCRIPTOR_TABLE_HS_CBV2].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
+	root_parameters[DESCRIPTOR_TABLE_HS_CBV2].Descriptor.RegisterSpace = 0;
+	root_parameters[DESCRIPTOR_TABLE_HS_CBV2].Descriptor.ShaderRegister = 2;
+	root_parameters[DESCRIPTOR_TABLE_HS_CBV2].ShaderVisibility = D3D12_SHADER_VISIBILITY_HULL;
+
 	root_parameters[DESCRIPTOR_TABLE_GS_CBV].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
 	root_parameters[DESCRIPTOR_TABLE_GS_CBV].Descriptor.RegisterSpace = 0;
 	root_parameters[DESCRIPTOR_TABLE_GS_CBV].Descriptor.ShaderRegister = 0;
 	root_parameters[DESCRIPTOR_TABLE_GS_CBV].ShaderVisibility = D3D12_SHADER_VISIBILITY_GEOMETRY;
+
+	root_parameters[DESCRIPTOR_TABLE_DS_CBV0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
+	root_parameters[DESCRIPTOR_TABLE_DS_CBV0].Descriptor.RegisterSpace = 0;
+	root_parameters[DESCRIPTOR_TABLE_DS_CBV0].Descriptor.ShaderRegister = 0;
+	root_parameters[DESCRIPTOR_TABLE_DS_CBV0].ShaderVisibility = D3D12_SHADER_VISIBILITY_DOMAIN;
+
+	root_parameters[DESCRIPTOR_TABLE_DS_CBV1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
+	root_parameters[DESCRIPTOR_TABLE_DS_CBV1].Descriptor.RegisterSpace = 0;
+	root_parameters[DESCRIPTOR_TABLE_DS_CBV1].Descriptor.ShaderRegister = 1;
+	root_parameters[DESCRIPTOR_TABLE_DS_CBV1].ShaderVisibility = D3D12_SHADER_VISIBILITY_DOMAIN;
+
+	root_parameters[DESCRIPTOR_TABLE_DS_CBV2].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
+	root_parameters[DESCRIPTOR_TABLE_DS_CBV2].Descriptor.RegisterSpace = 0;
+	root_parameters[DESCRIPTOR_TABLE_DS_CBV2].Descriptor.ShaderRegister = 2;
+	root_parameters[DESCRIPTOR_TABLE_DS_CBV2].ShaderVisibility = D3D12_SHADER_VISIBILITY_DOMAIN;
 
 	root_parameters[DESCRIPTOR_TABLE_VS_CBV].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
 	root_parameters[DESCRIPTOR_TABLE_VS_CBV].Descriptor.RegisterSpace = 0;
@@ -563,10 +603,7 @@ void CreateRootSignatures()
 
 	D3D12_ROOT_SIGNATURE_DESC root_signature_desc = {};
 	root_signature_desc.pParameters = root_parameters;
-	root_signature_desc.Flags =
-		D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT |
-		D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS |
-		D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS;
+	root_signature_desc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
 
 	root_signature_desc.NumParameters = ARRAYSIZE(root_parameters);
 

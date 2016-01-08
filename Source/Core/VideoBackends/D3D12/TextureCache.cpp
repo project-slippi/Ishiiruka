@@ -50,6 +50,10 @@ void TextureCache::TCacheEntry::Bind(unsigned int stage, unsigned int lastTextur
 	if (lastTexture == 0 && !use_materials)
 	{
 		DX12::D3D::current_command_list->SetGraphicsRootDescriptorTable(DESCRIPTOR_TABLE_PS_SRV, this->m_texture_srv_gpu_handle);
+		if (g_ActiveConfig.TessellationEnabled())
+		{
+			DX12::D3D::current_command_list->SetGraphicsRootDescriptorTable(DESCRIPTOR_TABLE_DS_SRV, this->m_texture_srv_gpu_handle);
+		}
 		return;
 	}
 	
@@ -102,7 +106,10 @@ void TextureCache::TCacheEntry::Bind(unsigned int stage, unsigned int lastTextur
 	{
 		// On the last texture, we need to actually bind the table.
 		DX12::D3D::current_command_list->SetGraphicsRootDescriptorTable(DESCRIPTOR_TABLE_PS_SRV, s_group_base_texture_gpu_handle);
-
+		if (g_ActiveConfig.TessellationEnabled())
+		{
+			DX12::D3D::current_command_list->SetGraphicsRootDescriptorTable(DESCRIPTOR_TABLE_DS_SRV, s_group_base_texture_gpu_handle);
+		}
 		// Then mark that the next binding call will be the first texture in a group.
 		s_first_texture_in_group = true;
 	}

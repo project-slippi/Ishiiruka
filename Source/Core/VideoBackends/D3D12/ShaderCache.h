@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include "VideoCommon/TessellationShaderGen.h"
 #include "VideoCommon/GeometryShaderGen.h"
 #include "VideoCommon/PixelShaderGen.h"
 #include "VideoCommon/VertexShaderGen.h"
@@ -32,7 +33,9 @@ public:
 	template<class UidType, class ShaderCacheType>
 	static void InsertByteCode(const UidType& uid, ShaderCacheType* shader_cache, D3DBlob* bytecode_blob);
 
+	static D3D12_SHADER_BYTECODE GetActiveDomainShaderBytecode();	
 	static D3D12_SHADER_BYTECODE GetActiveGeometryShaderBytecode();
+	static D3D12_SHADER_BYTECODE GetActiveHullShaderBytecode();
 	static D3D12_SHADER_BYTECODE GetActivePixelShaderBytecode();
 	static D3D12_SHADER_BYTECODE GetActiveVertexShaderBytecode();
 
@@ -40,10 +43,14 @@ public:
 	static const GeometryShaderUid* GetActiveGeometryShaderUid();
 	static const PixelShaderUid*    GetActivePixelShaderUid();
 	static const VertexShaderUid*   GetActiveVertexShaderUid();
-
+	static const TessellationShaderUid* GetActiveTessellationShaderUid();
+	
+	static D3D12_SHADER_BYTECODE GetDomainShaderFromUid(const TessellationShaderUid* uid);	
 	static D3D12_SHADER_BYTECODE GetGeometryShaderFromUid(const GeometryShaderUid* uid);
+	static D3D12_SHADER_BYTECODE GetHullShaderFromUid(const TessellationShaderUid* uid);
 	static D3D12_SHADER_BYTECODE GetPixelShaderFromUid(const PixelShaderUid* uid);
 	static D3D12_SHADER_BYTECODE GetVertexShaderFromUid(const VertexShaderUid* uid);
+	
 
 	static D3D12_PRIMITIVE_TOPOLOGY_TYPE GetCurrentPrimitiveTopology();
 private:
@@ -55,6 +62,7 @@ private:
 		u32 components,
 		const XFMemory &xfr,
 		bool on_gpu_thread);
+	
 	static void HandlePSUIDChange(
 		const PixelShaderUid& ps_uid,
 		DSTALPHA_MODE ps_dst_alpha_mode,
@@ -63,8 +71,17 @@ private:
 		const BPMemory &bpm,
 		bool on_gpu_thread
 		);
+	
 	static void HandleVSUIDChange(
 		const VertexShaderUid& vs_uid,
+		u32 components,
+		const XFMemory &xfr,
+		const BPMemory &bpm,
+		bool on_gpu_thread);
+	
+	static void HandleTSUIDChange(
+		const TessellationShaderUid& ts_uid,
+		u32 gs_primitive_type,
 		u32 components,
 		const XFMemory &xfr,
 		const BPMemory &bpm,

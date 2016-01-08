@@ -601,28 +601,27 @@ bool D3DPostProcessor::ResizeCopyBuffers(int width, int height, int layers)
 	m_copy_layers = 0;
 
 	// allocate new textures
-	Microsoft::WRL::ComPtr<ID3D11Texture2D> color_texture;
+	D3D::Texture2dPtr color_texture;
 	CD3D11_TEXTURE2D_DESC color_desc(DXGI_FORMAT_R8G8B8A8_UNORM, width, height, layers, 1, D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET, D3D11_USAGE_DEFAULT, 0, 1, 0, 0);
-	if (FAILED(hr = D3D::device->CreateTexture2D(&color_desc, nullptr, &color_texture)))
+	if (FAILED(hr = D3D::device->CreateTexture2D(&color_desc, nullptr, D3D::ToAddr(color_texture))))
 	{
 		ERROR_LOG(VIDEO, "CreateTexture2D failed, hr=0x%X", hr);
 		return false;
 	}
 
-	Microsoft::WRL::ComPtr<ID3D11Texture2D> depth_texture;
+	D3D::Texture2dPtr depth_texture;
 	CD3D11_TEXTURE2D_DESC depth_desc(DXGI_FORMAT_R32_FLOAT, width, height, layers, 1, D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET, D3D11_USAGE_DEFAULT, 0, 1, 0, 0);
-	if (FAILED(hr = D3D::device->CreateTexture2D(&depth_desc, nullptr, &depth_texture)))
+	if (FAILED(hr = D3D::device->CreateTexture2D(&depth_desc, nullptr, D3D::ToAddr(depth_texture))))
 	{
-		ERROR_LOG(VIDEO, "CreateTexture2D failed, hr=0x%X", hr);
-		color_texture->Release();
+		ERROR_LOG(VIDEO, "CreateTexture2D failed, hr=0x%X", hr);		
 		return false;
 	}
 
 	m_copy_width = width;
 	m_copy_height = height;
 	m_copy_layers = layers;
-	m_color_copy_texture = new D3DTexture2D(color_texture.Get(), (D3D11_BIND_FLAG)color_desc.BindFlags, color_desc.Format);
-	m_depth_copy_texture = new D3DTexture2D(depth_texture.Get(), (D3D11_BIND_FLAG)depth_desc.BindFlags, depth_desc.Format);
+	m_color_copy_texture = new D3DTexture2D(color_texture.get(), (D3D11_BIND_FLAG)color_desc.BindFlags, color_desc.Format);
+	m_depth_copy_texture = new D3DTexture2D(depth_texture.get(), (D3D11_BIND_FLAG)depth_desc.BindFlags, depth_desc.Format);
 	return true;
 
 }

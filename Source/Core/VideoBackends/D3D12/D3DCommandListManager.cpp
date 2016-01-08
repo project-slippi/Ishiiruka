@@ -104,6 +104,7 @@ void D3DCommandListManager::SetInitialCommandListState()
 	m_dirty_ps_cbv = true;
 	m_dirty_vs_cbv = true;
 	m_dirty_gs_cbv = true;
+	m_dirty_hds_cbv = true;
 	m_dirty_samplers = true;
 	m_current_topology = D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP;
 }

@@ -132,7 +132,7 @@ void InitBackendInfo()
 
 																	  // Requires the instance attribute (only available in shader model 5)
 			g_Config.backend_info.bSupportsGSInstancing = shader_model_5_supported;
-
+			g_Config.backend_info.bSupportsTessellation = shader_model_5_supported;
 			// Sample shading requires shader model 5
 			g_Config.backend_info.bSupportsSSAA = shader_model_5_supported;
 		}

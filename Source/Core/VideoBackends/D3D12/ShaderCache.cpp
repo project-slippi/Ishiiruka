@@ -43,29 +43,42 @@ static ByteCodeCacheEntry s_pass_entry;
 using GsBytecodeCache = std::unordered_map<GeometryShaderUid, ByteCodeCacheEntry, GeometryShaderUid::ShaderUidHasher>;
 using PsBytecodeCache = std::unordered_map<PixelShaderUid, ByteCodeCacheEntry, PixelShaderUid::ShaderUidHasher>;
 using VsBytecodeCache = std::unordered_map<VertexShaderUid, ByteCodeCacheEntry, VertexShaderUid::ShaderUidHasher>;
+using TsBytecodeCache = std::unordered_map<TessellationShaderUid, ByteCodeCacheEntry, TessellationShaderUid::ShaderUidHasher>;
+
+TsBytecodeCache ds_bytecode_cache;
+TsBytecodeCache hs_bytecode_cache;
 GsBytecodeCache gs_bytecode_cache;
 PsBytecodeCache ps_bytecode_cache;
 VsBytecodeCache vs_bytecode_cache;
 
 static std::vector<D3DBlob*> s_shader_blob_list;
 
+static LinearDiskCache<TessellationShaderUid, u8> s_hs_disk_cache;
+static LinearDiskCache<TessellationShaderUid, u8> s_ds_disk_cache;
 static LinearDiskCache<GeometryShaderUid, u8> s_gs_disk_cache;
 static LinearDiskCache<PixelShaderUid, u8> s_ps_disk_cache;
 static LinearDiskCache<VertexShaderUid, u8> s_vs_disk_cache;
 
+static UidChecker<TessellationShaderUid, ShaderCode> s_Tessellation_uid_checker;
 static UidChecker<GeometryShaderUid, ShaderCode> s_geometry_uid_checker;
 static UidChecker<PixelShaderUid, ShaderCode> s_pixel_uid_checker;
 static UidChecker<VertexShaderUid, ShaderCode> s_vertex_uid_checker;
 
+static ByteCodeCacheEntry* s_last_domain_shader_bytecode;
+static ByteCodeCacheEntry* s_last_hull_shader_bytecode;
 static ByteCodeCacheEntry* s_last_geometry_shader_bytecode;
 static ByteCodeCacheEntry* s_last_pixel_shader_bytecode;
 static ByteCodeCacheEntry* s_last_vertex_shader_bytecode;
+
 static GeometryShaderUid s_last_geometry_shader_uid;
 static PixelShaderUid s_last_pixel_shader_uid;
 static VertexShaderUid s_last_vertex_shader_uid;
+static TessellationShaderUid s_last_tessellation_shader_uid;
+
 static GeometryShaderUid s_last_cpu_geometry_shader_uid;
 static PixelShaderUid s_last_cpu_pixel_shader_uid;
 static VertexShaderUid s_last_cpu_vertex_shader_uid;
+static TessellationShaderUid s_last_cpu_tessellation_shader_uid;
 
 static HLSLAsyncCompiler *s_compiler;
 static Common::SpinLock<true> s_shaders_lock;
@@ -89,16 +102,21 @@ void ShaderCache::Init()
 	s_pass_entry.m_initialized.test_and_set();
 	// This class intentionally shares its shader cache files with DX11, as the shaders are (right now) identical.
 	// Reduces unnecessary compilation when switching between APIs.
-
-	s_last_geometry_shader_bytecode = nullptr;
+	s_last_domain_shader_bytecode = &s_pass_entry;
+	s_last_hull_shader_bytecode = &s_pass_entry;
+	s_last_geometry_shader_bytecode = &s_pass_entry;
 	s_last_pixel_shader_bytecode = nullptr;
 	s_last_vertex_shader_bytecode = nullptr;
+
 	s_last_geometry_shader_uid = {};
 	s_last_pixel_shader_uid = {};
 	s_last_vertex_shader_uid = {};
+	s_last_tessellation_shader_uid = {};
+
 	s_last_cpu_geometry_shader_uid = {};
 	s_last_cpu_pixel_shader_uid = {};
 	s_last_cpu_vertex_shader_uid = {};
+	s_last_cpu_tessellation_shader_uid = {};
 
 	// Ensure shader cache directory exists..
 	std::string shader_cache_path = File::GetUserPath(D_SHADERCACHE_IDX);
@@ -108,9 +126,17 @@ void ShaderCache::Init()
 
 	std::string title_unique_id = SConfig::GetInstance().m_strUniqueID.c_str();
 
+	std::string ds_cache_filename = StringFromFormat("%sIDX11-%s-ds.cache", shader_cache_path.c_str(), title_unique_id.c_str());
+	std::string hs_cache_filename = StringFromFormat("%sIDX11-%s-hs.cache", shader_cache_path.c_str(), title_unique_id.c_str());
 	std::string gs_cache_filename = StringFromFormat("%sIDX11-%s-gs.cache", shader_cache_path.c_str(), title_unique_id.c_str());
 	std::string ps_cache_filename = StringFromFormat("%sIDX11-%s-ps.cache", shader_cache_path.c_str(), title_unique_id.c_str());
 	std::string vs_cache_filename = StringFromFormat("%sIDX11-%s-vs.cache", shader_cache_path.c_str(), title_unique_id.c_str());
+	
+	ShaderCacheInserter<TessellationShaderUid, TsBytecodeCache, &ds_bytecode_cache> ds_inserter;
+	s_ds_disk_cache.OpenAndRead(ds_cache_filename, ds_inserter);
+
+	ShaderCacheInserter<TessellationShaderUid, TsBytecodeCache, &hs_bytecode_cache> hs_inserter;
+	s_hs_disk_cache.OpenAndRead(hs_cache_filename, hs_inserter);
 
 	ShaderCacheInserter<GeometryShaderUid, GsBytecodeCache, &gs_bytecode_cache> gs_inserter;
 	s_gs_disk_cache.OpenAndRead(gs_cache_filename, gs_inserter);
@@ -148,11 +174,16 @@ void ShaderCache::Shutdown()
 		SAFE_RELEASE(iter);
 
 	s_shader_blob_list.clear();
-
+	ds_bytecode_cache.clear();
+	hs_bytecode_cache.clear();
 	gs_bytecode_cache.clear();
 	ps_bytecode_cache.clear();
 	vs_bytecode_cache.clear();
 
+	s_ds_disk_cache.Sync();
+	s_ds_disk_cache.Close();
+	s_hs_disk_cache.Sync();
+	s_hs_disk_cache.Close();
 	s_gs_disk_cache.Sync();
 	s_gs_disk_cache.Close();
 	s_ps_disk_cache.Sync();
@@ -163,6 +194,7 @@ void ShaderCache::Shutdown()
 	s_geometry_uid_checker.Invalidate();
 	s_pixel_uid_checker.Invalidate();
 	s_vertex_uid_checker.Invalidate();
+	s_Tessellation_uid_checker.Invalidate();
 }
 
 static void PushByteCode(ByteCodeCacheEntry* entry, D3DBlob* shaderBuffer)
@@ -265,6 +297,7 @@ void ShaderCache::HandleGSUIDChange(
 	};
 	s_compiler->CompileShaderAsync(wunit);
 }
+
 void ShaderCache::HandlePSUIDChange(
 	const PixelShaderUid &ps_uid,
 	DSTALPHA_MODE ps_dst_alpha_mode,
@@ -389,6 +422,139 @@ void ShaderCache::HandleVSUIDChange(
 	s_compiler->CompileShaderAsync(wunit);
 }
 
+void ShaderCache::HandleTSUIDChange(
+	const TessellationShaderUid& ts_uid,
+	u32 gs_primitive_type,
+	u32 components,
+	const XFMemory &xfr,
+	const BPMemory &bpm,
+	bool on_gpu_thread)
+{
+	if (!(gs_primitive_type == PrimitiveType::PRIMITIVE_TRIANGLES && g_ActiveConfig.TessellationEnabled() && g_ActiveConfig.PixelLightingEnabled(xfr, components)))
+	{
+		if (on_gpu_thread)
+		{
+			s_last_domain_shader_bytecode = &s_pass_entry;
+			s_last_hull_shader_bytecode = &s_pass_entry;
+		}
+		return;
+	}
+	s_shaders_lock.lock();
+	ByteCodeCacheEntry* dentry = &ds_bytecode_cache[ts_uid];
+	ByteCodeCacheEntry* hentry = &hs_bytecode_cache[ts_uid];
+	s_shaders_lock.unlock();
+	if (on_gpu_thread)
+	{
+		if (dentry->m_compiled && hentry->m_compiled)
+		{
+			s_last_domain_shader_bytecode = dentry;
+			s_last_hull_shader_bytecode = hentry;
+		}
+		else
+		{
+			s_last_tessellation_shader_uid = {};
+			s_last_domain_shader_bytecode = &s_pass_entry;
+			s_last_hull_shader_bytecode = &s_pass_entry;
+		}
+	}
+	if (dentry->m_initialized.test_and_set())
+	{
+		return;
+	}
+	hentry->m_initialized.test_and_set();
+
+	// Need to compile a new shader
+	ShaderCode code;
+	ShaderCompilerWorkUnit *wunit = s_compiler->NewUnit(TESSELLATIONSHADERGEN_BUFFERSIZE);
+	ShaderCompilerWorkUnit *wunitd = s_compiler->NewUnit(TESSELLATIONSHADERGEN_BUFFERSIZE);
+	code.SetBuffer(wunit->code.data());
+	GenerateTessellationShaderCode(code, API_D3D11, xfr, bpm, components);
+	memcpy(wunitd->code.data(), wunit->code.data(), code.BufferSize());
+
+	wunit->codesize = (u32)code.BufferSize();
+	wunit->entrypoint = "HS_TFO";
+	wunit->flags = D3DCOMPILE_SKIP_VALIDATION | D3DCOMPILE_SKIP_OPTIMIZATION;
+	wunit->target = D3D::HullShaderVersionString();
+
+	wunitd->codesize = (u32)code.BufferSize();
+	wunitd->entrypoint = "DS_TFO";
+	wunitd->flags = D3DCOMPILE_SKIP_VALIDATION | D3DCOMPILE_OPTIMIZATION_LEVEL3;
+	wunitd->target = D3D::DomainShaderVersionString();
+
+	wunitd->ResultHandler = [ts_uid, dentry](ShaderCompilerWorkUnit* wunit)
+	{
+		if (SUCCEEDED(wunit->cresult))
+		{
+			D3DBlob* shaderBuffer = new D3DBlob(wunit->shaderbytecode);
+			s_ds_disk_cache.Append(ts_uid, shaderBuffer->Data(), shaderBuffer->Size());
+			PushByteCode(dentry, shaderBuffer);
+			wunit->shaderbytecode->Release();
+			wunit->shaderbytecode = nullptr;
+			
+#if defined(_DEBUG) || defined(DEBUGFAST)
+			if (g_ActiveConfig.bEnableShaderDebugging)
+			{
+				dentry->code = wunit->code.data();
+			}
+#endif
+		}
+		else
+		{
+			static int num_failures = 0;
+			char szTemp[MAX_PATH];
+			sprintf(szTemp, "%sbad_ds_%04i.txt", File::GetUserPath(D_DUMP_IDX).c_str(), num_failures++);
+			std::ofstream file;
+			OpenFStream(file, szTemp, std::ios_base::out);
+			file << ((const char *)wunit->code.data());
+			file << ((const char *)wunit->error->GetBufferPointer());
+			file.close();
+
+			PanicAlert("Failed to compile domain shader!\nThis usually happens when trying to use Dolphin with an outdated GPU or integrated GPU like the Intel GMA series.\n\nIf you're sure this is Dolphin's error anyway, post the contents of %s along with this error message at the forums.\n\nDebug info (%s):\n%s",
+				szTemp,
+				D3D::DomainShaderVersionString(),
+				(char*)wunit->error->GetBufferPointer());
+		}
+	};
+
+	wunit->ResultHandler = [ts_uid, hentry](ShaderCompilerWorkUnit* wunit)
+	{
+		if (SUCCEEDED(wunit->cresult))
+		{
+			D3DBlob* shaderBuffer = new D3DBlob(wunit->shaderbytecode);
+			s_hs_disk_cache.Append(ts_uid, shaderBuffer->Data(), shaderBuffer->Size());
+			PushByteCode(hentry, shaderBuffer);
+			wunit->shaderbytecode->Release();
+			wunit->shaderbytecode = nullptr;
+
+#if defined(_DEBUG) || defined(DEBUGFAST)
+			if (g_ActiveConfig.bEnableShaderDebugging)
+			{
+				hentry->code = wunit->code.data();
+			}
+#endif
+		}
+		else
+		{
+			static int num_failures = 0;
+			char szTemp[MAX_PATH];
+			sprintf(szTemp, "%sbad_hs_%04i.txt", File::GetUserPath(D_DUMP_IDX).c_str(), num_failures++);
+			std::ofstream file;
+			OpenFStream(file, szTemp, std::ios_base::out);
+			file << ((const char *)wunit->code.data());
+			file << ((const char *)wunit->error->GetBufferPointer());
+			file.close();
+
+			PanicAlert("Failed to compile hull shader!\nThis usually happens when trying to use Dolphin with an outdated GPU or integrated GPU like the Intel GMA series.\n\nIf you're sure this is Dolphin's error anyway, post the contents of %s along with this error message at the forums.\n\nDebug info (%s):\n%s",
+				szTemp,
+				D3D::HullShaderVersionString(),
+				(char*)wunit->error->GetBufferPointer());
+		}
+	};
+
+	s_compiler->CompileShaderAsync(wunit);
+	s_compiler->CompileShaderAsync(wunitd);
+}
+
 void ShaderCache::PrepareShaders(DSTALPHA_MODE ps_dst_alpha_mode,
 	u32 gs_primitive_type,
 	u32 components,
@@ -402,24 +568,34 @@ void ShaderCache::PrepareShaders(DSTALPHA_MODE ps_dst_alpha_mode,
 	GetPixelShaderUidD3D11(ps_uid, ps_dst_alpha_mode, components, xfr, bpm);
 	VertexShaderUid vs_uid;
 	GetVertexShaderUidD3D11(vs_uid, components, xfr, bpm);
+	TessellationShaderUid ts_uid = {};
+	if (gs_primitive_type == PrimitiveType::PRIMITIVE_TRIANGLES && g_ActiveConfig.TessellationEnabled() && g_ActiveConfig.PixelLightingEnabled(xfr, components))
+	{
+		GetTessellationShaderUid(ts_uid, API_D3D11, xfr, bpm, components);
+	}
+	
 	bool gs_changed = false;
 	bool ps_changed = false;
 	bool vs_changed = false;
+	bool ts_changed = false;
+
 	if (on_gpu_thread)
 	{
 		s_compiler->ProcCompilationResults();
 		gs_changed = gs_uid != s_last_geometry_shader_uid;
 		ps_changed = ps_uid != s_last_pixel_shader_uid;
 		vs_changed = vs_uid != s_last_vertex_shader_uid;
+		ts_changed = ts_uid != s_last_tessellation_shader_uid;
 	}
 	else
 	{
 		gs_changed = gs_uid != s_last_cpu_geometry_shader_uid;
 		ps_changed = ps_uid != s_last_cpu_pixel_shader_uid;
 		vs_changed = vs_uid != s_last_cpu_vertex_shader_uid;
+		ts_changed = ts_uid != s_last_cpu_tessellation_shader_uid;
 	}
 
-	if (!gs_changed && !ps_changed && !vs_changed)
+	if (!gs_changed && !ps_changed && !vs_changed && !ts_changed)
 	{
 		return;
 	}
@@ -439,6 +615,10 @@ void ShaderCache::PrepareShaders(DSTALPHA_MODE ps_dst_alpha_mode,
 		if (vs_changed)
 		{
 			s_last_vertex_shader_uid = vs_uid;
+		}
+		if (ts_changed)
+		{
+			s_last_tessellation_shader_uid = ts_uid;
 		}
 		// A Uid has changed, so the PSO will need to be reset at next ApplyState.
 		D3D::command_list_mgr->m_dirty_pso = true;
@@ -462,6 +642,11 @@ void ShaderCache::PrepareShaders(DSTALPHA_MODE ps_dst_alpha_mode,
 				GenerateVertexShaderCodeD3D11(code, components, xfr, bpm);
 				s_vertex_uid_checker.AddToIndexAndCheck(code, vs_uid, "Vertex", "v");
 			}
+			if (ts_changed)
+			{
+				GenerateTessellationShaderCode(code, API_D3D11, xfr, bpm, components);
+				s_vertex_uid_checker.AddToIndexAndCheck(code, vs_uid, "Vertex", "v");
+			}
 		}
 #endif
 	}
@@ -481,6 +666,21 @@ void ShaderCache::PrepareShaders(DSTALPHA_MODE ps_dst_alpha_mode,
 		{
 			s_last_cpu_vertex_shader_uid = vs_uid;
 		}
+		
+		if (ts_changed)
+		{
+			s_last_cpu_tessellation_shader_uid = ts_uid;
+		}
+	}
+
+	if (vs_changed)
+	{
+		HandleVSUIDChange(vs_uid, components, xfr, bpm, on_gpu_thread);
+	}
+
+	if (ts_changed)
+	{
+		HandleTSUIDChange(ts_uid, gs_primitive_type, components, xfr, bpm, on_gpu_thread);
 	}
 
 	if (gs_changed)
@@ -491,11 +691,6 @@ void ShaderCache::PrepareShaders(DSTALPHA_MODE ps_dst_alpha_mode,
 	if (ps_changed)
 	{
 		HandlePSUIDChange(ps_uid, ps_dst_alpha_mode, components, xfr, bpm, on_gpu_thread);
-	}
-
-	if (vs_changed)
-	{
-		HandleVSUIDChange(vs_uid, components, xfr, bpm, on_gpu_thread);
 	}
 }
 
@@ -539,6 +734,18 @@ void ShaderCache::InsertByteCode(const UidType& uid, ShaderCacheType* shader_cac
 
 D3D12_PRIMITIVE_TOPOLOGY_TYPE ShaderCache::GetCurrentPrimitiveTopology() { return s_current_primitive_topology;}
 
+D3D12_SHADER_BYTECODE ShaderCache::GetActiveDomainShaderBytecode()
+{
+	return s_current_primitive_topology == D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE
+		&& s_last_hull_shader_bytecode->m_compiled
+		&& s_last_domain_shader_bytecode->m_compiled ? s_last_domain_shader_bytecode->m_shader_bytecode : s_pass_entry.m_shader_bytecode;
+}
+D3D12_SHADER_BYTECODE ShaderCache::GetActiveHullShaderBytecode() 
+{
+	return s_current_primitive_topology == D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE
+		&& s_last_hull_shader_bytecode->m_compiled
+		&& s_last_domain_shader_bytecode->m_compiled ? s_last_hull_shader_bytecode->m_shader_bytecode : s_pass_entry.m_shader_bytecode;
+}
 D3D12_SHADER_BYTECODE ShaderCache::GetActiveGeometryShaderBytecode() { return s_last_geometry_shader_bytecode->m_shader_bytecode; }
 D3D12_SHADER_BYTECODE ShaderCache::GetActivePixelShaderBytecode() { return s_last_pixel_shader_bytecode->m_shader_bytecode; }
 D3D12_SHADER_BYTECODE ShaderCache::GetActiveVertexShaderBytecode() { return s_last_vertex_shader_bytecode->m_shader_bytecode; }
@@ -546,7 +753,10 @@ D3D12_SHADER_BYTECODE ShaderCache::GetActiveVertexShaderBytecode() { return s_la
 const GeometryShaderUid* ShaderCache::GetActiveGeometryShaderUid() { return &s_last_geometry_shader_uid; }
 const PixelShaderUid* ShaderCache::GetActivePixelShaderUid() { return &s_last_pixel_shader_uid; }
 const VertexShaderUid* ShaderCache::GetActiveVertexShaderUid() { return &s_last_vertex_shader_uid; }
+const TessellationShaderUid* ShaderCache::GetActiveTessellationShaderUid() { return &s_last_tessellation_shader_uid; }
 
+D3D12_SHADER_BYTECODE ShaderCache::GetDomainShaderFromUid(const TessellationShaderUid* uid) { return ds_bytecode_cache[*uid].m_shader_bytecode; }
+D3D12_SHADER_BYTECODE ShaderCache::GetHullShaderFromUid(const TessellationShaderUid* uid) { return hs_bytecode_cache[*uid].m_shader_bytecode; }
 D3D12_SHADER_BYTECODE ShaderCache::GetGeometryShaderFromUid(const GeometryShaderUid* uid) { return gs_bytecode_cache[*uid].m_shader_bytecode; }
 D3D12_SHADER_BYTECODE ShaderCache::GetPixelShaderFromUid(const PixelShaderUid* uid) { return ps_bytecode_cache[*uid].m_shader_bytecode; }
 D3D12_SHADER_BYTECODE ShaderCache::GetVertexShaderFromUid(const VertexShaderUid* uid) { return vs_bytecode_cache[*uid].m_shader_bytecode; }
