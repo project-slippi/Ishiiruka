@@ -394,7 +394,7 @@ HRESULT Create(HWND wnd)
 	SAFE_RELEASE(output);
 	SAFE_RELEASE(adapter)
 
-		CreateDescriptorHeaps();
+	CreateDescriptorHeaps();
 	CreateRootSignatures();
 
 	command_list_mgr = new D3DCommandListManager(
@@ -527,7 +527,15 @@ void CreateRootSignatures()
 		D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND // UINT OffsetInDescriptorsFromTableStart;
 	};
 
-	D3D12_ROOT_PARAMETER root_parameters[DESCRIPTOR_TABLE_PS_CBVTWO + 1];
+	D3D12_ROOT_PARAMETER root_parameters[DESCRIPTOR_TABLE_PS_UAV + 1];
+
+	D3D12_DESCRIPTOR_RANGE desc_range_uav = {
+		D3D12_DESCRIPTOR_RANGE_TYPE_UAV,     // D3D12_DESCRIPTOR_RANGE_TYPE RangeType;
+		1,                                   // UINT NumDescriptors;
+		2,                                   // UINT BaseShaderRegister;
+		0,                                   // UINT RegisterSpace;
+		D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND // UINT OffsetInDescriptorsFromTableStart;
+	};
 
 	root_parameters[DESCRIPTOR_TABLE_PS_SRV].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
 	root_parameters[DESCRIPTOR_TABLE_PS_SRV].DescriptorTable.NumDescriptorRanges = 1;
@@ -599,7 +607,10 @@ void CreateRootSignatures()
 	root_parameters[DESCRIPTOR_TABLE_PS_CBVTWO].Descriptor.ShaderRegister = 1;
 	root_parameters[DESCRIPTOR_TABLE_PS_CBVTWO].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
 
-	// D3D12TODO: Add bounding box UAV to root signature.
+	root_parameters[DESCRIPTOR_TABLE_PS_UAV].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+	root_parameters[DESCRIPTOR_TABLE_PS_UAV].DescriptorTable.NumDescriptorRanges = 1;
+	root_parameters[DESCRIPTOR_TABLE_PS_UAV].DescriptorTable.pDescriptorRanges = &desc_range_uav;
+	root_parameters[DESCRIPTOR_TABLE_PS_UAV].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
 
 	D3D12_ROOT_SIGNATURE_DESC root_signature_desc = {};
 	root_signature_desc.pParameters = root_parameters;

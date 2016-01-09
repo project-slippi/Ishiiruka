@@ -29,12 +29,12 @@ typedef std::unordered_map<VertexLoaderUID, std::unique_ptr<VertexLoaderBase>> V
 namespace VertexLoaderManager
 {
 	static VertexLoaderMap s_vertex_loader_map;
-	static NativeVertexLoaderMap s_native_vertex_map;
+	static NativeVertexFormatMap s_native_vertex_map;
 	static NativeVertexFormat* s_current_vtx_fmt;
 	u32 g_current_components;
 	// TODO - change into array of pointers. Keep a map of all seen so far.
 	// Used in D3D12 backend, to populate input layouts used by cached-to-disk PSOs.
-	NativeVertexLoaderMap* GetNativeVertexFormatMap()
+	NativeVertexFormatMap* GetNativeVertexFormatMap()
 	{
 		return &s_native_vertex_map;
 	}

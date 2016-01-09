@@ -18,9 +18,7 @@ static const unsigned int s_max_bytes_per_encode = s_max_bytes_per_block_row * (
 
 class TextureEncoder
 {
-
 public:
-
 	virtual ~TextureEncoder() { }
 
 	virtual void Init() = 0;
@@ -31,5 +29,4 @@ public:
 		bool is_intensity, bool scale_by_half) = 0;
 
 };
-
 }

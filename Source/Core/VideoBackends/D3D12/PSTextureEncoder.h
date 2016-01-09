@@ -38,7 +38,7 @@ private:
 		PEControl::PixelFormat src_format, bool is_intensity, bool scale_by_half);
 
 	using ComboKey = unsigned int; // Key for a shader combination
-	ComboKey MakeComboKey(unsigned int dst_format,
+	static ComboKey MakeComboKey(unsigned int dst_format,
 		PEControl::PixelFormat src_format, bool is_intensity, bool scale_by_half)
 	{
 		return (dst_format << 4) | (static_cast<int>(src_format) << 2) | (is_intensity ? (1 << 1) : 0)

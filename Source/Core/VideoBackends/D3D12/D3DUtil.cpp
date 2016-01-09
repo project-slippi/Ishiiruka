@@ -130,21 +130,7 @@ FONT2DVERTEX InitFont2DVertex(float x, float y, u32 color, float tu, float tv)
 	return v;
 }
 
-CD3DFont::CD3DFont() : m_tex_width(512), m_tex_height(512)
-{
-	m_texture12 = nullptr;
-	m_texture12_cpu = {};
-	m_texture12_gpu = {};
-
-	m_vb12 = nullptr;
-	m_vb12_data = nullptr;
-	m_vb12_offset = 0;
-	m_vb12_view = {};
-
-	m_input_layout12 = {};
-	m_pshader12 = {};
-	m_vshader12 = {};
-}
+CD3DFont::CD3DFont() : m_tex_width(512), m_tex_height(512) {}
 
 constexpr const char fontpixshader[] = {
 	"Texture2D tex2D;\n"

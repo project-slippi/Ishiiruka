@@ -190,10 +190,9 @@ void VertexManager::vFlush(bool use_dst_alpha)
 	{
 		return;
 	}
-	if (g_ActiveConfig.backend_info.bSupportsBBox && BoundingBox::active)
+	if (g_ActiveConfig.backend_info.bSupportsBBox && BoundingBox::active && g_ActiveConfig.iBBoxMode == BBoxGPU)
 	{
-		// D3D12TODO: Support GPU-side bounding box.
-		// D3D::context->OMSetRenderTargetsAndUnorderedAccessViews(D3D11_KEEP_RENDER_TARGETS_AND_DEPTH_STENCIL, nullptr, nullptr, 2, 1, &BBox::GetUAV(), nullptr);
+		D3D::current_command_list->SetGraphicsRootDescriptorTable(DESCRIPTOR_TABLE_PS_UAV, BBox::GetUAV());
 	}
 
 	u32 stride = VertexLoaderManager::GetCurrentVertexFormat()->GetVertexStride();
