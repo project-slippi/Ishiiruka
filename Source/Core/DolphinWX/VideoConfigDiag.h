@@ -154,7 +154,7 @@ protected:
 	SettingCheckBox* Async_Shader_compilation;
 	SettingCheckBox* Predictive_FIFO;
 	SettingCheckBox* Wait_For_Shaders;
-
+	SettingCheckBox* vieport_correction;
 	SettingRadioButton* virtual_xfb;
 	SettingRadioButton* real_xfb;
 

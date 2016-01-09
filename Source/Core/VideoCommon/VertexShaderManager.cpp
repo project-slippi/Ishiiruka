@@ -387,7 +387,7 @@ void VertexShaderManager::SetConstants()
 		const float pixel_size_y = 2.f / Renderer::EFBToScaledXf(2.f * xfmem.viewport.ht);
 		float nearz = xfmem.viewport.farZ - xfmem.viewport.zRange;
 		float farz = xfmem.viewport.farZ;
-		const bool nonStandartViewport = (g_ActiveConfig.backend_info.APIType != API_OPENGL)
+		const bool nonStandartViewport = (g_ActiveConfig.backend_info.APIType != API_OPENGL && g_ActiveConfig.bViewportCorrection)
 			&& (nearz < 0.f || farz > 16777216.0f || nearz >= 16777216.0f || farz <= 0.f);
 		float rangez = 1.0f;
 		if (nonStandartViewport)

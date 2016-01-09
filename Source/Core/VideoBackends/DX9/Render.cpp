@@ -466,7 +466,7 @@ void Renderer::PokeEFB(EFBAccessType type, const EfbPokeData* points, size_t num
 	float nearz = xfmem.viewport.farZ - MathUtil::Clamp<float>(xfmem.viewport.zRange, 0.0f, 16777215.0f);
 	float farz = xfmem.viewport.farZ;
 
-	const bool nonStandartViewport = (nearz < 0.f || farz > 16777216.0f || nearz >= 16777216.0f || farz <= 0.f);
+	const bool nonStandartViewport = g_ActiveConfig.bViewportCorrection && (nearz < 0.f || farz > 16777216.0f || nearz >= 16777216.0f || farz <= 0.f);
 	if (nonStandartViewport)
 	{
 		vp.MinZ = 0.0f;
@@ -1013,7 +1013,7 @@ void Renderer::SetViewport()
 	float nearz = xfmem.viewport.farZ - MathUtil::Clamp<float>(xfmem.viewport.zRange, 0.0f, 16777215.0f);
 	float farz = xfmem.viewport.farZ;
 
-	const bool nonStandartViewport = (nearz < 0.f || farz > 16777216.0f || nearz >= 16777216.0f || farz <= 0.f);
+	const bool nonStandartViewport = g_ActiveConfig.bViewportCorrection && (nearz < 0.f || farz > 16777216.0f || nearz >= 16777216.0f || farz <= 0.f);
 	if (nonStandartViewport)
 	{
 		vp.MinZ = 0.0f;

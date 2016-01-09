@@ -640,7 +640,7 @@ void Renderer::SetViewport()
 	float nearz = xfmem.viewport.farZ - MathUtil::Clamp<float>(xfmem.viewport.zRange, 0.0f, 16777215.0f);
 	float farz = xfmem.viewport.farZ;
 
-	const bool nonStandartViewport = (nearz < 0.f || farz > 16777216.0f || nearz >= 16777216.0f || farz <= 0.f);
+	const bool nonStandartViewport = g_ActiveConfig.bViewportCorrection && (nearz < 0.f || farz > 16777216.0f || nearz >= 16777216.0f || farz <= 0.f);
 	if (!nonStandartViewport)
 	{
 		vp.MaxDepth = 1.0f - (MathUtil::Clamp<float>(nearz, 0.0f, 16777215.0f) / 16777216.0f);

@@ -140,6 +140,8 @@ void VideoConfig::Load(const std::string& ini_file)
 	hacks->Get("WaitForShaderCompilation", &bWaitForShaderCompilation, false);
 	hacks->Get("PredictiveFifo", &bPredictiveFifo, false);
 	hacks->Get("BoundingBoxMode", &iBBoxMode, (int)BBoxMode::BBoxGPU);
+	hacks->Get("ViewportCorrection", &bViewportCorrection, false);
+	
 
 	// hacks which are disabled by default
 	iPhackvalue[0] = 0;
@@ -267,6 +269,8 @@ void VideoConfig::GameIniLoad()
 	CHECK_SETTING("Video_Hacks", "EFBScaledCopy", bCopyEFBScaled);
 	CHECK_SETTING("Video_Hacks", "EFBEmulateFormatChanges", bEFBEmulateFormatChanges);
 	CHECK_SETTING("Video_Hacks", "BoundingBoxMode", iBBoxMode);
+	CHECK_SETTING("Video_Hacks", "ViewportCorrection", bViewportCorrection);
+	
 
 	CHECK_SETTING("Video", "ProjectionHack", iPhackvalue[0]);
 	CHECK_SETTING("Video", "PH_SZNear", iPhackvalue[1]);
@@ -432,6 +436,8 @@ void VideoConfig::Save(const std::string& ini_file)
 	hacks->Set("WaitForShaderCompilation", bWaitForShaderCompilation);
 	hacks->Set("PredictiveFifo", bPredictiveFifo);
 	hacks->Set("BoundingBoxMode", iBBoxMode);
+	hacks->Set("ViewportCorrection", bViewportCorrection);
+	
 
 	iniFile.Save(ini_file);
 }

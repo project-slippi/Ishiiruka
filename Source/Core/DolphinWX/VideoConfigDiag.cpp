@@ -122,6 +122,7 @@ static wxString internal_res_desc = _("Specifies the resolution used to render a
 static wxString efb_access_desc = _("Ignore any requests of the CPU to read from or write to the EFB.\nImproves performance in some games, but might disable some gameplay-related features or graphical effects.\n\nIf unsure, leave this unchecked.");
 static wxString efb_fast_access_desc = _("Use a fast efb caching method to speed up access. This method is inaccurate but will make games run faster and efb reads and writes will still work.");
 static wxString efb_emulate_format_changes_desc = _("Ignore any changes to the EFB format.\nImproves performance in many games without any negative effect. Causes graphical defects in a small number of other games though.\n\nIf unsure, leave this checked.");
+static wxString viewport_correction_desc = _("Some games uses viewport values that are not compatible with D3D backends, to solve issues on those games check this.\n\nIf unsure, leave this unchecked.");
 static wxString skip_efb_copy_to_ram_desc = _("Stores EFB Copies exclusively on the GPU, bypassing system memory. Causes graphical defects in a small number of games.\n\nEnabled = EFB Copies to Texture\nDisabled = EFB Copies to RAM (and Texture)\n\nIf unsure, leave this checked.");
 static wxString stc_desc = _("The safer you adjust this, the less likely the emulator will be missing any texture updates from RAM.\n\nIf unsure, use the rightmost value.");
 static wxString bbox_desc = _("Selects wish implementation is used to emulate Bounding Box. By Default GPU will be used if supported.");
@@ -668,12 +669,16 @@ VideoConfigDiag::VideoConfigDiag(wxWindow* parent, const std::string &title, con
 
 	// format change emulation
 	emulate_efb_format_changes = CreateCheckBox(page_hacks, _("Ignore Format Changes"), (efb_emulate_format_changes_desc), vconfig.bEFBEmulateFormatChanges, true);
-	
+
 	szr_efb->Add(CreateCheckBox(page_hacks, _("Skip EFB Access from CPU"), (efb_access_desc), vconfig.bEFBAccessEnable, true), 0, wxBOTTOM | wxLEFT, 5);
 	Fast_efb_cache = CreateCheckBox(page_hacks, _("Fast EFB Access"), (efb_fast_access_desc), vconfig.bEFBFastAccess, false);
 	szr_efb->Add(Fast_efb_cache, 0, wxBOTTOM | wxLEFT, 5);
 	szr_efb->Add(emulate_efb_format_changes, 0, wxBOTTOM | wxLEFT, 5);
 	szr_efb->Add(CreateCheckBox(page_hacks, _("Store EFB copies to Texture Only"), (skip_efb_copy_to_ram_desc), vconfig.bSkipEFBCopyToRam), 0, wxBOTTOM | wxLEFT, 5);
+#if defined WIN32
+	vieport_correction = CreateCheckBox(page_hacks, _("Viewport Correction"), (viewport_correction_desc), vconfig.bViewportCorrection, false);
+	szr_efb->Add(vieport_correction, 0, wxBOTTOM | wxLEFT, 5);
+#endif	
 	szr_hacks->Add(szr_efb, 0, wxEXPAND | wxALL, 5);
 
 	// Texture cache
@@ -1245,6 +1250,8 @@ void VideoConfigDiag::OnUpdateUI(wxUpdateUIEvent& ev)
 	// Borderless Fullscreen
 	borderless_fullscreen->Enable((vconfig.backend_info.APIType & API_D3D9) == 0);
 	borderless_fullscreen->Show((vconfig.backend_info.APIType & API_D3D9) == 0);
+	// Viewport correction
+	vieport_correction->Show(vconfig.backend_info.APIType != API_OPENGL);
 #endif	
 	// EFB Access Cache
 	Fast_efb_cache->Show(vconfig.bEFBAccessEnable);

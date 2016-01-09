@@ -164,6 +164,7 @@ struct VideoConfig final
 	bool bForcePhongShading;	
 	bool bFastDepthCalc;
 	int iBBoxMode;
+	bool bViewportCorrection;
 	//for dx9-backend
 	bool bForceDualSourceBlend;
 	int iLog; // CONF_ bits
