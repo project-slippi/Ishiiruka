@@ -1058,7 +1058,7 @@ void Renderer::ClearScreen(const EFBRectangle& rc, bool colorEnable, bool alphaE
 	ClearEFBCache();
 }
 
-void Renderer::BlitScreen(TargetRectangle dst, TargetRectangle src, GLuint src_texture, int src_width, int src_height, float gamma)
+void Renderer::BlitScreen(TargetRectangle dst, TargetRectangle src, GLuint src_texture, GLuint src_depth_texture, int src_width, int src_height, float gamma)
 {
 	if (g_ActiveConfig.iStereoMode == STEREO_SBS || g_ActiveConfig.iStereoMode == STEREO_TAB)
 	{
@@ -1070,12 +1070,12 @@ void Renderer::BlitScreen(TargetRectangle dst, TargetRectangle src, GLuint src_t
 		else
 			ConvertStereoRectangle(dst, leftRc, rightRc);
 
-		m_post_processor->BlitToFramebuffer(leftRc, 0, src, src_texture, src_width, src_height, 0, gamma);
-		m_post_processor->BlitToFramebuffer(rightRc, 0, src, src_texture, src_width, src_height, 1, gamma);
+		m_post_processor->BlitToFramebuffer(leftRc, 0, src, src_texture, src_depth_texture, src_width, src_height, 0, gamma);
+		m_post_processor->BlitToFramebuffer(rightRc, 0, src, src_texture, src_depth_texture, src_width, src_height, 1, gamma);
 	}
 	else
 	{
-		m_post_processor->BlitToFramebuffer(dst, 0, src, src_texture, src_width, src_height, 0, gamma);
+		m_post_processor->BlitToFramebuffer(dst, 0, src, src_texture, src_depth_texture, src_width, src_height, 0, gamma);
 	}
 }
 
@@ -1293,7 +1293,7 @@ void Renderer::SwapImpl(u32 xfbAddr, u32 fbWidth, u32 fbStride, u32 fbHeight, co
 			// Tell the OSD Menu about the current internal resolution
 			OSDInternalW = xfbSource->sourceRc.GetWidth(); OSDInternalH = xfbSource->sourceRc.GetHeight();
 
-			BlitScreen(drawRc, sourceRc, xfbSource->texture, xfbSource->texWidth, xfbSource->texHeight);
+			BlitScreen(drawRc, sourceRc, xfbSource->texture, xfbSource->depthtexture, xfbSource->texWidth, xfbSource->texHeight);
 		}
 	}
 	else
@@ -1306,12 +1306,12 @@ void Renderer::SwapImpl(u32 xfbAddr, u32 fbWidth, u32 fbStride, u32 fbHeight, co
 		int src_width = s_target_width;
 		int src_height = s_target_height;
 
+		GLuint depth_tex = 0;
 		// Post processing active?
 		if (g_ActiveConfig.bPostProcessingEnable &&
 			g_ActiveConfig.iPostProcessingTrigger == POST_PROCESSING_TRIGGER_ON_SWAP &&
 			m_post_processor->IsActive())
 		{
-			GLuint depth_tex = 0;
 			if (m_post_processor->RequiresDepthBuffer())
 				depth_tex = FramebufferManager::ResolveAndGetDepthTarget(rc);
 
@@ -1319,7 +1319,10 @@ void Renderer::SwapImpl(u32 xfbAddr, u32 fbWidth, u32 fbStride, u32 fbHeight, co
 				FramebufferManager::GetEFBLayers(), tex, depth_tex);
 		}
 
-		BlitScreen(flipped_trc, target_rc, tex, src_width, src_height, Gamma);
+		if (!depth_tex && m_post_processor->GetBlitShaderConfig()->RequiresDepthBuffer())
+			depth_tex = FramebufferManager::ResolveAndGetDepthTarget(rc);
+
+		BlitScreen(flipped_trc, target_rc, tex, depth_tex, src_width, src_height, Gamma);
 	}
 
 	glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);

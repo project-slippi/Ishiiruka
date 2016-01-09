@@ -51,14 +51,20 @@ struct XFBSource : public XFBSourceBase
 {
 	XFBSource(D3DTexture2D *_tex, int slices) : 
 		tex(_tex),
-		m_slices(slices){}
+		m_slices(slices),
+		depthtex(nullptr) {}
 	~XFBSource() {
 		tex->Release();
+		if (depthtex)
+		{
+			depthtex->Release();
+		}
 	}
 
 	void DecodeToTexture(u32 xfbAddr, u32 fbWidth, u32 fbHeight);
 	void CopyEFB(float Gamma);
 	D3DTexture2D* const tex;
+	D3DTexture2D* depthtex;
 	const int m_slices;
 };
 

@@ -589,6 +589,10 @@ void FramebufferManager::ReinterpretPixelData(unsigned int convtype)
 XFBSource::~XFBSource()
 {
 	glDeleteTextures(1, &texture);
+	if (depthtexture)
+	{
+		glDeleteTextures(1, &depthtexture);
+	}
 }
 
 void XFBSource::DecodeToTexture(u32 xfbAddr, u32 fbWidth, u32 fbHeight)
@@ -598,6 +602,16 @@ void XFBSource::DecodeToTexture(u32 xfbAddr, u32 fbWidth, u32 fbHeight)
 
 void XFBSource::CopyEFB(float Gamma)
 {
+	bool depth_copy_required = g_renderer->GetPostProcessor()->GetBlitShaderConfig()->RequiresDepthBuffer();
+	if (depth_copy_required && !depthtexture)
+	{
+		glGenTextures(1, &depthtexture);
+
+		glActiveTexture(GL_TEXTURE9);
+		glBindTexture(GL_TEXTURE_2D_ARRAY, depthtexture);
+		glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAX_LEVEL, 0);
+		glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_DEPTH_COMPONENT32F, m_target_width, m_target_height, m_layers, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
+	}
 	g_renderer->GetPostProcessor()->OnEndFrame();
 	if (g_ActiveConfig.bPostProcessingEnable &&
 		g_ActiveConfig.iPostProcessingTrigger == POST_PROCESSING_TRIGGER_ON_SWAP &&
@@ -610,7 +624,7 @@ void XFBSource::CopyEFB(float Gamma)
 	// Copy EFB data to XFB and restore render target again
 	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, FramebufferManager::GetXFBFramebuffer());
 
-	for (int i = 0; i < m_layers; i++)
+	for (unsigned int i = 0; i < m_layers; i++)
 	{
 		// Bind EFB and texture layer
 		glBindFramebuffer(GL_READ_FRAMEBUFFER, FramebufferManager::GetEFBFramebuffer(i));
@@ -621,6 +635,17 @@ void XFBSource::CopyEFB(float Gamma)
 			0, 0, texWidth, texHeight,
 			GL_COLOR_BUFFER_BIT, GL_NEAREST
 		);
+		if (depth_copy_required)
+		{
+			glBindFramebuffer(GL_READ_FRAMEBUFFER, FramebufferManager::GetEFBFramebuffer(i));
+			glFramebufferTextureLayer(GL_DRAW_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, depthtexture, 0, i);
+
+			glBlitFramebuffer(
+				0, 0, texWidth, texHeight,
+				0, 0, texWidth, texHeight,
+				GL_DEPTH_BUFFER_BIT, GL_NEAREST
+				);
+		}
 	}
 
 	// Return to EFB.
@@ -641,7 +666,7 @@ std::unique_ptr<XFBSourceBase> FramebufferManager::CreateXFBSource(unsigned int 
 	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAX_LEVEL, 0);
 	glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_RGBA, target_width, target_height, layers, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
 
-	return std::make_unique<XFBSource>(texture, layers);
+	return std::make_unique<XFBSource>(texture, target_width, target_height, layers);
 }
 
 void FramebufferManager::GetTargetSize(unsigned int *width, unsigned int *height)

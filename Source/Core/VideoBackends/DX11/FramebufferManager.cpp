@@ -227,6 +227,13 @@ void XFBSource::DecodeToTexture(u32 xfbAddr, u32 fbWidth, u32 fbHeight)
 
 void XFBSource::CopyEFB(float Gamma)
 {
+	bool depth_copy_required = g_renderer->GetPostProcessor()->GetBlitShaderConfig()->RequiresDepthBuffer();
+	if (depth_copy_required && !depthtex)
+	{
+		depthtex = D3DTexture2D::Create(texWidth, texHeight,
+			(D3D11_BIND_FLAG)(D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE),
+			D3D11_USAGE_DEFAULT, DXGI_FORMAT_R32_FLOAT, 1, m_slices);
+	}
 	g_renderer->GetPostProcessor()->OnEndFrame();
 	if (g_ActiveConfig.bPostProcessingEnable &&
 		g_ActiveConfig.iPostProcessingTrigger == POST_PROCESSING_TRIGGER_ON_SWAP &&
@@ -245,10 +252,30 @@ void XFBSource::CopyEFB(float Gamma)
 				FramebufferManager::GetEFBColorTexture()->GetTex(),
 				resource_idx, DXGI_FORMAT_R8G8B8A8_UNORM);
 		}
+		if (depth_copy_required)
+		{
+			g_renderer->ResetAPIState();
+			const D3D11_VIEWPORT vp = CD3D11_VIEWPORT(0.f, 0.f, (float)texWidth, (float)texHeight);
+			D3D::context->OMSetRenderTargets(1, &depthtex->GetRTV(), nullptr);
+			D3D::context->RSSetViewports(1, &vp);
+			D3D::SetPointCopySampler();
+			D3D::drawShadedTexQuad(FramebufferManager::GetEFBDepthTexture()->GetSRV(), nullptr,
+				Renderer::GetTargetWidth(), Renderer::GetTargetHeight(),
+				PixelShaderCache::GetColorCopyProgram(true), VertexShaderCache::GetSimpleVertexShader(),
+				VertexShaderCache::GetSimpleInputLayout(), GeometryShaderCache::GetCopyGeometryShader(), 1.0, 0, texWidth, texHeight);
+			D3D::context->OMSetRenderTargets(1,
+				&FramebufferManager::GetEFBColorTexture()->GetRTV(),
+				FramebufferManager::GetEFBDepthTexture()->GetDSV());
+			g_renderer->RestoreAPIState();
+		}
 	}
 	else
 	{
 		D3D::context->CopyResource(tex->GetTex(), FramebufferManager::GetEFBColorTexture()->GetTex());
+		if (depth_copy_required)
+		{
+			D3D::context->CopyResource(depthtex->GetTex(), FramebufferManager::GetEFBDepthTexture()->GetTex());
+		}
 	}
 }
 

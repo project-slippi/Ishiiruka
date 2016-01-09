@@ -495,11 +495,12 @@ void D3DPostProcessor::PostProcessEFB()
 }
 
 void D3DPostProcessor::BlitToFramebuffer(const TargetRectangle& dst, uintptr_t dst_texture,
-	const TargetRectangle& src, uintptr_t src_texture,
+	const TargetRectangle& src, uintptr_t src_texture, uintptr_t src_depth_texture,
 	int src_width, int src_height, int src_layer, float gamma)
 {
-	D3DTexture2D* real_dst_texture = reinterpret_cast<D3DTexture2D*>(dst_texture);
+	D3DTexture2D* real_dst_texture = reinterpret_cast<D3DTexture2D*>(dst_texture);	
 	D3DTexture2D* real_src_texture = reinterpret_cast<D3DTexture2D*>(src_texture);
+	D3DTexture2D* real_src_depth_texture = reinterpret_cast<D3DTexture2D*>(src_depth_texture);
 	_dbg_assert_msg_(VIDEO, src_layer >= 0, "BlitToFramebuffer should always be called with a single source layer");
 
 	// Options changed?
@@ -522,7 +523,7 @@ void D3DPostProcessor::BlitToFramebuffer(const TargetRectangle& dst, uintptr_t d
 	if (m_blit_shader)
 	{
 		D3D::stateman->SetPixelConstants(m_uniform_buffer.get());
-		m_blit_shader->Draw(this, dst, real_dst_texture, src, src_width, src_height, real_src_texture, nullptr, src_layer);
+		m_blit_shader->Draw(this, dst, real_dst_texture, src, src_width, src_height, real_src_texture, real_src_depth_texture, src_layer);
 	}
 	else
 	{

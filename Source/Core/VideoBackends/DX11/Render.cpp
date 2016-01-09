@@ -823,7 +823,7 @@ void Renderer::SwapImpl(u32 xfbAddr, u32 fbWidth, u32 fbStride, u32 fbHeight, co
 
 				sourceRc.right -= Renderer::EFBToScaledX(fbStride - fbWidth);
 
-				BlitScreen(drawRc, sourceRc, xfbSource->tex, xfbSource->texWidth, xfbSource->texHeight, Gamma);
+				BlitScreen(drawRc, sourceRc, xfbSource->tex, xfbSource->depthtex, xfbSource->texWidth, xfbSource->texHeight, Gamma);
 			}
 		}
 		else
@@ -834,13 +834,13 @@ void Renderer::SwapImpl(u32 xfbAddr, u32 fbWidth, u32 fbStride, u32 fbHeight, co
 			D3DTexture2D* read_texture = FramebufferManager::GetResolvedEFBColorTexture();
 			int src_width = s_target_width;
 			int src_height = s_target_height;
+			D3DTexture2D* depth_texture = nullptr;
 			m_post_processor->OnEndFrame();
 			// Post processing active?
 			if (g_ActiveConfig.bPostProcessingEnable &&
 				g_ActiveConfig.iPostProcessingTrigger == POST_PROCESSING_TRIGGER_ON_SWAP &&
 				m_post_processor->IsActive())
 			{
-				D3DTexture2D* depth_texture = nullptr;
 				if (m_post_processor->RequiresDepthBuffer())
 					depth_texture = FramebufferManager::GetResolvedEFBDepthTexture();
 
@@ -851,8 +851,11 @@ void Renderer::SwapImpl(u32 xfbAddr, u32 fbWidth, u32 fbStride, u32 fbHeight, co
 				D3D::context->OMSetRenderTargets(1, &D3D::GetBackBuffer()->GetRTV(), nullptr);
 				D3D::SetLinearCopySampler();
 			}
-
-			BlitScreen(targetRc, sourceRc, read_texture, src_width, src_height, Gamma);
+			if (depth_texture == nullptr && m_post_processor->GetBlitShaderConfig()->RequiresDepthBuffer())
+			{
+				depth_texture = FramebufferManager::GetResolvedEFBDepthTexture();
+			}
+			BlitScreen(targetRc, sourceRc, read_texture, depth_texture, src_width, src_height, Gamma);
 		}
 		D3D11_VIEWPORT vp = CD3D11_VIEWPORT((float)targetRc.left, (float)targetRc.top, (float)targetRc.GetWidth(), (float)targetRc.GetHeight());
 		D3D::context->RSSetViewports(1, &vp);
@@ -1323,7 +1326,7 @@ void Renderer::BBoxWrite(int index, u16 _value)
 	BBox::Set(index, value);
 }
 
-void Renderer::BlitScreen(TargetRectangle dst, TargetRectangle src, D3DTexture2D* src_texture, u32 src_width, u32 src_height, float gamma)
+void Renderer::BlitScreen(TargetRectangle dst, TargetRectangle src, D3DTexture2D* src_texture, D3DTexture2D* depth_texture, u32 src_width, u32 src_height, float gamma)
 {
 	if (g_ActiveConfig.iStereoMode == STEREO_SBS || g_ActiveConfig.iStereoMode == STEREO_TAB)
 	{
@@ -1331,10 +1334,10 @@ void Renderer::BlitScreen(TargetRectangle dst, TargetRectangle src, D3DTexture2D
 		ConvertStereoRectangle(dst, leftRc, rightRc);
 
 		m_post_processor->BlitToFramebuffer(leftRc, reinterpret_cast<uintptr_t>(D3D::GetBackBuffer()),
-			src, reinterpret_cast<uintptr_t>(src_texture), src_width, src_height, 0, gamma);
+			src, reinterpret_cast<uintptr_t>(src_texture), reinterpret_cast<uintptr_t>(depth_texture), src_width, src_height, 0, gamma);
 
 		m_post_processor->BlitToFramebuffer(rightRc, reinterpret_cast<uintptr_t>(D3D::GetBackBuffer()),
-			src, reinterpret_cast<uintptr_t>(src_texture), src_width, src_height, 1, gamma);
+			src, reinterpret_cast<uintptr_t>(src_texture), reinterpret_cast<uintptr_t>(depth_texture), src_width, src_height, 1, gamma);
 	}
 	else if (g_ActiveConfig.iStereoMode == STEREO_3DVISION)
 	{
@@ -1355,10 +1358,10 @@ void Renderer::BlitScreen(TargetRectangle dst, TargetRectangle src, D3DTexture2D
 
 		// Render to staging texture which is double the width of the backbuffer
 		m_post_processor->BlitToFramebuffer(leftRc, reinterpret_cast<uintptr_t>(s_3d_vision_texture),
-			src, reinterpret_cast<uintptr_t>(src_texture), src_width, src_height, 0, gamma);
+			src, reinterpret_cast<uintptr_t>(src_texture), reinterpret_cast<uintptr_t>(depth_texture), src_width, src_height, 0, gamma);
 
 		m_post_processor->BlitToFramebuffer(rightRc, reinterpret_cast<uintptr_t>(s_3d_vision_texture),
-			src, reinterpret_cast<uintptr_t>(src_texture), src_width, src_height, 1, gamma);
+			src, reinterpret_cast<uintptr_t>(src_texture), reinterpret_cast<uintptr_t>(depth_texture), src_width, src_height, 1, gamma);
 
 		// Copy the left eye to the backbuffer, if Nvidia 3D Vision is enabled it should
 		// recognize the signature and automatically include the right eye frame.
@@ -1371,7 +1374,7 @@ void Renderer::BlitScreen(TargetRectangle dst, TargetRectangle src, D3DTexture2D
 	else
 	{
 		m_post_processor->BlitToFramebuffer(dst, reinterpret_cast<uintptr_t>(D3D::GetBackBuffer()),
-			src, reinterpret_cast<uintptr_t>(src_texture), src_width, src_height, 0, gamma);
+			src, reinterpret_cast<uintptr_t>(src_texture), reinterpret_cast<uintptr_t>(depth_texture), src_width, src_height, 0, gamma);
 	}
 }
 

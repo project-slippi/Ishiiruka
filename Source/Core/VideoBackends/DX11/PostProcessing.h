@@ -97,7 +97,7 @@ public:
 	void PostProcessEFB() override;
 
 	void BlitToFramebuffer(const TargetRectangle& dst, uintptr_t dst_texture,
-		const TargetRectangle& src, uintptr_t src_texture,
+		const TargetRectangle& src, uintptr_t src_texture, uintptr_t src_depth_texture,
 		int src_width, int src_height, int src_layer, float gamma) override;
 
 	void PostProcess(const TargetRectangle& visible_rect, int tex_width, int tex_height, int tex_layers,

@@ -50,9 +50,10 @@ namespace OGL
 
 struct XFBSource : public XFBSourceBase
 {
-	XFBSource(GLuint tex, int layers) :
+	XFBSource(GLuint tex, unsigned int target_width, unsigned int target_height, unsigned int layers) :
 		texture(tex),
-		m_layers(layers){}
+		depthtexture(0),
+		m_layers(layers), m_target_width(target_width), m_target_height(target_height){}
 
 	~XFBSource();
 
@@ -61,7 +62,7 @@ struct XFBSource : public XFBSourceBase
 
 	const GLuint texture;
 	GLuint depthtexture;
-	const int m_layers;
+	const unsigned int m_layers, m_target_width, m_target_height;
 };
 
 class FramebufferManager : public FramebufferManagerBase

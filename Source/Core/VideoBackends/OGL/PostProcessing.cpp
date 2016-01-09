@@ -602,11 +602,12 @@ void OGLPostProcessor::PostProcessEFB()
 }
 
 void OGLPostProcessor::BlitToFramebuffer(const TargetRectangle& dst, uintptr_t dst_texture,
-	const TargetRectangle& src, uintptr_t src_texture,
+	const TargetRectangle& src, uintptr_t src_texture, uintptr_t src_depth_texture,
 	int src_width, int src_height, int src_layer, float gamma)
 {
 	GLuint real_dst_texture = static_cast<GLuint>(dst_texture);
 	GLuint real_src_texture = static_cast<GLuint>(src_texture);
+	GLuint real_src_depth_texture = static_cast<GLuint>(src_depth_texture);
 	_dbg_assert_msg_(VIDEO, src_layer >= 0, "BlitToFramebuffer should always be called with a single source layer");
 
 	// Options changed?
@@ -628,7 +629,7 @@ void OGLPostProcessor::BlitToFramebuffer(const TargetRectangle& dst, uintptr_t d
 
 	// Use blit shader if one is set-up. Should only be a single pass in almost all cases.
 	if (m_blit_shader)
-		m_blit_shader->Draw(this, dst, real_dst_texture, src, src_width, src_height, real_src_texture, 0, src_layer, gamma);
+		m_blit_shader->Draw(this, dst, real_dst_texture, src, src_width, src_height, real_src_texture, real_src_depth_texture, src_layer, gamma);
 	else
 		CopyTexture(dst, real_dst_texture, src, real_src_texture, src_layer, false);
 }

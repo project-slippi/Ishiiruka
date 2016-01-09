@@ -209,7 +209,7 @@ public:
 
 	// Copy/resize src_texture to dst_texture (0 means backbuffer), using the resize/blit shader.
 	virtual void BlitToFramebuffer(const TargetRectangle& dst, uintptr_t dst_texture,
-		const TargetRectangle& src, uintptr_t src_texture, int src_width, int src_height, int src_layer, float gamma = 1.0f) = 0;
+		const TargetRectangle& src, uintptr_t src_texture, uintptr_t src_depth_texture, int src_width, int src_height, int src_layer, float gamma = 1.0f) = 0;
 
 	// Post-process an image.
 	virtual void PostProcess(const TargetRectangle& visible_rect, int target_width, int target_height,
