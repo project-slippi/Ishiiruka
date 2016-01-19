@@ -196,6 +196,7 @@
     <ClCompile Include="NetPlay\PadMapDialog.cpp">
       <Filter>GUI\NetPlay</Filter>
     </ClCompile>
+    <ClCompile Include="Config\GCAdapterConfigDiag.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Main.h" />
@@ -357,6 +358,7 @@
     <ClInclude Include="NetPlay\PadMapDialog.h">
       <Filter>GUI\NetPlay</Filter>
     </ClInclude>
+    <ClInclude Include="Config\GCAdapterConfigDiag.h" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="CMakeLists.txt" />

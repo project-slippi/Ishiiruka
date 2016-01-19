@@ -1,4 +1,4 @@
-// Copyright 2013 Dolphin Emulator Project
+// Copyright 2010 Dolphin Emulator Project
 // Licensed under GPLv2+
 // Refer to the license.txt file included.
 
@@ -150,21 +150,13 @@ public:
 
 	bool operator==(const Vec3 &other) const
 	{
-		if (x == other.x && y == other.y && z == other.z)
-			return true;
-		else
-			return false;
+		return x == other.x && y == other.y && z == other.z;
 	}
 
 	void SetZero()
 	{
-		memset((void*)this, 0, sizeof(float) * 3);
-	}
-
-	void DoState(PointerWrap &p)
-	{
-		p.Do(x);
-		p.Do(y);
-		p.Do(z);
+		x = 0.0f;
+		y = 0.0f;
+		z = 0.0f;
 	}
 };

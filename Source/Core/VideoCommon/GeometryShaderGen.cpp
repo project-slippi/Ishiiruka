@@ -3,7 +3,9 @@
 // Refer to the license.txt file included.
 
 #include <cmath>
+#include <cstring>
 
+#include "Common/CommonTypes.h"
 #include "VideoCommon/GeometryShaderGen.h"
 #include "VideoCommon/LightingShaderGen.h"
 #include "VideoCommon/VertexShaderGen.h"

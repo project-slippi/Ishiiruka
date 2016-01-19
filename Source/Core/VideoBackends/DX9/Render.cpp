@@ -590,7 +590,7 @@ bool Renderer::SaveScreenshot(const std::string &filename, const TargetRectangle
 // This function has the final picture. We adjust the aspect ratio here.
 void Renderer::SwapImpl(u32 xfbAddr, u32 fbWidth, u32 fbStride, u32 fbHeight, const EFBRectangle& rc, float Gamma)
 {
-	if (g_bSkipCurrentFrame || (!XFBWrited && !g_ActiveConfig.RealXFBEnabled()) || !fbWidth || !fbHeight)
+	if (Fifo::g_bSkipCurrentFrame || (!XFBWrited && !g_ActiveConfig.RealXFBEnabled()) || !fbWidth || !fbHeight)
 	{
 		if (SConfig::GetInstance().m_DumpFrames && !frame_data.empty())
 			AVIDump::AddFrame(&frame_data[0], fbWidth, fbHeight);
@@ -805,7 +805,7 @@ void Renderer::SwapImpl(u32 xfbAddr, u32 fbWidth, u32 fbStride, u32 fbHeight, co
 		{
 			s_recordWidth = GetTargetRectangle().GetWidth();
 			s_recordHeight = GetTargetRectangle().GetHeight();
-			bAVIDumping = AVIDump::Start(D3D::hWnd, s_recordWidth, s_recordHeight);
+			bAVIDumping = AVIDump::Start(s_recordWidth, s_recordHeight);
 			if (!bAVIDumping)
 			{
 				PanicAlert("Error dumping frames to AVI.");
@@ -830,6 +830,7 @@ void Renderer::SwapImpl(u32 xfbAddr, u32 fbWidth, u32 fbStride, u32 fbHeight, co
 					h = s_recordHeight;
 				}
 				formatBufferDump((const u8*)rect.pBits, &frame_data[0], s_recordWidth, s_recordHeight, rect.Pitch);
+				FlipImageData(&frame_data[0], w, h);
 				AVIDump::AddFrame(&frame_data[0], GetTargetRectangle().GetWidth(), GetTargetRectangle().GetHeight());
 				ScreenShootMEMSurface->UnlockRect();
 			}

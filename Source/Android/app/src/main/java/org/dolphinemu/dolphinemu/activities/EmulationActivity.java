@@ -1,12 +1,13 @@
 package org.dolphinemu.dolphinemu.activities;
 
+import android.app.Activity;
+import android.app.ActivityOptions;
 import android.app.Fragment;
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.support.v7.app.AppCompatActivity;
-import android.util.Log;
 import android.view.InputDevice;
 import android.view.KeyEvent;
 import android.view.Menu;
@@ -30,6 +31,8 @@ import org.dolphinemu.dolphinemu.fragments.EmulationFragment;
 import org.dolphinemu.dolphinemu.fragments.LoadStateFragment;
 import org.dolphinemu.dolphinemu.fragments.MenuFragment;
 import org.dolphinemu.dolphinemu.fragments.SaveStateFragment;
+import org.dolphinemu.dolphinemu.ui.main.MainPresenter;
+import org.dolphinemu.dolphinemu.utils.Log;
 
 import java.util.List;
 
@@ -135,55 +138,63 @@ public final class EmulationActivity extends AppCompatActivity
 		mScreenPath = gameToEmulate.getStringExtra("ScreenPath");
 		mPosition = gameToEmulate.getIntExtra("GridPosition", -1);
 
-		Picasso.with(this)
-				.load(mScreenPath)
-				.noFade()
-				.noPlaceholder()
-				.into(mImageView, new Callback()
-				{
-					@Override
-					public void onSuccess()
+		if (savedInstanceState == null)
+		{
+			Picasso.with(this)
+					.load(mScreenPath)
+					.noFade()
+					.noPlaceholder()
+					.into(mImageView, new Callback()
 					{
-						scheduleStartPostponedTransition(mImageView);
-					}
+						@Override
+						public void onSuccess()
+						{
+							scheduleStartPostponedTransition(mImageView);
+						}
 
-					@Override
-					public void onError()
+						@Override
+						public void onError()
+						{
+							// Still have to do this, or else the app will crash.
+							scheduleStartPostponedTransition(mImageView);
+						}
+					});
+
+			mImageView.animate()
+					.withLayer()
+					.setStartDelay(2000)
+					.setDuration(500)
+					.alpha(0.0f)
+					.withStartAction(new Runnable()
 					{
-						// Still have to do this, or else the app will crash.
-						scheduleStartPostponedTransition(mImageView);
-					}
-				});
-
-		mImageView.animate()
-				.withLayer()
-				.setStartDelay(2000)
-				.setDuration(500)
-				.alpha(0.0f)
-				.withStartAction(new Runnable()
-				{
-					@Override
-					public void run()
+						@Override
+						public void run()
+						{
+							mFrameEmulation.setVisibility(View.VISIBLE);
+						}
+					})
+					.withEndAction(new Runnable()
 					{
-						mFrameEmulation.setVisibility(View.VISIBLE);
-					}
-				})
-				.withEndAction(new Runnable()
-				{
-					@Override
-					public void run()
-					{
-						mImageView.setVisibility(View.GONE);
-					}
-				});
+						@Override
+						public void run()
+						{
+							mImageView.setVisibility(View.GONE);
+						}
+					});
 
-		// Instantiate an EmulationFragment.
-		EmulationFragment emulationFragment = EmulationFragment.newInstance(path);
+			// Instantiate an EmulationFragment.
+			EmulationFragment emulationFragment = EmulationFragment.newInstance(path);
 
-		// Add fragment to the activity - this triggers all its lifecycle callbacks.
-		getFragmentManager().beginTransaction()
-				.add(R.id.frame_emulation_fragment, emulationFragment, EmulationFragment.FRAGMENT_TAG)
-				.commit();
+			// Add fragment to the activity - this triggers all its lifecycle callbacks.
+			getFragmentManager().beginTransaction()
+					.add(R.id.frame_emulation_fragment, emulationFragment, EmulationFragment.FRAGMENT_TAG)
+					.commit();
+		}
+		else
+		{
+			mImageView.setVisibility(View.GONE);
+			mFrameEmulation.setVisibility(View.VISIBLE);
+		}
 
 		if (mDeviceHasTouchScreen)
 		{
@@ -205,7 +216,7 @@ public final class EmulationActivity extends AppCompatActivity
 	protected void onStart()
 	{
 		super.onStart();
-		Log.d("DolphinEmu", "EmulationActivity starting.");
+		Log.debug("[EmulationActivity] EmulationActivity starting.");
 		NativeLibrary.setEmulationActivity(this);
 	}
 
@@ -213,7 +224,7 @@ public final class EmulationActivity extends AppCompatActivity
 	protected void onStop()
 	{
 		super.onStop();
-		Log.d("DolphinEmu", "EmulationActivity stopping.");
+		Log.debug("[EmulationActivity] EmulationActivity stopping.");
 
 		NativeLibrary.setEmulationActivity(null);
 	}
@@ -644,19 +655,36 @@ public final class EmulationActivity extends AppCompatActivity
 			}
 			else
 			{
-				Log.e("DolphinEmu", "[EmulationActivity] Fragment not found, can't remove.");
+				Log.error("[EmulationActivity] Fragment not found, can't remove.");
 			}
 
 			mSubmenuFragmentTag = null;
 		}
 		else
 		{
-			Log.e("DolphinEmu", "[EmulationActivity] Fragment Tag empty.");
+			Log.error("[EmulationActivity] Fragment Tag empty.");
 		}
 	}
 
 	public String getSelectedTitle()
 	{
 		return mSelectedTitle;
+	}
+
+	public static void launch(Activity activity, String path, String title, String screenshotPath, int position, View sharedView)
+	{
+		Intent launcher = new Intent(activity, EmulationActivity.class);
+
+		launcher.putExtra("SelectedGame", path);
+		launcher.putExtra("SelectedTitle", title);
+		launcher.putExtra("ScreenPath", screenshotPath);
+		launcher.putExtra("GridPosition", position);
+
+		ActivityOptions options = ActivityOptions.makeSceneTransitionAnimation(
+				activity,
+				sharedView,
+				"image_game_screenshot");
+
+		activity.startActivityForResult(launcher, MainPresenter.REQUEST_EMULATE_GAME, options.toBundle());
 	}
 }

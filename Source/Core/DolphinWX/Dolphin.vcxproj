@@ -46,8 +46,10 @@
       <BaseAddress>0x00400000</BaseAddress>
       <RandomizedBaseAddress>false</RandomizedBaseAddress>
       <FixedBaseAddress>true</FixedBaseAddress>
-      <AdditionalLibraryDirectories>$(ExternalsDir)OpenAL\$(PlatformName);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>dsound.lib;iphlpapi.lib;winmm.lib;setupapi.lib;vfw32.lib;opengl32.lib;glu32.lib;rpcrt4.lib;comctl32.lib;OpenAL32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(ExternalsDir)ffmpeg\lib;$(ExternalsDir)OpenAL\$(PlatformName);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>dsound.lib;iphlpapi.lib;winmm.lib;setupapi.lib;OpenAL32.lib;opengl32.lib;glu32.lib;rpcrt4.lib;comctl32.lib;avcodec.lib;avformat.lib;avutil.lib;swresample.lib;swscale.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">/NODEFAULTLIB:libcmt %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Release|x64'">/NODEFAULTLIB:libcmt %(AdditionalOptions)</AdditionalOptions>
       <SubSystem>Windows</SubSystem>
     </Link>
     <ResourceCompile>
@@ -65,6 +67,7 @@
     <ClCompile Include="Config\AudioConfigPane.cpp" />
     <ClCompile Include="Config\ConfigMain.cpp" />
     <ClCompile Include="Config\GameCubeConfigPane.cpp" />
+    <ClCompile Include="Config\GCAdapterConfigDiag.cpp" />
     <ClCompile Include="Config\GeneralConfigPane.cpp" />
     <ClCompile Include="Config\InterfaceConfigPane.cpp" />
     <ClCompile Include="Config\PathConfigPane.cpp" />
@@ -120,6 +123,7 @@
     <ClInclude Include="Config\AdvancedConfigPane.h" />
     <ClInclude Include="Config\AudioConfigPane.h" />
     <ClInclude Include="Config\GameCubeConfigPane.h" />
+    <ClInclude Include="Config\GCAdapterConfigDiag.h" />
     <ClInclude Include="Config\GeneralConfigPane.h" />
     <ClInclude Include="Config\InterfaceConfigPane.h" />
     <ClInclude Include="Config\PathConfigPane.h" />
@@ -210,9 +214,6 @@
     <ProjectReference Include="$(CoreDir)VideoBackends\OGL\OGL.vcxproj">
       <Project>{1909CD2D-1707-456F-86CA-0DF42A727C99}</Project>
     </ProjectReference>
-    <ProjectReference Include="$(CoreDir)VideoBackends\Software\Software.vcxproj">
-      <Project>{9E9DA440-E9AD-413C-B648-91030E792211}</Project>
-    </ProjectReference>
     <ProjectReference Include="$(CoreDir)AudioCommon\AudioCommon.vcxproj">
       <Project>{37D007BD-D66C-4EAF-B56C-BD1AAC340A05}</Project>
     </ProjectReference>
@@ -239,6 +240,9 @@
     </ProjectReference>
     <ProjectReference Include="..\VideoBackends\D3D12\D3D12.vcxproj">
       <Project>{570215b7-e32f-4438-95ae-c8d955f9fca3}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\VideoBackends\Software\Software.vcxproj">
+      <Project>{9e9da440-e9ad-413c-b648-91030e792211}</Project>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

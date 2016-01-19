@@ -194,7 +194,7 @@ void VideoBackend::Video_Prepare()
 
 	// VideoCommon
 	BPInit();
-	Fifo_Init();
+	Fifo::Init();
 	IndexGenerator::Init();
 	VertexLoaderManager::Init();
 	OpcodeDecoder_Init();
@@ -217,7 +217,7 @@ void VideoBackend::Shutdown()
 	if (!g_renderer)
 		return;
 	// VideoCommon
-	Fifo_Shutdown();
+	Fifo::Shutdown();
 	CommandProcessor::Shutdown();
 	PixelShaderManager::Shutdown();
 	VertexShaderManager::Shutdown();

@@ -578,9 +578,7 @@ void Renderer::PokeEFB(EFBAccessType type, const EfbPokeData* points, size_t num
 	}
 	else // if (type == POKE_Z)
 	{
-		D3D12_VIEWPORT vp = { 0.0f, 0.0f, (float)GetTargetWidth(), (float)GetTargetHeight(),
-			1.0f - MathUtil::Clamp<float>(xfmem.viewport.farZ, 0.0f, 16777215.0f) / 16777216.0f,
-			1.0f - MathUtil::Clamp<float>((xfmem.viewport.farZ - MathUtil::Clamp<float>(xfmem.viewport.zRange, 0.0f, 16777215.0f)), 0.0f, 16777215.0f) / 16777216.0f };
+		D3D12_VIEWPORT vp = { 0.0f, 0.0f, (float)GetTargetWidth(), (float)GetTargetHeight(), D3D12_MIN_DEPTH, D3D12_MAX_DEPTH };
 
 		D3D::DrawEFBPokeQuads(
 			type,
@@ -637,7 +635,7 @@ void Renderer::SetViewport()
 	height = (y + height <= GetTargetHeight()) ? height : (GetTargetHeight() - y);
 
 	D3D12_VIEWPORT vp = { x, y, width, height, 0.0f, 1.0f };
-	float nearz = xfmem.viewport.farZ - MathUtil::Clamp<float>(xfmem.viewport.zRange, 0.0f, 16777215.0f);
+	float nearz = xfmem.viewport.farZ - MathUtil::Clamp<float>(xfmem.viewport.zRange, 0.0f, 16777216.0f);
 	float farz = xfmem.viewport.farZ;
 
 	const bool nonStandartViewport = g_ActiveConfig.bViewportCorrection && (nearz < 0.f || farz > 16777216.0f || nearz >= 16777216.0f || farz <= 0.f);
@@ -849,7 +847,7 @@ void formatBufferDump(const u8* in, u8* out, int w, int h, int p)
 // This function has the final picture. We adjust the aspect ratio here.
 void Renderer::SwapImpl(u32 xfb_addr, u32 fb_width, u32 fb_stride, u32 fb_height, const EFBRectangle& rc, float gamma)
 {
-	if (g_bSkipCurrentFrame || (!XFBWrited && !g_ActiveConfig.RealXFBEnabled()) || !fb_width || !fb_height)
+	if (Fifo::g_bSkipCurrentFrame || (!XFBWrited && !g_ActiveConfig.RealXFBEnabled()) || !fb_width || !fb_height)
 	{
 		if (SConfig::GetInstance().m_DumpFrames && !frame_data.empty())
 			AVIDump::AddFrame(&frame_data[0], fb_width, fb_height);
@@ -997,7 +995,7 @@ void Renderer::SwapImpl(u32 xfb_addr, u32 fb_width, u32 fb_stride, u32 fb_height
 		{
 			s_record_width = source_width;
 			s_record_height = source_height;
-			bAVIDumping = AVIDump::Start(D3D::hWnd, s_record_width, s_record_height);
+			bAVIDumping = AVIDump::Start(s_record_width, s_record_height);
 			if (!bAVIDumping)
 			{
 				PanicAlert("Error dumping frames to AVI.");
@@ -1024,6 +1022,7 @@ void Renderer::SwapImpl(u32 xfb_addr, u32 fb_width, u32 fb_stride, u32 fb_height
 				h = s_record_height;
 			}
 			formatBufferDump(static_cast<u8*>(s_screenshot_texture_data) + D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT, &frame_data[0], source_width, source_height, dst_location.PlacedFootprint.Footprint.RowPitch);
+			FlipImageData(&frame_data[0], w, h);
 			AVIDump::AddFrame(&frame_data[0], source_height, source_height);
 		}
 		bLastFrameDumped = true;

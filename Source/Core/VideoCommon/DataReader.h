@@ -60,10 +60,14 @@ public:
 		return result;
 	}
 
-	template <typename T> __forceinline T Read()
+	template <typename T, bool swap = true> __forceinline T Read()
 	{
-		auto const result = Peek<T>();
+		auto const result = PeekUnswapped<T>();
 		ReadSkip(sizeof(T));
+		if (swap)
+		{
+			return Common::FromBigEndian(result);
+		}
 		return result;
 	}
 

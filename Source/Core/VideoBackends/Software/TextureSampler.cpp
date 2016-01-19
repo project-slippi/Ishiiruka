@@ -1,4 +1,4 @@
-// Copyright 2013 Dolphin Emulator Project
+// Copyright 2009 Dolphin Emulator Project
 // Licensed under GPLv2+
 // Refer to the license.txt file included.
 
@@ -7,8 +7,9 @@
 
 #include "Common/Common.h"
 #include "Core/HW/Memmap.h"
-#include "VideoBackends/Software/BPMemLoader.h"
 #include "VideoBackends/Software/TextureSampler.h"
+
+#include "VideoCommon/BPMemory.h"
 #include "VideoCommon/TextureDecoder.h"
 
 #define ALLOW_MIPMAP 1
@@ -127,7 +128,8 @@ void SampleMip(s32 s, s32 t, s32 mip, bool linear, u8 texmap, u8 *sample)
 	int imageWidth = ti0.width;
 	int imageHeight = ti0.height;
 
-	int tlutAddress = texTlut.tmem_offset << 9;	
+	int tlutAddress = texTlut.tmem_offset << 9;
+	const u16* tlut = reinterpret_cast<const u16*>(&texMem[tlutAddress]);
 
 	// reduce sample location and texture size to mip level
 	// move texture pointer to mip location
@@ -185,16 +187,16 @@ void SampleMip(s32 s, s32 t, s32 mip, bool linear, u8 texmap, u8 *sample)
 
 		if (!(ti0.format == GX_TF_RGBA8 && texUnit.texImage1[subTexmap].image_type))
 		{
-			TexDecoder_DecodeTexel(sampledTex, imageSrc, imageS, imageT, imageWidth, ti0.format, tlutAddress, tlutfmt);
+			TexDecoder_DecodeTexel(sampledTex, imageSrc, imageS, imageT, imageWidth, ti0.format, tlut, tlutfmt);
 			SetTexel(sampledTex, texel, (128 - fractS) * (128 - fractT));
 
-			TexDecoder_DecodeTexel(sampledTex, imageSrc, imageSPlus1, imageT, imageWidth, ti0.format, tlutAddress, tlutfmt);
+			TexDecoder_DecodeTexel(sampledTex, imageSrc, imageSPlus1, imageT, imageWidth, ti0.format, tlut, tlutfmt);
 			AddTexel(sampledTex, texel, (fractS) * (128 - fractT));
 
-			TexDecoder_DecodeTexel(sampledTex, imageSrc, imageS, imageTPlus1, imageWidth, ti0.format, tlutAddress, tlutfmt);
+			TexDecoder_DecodeTexel(sampledTex, imageSrc, imageS, imageTPlus1, imageWidth, ti0.format, tlut, tlutfmt);
 			AddTexel(sampledTex, texel, (128 - fractS) * (fractT));
 
-			TexDecoder_DecodeTexel(sampledTex, imageSrc, imageSPlus1, imageTPlus1, imageWidth, ti0.format, tlutAddress, tlutfmt);
+			TexDecoder_DecodeTexel(sampledTex, imageSrc, imageSPlus1, imageTPlus1, imageWidth, ti0.format, tlut, tlutfmt);
 			AddTexel(sampledTex, texel, (fractS) * (fractT));
 		}
 		else
@@ -228,7 +230,7 @@ void SampleMip(s32 s, s32 t, s32 mip, bool linear, u8 texmap, u8 *sample)
 		WrapCoord(&imageT, tm0.wrap_t, imageHeight);
 
 		if (!(ti0.format == GX_TF_RGBA8 && texUnit.texImage1[subTexmap].image_type))
-			TexDecoder_DecodeTexel(sample, imageSrc, imageS, imageT, imageWidth, ti0.format, tlutAddress, tlutfmt);
+			TexDecoder_DecodeTexel(sample, imageSrc, imageS, imageT, imageWidth, ti0.format, tlut, tlutfmt);
 		else
 			TexDecoder_DecodeTexelRGBA8FromTmem(sample, imageSrc, imageSrcOdd, imageS, imageT, imageWidth);
 	}

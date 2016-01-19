@@ -265,7 +265,7 @@ VideoConfigDiag::VideoConfigDiag(wxWindow* parent, const std::string &title, con
 	choice_backend = new wxChoice(page_general, wxID_ANY, wxDefaultPosition);
 	RegisterControl(choice_backend, backend_desc);
 
-	for (const VideoBackend* backend : g_available_video_backends)
+	for (const VideoBackendBase* backend : g_available_video_backends)
 	{
 		choice_backend->AppendString(StrToWxStr(backend->GetDisplayName()));
 	}
@@ -945,7 +945,7 @@ void VideoConfigDiag::CreateDescriptionArea(wxPanel* const page, wxBoxSizer* con
 
 void VideoConfigDiag::Event_Backend(wxCommandEvent &ev)
 {
-	VideoBackend* new_backend = g_available_video_backends[ev.GetInt()];
+	VideoBackendBase* new_backend = g_available_video_backends[ev.GetInt()];
 	if (g_video_backend != new_backend)
 	{
 		bool do_switch = true;

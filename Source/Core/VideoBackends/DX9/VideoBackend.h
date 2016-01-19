@@ -9,7 +9,7 @@
 namespace DX9
 {
 
-class VideoBackend : public VideoBackendHardware
+class VideoBackend : public VideoBackendBase
 {
 	bool Initialize(void *) override;
 	void Shutdown()  override;

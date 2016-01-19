@@ -110,7 +110,7 @@ bool DolphinApp::OnInit()
 {
 	if (!wxApp::OnInit())
 		return false;
-
+	wxLog::SetLogLevel(0);
 	Bind(wxEVT_QUERY_END_SESSION, &DolphinApp::OnEndSession, this);
 	Bind(wxEVT_END_SESSION, &DolphinApp::OnEndSession, this);
 
@@ -133,7 +133,7 @@ bool DolphinApp::OnInit()
 	if (m_select_audio_emulation)
 		SConfig::GetInstance().bDSPHLE = (m_audio_emulation_name.Upper() == "HLE");
 
-	VideoBackend::ActivateBackend(SConfig::GetInstance().m_strVideoBackend);
+	VideoBackendBase::ActivateBackend(SConfig::GetInstance().m_strVideoBackend);
 
 	// Enable the PNG image handler for screenshots
 	wxImage::AddHandler(new wxPNGHandler);

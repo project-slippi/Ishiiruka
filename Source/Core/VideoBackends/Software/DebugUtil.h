@@ -1,4 +1,4 @@
-// Copyright 2013 Dolphin Emulator Project
+// Copyright 2008 Dolphin Emulator Project
 // Licensed under GPLv2+
 // Refer to the license.txt file included.
 
@@ -17,8 +17,6 @@ namespace DebugUtil
 
 	void OnObjectBegin();
 	void OnObjectEnd();
-
-	void OnFrameEnd(u32 width, u32 height);
 
 	void DrawObjectBuffer(s16 x, s16 y, u8 *color, int bufferBase, int subBuffer, const char *name);
 

@@ -15,6 +15,7 @@
 #include "Core/HW/Memmap.h"
 
 #include "VideoCommon/Debugger.h"
+#include "VideoCommon/FramebufferManagerBase.h"
 #include "VideoCommon/HiresTextures.h"
 #include "VideoCommon/RenderBase.h"
 #include "VideoCommon/Statistics.h"

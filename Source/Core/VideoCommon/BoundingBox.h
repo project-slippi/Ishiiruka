@@ -36,9 +36,9 @@ __forceinline void SetVertexBufferPosition(TPipelineState &pipelinestate)
 
 void LOADERDECL SetVertexBufferPosition();
 void LOADERDECL Update();
-void Prepare(const VAT & vat, int primitive, const TVtxDesc & vtxDesc, const PortableVertexDeclaration & vtxDecl);
+void Prepare(const VAT& vat, int primitive, const TVtxDesc& vtxDesc, const PortableVertexDeclaration& vtxDecl);
 
 // Save state
-void DoState(PointerWrap &p);
+void DoState(PointerWrap& p);
 
 }; // end of namespace BoundingBox

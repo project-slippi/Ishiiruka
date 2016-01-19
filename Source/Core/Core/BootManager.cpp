@@ -23,8 +23,8 @@
 #include <string>
 #include <vector>
 
-#include "Common/CommonPaths.h"
 #include "Common/CommonTypes.h"
+#include "Common/FileUtil.h"
 #include "Common/IniFile.h"
 #include "Common/SysConf.h"
 #include "Core/BootManager.h"
@@ -37,8 +37,6 @@
 #include "Core/HW/SI.h"
 #include "Core/HW/Sram.h"
 #include "Core/HW/WiimoteReal/WiimoteReal.h"
-#include "DiscIO/Volume.h"
-#include "DiscIO/VolumeCreator.h"
 #include "VideoCommon/VideoBackendBase.h"
 
 namespace BootManager
@@ -190,7 +188,7 @@ void ConfigCache::RestoreConfig(SConfig* config)
 	config->m_strVideoBackend = strBackend;
 	config->sBackend = sBackend;
 	config->m_strGPUDeterminismMode = m_strGPUDeterminismMode;
-	VideoBackend::ActivateBackend(config->m_strVideoBackend);
+	VideoBackendBase::ActivateBackend(config->m_strVideoBackend);
 }
 
 static ConfigCache config_cache;
@@ -266,7 +264,7 @@ bool BootCore(const std::string& _rFilename)
 			config_cache.bSetVolume = true;
 		dsp_section->Get("EnableJIT",         &SConfig::GetInstance().m_DSPEnableJIT, SConfig::GetInstance().m_DSPEnableJIT);
 		dsp_section->Get("Backend",           &SConfig::GetInstance().sBackend, SConfig::GetInstance().sBackend);
-		VideoBackend::ActivateBackend(StartUp.m_strVideoBackend);
+		VideoBackendBase::ActivateBackend(StartUp.m_strVideoBackend);
 		core_section->Get("GPUDeterminismMode", &StartUp.m_strGPUDeterminismMode, StartUp.m_strGPUDeterminismMode);
 
 		for (unsigned int i = 0; i < MAX_SI_CHANNELS; ++i)

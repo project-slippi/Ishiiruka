@@ -4,8 +4,6 @@
 
 #pragma once
 #include "Common/ConstantBuffer.h"
-#include "VideoCommon/BPMemory.h"
-#include "VideoCommon/XFMemory.h"
 #include "VideoCommon/PixelShaderGen.h"
 
 class PointerWrap;

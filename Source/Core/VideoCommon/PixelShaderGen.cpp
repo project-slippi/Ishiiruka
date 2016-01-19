@@ -2,13 +2,20 @@
 // Licensed under GPLv2+
 // Refer to the license.txt file included.
 
-#include <stdio.h>
-#include <cmath>
 #include <assert.h>
+#include <cmath>
+#include <cstring>
 #include <locale.h>
+#include <stdio.h>
 #ifdef __APPLE__
 #include <xlocale.h>
 #endif
+
+
+#include "Common/Assert.h"
+#include "Common/CommonTypes.h"
+#include "Common/Logging/Log.h"
+
 #include "VideoCommon/BoundingBox.h"
 #include "VideoCommon/PixelShaderGen.h"
 #include "VideoCommon/VertexShaderGen.h"
@@ -261,7 +268,7 @@ int2 BSH(int2 x, int n)
 }
 int remainder(int x, int y)
 {
-	return x %% y;
+	return x & (y - 1);
 }
 // dot product for integer vectors
 int idot(int3 x, int3 y)

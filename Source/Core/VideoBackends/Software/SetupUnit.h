@@ -1,4 +1,4 @@
-// Copyright 2013 Dolphin Emulator Project
+// Copyright 2008 Dolphin Emulator Project
 // Licensed under GPLv2+
 // Refer to the license.txt file included.
 
@@ -6,8 +6,6 @@
 
 #include "Common/CommonTypes.h"
 #include "VideoBackends/Software/NativeVertexFormat.h"
-
-class PointerWrap;
 
 class SetupUnit
 {
@@ -29,8 +27,7 @@ class SetupUnit
 public:
 	void Init(u8 primitiveType);
 
-	OutputVertexData* GetVertex() { return m_VertWritePointer; }
+	OutputVertexData* GetVertex();
 
 	void SetupVertex();
-	void DoState(PointerWrap &p);
 };

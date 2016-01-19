@@ -5,10 +5,6 @@
 #pragma once
 
 #include <string>
-#include <vector>
-
-#include "Common/CommonTypes.h"
-#include "VideoCommon/VideoCommon.h"
 
 struct Statistics
 {
@@ -57,6 +53,17 @@ struct Statistics
 		int bytesVertexStreamed;
 		int bytesIndexStreamed;
 		int bytesUniformStreamed;
+
+		int numTrianglesClipped;
+		int numTrianglesIn;
+		int numTrianglesRejected;
+		int numTrianglesCulled;
+		int numDrawnObjects;
+		int rasterizedPixels;
+		int numTrianglesDrawn;
+		int numVerticesLoaded;
+		int tevPixelsIn;
+		int tevPixelsOut;
 	};
 	ThisFrame thisFrame;
 	void ResetFrame();

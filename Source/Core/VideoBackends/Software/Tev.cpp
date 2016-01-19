@@ -1,4 +1,4 @@
-// Copyright 2013 Dolphin Emulator Project
+// Copyright 2009 Dolphin Emulator Project
 // Licensed under GPLv2+
 // Refer to the license.txt file included.
 
@@ -8,12 +8,14 @@
 #include "Common/CommonTypes.h"
 #include "VideoBackends/Software/DebugUtil.h"
 #include "VideoBackends/Software/EfbInterface.h"
-#include "VideoBackends/Software/SWStatistics.h"
-#include "VideoBackends/Software/SWVideoConfig.h"
 #include "VideoBackends/Software/Tev.h"
 #include "VideoBackends/Software/TextureSampler.h"
-#include "VideoBackends/Software/XFMemLoader.h"
+
 #include "VideoCommon/BoundingBox.h"
+#include "VideoCommon/PerfQueryBase.h"
+#include "VideoCommon/Statistics.h"
+#include "VideoCommon/VideoConfig.h"
+#include "VideoCommon/XFMemory.h"
 
 #ifdef _DEBUG
 #define ALLOW_TEV_DUMPS 1
@@ -373,15 +375,15 @@ static inline s32 WrapIndirectCoord(s32 coord, int wrapMode)
 		case ITW_OFF:
 			return coord;
 		case ITW_256:
-			return (coord % (256 << 7));
+			return (coord & ((256 << 7) - 1));
 		case ITW_128:
-			return (coord % (128 << 7));
+			return (coord & ((128 << 7) - 1));
 		case ITW_64:
-			return (coord % (64 << 7));
+			return (coord & ((64 << 7) - 1));
 		case ITW_32:
-			return (coord % (32 << 7));
+			return (coord & ((32 << 7) - 1));
 		case ITW_16:
-			return (coord % (16 << 7));
+			return (coord & ((16 << 7) - 1));
 		case ITW_0:
 			return 0;
 		default:
@@ -509,9 +511,9 @@ void Tev::Draw()
 	_assert_(Position[0] >= 0 && Position[0] < EFB_WIDTH);
 	_assert_(Position[1] >= 0 && Position[1] < EFB_HEIGHT);
 
-	INCSTAT(swstats.thisFrame.tevPixelsIn);
+	INCSTAT(stats.thisFrame.tevPixelsIn);
 
-	for (unsigned int stageNum = 0; stageNum < bpmem.genMode.numindstages.Value(); stageNum++)
+	for (unsigned int stageNum = 0; stageNum < bpmem.genMode.numindstages; stageNum++)
 	{
 		int stageNum2 = stageNum >> 1;
 		int stageOdd = stageNum&1;
@@ -527,7 +529,7 @@ void Tev::Draw()
 			IndirectLod[stageNum], IndirectLinear[stageNum], texmap, IndirectTex[stageNum]);
 
 #if ALLOW_TEV_DUMPS
-		if (g_SWVideoConfig.bDumpTevStages)
+		if (g_ActiveConfig.bDumpTevStages)
 		{
 			u8 stage[4] = {
 				IndirectTex[stageNum][TextureSampler::ALP_SMP],
@@ -565,7 +567,7 @@ void Tev::Draw()
 			TextureSampler::Sample(TexCoord.s, TexCoord.t, TextureLod[stageNum], TextureLinear[stageNum], texmap, texel);
 
 #if ALLOW_TEV_DUMPS
-			if (g_SWVideoConfig.bDumpTevTextureFetches)
+			if (g_ActiveConfig.bDumpTevTextureFetches)
 				DebugUtil::DrawTempBuffer(texel, DIRECT_TFETCH + stageNum);
 #endif
 
@@ -632,7 +634,7 @@ void Tev::Draw()
 			Reg[ac.dest][ALP_C] = Clamp1024(Reg[ac.dest][ALP_C]);
 
 #if ALLOW_TEV_DUMPS
-		if (g_SWVideoConfig.bDumpTevStages)
+		if (g_ActiveConfig.bDumpTevStages)
 		{
 			u8 stage[4] = {(u8)Reg[0][RED_C], (u8)Reg[0][GRN_C], (u8)Reg[0][BLU_C], (u8)Reg[0][ALP_C]};
 			DebugUtil::DrawTempBuffer(stage, DIRECT + stageNum);
@@ -650,125 +652,120 @@ void Tev::Draw()
 	if (!TevAlphaTest(output[ALP_C]))
 		return;
 
-	// This part is only needed if we are not simply computing bbox
-	// (i. e., only needed when using the SW renderer)
-	if (!BoundingBox::active)
+	// z texture
+	if (bpmem.ztex2.op)
 	{
-		// z texture
-		if (bpmem.ztex2.op)
+		u32 ztex = bpmem.ztex1.bias;
+		switch (bpmem.ztex2.type)
 		{
-			u32 ztex = bpmem.ztex1.bias;
-			switch (bpmem.ztex2.type)
-			{
-				case 0: // 8 bit
-					ztex += TexColor[ALP_C];
-					break;
-				case 1: // 16 bit
-					ztex += TexColor[ALP_C] << 8 | TexColor[RED_C];
-					break;
-				case 2: // 24 bit
-					ztex += TexColor[RED_C] << 16 | TexColor[GRN_C] << 8 | TexColor[BLU_C];
-					break;
-			}
-
-			if (bpmem.ztex2.op == ZTEXTURE_ADD)
-				ztex += Position[2];
-
-			Position[2] = ztex & 0x00ffffff;
+			case 0: // 8 bit
+				ztex += TexColor[ALP_C];
+				break;
+			case 1: // 16 bit
+				ztex += TexColor[ALP_C] << 8 | TexColor[RED_C];
+				break;
+			case 2: // 24 bit
+				ztex += TexColor[RED_C] << 16 | TexColor[GRN_C] << 8 | TexColor[BLU_C];
+				break;
 		}
 
-		// fog
-		if (bpmem.fog.c_proj_fsel.fsel)
+		if (bpmem.ztex2.op == ZTEXTURE_ADD)
+			ztex += Position[2];
+
+		Position[2] = ztex & 0x00ffffff;
+	}
+
+	// fog
+	if (bpmem.fog.c_proj_fsel.fsel)
+	{
+		float ze;
+
+		if (bpmem.fog.c_proj_fsel.proj == 0)
 		{
-			float ze;
+			// perspective
+			// ze = A/(B - (Zs >> B_SHF))
+			s32 denom = bpmem.fog.b_magnitude - (Position[2] >> bpmem.fog.b_shift);
+			//in addition downscale magnitude and zs to 0.24 bits
+			ze = (bpmem.fog.a.GetA() * 16777215.0f) / (float)denom;
+		}
+		else
+		{
+			// orthographic
+			// ze = a*Zs
+			//in addition downscale zs to 0.24 bits
+			ze = bpmem.fog.a.GetA() * ((float)Position[2] / 16777215.0f);
 
-			if (bpmem.fog.c_proj_fsel.proj == 0)
-			{
-				// perspective
-				// ze = A/(B - (Zs >> B_SHF))
-				s32 denom = bpmem.fog.b_magnitude - (Position[2] >> bpmem.fog.b_shift);
-				//in addition downscale magnitude and zs to 0.24 bits
-				ze = (bpmem.fog.a.GetA() * 16777215.0f) / (float)denom;
-			}
-			else
-			{
-				// orthographic
-				// ze = a*Zs
-				//in addition downscale zs to 0.24 bits
-				ze = bpmem.fog.a.GetA() * ((float)Position[2] / 16777215.0f);
-
-			}
-
-			if (bpmem.fogRange.Base.Enabled)
-			{
-				// TODO: This is untested and should definitely be checked against real hw.
-				// - No idea if offset is really normalized against the viewport width or against the projection matrix or yet something else
-				// - scaling of the "k" coefficient isn't clear either.
-
-				// First, calculate the offset from the viewport center (normalized to 0..1)
-				float offset = (Position[0] - (bpmem.fogRange.Base.Center - 342)) / (float)xfmem.viewport.wd;
-
-				// Based on that, choose the index such that points which are far away from the z-axis use the 10th "k" value and such that central points use the first value.
-				float floatindex = 9.f - std::abs(offset) * 9.f;
-				floatindex = (floatindex < 0.f) ? 0.f : (floatindex > 9.f) ? 9.f : floatindex; // TODO: This shouldn't be necessary!
-
-				// Get the two closest integer indices, look up the corresponding samples
-				int indexlower = (int)floor(floatindex);
-				int indexupper = indexlower + 1;
-				// Look up coefficient... Seems like multiplying by 4 makes Fortune Street work properly (fog is too strong without the factor)
-				float klower = bpmem.fogRange.K[indexlower/2].GetValue(indexlower%2) * 4.f;
-				float kupper = bpmem.fogRange.K[indexupper/2].GetValue(indexupper%2) * 4.f;
-
-				// linearly interpolate the samples and multiple ze by the resulting adjustment factor
-				float factor = indexupper - floatindex;
-				float k = klower * factor + kupper * (1.f - factor);
-				float x_adjust = sqrt(offset*offset + k*k)/k;
-				ze *= x_adjust; // NOTE: This is basically dividing by a cosine (hidden behind GXInitFogAdjTable): 1/cos = c/b = sqrt(a^2+b^2)/b
-			}
-
-			ze -= bpmem.fog.c_proj_fsel.GetC();
-
-			// clamp 0 to 1
-			float fog = (ze<0.0f) ? 0.0f : ((ze>1.0f) ? 1.0f : ze);
-
-			switch (bpmem.fog.c_proj_fsel.fsel)
-			{
-				case 4: // exp
-					fog = 1.0f - pow(2.0f, -8.0f * fog);
-					break;
-				case 5: // exp2
-					fog = 1.0f - pow(2.0f, -8.0f * fog * fog);
-					break;
-				case 6: // backward exp
-					fog = 1.0f - fog;
-					fog = pow(2.0f, -8.0f * fog);
-					break;
-				case 7: // backward exp2
-					fog = 1.0f - fog;
-					fog = pow(2.0f, -8.0f * fog * fog);
-					break;
-			}
-
-			// lerp from output to fog color
-			u32 fogInt = (u32)(fog * 256);
-			u32 invFog = 256 - fogInt;
-
-			output[RED_C] = (output[RED_C] * invFog + fogInt * bpmem.fog.color.r) >> 8;
-			output[GRN_C] = (output[GRN_C] * invFog + fogInt * bpmem.fog.color.g) >> 8;
-			output[BLU_C] = (output[BLU_C] * invFog + fogInt * bpmem.fog.color.b) >> 8;
 		}
 
-		bool late_ztest = !bpmem.zcontrol.early_ztest || !g_SWVideoConfig.bZComploc;
-		if (late_ztest && bpmem.zmode.testenable)
+		if (bpmem.fogRange.Base.Enabled)
 		{
-			// TODO: Check against hw if these values get incremented even if depth testing is disabled
-			EfbInterface::IncPerfCounterQuadCount(PQ_ZCOMP_INPUT);
+			// TODO: This is untested and should definitely be checked against real hw.
+			// - No idea if offset is really normalized against the viewport width or against the projection matrix or yet something else
+			// - scaling of the "k" coefficient isn't clear either.
 
-			if (!EfbInterface::ZCompare(Position[0], Position[1], Position[2]))
-				return;
+			// First, calculate the offset from the viewport center (normalized to 0..1)
+			float offset = (Position[0] - (bpmem.fogRange.Base.Center - 342)) / (float)xfmem.viewport.wd;
 
-			EfbInterface::IncPerfCounterQuadCount(PQ_ZCOMP_OUTPUT);
+			// Based on that, choose the index such that points which are far away from the z-axis use the 10th "k" value and such that central points use the first value.
+			float floatindex = 9.f - std::abs(offset) * 9.f;
+			floatindex = (floatindex < 0.f) ? 0.f : (floatindex > 9.f) ? 9.f : floatindex; // TODO: This shouldn't be necessary!
+
+			// Get the two closest integer indices, look up the corresponding samples
+			int indexlower = (int)floor(floatindex);
+			int indexupper = indexlower + 1;
+			// Look up coefficient... Seems like multiplying by 4 makes Fortune Street work properly (fog is too strong without the factor)
+			float klower = bpmem.fogRange.K[indexlower/2].GetValue(indexlower%2) * 4.f;
+			float kupper = bpmem.fogRange.K[indexupper/2].GetValue(indexupper%2) * 4.f;
+
+			// linearly interpolate the samples and multiple ze by the resulting adjustment factor
+			float factor = indexupper - floatindex;
+			float k = klower * factor + kupper * (1.f - factor);
+			float x_adjust = sqrt(offset*offset + k*k)/k;
+			ze *= x_adjust; // NOTE: This is basically dividing by a cosine (hidden behind GXInitFogAdjTable): 1/cos = c/b = sqrt(a^2+b^2)/b
 		}
+
+		ze -= bpmem.fog.c_proj_fsel.GetC();
+
+		// clamp 0 to 1
+		float fog = (ze<0.0f) ? 0.0f : ((ze>1.0f) ? 1.0f : ze);
+
+		switch (bpmem.fog.c_proj_fsel.fsel)
+		{
+			case 4: // exp
+				fog = 1.0f - pow(2.0f, -8.0f * fog);
+				break;
+			case 5: // exp2
+				fog = 1.0f - pow(2.0f, -8.0f * fog * fog);
+				break;
+			case 6: // backward exp
+				fog = 1.0f - fog;
+				fog = pow(2.0f, -8.0f * fog);
+				break;
+			case 7: // backward exp2
+				fog = 1.0f - fog;
+				fog = pow(2.0f, -8.0f * fog * fog);
+				break;
+		}
+
+		// lerp from output to fog color
+		u32 fogInt = (u32)(fog * 256);
+		u32 invFog = 256 - fogInt;
+
+		output[RED_C] = (output[RED_C] * invFog + fogInt * bpmem.fog.color.r) >> 8;
+		output[GRN_C] = (output[GRN_C] * invFog + fogInt * bpmem.fog.color.g) >> 8;
+		output[BLU_C] = (output[BLU_C] * invFog + fogInt * bpmem.fog.color.b) >> 8;
+	}
+
+	bool late_ztest = !bpmem.zcontrol.early_ztest || !g_ActiveConfig.bZComploc;
+	if (late_ztest && bpmem.zmode.testenable)
+	{
+		// TODO: Check against hw if these values get incremented even if depth testing is disabled
+		EfbInterface::IncPerfCounterQuadCount(PQ_ZCOMP_INPUT);
+
+		if (!EfbInterface::ZCompare(Position[0], Position[1], Position[2]))
+			return;
+
+		EfbInterface::IncPerfCounterQuadCount(PQ_ZCOMP_OUTPUT);
 	}
 
 	// branchless bounding box update
@@ -777,22 +774,16 @@ void Tev::Draw()
 	BoundingBox::coords[BoundingBox::TOP] = std::min((u16)Position[1], BoundingBox::coords[BoundingBox::TOP]);
 	BoundingBox::coords[BoundingBox::BOTTOM] = std::max((u16)Position[1], BoundingBox::coords[BoundingBox::BOTTOM]);
 
-	// if we are only calculating the bounding box,
-	// there's no need to actually draw anything
-	if (BoundingBox::active)
-		return;
-
-
 #if ALLOW_TEV_DUMPS
-	if (g_SWVideoConfig.bDumpTevStages)
+	if (g_ActiveConfig.bDumpTevStages)
 	{
-		for (u32 i = 0; i < bpmem.genMode.numindstages.Value(); ++i)
+		for (u32 i = 0; i < bpmem.genMode.numindstages; ++i)
 			DebugUtil::CopyTempBuffer(Position[0], Position[1], INDIRECT, i, "Indirect");
 		for (u32 i = 0; i <= bpmem.genMode.numtevstages; ++i)
 			DebugUtil::CopyTempBuffer(Position[0], Position[1], DIRECT, i, "Stage");
 	}
 
-	if (g_SWVideoConfig.bDumpTevTextureFetches)
+	if (g_ActiveConfig.bDumpTevTextureFetches)
 	{
 		for (u32 i = 0; i <= bpmem.genMode.numtevstages; ++i)
 		{
@@ -803,7 +794,7 @@ void Tev::Draw()
 	}
 #endif
 
-	INCSTAT(swstats.thisFrame.tevPixelsOut);
+	INCSTAT(stats.thisFrame.tevPixelsOut);
 	EfbInterface::IncPerfCounterQuadCount(PQ_BLEND_INPUT);
 
 	EfbInterface::BlendTev(Position[0], Position[1], output);
@@ -821,29 +812,3 @@ void Tev::SetRegColor(int reg, int comp, bool konst, s16 color)
 	}
 }
 
-void Tev::DoState(PointerWrap &p)
-{
-	p.DoArray(Reg);
-
-	p.DoArray(KonstantColors);
-	p.DoArray(TexColor);
-	p.DoArray(RasColor);
-	p.DoArray(StageKonst);
-
-	p.DoArray(FixedConstants);
-	p.Do(AlphaBump);
-	p.DoArray(IndirectTex);
-	p.Do(TexCoord);
-
-	p.DoArray(m_BiasLUT);
-	p.DoArray(m_ScaleLShiftLUT);
-	p.DoArray(m_ScaleRShiftLUT);
-
-	p.DoArray(Position);
-	p.DoArray(Color);
-	p.DoArray(Uv);
-	p.DoArray(IndirectLod);
-	p.DoArray(IndirectLinear);
-	p.DoArray(TextureLod);
-	p.DoArray(TextureLinear);
-}

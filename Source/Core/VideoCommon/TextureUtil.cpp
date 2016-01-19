@@ -2,6 +2,7 @@
 // Licensed under GPLv2+
 // Refer to the license.txt file included.
 
+#include <algorithm>
 #include "Common/CPUDetect.h"
 #include "Common/Intrinsics.h"
 #include "VideoCommon/TextureUtil.h"
@@ -264,6 +265,6 @@ namespace TextureUtil
 
 	u32 CalculateLevelSize(u32 level_0_size, u32 level)
 	{
-		return (level_0_size + ((1 << level) - 1)) >> level;
+		return std::max(level_0_size >> level, 1u);
 	}
 }

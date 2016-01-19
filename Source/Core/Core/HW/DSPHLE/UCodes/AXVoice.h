@@ -16,11 +16,13 @@
 
 #include "Common/CommonTypes.h"
 #include "Common/MathUtil.h"
+
 #include "Core/ConfigManager.h"
 #include "Core/HW/DSP.h"
 #include "Core/HW/Memmap.h"
 #include "Core/HW/DSPHLE/UCodes/AX.h"
 #include "Core/HW/DSPHLE/UCodes/AXStructs.h"
+
 
 #ifdef AX_GC
 # define PB_TYPE AXPB

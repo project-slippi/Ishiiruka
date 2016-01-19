@@ -76,8 +76,6 @@
 
 #include "InputCommon/ControllerInterface/ControllerInterface.h"
 
-#include "VideoBackends/Software/SWVideoConfig.h"
-
 #include "VideoCommon/VideoBackendBase.h"
 #include "VideoCommon/VideoConfig.h"
 
@@ -95,11 +93,6 @@
 #define SM_CYVIRTUALSCREEN 79
 #endif
 #endif
-
-// Resources
-extern "C" {
-#include "DolphinWX/resources/Dolphin.c" // NOLINT: Dolphin icon
-};
 
 class InputConfig;
 class wxFrame;

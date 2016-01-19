@@ -13,9 +13,9 @@
 #include "VideoBackends/OGL/VideoBackend.h"
 #include "VideoBackends/Software/VideoBackend.h"
 
-std::vector<VideoBackend*> g_available_video_backends;
-VideoBackend* g_video_backend = nullptr;
-static VideoBackend* s_default_backend = nullptr;
+std::vector<VideoBackendBase*> g_available_video_backends;
+VideoBackendBase* g_video_backend = nullptr;
+static VideoBackendBase* s_default_backend = nullptr;
 
 #ifdef _WIN32
 #include <windows.h>
@@ -24,9 +24,9 @@ static VideoBackend* s_default_backend = nullptr;
 #define _WIN32_WINNT_WIN10                  0x0A00 // Windows 10
 #endif
 
-void VideoBackend::PopulateList()
+void VideoBackendBase::PopulateList()
 {
-	VideoBackend* backends[4] = { NULL };
+	VideoBackendBase* backends[4] = { NULL };
 
 	// D3D9 > D3D11 > OGL > SW
 #ifdef _WIN32
@@ -59,7 +59,7 @@ void VideoBackend::PopulateList()
 	}
 }
 
-void VideoBackend::ClearList()
+void VideoBackendBase::ClearList()
 {
 	while (!g_available_video_backends.empty())
 	{
@@ -68,12 +68,12 @@ void VideoBackend::ClearList()
 	}
 }
 
-void VideoBackend::ActivateBackend(const std::string& name)
+void VideoBackendBase::ActivateBackend(const std::string& name)
 {
 	if (name.length() == 0) // If nullptr, set it to the default backend (expected behavior)
 		g_video_backend = s_default_backend;
 
-	for (VideoBackend* backend : g_available_video_backends)
+	for (VideoBackendBase* backend : g_available_video_backends)
 		if (name == backend->GetName())
 			g_video_backend = backend;;
 }

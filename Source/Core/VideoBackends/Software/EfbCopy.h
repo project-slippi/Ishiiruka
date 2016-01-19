@@ -1,4 +1,4 @@
-// Copyright 2013 Dolphin Emulator Project
+// Copyright 2008 Dolphin Emulator Project
 // Licensed under GPLv2+
 // Refer to the license.txt file included.
 
@@ -9,6 +9,7 @@
 namespace EfbCopy
 {
 	// Copy the EFB to RAM as a texture format or XFB
-	// Clear the EFB if needed
 	void CopyEfb();
+
+	void ClearEfb();
 }

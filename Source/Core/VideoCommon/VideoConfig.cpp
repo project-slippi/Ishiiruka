@@ -46,10 +46,6 @@ VideoConfig::VideoConfig()
 	}
 	backend_info.bSupportsExclusiveFullscreen = false;
 
-	// Game-specific stereoscopy settings
-	bStereoEFBMonoDepth = false;
-	iStereoDepthPercentage = 100;
-	iStereoConvergence = 20;
 	bUseScalingFilter = false;
 	bTexDeposterize = false;
 	iTexScalingType = 0;
@@ -102,6 +98,14 @@ void VideoConfig::Load(const std::string& ini_file)
 	settings->Get("EnableOpenCL", &bEnableOpenCL, false);
 	settings->Get("EnableShaderDebugging", &bEnableShaderDebugging, false);
 	settings->Get("BorderlessFullscreen", &bBorderlessFullscreen, false);
+
+	settings->Get("SWZComploc", &bZComploc, true);
+	settings->Get("SWZFreeze", &bZFreeze, true);
+	settings->Get("SWDumpObjects", &bDumpObjects, false);
+	settings->Get("SWDumpTevStages", &bDumpTevStages, false);
+	settings->Get("SWDumpTevTexFetches", &bDumpTevTextureFetches, false);
+	settings->Get("SWDrawStart", &drawStart, 0);
+	settings->Get("SWDrawEnd", &drawEnd, 100000);
 
 	IniFile::Section* enhancements = iniFile.GetOrCreateSection("Enhancements");
 	enhancements->Get("ForceFiltering", &bForceFiltering, 0);
@@ -236,6 +240,11 @@ void VideoConfig::GameIniLoad()
 	CHECK_SETTING("Video_Settings", "DisableFog", bDisableFog);
 	CHECK_SETTING("Video_Settings", "EnableOpenCL", bEnableOpenCL);
 
+	// These are not overrides, they are per-game stereoscopy parameters, hence no warning
+	iniFile.GetIfExists("Video_Stereoscopy", "StereoConvergence", &iStereoConvergence, 20);
+	iniFile.GetIfExists("Video_Stereoscopy", "StereoEFBMonoDepth", &bStereoEFBMonoDepth, false);
+	iniFile.GetIfExists("Video_Stereoscopy", "StereoDepthPercentage", &iStereoDepthPercentage, 100);
+
 	CHECK_SETTING("Video_Enhancements", "ForceFiltering", bForceFiltering);
 	CHECK_SETTING("Video_Enhancements", "MaxAnisotropy", iMaxAnisotropy);  // NOTE - this is x in (1 << x)
 	CHECK_SETTING("Video_Enhancements", "UseScalingFilter", bUseScalingFilter);
@@ -255,11 +264,8 @@ void VideoConfig::GameIniLoad()
 	CHECK_SETTING("Video_Enhancements", "AnaglyphShader", sAnaglyphShader);
 
 	CHECK_SETTING("Video_Stereoscopy", "StereoMode", iStereoMode);
-	CHECK_SETTING("Video_Stereoscopy", "StereoDepth", iStereoDepth);
-	CHECK_SETTING("Video_Stereoscopy", "StereoConvergence", iStereoConvergence);
+	CHECK_SETTING("Video_Stereoscopy", "StereoDepth", iStereoDepth);	
 	CHECK_SETTING("Video_Stereoscopy", "StereoSwapEyes", bStereoSwapEyes);
-	CHECK_SETTING("Video_Stereoscopy", "StereoEFBMonoDepth", bStereoEFBMonoDepth);
-	CHECK_SETTING("Video_Stereoscopy", "StereoDepthPercentage", iStereoDepthPercentage);
 	CHECK_SETTING("Video_Stereoscopy", "StereoAnaglyphShader", sAnaglyphShader);
 
 	CHECK_SETTING("Video_Hacks", "EFBAccessEnable", bEFBAccessEnable);
@@ -398,6 +404,14 @@ void VideoConfig::Save(const std::string& ini_file)
 	settings->Set("EnableOpenCL", bEnableOpenCL);
 	settings->Set("EnableShaderDebugging", bEnableShaderDebugging);
 	settings->Set("BorderlessFullscreen", bBorderlessFullscreen);
+
+	settings->Set("SWZComploc", bZComploc);
+	settings->Set("SWZFreeze", bZFreeze);
+	settings->Set("SWDumpObjects", bDumpObjects);
+	settings->Set("SWDumpTevStages", bDumpTevStages);
+	settings->Set("SWDumpTevTexFetches", bDumpTevTextureFetches);
+	settings->Set("SWDrawStart", drawStart);
+	settings->Set("SWDrawEnd", drawEnd);
 
 	IniFile::Section* enhancements = iniFile.GetOrCreateSection("Enhancements");
 	enhancements->Set("ForceFiltering", bForceFiltering);

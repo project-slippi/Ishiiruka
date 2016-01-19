@@ -5,16 +5,19 @@
 #include <algorithm>
 #include <unordered_map>
 
-#include "Common/CPUDetect.h"
-#include "Common/Hash.h"
+#include "Common/CommonTypes.h"
+#include "Common/MsgHandler.h"
+
 #include "Common/StringUtil.h"
+#include "Common/Logging/Log.h"
+
 #include "VideoBackends/DX11/D3DPtr.h"
 #include "VideoBackends/DX11/D3DBase.h"
 #include "VideoBackends/DX11/D3DTexture.h"
 #include "VideoBackends/DX11/D3DState.h"
 
-#include "VideoCommon/VideoConfig.h"
 #include "VideoCommon/TextureDecoder.h"
+#include "VideoCommon/VideoConfig.h"
 
 namespace DX11
 {

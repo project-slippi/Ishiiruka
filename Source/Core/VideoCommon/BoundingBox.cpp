@@ -38,7 +38,7 @@ void LOADERDECL SetVertexBufferPosition()
 }
 
 // Prepares the bounding box for new primitive data
-void Prepare(const VAT & vat, int primitive, const TVtxDesc & vtxDesc, const PortableVertexDeclaration & vtxDecl)
+void Prepare(const VAT& vat, int primitive, const TVtxDesc& vtxDesc, const PortableVertexDeclaration& vtxDecl)
 {
 	if (!(active && g_ActiveConfig.iBBoxMode == BBoxCPU))
 		return;
@@ -65,15 +65,15 @@ void Prepare(const VAT & vat, int primitive, const TVtxDesc & vtxDesc, const Por
 
 	for (u8 i = 0; i < 4; ++i)
 	{
-		Rasterizer::SetTevReg(i, 0, true, (s16)PixelShaderManager::GetBuffer()[(C_KCOLORS + i) * 4 + 0]);
-		Rasterizer::SetTevReg(i, 1, true, (s16)PixelShaderManager::GetBuffer()[(C_KCOLORS + i) * 4 + 1]);
-		Rasterizer::SetTevReg(i, 2, true, (s16)PixelShaderManager::GetBuffer()[(C_KCOLORS + i) * 4 + 2]);
-		Rasterizer::SetTevReg(i, 3, true, (s16)PixelShaderManager::GetBuffer()[(C_KCOLORS + i) * 4 + 3]);
-
 		Rasterizer::SetTevReg(i, 0, false, (s16)PixelShaderManager::GetBuffer()[(C_COLORS + i) * 4 + 0]);
 		Rasterizer::SetTevReg(i, 1, false, (s16)PixelShaderManager::GetBuffer()[(C_COLORS + i) * 4 + 1]);
 		Rasterizer::SetTevReg(i, 2, false, (s16)PixelShaderManager::GetBuffer()[(C_COLORS + i) * 4 + 2]);
 		Rasterizer::SetTevReg(i, 3, false, (s16)PixelShaderManager::GetBuffer()[(C_COLORS + i) * 4 + 3]);
+
+		Rasterizer::SetTevReg(i, 0, true, (s16)PixelShaderManager::GetBuffer()[(C_KCOLORS + i) * 4 + 0]);
+		Rasterizer::SetTevReg(i, 1, true, (s16)PixelShaderManager::GetBuffer()[(C_KCOLORS + i) * 4 + 1]);
+		Rasterizer::SetTevReg(i, 2, true, (s16)PixelShaderManager::GetBuffer()[(C_KCOLORS + i) * 4 + 2]);
+		Rasterizer::SetTevReg(i, 3, true, (s16)PixelShaderManager::GetBuffer()[(C_KCOLORS + i) * 4 + 3]);
 	}
 }
 
@@ -143,7 +143,7 @@ void LOADERDECL Update()
 }
 
 // Save state
-void DoState(PointerWrap &p)
+void DoState(PointerWrap& p)
 {
 	p.Do(active);
 	p.Do(coords);

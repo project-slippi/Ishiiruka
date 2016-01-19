@@ -48,9 +48,6 @@
 #include "Core/HW/HW.h"
 #include "Core/HW/Memmap.h"
 #include "Core/HW/ProcessorInterface.h"
-#if defined(__LIBUSB__) || defined(_WIN32)
-#include "Core/HW/SI_GCAdapter.h"
-#endif
 #include "Core/HW/SystemTimers.h"
 #include "Core/HW/VideoInterface.h"
 #include "Core/HW/Wiimote.h"
@@ -65,8 +62,11 @@
 #endif
 
 #include "DiscIO/FileMonitor.h"
+#include "InputCommon/GCAdapter.h"
 #include "InputCommon/ControllerInterface/ControllerInterface.h"
+#include "VideoCommon/Fifo.h"
 #include "VideoCommon/OnScreenDisplay.h"
+#include "VideoCommon/RenderBase.h"
 #include "VideoCommon/VideoBackendBase.h"
 
 // This can mostly be removed when we move to VS2015
@@ -167,7 +167,7 @@ void DisplayMessage(const std::string& message, int time_in_ms)
 			return;
 	}
 
-	g_video_backend->Video_AddMessage(message, time_in_ms);
+	OSD::AddMessage(message, time_in_ms);
 	Host_UpdateTitle(message);
 }
 
@@ -264,7 +264,7 @@ void Stop()  // - Hammertime!
 
 	s_is_stopping = true;
 
-	g_video_backend->EmuStateChange(EMUSTATE_CHANGE_STOP);
+	Fifo::EmulatorState(false);
 
 	INFO_LOG(CONSOLE, "Stop [Main Thread]\t\t---- Shutting down ----");
 
@@ -285,7 +285,7 @@ void Stop()  // - Hammertime!
 		g_video_backend->Video_ExitLoop();
 	}
 #if defined(__LIBUSB__) || defined(_WIN32)
-	SI_GCAdapter::ResetRumble();
+	GCAdapter::ResetRumble();
 #endif
 
 #ifdef USE_MEMORYWATCHER
@@ -324,7 +324,7 @@ static void CpuThread()
 
 	const SConfig& _CoreParameter = SConfig::GetInstance();
 
-	VideoBackend* video_backend = g_video_backend;
+	VideoBackendBase* video_backend = g_video_backend;
 	if (_CoreParameter.bCPUThread)
 	{
 		Common::SetCurrentThreadName("CPU thread");
@@ -382,7 +382,7 @@ static void CpuThread()
 static void FifoPlayerThread()
 {
 	const SConfig& _CoreParameter = SConfig::GetInstance();
-	VideoBackend* video_backend = g_video_backend;
+	VideoBackendBase* video_backend = g_video_backend;
 	if (_CoreParameter.bCPUThread)
 	{
 		Common::SetCurrentThreadName("FIFO player thread");
@@ -420,7 +420,7 @@ void EmuThread()
 	const SConfig& core_parameter = SConfig::GetInstance();
 
 	Common::SetCurrentThreadName("Emuthread - Starting");
-	VideoBackend* video_backend = g_video_backend;
+	VideoBackendBase* video_backend = g_video_backend;
 	if (SConfig::GetInstance().m_OCEnable)
 		DisplayMessage("WARNING: running at non-native CPU clock! Game may not be stable.", 8000);
 	DisplayMessage(cpu_info.brand_string, 8000);
@@ -537,7 +537,7 @@ void EmuThread()
 		s_cpu_thread = std::thread(cpuThreadFunc);
 
 		// become the GPU thread
-		video_backend->Video_EnterLoop();
+		Fifo::RunGpuLoop();
 
 		// We have now exited the Video Loop
 		INFO_LOG(CONSOLE, "%s", StopMessage(false, "Video Loop Ended").c_str());
@@ -605,7 +605,7 @@ void EmuThread()
 	INFO_LOG(CONSOLE, "%s", StopMessage(true, "Main Emu thread stopped").c_str());
 
 	// Clear on screen messages that haven't expired
-	video_backend->Video_ClearMessages();
+	OSD::ClearMessages();
 
 	// Reload sysconf file in order to see changes committed during emulation
 	if (core_parameter.bWii)
@@ -631,7 +631,7 @@ void SetState(EState _State)
 		CPU::EnableStepping(true);  // Break
 		Wiimote::Pause();
 #if defined(__LIBUSB__) || defined(_WIN32)
-		SI_GCAdapter::ResetRumble();
+		GCAdapter::ResetRumble();
 #endif
 		break;
 	case CORE_RUN:
@@ -696,7 +696,7 @@ void SaveScreenShot()
 
 	SetState(CORE_PAUSE);
 
-	g_video_backend->Video_Screenshot(GenerateScreenshotName());
+	Renderer::SetScreenshot(GenerateScreenshotName());
 
 	if (!bPaused)
 		SetState(CORE_RUN);
@@ -710,7 +710,7 @@ void SaveScreenShot(const std::string& name)
 
 	std::string filePath = GenerateScreenshotFolderPath() + name + ".png";
 
-	g_video_backend->Video_Screenshot(filePath);
+	Renderer::SetScreenshot(filePath);
 
 	if (!bPaused)
 	 	SetState(CORE_RUN);
@@ -739,10 +739,10 @@ bool PauseAndLock(bool doLock, bool unpauseOnUnlock)
 	DSP::GetDSPEmulator()->PauseAndLock(doLock, unpauseOnUnlock);
 
 	// video has to come after CPU, because CPU thread can wait for video thread (s_efbAccessRequested).
-	g_video_backend->PauseAndLock(doLock, unpauseOnUnlock);
+	Fifo::PauseAndLock(doLock, unpauseOnUnlock);
 
 #if defined(__LIBUSB__) || defined(_WIN32)
-	SI_GCAdapter::ResetRumble();
+	GCAdapter::ResetRumble();
 #endif
 	return wasUnpaused;
 }
@@ -894,7 +894,7 @@ void UpdateWantDeterminism(bool initial)
 
 		g_want_determinism = new_want_determinism;
 		WiiSockMan::GetInstance().UpdateWantDeterminism(new_want_determinism);
-		g_video_backend->UpdateWantDeterminism(new_want_determinism);
+		Fifo::UpdateWantDeterminism(new_want_determinism);
 		// We need to clear the cache because some parts of the JIT depend on want_determinism, e.g. use of FMA.
 		JitInterface::ClearCache();
 		Common::InitializeWiiRoot(g_want_determinism);

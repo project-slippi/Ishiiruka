@@ -6,11 +6,12 @@
 
 package org.dolphinemu.dolphinemu;
 
-import android.util.Log;
+
 import android.view.Surface;
 import android.widget.Toast;
 
 import org.dolphinemu.dolphinemu.activities.EmulationActivity;
+import org.dolphinemu.dolphinemu.utils.Log;
 
 /**
  * Class which contains methods that interact
@@ -333,10 +334,12 @@ public final class NativeLibrary
 
 	/**
 	 * Begins emulation.
-	 * 
-	 * @param surf The surface to render to.
 	 */
-	public static native void Run(Surface surf);
+	public static native void Run();
+
+	// Surface Handling
+	public static native void SurfaceChanged(Surface surf);
+	public static native void SurfaceDestroyed();
 
 	/** Unpauses emulation from a paused state. */
 	public static native void UnPauseEmulation();
@@ -391,7 +394,7 @@ public final class NativeLibrary
 		}
 		catch (UnsatisfiedLinkError ex)
 		{
-			Log.e("NativeLibrary", ex.toString());
+			Log.error("[NativeLibrary] " + ex.toString());
 		}
 
 		CacheClassesAndMethods();
@@ -399,7 +402,7 @@ public final class NativeLibrary
 
 	public static void displayAlertMsg(final String alert)
 	{
-		Log.e("DolphinEmu", "Alert: " + alert);
+		Log.error("[NativeLibrary] Alert: " + alert);
 		mEmulationActivity.runOnUiThread(new Runnable()
 		{
 			@Override
@@ -412,13 +415,13 @@ public final class NativeLibrary
 
 	public static void endEmulationActivity()
 	{
-		Log.v("DolphinEmu", "Ending EmulationActivity.");
+		Log.verbose("[NativeLibrary]Ending EmulationActivity.");
 		mEmulationActivity.exitWithAnimation();
 	}
 
 	public static void setEmulationActivity(EmulationActivity emulationActivity)
 	{
-		Log.v("DolphinEmu", "Registering EmulationActivity.");
+		Log.verbose("[NativeLibrary]Registering EmulationActivity.");
 		mEmulationActivity = emulationActivity;
 	}
 }

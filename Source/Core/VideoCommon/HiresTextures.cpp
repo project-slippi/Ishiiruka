@@ -5,10 +5,12 @@
 #include <algorithm>
 #include <cinttypes>
 #include <cstring>
+#include <memory>
 #include <mutex>
 #include <string>
 #include <thread>
 #include <utility>
+#include <vector>
 #include <xxhash.h>
 
 #include "Common/CommonPaths.h"
@@ -19,6 +21,7 @@
 #include "Common/StringUtil.h"
 #include "Common/Thread.h"
 #include "Common/Timer.h"
+#include "Common/Logging/Log.h"
 
 #include "Core/ConfigManager.h"
 
@@ -97,9 +100,15 @@ bool hasEnding(std::string const &fullString, std::string const &ending) {
 	}
 }
 
-std::string HiresTexture::GetTextureFolder(const std::string& game_id)
+std::string HiresTexture::GetTextureDirectory(const std::string& game_id)
 {
-	return File::GetUserPath(D_HIRESTEXTURES_IDX) + game_id;
+	const std::string texture_directory = File::GetUserPath(D_HIRESTEXTURES_IDX) + game_id;
+
+	// If there's no directory with the region-specific ID, look for a 3-character region-free one
+	if (!File::Exists(texture_directory))
+		return File::GetUserPath(D_HIRESTEXTURES_IDX) + game_id.substr(0, 3);
+
+	return texture_directory;
 }
 
 void HiresTexture::Update()
@@ -129,11 +138,7 @@ void HiresTexture::Update()
 	
 	s_textureMap.clear();
 	const std::string& game_id = SConfig::GetInstance().m_strUniqueID;
-	std::string texture_directory = GetTextureFolder(game_id);
-	
-	// If there's no directory with the region-specific ID, look for a 3-character region-free one
-	if (!File::Exists(texture_directory))
-		texture_directory = GetTextureFolder(game_id.substr(0, 3));
+	const std::string texture_directory = GetTextureDirectory(game_id);
 
 	std::string ddscode(".dds");
 	std::string cddscode(".DDS");

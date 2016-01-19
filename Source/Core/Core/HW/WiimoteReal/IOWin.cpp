@@ -19,10 +19,11 @@
 #include <dbt.h>           //NOLINT
 #include <setupapi.h>      //NOLINT
 
-#include "Common/Common.h"
+#include "Common/CommonFuncs.h"
+#include "Common/CommonTypes.h"
 #include "Common/StringUtil.h"
 #include "Common/Thread.h"
-
+#include "Common/Logging/Log.h"
 #include "Core/HW/WiimoteEmu/WiimoteHid.h"
 #include "Core/HW/WiimoteReal/WiimoteReal.h"
 
@@ -473,10 +474,10 @@ void WiimoteScanner::CheckDeviceType(std::basic_string<TCHAR> &devicepath, WinWr
 #endif
 
 	HANDLE dev_handle = CreateFile(devicepath.c_str(),
-		GENERIC_READ | GENERIC_WRITE,
-		FILE_SHARE_READ | FILE_SHARE_WRITE,
-		nullptr, OPEN_EXISTING, FILE_FLAG_OVERLAPPED,
-		nullptr);
+	                               GENERIC_READ | GENERIC_WRITE,
+	                               FILE_SHARE_READ | FILE_SHARE_WRITE,
+	                               nullptr, OPEN_EXISTING, FILE_FLAG_OVERLAPPED,
+	                               nullptr);
 	if (dev_handle == INVALID_HANDLE_VALUE)
 		return;
 	// enable to only check for official nintendo wiimotes/bb's
@@ -485,36 +486,36 @@ void WiimoteScanner::CheckDeviceType(std::basic_string<TCHAR> &devicepath, WinWr
 	attrib.Size = sizeof(attrib);
 	if (!check_vidpid ||
 		(pHidD_GetAttributes(dev_handle, &attrib) &&
-			(attrib.VendorID == 0x057e) &&
-			(attrib.ProductID == 0x0306)))
+		(attrib.VendorID == 0x057e) &&
+		(attrib.ProductID == 0x0306)))
 	{
 		// max_cycles insures we are never stuck here due to bad coding...
 		int max_cycles = 20;
-		u8 buf[MAX_PAYLOAD] = { 0 };
+		u8 buf[MAX_PAYLOAD] = {0};
 
-		u8 const req_status_report[] = { WM_SET_REPORT | WM_BT_OUTPUT, WM_REQUEST_STATUS, 0 };
+		u8 const req_status_report[] = {WM_SET_REPORT | WM_BT_OUTPUT, WM_REQUEST_STATUS, 0};
 		// The new way to initialize the extension is by writing 0x55 to 0x(4)A400F0, then writing 0x00 to 0x(4)A400FB
 		// 52 16 04 A4 00 F0 01 55
 		// 52 16 04 A4 00 FB 01 00
-		u8 const disable_enc_pt1_report[MAX_PAYLOAD] = { WM_SET_REPORT | WM_BT_OUTPUT, WM_WRITE_DATA, 0x04, 0xa4, 0x00, 0xf0, 0x01, 0x55 };
-		u8 const disable_enc_pt2_report[MAX_PAYLOAD] = { WM_SET_REPORT | WM_BT_OUTPUT, WM_WRITE_DATA, 0x04, 0xa4, 0x00, 0xfb, 0x01, 0x00 };
+		u8 const disable_enc_pt1_report[MAX_PAYLOAD] = {WM_SET_REPORT | WM_BT_OUTPUT, WM_WRITE_DATA, 0x04, 0xa4, 0x00, 0xf0, 0x01, 0x55};
+		u8 const disable_enc_pt2_report[MAX_PAYLOAD] = {WM_SET_REPORT | WM_BT_OUTPUT, WM_WRITE_DATA, 0x04, 0xa4, 0x00, 0xfb, 0x01, 0x00};
 
 		CheckDeviceType_Write(dev_handle,
-			write_method,
-			disable_enc_pt1_report,
-			sizeof(disable_enc_pt1_report),
-			1);
+		                      write_method,
+		                      disable_enc_pt1_report,
+		                      sizeof(disable_enc_pt1_report),
+		                      1);
 		CheckDeviceType_Write(dev_handle,
-			write_method,
-			disable_enc_pt2_report,
-			sizeof(disable_enc_pt2_report),
-			1);
+		                      write_method,
+		                      disable_enc_pt2_report,
+		                      sizeof(disable_enc_pt2_report),
+		                      1);
 
 		int rc = CheckDeviceType_Write(dev_handle,
-			write_method,
-			req_status_report,
-			sizeof(req_status_report),
-			1);
+		                               write_method,
+		                               req_status_report,
+		                               sizeof(req_status_report),
+		                               1);
 
 		while (rc > 0 && --max_cycles > 0)
 		{
@@ -526,71 +527,71 @@ void WiimoteScanner::CheckDeviceType(std::basic_string<TCHAR> &devicepath, WinWr
 
 			switch (buf[1])
 			{
-			case WM_STATUS_REPORT:
-			{
-				real_wiimote = true;
-
-				// DEBUG_LOG(WIIMOTE, "CheckDeviceType: Got Status Report");
-				wm_status_report * wsr = (wm_status_report*)&buf[2];
-				if (wsr->extension)
-				{
-					// Wiimote with extension, we ask it what kind.
-					u8 read_ext[MAX_PAYLOAD] = { 0 };
-					read_ext[0] = WM_SET_REPORT | WM_BT_OUTPUT;
-					read_ext[1] = WM_READ_DATA;
-					// Extension type register.
-					*(u32*)&read_ext[2] = Common::swap32(0x4a400fa);
-					// Size.
-					*(u16*)&read_ext[6] = Common::swap16(6);
-					rc = CheckDeviceType_Write(dev_handle, write_method, read_ext, 8, 1);
-				}
-				else
-				{
-					// Normal Wiimote, exit while and be happy.
-					rc = -1;
-				}
-				break;
-			}
-			case WM_ACK_DATA:
-			{
-				real_wiimote = true;
-				//wm_acknowledge * wm = (wm_acknowledge*)&buf[2];
-				//DEBUG_LOG(WIIMOTE, "CheckDeviceType: Got Ack Error: %X ReportID: %X", wm->errorID, wm->reportID);
-				break;
-			}
-			case WM_READ_DATA_REPLY:
-			{
-				// DEBUG_LOG(WIIMOTE, "CheckDeviceType: Got Data Reply");
-				wm_read_data_reply * wrdr
-					= (wm_read_data_reply*)&buf[2];
-				// Check if it has returned what we asked.
-				if (Common::swap16(wrdr->address) == 0x00fa)
+				case WM_STATUS_REPORT:
 				{
 					real_wiimote = true;
-					// 0x020420A40000ULL means balance board.
-					u64 ext_type = (*(u64*)&wrdr->data[0]);
-					// DEBUG_LOG(WIIMOTE,
-					//           "CheckDeviceType: GOT EXT TYPE %llX",
-					//           ext_type);
-					is_bb = (ext_type == 0x020420A40000ULL);
-				}
-				else
-				{
-					ERROR_LOG(WIIMOTE,
-						"CheckDeviceType: GOT UNREQUESTED ADDRESS %X",
-						Common::swap16(wrdr->address));
-				}
-				// force end
-				rc = -1;
 
-				break;
-			}
-			default:
-			{
-				// We let read try again incase there is another packet waiting.
-				// DEBUG_LOG(WIIMOTE, "CheckDeviceType: GOT UNKNOWN REPLY: %X", buf[1]);
-				break;
-			}
+					// DEBUG_LOG(WIIMOTE, "CheckDeviceType: Got Status Report");
+					wm_status_report * wsr = (wm_status_report*)&buf[2];
+					if (wsr->extension)
+					{
+						// Wiimote with extension, we ask it what kind.
+						u8 read_ext[MAX_PAYLOAD] = {0};
+						read_ext[0] = WM_SET_REPORT | WM_BT_OUTPUT;
+						read_ext[1] = WM_READ_DATA;
+						// Extension type register.
+						*(u32*)&read_ext[2] = Common::swap32(0x4a400fa);
+						// Size.
+						*(u16*)&read_ext[6] = Common::swap16(6);
+						rc = CheckDeviceType_Write(dev_handle, write_method, read_ext, 8, 1);
+					}
+					else
+					{
+						// Normal Wiimote, exit while and be happy.
+						rc = -1;
+					}
+					break;
+				}
+				case WM_ACK_DATA:
+				{
+					real_wiimote = true;
+					//wm_acknowledge * wm = (wm_acknowledge*)&buf[2];
+					//DEBUG_LOG(WIIMOTE, "CheckDeviceType: Got Ack Error: %X ReportID: %X", wm->errorID, wm->reportID);
+					break;
+				}
+				case WM_READ_DATA_REPLY:
+				{
+					// DEBUG_LOG(WIIMOTE, "CheckDeviceType: Got Data Reply");
+					wm_read_data_reply * wrdr
+						= (wm_read_data_reply*)&buf[2];
+					// Check if it has returned what we asked.
+					if (Common::swap16(wrdr->address) == 0x00fa)
+					{
+						real_wiimote = true;
+						// 0x020420A40000ULL means balance board.
+						u64 ext_type = (*(u64*)&wrdr->data[0]);
+						// DEBUG_LOG(WIIMOTE,
+						//           "CheckDeviceType: GOT EXT TYPE %llX",
+						//           ext_type);
+						is_bb = (ext_type == 0x020420A40000ULL);
+					}
+					else
+					{
+						ERROR_LOG(WIIMOTE,
+						          "CheckDeviceType: GOT UNREQUESTED ADDRESS %X",
+						          Common::swap16(wrdr->address));
+					}
+					// force end
+					rc = -1;
+
+					break;
+				}
+				default:
+				{
+					// We let read try again incase there is another packet waiting.
+					// DEBUG_LOG(WIIMOTE, "CheckDeviceType: GOT UNKNOWN REPLY: %X", buf[1]);
+					break;
+				}
 			}
 		}
 	}
@@ -681,12 +682,12 @@ bool WiimoteWindows::ConnectInternal()
 	// TODO: thread isn't started here now, do this elsewhere
 	// This isn't as drastic as it sounds, since the process in which the threads
 	// reside is normal priority. Needed for keeping audio reports at a decent rate
-	/*
+/*
 	if (!SetThreadPriority(m_wiimote_thread.native_handle(), THREAD_PRIORITY_TIME_CRITICAL))
 	{
-	ERROR_LOG(WIIMOTE, "Failed to set Wiimote thread priority");
+		ERROR_LOG(WIIMOTE, "Failed to set Wiimote thread priority");
 	}
-	*/
+*/
 #ifdef SHARE_WRITE_WIIMOTES
 	g_connected_wiimotes.insert(m_devicepath);
 #endif
@@ -709,7 +710,7 @@ void WiimoteWindows::DisconnectInternal()
 }
 
 WiimoteWindows::WiimoteWindows(const std::basic_string<TCHAR>& path, WinWriteMethod initial_write_method)
-	: m_devicepath(path), m_write_method(initial_write_method)
+: m_devicepath(path), m_write_method(initial_write_method)
 {
 	m_dev_handle = nullptr;
 
@@ -807,8 +808,8 @@ static int IOWritePerSetOutputReport(HANDLE &dev_handle, const u8* buf, size_t l
 			NOTICE_LOG(WIIMOTE, "IOWrite[WWM_SET_OUTPUT_REPORT]: Unable to send data to the Wiimote");
 		}
 		else if (err != 0x1F)  // Some third-party adapters (DolphinBar) use this
-										// error code to signal the absence of a Wiimote
-										// linked to the HID device.
+							   // error code to signal the absence of a Wiimote
+							   // linked to the HID device.
 		{
 			WARN_LOG(WIIMOTE, "IOWrite[WWM_SET_OUTPUT_REPORT]: Error: %08x", err);
 		}
@@ -976,7 +977,7 @@ void ProcessWiimotes(bool new_scan, T& callback)
 			{
 				// btdi.szName is sometimes missing it's content - it's a bt feature..
 				DEBUG_LOG(WIIMOTE, "Authenticated %i connected %i remembered %i ",
-					btdi.fAuthenticated, btdi.fConnected, btdi.fRemembered);
+				          btdi.fAuthenticated, btdi.fConnected, btdi.fRemembered);
 
 				if (IsValidBluetoothName(UTF16ToUTF8(btdi.szName)))
 				{
@@ -1019,7 +1020,7 @@ bool AttachWiimote(HANDLE hRadio, const BLUETOOTH_RADIO_INFO& radio_info, BLUETO
 		auto const& wm_addr = btdi.Address.rgBytes;
 
 		NOTICE_LOG(WIIMOTE, "Found Wiimote (%02x:%02x:%02x:%02x:%02x:%02x). Enabling HID service.",
-			wm_addr[0], wm_addr[1], wm_addr[2], wm_addr[3], wm_addr[4], wm_addr[5]);
+		           wm_addr[0], wm_addr[1], wm_addr[2], wm_addr[3], wm_addr[4], wm_addr[5]);
 
 #if defined(AUTHENTICATE_WIIMOTES)
 		// Authenticate
@@ -1075,7 +1076,7 @@ bool ForgetWiimote(BLUETOOTH_DEVICE_INFO_STRUCT& btdi)
 
 		auto pair_time = g_connect_times.find(btdi.Address.ullLong);
 		if (pair_time == g_connect_times.end() ||
-			std::difftime(time(nullptr), pair_time->second) >= avoid_forget_seconds)
+		    std::difftime(time(nullptr), pair_time->second) >= avoid_forget_seconds)
 		{
 			// Make Windows forget about device so it will re-find it if visible.
 			// This is also required to detect a disconnect for some reason..

@@ -3,15 +3,16 @@
 // Refer to the license.txt file included.
 
 #include <cmath>
+#include <cstring>
 
-#include "Common/Common.h"
-#include "VideoCommon/Statistics.h"
+#include "Common/ChunkFile.h"
+#include "Common/CommonTypes.h"
 #include "VideoCommon/PixelShaderManager.h"
+#include "VideoCommon/RenderBase.h"
 #include "VideoCommon/VertexLoaderManager.h"
 #include "VideoCommon/VideoCommon.h"
 #include "VideoCommon/VideoConfig.h"
-
-#include "VideoCommon/RenderBase.h"
+#include "VideoCommon/XFMemory.h"
 
 alignas(16) float PixelShaderManager::psconstants[PixelShaderManager::ConstantBufferSize];
 ConstatBuffer PixelShaderManager::m_buffer(PixelShaderManager::psconstants, PixelShaderManager::ConstantBufferSize);

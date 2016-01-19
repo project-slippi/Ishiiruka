@@ -1,4 +1,4 @@
-// Copyright 2013 Dolphin Emulator Project
+// Copyright 2009 Dolphin Emulator Project
 // Licensed under GPLv2+
 // Refer to the license.txt file included.
 
@@ -8,150 +8,49 @@
 #include <string>
 
 #include "Common/CommonTypes.h"
+#include "Common/FileUtil.h"
 #include "Common/StringUtil.h"
-#include "Core/Core.h"
-#include "Common/GL/GLInterfaceBase.h"
-#include "Common/GL/GLUtil.h"
-#include "VideoBackends/Software/RasterFont.h"
-#include "VideoBackends/Software/SWCommandProcessor.h"
+#include "Common/Logging/Log.h"
+
+#include "Core/ConfigManager.h"
+#include "Core/HW/Memmap.h"
+
+#include "VideoBackends/Software/EfbCopy.h"
+#include "VideoBackends/Software/SWOGLWindow.h"
 #include "VideoBackends/Software/SWRenderer.h"
-#include "VideoBackends/Software/SWStatistics.h"
+
+#include "VideoCommon/BoundingBox.h"
+#include "VideoCommon/Fifo.h"
 #include "VideoCommon/ImageWrite.h"
 #include "VideoCommon/OnScreenDisplay.h"
-
-static GLuint s_RenderTarget = 0;
-
-static GLint attr_pos = -1, attr_tex = -1;
-static GLint uni_tex = -1;
-static GLuint program;
+#include "VideoCommon/VideoConfig.h"
 
 static u8 *s_xfbColorTexture[2];
 static int s_currentColorTexture = 0;
 
-static volatile bool s_bScreenshot;
-static std::mutex s_criticalScreenshot;
-static std::string s_sScreenshotName;
-
-
-// Rasterfont isn't compatible with GLES
-// degasus: I think it does, but I can't test it
-static RasterFont* s_pfont = nullptr;
+SWRenderer::~SWRenderer()
+{
+	delete[] s_xfbColorTexture[0];
+	delete[] s_xfbColorTexture[1];
+}
 
 void SWRenderer::Init()
 {
-	s_bScreenshot = false;
+	s_xfbColorTexture[0] = new u8[MAX_XFB_WIDTH * MAX_XFB_HEIGHT * 4];
+	s_xfbColorTexture[1] = new u8[MAX_XFB_WIDTH * MAX_XFB_HEIGHT * 4];
+
+	s_currentColorTexture = 0;
 }
 
 void SWRenderer::Shutdown()
 {
-	delete [] s_xfbColorTexture[0];
-	delete [] s_xfbColorTexture[1];
-	glDeleteProgram(program);
-	glDeleteTextures(1, &s_RenderTarget);
-	if (GLInterface->GetMode() == GLInterfaceMode::MODE_OPENGL)
-	{
-		delete s_pfont;
-		s_pfont = nullptr;
-	}
+	g_Config.bRunning = false;
+	UpdateActiveConfig();
 }
 
-static void CreateShaders()
+void SWRenderer::RenderText(const std::string& pstr, int left, int top, u32 color)
 {
-	static const char *fragShaderText =
-		"#ifdef GL_ES\n"
-		"precision highp float;\n"
-		"#endif\n"
-		"varying vec2 TexCoordOut;\n"
-		"uniform sampler2D Texture;\n"
-		"void main() {\n"
-		"	gl_FragColor = texture2D(Texture, TexCoordOut);\n"
-		"}\n";
-	static const char *vertShaderText =
-		"#ifdef GL_ES\n"
-		"precision highp float;\n"
-		"#endif\n"
-		"attribute vec4 pos;\n"
-		"attribute vec2 TexCoordIn;\n "
-		"varying vec2 TexCoordOut;\n "
-		"void main() {\n"
-		"	gl_Position = pos;\n"
-		"	TexCoordOut = TexCoordIn;\n"
-		"}\n";
-
-	program = OpenGL_CompileProgram(vertShaderText, fragShaderText);
-
-	glUseProgram(program);
-
-	uni_tex = glGetUniformLocation(program, "Texture");
-	attr_pos = glGetAttribLocation(program, "pos");
-	attr_tex = glGetAttribLocation(program, "TexCoordIn");
-}
-
-void SWRenderer::Prepare()
-{
-	s_xfbColorTexture[0] = new u8[MAX_XFB_WIDTH*MAX_XFB_HEIGHT*4];
-	s_xfbColorTexture[1] = new u8[MAX_XFB_WIDTH*MAX_XFB_HEIGHT*4];
-
-	s_currentColorTexture = 0;
-
-	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-	glPixelStorei(GL_UNPACK_ALIGNMENT, 4);  // 4-byte pixel alignment
-	glGenTextures(1, &s_RenderTarget);
-
-	CreateShaders();
-	// TODO: Enable for GLES once RasterFont supports GLES
-	if (GLInterface->GetMode() == GLInterfaceMode::MODE_OPENGL)
-	{
-		s_pfont = new RasterFont();
-		glEnable(GL_TEXTURE_2D);
-	}
-}
-
-void SWRenderer::SetScreenshot(const char *_szFilename)
-{
-	std::lock_guard<std::mutex> lk(s_criticalScreenshot);
-	s_sScreenshotName = _szFilename;
-	s_bScreenshot = true;
-}
-
-void SWRenderer::RenderText(const char* pstr, int left, int top, u32 color)
-{
-	if (GLInterface->GetMode() != GLInterfaceMode::MODE_OPENGL)
-		return;
-	int nBackbufferWidth = (int)GLInterface->GetBackBufferWidth();
-	int nBackbufferHeight = (int)GLInterface->GetBackBufferHeight();
-	glColor4f(((color>>16) & 0xff)/255.0f, ((color>> 8) & 0xff)/255.0f,
-			((color>> 0) & 0xff)/255.0f, ((color>>24) & 0xFF)/255.0f);
-	s_pfont->printMultilineText(pstr,
-			left * 2.0f / (float)nBackbufferWidth - 1,
-			1 - top * 2.0f / (float)nBackbufferHeight,
-			0, nBackbufferWidth, nBackbufferHeight);
-}
-
-void SWRenderer::DrawDebugText()
-{
-	std::string debugtext;
-
-	if (g_SWVideoConfig.bShowStats)
-	{
-		debugtext += StringFromFormat("Objects:            %i\n", swstats.thisFrame.numDrawnObjects);
-		debugtext += StringFromFormat("Primitives:         %i\n", swstats.thisFrame.numPrimatives);
-		debugtext += StringFromFormat("Vertices Loaded:    %i\n", swstats.thisFrame.numVerticesLoaded);
-
-		debugtext += StringFromFormat("Triangles Input:    %i\n", swstats.thisFrame.numTrianglesIn);
-		debugtext += StringFromFormat("Triangles Rejected: %i\n", swstats.thisFrame.numTrianglesRejected);
-		debugtext += StringFromFormat("Triangles Culled:   %i\n", swstats.thisFrame.numTrianglesCulled);
-		debugtext += StringFromFormat("Triangles Clipped:  %i\n", swstats.thisFrame.numTrianglesClipped);
-		debugtext += StringFromFormat("Triangles Drawn:    %i\n", swstats.thisFrame.numTrianglesDrawn);
-
-		debugtext += StringFromFormat("Rasterized Pix:     %i\n", swstats.thisFrame.rasterizedPixels);
-		debugtext += StringFromFormat("TEV Pix In:         %i\n", swstats.thisFrame.tevPixelsIn);
-		debugtext += StringFromFormat("TEV Pix Out:        %i\n", swstats.thisFrame.tevPixelsOut);
-	}
-
-	// Render a shadow, and then the text.
-	SWRenderer::RenderText(debugtext.c_str(), 21, 21, 0xDD000000);
-	SWRenderer::RenderText(debugtext.c_str(), 20, 20, 0xFFFFFF00);
+	SWOGLWindow::s_instance->PrintText(pstr, left, top, color);
 }
 
 u8* SWRenderer::GetNextColorTexture()
@@ -171,7 +70,7 @@ void SWRenderer::SwapColorTexture()
 
 void SWRenderer::UpdateColorTexture(EfbInterface::yuv422_packed *xfb, u32 fbWidth, u32 fbHeight)
 {
-	if (fbWidth*fbHeight > MAX_XFB_WIDTH*MAX_XFB_HEIGHT)
+	if (fbWidth * fbHeight > MAX_XFB_WIDTH * MAX_XFB_HEIGHT)
 	{
 		ERROR_LOG(VIDEO, "Framebuffer is too large: %ix%i", fbWidth, fbHeight);
 		return;
@@ -186,9 +85,9 @@ void SWRenderer::UpdateColorTexture(EfbInterface::yuv422_packed *xfb, u32 fbWidt
 		{
 			// We do this one color sample (aka 2 RGB pixles) at a time
 			int Y1 = xfb[x].Y - 16;
-			int Y2 = xfb[x+1].Y - 16;
+			int Y2 = xfb[x + 1].Y - 16;
 			int U  = int(xfb[x].UV) - 128;
-			int V  = int(xfb[x+1].UV) - 128;
+			int V  = int(xfb[x + 1].UV) - 128;
 
 			// We do the inverse BT.601 conversion for YCbCr to RGB
 			// http://www.equasys.de/colorconversion.html#YCbCr-RGBColorFormatConversion
@@ -208,84 +107,101 @@ void SWRenderer::UpdateColorTexture(EfbInterface::yuv422_packed *xfb, u32 fbWidt
 }
 
 // Called on the GPU thread
-void SWRenderer::Swap(u32 fbWidth, u32 fbHeight)
+void SWRenderer::SwapImpl(u32 xfbAddr, u32 fbWidth, u32 fbStride, u32 fbHeight, const EFBRectangle& rc, float Gamma)
 {
-	GLInterface->Update(); // just updates the render window position and the backbuffer size
-	if (!g_SWVideoConfig.bHwRasterizer)
-		SWRenderer::DrawTexture(GetCurrentColorTexture(), fbWidth, fbHeight);
-
-	swstats.frameCount++;
-	SWRenderer::SwapBuffer();
-	Core::Callback_VideoCopiedToXFB(true); // FIXME: should this function be called FrameRendered?
-}
-
-void SWRenderer::DrawTexture(u8 *texture, int width, int height)
-{
-	// FIXME: This should add black bars when the game has set the VI to render less than the full xfb.
-
-	// Save screenshot
-	if (s_bScreenshot)
+	if (!Fifo::g_bSkipCurrentFrame)
 	{
-		std::lock_guard<std::mutex> lk(s_criticalScreenshot);
-		TextureToPng(texture, width*4, s_sScreenshotName, width, height, false);
-		// Reset settings
-		s_sScreenshotName.clear();
-		s_bScreenshot = false;
+
+		if (g_ActiveConfig.bUseXFB)
+		{
+			EfbInterface::yuv422_packed* xfb = (EfbInterface::yuv422_packed*) Memory::GetPointer(xfbAddr);
+			UpdateColorTexture(xfb, fbWidth, fbHeight);
+		}
+		else
+		{
+			EfbInterface::BypassXFB(GetCurrentColorTexture(), fbWidth, fbHeight, rc, Gamma);
+		}
+
+		// Save screenshot
+		if (s_bScreenshot)
+		{
+			std::lock_guard<std::mutex> lk(s_criticalScreenshot);
+
+			if (TextureToPng(GetCurrentColorTexture(), fbWidth * 4, s_sScreenshotName, fbWidth, fbHeight, false))
+				OSD::AddMessage("Screenshot saved to " + s_sScreenshotName);
+
+			// Reset settings
+			s_sScreenshotName.clear();
+			s_bScreenshot = false;
+			s_screenshotCompleted.Set();
+		}
+
+		if (SConfig::GetInstance().m_DumpFrames)
+		{
+			static int frame_index = 0;
+			TextureToPng(GetCurrentColorTexture(), fbWidth * 4, StringFromFormat("%sframe%i_color.png",
+					File::GetUserPath(D_DUMPFRAMES_IDX).c_str(), frame_index), fbWidth, fbHeight, true);
+			frame_index++;
+		}
 	}
 
-	GLsizei glWidth = (GLsizei)GLInterface->GetBackBufferWidth();
-	GLsizei glHeight = (GLsizei)GLInterface->GetBackBufferHeight();
-
-
-	// Update GLViewPort
-	glViewport(0, 0, glWidth, glHeight);
-	glScissor(0, 0, glWidth, glHeight);
-
-	glBindTexture(GL_TEXTURE_2D, s_RenderTarget);
-
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, (GLsizei)width, (GLsizei)height, 0, GL_RGBA, GL_UNSIGNED_BYTE, texture);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-
-	glUseProgram(program);
-	static const GLfloat verts[4][2] = {
-		{ -1, -1}, // Left top
-		{ -1,  1}, // left bottom
-		{  1,  1}, // right bottom
-		{  1, -1} // right top
-	};
-	static const GLfloat texverts[4][2] = {
-		{0, 1},
-		{0, 0},
-		{1, 0},
-		{1, 1}
-	};
-
-	glVertexAttribPointer(attr_pos, 2, GL_FLOAT, GL_FALSE, 0, verts);
-	glVertexAttribPointer(attr_tex, 2, GL_FLOAT, GL_FALSE, 0, texverts);
-	glEnableVertexAttribArray(attr_pos);
-	glEnableVertexAttribArray(attr_tex);
-	glUniform1i(uni_tex, 0);
-	glActiveTexture(GL_TEXTURE0);
-	glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
-	glDisableVertexAttribArray(attr_pos);
-	glDisableVertexAttribArray(attr_tex);
-
-	glBindTexture(GL_TEXTURE_2D, 0);
-}
-
-void SWRenderer::SwapBuffer()
-{
-	// Do our OSD callbacks
-	OSD::DoCallbacks(OSD::CallbackType::Shutdown);
+	OSD::DoCallbacks(OSD::CallbackType::OnFrame);
 
 	DrawDebugText();
 
-	glFlush();
+	SWOGLWindow::s_instance->ShowImage(GetCurrentColorTexture(), fbWidth * 4, fbWidth, fbHeight, 1.0);
 
-	GLInterface->Swap();
+	UpdateActiveConfig();
+}
 
-	swstats.ResetFrame();
+u32 SWRenderer::AccessEFB(EFBAccessType type, u32 x, u32 y, u32 InputData)
+{
+	u32 value = 0;
 
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	switch (type)
+	{
+	case PEEK_Z:
+	{
+		value = EfbInterface::GetDepth(x, y);
+		break;
+	}
+	case PEEK_COLOR:
+	{
+		u32 color = 0;
+		EfbInterface::GetColor(x, y, (u8*)&color);
+
+		// rgba to argb
+		value = (color >> 8) | (color & 0xff) << 24;
+		break;
+	}
+	default:
+		break;
+	}
+
+	return value;
+}
+
+u16 SWRenderer::BBoxRead(int index)
+{
+	return BoundingBox::coords[index];
+}
+
+void SWRenderer::BBoxWrite(int index, u16 value)
+{
+	BoundingBox::coords[index] = value;
+}
+
+TargetRectangle SWRenderer::ConvertEFBRectangle(const EFBRectangle& rc)
+{
+	TargetRectangle result;
+	result.left   = rc.left;
+	result.top    = rc.top;
+	result.right  = rc.right;
+	result.bottom = rc.bottom;
+	return result;
+}
+
+void SWRenderer::ClearScreen(const EFBRectangle& rc, bool colorEnable, bool alphaEnable, bool zEnable, u32 color, u32 z)
+{
+	EfbCopy::ClearEfb();
 }

@@ -4,13 +4,18 @@
 
 #pragma once
 
-#include <stdio.h>
-#include <stdarg.h>
+#include <cstdarg>
+#include <cstring>
+#include <fstream>
+#include <iomanip>
+#include <map>
 #include <string>
 #include <vector>
-#include <algorithm>
 
 #include "Common/CommonTypes.h"
+#include "Common/FileUtil.h"
+#include "Common/StringUtil.h"
+#include "Common/Logging/Log.h"
 #include "Common/Hash.h"
 #include "VideoCommon/VideoCommon.h"
 #include "VideoCommon/VideoConfig.h"

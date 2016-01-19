@@ -90,7 +90,7 @@ PC_TexFormat TexDecoder_Decode(u8 *dst, const u8 *src, u32 width, u32 height, u3
 PC_TexFormat GetPC_TexFormat(u32 texformat, TlutFormat tlutfmt, bool compressed_supported = false);
 PC_TexFormat TexDecoder_DecodeRGBA8FromTmem(u32* dst, const u8 *src_ar, const u8 *src_gb, u32 width, u32 height);
 PC_TexFormat TexDecoder_DecodeBGRA8FromTmem(u32* dst, const u8 *src_ar, const u8 *src_gb, u32 width, u32 height);
-void TexDecoder_DecodeTexel(u8 *dst, const u8 *src, u32 s, u32 t, u32 imageWidth, u32 texformat, u32 tlutaddr, TlutFormat tlutfmt);
+void TexDecoder_DecodeTexel(u8 *dst, const u8 *src, u32 s, u32 t, u32 imageWidth, u32 texformat, const u16 *tlut, TlutFormat tlutfmt);
 void TexDecoder_DecodeTexelRGBA8FromTmem(u8 *dst, const u8 *src_ar, const u8* src_gb, u32 s, u32 t, u32 imageWidth);
 void TexDecoder_DecodeTexelBGRA8FromTmem(u8 *dst, const u8 *src_ar, const u8* src_gb, u32 s, u32 t, u32 imageWidth);
 void TexDecoder_SetTexFmtOverlayOptions(bool enable, bool center);

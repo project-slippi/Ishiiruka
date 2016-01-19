@@ -4,12 +4,12 @@
 
 #include <list>
 #include <string>
-#include <vector>
 
 #include "png.h"
+#include "Common/CommonTypes.h"
 #include "Common/FileUtil.h"
-#include "VideoCommon/ImageWrite.h"
 #include "Common/MsgHandler.h"
+#include "VideoCommon/ImageWrite.h"
 
 bool SaveData(const std::string& filename, const std::string& data)
 {

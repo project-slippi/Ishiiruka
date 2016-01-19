@@ -38,6 +38,9 @@ static PrecompiledVertexLoaderMap s_PrecompiledVertexLoaderMap;
 bool VertexLoaderCompiled::s_PrecompiledLoadersInitialized = false;
 void VertexLoaderCompiled::Initialize()
 {
+	VertexLoader_Normal::Init();
+	VertexLoader_Position::Init();
+	VertexLoader_TextCoord::Init();
 	if (!s_PrecompiledLoadersInitialized)
 	{
 		s_PrecompiledLoadersInitialized = true;

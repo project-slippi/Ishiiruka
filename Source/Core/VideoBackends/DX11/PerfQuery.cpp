@@ -2,6 +2,9 @@
 // Licensed under GPLv2+
 // Refer to the license.txt file included.
 
+#include "Common/CommonFuncs.h"
+#include "Common/CommonTypes.h"
+#include "Common/Logging/Log.h"
 #include "VideoBackends/DX11/D3DBase.h"
 #include "VideoBackends/DX11/PerfQuery.h"
 #include "VideoCommon/RenderBase.h"

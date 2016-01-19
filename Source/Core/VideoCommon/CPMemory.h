@@ -275,6 +275,7 @@ struct CPState final
 	u32 attr_dirty;
 	bool bases_dirty;
 	VertexLoaderBase* vertex_loaders[8];
+	int last_id;
 };
 
 extern CPState g_main_cp_state;

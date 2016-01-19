@@ -40,5 +40,5 @@ private:
 		std::function<u8*(size_t)> request_buffer_delegate, bool cacheresult);
 	static void Prefetch();
 	HiresTexture();
-	static std::string GetTextureFolder(const std::string& game_id);
+	static std::string GetTextureDirectory(const std::string& game_id);
 };

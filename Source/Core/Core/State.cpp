@@ -2,13 +2,18 @@
 // Licensed under GPLv2+
 // Refer to the license.txt file included.
 
+#include <map>
 #include <mutex>
 #include <string>
 #include <thread>
+#include <utility>
+#include <vector>
 #include <lzo/lzo1x.h>
 
+#include "Common/ChunkFile.h"
 #include "Common/CommonTypes.h"
 #include "Common/Event.h"
+#include "Common/FileUtil.h"
 #include "Common/MsgHandler.h"
 #include "Common/ScopeGuard.h"
 #include "Common/StringUtil.h"
@@ -22,14 +27,9 @@
 #include "Core/Movie.h"
 #include "Core/NetPlayClient.h"
 #include "Core/State.h"
-#include "Core/HW/CPU.h"
-#include "Core/HW/DSP.h"
 #include "Core/HW/HW.h"
-#include "Core/HW/Memmap.h"
-#include "Core/HW/SystemTimers.h"
-#include "Core/HW/VideoInterface.h"
 #include "Core/HW/Wiimote.h"
-#include "Core/PowerPC/JitCommon/JitBase.h"
+#include "Core/PowerPC/PowerPC.h"
 
 #include "VideoCommon/AVIDump.h"
 #include "VideoCommon/OnScreenDisplay.h"
@@ -191,7 +191,7 @@ static std::string DoState(PointerWrap& p)
 	Movie::DoState(p);
 	p.DoMarker("Movie");
 
-#if defined(HAVE_LIBAV) || defined (WIN32)
+#if defined(HAVE_LIBAV) || defined (_WIN32)
 	AVIDump::DoState();
 #endif
 

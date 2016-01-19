@@ -1,4 +1,4 @@
-// Copyright 2013 Dolphin Emulator Project
+// Copyright 2009 Dolphin Emulator Project
 // Licensed under GPLv2+
 // Refer to the license.txt file included.
 
@@ -6,16 +6,14 @@
 
 #include "Common/CommonFuncs.h"
 #include "Common/CommonTypes.h"
-#include "Core/HW/Memmap.h"
-
-#include "VideoBackends/Software/BPMemLoader.h"
+#include "Common/Logging/Log.h"
 #include "VideoBackends/Software/EfbInterface.h"
-
+#include "VideoCommon/BPMemory.h"
 #include "VideoCommon/LookUpTables.h"
-#include "VideoCommon/PixelEngine.h"
+#include "VideoCommon/PerfQueryBase.h"
 
 
-static u8 efb[EFB_WIDTH*EFB_HEIGHT * 6];
+static u8 efb[EFB_WIDTH*EFB_HEIGHT*6];
 
 namespace EfbInterface
 {
@@ -31,11 +29,6 @@ namespace EfbInterface
 		return (x + y * EFB_WIDTH) * 3 + DEPTH_BUFFER_START;
 	}
 
-	void DoState(PointerWrap &p)
-	{
-		p.DoArray(efb, EFB_WIDTH*EFB_HEIGHT * 6);
-	}
-
 	static void SetPixelAlphaOnly(u32 offset, u8 a)
 	{
 		switch (bpmem.zcontrol.pixel_format)
@@ -46,14 +39,14 @@ namespace EfbInterface
 			// do nothing
 			break;
 		case PEControl::RGBA6_Z24:
-		{
-			u32 a32 = a;
-			u32 *dst = (u32*)&efb[offset];
-			u32 val = *dst & 0xffffffc0;
-			val |= (a32 >> 2) & 0x0000003f;
-			*dst = val;
-		}
-		break;
+			{
+				u32 a32 = a;
+				u32 *dst = (u32*)&efb[offset];
+				u32 val = *dst & 0xffffffc0;
+				val |= (a32 >> 2) & 0x0000003f;
+				*dst = val;
+			}
+			break;
 		default:
 			ERROR_LOG(VIDEO, "Unsupported pixel format: %i", static_cast<int>(bpmem.zcontrol.pixel_format));
 		}
@@ -65,35 +58,35 @@ namespace EfbInterface
 		{
 		case PEControl::RGB8_Z24:
 		case PEControl::Z24:
-		{
-			u32 src = *(u32*)rgb;
-			u32 *dst = (u32*)&efb[offset];
-			u32 val = *dst & 0xff000000;
-			val |= src >> 8;
-			*dst = val;
-		}
-		break;
+			{
+				u32 src = *(u32*)rgb;
+				u32 *dst = (u32*)&efb[offset];
+				u32 val = *dst & 0xff000000;
+				val |= src >> 8;
+				*dst = val;
+			}
+			break;
 		case PEControl::RGBA6_Z24:
-		{
-			u32 src = *(u32*)rgb;
-			u32 *dst = (u32*)&efb[offset];
-			u32 val = *dst & 0xff00003f;
-			val |= (src >> 4) & 0x00000fc0; // blue
-			val |= (src >> 6) & 0x0003f000; // green
-			val |= (src >> 8) & 0x00fc0000; // red
-			*dst = val;
-		}
-		break;
+			{
+				u32 src = *(u32*)rgb;
+				u32 *dst = (u32*)&efb[offset];
+				u32 val = *dst & 0xff00003f;
+				val |= (src >> 4) & 0x00000fc0; // blue
+				val |= (src >> 6) & 0x0003f000; // green
+				val |= (src >> 8) & 0x00fc0000; // red
+				*dst = val;
+			}
+			break;
 		case PEControl::RGB565_Z16:
-		{
-			INFO_LOG(VIDEO, "RGB565_Z16 is not supported correctly yet");
-			u32 src = *(u32*)rgb;
-			u32 *dst = (u32*)&efb[offset];
-			u32 val = *dst & 0xff000000;
-			val |= src >> 8;
-			*dst = val;
-		}
-		break;
+			{
+				INFO_LOG(VIDEO, "RGB565_Z16 is not supported correctly yet");
+				u32 src = *(u32*)rgb;
+				u32 *dst = (u32*)&efb[offset];
+				u32 val = *dst & 0xff000000;
+				val |= src >> 8;
+				*dst = val;
+			}
+			break;
 		default:
 			ERROR_LOG(VIDEO, "Unsupported pixel format: %i", static_cast<int>(bpmem.zcontrol.pixel_format));
 		}
@@ -105,36 +98,36 @@ namespace EfbInterface
 		{
 		case PEControl::RGB8_Z24:
 		case PEControl::Z24:
-		{
-			u32 src = *(u32*)color;
-			u32 *dst = (u32*)&efb[offset];
-			u32 val = *dst & 0xff000000;
-			val |= src >> 8;
-			*dst = val;
-		}
-		break;
+			{
+				u32 src = *(u32*)color;
+				u32 *dst = (u32*)&efb[offset];
+				u32 val = *dst & 0xff000000;
+				val |= src >> 8;
+				*dst = val;
+			}
+			break;
 		case PEControl::RGBA6_Z24:
-		{
-			u32 src = *(u32*)color;
-			u32 *dst = (u32*)&efb[offset];
-			u32 val = *dst & 0xff000000;
-			val |= (src >> 2) & 0x0000003f; // alpha
-			val |= (src >> 4) & 0x00000fc0; // blue
-			val |= (src >> 6) & 0x0003f000; // green
-			val |= (src >> 8) & 0x00fc0000; // red
-			*dst = val;
-		}
-		break;
+			{
+				u32 src = *(u32*)color;
+				u32 *dst = (u32*)&efb[offset];
+				u32 val = *dst & 0xff000000;
+				val |= (src >> 2) & 0x0000003f; // alpha
+				val |= (src >> 4) & 0x00000fc0; // blue
+				val |= (src >> 6) & 0x0003f000; // green
+				val |= (src >> 8) & 0x00fc0000; // red
+				*dst = val;
+			}
+			break;
 		case PEControl::RGB565_Z16:
-		{
-			INFO_LOG(VIDEO, "RGB565_Z16 is not supported correctly yet");
-			u32 src = *(u32*)color;
-			u32 *dst = (u32*)&efb[offset];
-			u32 val = *dst & 0xff000000;
-			val |= src >> 8;
-			*dst = val;
-		}
-		break;
+			{
+				INFO_LOG(VIDEO, "RGB565_Z16 is not supported correctly yet");
+				u32 src = *(u32*)color;
+				u32 *dst = (u32*)&efb[offset];
+				u32 val = *dst & 0xff000000;
+				val |= src >> 8;
+				*dst = val;
+			}
+			break;
 		default:
 			ERROR_LOG(VIDEO, "Unsupported pixel format: %i", static_cast<int>(bpmem.zcontrol.pixel_format));
 		}
@@ -146,31 +139,31 @@ namespace EfbInterface
 		{
 		case PEControl::RGB8_Z24:
 		case PEControl::Z24:
-		{
-			u32 src = *(u32*)&efb[offset];
-			u32 *dst = (u32*)color;
-			u32 val = 0xff | ((src & 0x00ffffff) << 8);
-			*dst = val;
-		}
-		break;
+			{
+				u32 src = *(u32*)&efb[offset];
+				u32 *dst = (u32*)color;
+				u32 val = 0xff | ((src & 0x00ffffff) << 8);
+				*dst = val;
+			}
+			break;
 		case PEControl::RGBA6_Z24:
-		{
-			u32 src = *(u32*)&efb[offset];
-			color[ALP_C] = Convert6To8(src & 0x3f);
-			color[BLU_C] = Convert6To8((src >> 6) & 0x3f);
-			color[GRN_C] = Convert6To8((src >> 12) & 0x3f);
-			color[RED_C] = Convert6To8((src >> 18) & 0x3f);
-		}
-		break;
+			{
+				u32 src = *(u32*)&efb[offset];
+				color[ALP_C] = Convert6To8(src & 0x3f);
+				color[BLU_C] = Convert6To8((src >> 6) & 0x3f);
+				color[GRN_C] = Convert6To8((src >> 12) & 0x3f);
+				color[RED_C] = Convert6To8((src >> 18) & 0x3f);
+			}
+			break;
 		case PEControl::RGB565_Z16:
-		{
-			INFO_LOG(VIDEO, "RGB565_Z16 is not supported correctly yet");
-			u32 src = *(u32*)&efb[offset];
-			u32 *dst = (u32*)color;
-			u32 val = 0xff | ((src & 0x00ffffff) << 8);
-			*dst = val;
-		}
-		break;
+			{
+				INFO_LOG(VIDEO, "RGB565_Z16 is not supported correctly yet");
+				u32 src = *(u32*)&efb[offset];
+				u32 *dst = (u32*)color;
+				u32 val = 0xff | ((src & 0x00ffffff) << 8);
+				*dst = val;
+			}
+			break;
 		default:
 			ERROR_LOG(VIDEO, "Unsupported pixel format: %i", static_cast<int>(bpmem.zcontrol.pixel_format));
 		}
@@ -183,22 +176,22 @@ namespace EfbInterface
 		case PEControl::RGB8_Z24:
 		case PEControl::RGBA6_Z24:
 		case PEControl::Z24:
-		{
-			u32 *dst = (u32*)&efb[offset];
-			u32 val = *dst & 0xff000000;
-			val |= depth & 0x00ffffff;
-			*dst = val;
-		}
-		break;
+			{
+				u32 *dst = (u32*)&efb[offset];
+				u32 val = *dst & 0xff000000;
+				val |= depth & 0x00ffffff;
+				*dst = val;
+			}
+			break;
 		case PEControl::RGB565_Z16:
-		{
-			INFO_LOG(VIDEO, "RGB565_Z16 is not supported correctly yet");
-			u32 *dst = (u32*)&efb[offset];
-			u32 val = *dst & 0xff000000;
-			val |= depth & 0x00ffffff;
-			*dst = val;
-		}
-		break;
+			{
+				INFO_LOG(VIDEO, "RGB565_Z16 is not supported correctly yet");
+				u32 *dst = (u32*)&efb[offset];
+				u32 val = *dst & 0xff000000;
+				val |= depth & 0x00ffffff;
+				*dst = val;
+			}
+			break;
 		default:
 			ERROR_LOG(VIDEO, "Unsupported pixel format: %i", static_cast<int>(bpmem.zcontrol.pixel_format));
 		}
@@ -213,16 +206,16 @@ namespace EfbInterface
 		case PEControl::RGB8_Z24:
 		case PEControl::RGBA6_Z24:
 		case PEControl::Z24:
-		{
-			depth = (*(u32*)&efb[offset]) & 0x00ffffff;
-		}
-		break;
+			{
+				depth = (*(u32*)&efb[offset]) & 0x00ffffff;
+			}
+			break;
 		case PEControl::RGB565_Z16:
-		{
-			INFO_LOG(VIDEO, "RGB565_Z16 is not supported correctly yet");
-			depth = (*(u32*)&efb[offset]) & 0x00ffffff;
-		}
-		break;
+			{
+				INFO_LOG(VIDEO, "RGB565_Z16 is not supported correctly yet");
+				depth = (*(u32*)&efb[offset]) & 0x00ffffff;
+			}
+			break;
 		default:
 			ERROR_LOG(VIDEO, "Unsupported pixel format: %i", static_cast<int>(bpmem.zcontrol.pixel_format));
 		}
@@ -243,29 +236,29 @@ namespace EfbInterface
 		case BlendMode::INVDSTCLR:
 			return 0xffffffff - *(u32*)dstClr;
 		case BlendMode::SRCALPHA:
-		{
-			u8 alpha = srcClr[ALP_C];
-			u32 factor = alpha << 24 | alpha << 16 | alpha << 8 | alpha;
-			return factor;
-		}
+			{
+				u8 alpha = srcClr[ALP_C];
+				u32 factor = alpha << 24 | alpha << 16 | alpha << 8 | alpha;
+				return factor;
+			}
 		case BlendMode::INVSRCALPHA:
-		{
-			u8 alpha = 0xff - srcClr[ALP_C];
-			u32 factor = alpha << 24 | alpha << 16 | alpha << 8 | alpha;
-			return factor;
-		}
+			{
+				u8 alpha = 0xff - srcClr[ALP_C];
+				u32 factor = alpha << 24 | alpha << 16 | alpha << 8 | alpha;
+				return factor;
+			}
 		case BlendMode::DSTALPHA:
-		{
-			u8 alpha = dstClr[ALP_C];
-			u32 factor = alpha << 24 | alpha << 16 | alpha << 8 | alpha;
-			return factor;
-		}
+			{
+				u8 alpha = dstClr[ALP_C];
+				u32 factor = alpha << 24 | alpha << 16 | alpha << 8 | alpha;
+				return factor;
+			}
 		case BlendMode::INVDSTALPHA:
-		{
-			u8 alpha = 0xff - dstClr[ALP_C];
-			u32 factor = alpha << 24 | alpha << 16 | alpha << 8 | alpha;
-			return factor;
-		}
+			{
+				u8 alpha = 0xff - dstClr[ALP_C];
+				u32 factor = alpha << 24 | alpha << 16 | alpha << 8 | alpha;
+				return factor;
+			}
 		}
 
 		return 0;
@@ -284,29 +277,29 @@ namespace EfbInterface
 		case BlendMode::INVSRCCLR:
 			return 0xffffffff - *(u32*)srcClr;
 		case BlendMode::SRCALPHA:
-		{
-			u8 alpha = srcClr[ALP_C];
-			u32 factor = alpha << 24 | alpha << 16 | alpha << 8 | alpha;
-			return factor;
-		}
+			{
+				u8 alpha = srcClr[ALP_C];
+				u32 factor = alpha << 24 | alpha << 16 | alpha << 8 | alpha;
+				return factor;
+			}
 		case BlendMode::INVSRCALPHA:
-		{
-			u8 alpha = 0xff - srcClr[ALP_C];
-			u32 factor = alpha << 24 | alpha << 16 | alpha << 8 | alpha;
-			return factor;
-		}
+			{
+				u8 alpha = 0xff - srcClr[ALP_C];
+				u32 factor = alpha << 24 | alpha << 16 | alpha << 8 | alpha;
+				return factor;
+			}
 		case BlendMode::DSTALPHA:
-		{
-			u8 alpha = dstClr[ALP_C] & 0xff;
-			u32 factor = alpha << 24 | alpha << 16 | alpha << 8 | alpha;
-			return factor;
-		}
+			{
+				u8 alpha = dstClr[ALP_C] & 0xff;
+				u32 factor = alpha << 24 | alpha << 16 | alpha << 8 | alpha;
+				return factor;
+			}
 		case BlendMode::INVDSTALPHA:
-		{
-			u8 alpha = 0xff - dstClr[ALP_C];
-			u32 factor = alpha << 24 | alpha << 16 | alpha << 8 | alpha;
-			return factor;
-		}
+			{
+				u8 alpha = 0xff - dstClr[ALP_C];
+				u32 factor = alpha << 24 | alpha << 16 | alpha << 8 | alpha;
+				return factor;
+			}
 		}
 
 		return 0;
@@ -327,7 +320,7 @@ namespace EfbInterface
 			df += df >> 7;
 
 			u32 color = (srcClr[i] * sf + dstClr[i] * df) >> 8;
-			dstClr[i] = (color>255) ? 255 : color;
+			dstClr[i] = (color>255)?255:color;
 
 			dstFactor >>= 8;
 			srcFactor >>= 8;
@@ -394,7 +387,7 @@ namespace EfbInterface
 		for (int i = 0; i < 4; i++)
 		{
 			int c = (int)dstClr[i] - (int)srcClr[i];
-			dstClr[i] = (c < 0) ? 0 : c;
+			dstClr[i] = (c < 0)?0:c;
 		}
 	}
 
@@ -475,9 +468,9 @@ namespace EfbInterface
 
 		// GameCube/Wii uses the BT.601 standard algorithm for converting to YCbCr; see
 		// http://www.equasys.de/colorconversion.html#YCbCr-RGBColorFormatConversion
-		out->Y = (u8)(0.257f * color[RED_C] + 0.504f * color[GRN_C] + 0.098f * color[BLU_C]);
-		out->U = (u8)(-0.148f * color[RED_C] + -0.291f * color[GRN_C] + 0.439f * color[BLU_C]);
-		out->V = (u8)(0.439f * color[RED_C] + -0.368f * color[GRN_C] + -0.071f * color[BLU_C]);
+		out->Y = (u8)( 0.257f * color[RED_C] +  0.504f * color[GRN_C] +  0.098f * color[BLU_C]);
+		out->U = (u8)(-0.148f * color[RED_C] + -0.291f * color[GRN_C] +  0.439f * color[BLU_C]);
+		out->V = (u8)( 0.439f * color[RED_C] + -0.368f * color[GRN_C] + -0.071f * color[BLU_C]);
 	}
 
 	u32 GetDepth(u16 x, u16 y)
@@ -515,7 +508,7 @@ namespace EfbInterface
 		}
 
 		// Scanline buffer, leave room for borders
-		yuv444 scanline[EFB_WIDTH + 2];
+		yuv444 scanline[EFB_WIDTH+2];
 
 		// our internal yuv444 type is not normalized, so black is {0, 0, 0} instead of {16, 128, 128}
 		yuv444 black;
@@ -524,7 +517,7 @@ namespace EfbInterface
 		black.V = 0;
 
 		scanline[0] = black; // black border at start
-		scanline[right + 1] = black; // black border at end
+		scanline[right+1] = black; // black border at end
 
 		for (u16 y = sourceRc.top; y < sourceRc.bottom; y++)
 		{
@@ -536,24 +529,24 @@ namespace EfbInterface
 			}
 
 			// And Downsample them to 4:2:2
-			for (int i = 1, x = left; x < right; i += 2, x += 2)
+			for (int i = 1, x = left; x < right; i+=2, x+=2)
 			{
 				// YU pixel
 				xfb_in_ram[x].Y = scanline[i].Y + 16;
 				// we mix our color differences in 10 bit space so it will round more accurately
 				// U[i] = 1/4 * U[i-1] + 1/2 * U[i] + 1/4 * U[i+1]
-				xfb_in_ram[x].UV = 128 + ((scanline[i - 1].U + (scanline[i].U << 1) + scanline[i + 1].U) >> 2);
+				xfb_in_ram[x].UV = 128 + ((scanline[i-1].U + (scanline[i].U << 1) + scanline[i+1].U) >> 2);
 
 				// YV pixel
-				xfb_in_ram[x + 1].Y = scanline[i + 1].Y + 16;
+				xfb_in_ram[x+1].Y = scanline[i+1].Y + 16;
 				// V[i] = 1/4 * V[i-1] + 1/2 * V[i] + 1/4 * V[i+1]
-				xfb_in_ram[x + 1].UV = 128 + ((scanline[i].V + (scanline[i + 1].V << 1) + scanline[i + 2].V) >> 2);
+				xfb_in_ram[x+1].UV = 128 + ((scanline[i].V + (scanline[i+1].V << 1) + scanline[i+2].V) >> 2);
 			}
 			xfb_in_ram += fbWidth;
 		}
 	}
 
-	// Like CopyToXFB, but we copy directly into the opengl color texture without going via GameCube main memory or doing a yuyv conversion
+	// Like CopyToXFB, but we copy directly into the OpenGL color texture without going via GameCube main memory or doing a yuyv conversion
 	void BypassXFB(u8* texture, u32 fbWidth, u32 fbHeight, const EFBRectangle& sourceRc, float Gamma)
 	{
 		if (fbWidth*fbHeight > MAX_XFB_WIDTH*MAX_XFB_HEIGHT)
@@ -575,7 +568,7 @@ namespace EfbInterface
 			for (u16 x = left; x < right; x++)
 			{
 				GetColor(x, y, colorPtr);
-				texturePtr[textureAddress++] = Common::swap32(color);
+				texturePtr[textureAddress++] = Common::swap32(color | 0xFF);
 			}
 		}
 	}

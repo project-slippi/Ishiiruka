@@ -13,9 +13,8 @@
 // when they are called. The reason is that the vertex format affects the sizes of the vertices.
 
 #include "Common/CommonTypes.h"
-#include "Common/CPUDetect.h"
-#include "Core/Core.h"
-#include "Core/Host.h"
+#include "Common/MsgHandler.h"
+#include "Common/Logging/Log.h"
 #include "Core/FifoPlayer/FifoRecorder.h"
 #include "Core/HW/Memmap.h"
 #include "VideoCommon/BPMemory.h"
@@ -24,12 +23,10 @@
 #include "VideoCommon/DataReader.h"
 #include "VideoCommon/Fifo.h"
 #include "VideoCommon/OpcodeDecoding.h"
-#include "VideoCommon/PixelEngine.h"
 #include "VideoCommon/Statistics.h"
 #include "VideoCommon/VertexLoaderManager.h"
 #include "VideoCommon/VertexManagerBase.h"
 #include "VideoCommon/VideoCommon.h"
-#include "VideoCommon/VideoConfig.h"
 #include "VideoCommon/XFMemory.h"
 
 bool g_bRecordFifoData = false;
@@ -45,8 +42,8 @@ __forceinline u32 InterpretDisplayList(u32 address, u32 size)
 {
 	u8* startAddress;
 
-	if (g_use_deterministic_gpu_thread)
-		startAddress = static_cast<u8*>(PopFifoAuxBuffer(size));
+	if (Fifo::g_use_deterministic_gpu_thread)
+		startAddress = static_cast<u8*>(Fifo::PopFifoAuxBuffer(size));
 	else
 		startAddress = static_cast<u8*>(Memory::GetPointer(address));
 
@@ -76,7 +73,7 @@ __forceinline void InterpretDisplayListPreprocess(u32 address, u32 size)
 {
 	u8* startAddress = Memory::GetPointer(address);
 
-	PushFifoAuxBuffer(startAddress, size);
+	Fifo::PushFifoAuxBuffer(startAddress, size);
 
 	if (startAddress != nullptr)
 	{
@@ -300,7 +297,7 @@ u8* OpcodeDecoder_Run(DataReader& reader, u32* cycles)
 					u32 vtx_attr_group = cmd_byte & GX_VAT_MASK;
 					parameters.vtx_attr_group = vtx_attr_group;
 					parameters.needloaderrefresh = (state.attr_dirty & (1u << vtx_attr_group)) != 0;
-					parameters.skip_draw = g_bSkipCurrentFrame;
+					parameters.skip_draw = Fifo::g_bSkipCurrentFrame;
 					parameters.VtxDesc = &state.vtx_desc;
 					parameters.VtxAttr = &state.vtx_attr[vtx_attr_group];
 					parameters.source = reader.GetReadPosition();

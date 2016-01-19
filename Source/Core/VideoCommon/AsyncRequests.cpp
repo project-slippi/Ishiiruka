@@ -2,16 +2,20 @@
 // Licensed under GPLv2+
 // Refer to the license.txt file included.
 
+#include <mutex>
+
 #include "VideoCommon/AsyncRequests.h"
 #include "VideoCommon/BoundingBox.h"
 #include "VideoCommon/Fifo.h"
 #include "VideoCommon/RenderBase.h"
+#include "VideoCommon/VideoBackendBase.h"
+#include "VideoCommon/VideoCommon.h"
 #include "VideoCommon/VideoConfig.h"
 
 AsyncRequests AsyncRequests::s_singleton;
 
 AsyncRequests::AsyncRequests()
-	: m_enable(false), m_passthrough(true)
+: m_enable(false), m_passthrough(true)
 {
 }
 
@@ -43,7 +47,7 @@ void AsyncRequests::PullEventsInternal()
 				m_merged_efb_pokes.push_back(d);
 
 				m_queue.pop();
-			} while (!m_queue.empty() && m_queue.front().type == first_event.type);
+			} while(!m_queue.empty() && m_queue.front().type == first_event.type);
 
 			lock.unlock();
 			g_renderer->PokeEFB(t, m_merged_efb_pokes.data(), m_merged_efb_pokes.size());
@@ -82,10 +86,11 @@ void AsyncRequests::PushEvent(const AsyncRequests::Event& event, bool blocking)
 		return;
 
 	m_queue.push(event);
-	RunGpu();
+
+	Fifo::RunGpu();
 	if (blocking)
 	{
-		m_cond.wait(lock, [this]{return m_queue.empty(); });
+		m_cond.wait(lock, [this]{return m_queue.empty();});
 	}
 }
 
@@ -109,39 +114,39 @@ void AsyncRequests::HandleEvent(const AsyncRequests::Event& e)
 	EFBRectangle rc;
 	switch (e.type)
 	{
-	case Event::EFB_POKE_COLOR:
-		{
-			EfbPokeData poke = { e.efb_poke.x, e.efb_poke.y, e.efb_poke.data };
-			g_renderer->PokeEFB(POKE_COLOR, &poke, 1);
-		}
-		break;
+		case Event::EFB_POKE_COLOR:
+			{
+				EfbPokeData poke = { e.efb_poke.x, e.efb_poke.y, e.efb_poke.data };
+				g_renderer->PokeEFB(POKE_COLOR, &poke, 1);
+			}
+			break;
 
-	case Event::EFB_POKE_Z:
-		{
-			EfbPokeData poke = { e.efb_poke.x, e.efb_poke.y, e.efb_poke.data };
-			g_renderer->PokeEFB(POKE_Z, &poke, 1);
-		}
-		break;
+		case Event::EFB_POKE_Z:
+			{
+				EfbPokeData poke = { e.efb_poke.x, e.efb_poke.y, e.efb_poke.data };
+				g_renderer->PokeEFB(POKE_Z, &poke, 1);
+			}
+			break;
 
-	case Event::EFB_PEEK_COLOR:
-		*e.efb_peek.data = g_renderer->AccessEFB(PEEK_COLOR, e.efb_peek.x, e.efb_peek.y, 0);
-		break;
+		case Event::EFB_PEEK_COLOR:
+			*e.efb_peek.data = g_renderer->AccessEFB(PEEK_COLOR, e.efb_peek.x, e.efb_peek.y, 0);
+			break;
 
-	case Event::EFB_PEEK_Z:
-		*e.efb_peek.data = g_renderer->AccessEFB(PEEK_Z, e.efb_peek.x, e.efb_peek.y, 0);
-		break;
+		case Event::EFB_PEEK_Z:
+			*e.efb_peek.data = g_renderer->AccessEFB(PEEK_Z, e.efb_peek.x, e.efb_peek.y, 0);
+			break;
 
-	case Event::SWAP_EVENT:
-		Renderer::Swap(e.swap_event.xfbAddr, e.swap_event.fbWidth, e.swap_event.fbStride, e.swap_event.fbHeight, rc);
-		break;
+		case Event::SWAP_EVENT:
+			Renderer::Swap(e.swap_event.xfbAddr, e.swap_event.fbWidth, e.swap_event.fbStride, e.swap_event.fbHeight, rc);
+			break;
 
-	case Event::BBOX_READ:
-		*e.bbox.data = g_ActiveConfig.iBBoxMode == BBoxGPU ? g_renderer->BBoxRead(e.bbox.index) : BoundingBox::coords[e.bbox.index];
-		break;
+		case Event::BBOX_READ:
+			*e.bbox.data = g_ActiveConfig.iBBoxMode == BBoxGPU ? g_renderer->BBoxRead(e.bbox.index) : BoundingBox::coords[e.bbox.index];
+			break;
 
-	case Event::PERF_QUERY:
-		g_perf_query->FlushResults();
-		break;
+		case Event::PERF_QUERY:
+			g_perf_query->FlushResults();
+			break;
 
 	}
 }

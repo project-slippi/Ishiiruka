@@ -17,14 +17,16 @@
 #include <memory>
 #include <mutex>
 #include <string>
+#include <vector>
 
+#include "Common/CommonTypes.h"
 #include "Common/Event.h"
+#include "Common/Flag.h"
 #include "Common/MathUtil.h"
-#include "Common/Thread.h"
+
 #include "VideoCommon/BPMemory.h"
 #include "VideoCommon/FPSCounter.h"
-#include "VideoCommon/FramebufferManagerBase.h"
-#include "VideoCommon/NativeVertexFormat.h"
+#include "VideoCommon/VideoBackendBase.h"
 #include "VideoCommon/VideoCommon.h"
 
 class PostProcessor;
@@ -59,18 +61,22 @@ public:
 		PP_EFB_COPY_CLOCKS
 	};
 
-	virtual void SetColorMask() = 0;
-	virtual void SetBlendMode(bool forceUpdate) = 0;
-	virtual void SetScissorRect(const TargetRectangle& rc) = 0;
-	virtual void SetGenerationMode() = 0;
-	virtual void SetDepthMode() = 0;
-	virtual void SetLogicOpMode() = 0;
-	virtual void SetDitherMode() = 0;
-	virtual void SetSamplerState(int stage, int texindex, bool custom_tex) = 0;
-	virtual void SetInterlacingMode() = 0;
-	virtual void SetViewport() = 0;
-	virtual void ApplyState(bool bUseDstAlpha) = 0;
-	virtual void RestoreState() = 0;
+	virtual void SetColorMask() {}
+	virtual void SetBlendMode(bool forceUpdate) {}
+	virtual void SetScissorRect(const TargetRectangle& rc) {}
+	virtual void SetGenerationMode() {}
+	virtual void SetDepthMode() {}
+	virtual void SetLogicOpMode() {}
+	virtual void SetDitherMode() {}
+	virtual void SetSamplerState(int stage, int texindex, bool custom_tex) {}
+	virtual void SetInterlacingMode() {}
+	virtual void SetViewport() {}
+
+	virtual void ApplyState(bool bUseDstAlpha) {}
+	virtual void RestoreState() {}
+
+	virtual void ResetAPIState() {}
+	virtual void RestoreAPIState() {}
 
 	// Ideal internal resolution - determined by display resolution (automatic scaling) and/or a multiple of the native EFB resolution
 	static int GetTargetWidth() { return s_target_width; }
@@ -115,9 +121,8 @@ public:
 	virtual void PokeEFB(EFBAccessType type, const EfbPokeData* data, size_t num_points) = 0;
 	virtual u16 BBoxRead(int index) = 0;
 	virtual void BBoxWrite(int index, u16 value) = 0;
-	// What's the real difference between these? Too similar names.
-	virtual void ResetAPIState() = 0;
-	virtual void RestoreAPIState() = 0;
+	
+	static void FlipImageData(u8* data, int w, int h, int pixel_width = 3);
 
 	// Finish up the current frame, print some stats
 	static void Swap(u32 xfbAddr, u32 fbWidth, u32 fbStride, u32 fbHeight, const EFBRectangle& rc, float Gamma = 1.0f);
@@ -134,7 +139,9 @@ public:
 	virtual int GetMaxTextureSize() = 0;
 
 	static Common::Event s_screenshotCompleted;
-
+	// Final surface changing
+	static Common::Flag s_SurfaceNeedsChanged;
+	static Common::Event s_ChangedSurface;
 protected:
 
 	static void CalculateTargetScale(int x, int y, int &scaledX, int &scaledY);
@@ -147,11 +154,8 @@ protected:
 	static std::mutex s_criticalScreenshot;
 	static std::string s_sScreenshotName;
 
-#if defined _WIN32 || defined HAVE_LIBAV
 	bool bAVIDumping;
-#else
-	File::IOFile pFrameDump;
-#endif
+
 	std::vector<u8> frame_data;
 	bool bLastFrameDumped;
 

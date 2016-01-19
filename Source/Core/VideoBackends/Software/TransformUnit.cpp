@@ -1,4 +1,4 @@
-// Copyright 2013 Dolphin Emulator Project
+// Copyright 2009 Dolphin Emulator Project
 // Licensed under GPLv2+
 // Refer to the license.txt file included.
 
@@ -8,13 +8,12 @@
 #include "Common/CommonTypes.h"
 #include "Common/MathUtil.h"
 
-#include "VideoBackends/Software/BPMemLoader.h"
-#include "VideoBackends/Software/CPMemLoader.h"
 #include "VideoBackends/Software/NativeVertexFormat.h"
 #include "VideoBackends/Software/TransformUnit.h"
 #include "VideoBackends/Software/Vec3.h"
-#include "VideoBackends/Software/XFMemLoader.h"
 
+#include "VideoCommon/BPMemory.h"
+#include "VideoCommon/XFMemory.h"
 
 namespace TransformUnit
 {
@@ -127,8 +126,8 @@ static void TransformTexCoordRegular(const TexMtxInfo &texinfo, int coordNum, bo
 			break;
 	}
 
-	const float *mat = &xfmem.posMatrices[srcVertex->texMtx[coordNum] * 4];
-	Vec3 *dst = &dstVertex->texCoords[coordNum];
+	const float* mat = &xfmem.posMatrices[srcVertex->texMtx[coordNum] * 4];
+	Vec3* dst = &dstVertex->texCoords[coordNum];
 
 	if (texinfo.projection == XF_TEXPROJ_ST)
 	{
@@ -153,7 +152,7 @@ static void TransformTexCoordRegular(const TexMtxInfo &texinfo, int coordNum, bo
 
 		// normalize
 		const PostMtxInfo &postInfo = xfmem.postMtxInfo[coordNum];
-		const float *postMat = &xfmem.postMatrices[postInfo.index * 4];
+		const float* postMat = &xfmem.postMatrices[postInfo.index * 4];
 
 		if (specialCase)
 		{
@@ -189,13 +188,6 @@ struct LightPointer
 	Vec3 dir;
 };
 
-static inline void AddIntegerColor(const u8 *src, Vec3 &dst)
-{
-	dst.x += src[1];
-	dst.y += src[2];
-	dst.z += src[3];
-}
-
 static inline void AddScaledIntegerColor(const u8 *src, float scale, Vec3 &dst)
 {
 	dst.x += src[1] * scale;
@@ -208,42 +200,35 @@ static inline float SafeDivide(float n, float d)
 	return (d==0) ? (n>0?1:0) : n/d;
 }
 
-static void LightColor(const Vec3 &pos, const Vec3 &normal, u8 lightNum, const LitChannel &chan, Vec3 &lightCol)
+static float CalculateLightAttn(const LightPointer *light, Vec3* _ldir, const Vec3 &normal, const LitChannel &chan)
 {
-	const LightPointer *light = (const LightPointer*)&xfmem.lights[lightNum];
+	float attn = 1.0f;
+	Vec3& ldir = *_ldir;
 
-	if (!(chan.attnfunc & 1))
+	switch (chan.attnfunc)
 	{
-		// atten disabled
-		switch (chan.diffusefunc)
+		case LIGHTATTN_NONE:
+		case LIGHTATTN_DIR:
 		{
-			case LIGHTDIF_NONE:
-				AddIntegerColor(light->color, lightCol);
-				break;
-			case LIGHTDIF_SIGN:
-				{
-					Vec3 ldir = (light->pos - pos).Normalized();
-					float diffuse = ldir * normal;
-					AddScaledIntegerColor(light->color, diffuse, lightCol);
-				}
-				break;
-			case LIGHTDIF_CLAMP:
-				{
-					Vec3 ldir = (light->pos - pos).Normalized();
-					float diffuse = std::max(0.0f, ldir * normal);
-					AddScaledIntegerColor(light->color, diffuse, lightCol);
-				}
-				break;
-			default: _assert_(0);
+			ldir = ldir.Normalized();
+			if (ldir == Vec3(0.0f, 0.0f, 0.0f))
+				ldir = normal;
+			break;
 		}
-	}
-	else // spec and spot
-	{
-		// not sure about divide by zero checks
-		Vec3 ldir = light->pos - pos;
-		float attn;
+		case LIGHTATTN_SPEC:
+		{
+			ldir = ldir.Normalized();
+			attn = (ldir * normal) >= 0.0 ? std::max(0.0f, light->dir * normal) : 0;
+			Vec3 attLen = Vec3(1.0, attn, attn*attn);
+			Vec3 cosAttn = light->cosatt;
+			Vec3 distAttn = light->distatt;
+			if (chan.diffusefunc != LIGHTDIF_NONE)
+				distAttn = distAttn.Normalized();
 
-		if (chan.attnfunc == 3) // spot
+			attn = SafeDivide(std::max(0.0f, attLen * cosAttn), attLen * distAttn);
+			break;
+		}
+		case LIGHTATTN_SPOT:
 		{
 			float dist2 = ldir.Length2();
 			float dist = sqrtf(dist2);
@@ -253,43 +238,36 @@ static void LightColor(const Vec3 &pos, const Vec3 &normal, u8 lightNum, const L
 			float cosAtt = light->cosatt.x + (light->cosatt.y * attn) + (light->cosatt.z * attn * attn);
 			float distAtt = light->distatt.x + (light->distatt.y * dist) + (light->distatt.z * dist2);
 			attn = SafeDivide(std::max(0.0f, cosAtt), distAtt);
+			break;
 		}
-		else if (chan.attnfunc == 1) // specular
-		{
-			// donko - what is going on here?  655.36 is a guess but seems about right.
-			attn = (light->pos * normal) > -655.36 ? std::max(0.0f, (light->dir * normal)) : 0;
-			ldir.set(1.0f, attn, attn * attn);
-
-			float cosAtt = std::max(0.0f, light->cosatt * ldir);
-			float distAtt = light->distatt * ldir;
-			attn = SafeDivide(std::max(0.0f, cosAtt), distAtt);
-		}
-		else
-		{
+		default:
 			PanicAlert("LightColor");
-			return;
-		}
+	}
 
-		switch (chan.diffusefunc)
-		{
-			case LIGHTDIF_NONE:
-				AddScaledIntegerColor(light->color, attn, lightCol);
-				break;
-			case LIGHTDIF_SIGN:
-				{
-					float difAttn = ldir * normal;
-					AddScaledIntegerColor(light->color, attn * difAttn, lightCol);
-				}
-				break;
+	return attn;
+}
 
-			case LIGHTDIF_CLAMP:
-				{
-					float difAttn = std::max(0.0f, ldir * normal);
-					AddScaledIntegerColor(light->color, attn * difAttn, lightCol);
-				}
-				break;
-			default: _assert_(0);
-		}
+static void LightColor(const Vec3 &pos, const Vec3 &normal, u8 lightNum, LitChannel &chan, Vec3 &lightCol)
+{
+	const LightPointer *light = (const LightPointer*)&xfmem.lights[lightNum];
+
+	Vec3 ldir = light->pos - pos;
+	float attn = CalculateLightAttn(light, &ldir, normal, chan);
+
+	float difAttn = ldir * normal;
+	switch (chan.diffusefunc)
+	{
+		case LIGHTDIF_NONE:
+			AddScaledIntegerColor(light->color, attn, lightCol);
+			break;
+		case LIGHTDIF_SIGN:
+			AddScaledIntegerColor(light->color, attn * difAttn, lightCol);
+			break;
+		case LIGHTDIF_CLAMP:
+			difAttn = std::max(0.0f, difAttn);
+			AddScaledIntegerColor(light->color, attn * difAttn, lightCol);
+			break;
+		default: _assert_(0);
 	}
 }
 
@@ -297,78 +275,23 @@ static void LightAlpha(const Vec3 &pos, const Vec3 &normal, u8 lightNum, const L
 {
 	const LightPointer *light = (const LightPointer*)&xfmem.lights[lightNum];
 
-	if (!(chan.attnfunc & 1))
+	Vec3 ldir = light->pos - pos;
+	float attn = CalculateLightAttn(light, &ldir, normal, chan);
+
+	float difAttn = ldir * normal;
+	switch (chan.diffusefunc)
 	{
-		// atten disabled
-		switch (chan.diffusefunc)
-		{
-			case LIGHTDIF_NONE:
-				lightCol += light->color[0];
-				break;
-			case LIGHTDIF_SIGN:
-				{
-					Vec3 ldir = (light->pos - pos).Normalized();
-					float diffuse = ldir * normal;
-					lightCol += light->color[0] * diffuse;
-				}
-				break;
-			case LIGHTDIF_CLAMP:
-				{
-					Vec3 ldir = (light->pos - pos).Normalized();
-					float diffuse = std::max(0.0f, ldir * normal);
-					lightCol += light->color[0] * diffuse;
-				}
-				break;
-			default: _assert_(0);
-		}
-	}
-	else // spec and spot
-	{
-		Vec3 ldir = light->pos - pos;
-		float attn;
-
-		if (chan.attnfunc == 3) // spot
-		{
-			float dist2 = ldir.Length2();
-			float dist = sqrtf(dist2);
-			ldir = ldir / dist;
-			attn = std::max(0.0f, ldir * light->dir);
-
-			float cosAtt = light->cosatt.x + (light->cosatt.y * attn) + (light->cosatt.z * attn * attn);
-			float distAtt = light->distatt.x + (light->distatt.y * dist) + (light->distatt.z * dist2);
-			attn = SafeDivide(std::max(0.0f, cosAtt), distAtt);
-		}
-		else /* if (chan.attnfunc == 1) */ // specular
-		{
-			// donko - what is going on here?  655.36 is a guess but seems about right.
-			attn = (light->pos * normal) > -655.36 ? std::max(0.0f, (light->dir * normal)) : 0;
-			ldir.set(1.0f, attn, attn * attn);
-
-			float cosAtt = light->cosatt * ldir;
-			float distAtt = light->distatt * ldir;
-			attn = SafeDivide(std::max(0.0f, cosAtt), distAtt);
-		}
-
-		switch (chan.diffusefunc)
-		{
-			case LIGHTDIF_NONE:
-				lightCol += light->color[0] * attn;
-				break;
-			case LIGHTDIF_SIGN:
-				{
-					float difAttn = ldir * normal;
-					lightCol += light->color[0] * attn * difAttn;
-				}
-				break;
-
-			case LIGHTDIF_CLAMP:
-				{
-					float difAttn = std::max(0.0f, ldir * normal);
-					lightCol += light->color[0] * attn * difAttn;
-				}
-				break;
-			default: _assert_(0);
-		}
+		case LIGHTDIF_NONE:
+			lightCol += light->color[0] * attn;
+			break;
+		case LIGHTDIF_SIGN:
+			lightCol += light->color[0] * attn * difAttn;
+			break;
+		case LIGHTDIF_CLAMP:
+			difAttn = std::max(0.0f, difAttn);
+			lightCol += light->color[0] * attn * difAttn;
+			break;
+		default: _assert_(0);
 	}
 }
 
@@ -412,12 +335,9 @@ void TransformColor(const InputVertexData *src, OutputVertexData *dst)
 					LightColor(dst->mvPosition, dst->normal[0], i, colorchan, lightCol);
 			}
 
-			int light_x = int(lightCol.x);
-			int light_y = int(lightCol.y);
-			int light_z = int(lightCol.z);
-			light_x = MathUtil::Clamp(light_x, 0, 255);
-			light_y = MathUtil::Clamp(light_y, 0, 255);
-			light_z = MathUtil::Clamp(light_z, 0, 255);
+			int light_x = MathUtil::Clamp(static_cast<int>(lightCol.x), 0, 255);
+			int light_y = MathUtil::Clamp(static_cast<int>(lightCol.y), 0, 255);
+			int light_z = MathUtil::Clamp(static_cast<int>(lightCol.z), 0, 255);
 			chancolor[1] = (matcolor[1] * (light_x + (light_x >> 7))) >> 8;
 			chancolor[2] = (matcolor[2] * (light_y + (light_y >> 7))) >> 8;
 			chancolor[3] = (matcolor[3] * (light_z + (light_z >> 7))) >> 8;
@@ -449,8 +369,7 @@ void TransformColor(const InputVertexData *src, OutputVertexData *dst)
 					LightAlpha(dst->mvPosition, dst->normal[0], i, alphachan, lightCol);
 			}
 
-			int light_a = int(lightCol);
-			light_a = MathUtil::Clamp(light_a, 0, 255);
+			int light_a = MathUtil::Clamp(static_cast<int>(lightCol), 0, 255);
 			chancolor[0] = (matcolor[0] * (light_a + (light_a >> 7))) >> 8;
 		}
 		else

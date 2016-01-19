@@ -1,13 +1,14 @@
 package org.dolphinemu.dolphinemu.activities;
 
 
+import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
-import android.util.Log;
 
 import org.dolphinemu.dolphinemu.fragments.SettingsFragment;
 import org.dolphinemu.dolphinemu.services.SettingsSaveService;
+import org.dolphinemu.dolphinemu.utils.Log;
 
 public final class SettingsActivity extends AppCompatActivity
 {
@@ -32,10 +33,16 @@ public final class SettingsActivity extends AppCompatActivity
 	{
 		super.onStop();
 
-		Log.d("DolphinEmulator", "Settings activity stopping. Saving settings to INI...");
+		Log.debug("[SettingsActivity] Settings activity stopping. Saving settings to INI...");
 
 		// Copy assets into appropriate locations.
 		Intent settingsSaver = new Intent(this, SettingsSaveService.class);
 		startService(settingsSaver);
+	}
+
+	public static void launch(Context context)
+	{
+		Intent settings = new Intent(context, SettingsActivity.class);
+		context.startActivity(settings);
 	}
 }

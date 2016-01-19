@@ -46,7 +46,7 @@ IPC_HLE_PERIOD: For the Wiimote this is the call schedule:
 #include "Common/CommonTypes.h"
 #include "Common/Thread.h"
 #include "Common/Timer.h"
-
+#include "Common/Logging/Log.h"
 #include "Core/ConfigManager.h"
 #include "Core/Core.h"
 #include "Core/CoreTiming.h"
@@ -59,9 +59,7 @@ IPC_HLE_PERIOD: For the Wiimote this is the call schedule:
 #include "Core/HW/VideoInterface.h"
 #include "Core/IPC_HLE/WII_IPC_HLE.h"
 #include "Core/PowerPC/PowerPC.h"
-
 #include "VideoCommon/Fifo.h"
-#include "VideoCommon/VideoBackendBase.h"
 
 namespace SystemTimers
 {
@@ -128,7 +126,7 @@ static void VICallback(u64 userdata, int cyclesLate)
 static void CPCallback(u64 userdata, int cyclesLate)
 {
 	u64 now = CoreTiming::GetTicks();
-	int next = g_video_backend->Video_Sync((int)(now - s_last_sync_gpu_tick));
+	int next = Fifo::Update((int)(now - s_last_sync_gpu_tick));
 	s_last_sync_gpu_tick = now;
 
 	if (next > 0)
@@ -181,7 +179,7 @@ static void PatchEngineCallback(u64 userdata, int cyclesLate)
 static void ThrottleCallback(u64 last_time, int cyclesLate)
 {
 	// Allow the GPU thread to sleep. Setting this flag here limits the wakeups to 1 kHz.
-	GpuMaySleep();
+	Fifo::GpuMaySleep();
 
 	u32 time = Common::Timer::GetTimeMs();
 

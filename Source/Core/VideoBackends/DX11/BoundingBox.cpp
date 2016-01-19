@@ -2,11 +2,14 @@
 // Licensed under GPLv2++
 // Refer to the license.txt file included.
 
+#include "Common/CommonTypes.h"
+#include "Common/MsgHandler.h"
+
 #include "VideoBackends/DX11/BoundingBox.h"
 #include "VideoBackends/DX11/D3DPtr.h"
 
-#include "VideoCommon/VideoConfig.h"
 #include "VideoCommon/BoundingBox.h"
+#include "VideoCommon/VideoConfig.h"
 
 namespace DX11
 {

@@ -6,16 +6,11 @@
 
 #include "Common/ChunkFile.h"
 #include "Common/CommonTypes.h"
-
 #include "Core/Core.h"
 #include "Core/CoreTiming.h"
-#include "Core/HW/CPU.h"
-#include "Core/HW/GPFifo.h"
 #include "Core/HW/MMIO.h"
 #include "Core/HW/ProcessorInterface.h"
 #include "Core/PowerPC/PowerPC.h"
-
-#include "VideoCommon/VideoBackendBase.h"
 
 namespace ProcessorInterface
 {
@@ -223,8 +218,8 @@ void ToggleResetButtonCallback(u64 userdata, int cyclesLate)
 
 void ResetButton_Tap()
 {
-	CoreTiming::ScheduleEvent_Threadsafe(0, toggleResetButton, true);
-	CoreTiming::ScheduleEvent_Threadsafe(243000000, toggleResetButton, false);
+	CoreTiming::ScheduleEvent_AnyThread(0, toggleResetButton, true);
+	CoreTiming::ScheduleEvent_AnyThread(243000000, toggleResetButton, false);
 }
 
 } // namespace ProcessorInterface

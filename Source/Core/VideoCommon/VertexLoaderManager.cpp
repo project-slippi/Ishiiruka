@@ -271,6 +271,7 @@ namespace VertexLoaderManager
 	inline void UpdateLoader(const VertexLoaderParameters &parameters)
 	{
 		g_main_cp_state.vertex_loaders[parameters.vtx_attr_group] = GetOrAddLoader(*parameters.VtxDesc, *parameters.VtxAttr);
+		g_main_cp_state.last_id = parameters.vtx_attr_group;
 	}
 
 	bool ConvertVertices(VertexLoaderParameters &parameters, u32 &readsize, u32 &writesize)

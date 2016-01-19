@@ -169,7 +169,7 @@ void VideoBackend::Video_Prepare()
 	g_renderer = std::make_unique<Renderer>(m_window_handle);	
 	// VideoCommon
 	BPInit();
-	Fifo_Init();
+	Fifo::Init();
 	IndexGenerator::Init();
 	VertexLoaderManager::Init();
 	OpcodeDecoder_Init();
@@ -188,7 +188,7 @@ void VideoBackend::Shutdown()
 		return;
 	// TODO: should be in Video_Cleanup
 	// VideoCommon
-	Fifo_Shutdown();
+	Fifo::Shutdown();
 	CommandProcessor::Shutdown();
 	PixelShaderManager::Shutdown();
 	VertexShaderManager::Shutdown();

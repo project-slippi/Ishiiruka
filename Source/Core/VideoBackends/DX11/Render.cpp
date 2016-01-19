@@ -9,13 +9,15 @@
 #include <strsafe.h>
 #include <array>
 
+#include "Common/CommonTypes.h"
+#include "Common/FileUtil.h"
 #include "Common/MathUtil.h"
-#include "Common/Timer.h"
 
 #include "Core/ConfigManager.h"
 #include "Core/Core.h"
 #include "Core/Host.h"
 #include "Core/Movie.h"
+
 #include "VideoBackends/DX11/BoundingBox.h"
 #include "VideoBackends/DX11/D3DBase.h"
 #include "VideoBackends/DX11/D3DPtr.h"
@@ -35,13 +37,10 @@
 #include "VideoCommon/AVIDump.h"
 #include "VideoCommon/BPFunctions.h"
 #include "VideoCommon/Fifo.h"
-#include "VideoCommon/FPSCounter.h"
 #include "VideoCommon/ImageWrite.h"
 #include "VideoCommon/OnScreenDisplay.h"
 #include "VideoCommon/PixelEngine.h"
 #include "VideoCommon/PixelShaderManager.h"
-#include "VideoCommon/Statistics.h"
-#include "VideoCommon/VertexShaderManager.h"
 #include "VideoCommon/VideoConfig.h"
 
 namespace DX11
@@ -503,9 +502,7 @@ void Renderer::PokeEFB(EFBAccessType type, const EfbPokeData* data, size_t num_p
 		D3D::stateman->PushBlendState(clearblendstates[3].get());
 		D3D::stateman->PushDepthState(cleardepthstates[1].get());
 
-		D3D11_VIEWPORT vp = CD3D11_VIEWPORT(0.0f, 0.0f, (float)GetTargetWidth(), (float)GetTargetHeight(),
-			1.0f - MathUtil::Clamp<float>(xfmem.viewport.farZ, 0.0f, 16777215.0f) / 16777216.0f,
-			1.0f - MathUtil::Clamp<float>((xfmem.viewport.farZ - MathUtil::Clamp<float>(xfmem.viewport.zRange, 0.0f, 16777215.0f)), 0.0f, 16777215.0f) / 16777216.0f);
+		D3D11_VIEWPORT vp = CD3D11_VIEWPORT(0.0f, 0.0f, (float)GetTargetWidth(), (float)GetTargetHeight());
 
 		D3D::context->RSSetViewports(1, &vp);
 
@@ -566,7 +563,7 @@ void Renderer::SetViewport()
 	D3D11_VIEWPORT vp = CD3D11_VIEWPORT(X, Y, Wd, Ht,
 		0.0f,
 		1.0f);
-	float nearz = xfmem.viewport.farZ - MathUtil::Clamp<float>(xfmem.viewport.zRange, 0.0f, 16777215.0f);
+	float nearz = xfmem.viewport.farZ - MathUtil::Clamp<float>(xfmem.viewport.zRange, 0.0f, 16777216.0f);
 	float farz = xfmem.viewport.farZ;
 
 	const bool nonStandartViewport = g_ActiveConfig.bViewportCorrection && (nearz < 0.f || farz > 16777216.0f || nearz >= 16777216.0f || farz <= 0.f);
@@ -742,7 +739,7 @@ void formatBufferDump(const u8* in, u8* out, int w, int h, int p)
 // This function has the final picture. We adjust the aspect ratio here.
 void Renderer::SwapImpl(u32 xfbAddr, u32 fbWidth, u32 fbStride, u32 fbHeight, const EFBRectangle& rc, float Gamma)
 {
-	if (g_bSkipCurrentFrame || (!XFBWrited && !g_ActiveConfig.RealXFBEnabled()) || !fbWidth || !fbHeight)
+	if (Fifo::g_bSkipCurrentFrame || (!XFBWrited && !g_ActiveConfig.RealXFBEnabled()) || !fbWidth || !fbHeight)
 	{
 		if (SConfig::GetInstance().m_DumpFrames && !frame_data.empty())
 			AVIDump::AddFrame(&frame_data[0], fbWidth, fbHeight);
@@ -888,7 +885,7 @@ void Renderer::SwapImpl(u32 xfbAddr, u32 fbWidth, u32 fbStride, u32 fbHeight, co
 		{
 			s_recordWidth = source_width;
 			s_recordHeight = source_height;
-			bAVIDumping = AVIDump::Start(D3D::hWnd, s_recordWidth, s_recordHeight);
+			bAVIDumping = AVIDump::Start(s_recordWidth, s_recordHeight);
 			if (!bAVIDumping)
 			{
 				PanicAlert("Error dumping frames to AVI.");
@@ -913,6 +910,7 @@ void Renderer::SwapImpl(u32 xfbAddr, u32 fbWidth, u32 fbStride, u32 fbHeight, co
 				h = s_recordHeight;
 			}
 			formatBufferDump((u8*)map.pData, &frame_data[0], source_width, source_height, map.RowPitch);
+			FlipImageData(&frame_data[0], w, h);
 			AVIDump::AddFrame(&frame_data[0], source_width, source_height);
 			D3D::context->Unmap(s_screenshot_texture.get(), 0);
 		}

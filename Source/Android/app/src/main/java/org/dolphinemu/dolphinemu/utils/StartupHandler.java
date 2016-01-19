@@ -6,7 +6,6 @@ import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.text.TextUtils;
-import android.util.Log;
 
 import org.dolphinemu.dolphinemu.NativeLibrary;
 import org.dolphinemu.dolphinemu.activities.EmulationActivity;
@@ -42,10 +41,11 @@ public final class StartupHandler
 
 			if (!TextUtils.isEmpty(start_file))
 			{
-				// Start the emulation activity and send the ISO passed in.
+				// Start the emulation activity, send the ISO passed in and finish the main activity
 				Intent emulation_intent = new Intent(parent, EmulationActivity.class);
 				emulation_intent.putExtra("SelectedGame", start_file);
 				parent.startActivity(emulation_intent);
+				parent.finish();
 				return false;
 			}
 		}

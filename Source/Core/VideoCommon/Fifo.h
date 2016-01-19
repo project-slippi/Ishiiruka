@@ -3,11 +3,15 @@
 // Refer to the license.txt file included.
 
 #pragma once
+#include <atomic>
+#include <cstddef>
 
 #include "Common/Common.h"
-#include "VideoCommon/VideoBackendBase.h"
 
 class PointerWrap;
+
+namespace Fifo
+{
 
 extern bool g_bSkipCurrentFrame;
 
@@ -16,12 +20,12 @@ extern bool g_bSkipCurrentFrame;
 extern bool g_use_deterministic_gpu_thread;
 extern std::atomic<u8*> g_video_buffer_write_ptr_xthread;
 
-void Fifo_Init();
-void Fifo_Shutdown();
+void Init();
+void Shutdown();
 
-void Fifo_DoState(PointerWrap &f);
-void Fifo_PauseAndLock(bool doLock, bool unpauseOnUnlock);
-void Fifo_UpdateWantDeterminism(bool want);
+void DoState(PointerWrap &f);
+void PauseAndLock(bool doLock, bool unpauseOnUnlock);
+void UpdateWantDeterminism(bool want);
 
 // Used for diagnostics.
 enum SyncGPUReason
@@ -48,5 +52,7 @@ void ExitGpuLoop();
 void EmulatorState(bool running);
 bool AtBreakpoint();
 void ResetVideoBuffer();
-void Fifo_SetRendering(bool bEnabled);
-int Fifo_Update(int ticks);
+void SetRendering(bool bEnabled);
+int Update(int ticks);
+
+}
