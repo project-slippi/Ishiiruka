@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include <array>
 #include <string>
 #include <unordered_map>
 
@@ -17,7 +18,6 @@
 
 namespace OGL
 {
-
 // Forward declaration needed for PostProcessingShader::Draw()
 class OGLPostProcessor;
 
@@ -29,21 +29,18 @@ public:
 	PostProcessingShader() = default;
 	~PostProcessingShader();
 
-	GLuint GetLastPassOutputTexture();
+	GLuint GetLastPassOutputTexture() const;
+	bool IsLastPassScaled() const;
 
 	bool IsReady() const { return m_ready; }
 
 	bool Initialize(const PostProcessingShaderConfiguration* config, int target_layers);
-	bool ResizeIntermediateBuffers(int target_width, int target_height);
-
-	bool RecompileShaders();
-	bool UpdateOptions(bool force = false);
+	bool Reconfigure(const TargetSize& new_size);
 
 	void Draw(OGLPostProcessor* parent,
-		const TargetRectangle& target_rect, GLuint target_texture,
-		const TargetRectangle& src_rect, int src_width, int src_height,
-		GLuint src_texture, GLuint src_depth_texture,
-		int src_layer, float gamma = 1.0);
+		const TargetRectangle& dst_rect, const TargetSize& dst_size, GLuint dst_texture,
+		const TargetRectangle& src_rect, const TargetSize& src_size, GLuint src_texture,
+		GLuint src_depth_texture, int src_layer, float gamma);
 
 private:
 	struct InputBinding final
@@ -52,8 +49,7 @@ private:
 		GLuint texture_unit;
 		GLuint texture_id;
 		GLuint sampler_id;
-		int width;
-		int height;
+		TargetSize size;
 		bool owned;
 	};
 
@@ -65,20 +61,21 @@ private:
 		std::vector<InputBinding> inputs;
 
 		GLuint output_texture_id;
-		int output_width;
-		int output_height;
+		TargetSize output_size;
 		float output_scale;
 
 		bool enabled;
 	};
 
+	bool CreatePasses();
+	bool RecompileShaders();
+	bool ResizeOutputTextures(const TargetSize& new_size);
+	void LinkPassOutputs();
+
 	const PostProcessingShaderConfiguration* m_config;
 
-	int m_internal_width = 0;
-	int m_internal_height = 0;
+	TargetSize m_internal_size;
 	int m_internal_layers = 0;
-
-	GLuint m_framebuffer = 0;
 
 	std::vector<RenderPassData> m_passes;
 	size_t m_last_pass_index = 0;
@@ -98,16 +95,19 @@ public:
 
 	void PostProcessEFB() override;
 
-	void BlitToFramebuffer(const TargetRectangle& dst, uintptr_t dst_texture,
-		const TargetRectangle& src, uintptr_t src_texture, uintptr_t src_depth_texture,
-		int src_width, int src_height, int src_layer, float gamma) override;
+	void BlitScreen(const TargetRectangle& dst_rect, const TargetSize& dst_size, uintptr_t dst_texture,
+		const TargetRectangle& src_rect, const TargetSize& src_size, uintptr_t src_texture, uintptr_t src_depth_texture,
+		int src_layer, float gamma) override;
 
-	void PostProcess(const TargetRectangle& visible_rect, int tex_width, int tex_height, int tex_layers,
-		uintptr_t texture, uintptr_t depth_texture) override;
+	void PostProcess(TargetRectangle* output_rect, TargetSize* output_size, uintptr_t* output_texture,
+		const TargetRectangle& src_rect, const TargetSize& src_size, uintptr_t src_texture,
+		const TargetRectangle& src_depth_rect, const TargetSize& src_depth_size, uintptr_t src_depth_texture) override;
 
 	void MapAndUpdateUniformBuffer(const PostProcessingShaderConfiguration* config,
-		int input_resolutions[POST_PROCESSING_MAX_TEXTURE_INPUTS][2],
-		const TargetRectangle& src_rect, const TargetRectangle& dst_rect, int src_width, int src_height, int src_layer, float gamma);
+		const InputTextureSizeArray& input_sizes,
+		const TargetRectangle& dst_rect, const TargetSize& dst_size,
+		const TargetRectangle& src_rect, const TargetSize& src_size,
+		int src_layer, float gamma);
 
 	// NOTE: Can modify the bindings of draw_framebuffer/read_framebuffer.
 	// If src_layer <0, copy all layers, otherwise, copy src_layer to layer 0.
@@ -116,21 +116,40 @@ public:
 		int src_layer, bool is_depth_texture,
 		bool force_blit = false);
 
+	// Shared FBOs
+	GLuint GetDrawFramebuffer() const { return m_draw_framebuffer; }
+	GLuint GetReadFramebuffer() const { return m_read_framebuffer; }
+
 protected:
-	bool ResizeCopyBuffers(int width, int height, int layers);
+	std::unique_ptr<PostProcessingShader> CreateShader(const PostProcessingShaderConfiguration* config);
+	void CreatePostProcessingShaders();
+	void CreateScalingShader();
+	void CreateStereoShader();
+
+	bool ResizeCopyBuffers(const TargetSize& size, int layers);
+	bool ResizeStereoBuffer(const TargetSize& size);
+	bool ReconfigurePostProcessingShaders(const TargetSize& size);
+	bool ReconfigureScalingShader(const TargetSize& size);
+	bool ReconfigureStereoShader(const TargetSize& size);
+	void DisablePostProcessor();
+
+	void DrawStereoBuffers(const TargetRectangle& dst_rect, const TargetSize& dst_size, GLuint dst_texture,
+		const TargetRectangle& src_rect, const TargetSize& src_size, GLuint src_texture, GLuint src_depth_texture, float gamma);
 
 	GLuint m_draw_framebuffer = 0;
 	GLuint m_read_framebuffer = 0;
 
-	int m_copy_width = 0;
-	int m_copy_height = 0;
+	TargetSize m_copy_size;
 	int m_copy_layers = 0;
 	GLuint m_color_copy_texture = 0;
 	GLuint m_depth_copy_texture = 0;
 
-	std::unique_ptr<StreamBuffer> m_uniform_buffer;
+	TargetSize m_stereo_buffer_size;
+	GLuint m_stereo_buffer_texture;
 
-	std::unique_ptr<PostProcessingShader> m_blit_shader;
+	std::unique_ptr<StreamBuffer> m_uniform_buffer;
+	std::unique_ptr<PostProcessingShader> m_scaling_shader;
+	std::unique_ptr<PostProcessingShader> m_stereo_shader;
 	std::vector<std::unique_ptr<PostProcessingShader>> m_post_processing_shaders;
 };
 

@@ -157,8 +157,8 @@ static wxString opencl_desc = _("[EXPERIMENTAL]\nAims to speed up emulation by o
 static wxString pptrigger_desc = _("Determines when to apply post-processing.\nOn Swap will apply post-processing before presenting to the screen. On Projection applies post-processing before the game draws 2D elements on the screen. However, this may not work with all games. On EFB Copy applies post-processing when an EFB copy of a perspective scene is requested. This may work for for other games.\n\nIf unsure, select On Swap.");
 static wxString ppshader_list_desc = _("Applies post-processing effects when the trigger chosen in the occurs, by default this is at the end of a frame.\n\nPost-processing is performed at the selected internal resolution.\n\nIf unsure, leave the list empty.");
 static wxString ppshader_options_desc = _("Some effects offer user-tweakable options. This will open a dialog where you can change the values of these options.");
-static wxString blitshader_desc = _("Use a custom shader for resizing from internal resolution to display resolution. This shader can also perform additional post-processing effects.\n\nIf unsure, select (default).");
-static wxString blitshader_options_desc = _("Some filters offer user-tweakable options. This will open a dialog where you can change the values of these options.");
+static wxString scalingshader_desc = wxTRANSLATE("Use a custom shader for resizing from internal resolution to display resolution. This shader can also perform additional post-processing effects.\n\nIf unsure, select (default).");
+static wxString scalingshader_options_desc = wxTRANSLATE("Some filters offer user-tweakable options. This will open a dialog where you can change the values of these options.");
 static wxString shader_errors_desc = _("Usually if shader compilation fails, an error message is displayed.\nHowever, one may skip the popups to allow interruption free gameplay by checking this option.\n\nIf unsure, leave this unchecked.");
 static wxString stereo_3d_desc = _("Select the stereoscopic 3D  mode, stereoscopy allows you to get a better feeling of depth if you have the necessary hardware.\nSide-by-Side and Top-and-Bottom are used by most 3D TVs.\nAnaglyph is used for Red-Cyan colored glasses.\nHeavily decreases emulation speed and sometimes causes issues.\n\nIf unsure, select Off.");
 static wxString stereo_separation_desc = _("Control the separation distance, this is the distance between the virtual cameras.\nA higher value creates a stronger feeling of depth while a lower value is more comfortable.");
@@ -174,7 +174,7 @@ static wxString Tessellation_round_desc = _("Select the intensity of the roundin
 static wxString Tessellation_displacement_desc = _("Select the intensity of the displacement effect when using custom materials.");
 static wxString scaling_factor_desc = _("Multiplier applied to the texture size.");
 static wxString texture_deposterize_desc = _("Decrease some gradient's artifacts caused by scaling.");
-static wxString anaglyphshader_desc = _("Selects which shader will be used to transform the two images when stereo is enabled, and anaglyph is the chosen mode.");
+static wxString stereoshader_desc = wxTRANSLATE("Selects which shader will be used to transform the two images when stereoscopy is enabled.");
 // Search for available resolutions - TODO: Move to Common?
 static  wxArrayString GetListOfResolutions()
 {
@@ -434,10 +434,18 @@ VideoConfigDiag::VideoConfigDiag(wxWindow* parent, const std::string &title, con
 
 		szr_stereo->Add(new wxStaticText(page_enh, wxID_ANY, _("Stereoscopic 3D Mode:")), 1, wxALIGN_CENTER_VERTICAL, 0);
 
-		const wxString stereo_choices[] = { "Off", "Side-by-Side", "Top-and-Bottom", "Anaglyph", "Interlaced", "Nvidia 3D Vision" };
+		const wxString stereo_choices[] = { "Off", "Side-by-Side", "Top-and-Bottom", "Shader", "Nvidia 3D Vision" };
 		wxChoice* stereo_choice = CreateChoice(page_enh, vconfig.iStereoMode, (stereo_3d_desc), vconfig.backend_info.bSupports3DVision ? ArraySize(stereo_choices) : ArraySize(stereo_choices) - 1, stereo_choices);
 		stereo_choice->Bind(wxEVT_CHOICE, &VideoConfigDiag::Event_StereoMode, this);
-		szr_stereo->Add(stereo_choice);
+		szr_stereo->Add(stereo_choice, 0, wxEXPAND);
+		
+		choice_stereoshader = new wxChoice(page_enh, wxID_ANY);
+		RegisterControl(choice_stereoshader, wxGetTranslation(stereoshader_desc));
+		choice_stereoshader->Bind(wxEVT_CHOICE, &VideoConfigDiag::Event_StereoShader, this);
+		szr_stereo->AddSpacer(0);
+		szr_stereo->Add(new wxStaticText(page_enh, wxID_ANY, _("Stereoscopy Shader:")), 0, wxALIGN_CENTER_VERTICAL, 0);
+		szr_stereo->Add(choice_stereoshader, 0, wxEXPAND);
+		PopulateStereoShaders();
 
 		szr_stereo->Add(CreateCheckBox(page_enh, _("Swap Eyes"), (stereo_swap_desc), vconfig.bStereoSwapEyes), 1, wxALIGN_CENTER_VERTICAL, 0);
 
@@ -613,26 +621,19 @@ VideoConfigDiag::VideoConfigDiag(wxWindow* parent, const std::string &title, con
 			szr_options->Add(new wxStaticText(page_postprocessing, wxID_ANY, _("Post-Processing Trigger:")), 0, wxALIGN_CENTER_VERTICAL, 0);
 			szr_options->Add(choice_pptrigger, 1, wxEXPAND | wxALIGN_CENTER_VERTICAL);
 
-			choice_blitshader = new wxChoice(page_postprocessing, wxID_ANY);
-			choice_blitshader->Bind(wxEVT_CHOICE, &VideoConfigDiag::Event_BlitShader, this);
-			RegisterControl(choice_blitshader, wxGetTranslation(blitshader_desc));
+			choice_scalingshader = new wxChoice(page_postprocessing, wxID_ANY);
+			choice_scalingshader->Bind(wxEVT_CHOICE, &VideoConfigDiag::Event_ScalingShader, this);
+			RegisterControl(choice_scalingshader, wxGetTranslation(scalingshader_desc));
 			szr_options->Add(new wxStaticText(page_postprocessing, wxID_ANY, _("Display/Resize Shader:")), 0, wxALIGN_CENTER_VERTICAL, 0);
-			szr_options->Add(choice_blitshader, 1, wxEXPAND | wxALIGN_CENTER_VERTICAL);
+			szr_options->Add(choice_scalingshader, 1, wxEXPAND | wxALIGN_CENTER_VERTICAL);
 
-			choice_anaglyphshader = new wxChoice(page_postprocessing, wxID_ANY);
-			RegisterControl(choice_anaglyphshader, wxGetTranslation(anaglyphshader_desc));
-			choice_anaglyphshader->Bind(wxEVT_CHOICE, &VideoConfigDiag::Event_AnaglyphShader, this);
-			szr_options->Add(new wxStaticText(page_postprocessing, wxID_ANY, _("Anaglyph Shader:")), 0, wxALIGN_CENTER_VERTICAL, 0);
-			szr_options->Add(choice_anaglyphshader, 1, wxEXPAND | wxALIGN_CENTER_VERTICAL);
-
-			button_config_blitshader = new wxButton(page_postprocessing, wxID_ANY, _("Display Shader Options..."));
-			button_config_blitshader->Bind(wxEVT_BUTTON, &VideoConfigDiag::Event_ConfigureBlitShader, this);
-			RegisterControl(button_config_blitshader, wxGetTranslation(blitshader_options_desc));
+			button_config_scalingshader = new wxButton(page_postprocessing, wxID_ANY, _("Display Shader Options..."));
+			button_config_scalingshader->Bind(wxEVT_BUTTON, &VideoConfigDiag::Event_ConfigureScalingShader, this);
+			RegisterControl(button_config_scalingshader, wxGetTranslation(scalingshader_options_desc));
 			szr_options->AddSpacer(1);
-			szr_options->Add(button_config_blitshader);
+			szr_options->Add(button_config_scalingshader);
 
-			PopulateBlitShaders();
-			PopulateAnaglyphShaders();
+			PopulateScalingShaders();
 
 			wxStaticBoxSizer* const group_options = new wxStaticBoxSizer(wxVERTICAL, page_postprocessing, _("Options"));
 			group_options->Add(szr_options, 1, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 5);
@@ -653,9 +654,9 @@ VideoConfigDiag::VideoConfigDiag(wxWindow* parent, const std::string &title, con
 		choice_ppshader = nullptr;
 		button_add_ppshader = nullptr;
 		choice_pptrigger = nullptr;
-		choice_blitshader = nullptr;
-		button_config_blitshader = nullptr;
-		choice_anaglyphshader = nullptr;
+		choice_scalingshader = nullptr;
+		button_config_scalingshader = nullptr;
+		choice_stereoshader = nullptr;
 	}
 
 	// -- SPEED HACKS --
@@ -1054,7 +1055,7 @@ void VideoConfigDiag::UpdatePostProcessingShaderListButtons()
 	// Load the shader config, and check if it has options
 	std::string shader_name = WxStrToStr(listbox_selected_ppshaders->GetStringSelection());
 	PostProcessingShaderConfiguration shader_config;
-	if (shader_config.LoadShader("", shader_name))
+	if (shader_config.LoadShader(POSTPROCESSING_SHADER_SUBDIR, shader_name))
 		button_config_ppshader->Enable(shader_config.HasOptions());
 	else
 		button_config_ppshader->Disable();
@@ -1105,7 +1106,7 @@ void VideoConfigDiag::Event_PPShaderListOptions(wxCommandEvent& ev)
 
 	std::string shader_name = WxStrToStr(listbox_selected_ppshaders->GetStringSelection());
 	PostProcessingShaderConfiguration* shader_config = (g_renderer) ? g_renderer->GetPostProcessor()->GetPostShaderConfig(shader_name) : nullptr;
-	PostProcessingConfigDiag dialog(this, shader_name, shader_config);
+	PostProcessingConfigDiag dialog(this, POSTPROCESSING_SHADER_SUBDIR, shader_name, shader_config);
 	dialog.ShowModal();
 }
 
@@ -1139,33 +1140,33 @@ void VideoConfigDiag::Event_PPShaderAdd(wxCommandEvent& ev)
 	ReloadPostProcessingShaders();
 }
 
-void VideoConfigDiag::Event_BlitShader(wxCommandEvent& ev)
+void VideoConfigDiag::Event_ScalingShader(wxCommandEvent& ev)
 {
 	const int sel = ev.GetInt();
 	if (sel)
-		vconfig.sBlitShader = WxStrToStr(ev.GetString());
+		vconfig.sScalingShader = WxStrToStr(ev.GetString());
 	else
-		vconfig.sBlitShader.clear();
+		vconfig.sScalingShader.clear();
 
 	// Load shader, determine whether to enable options button
 	PostProcessingShaderConfiguration shader_config;
-	if (shader_config.LoadShader("", vconfig.sBlitShader))
-		button_config_blitshader->Enable(shader_config.HasOptions());
+	if (shader_config.LoadShader(SCALING_SHADER_SUBDIR, vconfig.sScalingShader))
+		button_config_scalingshader->Enable(shader_config.HasOptions());
 	else
-		button_config_blitshader->Disable();
+		button_config_scalingshader->Disable();
 
 	ReloadPostProcessingShaders();
 }
 
-void VideoConfigDiag::Event_AnaglyphShader(wxCommandEvent& ev)
+void VideoConfigDiag::Event_StereoShader(wxCommandEvent& ev)
 {
-	vconfig.sAnaglyphShader = WxStrToStr(ev.GetString());
+	vconfig.sStereoShader = WxStrToStr(ev.GetString());
 	ReloadPostProcessingShaders();
 }
 
-void VideoConfigDiag::Event_ConfigureBlitShader(wxCommandEvent &ev)
+void VideoConfigDiag::Event_ConfigureScalingShader(wxCommandEvent &ev)
 {
-	PostProcessingConfigDiag dialog(this, vconfig.sBlitShader, (g_renderer) ? g_renderer->GetPostProcessor()->GetBlitShaderConfig() : nullptr);
+	PostProcessingConfigDiag dialog(this, SCALING_SHADER_SUBDIR, vconfig.sScalingShader, (g_renderer) ? g_renderer->GetPostProcessor()->GetScalingShaderConfig() : nullptr);
 	dialog.ShowModal();
 }
 
@@ -1228,8 +1229,7 @@ void VideoConfigDiag::Event_StereoMode(wxCommandEvent &ev)
 {
 	// Disable blit shader choice when anaglyph shader on
 	vconfig.iStereoMode = ev.GetInt();
-	choice_blitshader->Enable((ev.GetInt() != STEREO_ANAGLYPH));
-	choice_anaglyphshader->Enable((ev.GetInt() == STEREO_ANAGLYPH));
+	choice_stereoshader->Enable((ev.GetInt() == STEREO_SHADER));
 
 	ReloadPostProcessingShaders();
 
@@ -1305,25 +1305,9 @@ void VideoConfigDiag::OnUpdateUI(wxUpdateUIEvent& ev)
 	ev.Skip();
 }
 
-static std::vector<std::string> GetShaders(const std::string& sub_dir = "")
-{
-	std::vector<std::string> paths = DoFileSearch({ ".glsl" }, {
-		File::GetUserPath(D_SHADERS_IDX) + sub_dir,
-		File::GetSysDirectory() + SHADERS_DIR DIR_SEP + sub_dir
-	});
-	std::vector<std::string> result;
-	for (std::string path : paths)
-	{
-		std::string name;
-		SplitPath(path, nullptr, &name, nullptr);
-		result.push_back(name);
-	}
-	return result;
-}
-
 void VideoConfigDiag::PopulatePostProcessingShaders()
 {
-	std::vector<std::string> shaders = GetShaders();
+	std::vector<std::string> shaders = PostProcessingShaderConfiguration::GetAvailableShaderNames(POSTPROCESSING_SHADER_SUBDIR);
 
 	// No shaders found -> disable list and add button
 	if (shaders.empty())
@@ -1353,56 +1337,56 @@ void VideoConfigDiag::PopulatePostProcessingShaders()
 	
 }
 
-void VideoConfigDiag::PopulateBlitShaders()
+void VideoConfigDiag::PopulateScalingShaders()
 {
-	std::vector<std::string> shaders = GetShaders();
+	std::vector<std::string> shaders = PostProcessingShaderConfiguration::GetAvailableShaderNames(SCALING_SHADER_SUBDIR);
 
-	choice_blitshader->AppendString(_("(default)"));
+	choice_scalingshader->AppendString(_("(default)"));
 
 	if (shaders.empty())
 	{
-		choice_blitshader->Select(0);
-		button_config_blitshader->Disable();
+		choice_scalingshader->Select(0);
+		button_config_scalingshader->Disable();
 		return;
 	}
 
 	for (const std::string& shader : shaders)
-		choice_blitshader->AppendString(StrToWxStr(shader));
+		choice_scalingshader->AppendString(StrToWxStr(shader));
 
-	if (choice_blitshader->SetStringSelection(StrToWxStr(vconfig.sBlitShader)))
+	if (choice_scalingshader->SetStringSelection(StrToWxStr(vconfig.sScalingShader)))
 	{
 		// Load shader, determine whether to enable options button
 		PostProcessingShaderConfiguration shader_config;
-		if (shader_config.LoadShader("", vconfig.sBlitShader))
-			button_config_blitshader->Enable(shader_config.HasOptions());
+		if (shader_config.LoadShader(SCALING_SHADER_SUBDIR, vconfig.sScalingShader))
+			button_config_scalingshader->Enable(shader_config.HasOptions());
 		else
-			button_config_blitshader->Disable();
+			button_config_scalingshader->Disable();
 	}
 	else
 	{
 		// Invalid shader, reset it to default
-		choice_blitshader->Select(0);
-		button_config_blitshader->Disable();
+		choice_scalingshader->Select(0);
+		button_config_scalingshader->Disable();
 	}
 }
 
-void VideoConfigDiag::PopulateAnaglyphShaders()
+void VideoConfigDiag::PopulateStereoShaders()
 {
-	std::vector<std::string> shaders = GetShaders(ANAGLYPH_DIR DIR_SEP);
+	std::vector<std::string> shaders = PostProcessingShaderConfiguration::GetAvailableShaderNames(STEREO_SHADER_SUBDIR);
 	if (!shaders.empty())
 	{
 		for (const std::string& shader : shaders)
-			choice_anaglyphshader->AppendString(StrToWxStr(shader));
+			choice_stereoshader->AppendString(StrToWxStr(shader));
 
-		if (!choice_anaglyphshader->SetStringSelection(StrToWxStr(vconfig.sAnaglyphShader)))
+		if (!choice_stereoshader->SetStringSelection(StrToWxStr(vconfig.sStereoShader)))
 		{
 			// Invalid shader, reset it to default
-			choice_anaglyphshader->Select(0);
+			choice_stereoshader->Select(0);
 		}
 	}
 
 	// Set enabled based on stereo mode
-	choice_anaglyphshader->Enable(vconfig.iStereoMode == STEREO_ANAGLYPH);
+	choice_stereoshader->Enable(vconfig.iStereoMode == STEREO_SHADER);
 }
 
 void VideoConfigDiag::PopulateAAList()

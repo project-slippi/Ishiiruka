@@ -89,7 +89,7 @@ StepAmount = 0.01, 0.01
 DependentOption = G_DOF
 [Pass]
 EntryPoint = SSAO
-DependentOption = A_SSAO_ENABLED
+DependantOption = A_SSAO_ENABLED
 Input0=ColorBuffer
 Input0Filter=Linear
 Input0Mode=Clamp
@@ -98,7 +98,7 @@ Input1Filter=Nearest
 Input1Mode=Clamp
 [Pass]
 EntryPoint = BlurH
-DependentOption = A_SSAO_ENABLED
+DependantOption = A_SSAO_ENABLED
 Input0=PreviousPass
 Input0Filter=Linear
 Input0Mode=Clamp
@@ -118,7 +118,7 @@ Input2Filter=Linear
 Input2Mode=Clamp
 [Pass]
 EntryPoint = DOF
-DependentOption = G_DOF
+DependantOption = G_DOF
 Input0=PreviousPass
 Input0Filter=Linear
 Input0Mode=Clamp
@@ -357,7 +357,7 @@ void SSAO()
 			{
 				fAO += pow(1 - fDepthDelta, 2.5);
 #if A_SSGI_ENABLED == 1
-				Occlusion.rgb += SampleLocation(location);
+				Occlusion.rgb += SampleLocation(location).rgb;
 #endif
 			}
 

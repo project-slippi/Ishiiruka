@@ -608,7 +608,8 @@ DependentOption = A_FXAA_PASS
 
 [Pass]
 EntryPoint = AmbientOcclusion
-DependentOption = A_SSAO_ENABLED,A_SSGI_ENABLED
+DependantOption = A_SSAO_ENABLED
+DependantOption = A_SSGI_ENABLED
 Input0=ColorBuffer
 Input0Filter=Linear
 Input0Mode=Clamp
@@ -617,7 +618,8 @@ Input1Filter=Nearest
 Input1Mode=Clamp
 [Pass]
 EntryPoint = AOBlur
-DependentOption = A_SSAO_ENABLED,A_SSGI_ENABLED
+DependantOption = A_SSAO_ENABLED
+DependantOption = A_SSGI_ENABLED
 Input0=PreviousPass
 Input0Filter=Linear
 Input0Mode=Clamp
@@ -637,49 +639,49 @@ Input2Filter=Linear
 Input2Mode=Clamp
 [Pass]
 EntryPoint = A_ReduceSize
-DependentOption = D_BLOOM
+DependantOption = D_BLOOM
 OutputScale = 0.5
 Input0=PreviousPass
 Input0Filter=Linear
 Input0Mode=Clamp
 [Pass]
 EntryPoint = BloomH
-DependentOption = D_BLOOM
+DependantOption = D_BLOOM
 OutputScale = 0.25
 Input0=PreviousPass
 Input0Filter=Linear
 Input0Mode=Clamp
 [Pass]
 EntryPoint = BloomV
-DependentOption = D_BLOOM
+DependantOption = D_BLOOM
 OutputScale = 0.125
 Input0=PreviousPass
 Input0Filter=Linear
 Input0Mode=Clamp
 [Pass]
 EntryPoint = BloomH
-DependentOption = D_BLOOM
+DependantOption = D_BLOOM
 OutputScale = 0.125
 Input0=PreviousPass
 Input0Filter=Linear
 Input0Mode=Clamp
 [Pass]
 EntryPoint = BloomV
-DependentOption = D_BLOOM
+DependantOption = D_BLOOM
 OutputScale = 0.125
 Input0=PreviousPass
 Input0Filter=Linear
 Input0Mode=Clamp
 [Pass]
 EntryPoint = BloomScatering
-DependentOption = D_BLOOM
+DependantOption = D_BLOOM
 OutputScale = 0.03125
 Input0=PreviousPass
 Input0Filter=Linear
 Input0Mode=Clamp
 [Pass]
 EntryPoint = BloomMerger
-DependentOption = D_BLOOM
+DependantOption = D_BLOOM
 Input0=Pass2
 Input0Filter=Linear
 Input0Mode=Clamp
@@ -694,7 +696,7 @@ Input3Filter=Nearest
 Input3Mode=Clamp
 [Pass]
 EntryPoint = PS_DOF_MatsoDOF1
-DependentOption = MATSODOF
+DependantOption = MATSODOF
 Input0=PreviousPass
 Input0Filter=Linear
 Input0Mode=Clamp
@@ -703,7 +705,7 @@ Input1Filter=Nearest
 Input1Mode=Clamp
 [Pass]
 EntryPoint = PS_DOF_MatsoDOF2
-DependentOption = MATSODOF
+DependantOption = MATSODOF
 Input0=PreviousPass
 Input0Filter=Linear
 Input0Mode=Clamp
@@ -712,7 +714,7 @@ Input1Filter=Nearest
 Input1Mode=Clamp
 [Pass]
 EntryPoint = PS_DOF_MatsoDOF3
-DependentOption = MATSODOF
+DependantOption = MATSODOF
 Input0=PreviousPass
 Input0Filter=Linear
 Input0Mode=Clamp
@@ -721,7 +723,7 @@ Input1Filter=Nearest
 Input1Mode=Clamp
 [Pass]
 EntryPoint = PS_DOF_MatsoDOF4
-DependentOption = MATSODOF
+DependantOption = MATSODOF
 Input0=PreviousPass
 Input0Filter=Linear
 Input0Mode=Clamp
@@ -730,7 +732,7 @@ Input1Filter=Nearest
 Input1Mode=Clamp
 [Pass]
 EntryPoint = Barrel_distortion
-DependentOption = E_BARREL
+DependantOption = E_BARREL
 Input0=PreviousPass
 Input0Filter=Linear
 Input0Mode=Clamp
@@ -1344,8 +1346,8 @@ float4 TonemapPass(float4 color)
 	float blevel = pow(saturate(bmax), GetOption(C_BLACK_LEVELS));
 	color.rgb = color.rgb * blevel;
 
-	if (OptionEnabled(A_TONEMAP_FILM)) { color.rgb = FilmicTonemap(color.rgb); }
-	if (OptionEnabled(A_TONEMAP_TYPE)) { color.rgb = FilmicCurve(color.rgb); }
+	if (GetOption(A_TONEMAP_FILM) == 1) { color.rgb = FilmicTonemap(color.rgb); }
+	if (GetOption(A_TONEMAP_TYPE) == 1) { color.rgb = FilmicCurve(color.rgb); }
 
 	float3 XYZ = RGBtoXYZ(color.rgb);
 
@@ -1465,7 +1467,7 @@ float4 TexSharpenPass(float4 color)
 	color.rgb = color.rgb + sharpenLuma;
 	color.a = AvgLuminance(color.rgb);
 
-	if (OptionEnabled(D_SEDGE_DETECTION))
+	if (GetOption(D_SEDGE_DETECTION) == 1)
 	{
 		color = (0.5 + (sharpenLuma * 4)).xxxx;
 	}
@@ -1716,7 +1718,7 @@ float4 FxaaPixelShader(float4 rgbyM, float2 RcpFrame, float Subpix, float EdgeTh
 	if (!horzSpan) posM.x += pixelOffsetSubpix * lengthSign;
 	if (horzSpan) posM.y += pixelOffsetSubpix * lengthSign;
 
-	if (OptionEnabled(C_FXAA_SHOW_EDGES))
+	if (GetOption(C_FXAA_SHOW_EDGES) == 1)
 	{
 		return -rgbyM;
 	}

@@ -67,6 +67,7 @@ public:
 
 		std::vector<float> m_default_float_values;
 		std::vector<s32> m_default_integer_values;
+
 		std::vector<float> m_float_values;
 		std::vector<s32> m_integer_values;
 
@@ -101,8 +102,7 @@ public:
 			u32 pass_output_index;
 
 			std::unique_ptr<u8[]> external_image_data;
-			u32 external_image_width;
-			u32 external_image_height;
+			TargetSize external_image_size;
 		};
 		std::vector<Input> inputs;
 		std::string entry_point;
@@ -126,8 +126,8 @@ public:
 		}
 	};
 
-	typedef std::map<std::string, ConfigurationOption> ConfigMap;
-	typedef std::vector<RenderPass> RenderPassList;
+	using ConfigMap = std::map<std::string, ConfigurationOption>;
+	using RenderPassList = std::vector<RenderPass>;
 
 	PostProcessingShaderConfiguration() = default;
 	virtual ~PostProcessingShaderConfiguration() {}
@@ -135,9 +135,9 @@ public:
 	// Loads the configuration with a shader
 	// If the argument is "" the class will load the shader from the g_activeConfig option.
 	// Returns the loaded shader source from file
-	bool LoadShader(const std::string& sub_dir, const std::string& shader);
+	bool LoadShader(const std::string& sub_dir, const std::string& name);
 	void SaveOptionsConfiguration();
-	const std::string &GetShader() const { return m_current_shader; }
+	const std::string &GetShaderName() const { return m_shader_name; }
 	const std::string &GetShaderSource() const { return m_shader_source; }
 
 	bool IsDirty() const { return m_any_options_dirty; }
@@ -159,24 +159,52 @@ public:
 	void SetOptioni(const std::string& option, int index, s32 value);
 	void SetOptionb(const std::string& option, bool value);
 
-	void PrintCompilationTimeOptions(std::string &options) const;
+	// Get a list of available post-processing shaders.
+	static std::vector<std::string> GetAvailableShaderNames(const std::string& sub_dir);
 private:
+	struct ConfigBlock final
+	{
+		std::string m_type;
+		std::vector<std::pair<std::string, std::string>> m_options;
+	};
+	
+	using StringOptionList = std::vector<ConfigBlock>;
+
 	bool m_any_options_dirty = false;
 	bool m_compile_time_constants_dirty = false;
 	bool m_requires_depth_buffer = false;
-	std::string m_current_shader;
+	std::string m_shader_name;
 	std::string m_shader_source;
 	ConfigMap m_options;
 	RenderPassList m_render_passes;
 
-	bool ParseShader(const std::string& code);
+	bool ParseShader(const std::string& dirname, const std::string& path);
+	bool ParseConfiguration(const std::string& dirname, const std::string& configuration_string);
+	
+	std::vector<ConfigBlock> ReadConfigSections(const std::string& configuration_string);
+	bool ParseConfigSections(const std::string& dirname, const std::vector<ConfigBlock>& config_blocks);
+	
+	bool ParseOptionBlock(const std::string& dirname, const ConfigBlock& block);
+	bool ParsePassBlock(const std::string& dirname, const ConfigBlock& block);
+	bool LoadExternalImage(const std::string& path, RenderPass::Input* input);
+
+	void CreateDefaultPass();
 	void LoadOptionsConfigurationFromSection(IniFile::Section* section);
 	void LoadOptionsConfiguration();
+
+	static bool ValidatePassInputs(const RenderPass& pass);
 };
 
 class PostProcessor
 {
 public:
+	// Size of the constant buffer reserved for post-processing.
+	// 4KiB = 256 constants, a shader should not have this many options.
+	static const size_t UNIFORM_BUFFER_SIZE = 4096;
+	
+	// List of texture sizes for shader inputs, used to update uniforms.
+	using InputTextureSizeArray = std::array<TargetSize, POST_PROCESSING_MAX_TEXTURE_INPUTS>;
+	// Constructor needed for timer object
 	PostProcessor();
 	virtual ~PostProcessor();
 
@@ -187,16 +215,16 @@ public:
 	PostProcessingShaderConfiguration* GetPostShaderConfig(const std::string& shader_name);
 
 	// Get the current blit shader config.
-	PostProcessingShaderConfiguration* GetBlitShaderConfig() { return m_blit_config.get(); }
+	PostProcessingShaderConfiguration* GetScalingShaderConfig() { return m_scaling_config.get(); }
 
 	bool IsActive() const { return m_active; }
 	bool RequiresDepthBuffer() const { return m_requires_depth_buffer; }
+	bool ShouldTriggerOnSwap() const;
 
 	void SetReloadFlag() { m_reload_flag.Set(); }
 	bool RequiresReload() { return m_reload_flag.TestAndClear(); }
 
-	void OnPerspectiveProjectionLoaded();
-	void OnOrthographicProjectionLoaded();
+	void OnProjectionLoaded(u32 type);
 	void OnEFBCopy();
 	void OnEndFrame();
 
@@ -208,12 +236,15 @@ public:
 	virtual void PostProcessEFB() = 0;
 
 	// Copy/resize src_texture to dst_texture (0 means backbuffer), using the resize/blit shader.
-	virtual void BlitToFramebuffer(const TargetRectangle& dst, uintptr_t dst_texture,
-		const TargetRectangle& src, uintptr_t src_texture, uintptr_t src_depth_texture, int src_width, int src_height, int src_layer, float gamma = 1.0f) = 0;
-
-	// Post-process an image.
-	virtual void PostProcess(const TargetRectangle& visible_rect, int target_width, int target_height,
-		int target_layers, uintptr_t texture, uintptr_t depth_texture) = 0;
+	virtual void BlitScreen(const TargetRectangle& dst_rect, const TargetSize& dst_size, uintptr_t dst_texture,
+		const TargetRectangle& src_rect, const TargetSize& src_size, uintptr_t src_texture, uintptr_t src_depth_texture,
+		int src_layer, float gamma = 1.0f) = 0;
+	
+	// Post-process the source image, if output_texture is null, it will be written back to src_texture,
+	// otherwise a temporary texture will be returned that is valid until the next call to PostProcess.
+	virtual void PostProcess(TargetRectangle* output_rect, TargetSize* output_size, uintptr_t* output_texture,
+		const TargetRectangle& src_rect, const TargetSize& src_size, uintptr_t src_texture,
+		const TargetRectangle& src_depth_rect, const TargetSize& src_depth_size, uintptr_t src_depth_texture) = 0;
 
 	// Construct the options uniform buffer source for the specified config.
 	static void GetUniformBufferShaderSource(API_TYPE api, const PostProcessingShaderConfiguration* config, std::string& shader_source);
@@ -223,7 +254,7 @@ public:
 		const PostProcessingShaderConfiguration::RenderPass* pass);
 
 	// Scale a target resolution to an output's scale
-	static void ScaleTargetSize(int* scaled_width, int* scaled_height, int orig_width, int orig_height, float scale);
+	static TargetSize ScaleTargetSize(const TargetSize& orig_size, float scale);
 
 	// Scale a target rectangle to an output's scale
 	static TargetRectangle ScaleTargetRectangle(API_TYPE api, const TargetRectangle& src, float scale);
@@ -237,17 +268,34 @@ protected:
 		PROJECTION_STATE_FINAL
 	};
 
-	// Size of the constant buffer reserved for post-processing.
-	// 4KiB = 256 constants, a shader should not have this many options.
-	static const size_t UNIFORM_BUFFER_SIZE = 4096;
+	// Each option is aligned to a float4
+	union Constant
+	{
+		int bool_constant;
+		float float_constant[4];
+		s32 int_constant[4];
+	};
+
+	// Update constant buffer with the current values from the config.
+	// Returns true if the buffer contents has changed.
+	bool UpdateUniformBuffer(API_TYPE api,
+		const PostProcessingShaderConfiguration* config,
+		const InputTextureSizeArray& input_sizes,
+		const TargetRectangle& dst_rect, const TargetSize& dst_size,
+		const TargetRectangle& src_rect, const TargetSize& src_size,
+		int src_layer, float gamma, u32* buffer_size);
 
 	// Update constant buffer with the current values from the config.
 	void UpdateUniformBuffer(API_TYPE api, const PostProcessingShaderConfiguration* config,
-		void* buffer_ptr, int input_resolutions[POST_PROCESSING_MAX_TEXTURE_INPUTS][2],
-		const TargetRectangle& src_rect, const TargetRectangle& dst_rect, int src_width, int src_height, int src_layer, float gamma);
+		void* buffer_ptr, const InputTextureSizeArray& input_sizes,
+		const TargetSize& src_size, const TargetRectangle& src_rect,
+		const TargetSize& dst_size, const TargetRectangle& dst_rect, int src_layer, float gamma);
 
 	// Load m_configs with the selected post-processing shaders.
 	void ReloadShaderConfigs();
+	void ReloadPostProcessingShaderConfigs();
+	void ReloadScalingShaderConfig();
+	void ReloadStereoShaderConfig();
 
 	// Timer for determining our time value
 	Common::Timer m_timer;
@@ -262,7 +310,10 @@ protected:
 	std::unordered_map<std::string, std::unique_ptr<PostProcessingShaderConfiguration>> m_shader_configs;
 
 	// Blit/anaglyph shader config
-	std::unique_ptr<PostProcessingShaderConfiguration> m_blit_config;
+	std::unique_ptr<PostProcessingShaderConfiguration> m_scaling_config;
+
+	// Stereo shader config
+	std::unique_ptr<PostProcessingShaderConfiguration> m_stereo_config;
 
 	// Projection state for detecting when to apply post
 	PROJECTION_STATE m_projection_state = PROJECTION_STATE_INITIAL;
@@ -270,6 +321,10 @@ protected:
 	// Global post-processing enable state
 	bool m_active = false;
 	bool m_requires_depth_buffer = false;
+
+	// Uniform buffer data, double-buffered so we don't update if unnecessary
+	std::vector<Constant> m_current_constants;
+	std::vector<Constant> m_new_constants;
 
 	// common shader code between backends
 	static const std::string s_post_fragment_header_ogl;

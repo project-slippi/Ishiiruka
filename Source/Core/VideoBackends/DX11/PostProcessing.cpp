@@ -7,7 +7,6 @@
 #include "Common/FileUtil.h"
 #include "Common/StringUtil.h"
 
-
 #include "VideoBackends/DX11/D3DShader.h"
 #include "VideoBackends/DX11/D3DState.h"
 #include "VideoBackends/DX11/D3DUtil.h"
@@ -19,15 +18,78 @@
 #include "VideoBackends/DX11/VertexShaderCache.h"
 
 #include "VideoCommon/OnScreenDisplay.h"
-
-static const u32 FIRST_INPUT_BINDING_SLOT = 9;
+#include "VideoCommon/Statistics.h"
 
 namespace DX11
 {
 
+static const u32 FIRST_INPUT_BINDING_SLOT = 9;
+
+static const char* s_shader_common = R"(
+
+	struct VS_INPUT
+{
+float4 position		: POSITION;
+float4 texCoord		: TEXCOORD0;
+};
+
+struct VS_OUTPUT
+{
+float4 position		: SV_Position;
+float2 srcTexCoord	: TEXCOORD0;
+float2 dstTexCoord	: TEXCOORD1;
+float layer			: TEXCOORD2;
+};
+
+struct GS_OUTPUT
+{
+float4 position		: SV_Position;
+float2 srcTexCoord	: TEXCOORD0;
+float2 dstTexCoord	: TEXCOORD1;
+float layer			: TEXCOORD2;
+uint slice			: SV_RenderTargetArrayIndex;
+};
+
+)";
+
+static const char* s_vertex_shader = R"(
+
+void main(in VS_INPUT input, out VS_OUTPUT output)
+{
+output.position = input.position;
+output.srcTexCoord = input.texCoord;
+output.dstTexCoord = float2(input.position.x * 0.5f + 0.5f, 1.0f - (input.position.y * 0.5f + 0.5f));
+output.layer = input.texCoord.z;
+}
+
+)";
+
+static const char* s_geometry_shader = R"(
+
+	[maxvertexcount(6)]
+void main(triangle VS_OUTPUT input[3], inout TriangleStream<GS_OUTPUT> output)
+{
+for (int layer = 0; layer < 2; layer++)
+{
+	for (int i = 0; i < 3; i++)
+	{
+		GS_OUTPUT vert;
+		vert.position = input[i].position;
+		vert.srcTexCoord = input[i].srcTexCoord;
+		vert.dstTexCoord = input[i].dstTexCoord;
+		vert.layer = float(layer);
+		vert.slice = layer;
+		output.Append(vert);
+	}
+
+			output.RestartStrip();
+}
+}
+
+)";
+
 PostProcessingShader::~PostProcessingShader()
 {
-	// Delete texture objects that we own
 	for (RenderPassData& pass : m_passes)
 	{
 		for (InputBinding& input : pass.inputs)
@@ -44,50 +106,81 @@ PostProcessingShader::~PostProcessingShader()
 	}
 }
 
+D3DTexture2D* PostProcessingShader::GetLastPassOutputTexture() const
+{
+	return m_passes[m_last_pass_index].output_texture;
+}
+
+bool PostProcessingShader::IsLastPassScaled() const
+{
+	return (m_passes[m_last_pass_index].output_size != m_internal_size);
+}
+
 bool PostProcessingShader::Initialize(const PostProcessingShaderConfiguration* config, int target_layers)
 {
 	m_internal_layers = target_layers;
 	m_config = config;
 	m_ready = false;
 
+	if (!CreatePasses())
+		return false;
+
+	// Set size to zero, that way it'll always be reconfigured on first use
+	m_internal_size.Set(0, 0);
+	m_ready = RecompileShaders();
+	return m_ready;
+}
+
+bool PostProcessingShader::Reconfigure(const TargetSize& new_size)
+{
+	m_ready = false;
+
+	bool size_changed = (m_internal_size != new_size);
+	if (size_changed)
+		ResizeOutputTextures(new_size);
+
+	// Re-link on size change due to the input pointer changes
+	if (m_config->IsDirty() || size_changed)
+		LinkPassOutputs();
+
+	// Recompile shaders if compile-time constants have changed
+	if (m_config->IsCompileTimeConstantsDirty() && !RecompileShaders())
+		return false;
+
+	m_ready = true;
+	return true;
+}
+
+bool PostProcessingShader::CreatePasses()
+{
 	m_passes.reserve(m_config->GetPasses().size());
 	for (const auto& pass_config : m_config->GetPasses())
 	{
-		// texture is allocated in CreateIntermediateBuffers
 		RenderPassData pass;
 		pass.output_texture = nullptr;
-		pass.output_width = 0;
-		pass.output_height = 0;
 		pass.output_scale = pass_config.output_scale;
 		pass.enabled = true;
-
-		// set up inputs for external images and upload them
 		pass.inputs.reserve(pass_config.inputs.size());
+
 		for (const auto& input_config : pass_config.inputs)
 		{
-			// Non-external textures will be bound at run-time.
 			InputBinding input;
 			input.type = input_config.type;
-			input.width = 1;
-			input.height = 1;
 			input.texture_unit = input_config.texture_unit;
 			input.texture = nullptr;
 			input.texture_srv = nullptr;
 			input.texture_sampler = nullptr;
 
-			// Only external images have to be set up here
 			if (input.type == POST_PROCESSING_INPUT_TYPE_IMAGE)
 			{
-				_dbg_assert_(VIDEO, input_config.external_image_width > 0 && input_config.external_image_height > 0);
-
 				// Copy the external image across all layers
 				Microsoft::WRL::ComPtr<ID3D11Texture2D> texture;
 				CD3D11_TEXTURE2D_DESC texture_desc(DXGI_FORMAT_R8G8B8A8_UNORM,
-					input_config.external_image_width, input_config.external_image_height, 1, 1,
+					input_config.external_image_size.width, input_config.external_image_size.height, 1, 1,
 					D3D11_BIND_SHADER_RESOURCE, D3D11_USAGE_DEFAULT, 0, 1, 0, 0);
 
 				D3D11_SUBRESOURCE_DATA initial_data = { input_config.external_image_data.get(),
-					input_config.external_image_width * 4, 0 };
+					static_cast<UINT>(input_config.external_image_size.width * 4), 0 };
 
 				std::unique_ptr<D3D11_SUBRESOURCE_DATA[]> initial_data_layers = std::make_unique<D3D11_SUBRESOURCE_DATA[]>(m_internal_layers);
 				for (int i = 0; i < m_internal_layers; i++)
@@ -96,16 +189,20 @@ bool PostProcessingShader::Initialize(const PostProcessingShaderConfiguration* c
 				HRESULT hr = D3D::device->CreateTexture2D(&texture_desc, initial_data_layers.get(), &texture);
 				if (FAILED(hr))
 				{
-					ERROR_LOG(VIDEO, "Failed to upload post-processing external image for shader %s (pass %s)", m_config->GetShader().c_str(), pass_config.entry_point.c_str());
+					ERROR_LOG(VIDEO, "Failed to upload post-processing external image for shader %s (pass %s)", m_config->GetShaderName().c_str(), pass_config.entry_point.c_str());
 					return false;
 				}
 
 				input.texture = new D3DTexture2D(texture.Get(), (D3D11_BIND_FLAG)texture_desc.BindFlags, texture_desc.Format);
-				input.width = input_config.external_image_width;
-				input.height = input_config.external_image_height;
+				input.texture_srv = input.texture->GetSRV();
+				input.size = input_config.external_image_size;
 			}
 
-			// Lookup tables for samplers, simple due to no mipmaps
+			// If set to previous pass, but we are the first pass, use the color buffer instead.
+			if (input.type == POST_PROCESSING_INPUT_TYPE_PREVIOUS_PASS_OUTPUT && m_passes.empty())
+				input.type = POST_PROCESSING_INPUT_TYPE_COLOR_BUFFER;
+
+			// Lookup tables for samplers
 			static const D3D11_FILTER d3d_sampler_filters[] = { D3D11_FILTER_MIN_MAG_MIP_POINT, D3D11_FILTER_MIN_MAG_LINEAR_MIP_POINT };
 			static const D3D11_TEXTURE_ADDRESS_MODE d3d_address_modes[] = { D3D11_TEXTURE_ADDRESS_CLAMP, D3D11_TEXTURE_ADDRESS_WRAP, D3D11_TEXTURE_ADDRESS_BORDER };
 			static const float d3d_border_color[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
@@ -121,7 +218,7 @@ bool PostProcessingShader::Initialize(const PostProcessingShaderConfiguration* c
 			HRESULT hr = D3D::device->CreateSamplerState(&sampler_desc, input.texture_sampler.ReleaseAndGetAddressOf());
 			if (FAILED(hr))
 			{
-				ERROR_LOG(VIDEO, "Failed to create post-processing sampler for shader %s (pass %s)", m_config->GetShader().c_str(), pass_config.entry_point.c_str());
+				ERROR_LOG(VIDEO, "Failed to create post-processing sampler for shader %s (pass %s)", m_config->GetShaderName().c_str(), pass_config.entry_point.c_str());
 				return false;
 			}
 
@@ -131,76 +228,6 @@ bool PostProcessingShader::Initialize(const PostProcessingShaderConfiguration* c
 		m_passes.push_back(std::move(pass));
 	}
 
-	// Compile programs
-	// Determine which passes to execute
-	if (!UpdateOptions(true))
-		return false;
-
-	// Compile programs
-	m_ready = RecompileShaders();
-	return m_ready;
-}
-
-bool PostProcessingShader::ResizeIntermediateBuffers(int target_width, int target_height)
-{
-	_dbg_assert_(VIDEO, target_width > 0 && target_height > 0);
-	if (m_internal_width == target_width && m_internal_height == target_height)
-		return true;
-
-	m_ready = false;
-
-	size_t previous_pass = 0;
-	for (size_t pass_index = 0; pass_index < m_passes.size(); pass_index++)
-	{
-		RenderPassData& pass = m_passes[pass_index];
-		const PostProcessingShaderConfiguration::RenderPass& pass_config = m_config->GetPass(pass_index);
-		PostProcessor::ScaleTargetSize(&pass.output_width, &pass.output_height, target_width, target_height, pass_config.output_scale);
-
-		if (pass.output_texture != nullptr)
-		{
-			pass.output_texture->Release();
-			pass.output_texture = nullptr;
-		}
-
-		Microsoft::WRL::ComPtr<ID3D11Texture2D> color_texture;
-		CD3D11_TEXTURE2D_DESC color_texture_desc(DXGI_FORMAT_R8G8B8A8_UNORM, pass.output_width, pass.output_height, m_internal_layers, 1, D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET);
-		HRESULT hr = D3D::device->CreateTexture2D(&color_texture_desc, nullptr, &color_texture);
-		if (FAILED(hr))
-		{
-			ERROR_LOG(VIDEO, "Failed to create post-processing intermediate buffers (dimensions: %ux%u)", target_width, target_height);
-			return false;
-		}
-
-		pass.output_texture = new D3DTexture2D(color_texture.Get(), (D3D11_BIND_FLAG)color_texture_desc.BindFlags, color_texture_desc.Format);
-
-		// Hook up any inputs that are other passes
-		for (size_t input_index = 0; input_index < pass_config.inputs.size(); input_index++)
-		{
-			const PostProcessingShaderConfiguration::RenderPass::Input& input_config = pass_config.inputs[input_index];
-			InputBinding& input_binding = pass.inputs[input_index];
-			if (input_config.type == POST_PROCESSING_INPUT_TYPE_PASS_OUTPUT)
-			{
-				_dbg_assert_(VIDEO, input_config.pass_output_index < pass_index);
-				input_binding.texture_srv = m_passes[input_config.pass_output_index].output_texture->GetSRV();
-				input_binding.width = m_passes[input_config.pass_output_index].output_width;
-				input_binding.height = m_passes[input_config.pass_output_index].output_height;
-			}
-			else if (input_config.type == POST_PROCESSING_INPUT_TYPE_PREVIOUS_PASS_OUTPUT)
-			{
-				_dbg_assert_(VIDEO, previous_pass < pass_index);
-				input_binding.texture_srv = m_passes[previous_pass].output_texture->GetSRV();
-				input_binding.width = m_passes[previous_pass].output_width;
-				input_binding.height = m_passes[previous_pass].output_height;
-			}
-		}
-
-		if (pass.enabled)
-			previous_pass = pass_index;
-	}
-
-	m_internal_width = target_width;
-	m_internal_height = target_height;
-	m_ready = true;
 	return true;
 }
 
@@ -213,9 +240,9 @@ bool PostProcessingShader::RecompileShaders()
 
 		std::string hlsl_source = PostProcessor::GetPassFragmentShaderSource(API_D3D11, m_config, &pass_config);
 		pass.pixel_shader = D3D::CompileAndCreatePixelShader(hlsl_source);
-		if (pass.pixel_shader == nullptr)
+		if (pass.pixel_shader.get() == nullptr)
 		{
-			ERROR_LOG(VIDEO, "Failed to compile post-processing shader %s (pass %s)", m_config->GetShader().c_str(), pass_config.entry_point.c_str());
+			ERROR_LOG(VIDEO, "Failed to compile post-processing shader %s (pass %s)", m_config->GetShaderName().c_str(), pass_config.entry_point.c_str());
 			m_ready = false;
 			return false;
 		}
@@ -224,79 +251,116 @@ bool PostProcessingShader::RecompileShaders()
 	return true;
 }
 
-bool PostProcessingShader::UpdateOptions(bool force)
+bool PostProcessingShader::ResizeOutputTextures(const TargetSize& new_size)
 {
-	if (!m_config->IsDirty() && !m_config->IsCompileTimeConstantsDirty() && !force)
-		return true;
+	for (size_t pass_index = 0; pass_index < m_passes.size(); pass_index++)
+	{
+		RenderPassData& pass = m_passes[pass_index];
+		const PostProcessingShaderConfiguration::RenderPass& pass_config = m_config->GetPass(pass_index);
+		pass.output_size = PostProcessor::ScaleTargetSize(new_size, pass_config.output_scale);
 
+		if (pass.output_texture != nullptr)
+		{
+			pass.output_texture->Release();
+			pass.output_texture = nullptr;
+		}
+
+		Microsoft::WRL::ComPtr<ID3D11Texture2D> color_texture;
+		CD3D11_TEXTURE2D_DESC color_texture_desc(DXGI_FORMAT_R8G8B8A8_UNORM, pass.output_size.width, pass.output_size.height, m_internal_layers, 1, D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET);
+		HRESULT hr = D3D::device->CreateTexture2D(&color_texture_desc, nullptr, &color_texture);
+		if (FAILED(hr))
+		{
+			ERROR_LOG(VIDEO, "Failed to create post-processing intermediate buffers (dimensions: %ux%u)", pass.output_size.width, pass.output_size.height);
+			return false;
+		}
+
+		pass.output_texture = new D3DTexture2D(color_texture.Get(), (D3D11_BIND_FLAG)color_texture_desc.BindFlags, color_texture_desc.Format);
+	}
+
+	m_internal_size = new_size;
+	return true;
+}
+
+void PostProcessingShader::LinkPassOutputs()
+{
 	m_last_pass_index = 0;
 	m_last_pass_uses_color_buffer = false;
 
 	// Update dependant options (enable/disable passes)
-	size_t previous_pass_index = 0;
 	for (size_t pass_index = 0; pass_index < m_passes.size(); pass_index++)
 	{
 		const PostProcessingShaderConfiguration::RenderPass& pass_config = m_config->GetPass(pass_index);
 		RenderPassData& pass = m_passes[pass_index];
 		pass.enabled = pass_config.CheckEnabled();
-
-		// Check for color buffer reads, for copy optimization
-		if (pass.enabled)
+		if (!pass.enabled)
+			continue;
+		size_t previous_pass_index = m_last_pass_index;
+		m_last_pass_index = pass_index;
+		m_last_pass_uses_color_buffer = false;
+		for (size_t input_index = 0; input_index < pass_config.inputs.size(); input_index++)
 		{
-			m_last_pass_index = pass_index;
-			m_last_pass_uses_color_buffer = false;
-			for (size_t input_index = 0; input_index < pass.inputs.size(); input_index++)
+			InputBinding& input_binding = pass.inputs[input_index];
+			switch (input_binding.type)
 			{
-				InputBinding& input = pass.inputs[input_index];
-				if (input.type == POST_PROCESSING_INPUT_TYPE_COLOR_BUFFER)
-				{
-					m_last_pass_uses_color_buffer = true;
-					break;
-				}
+			case POST_PROCESSING_INPUT_TYPE_PASS_OUTPUT:
+			{
+				u32 pass_output_index = pass_config.inputs[input_index].pass_output_index;
+				input_binding.texture_srv = m_passes[pass_output_index].output_texture->GetSRV();
+				input_binding.size = m_passes[pass_output_index].output_size;
+			}
+			break;
+
+			case POST_PROCESSING_INPUT_TYPE_PREVIOUS_PASS_OUTPUT:
+			{
+				input_binding.texture_srv = m_passes[previous_pass_index].output_texture->GetSRV();
+				input_binding.size = m_passes[previous_pass_index].output_size;
+			}
+			break;
+
+			case POST_PROCESSING_INPUT_TYPE_COLOR_BUFFER:
+				m_last_pass_uses_color_buffer = true;
+				break;
+
+			default:
+				break;
 			}
 		}
 	}
-	// Recompile shaders if compile-time constants have changed
-	if (m_config->IsCompileTimeConstantsDirty() && !RecompileShaders())
-		return false;
-
-	return true;
 }
 
 void PostProcessingShader::Draw(D3DPostProcessor* parent,
-	const TargetRectangle& target_rect, D3DTexture2D* target_texture,
-	const TargetRectangle& src_rect, int src_width, int src_height,
-	D3DTexture2D* src_texture, D3DTexture2D* src_depth_texture,
-	int src_layer, float gamma)
+	const TargetRectangle& dst_rect, const TargetSize& dst_size, D3DTexture2D* dst_texture,
+	const TargetRectangle& src_rect, const TargetSize& src_size, D3DTexture2D* src_texture,
+	D3DTexture2D* src_depth_texture, int src_layer, float gamma)
 {
-	_dbg_assert_(VIDEO, m_ready);
-	_dbg_assert_(VIDEO, src_width == m_internal_width && src_height == m_internal_height);
+	_dbg_assert_(VIDEO, m_ready && m_internal_size == src_size);
 
-	// Determine whether we can skip the final copy by writing directly to the output texture.
-	bool skip_final_copy = (target_texture != src_texture || !m_last_pass_uses_color_buffer);
-
-	// If the last pass is not at full scale, we can't skip the copy.
-	if (m_passes[m_last_pass_index].output_width != src_width || m_passes[m_last_pass_index].output_height != src_height)
-		skip_final_copy = false;
+	// Determine whether we can skip the final copy by writing directly to the output texture, if the last pass is not scaled.
+	bool skip_final_copy = !IsLastPassScaled() && (dst_texture != src_texture || !m_last_pass_uses_color_buffer);
 
 	// Draw each pass.
+	PostProcessor::InputTextureSizeArray input_sizes;
 	TargetRectangle output_rect = {};
-	int input_resolutions[POST_PROCESSING_MAX_TEXTURE_INPUTS][2] = {};
+	TargetSize output_size;
 	for (size_t pass_index = 0; pass_index < m_passes.size(); pass_index++)
 	{
 		const RenderPassData& pass = m_passes[pass_index];
 		bool is_last_pass = (pass_index == m_last_pass_index);
+		if (!pass.enabled)
+			continue;
 
 		// If this is the last pass and we can skip the final copy, write directly to output texture.
 		if (is_last_pass && skip_final_copy)
 		{
 			// The target rect may differ from the source.
-			output_rect = target_rect;
-			D3D::context->OMSetRenderTargets(1, &target_texture->GetRTV(), nullptr);
+			output_rect = dst_rect;
+			output_size = dst_size;
+			D3D::context->OMSetRenderTargets(1, &dst_texture->GetRTV(), nullptr);
 		}
 		else
 		{
 			output_rect = PostProcessor::ScaleTargetRectangle(API_D3D11, src_rect, pass.output_scale);
+			output_size = pass.output_size;
 			D3D::context->OMSetRenderTargets(1, &pass.output_texture->GetRTV(), nullptr);
 		}
 
@@ -310,20 +374,17 @@ void PostProcessingShader::Draw(D3DPostProcessor* parent,
 			{
 			case POST_PROCESSING_INPUT_TYPE_COLOR_BUFFER:
 				input_srv = src_texture->GetSRV();
-				input_resolutions[i][0] = src_width;
-				input_resolutions[i][1] = src_height;
+				input_sizes[i] = src_size;
 				break;
 
 			case POST_PROCESSING_INPUT_TYPE_DEPTH_BUFFER:
 				input_srv = (src_depth_texture != nullptr) ? src_depth_texture->GetSRV() : nullptr;
-				input_resolutions[i][0] = src_width;
-				input_resolutions[i][1] = src_height;
+				input_sizes[i] = src_size;
 				break;
 
 			default:
 				input_srv = input.texture_srv;
-				input_resolutions[i][0] = input.width;
-				input_resolutions[i][1] = input.height;
+				input_sizes[i] = input.size;
 				break;
 			}
 
@@ -337,58 +398,48 @@ void PostProcessingShader::Draw(D3DPostProcessor* parent,
 
 		D3D::context->RSSetViewports(1, &output_viewport);
 
-		parent->MapAndUpdateUniformBuffer(m_config, input_resolutions, src_rect, target_rect, src_width, src_height, src_layer, gamma);
+		parent->MapAndUpdateUniformBuffer(m_config, input_sizes, output_rect, output_size, src_rect, src_size, src_layer, gamma);
 
 		// Select geometry shader based on layers
 		ID3D11GeometryShader* geometry_shader = nullptr;
 		if (src_layer < 0 && m_internal_layers > 1)
-			geometry_shader = GeometryShaderCache::GetCopyGeometryShader();
+			geometry_shader = parent->GetGeometryShader();
 
 		// Draw pass
-		D3D::drawShadedTexQuad(nullptr, src_rect.AsRECT(), src_width, src_height,
-			pass.pixel_shader.get(), VertexShaderCache::GetSimpleVertexShader(), VertexShaderCache::GetSimpleInputLayout(),
+		D3D::drawShadedTexQuad(nullptr, src_rect.AsRECT(), src_size.width, src_size.height,
+			pass.pixel_shader.get(), parent->GetVertexShader(), VertexShaderCache::GetSimpleInputLayout(),
 			geometry_shader, 1.0f, std::max(src_layer, 0));
-
-		// Unbind textures after pass, if they're used in the future passes
-		for (u32 i = 0; i < POST_PROCESSING_MAX_TEXTURE_INPUTS; i++)
-			D3D::stateman->SetTexture(FIRST_INPUT_BINDING_SLOT + i, nullptr);
-		D3D::stateman->Apply();
 	}
+
+	// Unbind input textures after rendering, so that they can safely be used as outputs again.
+	for (u32 i = 0; i < POST_PROCESSING_MAX_TEXTURE_INPUTS; i++)
+		D3D::stateman->SetTexture(FIRST_INPUT_BINDING_SLOT + i, nullptr);
+	D3D::stateman->Apply();
 
 	// Copy the last pass output to the target if not done already
 	if (!skip_final_copy)
 	{
-		D3DTexture2D* final_texture = (target_texture != nullptr) ? target_texture : D3D::GetBackBuffer();
 		RenderPassData& final_pass = m_passes[m_last_pass_index];
-		D3DPostProcessor::CopyTexture(target_rect, final_texture, output_rect, final_pass.output_texture,
-			final_pass.output_width, final_pass.output_height, src_layer);
+		D3DPostProcessor::CopyTexture(dst_rect, dst_texture, output_rect, final_pass.output_texture, final_pass.output_size, src_layer);
 	}
-}
-
-D3DTexture2D* PostProcessingShader::GetLastPassOutputTexture()
-{
-	return m_passes[m_last_pass_index].output_texture;
 }
 
 D3DPostProcessor::~D3DPostProcessor()
 {
-	if (m_color_copy_texture != nullptr)
-		m_color_copy_texture->Release();
-	if (m_depth_copy_texture != nullptr)
-		m_depth_copy_texture->Release();
+	SAFE_RELEASE(m_color_copy_texture);
+	SAFE_RELEASE(m_depth_copy_texture);
+	SAFE_RELEASE(m_stereo_buffer_texture);
 }
 
 bool D3DPostProcessor::Initialize()
 {
-	// Uniform buffer
-	CD3D11_BUFFER_DESC buffer_desc(UNIFORM_BUFFER_SIZE, D3D11_BIND_CONSTANT_BUFFER, D3D11_USAGE_DYNAMIC, D3D11_CPU_ACCESS_WRITE, 0, 0);
-	m_uniform_buffer.reset();
-	HRESULT hr = D3D::device->CreateBuffer(&buffer_desc, nullptr, D3D::ToAddr(m_uniform_buffer));
-	if (FAILED(hr))
-	{
-		ERROR_LOG(VIDEO, "Failed to create post-processing uniform buffer (hr=%X)", hr);
+	// Create VS/GS
+	if (!CreateCommonShaders())
 		return false;
-	}
+
+	// Uniform buffer
+	if (!CreateUniformBuffer())
+		return false;
 
 	// Load the currently-configured shader (this may fail, and that's okay)
 	ReloadShaders();
@@ -399,48 +450,120 @@ void D3DPostProcessor::ReloadShaders()
 {
 	m_reload_flag.Clear();
 	m_post_processing_shaders.clear();
-	m_blit_shader.reset();
+	m_scaling_shader.reset();
+	m_stereo_shader.reset();
 	m_active = false;
 
 	ReloadShaderConfigs();
 
 	if (g_ActiveConfig.bPostProcessingEnable)
+		CreatePostProcessingShaders();
+
+	CreateScalingShader();
+
+	if (m_stereo_config)
+		CreateStereoShader();
+
+	// Set initial sizes to 0,0 to force texture creation on next draw
+	m_copy_size.Set(0, 0);
+	m_stereo_buffer_size.Set(0, 0);
+}
+
+bool D3DPostProcessor::CreateCommonShaders()
+{
+	m_vertex_shader = D3D::CompileAndCreateVertexShader(std::string(s_shader_common) + std::string(s_vertex_shader));
+	m_geometry_shader = D3D::CompileAndCreateGeometryShader(std::string(s_shader_common) + std::string(s_geometry_shader));
+	if (!m_vertex_shader || !m_geometry_shader)
 	{
-		// Create a PostProcessingShader for each shader in the list
-		for (const std::string& shader_name : m_shader_names)
-		{
-			const auto& it = m_shader_configs.find(shader_name);
-			if (it == m_shader_configs.end())
-				continue;
-			std::unique_ptr<PostProcessingShader> shader = std::make_unique<PostProcessingShader>();
-			if (!shader->Initialize(it->second.get(), FramebufferManager::GetEFBLayers()))
-			{
-				ERROR_LOG(VIDEO, "Failed to initialize postprocessing shader ('%s'). This shader will be ignored.", shader_name.c_str());
-				OSD::AddMessage(StringFromFormat("Failed to initialize postprocessing shader ('%s'). This shader will be ignored.", shader_name.c_str()));
-				continue;
-			}
-			m_post_processing_shaders.push_back(std::move(shader));
-		}
-		// If no shaders initialized successfully, disable post processing
-		m_active = !m_post_processing_shaders.empty();
+		m_vertex_shader.reset();
+		m_geometry_shader.reset();
+		return false;
+	}
+	return true;
+}
+
+bool D3DPostProcessor::CreateUniformBuffer()
+{
+	CD3D11_BUFFER_DESC buffer_desc(UNIFORM_BUFFER_SIZE, D3D11_BIND_CONSTANT_BUFFER, D3D11_USAGE_DYNAMIC, D3D11_CPU_ACCESS_WRITE, 0, 0);
+	m_uniform_buffer.reset();
+	HRESULT hr = D3D::device->CreateBuffer(&buffer_desc, nullptr, D3D::ToAddr(m_uniform_buffer));
+	if (FAILED(hr))
+	{
+		ERROR_LOG(VIDEO, "Failed to create post-processing uniform buffer (hr=%X)", hr);
+		return false;
 	}
 
-	// Initialize blit shader, if specified
-	m_blit_shader.reset();
-	if (m_blit_config)
+	return true;
+}
+
+std::unique_ptr<PostProcessingShader> D3DPostProcessor::CreateShader(const PostProcessingShaderConfiguration* config)
+{
+	std::unique_ptr<PostProcessingShader> shader = std::make_unique<PostProcessingShader>();
+	if (!shader->Initialize(config, FramebufferManager::GetEFBLayers()))
+		shader.reset();
+
+	return shader;
+}
+
+void D3DPostProcessor::CreatePostProcessingShaders()
+{
+	for (const std::string& shader_name : m_shader_names)
 	{
-		m_blit_shader = std::make_unique<PostProcessingShader>();
-		if (!m_blit_shader->Initialize(m_blit_config.get(), FramebufferManager::GetEFBLayers()))
+		const auto& it = m_shader_configs.find(shader_name);
+		if (it == m_shader_configs.end())
+			continue;
+
+		std::unique_ptr<PostProcessingShader> shader = CreateShader(it->second.get());
+		if (!shader)
 		{
-			ERROR_LOG(VIDEO, "Failed to initialize blit shader ('%s'). Falling back to copy shader.", m_blit_config->GetShader().c_str());
-			OSD::AddMessage(StringFromFormat("Failed to initialize blit shader ('%s'). Falling back to copy shader.", m_blit_config->GetShader().c_str()));
-			m_blit_shader.reset();
+			ERROR_LOG(VIDEO, "Failed to initialize postprocessing shader ('%s'). This shader will be ignored.", shader_name.c_str());
+			OSD::AddMessage(StringFromFormat("Failed to initialize postprocessing shader ('%s'). This shader will be ignored.", shader_name.c_str()));
+			continue;
 		}
+
+		m_post_processing_shaders.push_back(std::move(shader));
+	}
+
+	// If no shaders initialized successfully, disable post processing
+	m_active = !m_post_processing_shaders.empty();
+	if (m_active)
+	{
+		DEBUG_LOG(VIDEO, "Postprocessing is enabled with %u shaders in sequence.", (u32)m_post_processing_shaders.size());
+		OSD::AddMessage(StringFromFormat("Postprocessing is enabled with %u shaders in sequence.", (u32)m_post_processing_shaders.size()));
+	}
+}
+
+void D3DPostProcessor::CreateScalingShader()
+{
+	if (!m_scaling_config)
+		return;
+
+	m_scaling_shader = std::make_unique<PostProcessingShader>();
+	if (!m_scaling_shader->Initialize(m_scaling_config.get(), FramebufferManager::GetEFBLayers()))
+	{
+		ERROR_LOG(VIDEO, "Failed to initialize scaling shader ('%s'). Falling back to copy shader.", m_scaling_config->GetShaderName().c_str());
+		OSD::AddMessage(StringFromFormat("Failed to initialize scaling shader ('%s'). Falling back to copy shader.", m_scaling_config->GetShaderName().c_str()));
+		m_scaling_shader.reset();
+	}
+}
+
+void D3DPostProcessor::CreateStereoShader()
+{
+	if (!m_stereo_config)
+		return;
+
+	m_stereo_shader = std::make_unique<PostProcessingShader>();
+	if (!m_stereo_shader->Initialize(m_stereo_config.get(), FramebufferManager::GetEFBLayers()))
+	{
+		ERROR_LOG(VIDEO, "Failed to initialize stereoscopy shader ('%s'). Falling back to blit.", m_scaling_config->GetShaderName().c_str());
+		OSD::AddMessage(StringFromFormat("Failed to initialize stereoscopy shader ('%s'). Falling back to blit.", m_scaling_config->GetShaderName().c_str()));
+		m_stereo_shader.reset();
 	}
 }
 
 void D3DPostProcessor::PostProcessEFB()
 {
+	// Apply normal post-process process, but to the EFB buffers.
 	// Uses the current viewport as the "visible" region to post-process.
 	g_renderer->ResetAPIState();
 
@@ -465,6 +588,7 @@ void D3DPostProcessor::PostProcessEFB()
 
 	// In D3D, the viewport rectangle must fit within the render target.
 	TargetRectangle target_rect;
+	TargetSize target_size(g_renderer->GetTargetWidth(), g_renderer->GetTargetHeight());
 	target_rect.left = static_cast<int>((X >= 0.f) ? X : 0.f);
 	target_rect.top = static_cast<int>((Y >= 0.f) ? Y : 0.f);
 	target_rect.right = target_rect.left + static_cast<int>((X + Wd <= g_renderer->GetTargetWidth()) ? Wd : (g_renderer->GetTargetWidth() - X));
@@ -477,15 +601,13 @@ void D3DPostProcessor::PostProcessEFB()
 		depth_texture = FramebufferManager::GetResolvedEFBDepthTexture();
 
 	// Invoke post process process
-	PostProcess(target_rect, g_renderer->GetTargetWidth(), g_renderer->GetTargetHeight(), FramebufferManager::GetEFBLayers(),
-		reinterpret_cast<uintptr_t>(color_texture), reinterpret_cast<uintptr_t>(depth_texture));
+	PostProcess(nullptr, nullptr, nullptr,
+		target_rect, target_size, reinterpret_cast<uintptr_t>(color_texture),
+		target_rect, target_size, reinterpret_cast<uintptr_t>(depth_texture));
 
 	// Copy back to EFB buffer when multisampling is enabled
 	if (g_ActiveConfig.iMultisamples > 1)
-	{
-		CopyTexture(target_rect, FramebufferManager::GetEFBColorTexture(), target_rect, color_texture,
-			g_renderer->GetTargetWidth(), g_renderer->GetTargetHeight(), -1, true);
-	}
+		CopyTexture(target_rect, FramebufferManager::GetEFBColorTexture(), target_rect, color_texture, target_size, -1, true);
 
 	g_renderer->RestoreAPIState();
 
@@ -494,89 +616,68 @@ void D3DPostProcessor::PostProcessEFB()
 		FramebufferManager::GetEFBDepthTexture()->GetDSV());
 }
 
-void D3DPostProcessor::BlitToFramebuffer(const TargetRectangle& dst, uintptr_t dst_texture,
-	const TargetRectangle& src, uintptr_t src_texture, uintptr_t src_depth_texture,
-	int src_width, int src_height, int src_layer, float gamma)
+void D3DPostProcessor::BlitScreen(const TargetRectangle& dst_rect, const TargetSize& dst_size, uintptr_t dst_texture,
+	const TargetRectangle& src_rect, const TargetSize& src_size, uintptr_t src_texture, uintptr_t src_depth_texture,
+	int src_layer, float gamma)
 {
-	D3DTexture2D* real_dst_texture = reinterpret_cast<D3DTexture2D*>(dst_texture);	
+	D3DTexture2D* real_dst_texture = reinterpret_cast<D3DTexture2D*>(dst_texture);
 	D3DTexture2D* real_src_texture = reinterpret_cast<D3DTexture2D*>(src_texture);
 	D3DTexture2D* real_src_depth_texture = reinterpret_cast<D3DTexture2D*>(src_depth_texture);
 	_dbg_assert_msg_(VIDEO, src_layer >= 0, "BlitToFramebuffer should always be called with a single source layer");
 
-	// Options changed?
-	if (m_blit_shader)
-	{
-		if (!m_blit_shader->IsReady() ||
-			!m_blit_shader->ResizeIntermediateBuffers(src_width, src_height) ||
-			!m_blit_shader->UpdateOptions())
-		{
-			// Something failed, so deactivate
-			m_blit_shader.reset();
-		}
-		else
-		{
-			// Clear dirty flag (if set)
-			m_blit_config->ClearDirty();
-		}
-	}
-	// Use blit shader if one is set-up. Should only be a single pass in almost all cases.
-	if (m_blit_shader)
-	{
-		D3D::stateman->SetPixelConstants(m_uniform_buffer.get());
-		m_blit_shader->Draw(this, dst, real_dst_texture, src, src_width, src_height, real_src_texture, real_src_depth_texture, src_layer);
-	}
+	ReconfigureScalingShader(src_size);
+	ReconfigureStereoShader(dst_size);
+
+	// Bind constants early (shared across everything)
+	D3D::stateman->SetPixelConstants(m_uniform_buffer.get());
+
+	// Use stereo shader if enabled, otherwise invoke scaling shader, if that is invalid, fall back to blit.
+	if (m_stereo_shader)
+		DrawStereoBuffers(dst_rect, dst_size, real_dst_texture, src_rect, src_size, real_src_texture, real_src_depth_texture, gamma);
+	else if (m_scaling_shader)
+		m_scaling_shader->Draw(this, dst_rect, dst_size, real_dst_texture, src_rect, src_size, real_src_texture, real_src_depth_texture, src_layer, gamma);
 	else
-	{
-		CopyTexture(dst, real_dst_texture, src, real_src_texture, src_width, src_height, src_layer);
-	}
+		CopyTexture(dst_rect, real_dst_texture, src_rect, real_src_texture, src_size, src_layer);
 }
 
-void D3DPostProcessor::PostProcess(const TargetRectangle& visible_rect, int tex_width, int tex_height, int tex_layers,
-	uintptr_t texture, uintptr_t depth_texture)
+void D3DPostProcessor::PostProcess(TargetRectangle* output_rect, TargetSize* output_size, uintptr_t* output_texture,
+	const TargetRectangle& src_rect, const TargetSize& src_size, uintptr_t src_texture,
+	const TargetRectangle& src_depth_rect, const TargetSize& src_depth_size, uintptr_t src_depth_texture)
 {
-	D3DTexture2D* real_texture = reinterpret_cast<D3DTexture2D*>(texture);
-	D3DTexture2D* real_depth_texture = reinterpret_cast<D3DTexture2D*>(depth_texture);
+	D3DTexture2D* real_src_texture = reinterpret_cast<D3DTexture2D*>(src_texture);
+	D3DTexture2D* real_depth_texture = reinterpret_cast<D3DTexture2D*>(src_depth_texture);
 	if (!m_active)
 		return;
 
-	// Setup copy buffers first
-	int visible_width = visible_rect.GetWidth();
-	int visible_height = visible_rect.GetHeight();
-	if (!ResizeCopyBuffers(visible_width, visible_height, tex_layers))
+	// Setup copy buffers first, and update compile-time constants.
+	TargetSize buffer_size(src_rect.GetWidth(), src_rect.GetHeight());
+	if (!ResizeCopyBuffers(buffer_size, FramebufferManager::GetEFBLayers()) ||
+		!ReconfigurePostProcessingShaders(buffer_size))
 	{
-		ERROR_LOG(VIDEO, "Failed to resize post-processor copy buffers. Disabling post processor.");
-		m_post_processing_shaders.clear();
-		m_active = false;
+		ERROR_LOG(VIDEO, "Failed to update post-processor state. Disabling post processor.");
+
+		// We need to fill in an output texture if we're bailing out, so set it to the source.
+		if (output_texture)
+		{
+			*output_rect = src_rect;
+			*output_size = src_size;
+			*output_texture = src_texture;
+		}
+
+		DisablePostProcessor();
 		return;
 	}
 
-	// Update compile-time constants for all shaders, so they're all ready
-	for (size_t shader_index = 0; shader_index < m_post_processing_shaders.size(); shader_index++)
-	{
-		PostProcessingShader* shader = m_post_processing_shaders[shader_index].get();
-		if (!shader->IsReady() || !shader->ResizeIntermediateBuffers(visible_width, visible_height) || !shader->UpdateOptions())
-		{
-			ERROR_LOG(VIDEO, "Failed to update post-processor state. Disabling post processor.");
-			m_post_processing_shaders.clear();
-			m_active = false;
-			return;
-		}
-	}
-
-	// Remove dirty flags afterwards. This is because we can have the same shader twice.
-	for (auto& it : m_shader_configs)
-		it.second->ClearDirty();
-
 	// Copy only the visible region to our buffers.
-	TargetRectangle buffer_rect(0, 0, visible_width, visible_height);
-	CopyTexture(buffer_rect, m_color_copy_texture, visible_rect, real_texture, tex_width, tex_height, -1, false);
+	TargetRectangle buffer_rect(0, 0, buffer_size.width, buffer_size.height);
+	CopyTexture(buffer_rect, m_color_copy_texture, src_rect, real_src_texture, src_size, -1, false);
 	if (real_depth_texture != nullptr)
 	{
 		// Depth buffers can only be completely CopySubresourced, so use a shader copy instead.
-		CopyTexture(buffer_rect, m_depth_copy_texture, visible_rect, real_depth_texture, tex_width, tex_height, -1, true);
+		CopyTexture(buffer_rect, m_depth_copy_texture, src_depth_rect, real_depth_texture, src_depth_size, -1, true);
 	}
 
-	// Uniform buffer is shared across all shaders
+	// Uniform buffer is shared across all shaders, bind it early.
 	D3D::stateman->SetPixelConstants(m_uniform_buffer.get());
 
 	// Loop through the shader list, applying each of them in sequence.
@@ -585,84 +686,190 @@ void D3DPostProcessor::PostProcess(const TargetRectangle& visible_rect, int tex_
 	{
 		PostProcessingShader* shader = m_post_processing_shaders[shader_index].get();
 
-		// Last shader in the list?
+		// To save a copy, we use the output of one shader as the input to the next.
+		// This works except when the last pass is scaled, as the next shader expects a full-size input, so re-use the copy buffer for this case.
+		D3DTexture2D* output_color_texture = (shader->IsLastPassScaled()) ? m_color_copy_texture : shader->GetLastPassOutputTexture();
+
+		// Last shader in the sequence? If so, write to the output texture.
 		if (shader_index == (m_post_processing_shaders.size() - 1))
 		{
-			// Last shader in the list, so we write to the output texture.
-			shader->Draw(this, visible_rect, real_texture, buffer_rect, visible_width, visible_height, input_color_texture, m_depth_copy_texture, -1);
+			// Are we returning our temporary texture, or storing back to the original buffer?
+			if (output_texture)
+			{
+				// Use the same texture as if it was a previous pass, and return it.
+				shader->Draw(this, buffer_rect, buffer_size, output_color_texture, buffer_rect, buffer_size, input_color_texture, m_depth_copy_texture, -1, 1.0f);
+				*output_rect = buffer_rect;
+				*output_size = buffer_size;
+				*output_texture = reinterpret_cast<uintptr_t>(output_color_texture);
+			}
+			else
+			{
+				// Write to original texture.
+				shader->Draw(this, src_rect, src_size, real_src_texture, buffer_rect, buffer_size, input_color_texture, m_depth_copy_texture, -1, 1.0f);
+			}
 		}
 		else
 		{
-			// To save a copy, we use the output of one shader as the input to the next.
-			D3DTexture2D* output_color_texture = shader->GetLastPassOutputTexture();
-			shader->Draw(this, buffer_rect, output_color_texture, buffer_rect, visible_width, visible_height, input_color_texture, m_depth_copy_texture, -1);
+			shader->Draw(this, buffer_rect, buffer_size, output_color_texture, buffer_rect, buffer_size, input_color_texture, m_depth_copy_texture, -1, 1.0f);
 			input_color_texture = output_color_texture;
 		}
 	}
 }
 
-void D3DPostProcessor::MapAndUpdateUniformBuffer(const PostProcessingShaderConfiguration* config,
-	int input_resolutions[POST_PROCESSING_MAX_TEXTURE_INPUTS][2],
-	const TargetRectangle& src_rect, const TargetRectangle& dst_rect, int src_width, int src_height, int src_layer, float gamma)
+bool D3DPostProcessor::ResizeCopyBuffers(const TargetSize& size, int layers)
 {
+	HRESULT hr;
+	if (m_copy_size == size && m_copy_layers == layers)
+		return true;
+
+	// reset before creating, in case it fails
+	SAFE_RELEASE(m_color_copy_texture);
+	SAFE_RELEASE(m_depth_copy_texture);
+	m_copy_size.Set(0, 0);
+	m_copy_layers = 0;
+
+	Microsoft::WRL::ComPtr<ID3D11Texture2D> color_texture;
+	CD3D11_TEXTURE2D_DESC color_desc(DXGI_FORMAT_R8G8B8A8_UNORM, size.width, size.height, layers, 1, D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET, D3D11_USAGE_DEFAULT, 0, 1, 0, 0);
+	if (FAILED(hr = D3D::device->CreateTexture2D(&color_desc, nullptr, &color_texture)))
+	{
+		ERROR_LOG(VIDEO, "CreateTexture2D failed, hr=0x%X", hr);
+		return false;
+	}
+
+	Microsoft::WRL::ComPtr<ID3D11Texture2D> depth_texture;
+	CD3D11_TEXTURE2D_DESC depth_desc(DXGI_FORMAT_R32_FLOAT, size.width, size.height, layers, 1, D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET, D3D11_USAGE_DEFAULT, 0, 1, 0, 0);
+	if (FAILED(hr = D3D::device->CreateTexture2D(&depth_desc, nullptr, &depth_texture)))
+	{
+		ERROR_LOG(VIDEO, "CreateTexture2D failed, hr=0x%X", hr);
+		return false;
+	}
+
+	m_copy_size = size;
+	m_copy_layers = layers;
+	m_color_copy_texture = new D3DTexture2D(color_texture.Get(), (D3D11_BIND_FLAG)color_desc.BindFlags, color_desc.Format);
+	m_depth_copy_texture = new D3DTexture2D(depth_texture.Get(), (D3D11_BIND_FLAG)depth_desc.BindFlags, depth_desc.Format);
+	return true;
+}
+
+bool D3DPostProcessor::ResizeStereoBuffer(const TargetSize& size)
+{
+	if (m_stereo_buffer_size == size)
+		return true;
+
+	SAFE_RELEASE(m_stereo_buffer_texture);
+	m_stereo_buffer_size.Set(0, 0);
+
+	Microsoft::WRL::ComPtr<ID3D11Texture2D> stereo_buffer_texture;
+	CD3D11_TEXTURE2D_DESC stereo_buffer_desc(DXGI_FORMAT_R8G8B8A8_UNORM, size.width, size.height, 2, 1, D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET, D3D11_USAGE_DEFAULT, 0, 1, 0, 0);
+	HRESULT hr = D3D::device->CreateTexture2D(&stereo_buffer_desc, nullptr, &stereo_buffer_texture);
+	if (FAILED(hr))
+	{
+		ERROR_LOG(VIDEO, "CreateTexture2D failed, hr=0x%X", hr);
+		return false;
+	}
+
+	m_stereo_buffer_size = size;
+	m_stereo_buffer_texture = new D3DTexture2D(stereo_buffer_texture.Get(), (D3D11_BIND_FLAG)stereo_buffer_desc.BindFlags, stereo_buffer_desc.Format);
+	return true;
+}
+
+bool D3DPostProcessor::ReconfigurePostProcessingShaders(const TargetSize& size)
+{
+	for (const auto& shader : m_post_processing_shaders)
+	{
+		if (!shader->IsReady() || !shader->Reconfigure(size))
+			return false;
+	}
+
+	// Remove dirty flags afterwards. This is because we can have the same shader twice.
+	for (auto& it : m_shader_configs)
+		it.second->ClearDirty();
+
+	return true;
+}
+
+bool D3DPostProcessor::ReconfigureScalingShader(const TargetSize& size)
+{
+	if (m_scaling_shader)
+	{
+		if (!m_scaling_shader->IsReady() ||
+			!m_scaling_shader->Reconfigure(size))
+		{
+			m_scaling_shader.reset();
+			return false;
+		}
+
+		m_scaling_config->ClearDirty();
+	}
+
+	return true;
+}
+
+bool D3DPostProcessor::ReconfigureStereoShader(const TargetSize& size)
+{
+	if (m_stereo_shader)
+	{
+		if (!m_stereo_shader->IsReady() ||
+			!m_stereo_shader->Reconfigure(size) ||
+			!ResizeStereoBuffer(size))
+		{
+			m_stereo_shader.reset();
+			return false;
+		}
+
+		m_stereo_config->ClearDirty();
+	}
+
+	return true;
+}
+
+void D3DPostProcessor::DrawStereoBuffers(const TargetRectangle& dst_rect, const TargetSize& dst_size, D3DTexture2D* dst_texture,
+	const TargetRectangle& src_rect, const TargetSize& src_size, D3DTexture2D* src_texture, D3DTexture2D* src_depth_texture, float gamma)
+{
+	D3DTexture2D* stereo_buffer = (m_scaling_shader) ? m_stereo_buffer_texture : src_texture;
+	TargetRectangle stereo_buffer_rect(src_rect);
+	TargetSize stereo_buffer_size(src_size);
+
+	// Apply scaling shader if enabled, otherwise just use the source buffers
+	if (m_scaling_shader)
+	{
+		stereo_buffer_rect = TargetRectangle(0, 0, dst_size.width, dst_size.height);
+		stereo_buffer_size = dst_size;
+		m_scaling_shader->Draw(this, stereo_buffer_rect, stereo_buffer_size, stereo_buffer, src_rect, src_size, src_texture, src_depth_texture, -1, gamma);
+	}
+
+	m_stereo_shader->Draw(this, dst_rect, dst_size, dst_texture, stereo_buffer_rect, stereo_buffer_size, stereo_buffer, nullptr, 0, 1.0f);
+}
+
+void D3DPostProcessor::DisablePostProcessor()
+{
+	m_post_processing_shaders.clear();
+	m_active = false;
+}
+
+void D3DPostProcessor::MapAndUpdateUniformBuffer(const PostProcessingShaderConfiguration* config,
+	const InputTextureSizeArray& input_sizes,
+	const TargetRectangle& dst_rect, const TargetSize& dst_size,
+	const TargetRectangle& src_rect, const TargetSize& src_size,
+	int src_layer, float gamma)
+{
+	// Skip writing to buffer if there were no changes
+	u32 buffer_size;
+	if (!UpdateUniformBuffer(API_D3D11, config, input_sizes, dst_rect, dst_size, src_rect, src_size, src_layer, gamma, &buffer_size))
+		return;
+
 	D3D11_MAPPED_SUBRESOURCE mapped_cbuf;
 	HRESULT hr = D3D::context->Map(m_uniform_buffer.get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped_cbuf);
 	CHECK(SUCCEEDED(hr), "Map post processing constant buffer failed, hr=%X", hr);
-	UpdateUniformBuffer(API_D3D11, config, mapped_cbuf.pData, input_resolutions, src_rect, dst_rect, src_width, src_height, src_layer, gamma);
+	memcpy(mapped_cbuf.pData, m_current_constants.data(), buffer_size);
 	D3D::context->Unmap(m_uniform_buffer.get(), 0);
-}
 
-bool D3DPostProcessor::ResizeCopyBuffers(int width, int height, int layers)
-{
-	HRESULT hr;
-	if (m_copy_width == width && m_copy_height == height && m_copy_layers == layers)
-		return true;
-
-	if (m_color_copy_texture != nullptr)
-	{
-		m_color_copy_texture->Release();
-		m_color_copy_texture = nullptr;
-	}
-	if (m_depth_copy_texture != nullptr)
-	{
-		m_depth_copy_texture->Release();
-		m_depth_copy_texture = nullptr;
-	}
-
-	// reset before creating, in case it fails
-	m_copy_width = 0;
-	m_copy_height = 0;
-	m_copy_layers = 0;
-
-	// allocate new textures
-	D3D::Texture2dPtr color_texture;
-	CD3D11_TEXTURE2D_DESC color_desc(DXGI_FORMAT_R8G8B8A8_UNORM, width, height, layers, 1, D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET, D3D11_USAGE_DEFAULT, 0, 1, 0, 0);
-	if (FAILED(hr = D3D::device->CreateTexture2D(&color_desc, nullptr, D3D::ToAddr(color_texture))))
-	{
-		ERROR_LOG(VIDEO, "CreateTexture2D failed, hr=0x%X", hr);
-		return false;
-	}
-
-	D3D::Texture2dPtr depth_texture;
-	CD3D11_TEXTURE2D_DESC depth_desc(DXGI_FORMAT_R32_FLOAT, width, height, layers, 1, D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET, D3D11_USAGE_DEFAULT, 0, 1, 0, 0);
-	if (FAILED(hr = D3D::device->CreateTexture2D(&depth_desc, nullptr, D3D::ToAddr(depth_texture))))
-	{
-		ERROR_LOG(VIDEO, "CreateTexture2D failed, hr=0x%X", hr);
-		return false;
-	}
-
-	m_copy_width = width;
-	m_copy_height = height;
-	m_copy_layers = layers;
-	m_color_copy_texture = new D3DTexture2D(color_texture.get(), (D3D11_BIND_FLAG)color_desc.BindFlags, color_desc.Format);
-	m_depth_copy_texture = new D3DTexture2D(depth_texture.get(), (D3D11_BIND_FLAG)depth_desc.BindFlags, depth_desc.Format);
-	return true;
-
+	ADDSTAT(stats.thisFrame.bytesUniformStreamed, buffer_size);
 }
 
 void D3DPostProcessor::CopyTexture(const TargetRectangle& dst_rect, D3DTexture2D* dst_texture,
 	const TargetRectangle& src_rect, D3DTexture2D* src_texture,
-	int src_width, int src_height, int src_layer,
+	const TargetSize& src_size, int src_layer,
 	bool force_shader_copy)
 {
 	// If the dimensions are the same, we can copy instead of using a shader.
@@ -693,7 +900,7 @@ void D3DPostProcessor::CopyTexture(const TargetRectangle& dst_rect, D3DTexture2D
 		else
 			D3D::SetLinearCopySampler();
 
-		D3D::drawShadedTexQuad(src_texture->GetSRV(), src_rect.AsRECT(), src_width, src_height,
+		D3D::drawShadedTexQuad(src_texture->GetSRV(), src_rect.AsRECT(), src_size.width, src_size.height,
 			PixelShaderCache::GetColorCopyProgram(false), VertexShaderCache::GetSimpleVertexShader(), VertexShaderCache::GetSimpleInputLayout(),
 			(src_layer < 0) ? GeometryShaderCache::GetCopyGeometryShader() : nullptr, 1.0f, std::max(src_layer, 0));
 	}

@@ -93,9 +93,9 @@ protected:
 	void Event_PPShaderListOptions(wxCommandEvent& ev);
 	void Event_PPShaderListRemove(wxCommandEvent& ev);
 	void Event_PPShaderAdd(wxCommandEvent& ev);
-	void Event_BlitShader(wxCommandEvent& ev);
-	void Event_ConfigureBlitShader(wxCommandEvent &ev);
-	void Event_AnaglyphShader(wxCommandEvent& ev);
+	void Event_ScalingShader(wxCommandEvent& ev);
+	void Event_ConfigureScalingShader(wxCommandEvent &ev);
+	void Event_StereoShader(wxCommandEvent& ev);
 	
 	void Event_StereoDepth(wxCommandEvent &ev);
 	void Event_TessellationDistance(wxCommandEvent &ev);
@@ -125,8 +125,8 @@ protected:
 	void PopulatePostProcessingShaders();
 	void UpdatePostProcessingShadersConfig();
 	void UpdatePostProcessingShaderListButtons();
-	void PopulateBlitShaders();
-	void PopulateAnaglyphShaders();
+	void PopulateScalingShaders();
+	void PopulateStereoShaders();
 	void PopulateAAList();
 	void OnAAChanged(wxCommandEvent& ev);
 	wxChoice* choice_backend;
@@ -162,7 +162,7 @@ protected:
 	SettingCheckBox* cache_hires_textures;
 	SettingCheckBox* cache_hires_texturesGPU;
 	
-	wxButton* button_config_blitshader;
+	wxButton* button_config_scalingshader;
 
 	wxCheckBox* progressive_scan_checkbox;
 
@@ -174,8 +174,8 @@ protected:
 	wxChoice* choice_ppshader;
 	wxButton* button_add_ppshader;;
 	wxChoice* choice_pptrigger;
-	wxChoice* choice_blitshader;
-	wxChoice* choice_anaglyphshader;
+	wxChoice* choice_scalingshader;
+	wxChoice* choice_stereoshader;
 	
 	std::map<wxWindow*, wxString> ctrl_descs; // maps setting controls to their descriptions
 	std::map<wxWindow*, wxStaticText*> desc_texts; // maps dialog tabs (which are the parents of the setting controls) to their description text objects

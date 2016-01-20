@@ -86,7 +86,7 @@ DependentOption = A_SSGI_ENABLED
 
 [Pass]
 EntryPoint = PS_AO_SSGI
-DependentOption = A_SSGI_ENABLED
+DependantOption = A_SSGI_ENABLED
 Input0=ColorBuffer
 Input0Filter=Linear
 Input0Mode=Clamp
@@ -95,7 +95,7 @@ Input1Filter=Nearest
 Input1Mode=Clamp
 [Pass]
 EntryPoint = PS_AO_BlurV
-DependentOption = A_SSGI_ENABLED
+DependantOption = A_SSGI_ENABLED
 Input0=PreviousPass
 Input0Filter=Linear
 Input0Mode=Clamp

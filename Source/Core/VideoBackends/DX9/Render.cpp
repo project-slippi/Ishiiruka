@@ -646,7 +646,7 @@ void Renderer::SwapImpl(u32 xfbAddr, u32 fbWidth, u32 fbStride, u32 fbHeight, co
 		VertexShaderManager::ResetView();
 		if(s_b3D_RightFrame)
 		{
-			if (g_ActiveConfig.iStereoMode == STEREO_ANAGLYPH)
+			if (g_ActiveConfig.iStereoMode == STEREO_SHADER)
 			{
 				D3D::SetRenderState(D3DRS_COLORWRITEENABLE, D3DCOLORWRITEENABLE_BLUE | D3DCOLORWRITEENABLE_GREEN);
 			}
@@ -665,7 +665,7 @@ void Renderer::SwapImpl(u32 xfbAddr, u32 fbWidth, u32 fbStride, u32 fbHeight, co
 		}
 		else
 		{
-			if (g_ActiveConfig.iStereoMode == STEREO_ANAGLYPH)
+			if (g_ActiveConfig.iStereoMode == STEREO_SHADER)
 			{
 				D3D::SetRenderState(D3DRS_COLORWRITEENABLE, D3DCOLORWRITEENABLE_RED);
 			}
@@ -767,7 +767,7 @@ void Renderer::SwapImpl(u32 xfbAddr, u32 fbWidth, u32 fbStride, u32 fbHeight, co
 	D3D::RefreshSamplerState(0, D3DSAMP_MINFILTER);
 	D3D::RefreshSamplerState(0, D3DSAMP_MAGFILTER);
 
-	if(g_ActiveConfig.iStereoMode == STEREO_ANAGLYPH)
+	if(g_ActiveConfig.iStereoMode == STEREO_SHADER)
 	{
 		DWORD color_mask = D3DCOLORWRITEENABLE_ALPHA | D3DCOLORWRITEENABLE_RED | D3DCOLORWRITEENABLE_GREEN | D3DCOLORWRITEENABLE_BLUE;
 		D3D::SetRenderState(D3DRS_COLORWRITEENABLE, color_mask);

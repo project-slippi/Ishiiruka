@@ -46,6 +46,10 @@ VideoConfig::VideoConfig()
 	}
 	backend_info.bSupportsExclusiveFullscreen = false;
 
+	// Game-specific stereoscopy settings
+	bStereoEFBMonoDepth = false;
+	iStereoDepthPercentage = 100;
+	iStereoConvergence = 20;
 	bUseScalingFilter = false;
 	bTexDeposterize = false;
 	iTexScalingType = 0;
@@ -113,7 +117,7 @@ void VideoConfig::Load(const std::string& ini_file)
 	enhancements->Get("PostProcessingEnable", &bPostProcessingEnable, false);
 	enhancements->Get("PostProcessingTrigger", &iPostProcessingTrigger, 0);
 	enhancements->Get("PostProcessingShaders", &sPostProcessingShaders, "");
-	enhancements->Get("BlitShader", &sBlitShader, "");
+	enhancements->Get("ScalingShader", &sScalingShader, "");
 	enhancements->Get("UseScalingFilter", &bUseScalingFilter, false);
 	enhancements->Get("TextureScalingType", &iTexScalingType, 0);
 	enhancements->Get("TextureScalingFactor", &iTexScalingFactor, 2);
@@ -130,7 +134,7 @@ void VideoConfig::Load(const std::string& ini_file)
 	stereoscopy->Get("StereoDepth", &iStereoDepth, 20);
 	stereoscopy->Get("StereoConvergencePercentage", &iStereoConvergencePercentage, 100);
 	stereoscopy->Get("StereoSwapEyes", &bStereoSwapEyes, false);
-	stereoscopy->Get("StereoAnaglyphShader", &sAnaglyphShader, "dubois");
+	stereoscopy->Get("StereoShader", &sStereoShader, "Anaglyph/dubois");
 	
 	IniFile::Section* hacks = iniFile.GetOrCreateSection("Hacks");
 	hacks->Get("EFBAccessEnable", &bEFBAccessEnable, true);
@@ -260,13 +264,12 @@ void VideoConfig::GameIniLoad()
 	CHECK_SETTING("Video_Enhancements", "PostProcessingEnable", bPostProcessingEnable);
 	CHECK_SETTING("Video_Enhancements", "PostProcessingTrigger", iPostProcessingTrigger);
 	CHECK_SETTING("Video_Enhancements", "PostProcessingShaders", sPostProcessingShaders);
-	CHECK_SETTING("Video_Enhancements", "BlitShader", sBlitShader);
-	CHECK_SETTING("Video_Enhancements", "AnaglyphShader", sAnaglyphShader);
+	CHECK_SETTING("Video_Enhancements", "ScalingShader", sScalingShader);
 
 	CHECK_SETTING("Video_Stereoscopy", "StereoMode", iStereoMode);
 	CHECK_SETTING("Video_Stereoscopy", "StereoDepth", iStereoDepth);	
 	CHECK_SETTING("Video_Stereoscopy", "StereoSwapEyes", bStereoSwapEyes);
-	CHECK_SETTING("Video_Stereoscopy", "StereoAnaglyphShader", sAnaglyphShader);
+	CHECK_SETTING("Video_Stereoscopy", "StereoShader", sStereoShader);
 
 	CHECK_SETTING("Video_Hacks", "EFBAccessEnable", bEFBAccessEnable);
 	CHECK_SETTING("Video_Hacks", "EFBFastAccess", bEFBFastAccess);
@@ -419,7 +422,7 @@ void VideoConfig::Save(const std::string& ini_file)
 	enhancements->Set("PostProcessingEnable", bPostProcessingEnable);
 	enhancements->Set("PostProcessingTrigger", iPostProcessingTrigger);
 	enhancements->Set("PostProcessingShaders", sPostProcessingShaders);
-	enhancements->Set("BlitShader", sBlitShader);	
+	enhancements->Set("ScalingShader", sScalingShader);
 	enhancements->Set("UseScalingFilter", bUseScalingFilter);
 	enhancements->Set("TextureScalingType", iTexScalingType);
 	enhancements->Set("TextureScalingFactor", iTexScalingFactor);
@@ -436,7 +439,7 @@ void VideoConfig::Save(const std::string& ini_file)
 	stereoscopy->Set("StereoDepth", iStereoDepth);
 	stereoscopy->Set("StereoConvergencePercentage", iStereoConvergencePercentage);
 	stereoscopy->Set("StereoSwapEyes", bStereoSwapEyes);
-	stereoscopy->Set("StereoAnaglyphShader", sAnaglyphShader);
+	stereoscopy->Set("StereoShader", sStereoShader);
 	
 	IniFile::Section* hacks = iniFile.GetOrCreateSection("Hacks");
 	hacks->Set("EFBAccessEnable", bEFBAccessEnable);

@@ -20,15 +20,15 @@
 
 #include "VideoCommon/RenderBase.h"
 
-PostProcessingConfigDiag::PostProcessingConfigDiag(wxWindow* parent, const std::string& shader_name, PostProcessingShaderConfiguration* config)
-	: wxDialog(parent, wxID_ANY, _("Post Processing Shader Configuration"))
-	, m_config(config)
+PostProcessingConfigDiag::PostProcessingConfigDiag(wxWindow* parent, const std::string& shader_dir, const std::string& shader_name, PostProcessingShaderConfiguration* config)
+ : wxDialog(parent, wxID_ANY, _("Post Processing Shader Configuration"))
+ , m_config(config)
 {
 	if (!m_config)
 	{
 		// Config not active, so create a temporary config
 		m_temp_config = std::make_unique<PostProcessingShaderConfiguration>();
-		m_temp_config->LoadShader("", shader_name);
+		m_temp_config->LoadShader(shader_dir, shader_name);
 		m_config = m_temp_config.get();
 	}
 
@@ -38,17 +38,15 @@ PostProcessingConfigDiag::PostProcessingConfigDiag(wxWindow* parent, const std::
 	{
 		if (it.second.m_type == POST_PROCESSING_OPTION_TYPE_BOOL)
 		{
-			ConfigGrouping* group = new ConfigGrouping(ConfigGrouping::WidgetType::TYPE_TOGGLE,
+			m_config_map[it.first] = std::make_unique<ConfigGrouping>(ConfigGrouping::WidgetType::TYPE_TOGGLE,
 				it.second.m_gui_name, it.second.m_gui_description, it.first, it.second.m_dependent_option,
 				&it.second);
-			m_config_map[it.first] = group;
 		}
 		else
 		{
-			ConfigGrouping* group = new ConfigGrouping(ConfigGrouping::WidgetType::TYPE_SLIDER,
+			m_config_map[it.first] = std::make_unique<ConfigGrouping>(ConfigGrouping::WidgetType::TYPE_SLIDER,
 				it.second.m_gui_name, it.second.m_gui_description, it.first, it.second.m_dependent_option,
 				&it.second);
-			m_config_map[it.first] = group;
 		}
 	}
 
@@ -59,12 +57,12 @@ PostProcessingConfigDiag::PostProcessingConfigDiag(wxWindow* parent, const std::
 		if (parent_name.size())
 		{
 			// Since it depends on a different object, push it to a parent's object
-			m_config_map[parent_name]->AddChild(m_config_map[it.first]);
+			m_config_map[parent_name]->AddChild(m_config_map[it.first].get());
 		}
 		else
 		{
 			// It doesn't have a child, just push it to the vector
-			m_config_groups.push_back(m_config_map[it.first]);
+			m_config_groups.push_back(m_config_map[it.first].get());
 		}
 	}
 
@@ -265,7 +263,7 @@ void PostProcessingConfigDiag::ConfigGrouping::EnableDependentChildren(bool enab
 void PostProcessingConfigDiag::Event_CheckBox(wxCommandEvent &ev)
 {
 	UserEventData* config_option = (UserEventData*)ev.GetEventUserData();
-	ConfigGrouping* config = m_config_map[config_option->GetData()];
+	ConfigGrouping* config = m_config_map[config_option->GetData()].get();
 
 	m_config->SetOptionb(config->GetOption(), ev.IsChecked());
 
@@ -277,7 +275,7 @@ void PostProcessingConfigDiag::Event_CheckBox(wxCommandEvent &ev)
 void PostProcessingConfigDiag::Event_Slider_Finish(wxScrollEvent &ev)
 {
 	UserEventData* config_option = (UserEventData*)ev.GetEventUserData();
-	ConfigGrouping* config = m_config_map[config_option->GetData()];
+	ConfigGrouping* config = m_config_map[config_option->GetData()].get();
 
 	const auto& option_data = m_config->GetOption(config->GetOption());
 	if (!option_data.m_compile_time_constant)
@@ -316,7 +314,7 @@ void PostProcessingConfigDiag::Event_Slider_Finish(wxScrollEvent &ev)
 void PostProcessingConfigDiag::Event_Slider(wxCommandEvent &ev)
 {
 	UserEventData* config_option = (UserEventData*)ev.GetEventUserData();
-	ConfigGrouping* config = m_config_map[config_option->GetData()];
+	ConfigGrouping* config = m_config_map[config_option->GetData()].get();
 
 	const auto& option_data = m_config->GetOption(config->GetOption());
 	size_t vector_size = 0;
@@ -431,7 +429,7 @@ void PostProcessingConfigDiag::Event_RestoreDefaults(wxCommandEvent& ev)
 		ConfigGrouping* group;
 		auto group_it = m_config_map.find(it.first);
 		if (group_it != m_config_map.end())
-			group = group_it->second;
+			group = group_it->second.get();
 		else
 			continue;
 

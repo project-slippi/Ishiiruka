@@ -63,6 +63,25 @@ struct TargetRectangle : public MathUtil::Rectangle<int>
 #endif
 };
 
+// This structure describes a texture or screen resolution.
+struct TargetSize final
+{
+	constexpr TargetSize() = default;
+	constexpr TargetSize(int new_width, int new_height) : width(new_width), height(new_height) {}
+
+	void Set(int new_width, int new_height) { width = new_width; height = new_height; }
+
+	bool operator==(const TargetSize& rhs) const { return std::tie(width, height) == std::tie(rhs.width, rhs.height); }
+	bool operator!=(const TargetSize& rhs) const { return std::tie(width, height) != std::tie(rhs.width, rhs.height); }
+	bool operator<=(const TargetSize& rhs) const { return std::tie(width, height) <= std::tie(rhs.width, rhs.height); }
+	bool operator>=(const TargetSize& rhs) const { return std::tie(width, height) >= std::tie(rhs.width, rhs.height); }
+	bool operator<(const TargetSize& rhs) const { return std::tie(width, height) < std::tie(rhs.width, rhs.height); }
+	bool operator>(const TargetSize& rhs) const { return std::tie(width, height) > std::tie(rhs.width, rhs.height); }
+
+	int width = 1;
+	int height = 1;
+};
+
 #ifdef _WIN32
 #define PRIM_LOG(...) DEBUG_LOG(VIDEO, __VA_ARGS__)
 #else
@@ -79,7 +98,7 @@ typedef enum
 	API_OPENGL = 1,
 	API_D3D9_SM30 = 2,
 	API_D3D9_SM20 = 4,
-	API_D3D9 = 6,	
+	API_D3D9 = 6,
 	API_D3D11 = 8,
 	API_NONE = 16
 } API_TYPE;

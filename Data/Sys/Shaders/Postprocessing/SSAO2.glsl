@@ -144,7 +144,7 @@ DefaultValue = 100.0
 DependentOption = A_SSAO_ENABLED
 [Pass]
 EntryPoint = SSAO
-DependentOption = A_SSAO_ENABLED
+DependantOption = A_SSAO_ENABLED
 Input0=ColorBuffer
 Input0Filter=Linear
 Input0Mode=Clamp
@@ -153,7 +153,7 @@ Input1Filter=Nearest
 Input1Mode=Clamp
 [Pass]
 EntryPoint = BlurH
-DependentOption = A_SSAO_ENABLED
+DependantOption = A_SSAO_ENABLED
 Input0=PreviousPass
 Input0Filter=Linear
 Input0Mode=Clamp

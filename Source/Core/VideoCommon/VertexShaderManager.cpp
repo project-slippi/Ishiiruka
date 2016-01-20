@@ -417,6 +417,10 @@ void VertexShaderManager::SetConstants()
 
 	if (bProjectionChanged)
 	{
+		if (g_ActiveConfig.backend_info.bSupportsPostProcessing && g_renderer->GetPostProcessor())
+		{
+			g_renderer->GetPostProcessor()->OnProjectionLoaded(xfmem.projection.type);
+		}
 		bProjectionChanged = false;
 
 		float *rawProjection = xfmem.projection.rawProjection;
@@ -455,10 +459,6 @@ void VertexShaderManager::SetConstants()
 					Core::g_aspect_wide = true; // Projection is 16:9 and viewport is 4:3, we are rendering an anamorphic widescreen picture
 				else if (AspectIs4_3(rawProjection[2], rawProjection[0]) && viewport_is_4_3)
 					Core::g_aspect_wide = false; // Project and viewports are both 4:3, we are rendering a normal image.
-			}
-			if (g_ActiveConfig.backend_info.bSupportsPostProcessing && g_renderer->GetPostProcessor())
-			{
-				g_renderer->GetPostProcessor()->OnPerspectiveProjectionLoaded();
 			}
 
 			SETSTAT_FT(stats.gproj_0, g_fProjectionMatrix[0]);
@@ -504,10 +504,6 @@ void VertexShaderManager::SetConstants()
 			// Hack to fix depth clipping precision issues (such as Sonic Unleashed UI)
 			// Turn it off for Nvidia 3D Vision, because it can't handle such a projection matrix
 			g_fProjectionMatrix[15] = (g_ActiveConfig.iStereoMode == STEREO_3DVISION) ? 1.0f : 1.0f + FLT_EPSILON;
-			if (g_ActiveConfig.backend_info.bSupportsPostProcessing && g_renderer->GetPostProcessor())
-			{
-				g_renderer->GetPostProcessor()->OnOrthographicProjectionLoaded();
-			}
 
 			SETSTAT_FT(stats.g2proj_0, g_fProjectionMatrix[0]);
 			SETSTAT_FT(stats.g2proj_1, g_fProjectionMatrix[1]);

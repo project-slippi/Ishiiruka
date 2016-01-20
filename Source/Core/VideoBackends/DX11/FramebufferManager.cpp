@@ -227,7 +227,7 @@ void XFBSource::DecodeToTexture(u32 xfbAddr, u32 fbWidth, u32 fbHeight)
 
 void XFBSource::CopyEFB(float Gamma)
 {
-	bool depth_copy_required = g_renderer->GetPostProcessor()->GetBlitShaderConfig()->RequiresDepthBuffer();
+	bool depth_copy_required = g_renderer->GetPostProcessor()->GetScalingShaderConfig()->RequiresDepthBuffer();
 	if (depth_copy_required && !depthtex)
 	{
 		depthtex = D3DTexture2D::Create(texWidth, texHeight,
@@ -235,9 +235,7 @@ void XFBSource::CopyEFB(float Gamma)
 			D3D11_USAGE_DEFAULT, DXGI_FORMAT_R32_FLOAT, 1, m_slices);
 	}
 	g_renderer->GetPostProcessor()->OnEndFrame();
-	if (g_ActiveConfig.bPostProcessingEnable &&
-		g_ActiveConfig.iPostProcessingTrigger == POST_PROCESSING_TRIGGER_ON_SWAP &&
-		g_renderer->GetPostProcessor()->IsActive())
+	if (g_renderer->GetPostProcessor()->ShouldTriggerOnSwap())
 	{
 		g_renderer->GetPostProcessor()->PostProcessEFB();
 	}

@@ -602,7 +602,7 @@ void XFBSource::DecodeToTexture(u32 xfbAddr, u32 fbWidth, u32 fbHeight)
 
 void XFBSource::CopyEFB(float Gamma)
 {
-	bool depth_copy_required = g_renderer->GetPostProcessor()->GetBlitShaderConfig()->RequiresDepthBuffer();
+	bool depth_copy_required = g_renderer->GetPostProcessor()->GetScalingShaderConfig()->RequiresDepthBuffer();
 	if (depth_copy_required && !depthtexture)
 	{
 		glGenTextures(1, &depthtexture);
@@ -613,9 +613,7 @@ void XFBSource::CopyEFB(float Gamma)
 		glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_DEPTH_COMPONENT32F, m_target_width, m_target_height, m_layers, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
 	}
 	g_renderer->GetPostProcessor()->OnEndFrame();
-	if (g_ActiveConfig.bPostProcessingEnable &&
-		g_ActiveConfig.iPostProcessingTrigger == POST_PROCESSING_TRIGGER_ON_SWAP &&
-		g_renderer->GetPostProcessor()->IsActive())
+	if (g_renderer->GetPostProcessor()->ShouldTriggerOnSwap())
 	{
 		g_renderer->GetPostProcessor()->PostProcessEFB();
 	}

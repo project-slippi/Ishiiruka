@@ -21,7 +21,7 @@ class wxFlexGridSizer;
 class PostProcessingConfigDiag final : public wxDialog
 {
 public:
-	PostProcessingConfigDiag(wxWindow* parent, const std::string& shader_name, PostProcessingShaderConfiguration* config);
+	PostProcessingConfigDiag(wxWindow* parent, const std::string& shader_dir, const std::string& shader_name, PostProcessingShaderConfiguration* config = nullptr);
 	~PostProcessingConfigDiag();
 
 private:
@@ -107,7 +107,7 @@ private:
 	PostProcessingShaderConfiguration* m_config;
 	std::unique_ptr<PostProcessingShaderConfiguration> m_temp_config;
 
-	std::map<std::string, ConfigGrouping*> m_config_map;
+	std::map<std::string, std::unique_ptr<ConfigGrouping>> m_config_map;
 	std::vector<ConfigGrouping*> m_config_groups;
 
 	// Tooltips

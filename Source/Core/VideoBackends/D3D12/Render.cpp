@@ -1532,7 +1532,7 @@ void Renderer::BlitScreen(TargetRectangle src, TargetRectangle dst, D3DTexture2D
 			src.AsRECT(),
 			src_width,
 			src_height,
-			(g_Config.iStereoMode == STEREO_ANAGLYPH) ? StaticShaderCache::GetAnaglyphPixelShader() : StaticShaderCache::GetColorCopyPixelShader(false),
+			(g_Config.iStereoMode == STEREO_SHADER) ? StaticShaderCache::GetAnaglyphPixelShader() : StaticShaderCache::GetColorCopyPixelShader(false),
 			StaticShaderCache::GetSimpleVertexShader(),
 			StaticShaderCache::GetSimpleVertexShaderInputLayout(),
 			D3D12_SHADER_BYTECODE(),
