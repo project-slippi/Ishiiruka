@@ -7,6 +7,7 @@
 
 #include "VideoBackends/D3D12/D3DBase.h"
 #include "VideoBackends/D3D12/D3DCommandListManager.h"
+#include "VideoBackends/D3D12/D3DDescriptorHeapManager.h"
 #include "VideoBackends/D3D12/D3DQueuedCommandList.h"
 #include "VideoBackends/D3D12/D3DState.h"
 #include "VideoBackends/D3D12/D3DTexture.h"
@@ -25,15 +26,10 @@ extern StateCache gx_state_cache;
 D3DCommandListManager::D3DCommandListManager(
 	D3D12_COMMAND_LIST_TYPE command_list_type,
 	ID3D12Device* device,
-	ID3D12CommandQueue* command_queue,
-	ID3D12DescriptorHeap** gpu_descriptor_heaps,
-	unsigned int gpu_descriptor_heaps_count,
-	ID3D12RootSignature* default_root_signature
+	ID3D12CommandQueue* command_queue
 	) :
 	m_device(device),
-	m_command_queue(command_queue),
-	m_gpu_descriptor_heaps_count(gpu_descriptor_heaps_count),
-	m_default_root_signature(default_root_signature)
+	m_command_queue(command_queue)
 {
 	// Create command allocators. Start with two lists of '8', this corresponds to up to 8 frames in flight.
 	m_current_command_allocator = 0;
@@ -44,31 +40,28 @@ D3DCommandListManager::D3DCommandListManager(
 		{
 			ID3D12CommandAllocator* command_allocator = nullptr;
 
-			CheckHR(m_device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&command_allocator)));
+			CheckHR(m_device->CreateCommandAllocator(command_list_type, IID_PPV_ARGS(&command_allocator)));
 			m_command_allocator_lists[j].push_back(command_allocator);
 		}
 	}
 
 	// Create backing command list.
-	CheckHR(m_device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_command_allocator_lists[m_current_command_allocator_list][0], nullptr, IID_PPV_ARGS(&m_backing_command_list)));
+	CheckHR(m_device->CreateCommandList(0, command_list_type, m_command_allocator_lists[m_current_command_allocator_list][0], nullptr, IID_PPV_ARGS(&m_backing_command_list)));
 
 #ifdef USE_D3D12_QUEUED_COMMAND_LISTS
 	m_queued_command_list = new ID3D12QueuedCommandList(m_backing_command_list, m_command_queue);
 #endif
 
-	// Copy list of default descriptor heaps.
-	for (UINT i = 0; i < gpu_descriptor_heaps_count; i++)
-	{
-		m_gpu_descriptor_heaps[i] = gpu_descriptor_heaps[i];
-	}
-
 	// Create fence that will be used to measure GPU progress of app rendering requests (e.g. CPU readback of GPU data).
 	m_queue_fence_value = 0;
 	CheckHR(m_device->CreateFence(m_queue_fence_value, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_queue_fence)));
 
-	// Create fence that will be used internally by D3DCommandListManager to make sure we aren't using in-use resources.
-	m_queue_rollover_fence_value = 0;
-	CheckHR(m_device->CreateFence(m_queue_rollover_fence_value, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_queue_rollover_fence)));
+	// Create fence that will be used internally by D3DCommandListManager for frame-level resource tracking.
+	m_queue_frame_fence_value = 0;
+	CheckHR(m_device->CreateFence(m_queue_frame_fence_value, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_queue_frame_fence)));
+
+	// Create event that will be used for waiting on CPU until a fence is signaled by GPU.
+	m_wait_on_cpu_fence_event = CreateEvent(NULL, FALSE, FALSE, NULL);
 
 	// Pre-size the deferred destruction lists.
 	for (UINT i = 0; i < ARRAYSIZE(m_deferred_destruction_lists); i++)
@@ -84,8 +77,8 @@ void D3DCommandListManager::SetInitialCommandListState()
 	ID3D12GraphicsCommandList* command_list = nullptr;
 	GetCommandList(&command_list);
 
-	command_list->SetDescriptorHeaps(m_gpu_descriptor_heaps_count, m_gpu_descriptor_heaps);
-	command_list->SetGraphicsRootSignature(m_default_root_signature);
+	command_list->SetDescriptorHeaps(ARRAYSIZE(D3D::gpu_descriptor_heaps), D3D::gpu_descriptor_heaps);
+	command_list->SetGraphicsRootSignature(D3D::default_root_signature);
 
 	if (g_renderer)
 	{
@@ -125,19 +118,13 @@ void D3DCommandListManager::ProcessQueuedWork()
 
 void D3DCommandListManager::ExecuteQueuedWork(bool wait_for_gpu_completion)
 {
-	if (wait_for_gpu_completion)
-	{
-		m_queue_fence_value++;
-	}
+	m_queue_fence_value++;
 
 #ifdef USE_D3D12_QUEUED_COMMAND_LISTS
 	CheckHR(m_queued_command_list->Close());
 	m_queued_command_list->QueueExecute();
 
-	if (wait_for_gpu_completion)
-	{
-		m_queued_command_list->QueueFenceGpuSignal(m_queue_fence, m_queue_fence_value);
-	}
+	m_queued_command_list->QueueFenceGpuSignal(m_queue_fence, m_queue_fence_value);
 
 	ResetCommandListWithIdleCommandAllocator();
 
@@ -161,6 +148,9 @@ void D3DCommandListManager::ExecuteQueuedWork(bool wait_for_gpu_completion)
 	ResetCommandListWithIdleCommandAllocator();
 #endif
 
+	for (auto it : m_queue_fence_callbacks)
+		it.second(it.first, m_queue_fence_value);
+
 	SetInitialCommandListState();
 
 	if (wait_for_gpu_completion)
@@ -174,6 +164,7 @@ void D3DCommandListManager::ExecuteQueuedWorkAndPresent(IDXGISwapChain* swap_cha
 #ifdef USE_D3D12_QUEUED_COMMAND_LISTS
 	CheckHR(m_queued_command_list->Close());
 	m_queued_command_list->QueueExecute();
+	m_queued_command_list->QueueFenceGpuSignal(m_queue_fence, m_queue_fence_value);
 	m_queued_command_list->QueuePresent(swap_chain, sync_interval, flags);
 	m_queued_command_list->ProcessQueuedItems();
 
@@ -189,14 +180,18 @@ void D3DCommandListManager::ExecuteQueuedWorkAndPresent(IDXGISwapChain* swap_cha
 	SetInitialCommandListState();
 #else
 	ExecuteQueuedWork();
+	m_command_queue->Signal(m_queue_fence, m_queue_fence_value);
 	CheckHR(swap_chain->Present(sync_interval, flags));
 #endif
+	for (auto it : m_queue_fence_callbacks)
+		it.second(it.first, m_queue_fence_value);
 }
 
 void D3DCommandListManager::WaitForQueuedWorkToBeExecutedOnGPU()
 {
 	// Wait for GPU to finish all outstanding work.
 	m_queue_fence_value++;
+
 #ifdef USE_D3D12_QUEUED_COMMAND_LISTS
 	m_queued_command_list->QueueExecute();
 	m_queued_command_list->QueueFenceGpuSignal(m_queue_fence, m_queue_fence_value);
@@ -205,15 +200,16 @@ void D3DCommandListManager::WaitForQueuedWorkToBeExecutedOnGPU()
 #else
 	CheckHR(m_command_queue->Signal(m_queue_fence, m_queue_fence_value));
 #endif
+
 	WaitOnCPUForFence(m_queue_fence, m_queue_fence_value);
 }
 
 void D3DCommandListManager::PerformGpuRolloverChecks()
 {
 	// Insert fence to measure GPU progress, ensure we aren't using in-use command allocators.
-	if (m_queue_rollover_fence->GetCompletedValue() < m_queue_rollover_fence_value)
+	if (m_queue_frame_fence->GetCompletedValue() < m_queue_frame_fence_value)
 	{
-		WaitOnCPUForFence(m_queue_rollover_fence, m_queue_rollover_fence_value);
+		WaitOnCPUForFence(m_queue_frame_fence, m_queue_frame_fence_value);
 	}
 
 	// We now know that the previous 'set' of command lists has completed on GPU, and it is safe to
@@ -244,20 +240,12 @@ void D3DCommandListManager::PerformGpuRolloverChecks()
 	m_current_command_allocator_list = (m_current_command_allocator_list + 1) % ARRAYSIZE(m_command_allocator_lists);
 	// End Command Allocator Resets
 
-	m_queue_rollover_fence_value++;
+	m_queue_frame_fence_value++;
 #ifdef USE_D3D12_QUEUED_COMMAND_LISTS
-	m_queued_command_list->QueueFenceGpuSignal(m_queue_rollover_fence, m_queue_rollover_fence_value);
+	m_queued_command_list->QueueFenceGpuSignal(m_queue_frame_fence, m_queue_frame_fence_value);
 #else
-	CheckHR(m_command_queue->Signal(m_queue_rollover_fence, m_queue_rollover_fence_value));
+	CheckHR(m_command_queue->Signal(m_queue_frame_fence, m_queue_frame_fence_value));
 #endif
-
-	if (m_current_command_allocator_list == 0)
-	{
-		D3D::MoveToNextD3DTextureUploadHeap();
-	}
-
-	// Shader constant buffers are rolled-over independently of command allocator usage.
-	ShaderConstantsManager::CheckToResetIndexPositionInUploadHeaps();
 }
 
 void D3DCommandListManager::ResetCommandListWithIdleCommandAllocator()
@@ -323,17 +311,26 @@ D3DCommandListManager::~D3DCommandListManager()
 	}
 
 	m_queue_fence->Release();
-	m_queue_rollover_fence->Release();
+	m_queue_frame_fence->Release();
+	CloseHandle(m_wait_on_cpu_fence_event);
 }
 
 void D3DCommandListManager::WaitOnCPUForFence(ID3D12Fence* fence, UINT64 fence_value)
 {
-	HANDLE fence_event = CreateEvent(NULL, FALSE, FALSE, NULL);
+	CheckHR(fence->SetEventOnCompletion(fence_value, m_wait_on_cpu_fence_event));
 
-	CheckHR(fence->SetEventOnCompletion(fence_value, fence_event));
-	WaitForSingleObject(fence_event, INFINITE);
+	WaitForSingleObject(m_wait_on_cpu_fence_event, INFINITE);
+}
 
-	CloseHandle(fence_event);
+ID3D12Fence* D3DCommandListManager::RegisterQueueFenceCallback(void* owning_object, PFN_QUEUE_FENCE_CALLBACK* callback_function)
+{
+	m_queue_fence_callbacks[owning_object] = callback_function;
+	return m_queue_fence;
+}
+
+void D3DCommandListManager::RemoveQueueFenceCallback(void* owning_object)
+{
+	m_queue_fence_callbacks.erase(owning_object);
 }
 
 void D3DCommandListManager::AddRef()

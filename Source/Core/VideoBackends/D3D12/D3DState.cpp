@@ -40,7 +40,7 @@ public:
 		D3D12_GRAPHICS_PIPELINE_STATE_DESC desc = {};
 		desc.pRootSignature = D3D::default_root_signature;
 		desc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM; // This state changes in PSTextureEncoder::Encode.
-		desc.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT; // This state changes in PSTextureEncoder::Encode.
+		desc.DSVFormat = DXGI_FORMAT_D32_FLOAT; // This state changes in PSTextureEncoder::Encode.
 		desc.IBStripCutValue = D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_0xFFFF;
 		desc.NumRenderTargets = 1;
 		desc.SampleMask = UINT_MAX;
@@ -118,7 +118,7 @@ StateCache::StateCache()
 	m_current_pso_desc = {};
 
 	m_current_pso_desc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM; // This state changes in PSTextureEncoder::Encode.
-	m_current_pso_desc.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT; // This state changes in PSTextureEncoder::Encode.
+	m_current_pso_desc.DSVFormat = DXGI_FORMAT_D32_FLOAT; // This state changes in PSTextureEncoder::Encode.
 	m_current_pso_desc.IBStripCutValue = D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_0xFFFF;
 	m_current_pso_desc.NumRenderTargets = 1;
 	m_current_pso_desc.SampleMask = UINT_MAX;
@@ -244,9 +244,9 @@ D3D12_SAMPLER_DESC StateCache::GetDesc(SamplerState state)
 
 	sampdc.BorderColor[0] = sampdc.BorderColor[1] = sampdc.BorderColor[2] = sampdc.BorderColor[3] = 1.0f;
 
-	sampdc.MaxLOD = (mip == TexMode0::TEXF_NONE) ? 0.0f : (float)state.max_lod / 16.f;
-	sampdc.MinLOD = (float)state.min_lod / 16.f;
-	sampdc.MipLODBias = (s32)state.lod_bias / 32.0f;
+	sampdc.MaxLOD = (mip == TexMode0::TEXF_NONE) ? 0.0f : static_cast<float>(state.max_lod) / 16.f;
+	sampdc.MinLOD = static_cast<float>(state.min_lod) / 16.f;
+	sampdc.MipLODBias = static_cast<s32>(state.lod_bias) / 32.0f;
 
 	return sampdc;
 }

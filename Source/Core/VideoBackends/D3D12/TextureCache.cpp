@@ -126,13 +126,13 @@ bool TextureCache::TCacheEntry::Save(const std::string& filename, unsigned int l
 		return false;
 	}
 
-	D3D12_RESOURCE_DESC textureDesc = m_texture->GetTex()->GetDesc();
+	D3D12_RESOURCE_DESC texture_desc = m_texture->GetTex()->GetDesc();
 
-	UINT requiredReadbackBufferSize = D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT + ((textureDesc.Width * 4 + D3D12_TEXTURE_DATA_PITCH_ALIGNMENT - 1) & ~(D3D12_TEXTURE_DATA_PITCH_ALIGNMENT - 1)) * textureDesc.Height;
+	const unsigned int required_readback_buffer_size = D3D::AlignValue(static_cast<unsigned int>(texture_desc.Width) * 4, D3D12_TEXTURE_DATA_PITCH_ALIGNMENT);
 
-	if (s_texture_cache_entry_readback_buffer_size < requiredReadbackBufferSize)
+	if (s_texture_cache_entry_readback_buffer_size < required_readback_buffer_size)
 	{
-		s_texture_cache_entry_readback_buffer_size = requiredReadbackBufferSize;
+		s_texture_cache_entry_readback_buffer_size = required_readback_buffer_size;
 
 		// We know the readback buffer won't be in use right now, since we wait on this thread 
 		// for the GPU to finish execution right after copying to it.
@@ -163,12 +163,12 @@ bool TextureCache::TCacheEntry::Save(const std::string& filename, unsigned int l
 	D3D12_TEXTURE_COPY_LOCATION dst_location = {};
 	dst_location.pResource = s_texture_cache_entry_readback_buffer;
 	dst_location.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
-	dst_location.PlacedFootprint.Offset = D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT;
+	dst_location.PlacedFootprint.Offset = 0;
 	dst_location.PlacedFootprint.Footprint.Depth = 1;
-	dst_location.PlacedFootprint.Footprint.Format = textureDesc.Format;
-	dst_location.PlacedFootprint.Footprint.Width = static_cast<UINT>(textureDesc.Width);
-	dst_location.PlacedFootprint.Footprint.Height = textureDesc.Height;
-	dst_location.PlacedFootprint.Footprint.RowPitch = ((textureDesc.Width * 4 + D3D12_TEXTURE_DATA_PITCH_ALIGNMENT - 1) & ~(D3D12_TEXTURE_DATA_PITCH_ALIGNMENT - 1));
+	dst_location.PlacedFootprint.Footprint.Format = texture_desc.Format;
+	dst_location.PlacedFootprint.Footprint.Width = static_cast<UINT>(texture_desc.Width);
+	dst_location.PlacedFootprint.Footprint.Height = texture_desc.Height;
+	dst_location.PlacedFootprint.Footprint.RowPitch = D3D::AlignValue(dst_location.PlacedFootprint.Footprint.Width * 4, D3D12_TEXTURE_DATA_PITCH_ALIGNMENT);
 
 	D3D12_TEXTURE_COPY_LOCATION src_location = CD3DX12_TEXTURE_COPY_LOCATION(m_texture->GetTex(), 0);
 
@@ -177,7 +177,7 @@ bool TextureCache::TCacheEntry::Save(const std::string& filename, unsigned int l
 	D3D::command_list_mgr->ExecuteQueuedWork(true);
 
 	saved_png = TextureToPng(
-		static_cast<u8*>(s_texture_cache_entry_readback_buffer_data) + D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT,
+		static_cast<u8*>(s_texture_cache_entry_readback_buffer_data),
 		dst_location.PlacedFootprint.Footprint.RowPitch,
 		filename,
 		dst_location.PlacedFootprint.Footprint.Width,
@@ -327,7 +327,7 @@ TextureCacheBase::TCacheEntryBase* TextureCache::CreateTexture(const TCacheEntry
 	if (config.rendertarget)
 	{
 		D3DTexture2D* texture = D3DTexture2D::Create(config.width, config.height,
-			(D3D11_BIND_FLAG)((int)D3D11_BIND_RENDER_TARGET | (int)D3D11_BIND_SHADER_RESOURCE),
+			static_cast<D3D11_BIND_FLAG>((static_cast<int>(D3D11_BIND_RENDER_TARGET) | static_cast<int>(D3D11_BIND_SHADER_RESOURCE))),
 			D3D11_USAGE_DEFAULT, DXGI_FORMAT_R8G8B8A8_UNORM, 1, config.layers);
 
 		TCacheEntry* entry = new TCacheEntry(config, texture);
@@ -447,7 +447,14 @@ void TextureCache::TCacheEntry::FromRenderTarget(u8* dst, PEControl::PixelFormat
 	}
 
 	// stretch picture with increased internal resolution
-	const D3D12_VIEWPORT vp = { 0.f, 0.f, (float)config.width, (float)config.height, D3D12_MIN_DEPTH, D3D12_MAX_DEPTH };
+	const D3D12_VIEWPORT vp = {
+		0.f,
+		0.f,
+		static_cast<float>(config.width),
+		static_cast<float>(config.height),
+		D3D12_MIN_DEPTH,
+		D3D12_MAX_DEPTH
+	};
 	D3D::current_command_list->RSSetViewports(1, &vp);
 
 	// set transformation

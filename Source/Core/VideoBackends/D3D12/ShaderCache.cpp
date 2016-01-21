@@ -150,11 +150,11 @@ void ShaderCache::Init()
 	// Clear out disk cache when debugging shaders to ensure stale ones don't stick around..
 	if (g_Config.bEnableShaderDebugging)
 		Clear();
-	SETSTAT(stats.numGeometryShadersAlive, (int)gs_bytecode_cache.size());
+	SETSTAT(stats.numGeometryShadersAlive, static_cast<int>(gs_bytecode_cache.size()));
 	SETSTAT(stats.numGeometryShadersCreated, 0);
-	SETSTAT(stats.numPixelShadersAlive, (int)ps_bytecode_cache.size());
+	SETSTAT(stats.numPixelShadersAlive, static_cast<int>(ps_bytecode_cache.size()));
 	SETSTAT(stats.numPixelShadersCreated, 0);
-	SETSTAT(stats.numVertexShadersAlive, (int)vs_bytecode_cache.size());
+	SETSTAT(stats.numVertexShadersAlive, static_cast<int>(vs_bytecode_cache.size()));
 	SETSTAT(stats.numVertexShadersCreated, 0);
 }
 
@@ -269,7 +269,7 @@ void ShaderCache::HandleGSUIDChange(
 			PushByteCode(entry, shaderBuffer);
 			wunit->shaderbytecode->Release();
 			wunit->shaderbytecode = nullptr;
-			SETSTAT(stats.numGeometryShadersAlive, (int)ps_bytecode_cache.size());
+			SETSTAT(stats.numGeometryShadersAlive, static_cast<int>(ps_bytecode_cache.size()));
 			INCSTAT(stats.numGeometryShadersCreated);
 #if defined(_DEBUG) || defined(DEBUGFAST)
 			if (g_ActiveConfig.bEnableShaderDebugging)
@@ -755,10 +755,45 @@ const PixelShaderUid* ShaderCache::GetActivePixelShaderUid() { return &s_last_pi
 const VertexShaderUid* ShaderCache::GetActiveVertexShaderUid() { return &s_last_vertex_shader_uid; }
 const TessellationShaderUid* ShaderCache::GetActiveTessellationShaderUid() { return &s_last_tessellation_shader_uid; }
 
-D3D12_SHADER_BYTECODE ShaderCache::GetDomainShaderFromUid(const TessellationShaderUid* uid) { return ds_bytecode_cache[*uid].m_shader_bytecode; }
-D3D12_SHADER_BYTECODE ShaderCache::GetHullShaderFromUid(const TessellationShaderUid* uid) { return hs_bytecode_cache[*uid].m_shader_bytecode; }
-D3D12_SHADER_BYTECODE ShaderCache::GetGeometryShaderFromUid(const GeometryShaderUid* uid) { return gs_bytecode_cache[*uid].m_shader_bytecode; }
-D3D12_SHADER_BYTECODE ShaderCache::GetPixelShaderFromUid(const PixelShaderUid* uid) { return ps_bytecode_cache[*uid].m_shader_bytecode; }
-D3D12_SHADER_BYTECODE ShaderCache::GetVertexShaderFromUid(const VertexShaderUid* uid) { return vs_bytecode_cache[*uid].m_shader_bytecode; }
+D3D12_SHADER_BYTECODE ShaderCache::GetDomainShaderFromUid(const TessellationShaderUid* uid)
+{
+	auto it = ds_bytecode_cache.find(*uid);
+	if (it != ds_bytecode_cache.end())
+		return it->second.m_shader_bytecode;
+	else
+		return D3D12_SHADER_BYTECODE();
+}
+D3D12_SHADER_BYTECODE ShaderCache::GetHullShaderFromUid(const TessellationShaderUid* uid)
+{
+	auto it = hs_bytecode_cache.find(*uid);
+	if (it != hs_bytecode_cache.end())
+		return it->second.m_shader_bytecode;
+	else
+		return D3D12_SHADER_BYTECODE();
+}
+D3D12_SHADER_BYTECODE ShaderCache::GetGeometryShaderFromUid(const GeometryShaderUid* uid)
+{
+	auto it = gs_bytecode_cache.find(*uid);
+	if (it != gs_bytecode_cache.end())
+		return it->second.m_shader_bytecode;
+	else
+		return D3D12_SHADER_BYTECODE();
+}
+D3D12_SHADER_BYTECODE ShaderCache::GetPixelShaderFromUid(const PixelShaderUid* uid)
+{
+	auto it = ps_bytecode_cache.find(*uid);
+	if (it != ps_bytecode_cache.end())
+		return it->second.m_shader_bytecode;
+	else
+		return D3D12_SHADER_BYTECODE();
+}
+D3D12_SHADER_BYTECODE ShaderCache::GetVertexShaderFromUid(const VertexShaderUid* uid)
+{
+	auto it = vs_bytecode_cache.find(*uid);
+	if (it != vs_bytecode_cache.end())
+		return it->second.m_shader_bytecode;
+	else
+		return D3D12_SHADER_BYTECODE();
+}
 
 }

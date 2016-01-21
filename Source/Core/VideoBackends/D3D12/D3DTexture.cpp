@@ -7,6 +7,7 @@
 #include "VideoBackends/D3D12/D3DBase.h"
 #include "VideoBackends/D3D12/D3DCommandListManager.h"
 #include "VideoBackends/D3D12/D3DDescriptorHeapManager.h"
+#include "VideoBackends/D3D12/D3DStreamBuffer.h"
 #include "VideoBackends/D3D12/D3DTexture.h"
 #include "VideoBackends/D3D12/D3DUtil.h"
 #include "VideoBackends/D3D12/FramebufferManager.h"
@@ -19,34 +20,11 @@ namespace DX12
 namespace D3D
 {
 
-static ID3D12Resource* s_texture_upload_heaps[2] = {};
-void* s_texture_upload_heap_data_pointers[2] = {};
-
-UINT s_texture_upload_heap_current_index = 0;
-UINT s_texture_upload_heap_current_offset = 0;
-
-static UINT s_texture_upload_heap_size = 8 * 1024 * 1024;
-
-void MoveToNextD3DTextureUploadHeap()
-{
-	s_texture_upload_heap_current_index =
-		(s_texture_upload_heap_current_index + 1) % ARRAYSIZE(s_texture_upload_heaps);
-
-	s_texture_upload_heap_current_offset = 0;
-}
+static D3DStreamBuffer* s_texture_upload_stream_buffer = nullptr;
 
 void CleanupPersistentD3DTextureResources()
 {
-	// All GPU work has stopped at this point, can destroy immediately.
-
-	for (UINT i = 0; i < ARRAYSIZE(s_texture_upload_heaps); i++)
-	{
-		SAFE_RELEASE(s_texture_upload_heaps[i]);
-		s_texture_upload_heap_data_pointers[i] = nullptr;
-	}
-
-	s_texture_upload_heap_current_index = 0;
-	s_texture_upload_heap_current_offset = 0;
+	SAFE_DELETE(s_texture_upload_stream_buffer);
 }
 
 void ReplaceTexture2D(ID3D12Resource* texture12, const u8* buffer, DXGI_FORMAT fmt, unsigned int width, unsigned int height, unsigned int src_pitch, unsigned int level, D3D12_RESOURCE_STATES current_resource_state)
@@ -61,48 +39,21 @@ void ReplaceTexture2D(ID3D12Resource* texture12, const u8* buffer, DXGI_FORMAT f
 		src_pitch *= (fmt == DXGI_FORMAT_BC1_UNORM ? 8 : 16);
 		height = std::max(1u, (height + 3) >> 2);
 	}
-	unsigned int uploadSize =
-		D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT +
-		((src_pitch + (D3D12_TEXTURE_DATA_PITCH_ALIGNMENT - 1)) & ~(D3D12_TEXTURE_DATA_PITCH_ALIGNMENT - 1)) * height;
+	const unsigned int upload_size = AlignValue(src_pitch, D3D12_TEXTURE_DATA_PITCH_ALIGNMENT) * height;
 
-	if (s_texture_upload_heap_current_offset + uploadSize > s_texture_upload_heap_size)
+	if (!s_texture_upload_stream_buffer)
 	{
-		// Ran out of room.. so wait for GPU queue to drain, free resource, then reallocate buffers with double the size.
+		s_texture_upload_stream_buffer = new D3DStreamBuffer(4 * 1024 * 1024, 64 * 1024 * 1024, nullptr);
+	}
 
-		for (unsigned int i = 0; i < ARRAYSIZE(s_texture_upload_heaps); i++)
-		{
-			if (s_texture_upload_heaps[i])
-			{
-				D3D::command_list_mgr->DestroyResourceAfterCurrentCommandListExecuted(s_texture_upload_heaps[i]);
-				s_texture_upload_heaps[i] = nullptr;
-			}
-		}
-
-		D3D::command_list_mgr->ExecuteQueuedWork(true);
-
-		// Reset state to defaults.
+	bool current_command_list_executed = s_texture_upload_stream_buffer->AllocateSpaceInBuffer(upload_size, D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT);
+	if (current_command_list_executed)
+	{
 		g_renderer->SetViewport();
 		D3D::current_command_list->OMSetRenderTargets(1, &FramebufferManager::GetEFBColorTexture()->GetRTV(), FALSE, &FramebufferManager::GetEFBDepthTexture()->GetDSV());
-
-		s_texture_upload_heap_size *= 2;
-		s_texture_upload_heap_current_offset = 0;
 	}
 
-	if (!s_texture_upload_heaps[s_texture_upload_heap_current_index])
-	{
-		CheckHR(
-			device12->CreateCommittedResource(
-				&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
-				D3D12_HEAP_FLAG_NONE,
-				&CD3DX12_RESOURCE_DESC::Buffer(s_texture_upload_heap_size),
-				D3D12_RESOURCE_STATE_GENERIC_READ,
-				nullptr,
-				IID_PPV_ARGS(&s_texture_upload_heaps[s_texture_upload_heap_current_index])
-				)
-			);
-	}
-
-	D3D12_SUBRESOURCE_DATA subresourceData12 = {
+	D3D12_SUBRESOURCE_DATA subresource_data = {
 		buffer,    // const void *pData;
 		src_pitch, // LONG_PTR RowPitch;
 		src_pitch * height,         // LONG_PTR SlicePitch;
@@ -110,13 +61,9 @@ void ReplaceTexture2D(ID3D12Resource* texture12, const u8* buffer, DXGI_FORMAT f
 
 	ResourceBarrier(current_command_list, texture12, current_resource_state, D3D12_RESOURCE_STATE_COPY_DEST, level);
 
-	CHECK(0 != UpdateSubresources(current_command_list, texture12, s_texture_upload_heaps[s_texture_upload_heap_current_index], s_texture_upload_heap_current_offset, level, 1, &subresourceData12), "UpdateSubresources failed.");
+	CHECK(0 != UpdateSubresources(current_command_list, texture12, s_texture_upload_stream_buffer->GetBuffer(), s_texture_upload_stream_buffer->GetOffsetOfCurrentAllocation(), level, 1, &subresource_data), "UpdateSubresources failed.");
 
 	ResourceBarrier(D3D::current_command_list, texture12, D3D12_RESOURCE_STATE_COPY_DEST, current_resource_state, level);
-
-	s_texture_upload_heap_current_offset += uploadSize;
-
-	s_texture_upload_heap_current_offset = (s_texture_upload_heap_current_offset + D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT - 1) & ~(D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT - 1); // Align offset in upload heap to 512 bytes, as required.
 }
 
 }  // namespace

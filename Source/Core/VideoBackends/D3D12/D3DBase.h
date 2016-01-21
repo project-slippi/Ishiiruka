@@ -10,7 +10,7 @@
 #include <d3d11.h>
 #include <d3d12.h>
 #include <d3dcompiler.h>
-#include <dxgi.h>
+#include <dxgi1_4.h>
 #include <vector>
 
 #include <d3dx12.h>
@@ -68,6 +68,8 @@ void UnloadD3D();
 D3D_FEATURE_LEVEL GetFeatureLevel(IDXGIAdapter* adapter);
 std::vector<DXGI_SAMPLE_DESC> EnumAAModes(IDXGIAdapter* adapter);
 
+bool AlertUserIfSelectedAdapterDoesNotSupportD3D12();
+
 HRESULT Create(HWND wnd);
 
 void CreateDescriptorHeaps();
@@ -84,6 +86,7 @@ extern D3DDescriptorHeapManager* gpu_descriptor_heap_mgr;
 extern D3DDescriptorHeapManager* sampler_descriptor_heap_mgr;
 extern D3DDescriptorHeapManager* dsv_descriptor_heap_mgr;
 extern D3DDescriptorHeapManager* rtv_descriptor_heap_mgr;
+extern ID3D12DescriptorHeap* gpu_descriptor_heaps[2];
 
 extern D3D12_CPU_DESCRIPTOR_HANDLE null_srv_cpu;
 extern D3D12_CPU_DESCRIPTOR_HANDLE null_srv_cpu_shadow;
@@ -110,7 +113,6 @@ const char* VertexShaderVersionString();
 const char* HullShaderVersionString();
 const char* DomainShaderVersionString();
 const char* ComputeShaderVersionString();
-bool BGRATexturesSupported();
 
 unsigned int GetMaxTextureSize();
 

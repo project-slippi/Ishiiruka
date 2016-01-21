@@ -28,6 +28,10 @@ extern D3D12_RASTERIZER_DESC g_reset_rast_desc;
 
 namespace D3D
 {
+unsigned int AlignValue(unsigned int value, unsigned int alignment)
+{
+	return (value + (alignment - 1)) & ~(alignment - 1);
+}
 
 void ResourceBarrier(ID3D12GraphicsCommandList* command_list, ID3D12Resource* resource, D3D12_RESOURCE_STATES state_before, D3D12_RESOURCE_STATES state_after, UINT subresource)
 {
@@ -52,57 +56,33 @@ void ResourceBarrier(ID3D12GraphicsCommandList* command_list, ID3D12Resource* re
 	command_list->ResourceBarrier(1, &resourceBarrierDesc);
 }
 
-UtilVertexBuffer::UtilVertexBuffer(int size) : m_max_size(size)
+UtilVertexBuffer::UtilVertexBuffer(int size)
 {
-	CheckHR(
-		device12->CreateCommittedResource(
-			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
-			D3D12_HEAP_FLAG_NONE,
-			&CD3DX12_RESOURCE_DESC::Buffer(m_max_size),
-			D3D12_RESOURCE_STATE_GENERIC_READ,
-			nullptr,
-			IID_PPV_ARGS(&m_buf)
-			)
-		);
-
-	// Map buffer for CPU access upon creation.
-	// On D3D12, CPU-visible resources are persistently mapped.
-
-	CheckHR(m_buf->Map(0, nullptr, &m_buf_data));
+	m_stream_buffer = new D3DStreamBuffer(size, size * 4, nullptr);
 }
 
 UtilVertexBuffer::~UtilVertexBuffer()
 {
-	D3D::command_list_mgr->DestroyResourceAfterCurrentCommandListExecuted(m_buf);
+	SAFE_DELETE(m_stream_buffer);
 }
 
 // returns vertex offset to the new data
 int UtilVertexBuffer::AppendData(void* data, int size, int vertex_size)
 {
-	_dbg_assert_(VIDEO, size < m_max_size);
-	int aligned_offset = ((m_offset + vertex_size - 1) / vertex_size) * vertex_size; // align offset to vertex_size bytes
-	if (aligned_offset + size >= m_max_size)
-	{
-		// Wrap buffer around.
-		aligned_offset = 0;
-	}
-	memcpy(static_cast<u8*>(m_buf_data) + aligned_offset, data, size);
-	m_offset = aligned_offset + size;
-	return aligned_offset / vertex_size;
+	m_stream_buffer->AllocateSpaceInBuffer(size, vertex_size);
+
+	memcpy(static_cast<u8*>(m_stream_buffer->GetCPUAddressOfCurrentAllocation()), data, size);
+
+	return m_stream_buffer->GetOffsetOfCurrentAllocation() / vertex_size;
 }
 
 int UtilVertexBuffer::ReserveData(void** write_ptr, int size, int vertex_size)
 {
-	_dbg_assert_(VIDEO, size < m_max_size);
-	int aligned_offset = ((m_offset + vertex_size - 1) / vertex_size) * vertex_size; // align offset to vertex_size bytes
-	if (aligned_offset + size >= m_max_size)
-	{
-		// wrap buffer around and notify observers
-		aligned_offset = 0;
-	}
-	*write_ptr = static_cast<u8*>(m_buf_data) + aligned_offset;
-	m_offset = aligned_offset + size;
-	return aligned_offset / vertex_size;
+	m_stream_buffer->AllocateSpaceInBuffer(size, vertex_size);
+
+	*write_ptr = m_stream_buffer->GetCPUAddressOfCurrentAllocation();
+
+	return m_stream_buffer->GetOffsetOfCurrentAllocation() / vertex_size;
 }
 
 CD3DFont font;
@@ -123,10 +103,10 @@ struct FONT2DVERTEX
 FONT2DVERTEX InitFont2DVertex(float x, float y, u32 color, float tu, float tv)
 {
 	FONT2DVERTEX v;   v.x = x; v.y = y; v.z = 0;  v.tu = tu; v.tv = tv;
-	v.col[0] = ((float)((color >> 16) & 0xFF)) / 255.f;
-	v.col[1] = ((float)((color >> 8) & 0xFF)) / 255.f;
-	v.col[2] = ((float)((color >> 0) & 0xFF)) / 255.f;
-	v.col[3] = ((float)((color >> 24) & 0xFF)) / 255.f;
+	v.col[0] = (static_cast<float>((color >> 16) & 0xFF)) / 255.f;
+	v.col[1] = (static_cast<float>((color >> 8) & 0xFF)) / 255.f;
+	v.col[2] = (static_cast<float>((color >> 0) & 0xFF)) / 255.f;
+	v.col[3] = (static_cast<float>((color >> 24) & 0xFF)) / 255.f;
 	return v;
 }
 
@@ -181,7 +161,7 @@ int CD3DFont::Init()
 	// Create vertex buffer for the letters
 
 	// Prepare to create a bitmap
-	unsigned int* pBitmapBits;
+	unsigned int* bitmap_bits;
 	BITMAPINFO bmi;
 	ZeroMemory(&bmi.bmiHeader, sizeof(BITMAPINFOHEADER));
 	bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
@@ -193,7 +173,7 @@ int CD3DFont::Init()
 
 	// Create a DC and a bitmap for the font
 	HDC hDC = CreateCompatibleDC(nullptr);
-	HBITMAP hbmBitmap = CreateDIBSection(hDC, &bmi, DIB_RGB_COLORS, reinterpret_cast<void**>(&pBitmapBits), nullptr, 0);
+	HBITMAP hbmBitmap = CreateDIBSection(hDC, &bmi, DIB_RGB_COLORS, reinterpret_cast<void**>(&bitmap_bits), nullptr, 0);
 	SetMapMode(hDC, MM_TEXT);
 
 	// create a GDI font
@@ -233,10 +213,10 @@ int CD3DFont::Init()
 		}
 
 		ExtTextOutA(hDC, x + 1, y + 0, ETO_OPAQUE | ETO_CLIPPED, nullptr, str, 1, nullptr);
-		m_tex_coords[c][0] = ((float)(x + 0)) / m_tex_width;
-		m_tex_coords[c][1] = ((float)(y + 0)) / m_tex_height;
-		m_tex_coords[c][2] = ((float)(x + 0 + size.cx)) / m_tex_width;
-		m_tex_coords[c][3] = ((float)(y + 0 + size.cy)) / m_tex_height;
+		m_tex_coords[c][0] = (static_cast<float>(x + 0)) / m_tex_width;
+		m_tex_coords[c][1] = (static_cast<float>(y + 0)) / m_tex_height;
+		m_tex_coords[c][2] = (static_cast<float>(x + 0 + size.cx)) / m_tex_width;
+		m_tex_coords[c][3] = (static_cast<float>(y + 0 + size.cy)) / m_tex_height;
 
 		x += size.cx + 3;  // 3 to work around annoying ij conflict (part of the j ends up with the i)
 	}
@@ -244,16 +224,16 @@ int CD3DFont::Init()
 	// Create a new texture for the font
 	// possible optimization: store the converted data in a buffer and fill the texture on creation.
 	// That way, we can use a static texture
-	std::vector<byte> texInitialData(m_tex_width * m_tex_height * 4);
+	std::vector<byte> tex_initial_data(m_tex_width * m_tex_height * 4);
 
 	for (y = 0; y < m_tex_height; y++)
 	{
-		u32* pDst32_12 = reinterpret_cast<u32*>(texInitialData.data() + y * m_tex_width * 4);
+		u32* pDst32 = reinterpret_cast<u32*>(tex_initial_data.data() + y * m_tex_width * 4);
 		for (x = 0; x < m_tex_width; x++)
 		{
-			const u8 bAlpha = (pBitmapBits[m_tex_width * y + x] & 0xff);
+			const u8 bAlpha = (bitmap_bits[m_tex_width * y + x] & 0xff);
 
-			*pDst32_12++ = (((bAlpha << 4) | bAlpha) << 24) | 0xFFFFFF;
+			*pDst32++ = (((bAlpha << 4) | bAlpha) << 24) | 0xFFFFFF;
 		}
 	}
 
@@ -275,34 +255,34 @@ int CD3DFont::Init()
 		D3D::device12->CreateCommittedResource(
 			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
 			D3D12_HEAP_FLAG_NONE,
-			&CD3DX12_RESOURCE_DESC::Buffer(D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT + m_tex_height * ((m_tex_width * 4 + D3D12_TEXTURE_DATA_PITCH_ALIGNMENT - 1) & ~(D3D12_TEXTURE_DATA_PITCH_ALIGNMENT - 1))),
+			&CD3DX12_RESOURCE_DESC::Buffer(AlignValue(m_tex_width * 4, D3D12_TEXTURE_DATA_PITCH_ALIGNMENT) * m_tex_height),
 			D3D12_RESOURCE_STATE_GENERIC_READ,
 			nullptr,
 			IID_PPV_ARGS(&temporaryFontTextureUploadBuffer)
 			)
 		);
 
-	D3D12_SUBRESOURCE_DATA subresourceDataDesc12 = {
-		texInitialData.data(),   //const void *pData;
-		m_tex_width * 4, // LONG_PTR RowPitch;
-		0                 //LONG_PTR SlicePitch;
+	D3D12_SUBRESOURCE_DATA subresource_data_dest = {
+		tex_initial_data.data(), // const void *pData;
+		m_tex_width * 4,        // LONG_PTR RowPitch;
+		0                       // LONG_PTR SlicePitch;
 	};
 
 	D3D::ResourceBarrier(D3D::current_command_list, m_texture12, D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES);
 
-	UpdateSubresources(D3D::current_command_list, m_texture12, temporaryFontTextureUploadBuffer, 0, 0, 1, &subresourceDataDesc12);
+	CHECK(0 != UpdateSubresources(D3D::current_command_list, m_texture12, temporaryFontTextureUploadBuffer, 0, 0, 1, &subresource_data_dest), "UpdateSubresources call failed.");
 
 	command_list_mgr->DestroyResourceAfterCurrentCommandListExecuted(temporaryFontTextureUploadBuffer);
 
 	D3D::gpu_descriptor_heap_mgr->Allocate(&m_texture12_cpu, &m_texture12_gpu);
 
-	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-	srvDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-	srvDesc.Texture2D.MipLevels = -1;
+	D3D12_SHADER_RESOURCE_VIEW_DESC srv_desc = {};
+	srv_desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	srv_desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+	srv_desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+	srv_desc.Texture2D.MipLevels = -1;
 
-	D3D::device12->CreateShaderResourceView(m_texture12, &srvDesc, m_texture12_cpu);
+	D3D::device12->CreateShaderResourceView(m_texture12, &srv_desc, m_texture12_cpu);
 
 	D3D::ResourceBarrier(D3D::current_command_list, m_texture12, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES);
 
@@ -357,13 +337,13 @@ int CD3DFont::Init()
 	D3D12_RASTERIZER_DESC rastdesc = { D3D12_FILL_MODE_SOLID, D3D12_CULL_MODE_NONE, false, 0, 0.f, 0.f, false, false, false, false };
 	m_raststate12 = rastdesc;
 
-	UINT textVBSize = s_max_num_vertices * sizeof(FONT2DVERTEX);
+	const unsigned int text_vb_size = s_max_num_vertices * sizeof(FONT2DVERTEX);
 
 	CheckHR(
 		device12->CreateCommittedResource(
 			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
 			D3D12_HEAP_FLAG_NONE,
-			&CD3DX12_RESOURCE_DESC::Buffer(textVBSize),
+			&CD3DX12_RESOURCE_DESC::Buffer(text_vb_size),
 			D3D12_RESOURCE_STATE_GENERIC_READ,
 			nullptr,
 			IID_PPV_ARGS(&m_vb12)
@@ -373,12 +353,12 @@ int CD3DFont::Init()
 	SetDebugObjectName12(m_vb12, "vertex buffer of a CD3DFont object");
 
 	m_vb12_view.BufferLocation = m_vb12->GetGPUVirtualAddress();
-	m_vb12_view.SizeInBytes = textVBSize;
+	m_vb12_view.SizeInBytes = text_vb_size;
 	m_vb12_view.StrideInBytes = sizeof(FONT2DVERTEX);
 
 	CheckHR(m_vb12->Map(0, nullptr, &m_vb12_data));
 
-	D3D12_GRAPHICS_PIPELINE_STATE_DESC textPsoDesc = {
+	D3D12_GRAPHICS_PIPELINE_STATE_DESC text_pso_desc = {
 		default_root_signature,                           // ID3D12RootSignature *pRootSignature;
 		{ vsbytecode->Data(), vsbytecode->Size() },       // D3D12_SHADER_BYTECODE VS;
 		{ psbytecode->Data(), psbytecode->Size() },       // D3D12_SHADER_BYTECODE PS;
@@ -399,7 +379,7 @@ int CD3DFont::Init()
 		{ 1 /* UINT Count */, 0 /* UINT Quality */ }      // DXGI_SAMPLE_DESC SampleDesc
 	};
 
-	CheckHR(DX12::gx_state_cache.GetPipelineStateObjectFromCache(&textPsoDesc, &m_pso));
+	CheckHR(DX12::gx_state_cache.GetPipelineStateObjectFromCache(&text_pso_desc, &m_pso));
 
 	SAFE_RELEASE(psbytecode);
 	SAFE_RELEASE(vsbytecode);
@@ -420,12 +400,9 @@ int CD3DFont::DrawTextScaled(float x, float y, float size, float spacing, u32 dw
 	if (!m_vb12)
 		return 0;
 
-	UINT stride = sizeof(FONT2DVERTEX);
-	UINT bufoffset = 0;
-
-	float scale_x = 1 / (float)D3D::GetBackBufferWidth() * 2.f;
-	float scale_y = 1 / (float)D3D::GetBackBufferHeight() * 2.f;
-	float sizeratio = size / (float)m_line_height;
+	float scale_x = 1 / static_cast<float>(D3D::GetBackBufferWidth()) * 2.f;
+	float scale_y = 1 / static_cast<float>(D3D::GetBackBufferHeight()) * 2.f;
+	float sizeratio = size / static_cast<float>(m_line_height);
 
 	// translate starting positions
 	float sx = x * scale_x - 1.f;
@@ -468,8 +445,8 @@ int CD3DFont::DrawTextScaled(float x, float y, float size, float spacing, u32 dw
 		float tx2 = m_tex_coords[c][2];
 		float ty2 = m_tex_coords[c][3];
 
-		float w = (float)(tx2 - tx1) * m_tex_width * scale_x * sizeratio;
-		float h = (float)(ty1 - ty2) * m_tex_height * scale_y * sizeratio;
+		float w = static_cast<float>(tx2 - tx1) * m_tex_width * scale_x * sizeratio;
+		float h = static_cast<float>(ty1 - ty2) * m_tex_height * scale_y * sizeratio;
 
 		FONT2DVERTEX v[6];
 		v[0] = InitFont2DVertex(sx, sy + h, dwColor, tx1, ty2);
@@ -624,13 +601,13 @@ void DrawShadedTexQuad(D3DTexture2D* texture,
 	D3D12_DEPTH_STENCIL_DESC* depth_stencil_desc_override
 	)
 {
-	float sw = 1.0f / (float)source_width;
-	float sh = 1.0f / (float)source_height;
-	float u1 = ((float)rSource->left) * sw;
-	float u2 = ((float)rSource->right) * sw;
-	float v1 = ((float)rSource->top) * sh;
-	float v2 = ((float)rSource->bottom) * sh;
-	float S = (float)slice;
+	float sw = 1.0f / static_cast<float>(source_width);
+	float sh = 1.0f / static_cast<float>(source_height);
+	float u1 = static_cast<float>(rSource->left) * sw;
+	float u2 = static_cast<float>(rSource->right) * sw;
+	float v1 = static_cast<float>(rSource->top) * sh;
+	float v2 = static_cast<float>(rSource->bottom) * sh;
+	float S = static_cast<float>(slice);
 	float G = 1.0f / gamma;
 
 	STQVertex coords[4] = {
@@ -659,8 +636,8 @@ void DrawShadedTexQuad(D3DTexture2D* texture,
 	D3D::command_list_mgr->m_current_topology = D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP;
 
 	D3D12_VERTEX_BUFFER_VIEW vb_view = {
-		util_vbuf_stq->GetBuffer()->GetGPUVirtualAddress(), // D3D12_GPU_VIRTUAL_ADDRESS BufferLocation;
-		vb_buff_size,                                              // UINT SizeInBytes; This is the size of the entire buffer, not just the size of the vertex data for one draw call, since the offsetting is done in the draw call itself.
+		util_vbuf_stq->GetBuffer()->GetGPUVirtualAddress(),   // D3D12_GPU_VIRTUAL_ADDRESS BufferLocation;
+		util_vbuf_stq->GetSize(),                             // UINT SizeInBytes; This is the size of the entire buffer, not just the size of the vertex data for one draw call, since the offsetting is done in the draw call itself.
 		sizeof(STQVertex)                                     // UINT StrideInBytes;
 	};
 
@@ -690,7 +667,7 @@ void DrawShadedTexQuad(D3DTexture2D* texture,
 		D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE,           // D3D12_PRIMITIVE_TOPOLOGY_TYPE PrimitiveTopologyType
 		1,                                                // UINT NumRenderTargets
 		{ rt_format },                                    // DXGI_FORMAT RTVFormats[8]
-		DXGI_FORMAT_D24_UNORM_S8_UINT,                    // DXGI_FORMAT DSVFormat
+		DXGI_FORMAT_D32_FLOAT,                    // DXGI_FORMAT DSVFormat
 		{ 1 /* UINT Count */, 0 /* UINT Quality */ }      // DXGI_SAMPLE_DESC SampleDesc
 	};
 
@@ -747,8 +724,8 @@ void DrawColorQuad(u32 Color, float z, float x1, float y1, float x2, float y2, D
 
 	D3D12_VERTEX_BUFFER_VIEW vb_view = {
 		util_vbuf_cq->GetBuffer()->GetGPUVirtualAddress(), // D3D12_GPU_VIRTUAL_ADDRESS BufferLocation;
-		vb_buff_size,                                             // UINT SizeInBytes; This is the size of the entire buffer, not just the size of the vertex data for one draw call, since the offsetting is done in the draw call itself.
-		sizeof(ColVertex)                                    // UINT StrideInBytes;
+		util_vbuf_cq->GetSize(),                           // UINT SizeInBytes; This is the size of the entire buffer, not just the size of the vertex data for one draw call, since the offsetting is done in the draw call itself.
+		sizeof(ColVertex)                                  // UINT StrideInBytes;
 	};
 
 	D3D::current_command_list->IASetVertexBuffers(0, 1, &vb_view);
@@ -771,7 +748,7 @@ void DrawColorQuad(u32 Color, float z, float x1, float y1, float x2, float y2, D
 		D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE,           // D3D12_PRIMITIVE_TOPOLOGY_TYPE PrimitiveTopologyType
 		1,                                                // UINT NumRenderTargets
 		{ DXGI_FORMAT_R8G8B8A8_UNORM },                   // DXGI_FORMAT RTVFormats[8]
-		DXGI_FORMAT_D24_UNORM_S8_UINT,                    // DXGI_FORMAT DSVFormat
+		DXGI_FORMAT_D32_FLOAT,                    // DXGI_FORMAT DSVFormat
 		{ 1 /* UINT Count */, 0 /* UINT Quality */ }      // DXGI_SAMPLE_DESC SampleDesc
 	};
 
@@ -820,7 +797,7 @@ void DrawClearQuad(u32 Color, float z, D3D12_BLEND_DESC* blend_desc, D3D12_DEPTH
 
 	D3D12_VERTEX_BUFFER_VIEW vb_view = {
 		util_vbuf_clearq->GetBuffer()->GetGPUVirtualAddress(), // D3D12_GPU_VIRTUAL_ADDRESS BufferLocation;
-		vb_buff_size,                                                 // UINT SizeInBytes; This is the size of the entire buffer, not just the size of the vertex data for one draw call, since the offsetting is done in the draw call itself.
+		util_vbuf_clearq->GetSize(),                                                 // UINT SizeInBytes; This is the size of the entire buffer, not just the size of the vertex data for one draw call, since the offsetting is done in the draw call itself.
 		sizeof(ColVertex)                                      // UINT StrideInBytes;
 	};
 
@@ -846,7 +823,7 @@ void DrawClearQuad(u32 Color, float z, D3D12_BLEND_DESC* blend_desc, D3D12_DEPTH
 		D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE,           // D3D12_PRIMITIVE_TOPOLOGY_TYPE PrimitiveTopologyType
 		1,                                                // UINT NumRenderTargets
 		{ DXGI_FORMAT_R8G8B8A8_UNORM },                   // DXGI_FORMAT RTVFormats[8]
-		DXGI_FORMAT_D24_UNORM_S8_UINT,                    // DXGI_FORMAT DSVFormat
+		DXGI_FORMAT_D32_FLOAT,                    // DXGI_FORMAT DSVFormat
 		{ 1 /* UINT Count */, 0 /* UINT Quality */ }      // DXGI_SAMPLE_DESC SampleDesc
 	};
 
@@ -893,14 +870,6 @@ void DrawEFBPokeQuads(EFBAccessType type,
 	D3D::current_command_list->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	D3D::command_list_mgr->m_current_topology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 
-	D3D12_VERTEX_BUFFER_VIEW vb_view = {
-		util_vbuf_efbpokequads->GetBuffer()->GetGPUVirtualAddress(), // D3D12_GPU_VIRTUAL_ADDRESS BufferLocation;
-		vb_buff_size,                                             // UINT SizeInBytes; This is the size of the entire buffer, not just the size of the vertex data for one draw call, since the offsetting is done in the draw call itself.
-		sizeof(ColVertex)                                    // UINT StrideInBytes;
-	};
-
-	D3D::command_list_mgr->m_dirty_vertex_buffer = true;
-
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC pso_desc = {
 		default_root_signature,                           // ID3D12RootSignature *pRootSignature;
 		StaticShaderCache::GetClearVertexShader(),        // D3D12_SHADER_BYTECODE VS;
@@ -920,7 +889,7 @@ void DrawEFBPokeQuads(EFBAccessType type,
 		D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE,           // D3D12_PRIMITIVE_TOPOLOGY_TYPE PrimitiveTopologyType
 		1,                                                // UINT NumRenderTargets
 		{ DXGI_FORMAT_R8G8B8A8_UNORM },                   // DXGI_FORMAT RTVFormats[8]
-		DXGI_FORMAT_D24_UNORM_S8_UINT,                    // DXGI_FORMAT DSVFormat
+		DXGI_FORMAT_D32_FLOAT,                    // DXGI_FORMAT DSVFormat
 		{ 1 /* UINT Count */, 0 /* UINT Quality */ }      // DXGI_SAMPLE_DESC SampleDesc
 	};
 
@@ -938,33 +907,37 @@ void DrawEFBPokeQuads(EFBAccessType type,
 	const size_t COL_QUAD_SIZE = sizeof(ColVertex) * 6;
 	size_t points_per_draw = util_vbuf_efbpokequads->GetSize() / COL_QUAD_SIZE;
 
-	// Makes sure we aren't about to run out of room in our buffer. If so, wait for GPU to finish current work,
-	// then the BeginAppendData function below will automatically roll over to beginning of buffer.
-	if (util_vbuf_efbpokequads->GetRoomLeftInBuffer() < points_per_draw * COL_QUAD_SIZE)
-	{
-		D3D::command_list_mgr->ExecuteQueuedWork(true);
-	}
-
 	size_t current_point_index = 0;
 	while (current_point_index < num_points)
 	{
+		// Map and reserve enough buffer space for this draw
+		size_t points_to_draw = std::min(num_points - current_point_index, points_per_draw);
+		size_t required_bytes = COL_QUAD_SIZE * points_to_draw;
+		
+		void* buffer_ptr = nullptr;
+		int base_vertex_index = util_vbuf_efbpokequads->ReserveData(&buffer_ptr, static_cast<int>(required_bytes), sizeof(ColVertex));
+		
+		CHECK(base_vertex_index * 16 + required_bytes <= util_vbuf_efbpokequads->GetSize(), "Uh oh");
+
 		// Corresponding dirty flags set outside loop.
 		D3D::current_command_list->OMSetRenderTargets(1, render_target, FALSE, depth_buffer);
 		D3D::current_command_list->RSSetViewports(1, viewport);
 		D3D::current_command_list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+		D3D12_VERTEX_BUFFER_VIEW vb_view = {
+			util_vbuf_efbpokequads->GetBuffer()->GetGPUVirtualAddress(), // D3D12_GPU_VIRTUAL_ADDRESS BufferLocation;
+			util_vbuf_efbpokequads->GetSize(),                             // UINT SizeInBytes; This is the size of the entire buffer, not just the size of the vertex data for one draw call, since the offsetting is done in the draw call itself.
+			sizeof(ColVertex)                                              // UINT StrideInBytes;
+		};
+
+		D3D::command_list_mgr->m_dirty_vertex_buffer = true;
+		
 		D3D::current_command_list->IASetVertexBuffers(0, 1, &vb_view);
 		D3D::current_command_list->SetPipelineState(pso);
 
 		// Disable scissor testing.
 		D3D::current_command_list->RSSetScissorRects(1, &CD3DX12_RECT(0, 0, 131072, 131072));
-
-		size_t points_to_draw = std::min(num_points - current_point_index, points_per_draw);
-		size_t required_bytes = COL_QUAD_SIZE * points_to_draw;
-
-		// map and reserve enough buffer space for this draw
-		void* buffer_ptr;
-		int base_vertex_index = util_vbuf_efbpokequads->ReserveData(&buffer_ptr, (int)required_bytes, sizeof(ColVertex));
-
+		
 		// generate quads for each efb point
 		ColVertex* base_vertex_ptr = static_cast<ColVertex*>(buffer_ptr);
 		for (size_t i = 0; i < points_to_draw; i++)
@@ -989,15 +962,7 @@ void DrawEFBPokeQuads(EFBAccessType type,
 			InitColVertex(&vertex[5], x2, y2, z, col);
 		}
 
-		D3D::current_command_list->DrawInstanced(6 * (UINT)points_to_draw, 1, base_vertex_index, 0);
-		if (current_point_index < num_points)
-		{
-			// If we're about to go through the loop again, that means we ran out of room in our efb buffer. Let's 
-			// tell the GPU to execute the currently-queued work, and wait on the CPU until it finishes (so we can
-			// reuse the buffer). This shouldn't happen too often.
-
-			D3D::command_list_mgr->ExecuteQueuedWork();
-		}
+		D3D::current_command_list->DrawInstanced(6 * static_cast<unsigned int>(points_to_draw), 1, base_vertex_index, 0);
 	}
 	g_renderer->RestoreAPIState();
 }

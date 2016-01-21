@@ -47,7 +47,7 @@ public:
 private:
 	~D3DTexture2D();
 
-	ID3D12Resource* m_tex;
+	ID3D12Resource* m_tex = nullptr;
 
 	D3D12_CPU_DESCRIPTOR_HANDLE m_srv_cpu = {};
 	D3D12_GPU_DESCRIPTOR_HANDLE m_srv_gpu = {};
@@ -56,11 +56,11 @@ private:
 	D3D12_CPU_DESCRIPTOR_HANDLE m_dsv = {};
 	D3D12_CPU_DESCRIPTOR_HANDLE m_rtv = {};
 
-	D3D12_RESOURCE_STATES m_resource_state;
+	D3D12_RESOURCE_STATES m_resource_state = D3D12_RESOURCE_STATE_COMMON;
 
 	bool m_multisampled;
 
-	UINT m_ref = 1;
+	unsigned int m_ref = 1;
 };
 
 }  // namespace DX12

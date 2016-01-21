@@ -2,9 +2,13 @@
 // Licensed under GPLv2+
 // Refer to the license.txt file included.
 
+#include <fstream>
 #include <string>
 
+#include "Common/FileUtil.h"
+#include "Common/MsgHandler.h"
 #include "Common/StringUtil.h"
+#include "Common/Logging/Log.h"
 #include "VideoBackends/D3D12/D3DBase.h"
 #include "VideoBackends/D3D12/D3DShader.h"
 #include "VideoCommon/HLSLCompiler.h"
@@ -40,8 +44,8 @@ bool CompileShader(
 	}
 #endif
 
-	char const *profile = nullptr;
-	char const *sufix = nullptr;
+	std::string profile;
+	const char* sufix = nullptr;
 	switch (type) {
 	case DX12::D3D::ShaderType::Vertex:
 		profile = D3D::VertexShaderVersionString();
@@ -75,7 +79,7 @@ bool CompileShader(
 	ID3DBlob* shaderBuffer;
 	ID3DBlob* errorBuffer;
 	HRESULT hr = HLSLCompiler::getInstance().CompileShader(code.c_str(),
-		code.length(), nullptr, pDefines, nullptr, pEntry != nullptr ? pEntry : "main", profile,
+		code.length(), nullptr, pDefines, nullptr, pEntry != nullptr ? pEntry : "main", profile.c_str(),
 		flags, 0, &shaderBuffer, &errorBuffer);
 
 	if (errorBuffer)

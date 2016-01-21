@@ -9,6 +9,7 @@
 
 #include "Common/MathUtil.h"
 #include "VideoBackends/D3D12/D3DState.h"
+#include "VideoBackends/D3D12/D3DStreamBuffer.h"
 #include "VideoCommon/RenderBase.h"
 namespace DX12
 {
@@ -17,7 +18,7 @@ extern StateCache gx_state_cache;
 
 namespace D3D
 {
-
+extern inline unsigned int AlignValue(unsigned int value, unsigned int alignment);
 extern inline void ResourceBarrier(ID3D12GraphicsCommandList* command_list, ID3D12Resource* resource, D3D12_RESOURCE_STATES state_before, D3D12_RESOURCE_STATES state_after, UINT subresource);
 
 // Font creation flags
@@ -76,15 +77,10 @@ public:
 	int AppendData(void* data, int size, int vertex_size);
 	int ReserveData(void** write_ptr, int size, int vertex_size);
 
-	inline ID3D12Resource* &GetBuffer() { return m_buf; }
-	inline int GetSize() const { return m_max_size; }
-	inline int GetRoomLeftInBuffer() const { return m_max_size - m_offset; }
+	inline ID3D12Resource* GetBuffer() { return m_stream_buffer->GetBuffer(); }
+	inline unsigned int GetSize() const { return m_stream_buffer->GetSize(); }
 private:
-	ID3D12Resource* m_buf = nullptr;
-	void* m_buf_data = nullptr;
-
-	int m_offset = 0;
-	int m_max_size = 0;
+	D3DStreamBuffer* m_stream_buffer = nullptr;
 };
 
 extern CD3DFont font;

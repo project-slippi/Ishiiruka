@@ -123,7 +123,7 @@ FramebufferManager::FramebufferManager()
 	texdesc12 = CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_R32_TYPELESS, m_target_width, m_target_height, m_efb.slices, 1, sample_desc.Count, sample_desc.Quality, D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL);
 	CheckHR(D3D::device12->CreateCommittedResource(&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT), D3D12_HEAP_FLAG_NONE, &texdesc12, D3D12_RESOURCE_STATE_COMMON, &optimized_clear_valueDSV, IID_PPV_ARGS(&buf12)));
 
-	m_efb.depth_tex = new D3DTexture2D(buf12, (D3D11_BIND_FLAG)(D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_SHADER_RESOURCE), DXGI_FORMAT_R32_TYPELESS, DXGI_FORMAT_D32_FLOAT, DXGI_FORMAT_UNKNOWN, (sample_desc.Count > 1), D3D12_RESOURCE_STATE_COMMON);
+	m_efb.depth_tex = new D3DTexture2D(buf12, (D3D11_BIND_FLAG)(D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_SHADER_RESOURCE), DXGI_FORMAT_R32_FLOAT, DXGI_FORMAT_D32_FLOAT, DXGI_FORMAT_UNKNOWN, (sample_desc.Count > 1), D3D12_RESOURCE_STATE_COMMON);
 	SAFE_RELEASE(buf12);
 	D3D::SetDebugObjectName12(m_efb.depth_tex->GetTex(), "EFB depth texture");
 
@@ -243,7 +243,7 @@ void FramebufferManager::ResolveDepthTexture()
 		StaticShaderCache::GetCopyGeometryShader(),
 		1.0,
 		0,
-		DXGI_FORMAT_D24_UNORM_S8_UINT
+		DXGI_FORMAT_D32_FLOAT
 		);
 
 	FramebufferManager::GetEFBColorTexture()->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_RENDER_TARGET);
