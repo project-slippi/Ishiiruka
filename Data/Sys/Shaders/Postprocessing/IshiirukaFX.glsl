@@ -145,7 +145,7 @@ OptionName = fSSGIIlluminationMult
 MinValue = 1.0
 MaxValue = 8.0
 StepAmount = 0.1
-DefaultValue = 4.0
+DefaultValue = 2.0
 DependentOption = A_SSGI_ENABLED
 
 [OptionRangeFloat]
@@ -163,7 +163,7 @@ OptionName = fSSGIModelThickness
 MinValue = 0.5
 MaxValue = 100.0
 StepAmount = 0.1
-DefaultValue = 40.0
+DefaultValue = 7.5
 DependentOption = A_SSGI_ENABLED
 
 [OptionRangeFloat]
@@ -306,7 +306,7 @@ DependentOption = MATSODOF
 [OptionBool]
 GUIName = Pixel Vibrance
 OptionName = H_PIXEL_VIBRANCE
-DefaultValue = false
+DefaultValue = true
 
 [OptionRangeFloat]
 GUIName = Vibrance
@@ -314,7 +314,7 @@ OptionName = A_VIBRANCE
 MinValue = -0.50
 MaxValue = 1.00
 StepAmount = 0.01
-DefaultValue = 0.15
+DefaultValue = 0.2
 DependentOption = H_PIXEL_VIBRANCE
 
 [OptionRangeFloat]
@@ -382,7 +382,7 @@ OptionName = B_TONE_FAMOUNT
 MinValue = 0.00
 MaxValue = 1.00
 StepAmount = 0.01
-DefaultValue = 0.25
+DefaultValue = 0.5
 DependentOption = C_TONEMAP_PASS
 
 [OptionRangeFloat]
@@ -424,7 +424,7 @@ DependentOption = C_TONEMAP_PASS
 [OptionBool]
 GUIName = Texture Sharpen
 OptionName = G_TEXTURE_SHARPEN
-DefaultValue = false
+DefaultValue = true
 
 [OptionRangeFloat]
 GUIName = SharpenStrength
@@ -432,7 +432,7 @@ OptionName = A_SHARPEN_STRENGTH
 MinValue = 0.00
 MaxValue = 2.00
 StepAmount = 0.01
-DefaultValue = 0.75
+DefaultValue = 1.0
 DependentOption = G_TEXTURE_SHARPEN
 
 [OptionRangeFloat]
@@ -441,7 +441,7 @@ OptionName = B_SHARPEN_CLAMP
 MinValue = 0.005
 MaxValue = 0.250
 StepAmount = 0.001
-DefaultValue = 0.012
+DefaultValue = 0.02
 DependentOption = G_TEXTURE_SHARPEN
 
 [OptionRangeFloat]
@@ -497,7 +497,7 @@ OptionName = C_BLOOMINTENSITY
 MinValue = 0.1
 MaxValue = 1.0
 StepAmount = 0.01
-DefaultValue = 0.5
+DefaultValue = 0.25
 DependentOption = D_BLOOM
 
 [OptionBool]
