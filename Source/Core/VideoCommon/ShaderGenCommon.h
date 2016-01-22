@@ -88,7 +88,7 @@ public:
 	{
 		if (HASH == 0)
 		{
-			HASH = (std::size_t)GetCRC32(reinterpret_cast<u8*>(&data) + data.StartValue(), data.NumValues(), 0);
+			HASH = (std::size_t)GetHash64(reinterpret_cast<u8*>(&data) + data.StartValue(), data.NumValues(), 0);
 		}
 	}
 
@@ -340,7 +340,7 @@ static inline void AssignVSOutputMembers(T& object, const char* a, const char* b
 // Without MSAA, this flag is defined to have no effect.
 static inline const char* GetInterpolationQualifier(API_TYPE api_type, bool in = true, bool in_out = false)
 {
-	if ((g_ActiveConfig.iMultisamples > 1) || (api_type & API_D3D9))
+	if ((g_ActiveConfig.iMultisamples <= 1) || (api_type & API_D3D9))
 		return "";
 
 	if (!g_ActiveConfig.bSSAA)
