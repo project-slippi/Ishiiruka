@@ -608,7 +608,7 @@ HiresTexture* HiresTexture::Load(const std::string& basename,
 			ret->m_levels = imgInfo.nummipmaps + 1;
 			if (nrm_posible)
 			{
-				for (size_t mip_level = 1; mip_level != ret->m_levels; ++mip_level)
+				for (u32 mip_level = 1; mip_level != ret->m_levels; ++mip_level)
 				{
 					u32 mip_width = TextureUtil::CalculateLevelSize(imgInfo.Width, mip_level);
 					u32 mip_height = TextureUtil::CalculateLevelSize(imgInfo.Height, mip_level);

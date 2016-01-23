@@ -193,7 +193,7 @@ DDSCompression ImageLoader::ReadDDS(ImageLoaderParams& loader_params)
 	}
 
 	// Get the surface descriptor
-	u32 readedsize = fread(&ddsd, sizeof(ddsd), 1, pFile);
+	u32 readedsize = (u32)fread(&ddsd, sizeof(ddsd), 1, pFile);
 	if (ddsd.dwSignature != DDSSignature || ddsd.dwSize != 124)
 	{
 		fclose(pFile);
