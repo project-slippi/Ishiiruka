@@ -102,7 +102,7 @@ void SHADER::SetProgramVariables()
 			if (loc == -1)
 			{
 				snprintf(name, 10, "samp%d", a);
-				int loc = glGetUniformLocation(glprogid, name);
+				loc = glGetUniformLocation(glprogid, name);
 			}
 			if (loc != -1)
 				glUniform1i(loc, a);
@@ -155,9 +155,8 @@ void ProgramShaderCache::UploadConstants()
 	if (VertexShaderManager::IsDirty())
 	{
 		auto buffer = s_v_buffer->Map(s_v_ubo_buffer_size, s_ubo_align);
-		u8* dst = buffer.first;
 		size_t vertex_buffer_size = VertexShaderManager::ConstantBufferSize * sizeof(float);
-		memcpy(dst, VertexShaderManager::GetBuffer(), vertex_buffer_size);	
+		memcpy(buffer.first, VertexShaderManager::GetBuffer(), vertex_buffer_size);	
 
 		s_v_buffer->Unmap(s_v_ubo_buffer_size);
 		glBindBufferRange(GL_UNIFORM_BUFFER, 2, s_v_buffer->m_buffer,
@@ -169,7 +168,6 @@ void ProgramShaderCache::UploadConstants()
 	if (PixelShaderManager::IsDirty())
 	{
 		auto buffer = s_p_buffer->Map(s_p_ubo_buffer_size, s_ubo_align);
-		u8* dst = buffer.first;
 		size_t pixel_buffer_size = C_PCONST_END * 4 * sizeof(float);
 		memcpy(buffer.first, PixelShaderManager::GetBuffer(), pixel_buffer_size);
 
@@ -184,8 +182,7 @@ void ProgramShaderCache::UploadConstants()
 	if (GeometryShaderManager::IsDirty())
 	{
 		auto buffer = s_g_buffer->Map(s_g_ubo_buffer_size, s_ubo_align);
-		u8* dst = buffer.first;
-		memcpy(dst, &GeometryShaderManager::constants, sizeof(GeometryShaderConstants));
+		memcpy(buffer.first, &GeometryShaderManager::constants, sizeof(GeometryShaderConstants));
 
 		s_g_buffer->Unmap(s_g_ubo_buffer_size);
 		glBindBufferRange(GL_UNIFORM_BUFFER, 3, s_g_buffer->m_buffer, buffer.second, sizeof(GeometryShaderConstants));

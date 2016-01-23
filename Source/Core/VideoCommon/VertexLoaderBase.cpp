@@ -200,7 +200,7 @@ std::string VertexLoaderBase::GetName() const
 		"Inv",
 	};
 
-	dest.append(StringFromFormat("P_mtx%i_%i_%s_%s_", m_VtxDesc.PosMatIdx,
+	dest.append(StringFromFormat("P_mtx%zu_%i_%s_%s_", m_VtxDesc.PosMatIdx,
 		m_VtxAttr.PosElements ? 3 : 2, posMode[m_VtxDesc.Position], posFormats[m_VtxAttr.PosFormat]));
 
 	if (m_VtxDesc.Normal)
@@ -229,7 +229,7 @@ std::string VertexLoaderBase::GetName() const
 	{
 		if (tex_mode[i] || tex_mtxidx[i])
 		{
-			dest.append(StringFromFormat("T%i_mtx%i_%i_%s_%s_",
+			dest.append(StringFromFormat("T%i_mtx%zu_%i_%s_%s_",
 				i, tex_mtxidx[i], m_VtxAttr.texCoord[i].Elements, posMode[tex_mode[i]], posFormats[m_VtxAttr.texCoord[i].Format]));
 		}
 	};
@@ -241,7 +241,7 @@ void VertexLoaderBase::AppendToString(std::string *dest) const
 	dest->reserve(250);
 
 	dest->append(GetName());
-	dest->append(StringFromFormat(" - %i v\n", m_numLoadedVertices));
+	dest->append(StringFromFormat(" - %zu v\n", m_numLoadedVertices));
 }
 
 // a hacky implementation to compare two vertex loaders

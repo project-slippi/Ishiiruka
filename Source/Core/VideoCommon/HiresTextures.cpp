@@ -91,15 +91,6 @@ void HiresTexture::Shutdown()
 	s_textureCache.clear();
 }
 
-bool hasEnding(std::string const &fullString, std::string const &ending) {
-	if (fullString.length() >= ending.length()) {
-		return (0 == fullString.compare(fullString.length() - ending.length(), ending.length(), ending));
-	}
-	else {
-		return false;
-	}
-}
-
 std::string HiresTexture::GetTextureDirectory(const std::string& game_id)
 {
 	const std::string texture_directory = File::GetUserPath(D_HIRESTEXTURES_IDX) + game_id;
@@ -171,7 +162,7 @@ void HiresTexture::Update()
 			continue;
 		}
 		const bool is_compressed = Extension.compare(ddscode) == 0 || Extension.compare(cddscode) == 0;
-		const bool is_normal_map = hasEnding(FileName, normaltag);
+		const bool is_normal_map = EndsWith(FileName, normaltag);
 		if (is_normal_map)
 		{
 			FileName = FileName.substr(0, FileName.size() - normaltag.size());
@@ -343,8 +334,8 @@ std::string HiresTexture::GenBaseName(
 		u64 tlut_hash = 0;
 		if(tlut_size)
 			tlut_hash = XXH64(tlut, tlut_size);
-		std::string basename = s_format_prefix + StringFromFormat("%dx%d%s_%0016" PRIx64, width, height, has_mipmaps ? "_m" : "", tex_hash);
-		std::string tlutname = tlut_size ? StringFromFormat("_%0016" PRIx64, tlut_hash) : "";
+		std::string basename = s_format_prefix + StringFromFormat("%dx%d%s_%016" PRIx64, width, height, has_mipmaps ? "_m" : "", tex_hash);
+		std::string tlutname = tlut_size ? StringFromFormat("_%016" PRIx64, tlut_hash) : "";
 		std::string formatname = StringFromFormat("_%d", format);
 		std::string fullname = basename + tlutname + formatname;
 		if (convert)
@@ -357,7 +348,7 @@ std::string HiresTexture::GenBaseName(
 				{
 					std::string newname = fullname;
 					if (level)
-						newname += StringFromFormat("_mip%d", level);
+						newname += StringFromFormat("_mip%d", (int)level);
 					newname += convert_iter->second.color_map[level].extension;
 					std::string &src = convert_iter->second.color_map[level].path;
 					size_t postfix = src.find(name);
@@ -585,7 +576,7 @@ HiresTexture* HiresTexture::Load(const std::string& basename,
 				|| ret->m_format != imgInfo.resultTex)
 			{
 				ERROR_LOG(VIDEO, 
-					"Custom texture %s invalid level %zu size: %zu %zu required: %zu %zu format: %i", 
+					"Custom texture %s invalid level %zu size: %u %u required: %u %u format: %u", 
 					imgInfo.Path, 
 					level, 
 					imgInfo.Width, 
@@ -617,10 +608,10 @@ HiresTexture* HiresTexture::Load(const std::string& basename,
 			ret->m_levels = imgInfo.nummipmaps + 1;
 			if (nrm_posible)
 			{
-				for (u32 level = 1; level != ret->m_levels; ++level)
+				for (size_t mip_level = 1; mip_level != ret->m_levels; ++mip_level)
 				{
-					u32 mip_width = TextureUtil::CalculateLevelSize(imgInfo.Width, level);
-					u32 mip_height = TextureUtil::CalculateLevelSize(imgInfo.Height, level);
+					u32 mip_width = TextureUtil::CalculateLevelSize(imgInfo.Width, mip_level);
+					u32 mip_height = TextureUtil::CalculateLevelSize(imgInfo.Height, mip_level);
 					buffer_pointer += TextureUtil::GetTextureSizeInBytes(mip_width, mip_height, ret->m_format);
 				}
 			}
@@ -680,7 +671,7 @@ HiresTexture* HiresTexture::Load(const std::string& basename,
 					|| ret->m_format != imgInfo.resultTex)
 				{
 					ERROR_LOG(VIDEO,
-						"Custom texture %s invalid level %zu size for normal map: %zu %zu required: %zu %zu format: %i",
+						"Custom texture %s invalid level %zu size for normal map: %u %u required: %u %u format: %u",
 						imgInfo.Path,
 						level,
 						imgInfo.Width,
@@ -698,7 +689,7 @@ HiresTexture* HiresTexture::Load(const std::string& basename,
 					|| ret->m_format != imgInfo.resultTex)
 				{
 					ERROR_LOG(VIDEO,
-						"Custom texture %s invalid normal map level %zu size: %zu %zu required: %zu %zu format: %i",
+						"Custom texture %s invalid normal map level %zu size: %u %u required: %u %u format: %u",
 						imgInfo.Path,
 						level,
 						imgInfo.Width,

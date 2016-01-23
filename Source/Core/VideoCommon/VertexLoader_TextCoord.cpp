@@ -8,7 +8,7 @@
 
 bool VertexLoader_TextCoord::Initialized = false;
 
-void LOADERDECL TexCoord_Read_Dummy()
+static void LOADERDECL TexCoord_Read_Dummy()
 {
 	g_PipelineState.tcIndex++;
 }

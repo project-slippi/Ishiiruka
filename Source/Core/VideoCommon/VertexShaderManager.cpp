@@ -59,7 +59,7 @@ namespace
 	static ProjectionHack g_ProjHack2;
 } // Namespace
 
-float PHackValue(std::string sValue)
+static float PHackValue(std::string sValue)
 {
 	float f = 0;
 	bool fp = false;

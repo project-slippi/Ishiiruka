@@ -69,20 +69,6 @@ static const LangDescriptor language_ids[LANGUAGE_ID_COUNT] =
 	{ wxLANGUAGE_CHINESE_TRADITIONAL, ".CHT" }
 };
 
-inline bool StartsWith(const std::string& str, const std::string& prefix)
-{
-	return str.compare(0, prefix.size(), prefix) == 0;
-}
-
-inline bool EndsWith(const std::string& str, const std::string& ending) {
-	if (str.length() >= ending.length()) {
-		return (0 == str.compare(str.length() - ending.length(), ending.length(), ending));
-	}
-	else {
-		return false;
-	}
-}
-
 std::vector<std::string> PostProcessingShaderConfiguration::GetAvailableShaderNames(const std::string& sub_dir)
 {
 	const std::vector<std::string> search_dirs = { File::GetUserPath(D_SHADERS_IDX) + sub_dir, File::GetSysDirectory() + SHADERS_DIR DIR_SEP + sub_dir };
@@ -721,10 +707,10 @@ void PostProcessingShaderConfiguration::LoadOptionsConfigurationFromSection(IniF
 				TryParseVector(value, &current.m_integer_values);
 			for (size_t i = 0; i < current.m_integer_values.size(); i++)
 			{
-				s32 value = current.m_integer_values[i];
-				value = std::max(value, current.m_integer_min_values[i]);
-				value = std::min(value, current.m_integer_max_values[i]);
-				current.m_integer_values[i] = value;
+				s32 val = current.m_integer_values[i];
+				val = std::max(val, current.m_integer_min_values[i]);
+				val = std::min(val, current.m_integer_max_values[i]);
+				current.m_integer_values[i] = val;
 			}
 		}
 		break;
@@ -736,10 +722,10 @@ void PostProcessingShaderConfiguration::LoadOptionsConfigurationFromSection(IniF
 				TryParseVector(value, &current.m_float_values);
 			for (size_t i = 0; i < current.m_float_values.size(); i++)
 			{
-				float value = current.m_float_values[i];
-				value = std::max(value, current.m_float_min_values[i]);
-				value = std::min(value, current.m_float_max_values[i]);
-				current.m_float_values[i] = value;
+				float val = current.m_float_values[i];
+				val = std::max(val, current.m_float_min_values[i]);
+				val = std::min(val, current.m_float_max_values[i]);
+				current.m_float_values[i] = val;
 			}
 		}
 		break;

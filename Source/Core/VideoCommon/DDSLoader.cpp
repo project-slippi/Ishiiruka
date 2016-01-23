@@ -182,7 +182,7 @@ DDSCompression ImageLoader::ReadDDS(ImageLoaderParams& loader_params)
 	DDSCompression Result = DDSC_NONE;
 	DDSHeader ddsd;
 	FILE *pFile;
-	u32 factor = 1, block_size = 8;
+	u32 block_size = 8;
 
 	// Open the file
 	pFile = fopen(loader_params.Path, "rb");
@@ -193,7 +193,7 @@ DDSCompression ImageLoader::ReadDDS(ImageLoaderParams& loader_params)
 	}
 
 	// Get the surface descriptor
-	fread(&ddsd, sizeof(ddsd), 1, pFile);
+	u32 readedsize = fread(&ddsd, sizeof(ddsd), 1, pFile);
 	if (ddsd.dwSignature != DDSSignature || ddsd.dwSize != 124)
 	{
 		fclose(pFile);
@@ -277,7 +277,7 @@ DDSCompression ImageLoader::ReadDDS(ImageLoaderParams& loader_params)
 		return Result;
 	}
 
-	u32 readedsize = (u32)fread(loader_params.dst, 1, loader_params.data_size, pFile);
+	readedsize = (u32)fread(loader_params.dst, 1, loader_params.data_size, pFile);
 	// Close the file
 	fclose(pFile);
 	if ((readedsize + block_size) < loader_params.data_size)

@@ -614,7 +614,7 @@ inline u32 makeRGBA(u32 r, u32 g, u32 b, u32 a)
 	return (a<<24)|(b<<16)|(g<<8)|r;
 }
 
-void decodeDXTBlock(u32 *dst, const DXT1Block *src, u32 pitch)
+inline void decodeDXTBlock(u32 *dst, const DXT1Block *src, u32 pitch)
 {
 	// S3TC Decoder (Note: GCN decodes differently from PC so we can't use native support)
 	// Needs more speed.
@@ -657,7 +657,7 @@ void decodeDXTBlock(u32 *dst, const DXT1Block *src, u32 pitch)
 	}
 }
 
-void decodeDXTBlockRGBA(u32 *dst, const DXT1Block *src, u32 pitch)
+inline void decodeDXTBlockRGBA(u32 *dst, const DXT1Block *src, u32 pitch)
 {
 	// S3TC Decoder (Note: GCN decodes differently from PC so we can't use native support)
 	// Needs more speed.
@@ -798,7 +798,7 @@ PC_TexFormat GetPC_TexFormat(u32 texformat, TlutFormat tlutfmt, bool compressed_
 }
 
 //switch endianness, unswizzle
-PC_TexFormat TexDecoder_Decode_real(u8 *dst, const u8 *src, u32 width, u32 height, u32 texformat, u32 tlutaddr, TlutFormat tlutfmt, bool compressed_supported)
+static PC_TexFormat TexDecoder_Decode_real(u8 *dst, const u8 *src, u32 width, u32 height, u32 texformat, u32 tlutaddr, TlutFormat tlutfmt, bool compressed_supported)
 {
 	const u32 Wsteps4 = (width + 3) / 4;
 	const u32 Wsteps8 = (width + 7) / 8;
@@ -1057,7 +1057,7 @@ PC_TexFormat TexDecoder_Decode_real(u8 *dst, const u8 *src, u32 width, u32 heigh
 // TODO: complete SSE2 optimization of less often used texture formats.
 // TODO: refactor algorithms using _mm_loadl_epi64 unaligned loads to prefer 128-bit aligned loads.
 
-PC_TexFormat TexDecoder_Decode_RGBA(u32 * dst, const u8 * src, u32 width, u32 height, u32 texformat, u32 tlutaddr, TlutFormat tlutfmt)
+static PC_TexFormat TexDecoder_Decode_RGBA(u32 * dst, const u8 * src, u32 width, u32 height, u32 texformat, u32 tlutaddr, TlutFormat tlutfmt)
 {
 	const u32 Wsteps4 = (width + 3) / 4;
 	const u32 Wsteps8 = (width + 7) / 8;

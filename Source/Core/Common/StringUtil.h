@@ -96,6 +96,20 @@ bool TryParseVector(const std::string& str, std::vector<N>* output, const char d
 	return true;
 }
 
+inline bool StartsWith(const std::string& str, const std::string& prefix)
+{
+	return str.compare(0, prefix.size(), prefix) == 0;
+}
+
+inline bool EndsWith(const std::string& str, const std::string& ending) {
+	if (str.length() >= ending.length()) {
+		return (0 == str.compare(str.length() - ending.length(), ending.length(), ending));
+	}
+	else {
+		return false;
+	}
+}
+
 // TODO: kill this
 bool AsciiToHex(const std::string& _szValue, u32& result);
 

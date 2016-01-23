@@ -85,7 +85,7 @@ static void WriteSwizzler(char*& p, u32 format, API_TYPE ApiType)
 	WRITE(p, "  float sample_offset = float(position.w) / float(%d);\n", EFB_WIDTH);
 }
 
-void WriteSampleColor(char*& p, const char* colorComp, const char* dest, int xoffset, API_TYPE ApiType, bool depth = false)
+static void WriteSampleColor(char*& p, const char* colorComp, const char* dest, int xoffset, API_TYPE ApiType, bool depth = false)
 {
 	if (ApiType == API_OPENGL)
 	{

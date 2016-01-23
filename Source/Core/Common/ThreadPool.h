@@ -128,10 +128,10 @@ namespace Common
 			{
 				QueueNode* current = new QueueNode[pagesize];
 				m_pages.push_back(std::move(std::unique_ptr<QueueNode[]>(current)));
-				for (size_t i = 0; i < pagesize; i++)
+				for (size_t j = 0; j < pagesize; j++)
 				{
-					current[i].next.store(m_nodepool);
-					m_nodepool = &current[i];
+					current[j].next.store(m_nodepool);
+					m_nodepool = &current[j];
 				}
 			}
 		}

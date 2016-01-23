@@ -7,13 +7,11 @@
 #include "Common/StringUtil.h"
 
 #include "VideoCommon/BPMemory.h"
+#include "VideoCommon/BPStructs.h"
 #include "VideoCommon/PixelEngine.h"
 // BP state
 // STATE_TO_SAVE
 BPMemory bpmem;
-
-// The backend must implement this.
-void BPWritten(const BPCmd& bp);
 
 // Call browser: OpcodeDecoding.cpp ExecuteDisplayList > Decode() > LoadBPReg()
 void LoadBPReg(u32 value0)

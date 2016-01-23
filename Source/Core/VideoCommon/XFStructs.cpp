@@ -14,14 +14,14 @@
 #include "VideoCommon/PixelShaderManager.h"
 #include "VideoCommon/OpcodeDecoding.h"
 
-void XFMemWritten(u32 transferSize, u32 baseAddress)
+inline void XFMemWritten(u32 transferSize, u32 baseAddress)
 {
 	VertexManagerBase::Flush();
 	VertexShaderManager::InvalidateXFRange(baseAddress, baseAddress + transferSize);
 	PixelShaderManager::InvalidateXFRange(baseAddress, baseAddress + transferSize);
 }
 
-void XFRegWritten(int transferSize, u32 baseAddress)
+inline void XFRegWritten(int transferSize, u32 baseAddress)
 {
 	u32 address = baseAddress;
 	u32 dataIndex = 0;

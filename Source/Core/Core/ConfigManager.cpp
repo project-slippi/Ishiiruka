@@ -40,7 +40,7 @@ SConfig::SConfig()
   bSkipIdle(true), bSyncGPUOnSkipIdleHack(true), bNTSC(false), bForceNTSCJ(false),
   bHLE_BS2(true), bEnableCheats(false),
   bEnableMemcardSdWriting(true),
-  bDPL2Decoder(false), bTimeStretching(false), bRSHACK(false), iLatency(14), bWiiSpeakSupport(false),
+  bDPL2Decoder(false), bTimeStretching(false), bRSHACK(false), bWiiSpeakSupport(false), iLatency(14),
   bRunCompareServer(false), bRunCompareClient(false),
   bMMU(false), bDCBZOFF(false),
   iBBDumpPort(0), bDoubleVideoRate(false),

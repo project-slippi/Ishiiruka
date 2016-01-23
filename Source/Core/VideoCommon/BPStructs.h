@@ -4,5 +4,8 @@
 
 #pragma once
 
+struct BPCmd;
+
 void BPInit();
 void BPReload();
+void BPWritten(const BPCmd& bp);
