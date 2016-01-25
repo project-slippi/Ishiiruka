@@ -602,6 +602,7 @@ void XFBSource::DecodeToTexture(u32 xfbAddr, u32 fbWidth, u32 fbHeight)
 
 void XFBSource::CopyEFB(float Gamma)
 {
+	bool apply_post_proccesing = g_renderer->GetPostProcessor()->ShouldTriggerOnSwap();
 	bool depth_copy_required = g_renderer->GetPostProcessor()->GetScalingShaderConfig()->RequiresDepthBuffer();
 	if (depth_copy_required && !depthtexture)
 	{
@@ -612,45 +613,50 @@ void XFBSource::CopyEFB(float Gamma)
 		glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAX_LEVEL, 0);
 		glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_DEPTH_COMPONENT32F, m_target_width, m_target_height, m_layers, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
 	}
+	if (apply_post_proccesing)
+	{
+		g_renderer->GetPostProcessor()->PostProcessEFBToTexture(texture);
+	}
 	g_renderer->GetPostProcessor()->OnEndFrame();
-	if (g_renderer->GetPostProcessor()->ShouldTriggerOnSwap())
+	
+	if (!apply_post_proccesing || depth_copy_required)
 	{
-		g_renderer->GetPostProcessor()->PostProcessEFB();
-	}
-	g_renderer->ResetAPIState();
+		g_renderer->ResetAPIState();
 
-	// Copy EFB data to XFB and restore render target again
-	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, FramebufferManager::GetXFBFramebuffer());
+		// Copy EFB data to XFB and restore render target again
+		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, FramebufferManager::GetXFBFramebuffer());
 
-	for (unsigned int i = 0; i < m_layers; i++)
-	{
-		// Bind EFB and texture layer
-		glBindFramebuffer(GL_READ_FRAMEBUFFER, FramebufferManager::GetEFBFramebuffer(i));
-		glFramebufferTextureLayer(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, texture, 0, i);
-
-		glBlitFramebuffer(
-			0, 0, texWidth, texHeight,
-			0, 0, texWidth, texHeight,
-			GL_COLOR_BUFFER_BIT, GL_NEAREST
-		);
-		if (depth_copy_required)
+		for (unsigned int i = 0; i < m_layers; i++)
 		{
+			// Bind EFB and texture layer
 			glBindFramebuffer(GL_READ_FRAMEBUFFER, FramebufferManager::GetEFBFramebuffer(i));
-			glFramebufferTextureLayer(GL_DRAW_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, depthtexture, 0, i);
+			if (!apply_post_proccesing)
+			{
+				glFramebufferTextureLayer(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, texture, 0, i);
 
-			glBlitFramebuffer(
-				0, 0, texWidth, texHeight,
-				0, 0, texWidth, texHeight,
-				GL_DEPTH_BUFFER_BIT, GL_NEAREST
-				);
+				glBlitFramebuffer(
+					0, 0, texWidth, texHeight,
+					0, 0, texWidth, texHeight,
+					GL_COLOR_BUFFER_BIT, GL_NEAREST
+					);
+			}
+			if (depth_copy_required)
+			{
+				glFramebufferTextureLayer(GL_DRAW_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, depthtexture, 0, i);
+
+				glBlitFramebuffer(
+					0, 0, texWidth, texHeight,
+					0, 0, texWidth, texHeight,
+					GL_DEPTH_BUFFER_BIT, GL_NEAREST
+					);
+			}
 		}
+
+		// Return to EFB.
+		FramebufferManager::SetFramebuffer(0);
+
+		g_renderer->RestoreAPIState();
 	}
-
-	// Return to EFB.
-	FramebufferManager::SetFramebuffer(0);
-
-	g_renderer->RestoreAPIState();
-
 }
 
 std::unique_ptr<XFBSourceBase> FramebufferManager::CreateXFBSource(unsigned int target_width, unsigned int target_height, unsigned int layers)

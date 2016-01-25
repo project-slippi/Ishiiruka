@@ -1311,9 +1311,7 @@ void Renderer::SwapImpl(u32 xfbAddr, u32 fbWidth, u32 fbStride, u32 fbHeight, co
 		// If enabled, blit_tex will be replaced with an internal texture from the post-processor,
 		// leaving the original texture unmodified, should it be required next frame.
 		GLuint depth_tex = 0;
-		if (g_ActiveConfig.bPostProcessingEnable &&
-			g_ActiveConfig.iPostProcessingTrigger == POST_PROCESSING_TRIGGER_ON_SWAP &&
-			m_post_processor->IsActive())
+		if (m_post_processor->ShouldTriggerOnSwap())
 		{
 			TargetRectangle src_rect(target_rc);
 			TargetSize src_size(tex_size);

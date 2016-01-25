@@ -161,7 +161,7 @@ FramebufferManager::FramebufferManager()
 		texdesc = CD3D11_TEXTURE2D_DESC(DXGI_FORMAT_R32_TYPELESS, m_target_width, m_target_height, m_efb.slices, 1, D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_DEPTH_STENCIL);
 		hr = D3D::device->CreateTexture2D(&texdesc, nullptr, &buf);
 		CHECK(hr == S_OK, "create EFB depth resolve texture (size: %dx%d; hr=%#x)", m_target_width, m_target_height, hr);
-		m_efb.resolved_depth_tex = new D3DTexture2D(buf, (D3D11_BIND_FLAG)(D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_DEPTH_STENCIL), DXGI_FORMAT_R32_TYPELESS, DXGI_FORMAT_D32_FLOAT);
+		m_efb.resolved_depth_tex = new D3DTexture2D(buf, (D3D11_BIND_FLAG)(D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_DEPTH_STENCIL), DXGI_FORMAT_R32_FLOAT, DXGI_FORMAT_D32_FLOAT);
 		SAFE_RELEASE(buf);
 		D3D::SetDebugObjectName((ID3D11DeviceChild*)m_efb.resolved_depth_tex->GetTex(), "EFB depth resolve texture");
 		D3D::SetDebugObjectName((ID3D11DeviceChild*)m_efb.resolved_depth_tex->GetSRV(), "EFB depth resolve texture shader resource view");
@@ -227,6 +227,7 @@ void XFBSource::DecodeToTexture(u32 xfbAddr, u32 fbWidth, u32 fbHeight)
 
 void XFBSource::CopyEFB(float Gamma)
 {
+	bool apply_post_proccesing = g_renderer->GetPostProcessor()->ShouldTriggerOnSwap();
 	bool depth_copy_required = g_renderer->GetPostProcessor()->GetScalingShaderConfig()->RequiresDepthBuffer();
 	if (depth_copy_required && !depthtex)
 	{
@@ -234,45 +235,52 @@ void XFBSource::CopyEFB(float Gamma)
 			(D3D11_BIND_FLAG)(D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE),
 			D3D11_USAGE_DEFAULT, DXGI_FORMAT_R32_FLOAT, 1, m_slices);
 	}
+	if (apply_post_proccesing)
+	{
+		g_renderer->GetPostProcessor()->PostProcessEFBToTexture(reinterpret_cast<uintptr_t>(tex));
+	}
 	g_renderer->GetPostProcessor()->OnEndFrame();
-	if (g_renderer->GetPostProcessor()->ShouldTriggerOnSwap())
+	if(!apply_post_proccesing || depth_copy_required)
 	{
-		g_renderer->GetPostProcessor()->PostProcessEFB();
-	}
-	if (g_ActiveConfig.iMultisamples > 1)
-	{
-		for (UINT i = 0; i < (UINT)m_slices; i++)
+		if (g_ActiveConfig.iMultisamples > 1)
 		{
-			UINT resource_idx = D3D11CalcSubresource(0, i, 1);
-			D3D::context->ResolveSubresource(
-				tex->GetTex(),
-				resource_idx,
-				FramebufferManager::GetEFBColorTexture()->GetTex(),
-				resource_idx, DXGI_FORMAT_R8G8B8A8_UNORM);
+			if (!apply_post_proccesing)
+			{
+				for (UINT i = 0; i < (UINT)m_slices; i++)
+				{
+					UINT resource_idx = D3D11CalcSubresource(0, i, 1);
+					D3D::context->ResolveSubresource(
+						tex->GetTex(),
+						resource_idx,
+						FramebufferManager::GetEFBColorTexture()->GetTex(),
+						resource_idx, DXGI_FORMAT_R8G8B8A8_UNORM);
+				}
+			}
+			if (depth_copy_required)
+			{
+				g_renderer->ResetAPIState();
+				const D3D11_VIEWPORT vp = CD3D11_VIEWPORT(0.f, 0.f, (float)texWidth, (float)texHeight);
+				D3D::context->OMSetRenderTargets(1, &depthtex->GetRTV(), nullptr);
+				D3D::context->RSSetViewports(1, &vp);
+				D3D::SetPointCopySampler();
+				D3D::drawShadedTexQuad(FramebufferManager::GetEFBDepthTexture()->GetSRV(), nullptr,
+					Renderer::GetTargetWidth(), Renderer::GetTargetHeight(),
+					PixelShaderCache::GetColorCopyProgram(true), VertexShaderCache::GetSimpleVertexShader(),
+					VertexShaderCache::GetSimpleInputLayout(), GeometryShaderCache::GetCopyGeometryShader(), 1.0, 0, texWidth, texHeight);
+				D3D::context->OMSetRenderTargets(1,
+					&FramebufferManager::GetEFBColorTexture()->GetRTV(),
+					FramebufferManager::GetEFBDepthTexture()->GetDSV());
+				g_renderer->RestoreAPIState();
+			}
 		}
-		if (depth_copy_required)
+		else
 		{
-			g_renderer->ResetAPIState();
-			const D3D11_VIEWPORT vp = CD3D11_VIEWPORT(0.f, 0.f, (float)texWidth, (float)texHeight);
-			D3D::context->OMSetRenderTargets(1, &depthtex->GetRTV(), nullptr);
-			D3D::context->RSSetViewports(1, &vp);
-			D3D::SetPointCopySampler();
-			D3D::drawShadedTexQuad(FramebufferManager::GetEFBDepthTexture()->GetSRV(), nullptr,
-				Renderer::GetTargetWidth(), Renderer::GetTargetHeight(),
-				PixelShaderCache::GetColorCopyProgram(true), VertexShaderCache::GetSimpleVertexShader(),
-				VertexShaderCache::GetSimpleInputLayout(), GeometryShaderCache::GetCopyGeometryShader(), 1.0, 0, texWidth, texHeight);
-			D3D::context->OMSetRenderTargets(1,
-				&FramebufferManager::GetEFBColorTexture()->GetRTV(),
-				FramebufferManager::GetEFBDepthTexture()->GetDSV());
-			g_renderer->RestoreAPIState();
-		}
-	}
-	else
-	{
-		D3D::context->CopyResource(tex->GetTex(), FramebufferManager::GetEFBColorTexture()->GetTex());
-		if (depth_copy_required)
-		{
-			D3D::context->CopyResource(depthtex->GetTex(), FramebufferManager::GetEFBDepthTexture()->GetTex());
+			if (!apply_post_proccesing)
+				D3D::context->CopyResource(tex->GetTex(), FramebufferManager::GetEFBColorTexture()->GetTex());
+			if (depth_copy_required)
+			{
+				D3D::context->CopyResource(depthtex->GetTex(), FramebufferManager::GetEFBDepthTexture()->GetTex());
+			}
 		}
 	}
 }

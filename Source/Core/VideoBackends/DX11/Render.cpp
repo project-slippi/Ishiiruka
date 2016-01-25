@@ -833,13 +833,13 @@ void Renderer::SwapImpl(u32 xfbAddr, u32 fbWidth, u32 fbStride, u32 fbHeight, co
 		}
 		else
 		{
+			m_post_processor->OnEndFrame();
 			TargetRectangle blit_rect = Renderer::ConvertEFBRectangle(rc);
 			TargetSize blit_size(s_target_width, s_target_height);
 
 			// TODO: Improve sampling algorithm for the pixel shader so that we can use the multisampled EFB texture as source
 			D3DTexture2D* blit_tex = FramebufferManager::GetResolvedEFBColorTexture();
 			D3DTexture2D* blit_depth_tex = nullptr;
-			m_post_processor->OnEndFrame();
 			// Post processing active?
 			if (m_post_processor->ShouldTriggerOnSwap())
 			{

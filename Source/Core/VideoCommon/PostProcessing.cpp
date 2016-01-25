@@ -911,12 +911,12 @@ void PostProcessor::OnProjectionLoaded(u32 type)
 			m_projection_state == PROJECTION_STATE_PERSPECTIVE)
 		{
 			m_projection_state = PROJECTION_STATE_FINAL;
-			PostProcessEFB();
+			PostProcessEFB(nullptr);
 		}
 	}
 }
 
-void PostProcessor::OnEFBCopy()
+void PostProcessor::OnEFBCopy(const TargetRectangle* src_rect)
 {
 	if (!m_active || !g_ActiveConfig.bPostProcessingEnable ||
 		g_ActiveConfig.iPostProcessingTrigger != POST_PROCESSING_TRIGGER_ON_EFB_COPY)
@@ -925,10 +925,11 @@ void PostProcessor::OnEFBCopy()
 	}
 
 	// Fire off postprocessing on the current efb if a perspective scene has been drawn.
-	if (m_projection_state == PROJECTION_STATE_PERSPECTIVE)
+	if (m_projection_state == PROJECTION_STATE_PERSPECTIVE 
+		&& (src_rect == nullptr || (src_rect->GetWidth() > ((Renderer::GetTargetWidth() * 2) / 3))))
 	{
+		PostProcessEFB(src_rect);
 		m_projection_state = PROJECTION_STATE_FINAL;
-		PostProcessEFB();
 	}
 }
 
@@ -943,7 +944,7 @@ void PostProcessor::OnEndFrame()
 
 	// If we didn't switch to orthographic after perspective, post-process now (e.g. if no HUD was drawn)
 	if (m_projection_state == PROJECTION_STATE_PERSPECTIVE)
-		PostProcessEFB();
+		PostProcessEFB(nullptr);
 
 	m_projection_state = PROJECTION_STATE_INITIAL;
 }

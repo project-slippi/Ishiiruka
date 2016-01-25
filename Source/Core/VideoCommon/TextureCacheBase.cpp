@@ -1193,7 +1193,8 @@ void TextureCacheBase::CopyRenderTargetToTexture(u32 dstAddr, u32 dstFormat, u32
 	{
 		if (srcFormat != PEControl::Z24 && !isIntensity && dstFormat >= 4 && dstFormat <= 6)
 		{
-			g_renderer->GetPostProcessor()->OnEFBCopy();
+			const TargetRectangle targetSource = g_renderer->ConvertEFBRectangle(srcRect);
+			g_renderer->GetPostProcessor()->OnEFBCopy(&targetSource);
 		}
 	}
 	if (copy_to_ram)

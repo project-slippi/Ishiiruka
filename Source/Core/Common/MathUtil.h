@@ -155,6 +155,15 @@ struct Rectangle
 		top    = Clamp(top, y1, y2);
 		bottom = Clamp(bottom, y1, y2);
 	}
+
+	inline void Merge(const Rectangle<T>& other)
+	{
+		left = std::min(left, other.left);
+		top = std::min(top, other.top);
+		right = std::max(right, other.right);
+		bottom = std::max(bottom, other.bottom);
+	}
+
 };
 
 }  // namespace MathUtil

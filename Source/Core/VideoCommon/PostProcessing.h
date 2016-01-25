@@ -225,7 +225,7 @@ public:
 	bool RequiresReload() { return m_reload_flag.TestAndClear(); }
 
 	void OnProjectionLoaded(u32 type);
-	void OnEFBCopy();
+	void OnEFBCopy(const TargetRectangle* src_rect);
 	void OnEndFrame();
 
 	// Should be implemented by the backends for backend specific code
@@ -233,7 +233,10 @@ public:
 	virtual void ReloadShaders() = 0;
 
 	// Used when post-processing on perspective->ortho switch.
-	virtual void PostProcessEFB() = 0;
+	virtual void PostProcessEFB(const TargetRectangle* src_rect) = 0;
+
+	// Used when virtual xfb is enabled
+	virtual void PostProcessEFBToTexture(uintptr_t dst_texture) = 0;
 
 	// Copy/resize src_texture to dst_texture (0 means backbuffer), using the resize/blit shader.
 	virtual void BlitScreen(const TargetRectangle& dst_rect, const TargetSize& dst_size, uintptr_t dst_texture,
@@ -244,7 +247,7 @@ public:
 	// otherwise a temporary texture will be returned that is valid until the next call to PostProcess.
 	virtual void PostProcess(TargetRectangle* output_rect, TargetSize* output_size, uintptr_t* output_texture,
 		const TargetRectangle& src_rect, const TargetSize& src_size, uintptr_t src_texture,
-		const TargetRectangle& src_depth_rect, const TargetSize& src_depth_size, uintptr_t src_depth_texture) = 0;
+		const TargetRectangle& src_depth_rect, const TargetSize& src_depth_size, uintptr_t src_depth_texture, uintptr_t dst_texture = 0) = 0;
 
 	// Construct the options uniform buffer source for the specified config.
 	static void GetUniformBufferShaderSource(API_TYPE api, const PostProcessingShaderConfiguration* config, std::string& shader_source);

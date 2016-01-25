@@ -93,7 +93,9 @@ public:
 
 	void ReloadShaders() override;
 
-	void PostProcessEFB() override;
+	void PostProcessEFB(const TargetRectangle* src_rect) override;
+
+	void PostProcessEFBToTexture(uintptr_t dst_texture) override;
 
 	void BlitScreen(const TargetRectangle& dst_rect, const TargetSize& dst_size, uintptr_t dst_texture,
 		const TargetRectangle& src_rect, const TargetSize& src_size, uintptr_t src_texture, uintptr_t src_depth_texture,
@@ -101,7 +103,7 @@ public:
 
 	void PostProcess(TargetRectangle* output_rect, TargetSize* output_size, uintptr_t* output_texture,
 		const TargetRectangle& src_rect, const TargetSize& src_size, uintptr_t src_texture,
-		const TargetRectangle& src_depth_rect, const TargetSize& src_depth_size, uintptr_t src_depth_texture) override;
+		const TargetRectangle& src_depth_rect, const TargetSize& src_depth_size, uintptr_t src_depth_texture, uintptr_t dst_texture = 0) override;
 
 	void MapAndUpdateUniformBuffer(const PostProcessingShaderConfiguration* config,
 		const InputTextureSizeArray& input_sizes,
