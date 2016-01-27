@@ -42,9 +42,9 @@ void WriteSwizzler(char*& p, u32 format)
 	// Two were merged for GLSL
 	WRITE(p, "uniform float4 " I_COLORS"[2] %s;\n", WriteRegister("c", C_COLORS));
 
-	float blkW = (float)TexDecoder_GetBlockWidthInTexels(format);
-	float blkH = (float)TexDecoder_GetBlockHeightInTexels(format);
-	float samples = (float)TextureConversionShader::GetEncodedSampleCount(format);
+	u32 blkW = TexDecoder_GetBlockWidthInTexels(format);
+	u32 blkH = TexDecoder_GetBlockHeightInTexels(format);
+	u32 samples = TextureConversionShader::GetEncodedSampleCount(format);
 
 	WRITE(p,"uniform sampler samp0 : register(s0);\n");	
 	WRITE(p,"void main(\n");
@@ -55,19 +55,19 @@ void WriteSwizzler(char*& p, u32 format)
 	"  float2 sampleUv;\n"
 	"  float2 uv1 = floor(uv0);\n");
 
-	WRITE(p, "  uv1.x = uv1.x * %f;\n", samples);
+	WRITE(p, "  uv1.x = uv1.x * %u.0;\n", samples);
 
-	WRITE(p, "  float xl =  floor(uv1.x / %f);\n", blkW);
-	WRITE(p, "  float xib = uv1.x - (xl * %f);\n", blkW);
-	WRITE(p, "  float yl = floor(uv1.y / %f);\n", blkH);
-	WRITE(p, "  float yb = yl * %f;\n", blkH);
+	WRITE(p, "  float xl =  floor(uv1.x / %u.0);\n", blkW);
+	WRITE(p, "  float xib = uv1.x - (xl * %u.0);\n", blkW);
+	WRITE(p, "  float yl = floor(uv1.y / %u.0);\n", blkH);
+	WRITE(p, "  float yb = yl * %u.0;\n", blkH);
 	WRITE(p, "  float yoff = uv1.y - yb;\n");
 	WRITE(p, "  float xp = uv1.x + (yoff * " I_COLORS"[1].x);\n");
-	WRITE(p, "  float xel = floor(xp / %f);\n", blkW);
-	WRITE(p, "  float xb = floor(xel / %f);\n", blkH);
-	WRITE(p, "  float xoff = xel - (xb * %f);\n", blkH);
+	WRITE(p, "  float xel = floor(xp / %u.0);\n", blkW);
+	WRITE(p, "  float xb = floor(xel / %u.0);\n", blkH);
+	WRITE(p, "  float xoff = xel - (xb * %u.0);\n", blkH);
 
-	WRITE(p, "  sampleUv.x = xib + (xb * %f);\n", blkW);
+	WRITE(p, "  sampleUv.x = xib + (xb * %u.0);\n", blkW);
 	WRITE(p, "  sampleUv.y = yb + xoff;\n");
 
 	WRITE(p, "  sampleUv = sampleUv * " I_COLORS"[0].xy;\n");
@@ -87,8 +87,8 @@ void Write32BitSwizzler(char*& p, u32 format)
 	// Two were merged for GLSL
 	WRITE(p, "uniform float4 " I_COLORS"[2] %s;\n", WriteRegister("c", C_COLORS));
 
-	float blkW = (float)TexDecoder_GetBlockWidthInTexels(format);
-	float blkH = (float)TexDecoder_GetBlockHeightInTexels(format);
+	u32 blkW = TexDecoder_GetBlockWidthInTexels(format);
+	u32 blkH = TexDecoder_GetBlockHeightInTexels(format);
 
 	// 32 bit textures (RGBA8 and Z24) are store in 2 cache line increments
 	WRITE(p,"uniform sampler samp0 : register(s0);\n");
@@ -100,20 +100,20 @@ void Write32BitSwizzler(char*& p, u32 format)
 	"  float2 sampleUv;\n"
 	"  float2 uv1 = floor(uv0);\n");
 
-	WRITE(p, "  float yl = floor(uv1.y / %f);\n", blkH);
-	WRITE(p, "  float yb = yl * %f;\n", blkH);
+	WRITE(p, "  float yl = floor(uv1.y / %u.0);\n", blkH);
+	WRITE(p, "  float yb = yl * %u.0;\n", blkH);
 	WRITE(p, "  float yoff = uv1.y - yb;\n");
 	WRITE(p, "  float xp = uv1.x + (yoff * " I_COLORS"[1].x);\n");
 	WRITE(p, "  float xel = floor(xp / 2.0f);\n");
-	WRITE(p, "  float xb = floor(xel / %f);\n", blkH);
-	WRITE(p, "  float xoff = xel - (xb * %f);\n", blkH);
+	WRITE(p, "  float xb = floor(xel / %u.0);\n", blkH);
+	WRITE(p, "  float xoff = xel - (xb * %u.0);\n", blkH);
 
 	WRITE(p, "  float x2 = uv1.x * 2.0f;\n");
-	WRITE(p, "  float xl = floor(x2 / %f);\n", blkW);	
-	WRITE(p, "  float xib = x2 - (xl * %f);\n", blkW);
+	WRITE(p, "  float xl = floor(x2 / %u.0);\n", blkW);	
+	WRITE(p, "  float xib = x2 - (xl * %u.0);\n", blkW);
 	WRITE(p, "  float halfxb = floor(xb / 2.0f);\n");
 
-	WRITE(p, "  sampleUv.x = xib + (halfxb * %f);\n", blkW);
+	WRITE(p, "  sampleUv.x = xib + (halfxb * %u.0);\n", blkW);
 	WRITE(p, "  sampleUv.y = yb + xoff;\n");
 	WRITE(p, "  sampleUv = sampleUv * " I_COLORS"[0].xy;\n");
 
