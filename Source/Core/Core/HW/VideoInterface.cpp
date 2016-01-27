@@ -49,7 +49,7 @@ static UVIBorderBlankRegister    m_BorderHBlank;
 // 0xcc002076 - 0xcc00207f is full of 0x00FF: unknown
 // 0xcc002080 - 0xcc002100 even more unknown
 
-u32 TargetRefreshRate = 0;
+static u32 s_target_refresh_rate = 0;
 
 static u32 s_clock_freqs[2] =
 {
@@ -94,7 +94,7 @@ void DoState(PointerWrap &p)
 	p.Do(m_DTVStatus);
 	p.Do(m_FBWidth);
 	p.Do(m_BorderHBlank);
-	p.Do(TargetRefreshRate);
+	p.Do(s_target_refresh_rate);
 	p.Do(s_ticks_last_line_start);
 	p.Do(s_half_line_count);
 	p.Do(s_half_line_of_next_si_poll);
@@ -609,7 +609,12 @@ void UpdateParameters()
 	s_even_field_last_hl = s_even_field_first_hl + m_VerticalTimingRegister.ACV * 2;
 	s_odd_field_last_hl = s_odd_field_first_hl + m_VerticalTimingRegister.ACV * 2;
 
-	TargetRefreshRate = lround(2.0 * SystemTimers::GetTicksPerSecond() / (GetTicksPerEvenField() + GetTicksPerOddField()));
+	s_target_refresh_rate = lround(2.0 * SystemTimers::GetTicksPerSecond() / (GetTicksPerEvenField() + GetTicksPerOddField()));
+}
+
+u32 GetTargetRefreshRate()
+{
+	return s_target_refresh_rate;
 }
 
 u32 GetTicksPerSample()
@@ -622,7 +627,6 @@ u32 GetTicksPerHalfLine()
 {
 	return GetTicksPerSample() * m_HTiming0.HLW;
 }
-
 
 u32 GetTicksPerField()
 {
@@ -647,7 +651,8 @@ static void BeginField(FieldType field)
 		xfbAddr = GetXFBAddressTop();
 	}
 
-	if (interlaced_xfb && g_ActiveConfig.bForceProgressive) {
+	if (interlaced_xfb && g_ActiveConfig.bForceProgressive)
+	{
 		// Strictly speaking, in interlaced mode, we're only supposed to read
 		// half of the lines of the XFB, and use that to display a field; the
 		// other lines are unspecified junk.  However, in practice, we can
@@ -658,17 +663,16 @@ static void BeginField(FieldType field)
 		fbStride /= 2;
 		fbHeight *= 2;
 
-                // PRB for the different fields should only ever differ by 1 in
-                // interlaced mode, and which is less determines which field
-                // has the first line. For the field with the second line, we
-                // offset the xfb by (-stride_of_one_line) to get the start
-                // address of the full xfb.
-		if ((field == FieldType::FIELD_ODD) && (m_VBlankTimingOdd.PRB == m_VBlankTimingEven.PRB + 1)) {
-			xfbAddr -= (fbStride * 2);
-		}
-		if ((field == FieldType::FIELD_EVEN) && (m_VBlankTimingOdd.PRB == m_VBlankTimingEven.PRB - 1)) {
-			xfbAddr -= (fbStride * 2);
-		}
+		// PRB for the different fields should only ever differ by 1 in
+		// interlaced mode, and which is less determines which field
+		// has the first line. For the field with the second line, we
+		// offset the xfb by (-stride_of_one_line) to get the start
+		// address of the full xfb.
+		if (field == FieldType::FIELD_ODD && m_VBlankTimingOdd.PRB == m_VBlankTimingEven.PRB + 1)
+			xfbAddr -= fbStride * 2;
+
+		if (field == FieldType::FIELD_EVEN && m_VBlankTimingOdd.PRB == m_VBlankTimingEven.PRB - 1)
+			xfbAddr -= fbStride * 2;
 	}
 
 	static const char* const fieldTypeNames[] = { "Odd", "Even" };

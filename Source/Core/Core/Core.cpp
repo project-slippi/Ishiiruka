@@ -499,6 +499,9 @@ void EmuThread()
 
 	CBoot::BootUp();
 
+	// This adds the SyncGPU handler to CoreTiming, so now CoreTiming::Advance might block.
+	Fifo::Prepare();
+
 	// Thread is no longer acting as CPU Thread
 	UndeclareAsCPUThread();
 
@@ -772,7 +775,7 @@ void VideoThrottle()
 	// Update the audio timestretcher with the current speed
 	if (g_sound_stream && update_ss_speed)
 	{
-		float Speed = (float)(s_drawn_video.load() * 1000.0 / (VideoInterface::TargetRefreshRate * ElapseTime));
+		float Speed = (float)(s_drawn_video.load() * 1000.0 / (VideoInterface::GetTargetRefreshRate() * ElapseTime));
 		g_sound_stream->GetMixer()->UpdateSpeed((float)Speed);
 	}
 }
@@ -782,7 +785,7 @@ void VideoThrottle()
 // depending on the emulation speed set
 bool ShouldSkipFrame(int skipped)
 {
-	u32 TargetFPS = VideoInterface::TargetRefreshRate;
+	u32 TargetFPS = VideoInterface::GetTargetRefreshRate();
 	if (SConfig::GetInstance().m_EmulationSpeed > 0.0f)
 		TargetFPS = u32(TargetFPS * SConfig::GetInstance().m_EmulationSpeed);
 	const u32 frames = s_drawn_frame.load();
@@ -813,7 +816,7 @@ void UpdateTitle()
 
 	float FPS   = (float)(s_drawn_frame.load() * 1000.0 / ElapseTime);
 	float VPS   = (float)(s_drawn_video.load() * 1000.0 / ElapseTime);
-	float Speed = (float)(s_drawn_video.load() * (100 * 1000.0) / (VideoInterface::TargetRefreshRate * ElapseTime));
+	float Speed = (float)(s_drawn_video.load() * (100 * 1000.0) / (VideoInterface::GetTargetRefreshRate() * ElapseTime));
 
 	// Settings are shown the same for both extended and summary info
 	std::string SSettings = StringFromFormat("%s %s | %s | %s", cpu_core_base->GetName(), _CoreParameter.bCPUThread ? "DC" : "SC",

@@ -131,7 +131,7 @@ static void InitDriverInfo()
 	DriverDetails::Vendor vendor = DriverDetails::VENDOR_UNKNOWN;
 	DriverDetails::Driver driver = DriverDetails::DRIVER_UNKNOWN;
 	double version = 0.0;
-	u32 family = 0;
+	DriverDetails::Family family = DriverDetails::Family::UNKNOWN;
 
 	// Get the vendor first
 	if (svendor == "NVIDIA Corporation" && srenderer != "NVIDIA Tegra")
@@ -208,22 +208,47 @@ static void InitDriverInfo()
 		case DriverDetails::VENDOR_MESA:
 		{
 			if (svendor == "nouveau")
+			{
 				driver = DriverDetails::DRIVER_NOUVEAU;
+			}
 			else if (svendor == "Intel Open Source Technology Center")
+			{
 				driver = DriverDetails::DRIVER_I965;
+				if (srenderer.find("Sandybridge") != std::string::npos)
+					family = DriverDetails::Family::INTEL_SANDY;
+				else if (srenderer.find("Ivybridge") != std::string::npos)
+					family = DriverDetails::Family::INTEL_IVY;
+			}
 			else if (std::string::npos != srenderer.find("AMD") || std::string::npos != srenderer.find("ATI"))
+			{
 				driver = DriverDetails::DRIVER_R600;
+			}
 
 			int major = 0;
 			int minor = 0;
 			int release = 0;
 			sscanf(g_ogl_config.gl_version, "%*s (Core Profile) Mesa %d.%d.%d", &major, &minor, &release);
-			version = 100*major + 10*minor + release;
+			version = 100 * major + 10 * minor + release;
 		}
 		break;
 		case DriverDetails::VENDOR_INTEL: // Happens in OS X/Windows
 		{
-			sscanf(g_ogl_config.gl_renderer, "Intel HD Graphics %d", &family);
+			u32 market_name;
+			sscanf(g_ogl_config.gl_renderer, "Intel HD Graphics %d", &market_name);
+			switch (market_name)
+			{
+			case 2000:
+			case 3000:
+				family = DriverDetails::Family::INTEL_SANDY;
+				break;
+			case 2500:
+			case 4000:
+				family = DriverDetails::Family::INTEL_IVY;
+				break;
+			default:
+				family = DriverDetails::Family::UNKNOWN;
+				break;
+			};
 #ifdef _WIN32
 			int glmajor = 0;
 			int glminor = 0;
@@ -249,12 +274,12 @@ static void InitDriverInfo()
 			// Nvidia seems to have removed their driver version from this string, so we can't get it.
 			// hopefully we'll never have to workaround Nvidia bugs
 			sscanf(g_ogl_config.gl_version, "%d.%d.%d NVIDIA %d.%d", &glmajor, &glminor, &glrelease, &major, &minor);
-			version = 100*major + minor;
+			version = 100 * major + minor;
 		}
 		break;
 		// We don't care about these
 		default:
-		break;
+			break;
 	}
 	DriverDetails::Init(vendor, driver, version, family);
 }
@@ -1222,7 +1247,7 @@ void Renderer::SwapImpl(u32 xfbAddr, u32 fbWidth, u32 fbStride, u32 fbHeight, co
 			glDisable(GL_DEBUG_OUTPUT);
 	}	
 	static int w = 0, h = 0;
-	if (Fifo::g_bSkipCurrentFrame || (!XFBWrited && !g_ActiveConfig.RealXFBEnabled()) || !fbWidth || !fbHeight)
+	if (Fifo::WillSkipCurrentFrame() || (!XFBWrited && !g_ActiveConfig.RealXFBEnabled()) || !fbWidth || !fbHeight)
 	{
 		DumpFrame(frame_data, w, h);
 		Core::Callback_VideoCopiedToXFB(false);

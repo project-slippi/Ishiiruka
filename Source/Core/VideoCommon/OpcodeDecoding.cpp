@@ -32,6 +32,9 @@
 bool g_bRecordFifoData = false;
 static bool s_bFifoErrorSeen = false;
 
+namespace OpcodeDecoder
+{
+
 template <int count>
 __forceinline void ReadU32xn(u32 *bufx16)
 {
@@ -42,7 +45,7 @@ __forceinline u32 InterpretDisplayList(u32 address, u32 size)
 {
 	u8* startAddress;
 
-	if (Fifo::g_use_deterministic_gpu_thread)
+	if (Fifo::UseDeterministicGPUThread())
 		startAddress = static_cast<u8*>(Fifo::PopFifoAuxBuffer(size));
 	else
 		startAddress = static_cast<u8*>(Memory::GetPointer(address));
@@ -59,7 +62,7 @@ __forceinline u32 InterpretDisplayList(u32 address, u32 size)
 
 		// temporarily swap dl and non-dl (small "hack" for the stats)
 		Statistics::SwapDL();
-		OpcodeDecoder_Run<false, false>(g_VideoData, &cycles);
+		OpcodeDecoder::Run<false, false>(g_VideoData, &cycles);
 		INCSTAT(stats.thisFrame.numDListsCalled);
 		// un-swap
 		Statistics::SwapDL();
@@ -78,7 +81,7 @@ __forceinline void InterpretDisplayListPreprocess(u32 address, u32 size)
 	if (startAddress != nullptr)
 	{
 		DataReader dlist_reader(startAddress, startAddress + size);
-		OpcodeDecoder_Run<true, false>(dlist_reader , nullptr);
+		OpcodeDecoder::Run<true, false>(dlist_reader , nullptr);
 	}
 }
 
@@ -150,18 +153,18 @@ DataReadU32xNfunc DataReadU32xFuncs[16] = {
 	ReadU32xn<16>
 };
 
-void OpcodeDecoder_Init()
+void Init()
 {
 	s_bFifoErrorSeen = false;
 }
 
 
-void OpcodeDecoder_Shutdown()
+void Shutdown()
 {
 }
 
 template <bool is_preprocess, bool sizeCheck>
-u8* OpcodeDecoder_Run(DataReader& reader, u32* cycles)
+u8* Run(DataReader& reader, u32* cycles)
 {
 	u32 totalCycles = 0;
 	u8* opcodeStart;
@@ -297,7 +300,7 @@ u8* OpcodeDecoder_Run(DataReader& reader, u32* cycles)
 					u32 vtx_attr_group = cmd_byte & GX_VAT_MASK;
 					parameters.vtx_attr_group = vtx_attr_group;
 					parameters.needloaderrefresh = (state.attr_dirty & (1u << vtx_attr_group)) != 0;
-					parameters.skip_draw = Fifo::g_bSkipCurrentFrame;
+					parameters.skip_draw = Fifo::WillSkipCurrentFrame();
 					parameters.VtxDesc = &state.vtx_desc;
 					parameters.VtxAttr = &state.vtx_attr[vtx_attr_group];
 					parameters.source = reader.GetReadPosition();
@@ -365,7 +368,9 @@ end:
 	return opcodeStart;
 }
 
-template u8* OpcodeDecoder_Run<true, false>(DataReader& reader, u32* cycles);
-template u8* OpcodeDecoder_Run<false, false>(DataReader& reader, u32* cycles);
-template u8* OpcodeDecoder_Run<true, true>(DataReader& reader, u32* cycles);
-template u8* OpcodeDecoder_Run<false, true>(DataReader& reader, u32* cycles);
+template u8* Run<true, false>(DataReader& reader, u32* cycles);
+template u8* Run<false, false>(DataReader& reader, u32* cycles);
+template u8* Run<true, true>(DataReader& reader, u32* cycles);
+template u8* Run<false, true>(DataReader& reader, u32* cycles);
+
+} // namespace OpcodeDecoder

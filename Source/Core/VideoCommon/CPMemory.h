@@ -283,12 +283,11 @@ extern CPState g_preprocess_cp_state;
 extern u8 *cached_arraybases[16];
 class PointerWrap;
 
-extern void DoCPState(PointerWrap& p);
-
-extern void CopyPreprocessCPStateFromMain();
-
 // Might move this into its own file later.
 template <bool is_preprocess> void LoadCPReg(u32 SubCmd, u32 Value);
 
 // Fills memory with data from CP regs
 void FillCPMemoryArray(u32 *memory);
+
+void DoCPState(PointerWrap& p);
+void CopyPreprocessCPStateFromMain();

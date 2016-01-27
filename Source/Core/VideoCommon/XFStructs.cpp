@@ -232,14 +232,14 @@ void LoadXFReg(u32 transferSize, u32 baseAddress)
 		}
 
 		XFMemWritten(xfMemTransferSize, xfMemBase);
-		DataReadU32xFuncs[xfMemTransferSize - 1](&((u32*)&xfmem)[xfMemBase]);
+		OpcodeDecoder::DataReadU32xFuncs[xfMemTransferSize - 1](&((u32*)&xfmem)[xfMemBase]);
 	}
 
 	// write to XF regs
 	if (transferSize > 0)
 	{
 		XFRegWritten(transferSize, baseAddress);
-		DataReadU32xFuncs[transferSize - 1](&((u32*)&xfmem)[baseAddress]);
+		OpcodeDecoder::DataReadU32xFuncs[transferSize - 1](&((u32*)&xfmem)[baseAddress]);
 	}
 }
 
@@ -253,7 +253,7 @@ void LoadIndexedXF(u32 val, int refarray)
 
 	u32* currData = (u32*)(&xfmem) + address;
 	u32* newData;
-	if (Fifo::g_use_deterministic_gpu_thread)
+	if (Fifo::UseDeterministicGPUThread())
 	{
 		newData = (u32*)Fifo::PopFifoAuxBuffer(size * sizeof(u32));
 	}

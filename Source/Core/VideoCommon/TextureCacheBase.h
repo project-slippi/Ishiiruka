@@ -33,13 +33,7 @@ class TextureCacheBase
 public:
 	struct TCacheEntryConfig
 	{
-		TCacheEntryConfig() : width(0), height(0), levels(1), layers(1), rendertarget(false), materialmap(false), pcformat(PC_TEX_FMT_NONE) {}
-
-		u32 width, height;
-		u32 levels, layers;
-		bool rendertarget;
-		bool materialmap;
-		PC_TexFormat pcformat;
+		constexpr TCacheEntryConfig() = default;
 
 		u32 GetSizeInBytes() const
 		{
@@ -77,20 +71,15 @@ public:
 			return result;
 		}
 
-		bool operator == (const TCacheEntryConfig& b) const
+		bool operator == (const TCacheEntryConfig& o) const
 		{
-			return width == b.width
-				&& height == b.height
-				&& levels == b.levels
-				&& layers == b.layers
-				&& rendertarget == b.rendertarget
-				&& pcformat == b.pcformat
-				&& materialmap == b.materialmap;
+			return std::tie(width, height, levels, layers, rendertarget, pcformat, materialmap) ==
+				std::tie(o.width, o.height, o.levels, o.layers, o.rendertarget, o.pcformat, o.materialmap);
 		}
 
 		struct Hasher
 		{
-			size_t operator()(const TextureCacheBase::TCacheEntryConfig& c) const
+			size_t operator()(const TCacheEntryConfig& c) const
 			{
 				return (u64)c.materialmap << 57	// 1 bit
 					| (u64)c.rendertarget << 56	// 1 bit
@@ -101,6 +90,11 @@ public:
 					| (u64)c.width;				// 16 bits
 			}
 		};
+
+		u32 width = 0, height = 0, levels = 1, layers = 1;
+		bool rendertarget = false;
+		bool materialmap = false;
+		PC_TexFormat pcformat = PC_TEX_FMT_NONE;
 	};
 
 	struct TCacheEntryBase

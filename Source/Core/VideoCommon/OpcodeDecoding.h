@@ -72,11 +72,16 @@ enum GxDrawMode : u32
 	GX_DRAW_POINTS = 0x7,			// 0xB8
 };
 
-void OpcodeDecoder_Init();
-void OpcodeDecoder_Shutdown();
+namespace OpcodeDecoder
+{
+
+void Init();
+void Shutdown();
 
 template <bool is_preprocess = false, bool sizeCheck = true>
-u8* OpcodeDecoder_Run(DataReader& reader, u32* cycles);
+u8* Run(DataReader& reader, u32* cycles);
 
 typedef void(*DataReadU32xNfunc)(u32 *buf);
 extern DataReadU32xNfunc DataReadU32xFuncs[16];
+
+} // namespace OpcodeDecoder
