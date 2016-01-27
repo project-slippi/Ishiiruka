@@ -13,6 +13,8 @@
 #include <vector>
 #include <xxhash.h>
 
+#include <SOIL/SOIL.h>
+
 #include "Common/CommonPaths.h"
 #include "Common/FileSearch.h"
 #include "Common/FileUtil.h"
@@ -389,10 +391,37 @@ std::string HiresTexture::GenBaseName(
 
 inline void ReadPNG(ImageLoaderParams &ImgInfo)
 {
-	if (ImageLoader::ReadPNG(ImgInfo))
+	// libpng path seems to fail with some png files using soil meanwhile
+	/*if (ImageLoader::ReadPNG(ImgInfo))
 	{
 		ImgInfo.resultTex = PC_TEX_FMT_RGBA32;
 	}
+	*/
+	File::IOFile file(ImgInfo.Path, "rb");
+	std::vector<u8> buffer(file.GetSize());
+	if (!file.IsOpen() || !file.ReadBytes(buffer.data(), file.GetSize()))
+	{
+		ImgInfo.resultTex = PC_TEX_FMT_NONE;
+		return;
+	}
+	int image_width;
+	int image_height;
+	int image_channels;
+	u8* decoded = SOIL_load_image_from_memory(buffer.data(), (int)buffer.size(), &image_width, &image_height, &image_channels, SOIL_LOAD_RGBA);
+	if (decoded == nullptr)
+	{
+		ImgInfo.resultTex = PC_TEX_FMT_NONE;
+		return;
+	}
+
+	// Reallocate the memory so we can manage it
+	ImgInfo.Width = image_width;
+	ImgInfo.Height = image_height;
+	ImgInfo.data_size = image_width * image_height * 4;
+	ImgInfo.dst = ImgInfo.request_buffer_delegate(ImgInfo.data_size, false);
+	memcpy(ImgInfo.dst, decoded, ImgInfo.data_size);
+	SOIL_free_image_data(decoded);
+	ImgInfo.resultTex = PC_TEX_FMT_RGBA32;
 }
 
 inline void ReadDDS(ImageLoaderParams &ImgInfo)
@@ -500,7 +529,6 @@ HiresTexture* HiresTexture::Load(const std::string& basename,
 			imgInfo.request_buffer_delegate = [&](size_t requiredsize, bool mipmapsincluded)
 			{
 				// Allocate double side buffer if we are going to load normal maps
-				requiredsize *= (nrm_posible ? 2 : 1);
 				allocated_data = true;
 				mipmapsize_included = mipmapsincluded;
 				// Pre allocate space for the textures and potetially all the posible mip levels 
@@ -508,6 +536,7 @@ HiresTexture* HiresTexture::Load(const std::string& basename,
 				{
 					requiredsize = (requiredsize * 4) / 3;
 				}
+				requiredsize *= (nrm_posible ? 2 : 1);
 				return request_buffer_delegate(requiredsize);
 			};
 		}
