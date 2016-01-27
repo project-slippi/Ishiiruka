@@ -89,14 +89,14 @@ typedef ShaderUid<vertex_shader_uid_data> VertexShaderUid;
 
 void GetVertexShaderUidD3D9(VertexShaderUid& object, u32 components, const XFMemory &xfr, const BPMemory &bpm);
 
-void GenerateVertexShaderCodeD3D9(ShaderCode& object, u32 components, const XFMemory &xfr, const BPMemory &bpm);
+void GenerateVertexShaderCodeD3D9(ShaderCode& object, const vertex_shader_uid_data& uid_data);
 
 void GetVertexShaderUidD3D11(VertexShaderUid& object, u32 components, const XFMemory &xfr, const BPMemory &bpm);
 
-void GenerateVertexShaderCodeD3D11(ShaderCode& object, u32 components, const XFMemory &xfr, const BPMemory &bpm);
+void GenerateVertexShaderCodeD3D11(ShaderCode& object, const vertex_shader_uid_data& uid_data);
 
 void GenerateVSOutputStructForGSD3D11(ShaderCode& object, const XFMemory &xfr);
 
 void GetVertexShaderUidGL(VertexShaderUid& object, u32 components, const XFMemory &xfr, const BPMemory &bpm);
 
-void GenerateVertexShaderCodeGL(ShaderCode& object, u32 components, const XFMemory &xfr, const BPMemory &bpm);
+void GenerateVertexShaderCodeGL(ShaderCode& object, const vertex_shader_uid_data& uid_data);

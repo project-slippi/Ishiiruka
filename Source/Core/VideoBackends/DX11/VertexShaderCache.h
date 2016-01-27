@@ -63,7 +63,6 @@ private:
 	static const VSCacheEntry* s_last_entry;
 	static VertexShaderUid s_last_uid;
 	static VertexShaderUid s_external_last_uid;
-	static UidChecker<VertexShaderUid,ShaderCode> s_vertex_uid_checker;
 };
 
 }  // namespace DX11

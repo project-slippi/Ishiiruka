@@ -34,7 +34,11 @@ struct Tessellation_shader_uid_data
 	u32 genMode_numindstages : 3;
 	u32 nIndirectStagesUsed : 4;
 	u32 pixel_normals : 1;
-	u32 padding : 15;
+	u32 stereo : 1;
+	u32 pixel_lighting : 1;
+	u32 msaa : 1;
+	u32 ssaa : 1;
+	u32 padding : 11;
 	
 
 	u32 texMtxInfo_n_projection : 8; // 8x1 bit
@@ -56,12 +60,21 @@ struct Tessellation_shader_uid_data
 		else if (index == 2) { tevindref_bc3 = texcoord; tevindref_bi2 = texmap; }
 		else if (index == 3) { tevindref_bc4 = texcoord; tevindref_bi4 = texmap; }
 	}
-	inline void SetTevindrefTexmap(int index, u32 texmap)
-	{
-		if (index == 0) { tevindref_bi0 = texmap; }
-		else if (index == 1) { tevindref_bi1 = texmap; }
-		else if (index == 2) { tevindref_bi2 = texmap; }
-		else if (index == 3) { tevindref_bi4 = texmap; }
+
+	inline u32 GetTevindirefCoord(int index) const {
+		if (index == 0) { return tevindref_bc0; }
+		else if (index == 1) { return tevindref_bc1; }
+		else if (index == 2) { return tevindref_bc3; }
+		else if (index == 3) { return tevindref_bc4; }
+		return 0;
+	}
+
+	inline u32 GetTevindirefMap(int index) const {
+		if (index == 0) { return tevindref_bi0; }
+		else if (index == 1) { return tevindref_bi1; }
+		else if (index == 2) { return tevindref_bi2; }
+		else if (index == 3) { return tevindref_bi4; }
+		return 0;
 	}
 };
 
@@ -73,5 +86,5 @@ struct Tessellation_shader_uid_data
 #define TESSELLATIONSHADERGEN_BUFFERSIZE 32768
 typedef ShaderUid<Tessellation_shader_uid_data> TessellationShaderUid;
 
-void GenerateTessellationShaderCode(ShaderCode& object, API_TYPE ApiType, const XFMemory &xfr, const BPMemory &bpm, const u32 components);
-void GetTessellationShaderUid(TessellationShaderUid& object, API_TYPE ApiType, const XFMemory &xfr, const BPMemory &bpm, const u32 components);
+void GenerateTessellationShaderCode(ShaderCode& object, API_TYPE ApiType, const Tessellation_shader_uid_data& uid_data);
+void GetTessellationShaderUID(TessellationShaderUid& out, const XFMemory& xfr, const BPMemory& bpm, const u32 components);

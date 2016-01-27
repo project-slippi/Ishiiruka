@@ -30,7 +30,6 @@ namespace DX11
 	const HullDomainShaderCache::HDCacheEntry* HullDomainShaderCache::s_last_entry;
 	TessellationShaderUid HullDomainShaderCache::s_last_uid;
 	TessellationShaderUid HullDomainShaderCache::s_external_last_uid;
-	UidChecker<TessellationShaderUid, ShaderCode> HullDomainShaderCache::HullDomain_uid_checker;
 
 	static HLSLAsyncCompiler *s_compiler;
 	static Common::SpinLock<true> s_hulldomain_shaders_lock;
@@ -115,7 +114,6 @@ namespace DX11
 			iter.second.Destroy();
 		s_hulldomain_shaders.clear();
 		s_hulldomain_shaders_lock.unlock();
-		HullDomain_uid_checker.Invalidate();
 		s_last_entry = nullptr;
 	}
 
@@ -153,7 +151,7 @@ namespace DX11
 			return;
 		}
 		TessellationShaderUid uid;
-		GetTessellationShaderUid(uid, API_D3D11, xfr, bpm, components);
+		GetTessellationShaderUID(uid, xfr, bpm, components);
 		if (ongputhread)
 		{
 			s_compiler->ProcCompilationResults();
@@ -194,7 +192,7 @@ namespace DX11
 		ShaderCompilerWorkUnit *wunit = s_compiler->NewUnit(TESSELLATIONSHADERGEN_BUFFERSIZE);
 		ShaderCompilerWorkUnit *wunitd = s_compiler->NewUnit(TESSELLATIONSHADERGEN_BUFFERSIZE);
 		code.SetBuffer(wunit->code.data());
-		GenerateTessellationShaderCode(code, API_D3D11, xfr, bpm, components);
+		GenerateTessellationShaderCode(code, API_D3D11, uid.GetUidData());
 		memcpy(wunitd->code.data(), wunit->code.data(), code.BufferSize());
 		
 		wunit->codesize = (u32)code.BufferSize();

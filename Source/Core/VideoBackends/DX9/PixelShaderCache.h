@@ -48,7 +48,6 @@ private:
 	static const PSCacheEntry *last_entry[DSTALPHA_NULL + 1];
 	static PixelShaderUid last_uid[DSTALPHA_NULL + 1];
 	static PixelShaderUid external_last_uid[DSTALPHA_NULL + 1];
-	static UidChecker<PixelShaderUid,ShaderCode> pixel_uid_checker;
 
 	static void Clear();
 

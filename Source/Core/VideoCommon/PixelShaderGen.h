@@ -97,7 +97,9 @@ struct pixel_shader_uid_data
 	u32 stereo : 1;
 	u32 msaa : 1;
 	u32 ssaa : 1;
-	u32 pad0 : 15;
+	u32 numColorChans : 2; 
+	u32 late_ztest : 1;
+	u32 pad0 : 12;
 
 	u32 dstAlphaMode : 2;
 	u32 Pretest : 2;
@@ -141,12 +143,21 @@ struct pixel_shader_uid_data
 		else if (index == 2) { tevindref_bc3 = texcoord; tevindref_bi2 = texmap; }
 		else if (index == 3) { tevindref_bc4 = texcoord; tevindref_bi4 = texmap; }
 	}
-	inline void SetTevindrefTexmap(int index, u32 texmap)
-	{
-		if (index == 0) { tevindref_bi0 = texmap; }
-		else if (index == 1) { tevindref_bi1 = texmap; }
-		else if (index == 2) { tevindref_bi2 = texmap; }
-		else if (index == 3) { tevindref_bi4 = texmap; }
+
+	inline u32 GetTevindirefCoord(int index) const {
+		if (index == 0) { return tevindref_bc0; }
+		else if (index == 1) { return tevindref_bc1; }
+		else if (index == 2) { return tevindref_bc3; }
+		else if (index == 3) { return tevindref_bc4; }
+		return 0;
+	}
+
+	inline u32 GetTevindirefMap(int index) const {
+		if (index == 0) { return tevindref_bi0; }
+		else if (index == 1) { return tevindref_bi1; }
+		else if (index == 2) { return tevindref_bi2; }
+		else if (index == 3) { return tevindref_bi4; }
+		return 0;
 	}
 };
 #pragma pack()
@@ -155,14 +166,14 @@ typedef ShaderUid<pixel_shader_uid_data> PixelShaderUid;
 
 void GetPixelShaderUidD3D9(PixelShaderUid& object, DSTALPHA_MODE dstAlphaMode, u32 components, const XFMemory &xfr, const BPMemory &bpm);
 
-void GeneratePixelShaderCodeD3D9(ShaderCode& object, DSTALPHA_MODE dstAlphaMode, u32 components, const XFMemory &xfr, const BPMemory &bpm);
+void GeneratePixelShaderCodeD3D9(ShaderCode& object, const pixel_shader_uid_data& uid_data);
 
-void GeneratePixelShaderCodeD3D9SM2(ShaderCode& object, DSTALPHA_MODE dstAlphaMode, u32 components, const XFMemory &xfr, const BPMemory &bpm);
+void GeneratePixelShaderCodeD3D9SM2(ShaderCode& object, const pixel_shader_uid_data& uid_data);
 
 void GetPixelShaderUidD3D11(PixelShaderUid& object, DSTALPHA_MODE dstAlphaMode, u32 components, const XFMemory &xfr, const BPMemory &bpm);
 
-void GeneratePixelShaderCodeD3D11(ShaderCode& object, DSTALPHA_MODE dstAlphaMode, u32 components, const XFMemory &xfr, const BPMemory &bpm);
+void GeneratePixelShaderCodeD3D11(ShaderCode& object, const pixel_shader_uid_data& uid_data);
 
 void GetPixelShaderUidGL(PixelShaderUid& object, DSTALPHA_MODE dstAlphaMode, u32 components, const XFMemory &xfr, const BPMemory &bpm);
 
-void GeneratePixelShaderCodeGL(ShaderCode& object, DSTALPHA_MODE dstAlphaMode, u32 components, const XFMemory &xfr, const BPMemory &bpm);
+void GeneratePixelShaderCodeGL(ShaderCode& object, const pixel_shader_uid_data& uid_data);

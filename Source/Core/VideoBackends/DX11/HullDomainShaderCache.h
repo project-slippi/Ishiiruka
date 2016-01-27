@@ -59,8 +59,6 @@ namespace DX11
 		static const HDCacheEntry* s_last_entry;
 		static TessellationShaderUid s_last_uid;
 		static TessellationShaderUid s_external_last_uid;
-
-		static UidChecker<TessellationShaderUid, ShaderCode> HullDomain_uid_checker;
 	};
 
 }  // namespace DX11

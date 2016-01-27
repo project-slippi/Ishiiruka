@@ -24,7 +24,6 @@ VertexShaderCache::VSCache VertexShaderCache::s_vshaders;
 const VertexShaderCache::VSCacheEntry *VertexShaderCache::s_last_entry;
 VertexShaderUid VertexShaderCache::s_last_uid;
 VertexShaderUid VertexShaderCache::s_external_last_uid;
-UidChecker<VertexShaderUid,ShaderCode> VertexShaderCache::s_vertex_uid_checker;
 
 static HLSLAsyncCompiler *s_compiler;
 static Common::SpinLock<true> s_vshaders_lock;
@@ -178,7 +177,6 @@ void VertexShaderCache::Clear()
 		iter->second.Destroy();
 	s_vshaders.clear();
 	s_vshaders_lock.unlock();
-	s_vertex_uid_checker.Invalidate();
 
 	s_last_entry = nullptr;
 }
@@ -258,7 +256,7 @@ void VertexShaderCache::PrepareShader(
 	ShaderCode code;
 	ShaderCompilerWorkUnit *wunit = s_compiler->NewUnit(VERTEXSHADERGEN_BUFFERSIZE);
 	code.SetBuffer(wunit->code.data());
-	GenerateVertexShaderCodeD3D11(code, components, xfr, bpm);
+	GenerateVertexShaderCodeD3D11(code, uid.GetUidData());
 	wunit->codesize = (u32)code.BufferSize();
 	wunit->entrypoint = "main";
 	wunit->flags = D3DCOMPILE_SKIP_VALIDATION | D3DCOMPILE_OPTIMIZATION_LEVEL3 | D3DCOMPILE_ENABLE_BACKWARDS_COMPATIBILITY;

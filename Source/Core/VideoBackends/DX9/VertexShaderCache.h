@@ -42,7 +42,6 @@ private:
 	static const VSCacheEntry *last_entry;
 	static VertexShaderUid last_uid;
 	static VertexShaderUid external_last_uid;
-	static UidChecker<VertexShaderUid,ShaderCode> vertex_uid_checker;
 
 	static void Clear();
 
@@ -54,8 +53,6 @@ public:
 	static LPDIRECT3DVERTEXSHADER9 GetSimpleVertexShader(int level);
 	static LPDIRECT3DVERTEXSHADER9 GetClearVertexShader();	
 	static void InsertByteCode(const VertexShaderUid &uid, const u8 *bytecode, int bytecodelen);
-
-	static std::string GetCurrentShaderCode();
 };
 
 }  // namespace DX9

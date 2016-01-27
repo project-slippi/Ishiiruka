@@ -61,7 +61,6 @@ private:
 	static const PSCacheEntry* s_last_entry;
 	static PixelShaderUid s_last_uid;
 	static PixelShaderUid s_external_last_uid;
-	static UidChecker<PixelShaderUid,ShaderCode> s_pixel_uid_checker;
 };
 
 }  // namespace DX11

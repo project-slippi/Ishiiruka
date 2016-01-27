@@ -28,7 +28,6 @@ PixelShaderCache::PSCache PixelShaderCache::s_pixel_shaders;
 const PixelShaderCache::PSCacheEntry* PixelShaderCache::s_last_entry;
 PixelShaderUid PixelShaderCache::s_last_uid;
 PixelShaderUid PixelShaderCache::s_external_last_uid;
-UidChecker<PixelShaderUid,ShaderCode> PixelShaderCache::s_pixel_uid_checker;
 static HLSLAsyncCompiler *s_compiler;
 static Common::SpinLock<true> s_pixel_shaders_lock;
 
@@ -525,7 +524,6 @@ void PixelShaderCache::Clear()
 		iter->second.Destroy();
 	s_pixel_shaders.clear();
 	s_pixel_shaders_lock.unlock();
-	s_pixel_uid_checker.Invalidate();
 
 	s_last_entry = nullptr;
 }
@@ -618,7 +616,7 @@ void PixelShaderCache::PrepareShader(DSTALPHA_MODE dstAlphaMode,
 	ShaderCode code;
 	ShaderCompilerWorkUnit *wunit = s_compiler->NewUnit(PIXELSHADERGEN_BUFFERSIZE);
 	code.SetBuffer(wunit->code.data());
-	GeneratePixelShaderCodeD3D11(code, dstAlphaMode, components, xfr, bpm);
+	GeneratePixelShaderCodeD3D11(code, uid.GetUidData());
 	wunit->codesize = (u32)code.BufferSize();
 	wunit->entrypoint = "main";
 	wunit->flags = D3DCOMPILE_SKIP_VALIDATION | D3DCOMPILE_OPTIMIZATION_LEVEL3;

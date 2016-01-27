@@ -131,8 +131,8 @@ VS_OUTPUT result = (VS_OUTPUT)0;
 
 
 
-template<class T, API_TYPE ApiType>
-void SampleTextureRAW(T& out, const char *texcoords, const char *texswap, const char *layer, int texmap, int tcoord)
+template<API_TYPE ApiType>
+void SampleTextureRAW(ShaderCode& out, const char *texcoords, const char *texswap, const char *layer, int texmap, int tcoord)
 {
 	if (ApiType == API_D3D11)
 	{
@@ -144,16 +144,16 @@ void SampleTextureRAW(T& out, const char *texcoords, const char *texswap, const 
 	}
 }
 
-template<class T, API_TYPE ApiType>
-void SampleTexture(T& out, const char *texcoords, const char *texswap, int texmap)
+template<API_TYPE ApiType>
+void SampleTexture(ShaderCode& out, const char *texcoords, const char *texswap, int texmap, bool stereo)
 {
 	if (ApiType == API_D3D11)
 	{
-		out.Write("wuround((Tex[%d].SampleLevel(samp[%d], float3(%s.xy * " I_TEXDIMS"[%d].xy, %s), 0.0)).%s * 255.0);\n", texmap, texmap, texcoords, texmap, g_ActiveConfig.iStereoMode > 0 ? "layer" : "0.0", texswap);
+		out.Write("wuround((Tex[%d].SampleLevel(samp[%d], float3(%s.xy * " I_TEXDIMS"[%d].xy, %s), 0.0)).%s * 255.0);\n", texmap, texmap, texcoords, texmap, stereo ? "layer" : "0.0", texswap);
 	}
 	else if (ApiType == API_OPENGL)
 	{
-		out.Write("wuround(texture(samp[%d],float3(%s.xy * " I_TEXDIMS"[%d].xy, %s)).%s * 255.0);\n", texmap, texcoords, texmap, g_ActiveConfig.iStereoMode > 0 ? "layer" : "0.0", texswap);
+		out.Write("wuround(texture(samp[%d],float3(%s.xy * " I_TEXDIMS"[%d].xy, %s)).%s * 255.0);\n", texmap, texcoords, texmap, stereo ? "layer" : "0.0", texswap);
 	}
 	else
 	{
@@ -168,12 +168,12 @@ static inline void WriteStageUID(Tessellation_shader_uid_data& uid_data, int n, 
 	bool bHasIndStage = bpm.tevind[n].bt < bpm.genMode.numindstages.Value();
 	// HACK to handle cases where the tex gen is not enabled
 	if (!bHasTexCoord)
-		texcoord = 0;
+		texcoord = bpm.genMode.numtexgens;
 	uid_data.stagehash[n].hasindstage = bHasIndStage;
 	uid_data.stagehash[n].tevorders_texcoord = texcoord;
 	if (bHasIndStage)
 	{
-		uid_data.stagehash[n].tevind = bpm.tevind[n].hex & 0x7FFFFF;
+		uid_data.stagehash[n].tevind = bpm.tevind[n].hex;
 	}
 	const int i = bpm.combiners[n].alphaC.tswap;
 	uid_data.stagehash[n].tevorders_enable = bpm.tevorders[n / 2].getEnable(n & 1);
@@ -181,142 +181,13 @@ static inline void WriteStageUID(Tessellation_shader_uid_data& uid_data, int n, 
 	{
 		int texmap = bpm.tevorders[n / 2].getTexMap(n & 1);
 		uid_data.stagehash[n].tevorders_texmap = texmap;
-		uid_data.SetTevindrefTexmap(i, texmap);
 	}
 }
 
-template<class T, API_TYPE ApiType>
-static inline void WriteFetchDisplacement(T& out, int n, const BPMemory &bpm)
+void GetTessellationShaderUID(TessellationShaderUid& out, const XFMemory& xfr, const BPMemory& bpm, const u32 components)
 {
-	int texcoord = bpm.tevorders[n / 2].getTexCoord(n & 1);
-	bool bHasTexCoord = (u32)texcoord < bpm.genMode.numtexgens.Value();
-	bool bHasIndStage = bpm.tevind[n].bt < bpm.genMode.numindstages.Value();
-	// HACK to handle cases where the tex gen is not enabled
-	if (!bHasTexCoord)
-		texcoord = 0;
-	out.Write("\n{\n");
-
-	if (bpm.tevorders[n / 2].getEnable(n & 1))
-	{
-		int texmap = bpm.tevorders[n / 2].getTexMap(n & 1);
-		out.Write("if((" I_FLAGS ".x & %i) != 0)\n{\n", 1 << texmap);
-		if (bHasIndStage)
-		{
-			out.Write("// indirect op\n");
-			// perform the indirect op on the incoming regular coordinates using indtex%d as the offset coords
-			if (bpm.tevind[n].mid != 0)
-			{
-				static const char *tevIndFmtMask[] = { "255", "31", "15", "7" };
-				out.Write("int3 indtevcrd%d = indtex%d & %s;\n", n, bpmem.tevind[n].bt, tevIndFmtMask[bpmem.tevind[n].fmt]);
-
-				static const char *tevIndBiasField[] = { "", "x", "y", "xy", "z", "xz", "yz", "xyz" }; // indexed by bias
-				static const char *tevIndBiasAdd[] = { "int(-128)", "int(1)", "int(1)", "int(1)" }; // indexed by fmt
-																																// bias
-				if (bpm.tevind[n].bias == ITB_S || bpm.tevind[n].bias == ITB_T || bpm.tevind[n].bias == ITB_U)
-					out.Write("indtevcrd%d.%s += %s;\n", n, tevIndBiasField[bpm.tevind[n].bias], tevIndBiasAdd[bpm.tevind[n].fmt]);
-				else if (bpm.tevind[n].bias == ITB_ST || bpm.tevind[n].bias == ITB_SU || bpm.tevind[n].bias == ITB_TU)
-					out.Write("indtevcrd%d.%s += int2(%s, %s);\n", n, tevIndBiasField[bpm.tevind[n].bias], tevIndBiasAdd[bpm.tevind[n].fmt], tevIndBiasAdd[bpm.tevind[n].fmt]);
-				else if (bpm.tevind[n].bias == ITB_STU)
-					out.Write("indtevcrd%d.%s += int3(%s, %s, %s);\n", n, tevIndBiasField[bpm.tevind[n].bias], tevIndBiasAdd[bpm.tevind[n].fmt], tevIndBiasAdd[bpm.tevind[n].fmt], tevIndBiasAdd[bpm.tevind[n].fmt]);
-
-				// multiply by offset matrix and scale
-				if (bpm.tevind[n].mid <= 3)
-				{
-					int mtxidx = 2 * (bpm.tevind[n].mid - 1);
-					out.Write("int2 indtevtrans%d = int2(idot(" I_INDTEXMTX "[%d].xyz, indtevcrd%d), idot(" I_INDTEXMTX "[%d].xyz, indtevcrd%d));\n",
-						n, mtxidx, n, mtxidx + 1, n);
-
-					out.Write("indtevtrans%d = BSHR(indtevtrans%d, int(3));\n", n, n);
-					out.Write("indtevtrans%d = BSH(indtevtrans%d, " I_INDTEXMTX "[%d].w);\n", n, n, mtxidx);
-				}
-				else if (bpm.tevind[n].mid <= 7 && bHasTexCoord)
-				{ // s matrix
-					_assert_(bpm.tevind[n].mid >= 5);
-					int mtxidx = 2 * (bpm.tevind[n].mid - 5);
-					out.Write("int2 indtevtrans%d = int2(uv[%d].xy * indtevcrd%d.xx);\n", n, texcoord, n);
-					out.Write("indtevtrans%d = BSHR(indtevtrans%d, int(8));\n", n, n);
-					out.Write("indtevtrans%d = BSH(indtevtrans%d, " I_INDTEXMTX "[%d].w);\n", n, n, mtxidx);
-				}
-				else if (bpm.tevind[n].mid <= 11 && bHasTexCoord)
-				{ // t matrix
-					_assert_(bpm.tevind[n].mid >= 9);
-					int mtxidx = 2 * (bpm.tevind[n].mid - 9);
-					out.Write("int2 indtevtrans%d = int2(uv[%d].xy * indtevcrd%d.yy);\n", n, texcoord, n);
-					out.Write("indtevtrans%d = BSHR(indtevtrans%d, int(8));\n", n, n);
-					out.Write("indtevtrans%d = BSH(indtevtrans%d, " I_INDTEXMTX "[%d].w);\n", n, n, mtxidx);
-				}
-				else
-				{
-					out.Write("int2 indtevtrans%d = int2(0,0);\n", n);
-				}
-			}
-			else
-			{
-				out.Write("int2 indtevtrans%d = int2(0,0);\n", n);
-			}
-			// ---------
-			// Wrapping
-			// ---------
-			static const char *tevIndWrapStart[] = { "int(0)", "int(256*128)", "int(128*128)", "int(64*128)", "int(32*128)", "int(16*128)", "int(1)" };
-			// wrap S
-			if (bpm.tevind[n].sw == ITW_OFF)
-				out.Write("wrappedcoord.x = int(uv[%d].x);\n", texcoord);
-			else if (bpm.tevind[n].sw == ITW_0)
-				out.Write("wrappedcoord.x = int(0);\n");
-			else
-				out.Write("wrappedcoord.x = remainder(int(uv[%d].x), %s);\n", texcoord, tevIndWrapStart[bpm.tevind[n].sw]);
-
-			// wrap T
-			if (bpm.tevind[n].tw == ITW_OFF)
-				out.Write("wrappedcoord.y = int(uv[%d].y);\n", texcoord);
-			else if (bpm.tevind[n].tw == ITW_0)
-				out.Write("wrappedcoord.y = int(0);\n");
-			else
-				out.Write("wrappedcoord.y = remainder(int(uv[%d].y), %s);\n", texcoord, tevIndWrapStart[bpm.tevind[n].tw]);
-
-			if (bpm.tevind[n].fb_addprev) // add previous tevcoord
-				out.Write("tevcoord.xy += wrappedcoord + indtevtrans%d;\n", n);
-			else
-				out.Write("tevcoord.xy = wrappedcoord + indtevtrans%d;\n", n);
-
-			// Emulate s24 overflows
-			out.Write("tevcoord.xy = (tevcoord.xy << 8) >> 8;\n");
-		}
-		else
-		{
-			// calc tevcord
-			if (bHasTexCoord)
-				out.Write("tevcoord.xy = int2(uv[%d].xy);\n", texcoord);
-			else
-				out.Write("tevcoord.xy = int2(0,0);\n");
-		}
-
-		out.Write("float2 stagecoord = float2(tevcoord.xy) * (1.0/128.0);\n");
-		out.Write("float bump = ");
-		SampleTextureRAW<T, ApiType>(out, "(stagecoord)", "b", "0.0", texmap, texcoord);
-		out.Write("bump = (bump * 255.0/127.0 - 128.0/127.0) * uv[%d].z;\n", texcoord);
-		out.Write("displacement = displacement * displacementcount + bump;\n");
-		// finalize Running average
-		out.Write("displacementcount+=1.0;");
-		out.Write("displacement = displacement / displacementcount;\n");
-		out.Write("}\n");
-	}
-	out.Write("}\n");
-}
-
-template<class T, API_TYPE ApiType, bool is_writing_shadercode>
-static inline void GenerateTessellationShader(T& out, const XFMemory& xfr, const BPMemory& bpm, const u32 components)
-{
-	// Non-uid template parameters will Write to the dummy data (=> gets optimized out)
-	Tessellation_shader_uid_data dummy_data;
-	bool uidPresent = (&out.template GetUidData<Tessellation_shader_uid_data>() != nullptr);
-	Tessellation_shader_uid_data& uid_data = uidPresent ? out.template GetUidData<Tessellation_shader_uid_data>() : dummy_data;
-
-	if (uidPresent)
-	{
-		out.ClearUID();
-	}
-
+	Tessellation_shader_uid_data& uid_data = out.GetUidData<Tessellation_shader_uid_data>();
+	out.ClearUID();
 	u32 numStages = bpm.genMode.numtevstages.Value() + 1;
 	u32 numTexgen = xfr.numTexGen.numTexGens;
 	u32 numindStages = bpm.genMode.numindstages.Value();
@@ -325,6 +196,8 @@ static inline void GenerateTessellationShader(T& out, const XFMemory& xfr, const
 	uid_data.normal = normalpresent;
 	uid_data.genMode_numtevstages = bpm.genMode.numtevstages;
 	uid_data.genMode_numindstages = numindStages;
+	uid_data.msaa = g_ActiveConfig.iMultisamples > 1;
+	uid_data.ssaa = g_ActiveConfig.iMultisamples > 1 && g_ActiveConfig.bSSAA;
 	int nIndirectStagesUsed = 0;
 	if (numindStages > 0)
 	{
@@ -335,7 +208,9 @@ static inline void GenerateTessellationShader(T& out, const XFMemory& xfr, const
 		}
 	}
 	uid_data.nIndirectStagesUsed = nIndirectStagesUsed;
+	uid_data.stereo = g_ActiveConfig.iStereoMode > 0;
 	bool enable_pl = g_ActiveConfig.PixelLightingEnabled(xfr, components);
+	uid_data.pixel_lighting = enable_pl;
 	bool enable_diffuse_ligthing = false;
 	if (enable_pl)
 	{
@@ -385,25 +260,147 @@ static inline void GenerateTessellationShader(T& out, const XFMemory& xfr, const
 			WriteStageUID(uid_data, i, bpm); // Fetch Texture data
 		}
 	}
+	out.CalculateUIDHash();
+}
+
+template<API_TYPE ApiType>
+inline void WriteFetchDisplacement(ShaderCode& out, int n, const Tessellation_shader_uid_data &uid_data)
+{
+	const auto& stage = uid_data.stagehash[n];
+	u32 texcoord = stage.tevorders_texcoord;
+	bool bHasTexCoord = texcoord < uid_data.numTexGens;
+	bool bHasIndStage = stage.hasindstage;
+	out.Write("\n{\n");
+
+	if (stage.tevorders_enable)
+	{
+		TevStageIndirect tevind;
+		tevind.hex = stage.tevind;
+		int texmap = stage.tevorders_texmap;
+		out.Write("if((" I_FLAGS ".x & %i) != 0)\n{\n", 1 << texmap);
+		if (bHasIndStage)
+		{
+			out.Write("// indirect op\n");
+			// perform the indirect op on the incoming regular coordinates using indtex%d as the offset coords
+			if (tevind.mid != 0)
+			{
+				static const char *tevIndFmtMask[] = { "255", "31", "15", "7" };
+				out.Write("int3 indtevcrd%d = indtex%d & %s;\n", n, tevind.bt, tevIndFmtMask[tevind.fmt]);
+
+				static const char *tevIndBiasField[] = { "", "x", "y", "xy", "z", "xz", "yz", "xyz" }; // indexed by bias
+				static const char *tevIndBiasAdd[] = { "int(-128)", "int(1)", "int(1)", "int(1)" }; // indexed by fmt
+																																// bias
+				if (tevind.bias == ITB_S || tevind.bias == ITB_T || tevind.bias == ITB_U)
+					out.Write("indtevcrd%d.%s += %s;\n", n, tevIndBiasField[tevind.bias], tevIndBiasAdd[tevind.fmt]);
+				else if (tevind.bias == ITB_ST || tevind.bias == ITB_SU || tevind.bias == ITB_TU)
+					out.Write("indtevcrd%d.%s += int2(%s, %s);\n", n, tevIndBiasField[tevind.bias], tevIndBiasAdd[tevind.fmt], tevIndBiasAdd[tevind.fmt]);
+				else if (tevind.bias == ITB_STU)
+					out.Write("indtevcrd%d.%s += int3(%s, %s, %s);\n", n, tevIndBiasField[tevind.bias], tevIndBiasAdd[tevind.fmt], tevIndBiasAdd[tevind.fmt], tevIndBiasAdd[tevind.fmt]);
+
+				// multiply by offset matrix and scale
+				if (tevind.mid <= 3)
+				{
+					int mtxidx = 2 * (tevind.mid - 1);
+					out.Write("int2 indtevtrans%d = int2(idot(" I_INDTEXMTX "[%d].xyz, indtevcrd%d), idot(" I_INDTEXMTX "[%d].xyz, indtevcrd%d));\n",
+						n, mtxidx, n, mtxidx + 1, n);
+
+					out.Write("indtevtrans%d = BSHR(indtevtrans%d, int(3));\n", n, n);
+					out.Write("indtevtrans%d = BSH(indtevtrans%d, " I_INDTEXMTX "[%d].w);\n", n, n, mtxidx);
+				}
+				else if (tevind.mid <= 7 && bHasTexCoord)
+				{ // s matrix
+					_assert_(tevind.mid >= 5);
+					int mtxidx = 2 * (tevind.mid - 5);
+					out.Write("int2 indtevtrans%d = int2(uv[%d].xy * indtevcrd%d.xx);\n", n, texcoord, n);
+					out.Write("indtevtrans%d = BSHR(indtevtrans%d, int(8));\n", n, n);
+					out.Write("indtevtrans%d = BSH(indtevtrans%d, " I_INDTEXMTX "[%d].w);\n", n, n, mtxidx);
+				}
+				else if (tevind.mid <= 11 && bHasTexCoord)
+				{ // t matrix
+					_assert_(tevind.mid >= 9);
+					int mtxidx = 2 * (tevind.mid - 9);
+					out.Write("int2 indtevtrans%d = int2(uv[%d].xy * indtevcrd%d.yy);\n", n, texcoord, n);
+					out.Write("indtevtrans%d = BSHR(indtevtrans%d, int(8));\n", n, n);
+					out.Write("indtevtrans%d = BSH(indtevtrans%d, " I_INDTEXMTX "[%d].w);\n", n, n, mtxidx);
+				}
+				else
+				{
+					out.Write("int2 indtevtrans%d = int2(0,0);\n", n);
+				}
+			}
+			else
+			{
+				out.Write("int2 indtevtrans%d = int2(0,0);\n", n);
+			}
+			// ---------
+			// Wrapping
+			// ---------
+			static const char *tevIndWrapStart[] = { "int(0)", "int(256*128)", "int(128*128)", "int(64*128)", "int(32*128)", "int(16*128)", "int(1)" };
+			// wrap S
+			if (tevind.sw == ITW_OFF)
+				out.Write("wrappedcoord.x = int(uv[%d].x);\n", texcoord);
+			else if (tevind.sw == ITW_0)
+				out.Write("wrappedcoord.x = int(0);\n");
+			else
+				out.Write("wrappedcoord.x = remainder(int(uv[%d].x), %s);\n", texcoord, tevIndWrapStart[tevind.sw]);
+
+			// wrap T
+			if (tevind.tw == ITW_OFF)
+				out.Write("wrappedcoord.y = int(uv[%d].y);\n", texcoord);
+			else if (tevind.tw == ITW_0)
+				out.Write("wrappedcoord.y = int(0);\n");
+			else
+				out.Write("wrappedcoord.y = remainder(int(uv[%d].y), %s);\n", texcoord, tevIndWrapStart[tevind.tw]);
+
+			if (tevind.fb_addprev) // add previous tevcoord
+				out.Write("tevcoord.xy += wrappedcoord + indtevtrans%d;\n", n);
+			else
+				out.Write("tevcoord.xy = wrappedcoord + indtevtrans%d;\n", n);
+
+			// Emulate s24 overflows
+			out.Write("tevcoord.xy = (tevcoord.xy << 8) >> 8;\n");
+		}
+		else
+		{
+			// calc tevcord
+			if (bHasTexCoord)
+				out.Write("tevcoord.xy = int2(uv[%d].xy);\n", texcoord);
+			else
+				out.Write("tevcoord.xy = int2(0,0);\n");
+		}
+
+		out.Write("float2 stagecoord = float2(tevcoord.xy) * (1.0/128.0);\n");
+		out.Write("float bump = ");
+		SampleTextureRAW<ApiType>(out, "(stagecoord)", "b", "0.0", texmap, texcoord);
+		out.Write("bump = (bump * 255.0/127.0 - 128.0/127.0) * uv[%d].z;\n", texcoord);
+		out.Write("displacement = displacement * displacementcount + bump;\n");
+		// finalize Running average
+		out.Write("displacementcount+=1.0;");
+		out.Write("displacement = displacement / displacementcount;\n");
+		out.Write("}\n");
+	}
+	out.Write("}\n");
+}
+
+template<API_TYPE ApiType>
+inline void GenerateTessellationShader(ShaderCode& out, const Tessellation_shader_uid_data& uid_data)
+{
+	// Non-uid template parameters will Write to the dummy data (=> gets optimized out)
+	u32 numStages = uid_data.genMode_numtevstages + 1;
+	u32 numTexgen = uid_data.numTexGens;
+	u32 numindStages = uid_data.genMode_numindstages;
+	bool normalpresent = uid_data.normal;
+	bool enable_pl = uid_data.pixel_lighting;
+	bool enablenormalmaps = uid_data.pixel_normals;
+	int nIndirectStagesUsed = uid_data.nIndirectStagesUsed;
 	char* codebuffer = nullptr;
-	if (is_writing_shadercode)
+	codebuffer = out.GetBuffer();
+	if (codebuffer == nullptr)
 	{
-		codebuffer = out.GetBuffer();
-		if (codebuffer == nullptr)
-		{
-			codebuffer = text;
-			out.SetBuffer(codebuffer);
-		}
-		codebuffer[sizeof(text) - 1] = 0x7C;  // canary
+		codebuffer = text;
+		out.SetBuffer(codebuffer);
 	}
-	else
-	{
-		if (uidPresent)
-		{
-			out.CalculateUIDHash();
-		}
-		return;
-	}
+	codebuffer[sizeof(text) - 1] = 0x7C;  // canary
 	if (enablenormalmaps)
 	{
 		if (ApiType == API_OPENGL)
@@ -458,7 +455,7 @@ static inline void GenerateTessellationShader(T& out, const XFMemory& xfr, const
 		"};\n");
 
 	out.Write("struct VS_OUTPUT {\n");
-	GenerateVSOutputMembers<T, ApiType>(out, normalpresent, xfr);
+	GenerateVSOutputMembers<ApiType>(out, normalpresent, uid_data.numTexGens);
 	out.Write("};\n");
 
 	if (ApiType == API_OPENGL)
@@ -472,17 +469,17 @@ static inline void GenerateTessellationShader(T& out, const XFMemory& xfr, const
 			"float EFactor[3] : SV_TessFactor;\n"
 			"float InsideFactor : SV_InsideTessFactor;\n"
 			"float4 edgesize : TEXCOORD0;\n");
-		u32 texcount = xfr.numTexGen.numTexGens < 7 ? xfr.numTexGen.numTexGens : 8;
+		u32 texcount = uid_data.numTexGens < 7 ? uid_data.numTexGens : 8;
 		for (unsigned int i = 0; i < texcount; ++i)
 			out.Write("float4 tex%d[3] : TEXCOORD%d;\n", i, i * 3 + 1);
 
-		if (xfr.numTexGen.numTexGens < 7 && normalpresent)
+		if (uid_data.numTexGens < 7 && normalpresent)
 		{
-			out.Write("float4 Normal[3]: TEXCOORD%d;\n", xfr.numTexGen.numTexGens * 3 + 1);
+			out.Write("float4 Normal[3]: TEXCOORD%d;\n", uid_data.numTexGens * 3 + 1);
 		}
 		out.Write("};\n");
 		out.Write(s_hlsl_hull_header_str);		
-		if (xfr.numTexGen.numTexGens < 7)
+		if (uid_data.numTexGens < 7)
 		{
 			out.Write("result.pos = float4(patch[id].clipPos.x,patch[id].clipPos.y,patch[id].Normal.w, 1.0);\n");
 		}
@@ -516,7 +513,7 @@ static inline void GenerateTessellationShader(T& out, const XFMemory& xfr, const
 			"for(int i = 0; i < 3; i++)\n{\n");
 		for (u32 i = 0; i < texcount; ++i)
 		{
-			if (xfr.numTexGen.numTexGens < 7)
+			if (uid_data.numTexGens < 7)
 			{
 				out.Write("pos[i] = float4(patch[i].clipPos.x,patch[i].clipPos.y,patch[i].Normal.w, 1.0);\n");
 			}
@@ -525,7 +522,7 @@ static inline void GenerateTessellationShader(T& out, const XFMemory& xfr, const
 				out.Write("pos[i] = float4(patch[i].tex0.w, patch[i].tex1.w, patch[i].tex7.w, 1.0);\n");
 			}
 			out.Write("result.tex%d[i].xyz = patch[i].tex%d.xyz;\n", i, i);
-			if (xfr.texMtxInfo[i].projection == XF_TEXPROJ_STQ)
+			if (((uid_data.texMtxInfo_n_projection >> i) & 1) == XF_TEXPROJ_STQ)
 			{
 				out.Write("{\n");
 				out.Write("float2 t0 = patch[i].tex%d.xy;", i);
@@ -544,7 +541,7 @@ static inline void GenerateTessellationShader(T& out, const XFMemory& xfr, const
 				out.Write("}\n");
 			}
 		}
-		if (xfr.numTexGen.numTexGens < 7 && normalpresent)
+		if (uid_data.numTexGens < 7 && normalpresent)
 		{
 			out.Write("result.Normal[i] = patch[i].Normal;\n");
 		}
@@ -590,7 +587,7 @@ static inline void GenerateTessellationShader(T& out, const XFMemory& xfr, const
 			out.Write("int2 t_coord;\n");
 			for (u32 i = 0; i < numTexgen; ++i)
 			{
-				if (xfr.texMtxInfo[i].projection == XF_TEXPROJ_STQ)
+				if (((uid_data.texMtxInfo_n_projection >> i) & 1) == XF_TEXPROJ_STQ)
 				{
 					out.Write("if (result.tex%d.z != 0.0)", i);
 					out.Write("\tuv[%d].xy = result.tex%d.xy / result.tex%d.z;\n", i, i, i);
@@ -609,8 +606,8 @@ static inline void GenerateTessellationShader(T& out, const XFMemory& xfr, const
 			{
 				if (nIndirectStagesUsed & (1 << i))
 				{
-					u32 texcoord = bpm.tevindref.getTexCoord(i);
-					u32 texmap = bpm.tevindref.getTexMap(i);
+					u32 texcoord = uid_data.GetTevindirefCoord(i);
+					u32 texmap = uid_data.GetTevindirefMap(i);
 					if (texcoord < numTexgen)
 					{
 						out.Write("t_coord = BSHR(int2(uv[%d].xy) , " I_INDTEXSCALE"[%d].%s);\n", texcoord, i / 2, (i & 1) ? "zw" : "xy");
@@ -620,12 +617,12 @@ static inline void GenerateTessellationShader(T& out, const XFMemory& xfr, const
 						out.Write("t_coord = int2(0,0);\n");
 					}
 					out.Write("int3 indtex%d = ", i);
-					SampleTexture<T, ApiType>(out, "(float2(t_coord)/128.0)", "abg", texmap);
+					SampleTexture<ApiType>(out, "(float2(t_coord)/128.0)", "abg", texmap, uid_data.stereo);
 				}
 			}
 			for (u32 i = 0; i < numStages; ++i)
 			{
-				WriteFetchDisplacement<T, ApiType>(out, i, bpm); // Fetch Texture data
+				WriteFetchDisplacement<ApiType>(out, i, uid_data); // Fetch Texture data
 			}
 			out.Write("}\n");
 		}
@@ -637,7 +634,7 @@ static inline void GenerateTessellationShader(T& out, const XFMemory& xfr, const
 
 		if (normalpresent)
 		{
-			if (xfr.numTexGen.numTexGens < 7)
+			if (uid_data.numTexGens < 7)
 			{
 				out.Write(
 					"float3 norm0 = pconstans.Normal[0].xyz;\n"
@@ -663,7 +660,7 @@ static inline void GenerateTessellationShader(T& out, const XFMemory& xfr, const
 			"result.pos.xy = result.pos.xy + result.pos.w * " I_DEPTHPARAMS".zw;\n"
 			"result.colors_0 = BInterpolate(patch[0].colors_0, patch[1].colors_0, patch[2].colors_0, bCoords);\n"
 			"result.colors_1 = BInterpolate(patch[0].colors_1, patch[1].colors_1, patch[2].colors_1, bCoords);\n");
-		if (xfr.numTexGen.numTexGens < 7)
+		if (uid_data.numTexGens < 7)
 		{
 			out.Write("result.clipPos = float4(position.xy, result.pos.zw);\n");
 			if (normalpresent)
@@ -686,7 +683,7 @@ static inline void GenerateTessellationShader(T& out, const XFMemory& xfr, const
 					"result.tex6.w = normal.z;\n");
 			}
 
-			if (xfr.numTexGen.numTexGens < 8)
+			if (uid_data.numTexGens < 8)
 				out.Write("result.tex7 = position.xyzz;\n");
 			else
 				out.Write("result.tex7.w = position.z;\n");
@@ -695,37 +692,18 @@ static inline void GenerateTessellationShader(T& out, const XFMemory& xfr, const
 		out.Write("return result;\n}");
 	}
 
-	if (is_writing_shadercode)
-	{
-		if (codebuffer[TESSELLATIONSHADERGEN_BUFFERSIZE - 1] != 0x7C)
-			PanicAlert("GeometryShader generator - buffer too small, canary has been eaten!");
-	}
-	if (uidPresent)
-	{
-		out.CalculateUIDHash();
-	}
+	if (codebuffer[TESSELLATIONSHADERGEN_BUFFERSIZE - 1] != 0x7C)
+		PanicAlert("GeometryShader generator - buffer too small, canary has been eaten!");
 }
 
-void GenerateTessellationShaderCode(ShaderCode& object, API_TYPE ApiType, const XFMemory &xfr, const BPMemory &bpm, const u32 components)
+void GenerateTessellationShaderCode(ShaderCode& object, API_TYPE ApiType, const Tessellation_shader_uid_data& uid_data)
 {
 	if (ApiType == API_OPENGL)
 	{
-		GenerateTessellationShader<ShaderCode, API_OPENGL, true>(object, xfr, bpm, components);
+		GenerateTessellationShader<API_OPENGL>(object, uid_data);
 	}
 	else
 	{
-		GenerateTessellationShader<ShaderCode, API_D3D11, true>(object, xfr, bpm, components);
-	}
-}
-
-void GetTessellationShaderUid(TessellationShaderUid& object, API_TYPE ApiType, const XFMemory &xfr, const BPMemory &bpm, const u32 components)
-{
-	if (ApiType == API_OPENGL)
-	{
-		GenerateTessellationShader<TessellationShaderUid, API_OPENGL, false>(object, xfr, bpm, components);
-	}
-	else
-	{
-		GenerateTessellationShader<TessellationShaderUid, API_D3D11, false>(object, xfr, bpm, components);
+		GenerateTessellationShader<API_D3D11>(object, uid_data);
 	}
 }

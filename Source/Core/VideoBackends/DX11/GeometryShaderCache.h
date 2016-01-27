@@ -51,8 +51,6 @@ namespace DX11
 		static GeometryShaderUid s_last_uid;
 		static GeometryShaderUid s_external_last_uid;
 		static const GSCacheEntry s_pass_entry;
-
-		static UidChecker<GeometryShaderUid, ShaderCode> geometry_uid_checker;
 	};
 
 }  // namespace DX11

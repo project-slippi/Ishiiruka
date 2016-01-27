@@ -32,14 +32,6 @@ class ShaderGeneratorInterface
 {
 public:
 	/*
-	* Clears The UID data to its Default Value
-	*/
-	void ClearUID(){}
-	/*
-	* Calculates UID data Hash
-	*/
-	void CalculateUIDHash(){ }
-	/*
 	* Used when the shader generator would write a piece of ShaderCode.
 	* Can be used like printf.
 	* @note In the ShaderCode implementation, this does indeed write the parameter string to an internal buffer. However, you're free to do whatever you like with the parameter.
@@ -58,13 +50,6 @@ public:
 	* @param buffer pointer to a char buffer that the object can write to
 	*/
 	void SetBuffer(char* buffer) { }
-
-	/*
-	* Returns a pointer to an internally stored object of the uid_data type.
-	* @warning since most child classes use the default implementation you shouldn't access this directly without adding precautions against NULL access (e.g. via adding a dummy structure, cf. the vertex/pixel shader generators)
-	*/
-	template<class uid_data>
-	uid_data& GetUidData() { return *(uid_data*)NULL; }
 };
 
 /**
@@ -74,7 +59,7 @@ public:
 * Shader generators will write to specific uid_data fields; ShaderUid methods will only read raw u32 values from a union.
 */
 template<class uid_data>
-class ShaderUid : public ShaderGeneratorInterface
+class ShaderUid
 {
 public:
 	ShaderUid() : HASH(0){}
@@ -130,8 +115,6 @@ private:
 	std::size_t HASH;
 };
 
-
-
 class ShaderCode : public ShaderGeneratorInterface
 {
 public:
@@ -139,10 +122,6 @@ public:
 	{
 
 	}
-
-	void ClearUID(){}
-
-	void CalculateUIDHash(){ }
 
 	void Write(const char* fmt, ...)
 	{
@@ -160,8 +139,8 @@ private:
 	char* write_ptr;
 };
 
-template<class T, API_TYPE api_type>
-static inline void WriteRegister(T& object, const char *prefix, const u32 num)
+template<API_TYPE api_type>
+inline void WriteRegister(ShaderCode& object, const char *prefix, const u32 num)
 {
 	if (api_type == API_OPENGL || api_type == API_D3D11)
 		return; // Nothing to do here
@@ -169,8 +148,8 @@ static inline void WriteRegister(T& object, const char *prefix, const u32 num)
 	object.Write(" : register(%s%d)", prefix, num);
 }
 
-template<class T, API_TYPE api_type>
-static inline void WriteLocation(T& object)
+template<API_TYPE api_type>
+inline void WriteLocation(ShaderCode& object)
 {
 	if (api_type == API_OPENGL || api_type == API_D3D11)
 		return;
@@ -178,86 +157,17 @@ static inline void WriteLocation(T& object)
 	object.Write("uniform ");
 }
 
-template<class T, API_TYPE api_type>
-static inline void DeclareUniform(T& object, const u32 num, const char* type, const char* name)
+template<API_TYPE api_type>
+inline void DeclareUniform(ShaderCode& object, const u32 num, const char* type, const char* name)
 {
-	WriteLocation<T, api_type>(object);
+	WriteLocation<api_type>(object);
 	object.Write("%s %s ", type, name);
-	WriteRegister<T, api_type>(object, "c", num);
+	WriteRegister<api_type>(object, "c", num);
 	object.Write(";\n");
 }
 
-/**
-* Checks if there has been
-*/
-template<class UidT, class CodeT>
-class UidChecker
-{
-public:
-	void Invalidate()
-	{
-		m_shaders.clear();
-		m_uids.clear();
-	}
-
-	void AddToIndexAndCheck(CodeT& new_code, const UidT& new_uid, const char* shader_type, const char* dump_prefix)
-	{
-		bool uid_is_indexed = std::find(m_uids.begin(), m_uids.end(), new_uid) != m_uids.end();
-		if (!uid_is_indexed)
-		{
-			m_uids.push_back(new_uid);
-			m_shaders[new_uid] = new_code.GetBuffer();
-		}
-		else
-		{
-			// uid is already in the index => check if there's a shader with the same uid but different code
-			auto& old_code = m_shaders[new_uid];
-			if (strcmp(old_code.c_str(), new_code.GetBuffer()) != 0)
-			{
-				static int num_failures = 0;
-
-				char szTemp[MAX_PATH];
-				sprintf(szTemp, "%s%ssuid_mismatch_%04i.txt", File::GetUserPath(D_DUMP_IDX).c_str(),
-					dump_prefix,
-					++num_failures);
-
-				// TODO: Should also dump uids
-				std::ofstream file;
-				OpenFStream(file, szTemp, std::ios_base::out);
-				file << "Old shader code:\n" << old_code;
-				file << "\n\nNew shader code:\n" << new_code.GetBuffer();
-				file << "\n\nShader uid:\n";
-				for (unsigned int i = 0; i < new_uid.GetUidDataSize(); ++i)
-				{
-					u32 value = ((u32*)&new_uid.GetUidData())[i];
-					if ((i % 4) == 0)
-					{
-						auto last_value = (i + 3 < new_uid.GetUidDataSize() - 1) ? i + 3 : new_uid.GetUidDataSize();
-						file << std::setfill(' ') << std::dec;
-						file << "Values " << std::setw(2) << i << " - " << last_value << ": ";
-					}
-
-					file << std::setw(8) << std::setfill('0') << std::hex << value << std::setw(1);
-					if ((i % 4) < 3)
-						file << ' ';
-					else
-						file << std::endl;
-				}
-				file.close();
-
-				ERROR_LOG(VIDEO, "%s shader uid mismatch! See %s for details", shader_type, szTemp);
-			}
-		}
-	}
-
-private:
-	std::map<UidT, std::string> m_shaders;
-	std::vector<UidT> m_uids;
-};
-
-
-template<class T, API_TYPE api_type>
-void DefineVSOutputStructMember(T& object, const char* qualifier, const char* type, const char* name, const char* sufix, int var_index, const char* semantic, int semantic_index = -1)
+template<API_TYPE api_type>
+inline void DefineVSOutputStructMember(ShaderCode& object, const char* qualifier, const char* type, const char* name, const char* sufix, int var_index, const char* semantic, int semantic_index = -1)
 {
 	if (qualifier != nullptr)
 		object.Write("\t%s %s %s%s", qualifier, type, name, sufix);
@@ -278,42 +188,42 @@ void DefineVSOutputStructMember(T& object, const char* qualifier, const char* ty
 	}
 }
 
-template<class T, API_TYPE api_type>
-inline void GenerateVSOutputMembers(T& object, bool enable_pl, const XFMemory &xfr, const char* qualifier = nullptr)
+template<API_TYPE api_type>
+inline void GenerateVSOutputMembers(ShaderCode& object, bool enable_pl, u32 numtexgens, const char* qualifier = nullptr)
 {
-	DefineVSOutputStructMember<T, api_type>(object, qualifier, "float4", "pos", "", -1, api_type == API_D3D11 ? "SV_Position" : "POSITION");
-	DefineVSOutputStructMember<T, api_type>(object, qualifier, "float4", "colors_", "", 0, "COLOR", 0);
-	DefineVSOutputStructMember<T, api_type>(object, qualifier, "float4", "colors_", "", 1, "COLOR", 1);
+	DefineVSOutputStructMember<api_type>(object, qualifier, "float4", "pos", "", -1, api_type == API_D3D11 ? "SV_Position" : "POSITION");
+	DefineVSOutputStructMember<api_type>(object, qualifier, "float4", "colors_", "", 0, "COLOR", 0);
+	DefineVSOutputStructMember<api_type>(object, qualifier, "float4", "colors_", "", 1, "COLOR", 1);
 
-	if (xfr.numTexGen.numTexGens < 7)
+	if (numtexgens < 7)
 	{
-		for (unsigned int i = 0; i < xfr.numTexGen.numTexGens; ++i)
-			DefineVSOutputStructMember<T, api_type>(object, qualifier, "float3", "tex", "", i, "TEXCOORD", i);
+		for (unsigned int i = 0; i < numtexgens; ++i)
+			DefineVSOutputStructMember<api_type>(object, qualifier, "float3", "tex", "", i, "TEXCOORD", i);
 		const char * sufix = (api_type == API_OPENGL) ? "_2" : "";
-		DefineVSOutputStructMember<T, api_type>(object, qualifier, "float4", "clipPos", sufix, -1, "TEXCOORD", xfr.numTexGen.numTexGens);
+		DefineVSOutputStructMember<api_type>(object, qualifier, "float4", "clipPos", sufix, -1, "TEXCOORD", numtexgens);
 
 		if (enable_pl)
-			DefineVSOutputStructMember<T, api_type>(object, qualifier, "float4", "Normal", sufix, -1, "TEXCOORD", xfr.numTexGen.numTexGens + 1);
+			DefineVSOutputStructMember<api_type>(object, qualifier, "float4", "Normal", sufix, -1, "TEXCOORD", numtexgens + 1);
 	}
 	else
 	{
 		// Store clip position in the w component of first 4 texcoords
-		int num_texcoords = enable_pl ? 8 : xfr.numTexGen.numTexGens;
+		int num_texcoords = enable_pl ? 8 : numtexgens;
 		for (int i = 0; i < num_texcoords; ++i)
-			DefineVSOutputStructMember<T, api_type>(object, qualifier, (enable_pl || i < 4) ? "float4" : "float3", "tex", "", i, "TEXCOORD", i);
+			DefineVSOutputStructMember<api_type>(object, qualifier, (enable_pl || i < 4) ? "float4" : "float3", "tex", "", i, "TEXCOORD", i);
 	}
 }
 
-template<class T, API_TYPE api_type>
-static inline void AssignVSOutputMembers(T& object, const char* a, const char* b, bool enable_pl, const XFMemory &xfr)
+template<API_TYPE api_type>
+inline void AssignVSOutputMembers(ShaderCode& object, const char* a, const char* b, bool enable_pl, u32 numtexgens)
 {
 	object.Write("\t%s.pos = %s.pos;\n", a, b);
 	object.Write("\t%s.colors_0 = %s.colors_0;\n", a, b);
 	object.Write("\t%s.colors_1 = %s.colors_1;\n", a, b);
 
-	if (xfr.numTexGen.numTexGens < 7)
+	if (numtexgens < 7)
 	{
-		for (unsigned int i = 0; i < xfr.numTexGen.numTexGens; ++i)
+		for (unsigned int i = 0; i < numtexgens; ++i)
 			object.Write("\t%s.tex%d = %s.tex%d;\n", a, i, b, i);
 		const char * sufix = (api_type == API_OPENGL) ? "_2" : "";
 		object.Write("\t%s.clipPos%s = %s.clipPos%s;\n", a, sufix, b, sufix);
@@ -324,7 +234,7 @@ static inline void AssignVSOutputMembers(T& object, const char* a, const char* b
 	else
 	{
 		// Store clip position in the w component of first 4 texcoords
-		int num_texcoords = enable_pl ? 8 : xfr.numTexGen.numTexGens;
+		int num_texcoords = enable_pl ? 8 : numtexgens;
 		for (int i = 0; i < num_texcoords; ++i)
 			object.Write("\t%s.tex%d = %s.tex%d;\n", a, i, b, i);
 	}
@@ -338,12 +248,12 @@ static inline void AssignVSOutputMembers(T& object, const char* a, const char* b
 // As a workaround, we interpolate at the centroid of the coveraged pixel, which
 // is always inside the primitive.
 // Without MSAA, this flag is defined to have no effect.
-static inline const char* GetInterpolationQualifier(API_TYPE api_type, bool in = true, bool in_out = false)
+inline const char* GetInterpolationQualifier(API_TYPE api_type, bool msaa, bool ssaa, bool in = true, bool in_out = false)
 {
-	if ((g_ActiveConfig.iMultisamples <= 1) || (api_type & API_D3D9))
+	if (!msaa || (api_type & API_D3D9))
 		return "";
 
-	if (!g_ActiveConfig.bSSAA)
+	if (!ssaa)
 	{
 		if (in_out && api_type == API_OPENGL && !g_ActiveConfig.backend_info.bSupportsBindingLayout)
 			return in ? "centroid in" : "centroid out";

@@ -31,7 +31,6 @@ GeometryShaderCache::GSCache GeometryShaderCache::s_geometry_shaders;
 const GeometryShaderCache::GSCacheEntry* GeometryShaderCache::s_last_entry;
 GeometryShaderUid GeometryShaderCache::s_last_uid;
 GeometryShaderUid GeometryShaderCache::s_external_last_uid;
-UidChecker<GeometryShaderUid, ShaderCode> GeometryShaderCache::geometry_uid_checker;
 const GeometryShaderCache::GSCacheEntry GeometryShaderCache::s_pass_entry;
 static HLSLAsyncCompiler *s_compiler;
 static Common::SpinLock<true> s_geometry_shaders_lock;
@@ -188,7 +187,6 @@ void GeometryShaderCache::Clear()
 		iter.second.Destroy();
 	s_geometry_shaders.clear();
 	s_geometry_shaders_lock.unlock();
-	geometry_uid_checker.Invalidate();
 	
 	s_last_entry = nullptr;
 }
@@ -220,7 +218,7 @@ void GeometryShaderCache::PrepareShader(
 	bool ongputhread)
 {
 	GeometryShaderUid uid;
-	GetGeometryShaderUid(uid, primitive_type, API_D3D11, xfr, components);
+	GetGeometryShaderUid(uid, primitive_type, xfr, components);
 	if (ongputhread)
 	{
 		s_compiler->ProcCompilationResults();
@@ -277,7 +275,7 @@ void GeometryShaderCache::PrepareShader(
 	ShaderCode code;
 	ShaderCompilerWorkUnit *wunit = s_compiler->NewUnit(GEOMETRYSHADERGEN_BUFFERSIZE);
 	code.SetBuffer(wunit->code.data());
-	GenerateGeometryShaderCode(code, primitive_type, API_D3D11, xfr, components);
+	GenerateGeometryShaderCode(code, uid.GetUidData(), API_D3D11);
 	wunit->codesize = (u32)code.BufferSize();
 	wunit->entrypoint = "main";
 	wunit->flags = D3DCOMPILE_SKIP_VALIDATION | D3DCOMPILE_OPTIMIZATION_LEVEL3;

@@ -23,7 +23,9 @@ struct geometry_shader_uid_data
 	u32 pixel_lighting : 1;
 	u32 primitive_type : 2;
 	u32 wireframe : 1;
-	u32 padding : 23;
+	u32 msaa : 1;
+	u32 ssaa : 1;
+	u32 padding : 21;
 };
 
 #pragma pack()
@@ -35,5 +37,5 @@ struct geometry_shader_uid_data
 #define GEOMETRYSHADERGEN_BUFFERSIZE 32768
 typedef ShaderUid<geometry_shader_uid_data> GeometryShaderUid;
 
-void GenerateGeometryShaderCode(ShaderCode& object, u32 primitive_type, API_TYPE ApiType, const XFMemory &xfr, const u32 components);
-void GetGeometryShaderUid(GeometryShaderUid& object, u32 primitive_type, API_TYPE ApiType, const XFMemory &xfr, const u32 components);
+void GenerateGeometryShaderCode(ShaderCode& object, const geometry_shader_uid_data& uid_data, API_TYPE ApiType);
+void GetGeometryShaderUid(GeometryShaderUid& object, u32 primitive_type, const XFMemory &xfr, const u32 components);

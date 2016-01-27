@@ -59,11 +59,6 @@ static LinearDiskCache<GeometryShaderUid, u8> s_gs_disk_cache;
 static LinearDiskCache<PixelShaderUid, u8> s_ps_disk_cache;
 static LinearDiskCache<VertexShaderUid, u8> s_vs_disk_cache;
 
-static UidChecker<TessellationShaderUid, ShaderCode> s_Tessellation_uid_checker;
-static UidChecker<GeometryShaderUid, ShaderCode> s_geometry_uid_checker;
-static UidChecker<PixelShaderUid, ShaderCode> s_pixel_uid_checker;
-static UidChecker<VertexShaderUid, ShaderCode> s_vertex_uid_checker;
-
 static ByteCodeCacheEntry* s_last_domain_shader_bytecode;
 static ByteCodeCacheEntry* s_last_hull_shader_bytecode;
 static ByteCodeCacheEntry* s_last_geometry_shader_bytecode;
@@ -190,11 +185,6 @@ void ShaderCache::Shutdown()
 	s_ps_disk_cache.Close();
 	s_vs_disk_cache.Sync();
 	s_vs_disk_cache.Close();
-
-	s_geometry_uid_checker.Invalidate();
-	s_pixel_uid_checker.Invalidate();
-	s_vertex_uid_checker.Invalidate();
-	s_Tessellation_uid_checker.Invalidate();
 }
 
 static void PushByteCode(ByteCodeCacheEntry* entry, D3DBlob* shaderBuffer)
@@ -254,7 +244,7 @@ void ShaderCache::HandleGSUIDChange(
 	ShaderCode code;
 	ShaderCompilerWorkUnit *wunit = s_compiler->NewUnit(GEOMETRYSHADERGEN_BUFFERSIZE);
 	code.SetBuffer(wunit->code.data());
-	GenerateGeometryShaderCode(code, gs_primitive_type, API_D3D11, xfr, components);
+	GenerateGeometryShaderCode(code, gs_uid.GetUidData(), API_D3D11);
 	wunit->codesize = (u32)code.BufferSize();
 	wunit->entrypoint = "main";
 	wunit->flags = D3DCOMPILE_SKIP_VALIDATION | D3DCOMPILE_OPTIMIZATION_LEVEL3;
@@ -321,7 +311,7 @@ void ShaderCache::HandlePSUIDChange(
 	ShaderCode code;
 	ShaderCompilerWorkUnit *wunit = s_compiler->NewUnit(PIXELSHADERGEN_BUFFERSIZE);
 	code.SetBuffer(wunit->code.data());
-	GeneratePixelShaderCodeD3D11(code, ps_dst_alpha_mode, components, xfr, bpm);
+	GeneratePixelShaderCodeD3D11(code, ps_uid.GetUidData());
 	wunit->codesize = (u32)code.BufferSize();
 	wunit->entrypoint = "main";
 	wunit->flags = D3DCOMPILE_SKIP_VALIDATION | D3DCOMPILE_OPTIMIZATION_LEVEL3;
@@ -383,7 +373,7 @@ void ShaderCache::HandleVSUIDChange(
 	ShaderCode code;
 	ShaderCompilerWorkUnit *wunit = s_compiler->NewUnit(VERTEXSHADERGEN_BUFFERSIZE);
 	code.SetBuffer(wunit->code.data());
-	GenerateVertexShaderCodeD3D11(code, components, xfr, bpm);
+	GenerateVertexShaderCodeD3D11(code, vs_uid.GetUidData());
 	wunit->codesize = (u32)code.BufferSize();
 	wunit->entrypoint = "main";
 	wunit->flags = D3DCOMPILE_SKIP_VALIDATION | D3DCOMPILE_OPTIMIZATION_LEVEL3 | D3DCOMPILE_ENABLE_BACKWARDS_COMPATIBILITY;
@@ -468,7 +458,7 @@ void ShaderCache::HandleTSUIDChange(
 	ShaderCompilerWorkUnit *wunit = s_compiler->NewUnit(TESSELLATIONSHADERGEN_BUFFERSIZE);
 	ShaderCompilerWorkUnit *wunitd = s_compiler->NewUnit(TESSELLATIONSHADERGEN_BUFFERSIZE);
 	code.SetBuffer(wunit->code.data());
-	GenerateTessellationShaderCode(code, API_D3D11, xfr, bpm, components);
+	GenerateTessellationShaderCode(code, API_D3D11, ts_uid.GetUidData());
 	memcpy(wunitd->code.data(), wunit->code.data(), code.BufferSize());
 
 	wunit->codesize = (u32)code.BufferSize();
@@ -563,7 +553,7 @@ void ShaderCache::PrepareShaders(DSTALPHA_MODE ps_dst_alpha_mode,
 {
 	SetCurrentPrimitiveTopology(gs_primitive_type);
 	GeometryShaderUid gs_uid;
-	GetGeometryShaderUid(gs_uid, gs_primitive_type, API_D3D11, xfr, components);
+	GetGeometryShaderUid(gs_uid, gs_primitive_type, xfr, components);
 	PixelShaderUid ps_uid;
 	GetPixelShaderUidD3D11(ps_uid, ps_dst_alpha_mode, components, xfr, bpm);
 	VertexShaderUid vs_uid;
@@ -571,7 +561,7 @@ void ShaderCache::PrepareShaders(DSTALPHA_MODE ps_dst_alpha_mode,
 	TessellationShaderUid ts_uid = {};
 	if (gs_primitive_type == PrimitiveType::PRIMITIVE_TRIANGLES && g_ActiveConfig.TessellationEnabled() && g_ActiveConfig.PixelLightingEnabled(xfr, components))
 	{
-		GetTessellationShaderUid(ts_uid, API_D3D11, xfr, bpm, components);
+		GetTessellationShaderUID(ts_uid, xfr, bpm, components);
 	}
 	
 	bool gs_changed = false;

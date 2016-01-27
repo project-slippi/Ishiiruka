@@ -31,7 +31,6 @@ PixelShaderCache::PSCache PixelShaderCache::PixelShaders;
 const PixelShaderCache::PSCacheEntry *PixelShaderCache::last_entry[DSTALPHA_NULL + 1];
 PixelShaderUid PixelShaderCache::last_uid[DSTALPHA_NULL + 1];
 PixelShaderUid PixelShaderCache::external_last_uid[DSTALPHA_NULL + 1];
-UidChecker<PixelShaderUid,ShaderCode> PixelShaderCache::pixel_uid_checker;
 
 static HLSLAsyncCompiler *Compiler;
 static Common::SpinLock<true> PixelShadersLock;
@@ -308,7 +307,6 @@ void PixelShaderCache::Clear()
 		iter->second.Destroy();
 	PixelShaders.clear();
 	PixelShadersLock.unlock();
-	pixel_uid_checker.Invalidate();
 
 	for (u32 i = 0; i < DSTALPHA_NULL + 1; i++)
 	{
@@ -407,11 +405,11 @@ void PixelShaderCache::PrepareShader(
 	code.SetBuffer(wunit->code.data());
 	if (api == API_D3D9_SM20)
 	{
-		GeneratePixelShaderCodeD3D9SM2(code, dstAlphaMode, components, xfr, bpm);
+		GeneratePixelShaderCodeD3D9SM2(code, uid.GetUidData());
 	}
 	else
 	{
-		GeneratePixelShaderCodeD3D9(code, dstAlphaMode, components, xfr, bpm);
+		GeneratePixelShaderCodeD3D9(code, uid.GetUidData());
 	}
 	wunit->codesize = (u32)code.BufferSize();
 	wunit->entrypoint = "main";
