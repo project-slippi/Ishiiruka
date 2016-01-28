@@ -253,11 +253,16 @@ void VertexShaderCache::PrepareShader(
 	{
 		return;
 	}
-	ShaderCode code;
+
 	ShaderCompilerWorkUnit *wunit = s_compiler->NewUnit(VERTEXSHADERGEN_BUFFERSIZE);
-	code.SetBuffer(wunit->code.data());
-	GenerateVertexShaderCodeD3D11(code, uid.GetUidData());
-	wunit->codesize = (u32)code.BufferSize();
+	wunit->GenerateCodeHandler = [uid](ShaderCompilerWorkUnit* wunit)
+	{
+		ShaderCode code;
+		code.SetBuffer(wunit->code.data());
+		GenerateVertexShaderCodeD3D11(code, uid.GetUidData());
+		wunit->codesize = (u32)code.BufferSize();
+	};
+
 	wunit->entrypoint = "main";
 	wunit->flags = D3DCOMPILE_SKIP_VALIDATION | D3DCOMPILE_OPTIMIZATION_LEVEL3 | D3DCOMPILE_ENABLE_BACKWARDS_COMPATIBILITY;
 	wunit->target = D3D::VertexShaderVersionString();

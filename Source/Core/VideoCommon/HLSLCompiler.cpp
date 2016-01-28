@@ -23,6 +23,8 @@ ResultHandler()
 
 void ShaderCompilerWorkUnit::Clear()
 {
+	GenerateCodeHandler = {};
+	ResultHandler = {};
 	cresult = 0;
 	defines = nullptr;
 	entrypoint = nullptr;
@@ -81,6 +83,10 @@ bool HLSLAsyncCompiler::NextTask()
 	ShaderCompilerWorkUnit* unit;
 	if (m_input.try_pop(unit))
 	{
+		if (unit->GenerateCodeHandler)
+		{
+			unit->GenerateCodeHandler(unit);
+		}
 		unit->cresult = PD3DCompile(unit->code.data(),
 			unit->codesize,
 			nullptr,

@@ -209,11 +209,14 @@ void VertexShaderCache::PrepareShader(u32 components, const XFMemory &xfr, const
 	{
 		return;
 	}
-	ShaderCode code;
 	ShaderCompilerWorkUnit *wunit = Compiler->NewUnit(VERTEXSHADERGEN_BUFFERSIZE);
-	code.SetBuffer(wunit->code.data());
-	GenerateVertexShaderCodeD3D9(code, uid.GetUidData());
-	wunit->codesize = (u32)code.BufferSize();
+	wunit->GenerateCodeHandler = [uid](ShaderCompilerWorkUnit* wunit)
+	{
+		ShaderCode code;
+		code.SetBuffer(wunit->code.data());
+		GenerateVertexShaderCodeD3D9(code, uid.GetUidData());
+		wunit->codesize = (u32)code.BufferSize();
+	};
 	wunit->entrypoint = "main";
 	wunit->flags = D3DCOMPILE_SKIP_VALIDATION | D3DCOMPILE_OPTIMIZATION_LEVEL3;
 	wunit->target = D3D::VertexShaderVersionString();

@@ -613,11 +613,16 @@ void PixelShaderCache::PrepareShader(DSTALPHA_MODE dstAlphaMode,
 		return;
 	}
 	// Need to compile a new shader
-	ShaderCode code;
+
 	ShaderCompilerWorkUnit *wunit = s_compiler->NewUnit(PIXELSHADERGEN_BUFFERSIZE);
-	code.SetBuffer(wunit->code.data());
-	GeneratePixelShaderCodeD3D11(code, uid.GetUidData());
-	wunit->codesize = (u32)code.BufferSize();
+	wunit->GenerateCodeHandler = [uid](ShaderCompilerWorkUnit* wunit)
+	{
+		ShaderCode code;
+		code.SetBuffer(wunit->code.data());
+		GeneratePixelShaderCodeD3D11(code, uid.GetUidData());
+		wunit->codesize = (u32)code.BufferSize();
+	};
+	
 	wunit->entrypoint = "main";
 	wunit->flags = D3DCOMPILE_SKIP_VALIDATION | D3DCOMPILE_OPTIMIZATION_LEVEL3;
 	wunit->target = D3D::PixelShaderVersionString();

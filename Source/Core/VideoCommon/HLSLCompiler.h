@@ -27,6 +27,7 @@ public:
 	ID3DBlob* shaderbytecode;
 	ID3DBlob* error;
 	std::vector<char> code;
+	std::function<void(ShaderCompilerWorkUnit*)> GenerateCodeHandler;
 	std::function<void(ShaderCompilerWorkUnit*)> ResultHandler;
 	void Clear();
 	void Release();

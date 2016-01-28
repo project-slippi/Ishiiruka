@@ -272,11 +272,15 @@ void GeometryShaderCache::PrepareShader(
 	}
 
 	// Need to compile a new shader
-	ShaderCode code;
 	ShaderCompilerWorkUnit *wunit = s_compiler->NewUnit(GEOMETRYSHADERGEN_BUFFERSIZE);
-	code.SetBuffer(wunit->code.data());
-	GenerateGeometryShaderCode(code, uid.GetUidData(), API_D3D11);
-	wunit->codesize = (u32)code.BufferSize();
+	wunit->GenerateCodeHandler = [uid](ShaderCompilerWorkUnit* wunit)
+	{
+		ShaderCode code;
+		code.SetBuffer(wunit->code.data());
+		GenerateGeometryShaderCode(code, uid.GetUidData(), API_D3D11);
+		wunit->codesize = (u32)code.BufferSize();
+	};
+	
 	wunit->entrypoint = "main";
 	wunit->flags = D3DCOMPILE_SKIP_VALIDATION | D3DCOMPILE_OPTIMIZATION_LEVEL3;
 	wunit->target = D3D::GeometryShaderVersionString();

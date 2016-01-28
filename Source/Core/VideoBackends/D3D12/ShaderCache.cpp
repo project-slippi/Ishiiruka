@@ -241,11 +241,15 @@ void ShaderCache::HandleGSUIDChange(
 	}
 
 	// Need to compile a new shader
-	ShaderCode code;
 	ShaderCompilerWorkUnit *wunit = s_compiler->NewUnit(GEOMETRYSHADERGEN_BUFFERSIZE);
-	code.SetBuffer(wunit->code.data());
-	GenerateGeometryShaderCode(code, gs_uid.GetUidData(), API_D3D11);
-	wunit->codesize = (u32)code.BufferSize();
+	wunit->GenerateCodeHandler = [gs_uid](ShaderCompilerWorkUnit* wunit)
+	{
+		ShaderCode code;
+		code.SetBuffer(wunit->code.data());
+		GenerateGeometryShaderCode(code, gs_uid.GetUidData(), API_D3D11);
+		wunit->codesize = (u32)code.BufferSize();
+	};
+
 	wunit->entrypoint = "main";
 	wunit->flags = D3DCOMPILE_SKIP_VALIDATION | D3DCOMPILE_OPTIMIZATION_LEVEL3;
 	wunit->target = D3D::GeometryShaderVersionString();
@@ -308,11 +312,15 @@ void ShaderCache::HandlePSUIDChange(
 		return;
 	}
 	// Need to compile a new shader
-	ShaderCode code;
 	ShaderCompilerWorkUnit *wunit = s_compiler->NewUnit(PIXELSHADERGEN_BUFFERSIZE);
-	code.SetBuffer(wunit->code.data());
-	GeneratePixelShaderCodeD3D11(code, ps_uid.GetUidData());
-	wunit->codesize = (u32)code.BufferSize();
+	wunit->GenerateCodeHandler = [ps_uid](ShaderCompilerWorkUnit* wunit)
+	{
+		ShaderCode code;
+		code.SetBuffer(wunit->code.data());
+		GeneratePixelShaderCodeD3D11(code, ps_uid.GetUidData());
+		wunit->codesize = (u32)code.BufferSize();
+	};
+	
 	wunit->entrypoint = "main";
 	wunit->flags = D3DCOMPILE_SKIP_VALIDATION | D3DCOMPILE_OPTIMIZATION_LEVEL3;
 	wunit->target = D3D::PixelShaderVersionString();
@@ -370,11 +378,15 @@ void ShaderCache::HandleVSUIDChange(
 	{
 		return;
 	}
-	ShaderCode code;
 	ShaderCompilerWorkUnit *wunit = s_compiler->NewUnit(VERTEXSHADERGEN_BUFFERSIZE);
-	code.SetBuffer(wunit->code.data());
-	GenerateVertexShaderCodeD3D11(code, vs_uid.GetUidData());
-	wunit->codesize = (u32)code.BufferSize();
+	wunit->GenerateCodeHandler = [vs_uid](ShaderCompilerWorkUnit* wunit)
+	{
+		ShaderCode code;
+		code.SetBuffer(wunit->code.data());
+		GenerateVertexShaderCodeD3D11(code, vs_uid.GetUidData());
+		wunit->codesize = (u32)code.BufferSize();
+	};
+	
 	wunit->entrypoint = "main";
 	wunit->flags = D3DCOMPILE_SKIP_VALIDATION | D3DCOMPILE_OPTIMIZATION_LEVEL3 | D3DCOMPILE_ENABLE_BACKWARDS_COMPATIBILITY;
 	wunit->target = D3D::VertexShaderVersionString();
