@@ -152,11 +152,11 @@ void VertexManager::vFlush(bool useDstAlpha)
 	// the same pass as regular rendering.
 	if (useDstAlpha && dualSourcePossible)
 	{
-		ProgramShaderCache::SetShader(DSTALPHA_DUAL_SOURCE_BLEND, VertexLoaderManager::g_current_components, current_primitive_type);
+		ProgramShaderCache::SetShader(PSRM_DUAL_SOURCE_BLEND, VertexLoaderManager::g_current_components, current_primitive_type);
 	}
 	else
 	{
-		ProgramShaderCache::SetShader(DSTALPHA_NONE, VertexLoaderManager::g_current_components, current_primitive_type);
+		ProgramShaderCache::SetShader(PSRM_DEFAULT, VertexLoaderManager::g_current_components, current_primitive_type);
 	}
 
 	// upload global constants
@@ -170,7 +170,7 @@ void VertexManager::vFlush(bool useDstAlpha)
 	// run through vertex groups again to set alpha
 	if (useDstAlpha && !dualSourcePossible)
 	{
-		ProgramShaderCache::SetShader(DSTALPHA_ALPHA_PASS, VertexLoaderManager::g_current_components, current_primitive_type);
+		ProgramShaderCache::SetShader(PSRM_ALPHA_PASS, VertexLoaderManager::g_current_components, current_primitive_type);
 
 		// only update alpha
 		glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_TRUE);

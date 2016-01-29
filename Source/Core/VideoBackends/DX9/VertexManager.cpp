@@ -475,16 +475,16 @@ void DX9::VertexManager::PrepareShaders(PrimitiveType primitive, u32 components,
 	const bool useDualSource = useDstAlpha && g_ActiveConfig.backend_info.bSupportsDualSourceBlend;
 	const bool forced_early_z = bpm.UseEarlyDepthTest() && bpm.zmode.updateenable && bpm.alpha_test.TestResult() == AlphaTest::UNDETERMINED && !g_ActiveConfig.bFastDepthCalc;
 	g_Config.backend_info.bSupportsEarlyZ = !g_ActiveConfig.bFastDepthCalc;
-	DSTALPHA_MODE AlphaMode = forced_early_z ? DSTALPHA_NULL : (useDualSource ? DSTALPHA_DUAL_SOURCE_BLEND : DSTALPHA_NONE);
+	PIXEL_SHADER_RENDER_MODE render_mode = forced_early_z ? PSRM_DEPTH_ONLY : (useDualSource ? PSRM_DUAL_SOURCE_BLEND : PSRM_DEFAULT);
 	VertexShaderCache::PrepareShader(components, xfr, bpm, ongputhread);
-	PixelShaderCache::PrepareShader(AlphaMode, components, xfr, bpm, ongputhread);
+	PixelShaderCache::PrepareShader(render_mode, components, xfr, bpm, ongputhread);
 	if (forced_early_z)
 	{
-		PixelShaderCache::PrepareShader(useDualSource ? DSTALPHA_DUAL_SOURCE_BLEND : DSTALPHA_NONE, components, xfr, bpm, ongputhread);
+		PixelShaderCache::PrepareShader(useDualSource ? PSRM_DUAL_SOURCE_BLEND : PSRM_DEFAULT, components, xfr, bpm, ongputhread);
 	}
 	if (useDstAlpha && !useDualSource)
 	{
-		PixelShaderCache::PrepareShader(DSTALPHA_ALPHA_PASS, components, xfr, bpm, ongputhread);
+		PixelShaderCache::PrepareShader(PSRM_ALPHA_PASS, components, xfr, bpm, ongputhread);
 	}
 }
 
@@ -521,12 +521,12 @@ void VertexManager::vFlush(bool useDstAlpha)
 
 	const bool useDualSource = useDstAlpha && g_ActiveConfig.backend_info.bSupportsDualSourceBlend;
 	const bool forced_early_z = bpmem.UseEarlyDepthTest() && bpmem.zmode.updateenable && bpmem.alpha_test.TestResult() == AlphaTest::UNDETERMINED && !g_ActiveConfig.bFastDepthCalc;
-	DSTALPHA_MODE AlphaMode = forced_early_z ? DSTALPHA_NULL : (useDualSource ? DSTALPHA_DUAL_SOURCE_BLEND : DSTALPHA_NONE);
+	PIXEL_SHADER_RENDER_MODE render_mode = forced_early_z ? PSRM_DEPTH_ONLY : (useDualSource ? PSRM_DUAL_SOURCE_BLEND : PSRM_DEFAULT);
 	if (!VertexShaderCache::TestShader())
 	{
 		goto shader_fail;
 	}
-	if (!PixelShaderCache::SetShader(AlphaMode))
+	if (!PixelShaderCache::SetShader(render_mode))
 	{
 		goto shader_fail;
 	}
@@ -572,8 +572,8 @@ void VertexManager::vFlush(bool useDstAlpha)
 		D3D::RefreshRenderState(D3DRS_COLORWRITEENABLE);
 		D3D::ChangeRenderState(D3DRS_ZWRITEENABLE, FALSE);
 		D3D::ChangeRenderState(D3DRS_ZFUNC, D3DCMP_EQUAL);
-		AlphaMode = useDualSource ? DSTALPHA_DUAL_SOURCE_BLEND : DSTALPHA_NONE;
-		if (!PixelShaderCache::SetShader(AlphaMode))
+		render_mode = useDualSource ? PSRM_DUAL_SOURCE_BLEND : PSRM_DEFAULT;
+		if (!PixelShaderCache::SetShader(render_mode))
 		{
 			goto shader_fail;
 		}
@@ -584,7 +584,7 @@ void VertexManager::vFlush(bool useDstAlpha)
 
 	if (useDstAlpha && !useDualSource)
 	{
-		if (!PixelShaderCache::SetShader(DSTALPHA_ALPHA_PASS))
+		if (!PixelShaderCache::SetShader(PSRM_ALPHA_PASS))
 		{
 			goto shader_fail;
 		}

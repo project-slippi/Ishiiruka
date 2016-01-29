@@ -28,9 +28,9 @@ namespace DX9
 {
 
 PixelShaderCache::PSCache PixelShaderCache::PixelShaders;
-const PixelShaderCache::PSCacheEntry *PixelShaderCache::last_entry[DSTALPHA_NULL + 1];
-PixelShaderUid PixelShaderCache::last_uid[DSTALPHA_NULL + 1];
-PixelShaderUid PixelShaderCache::external_last_uid[DSTALPHA_NULL + 1];
+const PixelShaderCache::PSCacheEntry *PixelShaderCache::last_entry[PSRM_DEPTH_ONLY + 1];
+PixelShaderUid PixelShaderCache::last_uid[PSRM_DEPTH_ONLY + 1];
+PixelShaderUid PixelShaderCache::external_last_uid[PSRM_DEPTH_ONLY + 1];
 
 static HLSLAsyncCompiler *Compiler;
 static Common::SpinLock<true> PixelShadersLock;
@@ -237,7 +237,7 @@ static LPDIRECT3DPIXELSHADER9 CreateCopyShader(int copyMatrixType, int depthConv
 void PixelShaderCache::Init()
 {
 	PixelShadersLock.unlock();
-	for (u32 i = 0; i < DSTALPHA_NULL + 1; i++)
+	for (u32 i = 0; i < PSRM_DEPTH_ONLY + 1; i++)
 	{
 		last_entry[i] = nullptr;
 	}
@@ -308,7 +308,7 @@ void PixelShaderCache::Clear()
 	PixelShaders.clear();
 	PixelShadersLock.unlock();
 
-	for (u32 i = 0; i < DSTALPHA_NULL + 1; i++)
+	for (u32 i = 0; i < PSRM_DEPTH_ONLY + 1; i++)
 	{
 		last_entry[i] = nullptr;
 	}
@@ -348,7 +348,7 @@ void PixelShaderCache::Shutdown()
 }
 
 void PixelShaderCache::PrepareShader(
-	DSTALPHA_MODE dstAlphaMode, 
+	PIXEL_SHADER_RENDER_MODE render_mode,
 	u32 components, 
 	const XFMemory &xfr,
 	const BPMemory &bpm,
@@ -356,7 +356,7 @@ void PixelShaderCache::PrepareShader(
 {
 	const API_TYPE api = ((D3D::GetCaps().PixelShaderVersion >> 8) & 0xFF) < 3 ? API_D3D9_SM20 : API_D3D9_SM30;
 	PixelShaderUid uid;
-	GetPixelShaderUidD3D9(uid, dstAlphaMode, components, xfr, bpm);
+	GetPixelShaderUidD3D9(uid, render_mode, components, xfr, bpm);
 	if (ongputhread)
 	{
 		Compiler->ProcCompilationResults();
@@ -369,30 +369,30 @@ void PixelShaderCache::PrepareShader(
 		}
 #endif
 		// Check if the shader is already set
-		if (last_entry[dstAlphaMode])
+		if (last_entry[render_mode])
 		{
-			if (uid == last_uid[dstAlphaMode])
+			if (uid == last_uid[render_mode])
 			{
 				return;
 			}
 		}
-		last_uid[dstAlphaMode] = uid;
+		last_uid[render_mode] = uid;
 		GFX_DEBUGGER_PAUSE_AT(NEXT_PIXEL_SHADER_CHANGE, true);
 	}
 	else
 	{
-		if (external_last_uid[dstAlphaMode] == uid)
+		if (external_last_uid[render_mode] == uid)
 		{
 			return;
 		}
-		external_last_uid[dstAlphaMode] = uid;
+		external_last_uid[render_mode] = uid;
 	}
 	PixelShadersLock.lock();
 	PSCacheEntry* entry = &PixelShaders[uid];
 	PixelShadersLock.unlock();
 	if (ongputhread)
 	{
-		last_entry[dstAlphaMode] = entry;
+		last_entry[render_mode] = entry;
 	}
 	// Compile only when we have a new instance
 	if (entry->initialized.test_and_set())
@@ -447,25 +447,25 @@ void PixelShaderCache::PrepareShader(
 		else
 		{
 			static int num_failures = 0;
-			char szTemp[MAX_PATH];
-			sprintf(szTemp, "%sbad_ps_%04i.txt", File::GetUserPath(D_DUMP_IDX).c_str(), num_failures++);
+			std::string filename = StringFromFormat("%sbad_ps_%04i.txt", File::GetUserPath(D_DUMP_IDX).c_str(), num_failures++);
 			std::ofstream file;
-			OpenFStream(file, szTemp, std::ios_base::out);
+			OpenFStream(file, filename, std::ios_base::out);
 			file << ((const char *)wunit->code.data());
+			file << ((const char*)wunit->error->GetBufferPointer());
 			file.close();
 
 			PanicAlert("Failed to compile pixel shader!\nThis usually happens when trying to use Dolphin with an outdated GPU or integrated GPU like the Intel GMA series.\n\nIf you're sure this is Dolphin's error anyway, post the contents of %s along with this error message at the forums.\n\nDebug info (%s):\n%s",
-				szTemp,
+				filename,
 				D3D::VertexShaderVersionString(),
-				(char*)wunit->error->GetBufferPointer());
+				(const char*)wunit->error->GetBufferPointer());
 		}
 	};
 	Compiler->CompileShaderAsync(wunit);
 }
 
-bool PixelShaderCache::SetShader(DSTALPHA_MODE dstAlphaMode)
+bool PixelShaderCache::SetShader(PIXEL_SHADER_RENDER_MODE render_mode)
 {
-	const PSCacheEntry* entry = last_entry[dstAlphaMode];
+	const PSCacheEntry* entry = last_entry[render_mode];
 	u32 count = 0;
 	while (!entry->compiled)
 	{

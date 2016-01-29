@@ -163,7 +163,7 @@ void VertexManager::PrepareShaders(PrimitiveType primitive, u32 components, cons
 		bpm.zcontrol.pixel_format == PEControl::RGBA6_Z24;
 	VertexShaderCache::PrepareShader(components, xfr, bpm, ongputhread);
 	GeometryShaderCache::PrepareShader(primitive, xfr, components, ongputhread);
-	PixelShaderCache::PrepareShader(useDstAlpha ? DSTALPHA_DUAL_SOURCE_BLEND : DSTALPHA_NONE, components, xfr, bpm, ongputhread);
+	PixelShaderCache::PrepareShader(useDstAlpha ? PSRM_DUAL_SOURCE_BLEND : PSRM_DEFAULT, components, xfr, bpm, ongputhread);
 	if (g_ActiveConfig.backend_info.bSupportsTessellation)
 	{
 		HullDomainShaderCache::PrepareShader(xfr, bpm, primitive, components, ongputhread);

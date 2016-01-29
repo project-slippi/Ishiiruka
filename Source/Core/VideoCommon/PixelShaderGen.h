@@ -43,12 +43,12 @@
 #define C_PENVCONST_END (C_PLIGHTS + 40)
 #define C_PCONST_END    (C_PMATERIALS)
 // Different ways to achieve rendering with destination alpha
-enum DSTALPHA_MODE
+enum PIXEL_SHADER_RENDER_MODE : unsigned int
 {
-	DSTALPHA_NONE, // Render normally, without destination alpha
-	DSTALPHA_ALPHA_PASS, // Render normally first, then render again for alpha
-	DSTALPHA_DUAL_SOURCE_BLEND, // Use dual-source blending,
-	DSTALPHA_NULL, // Null Rendering
+	PSRM_DEFAULT = 0, // Render normally, without destination alpha
+	PSRM_ALPHA_PASS = 1, // Render normally first, then render again for alpha
+	PSRM_DUAL_SOURCE_BLEND = 2, // Use dual-source blending,
+	PSRM_DEPTH_ONLY = 3, // Depth only Rendering
 };
 
 #pragma pack(1)
@@ -101,7 +101,7 @@ struct pixel_shader_uid_data
 	u32 late_ztest : 1;
 	u32 pad0 : 12;
 
-	u32 dstAlphaMode : 2;
+	u32 render_mode : 2;
 	u32 Pretest : 2;
 	u32 nIndirectStagesUsed : 4;
 
@@ -164,16 +164,16 @@ struct pixel_shader_uid_data
 #define PIXELSHADERGEN_BUFFERSIZE 32768
 typedef ShaderUid<pixel_shader_uid_data> PixelShaderUid;
 
-void GetPixelShaderUidD3D9(PixelShaderUid& object, DSTALPHA_MODE dstAlphaMode, u32 components, const XFMemory &xfr, const BPMemory &bpm);
+void GetPixelShaderUidD3D9(PixelShaderUid& object, PIXEL_SHADER_RENDER_MODE render_mode, u32 components, const XFMemory &xfr, const BPMemory &bpm);
 
 void GeneratePixelShaderCodeD3D9(ShaderCode& object, const pixel_shader_uid_data& uid_data);
 
 void GeneratePixelShaderCodeD3D9SM2(ShaderCode& object, const pixel_shader_uid_data& uid_data);
 
-void GetPixelShaderUidD3D11(PixelShaderUid& object, DSTALPHA_MODE dstAlphaMode, u32 components, const XFMemory &xfr, const BPMemory &bpm);
+void GetPixelShaderUidD3D11(PixelShaderUid& object, PIXEL_SHADER_RENDER_MODE render_mode, u32 components, const XFMemory &xfr, const BPMemory &bpm);
 
 void GeneratePixelShaderCodeD3D11(ShaderCode& object, const pixel_shader_uid_data& uid_data);
 
-void GetPixelShaderUidGL(PixelShaderUid& object, DSTALPHA_MODE dstAlphaMode, u32 components, const XFMemory &xfr, const BPMemory &bpm);
+void GetPixelShaderUidGL(PixelShaderUid& object, PIXEL_SHADER_RENDER_MODE render_mode, u32 components, const XFMemory &xfr, const BPMemory &bpm);
 
 void GeneratePixelShaderCodeGL(ShaderCode& object, const pixel_shader_uid_data& uid_data);

@@ -563,13 +563,13 @@ void PixelShaderCache::Shutdown()
 	g_ps_disk_cache.Close();
 }
 
-void PixelShaderCache::PrepareShader(DSTALPHA_MODE dstAlphaMode,
+void PixelShaderCache::PrepareShader(PIXEL_SHADER_RENDER_MODE render_mode,
 	u32 components,
 	const XFMemory &xfr,
 	const BPMemory &bpm, bool ongputhread)
 {
 	PixelShaderUid uid;
-	GetPixelShaderUidD3D11(uid, dstAlphaMode, components, xfr, bpm);
+	GetPixelShaderUidD3D11(uid, render_mode, components, xfr, bpm);
 	if (ongputhread)
 	{
 		s_compiler->ProcCompilationResults();
@@ -645,16 +645,15 @@ void PixelShaderCache::PrepareShader(DSTALPHA_MODE dstAlphaMode,
 		else
 		{
 			static int num_failures = 0;
-			char szTemp[MAX_PATH];
-			sprintf(szTemp, "%sbad_ps_%04i.txt", File::GetUserPath(D_DUMP_IDX).c_str(), num_failures++);
+			std::string filename = StringFromFormat("%sbad_ps_%04i.txt", File::GetUserPath(D_DUMP_IDX).c_str(), num_failures++);
 			std::ofstream file;
-			OpenFStream(file, szTemp, std::ios_base::out);
+			OpenFStream(file, filename, std::ios_base::out);
 			file << ((const char *)wunit->code.data());
 			file << ((const char *)wunit->error->GetBufferPointer());
 			file.close();
 
 			PanicAlert("Failed to compile pixel shader!\nThis usually happens when trying to use Dolphin with an outdated GPU or integrated GPU like the Intel GMA series.\n\nIf you're sure this is Dolphin's error anyway, post the contents of %s along with this error message at the forums.\n\nDebug info (%s):\n%s",
-				szTemp,
+				filename,
 				D3D::PixelShaderVersionString(),
 				(char*)wunit->error->GetBufferPointer());
 		}

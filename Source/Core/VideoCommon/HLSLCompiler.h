@@ -40,8 +40,6 @@ class HLSLAsyncCompiler final : Common::IWorker
 	HLSLAsyncCompiler();
 	std::atomic<s32> m_repositoryIndex;
 	ShaderCompilerWorkUnit* WorkUnitRepository;
-	std::atomic<s32> m_inputsize;
-	std::atomic<s32> m_outputsize;
 	Common::ManyToManyQueue<ShaderCompilerWorkUnit*, Common::CircularQueue<ShaderCompilerWorkUnit*>> m_input;
 	Common::ManyToOneQueue<ShaderCompilerWorkUnit*, Common::CircularQueue<ShaderCompilerWorkUnit*>> m_output;
 	HLSLAsyncCompiler(HLSLAsyncCompiler const&);

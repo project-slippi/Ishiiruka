@@ -216,9 +216,6 @@ void ShaderCache::SetCurrentPrimitiveTopology(u32 gs_primitive_type)
 
 void ShaderCache::HandleGSUIDChange(
 	const GeometryShaderUid &gs_uid,
-	u32 gs_primitive_type,
-	u32 components,
-	const XFMemory &xfr,
 	bool on_gpu_thread)
 {
 	if (gs_uid.GetUidData().IsPassthrough())
@@ -275,16 +272,15 @@ void ShaderCache::HandleGSUIDChange(
 		else
 		{
 			static int num_failures = 0;
-			char szTemp[MAX_PATH];
-			sprintf(szTemp, "%sbad_gs_%04i.txt", File::GetUserPath(D_DUMP_IDX).c_str(), num_failures++);
+			std::string filename = StringFromFormat("%sbad_gs_%04i.txt", File::GetUserPath(D_DUMP_IDX).c_str(), num_failures++);
 			std::ofstream file;
-			OpenFStream(file, szTemp, std::ios_base::out);
+			OpenFStream(file, filename, std::ios_base::out);
 			file << ((const char *)wunit->code.data());
 			file << ((const char *)wunit->error->GetBufferPointer());
 			file.close();
 
 			PanicAlert("Failed to compile geometry shader!\nThis usually happens when trying to use Dolphin with an outdated GPU or integrated GPU like the Intel GMA series.\n\nIf you're sure this is Dolphin's error anyway, post the contents of %s along with this error message at the forums.\n\nDebug info (%s):\n%s",
-				szTemp,
+				filename,
 				D3D::GeometryShaderVersionString(),
 				(char*)wunit->error->GetBufferPointer());
 		}
@@ -294,10 +290,6 @@ void ShaderCache::HandleGSUIDChange(
 
 void ShaderCache::HandlePSUIDChange(
 	const PixelShaderUid &ps_uid,
-	DSTALPHA_MODE ps_dst_alpha_mode,
-	u32 components,
-	const XFMemory &xfr,
-	const BPMemory &bpm, 
 	bool on_gpu_thread)
 {
 	s_shaders_lock.lock();
@@ -361,9 +353,6 @@ void ShaderCache::HandlePSUIDChange(
 
 void ShaderCache::HandleVSUIDChange(
 	const VertexShaderUid& vs_uid,
-	u32 components,
-	const XFMemory &xfr,
-	const BPMemory &bpm,
 	bool on_gpu_thread)
 {
 	s_shaders_lock.lock();
@@ -427,12 +416,9 @@ void ShaderCache::HandleVSUIDChange(
 void ShaderCache::HandleTSUIDChange(
 	const TessellationShaderUid& ts_uid,
 	u32 gs_primitive_type,
-	u32 components,
-	const XFMemory &xfr,
-	const BPMemory &bpm,
 	bool on_gpu_thread)
 {
-	if (!(gs_primitive_type == PrimitiveType::PRIMITIVE_TRIANGLES && g_ActiveConfig.TessellationEnabled() && g_ActiveConfig.PixelLightingEnabled(xfr, components)))
+	if (!(gs_primitive_type == PrimitiveType::PRIMITIVE_TRIANGLES && g_ActiveConfig.TessellationEnabled() && ts_uid.GetUidData().pixel_lighting))
 	{
 		if (on_gpu_thread)
 		{
@@ -503,16 +489,15 @@ void ShaderCache::HandleTSUIDChange(
 		else
 		{
 			static int num_failures = 0;
-			char szTemp[MAX_PATH];
-			sprintf(szTemp, "%sbad_ds_%04i.txt", File::GetUserPath(D_DUMP_IDX).c_str(), num_failures++);
+			std::string filename = StringFromFormat("%sbad_ds_%04i.txt", File::GetUserPath(D_DUMP_IDX).c_str(), num_failures++);
 			std::ofstream file;
-			OpenFStream(file, szTemp, std::ios_base::out);
+			OpenFStream(file, filename, std::ios_base::out);
 			file << ((const char *)wunit->code.data());
 			file << ((const char *)wunit->error->GetBufferPointer());
 			file.close();
 
 			PanicAlert("Failed to compile domain shader!\nThis usually happens when trying to use Dolphin with an outdated GPU or integrated GPU like the Intel GMA series.\n\nIf you're sure this is Dolphin's error anyway, post the contents of %s along with this error message at the forums.\n\nDebug info (%s):\n%s",
-				szTemp,
+				filename,
 				D3D::DomainShaderVersionString(),
 				(char*)wunit->error->GetBufferPointer());
 		}
@@ -538,16 +523,15 @@ void ShaderCache::HandleTSUIDChange(
 		else
 		{
 			static int num_failures = 0;
-			char szTemp[MAX_PATH];
-			sprintf(szTemp, "%sbad_hs_%04i.txt", File::GetUserPath(D_DUMP_IDX).c_str(), num_failures++);
+			std::string filename = StringFromFormat("%sbad_hs_%04i.txt", File::GetUserPath(D_DUMP_IDX).c_str(), num_failures++);
 			std::ofstream file;
-			OpenFStream(file, szTemp, std::ios_base::out);
+			OpenFStream(file, filename, std::ios_base::out);
 			file << ((const char *)wunit->code.data());
 			file << ((const char *)wunit->error->GetBufferPointer());
 			file.close();
 
 			PanicAlert("Failed to compile hull shader!\nThis usually happens when trying to use Dolphin with an outdated GPU or integrated GPU like the Intel GMA series.\n\nIf you're sure this is Dolphin's error anyway, post the contents of %s along with this error message at the forums.\n\nDebug info (%s):\n%s",
-				szTemp,
+				filename,
 				D3D::HullShaderVersionString(),
 				(char*)wunit->error->GetBufferPointer());
 		}
@@ -557,7 +541,7 @@ void ShaderCache::HandleTSUIDChange(
 	s_compiler->CompileShaderAsync(wunitd);
 }
 
-void ShaderCache::PrepareShaders(DSTALPHA_MODE ps_dst_alpha_mode,
+void ShaderCache::PrepareShaders(PIXEL_SHADER_RENDER_MODE render_mode,
 	u32 gs_primitive_type,
 	u32 components,
 	const XFMemory &xfr,
@@ -567,7 +551,7 @@ void ShaderCache::PrepareShaders(DSTALPHA_MODE ps_dst_alpha_mode,
 	GeometryShaderUid gs_uid;
 	GetGeometryShaderUid(gs_uid, gs_primitive_type, xfr, components);
 	PixelShaderUid ps_uid;
-	GetPixelShaderUidD3D11(ps_uid, ps_dst_alpha_mode, components, xfr, bpm);
+	GetPixelShaderUidD3D11(ps_uid, render_mode, components, xfr, bpm);
 	VertexShaderUid vs_uid;
 	GetVertexShaderUidD3D11(vs_uid, components, xfr, bpm);
 	TessellationShaderUid ts_uid = {};
@@ -677,22 +661,22 @@ void ShaderCache::PrepareShaders(DSTALPHA_MODE ps_dst_alpha_mode,
 
 	if (vs_changed)
 	{
-		HandleVSUIDChange(vs_uid, components, xfr, bpm, on_gpu_thread);
+		HandleVSUIDChange(vs_uid, on_gpu_thread);
 	}
 
 	if (ts_changed)
 	{
-		HandleTSUIDChange(ts_uid, gs_primitive_type, components, xfr, bpm, on_gpu_thread);
+		HandleTSUIDChange(ts_uid, gs_primitive_type, on_gpu_thread);
 	}
 
 	if (gs_changed)
 	{
-		HandleGSUIDChange(gs_uid, gs_primitive_type, components, xfr, on_gpu_thread);
+		HandleGSUIDChange(gs_uid, on_gpu_thread);
 	}
 
 	if (ps_changed)
 	{
-		HandlePSUIDChange(ps_uid, ps_dst_alpha_mode, components, xfr, bpm, on_gpu_thread);
+		HandlePSUIDChange(ps_uid, on_gpu_thread);
 	}
 }
 

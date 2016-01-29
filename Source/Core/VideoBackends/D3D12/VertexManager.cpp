@@ -143,7 +143,7 @@ void VertexManager::PrepareShaders(PrimitiveType primitive, u32 components, cons
 	}
 	bool use_dst_alpha = bpm.dstalpha.enable && bpm.blendmode.alphaupdate &&
 		bpm.zcontrol.pixel_format == PEControl::RGBA6_Z24;
-	ShaderCache::PrepareShaders(use_dst_alpha ? DSTALPHA_DUAL_SOURCE_BLEND : DSTALPHA_NONE, primitive, components, xfr, bpm, ongputhread);
+	ShaderCache::PrepareShaders(use_dst_alpha ? PSRM_DUAL_SOURCE_BLEND : PSRM_DEFAULT, primitive, components, xfr, bpm, ongputhread);
 }
 
 void VertexManager::vFlush(bool use_dst_alpha)

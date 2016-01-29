@@ -59,9 +59,7 @@ void ShaderCompilerWorkUnit::Release()
 HLSLAsyncCompiler::HLSLAsyncCompiler() :
 m_repositoryIndex(0),
 m_input(256),
-m_output(256),
-m_inputsize(0),
-m_outputsize(0)
+m_output(256)
 {
 	WorkUnitRepository = new ShaderCompilerWorkUnit[256];
 	Common::ThreadPool::RegisterWorker(this);
@@ -98,8 +96,6 @@ bool HLSLAsyncCompiler::NextTask()
 			&unit->shaderbytecode,
 			&unit->error);
 		m_output.push(unit);
-		m_outputsize.fetch_add(1);
-		m_inputsize.fetch_sub(1);
 		return true;
 	}
 	return false;
@@ -120,28 +116,26 @@ ShaderCompilerWorkUnit* HLSLAsyncCompiler::NewUnit(u32 codesize)
 void HLSLAsyncCompiler::CompileShaderAsync(ShaderCompilerWorkUnit* unit)
 {
 	m_input.push(unit);
-	m_inputsize.fetch_add(1);
 }
 void HLSLAsyncCompiler::ProcCompilationResults()
 {
-	if (m_outputsize.load() > 0)
+	if (!m_output.Empty())
 	{
 		ShaderCompilerWorkUnit* unit;
 		while (m_output.try_pop(unit))
 		{
 			unit->ResultHandler(unit);
-			m_outputsize.fetch_sub(1);
 		}
 	}
 }
 bool HLSLAsyncCompiler::CompilationFinished()
 {
-	return m_inputsize.load() == 0;
+	return m_input.Empty();
 }
 void HLSLAsyncCompiler::WaitForCompilationFinished()
 {
 	u32 loopcount = 0;
-	while (m_inputsize.load() > 0)
+	while (!m_input.Empty())
 	{
 		Common::cYield(loopcount++);
 	}
@@ -150,12 +144,11 @@ void HLSLAsyncCompiler::WaitForFinish()
 {
 	ShaderCompilerWorkUnit* unit;
 	WaitForCompilationFinished();
-	if (m_outputsize.load() > 0)
+	if (!m_output.Empty())
 	{
 		while (m_output.try_pop(unit))
 		{
 			unit->ResultHandler(unit);
-			m_outputsize.fetch_sub(1);
 		}
 	}
 }

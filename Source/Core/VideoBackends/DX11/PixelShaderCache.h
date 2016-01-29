@@ -9,7 +9,6 @@
 #include "VideoBackends/DX11/D3DPtr.h"
 #include "VideoCommon/PixelShaderGen.h"
 
-enum DSTALPHA_MODE;
 
 namespace DX11
 {
@@ -21,7 +20,7 @@ public:
 	static void Clear();
 	static void Shutdown();
 	static void PrepareShader(
-		DSTALPHA_MODE dstAlphaMode,
+		PIXEL_SHADER_RENDER_MODE render_mode,
 		u32 componets,
 		const XFMemory &xfr,
 		const BPMemory &bpm, bool ongputhread);

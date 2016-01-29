@@ -22,37 +22,6 @@
 #include "VideoCommon/XFMemory.h"
 
 /**
-* Common interface for classes that need to go through the shader generation path (GenerateVertexShader, GeneratePixelShader)
-* In particular, this includes the shader code generator (ShaderCode).
-* A different class (ShaderUid) can be used to uniquely identify each ShaderCode object.
-* More interesting things can be done with this, e.g. ShaderConstantProfile checks what shader constants are being used. This can be used to optimize buffer management.
-* Each of the ShaderCode, ShaderUid and ShaderConstantProfile child classes only implement the subset of ShaderGeneratorInterface methods that are required for the specific tasks.
-*/
-class ShaderGeneratorInterface
-{
-public:
-	/*
-	* Used when the shader generator would write a piece of ShaderCode.
-	* Can be used like printf.
-	* @note In the ShaderCode implementation, this does indeed write the parameter string to an internal buffer. However, you're free to do whatever you like with the parameter.
-	*/
-	void Write(const char* fmt, ...) {}
-
-	/*
-	* Returns a read pointer to the internal buffer.
-	* @note When implementing this method in a child class, you likely want to return the argument of the last SetBuffer call here
-	* @note SetBuffer() should be called before using GetBuffer().
-	*/
-	char* GetBuffer() { return NULL; }
-
-	/*
-	* Can be used to give the object a place to write to. This should be called before using Write().
-	* @param buffer pointer to a char buffer that the object can write to
-	*/
-	void SetBuffer(char* buffer) { }
-};
-
-/**
 * Shader UID class used to uniquely identify the ShaderCode output written in the shader generator.
 * uid_data can be any struct of parameters that uniquely identify each shader code output.
 * Unless performance is not an issue, uid_data should be tightly packed to reduce memory footprint.
@@ -115,7 +84,7 @@ private:
 	std::size_t HASH;
 };
 
-class ShaderCode : public ShaderGeneratorInterface
+class ShaderCode
 {
 public:
 	ShaderCode() : buf(NULL), write_ptr(NULL)

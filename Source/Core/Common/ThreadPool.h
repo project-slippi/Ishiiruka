@@ -221,7 +221,7 @@ namespace Common
 			return (idx + 1) % m_capacity;
 		}
 		std::atomic<size_t>  m_tail;
-		std::unique_ptr<T[]> m_container;
+		std::vector<T> m_container;
 		std::atomic<size_t>  m_head;
 	public:
 		CircularQueue(size_t capacity) :
@@ -229,7 +229,7 @@ namespace Common
 			m_head(0),
 			m_capacity(capacity)
 		{
-			m_container.reset(new T[capacity]);
+			m_container.resize(capacity);
 		}
 
 		CircularQueue() :
@@ -237,7 +237,7 @@ namespace Common
 			m_head(0),
 			m_capacity(128)
 		{
-			m_container.reset(new T[m_capacity]);
+			m_container.resize(m_capacity);
 		}
 
 		virtual ~CircularQueue()
@@ -245,7 +245,7 @@ namespace Common
 
 		void resize(size_t capacity)
 		{
-			m_container.reset(new T[m_capacity]);
+			m_container.resize(m_capacity);
 		}
 
 		bool push(const T& item)
@@ -254,7 +254,7 @@ namespace Common
 			const size_t next_tail = increment(current_tail);
 			if (next_tail != m_head.load(std::memory_order_acquire))
 			{
-				m_container.get()[current_tail] = item;
+				m_container[current_tail] = item;
 				m_tail.store(next_tail, std::memory_order_release);
 				return true;
 			}
@@ -266,7 +266,7 @@ namespace Common
 			const size_t next_tail = increment(current_tail);
 			if (next_tail != m_head.load(std::memory_order_acquire))
 			{
-				m_container.get()[current_tail] = std::move(item);
+				m_container[current_tail] = std::move(item);
 				m_tail.store(next_tail, std::memory_order_release);
 				return true;
 			}
@@ -278,7 +278,7 @@ namespace Common
 			if (current_head == m_tail.load(std::memory_order_acquire))
 				return false; // empty queue
 
-			item = m_container.get()[current_head];
+			item = m_container[current_head];
 			m_head.store(increment(current_head), std::memory_order_release);
 			return true;
 		}
@@ -438,7 +438,7 @@ namespace Common
 		std::vector<IWorker*> m_workers;
 		std::atomic<s32> m_workflag;
 		std::atomic<s32> m_workercount;
-		volatile bool m_working;
+		std::atomic<bool> m_working;
 		static void Workloop(ThreadPool &state, size_t ID);
 		static ThreadPool &Getinstance();
 		ThreadPool(ThreadPool const&);

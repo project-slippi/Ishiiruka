@@ -195,10 +195,10 @@ GLuint ProgramShaderCache::GetCurrentProgram()
 	return CurrentProgram;
 }
 
-SHADER* ProgramShaderCache::SetShader(DSTALPHA_MODE dstAlphaMode, u32 components, u32 primitive_type)
+SHADER* ProgramShaderCache::SetShader(PIXEL_SHADER_RENDER_MODE render_mode, u32 components, u32 primitive_type)
 {
 	SHADERUID uid;
-	GetShaderId(&uid, dstAlphaMode, components, primitive_type);
+	GetShaderId(&uid, render_mode, components, primitive_type);
 
 	// Check if the shader is already set
 	if (last_entry)
@@ -418,9 +418,9 @@ GLuint ProgramShaderCache::CompileSingleShader(GLuint type, const char* code, co
 	return result;
 }
 
-void ProgramShaderCache::GetShaderId(SHADERUID* uid, DSTALPHA_MODE dstAlphaMode, u32 components, u32 primitive_type)
+void ProgramShaderCache::GetShaderId(SHADERUID* uid, PIXEL_SHADER_RENDER_MODE render_mode, u32 components, u32 primitive_type)
 {
-	GetPixelShaderUidGL(uid->puid, dstAlphaMode, components, xfmem, bpmem);
+	GetPixelShaderUidGL(uid->puid, render_mode, components, xfmem, bpmem);
 	GetVertexShaderUidGL(uid->vuid, components, xfmem, bpmem);
 	GetGeometryShaderUid(uid->guid, primitive_type, xfmem, components);
 

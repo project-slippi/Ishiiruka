@@ -22,7 +22,7 @@ public:
 	static void Shutdown();
 
 	static void PrepareShaders(
-		DSTALPHA_MODE ps_dst_alpha_mode,
+		PIXEL_SHADER_RENDER_MODE render_mode,
 		u32 gs_primitive_type,
 		u32 components,
 		const XFMemory &xfr,
@@ -58,33 +58,20 @@ private:
 
 	static void HandleGSUIDChange(
 		const GeometryShaderUid& gs_uid,
-		u32 gs_primitive_type,
-		u32 components,
-		const XFMemory &xfr,
 		bool on_gpu_thread);
 	
 	static void HandlePSUIDChange(
 		const PixelShaderUid& ps_uid,
-		DSTALPHA_MODE ps_dst_alpha_mode,
-		u32 components,
-		const XFMemory &xfr,
-		const BPMemory &bpm,
 		bool on_gpu_thread
 		);
 	
 	static void HandleVSUIDChange(
 		const VertexShaderUid& vs_uid,
-		u32 components,
-		const XFMemory &xfr,
-		const BPMemory &bpm,
 		bool on_gpu_thread);
 	
 	static void HandleTSUIDChange(
 		const TessellationShaderUid& ts_uid,
 		u32 gs_primitive_type,
-		u32 components,
-		const XFMemory &xfr,
-		const BPMemory &bpm,
 		bool on_gpu_thread);
 };
 

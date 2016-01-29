@@ -55,30 +55,63 @@ enum tevSources
 	SOURCECOUNT = 16
 };
 
-static bool TevOverflowState[tevSources::SOURCECOUNT];
-static bool tevRascolor0_Expanded = false;
-static bool tevRascolor1_Expanded = false;
-inline void InitializeRegisterState()
+class TevRegisterState
 {
-	TevOverflowState[tevSources::CPREV] = true;
-	TevOverflowState[tevSources::APREV] = true;
-	TevOverflowState[tevSources::C0] = true;
-	TevOverflowState[tevSources::A0] = true;
-	TevOverflowState[tevSources::C1] = true;
-	TevOverflowState[tevSources::A1] = true;
-	TevOverflowState[tevSources::C2] = true;
-	TevOverflowState[tevSources::A2] = true;
-	TevOverflowState[tevSources::TEXC] = false;
-	TevOverflowState[tevSources::TEXA] = false;
-	TevOverflowState[tevSources::RASC] = true;
-	TevOverflowState[tevSources::RASA] = true;
-	TevOverflowState[tevSources::ONE] = false;
-	TevOverflowState[tevSources::HALF] = false;
-	TevOverflowState[tevSources::KONST] = true;
-	TevOverflowState[tevSources::ZERO] = false;
-	tevRascolor0_Expanded = false;
-	tevRascolor1_Expanded = false;
-}
+private:
+	bool tev_overflow_state[tevSources::SOURCECOUNT];
+	bool tev_rascolor0_expanded = false;
+	bool tev_rascolor1_expanded = false;
+public:	
+	TevRegisterState()
+	{
+		tev_overflow_state[tevSources::CPREV] = true;
+		tev_overflow_state[tevSources::APREV] = true;
+		tev_overflow_state[tevSources::C0] = true;
+		tev_overflow_state[tevSources::A0] = true;
+		tev_overflow_state[tevSources::C1] = true;
+		tev_overflow_state[tevSources::A1] = true;
+		tev_overflow_state[tevSources::C2] = true;
+		tev_overflow_state[tevSources::A2] = true;
+		tev_overflow_state[tevSources::TEXC] = false;
+		tev_overflow_state[tevSources::TEXA] = false;
+		tev_overflow_state[tevSources::RASC] = true;
+		tev_overflow_state[tevSources::RASA] = true;
+		tev_overflow_state[tevSources::ONE] = false;
+		tev_overflow_state[tevSources::HALF] = false;
+		tev_overflow_state[tevSources::KONST] = true;
+		tev_overflow_state[tevSources::ZERO] = false;
+	}
+	inline bool NeedOverflowControl(u32 source)
+	{
+		return tev_overflow_state[source];
+	}
+
+	inline void SetOverflowControl(u32 source, bool value)
+	{
+		tev_overflow_state[source] = value;
+	}
+
+	inline bool Ras0Expanded()
+	{
+		return tev_rascolor0_expanded;
+	}
+
+	inline void Ras0Expanded(bool value)
+	{
+		tev_rascolor0_expanded = value;
+	}
+
+	inline bool Ras1Expanded()
+	{
+		return tev_rascolor1_expanded;
+	}
+
+	inline void Ras1Expanded(bool value)
+	{
+		tev_rascolor1_expanded = value;
+	}
+
+};
 
 static const char *tevKSelTableC[] = // KCSEL
 {
@@ -320,7 +353,7 @@ float3 perturb_normal( float3 N, float3 P, float2 texcoord , float3 map)
 // FIXME: Some of the video card's capabilities (BBox support, EarlyZ support, dstAlpha support) leak
 //        into this UID; This is really unhelpful if these UIDs ever move from one machine to another.
 template<API_TYPE ApiType>
-void GetPixelShaderUid(PixelShaderUid& out, DSTALPHA_MODE dstAlphaMode, u32 components, const XFMemory &xfr, const BPMemory &bpm)
+void GetPixelShaderUid(PixelShaderUid& out, PIXEL_SHADER_RENDER_MODE render_mode, u32 components, const XFMemory &xfr, const BPMemory &bpm)
 {
 	out.ClearUID();
 	pixel_shader_uid_data& uid_data = out.GetUidData<pixel_shader_uid_data>();
@@ -353,13 +386,18 @@ void GetPixelShaderUid(PixelShaderUid& out, DSTALPHA_MODE dstAlphaMode, u32 comp
 		}
 	}
 	bool enablenormalmaps = enable_diffuse_ligthing && g_ActiveConfig.HiresMaterialMapsEnabled();
-	uid_data.bounding_box = g_ActiveConfig.backend_info.bSupportsBBox && BoundingBox::active && g_ActiveConfig.iBBoxMode == BBoxGPU;
+	uid_data.render_mode = render_mode;
 	uid_data.per_pixel_depth = per_pixel_depth;
-	uid_data.dstAlphaMode = dstAlphaMode;
 	uid_data.pixel_lighting = enable_pl;
 	uid_data.genMode_numtexgens = numTexgen;
 	uid_data.zfreeze = bpm.genMode.zfreeze;
+	if (render_mode == PSRM_DEPTH_ONLY)
+	{
+		out.CalculateUIDHash();
+		return;
+	}
 	uid_data.stereo = g_ActiveConfig.iStereoMode > 0;
+	uid_data.bounding_box = g_ActiveConfig.backend_info.bSupportsBBox && BoundingBox::active && g_ActiveConfig.iBBoxMode == BBoxGPU;
 	if (!(ApiType & API_D3D9))
 	{
 		uid_data.msaa = g_ActiveConfig.iMultisamples > 1;
@@ -484,7 +522,7 @@ void GetPixelShaderUid(PixelShaderUid& out, DSTALPHA_MODE dstAlphaMode, u32 comp
 			&& !bpm.genMode.zfreeze;
 	}
 	
-	if (dstAlphaMode != DSTALPHA_ALPHA_PASS && uid_data.fog_fsel != 0)
+	if (render_mode != PSRM_ALPHA_PASS && uid_data.fog_fsel != 0)
 	{
 		uid_data.fog_proj = bpmem.fog.c_proj_fsel.proj;
 		uid_data.fog_RangeBaseEnabled = bpmem.fogRange.Base.Enabled;
@@ -587,7 +625,7 @@ inline void WriteAlphaTest(ShaderCode& out, const pixel_shader_uid_data& uid_dat
 	out.Write(")) {\n");
 
 	out.Write("ocol0 = float4(0.0,0.0,0.0,0.0);\n");
-	if (uid_data.dstAlphaMode == DSTALPHA_DUAL_SOURCE_BLEND)
+	if (uid_data.render_mode == PSRM_DUAL_SOURCE_BLEND)
 		out.Write("ocol1 = float4(0.0,0.0,0.0,0.0);\n");
 	if (uid_data.per_pixel_depth)
 		out.Write("depth = %s;\n", (ApiType == API_OPENGL) ? "1.0" : "0.0");
@@ -1189,7 +1227,7 @@ inline void WriteFetchStageTexture(ShaderCode& out, const pixel_shader_uid_data&
 }
 
 template<API_TYPE ApiType, bool use_integer_math>
-inline void WriteStage(ShaderCode& out, const pixel_shader_uid_data& uid_data, int n)
+inline void WriteStage(ShaderCode& out, const pixel_shader_uid_data& uid_data, int n, TevRegisterState& register_state)
 {
 	out.Write("// TEV stage %d\n", n);
 	const auto& stage = uid_data.stagehash[n];
@@ -1211,19 +1249,19 @@ inline void WriteStage(ShaderCode& out, const pixel_shader_uid_data& uid_data, i
 			"rgba"[stage.tevksel_swap2b],
 			'\0' };
 		int rasindex = stage.tevorders_colorchan;
-		if (rasindex == 0 && !tevRascolor0_Expanded)
+		if (rasindex == 0 && !register_state.Ras0Expanded())
 		{
 			out.Write("col0 = round(col0 * 255.0);\n");
-			tevRascolor0_Expanded = true;
+			register_state.Ras0Expanded(true);
 		}
-		if (rasindex == 1 && !tevRascolor1_Expanded)
+		if (rasindex == 1 && !register_state.Ras1Expanded())
 		{
 			out.Write("col1 = round(col1 * 255.0);\n");
-			tevRascolor1_Expanded = true;
+			register_state.Ras1Expanded(true);
 		}
 		out.Write("ras_t = %s.%s;\n", tevRasTable[rasindex], rasswap);
-		TevOverflowState[tevSources::RASC] = rasindex < 2;
-		TevOverflowState[tevSources::RASA] = rasindex < 2;
+		register_state.SetOverflowControl(tevSources::RASC, rasindex < 2);
+		register_state.SetOverflowControl(tevSources::RASA, rasindex < 2);
 	}
 
 	out.Write("tex_t = tex_ta[%i];", n);
@@ -1233,11 +1271,11 @@ inline void WriteStage(ShaderCode& out, const pixel_shader_uid_data& uid_data, i
 		int kc = stage.tevksel_kc;
 		int ka = stage.tevksel_ka;
 		out.Write("konst_t = wu4(%s,%s);\n", tevKSelTableC[kc], tevKSelTableA[ka]);
-		TevOverflowState[tevSources::KONST] = kc > 11 || ka > 15;
+		register_state.SetOverflowControl(tevSources::KONST, kc > 11 || ka > 15);
 	}
-	out.Write("tin_a = %s(wu4(%s,%s));\n", TevOverflowState[cc.a] || TevOverflowState[AInputSourceMap[ac.a]] ? "CHK_O_U8" : "", tevCInputTable[cc.a], tevAInputTable[ac.a]);
-	out.Write("tin_b = %s(wu4(%s,%s));\n", TevOverflowState[cc.b] || TevOverflowState[AInputSourceMap[ac.b]] ? "CHK_O_U8" : "", tevCInputTable[cc.b], tevAInputTable[ac.b]);
-	out.Write("tin_c = %s(wu4(%s,%s));\n", TevOverflowState[cc.c] || TevOverflowState[AInputSourceMap[ac.c]] ? "CHK_O_U8" : "", tevCInputTable[cc.c], tevAInputTable[ac.c]);
+	out.Write("tin_a = %s(wu4(%s,%s));\n", register_state.NeedOverflowControl(cc.a) || register_state.NeedOverflowControl(AInputSourceMap[ac.a]) ? "CHK_O_U8" : "", tevCInputTable[cc.a], tevAInputTable[ac.a]);
+	out.Write("tin_b = %s(wu4(%s,%s));\n", register_state.NeedOverflowControl(cc.b) || register_state.NeedOverflowControl(AInputSourceMap[ac.b]) ? "CHK_O_U8" : "", tevCInputTable[cc.b], tevAInputTable[ac.b]);
+	out.Write("tin_c = %s(wu4(%s,%s));\n", register_state.NeedOverflowControl(cc.c) || register_state.NeedOverflowControl(AInputSourceMap[ac.c]) ? "CHK_O_U8" : "", tevCInputTable[cc.c], tevAInputTable[ac.c]);
 
 	bool normalize_c_rgb = cc.c != TEVCOLORARG_ZERO &&  cc.bias != TEVBIAS_COMPARE;
 	bool normalize_c_a = ac.c != TEVALPHAARG_ZERO &&  ac.bias != TEVBIAS_COMPARE;
@@ -1248,8 +1286,8 @@ inline void WriteStage(ShaderCode& out, const pixel_shader_uid_data& uid_data, i
 	}
 	out.Write("tin_d = wu4(%s,%s);\n", tevCInputTable[cc.d], tevAInputTable[ac.d]);
 
-	TevOverflowState[tevCOutputSourceMap[cc.dest]] = !cc.clamp;
-	TevOverflowState[tevAOutputSourceMap[ac.dest]] = !ac.clamp;
+	register_state.SetOverflowControl(tevCOutputSourceMap[cc.dest], !cc.clamp);
+	register_state.SetOverflowControl(tevAOutputSourceMap[ac.dest], !ac.clamp);
 
 	out.Write("// color combine\n");
 	out.Write("%s = clamp(", tevCOutputTable[cc.dest]);
@@ -1321,7 +1359,7 @@ inline void GeneratePixelShader(ShaderCode& out, const pixel_shader_uid_data& ui
 		out.SetBuffer(codebuffer);
 	}
 	codebuffer[PIXELSHADERGEN_BUFFERSIZE - 1] = 0x7C;  // canary
-	DSTALPHA_MODE dstAlphaMode = (DSTALPHA_MODE)uid_data.dstAlphaMode;
+	PIXEL_SHADER_RENDER_MODE render_mode =(PIXEL_SHADER_RENDER_MODE)uid_data.render_mode;
 	u32 numStages = uid_data.genMode_numtevstages + 1;
 	u32 numTexgen = uid_data.genMode_numtexgens;
 	u32 numindStages = uid_data.genMode_numindstages;
@@ -1332,7 +1370,7 @@ inline void GeneratePixelShader(ShaderCode& out, const pixel_shader_uid_data& ui
 	bool enablenormalmaps = uid_data.pixel_normals;	
 	bool forcePhong = uid_data.force_phong;
 
-	InitializeRegisterState();
+	TevRegisterState register_state;
 	out.Write("//Pixel Shader for TEV stages\n");
 	if (enablenormalmaps)
 	{
@@ -1424,7 +1462,7 @@ inline void GeneratePixelShader(ShaderCode& out, const pixel_shader_uid_data& ui
 	if (ApiType == API_OPENGL || ApiType == API_D3D11)
 		out.Write("};\n");
 
-	if (enable_pl)
+	if (enable_pl && render_mode != PSRM_DEPTH_ONLY)
 	{
 		if (ApiType == API_OPENGL)
 			out.Write("layout(std140%s) uniform VSBlock {\n", g_ActiveConfig.backend_info.bSupportsBindingLayout ? ", binding = 2" : "");
@@ -1462,7 +1500,7 @@ inline void GeneratePixelShader(ShaderCode& out, const pixel_shader_uid_data& ui
 				);
 		}
 		out.Write("out vec4 ocol0;\n");
-		if (dstAlphaMode == DSTALPHA_DUAL_SOURCE_BLEND)
+		if (render_mode == PSRM_DUAL_SOURCE_BLEND)
 			out.Write("out vec4 ocol1;\n");
 
 		if (per_pixel_depth)
@@ -1561,7 +1599,7 @@ inline void GeneratePixelShader(ShaderCode& out, const pixel_shader_uid_data& ui
 					);
 			}
 		}
-		if (forced_early_z)
+		if (forced_early_z && !(ApiType & API_D3D9))
 		{
 			out.Write("[earlydepthstencil]\n");
 		}
@@ -1569,14 +1607,14 @@ inline void GeneratePixelShader(ShaderCode& out, const pixel_shader_uid_data& ui
 		if (ApiType != API_D3D11)
 		{
 			out.Write("  out float4 ocol0 : COLOR0,%s%s\n  in float4 rawpos : %s,\n",
-				dstAlphaMode == DSTALPHA_DUAL_SOURCE_BLEND ? "\n  out float4 ocol1 : COLOR1," : "",
+				render_mode == PSRM_DUAL_SOURCE_BLEND ? "\n  out float4 ocol1 : COLOR1," : "",
 				per_pixel_depth ? "\n  out float depth : DEPTH," : "",
 				ApiType == API_D3D9_SM20 ? "POSITION" : "VPOS");
 		}
 		else
 		{
 			out.Write("  out float4 ocol0 : SV_Target0,%s%s\n  in float4 rawpos : SV_Position,\n",
-				dstAlphaMode == DSTALPHA_DUAL_SOURCE_BLEND ? "\n  out float4 ocol1 : SV_Target1," : "",
+				render_mode == PSRM_DUAL_SOURCE_BLEND ? "\n  out float4 ocol1 : SV_Target1," : "",
 				per_pixel_depth ? "\n  out float depth : SV_Depth," : "");
 		}
 
@@ -1617,7 +1655,7 @@ inline void GeneratePixelShader(ShaderCode& out, const pixel_shader_uid_data& ui
 			out.Write("float4 clipPos = float4(0.0,0.0,0.0,0.0);");
 		}
 	}
-	if (dstAlphaMode == DSTALPHA_NULL)
+	if (render_mode == PSRM_DEPTH_ONLY)
 	{
 		if (per_pixel_depth)
 		{
@@ -1802,7 +1840,7 @@ inline void GeneratePixelShader(ShaderCode& out, const pixel_shader_uid_data& ui
 		out.Write("clipPos = float4(rawpos.x, rawpos.y, uv2.w, uv3.w);\n");
 
 	for (u32 i = 0; i < numStages; i++)
-		WriteStage<ApiType, Use_integer_math>(out, uid_data, i); // build the equation for this stage
+		WriteStage<ApiType, Use_integer_math>(out, uid_data, i, register_state); // build the equation for this stage
 
 	TevStageCombiner::ColorCombiner last_cc;
 	TevStageCombiner::AlphaCombiner last_ac;
@@ -1821,7 +1859,7 @@ inline void GeneratePixelShader(ShaderCode& out, const pixel_shader_uid_data& ui
 		out.Write("prev.a = %s;\n", tevAOutputTable[alphaCdest]);
 	}
 	// emulation of unsigned 8 overflow
-	if (TevOverflowState[tevCOutputSourceMap[colorCdest]] || TevOverflowState[tevAOutputSourceMap[alphaCdest]])
+	if (register_state.NeedOverflowControl(tevCOutputSourceMap[colorCdest]) || register_state.NeedOverflowControl(tevAOutputSourceMap[alphaCdest]))
 		out.Write("prev = CHK_O_U8(prev);\n");
 
 	// NOTE: Fragment may not be discarded if alpha test always fails and early depth test is enabled 
@@ -1917,7 +1955,7 @@ inline void GeneratePixelShader(ShaderCode& out, const pixel_shader_uid_data& ui
 	{
 		out.Write("prev.rgb += wu3(spec.rgb*normalmap.w);\n");
 	}
-	if (dstAlphaMode == DSTALPHA_ALPHA_PASS)
+	if (render_mode == PSRM_ALPHA_PASS)
 	{
 		out.Write("ocol0 = float4(prev.rgb," I_ALPHA ".a) * (1.0/255.0);\n");
 	}
@@ -1927,7 +1965,7 @@ inline void GeneratePixelShader(ShaderCode& out, const pixel_shader_uid_data& ui
 		out.Write("ocol0 = float4(prev) * (1.0/255.0);\n");
 	}
 	// Use dual-source color blending to perform dst alpha in a single pass
-	if (dstAlphaMode == DSTALPHA_DUAL_SOURCE_BLEND)
+	if (render_mode == PSRM_DUAL_SOURCE_BLEND)
 	{
 		if (ApiType & API_D3D9)
 		{
@@ -1958,9 +1996,9 @@ inline void GeneratePixelShader(ShaderCode& out, const pixel_shader_uid_data& ui
 		PanicAlert("PixelShader generator - buffer too small, canary has been eaten!");
 }
 
-void GetPixelShaderUidD3D9(PixelShaderUid& object, DSTALPHA_MODE dstAlphaMode, u32 components, const XFMemory &xfr, const BPMemory &bpm)
+void GetPixelShaderUidD3D9(PixelShaderUid& object, PIXEL_SHADER_RENDER_MODE rende_mode, u32 components, const XFMemory &xfr, const BPMemory &bpm)
 {
-	GetPixelShaderUid<API_D3D9>(object, dstAlphaMode, components, xfr, bpm);
+	GetPixelShaderUid<API_D3D9>(object, rende_mode, components, xfr, bpm);
 }
 
 void GeneratePixelShaderCodeD3D9(ShaderCode& object, const pixel_shader_uid_data& uid_data)
@@ -1973,9 +2011,9 @@ void GeneratePixelShaderCodeD3D9SM2(ShaderCode& object, const pixel_shader_uid_d
 	GeneratePixelShader<API_D3D9_SM20>(object, uid_data);
 }
 
-void GetPixelShaderUidD3D11(PixelShaderUid& object, DSTALPHA_MODE dstAlphaMode, u32 components, const XFMemory &xfr, const BPMemory &bpm)
+void GetPixelShaderUidD3D11(PixelShaderUid& object, PIXEL_SHADER_RENDER_MODE rende_mode, u32 components, const XFMemory &xfr, const BPMemory &bpm)
 {
-	GetPixelShaderUid<API_D3D11>(object, dstAlphaMode, components, xfr, bpm);
+	GetPixelShaderUid<API_D3D11>(object, rende_mode, components, xfr, bpm);
 }
 
 void GeneratePixelShaderCodeD3D11(ShaderCode& object, const pixel_shader_uid_data& uid_data)
@@ -1983,9 +2021,9 @@ void GeneratePixelShaderCodeD3D11(ShaderCode& object, const pixel_shader_uid_dat
 	GeneratePixelShader<API_D3D11, true>(object, uid_data);
 }
 
-void GetPixelShaderUidGL(PixelShaderUid& object, DSTALPHA_MODE dstAlphaMode, u32 components, const XFMemory &xfr, const BPMemory &bpm)
+void GetPixelShaderUidGL(PixelShaderUid& object, PIXEL_SHADER_RENDER_MODE rende_mode, u32 components, const XFMemory &xfr, const BPMemory &bpm)
 {
-	GetPixelShaderUid<API_OPENGL>(object, dstAlphaMode, components, xfr, bpm);
+	GetPixelShaderUid<API_OPENGL>(object, rende_mode, components, xfr, bpm);
 }
 
 void GeneratePixelShaderCodeGL(ShaderCode& object, const pixel_shader_uid_data& uid_data)

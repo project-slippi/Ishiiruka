@@ -1,5 +1,6 @@
-#include "ThreadPool.h"
+#include "Common/Common.h"
 #include "Common/CPUDetect.h"
+#include "Common/ThreadPool.h"
 #ifdef _WIN32
 #include <windows.h>
 #endif
@@ -7,22 +8,22 @@ using namespace Common;
 
 ThreadPool::ThreadPool() : m_workflag(0), m_workercount(0), m_workers(16)
 {
-	m_working = true;
-	for (size_t i = 0; i < cpu_info.logical_cpu_count; i++)
+	m_working.store(true);
+	int workers = cpu_info.logical_cpu_count - 1;
+	workers = workers < 1 ? 1 : workers;
+	for (size_t i = 0; i < workers; i++)
 	{
 		std::thread* current = new std::thread(&ThreadPool::Workloop, std::ref(*this), i);
 		m_workerThreads.push_back(std::unique_ptr<std::thread>(current));
 #ifdef _WIN32
 		SetThreadPriority(current->native_handle(), THREAD_MODE_BACKGROUND_BEGIN);
 #endif
-		u32 affinity = 1 << (cpu_info.logical_cpu_count - i - 1);
-		SetThreadAffinity(current->native_handle(), affinity);
 	}
 }
 
 ThreadPool::~ThreadPool()
 {
-	m_working = false;
+	m_working.store(false);
 	for (u32 i = 0; i < m_workerThreads.size(); i++)
 	{
 		std::thread* current = m_workerThreads[i].get();
@@ -41,7 +42,7 @@ ThreadPool& ThreadPool::Getinstance()
 
 void ThreadPool::NotifyWorkPending()
 {
-	ThreadPool::Getinstance().m_workflag.fetch_add(1);
+	ThreadPool::Getinstance().m_workflag.fetch_add(2);
 }
 
 static SpinLock<true> workerLock;
@@ -74,7 +75,7 @@ void ThreadPool::UnregisterWorker(IWorker* worker)
 
 void ThreadPool::Workloop(ThreadPool &state, size_t ID)
 {
-	while (state.m_working)
+	while (state.m_working.load())
 	{
 		if (state.m_workflag.load() > ID)
 		{
@@ -96,6 +97,10 @@ void ThreadPool::Workloop(ThreadPool &state, size_t ID)
 			{
 				Common::YieldCPU();
 				continue;
+			}
+			else if(state.m_workflag.load() > ID)
+			{
+				state.m_workflag.fetch_sub(1);
 			}
 		}
 		SleepCurrentThread(1);
