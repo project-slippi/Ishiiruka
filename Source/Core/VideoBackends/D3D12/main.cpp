@@ -165,8 +165,11 @@ bool VideoBackend::Initialize(void *window_handle)
 	InitBackendInfo();
 
 	frameCount = 0;
-
-	g_Config.Load(File::GetUserPath(D_CONFIG_IDX) + "gfx_dx12.ini");
+	if (File::Exists(File::GetUserPath(D_CONFIG_IDX) + "GFX.ini"))
+		g_Config.Load(File::GetUserPath(D_CONFIG_IDX) + "GFX.ini");
+	else
+		g_Config.Load(File::GetUserPath(D_CONFIG_IDX) + "gfx_dx12.ini");
+	
 	g_Config.GameIniLoad();
 	g_Config.UpdateProjectionHack();
 	g_Config.VerifyValidity();

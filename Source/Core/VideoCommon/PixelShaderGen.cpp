@@ -463,7 +463,7 @@ void GetPixelShaderUid(PixelShaderUid& out, PIXEL_SHADER_RENDER_MODE render_mode
 		bool bHasIndStage = bpm.tevind[n].bt < bpm.genMode.numindstages.Value();
 		// HACK to handle cases where the tex gen is not enabled
 		if (!bHasTexCoord)
-			texcoord = bpm.genMode.numtexgens.Value();
+			texcoord = 0;
 
 		stage.hasindstage = bHasIndStage;
 		stage.tevorders_texcoord = texcoord;
