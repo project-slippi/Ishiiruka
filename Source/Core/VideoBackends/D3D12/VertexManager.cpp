@@ -133,14 +133,6 @@ void VertexManager::Draw(u32 stride)
 
 void VertexManager::PrepareShaders(PrimitiveType primitive, u32 components, const XFMemory &xfr, const BPMemory &bpm, bool ongputhread)
 {
-	if (ongputhread)
-	{
-		if (!s_Shader_Refresh_Required)
-		{
-			return;
-		}
-		s_Shader_Refresh_Required = false;
-	}
 	bool use_dst_alpha = bpm.dstalpha.enable && bpm.blendmode.alphaupdate &&
 		bpm.zcontrol.pixel_format == PEControl::RGBA6_Z24;
 	ShaderCache::PrepareShaders(use_dst_alpha ? PSRM_DUAL_SOURCE_BLEND : PSRM_DEFAULT, primitive, components, xfr, bpm, ongputhread);

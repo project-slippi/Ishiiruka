@@ -125,7 +125,18 @@ void VertexManager::Draw(u32 stride)
 
 void VertexManager::PrepareShaders(PrimitiveType primitive, u32 components, const XFMemory &xfr, const BPMemory &bpm, bool ongputhread)
 {
-
+	bool useDstAlpha = bpm.dstalpha.enable && bpm.blendmode.alphaupdate &&
+		bpm.zcontrol.pixel_format == PEControl::RGBA6_Z24;
+	// If host supports GL_ARB_blend_func_extended, we can do dst alpha in
+	// the same pass as regular rendering.
+	if (useDstAlpha &&  g_ActiveConfig.backend_info.bSupportsDualSourceBlend)
+	{
+		ProgramShaderCache::SetShader(PSRM_DUAL_SOURCE_BLEND, VertexLoaderManager::g_current_components, primitive);
+	}
+	else
+	{
+		ProgramShaderCache::SetShader(PSRM_DEFAULT, VertexLoaderManager::g_current_components, primitive);
+	}
 }
 
 u16* VertexManager::GetIndexBuffer()
@@ -147,17 +158,6 @@ void VertexManager::vFlush(bool useDstAlpha)
 
 	// Makes sure we can actually do Dual source blending
 	bool dualSourcePossible = g_ActiveConfig.backend_info.bSupportsDualSourceBlend;
-
-	// If host supports GL_ARB_blend_func_extended, we can do dst alpha in
-	// the same pass as regular rendering.
-	if (useDstAlpha && dualSourcePossible)
-	{
-		ProgramShaderCache::SetShader(PSRM_DUAL_SOURCE_BLEND, VertexLoaderManager::g_current_components, current_primitive_type);
-	}
-	else
-	{
-		ProgramShaderCache::SetShader(PSRM_DEFAULT, VertexLoaderManager::g_current_components, current_primitive_type);
-	}
 
 	// upload global constants
 	ProgramShaderCache::UploadConstants();

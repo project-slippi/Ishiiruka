@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "Common/Common.h"
+
 #include "VideoCommon/BPMemory.h"
 #include "VideoCommon/NativeVertexFormat.h"
 #include "VideoCommon/XFMemory.h"
@@ -65,9 +66,9 @@ public:
 	virtual void DestroyDeviceObjects(){};
 	
 protected:
-	static bool s_Shader_Refresh_Required;
-	static bool s_Zslope_Refresh_Required;
-	static Slope s_ZSlope;
+	static bool s_shader_refresh_required;
+	static bool s_zslope_refresh_required;
+	static Slope s_zslope;
 
 	static void CalculateZSlope(const PortableVertexDeclaration &vert_decl, const u16* indices);
 	static void SetZSlope();

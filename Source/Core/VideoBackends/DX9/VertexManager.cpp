@@ -462,14 +462,6 @@ void VertexManager::SetPLRasterOffsets()
 
 void DX9::VertexManager::PrepareShaders(PrimitiveType primitive, u32 components, const XFMemory &xfr, const BPMemory &bpm, bool ongputhread)
 {
-	if (ongputhread)
-	{
-		if (!s_Shader_Refresh_Required)
-		{
-			return;
-		}
-		s_Shader_Refresh_Required = false;
-	}
 	const bool useDstAlpha = bpm.dstalpha.enable && bpm.blendmode.alphaupdate &&
 		bpm.zcontrol.pixel_format == PEControl::RGBA6_Z24;
 	const bool useDualSource = useDstAlpha && g_ActiveConfig.backend_info.bSupportsDualSourceBlend;

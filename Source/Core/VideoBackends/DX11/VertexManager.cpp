@@ -151,14 +151,6 @@ void VertexManager::Draw(UINT stride)
 
 void VertexManager::PrepareShaders(PrimitiveType primitive, u32 components, const XFMemory &xfr, const BPMemory &bpm, bool ongputhread)
 {
-	if (ongputhread)
-	{
-		if (!s_Shader_Refresh_Required)
-		{
-			return;
-		}
-		s_Shader_Refresh_Required = false;
-	}
 	bool useDstAlpha = bpm.dstalpha.enable && bpm.blendmode.alphaupdate &&
 		bpm.zcontrol.pixel_format == PEControl::RGBA6_Z24;
 	VertexShaderCache::PrepareShader(components, xfr, bpm, ongputhread);
