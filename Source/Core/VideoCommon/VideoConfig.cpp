@@ -325,13 +325,6 @@ void VideoConfig::VerifyValidity()
 	// Disable while reimplementing predictive fifo
 	bPredictiveFifo = false;
 	bWaitForShaderCompilation = false;
-	if (backend_info.APIType == API_OPENGL)
-	{
-		//disable until is properly implemneted
-		//bPredictiveFifo = false;
-		bFullAsyncShaderCompilation = false;
-		//bWaitForShaderCompilation = false;
-	}
 	if (iBBoxMode > BBoxGPU || iBBoxMode < BBoxNone)
 	{
 		iBBoxMode = BBoxGPU;

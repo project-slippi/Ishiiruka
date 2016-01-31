@@ -25,9 +25,6 @@
 #include "VideoCommon/CPMemory.h"
 #include "VideoCommon/DataReader.h"
 #include "VideoCommon/Fifo.h"
-#ifdef _WIN32
-#include "VideoCommon/HLSLCompiler.h"
-#endif
 #include "VideoCommon/OpcodeDecoding.h"
 #include "VideoCommon/VertexLoaderManager.h"
 #include "VideoCommon/VertexManagerBase.h"

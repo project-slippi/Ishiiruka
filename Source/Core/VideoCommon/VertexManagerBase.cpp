@@ -79,11 +79,6 @@ void VertexManagerBase::PrepareForAdditionalData(int primitive, u32 count, u32 s
 	if (current_primitive_type != primitive_from_gx[primitive])
 		Flush();
 	current_primitive_type = primitive_from_gx[primitive];
-	if (s_shader_refresh_required)
-	{
-		s_shader_refresh_required = false;
-		g_vertex_manager->PrepareShaders(current_primitive_type, VertexLoaderManager::g_current_components, xfmem, bpmem, true);
-	}
 	// Check for size in buffer, if the buffer gets full, call Flush()
 	if (!IsFlushed && (count > IndexGenerator::GetRemainingIndices() ||
 		count > GetRemainingIndices(primitive) || needed_vertex_bytes > GetRemainingSize()))
@@ -144,11 +139,7 @@ void VertexManagerBase::Flush()
 	// loading a state will invalidate BP, so check for it
 	NativeVertexFormat* current_vertex_format = VertexLoaderManager::GetCurrentVertexFormat();
 	g_video_backend->CheckInvalidState();
-	if (s_shader_refresh_required)
-	{
-		s_shader_refresh_required = false;
-		g_vertex_manager->PrepareShaders(current_primitive_type, VertexLoaderManager::g_current_components, xfmem, bpmem, true);
-	}
+	g_vertex_manager->PrepareShaders(current_primitive_type, VertexLoaderManager::g_current_components, xfmem, bpmem, true);
 #if defined(_DEBUG) || defined(DEBUGFAST)
 	PRIM_LOG("frame%d:\n texgen=%d, numchan=%d, dualtex=%d, ztex=%d, cole=%d, alpe=%d, ze=%d", g_ActiveConfig.iSaveTargetId, xfmem.numTexGen.numTexGens,
 		xfmem.numChan.numColorChans, xfmem.dualTexTrans.enabled, bpmem.ztex2.op,
@@ -251,7 +242,6 @@ void VertexManagerBase::Flush()
 
 	IsFlushed = true;
 	s_cull_all = false;
-	s_shader_refresh_required = true;
 }
 
 void VertexManagerBase::DoState(PointerWrap& p)
