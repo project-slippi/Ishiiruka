@@ -7,6 +7,7 @@
 #include "VideoBackends/DX9/Render.h"
 #include "VideoCommon/VideoConfig.h"
 #include "VideoCommon/VideoCommon.h"
+#include "VideoCommon/TextureDecoder.h"
 #include "VideoCommon/XFStructs.h"
 
 D3DXSAVESURFACETOFILEATYPE PD3DXSaveSurfaceToFileA = nullptr;
@@ -407,6 +408,12 @@ void UnloadD3DX9()
 	PD3DXSaveTextureToFileA = nullptr;
 }
 
+// returns true if format is supported
+bool CheckTextureSupport(DWORD usage, D3DFORMAT tex_format)
+{
+	return D3D_OK == D3D->CheckDeviceFormat(cur_adapter, D3DDEVTYPE_HAL, D3DFMT_X8R8G8B8, usage, D3DRTYPE_TEXTURE, tex_format);
+}
+
 HRESULT Create(int adapter, HWND wnd, int _resolution, int aa_mode, bool auto_depth)
 {
 	hWnd = wnd;
@@ -495,6 +502,18 @@ HRESULT Create(int adapter, HWND wnd, int _resolution, int aa_mode, bool auto_de
 	m_VertexShaderChanged = false;
 	m_stream_sources_Changed.assign(MaxStreamSources, false);
 	m_index_buffer_Changed = false;
+	g_Config.backend_info.bSupportedFormats[PC_TEX_FMT_BGRA32] = true;
+	g_Config.backend_info.bSupportedFormats[PC_TEX_FMT_RGBA32] = false;
+	const bool alpha_luminiscente_supported = CheckTextureSupport(0, D3DFMT_A8L8);
+	g_Config.backend_info.bSupportedFormats[PC_TEX_FMT_I4_AS_I8] = alpha_luminiscente_supported;
+	g_Config.backend_info.bSupportedFormats[PC_TEX_FMT_IA4_AS_IA8] = alpha_luminiscente_supported;
+	g_Config.backend_info.bSupportedFormats[PC_TEX_FMT_I8] = alpha_luminiscente_supported;
+	g_Config.backend_info.bSupportedFormats[PC_TEX_FMT_IA8] = alpha_luminiscente_supported;
+	g_Config.backend_info.bSupportedFormats[PC_TEX_FMT_RGB565] = CheckTextureSupport(0, D3DFMT_R5G6B5);
+	g_Config.backend_info.bSupportedFormats[PC_TEX_FMT_DXT1] = CheckTextureSupport(0, D3DFMT_DXT1);
+	g_Config.backend_info.bSupportedFormats[PC_TEX_FMT_DXT3] = CheckTextureSupport(0, D3DFMT_DXT3);
+	g_Config.backend_info.bSupportedFormats[PC_TEX_FMT_DXT5] = CheckTextureSupport(0, D3DFMT_DXT5);
+	UpdateActiveConfig();
 	// Device state would normally be set here
 	return S_OK;
 }
@@ -544,12 +563,6 @@ bool FixTextureSize(int& width, int& height)
 	height = std::min(height, (int)caps.MaxTextureHeight);
 
 	return (width != oldw) || (height != oldh);
-}
-
-// returns true if format is supported
-bool CheckTextureSupport(DWORD usage, D3DFORMAT tex_format)
-{
-	return D3D_OK == D3D->CheckDeviceFormat(cur_adapter, D3DDEVTYPE_HAL, D3DFMT_X8R8G8B8, usage, D3DRTYPE_TEXTURE, tex_format);
 }
 
 bool CheckDepthStencilSupport(D3DFORMAT target_format, D3DFORMAT depth_format)

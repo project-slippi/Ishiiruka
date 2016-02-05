@@ -75,16 +75,6 @@ void InitBackendInfo()
 	const int shaderModel = ((device_caps.PixelShaderVersion >> 8) & 0xFF);
 	const int maxConstants = (shaderModel < 3) ? 32 : ((shaderModel < 4) ? 224 : 65536);
 	g_Config.backend_info.APIType = shaderModel < 3 ? API_D3D9_SM20 : API_D3D9_SM30;
-	g_Config.backend_info.bSupportedFormats[PC_TEX_FMT_BGRA32] = true;
-	g_Config.backend_info.bSupportedFormats[PC_TEX_FMT_RGBA32] = false;
-	g_Config.backend_info.bSupportedFormats[PC_TEX_FMT_I4_AS_I8] = true;
-	g_Config.backend_info.bSupportedFormats[PC_TEX_FMT_IA4_AS_IA8] = true;
-	g_Config.backend_info.bSupportedFormats[PC_TEX_FMT_I8] = true;
-	g_Config.backend_info.bSupportedFormats[PC_TEX_FMT_IA8] = true;
-	g_Config.backend_info.bSupportedFormats[PC_TEX_FMT_RGB565] = true;
-	g_Config.backend_info.bSupportedFormats[PC_TEX_FMT_DXT1] = true;
-	g_Config.backend_info.bSupportedFormats[PC_TEX_FMT_DXT3] = true;
-	g_Config.backend_info.bSupportedFormats[PC_TEX_FMT_DXT5] = true;
 	g_Config.backend_info.bSupportsExclusiveFullscreen = false;
 	g_Config.backend_info.bSupportsSeparateAlphaFunction = (device_caps.PrimitiveMiscCaps & D3DPMISCCAPS_SEPARATEALPHABLEND) == D3DPMISCCAPS_SEPARATEALPHABLEND;
 	// Dual source blend disabled by default until a proper method to test for support is found	

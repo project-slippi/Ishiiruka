@@ -329,7 +329,9 @@ bool TextureCache::Palettize(TCacheEntryBase* entry, const TCacheEntryBase* base
 PC_TexFormat TextureCache::GetNativeTextureFormat(const s32 texformat, const TlutFormat tlutfmt, u32 width, u32 height)
 {
 	const bool compressed_supported = ((width & 3) == 0) && ((height & 3) == 0);
-	return GetPC_TexFormat(texformat, tlutfmt, compressed_supported);
+	PC_TexFormat pcfmt = GetPC_TexFormat(texformat, tlutfmt, compressed_supported);
+	pcfmt = !g_ActiveConfig.backend_info.bSupportedFormats[pcfmt] ? PC_TEX_FMT_RGBA32 : pcfmt;
+	return pcfmt;
 }
 
 TextureCache::TCacheEntryBase* TextureCache::CreateTexture(const TCacheEntryConfig& config)
