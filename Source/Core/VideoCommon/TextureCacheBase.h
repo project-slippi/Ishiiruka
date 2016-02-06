@@ -158,7 +158,7 @@ public:
 		}
 		virtual ~TCacheEntryBase();
 
-		virtual void Bind(u32 stage, u32 lastTexture) = 0;
+		virtual void Bind(u32 stage, u32 last_texture) = 0;
 		virtual bool Save(const std::string& filename, u32 level) = 0;
 
 		virtual void CopyRectangleFromTexture(

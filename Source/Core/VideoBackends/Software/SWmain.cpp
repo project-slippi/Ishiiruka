@@ -105,7 +105,7 @@ private:
 			const MathUtil::Rectangle<int>& srcrect,
 			const MathUtil::Rectangle<int>& dstrect) override {}
 
-		void Bind(u32 stage, u32 lastTexture) override {}
+		void Bind(u32 stage, u32 last_texture) override {}
 
 		bool Save(const std::string& filename, unsigned int level) override { return false; }
 	};
