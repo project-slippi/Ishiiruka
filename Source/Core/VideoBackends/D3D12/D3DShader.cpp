@@ -10,6 +10,7 @@
 #include "Common/StringUtil.h"
 #include "Common/Logging/Log.h"
 #include "VideoBackends/D3D12/D3DBase.h"
+#include "VideoBackends/D3D12/D3DBlob.h"
 #include "VideoBackends/D3D12/D3DShader.h"
 #include "VideoCommon/HLSLCompiler.h"
 #include "VideoCommon/VideoConfig.h"

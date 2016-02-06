@@ -10,6 +10,8 @@
 namespace DX12
 {
 
+class D3DStreamBuffer;
+
 class TextureCache : public TextureCacheBase
 {
 public:
@@ -65,14 +67,9 @@ private:
 
 	TlutFormat m_lut_format;
 	u32 m_lut_size;
-	ID3D12Resource* m_palette_buffer = nullptr;
-	unsigned int m_palette_buffer_index = 0;
-	void* m_palette_buffer_data = nullptr;
-	D3D12_CPU_DESCRIPTOR_HANDLE m_palette_buffer_cpu_handles[1024] = {};
-	D3D12_GPU_DESCRIPTOR_HANDLE m_palette_buffer_gpu_handles[1024] = {};
+	D3DStreamBuffer* m_palette_stream_buffer;
+
 	ID3D12Resource* m_palette_uniform_buffer = nullptr;
-	UINT m_palette_uniform_buffer_current_offset = 0;
-	void* m_palette_uniform_buffer_data = nullptr;
 	D3D12_SHADER_BYTECODE m_palette_pixel_shaders[3] = {};
 };
 

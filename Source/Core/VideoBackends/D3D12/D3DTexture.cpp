@@ -53,15 +53,26 @@ void ReplaceTexture2D(ID3D12Resource* texture12, const u8* buffer, DXGI_FORMAT f
 		D3D::current_command_list->OMSetRenderTargets(1, &FramebufferManager::GetEFBColorTexture()->GetRTV(), FALSE, &FramebufferManager::GetEFBDepthTexture()->GetDSV());
 	}
 
-	D3D12_SUBRESOURCE_DATA subresource_data = {
-		buffer,    // const void *pData;
-		src_pitch, // LONG_PTR RowPitch;
-		src_pitch * height,         // LONG_PTR SlicePitch;
-	};
-
 	ResourceBarrier(current_command_list, texture12, current_resource_state, D3D12_RESOURCE_STATE_COPY_DEST, level);
 
-	CHECK(0 != UpdateSubresources(current_command_list, texture12, s_texture_upload_stream_buffer->GetBuffer(), s_texture_upload_stream_buffer->GetOffsetOfCurrentAllocation(), level, 1, &subresource_data), "UpdateSubresources failed.");
+	D3D12_PLACED_SUBRESOURCE_FOOTPRINT upload_footprint = {};
+	u32 upload_rows = 0;
+	u64 upload_row_size_in_bytes = 0;
+	u64 upload_total_bytes = 0;
+	
+	D3D::device12->GetCopyableFootprints(&texture12->GetDesc(), level, 1, s_texture_upload_stream_buffer->GetOffsetOfCurrentAllocation(), &upload_footprint, &upload_rows, &upload_row_size_in_bytes, &upload_total_bytes);
+	
+	u8* dest_data = reinterpret_cast<u8*>(s_texture_upload_stream_buffer->GetCPUAddressOfCurrentAllocation());
+	const u8* src_data = reinterpret_cast<const u8*>(buffer);
+	for (u32 y = 0; y < upload_rows; ++y)
+	{
+		memcpy(
+			dest_data + upload_footprint.Footprint.RowPitch * y,
+			src_data + src_pitch * y,
+			upload_row_size_in_bytes
+		);
+	}
+	D3D::current_command_list->CopyTextureRegion(&CD3DX12_TEXTURE_COPY_LOCATION(texture12, level), 0, 0, 0, &CD3DX12_TEXTURE_COPY_LOCATION(s_texture_upload_stream_buffer->GetBuffer(), upload_footprint), nullptr);
 
 	ResourceBarrier(D3D::current_command_list, texture12, D3D12_RESOURCE_STATE_COPY_DEST, current_resource_state, level);
 }
@@ -124,18 +135,18 @@ D3DTexture2D* D3DTexture2D::Create(unsigned int width, unsigned int height, D3D1
 
 void D3DTexture2D::AddRef()
 {
-	++m_ref;
+	m_ref.fetch_add(1);
 }
 
 UINT D3DTexture2D::Release()
 {
-	--m_ref;
-	if (m_ref == 0)
+	UINT ref = m_ref.fetch_sub(1);
+	--ref;
+	if (ref == 0)
 	{
 		delete this;
-		return 0;
 	}
-	return m_ref;
+	return ref;
 }
 
 D3D12_RESOURCE_STATES D3DTexture2D::GetResourceUsageState() const

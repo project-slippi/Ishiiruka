@@ -34,17 +34,17 @@ D3DBlob::~D3DBlob()
 
 void D3DBlob::AddRef()
 {
-	++m_ref;
+	m_ref.fetch_add(1);
 }
 
 unsigned int D3DBlob::Release()
 {
-	if (--m_ref == 0)
+	unsigned int ref = m_ref.fetch_sub(1);
+	if (--ref == 0)
 	{
 		delete this;
-		return 0;
 	}
-	return m_ref;
+	return ref;
 }
 
 unsigned int D3DBlob::Size() const

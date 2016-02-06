@@ -12,7 +12,6 @@ namespace DX12
 namespace D3D
 {
 	void ReplaceTexture2D(ID3D12Resource* pTexture, const u8* buffer, DXGI_FORMAT fmt, unsigned int width, unsigned int height, unsigned int src_pitch, unsigned int level, D3D12_RESOURCE_STATES current_resource_state = D3D12_RESOURCE_STATE_COMMON);
-	void MoveToNextD3DTextureUploadHeap();
 	void CleanupPersistentD3DTextureResources();
 }
 
@@ -60,7 +59,7 @@ private:
 
 	bool m_multisampled;
 
-	unsigned int m_ref = 1;
+	std::atomic<unsigned long> m_ref = 1;
 };
 
 }  // namespace DX12

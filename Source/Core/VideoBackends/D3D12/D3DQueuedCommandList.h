@@ -194,6 +194,12 @@ struct FenceCpuSignalArguments
 	UINT64 fence_value;
 };
 
+struct StopArguments
+{
+	bool eligible_to_move_to_front_of_queue;
+	bool signal_stop_event;
+};
+
 struct D3DQueueItem
 {
 	D3DQueueItemType Type;
@@ -226,6 +232,7 @@ struct D3DQueueItem
 		ResetCommandAllocatorArguments ResetCommandAllocator;
 		FenceGpuSignalArguments FenceGpuSignal;
 		FenceCpuSignalArguments FenceCpuSignal;
+		StopArguments Stop;
 	};
 };
 
@@ -607,7 +614,7 @@ private:
 	ID3D12GraphicsCommandList* m_command_list;
 	ID3D12CommandQueue* m_command_queue;
 
-	unsigned int m_ref = 1;
+	std::atomic<unsigned long> m_ref = 1;
 };
 
 }  // namespace

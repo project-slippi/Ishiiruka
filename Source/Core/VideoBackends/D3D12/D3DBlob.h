@@ -3,7 +3,7 @@
 // Refer to the license.txt file included.
 
 #pragma once
-
+#include <atomic>
 #include "Common/CommonTypes.h"
 
 struct ID3D10Blob;
@@ -30,7 +30,7 @@ public:
 private:
 	~D3DBlob();
 
-	unsigned int m_ref = 1;
+	std::atomic<unsigned long> m_ref = 1;
 	unsigned int m_size = 0;
 
 	u8* m_data = nullptr;

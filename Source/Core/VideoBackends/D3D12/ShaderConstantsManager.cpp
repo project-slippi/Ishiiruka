@@ -26,7 +26,7 @@ enum SHADER_STAGE
 	SHADER_STAGE_COUNT = 4
 };
 
-static D3DStreamBuffer* s_shader_constant_stream_buffers[SHADER_STAGE_COUNT] = {};
+static std::array<D3DStreamBuffer*, SHADER_STAGE_COUNT> s_shader_constant_stream_buffers = {};
 
 const unsigned int shader_constant_buffer_sizes[SHADER_STAGE_COUNT] = {
 	sizeof(GeometryShaderConstants),
@@ -46,19 +46,16 @@ void ShaderConstantsManager::Init()
 {
 	PixelShaderManager::DisableDirtyRegions();
 	VertexShaderManager::DisableDirtyRegions();
-	for (unsigned int i = 0; i < SHADER_STAGE_COUNT; i++)
-	{
-		// Allow a large maximum size, as we want to minimize stalls here.
-		s_shader_constant_stream_buffers[i] = new D3DStreamBuffer(2 * 1024 * 1024, 64 * 1024 * 1024, nullptr);
-	}
+	// Allow a large maximum size, as we want to minimize stalls here
+	std::generate(std::begin(s_shader_constant_stream_buffers), std::end(s_shader_constant_stream_buffers), []() {
+		return new D3DStreamBuffer(2 * 1024 * 1024, 64 * 1024 * 1024, nullptr);
+	});
 }
 
 void ShaderConstantsManager::Shutdown()
 {
-	for (unsigned int i = 0; i < SHADER_STAGE_COUNT; i++)
-	{
-		SAFE_DELETE(s_shader_constant_stream_buffers[i]);
-	}
+	for (auto& it : s_shader_constant_stream_buffers)
+		SAFE_DELETE(it);
 }
 
 bool ShaderConstantsManager::LoadAndSetGeometryShaderConstants()
@@ -80,16 +77,16 @@ bool ShaderConstantsManager::LoadAndSetGeometryShaderConstants()
 
 		ADDSTAT(stats.thisFrame.bytesUniformStreamed, sizeof(GeometryShaderConstants));
 
-		D3D::command_list_mgr->m_dirty_gs_cbv = true;
+		D3D::command_list_mgr->SetCommandListDirtyState(COMMAND_LIST_STATE_GS_CBV, true);
 	}
-	if (D3D::command_list_mgr->m_dirty_gs_cbv)
+	if (D3D::command_list_mgr->GetCommandListDirtyState(COMMAND_LIST_STATE_GS_CBV))
 	{
 		D3D::current_command_list->SetGraphicsRootConstantBufferView(
 			DESCRIPTOR_TABLE_GS_CBV,
 			s_shader_constant_stream_buffers[SHADER_STAGE_GEOMETRY_SHADER]->GetGPUAddressOfCurrentAllocation()
 		);
 
-		D3D::command_list_mgr->m_dirty_gs_cbv = false;
+		D3D::command_list_mgr->SetCommandListDirtyState(COMMAND_LIST_STATE_GS_CBV, false);
 	}
 	return command_list_executed;
 }
@@ -117,9 +114,9 @@ bool ShaderConstantsManager::LoadAndSetHullDomainShaderConstants()
 
 		ADDSTAT(stats.thisFrame.bytesUniformStreamed, sizeof(TessellationShaderManager::constants));
 
-		D3D::command_list_mgr->m_dirty_hds_cbv = true;
+		D3D::command_list_mgr->SetCommandListDirtyState(COMMAND_LIST_STATE_HDS_CBV, true);
 	}
-	if (D3D::command_list_mgr->m_dirty_hds_cbv)
+	if (D3D::command_list_mgr->GetCommandListDirtyState(COMMAND_LIST_STATE_HDS_CBV))
 	{
 		D3D::current_command_list->SetGraphicsRootConstantBufferView(
 			DESCRIPTOR_TABLE_HS_CBV0,
@@ -130,7 +127,7 @@ bool ShaderConstantsManager::LoadAndSetHullDomainShaderConstants()
 			s_shader_constant_stream_buffers[SHADER_STAGE_TESSELLATION_SHADER]->GetGPUAddressOfCurrentAllocation()
 			);
 
-		D3D::command_list_mgr->m_dirty_hds_cbv = false;
+		D3D::command_list_mgr->SetCommandListDirtyState(COMMAND_LIST_STATE_HDS_CBV, false);
 	}
 	return command_list_executed;
 }
@@ -154,9 +151,9 @@ bool ShaderConstantsManager::LoadAndSetPixelShaderConstants()
 
 		ADDSTAT(stats.thisFrame.bytesUniformStreamed, sizeof(PixelShaderConstants));
 
-		D3D::command_list_mgr->m_dirty_ps_cbv = true;
+		D3D::command_list_mgr->SetCommandListDirtyState(COMMAND_LIST_STATE_PS_CBV, true);
 	}
-	if (D3D::command_list_mgr->m_dirty_ps_cbv)
+	if (D3D::command_list_mgr->GetCommandListDirtyState(COMMAND_LIST_STATE_PS_CBV))
 	{
 		const D3D12_GPU_VIRTUAL_ADDRESS calculated_gpu_va = s_shader_constant_stream_buffers[SHADER_STAGE_PIXEL_SHADER]->GetGPUAddressOfCurrentAllocation();
 		D3D::current_command_list->SetGraphicsRootConstantBufferView(
@@ -174,7 +171,7 @@ bool ShaderConstantsManager::LoadAndSetPixelShaderConstants()
 				calculated_gpu_va
 				);
 		}
-		D3D::command_list_mgr->m_dirty_ps_cbv = false;
+		D3D::command_list_mgr->SetCommandListDirtyState(COMMAND_LIST_STATE_PS_CBV, false);
 	}
 	return command_list_executed;
 }
@@ -198,9 +195,9 @@ bool ShaderConstantsManager::LoadAndSetVertexShaderConstants()
 
 		ADDSTAT(stats.thisFrame.bytesUniformStreamed, sizeof(VertexShaderConstants));
 
-		D3D::command_list_mgr->m_dirty_vs_cbv = true;
+		D3D::command_list_mgr->SetCommandListDirtyState(COMMAND_LIST_STATE_VS_CBV, true);
 	}
-	if (D3D::command_list_mgr->m_dirty_vs_cbv)
+	if (D3D::command_list_mgr->GetCommandListDirtyState(COMMAND_LIST_STATE_VS_CBV))
 	{
 		const D3D12_GPU_VIRTUAL_ADDRESS calculated_gpu_va = s_shader_constant_stream_buffers[SHADER_STAGE_VERTEX_SHADER]->GetGPUAddressOfCurrentAllocation();
 
@@ -225,7 +222,7 @@ bool ShaderConstantsManager::LoadAndSetVertexShaderConstants()
 				calculated_gpu_va
 				);
 		}
-		D3D::command_list_mgr->m_dirty_vs_cbv = false;
+		D3D::command_list_mgr->SetCommandListDirtyState(COMMAND_LIST_STATE_VS_CBV, false);
 	}
 	return command_list_executed;
 }

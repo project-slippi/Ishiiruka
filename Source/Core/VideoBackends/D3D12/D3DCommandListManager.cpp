@@ -16,7 +16,7 @@
 #include "VideoBackends/D3D12/ShaderConstantsManager.h"
 #include "VideoBackends/D3D12/VertexManager.h"
 
-static const UINT s_initial_command_allocator_count = 2;
+static constexpr unsigned int COMMAND_ALLOCATORS_PER_LIST = 2;
 
 namespace DX12
 {
@@ -34,9 +34,9 @@ D3DCommandListManager::D3DCommandListManager(
 	// Create command allocators. Start with two lists of '8', this corresponds to up to 8 frames in flight.
 	m_current_command_allocator = 0;
 	m_current_command_allocator_list = 0;
-	for (UINT i = 0; i < s_initial_command_allocator_count; i++)
+	for (UINT i = 0; i < COMMAND_ALLOCATORS_PER_LIST; i++)
 	{
-		for (UINT j = 0; j < ARRAYSIZE(m_command_allocator_lists); j++)
+		for (UINT j = 0; j < m_command_allocator_lists.size(); j++)
 		{
 			ID3D12CommandAllocator* command_allocator = nullptr;
 
@@ -61,12 +61,12 @@ D3DCommandListManager::D3DCommandListManager(
 	CheckHR(m_device->CreateFence(m_queue_frame_fence_value, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_queue_frame_fence)));
 
 	// Create event that will be used for waiting on CPU until a fence is signaled by GPU.
-	m_wait_on_cpu_fence_event = CreateEvent(NULL, FALSE, FALSE, NULL);
+	m_wait_on_cpu_fence_event = CreateEvent(nullptr, FALSE, FALSE, nullptr);
 
 	// Pre-size the deferred destruction lists.
-	for (UINT i = 0; i < ARRAYSIZE(m_deferred_destruction_lists); i++)
+	for (UINT i = 0; i < m_deferred_destruction_lists.size(); i++)
 	{
-		m_deferred_destruction_lists[0].reserve(200);
+		m_deferred_destruction_lists[i].reserve(200);
 	}
 
 	m_current_deferred_destruction_list = 0;
@@ -77,7 +77,7 @@ void D3DCommandListManager::SetInitialCommandListState()
 	ID3D12GraphicsCommandList* command_list = nullptr;
 	GetCommandList(&command_list);
 
-	command_list->SetDescriptorHeaps(ARRAYSIZE(D3D::gpu_descriptor_heaps), D3D::gpu_descriptor_heaps);
+	command_list->SetDescriptorHeaps(static_cast<unsigned int>(D3D::gpu_descriptor_heaps.size()), D3D::gpu_descriptor_heaps.data());
 	command_list->SetGraphicsRootSignature(D3D::default_root_signature);
 
 	if (g_renderer)
@@ -86,20 +86,11 @@ void D3DCommandListManager::SetInitialCommandListState()
 		// the viewport/scissor to the current console GPU state.
 		g_renderer->RestoreAPIState();
 	}
-
+	m_command_list_dirty_state = UINT_MAX;
 	command_list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
-
+	m_command_list_current_topology = D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP;
 	if (g_vertex_manager)
 		static_cast<VertexManager*>(g_vertex_manager.get())->SetIndexBuffer();
-
-	m_dirty_pso = true;
-	m_dirty_vertex_buffer = true;
-	m_dirty_ps_cbv = true;
-	m_dirty_vs_cbv = true;
-	m_dirty_gs_cbv = true;
-	m_dirty_hds_cbv = true;
-	m_dirty_samplers = true;
-	m_current_topology = D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP;
 }
 
 void D3DCommandListManager::GetCommandList(ID3D12GraphicsCommandList** command_list)
@@ -216,7 +207,7 @@ void D3DCommandListManager::PerformGpuRolloverChecks()
 	// release resources / start back at beginning of command allocator list.
 
 	// Begin Deferred Resource Destruction
-	UINT safe_to_delete_deferred_destruction_list = (m_current_deferred_destruction_list - 1) % ARRAYSIZE(m_deferred_destruction_lists);
+	UINT safe_to_delete_deferred_destruction_list = (m_current_deferred_destruction_list - 1) % m_deferred_destruction_lists.size();
 
 	for (UINT i = 0; i < m_deferred_destruction_lists[safe_to_delete_deferred_destruction_list].size(); i++)
 	{
@@ -225,19 +216,19 @@ void D3DCommandListManager::PerformGpuRolloverChecks()
 
 	m_deferred_destruction_lists[safe_to_delete_deferred_destruction_list].clear();
 
-	m_current_deferred_destruction_list = (m_current_deferred_destruction_list + 1) % ARRAYSIZE(m_deferred_destruction_lists);
+	m_current_deferred_destruction_list = (m_current_deferred_destruction_list + 1) % m_deferred_destruction_lists.size();
 	// End Deferred Resource Destruction
 
 
 	// Begin Command Allocator Resets
-	UINT safe_to_reset_command_allocator_list = (m_current_command_allocator_list - 1) % ARRAYSIZE(m_command_allocator_lists);
+	UINT safe_to_reset_command_allocator_list = (m_current_command_allocator_list - 1) % m_command_allocator_lists.size();
 
 	for (UINT i = 0; i < m_command_allocator_lists[safe_to_reset_command_allocator_list].size(); i++)
 	{
 		CheckHR(m_command_allocator_lists[safe_to_reset_command_allocator_list][i]->Reset());
 	}
 
-	m_current_command_allocator_list = (m_current_command_allocator_list + 1) % ARRAYSIZE(m_command_allocator_lists);
+	m_current_command_allocator_list = (m_current_command_allocator_list + 1) % m_command_allocator_lists.size();
 	// End Command Allocator Resets
 
 	m_queue_frame_fence_value++;
@@ -268,14 +259,12 @@ void D3DCommandListManager::DestroyResourceAfterCurrentCommandListExecuted(ID3D1
 
 void D3DCommandListManager::ImmediatelyDestroyAllResourcesScheduledForDestruction()
 {
-	for (UINT i = 0; i < ARRAYSIZE(m_deferred_destruction_lists); i++)
+	for (auto& destruction_list : m_deferred_destruction_lists)
 	{
-		for (UINT j = 0; j < m_deferred_destruction_lists[i].size(); j++)
-		{
-			m_deferred_destruction_lists[i][j]->Release();
-		}
+		for (auto& resource : destruction_list)
+			 resource->Release();
 
-		m_deferred_destruction_lists[i].clear();
+		destruction_list.clear();
 	}
 }
 
@@ -302,12 +291,10 @@ D3DCommandListManager::~D3DCommandListManager()
 #endif
 	CHECK(m_backing_command_list->Release() == 0, "Ref leak");
 
-	for (UINT i = 0; i < ARRAYSIZE(m_command_allocator_lists); i++)
+	for (auto& allocator_list : m_command_allocator_lists)
 	{
-		for (UINT j = 0; j < m_command_allocator_lists[i].size(); j++)
-		{
-			CHECK(m_command_allocator_lists[i][j]->Release() == 0, "Ref leak");
-		}
+		for (auto& resource : allocator_list)
+			resource->Release();
 	}
 
 	m_queue_fence->Release();
@@ -322,6 +309,13 @@ void D3DCommandListManager::WaitOnCPUForFence(ID3D12Fence* fence, UINT64 fence_v
 	WaitForSingleObject(m_wait_on_cpu_fence_event, INFINITE);
 }
 
+void D3DCommandListManager::CPUAccessNotify()
+{
+	m_cpu_access_last_frame = true;
+	m_cpu_access_this_frame = true;
+	m_draws_since_last_execution = 0;
+};
+
 ID3D12Fence* D3DCommandListManager::RegisterQueueFenceCallback(void* owning_object, PFN_QUEUE_FENCE_CALLBACK* callback_function)
 {
 	m_queue_fence_callbacks[owning_object] = callback_function;
@@ -331,21 +325,6 @@ ID3D12Fence* D3DCommandListManager::RegisterQueueFenceCallback(void* owning_obje
 void D3DCommandListManager::RemoveQueueFenceCallback(void* owning_object)
 {
 	m_queue_fence_callbacks.erase(owning_object);
-}
-
-void D3DCommandListManager::AddRef()
-{
-	++m_ref;
-}
-
-unsigned int D3DCommandListManager::Release()
-{
-	if (--m_ref == 0)
-	{
-		delete this;
-		return 0;
-	}
-	return m_ref;
 }
 
 }  // namespace DX12

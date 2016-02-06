@@ -4,6 +4,7 @@
 
 #include "Core/HW/Memmap.h"
 #include "VideoBackends/D3D12/D3DBase.h"
+#include "VideoBackends/D3D12/D3DBlob.h"
 #include "VideoBackends/D3D12/D3DCommandListManager.h"
 #include "VideoBackends/D3D12/D3DDescriptorHeapManager.h"
 #include "VideoBackends/D3D12/D3DShader.h"
@@ -174,7 +175,7 @@ void PSTextureEncoder::Encode(u8* dst, u32 format, u32 native_width, u32 bytes_p
 		m_encode_params_buffer->GetGPUVirtualAddress()
 		);
 
-	D3D::command_list_mgr->m_dirty_ps_cbv = true;
+	D3D::command_list_mgr->SetCommandListDirtyState(COMMAND_LIST_STATE_PS_CBV, true);
 
 	// Use linear filtering if (bScaleByHalf), use point filtering otherwise
 	if (scale_by_half)

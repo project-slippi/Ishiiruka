@@ -12,7 +12,7 @@
 #include "VideoBackends/D3D12/D3DTexture.h"
 #include "VideoCommon/VideoConfig.h"
 
-static const unsigned int SWAP_CHAIN_BUFFER_COUNT = 2;
+static const unsigned int SWAP_CHAIN_BUFFER_COUNT = 4;
 
 namespace DX12
 {
@@ -49,13 +49,15 @@ D3DDescriptorHeapManager* gpu_descriptor_heap_mgr = nullptr;
 D3DDescriptorHeapManager* sampler_descriptor_heap_mgr = nullptr;
 D3DDescriptorHeapManager* dsv_descriptor_heap_mgr = nullptr;
 D3DDescriptorHeapManager* rtv_descriptor_heap_mgr = nullptr;
-ID3D12DescriptorHeap* gpu_descriptor_heaps[2];
+std::array<ID3D12DescriptorHeap*, 2> gpu_descriptor_heaps;
 
 HWND hWnd;
 // End extern'd variables.
 
 static IDXGISwapChain* s_swap_chain = nullptr;
-static HANDLE s_swap_chain_waitable_object = NULL;
+static unsigned int s_monitor_refresh_rate = 0;
+
+static LARGE_INTEGER s_qpc_frequency;
 
 static ID3D12DebugDevice* s_debug_device12 = nullptr;
 
@@ -412,14 +414,28 @@ HRESULT Create(HWND wnd)
 
 		CheckHR(factory->CreateSwapChain(command_queue, &swap_chain_desc, &s_swap_chain));
 
-		IDXGISwapChain3* swap_chain = nullptr;
-		CheckHR(s_swap_chain->QueryInterface(&swap_chain));
-
-		s_swap_chain_waitable_object = swap_chain->GetFrameLatencyWaitableObject();
-
 		s_current_back_buf = 0;
 
 		factory->Release();
+	}
+
+	if (SUCCEEDED(hr))
+	{
+		// Query the monitor refresh rate, to ensure proper Present throttling behavior.
+		DEVMODE dev_mode;
+		memset(&dev_mode, 0, sizeof(DEVMODE));
+		dev_mode.dmSize = sizeof(DEVMODE);
+		dev_mode.dmDriverExtra = 0;
+		
+		if (EnumDisplaySettings(NULL, ENUM_CURRENT_SETTINGS, &dev_mode) == 0)
+		{
+			// If EnumDisplaySettings fails, assume monitor refresh rate of 60 Hz.
+			s_monitor_refresh_rate = 60;
+		}
+		else
+		{
+			s_monitor_refresh_rate = dev_mode.dmDisplayFrequency;
+		}
 	}
 
 	if (FAILED(hr))
@@ -501,7 +517,7 @@ HRESULT Create(HWND wnd)
 
 	s_backbuf[s_current_back_buf]->TransitionToResourceState(current_command_list, D3D12_RESOURCE_STATE_RENDER_TARGET);
 	current_command_list->OMSetRenderTargets(1, &s_backbuf[s_current_back_buf]->GetRTV(), FALSE, nullptr);
-
+	QueryPerformanceFrequency(&s_qpc_frequency);
 	return S_OK;
 }
 
@@ -709,21 +725,21 @@ void Close()
 		SAFE_RELEASE(s_backbuf[i]);
 	}
 
+	D3D::CleanupPersistentD3DTextureResources();
+
 	command_list_mgr->ImmediatelyDestroyAllResourcesScheduledForDestruction();
 
 	SAFE_RELEASE(s_swap_chain);
 
-	command_list_mgr->Release();
+	SAFE_DELETE(command_list_mgr);
 	command_queue->Release();
 
 	default_root_signature->Release();
 
-	gpu_descriptor_heap_mgr->Release();
-	sampler_descriptor_heap_mgr->Release();
-	rtv_descriptor_heap_mgr->Release();
-	dsv_descriptor_heap_mgr->Release();
-
-	D3D::CleanupPersistentD3DTextureResources();
+	SAFE_DELETE(gpu_descriptor_heap_mgr);
+	SAFE_DELETE(sampler_descriptor_heap_mgr);
+	SAFE_DELETE(rtv_descriptor_heap_mgr);
+	SAFE_DELETE(dsv_descriptor_heap_mgr);
 
 	ULONG remaining_references = device12->Release();
 	if ((!s_debug_device12 && remaining_references) || (s_debug_device12 && remaining_references > 1))
@@ -825,7 +841,7 @@ void Reset()
 	s_xres = client.right - client.left;
 	s_yres = client.bottom - client.top;
 
-	CheckHR(s_swap_chain->ResizeBuffers(SWAP_CHAIN_BUFFER_COUNT, s_xres, s_yres, DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT));
+	CheckHR(s_swap_chain->ResizeBuffers(SWAP_CHAIN_BUFFER_COUNT, s_xres, s_yres, DXGI_FORMAT_R8G8B8A8_UNORM, 0));
 
 	// recreate back buffer textures
 
@@ -881,27 +897,43 @@ void EndFrame()
 
 void Present()
 {
+	// The Present function contains logic to ensure we never Present faster than Windows can
+	// send to the monitor. If we Present too fast, the Present call will start to block, and we'll be
+	// throttled - obviously not desired if vsync is disabled and the emulated CPU speed is > 100%.
+
+	// The throttling logic ensures that we don't Present more than twice in a given monitor vsync.
+	// This is accomplished through timing data - there is a programmatic way to determine if a
+	// Present call will block, however after investigation that is not feasible here (without invasive
+	// workarounds), due to the fact this method does not actually call Present - we just queue a Present
+	// command for the background thread to dispatch.
+
+	// The monitor refresh rate is determined in Create().
+
+	static LARGE_INTEGER s_last_present_qpc;
+
+	LARGE_INTEGER current_qpc;
+
+	QueryPerformanceCounter(&current_qpc);
+
+	const double time_elapsed_since_last_present = static_cast<double>(current_qpc.QuadPart - s_last_present_qpc.QuadPart) / s_qpc_frequency.QuadPart;
+
 	unsigned int present_flags = 0;
 
-	// For syncIntervals of '0' (vsync off), take care to not Present if next-in-line back buffer is busy,
-	// else Windows can throttle presentation rate.
-
-	DWORD result = WaitForSingleObject(s_swap_chain_waitable_object, 0);
-
-	if (result == WAIT_TIMEOUT && g_ActiveConfig.IsVSync() == false)
+	if (g_ActiveConfig.IsVSync() == false &&
+		time_elapsed_since_last_present < (1.0 / static_cast<double>(s_monitor_refresh_rate)) / 2.0
+		)
 	{
 		present_flags = DXGI_PRESENT_TEST; // Causes Present to be a no-op.
 	}
 	else
 	{
-		s_backbuf[s_current_back_buf]->TransitionToResourceState(current_command_list, D3D12_RESOURCE_STATE_PRESENT);
+		s_last_present_qpc = current_qpc;
 
+		s_backbuf[s_current_back_buf]->TransitionToResourceState(current_command_list, D3D12_RESOURCE_STATE_PRESENT);
 		s_current_back_buf = (s_current_back_buf + 1) % SWAP_CHAIN_BUFFER_COUNT;
 	}
 
 	command_list_mgr->ExecuteQueuedWorkAndPresent(s_swap_chain, g_ActiveConfig.IsVSync() ? 1 : 0, present_flags);
-
-	s_backbuf[s_current_back_buf]->TransitionToResourceState(current_command_list, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
 	command_list_mgr->m_cpu_access_last_frame = command_list_mgr->m_cpu_access_this_frame;
 	command_list_mgr->m_cpu_access_this_frame = false;
@@ -915,6 +947,8 @@ HRESULT SetFullscreenState(bool enable_fullscreen)
 
 HRESULT GetFullscreenState(bool* fullscreen_state)
 {
+	// Fullscreen exclusive intentionally not supported in DX12 backend. No performance
+	// difference between it and windowed full-screen due to usage of a FLIP swap chain.
 	*fullscreen_state = false;
 	return S_OK;
 }

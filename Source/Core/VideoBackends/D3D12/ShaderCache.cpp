@@ -7,6 +7,7 @@
 
 #include "Core/ConfigManager.h"
 
+#include "VideoBackends/D3D12/D3DBlob.h"
 #include "VideoBackends/D3D12/D3DCommandListManager.h"
 #include "VideoBackends/D3D12/D3DShader.h"
 #include "VideoBackends/D3D12/ShaderCache.h"
@@ -611,7 +612,7 @@ void ShaderCache::PrepareShaders(PIXEL_SHADER_RENDER_MODE render_mode,
 			s_last_tessellation_shader_uid = ts_uid;
 		}
 		// A Uid has changed, so the PSO will need to be reset at next ApplyState.
-		D3D::command_list_mgr->m_dirty_pso = true;
+		D3D::command_list_mgr->SetCommandListDirtyState(COMMAND_LIST_STATE_PSO, true);
 #if defined(_DEBUG) || defined(DEBUGFAST)
 		if (g_ActiveConfig.bEnableShaderDebugging)
 		{
@@ -750,40 +751,40 @@ D3D12_SHADER_BYTECODE ShaderCache::GetDomainShaderFromUid(const TessellationShad
 	auto it = ds_bytecode_cache.find(*uid);
 	if (it != ds_bytecode_cache.end())
 		return it->second.m_shader_bytecode;
-	else
-		return D3D12_SHADER_BYTECODE();
+	
+	return D3D12_SHADER_BYTECODE();
 }
 D3D12_SHADER_BYTECODE ShaderCache::GetHullShaderFromUid(const TessellationShaderUid* uid)
 {
 	auto it = hs_bytecode_cache.find(*uid);
 	if (it != hs_bytecode_cache.end())
 		return it->second.m_shader_bytecode;
-	else
-		return D3D12_SHADER_BYTECODE();
+	
+	return D3D12_SHADER_BYTECODE();
 }
 D3D12_SHADER_BYTECODE ShaderCache::GetGeometryShaderFromUid(const GeometryShaderUid* uid)
 {
 	auto it = gs_bytecode_cache.find(*uid);
 	if (it != gs_bytecode_cache.end())
 		return it->second.m_shader_bytecode;
-	else
-		return D3D12_SHADER_BYTECODE();
+	
+	return D3D12_SHADER_BYTECODE();
 }
 D3D12_SHADER_BYTECODE ShaderCache::GetPixelShaderFromUid(const PixelShaderUid* uid)
 {
 	auto it = ps_bytecode_cache.find(*uid);
 	if (it != ps_bytecode_cache.end())
 		return it->second.m_shader_bytecode;
-	else
-		return D3D12_SHADER_BYTECODE();
+	
+	return D3D12_SHADER_BYTECODE();
 }
 D3D12_SHADER_BYTECODE ShaderCache::GetVertexShaderFromUid(const VertexShaderUid* uid)
 {
 	auto it = vs_bytecode_cache.find(*uid);
 	if (it != vs_bytecode_cache.end())
 		return it->second.m_shader_bytecode;
-	else
-		return D3D12_SHADER_BYTECODE();
+	
+	return D3D12_SHADER_BYTECODE();
 }
 
 }
