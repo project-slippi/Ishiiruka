@@ -1231,8 +1231,6 @@ inline void WriteStage(ShaderCode& out, const pixel_shader_uid_data& uid_data, i
 {
 	out.Write("// TEV stage %d\n", n);
 	const auto& stage = uid_data.stagehash[n];
-	u32 texcoord = stage.tevorders_texcoord;
-	bool bHasIndStage = stage.hasindstage;
 
 	TevStageCombiner::ColorCombiner cc;
 	cc.hex = stage.cc;
@@ -1241,7 +1239,6 @@ inline void WriteStage(ShaderCode& out, const pixel_shader_uid_data& uid_data, i
 
 	if (cc.UsedAsInput(TEVCOLORARG_RASA) || cc.UsedAsInput(TEVCOLORARG_RASC) || ac.UsedAsInput(TEVALPHAARG_RASA))
 	{
-		const int i = ac.rswap;
 		char rasswap[5] = {
 			"rgba"[stage.tevksel_swap1a],
 			"rgba"[stage.tevksel_swap2a],

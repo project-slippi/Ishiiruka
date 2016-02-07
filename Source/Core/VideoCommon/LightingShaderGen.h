@@ -117,7 +117,7 @@ inline void GenerateLightShader(ShaderCode& object,
 // materials name is I_MATERIALS in vs and I_PMATERIALS in ps
 // inColorName is color in vs and colors_ in ps
 // dest is o.colors_ in vs and colors_ in ps
-static void GenerateLightingShaderCode(ShaderCode& object, u32 numColorChans, const LightingUidData& uid_data, int components, const char* materialsName, const char* lightsName, const char* inColorName, const char* dest, bool use_integer_math, bool forcephong = false)
+inline void GenerateLightingShaderCode(ShaderCode& object, u32 numColorChans, const LightingUidData& uid_data, int components, const char* materialsName, const char* lightsName, const char* inColorName, const char* dest, bool use_integer_math, bool forcephong = false)
 {
 	for (unsigned int j = 0; j < numColorChans; j++)
 	{

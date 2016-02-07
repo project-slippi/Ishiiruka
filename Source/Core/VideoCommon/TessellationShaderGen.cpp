@@ -175,7 +175,6 @@ static inline void WriteStageUID(Tessellation_shader_uid_data& uid_data, int n, 
 	{
 		uid_data.stagehash[n].tevind = bpm.tevind[n].hex;
 	}
-	const int i = bpm.combiners[n].alphaC.tswap;
 	uid_data.stagehash[n].tevorders_enable = bpm.tevorders[n / 2].getEnable(n & 1);
 	if (bpm.tevorders[n / 2].getEnable(n & 1))
 	{
@@ -390,7 +389,6 @@ inline void GenerateTessellationShader(ShaderCode& out, const Tessellation_shade
 	u32 numTexgen = uid_data.numTexGens;
 	u32 numindStages = uid_data.genMode_numindstages;
 	bool normalpresent = uid_data.normal;
-	bool enable_pl = uid_data.pixel_lighting;
 	bool enablenormalmaps = uid_data.pixel_normals;
 	int nIndirectStagesUsed = uid_data.nIndirectStagesUsed;
 	char* codebuffer = nullptr;
