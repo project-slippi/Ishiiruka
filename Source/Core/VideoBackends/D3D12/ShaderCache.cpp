@@ -619,24 +619,20 @@ void ShaderCache::PrepareShaders(PIXEL_SHADER_RENDER_MODE render_mode,
 			ShaderCode code;
 			if (gs_changed)
 			{
-				GenerateGeometryShaderCode(code, gs_primitive_type, API_D3D11, xfr, components);
-				s_geometry_uid_checker.AddToIndexAndCheck(code, gs_uid, "Geometry", "g");
+				GenerateGeometryShaderCode(code, gs_uid.GetUidData(), API_D3D11);
 			}
 			if (ps_changed)
 			{
 				ShaderCode code;
-				GeneratePixelShaderCodeD3D11(code, ps_dst_alpha_mode, components, xfr, bpm);
-				s_pixel_uid_checker.AddToIndexAndCheck(code, ps_uid, "Pixel", "p");
+				GeneratePixelShaderCodeD3D11(code, ps_uid.GetUidData());
 			}
 			if (vs_changed)
 			{
-				GenerateVertexShaderCodeD3D11(code, components, xfr, bpm);
-				s_vertex_uid_checker.AddToIndexAndCheck(code, vs_uid, "Vertex", "v");
+				GenerateVertexShaderCodeD3D11(code, vs_uid.GetUidData());
 			}
 			if (ts_changed)
 			{
-				GenerateTessellationShaderCode(code, API_D3D11, xfr, bpm, components);
-				s_vertex_uid_checker.AddToIndexAndCheck(code, vs_uid, "Vertex", "v");
+				GenerateTessellationShaderCode(code, API_D3D11, ts_uid.GetUidData());
 			}
 		}
 #endif

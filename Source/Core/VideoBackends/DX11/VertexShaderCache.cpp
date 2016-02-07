@@ -219,8 +219,7 @@ void VertexShaderCache::PrepareShader(
 		if (g_ActiveConfig.bEnableShaderDebugging)
 		{
 			ShaderCode code;
-			GenerateVertexShaderCodeD3D11(code, components, xfr, bpm);
-			s_vertex_uid_checker.AddToIndexAndCheck(code, uid, "Vertex", "v");
+			GenerateVertexShaderCodeD3D11(code, uid.GetUidData());
 		}
 	#endif
 		if (s_last_entry)

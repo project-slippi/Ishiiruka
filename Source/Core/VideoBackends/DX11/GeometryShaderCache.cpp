@@ -226,8 +226,7 @@ void GeometryShaderCache::PrepareShader(
 		if (g_ActiveConfig.bEnableShaderDebugging)
 		{
 			ShaderCode code;
-			GenerateGeometryShaderCode(code, primitive_type, API_D3D11, xfr, components);
-			geometry_uid_checker.AddToIndexAndCheck(code, uid, "Geometry", "g");
+			GenerateGeometryShaderCode(code, uid.GetUidData(), API_D3D11);
 		}
 #endif
 		// Check if the shader is already set

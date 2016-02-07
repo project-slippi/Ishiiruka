@@ -364,8 +364,7 @@ void PixelShaderCache::PrepareShader(
 		if (g_ActiveConfig.bEnableShaderDebugging)
 		{
 			ShaderCode code;
-			GeneratePixelShaderCodeD3D9(code, dstAlphaMode, components, xfr, bpm);
-			pixel_uid_checker.AddToIndexAndCheck(code, uid, "Pixel", "p");
+			GeneratePixelShaderCodeD3D9(code, uid.GetUidData());
 		}
 #endif
 		// Check if the shader is already set

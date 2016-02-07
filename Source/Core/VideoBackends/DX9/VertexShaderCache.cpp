@@ -175,8 +175,7 @@ void VertexShaderCache::PrepareShader(u32 components, const XFMemory &xfr, const
 		if (g_ActiveConfig.bEnableShaderDebugging)
 		{
 			ShaderCode code;
-			GenerateVertexShaderCodeD3D9(code, components, xfr, bpm);
-			vertex_uid_checker.AddToIndexAndCheck(code, uid, "Vertex", "v");
+			GenerateVertexShaderCodeD3D9(code, uid.GetUidData());
 		}
 #endif
 		if (last_entry)
