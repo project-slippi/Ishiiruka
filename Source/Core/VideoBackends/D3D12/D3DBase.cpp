@@ -343,7 +343,7 @@ HRESULT Create(HWND wnd)
 	swap_chain_desc.SampleDesc.Quality = 0;
 	swap_chain_desc.Windowed = true;
 	swap_chain_desc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL;
-	swap_chain_desc.Flags = DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT;
+	swap_chain_desc.Flags = 0;
 
 	swap_chain_desc.BufferDesc.Width = s_xres;
 	swap_chain_desc.BufferDesc.Height = s_yres;
