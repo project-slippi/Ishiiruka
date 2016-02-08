@@ -87,7 +87,7 @@ OpArg VertexLoaderX64::GetVertexAddr(int array, u64 attribute)
 	}
 }
 
-int VertexLoaderX64::ReadVertex(OpArg data, u64 attribute, int format, int count_in, int count_out, bool dequantize, u8 scaling_index, AttributeFormat* native_format)
+int VertexLoaderX64::ReadVertex(OpArg data, u64 attribute, int format, int count_in, int count_out, bool dequantize, AttributeFormat* native_format, X64Reg scaling_register)
 {
 	static const __m128i shuffle_lut[5][3] = {
 		{ _mm_set_epi32(0xFFFFFFFFL, 0xFFFFFFFFL, 0xFFFFFFFFL, 0xFFFFFF00L),  // 1x u8
@@ -232,7 +232,7 @@ int VertexLoaderX64::ReadVertex(OpArg data, u64 attribute, int format, int count
 		CVTDQ2PS(coords, R(coords));
 
 		if (dequantize)
-			MULPS(coords, MPIC(&scale_factors[scaling_index]));
+			MULPS(coords, R(scaling_register));
 	}
 
 	switch (count_out)
@@ -380,11 +380,36 @@ void VertexLoaderX64::GenerateVertexLoader()
 	MOV(32, R(count_reg), R(ABI_PARAM3));
 
 	MOV(64, R(base_reg), R(ABI_PARAM4));
+	// Load Contants into registers outside the main loop to reduce memory overhead
+	if (m_VtxAttr.PosFormat != FORMAT_FLOAT)
+	{
+		MOVAPD(XMM2, MPIC(&scale_factors[0]));
+	}
+	if (m_VtxDesc.Normal)
+	{
+		MOVAPD(XMM3, MPIC(&scale_factors[m_VtxAttr.NormalFormat + 1]));
+	}
+
+	const u64 tc[8] = {
+		m_VtxDesc.Tex0Coord, m_VtxDesc.Tex1Coord, m_VtxDesc.Tex2Coord, m_VtxDesc.Tex3Coord,
+		m_VtxDesc.Tex4Coord, m_VtxDesc.Tex5Coord, m_VtxDesc.Tex6Coord, m_VtxDesc.Tex7Coord,
+	};
+	const X64Reg treg[8] = {
+		XMM4, XMM5, XMM6, XMM7,
+		XMM8, XMM9, XMM10, XMM11,
+	};
+
+	for (int i = 0; i < 8; i++)
+	{
+		int elements = m_VtxAttr.texCoord[i].Elements + 1;
+		if (tc[i] && m_VtxAttr.ByteDequant)
+		{
+			MOVAPD(treg[i], MPIC(&scale_factors[5 + i]));
+		}
+	}
 
 	if (m_VtxDesc.Position & MASKINDEXED)
 		XOR(32, R(skipped_reg), R(skipped_reg));
-
-	// TODO: load constants into registers outside the main loop
 
 	const u8* loop_start = GetCodePtr();
 
@@ -406,7 +431,7 @@ void VertexLoaderX64::GenerateVertexLoader()
 
 	OpArg data = GetVertexAddr(ARRAY_POSITION, m_VtxDesc.Position);
 	ReadVertex(data, m_VtxDesc.Position, m_VtxAttr.PosFormat, m_VtxAttr.PosElements + 2, 3,
-		m_VtxAttr.ByteDequant, 0, &m_native_vtx_decl.position);
+		m_VtxAttr.ByteDequant, &m_native_vtx_decl.position, XMM2);
 
 	if (m_VtxDesc.Normal)
 	{
@@ -419,7 +444,7 @@ void VertexLoaderX64::GenerateVertexLoader()
 				data.AddMemOffset(i * elem_size * 3);
 			}
 			data.AddMemOffset(ReadVertex(data, m_VtxDesc.Normal, m_VtxAttr.NormalFormat, 3, 3,
-				true, m_VtxAttr.NormalFormat + 1, &m_native_vtx_decl.normals[i]));
+				true, &m_native_vtx_decl.normals[i], XMM3));
 		}
 
 		m_native_components |= VB_HAS_NRM0;
@@ -443,10 +468,6 @@ void VertexLoaderX64::GenerateVertexLoader()
 		}
 	}
 
-	const u64 tc[8] = {
-		m_VtxDesc.Tex0Coord, m_VtxDesc.Tex1Coord, m_VtxDesc.Tex2Coord, m_VtxDesc.Tex3Coord,
-		m_VtxDesc.Tex4Coord, m_VtxDesc.Tex5Coord, m_VtxDesc.Tex6Coord, m_VtxDesc.Tex7Coord,
-	};
 	for (int i = 0; i < 8; i++)
 	{
 		int elements = m_VtxAttr.texCoord[i].Elements + 1;
@@ -454,7 +475,7 @@ void VertexLoaderX64::GenerateVertexLoader()
 		{
 			data = GetVertexAddr(ARRAY_TEXCOORD0 + i, tc[i]);			
 			ReadVertex(data, tc[i], m_VtxAttr.texCoord[i].Format, elements, tm[i] ? 2 : elements,
-				m_VtxAttr.ByteDequant, 5 + i, &m_native_vtx_decl.texcoords[i]);
+				m_VtxAttr.ByteDequant,&m_native_vtx_decl.texcoords[i], treg[i]);
 			m_native_components |= VB_HAS_UV0 << i;
 		}
 		if (tm[i])
