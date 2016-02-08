@@ -21,7 +21,8 @@ enum PostProcessingTrigger : u32
 {
 	POST_PROCESSING_TRIGGER_ON_SWAP,
 	POST_PROCESSING_TRIGGER_ON_PROJECTION,
-	POST_PROCESSING_TRIGGER_ON_EFB_COPY
+	POST_PROCESSING_TRIGGER_ON_EFB_COPY,
+	POST_PROCESSING_TRIGGER_AFTER_BLIT
 };
 
 enum PostProcessingOptionType : u32
@@ -247,7 +248,8 @@ public:
 	// otherwise a temporary texture will be returned that is valid until the next call to PostProcess.
 	virtual void PostProcess(TargetRectangle* output_rect, TargetSize* output_size, uintptr_t* output_texture,
 		const TargetRectangle& src_rect, const TargetSize& src_size, uintptr_t src_texture,
-		const TargetRectangle& src_depth_rect, const TargetSize& src_depth_size, uintptr_t src_depth_texture, uintptr_t dst_texture = 0) = 0;
+		const TargetRectangle& src_depth_rect, const TargetSize& src_depth_size, uintptr_t src_depth_texture,
+		uintptr_t dst_texture = 0, const TargetRectangle* dst_rect = 0, const TargetSize* dst_size = 0) = 0;
 
 	// Construct the options uniform buffer source for the specified config.
 	static void GetUniformBufferShaderSource(API_TYPE api, const PostProcessingShaderConfiguration* config, std::string& shader_source);

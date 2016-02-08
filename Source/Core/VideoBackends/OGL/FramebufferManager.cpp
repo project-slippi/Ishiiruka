@@ -603,7 +603,8 @@ void XFBSource::DecodeToTexture(u32 xfbAddr, u32 fbWidth, u32 fbHeight)
 void XFBSource::CopyEFB(float Gamma)
 {
 	bool apply_post_proccesing = g_renderer->GetPostProcessor()->ShouldTriggerOnSwap();
-	bool depth_copy_required = g_renderer->GetPostProcessor()->GetScalingShaderConfig()->RequiresDepthBuffer();
+	bool depth_copy_required = g_renderer->GetPostProcessor()->IsActive() && (g_renderer->GetPostProcessor()->GetScalingShaderConfig()->RequiresDepthBuffer()
+		|| g_ActiveConfig.iPostProcessingTrigger == POST_PROCESSING_TRIGGER_AFTER_BLIT);
 	if (depth_copy_required && !depthtexture)
 	{
 		glGenTextures(1, &depthtexture);

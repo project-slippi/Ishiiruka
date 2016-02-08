@@ -154,7 +154,7 @@ static wxString use_ffv1_desc = _("Encode frame dumps using the FFV1 codec.\n\nI
 static wxString free_look_desc = _("This feature allows you to change the game's camera.\nMove the mouse while holding the right mouse button to pan and while holding the middle button to move.\nHold SHIFT and press one of the WASD keys to move the camera by a certain step distance (SHIFT+0 to move faster and SHIFT+9 to move slower). Press SHIFT+R to reset the camera.\n\nIf unsure, leave this unchecked.");
 static wxString crop_desc = _("Crop the picture from its native aspect ratio to 4:3 or 16:9.\n\nIf unsure, leave this unchecked.");
 static wxString opencl_desc = _("[EXPERIMENTAL]\nAims to speed up emulation by offloading texture decoding to the GPU using the OpenCL framework.\nHowever, right now it's known to cause texture defects in various games. Also it's slower than regular CPU texture decoding in most cases.\n\nIf unsure, leave this unchecked.");
-static wxString pptrigger_desc = _("Determines when to apply post-processing.\nOn Swap will apply post-processing before presenting to the screen. On Projection applies post-processing before the game draws 2D elements on the screen. However, this may not work with all games. On EFB Copy applies post-processing when an EFB copy of a perspective scene is requested. This may work for for other games.\n\nIf unsure, select On Swap.");
+static wxString pptrigger_desc = _("Determines when to apply post-processing.\nOn Swap will apply post-processing before presenting to the screen. On Projection applies post-processing before the game draws 2D elements on the screen. However, this may not work with all games. On EFB Copy applies post-processing when an EFB copy of a perspective scene is requested. This may work for for other games. After blit will apply post processing after bliting reducig gpu usage when suing High efb scales.\n\nIf unsure, select On Swap.");
 static wxString ppshader_list_desc = _("Applies post-processing effects when the trigger chosen in the occurs, by default this is at the end of a frame.\n\nPost-processing is performed at the selected internal resolution.\n\nIf unsure, leave the list empty.");
 static wxString ppshader_options_desc = _("Some effects offer user-tweakable options. This will open a dialog where you can change the values of these options.");
 static wxString scalingshader_desc = wxTRANSLATE("Use a custom shader for resizing from internal resolution to display resolution. This shader can also perform additional post-processing effects.\n\nIf unsure, select (default).");
@@ -618,8 +618,8 @@ VideoConfigDiag::VideoConfigDiag(wxWindow* parent, const std::string &title, con
 			szr_options->AddGrowableCol(1, 1);
 
 			// Trigger
-			const wxString pptrigger_choices[] = { _("On Swap"), _("On Projection"), _("On EFB Copy") };
-			choice_pptrigger = CreateChoice(page_postprocessing, vconfig.iPostProcessingTrigger, wxGetTranslation(pptrigger_desc), 3, pptrigger_choices);
+			const wxString pptrigger_choices[] = { _("On Swap"), _("On Projection"), _("On EFB Copy"), _("After Blit") };
+			choice_pptrigger = CreateChoice(page_postprocessing, vconfig.iPostProcessingTrigger, wxGetTranslation(pptrigger_desc), 4, pptrigger_choices);
 			szr_options->Add(new wxStaticText(page_postprocessing, wxID_ANY, _("Post-Processing Trigger:")), 0, wxALIGN_CENTER_VERTICAL, 0);
 			szr_options->Add(choice_pptrigger, 1, wxEXPAND | wxALIGN_CENTER_VERTICAL);
 
