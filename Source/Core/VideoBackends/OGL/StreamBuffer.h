@@ -48,7 +48,7 @@ public:
 	const u32 m_buffer;
 
 protected:
-	StreamBuffer(u32 type, u32 size);
+	StreamBuffer(u32 type, u32 size, u32 align_size = 16);
 	void CreateFences();
 	void DeleteFences();
 	void AllocMemory(u32 size);
@@ -61,7 +61,7 @@ protected:
 	u32 m_free_iterator;
 
 private:
-	static constexpr int SYNC_POINTS = 16;
+	static constexpr int SYNC_POINTS = 4;
 	int Slot(u32 x) const { return x >> m_bit_per_slot; }
 	const int m_bit_per_slot;
 

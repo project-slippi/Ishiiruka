@@ -22,8 +22,8 @@ static u32 GenBuffer()
 	return id;
 }
 
-StreamBuffer::StreamBuffer(u32 type, u32 size)
-	: m_buffer(GenBuffer()), m_buffertype(type), m_size(ROUND_UP_POW2(size)), m_bit_per_slot(IntLog2(ROUND_UP_POW2(size) / SYNC_POINTS))
+StreamBuffer::StreamBuffer(u32 type, u32 size, u32 align_size)
+	: m_buffer(GenBuffer()), m_buffertype(type), m_size(ROUND_UP(ROUND_UP_POW2(size), align_size)), m_bit_per_slot(IntLog2(ROUND_UP(ROUND_UP_POW2(size), align_size) / SYNC_POINTS))
 {
 	m_iterator = 0;
 	m_used_iterator = 0;
@@ -92,8 +92,6 @@ void StreamBuffer::AllocMemory(u32 size)
 		glClientWaitSync(m_fences[i], GL_SYNC_FLUSH_COMMANDS_BIT, GL_TIMEOUT_IGNORED);
 		glDeleteSync(m_fences[i]);
 	}
-	m_free_iterator = m_iterator + size;
-
 	// if buffer is full
 	if (m_iterator + size >= m_size)
 	{
@@ -106,14 +104,14 @@ void StreamBuffer::AllocMemory(u32 size)
 		// move to the start
 		m_used_iterator = m_iterator = 0; // offset 0 is always aligned
 
-														// wait for space at the start
+		// wait for space at the start
 		for (int i = 0; i <= Slot(m_iterator + size); i++)
 		{
 			glClientWaitSync(m_fences[i], GL_SYNC_FLUSH_COMMANDS_BIT, GL_TIMEOUT_IGNORED);
 			glDeleteSync(m_fences[i]);
 		}
-		m_free_iterator = m_iterator + size;
 	}
+	m_free_iterator = m_iterator + size;
 }
 
 /* The usual way to stream data to the GPU.
@@ -256,12 +254,12 @@ public:
 class PinnedMemory : public StreamBuffer
 {
 public:
-	PinnedMemory(u32 type, u32 size) : StreamBuffer(type, size)
+	PinnedMemory(u32 type, u32 size) : StreamBuffer(type, size, ALIGN_PINNED_MEMORY)
 	{
 		CreateFences();
-		m_pointer = (u8*)AllocateAlignedMemory(ROUND_UP(m_size, ALIGN_PINNED_MEMORY), ALIGN_PINNED_MEMORY);
+		m_pointer = (u8*)AllocateAlignedMemory(m_size, ALIGN_PINNED_MEMORY);
 		glBindBuffer(GL_EXTERNAL_VIRTUAL_MEMORY_BUFFER_AMD, m_buffer);
-		glBufferData(GL_EXTERNAL_VIRTUAL_MEMORY_BUFFER_AMD, ROUND_UP(m_size, ALIGN_PINNED_MEMORY), m_pointer, GL_STREAM_COPY);
+		glBufferData(GL_EXTERNAL_VIRTUAL_MEMORY_BUFFER_AMD, m_size, m_pointer, GL_STREAM_COPY);
 		glBindBuffer(GL_EXTERNAL_VIRTUAL_MEMORY_BUFFER_AMD, 0);
 		glBindBuffer(m_buffertype, m_buffer);
 	}
@@ -287,7 +285,7 @@ public:
 	}
 
 	u8* m_pointer;
-	static const u32 ALIGN_PINNED_MEMORY = 4096;
+	static constexpr u32 ALIGN_PINNED_MEMORY = 4096;
 };
 
 /* Fifo based on the glBufferSubData call.
