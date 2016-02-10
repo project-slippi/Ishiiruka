@@ -569,7 +569,7 @@ void PixelShaderCache::PrepareShader(PIXEL_SHADER_RENDER_MODE render_mode,
 	const BPMemory &bpm, bool ongputhread)
 {
 	PixelShaderUid uid;
-	GetPixelShaderUidD3D11(uid, render_mode, components, xfr, bpm);
+	GetPixelShaderUID(uid, render_mode, components, xfr, bpm);
 	if (ongputhread)
 	{
 		s_compiler->ProcCompilationResults();

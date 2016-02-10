@@ -167,7 +167,7 @@ void VertexShaderCache::Shutdown()
 void VertexShaderCache::PrepareShader(u32 components, const XFMemory &xfr, const BPMemory &bpm, bool ongputhread)
 {
 	VertexShaderUid uid;
-	GetVertexShaderUidD3D9(uid, components, xfr, bpm);
+	GetVertexShaderUID(uid, components, xfr, bpm);
 	if (ongputhread)
 	{
 		Compiler->ProcCompilationResults();

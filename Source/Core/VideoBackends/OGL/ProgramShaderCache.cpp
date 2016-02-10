@@ -420,8 +420,8 @@ GLuint ProgramShaderCache::CompileSingleShader(GLuint type, const char* code, co
 
 void ProgramShaderCache::GetShaderId(SHADERUID* uid, PIXEL_SHADER_RENDER_MODE render_mode, u32 components, u32 primitive_type)
 {
-	GetPixelShaderUidGL(uid->puid, render_mode, components, xfmem, bpmem);
-	GetVertexShaderUidGL(uid->vuid, components, xfmem, bpmem);
+	GetPixelShaderUID(uid->puid, render_mode, components, xfmem, bpmem);
+	GetVertexShaderUID(uid->vuid, components, xfmem, bpmem);
 	GetGeometryShaderUid(uid->guid, primitive_type, xfmem, components);
 
 	if (g_ActiveConfig.bEnableShaderDebugging)

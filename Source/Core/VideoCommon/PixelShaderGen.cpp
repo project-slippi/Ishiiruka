@@ -352,8 +352,7 @@ float3 perturb_normal( float3 N, float3 P, float2 texcoord , float3 map)
 
 // FIXME: Some of the video card's capabilities (BBox support, EarlyZ support, dstAlpha support) leak
 //        into this UID; This is really unhelpful if these UIDs ever move from one machine to another.
-template<API_TYPE ApiType>
-void GetPixelShaderUid(PixelShaderUid& out, PIXEL_SHADER_RENDER_MODE render_mode, u32 components, const XFMemory &xfr, const BPMemory &bpm)
+void GetPixelShaderUID(PixelShaderUid& out, PIXEL_SHADER_RENDER_MODE render_mode, u32 components, const XFMemory &xfr, const BPMemory &bpm)
 {
 	out.ClearUID();
 	pixel_shader_uid_data& uid_data = out.GetUidData<pixel_shader_uid_data>();
@@ -371,6 +370,23 @@ void GetPixelShaderUid(PixelShaderUid& out, PIXEL_SHADER_RENDER_MODE render_mode
 			|| (!g_ActiveConfig.bFastDepthCalc && !forced_early_z)
 			|| bpm.genMode.zfreeze);
 	bool enable_pl = g_ActiveConfig.PixelLightingEnabled(xfr, components);
+	uid_data.render_mode = render_mode;
+	uid_data.per_pixel_depth = per_pixel_depth;
+	uid_data.pixel_lighting = enable_pl;
+	uid_data.genMode_numtexgens = numTexgen;
+	uid_data.zfreeze = bpm.genMode.zfreeze;
+	if (render_mode == PSRM_DEPTH_ONLY)
+	{
+		out.CalculateUIDHash();
+		return;
+	}
+	uid_data.stereo = g_ActiveConfig.iStereoMode > 0;
+	uid_data.bounding_box = g_ActiveConfig.backend_info.bSupportsBBox && BoundingBox::active && g_ActiveConfig.iBBoxMode == BBoxGPU;
+	if ((g_ActiveConfig.backend_info.APIType & API_D3D9) == 0)
+	{
+		uid_data.msaa = g_ActiveConfig.iMultisamples > 1;
+		uid_data.ssaa = g_ActiveConfig.iMultisamples > 1 && g_ActiveConfig.bSSAA;
+	}
 	bool enable_diffuse_ligthing = false;
 	if (enable_pl)
 	{
@@ -386,23 +402,6 @@ void GetPixelShaderUid(PixelShaderUid& out, PIXEL_SHADER_RENDER_MODE render_mode
 		}
 	}
 	bool enablenormalmaps = enable_diffuse_ligthing && g_ActiveConfig.HiresMaterialMapsEnabled();
-	uid_data.render_mode = render_mode;
-	uid_data.per_pixel_depth = per_pixel_depth;
-	uid_data.pixel_lighting = enable_pl;
-	uid_data.genMode_numtexgens = numTexgen;
-	uid_data.zfreeze = bpm.genMode.zfreeze;
-	if (render_mode == PSRM_DEPTH_ONLY)
-	{
-		out.CalculateUIDHash();
-		return;
-	}
-	uid_data.stereo = g_ActiveConfig.iStereoMode > 0;
-	uid_data.bounding_box = g_ActiveConfig.backend_info.bSupportsBBox && BoundingBox::active && g_ActiveConfig.iBBoxMode == BBoxGPU;
-	if (!(ApiType & API_D3D9))
-	{
-		uid_data.msaa = g_ActiveConfig.iMultisamples > 1;
-		uid_data.ssaa = g_ActiveConfig.iMultisamples > 1 && g_ActiveConfig.bSSAA;
-	}
 	if (enablenormalmaps)
 	{
 		enablenormalmaps = false;
@@ -1993,11 +1992,6 @@ inline void GeneratePixelShader(ShaderCode& out, const pixel_shader_uid_data& ui
 		PanicAlert("PixelShader generator - buffer too small, canary has been eaten!");
 }
 
-void GetPixelShaderUidD3D9(PixelShaderUid& object, PIXEL_SHADER_RENDER_MODE rende_mode, u32 components, const XFMemory &xfr, const BPMemory &bpm)
-{
-	GetPixelShaderUid<API_D3D9>(object, rende_mode, components, xfr, bpm);
-}
-
 void GeneratePixelShaderCodeD3D9(ShaderCode& object, const pixel_shader_uid_data& uid_data)
 {
 	GeneratePixelShader<API_D3D9>(object, uid_data);
@@ -2008,19 +2002,9 @@ void GeneratePixelShaderCodeD3D9SM2(ShaderCode& object, const pixel_shader_uid_d
 	GeneratePixelShader<API_D3D9_SM20>(object, uid_data);
 }
 
-void GetPixelShaderUidD3D11(PixelShaderUid& object, PIXEL_SHADER_RENDER_MODE rende_mode, u32 components, const XFMemory &xfr, const BPMemory &bpm)
-{
-	GetPixelShaderUid<API_D3D11>(object, rende_mode, components, xfr, bpm);
-}
-
 void GeneratePixelShaderCodeD3D11(ShaderCode& object, const pixel_shader_uid_data& uid_data)
 {
 	GeneratePixelShader<API_D3D11, true>(object, uid_data);
-}
-
-void GetPixelShaderUidGL(PixelShaderUid& object, PIXEL_SHADER_RENDER_MODE rende_mode, u32 components, const XFMemory &xfr, const BPMemory &bpm)
-{
-	GetPixelShaderUid<API_OPENGL>(object, rende_mode, components, xfr, bpm);
 }
 
 void GeneratePixelShaderCodeGL(ShaderCode& object, const pixel_shader_uid_data& uid_data)

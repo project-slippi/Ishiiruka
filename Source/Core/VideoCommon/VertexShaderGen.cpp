@@ -20,8 +20,7 @@
 static char text[VERTEXSHADERGEN_BUFFERSIZE];
 static const char *texOffsetMemberSelector[] = { "x", "y", "z", "w" };
 
-template<API_TYPE api_type>
-inline void GenerateVertexShaderUID(VertexShaderUid& out, u32 components, const XFMemory &xfr, const BPMemory &bpm)
+void GetVertexShaderUID(VertexShaderUid& out, u32 components, const XFMemory &xfr, const BPMemory &bpm)
 {
 	out.ClearUID();
 	vertex_shader_uid_data& uid_data = out.GetUidData<vertex_shader_uid_data>();
@@ -37,7 +36,7 @@ inline void GenerateVertexShaderUID(VertexShaderUid& out, u32 components, const 
 	}
 	uid_data.pixel_lighting = enable_pl;
 	uid_data.numColorChans = xfr.numChan.numColorChans;
-	if (!(api_type & API_D3D9))
+	if ((g_ActiveConfig.backend_info.APIType & API_D3D9) == 0)
 	{
 		uid_data.msaa = g_ActiveConfig.iMultisamples > 1;
 		uid_data.ssaa = g_ActiveConfig.iMultisamples > 1 && g_ActiveConfig.bSSAA;
@@ -545,29 +544,14 @@ inline void GenerateVertexShader(ShaderCode& out, const vertex_shader_uid_data& 
 		PanicAlert("VertexShader generator - buffer too small, canary has been eaten!");
 }
 
-void GetVertexShaderUidD3D9(VertexShaderUid& object, u32 components, const XFMemory &xfr, const BPMemory &bpm)
-{
-	GenerateVertexShaderUID<API_D3D9>(object, components, xfr, bpm);
-}
-
 void GenerateVertexShaderCodeD3D9(ShaderCode& object, const vertex_shader_uid_data& uid_data)
 {
 	GenerateVertexShader<API_D3D9>(object, uid_data, false);
 }
 
-void GetVertexShaderUidD3D11(VertexShaderUid& object, u32 components, const XFMemory &xfr, const BPMemory &bpm)
-{
-	GenerateVertexShaderUID<API_D3D11>(object, components, xfr, bpm);
-}
-
 void GenerateVertexShaderCodeD3D11(ShaderCode& object, const vertex_shader_uid_data& uid_data)
 {
 	GenerateVertexShader<API_D3D11>(object, uid_data, true);
-}
-
-void GetVertexShaderUidGL(VertexShaderUid& object, u32 components, const XFMemory &xfr, const BPMemory &bpm)
-{
-	GenerateVertexShaderUID<API_OPENGL>(object, components, xfr, bpm);
 }
 
 void GenerateVertexShaderCodeGL(ShaderCode& object, const vertex_shader_uid_data& uid_data)

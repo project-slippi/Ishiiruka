@@ -552,9 +552,9 @@ void ShaderCache::PrepareShaders(PIXEL_SHADER_RENDER_MODE render_mode,
 	GeometryShaderUid gs_uid;
 	GetGeometryShaderUid(gs_uid, gs_primitive_type, xfr, components);
 	PixelShaderUid ps_uid;
-	GetPixelShaderUidD3D11(ps_uid, render_mode, components, xfr, bpm);
+	GetPixelShaderUID(ps_uid, render_mode, components, xfr, bpm);
 	VertexShaderUid vs_uid;
-	GetVertexShaderUidD3D11(vs_uid, components, xfr, bpm);
+	GetVertexShaderUID(vs_uid, components, xfr, bpm);
 	TessellationShaderUid ts_uid;
 	if (gs_primitive_type == PrimitiveType::PRIMITIVE_TRIANGLES && g_ActiveConfig.TessellationEnabled() && g_ActiveConfig.PixelLightingEnabled(xfr, components))
 	{

@@ -164,16 +164,12 @@ struct pixel_shader_uid_data
 #define PIXELSHADERGEN_BUFFERSIZE 32768
 typedef ShaderUid<pixel_shader_uid_data> PixelShaderUid;
 
-void GetPixelShaderUidD3D9(PixelShaderUid& object, PIXEL_SHADER_RENDER_MODE render_mode, u32 components, const XFMemory &xfr, const BPMemory &bpm);
+void GetPixelShaderUID(PixelShaderUid& object, PIXEL_SHADER_RENDER_MODE render_mode, u32 components, const XFMemory &xfr, const BPMemory &bpm);
 
 void GeneratePixelShaderCodeD3D9(ShaderCode& object, const pixel_shader_uid_data& uid_data);
 
 void GeneratePixelShaderCodeD3D9SM2(ShaderCode& object, const pixel_shader_uid_data& uid_data);
 
-void GetPixelShaderUidD3D11(PixelShaderUid& object, PIXEL_SHADER_RENDER_MODE render_mode, u32 components, const XFMemory &xfr, const BPMemory &bpm);
-
 void GeneratePixelShaderCodeD3D11(ShaderCode& object, const pixel_shader_uid_data& uid_data);
-
-void GetPixelShaderUidGL(PixelShaderUid& object, PIXEL_SHADER_RENDER_MODE render_mode, u32 components, const XFMemory &xfr, const BPMemory &bpm);
 
 void GeneratePixelShaderCodeGL(ShaderCode& object, const pixel_shader_uid_data& uid_data);

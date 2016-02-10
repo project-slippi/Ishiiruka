@@ -356,7 +356,7 @@ void PixelShaderCache::PrepareShader(
 {
 	const API_TYPE api = ((D3D::GetCaps().PixelShaderVersion >> 8) & 0xFF) < 3 ? API_D3D9_SM20 : API_D3D9_SM30;
 	PixelShaderUid uid;
-	GetPixelShaderUidD3D9(uid, render_mode, components, xfr, bpm);
+	GetPixelShaderUID(uid, render_mode, components, xfr, bpm);
 	if (ongputhread)
 	{
 		Compiler->ProcCompilationResults();

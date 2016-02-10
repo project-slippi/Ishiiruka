@@ -211,7 +211,7 @@ void VertexShaderCache::PrepareShader(
 	bool ongputhread)
 {
 	VertexShaderUid uid;
-	GetVertexShaderUidD3D11(uid, components, xfr, bpm);
+	GetVertexShaderUID(uid, components, xfr, bpm);
 	if (ongputhread)
 	{
 		s_compiler->ProcCompilationResults();
