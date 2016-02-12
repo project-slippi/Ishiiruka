@@ -147,6 +147,9 @@ protected:
 	GLuint m_color_copy_texture = 0;
 	GLuint m_depth_copy_texture = 0;
 
+	GLuint m_color_copy_texture2 = 0;
+	GLuint m_depth_copy_texture2 = 0;
+
 	TargetSize m_stereo_buffer_size;
 	GLuint m_stereo_buffer_texture;
 

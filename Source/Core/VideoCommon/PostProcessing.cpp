@@ -889,6 +889,22 @@ bool PostProcessor::ShouldTriggerOnSwap() const
 		m_active;
 }
 
+bool PostProcessor::ShouldTriggerAfterBlit() const
+{
+	return g_ActiveConfig.bPostProcessingEnable &&
+		g_ActiveConfig.iPostProcessingTrigger == POST_PROCESSING_TRIGGER_AFTER_BLIT &&
+		m_active;
+}
+
+bool PostProcessor::XFBDepthDataRequired() const
+{
+	return (m_scaling_config && m_scaling_config->RequiresDepthBuffer())
+		|| (g_ActiveConfig.bPostProcessingEnable &&
+			m_active &&
+			(g_ActiveConfig.iPostProcessingTrigger == POST_PROCESSING_TRIGGER_AFTER_BLIT ||
+				(g_ActiveConfig.iPostProcessingTrigger == POST_PROCESSING_TRIGGER_ON_SWAP && !g_ActiveConfig.bUseXFB)));
+}
+
 void PostProcessor::OnProjectionLoaded(u32 type)
 {
 	if (!m_active || !g_ActiveConfig.bPostProcessingEnable ||

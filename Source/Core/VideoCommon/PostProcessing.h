@@ -222,6 +222,10 @@ public:
 	bool RequiresDepthBuffer() const { return m_requires_depth_buffer; }
 	bool ShouldTriggerOnSwap() const;
 
+	bool ShouldTriggerAfterBlit() const;
+	
+	bool XFBDepthDataRequired() const;
+
 	void SetReloadFlag() { m_reload_flag.Set(); }
 	bool RequiresReload() { return m_reload_flag.TestAndClear(); }
 

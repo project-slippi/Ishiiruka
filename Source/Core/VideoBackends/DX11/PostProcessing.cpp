@@ -651,6 +651,7 @@ void D3DPostProcessor::BlitScreen(const TargetRectangle& dst_rect, const TargetS
 	const TargetRectangle& src_rect, const TargetSize& src_size, uintptr_t src_texture, uintptr_t src_depth_texture,
 	int src_layer, float gamma)
 {
+	const bool triguer_after_blit = ShouldTriggerAfterBlit();
 	D3DTexture2D* real_dst_texture = reinterpret_cast<D3DTexture2D*>(dst_texture);
 	D3DTexture2D* real_src_texture = reinterpret_cast<D3DTexture2D*>(src_texture);
 	D3DTexture2D* real_src_depth_texture = reinterpret_cast<D3DTexture2D*>(src_depth_texture);
@@ -658,7 +659,7 @@ void D3DPostProcessor::BlitScreen(const TargetRectangle& dst_rect, const TargetS
 
 	ReconfigureScalingShader(src_size);
 	ReconfigureStereoShader(dst_size);
-	if (m_active && g_ActiveConfig.iPostProcessingTrigger == POST_PROCESSING_TRIGGER_AFTER_BLIT)
+	if (triguer_after_blit)
 	{
 		TargetSize buffer_size(dst_rect.GetWidth(), dst_rect.GetHeight());
 		if (!ResizeCopyBuffers(buffer_size, FramebufferManager::GetEFBLayers()) ||
@@ -675,7 +676,7 @@ void D3DPostProcessor::BlitScreen(const TargetRectangle& dst_rect, const TargetS
 	// Use stereo shader if enabled, otherwise invoke scaling shader, if that is invalid, fall back to blit.
 	if (m_stereo_shader)
 		DrawStereoBuffers(dst_rect, dst_size, real_dst_texture, src_rect, src_size, real_src_texture, real_src_depth_texture, gamma);
-	else if (m_active && g_ActiveConfig.iPostProcessingTrigger == POST_PROCESSING_TRIGGER_AFTER_BLIT)
+	else if (triguer_after_blit)
 	{
 		TargetSize buffer_size(dst_rect.GetWidth(), dst_rect.GetHeight());
 		TargetRectangle buffer_rect(0, 0, buffer_size.width, buffer_size.height);
@@ -687,12 +688,7 @@ void D3DPostProcessor::BlitScreen(const TargetRectangle& dst_rect, const TargetS
 		{
 			CopyTexture(buffer_rect, m_color_copy_texture, src_rect, real_src_texture, src_size, -1, false);
 		}
-		if (real_src_depth_texture != nullptr)
-		{
-			// Depth buffers can only be completely CopySubresourced, so use a shader copy instead.
-			CopyTexture(buffer_rect, m_depth_copy_texture, src_rect, real_src_depth_texture, src_size, -1, true);
-		}
-		PostProcess(nullptr, nullptr, nullptr, buffer_rect, buffer_size, reinterpret_cast<uintptr_t>(m_color_copy_texture), buffer_rect, buffer_size, reinterpret_cast<uintptr_t>(m_depth_copy_texture), dst_texture, &dst_rect, &dst_size);
+		PostProcess(nullptr, nullptr, nullptr, buffer_rect, buffer_size, reinterpret_cast<uintptr_t>(m_color_copy_texture), src_rect, src_size, reinterpret_cast<uintptr_t>(real_src_depth_texture), dst_texture, &dst_rect, &dst_size);
 	}
 	else if (m_scaling_shader)
 		m_scaling_shader->Draw(this, dst_rect, dst_size, real_dst_texture, src_rect, src_size, real_src_texture, real_src_depth_texture, src_layer, gamma);
@@ -738,15 +734,18 @@ void D3DPostProcessor::PostProcess(TargetRectangle* output_rect, TargetSize* out
 	if (src_size != buffer_size)
 	{
 		CopyTexture(buffer_rect, m_color_copy_texture, src_rect, real_src_texture, src_size, -1, false);
-		if (real_src_depth_texture != nullptr)
-		{
-			// Depth buffers can only be completely CopySubresourced, so use a shader copy instead.
-			CopyTexture(buffer_rect, m_depth_copy_texture, src_depth_rect, real_src_depth_texture, src_depth_size, -1, true);
-		}
 	}
 	else
 	{
 		input_color_texture = real_src_texture;
+	}
+	if (real_src_depth_texture != nullptr && src_depth_size != buffer_size)
+	{
+		// Depth buffers can only be completely CopySubresourced, so use a shader copy instead.
+		CopyTexture(buffer_rect, m_depth_copy_texture, src_depth_rect, real_src_depth_texture, src_depth_size, -1, true);
+	}
+	else
+	{
 		input_depth_texture = real_src_depth_texture;
 	}
 
@@ -904,12 +903,13 @@ bool D3DPostProcessor::ReconfigureStereoShader(const TargetSize& size)
 void D3DPostProcessor::DrawStereoBuffers(const TargetRectangle& dst_rect, const TargetSize& dst_size, D3DTexture2D* dst_texture,
 	const TargetRectangle& src_rect, const TargetSize& src_size, D3DTexture2D* src_texture, D3DTexture2D* src_depth_texture, float gamma)
 {
-	D3DTexture2D* stereo_buffer = (m_scaling_shader || m_active && g_ActiveConfig.iPostProcessingTrigger == POST_PROCESSING_TRIGGER_AFTER_BLIT) ? m_stereo_buffer_texture : src_texture;
+	const bool triguer_after_blit = ShouldTriggerAfterBlit();
+	D3DTexture2D* stereo_buffer = (m_scaling_shader || triguer_after_blit) ? m_stereo_buffer_texture : src_texture;
 	TargetRectangle stereo_buffer_rect(src_rect);
 	TargetSize stereo_buffer_size(src_size);
-
+	
 	// Apply scaling shader if enabled, otherwise just use the source buffers
-	if (m_active && g_ActiveConfig.iPostProcessingTrigger == POST_PROCESSING_TRIGGER_AFTER_BLIT)
+	if (triguer_after_blit)
 	{
 		stereo_buffer_rect = TargetRectangle(0, 0, dst_size.width, dst_size.height);
 		stereo_buffer_size = dst_size;
@@ -923,12 +923,7 @@ void D3DPostProcessor::DrawStereoBuffers(const TargetRectangle& dst_rect, const 
 		{
 			CopyTexture(buffer_rect, m_color_copy_texture, src_rect, src_texture, src_size, -1, false);
 		}
-		if (src_depth_texture != nullptr)
-		{
-			// Depth buffers can only be completely CopySubresourced, so use a shader copy instead.
-			CopyTexture(buffer_rect, m_depth_copy_texture, src_rect, src_depth_texture, src_size, -1, true);
-		}
-		PostProcess(nullptr, nullptr, nullptr, buffer_rect, buffer_size, reinterpret_cast<uintptr_t>(m_color_copy_texture), buffer_rect, buffer_size, reinterpret_cast<uintptr_t>(m_depth_copy_texture), reinterpret_cast<uintptr_t>(stereo_buffer), &stereo_buffer_rect, &stereo_buffer_size);
+		PostProcess(nullptr, nullptr, nullptr, buffer_rect, buffer_size, reinterpret_cast<uintptr_t>(m_color_copy_texture), src_rect, src_size, reinterpret_cast<uintptr_t>(src_depth_texture), reinterpret_cast<uintptr_t>(stereo_buffer), &stereo_buffer_rect, &stereo_buffer_size);
 	}
 	else if (m_scaling_shader)
 	{

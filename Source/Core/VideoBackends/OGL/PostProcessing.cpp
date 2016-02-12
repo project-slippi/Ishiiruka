@@ -619,7 +619,7 @@ void OGLPostProcessor::PostProcessEFBToTexture(uintptr_t dst_texture)
 	g_renderer->ResetAPIState();
 
 	EFBRectangle efb_rect(0, EFB_HEIGHT, EFB_WIDTH, 0);
-	TargetRectangle target_rect = { 0, 0, g_renderer->GetTargetWidth(), g_renderer->GetTargetHeight() };
+	TargetRectangle target_rect = { 0, g_renderer->GetTargetHeight(), g_renderer->GetTargetWidth(), 0 };
 	TargetSize target_size(g_renderer->GetTargetWidth(), g_renderer->GetTargetHeight());
 
 	// Source and target textures, if MSAA is enabled, this needs to be resolved
@@ -704,6 +704,7 @@ void OGLPostProcessor::BlitScreen(const TargetRectangle& dst_rect, const TargetS
 	const TargetRectangle& src_rect, const TargetSize& src_size, uintptr_t src_texture, uintptr_t src_depth_texture,
 	int src_layer, float gamma)
 {
+	const bool triguer_after_blit = ShouldTriggerAfterBlit();
 	GLuint real_dst_texture = static_cast<GLuint>(dst_texture);
 	GLuint real_src_texture = static_cast<GLuint>(src_texture);
 	GLuint real_src_depth_texture = static_cast<GLuint>(src_depth_texture);
@@ -711,7 +712,7 @@ void OGLPostProcessor::BlitScreen(const TargetRectangle& dst_rect, const TargetS
 
 	ReconfigureScalingShader(src_size);
 	ReconfigureStereoShader(dst_size);
-	if (m_active && g_ActiveConfig.iPostProcessingTrigger == POST_PROCESSING_TRIGGER_AFTER_BLIT)
+	if (triguer_after_blit)
 	{
 		TargetSize buffer_size(dst_rect.GetWidth(), dst_rect.GetHeight());
 		if (!ResizeCopyBuffers(buffer_size, FramebufferManager::GetEFBLayers()) ||
@@ -725,7 +726,7 @@ void OGLPostProcessor::BlitScreen(const TargetRectangle& dst_rect, const TargetS
 	// Use stereo shader if enabled, otherwise invoke scaling shader, if that is invalid, fall back to blit.
 	if (m_stereo_shader)
 		DrawStereoBuffers(dst_rect, dst_size, real_dst_texture, src_rect, src_size, real_src_texture, real_src_depth_texture, gamma);
-	else if (m_active && g_ActiveConfig.iPostProcessingTrigger == POST_PROCESSING_TRIGGER_AFTER_BLIT)
+	else if (triguer_after_blit)
 	{
 		TargetSize buffer_size(dst_rect.GetWidth(), dst_rect.GetHeight());
 		TargetRectangle buffer_rect(0, buffer_size.height, buffer_size.width, 0);
@@ -737,12 +738,7 @@ void OGLPostProcessor::BlitScreen(const TargetRectangle& dst_rect, const TargetS
 		{
 			CopyTexture(buffer_rect, m_color_copy_texture, src_rect, real_src_texture, -1, false);
 		}
-		if (real_src_depth_texture != 0)
-		{
-			// Depth buffers can only be completely CopySubresourced, so use a shader copy instead.
-			CopyTexture(buffer_rect, m_depth_copy_texture, src_rect, real_src_depth_texture, -1, true);
-		}
-		PostProcess(nullptr, nullptr, nullptr, buffer_rect, buffer_size, m_color_copy_texture, buffer_rect, buffer_size, m_depth_copy_texture, dst_texture, &dst_rect, &dst_size);
+		PostProcess(nullptr, nullptr, nullptr, buffer_rect, buffer_size, m_color_copy_texture, src_rect, src_size, real_src_depth_texture, dst_texture, &dst_rect, &dst_size);
 	}
 	else if (m_scaling_shader)
 		m_scaling_shader->Draw(this, dst_rect, dst_size, real_dst_texture, src_rect, src_size, real_src_texture, real_src_depth_texture, 0, gamma);
@@ -787,12 +783,18 @@ void OGLPostProcessor::PostProcess(TargetRectangle* output_rect, TargetSize* out
 	if (src_size != buffer_size)
 	{
 		CopyTexture(buffer_rect, m_color_copy_texture, src_rect, real_src_texture, -1, false);
-		if (real_src_depth_texture != 0)
-			CopyTexture(buffer_rect, m_depth_copy_texture, src_depth_rect, real_src_depth_texture, -1, false);
 	}
 	else
 	{
 		input_color_texture = real_src_texture;
+	}
+
+	if (real_src_depth_texture != 0 && src_depth_size != buffer_size)
+	{
+		CopyTexture(buffer_rect, m_depth_copy_texture, src_depth_rect, real_src_depth_texture, -1, true);
+	}
+	else
+	{
 		input_depth_texture = real_src_depth_texture;
 	}
 
@@ -932,12 +934,13 @@ bool OGLPostProcessor::ReconfigureStereoShader(const TargetSize& size)
 void OGLPostProcessor::DrawStereoBuffers(const TargetRectangle& dst_rect, const TargetSize& dst_size, GLuint dst_texture,
 	const TargetRectangle& src_rect, const TargetSize& src_size, GLuint src_texture, GLuint src_depth_texture, float gamma)
 {
-	GLuint stereo_buffer = (m_scaling_shader || m_active && g_ActiveConfig.iPostProcessingTrigger == POST_PROCESSING_TRIGGER_AFTER_BLIT) ? m_stereo_buffer_texture : src_texture;
+	const bool triguer_after_blit = ShouldTriggerAfterBlit();
+	GLuint stereo_buffer = (m_scaling_shader || triguer_after_blit) ? m_stereo_buffer_texture : src_texture;
 	TargetRectangle stereo_buffer_rect(src_rect);
 	TargetSize stereo_buffer_size(src_size);
 
 	// Apply scaling shader if enabled, otherwise just use the source buffers
-	if (m_active && g_ActiveConfig.iPostProcessingTrigger == POST_PROCESSING_TRIGGER_AFTER_BLIT)
+	if (triguer_after_blit)
 	{
 		stereo_buffer_rect = TargetRectangle(0, dst_size.height, dst_size.width, 0);
 		stereo_buffer_size = dst_size;
@@ -951,12 +954,7 @@ void OGLPostProcessor::DrawStereoBuffers(const TargetRectangle& dst_rect, const 
 		{
 			CopyTexture(buffer_rect, m_color_copy_texture, src_rect, src_texture, -1, false);
 		}
-		if (src_depth_texture != 0)
-		{
-			// Depth buffers can only be completely CopySubresourced, so use a shader copy instead.
-			CopyTexture(buffer_rect, m_depth_copy_texture, src_rect, src_depth_texture, -1, true);
-		}
-		PostProcess(nullptr, nullptr, nullptr, buffer_rect, buffer_size, m_color_copy_texture, buffer_rect, buffer_size, m_depth_copy_texture, stereo_buffer, &stereo_buffer_rect, &stereo_buffer_size);
+		PostProcess(nullptr, nullptr, nullptr, buffer_rect, buffer_size, m_color_copy_texture, src_rect, src_size, src_depth_texture, stereo_buffer, &stereo_buffer_rect, &stereo_buffer_size);
 	}
 	else if (m_scaling_shader)
 	{
@@ -996,29 +994,28 @@ void OGLPostProcessor::CopyTexture(const TargetRectangle& dst_rect, GLuint dst_t
 		}
 		else
 		{
+			glBindFramebuffer(GL_READ_FRAMEBUFFER, m_read_framebuffer);
+			if (is_depth_texture)
+				glFramebufferTextureLayer(GL_READ_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, src_texture, 0, layer);
+			else
+				glFramebufferTextureLayer(GL_READ_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, src_texture, 0, layer);
+
 			// fallback to glBlitFramebuffer path
-			GLenum filter = (scaling) ? GL_LINEAR : GL_NEAREST;
-			GLbitfield bits = (!is_depth_texture) ? GL_COLOR_BUFFER_BIT : GL_DEPTH_BUFFER_BIT;
+			GLenum filter = (scaling && !is_depth_texture) ? GL_LINEAR : GL_NEAREST;
+			GLbitfield bits = (is_depth_texture) ? GL_DEPTH_BUFFER_BIT : GL_COLOR_BUFFER_BIT;
 			if (dst_texture != 0)
 			{
 				glBindFramebuffer(GL_DRAW_FRAMEBUFFER, m_draw_framebuffer);
-				if (!is_depth_texture)
-					glFramebufferTextureLayer(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, dst_texture, 0, layer);
-				else
+				if (is_depth_texture)
 					glFramebufferTextureLayer(GL_DRAW_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, dst_texture, 0, layer);
+				else
+					glFramebufferTextureLayer(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, dst_texture, 0, layer);
 			}
 			else
 			{
 				// window framebuffer
 				glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 			}
-
-			glBindFramebuffer(GL_READ_FRAMEBUFFER, m_read_framebuffer);
-			if (!is_depth_texture)
-				glFramebufferTextureLayer(GL_READ_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, src_texture, 0, layer);
-			else
-				glFramebufferTextureLayer(GL_READ_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, src_texture, 0, layer);
-
 			glBlitFramebuffer(src_rect.left, src_rect.bottom, src_rect.right, src_rect.top,
 				dst_rect.left, dst_rect.bottom, dst_rect.right, dst_rect.top,
 				bits, filter);
