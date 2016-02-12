@@ -71,7 +71,6 @@ protected:
 	static Slope s_zslope;
 
 	static void CalculateZSlope(const PortableVertexDeclaration &vert_decl, const u16* indices);
-	static void SetZSlope();
 	static bool s_cull_all;
 	virtual void vDoState(PointerWrap& p) {  }
 

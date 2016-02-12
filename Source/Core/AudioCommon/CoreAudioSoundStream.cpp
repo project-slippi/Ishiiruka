@@ -2,9 +2,10 @@
 // Licensed under GPLv2+
 // Refer to the license.txt file included.
 
-#include <CoreServices/CoreServices.h>
+#include <AudioUnit/AudioUnit.h>
 
 #include "AudioCommon/CoreAudioSoundStream.h"
+#include "Common/Logging/Log.h"
 
 OSStatus CoreAudioSound::callback(void *inRefCon,
 	AudioUnitRenderActionFlags *ioActionFlags,
@@ -72,7 +73,7 @@ bool CoreAudioSound::Start()
 
 	err = AudioUnitSetParameter(audioUnit,
 					kHALOutputParam_Volume,
-					kAudioUnitParameterFlag_Output, 0,
+					kAudioUnitScope_Output, 0,
 					m_volume / 100., 0);
 	if (err != noErr)
 		ERROR_LOG(AUDIO, "error setting volume");
@@ -101,7 +102,7 @@ void CoreAudioSound::SetVolume(int volume)
 
 	err = AudioUnitSetParameter(audioUnit,
 					kHALOutputParam_Volume,
-					kAudioUnitParameterFlag_Output, 0,
+					kAudioUnitScope_Output, 0,
 					volume / 100., 0);
 	if (err != noErr)
 		ERROR_LOG(AUDIO, "error setting volume");

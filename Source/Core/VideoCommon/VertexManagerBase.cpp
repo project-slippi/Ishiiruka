@@ -133,9 +133,6 @@ void VertexManagerBase::Flush()
 {
 	if (IsFlushed)
 		return;
-	bool useDstAlpha = bpmem.dstalpha.enable &&
-		bpmem.blendmode.alphaupdate &&
-		bpmem.zcontrol.pixel_format == PEControl::RGBA6_Z24;
 	// loading a state will invalidate BP, so check for it
 	NativeVertexFormat* current_vertex_format = VertexLoaderManager::GetCurrentVertexFormat();
 	g_video_backend->CheckInvalidState();
@@ -167,54 +164,56 @@ void VertexManagerBase::Flush()
 	PRIM_LOG("pixel: tev=%d, ind=%d, texgen=%d, dstalpha=%d, alphatest=0x%x", (int)bpmem.genMode.numtevstages + 1, (int)bpmem.genMode.numindstages.Value(),
 		(int)bpmem.genMode.numtexgens, (u32)bpmem.dstalpha.enable, (bpmem.alpha_test.hex >> 16) & 0xff);
 #endif
-
-	u32 usedtextures = 0;
-	for (u32 i = 0; i < bpmem.genMode.numtevstages + 1u; ++i)
-		if (bpmem.tevorders[i / 2].getEnable(i & 1))
-			usedtextures |= 1 << bpmem.tevorders[i / 2].getTexMap(i & 1);
-
-	if (bpmem.genMode.numindstages.Value() > 0)
+	if (!s_cull_all)
+	{
+		u32 usedtextures = 0;
 		for (u32 i = 0; i < bpmem.genMode.numtevstages + 1u; ++i)
-			if (bpmem.tevind[i].IsActive() && bpmem.tevind[i].bt < bpmem.genMode.numindstages.Value())
-				usedtextures |= 1 << bpmem.tevindref.getTexMap(bpmem.tevind[i].bt);
+			if (bpmem.tevorders[i / 2].getEnable(i & 1))
+				usedtextures |= 1 << bpmem.tevorders[i / 2].getTexMap(i & 1);
 
-	TextureCacheBase::UnbindTextures();
-	s32 mask = 0;
-	for (unsigned int i = 0; i < 8; i++)
-	{
-		if (usedtextures & (1 << i))
+		if (bpmem.genMode.numindstages.Value() > 0)
+			for (u32 i = 0; i < bpmem.genMode.numtevstages + 1u; ++i)
+				if (bpmem.tevind[i].IsActive() && bpmem.tevind[i].bt < bpmem.genMode.numindstages.Value())
+					usedtextures |= 1 << bpmem.tevindref.getTexMap(bpmem.tevind[i].bt);
+
+		TextureCacheBase::UnbindTextures();
+		s32 mask = 0;
+		for (unsigned int i = 0; i < 8; i++)
 		{
-			const TextureCacheBase::TCacheEntryBase* tentry = TextureCacheBase::Load(i);
-			if (tentry)
+			if (usedtextures & (1 << i))
 			{
-				if (g_ActiveConfig.HiresMaterialMapsEnabled() && tentry->SupportsMaterialMap())
+				const TextureCacheBase::TCacheEntryBase* tentry = TextureCacheBase::Load(i);
+				if (tentry)
 				{
-					mask |= 1 << i;
+					if (g_ActiveConfig.HiresMaterialMapsEnabled() && tentry->SupportsMaterialMap())
+					{
+						mask |= 1 << i;
+					}
+					PixelShaderManager::SetTexDims(i, tentry->native_width, tentry->native_height);
+					g_renderer->SetSamplerState(i & 3, i >> 2, tentry->is_custom_tex);
 				}
-				PixelShaderManager::SetTexDims(i, tentry->native_width, tentry->native_height);
-				g_renderer->SetSamplerState(i & 3, i >> 2, tentry->is_custom_tex);
+				else
+					ERROR_LOG(VIDEO, "error loading texture");
 			}
-			else
-				ERROR_LOG(VIDEO, "error loading texture");
 		}
+		if (g_ActiveConfig.HiresMaterialMapsEnabled())
+		{
+			PixelShaderManager::SetFlags(0, ~0, mask);
+		}
+		TextureCacheBase::BindTextures();
 	}
-	if (g_ActiveConfig.HiresMaterialMapsEnabled())
-	{
-		PixelShaderManager::SetFlags(0, ~0, mask);
-	}
-	TextureCacheBase::BindTextures();
-
 	// set global constants
-	VertexShaderManager::SetConstants();
-	GeometryShaderManager::SetConstants();
-	TessellationShaderManager::SetConstants();
-	PixelShaderManager::SetConstants();
+	VertexShaderManager::SetConstants();	
 	if (current_primitive_type == PRIMITIVE_TRIANGLES)
 	{
 		const PortableVertexDeclaration &vtx_dcl = current_vertex_format->GetVertexDeclaration();
 		if (bpmem.genMode.zfreeze)
 		{
-			SetZSlope();
+			if (s_zslope_refresh_required)
+			{
+				PixelShaderManager::SetZSlope(s_zslope.dfdx, s_zslope.dfdy, s_zslope.f0);
+				s_zslope_refresh_required = false;
+			}
 		}
 		else if (IndexGenerator::GetIndexLen() >= 3)
 		{
@@ -229,6 +228,13 @@ void VertexManagerBase::Flush()
 			return;
 		}
 	}
+	GeometryShaderManager::SetConstants();
+	TessellationShaderManager::SetConstants();
+	PixelShaderManager::SetConstants();
+	const bool useDstAlpha = bpmem.dstalpha.enable &&
+		bpmem.blendmode.alphaupdate &&
+		bpmem.zcontrol.pixel_format == PEControl::RGBA6_Z24;
+
 	if (PerfQueryBase::ShouldEmulate())
 		g_perf_query->EnableQuery(bpmem.zcontrol.early_ztest ? PQG_ZCOMP_ZCOMPLOC : PQG_ZCOMP);
 	g_vertex_manager->vFlush(useDstAlpha);
@@ -280,22 +286,13 @@ void VertexManagerBase::CalculateZSlope(const PortableVertexDeclaration &vert_de
 
 	if (c == 0)
 		return;
-
+	c = 1.0f / c;
 	float DF31 = out[10] - out[2];
 	float DF21 = out[6] - out[2];
 	float a = DF31 * -dy12 - DF21 * dy31;
 	float b = dx31 * DF21 + dx12 * DF31;
-	s_zslope.dfdx = -a / c;
-	s_zslope.dfdy = -b / c;
+	s_zslope.dfdx = -a * c;
+	s_zslope.dfdy = -b * c;
 	s_zslope.f0 = out[2] - (out[0] * s_zslope.dfdx + out[1] * s_zslope.dfdy);
 	s_zslope_refresh_required = true;
-}
-
-void VertexManagerBase::SetZSlope()
-{
-	if (s_zslope_refresh_required)
-	{
-		PixelShaderManager::SetZSlope(s_zslope.dfdx, s_zslope.dfdy, s_zslope.f0);
-		s_zslope_refresh_required = false;
-	}
 }

@@ -4,7 +4,8 @@
 
 #pragma once
 #include "Common/CommonTypes.h"
-#include "VideoCommon/DataReader.h"
+
+class DataReader;
 
 enum GxOpCodes : u8
 {
