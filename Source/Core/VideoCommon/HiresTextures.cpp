@@ -399,9 +399,9 @@ inline void ReadPNG(ImageLoaderParams &ImgInfo)
 	*/
 	File::IOFile file(ImgInfo.Path, "rb");
 	std::vector<u8> buffer(file.GetSize());
+	ImgInfo.resultTex = PC_TEX_FMT_NONE;
 	if (!file.IsOpen() || !file.ReadBytes(buffer.data(), file.GetSize()))
-	{
-		ImgInfo.resultTex = PC_TEX_FMT_NONE;
+	{	
 		return;
 	}
 	int image_width;
@@ -410,7 +410,6 @@ inline void ReadPNG(ImageLoaderParams &ImgInfo)
 	u8* decoded = SOIL_load_image_from_memory(buffer.data(), (int)buffer.size(), &image_width, &image_height, &image_channels, SOIL_LOAD_RGBA);
 	if (decoded == nullptr)
 	{
-		ImgInfo.resultTex = PC_TEX_FMT_NONE;
 		return;
 	}
 
@@ -419,9 +418,12 @@ inline void ReadPNG(ImageLoaderParams &ImgInfo)
 	ImgInfo.Height = image_height;
 	ImgInfo.data_size = image_width * image_height * 4;
 	ImgInfo.dst = ImgInfo.request_buffer_delegate(ImgInfo.data_size, false);
-	memcpy(ImgInfo.dst, decoded, ImgInfo.data_size);
+	if (ImgInfo.dst)
+	{
+		memcpy(ImgInfo.dst, decoded, ImgInfo.data_size);
+		ImgInfo.resultTex = PC_TEX_FMT_RGBA32;
+	}
 	SOIL_free_image_data(decoded);
-	ImgInfo.resultTex = PC_TEX_FMT_RGBA32;
 }
 
 inline void ReadDDS(ImageLoaderParams &ImgInfo)
@@ -514,6 +516,7 @@ HiresTexture* HiresTexture::Load(const std::string& basename,
 	bool allocated_data = false;
 	bool mipmapsize_included = false;
 	bool nrm_posible = current.normal_map.size() == current.color_map.size() && g_ActiveConfig.HiresMaterialMapsEnabled();
+	size_t remaining_buffer_size = 0;
 	for (size_t level = 0; level < current.color_map.size(); level++)
 	{
 		ImageLoaderParams imgInfo;
@@ -537,13 +540,19 @@ HiresTexture* HiresTexture::Load(const std::string& basename,
 					requiredsize = (requiredsize * 4) / 3;
 				}
 				requiredsize *= (nrm_posible ? 2 : 1);
+				remaining_buffer_size = requiredsize;
 				return request_buffer_delegate(requiredsize);
 			};
 		}
 		else
 		{
-			imgInfo.request_buffer_delegate = [buffer_pointer](size_t requiredsize, bool mipmapsincluded)
+			imgInfo.request_buffer_delegate = [&](size_t requiredsize, bool mipmapsincluded)
 			{
+				// is required size is biguer that the remaining size on the packed buffer just reject
+				if (requiredsize > remaining_buffer_size)
+				{
+					return static_cast<u8*>(nullptr);
+				}
 				// just return the pointer to pack the textures in a single buffer.
 				return buffer_pointer;
 			};
@@ -619,11 +628,14 @@ HiresTexture* HiresTexture::Load(const std::string& basename,
 		ret->m_levels++;
 		if (ddsfile)
 		{
-			buffer_pointer = imgInfo.dst + TextureUtil::GetTextureSizeInBytes(maxwidth, maxheight, imgInfo.resultTex);
+			u32 requiredsize = TextureUtil::GetTextureSizeInBytes(maxwidth, maxheight, imgInfo.resultTex);
+			buffer_pointer = imgInfo.dst + requiredsize;
+			remaining_buffer_size -= requiredsize;
 		}
 		else
 		{
 			buffer_pointer = imgInfo.dst + imgInfo.data_size;
+			remaining_buffer_size -= imgInfo.data_size;
 		}
 		maxwidth = std::max(maxwidth >> 1, 1u);
 		maxheight = std::max(maxheight >> 1, 1u);
@@ -641,7 +653,9 @@ HiresTexture* HiresTexture::Load(const std::string& basename,
 				{
 					u32 mip_width = TextureUtil::CalculateLevelSize(imgInfo.Width, mip_level);
 					u32 mip_height = TextureUtil::CalculateLevelSize(imgInfo.Height, mip_level);
+					u32 requiredsize = TextureUtil::GetTextureSizeInBytes(mip_width, mip_height, ret->m_format);
 					buffer_pointer += TextureUtil::GetTextureSizeInBytes(mip_width, mip_height, ret->m_format);
+					remaining_buffer_size -= requiredsize;
 				}
 			}
 			break;
@@ -655,8 +669,13 @@ HiresTexture* HiresTexture::Load(const std::string& basename,
 			hires_mip_level &item = current.normal_map[level];
 			imgInfo.dst = nullptr;
 			imgInfo.Path = item.path.c_str();
-			imgInfo.request_buffer_delegate = [buffer_pointer](size_t requiredsize, bool mipmapsincluded)
+			imgInfo.request_buffer_delegate = [&](size_t requiredsize, bool mipmapsincluded)
 			{
+				// is required size is biguer that the remaining size on the packed buffer just reject
+				if (requiredsize > remaining_buffer_size)
+				{
+					return static_cast<u8*>(nullptr);
+				}
 				// just return the pointer to pack the textures in a single buffer.
 				return buffer_pointer;
 			};
@@ -732,11 +751,14 @@ HiresTexture* HiresTexture::Load(const std::string& basename,
 			ret->m_nrm_levels++;
 			if (ddsfile)
 			{
-				buffer_pointer = imgInfo.dst + TextureUtil::GetTextureSizeInBytes(maxwidth, maxheight, imgInfo.resultTex);
+				u32 requiredsize = TextureUtil::GetTextureSizeInBytes(maxwidth, maxheight, imgInfo.resultTex);
+				buffer_pointer = imgInfo.dst + requiredsize;
+				remaining_buffer_size -= requiredsize;
 			}
 			else
 			{
 				buffer_pointer = imgInfo.dst + imgInfo.data_size;
+				remaining_buffer_size -= imgInfo.data_size;
 			}
 			maxwidth = std::max(maxwidth >> 1, 1u);
 			maxheight = std::max(maxheight >> 1, 1u);
