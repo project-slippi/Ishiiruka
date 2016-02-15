@@ -93,17 +93,11 @@ wxBitmap LoadResourceBitmap(const std::string& name, const wxSize& padded_size)
 #endif
 }
 
-wxBitmap CreateDisabledButtonBitmap(const wxBitmap& original)
-{
-	wxImage image = original.ConvertToImage();
-	return wxBitmap(image.ConvertToDisabled(240));
-}
-
 void AddToolbarButton(wxToolBar* toolbar, int toolID, const wxString& label, const wxBitmap& bitmap, const wxString& shortHelp)
 {
 	// Must explicitly set the disabled button bitmap because wxWidgets
 	// incorrectly desaturates it instead of lightening it.
-	toolbar->AddTool(toolID, label, bitmap, WxUtils::CreateDisabledButtonBitmap(bitmap), wxITEM_NORMAL, shortHelp);
+	toolbar->AddTool(toolID, label, bitmap, wxNullBitmap, wxITEM_NORMAL, shortHelp);
 }
 
 }  // namespace

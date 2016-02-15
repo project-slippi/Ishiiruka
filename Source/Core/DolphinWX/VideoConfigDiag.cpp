@@ -600,7 +600,7 @@ VideoConfigDiag::VideoConfigDiag(wxWindow* parent, const std::string &title, con
 			szr_pp_add_shader->Add(choice_ppshader, 1, wxLEFT | wxALIGN_CENTER_VERTICAL, 5);
 			button_add_ppshader = new wxButton(page_postprocessing, wxID_ANY, _("&Add"));
 			button_add_ppshader->Bind(wxEVT_BUTTON, &VideoConfigDiag::Event_PPShaderAdd, this);
-			szr_pp_add_shader->Add(button_add_ppshader, 0, wxLEFT | wxALIGN_RIGHT | wxALIGN_CENTER_VERTICAL, 5);
+			szr_pp_add_shader->Add(button_add_ppshader, 0, wxLEFT | wxALIGN_CENTER_VERTICAL, 5);
 			szr_selected_shaders->Add(szr_pp_add_shader, 0, wxEXPAND);
 
 			// Fill data from config
