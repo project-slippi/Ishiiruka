@@ -381,7 +381,7 @@ void VertexLoaderX64::GenerateVertexLoader()
 
 	MOV(64, R(base_reg), R(ABI_PARAM4));
 	// Load Contants into registers outside the main loop to reduce memory overhead
-	if (m_VtxAttr.PosFormat != FORMAT_FLOAT)
+	if (m_VtxAttr.PosFormat != FORMAT_FLOAT && m_VtxAttr.ByteDequant)
 	{
 		MOVAPD(XMM2, MPIC(&scale_factors[0]));
 	}
@@ -398,13 +398,15 @@ void VertexLoaderX64::GenerateVertexLoader()
 		XMM4, XMM5, XMM6, XMM7,
 		XMM8, XMM9, XMM10, XMM11,
 	};
-
-	for (int i = 0; i < 8; i++)
+	
+	if (m_VtxAttr.ByteDequant)
 	{
-		int elements = m_VtxAttr.texCoord[i].Elements + 1;
-		if (tc[i] && m_VtxAttr.ByteDequant)
+		for (int i = 0; i < 8; i++)
 		{
-			MOVAPD(treg[i], MPIC(&scale_factors[5 + i]));
+			if (tc[i] && m_VtxAttr.texCoord[i].Format != FORMAT_FLOAT)
+			{
+				MOVAPD(treg[i], MPIC(&scale_factors[5 + i]));
+			}
 		}
 	}
 
