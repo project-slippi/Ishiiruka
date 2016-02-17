@@ -65,7 +65,7 @@ D3D12_INPUT_ELEMENT_DESC D3DVertexFormat::GetInputElementDescFromAttributeFormat
 D3DVertexFormat::~D3DVertexFormat()
 {}
 
-D3DVertexFormat::D3DVertexFormat(const PortableVertexDeclaration &vtx_decl) : m_num_elems(0), m_layout({}), m_elems()
+D3DVertexFormat::D3DVertexFormat(const PortableVertexDeclaration &vtx_decl)
 {
 	this->vtx_decl = vtx_decl;
 	const AttributeFormat* format = &vtx_decl.position;

@@ -35,7 +35,9 @@ struct ByteCodeCacheEntry
 		m_initialized.clear();
 	}
 	void Release() {
-		SAFE_DELETE(m_shader_bytecode.pShaderBytecode);
+		if (m_shader_bytecode.pShaderBytecode)
+			delete[] m_shader_bytecode.pShaderBytecode;
+		m_shader_bytecode.pShaderBytecode = nullptr;
 	}
 };
 

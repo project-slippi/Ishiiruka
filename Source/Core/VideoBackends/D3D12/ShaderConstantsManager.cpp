@@ -1,11 +1,12 @@
 // Copyright 2015 Dolphin Emulator Project
 // Licensed under GPLv2+
 // Refer to the license.txt file included.
+#include <memory>
 
-#include "D3DBase.h"
-#include "D3DCommandListManager.h"
-#include "D3DStreamBuffer.h"
-#include "ShaderConstantsManager.h"
+#include "VideoBackends/D3D12/D3DBase.h"
+#include "VideoBackends/D3D12/D3DCommandListManager.h"
+#include "VideoBackends/D3D12/D3DStreamBuffer.h"
+#include "VideoBackends/D3D12/ShaderConstantsManager.h"
 
 #include "VideoCommon/GeometryShaderManager.h"
 #include "VideoCommon/PixelShaderManager.h"
@@ -26,7 +27,7 @@ enum SHADER_STAGE
 	SHADER_STAGE_COUNT = 4
 };
 
-static std::array<D3DStreamBuffer*, SHADER_STAGE_COUNT> s_shader_constant_stream_buffers = {};
+static std::array<std::unique_ptr<D3DStreamBuffer>, SHADER_STAGE_COUNT> s_shader_constant_stream_buffers = {};
 
 const unsigned int shader_constant_buffer_sizes[SHADER_STAGE_COUNT] = {
 	sizeof(GeometryShaderConstants),
@@ -48,14 +49,14 @@ void ShaderConstantsManager::Init()
 	VertexShaderManager::DisableDirtyRegions();
 	// Allow a large maximum size, as we want to minimize stalls here
 	std::generate(std::begin(s_shader_constant_stream_buffers), std::end(s_shader_constant_stream_buffers), []() {
-		return new D3DStreamBuffer(2 * 1024 * 1024, 64 * 1024 * 1024, nullptr);
+		return std::make_unique<D3DStreamBuffer>(2 * 1024 * 1024, 64 * 1024 * 1024, nullptr);
 	});
 }
 
 void ShaderConstantsManager::Shutdown()
 {
-	for (auto& it : s_shader_constant_stream_buffers)
-		SAFE_DELETE(it);
+	for (auto& buffer : s_shader_constant_stream_buffers)
+		buffer.reset();
 }
 
 bool ShaderConstantsManager::LoadAndSetGeometryShaderConstants()

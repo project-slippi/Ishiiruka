@@ -5,14 +5,14 @@
 #pragma once
 
 #include <atomic>
-#include <vector>
 #include <d3d12.h>
-
 
 namespace DX12
 {
 
-enum D3DQueueItemType : unsigned int
+static const unsigned int QUEUE_ARRAY_SIZE = 24 * 1024 * 1024;
+
+enum D3DQueueItemType
 {
 	AbortProcessing = 0,
 	SetPipelineState,
@@ -132,7 +132,9 @@ struct CopyBufferRegionArguments
 struct CopyTextureRegionArguments
 {
 	D3D12_TEXTURE_COPY_LOCATION dst;
-	UINT DstX, DstY, DstZ;
+	UINT DstX;
+	UINT DstY;
+	UINT DstZ;
 	D3D12_TEXTURE_COPY_LOCATION src;
 	D3D12_BOX srcBox;
 };
@@ -225,7 +227,7 @@ struct D3DQueueItem
 		SetDescriptorHeapsArguments SetDescriptorHeaps;
 		ResourceBarrierArguments ResourceBarrier;
 		ResolveSubresourceArguments ResolveSubresource;
-		CloseCommandListArguments Closecommand_list;
+		CloseCommandListArguments CloseCommandList;
 		ExecuteCommandListArguments ExecuteCommandList;
 		PresentArguments Present;
 		ResetCommandListArguments ResetCommandList;
@@ -242,7 +244,7 @@ public:
 
 	ID3D12QueuedCommandList(ID3D12GraphicsCommandList* backing_command_list, ID3D12CommandQueue* backing_command_queue);
 
-	void ProcessQueuedItems();
+	void ProcessQueuedItems(bool eligible_to_move_to_front_of_queue = false, bool wait_for_stop = false);
 
 	void QueueExecute();
 	void QueueFenceGpuSignal(ID3D12Fence* fence_to_signal, UINT64 fence_value);
@@ -595,21 +597,23 @@ public:
 		);
 
 private:
-
-	static constexpr UINT s_queue_array_size = 24 * 1024 * 1024;
-
 	~ID3D12QueuedCommandList();
+
+	void ResetQueueOverflowTracking();
+	void CheckForOverflow();
 
 	static DWORD WINAPI BackgroundThreadFunction(LPVOID param);
 
-	std::vector<byte> m_queue_array;
-	std::atomic<size_t> m_queue_array_front;
-	byte* m_queue_array_back;
+	byte m_queue_array[QUEUE_ARRAY_SIZE];
+	byte* m_queue_array_back = m_queue_array;
+
+	byte* m_queue_array_back_at_start_of_frame = m_queue_array_back;
 
 	DWORD m_background_thread_id;
 	HANDLE m_background_thread;
 
 	HANDLE m_begin_execution_event;
+	HANDLE m_stop_execution_event;
 
 	ID3D12GraphicsCommandList* m_command_list;
 	ID3D12CommandQueue* m_command_queue;

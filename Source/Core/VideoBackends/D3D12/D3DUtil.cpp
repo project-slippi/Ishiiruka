@@ -4,7 +4,6 @@
 
 #include <cctype>
 #include <list>
-#include <memory>
 #include <string>
 
 #include "VideoBackends/D3D12/D3DBase.h"
@@ -57,18 +56,18 @@ void ResourceBarrier(ID3D12GraphicsCommandList* command_list, ID3D12Resource* re
 	command_list->ResourceBarrier(1, &resourceBarrierDesc);
 }
 
-UtilVertexBuffer::UtilVertexBuffer(int size)
+UtilVertexBuffer::UtilVertexBuffer(size_t size)
 {
-	m_stream_buffer = new D3DStreamBuffer(size, size * 4, nullptr);
+	m_stream_buffer = std::make_unique<D3DStreamBuffer>(size, size * 4, nullptr);
 }
 
 UtilVertexBuffer::~UtilVertexBuffer()
 {
-	SAFE_DELETE(m_stream_buffer);
+	m_stream_buffer.reset();
 }
 
 // returns vertex offset to the new data
-int UtilVertexBuffer::AppendData(void* data, int size, int vertex_size)
+size_t UtilVertexBuffer::AppendData(void* data, size_t size, size_t vertex_size)
 {
 	m_stream_buffer->AllocateSpaceInBuffer(size, vertex_size);
 
@@ -77,7 +76,7 @@ int UtilVertexBuffer::AppendData(void* data, int size, int vertex_size)
 	return m_stream_buffer->GetOffsetOfCurrentAllocation() / vertex_size;
 }
 
-int UtilVertexBuffer::ReserveData(void** write_ptr, int size, int vertex_size)
+size_t UtilVertexBuffer::ReserveData(void** write_ptr, size_t size, size_t vertex_size)
 {
 	m_stream_buffer->AllocateSpaceInBuffer(size, vertex_size);
 
@@ -512,10 +511,10 @@ struct
 } clear_quad_data;
 
 // ring buffer offsets
-int stq_offset;
-int cq_offset;
-int clearq_offset;
-static constexpr unsigned int vb_buff_size = 0x10000;
+size_t stq_offset;
+size_t cq_offset;
+size_t clearq_offset;
+static constexpr size_t vb_buff_size = 0x10000;
 void InitUtils()
 {
 	s_reset_blend_desc = Renderer::GetResetBlendDesc();
@@ -642,7 +641,7 @@ void DrawShadedTexQuad(D3DTexture2D* texture,
 
 	D3D12_VERTEX_BUFFER_VIEW vb_view = {
 		util_vbuf_stq->GetBuffer()->GetGPUVirtualAddress(),   // D3D12_GPU_VIRTUAL_ADDRESS BufferLocation;
-		util_vbuf_stq->GetSize(),                             // UINT SizeInBytes; This is the size of the entire buffer, not just the size of the vertex data for one draw call, since the offsetting is done in the draw call itself.
+		static_cast<UINT>(util_vbuf_stq->GetSize()),          // UINT SizeInBytes; This is the size of the entire buffer, not just the size of the vertex data for one draw call, since the offsetting is done in the draw call itself.
 		sizeof(STQVertex)                                     // UINT StrideInBytes;
 	};
 
@@ -694,7 +693,7 @@ void DrawShadedTexQuad(D3DTexture2D* texture,
 	// 2 ^ D3D12_MAX_TEXTURE_DIMENSION_2_TO_EXP = 131072
 	D3D::current_command_list->RSSetScissorRects(1, &CD3DX12_RECT(0, 0, 131072, 131072));
 
-	D3D::current_command_list->DrawInstanced(4, 1, stq_offset, 0);
+	D3D::current_command_list->DrawInstanced(4, 1, static_cast<UINT>(stq_offset), 0);
 
 	g_renderer->RestoreAPIState();
 }
@@ -729,7 +728,7 @@ void DrawColorQuad(u32 Color, float z, float x1, float y1, float x2, float y2, D
 
 	D3D12_VERTEX_BUFFER_VIEW vb_view = {
 		util_vbuf_cq->GetBuffer()->GetGPUVirtualAddress(), // D3D12_GPU_VIRTUAL_ADDRESS BufferLocation;
-		util_vbuf_cq->GetSize(),                           // UINT SizeInBytes; This is the size of the entire buffer, not just the size of the vertex data for one draw call, since the offsetting is done in the draw call itself.
+		static_cast<UINT>(util_vbuf_cq->GetSize()),        // UINT SizeInBytes; This is the size of the entire buffer, not just the size of the vertex data for one draw call, since the offsetting is done in the draw call itself.
 		sizeof(ColVertex)                                  // UINT StrideInBytes;
 	};
 
@@ -775,7 +774,7 @@ void DrawColorQuad(u32 Color, float z, float x1, float y1, float x2, float y2, D
 	// 2 ^ D3D12_MAX_TEXTURE_DIMENSION_2_TO_EXP = 131072	
 	D3D::current_command_list->RSSetScissorRects(1, &CD3DX12_RECT(0, 0, 131072, 131072));
 
-	D3D::current_command_list->DrawInstanced(4, 1, cq_offset, 0);
+	D3D::current_command_list->DrawInstanced(4, 1, static_cast<UINT>(cq_offset), 0);
 
 	g_renderer->RestoreAPIState();
 }
@@ -802,7 +801,7 @@ void DrawClearQuad(u32 Color, float z, D3D12_BLEND_DESC* blend_desc, D3D12_DEPTH
 
 	D3D12_VERTEX_BUFFER_VIEW vb_view = {
 		util_vbuf_clearq->GetBuffer()->GetGPUVirtualAddress(), // D3D12_GPU_VIRTUAL_ADDRESS BufferLocation;
-		util_vbuf_clearq->GetSize(),                                                 // UINT SizeInBytes; This is the size of the entire buffer, not just the size of the vertex data for one draw call, since the offsetting is done in the draw call itself.
+		static_cast<UINT>(util_vbuf_clearq->GetSize()),        // UINT SizeInBytes; This is the size of the entire buffer, not just the size of the vertex data for one draw call, since the offsetting is done in the draw call itself.
 		sizeof(ColVertex)                                      // UINT StrideInBytes;
 	};
 
@@ -850,7 +849,7 @@ void DrawClearQuad(u32 Color, float z, D3D12_BLEND_DESC* blend_desc, D3D12_DEPTH
 	// 2 ^ D3D12_MAX_TEXTURE_DIMENSION_2_TO_EXP = 131072	
 	D3D::current_command_list->RSSetScissorRects(1, &CD3DX12_RECT(0, 0, 131072, 131072));
 
-	D3D::current_command_list->DrawInstanced(4, 1, clearq_offset, 0);
+	D3D::current_command_list->DrawInstanced(4, 1, static_cast<UINT>(clearq_offset), 0);
 
 	g_renderer->RestoreAPIState();
 }
@@ -918,7 +917,7 @@ void DrawEFBPokeQuads(EFBAccessType type,
 		size_t required_bytes = COL_QUAD_SIZE * points_to_draw;
 		
 		void* buffer_ptr = nullptr;
-		int base_vertex_index = util_vbuf_efbpokequads->ReserveData(&buffer_ptr, static_cast<int>(required_bytes), sizeof(ColVertex));
+		size_t base_vertex_index = util_vbuf_efbpokequads->ReserveData(&buffer_ptr, static_cast<int>(required_bytes), sizeof(ColVertex));
 		
 		CHECK(base_vertex_index * 16 + required_bytes <= util_vbuf_efbpokequads->GetSize(), "Uh oh");
 
@@ -929,8 +928,8 @@ void DrawEFBPokeQuads(EFBAccessType type,
 
 		D3D12_VERTEX_BUFFER_VIEW vb_view = {
 			util_vbuf_efbpokequads->GetBuffer()->GetGPUVirtualAddress(), // D3D12_GPU_VIRTUAL_ADDRESS BufferLocation;
-			util_vbuf_efbpokequads->GetSize(),                             // UINT SizeInBytes; This is the size of the entire buffer, not just the size of the vertex data for one draw call, since the offsetting is done in the draw call itself.
-			sizeof(ColVertex)                                              // UINT StrideInBytes;
+			static_cast<UINT>(util_vbuf_efbpokequads->GetSize()),        // UINT SizeInBytes; This is the size of the entire buffer, not just the size of the vertex data for one draw call, since the offsetting is done in the draw call itself.
+			sizeof(ColVertex)                                            // UINT StrideInBytes;
 		};
 
 		D3D::command_list_mgr->SetCommandListDirtyState(COMMAND_LIST_STATE_VERTEX_BUFFER, true);
@@ -965,7 +964,7 @@ void DrawEFBPokeQuads(EFBAccessType type,
 			InitColVertex(&vertex[5], x2, y2, z, col);
 		}
 
-		D3D::current_command_list->DrawInstanced(6 * static_cast<unsigned int>(points_to_draw), 1, base_vertex_index, 0);
+		D3D::current_command_list->DrawInstanced(6 * static_cast<UINT>(points_to_draw), 1, static_cast<UINT>(base_vertex_index), 0);
 	}
 	g_renderer->RestoreAPIState();
 }

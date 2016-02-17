@@ -11,6 +11,7 @@
 #include <d3d12.h>
 #include <d3dcompiler.h>
 #include <dxgi1_4.h>
+#include <memory>
 #include <vector>
 
 #include <d3dx12.h>
@@ -24,8 +25,6 @@ namespace DX12
 {
 
 #define SAFE_RELEASE(x) { if (x) (x)->Release(); (x) = nullptr; }
-#define SAFE_DELETE(x) { delete (x); (x) = nullptr; }
-#define SAFE_DELETE_ARRAY(x) { delete[] (x); (x) = nullptr; }
 #define CHECK(cond, Message, ...) if (!(cond)) { __debugbreak(); PanicAlert(__FUNCTION__ " failed in %s at line %d: " Message, __FILE__, __LINE__, __VA_ARGS__); }
 
 // DEBUGCHECK is for high-frequency functions that we only want to check on debug builds.
@@ -82,16 +81,16 @@ extern ID3D12Device* device12;
 
 extern unsigned int resource_descriptor_size;
 extern unsigned int sampler_descriptor_size;
-extern D3DDescriptorHeapManager* gpu_descriptor_heap_mgr;
-extern D3DDescriptorHeapManager* sampler_descriptor_heap_mgr;
-extern D3DDescriptorHeapManager* dsv_descriptor_heap_mgr;
-extern D3DDescriptorHeapManager* rtv_descriptor_heap_mgr;
+extern std::unique_ptr<D3DDescriptorHeapManager> gpu_descriptor_heap_mgr;
+extern std::unique_ptr<D3DDescriptorHeapManager> sampler_descriptor_heap_mgr;
+extern std::unique_ptr<D3DDescriptorHeapManager> dsv_descriptor_heap_mgr;
+extern std::unique_ptr<D3DDescriptorHeapManager> rtv_descriptor_heap_mgr;
 extern std::array<ID3D12DescriptorHeap*, 2> gpu_descriptor_heaps;
 
 extern D3D12_CPU_DESCRIPTOR_HANDLE null_srv_cpu;
 extern D3D12_CPU_DESCRIPTOR_HANDLE null_srv_cpu_shadow;
 
-extern D3DCommandListManager* command_list_mgr;
+extern std::unique_ptr<D3DCommandListManager> command_list_mgr;
 extern ID3D12GraphicsCommandList* current_command_list;
 
 extern ID3D12RootSignature* default_root_signature;
@@ -141,6 +140,7 @@ static std::string GetDebugObjectName12(ID3D12Resource* resource)
 		name.resize(size);
 		resource->GetPrivateData(WKPDID_D3DDebugObjectName, &size, const_cast<char*>(name.data()));
 	}
+	return name;
 }
 
 }  // namespace D3D

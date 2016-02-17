@@ -5,6 +5,7 @@
 #pragma once
 
 #include <d3d11.h>
+#include <memory>
 #include <string>
 
 #include "Common/MathUtil.h"
@@ -70,17 +71,17 @@ private:
 class UtilVertexBuffer
 {
 public:
-	UtilVertexBuffer(int size);
+	UtilVertexBuffer(size_t size);
 	~UtilVertexBuffer();
 
 	// returns vertex offset to the new data
-	int AppendData(void* data, int size, int vertex_size);
-	int ReserveData(void** write_ptr, int size, int vertex_size);
+	size_t AppendData(void* data, size_t size, size_t vertex_size);
+	size_t ReserveData(void** write_ptr, size_t size, size_t vertex_size);
 
 	inline ID3D12Resource* GetBuffer() { return m_stream_buffer->GetBuffer(); }
-	inline unsigned int GetSize() const { return m_stream_buffer->GetSize(); }
+	inline size_t GetSize() const { return m_stream_buffer->GetSize(); }
 private:
-	D3DStreamBuffer* m_stream_buffer = nullptr;
+	std::unique_ptr<D3DStreamBuffer> m_stream_buffer;
 };
 
 extern CD3DFont font;

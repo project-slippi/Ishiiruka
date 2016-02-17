@@ -1,6 +1,7 @@
 // Copyright 2010 Dolphin Emulator Project
 // Licensed under GPLv2+
 // Refer to the license.txt file included.
+#include <memory>
 
 #include "Common/CommonTypes.h"
 #include "Common/MsgHandler.h"
@@ -20,11 +21,11 @@ namespace DX12
 namespace D3D
 {
 
-static D3DStreamBuffer* s_texture_upload_stream_buffer = nullptr;
+static std::unique_ptr<D3DStreamBuffer> s_texture_upload_stream_buffer;
 
 void CleanupPersistentD3DTextureResources()
 {
-	SAFE_DELETE(s_texture_upload_stream_buffer);
+	s_texture_upload_stream_buffer.reset();
 }
 
 void ReplaceTexture2D(ID3D12Resource* texture12, const u8* buffer, DXGI_FORMAT fmt, unsigned int width, unsigned int height, unsigned int src_pitch, unsigned int level, D3D12_RESOURCE_STATES current_resource_state)
@@ -43,7 +44,7 @@ void ReplaceTexture2D(ID3D12Resource* texture12, const u8* buffer, DXGI_FORMAT f
 
 	if (!s_texture_upload_stream_buffer)
 	{
-		s_texture_upload_stream_buffer = new D3DStreamBuffer(4 * 1024 * 1024, 64 * 1024 * 1024, nullptr);
+		s_texture_upload_stream_buffer = std::make_unique<D3DStreamBuffer>(4 * 1024 * 1024, 64 * 1024 * 1024, nullptr);
 	}
 
 	bool current_command_list_executed = s_texture_upload_stream_buffer->AllocateSpaceInBuffer(upload_size, D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT);
@@ -269,17 +270,6 @@ void D3DTexture2D::TransitionToResourceState(ID3D12GraphicsCommandList* command_
 D3DTexture2D::~D3DTexture2D()
 {
 	DX12::D3D::command_list_mgr->DestroyResourceAfterCurrentCommandListExecuted(m_tex);
-
-	if (m_srv_cpu.ptr)
-	{
-		D3D12_SHADER_RESOURCE_VIEW_DESC null_srv_desc = {};
-		null_srv_desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-		null_srv_desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-
-		null_srv_desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-
-		DX12::D3D::device12->CreateShaderResourceView(NULL, &null_srv_desc, m_srv_cpu);
-	}
 }
 
 }  // namespace DX12

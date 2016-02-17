@@ -267,7 +267,7 @@ VideoConfigDiag::VideoConfigDiag(wxWindow* parent, const std::string &title, con
 	choice_backend = new wxChoice(page_general, wxID_ANY, wxDefaultPosition);
 	RegisterControl(choice_backend, backend_desc);
 
-	for (const VideoBackendBase* backend : g_available_video_backends)
+	for (auto& backend : g_available_video_backends)
 	{
 		choice_backend->AppendString(StrToWxStr(backend->GetDisplayName()));
 	}
@@ -948,8 +948,8 @@ void VideoConfigDiag::CreateDescriptionArea(wxPanel* const page, wxBoxSizer* con
 
 void VideoConfigDiag::Event_Backend(wxCommandEvent &ev)
 {
-	VideoBackendBase* new_backend = g_available_video_backends[ev.GetInt()];
-	if (g_video_backend != new_backend)
+	auto& new_backend = g_available_video_backends[ev.GetInt()];
+	if (g_video_backend != new_backend.get())
 	{
 		bool do_switch = true;
 		if (new_backend->GetName() == "Software Renderer")
@@ -965,7 +965,7 @@ void VideoConfigDiag::Event_Backend(wxCommandEvent &ev)
 			// reopen the dialog
 			Close();
 
-			g_video_backend = new_backend;
+			g_video_backend = new_backend.get();
 			SConfig::GetInstance().m_strVideoBackend = g_video_backend->GetName();
 
 			g_video_backend->ShowConfig(GetParent());

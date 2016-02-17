@@ -1,6 +1,6 @@
 // Copyright hdcmeta
 // Dual-Licensed under MIT and GPLv2+
-// Refer to the license.txt/license_mit.txt files included.
+// Refer to the license.txt file included.
 
 #include "VideoBackends/D3D12/D3DBase.h"
 #include "VideoBackends/D3D12/D3DQueuedCommandList.h"
@@ -19,15 +19,15 @@ DWORD WINAPI ID3D12QueuedCommandList::BackgroundThreadFunction(LPVOID param)
 	ID3D12QueuedCommandList* parent_queued_command_list = static_cast<ID3D12QueuedCommandList*>(param);
 	ID3D12GraphicsCommandList* command_list = parent_queued_command_list->m_command_list;
 
-	const byte* queue_array = parent_queued_command_list->m_queue_array.data();
+	byte* queue_array = parent_queued_command_list->m_queue_array;
+
+	unsigned int queue_array_front = 0;
 
 	while (true)
 	{
 		WaitForSingleObject(parent_queued_command_list->m_begin_execution_event, INFINITE);
 
-		size_t queue_array_front = parent_queued_command_list->m_queue_array_front.load();
-
-		const byte* item = &queue_array[queue_array_front];
+		byte* item = &queue_array[queue_array_front];
 
 		while (true)
 		{
@@ -53,7 +53,6 @@ DWORD WINAPI ID3D12QueuedCommandList::BackgroundThreadFunction(LPVOID param)
 
 			case D3DQueueItemType::CopyBufferRegion:
 			{
-
 				command_list->CopyBufferRegion(
 					qitem->CopyBufferRegion.pDstBuffer,
 					qitem->CopyBufferRegion.DstOffset,
@@ -331,11 +330,19 @@ DWORD WINAPI ID3D12QueuedCommandList::BackgroundThreadFunction(LPVOID param)
 				// but that was the highest source of overhead in the function after profiling.
 				// http://stackoverflow.com/questions/1420029/how-to-break-out-of-a-loop-from-inside-a-switch
 
+				bool eligible_to_move_to_front_of_queue = qitem->Stop.eligible_to_move_to_front_of_queue;
+				bool signal_stop_event = qitem->Stop.signal_stop_event;
+
 				item += BufferOffsetForQueueItemType<StopArguments>();
 
-				if (item - queue_array > s_queue_array_size / 3)
+				if (eligible_to_move_to_front_of_queue && item - queue_array > QUEUE_ARRAY_SIZE * 2 / 3)
 				{
 					item = queue_array;
+				}
+
+				if (signal_stop_event)
+				{
+					SetEvent(parent_queued_command_list->m_stop_execution_event);
 				}
 
 				goto exitLoop;
@@ -344,7 +351,7 @@ DWORD WINAPI ID3D12QueuedCommandList::BackgroundThreadFunction(LPVOID param)
 
 	exitLoop:
 
-		parent_queued_command_list->m_queue_array_front.store(static_cast<size_t>(item - queue_array));
+		queue_array_front = static_cast<unsigned int>(item - queue_array);
 	}
 }
 
@@ -352,11 +359,12 @@ ID3D12QueuedCommandList::ID3D12QueuedCommandList(ID3D12GraphicsCommandList* back
 	m_command_list(backing_command_list),
 	m_command_queue(backing_command_queue)
 {
-	m_queue_array.resize(s_queue_array_size);
-	m_queue_array_back = m_queue_array.data();
-	m_queue_array_front.store(0);
+	memset(m_queue_array, 0, sizeof(m_queue_array));
+
+	m_queue_array_back = m_queue_array;
 
 	m_begin_execution_event = CreateSemaphore(nullptr, 0, 256, nullptr);
+	m_stop_execution_event = CreateEvent(nullptr, FALSE, FALSE, nullptr);
 
 	m_background_thread = CreateThread(nullptr, 0, BackgroundThreadFunction, this, 0, &m_background_thread_id);
 }
@@ -367,6 +375,27 @@ ID3D12QueuedCommandList::~ID3D12QueuedCommandList()
 	CloseHandle(m_background_thread);
 
 	CloseHandle(m_begin_execution_event);
+	CloseHandle(m_stop_execution_event);
+}
+
+void ID3D12QueuedCommandList::CheckForOverflow()
+{
+	constexpr const unsigned int queue_space_allowed_per_frame = QUEUE_ARRAY_SIZE / 3;
+
+	if (m_queue_array_back - m_queue_array_back_at_start_of_frame > queue_space_allowed_per_frame)
+	{
+		// Game is (possibly) using too much space, kick off queue processing and
+		// wait on this thread till it chews through queue.
+
+		// This means the game is submitting more than 28,000 draws a frame.
+
+		ProcessQueuedItems(true, true);
+	}
+}
+
+void ID3D12QueuedCommandList::ResetQueueOverflowTracking()
+{
+	m_queue_array_back_at_start_of_frame = m_queue_array_back;
 }
 
 void ID3D12QueuedCommandList::QueueExecute()
@@ -374,6 +403,8 @@ void ID3D12QueuedCommandList::QueueExecute()
 	reinterpret_cast<D3DQueueItem*>(m_queue_array_back)->Type = D3DQueueItemType::ExecuteCommandList;
 
 	m_queue_array_back += BufferOffsetForQueueItemType<ExecuteCommandListArguments>();
+
+	CheckForOverflow();
 }
 
 void ID3D12QueuedCommandList::QueueFenceGpuSignal(ID3D12Fence* fence_to_signal, UINT64 fence_value)
@@ -385,6 +416,8 @@ void ID3D12QueuedCommandList::QueueFenceGpuSignal(ID3D12Fence* fence_to_signal, 
 	item->FenceGpuSignal.fence_value = fence_value;
 
 	m_queue_array_back += BufferOffsetForQueueItemType<FenceGpuSignalArguments>();
+
+	CheckForOverflow();
 }
 
 void ID3D12QueuedCommandList::QueueFenceCpuSignal(ID3D12Fence* fence_to_signal, UINT64 fence_value)
@@ -396,6 +429,8 @@ void ID3D12QueuedCommandList::QueueFenceCpuSignal(ID3D12Fence* fence_to_signal, 
 	item->FenceCpuSignal.fence_value = fence_value;
 
 	m_queue_array_back += BufferOffsetForQueueItemType<FenceCpuSignalArguments>();
+
+	CheckForOverflow();
 }
 
 void ID3D12QueuedCommandList::QueuePresent(IDXGISwapChain* swap_chain, UINT sync_interval, UINT flags)
@@ -408,6 +443,8 @@ void ID3D12QueuedCommandList::QueuePresent(IDXGISwapChain* swap_chain, UINT sync
 	item->Present.syncInterval = sync_interval;
 
 	m_queue_array_back += BufferOffsetForQueueItemType<PresentArguments>();
+
+	CheckForOverflow();
 }
 
 void ID3D12QueuedCommandList::ClearQueue()
@@ -417,42 +454,56 @@ void ID3D12QueuedCommandList::ClearQueue()
 
 	// Assume that any inflight queued work will complete within 100ms. This is a safe assumption.
 	Sleep(100);
-
-	m_queue_array_back = m_queue_array.data();
-
-	m_queue_array_front.store(0);
 }
 
-void ID3D12QueuedCommandList::ProcessQueuedItems()
+void ID3D12QueuedCommandList::ProcessQueuedItems(bool eligible_to_move_to_front_of_queue, bool wait_for_stop)
 {
-	D3DQueueItem* item = reinterpret_cast<D3DQueueItem*>(m_queue_array_back);
+	D3DQueueItem item = {};
 
-	item->Type = D3DQueueItemType::Stop;
+	item.Type = D3DQueueItemType::Stop;
+	item.Stop.eligible_to_move_to_front_of_queue = eligible_to_move_to_front_of_queue;
+	item.Stop.signal_stop_event = wait_for_stop;
+
+	*reinterpret_cast<D3DQueueItem*>(m_queue_array_back) = item;
 
 	m_queue_array_back += BufferOffsetForQueueItemType<StopArguments>();
 
-	if ((m_queue_array_back - m_queue_array.data()) > (s_queue_array_size / 3))
+	// Only (possibly) move to front of queue when finishing a frame, or when draining GPU queue.
+	// Logic in ID3D12QueuedCommandList::CheckForOverflow
+	// ensures that not more than one third of queue is used per frame.
+	if (eligible_to_move_to_front_of_queue && (m_queue_array_back - m_queue_array > QUEUE_ARRAY_SIZE * 2 / 3))
 	{
-		m_queue_array_back = m_queue_array.data();
+		m_queue_array_back = m_queue_array;
+	}
+
+	if (eligible_to_move_to_front_of_queue)
+	{
+		ResetQueueOverflowTracking();
 	}
 
 	ReleaseSemaphore(m_begin_execution_event, 1, nullptr);
+
+	if (wait_for_stop)
+	{
+		WaitForSingleObject(m_stop_execution_event, INFINITE);
+	}
 }
 
 ULONG ID3D12QueuedCommandList::AddRef()
 {
-	ULONG ref = m_ref.fetch_add(1);
-	return ++ref;
+	m_ref.fetch_add(1);
+	return m_ref.load();
 }
 
 ULONG ID3D12QueuedCommandList::Release()
 {
+	// fetch_sub returns the value held before the subtraction.
 	ULONG ref = m_ref.fetch_sub(1);
-	--ref;
-	if (!ref)
+	if (ref == 1)
 	{
 		delete this;
 	}
+
 	return ref;
 }
 
@@ -559,6 +610,8 @@ HRESULT STDMETHODCALLTYPE ID3D12QueuedCommandList::Close() {
 
 	m_queue_array_back += BufferOffsetForQueueItemType<CloseCommandListArguments>();
 
+	CheckForOverflow();
+
 	return S_OK;
 }
 
@@ -569,12 +622,12 @@ HRESULT STDMETHODCALLTYPE ID3D12QueuedCommandList::Reset(
 {
 	DEBUGCHECK(pInitialState == nullptr, "Error: Invalid assumption in ID3D12QueuedCommandList.");
 
-	D3DQueueItem* item = reinterpret_cast<D3DQueueItem*>(m_queue_array_back);
-
-	item->Type = D3DQueueItemType::ResetCommandList;
-	item->ResetCommandList.allocator = pAllocator;
+	reinterpret_cast<D3DQueueItem*>(m_queue_array_back)->Type = D3DQueueItemType::ResetCommandList;
+	reinterpret_cast<D3DQueueItem*>(m_queue_array_back)->ResetCommandList.allocator = pAllocator;
 
 	m_queue_array_back += BufferOffsetForQueueItemType<ResetCommandListArguments>();
+
+	CheckForOverflow();
 
 	return S_OK;
 }
@@ -603,7 +656,8 @@ void STDMETHODCALLTYPE ID3D12QueuedCommandList::DrawInstanced(
 	item->DrawInstanced.StartVertexLocation = StartVertexLocation;
 	item->DrawInstanced.VertexCount = VertexCountPerInstance;
 
-	m_queue_array_back += BufferOffsetForQueueItemType<DrawInstancedArguments>();
+	m_queue_array_back += BufferOffsetForQueueItemType<DrawInstancedArguments>();	
+	CheckForOverflow();
 }
 
 void STDMETHODCALLTYPE ID3D12QueuedCommandList::DrawIndexedInstanced(
@@ -625,6 +679,8 @@ void STDMETHODCALLTYPE ID3D12QueuedCommandList::DrawIndexedInstanced(
 	item->DrawIndexedInstanced.StartIndexLocation = StartIndexLocation;
 
 	m_queue_array_back += BufferOffsetForQueueItemType<DrawIndexedInstancedArguments>();
+
+	CheckForOverflow();
 }
 
 void STDMETHODCALLTYPE ID3D12QueuedCommandList::Dispatch(
@@ -663,6 +719,8 @@ void STDMETHODCALLTYPE ID3D12QueuedCommandList::CopyBufferRegion(
 	item->CopyBufferRegion.NumBytes = static_cast<UINT>(NumBytes);
 
 	m_queue_array_back += BufferOffsetForQueueItemType<CopyBufferRegionArguments>();
+
+	CheckForOverflow();
 }
 
 void STDMETHODCALLTYPE ID3D12QueuedCommandList::CopyTextureRegion(
@@ -688,6 +746,8 @@ void STDMETHODCALLTYPE ID3D12QueuedCommandList::CopyTextureRegion(
 		item->CopyTextureRegion.srcBox = {};
 
 	m_queue_array_back += BufferOffsetForQueueItemType<CopyTextureRegionArguments>();
+
+	CheckForOverflow();
 }
 
 void STDMETHODCALLTYPE ID3D12QueuedCommandList::CopyResource(
@@ -731,6 +791,8 @@ void STDMETHODCALLTYPE ID3D12QueuedCommandList::ResolveSubresource(
 	item->ResolveSubresource.Format = Format;
 
 	m_queue_array_back += BufferOffsetForQueueItemType<ResolveSubresourceArguments>();
+
+	CheckForOverflow();
 }
 
 void STDMETHODCALLTYPE ID3D12QueuedCommandList::IASetPrimitiveTopology(
@@ -743,6 +805,8 @@ void STDMETHODCALLTYPE ID3D12QueuedCommandList::IASetPrimitiveTopology(
 	item->IASetPrimitiveTopology.PrimitiveTopology = PrimitiveTopology;
 
 	m_queue_array_back += BufferOffsetForQueueItemType<IASetPrimitiveTopologyArguments>();
+
+	CheckForOverflow();
 }
 
 void STDMETHODCALLTYPE ID3D12QueuedCommandList::RSSetViewports(
@@ -756,6 +820,7 @@ void STDMETHODCALLTYPE ID3D12QueuedCommandList::RSSetViewports(
 	item->RSSetViewports = *pViewports;
 
 	m_queue_array_back += BufferOffsetForQueueItemType<D3D12_VIEWPORT>();
+	CheckForOverflow();
 }
 
 void STDMETHODCALLTYPE ID3D12QueuedCommandList::RSSetScissorRects(
@@ -772,6 +837,8 @@ void STDMETHODCALLTYPE ID3D12QueuedCommandList::RSSetScissorRects(
 	item->RSSetScissorRects.top = pRects->top;
 
 	m_queue_array_back += BufferOffsetForQueueItemType<RSSetScissorRectsArguments>();
+
+	CheckForOverflow();
 }
 
 void STDMETHODCALLTYPE ID3D12QueuedCommandList::OMSetBlendFactor(
@@ -802,6 +869,8 @@ void STDMETHODCALLTYPE ID3D12QueuedCommandList::SetPipelineState(
 	item->SetPipelineState.pPipelineStateObject = pPipelineState;
 
 	m_queue_array_back += BufferOffsetForQueueItemType<SetPipelineStateArguments>();
+
+	CheckForOverflow();
 }
 
 void STDMETHODCALLTYPE ID3D12QueuedCommandList::ResourceBarrier(
@@ -811,16 +880,17 @@ void STDMETHODCALLTYPE ID3D12QueuedCommandList::ResourceBarrier(
 {
 	DEBUGCHECK(NumBarriers == 1, "Error: Invalid assumption in ID3D12QueuedCommandList.");
 	D3DQueueItem* item = reinterpret_cast<D3DQueueItem*>(m_queue_array_back);
-
+	
 	item->Type = D3DQueueItemType::ResourceBarrier;
 	item->ResourceBarrier.barrier = *pBarriers;
 
 	m_queue_array_back += BufferOffsetForQueueItemType<ResourceBarrierArguments>();
+
+	CheckForOverflow();
 }
 
 void STDMETHODCALLTYPE ID3D12QueuedCommandList::ExecuteBundle(
-	/* [annotation] */
-	_In_  ID3D12GraphicsCommandList *command_list
+	_In_  ID3D12GraphicsCommandList *pCommandList
 	)
 {
 	// Function not implemented yet.
@@ -883,6 +953,8 @@ void STDMETHODCALLTYPE ID3D12QueuedCommandList::SetDescriptorHeaps(
 	item->SetDescriptorHeaps.NumDescriptorHeaps = NumDescriptorHeaps;
 
 	m_queue_array_back += BufferOffsetForQueueItemType<SetDescriptorHeapsArguments>();
+
+	CheckForOverflow();
 }
 
 void STDMETHODCALLTYPE ID3D12QueuedCommandList::SetComputeRootSignature(
@@ -904,6 +976,8 @@ void STDMETHODCALLTYPE ID3D12QueuedCommandList::SetGraphicsRootSignature(
 	item->SetGraphicsRootSignature.pRootSignature = pRootSignature;
 
 	m_queue_array_back += BufferOffsetForQueueItemType<SetGraphicsRootSignatureArguments>();
+
+	CheckForOverflow();
 }
 
 void STDMETHODCALLTYPE ID3D12QueuedCommandList::SetComputeRootDescriptorTable(
@@ -924,12 +998,13 @@ void STDMETHODCALLTYPE ID3D12QueuedCommandList::SetGraphicsRootDescriptorTable(
 
 	D3DQueueItem* item = reinterpret_cast<D3DQueueItem*>(m_queue_array_back);
 
-
 	item->Type = D3DQueueItemType::SetGraphicsRootDescriptorTable;
 	item->SetGraphicsRootDescriptorTable.RootParameterIndex = RootParameterIndex;
 	item->SetGraphicsRootDescriptorTable.BaseDescriptor = BaseDescriptor;
 
 	m_queue_array_back += BufferOffsetForQueueItemType<SetGraphicsRootDescriptorTableArguments>();
+
+	CheckForOverflow();
 }
 
 void STDMETHODCALLTYPE ID3D12QueuedCommandList::SetComputeRoot32BitConstant(
@@ -983,12 +1058,13 @@ void STDMETHODCALLTYPE ID3D12QueuedCommandList::SetGraphicsRootConstantBufferVie
 
 	D3DQueueItem* item = reinterpret_cast<D3DQueueItem*>(m_queue_array_back);
 
-
 	item->Type = D3DQueueItemType::SetGraphicsRootConstantBufferView;
 	item->SetGraphicsRootConstantBufferView.RootParameterIndex = RootParameterIndex;
 	item->SetGraphicsRootConstantBufferView.BufferLocation = BufferLocation;
 
 	m_queue_array_back += BufferOffsetForQueueItemType<SetGraphicsRootConstantBufferViewArguments>();
+
+	CheckForOverflow();
 }
 
 void STDMETHODCALLTYPE ID3D12QueuedCommandList::SetComputeRootConstantBufferView(
@@ -1048,6 +1124,7 @@ void STDMETHODCALLTYPE ID3D12QueuedCommandList::IASetIndexBuffer(
 	item->SetIndexBuffer.desc = *pDesc;
 
 	m_queue_array_back += BufferOffsetForQueueItemType<SetIndexBufferArguments>();
+	CheckForOverflow();
 }
 
 void STDMETHODCALLTYPE ID3D12QueuedCommandList::IASetVertexBuffers(
@@ -1066,6 +1143,7 @@ void STDMETHODCALLTYPE ID3D12QueuedCommandList::IASetVertexBuffers(
 	item->SetVertexBuffers.desc = *pDesc;
 
 	m_queue_array_back += BufferOffsetForQueueItemType<SetVertexBuffersArguments>();
+	CheckForOverflow();
 }
 
 void STDMETHODCALLTYPE ID3D12QueuedCommandList::SOSetTargets(
@@ -1101,6 +1179,8 @@ void STDMETHODCALLTYPE ID3D12QueuedCommandList::OMSetRenderTargets(
 		item->SetRenderTargets.DepthStencilDescriptor = {};
 
 	m_queue_array_back += BufferOffsetForQueueItemType<SetRenderTargetsArguments>();
+
+	CheckForOverflow();
 }
 
 void STDMETHODCALLTYPE ID3D12QueuedCommandList::ClearDepthStencilView(
@@ -1124,6 +1204,7 @@ void STDMETHODCALLTYPE ID3D12QueuedCommandList::ClearDepthStencilView(
 	item->ClearDepthStencilView.DepthStencilView = DepthStencilView;
 
 	m_queue_array_back += BufferOffsetForQueueItemType<ClearDepthStencilViewArguments>();
+	CheckForOverflow();
 }
 
 void STDMETHODCALLTYPE ID3D12QueuedCommandList::ClearRenderTargetView(
@@ -1146,6 +1227,7 @@ void STDMETHODCALLTYPE ID3D12QueuedCommandList::ClearRenderTargetView(
 	item->ClearRenderTargetView.RenderTargetView = RenderTargetView;
 
 	m_queue_array_back += BufferOffsetForQueueItemType<ClearRenderTargetViewArguments>();
+	CheckForOverflow();
 }
 
 void STDMETHODCALLTYPE ID3D12QueuedCommandList::ClearUnorderedAccessViewUint(

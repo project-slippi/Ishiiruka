@@ -1,6 +1,7 @@
 // Copyright 2013 Dolphin Emulator Project
 // Licensed under GPLv2+
 // Refer to the license.txt file included.
+#include <array>
 
 #include "VideoBackends/DX11/D3DBase.h"
 #include "VideoBackends/DX11/D3DBlob.h"
@@ -13,15 +14,15 @@ namespace DX11
 {
 
 class D3DVertexFormat : public NativeVertexFormat
-{
-	D3D11_INPUT_ELEMENT_DESC m_elems[16];
-	UINT m_num_elems;
-
-	D3D::InputLayoutPtr m_layout;
-
+{	
 public:
 	D3DVertexFormat(const PortableVertexDeclaration &_vtx_decl);
 	void SetupVertexPointers() override;
+private:
+	std::array<D3D11_INPUT_ELEMENT_DESC, 16> m_elems{};
+	UINT m_num_elems = 0;
+
+	D3D::InputLayoutPtr m_layout;
 };
 
 NativeVertexFormat* VertexManager::CreateNativeVertexFormat(const PortableVertexDeclaration &_vtx_decl)
@@ -61,7 +62,6 @@ DXGI_FORMAT VarToD3D(EVTXComponentFormat t, int size)
 D3DVertexFormat::D3DVertexFormat(const PortableVertexDeclaration &_vtx_decl) : m_num_elems(0)
 {
 	vtx_decl = _vtx_decl;
-	memset(m_elems, 0, sizeof(m_elems));
 	const AttributeFormat* format = &vtx_decl.position;
 
 	m_elems[m_num_elems].SemanticName = "POSITION";
@@ -132,7 +132,7 @@ void D3DVertexFormat::SetupVertexPointers()
 		// changes.
 		auto& vs_bytecode = DX11::VertexShaderCache::GetActiveShaderBytecode();
 
-		HRESULT hr = DX11::D3D::device->CreateInputLayout(m_elems, m_num_elems, vs_bytecode.Data(), vs_bytecode.Size(), D3D::ToAddr(m_layout));
+		HRESULT hr = DX11::D3D::device->CreateInputLayout(m_elems.data(), m_num_elems, vs_bytecode.Data(), vs_bytecode.Size(), D3D::ToAddr(m_layout));
 		if (FAILED(hr)) PanicAlert("Failed to create input layout, %s %d\n", __FILE__, __LINE__);
 		DX11::D3D::SetDebugObjectName(m_layout.get(), "input layout used to emulate the GX pipeline");
 	}

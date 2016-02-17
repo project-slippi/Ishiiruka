@@ -1,6 +1,7 @@
 // Copyright 2013 Dolphin Emulator Project
 // Licensed under GPLv2+
 // Refer to the license.txt file included.
+#include <array>
 
 #include "Common/MemoryUtil.h"
 #include "Common/x64Emitter.h"
@@ -17,14 +18,17 @@ namespace DX9
 {
 
 class D3DVertexFormat : public NativeVertexFormat
-{
-	LPDIRECT3DVERTEXDECLARATION9 d3d_decl;
+{	
 public:
 	D3DVertexFormat(const PortableVertexDeclaration &_vtx_decl);
 	~D3DVertexFormat();
 	void SetupVertexPointers() override;
-	D3DVERTEXELEMENT9 m_elements[16];
-	int m_num_elements;
+	std::array<D3DVERTEXELEMENT9, 16> m_elems{};
+	int m_num_elems = 0;
+private:
+	
+
+	LPDIRECT3DVERTEXDECLARATION9 d3d_decl{};
 };
 
 NativeVertexFormat* VertexManager::CreateNativeVertexFormat(const PortableVertexDeclaration &_vtx_decl)
@@ -35,8 +39,8 @@ NativeVertexFormat* VertexManager::CreateNativeVertexFormat(const PortableVertex
 void DX9::VertexManager::GetElements(NativeVertexFormat* format, D3DVERTEXELEMENT9** elems, int* num)
 {
 #if defined(_DEBUG) || defined(DEBUGFAST)
-	*elems = ((D3DVertexFormat*)format)->m_elements;
-	*num = ((D3DVertexFormat*)format)->m_num_elements;
+	*elems = ((D3DVertexFormat*)format)->m_elems.data();
+	*num = ((D3DVertexFormat*)format)->m_num_elems;
 #else
 	*elems = NULL;
 	*num = 0;
@@ -87,7 +91,6 @@ D3DDECLTYPE VarToD3D(EVTXComponentFormat t, int size)
 D3DVertexFormat::D3DVertexFormat(const PortableVertexDeclaration &_vtx_decl) : d3d_decl(nullptr)
 {
 	vtx_decl = _vtx_decl;
-	memset(m_elements, 0, sizeof(m_elements));
 
 	// There's only one stream and it's 0, so the above memset takes care of that - no need to set Stream.
 	// Same for method.
@@ -96,9 +99,9 @@ D3DVertexFormat::D3DVertexFormat(const PortableVertexDeclaration &_vtx_decl) : d
 	if (format->enable)
 	{
 		// So, here we go. First position:		
-		m_elements[elem_idx].Offset = format->offset;
-		m_elements[elem_idx].Type = VarToD3D(format->type, format->components);
-		m_elements[elem_idx].Usage = D3DDECLUSAGE_POSITION;
+		m_elems[elem_idx].Offset = format->offset;
+		m_elems[elem_idx].Type = VarToD3D(format->type, format->components);
+		m_elems[elem_idx].Usage = D3DDECLUSAGE_POSITION;
 		++elem_idx;
 	}
 
@@ -107,10 +110,10 @@ D3DVertexFormat::D3DVertexFormat(const PortableVertexDeclaration &_vtx_decl) : d
 		format = &vtx_decl.normals[i];
 		if (format->enable)
 		{
-			m_elements[elem_idx].Offset = format->offset;
-			m_elements[elem_idx].Type = VarToD3D(format->type, format->components);
-			m_elements[elem_idx].Usage = D3DDECLUSAGE_NORMAL;
-			m_elements[elem_idx].UsageIndex = i;
+			m_elems[elem_idx].Offset = format->offset;
+			m_elems[elem_idx].Type = VarToD3D(format->type, format->components);
+			m_elems[elem_idx].Usage = D3DDECLUSAGE_NORMAL;
+			m_elems[elem_idx].UsageIndex = i;
 			++elem_idx;
 		}
 	}
@@ -120,10 +123,10 @@ D3DVertexFormat::D3DVertexFormat(const PortableVertexDeclaration &_vtx_decl) : d
 		format = &vtx_decl.colors[i];
 		if (format->enable)
 		{
-			m_elements[elem_idx].Offset = format->offset;
-			m_elements[elem_idx].Type = VarToD3D(format->type, 4);
-			m_elements[elem_idx].Usage = D3DDECLUSAGE_COLOR;
-			m_elements[elem_idx].UsageIndex = i;
+			m_elems[elem_idx].Offset = format->offset;
+			m_elems[elem_idx].Type = VarToD3D(format->type, 4);
+			m_elems[elem_idx].Usage = D3DDECLUSAGE_COLOR;
+			m_elems[elem_idx].UsageIndex = i;
 			++elem_idx;
 		}
 	}
@@ -133,35 +136,35 @@ D3DVertexFormat::D3DVertexFormat(const PortableVertexDeclaration &_vtx_decl) : d
 		format = &vtx_decl.texcoords[i];
 		if (format->enable)
 		{
-			m_elements[elem_idx].Offset = format->offset;
-			m_elements[elem_idx].Type = VarToD3D(format->type, format->components);
-			m_elements[elem_idx].Usage = D3DDECLUSAGE_TEXCOORD;
-			m_elements[elem_idx].UsageIndex = i;
+			m_elems[elem_idx].Offset = format->offset;
+			m_elems[elem_idx].Type = VarToD3D(format->type, format->components);
+			m_elems[elem_idx].Usage = D3DDECLUSAGE_TEXCOORD;
+			m_elems[elem_idx].UsageIndex = i;
 			++elem_idx;
 		}
 	}
 
 	if (vtx_decl.posmtx.enable)
 	{
-		m_elements[elem_idx].Offset = vtx_decl.posmtx.offset;
-		m_elements[elem_idx].Usage = D3DDECLUSAGE_BLENDINDICES;
-		m_elements[elem_idx].Type = D3DDECLTYPE_D3DCOLOR;
-		m_elements[elem_idx].UsageIndex = 0;
+		m_elems[elem_idx].Offset = vtx_decl.posmtx.offset;
+		m_elems[elem_idx].Usage = D3DDECLUSAGE_BLENDINDICES;
+		m_elems[elem_idx].Type = D3DDECLTYPE_D3DCOLOR;
+		m_elems[elem_idx].UsageIndex = 0;
 		++elem_idx;
 	}
 
 	// End marker
-	m_elements[elem_idx].Stream = 0xff;
-	m_elements[elem_idx].Type = D3DDECLTYPE_UNUSED;
+	m_elems[elem_idx].Stream = 0xff;
+	m_elems[elem_idx].Type = D3DDECLTYPE_UNUSED;
 	++elem_idx;
-	m_num_elements = elem_idx;
+	m_num_elems = elem_idx;
 }
 
 void D3DVertexFormat::SetupVertexPointers()
 {
 	if (!d3d_decl)
 	{
-		if (FAILED(DX9::D3D::dev->CreateVertexDeclaration(m_elements, &d3d_decl)))
+		if (FAILED(DX9::D3D::dev->CreateVertexDeclaration(m_elems.data(), &d3d_decl)))
 		{
 			PanicAlert("Failed to create D3D vertex declaration!");
 			return;

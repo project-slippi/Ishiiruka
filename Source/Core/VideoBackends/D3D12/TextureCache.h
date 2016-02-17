@@ -3,7 +3,7 @@
 // Refer to the license.txt file included.
 
 #pragma once
-
+#include <memory>
 #include "VideoBackends/D3D12/D3DTexture.h"
 #include "VideoCommon/TextureCacheBase.h"
 
@@ -67,7 +67,7 @@ private:
 
 	TlutFormat m_lut_format;
 	u32 m_lut_size;
-	D3DStreamBuffer* m_palette_stream_buffer;
+	std::unique_ptr<D3DStreamBuffer> m_palette_stream_buffer;
 
 	ID3D12Resource* m_palette_uniform_buffer = nullptr;
 	D3D12_SHADER_BYTECODE m_palette_pixel_shaders[3] = {};
