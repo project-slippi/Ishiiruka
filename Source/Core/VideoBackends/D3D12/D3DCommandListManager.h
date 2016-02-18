@@ -23,6 +23,7 @@ enum COMMAND_LIST_STATE
 	COMMAND_LIST_STATE_VERTEX_BUFFER = 64
 };
 
+
 // This class provides an abstraction for D3D12 descriptor heaps.
 class D3DCommandListManager
 {
@@ -38,9 +39,7 @@ public:
 	void ExecuteQueuedWork(bool wait_for_gpu_completion = false);
 	void ExecuteQueuedWorkAndPresent(IDXGISwapChain* swap_chain, UINT sync_interval, UINT flags);
 
-	void ClearQueueAndWaitForCompletionOfInflightWork();
 	void DestroyResourceAfterCurrentCommandListExecuted(ID3D12Resource* resource);
-	void ImmediatelyDestroyAllResourcesScheduledForDestruction();
 
 	void SetCommandListDirtyState(unsigned int command_list_state, bool dirty);
 	bool GetCommandListDirtyState(COMMAND_LIST_STATE command_list_state) const;
@@ -62,10 +61,12 @@ public:
 	void WaitOnCPUForFence(ID3D12Fence* fence, UINT64 fence_value);
 
 private:
-
+	void DestroyAllPendingResources();
+	void ResetAllCommandAllocators();
 	void WaitForGPUCompletion();
-	void PerformGpuRolloverChecks();
-	void MoveToNextCommandList();
+
+	void PerformGPURolloverChecks();
+	void MoveToNextCommandAllocator();
 	void ResetCommandList();
 
 	unsigned int m_command_list_dirty_state = UINT_MAX;

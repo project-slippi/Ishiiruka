@@ -25,8 +25,8 @@ public:
 	ID3D12Resource*           GetBuffer() const;
 	void*                     GetCPUAddressOfCurrentAllocation() const;
 	D3D12_GPU_VIRTUAL_ADDRESS GetGPUAddressOfCurrentAllocation() const;
-	size_t              GetOffsetOfCurrentAllocation() const;
-	size_t              GetSize() const;
+	size_t                    GetOffsetOfCurrentAllocation() const;
+	size_t                    GetSize() const;
 
 	static void QueueFenceCallback(void* owning_object, UINT64 fence_value);
 
@@ -39,6 +39,8 @@ private:
 	bool AttemptToFindExistingFenceToStallOn(size_t allocation_size);
 
 	void UpdateGPUProgress();
+
+	bool HasBufferOffsetChangedSinceLastFence() const;
 	void QueueFence(UINT64 fence_value);
 
 	struct FenceTrackingInformation

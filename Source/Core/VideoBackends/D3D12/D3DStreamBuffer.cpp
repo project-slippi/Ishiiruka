@@ -230,7 +230,6 @@ bool D3DStreamBuffer::AttemptToFindExistingFenceToStallOn(size_t allocation_size
 	// Let's find the first fence that will free up enough space in our buffer.
 
 	UINT64 fence_value_required = 0;
-	size_t new_buffer_offset = 0;
 
 	while (m_queued_fences.size() > 0)
 	{
@@ -308,17 +307,22 @@ void D3DStreamBuffer::UpdateGPUProgress()
 
 void D3DStreamBuffer::QueueFenceCallback(void* owning_object, UINT64 fence_value)
 {
-	reinterpret_cast<D3DStreamBuffer*>(owning_object)->QueueFence(fence_value);
+	D3DStreamBuffer* owning_stream_buffer = reinterpret_cast<D3DStreamBuffer*>(owning_object);
+	if (owning_stream_buffer->HasBufferOffsetChangedSinceLastFence())
+		owning_stream_buffer->QueueFence(fence_value);
+}
+
+bool D3DStreamBuffer::HasBufferOffsetChangedSinceLastFence() const
+{
+	if (m_queued_fences.empty())
+		return true;
+
+	// Don't add a new fence tracking entry when our offset hasn't changed.
+	return (m_queued_fences.back().buffer_offset != m_buffer_offset);
 }
 
 void D3DStreamBuffer::QueueFence(UINT64 fence_value)
 {
-	if (!m_queued_fences.empty())
-	{
-		// Don't add a new fence tracker when our offset hasn't changed.
-		if (m_queued_fences.back().buffer_offset == m_buffer_offset)
-			return;
-	}
 	FenceTrackingInformation tracking_information = {};
 	tracking_information.fence_value = fence_value;
 	tracking_information.buffer_offset = m_buffer_offset;

@@ -113,17 +113,15 @@ void D3DCommandListManager::ExecuteQueuedWork(bool wait_for_gpu_completion)
 	m_queue_fence_value++;
 
 #ifdef USE_D3D12_QUEUED_COMMAND_LISTS
-	CheckHR(m_queued_command_list->Close());
+	m_queued_command_list->Close();
 	m_queued_command_list->QueueExecute();
-
 	m_queued_command_list->QueueFenceGpuSignal(m_queue_fence, m_queue_fence_value);
-
-	m_queued_command_list->ProcessQueuedItems(wait_for_gpu_completion);
+	m_queued_command_list->ProcessQueuedItems(wait_for_gpu_completion, wait_for_gpu_completion);
 #else
 	CheckHR(m_backing_command_list->Close());
 
-	ID3D12CommandList* const commandListsToExecute[1] = { m_backing_command_list };
-	m_command_queue->ExecuteCommandLists(1, commandListsToExecute);
+	ID3D12CommandList* const execute_list[1] = { m_backing_command_list };
+	m_command_queue->ExecuteCommandLists(1, execute_list);
 
 	CheckHR(m_command_queue->Signal(m_queue_fence, m_queue_fence_value));
 #endif
@@ -145,7 +143,7 @@ void D3DCommandListManager::ExecuteQueuedWorkAndPresent(IDXGISwapChain* swap_cha
 	m_queue_fence_value++;
 
 #ifdef USE_D3D12_QUEUED_COMMAND_LISTS
-	CheckHR(m_queued_command_list->Close());
+	m_queued_command_list->Close();
 	m_queued_command_list->QueueExecute();
 	m_queued_command_list->QueuePresent(swap_chain, sync_interval, flags);
 	m_queued_command_list->QueueFenceGpuSignal(m_queue_fence, m_queue_fence_value);
@@ -153,8 +151,8 @@ void D3DCommandListManager::ExecuteQueuedWorkAndPresent(IDXGISwapChain* swap_cha
 #else
 	CheckHR(m_backing_command_list->Close());
 
-	ID3D12CommandList* const commandListsToExecute[1] = { m_backing_command_list };
-	m_command_queue->ExecuteCommandLists(1, commandListsToExecute);
+	ID3D12CommandList* const execute_list[1] = { m_backing_command_list };
+	m_command_queue->ExecuteCommandLists(1, execute_list);
 
 	CheckHR(swap_chain->Present(sync_interval, flags));
 	CheckHR(m_command_queue->Signal(m_queue_fence, m_queue_fence_value));
@@ -164,10 +162,35 @@ void D3DCommandListManager::ExecuteQueuedWorkAndPresent(IDXGISwapChain* swap_cha
 	for (auto it : m_queue_fence_callbacks)
 		it.second(it.first, m_queue_fence_value);
 
-	// Move to the next command allocator, this may mean switching lists.
-	MoveToNextCommandList();
+	// Move to the next command allocator, this may mean switching allocator lists.
+	MoveToNextCommandAllocator();
 	ResetCommandList();
 	SetInitialCommandListState();
+}
+
+void D3DCommandListManager::DestroyAllPendingResources()
+{
+	for (auto& destruction_list : m_deferred_destruction_lists)
+	{
+		for (auto& resource : destruction_list)
+			resource->Release();
+
+		destruction_list.clear();
+	}
+}
+
+void D3DCommandListManager::ResetAllCommandAllocators()
+{
+	for (auto& allocator_list : m_command_allocator_lists)
+	{
+		for (auto& allocator : allocator_list)
+			allocator->Reset();
+	}
+
+	// Move back to the start, using the first allocator of first list.
+	m_current_command_allocator = 0;
+	m_current_command_allocator_list = 0;
+	m_current_deferred_destruction_list = 0;
 }
 
 void D3DCommandListManager::WaitForGPUCompletion()
@@ -186,22 +209,13 @@ void D3DCommandListManager::WaitForGPUCompletion()
 	WaitOnCPUForFence(m_queue_frame_fence, m_queue_frame_fence_value);
 
 	// GPU is up to date with us. Therefore, it has finished with any pending resources.
-	ImmediatelyDestroyAllResourcesScheduledForDestruction();
+	DestroyAllPendingResources();
 
 	// Command allocators are also up-to-date, so reset these.
-	for (auto& allocator_list : m_command_allocator_lists)
-	{
-		for (auto& allocator : allocator_list)
-			allocator->Reset();
-	}
-
-	// Move back to the start, using the first allocator of first list.
-	m_current_command_allocator = 0;
-	m_current_command_allocator_list = 0;
-	m_current_deferred_destruction_list = 0;
+	ResetAllCommandAllocators();
 }
 
-void D3DCommandListManager::PerformGpuRolloverChecks()
+void D3DCommandListManager::PerformGPURolloverChecks()
 {
 	m_queue_frame_fence_value++;
 
@@ -245,14 +259,14 @@ void D3DCommandListManager::PerformGpuRolloverChecks()
 	// End Command Allocator Resets
 }
 
-void D3DCommandListManager::MoveToNextCommandList()
+void D3DCommandListManager::MoveToNextCommandAllocator()
 {
-	// Move to the next allocator inside the current list.
+	// Move to the next allocator in the current allocator list.
 	m_current_command_allocator = (m_current_command_allocator + 1) % m_command_allocator_lists[m_current_command_allocator_list].size();
 
-	// Did we wrap around? Move to the next command list.
+	// Did we wrap around? Move to the next set of allocators.
 	if (m_current_command_allocator == 0)
-		PerformGpuRolloverChecks();
+		PerformGPURolloverChecks();
 }
 
 void D3DCommandListManager::ResetCommandList()
@@ -273,38 +287,18 @@ void D3DCommandListManager::DestroyResourceAfterCurrentCommandListExecuted(ID3D1
 	m_deferred_destruction_lists[m_current_deferred_destruction_list].push_back(resource);
 }
 
-void D3DCommandListManager::ImmediatelyDestroyAllResourcesScheduledForDestruction()
-{
-	for (auto& destruction_list : m_deferred_destruction_lists)
-	{
-		for (auto& resource : destruction_list)
-			resource->Release();
-
-		destruction_list.clear();
-	}
-}
-
-void D3DCommandListManager::ClearQueueAndWaitForCompletionOfInflightWork()
-{
-	// Wait for GPU to finish all outstanding work.
-	m_queue_fence_value++;
-#ifdef USE_D3D12_QUEUED_COMMAND_LISTS
-	m_queued_command_list->ClearQueue(); // Waits for currently-processing work to finish, then clears queue.
-	m_queued_command_list->QueueFenceGpuSignal(m_queue_fence, m_queue_fence_value);
-	m_queued_command_list->ProcessQueuedItems(true);
-#else
-	CheckHR(m_command_queue->Signal(m_queue_fence, m_queue_fence_value));
-#endif
-	WaitOnCPUForFence(m_queue_fence, m_queue_fence_value);
-}
-
 D3DCommandListManager::~D3DCommandListManager()
 {
-	ImmediatelyDestroyAllResourcesScheduledForDestruction();
-
 #ifdef USE_D3D12_QUEUED_COMMAND_LISTS
+	// Wait for background thread to exit.
 	m_queued_command_list->Release();
 #endif
+
+	// The command list will still be open, close it before destroying.
+	m_backing_command_list->Close();
+
+	DestroyAllPendingResources();
+
 	m_backing_command_list->Release();
 
 	for (auto& allocator_list : m_command_allocator_lists)
@@ -321,12 +315,11 @@ D3DCommandListManager::~D3DCommandListManager()
 
 void D3DCommandListManager::WaitOnCPUForFence(ID3D12Fence* fence, UINT64 fence_value)
 {
-	if (fence->GetCompletedValue() < fence_value)
-	{
-		CheckHR(fence->SetEventOnCompletion(fence_value, m_wait_on_cpu_fence_event));
+	if (fence->GetCompletedValue() >= fence_value)
+		return;
 
-		WaitForSingleObject(m_wait_on_cpu_fence_event, INFINITE);
-	}
+	CheckHR(fence->SetEventOnCompletion(fence_value, m_wait_on_cpu_fence_event));
+	WaitForSingleObject(m_wait_on_cpu_fence_event, INFINITE);
 }
 
 void D3DCommandListManager::SetCommandListDirtyState(unsigned int command_list_state, bool dirty)
