@@ -27,7 +27,7 @@ static const u32 FIRST_INPUT_BINDING_SLOT = 9;
 
 static const char* s_shader_common = R"(
 
-	struct VS_INPUT
+struct VS_INPUT
 {
 float4 position		: POSITION;
 float4 texCoord		: TEXCOORD0;
@@ -66,7 +66,7 @@ output.layer = input.texCoord.z;
 
 static const char* s_geometry_shader = R"(
 
-	[maxvertexcount(6)]
+[maxvertexcount(6)]
 void main(triangle VS_OUTPUT input[3], inout TriangleStream<GS_OUTPUT> output)
 {
 for (int layer = 0; layer < 2; layer++)
@@ -133,22 +133,21 @@ bool PostProcessingShader::Initialize(const PostProcessingShaderConfiguration* c
 
 bool PostProcessingShader::Reconfigure(const TargetSize& new_size)
 {
-	m_ready = false;
+	m_ready = true;
 
-	bool size_changed = (m_internal_size != new_size);
+	const bool size_changed = (m_internal_size != new_size);
 	if (size_changed)
-		ResizeOutputTextures(new_size);
+		m_ready = ResizeOutputTextures(new_size);
 
 	// Re-link on size change due to the input pointer changes
-	if (m_config->IsDirty() || size_changed)
+	if (m_ready && (m_config->IsDirty() || size_changed))
 		LinkPassOutputs();
 
 	// Recompile shaders if compile-time constants have changed
-	if (m_config->IsCompileTimeConstantsDirty() && !RecompileShaders())
-		return false;
+	if (m_ready && m_config->IsCompileTimeConstantsDirty())
+		m_ready = RecompileShaders();
 
-	m_ready = true;
-	return true;
+	return m_ready;
 }
 
 bool PostProcessingShader::CreatePasses()

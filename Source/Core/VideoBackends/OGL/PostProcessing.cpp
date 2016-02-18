@@ -146,22 +146,21 @@ bool PostProcessingShader::Initialize(const PostProcessingShaderConfiguration* c
 
 bool PostProcessingShader::Reconfigure(const TargetSize& new_size)
 {
-	m_ready = false;
+	m_ready = true;
 
-	bool size_changed = (m_internal_size != new_size);
-	if (size_changed && !ResizeOutputTextures(new_size))
-		return false;
+	const bool size_changed = (m_internal_size != new_size);
+	if (size_changed)
+		m_ready = ResizeOutputTextures(new_size);
 
-	// Also done on size change due to the input pointer changes
-	if (m_config->IsDirty() || size_changed)
+	// Re-link on size change due to the input pointer changes
+	if (m_ready && (m_config->IsDirty() || size_changed))
 		LinkPassOutputs();
 
 	// Recompile shaders if compile-time constants have changed
-	if (m_config->IsCompileTimeConstantsDirty() && !RecompileShaders())
-		return false;
+	if (m_ready && m_config->IsCompileTimeConstantsDirty())
+		m_ready = RecompileShaders();
 
-	m_ready = true;
-	return true;
+	return m_ready;
 }
 
 bool PostProcessingShader::CreatePasses()
@@ -985,7 +984,7 @@ void OGLPostProcessor::CopyTexture(const TargetRectangle& dst_rect, GLuint dst_t
 	for (int i = 0; i < layers_to_copy; i++)
 	{
 		int layer = (src_layer < 0) ? i : src_layer;
-		if (g_ogl_config.bSupportsCopySubImage && dst_texture != 0 && !force_blit)
+		if (g_ogl_config.bSupportsCopySubImage && dst_texture != 0 && !(force_blit || scaling))
 		{
 			// use (ARB|NV)_copy_image, but only for non-window-framebuffer cases
 			glCopyImageSubData(src_texture, GL_TEXTURE_2D_ARRAY, 0, src_rect.left, src_rect.bottom, layer,

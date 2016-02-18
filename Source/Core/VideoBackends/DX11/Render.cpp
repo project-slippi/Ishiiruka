@@ -858,7 +858,7 @@ void Renderer::SwapImpl(u32 xfbAddr, u32 fbWidth, u32 fbStride, u32 fbHeight, co
 				D3D::context->OMSetRenderTargets(1, &D3D::GetBackBuffer()->GetRTV(), nullptr);
 				D3D::SetLinearCopySampler();
 			}
-			if (blit_depth_tex == nullptr && m_post_processor->GetScalingShaderConfig()->RequiresDepthBuffer())
+			if (blit_depth_tex == nullptr && (m_post_processor->GetScalingShaderConfig()->RequiresDepthBuffer() || (m_post_processor->ShouldTriggerAfterBlit() && m_post_processor->RequiresDepthBuffer())))
 			{
 				blit_depth_tex = FramebufferManager::GetResolvedEFBDepthTexture();
 			}

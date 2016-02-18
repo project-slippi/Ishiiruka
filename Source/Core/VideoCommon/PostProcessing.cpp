@@ -819,14 +819,6 @@ void PostProcessingShaderConfiguration::SaveOptionsConfiguration()
 	ini.Save(file_path);
 }
 
-void PostProcessingShaderConfiguration::ClearDirty()
-{
-	m_any_options_dirty = false;
-	m_compile_time_constants_dirty = false;
-	for (auto& it : m_options)
-		it.second.m_dirty = false;
-}
-
 void PostProcessingShaderConfiguration::SetOptionf(const std::string& option, int index, float value)
 {
 	auto it = m_options.find(option);
@@ -1511,16 +1503,16 @@ std::string PostProcessor::GetPassFragmentShaderSource(API_TYPE api, const PostP
 		if (pass->entry_point == "main")
 			shader_source += "#undef main\n";
 
-		shader_source += "void main(in float4 in_pos : SV_Position,\n";
-		shader_source += "          in float2 in_srcTexCoord : TEXCOORD0,\n";
-		shader_source += "          in float2 in_dstTexCoord : TEXCOORD1,\n";
-		shader_source += "          in float in_layer : TEXCOORD2,\n";
-		shader_source += "          out float4 out_col0 : SV_Target)\n";
-		shader_source += "{\n";
-		shader_source += "\tv_fragcoord = u_viewport_rect.xy + in_pos.xy;\n";
-		shader_source += "\tv_source_uv = in_srcTexCoord;\n";
-		shader_source += "\tv_target_uv = in_dstTexCoord;\n";
-		shader_source += "\tv_layer = in_layer;\n";
+		shader_source += "void main(in float4 in_pos : SV_Position,\n"
+			"          in float2 in_srcTexCoord : TEXCOORD0,\n"
+			"          in float2 in_dstTexCoord : TEXCOORD1,\n"
+			"          in float in_layer : TEXCOORD2,\n"
+			"          out float4 out_col0 : SV_Target)\n"
+			"{\n"
+			"\tv_fragcoord = u_viewport_rect.xy + in_pos.xy;\n"
+			"\tv_source_uv = in_srcTexCoord;\n"
+			"\tv_target_uv = in_dstTexCoord;\n"
+			"\tv_layer = in_layer;\n";
 
 		// No entry point? This pass should perform a copy.
 		if (pass->entry_point.empty())
@@ -1544,61 +1536,69 @@ bool  PostProcessor::UpdateUniformBuffer(API_TYPE api,
 {
 	// Check if the size has changed, due to options.
 	size_t active_constant_count = POST_PROCESSING_MAX_TEXTURE_INPUTS + 6 + config->GetOptions().size();
+	size_t active_constant_size = sizeof(Constant) * (u32)active_constant_count;
 	bool size_changed = (active_constant_count != m_current_constants.size());
-	*buffer_size = sizeof(Constant) * (u32)active_constant_count;
+	*buffer_size = active_constant_size;
 	m_new_constants.resize(active_constant_count);
-
+	Constant temp;
 	// float4 input_resolutions[4]
 	for (size_t i = 0; i < POST_PROCESSING_MAX_TEXTURE_INPUTS; i++)
 	{
-		m_new_constants[i].float_constant[0] = (float)input_sizes[i].width;
-		m_new_constants[i].float_constant[1] = (float)input_sizes[i].height;
-		m_new_constants[i].float_constant[2] = 1.0f / (float)input_sizes[i].width;
-		m_new_constants[i].float_constant[3] = 1.0f / (float)input_sizes[i].height;
+		temp.float_constant[0] = (float)input_sizes[i].width;
+		temp.float_constant[1] = (float)input_sizes[i].height;
+		temp.float_constant[2] = 1.0f / (float)input_sizes[i].width;
+		temp.float_constant[3] = 1.0f / (float)input_sizes[i].height;
+		m_new_constants[i] = temp;
 	}
 
 	// float4 target_resolution
 	u32 constant_idx = POST_PROCESSING_MAX_TEXTURE_INPUTS;
-	m_new_constants[constant_idx].float_constant[0] = (float)dst_size.width;
-	m_new_constants[constant_idx].float_constant[1] = (float)dst_size.height;
-	m_new_constants[constant_idx].float_constant[2] = 1.0f / (float)dst_size.width;
-	m_new_constants[constant_idx].float_constant[3] = 1.0f / (float)dst_size.height;
+	temp.float_constant[0] = (float)dst_size.width;
+	temp.float_constant[1] = (float)dst_size.height;
+	temp.float_constant[2] = 1.0f / (float)dst_size.width;
+	temp.float_constant[3] = 1.0f / (float)dst_size.height;
+	m_new_constants[constant_idx] = temp;
 	constant_idx++;
 
 	// float4 src_rect
-	m_new_constants[constant_idx].float_constant[0] = (float)src_rect.left / (float)src_size.width;
-	m_new_constants[constant_idx].float_constant[1] = (float)((api == API_OPENGL) ? src_rect.bottom : src_rect.top) / (float)src_size.height;
-	m_new_constants[constant_idx].float_constant[2] = (float)src_rect.GetWidth() / (float)src_size.width;
-	m_new_constants[constant_idx].float_constant[3] = (float)src_rect.GetHeight() / (float)src_size.height;
+	temp.float_constant[0] = (float)src_rect.left / (float)src_size.width;
+	temp.float_constant[1] = (float)((api == API_OPENGL) ? src_rect.bottom : src_rect.top) / (float)src_size.height;
+	temp.float_constant[2] = (float)src_rect.GetWidth() / (float)src_size.width;
+	temp.float_constant[3] = (float)src_rect.GetHeight() / (float)src_size.height;
+	m_new_constants[constant_idx] = temp;
 	constant_idx++;
 
 	// float4 target_rect
-	m_new_constants[constant_idx].float_constant[0] = (float)dst_rect.left / (float)dst_size.width;
-	m_new_constants[constant_idx].float_constant[1] = (float)((api == API_OPENGL) ? dst_rect.bottom : dst_rect.top) / (float)dst_size.height;
-	m_new_constants[constant_idx].float_constant[2] = (float)dst_rect.GetWidth() / (float)dst_size.width;
-	m_new_constants[constant_idx].float_constant[3] = (float)dst_rect.GetHeight() / (float)dst_size.height;
+	temp.float_constant[0] = (float)dst_rect.left / (float)dst_size.width;
+	temp.float_constant[1] = (float)((api == API_OPENGL) ? dst_rect.bottom : dst_rect.top) / (float)dst_size.height;
+	temp.float_constant[2] = (float)dst_rect.GetWidth() / (float)dst_size.width;
+	temp.float_constant[3] = (float)dst_rect.GetHeight() / (float)dst_size.height;
+	m_new_constants[constant_idx] = temp;
 	constant_idx++;
 
 	// float4 viewport_rect
-	m_new_constants[constant_idx].float_constant[0] = (float)dst_rect.left;
-	m_new_constants[constant_idx].float_constant[1] = (float)dst_rect.top;
-	m_new_constants[constant_idx].float_constant[2] = (float)dst_rect.right;
-	m_new_constants[constant_idx].float_constant[3] = (float)dst_rect.bottom;
+	temp.float_constant[0] = (float)dst_rect.left;
+	temp.float_constant[1] = (float)dst_rect.top;
+	temp.float_constant[2] = (float)dst_rect.right;
+	temp.float_constant[3] = (float)dst_rect.bottom;
+	m_new_constants[constant_idx] = temp;
 	constant_idx++;
 
 	// float4 window_rect
 	const TargetRectangle& window_rect = Renderer::GetWindowRectangle();
-	m_new_constants[constant_idx].float_constant[0] = (float)window_rect.left;
-	m_new_constants[constant_idx].float_constant[1] = (float)window_rect.top;
-	m_new_constants[constant_idx].float_constant[2] = (float)window_rect.right;
-	m_new_constants[constant_idx].float_constant[3] = (float)window_rect.bottom;
+	temp.float_constant[0] = (float)window_rect.left;
+	temp.float_constant[1] = (float)window_rect.top;
+	temp.float_constant[2] = (float)window_rect.right;
+	temp.float_constant[3] = (float)window_rect.bottom;
+	m_new_constants[constant_idx] = temp;
 	constant_idx++;
 
 	// float time, float layer
-	m_new_constants[constant_idx].float_constant[0] = float(double(m_timer.GetTimeDifference()) / 1000.0);
-	m_new_constants[constant_idx].float_constant[1] = float(std::max(src_layer, 0));
-	m_new_constants[constant_idx].float_constant[2] = gamma;
-	m_new_constants[constant_idx].int_constant[3] = (src_rect.GetWidth() > dst_rect.GetWidth() && dst_rect.GetHeight() > dst_rect.GetHeight() && g_ActiveConfig.bUseScalingFilter) ? 1u : 0;
+	temp.float_constant[0] = float(double(m_timer.GetTimeDifference()) / 1000.0);
+	temp.float_constant[1] = float(std::max(src_layer, 0));
+	temp.float_constant[2] = gamma;
+	temp.int_constant[3] = (src_rect.GetWidth() > dst_rect.GetWidth() && dst_rect.GetHeight() > dst_rect.GetHeight() && g_ActiveConfig.bUseScalingFilter) ? 1u : 0;
+	m_new_constants[constant_idx] = temp;
 	constant_idx++;
 
 	// Set from options. This is an ordered map so it will always match the order in the shader code generated.
@@ -1607,26 +1607,18 @@ bool  PostProcessor::UpdateUniformBuffer(API_TYPE api,
 		// Skip compile-time constants, since they're set in the program source.
 		if (it.second.m_compile_time_constant)
 			continue;
-
+		temp = {};
 		switch (it.second.m_type)
 		{
 		case POST_PROCESSING_OPTION_TYPE_BOOL:
-			m_new_constants[constant_idx].int_constant[0] = (int)it.second.m_bool_value;
-			m_new_constants[constant_idx].int_constant[1] = 0;
-			m_new_constants[constant_idx].int_constant[2] = 0;
-			m_new_constants[constant_idx].int_constant[3] = 0;
-			constant_idx++;
+			temp.int_constant[0] = (int)it.second.m_bool_value;
 			break;
 
 		case POST_PROCESSING_OPTION_TYPE_INTEGER:
 		{
 			u32 components = std::max((u32)it.second.m_integer_values.size(), (u32)0);
 			for (u32 i = 0; i < components; i++)
-				m_new_constants[constant_idx].int_constant[i] = it.second.m_integer_values[i];
-			for (u32 i = components; i < 4; i++)
-				m_new_constants[constant_idx].int_constant[i] = 0;
-
-			constant_idx++;
+				temp.int_constant[i] = it.second.m_integer_values[i];
 		}
 		break;
 
@@ -1634,18 +1626,16 @@ bool  PostProcessor::UpdateUniformBuffer(API_TYPE api,
 		{
 			u32 components = std::max((u32)it.second.m_float_values.size(), (u32)0);
 			for (u32 i = 0; i < components; i++)
-				m_new_constants[constant_idx].float_constant[i] = it.second.m_float_values[i];
-			for (u32 i = components; i < 4; i++)
-				m_new_constants[constant_idx].int_constant[i] = 0;
-
-			constant_idx++;
+				temp.float_constant[i] = it.second.m_float_values[i];
 		}
 		break;
 		}
+		m_new_constants[constant_idx] = temp;
+		constant_idx++;
 	}
 
 	// Any changes?
-	if (!size_changed && !memcmp(m_current_constants.data(), m_new_constants.data(), sizeof(Constant) * m_new_constants.size()))
+	if (!size_changed && !memcmp(m_current_constants.data(), m_new_constants.data(), active_constant_size))
 		return false;
 
 	// Swap buffer pointers, to avoid copying data again

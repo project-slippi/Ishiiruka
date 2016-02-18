@@ -1349,7 +1349,7 @@ void Renderer::SwapImpl(u32 xfbAddr, u32 fbWidth, u32 fbStride, u32 fbHeight, co
 			tex = static_cast<GLuint>(new_blit_tex);
 		}
 
-		if (!depth_tex && m_post_processor->GetScalingShaderConfig()->RequiresDepthBuffer())
+		if (!depth_tex && (m_post_processor->GetScalingShaderConfig()->RequiresDepthBuffer() || (m_post_processor->ShouldTriggerAfterBlit() && m_post_processor->RequiresDepthBuffer())))
 			depth_tex = FramebufferManager::ResolveAndGetDepthTarget(rc);
 
 		BlitScreen(flipped_trc, target_rc, tex_size, tex, depth_tex, Gamma);

@@ -144,7 +144,16 @@ public:
 	bool IsDirty() const { return m_any_options_dirty; }
 	bool IsCompileTimeConstantsDirty() const { return m_compile_time_constants_dirty; }
 	void SetDirty(bool dirty = true) { m_any_options_dirty = dirty; }
-	void ClearDirty();
+	void ClearDirty()
+	{
+		if (m_any_options_dirty || m_compile_time_constants_dirty)
+		{
+			m_any_options_dirty = false;
+			m_compile_time_constants_dirty = false;
+			for (auto& it : m_options)
+				it.second.m_dirty = false;
+		}
+	}
 	bool RequiresDepthBuffer() const { return m_requires_depth_buffer; }
 
 	bool HasOptions() const { return !m_options.empty(); }
@@ -280,7 +289,6 @@ protected:
 	// Each option is aligned to a float4
 	union Constant
 	{
-		int bool_constant;
 		float float_constant[4];
 		s32 int_constant[4];
 	};
