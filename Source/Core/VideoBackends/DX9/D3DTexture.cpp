@@ -73,7 +73,7 @@ LPDIRECT3DTEXTURE9 CreateTexture2D(const s32 width, const s32 height, D3DFORMAT 
 	return pTexture;
 }
 
-void ReplaceTexture2D(LPDIRECT3DTEXTURE9 pTexture, const u8* buffer, const s32 width, const s32 height, const int pitch, D3DFORMAT fmt, bool swap_r_b, s32 level)
+void ReplaceTexture2D(LPDIRECT3DTEXTURE9 pTexture, const u8* buffer, const s32 width, const s32 height, const s32 pitch, D3DFORMAT fmt, bool swap_r_b, s32 level)
 {
 	LoadDataToRect(pTexture, buffer, width, height, pitch, fmt, swap_r_b, level);
 }
