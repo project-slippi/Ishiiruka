@@ -393,104 +393,10 @@ void Renderer::SetColorMask()
 //  - GX_PokeZMode (TODO)
 u32 Renderer::AccessEFB(EFBAccessType type, u32 x, u32 y, u32 poke_data)
 {
-	// EXISTINGD3D11TODO: This function currently is broken if anti-aliasing is enabled
-
-	// Convert EFB dimensions to the ones of our render target
-	EFBRectangle efb_pixel_rc;
-	efb_pixel_rc.left = x;
-	efb_pixel_rc.top = y;
-	efb_pixel_rc.right = x + 1;
-	efb_pixel_rc.bottom = y + 1;
-	TargetRectangle target_pixel_rc = Renderer::ConvertEFBRectangle(efb_pixel_rc);
-
-	// Take the mean of the resulting dimensions; TODO: Don't use the center pixel, compute the average color instead
-	D3D12_RECT rect_to_lock;
-	if (type == PEEK_COLOR || type == PEEK_Z)
-	{
-		rect_to_lock.left = (target_pixel_rc.left + target_pixel_rc.right) / 2;
-		rect_to_lock.top = (target_pixel_rc.top + target_pixel_rc.bottom) / 2;
-		rect_to_lock.right = rect_to_lock.left + 1;
-		rect_to_lock.bottom = rect_to_lock.top + 1;
-	}
-	else
-	{
-		rect_to_lock.left = target_pixel_rc.left;
-		rect_to_lock.right = target_pixel_rc.right;
-		rect_to_lock.top = target_pixel_rc.top;
-		rect_to_lock.bottom = target_pixel_rc.bottom;
-	}
-
 	if (type == PEEK_Z)
 	{
-		D3D::command_list_mgr->CPUAccessNotify();
-
-		// depth buffers can only be completely CopySubresourceRegion'ed, so we're using DrawShadedTexQuad instead
-		// D3D12TODO: Is above statement true on D3D12?
-		D3D12_VIEWPORT vp12 = { 0.f, 0.f, 1.f, 1.f, D3D12_MIN_DEPTH, D3D12_MAX_DEPTH };
-		D3D::current_command_list->RSSetViewports(1, &vp12);
-
-		D3D::current_command_list->SetGraphicsRootConstantBufferView(DESCRIPTOR_TABLE_PS_CBVONE, s_access_efb_constant_buffer->GetGPUVirtualAddress());
-		D3D::command_list_mgr->SetCommandListDirtyState(COMMAND_LIST_STATE_PS_CBV, true);
-
-		FramebufferManager::GetEFBDepthReadTexture()->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_RENDER_TARGET);
-		D3D::current_command_list->OMSetRenderTargets(1, &FramebufferManager::GetEFBDepthReadTexture()->GetRTV(), FALSE, nullptr);
-
-		D3D::SetPointCopySampler();
-
-		D3D::DrawShadedTexQuad(
-			FramebufferManager::GetEFBDepthTexture(),
-			&rect_to_lock,
-			Renderer::GetTargetWidth(),
-			Renderer::GetTargetHeight(),
-			StaticShaderCache::GetColorCopyPixelShader(true),
-			StaticShaderCache::GetSimpleVertexShader(),
-			StaticShaderCache::GetSimpleVertexShaderInputLayout(),
-			D3D12_SHADER_BYTECODE(),
-			1.0f,
-			0,
-			DXGI_FORMAT_R32_FLOAT,
-			false,
-			FramebufferManager::GetEFBDepthReadTexture()->GetMultisampled()
-			);
-
-		// copy to system memory
-		D3D12_BOX src_box = CD3DX12_BOX(0, 0, 0, 1, 1, 1);
-		ID3D12Resource* readback_buffer = FramebufferManager::GetEFBDepthStagingBuffer();
-
-		D3D12_TEXTURE_COPY_LOCATION dst_location = {};
-		dst_location.pResource = readback_buffer;
-		dst_location.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
-		dst_location.PlacedFootprint.Offset = D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT;
-		dst_location.PlacedFootprint.Footprint.Format = DXGI_FORMAT_R32_FLOAT;
-		dst_location.PlacedFootprint.Footprint.Width = 1;
-		dst_location.PlacedFootprint.Footprint.Height = 1;
-		dst_location.PlacedFootprint.Footprint.Depth = 1;
-		dst_location.PlacedFootprint.Footprint.RowPitch = D3D::AlignValue(dst_location.PlacedFootprint.Footprint.Width * 4, D3D12_TEXTURE_DATA_PITCH_ALIGNMENT);
-
-		D3D12_TEXTURE_COPY_LOCATION src_location = {};
-		src_location.pResource = FramebufferManager::GetEFBDepthReadTexture()->GetTex();
-		src_location.SubresourceIndex = 0;
-		src_location.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
-
-		FramebufferManager::GetEFBDepthReadTexture()->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_COPY_SOURCE);
-		D3D::current_command_list->CopyTextureRegion(&dst_location, 0, 0, 0, &src_location, &src_box);
-
-		// Need to wait for the CPU to complete the copy (and all prior operations) before we can read it on the CPU.
-		D3D::command_list_mgr->ExecuteQueuedWork(true);
-
-		FramebufferManager::GetEFBColorTexture()->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_RENDER_TARGET);
-		FramebufferManager::GetEFBDepthTexture()->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_DEPTH_WRITE);
-		D3D::current_command_list->OMSetRenderTargets(1, &FramebufferManager::GetEFBColorTexture()->GetRTV(), FALSE, &FramebufferManager::GetEFBDepthTexture()->GetDSV());
-
-		// Restores proper viewport/scissor settings.
-		g_renderer->RestoreAPIState();
-
-		// read the data from system memory
-		void* readback_buffer_data = nullptr;
-		CheckHR(readback_buffer->Map(0, nullptr, &readback_buffer_data));
-
 		// depth buffer is inverted in the d3d backend
-		float val = 1.0f - reinterpret_cast<float*>(readback_buffer_data)[0];
+		float val = 1.0f - FramebufferManager::AccessEFBPeekDepthCache(x, y);
 		u32 ret = 0;
 
 		if (bpmem.zcontrol.pixel_format == PEControl::RGB565_Z16)
@@ -502,41 +408,13 @@ u32 Renderer::AccessEFB(EFBAccessType type, u32 x, u32 y, u32 poke_data)
 		{
 			ret = MathUtil::Clamp<u32>(static_cast<u32>(val * 16777216.0f), 0, 0xFFFFFF);
 		}
-
-		// EXISTINGD3D11TODO: in RE0 this value is often off by one in Video_DX9 (where this code is derived from), which causes lighting to disappear
 		return ret;
 	}
 	else if (type == PEEK_COLOR)
 	{
-		D3D::command_list_mgr->CPUAccessNotify();
+		u32 ret = FramebufferManager::AccessEFBPeekColorCache(x, y);
 
-		ID3D12Resource* readback_buffer = FramebufferManager::GetEFBColorStagingBuffer();
-
-		D3D12_BOX src_box = CD3DX12_BOX(rect_to_lock.left, rect_to_lock.top, 0, rect_to_lock.right, rect_to_lock.bottom, 1);
-
-		D3D12_TEXTURE_COPY_LOCATION dst_location = {};
-		dst_location.pResource = readback_buffer;
-		dst_location.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
-		dst_location.PlacedFootprint.Offset = 0;
-		dst_location.PlacedFootprint.Footprint.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-		dst_location.PlacedFootprint.Footprint.Width = 1;
-		dst_location.PlacedFootprint.Footprint.Height = 1;
-		dst_location.PlacedFootprint.Footprint.Depth = 1;
-		dst_location.PlacedFootprint.Footprint.RowPitch = D3D::AlignValue(dst_location.PlacedFootprint.Footprint.Width * 4, D3D12_TEXTURE_DATA_PITCH_ALIGNMENT);
-
-		D3D12_TEXTURE_COPY_LOCATION src_location = {};
-		src_location.pResource = FramebufferManager::GetResolvedEFBColorTexture()->GetTex();
-		src_location.SubresourceIndex = 0;
-		src_location.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
-
-		FramebufferManager::GetResolvedEFBColorTexture()->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_COPY_SOURCE);
-		D3D::current_command_list->CopyTextureRegion(&dst_location, 0, 0, 0, &src_location, &src_box);
-
-		// read the data from system memory
-		void* readback_buffer_data = nullptr;
-		CheckHR(readback_buffer->Map(0, nullptr, &readback_buffer_data));
-		
-		u32 ret = reinterpret_cast<u32*>(readback_buffer_data)[0];
+		ret = RGBA8ToBGRA8(ret);
 
 		// check what to do with the alpha channel (GX_PokeAlphaRead)
 		PixelEngine::UPEAlphaReadReg alpha_read_mode = PixelEngine::GetAlphaReadMode();
@@ -699,6 +577,7 @@ void Renderer::ClearScreen(const EFBRectangle& rc, bool color_enable, bool alpha
 
 	// Restores proper viewport/scissor settings.
 	g_renderer->RestoreAPIState();
+	FramebufferManager::InvalidateEFBPeekCache();
 }
 
 void Renderer::ReinterpretPixelData(unsigned int convtype)
@@ -760,6 +639,7 @@ void Renderer::ReinterpretPixelData(unsigned int convtype)
 	FramebufferManager::GetEFBColorTexture()->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_RENDER_TARGET);
 	FramebufferManager::GetEFBDepthTexture()->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_DEPTH_WRITE);
 	D3D::current_command_list->OMSetRenderTargets(1, &FramebufferManager::GetEFBColorTexture()->GetRTV(), FALSE, &FramebufferManager::GetEFBDepthTexture()->GetDSV());
+	FramebufferManager::InvalidateEFBPeekCache();
 }
 
 void Renderer::SetBlendMode(bool force_update)
@@ -1288,6 +1168,7 @@ void Renderer::ApplyState(bool use_dst_alpha)
 
 		D3D::command_list_mgr->SetCommandListDirtyState(COMMAND_LIST_STATE_PSO, false);
 	}
+	FramebufferManager::InvalidateEFBPeekCache();
 }
 
 void Renderer::RestoreState()

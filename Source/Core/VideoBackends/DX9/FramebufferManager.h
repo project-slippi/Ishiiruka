@@ -87,6 +87,14 @@ public:
 		s_efb.color_texture = swaptex;
 	}
 
+	static u32 AccessEFBPeekColorCache(u32 x, u32 y);
+	static u32 AccessEFBPeekDepthCache(u32 x, u32 y);
+	static void UpdateEFBPeekColorCache(u32 x, u32 y, u32 value);
+	static void UpdateEFBPeekDepthCache(u32 x, u32 y, u32 value);
+	static void PopulateEFBPeekColorCache();
+	static void PopulateEFBPeekDepthCache();
+	static void InvalidateEFBPeekCache();
+
 private:
 	std::unique_ptr<XFBSourceBase> CreateXFBSource(u32 target_width, u32 target_height, u32 layers);
 	void GetTargetSize(u32 *width, u32 *height);
@@ -95,31 +103,25 @@ private:
 
 	static struct Efb
 	{
-		Efb() : color_texture(NULL), colorRead_texture(NULL), depth_texture(NULL), depthRead_texture(NULL),
-				color_reinterpret_texture(NULL), color_reinterpret_surface(NULL),
-				depth_surface(NULL), color_surface(NULL), color_ReadBuffer(NULL), depth_ReadBuffer(NULL),
-				color_OffScreenReadBuffer(NULL), depth_OffScreenReadBuffer(NULL),
-				color_surface_Format(D3DFMT_UNKNOWN), depth_surface_Format(D3DFMT_UNKNOWN),
-				depth_ReadBuffer_Format(D3DFMT_UNKNOWN) {}
+		LPDIRECT3DTEXTURE9 color_texture{};//Texture that contains the color data of the render target
+		LPDIRECT3DTEXTURE9 colorRead_texture{};//1 pixel texture for temporal data store
+		LPDIRECT3DTEXTURE9 depth_texture{};//Texture that contains the depth data of the render target
+		LPDIRECT3DTEXTURE9 depthRead_texture{};//4 pixel texture for temporal data store
 
-		LPDIRECT3DTEXTURE9 color_texture;//Texture that contains the color data of the render target
-		LPDIRECT3DTEXTURE9 colorRead_texture;//1 pixel texture for temporal data store
-		LPDIRECT3DTEXTURE9 depth_texture;//Texture that contains the depth data of the render target
-		LPDIRECT3DTEXTURE9 depthRead_texture;//4 pixel texture for temporal data store
+		LPDIRECT3DTEXTURE9 color_reinterpret_texture{};//buffer used for ReinterpretPixelData
+		LPDIRECT3DSURFACE9 color_reinterpret_surface{};//corresponding surface
 
-		LPDIRECT3DTEXTURE9 color_reinterpret_texture;//buffer used for ReinterpretPixelData
-		LPDIRECT3DSURFACE9 color_reinterpret_surface;//corresponding surface
-
-		LPDIRECT3DSURFACE9 depth_surface;//Depth Surface
-		LPDIRECT3DSURFACE9 color_surface;//Color Surface
-		LPDIRECT3DSURFACE9 color_ReadBuffer;//Surface 0 of colorRead_texture
-		LPDIRECT3DSURFACE9 depth_ReadBuffer;//Surface 0 of depthRead_texture
-		LPDIRECT3DSURFACE9 color_OffScreenReadBuffer;//System memory Surface that can be locked to retrieve the data
-		LPDIRECT3DSURFACE9 depth_OffScreenReadBuffer;//System memory Surface that can be locked to retrieve the data
-
-		D3DFORMAT color_surface_Format;//Format of the color Surface
-		D3DFORMAT depth_surface_Format;//Format of the Depth Surface
-		D3DFORMAT depth_ReadBuffer_Format;//Format of the Depth color Read Surface
+		LPDIRECT3DSURFACE9 depth_surface{};//Depth Surface
+		LPDIRECT3DSURFACE9 color_surface{};//Color Surface
+		LPDIRECT3DSURFACE9 color_ReadBuffer{};//Surface 0 of colorRead_texture
+		LPDIRECT3DSURFACE9 depth_ReadBuffer{};//Surface 0 of depthRead_texture
+		LPDIRECT3DSURFACE9 color_OffScreenReadBuffer{};//System memory Surface that can be locked to retrieve the data
+		D3DLOCKED_RECT color_lock_rect{};
+		LPDIRECT3DSURFACE9 depth_OffScreenReadBuffer{};//System memory Surface that can be locked to retrieve the data
+		D3DLOCKED_RECT depth_lock_rect{};
+		D3DFORMAT color_surface_Format{};//Format of the color Surface
+		D3DFORMAT depth_surface_Format{};//Format of the Depth Surface
+		D3DFORMAT depth_ReadBuffer_Format{};//Format of the Depth color Read Surface
 	} s_efb;
 
 	static u32 m_target_width;

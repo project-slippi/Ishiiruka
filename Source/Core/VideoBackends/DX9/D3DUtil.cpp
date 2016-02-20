@@ -7,6 +7,7 @@
 
 #include "VideoBackends/DX9/D3DBase.h"
 #include "VideoBackends/DX9/D3DUtil.h"
+#include "VideoBackends/DX9/FramebufferManager.h"
 #include "VideoBackends/DX9/PixelShaderCache.h"
 #include "VideoBackends/DX9/Render.h"
 #include "VideoBackends/DX9/VertexShaderCache.h"
@@ -476,7 +477,7 @@ void DrawEFBPokeQuads(EFBAccessType type, const EfbPokeData* points, size_t num_
 		float x2 = float(point.x + 1) * 2.0f / EFB_WIDTH - 1.0f;
 		float y2 = -float(point.y + 1) * 2.0f / EFB_HEIGHT + 1.0f;
 		float z = (type == POKE_Z) ? (1.0f - float(point.data & 0xFFFFFF) / 16777216.0f) : 0.0f;
-		u32 col = (type == POKE_Z) ? 0 : ((point.data & 0xFF00FF00) | ((point.data >> 16) & 0xFF) | ((point.data << 16) & 0xFF0000));
+		u32 col = (type == POKE_Z) ? 0 : RGBA8ToBGRA8(point.data);
 		
 
 		// quad -> triangles
@@ -487,6 +488,10 @@ void DrawEFBPokeQuads(EFBAccessType type, const EfbPokeData* points, size_t num_
 		vertex[3] = { x1, y2, z, 1.0, col };
 		vertex[4] = { x2, y1, z, 1.0, col };
 		vertex[5] = { x2, y2, z, 1.0, col };
+		if (type == POKE_COLOR)
+			FramebufferManager::UpdateEFBPeekColorCache(point.x, point.y, col);
+		else
+			FramebufferManager::UpdateEFBPeekDepthCache(point.x, point.y, u32(z * 0xFFFFFF));
 	}
 	D3D::ChangeVertexShader(Vshader);
 	D3D::ChangePixelShader(PShader);

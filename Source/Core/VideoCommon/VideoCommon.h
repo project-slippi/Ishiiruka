@@ -103,6 +103,16 @@ typedef enum
 	API_NONE = 16
 } API_TYPE;
 
+// Can be used for RGBA->BGRA or BGRA->RGBA
+inline u32 RGBA8ToBGRA8(u32 src)
+{
+	u32 color = src;
+	color &= 0xFF00FF00;
+	color |= (src >> 16) & 0xFF;
+	color |= (src << 16) & 0xFF0000;
+	return color;
+}
+
 inline u32 RGBA8ToRGBA6ToRGBA8(u32 src)
 {
 	u32 color = src;

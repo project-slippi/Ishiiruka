@@ -488,6 +488,7 @@ bool TextureCache::Palettize(TCacheEntryBase* entry, const TCacheEntryBase* base
 		return false;
 	// if texture is currently in use, it needs to be temporarily unset
 	u64 textureSlotMask = D3D::stateman->UnsetTexture(texture->GetSRV());
+	D3D::stateman->Apply();
 	bool result = s_decoder->Depalettize(*texture, *((TextureCache::TCacheEntry*)base_entry)->texture, baseType, base_entry->config.width, base_entry->config.height);
 	D3D::stateman->SetTextureByMask(textureSlotMask, texture->GetSRV());
 	return result;

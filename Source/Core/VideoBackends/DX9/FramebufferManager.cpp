@@ -11,6 +11,7 @@
 #include "VideoBackends/DX9/TextureConverter.h"
 #include "VideoBackends/DX9/VertexShaderCache.h"
 
+#include "VideoCommon/PixelShaderManager.h"
 #include "VideoCommon/VideoConfig.h"
 
 namespace DX9
@@ -54,13 +55,13 @@ FramebufferManager::FramebufferManager()
 	CHECK(hr, "Create color texture (size: %dx%d; hr=%#x)", m_target_width, m_target_height, hr);
 
 	// Render buffer for AccessEFB (color data)
-	hr = D3D::dev->CreateTexture(1, 1, 1, D3DUSAGE_RENDERTARGET, s_efb.color_surface_Format, 
+	hr = D3D::dev->CreateTexture(EFB_WIDTH, EFB_HEIGHT, 1, D3DUSAGE_RENDERTARGET, s_efb.color_surface_Format, 
 									D3DPOOL_DEFAULT, &s_efb.colorRead_texture, NULL);
 	GetSurface(s_efb.colorRead_texture, &s_efb.color_ReadBuffer);
 	CHECK(hr, "Create Color Read Texture (hr=%#x)", hr);
 
 	// AccessEFB - Sysmem buffer used to retrieve the pixel data from color_ReadBuffer
-	hr = D3D::dev->CreateOffscreenPlainSurface(1, 1, s_efb.color_surface_Format, D3DPOOL_SYSTEMMEM, &s_efb.color_OffScreenReadBuffer, NULL);
+	hr = D3D::dev->CreateOffscreenPlainSurface(EFB_WIDTH, EFB_HEIGHT, s_efb.color_surface_Format, D3DPOOL_SYSTEMMEM, &s_efb.color_OffScreenReadBuffer, NULL);
 	CHECK(hr, "Create offscreen color surface (hr=%#x)", hr);
 
 	// Select a Z-buffer texture format with hardware support
@@ -95,13 +96,13 @@ FramebufferManager::FramebufferManager()
 				break;
 			}
 		}
-		hr = D3D::dev->CreateTexture(4, 4, 1, D3DUSAGE_RENDERTARGET, s_efb.depth_ReadBuffer_Format, 
+		hr = D3D::dev->CreateTexture(EFB_WIDTH, EFB_HEIGHT, 1, D3DUSAGE_RENDERTARGET, s_efb.depth_ReadBuffer_Format, 
 									D3DPOOL_DEFAULT, &s_efb.depthRead_texture, NULL);
 		GetSurface(s_efb.depthRead_texture, &s_efb.depth_ReadBuffer);
 		CHECK(hr, "Create depth read texture (hr=%#x)", hr);
 
 		// AccessEFB - Sysmem buffer used to retrieve the pixel data from depth_ReadBuffer
-		hr = D3D::dev->CreateOffscreenPlainSurface(4, 4, s_efb.depth_ReadBuffer_Format, D3DPOOL_SYSTEMMEM, &s_efb.depth_OffScreenReadBuffer, NULL);
+		hr = D3D::dev->CreateOffscreenPlainSurface(EFB_WIDTH, EFB_HEIGHT, s_efb.depth_ReadBuffer_Format, D3DPOOL_SYSTEMMEM, &s_efb.depth_OffScreenReadBuffer, NULL);
 		CHECK(hr, "Create depth offscreen surface (hr=%#x)", hr);
 	}
 	else if (s_efb.depth_surface_Format)
@@ -120,6 +121,7 @@ FramebufferManager::FramebufferManager()
 
 FramebufferManager::~FramebufferManager()
 {
+	FramebufferManager::InvalidateEFBPeekCache();
 	SAFE_RELEASE(s_efb.depth_surface);
 	SAFE_RELEASE(s_efb.color_surface);
 	SAFE_RELEASE(s_efb.color_ReadBuffer);
@@ -225,6 +227,116 @@ void XFBSource::CopyEFB(float Gamma)
 	Rendersurf->Release();
 	
 	g_renderer->RestoreAPIState();
+}
+
+u32 FramebufferManager::AccessEFBPeekDepthCache(u32 x, u32 y)
+{
+	if (!s_efb.depth_lock_rect.pBits)
+		PopulateEFBPeekDepthCache();
+
+	u32 row_offset = y * s_efb.depth_lock_rect.Pitch;
+	u32* row = reinterpret_cast<u32*>(reinterpret_cast<u8*>(s_efb.depth_lock_rect.pBits) + row_offset);
+	return row[x];
+}
+
+void FramebufferManager::UpdateEFBPeekColorCache(u32 x, u32 y, u32 value)
+{
+	if (!s_efb.color_lock_rect.pBits)
+		return;
+
+	u32 row_offset = y * s_efb.color_lock_rect.Pitch;
+	u32* row = reinterpret_cast<u32*>(reinterpret_cast<u8*>(s_efb.color_lock_rect.pBits) + row_offset);
+	row[x] = value;
+}
+
+void FramebufferManager::UpdateEFBPeekDepthCache(u32 x, u32 y, u32 value)
+{
+	if (!s_efb.color_lock_rect.pBits)
+		return;
+
+	u32 row_offset = y * s_efb.color_lock_rect.Pitch;
+	u32* row = reinterpret_cast<u32*>(reinterpret_cast<u8*>(s_efb.color_lock_rect.pBits) + row_offset);
+	row[x] = value;
+}
+
+void FramebufferManager::PopulateEFBPeekColorCache()
+{
+	_dbg_assert_(!s_efb.color_lock_rect.pBits, "cache is invalid");
+
+	// We can't directly StretchRect to System buf because is not supported by all implementations
+	// this is the only safe path that works in most cases
+	HRESULT hr = D3D::dev->StretchRect(s_efb.color_surface, nullptr, s_efb.color_ReadBuffer, nullptr, D3DTEXF_LINEAR);
+	CHECK(SUCCEEDED(hr), "failed to stretch efb peek color cache texture (hr=%08X)", hr);
+	hr = D3D::dev->GetRenderTargetData(s_efb.color_ReadBuffer, s_efb.color_OffScreenReadBuffer);
+	CHECK(SUCCEEDED(hr), "failed to get data from efb peek color cache texture (hr=%08X)", hr);
+	hr = s_efb.color_OffScreenReadBuffer->LockRect(&s_efb.color_lock_rect, nullptr, D3DLOCK_READONLY);
+	CHECK(SUCCEEDED(hr), "failed to map efb peek color cache texture (hr=%08X)", hr);
+}
+
+void FramebufferManager::PopulateEFBPeekDepthCache()
+{
+	_dbg_assert_(!s_efb.dept_lock_rect.pBits, "cache is invalid");
+
+	g_renderer->ResetAPIState(); // Reset any game specific settings
+	D3D::dev->SetDepthStencilSurface(NULL);
+	D3D::dev->SetRenderTarget(0, s_efb.depth_ReadBuffer);
+
+	// Stretch picture with increased internal resolution
+	D3DVIEWPORT9 vp;
+	vp.X = 0;
+	vp.Y = 0;
+	vp.Width = EFB_WIDTH;
+	vp.Height = EFB_HEIGHT;
+	vp.MinZ = 0.0f;
+	vp.MaxZ = 1.0f;
+	D3D::dev->SetViewport(&vp);
+
+	float colmat[28] = { 0.0f };
+	colmat[0] = colmat[5] = colmat[10] = 1.0f;
+	PixelShaderManager::SetColorMatrix(colmat); // set transformation
+	D3D::dev->SetPixelShaderConstantF(C_COLORMATRIX, PixelShaderManager::GetBuffer(), 7);
+	LPDIRECT3DTEXTURE9 read_texture = FramebufferManager::GetEFBDepthTexture();
+
+	D3D::ChangeSamplerState(0, D3DSAMP_MINFILTER, D3DTEXF_POINT);
+
+	D3DFORMAT bformat = FramebufferManager::GetEFBDepthRTSurfaceFormat();
+
+	D3D::drawShadedTexQuad(
+		read_texture,
+		nullptr,
+		Renderer::GetTargetWidth(),
+		Renderer::GetTargetHeight(),
+		EFB_WIDTH, EFB_HEIGHT,
+		PixelShaderCache::GetDepthMatrixProgram(0, bformat != FOURCC_RAWZ),
+		VertexShaderCache::GetSimpleVertexShader(0));
+
+	D3D::RefreshSamplerState(0, D3DSAMP_MINFILTER);
+
+	D3D::dev->SetRenderTarget(0, FramebufferManager::GetEFBColorRTSurface());
+	D3D::dev->SetDepthStencilSurface(FramebufferManager::GetEFBDepthRTSurface());
+	g_renderer->RestoreAPIState();
+
+	// Retrieve the pixel data to the local memory buffer
+	HRESULT hr = D3D::dev->GetRenderTargetData(s_efb.depth_ReadBuffer, s_efb.depth_OffScreenReadBuffer);
+
+	// EFB data successfully retrieved, now get the pixel data
+	hr = s_efb.depth_OffScreenReadBuffer->LockRect(&s_efb.depth_lock_rect, nullptr, D3DLOCK_READONLY);
+	CHECK(SUCCEEDED(hr), "failed to map efb peek depth cache texture (hr=%08X)", hr);
+}
+
+void FramebufferManager::InvalidateEFBPeekCache()
+{
+	if (s_efb.color_lock_rect.pBits)
+	{
+		s_efb.color_OffScreenReadBuffer->UnlockRect();
+		s_efb.color_lock_rect.pBits = nullptr;
+	}
+
+	if (s_efb.depth_lock_rect.pBits)
+	{
+		s_efb.depth_OffScreenReadBuffer->UnlockRect();
+		s_efb.depth_lock_rect.pBits = nullptr;
+	}
 }
 
 }  // namespace DX9

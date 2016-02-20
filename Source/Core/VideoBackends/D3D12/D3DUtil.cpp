@@ -14,6 +14,7 @@
 #include "VideoBackends/D3D12/D3DState.h"
 #include "VideoBackends/D3D12/D3DTexture.h"
 #include "VideoBackends/D3D12/D3DUtil.h"
+#include "VideoBackends/D3D12/FramebufferManager.h"
 #include "VideoBackends/D3D12/Render.h"
 #include "VideoBackends/D3D12/StaticShaderCache.h"
 
@@ -922,13 +923,13 @@ void DrawEFBPokeQuads(EFBAccessType type,
 		for (size_t i = 0; i < points_to_draw; i++)
 		{
 			// generate quad from the single point (clip-space coordinates)
-			const EfbPokeData* point = &points[current_point_index];
-			float x1 = float(point->x) * 2.0f / EFB_WIDTH - 1.0f;
-			float y1 = -float(point->y) * 2.0f / EFB_HEIGHT + 1.0f;
-			float x2 = float(point->x + 1) * 2.0f / EFB_WIDTH - 1.0f;
-			float y2 = -float(point->y + 1) * 2.0f / EFB_HEIGHT + 1.0f;
-			float z = (type == POKE_Z) ? (1.0f - float(point->data & 0xFFFFFF) / 16777216.0f) : 0.0f;
-			u32 col = (type == POKE_Z) ? 0 : ((point->data & 0xFF00FF00) | ((point->data >> 16) & 0xFF) | ((point->data << 16) & 0xFF0000));
+			const EfbPokeData point = points[current_point_index];
+			float x1 = float(point.x) * 2.0f / EFB_WIDTH - 1.0f;
+			float y1 = -float(point.y) * 2.0f / EFB_HEIGHT + 1.0f;
+			float x2 = float(point.x + 1) * 2.0f / EFB_WIDTH - 1.0f;
+			float y2 = -float(point.y + 1) * 2.0f / EFB_HEIGHT + 1.0f;
+			float z = (type == POKE_Z) ? (1.0f - float(point.data & 0xFFFFFF) / 16777216.0f) : 0.0f;
+			u32 col = (type == POKE_Z) ? 0 : RGBA8ToBGRA8(point.data);
 			current_point_index++;
 
 			// quad -> triangles
@@ -939,6 +940,11 @@ void DrawEFBPokeQuads(EFBAccessType type,
 			InitColVertex(&vertex[3], x1, y2, z, col);
 			InitColVertex(&vertex[4], x2, y1, z, col);
 			InitColVertex(&vertex[5], x2, y2, z, col);
+
+			if (type == POKE_COLOR)
+				FramebufferManager::UpdateEFBPeekColorCache(point.x, point.y, col);
+			else
+				FramebufferManager::UpdateEFBPeekDepthCache(point.x, point.y, z);
 		}
 
 		D3D::current_command_list->DrawInstanced(6 * static_cast<UINT>(points_to_draw), 1, static_cast<UINT>(base_vertex_index), 0);

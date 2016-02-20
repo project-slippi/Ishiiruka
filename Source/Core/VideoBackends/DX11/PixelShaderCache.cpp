@@ -307,15 +307,15 @@ void main(
 const char* depth_resolve_program = R"hlsl(
 	Texture2DMSArray<float4, %d> Tex0 : register(t0);
 	void main(
-		 out float depth : SV_Depth,
+		 out float ocol0 : SV_Target,
 	    in float4 pos : SV_Position,
 	    in float3 uv0 : TEXCOORD0)
 	{
 		int width, height, slices, samples;
 		Tex0.GetDimensions(width, height, slices, samples);
-		depth = Tex0.Load(int3(uv0.x*(width), uv0.y*(height), uv0.z), 0).x;
+		ocol0  = Tex0.Load(int3(uv0.x*(width), uv0.y*(height), uv0.z), 0).x;
 		for(int i = 1; i < samples; ++i)
-			depth = min(depth, Tex0.Load(int3(uv0.x*(width), uv0.y*(height), uv0.z), i).x);
+			ocol0  = min(ocol0, Tex0.Load(int3(uv0.x*(width), uv0.y*(height), uv0.z), i).x);
 	}
 )hlsl";
 

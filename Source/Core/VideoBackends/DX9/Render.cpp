@@ -300,113 +300,9 @@ u32 Renderer::AccessEFB(EFBAccessType type, u32 x, u32 y, u32 poke_data)
 		if (FramebufferManager::GetEFBDepthTexture() == NULL)
 			return 0;
 
-	// We're using three surfaces here:
-	// - pEFBSurf: EFB Surface. Source surface when peeking, destination surface when poking.
-	// - pBufferRT: A render target surface. When peeking, we render a textured quad to this surface.
-	// - pSystemBuf: An offscreen surface. Used to retrieve the pixel data from pBufferRT.
-	LPDIRECT3DSURFACE9 pEFBSurf, pBufferRT, pSystemBuf;
-	if(type == PEEK_Z || type == POKE_Z)
-	{
-		pEFBSurf = FramebufferManager::GetEFBDepthRTSurface();
-		pBufferRT = FramebufferManager::GetEFBDepthReadSurface();
-		pSystemBuf = FramebufferManager::GetEFBDepthOffScreenRTSurface();
-	}
-	else //(type == PEEK_COLOR || type == POKE_COLOR)
-	{
-		pEFBSurf = FramebufferManager::GetEFBColorRTSurface();
-		pBufferRT = FramebufferManager::GetEFBColorReadSurface();
-		pSystemBuf = FramebufferManager::GetEFBColorOffScreenRTSurface();
-	}
-
-	// Buffer not found alert
-	if (!pEFBSurf) {
-		PanicAlert("No %s!", (type == PEEK_Z || type == POKE_Z) ? "Z-Buffer" : "Color EFB");
-		return 0;
-	}
-
-	// Convert EFB dimensions to the ones of our render target
-	EFBRectangle efbPixelRc;
-	efbPixelRc.left = x;
-	efbPixelRc.top = y;
-	efbPixelRc.right = x + 1;
-	efbPixelRc.bottom = y + 1;
-
-	TargetRectangle targetPixelRc = ConvertEFBRectangle(efbPixelRc);
-
-	HRESULT hr;
-	RECT RectToLock;
-	RectToLock.bottom = targetPixelRc.bottom;
-	RectToLock.left = targetPixelRc.left;
-	RectToLock.right = targetPixelRc.right;
-	RectToLock.top = targetPixelRc.top;	
 	if (type == PEEK_Z)
 	{
-		RECT PixelRect;
-		PixelRect.bottom = 4;
-		PixelRect.left = 0;
-		PixelRect.right = 4;
-		PixelRect.top = 0;
-		RectToLock.bottom+=2;
-		RectToLock.right+=1;
-		RectToLock.top-=1;
-		RectToLock.left-=2;
-		if ((RectToLock.bottom - RectToLock.top) > 4)
-			RectToLock.bottom--;
-		if ((RectToLock.right - RectToLock.left) > 4)
-			RectToLock.left++;
-
-		ResetAPIState(); // Reset any game specific settings
-		D3D::dev->SetDepthStencilSurface(NULL);
-		D3D::dev->SetRenderTarget(0, pBufferRT);
-
-		// Stretch picture with increased internal resolution
-		D3DVIEWPORT9 vp;
-		vp.X = 0;
-		vp.Y = 0;
-		vp.Width  = 4;
-		vp.Height = 4;
-		vp.MinZ = 0.0f;
-		vp.MaxZ = 1.0f;
-		D3D::dev->SetViewport(&vp);
-
-		float colmat[28] = {0.0f};
-		colmat[0] = colmat[5] = colmat[10] = 1.0f;
-		PixelShaderManager::SetColorMatrix(colmat); // set transformation
-		D3D::dev->SetPixelShaderConstantF(C_COLORMATRIX, PixelShaderManager::GetBuffer(), 7);
-		LPDIRECT3DTEXTURE9 read_texture = FramebufferManager::GetEFBDepthTexture();
-
-		D3D::ChangeSamplerState(0, D3DSAMP_MINFILTER, D3DTEXF_POINT);
-
-		D3DFORMAT bformat = FramebufferManager::GetEFBDepthRTSurfaceFormat();
-
-		D3D::drawShadedTexQuad(
-			read_texture,
-			&RectToLock,
-			Renderer::GetTargetWidth(),
-			Renderer::GetTargetHeight(),
-			4, 4,
-			PixelShaderCache::GetDepthMatrixProgram(0, bformat != FOURCC_RAWZ),
-			VertexShaderCache::GetSimpleVertexShader(0));
-
-		D3D::RefreshSamplerState(0, D3DSAMP_MINFILTER);
-
-		D3D::dev->SetRenderTarget(0, FramebufferManager::GetEFBColorRTSurface());
-		D3D::dev->SetDepthStencilSurface(FramebufferManager::GetEFBDepthRTSurface());
-		RestoreAPIState();
-
-		// Retrieve the pixel data to the local memory buffer
-		RectToLock.bottom = 4;
-		RectToLock.left = 0;
-		RectToLock.right = 4;
-		RectToLock.top = 0;
-		D3D::dev->GetRenderTargetData(pBufferRT, pSystemBuf);
-
-		// EFB data successfully retrieved, now get the pixel data
-		D3DLOCKED_RECT drect;
-		pSystemBuf->LockRect(&drect, &RectToLock, D3DLOCK_READONLY);
-		// depth in the buffer is inverted, but the output is corrected by the depth matrix program
-		u32 z = ((u32*)drect.pBits)[6];	// 24 bit depth value
-		pSystemBuf->UnlockRect();
+		u32 z = FramebufferManager::AccessEFBPeekDepthCache(x, y);
 
 		// if Z is in 16 bit format you must return a 16 bit integer
 		if(bpmem.zcontrol.pixel_format == PEControl::RGB565_Z16) {
@@ -416,21 +312,7 @@ u32 Renderer::AccessEFB(EFBAccessType type, u32 x, u32 y, u32 poke_data)
 	}
 	else if(type == PEEK_COLOR)
 	{
-		// We can't directly StretchRect to System buf because is not supported by all implementations
-		// this is the only safe path that works in most cases
-		hr = D3D::dev->StretchRect(pEFBSurf, &RectToLock, pBufferRT, NULL, D3DTEXF_NONE);
-		D3D::dev->GetRenderTargetData(pBufferRT, pSystemBuf);
-
-		// EFB data successfully retrieved, now get the pixel data
-		RectToLock.bottom = 1;
-		RectToLock.left = 0;
-		RectToLock.right = 1;
-		RectToLock.top = 0;
-
-		D3DLOCKED_RECT drect;
-		pSystemBuf->LockRect(&drect, &RectToLock, D3DLOCK_READONLY);
-		u32 ret = ((u32*)drect.pBits)[0];
-		pSystemBuf->UnlockRect();
+		u32 ret = FramebufferManager::AccessEFBPeekDepthCache(x, y);
 
 		// check what to do with the alpha channel (GX_PokeAlphaRead)
 		PixelEngine::UPEAlphaReadReg alpha_read_mode = PixelEngine::GetAlphaReadMode();
@@ -531,6 +413,8 @@ void Renderer::ClearScreen(const EFBRectangle& rc, bool colorEnable, bool alphaE
 	D3D::dev->SetViewport(&vp);
 	D3D::drawClearQuad(color, 1.0f - ((z & 0xFFFFFF) / 16777216.0f), PixelShaderCache::GetClearProgram(), VertexShaderCache::GetClearVertexShader());
 	RestoreAPIState();
+	
+	FramebufferManager::InvalidateEFBPeekCache();
 }
 
 void Renderer::ReinterpretPixelData(unsigned int convtype)
@@ -566,6 +450,7 @@ void Renderer::ReinterpretPixelData(unsigned int convtype)
 	FramebufferManager::SwapReinterpretTexture();
 	D3D::RefreshSamplerState(0, D3DSAMP_MINFILTER);	
 	g_renderer->RestoreAPIState();
+	FramebufferManager::InvalidateEFBPeekCache();
 }
 
 bool Renderer::SaveScreenshot(const std::string &filename, const TargetRectangle &dst_rect)
@@ -1077,6 +962,7 @@ void Renderer::ApplyState(bool bUseDstAlpha)
 			D3D::ChangeRenderState(D3DRS_ZFUNC, D3DCMP_EQUAL);
 		}
 	}
+	FramebufferManager::InvalidateEFBPeekCache();
 }
 
 void Renderer::RestoreState()

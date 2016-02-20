@@ -79,10 +79,10 @@ static constexpr const char s_depth_copy_program_hlsl[] = {
 	"sampler samp0 : register(s0);\n"
 	"Texture2DArray Tex0 : register(t0);\n"
 	"void main(\n"
-	"out float odepth : SV_Depth,\n"
+	"out float ocol0 : SV_Target,\n"
 	"in float4 pos : SV_Position,\n"
 	"in float3 uv0 : TEXCOORD0){\n"
-	"odepth = Tex0.Sample(samp0,uv0);\n"
+	"ocol0 = Tex0.Sample(samp0,uv0).x;\n"
 	"}\n"
 };
 
@@ -132,15 +132,15 @@ static constexpr const char s_depth_copy_program_msaa_hlsl[] = {
 	"#define SAMPLES %d\n"
 	"Texture2DMSArray<float4, SAMPLES> Tex0 : register(t0);\n"
 	"void main(\n"
-	"	out float depth : SV_Depth,\n"
+	"	out float ocol0 : SV_Target,\n"
 	"	in float4 pos : SV_Position,\n"
 	"	in float3 uv0 : TEXCOORD0)\n"
 	"{\n"
 	"	int width, height, slices, samples;\n"
 	"	Tex0.GetDimensions(width, height, slices, samples);\n"
-	"	depth = Tex0.Load(int3(uv0.x*(width), uv0.y*(height), uv0.z), 0).x;\n"
+	"	ocol0 = Tex0.Load(int3(uv0.x*(width), uv0.y*(height), uv0.z), 0).x;\n"
 	"	for(int i = 1; i < SAMPLES; ++i)\n"
-	"		depth = min(depth, Tex0.Load(int3(uv0.x*(width), uv0.y*(height), uv0.z), i).x);\n"
+	"		ocol0 = min(ocol0, Tex0.Load(int3(uv0.x*(width), uv0.y*(height), uv0.z), i).x);\n"
 	"}\n"
 };
 

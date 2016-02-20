@@ -52,7 +52,6 @@ static bool s_last_xfb_mode = false;
 
 static Television s_television;
 
-D3D::BufferPtr access_efb_cbuf;
 D3D::BlendStatePtr clearblendstates[4];
 D3D::DepthStencilStatePtr cleardepthstates[3];
 D3D::BlendStatePtr resetblendstate;
@@ -91,15 +90,7 @@ static void SetupDeviceObjects()
 	s_television.Init();
 
 	g_framebuffer_manager = std::make_unique<FramebufferManager>();
-	HRESULT hr;
-	float colmat[20] = { 0.0f };
-	colmat[0] = colmat[5] = colmat[10] = 1.0f;
-	D3D11_BUFFER_DESC cbdesc = CD3D11_BUFFER_DESC(20 * sizeof(float), D3D11_BIND_CONSTANT_BUFFER, D3D11_USAGE_DEFAULT);
-	D3D11_SUBRESOURCE_DATA data;
-	data.pSysMem = colmat;
-	hr = D3D::device->CreateBuffer(&cbdesc, &data, D3D::ToAddr(access_efb_cbuf));
-	CHECK(hr == S_OK, "Create constant buffer for Renderer::AccessEFB");
-	D3D::SetDebugObjectName(access_efb_cbuf.get(), "constant buffer for Renderer::AccessEFB");
+	HRESULT hr;	
 
 	D3D11_DEPTH_STENCIL_DESC ddesc;
 	ddesc.DepthEnable = FALSE;
@@ -173,7 +164,6 @@ static void TeardownDeviceObjects()
 {
 	g_framebuffer_manager.reset();
 
-	access_efb_cbuf.reset();
 	clearblendstates[0].reset();
 	clearblendstates[1].reset();
 	clearblendstates[2].reset();
@@ -384,66 +374,11 @@ void Renderer::SetColorMask()
 //	- GX_PokeZMode (TODO)
 u32 Renderer::AccessEFB(EFBAccessType type, u32 x, u32 y, u32 poke_data)
 {
-	// TODO: This function currently is broken if anti-aliasing is enabled
-	D3D11_MAPPED_SUBRESOURCE map;
-	ID3D11Texture2D* read_tex;
-
-	// Convert EFB dimensions to the ones of our render target
-	EFBRectangle efbPixelRc;
-	efbPixelRc.left = x;
-	efbPixelRc.top = y;
-	efbPixelRc.right = x + 1;
-	efbPixelRc.bottom = y + 1;
-	TargetRectangle targetPixelRc = Renderer::ConvertEFBRectangle(efbPixelRc);
-
-	// Take the mean of the resulting dimensions; TODO: Don't use the center pixel, compute the average color instead
-	D3D11_RECT RectToLock;
-	if (type == PEEK_COLOR || type == PEEK_Z)
-	{
-		RectToLock.left = (targetPixelRc.left + targetPixelRc.right) / 2;
-		RectToLock.top = (targetPixelRc.top + targetPixelRc.bottom) / 2;
-		RectToLock.right = RectToLock.left + 1;
-		RectToLock.bottom = RectToLock.top + 1;
-	}
-	else
-	{
-		RectToLock.left = targetPixelRc.left;
-		RectToLock.right = targetPixelRc.right;
-		RectToLock.top = targetPixelRc.top;
-		RectToLock.bottom = targetPixelRc.bottom;
-	}
-
 	if (type == PEEK_Z)
 	{
-		ResetAPIState(); // Reset any game specific settings
-
-		// depth buffers can only be completely CopySubresourceRegion'ed, so we're using drawShadedTexQuad instead
-		D3D::context->OMSetRenderTargets(1, &FramebufferManager::GetEFBDepthReadTexture()->GetRTV(), nullptr);
-		D3D11_VIEWPORT vp = CD3D11_VIEWPORT(0.f, 0.f, 1.f, 1.f);
-		D3D::context->RSSetViewports(1, &vp);
-		D3D::stateman->SetPixelConstants(0, access_efb_cbuf.get());
-		D3D::SetPointCopySampler();
-		D3D::drawShadedTexQuad(FramebufferManager::GetEFBDepthTexture()->GetSRV(),
-			&RectToLock,
-			Renderer::GetTargetWidth(),
-			Renderer::GetTargetHeight(),
-			PixelShaderCache::GetColorCopyProgram(true),
-			VertexShaderCache::GetSimpleVertexShader(),
-			VertexShaderCache::GetSimpleInputLayout());
-
-		D3D::context->OMSetRenderTargets(1, &FramebufferManager::GetEFBColorTexture()->GetRTV(), FramebufferManager::GetEFBDepthTexture()->GetDSV());
-
-		// copy to system memory
-		D3D11_BOX box = CD3D11_BOX(0, 0, 0, 1, 1, 1);
-		read_tex = FramebufferManager::GetEFBDepthStagingBuffer();
-		D3D::context->CopySubresourceRegion(read_tex, 0, 0, 0, 0, FramebufferManager::GetEFBDepthReadTexture()->GetTex(), 0, &box);
-
-		RestoreAPIState(); // restore game state
-
-		// read the data from system memory
-		D3D::context->Map(read_tex, 0, D3D11_MAP_READ, 0, &map);
+		float val = FramebufferManager::AccessEFBPeekDepthCache(x, y);
 		// depth buffer is inverted in the d3d backend
-		float val = 1.0f - *(float*)map.pData;
+		val = 1.0f - val;
 		u32 ret = 0;
 		if (bpmem.zcontrol.pixel_format == PEControl::RGB565_Z16)
 		{
@@ -454,23 +389,13 @@ u32 Renderer::AccessEFB(EFBAccessType type, u32 x, u32 y, u32 poke_data)
 		{
 			ret = MathUtil::Clamp<u32>((u32)(val * 16777216.0f), 0, 0xFFFFFF);
 		}
-		D3D::context->Unmap(read_tex, 0);
-
 		return ret;
 	}
 	else if (type == PEEK_COLOR)
 	{
-		// we can directly copy to system memory here
-		read_tex = FramebufferManager::GetEFBColorStagingBuffer();
-		D3D11_BOX box = CD3D11_BOX(RectToLock.left, RectToLock.top, 0, RectToLock.right, RectToLock.bottom, 1);
-		D3D::context->CopySubresourceRegion(read_tex, 0, 0, 0, 0, FramebufferManager::GetEFBColorTexture()->GetTex(), 0, &box);
-
-		// read the data from system memory
-		D3D::context->Map(read_tex, 0, D3D11_MAP_READ, 0, &map);
-		u32 ret = 0;
-		if (map.pData)
-			ret = *(u32*)map.pData;
-		D3D::context->Unmap(read_tex, 0);
+		u32 ret = FramebufferManager::AccessEFBPeekColorCache(x, y);
+		// our internal buffers are RGBA, yet a BGRA value is expected
+		ret = RGBA8ToBGRA8(ret);
 
 		// check what to do with the alpha channel (GX_PokeAlphaRead)
 		PixelEngine::UPEAlphaReadReg alpha_read_mode = PixelEngine::GetAlphaReadMode();
@@ -498,21 +423,18 @@ u32 Renderer::AccessEFB(EFBAccessType type, u32 x, u32 y, u32 poke_data)
 void Renderer::PokeEFB(EFBAccessType type, const EfbPokeData* data, size_t num_points)
 {
 	ResetAPIState();
+	
+	D3D11_VIEWPORT vp = CD3D11_VIEWPORT(0.0f, 0.0f, (float)GetTargetWidth(), (float)GetTargetHeight());
+	D3D::context->RSSetViewports(1, &vp);
 
 	if (type == POKE_COLOR)
 	{
-		D3D11_VIEWPORT vp = CD3D11_VIEWPORT(0.0f, 0.0f, (float)GetTargetWidth(), (float)GetTargetHeight());
-		D3D::context->RSSetViewports(1, &vp);
 		D3D::context->OMSetRenderTargets(1, &FramebufferManager::GetEFBColorTexture()->GetRTV(), nullptr);
 	}
 	else // if (type == POKE_Z)
 	{
 		D3D::stateman->PushBlendState(clearblendstates[3].get());
 		D3D::stateman->PushDepthState(cleardepthstates[1].get());
-
-		D3D11_VIEWPORT vp = CD3D11_VIEWPORT(0.0f, 0.0f, (float)GetTargetWidth(), (float)GetTargetHeight());
-
-		D3D::context->RSSetViewports(1, &vp);
 
 		D3D::context->OMSetRenderTargets(1, &FramebufferManager::GetEFBColorTexture()->GetRTV(),
 			FramebufferManager::GetEFBDepthTexture()->GetDSV());
@@ -610,6 +532,8 @@ void Renderer::ClearScreen(const EFBRectangle& rc, bool colorEnable, bool alphaE
 	D3D::stateman->PopBlendState();
 
 	RestoreAPIState();
+
+	FramebufferManager::InvalidateEFBPeekCache();
 }
 
 void Renderer::ReinterpretPixelData(unsigned int convtype)
@@ -646,6 +570,8 @@ void Renderer::ReinterpretPixelData(unsigned int convtype)
 
 	FramebufferManager::SwapReinterpretTexture();
 	D3D::context->OMSetRenderTargets(1, &FramebufferManager::GetEFBColorTexture()->GetRTV(), FramebufferManager::GetEFBDepthTexture()->GetDSV());
+
+	FramebufferManager::InvalidateEFBPeekCache();
 }
 
 void Renderer::SetBlendMode(bool forceUpdate)
@@ -1113,6 +1039,7 @@ void Renderer::ApplyState(bool bUseDstAlpha)
 	D3D::stateman->SetDomainShader(HullDomainShaderCache::GetActiveDomainShader());
 	D3D::stateman->SetPixelShader(PixelShaderCache::GetActiveShader());
 
+	FramebufferManager::InvalidateEFBPeekCache();
 }
 
 void Renderer::RestoreState()
