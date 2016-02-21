@@ -83,7 +83,8 @@ void InitBackendInfo()
 	g_Config.backend_info.bSupportedFormats[PC_TEX_FMT_DXT1] = true;
 	g_Config.backend_info.bSupportedFormats[PC_TEX_FMT_DXT3] = true;
 	g_Config.backend_info.bSupportedFormats[PC_TEX_FMT_DXT5] = true;
-
+	
+	g_Config.backend_info.bSupportsScaling = false;
 	g_Config.backend_info.bSupportsExclusiveFullscreen = false;
 	g_Config.backend_info.bSupportsDualSourceBlend = true;
 	g_Config.backend_info.bSupportsPixelLighting = true;

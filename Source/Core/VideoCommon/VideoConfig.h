@@ -221,6 +221,7 @@ struct VideoConfig final
 		bool bSupportsClipControl; // Needed by VertexShaderGen, so must stay in VideoCommon		
 		bool bSupportsSSAA;
 		bool bSupportsTessellation;
+		bool bSupportsScaling;
 	} backend_info;
 
 	// Utility

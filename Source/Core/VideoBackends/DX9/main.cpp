@@ -78,6 +78,7 @@ void InitBackendInfo()
 	g_Config.backend_info.bSupportsExclusiveFullscreen = false;
 	g_Config.backend_info.bSupportsSeparateAlphaFunction = (device_caps.PrimitiveMiscCaps & D3DPMISCCAPS_SEPARATEALPHABLEND) == D3DPMISCCAPS_SEPARATEALPHABLEND;
 	// Dual source blend disabled by default until a proper method to test for support is found	
+	g_Config.backend_info.bSupportsScaling = true;
 	g_Config.backend_info.bSupportsDualSourceBlend = false;
 	g_Config.backend_info.bSupportsPixelLighting = C_PENVCONST_END <= maxConstants;
 	g_Config.backend_info.bSupportsNormalMaps = false;
