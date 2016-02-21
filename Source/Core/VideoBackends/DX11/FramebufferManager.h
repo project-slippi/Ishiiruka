@@ -75,12 +75,7 @@ public:
 	~FramebufferManager();
 
 	static D3DTexture2D* &GetEFBColorTexture();
-	static ID3D11Texture2D* &GetEFBColorStagingBuffer();
-
 	static D3DTexture2D* &GetEFBDepthTexture();
-	static D3DTexture2D* &GetEFBDepthReadTexture();
-	static ID3D11Texture2D* &GetEFBDepthStagingBuffer();
-
 	static D3DTexture2D* &GetResolvedEFBColorTexture();
 	static D3DTexture2D* &GetResolvedEFBDepthTexture();
 
@@ -92,37 +87,38 @@ public:
 		m_efb.color_tex = swaptex;
 	}
 
-	static u32 AccessEFBPeekColorCache(u32 x, u32 y);
-	static float AccessEFBPeekDepthCache(u32 x, u32 y);
-	static void UpdateEFBPeekColorCache(u32 x, u32 y, u32 value);
-	static void UpdateEFBPeekDepthCache(u32 x, u32 y, float value);
-	static void PopulateEFBPeekColorCache();
-	static void PopulateEFBPeekDepthCache();
-	static void InvalidateEFBPeekCache();
+	static u32 GetEFBCachedColor(u32 x, u32 y);
+	static float GetEFBCachedDepth(u32 x, u32 y);
+	static void SetEFBCachedColor(u32 x, u32 y, u32 value);
+	static void SetEFBCachedDepth(u32 x, u32 y, float value);
+	static void PopulateEFBColorCache();
+	static void PopulateEFBDepthCache();
+	static void InvalidateEFBCache();
 
 private:
 	std::unique_ptr<XFBSourceBase> CreateXFBSource(u32 target_width, u32 target_height, u32 layers) override;
 	void GetTargetSize(u32 *width, u32 *height) override;
-
+	static void InitializeEFBCache();
 	void CopyToRealXFB(u32 xfbAddr, u32 fbStride, u32 fbHeight, const EFBRectangle& sourceRc, float Gamma) override;
 
 	static struct Efb
 	{
 		D3DTexture2D* color_tex{};
-		D3DTexture2D* color_read_tex{};
-		ID3D11Texture2D* color_staging_buf{};
-		D3D11_MAPPED_SUBRESOURCE color_staging_buf_map{};
+		D3DTexture2D* color_temp_tex{};
+		D3DTexture2D* resolved_color_tex{};
 
 		D3DTexture2D* depth_tex{};
-		D3DTexture2D* depth_read_tex{};
-		D3D11_MAPPED_SUBRESOURCE depth_staging_buf_map{};
-		ID3D11Texture2D* depth_staging_buf{};
-
-		D3DTexture2D* color_temp_tex{};
-
-		D3DTexture2D* resolved_color_tex{};
 		D3DTexture2D* resolved_depth_tex{};
 		
+		// EFB Cache
+		D3DTexture2D* color_cache_tex{};
+		ID3D11Texture2D* color_cache_buf{};
+		D3D11_MAPPED_SUBRESOURCE color_cache_buf_map{};
+
+		D3DTexture2D* depth_cache_tex{};
+		ID3D11Texture2D* depth_cache_buf{};
+		D3D11_MAPPED_SUBRESOURCE depth_cache_buf_map{};
+
 		int slices{};
 	} m_efb;
 

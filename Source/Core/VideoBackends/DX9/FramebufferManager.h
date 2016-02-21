@@ -65,18 +65,12 @@ public:
 	static LPDIRECT3DSURFACE9 GetEFBColorRTSurface() { return s_efb.color_surface; }
 	static LPDIRECT3DSURFACE9 GetEFBDepthRTSurface() { return s_efb.depth_surface; }
 
-	static LPDIRECT3DSURFACE9 GetEFBColorOffScreenRTSurface() { return s_efb.color_OffScreenReadBuffer; }
-	static LPDIRECT3DSURFACE9 GetEFBDepthOffScreenRTSurface() { return s_efb.depth_OffScreenReadBuffer; }
-
 	static D3DFORMAT GetEFBDepthRTSurfaceFormat() { return s_efb.depth_surface_Format; }
 	static D3DFORMAT GetEFBColorRTSurfaceFormat() { return s_efb.color_surface_Format; }
-	static D3DFORMAT GetEFBDepthReadSurfaceFormat() { return s_efb.depth_ReadBuffer_Format; }
-
-	static LPDIRECT3DSURFACE9 GetEFBColorReadSurface() { return s_efb.color_ReadBuffer; }
-	static LPDIRECT3DSURFACE9 GetEFBDepthReadSurface() { return s_efb.depth_ReadBuffer; }
 
 	static LPDIRECT3DTEXTURE9 GetEFBColorReinterpretTexture() { return s_efb.color_reinterpret_texture; }
 	static LPDIRECT3DSURFACE9 GetEFBColorReinterpretSurface() { return s_efb.color_reinterpret_surface; }
+
 	static void SwapReinterpretTexture()
 	{
 		LPDIRECT3DSURFACE9 swapsurf = GetEFBColorReinterpretSurface();
@@ -87,41 +81,45 @@ public:
 		s_efb.color_texture = swaptex;
 	}
 
-	static u32 AccessEFBPeekColorCache(u32 x, u32 y);
-	static u32 AccessEFBPeekDepthCache(u32 x, u32 y);
-	static void UpdateEFBPeekColorCache(u32 x, u32 y, u32 value);
-	static void UpdateEFBPeekDepthCache(u32 x, u32 y, u32 value);
-	static void PopulateEFBPeekColorCache();
-	static void PopulateEFBPeekDepthCache();
-	static void InvalidateEFBPeekCache();
+	static u32 GetEFBCachedColor(u32 x, u32 y);
+	static u32 GetEFBCachedDepth(u32 x, u32 y);
+	static void SetEFBCachedColor(u32 x, u32 y, u32 value);
+	static void SetEFBCachedDepth(u32 x, u32 y, u32 value);
+	static void PopulateEFBColorCache();
+	static void PopulateEFBDepthCache();
+	static void InvalidateEFBCache();
 
 private:
 	std::unique_ptr<XFBSourceBase> CreateXFBSource(u32 target_width, u32 target_height, u32 layers);
 	void GetTargetSize(u32 *width, u32 *height);
-
+	static void InitializeEFBCache();
 	void CopyToRealXFB(u32 xfbAddr, u32 fbStride, u32 fbHeight, const EFBRectangle& sourceRc, float Gamma);
 
 	static struct Efb
 	{
 		LPDIRECT3DTEXTURE9 color_texture{};//Texture that contains the color data of the render target
-		LPDIRECT3DTEXTURE9 colorRead_texture{};//1 pixel texture for temporal data store
+		LPDIRECT3DSURFACE9 color_surface{};//Color Surface
+		
 		LPDIRECT3DTEXTURE9 depth_texture{};//Texture that contains the depth data of the render target
-		LPDIRECT3DTEXTURE9 depthRead_texture{};//4 pixel texture for temporal data store
+		LPDIRECT3DSURFACE9 depth_surface{};//Depth Surface
+		
+		D3DFORMAT color_surface_Format{};//Format of the color Surface
+		D3DFORMAT depth_surface_Format{};//Format of the Depth Surface
+		D3DFORMAT depth_cache_Format{};//Format of the Depth color Read Surface
 
 		LPDIRECT3DTEXTURE9 color_reinterpret_texture{};//buffer used for ReinterpretPixelData
 		LPDIRECT3DSURFACE9 color_reinterpret_surface{};//corresponding surface
 
-		LPDIRECT3DSURFACE9 depth_surface{};//Depth Surface
-		LPDIRECT3DSURFACE9 color_surface{};//Color Surface
-		LPDIRECT3DSURFACE9 color_ReadBuffer{};//Surface 0 of colorRead_texture
-		LPDIRECT3DSURFACE9 depth_ReadBuffer{};//Surface 0 of depthRead_texture
-		LPDIRECT3DSURFACE9 color_OffScreenReadBuffer{};//System memory Surface that can be locked to retrieve the data
+		LPDIRECT3DTEXTURE9 color_cache_texture{};//texture for temporal data store
+		LPDIRECT3DSURFACE9 color_cache_surf{};//Surface 0 of color_cache_texture
+		LPDIRECT3DSURFACE9 color_cache_buf{};//System memory Surface that can be locked to retrieve the data
 		D3DLOCKED_RECT color_lock_rect{};
-		LPDIRECT3DSURFACE9 depth_OffScreenReadBuffer{};//System memory Surface that can be locked to retrieve the data
+
+		LPDIRECT3DTEXTURE9 depth_cache_texture{};//texture for temporal data store
+		LPDIRECT3DSURFACE9 depth_cache_surf{};//Surface 0 of depth_cache_texture
+		LPDIRECT3DSURFACE9 depth_cache_buf{};//System memory Surface that can be locked to retrieve the data
 		D3DLOCKED_RECT depth_lock_rect{};
-		D3DFORMAT color_surface_Format{};//Format of the color Surface
-		D3DFORMAT depth_surface_Format{};//Format of the Depth Surface
-		D3DFORMAT depth_ReadBuffer_Format{};//Format of the Depth color Read Surface
+		bool depth_textures_supported{};
 	} s_efb;
 
 	static u32 m_target_width;

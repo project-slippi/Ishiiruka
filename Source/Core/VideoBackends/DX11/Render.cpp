@@ -376,7 +376,7 @@ u32 Renderer::AccessEFB(EFBAccessType type, u32 x, u32 y, u32 poke_data)
 {
 	if (type == PEEK_Z)
 	{
-		float val = FramebufferManager::AccessEFBPeekDepthCache(x, y);
+		float val = FramebufferManager::GetEFBCachedDepth(x, y);
 		// depth buffer is inverted in the d3d backend
 		val = 1.0f - val;
 		u32 ret = 0;
@@ -393,7 +393,7 @@ u32 Renderer::AccessEFB(EFBAccessType type, u32 x, u32 y, u32 poke_data)
 	}
 	else if (type == PEEK_COLOR)
 	{
-		u32 ret = FramebufferManager::AccessEFBPeekColorCache(x, y);
+		u32 ret = FramebufferManager::GetEFBCachedColor(x, y);
 		// our internal buffers are RGBA, yet a BGRA value is expected
 		ret = RGBA8ToBGRA8(ret);
 
@@ -533,7 +533,7 @@ void Renderer::ClearScreen(const EFBRectangle& rc, bool colorEnable, bool alphaE
 
 	RestoreAPIState();
 
-	FramebufferManager::InvalidateEFBPeekCache();
+	FramebufferManager::InvalidateEFBCache();
 }
 
 void Renderer::ReinterpretPixelData(unsigned int convtype)
@@ -571,7 +571,7 @@ void Renderer::ReinterpretPixelData(unsigned int convtype)
 	FramebufferManager::SwapReinterpretTexture();
 	D3D::context->OMSetRenderTargets(1, &FramebufferManager::GetEFBColorTexture()->GetRTV(), FramebufferManager::GetEFBDepthTexture()->GetDSV());
 
-	FramebufferManager::InvalidateEFBPeekCache();
+	FramebufferManager::InvalidateEFBCache();
 }
 
 void Renderer::SetBlendMode(bool forceUpdate)
@@ -1039,7 +1039,7 @@ void Renderer::ApplyState(bool bUseDstAlpha)
 	D3D::stateman->SetDomainShader(HullDomainShaderCache::GetActiveDomainShader());
 	D3D::stateman->SetPixelShader(PixelShaderCache::GetActiveShader());
 
-	FramebufferManager::InvalidateEFBPeekCache();
+	FramebufferManager::InvalidateEFBCache();
 }
 
 void Renderer::RestoreState()

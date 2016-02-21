@@ -396,7 +396,7 @@ u32 Renderer::AccessEFB(EFBAccessType type, u32 x, u32 y, u32 poke_data)
 	if (type == PEEK_Z)
 	{
 		// depth buffer is inverted in the d3d backend
-		float val = 1.0f - FramebufferManager::AccessEFBPeekDepthCache(x, y);
+		float val = 1.0f - FramebufferManager::GetEFBCachedDepth(x, y);
 		u32 ret = 0;
 
 		if (bpmem.zcontrol.pixel_format == PEControl::RGB565_Z16)
@@ -412,7 +412,7 @@ u32 Renderer::AccessEFB(EFBAccessType type, u32 x, u32 y, u32 poke_data)
 	}
 	else if (type == PEEK_COLOR)
 	{
-		u32 ret = FramebufferManager::AccessEFBPeekColorCache(x, y);
+		u32 ret = FramebufferManager::GetEFBCachedColor(x, y);
 
 		ret = RGBA8ToBGRA8(ret);
 
@@ -577,7 +577,7 @@ void Renderer::ClearScreen(const EFBRectangle& rc, bool color_enable, bool alpha
 
 	// Restores proper viewport/scissor settings.
 	g_renderer->RestoreAPIState();
-	FramebufferManager::InvalidateEFBPeekCache();
+	FramebufferManager::InvalidateEFBCache();
 }
 
 void Renderer::ReinterpretPixelData(unsigned int convtype)
@@ -639,7 +639,7 @@ void Renderer::ReinterpretPixelData(unsigned int convtype)
 	FramebufferManager::GetEFBColorTexture()->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_RENDER_TARGET);
 	FramebufferManager::GetEFBDepthTexture()->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_DEPTH_WRITE);
 	D3D::current_command_list->OMSetRenderTargets(1, &FramebufferManager::GetEFBColorTexture()->GetRTV(), FALSE, &FramebufferManager::GetEFBDepthTexture()->GetDSV());
-	FramebufferManager::InvalidateEFBPeekCache();
+	FramebufferManager::InvalidateEFBCache();
 }
 
 void Renderer::SetBlendMode(bool force_update)
@@ -1168,7 +1168,7 @@ void Renderer::ApplyState(bool use_dst_alpha)
 
 		D3D::command_list_mgr->SetCommandListDirtyState(COMMAND_LIST_STATE_PSO, false);
 	}
-	FramebufferManager::InvalidateEFBPeekCache();
+	FramebufferManager::InvalidateEFBCache();
 }
 
 void Renderer::RestoreState()

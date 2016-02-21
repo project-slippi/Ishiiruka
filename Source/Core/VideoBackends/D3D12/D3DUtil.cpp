@@ -29,11 +29,6 @@ static D3D12_RASTERIZER_DESC s_reset_rast_desc;
 
 namespace D3D
 {
-unsigned int AlignValue(unsigned int value, unsigned int alignment)
-{
-	return (value + (alignment - 1)) & ~(alignment - 1);
-}
-
 void ResourceBarrier(ID3D12GraphicsCommandList* command_list, ID3D12Resource* resource, D3D12_RESOURCE_STATES state_before, D3D12_RESOURCE_STATES state_after, UINT subresource)
 {
 	if (state_before == state_after)
@@ -942,9 +937,9 @@ void DrawEFBPokeQuads(EFBAccessType type,
 			InitColVertex(&vertex[5], x2, y2, z, col);
 
 			if (type == POKE_COLOR)
-				FramebufferManager::UpdateEFBPeekColorCache(point.x, point.y, col);
+				FramebufferManager::SetEFBCachedColor(point.x, point.y, col);
 			else
-				FramebufferManager::UpdateEFBPeekDepthCache(point.x, point.y, z);
+				FramebufferManager::SetEFBCachedDepth(point.x, point.y, z);
 		}
 
 		D3D::current_command_list->DrawInstanced(6 * static_cast<UINT>(points_to_draw), 1, static_cast<UINT>(base_vertex_index), 0);

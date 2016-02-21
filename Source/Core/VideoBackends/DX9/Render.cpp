@@ -302,7 +302,7 @@ u32 Renderer::AccessEFB(EFBAccessType type, u32 x, u32 y, u32 poke_data)
 
 	if (type == PEEK_Z)
 	{
-		u32 z = FramebufferManager::AccessEFBPeekDepthCache(x, y);
+		u32 z = FramebufferManager::GetEFBCachedDepth(x, y);
 
 		// if Z is in 16 bit format you must return a 16 bit integer
 		if(bpmem.zcontrol.pixel_format == PEControl::RGB565_Z16) {
@@ -312,7 +312,7 @@ u32 Renderer::AccessEFB(EFBAccessType type, u32 x, u32 y, u32 poke_data)
 	}
 	else if(type == PEEK_COLOR)
 	{
-		u32 ret = FramebufferManager::AccessEFBPeekDepthCache(x, y);
+		u32 ret = FramebufferManager::GetEFBCachedColor(x, y);
 
 		// check what to do with the alpha channel (GX_PokeAlphaRead)
 		PixelEngine::UPEAlphaReadReg alpha_read_mode = PixelEngine::GetAlphaReadMode();
@@ -414,7 +414,7 @@ void Renderer::ClearScreen(const EFBRectangle& rc, bool colorEnable, bool alphaE
 	D3D::drawClearQuad(color, 1.0f - ((z & 0xFFFFFF) / 16777216.0f), PixelShaderCache::GetClearProgram(), VertexShaderCache::GetClearVertexShader());
 	RestoreAPIState();
 	
-	FramebufferManager::InvalidateEFBPeekCache();
+	FramebufferManager::InvalidateEFBCache();
 }
 
 void Renderer::ReinterpretPixelData(unsigned int convtype)
@@ -450,7 +450,7 @@ void Renderer::ReinterpretPixelData(unsigned int convtype)
 	FramebufferManager::SwapReinterpretTexture();
 	D3D::RefreshSamplerState(0, D3DSAMP_MINFILTER);	
 	g_renderer->RestoreAPIState();
-	FramebufferManager::InvalidateEFBPeekCache();
+	FramebufferManager::InvalidateEFBCache();
 }
 
 bool Renderer::SaveScreenshot(const std::string &filename, const TargetRectangle &dst_rect)
@@ -962,7 +962,7 @@ void Renderer::ApplyState(bool bUseDstAlpha)
 			D3D::ChangeRenderState(D3DRS_ZFUNC, D3DCMP_EQUAL);
 		}
 	}
-	FramebufferManager::InvalidateEFBPeekCache();
+	FramebufferManager::InvalidateEFBCache();
 }
 
 void Renderer::RestoreState()

@@ -489,9 +489,9 @@ void DrawEFBPokeQuads(EFBAccessType type, const EfbPokeData* points, size_t num_
 		vertex[4] = { x2, y1, z, 1.0, col };
 		vertex[5] = { x2, y2, z, 1.0, col };
 		if (type == POKE_COLOR)
-			FramebufferManager::UpdateEFBPeekColorCache(point.x, point.y, col);
+			FramebufferManager::SetEFBCachedColor(point.x, point.y, col);
 		else
-			FramebufferManager::UpdateEFBPeekDepthCache(point.x, point.y, u32(z * 0xFFFFFF));
+			FramebufferManager::SetEFBCachedDepth(point.x, point.y, u32(z * 0xFFFFFF));
 	}
 	D3D::ChangeVertexShader(Vshader);
 	D3D::ChangePixelShader(PShader);

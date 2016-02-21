@@ -774,9 +774,9 @@ void DrawEFBPokeQuads(EFBAccessType type, const EfbPokeData* points, size_t num_
 			InitColVertex(&vertex[5], x2, y2, z, col);
 
 			if (type == POKE_COLOR)
-				FramebufferManager::UpdateEFBPeekColorCache(point.x, point.y, col);
+				FramebufferManager::SetEFBCachedColor(point.x, point.y, col);
 			else
-				FramebufferManager::UpdateEFBPeekDepthCache(point.x, point.y, z);
+				FramebufferManager::SetEFBCachedDepth(point.x, point.y, z);
 		}
 
 		// unmap the util buffer, and issue the draw
