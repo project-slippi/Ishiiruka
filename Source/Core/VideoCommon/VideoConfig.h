@@ -30,6 +30,9 @@ enum AspectMode
 	ASPECT_ANALOG_WIDE = 1,
 	ASPECT_ANALOG      = 2,
 	ASPECT_STRETCH     = 3,
+	ASPECT_4_3 = 4,
+	ASPECT_16_9 = 5,
+	ASPECT_16_10 = 6,
 };
 
 enum EFBScale
@@ -101,6 +104,7 @@ struct VideoConfig final
 	bool bSSAA;
 	int iEFBScale;
 	bool bForceFiltering;
+	bool bDisableTextureFiltering;
 	int iMaxAnisotropy;
 	bool bPostProcessingEnable;
 	int iPostProcessingTrigger;

@@ -113,6 +113,7 @@ void VideoConfig::Load(const std::string& ini_file)
 
 	IniFile::Section* enhancements = iniFile.GetOrCreateSection("Enhancements");
 	enhancements->Get("ForceFiltering", &bForceFiltering, 0);
+	enhancements->Get("DisableFiltering", &bDisableTextureFiltering, 0);
 	enhancements->Get("MaxAnisotropy", &iMaxAnisotropy, 0);  // NOTE - this is x in (1 << x)
 	enhancements->Get("PostProcessingEnable", &bPostProcessingEnable, false);
 	enhancements->Get("PostProcessingTrigger", &iPostProcessingTrigger, 0);
@@ -250,6 +251,7 @@ void VideoConfig::GameIniLoad()
 	iniFile.GetIfExists("Video_Stereoscopy", "StereoDepthPercentage", &iStereoDepthPercentage, 100);
 
 	CHECK_SETTING("Video_Enhancements", "ForceFiltering", bForceFiltering);
+	CHECK_SETTING("Video_Enhancements", "DisableFiltering", bDisableTextureFiltering);
 	CHECK_SETTING("Video_Enhancements", "MaxAnisotropy", iMaxAnisotropy);  // NOTE - this is x in (1 << x)
 	CHECK_SETTING("Video_Enhancements", "UseScalingFilter", bUseScalingFilter);
 	CHECK_SETTING("Video_Enhancements", "TextureScalingType", iTexScalingType);
@@ -411,6 +413,7 @@ void VideoConfig::Save(const std::string& ini_file)
 
 	IniFile::Section* enhancements = iniFile.GetOrCreateSection("Enhancements");
 	enhancements->Set("ForceFiltering", bForceFiltering);
+	enhancements->Set("DisableFiltering", bDisableTextureFiltering);
 	enhancements->Set("MaxAnisotropy", iMaxAnisotropy);
 	enhancements->Set("PostProcessingEnable", bPostProcessingEnable);
 	enhancements->Set("PostProcessingTrigger", iPostProcessingTrigger);

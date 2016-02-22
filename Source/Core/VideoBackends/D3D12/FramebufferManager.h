@@ -5,7 +5,7 @@
 #pragma once
 
 #include "d3d11.h"
-
+#include "VideoBackends/D3D12/D3DUtil.h"
 #include "VideoBackends/D3D12/D3DTexture.h"
 #include "VideoCommon/FramebufferManagerBase.h"
 
@@ -109,7 +109,7 @@ private:
 
 		int slices{};
 	} m_efb;
-
+	static constexpr size_t EFB_CACHE_PITCH = AlignValue(EFB_WIDTH * sizeof(int), D3D12_TEXTURE_DATA_PITCH_ALIGNMENT);
 	static unsigned int m_target_width;
 	static unsigned int m_target_height;
 };

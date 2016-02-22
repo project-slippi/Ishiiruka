@@ -1194,6 +1194,11 @@ void Renderer::SetSamplerState(int stage, int texindex, bool custom_tex)
 		gx_state.sampler[stage].min_filter = 6; // 4 (linear mip) | 2 (linear min)
 		gx_state.sampler[stage].mag_filter = 1; // linear mag
 	}
+	else if (g_ActiveConfig.bDisableTextureFiltering)
+	{
+		gx_state.sampler[stage].min_filter = 0;
+		gx_state.sampler[stage].mag_filter = 0;
+	}
 	else
 	{
 		gx_state.sampler[stage].min_filter = (u32)tm0.min_filter;

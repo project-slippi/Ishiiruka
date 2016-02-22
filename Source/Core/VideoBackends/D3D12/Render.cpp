@@ -51,8 +51,6 @@ static bool s_last_xfb_mode = false;
 
 static Television s_television;
 
-static ID3D12Resource* s_access_efb_constant_buffer = nullptr;
-
 enum CLEAR_BLEND_DESC
 {
 	CLEAR_BLEND_DESC_ALL_CHANNELS_ENABLED = 0,
@@ -108,25 +106,6 @@ static void SetupDeviceObjects()
 	s_television.Init();
 
 	g_framebuffer_manager = std::make_unique<FramebufferManager>();
-
-	float colmat[20] = { 0.0f };
-	colmat[0] = colmat[5] = colmat[10] = 1.0f;
-
-	CheckHR(
-		D3D::device12->CreateCommittedResource(
-			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
-			D3D12_HEAP_FLAG_NONE,
-			&CD3DX12_RESOURCE_DESC::Buffer(sizeof(colmat)),
-			D3D12_RESOURCE_STATE_GENERIC_READ,
-			nullptr,
-			IID_PPV_ARGS(&s_access_efb_constant_buffer)
-			)
-		);
-
-	// Copy inital data to access_efb_cbuf12.
-	void* access_efb_constant_buffer_data = nullptr;
-	CheckHR(s_access_efb_constant_buffer->Map(0, nullptr, &access_efb_constant_buffer_data));
-	memcpy(access_efb_constant_buffer_data, colmat, sizeof(colmat));
 
 	D3D12_DEPTH_STENCIL_DESC depth_desc;
 	depth_desc.DepthEnable = FALSE;
@@ -196,9 +175,6 @@ static void TeardownDeviceObjects()
 		s_screenshot_texture = nullptr;
 	}
 
-	D3D::command_list_mgr->DestroyResourceAfterCurrentCommandListExecuted(s_access_efb_constant_buffer);
-	s_access_efb_constant_buffer = nullptr;
-
 	s_television.Shutdown();
 
 	gx_state_cache.Clear();
@@ -210,7 +186,7 @@ void CreateScreenshotTexture()
 	// This texture is released to be recreated when the window is resized in Renderer::SwapImpl.
 
 	const unsigned int screenshot_buffer_size =
-		D3D::AlignValue(D3D::GetBackBufferWidth() * 4, D3D12_TEXTURE_DATA_PITCH_ALIGNMENT) *
+		AlignValue(D3D::GetBackBufferWidth() * 4, D3D12_TEXTURE_DATA_PITCH_ALIGNMENT) *
 		D3D::GetBackBufferHeight();
 
 	CheckHR(
@@ -712,7 +688,7 @@ bool Renderer::SaveScreenshot(const std::string& filename, const TargetRectangle
 	dst_location.PlacedFootprint.Footprint.Width = D3D::GetBackBufferWidth();
 	dst_location.PlacedFootprint.Footprint.Height = D3D::GetBackBufferHeight();
 	dst_location.PlacedFootprint.Footprint.Depth = 1;
-	dst_location.PlacedFootprint.Footprint.RowPitch = D3D::AlignValue(dst_location.PlacedFootprint.Footprint.Width * 4, D3D12_TEXTURE_DATA_PITCH_ALIGNMENT);
+	dst_location.PlacedFootprint.Footprint.RowPitch = AlignValue(dst_location.PlacedFootprint.Footprint.Width * 4, D3D12_TEXTURE_DATA_PITCH_ALIGNMENT);
 
 	D3D12_TEXTURE_COPY_LOCATION src_location = {};
 	src_location.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
@@ -897,7 +873,7 @@ void Renderer::SwapImpl(u32 xfb_addr, u32 fb_width, u32 fb_stride, u32 fb_height
 		dst_location.PlacedFootprint.Footprint.Width = GetTargetRectangle().GetWidth();
 		dst_location.PlacedFootprint.Footprint.Height = GetTargetRectangle().GetHeight();
 		dst_location.PlacedFootprint.Footprint.Depth = 1;
-		dst_location.PlacedFootprint.Footprint.RowPitch = D3D::AlignValue(dst_location.PlacedFootprint.Footprint.Width * 4, D3D12_TEXTURE_DATA_PITCH_ALIGNMENT);
+		dst_location.PlacedFootprint.Footprint.RowPitch = AlignValue(dst_location.PlacedFootprint.Footprint.Width * 4, D3D12_TEXTURE_DATA_PITCH_ALIGNMENT);
 
 		D3D12_TEXTURE_COPY_LOCATION src_location = {};
 		src_location.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
@@ -1324,6 +1300,11 @@ void Renderer::SetSamplerState(int stage, int tex_index, bool custom_tex)
 	{
 		gx_state.sampler[stage].min_filter = 6; // 4 (linear mip) | 2 (linear min)
 		gx_state.sampler[stage].mag_filter = 1; // linear mag
+	}
+	else if (g_ActiveConfig.bDisableTextureFiltering)
+	{
+		gx_state.sampler[stage].min_filter = 0;
+		gx_state.sampler[stage].mag_filter = 0;
 	}
 	else
 	{

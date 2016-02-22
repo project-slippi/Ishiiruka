@@ -476,6 +476,18 @@ void Renderer::UpdateDrawRectangle(int backbuffer_width, int backbuffer_height)
 	{
 		Ratio = (WinWidth / WinHeight) / AspectToWidescreen(VideoInterface::GetAspectRatio());
 	}
+	else if (g_ActiveConfig.iAspectRatio == ASPECT_4_3)
+	{
+		Ratio = (WinWidth / WinHeight) / (4.0f / 3.0f);
+	}
+	else if (g_ActiveConfig.iAspectRatio == ASPECT_16_9)
+	{
+		Ratio = (WinWidth / WinHeight) / (16.0f / 9.0f);
+	}
+	else if (g_ActiveConfig.iAspectRatio == ASPECT_16_10)
+	{
+		Ratio = (WinWidth / WinHeight) / (16.0f / 10.0f);
+	}
 	else
 	{
 		Ratio = (WinWidth / WinHeight) / VideoInterface::GetAspectRatio();

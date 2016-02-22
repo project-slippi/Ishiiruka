@@ -30,7 +30,8 @@ static const char* s_shader_common = R"(
 struct VS_INPUT
 {
 float4 position		: POSITION;
-float4 texCoord		: TEXCOORD0;
+float3 texCoord		: TEXCOORD0;
+float3 texCoord1		: TEXCOORD1;
 };
 
 struct VS_OUTPUT
@@ -57,7 +58,7 @@ static const char* s_vertex_shader = R"(
 void main(in VS_INPUT input, out VS_OUTPUT output)
 {
 output.position = input.position;
-output.srcTexCoord = input.texCoord;
+output.srcTexCoord = input.texCoord.xy;
 output.dstTexCoord = float2(input.position.x * 0.5f + 0.5f, 1.0f - (input.position.y * 0.5f + 0.5f));
 output.layer = input.texCoord.z;
 }

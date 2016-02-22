@@ -80,7 +80,7 @@ void FramebufferManager::InitializeEFBCache(const D3D12_CLEAR_VALUE& color_clear
 	D3D::SetDebugObjectName12(m_efb.color_cache_tex->GetTex(), "EFB color cache texture");
 
 	// AccessEFB - Sysmem buffer used to retrieve the pixel data from color_tex
-	tex_desc = CD3DX12_RESOURCE_DESC::Buffer(D3D::AlignValue(EFB_WIDTH * sizeof(int), D3D12_TEXTURE_DATA_PITCH_ALIGNMENT) * EFB_HEIGHT);
+	tex_desc = CD3DX12_RESOURCE_DESC::Buffer(EFB_CACHE_PITCH * EFB_HEIGHT);
 	hr = D3D::device12->CreateCommittedResource(&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_READBACK), D3D12_HEAP_FLAG_NONE, &tex_desc, D3D12_RESOURCE_STATE_COPY_DEST, nullptr, IID_PPV_ARGS(&m_efb.color_cache_buf));
 	CHECK(hr == S_OK, "create EFB color cache buffer (hr=%#x)", hr);
 
@@ -93,7 +93,7 @@ void FramebufferManager::InitializeEFBCache(const D3D12_CLEAR_VALUE& color_clear
 	D3D::SetDebugObjectName12(m_efb.depth_cache_tex->GetTex(), "EFB depth cache texture (used in Renderer::AccessEFB)");
 
 	// AccessEFB - Sysmem buffer used to retrieve the pixel data from depth_read_texture
-	tex_desc = CD3DX12_RESOURCE_DESC::Buffer(D3D::AlignValue(EFB_WIDTH * sizeof(float), D3D12_TEXTURE_DATA_PITCH_ALIGNMENT) * EFB_HEIGHT);
+	tex_desc = CD3DX12_RESOURCE_DESC::Buffer(EFB_CACHE_PITCH * EFB_HEIGHT);
 	hr = D3D::device12->CreateCommittedResource(&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_READBACK), D3D12_HEAP_FLAG_NONE, &tex_desc, D3D12_RESOURCE_STATE_COPY_DEST, nullptr, IID_PPV_ARGS(&m_efb.depth_cache_buf));
 	CHECK(hr == S_OK, "create EFB depth cache buffer (hr=%#x)", hr);
 	D3D::SetDebugObjectName12(m_efb.depth_cache_buf, "EFB depth cache buffer");
@@ -291,8 +291,7 @@ u32 FramebufferManager::GetEFBCachedColor(u32 x, u32 y)
 	if (!m_efb.color_cache_data)
 		PopulateEFBColorCache();
 
-	u32 row_offset = y * D3D::AlignValue(EFB_WIDTH * sizeof(int), D3D12_TEXTURE_DATA_PITCH_ALIGNMENT);
-	const u32* row = reinterpret_cast<const u32*>(m_efb.color_cache_data + row_offset);
+	const u32* row = reinterpret_cast<const u32*>(m_efb.color_cache_data + y * EFB_CACHE_PITCH);
 	return row[x];
 }
 
@@ -301,8 +300,8 @@ float FramebufferManager::GetEFBCachedDepth(u32 x, u32 y)
 	if (!m_efb.depth_cache_data)
 		PopulateEFBDepthCache();
 
-	u32 row_offset = y * D3D::AlignValue(EFB_WIDTH * sizeof(float), D3D12_TEXTURE_DATA_PITCH_ALIGNMENT);
-	const float* row = reinterpret_cast<const float*>(m_efb.depth_cache_data + row_offset);
+	u32 row_offset = y * EFB_CACHE_PITCH;
+	const float* row = reinterpret_cast<const float*>(m_efb.depth_cache_data + y * EFB_CACHE_PITCH);
 	return row[x];
 }
 
@@ -311,8 +310,7 @@ void FramebufferManager::SetEFBCachedColor(u32 x, u32 y, u32 value)
 	if (!m_efb.color_cache_data)
 		return;
 
-	u32 row_offset = y * D3D::AlignValue(EFB_WIDTH * sizeof(int), D3D12_TEXTURE_DATA_PITCH_ALIGNMENT);
-	u32* row = reinterpret_cast<u32*>(m_efb.color_cache_data + row_offset);
+	u32* row = reinterpret_cast<u32*>(m_efb.color_cache_data + y * EFB_CACHE_PITCH);
 	row[x] = value;
 }
 
@@ -321,8 +319,7 @@ void FramebufferManager::SetEFBCachedDepth(u32 x, u32 y, float value)
 	if (!m_efb.depth_cache_data)
 		return;
 
-	u32 row_offset = y * D3D::AlignValue(EFB_WIDTH * sizeof(float), D3D12_TEXTURE_DATA_PITCH_ALIGNMENT);
-	float* row = reinterpret_cast<float*>(m_efb.depth_cache_data + row_offset);
+	float* row = reinterpret_cast<float*>(m_efb.depth_cache_data + y * EFB_CACHE_PITCH);
 	row[x] = value;
 }
 
@@ -370,7 +367,7 @@ void FramebufferManager::PopulateEFBColorCache()
 	dst_location.PlacedFootprint.Footprint.Width = EFB_WIDTH;
 	dst_location.PlacedFootprint.Footprint.Height = EFB_HEIGHT;
 	dst_location.PlacedFootprint.Footprint.Depth = 1;
-	dst_location.PlacedFootprint.Footprint.RowPitch = D3D::AlignValue(EFB_WIDTH * sizeof(int), D3D12_TEXTURE_DATA_PITCH_ALIGNMENT);
+	dst_location.PlacedFootprint.Footprint.RowPitch = EFB_CACHE_PITCH;
 
 	D3D12_TEXTURE_COPY_LOCATION src_location = {};
 	src_location.pResource = src_texture->GetTex();
@@ -381,13 +378,14 @@ void FramebufferManager::PopulateEFBColorCache()
 	D3D::current_command_list->CopyTextureRegion(&dst_location, 0, 0, 0, &src_location, &src_box);
 	// Need to wait for the CPU to complete the copy (and all prior operations) before we can read it on the CPU.
 	D3D::command_list_mgr->ExecuteQueuedWork(true);
+
+	// Restores proper viewport/scissor settings.
 	m_efb.color_tex->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_RENDER_TARGET);
 	m_efb.depth_tex->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_DEPTH_WRITE);
 	D3D::current_command_list->OMSetRenderTargets(1, &m_efb.color_tex->GetRTV(), FALSE, &m_efb.depth_tex->GetDSV());
 	g_renderer->RestoreAPIState();
-	void* data = nullptr;
-	HRESULT hr = m_efb.color_cache_buf->Map(0, nullptr, &data);
-	m_efb.color_cache_data = reinterpret_cast<u8*>(data);
+
+	HRESULT hr = m_efb.color_cache_buf->Map(0, nullptr, reinterpret_cast<void**>(&m_efb.color_cache_data));	
 	CHECK(SUCCEEDED(hr), "failed to map efb peek color cache texture (hr=%08X)", hr);
 }
 
@@ -443,7 +441,7 @@ void FramebufferManager::PopulateEFBDepthCache()
 	dst_location.PlacedFootprint.Footprint.Width = EFB_WIDTH;
 	dst_location.PlacedFootprint.Footprint.Height = EFB_HEIGHT;
 	dst_location.PlacedFootprint.Footprint.Depth = 1;
-	dst_location.PlacedFootprint.Footprint.RowPitch = D3D::AlignValue(EFB_WIDTH * sizeof(float), D3D12_TEXTURE_DATA_PITCH_ALIGNMENT);
+	dst_location.PlacedFootprint.Footprint.RowPitch = EFB_CACHE_PITCH;
 
 	D3D12_TEXTURE_COPY_LOCATION src_location = {};
 	src_location.pResource = src_texture->GetTex();
@@ -453,17 +451,16 @@ void FramebufferManager::PopulateEFBDepthCache()
 	src_texture->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_COPY_SOURCE);
 	D3D::current_command_list->CopyTextureRegion(&dst_location, 0, 0, 0, &src_location, &src_box);
 	
-
-	// Restores proper viewport/scissor settings.
-	g_renderer->RestoreAPIState();
 	// Need to wait for the CPU to complete the copy (and all prior operations) before we can read it on the CPU.
 	D3D::command_list_mgr->ExecuteQueuedWork(true);
+	
+	// Restores proper viewport/scissor settings.
 	m_efb.color_tex->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_RENDER_TARGET);
 	m_efb.depth_tex->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_DEPTH_WRITE);
 	D3D::current_command_list->OMSetRenderTargets(1, &m_efb.color_tex->GetRTV(), FALSE, &m_efb.depth_tex->GetDSV());
-	void* data = nullptr;
-	HRESULT hr = m_efb.depth_cache_buf->Map(0, nullptr, &data);
-	m_efb.depth_cache_data = reinterpret_cast<u8*>(data);
+	g_renderer->RestoreAPIState();
+
+	HRESULT hr = m_efb.depth_cache_buf->Map(0, nullptr, reinterpret_cast<void**>(&m_efb.depth_cache_data));	
 	CHECK(SUCCEEDED(hr), "failed to map efb peek color cache texture (hr=%08X)", hr);
 }
 

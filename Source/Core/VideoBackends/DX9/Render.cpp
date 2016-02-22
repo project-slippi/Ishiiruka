@@ -1288,6 +1288,10 @@ void Renderer::SetSamplerState(int stage, int texindex, bool custom_tex)
 	{
 		min = mag = mip = D3DTEXF_LINEAR;
 	}
+	else if (g_ActiveConfig.bDisableTextureFiltering)
+	{
+		min = mag = mip = D3DTEXF_NONE;
+	}
 	else
 	{
 		min = (tm0.min_filter & 4) ? D3DTEXF_LINEAR : D3DTEXF_POINT;

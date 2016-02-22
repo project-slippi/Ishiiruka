@@ -79,7 +79,7 @@ void PSTextureEncoder::Init()
 			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_READBACK),
 			D3D12_HEAP_FLAG_NONE,
 			&CD3DX12_RESOURCE_DESC::Buffer(
-				D3D::AlignValue(static_cast<unsigned int>(out_tex_desc.Width) * 4, D3D12_TEXTURE_DATA_PITCH_ALIGNMENT) *
+				AlignValue(static_cast<unsigned int>(out_tex_desc.Width) * 4, D3D12_TEXTURE_DATA_PITCH_ALIGNMENT) *
 				out_tex_desc.Height
 				),
 			D3D12_RESOURCE_STATE_COPY_DEST,
@@ -209,7 +209,7 @@ void PSTextureEncoder::Encode(u8* dst, u32 format, u32 native_width, u32 bytes_p
 	dst_location.PlacedFootprint.Footprint.Width = EFB_WIDTH * 4;
 	dst_location.PlacedFootprint.Footprint.Height = EFB_HEIGHT / 4;
 	dst_location.PlacedFootprint.Footprint.Depth = 1;
-	dst_location.PlacedFootprint.Footprint.RowPitch = D3D::AlignValue(dst_location.PlacedFootprint.Footprint.Width * 4, D3D12_TEXTURE_DATA_PITCH_ALIGNMENT);
+	dst_location.PlacedFootprint.Footprint.RowPitch = AlignValue(dst_location.PlacedFootprint.Footprint.Width * 4, D3D12_TEXTURE_DATA_PITCH_ALIGNMENT);
 
 	D3D12_TEXTURE_COPY_LOCATION src_location = {};
 	src_location.pResource = m_out;

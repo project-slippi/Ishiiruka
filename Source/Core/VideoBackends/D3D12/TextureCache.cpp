@@ -129,7 +129,7 @@ bool TextureCache::TCacheEntry::Save(const std::string& filename, unsigned int l
 
 	D3D12_RESOURCE_DESC texture_desc = m_texture->GetTex()->GetDesc();
 
-	const unsigned int required_readback_buffer_size = D3D::AlignValue(static_cast<unsigned int>(texture_desc.Width) * 4, D3D12_TEXTURE_DATA_PITCH_ALIGNMENT);
+	const unsigned int required_readback_buffer_size = AlignValue(static_cast<unsigned int>(texture_desc.Width) * 4, D3D12_TEXTURE_DATA_PITCH_ALIGNMENT);
 
 	if (s_texture_cache_entry_readback_buffer_size < required_readback_buffer_size)
 	{
@@ -169,7 +169,7 @@ bool TextureCache::TCacheEntry::Save(const std::string& filename, unsigned int l
 	dst_location.PlacedFootprint.Footprint.Format = texture_desc.Format;
 	dst_location.PlacedFootprint.Footprint.Width = static_cast<UINT>(texture_desc.Width);
 	dst_location.PlacedFootprint.Footprint.Height = texture_desc.Height;
-	dst_location.PlacedFootprint.Footprint.RowPitch = D3D::AlignValue(dst_location.PlacedFootprint.Footprint.Width * 4, D3D12_TEXTURE_DATA_PITCH_ALIGNMENT);
+	dst_location.PlacedFootprint.Footprint.RowPitch = AlignValue(dst_location.PlacedFootprint.Footprint.Width * 4, D3D12_TEXTURE_DATA_PITCH_ALIGNMENT);
 
 	D3D12_TEXTURE_COPY_LOCATION src_location = CD3DX12_TEXTURE_COPY_LOCATION(m_texture->GetTex(), 0);
 
