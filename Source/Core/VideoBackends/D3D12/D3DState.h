@@ -104,6 +104,9 @@ public:
 		*pso_desc = &m_current_pso_desc;
 	};
 
+	// Called when the MSAA count/quality changes. Invalidates all small PSOs.
+	void OnMSAASettingsChanged();
+
 	// Release all cached states and clear hash tables.
 	void Clear();
 
@@ -135,7 +138,8 @@ private:
 				lhs.BlendState.RenderTarget[0].DestBlend,
 				lhs.BlendState.RenderTarget[0].SrcBlend,
 				lhs.BlendState.RenderTarget[0].RenderTargetWriteMask,
-				lhs.RTVFormats[0]) ==
+				lhs.RTVFormats[0],
+				lhs.SampleDesc.Count) ==
 				std::tie(rhs.PS.pShaderBytecode, rhs.VS.pShaderBytecode, rhs.GS.pShaderBytecode,
 					rhs.RasterizerState.CullMode,
 					rhs.DepthStencilState.DepthEnable,
@@ -146,7 +150,8 @@ private:
 					rhs.BlendState.RenderTarget[0].DestBlend,
 					rhs.BlendState.RenderTarget[0].SrcBlend,
 					rhs.BlendState.RenderTarget[0].RenderTargetWriteMask,
-					rhs.RTVFormats[0]);
+					rhs.RTVFormats[0],
+					rhs.SampleDesc.Count);
 		}
 	};
 

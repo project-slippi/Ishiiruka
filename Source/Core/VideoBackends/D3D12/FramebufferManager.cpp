@@ -209,8 +209,7 @@ void FramebufferManager::ResolveDepthTexture()
 	// ResolveSubresource does not work with depth textures.
 	// Instead, we use a shader that selects the minimum depth from all samples.
 
-	const D3D12_VIEWPORT vp = { 0.f, 0.f, static_cast<float>(m_target_width), static_cast<float>(m_target_height), D3D12_MIN_DEPTH, D3D12_MAX_DEPTH };
-	D3D::current_command_list->RSSetViewports(1, &vp);
+	D3D::SetViewportAndScissor(0, 0, m_target_width, m_target_height);
 
 	m_efb.resolved_depth_tex->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_RENDER_TARGET);
 	D3D::current_command_list->OMSetRenderTargets(0, &m_efb.resolved_depth_tex->GetRTV(), FALSE, nullptr);
@@ -252,8 +251,7 @@ void XFBSource::DecodeToTexture(u32 xfbAddr, u32 fbWidth, u32 fbHeight)
 void XFBSource::CopyEFB(float gamma)
 {
 	// Copy EFB data to XFB and restore render target again
-	const D3D12_VIEWPORT vp12 = { 0.f, 0.f,  static_cast<float>(texWidth), static_cast<float>(texHeight), D3D12_MIN_DEPTH, D3D12_MAX_DEPTH };
-	D3D::current_command_list->RSSetViewports(1, &vp12);
+	D3D::SetViewportAndScissor(0, 0, texWidth, texHeight);
 
 	const D3D12_RECT rect = CD3DX12_RECT(0, 0, texWidth, texHeight);
 
@@ -332,8 +330,7 @@ void FramebufferManager::PopulateEFBColorCache()
 	if (g_ActiveConfig.iEFBScale != SCALE_1X || g_ActiveConfig.iMultisamples > 1)
 	{
 		D3D12_RECT src_rect = { 0, 0, static_cast<LONG>(m_target_width), static_cast<LONG>(m_target_height) };
-		D3D12_VIEWPORT vp = { 0.0f, 0.0f, static_cast<float>(EFB_WIDTH),static_cast<float>(EFB_HEIGHT), D3D12_MIN_DEPTH, D3D12_MAX_DEPTH };
-		D3D::current_command_list->RSSetViewports(1, &vp);
+		D3D::SetViewportAndScissor(0, 0, EFB_WIDTH, EFB_HEIGHT);
 		m_efb.color_cache_tex->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_RENDER_TARGET);
 		D3D::current_command_list->OMSetRenderTargets(1, &m_efb.color_cache_tex->GetRTV(), FALSE, nullptr);
 		D3D::SetPointCopySampler();
@@ -397,8 +394,7 @@ void FramebufferManager::PopulateEFBDepthCache()
 	DX12::D3DTexture2D* src_texture;
 	if (g_ActiveConfig.iEFBScale != SCALE_1X || g_ActiveConfig.iMultisamples > 1)
 	{
-		const D3D12_VIEWPORT vp12 = { 0.f, 0.f, static_cast<float>(EFB_WIDTH), static_cast<float>(EFB_HEIGHT), D3D12_MIN_DEPTH, D3D12_MAX_DEPTH };
-		D3D::current_command_list->RSSetViewports(1, &vp12);
+		D3D::SetViewportAndScissor(0, 0, EFB_WIDTH, EFB_HEIGHT);
 
 		m_efb.depth_cache_tex->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_RENDER_TARGET);
 		D3D::current_command_list->OMSetRenderTargets(0, &m_efb.depth_cache_tex->GetRTV(), FALSE, nullptr);

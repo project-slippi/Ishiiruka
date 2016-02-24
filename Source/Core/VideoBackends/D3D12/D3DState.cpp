@@ -122,16 +122,14 @@ StateCache::StateCache()
 	m_current_pso_desc.IBStripCutValue = D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_0xFFFF;
 	m_current_pso_desc.NumRenderTargets = 1;
 	m_current_pso_desc.SampleMask = UINT_MAX;
+	m_current_pso_desc.SampleDesc.Count = g_ActiveConfig.iMultisamples;
+	m_current_pso_desc.SampleDesc.Quality = 0;
 }
 
 void StateCache::Init()
 {
 	// Root signature isn't available at time of StateCache construction, so fill it in now.
 	gx_state_cache.m_current_pso_desc.pRootSignature = D3D::default_root_signature;
-
-	// Multi-sample configuration isn't available at time of StateCache construction, so fille it in now.
-	gx_state_cache.m_current_pso_desc.SampleDesc.Count = g_ActiveConfig.iMultisamples;
-	gx_state_cache.m_current_pso_desc.SampleDesc.Quality = 0;
 
 	if (!File::Exists(File::GetUserPath(D_SHADERCACHE_IDX)))
 		File::CreateDir(File::GetUserPath(D_SHADERCACHE_IDX));
@@ -468,6 +466,18 @@ HRESULT StateCache::GetPipelineStateObjectFromCache(SmallPsoDesc* pso_desc, ID3D
 	}
 
 	return S_OK;
+}
+
+void StateCache::OnMSAASettingsChanged()
+{
+	for (auto& it : m_small_pso_map)
+	{
+		SAFE_RELEASE(it.second);
+	}
+	m_small_pso_map.clear();
+
+	// Update sample count for new PSOs being created
+	gx_state_cache.m_current_pso_desc.SampleDesc.Count = g_ActiveConfig.iMultisamples;
 }
 
 void StateCache::Clear()

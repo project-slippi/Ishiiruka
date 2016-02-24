@@ -30,6 +30,7 @@ static std::unique_ptr<TextureEncoder> s_encoder;
 static std::unique_ptr<TextureScaler> s_scaler;
 
 static std::unique_ptr<D3DStreamBuffer> s_efb_copy_stream_buffer = nullptr;
+static u32 s_efb_copy_last_cbuf_id = UINT_MAX;
 
 static ID3D12Resource* s_texture_cache_entry_readback_buffer = nullptr;
 static void* s_texture_cache_entry_readback_buffer_data = nullptr;
@@ -228,15 +229,7 @@ void TextureCache::TCacheEntry::CopyRectangleFromTexture(
 		return;
 	}
 
-	const D3D12_VIEWPORT vp12 = {
-		float(dst_rect.left),
-		float(dst_rect.top),
-		float(dst_rect.GetWidth()),
-		float(dst_rect.GetHeight()),
-		D3D12_MIN_DEPTH,
-		D3D12_MAX_DEPTH
-	};
-	D3D::current_command_list->RSSetViewports(1, &vp12);
+	D3D::SetViewportAndScissor(dst_rect.left, dst_rect.top, dst_rect.GetWidth(), dst_rect.GetHeight());
 
 	m_texture->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_RENDER_TARGET);
 	D3D::current_command_list->OMSetRenderTargets(1, &m_texture->GetRTV(), FALSE, nullptr);
@@ -432,8 +425,6 @@ TextureCacheBase::TCacheEntryBase* TextureCache::CreateTexture(const TCacheEntry
 void TextureCache::TCacheEntry::FromRenderTarget(u8* dst, PEControl::PixelFormat src_format, const EFBRectangle& src_rect,
 	bool scale_by_half, u32 cbuf_id, const float* colmat)
 {
-	static unsigned int old_cbuf_id = UINT_MAX;
-
 	// When copying at half size, in multisampled mode, resolve the color/depth buffer first.
 	// This is because multisampled texture reads go through Load, not Sample, and the linear
 	// filter is ignored.
@@ -449,25 +440,15 @@ void TextureCache::TCacheEntry::FromRenderTarget(u8* dst, PEControl::PixelFormat
 			FramebufferManager::GetResolvedEFBColorTexture();
 	}
 
-	// stretch picture with increased internal resolution
-	const D3D12_VIEWPORT vp = {
-		0.f,
-		0.f,
-		static_cast<float>(config.width),
-		static_cast<float>(config.height),
-		D3D12_MIN_DEPTH,
-		D3D12_MAX_DEPTH
-	};
-	D3D::current_command_list->RSSetViewports(1, &vp);
-
 	// set transformation
-	if (cbuf_id != old_cbuf_id)
+	if (s_efb_copy_last_cbuf_id != cbuf_id)
 	{
 		s_efb_copy_stream_buffer->AllocateSpaceInBuffer(28 * sizeof(float), 256);
 		memcpy(s_efb_copy_stream_buffer->GetCPUAddressOfCurrentAllocation(), colmat, 28 * sizeof(float));
-		old_cbuf_id = cbuf_id;
+		s_efb_copy_last_cbuf_id = cbuf_id;
 	}
-
+	// stretch picture with increased internal resolution
+	D3D::SetViewportAndScissor(0, 0, config.width, config.height);
 	D3D::current_command_list->SetGraphicsRootConstantBufferView(DESCRIPTOR_TABLE_PS_CBVONE, s_efb_copy_stream_buffer->GetGPUAddressOfCurrentAllocation());
 	D3D::command_list_mgr->SetCommandListDirtyState(COMMAND_LIST_STATE_PS_CBV, true);
 
@@ -618,8 +599,8 @@ bool TextureCache::Palettize(TCacheEntryBase* entry, const TCacheEntryBase* unco
 	}
 	const TCacheEntry* base_entry = static_cast<const TCacheEntry*>(unconverted);
 	// stretch picture with increased internal resolution
-	const D3D12_VIEWPORT vp = { 0.f, 0.f, (float)unconverted->config.width, (float)unconverted->config.height, D3D12_MIN_DEPTH, D3D12_MAX_DEPTH };
-	D3D::current_command_list->RSSetViewports(1, &vp);
+	// stretch picture with increased internal resolution
+	D3D::SetViewportAndScissor(0, 0, unconverted->config.width, unconverted->config.height);
 
 	// D3D12: Because the second SRV slot is occupied by this buffer, and an arbitrary texture occupies the first SRV slot,
 	// we need to allocate temporary space out of our descriptor heap, place the palette SRV in the second slot, then copy the
@@ -729,6 +710,7 @@ TextureCache::TextureCache()
 	s_texture_cache_entry_readback_buffer_size = 0;
 
 	s_efb_copy_stream_buffer = std::make_unique<D3DStreamBuffer>(1024 * 1024, 1024 * 1024, nullptr);
+	s_efb_copy_last_cbuf_id = UINT_MAX;
 
 	m_palette_pixel_shaders[GX_TL_IA8] = GetConvertShader("IA8");
 	m_palette_pixel_shaders[GX_TL_RGB565] = GetConvertShader("RGB565");
