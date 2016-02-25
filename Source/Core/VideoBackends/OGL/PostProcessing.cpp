@@ -85,8 +85,14 @@ for (int i = 0; i < %d; i++)
 
 )";
 
+PostProcessingShader::PostProcessingShader()
+{
+	m_uniform_buffer = StreamBuffer::Create(GL_UNIFORM_BUFFER, static_cast<u32>(PostProcessor::UNIFORM_BUFFER_SIZE * 1024));
+}
+
 PostProcessingShader::~PostProcessingShader()
 {
+	m_uniform_buffer.reset();
 	for (RenderPassData& pass : m_passes)
 	{
 		for (InputBinding& input : pass.inputs)
@@ -129,7 +135,7 @@ bool PostProcessingShader::IsLastPassScaled() const
 	return m_passes[m_last_pass_index].output_size != m_internal_size;
 }
 
-bool PostProcessingShader::Initialize(const PostProcessingShaderConfiguration* config, int target_layers)
+bool PostProcessingShader::Initialize(PostProcessingShaderConfiguration* config, int target_layers)
 {
 	m_config = config;
 	m_internal_layers = target_layers;
@@ -268,6 +274,10 @@ bool PostProcessingShader::RecompileShaders()
 		if (block_index != GL_INVALID_INDEX)
 			glUniformBlockBinding(pass.program->glprogid, block_index, UNIFORM_BUFFER_BIND_POINT);
 
+		block_index = glGetUniformBlockIndex(pass.program->glprogid, "ConfigurationConstants");
+		if (block_index != GL_INVALID_INDEX)
+			glUniformBlockBinding(pass.program->glprogid, block_index, UNIFORM_BUFFER_BIND_POINT + 1);
+
 		// Only generate a GS-expanding program if needed
 		std::unique_ptr<SHADER> gs_program;
 		if (m_internal_layers > 1)
@@ -365,6 +375,30 @@ void PostProcessingShader::LinkPassOutputs()
 	}
 }
 
+
+void PostProcessingShader::MapAndUpdateConfigurationBuffer()
+{
+	// Skip writing to buffer if there were no changes
+	u32 buffer_size;
+	void* buffer_data = m_config->UpdateConfigurationBuffer(&buffer_size);
+	if (buffer_data)
+	{
+		// Annoyingly, due to latched state, we have to bind our private uniform buffer here, then restore the
+		// ProgramShaderCache uniform buffer afterwards, otherwise we'll end up flushing the wrong buffer.
+		glBindBuffer(GL_UNIFORM_BUFFER, m_uniform_buffer->m_buffer);
+
+		auto mapped_buffer = m_uniform_buffer->Map(buffer_size, ProgramShaderCache::GetUniformBufferAlignment());
+		memcpy(mapped_buffer.first, buffer_data, buffer_size);
+		m_uniform_buffer->Unmap(buffer_size);
+
+		glBindBufferRange(GL_UNIFORM_BUFFER, UNIFORM_BUFFER_BIND_POINT + 1, m_uniform_buffer->m_buffer, mapped_buffer.second, buffer_size);
+
+		ProgramShaderCache::BindUniformBuffer();
+
+		ADDSTAT(stats.thisFrame.bytesUniformStreamed, buffer_size);
+	}
+}
+
 void PostProcessingShader::Draw(OGLPostProcessor* parent,
 	const TargetRectangle& dst_rect, const TargetSize& dst_size, GLuint dst_texture,
 	const TargetRectangle& src_rect, const TargetSize& src_size, GLuint src_texture,
@@ -379,6 +413,8 @@ void PostProcessingShader::Draw(OGLPostProcessor* parent,
 	// If the last pass is not at full scale, we can't skip the copy.
 	if (m_passes[m_last_pass_index].output_size != src_size)
 		skip_final_copy = false;
+
+	MapAndUpdateConfigurationBuffer();
 
 	// Draw each pass.
 	PostProcessor::InputTextureSizeArray input_sizes;
@@ -453,7 +489,7 @@ void PostProcessingShader::Draw(OGLPostProcessor* parent,
 			glBindSampler(FIRST_INPUT_TEXTURE_UNIT + input.texture_unit, input.sampler_id);
 		}
 
-		parent->MapAndUpdateUniformBuffer(m_config, input_sizes, output_rect, output_size, src_rect, src_size, src_layer, gamma);
+		parent->MapAndUpdateUniformBuffer(input_sizes, output_rect, output_size, src_rect, src_size, src_layer, gamma);
 		glViewport(output_rect.left, output_rect.bottom, output_rect.GetWidth(), output_rect.GetHeight());
 		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 	}
@@ -500,7 +536,7 @@ bool OGLPostProcessor::Initialize()
 		return false;
 	}
 
-	m_uniform_buffer = StreamBuffer::Create(GL_UNIFORM_BUFFER, UNIFORM_BUFFER_SIZE * 16);
+	m_uniform_buffer = StreamBuffer::Create(GL_UNIFORM_BUFFER, static_cast<u32>(ALIGN_SIZE(POST_PROCESSING_CONTANTS_BUFFER_SIZE, 256) * 1024));
 	if (m_uniform_buffer == nullptr)
 	{
 		ERROR_LOG(VIDEO, "Failed to create postprocessing uniform buffer.");
@@ -546,7 +582,7 @@ void OGLPostProcessor::ReloadShaders()
 	m_stereo_buffer_size.Set(0, 0);
 }
 
-std::unique_ptr<PostProcessingShader> OGLPostProcessor::CreateShader(const PostProcessingShaderConfiguration* config)
+std::unique_ptr<PostProcessingShader> OGLPostProcessor::CreateShader(PostProcessingShaderConfiguration* config)
 {
 	std::unique_ptr<PostProcessingShader> shader = std::make_unique<PostProcessingShader>();
 	if (!shader->Initialize(config, FramebufferManager::GetEFBLayers()))
@@ -1022,30 +1058,29 @@ void OGLPostProcessor::CopyTexture(const TargetRectangle& dst_rect, GLuint dst_t
 	}
 }
 
-void OGLPostProcessor::MapAndUpdateUniformBuffer(const PostProcessingShaderConfiguration* config,
+void OGLPostProcessor::MapAndUpdateUniformBuffer(
 	const InputTextureSizeArray& input_sizes,
 	const TargetRectangle& dst_rect, const TargetSize& dst_size,
 	const TargetRectangle& src_rect, const TargetSize& src_size,
 	int src_layer, float gamma)
 {
 	// Skip writing to buffer if there were no changes
-	u32 buffer_size;
-	if (!UpdateUniformBuffer(API_OPENGL, config, input_sizes, dst_rect, dst_size, src_rect, src_size, src_layer, gamma, &buffer_size))
-		return;
+	if (UpdateConstantUniformBuffer(API_OPENGL, input_sizes, dst_rect, dst_size, src_rect, src_size, src_layer, gamma))
+	{
+		// Annoyingly, due to latched state, we have to bind our private uniform buffer here, then restore the
+		// ProgramShaderCache uniform buffer afterwards, otherwise we'll end up flushing the wrong buffer.
+		glBindBuffer(GL_UNIFORM_BUFFER, m_uniform_buffer->m_buffer);
 
-	// Annoyingly, due to latched state, we have to bind our private uniform buffer here, then restore the
-	// ProgramShaderCache uniform buffer afterwards, otherwise we'll end up flushing the wrong buffer.
-	glBindBuffer(GL_UNIFORM_BUFFER, m_uniform_buffer->m_buffer);
+		auto mapped_buffer = m_uniform_buffer->Map(POST_PROCESSING_CONTANTS_BUFFER_SIZE, ProgramShaderCache::GetUniformBufferAlignment());
+		memcpy(mapped_buffer.first, m_current_constants.data(), POST_PROCESSING_CONTANTS_BUFFER_SIZE);
+		m_uniform_buffer->Unmap(POST_PROCESSING_CONTANTS_BUFFER_SIZE);
 
-	auto mapped_buffer = m_uniform_buffer->Map(buffer_size, ProgramShaderCache::GetUniformBufferAlignment());
-	memcpy(mapped_buffer.first, m_current_constants.data(), buffer_size);
-	m_uniform_buffer->Unmap(buffer_size);
+		glBindBufferRange(GL_UNIFORM_BUFFER, UNIFORM_BUFFER_BIND_POINT, m_uniform_buffer->m_buffer, mapped_buffer.second, POST_PROCESSING_CONTANTS_BUFFER_SIZE);
 
-	glBindBufferRange(GL_UNIFORM_BUFFER, UNIFORM_BUFFER_BIND_POINT, m_uniform_buffer->m_buffer, mapped_buffer.second, buffer_size);
+		ProgramShaderCache::BindUniformBuffer();
 
-	ProgramShaderCache::BindUniformBuffer();
-
-	ADDSTAT(stats.thisFrame.bytesUniformStreamed, buffer_size);
+		ADDSTAT(stats.thisFrame.bytesUniformStreamed, POST_PROCESSING_CONTANTS_BUFFER_SIZE);
+	}
 }
 
 }  // namespace OGL

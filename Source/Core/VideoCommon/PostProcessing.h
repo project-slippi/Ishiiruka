@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include <array>
 #include <map>
 #include <memory>
 #include <string>
@@ -53,9 +54,17 @@ enum PostProcessingAddressMode : u32
 	POST_PROCESSING_ADDRESS_MODE_WRAP,                  // wrap around at edge
 	POST_PROCESSING_ADDRESS_MODE_BORDER                 // fixed color (0) at edge
 };
+// Each option is aligned to a float4
+union Constant
+{
+	float float_constant[4];
+	s32 int_constant[4];
+};
 
 // Maximum number of texture inputs to a post-processing shader.
 static const size_t POST_PROCESSING_MAX_TEXTURE_INPUTS = 4;
+static const size_t POST_PROCESSING_CONTANTS = POST_PROCESSING_MAX_TEXTURE_INPUTS + 6;
+static const size_t POST_PROCESSING_CONTANTS_BUFFER_SIZE = POST_PROCESSING_CONTANTS * sizeof(Constant);
 
 class PostProcessingShaderConfiguration
 {
@@ -148,6 +157,7 @@ public:
 	{
 		if (m_any_options_dirty || m_compile_time_constants_dirty)
 		{
+			m_configuration_buffer_dirty = m_any_options_dirty;
 			m_any_options_dirty = false;
 			m_compile_time_constants_dirty = false;
 			for (auto& it : m_options)
@@ -171,6 +181,9 @@ public:
 
 	// Get a list of available post-processing shaders.
 	static std::vector<std::string> GetAvailableShaderNames(const std::string& sub_dir);
+
+	void* UpdateConfigurationBuffer(u32* buffer_size);
+
 private:
 	struct ConfigBlock final
 	{
@@ -179,7 +192,7 @@ private:
 	};
 	
 	using StringOptionList = std::vector<ConfigBlock>;
-
+	bool m_configuration_buffer_dirty = true;
 	bool m_any_options_dirty = false;
 	bool m_compile_time_constants_dirty = false;
 	bool m_requires_depth_buffer = false;
@@ -187,6 +200,7 @@ private:
 	std::string m_shader_source;
 	ConfigMap m_options;
 	RenderPassList m_render_passes;
+	std::vector<Constant> m_constants;
 
 	bool ParseShader(const std::string& dirname, const std::string& path);
 	bool ParseConfiguration(const std::string& dirname, const std::string& configuration_string);
@@ -286,27 +300,13 @@ protected:
 		PROJECTION_STATE_FINAL
 	};
 
-	// Each option is aligned to a float4
-	union Constant
-	{
-		float float_constant[4];
-		s32 int_constant[4];
-	};
-
 	// Update constant buffer with the current values from the config.
 	// Returns true if the buffer contents has changed.
-	bool UpdateUniformBuffer(API_TYPE api,
-		const PostProcessingShaderConfiguration* config,
+	bool UpdateConstantUniformBuffer(API_TYPE api,
 		const InputTextureSizeArray& input_sizes,
 		const TargetRectangle& dst_rect, const TargetSize& dst_size,
 		const TargetRectangle& src_rect, const TargetSize& src_size,
-		int src_layer, float gamma, u32* buffer_size);
-
-	// Update constant buffer with the current values from the config.
-	void UpdateUniformBuffer(API_TYPE api, const PostProcessingShaderConfiguration* config,
-		void* buffer_ptr, const InputTextureSizeArray& input_sizes,
-		const TargetSize& src_size, const TargetRectangle& src_rect,
-		const TargetSize& dst_size, const TargetRectangle& dst_rect, int src_layer, float gamma);
+		int src_layer, float gamma);
 
 	// Load m_configs with the selected post-processing shaders.
 	void ReloadShaderConfigs();
@@ -340,8 +340,8 @@ protected:
 	bool m_requires_depth_buffer = false;
 
 	// Uniform buffer data, double-buffered so we don't update if unnecessary
-	std::vector<Constant> m_current_constants;
-	std::vector<Constant> m_new_constants;
+	std::array<Constant, POST_PROCESSING_CONTANTS> m_current_constants;
+	std::array<Constant, POST_PROCESSING_CONTANTS> m_new_constants;
 
 	// common shader code between backends
 	static const std::string s_post_fragment_header_ogl;

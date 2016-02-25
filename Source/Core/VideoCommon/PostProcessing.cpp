@@ -1331,18 +1331,27 @@ void PostProcessor::GetUniformBufferShaderSource(API_TYPE api, const PostProcess
 		shader_source += "cbuffer PostProcessingConstants : register(b0) {\n";
 
 	// Common constants
-	shader_source += "\tfloat4 u_input_resolutions[4];\n";
-	shader_source += "\tfloat4 u_target_resolution;\n";
-	shader_source += "\tfloat4 u_source_rect;\n";
-	shader_source += "\tfloat4 u_target_rect;\n";
-	shader_source += "\tfloat4 u_viewport_rect;\n";
-	shader_source += "\tfloat4 u_window_rect;\n";
-	shader_source += "\tfloat u_time;\n";
-	shader_source += "\tfloat u_src_layer;\n";
-	shader_source += "\tfloat u_native_gamma;\n";
-	shader_source += "\tuint u_scaling_filter;\n";
-
+	shader_source += "\tfloat4 u_input_resolutions[4];\n"
+		"\tfloat4 u_target_resolution;\n"
+		"\tfloat4 u_source_rect;\n"
+		"\tfloat4 u_target_rect;\n"
+		"\tfloat4 u_viewport_rect;\n"
+		"\tfloat4 u_window_rect;\n"
+		"\tfloat u_time;\n"
+		"\tfloat u_src_layer;\n"
+		"\tfloat u_native_gamma;\n"
+		"\tuint u_scaling_filter;\n"
+		"};\n";
+	if (config->GetOptions().size() == 0)
+	{
+		return;
+	}
 	// User options
+	if (api == API_OPENGL)
+		shader_source += "layout(std140) uniform ConfigurationConstants {\n";
+	else if (api == API_D3D11)
+		shader_source += "cbuffer ConfigurationConstants : register(b1) {\n";
+
 	u32 unused_counter = 2;
 	for (const auto& it : config->GetOptions())
 	{
@@ -1527,19 +1536,13 @@ std::string PostProcessor::GetPassFragmentShaderSource(API_TYPE api, const PostP
 	return shader_source;
 }
 
-bool  PostProcessor::UpdateUniformBuffer(API_TYPE api,
-	const PostProcessingShaderConfiguration* config,
+bool  PostProcessor::UpdateConstantUniformBuffer(API_TYPE api,
 	const InputTextureSizeArray& input_sizes,
 	const TargetRectangle& dst_rect, const TargetSize& dst_size,
 	const TargetRectangle& src_rect, const TargetSize& src_size,
-	int src_layer, float gamma, u32* buffer_size)
+	int src_layer, float gamma)
 {
 	// Check if the size has changed, due to options.
-	size_t active_constant_count = POST_PROCESSING_MAX_TEXTURE_INPUTS + 6 + config->GetOptions().size();
-	size_t active_constant_size = sizeof(Constant) * (u32)active_constant_count;
-	bool size_changed = (active_constant_count != m_current_constants.size());
-	*buffer_size = active_constant_size;
-	m_new_constants.resize(active_constant_count);
 	Constant temp;
 	// float4 input_resolutions[4]
 	for (size_t i = 0; i < POST_PROCESSING_MAX_TEXTURE_INPUTS; i++)
@@ -1601,8 +1604,32 @@ bool  PostProcessor::UpdateUniformBuffer(API_TYPE api,
 	m_new_constants[constant_idx] = temp;
 	constant_idx++;
 
+	// Any changes?
+	if (!memcmp(m_current_constants.data(), m_new_constants.data(), POST_PROCESSING_CONTANTS_BUFFER_SIZE))
+		return false;
+
+	// Swap buffer pointers, to avoid copying data again
+	std::swap(m_current_constants, m_new_constants);
+	return true;
+}
+
+
+void* PostProcessingShaderConfiguration::UpdateConfigurationBuffer(u32* buffer_size)
+{
+	size_t active_constant_count = m_options.size();
+	if (!m_configuration_buffer_dirty || !active_constant_count)
+	{
+		return nullptr;
+	}
+	m_configuration_buffer_dirty = false;
+	// Check if the size has changed, due to options.
+	m_constants.resize(active_constant_count);
+	Constant temp;
+	
+	size_t constant_idx = 0;
+
 	// Set from options. This is an ordered map so it will always match the order in the shader code generated.
-	for (const auto& it : config->GetOptions())
+	for (const auto& it : m_options)
 	{
 		// Skip compile-time constants, since they're set in the program source.
 		if (it.second.m_compile_time_constant)
@@ -1630,15 +1657,9 @@ bool  PostProcessor::UpdateUniformBuffer(API_TYPE api,
 		}
 		break;
 		}
-		m_new_constants[constant_idx] = temp;
+		m_constants[constant_idx] = temp;
 		constant_idx++;
 	}
-
-	// Any changes?
-	if (!size_changed && !memcmp(m_current_constants.data(), m_new_constants.data(), active_constant_size))
-		return false;
-
-	// Swap buffer pointers, to avoid copying data again
-	std::swap(m_current_constants, m_new_constants);
-	return true;
+	*buffer_size = constant_idx * sizeof(Constant);
+	return m_constants.data();
 }

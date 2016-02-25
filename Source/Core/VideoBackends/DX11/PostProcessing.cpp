@@ -89,8 +89,14 @@ for (int layer = 0; layer < 2; layer++)
 
 )";
 
+PostProcessingShader::PostProcessingShader()
+{
+	m_uniform_buffer = std::make_unique<D3D::ConstantStreamBuffer>(static_cast<int>(PostProcessor::UNIFORM_BUFFER_SIZE * 1024));
+}
+
 PostProcessingShader::~PostProcessingShader()
 {
+	m_uniform_buffer.reset();
 	for (RenderPassData& pass : m_passes)
 	{
 		for (InputBinding& input : pass.inputs)
@@ -117,7 +123,7 @@ bool PostProcessingShader::IsLastPassScaled() const
 	return (m_passes[m_last_pass_index].output_size != m_internal_size);
 }
 
-bool PostProcessingShader::Initialize(const PostProcessingShaderConfiguration* config, int target_layers)
+bool PostProcessingShader::Initialize(PostProcessingShaderConfiguration* config, int target_layers)
 {
 	m_internal_layers = target_layers;
 	m_config = config;
@@ -328,6 +334,17 @@ void PostProcessingShader::LinkPassOutputs()
 	}
 }
 
+void PostProcessingShader::MapAndUpdateConfigurationBuffer()
+{
+	u32 buffer_size;
+	void* buffer_data = m_config->UpdateConfigurationBuffer(&buffer_size);
+	if (buffer_data)
+	{
+		m_uniform_buffer->AppendData(buffer_data, buffer_size);
+	}
+	D3D::stateman->SetPixelConstants(1, m_uniform_buffer->GetDescriptor());
+}
+
 void PostProcessingShader::Draw(D3DPostProcessor* parent,
 	const TargetRectangle& dst_rect, const TargetSize& dst_size, D3DTexture2D* dst_texture,
 	const TargetRectangle& src_rect, const TargetSize& src_size, D3DTexture2D* src_texture,
@@ -337,6 +354,8 @@ void PostProcessingShader::Draw(D3DPostProcessor* parent,
 
 	// Determine whether we can skip the final copy by writing directly to the output texture, if the last pass is not scaled.
 	bool skip_final_copy = !IsLastPassScaled() && (dst_texture != src_texture || !m_last_pass_uses_color_buffer);
+
+	MapAndUpdateConfigurationBuffer();
 
 	// Draw each pass.
 	PostProcessor::InputTextureSizeArray input_sizes;
@@ -398,8 +417,7 @@ void PostProcessingShader::Draw(D3DPostProcessor* parent,
 
 		D3D::context->RSSetViewports(1, &output_viewport);
 
-		parent->MapAndUpdateUniformBuffer(m_config, input_sizes, output_rect, output_size, src_rect, src_size, src_layer, gamma);
-
+		parent->MapAndUpdateUniformBuffer(input_sizes, output_rect, output_size, src_rect, src_size, src_layer, gamma);
 		// Select geometry shader based on layers
 		ID3D11GeometryShader* geometry_shader = nullptr;
 		if (src_layer < 0 && m_internal_layers > 1)
@@ -484,19 +502,12 @@ bool D3DPostProcessor::CreateCommonShaders()
 
 bool D3DPostProcessor::CreateUniformBuffer()
 {
-	CD3D11_BUFFER_DESC buffer_desc(UNIFORM_BUFFER_SIZE, D3D11_BIND_CONSTANT_BUFFER, D3D11_USAGE_DYNAMIC, D3D11_CPU_ACCESS_WRITE, 0, 0);
 	m_uniform_buffer.reset();
-	HRESULT hr = D3D::device->CreateBuffer(&buffer_desc, nullptr, D3D::ToAddr(m_uniform_buffer));
-	if (FAILED(hr))
-	{
-		ERROR_LOG(VIDEO, "Failed to create post-processing uniform buffer (hr=%X)", hr);
-		return false;
-	}
-
+	m_uniform_buffer = std::make_unique<D3D::ConstantStreamBuffer>(static_cast<int>(ALIGN_SIZE(POST_PROCESSING_CONTANTS_BUFFER_SIZE, 256) * 1024));
 	return true;
 }
 
-std::unique_ptr<PostProcessingShader> D3DPostProcessor::CreateShader(const PostProcessingShaderConfiguration* config)
+std::unique_ptr<PostProcessingShader> D3DPostProcessor::CreateShader(PostProcessingShaderConfiguration* config)
 {
 	std::unique_ptr<PostProcessingShader> shader = std::make_unique<PostProcessingShader>();
 	if (!shader->Initialize(config, FramebufferManager::GetEFBLayers()))
@@ -670,8 +681,6 @@ void D3DPostProcessor::BlitScreen(const TargetRectangle& dst_rect, const TargetS
 			return;
 		}
 	}
-	// Bind constants early (shared across everything)
-	D3D::stateman->SetPixelConstants(m_uniform_buffer.get());
 
 	// Use stereo shader if enabled, otherwise invoke scaling shader, if that is invalid, fall back to blit.
 	if (m_stereo_shader)
@@ -748,9 +757,6 @@ void D3DPostProcessor::PostProcess(TargetRectangle* output_rect, TargetSize* out
 	{
 		input_depth_texture = real_src_depth_texture;
 	}
-
-	// Uniform buffer is shared across all shaders, bind it early.
-	D3D::stateman->SetPixelConstants(m_uniform_buffer.get());
 
 	// Loop through the shader list, applying each of them in sequence.
 	for (size_t shader_index = 0; shader_index < m_post_processing_shaders.size(); shader_index++)
@@ -941,24 +947,20 @@ void D3DPostProcessor::DisablePostProcessor()
 	m_active = false;
 }
 
-void D3DPostProcessor::MapAndUpdateUniformBuffer(const PostProcessingShaderConfiguration* config,
+void D3DPostProcessor::MapAndUpdateUniformBuffer(
 	const InputTextureSizeArray& input_sizes,
 	const TargetRectangle& dst_rect, const TargetSize& dst_size,
 	const TargetRectangle& src_rect, const TargetSize& src_size,
 	int src_layer, float gamma)
 {
 	// Skip writing to buffer if there were no changes
-	u32 buffer_size;
-	if (!UpdateUniformBuffer(API_D3D11, config, input_sizes, dst_rect, dst_size, src_rect, src_size, src_layer, gamma, &buffer_size))
-		return;
+	if (UpdateConstantUniformBuffer(API_D3D11, input_sizes, dst_rect, dst_size, src_rect, src_size, src_layer, gamma))
+	{
+		m_uniform_buffer->AppendData(m_current_constants.data(), POST_PROCESSING_CONTANTS_BUFFER_SIZE);
+		ADDSTAT(stats.thisFrame.bytesUniformStreamed, POST_PROCESSING_CONTANTS_BUFFER_SIZE);
+	}
+	D3D::stateman->SetPixelConstants(0, m_uniform_buffer->GetDescriptor());
 
-	D3D11_MAPPED_SUBRESOURCE mapped_cbuf;
-	HRESULT hr = D3D::context->Map(m_uniform_buffer.get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped_cbuf);
-	CHECK(SUCCEEDED(hr), "Map post processing constant buffer failed, hr=%X", hr);
-	memcpy(mapped_cbuf.pData, m_current_constants.data(), buffer_size);
-	D3D::context->Unmap(m_uniform_buffer.get(), 0);
-
-	ADDSTAT(stats.thisFrame.bytesUniformStreamed, buffer_size);
 }
 
 void D3DPostProcessor::CopyTexture(const TargetRectangle& dst_rect, D3DTexture2D* dst_texture,

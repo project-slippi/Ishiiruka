@@ -26,7 +26,7 @@ class D3DPostProcessor;
 class PostProcessingShader final
 {
 public:
-	PostProcessingShader() = default;
+	PostProcessingShader();
 	~PostProcessingShader();
 
 	D3DTexture2D* GetLastPassOutputTexture() const;
@@ -34,9 +34,9 @@ public:
 
 	bool IsReady() const { return m_ready; }
 
-	bool Initialize(const PostProcessingShaderConfiguration* config, int target_layers);
+	bool Initialize(PostProcessingShaderConfiguration* config, int target_layers);
 	bool Reconfigure(const TargetSize& new_size);
-
+	void MapAndUpdateConfigurationBuffer();
 	void Draw(D3DPostProcessor* parent,
 		const TargetRectangle& dst_rect, const TargetSize& dst_size, D3DTexture2D* dst_texture,
 		const TargetRectangle& src_rect, const TargetSize& src_size, D3DTexture2D* src_texture,
@@ -72,7 +72,8 @@ private:
 	bool ResizeOutputTextures(const TargetSize& new_size);
 	void LinkPassOutputs();
 
-	const PostProcessingShaderConfiguration* m_config;
+	PostProcessingShaderConfiguration* m_config;
+	std::unique_ptr<D3D::ConstantStreamBuffer> m_uniform_buffer;
 
 	TargetSize m_internal_size;
 	int m_internal_layers = 0;
@@ -106,7 +107,7 @@ public:
 		const TargetRectangle& src_depth_rect, const TargetSize& src_depth_size, uintptr_t src_depth_texture,
 		uintptr_t dst_texture = 0, const TargetRectangle* dst_rect = 0, const TargetSize* dst_size = 0) override;
 
-	void MapAndUpdateUniformBuffer(const PostProcessingShaderConfiguration* config,
+	void MapAndUpdateUniformBuffer(
 		const InputTextureSizeArray& input_sizes,
 		const TargetRectangle& dst_rect, const TargetSize& dst_size,
 		const TargetRectangle& src_rect, const TargetSize& src_size,
@@ -127,7 +128,7 @@ protected:
 	bool CreateCommonShaders();
 	bool CreateUniformBuffer();
 
-	std::unique_ptr<PostProcessingShader> CreateShader(const PostProcessingShaderConfiguration* config);
+	std::unique_ptr<PostProcessingShader> CreateShader(PostProcessingShaderConfiguration* config);
 	void CreatePostProcessingShaders();
 	void CreateScalingShader();
 	void CreateStereoShader();
@@ -145,7 +146,7 @@ protected:
 
 	D3D::VertexShaderPtr m_vertex_shader;
 	D3D::GeometryShaderPtr m_geometry_shader;
-	D3D::BufferPtr m_uniform_buffer;
+	std::unique_ptr<D3D::ConstantStreamBuffer> m_uniform_buffer;
 
 	std::unique_ptr<PostProcessingShader> m_scaling_shader;
 	std::unique_ptr<PostProcessingShader> m_stereo_shader;
