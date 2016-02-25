@@ -19,8 +19,6 @@ extern StateCache gx_state_cache;
 
 namespace D3D
 {
-#define AlignValue(value, alignment) (((value) + ((alignment) - 1)) & ~((alignment) - 1))
-
 void ResourceBarrier(ID3D12GraphicsCommandList* command_list, ID3D12Resource* resource, D3D12_RESOURCE_STATES state_before, D3D12_RESOURCE_STATES state_after, UINT subresource);
 
 // Font creation flags

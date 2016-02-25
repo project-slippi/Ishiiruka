@@ -151,9 +151,6 @@ Renderer::Renderer(void *&window_handle)
 
 	SetupDeviceObjects();
 
-	for (int stage = 0; stage < 8; stage++)
-		D3D::SetSamplerState(stage, D3DSAMP_MAXANISOTROPY, 1 << g_ActiveConfig.iMaxAnisotropy);
-
 	D3DVIEWPORT9 vp;
 	vp.X = 0;
 	vp.Y = 0;
@@ -1301,9 +1298,11 @@ void Renderer::SetSamplerState(int stage, int texindex, bool custom_tex)
 	if (texindex)
 		stage += 4;
 
-	if (mag == D3DTEXF_LINEAR && min == D3DTEXF_LINEAR && g_ActiveConfig.iMaxAnisotropy)
+	if (mag == D3DTEXF_LINEAR && min == D3DTEXF_LINEAR && g_ActiveConfig.iMaxAnisotropy > 1)
 	{
 		min = D3DTEXF_ANISOTROPIC;
+		mag = D3DTEXF_ANISOTROPIC;
+		D3D::SetSamplerState(stage, D3DSAMP_MAXANISOTROPY, 1 << g_ActiveConfig.iMaxAnisotropy);
 	}
 	D3D::SetSamplerState(stage, D3DSAMP_MINFILTER, min);
 	D3D::SetSamplerState(stage, D3DSAMP_MAGFILTER, mag);

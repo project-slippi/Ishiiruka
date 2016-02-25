@@ -251,7 +251,7 @@ int CD3DFont::Init()
 		D3D::device12->CreateCommittedResource(
 			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
 			D3D12_HEAP_FLAG_NONE,
-			&CD3DX12_RESOURCE_DESC::Buffer(AlignValue(m_tex_width * 4, D3D12_TEXTURE_DATA_PITCH_ALIGNMENT) * m_tex_height),
+			&CD3DX12_RESOURCE_DESC::Buffer(ALIGN_SIZE(m_tex_width * 4, D3D12_TEXTURE_DATA_PITCH_ALIGNMENT) * m_tex_height),
 			D3D12_RESOURCE_STATE_GENERIC_READ,
 			nullptr,
 			IID_PPV_ARGS(&temporaryFontTextureUploadBuffer)
