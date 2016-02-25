@@ -35,8 +35,6 @@ namespace DX11
 	static Common::SpinLock<true> s_hulldomain_shaders_lock;
 
 	std::unique_ptr<D3D::ConstantStreamBuffer> hdscbuf;
-	static UINT s_hdscbuf_offset = 0;
-	static UINT s_hdscbuf_size = 0;
 
 	LinearDiskCache<TessellationShaderUid, u8> g_hs_disk_cache;
 	LinearDiskCache<TessellationShaderUid, u8> g_ds_disk_cache;
@@ -45,13 +43,12 @@ namespace DX11
 	{
 		if (TessellationShaderManager::IsDirty())
 		{
-			s_hdscbuf_size = sizeof(TessellationShaderConstants);
-			s_hdscbuf_offset = hdscbuf->AppendData((void*)&TessellationShaderManager::constants, s_hdscbuf_size);
+			const size_t hdscbuf_size = sizeof(TessellationShaderConstants);
+			hdscbuf->AppendData((void*)&TessellationShaderManager::constants, hdscbuf_size);
 			TessellationShaderManager::Clear();
-			ADDSTAT(stats.thisFrame.bytesUniformStreamed, s_hdscbuf_size);
-			s_hdscbuf_size = (UINT)(((s_hdscbuf_size + 255) & (~255)) / 16);
+			ADDSTAT(stats.thisFrame.bytesUniformStreamed, hdscbuf_size);
 		}
-		return D3D::BufferDescriptor(hdscbuf->GetBuffer(), s_hdscbuf_offset, s_hdscbuf_size);
+		return hdscbuf->GetDescriptor();
 	}
 
 	// this class will load the precompiled shaders into our cache

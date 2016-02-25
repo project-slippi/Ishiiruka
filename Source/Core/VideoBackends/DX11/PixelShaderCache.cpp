@@ -43,8 +43,6 @@ D3D::PixelShaderPtr s_rgb8_to_rgba6[2];
 
 D3D::ConstantStreamBuffer* pscbuf;
 
-static UINT s_pscbuf_offset = 0;
-static UINT s_pscbuf_size = 0;
 const char* clear_program_code = R"hlsl(
 	void main(
 	out float4 ocol0 : SV_Target,
@@ -442,12 +440,11 @@ D3D::BufferDescriptor PixelShaderCache::GetConstantBuffer()
 	{
 		const int sz = C_PCONST_END * 4 * sizeof(float);
 		// TODO: divide the global variables of the generated shaders into about 5 constant buffers to speed this up
-		s_pscbuf_offset = pscbuf->AppendData((void*)PixelShaderManager::GetBuffer(), sz);
+		pscbuf->AppendData((void*)PixelShaderManager::GetBuffer(), sz);
 		PixelShaderManager::Clear();
 		ADDSTAT(stats.thisFrame.bytesUniformStreamed, sz);
-		s_pscbuf_size = (UINT)(((sz + 255) & (~255)) / 16);// transform to aligned buffer units
 	}
-	return D3D::BufferDescriptor(pscbuf->GetBuffer(), s_pscbuf_offset, s_pscbuf_size);
+	return pscbuf->GetDescriptor();
 }
 
 // this class will load the precompiled shaders into our cache

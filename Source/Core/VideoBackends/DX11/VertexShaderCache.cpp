@@ -41,8 +41,6 @@ ID3D11InputLayout* VertexShaderCache::GetSimpleInputLayout() { return s_simple_l
 ID3D11InputLayout* VertexShaderCache::GetClearInputLayout() { return s_clear_layout.get(); }
 
 D3D::ConstantStreamBuffer* vscbuf = nullptr;
-static UINT s_vscbuf_offset = 0;
-static UINT s_vscbuf_size = 0;
 
 D3D::BufferDescriptor VertexShaderCache::GetConstantBuffer()
 {
@@ -50,12 +48,11 @@ D3D::BufferDescriptor VertexShaderCache::GetConstantBuffer()
 	if (VertexShaderManager::IsDirty())
 	{
 		const size_t size = sizeof(float) * VertexShaderManager::ConstantBufferSize;
-		s_vscbuf_offset = vscbuf->AppendData((void*)VertexShaderManager::GetBuffer(), size);
+		vscbuf->AppendData((void*)VertexShaderManager::GetBuffer(), size);
 		VertexShaderManager::Clear();
 		ADDSTAT(stats.thisFrame.bytesUniformStreamed, size);
-		s_vscbuf_size = (UINT)(((size + 255) & (~255)) / 16);// transform to aligned buffer units
 	}
-	return D3D::BufferDescriptor(vscbuf->GetBuffer(), s_vscbuf_offset, s_vscbuf_size);
+	return vscbuf->GetDescriptor();
 }
 
 // this class will load the precompiled shaders into our cache

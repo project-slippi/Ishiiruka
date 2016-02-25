@@ -83,14 +83,18 @@ public:
 	// returns vertex offset to the new data
 	int AppendData(void* data, int size);
 
-	inline ID3D11Buffer* &GetBuffer() { return  buf; }
-
+	inline ID3D11Buffer* &GetBuffer() { return  m_buf; }
+	inline D3D::BufferDescriptor GetDescriptor() 
+	{
+		return D3D::BufferDescriptor(m_buf, (m_offset - m_current_size) >> 4, ALIGN_SIZE(m_current_size, 256) >> 4);
+	};
 private:
-	ID3D11Buffer* buf;
-	int offset;
-	int max_size;
-	bool m_use_partial_buffer_update;
-	bool m_need_init;
+	ID3D11Buffer* m_buf = nullptr;
+	int m_offset = 0;
+	int m_max_size = 0;
+	int m_current_size = 0;
+	bool m_use_partial_buffer_update = false;
+	bool m_need_init = true;
 };
 
 extern CD3DFont font;

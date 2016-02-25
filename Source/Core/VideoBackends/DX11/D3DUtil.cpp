@@ -97,39 +97,39 @@ void UtilVertexBuffer::AddWrapObserver(bool* observer)
 }
 
 
-ConstantStreamBuffer::ConstantStreamBuffer(int size) : buf(nullptr), offset(0), max_size(size), m_need_init(true)
+ConstantStreamBuffer::ConstantStreamBuffer(int size) : m_max_size(ALIGN_SIZE(size, 256)), m_need_init(true)
 {
 	m_use_partial_buffer_update = D3D::SupportPartialContantBufferUpdate();
-	D3D11_BUFFER_DESC desc = CD3D11_BUFFER_DESC(max_size, D3D11_BIND_CONSTANT_BUFFER, D3D11_USAGE_DYNAMIC, D3D11_CPU_ACCESS_WRITE);
-	device->CreateBuffer(&desc, nullptr, &buf);
+	D3D11_BUFFER_DESC desc = CD3D11_BUFFER_DESC(m_max_size, D3D11_BIND_CONSTANT_BUFFER, D3D11_USAGE_DYNAMIC, D3D11_CPU_ACCESS_WRITE);
+	device->CreateBuffer(&desc, nullptr, &m_buf);
 }
 
 ConstantStreamBuffer::~ConstantStreamBuffer()
 {
-	buf->Release();
+	m_buf->Release();
 }
 
 // returns vertex offset to the new data
 int ConstantStreamBuffer::AppendData(void* data, int size)
 {
 	D3D11_MAPPED_SUBRESOURCE map;
-	offset = ((offset + 255) & (~255)); // align offset to 256 bytes (16 units) as requested by microsoft documentation
-	if (offset + size >= max_size || m_need_init)
+	m_offset = ALIGN_SIZE(m_offset, 256); // align offset to 256 bytes (16 units) as requested by microsoft documentation
+	if (m_offset + size >= m_max_size || m_need_init)
 	{
 		// wrap buffer around
-		offset = 0;
-		context->Map(buf, 0, D3D11_MAP_WRITE_DISCARD, 0, &map);
+		m_offset = 0;
+		context->Map(m_buf, 0, D3D11_MAP_WRITE_DISCARD, 0, &map);
 		m_need_init = !m_use_partial_buffer_update;
 	}
 	else
 	{
-		context->Map(buf, 0, D3D11_MAP_WRITE_NO_OVERWRITE, 0, &map);
+		context->Map(m_buf, 0, D3D11_MAP_WRITE_NO_OVERWRITE, 0, &map);
 	}
-	memcpy((u8*)map.pData + offset, data, size);
-	context->Unmap(buf, 0);
-
-	offset += size;
-	return (offset - size) / 16; // the returned offset is represented in contant units (4 bytes x 4 items = 16 bytes)
+	memcpy((u8*)map.pData + m_offset, data, size);
+	context->Unmap(m_buf, 0);
+	m_current_size = size;
+	m_offset += size;
+	return (m_offset - size) / 16; // the returned offset is represented in contant units (4 bytes x 4 items = 16 bytes)
 }
 
 CD3DFont font;
