@@ -91,7 +91,8 @@ for (int layer = 0; layer < 2; layer++)
 
 PostProcessingShader::PostProcessingShader()
 {
-	m_uniform_buffer = std::make_unique<D3D::ConstantStreamBuffer>(static_cast<int>(PostProcessor::UNIFORM_BUFFER_SIZE * 1024));
+	bool use_partial_buffer_update = D3D::SupportPartialContantBufferUpdate();
+	m_uniform_buffer = std::make_unique<D3D::ConstantStreamBuffer>(static_cast<int>(PostProcessor::UNIFORM_BUFFER_SIZE * (use_partial_buffer_update ? 1024 : 1)));
 }
 
 PostProcessingShader::~PostProcessingShader()
@@ -503,7 +504,8 @@ bool D3DPostProcessor::CreateCommonShaders()
 bool D3DPostProcessor::CreateUniformBuffer()
 {
 	m_uniform_buffer.reset();
-	m_uniform_buffer = std::make_unique<D3D::ConstantStreamBuffer>(static_cast<int>(ALIGN_SIZE(POST_PROCESSING_CONTANTS_BUFFER_SIZE, 256) * 1024));
+	bool use_partial_buffer_update = D3D::SupportPartialContantBufferUpdate();
+	m_uniform_buffer = std::make_unique<D3D::ConstantStreamBuffer>(static_cast<int>(ALIGN_SIZE(POST_PROCESSING_CONTANTS_BUFFER_SIZE, 256) * (use_partial_buffer_update ? 1024 : 1)));
 	return true;
 }
 
