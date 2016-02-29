@@ -471,6 +471,9 @@
     <ClInclude Include="TessellationShaderManager.h">
       <Filter>Shader Managers</Filter>
     </ClInclude>
+    <ClInclude Include="SamplerCommon.h">
+      <Filter>Util</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="CMakeLists.txt" />

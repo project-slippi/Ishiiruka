@@ -147,6 +147,7 @@
     <ClInclude Include="DataReader.h" />
     <ClInclude Include="GeometryShaderGen.h" />
     <ClInclude Include="GeometryShaderManager.h" />
+    <ClInclude Include="SamplerCommon.h" />
     <ClInclude Include="TessellationShaderGen.h" />
     <ClInclude Include="TessellationShaderManager.h" />
     <ClInclude Include="ImageLoader.h" />

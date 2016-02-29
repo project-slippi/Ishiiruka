@@ -22,6 +22,7 @@
 
 #include "VideoCommon/VertexLoaderManager.h"
 #include "VideoCommon/VideoConfig.h"
+#include "VideoCommon/SamplerCommon.h"
 
 namespace DX12
 {
@@ -189,7 +190,7 @@ D3D12_SAMPLER_DESC StateCache::GetDesc(SamplerState state)
 	// Only use anisotropic filtering if one or both of the filters are set to Linear.
 	// If both filters are set to Point then using anisotropy is equivalent
 	// to "forced filtering" which will cause visual glitches.
-	if (g_ActiveConfig.iMaxAnisotropy > 1 && (state.min_filter & 4 || state.mag_filter))
+	if (g_ActiveConfig.iMaxAnisotropy > 1 && !SamplerCommon::IsBpTexMode0PointFilteringEnabled(state))
 	{
 		sampdc.Filter = D3D12_FILTER_ANISOTROPIC;
 		sampdc.MaxAnisotropy = 1 << g_ActiveConfig.iMaxAnisotropy;
@@ -245,8 +246,8 @@ D3D12_SAMPLER_DESC StateCache::GetDesc(SamplerState state)
 
 	sampdc.BorderColor[0] = sampdc.BorderColor[1] = sampdc.BorderColor[2] = sampdc.BorderColor[3] = 1.0f;
 
-	sampdc.MaxLOD = (mip == TexMode0::TEXF_NONE) ? 0.0f : static_cast<float>(state.max_lod) / 16.f;
-	sampdc.MinLOD = static_cast<float>(state.min_lod) / 16.f;
+	sampdc.MaxLOD = SamplerCommon::IsBpTexMode0MipmapsEnabled(state) ? static_cast<float>(state.max_lod) / 16.f : 0.f;
+	sampdc.MinLOD = std::min(static_cast<float>(state.min_lod) / 16.f, sampdc.MaxLOD);
 	sampdc.MipLODBias = static_cast<s32>(state.lod_bias) / 32.0f;
 
 	return sampdc;

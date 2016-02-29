@@ -6,6 +6,7 @@
 #include "Common/CommonTypes.h"
 #include "Common/GL/GLInterfaceBase.h"
 #include "VideoBackends/OGL/SamplerCache.h"
+#include "VideoCommon/SamplerCommon.h"
 #include "VideoCommon/VideoConfig.h"
 
 namespace OGL
@@ -141,23 +142,26 @@ void SamplerCache::SetParameters(GLuint sampler_id, const Params& params)
 	// Only ever use anisotropic filtering on textures which do not explicitly have
 	// Point Filtering modes set. Applying arbitrary filtering to those textures
 	// has incorrect results in some games. Only bForceFiltering should force it.
+
+	GLint min_filter = min_filters[tm0.min_filter];
+	GLint mag_filter = tm0.mag_filter ? GL_LINEAR : GL_NEAREST;
+
 	if (g_ActiveConfig.iMaxAnisotropy > 0 && g_ogl_config.bSupportsAniso &&
-		(tm0.min_filter & 4 || tm0.mag_filter))
+		!SamplerCommon::IsBpTexMode0PointFilteringEnabled(tm0))
 	{
 		// https://www.opengl.org/registry/specs/EXT/texture_filter_anisotropic.txt
-		// When using Anisotropic Filtering, only GL_LINEAR+GL_LINEAR_MIPMAP_LINEAR
-		// has guaranteed behavior. All other filter value combinations are implementation
-		// defined (They're valid, but the results are driver specific). This combination
-		// guarantees "best effort" and should match Direct3D's D3Dxx_FILTER_ANISOTROPIC.
-		glSamplerParameteri(sampler_id, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-		glSamplerParameteri(sampler_id, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		// For predictable results on all hardware/drivers, only use one of:
+		//	GL_LINEAR + GL_LINEAR (No Mipmaps [Bilinear])
+		//	GL_LINEAR + GL_LINEAR_MIPMAP_LINEAR (w/ Mipmaps [Trilinear])
+		// Letting the game set other combinations will have varying arbitrary results;
+		// possibly being interpreted as equal to bilinear/trilinear, implicitly
+		// disabling anisotropy, or changing the anisotropic algorithm employed.
+		min_filter = SamplerCommon::IsBpTexMode0MipmapsEnabled(tm0) ? GL_LINEAR_MIPMAP_LINEAR : GL_LINEAR;
+		mag_filter = GL_LINEAR;
 		glSamplerParameterf(sampler_id, GL_TEXTURE_MAX_ANISOTROPY_EXT, (float)(1 << g_ActiveConfig.iMaxAnisotropy));
 	}
-	else
-	{
-		glSamplerParameteri(sampler_id, GL_TEXTURE_MIN_FILTER, min_filters[tm0.min_filter % ArraySize(min_filters)]);
-		glSamplerParameteri(sampler_id, GL_TEXTURE_MAG_FILTER, tm0.mag_filter ? GL_LINEAR : GL_NEAREST);
-	}
+	glSamplerParameteri(sampler_id, GL_TEXTURE_MIN_FILTER, min_filter);
+	glSamplerParameteri(sampler_id, GL_TEXTURE_MAG_FILTER, mag_filter);
 }
 
 void SamplerCache::Clear()

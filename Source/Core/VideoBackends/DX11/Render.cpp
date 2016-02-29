@@ -41,6 +41,7 @@
 #include "VideoCommon/OnScreenDisplay.h"
 #include "VideoCommon/PixelEngine.h"
 #include "VideoCommon/PixelShaderManager.h"
+#include "VideoCommon/SamplerCommon.h"
 #include "VideoCommon/VideoConfig.h"
 
 namespace DX11
@@ -1191,7 +1192,7 @@ void Renderer::SetSamplerState(int stage, int texindex, bool custom_tex)
 
 	if (g_ActiveConfig.bForceFiltering)
 	{
-		gx_state.sampler[stage].min_filter = 6; // 4 (linear mip) | 2 (linear min)
+		gx_state.sampler[stage].min_filter = SamplerCommon::IsBpTexMode0MipmapsEnabled(tm0) ? 6 : 4;
 		gx_state.sampler[stage].mag_filter = 1; // linear mag
 	}
 	else if (g_ActiveConfig.bDisableTextureFiltering)

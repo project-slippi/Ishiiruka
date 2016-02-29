@@ -10,6 +10,7 @@
 #include "VideoBackends/DX11/D3DState.h"
 
 #include "VideoCommon/VideoConfig.h"
+#include "VideoCommon/SamplerCommon.h"
 
 namespace DX11
 {
@@ -349,7 +350,7 @@ ID3D11SamplerState* StateCache::Get(SamplerState state)
 	// Only use anisotropic filtering if one or both of the filters are set to Linear.
 	// If both filters are set to Point then using anisotropy is equivalent
 	// to "forced filtering" which will cause visual glitches.
-	if (state.max_anisotropy > 1 && (state.min_filter & 4 || state.mag_filter))
+	if (state.max_anisotropy > 1 && !SamplerCommon::IsBpTexMode0PointFilteringEnabled(state))
 	{
 		sampdc.Filter = D3D11_FILTER_ANISOTROPIC;
 		sampdc.MaxAnisotropy = (u32)state.max_anisotropy;
@@ -400,9 +401,9 @@ ID3D11SamplerState* StateCache::Get(SamplerState state)
 	sampdc.AddressU = d3dClamps[state.wrap_s];
 	sampdc.AddressV = d3dClamps[state.wrap_t];
 
-	sampdc.MaxLOD = (mip == TexMode0::TEXF_NONE) ? 0.0f : (float)state.max_lod / 16.f;
-	sampdc.MinLOD = (float)state.min_lod / 16.f;
-	sampdc.MipLODBias = (s32)state.lod_bias / 32.0f;
+	sampdc.MaxLOD = SamplerCommon::IsBpTexMode0MipmapsEnabled(state) ? static_cast<float>(state.max_lod) / 16.f : 0.f;
+	sampdc.MinLOD = std::min(static_cast<float>(state.min_lod) / 16.f, sampdc.MaxLOD);
+	sampdc.MipLODBias = static_cast<s32>(state.lod_bias) / 32.0f;
 
 	ID3D11SamplerState* res = nullptr;
 

@@ -49,6 +49,7 @@ void GetVertexShaderUID(VertexShaderUid& out, u32 components, const XFMemory &xf
 		auto& texinfo = uid_data.texMtxInfo[i];
 
 		texinfo.sourcerow = xfr.texMtxInfo[i].sourcerow;
+		texinfo.inputform = xfr.texMtxInfo[i].inputform;
 		texinfo.texgentype = xfr.texMtxInfo[i].texgentype;
 		// first transformation
 		switch (texinfo.texgentype)
@@ -303,14 +304,12 @@ inline void GenerateVertexShader(ShaderCode& out, const vertex_shader_uid_data& 
 		switch (texinfo.sourcerow)
 		{
 		case XF_SRCGEOM_INROW:
-			_dbg_assert_log_(VIDEO, texinfo.inputform == XF_TEXINPUT_ABC1, "Incorrect inputform sourcerow: XF_SRCGEOM_INROW inputform: %u", texinfo.inputform);
-			out.Write("coord = rawpos;\n"); // pos.w is 1
+			out.Write("coord.xyz = rawpos.xyz;\n"); // pos.w is 1
 			break;
 		case XF_SRCNORMAL_INROW:
 			if (components & VB_HAS_NRM0)
 			{
-				_dbg_assert_log_(VIDEO, texinfo.inputform == XF_TEXINPUT_ABC1, "Incorrect inputform sourcerow: XF_SRCNORMAL_INROW inputform: %u", texinfo.inputform);
-				out.Write("coord = float4(rawnorm0.xyz, 1.0);\n");
+				out.Write("coord.xyz = rawnorm0.xyz;\n");
 			}
 			break;
 		case XF_SRCCOLORS_INROW:
@@ -319,23 +318,26 @@ inline void GenerateVertexShader(ShaderCode& out, const vertex_shader_uid_data& 
 		case XF_SRCBINORMAL_T_INROW:
 			if (components & VB_HAS_NRM1)
 			{
-				_dbg_assert_log_(VIDEO, texinfo.inputform == XF_TEXINPUT_ABC1, "Incorrect inputform sourcerow: XF_SRCBINORMAL_T_INROW inputform: %u", texinfo.inputform);
-				out.Write("coord = float4(rawnorm1.xyz, 1.0);\n");
+				out.Write("coord.xyz = rawnorm1.xyz;\n");
 			}
 			break;
 		case XF_SRCBINORMAL_B_INROW:
 			if (components & VB_HAS_NRM2)
 			{
-				_dbg_assert_log_(VIDEO, texinfo.inputform == XF_TEXINPUT_ABC1, "Incorrect inputform sourcerow: XF_SRCBINORMAL_B_INROW inputform: %u", texinfo.inputform);
-				out.Write("coord = float4(rawnorm2.xyz, 1.0);\n");
+				out.Write("coord.xyz = rawnorm2.xyz;\n");
 			}
 			break;
 		default:
 			_dbg_assert_log_(VIDEO, texinfo.sourcerow <= XF_SRCTEX7_INROW, "sourcerow missmatch: %u", texinfo.sourcerow);
 			if (components & (VB_HAS_UV0 << (texinfo.sourcerow - XF_SRCTEX0_INROW)))
-				out.Write("coord = float4(tex%d.x, tex%d.y, 1.0, 1.0);\n", texinfo.sourcerow - XF_SRCTEX0_INROW, texinfo.sourcerow - XF_SRCTEX0_INROW);
+				out.Write("coord.xy = tex%d.xy;\n", texinfo.sourcerow - XF_SRCTEX0_INROW);
 			break;
 		}
+		// An input form other than ABC1 or AB11 doesn't exist
+		// But the hardware has it as a two bit field
+		_dbg_assert_log_(VIDEO, texinfo.inputform == XF_TEXINPUT_ABC1 || texinfo.inputform == XF_TEXINPUT_AB11, "texgeninputform missmatch: %u", texinfo.inputform);
+		if (texinfo.inputform == XF_TEXINPUT_AB11)
+			out.Write("coord.z = 1.0;\n");
 
 		// first transformation
 		switch (texinfo.texgentype)
