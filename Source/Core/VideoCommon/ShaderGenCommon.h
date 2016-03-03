@@ -33,12 +33,12 @@ class ShaderUid
 public:
 	ShaderUid() : HASH(0){}
 
-	void ClearUID()
+	inline void ClearUID()
 	{
-		memset(&data, 0, sizeof(uid_data));
+		data = {};
 	}
 
-	void CalculateUIDHash()
+	inline void CalculateUIDHash()
 	{
 		if (HASH == 0)
 		{
@@ -50,14 +50,14 @@ public:
 	{
 		return data.StartValue() == obj.data.StartValue()
 			&& data.NumValues() == obj.data.NumValues()
-			&& memcmp(reinterpret_cast<const u8*>(&data) + data.StartValue(), reinterpret_cast<const u8*>(&obj.data) + data.StartValue(), data.NumValues()) == 0;
+			&& !memcmp(reinterpret_cast<const u8*>(&data) + data.StartValue(), reinterpret_cast<const u8*>(&obj.data) + data.StartValue(), data.NumValues());
 	}
 
 	bool operator != (const ShaderUid& obj) const
 	{
 		return data.StartValue() != obj.data.StartValue()
 			|| data.NumValues() != obj.data.NumValues()
-			|| memcmp(reinterpret_cast<const u8*>(&data) + data.StartValue(), reinterpret_cast<const u8*>(&obj.data) + data.StartValue(), data.NumValues()) != 0;
+			|| !!memcmp(reinterpret_cast<const u8*>(&data) + data.StartValue(), reinterpret_cast<const u8*>(&obj.data) + data.StartValue(), data.NumValues());
 	}
 
 	// determines the storage order inside STL containers

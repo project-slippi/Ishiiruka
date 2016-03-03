@@ -554,8 +554,7 @@ void VertexLoaderX64::GenerateVertexLoader()
 
 bool VertexLoaderX64::EnvironmentIsSupported()
 {
-	return (g_ActiveConfig.backend_info.bSupportsBBox && g_ActiveConfig.iBBoxMode == BBoxGPU) 
-		|| !BoundingBox::active;
+	return g_ActiveConfig.iBBoxMode == BBoxGPU || !BoundingBox::active;
 }
 
 int VertexLoaderX64::RunVertices(const VertexLoaderParameters &parameters)

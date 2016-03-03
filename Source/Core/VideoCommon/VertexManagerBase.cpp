@@ -65,47 +65,14 @@ VertexManagerBase::~VertexManagerBase()
 {
 }
 
-u32 VertexManagerBase::GetRemainingSize()
+inline u32 GetRemainingSize()
 {
-	return (u32)(s_pEndBufferPointer - s_pCurBufferPointer);
+	return (u32)(VertexManagerBase::s_pEndBufferPointer - VertexManagerBase::s_pCurBufferPointer);
 }
 
-void VertexManagerBase::PrepareForAdditionalData(int primitive, u32 count, u32 stride)
+inline u32 GetRemainingIndices(int primitive)
 {
-	// The SSE vertex loader can write up to 4 bytes past the end
-	u32 const needed_vertex_bytes = count * stride + 4;
-
-	// We can't merge different kinds of primitives, so we have to flush here
-	if (current_primitive_type != primitive_from_gx[primitive])
-		Flush();
-	current_primitive_type = primitive_from_gx[primitive];
-	// Check for size in buffer, if the buffer gets full, call Flush()
-	if (!IsFlushed && (count > IndexGenerator::GetRemainingIndices() ||
-		count > GetRemainingIndices(primitive) || needed_vertex_bytes > GetRemainingSize()))
-	{
-		Flush();
-
-		if (count > IndexGenerator::GetRemainingIndices())
-			ERROR_LOG(VIDEO, "Too little remaining index values. Use 32-bit or reset them on flush.");
-		if (count > GetRemainingIndices(primitive))
-			ERROR_LOG(VIDEO, "VertexManagerBase: Buffer not large enough for all indices! "
-				"Increase MAXIBUFFERSIZE or we need primitive breaking after all.");
-		if (needed_vertex_bytes > GetRemainingSize())
-			ERROR_LOG(VIDEO, "VertexManagerBase: Buffer not large enough for all vertices! "
-				"Increase MAXVBUFFERSIZE or we need primitive breaking after all.");
-	}
-	s_cull_all = bpmem.genMode.cullmode == GenMode::CULL_ALL && primitive < 5;
-	// need to alloc new buffer
-	if (IsFlushed)
-	{
-		g_vertex_manager->ResetBuffer(stride);
-		IsFlushed = false;
-	}
-}
-
-u32 VertexManagerBase::GetRemainingIndices(int primitive)
-{
-	u32 index_len = MAXIBUFFERSIZE - IndexGenerator::GetIndexLen();
+	u32 index_len = VertexManagerBase::MAXIBUFFERSIZE - IndexGenerator::GetIndexLen();
 
 	switch (primitive)
 	{
@@ -126,6 +93,40 @@ u32 VertexManagerBase::GetRemainingIndices(int primitive)
 		return index_len;
 	default:
 		return 0;
+	}
+}
+
+void VertexManagerBase::PrepareForAdditionalData(int primitive, u32 count, u32 stride)
+{
+	// The SSE vertex loader can write up to 4 bytes past the end
+	u32 const needed_vertex_bytes = count * stride + 4;
+
+	// We can't merge different kinds of primitives, so we have to flush here
+	if (current_primitive_type != primitive_from_gx[primitive])
+		Flush();
+	current_primitive_type = primitive_from_gx[primitive];
+	// Check for size in buffer, if the buffer gets full, call Flush()
+	if (!IsFlushed && (count > IndexGenerator::GetRemainingIndices() ||
+		count > GetRemainingIndices(primitive) || needed_vertex_bytes > GetRemainingSize()))
+	{
+		Flush();
+#if defined(_DEBUG) || defined(DEBUGFAST)
+		if (count > IndexGenerator::GetRemainingIndices())
+			ERROR_LOG(VIDEO, "Too little remaining index values. Use 32-bit or reset them on flush.");
+		if (count > GetRemainingIndices(primitive))
+			ERROR_LOG(VIDEO, "VertexManagerBase: Buffer not large enough for all indices! "
+				"Increase MAXIBUFFERSIZE or we need primitive breaking after all.");
+		if (needed_vertex_bytes > GetRemainingSize())
+			ERROR_LOG(VIDEO, "VertexManagerBase: Buffer not large enough for all vertices! "
+				"Increase MAXVBUFFERSIZE or we need primitive breaking after all.");
+#endif
+	}
+	s_cull_all = bpmem.genMode.cullmode == GenMode::CULL_ALL && primitive < 5;
+	// need to alloc new buffer
+	if (IsFlushed)
+	{
+		g_vertex_manager->ResetBuffer(stride);
+		IsFlushed = false;
 	}
 }
 
