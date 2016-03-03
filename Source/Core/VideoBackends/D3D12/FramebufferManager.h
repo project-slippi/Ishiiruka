@@ -109,7 +109,7 @@ private:
 
 		int slices{};
 	} m_efb;
-	static constexpr size_t EFB_CACHE_PITCH = ALIGN_SIZE(EFB_WIDTH * sizeof(int), D3D12_TEXTURE_DATA_PITCH_ALIGNMENT);
+	static constexpr size_t EFB_CACHE_PITCH = ROUND_UP(EFB_WIDTH * sizeof(int), D3D12_TEXTURE_DATA_PITCH_ALIGNMENT);
 	static unsigned int m_target_width;
 	static unsigned int m_target_height;
 };

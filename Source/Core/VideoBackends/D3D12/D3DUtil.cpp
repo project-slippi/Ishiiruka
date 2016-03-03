@@ -6,7 +6,6 @@
 #include <list>
 #include <string>
 
-#include "VideoBackends/D3D12/D3DBase.h"
 #include "VideoBackends/D3D12/D3DBlob.h"
 #include "VideoBackends/D3D12/D3DCommandListManager.h"
 #include "VideoBackends/D3D12/D3DDescriptorHeapManager.h"
@@ -251,7 +250,7 @@ int CD3DFont::Init()
 		D3D::device12->CreateCommittedResource(
 			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
 			D3D12_HEAP_FLAG_NONE,
-			&CD3DX12_RESOURCE_DESC::Buffer(ALIGN_SIZE(m_tex_width * 4, D3D12_TEXTURE_DATA_PITCH_ALIGNMENT) * m_tex_height),
+			&CD3DX12_RESOURCE_DESC::Buffer(ROUND_UP(m_tex_width * 4, D3D12_TEXTURE_DATA_PITCH_ALIGNMENT) * m_tex_height),
 			D3D12_RESOURCE_STATE_GENERIC_READ,
 			nullptr,
 			IID_PPV_ARGS(&temporaryFontTextureUploadBuffer)
@@ -561,28 +560,6 @@ void SetLinearCopySampler()
 	D3D::current_command_list->SetGraphicsRootDescriptorTable(DESCRIPTOR_TABLE_PS_SAMPLER, linear_copy_sampler12GPU);
 	D3D::command_list_mgr->SetCommandListDirtyState(COMMAND_LIST_STATE_SAMPLERS, true);
 }
-
-void SetViewportAndScissor(u32 top_left_x, u32 top_left_y, u32 width, u32 height, float min_depth, float max_depth)
-{
-	D3D12_VIEWPORT viewport = {
-		static_cast<float>(top_left_x),
-		static_cast<float>(top_left_y),
-		static_cast<float>(width),
-		static_cast<float>(height),
-		min_depth,
-		max_depth
-	};
-	
-	D3D12_RECT scissor = {
-		static_cast<LONG>(top_left_x),
-		static_cast<LONG>(top_left_y),
-		static_cast<LONG>(top_left_x + width),
-		static_cast<LONG>(top_left_y + height)
-	};
-	
-	D3D::current_command_list->RSSetViewports(1, &viewport);
-	D3D::current_command_list->RSSetScissorRects(1, &scissor);
-};
 
 void DrawShadedTexQuad(D3DTexture2D* texture,
 	const D3D12_RECT* rSource,

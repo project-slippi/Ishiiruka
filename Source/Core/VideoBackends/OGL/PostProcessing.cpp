@@ -536,7 +536,7 @@ bool OGLPostProcessor::Initialize()
 		return false;
 	}
 
-	m_uniform_buffer = StreamBuffer::Create(GL_UNIFORM_BUFFER, static_cast<u32>(ALIGN_SIZE(POST_PROCESSING_CONTANTS_BUFFER_SIZE, 256) * 1024));
+	m_uniform_buffer = StreamBuffer::Create(GL_UNIFORM_BUFFER, static_cast<u32>(ROUND_UP(POST_PROCESSING_CONTANTS_BUFFER_SIZE, 256) * 1024));
 	if (m_uniform_buffer == nullptr)
 	{
 		ERROR_LOG(VIDEO, "Failed to create postprocessing uniform buffer.");

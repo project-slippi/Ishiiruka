@@ -97,7 +97,7 @@ void UtilVertexBuffer::AddWrapObserver(bool* observer)
 }
 
 
-ConstantStreamBuffer::ConstantStreamBuffer(int size) : m_max_size(ALIGN_SIZE(size, 256)), m_need_init(true)
+ConstantStreamBuffer::ConstantStreamBuffer(int size) : m_max_size(ROUND_UP(size, 256)), m_need_init(true)
 {
 	m_use_partial_buffer_update = D3D::SupportPartialContantBufferUpdate();
 	D3D11_BUFFER_DESC desc = CD3D11_BUFFER_DESC(m_max_size, D3D11_BIND_CONSTANT_BUFFER, D3D11_USAGE_DYNAMIC, D3D11_CPU_ACCESS_WRITE);
@@ -113,7 +113,7 @@ ConstantStreamBuffer::~ConstantStreamBuffer()
 int ConstantStreamBuffer::AppendData(void* data, int size)
 {
 	D3D11_MAPPED_SUBRESOURCE map;
-	m_offset = ALIGN_SIZE(m_offset, 256); // align offset to 256 bytes (16 units) as requested by microsoft documentation
+	m_offset = ROUND_UP(m_offset, 256); // align offset to 256 bytes (16 units) as requested by microsoft documentation
 	if (m_offset + size >= m_max_size || m_need_init)
 	{
 		// wrap buffer around

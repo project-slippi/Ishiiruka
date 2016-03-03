@@ -187,7 +187,7 @@ void CreateScreenshotTexture()
 	// This texture is released to be recreated when the window is resized in Renderer::SwapImpl.
 
 	const unsigned int screenshot_buffer_size =
-		ALIGN_SIZE(D3D::GetBackBufferWidth() * 4, D3D12_TEXTURE_DATA_PITCH_ALIGNMENT) *
+		ROUND_UP(D3D::GetBackBufferWidth() * 4, D3D12_TEXTURE_DATA_PITCH_ALIGNMENT) *
 		D3D::GetBackBufferHeight();
 
 	CheckHR(
@@ -671,7 +671,7 @@ bool Renderer::SaveScreenshot(const std::string& filename, const TargetRectangle
 	dst_location.PlacedFootprint.Footprint.Width = D3D::GetBackBufferWidth();
 	dst_location.PlacedFootprint.Footprint.Height = D3D::GetBackBufferHeight();
 	dst_location.PlacedFootprint.Footprint.Depth = 1;
-	dst_location.PlacedFootprint.Footprint.RowPitch = ALIGN_SIZE(dst_location.PlacedFootprint.Footprint.Width * 4, D3D12_TEXTURE_DATA_PITCH_ALIGNMENT);
+	dst_location.PlacedFootprint.Footprint.RowPitch = ROUND_UP(dst_location.PlacedFootprint.Footprint.Width * 4, D3D12_TEXTURE_DATA_PITCH_ALIGNMENT);
 
 	D3D12_TEXTURE_COPY_LOCATION src_location = {};
 	src_location.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
@@ -843,7 +843,7 @@ void Renderer::SwapImpl(u32 xfb_addr, u32 fb_width, u32 fb_stride, u32 fb_height
 		dst_location.PlacedFootprint.Footprint.Width = GetTargetRectangle().GetWidth();
 		dst_location.PlacedFootprint.Footprint.Height = GetTargetRectangle().GetHeight();
 		dst_location.PlacedFootprint.Footprint.Depth = 1;
-		dst_location.PlacedFootprint.Footprint.RowPitch = ALIGN_SIZE(dst_location.PlacedFootprint.Footprint.Width * 4, D3D12_TEXTURE_DATA_PITCH_ALIGNMENT);
+		dst_location.PlacedFootprint.Footprint.RowPitch = ROUND_UP(dst_location.PlacedFootprint.Footprint.Width * 4, D3D12_TEXTURE_DATA_PITCH_ALIGNMENT);
 
 		D3D12_TEXTURE_COPY_LOCATION src_location = {};
 		src_location.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;

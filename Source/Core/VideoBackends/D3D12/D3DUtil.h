@@ -9,6 +9,7 @@
 #include <string>
 
 #include "Common/MathUtil.h"
+#include "VideoBackends/D3D12/D3DBase.h"
 #include "VideoBackends/D3D12/D3DState.h"
 #include "VideoBackends/D3D12/D3DStreamBuffer.h"
 #include "VideoCommon/RenderBase.h"
@@ -88,7 +89,27 @@ void ShutdownUtils();
 void SetPointCopySampler();
 void SetLinearCopySampler();
 
-void SetViewportAndScissor(u32 top_left_x, u32 top_left_y, u32 width, u32 height, float min_depth = D3D12_MIN_DEPTH, float max_depth = D3D12_MAX_DEPTH);
+inline void SetViewportAndScissor(u32 top_left_x, u32 top_left_y, u32 width, u32 height, float min_depth = D3D12_MIN_DEPTH, float max_depth = D3D12_MAX_DEPTH)
+{
+	D3D12_VIEWPORT viewport = {
+		static_cast<float>(top_left_x),
+		static_cast<float>(top_left_y),
+		static_cast<float>(width),
+		static_cast<float>(height),
+		min_depth,
+		max_depth
+	};
+
+	D3D12_RECT scissor = {
+		static_cast<LONG>(top_left_x),
+		static_cast<LONG>(top_left_y),
+		static_cast<LONG>(top_left_x + width),
+		static_cast<LONG>(top_left_y + height)
+	};
+
+	D3D::current_command_list->RSSetViewports(1, &viewport);
+	D3D::current_command_list->RSSetScissorRects(1, &scissor);
+}
 
 void DrawShadedTexQuad(D3DTexture2D* texture,
 	const D3D12_RECT* source,

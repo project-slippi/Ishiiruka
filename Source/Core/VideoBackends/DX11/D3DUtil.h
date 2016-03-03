@@ -86,7 +86,7 @@ public:
 	inline ID3D11Buffer* &GetBuffer() { return  m_buf; }
 	inline D3D::BufferDescriptor GetDescriptor() 
 	{
-		return D3D::BufferDescriptor(m_buf, (m_offset - m_current_size) >> 4, ALIGN_SIZE(m_current_size, 256) >> 4);
+		return D3D::BufferDescriptor(m_buf, (m_offset - m_current_size) >> 4, ROUND_UP(m_current_size, 256) >> 4);
 	};
 private:
 	ID3D11Buffer* m_buf = nullptr;

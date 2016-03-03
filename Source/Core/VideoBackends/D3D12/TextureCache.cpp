@@ -120,7 +120,7 @@ bool TextureCache::TCacheEntry::Save(const std::string& filename, unsigned int l
 {
 	u32 level_width = std::max(config.width >> level, 1u);
 	u32 level_height = std::max(config.height >> level, 1u);
-	size_t level_pitch = ALIGN_SIZE(level_width * sizeof(u32), D3D12_TEXTURE_DATA_PITCH_ALIGNMENT);
+	size_t level_pitch = ROUND_UP(level_width * sizeof(u32), D3D12_TEXTURE_DATA_PITCH_ALIGNMENT);
 	size_t required_readback_buffer_size = level_pitch * level_height;
 
 	// Check if the current readback buffer is large enough
