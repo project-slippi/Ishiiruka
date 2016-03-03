@@ -64,17 +64,13 @@ EntryPoint=jinc2
 
 
 // Uncomment just one of the three params below to choose the corner detection
-//#define CORNER_A
+#define CORNER_A
 //#define CORNER_B
-#define CORNER_C
+//#define CORNER_C
 //#define CORNER_D
 
-#ifndef CORNER_A
-  #define SMOOTH_TIPS
-#endif
-
 #define XBR_Y_WEIGHT 48.0
-#define XBR_EQ_THRESHOLD 15.0
+#define XBR_EQ_THRESHOLD 25.0
 #define LV2_CF 2.0
 
 #define blendness  GetOption(XBR_SCALE)
@@ -221,8 +217,18 @@ const  float3 Y = float3(0.2126, 0.7152, 0.0722);
 
 	edri  = step(wd1, wd2) * irlv0;
 	edr   = step(wd1 + float4(0.1, 0.1, 0.1, 0.1), wd2) * step(float4(0.5, 0.5, 0.5, 0.5), irlv1);
+
+#ifdef CORNER_A
+	edr   = edr * (float4(1.0, 1.0, 1.0, 1.0) - edri.yzwx * edri.wxyz);
+	edr_l = step( LV2_CF*ds(f,g), ds(h,c) ) * irlv2_l * edr * (float4(1.0, 1.0, 1.0, 1.0) - edri.yzwx) * eq(e,c);
+	edr_u = step( LV2_CF*ds(h,c), ds(f,g) ) * irlv2_u * edr * (float4(1.0, 1.0, 1.0, 1.0) - edri.wxyz) * eq(e,g);
+#endif
+#ifndef CORNER_A
 	edr_l = step( LV2_CF*ds(f,g), ds(h,c) ) * irlv2_l * edr;
 	edr_u = step( LV2_CF*ds(h,c), ds(f,g) ) * irlv2_u * edr;
+#endif
+
+
 
 	fx45  = edr*fx45;
 	fx30  = edr_l*fx30;
@@ -231,11 +237,7 @@ const  float3 Y = float3(0.2126, 0.7152, 0.0722);
 
 	px = step(ds(e,f), ds(e,h));
 
-#ifdef SMOOTH_TIPS
 	float4 maximos = max(max(fx30, fx60), max(fx45, fx45i));
-#else
-	float4 maximos = max(max(fx30, fx60), fx45);
-#endif
 
 	float3 res1 = E;
 	res1 = lerp(res1, lerp(H, F, px.x), maximos.x);
