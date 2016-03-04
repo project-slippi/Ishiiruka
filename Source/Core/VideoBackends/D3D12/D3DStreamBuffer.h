@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include <queue>
+#include <deque>
 
 struct ID3D12Resource;
 
@@ -20,13 +20,40 @@ public:
 	bool AllocateSpaceInBuffer(size_t allocation_size, size_t alignment, bool allow_execute = true);
 	void OverrideSizeOfPreviousAllocation(size_t override_allocation_size);
 
-	void*                     GetBaseCPUAddress() const;
-	D3D12_GPU_VIRTUAL_ADDRESS GetBaseGPUAddress() const;
-	ID3D12Resource*           GetBuffer() const;
-	void*                     GetCPUAddressOfCurrentAllocation() const;
-	D3D12_GPU_VIRTUAL_ADDRESS GetGPUAddressOfCurrentAllocation() const;
-	size_t                    GetOffsetOfCurrentAllocation() const;
-	size_t                    GetSize() const;
+	inline void* GetBaseCPUAddress() const
+	{
+		return m_buffer_cpu_address;
+	}
+
+	inline D3D12_GPU_VIRTUAL_ADDRESS GetBaseGPUAddress() const
+	{
+		return m_buffer_gpu_address;
+	}
+
+	inline ID3D12Resource* GetBuffer() const
+	{
+		return m_buffer;
+	}
+
+	inline void* GetCPUAddressOfCurrentAllocation() const 
+	{
+		return static_cast<u8*>(m_buffer_cpu_address) + m_buffer_current_allocation_offset;
+	}
+
+	inline D3D12_GPU_VIRTUAL_ADDRESS GetGPUAddressOfCurrentAllocation() const
+	{
+		return m_buffer_gpu_address + m_buffer_current_allocation_offset;
+	}
+
+	inline size_t GetOffsetOfCurrentAllocation() const
+	{
+		return m_buffer_current_allocation_offset;
+	}
+
+	inline size_t GetSize() const
+	{
+		return m_buffer_size;
+	}
 
 	static void QueueFenceCallback(void* owning_object, UINT64 fence_value);
 
@@ -50,7 +77,7 @@ private:
 		size_t buffer_offset;
 	};
 
-	std::queue<FenceTrackingInformation> m_queued_fences;
+	std::deque<FenceTrackingInformation> m_queued_fences;
 
 	ID3D12Fence* m_buffer_tracking_fence = nullptr;
 

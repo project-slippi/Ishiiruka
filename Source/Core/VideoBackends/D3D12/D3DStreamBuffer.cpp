@@ -243,10 +243,10 @@ bool D3DStreamBuffer::AttemptToFindExistingFenceToStallOn(size_t allocation_size
 
 	UINT64 fence_value_required = 0;
 
-	while (m_queued_fences.size() > 0)
+	while (!m_queued_fences.empty())
 	{
 		FenceTrackingInformation tracking_information = m_queued_fences.front();
-		m_queued_fences.pop();
+		m_queued_fences.pop_front();
 
 		if (m_buffer_offset >= m_buffer_gpu_completion_offset)
 		{
@@ -299,10 +299,10 @@ void D3DStreamBuffer::UpdateGPUProgress()
 {
 	const UINT64 fence_value = m_buffer_tracking_fence->GetCompletedValue();
 
-	while (m_queued_fences.size() > 0)
+	while (!m_queued_fences.empty())
 	{
 		FenceTrackingInformation tracking_information = m_queued_fences.front();
-		m_queued_fences.pop();
+		m_queued_fences.pop_front();
 
 		// Has fence gone past this point?
 		if (fence_value >= tracking_information.fence_value)
@@ -326,8 +326,7 @@ void D3DStreamBuffer::QueueFenceCallback(void* owning_object, UINT64 fence_value
 
 void D3DStreamBuffer::ClearFences()
 {
-	while (!m_queued_fences.empty())
-		m_queued_fences.pop();
+	m_queued_fences.clear();
 }
 
 bool D3DStreamBuffer::HasBufferOffsetChangedSinceLastFence() const
@@ -341,46 +340,8 @@ bool D3DStreamBuffer::HasBufferOffsetChangedSinceLastFence() const
 
 void D3DStreamBuffer::QueueFence(UINT64 fence_value)
 {
-	FenceTrackingInformation tracking_information = {};
-	tracking_information.fence_value = fence_value;
-	tracking_information.buffer_offset = m_buffer_offset;
-
-	m_queued_fences.push(tracking_information);
-}
-
-ID3D12Resource* D3DStreamBuffer::GetBuffer() const
-{
-	return m_buffer;
-}
-
-D3D12_GPU_VIRTUAL_ADDRESS D3DStreamBuffer::GetGPUAddressOfCurrentAllocation() const
-{
-	return m_buffer_gpu_address + m_buffer_current_allocation_offset;
-}
-
-void* D3DStreamBuffer::GetCPUAddressOfCurrentAllocation() const
-{
-	return static_cast<u8*>(m_buffer_cpu_address) + m_buffer_current_allocation_offset;
-}
-
-size_t D3DStreamBuffer::GetOffsetOfCurrentAllocation() const
-{
-	return m_buffer_current_allocation_offset;
-}
-
-size_t D3DStreamBuffer::GetSize() const
-{
-	return m_buffer_size;
-}
-
-void* D3DStreamBuffer::GetBaseCPUAddress() const
-{
-	return m_buffer_cpu_address;
-}
-
-D3D12_GPU_VIRTUAL_ADDRESS D3DStreamBuffer::GetBaseGPUAddress() const
-{
-	return m_buffer_gpu_address;
+	FenceTrackingInformation tracking_information = { fence_value , m_buffer_offset };
+	m_queued_fences.emplace_back(std::move(tracking_information));
 }
 
 }
