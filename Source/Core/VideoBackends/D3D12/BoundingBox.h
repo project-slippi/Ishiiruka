@@ -11,8 +11,9 @@ namespace DX12
 class BBox
 {
 public:
-	static D3D12_GPU_DESCRIPTOR_HANDLE GetUAV();
 	static void Init();
+	static void Bind();
+	static void Invalidate();
 	static void Shutdown();
 
 	static void Set(int index, int value);

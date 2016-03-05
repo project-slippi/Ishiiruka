@@ -283,7 +283,7 @@ Renderer::Renderer(void*& window_handle)
 	D3D::current_command_list->RSSetViewports(1, &vp);
 
 	// Already transitioned to appropriate states a few lines up for the clears.
-	D3D::current_command_list->OMSetRenderTargets(1, &FramebufferManager::GetEFBColorTexture()->GetRTV(), FALSE, &FramebufferManager::GetEFBDepthTexture()->GetDSV());
+	FramebufferManager::RestoreEFBRenderTargets();
 
 	D3D::BeginFrame();
 }
@@ -543,7 +543,9 @@ void Renderer::ClearScreen(const EFBRectangle& rc, bool color_enable, bool alpha
 	D3D::DrawClearQuad(rgba_color, 1.0f - (z & 0xFFFFFF) / 16777216.0f, blend_desc, depth_stencil_desc, FramebufferManager::GetEFBColorTexture()->GetMultisampled());
 
 	// Restores proper viewport/scissor settings.
-	g_renderer->RestoreAPIState();
+	g_renderer->SetViewport();
+	BPFunctions::SetScissor();
+
 	FramebufferManager::InvalidateEFBCache();
 }
 
@@ -591,14 +593,13 @@ void Renderer::ReinterpretPixelData(unsigned int convtype)
 		);
 
 	// Restores proper viewport/scissor settings.
-	g_renderer->RestoreAPIState();
-
 	FramebufferManager::SwapReinterpretTexture();
 
 	FramebufferManager::GetEFBColorTexture()->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_RENDER_TARGET);
 	FramebufferManager::GetEFBDepthTexture()->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_DEPTH_WRITE);
-	D3D::current_command_list->OMSetRenderTargets(1, &FramebufferManager::GetEFBColorTexture()->GetRTV(), FALSE, &FramebufferManager::GetEFBDepthTexture()->GetDSV());
 	FramebufferManager::InvalidateEFBCache();
+	// Restores proper viewport/scissor settings.
+	RestoreAPIState();
 }
 
 void Renderer::SetBlendMode(bool force_update)
@@ -736,6 +737,10 @@ void Renderer::SwapImpl(u32 xfb_addr, u32 fb_width, u32 fb_stride, u32 fb_height
 		Core::Callback_VideoCopiedToXFB(false);
 		return;
 	}
+
+	// Invalidate EFB access copies. Not strictly necessary, but this avoids having the buffers mapped when calling Present().
+	FramebufferManager::InvalidateEFBCache();
+	BBox::Invalidate();
 
 	// Prepare to copy the XFBs to our backbuffer
 	UpdateDrawRectangle(s_backbuffer_width, s_backbuffer_height);
@@ -1000,9 +1005,9 @@ void Renderer::SwapImpl(u32 xfb_addr, u32 fb_width, u32 fb_stride, u32 fb_height
 
 	FramebufferManager::GetEFBColorTexture()->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_RENDER_TARGET);
 	FramebufferManager::GetEFBDepthTexture()->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_DEPTH_WRITE);
-	D3D::current_command_list->OMSetRenderTargets(1, &FramebufferManager::GetEFBColorTexture()->GetRTV(), FALSE, &FramebufferManager::GetEFBDepthTexture()->GetDSV());
 
 	SetViewport();
+	RestoreAPIState();
 }
 
 void Renderer::ResetAPIState()
@@ -1016,6 +1021,8 @@ void Renderer::RestoreAPIState()
 	// overwritten elsewhere (particularly the viewport).
 	SetViewport();
 	BPFunctions::SetScissor();
+	FramebufferManager::RestoreEFBRenderTargets();
+	BBox::Bind();
 }
 
 static bool s_previous_use_dst_alpha = false;

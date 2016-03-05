@@ -278,7 +278,6 @@ void XFBSource::CopyEFB(float gamma)
 
 	FramebufferManager::GetEFBColorTexture()->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_RENDER_TARGET);
 	FramebufferManager::GetEFBDepthTexture()->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_DEPTH_WRITE);
-	D3D::current_command_list->OMSetRenderTargets(1, &FramebufferManager::GetEFBColorTexture()->GetRTV(), FALSE, &FramebufferManager::GetEFBDepthTexture()->GetDSV());
 
 	// Restores proper viewport/scissor settings.
 	g_renderer->RestoreAPIState();
@@ -373,14 +372,14 @@ void FramebufferManager::PopulateEFBColorCache()
 
 	src_texture->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_COPY_SOURCE);
 	D3D::current_command_list->CopyTextureRegion(&dst_location, 0, 0, 0, &src_location, &src_box);
-	// Need to wait for the CPU to complete the copy (and all prior operations) before we can read it on the CPU.
-	D3D::command_list_mgr->ExecuteQueuedWork(true);
+	
 
 	// Restores proper viewport/scissor settings.
 	m_efb.color_tex->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_RENDER_TARGET);
 	m_efb.depth_tex->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_DEPTH_WRITE);
-	D3D::current_command_list->OMSetRenderTargets(1, &m_efb.color_tex->GetRTV(), FALSE, &m_efb.depth_tex->GetDSV());
-	g_renderer->RestoreAPIState();
+	
+	// Need to wait for the CPU to complete the copy (and all prior operations) before we can read it on the CPU.
+	D3D::command_list_mgr->ExecuteQueuedWork(true);
 
 	HRESULT hr = m_efb.color_cache_buf->Map(0, nullptr, reinterpret_cast<void**>(&m_efb.color_cache_data));	
 	CHECK(SUCCEEDED(hr), "failed to map efb peek color cache texture (hr=%08X)", hr);
@@ -446,15 +445,13 @@ void FramebufferManager::PopulateEFBDepthCache()
 
 	src_texture->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_COPY_SOURCE);
 	D3D::current_command_list->CopyTextureRegion(&dst_location, 0, 0, 0, &src_location, &src_box);
-	
-	// Need to wait for the CPU to complete the copy (and all prior operations) before we can read it on the CPU.
-	D3D::command_list_mgr->ExecuteQueuedWork(true);
-	
+
 	// Restores proper viewport/scissor settings.
 	m_efb.color_tex->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_RENDER_TARGET);
 	m_efb.depth_tex->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_DEPTH_WRITE);
-	D3D::current_command_list->OMSetRenderTargets(1, &m_efb.color_tex->GetRTV(), FALSE, &m_efb.depth_tex->GetDSV());
-	g_renderer->RestoreAPIState();
+	
+	// Need to wait for the CPU to complete the copy (and all prior operations) before we can read it on the CPU.
+	D3D::command_list_mgr->ExecuteQueuedWork(true);
 
 	HRESULT hr = m_efb.depth_cache_buf->Map(0, nullptr, reinterpret_cast<void**>(&m_efb.depth_cache_data));	
 	CHECK(SUCCEEDED(hr), "failed to map efb peek color cache texture (hr=%08X)", hr);

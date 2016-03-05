@@ -631,18 +631,17 @@ HiresTexture* HiresTexture::Load(const std::string& basename,
 			u32 requiredsize = TextureUtil::GetTextureSizeInBytes(maxwidth, maxheight, imgInfo.resultTex);
 			buffer_pointer = imgInfo.dst + requiredsize;
 			remaining_buffer_size -= requiredsize;
+			if (maxwidth <= 4 && maxheight <= 4)
+			{
+				break;
+			}
 		}
 		else
 		{
 			buffer_pointer = imgInfo.dst + imgInfo.data_size;
 			remaining_buffer_size -= imgInfo.data_size;
 		}
-		maxwidth = std::max(maxwidth >> 1, 1u);
-		maxheight = std::max(maxheight >> 1, 1u);
-		if (ddsfile &&  maxwidth < 4 && maxheight < 4)
-		{
-			break;
-		}
+
 		if (imgInfo.nummipmaps > 0)
 		{
 			// Give priority to load dds with packed levels
@@ -660,6 +659,12 @@ HiresTexture* HiresTexture::Load(const std::string& basename,
 			}
 			break;
 		}
+
+		// no more mipmaps available
+		if (maxwidth == 1 && maxheight == 1)
+			break;
+		maxwidth = std::max(maxwidth >> 1, 1u);
+		maxheight = std::max(maxheight >> 1, 1u);
 	}
 	if (nrm_posible)
 	{
@@ -754,27 +759,32 @@ HiresTexture* HiresTexture::Load(const std::string& basename,
 				u32 requiredsize = TextureUtil::GetTextureSizeInBytes(maxwidth, maxheight, imgInfo.resultTex);
 				buffer_pointer = imgInfo.dst + requiredsize;
 				remaining_buffer_size -= requiredsize;
+				if (maxwidth <= 4 && maxheight <= 4)
+				{
+					break;
+				}
 			}
 			else
 			{
 				buffer_pointer = imgInfo.dst + imgInfo.data_size;
 				remaining_buffer_size -= imgInfo.data_size;
 			}
-			maxwidth = std::max(maxwidth >> 1, 1u);
-			maxheight = std::max(maxheight >> 1, 1u);
-			if (ddsfile &&  maxwidth < 4 && maxheight < 4)
-			{
-				break;
-			}
+
 			if (imgInfo.nummipmaps > 0)
 			{
 				// Give priority to load dds with packed levels
 				ret->m_nrm_levels = imgInfo.nummipmaps + 1;
 				break;
 			}
+			// no more mipmaps available
+			if (maxwidth == 1 && maxheight == 1)
+				 break;
+			maxwidth = std::max(maxwidth >> 1, 1u);
+			maxheight = std::max(maxheight >> 1, 1u);
+			
 		}
 	}
-	if (ret != nullptr && ret->m_nrm_levels != ret->m_levels)
+	if (ret != nullptr && ret->m_nrm_levels < ret->m_levels)
 	{
 		// disable normal map if the size or levels are different
 		ret->m_nrm_levels = 0;

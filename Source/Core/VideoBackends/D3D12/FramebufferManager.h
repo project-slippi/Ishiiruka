@@ -72,6 +72,13 @@ public:
 	
 	static void ResolveDepthTexture();
 
+	static inline void RestoreEFBRenderTargets()
+	{
+		D3D::current_command_list->OMSetRenderTargets(1,
+			&FramebufferManager::GetEFBColorTexture()->GetRTV(), FALSE,
+			&FramebufferManager::GetEFBDepthTexture()->GetDSV());
+	}
+
 	static u32 GetEFBCachedColor(u32 x, u32 y);
 	static float GetEFBCachedDepth(u32 x, u32 y);
 	static void SetEFBCachedColor(u32 x, u32 y, u32 value);

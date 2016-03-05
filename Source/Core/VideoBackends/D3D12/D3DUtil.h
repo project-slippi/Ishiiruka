@@ -89,7 +89,7 @@ void ShutdownUtils();
 void SetPointCopySampler();
 void SetLinearCopySampler();
 
-inline void SetViewportAndScissor(u32 top_left_x, u32 top_left_y, u32 width, u32 height, float min_depth = D3D12_MIN_DEPTH, float max_depth = D3D12_MAX_DEPTH)
+inline void SetViewportAndScissor(int top_left_x, int top_left_y, int width, int height, float min_depth = D3D12_MIN_DEPTH, float max_depth = D3D12_MAX_DEPTH)
 {
 	D3D12_VIEWPORT viewport = {
 		static_cast<float>(top_left_x),
@@ -128,7 +128,6 @@ void DrawShadedTexQuad(D3DTexture2D* texture,
 	);
 
 void DrawClearQuad(u32 Color, float z, D3D12_BLEND_DESC* blend_desc, D3D12_DEPTH_STENCIL_DESC* depth_stencil_desc, bool rt_multisampled);
-void DrawColorQuad(u32 Color, float z, float x1, float y1, float x2, float y2, D3D12_BLEND_DESC* blend_desc, D3D12_DEPTH_STENCIL_DESC* depth_stencil_desc, bool rt_multisampled);
 void DrawEFBPokeQuads(EFBAccessType type,
 	const EfbPokeData* points,
 	size_t num_points,
