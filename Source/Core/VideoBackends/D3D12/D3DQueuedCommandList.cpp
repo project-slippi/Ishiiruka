@@ -266,6 +266,45 @@ void ID3D12QueuedCommandList::BackgroundThreadFunction(ID3D12QueuedCommandList* 
 				break;
 			}
 
+			case D3DQueueItemType::BeginQuery:
+			{
+				command_list->BeginQuery(
+					qitem->BeginQuery.pQueryHeap,
+					qitem->BeginQuery.Type,
+					qitem->BeginQuery.Index
+					);
+
+				item += BufferOffsetForQueueItemType<BeginQueryArguments>();
+				break;
+			}
+
+			case D3DQueueItemType::EndQuery:
+			{
+				command_list->EndQuery(
+					qitem->EndQuery.pQueryHeap,
+					qitem->EndQuery.Type,
+					qitem->EndQuery.Index
+					);
+
+				item += BufferOffsetForQueueItemType<EndQueryArguments>();
+				break;
+			}
+
+			case D3DQueueItemType::ResolveQueryData:
+			{
+				command_list->ResolveQueryData(
+					qitem->ResolveQueryData.pQueryHeap,
+					qitem->ResolveQueryData.Type,
+					qitem->ResolveQueryData.StartElement,
+					qitem->ResolveQueryData.ElementCount,
+					qitem->ResolveQueryData.pDestinationBuffer,
+					qitem->ResolveQueryData.AlignedDestinationBufferOffset
+					);
+
+				item += BufferOffsetForQueueItemType<ResolveQueryDataArguments>();
+				break;
+			}
+
 			case D3DQueueItemType::CloseCommandList:
 			{
 				CheckHR(command_list->Close());
@@ -793,7 +832,7 @@ void STDMETHODCALLTYPE ID3D12QueuedCommandList::ResolveSubresource(
 }
 
 void STDMETHODCALLTYPE ID3D12QueuedCommandList::IASetPrimitiveTopology(
-	_In_  D3D11_PRIMITIVE_TOPOLOGY PrimitiveTopology
+	_In_  D3D12_PRIMITIVE_TOPOLOGY PrimitiveTopology
 	)
 {
 	// No ignored parameters, no assumptions to DEBUGCHECK.
@@ -807,7 +846,7 @@ void STDMETHODCALLTYPE ID3D12QueuedCommandList::IASetPrimitiveTopology(
 }
 
 void STDMETHODCALLTYPE ID3D12QueuedCommandList::RSSetViewports(
-	_In_range_(0, D3D11_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE)  UINT Count,
+	_In_range_(0, D3D12_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE)  UINT Count,
 	_In_reads_(Count)  const D3D12_VIEWPORT* pViewports
 	)
 {
@@ -821,7 +860,7 @@ void STDMETHODCALLTYPE ID3D12QueuedCommandList::RSSetViewports(
 }
 
 void STDMETHODCALLTYPE ID3D12QueuedCommandList::RSSetScissorRects(
-	_In_range_(0, D3D11_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE)  UINT Count,
+	_In_range_(0, D3D12_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE)  UINT Count,
 	_In_reads_(Count)  const D3D12_RECT* pRects
 	)
 {
@@ -900,8 +939,15 @@ void STDMETHODCALLTYPE ID3D12QueuedCommandList::BeginQuery(
 	_In_  UINT Index
 	)
 {
-	// Function not implemented yet.
-	DEBUGCHECK(0, "Function not implemented yet.");
+	D3DQueueItem* item = reinterpret_cast<D3DQueueItem*>(m_queue_array_back);
+	item->Type = D3DQueueItemType::BeginQuery;
+	item->BeginQuery.pQueryHeap = pQueryHeap;
+	item->BeginQuery.Type = Type;
+	item->BeginQuery.Index = Index;
+
+	m_queue_array_back += BufferOffsetForQueueItemType<BeginQueryArguments>();
+
+	CheckForOverflow();
 }
 
 void STDMETHODCALLTYPE ID3D12QueuedCommandList::EndQuery(
@@ -910,8 +956,15 @@ void STDMETHODCALLTYPE ID3D12QueuedCommandList::EndQuery(
 	_In_  UINT Index
 	)
 {
-	// Function not implemented yet.
-	DEBUGCHECK(0, "Function not implemented yet.");
+	D3DQueueItem* item = reinterpret_cast<D3DQueueItem*>(m_queue_array_back);
+	item->Type = D3DQueueItemType::EndQuery;
+	item->EndQuery.pQueryHeap = pQueryHeap;
+	item->EndQuery.Type = Type;
+	item->EndQuery.Index = Index;
+
+	m_queue_array_back += BufferOffsetForQueueItemType<EndQueryArguments>();
+
+	CheckForOverflow();
 }
 
 void STDMETHODCALLTYPE ID3D12QueuedCommandList::ResolveQueryData(
@@ -923,8 +976,17 @@ void STDMETHODCALLTYPE ID3D12QueuedCommandList::ResolveQueryData(
 	_In_  UINT64 AlignedDestinationBufferOffset
 	)
 {
-	// Function not implemented yet.
-	DEBUGCHECK(0, "Function not implemented yet.");
+	// No ignored parameters, no assumptions to DEBUGCHECK.
+	D3DQueueItem* item = reinterpret_cast<D3DQueueItem*>(m_queue_array_back);
+	item->Type = D3DQueueItemType::ResolveQueryData;
+	item->ResolveQueryData.pQueryHeap = pQueryHeap;
+	item->ResolveQueryData.Type = Type;
+	item->ResolveQueryData.StartElement = StartElement;
+	item->ResolveQueryData.ElementCount = ElementCount;
+	item->ResolveQueryData.pDestinationBuffer = pDestinationBuffer;
+	item->ResolveQueryData.AlignedDestinationBufferOffset = AlignedDestinationBufferOffset;
+
+	m_queue_array_back += BufferOffsetForQueueItemType<ResolveQueryDataArguments>();
 }
 
 void STDMETHODCALLTYPE ID3D12QueuedCommandList::SetPredication(
@@ -1189,7 +1251,7 @@ void STDMETHODCALLTYPE ID3D12QueuedCommandList::ClearDepthStencilView(
 	_In_reads_opt_(NumRects)  const D3D12_RECT* pRect
 	)
 {
-	DEBUGCHECK(ClearFlags == D3D11_CLEAR_DEPTH, "Error: Invalid assumption in ID3D12QueuedCommandList.");
+	DEBUGCHECK(ClearFlags == D3D12_CLEAR_FLAG_DEPTH, "Error: Invalid assumption in ID3D12QueuedCommandList.");
 	DEBUGCHECK(Depth == 0.0f, "Error: Invalid assumption in ID3D12QueuedCommandList.");
 	DEBUGCHECK(Stencil == 0, "Error: Invalid assumption in ID3D12QueuedCommandList.");
 	DEBUGCHECK(pRect == nullptr, "Error: Invalid assumption in ID3D12QueuedCommandList.");

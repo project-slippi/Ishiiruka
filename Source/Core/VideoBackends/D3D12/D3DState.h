@@ -93,8 +93,8 @@ public:
 	static D3D12_RASTERIZER_DESC GetDesc(RasterizerState state);
 	static D3D12_DEPTH_STENCIL_DESC GetDesc(ZMode state);
 
-	HRESULT GetPipelineStateObjectFromCache(D3D12_GRAPHICS_PIPELINE_STATE_DESC* pso_desc, ID3D12PipelineState** pso);
-	HRESULT GetPipelineStateObjectFromCache(SmallPsoDesc* pso_desc, ID3D12PipelineState** pso, D3D12_PRIMITIVE_TOPOLOGY_TYPE topology, const GeometryShaderUid* gs_uid, const PixelShaderUid* ps_uid, const VertexShaderUid* vs_uid, const TessellationShaderUid* hds_uid);
+	HRESULT GetPipelineStateObjectFromCache(const D3D12_GRAPHICS_PIPELINE_STATE_DESC& pso_desc, ID3D12PipelineState** pso);
+	HRESULT GetPipelineStateObjectFromCache(const SmallPsoDesc& pso_desc, ID3D12PipelineState** pso, D3D12_PRIMITIVE_TOPOLOGY_TYPE topology, const GeometryShaderUid* gs_uid, const PixelShaderUid* ps_uid, const VertexShaderUid* vs_uid, const TessellationShaderUid* hds_uid);
 
 	StateCache();
 
@@ -155,7 +155,7 @@ private:
 		}
 	};
 
-	std::unordered_map<D3D12_GRAPHICS_PIPELINE_STATE_DESC, ID3D12PipelineState*, hash_pso_desc, equality_pipeline_state_desc> m_pso_map;
+	std::unordered_map<D3D12_GRAPHICS_PIPELINE_STATE_DESC, ComPtr<ID3D12PipelineState>, hash_pso_desc, equality_pipeline_state_desc> m_pso_map;
 
 	struct hash_small_pso_desc
 	{
@@ -201,7 +201,7 @@ private:
 		}
 	};
 
-	std::unordered_map<SmallPsoDesc, ID3D12PipelineState*, hash_small_pso_desc, equality_small_pipeline_state_desc> m_small_pso_map;
+	std::unordered_map<SmallPsoDesc, ComPtr<ID3D12PipelineState>, hash_small_pso_desc, equality_small_pipeline_state_desc> m_small_pso_map;
 };
 
 }  // namespace DX12

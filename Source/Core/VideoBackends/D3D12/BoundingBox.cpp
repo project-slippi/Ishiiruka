@@ -30,13 +30,10 @@ static D3D12_GPU_DESCRIPTOR_HANDLE s_bbox_descriptor_handle;
 
 void BBox::Init()
 {
-	if (!g_ActiveConfig.backend_info.bSupportsBBox)
-		return;
-	
 	CD3DX12_RESOURCE_DESC buffer_desc(CD3DX12_RESOURCE_DESC::Buffer(BBOX_BUFFER_SIZE, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS, 0));
 	CD3DX12_RESOURCE_DESC staging_buffer_desc(CD3DX12_RESOURCE_DESC::Buffer(BBOX_BUFFER_SIZE, D3D12_RESOURCE_FLAG_NONE, 0));
 
-	CheckHR(D3D::device12->CreateCommittedResource(
+	CheckHR(D3D::device->CreateCommittedResource(
 		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
 		D3D12_HEAP_FLAG_NONE,
 		&buffer_desc,
@@ -44,7 +41,7 @@ void BBox::Init()
 		nullptr,
 		IID_PPV_ARGS(&s_bbox_buffer)));
 
-	CheckHR(D3D::device12->CreateCommittedResource(
+	CheckHR(D3D::device->CreateCommittedResource(
 		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_READBACK),
 		D3D12_HEAP_FLAG_NONE,
 		&staging_buffer_desc,
@@ -66,15 +63,14 @@ void BBox::Init()
 	view_desc.Buffer.StructureByteStride = 0;
 	view_desc.Buffer.CounterOffsetInBytes = 0;
 	view_desc.Buffer.Flags = D3D12_BUFFER_UAV_FLAG_NONE;
-	D3D::device12->CreateUnorderedAccessView(s_bbox_buffer, nullptr, &view_desc, cpu_descriptor_handle);
+	D3D::device->CreateUnorderedAccessView(s_bbox_buffer, nullptr, &view_desc, cpu_descriptor_handle);
 
 	Bind();
 }
 
 void BBox::Bind()
 {
-	if (s_bbox_buffer)
-		D3D::current_command_list->SetGraphicsRootDescriptorTable(DESCRIPTOR_TABLE_PS_UAV, s_bbox_descriptor_handle);
+	D3D::current_command_list->SetGraphicsRootDescriptorTable(DESCRIPTOR_TABLE_PS_UAV, s_bbox_descriptor_handle);
 }
 
 void BBox::Invalidate()
@@ -149,8 +145,7 @@ int BBox::Get(int index)
 		CheckHR(s_bbox_staging_buffer->Map(0, nullptr, &s_bbox_staging_buffer_map));
 	}
 
-	int value;
-	memcpy(&value, &reinterpret_cast<int*>(s_bbox_staging_buffer_map)[index], sizeof(int));
+	int value = reinterpret_cast<int*>(s_bbox_staging_buffer_map)[index];
 	return value;
 }
 

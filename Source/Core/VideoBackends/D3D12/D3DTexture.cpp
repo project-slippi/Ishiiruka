@@ -51,7 +51,7 @@ void ReplaceTexture2D(ID3D12Resource* texture12, const u8* buffer, DXGI_FORMAT f
 	{
 		// If the texture is too large to fit in the upload buffer, create a temporary buffer instead.
 		// This will only be the case for large (e.g. 8192x8192) textures from custom texture packs.
-		CheckHR(D3D::device12->CreateCommittedResource(
+		CheckHR(D3D::device->CreateCommittedResource(
 			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
 			D3D12_HEAP_FLAG_NONE,
 			&CD3DX12_RESOURCE_DESC::Buffer(upload_size),
@@ -80,7 +80,7 @@ void ReplaceTexture2D(ID3D12Resource* texture12, const u8* buffer, DXGI_FORMAT f
 	u64 upload_row_size_in_bytes = 0;
 	u64 upload_total_bytes = 0;
 	
-	D3D::device12->GetCopyableFootprints(&texture12->GetDesc(), level, 1, upload_buffer_offset, &upload_footprint, &upload_rows, &upload_row_size_in_bytes, &upload_total_bytes);
+	D3D::device->GetCopyableFootprints(&texture12->GetDesc(), level, 1, upload_buffer_offset, &upload_footprint, &upload_rows, &upload_row_size_in_bytes, &upload_total_bytes);
 	
 	const u8* src_data = reinterpret_cast<const u8*>(buffer);
 	for (u32 y = 0; y < upload_rows; ++y)
@@ -106,11 +106,11 @@ void ReplaceTexture2D(ID3D12Resource* texture12, const u8* buffer, DXGI_FORMAT f
 
 }  // namespace
 
-D3DTexture2D* D3DTexture2D::Create(unsigned int width, unsigned int height, D3D11_BIND_FLAG bind, D3D11_USAGE usage, DXGI_FORMAT fmt, unsigned int levels, unsigned int slices, D3D12_SUBRESOURCE_DATA* data)
+D3DTexture2D* D3DTexture2D::Create(unsigned int width, unsigned int height, u32 bind, DXGI_FORMAT fmt, unsigned int levels, unsigned int slices, D3D12_SUBRESOURCE_DATA* data)
 {
-	ID3D12Resource* texture12 = nullptr;
+	ComPtr<ID3D12Resource> texture;
 
-	D3D12_RESOURCE_DESC texdesc12 = CD3DX12_RESOURCE_DESC::Tex2D(
+	D3D12_RESOURCE_DESC texdesc = CD3DX12_RESOURCE_DESC::Tex2D(
 		fmt,
 		width,
 		height,
@@ -121,42 +121,40 @@ D3DTexture2D* D3DTexture2D::Create(unsigned int width, unsigned int height, D3D1
 	D3D12_CLEAR_VALUE optimized_clear_value = {};
 	optimized_clear_value.Format = fmt;
 
-	if (bind & D3D11_BIND_RENDER_TARGET)
+	if (bind & TEXTURE_BIND_FLAG_RENDER_TARGET)
 	{
-		texdesc12.Flags |= D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
+		texdesc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
 		optimized_clear_value.Color[0] = 0.0f;
 		optimized_clear_value.Color[1] = 0.0f;
 		optimized_clear_value.Color[2] = 0.0f;
 		optimized_clear_value.Color[3] = 1.0f;
 	}
 
-	if (bind & D3D11_BIND_DEPTH_STENCIL)
+	if (bind & TEXTURE_BIND_FLAG_DEPTH_STENCIL)
 	{
-		texdesc12.Flags |= D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
+		texdesc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
 		optimized_clear_value.DepthStencil.Depth = 0.0f;
 		optimized_clear_value.DepthStencil.Stencil = 0;
 	}
 
 	CheckHR(
-		D3D::device12->CreateCommittedResource(
+		D3D::device->CreateCommittedResource(
 			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
 			D3D12_HEAP_FLAG_NONE,
-			&CD3DX12_RESOURCE_DESC(texdesc12),
+			&CD3DX12_RESOURCE_DESC(texdesc),
 			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
 			&optimized_clear_value,
-			IID_PPV_ARGS(&texture12)
+			IID_PPV_ARGS(texture.GetAddressOf())
 			)
 		);
 
-	D3D::SetDebugObjectName12(texture12, "Texture created via D3DTexture2D::Create");
-	D3DTexture2D* ret = new D3DTexture2D(texture12, bind, DXGI_FORMAT_UNKNOWN, DXGI_FORMAT_UNKNOWN, DXGI_FORMAT_UNKNOWN, false, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+	D3D::SetDebugObjectName12(texture.Get(), "Texture created via D3DTexture2D::Create");
+	D3DTexture2D* ret = new D3DTexture2D(texture.Get(), bind, DXGI_FORMAT_UNKNOWN, DXGI_FORMAT_UNKNOWN, DXGI_FORMAT_UNKNOWN, false, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 
 	if (data)
 	{
-		DX12::D3D::ReplaceTexture2D(texture12, reinterpret_cast<const u8*>(data->pData), fmt, width, height, static_cast<unsigned int>(data->RowPitch), 0, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+		DX12::D3D::ReplaceTexture2D(texture.Get(), reinterpret_cast<const u8*>(data->pData), fmt, width, height, static_cast<unsigned int>(data->RowPitch), 0, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 	}
-
-	SAFE_RELEASE(texture12);
 	return ret;
 }
 
@@ -188,7 +186,7 @@ bool D3DTexture2D::GetMultisampled() const
 
 ID3D12Resource* D3DTexture2D::GetTex() const
 {
-	return m_tex;
+	return m_tex.Get();
 }
 
 D3D12_CPU_DESCRIPTOR_HANDLE D3DTexture2D::GetSRVCPU() const
@@ -216,7 +214,7 @@ D3D12_CPU_DESCRIPTOR_HANDLE D3DTexture2D::GetRTV() const
 	return m_rtv;
 }
 
-D3DTexture2D::D3DTexture2D(ID3D12Resource* texptr, D3D11_BIND_FLAG bind,
+D3DTexture2D::D3DTexture2D(ID3D12Resource* texptr, u32 bind,
 	DXGI_FORMAT srv_format, DXGI_FORMAT dsv_format, DXGI_FORMAT rtv_format, bool multisampled, D3D12_RESOURCE_STATES resource_state)
 	: m_tex(texptr), m_resource_state(resource_state), m_multisampled(multisampled)
 {
@@ -224,7 +222,7 @@ D3DTexture2D::D3DTexture2D(ID3D12Resource* texptr, D3D11_BIND_FLAG bind,
 	D3D12_DSV_DIMENSION dsv_dim = multisampled ? D3D12_DSV_DIMENSION_TEXTURE2DMSARRAY : D3D12_DSV_DIMENSION_TEXTURE2DARRAY;
 	D3D12_RTV_DIMENSION rtv_dim = multisampled ? D3D12_RTV_DIMENSION_TEXTURE2DMSARRAY : D3D12_RTV_DIMENSION_TEXTURE2DARRAY;
 
-	if (bind & D3D11_BIND_SHADER_RESOURCE)
+	if (bind & TEXTURE_BIND_FLAG_SHADER_RESOURCE)
 	{
 		D3D12_SHADER_RESOURCE_VIEW_DESC srv_desc = {
 			srv_format, // DXGI_FORMAT Format
@@ -247,11 +245,11 @@ D3DTexture2D::D3DTexture2D(ID3D12Resource* texptr, D3D11_BIND_FLAG bind,
 
 		CHECK(D3D::gpu_descriptor_heap_mgr->Allocate(&m_srv_cpu, &m_srv_gpu, &m_srv_gpu_cpu_shadow), "Error: Ran out of permenant slots in GPU descriptor heap, but don't support rolling over heap.");
 
-		D3D::device12->CreateShaderResourceView(m_tex, &srv_desc, m_srv_cpu);
-		D3D::device12->CreateShaderResourceView(m_tex, &srv_desc, m_srv_gpu_cpu_shadow);
+		D3D::device->CreateShaderResourceView(m_tex.Get(), &srv_desc, m_srv_cpu);
+		D3D::device->CreateShaderResourceView(m_tex.Get(), &srv_desc, m_srv_gpu_cpu_shadow);
 	}
 
-	if (bind & D3D11_BIND_DEPTH_STENCIL)
+	if (bind & TEXTURE_BIND_FLAG_DEPTH_STENCIL)
 	{
 		D3D12_DEPTH_STENCIL_VIEW_DESC dsv_desc = {
 			dsv_format,          // DXGI_FORMAT Format
@@ -265,10 +263,10 @@ D3DTexture2D::D3DTexture2D(ID3D12Resource* texptr, D3D11_BIND_FLAG bind,
 			dsv_desc.Texture2DMSArray.ArraySize = -1;
 
 		D3D::dsv_descriptor_heap_mgr->Allocate(&m_dsv);
-		D3D::device12->CreateDepthStencilView(m_tex, &dsv_desc, m_dsv);
+		D3D::device->CreateDepthStencilView(m_tex.Get(), &dsv_desc, m_dsv);
 	}
 
-	if (bind & D3D11_BIND_RENDER_TARGET)
+	if (bind & TEXTURE_BIND_FLAG_RENDER_TARGET)
 	{
 		D3D12_RENDER_TARGET_VIEW_DESC rtv_desc = {
 			rtv_format, // DXGI_FORMAT Format
@@ -281,7 +279,7 @@ D3DTexture2D::D3DTexture2D(ID3D12Resource* texptr, D3D11_BIND_FLAG bind,
 			rtv_desc.Texture2DMSArray.ArraySize = -1;
 
 		D3D::rtv_descriptor_heap_mgr->Allocate(&m_rtv);
-		D3D::device12->CreateRenderTargetView(m_tex, &rtv_desc, m_rtv);
+		D3D::device->CreateRenderTargetView(m_tex.Get(), &rtv_desc, m_rtv);
 	}
 
 	m_tex->AddRef();
@@ -289,13 +287,13 @@ D3DTexture2D::D3DTexture2D(ID3D12Resource* texptr, D3D11_BIND_FLAG bind,
 
 void D3DTexture2D::TransitionToResourceState(ID3D12GraphicsCommandList* command_list, D3D12_RESOURCE_STATES state_after)
 {
-	DX12::D3D::ResourceBarrier(command_list, m_tex, m_resource_state, state_after, D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES);
+	DX12::D3D::ResourceBarrier(command_list, m_tex.Get(), m_resource_state, state_after, D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES);
 	m_resource_state = state_after;
 }
 
 D3DTexture2D::~D3DTexture2D()
 {
-	DX12::D3D::command_list_mgr->DestroyResourceAfterCurrentCommandListExecuted(m_tex);
+	DX12::D3D::command_list_mgr->DestroyResourceAfterCurrentCommandListExecuted(m_tex.Get());
 }
 
 }  // namespace DX12

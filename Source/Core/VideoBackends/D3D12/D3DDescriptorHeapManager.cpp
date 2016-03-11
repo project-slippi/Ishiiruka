@@ -18,7 +18,7 @@ bool operator==(const D3DDescriptorHeapManager::SamplerStateSet& lhs, const D3DD
 D3DDescriptorHeapManager::D3DDescriptorHeapManager(D3D12_DESCRIPTOR_HEAP_DESC* desc, ID3D12Device* device, unsigned int temporarySlots) :
 	m_device(device)
 {
-	CheckHR(device->CreateDescriptorHeap(desc, IID_PPV_ARGS(&m_descriptor_heap)));
+	CheckHR(device->CreateDescriptorHeap(desc, IID_PPV_ARGS(m_descriptor_heap.ReleaseAndGetAddressOf())));
 
 	m_descriptor_heap_size = desc->NumDescriptors;
 	m_descriptor_increment_size = device->GetDescriptorHandleIncrementSize(desc->Type);
@@ -142,7 +142,7 @@ D3D12_GPU_DESCRIPTOR_HANDLE D3DDescriptorHeapManager::GetHandleForSamplerGroup(S
 			D3D12_CPU_DESCRIPTOR_HANDLE destinationDescriptor;
 			destinationDescriptor.ptr = base_sampler_cpu_handle.ptr + i * D3D::sampler_descriptor_size;
 
-			D3D::device12->CreateSampler(&StateCache::GetDesc(sampler_state[i]), destinationDescriptor);
+			D3D::device->CreateSampler(&StateCache::GetDesc(sampler_state[i]), destinationDescriptor);
 		}
 
 		m_sampler_map[*reinterpret_cast<SamplerStateSet*>(sampler_state)] = base_sampler_gpu_handle;
@@ -157,13 +157,7 @@ D3D12_GPU_DESCRIPTOR_HANDLE D3DDescriptorHeapManager::GetHandleForSamplerGroup(S
 
 ID3D12DescriptorHeap* D3DDescriptorHeapManager::GetDescriptorHeap()
 {
-	return m_descriptor_heap;
-}
-
-D3DDescriptorHeapManager::~D3DDescriptorHeapManager()
-{
-	SAFE_RELEASE(m_descriptor_heap);
-	SAFE_RELEASE(m_descriptor_heap_cpu_shadow);
+	return m_descriptor_heap.Get();
 }
 
 }  // namespace DX12

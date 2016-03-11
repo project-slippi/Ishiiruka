@@ -52,17 +52,17 @@ void PSTextureEncoder::Init()
 	D3D12_CLEAR_VALUE optimized_clear_value = { DXGI_FORMAT_B8G8R8A8_UNORM,{ 0.0f, 0.0f, 0.0f, 1.0f } };
 
 	CheckHR(
-		D3D::device12->CreateCommittedResource(
+		D3D::device->CreateCommittedResource(
 			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
 			D3D12_HEAP_FLAG_NONE,
 			&out_tex_desc,
 			D3D12_RESOURCE_STATE_COPY_SOURCE,
 			&optimized_clear_value,
-			IID_PPV_ARGS(&m_out)
+			IID_PPV_ARGS(m_out.ReleaseAndGetAddressOf())
 			)
 		);
 
-	D3D::SetDebugObjectName12(m_out, "efb encoder output texture");
+	D3D::SetDebugObjectName12(m_out.Get(), "efb encoder output texture");
 
 	// Create output render target view
 	D3D12_RENDER_TARGET_VIEW_DESC tex_rtv_desc = {
@@ -73,11 +73,11 @@ void PSTextureEncoder::Init()
 	tex_rtv_desc.Texture2D.MipSlice = 0;
 
 	D3D::rtv_descriptor_heap_mgr->Allocate(&m_out_rtv_cpu);
-	D3D::device12->CreateRenderTargetView(m_out, &tex_rtv_desc, m_out_rtv_cpu);
+	D3D::device->CreateRenderTargetView(m_out.Get(), &tex_rtv_desc, m_out_rtv_cpu);
 
 	// Create output staging buffer
 	CheckHR(
-		D3D::device12->CreateCommittedResource(
+		D3D::device->CreateCommittedResource(
 			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_READBACK),
 			D3D12_HEAP_FLAG_NONE,
 			&CD3DX12_RESOURCE_DESC::Buffer(
@@ -86,27 +86,27 @@ void PSTextureEncoder::Init()
 				),
 			D3D12_RESOURCE_STATE_COPY_DEST,
 			nullptr,
-			IID_PPV_ARGS(&m_out_readback_buffer)
+			IID_PPV_ARGS(m_out_readback_buffer.ReleaseAndGetAddressOf())
 			)
 		);
 
-	D3D::SetDebugObjectName12(m_out_readback_buffer, "efb encoder output staging buffer");
+	D3D::SetDebugObjectName12(m_out_readback_buffer.Get(), "efb encoder output staging buffer");
 
 	// Create constant buffer for uploading data to shaders. Need to align to 256 bytes.
 	unsigned int encode_params_buffer_size = (sizeof(EFBEncodeParams) + 0xff) & ~0xff;
 
 	CheckHR(
-		D3D::device12->CreateCommittedResource(
+		D3D::device->CreateCommittedResource(
 			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
 			D3D12_HEAP_FLAG_NONE,
 			&CD3DX12_RESOURCE_DESC::Buffer(encode_params_buffer_size),
 			D3D12_RESOURCE_STATE_GENERIC_READ,
 			nullptr,
-			IID_PPV_ARGS(&m_encode_params_buffer)
+			IID_PPV_ARGS(m_encode_params_buffer.ReleaseAndGetAddressOf())
 			)
 		);
 
-	D3D::SetDebugObjectName12(m_encode_params_buffer, "efb encoder params buffer");
+	D3D::SetDebugObjectName12(m_encode_params_buffer.Get(), "efb encoder params buffer");
 
 	CheckHR(m_encode_params_buffer->Map(0, nullptr, &m_encode_params_buffer_data));
 
@@ -116,16 +116,13 @@ void PSTextureEncoder::Init()
 void PSTextureEncoder::Shutdown()
 {
 	m_ready = false;
-
-	D3D::command_list_mgr->DestroyResourceAfterCurrentCommandListExecuted(m_out);
-	D3D::command_list_mgr->DestroyResourceAfterCurrentCommandListExecuted(m_out_readback_buffer);
-	D3D::command_list_mgr->DestroyResourceAfterCurrentCommandListExecuted(m_encode_params_buffer);
-
+	D3D::command_list_mgr->DestroyResourceAfterCurrentCommandListExecuted(m_out.Detach());
+	D3D::command_list_mgr->DestroyResourceAfterCurrentCommandListExecuted(m_out_readback_buffer.Detach());
+	D3D::command_list_mgr->DestroyResourceAfterCurrentCommandListExecuted(m_encode_params_buffer.Detach());
 	for (auto& it : m_static_shaders_blobs)
 	{
 		SAFE_RELEASE(it);
 	}
-
 	m_static_shaders_blobs.clear();
 	m_static_shaders_map.clear();
 }
@@ -159,7 +156,7 @@ void PSTextureEncoder::Encode(u8* dst, u32 format, u32 native_width, u32 bytes_p
 
 	TargetRectangle target_rect = g_renderer->ConvertEFBRectangle(full_src_rect);
 
-	D3D::ResourceBarrier(D3D::current_command_list, m_out, D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET, 0);
+	D3D::ResourceBarrier(D3D::current_command_list, m_out.Get(), D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET, 0);
 	D3D::current_command_list->OMSetRenderTargets(1, &m_out_rtv_cpu, FALSE, nullptr);
 
 	EFBEncodeParams params;
@@ -201,7 +198,7 @@ void PSTextureEncoder::Encode(u8* dst, u32 format, u32 native_width, u32 bytes_p
 	D3D12_BOX src_box = CD3DX12_BOX(0, 0, 0, words_per_row, num_blocks_y, 1);
 
 	D3D12_TEXTURE_COPY_LOCATION dst_location = {};
-	dst_location.pResource = m_out_readback_buffer;
+	dst_location.pResource = m_out_readback_buffer.Get();
 	dst_location.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
 	dst_location.PlacedFootprint.Offset = 0;
 	dst_location.PlacedFootprint.Footprint.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
@@ -211,11 +208,11 @@ void PSTextureEncoder::Encode(u8* dst, u32 format, u32 native_width, u32 bytes_p
 	dst_location.PlacedFootprint.Footprint.RowPitch = ROUND_UP(dst_location.PlacedFootprint.Footprint.Width * 4, D3D12_TEXTURE_DATA_PITCH_ALIGNMENT);
 
 	D3D12_TEXTURE_COPY_LOCATION src_location = {};
-	src_location.pResource = m_out;
+	src_location.pResource = m_out.Get();
 	src_location.SubresourceIndex = 0;
 	src_location.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
 
-	D3D::ResourceBarrier(D3D::current_command_list, m_out, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_COPY_SOURCE, 0);
+	D3D::ResourceBarrier(D3D::current_command_list, m_out.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_COPY_SOURCE, 0);
 	D3D::current_command_list->CopyTextureRegion(&dst_location, 0, 0, 0, &src_location, &src_box);
 	FramebufferManager::GetEFBColorTexture()->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_RENDER_TARGET);
 	FramebufferManager::GetEFBDepthTexture()->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_DEPTH_WRITE);

@@ -39,7 +39,7 @@ public:
 			return;
 
 		D3D12_GRAPHICS_PIPELINE_STATE_DESC desc = {};
-		desc.pRootSignature = D3D::default_root_signature;
+		desc.pRootSignature = D3D::default_root_signature.Get();
 		desc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM; // This state changes in PSTextureEncoder::Encode.
 		desc.DSVFormat = DXGI_FORMAT_D32_FLOAT; // This state changes in PSTextureEncoder::Encode.
 		desc.IBStripCutValue = D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_0xFFFF;
@@ -87,14 +87,13 @@ public:
 		desc.CachedPSO.CachedBlobSizeInBytes = value_size;
 		desc.CachedPSO.pCachedBlob = value;
 
-		ID3D12PipelineState* pso = nullptr;
-		HRESULT hr = D3D::device12->CreateGraphicsPipelineState(&desc, IID_PPV_ARGS(&pso));
+		ComPtr<ID3D12PipelineState> pso;
+		HRESULT hr = D3D::device->CreateGraphicsPipelineState(&desc, IID_PPV_ARGS(pso.ReleaseAndGetAddressOf()));
 
 		if (FAILED(hr))
 		{
 			// Failure can occur if disk cache is corrupted, or a driver upgrade invalidates the existing blobs.
 			// In this case, we need to clear the disk cache.
-
 			s_cache_is_corrupted = true;
 			return;
 		}
@@ -109,7 +108,7 @@ public:
 		small_desc.hs_bytecode = desc.HS;
 		small_desc.ds_bytecode = desc.DS;
 		small_desc.input_Layout = reinterpret_cast<D3DVertexFormat*>(native.get());
-
+		small_desc.sample_count = key.sample_desc.Count;
 		gx_state_cache.m_small_pso_map[small_desc] = pso;
 	}
 };
@@ -130,7 +129,7 @@ StateCache::StateCache()
 void StateCache::Init()
 {
 	// Root signature isn't available at time of StateCache construction, so fill it in now.
-	gx_state_cache.m_current_pso_desc.pRootSignature = D3D::default_root_signature;
+	gx_state_cache.m_current_pso_desc.pRootSignature = D3D::default_root_signature.Get();
 
 	if (!File::Exists(File::GetUserPath(D_SHADERCACHE_IDX)))
 		File::CreateDir(File::GetUserPath(D_SHADERCACHE_IDX));
@@ -151,10 +150,6 @@ void StateCache::Init()
 
 		s_pso_disk_cache.Close();
 
-		for (auto it : gx_state_cache.m_small_pso_map)
-		{
-			SAFE_RELEASE(it.second);
-		}
 		gx_state_cache.m_small_pso_map.clear();
 
 		File::Delete(cache_filename);
@@ -344,8 +339,8 @@ inline D3D12_DEPTH_STENCIL_DESC StateCache::GetDesc(ZMode state)
 	D3D12_DEPTH_STENCIL_DESC depthdc;
 
 	depthdc.StencilEnable = FALSE;
-	depthdc.StencilReadMask = D3D11_DEFAULT_STENCIL_READ_MASK;
-	depthdc.StencilWriteMask = D3D11_DEFAULT_STENCIL_WRITE_MASK;
+	depthdc.StencilReadMask = D3D12_DEFAULT_STENCIL_READ_MASK;
+	depthdc.StencilWriteMask = D3D12_DEFAULT_STENCIL_WRITE_MASK;
 
 	D3D12_DEPTH_STENCILOP_DESC defaultStencilOp = { D3D12_STENCIL_OP_KEEP, D3D12_STENCIL_OP_KEEP, D3D12_STENCIL_OP_KEEP, D3D12_COMPARISON_FUNC_ALWAYS };
 	depthdc.FrontFace = defaultStencilOp;
@@ -379,36 +374,36 @@ inline D3D12_DEPTH_STENCIL_DESC StateCache::GetDesc(ZMode state)
 	return depthdc;
 }
 
-HRESULT StateCache::GetPipelineStateObjectFromCache(D3D12_GRAPHICS_PIPELINE_STATE_DESC* pso_desc, ID3D12PipelineState** pso)
+HRESULT StateCache::GetPipelineStateObjectFromCache(const D3D12_GRAPHICS_PIPELINE_STATE_DESC& pso_desc, ID3D12PipelineState** pso)
 {
-	auto it = m_pso_map.find(*pso_desc);
+	auto it = m_pso_map.find(pso_desc);
 
 	if (it == m_pso_map.end())
 	{
 		// Not found, create new PSO.
 
-		ID3D12PipelineState* new_pso = nullptr;
-		HRESULT hr = D3D::device12->CreateGraphicsPipelineState(pso_desc, IID_PPV_ARGS(&new_pso));
+		ComPtr<ID3D12PipelineState> new_pso;
+		HRESULT hr = D3D::device->CreateGraphicsPipelineState(&pso_desc, IID_PPV_ARGS(new_pso.ReleaseAndGetAddressOf()));
 
 		if (FAILED(hr))
 		{
 			return hr;
 		}
 
-		m_pso_map[*pso_desc] = new_pso;
-		*pso = new_pso;
+		m_pso_map[pso_desc] = new_pso;
+		*pso = new_pso.Get();
 	}
 	else
 	{
-		*pso = it->second;
+		*pso = it->second.Get();
 	}
 
 	return S_OK;
 }
 
-HRESULT StateCache::GetPipelineStateObjectFromCache(SmallPsoDesc* pso_desc, ID3D12PipelineState** pso, D3D12_PRIMITIVE_TOPOLOGY_TYPE topology, const GeometryShaderUid* gs_uid, const PixelShaderUid* ps_uid, const VertexShaderUid* vs_uid, const TessellationShaderUid* hds_uid)
+HRESULT StateCache::GetPipelineStateObjectFromCache(const SmallPsoDesc& pso_desc, ID3D12PipelineState** pso, D3D12_PRIMITIVE_TOPOLOGY_TYPE topology, const GeometryShaderUid* gs_uid, const PixelShaderUid* ps_uid, const VertexShaderUid* vs_uid, const TessellationShaderUid* hds_uid)
 {
-	auto it = m_small_pso_map.find(*pso_desc);
+	auto it = m_small_pso_map.find(pso_desc);
 
 	if (it == m_small_pso_map.end())
 	{
@@ -416,21 +411,21 @@ HRESULT StateCache::GetPipelineStateObjectFromCache(SmallPsoDesc* pso_desc, ID3D
 
 		// RootSignature, SampleMask, NumRenderTargets, RTVFormats, DSVFormat
 		// never change so they are set in constructor and forgotten.
-		m_current_pso_desc.GS = pso_desc->gs_bytecode;
-		m_current_pso_desc.PS = pso_desc->ps_bytecode;
-		m_current_pso_desc.VS = pso_desc->vs_bytecode;
-		m_current_pso_desc.HS = pso_desc->hs_bytecode;
-		m_current_pso_desc.DS = pso_desc->ds_bytecode;
+		m_current_pso_desc.GS = pso_desc.gs_bytecode;
+		m_current_pso_desc.PS = pso_desc.ps_bytecode;
+		m_current_pso_desc.VS = pso_desc.vs_bytecode;
+		m_current_pso_desc.HS = pso_desc.hs_bytecode;
+		m_current_pso_desc.DS = pso_desc.ds_bytecode;
 
-		m_current_pso_desc.BlendState = GetDesc(pso_desc->blend_state);
-		m_current_pso_desc.DepthStencilState = GetDesc(pso_desc->depth_stencil_state);
-		m_current_pso_desc.RasterizerState = GetDesc(pso_desc->rasterizer_state);
+		m_current_pso_desc.BlendState = GetDesc(pso_desc.blend_state);
+		m_current_pso_desc.DepthStencilState = GetDesc(pso_desc.depth_stencil_state);
+		m_current_pso_desc.RasterizerState = GetDesc(pso_desc.rasterizer_state);
 		m_current_pso_desc.PrimitiveTopologyType = topology;
-		m_current_pso_desc.InputLayout = pso_desc->input_Layout->GetActiveInputLayout();
-		m_current_pso_desc.SampleDesc.Count = pso_desc->sample_count;
+		m_current_pso_desc.InputLayout = pso_desc.input_Layout->GetActiveInputLayout();
+		m_current_pso_desc.SampleDesc.Count = pso_desc.sample_count;
 
-		ID3D12PipelineState* new_pso = nullptr;
-		HRESULT hr = D3D::device12->CreateGraphicsPipelineState(&m_current_pso_desc, IID_PPV_ARGS(&new_pso));
+		ComPtr<ID3D12PipelineState> new_pso;
+		HRESULT hr = D3D::device->CreateGraphicsPipelineState(&m_current_pso_desc, IID_PPV_ARGS(new_pso.ReleaseAndGetAddressOf()));
 
 		if (FAILED(hr))
 		{
@@ -438,35 +433,33 @@ HRESULT StateCache::GetPipelineStateObjectFromCache(SmallPsoDesc* pso_desc, ID3D
 			return hr;
 		}
 
-		m_small_pso_map[*pso_desc] = new_pso;
-		*pso = new_pso;
-
+		m_small_pso_map[pso_desc] = new_pso;
+		*pso = new_pso.Get();
+		
 		// This contains all of the information needed to reconstruct a PSO at startup.
 		SmallPsoDiskDesc disk_desc = {};
-		disk_desc.blend_state_hex = pso_desc->blend_state.hex;
-		disk_desc.depth_stencil_state_hex = pso_desc->depth_stencil_state.hex;
-		disk_desc.rasterizer_state_hex = pso_desc->rasterizer_state.hex;
+		disk_desc.blend_state_hex = pso_desc.blend_state.hex;
+		disk_desc.depth_stencil_state_hex = pso_desc.depth_stencil_state.hex;
+		disk_desc.rasterizer_state_hex = pso_desc.rasterizer_state.hex;
 		disk_desc.gs_uid = *gs_uid;
 		disk_desc.ps_uid = *ps_uid;
 		disk_desc.vs_uid = *vs_uid;
 		disk_desc.hds_uid = *hds_uid;
-		disk_desc.vertex_declaration = pso_desc->input_Layout->GetVertexDeclaration();
+		disk_desc.vertex_declaration = pso_desc.input_Layout->GetVertexDeclaration();
 		disk_desc.topology = topology;
 		disk_desc.sample_desc.Count = g_ActiveConfig.iMultisamples;
 
 		// This shouldn't fail.. but if it does, don't cache to disk.
-		ID3DBlob* psoBlob = nullptr;
-		hr = new_pso->GetCachedBlob(&psoBlob);
-
+		ComPtr<ID3DBlob> psoBlob;
+		hr = new_pso->GetCachedBlob(psoBlob.ReleaseAndGetAddressOf());
 		if (SUCCEEDED(hr))
 		{
 			s_pso_disk_cache.Append(disk_desc, reinterpret_cast<const u8*>(psoBlob->GetBufferPointer()), static_cast<u32>(psoBlob->GetBufferSize()));
-			psoBlob->Release();
 		}
 	}
 	else
 	{
-		*pso = it->second;
+		*pso = it->second.Get();
 	}
 
 	return S_OK;
@@ -474,10 +467,6 @@ HRESULT StateCache::GetPipelineStateObjectFromCache(SmallPsoDesc* pso_desc, ID3D
 
 void StateCache::OnMSAASettingsChanged()
 {
-	for (auto& it : m_small_pso_map)
-	{
-		SAFE_RELEASE(it.second);
-	}
 	m_small_pso_map.clear();
 
 	// Update sample count for new PSOs being created
@@ -486,16 +475,7 @@ void StateCache::OnMSAASettingsChanged()
 
 void StateCache::Clear()
 {
-	for (auto it : m_pso_map)
-	{
-		SAFE_RELEASE(it.second);
-	}
 	m_pso_map.clear();
-
-	for (auto it : m_small_pso_map)
-	{
-		SAFE_RELEASE(it.second);
-	}
 	m_small_pso_map.clear();
 
 	s_pso_disk_cache.Sync();

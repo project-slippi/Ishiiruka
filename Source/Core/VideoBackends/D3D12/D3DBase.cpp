@@ -37,12 +37,12 @@ namespace D3D
 {
 
 // Begin extern'd variables.
-ID3D12Device* device12 = nullptr;
+ID3D12Device* device;
 
-ID3D12CommandQueue* command_queue = nullptr;
+ComPtr<ID3D12CommandQueue> command_queue;
 std::unique_ptr<D3DCommandListManager> command_list_mgr;
 ID3D12GraphicsCommandList* current_command_list = nullptr;
-ID3D12RootSignature* default_root_signature = nullptr;
+ComPtr<ID3D12RootSignature> default_root_signature;
 
 D3D12_CPU_DESCRIPTOR_HANDLE null_srv_cpu = {};
 D3D12_CPU_DESCRIPTOR_HANDLE null_srv_cpu_shadow = {};
@@ -58,12 +58,12 @@ std::array<ID3D12DescriptorHeap*, 2> gpu_descriptor_heaps;
 HWND hWnd;
 // End extern'd variables.
 
-static IDXGISwapChain* s_swap_chain = nullptr;
+static ComPtr<IDXGISwapChain> s_swap_chain;
 static unsigned int s_monitor_refresh_rate = 0;
 
 static LARGE_INTEGER s_qpc_frequency;
 
-static ID3D12DebugDevice* s_debug_device12 = nullptr;
+static ComPtr<ID3D12DebugDevice> s_debug_device;
 
 static D3D_FEATURE_LEVEL s_feat_level;
 static D3DTexture2D* s_backbuf[SWAP_CHAIN_BUFFER_COUNT];
@@ -73,9 +73,6 @@ static unsigned int s_yres = 0;
 static bool s_frame_in_progress = false;
 
 static std::vector<DXGI_SAMPLE_DESC> s_aa_modes; // supported AA modes of the current adapter
-static const D3D_FEATURE_LEVEL s_supported_feature_levels[] = {
-	D3D_FEATURE_LEVEL_11_0
-};
 
 HRESULT LoadDXGI()
 {
@@ -168,106 +165,27 @@ void UnloadD3D()
 	d3d12_serialize_root_signature = nullptr;
 }
 
-bool AlertUserIfSelectedAdapterDoesNotSupportD3D12()
-{
-	HRESULT hr = LoadDXGI();
-	if (SUCCEEDED(hr))
-	{
-		hr = LoadD3D();
-	}
-
-	if (FAILED(hr))
-	{
-		// LoadDXGI / LoadD3D display a specific error message,
-		// no need to do that here.
-		return false;
-	}
-
-	IDXGIFactory* factory = nullptr;
-	IDXGIAdapter* adapter = nullptr;
-	ID3D12Device* device = nullptr;
-
-	if (SUCCEEDED(hr))
-	{
-		hr = create_dxgi_factory(__uuidof(IDXGIFactory), (void**)&factory);
-	}
-
-	if (SUCCEEDED(hr))
-	{
-		hr = factory->EnumAdapters(g_ActiveConfig.iAdapter, &adapter);
-	}
-
-	if (SUCCEEDED(hr))
-	{
-		hr = d3d12_create_device(adapter, D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(&device));
-
-		SAFE_RELEASE(device);
-		SAFE_RELEASE(adapter);
-		SAFE_RELEASE(factory);
-
-		if (FAILED(hr))
-		{
-			UnloadD3D();
-			UnloadDXGI();
-			MessageBoxA(nullptr, "Failed to create a D3D12 device on the selected adapter.\n\nPlease make sure it supports Direct3D 12, and that your graphics drivers are up-to-date.", "Critical error", MB_OK | MB_ICONERROR);
-			return false;
-		}
-
-		// If succeeded, leave DXGI and D3D libraries loaded since we'll use them in Create().
-		return true;
-	}
-
-	// DXGI failed to create factory/enumerate adapter. This should be very uncommon.
-	MessageBoxA(nullptr, "Failed to create enumerate selected adapter. Please select a different graphics adapter.", "Critical error", MB_OK | MB_ICONERROR);
-	SAFE_RELEASE(adapter);
-	SAFE_RELEASE(factory);
-
-	UnloadD3D();
-	UnloadDXGI();
-	return false;
-}
-
-std::vector<DXGI_SAMPLE_DESC> EnumAAModes(IDXGIAdapter* adapter)
+std::vector<DXGI_SAMPLE_DESC> EnumAAModes(ID3D12Device* device)
 {
 	std::vector<DXGI_SAMPLE_DESC> aa_modes;
 
-	bool d3d12_supported = AlertUserIfSelectedAdapterDoesNotSupportD3D12();
-
-	if (!d3d12_supported)
-		return aa_modes;
-
-	ID3D12Device* device12 = nullptr;
-	d3d12_create_device(adapter, D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(&device12));
-
-	if (device12)
+	for (int samples = 0; samples < D3D12_MAX_MULTISAMPLE_SAMPLE_COUNT; ++samples)
 	{
-		for (int samples = 0; samples < D3D12_MAX_MULTISAMPLE_SAMPLE_COUNT; ++samples)
-		{
-			D3D12_FEATURE_DATA_MULTISAMPLE_QUALITY_LEVELS multisample_quality_levels = {};
-			multisample_quality_levels.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-			multisample_quality_levels.SampleCount = samples;
+		D3D12_FEATURE_DATA_MULTISAMPLE_QUALITY_LEVELS multisample_quality_levels = {};
+		multisample_quality_levels.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+		multisample_quality_levels.SampleCount = samples;
 
-			device12->CheckFeatureSupport(D3D12_FEATURE_MULTISAMPLE_QUALITY_LEVELS, &multisample_quality_levels, sizeof(multisample_quality_levels));
+		device->CheckFeatureSupport(D3D12_FEATURE_MULTISAMPLE_QUALITY_LEVELS, &multisample_quality_levels, sizeof(multisample_quality_levels));
 
-			DXGI_SAMPLE_DESC desc;
-			desc.Count = samples;
-			desc.Quality = 0;
+		DXGI_SAMPLE_DESC desc;
+		desc.Count = samples;
+		desc.Quality = 0;
 
-			if (multisample_quality_levels.NumQualityLevels > 0)
-			{
-				aa_modes.push_back(desc);
-			}
-		}
-
-		device12->Release();
+		if (multisample_quality_levels.NumQualityLevels > 0)
+			aa_modes.push_back(desc);
 	}
 
 	return aa_modes;
-}
-
-D3D_FEATURE_LEVEL GetFeatureLevel(IDXGIAdapter* adapter)
-{
-	return D3D_FEATURE_LEVEL_11_0;
 }
 
 HRESULT Create(HWND wnd)
@@ -281,43 +199,32 @@ HRESULT Create(HWND wnd)
 	s_yres = client.bottom - client.top;
 
 	hr = LoadDXGI();
-	if (SUCCEEDED(hr))
-		hr = LoadD3D();
+
+	if (FAILED(hr))
+		return hr;
+
+	hr = LoadD3D();
 
 	if (FAILED(hr))
 	{
 		UnloadDXGI();
-		UnloadD3D();
 		return hr;
 	}
 
-	IDXGIFactory* factory;
-	IDXGIAdapter* adapter;
+	ComPtr<IDXGIFactory> factory;
+	ComPtr<IDXGIAdapter> adapter;
 	
-	hr = create_dxgi_factory(__uuidof(IDXGIFactory), (void**)&factory);
+	hr = create_dxgi_factory(__uuidof(IDXGIFactory), (void**)factory.GetAddressOf());
 	if (FAILED(hr))
 		MessageBox(wnd, _T("Failed to create IDXGIFactory object"), _T("Dolphin Direct3D 12 backend"), MB_OK | MB_ICONERROR);
 
-	hr = factory->EnumAdapters(g_ActiveConfig.iAdapter, &adapter);
+	hr = factory->EnumAdapters(g_ActiveConfig.iAdapter, adapter.GetAddressOf());
 	if (FAILED(hr))
 	{
 		// try using the first one
-		hr = factory->EnumAdapters(0, &adapter);
+		hr = factory->EnumAdapters(0, adapter.GetAddressOf());
 		if (FAILED(hr))
 			MessageBox(wnd, _T("Failed to enumerate adapters"), _T("Dolphin Direct3D 12 backend"), MB_OK | MB_ICONERROR);
-	}
-
-	// get supported AA modes
-	s_aa_modes = EnumAAModes(adapter);
-
-	if (std::find_if(
-		s_aa_modes.begin(),
-		s_aa_modes.end(),
-		[](const DXGI_SAMPLE_DESC& desc) {return desc.Count == g_Config.iMultisamples; }
-		) == s_aa_modes.end())
-	{
-		g_Config.iMultisamples = 1;
-		UpdateActiveConfig();
 	}
 
 	DXGI_SWAP_CHAIN_DESC swap_chain_desc = {};
@@ -356,10 +263,26 @@ HRESULT Create(HWND wnd)
 
 	if (SUCCEEDED(hr))
 	{
-		hr = d3d12_create_device(adapter, D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(&device12));
+		hr = d3d12_create_device(adapter.Get(), D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(&device));
+		if (FAILED(hr))
+			MessageBox(wnd, _T("Failed to initialize Direct3D.\nMake sure your video card supports Direct3D 12 and your drivers are up-to-date."), _T("Dolphin Direct3D 12 backend"), MB_OK | MB_ICONERROR);
 		s_feat_level = D3D_FEATURE_LEVEL_11_0;
 	}
 
+	if (SUCCEEDED(hr))
+	{
+		// get supported AA modes
+		s_aa_modes = EnumAAModes(device);
+		
+		if (std::find_if(s_aa_modes.begin(), s_aa_modes.end(),
+		[](const DXGI_SAMPLE_DESC& desc) {return desc.Count == g_Config.iMultisamples; }
+		) == s_aa_modes.end())
+		{
+			g_Config.iMultisamples = 1;
+			UpdateActiveConfig();
+		}
+	}
+	
 	if (SUCCEEDED(hr))
 	{
 		D3D12_COMMAND_QUEUE_DESC command_queue_desc = {
@@ -369,16 +292,11 @@ HRESULT Create(HWND wnd)
 			0                               // UINT NodeMask;
 		};
 
-		CheckHR(device12->CreateCommandQueue(&command_queue_desc, IID_PPV_ARGS(&command_queue)));
+		CheckHR(device->CreateCommandQueue(&command_queue_desc, IID_PPV_ARGS(command_queue.ReleaseAndGetAddressOf())));
 
-		IDXGIFactory* factory = nullptr;
-		adapter->GetParent(IID_PPV_ARGS(&factory));
-
-		CheckHR(factory->CreateSwapChain(command_queue, &swap_chain_desc, &s_swap_chain));
+		CheckHR(factory->CreateSwapChain(command_queue.Get(), &swap_chain_desc, s_swap_chain.ReleaseAndGetAddressOf()));
 
 		s_current_back_buf = 0;
-
-		factory->Release();
 	}
 
 	if (SUCCEEDED(hr))
@@ -403,12 +321,17 @@ HRESULT Create(HWND wnd)
 	if (FAILED(hr))
 	{
 		MessageBox(wnd, _T("Failed to initialize Direct3D.\nMake sure your video card supports Direct3D 12 and your drivers are up-to-date."), _T("Dolphin Direct3D 12 backend"), MB_OK | MB_ICONERROR);
-		SAFE_RELEASE(s_swap_chain);
+		s_swap_chain.Reset();
+		SAFE_RELEASE(device);
+		adapter.Reset();
+		factory.Reset();
+		UnloadD3D();
+		UnloadDXGI();
 		return E_FAIL;
 	}
 
-	ID3D12InfoQueue* info_queue = nullptr;
-	if (SUCCEEDED(device12->QueryInterface(&info_queue)))
+	ComPtr<ID3D12InfoQueue> info_queue;
+	if (SUCCEEDED(device->QueryInterface(info_queue.ReleaseAndGetAddressOf())))
 	{
 		CheckHR(info_queue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_ERROR, TRUE));
 		CheckHR(info_queue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_WARNING, TRUE));
@@ -424,10 +347,10 @@ HRESULT Create(HWND wnd)
 		filter.DenyList.pIDList = id_list;
 		info_queue->PushStorageFilter(&filter);
 
-		info_queue->Release();
+		info_queue.Reset();
 
 		// Used at Close time to report live objects.
-		CheckHR(device12->QueryInterface(&s_debug_device12));
+		CheckHR(device->QueryInterface(s_debug_device.ReleaseAndGetAddressOf()));
 	}
 
 	// prevent DXGI from responding to Alt+Enter, unfortunately DXGI_MWA_NO_ALT_ENTER
@@ -437,16 +360,16 @@ HRESULT Create(HWND wnd)
 	if (FAILED(hr))
 		MessageBox(wnd, _T("Failed to associate the window"), _T("Dolphin Direct3D 12 backend"), MB_OK | MB_ICONERROR);
 
-	SAFE_RELEASE(factory);
-	SAFE_RELEASE(adapter)
+	factory.Reset();
+	adapter.Reset();
 
 	CreateDescriptorHeaps();
 	CreateRootSignatures();
 
 	command_list_mgr = std::make_unique<D3DCommandListManager>(
 		D3D12_COMMAND_LIST_TYPE_DIRECT,
-		device12,
-		command_queue
+		device,
+		command_queue.Get()
 		);
 
 	command_list_mgr->GetCommandList(&current_command_list);
@@ -454,13 +377,13 @@ HRESULT Create(HWND wnd)
 
 	for (UINT i = 0; i < SWAP_CHAIN_BUFFER_COUNT; i++)
 	{
-		ID3D12Resource* buf12 = nullptr;
-		hr = s_swap_chain->GetBuffer(i, IID_PPV_ARGS(&buf12));
+		ComPtr<ID3D12Resource> buf;
+		hr = s_swap_chain->GetBuffer(i, IID_PPV_ARGS(buf.ReleaseAndGetAddressOf()));
 
 		CHECK(SUCCEEDED(hr), "Retrieve back buffer texture");
 
-		s_backbuf[i] = new D3DTexture2D(buf12,
-			D3D11_BIND_RENDER_TARGET,
+		s_backbuf[i] = new D3DTexture2D(buf.Get(),
+			TEXTURE_BIND_FLAG_RENDER_TARGET,
 			DXGI_FORMAT_UNKNOWN,
 			DXGI_FORMAT_UNKNOWN,
 			DXGI_FORMAT_UNKNOWN,
@@ -468,7 +391,6 @@ HRESULT Create(HWND wnd)
 			D3D12_RESOURCE_STATE_PRESENT // Swap Chain back buffers start out in D3D12_RESOURCE_STATE_PRESENT.
 			);
 
-		SAFE_RELEASE(buf12);
 		SetDebugObjectName12(s_backbuf[i]->GetTex(), "backbuffer texture");
 	}
 
@@ -490,14 +412,14 @@ void CreateDescriptorHeaps()
 		gpu_descriptor_heap_desc.NumDescriptors = 500000;
 		gpu_descriptor_heap_desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 
-		gpu_descriptor_heap_mgr = std::make_unique<D3DDescriptorHeapManager>(&gpu_descriptor_heap_desc, device12, 50000);
+		gpu_descriptor_heap_mgr = std::make_unique<D3DDescriptorHeapManager>(&gpu_descriptor_heap_desc, device, 50000);
 
 		gpu_descriptor_heaps[0] = gpu_descriptor_heap_mgr->GetDescriptorHeap();
 
 		D3D12_CPU_DESCRIPTOR_HANDLE descriptor_heap_cpu_base = gpu_descriptor_heap_mgr->GetDescriptorHeap()->GetCPUDescriptorHandleForHeapStart();
 
-		resource_descriptor_size = device12->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-		sampler_descriptor_size = device12->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
+		resource_descriptor_size = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+		sampler_descriptor_size = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
 
 		D3D12_GPU_DESCRIPTOR_HANDLE null_srv_gpu = {};
 		gpu_descriptor_heap_mgr->Allocate(&null_srv_cpu, &null_srv_gpu, &null_srv_cpu_shadow);
@@ -507,7 +429,7 @@ void CreateDescriptorHeaps()
 		null_srv_desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
 		null_srv_desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 
-		device12->CreateShaderResourceView(NULL, &null_srv_desc, null_srv_cpu);
+		device->CreateShaderResourceView(NULL, &null_srv_desc, null_srv_cpu);
 
 		for (UINT i = 0; i < 500000; i++)
 		{
@@ -516,7 +438,7 @@ void CreateDescriptorHeaps()
 			D3D12_CPU_DESCRIPTOR_HANDLE destination_descriptor = {};
 			destination_descriptor.ptr = descriptor_heap_cpu_base.ptr + i * resource_descriptor_size;
 
-			device12->CreateShaderResourceView(NULL, &null_srv_desc, destination_descriptor);
+			device->CreateShaderResourceView(NULL, &null_srv_desc, destination_descriptor);
 		}
 	}
 
@@ -526,7 +448,7 @@ void CreateDescriptorHeaps()
 		sampler_descriptor_heap_desc.NumDescriptors = 2000;
 		sampler_descriptor_heap_desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER;
 
-		sampler_descriptor_heap_mgr = std::make_unique<D3DDescriptorHeapManager>(&sampler_descriptor_heap_desc, device12);
+		sampler_descriptor_heap_mgr = std::make_unique<D3DDescriptorHeapManager>(&sampler_descriptor_heap_desc, device);
 
 		gpu_descriptor_heaps[1] = sampler_descriptor_heap_mgr->GetDescriptorHeap();
 	}
@@ -537,7 +459,7 @@ void CreateDescriptorHeaps()
 		dsv_descriptor_heap_desc.NumDescriptors = 2000;
 		dsv_descriptor_heap_desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
 
-		dsv_descriptor_heap_mgr = std::make_unique<D3DDescriptorHeapManager>(&dsv_descriptor_heap_desc, device12);
+		dsv_descriptor_heap_mgr = std::make_unique<D3DDescriptorHeapManager>(&dsv_descriptor_heap_desc, device);
 	}
 
 	{
@@ -547,7 +469,7 @@ void CreateDescriptorHeaps()
 		rtv_descriptor_heap_desc.NumDescriptors = 1000000;
 		rtv_descriptor_heap_desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
 
-		rtv_descriptor_heap_mgr = std::make_unique<D3DDescriptorHeapManager>(&rtv_descriptor_heap_desc, device12);
+		rtv_descriptor_heap_mgr = std::make_unique<D3DDescriptorHeapManager>(&rtv_descriptor_heap_desc, device);
 	}
 }
 
@@ -660,12 +582,12 @@ void CreateRootSignatures()
 
 	root_signature_desc.NumParameters = ARRAYSIZE(root_parameters);
 
-	ID3DBlob* text_root_signature_blob;
-	ID3DBlob* text_root_signature_error_blob;
+	ComPtr<ID3DBlob> text_root_signature_blob;
+	ComPtr<ID3DBlob> text_root_signature_error_blob;
 
-	CheckHR(d3d12_serialize_root_signature(&root_signature_desc, D3D_ROOT_SIGNATURE_VERSION_1, &text_root_signature_blob, &text_root_signature_error_blob));
+	CheckHR(d3d12_serialize_root_signature(&root_signature_desc, D3D_ROOT_SIGNATURE_VERSION_1, text_root_signature_blob.ReleaseAndGetAddressOf(), text_root_signature_error_blob.ReleaseAndGetAddressOf()));
 
-	CheckHR(D3D::device12->CreateRootSignature(0, text_root_signature_blob->GetBufferPointer(), text_root_signature_blob->GetBufferSize(), IID_PPV_ARGS(&default_root_signature)));
+	CheckHR(D3D::device->CreateRootSignature(0, text_root_signature_blob->GetBufferPointer(), text_root_signature_blob->GetBufferSize(), IID_PPV_ARGS(default_root_signature.ReleaseAndGetAddressOf())));
 }
 
 void WaitForOutstandingRenderingToComplete()
@@ -686,20 +608,22 @@ void Close()
 
 	D3D::CleanupPersistentD3DTextureResources();
 
-	SAFE_RELEASE(s_swap_chain);
+	s_swap_chain.Reset();
 
 	command_list_mgr.reset();
-	command_queue->Release();
+	command_queue.Reset();
 
-	default_root_signature->Release();
+	
 
 	gpu_descriptor_heap_mgr.reset();
 	sampler_descriptor_heap_mgr.reset();
 	rtv_descriptor_heap_mgr.reset();
 	dsv_descriptor_heap_mgr.reset();
 
-	ULONG remaining_references = device12->Release();
-	if ((!s_debug_device12 && remaining_references) || (s_debug_device12 && remaining_references > 1))
+	default_root_signature.Reset();
+
+	ULONG remaining_references = device->Release();
+	if ((!s_debug_device && remaining_references) || (s_debug_device && remaining_references > 1))
 	{
 		ERROR_LOG(VIDEO, "Unreleased D3D12 references: %i.", remaining_references);
 	}
@@ -709,25 +633,25 @@ void Close()
 	}
 
 #if defined(_DEBUG) || defined(DEBUGFAST)
-	if (s_debug_device12)
+	if (s_debug_device)
 	{
 		--remaining_references; // the debug interface increases the refcount of the device, subtract that.
 		if (remaining_references)
 		{
 			// print out alive objects, but only if we actually have pending references
 			// note this will also print out internal live objects to the debug console
-			s_debug_device12->ReportLiveDeviceObjects(D3D12_RLDO_DETAIL);
+			s_debug_device->ReportLiveDeviceObjects(D3D12_RLDO_DETAIL);
 		}
-		SAFE_RELEASE(s_debug_device12);
+		s_debug_device.Reset();
 	}
 #endif
 
-	device12 = nullptr;
+	device = nullptr;
 	current_command_list = nullptr;
 
 	// unload DLLs
-	UnloadDXGI();
 	UnloadD3D();
+	UnloadDXGI();
 }
 
 const char* VertexShaderVersionString()
@@ -777,7 +701,7 @@ unsigned int GetBackBufferHeight()
 // Returns the maximum width/height of a texture.
 unsigned int GetMaxTextureSize()
 {
-	return D3D11_REQ_TEXTURE2D_U_OR_V_DIMENSION;
+	return D3D12_REQ_TEXTURE2D_U_OR_V_DIMENSION;
 }
 
 void Reset()
@@ -806,13 +730,13 @@ void Reset()
 
 	for (UINT i = 0; i < SWAP_CHAIN_BUFFER_COUNT; i++)
 	{
-		ID3D12Resource* buf12 = nullptr;
-		hr = s_swap_chain->GetBuffer(i, IID_PPV_ARGS(&buf12));
+		ComPtr<ID3D12Resource> buf;
+		hr = s_swap_chain->GetBuffer(i, IID_PPV_ARGS(buf.GetAddressOf()));
 
 		CHECK(SUCCEEDED(hr), "Retrieve back buffer texture");
 
-		s_backbuf[i] = new D3DTexture2D(buf12,
-			D3D11_BIND_RENDER_TARGET,
+		s_backbuf[i] = new D3DTexture2D(buf.Get(),
+			TEXTURE_BIND_FLAG_RENDER_TARGET,
 			DXGI_FORMAT_UNKNOWN,
 			DXGI_FORMAT_UNKNOWN,
 			DXGI_FORMAT_UNKNOWN,
@@ -820,7 +744,6 @@ void Reset()
 			D3D12_RESOURCE_STATE_PRESENT
 			);
 
-		SAFE_RELEASE(buf12);
 		SetDebugObjectName12(s_backbuf[i]->GetTex(), "backbuffer texture");
 	}
 
@@ -839,7 +762,7 @@ bool BeginFrame()
 		return false;
 	}
 	s_frame_in_progress = true;
-	return (device12 != nullptr);
+	return (device != nullptr);
 }
 
 void EndFrame()
@@ -889,7 +812,7 @@ void Present()
 		s_current_back_buf = (s_current_back_buf + 1) % SWAP_CHAIN_BUFFER_COUNT;
 	}
 
-	command_list_mgr->ExecuteQueuedWorkAndPresent(s_swap_chain, g_ActiveConfig.IsVSync() ? 1 : 0, present_flags);
+	command_list_mgr->ExecuteQueuedWorkAndPresent(s_swap_chain.Get(), g_ActiveConfig.IsVSync() ? 1 : 0, present_flags);
 
 	command_list_mgr->m_cpu_access_last_frame = command_list_mgr->m_cpu_access_this_frame;
 	command_list_mgr->m_cpu_access_this_frame = false;

@@ -35,6 +35,9 @@ enum D3DQueueItemType
 	SetDescriptorHeaps,
 	ResourceBarrier,
 	ResolveSubresource,
+	BeginQuery,
+	EndQuery,
+	ResolveQueryData,
 	ExecuteCommandList,
 	CloseCommandList,
 	Present,
@@ -43,6 +46,29 @@ enum D3DQueueItemType
 	FenceGpuSignal,
 	FenceCpuSignal,
 	Stop
+};
+
+struct BeginQueryArguments
+{
+	ID3D12QueryHeap* pQueryHeap;
+	D3D12_QUERY_TYPE Type;
+	UINT Index;
+};
+struct EndQueryArguments
+{
+	ID3D12QueryHeap* pQueryHeap;
+	D3D12_QUERY_TYPE Type;
+UINT Index;
+};
+
+struct ResolveQueryDataArguments
+{
+	ID3D12QueryHeap* pQueryHeap;
+	D3D12_QUERY_TYPE Type;
+	UINT StartElement;
+	UINT ElementCount;
+	ID3D12Resource* pDestinationBuffer;
+UINT64 AlignedDestinationBufferOffset;
 };
 
 struct SetPipelineStateArguments
@@ -229,6 +255,9 @@ struct D3DQueueItem
 		SetDescriptorHeapsArguments SetDescriptorHeaps;
 		ResourceBarrierArguments ResourceBarrier;
 		ResolveSubresourceArguments ResolveSubresource;
+		BeginQueryArguments BeginQuery;
+		EndQueryArguments EndQuery;
+		ResolveQueryDataArguments ResolveQueryData;
 		CloseCommandListArguments CloseCommandList;
 		ExecuteCommandListArguments ExecuteCommandList;
 		PresentArguments Present;

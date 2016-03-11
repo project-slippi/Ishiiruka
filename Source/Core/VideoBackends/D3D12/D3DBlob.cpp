@@ -2,7 +2,7 @@
 // Licensed under GPLv2+
 // Refer to the license.txt file included.
 
-#include <d3d11.h>
+#include <d3d12.h>
 
 #include "VideoBackends/D3D12/D3DBlob.h"
 
@@ -16,7 +16,7 @@ D3DBlob::D3DBlob(unsigned int blob_size, const u8* init_data) : m_size(blob_size
 		memcpy(m_data, init_data, m_size);
 }
 
-D3DBlob::D3DBlob(ID3D10Blob* d3dblob) : m_ref(1)
+D3DBlob::D3DBlob(ID3DBlob* d3dblob) : m_ref(1)
 {
 	m_blob = d3dblob;
 	m_data = static_cast<u8*>(m_blob->GetBufferPointer());

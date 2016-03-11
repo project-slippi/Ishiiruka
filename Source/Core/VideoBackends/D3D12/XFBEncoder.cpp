@@ -1,378 +1,180 @@
-// Copyright 2011 Dolphin Emulator Project
+// Copyright 2016 Dolphin Emulator Project
 // Licensed under GPLv2+
 // Refer to the license.txt file included.
 
 #include "Common/CommonTypes.h"
 #include "Common/MsgHandler.h"
 #include "Common/Logging/Log.h"
-
 #include "VideoBackends/D3D12/D3DBase.h"
-#include "VideoBackends/D3D12/D3DBlob.h"
+#include "VideoBackends/D3D12/D3DCommandListManager.h"
 #include "VideoBackends/D3D12/D3DShader.h"
 #include "VideoBackends/D3D12/D3DState.h"
+#include "VideoBackends/D3D12/D3DUtil.h"
 #include "VideoBackends/D3D12/FramebufferManager.h"
 #include "VideoBackends/D3D12/Render.h"
+#include "VideoBackends/D3D12/StaticShaderCache.h"
 #include "VideoBackends/D3D12/XFBEncoder.h"
-
-// D3D12TODO: Convert this file..
 
 namespace DX12
 {
 
-union XFBEncodeParams
-{
-	struct
-	{
-		FLOAT Width; // Width and height of encoded XFB in luma pixels
-		FLOAT Height;
-		FLOAT TexLeft; // Normalized tex coordinates of XFB source area in EFB texture
-		FLOAT TexTop;
-		FLOAT TexRight;
-		FLOAT TexBottom;
-		FLOAT Gamma;
-	};
-	// Constant buffers must be a multiple of 16 bytes in size
-	u8 pad[32]; // Pad to the next multiple of 16
-};
+// YUYV data is packed into half-width RGBA, with Y values in (R,B) and UV in (G,A)
+constexpr size_t XFB_TEXTURE_WIDTH = MAX_XFB_WIDTH / 2;
+constexpr size_t XFB_TEXTURE_HEIGHT = MAX_XFB_HEIGHT;
 
-static constexpr const char s_xfb_encode_vertex_shader_hlsl[] =
-	"// dolphin-emu XFB encoder vertex shader\n"
+// Buffer enough space for 2 XFB buffers (our frame latency)
+constexpr size_t XFB_UPLOAD_BUFFER_SIZE = ROUND_UP(XFB_TEXTURE_WIDTH * sizeof(u32), D3D12_TEXTURE_DATA_PITCH_ALIGNMENT) * XFB_TEXTURE_HEIGHT * 2;
+constexpr size_t XFB_ENCODER_PARAMS_BUFFER_SIZE = 64 * 1024;
 
-	"cbuffer cbParams : register(b0)\n"
-	"{\n"
-	"struct\n" // Should match XFBEncodeParams above
-	"{\n"
-	"float Width;\n"
-	"float Height;\n"
-	"float TexLeft;\n"
-	"float TexTop;\n"
-	"float TexRight;\n"
-	"float TexBottom;\n"
-	"float Gamma;\n"
-	"} Params;\n"
-	"}\n"
-
-	"struct Output\n"
-	"{\n"
-	"float4 Pos : SV_Position;\n"
-	"float2 Coord : ENCODECOORD;\n"
-	"};\n"
-
-	"Output main(in float2 Pos : POSITION)\n"
-	"{\n"
-	"Output result;\n"
-	"result.Pos = float4(2*Pos.x-1, -2*Pos.y+1, 0, 1);\n"
-	"result.Coord = Pos * float2(floor(Params.Width/2), Params.Height);\n"
-	"return result;\n"
-	"}\n"
-	;
-
-static constexpr const char s_xfb_encode_pixel_shader_hlsl[] =
-	"// dolphin-emu XFB encoder pixel shader\n"
-
-	"cbuffer cbParams : register(b0)\n"
-	"{\n"
-	"struct\n" // Should match XFBEncodeParams above
-	"{\n"
-	"float Width;\n"
-	"float Height;\n"
-	"float TexLeft;\n"
-	"float TexTop;\n"
-	"float TexRight;\n"
-	"float TexBottom;\n"
-	"float Gamma;\n"
-	"} Params;\n"
-	"}\n"
-
-	"Texture2DArray EFBTexture : register(t0);\n"
-	"sampler EFBSampler : register(s0);\n"
-
-	// GameCube/Wii uses the BT.601 standard algorithm for converting to YCbCr; see
-	// <http://www.equasys.de/colorconversion.html#YCbCr-RGBColorFormatConversion>
-	"static const float3x4 RGB_TO_YCBCR = float3x4(\n"
-	"0.257, 0.504, 0.098, 16.0/255.0,\n"
-	"-0.148, -0.291, 0.439, 128.0/255.0,\n"
-	"0.439, -0.368, -0.071, 128.0/255.0\n"
-	");\n"
-
-	"float3 SampleEFB(float2 coord)\n"
-	"{\n"
-	"float2 texCoord = lerp(float2(Params.TexLeft,Params.TexTop), float2(Params.TexRight,Params.TexBottom), coord / float2(Params.Width,Params.Height));\n"
-	"return EFBTexture.Sample(EFBSampler, float3(texCoord, 0.0)).rgb;\n"
-	"}\n"
-
-	"void main(out float4 ocol0 : SV_Target, in float4 Pos : SV_Position, in float2 Coord : ENCODECOORD)\n"
-	"{\n"
-	// Multiplying X by 2, moves pixel centers from (x+0.5) to (2x+1) instead of (2x+0.5), so subtract 0.5 to compensate
-	"float2 baseCoord = Coord * float2(2,1) - float2(0.5,0);\n"
-	// FIXME: Shall we apply gamma here, or apply it below to the Y components?
-	// Be careful if you apply it to Y! The Y components are in the range (16..235) / 255.
-	"float3 sampleL = pow(abs(SampleEFB(baseCoord+float2(-1,0))), Params.Gamma);\n" // Left
-	"float3 sampleM = pow(abs(SampleEFB(baseCoord)), Params.Gamma);\n" // Middle
-	"float3 sampleR = pow(abs(SampleEFB(baseCoord+float2(1,0))), Params.Gamma);\n" // Right
-
-	"float3 yuvL = mul(RGB_TO_YCBCR, float4(sampleL,1));\n"
-	"float3 yuvM = mul(RGB_TO_YCBCR, float4(sampleM,1));\n"
-	"float3 yuvR = mul(RGB_TO_YCBCR, float4(sampleR,1));\n"
-
-	// The Y components correspond to two EFB pixels, while the U and V are
-	// made from a blend of three EFB pixels.
-	"float y0 = yuvM.r;\n"
-	"float y1 = yuvR.r;\n"
-	"float u0 = 0.25*yuvL.g + 0.5*yuvM.g + 0.25*yuvR.g;\n"
-	"float v0 = 0.25*yuvL.b + 0.5*yuvM.b + 0.25*yuvR.b;\n"
-
-	"ocol0 = float4(y0, u0, y1, v0);\n"
-	"}\n"
-	;
-
-static const D3D12_INPUT_ELEMENT_DESC s_quad_layout_desc[] = {
-	{ "POSITION", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
-};
-
-static const struct QuadVertex
-{
-	float posX;
-	float posY;
-} s_quad_verts[4] = { { 0, 0 },{ 1, 0 },{ 0, 1 },{ 1, 1 } };
+std::unique_ptr<XFBEncoder> g_xfb_encoder;
 
 XFBEncoder::XFBEncoder()
-{ }
-
-void XFBEncoder::Init()
 {
-#ifdef USE_D3D11
-	HRESULT hr;
+	ID3D12Resource* texture;
 
-	// Create output texture
+	CheckHR(D3D::device->CreateCommittedResource(
+		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
+		D3D12_HEAP_FLAG_NONE,
+		&CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_R8G8B8A8_UNORM, XFB_TEXTURE_WIDTH, XFB_TEXTURE_HEIGHT, 1, 1, 1, 0, D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET),
+		D3D12_RESOURCE_STATE_RENDER_TARGET,
+		nullptr,
+		IID_PPV_ARGS(&texture)));
 
-	// The pixel shader can generate one YUYV entry per pixel. One YUYV entry
-	// is created for every two EFB pixels.
-	D3D11_TEXTURE2D_DESC t2dd = CD3D11_TEXTURE2D_DESC(
-		DXGI_FORMAT_R8G8B8A8_UNORM, MAX_XFB_WIDTH / 2, MAX_XFB_HEIGHT, 1, 1,
-		D3D11_BIND_RENDER_TARGET);
-	hr = D3D::device->CreateTexture2D(&t2dd, nullptr, &m_out);
-	CHECK(SUCCEEDED(hr), "create xfb encoder output texture");
-	D3D::SetDebugObjectName(m_out, "xfb encoder output texture");
+	m_yuyv_texture = new D3DTexture2D(texture,
+		TEXTURE_BIND_FLAG_SHADER_RESOURCE | TEXTURE_BIND_FLAG_RENDER_TARGET,
+		DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_FORMAT_UNKNOWN, DXGI_FORMAT_R8G8B8A8_UNORM);
+	SAFE_RELEASE(texture);
 
-	// Create output render target view
+	CheckHR(D3D::device->CreateCommittedResource(
+		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_READBACK),
+		D3D12_HEAP_FLAG_NONE,
+		&CD3DX12_RESOURCE_DESC::Buffer(ROUND_UP(XFB_TEXTURE_WIDTH * sizeof(u32), D3D12_TEXTURE_DATA_PITCH_ALIGNMENT) * MAX_XFB_HEIGHT),
+		D3D12_RESOURCE_STATE_COPY_DEST,
+		nullptr,
+		IID_PPV_ARGS(&m_readback_buffer)));
 
-	D3D11_RENDER_TARGET_VIEW_DESC rtvd = CD3D11_RENDER_TARGET_VIEW_DESC(m_out,
-		D3D11_RTV_DIMENSION_TEXTURE2D, DXGI_FORMAT_R8G8B8A8_UNORM);
-	hr = D3D::device->CreateRenderTargetView(m_out, &rtvd, &m_outRTV);
-	CHECK(SUCCEEDED(hr), "create xfb encoder output texture rtv");
-	D3D::SetDebugObjectName(m_outRTV, "xfb encoder output rtv");
-
-	// Create output staging buffer
-
-	t2dd.Usage = D3D11_USAGE_STAGING;
-	t2dd.BindFlags = 0;
-	t2dd.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
-	hr = D3D::device->CreateTexture2D(&t2dd, nullptr, &m_outStage);
-	CHECK(SUCCEEDED(hr), "create xfb encoder output staging buffer");
-	D3D::SetDebugObjectName(m_outStage, "xfb encoder output staging buffer");
-
-	// Create constant buffer for uploading params to shaders
-
-	D3D11_BUFFER_DESC bd = CD3D11_BUFFER_DESC(sizeof(XFBEncodeParams),
-		D3D11_BIND_CONSTANT_BUFFER);
-	hr = D3D::device->CreateBuffer(&bd, nullptr, &m_encodeParams);
-	CHECK(SUCCEEDED(hr), "create xfb encode params buffer");
-	D3D::SetDebugObjectName(m_encodeParams, "xfb encoder params buffer");
-
-	// Create vertex quad
-
-	bd = CD3D11_BUFFER_DESC(sizeof(QUAD_VERTS), D3D11_BIND_VERTEX_BUFFER,
-		D3D11_USAGE_IMMUTABLE);
-	D3D11_SUBRESOURCE_DATA srd = { QUAD_VERTS, 0, 0 };
-
-	hr = D3D::device->CreateBuffer(&bd, &srd, &m_quad);
-	CHECK(SUCCEEDED(hr), "create xfb encode quad vertex buffer");
-	D3D::SetDebugObjectName(m_quad, "xfb encoder quad vertex buffer");
-
-	// Create vertex shader
-
-	D3DBlob* bytecode = nullptr;
-	if (!D3D::CompileVertexShader(XFB_ENCODE_VS, &bytecode))
-	{
-		ERROR_LOG(VIDEO, "XFB encode vertex shader failed to compile");
-		return;
-	}
-
-	hr = D3D::device->CreateVertexShader(bytecode->Data(), bytecode->Size(), nullptr, &m_vShader);
-	CHECK(SUCCEEDED(hr), "create xfb encode vertex shader");
-	D3D::SetDebugObjectName(m_vShader, "xfb encoder vertex shader");
-
-	// Create input layout for vertex quad using bytecode from vertex shader
-
-	hr = D3D::device->CreateInputLayout(QUAD_LAYOUT_DESC,
-		sizeof(QUAD_LAYOUT_DESC) / sizeof(D3D11_INPUT_ELEMENT_DESC),
-		bytecode->Data(), bytecode->Size(), &m_quadLayout);
-	CHECK(SUCCEEDED(hr), "create xfb encode quad vertex layout");
-	D3D::SetDebugObjectName(m_quadLayout, "xfb encoder quad layout");
-
-	bytecode->Release();
-
-	// Create pixel shader
-
-	m_pShader = D3D::CompileAndCreatePixelShader(XFB_ENCODE_PS);
-	if (!m_pShader)
-	{
-		ERROR_LOG(VIDEO, "XFB encode pixel shader failed to compile");
-		return;
-	}
-	D3D::SetDebugObjectName(m_pShader, "xfb encoder pixel shader");
-
-	// Create blend state
-
-	D3D11_BLEND_DESC bld = CD3D11_BLEND_DESC(CD3D11_DEFAULT());
-	hr = D3D::device->CreateBlendState(&bld, &m_xfbEncodeBlendState);
-	CHECK(SUCCEEDED(hr), "create xfb encode blend state");
-	D3D::SetDebugObjectName(m_xfbEncodeBlendState, "xfb encoder blend state");
-
-	// Create depth state
-
-	D3D11_DEPTH_STENCIL_DESC dsd = CD3D11_DEPTH_STENCIL_DESC(CD3D11_DEFAULT());
-	dsd.DepthEnable = FALSE;
-	hr = D3D::device->CreateDepthStencilState(&dsd, &m_xfbEncodeDepthState);
-	CHECK(SUCCEEDED(hr), "create xfb encode depth state");
-	D3D::SetDebugObjectName(m_xfbEncodeDepthState, "xfb encoder depth state");
-
-	// Create rasterizer state
-
-	D3D11_RASTERIZER_DESC rd = CD3D11_RASTERIZER_DESC(CD3D11_DEFAULT());
-	rd.CullMode = D3D11_CULL_NONE;
-	rd.DepthClipEnable = FALSE;
-	hr = D3D::device->CreateRasterizerState(&rd, &m_xfbEncodeRastState);
-	CHECK(SUCCEEDED(hr), "create xfb encode rasterizer state");
-	D3D::SetDebugObjectName(m_xfbEncodeRastState, "xfb encoder rast state");
-
-	// Create EFB texture sampler
-
-	D3D11_SAMPLER_DESC sd = CD3D11_SAMPLER_DESC(CD3D11_DEFAULT());
-	sd.Filter = D3D11_FILTER_MIN_MAG_LINEAR_MIP_POINT;
-	hr = D3D::device->CreateSamplerState(&sd, &m_efbSampler);
-	CHECK(SUCCEEDED(hr), "create xfb encode texture sampler");
-	D3D::SetDebugObjectName(m_efbSampler, "xfb encoder texture sampler");
-#endif
+	m_upload_buffer = std::make_unique<D3DStreamBuffer>(XFB_UPLOAD_BUFFER_SIZE, XFB_UPLOAD_BUFFER_SIZE, nullptr);
+	m_encode_params_buffer = std::make_unique<D3DStreamBuffer>(XFB_ENCODER_PARAMS_BUFFER_SIZE, XFB_ENCODER_PARAMS_BUFFER_SIZE, nullptr);
 }
 
-void XFBEncoder::Shutdown()
+XFBEncoder::~XFBEncoder()
 {
-#ifdef USE_D3D11
-	SAFE_RELEASE(m_efbSampler);
-	SAFE_RELEASE(m_xfbEncodeRastState);
-	SAFE_RELEASE(m_xfbEncodeDepthState);
-	SAFE_RELEASE(m_xfbEncodeBlendState);
-	SAFE_RELEASE(m_pShader);
-	SAFE_RELEASE(m_quadLayout);
-	SAFE_RELEASE(m_vShader);
-	SAFE_RELEASE(m_quad);
-	SAFE_RELEASE(m_encodeParams);
-	SAFE_RELEASE(m_outStage);
-	SAFE_RELEASE(m_outRTV);
-	SAFE_RELEASE(m_out);
-#endif
+	SAFE_RELEASE(m_yuyv_texture);
+	SAFE_RELEASE(m_readback_buffer);
 }
 
-void XFBEncoder::Encode(u8* dst, u32 width, u32 height, const EFBRectangle& srcRect, float gamma)
+void XFBEncoder::EncodeTextureToRam(u8* dst, u32 dst_pitch, u32 dst_height,
+	D3DTexture2D* src_texture, const TargetRectangle& src_rect,
+	u32 src_width, u32 src_height, float gamma)
 {
-#ifdef USE_D3D11
-	HRESULT hr;
+	// src_rect is in native coordinates
+	// dst_pitch is in words
+	u32 dst_width = dst_pitch / 2;
+	u32 dst_texture_width = dst_width / 2;
+	_assert_msg_(VIDEO, dst_width <= MAX_XFB_WIDTH && dst_height <= MAX_XFB_HEIGHT, "XFB destination does not exceed maximum size");
 
-	// Reset API
-
-	g_renderer->ResetAPIState();
-
-	// Set up all the state for XFB encoding
-
-	D3D::stateman->SetPixelShader(m_pShader);
-	D3D::stateman->SetVertexShader(m_vShader);
-	D3D::stateman->SetGeometryShader(nullptr);
-
-	D3D::stateman->PushBlendState(m_xfbEncodeBlendState);
-	D3D::stateman->PushDepthState(m_xfbEncodeDepthState);
-	D3D::stateman->PushRasterizerState(m_xfbEncodeRastState);
-
-	D3D11_VIEWPORT vp = CD3D11_VIEWPORT(0.f, 0.f, FLOAT(width / 2), FLOAT(height));
-	D3D::context->RSSetViewports(1, &vp);
-
-	D3D::stateman->SetInputLayout(m_quadLayout);
-	D3D::stateman->SetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
-	UINT stride = sizeof(QuadVertex);
-	UINT offset = 0;
-	D3D::stateman->SetVertexBuffer(m_quad, stride, offset);
-
-	TargetRectangle targetRect = g_renderer->ConvertEFBRectangle(srcRect);
-
-	XFBEncodeParams params = { 0 };
-	params.Width = FLOAT(width);
-	params.Height = FLOAT(height);
-	params.TexLeft = FLOAT(targetRect.left) / g_renderer->GetTargetWidth();
-	params.TexTop = FLOAT(targetRect.top) / g_renderer->GetTargetHeight();
-	params.TexRight = FLOAT(targetRect.right) / g_renderer->GetTargetWidth();
-	params.TexBottom = FLOAT(targetRect.bottom) / g_renderer->GetTargetHeight();
-	params.Gamma = gamma;
-	D3D::context->UpdateSubresource(m_encodeParams, 0, nullptr, &params, 0, 0);
-
-	D3D::context->OMSetRenderTargets(1, &m_outRTV, nullptr);
-
-	ID3D11ShaderResourceView* pEFB = FramebufferManager::GetResolvedEFBColorTexture()->GetSRV();
-
-	D3D::stateman->SetVertexConstants(m_encodeParams);
-	D3D::stateman->SetPixelConstants(m_encodeParams);
-	D3D::stateman->SetTexture(0, pEFB);
-	D3D::stateman->SetSampler(0, m_efbSampler);
-
-	// Encode!
-
-	D3D::stateman->Apply();
-	D3D::context->Draw(4, 0);
-
-	// Copy to staging buffer
-
-	D3D11_BOX srcBox = CD3D11_BOX(0, 0, 0, width / 2, height, 1);
-	D3D::context->CopySubresourceRegion(m_outStage, 0, 0, 0, 0, m_out, 0, &srcBox);
-
-	// Clean up state
-
-	D3D::context->OMSetRenderTargets(0, nullptr, nullptr);
-
-	D3D::stateman->SetSampler(0, nullptr);
-	D3D::stateman->SetTexture(0, nullptr);
-	D3D::stateman->SetPixelConstants(nullptr);
-	D3D::stateman->SetVertexConstants(nullptr);
-
-	D3D::stateman->SetPixelShader(nullptr);
-	D3D::stateman->SetVertexShader(nullptr);
-
-	D3D::stateman->PopRasterizerState();
-	D3D::stateman->PopDepthState();
-	D3D::stateman->PopBlendState();
-
-	// Transfer staging buffer to GameCube/Wii RAM
-
-	D3D11_MAPPED_SUBRESOURCE map = { 0 };
-	hr = D3D::context->Map(m_outStage, 0, D3D11_MAP_READ, 0, &map);
-	CHECK(SUCCEEDED(hr), "map staging buffer");
-
-	u8* src = static_cast<u8*>(map.pData);
-	for (unsigned int y = 0; y < height; ++y)
+	// Encode parameters constant buffer used by shader
+	struct EncodeParameters
 	{
-		memcpy(dst, src, 2 * width);
-		dst += bpmem.copyMipMapStrideChannels * 32;
-		src += map.RowPitch;
+		float src_rect[4];
+		float texel_size[4];
+	};
+	EncodeParameters parameters =
+	{
+		{
+			static_cast<float>(src_rect.left) / static_cast<float>(src_width),
+			static_cast<float>(src_rect.top) / static_cast<float>(src_height),
+		static_cast<float>(src_rect.right) / static_cast<float>(src_width),
+		static_cast<float>(src_rect.bottom) / static_cast<float>(src_height)
+		},
+		{
+			1.0f / static_cast<float>(src_width),
+			1.0f / static_cast<float>(src_height),
+		0.0f,
+		0.0f
+		}
+	};
+	m_encode_params_buffer->AllocateSpaceInBuffer(sizeof(parameters), D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT);
+	memcpy(m_encode_params_buffer->GetCPUAddressOfCurrentAllocation(), &parameters, sizeof(parameters));
+
+	// Convert RGBA texture to YUYV intermediate texture.
+	// Performs downscaling through a linear filter. Probably not ideal, but it's not going to look perfect anyway.
+	CD3DX12_RECT src_texture_rect(src_rect.left, src_rect.top, src_rect.right, src_rect.bottom);
+	D3D12_RESOURCE_STATES src_texture_state = src_texture->GetResourceUsageState();
+	m_yuyv_texture->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_RENDER_TARGET);
+	D3D::current_command_list->OMSetRenderTargets(1, &m_yuyv_texture->GetRTV(), FALSE, nullptr);
+	D3D::current_command_list->SetGraphicsRootConstantBufferView(DESCRIPTOR_TABLE_PS_CBVONE, m_encode_params_buffer->GetGPUAddressOfCurrentAllocation());
+	D3D::command_list_mgr->SetCommandListDirtyState(COMMAND_LIST_STATE_PS_CBV, true);
+	D3D::SetViewportAndScissor(0, 0, dst_texture_width, dst_height);
+	D3D::SetLinearCopySampler();
+	D3D::DrawShadedTexQuad(
+		src_texture, &src_texture_rect, src_rect.GetWidth(), src_rect.GetHeight(),
+		StaticShaderCache::GetXFBEncodePixelShader(), StaticShaderCache::GetSimpleVertexShader(), StaticShaderCache::GetSimpleVertexShaderInputLayout(),
+		{}, gamma, 0, DXGI_FORMAT_R8G8B8A8_UNORM, false, false);
+
+	src_texture->TransitionToResourceState(D3D::current_command_list, src_texture_state);
+
+	// Copy from YUYV intermediate texture to readback buffer. It's likely the pitch here is going to be different to dst_pitch.
+	u32 readback_pitch = ROUND_UP(dst_width * sizeof(u16), D3D12_TEXTURE_DATA_PITCH_ALIGNMENT);
+	D3D12_PLACED_SUBRESOURCE_FOOTPRINT dst_footprint = { 0,{ DXGI_FORMAT_R8G8B8A8_UNORM, dst_texture_width, dst_height, 1, readback_pitch } };
+	CD3DX12_TEXTURE_COPY_LOCATION dst_location(m_readback_buffer, dst_footprint);
+	CD3DX12_TEXTURE_COPY_LOCATION src_location(m_yuyv_texture->GetTex(), 0);
+	CD3DX12_BOX src_box(0, 0, dst_texture_width, dst_height);
+	m_yuyv_texture->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_COPY_SOURCE);
+	D3D::current_command_list->CopyTextureRegion(&dst_location, 0, 0, 0, &src_location, &src_box);
+
+	// Wait until the GPU completes the copy. Resets back to known state automatically.
+	D3D::command_list_mgr->ExecuteQueuedWork(true);
+
+	// Copy from the readback buffer to dst.
+	// Can't be done as one memcpy due to pitch difference.
+	void* readback_texture_map;
+	CheckHR(m_readback_buffer->Map(0, nullptr, &readback_texture_map));
+
+	for (u32 row = 0; row < dst_height; row++)
+	{
+		const u8* row_src = reinterpret_cast<u8*>(readback_texture_map) + readback_pitch * row;
+		u8* row_dst = dst + dst_pitch * row;
+		memcpy(row_dst, row_src, std::min(dst_pitch, readback_pitch));
 	}
 
-	D3D::context->Unmap(m_outStage, 0);
+	m_readback_buffer->Unmap(0, nullptr);
+}
 
-	// Restore API
-	g_renderer->RestoreAPIState();
-	D3D::stateman->Apply(); // force unbind efb texture as shader resource
-	D3D::context->OMSetRenderTargets(1,
-		&FramebufferManager::GetEFBColorTexture()->GetRTV(),
-		FramebufferManager::GetEFBDepthTexture()->GetDSV());
-#endif
+void XFBEncoder::DecodeToTexture(D3DTexture2D* dst_texture, const u8* src, u32 src_width, u32 src_height)
+{
+	_assert_msg_(VIDEO, src_width <= MAX_XFB_WIDTH && src_height <= MAX_XFB_HEIGHT, "XFB source does not exceed maximum size");
+
+	// Copy to XFB upload buffer. Each row has to be done separately due to pitch differences.
+	u32 buffer_pitch = ROUND_UP(src_width / 2 * sizeof(u32), D3D12_TEXTURE_DATA_PITCH_ALIGNMENT);
+	m_upload_buffer->AllocateSpaceInBuffer(buffer_pitch * src_height, D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT);
+	for (u32 row = 0; row < src_height; row++)
+	{
+		const u8* row_src = src + (src_width * 2) * row;
+		u8* row_dst = reinterpret_cast<u8*>(m_upload_buffer->GetCPUAddressOfCurrentAllocation()) + buffer_pitch * row;
+		memcpy(row_dst, row_src, src_width * 2);
+	}
+
+	// Copy from upload buffer to intermediate YUYV texture.
+	D3D12_PLACED_SUBRESOURCE_FOOTPRINT src_footprint = { m_upload_buffer->GetOffsetOfCurrentAllocation(),{ DXGI_FORMAT_R8G8B8A8_UNORM, src_width / 2, src_height, 1, buffer_pitch } };
+	CD3DX12_TEXTURE_COPY_LOCATION src_location(m_upload_buffer->GetBuffer(), src_footprint);
+	CD3DX12_TEXTURE_COPY_LOCATION dst_location(m_yuyv_texture->GetTex(), 0);
+	CD3DX12_BOX src_box(0, 0, src_width / 2, src_height);
+	m_yuyv_texture->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_COPY_DEST);
+	D3D::current_command_list->CopyTextureRegion(&dst_location, 0, 0, 0, &src_location, &src_box);
+
+	// Convert YUYV texture to RGBA texture with pixel shader.
+	CD3DX12_RECT src_texture_rect(0, 0, src_width / 2, src_height);
+	dst_texture->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_RENDER_TARGET);
+	D3D::current_command_list->OMSetRenderTargets(1, &dst_texture->GetRTV(), FALSE, nullptr);
+	D3D::SetViewportAndScissor(0, 0, src_width, src_height);
+	D3D::DrawShadedTexQuad(
+		m_yuyv_texture, &src_texture_rect, XFB_TEXTURE_WIDTH, XFB_TEXTURE_HEIGHT,
+		StaticShaderCache::GetXFBDecodePixelShader(), StaticShaderCache::GetSimpleVertexShader(), StaticShaderCache::GetSimpleVertexShaderInputLayout(),
+		{}, 1.0f, 0, DXGI_FORMAT_R8G8B8A8_UNORM, false, false);
+
+	// XFB source textures are expected to be in shader resource state.
+	dst_texture->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 }
 
 }

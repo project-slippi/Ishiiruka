@@ -30,7 +30,7 @@ D3DStreamBuffer::~D3DStreamBuffer()
 	D3D::command_list_mgr->RemoveQueueFenceCallback(this);
 
 	m_buffer->Unmap(0, nullptr);
-	D3D::command_list_mgr->DestroyResourceAfterCurrentCommandListExecuted(m_buffer);
+	D3D::command_list_mgr->DestroyResourceAfterCurrentCommandListExecuted(m_buffer.Detach());
 }
 
 // Function returns true if (worst case), needed to flush existing command list in order to
@@ -43,7 +43,7 @@ bool D3DStreamBuffer::AllocateSpaceInBuffer(size_t allocation_size, size_t align
 {
 	CHECK(allocation_size <= m_buffer_max_size, "Error: Requested allocation size in D3DStreamBuffer is greater than max allowed size of backing buffer.");
 
-	if (alignment)
+	if (alignment && m_buffer_offset > 0)
 	{
 		size_t padding = m_buffer_offset % alignment;
 
@@ -95,18 +95,17 @@ void D3DStreamBuffer::AllocateBuffer(size_t size)
 	if (m_buffer)
 	{
 		m_buffer->Unmap(0, nullptr);
-		D3D::command_list_mgr->DestroyResourceAfterCurrentCommandListExecuted(m_buffer);
-		m_buffer = nullptr;
+		D3D::command_list_mgr->DestroyResourceAfterCurrentCommandListExecuted(m_buffer.Detach());
 	}
 
 	CheckHR(
-		D3D::device12->CreateCommittedResource(
+		D3D::device->CreateCommittedResource(
 			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
 			D3D12_HEAP_FLAG_NONE,
 			&CD3DX12_RESOURCE_DESC::Buffer(size),
 			D3D12_RESOURCE_STATE_GENERIC_READ,
 			nullptr,
-			IID_PPV_ARGS(&m_buffer)
+			IID_PPV_ARGS(m_buffer.ReleaseAndGetAddressOf())
 			)
 		);
 

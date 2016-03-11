@@ -232,7 +232,7 @@ int CD3DFont::Init()
 	}
 
 	CheckHR(
-		D3D::device12->CreateCommittedResource(
+		D3D::device->CreateCommittedResource(
 			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
 			D3D12_HEAP_FLAG_NONE,
 			&CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_R8G8B8A8_UNORM, m_tex_width, m_tex_height, 1, 1),
@@ -246,7 +246,7 @@ int CD3DFont::Init()
 
 	ID3D12Resource* temporaryFontTextureUploadBuffer;
 	CheckHR(
-		D3D::device12->CreateCommittedResource(
+		D3D::device->CreateCommittedResource(
 			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
 			D3D12_HEAP_FLAG_NONE,
 			&CD3DX12_RESOURCE_DESC::Buffer(ROUND_UP(m_tex_width * 4, D3D12_TEXTURE_DATA_PITCH_ALIGNMENT) * m_tex_height),
@@ -276,7 +276,7 @@ int CD3DFont::Init()
 	srv_desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
 	srv_desc.Texture2D.MipLevels = -1;
 
-	D3D::device12->CreateShaderResourceView(m_texture12, &srv_desc, m_texture12_cpu);
+	D3D::device->CreateShaderResourceView(m_texture12, &srv_desc, m_texture12_cpu);
 
 	D3D::ResourceBarrier(D3D::current_command_list, m_texture12, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES);
 
@@ -334,7 +334,7 @@ int CD3DFont::Init()
 	m_vertex_buffer = std::make_unique<D3DStreamBuffer>(text_vb_size * 2, text_vb_size * 16, nullptr);
 
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC text_pso_desc = {
-		default_root_signature,                           // ID3D12RootSignature *pRootSignature;
+		default_root_signature.Get(),                           // ID3D12RootSignature *pRootSignature;
 		{ vsbytecode->Data(), vsbytecode->Size() },       // D3D12_SHADER_BYTECODE VS;
 		{ psbytecode->Data(), psbytecode->Size() },       // D3D12_SHADER_BYTECODE PS;
 		{},                                               // D3D12_SHADER_BYTECODE DS;
@@ -354,7 +354,7 @@ int CD3DFont::Init()
 		{ 1 /* UINT Count */, 0 /* UINT Quality */ }      // DXGI_SAMPLE_DESC SampleDesc
 	};
 
-	CheckHR(DX12::gx_state_cache.GetPipelineStateObjectFromCache(&text_pso_desc, &m_pso));
+	CheckHR(DX12::gx_state_cache.GetPipelineStateObjectFromCache(text_pso_desc, &m_pso));
 
 	SAFE_RELEASE(psbytecode);
 	SAFE_RELEASE(vsbytecode);
@@ -504,7 +504,7 @@ void InitUtils()
 	};
 
 	D3D::sampler_descriptor_heap_mgr->Allocate(&point_copy_sampler12CPU, &point_copy_sampler12GPU);
-	D3D::device12->CreateSampler(&point_sampler_desc, point_copy_sampler12CPU);
+	D3D::device->CreateSampler(&point_sampler_desc, point_copy_sampler12CPU);
 
 	D3D12_SAMPLER_DESC linear_sampler_desc = {
 		D3D12_FILTER_MIN_MAG_MIP_LINEAR,
@@ -520,7 +520,7 @@ void InitUtils()
 	};
 
 	D3D::sampler_descriptor_heap_mgr->Allocate(&linear_copy_sampler12CPU, &linear_copy_sampler12GPU);
-	D3D::device12->CreateSampler(&linear_sampler_desc, linear_copy_sampler12CPU);
+	D3D::device->CreateSampler(&linear_sampler_desc, linear_copy_sampler12CPU);
 
 	// cached data used to avoid unnecessarily reloading the vertex buffers
 	memset(&tex_quad_data, 0, sizeof(tex_quad_data));
@@ -616,7 +616,7 @@ void DrawShadedTexQuad(D3DTexture2D* texture,
 	}
 
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC pso_desc = {
-		default_root_signature,                           // ID3D12RootSignature *pRootSignature;
+		default_root_signature.Get(),                           // ID3D12RootSignature *pRootSignature;
 		vshader12,                                        // D3D12_SHADER_BYTECODE VS;
 		pshader12,                                        // D3D12_SHADER_BYTECODE PS;
 		{},                                               // D3D12_SHADER_BYTECODE DS;
@@ -642,7 +642,7 @@ void DrawShadedTexQuad(D3DTexture2D* texture,
 	}
 
 	ID3D12PipelineState* pso = nullptr;
-	CheckHR(DX12::gx_state_cache.GetPipelineStateObjectFromCache(&pso_desc, &pso));
+	CheckHR(DX12::gx_state_cache.GetPipelineStateObjectFromCache(pso_desc, &pso));
 
 	D3D::current_command_list->SetPipelineState(pso);
 	D3D::command_list_mgr->SetCommandListDirtyState(COMMAND_LIST_STATE_PSO, true);
@@ -680,7 +680,7 @@ void DrawClearQuad(u32 Color, float z, D3D12_BLEND_DESC* blend_desc, D3D12_DEPTH
 	D3D::command_list_mgr->SetCommandListDirtyState(COMMAND_LIST_STATE_VERTEX_BUFFER, true);
 
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC pso_desc = {
-		default_root_signature,                           // ID3D12RootSignature *pRootSignature;
+		default_root_signature.Get(),                           // ID3D12RootSignature *pRootSignature;
 		StaticShaderCache::GetClearVertexShader(),        // D3D12_SHADER_BYTECODE VS;
 		StaticShaderCache::GetClearPixelShader(),         // D3D12_SHADER_BYTECODE PS;
 		{},                                               // D3D12_SHADER_BYTECODE DS;
@@ -708,7 +708,7 @@ void DrawClearQuad(u32 Color, float z, D3D12_BLEND_DESC* blend_desc, D3D12_DEPTH
 	}
 
 	ID3D12PipelineState* pso = nullptr;
-	CheckHR(DX12::gx_state_cache.GetPipelineStateObjectFromCache(&pso_desc, &pso));
+	CheckHR(DX12::gx_state_cache.GetPipelineStateObjectFromCache(pso_desc, &pso));
 
 	D3D::current_command_list->SetPipelineState(pso);
 	D3D::command_list_mgr->SetCommandListDirtyState(COMMAND_LIST_STATE_PSO, true);
@@ -732,11 +732,11 @@ void DrawEFBPokeQuads(EFBAccessType type,
 {
 	// The viewport and RT/DB are passed in so we can reconstruct the state if we need to execute in the middle of building the vertex buffer.
 
-	D3D::current_command_list->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	D3D::current_command_list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	D3D::command_list_mgr->SetCommandListPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC pso_desc = {
-		default_root_signature,                           // ID3D12RootSignature *pRootSignature;
+		default_root_signature.Get(),                           // ID3D12RootSignature *pRootSignature;
 		StaticShaderCache::GetClearVertexShader(),        // D3D12_SHADER_BYTECODE VS;
 		StaticShaderCache::GetClearPixelShader(),         // D3D12_SHADER_BYTECODE PS;
 		{},                                               // D3D12_SHADER_BYTECODE DS;
@@ -764,7 +764,7 @@ void DrawEFBPokeQuads(EFBAccessType type,
 	}
 
 	ID3D12PipelineState* pso = nullptr;
-	CheckHR(DX12::gx_state_cache.GetPipelineStateObjectFromCache(&pso_desc, &pso));
+	CheckHR(DX12::gx_state_cache.GetPipelineStateObjectFromCache(pso_desc, &pso));
 
 	// if drawing a large number of points at once, this will have to be split into multiple passes.
 	const size_t COL_QUAD_SIZE = sizeof(ColVertex) * 6;

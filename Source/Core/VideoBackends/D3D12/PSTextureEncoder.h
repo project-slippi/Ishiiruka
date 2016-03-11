@@ -25,12 +25,12 @@ public:
 private:
 	bool m_ready = false;
 
-	ID3D12Resource* m_out = nullptr;
+	ComPtr<ID3D12Resource> m_out;
 	D3D12_CPU_DESCRIPTOR_HANDLE m_out_rtv_cpu = {};
 
-	ID3D12Resource* m_out_readback_buffer = nullptr;
+	ComPtr<ID3D12Resource> m_out_readback_buffer;
 
-	ID3D12Resource* m_encode_params_buffer = nullptr;
+	ComPtr<ID3D12Resource> m_encode_params_buffer;
 	void* m_encode_params_buffer_data = nullptr;
 
 	D3D12_SHADER_BYTECODE SetStaticShader(unsigned int dst_format,

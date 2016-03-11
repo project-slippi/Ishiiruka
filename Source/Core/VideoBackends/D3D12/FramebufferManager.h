@@ -4,7 +4,6 @@
 
 #pragma once
 
-#include "d3d11.h"
 #include "VideoBackends/D3D12/D3DUtil.h"
 #include "VideoBackends/D3D12/D3DTexture.h"
 #include "VideoCommon/FramebufferManagerBase.h"
@@ -96,22 +95,22 @@ private:
 
 	static struct Efb
 	{
-		D3DTexture2D* color_tex{};
-		D3DTexture2D* resolved_color_tex{};
+		D3DTexture2D* color_tex;
+		D3DTexture2D* resolved_color_tex;
 
-		D3DTexture2D* depth_tex{};
-		D3DTexture2D* resolved_depth_tex{};
+		D3DTexture2D* depth_tex;
+		D3DTexture2D* resolved_depth_tex;
 
-		D3DTexture2D* color_temp_tex{};
+		D3DTexture2D* color_temp_tex;
 
 		// EFB Cache
 
-		D3DTexture2D* color_cache_tex{};
-		ID3D12Resource* color_cache_buf{};
+		D3DTexture2D* color_cache_tex;
+		ComPtr<ID3D12Resource> color_cache_buf;
 		u8* color_cache_data{};
 		
-		D3DTexture2D* depth_cache_tex{};
-		ID3D12Resource* depth_cache_buf{};
+		D3DTexture2D* depth_cache_tex;
+		ComPtr<ID3D12Resource> depth_cache_buf;
 		u8* depth_cache_data{};
 
 		int slices{};

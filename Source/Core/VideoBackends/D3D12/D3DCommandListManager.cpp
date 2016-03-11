@@ -81,7 +81,7 @@ void D3DCommandListManager::SetInitialCommandListState()
 	GetCommandList(&command_list);
 
 	command_list->SetDescriptorHeaps(static_cast<unsigned int>(D3D::gpu_descriptor_heaps.size()), D3D::gpu_descriptor_heaps.data());
-	command_list->SetGraphicsRootSignature(D3D::default_root_signature);
+	command_list->SetGraphicsRootSignature(D3D::default_root_signature.Get());
 
 	if (g_renderer)
 	{

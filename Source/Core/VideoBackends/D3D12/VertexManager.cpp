@@ -168,7 +168,9 @@ void VertexManager::vFlush(bool use_dst_alpha)
 	// D3D12TODO: Decide right threshold for drawCountSinceAsyncFlush at runtime depending on 
 	// amount of stall measured in AccessEFB.
 
-	if (D3D::command_list_mgr->m_draws_since_last_execution > 100 && D3D::command_list_mgr->m_cpu_access_last_frame)
+	if (D3D::command_list_mgr->m_cpu_access_last_frame 
+		&& D3D::command_list_mgr->m_draws_since_last_execution > 100 
+		&& !PerfQueryBase::ShouldEmulate())
 	{
 		D3D::command_list_mgr->m_draws_since_last_execution = 0;
 

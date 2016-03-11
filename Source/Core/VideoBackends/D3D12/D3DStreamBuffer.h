@@ -32,7 +32,7 @@ public:
 
 	inline ID3D12Resource* GetBuffer() const
 	{
-		return m_buffer;
+		return m_buffer.Get();
 	}
 
 	inline void* GetCPUAddressOfCurrentAllocation() const 
@@ -79,9 +79,9 @@ private:
 
 	std::deque<FenceTrackingInformation> m_queued_fences;
 
-	ID3D12Fence* m_buffer_tracking_fence = nullptr;
+	ID3D12Fence* m_buffer_tracking_fence;
 
-	ID3D12Resource* m_buffer = nullptr;
+	ComPtr<ID3D12Resource> m_buffer;
 
 	void* m_buffer_cpu_address = nullptr;
 	D3D12_GPU_VIRTUAL_ADDRESS m_buffer_gpu_address = {};

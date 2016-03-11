@@ -7,12 +7,12 @@
 
 #pragma once
 
-#include <d3d11.h>
 #include <d3d12.h>
 #include <d3dcompiler.h>
 #include <dxgi1_4.h>
 #include <memory>
 #include <vector>
+#include <wrl/client.h>
 
 #include <d3dx12.h>
 
@@ -23,7 +23,7 @@
 
 namespace DX12
 {
-
+using Microsoft::WRL::ComPtr;
 #define SAFE_RELEASE(x) { if (x) (x)->Release(); (x) = nullptr; }
 #define CHECK(cond, Message, ...) if (!(cond)) { __debugbreak(); PanicAlert(__FUNCTION__ " failed in %s at line %d: " Message, __FILE__, __LINE__, __VA_ARGS__); }
 
@@ -67,10 +67,7 @@ HRESULT LoadD3D();
 void UnloadDXGI();
 void UnloadD3D();
 
-D3D_FEATURE_LEVEL GetFeatureLevel(IDXGIAdapter* adapter);
-std::vector<DXGI_SAMPLE_DESC> EnumAAModes(IDXGIAdapter* adapter);
-
-bool AlertUserIfSelectedAdapterDoesNotSupportD3D12();
+std::vector<DXGI_SAMPLE_DESC> EnumAAModes(ID3D12Device* device);
 
 HRESULT Create(HWND wnd);
 
@@ -80,7 +77,7 @@ void CreateRootSignatures();
 void WaitForOutstandingRenderingToComplete();
 void Close();
 
-extern ID3D12Device* device12;
+extern ID3D12Device* device;
 
 extern unsigned int resource_descriptor_size;
 extern unsigned int sampler_descriptor_size;
@@ -96,7 +93,7 @@ extern D3D12_CPU_DESCRIPTOR_HANDLE null_srv_cpu_shadow;
 extern std::unique_ptr<D3DCommandListManager> command_list_mgr;
 extern ID3D12GraphicsCommandList* current_command_list;
 
-extern ID3D12RootSignature* default_root_signature;
+extern ComPtr<ID3D12RootSignature> default_root_signature;
 
 extern HWND hWnd;
 extern bool frame_in_progress;
@@ -152,11 +149,8 @@ typedef HRESULT(WINAPI* CREATEDXGIFACTORY)(REFIID, void**);
 extern CREATEDXGIFACTORY create_dxgi_factory;
 
 typedef HRESULT(WINAPI* D3D12CREATEDEVICE)(IUnknown*, D3D_FEATURE_LEVEL, REFIID, void**);
+extern D3D12CREATEDEVICE d3d12_create_device;
 typedef HRESULT(WINAPI* D3D12SERIALIZEROOTSIGNATURE)(const D3D12_ROOT_SIGNATURE_DESC* pRootSignature, D3D_ROOT_SIGNATURE_VERSION Version, ID3DBlob** ppBlob, ID3DBlob** ppErrorBlob);
 typedef HRESULT(WINAPI* D3D12GETDEBUGINTERFACE)(REFIID riid, void** ppvDebug);
-
-typedef HRESULT(WINAPI* D3DREFLECT)(LPCVOID, SIZE_T, REFIID, void**);
-extern D3DREFLECT d3d_reflect;
-extern pD3DCompile d3d_compile;
 
 }  // namespace DX12
