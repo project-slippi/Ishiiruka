@@ -41,7 +41,7 @@ void GetVertexShaderUID(VertexShaderUid& out, u32 components, const XFMemory &xf
 		uid_data.msaa = g_ActiveConfig.iMultisamples > 1;
 		uid_data.ssaa = g_ActiveConfig.iMultisamples > 1 && g_ActiveConfig.bSSAA;
 	}
-	if(needLightShader)
+	if (needLightShader)
 		GetLightingShaderUid(uid_data.lighting, xfr);
 	// transform texcoords
 	for (unsigned int i = 0; i < uid_data.numTexGens; ++i)
@@ -59,10 +59,6 @@ void GetVertexShaderUID(VertexShaderUid& out, u32 components, const XFMemory &xf
 			{
 				// transform the light dir into tangent space
 				texinfo.embosslightshift = xfr.texMtxInfo[i].embosslightshift;
-				texinfo.embosssourceshift = xfr.texMtxInfo[i].embosssourceshift;
-			}
-			else
-			{
 				texinfo.embosssourceshift = xfr.texMtxInfo[i].embosssourceshift;
 			}
 			break;
@@ -283,7 +279,7 @@ inline void GenerateVertexShader(ShaderCode& out, const vertex_shader_uid_data& 
 			out.Write("o.colors_1 = o.colors_0;\n");
 	}
 	if (needLightShader)
-		GenerateLightingShaderCode(out, uid_data.numColorChans, uid_data.lighting, components, I_MATERIALS, I_LIGHTS, "color", "o.colors_",use_integer_math);
+		GenerateLightingShaderCode(out, uid_data.numColorChans, uid_data.lighting, components, I_MATERIALS, I_LIGHTS, "color", "o.colors_", use_integer_math);
 
 	if (uid_data.numColorChans < 2 && needLightShader)
 	{
@@ -352,44 +348,61 @@ inline void GenerateVertexShader(ShaderCode& out, const vertex_shader_uid_data& 
 			}
 			else
 			{
-				// The following assert was triggered in House of the Dead Overkill and Star Wars Rogue Squadron 2
-				_dbg_assert_log_(VIDEO, 0, "vertex normals spected");
-				out.Write("o.tex%d.xyz = o.tex%d.xyz;\n", i, texinfo.embosssourceshift);
+				// Even if inputform ABC1 is set, it only uses AB11
+				out.Write("o.tex%d.xyz = float3(coord.xy, 1.0);\n", i);
 			}
 
 			break;
 		case XF_TEXGEN_COLOR_STRGBC0:
-			{
-				_dbg_assert_log_(VIDEO, texinfo.sourcerow == XF_SRCCOLORS_INROW, "sourcerow missmatch spected: XF_SRCCOLORS_INROW found: %u", texinfo.sourcerow);
-				out.Write("o.tex%d.xyz = float3(o.colors_0.x, o.colors_0.y, 1);\n", i);
-			}
-			break;
+		{
+			_dbg_assert_log_(VIDEO, texinfo.sourcerow == XF_SRCCOLORS_INROW, "sourcerow missmatch spected: XF_SRCCOLORS_INROW found: %u", texinfo.sourcerow);
+			out.Write("o.tex%d.xyz = float3(o.colors_0.x, o.colors_0.y, 1);\n", i);
+		}
+		break;
 		case XF_TEXGEN_COLOR_STRGBC1:
-			{
-				_dbg_assert_log_(VIDEO, texinfo.sourcerow == XF_SRCCOLORS_INROW, "sourcerow missmatch spected: XF_SRCCOLORS_INROW found: %u", texinfo.sourcerow);
-				out.Write("o.tex%d.xyz = float3(o.colors_1.x, o.colors_1.y, 1);\n", i);
-			}
-			break;
+		{
+			_dbg_assert_log_(VIDEO, texinfo.sourcerow == XF_SRCCOLORS_INROW, "sourcerow missmatch spected: XF_SRCCOLORS_INROW found: %u", texinfo.sourcerow);
+			out.Write("o.tex%d.xyz = float3(o.colors_1.x, o.colors_1.y, 1);\n", i);
+		}
+		break;
 		case XF_TEXGEN_REGULAR:
 		default:
+		{
+			if (components & (VB_HAS_TEXMTXIDX0 << i))
 			{
-				if (components & (VB_HAS_TEXMTXIDX0 << i))
+				out.Write("int tmp = int(tex%d.z);\n", i);
+				if (((uid_data.texMtxInfo_n_projection >> i) & 1) == XF_TEXPROJ_STQ)
 				{
-					out.Write("int tmp = int(tex%d.z);\n", i);
-					if (((uid_data.texMtxInfo_n_projection >> i) & 1) == XF_TEXPROJ_STQ)
-						out.Write("o.tex%d.xyz = float3(dot(coord, " I_TRANSFORMMATRICES"[tmp]), dot(coord, " I_TRANSFORMMATRICES"[tmp+1]), dot(coord, " I_TRANSFORMMATRICES"[tmp+2]));\n", i);
-					else
-						out.Write("o.tex%d.xyz = float3(dot(coord, " I_TRANSFORMMATRICES"[tmp]), dot(coord, " I_TRANSFORMMATRICES"[tmp+1]), 1);\n", i);
+					out.Write("o.tex%d.xyz = float3(dot(coord, " I_TRANSFORMMATRICES"[tmp]), dot(coord, " I_TRANSFORMMATRICES"[tmp+1]), dot(coord, " I_TRANSFORMMATRICES"[tmp+2]));\n", i);
+					out.Write("if(o.tex%d.z == 0.0f)\n", i);
+					out.Write("{\n");
+					out.Write("float4 test = " I_TRANSFORMMATRICES"[tmp+2];\n");
+					out.Write("o.tex%d.xy = (test.x != 0.0f || test.y != 0.0f) ? float2(0.0f, 0.0f) : clamp(o.tex%d.xy * 0.5f, float2(-1.0f, -1.0f), float2(1.0f, 1.0f));\n", i, i);
+					out.Write("}\n");
 				}
 				else
 				{
-					if (((uid_data.texMtxInfo_n_projection >> i) & 1) == XF_TEXPROJ_STQ)
-						out.Write("o.tex%d.xyz = float3(dot(coord, " I_TEXMATRICES"[%d]), dot(coord, " I_TEXMATRICES"[%d]), dot(coord, " I_TEXMATRICES"[%d]));\n", i, 3 * i, 3 * i + 1, 3 * i + 2);
-					else
-						out.Write("o.tex%d.xyz = float3(dot(coord, " I_TEXMATRICES"[%d]), dot(coord, " I_TEXMATRICES"[%d]), 1);\n", i, 3 * i, 3 * i + 1);
+					out.Write("o.tex%d.xyz = float3(dot(coord, " I_TRANSFORMMATRICES"[tmp]), dot(coord, " I_TRANSFORMMATRICES"[tmp+1]), 1);\n", i);
 				}
 			}
-			break;
+			else
+			{
+				if (((uid_data.texMtxInfo_n_projection >> i) & 1) == XF_TEXPROJ_STQ)
+				{
+					out.Write("o.tex%d.xyz = float3(dot(coord, " I_TEXMATRICES"[%d]), dot(coord, " I_TEXMATRICES"[%d]), dot(coord, " I_TEXMATRICES"[%d]));\n", i, 3 * i, 3 * i + 1, 3 * i + 2);
+					out.Write("if(o.tex%d.z == 0.0f)\n", i);
+					out.Write("{\n");
+					out.Write("float4 test = " I_TRANSFORMMATRICES"[%d];\n", 3 * i + 2);
+					out.Write("o.tex%d.xy = (test.x != 0.0f || test.y != 0.0f) ? float2(0.0f, 0.0f) : clamp(o.tex%d.xy * 0.5f, float2(-1.0f, -1.0f), float2(1.0f, 1.0f));\n", i, i);
+					out.Write("}\n");
+				}
+				else
+				{
+					out.Write("o.tex%d.xyz = float3(dot(coord, " I_TEXMATRICES"[%d]), dot(coord, " I_TEXMATRICES"[%d]), 1);\n", i, 3 * i, 3 * i + 1);
+				}
+			}
+		}
+		break;
 		}
 
 		// CHECKME: does this only work for regular tex gen types?
@@ -402,7 +415,7 @@ inline void GenerateVertexShader(ShaderCode& out, const vertex_shader_uid_data& 
 				"float4 P1 = " I_POSTTRANSFORMMATRICES"[%d];\n"
 				"float4 P2 = " I_POSTTRANSFORMMATRICES"[%d];\n",
 				postidx & 0x3f, (postidx + 1) & 0x3f, (postidx + 2) & 0x3f);
-			
+
 			if (postInfo.normalize)
 				out.Write("o.tex%d.xyz = normalize(o.tex%d.xyz);\n", i, i);
 
