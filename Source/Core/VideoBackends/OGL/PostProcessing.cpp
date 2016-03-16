@@ -580,6 +580,8 @@ void OGLPostProcessor::ReloadShaders()
 	// Set initial sizes to 0,0 to force texture creation on next draw
 	m_copy_size.Set(0, 0);
 	m_stereo_buffer_size.Set(0, 0);
+	Constant empty = {};
+	m_current_constants.fill(empty);
 }
 
 std::unique_ptr<PostProcessingShader> OGLPostProcessor::CreateShader(PostProcessingShaderConfiguration* config)

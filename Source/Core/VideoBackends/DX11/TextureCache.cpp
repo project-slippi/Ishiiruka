@@ -103,23 +103,13 @@ void TextureCache::TCacheEntry::CopyRectangleFromTexture(
 {
 	TCacheEntry* srcentry = (TCacheEntry*)source;
 	if (srcrect.GetWidth() == dstrect.GetWidth()
-		&& srcrect.GetHeight() == dstrect.GetHeight())
+		&& srcrect.GetHeight() == dstrect.GetHeight()
+		&& static_cast<UINT>(dstrect.GetWidth()) <= config.width
+		&& static_cast<UINT>(dstrect.GetHeight()) <= config.height
+		&& static_cast<UINT>(dstrect.GetWidth()) <= srcentry->config.width
+		&& static_cast<UINT>(dstrect.GetHeight()) <= srcentry->config.height)
 	{
-		const D3D11_BOX *psrcbox = nullptr;
-		D3D11_BOX srcbox;
-		if (srcrect.left != 0
-			|| srcrect.top != 0
-			|| srcrect.GetWidth() != srcentry->config.width
-			|| srcrect.GetHeight() != srcentry->config.height)
-		{
-			srcbox.left = srcrect.left;
-			srcbox.top = srcrect.top;
-			srcbox.right = srcrect.right;
-			srcbox.bottom = srcrect.bottom;
-			srcbox.front = 0;
-			srcbox.back = srcentry->config.layers;
-			psrcbox = &srcbox;
-		}
+		CD3D11_BOX src_box(srcrect.left, srcrect.top, 0, srcrect.right, srcrect.bottom, srcentry->config.layers);
 		D3D::context->CopySubresourceRegion(
 			texture->GetTex(),
 			0,
@@ -128,21 +118,26 @@ void TextureCache::TCacheEntry::CopyRectangleFromTexture(
 			0,
 			srcentry->texture->GetTex(),
 			0,
-			psrcbox);
+			&src_box);
 		return;
 	}
 	else if (!config.rendertarget)
 	{
 		config.rendertarget = true;
-		texture->Release();
 		int flags = ((int)D3D11_BIND_RENDER_TARGET | (int)D3D11_BIND_SHADER_RESOURCE);
 		if (D3D::GetFeatureLevel() >= D3D_FEATURE_LEVEL_11_0)
 		{
 			flags |= D3D11_BIND_UNORDERED_ACCESS;
 		}
-		texture = D3DTexture2D::Create(config.width, config.height,
+		D3DTexture2D* ptexture = D3DTexture2D::Create(config.width, config.height,
 			(D3D11_BIND_FLAG)flags,
 			D3D11_USAGE_DEFAULT, DXGI_FORMAT_R8G8B8A8_UNORM, 1, config.layers);
+		D3D::context->CopyResource(
+			ptexture->GetTex(),
+			texture->GetTex());
+		
+		texture->Release();
+		texture = ptexture;
 	}
 	g_renderer->ResetAPIState(); // reset any game specific settings
 
@@ -151,7 +146,8 @@ void TextureCache::TCacheEntry::CopyRectangleFromTexture(
 		float(dstrect.top),
 		float(dstrect.GetWidth()),
 		float(dstrect.GetHeight()));
-
+	u64 texture_mask = D3D::stateman->UnsetTexture(texture->GetSRV());
+	D3D::stateman->Apply();
 	D3D::context->OMSetRenderTargets(1, &texture->GetRTV(), nullptr);
 	D3D::context->RSSetViewports(1, &vp);
 	D3D::SetLinearCopySampler();
@@ -171,6 +167,7 @@ void TextureCache::TCacheEntry::CopyRectangleFromTexture(
 		FramebufferManager::GetEFBDepthTexture()->GetDSV());
 
 	g_renderer->RestoreAPIState();
+	D3D::stateman->SetTextureByMask(texture_mask, texture->GetSRV());
 }
 
 void TextureCache::TCacheEntry::Load(const u8* src, u32 width, u32 height,
@@ -436,7 +433,7 @@ void TextureCache::TCacheEntry::FromRenderTarget(u8* dst, PEControl::PixelFormat
 		D3D::SetPointCopySampler();
 
 	// if texture is currently in use, it needs to be temporarily unset
-	u64 textureSlotMask = D3D::stateman->UnsetTexture(texture->GetSRV());
+	u64 texture_mask = D3D::stateman->UnsetTexture(texture->GetSRV());
 	D3D::stateman->Apply();
 	D3D::context->OMSetRenderTargets(1, &texture->GetRTV(), nullptr);
 	// Create texture copy
@@ -451,11 +448,7 @@ void TextureCache::TCacheEntry::FromRenderTarget(u8* dst, PEControl::PixelFormat
 	D3D::context->OMSetRenderTargets(1, &FramebufferManager::GetEFBColorTexture()->GetRTV(), FramebufferManager::GetEFBDepthTexture()->GetDSV());
 
 	g_renderer->RestoreAPIState();
-	D3D::stateman->SetTextureByMask(textureSlotMask, texture->GetSRV());
-	if (!g_ActiveConfig.bSkipEFBCopyToRam)
-	{
-		
-	}
+	D3D::stateman->SetTextureByMask(texture_mask, texture->GetSRV());
 }
 
 void TextureCache::CopyEFB(u8* dst, u32 format, u32 native_width, u32 bytes_per_row, u32 num_blocks_y, u32 memory_stride,
@@ -487,10 +480,10 @@ bool TextureCache::Palettize(TCacheEntryBase* entry, const TCacheEntryBase* base
 	else
 		return false;
 	// if texture is currently in use, it needs to be temporarily unset
-	u64 textureSlotMask = D3D::stateman->UnsetTexture(texture->GetSRV());
+	u64 texture_mask = D3D::stateman->UnsetTexture(texture->GetSRV());
 	D3D::stateman->Apply();
 	bool result = s_decoder->Depalettize(*texture, *((TextureCache::TCacheEntry*)base_entry)->texture, baseType, base_entry->config.width, base_entry->config.height);
-	D3D::stateman->SetTextureByMask(textureSlotMask, texture->GetSRV());
+	D3D::stateman->SetTextureByMask(texture_mask, texture->GetSRV());
 	return result;
 }
 
