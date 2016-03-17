@@ -455,7 +455,7 @@ D3D12_GPU_DESCRIPTOR_HANDLE point_copy_sampler12GPU;
 
 struct STQVertex
 {
-	float x, y, z, u, v, w, g;
+	float x, y, z, u, v, w;
 };
 
 struct ColVertex
@@ -558,7 +558,6 @@ void DrawShadedTexQuad(D3DTexture2D* texture,
 	D3D12_SHADER_BYTECODE vshader12,
 	D3D12_INPUT_LAYOUT_DESC layout12,
 	D3D12_SHADER_BYTECODE gshader12,
-	float gamma,
 	u32 slice,
 	DXGI_FORMAT rt_format,
 	bool inherit_srv_binding,
@@ -573,19 +572,18 @@ void DrawShadedTexQuad(D3DTexture2D* texture,
 	float v1 = static_cast<float>(rSource->top) * sh;
 	float v2 = static_cast<float>(rSource->bottom) * sh;
 	float S = static_cast<float>(slice);
-	float G = 1.0f / gamma;
 
 	STQVertex coords[4] = {
-		{ -1.0f, 1.0f, 0.0f, u1, v1, S, G },
-		{ 1.0f, 1.0f, 0.0f, u2, v1, S, G },
-		{ -1.0f, -1.0f, 0.0f, u1, v2, S, G },
-		{ 1.0f, -1.0f, 0.0f, u2, v2, S, G },
+		{ -1.0f, 1.0f, 0.0f, u1, v1, S },
+		{ 1.0f, 1.0f, 0.0f, u2, v1, S },
+		{ -1.0f, -1.0f, 0.0f, u1, v2, S },
+		{ 1.0f, -1.0f, 0.0f, u2, v2, S },
 	};
 
 	// only upload the data to VRAM if it changed
 	if (tex_quad_data.u1 != u1 || tex_quad_data.v1 != v1 ||
 		tex_quad_data.u2 != u2 || tex_quad_data.v2 != v2 ||
-		tex_quad_data.S != S || tex_quad_data.G != G)
+		tex_quad_data.S != S)
 	{
 		stq_offset = util_vbuf_stq->AppendData(coords, sizeof(coords), sizeof(STQVertex));
 
@@ -594,7 +592,6 @@ void DrawShadedTexQuad(D3DTexture2D* texture,
 		tex_quad_data.u2 = u2;
 		tex_quad_data.v2 = v2;
 		tex_quad_data.S = S;
-		tex_quad_data.G = G;
 	}
 
 	D3D::current_command_list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
@@ -609,7 +606,7 @@ void DrawShadedTexQuad(D3DTexture2D* texture,
 	D3D::current_command_list->IASetVertexBuffers(0, 1, &vb_view);
 	D3D::command_list_mgr->SetCommandListDirtyState(COMMAND_LIST_STATE_VERTEX_BUFFER, true);
 
-	if (!inherit_srv_binding)
+	if (!inherit_srv_binding && texture != nullptr)
 	{
 		texture->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 		D3D::current_command_list->SetGraphicsRootDescriptorTable(DESCRIPTOR_TABLE_PS_SRV, texture->GetSRVGPU());

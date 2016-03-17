@@ -64,6 +64,16 @@ void ID3D12QueuedCommandList::BackgroundThreadFunction(ID3D12QueuedCommandList* 
 				break;
 			}
 
+			case D3DQueueItemType::CopyResource:
+			{
+				command_list->CopyResource(
+					qitem->CopyResource.pDstResource,
+					qitem->CopyResource.pSrcResource);
+
+				item += BufferOffsetForQueueItemType<CopyResourceArguments>();
+				break;
+			}
+
 			case D3DQueueItemType::CopyTextureRegion:
 			{
 				// If box is completely empty, assume that the original API call has a NULL box (which means
@@ -791,8 +801,15 @@ void STDMETHODCALLTYPE ID3D12QueuedCommandList::CopyResource(
 	_In_  ID3D12Resource* pSrcResource
 	)
 {
-	// Function not implemented yet.
-	DEBUGCHECK(0, "Function not implemented yet.");
+	D3DQueueItem* item = reinterpret_cast<D3DQueueItem*>(m_queue_array_back);
+
+	item->Type = D3DQueueItemType::CopyResource;
+	item->CopyResource.pDstResource = pDstResource;
+	item->CopyResource.pSrcResource = pSrcResource;
+
+	m_queue_array_back += BufferOffsetForQueueItemType<CopyResourceArguments>();
+
+	CheckForOverflow();
 }
 
 void STDMETHODCALLTYPE ID3D12QueuedCommandList::CopyTiles(

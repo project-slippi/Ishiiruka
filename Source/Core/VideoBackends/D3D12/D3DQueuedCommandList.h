@@ -31,6 +31,7 @@ enum D3DQueueItemType
 	DrawIndexedInstanced,
 	IASetPrimitiveTopology,
 	CopyBufferRegion,
+	CopyResource,
 	CopyTextureRegion,
 	SetDescriptorHeaps,
 	ResourceBarrier,
@@ -156,6 +157,12 @@ struct CopyBufferRegionArguments
 	UINT NumBytes;
 };
 
+struct CopyResourceArguments
+{
+	ID3D12Resource* pDstResource;
+	ID3D12Resource* pSrcResource;
+};
+
 struct CopyTextureRegionArguments
 {
 	D3D12_TEXTURE_COPY_LOCATION dst;
@@ -251,6 +258,7 @@ struct D3DQueueItem
 		DrawIndexedInstancedArguments DrawIndexedInstanced;
 		IASetPrimitiveTopologyArguments IASetPrimitiveTopology;
 		CopyBufferRegionArguments CopyBufferRegion;
+		CopyResourceArguments CopyResource;
 		CopyTextureRegionArguments CopyTextureRegion;
 		SetDescriptorHeapsArguments SetDescriptorHeaps;
 		ResourceBarrierArguments ResourceBarrier;

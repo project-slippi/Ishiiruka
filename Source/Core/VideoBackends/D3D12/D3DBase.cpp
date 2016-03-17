@@ -340,8 +340,7 @@ HRESULT Create(HWND wnd)
 		D3D12_MESSAGE_ID id_list[] = {
 			D3D12_MESSAGE_ID_CREATEGRAPHICSPIPELINESTATE_DEPTHSTENCILVIEW_NOT_SET, // Benign.
 			D3D12_MESSAGE_ID_CREATEGRAPHICSPIPELINESTATE_RENDERTARGETVIEW_NOT_SET, // Benign.
-			D3D12_MESSAGE_ID_CREATEINPUTLAYOUT_TYPE_MISMATCH, // Benign.			
-			D3D12_MESSAGE_ID_MAP_INVALID_NULLRANGE, // Benign.
+			D3D12_MESSAGE_ID_CREATEINPUTLAYOUT_TYPE_MISMATCH, // Benign.
 		};
 		filter.DenyList.NumIDs = ARRAYSIZE(id_list);
 		filter.DenyList.pIDList = id_list;
@@ -485,7 +484,7 @@ void CreateRootSignatures()
 
 	D3D12_DESCRIPTOR_RANGE desc_range_sampler = {
 		D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER, // D3D12_DESCRIPTOR_RANGE_TYPE RangeType;
-		8,                                   // UINT NumDescriptors;
+		16,                                  // UINT NumDescriptors;
 		0,                                   // UINT BaseShaderRegister;
 		0,                                   // UINT RegisterSpace;
 		D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND // UINT OffsetInDescriptorsFromTableStart;

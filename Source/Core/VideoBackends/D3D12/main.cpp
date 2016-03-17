@@ -97,7 +97,7 @@ void InitBackendInfo()
 	g_Config.backend_info.bSupportsOversizedViewports = false;
 	g_Config.backend_info.bSupportsGeometryShaders = true;
 	g_Config.backend_info.bSupports3DVision = true;
-	g_Config.backend_info.bSupportsPostProcessing = false;
+	g_Config.backend_info.bSupportsPostProcessing = true;
 	g_Config.backend_info.bSupportsClipControl = false;
 	g_Config.backend_info.bSupportsNormalMaps = true;
 	g_Config.backend_info.bSupportsEarlyZ = true;
@@ -228,7 +228,6 @@ void VideoBackend::Shutdown()
 		return;
 	
 	// Immediately stop app from submitting work to GPU, and wait for all submitted work to complete. D3D12TODO: Check this.
-	D3D::EndFrame();
 	D3D::WaitForOutstandingRenderingToComplete();
 
 	// VideoCommon

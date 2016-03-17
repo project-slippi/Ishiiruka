@@ -752,6 +752,7 @@ void PostProcessingShaderConfiguration::LoadOptionsConfiguration()
 			LoadOptionsConfigurationFromSection(gameini_section);
 		}
 	}
+	m_configuration_buffer_dirty = true;
 }
 
 void PostProcessingShaderConfiguration::SaveOptionsConfiguration()

@@ -110,7 +110,7 @@ void XFBEncoder::EncodeTextureToRam(u8* dst, u32 dst_pitch, u32 dst_height,
 	D3D::DrawShadedTexQuad(
 		src_texture, &src_texture_rect, src_rect.GetWidth(), src_rect.GetHeight(),
 		StaticShaderCache::GetXFBEncodePixelShader(), StaticShaderCache::GetSimpleVertexShader(), StaticShaderCache::GetSimpleVertexShaderInputLayout(),
-		{}, gamma, 0, DXGI_FORMAT_R8G8B8A8_UNORM, false, false);
+		{}, 0, DXGI_FORMAT_R8G8B8A8_UNORM, false, false);
 
 	src_texture->TransitionToResourceState(D3D::current_command_list, src_texture_state);
 
@@ -129,7 +129,8 @@ void XFBEncoder::EncodeTextureToRam(u8* dst, u32 dst_pitch, u32 dst_height,
 	// Copy from the readback buffer to dst.
 	// Can't be done as one memcpy due to pitch difference.
 	void* readback_texture_map;
-	CheckHR(m_readback_buffer->Map(0, nullptr, &readback_texture_map));
+	D3D12_RANGE read_range = { 0, readback_pitch * dst_height };
+	CheckHR(m_readback_buffer->Map(0, &read_range, &readback_texture_map));
 
 	for (u32 row = 0; row < dst_height; row++)
 	{
@@ -137,8 +138,8 @@ void XFBEncoder::EncodeTextureToRam(u8* dst, u32 dst_pitch, u32 dst_height,
 		u8* row_dst = dst + dst_pitch * row;
 		memcpy(row_dst, row_src, std::min(dst_pitch, readback_pitch));
 	}
-
-	m_readback_buffer->Unmap(0, nullptr);
+	D3D12_RANGE write_range = {};
+	m_readback_buffer->Unmap(0, &write_range);
 }
 
 void XFBEncoder::DecodeToTexture(D3DTexture2D* dst_texture, const u8* src, u32 src_width, u32 src_height)
@@ -171,7 +172,7 @@ void XFBEncoder::DecodeToTexture(D3DTexture2D* dst_texture, const u8* src, u32 s
 	D3D::DrawShadedTexQuad(
 		m_yuyv_texture, &src_texture_rect, XFB_TEXTURE_WIDTH, XFB_TEXTURE_HEIGHT,
 		StaticShaderCache::GetXFBDecodePixelShader(), StaticShaderCache::GetSimpleVertexShader(), StaticShaderCache::GetSimpleVertexShaderInputLayout(),
-		{}, 1.0f, 0, DXGI_FORMAT_R8G8B8A8_UNORM, false, false);
+		{}, 0, DXGI_FORMAT_R8G8B8A8_UNORM, false, false);
 
 	// XFB source textures are expected to be in shader resource state.
 	dst_texture->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);

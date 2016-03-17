@@ -58,8 +58,8 @@ void ReplaceTexture2D(ID3D12Resource* texture12, const u8* buffer, DXGI_FORMAT f
 			D3D12_RESOURCE_STATE_GENERIC_READ,
 			nullptr,
 			IID_PPV_ARGS(&upload_buffer)));
-
-		CheckHR(upload_buffer->Map(0, nullptr, reinterpret_cast<void**>(&dest_data)));
+		D3D12_RANGE read_range = {};
+		CheckHR(upload_buffer->Map(0, &read_range, reinterpret_cast<void**>(&dest_data)));
 	}
 	else
 	{
@@ -99,7 +99,8 @@ void ReplaceTexture2D(ID3D12Resource* texture12, const u8* buffer, DXGI_FORMAT f
 	if (!s_texture_upload_stream_buffer || upload_buffer != s_texture_upload_stream_buffer->GetBuffer())
 	{
 		D3D::command_list_mgr->ExecuteQueuedWork(true);
-		upload_buffer->Unmap(0, nullptr);
+		D3D12_RANGE write_range = { 0, upload_size };
+		upload_buffer->Unmap(0, &write_range);
 		upload_buffer->Release();
 	}
 }
@@ -281,8 +282,6 @@ D3DTexture2D::D3DTexture2D(ID3D12Resource* texptr, u32 bind,
 		D3D::rtv_descriptor_heap_mgr->Allocate(&m_rtv);
 		D3D::device->CreateRenderTargetView(m_tex.Get(), &rtv_desc, m_rtv);
 	}
-
-	m_tex->AddRef();
 }
 
 void D3DTexture2D::TransitionToResourceState(ID3D12GraphicsCommandList* command_list, D3D12_RESOURCE_STATES state_after)
@@ -293,7 +292,7 @@ void D3DTexture2D::TransitionToResourceState(ID3D12GraphicsCommandList* command_
 
 D3DTexture2D::~D3DTexture2D()
 {
-	DX12::D3D::command_list_mgr->DestroyResourceAfterCurrentCommandListExecuted(m_tex.Get());
+	DX12::D3D::command_list_mgr->DestroyResourceAfterCurrentCommandListExecuted(m_tex.Detach());
 }
 
 }  // namespace DX12

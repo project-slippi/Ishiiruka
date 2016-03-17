@@ -45,13 +45,14 @@ namespace DX12
 
 struct XFBSource final : public XFBSourceBase
 {
-	XFBSource(D3DTexture2D* tex, int slices) : m_tex(tex), m_slices(slices) {}
-	~XFBSource() { m_tex->Release(); }
+	XFBSource(D3DTexture2D* tex, int slices) : m_tex(tex), m_depthtex(nullptr), m_slices(slices) {}
+	~XFBSource() { SAFE_RELEASE(m_tex); SAFE_RELEASE(m_depthtex); }
 
 	void DecodeToTexture(u32 xfbAddr, u32 fbWidth, u32 fbHeight) override;
 	void CopyEFB(float gamma) override;
 
 	D3DTexture2D* m_tex;
+	D3DTexture2D* m_depthtex;
 	const int m_slices;
 };
 

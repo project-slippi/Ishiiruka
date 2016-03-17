@@ -116,8 +116,9 @@ void PerfQuery::FlushOne()
 
 	UINT64 result;
 	memcpy(&result, reinterpret_cast<u8*>(readback_buffer_map) + sizeof(UINT64) * index, sizeof(UINT64));
-
-	m_query_readback_buffer->Unmap(0, nullptr);
+	
+	D3D12_RANGE write_range = {};
+	m_query_readback_buffer->Unmap(0, &write_range);
 
 	// NOTE: Reported pixel metrics should be referenced to native resolution
 	m_results[entry.query_type] += (u32)((result * EFB_WIDTH * EFB_HEIGHT) / (g_renderer->GetTargetWidth() * g_renderer->GetTargetHeight()));

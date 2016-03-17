@@ -65,7 +65,7 @@ void TextureCache::TCacheEntry::Bind(unsigned int stage, unsigned int last_Textu
 		DX12::D3D::gpu_descriptor_heap_mgr->AllocateGroup(&s_group_base_texture_cpu_handle, num_handles, &s_group_base_texture_gpu_handle, nullptr, true);
 
 		// Pave over space with null textures.
-		for (unsigned int i = 0; i < (8 + last_Texture); i++)
+		for (unsigned int i = 0; i < num_handles; i++)
 		{
 			D3D12_CPU_DESCRIPTOR_HANDLE nullDestDescriptor;
 			nullDestDescriptor.ptr = s_group_base_texture_cpu_handle.ptr + i * D3D::resource_descriptor_size;
@@ -159,7 +159,8 @@ bool TextureCache::TCacheEntry::Save(const std::string& filename, unsigned int l
 
 	// Map readback buffer and save to file.
 	void* readback_texture_map;
-	CheckHR(s_texture_cache_entry_readback_buffer->Map(0, nullptr, &readback_texture_map));
+	D3D12_RANGE read_range = { 0, required_readback_buffer_size };
+	CheckHR(s_texture_cache_entry_readback_buffer->Map(0, &read_range, &readback_texture_map));
 
 	bool saved = TextureToPng(
 		static_cast<u8*>(readback_texture_map),
@@ -168,8 +169,8 @@ bool TextureCache::TCacheEntry::Save(const std::string& filename, unsigned int l
 		dst_location.PlacedFootprint.Footprint.Width,
 		dst_location.PlacedFootprint.Footprint.Height
 		);
-
-	s_texture_cache_entry_readback_buffer->Unmap(0, nullptr);
+	D3D12_RANGE write_range = {};
+	s_texture_cache_entry_readback_buffer->Unmap(0, &write_range);
 	return saved;
 }
 
@@ -179,24 +180,16 @@ void TextureCache::TCacheEntry::CopyRectangleFromTexture(
 	const MathUtil::Rectangle<int>& dst_rect)
 {
 	const TCacheEntry* srcentry = reinterpret_cast<const TCacheEntry*>(source);
+	D3D12_RESOURCE_STATES current_src_state = srcentry->m_texture->GetResourceUsageState();
+	D3D12_RESOURCE_STATES current_dst_state = m_texture->GetResourceUsageState();
 	if (src_rect.GetWidth() == dst_rect.GetWidth()
-		&& src_rect.GetHeight() == dst_rect.GetHeight())
+		&& src_rect.GetHeight() == dst_rect.GetHeight() 
+		&& static_cast<UINT>(dst_rect.GetWidth()) <= config.width
+		&& static_cast<UINT>(dst_rect.GetHeight()) <= config.height
+		&& static_cast<UINT>(dst_rect.GetWidth()) <= srcentry->config.width
+		&& static_cast<UINT>(dst_rect.GetHeight()) <= srcentry->config.height)
 	{
-		const D3D12_BOX *psrcbox = nullptr;
-		D3D12_BOX srcbox;
-		if (src_rect.left != 0 
-			|| src_rect.top != 0 
-			|| src_rect.GetWidth() != srcentry->config.width 
-			|| src_rect.GetHeight() != srcentry->config.height)
-		{
-			srcbox.left = src_rect.left;
-			srcbox.top = src_rect.top;
-			srcbox.right = src_rect.right;
-			srcbox.bottom = src_rect.bottom;
-			srcbox.front = 0;
-			srcbox.back = srcentry->config.layers;
-			psrcbox = &srcbox;
-		}
+		CD3DX12_BOX src_box(src_rect.left, src_rect.top, 0, src_rect.right, src_rect.bottom, srcentry->config.layers);
 		
 		D3D12_TEXTURE_COPY_LOCATION dst = CD3DX12_TEXTURE_COPY_LOCATION(m_texture->GetTex(), 0);
 		D3D12_TEXTURE_COPY_LOCATION src = CD3DX12_TEXTURE_COPY_LOCATION(srcentry->m_texture->GetTex(), 0);
@@ -204,13 +197,24 @@ void TextureCache::TCacheEntry::CopyRectangleFromTexture(
 		m_texture->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_COPY_DEST);
 		srcentry->m_texture->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_COPY_SOURCE);
 
-		D3D::current_command_list->CopyTextureRegion(&dst, dst_rect.left, dst_rect.top, 0, &src, psrcbox);
+		D3D::current_command_list->CopyTextureRegion(&dst, dst_rect.left, dst_rect.top, 0, &src, &src_box);
 
 		return;
 	}
 	else if (!config.rendertarget)
 	{
-		return;
+		config.rendertarget = true;
+		D3DTexture2D* ptexture = D3DTexture2D::Create(config.width, config.height,
+			TEXTURE_BIND_FLAG_SHADER_RESOURCE | TEXTURE_BIND_FLAG_RENDER_TARGET,
+			DXGI_FORMAT_R8G8B8A8_UNORM, 1, config.layers);
+		ptexture->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_COPY_DEST);
+		m_texture->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_COPY_SOURCE);
+		D3D::current_command_list->CopyResource(ptexture->GetTex(), m_texture->GetTex());
+		m_texture->Release();
+		m_texture = ptexture;
+		m_texture_srv_cpu_handle = m_texture->GetSRVCPU();
+		m_texture_srv_gpu_handle = m_texture->GetSRVGPU();
+		m_texture_srv_gpu_handle_cpu_shadow = m_texture->GetSRVGPUCPUShadow();
 	}
 
 	D3D::SetViewportAndScissor(dst_rect.left, dst_rect.top, dst_rect.GetWidth(), dst_rect.GetHeight());
@@ -228,11 +232,11 @@ void TextureCache::TCacheEntry::CopyRectangleFromTexture(
 		srcentry->config.width, srcentry->config.height,
 		StaticShaderCache::GetColorCopyPixelShader(false),
 		StaticShaderCache::GetSimpleVertexShader(),
-		StaticShaderCache::GetSimpleVertexShaderInputLayout(), StaticShaderCache::GetCopyGeometryShader(), 1.0, 0,
+		StaticShaderCache::GetSimpleVertexShaderInputLayout(), StaticShaderCache::GetCopyGeometryShader(), 0,
 		DXGI_FORMAT_R8G8B8A8_UNORM, false, m_texture->GetMultisampled());
 
-	FramebufferManager::GetEFBColorTexture()->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_RENDER_TARGET);
-	FramebufferManager::GetEFBDepthTexture()->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_DEPTH_WRITE);
+	srcentry->m_texture->TransitionToResourceState(D3D::current_command_list, current_src_state);
+	m_texture->TransitionToResourceState(D3D::current_command_list, current_dst_state);
 
 	g_renderer->RestoreAPIState();
 }
@@ -458,7 +462,7 @@ void TextureCache::TCacheEntry::FromRenderTarget(u8* dst, PEControl::PixelFormat
 		StaticShaderCache::GetSimpleVertexShader(),
 		StaticShaderCache::GetSimpleVertexShaderInputLayout(),
 		StaticShaderCache::GetCopyGeometryShader(),
-		1.0f, 0, DXGI_FORMAT_R8G8B8A8_UNORM, false, m_texture->GetMultisampled()
+		0, DXGI_FORMAT_R8G8B8A8_UNORM, false, m_texture->GetMultisampled()
 		);
 	m_texture->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 	
@@ -650,7 +654,6 @@ bool TextureCache::Palettize(TCacheEntryBase* entry, const TCacheEntryBase* unco
 		StaticShaderCache::GetSimpleVertexShader(),
 		StaticShaderCache::GetSimpleVertexShaderInputLayout(),
 		StaticShaderCache::GetCopyGeometryShader(),
-		1.0f,
 		0,
 		DXGI_FORMAT_R8G8B8A8_UNORM,
 		true,

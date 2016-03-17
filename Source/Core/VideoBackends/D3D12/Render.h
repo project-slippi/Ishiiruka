@@ -61,7 +61,7 @@ public:
 	static D3D12_DEPTH_STENCIL_DESC GetResetDepthStencilDesc();
 	static D3D12_RASTERIZER_DESC GetResetRasterizerDesc();
 private:
-	void BlitScreen(TargetRectangle src, TargetRectangle dst, D3DTexture2D* src_texture, u32 src_width, u32 src_height, float gamma);
+	void BlitScreen(TargetRectangle dst_rect, TargetRectangle src_rect, TargetSize src_size, D3DTexture2D* src_texture, D3DTexture2D* depth_texture, float Gamma);
 };
 
 }

@@ -28,8 +28,8 @@ D3DStreamBuffer::D3DStreamBuffer(size_t initial_size, size_t max_size, bool* buf
 D3DStreamBuffer::~D3DStreamBuffer()
 {
 	D3D::command_list_mgr->RemoveQueueFenceCallback(this);
-
-	m_buffer->Unmap(0, nullptr);
+	D3D12_RANGE write_range = { 0, m_buffer_size };
+	m_buffer->Unmap(0, &write_range);
 	D3D::command_list_mgr->DestroyResourceAfterCurrentCommandListExecuted(m_buffer.Detach());
 }
 
@@ -94,7 +94,8 @@ void D3DStreamBuffer::AllocateBuffer(size_t size)
 	// First, put existing buffer (if it exists) in deferred destruction list.
 	if (m_buffer)
 	{
-		m_buffer->Unmap(0, nullptr);
+		D3D12_RANGE write_range = { 0, m_buffer_size };
+		m_buffer->Unmap(0, &write_range);
 		D3D::command_list_mgr->DestroyResourceAfterCurrentCommandListExecuted(m_buffer.Detach());
 	}
 
@@ -108,8 +109,9 @@ void D3DStreamBuffer::AllocateBuffer(size_t size)
 			IID_PPV_ARGS(m_buffer.ReleaseAndGetAddressOf())
 			)
 		);
-
-	CheckHR(m_buffer->Map(0, nullptr, &m_buffer_cpu_address));
+	
+	D3D12_RANGE read_range = {};
+	CheckHR(m_buffer->Map(0, &read_range, &m_buffer_cpu_address));
 
 	m_buffer_gpu_address = m_buffer->GetGPUVirtualAddress();
 	m_buffer_size = size;
@@ -158,7 +160,7 @@ bool D3DStreamBuffer::AttemptBufferResizeOrElseStall(size_t allocation_size, boo
 	}
 
 	// 2) Next, prefer increasing buffer size instead of stalling.
-	size_t new_size = std::min(static_cast<size_t>(m_buffer_size * 1.5f), m_buffer_max_size);
+	size_t new_size = std::min(m_buffer_size * 2, m_buffer_max_size);
 	new_size = std::max(new_size, allocation_size);
 
 	// Can we grow buffer further?

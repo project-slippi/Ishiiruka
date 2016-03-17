@@ -25,6 +25,7 @@
 #include "VideoBackends/D3D12/D3DUtil.h"
 #include "VideoBackends/D3D12/FramebufferManager.h"
 #include "VideoBackends/D3D12/NativeVertexFormat.h"
+#include "VideoBackends/D3D12/PostProcessing.h"
 #include "VideoBackends/D3D12/Render.h"
 #include "VideoBackends/D3D12/ShaderCache.h"
 #include "VideoBackends/D3D12/ShaderConstantsManager.h"
@@ -46,7 +47,7 @@ namespace DX12
 {
 
 static u32 s_last_multisamples = 1;
-static bool s_last_stereo_mode = false;
+static int s_last_stereo_mode = false;
 static bool s_last_xfb_mode = false;
 
 enum CLEAR_BLEND_DESC
@@ -58,7 +59,7 @@ enum CLEAR_BLEND_DESC
 };
 
 enum CLEAR_DEPTH_DESC
- {
+{
 	CLEAR_DEPTH_DESC_DEPTH_DISABLED = 0,
 	CLEAR_DEPTH_DESC_DEPTH_ENABLED_WRITES_ENABLED = 1,
 	CLEAR_DEPTH_DESC_DEPTH_ENABLED_WRITES_DISABLED = 2,
@@ -73,7 +74,6 @@ D3D12_DEPTH_STENCIL_DESC g_reset_depth_desc = {};
 D3D12_RASTERIZER_DESC g_reset_rast_desc = {};
 
 static ID3D12Resource* s_screenshot_texture = nullptr;
-static void* s_screenshot_texture_data = nullptr;
 
 // Nvidia stereo blitting struct defined in "nvstereo.h" from the Nvidia SDK
 typedef struct _Nv_Stereo_Image_Header
@@ -90,7 +90,7 @@ typedef struct _Nv_Stereo_Image_Header
 // GX pipeline state
 static struct
 {
-	SamplerState sampler[8];
+	SamplerState sampler[16];
 	BlendState blend;
 	ZMode zmode;
 	RasterizerState raster;
@@ -157,7 +157,6 @@ static void SetupDeviceObjects()
 	g_reset_rast_desc = rast_desc;
 
 	s_screenshot_texture = nullptr;
-	s_screenshot_texture_data = nullptr;
 }
 
 // Kill off all device objects
@@ -193,8 +192,6 @@ void CreateScreenshotTexture()
 			IID_PPV_ARGS(&s_screenshot_texture)
 			)
 		);
-
-	CheckHR(s_screenshot_texture->Map(0, nullptr, &s_screenshot_texture_data));
 }
 
 static D3D12_BOX GetScreenshotSourceBox(const TargetRectangle& target_rc)
@@ -226,7 +223,7 @@ Renderer::Renderer(void*& window_handle)
 		PanicAlert("3DVision not implemented on D3D12 backend.");
 		return;
 	}
-	
+
 	s_backbuffer_width = D3D::GetBackBufferWidth();
 	s_backbuffer_height = D3D::GetBackBufferHeight();
 
@@ -237,12 +234,16 @@ Renderer::Renderer(void*& window_handle)
 
 	s_last_multisamples = g_ActiveConfig.iMultisamples;
 	s_last_efb_scale = g_ActiveConfig.iEFBScale;
-	s_last_stereo_mode = g_ActiveConfig.iStereoMode > 0;
+	s_last_stereo_mode = g_ActiveConfig.iStereoMode;
 	s_last_xfb_mode = g_ActiveConfig.bUseRealXFB;
 	CalculateTargetSize(s_backbuffer_width, s_backbuffer_height);
 	PixelShaderManager::SetEfbScaleChanged();
 
 	SetupDeviceObjects();
+
+	m_post_processor = std::make_unique<D3DPostProcessor>();
+	if (!m_post_processor->Initialize())
+		PanicAlert("D3D: Failed to initialize post processor.");
 
 	// Setup GX pipeline state
 	gx_state.blend.blend_enable = false;
@@ -252,7 +253,7 @@ Renderer::Renderer(void*& window_handle)
 	gx_state.blend.blend_op = D3D12_BLEND_OP_ADD;
 	gx_state.blend.use_dst_alpha = false;
 
-	for (unsigned int k = 0; k < 8; k++)
+	for (unsigned int k = 0; k < 16; k++)
 	{
 		gx_state.sampler[k].hex = 0;
 	}
@@ -284,6 +285,7 @@ Renderer::~Renderer()
 	D3D::EndFrame();
 	D3D::WaitForOutstandingRenderingToComplete();
 	TeardownDeviceObjects();
+	m_post_processor.reset();
 }
 
 void Renderer::RenderText(const std::string& text, int left, int top, u32 color)
@@ -519,7 +521,7 @@ void Renderer::ClearScreen(const EFBRectangle& rc, bool color_enable, bool alpha
 	// EXISTINGD3D11TODO: Should we enable Z testing here?
 	/*if (!bpmem.zmode.testenable) depth_stencil_desc = &s_clear_depth_descs[CLEAR_DEPTH_DESC_DEPTH_DISABLED];
 	else */if (z_enable)
-		depth_stencil_desc = &s_clear_depth_descs[CLEAR_DEPTH_DESC_DEPTH_ENABLED_WRITES_ENABLED];
+depth_stencil_desc = &s_clear_depth_descs[CLEAR_DEPTH_DESC_DEPTH_ENABLED_WRITES_ENABLED];
 	else /*if (!z_enable)*/
 		depth_stencil_desc = &s_clear_depth_descs[CLEAR_DEPTH_DESC_DEPTH_ENABLED_WRITES_DISABLED];
 
@@ -575,7 +577,6 @@ void Renderer::ReinterpretPixelData(unsigned int convtype)
 		StaticShaderCache::GetSimpleVertexShader(),
 		StaticShaderCache::GetSimpleVertexShaderInputLayout(),
 		StaticShaderCache::GetCopyGeometryShader(),
-		1.0f,
 		0,
 		DXGI_FORMAT_R8G8B8A8_UNORM,
 		false,
@@ -674,7 +675,14 @@ bool Renderer::SaveScreenshot(const std::string& filename, const TargetRectangle
 
 	D3D::command_list_mgr->ExecuteQueuedWork(true);
 
-	saved_png = TextureToPng(static_cast<u8*>(s_screenshot_texture_data), dst_location.PlacedFootprint.Footprint.RowPitch, filename, source_box.right - source_box.left, source_box.bottom - source_box.top, false);
+	void* screenshot_texture_map;
+	D3D12_RANGE read_range = { 0, dst_location.PlacedFootprint.Footprint.RowPitch * (source_box.bottom - source_box.top) };
+	CheckHR(s_screenshot_texture->Map(0, &read_range, &screenshot_texture_map));
+
+	saved_png = TextureToPng(static_cast<u8*>(screenshot_texture_map), dst_location.PlacedFootprint.Footprint.RowPitch, filename, source_box.right - source_box.left, source_box.bottom - source_box.top, false);
+
+	D3D12_RANGE write_range = {};
+	s_screenshot_texture->Unmap(0, &write_range);
 
 	if (saved_png)
 	{
@@ -766,7 +774,7 @@ void Renderer::SwapImpl(u32 xfb_addr, u32 fb_width, u32 fb_stride, u32 fb_height
 			int xfb_height = xfb_source->srcHeight;
 			int xfb_width = xfb_source->srcWidth;
 			int hOffset = (static_cast<s32>(xfb_source->srcAddr) - static_cast<s32>(xfb_addr)) / (static_cast<s32>(fb_stride) * 2);
-			
+
 			if (g_ActiveConfig.bUseRealXFB)
 			{
 				drawRc = target_rc;
@@ -778,30 +786,54 @@ void Renderer::SwapImpl(u32 xfb_addr, u32 fb_width, u32 fb_stride, u32 fb_height
 				drawRc.bottom = target_rc.top + (hOffset + xfb_height) * target_rc.GetHeight() / static_cast<s32>(fb_height);
 				drawRc.left = target_rc.left + (target_rc.GetWidth() - xfb_width * target_rc.GetWidth() / static_cast<s32>(fb_stride)) / 2;
 				drawRc.right = target_rc.left + (target_rc.GetWidth() + xfb_width * target_rc.GetWidth() / static_cast<s32>(fb_stride)) / 2;
-				
+
 				// The following code disables auto stretch.  Kept for reference.
 				// scale draw area for a 1 to 1 pixel mapping with the draw target
 				//float vScale = static_cast<float>(fbHeight) / static_cast<float>(s_backbuffer_height);
 				//float hScale = static_cast<float>(fbWidth) / static_cast<float>(s_backbuffer_width);
 				//drawRc.top *= vScale;
-				//drawRc.bottom *= vScale;
+				//drawRc.bottom *= vScale;CalculateTargetSize
 				//drawRc.left *= hScale;
 				//drawRc.right *= hScale;
-					
+
 				source_rc.right -= Renderer::EFBToScaledX(fb_stride - fb_width);
 			}
-
-			BlitScreen(source_rc, drawRc, xfb_source->m_tex, xfb_source->texWidth, xfb_source->texHeight, gamma);
+			TargetSize blit_size(xfb_source->texWidth, xfb_source->texHeight);
+			BlitScreen(drawRc, source_rc, blit_size, xfb_source->m_tex, xfb_source->m_depthtex, gamma);
 		}
 	}
 	else
 	{
-		TargetRectangle source_rc = Renderer::ConvertEFBRectangle(rc);
+		m_post_processor->OnEndFrame();
+		TargetRectangle blit_rect = Renderer::ConvertEFBRectangle(rc);
+		TargetSize blit_size(s_target_width, s_target_height);
 
-		// EXISTINGD3D11TODO: Improve sampling algorithm for the pixel shader so that we can use the multisampled EFB texture as source
-		D3DTexture2D* read_texture = FramebufferManager::GetResolvedEFBColorTexture();
+		// TODO: Improve sampling algorithm for the pixel shader so that we can use the multisampled EFB texture as source
+		D3DTexture2D* blit_tex = FramebufferManager::GetResolvedEFBColorTexture();
+		D3DTexture2D* blit_depth_tex = nullptr;
+		// Post processing active?
+		if (m_post_processor->ShouldTriggerOnSwap())
+		{
+			TargetRectangle src_rect(blit_rect);
+			TargetSize src_size(blit_size);
+			if (m_post_processor->RequiresDepthBuffer())
+				blit_depth_tex = FramebufferManager::GetResolvedEFBDepthTexture();
 
-		BlitScreen(source_rc, target_rc, read_texture, GetTargetWidth(), GetTargetHeight(), gamma);
+			uintptr_t new_blit_tex;
+			m_post_processor->PostProcess(&blit_rect, &blit_size, &new_blit_tex,
+				src_rect, src_size, reinterpret_cast<uintptr_t>(blit_tex),
+				src_rect, src_size, reinterpret_cast<uintptr_t>(blit_depth_tex));
+			blit_tex = reinterpret_cast<D3DTexture2D*>(new_blit_tex);
+
+			// Restore render target to backbuffer
+			D3D::current_command_list->OMSetRenderTargets(1, &D3D::GetBackBuffer()->GetRTV(), FALSE, nullptr);
+			D3D::SetLinearCopySampler();
+		}
+		if (blit_depth_tex == nullptr && (m_post_processor->GetScalingShaderConfig()->RequiresDepthBuffer() || (m_post_processor->ShouldTriggerAfterBlit() && m_post_processor->RequiresDepthBuffer())))
+		{
+			blit_depth_tex = FramebufferManager::GetResolvedEFBDepthTexture();
+		}
+		BlitScreen(target_rc, blit_rect, blit_size, blit_tex, blit_depth_tex, gamma);
 	}
 
 	// done with drawing the game stuff, good moment to save a screenshot
@@ -869,18 +901,22 @@ void Renderer::SwapImpl(u32 xfb_addr, u32 fb_width, u32 fb_stride, u32 fb_height
 		}
 		if (bAVIDumping)
 		{
-#ifdef USE_D3D11
-			D3D11_MAPPED_SUBRESOURCE map;
-			D3D::context->Map(s_screenshot_texture, 0, D3D11_MAP_READ, 0, &map);
-#endif
-
 			if (frame_data.empty() || w != s_record_width || h != s_record_height)
 			{
 				frame_data.resize(3 * s_record_width * s_record_height);
 				w = s_record_width;
 				h = s_record_height;
 			}
-			formatBufferDump(static_cast<u8*>(s_screenshot_texture_data), &frame_data[0], source_width, source_height, dst_location.PlacedFootprint.Footprint.RowPitch);
+
+			void* screenshot_texture_map;
+			D3D12_RANGE read_range = { 0, dst_location.PlacedFootprint.Footprint.RowPitch * source_height };
+			CheckHR(s_screenshot_texture->Map(0, &read_range, &screenshot_texture_map));
+
+			formatBufferDump(static_cast<u8*>(screenshot_texture_map), &frame_data[0], source_width, source_height, dst_location.PlacedFootprint.Footprint.RowPitch);
+
+			D3D12_RANGE write_range = {};
+			s_screenshot_texture->Unmap(0, &write_range);
+
 			FlipImageData(&frame_data[0], w, h);
 			AVIDump::AddFrame(&frame_data[0], source_height, source_height);
 		}
@@ -902,7 +938,7 @@ void Renderer::SwapImpl(u32 xfb_addr, u32 fb_width, u32 fb_stride, u32 fb_height
 
 	// Reset viewport for drawing text
 	D3D::SetViewportAndScissor(0, 0, GetBackbufferWidth(), GetBackbufferHeight());
-
+	D3D::SetLinearCopySampler();
 	Renderer::DrawDebugText();
 
 	OSD::DrawMessages();
@@ -940,12 +976,12 @@ void Renderer::SwapImpl(u32 xfb_addr, u32 fb_width, u32 fb_stride, u32 fb_height
 		window_resized ||
 		s_last_efb_scale != g_ActiveConfig.iEFBScale ||
 		s_last_multisamples != g_ActiveConfig.iMultisamples ||
-		s_last_stereo_mode != (g_ActiveConfig.iStereoMode > 0))
+		s_last_stereo_mode != g_ActiveConfig.iStereoMode)
 	{
 		s_last_xfb_mode = g_ActiveConfig.bUseRealXFB;
 		// Block on any changes until the GPU catches up, so we can free resources safely.
 		D3D::command_list_mgr->ExecuteQueuedWork(true);
-		
+
 		if (s_last_multisamples != g_ActiveConfig.iMultisamples)
 		{
 			s_last_multisamples = g_ActiveConfig.iMultisamples;
@@ -971,7 +1007,6 @@ void Renderer::SwapImpl(u32 xfb_addr, u32 fb_width, u32 fb_stride, u32 fb_height
 		UpdateDrawRectangle(s_backbuffer_width, s_backbuffer_height);
 
 		s_last_efb_scale = g_ActiveConfig.iEFBScale;
-		s_last_stereo_mode = g_ActiveConfig.iStereoMode > 0;
 
 		PixelShaderManager::SetEfbScaleChanged();
 
@@ -987,6 +1022,11 @@ void Renderer::SwapImpl(u32 xfb_addr, u32 fb_width, u32 fb_stride, u32 fb_height
 
 		FramebufferManager::GetEFBDepthTexture()->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_DEPTH_WRITE);
 		D3D::current_command_list->ClearDepthStencilView(FramebufferManager::GetEFBDepthTexture()->GetDSV(), D3D12_CLEAR_FLAG_DEPTH, 0.f, 0, 0, nullptr);
+		if (s_last_stereo_mode != g_ActiveConfig.iStereoMode)
+		{
+			s_last_stereo_mode = g_ActiveConfig.iStereoMode;
+			m_post_processor->SetReloadFlag();
+		}
 	}
 
 	// begin next frame
@@ -998,6 +1038,10 @@ void Renderer::SwapImpl(u32 xfb_addr, u32 fb_width, u32 fb_stride, u32 fb_height
 
 	SetViewport();
 	RestoreAPIState();
+
+	// if the configuration has changed, reload post processor (can fail, which will deactivate it)
+	if (m_post_processor->RequiresReload())
+		m_post_processor->ReloadShaders();
 }
 
 void Renderer::ResetAPIState()
@@ -1031,7 +1075,7 @@ void Renderer::ApplyState(bool use_dst_alpha)
 	if (D3D::command_list_mgr->GetCommandListDirtyState(COMMAND_LIST_STATE_SAMPLERS))
 	{
 		D3D12_GPU_DESCRIPTOR_HANDLE sample_group_gpu_handle;
-		sample_group_gpu_handle = D3D::sampler_descriptor_heap_mgr->GetHandleForSamplerGroup(gx_state.sampler, 8);
+		sample_group_gpu_handle = D3D::sampler_descriptor_heap_mgr->GetHandleForSamplerGroup(gx_state.sampler, 16);
 
 		D3D::current_command_list->SetGraphicsRootDescriptorTable(DESCRIPTOR_TABLE_PS_SAMPLER, sample_group_gpu_handle);
 		if (g_ActiveConfig.TessellationEnabled())
@@ -1046,9 +1090,10 @@ void Renderer::ApplyState(bool use_dst_alpha)
 	current_command_list_executed = current_command_list_executed || ShaderConstantsManager::LoadAndSetPixelShaderConstants();
 	current_command_list_executed = current_command_list_executed || ShaderConstantsManager::LoadAndSetVertexShaderConstants();
 	current_command_list_executed = current_command_list_executed || ShaderConstantsManager::LoadAndSetHullDomainShaderConstants();
-	
+
 	if (current_command_list_executed)
 	{
+		BPFunctions::SetScissor();
 		g_renderer->SetViewport();
 		D3D::current_command_list->OMSetRenderTargets(1, &FramebufferManager::GetEFBColorTexture()->GetRTV(), FALSE, &FramebufferManager::GetEFBDepthTexture()->GetDSV());
 	}
@@ -1344,20 +1389,19 @@ void Renderer::BBoxWrite(int index, u16 value)
 	BBox::Set(index, local_value);
 }
 
-void Renderer::BlitScreen(TargetRectangle src, TargetRectangle dst, D3DTexture2D* src_texture, u32 src_width, u32 src_height, float gamma)
+void Renderer::BlitScreen(TargetRectangle dst_rect, TargetRectangle src_rect, TargetSize src_size, D3DTexture2D* src_texture, D3DTexture2D* depth_texture, float Gamma)
 {
+	TargetSize dst_size(s_backbuffer_width, s_backbuffer_height);
 	if (g_ActiveConfig.iStereoMode == STEREO_SBS || g_ActiveConfig.iStereoMode == STEREO_TAB)
 	{
-		TargetRectangle left_rc, right_rc;
-		ConvertStereoRectangle(dst, left_rc, right_rc);
+		TargetRectangle leftRc, rightRc;
+		ConvertStereoRectangle(dst_rect, leftRc, rightRc);
 
-		// Swap chain backbuffer is never multisampled..
+		m_post_processor->BlitScreen(leftRc, dst_size, reinterpret_cast<uintptr_t>(D3D::GetBackBuffer()),
+			src_rect, src_size, reinterpret_cast<uintptr_t>(src_texture), reinterpret_cast<uintptr_t>(depth_texture), 0, Gamma);
 
-		D3D::SetViewportAndScissor(left_rc.left, left_rc.top, left_rc.GetWidth(), left_rc.GetHeight());
-		D3D::DrawShadedTexQuad(src_texture, src.AsRECT(), src_width, src_height, StaticShaderCache::GetColorCopyPixelShader(false), StaticShaderCache::GetSimpleVertexShader(), StaticShaderCache::GetSimpleVertexShaderInputLayout(), D3D12_SHADER_BYTECODE(), gamma, 0, DXGI_FORMAT_R8G8B8A8_UNORM, false, false);
-
-		D3D::SetViewportAndScissor(right_rc.left, right_rc.top, right_rc.GetWidth(), right_rc.GetHeight());
-		D3D::DrawShadedTexQuad(src_texture, src.AsRECT(), src_width, src_height, StaticShaderCache::GetColorCopyPixelShader(false), StaticShaderCache::GetSimpleVertexShader(), StaticShaderCache::GetSimpleVertexShaderInputLayout(), D3D12_SHADER_BYTECODE(), gamma, 1, DXGI_FORMAT_R8G8B8A8_UNORM, false, false);
+		m_post_processor->BlitScreen(rightRc, dst_size, reinterpret_cast<uintptr_t>(D3D::GetBackBuffer()),
+			src_rect, src_size, reinterpret_cast<uintptr_t>(src_texture), reinterpret_cast<uintptr_t>(depth_texture), 1, Gamma);
 	}
 	else if (g_ActiveConfig.iStereoMode == STEREO_3DVISION)
 	{
@@ -1398,22 +1442,8 @@ void Renderer::BlitScreen(TargetRectangle src, TargetRectangle dst, D3DTexture2D
 	}
 	else
 	{
-		D3D::SetViewportAndScissor(dst.left, dst.top, dst.GetWidth(), dst.GetHeight());
-		D3D::DrawShadedTexQuad(
-			src_texture,
-			src.AsRECT(),
-			src_width,
-			src_height,
-			(g_Config.iStereoMode == STEREO_SHADER) ? StaticShaderCache::GetAnaglyphPixelShader() : StaticShaderCache::GetColorCopyPixelShader(false),
-			StaticShaderCache::GetSimpleVertexShader(),
-			StaticShaderCache::GetSimpleVertexShaderInputLayout(),
-			D3D12_SHADER_BYTECODE(),
-			gamma,
-			0,
-			DXGI_FORMAT_R8G8B8A8_UNORM,
-			false,
-			false // Backbuffer never multisampled.
-			);
+		m_post_processor->BlitScreen(dst_rect, dst_size, reinterpret_cast<uintptr_t>(D3D::GetBackBuffer()),
+			src_rect, src_size, reinterpret_cast<uintptr_t>(src_texture), reinterpret_cast<uintptr_t>(depth_texture), 0, Gamma);
 	}
 }
 
