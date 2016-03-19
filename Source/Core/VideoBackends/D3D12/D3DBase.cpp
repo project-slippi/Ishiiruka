@@ -408,10 +408,10 @@ void CreateDescriptorHeaps()
 	{
 		D3D12_DESCRIPTOR_HEAP_DESC gpu_descriptor_heap_desc = {};
 		gpu_descriptor_heap_desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-		gpu_descriptor_heap_desc.NumDescriptors = 500000;
+		gpu_descriptor_heap_desc.NumDescriptors = 512 * 1024;
 		gpu_descriptor_heap_desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 
-		gpu_descriptor_heap_mgr = std::make_unique<D3DDescriptorHeapManager>(&gpu_descriptor_heap_desc, device, 50000);
+		gpu_descriptor_heap_mgr = std::make_unique<D3DDescriptorHeapManager>(&gpu_descriptor_heap_desc, device, 64 * 1024);
 
 		gpu_descriptor_heaps[0] = gpu_descriptor_heap_mgr->GetDescriptorHeap();
 
@@ -429,25 +429,26 @@ void CreateDescriptorHeaps()
 		null_srv_desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 
 		device->CreateShaderResourceView(NULL, &null_srv_desc, null_srv_cpu);
+		device->CreateShaderResourceView(NULL, &null_srv_desc, null_srv_cpu_shadow);
 
-		for (UINT i = 0; i < 500000; i++)
+		for (UINT i = 0; i < gpu_descriptor_heap_desc.NumDescriptors; i++)
 		{
 			// D3D12TODO: Make paving of descriptor heap optional.
 
 			D3D12_CPU_DESCRIPTOR_HANDLE destination_descriptor = {};
 			destination_descriptor.ptr = descriptor_heap_cpu_base.ptr + i * resource_descriptor_size;
 
-			device->CreateShaderResourceView(NULL, &null_srv_desc, destination_descriptor);
+			device->CopyDescriptorsSimple(1, destination_descriptor, null_srv_cpu_shadow, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 		}
 	}
 
 	{
 		D3D12_DESCRIPTOR_HEAP_DESC sampler_descriptor_heap_desc = {};
 		sampler_descriptor_heap_desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-		sampler_descriptor_heap_desc.NumDescriptors = 2000;
+		sampler_descriptor_heap_desc.NumDescriptors = 2048;
 		sampler_descriptor_heap_desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER;
 
-		sampler_descriptor_heap_mgr = std::make_unique<D3DDescriptorHeapManager>(&sampler_descriptor_heap_desc, device);
+		sampler_descriptor_heap_mgr = std::make_unique<D3DDescriptorHeapManager>(&sampler_descriptor_heap_desc, device, 128);
 
 		gpu_descriptor_heaps[1] = sampler_descriptor_heap_mgr->GetDescriptorHeap();
 	}
@@ -455,7 +456,7 @@ void CreateDescriptorHeaps()
 	{
 		D3D12_DESCRIPTOR_HEAP_DESC dsv_descriptor_heap_desc = {};
 		dsv_descriptor_heap_desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
-		dsv_descriptor_heap_desc.NumDescriptors = 2000;
+		dsv_descriptor_heap_desc.NumDescriptors = 1024;
 		dsv_descriptor_heap_desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
 
 		dsv_descriptor_heap_mgr = std::make_unique<D3DDescriptorHeapManager>(&dsv_descriptor_heap_desc, device);
@@ -465,7 +466,7 @@ void CreateDescriptorHeaps()
 		// D3D12TODO: Temporary workaround.. really need to properly suballocate out of render target heap.
 		D3D12_DESCRIPTOR_HEAP_DESC rtv_descriptor_heap_desc = {};
 		rtv_descriptor_heap_desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
-		rtv_descriptor_heap_desc.NumDescriptors = 1000000;
+		rtv_descriptor_heap_desc.NumDescriptors = 1024 * 1024;
 		rtv_descriptor_heap_desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
 
 		rtv_descriptor_heap_mgr = std::make_unique<D3DDescriptorHeapManager>(&rtv_descriptor_heap_desc, device);
@@ -631,7 +632,7 @@ void Close()
 		NOTICE_LOG(VIDEO, "Successfully released all D3D12 device references!");
 	}
 
-#if defined(_DEBUG) || defined(DEBUGFAST)
+#if defined(_DEBUG) || defined(DEBUGFAST) || defined(USE_D3D12_DEBUG_LAYER)
 	if (s_debug_device)
 	{
 		--remaining_references; // the debug interface increases the refcount of the device, subtract that.

@@ -72,26 +72,26 @@ private:
 	unsigned int m_command_list_dirty_state = UINT_MAX;
 	D3D_PRIMITIVE_TOPOLOGY m_command_list_current_topology = D3D_PRIMITIVE_TOPOLOGY_UNDEFINED;
 
-	HANDLE m_wait_on_cpu_fence_event;
+	HANDLE m_wait_on_cpu_fence_event{};
 
-	ID3D12Device* m_device;
-	ID3D12CommandQueue* m_command_queue;
-	UINT64 m_queue_fence_value;
-	ID3D12Fence* m_queue_fence;
-	UINT64 m_queue_frame_fence_value;
-	ID3D12Fence* m_queue_frame_fence;
+	ID3D12Device* m_device{};
+	ID3D12CommandQueue* m_command_queue{};
+	UINT64 m_queue_fence_value{};
+	ID3D12Fence* m_queue_fence{};
+	UINT64 m_queue_frame_fence_value{};
+	ID3D12Fence* m_queue_frame_fence{};
 
 	std::map<void*, PFN_QUEUE_FENCE_CALLBACK*> m_queue_fence_callbacks;
 
-	UINT m_current_command_allocator;
-	UINT m_current_command_allocator_list;
+	UINT m_current_command_allocator{};
+	UINT m_current_command_allocator_list{};
 	std::array<std::vector<ID3D12CommandAllocator*>, 2> m_command_allocator_lists;
-	std::array<UINT64, 2> m_command_allocator_list_fences;
+	std::array<UINT64, 2> m_command_allocator_list_fences{};
 
-	ID3D12GraphicsCommandList* m_backing_command_list;
-	ID3D12QueuedCommandList* m_queued_command_list;
+	ID3D12GraphicsCommandList* m_backing_command_list{};
+	ID3D12QueuedCommandList* m_queued_command_list{};
 
-	UINT m_current_deferred_destruction_list;
+	UINT m_current_deferred_destruction_list{};
 	std::array<std::vector<ID3D12Resource*>, 2> m_deferred_destruction_lists;
 	std::array<UINT64, 2> m_deferred_destruction_list_fences;
 };

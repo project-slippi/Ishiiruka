@@ -22,11 +22,11 @@ namespace DX12
 const size_t BBOX_BUFFER_SIZE = sizeof(int) * 4;
 const size_t BBOX_STREAM_BUFFER_SIZE = BBOX_BUFFER_SIZE * 128;
 
-static ID3D12Resource* s_bbox_buffer;
-static ID3D12Resource* s_bbox_staging_buffer;
-static void* s_bbox_staging_buffer_map;
+static ID3D12Resource* s_bbox_buffer{};
+static ID3D12Resource* s_bbox_staging_buffer{};
+static void* s_bbox_staging_buffer_map{};
 static std::unique_ptr<D3DStreamBuffer> s_bbox_stream_buffer;
-static D3D12_GPU_DESCRIPTOR_HANDLE s_bbox_descriptor_handle;
+static D3D12_GPU_DESCRIPTOR_HANDLE s_bbox_descriptor_handle{};
 
 void BBox::Init()
 {

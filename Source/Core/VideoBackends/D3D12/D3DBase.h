@@ -25,7 +25,7 @@ namespace DX12
 {
 using Microsoft::WRL::ComPtr;
 #define SAFE_RELEASE(x) { if (x) (x)->Release(); (x) = nullptr; }
-#define CHECK(cond, Message, ...) if (!(cond)) { __debugbreak(); PanicAlert(__FUNCTION__ " failed in %s at line %d: " Message, __FILE__, __LINE__, __VA_ARGS__); }
+#define CHECK(cond, Message, ...) if (!(cond)) { PanicAlert(__FUNCTION__ " failed in %s at line %d: " Message, __FILE__, __LINE__, __VA_ARGS__); __debugbreak();}
 
 // DEBUGCHECK is for high-frequency functions that we only want to check on debug builds.
 #if defined(_DEBUG) || defined(DEBUGFAST)

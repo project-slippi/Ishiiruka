@@ -20,7 +20,8 @@ namespace DX12
 
 namespace D3D
 {
-constexpr size_t INITIAL_TEXTURE_UPLOAD_BUFFER_SIZE = 4 * 1024 * 1024;
+constexpr size_t SYNC_TEXTURE_UPLOAD_BUFFER_SIZE = 4 * 512 * 512;
+constexpr size_t INITIAL_TEXTURE_UPLOAD_BUFFER_SIZE = 8 * 1024 * 1024;
 constexpr size_t MAXIMUM_TEXTURE_UPLOAD_BUFFER_SIZE = 64 * 1024 * 1024;
 
 static std::unique_ptr<D3DStreamBuffer> s_texture_upload_stream_buffer;
@@ -66,7 +67,11 @@ void ReplaceTexture2D(ID3D12Resource* texture12, const u8* buffer, DXGI_FORMAT f
 		if (!s_texture_upload_stream_buffer)
 			s_texture_upload_stream_buffer = std::make_unique<D3DStreamBuffer>(INITIAL_TEXTURE_UPLOAD_BUFFER_SIZE, MAXIMUM_TEXTURE_UPLOAD_BUFFER_SIZE, nullptr);
 
-		s_texture_upload_stream_buffer->AllocateSpaceInBuffer(upload_size, D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT);
+		bool current_command_list_executed = s_texture_upload_stream_buffer->AllocateSpaceInBuffer(upload_size, D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT);
+		if (current_command_list_executed)
+		{
+			g_renderer->RestoreAPIState();
+		}
 
 		upload_buffer = s_texture_upload_stream_buffer->GetBuffer();
 		upload_buffer_offset = s_texture_upload_stream_buffer->GetOffsetOfCurrentAllocation();
@@ -92,16 +97,22 @@ void ReplaceTexture2D(ID3D12Resource* texture12, const u8* buffer, DXGI_FORMAT f
 		);
 	}
 	D3D::current_command_list->CopyTextureRegion(&CD3DX12_TEXTURE_COPY_LOCATION(texture12, level), 0, 0, 0, &CD3DX12_TEXTURE_COPY_LOCATION(upload_buffer, upload_footprint), nullptr);
-
-	ResourceBarrier(D3D::current_command_list, texture12, D3D12_RESOURCE_STATE_COPY_DEST, current_resource_state, level);
+	
 	// Release temporary buffer after commands complete.
 	// We block here because otherwise if there was a large number of texture uploads, we may run out of memory.
-	if (!s_texture_upload_stream_buffer || upload_buffer != s_texture_upload_stream_buffer->GetBuffer())
+	if (upload_size > MAXIMUM_TEXTURE_UPLOAD_BUFFER_SIZE)
 	{
 		D3D::command_list_mgr->ExecuteQueuedWork(true);
+		g_renderer->RestoreAPIState();
 		D3D12_RANGE write_range = { 0, upload_size };
 		upload_buffer->Unmap(0, &write_range);
 		upload_buffer->Release();
+
+	}
+	else if (upload_size > SYNC_TEXTURE_UPLOAD_BUFFER_SIZE)
+	{
+		// To grant that the texture data is in place to start rendering we have to execute the copy operation now
+		D3D::command_list_mgr->ExecuteQueuedWork();
 	}
 }
 
@@ -175,123 +186,123 @@ UINT D3DTexture2D::Release()
 	return ref;
 }
 
-D3D12_RESOURCE_STATES D3DTexture2D::GetResourceUsageState() const
+void D3DTexture2D::InitalizeSRV()
 {
-	return m_resource_state;
+	D3D12_SRV_DIMENSION srv_dim = m_multisampled ? D3D12_SRV_DIMENSION_TEXTURE2DMSARRAY : D3D12_SRV_DIMENSION_TEXTURE2DARRAY;
+	D3D12_SHADER_RESOURCE_VIEW_DESC srv_desc = {
+		m_srv_format, // DXGI_FORMAT Format
+		srv_dim     // D3D12_SRV_DIMENSION ViewDimension
+	};
+
+	if (srv_dim == D3D12_SRV_DIMENSION_TEXTURE2DARRAY)
+	{
+		srv_desc.Texture2DArray.MipLevels = -1;
+		srv_desc.Texture2DArray.MostDetailedMip = 0;
+		srv_desc.Texture2DArray.ResourceMinLODClamp = 0;
+		srv_desc.Texture2DArray.ArraySize = -1;
+	}
+	else
+	{
+		srv_desc.Texture2DMSArray.ArraySize = -1;
+	}
+
+	srv_desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+
+	D3D::gpu_descriptor_heap_mgr->Allocate(&m_srv_cpu, &m_srv_gpu, &m_srv_gpu_cpu_shadow);
+
+	D3D::device->CreateShaderResourceView(m_tex.Get(), &srv_desc, m_srv_cpu);
+	D3D::device->CreateShaderResourceView(m_tex.Get(), &srv_desc, m_srv_gpu_cpu_shadow);
 }
 
-bool D3DTexture2D::GetMultisampled() const
+void D3DTexture2D::SRVHeapRestartCallback(void* owner)
 {
-	return m_multisampled;
+	static_cast<D3DTexture2D*>(owner)->InitalizeSRV();
 }
 
-ID3D12Resource* D3DTexture2D::GetTex() const
+void D3DTexture2D::InitalizeDSV()
 {
-	return m_tex.Get();
+	D3D12_DSV_DIMENSION dsv_dim = m_multisampled ? D3D12_DSV_DIMENSION_TEXTURE2DMSARRAY : D3D12_DSV_DIMENSION_TEXTURE2DARRAY;
+	D3D12_DEPTH_STENCIL_VIEW_DESC dsv_desc = {
+		m_dsv_format,          // DXGI_FORMAT Format
+		dsv_dim,           // D3D12_DSV_DIMENSION 
+		D3D12_DSV_FLAG_NONE  // D3D12_DSV_FLAG Flags
+	};
+
+	if (dsv_dim == D3D12_DSV_DIMENSION_TEXTURE2DARRAY)
+		dsv_desc.Texture2DArray.ArraySize = -1;
+	else
+		dsv_desc.Texture2DMSArray.ArraySize = -1;
+
+	D3D::dsv_descriptor_heap_mgr->Allocate(&m_dsv);
+	D3D::device->CreateDepthStencilView(m_tex.Get(), &dsv_desc, m_dsv);
 }
 
-D3D12_CPU_DESCRIPTOR_HANDLE D3DTexture2D::GetSRVCPU() const
+void D3DTexture2D::DSVHeapRestartCallback(void* owner)
 {
-	return m_srv_cpu;
+	static_cast<D3DTexture2D*>(owner)->InitalizeDSV();
 }
 
-D3D12_GPU_DESCRIPTOR_HANDLE D3DTexture2D::GetSRVGPU() const
+void D3DTexture2D::InitalizeRTV()
 {
-	return m_srv_gpu;
+	D3D12_RTV_DIMENSION rtv_dim = m_multisampled ? D3D12_RTV_DIMENSION_TEXTURE2DMSARRAY : D3D12_RTV_DIMENSION_TEXTURE2DARRAY;
+	D3D12_RENDER_TARGET_VIEW_DESC rtv_desc = {
+		m_rtv_format, // DXGI_FORMAT Format
+		rtv_dim   // D3D12_RTV_DIMENSION ViewDimension
+	};
+
+	if (rtv_dim == D3D12_RTV_DIMENSION_TEXTURE2DARRAY)
+		rtv_desc.Texture2DArray.ArraySize = -1;
+	else
+		rtv_desc.Texture2DMSArray.ArraySize = -1;
+
+	D3D::rtv_descriptor_heap_mgr->Allocate(&m_rtv);
+	D3D::device->CreateRenderTargetView(m_tex.Get(), &rtv_desc, m_rtv);
 }
 
-D3D12_CPU_DESCRIPTOR_HANDLE D3DTexture2D::GetSRVGPUCPUShadow() const
+void D3DTexture2D::RTVHeapRestartCallback(void* owner)
 {
-	return m_srv_gpu_cpu_shadow;
-}
-
-D3D12_CPU_DESCRIPTOR_HANDLE D3DTexture2D::GetDSV() const
-{
-	return m_dsv;
-}
-
-D3D12_CPU_DESCRIPTOR_HANDLE D3DTexture2D::GetRTV() const
-{
-	return m_rtv;
+	static_cast<D3DTexture2D*>(owner)->InitalizeRTV();
 }
 
 D3DTexture2D::D3DTexture2D(ID3D12Resource* texptr, u32 bind,
 	DXGI_FORMAT srv_format, DXGI_FORMAT dsv_format, DXGI_FORMAT rtv_format, bool multisampled, D3D12_RESOURCE_STATES resource_state)
-	: m_tex(texptr), m_resource_state(resource_state), m_multisampled(multisampled)
+	: m_tex(texptr), m_srv_format(srv_format), m_dsv_format(dsv_format), m_rtv_format(rtv_format), m_resource_state(resource_state), m_multisampled(multisampled), m_bind_falgs(bind)
 {
-	D3D12_SRV_DIMENSION srv_dim = multisampled ? D3D12_SRV_DIMENSION_TEXTURE2DMSARRAY : D3D12_SRV_DIMENSION_TEXTURE2DARRAY;
-	D3D12_DSV_DIMENSION dsv_dim = multisampled ? D3D12_DSV_DIMENSION_TEXTURE2DMSARRAY : D3D12_DSV_DIMENSION_TEXTURE2DARRAY;
-	D3D12_RTV_DIMENSION rtv_dim = multisampled ? D3D12_RTV_DIMENSION_TEXTURE2DMSARRAY : D3D12_RTV_DIMENSION_TEXTURE2DARRAY;
-
-	if (bind & TEXTURE_BIND_FLAG_SHADER_RESOURCE)
+	if (m_bind_falgs & TEXTURE_BIND_FLAG_SHADER_RESOURCE)
 	{
-		D3D12_SHADER_RESOURCE_VIEW_DESC srv_desc = {
-			srv_format, // DXGI_FORMAT Format
-			srv_dim     // D3D12_SRV_DIMENSION ViewDimension
-		};
-
-		if (srv_dim == D3D12_SRV_DIMENSION_TEXTURE2DARRAY)
-		{
-			srv_desc.Texture2DArray.MipLevels = -1;
-			srv_desc.Texture2DArray.MostDetailedMip = 0;
-			srv_desc.Texture2DArray.ResourceMinLODClamp = 0;
-			srv_desc.Texture2DArray.ArraySize = -1;
-		}
-		else
-		{
-			srv_desc.Texture2DMSArray.ArraySize = -1;
-		}
-
-		srv_desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-
-		CHECK(D3D::gpu_descriptor_heap_mgr->Allocate(&m_srv_cpu, &m_srv_gpu, &m_srv_gpu_cpu_shadow), "Error: Ran out of permenant slots in GPU descriptor heap, but don't support rolling over heap.");
-
-		D3D::device->CreateShaderResourceView(m_tex.Get(), &srv_desc, m_srv_cpu);
-		D3D::device->CreateShaderResourceView(m_tex.Get(), &srv_desc, m_srv_gpu_cpu_shadow);
+		InitalizeSRV();
+		D3D::gpu_descriptor_heap_mgr->RegisterHeapRestartCallback(this, &D3DTexture2D::SRVHeapRestartCallback);
 	}
 
-	if (bind & TEXTURE_BIND_FLAG_DEPTH_STENCIL)
+	if (m_bind_falgs & TEXTURE_BIND_FLAG_DEPTH_STENCIL)
 	{
-		D3D12_DEPTH_STENCIL_VIEW_DESC dsv_desc = {
-			dsv_format,          // DXGI_FORMAT Format
-			dsv_dim,           // D3D12_DSV_DIMENSION 
-			D3D12_DSV_FLAG_NONE  // D3D12_DSV_FLAG Flags
-		};
-
-		if (dsv_dim == D3D12_DSV_DIMENSION_TEXTURE2DARRAY)
-			dsv_desc.Texture2DArray.ArraySize = -1;
-		else
-			dsv_desc.Texture2DMSArray.ArraySize = -1;
-
-		D3D::dsv_descriptor_heap_mgr->Allocate(&m_dsv);
-		D3D::device->CreateDepthStencilView(m_tex.Get(), &dsv_desc, m_dsv);
+		InitalizeDSV();
+		D3D::dsv_descriptor_heap_mgr->RegisterHeapRestartCallback(this, &D3DTexture2D::DSVHeapRestartCallback);
 	}
 
-	if (bind & TEXTURE_BIND_FLAG_RENDER_TARGET)
+	if (m_bind_falgs & TEXTURE_BIND_FLAG_RENDER_TARGET)
 	{
-		D3D12_RENDER_TARGET_VIEW_DESC rtv_desc = {
-			rtv_format, // DXGI_FORMAT Format
-			rtv_dim   // D3D12_RTV_DIMENSION ViewDimension
-		};
-
-		if (rtv_dim == D3D12_RTV_DIMENSION_TEXTURE2DARRAY)
-			rtv_desc.Texture2DArray.ArraySize = -1;
-		else
-			rtv_desc.Texture2DMSArray.ArraySize = -1;
-
-		D3D::rtv_descriptor_heap_mgr->Allocate(&m_rtv);
-		D3D::device->CreateRenderTargetView(m_tex.Get(), &rtv_desc, m_rtv);
+		InitalizeRTV();
+		D3D::rtv_descriptor_heap_mgr->RegisterHeapRestartCallback(this, &D3DTexture2D::RTVHeapRestartCallback);
 	}
-}
-
-void D3DTexture2D::TransitionToResourceState(ID3D12GraphicsCommandList* command_list, D3D12_RESOURCE_STATES state_after)
-{
-	DX12::D3D::ResourceBarrier(command_list, m_tex.Get(), m_resource_state, state_after, D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES);
-	m_resource_state = state_after;
 }
 
 D3DTexture2D::~D3DTexture2D()
 {
+	if (m_bind_falgs & TEXTURE_BIND_FLAG_SHADER_RESOURCE)
+	{
+		D3D::gpu_descriptor_heap_mgr->RemoveHeapRestartCallback(this);
+	}
+
+	if (m_bind_falgs & TEXTURE_BIND_FLAG_DEPTH_STENCIL)
+	{
+		D3D::dsv_descriptor_heap_mgr->RemoveHeapRestartCallback(this);
+	}
+
+	if (m_bind_falgs & TEXTURE_BIND_FLAG_RENDER_TARGET)
+	{
+		D3D::rtv_descriptor_heap_mgr->RemoveHeapRestartCallback(this);
+	}
 	DX12::D3D::command_list_mgr->DestroyResourceAfterCurrentCommandListExecuted(m_tex.Detach());
 }
 

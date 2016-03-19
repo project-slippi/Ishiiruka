@@ -150,6 +150,23 @@ constexpr const char fontvertshader[] = {
 	"};\n"
 };
 
+void CD3DFont::SRVHeapRestartCallback(void* owner)
+{
+	static_cast<CD3DFont*>(owner)->InitalizeSRV();
+}
+void CD3DFont::InitalizeSRV()
+{
+	D3D::gpu_descriptor_heap_mgr->Allocate(&m_texture12_cpu, &m_texture12_gpu);
+
+	D3D12_SHADER_RESOURCE_VIEW_DESC srv_desc = {};
+	srv_desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	srv_desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+	srv_desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+	srv_desc.Texture2D.MipLevels = -1;
+
+	D3D::device->CreateShaderResourceView(m_texture12, &srv_desc, m_texture12_cpu);
+}
+
 int CD3DFont::Init()
 {
 	// Create vertex buffer for the letters
@@ -243,7 +260,7 @@ int CD3DFont::Init()
 		);
 
 	D3D::SetDebugObjectName12(m_texture12, "texture of a CD3DFont object");
-
+	
 	ID3D12Resource* temporaryFontTextureUploadBuffer;
 	CheckHR(
 		D3D::device->CreateCommittedResource(
@@ -268,15 +285,9 @@ int CD3DFont::Init()
 
 	command_list_mgr->DestroyResourceAfterCurrentCommandListExecuted(temporaryFontTextureUploadBuffer);
 
-	D3D::gpu_descriptor_heap_mgr->Allocate(&m_texture12_cpu, &m_texture12_gpu);
+	InitalizeSRV();
 
-	D3D12_SHADER_RESOURCE_VIEW_DESC srv_desc = {};
-	srv_desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-	srv_desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-	srv_desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-	srv_desc.Texture2D.MipLevels = -1;
-
-	D3D::device->CreateShaderResourceView(m_texture12, &srv_desc, m_texture12_cpu);
+	D3D::gpu_descriptor_heap_mgr->RegisterHeapRestartCallback(this, &CD3DFont::SRVHeapRestartCallback);
 
 	D3D::ResourceBarrier(D3D::current_command_list, m_texture12, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES);
 
@@ -364,6 +375,7 @@ int CD3DFont::Init()
 
 int CD3DFont::Shutdown()
 {
+	D3D::gpu_descriptor_heap_mgr->RemoveHeapRestartCallback(this);
 	m_vertex_buffer.reset();
 	D3D::command_list_mgr->DestroyResourceAfterCurrentCommandListExecuted(m_texture12);
 

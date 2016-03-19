@@ -44,7 +44,7 @@ private:
 	static constexpr size_t PERF_QUERY_BUFFER_SIZE = 512;
 	static constexpr size_t QUERY_READBACK_BUFFER_SIZE = PERF_QUERY_BUFFER_SIZE * sizeof(UINT64);
 
-	std::array<ActiveQuery, PERF_QUERY_BUFFER_SIZE> m_query_buffer;
+	std::array<ActiveQuery, PERF_QUERY_BUFFER_SIZE> m_query_buffer{};
 	int m_query_read_pos = 0;
 
 	ID3D12QueryHeap* m_query_heap = nullptr;

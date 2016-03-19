@@ -127,7 +127,7 @@ public:
 	const D3D12_CPU_DESCRIPTOR_HANDLE GetSamplerHandle(UINT idx) const 
 	{ 
 		D3D12_CPU_DESCRIPTOR_HANDLE handle;
-		handle.ptr = texture_sampler_gpu_handle_cpu_shadow.ptr + idx * D3D::sampler_descriptor_size;
+		handle.ptr = texture_sampler_cpu_handle.ptr + idx * D3D::sampler_descriptor_size;
 		return handle;
 	}
 protected:
@@ -168,9 +168,8 @@ protected:
 	TargetSize m_stereo_buffer_size{};
 	D3DTexture2D* m_stereo_buffer_texture{};
 	
+	ComPtr<ID3D12DescriptorHeap> m_texture_samplers_descriptor_heap;
 	D3D12_CPU_DESCRIPTOR_HANDLE texture_sampler_cpu_handle{};
-	D3D12_GPU_DESCRIPTOR_HANDLE texture_sampler_gpu_handle{};
-	D3D12_CPU_DESCRIPTOR_HANDLE texture_sampler_gpu_handle_cpu_shadow{};
 };
 
 }  // namespace

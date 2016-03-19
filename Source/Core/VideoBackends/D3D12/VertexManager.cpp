@@ -195,7 +195,7 @@ void VertexManager::ResetBuffer(u32 stride)
 		return;
 	}
 
-	m_vertex_stream_buffer->AllocateSpaceInBuffer(MAXVBUFFERSIZE, stride);
+	bool current_command_list_executed = m_vertex_stream_buffer->AllocateSpaceInBuffer(MAXVBUFFERSIZE, stride);
 
 	if (m_vertex_stream_buffer_reallocated)
 	{
@@ -208,7 +208,7 @@ void VertexManager::ResetBuffer(u32 stride)
 	s_pCurBufferPointer  = static_cast<u8*>(m_vertex_stream_buffer->GetCPUAddressOfCurrentAllocation());
 	m_vertex_draw_offset = static_cast<u32>(m_vertex_stream_buffer->GetOffsetOfCurrentAllocation());
 
-	m_index_stream_buffer->AllocateSpaceInBuffer(MAXIBUFFERSIZE * sizeof(u16), sizeof(u16));
+	current_command_list_executed |= m_index_stream_buffer->AllocateSpaceInBuffer(MAXIBUFFERSIZE * sizeof(u16), sizeof(u16));
 	
 	if (m_index_stream_buffer_reallocated)
 	{
@@ -217,7 +217,11 @@ void VertexManager::ResetBuffer(u32 stride)
 	}
 
 	m_index_draw_offset = static_cast<u32>(m_index_stream_buffer->GetOffsetOfCurrentAllocation());
-	IndexGenerator::Start(reinterpret_cast<u16*>(m_index_stream_buffer->GetCPUAddressOfCurrentAllocation()));	
+	IndexGenerator::Start(reinterpret_cast<u16*>(m_index_stream_buffer->GetCPUAddressOfCurrentAllocation()));
+	if (current_command_list_executed)
+	{
+		g_renderer->RestoreAPIState();
+	}
 }
 
 }  // namespace

@@ -46,8 +46,12 @@ void TextureCache::TCacheEntry::Bind(unsigned int stage, unsigned int last_Textu
 	static bool s_first_texture_in_group = true;
 	static D3D12_CPU_DESCRIPTOR_HANDLE s_group_base_texture_cpu_handle;
 	static D3D12_GPU_DESCRIPTOR_HANDLE s_group_base_texture_gpu_handle;
-
 	const bool use_materials = g_ActiveConfig.HiresMaterialMapsEnabled();
+	m_texture->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+	if (m_nrm_texture != nullptr && use_materials)
+	{
+		m_nrm_texture->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+	}
 	if (last_Texture == 0 && !use_materials)
 	{
 		DX12::D3D::current_command_list->SetGraphicsRootDescriptorTable(DESCRIPTOR_TABLE_PS_SRV, this->m_texture_srv_gpu_handle);
@@ -180,14 +184,8 @@ void TextureCache::TCacheEntry::CopyRectangleFromTexture(
 	const MathUtil::Rectangle<int>& dst_rect)
 {
 	const TCacheEntry* srcentry = reinterpret_cast<const TCacheEntry*>(source);
-	D3D12_RESOURCE_STATES current_src_state = srcentry->m_texture->GetResourceUsageState();
-	D3D12_RESOURCE_STATES current_dst_state = m_texture->GetResourceUsageState();
 	if (src_rect.GetWidth() == dst_rect.GetWidth()
-		&& src_rect.GetHeight() == dst_rect.GetHeight() 
-		&& static_cast<UINT>(dst_rect.GetWidth()) <= config.width
-		&& static_cast<UINT>(dst_rect.GetHeight()) <= config.height
-		&& static_cast<UINT>(dst_rect.GetWidth()) <= srcentry->config.width
-		&& static_cast<UINT>(dst_rect.GetHeight()) <= srcentry->config.height)
+		&& src_rect.GetHeight() == dst_rect.GetHeight())
 	{
 		CD3DX12_BOX src_box(src_rect.left, src_rect.top, 0, src_rect.right, src_rect.bottom, srcentry->config.layers);
 		
@@ -234,9 +232,6 @@ void TextureCache::TCacheEntry::CopyRectangleFromTexture(
 		StaticShaderCache::GetSimpleVertexShader(),
 		StaticShaderCache::GetSimpleVertexShaderInputLayout(), StaticShaderCache::GetCopyGeometryShader(), 0,
 		DXGI_FORMAT_R8G8B8A8_UNORM, false, m_texture->GetMultisampled());
-
-	srcentry->m_texture->TransitionToResourceState(D3D::current_command_list, current_src_state);
-	m_texture->TransitionToResourceState(D3D::current_command_list, current_dst_state);
 
 	g_renderer->RestoreAPIState();
 }
@@ -422,8 +417,7 @@ void TextureCache::TCacheEntry::FromRenderTarget(u8* dst, PEControl::PixelFormat
 		efb_tex = (src_format == PEControl::Z24) ?
 			FramebufferManager::GetResolvedEFBDepthTexture() :
 			FramebufferManager::GetResolvedEFBColorTexture();
-	}
-
+	}	
 	// set transformation
 	if (s_efb_copy_last_cbuf_id != cbuf_id)
 	{
@@ -464,11 +458,6 @@ void TextureCache::TCacheEntry::FromRenderTarget(u8* dst, PEControl::PixelFormat
 		StaticShaderCache::GetCopyGeometryShader(),
 		0, DXGI_FORMAT_R8G8B8A8_UNORM, false, m_texture->GetMultisampled()
 		);
-	m_texture->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-	
-	FramebufferManager::GetEFBColorTexture()->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_RENDER_TARGET);
-	FramebufferManager::GetEFBDepthTexture()->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_DEPTH_WRITE);
-
 	g_renderer->RestoreAPIState();
 }
 
@@ -659,10 +648,7 @@ bool TextureCache::Palettize(TCacheEntryBase* entry, const TCacheEntryBase* unco
 		true,
 		static_cast<TCacheEntry*>(entry)->m_texture->GetMultisampled()
 		);
-
-	FramebufferManager::GetEFBColorTexture()->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_RENDER_TARGET);
-	FramebufferManager::GetEFBDepthTexture()->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_DEPTH_WRITE );
-
+	
 	g_renderer->RestoreAPIState();
 	return true;
 }

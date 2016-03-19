@@ -493,7 +493,19 @@ D3DPostProcessor::~D3DPostProcessor()
 
 bool D3DPostProcessor::Initialize()
 {
-	D3D::sampler_descriptor_heap_mgr->AllocateGroup(&texture_sampler_cpu_handle, 16, &texture_sampler_gpu_handle, &texture_sampler_gpu_handle_cpu_shadow);
+	D3D12_DESCRIPTOR_HEAP_DESC sampler_descriptor_heap_desc = {};
+	sampler_descriptor_heap_desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+	sampler_descriptor_heap_desc.NumDescriptors = 8;
+	sampler_descriptor_heap_desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER;
+	HRESULT hr = D3D::device->CreateDescriptorHeap(&sampler_descriptor_heap_desc, IID_PPV_ARGS(m_texture_samplers_descriptor_heap.ReleaseAndGetAddressOf()));
+
+	if (FAILED(hr))
+	{
+		return false;
+	}
+
+	texture_sampler_cpu_handle = m_texture_samplers_descriptor_heap->GetCPUDescriptorHandleForHeapStart();
+
 	// Lookup tables for samplers
 	static const D3D12_FILTER d3d_sampler_filters[] = { D3D12_FILTER_MIN_MAG_MIP_POINT, D3D12_FILTER_MIN_MAG_LINEAR_MIP_POINT };
 	static const D3D12_TEXTURE_ADDRESS_MODE d3d_address_modes[] = { D3D12_TEXTURE_ADDRESS_MODE_CLAMP, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_BORDER };
@@ -656,28 +668,20 @@ void D3DPostProcessor::PostProcessEFBToTexture(uintptr_t dst_texture)
 	// Uses the current viewport as the "visible" region to post-process.
 	TargetRectangle target_rect = { 0, 0, g_renderer->GetTargetWidth(), g_renderer->GetTargetHeight() };
 	TargetSize target_size(g_renderer->GetTargetWidth(), g_renderer->GetTargetHeight());
-	D3D12_RESOURCE_STATES prev_color_state, prev_depth_state, prev_dst_state;
+	
 	// Source and target textures, if MSAA is enabled, this needs to be resolved
 	D3DTexture2D* color_texture = FramebufferManager::GetResolvedEFBColorTexture();
-	prev_color_state = color_texture->GetResourceUsageState();
 	D3DTexture2D* depth_texture = nullptr;
 	if (m_requires_depth_buffer)
 	{
 		depth_texture = FramebufferManager::GetResolvedEFBDepthTexture();
-		prev_depth_state = depth_texture->GetResourceUsageState();
 	}
 	D3DTexture2D* real_dst_texture = reinterpret_cast<D3DTexture2D*>(dst_texture);
-	prev_dst_state = real_dst_texture->GetResourceUsageState();
 
 	// Invoke post process process
 	PostProcess(nullptr, nullptr, nullptr,
 		target_rect, target_size, reinterpret_cast<uintptr_t>(color_texture),
 		target_rect, target_size, reinterpret_cast<uintptr_t>(depth_texture), dst_texture);
-	
-	color_texture->TransitionToResourceState(D3D::current_command_list, prev_color_state);
-	real_dst_texture->TransitionToResourceState(D3D::current_command_list, prev_dst_state);
-	if (m_requires_depth_buffer)
-		depth_texture->TransitionToResourceState(D3D::current_command_list, prev_depth_state);
 
 	g_renderer->RestoreAPIState();
 }
@@ -718,15 +722,12 @@ void D3DPostProcessor::PostProcessEFB(const TargetRectangle* src_rect)
 		target_rect.Merge(*src_rect);
 	}
 	
-	D3D12_RESOURCE_STATES prev_color_state, prev_depth_state;
 	// Source and target textures, if MSAA is enabled, this needs to be resolved
 	D3DTexture2D* color_texture = FramebufferManager::GetResolvedEFBColorTexture();
-	prev_color_state = color_texture->GetResourceUsageState();
 	D3DTexture2D* depth_texture = nullptr;
 	if (m_requires_depth_buffer)
 	{
 		depth_texture = FramebufferManager::GetResolvedEFBDepthTexture();
-		prev_depth_state = depth_texture->GetResourceUsageState();
 	}
 
 	// Invoke post process process
@@ -738,10 +739,6 @@ void D3DPostProcessor::PostProcessEFB(const TargetRectangle* src_rect)
 	if (g_ActiveConfig.iMultisamples > 1)
 		CopyTexture(target_rect, FramebufferManager::GetEFBColorTexture(), target_rect, color_texture, target_size, -1, DXGI_FORMAT_R8G8B8A8_UNORM, true);
 
-	color_texture->TransitionToResourceState(D3D::current_command_list, prev_color_state);
-	if (m_requires_depth_buffer)
-		depth_texture->TransitionToResourceState(D3D::current_command_list, prev_depth_state);
-
 	g_renderer->RestoreAPIState();
 }
 
@@ -750,16 +747,10 @@ void D3DPostProcessor::BlitScreen(const TargetRectangle& dst_rect, const TargetS
 	int src_layer, float gamma)
 {
 	const bool triguer_after_blit = ShouldTriggerAfterBlit();
-	D3D12_RESOURCE_STATES prev_src_state, prev_depth_state, prev_dst_state;
 	D3DTexture2D* real_dst_texture = reinterpret_cast<D3DTexture2D*>(dst_texture);
-	prev_dst_state = real_dst_texture->GetResourceUsageState();
 	D3DTexture2D* real_src_texture = reinterpret_cast<D3DTexture2D*>(src_texture);
-	prev_src_state = real_src_texture->GetResourceUsageState();
 	D3DTexture2D* real_src_depth_texture = reinterpret_cast<D3DTexture2D*>(src_depth_texture);
-	if (real_src_depth_texture != nullptr)
-	{
-		prev_depth_state = real_src_depth_texture->GetResourceUsageState();
-	}
+	
 	_dbg_assert_msg_(VIDEO, src_layer >= 0, "BlitToFramebuffer should always be called with a single source layer");
 
 	ReconfigureScalingShader(src_size);
@@ -797,11 +788,6 @@ void D3DPostProcessor::BlitScreen(const TargetRectangle& dst_rect, const TargetS
 		m_scaling_shader->Draw(this, dst_rect, dst_size, real_dst_texture, src_rect, src_size, real_src_texture, real_src_depth_texture, src_layer, gamma);
 	else
 		CopyTexture(dst_rect, real_dst_texture, src_rect, real_src_texture, src_size, src_layer, DXGI_FORMAT_R8G8B8A8_UNORM);
-
-	real_src_texture->TransitionToResourceState(D3D::current_command_list, prev_src_state);
-	real_dst_texture->TransitionToResourceState(D3D::current_command_list, prev_dst_state);
-	if (real_src_depth_texture != nullptr)
-		real_src_depth_texture->TransitionToResourceState(D3D::current_command_list, prev_depth_state);
 }
 
 void D3DPostProcessor::PostProcess(TargetRectangle* output_rect, TargetSize* output_size, uintptr_t* output_texture,
@@ -811,17 +797,12 @@ void D3DPostProcessor::PostProcess(TargetRectangle* output_rect, TargetSize* out
 {
 	if (!m_active)
 		return;
-	D3D12_RESOURCE_STATES prev_src_state, prev_depth_state, prev_dst_state;
+	
 	D3DTexture2D* real_src_texture = reinterpret_cast<D3DTexture2D*>(src_texture);
 	D3DTexture2D* real_src_depth_texture = reinterpret_cast<D3DTexture2D*>(src_depth_texture);
 	D3DTexture2D* real_dst_texture = reinterpret_cast<D3DTexture2D*>(dst_texture);
 	real_dst_texture = real_dst_texture == nullptr ? real_src_texture : real_dst_texture;
-	prev_dst_state = real_dst_texture->GetResourceUsageState();
-	prev_src_state = real_src_texture->GetResourceUsageState();
-	if (real_src_depth_texture != nullptr)
-	{
-		prev_depth_state = real_src_depth_texture->GetResourceUsageState();
-	}
+	
 	// Setup copy buffers first, and update compile-time constants.
 	TargetSize buffer_size(src_rect.GetWidth(), src_rect.GetHeight());
 	if (!ResizeCopyBuffers(buffer_size, FramebufferManager::GetEFBLayers()) ||
@@ -903,10 +884,6 @@ void D3DPostProcessor::PostProcess(TargetRectangle* output_rect, TargetSize* out
 			input_color_texture = output_color_texture;
 		}
 	}
-	real_src_texture->TransitionToResourceState(D3D::current_command_list, prev_src_state);
-	real_dst_texture->TransitionToResourceState(D3D::current_command_list, prev_dst_state);
-	if (real_src_depth_texture != nullptr)
-		real_src_depth_texture->TransitionToResourceState(D3D::current_command_list, prev_depth_state);
 }
 
 bool D3DPostProcessor::ResizeCopyBuffers(const TargetSize& size, int layers)
@@ -1143,8 +1120,6 @@ void D3DPostProcessor::CopyTexture(const TargetRectangle& dst_rect, D3DTexture2D
 	const TargetSize& src_size, int src_layer, DXGI_FORMAT fmt,
 	bool force_shader_copy)
 {
-	D3D12_RESOURCE_STATES src_state = src_texture->GetResourceUsageState();
-	D3D12_RESOURCE_STATES dst_state = dst_texture->GetResourceUsageState();
 	// If the dimensions are the same, we can copy instead of using a shader.
 	bool scaling = (dst_rect.GetWidth() != src_rect.GetWidth() || dst_rect.GetHeight() != src_rect.GetHeight());
 	if (!scaling && !force_shader_copy)
@@ -1199,8 +1174,6 @@ void D3DPostProcessor::CopyTexture(const TargetRectangle& dst_rect, D3DTexture2D
 			(src_layer < 0) ? StaticShaderCache::GetCopyGeometryShader() : bytecode, 0,
 			fmt, false, dst_texture->GetMultisampled());
 	}
-	dst_texture->TransitionToResourceState(D3D::current_command_list, dst_state);
-	src_texture->TransitionToResourceState(D3D::current_command_list, src_state);
 }
 
 }  // namespace DX12

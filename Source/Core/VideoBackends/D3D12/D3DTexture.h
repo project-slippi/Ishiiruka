@@ -5,6 +5,7 @@
 #pragma once
 
 #include <d3d12.h>
+#include "VideoBackends/D3D12/D3DUtil.h"
 
 namespace DX12
 {
@@ -32,41 +33,85 @@ public:
 
 	D3DTexture2D(ID3D12Resource* texptr, u32 bind, DXGI_FORMAT srv_format = DXGI_FORMAT_UNKNOWN, DXGI_FORMAT dsv_format = DXGI_FORMAT_UNKNOWN, DXGI_FORMAT rtv_format = DXGI_FORMAT_UNKNOWN, bool multisampled = false, D3D12_RESOURCE_STATES resource_state = D3D12_RESOURCE_STATE_COMMON);
 	static D3DTexture2D* Create(unsigned int width, unsigned int height, u32 bind, DXGI_FORMAT fmt, unsigned int levels = 1, unsigned int slices = 1, D3D12_SUBRESOURCE_DATA* data = nullptr);
-	void TransitionToResourceState(ID3D12GraphicsCommandList* command_list, D3D12_RESOURCE_STATES state_after);
+	inline void TransitionToResourceState(ID3D12GraphicsCommandList* command_list, D3D12_RESOURCE_STATES state_after)
+	{
+		if (m_resource_state != state_after)
+		{
+			DX12::D3D::ResourceBarrier(command_list, m_tex.Get(), m_resource_state, state_after, D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES);
+			m_resource_state = state_after;
+		}
+	}
 
 	// reference counting, use AddRef() when creating a new reference and Release() it when you don't need it anymore
 	void AddRef();
 	UINT Release();
 
-	ID3D12Resource* GetTex() const;
+	inline D3D12_RESOURCE_STATES D3DTexture2D::GetResourceUsageState() const
+	{
+		return m_resource_state;
+	}
 
-	D3D12_CPU_DESCRIPTOR_HANDLE GetSRVCPU() const;
-	D3D12_GPU_DESCRIPTOR_HANDLE GetSRVGPU() const;
-	D3D12_CPU_DESCRIPTOR_HANDLE GetSRVGPUCPUShadow() const;
-	D3D12_CPU_DESCRIPTOR_HANDLE GetDSV() const;
-	D3D12_CPU_DESCRIPTOR_HANDLE GetRTV() const;
+	inline bool D3DTexture2D::GetMultisampled() const
+	{
+		return m_multisampled;
+	}
 
-	D3D12_RESOURCE_STATES GetResourceUsageState() const;
+	inline ID3D12Resource* D3DTexture2D::GetTex() const
+	{
+		return m_tex.Get();
+	}
 
-	bool GetMultisampled() const;
+	inline D3D12_CPU_DESCRIPTOR_HANDLE D3DTexture2D::GetSRVCPU() const
+	{
+		return m_srv_cpu;
+	}
+
+	inline D3D12_GPU_DESCRIPTOR_HANDLE D3DTexture2D::GetSRVGPU() const
+	{
+		return m_srv_gpu;
+	}
+
+	inline D3D12_CPU_DESCRIPTOR_HANDLE D3DTexture2D::GetSRVGPUCPUShadow() const
+	{
+		return m_srv_gpu_cpu_shadow;
+	}
+
+	inline D3D12_CPU_DESCRIPTOR_HANDLE D3DTexture2D::GetDSV() const
+	{
+		return m_dsv;
+	}
+
+	inline D3D12_CPU_DESCRIPTOR_HANDLE D3DTexture2D::GetRTV() const
+	{
+		return m_rtv;
+	}
 
 private:
 	~D3DTexture2D();
 
 	ComPtr<ID3D12Resource> m_tex;
-
+	DXGI_FORMAT m_srv_format = {};
 	D3D12_CPU_DESCRIPTOR_HANDLE m_srv_cpu = {};
 	D3D12_GPU_DESCRIPTOR_HANDLE m_srv_gpu = {};
 	D3D12_CPU_DESCRIPTOR_HANDLE m_srv_gpu_cpu_shadow = {};
 
+	DXGI_FORMAT m_dsv_format = {};
 	D3D12_CPU_DESCRIPTOR_HANDLE m_dsv = {};
+	DXGI_FORMAT m_rtv_format = {};
 	D3D12_CPU_DESCRIPTOR_HANDLE m_rtv = {};
 
 	D3D12_RESOURCE_STATES m_resource_state = D3D12_RESOURCE_STATE_COMMON;
 
-	bool m_multisampled;
+	bool m_multisampled{};
 
 	std::atomic<unsigned long> m_ref = 1;
+	u32 m_bind_falgs = {};
+	static void SRVHeapRestartCallback(void* owner);
+	static void RTVHeapRestartCallback(void* owner);
+	static void DSVHeapRestartCallback(void* owner);
+	void InitalizeSRV();
+	void InitalizeRTV();
+	void InitalizeDSV();
 };
 
 }  // namespace DX12

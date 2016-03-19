@@ -110,6 +110,20 @@ public:
 	// Release all cached states and clear hash tables.
 	void Clear();
 
+	struct SamplerStateSet
+	{
+		SamplerState desc0;
+		SamplerState desc1;
+		SamplerState desc2;
+		SamplerState desc3;
+		SamplerState desc4;
+		SamplerState desc5;
+		SamplerState desc6;
+		SamplerState desc7;
+	};
+
+	D3D12_GPU_DESCRIPTOR_HANDLE GetHandleForSamplerGroup(SamplerState* sampler_state, unsigned int num_sampler_samples);
+
 private:
 
 	friend DX12::PipelineStateCacheInserter;
@@ -200,6 +214,16 @@ private:
 			return lhs.pShaderBytecode == rhs.pShaderBytecode;
 		}
 	};
+
+	struct hash_sampler_desc
+	{
+		size_t operator()(const SamplerStateSet sampler_state_set) const
+		{
+			return sampler_state_set.desc0.hex;
+		}
+	};
+
+	std::unordered_map<SamplerStateSet, D3D12_GPU_DESCRIPTOR_HANDLE, hash_sampler_desc> m_sampler_map;
 
 	std::unordered_map<SmallPsoDesc, ComPtr<ID3D12PipelineState>, hash_small_pso_desc, equality_small_pipeline_state_desc> m_small_pso_map;
 };

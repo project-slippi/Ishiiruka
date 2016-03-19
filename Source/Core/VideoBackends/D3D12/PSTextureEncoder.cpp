@@ -35,6 +35,25 @@ PSTextureEncoder::PSTextureEncoder()
 {
 }
 
+void PSTextureEncoder::InitializeRTV()
+{
+	// Create output render target view
+	D3D12_RENDER_TARGET_VIEW_DESC tex_rtv_desc = {
+		DXGI_FORMAT_B8G8R8A8_UNORM,    // DXGI_FORMAT Format;
+		D3D12_RTV_DIMENSION_TEXTURE2D  // D3D12_RTV_DIMENSION ViewDimension;
+	};
+
+	tex_rtv_desc.Texture2D.MipSlice = 0;
+
+	D3D::rtv_descriptor_heap_mgr->Allocate(&m_out_rtv_cpu);
+	D3D::device->CreateRenderTargetView(m_out.Get(), &tex_rtv_desc, m_out_rtv_cpu);
+}
+
+void PSTextureEncoder::RTVHeapRestartCallback(void* owner)
+{
+	static_cast<PSTextureEncoder*>(owner)->InitializeRTV();
+}
+
 void PSTextureEncoder::Init()
 {
 	// Create output texture RGBA format
@@ -64,16 +83,8 @@ void PSTextureEncoder::Init()
 
 	D3D::SetDebugObjectName12(m_out.Get(), "efb encoder output texture");
 
-	// Create output render target view
-	D3D12_RENDER_TARGET_VIEW_DESC tex_rtv_desc = {
-		DXGI_FORMAT_B8G8R8A8_UNORM,    // DXGI_FORMAT Format;
-		D3D12_RTV_DIMENSION_TEXTURE2D  // D3D12_RTV_DIMENSION ViewDimension;
-	};
-
-	tex_rtv_desc.Texture2D.MipSlice = 0;
-
-	D3D::rtv_descriptor_heap_mgr->Allocate(&m_out_rtv_cpu);
-	D3D::device->CreateRenderTargetView(m_out.Get(), &tex_rtv_desc, m_out_rtv_cpu);
+	InitializeRTV();
+	D3D::rtv_descriptor_heap_mgr->RegisterHeapRestartCallback(this, &PSTextureEncoder::RTVHeapRestartCallback);
 
 	// Create output staging buffer
 	CheckHR(
@@ -117,6 +128,7 @@ void PSTextureEncoder::Init()
 void PSTextureEncoder::Shutdown()
 {
 	m_ready = false;
+	D3D::rtv_descriptor_heap_mgr->RemoveHeapRestartCallback(this);
 	D3D::command_list_mgr->DestroyResourceAfterCurrentCommandListExecuted(m_out.Detach());
 	D3D::command_list_mgr->DestroyResourceAfterCurrentCommandListExecuted(m_out_readback_buffer.Detach());
 	D3D::command_list_mgr->DestroyResourceAfterCurrentCommandListExecuted(m_encode_params_buffer.Detach());
@@ -214,8 +226,6 @@ void PSTextureEncoder::Encode(u8* dst, u32 format, u32 native_width, u32 bytes_p
 
 	D3D::ResourceBarrier(D3D::current_command_list, m_out.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_COPY_SOURCE, 0);
 	D3D::current_command_list->CopyTextureRegion(&dst_location, 0, 0, 0, &src_location, &src_box);
-	FramebufferManager::GetEFBColorTexture()->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_RENDER_TARGET);
-	FramebufferManager::GetEFBDepthTexture()->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_DEPTH_WRITE);
 
 	// State is automatically restored after executing command list.
 	D3D::command_list_mgr->ExecuteQueuedWork(true);

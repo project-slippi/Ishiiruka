@@ -100,7 +100,6 @@ void XFBEncoder::EncodeTextureToRam(u8* dst, u32 dst_pitch, u32 dst_height,
 	// Convert RGBA texture to YUYV intermediate texture.
 	// Performs downscaling through a linear filter. Probably not ideal, but it's not going to look perfect anyway.
 	CD3DX12_RECT src_texture_rect(src_rect.left, src_rect.top, src_rect.right, src_rect.bottom);
-	D3D12_RESOURCE_STATES src_texture_state = src_texture->GetResourceUsageState();
 	m_yuyv_texture->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_RENDER_TARGET);
 	D3D::current_command_list->OMSetRenderTargets(1, &m_yuyv_texture->GetRTV(), FALSE, nullptr);
 	D3D::current_command_list->SetGraphicsRootConstantBufferView(DESCRIPTOR_TABLE_PS_CBVONE, m_encode_params_buffer->GetGPUAddressOfCurrentAllocation());
@@ -111,8 +110,6 @@ void XFBEncoder::EncodeTextureToRam(u8* dst, u32 dst_pitch, u32 dst_height,
 		src_texture, &src_texture_rect, src_rect.GetWidth(), src_rect.GetHeight(),
 		StaticShaderCache::GetXFBEncodePixelShader(), StaticShaderCache::GetSimpleVertexShader(), StaticShaderCache::GetSimpleVertexShaderInputLayout(),
 		{}, 0, DXGI_FORMAT_R8G8B8A8_UNORM, false, false);
-
-	src_texture->TransitionToResourceState(D3D::current_command_list, src_texture_state);
 
 	// Copy from YUYV intermediate texture to readback buffer. It's likely the pitch here is going to be different to dst_pitch.
 	u32 readback_pitch = ROUND_UP(dst_width * sizeof(u16), D3D12_TEXTURE_DATA_PITCH_ALIGNMENT);

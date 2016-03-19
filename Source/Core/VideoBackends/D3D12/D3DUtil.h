@@ -60,6 +60,8 @@ private:
 
 	const int m_tex_width;
 	const int m_tex_height;
+	static void SRVHeapRestartCallback(void* owner);
+	void InitalizeSRV();
 };
 
 

@@ -59,7 +59,7 @@ struct EndQueryArguments
 {
 	ID3D12QueryHeap* pQueryHeap;
 	D3D12_QUERY_TYPE Type;
-UINT Index;
+	UINT Index;
 };
 
 struct ResolveQueryDataArguments
@@ -69,7 +69,7 @@ struct ResolveQueryDataArguments
 	UINT StartElement;
 	UINT ElementCount;
 	ID3D12Resource* pDestinationBuffer;
-UINT64 AlignedDestinationBufferOffset;
+	UINT64 AlignedDestinationBufferOffset;
 };
 
 struct SetPipelineStateArguments

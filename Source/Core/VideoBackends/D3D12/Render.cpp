@@ -420,10 +420,10 @@ u32 Renderer::AccessEFB(EFBAccessType type, u32 x, u32 y, u32 poke_data)
 void Renderer::PokeEFB(EFBAccessType type, const EfbPokeData* points, size_t num_points)
 {
 	D3D::SetViewportAndScissor(0, 0, GetTargetWidth(), GetTargetHeight());
+	FramebufferManager::GetEFBColorTexture()->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_RENDER_TARGET);	
 	if (type == POKE_COLOR)
 	{
 		// In the D3D12 backend, the rt/db/viewport is passed into DrawEFBPokeQuads, and set there.
-
 		D3D::DrawEFBPokeQuads(
 			type,
 			points,
@@ -437,6 +437,7 @@ void Renderer::PokeEFB(EFBAccessType type, const EfbPokeData* points, size_t num
 	}
 	else // if (type == POKE_Z)
 	{
+		FramebufferManager::GetEFBDepthTexture()->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_DEPTH_WRITE);
 		D3D::DrawEFBPokeQuads(
 			type,
 			points,
@@ -521,10 +522,16 @@ void Renderer::ClearScreen(const EFBRectangle& rc, bool color_enable, bool alpha
 	// EXISTINGD3D11TODO: Should we enable Z testing here?
 	/*if (!bpmem.zmode.testenable) depth_stencil_desc = &s_clear_depth_descs[CLEAR_DEPTH_DESC_DEPTH_DISABLED];
 	else */if (z_enable)
-depth_stencil_desc = &s_clear_depth_descs[CLEAR_DEPTH_DESC_DEPTH_ENABLED_WRITES_ENABLED];
+	{
+		FramebufferManager::GetEFBDepthTexture()->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_DEPTH_WRITE);
+		depth_stencil_desc = &s_clear_depth_descs[CLEAR_DEPTH_DESC_DEPTH_ENABLED_WRITES_ENABLED];
+	}
 	else /*if (!z_enable)*/
+	{
+		FramebufferManager::GetEFBDepthTexture()->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_DEPTH_READ);
 		depth_stencil_desc = &s_clear_depth_descs[CLEAR_DEPTH_DESC_DEPTH_ENABLED_WRITES_DISABLED];
-
+	}
+	FramebufferManager::GetEFBColorTexture()->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_RENDER_TARGET);
 	// Update the view port for clearing the picture
 	TargetRectangle target_rc = Renderer::ConvertEFBRectangle(rc);
 
@@ -535,8 +542,7 @@ depth_stencil_desc = &s_clear_depth_descs[CLEAR_DEPTH_DESC_DEPTH_ENABLED_WRITES_
 	D3D::DrawClearQuad(rgba_color, 1.0f - (z & 0xFFFFFF) / 16777216.0f, blend_desc, depth_stencil_desc, FramebufferManager::GetEFBColorTexture()->GetMultisampled());
 
 	// Restores proper viewport/scissor settings.
-	g_renderer->SetViewport();
-	BPFunctions::SetScissor();
+	RestoreAPIState();
 
 	FramebufferManager::InvalidateEFBCache();
 }
@@ -586,8 +592,6 @@ void Renderer::ReinterpretPixelData(unsigned int convtype)
 	// Restores proper viewport/scissor settings.
 	FramebufferManager::SwapReinterpretTexture();
 
-	FramebufferManager::GetEFBColorTexture()->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_RENDER_TARGET);
-	FramebufferManager::GetEFBDepthTexture()->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_DEPTH_WRITE);
 	FramebufferManager::InvalidateEFBCache();
 	// Restores proper viewport/scissor settings.
 	RestoreAPIState();
@@ -1033,9 +1037,6 @@ void Renderer::SwapImpl(u32 xfb_addr, u32 fb_width, u32 fb_stride, u32 fb_height
 	RestoreAPIState();
 	D3D::BeginFrame();
 
-	FramebufferManager::GetEFBColorTexture()->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_RENDER_TARGET);
-	FramebufferManager::GetEFBDepthTexture()->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_DEPTH_WRITE);
-
 	SetViewport();
 	RestoreAPIState();
 
@@ -1075,7 +1076,7 @@ void Renderer::ApplyState(bool use_dst_alpha)
 	if (D3D::command_list_mgr->GetCommandListDirtyState(COMMAND_LIST_STATE_SAMPLERS))
 	{
 		D3D12_GPU_DESCRIPTOR_HANDLE sample_group_gpu_handle;
-		sample_group_gpu_handle = D3D::sampler_descriptor_heap_mgr->GetHandleForSamplerGroup(gx_state.sampler, 16);
+		sample_group_gpu_handle = gx_state_cache.GetHandleForSamplerGroup(gx_state.sampler, 16);
 
 		D3D::current_command_list->SetGraphicsRootDescriptorTable(DESCRIPTOR_TABLE_PS_SAMPLER, sample_group_gpu_handle);
 		if (g_ActiveConfig.TessellationEnabled())
@@ -1093,9 +1094,7 @@ void Renderer::ApplyState(bool use_dst_alpha)
 
 	if (current_command_list_executed)
 	{
-		BPFunctions::SetScissor();
-		g_renderer->SetViewport();
-		D3D::current_command_list->OMSetRenderTargets(1, &FramebufferManager::GetEFBColorTexture()->GetRTV(), FALSE, &FramebufferManager::GetEFBDepthTexture()->GetDSV());
+		RestoreAPIState();
 	}
 
 	if (D3D::command_list_mgr->GetCommandListDirtyState(COMMAND_LIST_STATE_PSO) || s_previous_vertex_format != reinterpret_cast<D3DVertexFormat*>(VertexLoaderManager::GetCurrentVertexFormat()))
@@ -1116,7 +1115,7 @@ void Renderer::ApplyState(bool use_dst_alpha)
 				topologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_PATCH;
 			}
 		}
-
+		
 		SmallPsoDesc pso_desc = {
 			ShaderCache::GetActiveDomainShaderBytecode(),   // D3D12_SHADER_BYTECODE DS;			
 			ShaderCache::GetActiveGeometryShaderBytecode(),   // D3D12_SHADER_BYTECODE GS;
@@ -1155,6 +1154,15 @@ void Renderer::ApplyState(bool use_dst_alpha)
 		D3D::command_list_mgr->SetCommandListDirtyState(COMMAND_LIST_STATE_PSO, false);
 	}
 	FramebufferManager::InvalidateEFBCache();
+	if (gx_state.zmode.testenable && gx_state.zmode.updateenable)
+	{
+		FramebufferManager::GetEFBDepthTexture()->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_DEPTH_WRITE);
+	}
+	else
+	{
+		FramebufferManager::GetEFBDepthTexture()->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_DEPTH_READ);
+	}
+	FramebufferManager::GetEFBColorTexture()->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_RENDER_TARGET);
 }
 
 void Renderer::RestoreState()

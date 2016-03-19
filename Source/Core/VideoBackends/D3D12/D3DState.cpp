@@ -15,7 +15,7 @@
 #include "VideoBackends/D3D12/D3DBase.h"
 #include "VideoBackends/D3D12/D3DState.h"
 #include "VideoBackends/D3D12/D3DUtil.h"
-
+#include "VideoBackends/D3D12/D3DDescriptorHeapManager.h"
 #include "VideoBackends/D3D12/NativeVertexFormat.h"
 #include "VideoBackends/D3D12/ShaderCache.h"
 #include "VideoBackends/D3D12/StaticShaderCache.h"
@@ -481,5 +481,47 @@ void StateCache::Clear()
 	s_pso_disk_cache.Sync();
 	s_pso_disk_cache.Close();
 }
+
+bool operator==(const StateCache::SamplerStateSet& lhs, const StateCache::SamplerStateSet& rhs)
+{
+	// D3D12TODO: Do something more efficient than this.
+	return (!memcmp(&lhs, &rhs, sizeof(StateCache::SamplerStateSet)));
+}
+
+D3D12_GPU_DESCRIPTOR_HANDLE StateCache::GetHandleForSamplerGroup(SamplerState* sampler_state, unsigned int num_sampler_samples)
+{
+	auto it = m_sampler_map.find(*reinterpret_cast<SamplerStateSet*>(sampler_state));
+
+	if (it == m_sampler_map.end())
+	{
+		D3D12_CPU_DESCRIPTOR_HANDLE base_sampler_cpu_handle;
+		D3D12_GPU_DESCRIPTOR_HANDLE base_sampler_gpu_handle;
+
+		bool allocatedFromExistingHeap = D3D::sampler_descriptor_heap_mgr->AllocateGroup(&base_sampler_cpu_handle, num_sampler_samples, &base_sampler_gpu_handle);
+
+		if (!allocatedFromExistingHeap)
+		{
+			m_sampler_map.clear();
+		}
+
+		for (unsigned int i = 0; i < num_sampler_samples; i++)
+		{
+			D3D12_CPU_DESCRIPTOR_HANDLE destinationDescriptor;
+			destinationDescriptor.ptr = base_sampler_cpu_handle.ptr + i * D3D::sampler_descriptor_size;
+
+			D3D::device->CreateSampler(&StateCache::GetDesc(sampler_state[i]), destinationDescriptor);
+		}
+
+		m_sampler_map[*reinterpret_cast<SamplerStateSet*>(sampler_state)] = base_sampler_gpu_handle;
+
+		return base_sampler_gpu_handle;
+	}
+	else
+	{
+		return it->second;
+	}
+}
+
+
 
 }  // namespace DX12

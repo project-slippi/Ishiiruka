@@ -79,7 +79,7 @@ private:
 
 	std::deque<FenceTrackingInformation> m_queued_fences;
 
-	ID3D12Fence* m_buffer_tracking_fence;
+	ID3D12Fence* m_buffer_tracking_fence{};
 
 	ComPtr<ID3D12Resource> m_buffer;
 
