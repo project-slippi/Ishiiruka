@@ -7,7 +7,7 @@ OptionName = XBR_EDGE_STR
 MinValue = 0.0
 MaxValue = 5.0
 StepAmount = 0.1
-DefaultValue = 0.6
+DefaultValue = 1.0
 GUIDescription = Controls the strength of edge direction.
 
 [OptionRangeFloat]
@@ -24,8 +24,8 @@ GUIName = Super-xBR Anti-Ringing
 OptionName = XBR_ANTI_RINGING
 MinValue = 0.0
 MaxValue = 1.0
-StepAmount = 0.1
-DefaultValue = 0.8
+StepAmount = 1.0
+DefaultValue = 1.0
 GUIDescription = Set the anti-ringing strength.
 
 [OptionRangeFloat]
@@ -53,13 +53,6 @@ Input1Mode=Clamp
 Input1Filter=Nearest
 OutputScale=2.0
 EntryPoint=Super_xBR_p1
-
-[Pass]
-Input0=PreviousPass
-Input0Mode=Clamp
-Input0Filter=Nearest
-OutputScale=1.0
-EntryPoint=Super_xBR_p2
 
 [Pass]
 Input0=PreviousPass
@@ -160,7 +153,8 @@ float3 max4(float3 a, float3 b, float3 c, float3 d)
      
 void Super_xBR_p0()
 {
-	const weights w0 = {  1.0,  0.0,  0.0,  2.0,  -1.0,  0.0}; 
+	const weights w0 = {  2.0,  1.0, -1.0,  4.0,  -1.0,  1.0}; 
+//	const weights w0 = {  1.0,  0.0,  0.0,  2.0,  -1.0,  0.0}; 
 
 	float2 texcoord = GetCoordinates();
 	float2 texture_size = GetResolution();
@@ -227,13 +221,14 @@ void Super_xBR_p0()
 	float3 max_sample = max4( E, F, H, I ) - (1-GetOption(XBR_ANTI_RINGING))*lerp((P2-H)*(F-P1), (P0-E)*(I-P3), step(0.0, d_edge));
 	color = clamp(color, min_sample, max_sample);
 
-	SetOutput(float4(color, 1.0));	
+	SetOutput(float4(color, 1.0));
 }
 
 
 void Super_xBR_p1()
 {
-	const weights w1 = {  1.0,  0.0,  0.0,  4.0,   0.0,  0.0}; 
+	const weights w1 = {  3.0,  0.0,  0.0,  0.0,   0.0,  0.0}; 
+//	const weights w1 = {  1.0,  0.0,  0.0,  4.0,   0.0,  0.0}; 
 
 	float2 texcoord = GetCoordinates();
 	float2 texture_size = GetResolution();
@@ -241,7 +236,13 @@ void Super_xBR_p1()
 	//Skip pixels on wrong grid
 	float2 fp = frac(texcoord*texture_size);
 	float2 dir = fp - float2(0.5,0.5);
- 	if ((dir.x*dir.y)>0.0) SetOutput((fp.x>0.5) ? SampleInput(0) : SampleInput(1));
+ 	
+	if ((dir.x*dir.y)>0.0)
+	{
+		SetOutput((fp.x>0.5) ? SampleInput(0) : SampleInput(1));
+	}
+	else
+	{
 
 	float2 g1 = (fp.x>0.5) ? float2(0.5/texture_size.x, 0.0) : float2(0.0, 0.5/texture_size.y);
 	float2 g2 = (fp.x>0.5) ? float2(0.0, 0.5/texture_size.y) : float2(0.5/texture_size.x, 0.0);
@@ -308,15 +309,14 @@ void Super_xBR_p1()
 	color = clamp(color, min_sample, max_sample);
 
 	SetOutput(float4(color, 1.0));	
+	}
 }
 
 
 void Super_xBR_p2()
 {
-	const weights w2 = {  1.0,  0.0,  0.0,  0.0,  -1.0,  0.0}; 
-
-	float2 texcoord = GetCoordinates();
-	float2 texture_size = GetResolution();
+	const weights w2 = {  2.0,  1.0, -1.0,  4.0,  -1.0,  1.0}; 
+//	const weights w2 = {  1.0,  0.0,  0.0,  0.0,  -1.0,  0.0}; 
 
 	float3 P0 = SampleInputOffset(0, int2(-2,-2)).xyz;
 	float3  B = SampleInputOffset(0, int2(-1,-2)).xyz;
