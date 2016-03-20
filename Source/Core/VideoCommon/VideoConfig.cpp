@@ -93,7 +93,7 @@ void VideoConfig::Load(const std::string& ini_file)
 	
 	settings->Get("FastDepthCalc", &bFastDepthCalc, true);
 	settings->Get("MSAA", &iMultisamples, 1);
-	settings->Get("EFBScale", &iEFBScale, (int)SCALE_1X); // native	
+	settings->Get("EFBScale", &iEFBScale, (int)SCALE_2X); // native	
 	settings->Get("TexFmtOverlayEnable", &bTexFmtOverlayEnable, 0);
 	settings->Get("TexFmtOverlayCenter", &bTexFmtOverlayCenter, 0);
 	settings->Get("WireFrame", &bWireFrame, 0);
@@ -101,7 +101,7 @@ void VideoConfig::Load(const std::string& ini_file)
 	settings->Get("SSAA", &bSSAA, false);
 	settings->Get("EnableOpenCL", &bEnableOpenCL, false);
 	settings->Get("EnableShaderDebugging", &bEnableShaderDebugging, false);
-	settings->Get("BorderlessFullscreen", &bBorderlessFullscreen, false);
+	settings->Get("BorderlessFullscreen", &bBorderlessFullscreen, true);
 
 	settings->Get("SWZComploc", &bZComploc, true);
 	settings->Get("SWZFreeze", &bZFreeze, true);
@@ -114,15 +114,15 @@ void VideoConfig::Load(const std::string& ini_file)
 	IniFile::Section* enhancements = iniFile.GetOrCreateSection("Enhancements");
 	enhancements->Get("ForceFiltering", &bForceFiltering, 0);
 	enhancements->Get("DisableFiltering", &bDisableTextureFiltering, 0);
-	enhancements->Get("MaxAnisotropy", &iMaxAnisotropy, 0);  // NOTE - this is x in (1 << x)
+	enhancements->Get("MaxAnisotropy", &iMaxAnisotropy, 3);  // NOTE - this is x in (1 << x)
 	enhancements->Get("PostProcessingEnable", &bPostProcessingEnable, false);
 	enhancements->Get("PostProcessingTrigger", &iPostProcessingTrigger, 0);
 	enhancements->Get("PostProcessingShaders", &sPostProcessingShaders, "");
 	enhancements->Get("ScalingShader", &sScalingShader, "");
-	enhancements->Get("UseScalingFilter", &bUseScalingFilter, false);
+	enhancements->Get("UseScalingFilter", &bUseScalingFilter, true);
 	enhancements->Get("TextureScalingType", &iTexScalingType, 0);
 	enhancements->Get("TextureScalingFactor", &iTexScalingFactor, 2);
-	enhancements->Get("UseDePosterize", &bTexDeposterize, false);
+	enhancements->Get("UseDePosterize", &bTexDeposterize, true);
 	enhancements->Get("Tessellation", &bTessellation, 0);
 	enhancements->Get("TessellationEarlyCulling", &bTessellationEarlyCulling, 0);	
 	enhancements->Get("TessellationDistance", &iTessellationDistance, 0);
@@ -145,10 +145,10 @@ void VideoConfig::Load(const std::string& ini_file)
 	hacks->Get("EFBScaledCopy", &bCopyEFBScaled, true);
 	hacks->Get("EFBEmulateFormatChanges", &bEFBEmulateFormatChanges, false);
 	hacks->Get("ForceDualSourceBlend", &bForceDualSourceBlend, false);
-	hacks->Get("FullAsyncShaderCompilation", &bFullAsyncShaderCompilation, false);
+	hacks->Get("FullAsyncShaderCompilation", &bFullAsyncShaderCompilation, true);
 	hacks->Get("WaitForShaderCompilation", &bWaitForShaderCompilation, false);
 	hacks->Get("PredictiveFifo", &bPredictiveFifo, false);
-	hacks->Get("BoundingBoxMode", &iBBoxMode, (int)BBoxMode::BBoxGPU);
+	hacks->Get("BoundingBoxMode", &iBBoxMode, (int)BBoxMode::BBoxNone);
 	hacks->Get("ViewportCorrection", &bViewportCorrection, false);
 	
 
@@ -329,7 +329,7 @@ void VideoConfig::VerifyValidity()
 	bWaitForShaderCompilation = false;
 	if (iBBoxMode > BBoxGPU || iBBoxMode < BBoxNone)
 	{
-		iBBoxMode = BBoxGPU;
+		iBBoxMode = BBoxNone;
 	}
 	if (backend_info.APIType & API_D3D9 && iBBoxMode == BBoxGPU)
 	{

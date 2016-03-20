@@ -43,7 +43,7 @@ GUIDescription.SPA = Profundidad a partir de la cual finaliza la aplicación de l
 [OptionBool]
 GUIName = SSAO
 OptionName = A_SSAO_ENABLED
-DefaultValue = True
+DefaultValue = false
 ResolveAtCompilation = True
 GUIDescription = Enables Screen Space Ambient Occlusion.
 GUIDescription.SPA = Habilita la Oclusión Ambiental.
@@ -64,7 +64,7 @@ OptionName = B_SSAO_SAMPLES
 MinValue = 16
 MaxValue = 64
 StepAmount = 4
-DefaultValue = 16
+DefaultValue = 24
 DependentOption = A_SSAO_ENABLED
 ResolveAtCompilation = True
 GUIDescription = Number of samples used to calculate SSAO component, large values gives more quality but may cause performance drops.
@@ -89,7 +89,7 @@ OptionName = D_FILTER_LIMIT
 MinValue = 0.001
 MaxValue = 0.01
 StepAmount = 0.0001
-DefaultValue = 0.002
+DefaultValue = 0.0026
 DependentOption = A_SSAO_ENABLED
 GUIDescription = Amount of filtering applyed to the AO component.
 GUIDescription.SPA = Intensidad de filtrado aplicada al Componente de Oclusión.
@@ -101,7 +101,7 @@ OptionName = E_MAX_DEPTH
 MinValue = 0.0001
 MaxValue = 0.02
 StepAmount = 0.0001
-DefaultValue = 0.015
+DefaultValue = 0.0132
 DependentOption = A_SSAO_ENABLED
 
 [OptionRangeFloat]
@@ -303,6 +303,7 @@ MaxValue = 360
 DefaultValue = 0
 StepAmount = 1
 DependentOption = MATSODOF
+
 [OptionBool]
 GUIName = Pixel Vibrance
 OptionName = H_PIXEL_VIBRANCE
@@ -314,7 +315,7 @@ OptionName = A_VIBRANCE
 MinValue = -0.50
 MaxValue = 1.00
 StepAmount = 0.01
-DefaultValue = 0.2
+DefaultValue = 0.24
 DependentOption = H_PIXEL_VIBRANCE
 
 [OptionRangeFloat]
@@ -347,7 +348,7 @@ DependentOption = H_PIXEL_VIBRANCE
 [OptionBool]
 GUIName = Scene Tonemapping
 OptionName = C_TONEMAP_PASS
-DefaultValue = true
+DefaultValue = false
 
 [OptionRangeInteger]
 GUIName = TonemapType
@@ -432,7 +433,7 @@ OptionName = A_SHARPEN_STRENGTH
 MinValue = 0.00
 MaxValue = 2.00
 StepAmount = 0.01
-DefaultValue = 1.0
+DefaultValue = 1.04
 DependentOption = G_TEXTURE_SHARPEN
 
 [OptionRangeFloat]
@@ -441,7 +442,7 @@ OptionName = B_SHARPEN_CLAMP
 MinValue = 0.005
 MaxValue = 0.250
 StepAmount = 0.001
-DefaultValue = 0.02
+DefaultValue = 0.047
 DependentOption = G_TEXTURE_SHARPEN
 
 [OptionRangeFloat]
@@ -450,7 +451,7 @@ OptionName = C_SHARPEN_BIAS
 MinValue = 1.00
 MaxValue = 4.00
 StepAmount = 0.05
-DefaultValue = 1.00
+DefaultValue = 2.00
 DependentOption = G_TEXTURE_SHARPEN
 
 [OptionRangeInteger]
@@ -497,7 +498,7 @@ OptionName = C_BLOOMINTENSITY
 MinValue = 0.1
 MaxValue = 1.0
 StepAmount = 0.01
-DefaultValue = 0.25
+DefaultValue = 0.27
 DependentOption = D_BLOOM
 
 [OptionBool]
