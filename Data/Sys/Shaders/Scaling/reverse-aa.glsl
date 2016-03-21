@@ -2,14 +2,6 @@
 [configuration]
 
 [OptionRangeFloat]
-GUIName = Reverse AA - Sharpness
-OptionName = REVERSEAA_SHARPNESS
-MinValue = 0.0
-MaxValue = 6.0
-StepAmount = 0.1
-DefaultValue = 2.0
-
-[OptionRangeFloat]
 GUIName = Jinc2 Anti-Ringing
 OptionName = JINC2_AR_STRENGTH
 MinValue = 0.0
@@ -78,15 +70,12 @@ EntryPoint=jinc2
 
 float3 res2x(float3 pre2, float3 pre1, float3 px, float3 pos1, float3 pos2)
 {
-    float3 t, m;
+    float3 t;
     float4x3 pre = float4x3(pre2, pre1,   px, pos1);
     float4x3 pos = float4x3(pre1,   px, pos1, pos2);
     float4x3  df = pos - pre;
 
-    m = (px < 0.5) ? px : (1.0-px);
-    m = GetOption(REVERSEAA_SHARPNESS) * min(m, min(abs(df[1]), abs(df[2])));
     t = (7.0 * (df[1] + df[2]) - 3.0 * (df[0] + df[3])) / 16.0;
-    t = clamp(t, -m, m);
    
     return t;
 }
@@ -101,20 +90,22 @@ void ReverseAA()
 
     float3 B1 = SampleOffset(int2( 0,-2)).rgb;
     float3 B  = SampleOffset(int2( 0,-1)).rgb;
-    float3 D  = SampleOffset(int2(-1, 0)).rgb;
-    float3 E  = SampleOffset(int2( 0, 0)).rgb;
-    float3 F  = SampleOffset(int2( 1, 0)).rgb;
     float3 H  = SampleOffset(int2( 0, 1)).rgb;
     float3 H5 = SampleOffset(int2( 0, 2)).rgb;
-    float3 D0 = SampleOffset(int2( 0,-2)).rgb;
-    float3 F4 = SampleOffset(int2( 0, 2)).rgb;
+    float3 E  = SampleOffset(int2( 0, 0)).rgb;
+    float3 D0 = SampleOffset(int2(-2, 0)).rgb;
+    float3 D  = SampleOffset(int2(-1, 0)).rgb;
+    float3 F  = SampleOffset(int2( 1, 0)).rgb;
+    float3 F4 = SampleOffset(int2( 2, 0)).rgb;
 
     float3 t1 = res2x(B1, B,  E, H, H5);
     float3 t2 = res2x(D0, D,  E, F, F4);
 
-    float3 res = clamp(E + fp.y*t1 + fp.x*t2, 0.0, 1.0);
+    float3 res = E + fp.y*t1 + fp.x*t2;
+    float3 a   = min(min(min(min(B,D),E),F),H);
+    float3 b   = max(max(max(max(B,D),E),F),H);
 
-    SetOutput(float4(res, 1.0));
+    SetOutput(float4(clamp(res, a, b), 1.0));
 }
 
 /*
