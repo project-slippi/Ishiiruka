@@ -113,6 +113,10 @@ static wxString aa_desc = _("Reduces the amount of aliasing caused by rasterizin
 static wxString scaled_efb_copy_desc = _("Greatly increases quality of textures generated using render to texture effects.\nRaising the internal resolution will improve the effect of this setting.\nSlightly decreases performance and possibly causes issues (although unlikely).\n\nIf unsure, leave this checked.");
 static wxString pixel_lighting_desc = _("Calculate lighting of 3D graphics per-pixel rather than per vertex.\nDecreases emulation speed by some percent (depending on your GPU).\nThis usually is a safe enhancement, but might cause issues sometimes.\n\nIf unsure, leave this unchecked.");
 static wxString phong_lighting_desc = _("Use Phong specular model when pixel ligthing is enabled.");
+static wxString phong_intensity_desc = _("Controls Global intensity of specular reflection.");
+static wxString rim_intensity_desc = _("Controls Intensity of rim effect.");
+static wxString rim_power_desc = _("Controls exponent of rim effect.");
+static wxString rim_base_desc = _("Controls minimun rim color.");
 static wxString hacked_buffer_upload_desc = _("Uses unsafe operations to speed up vertex streaming in OpenGL. There are no known problems on supported GPUs, but it will cause severe stability and graphical issues otherwise.\n\nIf unsure, leave this unchecked.");
 static wxString fast_depth_calc_desc = _("Use a less accurate algorithm to calculate depth values.\nCauses issues in a few games but might give a decent speedup.\n\nIf unsure, leave this checked.");
 static wxString force_filtering_desc = _("Force texture filtering even if the emulated game explicitly disabled it.\nImproves texture quality slightly but causes glitches in some games.\n\nIf unsure, leave this unchecked.");
@@ -429,11 +433,54 @@ VideoConfigDiag::VideoConfigDiag(wxWindow* parent, const std::string &title, con
 	szr_enh->Add(CreateCheckBox(page_enh, _("Widescreen Hack"), (ws_hack_desc), vconfig.bWidescreenHack));
 	szr_enh->Add(CreateCheckBox(page_enh, _("Disable Fog"), (disable_fog_desc), vconfig.bDisableFog));
 	szr_enh->Add(pixel_lighting = CreateCheckBox(page_enh, _("Per-Pixel Lighting"), (pixel_lighting_desc), vconfig.bEnablePixelLighting));
-	szr_enh->Add(phong_lighting = CreateCheckBox(page_enh, _("Phong Lighting"), (phong_lighting_desc), vconfig.bForcePhongShading));
 	
 	wxStaticBoxSizer* const group_enh = new wxStaticBoxSizer(wxVERTICAL, page_enh, _("Enhancements"));
 	group_enh->Add(szr_enh, 1, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 5);
 	szr_enh_main->Add(group_enh, 0, wxEXPAND | wxALL, 5);
+
+	{
+		wxFlexGridSizer* const szr_phong = new wxFlexGridSizer(4, 5, 5);
+		szr_phong->Add(phong_lighting = CreateCheckBox(page_enh, _("Phong Lighting"), (phong_lighting_desc), vconfig.bForcePhongShading));
+		szr_phong->AddSpacer(0);
+		szr_phong->AddSpacer(0);
+		szr_phong->AddSpacer(0);
+		{
+			wxSlider* const pintensity_slider = new wxSlider(page_enh, wxID_ANY, vconfig.iSpecularMultiplier, 0, 510, wxDefaultPosition, wxDefaultSize);
+			pintensity_slider->Bind(wxEVT_SLIDER, &VideoConfigDiag::Event_SpecularIntensity, this);
+			RegisterControl(pintensity_slider, (phong_intensity_desc));
+
+			szr_phong->Add(new wxStaticText(page_enh, wxID_ANY, _("Specular Intensity:")), 1, wxALIGN_CENTER_VERTICAL, 0);
+			szr_phong->Add(pintensity_slider, 1, wxEXPAND | wxRIGHT);
+		}
+		{
+			wxSlider* const rimintensity_slider = new wxSlider(page_enh, wxID_ANY, vconfig.iRimIntesity, 0, 255, wxDefaultPosition, wxDefaultSize);
+			rimintensity_slider->Bind(wxEVT_SLIDER, &VideoConfigDiag::Event_RimIntensity, this);
+			RegisterControl(rimintensity_slider, (rim_intensity_desc));
+
+			szr_phong->Add(new wxStaticText(page_enh, wxID_ANY, _("Rim Intensity:")), 1, wxALIGN_CENTER_VERTICAL, 0);
+			szr_phong->Add(rimintensity_slider, 1, wxEXPAND | wxRIGHT);
+		}
+		{
+			wxSlider* const rimpower_slider = new wxSlider(page_enh, wxID_ANY, vconfig.iRimPower, 0, 255, wxDefaultPosition, wxDefaultSize);
+			rimpower_slider->Bind(wxEVT_SLIDER, &VideoConfigDiag::Event_RimPower, this);
+			RegisterControl(rimpower_slider, (rim_intensity_desc));
+
+			szr_phong->Add(new wxStaticText(page_enh, wxID_ANY, _("Rim Exponent:")), 1, wxALIGN_CENTER_VERTICAL, 0);
+			szr_phong->Add(rimpower_slider, 1, wxEXPAND | wxRIGHT);
+		}
+		{
+			wxSlider* const rimbase_slider = new wxSlider(page_enh, wxID_ANY, vconfig.iRimBase, 0, 127, wxDefaultPosition, wxDefaultSize);
+			rimbase_slider->Bind(wxEVT_SLIDER, &VideoConfigDiag::Event_RimBase, this);
+			RegisterControl(rimbase_slider, (rim_base_desc));
+
+			szr_phong->Add(new wxStaticText(page_enh, wxID_ANY, _("Rim Base:")), 1, wxALIGN_CENTER_VERTICAL, 0);
+			szr_phong->Add(rimbase_slider, 1, wxEXPAND | wxRIGHT);
+		}
+		
+		wxStaticBoxSizer* const group_phong = new wxStaticBoxSizer(wxVERTICAL, page_enh, _("Light Parameters"));
+		group_phong->Add(szr_phong, 1, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 5);
+		szr_enh_main->Add(group_phong, 1, wxEXPAND | wxALL, 5);
+	}
 
 	if (vconfig.backend_info.bSupportsGeometryShaders)
 	{
@@ -474,7 +521,7 @@ VideoConfigDiag::VideoConfigDiag(wxWindow* parent, const std::string &title, con
 
 		wxStaticBoxSizer* const group_stereo = new wxStaticBoxSizer(wxVERTICAL, page_enh, _("Stereoscopy"));
 		group_stereo->Add(szr_stereo, 1, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 5);
-		szr_enh_main->Add(group_stereo, 2, wxEXPAND | wxALL, 5);
+		szr_enh_main->Add(group_stereo, 0, wxEXPAND | wxALL, 5);
 	}
 	wxFlexGridSizer* const szr_columns = new wxFlexGridSizer(2, 2, 2);
 	if (vconfig.backend_info.bSupportsTessellation)
@@ -554,7 +601,6 @@ VideoConfigDiag::VideoConfigDiag(wxWindow* parent, const std::string &title, con
 	szr_columns->Add(group_scaling, 0, wxEXPAND | wxALL, 5);
 	szr_enh_main->Add(szr_columns, 0, wxEXPAND | wxALL, 5);
 
-	szr_enh_main->AddStretchSpacer();
 	CreateDescriptionArea(page_enh, szr_enh_main);
 	page_enh->SetSizerAndFit(szr_enh_main);
 	}
@@ -1180,6 +1226,33 @@ void VideoConfigDiag::Event_ConfigureScalingShader(wxCommandEvent &ev)
 void VideoConfigDiag::Event_StereoDepth(wxCommandEvent &ev)
 {
 	vconfig.iStereoDepth = ev.GetInt();
+
+	ev.Skip();
+}
+
+void VideoConfigDiag::Event_SpecularIntensity(wxCommandEvent &ev)
+{
+	vconfig.iSpecularMultiplier = ev.GetInt();
+
+	ev.Skip();
+}
+
+void VideoConfigDiag::Event_RimIntensity(wxCommandEvent &ev)
+{
+	vconfig.iRimIntesity = ev.GetInt();
+
+	ev.Skip();
+}
+
+void VideoConfigDiag::Event_RimPower(wxCommandEvent &ev)
+{
+	vconfig.iRimPower = ev.GetInt();
+
+	ev.Skip();
+}
+void VideoConfigDiag::Event_RimBase(wxCommandEvent &ev)
+{
+	vconfig.iRimBase = ev.GetInt();
 
 	ev.Skip();
 }

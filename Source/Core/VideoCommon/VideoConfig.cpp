@@ -89,8 +89,13 @@ void VideoConfig::Load(const std::string& ini_file)
 	settings->Get("UseFFV1", &bUseFFV1, 0);
 	settings->Get("EnablePixelLighting", &bEnablePixelLighting, 0);
 	settings->Get("ForcePhongShading", &bForcePhongShading, 0);
-	
-	
+	settings->Get("RimPower", &iRimPower, 80);
+	settings->Get("RimIntesity", &iRimIntesity, 0);
+	settings->Get("RimBase", &iRimBase, 10);
+	settings->Get("SpecularMultiplier", &iSpecularMultiplier, 255);
+
+
+
 	settings->Get("FastDepthCalc", &bFastDepthCalc, true);
 	settings->Get("MSAA", &iMultisamples, 1);
 	settings->Get("EFBScale", &iEFBScale, (int)SCALE_2X); // native	
@@ -210,8 +215,11 @@ void VideoConfig::GameIniLoad()
 	CHECK_SETTING("Video_Settings", "CacheHiresTexturesonGPU", bCacheHiresTexturesGPU);
 	CHECK_SETTING("Video_Settings", "EnablePixelLighting", bEnablePixelLighting);
 	CHECK_SETTING("Video_Settings", "ForcePhongShading", bForcePhongShading);
-	
-	
+	CHECK_SETTING("Video_Settings", "RimPower", iRimPower);
+	CHECK_SETTING("Video_Settings", "RimIntesity", iRimIntesity);
+	CHECK_SETTING("Video_Settings", "RimBase", iRimBase);
+	CHECK_SETTING("Video_Settings", "SpecularMultiplier", iSpecularMultiplier);
+
 	CHECK_SETTING("Video_Settings", "FastDepthCalc", bFastDepthCalc);
 	CHECK_SETTING("Video_Settings", "MSAA", iMultisamples);
 	CHECK_SETTING("Video_Settings", "SSAA", bSSAA);
@@ -308,6 +316,10 @@ void VideoConfig::VerifyValidity()
 		iMultisamples = 1;
 	if (!backend_info.bSupportsPixelLighting) bEnablePixelLighting = false;
 	bForcePhongShading = bForcePhongShading && bEnablePixelLighting;
+	iRimPower = std::min(std::max(iRimPower, 0), 255);
+	iRimIntesity = std::min(std::max(iRimIntesity, 0), 255);
+	iRimBase = std::min(std::max(iRimBase, 0), 127);
+	iSpecularMultiplier = std::min(std::max(iSpecularMultiplier, 0), 510);
 	iTessellationMax = iTessellationMax < 2 ? 2 : (iTessellationMax > 63 ? 63 : iTessellationMax);
 	iTessellationRoundingIntensity = iTessellationRoundingIntensity > 100 ? 100 : (iTessellationRoundingIntensity < 0 ? 0 : iTessellationRoundingIntensity);
 	iTessellationDisplacementIntensity = iTessellationDisplacementIntensity > 300 ? 300 : (iTessellationDisplacementIntensity < 0 ? 0 : iTessellationDisplacementIntensity);
@@ -388,8 +400,12 @@ void VideoConfig::Save(const std::string& ini_file)
 	settings->Set("UseFFV1", bUseFFV1);
 	settings->Set("EnablePixelLighting", bEnablePixelLighting);
 	settings->Set("ForcePhongShading", bForcePhongShading);
-	
-	
+	settings->Set("RimPower", iRimPower);
+	settings->Set("RimIntesity", iRimIntesity);
+	settings->Set("RimBase", iRimBase);
+	settings->Set("SpecularMultiplier", iSpecularMultiplier);
+
+
 	settings->Set("FastDepthCalc", bFastDepthCalc);
 	settings->Set("MSAA", iMultisamples);
 	settings->Set("SSAA", bSSAA);

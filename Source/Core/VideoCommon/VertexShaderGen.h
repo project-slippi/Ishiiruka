@@ -41,12 +41,14 @@
 #define I_NORMALMATRICES        "cnmtx"
 #define I_POSTTRANSFORMMATRICES "cpostmtx"
 #define I_PLOFFSETPARAMS        "cPLOffset" // line/point offset for correct emulation 
+#define I_PHONG                 "cphong"
 
 #define C_PROJECTION            0
 #define C_DEPTHPARAMS           (C_PROJECTION + 4)
 #define C_MATERIALS             (C_DEPTHPARAMS + 1)
 #define C_LIGHTS                (C_MATERIALS + 4)
-#define C_TEXMATRICES           (C_LIGHTS + 40)
+#define C_PHONG                 (C_LIGHTS + 40)
+#define C_TEXMATRICES           (C_PHONG + 1)
 #define C_TRANSFORMMATRICES     (C_TEXMATRICES + 24)
 #define C_NORMALMATRICES        (C_TRANSFORMMATRICES + 64)
 #define C_POSTTRANSFORMMATRICES (C_NORMALMATRICES + 32)

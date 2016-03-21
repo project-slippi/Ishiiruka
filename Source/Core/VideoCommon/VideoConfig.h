@@ -164,7 +164,11 @@ struct VideoConfig final
 	std::string sPhackvalue[2];
 	float fAspectRatioHackW, fAspectRatioHackH;
 	bool bEnablePixelLighting;
-	bool bForcePhongShading;	
+	bool bForcePhongShading;
+	int iRimPower;
+	int iRimIntesity; 
+	int iRimBase;
+	int iSpecularMultiplier;
 	bool bFastDepthCalc;
 	int iBBoxMode;
 	bool bViewportCorrection;

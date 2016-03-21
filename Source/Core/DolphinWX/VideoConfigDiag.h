@@ -108,6 +108,11 @@ protected:
 	void Event_ClickClose(wxCommandEvent&);
 	void Event_Close(wxCloseEvent&);
 
+	void Event_SpecularIntensity(wxCommandEvent &ev);
+	void Event_RimIntensity(wxCommandEvent &ev);
+	void Event_RimPower(wxCommandEvent &ev);
+	void Event_RimBase(wxCommandEvent &ev);
+
 	// Enables/disables UI elements depending on current config
 	void OnUpdateUI(wxUpdateUIEvent& ev);
 

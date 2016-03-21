@@ -34,6 +34,7 @@ static int nTransformMatricesChanged[2]; // min,max
 static int nNormalMatricesChanged[2]; // min,max
 static int nPostTransformMatricesChanged[2]; // min,max
 static int nLightsChanged[2]; // min,max
+static int s_LightsPhong[4];
 
 static Matrix44 s_viewportCorrection;
 static Matrix33 s_viewRotationMatrix;
@@ -41,6 +42,7 @@ static Matrix33 s_viewInvRotationMatrix;
 static float s_fViewTranslationVector[3];
 static float s_fViewRotation[2];
 
+const float U8_NORM_COEF = 1.0f / 255.0f;
 const float U24_NORM_COEF = 1.0f / 16777216.0f;
 
 struct ProjectionHack
@@ -253,12 +255,31 @@ void VertexShaderManager::Dirty()
 	bProjectionChanged = true;
 
 	nMaterialsChanged = 15;
+	s_LightsPhong[0] = 0;
+	s_LightsPhong[1] = 0;
+	s_LightsPhong[2] = 0;
+	s_LightsPhong[3] = 0;
 }
 
 // Syncs the shader constant buffers with xfmem
 // TODO: A cleaner way to control the matrices without making a mess in the parameters field
 void VertexShaderManager::SetConstants()
 {
+	if (g_ActiveConfig.iRimBase != s_LightsPhong[0]
+		|| g_ActiveConfig.iRimPower != s_LightsPhong[1]
+		|| g_ActiveConfig.iRimIntesity != s_LightsPhong[2]
+		|| g_ActiveConfig.iSpecularMultiplier != s_LightsPhong[3])
+	{
+		s_LightsPhong[0] = g_ActiveConfig.iRimBase;
+		s_LightsPhong[1] = g_ActiveConfig.iRimPower;
+		s_LightsPhong[2] = g_ActiveConfig.iRimIntesity;
+		s_LightsPhong[3] = g_ActiveConfig.iSpecularMultiplier;
+		m_buffer.SetConstant4(C_PHONG
+			, float(g_ActiveConfig.iRimBase)
+			, 1.0f + U8_NORM_COEF * g_ActiveConfig.iRimPower * 7.0f
+			, U8_NORM_COEF * g_ActiveConfig.iRimIntesity
+			, U8_NORM_COEF * g_ActiveConfig.iSpecularMultiplier);
+	}
 	if (nTransformMatricesChanged[0] >= 0)
 	{
 		int startn = nTransformMatricesChanged[0] / 4;

@@ -35,7 +35,9 @@ static u32 lastZBias;
 static int nMaterialsChanged;
 static int sflags[4];
 static bool sbflagschanged;
+static int s_LightsPhong[4];
 
+const float U8_NORM_COEF = 1.0f / 255.0f;
 const float U24_NORM_COEF = 1 / 16777216.0f;
 static bool s_use_integer_constants = false;
 
@@ -49,7 +51,7 @@ void PixelShaderManager::Init(bool use_integer_constants)
 	lastZBias = 0;
 	memset(lastRGBAfull, 0, sizeof(lastRGBAfull));
 	memset(sflags, 0, sizeof(sflags));
-	
+	memset(s_LightsPhong, 0, sizeof(s_LightsPhong));
 	Dirty();
 }
 
@@ -433,6 +435,21 @@ void PixelShaderManager::SetConstants()
 				}
 			}
 			nMaterialsChanged = 0;
+		}
+		if (g_ActiveConfig.iRimBase != s_LightsPhong[0]
+			|| g_ActiveConfig.iRimPower != s_LightsPhong[1]
+			|| g_ActiveConfig.iRimIntesity != s_LightsPhong[2]
+			|| g_ActiveConfig.iSpecularMultiplier != s_LightsPhong[3])
+		{
+			s_LightsPhong[0] = g_ActiveConfig.iRimBase;
+			s_LightsPhong[1] = g_ActiveConfig.iRimPower;
+			s_LightsPhong[2] = g_ActiveConfig.iRimIntesity;
+			s_LightsPhong[3] = g_ActiveConfig.iSpecularMultiplier;
+			m_buffer.SetConstant4(C_PPHONG
+				, float(g_ActiveConfig.iRimBase)
+				, 1.0f + U8_NORM_COEF * g_ActiveConfig.iRimPower * 7.0f
+				, U8_NORM_COEF * g_ActiveConfig.iRimIntesity
+				, U8_NORM_COEF * g_ActiveConfig.iSpecularMultiplier);
 		}
 	}
 	if (sbflagschanged)

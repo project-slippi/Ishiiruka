@@ -113,6 +113,7 @@ inline void GenerateVertexShader(ShaderCode& out, const vertex_shader_uid_data& 
 	DeclareUniform<api_type>(out, C_DEPTHPARAMS, "float4", I_DEPTHPARAMS);
 	DeclareUniform<api_type>(out, C_MATERIALS, "float4", I_MATERIALS"[4]");
 	DeclareUniform<api_type>(out, C_LIGHTS, "float4", I_LIGHTS"[40]");
+	DeclareUniform<api_type>(out, C_PHONG, "float4", I_PHONG);
 	DeclareUniform<api_type>(out, C_TEXMATRICES, "float4", I_TEXMATRICES"[24]");
 	DeclareUniform<api_type>(out, C_TRANSFORMMATRICES, "float4", I_TRANSFORMMATRICES"[64]");
 	DeclareUniform<api_type>(out, C_NORMALMATRICES, "float4", I_NORMALMATRICES"[32]");

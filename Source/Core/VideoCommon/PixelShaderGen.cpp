@@ -1473,6 +1473,7 @@ inline void GeneratePixelShader(ShaderCode& out, const pixel_shader_uid_data& ui
 
 		DeclareUniform<ApiType>(out, C_PMATERIALS, "float4", I_MATERIALS "[4]");
 		DeclareUniform<ApiType>(out, C_PLIGHTS, "float4", I_LIGHTS "[40]");
+		DeclareUniform<ApiType>(out, C_PPHONG, "float4", I_PPHONG);
 
 		if (ApiType == API_OPENGL || ApiType == API_D3D11)
 		{
@@ -1823,6 +1824,10 @@ inline void GeneratePixelShader(ShaderCode& out, const pixel_shader_uid_data& ui
 		}
 		// Only col0 and col1 are needed so discard the remaining components
 		GenerateLightingShaderCode(out, uid_data.numColorChans, uid_data.lighting, uid_data.components << VB_COL_SHIFT, I_MATERIALS, I_LIGHTS, "colors_", "col", Use_integer_math, forcePhong);
+		if (forcePhong)
+		{
+			out.Write("spec.w = 1.0 - saturate(dot(View, _norm0));\n");
+		}
 	}
 	else
 	{
@@ -1949,7 +1954,10 @@ inline void GeneratePixelShader(ShaderCode& out, const pixel_shader_uid_data& ui
 	}
 	if (forcePhong)
 	{
-		out.Write("prev.rgb += wu3(spec.rgb*normalmap.w);\n");
+		out.Write(
+			"prev.rgb += wu3(clamp(prev.rgb + " I_PPHONG ".xxx, 0.0,255.0)*pow(spec.w, " I_PPHONG ".y)*" I_PPHONG ".z);\n"
+			"prev.rgb += wu3(spec.rgb * normalmap.w * " I_PPHONG ".w);\n"
+			);
 	}
 	if (render_mode == PSRM_ALPHA_PASS)
 	{
