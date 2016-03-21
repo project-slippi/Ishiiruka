@@ -283,7 +283,7 @@ public:
 
 	// Construct a complete fragment shader (HLSL/GLSL) for the specified pass.
 	static std::string GetPassFragmentShaderSource(API_TYPE api, const PostProcessingShaderConfiguration* config,
-		const PostProcessingShaderConfiguration::RenderPass* pass);
+		const PostProcessingShaderConfiguration::RenderPass* pass, int texture_register_start = 9);
 
 	// Scale a target resolution to an output's scale
 	static TargetSize ScaleTargetSize(const TargetSize& orig_size, float scale);

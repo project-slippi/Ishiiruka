@@ -23,12 +23,6 @@ private:
 	{
 		D3DTexture2D* m_texture;
 		D3DTexture2D* m_nrm_texture;
-		D3D12_CPU_DESCRIPTOR_HANDLE m_texture_srv_cpu_handle;
-		D3D12_GPU_DESCRIPTOR_HANDLE m_texture_srv_gpu_handle;
-		D3D12_CPU_DESCRIPTOR_HANDLE m_texture_srv_gpu_handle_cpu_shadow;
-		D3D12_CPU_DESCRIPTOR_HANDLE m_nrm_texture_srv_cpu_handle;
-		D3D12_GPU_DESCRIPTOR_HANDLE m_nrm_texture_srv_gpu_handle;
-		D3D12_CPU_DESCRIPTOR_HANDLE m_nrm_texture_srv_gpu_handle_cpu_shadow;
 		DXGI_FORMAT DXGI_format;
 		bool compressed;
 

@@ -25,8 +25,6 @@
 namespace DX12
 {
 
-static const u32 FIRST_INPUT_BINDING_SLOT = 9;
-
 static const char* s_shader_common = R"(
 
 struct VS_INPUT
@@ -212,8 +210,6 @@ bool PostProcessingShader::CreatePasses()
 			if (input.type == POST_PROCESSING_INPUT_TYPE_PREVIOUS_PASS_OUTPUT && m_passes.empty())
 				input.type = POST_PROCESSING_INPUT_TYPE_COLOR_BUFFER;
 
-			
-
 			input.sampler_index = input_config.filter * 3 + input_config.address_mode;		
 
 			pass.inputs.push_back(std::move(input));
@@ -231,7 +227,7 @@ bool PostProcessingShader::RecompileShaders()
 	{
 		RenderPassData& pass = m_passes[i];
 		const PostProcessingShaderConfiguration::RenderPass& pass_config = m_config->GetPass(i);
-		std::string hlsl_source = PostProcessor::GetPassFragmentShaderSource(API_D3D11, m_config, &pass_config);
+		std::string hlsl_source = PostProcessor::GetPassFragmentShaderSource(API_D3D11, m_config, &pass_config, 0);
 		SAFE_RELEASE(pass.m_shader_blob);
 		D3D::CompilePixelShader(hlsl_source, &pass.m_shader_blob);
 		if (pass.m_shader_blob == nullptr)
@@ -399,12 +395,12 @@ void PostProcessingShader::Draw(D3DPostProcessor* parent,
 		D3D12_CPU_DESCRIPTOR_HANDLE base_sampler_cpu_handle;
 		D3D12_GPU_DESCRIPTOR_HANDLE base_sampler_gpu_handle;
 
-		DX12::D3D::sampler_descriptor_heap_mgr->AllocateGroup(&base_sampler_cpu_handle, 16, &base_sampler_gpu_handle, nullptr, true);
+		DX12::D3D::sampler_descriptor_heap_mgr->AllocateGroup(&base_sampler_cpu_handle, POST_PROCESSING_MAX_TEXTURE_INPUTS, &base_sampler_gpu_handle, nullptr, true);
 
 		D3D12_CPU_DESCRIPTOR_HANDLE group_base_texture_cpu_handle;
 		D3D12_GPU_DESCRIPTOR_HANDLE group_base_texture_gpu_handle;
 		// On the first texture in the group, we need to allocate the space in the descriptor heap.
-		DX12::D3D::gpu_descriptor_heap_mgr->AllocateGroup(&group_base_texture_cpu_handle, 16, &group_base_texture_gpu_handle, nullptr, true);		
+		DX12::D3D::gpu_descriptor_heap_mgr->AllocateGroup(&group_base_texture_cpu_handle, POST_PROCESSING_MAX_TEXTURE_INPUTS, &group_base_texture_gpu_handle, nullptr, true);
 
 		// Bind inputs to pipeline
 		for (size_t i = 0; i < pass.inputs.size(); i++)
@@ -413,7 +409,7 @@ void PostProcessingShader::Draw(D3DPostProcessor* parent,
 
 			D3D12_CPU_DESCRIPTOR_HANDLE textureDestDescriptor;
 			D3DTexture2D* input_texture = nullptr;;
-			textureDestDescriptor.ptr = group_base_texture_cpu_handle.ptr + (FIRST_INPUT_BINDING_SLOT + i) * D3D::resource_descriptor_size;
+			textureDestDescriptor.ptr = group_base_texture_cpu_handle.ptr + i * D3D::resource_descriptor_size;
 
 			switch (input.type)
 			{
@@ -444,7 +440,7 @@ void PostProcessingShader::Draw(D3DPostProcessor* parent,
 				);
 
 			D3D12_CPU_DESCRIPTOR_HANDLE destinationDescriptor;
-			destinationDescriptor.ptr = base_sampler_cpu_handle.ptr + (FIRST_INPUT_BINDING_SLOT + i) * D3D::sampler_descriptor_size;
+			destinationDescriptor.ptr = base_sampler_cpu_handle.ptr + i * D3D::sampler_descriptor_size;
 
 			DX12::D3D::device->CopyDescriptorsSimple(
 				1,

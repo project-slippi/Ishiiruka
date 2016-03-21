@@ -54,10 +54,10 @@ void TextureCache::TCacheEntry::Bind(unsigned int stage, unsigned int last_Textu
 	}
 	if (last_Texture == 0 && !use_materials)
 	{
-		DX12::D3D::current_command_list->SetGraphicsRootDescriptorTable(DESCRIPTOR_TABLE_PS_SRV, this->m_texture_srv_gpu_handle);
+		DX12::D3D::current_command_list->SetGraphicsRootDescriptorTable(DESCRIPTOR_TABLE_PS_SRV, this->m_texture->GetSRVGPU());
 		if (g_ActiveConfig.TessellationEnabled())
 		{
-			DX12::D3D::current_command_list->SetGraphicsRootDescriptorTable(DESCRIPTOR_TABLE_DS_SRV, this->m_texture_srv_gpu_handle);
+			DX12::D3D::current_command_list->SetGraphicsRootDescriptorTable(DESCRIPTOR_TABLE_DS_SRV, this->m_texture->GetSRVGPU());
 		}
 		return;
 	}
@@ -91,7 +91,7 @@ void TextureCache::TCacheEntry::Bind(unsigned int stage, unsigned int last_Textu
 	DX12::D3D::device->CopyDescriptorsSimple(
 		1,
 		textureDestDescriptor,
-		this->m_texture_srv_gpu_handle_cpu_shadow,
+		this->m_texture->GetSRVGPUCPUShadow(),
 		D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV
 		);
 
@@ -101,7 +101,7 @@ void TextureCache::TCacheEntry::Bind(unsigned int stage, unsigned int last_Textu
 		DX12::D3D::device->CopyDescriptorsSimple(
 			1,
 			textureDestDescriptor,
-			this->m_nrm_texture_srv_gpu_handle_cpu_shadow,
+			this->m_nrm_texture->GetSRVGPUCPUShadow(),
 			D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV
 			);
 	}
@@ -210,9 +210,6 @@ void TextureCache::TCacheEntry::CopyRectangleFromTexture(
 		D3D::current_command_list->CopyResource(ptexture->GetTex(), m_texture->GetTex());
 		m_texture->Release();
 		m_texture = ptexture;
-		m_texture_srv_cpu_handle = m_texture->GetSRVCPU();
-		m_texture_srv_gpu_handle = m_texture->GetSRVGPU();
-		m_texture_srv_gpu_handle_cpu_shadow = m_texture->GetSRVGPUCPUShadow();
 	}
 
 	D3D::SetViewportAndScissor(dst_rect.left, dst_rect.top, dst_rect.GetWidth(), dst_rect.GetHeight());
@@ -307,11 +304,6 @@ TextureCacheBase::TCacheEntryBase* TextureCache::CreateTexture(const TCacheEntry
 			DXGI_FORMAT_R8G8B8A8_UNORM, 1, config.layers);
 
 		TCacheEntry* entry = new TCacheEntry(config, texture);
-
-		entry->m_texture_srv_cpu_handle = texture->GetSRVCPU();
-		entry->m_texture_srv_gpu_handle = texture->GetSRVGPU();
-		entry->m_texture_srv_gpu_handle_cpu_shadow = texture->GetSRVGPUCPUShadow();
-
 		return entry;
 	}
 	else
@@ -361,9 +353,6 @@ TextureCacheBase::TCacheEntryBase* TextureCache::CreateTexture(const TCacheEntry
 			config, texture
 			);
 
-		entry->m_texture_srv_cpu_handle = texture->GetSRVCPU();
-		entry->m_texture_srv_gpu_handle = texture->GetSRVGPU();
-		entry->m_texture_srv_gpu_handle_cpu_shadow = texture->GetSRVGPUCPUShadow();
 		entry->DXGI_format = format;
 		if (format != DXGI_FORMAT_R8G8B8A8_UNORM)
 		{
@@ -393,9 +382,6 @@ TextureCacheBase::TCacheEntryBase* TextureCache::CreateTexture(const TCacheEntry
 				false,
 				D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE
 				);
-			entry->m_nrm_texture_srv_cpu_handle = entry->m_nrm_texture->GetSRVCPU();
-			entry->m_nrm_texture_srv_gpu_handle = entry->m_nrm_texture->GetSRVGPU();
-			entry->m_nrm_texture_srv_gpu_handle_cpu_shadow = entry->m_nrm_texture->GetSRVGPUCPUShadow();
 		}
 		return entry;
 	}

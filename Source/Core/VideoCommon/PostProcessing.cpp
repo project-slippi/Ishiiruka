@@ -1117,8 +1117,8 @@ const std::string PostProcessor::s_post_fragment_header_d3d = R"(
 #define DEPTH_VALUE(val) (1.0f - (val))
 
 // Shader inputs
-Texture2DArray pp_inputs[4] : register(t9);
-SamplerState pp_input_samplers[4] : register(s9);
+Texture2DArray pp_inputs[4] : register(t%i);
+SamplerState pp_input_samplers[4] : register(s%i);
 // Shadows of those read/written in main
 static float v_layer;
 static float2 v_source_uv, v_target_uv, v_fragcoord;
@@ -1396,7 +1396,7 @@ void PostProcessor::GetUniformBufferShaderSource(API_TYPE api, const PostProcess
 }
 
 std::string PostProcessor::GetPassFragmentShaderSource(API_TYPE api, const PostProcessingShaderConfiguration* config,
-	const PostProcessingShaderConfiguration::RenderPass* pass)
+	const PostProcessingShaderConfiguration::RenderPass* pass, int texture_register_start)
 {
 	std::string shader_source;
 	size_t base_size = config->GetOptions().size() * 64 + s_post_fragment_header_common.size() + s_post_fragment_header_ogl.size() + 1024;
@@ -1415,7 +1415,7 @@ std::string PostProcessor::GetPassFragmentShaderSource(API_TYPE api, const PostP
 	{
 		shader_source += "#define API_D3D 1\n";
 		shader_source += "#define HLSL 1\n";
-		shader_source += s_post_fragment_header_d3d;
+		shader_source += StringFromFormat(s_post_fragment_header_d3d.c_str(), texture_register_start, texture_register_start);
 	}
 
 	// Add uniform buffer

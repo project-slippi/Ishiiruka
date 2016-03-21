@@ -1076,7 +1076,7 @@ void Renderer::ApplyState(bool use_dst_alpha)
 	if (D3D::command_list_mgr->GetCommandListDirtyState(COMMAND_LIST_STATE_SAMPLERS))
 	{
 		D3D12_GPU_DESCRIPTOR_HANDLE sample_group_gpu_handle;
-		sample_group_gpu_handle = gx_state_cache.GetHandleForSamplerGroup(gx_state.sampler, 16);
+		sample_group_gpu_handle = gx_state_cache.GetHandleForSamplerGroup(gx_state.sampler, 8);
 
 		D3D::current_command_list->SetGraphicsRootDescriptorTable(DESCRIPTOR_TABLE_PS_SAMPLER, sample_group_gpu_handle);
 		if (g_ActiveConfig.TessellationEnabled())

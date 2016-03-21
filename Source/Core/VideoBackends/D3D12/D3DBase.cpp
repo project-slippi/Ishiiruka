@@ -485,7 +485,7 @@ void CreateRootSignatures()
 
 	D3D12_DESCRIPTOR_RANGE desc_range_sampler = {
 		D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER, // D3D12_DESCRIPTOR_RANGE_TYPE RangeType;
-		16,                                  // UINT NumDescriptors;
+		8,                                  // UINT NumDescriptors;
 		0,                                   // UINT BaseShaderRegister;
 		0,                                   // UINT RegisterSpace;
 		D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND // UINT OffsetInDescriptorsFromTableStart;
