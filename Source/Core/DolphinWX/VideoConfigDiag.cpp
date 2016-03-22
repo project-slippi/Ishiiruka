@@ -521,7 +521,7 @@ VideoConfigDiag::VideoConfigDiag(wxWindow* parent, const std::string &title, con
 
 		wxStaticBoxSizer* const group_stereo = new wxStaticBoxSizer(wxVERTICAL, page_enh, _("Stereoscopy"));
 		group_stereo->Add(szr_stereo, 1, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 5);
-		szr_enh_main->Add(group_stereo, 0, wxEXPAND | wxALL, 5);
+		szr_enh_main->Add(group_stereo, 1, wxEXPAND | wxALL, 5);
 	}
 	wxFlexGridSizer* const szr_columns = new wxFlexGridSizer(2, 2, 2);
 	if (vconfig.backend_info.bSupportsTessellation)
