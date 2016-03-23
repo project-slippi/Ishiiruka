@@ -84,8 +84,11 @@ void BBox::Update()
 
 void BBox::Set(s32 index, s32 value)
 {
-	s_values[index] = value;
-	s_cpu_dirty = true;
+	if (s_values[index] != value)
+	{
+		s_values[index] = value;
+		s_cpu_dirty = true;
+	}
 }
 
 s32 BBox::Get(s32 index)

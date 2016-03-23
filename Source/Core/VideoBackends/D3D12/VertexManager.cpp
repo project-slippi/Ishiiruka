@@ -144,13 +144,9 @@ void VertexManager::vFlush(bool use_dst_alpha)
 	{
 		return;
 	}
-	if (g_ActiveConfig.backend_info.bSupportsBBox && BoundingBox::active && g_ActiveConfig.iBBoxMode == BBoxGPU)
-	{
-		BBox::Invalidate();
-	}
 
 	u32 stride = VertexLoaderManager::GetCurrentVertexFormat()->GetVertexStride();
-
+	BBox::Bind();
 	PrepareDrawBuffers(stride);
 
 	g_renderer->ApplyState(use_dst_alpha);

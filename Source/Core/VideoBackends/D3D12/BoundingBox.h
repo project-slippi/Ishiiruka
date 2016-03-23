@@ -13,7 +13,6 @@ class BBox
 public:
 	static void Init();
 	static void Bind();
-	static void Invalidate();
 	static void Shutdown();
 
 	static void Set(int index, int value);

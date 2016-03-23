@@ -98,6 +98,8 @@ static struct
 } gx_state;
 
 StateCache gx_state_cache;
+static bool s_scissor_dirty = true;
+static RECT s_scissor_rect{};
 
 static void SetupDeviceObjects()
 {
@@ -157,6 +159,7 @@ static void SetupDeviceObjects()
 	g_reset_rast_desc = rast_desc;
 
 	s_screenshot_texture = nullptr;
+	s_scissor_dirty = true;
 }
 
 // Kill off all device objects
@@ -326,7 +329,8 @@ __declspec(noinline) bool Renderer::CheckForResize()
 
 void Renderer::SetScissorRect(const TargetRectangle& rc)
 {
-	D3D::current_command_list->RSSetScissorRects(1, rc.AsRECT());
+	s_scissor_rect = *rc.AsRECT();
+	s_scissor_dirty = true;
 }
 
 void Renderer::SetColorMask()
@@ -742,7 +746,6 @@ void Renderer::SwapImpl(u32 xfb_addr, u32 fb_width, u32 fb_stride, u32 fb_height
 
 	// Invalidate EFB access copies. Not strictly necessary, but this avoids having the buffers mapped when calling Present().
 	FramebufferManager::InvalidateEFBCache();
-	BBox::Invalidate();
 
 	// Prepare to copy the XFBs to our backbuffer
 	UpdateDrawRectangle(s_backbuffer_width, s_backbuffer_height);
@@ -1037,7 +1040,6 @@ void Renderer::SwapImpl(u32 xfb_addr, u32 fb_width, u32 fb_stride, u32 fb_height
 	RestoreAPIState();
 	D3D::BeginFrame();
 
-	SetViewport();
 	RestoreAPIState();
 
 	// if the configuration has changed, reload post processor (can fail, which will deactivate it)
@@ -1055,9 +1057,8 @@ void Renderer::RestoreAPIState()
 	// Restores viewport/scissor rects, which might have been
 	// overwritten elsewhere (particularly the viewport).
 	SetViewport();
-	BPFunctions::SetScissor();
+	s_scissor_dirty = true;
 	FramebufferManager::RestoreEFBRenderTargets();
-	BBox::Bind();
 }
 
 static bool s_previous_use_dst_alpha = false;
@@ -1096,6 +1097,9 @@ void Renderer::ApplyState(bool use_dst_alpha)
 	{
 		RestoreAPIState();
 	}
+
+	if (s_scissor_dirty)
+		D3D::current_command_list->RSSetScissorRects(1, &s_scissor_rect);
 
 	if (D3D::command_list_mgr->GetCommandListDirtyState(COMMAND_LIST_STATE_PSO) || s_previous_vertex_format != reinterpret_cast<D3DVertexFormat*>(VertexLoaderManager::GetCurrentVertexFormat()))
 	{
