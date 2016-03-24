@@ -300,7 +300,11 @@ u8* Run(DataReader& reader, u32* cycles)
 					u32 vtx_attr_group = cmd_byte & GX_VAT_MASK;
 					parameters.vtx_attr_group = vtx_attr_group;
 					parameters.needloaderrefresh = (state.attr_dirty & (1u << vtx_attr_group)) != 0;
-					parameters.skip_draw = Fifo::WillSkipCurrentFrame();
+					parameters.skip_draw = Fifo::WillSkipCurrentFrame() 
+						|| xfmem.viewport.wd == 0.0f 
+						|| xfmem.viewport.ht == 0.0f
+						|| (bpmem.scissorBR.x + 1 - bpmem.scissorTL.x) == 0
+						|| (bpmem.scissorBR.y + 1 - bpmem.scissorTL.y) == 0;
 					parameters.VtxDesc = &state.vtx_desc;
 					parameters.VtxAttr = &state.vtx_attr[vtx_attr_group];
 					parameters.source = reader.GetReadPosition();

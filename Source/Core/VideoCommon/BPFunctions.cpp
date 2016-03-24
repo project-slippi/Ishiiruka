@@ -60,8 +60,8 @@ void SetScissor()
 	if (rc.right > EFB_WIDTH) rc.right = EFB_WIDTH;
 	if (rc.bottom > EFB_HEIGHT) rc.bottom = EFB_HEIGHT;
 
-	if (rc.left > rc.right) rc.right = rc.left;
-	if (rc.top > rc.bottom) rc.bottom = rc.top;
+	if (rc.left > rc.right) std::swap(rc.right , rc.left);
+	if (rc.top > rc.bottom) std::swap(rc.bottom, rc.top);
 
 	TargetRectangle trc = g_renderer->ConvertEFBRectangle(rc);	
 	g_renderer->SetScissorRect(trc);
