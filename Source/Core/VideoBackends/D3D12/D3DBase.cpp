@@ -334,8 +334,9 @@ HRESULT Create(HWND wnd)
 	if (SUCCEEDED(device->QueryInterface(info_queue.ReleaseAndGetAddressOf())))
 	{
 		CheckHR(info_queue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_ERROR, TRUE));
+#if defined(_DEBUG) || defined(DEBUGFAST) || defined(USE_D3D12_DEBUG_LAYER)
 		CheckHR(info_queue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_WARNING, TRUE));
-
+#endif
 		D3D12_INFO_QUEUE_FILTER filter = {};
 		D3D12_MESSAGE_ID id_list[] = {
 			D3D12_MESSAGE_ID_CREATEGRAPHICSPIPELINESTATE_DEPTHSTENCILVIEW_NOT_SET, // Benign.

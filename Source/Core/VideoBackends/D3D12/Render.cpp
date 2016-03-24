@@ -100,6 +100,9 @@ static struct
 StateCache gx_state_cache;
 static bool s_scissor_dirty = true;
 static RECT s_scissor_rect{};
+static bool s_viewport_dirty = true;
+static D3D12_VIEWPORT s_vp;
+static bool s_target_dirty = true;
 
 static void SetupDeviceObjects()
 {
@@ -159,6 +162,8 @@ static void SetupDeviceObjects()
 	g_reset_rast_desc = rast_desc;
 
 	s_screenshot_texture = nullptr;
+	s_viewport_dirty = true;
+	s_target_dirty = true;
 	s_scissor_dirty = true;
 }
 
@@ -274,11 +279,11 @@ Renderer::Renderer(void*& window_handle)
 	D3D::current_command_list->ClearRenderTargetView(FramebufferManager::GetEFBColorTexture()->GetRTV(), clear_color, 0, nullptr);
 	D3D::current_command_list->ClearDepthStencilView(FramebufferManager::GetEFBDepthTexture()->GetDSV(), D3D12_CLEAR_FLAG_DEPTH, 0.f, 0, 0, nullptr);
 
-	D3D12_VIEWPORT vp = { 0.f, 0.f, static_cast<float>(s_target_width), static_cast<float>(s_target_height), D3D12_MIN_DEPTH, D3D12_MAX_DEPTH };
-	D3D::current_command_list->RSSetViewports(1, &vp);
+	s_vp = { 0.f, 0.f, static_cast<float>(s_target_width), static_cast<float>(s_target_height), D3D12_MIN_DEPTH, D3D12_MAX_DEPTH };
+	D3D::current_command_list->RSSetViewports(1, &s_vp);
 
 	// Already transitioned to appropriate states a few lines up for the clears.
-	FramebufferManager::RestoreEFBRenderTargets();
+	s_target_dirty = true;
 
 	D3D::BeginFrame();
 }
@@ -423,6 +428,10 @@ u32 Renderer::AccessEFB(EFBAccessType type, u32 x, u32 y, u32 poke_data)
 
 void Renderer::PokeEFB(EFBAccessType type, const EfbPokeData* points, size_t num_points)
 {
+	if (s_target_dirty)
+	{
+		FramebufferManager::RestoreEFBRenderTargets();
+	}
 	D3D::SetViewportAndScissor(0, 0, GetTargetWidth(), GetTargetHeight());
 	FramebufferManager::GetEFBColorTexture()->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_RENDER_TARGET);	
 	if (type == POKE_COLOR)
@@ -453,8 +462,8 @@ void Renderer::PokeEFB(EFBAccessType type, const EfbPokeData* points, size_t num
 			FramebufferManager::GetEFBColorTexture()->GetMultisampled()
 			);
 	}
-
 	RestoreAPIState();
+	s_target_dirty = false;
 }
 
 void Renderer::SetViewport()
@@ -495,17 +504,17 @@ void Renderer::SetViewport()
 	width = (x + width <= GetTargetWidth()) ? width : (GetTargetWidth() - x);
 	height = (y + height <= GetTargetHeight()) ? height : (GetTargetHeight() - y);
 
-	D3D12_VIEWPORT vp = { x, y, width, height, 0.0f, 1.0f };
+	s_vp = { x, y, width, height, 0.0f, 1.0f };
 	float nearz = xfmem.viewport.farZ - MathUtil::Clamp<float>(xfmem.viewport.zRange, 0.0f, 16777216.0f);
 	float farz = xfmem.viewport.farZ;
 
 	const bool nonStandartViewport = g_ActiveConfig.bViewportCorrection && (nearz < 0.f || farz > 16777216.0f || nearz >= 16777216.0f || farz <= 0.f);
 	if (!nonStandartViewport)
 	{
-		vp.MaxDepth = 1.0f - (MathUtil::Clamp<float>(nearz, 0.0f, 16777215.0f) / 16777216.0f);
-		vp.MinDepth = 1.0f - (MathUtil::Clamp<float>(farz, 0.0f, 16777215.0f) / 16777216.0f);
+		s_vp.MaxDepth = 1.0f - (MathUtil::Clamp<float>(nearz, 0.0f, 16777215.0f) / 16777216.0f);
+		s_vp.MinDepth = 1.0f - (MathUtil::Clamp<float>(farz, 0.0f, 16777215.0f) / 16777216.0f);
 	}
-	D3D::current_command_list->RSSetViewports(1, &vp);
+	s_viewport_dirty = true;	
 }
 
 void Renderer::ClearScreen(const EFBRectangle& rc, bool color_enable, bool alpha_enable, bool z_enable, u32 color, u32 z)
@@ -522,7 +531,10 @@ void Renderer::ClearScreen(const EFBRectangle& rc, bool color_enable, bool alpha
 		blend_desc = &s_clear_blend_descs[CLEAR_BLEND_DESC_ALL_CHANNELS_DISABLED];
 
 	D3D12_DEPTH_STENCIL_DESC *depth_stencil_desc = nullptr;
-
+	if (s_target_dirty)
+	{
+		FramebufferManager::RestoreEFBRenderTargets();
+	}
 	// EXISTINGD3D11TODO: Should we enable Z testing here?
 	/*if (!bpmem.zmode.testenable) depth_stencil_desc = &s_clear_depth_descs[CLEAR_DEPTH_DESC_DEPTH_DISABLED];
 	else */if (z_enable)
@@ -547,7 +559,7 @@ void Renderer::ClearScreen(const EFBRectangle& rc, bool color_enable, bool alpha
 
 	// Restores proper viewport/scissor settings.
 	RestoreAPIState();
-
+	s_target_dirty = false;
 	FramebufferManager::InvalidateEFBCache();
 }
 
@@ -571,7 +583,10 @@ void Renderer::ReinterpretPixelData(unsigned int convtype)
 		ERROR_LOG(VIDEO, "Trying to reinterpret pixel data with unsupported conversion type %d", convtype);
 		return;
 	}
-
+	if (s_target_dirty)
+	{
+		FramebufferManager::RestoreEFBRenderTargets();
+	}
 	D3D::SetViewportAndScissor(0, 0, g_renderer->GetTargetWidth(), g_renderer->GetTargetHeight());
 
 	FramebufferManager::GetEFBColorTempTexture()->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_RENDER_TARGET);
@@ -599,6 +614,7 @@ void Renderer::ReinterpretPixelData(unsigned int convtype)
 	FramebufferManager::InvalidateEFBCache();
 	// Restores proper viewport/scissor settings.
 	RestoreAPIState();
+	s_target_dirty = false;
 }
 
 void Renderer::SetBlendMode(bool force_update)
@@ -1056,9 +1072,9 @@ void Renderer::RestoreAPIState()
 {
 	// Restores viewport/scissor rects, which might have been
 	// overwritten elsewhere (particularly the viewport).
-	SetViewport();
+	s_viewport_dirty = true;
 	s_scissor_dirty = true;
-	FramebufferManager::RestoreEFBRenderTargets();
+	s_target_dirty = true;
 }
 
 static bool s_previous_use_dst_alpha = false;
@@ -1097,10 +1113,21 @@ void Renderer::ApplyState(bool use_dst_alpha)
 	{
 		RestoreAPIState();
 	}
-
+	if (s_viewport_dirty)
+	{
+		D3D::current_command_list->RSSetViewports(1, &s_vp);
+		s_viewport_dirty = false;
+	}
 	if (s_scissor_dirty)
+	{
 		D3D::current_command_list->RSSetScissorRects(1, &s_scissor_rect);
-
+		s_scissor_dirty = false;
+	}
+	if (s_target_dirty)
+	{
+		FramebufferManager::RestoreEFBRenderTargets();
+		s_target_dirty = false;
+	}
 	if (D3D::command_list_mgr->GetCommandListDirtyState(COMMAND_LIST_STATE_PSO) || s_previous_vertex_format != reinterpret_cast<D3DVertexFormat*>(VertexLoaderManager::GetCurrentVertexFormat()))
 	{
 		s_previous_vertex_format = reinterpret_cast<D3DVertexFormat*>(VertexLoaderManager::GetCurrentVertexFormat());

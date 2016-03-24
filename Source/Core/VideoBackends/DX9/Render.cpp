@@ -839,7 +839,6 @@ void Renderer::RestoreAPIState()
 	// Gets us back into a more game-like state.
 	D3D::SetRenderState(D3DRS_FILLMODE, g_ActiveConfig.bWireFrame ? D3DFILL_WIREFRAME : D3DFILL_SOLID);
 	D3D::SetRenderState(D3DRS_SCISSORTESTENABLE, true);	
-	BPFunctions::SetScissor();
 	m_bColorMaskChanged = true;
 	m_bGenerationModeChanged = true;
 	m_bScissorRectChanged = true;
