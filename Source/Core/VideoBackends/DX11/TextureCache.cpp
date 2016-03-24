@@ -489,13 +489,14 @@ bool TextureCache::Palettize(TCacheEntryBase* entry, const TCacheEntryBase* base
 
 TextureCache::TextureCache()
 {
-	if (D3D::GetFeatureLevel() < D3D_FEATURE_LEVEL_11_0)
+	if (g_ActiveConfig.backend_info.bSupportsComputeTextureEncoding
+		&& g_ActiveConfig.bEnableComputeTextureEncoding)
 	{
-		s_encoder = std::make_unique<PSTextureEncoder>();
+		s_encoder = std::make_unique<CSTextureEncoder>();
 	}
 	else
 	{
-		s_encoder = std::make_unique<CSTextureEncoder>();
+		s_encoder = std::make_unique<PSTextureEncoder>();
 	}
 	s_encoder->Init();
 	s_decoder = std::make_unique<CSTextureDecoder>();

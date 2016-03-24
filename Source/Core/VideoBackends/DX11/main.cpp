@@ -138,6 +138,8 @@ void InitBackendInfo()
 			g_Config.backend_info.bSupportsGSInstancing = shader_model_5_supported;
 			g_Config.backend_info.bSupportsTessellation = shader_model_5_supported;
 			g_Config.backend_info.bSupportsSSAA = shader_model_5_supported;
+			g_Config.backend_info.bSupportsComputeTextureDecoding = shader_model_5_supported;
+			g_Config.backend_info.bSupportsComputeTextureEncoding = shader_model_5_supported;
 		}
 
 		g_Config.backend_info.Adapters.push_back(UTF16ToUTF8(desc.Description));

@@ -157,6 +157,8 @@ protected:
 	SettingCheckBox* Fast_efb_cache;
 	SettingCheckBox* emulate_efb_format_changes;
 	SettingCheckBox* Async_Shader_compilation;
+	SettingCheckBox* Compute_Shader_decoding;
+	SettingCheckBox* Compute_Shader_encoding;
 	SettingCheckBox* Predictive_FIFO;
 	SettingCheckBox* Wait_For_Shaders;
 	SettingCheckBox* vieport_correction;

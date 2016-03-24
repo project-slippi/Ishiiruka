@@ -363,9 +363,9 @@ void CSTextureDecoder::Init()
 	m_pool_idx = 0;
 	m_Pool_size = 0;
 	m_ready = false;
-	if (D3D::GetFeatureLevel() < D3D_FEATURE_LEVEL_11_0)
+	if (!(g_ActiveConfig.backend_info.bSupportsComputeTextureDecoding
+		&& g_ActiveConfig.bEnableComputeTextureDecoding))
 	{
-		// Disable compute shader support on dx10 level hard
 		return;
 	}
 	auto rawBd = CD3D11_BUFFER_DESC(1024*1024*4,D3D11_BIND_SHADER_RESOURCE);	

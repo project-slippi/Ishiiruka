@@ -156,6 +156,8 @@ struct VideoConfig final
 	bool bFullAsyncShaderCompilation;
 	bool bPredictiveFifo;
 	bool bWaitForShaderCompilation;
+	bool bEnableComputeTextureDecoding;
+	bool bEnableComputeTextureEncoding;
 	bool bEFBEmulateFormatChanges;
 	bool bSkipEFBCopyToRam;
 	bool bCopyEFBScaled;
@@ -230,6 +232,8 @@ struct VideoConfig final
 		bool bSupportsSSAA;
 		bool bSupportsTessellation;
 		bool bSupportsScaling;
+		bool bSupportsComputeTextureDecoding;
+		bool bSupportsComputeTextureEncoding;
 	} backend_info;
 
 	// Utility

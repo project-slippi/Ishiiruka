@@ -152,6 +152,8 @@ void VideoConfig::Load(const std::string& ini_file)
 	hacks->Get("ForceDualSourceBlend", &bForceDualSourceBlend, false);
 	hacks->Get("FullAsyncShaderCompilation", &bFullAsyncShaderCompilation, true);
 	hacks->Get("WaitForShaderCompilation", &bWaitForShaderCompilation, false);
+	hacks->Get("EnableComputeTextureDecoding", &bEnableComputeTextureDecoding, false);
+	hacks->Get("EnableComputeTextureEncoding", &bEnableComputeTextureEncoding, false);
 	hacks->Get("PredictiveFifo", &bPredictiveFifo, false);
 	hacks->Get("BoundingBoxMode", &iBBoxMode, (int)BBoxMode::BBoxNone);
 	hacks->Get("ViewportCorrection", &bViewportCorrection, false);
@@ -300,6 +302,8 @@ void VideoConfig::GameIniLoad()
 	CHECK_SETTING("Video", "PerfQueriesEnable", bPerfQueriesEnable);
 	CHECK_SETTING("Video", "FullAsyncShaderCompilation", bFullAsyncShaderCompilation);
 	CHECK_SETTING("Video", "WaitForShaderCompilation", bWaitForShaderCompilation);
+	CHECK_SETTING("Video", "EnableComputeTextureDecoding", bEnableComputeTextureDecoding);
+	CHECK_SETTING("Video", "EnableComputeTextureEncoding", bEnableComputeTextureEncoding);
 	CHECK_SETTING("Video", "PredictiveFifo", bPredictiveFifo);
 	if (gfx_override_exists)
 		OSD::AddMessage("Warning: Opening the graphics configuration will reset settings and might cause issues!", 10000);
@@ -463,6 +467,8 @@ void VideoConfig::Save(const std::string& ini_file)
 	hacks->Set("ForceDualSourceBlend", bForceDualSourceBlend);
 	hacks->Set("FullAsyncShaderCompilation", bFullAsyncShaderCompilation);
 	hacks->Set("WaitForShaderCompilation", bWaitForShaderCompilation);
+	hacks->Set("EnableComputeTextureDecoding", bEnableComputeTextureDecoding);
+	hacks->Set("EnableComputeTextureEncoding", bEnableComputeTextureEncoding);
 	hacks->Set("PredictiveFifo", bPredictiveFifo);
 	hacks->Set("BoundingBoxMode", iBBoxMode);
 	hacks->Set("ViewportCorrection", bViewportCorrection);

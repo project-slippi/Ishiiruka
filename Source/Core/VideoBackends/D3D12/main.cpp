@@ -106,6 +106,8 @@ void InitBackendInfo()
 	g_Config.backend_info.bSupportsGSInstancing = true;
 	g_Config.backend_info.bSupportsTessellation = true;
 	g_Config.backend_info.bSupportsSSAA = true;
+	g_Config.backend_info.bSupportsComputeTextureDecoding = false;
+	g_Config.backend_info.bSupportsComputeTextureEncoding = false;
 
 	IDXGIFactory* factory;
 	IDXGIAdapter* ad;

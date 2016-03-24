@@ -145,6 +145,8 @@ static wxString xfb_real_desc = _("Emulate XFBs accurately.\nSlows down emulatio
 static wxString dump_textures_desc = _("Dump decoded game textures to User/Dump/Textures/<game_id>/\n\nIf unsure, leave this unchecked.");
 static wxString dump_VertexTranslators_desc = _("Dump Vertex translator code to User/Dump/\n\nIf unsure, leave this unchecked.");
 static wxString fullAsyncShaderCompilation_desc = _("Make shader compilation proccess fully asynchronous. This can cause glitches but will give a smooth game experience.");
+static wxString compute_texture_decoding_desc = _("Decode Textures using compute shaders. Can Increase Performance in some scenarios.");
+static wxString Compute_texture_encoding_desc = _("Encode Textures using compute shaders. Can Increase Performance in some scenarios.");
 static wxString waitforshadercompilation_desc = _("Wait for shader compilation in the cpu to avoid fifo problems. This option prevents loops in F-Zero, Metroid Prime fifo resets and others.");
 static wxString predictiveFifo_desc = _("Generate a secondary fifo to predict resource usage and improve loading time.");
 static wxString load_hires_textures_desc = _("Load custom textures from User/Load/Textures/<game_id>/\n\nIf unsure, leave this unchecked.");
@@ -801,7 +803,9 @@ VideoConfigDiag::VideoConfigDiag(wxWindow* parent, const std::string &title, con
 	szr_other->Add(CreateCheckBox(page_hacks, _("Fast Depth Calculation"), (fast_depth_calc_desc), vconfig.bFastDepthCalc));
 	//szr_other->Add(Predictive_FIFO = CreateCheckBox(page_hacks, _("Predictive FIFO"), (predictiveFifo_desc), vconfig.bPredictiveFifo));
 	//szr_other->Add(Wait_For_Shaders = CreateCheckBox(page_hacks, _("Wait for Shader Compilation"), (waitforshadercompilation_desc), vconfig.bWaitForShaderCompilation));
-	szr_other->Add(Async_Shader_compilation = CreateCheckBox(page_hacks, _("Full Async Shader Compilation"), (fullAsyncShaderCompilation_desc), vconfig.bFullAsyncShaderCompilation));	
+	szr_other->Add(Async_Shader_compilation = CreateCheckBox(page_hacks, _("Full Async Shader Compilation"), (fullAsyncShaderCompilation_desc), vconfig.bFullAsyncShaderCompilation));
+	szr_other->Add(Compute_Shader_decoding = CreateCheckBox(page_hacks, _("Compute Texture Decoding"), (compute_texture_decoding_desc), vconfig.bEnableComputeTextureDecoding));
+	szr_other->Add(Compute_Shader_encoding = CreateCheckBox(page_hacks, _("Compute Texture Encoding"), (Compute_texture_encoding_desc), vconfig.bEnableComputeTextureEncoding));
 	wxStaticBoxSizer* const group_other = new wxStaticBoxSizer(wxVERTICAL, page_hacks, _("Other"));
 	group_other->Add(szr_other, 1, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 5);
 	szr_hacks->Add(group_other, 0, wxEXPAND | wxALL, 5);
@@ -1345,8 +1349,10 @@ void VideoConfigDiag::OnUpdateUI(wxUpdateUIEvent& ev)
 	hires_texturemaps->Enable(vconfig.bHiresTextures && vconfig.bEnablePixelLighting);
 	hires_texturemaps->Show(vconfig.backend_info.bSupportsNormalMaps);	
 
-	// Predictive Fifo
+	
 	Async_Shader_compilation->Show(vconfig.backend_info.APIType != API_OPENGL);
+	Compute_Shader_decoding->Show(vconfig.backend_info.bSupportsComputeTextureDecoding);
+	Compute_Shader_encoding->Show(vconfig.backend_info.bSupportsComputeTextureEncoding);
 	/*Predictive_FIFO->Show(vconfig.backend_info.APIType != API_OPENGL);
 	Wait_For_Shaders->Show(vconfig.backend_info.APIType != API_OPENGL);
 	bool WaitForShaderCompilationenabled = vconfig.bPredictiveFifo && !vconfig.bFullAsyncShaderCompilation;
@@ -1356,6 +1362,14 @@ void VideoConfigDiag::OnUpdateUI(wxUpdateUIEvent& ev)
 	// Things which shouldn't be changed during emulation
 	if (Core::IsRunning())
 	{
+		if (vconfig.backend_info.bSupportsComputeTextureDecoding)
+		{
+			Compute_Shader_decoding->Disable();
+		}
+		if (vconfig.backend_info.bSupportsComputeTextureEncoding)
+		{
+			Compute_Shader_encoding->Disable();
+		}
 		choice_backend->Disable();
 		label_backend->Disable();
 

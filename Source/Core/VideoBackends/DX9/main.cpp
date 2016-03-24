@@ -92,6 +92,8 @@ void InitBackendInfo()
 	g_Config.backend_info.bSupportsClipControl = false;
 	g_Config.backend_info.bSupportsSSAA = false;
 	g_Config.backend_info.bSupportsTessellation = false;
+	g_Config.backend_info.bSupportsComputeTextureDecoding = false;
+	g_Config.backend_info.bSupportsComputeTextureEncoding = false;
 	// adapters
 	g_Config.backend_info.Adapters.clear();
 	for (int i = 0; i < DX9::D3D::GetNumAdapters(); ++i)
