@@ -26,6 +26,11 @@
 namespace DX11
 {
 
+// TODO: Find sensible values for these two
+const u32 MAX_IBUFFER_SIZE = VertexManagerBase::MAXIBUFFERSIZE * sizeof(u16) * 8;
+const u32 MAX_VBUFFER_SIZE = VertexManagerBase::MAXVBUFFERSIZE;
+const u32 MAX_BUFFER_SIZE = MAX_IBUFFER_SIZE + MAX_VBUFFER_SIZE;
+
 void VertexManager::CreateDeviceObjects()
 {
 	D3D11_BUFFER_DESC bufdesc = CD3D11_BUFFER_DESC(MAX_BUFFER_SIZE,
@@ -128,14 +133,9 @@ void VertexManager::Draw(UINT stride)
 
 		D3D::stateman->SetPrimitiveTopology(pt);		
 	}
-	else if (current_primitive_type == PRIMITIVE_LINES)
-	{
-		D3D::stateman->SetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
-		static_cast<Renderer*>(g_renderer.get())->ApplyCullDisable();
-	}
 	else
 	{
-		D3D::stateman->SetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
+		D3D::stateman->SetPrimitiveTopology(current_primitive_type == PRIMITIVE_LINES ? D3D11_PRIMITIVE_TOPOLOGY_LINELIST : D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
 		static_cast<Renderer*>(g_renderer.get())->ApplyCullDisable();
 	}
 

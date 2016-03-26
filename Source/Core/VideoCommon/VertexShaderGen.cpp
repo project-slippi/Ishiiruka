@@ -332,7 +332,6 @@ inline void GenerateVertexShader(ShaderCode& out, const vertex_shader_uid_data& 
 		}
 		// An input form other than ABC1 or AB11 doesn't exist
 		// But the hardware has it as a two bit field
-		_dbg_assert_log_(VIDEO, texinfo.inputform == XF_TEXINPUT_ABC1 || texinfo.inputform == XF_TEXINPUT_AB11, "texgeninputform missmatch: %u", texinfo.inputform);
 		if (texinfo.inputform == XF_TEXINPUT_AB11)
 			out.Write("coord.z = 1.0;\n");
 
@@ -356,13 +355,11 @@ inline void GenerateVertexShader(ShaderCode& out, const vertex_shader_uid_data& 
 			break;
 		case XF_TEXGEN_COLOR_STRGBC0:
 		{
-			_dbg_assert_log_(VIDEO, texinfo.sourcerow == XF_SRCCOLORS_INROW, "sourcerow missmatch spected: XF_SRCCOLORS_INROW found: %u", texinfo.sourcerow);
 			out.Write("o.tex%d.xyz = float3(o.colors_0.x, o.colors_0.y, 1);\n", i);
 		}
 		break;
 		case XF_TEXGEN_COLOR_STRGBC1:
 		{
-			_dbg_assert_log_(VIDEO, texinfo.sourcerow == XF_SRCCOLORS_INROW, "sourcerow missmatch spected: XF_SRCCOLORS_INROW found: %u", texinfo.sourcerow);
 			out.Write("o.tex%d.xyz = float3(o.colors_1.x, o.colors_1.y, 1);\n", i);
 		}
 		break;

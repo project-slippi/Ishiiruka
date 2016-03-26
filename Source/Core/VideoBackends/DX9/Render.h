@@ -15,6 +15,7 @@ private:
 	bool m_bColorMaskChanged;
 	bool m_bBlendModeChanged;
 	bool m_bScissorRectChanged;
+	bool m_bViewPortChanged;
 	TargetRectangle m_ScissorRect;
 	bool m_bGenerationModeChanged;
 	bool m_bDepthModeChanged;

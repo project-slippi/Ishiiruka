@@ -58,7 +58,7 @@ static bool s_vsync;
 static bool s_b3D_RightFrame = false;
 static LPDIRECT3DSURFACE9 ScreenShootMEMSurface = NULL;
 static bool s_last_fullscreen_mode;
-
+static D3DVIEWPORT9 s_vp{};
 void SetupDeviceObjects()
 {
 	D3D::font.Init();
@@ -184,12 +184,13 @@ Renderer::Renderer(void *&window_handle)
 	m_fMaxPointSize = D3D::GetCaps().MaxPointSize;
 	// Handle VSync on/off 
 	s_vsync = g_ActiveConfig.IsVSync();
-	m_bColorMaskChanged = false;
-	m_bBlendModeChanged = false;
-	m_bScissorRectChanged = false;	
-	m_bGenerationModeChanged = false;
-	m_bDepthModeChanged = false;
-	m_bLogicOpModeChanged = false;
+	m_bColorMaskChanged = true;
+	m_bBlendModeChanged = true;
+	m_bScissorRectChanged = true;
+	m_bViewPortChanged = true,
+	m_bGenerationModeChanged = true;
+	m_bDepthModeChanged = true;
+	m_bLogicOpModeChanged = true;
 }
 
 Renderer::~Renderer()
@@ -838,12 +839,13 @@ void Renderer::RestoreAPIState()
 {
 	// Gets us back into a more game-like state.
 	D3D::SetRenderState(D3DRS_FILLMODE, g_ActiveConfig.bWireFrame ? D3DFILL_WIREFRAME : D3DFILL_SOLID);
-	D3D::SetRenderState(D3DRS_SCISSORTESTENABLE, true);	
+	D3D::SetRenderState(D3DRS_SCISSORTESTENABLE, true);
 	m_bColorMaskChanged = true;
 	m_bGenerationModeChanged = true;
 	m_bScissorRectChanged = true;
 	m_bDepthModeChanged = true;
 	m_bLogicOpModeChanged = true;
+	m_bViewPortChanged = true;
 }
 
 // Called from VertexShaderManager
@@ -886,11 +888,10 @@ void Renderer::SetViewport()
 	Wd = (X + Wd <= GetTargetWidth()) ? Wd : (GetTargetWidth() - X);
 	Ht = (Y + Ht <= GetTargetHeight()) ? Ht : (GetTargetHeight() - Y);
 
-	D3DVIEWPORT9 vp;
-	vp.X = X;
-	vp.Y = Y;
-	vp.Width = Wd;
-	vp.Height = Ht;
+	s_vp.X = X;
+	s_vp.Y = Y;
+	s_vp.Width = Wd;
+	s_vp.Height = Ht;
 
 	float nearz = xfmem.viewport.farZ - MathUtil::Clamp<float>(xfmem.viewport.zRange, 0.0f, 16777215.0f);
 	float farz = xfmem.viewport.farZ;
@@ -898,16 +899,16 @@ void Renderer::SetViewport()
 	const bool nonStandartViewport = g_ActiveConfig.bViewportCorrection && (nearz < 0.f || farz > 16777216.0f || nearz >= 16777216.0f || farz <= 0.f);
 	if (nonStandartViewport)
 	{
-		vp.MinZ = 0.0f;
-		vp.MaxZ = 1.0f;
+		s_vp.MinZ = 0.0f;
+		s_vp.MaxZ = 1.0f;
 	}
 	else
 	{
 		// Some games set invalids values for z min and z max so fix them to the max an min alowed and let the shaders do this work
-		vp.MaxZ = 1.0f - (MathUtil::Clamp<float>(nearz, 0.0f, 16777215.0f) / 16777216.0f);
-		vp.MinZ = 1.0f - (MathUtil::Clamp<float>(farz, 0.0f, 16777215.0f) / 16777216.0f);
+		s_vp.MaxZ = 1.0f - (MathUtil::Clamp<float>(nearz, 0.0f, 16777215.0f) / 16777216.0f);
+		s_vp.MinZ = 1.0f - (MathUtil::Clamp<float>(farz, 0.0f, 16777215.0f) / 16777216.0f);
 	}
-	D3D::dev->SetViewport(&vp);
+	m_bViewPortChanged = true;
 }
 
 void Renderer::ApplyState(bool bUseDstAlpha)
@@ -940,6 +941,12 @@ void Renderer::ApplyState(bool bUseDstAlpha)
 	if(m_bScissorRectChanged)
 	{
 		_SetScissorRect();
+	}
+
+	if (m_bViewPortChanged)
+	{
+		D3D::dev->SetViewport(&s_vp);
+		m_bViewPortChanged = false;
 	}
 
 	if (bUseDstAlpha)

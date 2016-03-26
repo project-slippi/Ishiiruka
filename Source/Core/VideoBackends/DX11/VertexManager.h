@@ -38,10 +38,7 @@ private:
 	u32 m_currentBuffer;
 	u32 m_bufferCursor;
 	enum { MAX_BUFFER_COUNT = 2 };
-	// TODO: Find sensible values for these two
-	const u32 MAX_IBUFFER_SIZE = VertexManagerBase::MAXIBUFFERSIZE * sizeof(u16);
-	const u32 MAX_VBUFFER_SIZE = VertexManagerBase::MAXVBUFFERSIZE;
-	const u32 MAX_BUFFER_SIZE = MAX_IBUFFER_SIZE + MAX_VBUFFER_SIZE;
+	
 	D3D::BufferPtr m_buffers[MAX_BUFFER_COUNT];
 
 	std::vector<u8> LocalVBuffer;
