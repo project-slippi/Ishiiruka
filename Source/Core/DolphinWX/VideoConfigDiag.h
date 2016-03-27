@@ -183,7 +183,8 @@ protected:
 	wxChoice* choice_pptrigger;
 	wxChoice* choice_scalingshader;
 	wxChoice* choice_stereoshader;
-	
+	wxStaticBoxSizer* group_phong;
+	wxStaticBoxSizer* group_Tessellation;
 	std::map<wxWindow*, wxString> ctrl_descs; // maps setting controls to their descriptions
 	std::map<wxWindow*, wxStaticText*> desc_texts; // maps dialog tabs (which are the parents of the setting controls) to their description text objects
 
