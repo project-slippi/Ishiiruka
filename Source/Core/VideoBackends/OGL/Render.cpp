@@ -686,16 +686,16 @@ void Renderer::Init()
 	g_framebuffer_manager = std::make_unique<FramebufferManager>(s_target_width, s_target_height,
 		s_MSAASamples);
 
-	m_post_processor = std::make_unique<OGLPostProcessor>();
-	if (!m_post_processor->Initialize())
-		PanicAlert("OGL: Failed to initialize post processor.");
-
 	s_raster_font = std::make_unique<RasterFont>();
 
 	OpenGL_CreateAttributelessVAO();
 	
 	// Cache this, because if you do this multiple times a frame, it shows up really high on a profile.
 	glGetIntegerv(GL_MAX_TEXTURE_SIZE, &s_max_texture_size);
+
+	m_post_processor = std::make_unique<OGLPostProcessor>();
+	if (!m_post_processor->Initialize())
+		PanicAlert("OGL: Failed to initialize post processor.");
 }
 
 void Renderer::RenderText(const std::string& text, int left, int top, u32 color)

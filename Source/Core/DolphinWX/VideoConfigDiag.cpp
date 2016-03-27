@@ -1335,10 +1335,6 @@ void VideoConfigDiag::OnUpdateUI(wxUpdateUIEvent& ev)
 	pixel_lighting->Enable(vconfig.backend_info.bSupportsPixelLighting);
 	phong_lighting->Enable(vconfig.backend_info.bSupportsPixelLighting && vconfig.bEnablePixelLighting);
 	group_phong->Show(vconfig.backend_info.bSupportsPixelLighting && vconfig.bEnablePixelLighting && vconfig.bForcePhongShading);
-	if (vconfig.backend_info.bSupportsTessellation)
-	{
-		group_Tessellation->Show(vconfig.backend_info.bSupportsPixelLighting && vconfig.bEnablePixelLighting);
-	}
 #if defined WIN32
 	// Borderless Fullscreen
 	borderless_fullscreen->Enable((vconfig.backend_info.APIType & API_D3D9) == 0);

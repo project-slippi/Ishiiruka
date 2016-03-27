@@ -520,8 +520,11 @@ OGLPostProcessor::~OGLPostProcessor()
 		glDeleteTextures(1, &m_stereo_buffer_texture);
 
 	// Need to change latched buffer before freeing uniform buffer, see MapAndUpdateUniformBuffer for why.
-	glBindBuffer(GL_UNIFORM_BUFFER, m_uniform_buffer->m_buffer);
-	m_uniform_buffer.reset();
+	if (m_uniform_buffer)
+	{
+		glBindBuffer(GL_UNIFORM_BUFFER, m_uniform_buffer->m_buffer);
+		m_uniform_buffer.reset();
+	}
 	ProgramShaderCache::BindUniformBuffer();
 }
 
@@ -530,7 +533,7 @@ bool OGLPostProcessor::Initialize()
 	// Create our framebuffer objects, since these are needed regardless of whether we're enabled.
 	glGenFramebuffers(1, &m_draw_framebuffer);
 	glGenFramebuffers(1, &m_read_framebuffer);
-	if (glGetError() != GL_NO_ERROR)
+	if (!(m_draw_framebuffer && m_read_framebuffer))
 	{
 		ERROR_LOG(VIDEO, "Failed to create postprocessing framebuffer objects.");
 		return false;
