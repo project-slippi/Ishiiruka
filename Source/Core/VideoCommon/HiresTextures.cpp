@@ -517,6 +517,7 @@ HiresTexture* HiresTexture::Load(const std::string& basename,
 	bool mipmapsize_included = false;
 	bool nrm_posible = current.normal_map.size() == current.color_map.size() && g_ActiveConfig.HiresMaterialMapsEnabled();
 	size_t remaining_buffer_size = 0;
+	size_t total_buffer_size = 0;
 	for (size_t level = 0; level < current.color_map.size(); level++)
 	{
 		ImageLoaderParams imgInfo;
@@ -540,7 +541,8 @@ HiresTexture* HiresTexture::Load(const std::string& basename,
 					requiredsize = (requiredsize * 4) / 3;
 				}
 				requiredsize *= (nrm_posible ? 2 : 1);
-				remaining_buffer_size = requiredsize;
+				total_buffer_size = requiredsize;
+				remaining_buffer_size = total_buffer_size;
 				return request_buffer_delegate(requiredsize);
 			};
 		}
@@ -597,14 +599,7 @@ HiresTexture* HiresTexture::Load(const std::string& basename,
 			if (cacheresult)
 			{
 				ret->m_cached_data.reset(imgInfo.dst);
-				if (current.color_map.size() > 1 && !mipmapsize_included)
-				{
-					ret->m_cached_data_size = ((imgInfo.data_size * 4) / 3) * (nrm_posible ? 2 : 1);
-				}
-				else
-				{
-					ret->m_cached_data_size = imgInfo.data_size;
-				}
+				ret->m_cached_data_size = total_buffer_size;
 			}
 		}
 		else
@@ -653,7 +648,7 @@ HiresTexture* HiresTexture::Load(const std::string& basename,
 					u32 mip_width = TextureUtil::CalculateLevelSize(imgInfo.Width, mip_level);
 					u32 mip_height = TextureUtil::CalculateLevelSize(imgInfo.Height, mip_level);
 					u32 requiredsize = TextureUtil::GetTextureSizeInBytes(mip_width, mip_height, ret->m_format);
-					buffer_pointer += TextureUtil::GetTextureSizeInBytes(mip_width, mip_height, ret->m_format);
+					buffer_pointer += requiredsize;
 					remaining_buffer_size -= requiredsize;
 				}
 			}

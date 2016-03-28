@@ -252,6 +252,7 @@ DDSCompression ImageLoader::ReadDDS(ImageLoaderParams& loader_params)
 	// How big will the buffer need to be to load all of the pixel data 
 	// including mip-maps?	
 	ddsd.dwLinearSize = ((ddsd.dwWidth + 3) >> 2)*((ddsd.dwHeight + 3) >> 2)*block_size;
+	ddsd.dwMipMapCount = std::min<u32>(std::max<u32>(IntLog2(std::max(ddsd.dwWidth, ddsd.dwHeight)) - 2, 0), ddsd.dwMipMapCount);
 	bool mipmapspresent = ddsd.dwMipMapCount > 1 && ddsd.dwFlags & DDSD_MIPMAPCOUNT;
 	loader_params.data_size = ddsd.dwLinearSize;
 	if (mipmapspresent)
@@ -261,13 +262,17 @@ DDSCompression ImageLoader::ReadDDS(ImageLoaderParams& loader_params)
 		u32 w = ddsd.dwWidth;
 		u32 h = ddsd.dwHeight;
 		u32 level = 0;
-		while ((w > 1 || h > 1) && level < ddsd.dwMipMapCount)
+		while ((w > 4 || h > 4) && level < ddsd.dwMipMapCount)
 		{
 			level++;
 			w = std::max(w >> 1, 1u);
 			h = std::max(h >> 1, 1u);
 			loader_params.data_size += ((w + 3) >> 2)*((h + 3) >> 2) * block_size;
 		}
+	}
+	else
+	{
+		ddsd.dwMipMapCount = 0;
 	}
 	// Check available buffer size
 	loader_params.dst = loader_params.request_buffer_delegate(loader_params.data_size, mipmapspresent);
@@ -298,6 +303,6 @@ DDSCompression ImageLoader::ReadDDS(ImageLoaderParams& loader_params)
 	Result = (FourCC == FOURCC_DXT1) ? DDSC_DXT1 : ((FourCC == FOURCC_DXT3) ? DDSC_DXT3 : DDSC_DXT5);
 	loader_params.Width = ddsd.dwWidth;
 	loader_params.Height = ddsd.dwHeight;
-	loader_params.nummipmaps = std::min<u32>(std::max<u32>(IntLog2(std::max(ddsd.dwWidth, ddsd.dwHeight)) - 2, 0), ddsd.dwMipMapCount);	
+	loader_params.nummipmaps = ddsd.dwMipMapCount;
 	return Result;
 }
