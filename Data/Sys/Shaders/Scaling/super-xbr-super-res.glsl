@@ -42,6 +42,30 @@ StepAmount = 0.1
 DefaultValue = 0.8
 GUIDescription = Set the anti-ringing strength.
 
+[OptionRangeFloat]
+GUIName = Super-Res Strength
+OptionName = SRES_STRENGTH
+MinValue = 0.0
+MaxValue = 8.0
+StepAmount = 0.2
+DefaultValue = 2.4
+
+[OptionRangeFloat]
+GUIName = Super-Res Acuity
+OptionName = SRES_ACUITY
+MinValue = 0.0
+MaxValue = 20.0
+StepAmount = 1.0
+DefaultValue = 20.0
+
+[OptionRangeFloat]
+GUIName = Super-Res Radius
+OptionName = SRES_RADIUS
+MinValue = 0.0
+MaxValue = 1.0
+StepAmount = 0.02
+DefaultValue = 1.0
+
 [Pass]
 Input0=ColorBuffer
 Input0Mode=Clamp
@@ -65,6 +89,50 @@ Input0Mode=Clamp
 Input0Filter=Nearest
 OutputScale=2.0
 EntryPoint=Super_xBR_p2
+DependantOption = SXBR_3P
+
+[Pass]
+Input0=PreviousPass
+Input0Mode=Clamp
+Input0Filter=Nearest
+OutputScale=1.0
+EntryPoint=jinc_sres
+
+[Pass]
+Input0=PreviousPass
+Input0Mode=Clamp
+Input0Filter=Nearest
+Input1=ColorBuffer
+Input1Mode=Clamp
+Input1Filter=Nearest
+OutputScale=1.0
+EntryPoint=diff
+
+[Pass]
+Input0=ColorBuffer
+Input0Mode=Clamp
+Input0Filter=Nearest
+Input1=Pass1
+Input1Mode=Clamp
+Input1Filter=Nearest
+Input2=PreviousPass
+Input2Mode=Clamp
+Input2Filter=Nearest
+OutputScale=2.0
+EntryPoint=super_res
+
+[Pass]
+Input0=ColorBuffer
+Input0Mode=Clamp
+Input0Filter=Nearest
+Input1=Pass2
+Input1Mode=Clamp
+Input1Filter=Nearest
+Input2=Pass4
+Input2Mode=Clamp
+Input2Filter=Nearest
+OutputScale=2.0
+EntryPoint=super_res
 DependantOption = SXBR_3P
 
 [Pass]
@@ -521,6 +589,174 @@ void jinc2()
       // final sum and weight normalization
       SetOutput(float4(color, 1.0));
 }
+
+
+    float4 resampler1(float4 x)
+    {
+      float4 res;
+
+      const float wa1 = pi;
+      const float wb1 = pi;
+
+      res = (x==float4(0.0, 0.0, 0.0, 0.0)) ?  float4(wa1*wb1, wa1*wb1, wa1*wb1, wa1*wb1)  :  sin(x*wa1)*sin(x*wb1)/(x*x);
+
+      return res;
+    }
+
+void jinc_sres()
+{
+
+      float3 color;
+      float4x4 weights;
+
+      float2 dx = float2(1.0, 0.0);
+      float2 dy = float2(0.0, 1.0);
+
+      float2 texcoord = GetCoordinates();
+      float2 texture_size = GetResolution();
+
+      float2 pc = texcoord*texture_size;
+
+      float2 tc = (floor(pc-float2(0.5,0.5))+float2(0.5,0.5));
+     
+      weights[0] = resampler1(float4(d(pc, tc    -dx    -dy), d(pc, tc           -dy), d(pc, tc    +dx    -dy), d(pc, tc+2.0*dx    -dy)));
+      weights[1] = resampler1(float4(d(pc, tc    -dx       ), d(pc, tc              ), d(pc, tc    +dx       ), d(pc, tc+2.0*dx       )));
+      weights[2] = resampler1(float4(d(pc, tc    -dx    +dy), d(pc, tc           +dy), d(pc, tc    +dx    +dy), d(pc, tc+2.0*dx    +dy)));
+      weights[3] = resampler1(float4(d(pc, tc    -dx+2.0*dy), d(pc, tc       +2.0*dy), d(pc, tc    +dx+2.0*dy), d(pc, tc+2.0*dx+2.0*dy)));
+
+      dx = dx/texture_size;
+      dy = dy/texture_size;
+      tc = tc/texture_size;
+     
+     // reading the texels
+     
+      float3 c00 = SampleLocation(tc    -dx    -dy).rgb;
+      float3 c10 = SampleLocation(tc           -dy).rgb;
+      float3 c20 = SampleLocation(tc    +dx    -dy).rgb;
+      float3 c30 = SampleLocation(tc+2.0*dx    -dy).rgb;
+      float3 c01 = SampleLocation(tc    -dx       ).rgb;
+      float3 c11 = SampleLocation(tc              ).rgb;
+      float3 c21 = SampleLocation(tc    +dx       ).rgb;
+      float3 c31 = SampleLocation(tc+2.0*dx       ).rgb;
+      float3 c02 = SampleLocation(tc    -dx    +dy).rgb;
+      float3 c12 = SampleLocation(tc           +dy).rgb;
+      float3 c22 = SampleLocation(tc    +dx    +dy).rgb;
+      float3 c32 = SampleLocation(tc+2.0*dx    +dy).rgb;
+      float3 c03 = SampleLocation(tc    -dx+2.0*dy).rgb;
+      float3 c13 = SampleLocation(tc       +2.0*dy).rgb;
+      float3 c23 = SampleLocation(tc    +dx+2.0*dy).rgb;
+      float3 c33 = SampleLocation(tc+2.0*dx+2.0*dy).rgb;
+
+      //  Get min/max samples
+      float3 min_sample = min4(c11, c21, c12, c22);
+      float3 max_sample = max4(c11, c21, c12, c22);
+
+      color = mul(weights[0], float4x3(c00, c10, c20, c30));
+      color+= mul(weights[1], float4x3(c01, c11, c21, c31));
+      color+= mul(weights[2], float4x3(c02, c12, c22, c32));
+      color+= mul(weights[3], float4x3(c03, c13, c23, c33));
+      color = color/(dot(mul(weights, float4(1.0, 1.0, 1.0, 1.0)), float4(1.0, 1.0, 1.0, 1.0)));
+
+      // Anti-ringing
+//      float3 aux = color;
+      color = clamp(color, min_sample, max_sample);
+
+//      color = lerp(aux, color, GetOption(JINC2_AR_STRENGTH));
+ 
+      // final sum and weight normalization
+      SetOutput(float4(color, 1.0));
+}
+
+
+void diff()
+{
+      float2 texcoord = GetCoordinates();
+
+      float4 c0 = SampleInputLocation(0, texcoord);
+      float4 c1 = SampleInputLocation(1, texcoord);
+
+      SetOutput(float4(c0.xyz - c1.xyz, RGBtoYUV(c0.rgb)));
+}
+
+
+/*  Super-Res shader created by Shiandow */
+
+// This file is a part of MPDN Extensions.
+// https://github.com/zachsaw/MPDN_Extensions
+//
+// This library is free software; you can redistribute it and/or
+// modify it under the terms of the GNU Lesser General Public
+// License as published by the Free Software Foundation; either
+// version 3.0 of the License, or (at your option) any later version.
+// 
+// This library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+// Lesser General Public License for more details.
+// 
+// You should have received a copy of the GNU Lesser General Public
+// License along with this library.
+
+// Ported by Hyllian - 2016
+
+// -- Edge detection options -- 
+#define strength GetOption(SRES_STRENGTH)
+#define acuity GetOption(SRES_ACUITY)
+#define radius GetOption(SRES_RADIUS)
+
+#define sOrg 0
+#define sWip 1
+#define sDif 2
+
+// -- Size handling --
+#define originalSize GetInputResolution(0)
+
+#define ddxddy (1.0 / originalSize)
+
+// -- Convenience --
+#define sqr(x) dot(x,x)
+
+#define Dif(X,Y) (SampleInputLocation(sDif,ddxddy*(pos+int2(X,Y)+float2(0.5,0.5))))
+#define Org(X,Y) (RGBtoYUV(SampleInputLocation(sOrg,ddxddy*(pos+int2(X,Y)+float2(0.5,0.5))).rgb))
+
+
+void super_res()
+{
+  float2 tex = GetCoordinates();
+
+  float3 c0 = SampleInputLocation(sWip, tex).rgb;
+  float2 pos = tex * originalSize - float2(0.5, 0.5);
+  float2 offset = pos - floor(pos);
+  pos -= offset;
+  float weightSum = 0.0000000001;
+  float3 dif = float3(0.0, 0.0, 0.0);
+  float org = Org(0,0);
+  float orgMaxDif = 0;
+
+  float c0y = RGBtoYUV(c0);
+
+  [unroll] for (int X = -1; X <= 2; X++)
+  [unroll] for (int Y = -1; Y <= 2; Y++)
+  {
+    if ((abs(X) < 2) && (abs(Y) < 2))
+      orgMaxDif = max(orgMaxDif, abs(Org(X, Y) - org));
+    float4 difRead = Dif(X, Y);
+    float dI2 = sqr(acuity * (c0y - difRead.a));
+    float dXY2 = sqr(float2(X, Y) - offset);
+    float weight = exp(-dXY2 / (2.0 * radius)) / (1.0 + dI2);
+    dif += weight * difRead.rgb;
+    weightSum += weight;
+  }
+
+  float factor = saturate(orgMaxDif * 255.0 / 32.0);
+  c0 -= (strength * dif / weightSum) * factor;
+  SetOutput(float4(c0, 1.0));
+}
+
+
+
+
+
 
 
 void bilinear()
