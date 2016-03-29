@@ -589,6 +589,7 @@ void CreateRootSignatures()
 	CheckHR(d3d12_serialize_root_signature(&root_signature_desc, D3D_ROOT_SIGNATURE_VERSION_1, text_root_signature_blob.ReleaseAndGetAddressOf(), text_root_signature_error_blob.ReleaseAndGetAddressOf()));
 
 	CheckHR(D3D::device->CreateRootSignature(0, text_root_signature_blob->GetBufferPointer(), text_root_signature_blob->GetBufferSize(), IID_PPV_ARGS(default_root_signature.ReleaseAndGetAddressOf())));
+	D3D::SetDebugObjectName12(default_root_signature.Get(), "Primary root signature");
 }
 
 void WaitForOutstandingRenderingToComplete()

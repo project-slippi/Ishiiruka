@@ -104,9 +104,6 @@ public:
 		*pso_desc = &m_current_pso_desc;
 	};
 
-	// Called when the MSAA count/quality changes. Invalidates all small PSOs.
-	void OnMSAASettingsChanged();
-
 	// Release all cached states and clear hash tables.
 	void Clear();
 

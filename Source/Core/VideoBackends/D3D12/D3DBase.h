@@ -121,7 +121,8 @@ HRESULT GetFullscreenState(bool* fullscreen_state);
 // This function will assign a name to the given resource.
 // The DirectX debug layer will make it easier to identify resources that way,
 // e.g. when listing up all resources who have unreleased references.
-static void SetDebugObjectName12(ID3D12Resource* resource, LPCSTR name)
+template<typename T>
+static void SetDebugObjectName12(T* resource, LPCSTR name)
 {
 	HRESULT hr = resource->SetPrivateData(WKPDID_D3DDebugObjectName, (UINT)(name ? strlen(name) : 0), name);
 	if (FAILED(hr))

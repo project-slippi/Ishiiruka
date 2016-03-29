@@ -1009,7 +1009,6 @@ void Renderer::SwapImpl(u32 xfb_addr, u32 fb_width, u32 fb_stride, u32 fb_height
 		{
 			s_last_multisamples = g_ActiveConfig.iMultisamples;
 			StaticShaderCache::InvalidateMSAAShaders();
-			gx_state_cache.OnMSAASettingsChanged();
 		}
 
 		if (window_resized)
