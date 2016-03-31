@@ -94,9 +94,9 @@ DependantOption = SXBR_3P
 [Pass]
 Input0=PreviousPass
 Input0Mode=Clamp
-Input0Filter=Nearest
+Input0Filter=Linear
 OutputScale=1.0
-EntryPoint=jinc_sres
+EntryPoint=smoothstep
 
 [Pass]
 Input0=PreviousPass
@@ -591,80 +591,28 @@ void jinc2()
 }
 
 
-    float4 resampler1(float4 x)
-    {
-      float4 res;
-
-      const float wa1 = pi;
-      const float wb1 = pi;
-
-      res = (x==float4(0.0, 0.0, 0.0, 0.0)) ?  float4(wa1*wb1, wa1*wb1, wa1*wb1, wa1*wb1)  :  sin(x*wa1)*sin(x*wb1)/(x*x);
-
-      return res;
-    }
-
-void jinc_sres()
+void smoothstep()
 {
+	float2 p = GetCoordinates();
 
-      float3 color;
-      float4x4 weights;
+	float2 texture_size = GetResolution();
 
-      float2 dx = float2(1.0, 0.0);
-      float2 dy = float2(0.0, 1.0);
+	if (!GetOption(SXBR_3P)) p = p - float2(0.25, 0.25)/texture_size;
 
-      float2 texcoord = GetCoordinates();
-      float2 texture_size = GetResolution();
+	p = p * texture_size + float2(0.5, 0.5);
 
-      float2 pc = texcoord*texture_size;
+	float2 i = floor(p);
+	float2 f = p - i;
 
-      float2 tc = (floor(pc-float2(0.5,0.5))+float2(0.5,0.5));
-     
-      weights[0] = resampler1(float4(d(pc, tc    -dx    -dy), d(pc, tc           -dy), d(pc, tc    +dx    -dy), d(pc, tc+2.0*dx    -dy)));
-      weights[1] = resampler1(float4(d(pc, tc    -dx       ), d(pc, tc              ), d(pc, tc    +dx       ), d(pc, tc+2.0*dx       )));
-      weights[2] = resampler1(float4(d(pc, tc    -dx    +dy), d(pc, tc           +dy), d(pc, tc    +dx    +dy), d(pc, tc+2.0*dx    +dy)));
-      weights[3] = resampler1(float4(d(pc, tc    -dx+2.0*dy), d(pc, tc       +2.0*dy), d(pc, tc    +dx+2.0*dy), d(pc, tc+2.0*dx+2.0*dy)));
+	// Smoothstep - amazingly, smoothstep() is slower than calculating directly the expression!
+//	f = smoothstep(0.0, 1.0, f);
+	f = f * f * ( -2.0 * f + 3.0);
 
-      dx = dx/texture_size;
-      dy = dy/texture_size;
-      tc = tc/texture_size;
-     
-     // reading the texels
-     
-      float3 c00 = SampleLocation(tc    -dx    -dy).rgb;
-      float3 c10 = SampleLocation(tc           -dy).rgb;
-      float3 c20 = SampleLocation(tc    +dx    -dy).rgb;
-      float3 c30 = SampleLocation(tc+2.0*dx    -dy).rgb;
-      float3 c01 = SampleLocation(tc    -dx       ).rgb;
-      float3 c11 = SampleLocation(tc              ).rgb;
-      float3 c21 = SampleLocation(tc    +dx       ).rgb;
-      float3 c31 = SampleLocation(tc+2.0*dx       ).rgb;
-      float3 c02 = SampleLocation(tc    -dx    +dy).rgb;
-      float3 c12 = SampleLocation(tc           +dy).rgb;
-      float3 c22 = SampleLocation(tc    +dx    +dy).rgb;
-      float3 c32 = SampleLocation(tc+2.0*dx    +dy).rgb;
-      float3 c03 = SampleLocation(tc    -dx+2.0*dy).rgb;
-      float3 c13 = SampleLocation(tc       +2.0*dy).rgb;
-      float3 c23 = SampleLocation(tc    +dx+2.0*dy).rgb;
-      float3 c33 = SampleLocation(tc+2.0*dx+2.0*dy).rgb;
+	p = i + f;
 
-      //  Get min/max samples
-      float3 min_sample = min4(c11, c21, c12, c22);
-      float3 max_sample = max4(c11, c21, c12, c22);
+	p = (p - float2(0.5, 0.5)) / texture_size;
 
-      color = mul(weights[0], float4x3(c00, c10, c20, c30));
-      color+= mul(weights[1], float4x3(c01, c11, c21, c31));
-      color+= mul(weights[2], float4x3(c02, c12, c22, c32));
-      color+= mul(weights[3], float4x3(c03, c13, c23, c33));
-      color = color/(dot(mul(weights, float4(1.0, 1.0, 1.0, 1.0)), float4(1.0, 1.0, 1.0, 1.0)));
-
-      // Anti-ringing
-//      float3 aux = color;
-      color = clamp(color, min_sample, max_sample);
-
-//      color = lerp(aux, color, GetOption(JINC2_AR_STRENGTH));
- 
-      // final sum and weight normalization
-      SetOutput(float4(color, 1.0));
+	SetOutput(float4(SampleLocation(p).rgb, 1.0));
 }
 
 
@@ -724,7 +672,13 @@ void super_res()
 {
   float2 tex = GetCoordinates();
 
-  float3 c0 = SampleInputLocation(sWip, tex).rgb;
+	float2 texture_size = GetResolution();
+	float2 tex2 = tex;
+
+	if (!GetOption(SXBR_3P)) tex2 = tex2 - float2(0.25, 0.25)/texture_size;
+	if (!GetOption(SXBR_3P)) strength /= 1.25;
+
+  float3 c0 = SampleInputLocation(sWip, tex2).rgb;
   float2 pos = tex * originalSize - float2(0.5, 0.5);
   float2 offset = pos - floor(pos);
   pos -= offset;
