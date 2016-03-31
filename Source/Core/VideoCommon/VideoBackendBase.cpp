@@ -26,9 +26,8 @@ static VideoBackendBase* s_default_backend = nullptr;
 
 void VideoBackendBase::PopulateList()
 {
-	// D3D9 > D3D11 > D3D12 > OGL > SW
+	// D3D11 > D3D12 > D3D9 > OGL > SW
 #ifdef _WIN32
-	g_available_video_backends.push_back(std::make_unique<DX9::VideoBackend>());
 	if (IsWindowsVistaOrGreater())
 	{
 		g_available_video_backends.push_back(std::make_unique<DX11::VideoBackend>());
@@ -40,6 +39,7 @@ void VideoBackendBase::PopulateList()
 			g_available_video_backends.push_back(std::make_unique<DX12::VideoBackend>());
 		}
 	}
+	g_available_video_backends.push_back(std::make_unique<DX9::VideoBackend>());
 #endif
 // disable OGL video Backend while is merged from master
 #if !defined(USE_GLES) || USE_GLES3
