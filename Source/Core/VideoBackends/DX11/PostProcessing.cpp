@@ -310,20 +310,31 @@ void PostProcessingShader::LinkPassOutputs()
 			switch (input_binding.type)
 			{
 			case POST_PROCESSING_INPUT_TYPE_PASS_OUTPUT:
-			{
-				u32 pass_output_index = pass_config.inputs[input_index].pass_output_index;
-				input_binding.texture_srv = m_passes[pass_output_index].output_texture->GetSRV();
-				input_binding.size = m_passes[pass_output_index].output_size;
-			}
-			break;
-
 			case POST_PROCESSING_INPUT_TYPE_PREVIOUS_PASS_OUTPUT:
 			{
-				input_binding.texture_srv = m_passes[previous_pass_index].output_texture->GetSRV();
-				input_binding.size = m_passes[previous_pass_index].output_size;
+				s32 pass_output_index = (input_binding.type == POST_PROCESSING_INPUT_TYPE_PASS_OUTPUT) ? 
+					static_cast<s32>(pass_config.inputs[input_index].pass_output_index) 
+					: static_cast<s32>(previous_pass_index);
+				while (pass_output_index >= 0)
+				{
+					if (m_passes[pass_output_index].enabled)
+					{
+						break;
+					}
+					pass_output_index--;
+				}
+				if (pass_output_index < 0)
+				{
+					input_binding.texture_srv = nullptr;
+					m_last_pass_uses_color_buffer = true;
+				}
+				else
+				{
+					input_binding.texture_srv = m_passes[pass_output_index].output_texture->GetSRV();
+					input_binding.size = m_passes[pass_output_index].output_size;
+				}
 			}
 			break;
-
 			case POST_PROCESSING_INPUT_TYPE_COLOR_BUFFER:
 				m_last_pass_uses_color_buffer = true;
 				break;
@@ -403,8 +414,16 @@ void PostProcessingShader::Draw(D3DPostProcessor* parent,
 				break;
 
 			default:
-				input_srv = input.texture_srv;
-				input_sizes[i] = input.size;
+				if (input.texture_srv != nullptr)
+				{
+					input_srv = input.texture_srv;
+					input_sizes[i] = input.size;
+				}
+				else
+				{
+					input_srv = src_texture->GetSRV();
+					input_sizes[i] = src_size;
+				}
 				break;
 			}
 

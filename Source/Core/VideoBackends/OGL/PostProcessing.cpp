@@ -350,20 +350,31 @@ void PostProcessingShader::LinkPassOutputs()
 			switch (input_binding.type)
 			{
 			case POST_PROCESSING_INPUT_TYPE_PASS_OUTPUT:
-			{
-				u32 pass_output_index = pass_config.inputs[input_index].pass_output_index;
-				input_binding.texture_id = m_passes[pass_output_index].output_texture_id;
-				input_binding.size = m_passes[pass_output_index].output_size;
-			}
-			break;
-
 			case POST_PROCESSING_INPUT_TYPE_PREVIOUS_PASS_OUTPUT:
 			{
-				input_binding.texture_id = m_passes[previous_pass_index].output_texture_id;
-				input_binding.size = m_passes[previous_pass_index].output_size;
+				s32 pass_output_index = (input_binding.type == POST_PROCESSING_INPUT_TYPE_PASS_OUTPUT) ?
+					static_cast<s32>(pass_config.inputs[input_index].pass_output_index)
+					: static_cast<s32>(previous_pass_index);
+				while (pass_output_index >= 0)
+				{
+					if (m_passes[pass_output_index].enabled)
+					{
+						break;
+					}
+					pass_output_index--;
+				}
+				if (pass_output_index < 0)
+				{
+					input_binding.texture_id = 0;					
+					m_last_pass_uses_color_buffer = true;
+				}
+				else
+				{
+					input_binding.texture_id = m_passes[pass_output_index].output_texture_id;
+					input_binding.size = m_passes[pass_output_index].output_size;
+				}
 			}
 			break;
-
 			case POST_PROCESSING_INPUT_TYPE_COLOR_BUFFER:
 				m_last_pass_uses_color_buffer = true;
 				break;
@@ -481,8 +492,16 @@ void PostProcessingShader::Draw(OGLPostProcessor* parent,
 				break;
 
 			default:
-				glBindTexture(GL_TEXTURE_2D_ARRAY, input.texture_id);
-				input_sizes[i] = input.size;
+				if (input.texture_id != 0)
+				{
+					glBindTexture(GL_TEXTURE_2D_ARRAY, input.texture_id);
+					input_sizes[i] = input.size;
+				}
+				else
+				{
+					glBindTexture(GL_TEXTURE_2D_ARRAY, src_texture);
+					input_sizes[i] = src_size;
+				}
 				break;
 			}
 
