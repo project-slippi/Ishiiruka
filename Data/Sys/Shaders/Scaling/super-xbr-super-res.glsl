@@ -66,8 +66,30 @@ MaxValue = 1.0
 StepAmount = 0.02
 DefaultValue = 1.0
 
+[OptionBool]
+GUIName = Natural-Vision
+OptionName = NATURAL_VISION
+DefaultValue = false
+
+[OptionRangeFloat]
+GUIName = Natural-Vision - Color Boost
+OptionName = COLOR_BOOST
+MinValue = 0.8
+MaxValue = 1.6
+StepAmount = 0.05
+DefaultValue = 1.2
+DependantOption = NATURAL_VISION
+
 [Pass]
 Input0=ColorBuffer
+Input0Mode=Clamp
+Input0Filter=Nearest
+OutputScale=1.0
+EntryPoint=natural_vision
+DependantOption = NATURAL_VISION
+
+[Pass]
+Input0=PreviousPass
 Input0Mode=Clamp
 Input0Filter=Nearest
 OutputScale=1.0
@@ -77,7 +99,7 @@ EntryPoint=Super_xBR_p0
 Input0=PreviousPass
 Input0Mode=Clamp
 Input0Filter=Nearest
-Input1=ColorBuffer
+Input1=Pass0
 Input1Mode=Clamp
 Input1Filter=Nearest
 OutputScale=2.0
@@ -102,17 +124,17 @@ EntryPoint=smoothstep
 Input0=PreviousPass
 Input0Mode=Clamp
 Input0Filter=Nearest
-Input1=ColorBuffer
+Input1=Pass0
 Input1Mode=Clamp
 Input1Filter=Nearest
 OutputScale=1.0
 EntryPoint=diff
 
 [Pass]
-Input0=ColorBuffer
+Input0=Pass0
 Input0Mode=Clamp
 Input0Filter=Nearest
-Input1=Pass1
+Input1=Pass2
 Input1Mode=Clamp
 Input1Filter=Nearest
 Input2=PreviousPass
@@ -122,13 +144,13 @@ OutputScale=2.0
 EntryPoint=super_res
 
 [Pass]
-Input0=ColorBuffer
+Input0=Pass0
 Input0Mode=Clamp
 Input0Filter=Nearest
-Input1=Pass2
+Input1=Pass3
 Input1Mode=Clamp
 Input1Filter=Nearest
-Input2=Pass4
+Input2=Pass5
 Input2Mode=Clamp
 Input2Filter=Nearest
 OutputScale=2.0
@@ -708,12 +730,33 @@ void super_res()
 }
 
 
+/*
+   ShadX's Natural Vision Shader
 
+   Ported and tweaked by Hyllian - 2016
 
+*/
 
-
-
-void bilinear()
+void natural_vision()
 {
-	SetOutput(Sample());
+	const float3x3 RGBtoYIQ = float3x3(0.299, 0.596, 0.212, 
+                                           0.587,-0.275,-0.523, 
+                                           0.114,-0.321, 0.311);
+
+	const float3x3 YIQtoRGB = float3x3(1.0, 1.0, 1.0,
+                                           0.95568806036115671171,-0.27158179694405859326,-1.1081773266826619523,
+                                           0.61985809445637075388,-0.64687381613840131330, 1.7050645599191817149);
+
+	float cb = GetOption(COLOR_BOOST);
+
+	float3 val00 = float3( cb, cb, cb);
+
+	float3 c0,c1;
+
+	c0 = Sample().xyz;
+	c1 = mul(c0,RGBtoYIQ);
+	c1 = float3(pow(c1.x,val00.x),c1.yz*val00.yz);
+
+	SetOutput(float4(mul(c1,YIQtoRGB), 1.0));
 }
+
