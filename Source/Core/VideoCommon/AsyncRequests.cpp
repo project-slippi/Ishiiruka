@@ -141,9 +141,15 @@ void AsyncRequests::HandleEvent(const AsyncRequests::Event& e)
 			break;
 
 		case Event::BBOX_READ:
-			*e.bbox.data = g_ActiveConfig.iBBoxMode == BBoxGPU ? g_renderer->BBoxRead(e.bbox.index) : BoundingBox::coords[e.bbox.index];
+			if (g_ActiveConfig.iBBoxMode == BBoxGPU)
+			{
+				*e.bbox.data = g_renderer->BBoxRead(e.bbox.index);
+			}
+			else
+			{
+				*e.bbox.data = BoundingBox::coords[e.bbox.index];
+			}
 			break;
-
 		case Event::PERF_QUERY:
 			g_perf_query->FlushResults();
 			break;
