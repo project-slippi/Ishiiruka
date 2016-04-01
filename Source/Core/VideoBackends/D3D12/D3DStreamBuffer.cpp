@@ -46,16 +46,16 @@ bool D3DStreamBuffer::AllocateSpaceInBuffer(size_t allocation_size, size_t align
 	if (alignment && m_buffer_offset > 0)
 	{
 		size_t padding = m_buffer_offset % alignment;
-
+		size_t offset = m_buffer_offset + alignment - padding;
 		// Check for case when adding alignment causes CPU offset to equal GPU offset,
 		// which would imply entire buffer is available (if not corrected).
 		if (m_buffer_offset < m_buffer_gpu_completion_offset &&
-			m_buffer_offset + alignment - padding >= m_buffer_gpu_completion_offset)
+			offset == m_buffer_gpu_completion_offset)
 		{
 			m_buffer_gpu_completion_offset++;
 		}
 
-		m_buffer_offset += alignment - padding;
+		m_buffer_offset = offset;
 
 		if (m_buffer_offset > m_buffer_size)
 		{
@@ -218,7 +218,7 @@ bool D3DStreamBuffer::AttemptToAllocateOutOfExistingUnusedSpaceInBuffer(size_t a
 			return true;
 		}
 
-		if (0 + allocation_size < m_buffer_gpu_completion_offset)
+		if (allocation_size < m_buffer_gpu_completion_offset)
 		{
 			m_buffer_current_allocation_offset = 0;
 			m_buffer_offset = allocation_size;
@@ -320,9 +320,7 @@ void D3DStreamBuffer::UpdateGPUProgress()
 
 void D3DStreamBuffer::QueueFenceCallback(void* owning_object, UINT64 fence_value)
 {
-	D3DStreamBuffer* owning_stream_buffer = reinterpret_cast<D3DStreamBuffer*>(owning_object);
-	if (owning_stream_buffer->HasBufferOffsetChangedSinceLastFence())
-		owning_stream_buffer->QueueFence(fence_value);
+	reinterpret_cast<D3DStreamBuffer*>(owning_object)->QueueFence(fence_value);
 }
 
 void D3DStreamBuffer::ClearFences()
@@ -330,19 +328,18 @@ void D3DStreamBuffer::ClearFences()
 	m_queued_fences.clear();
 }
 
-bool D3DStreamBuffer::HasBufferOffsetChangedSinceLastFence() const
-{
-	if (m_queued_fences.empty())
-		return true;
-
-	// Don't add a new fence tracking entry when our offset hasn't changed.
-	return (m_queued_fences.back().buffer_offset != m_buffer_offset);
-}
-
 void D3DStreamBuffer::QueueFence(UINT64 fence_value)
 {
-	FenceTrackingInformation tracking_information = { fence_value , m_buffer_offset };
-	m_queued_fences.emplace_back(std::move(tracking_information));
+	bool add_to_queue = m_queued_fences.empty();
+	if (!add_to_queue)
+	{
+		add_to_queue = m_queued_fences.back().buffer_offset != m_buffer_offset;
+	}
+	if (add_to_queue)
+	{
+		FenceTrackingInformation tracking_information = { fence_value , m_buffer_offset };
+		m_queued_fences.emplace_back(std::move(tracking_information));
+	}
 }
 
 }

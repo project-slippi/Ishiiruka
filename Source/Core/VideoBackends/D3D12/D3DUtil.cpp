@@ -490,7 +490,7 @@ struct
 // ring buffer offsets
 size_t stq_offset;
 size_t clearq_offset;
-static constexpr size_t vb_buff_size = 0x10000;
+static constexpr size_t vb_buff_size = 0x100000;
 void InitUtils()
 {
 	s_reset_blend_desc = Renderer::GetResetBlendDesc();

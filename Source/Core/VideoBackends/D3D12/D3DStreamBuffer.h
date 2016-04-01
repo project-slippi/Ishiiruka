@@ -67,8 +67,7 @@ private:
 
 	void UpdateGPUProgress();
 
-	void ClearFences();
-	bool HasBufferOffsetChangedSinceLastFence() const;
+	void ClearFences();	
 	void QueueFence(UINT64 fence_value);
 
 	struct FenceTrackingInformation
