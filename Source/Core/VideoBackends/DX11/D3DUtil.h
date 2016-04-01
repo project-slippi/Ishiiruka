@@ -81,7 +81,7 @@ public:
 	~ConstantStreamBuffer();
 
 	// returns vertex offset to the new data
-	int AppendData(void* data, int size);
+	void AppendData(void* data, int size);
 
 	inline ID3D11Buffer* &GetBuffer() { return  m_buf; }
 	inline D3D::BufferDescriptor GetDescriptor() 

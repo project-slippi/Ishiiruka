@@ -110,7 +110,7 @@ ConstantStreamBuffer::~ConstantStreamBuffer()
 }
 
 // returns vertex offset to the new data
-int ConstantStreamBuffer::AppendData(void* data, int size)
+void ConstantStreamBuffer::AppendData(void* data, int size)
 {
 	D3D11_MAPPED_SUBRESOURCE map;
 	m_offset = ROUND_UP(m_offset, 256); // align offset to 256 bytes (16 units) as requested by microsoft documentation
@@ -129,7 +129,6 @@ int ConstantStreamBuffer::AppendData(void* data, int size)
 	context->Unmap(m_buf, 0);
 	m_current_size = size;
 	m_offset += size;
-	return (m_offset - size) / 16; // the returned offset is represented in contant units (4 bytes x 4 items = 16 bytes)
 }
 
 CD3DFont font;

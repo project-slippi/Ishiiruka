@@ -81,36 +81,31 @@ void VertexManager::PrepareDrawBuffers(u32 stride)
 	u32 vertexBufferSize = u32(s_pCurBufferPointer - s_pBaseBufferPointer);
 	u32 indexBufferSize = IndexGenerator::GetIndexLen() * sizeof(u16);
 	u32 totalBufferSize = vertexBufferSize + indexBufferSize;
-	u32 cursor = m_bufferCursor + indexBufferSize;
+	
+	u32 cursor = m_bufferCursor;
 	u32 padding = cursor % stride;
 	if (padding)
 	{
 		cursor += stride - padding;
 	}
 	D3D11_MAP MapType = D3D11_MAP_WRITE_NO_OVERWRITE;
-	if (cursor + vertexBufferSize >= MAX_BUFFER_SIZE)
+	if (cursor + totalBufferSize >= MAX_BUFFER_SIZE)
 	{
 		// Wrap around
 		m_currentBuffer = (m_currentBuffer + 1) % MAX_BUFFER_COUNT;
-		m_bufferCursor = 0;
-		cursor = indexBufferSize;
-		padding = cursor % stride;
-		if (padding)
-		{
-			cursor += stride - padding;
-		}
+		cursor = 0;
 		MapType = D3D11_MAP_WRITE_DISCARD;
 	}
 	m_vertexDrawOffset = cursor;
-	m_indexDrawOffset = m_bufferCursor;
+	m_indexDrawOffset = cursor + vertexBufferSize;
 
 	D3D::context->Map(m_buffers[m_currentBuffer].get(), 0, MapType, 0, &map);
-	u8* mappedData = reinterpret_cast<u8*>(map.pData);
-	memcpy(mappedData + m_indexDrawOffset, m_index_buffer_start, indexBufferSize);
+	u8* mappedData = reinterpret_cast<u8*>(map.pData);	
 	memcpy(mappedData + m_vertexDrawOffset, s_pBaseBufferPointer, vertexBufferSize);
+	memcpy(mappedData + m_indexDrawOffset, m_index_buffer_start, indexBufferSize);
 	D3D::context->Unmap(m_buffers[m_currentBuffer].get(), 0);
 
-	m_bufferCursor = cursor + vertexBufferSize;
+	m_bufferCursor = cursor + totalBufferSize;
 
 	ADDSTAT(stats.thisFrame.bytesVertexStreamed, vertexBufferSize);
 	ADDSTAT(stats.thisFrame.bytesIndexStreamed, indexBufferSize);
@@ -119,8 +114,9 @@ void VertexManager::PrepareDrawBuffers(u32 stride)
 void VertexManager::Draw(UINT stride)
 {
 	u32 indices = IndexGenerator::GetIndexLen();
-	D3D::stateman->SetIndexBuffer(m_buffers[m_currentBuffer].get());
+
 	D3D::stateman->SetVertexBuffer(m_buffers[m_currentBuffer].get(), stride, 0);
+	D3D::stateman->SetIndexBuffer(m_buffers[m_currentBuffer].get());
 
 	u32 baseVertex = m_vertexDrawOffset / stride;
 	u32 startIndex = m_indexDrawOffset / sizeof(u16);

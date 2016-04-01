@@ -363,29 +363,30 @@ void CSTextureDecoder::Init()
 	m_pool_idx = 0;
 	m_Pool_size = 0;
 	m_ready = false;
-	if (!(g_ActiveConfig.backend_info.bSupportsComputeTextureDecoding
-		&& g_ActiveConfig.bEnableComputeTextureDecoding))
-	{
-		return;
-	}
-	auto rawBd = CD3D11_BUFFER_DESC(1024*1024*4,D3D11_BIND_SHADER_RESOURCE);	
-	HRESULT hr = D3D::device->CreateBuffer(&rawBd, nullptr, ToAddr(m_rawDataRsc));
-	CHECKANDEXIT(SUCCEEDED(hr), "create texture decoder input buffer");
-	D3D::SetDebugObjectName(m_rawDataRsc.get(), "texture decoder input buffer");
-	auto outUavDesc = CD3D11_SHADER_RESOURCE_VIEW_DESC(m_rawDataRsc.get(), DXGI_FORMAT_R32_UINT, 0, (rawBd.ByteWidth) / 4, 0);
-	hr = D3D::device->CreateShaderResourceView(m_rawDataRsc.get(),&outUavDesc,ToAddr(m_rawDataSrv));
-	CHECKANDEXIT(SUCCEEDED(hr), "create texture decoder input buffer srv");
-	D3D::SetDebugObjectName(m_rawDataSrv.get(), "texture decoder input buffer srv");
 
 	u32 lutMaxEntries = (1 << 15) - 1;
 	auto lutBd = CD3D11_BUFFER_DESC(sizeof(u16)*lutMaxEntries, D3D11_BIND_SHADER_RESOURCE);
-	hr = D3D::device->CreateBuffer(&lutBd, nullptr, ToAddr(m_lutRsc));
+	HRESULT hr = D3D::device->CreateBuffer(&lutBd, nullptr, ToAddr(m_lutRsc));
 	CHECKANDEXIT(SUCCEEDED(hr), "create texture decoder lut buffer");
 	D3D::SetDebugObjectName(m_lutRsc.get(), "texture decoder lut buffer");
 	auto outlutUavDesc = CD3D11_SHADER_RESOURCE_VIEW_DESC(m_lutRsc.get(), DXGI_FORMAT_R16_UINT, 0, lutMaxEntries, 0);
 	hr = D3D::device->CreateShaderResourceView(m_lutRsc.get(), &outlutUavDesc, ToAddr(m_lutSrv));
 	CHECKANDEXIT(SUCCEEDED(hr), "create texture decoder lut srv");
 	D3D::SetDebugObjectName(m_lutSrv.get(), "texture decoder lut srv");
+
+	if (!(g_ActiveConfig.backend_info.bSupportsComputeTextureDecoding
+		&& g_ActiveConfig.bEnableComputeTextureDecoding))
+	{
+		return;
+	}
+	auto rawBd = CD3D11_BUFFER_DESC(1024*1024*4,D3D11_BIND_SHADER_RESOURCE);	
+	hr = D3D::device->CreateBuffer(&rawBd, nullptr, ToAddr(m_rawDataRsc));
+	CHECKANDEXIT(SUCCEEDED(hr), "create texture decoder input buffer");
+	D3D::SetDebugObjectName(m_rawDataRsc.get(), "texture decoder input buffer");
+	auto outUavDesc = CD3D11_SHADER_RESOURCE_VIEW_DESC(m_rawDataRsc.get(), DXGI_FORMAT_R32_UINT, 0, (rawBd.ByteWidth) / 4, 0);
+	hr = D3D::device->CreateShaderResourceView(m_rawDataRsc.get(),&outUavDesc,ToAddr(m_rawDataSrv));
+	CHECKANDEXIT(SUCCEEDED(hr), "create texture decoder input buffer srv");
+	D3D::SetDebugObjectName(m_rawDataSrv.get(), "texture decoder input buffer srv");
 
 	auto paramBd = CD3D11_BUFFER_DESC(sizeof(u32) * 4, D3D11_BIND_CONSTANT_BUFFER, D3D11_USAGE_DYNAMIC,
 		D3D11_CPU_ACCESS_WRITE);
@@ -440,7 +441,7 @@ const bool DecFuncSupported[] = {
 
 bool CSTextureDecoder::FormatSupported(u32 srcFmt)
 {
-	return DecFuncSupported[u32(srcFmt) & 0xF];
+	return m_ready && DecFuncSupported[u32(srcFmt) & 0xF];
 }
 
 char const* DecFunc[] = {
@@ -554,10 +555,6 @@ ID3D11ComputeShader* CSTextureDecoder::InsertShader( ComboKey const &key, u8 con
 
 void CSTextureDecoder::LoadLut(u32 lutFmt, void* addr, u32 size ) 
 {
-	if (!m_ready)
-	{
-		return;
-	}
 	D3D11_BOX box{0,0,0,size,1,1};
 	D3D::context->UpdateSubresource(m_lutRsc.get(),0,&box,addr,0,0);
 	m_lutFmt = lutFmt;
