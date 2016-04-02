@@ -425,14 +425,6 @@ HRESULT Create(HWND wnd)
 
 	context->OMSetRenderTargets(1, &backbuf->GetRTV(), nullptr);
 
-	// BGRA textures are easier to deal with in TextureCache, but might not be supported by the hardware
-	UINT format_support;
-	device->CheckFormatSupport(DXGI_FORMAT_B8G8R8A8_UNORM, &format_support);
-	bgra_textures_supported = (format_support & D3D11_FORMAT_SUPPORT_TEXTURE2D) != 0;
-	device->CheckFormatSupport(DXGI_FORMAT_B5G6R5_UNORM, &format_support);
-	bgra565_textures_supported = (format_support & D3D11_FORMAT_SUPPORT_TEXTURE2D) != 0;
-	g_Config.backend_info.bSupportedFormats[PC_TEX_FMT_BGRA32] = bgra_textures_supported;
-	g_Config.backend_info.bSupportedFormats[PC_TEX_FMT_RGB565] = bgra565_textures_supported;
 	UpdateActiveConfig();
 	stateman = new StateManager;
 	return S_OK;

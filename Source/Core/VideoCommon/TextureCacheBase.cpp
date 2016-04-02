@@ -674,32 +674,40 @@ TextureCacheBase::TCacheEntryBase* TextureCacheBase::Load(const u32 stage)
 	{
 		// Perform palette decoding.
 		TCacheEntryBase *entry = unconverted_copy->second;
-		TCacheEntryBase *decoded_entry = AllocateTexture(entry->config);
-
-		decoded_entry->SetGeneralParameters(address, texture_size, full_format);
-		decoded_entry->SetDimensions(entry->native_width, entry->native_height, 1);
-		entry->SetHashes(full_hash, tex_hash);
-		decoded_entry->frameCount = FRAMECOUNT_INVALID;
-		decoded_entry->is_efb_copy = false;
-		if (palette_upload_required)
+		TCacheEntryConfig config;
+		config.rendertarget = true;
+		config.width = entry->config.width;
+		config.height = entry->config.height;
+		config.layers = FramebufferManagerBase::GetEFBLayers();
+		TCacheEntryBase *decoded_entry = AllocateTexture(config);
+		if (decoded_entry)
 		{
-			palette_upload_required = false;
-			s_prev_tlut_address = tlutaddr;
-			s_prev_tlut_hash = tlut_hash;
-			s_prev_tlut_size = palette_size;
-			g_texture_cache->LoadLut(tlutfmt, &texMem[tlutaddr], palette_size);
-		}
+			decoded_entry->SetGeneralParameters(address, texture_size, full_format);
+			decoded_entry->SetDimensions(entry->native_width, entry->native_height, 1);
+			decoded_entry->SetHashes(full_hash, tex_hash);
+			decoded_entry->frameCount = FRAMECOUNT_INVALID;
+			decoded_entry->is_efb_copy = false;
+			if (palette_upload_required)
+			{
+				palette_upload_required = false;
+				s_prev_tlut_address = tlutaddr;
+				s_prev_tlut_hash = tlut_hash;
+				s_prev_tlut_size = palette_size;
+				g_texture_cache->LoadLut(tlutfmt, &texMem[tlutaddr], palette_size);
+			}
 
-		textures_by_address.emplace((u64)address, decoded_entry);
+			TextureCacheBase::TexCache::iterator iter = textures_by_address.emplace((u64)address, decoded_entry);
 
-		// If supported palettize, if not return the original entry
-		if (g_texture_cache->Palettize(decoded_entry, entry))
-		{
-			return ReturnEntry(stage, decoded_entry);
-		}
-		else
-		{
-			return ReturnEntry(stage, entry);
+			// If supported palettize, if not return the original entry
+			if (g_texture_cache->Palettize(decoded_entry, entry))
+			{
+				return ReturnEntry(stage, decoded_entry);
+			}
+			else
+			{
+				FreeTexture(iter);
+				return ReturnEntry(stage, entry);
+			}
 		}
 	}
 
