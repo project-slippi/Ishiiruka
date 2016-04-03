@@ -211,6 +211,13 @@ inline float mitchell(float x, float B, float C) {
 	return ((12 - 9 * B - 6 * C)*(x*x*x) + (-18 + 12 * B + 6 * C)*(x*x) + (6 - 2 * B)) / 6.0f;
 }
 
+inline float jinc(float x, float A, float B, float AB) {
+	x = x + 0.000000001f;
+	
+	return (sin(x*A)*sin(x*B) / (x*x*AB));
+}
+
+
 // arrays for pre-calculating weights and sums (~20KB)
 // Dimensions:
 //   0: 0 = BSpline, 1 = mitchell
@@ -219,109 +226,184 @@ inline float mitchell(float x, float B, float C) {
 // 4,5: 5x5 pixels sampled from
 float bicubicWeights[2][4][5][5][5][5];
 float bicubicInvSums[2][4][5][5];
-
+float jincWeights[4][5][5][5][5];
+float jincInvSums[4][5][5];
 // initialize pre-computed weights array
-void initBicubicWeights() {
+void initFilterWeights() {
+	float pi = 3.1415926535897932384626433832795f;
+	float wa = 0.42f*pi;
+	float wb = 0.92f*pi;
+	float wab = wa*wb;
 	float B[2] = { 1.0f, 0.334f };
 	float C[2] = { 0.0f, 0.334f };
 	for (int type = 0; type < 2; ++type) {
 		for (int factor = 2; factor <= 5; ++factor) {
 			for (int x = 0; x < factor; ++x) {
 				for (int y = 0; y < factor; ++y) {
-					float sum = 0.0f;
-					for (int sx = -2; sx <= 2; ++sx) {
-						for (int sy = -2; sy <= 2; ++sy) {
-							float dx = (x + 0.5f) / factor - (sx + 0.5f);
-							float dy = (y + 0.5f) / factor - (sy + 0.5f);
+					float sum[2] = { 0.0f, 0.0f }; int tx = 1 - ((((x%factor) << 1) / factor) << 1); int ty = 1 - ((((y%factor) << 1) / factor) << 1);
+					for (int sx = -2; sx < 2; ++sx) {
+						for (int sy = -2; sy < 2; ++sy) {
+							float dx = (x + 0.5f) / factor - (tx*sx + 0.5f);
+							float dy = (y + 0.5f) / factor - (ty*sy + 0.5f);
 							float dist = sqrt(dx*dx + dy*dy);
 							float weight = mitchell(dist, B[type], C[type]);
-							bicubicWeights[type][factor - 2][x][y][sx + 2][sy + 2] = weight;
-							sum += weight;
+							bicubicWeights[type][factor - 2][x][y][tx*sx + 2][ty*sy + 2] = weight;
+							sum[0] += weight;
+							weight = jinc(dist, wa, wb, wab);
+							jincWeights[factor - 2][x][y][tx*sx + 2][ty*sy + 2] = weight;
+							sum[1] += weight;
 						}
 					}
-					bicubicInvSums[type][factor - 2][x][y] = 1.0f / sum;
+					bicubicInvSums[type][factor - 2][x][y] = 1.0f / sum[0];
+					jincInvSums[factor - 2][x][y] = 1.0f / sum[1];
 				}
 			}
 		}
 	}
 }
 
+
 // perform bicubic scaling by factor f, with precomputed spline type T
 template<int f, int T>
 void scaleBicubicT(u32* data, u32* out, int w, int h, int l, int u) {
-	int outw = w*f;
-	for (int yb = 0; yb < (u - l)*f / BLOCK_SIZE + 1; ++yb) {
-		for (int xb = 0; xb < w*f / BLOCK_SIZE + 1; ++xb) {
-			for (int y = l*f + yb*BLOCK_SIZE; y < l*f + (yb + 1)*BLOCK_SIZE && y < u*f; ++y) {
-				for (int x = xb*BLOCK_SIZE; x < (xb + 1)*BLOCK_SIZE && x < w*f; ++x) {
-					float r = 0.0f, g = 0.0f, b = 0.0f, a = 0.0f;
-					int cx = x / f, cy = y / f;
-					// sample supporting pixels in original image
-					for (int sx = -2; sx <= 2; ++sx) {
-						for (int sy = -2; sy <= 2; ++sy) {
-							float weight = bicubicWeights[T][f - 2][x%f][y%f][sx + 2][sy + 2];
-							if (weight != 0.0f) {
-								// clamp pixel locations
-								int csy = std::max(std::min(sy + cy, h - 1), 0);
-								int csx = std::max(std::min(sx + cx, w - 1), 0);
-								// sample & add weighted components
-								u32 sample = data[csy*w + csx];
-								r += weight*R(sample);
-								g += weight*G(sample);
-								b += weight*B(sample);
-								a += weight*A(sample);
-							}
-						}
+	int outw = w*f, outh = h*f;
+	for (int y = 0; y < outh; ++y) {
+		for (int x = 0; x < outw; ++x) {
+			float r = 0.0f, g = 0.0f, b = 0.0f, a = 0.0f;
+			int cx = x / f, cy = y / f; int tx = 1 - ((((x%f) << 1) / f) << 1); int ty = 1 - ((((y%f) << 1) / f) << 1);
+			// sample supporting pixels in original image
+			for (int sx = -2; sx < 2; ++sx) {
+				for (int sy = -2; sy < 2; ++sy) {
+					float weight = bicubicWeights[T][f - 2][x%f][y%f][tx*sx + 2][ty*sy + 2];
+					if (weight != 0.0f) {
+						// clamp pixel locations
+						int csy = std::max(std::min(ty*sy + cy, h - 1), 0);
+						int csx = std::max(std::min(tx*sx + cx, w - 1), 0);
+						// sample & add weighted components
+						u32 sample = data[csy*w + csx];
+						r += weight*R(sample);
+						g += weight*G(sample);
+						b += weight*B(sample);
+						a += weight*A(sample);
 					}
-					// generate and write result
-					float invSum = bicubicInvSums[T][f - 2][x%f][y%f];
-					int ri = std::min(std::max(static_cast<int>(ceilf(r*invSum)), 0), 255);
-					int gi = std::min(std::max(static_cast<int>(ceilf(g*invSum)), 0), 255);
-					int bi = std::min(std::max(static_cast<int>(ceilf(b*invSum)), 0), 255);
-					int ai = std::min(std::max(static_cast<int>(ceilf(a*invSum)), 0), 255);
-					out[y*outw + x] = (ai << 24) | (bi << 16) | (gi << 8) | ri;
 				}
 			}
+			// generate and write result
+			float invSum = bicubicInvSums[T][f - 2][x%f][y%f];
+			int ri = std::min(std::max(static_cast<int>(ceilf(r*invSum)), 0), 255);
+			int gi = std::min(std::max(static_cast<int>(ceilf(g*invSum)), 0), 255);
+			int bi = std::min(std::max(static_cast<int>(ceilf(b*invSum)), 0), 255);
+			int ai = std::min(std::max(static_cast<int>(ceilf(a*invSum)), 0), 255);
+			out[y*outw + x] = (ai << 24) | (bi << 16) | (gi << 8) | ri;
 		}
 	}
 }
+
+// perform jinc scaling by factor f.
+template<int f>
+void scaleJincT(u32* data, u32* out, int w, int h) {
+	int outw = w*f, outh = h*f;
+	for (int y = 0; y < outh; ++y) {
+		for (int x = 0; x < outw; ++x) {
+			float r = 0.0f, g = 0.0f, b = 0.0f, a = 0.0f;
+			int cx = x / f, cy = y / f; int tx = 1 - ((((x%f) << 1) / f) << 1); int ty = 1 - ((((y%f) << 1) / f) << 1);
+			// sample supporting pixels in original image
+			for (int sx = -2; sx < 2; ++sx) {
+				for (int sy = -2; sy < 2; ++sy) {
+					float weight = jincWeights[f - 2][x%f][y%f][tx*sx + 2][ty*sy + 2];
+					if (weight != 0.0f) {
+						// clamp pixel locations
+						int csy = std::max(std::min(ty*sy + cy, h - 1), 0);
+						int csx = std::max(std::min(tx*sx + cx, w - 1), 0);
+						// sample & add weighted components
+						u32 sample = data[csy*w + csx];
+						r += weight*R(sample);
+						g += weight*G(sample);
+						b += weight*B(sample);
+						a += weight*A(sample);
+					}
+				}
+			}
+			// generate and write result
+			float invSum = jincInvSums[f - 2][x%f][y%f];
+			int ri = std::min(std::max(static_cast<int>(ceilf(r*invSum)), 0), 255);
+			int gi = std::min(std::max(static_cast<int>(ceilf(g*invSum)), 0), 255);
+			int bi = std::min(std::max(static_cast<int>(ceilf(b*invSum)), 0), 255);
+			int ai = std::min(std::max(static_cast<int>(ceilf(a*invSum)), 0), 255);
+			out[y*outw + x] = (ai << 24) | (bi << 16) | (gi << 8) | ri;
+		}
+	}
+}
+
+
 #if _M_SSE >= 0x401
+
 template<int f, int T>
 void scaleBicubicTSSE41(u32* data, u32* out, int w, int h, int l, int u) {
-	int outw = w*f;
-	for (int yb = 0; yb < (u - l)*f / BLOCK_SIZE + 1; ++yb) {
-		for (int xb = 0; xb < w*f / BLOCK_SIZE + 1; ++xb) {
-			for (int y = l*f + yb*BLOCK_SIZE; y < l*f + (yb + 1)*BLOCK_SIZE && y < u*f; ++y) {
-				for (int x = xb*BLOCK_SIZE; x < (xb + 1)*BLOCK_SIZE && x < w*f; ++x) {
-					__m128 result = _mm_set1_ps(0.0f);
-					int cx = x / f, cy = y / f;
-					// sample supporting pixels in original image
-					for (int sx = -2; sx <= 2; ++sx) {
-						for (int sy = -2; sy <= 2; ++sy) {
-							float weight = bicubicWeights[T][f - 2][x%f][y%f][sx + 2][sy + 2];
-							if (weight != 0.0f) {
-								// clamp pixel locations
-								int csy = std::max(std::min(sy + cy, h - 1), 0);
-								int csx = std::max(std::min(sx + cx, w - 1), 0);
-								// sample & add weighted components
-								__m128i sample = _mm_cvtsi32_si128(data[csy*w + csx]);
-								sample = _mm_cvtepu8_epi32(sample);
-								__m128 col = _mm_cvtepi32_ps(sample);
-								col = _mm_mul_ps(col, _mm_set1_ps(weight));
-								result = _mm_add_ps(result, col);
-							}
-						}
+	int outw = w*f, outh = h*f;
+	for (int y = 0; y < outh; ++y) {
+		for (int x = 0; x < outw; ++x) {
+			__m128 result = _mm_set1_ps(0.0f);
+			int cx = x / f, cy = y / f; int tx = 1-((((x%f) << 1) / f) << 1); int ty = 1-((((y%f) << 1) / f) << 1);
+			// sample supporting pixels in original image
+			for (int sx = -2; sx < 2; ++sx) {
+				for (int sy = -2; sy < 2; ++sy) {
+					float weight = bicubicWeights[T][f - 2][x%f][y%f][tx*sx + 2][ty*sy + 2];
+					if (weight != 0.0f) {
+						// clamp pixel locations
+						int csy = std::max(std::min(ty*sy + cy, h - 1), 0);
+						int csx = std::max(std::min(tx*sx + cx, w - 1), 0);
+						// sample & add weighted components
+						__m128i sample = _mm_cvtsi32_si128(data[csy*w + csx]); // reads i32 and put at r0. 128bit = r0r1r2r3.
+						sample = _mm_cvtepu8_epi32(sample); // separates 32 bits in four 8 bits, one at each r#.
+						__m128 col = _mm_cvtepi32_ps(sample); // convert int to float.
+						col = _mm_mul_ps(col, _mm_set1_ps(weight)); // multiply four 32 bits by weight.
+						result = _mm_add_ps(result, col); // Accumulate result with col.
 					}
-					// generate and write result
-					__m128i pixel = _mm_cvtps_epi32(_mm_mul_ps(result, _mm_set1_ps(bicubicInvSums[T][f - 2][x%f][y%f])));
-					pixel = _mm_packs_epi32(pixel, pixel);
-					pixel = _mm_packus_epi16(pixel, pixel);
-					out[y*outw + x] = _mm_cvtsi128_si32(pixel);
 				}
 			}
+			// generate and write result
+			__m128i pixel = _mm_cvtps_epi32(_mm_mul_ps(result, _mm_set1_ps(bicubicInvSums[T][f - 2][x%f][y%f]))); // float to int
+			pixel = _mm_packs_epi32(pixel, pixel); // 32 to 16 bit
+			pixel = _mm_packus_epi16(pixel, pixel); // 16 to 8 bit
+			out[y*outw + x] = _mm_cvtsi128_si32(pixel); // r = r0.
 		}
 	}
 }
+
+template<int f>
+void scaleJincTSSE41(u32* data, u32* out, int w, int h) {
+	int outw = w*f, outh = h*f;
+	for (int y = 0; y < outh; ++y) {
+		for (int x = 0; x < outw; ++x) {
+			__m128 result = _mm_set1_ps(0.0f);
+			int cx = x / f, cy = y / f; int tx = 1 - ((((x%f) << 1) / f) << 1); int ty = 1 - ((((y%f) << 1) / f) << 1);
+			// sample supporting pixels in original image
+			for (int sx = -2; sx < 2; ++sx) {
+				for (int sy = -2; sy < 2; ++sy) {
+					float weight = jincWeights[f - 2][x%f][y%f][tx*sx + 2][ty*sy + 2];
+					if (weight != 0.0f) {
+						// clamp pixel locations
+						int csy = std::max(std::min(ty*sy + cy, h - 1), 0);
+						int csx = std::max(std::min(tx*sx + cx, w - 1), 0);
+						// sample & add weighted components
+						__m128i sample = _mm_cvtsi32_si128(data[csy*w + csx]); // reads i32 and put at r0. 128bit = r0r1r2r3.
+						sample = _mm_cvtepu8_epi32(sample); // separates 32 bits in four 8 bits, one at each r#.
+						__m128 col = _mm_cvtepi32_ps(sample); // convert int to float.
+						col = _mm_mul_ps(col, _mm_set1_ps(weight)); // multiply four 32 bits by weight.
+						result = _mm_add_ps(result, col); // Accumulate result with col.
+					}
+				}
+			}
+			// generate and write result
+			__m128i pixel = _mm_cvtps_epi32(_mm_mul_ps(result, _mm_set1_ps(jincInvSums[f - 2][x%f][y%f]))); // float to int
+			pixel = _mm_packs_epi32(pixel, pixel); // 32 to 16 bit
+			pixel = _mm_packus_epi16(pixel, pixel); // 16 to 8 bit
+			out[y*outw + x] = _mm_cvtsi128_si32(pixel); // r = r0.
+		}
+	}
+}
+
 #endif
 
 void scaleBicubicBSpline(int factor, u32* data, u32* out, int w, int h, int l, int u) {
@@ -371,6 +453,33 @@ void scaleBicubicMitchell(int factor, u32* data, u32* out, int w, int h, int l, 
 	}
 #endif
 }
+
+
+void scaleJinc(int factor, u32* data, u32* out, int w, int h) {
+#if _M_SSE >= 0x401
+	if (cpu_info.bSSE4_1) {
+		switch (factor) {
+		case 2: scaleJincTSSE41<2>(data, out, w, h); break;
+		case 3: scaleJincTSSE41<3>(data, out, w, h); break;
+		case 4: scaleJincTSSE41<4>(data, out, w, h); break;
+		case 5: scaleJincTSSE41<5>(data, out, w, h); break;
+		default: ERROR_LOG(VIDEO, "Jinc upsampling only implemented for factors 2 to 5");
+		}
+	}
+	else {
+#endif
+		switch (factor) {
+		case 2: scaleJincT<2>(data, out, w, h); break;
+		case 3: scaleJincT<3>(data, out, w, h); break;
+		case 4: scaleJincT<4>(data, out, w, h); break;
+		case 5: scaleJincT<5>(data, out, w, h); break;
+		default: ERROR_LOG(VIDEO, "Jinc upsampling only implemented for factors 2 to 5");
+		}
+#if _M_SSE >= 0x401
+	}
+#endif
+}
+
 
 //////////////////////////////////////////////////////////////////// Bilinear scaling
 
@@ -488,7 +597,7 @@ void dbgPGM(int w, int h, u32* pixels, const char* prefix = "dbg") { // 1 compon
 /////////////////////////////////////// Texture Scaler
 
 TextureScaler::TextureScaler() {
-	initBicubicWeights();
+	initFilterWeights();
 }
 
 TextureScaler::~TextureScaler() {
@@ -540,6 +649,9 @@ u32* TextureScaler::Scale(u32* data, int width, int height) {
 		break;
 	case HYBRID_BICUBIC:
 		ScaleHybrid(factor, inputBuf, outputBuf, width, height, true);
+		break;
+	case JINC:
+		ScaleJinc(factor, inputBuf, outputBuf, width, height);
 		break;
 	default:
 		ERROR_LOG(VIDEO, "Unknown scaling type: %d", g_ActiveConfig.iTexScalingType);
@@ -612,6 +724,11 @@ void TextureScaler::ScaleHybrid(int factor, u32* source, u32* dest, int width, i
 	// The factor 8192 was found through practical testing on a variety of textures
 	//GlobalThreadPool::Loop(std::bind(&mix, dest, bufTmp2.data(), bufTmp3.data(), 8192, width*factor, placeholder::_1, placeholder::_2), 0, height*factor);
 	mix(dest, bufTmp2.data(), bufTmp3.data(), 8192, width*factor, 0, height*factor);
+}
+
+void TextureScaler::ScaleJinc(int factor, u32* source, u32* dest, int width, int height) {
+	//GlobalThreadPool::Loop(std::bind(&scaleSuperXBR, factor, source, dest, width, height, placeholder::_1, placeholder::_2), 0, height);
+	scaleJinc(factor, source, dest, width, height);
 }
 
 void TextureScaler::DePosterize(u32* source, u32* dest, int width, int height) {
