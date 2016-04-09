@@ -635,8 +635,11 @@ u32 GetTicksPerField()
 
 static void BeginField(FieldType field)
 {
-	bool potentially_interlaced_xfb = ((m_PictureConfiguration.STD / m_PictureConfiguration.WPL) == 2); // Could we fit a second line of data in the stride?
-	bool interlaced_video_mode = (GetHalfLinesPerEvenField() & 1) == 1; // Are there an odd number of halflines per field (definition of interlaced video)
+	// Could we fit a second line of data in the stride?
+	bool potentially_interlaced_xfb = ((m_PictureConfiguration.STD / m_PictureConfiguration.WPL) == 2);
+	// Are there an odd number of half-lines per field (definition of interlaced video)
+	bool interlaced_video_mode = (GetHalfLinesPerEvenField() & 1) == 1;
+
 	u32 fbStride = m_PictureConfiguration.STD * 16;
 	u32 fbWidth = m_PictureConfiguration.WPL * 16;
 	u32 fbHeight = m_VerticalTimingRegister.ACV;
