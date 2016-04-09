@@ -368,7 +368,7 @@ inline void WriteFetchDisplacement(ShaderCode& out, int n, const Tessellation_sh
 				out.Write("tevcoord.xy = int2(0,0);\n");
 		}
 
-		out.Write("float2 stagecoord = float2(tevcoord.xy) * (1.0/128.0);\n");
+		out.Write("float2 stagecoord = float2(tevcoord.xy);\n");
 		out.Write("float bump = ");
 		SampleTextureRAW<ApiType>(out, "(stagecoord)", "b", "0.0", texmap, texcoord);
 		out.Write("bump = (bump * 255.0/127.0 - 128.0/127.0) * uv[%d].z;\n", texcoord);
@@ -594,7 +594,7 @@ inline void GenerateTessellationShader(ShaderCode& out, const Tessellation_shade
 				{
 					out.Write("uv[%d].xy = result.tex%d.xy;\n", i, i);
 				}
-				out.Write("uv[%d].xy = trunc(128.0 * uv[%d].xy * " I_TEXDIMS"[%d].zw);\n", i, i, i);
+				out.Write("uv[%d].xy = trunc(uv[%d].xy * " I_TEXDIMS"[%d].zw);\n", i, i, i);
 				out.Write("uv[%d].z = dot(pconstans.edgesize.zxy, bCoords)/dot(float3(pconstans.tex%d[0].w, pconstans.tex%d[1].w, pconstans.tex%d[2].w), bCoords);\n", i, i, i, i);
 				out.Write("uv[%d].w = dot(log2(8.0*float3(pconstans.tex%d[0].w,pconstans.tex%d[1].w,pconstans.tex%d[2].w) / float3(pconstans.EFactor[2], pconstans.EFactor[0], pconstans.EFactor[1])),bCoords);\n", i, i, i, i);
 				out.Write("uv[%d].z = borderdistance * 2.0 * uv[%d].z;\n", i, i);
@@ -615,7 +615,7 @@ inline void GenerateTessellationShader(ShaderCode& out, const Tessellation_shade
 						out.Write("t_coord = int2(0,0);\n");
 					}
 					out.Write("int3 indtex%d = ", i);
-					SampleTexture<ApiType>(out, "(float2(t_coord)/128.0)", "abg", texmap, uid_data.stereo);
+					SampleTexture<ApiType>(out, "float2(t_coord)", "abg", texmap, uid_data.stereo);
 				}
 			}
 			for (u32 i = 0; i < numStages; ++i)

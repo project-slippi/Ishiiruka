@@ -1196,7 +1196,7 @@ inline void WriteFetchStageTexture(ShaderCode& out, const pixel_shader_uid_data&
 			'\0' };
 
 		int texmap = stage.tevorders_texmap;
-		out.Write("float2 stagecoord = float2(tevcoord.xy) * (1.0/128.0);\n");
+		out.Write("float2 stagecoord = float2(tevcoord.xy);\n");
 		out.Write("tex_ta[%i] = ", n);
 		SampleTexture<ApiType>(out, "stagecoord", texswap, texmap, uid_data.stereo);
 		if (LoadMaterial)
@@ -1747,7 +1747,7 @@ inline void GeneratePixelShader(ShaderCode& out, const pixel_shader_uid_data& ui
 				out.Write("if (uv%d.z != 0.0)", i);
 				out.Write("\tuv%d.xy = uv%d.xy / uv%d.z;\n", i, i, i);
 			}
-			out.Write("uv%d.xy = trunc(128.0 * uv%d.xy * " I_TEXDIMS"[%d].zw);\n", i, i, i);
+			out.Write("uv%d.xy = trunc(uv%d.xy * " I_TEXDIMS"[%d].zw);\n", i, i, i);
 		}
 	}
 
@@ -1770,7 +1770,7 @@ inline void GeneratePixelShader(ShaderCode& out, const pixel_shader_uid_data& ui
 				out.Write("t_coord = wu2(0,0);\n");
 			}
 			out.Write("wu3 indtex%d = ", i);
-			SampleTexture<ApiType>(out, "(float2(t_coord)/128.0)", "abg", texmap, uid_data.stereo);
+			SampleTexture<ApiType>(out, "float2(t_coord)", "abg", texmap, uid_data.stereo);
 		}
 	}
 	if (enablenormalmaps || forcePhong)

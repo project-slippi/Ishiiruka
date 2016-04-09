@@ -465,10 +465,10 @@ void PixelShaderManager::SetPSTextureDims(int texid)
 	// texdims.zw are the scaled dimensions
 	float* fdims = m_buffer.GetBufferToUpdate<float>(C_TEXDIMS + texid, 1);
 	TCoordInfo& tc = bpmem.texcoords[texid];
-	fdims[0] = 1.0f / (float)(lastTexDims[texid] & 0xffff);
-	fdims[1] = 1.0f / (float)((lastTexDims[texid] >> 16) & 0xfff);
-	fdims[2] = (float)(tc.s.scale_minus_1 + 1);
-	fdims[3] = (float)(tc.t.scale_minus_1 + 1);	
+	fdims[0] = 1.0f / float((lastTexDims[texid] & 0xffff) << 7);
+	fdims[1] = 1.0f / float(((lastTexDims[texid] >> 16) & 0xfff) << 7);
+	fdims[2] = float((tc.s.scale_minus_1 + 1) << 7);
+	fdims[3] = float((tc.t.scale_minus_1 + 1) << 7);
 	PRIM_LOG("texdims%d: %f %f %f %f\n", texid, fdims[0], fdims[1], fdims[2], fdims[3]);
 }
 
