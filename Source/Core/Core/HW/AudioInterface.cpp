@@ -133,6 +133,7 @@ static void UpdateInterrupts();
 static void IncreaseSampleCount(const u32 _uAmount);
 static int GetAIPeriod();
 static int et_AI;
+static void Update(u64 userdata, s64 cyclesLate);
 
 void Init()
 {
@@ -299,7 +300,7 @@ unsigned int GetAIDSampleRate()
 	return g_AIDSampleRate;
 }
 
-void Update(u64 userdata, int cyclesLate)
+static void Update(u64 userdata, s64 cyclesLate)
 {
 	if (m_Control.PSTAT)
 	{
@@ -310,7 +311,7 @@ void Update(u64 userdata, int cyclesLate)
 			g_LastCPUTime += Samples * g_CPUCyclesPerSample;
 			IncreaseSampleCount(Samples);
 		}
-		CoreTiming::ScheduleEvent(GetAIPeriod() - cyclesLate, et_AI);
+		CoreTiming::ScheduleEvent(static_cast<s64>(GetAIPeriod()) - cyclesLate, et_AI);
 	}
 }
 

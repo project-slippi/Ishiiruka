@@ -26,8 +26,9 @@ namespace SerialInterface
 static int changeDevice;
 static int et_transfer_pending;
 
-void RunSIBuffer(u64 userdata, int cyclesLate);
-void UpdateInterrupts();
+static void RunSIBuffer(u64 userdata, s64 cyclesLate);
+static void UpdateInterrupts();
+static void ChangeDeviceCallback(u64 userdata, s64 cyclesLate);
 
 // SI Interrupt Types
 enum SIInterruptType
@@ -250,7 +251,6 @@ void DoState(PointerWrap &p)
 	p.Do(g_SIBuffer);
 }
 
-
 void Init()
 {
 	for (int i = 0; i < MAX_SI_CHANNELS; i++)
@@ -430,7 +430,7 @@ void RegisterMMIO(MMIO::Mapping* mmio, u32 base)
 	);
 }
 
-void UpdateInterrupts()
+static void UpdateInterrupts()
 {
 	// check if we have to update the RDSTINT flag
 	if (g_StatusReg.RDST0 || g_StatusReg.RDST1 ||
@@ -496,7 +496,7 @@ static void SetNoResponse(u32 channel)
 	g_ComCSR.COMERR = 1;
 }
 
-void ChangeDeviceCallback(u64 userdata, int cyclesLate)
+static void ChangeDeviceCallback(u64 userdata, s64 cyclesLate)
 {
 	u8 channel = (u8)(userdata >> 32);
 	SIDevices device = (SIDevices)(u32)userdata;
@@ -559,7 +559,7 @@ SIDevices GetDeviceType(int channel)
 	return g_Channel[channel].m_device->GetDeviceType();
 }
 
-void RunSIBuffer(u64 userdata, int cyclesLate)
+static void RunSIBuffer(u64 userdata, s64 cyclesLate)
 {
 	if (g_ComCSR.TSTART)
 	{
