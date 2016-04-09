@@ -26,13 +26,13 @@ namespace DX12
 
 // EXISTINGD3D11TODO: Find sensible values for these two
 static constexpr unsigned int MAX_IBUFFER_SIZE = VertexManager::MAXIBUFFERSIZE * sizeof(u16) * 16;
-static constexpr unsigned int MAX_VBUFFER_SIZE = VertexManager::MAXVBUFFERSIZE * 4;
+static constexpr unsigned int MAX_VBUFFER_SIZE = VertexManager::MAXVBUFFERSIZE * 2;
 
 void VertexManager::SetIndexBuffer()
 {
 	D3D12_INDEX_BUFFER_VIEW ibView = {
-		m_index_stream_buffer->GetBaseGPUAddress(),          // D3D12_GPU_VIRTUAL_ADDRESS BufferLocation;
-		static_cast<UINT>(m_index_stream_buffer->GetSize()), // UINT SizeInBytes;
+		m_stream_buffer->GetBaseGPUAddress(),          // D3D12_GPU_VIRTUAL_ADDRESS BufferLocation;
+		static_cast<UINT>(m_stream_buffer->GetSize()), // UINT SizeInBytes;
 		DXGI_FORMAT_R16_UINT                                 // DXGI_FORMAT Format;
 	};
 
@@ -43,22 +43,15 @@ void VertexManager::CreateDeviceObjects()
 {
 	m_vertex_draw_offset = 0;
 	m_index_draw_offset = 0;
-	m_vertex_stream_buffer = std::make_unique<D3DStreamBuffer>(VertexManager::MAXVBUFFERSIZE * 2, MAX_VBUFFER_SIZE, &m_vertex_stream_buffer_reallocated);
-	m_index_stream_buffer = std::make_unique<D3DStreamBuffer>(VertexManager::MAXIBUFFERSIZE * sizeof(u16) * 2, VertexManager::MAXIBUFFERSIZE * sizeof(u16) * 16, &m_index_stream_buffer_reallocated);
-
-	SetIndexBuffer();
-
-	// Use CPU-only memory if the GPU won't be reading from the buffers,
-	// since reading upload heaps on the CPU is slow..
+	m_stream_buffer = std::make_unique<D3DStreamBuffer>((MAX_VBUFFER_SIZE + MAX_IBUFFER_SIZE) / 2, MAX_VBUFFER_SIZE + MAX_IBUFFER_SIZE, &m_stream_buffer_reallocated);
+	m_stream_buffer_reallocated = true;
 	m_vertex_cpu_buffer.resize(MAXVBUFFERSIZE);
 	m_index_cpu_buffer.resize(MAXIBUFFERSIZE);
 }
 
 void VertexManager::DestroyDeviceObjects()
 {
-	m_vertex_stream_buffer.reset();
-	m_index_stream_buffer.reset();
-
+	m_stream_buffer.reset();
 	m_vertex_cpu_buffer.clear();
 	m_index_cpu_buffer.clear();
 }
@@ -77,9 +70,26 @@ void VertexManager::PrepareDrawBuffers(u32 stride)
 {
 	u32 vertex_data_size = IndexGenerator::GetNumVerts() * stride;
 	u32 index_data_size = IndexGenerator::GetIndexLen() * sizeof(u16);
+	size_t total_size = vertex_data_size + index_data_size;
+	bool current_command_list_executed = m_stream_buffer->AllocateSpaceInBuffer(total_size, stride, !PerfQueryBase::ShouldEmulate());
 
-	m_vertex_stream_buffer->OverrideSizeOfPreviousAllocation(vertex_data_size);
-	m_index_stream_buffer->OverrideSizeOfPreviousAllocation(index_data_size);
+	if (m_stream_buffer_reallocated)
+	{
+		D3D::command_list_mgr->SetCommandListDirtyState(COMMAND_LIST_STATE_VERTEX_BUFFER, true);
+		SetIndexBuffer();
+		m_stream_buffer_reallocated = false;
+	}
+
+	m_vertex_draw_offset = static_cast<u32>(m_stream_buffer->GetOffsetOfCurrentAllocation());
+	m_index_draw_offset = m_vertex_draw_offset + vertex_data_size;
+	u8* dest = static_cast<u8*>(m_stream_buffer->GetCPUAddressOfCurrentAllocation());
+	memcpy(dest, m_vertex_cpu_buffer.data(), vertex_data_size);
+	memcpy(dest + vertex_data_size, m_index_cpu_buffer.data(), index_data_size);
+
+	if (current_command_list_executed)
+	{
+		g_renderer->RestoreAPIState();
+	}
 
 	ADDSTAT(stats.thisFrame.bytesVertexStreamed, vertex_data_size);
 	ADDSTAT(stats.thisFrame.bytesIndexStreamed, index_data_size);
@@ -94,8 +104,8 @@ void VertexManager::Draw(u32 stride)
 	if (D3D::command_list_mgr->GetCommandListDirtyState(COMMAND_LIST_STATE_VERTEX_BUFFER) || s_previous_stride != stride)
 	{
 		D3D12_VERTEX_BUFFER_VIEW vbView = {
-			m_vertex_stream_buffer->GetBaseGPUAddress(),          // D3D12_GPU_VIRTUAL_ADDRESS BufferLocation;
-			static_cast<UINT>(m_vertex_stream_buffer->GetSize()), // UINT SizeInBytes;
+			m_stream_buffer->GetBaseGPUAddress(),          // D3D12_GPU_VIRTUAL_ADDRESS BufferLocation;
+			static_cast<UINT>(m_stream_buffer->GetSize()), // UINT SizeInBytes;
 			stride                                                // UINT StrideInBytes;
 		};
 
@@ -109,12 +119,12 @@ void VertexManager::Draw(u32 stride)
 
 	switch (current_primitive_type)
 	{
-		case PRIMITIVE_POINTS:
-			d3d_primitive_topology = D3D_PRIMITIVE_TOPOLOGY_POINTLIST;
-			break;
-		case PRIMITIVE_LINES:
-			d3d_primitive_topology = D3D_PRIMITIVE_TOPOLOGY_LINELIST;
-			break;
+	case PRIMITIVE_POINTS:
+		d3d_primitive_topology = D3D_PRIMITIVE_TOPOLOGY_POINTLIST;
+		break;
+	case PRIMITIVE_LINES:
+		d3d_primitive_topology = D3D_PRIMITIVE_TOPOLOGY_LINELIST;
+		break;
 	}
 
 	if (D3D::command_list_mgr->GetCommandListPrimitiveTopology() != d3d_primitive_topology)
@@ -164,8 +174,8 @@ void VertexManager::vFlush(bool use_dst_alpha)
 	// D3D12TODO: Decide right threshold for drawCountSinceAsyncFlush at runtime depending on 
 	// amount of stall measured in AccessEFB.
 
-	if (D3D::command_list_mgr->m_cpu_access_last_frame 
-		&& D3D::command_list_mgr->m_draws_since_last_execution > 100 
+	if (D3D::command_list_mgr->m_cpu_access_last_frame
+		&& D3D::command_list_mgr->m_draws_since_last_execution > 100
 		&& !PerfQueryBase::ShouldEmulate())
 	{
 		D3D::command_list_mgr->m_draws_since_last_execution = 0;
@@ -181,43 +191,11 @@ u16* VertexManager::GetIndexBuffer()
 
 void VertexManager::ResetBuffer(u32 stride)
 {
-	if (s_cull_all)
-	{
-		s_pCurBufferPointer = m_vertex_cpu_buffer.data();
-		s_pBaseBufferPointer = m_vertex_cpu_buffer.data();
-		s_pEndBufferPointer = s_pCurBufferPointer + MAXVBUFFERSIZE;
+	s_pCurBufferPointer = m_vertex_cpu_buffer.data();
+	s_pBaseBufferPointer = m_vertex_cpu_buffer.data();
+	s_pEndBufferPointer = s_pCurBufferPointer + MAXVBUFFERSIZE;
 
-		IndexGenerator::Start(reinterpret_cast<u16*>(m_index_cpu_buffer.data()));
-		return;
-	}
-
-	bool current_command_list_executed = m_vertex_stream_buffer->AllocateSpaceInBuffer(MAXVBUFFERSIZE, stride);
-
-	if (m_vertex_stream_buffer_reallocated)
-	{
-		D3D::command_list_mgr->SetCommandListDirtyState(COMMAND_LIST_STATE_VERTEX_BUFFER, true);
-		m_vertex_stream_buffer_reallocated = false;
-	}
-
-	s_pBaseBufferPointer = static_cast<u8*>(m_vertex_stream_buffer->GetBaseCPUAddress());
-	s_pEndBufferPointer  = s_pBaseBufferPointer + m_vertex_stream_buffer->GetSize();
-	s_pCurBufferPointer  = static_cast<u8*>(m_vertex_stream_buffer->GetCPUAddressOfCurrentAllocation());
-	m_vertex_draw_offset = static_cast<u32>(m_vertex_stream_buffer->GetOffsetOfCurrentAllocation());
-
-	current_command_list_executed |= m_index_stream_buffer->AllocateSpaceInBuffer(MAXIBUFFERSIZE * sizeof(u16), sizeof(u16));
-	
-	if (m_index_stream_buffer_reallocated)
-	{
-		SetIndexBuffer();
-		m_index_stream_buffer_reallocated = false;
-	}
-
-	m_index_draw_offset = static_cast<u32>(m_index_stream_buffer->GetOffsetOfCurrentAllocation());
-	IndexGenerator::Start(reinterpret_cast<u16*>(m_index_stream_buffer->GetCPUAddressOfCurrentAllocation()));
-	if (current_command_list_executed)
-	{
-		g_renderer->RestoreAPIState();
-	}
+	IndexGenerator::Start(reinterpret_cast<u16*>(m_index_cpu_buffer.data()));
 }
 
 }  // namespace

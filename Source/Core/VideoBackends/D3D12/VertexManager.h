@@ -40,11 +40,9 @@ private:
 	u32 m_vertex_draw_offset;
 	u32 m_index_draw_offset;
 
-	std::unique_ptr<D3DStreamBuffer> m_vertex_stream_buffer = nullptr;
-	std::unique_ptr<D3DStreamBuffer> m_index_stream_buffer = nullptr;
+	std::unique_ptr<D3DStreamBuffer> m_stream_buffer = nullptr;
 
-	bool m_vertex_stream_buffer_reallocated = false;
-	bool m_index_stream_buffer_reallocated = false;
+	bool m_stream_buffer_reallocated = true;
 
 	std::vector<u8> m_index_cpu_buffer;
 	std::vector<u8> m_vertex_cpu_buffer;
