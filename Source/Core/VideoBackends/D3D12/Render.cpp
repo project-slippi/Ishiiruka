@@ -583,10 +583,6 @@ void Renderer::ReinterpretPixelData(unsigned int convtype)
 		ERROR_LOG(VIDEO, "Trying to reinterpret pixel data with unsupported conversion type %d", convtype);
 		return;
 	}
-	if (s_target_dirty)
-	{
-		FramebufferManager::RestoreEFBRenderTargets();
-	}
 	D3D::SetViewportAndScissor(0, 0, g_renderer->GetTargetWidth(), g_renderer->GetTargetHeight());
 
 	FramebufferManager::GetEFBColorTempTexture()->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_RENDER_TARGET);
@@ -608,13 +604,10 @@ void Renderer::ReinterpretPixelData(unsigned int convtype)
 		FramebufferManager::GetEFBColorTempTexture()->GetMultisampled()
 		);
 
-	// Restores proper viewport/scissor settings.
 	FramebufferManager::SwapReinterpretTexture();
-
 	FramebufferManager::InvalidateEFBCache();
 	// Restores proper viewport/scissor settings.
 	RestoreAPIState();
-	s_target_dirty = false;
 }
 
 void Renderer::SetBlendMode(bool force_update)

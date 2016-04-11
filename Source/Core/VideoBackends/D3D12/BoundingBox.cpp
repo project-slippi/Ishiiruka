@@ -22,8 +22,8 @@ namespace DX12
 const size_t BBOX_BUFFER_SIZE = sizeof(int) * 4;
 const size_t BBOX_STREAM_BUFFER_SIZE = BBOX_BUFFER_SIZE * 128;
 
-static ID3D12Resource* s_bbox_buffer{};
-static ID3D12Resource* s_bbox_staging_buffer{};
+static ComPtr<ID3D12Resource> s_bbox_buffer;
+static ComPtr<ID3D12Resource> s_bbox_staging_buffer;
 static std::unique_ptr<D3DStreamBuffer> s_bbox_stream_buffer;
 static D3D12_GPU_DESCRIPTOR_HANDLE s_bbox_descriptor_handle{};
 static D3D12_RESOURCE_STATES s_current_bbox_state = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
@@ -44,7 +44,7 @@ void BBox::Init()
 		&buffer_desc,
 		D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
 		nullptr,
-		IID_PPV_ARGS(&s_bbox_buffer)));
+		IID_PPV_ARGS(s_bbox_buffer.ReleaseAndGetAddressOf())));
 	s_current_bbox_state = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
 	CheckHR(D3D::device->CreateCommittedResource(
 		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_READBACK),
@@ -52,7 +52,7 @@ void BBox::Init()
 		&staging_buffer_desc,
 		D3D12_RESOURCE_STATE_COPY_DEST,
 		nullptr,
-		IID_PPV_ARGS(&s_bbox_staging_buffer)));
+		IID_PPV_ARGS(s_bbox_staging_buffer.ReleaseAndGetAddressOf())));
 
 	s_bbox_stream_buffer = std::make_unique<D3DStreamBuffer>(BBOX_STREAM_BUFFER_SIZE, BBOX_STREAM_BUFFER_SIZE, nullptr);
 
@@ -68,7 +68,7 @@ void BBox::Init()
 	view_desc.Buffer.StructureByteStride = 0;
 	view_desc.Buffer.CounterOffsetInBytes = 0;
 	view_desc.Buffer.Flags = D3D12_BUFFER_UAV_FLAG_NONE;
-	D3D::device->CreateUnorderedAccessView(s_bbox_buffer, nullptr, &view_desc, cpu_descriptor_handle);
+	D3D::device->CreateUnorderedAccessView(s_bbox_buffer.Get(), nullptr, &view_desc, cpu_descriptor_handle);
 
 	Bind();
 }
@@ -84,12 +84,12 @@ void BBox::Bind()
 		s_bbox_stream_buffer->AllocateSpaceInBuffer(BBOX_BUFFER_SIZE, BBOX_BUFFER_SIZE);
 		// Allocate temporary bytes in upload buffer, then copy to real buffer.
 		memcpy(s_bbox_stream_buffer->GetCPUAddressOfCurrentAllocation(), s_bbox_shadow_copy, BBOX_BUFFER_SIZE);
-		D3D::ResourceBarrier(D3D::current_command_list, s_bbox_buffer, s_current_bbox_state, D3D12_RESOURCE_STATE_COPY_DEST, 0);
+		D3D::ResourceBarrier(D3D::current_command_list, s_bbox_buffer.Get(), s_current_bbox_state, D3D12_RESOURCE_STATE_COPY_DEST, 0);
 		s_current_bbox_state = D3D12_RESOURCE_STATE_COPY_DEST;
-		D3D::current_command_list->CopyBufferRegion(s_bbox_buffer, 0, s_bbox_stream_buffer->GetBuffer(), s_bbox_stream_buffer->GetOffsetOfCurrentAllocation(), BBOX_BUFFER_SIZE);
+		D3D::current_command_list->CopyBufferRegion(s_bbox_buffer.Get(), 0, s_bbox_stream_buffer->GetBuffer(), s_bbox_stream_buffer->GetOffsetOfCurrentAllocation(), BBOX_BUFFER_SIZE);
 		s_bbox_cpu_dirty = false;
 	}
-	D3D::ResourceBarrier(D3D::current_command_list, s_bbox_buffer, s_current_bbox_state, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, 0);
+	D3D::ResourceBarrier(D3D::current_command_list, s_bbox_buffer.Get(), s_current_bbox_state, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, 0);
 	s_current_bbox_state = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
 	D3D::current_command_list->SetGraphicsRootDescriptorTable(DESCRIPTOR_TABLE_PS_UAV, s_bbox_descriptor_handle);
 	s_bbox_gpu_dirty = true;
@@ -99,14 +99,12 @@ void BBox::Shutdown()
 {
 	if (s_bbox_buffer)
 	{
-		D3D::command_list_mgr->DestroyResourceAfterCurrentCommandListExecuted(s_bbox_buffer);
-		s_bbox_buffer = nullptr;
+		D3D::command_list_mgr->DestroyResourceAfterCurrentCommandListExecuted(s_bbox_buffer.Detach());
 	}
 
 	if (s_bbox_staging_buffer)
 	{
-		D3D::command_list_mgr->DestroyResourceAfterCurrentCommandListExecuted(s_bbox_staging_buffer);
-		s_bbox_staging_buffer = nullptr;
+		D3D::command_list_mgr->DestroyResourceAfterCurrentCommandListExecuted(s_bbox_staging_buffer.Detach());
 	}
 	s_bbox_stream_buffer.reset();
 }
@@ -130,9 +128,9 @@ int BBox::Get(int index)
 		D3D::command_list_mgr->CPUAccessNotify();
 
 		// Copy from real buffer to staging buffer, then block until we have the results.
-		D3D::ResourceBarrier(D3D::current_command_list, s_bbox_buffer, s_current_bbox_state, D3D12_RESOURCE_STATE_COPY_SOURCE, 0);
+		D3D::ResourceBarrier(D3D::current_command_list, s_bbox_buffer.Get(), s_current_bbox_state, D3D12_RESOURCE_STATE_COPY_SOURCE, 0);
 		s_current_bbox_state = D3D12_RESOURCE_STATE_COPY_SOURCE;
-		D3D::current_command_list->CopyBufferRegion(s_bbox_staging_buffer, 0, s_bbox_buffer, 0, BBOX_BUFFER_SIZE);
+		D3D::current_command_list->CopyBufferRegion(s_bbox_staging_buffer.Get(), 0, s_bbox_buffer.Get(), 0, BBOX_BUFFER_SIZE);
 
 		D3D::command_list_mgr->ExecuteQueuedWork(true);
 		D3D12_RANGE read_range = { 0, BBOX_BUFFER_SIZE };

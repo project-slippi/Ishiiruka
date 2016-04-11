@@ -467,6 +467,7 @@ HRESULT StateCache::GetPipelineStateObjectFromCache(const SmallPsoDesc& pso_desc
 
 void StateCache::Clear()
 {
+	m_sampler_map.clear();
 	m_pso_map.clear();
 	m_small_pso_map.clear();
 

@@ -491,17 +491,9 @@ struct
 size_t stq_offset;
 size_t clearq_offset;
 static constexpr size_t vb_buff_size = 0x100000;
-void InitUtils()
+
+static void InitBasicSamplers(void* obj)
 {
-	s_reset_blend_desc = Renderer::GetResetBlendDesc();
-	s_reset_depth_desc = Renderer::GetResetDepthStencilDesc();
-	s_reset_rast_desc = Renderer::GetResetRasterizerDesc();
-
-	util_vbuf_stq = std::make_unique<UtilVertexBuffer>(vb_buff_size);
-	util_vbuf_clearq = std::make_unique<UtilVertexBuffer>(vb_buff_size);
-	util_vbuf_efbpokequads = std::make_unique<UtilVertexBuffer>(vb_buff_size);
-
-
 	D3D12_SAMPLER_DESC point_sampler_desc = {
 		D3D12_FILTER_MIN_MAG_MIP_POINT,
 		D3D12_TEXTURE_ADDRESS_MODE_BORDER,
@@ -533,6 +525,22 @@ void InitUtils()
 
 	D3D::sampler_descriptor_heap_mgr->Allocate(&linear_copy_sampler12CPU, &linear_copy_sampler12GPU);
 	D3D::device->CreateSampler(&linear_sampler_desc, linear_copy_sampler12CPU);
+}
+
+void InitUtils()
+{
+	s_reset_blend_desc = Renderer::GetResetBlendDesc();
+	s_reset_depth_desc = Renderer::GetResetDepthStencilDesc();
+	s_reset_rast_desc = Renderer::GetResetRasterizerDesc();
+
+	util_vbuf_stq = std::make_unique<UtilVertexBuffer>(vb_buff_size);
+	util_vbuf_clearq = std::make_unique<UtilVertexBuffer>(vb_buff_size);
+	util_vbuf_efbpokequads = std::make_unique<UtilVertexBuffer>(vb_buff_size);
+
+	D3D::sampler_descriptor_heap_mgr->RegisterHeapRestartCallback(nullptr, InitBasicSamplers);
+	
+	// Init default samplers
+	InitBasicSamplers(nullptr);
 
 	// cached data used to avoid unnecessarily reloading the vertex buffers
 	memset(&tex_quad_data, 0, sizeof(tex_quad_data));
@@ -543,8 +551,8 @@ void InitUtils()
 
 void ShutdownUtils()
 {
+	D3D::sampler_descriptor_heap_mgr->RemoveHeapRestartCallback(nullptr);
 	font.Shutdown();
-
 	util_vbuf_stq.reset();
 	util_vbuf_clearq.reset();
 	util_vbuf_efbpokequads.reset();

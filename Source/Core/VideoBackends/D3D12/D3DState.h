@@ -9,6 +9,7 @@
 
 #include "Common/BitField.h"
 #include "Common/CommonTypes.h"
+#include "Common/Hash.h"
 #include "VideoBackends/D3D12/D3DBase.h"
 #include "VideoBackends/D3D12/NativeVertexFormat.h"
 #include "VideoBackends/D3D12/ShaderCache.h"
@@ -131,7 +132,7 @@ private:
 	{
 		size_t operator()(const D3D12_GRAPHICS_PIPELINE_STATE_DESC& pso_desc) const
 		{
-			return ((uintptr_t)pso_desc.PS.pShaderBytecode * 1000000) ^ ((uintptr_t)pso_desc.VS.pShaderBytecode * 1000) ^ ((uintptr_t)pso_desc.InputLayout.pInputElementDescs);
+			return GetHash64(reinterpret_cast<const u8*>(&pso_desc), static_cast<u32>(sizeof(pso_desc)), 0);
 		}
 	};
 

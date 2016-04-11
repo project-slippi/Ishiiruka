@@ -47,8 +47,8 @@ private:
 	std::array<ActiveQuery, PERF_QUERY_BUFFER_SIZE> m_query_buffer{};
 	int m_query_read_pos = 0;
 
-	ID3D12QueryHeap* m_query_heap = nullptr;
-	ID3D12Resource* m_query_readback_buffer = nullptr;
+	ComPtr<ID3D12QueryHeap> m_query_heap;
+	ComPtr<ID3D12Resource> m_query_readback_buffer;
 
 	ID3D12Fence* m_tracking_fence = nullptr;
 	UINT64 m_next_fence_value = 0;

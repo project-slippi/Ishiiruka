@@ -263,10 +263,23 @@ HRESULT Create(HWND wnd)
 
 	if (SUCCEEDED(hr))
 	{
-		hr = d3d12_create_device(adapter.Get(), D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(&device));
+		D3D_FEATURE_LEVEL levels[] = {
+			D3D_FEATURE_LEVEL_12_1,
+			D3D_FEATURE_LEVEL_12_0,
+			D3D_FEATURE_LEVEL_11_1,
+			D3D_FEATURE_LEVEL_11_0
+		};
+		for (size_t i = 0; i < 4; i++)
+		{
+			s_feat_level = levels[i];
+			hr = d3d12_create_device(adapter.Get(), s_feat_level, IID_PPV_ARGS(&device));
+			if (SUCCEEDED(hr))
+			{
+				break;
+			}
+		}
 		if (FAILED(hr))
 			MessageBox(wnd, _T("Failed to initialize Direct3D.\nMake sure your video card supports Direct3D 12 and your drivers are up-to-date."), _T("Dolphin Direct3D 12 backend"), MB_OK | MB_ICONERROR);
-		s_feat_level = D3D_FEATURE_LEVEL_11_0;
 	}
 
 	if (SUCCEEDED(hr))
@@ -450,7 +463,7 @@ void CreateDescriptorHeaps()
 		sampler_descriptor_heap_desc.NumDescriptors = 2048;
 		sampler_descriptor_heap_desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER;
 
-		sampler_descriptor_heap_mgr = std::make_unique<D3DDescriptorHeapManager>(&sampler_descriptor_heap_desc, device, 128);
+		sampler_descriptor_heap_mgr = std::make_unique<D3DDescriptorHeapManager>(&sampler_descriptor_heap_desc, device, 256);
 
 		gpu_descriptor_heaps[1] = sampler_descriptor_heap_mgr->GetDescriptorHeap();
 	}
