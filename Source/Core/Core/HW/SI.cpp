@@ -28,7 +28,6 @@ static int et_transfer_pending;
 
 static void RunSIBuffer(u64 userdata, s64 cyclesLate);
 static void UpdateInterrupts();
-static void ChangeDeviceCallback(u64 userdata, s64 cyclesLate);
 
 // SI Interrupt Types
 enum SIInterruptType
@@ -250,6 +249,9 @@ void DoState(PointerWrap &p)
 	p.Do(g_EXIClockCount);
 	p.Do(g_SIBuffer);
 }
+
+static void ChangeDeviceCallback(u64 userdata, s64 cyclesLate);
+static void RunSIBuffer(u64 userdata, s64 cyclesLate);
 
 void Init()
 {
