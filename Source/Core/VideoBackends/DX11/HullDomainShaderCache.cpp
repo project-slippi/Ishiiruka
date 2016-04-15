@@ -214,8 +214,7 @@ namespace DX11
 			else
 			{
 				static int num_failures = 0;
-				char szTemp[MAX_PATH];
-				sprintf(szTemp, "%sbad_hs_%04i.txt", File::GetUserPath(D_DUMP_IDX).c_str(), num_failures++);
+				std::string szTemp = StringFromFormat("%sbad_hs_%04i.txt", File::GetUserPath(D_DUMP_IDX).c_str(), num_failures++);
 				std::ofstream file;
 				OpenFStream(file, szTemp, std::ios_base::out);
 				file << ((const char *)wunit->code.data());
@@ -243,8 +242,7 @@ namespace DX11
 			else
 			{
 				static int num_failures = 0;
-				char szTemp[MAX_PATH];
-				sprintf(szTemp, "%sbad_ds_%04i.txt", File::GetUserPath(D_DUMP_IDX).c_str(), num_failures++);
+				std::string szTemp  = StringFromFormat("%sbad_ds_%04i.txt", File::GetUserPath(D_DUMP_IDX).c_str(), num_failures++);
 				std::ofstream file;
 				OpenFStream(file, szTemp, std::ios_base::out);
 				file << ((const char *)wunitd->code.data());

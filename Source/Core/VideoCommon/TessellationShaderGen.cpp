@@ -60,7 +60,7 @@ struct HSOutput
 };
 
 [domain("tri")]
-[partitioning("integer")]
+[partitioning("fractional_even")]
 [outputtopology("triangle_cw")]
 [outputcontrolpoints(3)]
 [patchconstantfunc("TConstFunc")]
@@ -166,6 +166,8 @@ static inline void WriteStageUID(Tessellation_shader_uid_data& uid_data, int n, 
 	int texcoord = bpm.tevorders[n / 2].getTexCoord(n & 1);
 	bool bHasTexCoord = (u32)texcoord < bpm.genMode.numtexgens.Value();
 	bool bHasIndStage = bpm.tevind[n].bt < bpm.genMode.numindstages.Value();
+	const TevStageCombiner::ColorCombiner &cc = bpm.combiners[n].colorC;
+	const TevStageCombiner::AlphaCombiner &ac = bpm.combiners[n].alphaC;
 	// HACK to handle cases where the tex gen is not enabled
 	if (!bHasTexCoord)
 		texcoord = bpm.genMode.numtexgens;
@@ -175,7 +177,8 @@ static inline void WriteStageUID(Tessellation_shader_uid_data& uid_data, int n, 
 	{
 		uid_data.stagehash[n].tevind = bpm.tevind[n].hex;
 	}
-	uid_data.stagehash[n].tevorders_enable = bpm.tevorders[n / 2].getEnable(n & 1);
+	uid_data.stagehash[n].tevorders_enable = bpm.tevorders[n / 2].getEnable(n & 1)
+		&& (cc.UsedAsInput(TEVCOLORARG_TEXC) || cc.UsedAsInput(TEVCOLORARG_TEXA) || ac.UsedAsInput(TEVALPHAARG_TEXA));
 	if (bpm.tevorders[n / 2].getEnable(n & 1))
 	{
 		int texmap = bpm.tevorders[n / 2].getTexMap(n & 1);
@@ -269,105 +272,112 @@ inline void WriteFetchDisplacement(ShaderCode& out, int n, const Tessellation_sh
 	u32 texcoord = stage.tevorders_texcoord;
 	bool bHasTexCoord = texcoord < uid_data.numTexGens;
 	bool bHasIndStage = stage.hasindstage;
+	
+	TevStageIndirect tevind;
+	tevind.hex = stage.tevind;
+	int texmap = stage.tevorders_texmap;
 	out.Write("\n{\n");
-
-	if (stage.tevorders_enable)
+	if (bHasIndStage)
 	{
-		TevStageIndirect tevind;
-		tevind.hex = stage.tevind;
-		int texmap = stage.tevorders_texmap;
-		out.Write("if((" I_FLAGS ".x & %i) != 0)\n{\n", 1 << texmap);
-		if (bHasIndStage)
+		out.Write("// indirect op\n");
+		// perform the indirect op on the incoming regular coordinates using indtex%d as the offset coords
+		if (tevind.mid != 0)
 		{
-			out.Write("// indirect op\n");
-			// perform the indirect op on the incoming regular coordinates using indtex%d as the offset coords
-			if (tevind.mid != 0)
+			static const char *tevIndFmtMask[] = { "255", "31", "15", "7" };
+			out.Write("int3 indtevcrd%d = indtex%d & %s;\n", n, tevind.bt, tevIndFmtMask[tevind.fmt]);
+
+			static const char *tevIndBiasField[] = { "", "x", "y", "xy", "z", "xz", "yz", "xyz" }; // indexed by bias
+			static const char *tevIndBiasAdd[] = { "int(-128)", "int(1)", "int(1)", "int(1)" }; // indexed by fmt
+																															// bias
+			if (tevind.bias == ITB_S || tevind.bias == ITB_T || tevind.bias == ITB_U)
+				out.Write("indtevcrd%d.%s += %s;\n", n, tevIndBiasField[tevind.bias], tevIndBiasAdd[tevind.fmt]);
+			else if (tevind.bias == ITB_ST || tevind.bias == ITB_SU || tevind.bias == ITB_TU)
+				out.Write("indtevcrd%d.%s += int2(%s, %s);\n", n, tevIndBiasField[tevind.bias], tevIndBiasAdd[tevind.fmt], tevIndBiasAdd[tevind.fmt]);
+			else if (tevind.bias == ITB_STU)
+				out.Write("indtevcrd%d.%s += int3(%s, %s, %s);\n", n, tevIndBiasField[tevind.bias], tevIndBiasAdd[tevind.fmt], tevIndBiasAdd[tevind.fmt], tevIndBiasAdd[tevind.fmt]);
+
+			// multiply by offset matrix and scale
+			if (tevind.mid <= 3)
 			{
-				static const char *tevIndFmtMask[] = { "255", "31", "15", "7" };
-				out.Write("int3 indtevcrd%d = indtex%d & %s;\n", n, tevind.bt, tevIndFmtMask[tevind.fmt]);
+				int mtxidx = 2 * (tevind.mid - 1);
+				out.Write("int2 indtevtrans%d = int2(idot(" I_INDTEXMTX "[%d].xyz, indtevcrd%d), idot(" I_INDTEXMTX "[%d].xyz, indtevcrd%d));\n",
+					n, mtxidx, n, mtxidx + 1, n);
 
-				static const char *tevIndBiasField[] = { "", "x", "y", "xy", "z", "xz", "yz", "xyz" }; // indexed by bias
-				static const char *tevIndBiasAdd[] = { "int(-128)", "int(1)", "int(1)", "int(1)" }; // indexed by fmt
-																																// bias
-				if (tevind.bias == ITB_S || tevind.bias == ITB_T || tevind.bias == ITB_U)
-					out.Write("indtevcrd%d.%s += %s;\n", n, tevIndBiasField[tevind.bias], tevIndBiasAdd[tevind.fmt]);
-				else if (tevind.bias == ITB_ST || tevind.bias == ITB_SU || tevind.bias == ITB_TU)
-					out.Write("indtevcrd%d.%s += int2(%s, %s);\n", n, tevIndBiasField[tevind.bias], tevIndBiasAdd[tevind.fmt], tevIndBiasAdd[tevind.fmt]);
-				else if (tevind.bias == ITB_STU)
-					out.Write("indtevcrd%d.%s += int3(%s, %s, %s);\n", n, tevIndBiasField[tevind.bias], tevIndBiasAdd[tevind.fmt], tevIndBiasAdd[tevind.fmt], tevIndBiasAdd[tevind.fmt]);
-
-				// multiply by offset matrix and scale
-				if (tevind.mid <= 3)
-				{
-					int mtxidx = 2 * (tevind.mid - 1);
-					out.Write("int2 indtevtrans%d = int2(idot(" I_INDTEXMTX "[%d].xyz, indtevcrd%d), idot(" I_INDTEXMTX "[%d].xyz, indtevcrd%d));\n",
-						n, mtxidx, n, mtxidx + 1, n);
-
-					out.Write("indtevtrans%d = BSHR(indtevtrans%d, int(3));\n", n, n);
-					out.Write("indtevtrans%d = BSH(indtevtrans%d, " I_INDTEXMTX "[%d].w);\n", n, n, mtxidx);
-				}
-				else if (tevind.mid <= 7 && bHasTexCoord)
-				{ // s matrix
-					_assert_(tevind.mid >= 5);
-					int mtxidx = 2 * (tevind.mid - 5);
-					out.Write("int2 indtevtrans%d = int2(uv[%d].xy * indtevcrd%d.xx);\n", n, texcoord, n);
-					out.Write("indtevtrans%d = BSHR(indtevtrans%d, int(8));\n", n, n);
-					out.Write("indtevtrans%d = BSH(indtevtrans%d, " I_INDTEXMTX "[%d].w);\n", n, n, mtxidx);
-				}
-				else if (tevind.mid <= 11 && bHasTexCoord)
-				{ // t matrix
-					_assert_(tevind.mid >= 9);
-					int mtxidx = 2 * (tevind.mid - 9);
-					out.Write("int2 indtevtrans%d = int2(uv[%d].xy * indtevcrd%d.yy);\n", n, texcoord, n);
-					out.Write("indtevtrans%d = BSHR(indtevtrans%d, int(8));\n", n, n);
-					out.Write("indtevtrans%d = BSH(indtevtrans%d, " I_INDTEXMTX "[%d].w);\n", n, n, mtxidx);
-				}
-				else
-				{
-					out.Write("int2 indtevtrans%d = int2(0,0);\n", n);
-				}
+				out.Write("indtevtrans%d = BSHR(indtevtrans%d, int(3));\n", n, n);
+				out.Write("indtevtrans%d = BSH(indtevtrans%d, " I_INDTEXMTX "[%d].w);\n", n, n, mtxidx);
+			}
+			else if (tevind.mid <= 7 && bHasTexCoord)
+			{ // s matrix
+				_assert_(tevind.mid >= 5);
+				int mtxidx = 2 * (tevind.mid - 5);
+				out.Write("int2 indtevtrans%d = int2(uv[%d].xy * indtevcrd%d.xx);\n", n, texcoord, n);
+				out.Write("indtevtrans%d = BSHR(indtevtrans%d, int(8));\n", n, n);
+				out.Write("indtevtrans%d = BSH(indtevtrans%d, " I_INDTEXMTX "[%d].w);\n", n, n, mtxidx);
+			}
+			else if (tevind.mid <= 11 && bHasTexCoord)
+			{ // t matrix
+				_assert_(tevind.mid >= 9);
+				int mtxidx = 2 * (tevind.mid - 9);
+				out.Write("int2 indtevtrans%d = int2(uv[%d].xy * indtevcrd%d.yy);\n", n, texcoord, n);
+				out.Write("indtevtrans%d = BSHR(indtevtrans%d, int(8));\n", n, n);
+				out.Write("indtevtrans%d = BSH(indtevtrans%d, " I_INDTEXMTX "[%d].w);\n", n, n, mtxidx);
 			}
 			else
 			{
 				out.Write("int2 indtevtrans%d = int2(0,0);\n", n);
 			}
-			// ---------
-			// Wrapping
-			// ---------
-			static const char *tevIndWrapStart[] = { "int(0)", "int(256*128)", "int(128*128)", "int(64*128)", "int(32*128)", "int(16*128)", "int(1)" };
-			// wrap S
-			if (tevind.sw == ITW_OFF)
-				out.Write("wrappedcoord.x = int(uv[%d].x);\n", texcoord);
-			else if (tevind.sw == ITW_0)
-				out.Write("wrappedcoord.x = int(0);\n");
-			else
-				out.Write("wrappedcoord.x = remainder(int(uv[%d].x), %s);\n", texcoord, tevIndWrapStart[tevind.sw]);
-
-			// wrap T
-			if (tevind.tw == ITW_OFF)
-				out.Write("wrappedcoord.y = int(uv[%d].y);\n", texcoord);
-			else if (tevind.tw == ITW_0)
-				out.Write("wrappedcoord.y = int(0);\n");
-			else
-				out.Write("wrappedcoord.y = remainder(int(uv[%d].y), %s);\n", texcoord, tevIndWrapStart[tevind.tw]);
-
-			if (tevind.fb_addprev) // add previous tevcoord
-				out.Write("tevcoord.xy += wrappedcoord + indtevtrans%d;\n", n);
-			else
-				out.Write("tevcoord.xy = wrappedcoord + indtevtrans%d;\n", n);
-
-			// Emulate s24 overflows
-			out.Write("tevcoord.xy = (tevcoord.xy << 8) >> 8;\n");
 		}
 		else
 		{
+			out.Write("int2 indtevtrans%d = int2(0,0);\n", n);
+		}
+		// ---------
+		// Wrapping
+		// ---------
+		static const char *tevIndWrapStart[] = { "int(0)", "int(256*128)", "int(128*128)", "int(64*128)", "int(32*128)", "int(16*128)", "int(1)" };
+		// wrap S
+		if (tevind.sw == ITW_OFF)
+			out.Write("wrappedcoord.x = int(uv[%d].x);\n", texcoord);
+		else if (tevind.sw == ITW_0)
+			out.Write("wrappedcoord.x = int(0);\n");
+		else
+			out.Write("wrappedcoord.x = remainder(int(uv[%d].x), %s);\n", texcoord, tevIndWrapStart[tevind.sw]);
+
+		// wrap T
+		if (tevind.tw == ITW_OFF)
+			out.Write("wrappedcoord.y = int(uv[%d].y);\n", texcoord);
+		else if (tevind.tw == ITW_0)
+			out.Write("wrappedcoord.y = int(0);\n");
+		else
+			out.Write("wrappedcoord.y = remainder(int(uv[%d].y), %s);\n", texcoord, tevIndWrapStart[tevind.tw]);
+
+		if (tevind.fb_addprev) // add previous tevcoord
+			out.Write("tevcoord.xy += wrappedcoord + indtevtrans%d;\n", n);
+		else
+			out.Write("tevcoord.xy = wrappedcoord + indtevtrans%d;\n", n);
+
+		// Emulate s24 overflows
+		out.Write("tevcoord.xy = (tevcoord.xy << 8) >> 8;\n");
+	}
+	if (stage.tevorders_enable)
+	{
+		if (!bHasIndStage)
+		{
+			for (size_t i = 0; i < n; i++)
+			{
+				if (stage.hex == uid_data.stagehash[i].hex)
+				{
+					out.Write("}\n");
+					return;
+				}
+			}
 			// calc tevcord
 			if (bHasTexCoord)
 				out.Write("tevcoord.xy = int2(uv[%d].xy);\n", texcoord);
 			else
 				out.Write("tevcoord.xy = int2(0,0);\n");
 		}
-
+		out.Write("if((" I_FLAGS ".x & %i) != 0)\n{\n", 1 << texmap);
 		out.Write("float2 stagecoord = float2(tevcoord.xy);\n");
 		out.Write("float bump = ");
 		SampleTextureRAW<ApiType>(out, "(stagecoord)", "b", "0.0", texmap, texcoord);
@@ -509,16 +519,17 @@ inline void GenerateTessellationShader(ShaderCode& out, const Tessellation_shade
 		out.Write("float4 pos[3];\n");
 		out.Write("[unroll]\n"
 			"for(int i = 0; i < 3; i++)\n{\n");
+		if (uid_data.numTexGens < 7)
+		{
+			out.Write("pos[i] = float4(patch[i].clipPos.x,patch[i].clipPos.y,patch[i].Normal.w, 1.0);\n");
+		}
+		else
+		{
+			out.Write("pos[i] = float4(patch[i].tex0.w, patch[i].tex1.w, patch[i].tex7.w, 1.0);\n");
+		}
 		for (u32 i = 0; i < texcount; ++i)
 		{
-			if (uid_data.numTexGens < 7)
-			{
-				out.Write("pos[i] = float4(patch[i].clipPos.x,patch[i].clipPos.y,patch[i].Normal.w, 1.0);\n");
-			}
-			else
-			{
-				out.Write("pos[i] = float4(patch[i].tex0.w, patch[i].tex1.w, patch[i].tex7.w, 1.0);\n");
-			}
+			
 			out.Write("result.tex%d[i].xyz = patch[i].tex%d.xyz;\n", i, i);
 			if (((uid_data.texMtxInfo_n_projection >> i) & 1) == XF_TEXPROJ_STQ)
 			{

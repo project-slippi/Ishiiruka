@@ -484,7 +484,8 @@ void GetPixelShaderUID(PixelShaderUid& out, PIXEL_SHADER_RENDER_MODE render_mode
 			stage.tevksel_swap2b = bpm.tevksel[i * 2 + 1].swap2;
 			stage.tevorders_colorchan = bpm.tevorders[n / 2].getColorChan(n & 1);
 		}
-		stage.tevorders_enable = bpm.tevorders[n / 2].getEnable(n & 1);		
+		stage.tevorders_enable = bpm.tevorders[n / 2].getEnable(n & 1)
+			&& (cc.UsedAsInput(TEVCOLORARG_TEXC) || cc.UsedAsInput(TEVCOLORARG_TEXA) || ac.UsedAsInput(TEVALPHAARG_TEXA));		
 		if (stage.tevorders_enable)
 		{
 			const int i = bpm.combiners[n].alphaC.tswap;
@@ -1182,23 +1183,24 @@ inline void WriteFetchStageTexture(ShaderCode& out, const pixel_shader_uid_data&
 	{
 		if (!bHasIndStage)
 		{
+			for (size_t i = 0; i < n; i++)
+			{
+				if (stage.hex[2] == uid_data.stagehash[i].hex[2])
+				{
+					out.Write("tex_ta[%i] = tex_ta[%i];\n\n}\n", n, i);
+					return;
+				}
+			}
 			// calc tevcord
 			if (bHasTexCoord)
 				out.Write("tevcoord.xy = wu2(uv%d.xy);\n", texcoord);
 			else
 				out.Write("tevcoord.xy = wu2(0,0);\n");
 		}
-		char texswap[5] = {
-			"rgba"[stage.tevksel_swap1c],
-			"rgba"[stage.tevksel_swap2c],
-			"rgba"[stage.tevksel_swap1d],
-			"rgba"[stage.tevksel_swap2d],
-			'\0' };
-
 		int texmap = stage.tevorders_texmap;
 		out.Write("float2 stagecoord = float2(tevcoord.xy);\n");
 		out.Write("tex_ta[%i] = ", n);
-		SampleTexture<ApiType>(out, "stagecoord", texswap, texmap, uid_data.stereo);
+		SampleTexture<ApiType>(out, "stagecoord", "rgba", texmap, uid_data.stereo);
 		if (LoadMaterial)
 		{
 			out.Write("if((" I_FLAGS ".x & %i) != 0)\n{\n", 1 << texmap);
@@ -1259,8 +1261,15 @@ inline void WriteStage(ShaderCode& out, const pixel_shader_uid_data& uid_data, i
 		register_state.SetOverflowControl(tevSources::RASC, rasindex < 2);
 		register_state.SetOverflowControl(tevSources::RASA, rasindex < 2);
 	}
+	
+	char texswap[5] = {
+		"rgba"[stage.tevksel_swap1c],
+		"rgba"[stage.tevksel_swap2c],
+		"rgba"[stage.tevksel_swap1d],
+		"rgba"[stage.tevksel_swap2d],
+		'\0' };
 
-	out.Write("tex_t = tex_ta[%i];", n);
+	out.Write("tex_t = tex_ta[%i].%s;", n, texswap);
 
 	if (cc.UsedAsInput(TEVCOLORARG_KONST) || ac.UsedAsInput(TEVALPHAARG_KONST))
 	{

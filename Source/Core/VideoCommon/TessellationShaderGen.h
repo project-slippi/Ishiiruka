@@ -12,15 +12,19 @@
 
 #pragma pack(1)
 
-struct Tessellationstage_hash_data
+union Tessellationstage_hash_data
 {
 	// Align Everything to 32 bits words to speed up things
-	u32 tevorders_enable : 1;
-	u32 tevorders_texmap : 3;
-	u32 tevorders_texcoord : 3;
-	u32 hasindstage : 1;
-	u32 pad0 : 3;
-	u32 tevind : 21;
+	struct
+	{
+		u32 tevorders_enable : 1;
+		u32 tevorders_texmap : 3;
+		u32 tevorders_texcoord : 3;
+		u32 hasindstage : 1;
+		u32 pad0 : 3;
+		u32 tevind : 21;
+	};
+	u32 hex;
 };
 
 struct Tessellation_shader_uid_data

@@ -54,33 +54,37 @@ enum PIXEL_SHADER_RENDER_MODE : unsigned int
 };
 
 #pragma pack(1)
-
-struct stage_hash_data
+union stage_hash_data
 {
-	// Align Everything to 32 bits words to speed up things
-	u32 cc : 24;
-	u32 pad0 : 8;
-	u32 ac : 24;
-	u32 pad1 : 8;
+	struct
+	{
+		// Align Everything to 32 bits words to speed up things
+		u32 cc : 24;
+		u32 tevorders_colorchan : 3;
+		u32 pad0 : 5;
+		u32 ac : 24;
+		u32 pad1 : 8;
 
-	u32 tevorders_enable : 1;
-	u32 tevorders_texmap : 3;
-	u32 tevorders_texcoord : 3;
-	u32 hasindstage : 1;
-	u32 tevorders_colorchan : 3;
-	u32 tevind : 21;
+		u32 tevorders_enable : 1;
+		u32 tevorders_texmap : 3;
+		u32 tevorders_texcoord : 3;
+		u32 hasindstage : 1;
+		u32 pad2 : 3;
+		u32 tevind : 21;
 
-	// TODO: Clean up the swapXY mess
-	u32 tevksel_swap1a : 2;
-	u32 tevksel_swap2a : 2;
-	u32 tevksel_swap1b : 2;
-	u32 tevksel_swap2b : 2;
-	u32 tevksel_swap1c : 2;
-	u32 tevksel_swap2c : 2;
-	u32 tevksel_swap1d : 2;
-	u32 tevksel_swap2d : 2;
-	u32 tevksel_kc : 8; // 3 bits padded to aling data
-	u32 tevksel_ka : 8; // 3 bits padded to aling data
+		// TODO: Clean up the swapXY mess
+		u32 tevksel_swap1a : 2;
+		u32 tevksel_swap2a : 2;
+		u32 tevksel_swap1b : 2;
+		u32 tevksel_swap2b : 2;
+		u32 tevksel_swap1c : 2;
+		u32 tevksel_swap2c : 2;
+		u32 tevksel_swap1d : 2;
+		u32 tevksel_swap2d : 2;
+		u32 tevksel_kc : 8; // 3 bits padded to aling data
+		u32 tevksel_ka : 8; // 3 bits padded to aling data
+	};
+	u32 hex[4];
 };
 
 struct pixel_shader_uid_data
