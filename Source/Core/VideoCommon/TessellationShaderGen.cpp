@@ -480,11 +480,8 @@ inline void GenerateTessellationShader(ShaderCode& out, const Tessellation_shade
 		u32 texcount = uid_data.numTexGens < 7 ? uid_data.numTexGens : 8;
 		for (unsigned int i = 0; i < texcount; ++i)
 			out.Write("float4 tex%d[3] : TEXCOORD%d;\n", i, i * 3 + 1);
-
-		if (uid_data.numTexGens < 7 && normalpresent)
-		{
-			out.Write("float4 Normal[3]: TEXCOORD%d;\n", uid_data.numTexGens * 3 + 1);
-		}
+		out.Write("float4 Normal[3]: TEXCOORD%d;\n", texcount * 3 + 1);
+		
 		out.Write("};\n");
 		out.Write(s_hlsl_hull_header_str);		
 		if (uid_data.numTexGens < 7)
@@ -507,7 +504,7 @@ inline void GenerateTessellationShader(ShaderCode& out, const Tessellation_shade
 		"float3 posmax = max(max(spos0, spos1), spos2);\n"
 		"float3 posmin = min(min(spos0, spos1), spos2);\n"		
 		"if (\n"
-			"(posmin.x > 1.25 || posmax.x < -1.25 || posmin.y > 1.25 || posmax.y < -1.25 || posmin.z > 1.25 || posmax.z < -1.25)"
+			"(posmin.x > 1.5 || posmax.x < -1.5 || posmin.y > 1.5 || posmax.y < -1.5 || posmin.z > 1.5 || posmax.z < -0.5)"
 			")\n"
 		"{\n"
 			"result.EFactor[0] = 0;\n"
@@ -549,17 +546,36 @@ inline void GenerateTessellationShader(ShaderCode& out, const Tessellation_shade
 				out.Write("result.tex%d[i].w = distance(t0, t1);\n", i);
 				out.Write("}\n");
 			}
-		}
-		if (uid_data.numTexGens < 7 && normalpresent)
+		}		
+		if(normalpresent)
 		{
-			out.Write("result.Normal[i] = patch[i].Normal;\n");
-		}
+			if (uid_data.numTexGens < 7)
+			{
+				out.Write("result.Normal[i] = patch[i].Normal;\n");
+			}
+			else
+			{
+				out.Write("result.Normal[i] = float4(patch[i].tex4.w, patch[i].tex5.w, patch[i].tex6.w, 1.0f);\n");
+			}
+		}		
 		out.Write("}\n");
-		out.Write(
-			"if (" I_CULLPARAMS ".x != 0) {\n"
-			"float3 edge0 = pos[1].xyz - pos[0].xyz;\n"
+		out.Write("float3 edge0 = pos[1].xyz - pos[0].xyz;\n"
 			"float3 edge2 = pos[2].xyz - pos[0].xyz;\n"
-			"float3 faceNormal = normalize(cross(edge2, edge0));\n"
+			"float3 faceNormal = normalize(cross(edge2, edge0));\n");
+		if (normalpresent)
+		{
+			out.Write("result.Normal[0] *= dot(result.Normal[0], faceNormal) < -0.1 ? -1.0: 1.0;\n");
+			out.Write("result.Normal[1] *= dot(result.Normal[1], faceNormal) < -0.1 ? -1.0: 1.0;\n");
+			out.Write("result.Normal[2] *= dot(result.Normal[2], faceNormal) < -0.1 ? -1.0: 1.0;\n");
+		}
+		else
+		{
+			out.Write("result.Normal[0] = float4(faceNormal, 1.0f);\n");
+			out.Write("result.Normal[1] = result.Normal[0];\n");
+			out.Write("result.Normal[2] = result.Normal[0];\n");
+		}
+		out.Write(
+			"if (" I_CULLPARAMS ".x != 0) {\n"			
 			"float3 view = normalize(-pos[0].xyz);\n"
 			"float visibility = dot(view, faceNormal);\n"
 			"bool notvisible = " I_CULLPARAMS ".x < 0 ? (visibility < -0.25) : (visibility > 0.25);\n"
@@ -641,28 +657,17 @@ inline void GenerateTessellationShader(ShaderCode& out, const Tessellation_shade
 			"float3 pos2 = patch[2].pos.xyz;\n"
 			"float3 position = BInterpolate(pos0, pos1, pos2, bCoords);\n");
 
-		if (normalpresent)
-		{
-			if (uid_data.numTexGens < 7)
-			{
-				out.Write(
-					"float3 norm0 = pconstans.Normal[0].xyz;\n"
-					"float3 norm1 = pconstans.Normal[1].xyz;\n"
-					"float3 norm2 = pconstans.Normal[2].xyz;\n");
-			}
-			else
-			{
-				out.Write("float3 norm0 = float3(pconstans.tex4[0].w, pconstans.tex5[0].w, pconstans.tex6[0].w);\n"
-					"float3 norm1 = float3(pconstans.tex4[1].w, pconstans.tex5[1].w, pconstans.tex6[1].w);\n"
-					"float3 norm2 = float3(pconstans.tex4[2].w, pconstans.tex5[2].w, pconstans.tex6[2].w);\n");
-			}
-			out.Write("float3 normal = normalize(BInterpolate(norm0, norm1, norm2, bCoords));\n"
-				"pos0 = PrjToPlane(norm0, pos0, position);\n"
-				"pos1 = PrjToPlane(norm1, pos1, position);\n"
-				"pos2 = PrjToPlane(norm2, pos2, position);\n"
-				"position = lerp(position, BInterpolate(pos0, pos1, pos2, bCoords),saturate(" I_TESSPARAMS ".zzz * borderdistance * 16.0));\n"
-				"position += displacement * normal * " I_TESSPARAMS ".w;\n");
-		}
+		out.Write(
+				"float3 norm0 = pconstans.Normal[0].xyz;\n"
+				"float3 norm1 = pconstans.Normal[1].xyz;\n"
+				"float3 norm2 = pconstans.Normal[2].xyz;\n");
+
+		out.Write("float3 normal = normalize(BInterpolate(norm0, norm1, norm2, bCoords));\n"
+			"pos0 = PrjToPlane(norm0, pos0, position);\n"
+			"pos1 = PrjToPlane(norm1, pos1, position);\n"
+			"pos2 = PrjToPlane(norm2, pos2, position);\n"
+			"position = lerp(position, BInterpolate(pos0, pos1, pos2, bCoords),saturate(" I_TESSPARAMS ".zzz * borderdistance * 16.0));\n"
+			"position += displacement * normal * " I_TESSPARAMS ".w;\n");
 		// Transform world position to view-projection
 		out.Write("float4 pos = float4(position, 1.0);\n"
 			"result.pos = float4(dot(" I_PROJECTION "[0], pos), dot(" I_PROJECTION "[1], pos), dot(" I_PROJECTION "[2], pos), dot(" I_PROJECTION "[3], pos));\n"
