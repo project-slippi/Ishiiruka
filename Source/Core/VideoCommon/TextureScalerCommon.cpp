@@ -292,7 +292,7 @@ inline __m128i linear4pSSE(int f, int p, int q, __m128i A, __m128i B, __m128i C,
 // 2,3: 5x5 generated pixels 
 // 4,5: 4x4 pixels sampled from. No need for 25 texture lookups. 16 is enough! (Hyllian)
 int bicubicWeights[2][4][5][5][4][4];
-int jincWeights[4][5][5][4][4];
+int jincWeights[2][4][5][5][4][4];
 int smoothstepWeights[4][5][5][2][2];
 float auxWeights[2][5][5];
 // initialize pre-computed weights array
