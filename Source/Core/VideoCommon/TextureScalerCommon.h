@@ -29,7 +29,7 @@ public:
 
 	u32* Scale(u32* data, int width, int height);
 
-	enum { NONE = 0, XBRZ = 1, HYBRID = 2, BICUBIC = 3, HYBRID_BICUBIC = 4, JINC = 5 };
+	enum { NONE = 0, XBRZ = 1, HYBRID = 2, BICUBIC = 3, HYBRID_BICUBIC = 4, JINC = 5, JINC_SHARPER = 6, SMOOTHSTEP = 7, THREE_POINT = 8, DDT = 9, DDT_SHARP = 10 };
 
 private:
 
@@ -39,6 +39,11 @@ private:
 	void ScaleBicubicMitchell(int factor, u32* source, u32* dest, int width, int height);
 	void ScaleHybrid(int factor, u32* source, u32* dest, int width, int height, bool bicubic = false);
 	void ScaleJinc(int factor, u32* source, u32* dest, int width, int height);
+	void ScaleJincSharper(int factor, u32* source, u32* dest, int width, int height);
+	void ScaleSmoothstep(int factor, u32* source, u32* dest, int width, int height);
+	void Scale3Point(int factor, u32* source, u32* dest, int width, int height);
+	void ScaleDDT(int factor, u32* source, u32* dest, int width, int height);
+	void ScaleDDTSharp(int factor, u32* source, u32* dest, int width, int height);
 
 	void DePosterize(u32* source, u32* dest, int width, int height);
 
