@@ -231,6 +231,59 @@ inline float jinc(float x, float A, float B, float AB) {
 	return (sin(x*A)*sin(x*B) / (x*x*AB));
 }
 
+inline float smoothstep(float x)
+{
+	// Evaluate polynomial
+	return x * x * x * (x * (x * 6.0f - 15.0f) + 10.0f);
+}
+
+
+// bilinear using only 3-points. The N64 original texture scaler.
+inline int linear3p(int f, int p, int q, int A, int B, int C) {
+	p = (((p << 1) + 1) << 7) / f; q = (((q << 1) + 1) << 7) / f;
+
+ 	return (A << 8)  +  p * (B - A)  +  q * (C - A);
+}
+
+// bilinear
+inline int linear4p(int f, int p, int q, int A, int B, int C, int D) {
+	p = (((p << 1) + 1) << 7) / f; q = (((q << 1) + 1) << 7) / f;
+
+	return (A << 8) + p * (B - A) + q * (C - A) + ((p * q) >> 8) * (A - B - C + D);
+}
+
+#if _M_SSE >= 0x401
+
+inline __m128i linear3pSSE(int f, int p, int q, __m128i A, __m128i B, __m128i C) {
+	p = (((p << 1) + 1) << 7) / f; q = (((q << 1) + 1) << 7) / f;
+
+	__m128i l3p = _mm_slli_epi32(A, 8);
+	l3p = _mm_add_epi32(l3p, _mm_mullo_epi32(_mm_sub_epi32(B, A), _mm_set1_epi32(p)));
+	l3p = _mm_add_epi32(l3p, _mm_mullo_epi32(_mm_sub_epi32(C, A), _mm_set1_epi32(q)));
+
+	return  l3p;
+}
+
+
+inline __m128i linear4pSSE(int f, int p, int q, __m128i A, __m128i B, __m128i C, __m128i D) {
+	p = (((p << 1) + 1) << 7) / f; q = (((q << 1) + 1) << 7) / f;
+
+	__m128i l3p = _mm_slli_epi32(A, 8);
+	l3p = _mm_add_epi32(l3p, _mm_mullo_epi32(_mm_sub_epi32(B, A), _mm_set1_epi32(p)));
+	l3p = _mm_add_epi32(l3p, _mm_mullo_epi32(_mm_sub_epi32(C, A), _mm_set1_epi32(q)));
+	__m128i l4p = _mm_add_epi32(A, D);
+	l4p = _mm_sub_epi32(l4p, B);
+	l4p = _mm_sub_epi32(l4p, C);
+	l4p = _mm_mullo_epi32(l4p, _mm_set1_epi32(p));
+	l4p = _mm_mullo_epi32(l4p, _mm_set1_epi32(q));
+	l4p = _mm_srai_epi32(l4p, 8);
+	l4p = _mm_add_epi32(l4p, l3p);
+	
+	return  l4p;
+}
+
+#endif
+
 
 // arrays for pre-calculating weights and sums (~20KB)
 // Dimensions:
@@ -240,20 +293,21 @@ inline float jinc(float x, float A, float B, float AB) {
 // 4,5: 4x4 pixels sampled from. No need for 25 texture lookups. 16 is enough! (Hyllian)
 int bicubicWeights[2][4][5][5][4][4];
 int jincWeights[4][5][5][4][4];
+int smoothstepWeights[4][5][5][2][2];
 float auxWeights[2][5][5];
 // initialize pre-computed weights array
 void initFilterWeights() {
 	float pi = 3.1415926535897932384626433832795f;
-	float wa = 0.42f*pi;
-	float wb = 0.92f*pi;
-	float wab = wa*wb;
+	float wa[2] = { 0.50f*pi, 0.42f*pi };
+	float wb[2] = { 0.82f*pi, 0.92f*pi };
+	float wab[2] = { wa[0] * wb[0], wa[1] * wb[1] };
 	float B[2] = { 1.0f, 0.334f };
 	float C[2] = { 0.0f, 0.334f };
 	for (int type = 0; type < 2; ++type) {
 		for (int factor = 2; factor <= 5; ++factor) {
 			for (int x = 0; x < factor; ++x) {
 				for (int y = 0; y < factor; ++y) {
-					float sum[2] = { 0.0f, 0.0f };
+					float sum[3] = { 0.0f, 0.0f, 0.0f };
 					for (int sx = 0; sx < 4; ++sx) {
 						for (int sy = 0; sy < 4; ++sy) {
 							float dx = (x + 0.5f + (factor % 2) / 2.0f) / factor - (sx - 1.0f);
@@ -262,15 +316,24 @@ void initFilterWeights() {
 							float weight = mitchell(dist, B[type], C[type]);
 							auxWeights[0][sx][sy] = weight;
 							sum[0] += weight;
-							weight = jinc(dist, wa, wb, wab);
+							weight = jinc(dist, wa[type], wb[type], wab[type]);
 							auxWeights[1][sx][sy] = weight;
 							sum[1] += weight;
+							if (sx < 2 && sy < 2) {
+								dx -= 1.0f;	dy -= 1.0f;
+								weight = smoothstep(1.0f - abs(dx))*smoothstep(1.0f - abs(dy));
+								auxWeights[2][sx][sy] = weight;
+								sum[2] += weight;
+							}
 						}
 					}
 					for (int sx = 0; sx < 4; ++sx) {
 						for (int sy = 0; sy < 4; ++sy) {
-							bicubicWeights[type][factor - 2][x][y][sx][sy] = static_cast<int>(256.0f * auxWeights[0][sx][sy] / sum[0]);
-							jincWeights[factor - 2][x][y][sx][sy] = static_cast<int>(256.0f * auxWeights[1][sx][sy] / sum[1]);
+							bicubicWeights[type][factor - 2][x][y][sx][sy] = static_cast<int>(ceilf(256.0f * auxWeights[0][sx][sy] / sum[0]));
+							jincWeights[type][factor - 2][x][y][sx][sy] = static_cast<int>(ceilf(256.0f * auxWeights[1][sx][sy] / sum[1]));
+							if (sx < 2 && sy < 2) {
+								smoothstepWeights[factor - 2][x][y][sx][sy] = static_cast<int>(ceilf(256.0f * auxWeights[2][sx][sy] / sum[2]));
+							}
 						}
 					}
 				}
@@ -309,10 +372,10 @@ void scaleBicubicT(u32* data, u32* out, int w, int h, int l, int u) {
 					for (int sx = 0; sx < 4; ++sx) {
 						for (int sy = 0; sy < 4; ++sy) {
 							int weight = bicubicWeights[T][factor][x][y][sx][sy];
-							r += weight*rc[sx][sy];
-							g += weight*gc[sx][sy];
-							b += weight*bc[sx][sy];
-							a += weight*ac[sx][sy];
+							r += weight * rc[sx][sy];
+							g += weight * gc[sx][sy];
+							b += weight * bc[sx][sy];
+							a += weight * ac[sx][sy];
 						}
 					}
 					// generate and write result
@@ -358,7 +421,7 @@ void scaleBicubicT(u32* data, u32* out, int w, int h, int l, int u) {
 
 
 // perform jinc scaling by factor f.
-template<int f>
+template<int f, int T>
 void scaleJincT(u32* data, u32* out, int w, int h) {
 	int outw = w * f, outh = h * f, factor = f - 2, offset = -(f >> 1);
 	int rc[4][4], gc[4][4], bc[4][4], ac[4][4];
@@ -394,7 +457,7 @@ void scaleJincT(u32* data, u32* out, int w, int h) {
 					// sample supporting pixels in original image
 					for (int sx = 0; sx < 4; ++sx) {
 						for (int sy = 0; sy < 4; ++sy) {
-							int weight = jincWeights[factor][x][y][sx][sy];
+							int weight = jincWeights[T][factor][x][y][sx][sy];
 							// clamp pixel locations
 							r += weight*rc[sx][sy];
 							g += weight*gc[sx][sy];
@@ -421,7 +484,323 @@ void scaleJincT(u32* data, u32* out, int w, int h) {
 }
 
 
+// perform DDT-Sharp scaling by factor f.
+template<int f>
+void scaleDDTSharpT(u32* data, u32* out, int w, int h) {
+	int outw = w * f, outh = h * f, factor = f - 2, offset = -(f >> 1);
+	int rc[4][4], gc[4][4], bc[4][4], ac[4][4];
+	for (int cy = 0; cy <= h; ++cy) {
+		for (int cx = 0; cx <= w; ++cx) {
+			int y_offset = cy*f + offset; // They begin offset by f / 2
+			int x_offset = cx*f + offset;
+			for (int sx = 0; sx < 4; ++sx) {
+				for (int sy = 0; sy < 4; ++sy) {
+					// clamp pixel locations
+					int csy = clamp(sy - 2 + cy, 0, h - 1);
+					int csx = clamp(sx - 2 + cx, 0, w - 1);
+					// sample supporting pixels in original image
+					u32 sample = data[csy*w + csx];
+					rc[sx][sy] = R(sample);
+					gc[sx][sy] = G(sample);
+					bc[sx][sy] = B(sample);
+					ac[sx][sy] = A(sample);
+				}
+			}
+			int wd1 = abs(gc[1][1] - gc[2][2]);
+			wd1 += (abs(gc[1][0] - gc[2][1]) + abs(gc[2][1] - gc[3][2]) + abs(gc[0][1] - gc[1][2]) + abs(gc[1][2] - gc[2][3]));
+			wd1 -= (abs(gc[1][0] - gc[3][2]) + abs(gc[0][1] - gc[2][3]));
+			int wd2 = abs(gc[2][1] - gc[1][2]);
+			wd2 += (abs(gc[2][0] - gc[1][1]) + abs(gc[1][1] - gc[0][2]) + abs(gc[1][3] - gc[2][2]) + abs(gc[2][2] - gc[3][1]));
+			wd2 -= (abs(gc[2][0] - gc[0][2]) + abs(gc[1][3] - gc[3][1]));
+			for (int y = 0; y < f; ++y) {
+				for (int x = 0; x < f; ++x) {
+					int r = 0, g = 0, b = 0, a = 0;
+					if (wd1 < wd2) {
+						if (x > y) {
+							r = linear3p(f, f - x - 1, y, rc[2][1], rc[1][1], rc[2][2]);
+							g = linear3p(f, f - x - 1, y, gc[2][1], gc[1][1], gc[2][2]);
+							b = linear3p(f, f - x - 1, y, bc[2][1], bc[1][1], bc[2][2]);
+							a = linear3p(f, f - x - 1, y, ac[2][1], ac[1][1], ac[2][2]);
+						}
+						else {
+							r = linear3p(f, x, f - y - 1, rc[1][2], rc[2][2], rc[1][1]);
+							g = linear3p(f, x, f - y - 1, gc[1][2], gc[2][2], gc[1][1]);
+							b = linear3p(f, x, f - y - 1, bc[1][2], bc[2][2], bc[1][1]);
+							a = linear3p(f, x, f - y - 1, ac[1][2], ac[2][2], ac[1][1]);
+						}
+					}
+					else if (wd1 > wd2){
+						if ((x + y) < f) {
+							r = linear3p(f, x, y, rc[1][1], rc[2][1], rc[1][2]);
+							g = linear3p(f, x, y, gc[1][1], gc[2][1], gc[1][2]);
+							b = linear3p(f, x, y, bc[1][1], bc[2][1], bc[1][2]);
+							a = linear3p(f, x, y, ac[1][1], ac[2][1], ac[1][2]);
+						}
+						else {
+							r = linear3p(f, f - x - 1, f - y - 1, rc[2][2], rc[1][2], rc[2][1]);
+							g = linear3p(f, f - x - 1, f - y - 1, gc[2][2], gc[1][2], gc[2][1]);
+							b = linear3p(f, f - x - 1, f - y - 1, bc[2][2], bc[1][2], bc[2][1]);
+							a = linear3p(f, f - x - 1, f - y - 1, ac[2][2], ac[1][2], ac[2][1]);
+						}
+					}
+					else {
+						r = linear4p(f, x, y, rc[1][1], rc[2][1], rc[1][2], rc[2][2]);
+						g = linear4p(f, x, y, gc[1][1], gc[2][1], gc[1][2], gc[2][2]);
+						b = linear4p(f, x, y, bc[1][1], bc[2][1], bc[1][2], bc[2][2]);
+						a = linear4p(f, x, y, ac[1][1], ac[2][1], ac[1][2], ac[2][2]);
+					}
+					// generate and write result
+					r = clamp(r >> 8, 0, 255);
+					g = clamp(g >> 8, 0, 255);
+					b = clamp(b >> 8, 0, 255);
+					a = clamp(a >> 8, 0, 255);
+					int yline = clamp(y + y_offset, 0, outh - 1);
+					int xline = clamp(x + x_offset, 0, outw - 1);
+					out[yline*outw + xline] = (a << 24) | (b << 16) | (g << 8) | r;
+				}
+			}
+		}
+	}
+}
+
+
+
+// perform DDT scaling by factor f.
+template<int f>
+void scaleDDTT(u32* data, u32* out, int w, int h) {
+	int outw = w * f, outh = h * f, factor = f - 2, offset = -(f >> 1);
+	int rc[2][2], gc[2][2], bc[2][2], ac[2][2];
+	for (int cy = 0; cy <= h; ++cy) {
+		for (int cx = 0; cx <= w; ++cx) {
+			int y_offset = cy*f + offset; // They begin offset by f / 2
+			int x_offset = cx*f + offset;
+			for (int sx = 0; sx < 2; ++sx) {
+				for (int sy = 0; sy < 2; ++sy) {
+					// clamp pixel locations
+					int csy = clamp(sy - 1 + cy, 0, h - 1);
+					int csx = clamp(sx - 1 + cx, 0, w - 1);
+					// sample supporting pixels in original image
+					u32 sample = data[csy*w + csx];
+					rc[sx][sy] = R(sample);
+					gc[sx][sy] = G(sample);
+					bc[sx][sy] = B(sample);
+					ac[sx][sy] = A(sample);
+				}
+			}
+			int wd1 = abs(gc[0][0] - gc[1][1]);
+			int wd2 = abs(gc[1][0] - gc[0][1]);
+			for (int y = 0; y < f; ++y) {
+				for (int x = 0; x < f; ++x) {
+					int r = 0, g = 0, b = 0, a = 0;
+					if (wd1 < wd2) {
+						if (x > y) {
+							r = linear3p(f, f - x - 1, y, rc[1][0], rc[0][0], rc[1][1]);
+							g = linear3p(f, f - x - 1, y, gc[1][0], gc[0][0], gc[1][1]);
+							b = linear3p(f, f - x - 1, y, bc[1][0], bc[0][0], bc[1][1]);
+							a = linear3p(f, f - x - 1, y, ac[1][0], ac[0][0], ac[1][1]);
+						}
+						else {
+							r = linear3p(f, x, f - y - 1, rc[0][1], rc[1][1], rc[0][0]);
+							g = linear3p(f, x, f - y - 1, gc[0][1], gc[1][1], gc[0][0]);
+							b = linear3p(f, x, f - y - 1, bc[0][1], bc[1][1], bc[0][0]);
+							a = linear3p(f, x, f - y - 1, ac[0][1], ac[1][1], ac[0][0]);
+						}
+					}
+					else if (wd1 > wd2) {
+						if ((x + y) < f) {
+							r = linear3p(f, x, y, rc[0][0], rc[1][0], rc[0][1]);
+							g = linear3p(f, x, y, gc[0][0], gc[1][0], gc[0][1]);
+							b = linear3p(f, x, y, bc[0][0], bc[1][0], bc[0][1]);
+							a = linear3p(f, x, y, ac[0][0], ac[1][0], ac[0][1]);
+						}
+						else {
+							r = linear3p(f, f - x - 1, f - y - 1, rc[1][1], rc[0][1], rc[1][0]);
+							g = linear3p(f, f - x - 1, f - y - 1, gc[1][1], gc[0][1], gc[1][0]);
+							b = linear3p(f, f - x - 1, f - y - 1, bc[1][1], bc[0][1], bc[1][0]);
+							a = linear3p(f, f - x - 1, f - y - 1, ac[1][1], ac[0][1], ac[1][0]);
+						}
+					}
+					else {
+						r = linear4p(f, x, y, rc[0][0], rc[1][0], rc[0][1], rc[1][1]);
+						g = linear4p(f, x, y, gc[0][0], gc[1][0], gc[0][1], gc[1][1]);
+						b = linear4p(f, x, y, bc[0][0], bc[1][0], bc[0][1], bc[1][1]);
+						a = linear4p(f, x, y, ac[0][0], ac[1][0], ac[0][1], ac[1][1]);
+					}
+					// generate and write result
+					r = clamp(r >> 8, 0, 255);
+					g = clamp(g >> 8, 0, 255);
+					b = clamp(b >> 8, 0, 255);
+					a = clamp(a >> 8, 0, 255);
+					int yline = clamp(y + y_offset, 0, outh - 1);
+					int xline = clamp(x + x_offset, 0, outw - 1);
+					out[yline*outw + xline] = (a << 24) | (b << 16) | (g << 8) | r;
+				}
+			}
+		}
+	}
+}
+
+
+// perform 3-point scaling by factor f.
+template<int f>
+void scale3PointT(u32* data, u32* out, int w, int h) {
+	int outw = w * f, outh = h * f, factor = f - 2, offset = -(f >> 1);
+	int rc[2][2], gc[2][2], bc[2][2], ac[2][2];
+	for (int cy = 0; cy <= h; ++cy) {
+		for (int cx = 0; cx <= w; ++cx) {
+			int y_offset = cy*f + offset; // They begin offset by f / 2
+			int x_offset = cx*f + offset;
+			for (int sx = 0; sx < 2; ++sx) {
+				for (int sy = 0; sy < 2; ++sy) {
+					// clamp pixel locations
+					int csy = clamp(sy - 1 + cy, 0, h - 1);
+					int csx = clamp(sx - 1 + cx, 0, w - 1);
+					// sample supporting pixels in original image
+					u32 sample = data[csy*w + csx];
+					rc[sx][sy] = R(sample);
+					gc[sx][sy] = G(sample);
+					bc[sx][sy] = B(sample);
+					ac[sx][sy] = A(sample);
+				}
+			}
+			for (int y = 0; y < f; ++y) {
+				for (int x = 0; x < f; ++x) {
+					int r = 0, g = 0, b = 0, a = 0;
+					if ((y + x) < f) {
+						r = linear3p(f, x, y, rc[0][0], rc[1][0], rc[0][1]);
+						g = linear3p(f, x, y, gc[0][0], gc[1][0], gc[0][1]);
+						b = linear3p(f, x, y, bc[0][0], bc[1][0], bc[0][1]);
+						a = linear3p(f, x, y, ac[0][0], ac[1][0], ac[0][1]);
+					}
+					else {
+						r = linear3p(f, f - x - 1, f - y - 1, rc[1][1], rc[0][1], rc[1][0]);
+						g = linear3p(f, f - x - 1, f - y - 1, gc[1][1], gc[0][1], gc[1][0]);
+						b = linear3p(f, f - x - 1, f - y - 1, bc[1][1], bc[0][1], bc[1][0]);
+						a = linear3p(f, f - x - 1, f - y - 1, ac[1][1], ac[0][1], ac[1][0]);
+					}
+					// generate and write result
+					r = clamp(r >> 8, 0, 255);
+					g = clamp(g >> 8, 0, 255);
+					b = clamp(b >> 8, 0, 255);
+					a = clamp(a >> 8, 0, 255);
+					int yline = clamp(y + y_offset, 0, outh - 1);
+					int xline = clamp(x + x_offset, 0, outw - 1);
+					out[yline*outw + xline] = (a << 24) | (b << 16) | (g << 8) | r;
+				}
+			}
+		}
+	}
+}
+
+
+
+// perform smoothstep scaling by factor f.
+template<int f>
+void scaleSmoothstepT(u32* data, u32* out, int w, int h) {
+	int outw = w * f, outh = h * f, factor = f - 2, offset = -(f >> 1);
+	int rc[2][2], gc[2][2], bc[2][2], ac[2][2];
+	for (int cy = 0; cy <= h; ++cy) {
+		for (int cx = 0; cx <= w; ++cx) {
+			int y_offset = cy*f + offset; // They begin offset by f / 2
+			int x_offset = cx*f + offset;
+			for (int sx = 0; sx < 2; ++sx) {
+				for (int sy = 0; sy < 2; ++sy) {
+					// clamp pixel locations
+					int csy = clamp(sy - 1 + cy, 0, h - 1);
+					int csx = clamp(sx - 1 + cx, 0, w - 1);
+					// sample supporting pixels in original image
+					u32 sample = data[csy*w + csx];
+					rc[sx][sy] = R(sample);
+					gc[sx][sy] = G(sample);
+					bc[sx][sy] = B(sample);
+					ac[sx][sy] = A(sample);
+				}
+			}
+			for (int y = 0; y < f; ++y) {
+				for (int x = 0; x < f; ++x) {
+					int r = 0, g = 0, b = 0, a = 0;
+					// add weighted components
+					for (int sx = 0; sx < 2; ++sx) {
+						for (int sy = 0; sy < 2; ++sy) {
+							int weight = smoothstepWeights[factor][x][y][sx][sy];
+							r += weight * rc[sx][sy];
+							g += weight * gc[sx][sy];
+							b += weight * bc[sx][sy];
+							a += weight * ac[sx][sy];
+						}
+					}
+					// generate and write result
+					r = clamp(r >> 8, 0, 255);
+					g = clamp(g >> 8, 0, 255);
+					b = clamp(b >> 8, 0, 255);
+					a = clamp(a >> 8, 0, 255);
+					int yline = clamp(y + y_offset, 0, outh - 1);
+					int xline = clamp(x + x_offset, 0, outw - 1);
+					out[yline*outw + xline] = (a << 24) | (b << 16) | (g << 8) | r;
+				}
+			}
+		}
+	}
+}
+
+
 #if _M_SSE >= 0x401
+
+// perform jinc scaling by factor f.
+template<int f, int T>
+void scaleJincTSSE41(u32* data, u32* out, int w, int h) {
+	int outw = w * f, outh = h * f, factor = f - 2, offset = -(f >> 1);
+	for (int cy = 0; cy <= h; ++cy) {
+		for (int cx = 0; cx <= w; ++cx) {
+			__m128i min_sample = _mm_set1_epi32(255);
+			__m128i max_sample = _mm_set1_epi32(0);
+			__m128i color[4][4];
+			int y_offset = cy*f + offset; // They begin offset by f / 2
+			int x_offset = cx*f + offset;
+			for (int sx = 0; sx < 4; ++sx) {
+				for (int sy = 0; sy < 4; ++sy) {
+					// clamp pixel locations
+					int csy = clamp(sy - 2 + cy, 0, h - 1);
+					int csx = clamp(sx - 2 + cx, 0, w - 1);
+					// Sample supporting pixels in original image
+					color[sx][sy] = _mm_cvtsi32_si128(data[csy*w + csx]); // reads i32 and put at r0. 128bit = r0r1r2r3.
+					color[sx][sy] = _mm_cvtepu8_epi32(color[sx][sy]); // separates 32 bits in four 8 bits, one at each r#.
+					// Fill the anti-ringing code
+					if (sx >= 1 && sx < 3 && sy >= 1 && sy < 3) {
+						min_sample = _mm_min_epi32(color[sx][sy], min_sample); // Setting floor and ceil anti-ringing samples.
+						max_sample = _mm_max_epi32(color[sx][sy], max_sample);
+					}
+				}
+			}
+			for (int y = 0; y < f; ++y) {
+				for (int x = 0; x < f; ++x) {
+					__m128i pixel = _mm_set1_epi32(0);
+					// Add weighted components
+					for (int sx = 0; sx < 4; ++sx) {
+						for (int sy = 0; sy < 4; ++sy) {
+							int weight = jincWeights[T][factor][x][y][sx][sy];
+							__m128i col = _mm_mullo_epi32(color[sx][sy], _mm_set1_epi32(weight)); // multiply four 32 bits by weight.
+							pixel = _mm_add_epi32(pixel, col); // Accumulate result with col.
+						}
+					}
+					// generate and write result
+					pixel = _mm_srai_epi32(pixel, 8);
+					__m128i aux = pixel;
+					pixel = _mm_max_epi32(pixel, min_sample); // Anti-ringing.
+					pixel = _mm_min_epi32(pixel, max_sample);
+					pixel = _mm_srai_epi32(_mm_add_epi32(pixel, aux), 1); // Perform a mix between pixel and aux at 50%.
+					pixel = _mm_packs_epi32(pixel, pixel); // 4x32bit to 8x16bit
+					pixel = _mm_packus_epi16(pixel, pixel); // 8x16bit to 16x8bit
+					int yline = clamp(y + y_offset, 0, outh - 1);
+					int xline = clamp(x + x_offset, 0, outw - 1);
+					out[yline*outw + xline] = _mm_cvtsi128_si32(pixel); // r = r0.
+				}
+			}
+		}
+	}
+}
+
+
 
 template<int f, int T>
 void scaleBicubicTSSE41(u32* data, u32* out, int w, int h, int l, int u) {
@@ -465,49 +844,37 @@ void scaleBicubicTSSE41(u32* data, u32* out, int w, int h, int l, int u) {
 	}
 }
 
-// perform jinc scaling by factor f.
 template<int f>
-void scaleJincTSSE41(u32* data, u32* out, int w, int h) {
+void scaleSmoothstepTSSE41(u32* data, u32* out, int w, int h) {
 	int outw = w * f, outh = h * f, factor = f - 2, offset = -(f >> 1);
 	for (int cy = 0; cy <= h; ++cy) {
 		for (int cx = 0; cx <= w; ++cx) {
-			__m128i min_sample = _mm_set1_epi32(255);
-			__m128i max_sample = _mm_set1_epi32(0);
-			__m128i color[4][4];
+			__m128i color[2][2];
 			int y_offset = cy*f + offset; // They begin offset by f / 2
 			int x_offset = cx*f + offset;
-			for (int sx = 0; sx < 4; ++sx) {
-				for (int sy = 0; sy < 4; ++sy) {
+			for (int sx = 0; sx < 2; ++sx) {
+				for (int sy = 0; sy < 2; ++sy) {
 					// clamp pixel locations
-					int csy = clamp(sy - 2 + cy, 0, h - 1);
-					int csx = clamp(sx - 2 + cx, 0, w - 1);
+					int csy = clamp(sy - 1 + cy, 0, h - 1);
+					int csx = clamp(sx - 1 + cx, 0, w - 1);
 					// Sample supporting pixels in original image
 					color[sx][sy] = _mm_cvtsi32_si128(data[csy*w + csx]); // reads i32 and put at r0. 128bit = r0r1r2r3.
 					color[sx][sy] = _mm_cvtepu8_epi32(color[sx][sy]); // separates 32 bits in four 8 bits, one at each r#.
-					// Fill the anti-ringing code
-					if (sx >= 1 && sx < 3 && sy >= 1 && sy < 3) {
-						min_sample = _mm_min_epi32(color[sx][sy], min_sample); // Setting floor and ceil anti-ringing samples.
-						max_sample = _mm_max_epi32(color[sx][sy], max_sample);
-					}
 				}
 			}
 			for (int y = 0; y < f; ++y) {
 				for (int x = 0; x < f; ++x) {
 					__m128i pixel = _mm_set1_epi32(0);
 					// Add weighted components
-					for (int sx = 0; sx < 4; ++sx) {
-						for (int sy = 0; sy < 4; ++sy) {
-							int weight = jincWeights[factor][x][y][sx][sy];
+					for (int sx = 0; sx < 2; ++sx) {
+						for (int sy = 0; sy < 2; ++sy) {
+							int weight = smoothstepWeights[factor][x][y][sx][sy];
 							__m128i col = _mm_mullo_epi32(color[sx][sy], _mm_set1_epi32(weight)); // multiply four 32 bits by weight.
 							pixel = _mm_add_epi32(pixel, col); // Accumulate result with col.
 						}
 					}
 					// generate and write result
 					pixel = _mm_srai_epi32(pixel, 8);
-					__m128i aux = pixel;
-					pixel = _mm_max_epi32(pixel, min_sample); // Anti-ringing.
-					pixel = _mm_min_epi32(pixel, max_sample);
-					pixel = _mm_srai_epi32(_mm_add_epi32(pixel, aux), 1); // Perform a mix between pixel and aux at 50%.
 					pixel = _mm_packs_epi32(pixel, pixel); // 4x32bit to 8x16bit
 					pixel = _mm_packus_epi16(pixel, pixel); // 8x16bit to 16x8bit
 					int yline = clamp(y + y_offset, 0, outh - 1);
@@ -518,6 +885,167 @@ void scaleJincTSSE41(u32* data, u32* out, int w, int h) {
 		}
 	}
 }
+
+template<int f>
+void scale3PointTSSE41(u32* data, u32* out, int w, int h) {
+	int outw = w * f, outh = h * f, factor = f - 2, offset = -(f >> 1);
+	for (int cy = 0; cy <= h; ++cy) {
+		for (int cx = 0; cx <= w; ++cx) {
+			__m128i color[2][2];
+			int y_offset = cy*f + offset; // They begin offset by f / 2
+			int x_offset = cx*f + offset;
+			for (int sx = 0; sx < 2; ++sx) {
+				for (int sy = 0; sy < 2; ++sy) {
+					// clamp pixel locations
+					int csy = clamp(sy - 1 + cy, 0, h - 1);
+					int csx = clamp(sx - 1 + cx, 0, w - 1);
+					// Sample supporting pixels in original image
+					color[sx][sy] = _mm_cvtsi32_si128(data[csy*w + csx]); // reads i32 and put at r0. 128bit = r0r1r2r3.
+					color[sx][sy] = _mm_cvtepu8_epi32(color[sx][sy]); // separates 32 bits in four 8 bits, one at each r#.
+				}
+			}
+			for (int y = 0; y < f; ++y) {
+				for (int x = 0; x < f; ++x) {
+					__m128i pixel = _mm_set1_epi32(0);
+					// Add weighted components
+					if ((y + x) < f) {
+						pixel = linear3pSSE(f, x, y, color[0][0], color[1][0], color[0][1]);
+					}
+					else {
+						pixel = linear3pSSE(f, f - x - 1, f - y - 1, color[1][1], color[0][1], color[1][0]);
+					}
+					// generate and write result
+					pixel = _mm_srai_epi32(pixel, 8);
+					pixel = _mm_packs_epi32(pixel, pixel); // 4x32bit to 8x16bit
+					pixel = _mm_packus_epi16(pixel, pixel); // 8x16bit to 16x8bit
+					int yline = clamp(y + y_offset, 0, outh - 1);
+					int xline = clamp(x + x_offset, 0, outw - 1);
+					out[yline*outw + xline] = _mm_cvtsi128_si32(pixel); // r = r0.
+				}
+			}
+		}
+	}
+}
+
+
+template<int f>
+void scaleDDTSharpTSSE41(u32* data, u32* out, int w, int h) {
+	int outw = w * f, outh = h * f, factor = f - 2, offset = -(f >> 1);
+	for (int cy = 0; cy <= h; ++cy) {
+		for (int cx = 0; cx <= w; ++cx) {
+			__m128i color[4][4]; int gc[4][4];
+			int y_offset = cy*f + offset; // They begin offset by f / 2
+			int x_offset = cx*f + offset;
+			for (int sx = 0; sx < 4; ++sx) {
+				for (int sy = 0; sy < 4; ++sy) {
+					// clamp pixel locations
+					int csy = clamp(sy - 2 + cy, 0, h - 1);
+					int csx = clamp(sx - 2 + cx, 0, w - 1);
+					// Sample supporting pixels in original image
+					color[sx][sy] = _mm_cvtsi32_si128(data[csy*w + csx]); // reads i32 and put at r0. 128bit = r0r1r2r3.
+					color[sx][sy] = _mm_cvtepu8_epi32(color[sx][sy]); // separates 32 bits in four 8 bits, one at each r#.
+					gc[sx][sy] = _mm_extract_epi32(color[sx][sy], 1);
+				}
+			}
+			int wd1 = abs(gc[1][1] - gc[2][2]);
+			wd1 += (abs(gc[1][0] - gc[2][1]) + abs(gc[2][1] - gc[3][2]) + abs(gc[0][1] - gc[1][2]) + abs(gc[1][2] - gc[2][3]));
+			wd1 -= (abs(gc[1][0] - gc[3][2]) + abs(gc[0][1] - gc[2][3]));
+			int wd2 = abs(gc[2][1] - gc[1][2]);
+			wd2 += (abs(gc[2][0] - gc[1][1]) + abs(gc[1][1] - gc[0][2]) + abs(gc[1][3] - gc[2][2]) + abs(gc[2][2] - gc[3][1]));
+			wd2 -= (abs(gc[2][0] - gc[0][2]) + abs(gc[1][3] - gc[3][1]));
+			for (int y = 0; y < f; ++y) {
+				for (int x = 0; x < f; ++x) {
+					__m128i pixel = _mm_set1_epi32(0);
+					// Add weighted components
+					if (wd1 < wd2) {
+						if (x > y) {
+							pixel = linear3pSSE(f, f - x - 1, y, color[2][1], color[1][1], color[2][2]);
+						}
+						else {
+							pixel = linear3pSSE(f, x, f - y - 1, color[1][2], color[2][2], color[1][1]);
+						}
+					}
+					else if (wd1 > wd2) {
+						if ((x + y) < f) {
+							pixel = linear3pSSE(f, x, y, color[1][1], color[2][1], color[1][2]);
+						}
+						else {
+							pixel = linear3pSSE(f, f - x - 1, f - y - 1, color[2][2], color[1][2], color[2][1]);
+						}
+					}
+					else {
+						pixel = linear4pSSE(f, x, y, color[1][1], color[2][1], color[1][2], color[2][2]);
+					}
+					// generate and write result
+					pixel = _mm_srai_epi32(pixel, 8);
+					pixel = _mm_packs_epi32(pixel, pixel); // 4x32bit to 8x16bit
+					pixel = _mm_packus_epi16(pixel, pixel); // 8x16bit to 16x8bit
+					int yline = clamp(y + y_offset, 0, outh - 1);
+					int xline = clamp(x + x_offset, 0, outw - 1);
+					out[yline*outw + xline] = _mm_cvtsi128_si32(pixel); // r = r0.
+				}
+			}
+		}
+	}
+}
+
+template<int f>
+void scaleDDTTSSE41(u32* data, u32* out, int w, int h) {
+	int outw = w * f, outh = h * f, factor = f - 2, offset = -(f >> 1);
+	for (int cy = 0; cy <= h; ++cy) {
+		for (int cx = 0; cx <= w; ++cx) {
+			__m128i color[2][2]; int gc[2][2];
+			int y_offset = cy*f + offset; // They begin offset by f / 2
+			int x_offset = cx*f + offset;
+			for (int sx = 0; sx < 2; ++sx) {
+				for (int sy = 0; sy < 2; ++sy) {
+					// clamp pixel locations
+					int csy = clamp(sy - 1 + cy, 0, h - 1);
+					int csx = clamp(sx - 1 + cx, 0, w - 1);
+					// Sample supporting pixels in original image
+					color[sx][sy] = _mm_cvtsi32_si128(data[csy*w + csx]); // reads i32 and put at r0. 128bit = r0r1r2r3.
+					color[sx][sy] = _mm_cvtepu8_epi32(color[sx][sy]); // separates 32 bits in four 8 bits, one at each r#.
+					gc[sx][sy] = _mm_extract_epi32(color[sx][sy], 1);
+				}
+			}
+			int wd1 = abs(gc[0][0] - gc[1][1]);
+			int wd2 = abs(gc[1][0] - gc[0][1]);
+			for (int y = 0; y < f; ++y) {
+				for (int x = 0; x < f; ++x) {
+					__m128i pixel = _mm_set1_epi32(0);
+					// Add weighted components
+					if (wd1 < wd2) {
+						if (x > y) {
+							pixel = linear3pSSE(f, f - x - 1, y, color[1][0], color[0][0], color[1][1]);
+						}
+						else {
+							pixel = linear3pSSE(f, x, f - y - 1, color[0][1], color[1][1], color[0][0]);
+						}
+					}
+					else if (wd1 > wd2) {
+						if ((x + y) < f) {
+							pixel = linear3pSSE(f, x, y, color[0][0], color[1][0], color[0][1]);
+						}
+						else {
+							pixel = linear3pSSE(f, f - x - 1, f - y - 1, color[1][1], color[0][1], color[1][0]);
+						}
+					}
+					else {
+						pixel = linear4pSSE(f, x, y, color[0][0], color[1][0], color[0][1], color[1][1]);
+					}
+					// generate and write result
+					pixel = _mm_srai_epi32(pixel, 8);
+					pixel = _mm_packs_epi32(pixel, pixel); // 4x32bit to 8x16bit
+					pixel = _mm_packus_epi16(pixel, pixel); // 8x16bit to 16x8bit
+					int yline = clamp(y + y_offset, 0, outh - 1);
+					int xline = clamp(x + x_offset, 0, outw - 1);
+					out[yline*outw + xline] = _mm_cvtsi128_si32(pixel); // r = r0.
+				}
+			}
+		}
+	}
+}
+
 
 #endif
 
@@ -574,21 +1102,148 @@ void scaleJinc(int factor, u32* data, u32* out, int w, int h) {
 #if _M_SSE >= 0x401
 	if (cpu_info.bSSE4_1) {
 		switch (factor) {
-		case 2: scaleJincTSSE41<2>(data, out, w, h); break;
-		case 3: scaleJincTSSE41<3>(data, out, w, h); break;
-		case 4: scaleJincTSSE41<4>(data, out, w, h); break;
-		case 5: scaleJincTSSE41<5>(data, out, w, h); break;
+		case 2: scaleJincTSSE41<2, 0>(data, out, w, h); break;
+		case 3: scaleJincTSSE41<3, 0>(data, out, w, h); break;
+		case 4: scaleJincTSSE41<4, 0>(data, out, w, h); break;
+		case 5: scaleJincTSSE41<5, 0>(data, out, w, h); break;
 		default: ERROR_LOG(VIDEO, "Jinc upsampling only implemented for factors 2 to 5");
 		}
 	}
 	else {
 #endif
 		switch (factor) {
-		case 2: scaleJincT<2>(data, out, w, h); break;
-		case 3: scaleJincT<3>(data, out, w, h); break;
-		case 4: scaleJincT<4>(data, out, w, h); break;
-		case 5: scaleJincT<5>(data, out, w, h); break;
+		case 2: scaleJincT<2, 0>(data, out, w, h); break;
+		case 3: scaleJincT<3, 0>(data, out, w, h); break;
+		case 4: scaleJincT<4, 0>(data, out, w, h); break;
+		case 5: scaleJincT<5, 0>(data, out, w, h); break;
 		default: ERROR_LOG(VIDEO, "Jinc upsampling only implemented for factors 2 to 5");
+		}
+#if _M_SSE >= 0x401
+	}
+#endif
+}
+
+void scaleJincSharper(int factor, u32* data, u32* out, int w, int h) {
+#if _M_SSE >= 0x401
+	if (cpu_info.bSSE4_1) {
+		switch (factor) {
+		case 2: scaleJincTSSE41<2, 1>(data, out, w, h); break;
+		case 3: scaleJincTSSE41<3, 1>(data, out, w, h); break;
+		case 4: scaleJincTSSE41<4, 1>(data, out, w, h); break;
+		case 5: scaleJincTSSE41<5, 1>(data, out, w, h); break;
+		default: ERROR_LOG(VIDEO, "Jinc upsampling only implemented for factors 2 to 5");
+		}
+	}
+	else {
+#endif
+		switch (factor) {
+		case 2: scaleJincT<2, 1>(data, out, w, h); break;
+		case 3: scaleJincT<3, 1>(data, out, w, h); break;
+		case 4: scaleJincT<4, 1>(data, out, w, h); break;
+		case 5: scaleJincT<5, 1>(data, out, w, h); break;
+		default: ERROR_LOG(VIDEO, "Jinc upsampling only implemented for factors 2 to 5");
+		}
+#if _M_SSE >= 0x401
+	}
+#endif
+}
+
+
+void scaleSmoothstep(int factor, u32* data, u32* out, int w, int h) {
+#if _M_SSE >= 0x401
+		if (cpu_info.bSSE4_1) {
+			switch (factor) {
+			case 2: scaleSmoothstepTSSE41<2>(data, out, w, h); break;
+			case 3: scaleSmoothstepTSSE41<3>(data, out, w, h); break;
+			case 4: scaleSmoothstepTSSE41<4>(data, out, w, h); break;
+			case 5: scaleSmoothstepTSSE41<5>(data, out, w, h); break;
+			default: ERROR_LOG(VIDEO, "Smoothstep upsampling only implemented for factors 2 to 5");
+			}
+		}
+		else {
+#endif
+			switch (factor) {
+			case 2: scaleSmoothstepT<2>(data, out, w, h); break;
+			case 3: scaleSmoothstepT<3>(data, out, w, h); break;
+			case 4: scaleSmoothstepT<4>(data, out, w, h); break;
+			case 5: scaleSmoothstepT<5>(data, out, w, h); break;
+			default: ERROR_LOG(VIDEO, "Smoothstep upsampling only implemented for factors 2 to 5");
+			}
+#if _M_SSE >= 0x401
+		}
+#endif
+}
+
+
+void scale3Point(int factor, u32* data, u32* out, int w, int h) {
+#if _M_SSE >= 0x401
+	if (cpu_info.bSSE4_1) {
+		switch (factor) {
+		case 2: scale3PointTSSE41<2>(data, out, w, h); break;
+		case 3: scale3PointTSSE41<3>(data, out, w, h); break;
+		case 4: scale3PointTSSE41<4>(data, out, w, h); break;
+		case 5: scale3PointTSSE41<5>(data, out, w, h); break;
+		default: ERROR_LOG(VIDEO, "3-Point upsampling only implemented for factors 2 to 5");
+		}
+	}
+	else {
+#endif
+		switch (factor) {
+		case 2: scale3PointT<2>(data, out, w, h); break;
+		case 3: scale3PointT<3>(data, out, w, h); break;
+		case 4: scale3PointT<4>(data, out, w, h); break;
+		case 5: scale3PointT<5>(data, out, w, h); break;
+		default: ERROR_LOG(VIDEO, "3-Point upsampling only implemented for factors 2 to 5");
+		}
+#if _M_SSE >= 0x401
+	}
+#endif
+}
+
+void scaleDDTSharp(int factor, u32* data, u32* out, int w, int h) {
+#if _M_SSE >= 0x401
+	if (cpu_info.bSSE4_1) {
+		switch (factor) {
+		case 2: scaleDDTSharpTSSE41<2>(data, out, w, h); break;
+		case 3: scaleDDTSharpTSSE41<3>(data, out, w, h); break;
+		case 4: scaleDDTSharpTSSE41<4>(data, out, w, h); break;
+		case 5: scaleDDTSharpTSSE41<5>(data, out, w, h); break;
+		default: ERROR_LOG(VIDEO, "DDT-Sharp upsampling only implemented for factors 2 to 5");
+		}
+	}
+	else {
+#endif
+		switch (factor) {
+		case 2: scaleDDTSharpT<2>(data, out, w, h); break;
+		case 3: scaleDDTSharpT<3>(data, out, w, h); break;
+		case 4: scaleDDTSharpT<4>(data, out, w, h); break;
+		case 5: scaleDDTSharpT<5>(data, out, w, h); break;
+		default: ERROR_LOG(VIDEO, "DDT-Sharp upsampling only implemented for factors 2 to 5");
+		}
+#if _M_SSE >= 0x401
+	}
+#endif
+}
+
+void scaleDDT(int factor, u32* data, u32* out, int w, int h) {
+#if _M_SSE >= 0x401
+	if (cpu_info.bSSE4_1) {
+		switch (factor) {
+		case 2: scaleDDTTSSE41<2>(data, out, w, h); break;
+		case 3: scaleDDTTSSE41<3>(data, out, w, h); break;
+		case 4: scaleDDTTSSE41<4>(data, out, w, h); break;
+		case 5: scaleDDTTSSE41<5>(data, out, w, h); break;
+		default: ERROR_LOG(VIDEO, "DDT upsampling only implemented for factors 2 to 5");
+		}
+	}
+	else {
+#endif
+		switch (factor) {
+		case 2: scaleDDTT<2>(data, out, w, h); break;
+		case 3: scaleDDTT<3>(data, out, w, h); break;
+		case 4: scaleDDTT<4>(data, out, w, h); break;
+		case 5: scaleDDTT<5>(data, out, w, h); break;
+		default: ERROR_LOG(VIDEO, "DDT upsampling only implemented for factors 2 to 5");
 		}
 #if _M_SSE >= 0x401
 	}
@@ -768,6 +1423,21 @@ u32* TextureScaler::Scale(u32* data, int width, int height) {
 	case JINC:
 		ScaleJinc(factor, inputBuf, outputBuf, width, height);
 		break;
+	case JINC_SHARPER:
+		ScaleJincSharper(factor, inputBuf, outputBuf, width, height);
+		break;
+	case SMOOTHSTEP:
+		ScaleSmoothstep(factor, inputBuf, outputBuf, width, height);
+		break;
+	case THREE_POINT:
+		Scale3Point(factor, inputBuf, outputBuf, width, height);
+		break;
+	case DDT:
+		ScaleDDT(factor, inputBuf, outputBuf, width, height);
+		break;
+	case DDT_SHARP:
+		ScaleDDTSharp(factor, inputBuf, outputBuf, width, height);
+		break;
 	default:
 		ERROR_LOG(VIDEO, "Unknown scaling type: %d", g_ActiveConfig.iTexScalingType);
 	}
@@ -842,8 +1512,33 @@ void TextureScaler::ScaleHybrid(int factor, u32* source, u32* dest, int width, i
 }
 
 void TextureScaler::ScaleJinc(int factor, u32* source, u32* dest, int width, int height) {
-	//GlobalThreadPool::Loop(std::bind(&scaleSuperXBR, factor, source, dest, width, height, placeholder::_1, placeholder::_2), 0, height);
+	//GlobalThreadPool::Loop(std::bind(&scaleJinc, factor, source, dest, width, height), 0, height);
 	scaleJinc(factor, source, dest, width, height);
+}
+
+void TextureScaler::ScaleJincSharper(int factor, u32* source, u32* dest, int width, int height) {
+	//GlobalThreadPool::Loop(std::bind(&scaleJincSharper, factor, source, dest, width, height), 0, height);
+	scaleJincSharper(factor, source, dest, width, height);
+}
+
+void TextureScaler::ScaleSmoothstep(int factor, u32* source, u32* dest, int width, int height) {
+	//GlobalThreadPool::Loop(std::bind(&scaleSmoothstep, factor, source, dest, width, height), 0, height);
+	scaleSmoothstep(factor, source, dest, width, height);
+}
+
+void TextureScaler::Scale3Point(int factor, u32* source, u32* dest, int width, int height) {
+	//GlobalThreadPool::Loop(std::bind(&scale3Point, factor, source, dest, width, height), 0, height);
+	scale3Point(factor, source, dest, width, height);
+}
+
+void TextureScaler::ScaleDDT(int factor, u32* source, u32* dest, int width, int height) {
+	//GlobalThreadPool::Loop(std::bind(&scaleDDT, factor, source, dest, width, height), 0, height);
+	scaleDDT(factor, source, dest, width, height);
+}
+
+void TextureScaler::ScaleDDTSharp(int factor, u32* source, u32* dest, int width, int height) {
+	//GlobalThreadPool::Loop(std::bind(&scaleDDTSharp, factor, source, dest, width, height), 0, height);
+	scaleDDTSharp(factor, source, dest, width, height);
 }
 
 void TextureScaler::DePosterize(u32* source, u32* dest, int width, int height) {

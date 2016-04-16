@@ -363,9 +363,9 @@ void VideoConfig::VerifyValidity()
 	{
 		iTexScalingType = 0;
 	}
-	else if (iTexScalingType > 5)
+	else if (iTexScalingType > 10)
 	{
-		iTexScalingType = 5;
+		iTexScalingType = 10;
 	}
 	bHiresMaterialMaps = bHiresMaterialMaps && bHiresTextures && bEnablePixelLighting;
 }
