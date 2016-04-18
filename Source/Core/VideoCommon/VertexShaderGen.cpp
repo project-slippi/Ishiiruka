@@ -370,55 +370,43 @@ inline void GenerateVertexShader(ShaderCode& out, const vertex_shader_uid_data& 
 			{
 				out.Write("int tmp = int(tex%d.z);\n", i);
 				if (((uid_data.texMtxInfo_n_projection >> i) & 1) == XF_TEXPROJ_STQ)
-				{
 					out.Write("o.tex%d.xyz = float3(dot(coord, " I_TRANSFORMMATRICES"[tmp]), dot(coord, " I_TRANSFORMMATRICES"[tmp+1]), dot(coord, " I_TRANSFORMMATRICES"[tmp+2]));\n", i);
-					out.Write("if(o.tex%d.z == 0.0f)\n", i);
-					out.Write("{\n");
-					out.Write("float4 test = " I_TRANSFORMMATRICES"[tmp+2];\n");
-					out.Write("o.tex%d.xy = (test.x != 0.0f || test.y != 0.0f) ? float2(0.0f, 0.0f) : clamp(o.tex%d.xy * 0.5f, float2(-1.0f, -1.0f), float2(1.0f, 1.0f));\n", i, i);
-					out.Write("}\n");
-				}
 				else
-				{
 					out.Write("o.tex%d.xyz = float3(dot(coord, " I_TRANSFORMMATRICES"[tmp]), dot(coord, " I_TRANSFORMMATRICES"[tmp+1]), 1);\n", i);
-				}
 			}
 			else
 			{
 				if (((uid_data.texMtxInfo_n_projection >> i) & 1) == XF_TEXPROJ_STQ)
-				{
 					out.Write("o.tex%d.xyz = float3(dot(coord, " I_TEXMATRICES"[%d]), dot(coord, " I_TEXMATRICES"[%d]), dot(coord, " I_TEXMATRICES"[%d]));\n", i, 3 * i, 3 * i + 1, 3 * i + 2);
-					out.Write("if(o.tex%d.z == 0.0f)\n", i);
-					out.Write("{\n");
-					out.Write("float4 test = " I_TRANSFORMMATRICES"[%d];\n", 3 * i + 2);
-					out.Write("o.tex%d.xy = (test.x != 0.0f || test.y != 0.0f) ? float2(0.0f, 0.0f) : clamp(o.tex%d.xy * 0.5f, float2(-1.0f, -1.0f), float2(1.0f, 1.0f));\n", i, i);
-					out.Write("}\n");
-				}
 				else
-				{
 					out.Write("o.tex%d.xyz = float3(dot(coord, " I_TEXMATRICES"[%d]), dot(coord, " I_TEXMATRICES"[%d]), 1);\n", i, 3 * i, 3 * i + 1);
-				}
 			}
 		}
 		break;
 		}
 
-		// CHECKME: does this only work for regular tex gen types?
-		if (uid_data.dualTexTrans_enabled && texinfo.texgentype == XF_TEXGEN_REGULAR)
+		if (texinfo.texgentype == XF_TEXGEN_REGULAR)
 		{
-			const auto& postInfo = uid_data.postMtxInfo[i];
+			// CHECKME: does this only work for regular tex gen types?
+			if (uid_data.dualTexTrans_enabled)
+			{
+				const auto& postInfo = uid_data.postMtxInfo[i];
 
-			int postidx = postInfo.index;
-			out.Write("float4 P0 = " I_POSTTRANSFORMMATRICES"[%d];\n"
-				"float4 P1 = " I_POSTTRANSFORMMATRICES"[%d];\n"
-				"float4 P2 = " I_POSTTRANSFORMMATRICES"[%d];\n",
-				postidx & 0x3f, (postidx + 1) & 0x3f, (postidx + 2) & 0x3f);
+				int postidx = postInfo.index;
+				out.Write("float4 P0 = " I_POSTTRANSFORMMATRICES"[%d];\n"
+					"float4 P1 = " I_POSTTRANSFORMMATRICES"[%d];\n"
+					"float4 P2 = " I_POSTTRANSFORMMATRICES"[%d];\n",
+					postidx & 0x3f, (postidx + 1) & 0x3f, (postidx + 2) & 0x3f);
 
-			if (postInfo.normalize)
-				out.Write("o.tex%d.xyz = normalize(o.tex%d.xyz);\n", i, i);
+				if (postInfo.normalize)
+					out.Write("o.tex%d.xyz = normalize(o.tex%d.xyz);\n", i, i);
 
-			// multiply by postmatrix
-			out.Write("o.tex%d.xyz = float3(dot(P0.xyz, o.tex%d.xyz) + P0.w, dot(P1.xyz, o.tex%d.xyz) + P1.w, dot(P2.xyz, o.tex%d.xyz) + P2.w);\n", i, i, i, i);
+				// multiply by postmatrix
+				out.Write("o.tex%d.xyz = float3(dot(P0.xyz, o.tex%d.xyz) + P0.w, dot(P1.xyz, o.tex%d.xyz) + P1.w, dot(P2.xyz, o.tex%d.xyz) + P2.w);\n", i, i, i, i);
+			}
+
+			out.Write("if(o.tex%d.z == 0.0f)\n", i);
+			out.Write("\to.tex%d.xy = clamp(o.tex%d.xy / 2.0f, float2(-1.0f, -1.0f), float2(1.0f, 1.0f));\n", i, i);
 		}
 		out.Write("}\n");
 	}
