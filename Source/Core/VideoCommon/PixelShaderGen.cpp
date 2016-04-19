@@ -485,7 +485,9 @@ void GetPixelShaderUID(PixelShaderUid& out, PIXEL_SHADER_RENDER_MODE render_mode
 			stage.tevorders_colorchan = bpm.tevorders[n / 2].getColorChan(n & 1);
 		}
 		stage.tevorders_enable = bpm.tevorders[n / 2].getEnable(n & 1)
-			&& (cc.UsedAsInput(TEVCOLORARG_TEXC) || cc.UsedAsInput(TEVCOLORARG_TEXA) || ac.UsedAsInput(TEVALPHAARG_TEXA));		
+			&& ((cc.UsedAsInput(TEVCOLORARG_TEXC) || cc.UsedAsInput(TEVCOLORARG_TEXA) || ac.UsedAsInput(TEVALPHAARG_TEXA))
+			|| (bpm.ztex2.op != ZTEXTURE_DISABLE && (per_pixel_depth || bpm.fog.c_proj_fsel.fsel)));
+
 		if (stage.tevorders_enable)
 		{
 			const int i = bpm.combiners[n].alphaC.tswap;
@@ -508,7 +510,7 @@ void GetPixelShaderUID(PixelShaderUid& out, PIXEL_SHADER_RENDER_MODE render_mode
 	uid_data.fast_depth_calc = g_ActiveConfig.bFastDepthCalc;
 	uid_data.early_ztest = bpm.UseEarlyDepthTest();
 	uid_data.late_ztest = bpm.UseLateDepthTest();
-	uid_data.fog_fsel = bpmem.fog.c_proj_fsel.fsel;
+	uid_data.fog_fsel = bpm.fog.c_proj_fsel.fsel;
 
 	if (Pretest != AlphaTest::PASS)
 	//if (Pretest == AlphaTest::UNDETERMINED || (Pretest == AlphaTest::FAIL && uid_data.late_ztest))
@@ -524,8 +526,8 @@ void GetPixelShaderUID(PixelShaderUid& out, PIXEL_SHADER_RENDER_MODE render_mode
 	
 	if (render_mode != PSRM_ALPHA_PASS && uid_data.fog_fsel != 0)
 	{
-		uid_data.fog_proj = bpmem.fog.c_proj_fsel.proj;
-		uid_data.fog_RangeBaseEnabled = bpmem.fogRange.Base.Enabled;
+		uid_data.fog_proj = bpm.fog.c_proj_fsel.proj;
+		uid_data.fog_RangeBaseEnabled = bpm.fogRange.Base.Enabled;
 	}
 
 	out.CalculateUIDHash();
