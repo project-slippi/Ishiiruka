@@ -102,7 +102,7 @@ inline void GenerateLightShader(ShaderCode& object,
 			LIGHT_COL_PARAMS(lightsName, index, swizzle));
 		if (forcephong)
 		{
-			object.Write("spec.%s += attn * pow(saturate(dot(View,reflect(ldir,_norm0))), 4.0 + 60.0 * normalmap.w) * " LIGHT_COL";\n",
+			object.Write("spec.%s += attn * pow(saturate(dot(normalize(ldir + View),_norm0)), 4.0 + 60.0 * normalmap.w) * " LIGHT_COL";\n",
 				swizzle,
 				LIGHT_COL_PARAMS(lightsName, index, swizzle));
 		}
