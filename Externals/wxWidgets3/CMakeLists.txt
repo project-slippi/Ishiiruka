@@ -7,7 +7,6 @@ set(SRCS_AUI
 	"src/aui/floatpane.cpp"
 	"src/aui/framemanager.cpp"
 	"src/aui/tabart.cpp"
-	"src/aui/tabartmsw.cpp"
 	"src/aui/tabmdi.cpp")
 
 set(SRCS_COMMON
