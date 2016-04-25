@@ -93,8 +93,10 @@ void VideoConfig::Load(const std::string& ini_file)
 	settings->Get("RimIntesity", &iRimIntesity, 0);
 	settings->Get("RimBase", &iRimBase, 10);
 	settings->Get("SpecularMultiplier", &iSpecularMultiplier, 255);
-
-
+	settings->Get("SimBumpStrength", &iSimBumpStrength, 0);
+	settings->Get("SimBumpDetailFrequency", &iSimBumpDetailFrequency, 128);
+	settings->Get("SimBumpThreshold", &iSimBumpThreshold, 16);
+	settings->Get("SimBumpDetailBlend", &iSimBumpDetailBlend, 16);
 
 	settings->Get("FastDepthCalc", &bFastDepthCalc, true);
 	settings->Get("MSAA", &iMultisamples, 1);
@@ -221,6 +223,10 @@ void VideoConfig::GameIniLoad()
 	CHECK_SETTING("Video_Settings", "RimIntesity", iRimIntesity);
 	CHECK_SETTING("Video_Settings", "RimBase", iRimBase);
 	CHECK_SETTING("Video_Settings", "SpecularMultiplier", iSpecularMultiplier);
+	CHECK_SETTING("Video_Settings", "SimBumpStrength", iSimBumpStrength);
+	CHECK_SETTING("Video_Settings", "SimBumpDetailFrequency", iSimBumpDetailFrequency);
+	CHECK_SETTING("Video_Settings", "SimBumpThreshold", iSimBumpThreshold);
+	CHECK_SETTING("Video_Settings", "SimBumpDetailBlend", iSimBumpDetailBlend);
 
 	CHECK_SETTING("Video_Settings", "FastDepthCalc", bFastDepthCalc);
 	CHECK_SETTING("Video_Settings", "MSAA", iMultisamples);
@@ -324,6 +330,10 @@ void VideoConfig::VerifyValidity()
 	iRimIntesity = std::min(std::max(iRimIntesity, 0), 255);
 	iRimBase = std::min(std::max(iRimBase, 0), 127);
 	iSpecularMultiplier = std::min(std::max(iSpecularMultiplier, 0), 510);
+	iSimBumpStrength = std::min(std::max(iSimBumpStrength, 0), 1024);
+	iSimBumpDetailBlend = std::min(std::max(iSimBumpDetailBlend, 0), 255);
+	iSimBumpDetailFrequency = std::min(std::max(iSimBumpDetailFrequency, 4), 255);
+	iSimBumpThreshold = std::min(std::max(iSimBumpThreshold, 0), 255);
 	iTessellationMax = iTessellationMax < 2 ? 2 : (iTessellationMax > 63 ? 63 : iTessellationMax);
 	iTessellationRoundingIntensity = iTessellationRoundingIntensity > 100 ? 100 : (iTessellationRoundingIntensity < 0 ? 0 : iTessellationRoundingIntensity);
 	iTessellationDisplacementIntensity = iTessellationDisplacementIntensity > 300 ? 300 : (iTessellationDisplacementIntensity < 0 ? 0 : iTessellationDisplacementIntensity);
@@ -407,8 +417,12 @@ void VideoConfig::Save(const std::string& ini_file)
 	settings->Set("RimPower", iRimPower);
 	settings->Set("RimIntesity", iRimIntesity);
 	settings->Set("RimBase", iRimBase);
-	settings->Set("SpecularMultiplier", iSpecularMultiplier);
-
+	settings->Set("SpecularMultiplier", iSpecularMultiplier);	
+	
+	settings->Set("SimBumpStrength", iSimBumpStrength);
+	settings->Set("SimBumpDetailFrequency", iSimBumpDetailFrequency);
+	settings->Set("SimBumpThreshold", iSimBumpThreshold);
+	settings->Set("SimBumpDetailBlend", iSimBumpDetailBlend);
 
 	settings->Set("FastDepthCalc", bFastDepthCalc);
 	settings->Set("MSAA", iMultisamples);

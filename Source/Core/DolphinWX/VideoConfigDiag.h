@@ -113,6 +113,11 @@ protected:
 	void Event_RimPower(wxCommandEvent &ev);
 	void Event_RimBase(wxCommandEvent &ev);
 
+	void Event_BumpDetailFrequency(wxCommandEvent &ev);
+	void Event_BumpDetailBlend(wxCommandEvent &ev);
+	void Event_BumpStrength(wxCommandEvent &ev);
+	void Event_BumpThreshold(wxCommandEvent &ev);
+
 	// Enables/disables UI elements depending on current config
 	void OnUpdateUI(wxUpdateUIEvent& ev);
 

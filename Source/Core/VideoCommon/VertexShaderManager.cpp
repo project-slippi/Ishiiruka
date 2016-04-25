@@ -34,7 +34,7 @@ static int nTransformMatricesChanged[2]; // min,max
 static int nNormalMatricesChanged[2]; // min,max
 static int nPostTransformMatricesChanged[2]; // min,max
 static int nLightsChanged[2]; // min,max
-static int s_LightsPhong[4];
+static int s_LightsPhong[8];
 
 static Matrix44 s_viewportCorrection;
 static Matrix33 s_viewRotationMatrix;
@@ -43,6 +43,7 @@ static float s_fViewTranslationVector[3];
 static float s_fViewRotation[2];
 
 const float U8_NORM_COEF = 1.0f / 255.0f;
+const float U10_NORM_COEF = 1.0f / 1023.0f;
 const float U24_NORM_COEF = 1.0f / 16777216.0f;
 
 struct ProjectionHack
@@ -255,10 +256,7 @@ void VertexShaderManager::Dirty()
 	bProjectionChanged = true;
 
 	nMaterialsChanged = 15;
-	s_LightsPhong[0] = 0;
-	s_LightsPhong[1] = 0;
-	s_LightsPhong[2] = 0;
-	s_LightsPhong[3] = 0;
+	memset(s_LightsPhong, 0, sizeof(s_LightsPhong));
 }
 
 // Syncs the shader constant buffers with xfmem
@@ -279,6 +277,22 @@ void VertexShaderManager::SetConstants()
 			, 1.0f + U8_NORM_COEF * g_ActiveConfig.iRimPower * 7.0f
 			, U8_NORM_COEF * g_ActiveConfig.iRimIntesity
 			, U8_NORM_COEF * g_ActiveConfig.iSpecularMultiplier);
+	}
+	if (g_ActiveConfig.iSimBumpStrength != s_LightsPhong[4]
+		|| g_ActiveConfig.iSimBumpThreshold != s_LightsPhong[5]
+		|| g_ActiveConfig.iSimBumpDetailBlend != s_LightsPhong[6]
+		|| g_ActiveConfig.iSimBumpDetailFrequency != s_LightsPhong[7])
+	{
+		s_LightsPhong[4] = g_ActiveConfig.iSimBumpStrength;
+		s_LightsPhong[5] = g_ActiveConfig.iSimBumpThreshold;
+		s_LightsPhong[6] = g_ActiveConfig.iSimBumpDetailBlend;
+		s_LightsPhong[7] = g_ActiveConfig.iSimBumpDetailFrequency;
+		float bump_strenght = U10_NORM_COEF * g_ActiveConfig.iSimBumpStrength;
+		m_buffer.SetConstant4(C_PHONG + 1
+			, bump_strenght * bump_strenght
+			, U8_NORM_COEF * g_ActiveConfig.iSimBumpThreshold * 16.0f
+			, U8_NORM_COEF * g_ActiveConfig.iSimBumpDetailBlend
+			, float(g_ActiveConfig.iSimBumpDetailFrequency));
 	}
 	if (nTransformMatricesChanged[0] >= 0)
 	{

@@ -117,6 +117,10 @@ static wxString phong_intensity_desc = _("Controls Global intensity of specular 
 static wxString rim_intensity_desc = _("Controls Intensity of rim effect.");
 static wxString rim_power_desc = _("Controls exponent of rim effect.");
 static wxString rim_base_desc = _("Controls minimun rim color.");
+static wxString bump_strength_desc = _("Controls strength of simulated bumpmaps. Needs to be adjusted per game co achive better quality");
+static wxString bump_detail_frequency_desc = _("Controls detail bumpmap frequency. This will change the size of the noise pattern");
+static wxString bump_detail_blend_desc = _("Controls the detail bumpmap strength. Detail bump will add noise to existing textures.");
+static wxString bump_threshold_desc = _("Controls simulated bumpmap detail detection threshold. Big values can detect more details as bumps but can cause glitches");
 static wxString hacked_buffer_upload_desc = _("Uses unsafe operations to speed up vertex streaming in OpenGL. There are no known problems on supported GPUs, but it will cause severe stability and graphical issues otherwise.\n\nIf unsure, leave this unchecked.");
 static wxString fast_depth_calc_desc = _("Use a less accurate algorithm to calculate depth values.\nCauses issues in a few games but might give a decent speedup.\n\nIf unsure, leave this checked.");
 static wxString force_filtering_desc = _("Force texture filtering even if the emulated game explicitly disabled it.\nImproves texture quality slightly but causes glitches in some games.\n\nIf unsure, leave this unchecked.");
@@ -505,6 +509,39 @@ VideoConfigDiag::VideoConfigDiag(wxWindow* parent, const std::string &title, con
 			szr_phong->Add(new wxStaticText(page_enh, wxID_ANY, _("Rim Base:")), 1, wxALIGN_CENTER_VERTICAL, 0);
 			szr_phong->Add(rimbase_slider, 1, wxEXPAND | wxRIGHT);
 		}
+		{
+			wxSlider* const bump_strenght_slider = new wxSlider(page_enh, wxID_ANY, vconfig.iSimBumpStrength, 0, 1023, wxDefaultPosition, wxDefaultSize);
+			bump_strenght_slider->Bind(wxEVT_SLIDER, &VideoConfigDiag::Event_BumpStrength, this);
+			RegisterControl(bump_strenght_slider, (bump_strength_desc));
+
+			szr_phong->Add(new wxStaticText(page_enh, wxID_ANY, _("Bump Strength:")), 1, wxALIGN_CENTER_VERTICAL, 0);
+			szr_phong->Add(bump_strenght_slider, 1, wxEXPAND | wxRIGHT);
+		}
+		{
+			wxSlider* const bump_threshold_slider = new wxSlider(page_enh, wxID_ANY, vconfig.iSimBumpThreshold, 0, 255, wxDefaultPosition, wxDefaultSize);
+			bump_threshold_slider->Bind(wxEVT_SLIDER, &VideoConfigDiag::Event_BumpThreshold, this);
+			RegisterControl(bump_threshold_slider, (bump_threshold_desc));
+
+			szr_phong->Add(new wxStaticText(page_enh, wxID_ANY, _("Bump Threshold:")), 1, wxALIGN_CENTER_VERTICAL, 0);
+			szr_phong->Add(bump_threshold_slider, 1, wxEXPAND | wxRIGHT);
+		}
+		{
+			wxSlider* const bump_blend_slider = new wxSlider(page_enh, wxID_ANY, vconfig.iSimBumpDetailBlend, 0, 255, wxDefaultPosition, wxDefaultSize);
+			bump_blend_slider->Bind(wxEVT_SLIDER, &VideoConfigDiag::Event_BumpDetailBlend, this);
+			RegisterControl(bump_blend_slider, (bump_detail_blend_desc));
+
+			szr_phong->Add(new wxStaticText(page_enh, wxID_ANY, _("Detail Strength:")), 1, wxALIGN_CENTER_VERTICAL, 0);
+			szr_phong->Add(bump_blend_slider, 1, wxEXPAND | wxRIGHT);
+		}
+		{
+			wxSlider* const bump_frequency_slider = new wxSlider(page_enh, wxID_ANY, vconfig.iSimBumpDetailFrequency, 4, 255, wxDefaultPosition, wxDefaultSize);
+			bump_frequency_slider->Bind(wxEVT_SLIDER, &VideoConfigDiag::Event_BumpDetailFrequency, this);
+			RegisterControl(bump_frequency_slider, (bump_detail_frequency_desc));
+
+			szr_phong->Add(new wxStaticText(page_enh, wxID_ANY, _("Detail Frequency:")), 1, wxALIGN_CENTER_VERTICAL, 0);
+			szr_phong->Add(bump_frequency_slider, 1, wxEXPAND | wxRIGHT);
+		}
+
 
 		group_phong = new wxStaticBoxSizer(wxVERTICAL, page_enh, _("Light Parameters"));
 		group_phong->Add(szr_phong, 1, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 5);
@@ -1261,6 +1298,34 @@ void VideoConfigDiag::Event_RimPower(wxCommandEvent &ev)
 void VideoConfigDiag::Event_RimBase(wxCommandEvent &ev)
 {
 	vconfig.iRimBase = ev.GetInt();
+
+	ev.Skip();
+}
+
+void VideoConfigDiag::Event_BumpStrength(wxCommandEvent &ev)
+{
+	vconfig.iSimBumpStrength = ev.GetInt();
+
+	ev.Skip();
+}
+
+void VideoConfigDiag::Event_BumpDetailBlend(wxCommandEvent &ev)
+{
+	vconfig.iSimBumpDetailBlend = ev.GetInt();
+
+	ev.Skip();
+}
+
+void VideoConfigDiag::Event_BumpDetailFrequency(wxCommandEvent &ev)
+{
+	vconfig.iSimBumpDetailFrequency = ev.GetInt();
+
+	ev.Skip();
+}
+
+void VideoConfigDiag::Event_BumpThreshold(wxCommandEvent &ev)
+{
+	vconfig.iSimBumpThreshold = ev.GetInt();
 
 	ev.Skip();
 }

@@ -48,7 +48,7 @@
 #define C_MATERIALS             (C_DEPTHPARAMS + 1)
 #define C_LIGHTS                (C_MATERIALS + 4)
 #define C_PHONG                 (C_LIGHTS + 40)
-#define C_TEXMATRICES           (C_PHONG + 1)
+#define C_TEXMATRICES           (C_PHONG + 2)
 #define C_TRANSFORMMATRICES     (C_TEXMATRICES + 24)
 #define C_NORMALMATRICES        (C_TRANSFORMMATRICES + 64)
 #define C_POSTTRANSFORMMATRICES (C_NORMALMATRICES + 32)

@@ -35,9 +35,10 @@ static u32 lastZBias;
 static int nMaterialsChanged;
 static int sflags[4];
 static bool sbflagschanged;
-static int s_LightsPhong[4];
+static int s_LightsPhong[8];
 
 const float U8_NORM_COEF = 1.0f / 255.0f;
+const float U10_NORM_COEF = 1.0f / 1023.0f;
 const float U24_NORM_COEF = 1 / 16777216.0f;
 static bool s_use_integer_constants = false;
 
@@ -377,7 +378,7 @@ void PixelShaderManager::SetConstants()
 			for (int i = istart; i < iend; ++i)
 			{
 				const Light& light = xfmem.lights[i];
-				
+
 				m_buffer.SetConstant4<float>(C_PLIGHTS + 5 * i,
 					float(light.color[3]),
 					float(light.color[2]),
@@ -451,6 +452,22 @@ void PixelShaderManager::SetConstants()
 				, U8_NORM_COEF * g_ActiveConfig.iRimIntesity
 				, U8_NORM_COEF * g_ActiveConfig.iSpecularMultiplier);
 		}
+		if (g_ActiveConfig.iSimBumpStrength != s_LightsPhong[4]
+			|| g_ActiveConfig.iSimBumpThreshold != s_LightsPhong[5]
+			|| g_ActiveConfig.iSimBumpDetailBlend != s_LightsPhong[6]
+			|| g_ActiveConfig.iSimBumpDetailFrequency != s_LightsPhong[7])
+		{
+			s_LightsPhong[4] = g_ActiveConfig.iSimBumpStrength;
+			s_LightsPhong[5] = g_ActiveConfig.iSimBumpThreshold;
+			s_LightsPhong[6] = g_ActiveConfig.iSimBumpDetailBlend;
+			s_LightsPhong[7] = g_ActiveConfig.iSimBumpDetailFrequency;
+			float bump_strenght = U10_NORM_COEF * g_ActiveConfig.iSimBumpStrength;
+			m_buffer.SetConstant4(C_PPHONG + 1
+				, bump_strenght * bump_strenght
+				, U8_NORM_COEF * g_ActiveConfig.iSimBumpThreshold * 16.0f
+				, U8_NORM_COEF * g_ActiveConfig.iSimBumpDetailBlend
+				, float(g_ActiveConfig.iSimBumpDetailFrequency));
+		}
 	}
 	if (sbflagschanged)
 	{
@@ -466,7 +483,7 @@ void PixelShaderManager::SetPSTextureDims(int texid)
 	float* fdims = m_buffer.GetBufferToUpdate<float>(C_TEXDIMS + texid, 1);
 	TCoordInfo& tc = bpmem.texcoords[texid];
 	fdims[0] = 1.0f / float((lastTexDims[texid] & 0xffff) << 7);
-	fdims[1] = 1.0f / float(((lastTexDims[texid] >> 16) & 0xfff) << 7);
+	fdims[1] = 1.0f / float(((lastTexDims[texid] >> 16) & 0xffff) << 7);
 	fdims[2] = float((tc.s.scale_minus_1 + 1) << 7);
 	fdims[3] = float((tc.t.scale_minus_1 + 1) << 7);
 	PRIM_LOG("texdims%d: %f %f %f %f\n", texid, fdims[0], fdims[1], fdims[2], fdims[3]);

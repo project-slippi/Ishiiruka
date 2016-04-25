@@ -348,6 +348,108 @@ float3 perturb_normal( float3 N, float3 P, float2 texcoord , float3 map)
 	float3x3 TBN = cotangent_frame( N, P, texcoord );
 	return normalize( mul(map, TBN) );
 }
+
+// Project the surface gradient (dhdx, dhdy) onto the surface (n, dpdx, dpdy)
+float3 CalculateSurfaceGradient(float3 n, float3 dpdx, float3 dpdy, float dhdx, float dhdy)
+{
+    float3 r1 = cross(dpdy, n);
+    float3 r2 = cross(n, dpdx);
+ 
+    return (r1 * dhdx + r2 * dhdy) / dot(dpdx, r1);
+}
+ 
+// Move the normal away from the surface normal in the opposite surface gradient direction
+float3 PerturbNormalGradient(float3 n, float3 dpdx, float3 dpdy, float dhdx, float dhdy)
+{
+	float3 gradient = CalculateSurfaceGradient(n, dpdx, dpdy, dhdx, dhdy);
+	return normalize(n - gradient);
+}
+
+// Calculate the surface normal using screen-space partial derivatives of the height field
+float3 CalculateSurfaceNormal(float3 position, float3 normal, float height)
+{
+	float3 dpdx = ddx(position);
+	float3 dpdy = ddy(position);
+	
+	float dhdx = ddx(height);
+	float dhdy = ddy(height);
+
+	return PerturbNormalGradient(normal, dpdx, dpdy, dhdx, dhdy);
+}
+
+float mod289(float x)
+{
+  return x - floor(x * (1.0 / 289.0)) * 289.0;
+}
+
+float2 mod289(float2 x)
+{
+  return x - floor(x * (1.0 / 289.0)) * 289.0;
+}
+
+float3 mod289(float3 x)
+{
+  return x - floor(x * (1.0 / 289.0)) * 289.0;
+}
+
+float3 permute(float3 x) {
+    return mod289(x*x*34.0 + x);
+}
+
+float snoise(float2 v)
+{
+    const float4 C = float4(
+        0.211324865405187, // (3.0-sqrt(3.0))/6.0
+        0.366025403784439, // 0.5*(sqrt(3.0)-1.0)
+     -0.577350269189626, // -1.0 + 2.0 * C.x
+        0.024390243902439  // 1.0 / 41.0
+    );
+ 
+// First corner
+    float2 i = floor( v + dot(v, C.yy) );
+    float2 x0 = v - i + dot(i, C.xx);
+ 
+    float4 x12 = x0.xyxy + C.xxzz;
+    float2 i1 = (x0.x > x0.y) ? float2(1.0, 0.0) : float2(0.0, 1.0);
+    x12.xy -= i1;
+ 
+// Permutations
+    i = mod289(i); // Avoid truncation effects in permutation
+    float3 p = permute(
+        permute(
+                i.y + float3(0.0, i1.y, 1.0 )
+        ) + i.x + float3(0.0, i1.x, 1.0 )
+    );
+ 
+    float3 m = max(
+        0.5 - float3(
+            dot(x0, x0),
+            dot(x12.xy, x12.xy),
+            dot(x12.zw, x12.zw)
+        ),
+        0.0
+    );
+    m = m*m ;
+    m = m*m ;
+ 
+// Gradients: 41 points uniformly over a line, mapped onto a diamond.
+// The ring size 17*17 = 289 is close to a multiple of 41 (41*7 = 287)
+ 
+    float3 x = 2.0 * frac(p * C.www) - 1.0;
+    float3 h = abs(x) - 0.5;
+    float3 ox = floor(x + 0.5);
+    float3 a0 = x - ox;
+ 
+// Normalise gradients implicitly by scaling m
+// Approximation of: m *= inversesqrt( a0*a0 + h*h );
+    m *= 1.79284291400159 - 0.85373472095314 * ( a0*a0 + h*h );
+ 
+// Compute final noise value at P
+    float3 g;
+    g.x = a0.x * x0.x + h.x * x0.y;
+    g.yz = a0.yz * x12.xz + h.yz * x12.yw;
+    return (130.0 * dot(m, g));
+}
 )hlsl";
 
 // FIXME: Some of the video card's capabilities (BBox support, EarlyZ support, dstAlpha support) leak
@@ -1220,6 +1322,27 @@ inline void WriteFetchStageTexture(ShaderCode& out, const pixel_shader_uid_data&
 			// finalize Running average
 			out.Write("normalmapcount+=1.0;\n");
 			out.Write("normalmap.w /= normalmapcount;\n}\n");
+			if (uid_data.force_phong)
+			{
+				out.Write("else ");
+			}
+		}
+		if (uid_data.force_phong)
+		{
+			out.Write(
+				"if(" I_PPHONG "[1].x > 0.0)\n"
+				"{\n"
+				"if(height_map_count == 0.0)\n"
+				"{\n"
+				"mapcoord = stagecoord;\n"
+				"mapsize = " I_TEXDIMS"[%d].xy;\n"
+				"}\n"
+				"float color_bump = dot((tex_ta[%i].rgb * (1.0 / 255.0)), float3(0.333, 0.333, 0.333));\n"
+				"color_bump = color_bump * 2.0 - 1.0;\n"
+				"height_map = height_map * height_map_count + color_bump;\n"
+				"height_map_count+=1.0;\n"
+				"height_map/=height_map_count;\n"
+				"}\n", texmap, n);
 		}
 	}
 	else
@@ -1379,7 +1502,7 @@ inline void GeneratePixelShader(ShaderCode& out, const pixel_shader_uid_data& ui
 
 	TevRegisterState register_state;
 	out.Write("//Pixel Shader for TEV stages\n");
-	if (enablenormalmaps)
+	if (enablenormalmaps || forcePhong)
 	{
 		out.Write(headerLightUtil);
 	}
@@ -1417,6 +1540,12 @@ inline void GeneratePixelShader(ShaderCode& out, const pixel_shader_uid_data& ui
 			out.Write("#define wu4 float4\n");
 		}
 		out.Write(headerUtil);
+	}
+	
+	if (ApiType == API_D3D11)
+	{
+		out.Write("#define ddx ddx_fine\n");
+		out.Write("#define ddy ddy_fine\n");
 	}
 
 	u32 samplercount = enablenormalmaps ? 16 : 8;
@@ -1484,7 +1613,7 @@ inline void GeneratePixelShader(ShaderCode& out, const pixel_shader_uid_data& ui
 
 		DeclareUniform<ApiType>(out, C_PMATERIALS, "float4", I_MATERIALS "[4]");
 		DeclareUniform<ApiType>(out, C_PLIGHTS, "float4", I_LIGHTS "[40]");
-		DeclareUniform<ApiType>(out, C_PPHONG, "float4", I_PPHONG);
+		DeclareUniform<ApiType>(out, C_PPHONG, "float4", I_PPHONG "[2]");
 
 		if (ApiType == API_OPENGL || ApiType == API_D3D11)
 		{
@@ -1781,16 +1910,18 @@ inline void GeneratePixelShader(ShaderCode& out, const pixel_shader_uid_data& ui
 				out.Write("t_coord = wu2(0,0);\n");
 			}
 			out.Write("wu3 indtex%d = ", i);
-			SampleTexture<ApiType>(out, "float2(t_coord)", "abg", texmap, uid_data.stereo);
+			SampleTexture<ApiType>(out, "(float2(t_coord))", "abg", texmap, uid_data.stereo);
 		}
 	}
 	if (enablenormalmaps || forcePhong)
 	{
 		out.Write("\tfloat4 normalmap = float4(0.0,0.0,1.0,0.3);\n");
+		out.Write("\tfloat height_map = 0.0, height_map_count = 0.0;\n");
+		out.Write("\tfloat2 mapcoord = float2(0.0,0.0);\n");
+		out.Write("\tfloat2 mapsize = float2(0.0,0.0);\n");
 	}
 	if (enablenormalmaps)
 	{
-		out.Write("\tfloat2 mapcoord = float2(0.0,0.0);\n");
 		out.Write("\tfloat normalmapcount = 0.0;\n");
 	}
 
@@ -1832,6 +1963,16 @@ inline void GeneratePixelShader(ShaderCode& out, const pixel_shader_uid_data& ui
 			out.Write("if(" I_FLAGS ".x != 0)\n{\n");
 			out.Write("_norm0 = perturb_normal(_norm0, pos, mapcoord, normalmap.xyz);\n");
 			out.Write("}\n");
+			if (forcePhong)
+			{
+				out.Write("else ");
+			}
+		}
+		if (forcePhong)
+		{
+			out.Write("if(" I_PPHONG "[1].x > 0.0)\n{\n"
+				"height_map = lerp(height_map * " I_PPHONG "[1].y, snoise(mapcoord * mapsize * " I_PPHONG "[1].w), " I_PPHONG "[1].z) * " I_PPHONG "[1].x;\n"				
+				"_norm0 = CalculateSurfaceNormal(pos, _norm0, height_map);\n}\n");
 		}
 		// Only col0 and col1 are needed so discard the remaining components
 		GenerateLightingShaderCode(out, uid_data.numColorChans, uid_data.lighting, uid_data.components << VB_COL_SHIFT, I_MATERIALS, I_LIGHTS, "colors_", "col", Use_integer_math, forcePhong);
@@ -1966,8 +2107,8 @@ inline void GeneratePixelShader(ShaderCode& out, const pixel_shader_uid_data& ui
 	if (forcePhong)
 	{
 		out.Write(
-			"prev.rgb += wu3(clamp(prev.rgb + " I_PPHONG ".xxx, 0.0,255.0)*pow(spec.w, " I_PPHONG ".y)*" I_PPHONG ".z);\n"
-			"prev.rgb += wu3(spec.rgb * normalmap.w * " I_PPHONG ".w);\n"
+			"prev.rgb += wu3(clamp(prev.rgb + " I_PPHONG "[0].xxx, 0.0,255.0)*pow(spec.w, " I_PPHONG "[0].y)*" I_PPHONG "[0].z);\n"
+			"prev.rgb += wu3(spec.rgb * normalmap.w * " I_PPHONG "[0].w);\n"
 			);
 	}
 	if (render_mode == PSRM_ALPHA_PASS)

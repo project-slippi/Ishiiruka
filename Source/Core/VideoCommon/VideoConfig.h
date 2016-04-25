@@ -171,6 +171,12 @@ struct VideoConfig final
 	int iRimIntesity; 
 	int iRimBase;
 	int iSpecularMultiplier;
+
+	int iSimBumpDetailBlend;
+	int iSimBumpDetailFrequency;
+	int iSimBumpThreshold;
+	int iSimBumpStrength;
+
 	bool bFastDepthCalc;
 	int iBBoxMode;
 	bool bViewportCorrection;

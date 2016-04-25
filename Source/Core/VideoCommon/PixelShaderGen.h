@@ -42,7 +42,7 @@
 #define C_PMATERIALS    (C_EFBSCALE + 1)
 #define C_PLIGHTS       (C_PMATERIALS + 4)
 #define C_PPHONG        (C_PLIGHTS + 40)
-#define C_PENVCONST_END (C_PPHONG + 1)
+#define C_PENVCONST_END (C_PPHONG + 2)
 #define C_PCONST_END    (C_PMATERIALS)
 // Different ways to achieve rendering with destination alpha
 enum PIXEL_SHADER_RENDER_MODE : unsigned int
