@@ -294,7 +294,7 @@ inline __m128i linear4pSSE(int f, int p, int q, __m128i A, __m128i B, __m128i C,
 int bicubicWeights[2][4][5][5][4][4];
 int jincWeights[2][4][5][5][4][4];
 int smoothstepWeights[4][5][5][2][2];
-float auxWeights[2][5][5];
+float auxWeights[3][5][5];
 // initialize pre-computed weights array
 void initFilterWeights() {
 	float pi = 3.1415926535897932384626433832795f;
@@ -487,7 +487,7 @@ void scaleJincT(u32* data, u32* out, int w, int h) {
 // perform DDT-Sharp scaling by factor f.
 template<int f>
 void scaleDDTSharpT(u32* data, u32* out, int w, int h) {
-	int outw = w * f, outh = h * f, factor = f - 2, offset = -(f >> 1);
+	int outw = w * f, outh = h * f, offset = -(f >> 1);
 	int rc[4][4], gc[4][4], bc[4][4], ac[4][4];
 	for (int cy = 0; cy <= h; ++cy) {
 		for (int cx = 0; cx <= w; ++cx) {
@@ -568,7 +568,7 @@ void scaleDDTSharpT(u32* data, u32* out, int w, int h) {
 // perform DDT scaling by factor f.
 template<int f>
 void scaleDDTT(u32* data, u32* out, int w, int h) {
-	int outw = w * f, outh = h * f, factor = f - 2, offset = -(f >> 1);
+	int outw = w * f, outh = h * f, offset = -(f >> 1);
 	int rc[2][2], gc[2][2], bc[2][2], ac[2][2];
 	for (int cy = 0; cy <= h; ++cy) {
 		for (int cx = 0; cx <= w; ++cx) {
@@ -644,7 +644,7 @@ void scaleDDTT(u32* data, u32* out, int w, int h) {
 // perform 3-point scaling by factor f.
 template<int f>
 void scale3PointT(u32* data, u32* out, int w, int h) {
-	int outw = w * f, outh = h * f, factor = f - 2, offset = -(f >> 1);
+	int outw = w * f, outh = h * f, offset = -(f >> 1);
 	int rc[2][2], gc[2][2], bc[2][2], ac[2][2];
 	for (int cy = 0; cy <= h; ++cy) {
 		for (int cx = 0; cx <= w; ++cx) {

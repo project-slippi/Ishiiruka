@@ -7,7 +7,6 @@ set(SRCS_AUI
 	"src/aui/floatpane.cpp"
 	"src/aui/framemanager.cpp"
 	"src/aui/tabart.cpp"
-	"src/aui/tabartmsw.cpp"
 	"src/aui/tabmdi.cpp")
 
 set(SRCS_COMMON
@@ -892,8 +891,13 @@ if(APPLE)
 		${IOK_LIBRARY}
 		${OPENGL_LIBRARY}
 		${QUICKTIME_LIBRARY})
-elseif(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+elseif(${CMAKE_SYSTEM_NAME} MATCHES "Linux|FreeBSD")
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++11")
+	if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+		add_definitions(-D__LINUX__=1)
+	else()
+		add_definitions(-D__BSD__=1)
+	endif()
 	add_definitions(-D__WXGTK__)
 	set(SRCS
 		${SRCS}
@@ -901,15 +905,23 @@ elseif(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
 		${SRCS_GTK}
 		${SRCS_UNIX}
 		${SRCS_UNIXGTK})
+	if (NOT X11_xf86vmode_FOUND OR NOT X11_Xinerama_FOUND)
+		message(FATAL_ERROR "wxGTK2 needs Xinerama and Xxf86vm")
+	endif()
 	set(LIBS
 		png
 		${GTHREAD2_LIBRARIES}
 		${PANGOCAIRO_LIBRARIES}
-		${GTK2_LIBRARIES})
+		${GTK2_LIBRARIES}
+		${Backtrace_LIBRARY}
+		${X11_X11_LIB}
+		${X11_Xxf86vm_LIB}
+		${X11_Xinerama_LIB})
 else()
 	add_definitions(-D__WXMSW__)
 	set(SRCS
 		${SRCS}
+		${SRCS_GENERICMSW}
 		${SRCS_MSW})
 endif()
 

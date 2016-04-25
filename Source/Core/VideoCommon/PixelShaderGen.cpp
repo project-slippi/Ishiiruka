@@ -1185,7 +1185,7 @@ inline void WriteFetchStageTexture(ShaderCode& out, const pixel_shader_uid_data&
 	{
 		if (!bHasIndStage)
 		{
-			for (size_t i = 0; i < n; i++)
+			for (int i = 0; i < n; i++)
 			{
 				if (stage.hex[2] == uid_data.stagehash[i].hex[2])
 				{
