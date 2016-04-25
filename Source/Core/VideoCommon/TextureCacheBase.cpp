@@ -696,7 +696,7 @@ TextureCacheBase::TCacheEntryBase* TextureCacheBase::Load(const u32 stage)
 				g_texture_cache->LoadLut(tlutfmt, &texMem[tlutaddr], palette_size);
 			}
 
-			TextureCacheBase::TexCache::iterator iter = textures_by_address.emplace((u64)address, decoded_entry);
+			iter = textures_by_address.emplace((u64)address, decoded_entry);
 
 			// If supported palettize, if not return the original entry
 			if (g_texture_cache->Palettize(decoded_entry, entry))
