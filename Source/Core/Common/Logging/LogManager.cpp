@@ -22,9 +22,9 @@ void GenericLog(LogTypes::LOG_LEVELS level, LogTypes::LOG_TYPE type,
 {
 	va_list args;
 	va_start(args, fmt);
-	if (LogManager::GetInstance())
-		LogManager::GetInstance()->Log(level, type,
-			file, line, fmt, args);
+	if (LogManager::GetInstance() 
+		&& LogManager::GetInstance()->IsEnabled(type, level))
+		LogManager::GetInstance()->Log(level, type,file, line, fmt, args);
 	va_end(args);
 }
 
@@ -120,7 +120,7 @@ void LogManager::Log(LogTypes::LOG_LEVELS level, LogTypes::LOG_TYPE type,
 	char temp[MAX_MSGLEN];
 	LogContainer* log = m_Log[type];
 
-	if (!log->IsEnabled() || level > log->GetLevel() || !log->HasListeners())
+	if (!(log->IsEnabled() && level <= log->GetLevel() && log->HasListeners()))
 		return;
 
 	CharArrayFromFormatV(temp, MAX_MSGLEN, format, args);
