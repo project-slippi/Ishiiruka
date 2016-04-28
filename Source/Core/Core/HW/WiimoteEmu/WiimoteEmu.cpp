@@ -432,6 +432,7 @@ void Wiimote::GetIRData(u8* const data, bool use_accel)
 {
 	u16 x[4], y[4];
 	memset(x, 0xFF, sizeof(x));
+	memset(y, 0xFF, sizeof(y));
 
 	ControlState xx = 10000, yy = 0, zz = 0;
 	double nsin,ncos;
