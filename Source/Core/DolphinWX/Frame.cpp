@@ -577,8 +577,6 @@ void CFrame::OnActive(wxActivateEvent& event)
 
 void CFrame::OnClose(wxCloseEvent& event)
 {
-	m_bClosing = true;
-
 	// Before closing the window we need to shut down the emulation core.
 	// We'll try to close this window again once that is done.
 	if (Core::GetState() != Core::CORE_UNINITIALIZED)
@@ -588,6 +586,9 @@ void CFrame::OnClose(wxCloseEvent& event)
 		{
 			event.Veto();
 		}
+		// Tell OnStopped to resubmit the Close event
+		if (m_confirmStop)
+			m_bClosing = true;
 		return;
 	}
 

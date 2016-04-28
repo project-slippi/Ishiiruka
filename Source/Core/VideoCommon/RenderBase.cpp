@@ -166,7 +166,7 @@ int Renderer::EFBToScaledY(int y)
 
 void Renderer::CalculateTargetScale(int x, int y, int &scaledX, int &scaledY)
 {
-	if (g_ActiveConfig.iEFBScale == SCALE_AUTO || g_ActiveConfig.iEFBScale == SCALE_AUTO_INTEGRAL)
+	if (g_ActiveConfig.iEFBScale == SCALE_AUTO)
 	{
 		scaledX = x;
 		scaledY = y;
@@ -194,13 +194,18 @@ bool Renderer::CalculateTargetSize(unsigned int framebuffer_width, unsigned int 
 
 			if (s_last_efb_scale == SCALE_AUTO_INTEGRAL)
 			{
-				newEFBWidth = ((newEFBWidth - 1) / EFB_WIDTH + 1) * EFB_WIDTH;
-				newEFBHeight = ((newEFBHeight - 1) / EFB_HEIGHT + 1) * EFB_HEIGHT;
+				efb_scale_numeratorX = efb_scale_numeratorY = std::max((newEFBWidth - 1) / EFB_WIDTH + 1, (newEFBHeight - 1) / EFB_HEIGHT + 1);
+				efb_scale_denominatorX = efb_scale_denominatorY = 1;
+				newEFBWidth = EFBToScaledX(EFB_WIDTH);
+				newEFBHeight = EFBToScaledY(EFB_HEIGHT);
 			}
-			efb_scale_numeratorX = newEFBWidth;
-			efb_scale_denominatorX = EFB_WIDTH;
-			efb_scale_numeratorY = newEFBHeight;
-			efb_scale_denominatorY = EFB_HEIGHT;
+			else
+			{
+				efb_scale_numeratorX = newEFBWidth;
+				efb_scale_denominatorX = EFB_WIDTH;
+				efb_scale_numeratorY = newEFBHeight;
+				efb_scale_denominatorY = EFB_HEIGHT;
+			}
 			break;
 		case SCALE_1X:
 			efb_scale_numeratorX = efb_scale_numeratorY = 1;
@@ -442,6 +447,15 @@ void Renderer::UpdateDrawRectangle(int backbuffer_width, int backbuffer_height)
 		case ASPECT_ANALOG_WIDE:
 			target_aspect = AspectToWidescreen(VideoInterface::GetAspectRatio());
 			break;
+		case ASPECT_4_3:
+			target_aspect = 4.0f / 3.0f;
+			break;
+		case ASPECT_16_9:
+			target_aspect = 16.0f / 9.0f;
+			break;
+		case ASPECT_16_10:
+			target_aspect = 16.0f / 10.0f;
+			break;
 		default :
 			// ASPECT_AUTO
 			target_aspect = source_aspect;
@@ -452,27 +466,27 @@ void Renderer::UpdateDrawRectangle(int backbuffer_width, int backbuffer_height)
 		if ( adjust > 1 )
 		{
 			// Vert+
-			g_Config.fAspectRatioHackW = 1;
-			g_Config.fAspectRatioHackH = 1/adjust;
+			g_Config.fAspectRatioHackW = 1.0f;
+			g_Config.fAspectRatioHackH = 1.0f/adjust;
 		}
 		else
 		{
 			// Hor+
 			g_Config.fAspectRatioHackW = adjust;
-			g_Config.fAspectRatioHackH = 1;
+			g_Config.fAspectRatioHackH = 1.0f;
 		}
 	}
 	else
 	{
 		// Hack is disabled
-		g_Config.fAspectRatioHackW = 1;
-		g_Config.fAspectRatioHackH = 1;
+		g_Config.fAspectRatioHackW = 1.0f;
+		g_Config.fAspectRatioHackH = 1.0f;
 	}
 
 	// Check for force-settings and override.
 	// The rendering window aspect ratio as a proportion of the 4:3 or 16:9 ratio
 	float Ratio;
-	if (g_ActiveConfig.iAspectRatio == ASPECT_ANALOG_WIDE || (g_ActiveConfig.iAspectRatio != ASPECT_ANALOG && Core::g_aspect_wide))
+	if (g_ActiveConfig.iAspectRatio == ASPECT_ANALOG_WIDE || (g_ActiveConfig.iAspectRatio != ASPECT_ANALOG && g_ActiveConfig.iAspectRatio < ASPECT_ANALOG_WIDE  && Core::g_aspect_wide))
 	{
 		Ratio = (WinWidth / WinHeight) / AspectToWidescreen(VideoInterface::GetAspectRatio());
 	}
@@ -548,10 +562,10 @@ void Renderer::UpdateDrawRectangle(int backbuffer_width, int backbuffer_height)
 
 void Renderer::SetWindowSize(int width, int height)
 {
-	if (width < 1)
-		width = 1;
-	if (height < 1)
-		height = 1;
+	if (width < 16)
+		width = 16;
+	if (height < 16)
+		height = 16;
 
 	// Scale the window size by the EFB scale.
 	CalculateTargetScale(width, height, width, height);
