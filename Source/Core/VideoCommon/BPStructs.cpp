@@ -394,7 +394,7 @@ void BPWritten(const BPCmd& bp)
 	case BPMEM_PERF0_TRI:      // Perf: Triangles
 	case BPMEM_PERF0_QUAD:     // Perf: Quads
 	case BPMEM_PERF1:          // Perf: Some Clock, Texels, TX, TC
-		break;
+		return;
 		// ----------------
 		// EFB Copy config
 		// ----------------
