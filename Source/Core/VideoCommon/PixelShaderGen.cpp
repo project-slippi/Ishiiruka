@@ -61,7 +61,7 @@ private:
 	bool tev_overflow_state[tevSources::SOURCECOUNT];
 	bool tev_rascolor0_expanded = false;
 	bool tev_rascolor1_expanded = false;
-public:	
+public:
 	TevRegisterState()
 	{
 		tev_overflow_state[tevSources::CPREV] = true;
@@ -348,7 +348,10 @@ float3 perturb_normal( float3 N, float3 P, float2 texcoord , float3 map)
 	float3x3 TBN = cotangent_frame( N, P, texcoord );
 	return normalize( mul(map, TBN) );
 }
+)hlsl";
 
+
+static const char* headerBumpUtil = R"hlsl(
 // Project the surface gradient (dhdx, dhdy) onto the surface (n, dpdx, dpdy)
 float3 CalculateSurfaceGradient(float3 n, float3 dpdx, float3 dpdy, float dhdx, float dhdy)
 {
@@ -517,9 +520,14 @@ void GetPixelShaderUID(PixelShaderUid& out, PIXEL_SHADER_RENDER_MODE render_mode
 		}
 	}
 	uid_data.pixel_normals = enablenormalmaps ? 1 : 0;
-	bool forcePhong = g_ActiveConfig.bForcePhongShading && enable_diffuse_ligthing;
-	uid_data.force_phong = forcePhong ? 1 : 0;
-
+	if (g_ActiveConfig.bForcePhongShading && enable_diffuse_ligthing)
+	{
+		uid_data.pixel_lighting = 2;
+		if (g_ActiveConfig.bSimBumpEnabled)
+		{
+			uid_data.pixel_lighting = 3;
+		}
+	}
 	for (u32 i = 0; i < numTexgen; ++i)
 	{
 		// optional perspective divides
@@ -572,7 +580,7 @@ void GetPixelShaderUID(PixelShaderUid& out, PIXEL_SHADER_RENDER_MODE render_mode
 		{
 			stage.tevind = bpm.tevind[n].hex;
 		}
-		
+
 		const TevStageCombiner::ColorCombiner &cc = bpm.combiners[n].colorC;
 		const TevStageCombiner::AlphaCombiner &ac = bpm.combiners[n].alphaC;
 		stage.cc = cc.hex & 0xFFFFFF;
@@ -588,7 +596,7 @@ void GetPixelShaderUID(PixelShaderUid& out, PIXEL_SHADER_RENDER_MODE render_mode
 		}
 		stage.tevorders_enable = bpm.tevorders[n / 2].getEnable(n & 1)
 			&& ((cc.UsedAsInput(TEVCOLORARG_TEXC) || cc.UsedAsInput(TEVCOLORARG_TEXA) || ac.UsedAsInput(TEVALPHAARG_TEXA))
-			|| (bpm.ztex2.op != ZTEXTURE_DISABLE && (per_pixel_depth || bpm.fog.c_proj_fsel.fsel)));
+				|| (bpm.ztex2.op != ZTEXTURE_DISABLE && (per_pixel_depth || bpm.fog.c_proj_fsel.fsel)));
 
 		if (stage.tevorders_enable)
 		{
@@ -605,7 +613,7 @@ void GetPixelShaderUID(PixelShaderUid& out, PIXEL_SHADER_RENDER_MODE render_mode
 			stage.tevksel_ka = bpm.tevksel[n / 2].getKA(n & 1);
 		}
 	}
-	
+
 	uid_data.Pretest = Pretest;
 	uid_data.ztex_op = bpm.ztex2.op;
 	uid_data.forced_early_z = forced_early_z;
@@ -615,7 +623,7 @@ void GetPixelShaderUID(PixelShaderUid& out, PIXEL_SHADER_RENDER_MODE render_mode
 	uid_data.fog_fsel = bpm.fog.c_proj_fsel.fsel;
 
 	if (Pretest != AlphaTest::PASS)
-	//if (Pretest == AlphaTest::UNDETERMINED || (Pretest == AlphaTest::FAIL && uid_data.late_ztest))
+		//if (Pretest == AlphaTest::UNDETERMINED || (Pretest == AlphaTest::FAIL && uid_data.late_ztest))
 	{
 		uid_data.alpha_test_comp0 = bpm.alpha_test.comp0;
 		uid_data.alpha_test_comp1 = bpm.alpha_test.comp1;
@@ -625,7 +633,7 @@ void GetPixelShaderUID(PixelShaderUid& out, PIXEL_SHADER_RENDER_MODE render_mode
 			&& !g_ActiveConfig.backend_info.bSupportsEarlyZ
 			&& !bpm.genMode.zfreeze;
 	}
-	
+
 	if (render_mode != PSRM_ALPHA_PASS && uid_data.fog_fsel != 0)
 	{
 		uid_data.fog_proj = bpm.fog.c_proj_fsel.proj;
@@ -1322,12 +1330,12 @@ inline void WriteFetchStageTexture(ShaderCode& out, const pixel_shader_uid_data&
 			// finalize Running average
 			out.Write("normalmapcount+=1.0;\n");
 			out.Write("normalmap.w /= normalmapcount;\n}\n");
-			if (uid_data.force_phong)
+			if (uid_data.pixel_lighting > 2)
 			{
 				out.Write("else ");
 			}
 		}
-		if (uid_data.force_phong)
+		if (uid_data.pixel_lighting > 2)
 		{
 			out.Write(
 				"if(" I_PPHONG "[1].x > 0.0)\n"
@@ -1386,7 +1394,7 @@ inline void WriteStage(ShaderCode& out, const pixel_shader_uid_data& uid_data, i
 		register_state.SetOverflowControl(tevSources::RASC, rasindex < 2);
 		register_state.SetOverflowControl(tevSources::RASA, rasindex < 2);
 	}
-	
+
 	char texswap[5] = {
 		"rgba"[stage.tevksel_swap1c],
 		"rgba"[stage.tevksel_swap2c],
@@ -1489,22 +1497,26 @@ inline void GeneratePixelShader(ShaderCode& out, const pixel_shader_uid_data& ui
 		out.SetBuffer(codebuffer);
 	}
 	codebuffer[PIXELSHADERGEN_BUFFERSIZE - 1] = 0x7C;  // canary
-	PIXEL_SHADER_RENDER_MODE render_mode =(PIXEL_SHADER_RENDER_MODE)uid_data.render_mode;
+	PIXEL_SHADER_RENDER_MODE render_mode = (PIXEL_SHADER_RENDER_MODE)uid_data.render_mode;
 	u32 numStages = uid_data.genMode_numtevstages + 1;
 	u32 numTexgen = uid_data.genMode_numtexgens;
 	u32 numindStages = uid_data.genMode_numindstages;
 	const AlphaTest::TEST_RESULT Pretest = (AlphaTest::TEST_RESULT)uid_data.Pretest;
 	const bool forced_early_z = uid_data.forced_early_z;
 	const bool per_pixel_depth = uid_data.per_pixel_depth;
-	bool enable_pl = uid_data.pixel_lighting;
-	bool enablenormalmaps = uid_data.pixel_normals;	
-	bool forcePhong = uid_data.force_phong;
-
+	bool enable_pl = uid_data.pixel_lighting != 0;
+	bool enablenormalmaps = uid_data.pixel_normals;
+	bool forcePhong = uid_data.pixel_lighting > 1;
+	bool enablesimbumps = uid_data.pixel_lighting > 2;
 	TevRegisterState register_state;
 	out.Write("//Pixel Shader for TEV stages\n");
 	if (enablenormalmaps || forcePhong)
 	{
 		out.Write(headerLightUtil);
+	}
+	if (enablesimbumps)
+	{
+		out.Write(headerBumpUtil);
 	}
 	if (Use_integer_math)
 	{
@@ -1541,7 +1553,7 @@ inline void GeneratePixelShader(ShaderCode& out, const pixel_shader_uid_data& ui
 		}
 		out.Write(headerUtil);
 	}
-	
+
 	if (ApiType == API_D3D11)
 	{
 		out.Write("#define ddx ddx_fine\n");
@@ -1634,7 +1646,7 @@ inline void GeneratePixelShader(ShaderCode& out, const pixel_shader_uid_data& ui
 				"layout(std140, binding = 3) buffer BBox {\n"
 				"\tint4 bbox_data;\n"
 				"};\n"
-				);
+			);
 		}
 		out.Write("out vec4 ocol0;\n");
 		if (render_mode == PSRM_DUAL_SOURCE_BLEND)
@@ -1733,7 +1745,7 @@ inline void GeneratePixelShader(ShaderCode& out, const pixel_shader_uid_data& ui
 			{
 				out.Write(
 					"globallycoherent RWBuffer<int> bbox_data : register(u2);\n"
-					);
+				);
 			}
 		}
 		if (forced_early_z && !(ApiType & API_D3D9))
@@ -1963,16 +1975,19 @@ inline void GeneratePixelShader(ShaderCode& out, const pixel_shader_uid_data& ui
 			out.Write("if(" I_FLAGS ".x != 0)\n{\n");
 			out.Write("_norm0 = perturb_normal(_norm0, pos, mapcoord, normalmap.xyz);\n");
 			out.Write("}\n");
-			if (forcePhong)
+			if (enablesimbumps)
 			{
 				out.Write("else ");
 			}
 		}
-		if (forcePhong)
+		if (enablesimbumps)
 		{
-			out.Write("if(" I_PPHONG "[1].x > 0.0)\n{\n"
-				"height_map = lerp(height_map * " I_PPHONG "[1].y, snoise(mapcoord * mapsize * " I_PPHONG "[1].w), " I_PPHONG "[1].z) * " I_PPHONG "[1].x;\n"				
-				"_norm0 = CalculateSurfaceNormal(pos, _norm0, height_map);\n}\n");
+			out.Write(
+				"if(" I_PPHONG "[1].x > 0.0)\n"
+				"{\n"
+				"height_map = lerp(height_map * " I_PPHONG "[1].y, snoise(mapcoord * mapsize * " I_PPHONG "[1].w), " I_PPHONG "[1].z) * " I_PPHONG "[1].x;\n"
+				"_norm0 = CalculateSurfaceNormal(pos, _norm0, height_map);"
+				"\n}\n");
 		}
 		// Only col0 and col1 are needed so discard the remaining components
 		GenerateLightingShaderCode(out, uid_data.numColorChans, uid_data.lighting, uid_data.components << VB_COL_SHIFT, I_MATERIALS, I_LIGHTS, "colors_", "col", Use_integer_math, forcePhong);
@@ -1986,7 +2001,7 @@ inline void GeneratePixelShader(ShaderCode& out, const pixel_shader_uid_data& ui
 		out.Write("\tfloat4 col0 = colors_0;\n");
 		out.Write("\tfloat4 col1 = colors_1;\n");
 	}
-	
+
 	if (numTexgen < 7)
 		out.Write("clipPos = float4(rawpos.x, rawpos.y, clipPos.z, clipPos.w);\n");
 	else
@@ -2074,7 +2089,7 @@ inline void GeneratePixelShader(ShaderCode& out, const pixel_shader_uid_data& ui
 		else
 			out.Write("\tdepth = %s zCoord;\n", ApiType == API_OPENGL ? "" : "1.0 - ");
 	}
-	
+
 	// depth texture can safely be ignored if the result won't be written to the depth buffer (early_ztest) and isn't used for fog either
 	const bool skip_ztexture = !uid_data.per_pixel_depth && !uid_data.fog_fsel;
 
@@ -2109,7 +2124,7 @@ inline void GeneratePixelShader(ShaderCode& out, const pixel_shader_uid_data& ui
 		out.Write(
 			"prev.rgb += wu3(clamp(prev.rgb + " I_PPHONG "[0].xxx, 0.0,255.0)*pow(spec.w, " I_PPHONG "[0].y)*" I_PPHONG "[0].z);\n"
 			"prev.rgb += wu3(spec.rgb * normalmap.w * " I_PPHONG "[0].w);\n"
-			);
+		);
 	}
 	if (render_mode == PSRM_ALPHA_PASS)
 	{

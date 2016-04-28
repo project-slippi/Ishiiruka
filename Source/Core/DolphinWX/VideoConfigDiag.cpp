@@ -117,6 +117,7 @@ static wxString phong_intensity_desc = _("Controls Global intensity of specular 
 static wxString rim_intensity_desc = _("Controls Intensity of rim effect.");
 static wxString rim_power_desc = _("Controls exponent of rim effect.");
 static wxString rim_base_desc = _("Controls minimun rim color.");
+static wxString bump_desc = _("Enable generation of bumpmaps to improve ligthing effects.");
 static wxString bump_strength_desc = _("Controls strength of simulated bumpmaps. Needs to be adjusted per game co achive better quality");
 static wxString bump_detail_frequency_desc = _("Controls detail bumpmap frequency. This will change the size of the noise pattern");
 static wxString bump_detail_blend_desc = _("Controls the detail bumpmap strength. Detail bump will add noise to existing textures.");
@@ -440,6 +441,7 @@ VideoConfigDiag::VideoConfigDiag(wxWindow* parent, const std::string &title, con
 	szr_enh->Add(CreateCheckBox(page_enh, _("Disable Fog"), (disable_fog_desc), vconfig.bDisableFog));
 	szr_enh->Add(pixel_lighting = CreateCheckBox(page_enh, _("Per-Pixel Lighting"), (pixel_lighting_desc), vconfig.bEnablePixelLighting));
 	szr_enh->Add(phong_lighting = CreateCheckBox(page_enh, _("Phong Lighting"), (phong_lighting_desc), vconfig.bForcePhongShading));
+	szr_enh->Add(sim_bump = CreateCheckBox(page_enh, _("Auto Bumps"), (bump_desc), vconfig.bSimBumpEnabled));
 	wxStaticBoxSizer* const group_enh = new wxStaticBoxSizer(wxVERTICAL, page_enh, _("Enhancements"));
 	group_enh->Add(szr_enh, 1, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 5);
 	szr_enh_main->Add(group_enh, 0, wxEXPAND | wxALL, 5);
@@ -510,7 +512,7 @@ VideoConfigDiag::VideoConfigDiag(wxWindow* parent, const std::string &title, con
 			szr_phong->Add(rimbase_slider, 1, wxEXPAND | wxRIGHT);
 		}
 		{
-			wxSlider* const bump_strenght_slider = new wxSlider(page_enh, wxID_ANY, vconfig.iSimBumpStrength, 0, 1023, wxDefaultPosition, wxDefaultSize);
+			bump_strenght_slider = new wxSlider(page_enh, wxID_ANY, vconfig.iSimBumpStrength, 0, 1023, wxDefaultPosition, wxDefaultSize);
 			bump_strenght_slider->Bind(wxEVT_SLIDER, &VideoConfigDiag::Event_BumpStrength, this);
 			RegisterControl(bump_strenght_slider, (bump_strength_desc));
 
@@ -518,7 +520,7 @@ VideoConfigDiag::VideoConfigDiag(wxWindow* parent, const std::string &title, con
 			szr_phong->Add(bump_strenght_slider, 1, wxEXPAND | wxRIGHT);
 		}
 		{
-			wxSlider* const bump_threshold_slider = new wxSlider(page_enh, wxID_ANY, vconfig.iSimBumpThreshold, 0, 255, wxDefaultPosition, wxDefaultSize);
+			bump_threshold_slider = new wxSlider(page_enh, wxID_ANY, vconfig.iSimBumpThreshold, 0, 255, wxDefaultPosition, wxDefaultSize);
 			bump_threshold_slider->Bind(wxEVT_SLIDER, &VideoConfigDiag::Event_BumpThreshold, this);
 			RegisterControl(bump_threshold_slider, (bump_threshold_desc));
 
@@ -526,7 +528,7 @@ VideoConfigDiag::VideoConfigDiag(wxWindow* parent, const std::string &title, con
 			szr_phong->Add(bump_threshold_slider, 1, wxEXPAND | wxRIGHT);
 		}
 		{
-			wxSlider* const bump_blend_slider = new wxSlider(page_enh, wxID_ANY, vconfig.iSimBumpDetailBlend, 0, 255, wxDefaultPosition, wxDefaultSize);
+			bump_blend_slider = new wxSlider(page_enh, wxID_ANY, vconfig.iSimBumpDetailBlend, 0, 255, wxDefaultPosition, wxDefaultSize);
 			bump_blend_slider->Bind(wxEVT_SLIDER, &VideoConfigDiag::Event_BumpDetailBlend, this);
 			RegisterControl(bump_blend_slider, (bump_detail_blend_desc));
 
@@ -534,7 +536,7 @@ VideoConfigDiag::VideoConfigDiag(wxWindow* parent, const std::string &title, con
 			szr_phong->Add(bump_blend_slider, 1, wxEXPAND | wxRIGHT);
 		}
 		{
-			wxSlider* const bump_frequency_slider = new wxSlider(page_enh, wxID_ANY, vconfig.iSimBumpDetailFrequency, 4, 255, wxDefaultPosition, wxDefaultSize);
+			bump_frequency_slider = new wxSlider(page_enh, wxID_ANY, vconfig.iSimBumpDetailFrequency, 4, 255, wxDefaultPosition, wxDefaultSize);
 			bump_frequency_slider->Bind(wxEVT_SLIDER, &VideoConfigDiag::Event_BumpDetailFrequency, this);
 			RegisterControl(bump_frequency_slider, (bump_detail_frequency_desc));
 
@@ -1392,6 +1394,13 @@ void VideoConfigDiag::Event_StereoMode(wxCommandEvent &ev)
 // Enables/disables UI elements depending on current config
 void VideoConfigDiag::OnUpdateUI(wxUpdateUIEvent& ev)
 {
+	bool phongEnabled = vconfig.backend_info.bSupportsPixelLighting && vconfig.bEnablePixelLighting && vconfig.bForcePhongShading;
+	// Simulated bumps
+	bump_strenght_slider->Enable(phongEnabled && vconfig.bSimBumpEnabled);
+	bump_threshold_slider->Enable(phongEnabled && vconfig.bSimBumpEnabled);
+	bump_blend_slider->Enable(phongEnabled && vconfig.bSimBumpEnabled);
+	bump_frequency_slider->Enable(phongEnabled && vconfig.bSimBumpEnabled);
+
 	// Anti-aliasing
 	choice_aamode->Enable(vconfig.backend_info.AAModes.size() > 1);
 	text_aamode->Enable(vconfig.backend_info.AAModes.size() > 1);	
@@ -1399,7 +1408,8 @@ void VideoConfigDiag::OnUpdateUI(wxUpdateUIEvent& ev)
 	// pixel lighting
 	pixel_lighting->Enable(vconfig.backend_info.bSupportsPixelLighting);
 	phong_lighting->Enable(vconfig.backend_info.bSupportsPixelLighting && vconfig.bEnablePixelLighting);
-	group_phong->Show(vconfig.backend_info.bSupportsPixelLighting && vconfig.bEnablePixelLighting && vconfig.bForcePhongShading);
+	sim_bump->Enable(phongEnabled);
+	group_phong->Show(phongEnabled);
 #if defined WIN32
 	// Borderless Fullscreen
 	borderless_fullscreen->Enable((vconfig.backend_info.APIType & API_D3D9) == 0);

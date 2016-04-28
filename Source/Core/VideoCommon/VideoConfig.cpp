@@ -93,6 +93,8 @@ void VideoConfig::Load(const std::string& ini_file)
 	settings->Get("RimIntesity", &iRimIntesity, 0);
 	settings->Get("RimBase", &iRimBase, 10);
 	settings->Get("SpecularMultiplier", &iSpecularMultiplier, 255);
+	
+	settings->Get("SimBumpEnabled", &bSimBumpEnabled, 0);
 	settings->Get("SimBumpStrength", &iSimBumpStrength, 0);
 	settings->Get("SimBumpDetailFrequency", &iSimBumpDetailFrequency, 128);
 	settings->Get("SimBumpThreshold", &iSimBumpThreshold, 16);
@@ -223,6 +225,7 @@ void VideoConfig::GameIniLoad()
 	CHECK_SETTING("Video_Settings", "RimIntesity", iRimIntesity);
 	CHECK_SETTING("Video_Settings", "RimBase", iRimBase);
 	CHECK_SETTING("Video_Settings", "SpecularMultiplier", iSpecularMultiplier);
+	CHECK_SETTING("Video_Settings", "SimBumpEnabled", bSimBumpEnabled);	
 	CHECK_SETTING("Video_Settings", "SimBumpStrength", iSimBumpStrength);
 	CHECK_SETTING("Video_Settings", "SimBumpDetailFrequency", iSimBumpDetailFrequency);
 	CHECK_SETTING("Video_Settings", "SimBumpThreshold", iSimBumpThreshold);
@@ -419,6 +422,7 @@ void VideoConfig::Save(const std::string& ini_file)
 	settings->Set("RimBase", iRimBase);
 	settings->Set("SpecularMultiplier", iSpecularMultiplier);	
 	
+	settings->Set("SimBumpEnabled", bSimBumpEnabled);
 	settings->Set("SimBumpStrength", iSimBumpStrength);
 	settings->Set("SimBumpDetailFrequency", iSimBumpDetailFrequency);
 	settings->Set("SimBumpThreshold", iSimBumpThreshold);

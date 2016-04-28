@@ -155,6 +155,7 @@ protected:
 
 	SettingCheckBox* pixel_lighting;
 	SettingCheckBox* phong_lighting;
+	SettingCheckBox* sim_bump;
 	wxStaticText* label_TextureScale;
 	SettingCheckBox* borderless_fullscreen;
 	SettingCheckBox* render_to_main_checkbox;
@@ -190,6 +191,12 @@ protected:
 	wxChoice* choice_stereoshader;
 	wxStaticBoxSizer* group_phong;
 	wxStaticBoxSizer* group_Tessellation;
+
+	wxSlider* bump_strenght_slider;
+	wxSlider* bump_threshold_slider;
+	wxSlider* bump_blend_slider;
+	wxSlider* bump_frequency_slider;
+
 	std::map<wxWindow*, wxString> ctrl_descs; // maps setting controls to their descriptions
 	std::map<wxWindow*, wxStaticText*> desc_texts; // maps dialog tabs (which are the parents of the setting controls) to their description text objects
 

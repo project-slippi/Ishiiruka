@@ -171,7 +171,8 @@ struct VideoConfig final
 	int iRimIntesity; 
 	int iRimBase;
 	int iSpecularMultiplier;
-
+	
+	bool bSimBumpEnabled;
 	int iSimBumpDetailBlend;
 	int iSimBumpDetailFrequency;
 	int iSimBumpThreshold;
