@@ -181,7 +181,7 @@ private:
 			h = h * 137 + (uintptr_t)pso_desc.ds_bytecode.pShaderBytecode;
 			h = h * 137 + (uintptr_t)pso_desc.input_Layout;
 			h = h * 137 + (uintptr_t)(((uintptr_t)pso_desc.blend_state.hex << 32) |
-				pso_desc.depth_stencil_state.hex | (pso_desc.rasterizer_state.hex << 17) | (((uintptr_t)pso_desc.sample_count) << 48));
+				pso_desc.depth_stencil_state.hex | (uintptr_t(pso_desc.rasterizer_state.hex) << 17) | (((uintptr_t)pso_desc.sample_count) << 48));
 			return h;
 		}
 	};

@@ -114,6 +114,7 @@ void ReplaceTexture2D(ID3D12Resource* texture12, const u8* buffer, DXGI_FORMAT f
 		// To grant that the texture data is in place to start rendering we have to execute the copy operation now
 		D3D::command_list_mgr->ExecuteQueuedWork();
 	}
+	ResourceBarrier(current_command_list, texture12, D3D12_RESOURCE_STATE_COPY_DEST, current_resource_state, level);
 }
 
 }  // namespace
