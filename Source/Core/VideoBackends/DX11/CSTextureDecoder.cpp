@@ -500,7 +500,7 @@ bool CSTextureDecoder::SetStaticShader(u32 srcFmt, u32 lutFmt)
 	D3D_SHADER_MACRO macros[] = 
 	{
 		{ "DECODER_FUNC", DecFunc[rawFmt] },
-		{ "LUT_FUNC", LutFunc[lutFmt & 0xF] },		
+		{ "LUT_FUNC", LutFunc[lutFmt % 3] },		
 		{ nullptr, nullptr }
 	};
 
