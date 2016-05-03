@@ -161,6 +161,7 @@ void VideoConfig::Load(const std::string& ini_file)
 	hacks->Get("PredictiveFifo", &bPredictiveFifo, false);
 	hacks->Get("BoundingBoxMode", &iBBoxMode, (int)BBoxMode::BBoxNone);
 	hacks->Get("ViewportCorrection", &bViewportCorrection, false);
+	hacks->Get("LastStoryEFBToRam", &bLastStoryEFBToRam, false);
 	
 
 	// hacks which are disabled by default
@@ -300,6 +301,7 @@ void VideoConfig::GameIniLoad()
 	CHECK_SETTING("Video_Hacks", "EFBEmulateFormatChanges", bEFBEmulateFormatChanges);
 	CHECK_SETTING("Video_Hacks", "BoundingBoxMode", iBBoxMode);
 	CHECK_SETTING("Video_Hacks", "ViewportCorrection", bViewportCorrection);
+	CHECK_SETTING("Video_Hacks", "LastStoryEFBToRam", bLastStoryEFBToRam);
 	
 
 	CHECK_SETTING("Video", "ProjectionHack", iPhackvalue[0]);
@@ -381,6 +383,7 @@ void VideoConfig::VerifyValidity()
 		iTexScalingType = 10;
 	}
 	bHiresMaterialMaps = bHiresMaterialMaps && bHiresTextures && bEnablePixelLighting;
+	bLastStoryEFBToRam = bLastStoryEFBToRam && StartsWith(SConfig::GetInstance().GetUniqueID(), "SLS");
 }
 
 void VideoConfig::Save(const std::string& ini_file)
@@ -490,6 +493,7 @@ void VideoConfig::Save(const std::string& ini_file)
 	hacks->Set("PredictiveFifo", bPredictiveFifo);
 	hacks->Set("BoundingBoxMode", iBBoxMode);
 	hacks->Set("ViewportCorrection", bViewportCorrection);
+	hacks->Set("LastStoryEFBToRam", bLastStoryEFBToRam);
 	
 
 	iniFile.Save(ini_file);

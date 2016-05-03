@@ -1244,6 +1244,12 @@ void TextureCacheBase::CopyRenderTargetToTexture(u32 dstAddr, u32 dstFormat, u32
 	u32 bytes_per_row = num_blocks_x * bytes_per_block;
 
 	bool copy_to_ram = !g_ActiveConfig.bSkipEFBCopyToRam;
+	if (g_ActiveConfig.bLastStoryEFBToRam)
+	{
+		// mimimi085181: Ugly speedhack for the Last Story 
+		copy_to_ram = copy_to_ram || ((tex_w == 64 || tex_w == 128 || tex_w == 256) && !isIntensity && tex_h != 1 && (dstFormat == 6 || dstFormat == 32));
+	}
+	
 	bool copy_to_vram = true;
 	// Only apply triggered post-processing on specific formats, to avoid false positives.
 	// Skip depth copies, single-channel textures (basically RGB565/RGB5A3/RGBA8 only)
