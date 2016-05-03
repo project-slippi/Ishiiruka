@@ -279,6 +279,13 @@ void DoState(PointerWrap &p)
 	p.Do(reply_queue);
 	p.Do(last_reply_time);
 
+	if (p.GetMode() == PointerWrap::MODE_READ)
+	{
+		// We need to make sure all file handles are closed so WII_IPC_Devices_fs::DoState can successfully re-create /tmp
+		for (u32 i = 0; i < IPC_MAX_FDS; i++)
+			g_FdMap[i].reset();
+	}
+
 	for (const auto& entry : g_DeviceMap)
 	{
 		if (entry.second->IsHardware())
@@ -289,7 +296,7 @@ void DoState(PointerWrap &p)
 
 	if (p.GetMode() == PointerWrap::MODE_READ)
 	{
-		for (u32 i=0; i<IPC_MAX_FDS; i++)
+		for (u32 i=0; i < IPC_MAX_FDS; i++)
 		{
 			u32 exists = 0;
 			p.Do(exists);
@@ -309,13 +316,9 @@ void DoState(PointerWrap &p)
 					g_FdMap[i]->DoState(p);
 				}
 			}
-			else
-			{
-				g_FdMap[i].reset();
-			}
 		}
 
-		for (u32 i=0; i<ES_MAX_COUNT; i++)
+		for (u32 i=0; i < ES_MAX_COUNT; i++)
 		{
 			p.Do(es_inuse[i]);
 			u32 handleID = es_handles[i]->GetDeviceID();
@@ -346,7 +349,7 @@ void DoState(PointerWrap &p)
 			}
 		}
 
-		for (u32 i=0; i<ES_MAX_COUNT; i++)
+		for (u32 i=0; i < ES_MAX_COUNT; i++)
 		{
 			p.Do(es_inuse[i]);
 			u32 handleID = es_handles[i]->GetDeviceID();

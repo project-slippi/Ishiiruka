@@ -530,6 +530,8 @@ FSTEntry ScanDirectoryTree(const std::string& directory, bool recursive)
 bool DeleteDirRecursively(const std::string& directory)
 {
 	INFO_LOG(COMMON, "DeleteDirRecursively: %s", directory.c_str());
+	bool success = true;
+
 #ifdef _WIN32
 	// Find the first file in the directory.
 	WIN32_FIND_DATA ffd;
@@ -568,22 +570,16 @@ bool DeleteDirRecursively(const std::string& directory)
 		{
 			if (!DeleteDirRecursively(newPath))
 			{
-				#ifndef _WIN32
-				closedir(dirp);
-				#endif
-
-				return false;
+				success = false;
+				break;
 			}
 		}
 		else
 		{
 			if (!File::Delete(newPath))
 			{
-				#ifndef _WIN32
-				closedir(dirp);
-				#endif
-
-				return false;
+				success = false;
+				break;
 			}
 		}
 
@@ -594,9 +590,10 @@ bool DeleteDirRecursively(const std::string& directory)
 	}
 	closedir(dirp);
 #endif
-	File::DeleteDir(directory);
+	if (success)
+		File::DeleteDir(directory);
 
-	return true;
+	return success;
 }
 
 // Create directory and copy contents (does not overwrite existing files)
@@ -792,7 +789,6 @@ static void RebuildUserDirectories(unsigned int dir_index)
 		s_user_paths[D_SCREENSHOTS_IDX]    = s_user_paths[D_USER_IDX] + SCREENSHOTS_DIR DIR_SEP;
 		s_user_paths[D_LOAD_IDX]           = s_user_paths[D_USER_IDX] + LOAD_DIR DIR_SEP;
 		s_user_paths[D_HIRESTEXTURES_IDX]  = s_user_paths[D_LOAD_IDX] + HIRES_TEXTURES_DIR DIR_SEP;
-		s_user_paths[D_PPSHADERSPRESETS_IDX] = s_user_paths[D_LOAD_IDX] + PPS_PRESETS_DIR DIR_SEP;
 		s_user_paths[D_DUMP_IDX]           = s_user_paths[D_USER_IDX] + DUMP_DIR DIR_SEP;
 		s_user_paths[D_DUMPFRAMES_IDX]     = s_user_paths[D_DUMP_IDX] + DUMP_FRAMES_DIR DIR_SEP;
 		s_user_paths[D_DUMPAUDIO_IDX]      = s_user_paths[D_DUMP_IDX] + DUMP_AUDIO_DIR DIR_SEP;
@@ -851,7 +847,6 @@ static void RebuildUserDirectories(unsigned int dir_index)
 
 	case D_LOAD_IDX:
 		s_user_paths[D_HIRESTEXTURES_IDX]  = s_user_paths[D_LOAD_IDX] + HIRES_TEXTURES_DIR DIR_SEP;
-		s_user_paths[D_PPSHADERSPRESETS_IDX] = s_user_paths[D_LOAD_IDX] + PPS_PRESETS_DIR DIR_SEP;
 		break;
 	}
 }
