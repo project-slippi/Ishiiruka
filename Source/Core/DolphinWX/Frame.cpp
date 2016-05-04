@@ -1482,6 +1482,16 @@ void CFrame::ParseHotkeys()
 			g_renderer->GetPostProcessor()->SetReloadFlag();
 	}
 
+	if (IsHotkey(HK_TOGGLE_HIRES_TEXTURES))
+	{
+		g_Config.bHiresTextures = !g_Config.bHiresTextures;
+	}
+
+	if (IsHotkey(HK_TOGGLE_MATERIAL_TEXTURES))
+	{
+		g_Config.bHiresMaterialMaps = !g_Config.bHiresMaterialMaps;
+	}
+
 	static float debugSpeed = 1.0f;
 	if (IsHotkey(HK_FREELOOK_DECREASE_SPEED, true))
 		debugSpeed /= 1.1f;

@@ -128,6 +128,8 @@ const std::string hotkey_labels[] =
 	_trans("Save State"),
 	_trans("Load State"),
 	_trans("Reload Post-Processing Shaders"),
+	_trans("Switch Hires Textures"),
+	_trans("Switch Material Textures"),
 };
 static_assert(NUM_HOTKEYS == sizeof(hotkey_labels) / sizeof(hotkey_labels[0]), "Wrong count of hotkey_labels");
 
