@@ -735,8 +735,10 @@ void PostProcessingShaderConfiguration::LoadOptionsConfigurationFromSection(IniF
 void PostProcessingShaderConfiguration::LoadOptionsConfiguration()
 {
 	IniFile ini;
-	ini.Load(File::GetUserPath(F_DOLPHINCONFIG_IDX));
-	IniFile::Section* section = ini.GetOrCreateSection(m_shader_name + "-options");
+	std::string GlobalPath = File::GetUserPath(D_PPSHADERSPRESETS_IDX);
+	GlobalPath += m_shader_name + ".ini";
+	ini.Load(GlobalPath);
+	IniFile::Section* section = ini.GetOrCreateSection("options");
 	// Load Global Setings
 	LoadOptionsConfigurationFromSection(section);
 	if (Core::IsRunning())
@@ -778,9 +780,14 @@ void PostProcessingShaderConfiguration::SaveOptionsConfiguration()
 	}
 	else
 	{
-		file_path = File::GetUserPath(F_DOLPHINCONFIG_IDX);
+		file_path = File::GetUserPath(D_PPSHADERSPRESETS_IDX);
+		if (!File::Exists(file_path))
+		{
+			File::CreateDir(file_path);
+		}
+		file_path += m_shader_name + ".ini";
 		ini.Load(file_path);
-		section = ini.GetOrCreateSection(m_shader_name + "-options");
+		section = ini.GetOrCreateSection("options");
 	}
 
 	for (auto& it : m_options)
