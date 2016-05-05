@@ -1338,7 +1338,7 @@ inline void WriteFetchStageTexture(ShaderCode& out, const pixel_shader_uid_data&
 		if (uid_data.pixel_lighting > 2)
 		{
 			out.Write(
-				"if(" I_PPHONG "[1].x > 0.0)\n"
+				"if(" I_PPHONG "[1].x > 0.0 && " I_FLAGS ".x == 0 )\n"
 				"{\n"
 				"if(height_map_count == 0.0)\n"
 				"{\n"
@@ -1983,7 +1983,7 @@ inline void GeneratePixelShader(ShaderCode& out, const pixel_shader_uid_data& ui
 		if (enablesimbumps)
 		{
 			out.Write(
-				"if(" I_PPHONG "[1].x > 0.0)\n"
+				"if(" I_PPHONG "[1].x > 0.0 && height_map_count > 0)\n"
 				"{\n"
 				"height_map = lerp(height_map * " I_PPHONG "[1].y, snoise(mapcoord * mapsize * " I_PPHONG "[1].w), " I_PPHONG "[1].z) * " I_PPHONG "[1].x;\n"
 				"_norm0 = CalculateSurfaceNormal(pos, _norm0, height_map);"
