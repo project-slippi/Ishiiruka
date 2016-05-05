@@ -175,13 +175,13 @@ NetPlaySetupFrame::NetPlaySetupFrame(wxWindow* const parent, const CGameListCtrl
 		top_szr->Add(m_host_port_text, 0);
 #ifdef USE_UPNP
 		m_upnp_chk = new wxCheckBox(host_tab, wxID_ANY, _("Forward port (UPnP)"));
-		top_szr->Add(m_upnp_chk, 0, wxALL | wxALIGN_RIGHT, 5);
+		top_szr->Add(m_upnp_chk, 0, wxALL, 5);
 #endif
 		wxBoxSizer* const bottom_szr = new wxBoxSizer(wxHORIZONTAL);
 		bottom_szr->Add(m_traversal_listen_port_enabled, 0, wxCENTER | wxLEFT, 5);
 		bottom_szr->Add(m_traversal_listen_port, 0, wxCENTER, 0);
 		wxBoxSizer* const host_btn_szr = new wxBoxSizer(wxVERTICAL);
-		host_btn_szr->Add(host_btn, 0, wxCENTER | wxALIGN_RIGHT, 0);
+		host_btn_szr->Add(host_btn, 0, wxCENTER, 0);
 		bottom_szr->Add(host_btn_szr, 1, wxALL, 5);
 
 		wxBoxSizer* const host_szr = new wxBoxSizer(wxVERTICAL);
