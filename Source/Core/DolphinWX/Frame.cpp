@@ -273,7 +273,6 @@ EVT_MENU(IDM_NO_DOCKING, CFrame::OnPerspectiveMenu)
 EVT_MENU_RANGE(IDM_FLOAT_LOG_WINDOW, IDM_FLOAT_CODE_WINDOW, CFrame::OnFloatWindow)
 
 EVT_MENU(IDM_NETPLAY, CFrame::OnNetPlay)
-EVT_MENU(IDM_BROWSE, CFrame::OnBrowse)
 EVT_MENU(IDM_MEMCARD, CFrame::OnMemcard)
 EVT_MENU(IDM_IMPORT_SAVE, CFrame::OnImportSave)
 EVT_MENU(IDM_EXPORT_ALL_SAVE, CFrame::OnExportAllSaves)
@@ -706,7 +705,7 @@ void CFrame::UpdateTitle(const std::string &str)
 	}
 	else
 	{
-		std::string titleStr = StringFromFormat("%s | %s", scm_rev_str, str.c_str());
+		std::string titleStr = StringFromFormat("%s | %s", scm_rev_str.c_str(), str.c_str());
 		m_RenderFrame->SetTitle(titleStr);
 	}
 }

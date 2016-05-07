@@ -112,10 +112,6 @@ static bool s_request_refresh_info = false;
 static int s_pause_and_lock_depth = 0;
 static bool s_is_throttler_temp_disabled = false;
 
-#ifdef USE_MEMORYWATCHER
-static std::unique_ptr<MemoryWatcher> s_memory_watcher;
-#endif
-
 #ifdef ThreadLocalStorage
 static ThreadLocalStorage bool tls_is_cpu_thread = false;
 #else
@@ -289,7 +285,7 @@ void Stop()  // - Hammertime!
 #endif
 
 #ifdef USE_MEMORYWATCHER
-	s_memory_watcher.reset();
+	MemoryWatcher::Shutdown();
 #endif
 }
 
@@ -362,7 +358,7 @@ static void CpuThread()
 	#endif
 
 #ifdef USE_MEMORYWATCHER
-	s_memory_watcher = std::make_unique<MemoryWatcher>();
+	MemoryWatcher::Init();
 #endif
 
 	// Enter CPU run loop. When we leave it - we are done.
@@ -434,7 +430,7 @@ void EmuThread()
 
 	HW::Init();
 
-	if (!video_backend->Initialize(s_window_handle))
+	if (!g_video_backend->Initialize(s_window_handle))
 	{
 		PanicAlert("Failed to initialize video backend!");
 		Host_Message(WM_USER_STOP);
