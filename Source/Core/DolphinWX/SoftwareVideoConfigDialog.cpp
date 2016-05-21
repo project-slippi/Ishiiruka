@@ -35,7 +35,7 @@ SoftwareVideoConfigDialog::SoftwareVideoConfigDialog(wxWindow* parent, const std
 	wxDialog(parent, wxID_ANY,
 	wxString(wxString::Format(_("Dolphin %s Graphics Configuration"), title)))
 {
-	VideoConfig& vconfig = g_ActiveConfig;
+	VideoConfig& vconfig = g_Config;
 
 	if (File::Exists(File::GetUserPath(D_CONFIG_IDX) + "GFX.ini"))
 		vconfig.Load(File::GetUserPath(D_CONFIG_IDX) + "GFX.ini");
@@ -61,7 +61,7 @@ SoftwareVideoConfigDialog::SoftwareVideoConfigDialog(wxWindow* parent, const std
 	wxStaticText* const label_backend = new wxStaticText(page_general, wxID_ANY, _("Backend:"));
 	wxChoice* const choice_backend = new wxChoice(page_general, wxID_ANY);
 
-	for (auto& backend : g_available_video_backends)
+	for (const auto& backend : g_available_video_backends)
 	{
 		choice_backend->AppendString(StrToWxStr(backend->GetDisplayName()));
 	}
@@ -139,5 +139,5 @@ SoftwareVideoConfigDialog::SoftwareVideoConfigDialog(wxWindow* parent, const std
 
 SoftwareVideoConfigDialog::~SoftwareVideoConfigDialog()
 {
-	g_ActiveConfig.Save((File::GetUserPath(D_CONFIG_IDX) + "GFX.ini").c_str());
+	g_Config.Save((File::GetUserPath(D_CONFIG_IDX) + "GFX.ini").c_str());
 }
