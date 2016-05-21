@@ -1157,6 +1157,8 @@ float ToLinearDepth(float depth)
 // Input resolution accessors
 float2 GetInputResolution(int index) { return u_input_resolutions[index].xy; }
 float2 GetInvInputResolution(int index) { return u_input_resolutions[index].zw; }
+float2 GetPrevResolution() { return u_input_resolutions[PREV_OUTPUT_INPUT_INDEX].xy; }
+float2 GetInvPrevResolution() { return u_input_resolutions[PREV_OUTPUT_INPUT_INDEX].zw; }
 float2 GetTargetResolution() { return u_target_resolution.xy; }
 float2 GetInvTargetResolution() { return u_target_resolution.zw; }
 float2 GetSourceRectOrigin() { return u_source_rect.xy; }
