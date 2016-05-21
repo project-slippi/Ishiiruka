@@ -452,7 +452,7 @@ std::shared_ptr<HiresTexture> HiresTexture::Search(
 	const std::string& basename,
 	std::function<u8*(size_t)> request_buffer_delegate)
 {
-	if (g_ActiveConfig.bCacheHiresTextures && size_sum.load() < max_mem)
+	if (g_ActiveConfig.bCacheHiresTextures)
 	{
 		std::unique_lock<std::mutex> lk(s_textureCacheMutex);
 
@@ -465,25 +465,25 @@ std::shared_ptr<HiresTexture> HiresTexture::Search(
 			return iter->second;
 		}
 		lk.unlock();
-		std::shared_ptr<HiresTexture> ptr(Load(basename, [](size_t requested_size)
+		if (size_sum.load() < max_mem)
 		{
-			return new u8[requested_size];
-		}, true));
-		lk.lock();
-		if (ptr)
-		{
-			s_textureCache[basename] = ptr;
-			HiresTexture* current = ptr.get();
-			size_sum.fetch_add(current->m_cached_data_size);
-			u8* dst = request_buffer_delegate(current->m_cached_data_size);
-			memcpy(dst, current->m_cached_data.get(), current->m_cached_data_size);
+			std::shared_ptr<HiresTexture> ptr(Load(basename, [](size_t requested_size)
+			{
+				return new u8[requested_size];
+			}, true));
+			lk.lock();
+			if (ptr)
+			{
+				s_textureCache[basename] = ptr;
+				HiresTexture* current = ptr.get();
+				size_sum.fetch_add(current->m_cached_data_size);
+				u8* dst = request_buffer_delegate(current->m_cached_data_size);
+				memcpy(dst, current->m_cached_data.get(), current->m_cached_data_size);
+			}
+			return ptr;
 		}
-		return ptr;
 	}
-	else
-	{
-		return std::shared_ptr<HiresTexture> (Load(basename, request_buffer_delegate, false));
-	}
+	return std::shared_ptr<HiresTexture> (Load(basename, request_buffer_delegate, false));
 }
 
 HiresTexture* HiresTexture::Load(const std::string& basename,
