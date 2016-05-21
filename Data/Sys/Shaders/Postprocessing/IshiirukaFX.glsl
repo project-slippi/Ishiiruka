@@ -1,5 +1,5 @@
 /*===============================================================================*\
-|########################        [Ishiiruka FX 0.8]        ######################||
+|########################        [Ishiiruka FX 0.9]        ######################||
 || Credist to:                                                                   ||
 || Asmodean (DolphinFX)                                                          ||
 || Matso (MATSODOF)                                                              ||
@@ -553,6 +553,62 @@ DefaultValue = 0.1
 DependentOption = D_BLOOM
 
 [OptionBool]
+GUIName = Gaussian AnamFlare
+OptionName = C_GAUSSIAN_ANAMFLARE
+DefaultValue = false
+GUIDescription = Enable to apply a horizontal light beam to bright pixels.
+
+[OptionRangeFloat]
+GUIName = Threshhold
+OptionName = A_ANAMFLARE_THRESHOLD
+MinValue = 0.10
+MaxValue = 1.00
+StepAmount = 0.01
+DefaultValue = 0.90
+DependentOption = C_GAUSSIAN_ANAMFLARE
+GUIDescription = Every pixel brighter than this value gets a flare.
+
+[OptionRangeFloat]
+GUIName = Wideness
+OptionName = A_ANAMFLARE_WIDENESS
+MinValue = 0.5
+MaxValue = 4.0
+StepAmount = 0.1
+DefaultValue = 3.0
+DependentOption = C_GAUSSIAN_ANAMFLARE
+GUIDescription = Horizontal wideness of flare. Don't set too high, otherwise the single samples are visible
+
+[OptionRangeFloat]
+GUIName = Amount
+OptionName = B_ANAMFLARE_AMOUNT
+MinValue = 1.0
+MaxValue = 10.0
+StepAmount = 0.1
+DefaultValue = 5.0
+DependentOption = C_GAUSSIAN_ANAMFLARE
+GUIDescription = Intensity of anamorphic flare.
+
+[OptionRangeFloat]
+GUIName = Curve
+OptionName = B_ANAMFLARE_CURVE
+MinValue = 1.0
+MaxValue = 2.0
+StepAmount = 0.1
+DefaultValue = 1.2
+DependentOption = C_GAUSSIAN_ANAMFLARE
+GUIDescription = Intensity curve of flare with distance from source
+
+[OptionRangeFloat]
+GUIName = Colors
+OptionName = C_ANAMFLARE_COLOR
+MinValue = 0.0, 0.0, 0.0
+MaxValue = 1.0, 1.0, 1.0
+StepAmount = 0.01, 0.01, 0.01
+DefaultValue = 0.012, 0.313, 0.588
+DependentOption = C_GAUSSIAN_ANAMFLARE
+GUIDescription = R, G and B components of anamorphic flare. Flare is always same color.
+
+[OptionBool]
 GUIName = Barrel Distortion
 OptionName = E_BARREL
 DefaultValue = false
@@ -646,7 +702,7 @@ Input0=PreviousPass
 Input0Filter=Linear
 Input0Mode=Clamp
 [Pass]
-EntryPoint = BloomH
+EntryPoint = BloomHwithAnamFlare
 DependantOption = D_BLOOM
 OutputScale = 0.25
 Input0=PreviousPass
@@ -655,19 +711,19 @@ Input0Mode=Clamp
 [Pass]
 EntryPoint = BloomV
 DependantOption = D_BLOOM
-OutputScale = 0.125
+OutputScale = 0.25
 Input0=PreviousPass
 Input0Filter=Linear
 Input0Mode=Clamp
 [Pass]
-EntryPoint = BloomH
+EntryPoint = BloomHwithAnamFlare
 DependantOption = D_BLOOM
 OutputScale = 0.125
 Input0=PreviousPass
 Input0Filter=Linear
 Input0Mode=Clamp
 [Pass]
-EntryPoint = BloomV
+EntryPoint = BloomVwithAnamFlare
 DependantOption = D_BLOOM
 OutputScale = 0.125
 Input0=PreviousPass
@@ -758,7 +814,7 @@ float4 BilateralX(float depth)
 	float limit = GetOption(D_FILTER_LIMIT);
 	float count = 1.0;
 	float4 value = SamplePrev();
-	
+
 	float Weight = min(sign(limit - abs(SampleDepthOffset(int2(-3, 0)) - depth)) + 1.0, 1.0);
 	value += SamplePrevOffset(int2(-3, 0)) * Weight;
 	count += Weight;
@@ -847,7 +903,7 @@ float4 PS_AO_Blur(float2 axis)
 void AOBlur()
 {
 #if A_SSAO_ENABLED != 0
-		SetOutput(BilateralX(SampleDepth()));
+	SetOutput(BilateralX(SampleDepth()));
 #elif A_SSGI_ENABLED != 0
 	float2 axis = float2(0, 1);
 	SetOutput(PS_AO_Blur(axis));
@@ -962,7 +1018,7 @@ float4 SSAO()
 
 			float fFlip = sign(dot(vViewNormal, vReflRay));
 			vReflRay *= fFlip;
-			
+
 			float sD = fCurrDepth - (vReflRay.z * sample_range);
 			float2 location = saturate(coords + (sample_range * vReflRay.xy / fCurrDepth));
 			float fSampleDepth = SampleDepthLocation(location);
@@ -1768,7 +1824,7 @@ void Merger()
 #endif
 	float depth = SampleDepth();
 	float AOA = (GetOption(D_AOAEND) - depth) / (GetOption(D_AOAEND) - GetOption(C_AOASTART));
-	value.xyz =lerp(value.xyz, value.xyz * AOCOmponent, AOA);
+	value.xyz = lerp(value.xyz, value.xyz * AOCOmponent, AOA);
 #endif
 	SetOutput(value);
 }
@@ -1779,11 +1835,11 @@ void Merger()
 
 float4 Gauss1dPrev(float2 location, float2 baseoffset, float resolutionmultiplier)
 {
-	const float offset[] = { 0, 1.4, 4459.0 / 1365.0, 539.0 / 105.0 };
-	const float weight[] = { 0.20947265625, 0.30548095703125, 0.08331298828125, 0.00640869140625 };
-	float4 Color = SamplePrevLocation(location) * weight[0];	
-	baseoffset *= GetInvResolution() * resolutionmultiplier;
-	for (int i = 1; i < 4; i++)
+	const float offset[] = { 0,1.476923,3.446154,5.415384,7.384615,9.353847 };
+	const float weight[] = { 0.1001628,0.185685,0.1370532,0.07915164,0.03561824,0.01241054 };
+	float4 Color = SamplePrevLocation(location) * weight[0];
+	baseoffset *= GetInvPrevResolution() * resolutionmultiplier;
+	for (int i = 1; i < 6; i++)
 	{
 		float4 color0 = SamplePrevLocation(location + offset[i] * baseoffset);
 		float4 color1 = SamplePrevLocation(location - offset[i] * baseoffset);
@@ -1792,10 +1848,31 @@ float4 Gauss1dPrev(float2 location, float2 baseoffset, float resolutionmultiplie
 	return Color;
 }
 
+float Gauss1dPrevAlpha(float2 location, float2 baseoffset, float resolutionmultiplier)
+{
+	const float offset[] = { 0,1.476923,3.446154,5.415384,7.384615,9.353847 };
+	const float weight[] = { 0.1001628,0.185685,0.1370532,0.07915164,0.03561824,0.01241054 };
+	float Color = SamplePrevLocation(location).a * weight[0];
+	baseoffset *= GetInvPrevResolution() * resolutionmultiplier;
+	for (int i = 1; i < 6; i++)
+	{
+		float color0 = SamplePrevLocation(location + offset[i] * baseoffset).a;
+		float color1 = SamplePrevLocation(location - offset[i] * baseoffset).a;
+		Color += (color0 + color1) * weight[i];
+	}
+	return Color;
+}
+
 void A_ReduceSize()
 {
 	float3 power = float3(1, 1, 1) * GetOption(B_BLOOMPOWER);
-	SetOutput(float4(pow(SamplePrev().rgb, power), 1.0));
+	float4 rawcolor = SamplePrev();
+	float4 reducendcolor = float4(pow(rawcolor.rgb, power), 1.0);
+	if (OptionEnabled(C_GAUSSIAN_ANAMFLARE))
+	{
+		reducendcolor.w = max(0, dot(reducendcolor.xyz, float3(0.333, 0.333, 0.333)) - GetOption(A_ANAMFLARE_THRESHOLD));
+	}
+	SetOutput(reducendcolor);
 }
 
 void BloomH()
@@ -1808,6 +1885,28 @@ void BloomV()
 {
 	float2 texcoord = GetCoordinates();
 	SetOutput(Gauss1dPrev(texcoord, float2(0.0, 1.0), GetOption(A_BLOOMWIDTH)));
+}
+
+void BloomHwithAnamFlare()
+{
+	float2 texcoord = GetCoordinates();
+	float4 bloom = Gauss1dPrev(texcoord, float2(1.0, 0.0), GetOption(A_BLOOMWIDTH));
+	if (OptionEnabled(C_GAUSSIAN_ANAMFLARE))
+	{
+		bloom.a = Gauss1dPrevAlpha(texcoord, float2(1.0, 0.0), GetOption(A_ANAMFLARE_WIDENESS));
+	}
+	SetOutput(bloom);
+}
+
+void BloomVwithAnamFlare()
+{
+	float2 texcoord = GetCoordinates();
+	float4 bloom = Gauss1dPrev(texcoord, float2(0.0, 1.0), GetOption(A_BLOOMWIDTH));
+	if (OptionEnabled(C_GAUSSIAN_ANAMFLARE))
+	{
+		bloom.a = Gauss1dPrevAlpha(texcoord, float2(1.0, 0.0), GetOption(A_ANAMFLARE_WIDENESS))*GetOption(B_ANAMFLARE_AMOUNT);
+	}
+	SetOutput(bloom);
 }
 
 void BloomScatering()
@@ -1855,14 +1954,14 @@ void BloomScatering()
 void BloomMerger()
 {
 	float4 lumColor = SampleInputLocation(2, float2(0.5, 0.5));
-	float3 blur = SampleInputBicubic(1).rgb * GetOption(C_BLOOMINTENSITY);
-	blur.rgb = blur.rgb * (1.0 - saturate(lumColor.a * 2.0));
-	float3 basecolor = float3(0.0,0.0,0.0);
+	float4 blur = SampleInputBicubic(1);
+	blur.rgb = blur.rgb * GetOption(C_BLOOMINTENSITY) * (1.0 - saturate(lumColor.a * 2.0));
+	float3 basecolor = float3(0.0, 0.0, 0.0);
 	if (!OptionEnabled(A_BLOOMONLY))
 	{
 		basecolor = SampleInput(0).rgb;
 	}
-	
+
 	if (OptionEnabled(D_SCATTERRING))
 	{
 		float depth = SampleDepth();
@@ -1871,8 +1970,17 @@ void BloomMerger()
 		lumColor.rgb = lerp(basecolor, lumColor.rgb, saturate(GetOption(I_SINTENSITY) + lumColor.a));
 		basecolor = lerp(lumColor.rgb, basecolor, clamp(linearcomponent / exp(depth * depth), 0.0, 1.0));
 	}
-	SetOutput(float4(basecolor + blur.rgb, 1.0));
+	float4 mergedcolor = float4(basecolor + blur.rgb, 1.0);
+
+	if (OptionEnabled(C_GAUSSIAN_ANAMFLARE))
+	{
+		float3 anamflare = blur.a * GetOption(C_ANAMFLARE_COLOR).rgb;
+		mergedcolor.rgb += pow(anamflare.rgb, 1.0 / GetOption(B_ANAMFLARE_CURVE));
+	}
+	SetOutput(mergedcolor);
 }
+
+
 
 //------------------------------------------------------------------------------
 // Barrel Distortion
@@ -1923,7 +2031,7 @@ float2 distortionOffsetCoordsToTextureCoords(float2 offset) {
 	return result;
 }
 
-void Barrel_distortion(){
+void Barrel_distortion() {
 	// Grab the texture coordinate, which will be in the range 0-1 in both X and Y
 	float2 offset = textureCoordsToDistortionOffsetCoords(GetCoordinates());
 
@@ -1937,9 +2045,9 @@ void Barrel_distortion(){
 	float2 actualTextureCoords = distortionOffsetCoordsToTextureCoords(distortedOffset);
 
 
-	if (actualTextureCoords.x < 0 || actualTextureCoords.x > 1 || actualTextureCoords.y < 0 || actualTextureCoords.y > 1) 
+	if (actualTextureCoords.x < 0 || actualTextureCoords.x > 1 || actualTextureCoords.y < 0 || actualTextureCoords.y > 1)
 	{
-		SetOutput(float4(0,0,0,0));
+		SetOutput(float4(0, 0, 0, 0));
 	}
 	else
 	{
