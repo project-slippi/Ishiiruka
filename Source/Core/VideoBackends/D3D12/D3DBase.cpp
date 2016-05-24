@@ -263,19 +263,24 @@ HRESULT Create(HWND wnd)
 
 	if (SUCCEEDED(hr))
 	{
-		D3D_FEATURE_LEVEL levels[] = {
-			D3D_FEATURE_LEVEL_12_1,
-			D3D_FEATURE_LEVEL_12_0,
-			D3D_FEATURE_LEVEL_11_1,
-			D3D_FEATURE_LEVEL_11_0
-		};
-		for (size_t i = 0; i < 4; i++)
+		s_feat_level = D3D_FEATURE_LEVEL_11_0;
+		hr = d3d12_create_device(adapter.Get(), s_feat_level, IID_PPV_ARGS(&device));
+		if (SUCCEEDED(hr))
 		{
-			s_feat_level = levels[i];
-			hr = d3d12_create_device(adapter.Get(), s_feat_level, IID_PPV_ARGS(&device));
-			if (SUCCEEDED(hr))
+			D3D_FEATURE_LEVEL levels[] = {
+				D3D_FEATURE_LEVEL_12_1,
+				D3D_FEATURE_LEVEL_12_0,
+				D3D_FEATURE_LEVEL_11_1,
+				D3D_FEATURE_LEVEL_11_0
+			};
+			D3D12_FEATURE_DATA_FEATURE_LEVELS featLevels =
 			{
-				break;
+				_countof(levels), levels, D3D_FEATURE_LEVEL_11_0
+			};
+			HRESULT hres = device->CheckFeatureSupport(D3D12_FEATURE_FEATURE_LEVELS, static_cast<void*>(&featLevels), sizeof(featLevels));
+			if (SUCCEEDED(hres))
+			{
+				s_feat_level = featLevels.MaxSupportedFeatureLevel;
 			}
 		}
 		if (FAILED(hr))
