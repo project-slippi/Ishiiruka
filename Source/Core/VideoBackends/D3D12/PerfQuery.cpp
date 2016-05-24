@@ -74,6 +74,7 @@ void PerfQuery::DisableQuery(PerfQueryGroup type)
 		D3D::current_command_list->EndQuery(m_query_heap.Get(), D3D12_QUERY_TYPE_OCCLUSION, static_cast<UINT>(index));
 		D3D::current_command_list->ResolveQueryData(m_query_heap.Get(), D3D12_QUERY_TYPE_OCCLUSION, static_cast<UINT>(index), 1, m_query_readback_buffer.Get(), index * sizeof(UINT64));
 		entry.fence_value = m_next_fence_value;
+		D3D::command_list_mgr->EnsureDrawLimit();
 	}
 }
 

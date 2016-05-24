@@ -35,7 +35,7 @@ public:
 	void SetInitialCommandListState();
 
 	void GetCommandList(ID3D12GraphicsCommandList** command_list) const;
-
+	void EnsureDrawLimit();
 	void ExecuteQueuedWork(bool wait_for_gpu_completion = false);
 	void ExecuteQueuedWorkAndPresent(IDXGISwapChain* swap_chain, UINT sync_interval, UINT flags);
 
@@ -47,9 +47,7 @@ public:
 	void SetCommandListPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY primitive_topology);
 	D3D_PRIMITIVE_TOPOLOGY GetCommandListPrimitiveTopology() const;
 
-	unsigned int m_draws_since_last_execution = 0;
-	bool m_cpu_access_last_frame = false;
-	bool m_cpu_access_this_frame = false;
+	
 
 	void CPUAccessNotify();
 
@@ -61,6 +59,7 @@ public:
 	void WaitOnCPUForFence(ID3D12Fence* fence, UINT64 fence_value);
 
 private:
+	
 	void DestroyAllPendingResources();
 	void ResetAllCommandAllocators();
 	void WaitForGPUCompletion();
@@ -68,7 +67,12 @@ private:
 	void PerformGPURolloverChecks();
 	void MoveToNextCommandAllocator();
 	void ResetCommandList();
-
+	
+	unsigned int m_draws_since_last_execution = 0;
+	unsigned int m_this_frame_draws = 0;
+	unsigned int m_last_frame_draws = 0;
+	bool m_cpu_access_last_frame = false;
+	bool m_cpu_access_this_frame = false;
 	unsigned int m_command_list_dirty_state = UINT_MAX;
 	D3D_PRIMITIVE_TOPOLOGY m_command_list_current_topology = D3D_PRIMITIVE_TOPOLOGY_UNDEFINED;
 

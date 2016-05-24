@@ -73,6 +73,11 @@ D3DCommandListManager::D3DCommandListManager(
 
 	std::fill(m_command_allocator_list_fences.begin(), m_command_allocator_list_fences.end(), 0);
 	std::fill(m_deferred_destruction_list_fences.begin(), m_deferred_destruction_list_fences.end(), 0);
+	m_draws_since_last_execution = 0;
+	m_this_frame_draws = 0;
+	m_last_frame_draws = 512;
+	m_cpu_access_last_frame = false;
+	m_cpu_access_this_frame = false;
 }
 
 void D3DCommandListManager::SetInitialCommandListState()
@@ -107,6 +112,17 @@ void D3DCommandListManager::GetCommandList(ID3D12GraphicsCommandList** command_l
 	*command_list = this->m_backing_command_list;
 #endif
 }
+void D3DCommandListManager::EnsureDrawLimit()
+{
+	++m_draws_since_last_execution;
+	++m_this_frame_draws;
+	u32 max_draws = m_last_frame_draws >> (m_cpu_access_last_frame ? 2 : 1);
+	max_draws = std::max(max_draws, 64u);
+	if (m_draws_since_last_execution > max_draws)
+	{
+		ExecuteQueuedWork();
+	}
+}
 
 void D3DCommandListManager::ExecuteQueuedWork(bool wait_for_gpu_completion)
 {
@@ -136,6 +152,7 @@ void D3DCommandListManager::ExecuteQueuedWork(bool wait_for_gpu_completion)
 	// Re-open the command list, using the current allocator.
 	ResetCommandList();
 	SetInitialCommandListState();
+	m_draws_since_last_execution = 0;
 }
 
 void D3DCommandListManager::ExecuteQueuedWorkAndPresent(IDXGISwapChain* swap_chain, UINT sync_interval, UINT flags)
@@ -166,6 +183,11 @@ void D3DCommandListManager::ExecuteQueuedWorkAndPresent(IDXGISwapChain* swap_cha
 	MoveToNextCommandAllocator();
 	ResetCommandList();
 	SetInitialCommandListState();
+	m_cpu_access_last_frame = m_cpu_access_this_frame;
+	m_last_frame_draws = m_this_frame_draws;
+	m_this_frame_draws = 0;
+	m_cpu_access_this_frame = false;
+	m_draws_since_last_execution = 0;
 }
 
 void D3DCommandListManager::DestroyAllPendingResources()

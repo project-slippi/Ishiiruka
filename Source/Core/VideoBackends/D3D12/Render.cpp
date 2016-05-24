@@ -1048,8 +1048,6 @@ void Renderer::SwapImpl(u32 xfb_addr, u32 fb_width, u32 fb_stride, u32 fb_height
 	RestoreAPIState();
 	D3D::BeginFrame();
 
-	RestoreAPIState();
-
 	// if the configuration has changed, reload post processor (can fail, which will deactivate it)
 	if (m_post_processor->RequiresReload())
 		m_post_processor->ReloadShaders();

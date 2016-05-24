@@ -163,8 +163,6 @@ void VertexManager::vFlush(bool use_dst_alpha)
 
 	Draw(stride);
 
-	D3D::command_list_mgr->m_draws_since_last_execution++;
-
 	// Many Gamecube/Wii titles read from the EFB each frame to determine what new rendering work to submit, e.g. where sun rays are
 	// occluded and where they aren't. When the CPU wants to read this data (done in Renderer::AccessEFB), it requires that the GPU
 	// finish all oustanding work. As an optimization, when we detect that the CPU is likely to read back data this frame, we break
@@ -174,13 +172,9 @@ void VertexManager::vFlush(bool use_dst_alpha)
 	// D3D12TODO: Decide right threshold for drawCountSinceAsyncFlush at runtime depending on 
 	// amount of stall measured in AccessEFB.
 
-	if (D3D::command_list_mgr->m_cpu_access_last_frame
-		&& D3D::command_list_mgr->m_draws_since_last_execution > 100
-		&& !PerfQueryBase::ShouldEmulate())
+	if (!PerfQueryBase::ShouldEmulate())
 	{
-		D3D::command_list_mgr->m_draws_since_last_execution = 0;
-
-		D3D::command_list_mgr->ExecuteQueuedWork();
+		D3D::command_list_mgr->EnsureDrawLimit();
 	}
 }
 
