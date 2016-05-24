@@ -605,7 +605,7 @@ VideoConfigDiag::VideoConfigDiag(wxWindow* parent, const std::string &title, con
 		{
 			wxFlexGridSizer* const szr_tessellation = new wxFlexGridSizer(3, 5, 5);
 			szr_tessellation->AddGrowableCol(2, 1);
-			szr_tessellation->Add(CreateCheckBox(page_enh, _("Enable"), (Tessellation_desc), vconfig.bTessellation), 1, wxALIGN_CENTER_VERTICAL, 0);
+			szr_tessellation->Add(tessellation = CreateCheckBox(page_enh, _("Enable"), (Tessellation_desc), vconfig.bTessellation), 1, wxALIGN_CENTER_VERTICAL, 0);
 
 			wxSlider* const min_slider = new wxSlider(page_enh, wxID_ANY, vconfig.iTessellationDistance, 5, 1000, wxDefaultPosition, wxDefaultSize);
 			min_slider->Bind(wxEVT_SLIDER, &VideoConfigDiag::Event_TessellationDistance, this);
@@ -1442,6 +1442,10 @@ void VideoConfigDiag::OnUpdateUI(wxUpdateUIEvent& ev)
 	// Things which shouldn't be changed during emulation
 	if (Core::IsRunning())
 	{
+		if (vconfig.backend_info.bSupportsTessellation && !vconfig.backend_info.bSupportsRuntimeTessellationSwitch)
+		{
+			tessellation->Disable();
+		}
 		if (vconfig.backend_info.bSupportsComputeTextureDecoding)
 		{
 			Compute_Shader_decoding->Disable();

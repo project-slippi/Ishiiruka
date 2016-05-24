@@ -108,7 +108,7 @@ void InitBackendInfo()
 	g_Config.backend_info.bSupportsSSAA = true;
 	g_Config.backend_info.bSupportsComputeTextureDecoding = false;
 	g_Config.backend_info.bSupportsComputeTextureEncoding = false;
-
+	g_Config.backend_info.bSupportsRuntimeTessellationSwitch = false;
 	IDXGIFactory* factory;
 	IDXGIAdapter* ad;
 	hr = create_dxgi_factory(__uuidof(IDXGIFactory), (void**)&factory);

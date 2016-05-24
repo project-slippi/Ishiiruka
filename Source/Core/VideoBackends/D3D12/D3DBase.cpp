@@ -531,6 +531,31 @@ void CreateRootSignatures()
 	root_parameters[DESCRIPTOR_TABLE_PS_SAMPLER].DescriptorTable.pDescriptorRanges = &desc_range_sampler;
 	root_parameters[DESCRIPTOR_TABLE_PS_SAMPLER].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
 
+	root_parameters[DESCRIPTOR_TABLE_GS_CBV].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
+	root_parameters[DESCRIPTOR_TABLE_GS_CBV].Descriptor.RegisterSpace = 0;
+	root_parameters[DESCRIPTOR_TABLE_GS_CBV].Descriptor.ShaderRegister = 0;
+	root_parameters[DESCRIPTOR_TABLE_GS_CBV].ShaderVisibility = D3D12_SHADER_VISIBILITY_GEOMETRY;
+
+	root_parameters[DESCRIPTOR_TABLE_VS_CBV].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
+	root_parameters[DESCRIPTOR_TABLE_VS_CBV].Descriptor.RegisterSpace = 0;
+	root_parameters[DESCRIPTOR_TABLE_VS_CBV].Descriptor.ShaderRegister = 0;
+	root_parameters[DESCRIPTOR_TABLE_VS_CBV].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
+
+	root_parameters[DESCRIPTOR_TABLE_PS_CBVONE].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
+	root_parameters[DESCRIPTOR_TABLE_PS_CBVONE].Descriptor.RegisterSpace = 0;
+	root_parameters[DESCRIPTOR_TABLE_PS_CBVONE].Descriptor.ShaderRegister = 0;
+	root_parameters[DESCRIPTOR_TABLE_PS_CBVONE].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+
+	root_parameters[DESCRIPTOR_TABLE_PS_CBVTWO].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
+	root_parameters[DESCRIPTOR_TABLE_PS_CBVTWO].Descriptor.RegisterSpace = 0;
+	root_parameters[DESCRIPTOR_TABLE_PS_CBVTWO].Descriptor.ShaderRegister = 1;
+	root_parameters[DESCRIPTOR_TABLE_PS_CBVTWO].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+
+	root_parameters[DESCRIPTOR_TABLE_PS_UAV].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+	root_parameters[DESCRIPTOR_TABLE_PS_UAV].DescriptorTable.NumDescriptorRanges = 1;
+	root_parameters[DESCRIPTOR_TABLE_PS_UAV].DescriptorTable.pDescriptorRanges = &desc_range_uav;
+	root_parameters[DESCRIPTOR_TABLE_PS_UAV].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+
 	root_parameters[DESCRIPTOR_TABLE_DS_SRV].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
 	root_parameters[DESCRIPTOR_TABLE_DS_SRV].DescriptorTable.NumDescriptorRanges = 1;
 	root_parameters[DESCRIPTOR_TABLE_DS_SRV].DescriptorTable.pDescriptorRanges = &desc_range_srv;
@@ -556,11 +581,6 @@ void CreateRootSignatures()
 	root_parameters[DESCRIPTOR_TABLE_HS_CBV2].Descriptor.ShaderRegister = 2;
 	root_parameters[DESCRIPTOR_TABLE_HS_CBV2].ShaderVisibility = D3D12_SHADER_VISIBILITY_HULL;
 
-	root_parameters[DESCRIPTOR_TABLE_GS_CBV].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
-	root_parameters[DESCRIPTOR_TABLE_GS_CBV].Descriptor.RegisterSpace = 0;
-	root_parameters[DESCRIPTOR_TABLE_GS_CBV].Descriptor.ShaderRegister = 0;
-	root_parameters[DESCRIPTOR_TABLE_GS_CBV].ShaderVisibility = D3D12_SHADER_VISIBILITY_GEOMETRY;
-
 	root_parameters[DESCRIPTOR_TABLE_DS_CBV0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
 	root_parameters[DESCRIPTOR_TABLE_DS_CBV0].Descriptor.RegisterSpace = 0;
 	root_parameters[DESCRIPTOR_TABLE_DS_CBV0].Descriptor.ShaderRegister = 0;
@@ -576,31 +596,13 @@ void CreateRootSignatures()
 	root_parameters[DESCRIPTOR_TABLE_DS_CBV2].Descriptor.ShaderRegister = 2;
 	root_parameters[DESCRIPTOR_TABLE_DS_CBV2].ShaderVisibility = D3D12_SHADER_VISIBILITY_DOMAIN;
 
-	root_parameters[DESCRIPTOR_TABLE_VS_CBV].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
-	root_parameters[DESCRIPTOR_TABLE_VS_CBV].Descriptor.RegisterSpace = 0;
-	root_parameters[DESCRIPTOR_TABLE_VS_CBV].Descriptor.ShaderRegister = 0;
-	root_parameters[DESCRIPTOR_TABLE_VS_CBV].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
-
-	root_parameters[DESCRIPTOR_TABLE_PS_CBVONE].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
-	root_parameters[DESCRIPTOR_TABLE_PS_CBVONE].Descriptor.RegisterSpace = 0;
-	root_parameters[DESCRIPTOR_TABLE_PS_CBVONE].Descriptor.ShaderRegister = 0;
-	root_parameters[DESCRIPTOR_TABLE_PS_CBVONE].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
-
-	root_parameters[DESCRIPTOR_TABLE_PS_CBVTWO].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
-	root_parameters[DESCRIPTOR_TABLE_PS_CBVTWO].Descriptor.RegisterSpace = 0;
-	root_parameters[DESCRIPTOR_TABLE_PS_CBVTWO].Descriptor.ShaderRegister = 1;
-	root_parameters[DESCRIPTOR_TABLE_PS_CBVTWO].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
-
-	root_parameters[DESCRIPTOR_TABLE_PS_UAV].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-	root_parameters[DESCRIPTOR_TABLE_PS_UAV].DescriptorTable.NumDescriptorRanges = 1;
-	root_parameters[DESCRIPTOR_TABLE_PS_UAV].DescriptorTable.pDescriptorRanges = &desc_range_uav;
-	root_parameters[DESCRIPTOR_TABLE_PS_UAV].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+	
 
 	D3D12_ROOT_SIGNATURE_DESC root_signature_desc = {};
 	root_signature_desc.pParameters = root_parameters;
 	root_signature_desc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
 
-	root_signature_desc.NumParameters = ARRAYSIZE(root_parameters);
+	root_signature_desc.NumParameters = g_ActiveConfig.TessellationEnabled() ? NUM_GRAPHICS_ROOT_PARAMETERS : DESCRIPTOR_TABLE_PS_SAMPLER + 1;
 
 	ComPtr<ID3DBlob> text_root_signature_blob;
 	ComPtr<ID3DBlob> text_root_signature_error_blob;
@@ -835,9 +837,7 @@ void Present()
 
 	command_list_mgr->ExecuteQueuedWorkAndPresent(s_swap_chain.Get(), g_ActiveConfig.IsVSync() ? 1 : 0, present_flags);
 
-	command_list_mgr->m_cpu_access_last_frame = command_list_mgr->m_cpu_access_this_frame;
-	command_list_mgr->m_cpu_access_this_frame = false;
-	command_list_mgr->m_draws_since_last_execution = 0;
+	
 }
 
 HRESULT SetFullscreenState(bool enable_fullscreen)

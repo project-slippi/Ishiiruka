@@ -242,6 +242,7 @@ struct VideoConfig final
 		bool bSupportsScaling;
 		bool bSupportsComputeTextureDecoding;
 		bool bSupportsComputeTextureEncoding;
+		bool bSupportsRuntimeTessellationSwitch;
 	} backend_info;
 
 	// Utility
