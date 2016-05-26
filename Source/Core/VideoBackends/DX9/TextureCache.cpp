@@ -93,7 +93,7 @@ bool TextureCache::TCacheEntry::Save(const std::string& filename, u32 level)
 	if (FAILED(hr))
 		return false;
 
-	hr = PD3DXSaveSurfaceToFileA(filename.c_str(), D3DXIFF_PNG, surface, NULL, NULL);
+	hr = PD3DXSaveSurfaceToFileA(filename.c_str(), this->compressed ? D3DXIFF_DDS : D3DXIFF_PNG, surface, NULL, NULL);
 	surface->Release();
 
 	return SUCCEEDED(hr);

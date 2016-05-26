@@ -5,7 +5,9 @@
 #include "Common/Arm64Emitter.h"
 #include "Common/CommonTypes.h"
 #include "Common/JitRegister.h"
+#include "Common/MathUtil.h"
 #include "Core/CoreTiming.h"
+#include "Core/HW/CPU.h"
 #include "Core/HW/Memmap.h"
 #include "Core/PowerPC/PowerPC.h"
 #include "Core/PowerPC/JitArm64/Jit.h"
@@ -46,12 +48,36 @@ void JitArm64::GenerateAsm()
 
 		dispatcherNoCheck = GetCodePtr();
 
-		// This block of code gets the address of the compiled block of code
-		// It runs though to the compiling portion if it isn't found
-		BFM(DISPATCHER_PC, WSP, 3, 2); // Wipe the top 3 bits. Same as PC & JIT_ICACHE_MASK
+		FixupBranch exram, vmem, not_exram, not_vmem;
+		ARM64Reg pc_masked = W25;
+		ARM64Reg cache_base = X27;
 
-		MOVI2R(X27, (u64)jit->GetBlockCache()->iCache.data());
-		LDR(W27, X27, EncodeRegTo64(DISPATCHER_PC));
+		// VMEM
+		not_vmem = TBZ(DISPATCHER_PC, IntLog2(JIT_ICACHE_VMEM_BIT));
+		ANDI2R(pc_masked, DISPATCHER_PC, JIT_ICACHE_MASK);
+		MOVI2R(cache_base, (u64)jit->GetBlockCache()->iCacheVMEM.data());
+		vmem = B();
+		SetJumpTarget(not_vmem);
+
+		if (SConfig::GetInstance().bWii)
+		{
+			// Wii EX-RAM
+			not_exram = TBZ(DISPATCHER_PC, IntLog2(JIT_ICACHE_EXRAM_BIT));
+			ANDI2R(pc_masked, DISPATCHER_PC, JIT_ICACHEEX_MASK);
+			MOVI2R(cache_base, (u64)jit->GetBlockCache()->iCacheEx.data());
+			exram = B();
+			SetJumpTarget(not_exram);
+		}
+
+		// Common memory
+		ANDI2R(pc_masked, DISPATCHER_PC, JIT_ICACHE_MASK);
+		MOVI2R(cache_base, (u64)jit->GetBlockCache()->iCache.data());
+
+		SetJumpTarget(vmem);
+		if (SConfig::GetInstance().bWii)
+			SetJumpTarget(exram);
+
+		LDR(W27, cache_base, EncodeRegTo64(pc_masked));
 
 		FixupBranch JitBlock = TBNZ(W27, 7); // Test the 7th bit
 			// Success, it is our Jitblock.
@@ -64,9 +90,10 @@ void JitArm64::GenerateAsm()
 		SetJumpTarget(JitBlock);
 
 		STR(INDEX_UNSIGNED, DISPATCHER_PC, PPC_REG, PPCSTATE_OFF(pc));
-
 		MOVI2R(X30, (u64)&::Jit);
 		BLR(X30);
+
+		LDR(INDEX_UNSIGNED, DISPATCHER_PC, PPC_REG, PPCSTATE_OFF(pc));
 
 		B(dispatcherNoCheck);
 
@@ -84,7 +111,7 @@ void JitArm64::GenerateAsm()
 
 		// Check the state pointer to see if we are exiting
 		// Gets checked on at the end of every slice
-		MOVI2R(X0, (u64)PowerPC::GetStatePtr());
+		MOVI2R(X0, (u64)CPU::GetStatePtr());
 		LDR(INDEX_UNSIGNED, W0, X0, 0);
 
 		CMP(W0, 0);
@@ -94,10 +121,6 @@ void JitArm64::GenerateAsm()
 
 	SetJumpTarget(Exit);
 	STR(INDEX_UNSIGNED, DISPATCHER_PC, PPC_REG, PPCSTATE_OFF(pc));
-
-	// Let the waiting thread know we are done leaving
-	MOVI2R(X0, (u64)&PowerPC::FinishStateMove);
-	BLR(X0);
 
 	ABI_PopRegisters(regs_to_save);
 	RET(X30);

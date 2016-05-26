@@ -6,6 +6,8 @@
 
 #include <string>
 #include "Common/Common.h"
+#include "VideoCommon/ImageLoader.h"
 
 bool SaveData(const std::string& filename, const std::string& data);
 bool TextureToPng(u8* data, int row_stride, const std::string& filename, int width, int height, bool saveAlpha = true);
+bool TextureToDDS(u8* data, int row_stride, const std::string& filename, int width, int height, DDSCompression format = DDSCompression::DDSC_DXT3);

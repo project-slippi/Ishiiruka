@@ -124,8 +124,20 @@ bool TextureCache::TCacheEntry::Save(const std::string& filename, unsigned int l
 {
 	u32 level_width = std::max(config.width >> level, 1u);
 	u32 level_height = std::max(config.height >> level, 1u);
-	size_t level_pitch = ROUND_UP(level_width * sizeof(u32), D3D12_TEXTURE_DATA_PITCH_ALIGNMENT);
-	size_t required_readback_buffer_size = level_pitch * level_height;
+	size_t level_pitch = level_width;
+	size_t num_lines = level_height;	
+	if (this->compressed)
+	{
+		level_pitch = (level_pitch + 3) >> 2;
+		level_pitch *= 16; // Size of the bc2 block
+		num_lines = (num_lines + 3) >> 2;
+	}
+	else
+	{
+		level_pitch *= sizeof(u32);
+	}
+	level_pitch = ROUND_UP(level_pitch, D3D12_TEXTURE_DATA_PITCH_ALIGNMENT);
+	size_t required_readback_buffer_size = level_pitch * num_lines;
 
 	// Check if the current readback buffer is large enough
 	if (required_readback_buffer_size > s_texture_cache_entry_readback_buffer_size)
@@ -150,7 +162,7 @@ bool TextureCache::TCacheEntry::Save(const std::string& filename, unsigned int l
 	dst_location.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
 	dst_location.PlacedFootprint.Offset = 0;
 	dst_location.PlacedFootprint.Footprint.Depth = 1;
-	dst_location.PlacedFootprint.Footprint.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	dst_location.PlacedFootprint.Footprint.Format = this->DXGI_format;
 	dst_location.PlacedFootprint.Footprint.Width = level_width;
 	dst_location.PlacedFootprint.Footprint.Height = level_height;
 	dst_location.PlacedFootprint.Footprint.RowPitch = static_cast<UINT>(level_pitch);
@@ -166,13 +178,28 @@ bool TextureCache::TCacheEntry::Save(const std::string& filename, unsigned int l
 	D3D12_RANGE read_range = { 0, required_readback_buffer_size };
 	CheckHR(s_texture_cache_entry_readback_buffer->Map(0, &read_range, &readback_texture_map));
 
-	bool saved = TextureToPng(
-		static_cast<u8*>(readback_texture_map),
-		dst_location.PlacedFootprint.Footprint.RowPitch,
-		filename,
-		dst_location.PlacedFootprint.Footprint.Width,
-		dst_location.PlacedFootprint.Footprint.Height
+	bool saved = false;
+	if (this->compressed)
+	{
+		saved = TextureToDDS(
+			static_cast<u8*>(readback_texture_map),
+			dst_location.PlacedFootprint.Footprint.RowPitch,
+			filename,
+			dst_location.PlacedFootprint.Footprint.Width,
+			dst_location.PlacedFootprint.Footprint.Height
 		);
+	}
+	else
+	{
+		saved = TextureToPng(
+			static_cast<u8*>(readback_texture_map),
+			dst_location.PlacedFootprint.Footprint.RowPitch,
+			filename,
+			dst_location.PlacedFootprint.Footprint.Width,
+			dst_location.PlacedFootprint.Footprint.Height
+		);
+	}
+	
 	D3D12_RANGE write_range = {};
 	s_texture_cache_entry_readback_buffer->Unmap(0, &write_range);
 	return saved;

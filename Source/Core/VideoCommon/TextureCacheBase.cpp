@@ -455,7 +455,7 @@ void TextureCacheBase::DumpTexture(TCacheEntryBase* entry, std::string basename,
 	{
 		basename += StringFromFormat("_mip%i", level);
 	}
-	std::string filename = szDir + "/" + basename + ".png";
+	std::string filename = szDir + "/" + basename + ((entry->config.pcformat >= PC_TEX_FMT_DXT1) ? ".dds" : ".png");
 
 	if (!File::Exists(filename))
 		entry->Save(filename, level);

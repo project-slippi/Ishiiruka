@@ -13,9 +13,6 @@
 #include "Core/HW/AudioInterface.h"
 #include "Core/HW/VideoInterface.h"
 
-// UGLINESS
-#include "Core/PowerPC/PowerPC.h"
-
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
 #endif
@@ -154,12 +151,6 @@ u32 CMixer::Mix(s16* samples, u32 num_samples, bool consider_framelimit)
 	if (!samples)
 		return 0;
 	std::lock_guard<std::mutex> lk(m_cs_mixing);
-	if (PowerPC::GetState() != PowerPC::CPU_RUNNING)
-	{
-		// Silence
-		memset(samples, 0, num_samples * 2 * sizeof(s16));
-		return num_samples;
-	}
 	// reset float output buffer
 	m_output_buffer.resize(num_samples * 2);
 	std::fill_n(m_output_buffer.begin(), num_samples * 2, 0.f);
@@ -185,11 +176,6 @@ u32 CMixer::Mix(float* samples, u32 num_samples, bool consider_framelimit)
 		return 0;
 	std::lock_guard<std::mutex> lk(m_cs_mixing);
 	memset(samples, 0, num_samples * 2 * sizeof(float));
-	if (PowerPC::GetState() != PowerPC::CPU_RUNNING)
-	{
-		// Silence		
-		return num_samples;
-	}
 	m_dma_mixer.Mix(samples, num_samples, consider_framelimit);
 	m_streaming_mixer.Mix(samples, num_samples, consider_framelimit);
 	m_wiimote_speaker_mixer.Mix(samples, num_samples, consider_framelimit);

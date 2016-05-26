@@ -74,19 +74,29 @@ static std::unique_ptr<Depalettizer> s_depaletizer;
 static std::unique_ptr<TextureScaler> s_scaler;
 static std::pair<u8*, u32> s_last_pallet_Buffer;
 static TlutFormat s_last_TlutFormat = TlutFormat::GX_TL_IA8;
-bool SaveTexture(const std::string& filename, u32 textarget, u32 tex, int virtual_width, int virtual_height, u32 level)
+bool SaveTexture(const std::string& filename, u32 textarget, u32 tex, int virtual_width, int virtual_height, u32 level, bool compressed = false)
 {
 	if (GLInterface->GetMode() != GLInterfaceMode::MODE_OPENGL)
 		return false;
 	int width = std::max(virtual_width >> level, 1);
 	int height = std::max(virtual_height >> level, 1);
-	std::vector<u8> data(width * height * 4);
+	int size = compressed ? (((width + 3) >> 2) * ((height + 3) >> 2) * 16) : (width * height * 4);
+	std::vector<u8> data(size);
 	glActiveTexture(GL_TEXTURE9);
 	glBindTexture(textarget, tex);
-	glGetTexImage(textarget, level, GL_RGBA, GL_UNSIGNED_BYTE, data.data());
+	bool saved = false;
+	if (compressed)
+	{
+		glGetCompressedTexImage(textarget, level, data.data());
+		saved = TextureToDDS(data.data(), width * 4, filename, width, height);
+	}
+	else
+	{
+		glGetTexImage(textarget, level, GL_RGBA, GL_UNSIGNED_BYTE, data.data());
+		saved = TextureToPng(data.data(), width * 4, filename, width, height);
+	}
 	TextureCache::SetStage();
-
-	return TextureToPng(data.data(), width * 4, filename, width, height, true);
+	return saved;
 }
 
 TextureCache::TCacheEntry::~TCacheEntry()
@@ -144,7 +154,7 @@ void TextureCache::TCacheEntry::Bind(u32 stage, u32 last_texture)
 
 bool TextureCache::TCacheEntry::Save(const std::string& filename, u32 level)
 {
-	return SaveTexture(filename, GL_TEXTURE_2D_ARRAY, texture, config.width, config.height, level);
+	return SaveTexture(filename, GL_TEXTURE_2D_ARRAY, texture, config.width, config.height, level, this->compressed);
 }
 
 PC_TexFormat TextureCache::GetNativeTextureFormat(const s32 texformat, const TlutFormat tlutfmt, u32 width, u32 height)

@@ -31,17 +31,13 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ImageLoader.h"
 #include "Common/Common.h"
-#ifndef _WIN32
-#define BYTE u8
-#define DWORD u32
-#endif
+#include "ImageWrite.h"
 
-#define MAKEFOURCC(ch0, ch1, ch2, ch3)                              \
-	((DWORD)(BYTE)(ch0) | ((DWORD)(BYTE)(ch1) << 8) |   \
-	((DWORD)(BYTE)(ch2) << 16) | ((DWORD)(BYTE)(ch3) << 24 ))
+#define MAKEFOURCC(ch0, ch1, ch2, ch3) ((u32)(u8)(ch0) | ((u32)(u8)(ch1) << 8) | ((u32)(u8)(ch2) << 16) | ((u32)(u8)(ch3) << 24 ))
 	/*
 	* FOURCC codes for DX compressed-texture pixel formats
 	*/
+#define DDS_SIGNARURE (MAKEFOURCC('D','D','S',' '))
 #define FOURCC_DXT1  (MAKEFOURCC('D','X','T','1'))
 #define FOURCC_DXT3  (MAKEFOURCC('D','X','T','3'))
 #define FOURCC_DXT5  (MAKEFOURCC('D','X','T','5'))
@@ -63,7 +59,6 @@
 #define DDPF_ALPHAPIXELS	0x00000001
 #define DDPF_FOURCC	0x00000004
 #define DDPF_RGB	0x00000040
-const u32 DDSSignature = ('D' << 0) | ('D' << 8) | ('S' << 16) | (' ' << 24);
 
 typedef struct _DDPIXELFORMAT
 {
@@ -194,7 +189,7 @@ DDSCompression ImageLoader::ReadDDS(ImageLoaderParams& loader_params)
 
 	// Get the surface descriptor
 	u32 readedsize = (u32)fread(&ddsd, sizeof(ddsd), 1, pFile);
-	if (ddsd.dwSignature != DDSSignature || ddsd.dwSize != 124)
+	if (ddsd.dwSignature != DDS_SIGNARURE || ddsd.dwSize != 124)
 	{
 		fclose(pFile);
 		return Result;
@@ -305,4 +300,47 @@ DDSCompression ImageLoader::ReadDDS(ImageLoaderParams& loader_params)
 	loader_params.Height = ddsd.dwHeight;
 	loader_params.nummipmaps = ddsd.dwMipMapCount;
 	return Result;
+}
+
+bool TextureToDDS(u8* data, int row_stride, const std::string& filename, int width, int height, DDSCompression format)
+{
+	DDSHeader header = {0};
+	header.dwSignature = DDS_SIGNARURE;
+	header.dwSize = 124;
+	header.dwFlags = DDSD_CAPS | DDSD_HEIGHT | DDSD_WIDTH | DDSD_PIXELFORMAT;
+	header.ddpfPixelFormat.dwFlags = DDPF_FOURCC | DDPF_RGB;
+	header.ddpfPixelFormat.dwSize = 32;
+	header.dwWidth = width;
+	header.dwHeight = height;
+	switch (format)
+	{
+	case DDSC_DXT1:
+		header.ddpfPixelFormat.dwFourCC = FOURCC_DXT1;
+		break;
+	case DDSC_DXT3:
+		header.ddpfPixelFormat.dwFourCC = FOURCC_DXT3;
+		break;
+	case DDSC_DXT5:
+		header.ddpfPixelFormat.dwFourCC = FOURCC_DXT5;
+		break;
+	default:
+		break;
+	}
+	header.dwLinearSize = ((header.dwWidth + 3) >> 2)*((header.dwHeight + 3) >> 2) * 16;
+	header.dwMipMapCount = 1;
+	File::IOFile fp(filename, "wb");
+	if(!fp.IsOpen())
+	{
+		PanicAlertT("Screenshot failed: Could not open file %s %d", filename.c_str(), errno);
+		return false;
+	}
+	fp.WriteBytes(&header, sizeof(DDSHeader));
+	u32 ddstride = ((header.dwWidth + 3) >> 2) * 16;
+	u32 lines = ((header.dwHeight + 3) >> 2);
+	for (size_t i = 0; i < lines; i++)
+	{
+		fp.WriteBytes(data, ddstride);
+		data += row_stride;
+	}
+	return true;
 }
