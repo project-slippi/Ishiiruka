@@ -2124,7 +2124,7 @@ inline void GeneratePixelShader(ShaderCode& out, const pixel_shader_uid_data& ui
 	if (forcePhong)
 	{
 		out.Write(
-			"prev.rgb += wu3(clamp(prev.rgb + " I_PPHONG "[0].xxx, 0.0,255.0)*pow(spec.w, " I_PPHONG "[0].y)*" I_PPHONG "[0].z);\n"
+			"prev.rgb += wu3(clamp(prev.rgb + " I_PPHONG "[0].xxx, 0.0,255.0)*pow(spec.w, " I_PPHONG "[0].y)*" I_PPHONG "[0].z * normalmap.w);\n"
 			"prev.rgb += wu3(spec.rgb * normalmap.w * " I_PPHONG "[0].w);\n"
 		);
 	}
