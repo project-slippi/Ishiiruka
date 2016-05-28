@@ -135,7 +135,10 @@ namespace DX11
 		const u32 components,
 		bool ongputhread)
 	{
-		if (primitiveType != PrimitiveType::PRIMITIVE_TRIANGLES || !g_ActiveConfig.TessellationEnabled() || !g_ActiveConfig.PixelLightingEnabled(xfr, components))
+		if (!(primitiveType == PrimitiveType::PRIMITIVE_TRIANGLES 
+			&& g_ActiveConfig.TessellationEnabled()
+			&& xfr.projection.type == GX_PERSPECTIVE
+			&& (g_ActiveConfig.bForcedLighting || g_ActiveConfig.PixelLightingEnabled(xfr, components))))
 		{
 			if (ongputhread)
 			{

@@ -213,21 +213,7 @@ void GetTessellationShaderUID(TessellationShaderUid& out, const XFMemory& xfr, c
 	uid_data.stereo = g_ActiveConfig.iStereoMode > 0;
 	bool enable_pl = g_ActiveConfig.PixelLightingEnabled(xfr, components);
 	uid_data.pixel_lighting = enable_pl;
-	bool enable_diffuse_ligthing = false;
-	if (enable_pl)
-	{
-		for (u32 i = 0; i < xfr.numChan.numColorChans; i++)
-		{
-			const LitChannel& color = xfr.color[i];
-			const LitChannel& alpha = xfr.alpha[i];
-			if (color.enablelighting || alpha.enablelighting)
-			{
-				enable_diffuse_ligthing = true;
-				break;
-			}
-		}
-	}
-	bool enablenormalmaps = enable_diffuse_ligthing && g_ActiveConfig.HiresMaterialMapsEnabled();
+	bool enablenormalmaps = g_ActiveConfig.HiresMaterialMapsEnabled();
 	if (enablenormalmaps)
 	{
 		enablenormalmaps = false;
@@ -463,7 +449,7 @@ inline void GenerateTessellationShader(ShaderCode& out, const Tessellation_shade
 		"};\n");
 
 	out.Write("struct VS_OUTPUT {\n");
-	GenerateVSOutputMembers<ApiType>(out, normalpresent, uid_data.numTexGens);
+	GenerateVSOutputMembers<ApiType>(out, true, uid_data.numTexGens);
 	out.Write("};\n");
 
 	if (ApiType == API_OPENGL)
@@ -677,10 +663,7 @@ inline void GenerateTessellationShader(ShaderCode& out, const Tessellation_shade
 		if (uid_data.numTexGens < 7)
 		{
 			out.Write("result.clipPos = float4(position.xy, result.pos.zw);\n");
-			if (normalpresent)
-			{
-				out.Write("result.Normal = float4(normal.xyz, position.z);\n");
-			}
+			out.Write("result.Normal = float4(normal.xyz, position.z);\n");
 		}
 		else
 		{
@@ -690,12 +673,9 @@ inline void GenerateTessellationShader(ShaderCode& out, const Tessellation_shade
 				"result.tex1.w = position.y;\n"
 				"result.tex2.w = result.pos.z;\n"
 				"result.tex3.w = result.pos.w;\n");
-			if (normalpresent)
-			{
-				out.Write("result.tex4.w = normal.x;\n"
+			out.Write("result.tex4.w = normal.x;\n"
 					"result.tex5.w = normal.y;\n"
 					"result.tex6.w = normal.z;\n");
-			}
 
 			if (uid_data.numTexGens < 8)
 				out.Write("result.tex7 = position.xyzz;\n");

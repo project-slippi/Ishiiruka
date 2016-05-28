@@ -421,7 +421,7 @@ void ShaderCache::HandleTSUIDChange(
 	u32 gs_primitive_type,
 	bool on_gpu_thread)
 {
-	if (!(gs_primitive_type == PrimitiveType::PRIMITIVE_TRIANGLES && g_ActiveConfig.TessellationEnabled() && ts_uid.GetUidData().pixel_lighting))
+	if (!(gs_primitive_type == PrimitiveType::PRIMITIVE_TRIANGLES && g_ActiveConfig.TessellationEnabled() && (ts_uid.GetUidData().pixel_lighting || g_ActiveConfig.bForcedLighting)))
 	{
 		if (on_gpu_thread)
 		{

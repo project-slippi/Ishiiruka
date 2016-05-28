@@ -156,6 +156,7 @@ protected:
 	SettingCheckBox* pixel_lighting;
 	SettingCheckBox* phong_lighting;
 	SettingCheckBox* tessellation;
+	SettingCheckBox* forcedlight;
 	SettingCheckBox* sim_bump;
 	wxStaticText* label_TextureScale;
 	SettingCheckBox* borderless_fullscreen;

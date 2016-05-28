@@ -179,6 +179,7 @@ static wxString stereo_swap_desc = _("Swap the left and right eye, mostly useful
 static const char *s_bbox_mode_text[] = { "Disabled", "CPU", "GPU" };
 static wxString texture_scaling_desc = _("Apply the selected scaling algorithm to improve texture quality.");
 static wxString Tessellation_desc = _("Apply the selected Tessellation levels to increase geometry detail.");
+static wxString Tessellation_forced_lights_desc = _("Force Lighting in all 3d elements.");
 static wxString Tessellation_early_culling_desc = _("Remove surfaces outside the viewport before Tessellation to increase performace. Can cause glitches if the camera is near a surface.");
 static wxString Tessellation_distance_desc = _("Decay of Tessellation level in the distance. High values reduce tesselation amounts depending on the distance to the camera.");
 static wxString Tessellation_max_desc = _("Maximum Tessellation level applied. The real tessellation level will depend on the size in pixels of the triangle and will be at most the value selected here.");
@@ -623,7 +624,7 @@ VideoConfigDiag::VideoConfigDiag(wxWindow* parent, const std::string &title, con
 			szr_tessellation->Add(new wxStaticText(page_enh, wxID_ANY, _("Maximun Detail:")), 1, wxALIGN_CENTER_VERTICAL, 0);
 			szr_tessellation->Add(max_slider, 1, wxEXPAND | wxRIGHT);
 
-			szr_tessellation->AddSpacer(0);
+			szr_tessellation->Add(forcedlight = CreateCheckBox(page_enh, _("Forced Lighting"), (Tessellation_forced_lights_desc), vconfig.bForcedLighting), 1, wxALIGN_CENTER_VERTICAL, 0);
 
 			wxSlider* const round_slider = new wxSlider(page_enh, wxID_ANY, vconfig.iTessellationRoundingIntensity, 0, 100, wxDefaultPosition, wxDefaultSize);
 			round_slider->Bind(wxEVT_SLIDER, &VideoConfigDiag::Event_TessellationRounding, this);
@@ -1408,6 +1409,8 @@ void VideoConfigDiag::OnUpdateUI(wxUpdateUIEvent& ev)
 	// pixel lighting
 	pixel_lighting->Enable(vconfig.backend_info.bSupportsPixelLighting);
 	phong_lighting->Enable(vconfig.backend_info.bSupportsPixelLighting && vconfig.bEnablePixelLighting);
+	tessellation->Enable(vconfig.backend_info.bSupportsPixelLighting && vconfig.bEnablePixelLighting);
+	forcedlight->Enable(vconfig.backend_info.bSupportsPixelLighting && vconfig.bEnablePixelLighting && vconfig.TessellationEnabled());
 	sim_bump->Enable(phongEnabled);
 	group_phong->Show(phongEnabled);
 #if defined WIN32

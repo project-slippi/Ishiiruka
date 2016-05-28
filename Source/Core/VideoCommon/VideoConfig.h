@@ -166,6 +166,7 @@ struct VideoConfig final
 	std::string sPhackvalue[2];
 	float fAspectRatioHackW, fAspectRatioHackH;
 	bool bEnablePixelLighting;
+	bool bForcedLighting;
 	bool bForcePhongShading;
 	int iRimPower;
 	int iRimIntesity; 
@@ -250,7 +251,7 @@ struct VideoConfig final
 	inline bool VirtualXFBEnabled() const { return bUseXFB && !bUseRealXFB; }
 	inline bool ExclusiveFullscreenEnabled() const { return backend_info.bSupportsExclusiveFullscreen && !bBorderlessFullscreen; }
 	inline bool HiresMaterialMapsEnabled() const { return backend_info.bSupportsNormalMaps && bHiresTextures && bHiresMaterialMaps; }
-	inline bool TessellationEnabled() const { return backend_info.bSupportsTessellation && bTessellation; }
+	inline bool TessellationEnabled() const { return backend_info.bSupportsTessellation && bTessellation && bEnablePixelLighting; }
 };
 
 extern VideoConfig g_Config;

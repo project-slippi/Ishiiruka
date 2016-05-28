@@ -88,6 +88,8 @@ void VideoConfig::Load(const std::string& ini_file)
 	settings->Get("FreeLook", &bFreeLook, 0);
 	settings->Get("UseFFV1", &bUseFFV1, 0);
 	settings->Get("EnablePixelLighting", &bEnablePixelLighting, 0);
+	settings->Get("ForcedLighting", &bForcedLighting, 0);
+	
 	settings->Get("ForcePhongShading", &bForcePhongShading, 0);
 	settings->Get("RimPower", &iRimPower, 80);
 	settings->Get("RimIntesity", &iRimIntesity, 0);
@@ -221,6 +223,8 @@ void VideoConfig::GameIniLoad()
 	CHECK_SETTING("Video_Settings", "CacheHiresTextures", bCacheHiresTextures);
 	CHECK_SETTING("Video_Settings", "CacheHiresTexturesonGPU", bCacheHiresTexturesGPU);
 	CHECK_SETTING("Video_Settings", "EnablePixelLighting", bEnablePixelLighting);
+	CHECK_SETTING("Video_Settings", "ForcedLighting", bForcedLighting);
+	
 	CHECK_SETTING("Video_Settings", "ForcePhongShading", bForcePhongShading);
 	CHECK_SETTING("Video_Settings", "RimPower", iRimPower);
 	CHECK_SETTING("Video_Settings", "RimIntesity", iRimIntesity);
@@ -331,6 +335,7 @@ void VideoConfig::VerifyValidity()
 		iMultisamples = 1;
 	if (!backend_info.bSupportsPixelLighting) bEnablePixelLighting = false;
 	bForcePhongShading = bForcePhongShading && bEnablePixelLighting;
+	bForcedLighting = bForcedLighting && bEnablePixelLighting;
 	iRimPower = std::min(std::max(iRimPower, 0), 255);
 	iRimIntesity = std::min(std::max(iRimIntesity, 0), 255);
 	iRimBase = std::min(std::max(iRimBase, 0), 127);
@@ -419,6 +424,7 @@ void VideoConfig::Save(const std::string& ini_file)
 	settings->Set("FreeLook", bFreeLook);
 	settings->Set("UseFFV1", bUseFFV1);
 	settings->Set("EnablePixelLighting", bEnablePixelLighting);
+	settings->Set("ForcedLighting", bForcedLighting);
 	settings->Set("ForcePhongShading", bForcePhongShading);
 	settings->Set("RimPower", iRimPower);
 	settings->Set("RimIntesity", iRimIntesity);

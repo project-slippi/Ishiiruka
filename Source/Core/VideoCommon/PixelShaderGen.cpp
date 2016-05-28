@@ -474,7 +474,9 @@ void GetPixelShaderUID(PixelShaderUid& out, PIXEL_SHADER_RENDER_MODE render_mode
 		&& ((bpm.ztex2.op != ZTEXTURE_DISABLE && bpm.UseLateDepthTest())
 			|| (!g_ActiveConfig.bFastDepthCalc && !forced_early_z)
 			|| bpm.genMode.zfreeze);
-	bool enable_pl = g_ActiveConfig.PixelLightingEnabled(xfr, components);
+	bool forced_lighting_enabled = g_ActiveConfig.TessellationEnabled() && xfr.projection.type == GX_PERSPECTIVE && g_ActiveConfig.bForcedLighting;
+	bool enable_pl = g_ActiveConfig.PixelLightingEnabled(xfr, components)
+		|| forced_lighting_enabled;
 	uid_data.render_mode = render_mode;
 	uid_data.per_pixel_depth = per_pixel_depth;
 	uid_data.pixel_lighting = enable_pl;
@@ -506,7 +508,7 @@ void GetPixelShaderUID(PixelShaderUid& out, PIXEL_SHADER_RENDER_MODE render_mode
 			}
 		}
 	}
-	bool enablenormalmaps = enable_diffuse_ligthing && g_ActiveConfig.HiresMaterialMapsEnabled();
+	bool enablenormalmaps = (enable_diffuse_ligthing || forced_lighting_enabled) && g_ActiveConfig.HiresMaterialMapsEnabled();
 	if (enablenormalmaps)
 	{
 		enablenormalmaps = false;
@@ -520,7 +522,7 @@ void GetPixelShaderUID(PixelShaderUid& out, PIXEL_SHADER_RENDER_MODE render_mode
 		}
 	}
 	uid_data.pixel_normals = enablenormalmaps ? 1 : 0;
-	if (g_ActiveConfig.bForcePhongShading && enable_diffuse_ligthing)
+	if (g_ActiveConfig.bForcePhongShading && (enable_diffuse_ligthing || forced_lighting_enabled))
 	{
 		uid_data.pixel_lighting = 2;
 		if (g_ActiveConfig.bSimBumpEnabled)
