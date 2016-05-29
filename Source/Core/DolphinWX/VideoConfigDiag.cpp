@@ -1409,8 +1409,11 @@ void VideoConfigDiag::OnUpdateUI(wxUpdateUIEvent& ev)
 	// pixel lighting
 	pixel_lighting->Enable(vconfig.backend_info.bSupportsPixelLighting);
 	phong_lighting->Enable(vconfig.backend_info.bSupportsPixelLighting && vconfig.bEnablePixelLighting);
-	tessellation->Enable(vconfig.backend_info.bSupportsPixelLighting && vconfig.bEnablePixelLighting);
-	forcedlight->Enable(vconfig.backend_info.bSupportsPixelLighting && vconfig.bEnablePixelLighting && vconfig.TessellationEnabled());
+	if (vconfig.backend_info.bSupportsTessellation)
+	{
+		tessellation->Enable(vconfig.backend_info.bSupportsPixelLighting && vconfig.bEnablePixelLighting);
+		forcedlight->Enable(vconfig.backend_info.bSupportsPixelLighting && vconfig.bEnablePixelLighting && vconfig.TessellationEnabled());
+	}
 	sim_bump->Enable(phongEnabled);
 	group_phong->Show(phongEnabled);
 #if defined WIN32
