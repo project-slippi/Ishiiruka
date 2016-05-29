@@ -80,7 +80,7 @@ float CalcTessFactor(float3 Origin, float Diameter)
 {
 	float distance = 1.0 - saturate(length(Origin) * )hlsl" I_TESSPARAMS R"hlsl(.x);
 	distance = distance * distance;
-	return round(max(1.0,)hlsl" I_TESSPARAMS R"hlsl(.y * GetScreenSize(Origin,Diameter) * distance));
+	return round(max(4.0,)hlsl" I_TESSPARAMS R"hlsl(.y * GetScreenSize(Origin,Diameter) * distance));
 }
 ConstantOutput TConstFunc(InputPatch<VS_OUTPUT, 3> patch)
 {
@@ -548,13 +548,7 @@ inline void GenerateTessellationShader(ShaderCode& out, const Tessellation_shade
 		out.Write("float3 edge0 = pos[1].xyz - pos[0].xyz;\n"
 			"float3 edge2 = pos[2].xyz - pos[0].xyz;\n"
 			"float3 faceNormal = normalize(cross(edge2, edge0));\n");
-		if (normalpresent)
-		{
-			out.Write("result.Normal[0] *= dot(result.Normal[0], faceNormal) < -0.1 ? -1.0: 1.0;\n");
-			out.Write("result.Normal[1] *= dot(result.Normal[1], faceNormal) < -0.1 ? -1.0: 1.0;\n");
-			out.Write("result.Normal[2] *= dot(result.Normal[2], faceNormal) < -0.1 ? -1.0: 1.0;\n");
-		}
-		else
+		if (!normalpresent)
 		{
 			out.Write("result.Normal[0] = float4(faceNormal, 1.0f);\n");
 			out.Write("result.Normal[1] = result.Normal[0];\n");

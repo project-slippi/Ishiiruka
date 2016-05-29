@@ -646,6 +646,11 @@ VideoConfigDiag::VideoConfigDiag(wxWindow* parent, const std::string &title, con
 			group_Tessellation->Add(szr_tessellation, 1, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 5);
 			szr_enh_main->Add(group_Tessellation, 0, wxEXPAND | wxALL, 5);
 		}
+		else
+		{
+			tessellation = nullptr;
+			forcedlight = nullptr;
+		}
 		szr_enh_main->AddStretchSpacer();
 		CreateDescriptionArea(page_enh, szr_enh_main);
 		page_enh->SetSizerAndFit(szr_enh_main);
@@ -1409,9 +1414,12 @@ void VideoConfigDiag::OnUpdateUI(wxUpdateUIEvent& ev)
 	// pixel lighting
 	pixel_lighting->Enable(vconfig.backend_info.bSupportsPixelLighting);
 	phong_lighting->Enable(vconfig.backend_info.bSupportsPixelLighting && vconfig.bEnablePixelLighting);
-	if (vconfig.backend_info.bSupportsTessellation)
+	if (tessellation)
 	{
-		tessellation->Enable(vconfig.backend_info.bSupportsPixelLighting && vconfig.bEnablePixelLighting);
+		tessellation->Enable(vconfig.backend_info.bSupportsPixelLighting && vconfig.bEnablePixelLighting);		
+	}
+	if (forcedlight)
+	{
 		forcedlight->Enable(vconfig.backend_info.bSupportsPixelLighting && vconfig.bEnablePixelLighting && vconfig.TessellationEnabled());
 	}
 	sim_bump->Enable(phongEnabled);
