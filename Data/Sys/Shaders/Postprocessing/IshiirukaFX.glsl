@@ -1,5 +1,5 @@
 /*===============================================================================*\
-|########################        [Ishiiruka FX 0.9]        ######################||
+|########################        [Ishiiruka FX 0.9.1]      ######################||
 || Credist to:                                                                   ||
 || Asmodean (DolphinFX)                                                          ||
 || Matso (MATSODOF)                                                              ||
@@ -462,6 +462,47 @@ MaxValue = 1
 StepAmount = 1
 DefaultValue = 0
 DependentOption = G_TEXTURE_SHARPEN
+
+[OptionBool]
+GUIName = Fog
+OptionName = F_FOG
+DefaultValue = False
+
+[OptionRangeFloat]
+GUIName = Density
+OptionName = C_FDENSITY
+MinValue = 0.0
+MaxValue = 1.0
+StepAmount = 0.01
+DefaultValue = 0.5
+DependentOption = F_FOG
+
+[OptionRangeFloat]
+GUIName = Start
+OptionName = A_FSTART
+MinValue = 0.0
+MaxValue = 0.5
+StepAmount = 0.01
+DefaultValue = 0.0
+DependentOption = F_FOG
+
+[OptionRangeFloat]
+GUIName = End
+OptionName = B_FEND
+MinValue = 0.5
+MaxValue = 2.0
+StepAmount = 0.01
+DefaultValue = 2.0
+DependentOption = F_FOG
+
+[OptionRangeFloat]
+GUIName = Color
+OptionName = D_FCOLOR
+MinValue = 0.0, 0.0, 0.0
+MaxValue = 1.0, 1.0, 1.0
+StepAmount = 0.01, 0.01, 0.01
+DefaultValue = 0.8, 0.9, 1.0
+DependentOption = F_FOG
 
 [OptionBool]
 GUIName = Bloom
@@ -1793,6 +1834,7 @@ float4 FxaaPass(float4 color)
 void Merger()
 {
 	float4 value = float4(1.0, 1.0, 1.0, 1.0);
+	float depth = SampleDepth();
 	if (!OptionEnabled(A_SSAO_ONLY))
 	{
 		value = Sample();
@@ -1804,7 +1846,7 @@ void Merger()
 #if A_SSAO_ENABLED != 0 || A_SSGI_ENABLED != 0
 	float3 AOCOmponent = float3(1.0, 1.0, 1.0);
 #if A_SSAO_ENABLED != 0
-	float4 blur = BilateralY(SampleDepth());
+	float4 blur = BilateralY(depth);
 	AOCOmponent = (1.0 + blur.rgb) * blur.a;
 #elif A_SSGI_ENABLED != 0
 	float2 axis = float2(1.0, 0.0);
@@ -1822,10 +1864,15 @@ void Merger()
 		value = float4(1.0, 1.0, 1.0, 1.0);
 	}
 #endif
-	float depth = SampleDepth();
 	float AOA = (GetOption(D_AOAEND) - depth) / (GetOption(D_AOAEND) - GetOption(C_AOASTART));
 	value.xyz = lerp(value.xyz, value.xyz * AOCOmponent, AOA);
 #endif
+	if (!OptionEnabled(A_SSAO_ONLY) && OptionEnabled(F_FOG))
+	{
+		float linearcomponent = (GetOption(B_FEND) - depth) / (GetOption(B_FEND) - GetOption(A_FSTART));
+		float densitycomponent = depth * GetOption(C_FDENSITY);
+		value.rgb = lerp(GetOption(D_FCOLOR), value.rgb, clamp(linearcomponent / exp(densitycomponent * densitycomponent), 0.0, 1.0));
+	}
 	SetOutput(value);
 }
 
@@ -1974,7 +2021,7 @@ void BloomMerger()
 
 	if (OptionEnabled(C_GAUSSIAN_ANAMFLARE))
 	{
-		float3 anamflare = blur.a * GetOption(C_ANAMFLARE_COLOR).rgb;
+		float3 anamflare = blur.a * GetOption(C_ANAMFLARE_COLOR).rgb * lumColor.rgb;
 		mergedcolor.rgb += pow(anamflare.rgb, 1.0 / GetOption(B_ANAMFLARE_CURVE));
 	}
 	SetOutput(mergedcolor);
