@@ -363,15 +363,14 @@ GLuint ProgramShaderCache::CompileSingleShader(GLuint type, const char* code, co
 	const u32 count)
 {
 	GLuint result = glCreateShader(type);
-
-	const char **src = new const char *[count + 2];
+	std::vector<const char*> src(count + 2);
 	src[0] = s_glsl_header;
 	for (size_t i = 0; i < count; i++)
 	{
 		src[i + 1] = macros[i];
 	}
 	src[count + 2 - 1] = code;
-	glShaderSource(result, count + 2, src, nullptr);
+	glShaderSource(result, count + 2, src.data(), nullptr);
 	glCompileShader(result);
 	GLint compileStatus;
 	glGetShaderiv(result, GL_COMPILE_STATUS, &compileStatus);
