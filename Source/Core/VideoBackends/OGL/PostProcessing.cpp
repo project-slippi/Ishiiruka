@@ -239,10 +239,23 @@ bool PostProcessingShader::CreatePasses()
 
 bool PostProcessingShader::RecompileShaders()
 {
+	std::string common_source = PostProcessor::GetCommonFragmentShaderSource(API_OPENGL, m_config);
 	for (size_t i = 0; i < m_passes.size(); i++)
 	{
 		RenderPassData& pass = m_passes[i];
 		const PostProcessingShaderConfiguration::RenderPass& pass_config = m_config->GetPass(i);
+
+		int color_buffer_index = 0;
+		int depth_buffer_index = 0;
+		int prev_output_index = 0;
+
+		pass_config.GetInputLocations(color_buffer_index, depth_buffer_index, prev_output_index);
+		
+		std::string header_shader_source = StringFromFormat("#define COLOR_BUFFER_INPUT_INDEX %d\n", color_buffer_index);
+		header_shader_source += StringFromFormat("#define DEPTH_BUFFER_INPUT_INDEX %d\n", depth_buffer_index);
+		header_shader_source += StringFromFormat("#define PREV_OUTPUT_INPUT_INDEX %d\n", prev_output_index);
+		header_shader_source += "#define API_OPENGL 1\n";
+		header_shader_source += "#define GLSL 1\n";
 
 		// Manually destroy old programs (no cleanup in destructor)
 		if (pass.program)
@@ -262,7 +275,7 @@ bool PostProcessingShader::RecompileShaders()
 		PostProcessor::GetUniformBufferShaderSource(API_OPENGL, m_config, vertex_shader_source);
 		vertex_shader_source += s_vertex_shader;
 		std::string fragment_shader_source = PostProcessor::GetPassFragmentShaderSource(API_OPENGL, m_config, &pass_config);
-		if (!ProgramShaderCache::CompileShader(*pass.program, vertex_shader_source.c_str(), fragment_shader_source.c_str()))
+		if (!ProgramShaderCache::CompileShader(*pass.program, vertex_shader_source.c_str(), (header_shader_source + common_source + fragment_shader_source).c_str()))
 		{
 			ERROR_LOG(VIDEO, "Failed to compile post-processing shader %s (pass %s)", m_config->GetShaderName().c_str(), pass_config.entry_point.c_str());
 			m_ready = false;

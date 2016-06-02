@@ -830,7 +830,7 @@ void PostProcessingShaderConfiguration::SaveOptionsConfiguration()
 void PostProcessingShaderConfiguration::SetOptionf(const std::string& option, int index, float value)
 {
 	auto it = m_options.find(option);
-	
+
 	if (it->second.m_float_values[index] == value)
 		return;
 
@@ -845,7 +845,7 @@ void PostProcessingShaderConfiguration::SetOptionf(const std::string& option, in
 void PostProcessingShaderConfiguration::SetOptioni(const std::string& option, int index, s32 value)
 {
 	auto it = m_options.find(option);
-	
+
 	if (it->second.m_integer_values[index] == value)
 		return;
 
@@ -860,7 +860,7 @@ void PostProcessingShaderConfiguration::SetOptioni(const std::string& option, in
 void PostProcessingShaderConfiguration::SetOptionb(const std::string& option, bool value)
 {
 	auto it = m_options.find(option);
-	
+
 	if (it->second.m_bool_value == value)
 		return;
 
@@ -902,14 +902,14 @@ bool PostProcessor::XFBDepthDataRequired() const
 		|| (g_ActiveConfig.bPostProcessingEnable &&
 			m_active &&
 			(g_ActiveConfig.iPostProcessingTrigger == POST_PROCESSING_TRIGGER_AFTER_BLIT ||
-				(g_ActiveConfig.iPostProcessingTrigger == POST_PROCESSING_TRIGGER_ON_SWAP && !g_ActiveConfig.bUseXFB)));
+			(g_ActiveConfig.iPostProcessingTrigger == POST_PROCESSING_TRIGGER_ON_SWAP && !g_ActiveConfig.bUseXFB)));
 }
 
 void PostProcessor::OnProjectionLoaded(u32 type)
 {
 	if (!m_active || !g_ActiveConfig.bPostProcessingEnable ||
 		(g_ActiveConfig.iPostProcessingTrigger != POST_PROCESSING_TRIGGER_ON_PROJECTION &&
-			(g_ActiveConfig.iPostProcessingTrigger != POST_PROCESSING_TRIGGER_ON_EFB_COPY)))
+		(g_ActiveConfig.iPostProcessingTrigger != POST_PROCESSING_TRIGGER_ON_EFB_COPY)))
 	{
 		return;
 	}
@@ -941,7 +941,7 @@ void PostProcessor::OnEFBCopy(const TargetRectangle* src_rect)
 	}
 
 	// Fire off postprocessing on the current efb if a perspective scene has been drawn.
-	if (m_projection_state == PROJECTION_STATE_PERSPECTIVE 
+	if (m_projection_state == PROJECTION_STATE_PERSPECTIVE
 		&& (src_rect == nullptr || (src_rect->GetWidth() > ((Renderer::GetTargetWidth() * 2) / 3))))
 	{
 		PostProcessEFB(src_rect);
@@ -953,7 +953,7 @@ void PostProcessor::OnEndFrame()
 {
 	if (!m_active || !g_ActiveConfig.bPostProcessingEnable ||
 		(g_ActiveConfig.iPostProcessingTrigger != POST_PROCESSING_TRIGGER_ON_PROJECTION &&
-			(g_ActiveConfig.iPostProcessingTrigger != POST_PROCESSING_TRIGGER_ON_EFB_COPY)))
+		(g_ActiveConfig.iPostProcessingTrigger != POST_PROCESSING_TRIGGER_ON_EFB_COPY)))
 	{
 		return;
 	}
@@ -1356,36 +1356,66 @@ void PostProcessor::GetUniformBufferShaderSource(API_TYPE api, const PostProcess
 	{
 		return;
 	}
+	bool bufferpacking = false;
 	// User options
 	if (api == API_OPENGL)
 		shader_source += "layout(std140) uniform ConfigurationConstants {\n";
 	else if (api == API_D3D11)
+	{
+		bufferpacking = true;
 		shader_source += "cbuffer ConfigurationConstants : register(b1) {\n";
+	}
+		
 
 	u32 unused_counter = 2;
+	u32 size = 0;
+	const u32 align = 4;
+	const u32 mask = align - 1;
 	for (const auto& it : config->GetOptions())
 	{
 		if (it.second.m_compile_time_constant)
 		{
 			continue;
 		}
+		u32 count = 1;
+
+		if (it.second.m_type == POST_PROCESSING_OPTION_TYPE_INTEGER)
+		{
+			count = static_cast<u32>(it.second.m_integer_values.size());
+		}
+		else if (it.second.m_type == POST_PROCESSING_OPTION_TYPE_FLOAT)
+		{
+			count = static_cast<u32>(it.second.m_float_values.size());
+		}
+		if (bufferpacking)
+		{
+			u32 remaining = ((size + mask) & (~mask)) - size;
+
+			if (remaining < count && remaining > 0)
+			{
+				if (remaining < 2)
+					shader_source += StringFromFormat("\tint unused%u_;\n", unused_counter++);
+				else
+					shader_source += StringFromFormat("\tint%u unused%u_;\n", remaining, unused_counter++);
+				// Padding needed to compensate contant buffer padding to 16 bytes / 4 32 bits elements
+				size += remaining;
+			}
+
+			size += count;
+		}
 
 		if (it.second.m_type == POST_PROCESSING_OPTION_TYPE_BOOL)
 		{
 			shader_source += StringFromFormat("\tint o_%s;\n", it.first.c_str());
-			for (u32 i = 1; i < 4; i++)
-				shader_source += StringFromFormat("\tint unused%u_;\n", unused_counter++);
 		}
 		else if (it.second.m_type == POST_PROCESSING_OPTION_TYPE_INTEGER)
 		{
 			u32 count = static_cast<u32>(it.second.m_integer_values.size());
+
 			if (count == 1)
 				shader_source += StringFromFormat("\tint o_%s;\n", it.first.c_str());
 			else
 				shader_source += StringFromFormat("\tint%d o_%s;\n", count, it.first.c_str());
-
-			for (u32 i = count; i < 4; i++)
-				shader_source += StringFromFormat("\tint unused%u_;\n", unused_counter++);
 		}
 		else if (it.second.m_type == POST_PROCESSING_OPTION_TYPE_FLOAT)
 		{
@@ -1394,7 +1424,9 @@ void PostProcessor::GetUniformBufferShaderSource(API_TYPE api, const PostProcess
 				shader_source += StringFromFormat("\tfloat o_%s;\n", it.first.c_str());
 			else
 				shader_source += StringFromFormat("\tfloat%d o_%s;\n", count, it.first.c_str());
-
+		}
+		if (!bufferpacking)
+		{
 			for (u32 i = count; i < 4; i++)
 				shader_source += StringFromFormat("\tint unused%u_;\n", unused_counter++);
 		}
@@ -1404,64 +1436,20 @@ void PostProcessor::GetUniformBufferShaderSource(API_TYPE api, const PostProcess
 	shader_source += "};\n";
 }
 
-std::string PostProcessor::GetPassFragmentShaderSource(API_TYPE api, const PostProcessingShaderConfiguration* config,
-	const PostProcessingShaderConfiguration::RenderPass* pass, int texture_register_start)
+std::string PostProcessor::GetCommonFragmentShaderSource(API_TYPE api, const PostProcessingShaderConfiguration* config, int texture_register_start)
 {
 	std::string shader_source;
-	size_t base_size = config->GetOptions().size() * 64 + s_post_fragment_header_common.size() + s_post_fragment_header_ogl.size() + 1024;
-	if (!pass->entry_point.empty())
-	{
-		base_size += config->GetShaderSource().size();
-	}
-	shader_source.reserve(base_size);
 	if (api == API_OPENGL)
 	{
-		shader_source += "#define API_OPENGL 1\n";
-		shader_source += "#define GLSL 1\n";
 		shader_source += s_post_fragment_header_ogl;
 	}
 	else if (api == API_D3D11)
 	{
-		shader_source += "#define API_D3D 1\n";
-		shader_source += "#define HLSL 1\n";
 		shader_source += StringFromFormat(s_post_fragment_header_d3d.c_str(), texture_register_start, texture_register_start);
 	}
 
 	// Add uniform buffer
 	GetUniformBufferShaderSource(api, config, shader_source);
-
-	// Figure out which input indices map to color/depth/previous buffers.
-	// If any of these buffers is not bound, defaults of zero are fine here,
-	// since that buffer may not even be used by the shdaer.
-	int color_buffer_index = 0;
-	int depth_buffer_index = 0;
-	int prev_output_index = 0;
-	for (const PostProcessingShaderConfiguration::RenderPass::Input& input : pass->inputs)
-	{
-		switch (input.type)
-		{
-		case POST_PROCESSING_INPUT_TYPE_COLOR_BUFFER:
-			color_buffer_index = input.texture_unit;
-			break;
-
-		case POST_PROCESSING_INPUT_TYPE_DEPTH_BUFFER:
-			depth_buffer_index = input.texture_unit;
-			break;
-
-		case POST_PROCESSING_INPUT_TYPE_PREVIOUS_PASS_OUTPUT:
-			prev_output_index = input.texture_unit;
-			break;
-
-		default:
-			break;
-		}
-	}
-
-	// Hook the discovered indices up to macros.
-	// This is to support the SampleDepth, SamplePrev, etc. macros.
-	shader_source += StringFromFormat("#define COLOR_BUFFER_INPUT_INDEX %d\n", color_buffer_index);
-	shader_source += StringFromFormat("#define DEPTH_BUFFER_INPUT_INDEX %d\n", depth_buffer_index);
-	shader_source += StringFromFormat("#define PREV_OUTPUT_INPUT_INDEX %d\n", prev_output_index);
 
 	// Add compile-time constants
 	for (const auto& it : config->GetOptions())
@@ -1495,12 +1483,16 @@ std::string PostProcessor::GetPassFragmentShaderSource(API_TYPE api, const PostP
 
 	// Remaining wrapper/interfacing functions
 	shader_source += s_post_fragment_header_common;
+	return shader_source;
+}
 
-	// Bit of a hack, but we need to change the name of main temporarily.
-	// This can go once the compiler is modified to support different entry points.
-	if (api == API_D3D11 && pass->entry_point == "main")
-		shader_source += "#define main real_main\n";
-
+std::string PostProcessor::GetPassFragmentShaderSource(
+	API_TYPE api, 
+	const PostProcessingShaderConfiguration* config,
+	const PostProcessingShaderConfiguration::RenderPass* pass)
+{
+	std::string shader_source;
+	
 	// Include the user's code here
 	if (!pass->entry_point.empty())
 	{
@@ -1519,10 +1511,7 @@ std::string PostProcessor::GetPassFragmentShaderSource(API_TYPE api, const PostP
 	}
 	else if (api == API_D3D11)
 	{
-		if (pass->entry_point == "main")
-			shader_source += "#undef main\n";
-
-		shader_source += "void main(in float4 in_pos : SV_Position,\n"
+		shader_source += "void passmain(in float4 in_pos : SV_Position,\n"
 			"          in float2 in_srcTexCoord : TEXCOORD0,\n"
 			"          in float2 in_dstTexCoord : TEXCOORD1,\n"
 			"          in float in_layer : TEXCOORD2,\n"
@@ -1537,7 +1526,7 @@ std::string PostProcessor::GetPassFragmentShaderSource(API_TYPE api, const PostP
 		if (pass->entry_point.empty())
 			shader_source += "\tocol0 = SampleInput(0);\n";
 		else
-			shader_source += StringFromFormat("\t%s();\n", (pass->entry_point != "main") ? pass->entry_point.c_str() : "real_main");
+			shader_source += StringFromFormat("\t%s();\n", (pass->entry_point != "main") ? pass->entry_point.c_str() : "main");
 
 		shader_source += "\tout_col0 = ocol0;\n";
 		shader_source += "}\n";
@@ -1624,7 +1613,7 @@ bool  PostProcessor::UpdateConstantUniformBuffer(API_TYPE api,
 }
 
 
-void* PostProcessingShaderConfiguration::UpdateConfigurationBuffer(u32* buffer_size)
+void* PostProcessingShaderConfiguration::UpdateConfigurationBuffer(u32* buffer_size, bool packbuffer)
 {
 	size_t active_constant_count = m_options.size();
 	if (!m_configuration_buffer_dirty || !active_constant_count)
@@ -1634,39 +1623,72 @@ void* PostProcessingShaderConfiguration::UpdateConfigurationBuffer(u32* buffer_s
 	m_configuration_buffer_dirty = false;
 	// Check if the size has changed, due to options.
 	m_constants.resize(active_constant_count);
-	Constant temp;
-	
-	size_t constant_idx = 0;
+	Constant temp = {};
 
+	size_t constant_idx = 0;
+	size_t element_idx = 0;
 	// Set from options. This is an ordered map so it will always match the order in the shader code generated.
 	for (const auto& it : m_options)
 	{
 		// Skip compile-time constants, since they're set in the program source.
 		if (it.second.m_compile_time_constant)
 			continue;
-		temp = {};
+
+		u32 components = 1;
+		if (it.second.m_type == POST_PROCESSING_OPTION_TYPE_INTEGER)
+		{
+			components = std::max((u32)it.second.m_integer_values.size(), (u32)0);
+		}
+		else if (it.second.m_type == POST_PROCESSING_OPTION_TYPE_FLOAT)
+		{
+			components = std::max((u32)it.second.m_float_values.size(), (u32)0);
+		}
+		if (packbuffer)
+		{
+			if (element_idx + components > 4)
+			{
+				m_constants[constant_idx] = temp;
+				temp = {};
+				element_idx = 0;
+				constant_idx++;
+			}
+		}
+		
+
 		switch (it.second.m_type)
 		{
 		case POST_PROCESSING_OPTION_TYPE_BOOL:
-			temp.int_constant[0] = (int)it.second.m_bool_value;
+			temp.int_constant[element_idx] = (int)it.second.m_bool_value;
 			break;
 
 		case POST_PROCESSING_OPTION_TYPE_INTEGER:
 		{
-			u32 components = std::max((u32)it.second.m_integer_values.size(), (u32)0);
 			for (u32 i = 0; i < components; i++)
-				temp.int_constant[i] = it.second.m_integer_values[i];
+				temp.int_constant[element_idx + i] = it.second.m_integer_values[i];
 		}
 		break;
 
 		case POST_PROCESSING_OPTION_TYPE_FLOAT:
 		{
-			u32 components = std::max((u32)it.second.m_float_values.size(), (u32)0);
 			for (u32 i = 0; i < components; i++)
-				temp.float_constant[i] = it.second.m_float_values[i];
+				temp.float_constant[element_idx + i] = it.second.m_float_values[i];
 		}
 		break;
 		}
+		if (packbuffer)
+		{
+			element_idx += components;
+		}
+		else
+		{
+			m_constants[constant_idx] = temp;
+			temp = {};
+			element_idx = 0;
+			constant_idx++;
+		}
+	}
+	if (element_idx > 0)
+	{
 		m_constants[constant_idx] = temp;
 		constant_idx++;
 	}

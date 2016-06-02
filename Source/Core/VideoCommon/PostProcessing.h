@@ -119,6 +119,36 @@ public:
 		float output_scale;
 		std::vector<const ConfigurationOption*> dependent_options;
 
+		void GetInputLocations(
+			int& color_buffer_index,
+			int& depth_buffer_index,
+			int& prev_output_index
+		) const
+		{
+			color_buffer_index = 0;
+			depth_buffer_index = 0;
+			prev_output_index = 0;
+			for (const Input& input : inputs)
+			{
+				switch (input.type)
+				{
+				case POST_PROCESSING_INPUT_TYPE_COLOR_BUFFER:
+					color_buffer_index = input.texture_unit;
+					break;
+
+				case POST_PROCESSING_INPUT_TYPE_DEPTH_BUFFER:
+					depth_buffer_index = input.texture_unit;
+					break;
+
+				case POST_PROCESSING_INPUT_TYPE_PREVIOUS_PASS_OUTPUT:
+					prev_output_index = input.texture_unit;
+					break;
+				default:
+					break;
+				}
+			}
+		}
+
 		bool CheckEnabled() const
 		{
 			if (dependent_options.size() > 0)
@@ -182,7 +212,7 @@ public:
 	// Get a list of available post-processing shaders.
 	static std::vector<std::string> GetAvailableShaderNames(const std::string& sub_dir);
 
-	void* UpdateConfigurationBuffer(u32* buffer_size);
+	void* UpdateConfigurationBuffer(u32* buffer_size, bool packbuffer = false);
 
 private:
 	struct ConfigBlock final
@@ -282,8 +312,10 @@ public:
 	static void GetUniformBufferShaderSource(API_TYPE api, const PostProcessingShaderConfiguration* config, std::string& shader_source);
 
 	// Construct a complete fragment shader (HLSL/GLSL) for the specified pass.
-	static std::string GetPassFragmentShaderSource(API_TYPE api, const PostProcessingShaderConfiguration* config,
-		const PostProcessingShaderConfiguration::RenderPass* pass, int texture_register_start = 9);
+	static std::string GetCommonFragmentShaderSource(API_TYPE api, const PostProcessingShaderConfiguration* config, int texture_register_start = 9);
+
+	// Construct a complete fragment shader (HLSL/GLSL) for the specified pass.
+	static std::string GetPassFragmentShaderSource(API_TYPE api, const PostProcessingShaderConfiguration* config, const PostProcessingShaderConfiguration::RenderPass* pass);
 
 	// Scale a target resolution to an output's scale
 	static TargetSize ScaleTargetSize(const TargetSize& orig_size, float scale);

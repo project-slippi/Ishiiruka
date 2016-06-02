@@ -240,13 +240,33 @@ bool PostProcessingShader::CreatePasses()
 
 bool PostProcessingShader::RecompileShaders()
 {
+	static const char *inputs[] = { "0", "1", "2", "3", "4" };
+	static D3D_SHADER_MACRO macros[] = {
+		{ "API_D3D", "1" },
+		{ "HLSL", "1" },
+		{ "COLOR_BUFFER_INPUT_INDEX", 0 },
+		{ "DEPTH_BUFFER_INPUT_INDEX", 0 },
+		{ "PREV_OUTPUT_INPUT_INDEX", 0 },
+		{ nullptr, nullptr }
+	};
+	std::string common_source = PostProcessor::GetCommonFragmentShaderSource(API_D3D11, m_config);
 	for (size_t i = 0; i < m_passes.size(); i++)
 	{
 		RenderPassData& pass = m_passes[i];
 		const PostProcessingShaderConfiguration::RenderPass& pass_config = m_config->GetPass(i);
 
+		int color_buffer_index = 0;
+		int depth_buffer_index = 0;
+		int prev_output_index = 0;
+	
+		pass_config.GetInputLocations(color_buffer_index, depth_buffer_index, prev_output_index);
+
+		macros[2].Definition = inputs[color_buffer_index];
+		macros[3].Definition = inputs[depth_buffer_index];
+		macros[4].Definition = inputs[prev_output_index];
+		
 		std::string hlsl_source = PostProcessor::GetPassFragmentShaderSource(API_D3D11, m_config, &pass_config);
-		pass.pixel_shader = D3D::CompileAndCreatePixelShader(hlsl_source);
+		pass.pixel_shader = D3D::CompileAndCreatePixelShader(common_source + hlsl_source, macros, "passmain");
 		if (pass.pixel_shader.get() == nullptr)
 		{
 			ERROR_LOG(VIDEO, "Failed to compile post-processing shader %s (pass %s)", m_config->GetShaderName().c_str(), pass_config.entry_point.c_str());
@@ -254,7 +274,6 @@ bool PostProcessingShader::RecompileShaders()
 			return false;
 		}
 	}
-
 	return true;
 }
 
@@ -349,7 +368,7 @@ void PostProcessingShader::LinkPassOutputs()
 void PostProcessingShader::MapAndUpdateConfigurationBuffer()
 {
 	u32 buffer_size;
-	void* buffer_data = m_config->UpdateConfigurationBuffer(&buffer_size);
+	void* buffer_data = m_config->UpdateConfigurationBuffer(&buffer_size, true);
 	if (buffer_data)
 	{
 		m_uniform_buffer->AppendData(buffer_data, buffer_size);
