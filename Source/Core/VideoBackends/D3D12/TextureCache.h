@@ -17,7 +17,7 @@ class TextureCache : public TextureCacheBase
 public:
 	TextureCache();
 	~TextureCache();
-
+	static D3D12_GPU_DESCRIPTOR_HANDLE GetTextureGroupHandle();
 private:
 	struct TCacheEntry : TCacheEntryBase
 	{

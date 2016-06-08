@@ -198,8 +198,8 @@ void CreateScreenshotTexture()
 			D3D12_RESOURCE_STATE_COPY_DEST,
 			nullptr,
 			IID_PPV_ARGS(&s_screenshot_texture)
-			)
-		);
+		)
+	);
 }
 
 static D3D12_BOX GetScreenshotSourceBox(const TargetRectangle& target_rc)
@@ -433,7 +433,7 @@ void Renderer::PokeEFB(EFBAccessType type, const EfbPokeData* points, size_t num
 		FramebufferManager::RestoreEFBRenderTargets();
 	}
 	D3D::SetViewportAndScissor(0, 0, GetTargetWidth(), GetTargetHeight());
-	FramebufferManager::GetEFBColorTexture()->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_RENDER_TARGET);	
+	FramebufferManager::GetEFBColorTexture()->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_RENDER_TARGET);
 	if (type == POKE_COLOR)
 	{
 		// In the D3D12 backend, the rt/db/viewport is passed into DrawEFBPokeQuads, and set there.
@@ -446,7 +446,7 @@ void Renderer::PokeEFB(EFBAccessType type, const EfbPokeData* points, size_t num
 			&FramebufferManager::GetEFBColorTexture()->GetRTV(),
 			nullptr,
 			FramebufferManager::GetEFBColorTexture()->GetMultisampled()
-			);
+		);
 	}
 	else // if (type == POKE_Z)
 	{
@@ -460,7 +460,7 @@ void Renderer::PokeEFB(EFBAccessType type, const EfbPokeData* points, size_t num
 			&FramebufferManager::GetEFBColorTexture()->GetRTV(),
 			&FramebufferManager::GetEFBDepthTexture()->GetDSV(),
 			FramebufferManager::GetEFBColorTexture()->GetMultisampled()
-			);
+		);
 	}
 	RestoreAPIState();
 	s_target_dirty = false;
@@ -514,7 +514,7 @@ void Renderer::SetViewport()
 		s_vp.MaxDepth = 1.0f - (MathUtil::Clamp<float>(nearz, 0.0f, 16777215.0f) / 16777216.0f);
 		s_vp.MinDepth = 1.0f - (MathUtil::Clamp<float>(farz, 0.0f, 16777215.0f) / 16777216.0f);
 	}
-	s_viewport_dirty = true;	
+	s_viewport_dirty = true;
 }
 
 void Renderer::ClearScreen(const EFBRectangle& rc, bool color_enable, bool alpha_enable, bool z_enable, u32 color, u32 z)
@@ -602,7 +602,7 @@ void Renderer::ReinterpretPixelData(unsigned int convtype)
 		DXGI_FORMAT_R8G8B8A8_UNORM,
 		false,
 		FramebufferManager::GetEFBColorTempTexture()->GetMultisampled()
-		);
+	);
 
 	FramebufferManager::SwapReinterpretTexture();
 	FramebufferManager::InvalidateEFBCache();
@@ -1080,24 +1080,53 @@ void Renderer::ApplyState(bool use_dst_alpha)
 
 	gx_state.blend.use_dst_alpha = use_dst_alpha;
 
+	D3D12_SHADER_BYTECODE DS = ShaderCache::GetActiveDomainShaderBytecode();
+	D3D12_SHADER_BYTECODE GS = ShaderCache::GetActiveGeometryShaderBytecode();
+	D3D12_SHADER_BYTECODE HS = ShaderCache::GetActiveHullShaderBytecode();
+	D3D12_SHADER_BYTECODE PS = ShaderCache::GetActivePixelShaderBytecode();
+	D3D12_SHADER_BYTECODE VS = ShaderCache::GetActiveVertexShaderBytecode();
+
+	if (D3D::command_list_mgr->GetCommandListDirtyState(COMMAND_LIST_STATE_PSO))
+	{
+		D3D::SetRootSignature(GS.pShaderBytecode != nullptr, HS.pShaderBytecode != nullptr);
+	}
+
+	D3D12_GPU_DESCRIPTOR_HANDLE texture_group = TextureCache::GetTextureGroupHandle();
+	if (texture_group.ptr)
+	{
+		DX12::D3D::current_command_list->SetGraphicsRootDescriptorTable(DESCRIPTOR_TABLE_PS_SRV, texture_group);
+		if (g_ActiveConfig.TessellationEnabled() && D3D::TessellationEnabled())
+		{
+			DX12::D3D::current_command_list->SetGraphicsRootDescriptorTable(DESCRIPTOR_TABLE_DS_SRV, texture_group);
+		}
+	}
+
 	if (D3D::command_list_mgr->GetCommandListDirtyState(COMMAND_LIST_STATE_SAMPLERS))
 	{
 		D3D12_GPU_DESCRIPTOR_HANDLE sample_group_gpu_handle;
 		sample_group_gpu_handle = gx_state_cache.GetHandleForSamplerGroup(gx_state.sampler, 8);
 
 		D3D::current_command_list->SetGraphicsRootDescriptorTable(DESCRIPTOR_TABLE_PS_SAMPLER, sample_group_gpu_handle);
-		if (g_ActiveConfig.TessellationEnabled())
+		if (g_ActiveConfig.TessellationEnabled() && D3D::TessellationEnabled())
 		{
 			D3D::current_command_list->SetGraphicsRootDescriptorTable(DESCRIPTOR_TABLE_DS_SAMPLER, sample_group_gpu_handle);
 		}
 		D3D::command_list_mgr->SetCommandListDirtyState(COMMAND_LIST_STATE_SAMPLERS, false);
 	}
 
+
+
 	// Uploads and binds required constant buffer data for all stages.
-	bool current_command_list_executed = ShaderConstantsManager::LoadAndSetGeometryShaderConstants();
-	current_command_list_executed = current_command_list_executed || ShaderConstantsManager::LoadAndSetPixelShaderConstants();
+	bool current_command_list_executed = ShaderConstantsManager::LoadAndSetPixelShaderConstants();
 	current_command_list_executed = current_command_list_executed || ShaderConstantsManager::LoadAndSetVertexShaderConstants();
-	current_command_list_executed = current_command_list_executed || ShaderConstantsManager::LoadAndSetHullDomainShaderConstants();
+	if (GS.pShaderBytecode != nullptr)
+	{
+		current_command_list_executed = current_command_list_executed || ShaderConstantsManager::LoadAndSetGeometryShaderConstants();
+	}
+	if (HS.pShaderBytecode != nullptr)
+	{
+		current_command_list_executed = current_command_list_executed || ShaderConstantsManager::LoadAndSetHullDomainShaderConstants();
+	}
 
 	if (current_command_list_executed)
 	{
@@ -1136,13 +1165,13 @@ void Renderer::ApplyState(bool use_dst_alpha)
 				topologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_PATCH;
 			}
 		}
-		
+
 		SmallPsoDesc pso_desc = {
-			ShaderCache::GetActiveDomainShaderBytecode(),   // D3D12_SHADER_BYTECODE DS;			
-			ShaderCache::GetActiveGeometryShaderBytecode(),   // D3D12_SHADER_BYTECODE GS;
-			ShaderCache::GetActiveHullShaderBytecode(),   // D3D12_SHADER_BYTECODE HS;
-			ShaderCache::GetActivePixelShaderBytecode(),    // D3D12_SHADER_BYTECODE PS;
-			ShaderCache::GetActiveVertexShaderBytecode(), // D3D12_SHADER_BYTECODE VS;
+			DS,
+			GS,
+			HS,
+			PS,
+			VS,
 			s_previous_vertex_format,					// D3D12_INPUT_LAYOUT_DESC InputLayout;
 			gx_state.blend,                             // BlendState BlendState;
 			modifiableRastState,                        // RasterizerState RasterizerState;
@@ -1167,8 +1196,8 @@ void Renderer::ApplyState(bool use_dst_alpha)
 				ShaderCache::GetActivePixelShaderUid(),
 				ShaderCache::GetActiveVertexShaderUid(),
 				ShaderCache::GetActiveTessellationShaderUid()
-				)
-			);
+			)
+		);
 
 		D3D::current_command_list->SetPipelineState(pso);
 

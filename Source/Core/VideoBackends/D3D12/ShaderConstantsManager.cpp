@@ -161,7 +161,7 @@ bool ShaderConstantsManager::LoadAndSetPixelShaderConstants()
 			DESCRIPTOR_TABLE_PS_CBVONE,
 			calculated_gpu_va
 			);
-		if (g_ActiveConfig.TessellationEnabled())
+		if (g_ActiveConfig.TessellationEnabled() && D3D::TessellationEnabled())
 		{
 			D3D::current_command_list->SetGraphicsRootConstantBufferView(
 				DESCRIPTOR_TABLE_HS_CBV2,
@@ -212,7 +212,7 @@ bool ShaderConstantsManager::LoadAndSetVertexShaderConstants()
 				DESCRIPTOR_TABLE_PS_CBVTWO,
 				calculated_gpu_va
 				);
-		if (g_ActiveConfig.TessellationEnabled())
+		if (g_ActiveConfig.TessellationEnabled() && D3D::TessellationEnabled())
 		{
 			D3D::current_command_list->SetGraphicsRootConstantBufferView(
 				DESCRIPTOR_TABLE_HS_CBV1,

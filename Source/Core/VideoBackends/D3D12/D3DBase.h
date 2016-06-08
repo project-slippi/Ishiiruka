@@ -42,13 +42,13 @@ class D3DTexture2D;
 
 enum GRAPHICS_ROOT_PARAMETER : u32
 {
-	DESCRIPTOR_TABLE_GS_CBV,
 	DESCRIPTOR_TABLE_PS_SRV,
 	DESCRIPTOR_TABLE_VS_CBV,
 	DESCRIPTOR_TABLE_PS_CBVONE,
 	DESCRIPTOR_TABLE_PS_CBVTWO,
 	DESCRIPTOR_TABLE_PS_UAV,
 	DESCRIPTOR_TABLE_PS_SAMPLER,
+	DESCRIPTOR_TABLE_GS_CBV,
 	DESCRIPTOR_TABLE_DS_SRV,
 	DESCRIPTOR_TABLE_DS_SAMPLER,
 	DESCRIPTOR_TABLE_HS_CBV0,
@@ -92,8 +92,12 @@ extern D3D12_CPU_DESCRIPTOR_HANDLE null_srv_cpu_shadow;
 
 extern std::unique_ptr<D3DCommandListManager> command_list_mgr;
 extern ID3D12GraphicsCommandList* current_command_list;
+bool TessellationEnabled();
+bool GeormetryShadersenabled();
+ID3D12RootSignature* GetRootSignature();
+ID3D12RootSignature* GetBasicRootSignature();
+void SetRootSignature(bool geometryenabled, bool tesselationenabled, bool applychange = true);
 
-extern ComPtr<ID3D12RootSignature> default_root_signature;
 
 extern HWND hWnd;
 extern bool frame_in_progress;

@@ -1456,10 +1456,6 @@ void VideoConfigDiag::OnUpdateUI(wxUpdateUIEvent& ev)
 	// Things which shouldn't be changed during emulation
 	if (Core::IsRunning())
 	{
-		if (vconfig.backend_info.bSupportsTessellation && !vconfig.backend_info.bSupportsRuntimeTessellationSwitch)
-		{
-			tessellation->Disable();
-		}
 		if (vconfig.backend_info.bSupportsComputeTextureDecoding)
 		{
 			Compute_Shader_decoding->Disable();

@@ -39,7 +39,13 @@ public:
 			return;
 
 		D3D12_GRAPHICS_PIPELINE_STATE_DESC desc = {};
-		desc.pRootSignature = D3D::default_root_signature.Get();
+		desc.GS = ShaderCache::GetGeometryShaderFromUid(&key.gs_uid);
+		desc.PS = ShaderCache::GetPixelShaderFromUid(&key.ps_uid);
+		desc.VS = ShaderCache::GetVertexShaderFromUid(&key.vs_uid);
+		desc.HS = ShaderCache::GetHullShaderFromUid(&key.hds_uid);
+		desc.DS = ShaderCache::GetDomainShaderFromUid(&key.hds_uid);
+		D3D::SetRootSignature(desc.GS.pShaderBytecode != nullptr, desc.HS.pShaderBytecode != nullptr, false);
+		desc.pRootSignature = D3D::GetRootSignature();
 		desc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM; // This state changes in PSTextureEncoder::Encode.
 		desc.DSVFormat = DXGI_FORMAT_D32_FLOAT; // This state changes in PSTextureEncoder::Encode.
 		desc.IBStripCutValue = D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_0xFFFF;
@@ -47,11 +53,7 @@ public:
 		desc.SampleMask = UINT_MAX;
 		desc.SampleDesc = key.sample_desc;
 
-		desc.GS = ShaderCache::GetGeometryShaderFromUid(&key.gs_uid);
-		desc.PS = ShaderCache::GetPixelShaderFromUid(&key.ps_uid);
-		desc.VS = ShaderCache::GetVertexShaderFromUid(&key.vs_uid);
-		desc.HS = ShaderCache::GetHullShaderFromUid(&key.hds_uid);
-		desc.DS = ShaderCache::GetDomainShaderFromUid(&key.hds_uid);
+		
 
 		if (!desc.PS.pShaderBytecode || !desc.VS.pShaderBytecode)
 		{
@@ -128,9 +130,6 @@ StateCache::StateCache()
 
 void StateCache::Init()
 {
-	// Root signature isn't available at time of StateCache construction, so fill it in now.
-	gx_state_cache.m_current_pso_desc.pRootSignature = D3D::default_root_signature.Get();
-
 	if (!File::Exists(File::GetUserPath(D_SHADERCACHE_IDX)))
 		File::CreateDir(File::GetUserPath(D_SHADERCACHE_IDX));
 
@@ -416,6 +415,8 @@ HRESULT StateCache::GetPipelineStateObjectFromCache(const SmallPsoDesc& pso_desc
 		m_current_pso_desc.VS = pso_desc.vs_bytecode;
 		m_current_pso_desc.HS = pso_desc.hs_bytecode;
 		m_current_pso_desc.DS = pso_desc.ds_bytecode;
+		
+		m_current_pso_desc.pRootSignature = D3D::GetRootSignature();
 
 		m_current_pso_desc.BlendState = GetDesc(pso_desc.blend_state);
 		m_current_pso_desc.DepthStencilState = GetDesc(pso_desc.depth_stencil_state);

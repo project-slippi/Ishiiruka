@@ -211,7 +211,7 @@ void GetTessellationShaderUID(TessellationShaderUid& out, const XFMemory& xfr, c
 	}
 	uid_data.nIndirectStagesUsed = nIndirectStagesUsed;
 	uid_data.stereo = g_ActiveConfig.iStereoMode > 0;
-	bool enable_pl = g_ActiveConfig.PixelLightingEnabled(xfr, components);
+	bool enable_pl = g_ActiveConfig.PixelLightingEnabled(xfr, components) || g_ActiveConfig.bForcedLighting;
 	uid_data.pixel_lighting = enable_pl;
 	bool enablenormalmaps = g_ActiveConfig.HiresMaterialMapsEnabled();
 	if (enablenormalmaps)

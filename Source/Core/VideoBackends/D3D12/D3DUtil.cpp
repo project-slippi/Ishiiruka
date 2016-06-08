@@ -345,7 +345,7 @@ int CD3DFont::Init()
 	m_vertex_buffer = std::make_unique<D3DStreamBuffer>(text_vb_size * 2, text_vb_size * 16, nullptr);
 
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC text_pso_desc = {
-		default_root_signature.Get(),                           // ID3D12RootSignature *pRootSignature;
+		GetBasicRootSignature(),                           // ID3D12RootSignature *pRootSignature;
 		{ vsbytecode->Data(), vsbytecode->Size() },       // D3D12_SHADER_BYTECODE VS;
 		{ psbytecode->Data(), psbytecode->Size() },       // D3D12_SHADER_BYTECODE PS;
 		{},                                               // D3D12_SHADER_BYTECODE DS;
@@ -396,6 +396,7 @@ int CD3DFont::DrawTextScaled(float x, float y, float size, float spacing, u32 dw
 	float sy = 1.f - y * scale_y;
 
 	// set general pipeline state
+	D3D::SetRootSignature(false, false);
 	D3D::current_command_list->SetPipelineState(m_pso);
 	D3D::command_list_mgr->SetCommandListDirtyState(COMMAND_LIST_STATE_PSO, true);
 
@@ -456,7 +457,6 @@ int CD3DFont::DrawTextScaled(float x, float y, float size, float spacing, u32 dw
 		D3D::current_command_list->IASetVertexBuffers(0, 1, &vb_view);
 		D3D::current_command_list->DrawInstanced(3 * num_triangles, 1, 0, 0);
 	}
-
 	return S_OK;
 }
 
@@ -585,6 +585,7 @@ void DrawShadedTexQuad(D3DTexture2D* texture,
 	D3D12_DEPTH_STENCIL_DESC* depth_stencil_desc_override
 	)
 {
+	D3D::SetRootSignature(gshader12.pShaderBytecode != nullptr, false);
 	float sw = 1.0f / static_cast<float>(source_width);
 	float sh = 1.0f / static_cast<float>(source_height);
 	float u1 = static_cast<float>(rSource->left) * sw;
@@ -633,7 +634,7 @@ void DrawShadedTexQuad(D3DTexture2D* texture,
 	}
 
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC pso_desc = {
-		default_root_signature.Get(),                           // ID3D12RootSignature *pRootSignature;
+		D3D::GetRootSignature(),                     // ID3D12RootSignature *pRootSignature;
 		vshader12,                                        // D3D12_SHADER_BYTECODE VS;
 		pshader12,                                        // D3D12_SHADER_BYTECODE PS;
 		{},                                               // D3D12_SHADER_BYTECODE DS;
@@ -669,6 +670,7 @@ void DrawShadedTexQuad(D3DTexture2D* texture,
 
 void DrawClearQuad(u32 Color, float z, D3D12_BLEND_DESC* blend_desc, D3D12_DEPTH_STENCIL_DESC* depth_stencil_desc, bool rt_multisampled)
 {
+	D3D::SetRootSignature(g_ActiveConfig.iStereoMode > 0, false);
 	ColVertex coords[4] = {
 		{-1.0f,  1.0f, z, Color},
 		{ 1.0f,  1.0f, z, Color},
@@ -697,7 +699,7 @@ void DrawClearQuad(u32 Color, float z, D3D12_BLEND_DESC* blend_desc, D3D12_DEPTH
 	D3D::command_list_mgr->SetCommandListDirtyState(COMMAND_LIST_STATE_VERTEX_BUFFER, true);
 
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC pso_desc = {
-		default_root_signature.Get(),                           // ID3D12RootSignature *pRootSignature;
+		D3D::GetRootSignature(),                           // ID3D12RootSignature *pRootSignature;
 		StaticShaderCache::GetClearVertexShader(),        // D3D12_SHADER_BYTECODE VS;
 		StaticShaderCache::GetClearPixelShader(),         // D3D12_SHADER_BYTECODE PS;
 		{},                                               // D3D12_SHADER_BYTECODE DS;
@@ -747,13 +749,13 @@ void DrawEFBPokeQuads(EFBAccessType type,
 	D3D12_CPU_DESCRIPTOR_HANDLE* depth_buffer,
 	bool rt_multisampled)
 {
+	D3D::SetRootSignature(g_ActiveConfig.iStereoMode > 0, false);
 	// The viewport and RT/DB are passed in so we can reconstruct the state if we need to execute in the middle of building the vertex buffer.
-
 	D3D::current_command_list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	D3D::command_list_mgr->SetCommandListPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC pso_desc = {
-		default_root_signature.Get(),                           // ID3D12RootSignature *pRootSignature;
+		D3D::GetRootSignature(),                          // ID3D12RootSignature *pRootSignature;
 		StaticShaderCache::GetClearVertexShader(),        // D3D12_SHADER_BYTECODE VS;
 		StaticShaderCache::GetClearPixelShader(),         // D3D12_SHADER_BYTECODE PS;
 		{},                                               // D3D12_SHADER_BYTECODE DS;

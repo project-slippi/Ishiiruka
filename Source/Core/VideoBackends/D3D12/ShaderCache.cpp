@@ -421,7 +421,9 @@ void ShaderCache::HandleTSUIDChange(
 	u32 gs_primitive_type,
 	bool on_gpu_thread)
 {
-	if (!(gs_primitive_type == PrimitiveType::PRIMITIVE_TRIANGLES && g_ActiveConfig.TessellationEnabled() && (ts_uid.GetUidData().pixel_lighting || g_ActiveConfig.bForcedLighting)))
+if (!(gs_primitive_type == PrimitiveType::PRIMITIVE_TRIANGLES
+		&& g_ActiveConfig.TessellationEnabled()
+		&& ts_uid.GetUidData().pixel_lighting))
 	{
 		if (on_gpu_thread)
 		{
@@ -558,7 +560,11 @@ void ShaderCache::PrepareShaders(PIXEL_SHADER_RENDER_MODE render_mode,
 	VertexShaderUid vs_uid;
 	GetVertexShaderUID(vs_uid, components, xfr, bpm);
 	TessellationShaderUid ts_uid;
-	if (gs_primitive_type == PrimitiveType::PRIMITIVE_TRIANGLES && g_ActiveConfig.TessellationEnabled() && g_ActiveConfig.PixelLightingEnabled(xfr, components))
+	
+	if (gs_primitive_type == PrimitiveType::PRIMITIVE_TRIANGLES
+		&& g_ActiveConfig.TessellationEnabled()
+		&& xfr.projection.type == GX_PERSPECTIVE
+		&& (g_ActiveConfig.bForcedLighting || g_ActiveConfig.PixelLightingEnabled(xfr, components)))
 	{
 		GetTessellationShaderUID(ts_uid, xfr, bpm, components);
 	}
@@ -744,13 +750,15 @@ const PixelShaderUid* ShaderCache::GetActivePixelShaderUid() { return &s_last_pi
 const VertexShaderUid* ShaderCache::GetActiveVertexShaderUid() { return &s_last_vertex_shader_uid; }
 const TessellationShaderUid* ShaderCache::GetActiveTessellationShaderUid() { return &s_last_tessellation_shader_uid; }
 
+static const D3D12_SHADER_BYTECODE empty = { 0 };
+
 D3D12_SHADER_BYTECODE ShaderCache::GetDomainShaderFromUid(const TessellationShaderUid* uid)
 {
 	auto it = ds_bytecode_cache.find(*uid);
 	if (it != ds_bytecode_cache.end())
 		return it->second.m_shader_bytecode;
-	
-	return D3D12_SHADER_BYTECODE();
+
+	return empty;
 }
 D3D12_SHADER_BYTECODE ShaderCache::GetHullShaderFromUid(const TessellationShaderUid* uid)
 {
@@ -758,7 +766,7 @@ D3D12_SHADER_BYTECODE ShaderCache::GetHullShaderFromUid(const TessellationShader
 	if (it != hs_bytecode_cache.end())
 		return it->second.m_shader_bytecode;
 	
-	return D3D12_SHADER_BYTECODE();
+	return empty;
 }
 D3D12_SHADER_BYTECODE ShaderCache::GetGeometryShaderFromUid(const GeometryShaderUid* uid)
 {
@@ -766,7 +774,7 @@ D3D12_SHADER_BYTECODE ShaderCache::GetGeometryShaderFromUid(const GeometryShader
 	if (it != gs_bytecode_cache.end())
 		return it->second.m_shader_bytecode;
 	
-	return D3D12_SHADER_BYTECODE();
+	return empty;
 }
 D3D12_SHADER_BYTECODE ShaderCache::GetPixelShaderFromUid(const PixelShaderUid* uid)
 {
@@ -774,7 +782,7 @@ D3D12_SHADER_BYTECODE ShaderCache::GetPixelShaderFromUid(const PixelShaderUid* u
 	if (it != ps_bytecode_cache.end())
 		return it->second.m_shader_bytecode;
 	
-	return D3D12_SHADER_BYTECODE();
+	return empty;
 }
 D3D12_SHADER_BYTECODE ShaderCache::GetVertexShaderFromUid(const VertexShaderUid* uid)
 {
@@ -782,7 +790,7 @@ D3D12_SHADER_BYTECODE ShaderCache::GetVertexShaderFromUid(const VertexShaderUid*
 	if (it != vs_bytecode_cache.end())
 		return it->second.m_shader_bytecode;
 	
-	return D3D12_SHADER_BYTECODE();
+	return empty;
 }
 
 }

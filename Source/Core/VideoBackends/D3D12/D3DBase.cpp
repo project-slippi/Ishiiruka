@@ -42,7 +42,8 @@ ID3D12Device* device;
 ComPtr<ID3D12CommandQueue> command_queue;
 std::unique_ptr<D3DCommandListManager> command_list_mgr;
 ID3D12GraphicsCommandList* current_command_list = nullptr;
-ComPtr<ID3D12RootSignature> default_root_signature;
+size_t root_signature_index = 0;
+std::array<ComPtr<ID3D12RootSignature>, 3> root_signatures;
 
 D3D12_CPU_DESCRIPTOR_HANDLE null_srv_cpu = {};
 D3D12_CPU_DESCRIPTOR_HANDLE null_srv_cpu_shadow = {};
@@ -531,11 +532,6 @@ void CreateRootSignatures()
 	root_parameters[DESCRIPTOR_TABLE_PS_SAMPLER].DescriptorTable.pDescriptorRanges = &desc_range_sampler;
 	root_parameters[DESCRIPTOR_TABLE_PS_SAMPLER].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
 
-	root_parameters[DESCRIPTOR_TABLE_GS_CBV].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
-	root_parameters[DESCRIPTOR_TABLE_GS_CBV].Descriptor.RegisterSpace = 0;
-	root_parameters[DESCRIPTOR_TABLE_GS_CBV].Descriptor.ShaderRegister = 0;
-	root_parameters[DESCRIPTOR_TABLE_GS_CBV].ShaderVisibility = D3D12_SHADER_VISIBILITY_GEOMETRY;
-
 	root_parameters[DESCRIPTOR_TABLE_VS_CBV].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
 	root_parameters[DESCRIPTOR_TABLE_VS_CBV].Descriptor.RegisterSpace = 0;
 	root_parameters[DESCRIPTOR_TABLE_VS_CBV].Descriptor.ShaderRegister = 0;
@@ -555,6 +551,11 @@ void CreateRootSignatures()
 	root_parameters[DESCRIPTOR_TABLE_PS_UAV].DescriptorTable.NumDescriptorRanges = 1;
 	root_parameters[DESCRIPTOR_TABLE_PS_UAV].DescriptorTable.pDescriptorRanges = &desc_range_uav;
 	root_parameters[DESCRIPTOR_TABLE_PS_UAV].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+
+	root_parameters[DESCRIPTOR_TABLE_GS_CBV].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
+	root_parameters[DESCRIPTOR_TABLE_GS_CBV].Descriptor.RegisterSpace = 0;
+	root_parameters[DESCRIPTOR_TABLE_GS_CBV].Descriptor.ShaderRegister = 0;
+	root_parameters[DESCRIPTOR_TABLE_GS_CBV].ShaderVisibility = D3D12_SHADER_VISIBILITY_GEOMETRY;
 
 	root_parameters[DESCRIPTOR_TABLE_DS_SRV].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
 	root_parameters[DESCRIPTOR_TABLE_DS_SRV].DescriptorTable.NumDescriptorRanges = 1;
@@ -602,15 +603,64 @@ void CreateRootSignatures()
 	root_signature_desc.pParameters = root_parameters;
 	root_signature_desc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
 
-	root_signature_desc.NumParameters = g_ActiveConfig.TessellationEnabled() ? NUM_GRAPHICS_ROOT_PARAMETERS : DESCRIPTOR_TABLE_PS_SAMPLER + 1;
+	root_signature_desc.NumParameters = DESCRIPTOR_TABLE_GS_CBV;
 
 	ComPtr<ID3DBlob> text_root_signature_blob;
 	ComPtr<ID3DBlob> text_root_signature_error_blob;
 
 	CheckHR(d3d12_serialize_root_signature(&root_signature_desc, D3D_ROOT_SIGNATURE_VERSION_1, text_root_signature_blob.ReleaseAndGetAddressOf(), text_root_signature_error_blob.ReleaseAndGetAddressOf()));
+	CheckHR(D3D::device->CreateRootSignature(0, text_root_signature_blob->GetBufferPointer(), text_root_signature_blob->GetBufferSize(), IID_PPV_ARGS(root_signatures[0].ReleaseAndGetAddressOf())));
+	D3D::SetDebugObjectName12(root_signatures[0].Get(), "Primary root signature");
 
-	CheckHR(D3D::device->CreateRootSignature(0, text_root_signature_blob->GetBufferPointer(), text_root_signature_blob->GetBufferSize(), IID_PPV_ARGS(default_root_signature.ReleaseAndGetAddressOf())));
-	D3D::SetDebugObjectName12(default_root_signature.Get(), "Primary root signature");
+	root_signature_desc.NumParameters = DESCRIPTOR_TABLE_DS_SRV;
+	CheckHR(d3d12_serialize_root_signature(&root_signature_desc, D3D_ROOT_SIGNATURE_VERSION_1, text_root_signature_blob.ReleaseAndGetAddressOf(), text_root_signature_error_blob.ReleaseAndGetAddressOf()));
+	CheckHR(D3D::device->CreateRootSignature(0, text_root_signature_blob->GetBufferPointer(), text_root_signature_blob->GetBufferSize(), IID_PPV_ARGS(root_signatures[1].ReleaseAndGetAddressOf())));
+	D3D::SetDebugObjectName12(root_signatures[1].Get(), "GS root signature");
+
+	root_signature_desc.NumParameters = NUM_GRAPHICS_ROOT_PARAMETERS;
+	CheckHR(d3d12_serialize_root_signature(&root_signature_desc, D3D_ROOT_SIGNATURE_VERSION_1, text_root_signature_blob.ReleaseAndGetAddressOf(), text_root_signature_error_blob.ReleaseAndGetAddressOf()));
+	CheckHR(D3D::device->CreateRootSignature(0, text_root_signature_blob->GetBufferPointer(), text_root_signature_blob->GetBufferSize(), IID_PPV_ARGS(root_signatures[2].ReleaseAndGetAddressOf())));
+	D3D::SetDebugObjectName12(root_signatures[2].Get(), "Tessellation GS root signature");
+	root_signature_index = 0;
+}
+
+ID3D12RootSignature* GetRootSignature()
+{
+	return root_signatures[root_signature_index].Get();
+}
+
+ID3D12RootSignature* GetBasicRootSignature()
+{
+	return root_signatures[0].Get();
+}
+
+void SetRootSignature(bool geometryenabled, bool tesselationenabled, bool applychange)
+{
+	bool changed = false;
+	size_t new_signature_index = 0;
+	if (tesselationenabled)
+	{
+		new_signature_index = 2;
+	}
+	else if (geometryenabled)
+	{
+		new_signature_index = 1;
+	}
+	changed = new_signature_index != root_signature_index;
+	root_signature_index = new_signature_index;
+	if (changed && applychange)
+	{
+		current_command_list->SetGraphicsRootSignature(D3D::GetRootSignature());
+	}
+}
+
+bool TessellationEnabled()
+{
+	return root_signature_index == 2;
+}
+bool GeormetryShadersEnabled()
+{
+	return root_signature_index > 0;
 }
 
 void WaitForOutstandingRenderingToComplete()
@@ -642,8 +692,11 @@ void Close()
 	sampler_descriptor_heap_mgr.reset();
 	rtv_descriptor_heap_mgr.reset();
 	dsv_descriptor_heap_mgr.reset();
-
-	default_root_signature.Reset();
+	for (size_t i = 0; i < root_signatures.size(); i++)
+	{
+		root_signatures[i].Reset();
+	}
+	
 
 	ULONG remaining_references = device->Release();
 	if ((!s_debug_device && remaining_references) || (s_debug_device && remaining_references > 1))

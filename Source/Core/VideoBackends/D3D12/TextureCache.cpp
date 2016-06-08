@@ -41,11 +41,25 @@ TextureCache::TCacheEntry::~TCacheEntry()
 	SAFE_RELEASE(m_nrm_texture);
 }
 
+static D3D12_GPU_DESCRIPTOR_HANDLE s_group_base_texture_gpu_handle = {0};
+static bool s_handle_changed = false;
+
+D3D12_GPU_DESCRIPTOR_HANDLE TextureCache::GetTextureGroupHandle()
+{
+	D3D12_GPU_DESCRIPTOR_HANDLE Handle = { 0 };
+	if (s_handle_changed)
+	{
+		s_handle_changed = false;
+		Handle = s_group_base_texture_gpu_handle;
+	}
+	return Handle;
+}
+
 void TextureCache::TCacheEntry::Bind(unsigned int stage, unsigned int last_Texture)
 {
 	static bool s_first_texture_in_group = true;
 	static D3D12_CPU_DESCRIPTOR_HANDLE s_group_base_texture_cpu_handle;
-	static D3D12_GPU_DESCRIPTOR_HANDLE s_group_base_texture_gpu_handle;
+	s_handle_changed = true;
 	const bool use_materials = g_ActiveConfig.HiresMaterialMapsEnabled();
 	m_texture->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 	if (m_nrm_texture != nullptr && use_materials)
@@ -54,11 +68,7 @@ void TextureCache::TCacheEntry::Bind(unsigned int stage, unsigned int last_Textu
 	}
 	if (last_Texture == 0 && !use_materials)
 	{
-		DX12::D3D::current_command_list->SetGraphicsRootDescriptorTable(DESCRIPTOR_TABLE_PS_SRV, this->m_texture->GetSRVGPU());
-		if (g_ActiveConfig.TessellationEnabled())
-		{
-			DX12::D3D::current_command_list->SetGraphicsRootDescriptorTable(DESCRIPTOR_TABLE_DS_SRV, this->m_texture->GetSRVGPU());
-		}
+		s_group_base_texture_gpu_handle = this->m_texture->GetSRVGPU();
 		return;
 	}
 	
@@ -109,12 +119,6 @@ void TextureCache::TCacheEntry::Bind(unsigned int stage, unsigned int last_Textu
 	// Stage is zero-based, count is one-based
 	if (stage == last_Texture)
 	{
-		// On the last texture, we need to actually bind the table.
-		DX12::D3D::current_command_list->SetGraphicsRootDescriptorTable(DESCRIPTOR_TABLE_PS_SRV, s_group_base_texture_gpu_handle);
-		if (g_ActiveConfig.TessellationEnabled())
-		{
-			DX12::D3D::current_command_list->SetGraphicsRootDescriptorTable(DESCRIPTOR_TABLE_DS_SRV, s_group_base_texture_gpu_handle);
-		}
 		// Then mark that the next binding call will be the first texture in a group.
 		s_first_texture_in_group = true;
 	}
