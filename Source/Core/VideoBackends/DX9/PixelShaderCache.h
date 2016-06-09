@@ -27,7 +27,6 @@ private:
 	struct PSCacheEntry
 	{
 		LPDIRECT3DPIXELSHADER9 shader;
-		std::string code;
 		bool compiled;
 		std::atomic_flag initialized;
 		PSCacheEntry() : shader(NULL), compiled(false)

@@ -506,9 +506,6 @@ void PixelShaderCache::Init()
 	PixelShaderCacheInserter inserter;
 	g_ps_disk_cache.OpenAndRead(cache_filename, inserter);
 
-	if (g_Config.bEnableShaderDebugging)
-		Clear();
-
 	s_last_entry = nullptr;
 	PixelShaderManager::DisableDirtyRegions();
 }
@@ -570,13 +567,6 @@ void PixelShaderCache::PrepareShader(PIXEL_SHADER_RENDER_MODE render_mode,
 	if (ongputhread)
 	{
 		s_compiler->ProcCompilationResults();
-#if defined(_DEBUG) || defined(DEBUGFAST)
-		if (g_ActiveConfig.bEnableShaderDebugging)
-		{
-			ShaderCode code;
-			GeneratePixelShaderCodeD3D11(code, uid.GetUidData());
-		}
-#endif
 		// Check if the shader is already set
 		if (s_last_entry)
 		{
@@ -631,12 +621,6 @@ void PixelShaderCache::PrepareShader(PIXEL_SHADER_RENDER_MODE render_mode,
 			u32 bytecodelen = (u32)shaderBuffer->GetBufferSize();
 			g_ps_disk_cache.Append(uid, bytecode, bytecodelen);
 			PushByteCode(bytecode, bytecodelen, entry);
-#if defined(_DEBUG) || defined(DEBUGFAST)
-			if (g_ActiveConfig.bEnableShaderDebugging)
-			{
-				entry->code = wunit->code.data();
-			}
-#endif
 		}
 		else
 		{

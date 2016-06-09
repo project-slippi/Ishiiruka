@@ -111,7 +111,6 @@ void VideoConfig::Load(const std::string& ini_file)
 	settings->Get("DisableFog", &bDisableFog, 0);
 	settings->Get("SSAA", &bSSAA, false);
 	settings->Get("EnableOpenCL", &bEnableOpenCL, false);
-	settings->Get("EnableShaderDebugging", &bEnableShaderDebugging, false);
 	settings->Get("BorderlessFullscreen", &bBorderlessFullscreen, true);
 
 	settings->Get("SWZComploc", &bZComploc, true);
@@ -186,8 +185,6 @@ void VideoConfig::Load(const std::string& ini_file)
 	// VideoCommon is a mess and we don't have a central initialization
 	// function to do these kind of checks. Instead, the init code is
 	// triplicated for each video backend.
-	if (bEnableShaderDebugging)
-		OSD::AddMessage("Warning: Shader Debugging is enabled, performance will suffer heavily", 15000);
 	VerifyValidity();
 }
 
@@ -446,8 +443,7 @@ void VideoConfig::Save(const std::string& ini_file)
 	settings->Set("Wireframe", bWireFrame);
 	settings->Set("DisableFog", bDisableFog);
 
-	settings->Set("EnableOpenCL", bEnableOpenCL);
-	settings->Set("EnableShaderDebugging", bEnableShaderDebugging);
+	settings->Set("EnableOpenCL", bEnableOpenCL);	
 	settings->Set("BorderlessFullscreen", bBorderlessFullscreen);
 
 	settings->Set("SWZComploc", bZComploc);

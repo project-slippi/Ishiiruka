@@ -27,8 +27,6 @@ struct ByteCodeCacheEntry
 	D3D12_SHADER_BYTECODE m_shader_bytecode;
 	bool m_compiled;
 	std::atomic_flag m_initialized;
-	// Only used for shader debugging..
-	std::string code;
 
 	ByteCodeCacheEntry() : m_compiled(false), m_shader_bytecode({})
 	{
@@ -146,8 +144,6 @@ void ShaderCache::Init()
 	s_vs_disk_cache.OpenAndRead(vs_cache_filename, vs_inserter);
 
 	// Clear out disk cache when debugging shaders to ensure stale ones don't stick around..
-	if (g_Config.bEnableShaderDebugging)
-		Clear();
 	SETSTAT(stats.numGeometryShadersAlive, static_cast<int>(gs_bytecode_cache.size()));
 	SETSTAT(stats.numGeometryShadersCreated, 0);
 	SETSTAT(stats.numPixelShadersAlive, static_cast<int>(ps_bytecode_cache.size()));
@@ -265,12 +261,6 @@ void ShaderCache::HandleGSUIDChange(
 			wunit->shaderbytecode = nullptr;
 			SETSTAT(stats.numGeometryShadersAlive, static_cast<int>(ps_bytecode_cache.size()));
 			INCSTAT(stats.numGeometryShadersCreated);
-#if defined(_DEBUG) || defined(DEBUGFAST)
-			if (g_ActiveConfig.bEnableShaderDebugging)
-			{
-				entry->code = wunit->code.data();
-			}
-#endif
 		}
 		else
 		{
@@ -328,12 +318,6 @@ void ShaderCache::HandlePSUIDChange(
 			PushByteCode(entry, shaderBuffer);
 			wunit->shaderbytecode->Release();
 			wunit->shaderbytecode = nullptr;
-#if defined(_DEBUG) || defined(DEBUGFAST)
-			if (g_ActiveConfig.bEnableShaderDebugging)
-			{
-				entry->code = wunit->code.data();
-			}
-#endif
 		}
 		else
 		{
@@ -391,12 +375,6 @@ void ShaderCache::HandleVSUIDChange(
 			PushByteCode(entry, shaderBuffer);
 			wunit->shaderbytecode->Release();
 			wunit->shaderbytecode = nullptr;
-#if defined(_DEBUG) || defined(DEBUGFAST)
-			if (g_ActiveConfig.bEnableShaderDebugging)
-			{
-				entry->code = wunit->code.data();
-			}
-#endif
 		}
 		else
 		{
@@ -483,13 +461,6 @@ if (!(gs_primitive_type == PrimitiveType::PRIMITIVE_TRIANGLES
 			PushByteCode(dentry, shaderBuffer);
 			wunit->shaderbytecode->Release();
 			wunit->shaderbytecode = nullptr;
-			
-#if defined(_DEBUG) || defined(DEBUGFAST)
-			if (g_ActiveConfig.bEnableShaderDebugging)
-			{
-				dentry->code = wunit->code.data();
-			}
-#endif
 		}
 		else
 		{
@@ -517,13 +488,6 @@ if (!(gs_primitive_type == PrimitiveType::PRIMITIVE_TRIANGLES
 			PushByteCode(hentry, shaderBuffer);
 			wunit->shaderbytecode->Release();
 			wunit->shaderbytecode = nullptr;
-
-#if defined(_DEBUG) || defined(DEBUGFAST)
-			if (g_ActiveConfig.bEnableShaderDebugging)
-			{
-				hentry->code = wunit->code.data();
-			}
-#endif
 		}
 		else
 		{
@@ -621,29 +585,6 @@ void ShaderCache::PrepareShaders(PIXEL_SHADER_RENDER_MODE render_mode,
 		}
 		// A Uid has changed, so the PSO will need to be reset at next ApplyState.
 		D3D::command_list_mgr->SetCommandListDirtyState(COMMAND_LIST_STATE_PSO, true);
-#if defined(_DEBUG) || defined(DEBUGFAST)
-		if (g_ActiveConfig.bEnableShaderDebugging)
-		{
-			ShaderCode code;
-			if (gs_changed)
-			{
-				GenerateGeometryShaderCode(code, gs_uid.GetUidData(), API_D3D11);
-			}
-			if (ps_changed)
-			{
-				ShaderCode code;
-				GeneratePixelShaderCodeD3D11(code, ps_uid.GetUidData());
-			}
-			if (vs_changed)
-			{
-				GenerateVertexShaderCodeD3D11(code, vs_uid.GetUidData());
-			}
-			if (ts_changed)
-			{
-				GenerateTessellationShaderCode(code, API_D3D11, ts_uid.GetUidData());
-			}
-		}
-#endif
 	}
 	else
 	{

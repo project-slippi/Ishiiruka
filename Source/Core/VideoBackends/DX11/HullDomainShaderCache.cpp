@@ -99,8 +99,6 @@ namespace DX11
 		SETSTAT(stats.numDomainShadersAlive, 0);		
 		SETSTAT(stats.numHullShadersCreated, 0);
 		SETSTAT(stats.numHullShadersAlive, 0);
-		if (g_Config.bEnableShaderDebugging)
-			Clear();
 		s_last_entry = nullptr;
 	}
 

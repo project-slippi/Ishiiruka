@@ -295,8 +295,6 @@ void PixelShaderCache::Init()
 	PixelShadersLock.lock();
 	g_ps_disk_cache.OpenAndRead(cache_filename, inserter);
 	PixelShadersLock.unlock();
-	if (g_Config.bEnableShaderDebugging)
-		Clear();
 }
 
 // ONLY to be used during shutdown.
@@ -360,13 +358,6 @@ void PixelShaderCache::PrepareShader(
 	if (ongputhread)
 	{
 		Compiler->ProcCompilationResults();
-#if defined(_DEBUG) || defined(DEBUGFAST)
-		if (g_ActiveConfig.bEnableShaderDebugging)
-		{
-			ShaderCode code;
-			GeneratePixelShaderCodeD3D9(code, uid.GetUidData());
-		}
-#endif
 		// Check if the shader is already set
 		if (last_entry[render_mode])
 		{
@@ -427,21 +418,6 @@ void PixelShaderCache::PrepareShader(
 			u32 bytecodelen = (u32)shaderBuffer->GetBufferSize();
 			g_ps_disk_cache.Append(uid, bytecode, bytecodelen);
 			PushByteCode(uid, bytecode, bytecodelen, entry);
-#if defined(_DEBUG) || defined(DEBUGFAST)
-			if (g_ActiveConfig.bEnableShaderDebugging)
-			{
-				u32 code_hash = HashAdler32((const u8 *)wunit->code.data(), wunit->codesize);
-				unique_shaders.insert(code_hash);
-				entry->code = wunit->code.data();
-			}
-			if (g_ActiveConfig.iLog & CONF_SAVESHADERS) {
-				static int counter = 0;
-				char szTemp[MAX_PATH];
-				sprintf(szTemp, "%sps_%04i.txt", File::GetUserPath(D_DUMP_IDX).c_str(), counter++);
-
-				SaveData(szTemp, wunit->code.data());
-			}
-#endif			
 		}
 		else
 		{

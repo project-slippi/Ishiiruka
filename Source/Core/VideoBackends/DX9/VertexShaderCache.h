@@ -20,8 +20,6 @@ private:
 	struct VSCacheEntry
 	{ 
 		LPDIRECT3DVERTEXSHADER9 shader;
-
-		std::string code;
 		bool compiled;
 		std::atomic_flag initialized;
 		VSCacheEntry() : shader(NULL), compiled(false)

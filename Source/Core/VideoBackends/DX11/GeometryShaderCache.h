@@ -38,7 +38,6 @@ namespace DX11
 			D3D::GeometryShaderPtr shader;
 			bool compiled;
 			std::atomic_flag initialized;
-			std::string code;
 
 			GSCacheEntry() : shader(nullptr), compiled(false) { initialized.clear(); }
 			void Destroy() { shader.reset(); }

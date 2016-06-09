@@ -170,10 +170,6 @@ void GeometryShaderCache::Init()
 		SConfig::GetInstance().m_strUniqueID.c_str());
 	GeometryShaderCacheInserter inserter;
 	g_gs_disk_cache.OpenAndRead(cache_filename, inserter);
-
-	if (g_Config.bEnableShaderDebugging)
-		Clear();
-
 	s_last_entry = nullptr;
 }
 
@@ -219,13 +215,6 @@ void GeometryShaderCache::PrepareShader(
 	if (ongputhread)
 	{
 		s_compiler->ProcCompilationResults();
-#if defined(_DEBUG) || defined(DEBUGFAST)
-		if (g_ActiveConfig.bEnableShaderDebugging)
-		{
-			ShaderCode code;
-			GenerateGeometryShaderCode(code, uid.GetUidData(), API_D3D11);
-		}
-#endif
 		// Check if the shader is already set
 		if (s_last_entry)
 		{
@@ -290,12 +279,6 @@ void GeometryShaderCache::PrepareShader(
 			u32 bytecodelen = (u32)shaderBuffer->GetBufferSize();
 			g_gs_disk_cache.Append(uid, bytecode, bytecodelen);
 			PushByteCode(bytecode, bytecodelen, entry);
-#if defined(_DEBUG) || defined(DEBUGFAST)
-			if (g_ActiveConfig.bEnableShaderDebugging)
-			{
-				entry->code = wunit->code.data();
-			}
-#endif
 		}
 		else
 		{

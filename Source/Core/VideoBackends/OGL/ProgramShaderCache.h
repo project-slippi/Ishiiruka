@@ -58,8 +58,6 @@ struct SHADER
 	}
 	GLuint glprogid; // OpenGL program id
 
-	std::string strvprog, strpprog, strgprog;
-
 	void SetProgramVariables();
 	void SetProgramBindings();
 	void Bind();

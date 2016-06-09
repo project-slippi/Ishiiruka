@@ -125,9 +125,6 @@ void VertexShaderCache::Init()
 	g_vs_disk_cache.OpenAndRead(cache_filename, inserter);
 	vshaderslock.unlock();
 
-	if (g_Config.bEnableShaderDebugging)
-		Clear();
-
 	last_entry = NULL;
 }
 
@@ -171,13 +168,6 @@ void VertexShaderCache::PrepareShader(u32 components, const XFMemory &xfr, const
 	if (ongputhread)
 	{
 		Compiler->ProcCompilationResults();
-#if defined(_DEBUG) || defined(DEBUGFAST)
-		if (g_ActiveConfig.bEnableShaderDebugging)
-		{
-			ShaderCode code;
-			GenerateVertexShaderCodeD3D9(code, uid.GetUidData());
-		}
-#endif
 		if (last_entry)
 		{
 			if (uid == last_uid)
@@ -228,12 +218,6 @@ void VertexShaderCache::PrepareShader(u32 components, const XFMemory &xfr, const
 			u32 bytecodelen = (u32)shaderBuffer->GetBufferSize();
 			g_vs_disk_cache.Append(uid, bytecode, bytecodelen);
 			PushByteCode(uid, bytecode, bytecodelen, entry);
-#if defined(_DEBUG) || defined(DEBUGFAST)
-			if (g_ActiveConfig.bEnableShaderDebugging)
-			{
-				entry->code = wunit->code.data();
-			}
-#endif
 		}
 		else
 		{

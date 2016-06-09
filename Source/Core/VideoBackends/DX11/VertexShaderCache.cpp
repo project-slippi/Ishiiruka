@@ -160,9 +160,6 @@ void VertexShaderCache::Init()
 	g_vs_disk_cache.OpenAndRead(cache_filename, inserter);
 	s_vshaders_lock.unlock();
 
-	if (g_Config.bEnableShaderDebugging)
-		Clear();
-
 	s_last_entry = nullptr;
 	VertexShaderManager::DisableDirtyRegions();
 }
@@ -212,13 +209,6 @@ void VertexShaderCache::PrepareShader(
 	if (ongputhread)
 	{
 		s_compiler->ProcCompilationResults();
-	#if defined(_DEBUG) || defined(DEBUGFAST)
-		if (g_ActiveConfig.bEnableShaderDebugging)
-		{
-			ShaderCode code;
-			GenerateVertexShaderCodeD3D11(code, uid.GetUidData());
-		}
-	#endif
 		if (s_last_entry)
 		{
 			if (uid == s_last_uid)
@@ -269,12 +259,6 @@ void VertexShaderCache::PrepareShader(
 			g_vs_disk_cache.Append(uid, (const u8*)wunit->shaderbytecode->GetBufferPointer(), (u32)wunit->shaderbytecode->GetBufferSize());
 			PushByteCode(D3DBlob(D3D::UniquePtr<ID3D10Blob>(wunit->shaderbytecode)), entry);
 			wunit->shaderbytecode = nullptr;
-#if defined(_DEBUG) || defined(DEBUGFAST)
-			if (g_ActiveConfig.bEnableShaderDebugging)
-			{
-				entry->code = wunit->code.data();
-			}
-#endif
 		}
 		else
 		{

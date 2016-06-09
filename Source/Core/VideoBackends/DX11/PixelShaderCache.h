@@ -45,7 +45,6 @@ private:
 		D3D::PixelShaderPtr shader;
 		bool compiled;
 		std::atomic_flag initialized;
-		std::string code;
 
 		PSCacheEntry() : compiled(false)
 		{

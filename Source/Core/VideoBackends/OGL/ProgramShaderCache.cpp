@@ -238,13 +238,6 @@ SHADER* ProgramShaderCache::SetShader(PIXEL_SHADER_RENDER_MODE render_mode, u32 
 	if (g_ActiveConfig.backend_info.bSupportsGeometryShaders && !uid.guid.GetUidData().IsPassthrough())
 		GenerateGeometryShaderCode(gcode, uid.guid.GetUidData(), API_OPENGL);
 
-	if (g_ActiveConfig.bEnableShaderDebugging)
-	{
-		newentry.shader.strvprog = vcode.GetBuffer();
-		newentry.shader.strpprog = pcode.GetBuffer();
-		newentry.shader.strgprog = gcode.GetBuffer();
-	}
-
 #if defined(_DEBUG) || defined(DEBUGFAST)
 	if (g_ActiveConfig.iLog & CONF_SAVESHADERS)
 	{
@@ -422,16 +415,6 @@ void ProgramShaderCache::GetShaderId(SHADERUID* uid, PIXEL_SHADER_RENDER_MODE re
 	GetPixelShaderUID(uid->puid, render_mode, components, xfmem, bpmem);
 	GetVertexShaderUID(uid->vuid, components, xfmem, bpmem);
 	GetGeometryShaderUid(uid->guid, primitive_type, xfmem, components);
-
-	if (g_ActiveConfig.bEnableShaderDebugging)
-	{
-		ShaderCode pcode;
-		GeneratePixelShaderCodeGL(pcode, uid->puid.GetUidData());
-		ShaderCode vcode;
-		GenerateVertexShaderCodeGL(vcode, uid->vuid.GetUidData());
-		ShaderCode gcode;
-		GenerateGeometryShaderCode(gcode, uid->guid.GetUidData(), API_OPENGL);
-	}
 }
 
 ProgramShaderCache::PCacheEntry ProgramShaderCache::GetShaderProgram()
@@ -462,7 +445,7 @@ void ProgramShaderCache::Init()
 	s_g_buffer = std::move(StreamBuffer::Create(GL_UNIFORM_BUFFER, s_g_ubo_buffer_size * 1024));
 
 	// Read our shader cache, only if supported
-	if (g_ogl_config.bSupportsGLSLCache && !g_Config.bEnableShaderDebugging)
+	if (g_ogl_config.bSupportsGLSLCache)
 	{
 		GLint Supported;
 		glGetIntegerv(GL_NUM_PROGRAM_BINARY_FORMATS, &Supported);
@@ -494,7 +477,7 @@ void ProgramShaderCache::Init()
 void ProgramShaderCache::Shutdown()
 {
 	// store all shaders in cache on disk
-	if (g_ogl_config.bSupportsGLSLCache && !g_Config.bEnableShaderDebugging)
+	if (g_ogl_config.bSupportsGLSLCache)
 	{
 		for (auto& entry : pshaders)
 		{

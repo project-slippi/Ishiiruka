@@ -185,34 +185,6 @@ void VertexManager::vFlush(bool useDstAlpha)
 		if (bpmem.blendmode.blendenable || bpmem.blendmode.subtract)
 			glEnable(GL_BLEND);
 	}
-
-#if defined(_DEBUG) || defined(DEBUGFAST)
-	if (g_ActiveConfig.iLog & CONF_SAVESHADERS)
-	{
-		// save the shaders
-		ProgramShaderCache::PCacheEntry prog = ProgramShaderCache::GetShaderProgram();
-		std::string filename = StringFromFormat("%sps%.3d.txt", File::GetUserPath(D_DUMPFRAMES_IDX).c_str(), g_ActiveConfig.iSaveTargetId);
-		std::ofstream fps;
-		OpenFStream(fps, filename, std::ios_base::out);
-		fps << prog.shader.strpprog.c_str();
-
-		filename = StringFromFormat("%svs%.3d.txt", File::GetUserPath(D_DUMPFRAMES_IDX).c_str(), g_ActiveConfig.iSaveTargetId);
-		std::ofstream fvs;
-		OpenFStream(fvs, filename, std::ios_base::out);
-		fvs << prog.shader.strvprog.c_str();
-	}
-
-	if (g_ActiveConfig.iLog & CONF_SAVETARGETS)
-	{
-		std::string filename = StringFromFormat("%starg%.3d.png", File::GetUserPath(D_DUMPFRAMES_IDX).c_str(), g_ActiveConfig.iSaveTargetId);
-		TargetRectangle tr;
-		tr.left = 0;
-		tr.right = Renderer::GetTargetWidth();
-		tr.top = 0;
-		tr.bottom = Renderer::GetTargetHeight();
-		g_renderer->SaveScreenshot(filename, tr);
-	}
-#endif
 	g_Config.iSaveTargetId++;
 
 	ClearEFBCache();

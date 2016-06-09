@@ -38,7 +38,6 @@ namespace DX11
 		{
 			D3D::HullShaderPtr hullshader;
 			D3D::DomainShaderPtr domainshader;
-			std::string code;
 			bool hcompiled;
 			bool dcompiled;
 			std::atomic_flag initialized;
