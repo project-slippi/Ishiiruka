@@ -32,9 +32,22 @@ public:
 	static void InvalidateXFRange(int start, int end);
 	static void SetTexMatrixChangedA(u32 value);
 	static void SetTexMatrixChangedB(u32 value);
-	static void SetViewportChanged();
-	static void SetProjectionChanged();
-	static void SetMaterialColorChanged(int index);
+	
+	static inline void SetViewportChanged()
+	{
+		bViewportChanged = true;
+	}
+
+	static inline void SetProjectionChanged()
+	{
+		bProjectionChanged = true;
+	}
+
+	static inline void SetMaterialColorChanged(int index)
+	{
+		s_materials_changed |= (1 << index);
+	}
+
 
 	static void TranslateView(float x, float y, float z = 0.0f);
 	static void RotateView(float x, float y);
@@ -45,6 +58,9 @@ public:
 	// (i.e. VertexShaderManager::SetConstants needs to be called before using this!)
 	static void TransformToClipSpace(const u8* data, const PortableVertexDeclaration &vtx_dcl, float *out);
 private:
+	static bool bProjectionChanged;
+	static bool bViewportChanged;
+	static int s_materials_changed;
 	alignas(16) static float vsconstants[ConstantBufferSize];
 	static ConstatBuffer m_buffer;
 };

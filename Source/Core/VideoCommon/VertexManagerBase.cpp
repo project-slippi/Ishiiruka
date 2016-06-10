@@ -130,10 +130,8 @@ void VertexManagerBase::PrepareForAdditionalData(int primitive, u32 count, u32 s
 	}
 }
 
-void VertexManagerBase::Flush()
+void VertexManagerBase::DoFlush()
 {
-	if (IsFlushed)
-		return;
 	// loading a state will invalidate BP, so check for it
 	NativeVertexFormat* current_vertex_format = VertexLoaderManager::GetCurrentVertexFormat();
 	g_video_backend->CheckInvalidState();

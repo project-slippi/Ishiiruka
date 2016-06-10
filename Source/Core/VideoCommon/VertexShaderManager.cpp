@@ -28,13 +28,16 @@ ConstatBuffer VertexShaderManager::m_buffer(VertexShaderManager::vsconstants, Ve
 alignas(16) float g_fProjectionMatrix[16];
 
 // track changes
-static bool bTexMatricesChanged[2], bProjectionChanged, bViewportChanged;
-static int nMaterialsChanged;
-static int nTransformMatricesChanged[2]; // min,max
-static int nNormalMatricesChanged[2]; // min,max
+bool VertexShaderManager::bProjectionChanged;
+bool VertexShaderManager::bViewportChanged;
+int VertexShaderManager::s_materials_changed;
+
+static bool s_tex_matrices_changed[2];
+static int s_transform_matrices_changed[2]; // min,max
+static int s_normal_matrices_changed[2]; // min,max
 static int nPostTransformMatricesChanged[2]; // min,max
-static int nLightsChanged[2]; // min,max
-static int s_LightsPhong[8];
+static int s_lights_changed[2]; // min,max
+static int s_lights_phong[8];
 
 static Matrix44 s_viewportCorrection;
 static Matrix33 s_viewRotationMatrix;
@@ -238,55 +241,55 @@ void VertexShaderManager::DisableDirtyRegions()
 
 void VertexShaderManager::Dirty()
 {
-	nTransformMatricesChanged[0] = 0;
-	nTransformMatricesChanged[1] = 256;
+	s_transform_matrices_changed[0] = 0;
+	s_transform_matrices_changed[1] = 256;
 
-	nNormalMatricesChanged[0] = 0;
-	nNormalMatricesChanged[1] = 96;
+	s_normal_matrices_changed[0] = 0;
+	s_normal_matrices_changed[1] = 96;
 
 	nPostTransformMatricesChanged[0] = 0;
 	nPostTransformMatricesChanged[1] = 256;
 
-	nLightsChanged[0] = 0;
-	nLightsChanged[1] = 0x80;
+	s_lights_changed[0] = 0;
+	s_lights_changed[1] = 0x80;
 
-	bTexMatricesChanged[0] = true;
-	bTexMatricesChanged[1] = true;
+	s_tex_matrices_changed[0] = true;
+	s_tex_matrices_changed[1] = true;
 
 	bProjectionChanged = true;
 
-	nMaterialsChanged = 15;
-	memset(s_LightsPhong, 0, sizeof(s_LightsPhong));
+	s_materials_changed = 15;
+	memset(s_lights_phong, 0, sizeof(s_lights_phong));
 }
 
 // Syncs the shader constant buffers with xfmem
 // TODO: A cleaner way to control the matrices without making a mess in the parameters field
 void VertexShaderManager::SetConstants()
 {
-	if (g_ActiveConfig.iRimBase != s_LightsPhong[0]
-		|| g_ActiveConfig.iRimPower != s_LightsPhong[1]
-		|| g_ActiveConfig.iRimIntesity != s_LightsPhong[2]
-		|| g_ActiveConfig.iSpecularMultiplier != s_LightsPhong[3])
+	if (g_ActiveConfig.iRimBase != s_lights_phong[0]
+		|| g_ActiveConfig.iRimPower != s_lights_phong[1]
+		|| g_ActiveConfig.iRimIntesity != s_lights_phong[2]
+		|| g_ActiveConfig.iSpecularMultiplier != s_lights_phong[3])
 	{
-		s_LightsPhong[0] = g_ActiveConfig.iRimBase;
-		s_LightsPhong[1] = g_ActiveConfig.iRimPower;
-		s_LightsPhong[2] = g_ActiveConfig.iRimIntesity;
-		s_LightsPhong[3] = g_ActiveConfig.iSpecularMultiplier;
+		s_lights_phong[0] = g_ActiveConfig.iRimBase;
+		s_lights_phong[1] = g_ActiveConfig.iRimPower;
+		s_lights_phong[2] = g_ActiveConfig.iRimIntesity;
+		s_lights_phong[3] = g_ActiveConfig.iSpecularMultiplier;
 		m_buffer.SetConstant4(C_PHONG
 			, float(g_ActiveConfig.iRimBase)
 			, 1.0f + U8_NORM_COEF * g_ActiveConfig.iRimPower * 7.0f
 			, U8_NORM_COEF * g_ActiveConfig.iRimIntesity
 			, U8_NORM_COEF * g_ActiveConfig.iSpecularMultiplier);
 	}
-	if (g_ActiveConfig.iSimBumpStrength != s_LightsPhong[4]
-		|| g_ActiveConfig.iSimBumpThreshold != s_LightsPhong[5]
-		|| g_ActiveConfig.iSimBumpDetailBlend != s_LightsPhong[6]
-		|| g_ActiveConfig.iSimBumpDetailFrequency != s_LightsPhong[7])
+	if (g_ActiveConfig.iSimBumpStrength != s_lights_phong[4]
+		|| g_ActiveConfig.iSimBumpThreshold != s_lights_phong[5]
+		|| g_ActiveConfig.iSimBumpDetailBlend != s_lights_phong[6]
+		|| g_ActiveConfig.iSimBumpDetailFrequency != s_lights_phong[7])
 	{
-		s_LightsPhong[4] = g_ActiveConfig.iSimBumpStrength;
-		s_LightsPhong[5] = g_ActiveConfig.iSimBumpThreshold;
-		s_LightsPhong[6] = g_ActiveConfig.iSimBumpDetailBlend;
-		s_LightsPhong[7] = g_ActiveConfig.iSimBumpDetailFrequency;
+		s_lights_phong[4] = g_ActiveConfig.iSimBumpStrength;
+		s_lights_phong[5] = g_ActiveConfig.iSimBumpThreshold;
+		s_lights_phong[6] = g_ActiveConfig.iSimBumpDetailBlend;
+		s_lights_phong[7] = g_ActiveConfig.iSimBumpDetailFrequency;
 		float bump_strenght = U10_NORM_COEF * g_ActiveConfig.iSimBumpStrength;
 		m_buffer.SetConstant4(C_PHONG + 1
 			, bump_strenght * bump_strenght
@@ -294,22 +297,22 @@ void VertexShaderManager::SetConstants()
 			, U8_NORM_COEF * g_ActiveConfig.iSimBumpDetailBlend
 			, float(g_ActiveConfig.iSimBumpDetailFrequency));
 	}
-	if (nTransformMatricesChanged[0] >= 0)
+	if (s_transform_matrices_changed[0] >= 0)
 	{
-		int startn = nTransformMatricesChanged[0] / 4;
-		int endn = (nTransformMatricesChanged[1] + 3) / 4;
+		int startn = s_transform_matrices_changed[0] / 4;
+		int endn = (s_transform_matrices_changed[1] + 3) / 4;
 		const float* pstart = &xfmem.posMatrices[startn * 4];
 		m_buffer.SetMultiConstant4v(C_TRANSFORMMATRICES + startn, endn - startn, pstart);
-		nTransformMatricesChanged[0] = nTransformMatricesChanged[1] = -1;
+		s_transform_matrices_changed[0] = s_transform_matrices_changed[1] = -1;
 	}
 
-	if (nNormalMatricesChanged[0] >= 0)
+	if (s_normal_matrices_changed[0] >= 0)
 	{
-		int startn = nNormalMatricesChanged[0] / 3;
-		int endn = (nNormalMatricesChanged[1] + 2) / 3;
+		int startn = s_normal_matrices_changed[0] / 3;
+		int endn = (s_normal_matrices_changed[1] + 2) / 3;
 		const float* pnstart = &xfmem.normalMatrices[3 * startn];
 		m_buffer.SetMultiConstant3v(C_NORMALMATRICES + startn, endn - startn, pnstart);
-		nNormalMatricesChanged[0] = nNormalMatricesChanged[1] = -1;
+		s_normal_matrices_changed[0] = s_normal_matrices_changed[1] = -1;
 	}
 
 	if (nPostTransformMatricesChanged[0] >= 0)
@@ -321,11 +324,11 @@ void VertexShaderManager::SetConstants()
 		nPostTransformMatricesChanged[0] = nPostTransformMatricesChanged[1] = -1;
 	}
 
-	if (nLightsChanged[0] >= 0)
+	if (s_lights_changed[0] >= 0)
 	{
 		// lights don't have a 1 to 1 mapping, the color component needs to be converted to 4 floats
-		int istart = nLightsChanged[0] / 0x10;
-		int iend = (nLightsChanged[1] + 15) / 0x10;
+		int istart = s_lights_changed[0] / 0x10;
+		int iend = (s_lights_changed[1] + 15) / 0x10;
 
 		for (int i = istart; i < iend; ++i)
 		{
@@ -357,14 +360,14 @@ void VertexShaderManager::SetConstants()
 			m_buffer.SetConstant4(C_LIGHTS + 5 * i + 4, light.ddir[0] * norm_float, light.ddir[1] * norm_float, light.ddir[2] * norm_float, 0.0f);
 		}
 
-		nLightsChanged[0] = nLightsChanged[1] = -1;
+		s_lights_changed[0] = s_lights_changed[1] = -1;
 	}
 
-	if (nMaterialsChanged)
+	if (s_materials_changed)
 	{
 		for (int i = 0; i < 2; ++i)
 		{
-			if (nMaterialsChanged & (1 << i))
+			if (s_materials_changed & (1 << i))
 			{
 				u32 data = *(xfmem.ambColor + i);
 				m_buffer.SetConstant4<float>(C_MATERIALS + i,
@@ -377,7 +380,7 @@ void VertexShaderManager::SetConstants()
 
 		for (int i = 0; i < 2; ++i)
 		{
-			if (nMaterialsChanged & (1 << (i + 2)))
+			if (s_materials_changed & (1 << (i + 2)))
 			{
 				u32 data = *(xfmem.matColor + i);
 				m_buffer.SetConstant4<float>(C_MATERIALS + i + 2,
@@ -388,21 +391,21 @@ void VertexShaderManager::SetConstants()
 			}
 		}
 
-		nMaterialsChanged = 0;
+		s_materials_changed = 0;
 	}
 
-	if (bTexMatricesChanged[0])
+	if (s_tex_matrices_changed[0])
 	{
-		bTexMatricesChanged[0] = false;
+		s_tex_matrices_changed[0] = false;
 		m_buffer.SetMultiConstant4v(C_TEXMATRICES + 3 * 0, 3, xfmem.posMatrices + g_main_cp_state.matrix_index_a.Tex0MtxIdx * 4);
 		m_buffer.SetMultiConstant4v(C_TEXMATRICES + 3 * 1, 3, xfmem.posMatrices + g_main_cp_state.matrix_index_a.Tex1MtxIdx * 4);
 		m_buffer.SetMultiConstant4v(C_TEXMATRICES + 3 * 2, 3, xfmem.posMatrices + g_main_cp_state.matrix_index_a.Tex2MtxIdx * 4);
 		m_buffer.SetMultiConstant4v(C_TEXMATRICES + 3 * 3, 3, xfmem.posMatrices + g_main_cp_state.matrix_index_a.Tex3MtxIdx * 4);
 	}
 
-	if (bTexMatricesChanged[1])
+	if (s_tex_matrices_changed[1])
 	{
-		bTexMatricesChanged[1] = false;
+		s_tex_matrices_changed[1] = false;
 		m_buffer.SetMultiConstant4v(C_TEXMATRICES + 3 * 0 + 12, 3, xfmem.posMatrices + g_main_cp_state.matrix_index_b.Tex4MtxIdx * 4);
 		m_buffer.SetMultiConstant4v(C_TEXMATRICES + 3 * 1 + 12, 3, xfmem.posMatrices + g_main_cp_state.matrix_index_b.Tex5MtxIdx * 4);
 		m_buffer.SetMultiConstant4v(C_TEXMATRICES + 3 * 2 + 12, 3, xfmem.posMatrices + g_main_cp_state.matrix_index_b.Tex6MtxIdx * 4);
@@ -604,7 +607,7 @@ void VertexShaderManager::InvalidateXFRange(int start, int end)
 		((u32)start >= (u32)g_main_cp_state.matrix_index_a.Tex2MtxIdx * 4 && (u32)start < (u32)g_main_cp_state.matrix_index_a.Tex2MtxIdx * 4 + 12) ||
 		((u32)start >= (u32)g_main_cp_state.matrix_index_a.Tex3MtxIdx * 4 && (u32)start < (u32)g_main_cp_state.matrix_index_a.Tex3MtxIdx * 4 + 12))
 	{
-		bTexMatricesChanged[0] = true;
+		s_tex_matrices_changed[0] = true;
 	}
 
 	if (((u32)start >= (u32)g_main_cp_state.matrix_index_b.Tex4MtxIdx * 4 && (u32)start < (u32)g_main_cp_state.matrix_index_b.Tex4MtxIdx * 4 + 12) ||
@@ -612,20 +615,20 @@ void VertexShaderManager::InvalidateXFRange(int start, int end)
 		((u32)start >= (u32)g_main_cp_state.matrix_index_b.Tex6MtxIdx * 4 && (u32)start < (u32)g_main_cp_state.matrix_index_b.Tex6MtxIdx * 4 + 12) ||
 		((u32)start >= (u32)g_main_cp_state.matrix_index_b.Tex7MtxIdx * 4 && (u32)start < (u32)g_main_cp_state.matrix_index_b.Tex7MtxIdx * 4 + 12))
 	{
-		bTexMatricesChanged[1] = true;
+		s_tex_matrices_changed[1] = true;
 	}
 
 	if (start < XFMEM_POSMATRICES_END)
 	{
-		if (nTransformMatricesChanged[0] == -1)
+		if (s_transform_matrices_changed[0] == -1)
 		{
-			nTransformMatricesChanged[0] = start;
-			nTransformMatricesChanged[1] = end > XFMEM_POSMATRICES_END ? XFMEM_POSMATRICES_END : end;
+			s_transform_matrices_changed[0] = start;
+			s_transform_matrices_changed[1] = end > XFMEM_POSMATRICES_END ? XFMEM_POSMATRICES_END : end;
 		}
 		else
 		{
-			if (nTransformMatricesChanged[0] > start) nTransformMatricesChanged[0] = start;
-			if (nTransformMatricesChanged[1] < end) nTransformMatricesChanged[1] = end>XFMEM_POSMATRICES_END ? XFMEM_POSMATRICES_END : end;
+			if (s_transform_matrices_changed[0] > start) s_transform_matrices_changed[0] = start;
+			if (s_transform_matrices_changed[1] < end) s_transform_matrices_changed[1] = end>XFMEM_POSMATRICES_END ? XFMEM_POSMATRICES_END : end;
 		}
 	}
 
@@ -634,15 +637,15 @@ void VertexShaderManager::InvalidateXFRange(int start, int end)
 		int _start = start < XFMEM_NORMALMATRICES ? 0 : start - XFMEM_NORMALMATRICES;
 		int _end = end < XFMEM_NORMALMATRICES_END ? end - XFMEM_NORMALMATRICES : XFMEM_NORMALMATRICES_END - XFMEM_NORMALMATRICES;
 
-		if (nNormalMatricesChanged[0] == -1)
+		if (s_normal_matrices_changed[0] == -1)
 		{
-			nNormalMatricesChanged[0] = _start;
-			nNormalMatricesChanged[1] = _end;
+			s_normal_matrices_changed[0] = _start;
+			s_normal_matrices_changed[1] = _end;
 		}
 		else
 		{
-			if (nNormalMatricesChanged[0] > _start) nNormalMatricesChanged[0] = _start;
-			if (nNormalMatricesChanged[1] < _end) nNormalMatricesChanged[1] = _end;
+			if (s_normal_matrices_changed[0] > _start) s_normal_matrices_changed[0] = _start;
+			if (s_normal_matrices_changed[1] < _end) s_normal_matrices_changed[1] = _end;
 		}
 	}
 
@@ -668,15 +671,15 @@ void VertexShaderManager::InvalidateXFRange(int start, int end)
 		int _start = start < XFMEM_LIGHTS ? XFMEM_LIGHTS : start - XFMEM_LIGHTS;
 		int _end = end < XFMEM_LIGHTS_END ? end - XFMEM_LIGHTS : XFMEM_LIGHTS_END - XFMEM_LIGHTS;
 
-		if (nLightsChanged[0] == -1)
+		if (s_lights_changed[0] == -1)
 		{
-			nLightsChanged[0] = _start;
-			nLightsChanged[1] = _end;
+			s_lights_changed[0] = _start;
+			s_lights_changed[1] = _end;
 		}
 		else
 		{
-			if (nLightsChanged[0] > _start) nLightsChanged[0] = _start;
-			if (nLightsChanged[1] < _end)   nLightsChanged[1] = _end;
+			if (s_lights_changed[0] > _start) s_lights_changed[0] = _start;
+			if (s_lights_changed[1] < _end)   s_lights_changed[1] = _end;
 		}
 	}
 }
@@ -686,7 +689,7 @@ void VertexShaderManager::SetTexMatrixChangedA(u32 Value)
 	if (g_main_cp_state.matrix_index_a.Hex != Value)
 	{
 		VertexManagerBase::Flush();
-		bTexMatricesChanged[0] = true;
+		s_tex_matrices_changed[0] = true;
 		g_main_cp_state.matrix_index_a.Hex = Value;
 	}
 }
@@ -696,24 +699,9 @@ void VertexShaderManager::SetTexMatrixChangedB(u32 Value)
 	if (g_main_cp_state.matrix_index_b.Hex != Value)
 	{
 		VertexManagerBase::Flush();
-		bTexMatricesChanged[1] = true;
+		s_tex_matrices_changed[1] = true;
 		g_main_cp_state.matrix_index_b.Hex = Value;
 	}
-}
-
-void VertexShaderManager::SetViewportChanged()
-{
-	bViewportChanged = true;
-}
-
-void VertexShaderManager::SetProjectionChanged()
-{
-	bProjectionChanged = true;
-}
-
-void VertexShaderManager::SetMaterialColorChanged(int index)
-{
-	nMaterialsChanged |= (1 << index);
 }
 
 void VertexShaderManager::TranslateView(float x, float y, float z)

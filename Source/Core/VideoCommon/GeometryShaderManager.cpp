@@ -18,18 +18,21 @@ static const int LINE_PT_TEX_OFFSETS[8] = {
 GeometryShaderConstants GeometryShaderManager::constants;
 bool GeometryShaderManager::dirty;
 
-static bool s_projection_changed;
-static bool s_viewport_changed;
+bool GeometryShaderManager::s_projection_changed;
+bool GeometryShaderManager::s_viewport_changed;
+bool GeometryShaderManager::s_line_width_changed;
+u32 GeometryShaderManager::s_texcoord_changed;
 
 void GeometryShaderManager::Init()
 {
 	memset(&constants, 0, sizeof(constants));
 
 	// Init any intial constants which aren't zero when bpmem is zero.
-	SetViewportChanged();
-	SetProjectionChanged();
-
 	dirty = true;
+	s_projection_changed = true;
+	s_viewport_changed = true;
+	s_line_width_changed = true;
+	s_texcoord_changed = 255;
 }
 
 void GeometryShaderManager::Shutdown()
@@ -49,8 +52,6 @@ void GeometryShaderManager::SetConstants()
 {
 	if (s_projection_changed && g_ActiveConfig.iStereoMode > 0)
 	{
-		s_projection_changed = false;
-
 		if (xfmem.projection.type == GX_PERSPECTIVE)
 		{
 			float offset = (g_ActiveConfig.iStereoDepth / 1000.0f) * (g_ActiveConfig.iStereoDepthPercentage / 100.0f);
@@ -63,49 +64,47 @@ void GeometryShaderManager::SetConstants()
 		}
 
 		constants.stereoparams[2] = (float)(g_ActiveConfig.iStereoConvergence * (g_ActiveConfig.iStereoConvergencePercentage / 100.0f));
-
+		
+		s_projection_changed = false;
 		dirty = true;
 	}
 
 	if (s_viewport_changed)
 	{
-		s_viewport_changed = false;
-
 		constants.lineptparams[0] = 2.0f * xfmem.viewport.wd;
 		constants.lineptparams[1] = -2.0f * xfmem.viewport.ht;
 
+		s_viewport_changed = false;
 		dirty = true;
 	}
-}
-
-void GeometryShaderManager::SetViewportChanged()
-{
-	s_viewport_changed = true;
-}
-
-void GeometryShaderManager::SetProjectionChanged()
-{
-	s_projection_changed = true;
-}
-
-void GeometryShaderManager::SetLinePtWidthChanged()
-{
-	constants.lineptparams[2] = bpmem.lineptwidth.linesize / 6.f;
-	constants.lineptparams[3] = bpmem.lineptwidth.pointsize / 6.f;
-	constants.texoffset[2] = LINE_PT_TEX_OFFSETS[bpmem.lineptwidth.lineoff];
-	constants.texoffset[3] = LINE_PT_TEX_OFFSETS[bpmem.lineptwidth.pointoff];
-	dirty = true;
-}
-
-void GeometryShaderManager::SetTexCoordChanged(u8 texmapid)
-{
-	TCoordInfo& tc = bpmem.texcoords[texmapid];
-	int bitmask = 1 << texmapid;
-	constants.texoffset[0] &= ~bitmask;
-	constants.texoffset[0] |= tc.s.line_offset << texmapid;
-	constants.texoffset[1] &= ~bitmask;
-	constants.texoffset[1] |= tc.s.point_offset << texmapid;
-	dirty = true;
+	
+	if (s_line_width_changed)
+	{
+		constants.lineptparams[2] = bpmem.lineptwidth.linesize / 6.f;
+		constants.lineptparams[3] = bpmem.lineptwidth.pointsize / 6.f;
+		constants.texoffset[2] = LINE_PT_TEX_OFFSETS[bpmem.lineptwidth.lineoff];
+		constants.texoffset[3] = LINE_PT_TEX_OFFSETS[bpmem.lineptwidth.pointoff];
+		
+		s_line_width_changed = false;
+		dirty = true;
+	}
+	if (s_texcoord_changed)
+	{
+		for (int texmapid = 0; texmapid < 8; texmapid++)
+		{
+			int bitmask = 1 << texmapid;
+			if (s_texcoord_changed & bitmask)
+			{
+				TCoordInfo& tc = bpmem.texcoords[texmapid];
+				constants.texoffset[0] &= ~bitmask;
+				constants.texoffset[0] |= tc.s.line_offset << texmapid;
+				constants.texoffset[1] &= ~bitmask;
+				constants.texoffset[1] |= tc.s.point_offset << texmapid;				
+			}
+		}
+		s_texcoord_changed = 0;
+		dirty = true;
+	}
 }
 
 void GeometryShaderManager::DoState(PointerWrap &p)
@@ -119,6 +118,10 @@ void GeometryShaderManager::DoState(PointerWrap &p)
 	{
 		// Fixup the current state from global GPU state
 		// NOTE: This requires that all GPU memory has been loaded already.
-		Dirty();
+		dirty = true;
+		s_projection_changed = true;
+		s_viewport_changed = true;
+		s_line_width_changed = true;
+		s_texcoord_changed = 255;
 	}
 }

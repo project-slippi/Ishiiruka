@@ -55,7 +55,12 @@ public:
 	static void PrepareForAdditionalData(int primitive, u32 count, u32 stride);
 
 	virtual void PrepareShaders(PrimitiveType primitive, u32 components, const XFMemory &xfr, const BPMemory &bpm, bool ongputhread) = 0;
-	static void Flush();
+	static inline void Flush()
+	{
+		if (IsFlushed)
+			return;
+		DoFlush();
+	}
 
 	virtual ::NativeVertexFormat* CreateNativeVertexFormat(const PortableVertexDeclaration& vtx_decl) = 0;
 
@@ -78,7 +83,7 @@ protected:
 
 private:
 	static bool IsFlushed;
-
+	static void DoFlush();
 	virtual void vFlush(bool useDstAlpha) = 0;
 	virtual u16* GetIndexBuffer() = 0;
 };

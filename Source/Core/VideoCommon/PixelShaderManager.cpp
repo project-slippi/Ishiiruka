@@ -17,22 +17,22 @@
 alignas(16) float PixelShaderManager::psconstants[PixelShaderManager::ConstantBufferSize];
 ConstatBuffer PixelShaderManager::m_buffer(PixelShaderManager::psconstants, PixelShaderManager::ConstantBufferSize);
 static int s_nColorsChanged[2]; // 0 - regular colors, 1 - k colors
-static int s_nIndTexMtxChanged;
-static bool s_bAlphaChanged;
-static bool s_bZBiasChanged;
-static bool s_bZTextureTypeChanged;
-static bool s_bFogColorChanged;
-static bool s_bFogParamChanged;
-static bool s_bFogRangeAdjustChanged;
-static bool s_bViewPortChanged;
+int PixelShaderManager::s_nIndTexMtxChanged;
+bool PixelShaderManager::s_bAlphaChanged;
+bool PixelShaderManager::s_bZBiasChanged;
+bool PixelShaderManager::s_bZTextureTypeChanged;
+bool PixelShaderManager::s_bFogColorChanged;
+bool PixelShaderManager::s_bFogParamChanged;
+bool PixelShaderManager::s_bFogRangeAdjustChanged;
+bool PixelShaderManager::s_bViewPortChanged;
 static int nLightsChanged[2]; // min,max
 static int lastRGBAfull[2][4][4];
-static u8 s_nTexDimsChanged;
-static u8 s_nIndTexScaleChanged;
+u8 PixelShaderManager::s_nTexDimsChanged;
+u8 PixelShaderManager::s_nIndTexScaleChanged;
 static u32 lastAlpha;
 static u32 lastTexDims[8]; // width | height << 16 | wrap_s << 28 | wrap_t << 30
 static u32 lastZBias;
-static int nMaterialsChanged;
+int PixelShaderManager::s_materials_changed;
 static int sflags[4];
 static bool sbflagschanged;
 static int s_LightsPhong[8];
@@ -65,7 +65,7 @@ void PixelShaderManager::Dirty()
 	s_bAlphaChanged = s_bZBiasChanged = s_bZTextureTypeChanged = s_bViewPortChanged = true;
 	s_bFogRangeAdjustChanged = s_bFogColorChanged = s_bFogParamChanged = true;
 	nLightsChanged[0] = 0; nLightsChanged[1] = 0x80;
-	nMaterialsChanged = 15;
+	s_materials_changed = 15;
 	sbflagschanged = true;
 }
 
@@ -408,11 +408,11 @@ void PixelShaderManager::SetConstants()
 			nLightsChanged[0] = nLightsChanged[1] = -1;
 		}
 
-		if (nMaterialsChanged)
+		if (s_materials_changed)
 		{
 			for (int i = 0; i < 2; ++i)
 			{
-				if (nMaterialsChanged & (1 << i))
+				if (s_materials_changed & (1 << i))
 				{
 					u32 data = *(xfmem.ambColor + i);
 					m_buffer.SetConstant4<float>(C_PMATERIALS + i,
@@ -425,7 +425,7 @@ void PixelShaderManager::SetConstants()
 
 			for (int i = 0; i < 2; ++i)
 			{
-				if (nMaterialsChanged & (1 << (i + 2)))
+				if (s_materials_changed & (1 << (i + 2)))
 				{
 					u32 data = *(xfmem.matColor + i);
 					m_buffer.SetConstant4<float>(C_PMATERIALS + i + 2,
@@ -435,7 +435,7 @@ void PixelShaderManager::SetConstants()
 						float(data & 0xFF));
 				}
 			}
-			nMaterialsChanged = 0;
+			s_materials_changed = 0;
 		}
 		if (g_ActiveConfig.iRimBase != s_LightsPhong[0]
 			|| g_ActiveConfig.iRimPower != s_LightsPhong[1]
@@ -486,7 +486,6 @@ void PixelShaderManager::SetPSTextureDims(int texid)
 	fdims[1] = 1.0f / float(((lastTexDims[texid] >> 16) & 0xffff) << 7);
 	fdims[2] = float((tc.s.scale_minus_1 + 1) << 7);
 	fdims[3] = float((tc.t.scale_minus_1 + 1) << 7);
-	PRIM_LOG("texdims%d: %f %f %f %f\n", texid, fdims[0], fdims[1], fdims[2], fdims[3]);
 }
 
 void PixelShaderManager::SetTevColor(int index, int component, s32 value)
@@ -496,7 +495,6 @@ void PixelShaderManager::SetTevColor(int index, int component, s32 value)
 	{
 		c[component] = value;
 		s_nColorsChanged[0] |= 1 << index;
-		PRIM_LOG("tev color%d: %d %d %d %d\n", index, c[0], c[1], c[2], c[3]);
 	}
 }
 
@@ -507,7 +505,6 @@ void PixelShaderManager::SetTevKonstColor(int index, int component, s32 value)
 	{
 		c[component] = value;
 		s_nColorsChanged[1] |= 1 << index;
-		PRIM_LOG("tev konst color%d: %d %d %d %d\n", index, c[0], c[1], c[2], c[3]);
 	}
 }
 
@@ -548,46 +545,6 @@ void PixelShaderManager::SetZTextureBias()
 	}
 }
 
-void PixelShaderManager::SetViewportChanged()
-{
-	s_bViewPortChanged = true;
-}
-
-void PixelShaderManager::SetIndTexScaleChanged(bool high)
-{
-	s_nIndTexScaleChanged |= high ? 0x0c : 0x03;
-}
-
-void PixelShaderManager::SetIndMatrixChanged(int matrixidx)
-{
-	s_nIndTexMtxChanged |= 1 << matrixidx;
-}
-
-void PixelShaderManager::SetZTextureTypeChanged()
-{
-	s_bZTextureTypeChanged = true;
-}
-
-void PixelShaderManager::SetTexCoordChanged(u8 texmapid)
-{
-	s_nTexDimsChanged |= 1 << texmapid;
-}
-
-void PixelShaderManager::SetFogColorChanged()
-{
-	s_bFogColorChanged = true;
-}
-
-void PixelShaderManager::SetFogParamChanged()
-{
-	s_bFogParamChanged = true;
-}
-
-void PixelShaderManager::SetFogRangeAdjustChanged()
-{
-	s_bFogRangeAdjustChanged = true;
-}
-
 void PixelShaderManager::SetColorMatrix(const float* pmatrix)
 {
 	m_buffer.SetMultiConstant4v<float>(C_COLORMATRIX, 7, pmatrix);
@@ -612,11 +569,6 @@ void PixelShaderManager::InvalidateXFRange(int start, int end)
 			if (nLightsChanged[1] < _end)   nLightsChanged[1] = _end;
 		}
 	}
-}
-
-void PixelShaderManager::SetMaterialColorChanged(int index)
-{
-	nMaterialsChanged |= (1 << index);
 }
 
 void PixelShaderManager::SetEfbScaleChanged()
