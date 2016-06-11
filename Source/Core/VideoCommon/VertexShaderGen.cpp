@@ -216,13 +216,10 @@ inline void GenerateVertexShader(ShaderCode& out, const vertex_shader_uid_data& 
 		out.Write("  float4 rawpos : POSITION) {\n");
 	}
 	out.Write("VS_OUTPUT o;\n");
-	if (api_type & API_D3D9)
-	{
-		out.Write("int4 indices = D3DCOLORtoUBYTE4(blend_indices);\n");
-	}
 	// transforms
 	if (api_type & API_D3D9)
 	{
+		out.Write("int4 indices = D3DCOLORtoUBYTE4(blend_indices);\n");
 		out.Write("int posmtx = indices.x;\n");
 	}
 	else if (api_type == API_D3D11)
@@ -236,21 +233,21 @@ inline void GenerateVertexShader(ShaderCode& out, const vertex_shader_uid_data& 
 
 	out.Write("float4 pos = float4(dot(" I_TRANSFORMMATRICES"[posmtx], rawpos), dot(" I_TRANSFORMMATRICES"[posmtx+1], rawpos), dot(" I_TRANSFORMMATRICES"[posmtx+2], rawpos), 1);\n");
 
-	if (components & VB_HAS_NRMALL) {
+	if (components & VB_HAS_NRMALL)
+	{
 		out.Write("int normidx = posmtx >= 32 ? (posmtx-32) : posmtx;\n");
 		out.Write("float3 N0 = " I_NORMALMATRICES"[normidx].xyz, N1 = " I_NORMALMATRICES"[normidx+1].xyz, N2 = " I_NORMALMATRICES"[normidx+2].xyz;\n");
+		
+		if (components & VB_HAS_NRM0)
+			out.Write("float3 _norm0 = normalize(float3(dot(N0, rawnorm0), dot(N1, rawnorm0), dot(N2, rawnorm0)));\n");
+		if (components & VB_HAS_NRM1)
+			out.Write("float3 _norm1 = float3(dot(N0, rawnorm1), dot(N1, rawnorm1), dot(N2, rawnorm1));\n");
+		if (components & VB_HAS_NRM2)
+			out.Write("float3 _norm2 = float3(dot(N0, rawnorm2), dot(N1, rawnorm2), dot(N2, rawnorm2));\n");
 	}
-
-	if (components & VB_HAS_NRM0)
-		out.Write("float3 _norm0 = normalize(float3(dot(N0, rawnorm0), dot(N1, rawnorm0), dot(N2, rawnorm0)));\n");
-	if (components & VB_HAS_NRM1)
-		out.Write("float3 _norm1 = float3(dot(N0, rawnorm1), dot(N1, rawnorm1), dot(N2, rawnorm1));\n");
-	if (components & VB_HAS_NRM2)
-		out.Write("float3 _norm2 = float3(dot(N0, rawnorm2), dot(N1, rawnorm2), dot(N2, rawnorm2));\n");
 
 	if (!(components & VB_HAS_NRM0))
 		out.Write("float3 _norm0 = float3(0.0, 0.0, 0.0);\n");
-
 
 	out.Write("o.pos = float4(dot(" I_PROJECTION"[0], pos), dot(" I_PROJECTION"[1], pos), dot(" I_PROJECTION"[2], pos), dot(" I_PROJECTION"[3], pos));\n");
 	if (api_type & API_D3D9)

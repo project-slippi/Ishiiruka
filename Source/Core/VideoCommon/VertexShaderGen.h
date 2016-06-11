@@ -69,19 +69,21 @@ struct vertex_shader_uid_data
 	u32 ssaa : 1;
 
 	u32 texMtxInfo_n_projection : 16; // Stored separately to guarantee that the texMtxInfo struct is 8 bits wide
-	struct {
-		u32 inputform : 2;
-		u32 texgentype : 3;
-		u32 sourcerow : 5;
-		u32 embosssourceshift : 3;
-		u32 embosslightshift : 3;
-	} texMtxInfo[8];
+	u32 pad0 : 16;
 
 	struct {
-		u32 index : 6;
-		u32 normalize : 1;
-		u32 pad : 1;
+		u8 index : 6;
+		u8 normalize : 1;
+		u8 pad : 1;
 	} postMtxInfo[8];
+
+	struct {
+		u16 inputform : 2;
+		u16 texgentype : 3;
+		u16 sourcerow : 5;
+		u16 embosssourceshift : 3;
+		u16 embosslightshift : 3;
+	} texMtxInfo[8];
 
 	LightingUidData lighting;
 };
