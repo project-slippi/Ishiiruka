@@ -606,7 +606,7 @@ VideoConfigDiag::VideoConfigDiag(wxWindow* parent, const std::string &title, con
 		{
 			wxFlexGridSizer* const szr_tessellation = new wxFlexGridSizer(3, 5, 5);
 			szr_tessellation->AddGrowableCol(2, 1);
-			szr_tessellation->Add(tessellation = CreateCheckBox(page_enh, _("Enable"), (Tessellation_desc), vconfig.bTessellation), 1, wxALIGN_CENTER_VERTICAL, 0);
+			szr_tessellation->Add(CreateCheckBox(page_enh, _("Enable"), (Tessellation_desc), vconfig.bTessellation), 1, wxALIGN_CENTER_VERTICAL, 0);
 
 			wxSlider* const min_slider = new wxSlider(page_enh, wxID_ANY, vconfig.iTessellationDistance, 5, 1000, wxDefaultPosition, wxDefaultSize);
 			min_slider->Bind(wxEVT_SLIDER, &VideoConfigDiag::Event_TessellationDistance, this);
@@ -624,7 +624,7 @@ VideoConfigDiag::VideoConfigDiag(wxWindow* parent, const std::string &title, con
 			szr_tessellation->Add(new wxStaticText(page_enh, wxID_ANY, _("Maximun Detail:")), 1, wxALIGN_CENTER_VERTICAL, 0);
 			szr_tessellation->Add(max_slider, 1, wxEXPAND | wxRIGHT);
 
-			szr_tessellation->Add(forcedlight = CreateCheckBox(page_enh, _("Forced Lighting"), (Tessellation_forced_lights_desc), vconfig.bForcedLighting), 1, wxALIGN_CENTER_VERTICAL, 0);
+			szr_tessellation->Add(CreateCheckBox(page_enh, _("Forced Lighting"), (Tessellation_forced_lights_desc), vconfig.bForcedLighting), 1, wxALIGN_CENTER_VERTICAL, 0);
 
 			wxSlider* const round_slider = new wxSlider(page_enh, wxID_ANY, vconfig.iTessellationRoundingIntensity, 0, 100, wxDefaultPosition, wxDefaultSize);
 			round_slider->Bind(wxEVT_SLIDER, &VideoConfigDiag::Event_TessellationRounding, this);
@@ -643,13 +643,8 @@ VideoConfigDiag::VideoConfigDiag(wxWindow* parent, const std::string &title, con
 			szr_tessellation->Add(displacement_slider, 1, wxEXPAND | wxRIGHT);
 
 			group_Tessellation = new wxStaticBoxSizer(wxVERTICAL, page_enh, _("Tessellation"));
-			group_Tessellation->Add(szr_tessellation, 1, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 5);
+			group_Tessellation->Add(szr_tessellation, 1, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 5);			
 			szr_enh_main->Add(group_Tessellation, 0, wxEXPAND | wxALL, 5);
-		}
-		else
-		{
-			tessellation = nullptr;
-			forcedlight = nullptr;
 		}
 		szr_enh_main->AddStretchSpacer();
 		CreateDescriptionArea(page_enh, szr_enh_main);
@@ -1414,14 +1409,6 @@ void VideoConfigDiag::OnUpdateUI(wxUpdateUIEvent& ev)
 	// pixel lighting
 	pixel_lighting->Enable(vconfig.backend_info.bSupportsPixelLighting);
 	phong_lighting->Enable(vconfig.backend_info.bSupportsPixelLighting && vconfig.bEnablePixelLighting);
-	if (tessellation)
-	{
-		tessellation->Enable(vconfig.backend_info.bSupportsPixelLighting && vconfig.bEnablePixelLighting);		
-	}
-	if (forcedlight)
-	{
-		forcedlight->Enable(vconfig.backend_info.bSupportsPixelLighting && vconfig.bEnablePixelLighting && vconfig.TessellationEnabled());
-	}
 	sim_bump->Enable(phongEnabled);
 	group_phong->Show(phongEnabled);
 #if defined WIN32
