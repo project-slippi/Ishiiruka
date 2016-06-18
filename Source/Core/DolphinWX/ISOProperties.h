@@ -68,15 +68,6 @@ public:
 			long style = wxDEFAULT_DIALOG_STYLE | wxRESIZE_BORDER);
 	virtual ~CISOProperties();
 
-	bool bRefreshList;
-
-	// These are only public because of the ugly hack in CreateCodeDialog.cpp
-	void ActionReplayList_Load();
-	bool SaveGameConfig();
-
-	// This only exists because of the ugly hack in CreateCodeDialog.cpp
-	void AddARCode(const ActionReplay::ARCode& code);
-
 private:
 	DECLARE_EVENT_TABLE();
 
@@ -209,6 +200,7 @@ private:
 	void OnComputeMD5Sum(wxCommandEvent& event);
 	void OnShowDefaultConfig(wxCommandEvent& event);
 	void ListSelectionChanged(wxCommandEvent& event);
+	void OnActionReplayCodeChecked(wxCommandEvent& event);
 	void PatchButtonClicked(wxCommandEvent& event);
 	void ActionReplayButtonClicked(wxCommandEvent& event);
 	void RightClickOnBanner(wxMouseEvent& event);
@@ -218,7 +210,7 @@ private:
 	void OnExtractDir(wxCommandEvent& event);
 	void OnExtractDataFromHeader(wxCommandEvent& event);
 	void CheckPartitionIntegrity(wxCommandEvent& event);
-	void SetRefresh(wxCommandEvent& event);
+	void OnEmustateChanged(wxCommandEvent& event);
 	void OnChangeBannerLang(wxCommandEvent& event);
 
 	const GameListItem OpenGameListItem;
@@ -243,8 +235,12 @@ private:
 	std::set<std::string> DefaultCheats;
 
 	void LoadGameConfig();
+	bool SaveGameConfig();
+	void OnLocalIniModified(wxCommandEvent& ev);
+	void GenerateLocalIniModified();
 	void PatchList_Load();
 	void PatchList_Save();
+	void ActionReplayList_Load();
 	void ActionReplayList_Save();
 	void ChangeBannerDetails(DiscIO::IVolume::ELanguage language);
 
