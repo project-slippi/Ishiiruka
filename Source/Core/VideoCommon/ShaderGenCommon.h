@@ -63,7 +63,7 @@ public:
 	// determines the storage order inside STL containers
 	bool operator < (const ShaderUid& obj) const
 	{
-		return memcmp(reinterpret_cast<const u8*>(&data) + data.StartValue(), reinterpret_cast<const u8*>(&obj.data) + obj.data.StartValue(), data.NumValues()) < 0;
+		return memcmp(reinterpret_cast<const u8*>(&data) + data.StartValue(), reinterpret_cast<const u8*>(&obj.data) + obj.data.StartValue(), std::max(obj.data.NumValues(), data.NumValues())) < 0;
 	}
 
 	template<class T>

@@ -13,6 +13,7 @@
 #include "VideoCommon/Statistics.h"
 #include "VideoCommon/VertexShaderGen.h"
 #include "VideoCommon/VertexShaderManager.h"
+#include "VideoCommon/ObjectUsageProfiler.h"
 
 #include "VideoBackends/DX11/D3DShader.h"
 #include "VideoBackends/DX11/D3DUtil.h"
@@ -24,7 +25,7 @@ VertexShaderCache::VSCache VertexShaderCache::s_vshaders;
 const VertexShaderCache::VSCacheEntry *VertexShaderCache::s_last_entry;
 VertexShaderUid VertexShaderCache::s_last_uid;
 VertexShaderUid VertexShaderCache::s_external_last_uid;
-
+static ObjectUsageProfiler<VertexShaderUid, pKey_t, VertexShaderUid::ShaderUidHasher>* s_usage_profiler = nullptr;
 static HLSLAsyncCompiler *s_compiler;
 static Common::SpinLock<true> s_vshaders_lock;
 
@@ -151,15 +152,46 @@ void VertexShaderCache::Init()
 
 	SETSTAT(stats.numVertexShadersCreated, 0);
 	SETSTAT(stats.numVertexShadersAlive, 0);
-
+	std::string profile_filename = StringFromFormat("%s\\Ishiiruka.vs.usage", File::GetExeDirectory().c_str());
+	bool profile_filename_exists = File::Exists(profile_filename);
+	if (g_ActiveConfig.bShaderUsageProfiling || profile_filename_exists)
+	{
+		s_usage_profiler = new ObjectUsageProfiler<VertexShaderUid, pKey_t, VertexShaderUid::ShaderUidHasher>(VERTEXSHADERGEN_UID_VERSION);
+	}
+	
+	pKey_t gameid = (pKey_t)GetMurmurHash3(reinterpret_cast<const u8*>(SConfig::GetInstance().m_strUniqueID.data()), (u32)SConfig::GetInstance().m_strUniqueID.size(), 0);
+	if (profile_filename_exists)
+	{
+		s_usage_profiler->ReadFromFile(profile_filename);
+	}
+	if (s_usage_profiler)
+	{
+		s_usage_profiler->SetCategory(gameid);
+	}
 	std::string cache_filename = StringFromFormat("%sIDX11-%s-vs.cache", File::GetUserPath(D_SHADERCACHE_IDX).c_str(),
 		SConfig::GetInstance().m_strUniqueID.c_str());
 	
 	VertexShaderCacheInserter inserter;
-	s_vshaders_lock.lock();
 	g_vs_disk_cache.OpenAndRead(cache_filename, inserter);
-	s_vshaders_lock.unlock();
-
+	if (profile_filename_exists && g_ActiveConfig.bCompileShaderOnStartup)
+	{
+		std::vector<VertexShaderUid> shaders;
+		s_usage_profiler->GetMostUsedByCategory(gameid, shaders, true);
+		size_t shader_count = 0;
+		for (const VertexShaderUid& item : shaders)
+		{
+			if (s_vshaders.find(item) == s_vshaders.end())
+			{
+				CompileVShader(item, true);
+			}
+			shader_count++;
+			if ((shader_count & 63) == 0)
+			{
+				s_compiler->WaitForFinish();
+			}
+		}
+		s_compiler->WaitForFinish();
+	}
 	s_last_entry = nullptr;
 	VertexShaderManager::DisableDirtyRegions();
 }
@@ -177,6 +209,13 @@ void VertexShaderCache::Clear()
 
 void VertexShaderCache::Shutdown()
 {
+	if (s_usage_profiler)
+	{
+		std::string profile_filename = StringFromFormat("%s\\Ishiiruka.vs.usage", File::GetExeDirectory().c_str());
+		s_usage_profiler->PersistToFile(profile_filename);
+		delete s_usage_profiler;
+		s_usage_profiler = nullptr;
+	}
 	if (s_compiler)
 	{
 		s_compiler->WaitForFinish();
@@ -197,36 +236,8 @@ void VertexShaderCache::Shutdown()
 	g_vs_disk_cache.Close();
 }
 
-void VertexShaderCache::PrepareShader(
-	u32 components, 
-	const XFMemory 
-	&xfr, 
-	const BPMemory &bpm, 
-	bool ongputhread)
+void VertexShaderCache::CompileVShader(const VertexShaderUid& uid, bool ongputhread)
 {
-	VertexShaderUid uid;
-	GetVertexShaderUID(uid, components, xfr, bpm);
-	if (ongputhread)
-	{
-		s_compiler->ProcCompilationResults();
-		if (s_last_entry)
-		{
-			if (uid == s_last_uid)
-			{
-				return;
-			}
-		}
-		s_last_uid = uid;
-		GFX_DEBUGGER_PAUSE_AT(NEXT_VERTEX_SHADER_CHANGE, true);
-	}
-	else
-	{
-		if (s_external_last_uid == uid)
-		{
-			return;
-		}
-		s_external_last_uid = uid;
-	}
 	s_vshaders_lock.lock();
 	VSCacheEntry* entry = &s_vshaders[uid];
 	s_vshaders_lock.unlock();
@@ -276,6 +287,43 @@ void VertexShaderCache::PrepareShader(
 		}
 	};
 	s_compiler->CompileShaderAsync(wunit);
+}
+
+void VertexShaderCache::PrepareShader(
+	u32 components, 
+	const XFMemory 
+	&xfr, 
+	const BPMemory &bpm, 
+	bool ongputhread)
+{
+	VertexShaderUid uid;
+	GetVertexShaderUID(uid, components, xfr, bpm);
+	if (ongputhread)
+	{
+		s_compiler->ProcCompilationResults();
+		if (s_last_entry)
+		{
+			if (uid == s_last_uid)
+			{
+				return;
+			}
+		}
+		s_last_uid = uid;
+		if (g_ActiveConfig.bShaderUsageProfiling)
+		{
+			s_usage_profiler->RegisterUsage(uid);
+		}
+		GFX_DEBUGGER_PAUSE_AT(NEXT_VERTEX_SHADER_CHANGE, true);
+	}
+	else
+	{
+		if (s_external_last_uid == uid)
+		{
+			return;
+		}
+		s_external_last_uid = uid;
+	}
+	CompileVShader(uid, ongputhread);
 }
 
 bool VertexShaderCache::TestShader()

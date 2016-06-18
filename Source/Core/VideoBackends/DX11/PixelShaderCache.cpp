@@ -17,9 +17,10 @@
 #include "VideoCommon/Statistics.h"
 #include "VideoCommon/VideoConfig.h"
 #include "VideoCommon/HLSLCompiler.h"
+#include "VideoCommon/ObjectUsageProfiler.h"
 #include "VideoCommon/PixelShaderManager.h"
 
-static bool s_previous_per_pixel_lighting = false;
+
 
 namespace DX11
 {
@@ -28,9 +29,10 @@ PixelShaderCache::PSCache PixelShaderCache::s_pixel_shaders;
 const PixelShaderCache::PSCacheEntry* PixelShaderCache::s_last_entry;
 PixelShaderUid PixelShaderCache::s_last_uid;
 PixelShaderUid PixelShaderCache::s_external_last_uid;
+static ObjectUsageProfiler<PixelShaderUid, pKey_t, PixelShaderUid::ShaderUidHasher>* s_usage_profiler = nullptr;
 static HLSLAsyncCompiler *s_compiler;
 static Common::SpinLock<true> s_pixel_shaders_lock;
-
+static bool s_previous_per_pixel_lighting = false;
 LinearDiskCache<PixelShaderUid, u8> g_ps_disk_cache;
 
 D3D::PixelShaderPtr s_ColorMatrixProgram[2];
@@ -500,12 +502,47 @@ void PixelShaderCache::Init()
 	SETSTAT(stats.numPixelShadersCreated, 0);
 	SETSTAT(stats.numPixelShadersAlive, 0);
 
+	std::string profile_filename = StringFromFormat("%s\\Ishiiruka.ps.usage", File::GetExeDirectory().c_str());
+	bool profile_filename_exists = File::Exists(profile_filename);
+	if (g_ActiveConfig.bShaderUsageProfiling || profile_filename_exists)
+	{
+		s_usage_profiler = new ObjectUsageProfiler<PixelShaderUid, pKey_t, PixelShaderUid::ShaderUidHasher>(PIXELSHADERGEN_UID_VERSION);
+	}
+	
+	pKey_t gameid = (pKey_t)GetMurmurHash3(reinterpret_cast<const u8*>(SConfig::GetInstance().m_strUniqueID.data()), (u32)SConfig::GetInstance().m_strUniqueID.size(), 0);
+	if (profile_filename_exists)
+	{
+		s_usage_profiler->ReadFromFile(profile_filename);
+	}
+	if (s_usage_profiler)
+	{
+		s_usage_profiler->SetCategory(gameid);
+	}
+	
 	std::string cache_filename = StringFromFormat("%sIDX11-%s-ps.cache", File::GetUserPath(D_SHADERCACHE_IDX).c_str(),
 		SConfig::GetInstance().m_strUniqueID.c_str());
 
 	PixelShaderCacheInserter inserter;
 	g_ps_disk_cache.OpenAndRead(cache_filename, inserter);
-
+	if (profile_filename_exists && g_ActiveConfig.bCompileShaderOnStartup)
+	{
+		std::vector<PixelShaderUid> shaders;
+		s_usage_profiler->GetMostUsedByCategory(gameid, shaders, true);
+		size_t shader_count = 0;
+		for (const PixelShaderUid& item : shaders)
+		{
+			if (s_pixel_shaders.find(item) == s_pixel_shaders.end())
+			{
+				CompilePShader(item, true);
+			}
+			shader_count++;
+			if ((shader_count & 31) == 0)
+			{
+				s_compiler->WaitForFinish();
+			}
+		}
+		s_compiler->WaitForFinish();
+	}
 	s_last_entry = nullptr;
 	PixelShaderManager::DisableDirtyRegions();
 }
@@ -535,6 +572,13 @@ void PixelShaderCache::InvalidateMSAAShaders()
 
 void PixelShaderCache::Shutdown()
 {
+	if (s_usage_profiler)
+	{
+		std::string profile_filename = StringFromFormat("%s\\Ishiiruka.ps.usage", File::GetExeDirectory().c_str());
+		s_usage_profiler->PersistToFile(profile_filename);
+		delete s_usage_profiler;
+		s_usage_profiler = nullptr;
+	}
 	if (pscbuf != nullptr)
 	{
 		delete pscbuf;
@@ -557,35 +601,8 @@ void PixelShaderCache::Shutdown()
 	g_ps_disk_cache.Close();
 }
 
-void PixelShaderCache::PrepareShader(PIXEL_SHADER_RENDER_MODE render_mode,
-	u32 components,
-	const XFMemory &xfr,
-	const BPMemory &bpm, bool ongputhread)
+void PixelShaderCache::CompilePShader(const PixelShaderUid& uid, bool ongputhread)
 {
-	PixelShaderUid uid;
-	GetPixelShaderUID(uid, render_mode, components, xfr, bpm);
-	if (ongputhread)
-	{
-		s_compiler->ProcCompilationResults();
-		// Check if the shader is already set
-		if (s_last_entry)
-		{
-			if (uid == s_last_uid)
-			{
-				return;
-			}
-		}
-		s_last_uid = uid;
-		GFX_DEBUGGER_PAUSE_AT(NEXT_PIXEL_SHADER_CHANGE, true);
-	}
-	else
-	{
-		if (s_external_last_uid == uid)
-		{
-			return;
-		}
-		s_external_last_uid = uid;
-	}
 	s_pixel_shaders_lock.lock();
 	PSCacheEntry* entry = &s_pixel_shaders[uid];
 	s_pixel_shaders_lock.unlock();
@@ -608,7 +625,7 @@ void PixelShaderCache::PrepareShader(PIXEL_SHADER_RENDER_MODE render_mode,
 		GeneratePixelShaderCodeD3D11(code, uid.GetUidData());
 		wunit->codesize = (u32)code.BufferSize();
 	};
-	
+
 	wunit->entrypoint = "main";
 	wunit->flags = D3DCOMPILE_SKIP_VALIDATION | D3DCOMPILE_OPTIMIZATION_LEVEL3;
 	wunit->target = D3D::PixelShaderVersionString();
@@ -639,6 +656,40 @@ void PixelShaderCache::PrepareShader(PIXEL_SHADER_RENDER_MODE render_mode,
 		}
 	};
 	s_compiler->CompileShaderAsync(wunit);
+}
+
+void PixelShaderCache::PrepareShader(PIXEL_SHADER_RENDER_MODE render_mode,
+	u32 components,
+	const XFMemory &xfr,
+	const BPMemory &bpm, bool ongputhread)
+{
+	PixelShaderUid uid;
+	GetPixelShaderUID(uid, render_mode, components, xfr, bpm);
+	if (ongputhread)
+	{
+		s_compiler->ProcCompilationResults();
+		// Check if the shader is already set
+		if (s_last_entry)
+		{
+			if (uid == s_last_uid)
+			{
+				return;
+			}
+		}
+		s_last_uid = uid;
+		if(g_ActiveConfig.bShaderUsageProfiling)
+			s_usage_profiler->RegisterUsage(uid);
+		GFX_DEBUGGER_PAUSE_AT(NEXT_PIXEL_SHADER_CHANGE, true);
+	}
+	else
+	{
+		if (s_external_last_uid == uid)
+		{
+			return;
+		}
+		s_external_last_uid = uid;
+	}
+	CompilePShader(uid, ongputhread);
 }
 
 bool PixelShaderCache::TestShader()

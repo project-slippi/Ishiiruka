@@ -21,6 +21,7 @@
 #include "VideoCommon/GeometryShaderGen.h"
 #include "VideoCommon/GeometryShaderManager.h"
 #include "VideoCommon/HLSLCompiler.h"
+#include "VideoCommon/ObjectUsageProfiler.h"
 #include "VideoCommon/Statistics.h"
 #include "VideoCommon/VideoConfig.h"
 
@@ -32,6 +33,7 @@ const GeometryShaderCache::GSCacheEntry* GeometryShaderCache::s_last_entry;
 GeometryShaderUid GeometryShaderCache::s_last_uid;
 GeometryShaderUid GeometryShaderCache::s_external_last_uid;
 const GeometryShaderCache::GSCacheEntry GeometryShaderCache::s_pass_entry;
+static ObjectUsageProfiler<GeometryShaderUid, pKey_t, GeometryShaderUid::ShaderUidHasher>* s_usage_profiler = nullptr;
 static HLSLAsyncCompiler *s_compiler;
 static Common::SpinLock<true> s_geometry_shaders_lock;
 
@@ -166,10 +168,48 @@ void GeometryShaderCache::Init()
 	if (!File::Exists(File::GetUserPath(D_SHADERCACHE_IDX)))
 		File::CreateDir(File::GetUserPath(D_SHADERCACHE_IDX));
 
+	std::string profile_filename = StringFromFormat("%s\\Ishiiruka.gs.usage", File::GetExeDirectory().c_str());
+	bool profile_filename_exists = File::Exists(profile_filename);
+	if (g_ActiveConfig.bShaderUsageProfiling || profile_filename_exists)
+	{
+		s_usage_profiler = new ObjectUsageProfiler<GeometryShaderUid, pKey_t, GeometryShaderUid::ShaderUidHasher>(GEOMETRYSHADERGEN_UID_VERSION);
+	}
+
+	pKey_t gameid = (pKey_t)GetMurmurHash3(reinterpret_cast<const u8*>(SConfig::GetInstance().m_strUniqueID.data()), (u32)SConfig::GetInstance().m_strUniqueID.size(), 0);
+	if (profile_filename_exists)
+	{
+		s_usage_profiler->ReadFromFile(profile_filename);
+	}
+	if (s_usage_profiler)
+	{
+		s_usage_profiler->SetCategory(gameid);
+	}
+
 	std::string cache_filename = StringFromFormat("%sIDX11-%s-gs.cache", File::GetUserPath(D_SHADERCACHE_IDX).c_str(),
 		SConfig::GetInstance().m_strUniqueID.c_str());
 	GeometryShaderCacheInserter inserter;
 	g_gs_disk_cache.OpenAndRead(cache_filename, inserter);
+	
+	if (profile_filename_exists && g_ActiveConfig.bCompileShaderOnStartup)
+	{
+		std::vector<GeometryShaderUid> shaders;
+		s_usage_profiler->GetMostUsedByCategory(gameid, shaders, true);
+		size_t shader_count = 0;
+		for (const GeometryShaderUid& item : shaders)
+		{
+			if (s_geometry_shaders.find(item) == s_geometry_shaders.end())
+			{
+				CompileGShader(item, true);
+			}
+			shader_count++;
+			if ((shader_count & 31) == 0)
+			{
+				s_compiler->WaitForFinish();
+			}
+		}
+		s_compiler->WaitForFinish();
+	}
+
 	s_last_entry = nullptr;
 }
 
@@ -186,6 +226,13 @@ void GeometryShaderCache::Clear()
 
 void GeometryShaderCache::Shutdown()
 {
+	if (s_usage_profiler)
+	{
+		std::string profile_filename = StringFromFormat("%s\\Ishiiruka.gs.usage", File::GetExeDirectory().c_str());
+		s_usage_profiler->PersistToFile(profile_filename);
+		delete s_usage_profiler;
+		s_usage_profiler = nullptr;
+	}
 	if (s_compiler)
 	{
 		s_compiler->WaitForFinish();
@@ -204,45 +251,8 @@ void GeometryShaderCache::Shutdown()
 	g_gs_disk_cache.Close();
 }
 
-void GeometryShaderCache::PrepareShader(
-	u32 primitive_type,
-	const XFMemory &xfr,
-	const u32 components,
-	bool ongputhread)
+void GeometryShaderCache::CompileGShader(const GeometryShaderUid& uid, bool ongputhread)
 {
-	GeometryShaderUid uid;
-	GetGeometryShaderUid(uid, primitive_type, xfr, components);
-	if (ongputhread)
-	{
-		s_compiler->ProcCompilationResults();
-		// Check if the shader is already set
-		if (s_last_entry)
-		{
-			if (uid == s_last_uid)
-			{
-				return;
-			}
-		}
-		s_last_uid = uid;
-		// Check if the shader is a pass-through shader
-		if (uid.GetUidData().IsPassthrough())
-		{
-			// Return the default pass-through shader
-			s_last_entry = &s_pass_entry;
-			return;
-		}
-		GFX_DEBUGGER_PAUSE_AT(NEXT_PIXEL_SHADER_CHANGE, true);
-	}
-	else
-	{
-		if (s_external_last_uid == uid)
-		{
-			return;
-		}
-		s_external_last_uid = uid;
-	}
-	
-
 	s_geometry_shaders_lock.lock();
 	GSCacheEntry* entry = &s_geometry_shaders[uid];
 	s_geometry_shaders_lock.unlock();
@@ -265,7 +275,7 @@ void GeometryShaderCache::PrepareShader(
 		GenerateGeometryShaderCode(code, uid.GetUidData(), API_D3D11);
 		wunit->codesize = (u32)code.BufferSize();
 	};
-	
+
 	wunit->entrypoint = "main";
 	wunit->flags = D3DCOMPILE_SKIP_VALIDATION | D3DCOMPILE_OPTIMIZATION_LEVEL3;
 	wunit->target = D3D::GeometryShaderVersionString();
@@ -298,6 +308,48 @@ void GeometryShaderCache::PrepareShader(
 		}
 	};
 	s_compiler->CompileShaderAsync(wunit);
+}
+
+void GeometryShaderCache::PrepareShader(
+	u32 primitive_type,
+	const XFMemory &xfr,
+	const u32 components,
+	bool ongputhread)
+{
+	GeometryShaderUid uid;
+	GetGeometryShaderUid(uid, primitive_type, xfr, components);
+	if (ongputhread)
+	{
+		s_compiler->ProcCompilationResults();
+		// Check if the shader is already set
+		if (s_last_entry)
+		{
+			if (uid == s_last_uid)
+			{
+				return;
+			}
+		}
+		s_last_uid = uid;
+		// Check if the shader is a pass-through shader
+		if (uid.GetUidData().IsPassthrough())
+		{
+			// Return the default pass-through shader
+			s_last_entry = &s_pass_entry;
+			return;
+		}
+		if (g_ActiveConfig.bShaderUsageProfiling)
+			s_usage_profiler->RegisterUsage(uid);
+		GFX_DEBUGGER_PAUSE_AT(NEXT_PIXEL_SHADER_CHANGE, true);
+	}
+	else
+	{
+		if (s_external_last_uid == uid)
+		{
+			return;
+		}
+		s_external_last_uid = uid;
+	}
+	CompileGShader(uid, ongputhread);
 }
 
 bool GeometryShaderCache::TestShader()

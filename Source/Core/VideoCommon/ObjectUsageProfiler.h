@@ -1,0 +1,267 @@
+// Copyright 2014 Dolphin Emulator Project
+// Licensed under GPLv2
+// Refer to the license.txt file included.
+
+
+// Copyright 2016 Rodolfo Bogado
+// All rights reserved.
+//
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions are met:
+//
+//     * Redistributions of source code must retain the above copyright
+//       notice, this list of conditions and the following disclaimer.
+//     * Redistributions in binary form must reproduce the above copyright
+//       notice, this list of conditions and the following disclaimer in the
+//       documentation and/or other materials provided with the distribution.
+//     * Neither the name of the owner nor the names of its contributors may
+//       be used to endorse or promote products derived from this software
+//       without specific prior written permission.
+//
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+// "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+// LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+// A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+// OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+// SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+// LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+// DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+// THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+// OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+#pragma once
+#include <algorithm>
+#include <fstream>
+#include <map>
+#include <unordered_map>
+#include <vector>
+
+typedef unsigned __int64 pKey_t;
+
+template <typename Tobj, typename TCaterogry, typename TobjHasher> class ObjectUsageProfiler
+{
+public:
+	ObjectUsageProfiler(pKey_t version) : m_version(version) {};
+
+	void SetCategory(const TCaterogry& category)
+	{
+		if (m_categories.find(category) == m_categories.end())
+		{
+			m_categories[category] = { m_categories.size() + 1, 0 };
+		}
+		if (m_categories[category].usage_count < LLONG_MAX)
+		{
+			m_categories[category].usage_count++;
+		}
+		m_category_id = m_categories[category].Id;
+		m_category_index = m_category_id / (sizeof(pKey_t) * 8);
+		pKey_t max_category_index = std::max(m_max_category_index, m_category_index + 1);
+		if (max_category_index > m_max_category_index)
+		{
+			m_max_category_index = max_category_index;
+			for (auto& item : m_objects)
+			{
+				item.second.category_mask.resize(m_max_category_index);
+			}
+		}
+		m_category_mask = pKey_t(1) << (m_category_id % (sizeof(pKey_t) * 8));
+	}
+
+	void RegisterUsage(const Tobj& obj)
+	{
+		if (m_objects.find(obj) == m_objects.end())
+		{
+			ObjectMetadata metadata;
+			metadata.category_count = 0;
+			metadata.usage_count = 0;
+			metadata.category_mask.resize(m_max_category_index);
+			m_objects.emplace(obj, std::move(metadata));
+		}
+		ObjectMetadata& item = m_objects[obj];
+		if (item.usage_count < LLONG_MAX)
+		{
+			item.usage_count++;
+		}
+		if ((item.category_mask[m_category_index] & m_category_mask) == 0)
+		{
+			item.category_mask[m_category_index] |= m_category_mask;
+			if (item.category_count < LLONG_MAX)
+			{
+				item.category_count++;
+			}
+		}
+	}
+	void GetMostUsed(std::vector<Tobj>& output, pKey_t max_count = LLONG_MAX)
+	{
+		std::vector<std::pair<const Tobj, ObjectMetadata>*> elements;
+		for (auto& item : m_objects)
+		{
+			elements.push_back(&item);
+		}
+		greater comparer;
+		std::sort(elements.begin(), elements.end(), comparer);
+		max_count = std::min(elements.size(), max_count);
+		output.resize(max_count);
+		for (size_t i = 0; i < max_count; i++)
+		{
+			output[i] = elements[i]->first;
+		}
+	}
+	void GetMostUsedByCategory(const TCaterogry& category, std::vector<Tobj>& output, bool include_globals = false, size_t global_limit = 3, size_t max_count = LLONG_MAX)
+	{
+		if (m_categories.find(category) == m_categories.end() && !include_globals)
+		{
+			output.resize(0);
+			return;
+		}
+		include_globals = include_globals && (m_categories.find(category) == m_categories.end());
+		pKey_t category_id = m_categories[category].Id;
+		pKey_t category_index = category_id / (sizeof(pKey_t) * 8);
+		pKey_t category_mask = pKey_t(1) << (category_id % (sizeof(pKey_t) * 8));
+		std::vector<std::pair<const Tobj, ObjectMetadata>*> elements;
+		for (auto& item : m_objects)
+		{
+			if (include_globals && item.second.category_count > global_limit)
+			{
+				elements.push_back(&item);
+			}
+			if (item.second.category_mask.size() <= category_index)
+			{
+				continue;
+			}
+			if ((item.second.category_mask[category_index] & category_mask) != 0)
+			{
+				elements.push_back(&item);
+			}
+		}
+		greater comparer;
+		std::sort(elements.begin(), elements.end(), comparer);
+		max_count = std::min(elements.size(), max_count);
+		output.resize(max_count);
+		for (size_t i = 0; i < max_count; i++)
+		{
+			output[i] = elements[i]->first;
+		}
+	}
+
+	void PersistToFile(const std::string& path)
+	{
+		std::ofstream out(path, std::ofstream::binary);
+		if (!out.is_open())
+		{
+			return;
+		}
+		bwrite(out, m_version);
+		size_t category_count = m_categories.size();
+		bwrite(out, category_count);
+		for (auto& item : m_categories)
+		{
+			bwrite(out, item.first);
+			bwrite(out, item.second);
+		}
+		size_t object_count = m_objects.size();
+		bwrite(out, object_count);
+		for (auto& item : m_objects)
+		{
+			bwrite(out, item.first);
+			bwrite(out, item.second.category_count);
+			bwrite(out, item.second.usage_count);
+			size_t mask_size = item.second.category_mask.size();
+			bwrite(out, mask_size);
+			if (mask_size > 0)
+			{
+				out.write(reinterpret_cast<char*>(item.second.category_mask.data()), sizeof(size_t) * mask_size);
+			}
+		}
+	}
+	void ReadFromFile(const std::string& path)
+	{
+		std::ifstream input(path, std::ifstream::binary);
+		if (!input.is_open())
+		{
+			return;
+		}
+		pKey_t version = 0;
+		bread(input, version);
+		if (version != m_version)
+		{
+			return;
+		}
+		pKey_t category_count = 0;
+		bread(input, category_count);
+		pKey_t category_index = (category_count + 1) / (sizeof(pKey_t) * 8);
+		m_max_category_index = std::max(m_max_category_index, category_index + 1);
+		for (size_t i = 0; i < category_count; i++)
+		{
+			TCaterogry key;
+			bread(input, key);
+			CategoryMetadata data;
+			bread(input, data);
+			m_categories.emplace(std::move(key), std::move(data));
+		}
+		pKey_t object_count = 0;
+		bread(input, object_count);
+		for (size_t i = 0; i < object_count; i++)
+		{
+			Tobj key;
+			bread(input, key);
+			ObjectMetadata data;
+			bread(input, data.category_count);
+			bread(input, data.usage_count);
+			pKey_t mask_size = 0;
+			bread(input, mask_size);
+			data.category_mask.resize(m_max_category_index);
+			if (mask_size)
+			{
+				input.read(reinterpret_cast<char*>(data.category_mask.data()), sizeof(pKey_t) * mask_size);
+			}
+			m_objects.emplace(std::move(key), std::move(data));
+		}
+	}
+private:
+	struct ObjectMetadata
+	{
+		pKey_t category_count;
+		pKey_t usage_count;
+		std::vector<pKey_t> category_mask;
+	};
+	struct greater
+	{
+		bool operator()(std::pair<const Tobj, ObjectMetadata>* const &first, std::pair<const Tobj, ObjectMetadata>* const &second) const
+		{
+			if (first->second.category_count > second->second.category_count)
+			{
+				return true;
+			}
+			if (first->second.category_count == second->second.category_count)
+			{
+				return  first->second.usage_count > second->second.usage_count;
+			}
+			return false;
+		}
+	};
+	struct CategoryMetadata
+	{
+		pKey_t Id;
+		pKey_t usage_count;
+	};
+	std::unordered_map<Tobj, ObjectMetadata, TobjHasher> m_objects = {};;
+	std::map<TCaterogry, CategoryMetadata> m_categories = {};;
+	pKey_t m_category_id = {};
+	pKey_t m_category_index = {};
+	pKey_t m_max_category_index = {};
+	pKey_t m_category_mask = {};
+	pKey_t m_version = {};
+
+	template<typename T>
+	inline void bwrite(std::ofstream& out, const T& t)
+	{
+		out.write(reinterpret_cast<const char*>(&t), sizeof(T));
+	}
+
+	template<typename T>
+	inline void bread(std::ifstream& in, T& t)
+	{
+		in.read(reinterpret_cast<char*>(&t), sizeof(T));
+	}
+};

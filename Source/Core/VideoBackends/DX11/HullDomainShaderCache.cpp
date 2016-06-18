@@ -20,6 +20,7 @@
 #include "VideoCommon/Debugger.h"
 #include "VideoCommon/TessellationShaderManager.h"
 #include "VideoCommon/HLSLCompiler.h"
+#include "VideoCommon/ObjectUsageProfiler.h"
 #include "VideoCommon/Statistics.h"
 #include "VideoCommon/VideoConfig.h"
 
@@ -31,6 +32,7 @@ namespace DX11
 	TessellationShaderUid HullDomainShaderCache::s_last_uid;
 	TessellationShaderUid HullDomainShaderCache::s_external_last_uid;
 
+	static ObjectUsageProfiler<TessellationShaderUid, pKey_t, TessellationShaderUid::ShaderUidHasher>* s_usage_profiler = nullptr;
 	static HLSLAsyncCompiler *s_compiler;
 	static Common::SpinLock<true> s_hulldomain_shaders_lock;
 
@@ -86,6 +88,23 @@ namespace DX11
 		if (!File::Exists(File::GetUserPath(D_SHADERCACHE_IDX)))
 			File::CreateDir(File::GetUserPath(D_SHADERCACHE_IDX));
 
+		std::string profile_filename = StringFromFormat("%s\\Ishiiruka.ts.usage", File::GetExeDirectory().c_str());
+		bool profile_filename_exists = File::Exists(profile_filename);
+		if (g_ActiveConfig.bShaderUsageProfiling || profile_filename_exists)
+		{
+			s_usage_profiler = new ObjectUsageProfiler<TessellationShaderUid, pKey_t, TessellationShaderUid::ShaderUidHasher>(TESSELLATIONSHADERGEN_UID_VERSION);
+		}
+
+		pKey_t gameid = (pKey_t)GetMurmurHash3(reinterpret_cast<const u8*>(SConfig::GetInstance().m_strUniqueID.data()), (u32)SConfig::GetInstance().m_strUniqueID.size(), 0);
+		if (profile_filename_exists)
+		{
+			s_usage_profiler->ReadFromFile(profile_filename);
+		}
+		if (s_usage_profiler)
+		{
+			s_usage_profiler->SetCategory(gameid);
+		}
+
 		std::string h_cache_filename = StringFromFormat("%sIDX11-%s-hs.cache", File::GetUserPath(D_SHADERCACHE_IDX).c_str(),
 			SConfig::GetInstance().m_strUniqueID.c_str());
 		HullShaderCacheInserter hinserter;
@@ -99,6 +118,25 @@ namespace DX11
 		SETSTAT(stats.numDomainShadersAlive, 0);		
 		SETSTAT(stats.numHullShadersCreated, 0);
 		SETSTAT(stats.numHullShadersAlive, 0);
+		if (profile_filename_exists && g_ActiveConfig.bCompileShaderOnStartup)
+		{
+			std::vector<TessellationShaderUid> shaders;
+			s_usage_profiler->GetMostUsedByCategory(gameid, shaders, true);
+			size_t shader_count = 0;
+			for (const TessellationShaderUid& item : shaders)
+			{
+				if (s_hulldomain_shaders.find(item) == s_hulldomain_shaders.end())
+				{
+					CompileHDShader(item, true);
+				}
+				shader_count++;
+				if ((shader_count & 31) == 0)
+				{
+					s_compiler->WaitForFinish();
+				}
+			}
+			s_compiler->WaitForFinish();
+		}
 		s_last_entry = nullptr;
 	}
 
@@ -114,6 +152,13 @@ namespace DX11
 
 	void HullDomainShaderCache::Shutdown()
 	{
+		if (s_usage_profiler)
+		{
+			std::string profile_filename = StringFromFormat("%s\\Ishiiruka.ts.usage", File::GetExeDirectory().c_str());
+			s_usage_profiler->PersistToFile(profile_filename);
+			delete s_usage_profiler;
+			s_usage_profiler = nullptr;
+		}
 		if (s_compiler)
 		{
 			s_compiler->WaitForFinish();
@@ -126,52 +171,8 @@ namespace DX11
 		g_ds_disk_cache.Close();
 	}
 
-	void HullDomainShaderCache::PrepareShader(
-		const XFMemory &xfr,
-		const BPMemory &bpm,
-		const PrimitiveType primitiveType,
-		const u32 components,
-		bool ongputhread)
+	void HullDomainShaderCache::CompileHDShader(const TessellationShaderUid& uid, bool ongputhread)
 	{
-		if (!(primitiveType == PrimitiveType::PRIMITIVE_TRIANGLES 
-			&& g_ActiveConfig.TessellationEnabled()
-			&& xfr.projection.type == GX_PERSPECTIVE
-			&& (g_ActiveConfig.bForcedLighting || g_ActiveConfig.PixelLightingEnabled(xfr, components))))
-		{
-			if (ongputhread)
-			{
-				s_last_entry = nullptr;
-			}
-			else
-			{
-				s_external_last_uid.ClearUID();
-			}
-			return;
-		}
-		TessellationShaderUid uid;
-		GetTessellationShaderUID(uid, xfr, bpm, components);
-		if (ongputhread)
-		{
-			s_compiler->ProcCompilationResults();
-			// Check if the shader is already set
-			if (s_last_entry)
-			{
-				if (uid == s_last_uid)
-				{
-					return;
-				}
-			}
-			s_last_uid = uid;
-			GFX_DEBUGGER_PAUSE_AT(NEXT_PIXEL_SHADER_CHANGE, true);
-		}
-		else
-		{
-			if (s_external_last_uid == uid)
-			{
-				return;
-			}
-			s_external_last_uid = uid;
-		}
 		s_hulldomain_shaders_lock.lock();
 		HDCacheEntry* entry = &s_hulldomain_shaders[uid];
 		s_hulldomain_shaders_lock.unlock();
@@ -192,7 +193,7 @@ namespace DX11
 		code.SetBuffer(wunit->code.data());
 		GenerateTessellationShaderCode(code, API_D3D11, uid.GetUidData());
 		memcpy(wunitd->code.data(), wunit->code.data(), code.BufferSize());
-		
+
 		wunit->codesize = (u32)code.BufferSize();
 		wunit->entrypoint = "HS_TFO";
 		wunit->flags = D3DCOMPILE_SKIP_VALIDATION | D3DCOMPILE_SKIP_OPTIMIZATION;
@@ -243,7 +244,7 @@ namespace DX11
 			else
 			{
 				static int num_failures = 0;
-				std::string szTemp  = StringFromFormat("%sbad_ds_%04i.txt", File::GetUserPath(D_DUMP_IDX).c_str(), num_failures++);
+				std::string szTemp = StringFromFormat("%sbad_ds_%04i.txt", File::GetUserPath(D_DUMP_IDX).c_str(), num_failures++);
 				std::ofstream file;
 				OpenFStream(file, szTemp, std::ios_base::out);
 				file << ((const char *)wunitd->code.data());
@@ -259,6 +260,57 @@ namespace DX11
 		};
 		s_compiler->CompileShaderAsync(wunit);
 		s_compiler->CompileShaderAsync(wunitd);
+	}
+
+	void HullDomainShaderCache::PrepareShader(
+		const XFMemory &xfr,
+		const BPMemory &bpm,
+		const PrimitiveType primitiveType,
+		const u32 components,
+		bool ongputhread)
+	{
+		if (!(primitiveType == PrimitiveType::PRIMITIVE_TRIANGLES 
+			&& g_ActiveConfig.TessellationEnabled()
+			&& xfr.projection.type == GX_PERSPECTIVE
+			&& (g_ActiveConfig.bForcedLighting || g_ActiveConfig.PixelLightingEnabled(xfr, components))))
+		{
+			if (ongputhread)
+			{
+				s_last_entry = nullptr;
+			}
+			else
+			{
+				s_external_last_uid.ClearUID();
+			}
+			return;
+		}
+		TessellationShaderUid uid;
+		GetTessellationShaderUID(uid, xfr, bpm, components);
+		if (ongputhread)
+		{
+			s_compiler->ProcCompilationResults();
+			// Check if the shader is already set
+			if (s_last_entry)
+			{
+				if (uid == s_last_uid)
+				{
+					return;
+				}
+			}
+			s_last_uid = uid;
+			if (g_ActiveConfig.bShaderUsageProfiling)
+				s_usage_profiler->RegisterUsage(uid);
+			GFX_DEBUGGER_PAUSE_AT(NEXT_PIXEL_SHADER_CHANGE, true);
+		}
+		else
+		{
+			if (s_external_last_uid == uid)
+			{
+				return;
+			}
+			s_external_last_uid = uid;
+		}
+		CompileHDShader(uid, ongputhread);
 	}
 
 	bool HullDomainShaderCache::TestShader()

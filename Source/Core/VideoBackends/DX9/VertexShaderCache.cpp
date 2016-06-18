@@ -12,6 +12,7 @@
 #include "VideoCommon/VideoConfig.h"
 #include "VideoCommon/VertexLoader.h"
 #include "VideoCommon/HLSLCompiler.h"
+#include "VideoCommon/ObjectUsageProfiler.h"
 
 #include "VideoBackends/DX9/D3DBase.h"
 #include "VideoBackends/DX9/D3DShader.h"
@@ -21,27 +22,28 @@
 namespace DX9
 {
 
-VertexShaderCache::VSCache VertexShaderCache::vshaders;
-const VertexShaderCache::VSCacheEntry *VertexShaderCache::last_entry;
-VertexShaderUid VertexShaderCache::last_uid;
-VertexShaderUid VertexShaderCache::external_last_uid;
-static HLSLAsyncCompiler *Compiler;
-static Common::SpinLock<true> vshaderslock;
+VertexShaderCache::VSCache VertexShaderCache::s_vshaders;
+const VertexShaderCache::VSCacheEntry *VertexShaderCache::s_last_entry;
+VertexShaderUid VertexShaderCache::s_last_uid;
+VertexShaderUid VertexShaderCache::s_external_last_uid;
+static ObjectUsageProfiler<VertexShaderUid, pKey_t, VertexShaderUid::ShaderUidHasher>* s_usage_profiler = nullptr;
+static HLSLAsyncCompiler *s_compiler;
+static Common::SpinLock<true> s_vshaderslock;
 #define MAX_SSAA_SHADERS 2
 
-static LPDIRECT3DVERTEXSHADER9 SimpleVertexShader[MAX_SSAA_SHADERS];
-static LPDIRECT3DVERTEXSHADER9 ClearVertexShader;
+static LPDIRECT3DVERTEXSHADER9 s_simple_vertex_shaders[MAX_SSAA_SHADERS];
+static LPDIRECT3DVERTEXSHADER9 s_clear_vertex_shader;
 
 LinearDiskCache<VertexShaderUid, u8> g_vs_disk_cache;
 
 LPDIRECT3DVERTEXSHADER9 VertexShaderCache::GetSimpleVertexShader(int level)
 {
-	return SimpleVertexShader[level ? 1 : 0];
+	return s_simple_vertex_shaders[level ? 1 : 0];
 }
 
 LPDIRECT3DVERTEXSHADER9 VertexShaderCache::GetClearVertexShader()
 {
-	return ClearVertexShader;
+	return s_clear_vertex_shader;
 }
 
 // this class will load the precompiled shaders into our cache
@@ -56,8 +58,8 @@ public:
 
 void VertexShaderCache::Init()
 {
-	Compiler = &HLSLAsyncCompiler::getInstance();
-	vshaderslock.unlock();
+	s_compiler = &HLSLAsyncCompiler::getInstance();
+	s_vshaderslock.unlock();
 	const char* code = "struct VSOUTPUT\n"
 		"{\n"
 		"float4 vPosition : POSITION;\n"
@@ -73,7 +75,7 @@ void VertexShaderCache::Init()
 		"return OUT;\n"
 		"}\0";
 
-	SimpleVertexShader[0] = D3D::CompileAndCreateVertexShader(code, (int)strlen(code));
+	s_simple_vertex_shaders[0] = D3D::CompileAndCreateVertexShader(code, (int)strlen(code));
 
 	code = "struct VSOUTPUT\n"
 		"{\n"
@@ -88,13 +90,13 @@ void VertexShaderCache::Init()
 		"return OUT;\n"
 		"}\0";
 
-	ClearVertexShader = D3D::CompileAndCreateVertexShader(code, (int)strlen(code));
+	s_clear_vertex_shader = D3D::CompileAndCreateVertexShader(code, (int)strlen(code));
 	code = "struct VSOUTPUT\n"
 		"{\n"
 		"float4 vPosition   : POSITION;\n"
 		"float4 vTexCoord   : TEXCOORD0;\n"
 		"float  vTexCoord1   : TEXCOORD1;\n"
-		"float4 vTexCoord2   : TEXCOORD2;\n"   
+		"float4 vTexCoord2   : TEXCOORD2;\n"
 		"float4 vTexCoord3   : TEXCOORD3;\n"
 		"};\n"
 		"VSOUTPUT main(float4 inPosition : POSITION,float2 inTEX0 : TEXCOORD0,float2 inTEX1 : TEXCOORD1,float inTEX2 : TEXCOORD2)\n"
@@ -104,12 +106,12 @@ void VertexShaderCache::Init()
 		"OUT.vTexCoord  = inTEX0.xyyx;\n"
 		"OUT.vTexCoord1 = inTEX2.x;\n"
 		"OUT.vTexCoord2 = inTEX0.xyyx + (float4(-0.375f,-0.125f,-0.375f, 0.125f) * inTEX1.xyyx);\n"
-		"OUT.vTexCoord3 = inTEX0.xyyx + (float4( 0.375f, 0.125f, 0.375f,-0.125f) * inTEX1.xyyx);\n"	
+		"OUT.vTexCoord3 = inTEX0.xyyx + (float4( 0.375f, 0.125f, 0.375f,-0.125f) * inTEX1.xyyx);\n"
 		"return OUT;\n"
 		"}\0";
-	SimpleVertexShader[1] = D3D::CompileAndCreateVertexShader(code, (int)strlen(code));
+	s_simple_vertex_shaders[1] = D3D::CompileAndCreateVertexShader(code, (int)strlen(code));
 
-	Clear();	
+	Clear();
 
 	if (!File::Exists(File::GetUserPath(D_SHADERCACHE_IDX)))
 		File::CreateDir(File::GetUserPath(D_SHADERCACHE_IDX).c_str());
@@ -117,88 +119,108 @@ void VertexShaderCache::Init()
 	SETSTAT(stats.numVertexShadersCreated, 0);
 	SETSTAT(stats.numVertexShadersAlive, 0);
 
-	char cache_filename[MAX_PATH];
-	sprintf(cache_filename, "%sIDX9-%s-vs.cache", File::GetUserPath(D_SHADERCACHE_IDX).c_str(),
+	std::string profile_filename = StringFromFormat("%s\\Ishiiruka.vs.usage", File::GetExeDirectory().c_str());
+	bool profile_filename_exists = File::Exists(profile_filename);
+	if (g_ActiveConfig.bShaderUsageProfiling || profile_filename_exists)
+	{
+		s_usage_profiler = new ObjectUsageProfiler<VertexShaderUid, pKey_t, VertexShaderUid::ShaderUidHasher>(VERTEXSHADERGEN_UID_VERSION);
+	}
+
+	pKey_t gameid = (pKey_t)GetMurmurHash3(reinterpret_cast<const u8*>(SConfig::GetInstance().m_strUniqueID.data()), (u32)SConfig::GetInstance().m_strUniqueID.size(), 0);
+	if (profile_filename_exists)
+	{
+		s_usage_profiler->ReadFromFile(profile_filename);
+	}
+	if (s_usage_profiler)
+	{
+		s_usage_profiler->SetCategory(gameid);
+	}
+
+	std::string cache_filename = StringFromFormat("%sIDX9-%s-vs.cache", File::GetUserPath(D_SHADERCACHE_IDX).c_str(),
 		SConfig::GetInstance().m_strUniqueID.c_str());
 	VertexShaderCacheInserter inserter;
-	vshaderslock.lock();
 	g_vs_disk_cache.OpenAndRead(cache_filename, inserter);
-	vshaderslock.unlock();
 
-	last_entry = NULL;
+	if (profile_filename_exists && g_ActiveConfig.bCompileShaderOnStartup)
+	{
+		std::vector<VertexShaderUid> shaders;
+		s_usage_profiler->GetMostUsedByCategory(gameid, shaders, true);
+		size_t shader_count = 0;
+		for (VertexShaderUid& item : shaders)
+		{
+			vertex_shader_uid_data& uid_data = item.GetUidData<vertex_shader_uid_data>();
+			uid_data.msaa = false;
+			uid_data.ssaa = false;
+			if (s_vshaders.find(item) == s_vshaders.end())
+			{
+				CompileVShader(item, true);
+			}
+			shader_count++;
+			if ((shader_count & 31) == 0)
+			{
+				s_compiler->WaitForFinish();
+			}
+		}
+		s_compiler->WaitForFinish();
+	}
+	s_last_entry = NULL;
 }
 
 void VertexShaderCache::Clear()
 {
-	vshaderslock.lock();
-	for (VSCache::iterator iter = vshaders.begin(); iter != vshaders.end(); ++iter)
+	s_vshaderslock.lock();
+	for (VSCache::iterator iter = s_vshaders.begin(); iter != s_vshaders.end(); ++iter)
 		iter->second.Destroy();
-	vshaders.clear();
-	vshaderslock.unlock();
+	s_vshaders.clear();
+	s_vshaderslock.unlock();
 
-	last_entry = NULL;
+	s_last_entry = NULL;
 }
 
 void VertexShaderCache::Shutdown()
 {
-	if (Compiler)
+	if (s_usage_profiler)
 	{
-		Compiler->WaitForFinish();
+		std::string profile_filename = StringFromFormat("%s\\Ishiiruka.vs.usage", File::GetExeDirectory().c_str());
+		s_usage_profiler->PersistToFile(profile_filename);
+		delete s_usage_profiler;
+		s_usage_profiler = nullptr;
+	}
+	if (s_compiler)
+	{
+		s_compiler->WaitForFinish();
 	}
 	for (int i = 0; i < MAX_SSAA_SHADERS; i++)
 	{
-		if (SimpleVertexShader[i])
-			SimpleVertexShader[i]->Release();
-		SimpleVertexShader[i] = NULL;
+		if (s_simple_vertex_shaders[i])
+			s_simple_vertex_shaders[i]->Release();
+		s_simple_vertex_shaders[i] = NULL;
 	}
 
-	if (ClearVertexShader)
-		ClearVertexShader->Release();
-	ClearVertexShader = NULL;
+	if (s_clear_vertex_shader)
+		s_clear_vertex_shader->Release();
+	s_clear_vertex_shader = NULL;
 
 	Clear();
 	g_vs_disk_cache.Sync();
 	g_vs_disk_cache.Close();
 }
 
-void VertexShaderCache::PrepareShader(u32 components, const XFMemory &xfr, const BPMemory &bpm, bool ongputhread)
+void VertexShaderCache::CompileVShader(const VertexShaderUid& uid, bool ongputhread)
 {
-	VertexShaderUid uid;
-	GetVertexShaderUID(uid, components, xfr, bpm);
+	s_vshaderslock.lock();
+	VSCacheEntry *entry = &s_vshaders[uid];
+	s_vshaderslock.unlock();
 	if (ongputhread)
 	{
-		Compiler->ProcCompilationResults();
-		if (last_entry)
-		{
-			if (uid == last_uid)
-			{
-				return;
-			}
-		}
-		last_uid = uid;
-		GFX_DEBUGGER_PAUSE_AT(NEXT_VERTEX_SHADER_CHANGE, true);
-	}
-	else
-	{
-		if (external_last_uid == uid)
-		{
-			return;
-		}
-		external_last_uid = uid;
-	}
-	vshaderslock.lock();
-	VSCacheEntry *entry = &vshaders[uid];
-	vshaderslock.unlock();
-	if (ongputhread)
-	{
-		last_entry = entry;
+		s_last_entry = entry;
 	}
 	// Compile only when we have a new instance
 	if (entry->initialized.test_and_set())
 	{
 		return;
 	}
-	ShaderCompilerWorkUnit *wunit = Compiler->NewUnit(VERTEXSHADERGEN_BUFFERSIZE);
+	ShaderCompilerWorkUnit *wunit = s_compiler->NewUnit(VERTEXSHADERGEN_BUFFERSIZE);
 	wunit->GenerateCodeHandler = [uid](ShaderCompilerWorkUnit* wunit)
 	{
 		ShaderCode code;
@@ -235,24 +257,56 @@ void VertexShaderCache::PrepareShader(u32 components, const XFMemory &xfr, const
 				(char*)wunit->error->GetBufferPointer());
 		}
 	};
-	Compiler->CompileShaderAsync(wunit);
+	s_compiler->CompileShaderAsync(wunit);
+}
+
+void VertexShaderCache::PrepareShader(u32 components, const XFMemory &xfr, const BPMemory &bpm, bool ongputhread)
+{
+	VertexShaderUid uid;
+	GetVertexShaderUID(uid, components, xfr, bpm);
+	if (ongputhread)
+	{
+		s_compiler->ProcCompilationResults();
+		if (s_last_entry)
+		{
+			if (uid == s_last_uid)
+			{
+				return;
+			}
+		}
+		s_last_uid = uid;
+		if (g_ActiveConfig.bShaderUsageProfiling)
+		{
+			s_usage_profiler->RegisterUsage(uid);
+		}
+		GFX_DEBUGGER_PAUSE_AT(NEXT_VERTEX_SHADER_CHANGE, true);
+	}
+	else
+	{
+		if (s_external_last_uid == uid)
+		{
+			return;
+		}
+		s_external_last_uid = uid;
+	}
+	CompileVShader(uid, ongputhread);
 }
 
 bool VertexShaderCache::TestShader()
 {
 	int count = 0;
-	while (!last_entry->compiled)
+	while (!s_last_entry->compiled)
 	{
-		Compiler->ProcCompilationResults();
+		s_compiler->ProcCompilationResults();
 		if (g_ActiveConfig.bFullAsyncShaderCompilation)
 		{
 			break;
 		}
 		Common::cYield(count++);
 	}
-	if (last_entry->shader && last_entry->compiled)
+	if (s_last_entry->shader && s_last_entry->compiled)
 	{
-		D3D::SetVertexShader(last_entry->shader);
+		D3D::SetVertexShader(s_last_entry->shader);
 		return true;
 	}
 	return false;
@@ -265,13 +319,13 @@ void VertexShaderCache::PushByteCode(const VertexShaderUid &uid, const u8 *bytec
 	if (entry->shader)
 	{
 		INCSTAT(stats.numVertexShadersCreated);
-		SETSTAT(stats.numVertexShadersAlive, (int)vshaders.size());
+		SETSTAT(stats.numVertexShadersAlive, (int)s_vshaders.size());
 	}
 }
 
 void VertexShaderCache::InsertByteCode(const VertexShaderUid &uid, const u8 *bytecode, int bytecodelen)
 {
-	VSCacheEntry *entry = &vshaders[uid];
+	VSCacheEntry *entry = &s_vshaders[uid];
 	entry->initialized.test_and_set();
 	PushByteCode(uid, bytecode, bytecodelen, entry);
 }

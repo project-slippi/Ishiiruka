@@ -164,6 +164,8 @@ static wxString dump_frames_desc = _("Dump all rendered frames to an AVI file in
 static wxString use_ffv1_desc = _("Encode frame dumps using the FFV1 codec.\n\nIf unsure, leave this unchecked.");
 #endif
 static wxString free_look_desc = _("This feature allows you to change the game's camera.\nMove the mouse while holding the right mouse button to pan and while holding the middle button to move.\nHold SHIFT and press one of the WASD keys to move the camera by a certain step distance (SHIFT+0 to move faster and SHIFT+9 to move slower). Press SHIFT+R to reset the camera.\n\nIf unsure, leave this unchecked.");
+static wxString shader_profiling_desc = _("This feature allows you to create a database of the most used shaders.\n This database will allow other users to improve gamming experience by allowing shader pre-compilation on game start.\n Event if changes are done to shader code the next time a recompilation is needed, all the shader will be recompiled on boot allowing a smoother gameplay.\n Enable this only if you whant to create or add new shaders from your gameplay.\n If the database exists it will be used even if this option is disabled.\n Please share your database to allow a best experience for all the users.");
+static wxString shader_precompile_desc = _("If a database of shader for the current game exists, precompile all known shaders to void issues and stutering during gameplay. This option will increase startup time but will improve gaming experience. Warning: with a clean shader cache dx9 can have up to 20 minutes shader compilation time in some games.");
 static wxString crop_desc = _("Crop the picture from its native aspect ratio to 4:3 or 16:9.\n\nIf unsure, leave this unchecked.");
 static wxString opencl_desc = _("[EXPERIMENTAL]\nAims to speed up emulation by offloading texture decoding to the GPU using the OpenCL framework.\nHowever, right now it's known to cause texture defects in various games. Also it's slower than regular CPU texture decoding in most cases.\n\nIf unsure, leave this unchecked.");
 static wxString pptrigger_desc = _("Determines when to apply post-processing.\nOn Swap will apply post-processing before presenting to the screen. On Projection applies post-processing before the game draws 2D elements on the screen. However, this may not work with all games. On EFB Copy applies post-processing when an EFB copy of a perspective scene is requested. This may work for for other games. After blit will apply post processing after bliting reducig gpu usage when suing High efb scales.\n\nIf unsure, select On Swap.");
@@ -894,6 +896,9 @@ VideoConfigDiag::VideoConfigDiag(wxWindow* parent, const std::string &title, con
 	szr_utility->Add(hires_texturemaps);
 	szr_utility->Add(CreateCheckBox(page_advanced, _("Dump EFB Target"), (dump_efb_desc), vconfig.bDumpEFBTarget));
 	szr_utility->Add(CreateCheckBox(page_advanced, _("Free Look"), (free_look_desc), vconfig.bFreeLook));
+	szr_utility->Add(shaderprofiling = CreateCheckBox(page_advanced, _("Shader Usage Profiling"), (shader_profiling_desc), vconfig.bShaderUsageProfiling));
+	szr_utility->Add(shaderprecompile = CreateCheckBox(page_advanced, _("Compile Shaders on Startup"), (shader_precompile_desc), vconfig.bCompileShaderOnStartup));
+	
 #if !defined WIN32 && defined HAVE_LIBAV
 	szr_utility->Add(CreateCheckBox(page_advanced, _("Frame Dumps use FFV1"), (use_ffv1_desc), vconfig.bUseFFV1));
 #endif
@@ -1451,6 +1456,8 @@ void VideoConfigDiag::OnUpdateUI(wxUpdateUIEvent& ev)
 		{
 			Compute_Shader_encoding->Disable();
 		}
+		shaderprofiling->Disable();
+		shaderprecompile->Disable();
 		choice_backend->Disable();
 		label_backend->Disable();
 

@@ -58,6 +58,7 @@ namespace DX11
 		static const HDCacheEntry* s_last_entry;
 		static TessellationShaderUid s_last_uid;
 		static TessellationShaderUid s_external_last_uid;
+		static void CompileHDShader(const TessellationShaderUid& uid, bool ongputhread);
 	};
 
 }  // namespace DX11

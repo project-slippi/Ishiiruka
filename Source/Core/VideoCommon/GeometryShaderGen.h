@@ -35,6 +35,7 @@ struct geometry_shader_uid_data
 #define I_TEXOFFSET     "ctexoffset"
 
 #define GEOMETRYSHADERGEN_BUFFERSIZE 32768
+#define GEOMETRYSHADERGEN_UID_VERSION 1
 typedef ShaderUid<geometry_shader_uid_data> GeometryShaderUid;
 
 void GenerateGeometryShaderCode(ShaderCode& object, const geometry_shader_uid_data& uid_data, API_TYPE ApiType);

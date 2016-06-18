@@ -36,13 +36,13 @@ private:
 
 	typedef std::unordered_map<VertexShaderUid, VSCacheEntry, VertexShaderUid::ShaderUidHasher> VSCache;
 	static inline void PushByteCode(const VertexShaderUid &uid, const u8 *bytecode, int bytecodelen, VSCacheEntry* entry);
-	static VSCache vshaders;
-	static const VSCacheEntry *last_entry;
-	static VertexShaderUid last_uid;
-	static VertexShaderUid external_last_uid;
+	static VSCache s_vshaders;
+	static const VSCacheEntry *s_last_entry;
+	static VertexShaderUid s_last_uid;
+	static VertexShaderUid s_external_last_uid;
 
 	static void Clear();
-
+	static void CompileVShader(const VertexShaderUid& uid, bool ongputhread);
 public:
 	static void Init();
 	static void Shutdown();

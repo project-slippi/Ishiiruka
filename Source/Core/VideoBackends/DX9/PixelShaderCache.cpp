@@ -12,6 +12,7 @@
 #include "VideoBackends/DX9/D3DBase.h"
 #include "VideoBackends/DX9/D3DShader.h"
 #include "VideoBackends/DX9/PixelShaderCache.h"
+#include "VideoCommon/ObjectUsageProfiler.h"
 
 #include "VideoCommon/Statistics.h"
 #include "VideoCommon/VideoConfig.h"
@@ -27,15 +28,16 @@
 namespace DX9
 {
 
-PixelShaderCache::PSCache PixelShaderCache::PixelShaders;
-const PixelShaderCache::PSCacheEntry *PixelShaderCache::last_entry[PSRM_DEPTH_ONLY + 1];
-PixelShaderUid PixelShaderCache::last_uid[PSRM_DEPTH_ONLY + 1];
-PixelShaderUid PixelShaderCache::external_last_uid[PSRM_DEPTH_ONLY + 1];
+PixelShaderCache::PSCache PixelShaderCache::s_pixel_shaders;
+const PixelShaderCache::PSCacheEntry *PixelShaderCache::s_last_entry[PSRM_DEPTH_ONLY + 1];
+PixelShaderUid PixelShaderCache::s_last_uid[PSRM_DEPTH_ONLY + 1];
+PixelShaderUid PixelShaderCache::s_external_last_uid[PSRM_DEPTH_ONLY + 1];
 
-static HLSLAsyncCompiler *Compiler;
-static Common::SpinLock<true> PixelShadersLock;
+static HLSLAsyncCompiler *s_compiler;
+static Common::SpinLock<true> s_pixel_shaders_lock;
 static LinearDiskCache<PixelShaderUid, u8> g_ps_disk_cache;
-static std::set<u32> unique_shaders;
+static std::set<u32> s_unique_shaders;
+static ObjectUsageProfiler<PixelShaderUid, pKey_t, PixelShaderUid::ShaderUidHasher>* s_dx9_usage_profiler = nullptr;
 
 #define MAX_SSAA_SHADERS 3
 enum
@@ -51,8 +53,8 @@ enum
 	NUM_DEPTH_CONVERSION_TYPES
 };
 
-static LPDIRECT3DPIXELSHADER9 s_CopyProgram[NUM_COPY_TYPES][NUM_DEPTH_CONVERSION_TYPES][MAX_SSAA_SHADERS];
-static LPDIRECT3DPIXELSHADER9 s_ClearProgram = NULL;
+static LPDIRECT3DPIXELSHADER9 s_copy_program[NUM_COPY_TYPES][NUM_DEPTH_CONVERSION_TYPES][MAX_SSAA_SHADERS];
+static LPDIRECT3DPIXELSHADER9 s_clear_program = NULL;
 static LPDIRECT3DPIXELSHADER9 s_rgba6_to_rgb8 = NULL;
 static LPDIRECT3DPIXELSHADER9 s_rgb8_to_rgba6 = NULL;
 
@@ -67,22 +69,22 @@ public:
 
 LPDIRECT3DPIXELSHADER9 PixelShaderCache::GetColorMatrixProgram(int SSAAMode)
 {
-	return s_CopyProgram[COPY_TYPE_MATRIXCOLOR][DEPTH_CONVERSION_TYPE_NONE][SSAAMode % MAX_SSAA_SHADERS];
+	return s_copy_program[COPY_TYPE_MATRIXCOLOR][DEPTH_CONVERSION_TYPE_NONE][SSAAMode % MAX_SSAA_SHADERS];
 }
 
 LPDIRECT3DPIXELSHADER9 PixelShaderCache::GetDepthMatrixProgram(int SSAAMode, bool depthConversion)
 {
-	return s_CopyProgram[COPY_TYPE_MATRIXCOLOR][depthConversion ? DEPTH_CONVERSION_TYPE_ON : DEPTH_CONVERSION_TYPE_NONE][SSAAMode % MAX_SSAA_SHADERS];
+	return s_copy_program[COPY_TYPE_MATRIXCOLOR][depthConversion ? DEPTH_CONVERSION_TYPE_ON : DEPTH_CONVERSION_TYPE_NONE][SSAAMode % MAX_SSAA_SHADERS];
 }
 
 LPDIRECT3DPIXELSHADER9 PixelShaderCache::GetColorCopyProgram(int SSAAMode)
 {
-	return s_CopyProgram[COPY_TYPE_DIRECT][DEPTH_CONVERSION_TYPE_NONE][SSAAMode % MAX_SSAA_SHADERS];
+	return s_copy_program[COPY_TYPE_DIRECT][DEPTH_CONVERSION_TYPE_NONE][SSAAMode % MAX_SSAA_SHADERS];
 }
 
 LPDIRECT3DPIXELSHADER9 PixelShaderCache::GetClearProgram()
 {
-	return s_ClearProgram;
+	return s_clear_program;
 }
 
 static LPDIRECT3DPIXELSHADER9 s_rgb8 = NULL;
@@ -236,12 +238,12 @@ static LPDIRECT3DPIXELSHADER9 CreateCopyShader(int copyMatrixType, int depthConv
 
 void PixelShaderCache::Init()
 {
-	PixelShadersLock.unlock();
+	s_pixel_shaders_lock.unlock();
 	for (u32 i = 0; i < PSRM_DEPTH_ONLY + 1; i++)
 	{
-		last_entry[i] = nullptr;
+		s_last_entry[i] = nullptr;
 	}
-	Compiler = &HLSLAsyncCompiler::getInstance();
+	s_compiler = &HLSLAsyncCompiler::getInstance();
 
 	//program used for clear screen
 	{
@@ -251,7 +253,7 @@ void PixelShaderCache::Init()
 			" in float4 incol0 : COLOR0){\n"
 			"ocol0 = incol0;\n"
 			"}\n");
-		s_ClearProgram = D3D::CompileAndCreatePixelShader(pprog, (int)strlen(pprog));
+		s_clear_program = D3D::CompileAndCreatePixelShader(pprog, (int)strlen(pprog));
 	}
 
 	int shaderModel = ((D3D::GetCaps().PixelShaderVersion >> 8) & 0xFF);
@@ -264,17 +266,17 @@ void PixelShaderCache::Init()
 		{
 			for(int ssaaMode = 0; ssaaMode < MAX_SSAA_SHADERS; ssaaMode++)
 			{
-				if(ssaaMode && !s_CopyProgram[copyMatrixType][depthType][ssaaMode-1]
-				|| depthType && !s_CopyProgram[copyMatrixType][depthType-1][ssaaMode]
-				|| copyMatrixType && !s_CopyProgram[copyMatrixType-1][depthType][ssaaMode])
+				if(ssaaMode && !s_copy_program[copyMatrixType][depthType][ssaaMode-1]
+				|| depthType && !s_copy_program[copyMatrixType][depthType-1][ssaaMode]
+				|| copyMatrixType && !s_copy_program[copyMatrixType-1][depthType][ssaaMode])
 				{
 					// if it failed at a lower setting, it's going to fail here for the same reason it did there,
 					// so skip this attempt to avoid duplicate error messages.
-					s_CopyProgram[copyMatrixType][depthType][ssaaMode] = NULL;
+					s_copy_program[copyMatrixType][depthType][ssaaMode] = NULL;
 				}
 				else
 				{
-					s_CopyProgram[copyMatrixType][depthType][ssaaMode] = CreateCopyShader(copyMatrixType, depthType, ssaaMode);
+					s_copy_program[copyMatrixType][depthType][ssaaMode] = CreateCopyShader(copyMatrixType, depthType, ssaaMode);
 				}
 			}
 		}
@@ -288,50 +290,107 @@ void PixelShaderCache::Init()
 	SETSTAT(stats.numPixelShadersCreated, 0);
 	SETSTAT(stats.numPixelShadersAlive, 0);
 
+	std::string profile_filename = StringFromFormat("%s\\Ishiiruka.ps.dx9.usage", File::GetExeDirectory().c_str());
+	bool profile_filename_exists = File::Exists(profile_filename);
+	if (g_ActiveConfig.bShaderUsageProfiling || profile_filename_exists)
+	{
+		s_dx9_usage_profiler = new ObjectUsageProfiler<PixelShaderUid, pKey_t, PixelShaderUid::ShaderUidHasher>(PIXELSHADERGEN_UID_VERSION);
+	}
+
+	pKey_t gameid = (pKey_t)GetMurmurHash3(reinterpret_cast<const u8*>(SConfig::GetInstance().m_strUniqueID.data()), (u32)SConfig::GetInstance().m_strUniqueID.size(), 0);
+	if (profile_filename_exists)
+	{
+		s_dx9_usage_profiler->ReadFromFile(profile_filename);
+	}
+	if (s_dx9_usage_profiler)
+	{
+		s_dx9_usage_profiler->SetCategory(gameid);
+	}
+
 	char cache_filename[MAX_PATH];
 	sprintf(cache_filename, "%sIDX9-%s-ps.cache", File::GetUserPath(D_SHADERCACHE_IDX).c_str(),
 		SConfig::GetInstance().m_strUniqueID.c_str());
-	PixelShaderCacheInserter inserter;
-	PixelShadersLock.lock();
+	
+	PixelShaderCacheInserter inserter;	
 	g_ps_disk_cache.OpenAndRead(cache_filename, inserter);
-	PixelShadersLock.unlock();
+	if (profile_filename_exists && g_ActiveConfig.bCompileShaderOnStartup)
+	{
+		std::vector<PixelShaderUid> shaders;
+		s_dx9_usage_profiler->GetMostUsedByCategory(gameid, shaders, true);
+		size_t shader_count = 0;
+		for (PixelShaderUid& item : shaders)
+		{
+			pixel_shader_uid_data& uid_data = item.GetUidData<pixel_shader_uid_data>();
+			uid_data.msaa = false;
+			uid_data.ssaa = false;
+			if (s_pixel_shaders.find(item) == s_pixel_shaders.end())
+			{
+				if (uid_data.render_mode == PSRM_DUAL_SOURCE_BLEND && !g_ActiveConfig.backend_info.bSupportsDualSourceBlend)
+				{
+					uid_data.render_mode = PSRM_DEFAULT;
+					CompilePShader(item, PIXEL_SHADER_RENDER_MODE::PSRM_DEFAULT, true);
+					uid_data.render_mode = PSRM_ALPHA_PASS;
+					uid_data.fog_proj = 0;
+					uid_data.fog_RangeBaseEnabled = 0;
+					CompilePShader(item, PIXEL_SHADER_RENDER_MODE::PSRM_ALPHA_PASS, true);
+				}
+				else
+				{
+					CompilePShader(item, PIXEL_SHADER_RENDER_MODE::PSRM_DEFAULT, true);
+				}
+			}
+			shader_count++;
+			if ((shader_count & 31) == 0)
+			{
+				s_compiler->WaitForFinish();
+			}
+		}
+		s_compiler->WaitForFinish();
+	}
 }
 
 // ONLY to be used during shutdown.
 void PixelShaderCache::Clear()
 {
-	PixelShadersLock.lock();
-	for (PSCache::iterator iter = PixelShaders.begin(); iter != PixelShaders.end(); iter++)
+	s_pixel_shaders_lock.lock();
+	for (PSCache::iterator iter = s_pixel_shaders.begin(); iter != s_pixel_shaders.end(); iter++)
 		iter->second.Destroy();
-	PixelShaders.clear();
-	PixelShadersLock.unlock();
+	s_pixel_shaders.clear();
+	s_pixel_shaders_lock.unlock();
 
 	for (u32 i = 0; i < PSRM_DEPTH_ONLY + 1; i++)
 	{
-		last_entry[i] = nullptr;
+		s_last_entry[i] = nullptr;
 	}
 }
 
 void PixelShaderCache::Shutdown()
 {
-	if (Compiler)
+	if (s_dx9_usage_profiler)
 	{
-		Compiler->WaitForFinish();
+		std::string profile_filename = StringFromFormat("%s\\Ishiiruka.ps.dx9.usage", File::GetExeDirectory().c_str());
+		s_dx9_usage_profiler->PersistToFile(profile_filename);
+		delete s_dx9_usage_profiler;
+		s_dx9_usage_profiler = nullptr;
+	}
+	if (s_compiler)
+	{
+		s_compiler->WaitForFinish();
 	}
 	for(int copyMatrixType = 0; copyMatrixType < NUM_COPY_TYPES; copyMatrixType++)
 		for(int depthType = 0; depthType < NUM_DEPTH_CONVERSION_TYPES; depthType++)
 			for(int ssaaMode = 0; ssaaMode < MAX_SSAA_SHADERS; ssaaMode++)
-				if(s_CopyProgram[copyMatrixType][depthType][ssaaMode]
-				&& (copyMatrixType == 0 || s_CopyProgram[copyMatrixType][depthType][ssaaMode] != s_CopyProgram[copyMatrixType-1][depthType][ssaaMode]))
-					s_CopyProgram[copyMatrixType][depthType][ssaaMode]->Release();
+				if(s_copy_program[copyMatrixType][depthType][ssaaMode]
+				&& (copyMatrixType == 0 || s_copy_program[copyMatrixType][depthType][ssaaMode] != s_copy_program[copyMatrixType-1][depthType][ssaaMode]))
+					s_copy_program[copyMatrixType][depthType][ssaaMode]->Release();
 
 	for(int copyMatrixType = 0; copyMatrixType < NUM_COPY_TYPES; copyMatrixType++)
 		for(int depthType = 0; depthType < NUM_DEPTH_CONVERSION_TYPES; depthType++)
 			for(int ssaaMode = 0; ssaaMode < MAX_SSAA_SHADERS; ssaaMode++)
-				s_CopyProgram[copyMatrixType][depthType][ssaaMode] = NULL;
+				s_copy_program[copyMatrixType][depthType][ssaaMode] = NULL;
 
-	if (s_ClearProgram) s_ClearProgram->Release();
-	s_ClearProgram = NULL;
+	if (s_clear_program) s_clear_program->Release();
+	s_clear_program = NULL;
 	if (s_rgb8_to_rgba6) s_rgb8_to_rgba6->Release();
 	s_rgb8_to_rgba6 = NULL;
 	if (s_rgba6_to_rgb8) s_rgba6_to_rgb8->Release();
@@ -342,47 +401,18 @@ void PixelShaderCache::Shutdown()
 	g_ps_disk_cache.Sync();
 	g_ps_disk_cache.Close();
 
-	unique_shaders.clear();
+	s_unique_shaders.clear();
 }
 
-void PixelShaderCache::PrepareShader(
-	PIXEL_SHADER_RENDER_MODE render_mode,
-	u32 components, 
-	const XFMemory &xfr,
-	const BPMemory &bpm,
-	bool ongputhread)
+void PixelShaderCache::CompilePShader(const PixelShaderUid& uid, PIXEL_SHADER_RENDER_MODE render_mode, bool ongputhread)
 {
 	const API_TYPE api = ((D3D::GetCaps().PixelShaderVersion >> 8) & 0xFF) < 3 ? API_D3D9_SM20 : API_D3D9_SM30;
-	PixelShaderUid uid;
-	GetPixelShaderUID(uid, render_mode, components, xfr, bpm);
+	s_pixel_shaders_lock.lock();
+	PSCacheEntry* entry = &s_pixel_shaders[uid];
+	s_pixel_shaders_lock.unlock();
 	if (ongputhread)
 	{
-		Compiler->ProcCompilationResults();
-		// Check if the shader is already set
-		if (last_entry[render_mode])
-		{
-			if (uid == last_uid[render_mode])
-			{
-				return;
-			}
-		}
-		last_uid[render_mode] = uid;
-		GFX_DEBUGGER_PAUSE_AT(NEXT_PIXEL_SHADER_CHANGE, true);
-	}
-	else
-	{
-		if (external_last_uid[render_mode] == uid)
-		{
-			return;
-		}
-		external_last_uid[render_mode] = uid;
-	}
-	PixelShadersLock.lock();
-	PSCacheEntry* entry = &PixelShaders[uid];
-	PixelShadersLock.unlock();
-	if (ongputhread)
-	{
-		last_entry[render_mode] = entry;
+		s_last_entry[render_mode] = entry;
 	}
 	// Compile only when we have a new instance
 	if (entry->initialized.test_and_set())
@@ -390,8 +420,8 @@ void PixelShaderCache::PrepareShader(
 		return;
 	}
 	// Need to compile a new shader
-	
-	ShaderCompilerWorkUnit *wunit = Compiler->NewUnit(PIXELSHADERGEN_BUFFERSIZE);
+
+	ShaderCompilerWorkUnit *wunit = s_compiler->NewUnit(PIXELSHADERGEN_BUFFERSIZE);
 	wunit->GenerateCodeHandler = [uid, api](ShaderCompilerWorkUnit* wunit)
 	{
 		ShaderCode code;
@@ -435,16 +465,54 @@ void PixelShaderCache::PrepareShader(
 				(const char*)wunit->error->GetBufferPointer());
 		}
 	};
-	Compiler->CompileShaderAsync(wunit);
+	s_compiler->CompileShaderAsync(wunit);
+}
+
+void PixelShaderCache::PrepareShader(
+	PIXEL_SHADER_RENDER_MODE render_mode,
+	u32 components, 
+	const XFMemory &xfr,
+	const BPMemory &bpm,
+	bool ongputhread)
+{
+	PixelShaderUid uid;
+	GetPixelShaderUID(uid, render_mode, components, xfr, bpm);
+	if (ongputhread)
+	{
+		s_compiler->ProcCompilationResults();
+		// Check if the shader is already set
+		if (s_last_entry[render_mode])
+		{
+			if (uid == s_last_uid[render_mode])
+			{
+				return;
+			}
+		}
+		if (g_ActiveConfig.bShaderUsageProfiling)
+		{
+			s_dx9_usage_profiler->RegisterUsage(uid);
+		}
+		s_last_uid[render_mode] = uid;
+		GFX_DEBUGGER_PAUSE_AT(NEXT_PIXEL_SHADER_CHANGE, true);
+	}
+	else
+	{
+		if (s_external_last_uid[render_mode] == uid)
+		{
+			return;
+		}
+		s_external_last_uid[render_mode] = uid;
+	}
+	CompilePShader(uid, render_mode, ongputhread);
 }
 
 bool PixelShaderCache::SetShader(PIXEL_SHADER_RENDER_MODE render_mode)
 {
-	const PSCacheEntry* entry = last_entry[render_mode];
+	const PSCacheEntry* entry = s_last_entry[render_mode];
 	u32 count = 0;
 	while (!entry->compiled)
 	{
-		Compiler->ProcCompilationResults();
+		s_compiler->ProcCompilationResults();
 		if (g_ActiveConfig.bFullAsyncShaderCompilation)
 		{
 			break;
@@ -466,13 +534,13 @@ void PixelShaderCache::PushByteCode(const PixelShaderUid &uid, const u8 *bytecod
 	if (entry->shader)
 	{
 		INCSTAT(stats.numPixelShadersCreated);
-		SETSTAT(stats.numPixelShadersAlive, PixelShaders.size());
+		SETSTAT(stats.numPixelShadersAlive, s_pixel_shaders.size());
 	}
 }
 
 void PixelShaderCache::InsertByteCode(const PixelShaderUid &uid, const u8 *bytecode, int bytecodelen)
 {
-	PixelShaderCache::PSCacheEntry *entry = &PixelShaders[uid];
+	PixelShaderCache::PSCacheEntry *entry = &s_pixel_shaders[uid];
 	entry->initialized.test_and_set();
 	PushByteCode(uid, bytecode, bytecodelen, entry);
 }

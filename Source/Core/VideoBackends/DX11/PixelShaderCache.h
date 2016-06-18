@@ -59,6 +59,7 @@ private:
 	static const PSCacheEntry* s_last_entry;
 	static PixelShaderUid s_last_uid;
 	static PixelShaderUid s_external_last_uid;
+	static void CompilePShader(const PixelShaderUid& uid, bool ongputhread);
 };
 
 }  // namespace DX11

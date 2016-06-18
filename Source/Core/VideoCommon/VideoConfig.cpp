@@ -86,6 +86,9 @@ void VideoConfig::Load(const std::string& ini_file)
 	settings->Get("CacheHiresTexturesonGPU", &bCacheHiresTexturesGPU, 0);
 	settings->Get("DumpEFBTarget", &bDumpEFBTarget, 0);
 	settings->Get("FreeLook", &bFreeLook, 0);
+	settings->Get("ShaderUsageProfiling", &bShaderUsageProfiling, 0);
+	settings->Get("CompileShaderOnStartup", &bCompileShaderOnStartup, 1);
+	
 	settings->Get("UseFFV1", &bUseFFV1, 0);
 	settings->Get("EnablePixelLighting", &bEnablePixelLighting, 0);
 	settings->Get("ForcedLighting", &bForcedLighting, 0);
@@ -419,6 +422,9 @@ void VideoConfig::Save(const std::string& ini_file)
 	settings->Set("CacheHiresTexturesonGPU", bCacheHiresTexturesGPU);
 	settings->Set("DumpEFBTarget", bDumpEFBTarget);
 	settings->Set("FreeLook", bFreeLook);
+	settings->Set("ShaderUsageProfiling", bShaderUsageProfiling);
+	settings->Set("CompileShaderOnStartup", bCompileShaderOnStartup);
+	
 	settings->Set("UseFFV1", bUseFFV1);
 	settings->Set("EnablePixelLighting", bEnablePixelLighting);
 	settings->Set("ForcedLighting", bForcedLighting);

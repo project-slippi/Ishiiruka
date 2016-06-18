@@ -16,11 +16,18 @@ namespace OGL
 
 class SHADERUID
 {
+	size_t hash = {};
 public:
 	VertexShaderUid vuid;
 	PixelShaderUid puid;
 	GeometryShaderUid guid;
-
+	void CalculateHash()
+	{
+		VertexShaderUid::ShaderUidHasher vshasher;
+		PixelShaderUid::ShaderUidHasher pshasher;
+		GeometryShaderUid::ShaderUidHasher gshasher;
+		hash = vshasher(vuid) ^ pshasher(puid) ^ gshasher(guid);
+	}
 	bool operator <(const SHADERUID& r) const
 	{
 		if (puid < r.puid)
@@ -45,6 +52,14 @@ public:
 	{
 		return puid == r.puid && vuid == r.vuid && guid == r.guid;
 	}
+
+	struct ShaderUidHasher
+	{
+		std::size_t operator()(const SHADERUID& k) const
+		{
+			return k.hash;
+		}
+	};
 };
 
 
@@ -83,6 +98,7 @@ public:
 	static PCacheEntry GetShaderProgram();
 	static GLuint GetCurrentProgram();
 	static SHADER* SetShader(PIXEL_SHADER_RENDER_MODE render_mode, u32 components, u32 primitive_type);
+	static SHADER* CompileShader(const SHADERUID& uid);
 	static void GetShaderId(SHADERUID *uid, PIXEL_SHADER_RENDER_MODE render_mode, u32 components, u32 primitive_type);
 
 	static bool CompileShader(SHADER &shader, const char* vcode, const char* pcode, const char* gcode = nullptr, const char **macros = nullptr, const u32 macro_count = 0);

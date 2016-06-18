@@ -71,7 +71,6 @@ private:
 	
 	static void HandleTSUIDChange(
 		const TessellationShaderUid& ts_uid,
-		u32 gs_primitive_type,
 		bool on_gpu_thread);
 };
 

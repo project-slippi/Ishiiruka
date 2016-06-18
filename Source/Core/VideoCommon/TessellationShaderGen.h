@@ -88,6 +88,7 @@ struct Tessellation_shader_uid_data
 #define I_CULLPARAMS  "ccullp"
 
 #define TESSELLATIONSHADERGEN_BUFFERSIZE 32768
+#define TESSELLATIONSHADERGEN_UID_VERSION 1
 typedef ShaderUid<Tessellation_shader_uid_data> TessellationShaderUid;
 
 void GenerateTessellationShaderCode(ShaderCode& object, API_TYPE ApiType, const Tessellation_shader_uid_data& uid_data);

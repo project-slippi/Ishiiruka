@@ -474,6 +474,9 @@
     <ClInclude Include="SamplerCommon.h">
       <Filter>Util</Filter>
     </ClInclude>
+    <ClInclude Include="ObjectUsageProfiler.h">
+      <Filter>Util</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="CMakeLists.txt" />

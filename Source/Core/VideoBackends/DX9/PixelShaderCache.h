@@ -43,12 +43,13 @@ private:
 
 	typedef std::unordered_map<PixelShaderUid, PSCacheEntry, PixelShaderUid::ShaderUidHasher> PSCache;
 	static inline void PushByteCode(const PixelShaderUid &uid, const u8 *bytecode, int bytecodelen, PSCacheEntry* entry);
-	static PSCache PixelShaders;
-	static const PSCacheEntry *last_entry[PSRM_DEPTH_ONLY + 1];
-	static PixelShaderUid last_uid[PSRM_DEPTH_ONLY + 1];
-	static PixelShaderUid external_last_uid[PSRM_DEPTH_ONLY + 1];
+	static PSCache s_pixel_shaders;
+	static const PSCacheEntry *s_last_entry[PSRM_DEPTH_ONLY + 1];
+	static PixelShaderUid s_last_uid[PSRM_DEPTH_ONLY + 1];
+	static PixelShaderUid s_external_last_uid[PSRM_DEPTH_ONLY + 1];
 
 	static void Clear();
+	static void CompilePShader(const PixelShaderUid& uid, PIXEL_SHADER_RENDER_MODE render_mode, bool ongputhread);
 
 public:
 	static void Init();

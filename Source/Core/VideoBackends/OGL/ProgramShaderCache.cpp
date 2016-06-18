@@ -19,6 +19,7 @@
 #include "VideoCommon/PixelShaderManager.h"
 #include "VideoCommon/Statistics.h"
 #include "VideoCommon/VertexShaderManager.h"
+#include "VideoCommon/ObjectUsageProfiler.h"
 
 namespace OGL
 {
@@ -38,7 +39,7 @@ static GLuint CurrentProgram = 0;
 ProgramShaderCache::PCache ProgramShaderCache::pshaders;
 ProgramShaderCache::PCacheEntry* ProgramShaderCache::last_entry;
 SHADERUID ProgramShaderCache::last_uid;
-
+static ObjectUsageProfiler<SHADERUID, pKey_t, SHADERUID::ShaderUidHasher>* s_usage_profiler = nullptr;
 static char s_glsl_header[1024] = "";
 
 static std::string GetGLSLVersionString()
@@ -153,7 +154,7 @@ void ProgramShaderCache::UploadConstants()
 	{
 		auto buffer = s_v_buffer->Map(s_v_ubo_buffer_size, s_ubo_align);
 		size_t vertex_buffer_size = VertexShaderManager::ConstantBufferSize * sizeof(float);
-		memcpy(buffer.first, VertexShaderManager::GetBuffer(), vertex_buffer_size);	
+		memcpy(buffer.first, VertexShaderManager::GetBuffer(), vertex_buffer_size);
 
 		s_v_buffer->Unmap(s_v_ubo_buffer_size);
 		glBindBufferRange(GL_UNIFORM_BUFFER, 2, s_v_buffer->m_buffer,
@@ -195,24 +196,8 @@ GLuint ProgramShaderCache::GetCurrentProgram()
 	return CurrentProgram;
 }
 
-SHADER* ProgramShaderCache::SetShader(PIXEL_SHADER_RENDER_MODE render_mode, u32 components, u32 primitive_type)
+SHADER* ProgramShaderCache::CompileShader(const SHADERUID& uid)
 {
-	SHADERUID uid;
-	GetShaderId(&uid, render_mode, components, primitive_type);
-
-	// Check if the shader is already set
-	if (last_entry)
-	{
-		if (uid == last_uid)
-		{
-			GFX_DEBUGGER_PAUSE_AT(NEXT_PIXEL_SHADER_CHANGE, true);
-			last_entry->shader.Bind();
-			return &last_entry->shader;
-		}
-	}
-
-	last_uid = uid;
-
 	// Check if shader is already in cache
 	PCache::iterator iter = pshaders.find(uid);
 	if (iter != pshaders.end())
@@ -224,7 +209,6 @@ SHADER* ProgramShaderCache::SetShader(PIXEL_SHADER_RENDER_MODE render_mode, u32 
 		last_entry->shader.Bind();
 		return &last_entry->shader;
 	}
-
 	// Make an entry in the table
 	PCacheEntry& newentry = pshaders[uid];
 	last_entry = &newentry;
@@ -268,6 +252,31 @@ SHADER* ProgramShaderCache::SetShader(PIXEL_SHADER_RENDER_MODE render_mode, u32 
 
 	last_entry->shader.Bind();
 	return &last_entry->shader;
+}
+
+SHADER* ProgramShaderCache::SetShader(PIXEL_SHADER_RENDER_MODE render_mode, u32 components, u32 primitive_type)
+{
+	SHADERUID uid;
+	GetShaderId(&uid, render_mode, components, primitive_type);
+	uid.CalculateHash();
+	// Check if the shader is already set
+	if (last_entry)
+	{
+		if (uid == last_uid)
+		{
+			GFX_DEBUGGER_PAUSE_AT(NEXT_PIXEL_SHADER_CHANGE, true);
+			last_entry->shader.Bind();
+			return &last_entry->shader;
+		}
+	}
+
+	last_uid = uid;
+	if (g_ActiveConfig.bShaderUsageProfiling)
+	{
+		s_usage_profiler->RegisterUsage(uid);
+	}
+
+	return CompileShader(uid);
 }
 
 bool ProgramShaderCache::CompileShader(SHADER& shader, const char* vcode, const char* pcode, const char* gcode, const char **macros, const u32 macro_count)
@@ -444,6 +453,23 @@ void ProgramShaderCache::Init()
 	s_v_buffer = std::move(StreamBuffer::Create(GL_UNIFORM_BUFFER, s_v_ubo_buffer_size * 1024));
 	s_g_buffer = std::move(StreamBuffer::Create(GL_UNIFORM_BUFFER, s_g_ubo_buffer_size * 1024));
 
+	std::string profile_filename = StringFromFormat("%s\\Ishiiruka.ps.OGL.usage", File::GetExeDirectory().c_str());
+	bool profile_filename_exists = File::Exists(profile_filename);
+	if (g_ActiveConfig.bShaderUsageProfiling || profile_filename_exists)
+	{
+		s_usage_profiler = new ObjectUsageProfiler<SHADERUID, pKey_t, SHADERUID::ShaderUidHasher>(PIXELSHADERGEN_UID_VERSION);
+	}
+
+	pKey_t gameid = (pKey_t)GetMurmurHash3(reinterpret_cast<const u8*>(SConfig::GetInstance().m_strUniqueID.data()), (u32)SConfig::GetInstance().m_strUniqueID.size(), 0);
+	if (profile_filename_exists)
+	{
+		s_usage_profiler->ReadFromFile(profile_filename);
+	}
+	if (s_usage_profiler)
+	{
+		s_usage_profiler->SetCategory(gameid);
+	}
+
 	// Read our shader cache, only if supported
 	if (g_ogl_config.bSupportsGLSLCache)
 	{
@@ -472,10 +498,28 @@ void ProgramShaderCache::Init()
 
 	CurrentProgram = 0;
 	last_entry = nullptr;
+	if (profile_filename_exists && g_ActiveConfig.bCompileShaderOnStartup)
+	{
+		std::vector<SHADERUID> shaders;
+		s_usage_profiler->GetMostUsedByCategory(gameid, shaders, true);
+		size_t shader_count = 0;
+		for (const SHADERUID& item : shaders)
+		{
+			if (pshaders.find(item) == pshaders.end())
+				CompileShader(item);
+		}
+	}
 }
 
 void ProgramShaderCache::Shutdown()
 {
+	if (s_usage_profiler)
+	{
+		std::string profile_filename = StringFromFormat("%s\\Ishiiruka.ps.OGL.usage", File::GetExeDirectory().c_str());
+		s_usage_profiler->PersistToFile(profile_filename);
+		delete s_usage_profiler;
+		s_usage_profiler = nullptr;
+	}
 	// store all shaders in cache on disk
 	if (g_ogl_config.bSupportsGLSLCache)
 	{
@@ -643,7 +687,7 @@ void ProgramShaderCache::CreateHeader()
 		, is_glsles ? "precision highp sampler2DArray;" : ""
 		, (is_glsles && g_ActiveConfig.backend_info.bSupportsPaletteConversion) ? "precision highp usamplerBuffer;" : ""
 		, v > GLSLES_300 ? "precision highp sampler2DMS;" : ""
-		);
+	);
 }
 
 void ProgramShaderCache::BindUniformBuffer()

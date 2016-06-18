@@ -89,6 +89,7 @@ struct vertex_shader_uid_data
 };
 #pragma pack()
 #define VERTEXSHADERGEN_BUFFERSIZE 32768
+#define VERTEXSHADERGEN_UID_VERSION 1
 typedef ShaderUid<vertex_shader_uid_data> VertexShaderUid;
 
 void GetVertexShaderUID(VertexShaderUid& object, u32 components, const XFMemory &xfr, const BPMemory &bpm);
