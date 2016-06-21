@@ -33,8 +33,11 @@
 #include <algorithm>
 #include <fstream>
 #include <map>
+#include <string>
 #include <unordered_map>
 #include <vector>
+
+#include "Common/FileUtil.h"
 
 typedef unsigned __int64 pKey_t;
 
@@ -82,6 +85,10 @@ public:
 		{
 			item.usage_count++;
 		}
+		if (m_categories.size() == 1)
+		{
+			return;
+		}
 		if ((item.category_mask[m_category_index] & m_category_mask) == 0)
 		{
 			item.category_mask[m_category_index] |= m_category_mask;
@@ -91,6 +98,7 @@ public:
 			}
 		}
 	}
+
 	void GetMostUsed(std::vector<Tobj>& output, pKey_t max_count = LLONG_MAX)
 	{
 		std::vector<std::pair<const Tobj, ObjectMetadata>*> elements;
@@ -144,7 +152,7 @@ public:
 		}
 	}
 
-	void PersistToFile(const std::string& path)
+	void PersistToFile(const std::string& path, bool allcategories = false)
 	{
 		std::ofstream out(path, std::ofstream::binary);
 		if (!out.is_open())
@@ -152,29 +160,61 @@ public:
 			return;
 		}
 		bwrite(out, m_version);
-		size_t category_count = m_categories.size();
+		size_t category_count = allcategories ? m_categories.size() : 1;
 		bwrite(out, category_count);
 		for (auto& item : m_categories)
 		{
-			bwrite(out, item.first);
-			bwrite(out, item.second);
+			if (allcategories || item.second.Id == m_category_id)
+			{
+				bwrite(out, item.first);
+				bwrite(out, item.second);
+			}
 		}
-		size_t object_count = m_objects.size();
+		size_t object_count = 0;
+		if (allcategories)
+		{
+			object_count = m_objects.size();
+		}
+		else
+		{
+			for (auto& item : m_objects)
+			{
+				if((item.second.category_mask[m_category_index] & m_category_mask) != 0)
+				{
+					object_count++;
+				}
+			}
+		}
 		bwrite(out, object_count);
 		for (auto& item : m_objects)
 		{
-			bwrite(out, item.first);
-			bwrite(out, item.second.category_count);
-			bwrite(out, item.second.usage_count);
-			size_t mask_size = item.second.category_mask.size();
-			bwrite(out, mask_size);
-			if (mask_size > 0)
+			if (allcategories || (item.second.category_mask[m_category_index] & m_category_mask) != 0)
 			{
-				out.write(reinterpret_cast<char*>(item.second.category_mask.data()), sizeof(size_t) * mask_size);
+				bwrite(out, item.first);
+				if (allcategories)
+				{
+					bwrite(out, item.second.category_count);
+				}
+				bwrite(out, item.second.usage_count);
+				if (allcategories)
+				{
+					size_t mask_size = item.second.category_mask.size();
+					bwrite(out, mask_size);
+					if (mask_size > 0)
+					{
+						out.write(reinterpret_cast<char*>(item.second.category_mask.data()), sizeof(size_t) * mask_size);
+					}
+				}
 			}
 		}
 	}
-	void ReadFromFile(const std::string& path)
+	
+	void Persist()
+	{
+		PersistToFile(m_storage);
+	}
+
+	void ReadFromFile(const std::string& path, bool multicategory = false)
 	{
 		std::ifstream input(path, std::ifstream::binary);
 		if (!input.is_open())
@@ -187,16 +227,32 @@ public:
 		{
 			return;
 		}
-		pKey_t category_count = 0;
+		pKey_t category_count = 0;	
 		bread(input, category_count);
+		if (!multicategory)
+		{
+			category_count = m_categories.size() + 1;
+		}
 		pKey_t category_index = (category_count + 1) / (sizeof(pKey_t) * 8);
-		m_max_category_index = std::max(m_max_category_index, category_index + 1);
-		for (size_t i = 0; i < category_count; i++)
+		pKey_t category_mask = pKey_t(1) << (category_count % (sizeof(pKey_t) * 8));
+		if (m_max_category_index < category_index + 1)
+		{
+			m_max_category_index = category_index + 1;
+			for (auto& item : m_objects)
+			{
+				item.second.category_mask.resize(m_max_category_index);
+			}
+		}
+		for (size_t i = 0; i < (multicategory ? category_count : 1); i++)
 		{
 			TCaterogry key;
 			bread(input, key);
 			CategoryMetadata data;
 			bread(input, data);
+			if (!multicategory)
+			{
+				data.Id = category_count;
+			}
 			m_categories.emplace(std::move(key), std::move(data));
 		}
 		pKey_t object_count = 0;
@@ -206,18 +262,75 @@ public:
 			Tobj key;
 			bread(input, key);
 			ObjectMetadata data;
-			bread(input, data.category_count);
-			bread(input, data.usage_count);
-			pKey_t mask_size = 0;
-			bread(input, mask_size);
-			data.category_mask.resize(m_max_category_index);
-			if (mask_size)
+			if (multicategory)
 			{
-				input.read(reinterpret_cast<char*>(data.category_mask.data()), sizeof(pKey_t) * mask_size);
+				bread(input, data.category_count);
+			}
+			else
+			{
+				data.category_count = 0;
+			}
+			bread(input, data.usage_count);
+			if (multicategory)
+			{
+				data.category_mask.resize(m_max_category_index);
+				pKey_t mask_size = 0;
+				bread(input, mask_size);
+				if (mask_size)
+				{
+					input.read(reinterpret_cast<char*>(data.category_mask.data()), sizeof(pKey_t) * mask_size);
+				}
 			}
 			m_objects.emplace(std::move(key), std::move(data));
+			if (!multicategory)
+			{
+				m_objects[key].category_mask.resize(m_max_category_index);
+				if ((m_objects[key].category_mask[category_index] & category_mask) == 0)
+				{
+					m_objects[key].category_count++;
+					m_objects[key].category_mask[category_index] |= category_mask;
+				}
+				
+			}
 		}
 	}
+
+	void SetStorage(const std::string& storagefile)
+	{
+		m_storage = storagefile;
+	}
+	
+	static ObjectUsageProfiler<Tobj, TCaterogry, TobjHasher>* Create(bool profilingEnabled, TCaterogry catid, pKey_t version, const std::string& global_filename, const std::string filename)
+	{
+		if (!File::Exists(File::GetUserPath(D_SHADERUIDCACHE_IDX)))
+			File::CreateDir(File::GetUserPath(D_SHADERUIDCACHE_IDX));
+		ObjectUsageProfiler<Tobj, TCaterogry, TobjHasher>* output = nullptr;
+		std::string global_profile_filename = StringFromFormat("%s%s.usage", File::GetUserPath(D_SHADERUIDCACHE_IDX).c_str(), global_filename.c_str());
+		std::string profile_filename = StringFromFormat("%s%s.usage",
+			File::GetUserPath(D_SHADERUIDCACHE_IDX).c_str(),
+			filename.c_str());
+		bool profile_exists = File::Exists(profile_filename);
+		bool global_profile_exists = File::Exists(global_profile_filename);
+		if (profilingEnabled || profile_exists || global_profile_exists)
+		{
+			output = new ObjectUsageProfiler<Tobj, TCaterogry, TobjHasher>(version);
+		}
+		if (profile_exists)
+		{
+			output->ReadFromFile(profile_filename);
+		}
+		else if (global_profile_exists)
+		{
+			output->ReadFromFile(global_profile_filename, true);
+		}
+		if (output)
+		{
+			output->SetCategory(catid);
+		}
+		output->SetStorage(profile_filename);
+		return output;
+	}
+
 private:
 	struct ObjectMetadata
 	{
@@ -252,7 +365,7 @@ private:
 	pKey_t m_max_category_index = {};
 	pKey_t m_category_mask = {};
 	pKey_t m_version = {};
-
+	std::string m_storage;
 	template<typename T>
 	inline void bwrite(std::ofstream& out, const T& t)
 	{

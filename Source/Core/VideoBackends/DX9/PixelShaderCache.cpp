@@ -37,7 +37,7 @@ static HLSLAsyncCompiler *s_compiler;
 static Common::SpinLock<true> s_pixel_shaders_lock;
 static LinearDiskCache<PixelShaderUid, u8> g_ps_disk_cache;
 static std::set<u32> s_unique_shaders;
-static ObjectUsageProfiler<PixelShaderUid, pKey_t, PixelShaderUid::ShaderUidHasher>* s_dx9_usage_profiler = nullptr;
+static ObjectUsageProfiler<PixelShaderUid, pKey_t, PixelShaderUid::ShaderUidHasher>* s_usage_profiler = nullptr;
 
 #define MAX_SSAA_SHADERS 3
 enum
@@ -289,34 +289,23 @@ void PixelShaderCache::Init()
 
 	SETSTAT(stats.numPixelShadersCreated, 0);
 	SETSTAT(stats.numPixelShadersAlive, 0);
-
-	std::string profile_filename = StringFromFormat("%s\\Ishiiruka.ps.dx9.usage", File::GetExeDirectory().c_str());
-	bool profile_filename_exists = File::Exists(profile_filename);
-	if (g_ActiveConfig.bShaderUsageProfiling || profile_filename_exists)
-	{
-		s_dx9_usage_profiler = new ObjectUsageProfiler<PixelShaderUid, pKey_t, PixelShaderUid::ShaderUidHasher>(PIXELSHADERGEN_UID_VERSION);
-	}
-
+	
 	pKey_t gameid = (pKey_t)GetMurmurHash3(reinterpret_cast<const u8*>(SConfig::GetInstance().m_strUniqueID.data()), (u32)SConfig::GetInstance().m_strUniqueID.size(), 0);
-	if (profile_filename_exists)
-	{
-		s_dx9_usage_profiler->ReadFromFile(profile_filename);
-	}
-	if (s_dx9_usage_profiler)
-	{
-		s_dx9_usage_profiler->SetCategory(gameid);
-	}
+	s_usage_profiler = ObjectUsageProfiler<PixelShaderUid, pKey_t, PixelShaderUid::ShaderUidHasher>::Create(
+		g_ActiveConfig.bShaderUsageProfiling, gameid, PIXELSHADERGEN_UID_VERSION, "Ishiiruka.ps.dx9", StringFromFormat("%s.ps.dx9",
+			SConfig::GetInstance().m_strUniqueID.c_str())
+	);
 
-	char cache_filename[MAX_PATH];
-	sprintf(cache_filename, "%sIDX9-%s-ps.cache", File::GetUserPath(D_SHADERCACHE_IDX).c_str(),
+	std::string cache_filename = StringFromFormat("%sIDX9-%s-ps.cache", File::GetUserPath(D_SHADERCACHE_IDX).c_str(),
 		SConfig::GetInstance().m_strUniqueID.c_str());
 	
 	PixelShaderCacheInserter inserter;	
 	g_ps_disk_cache.OpenAndRead(cache_filename, inserter);
-	if (profile_filename_exists && g_ActiveConfig.bCompileShaderOnStartup)
+
+	if (g_ActiveConfig.bCompileShaderOnStartup && s_usage_profiler)
 	{
 		std::vector<PixelShaderUid> shaders;
-		s_dx9_usage_profiler->GetMostUsedByCategory(gameid, shaders, true);
+		s_usage_profiler->GetMostUsedByCategory(gameid, shaders, true);
 		size_t shader_count = 0;
 		for (PixelShaderUid& item : shaders)
 		{
@@ -366,12 +355,11 @@ void PixelShaderCache::Clear()
 
 void PixelShaderCache::Shutdown()
 {
-	if (s_dx9_usage_profiler)
+	if (s_usage_profiler)
 	{
-		std::string profile_filename = StringFromFormat("%s\\Ishiiruka.ps.dx9.usage", File::GetExeDirectory().c_str());
-		s_dx9_usage_profiler->PersistToFile(profile_filename);
-		delete s_dx9_usage_profiler;
-		s_dx9_usage_profiler = nullptr;
+		s_usage_profiler->Persist();
+		delete s_usage_profiler;
+		s_usage_profiler = nullptr;
 	}
 	if (s_compiler)
 	{
@@ -490,7 +478,7 @@ void PixelShaderCache::PrepareShader(
 		}
 		if (g_ActiveConfig.bShaderUsageProfiling)
 		{
-			s_dx9_usage_profiler->RegisterUsage(uid);
+			s_usage_profiler->RegisterUsage(uid);
 		}
 		s_last_uid[render_mode] = uid;
 		GFX_DEBUGGER_PAUSE_AT(NEXT_PIXEL_SHADER_CHANGE, true);

@@ -55,6 +55,7 @@
 #define MAPS_DIR            "Maps"
 #define CACHE_DIR           "Cache"
 #define SHADERCACHE_DIR     "Shaders"
+#define SHADERUIDCACHE_DIR  "ShadersUIDS"
 #define STATESAVES_DIR      "StateSaves"
 #define SCREENSHOTS_DIR     "ScreenShots"
 #define OPENCL_DIR			 "OpenCL"

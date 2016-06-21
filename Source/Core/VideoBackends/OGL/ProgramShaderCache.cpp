@@ -453,22 +453,11 @@ void ProgramShaderCache::Init()
 	s_v_buffer = std::move(StreamBuffer::Create(GL_UNIFORM_BUFFER, s_v_ubo_buffer_size * 1024));
 	s_g_buffer = std::move(StreamBuffer::Create(GL_UNIFORM_BUFFER, s_g_ubo_buffer_size * 1024));
 
-	std::string profile_filename = StringFromFormat("%s\\Ishiiruka.ps.OGL.usage", File::GetExeDirectory().c_str());
-	bool profile_filename_exists = File::Exists(profile_filename);
-	if (g_ActiveConfig.bShaderUsageProfiling || profile_filename_exists)
-	{
-		s_usage_profiler = new ObjectUsageProfiler<SHADERUID, pKey_t, SHADERUID::ShaderUidHasher>(PIXELSHADERGEN_UID_VERSION);
-	}
-
 	pKey_t gameid = (pKey_t)GetMurmurHash3(reinterpret_cast<const u8*>(SConfig::GetInstance().m_strUniqueID.data()), (u32)SConfig::GetInstance().m_strUniqueID.size(), 0);
-	if (profile_filename_exists)
-	{
-		s_usage_profiler->ReadFromFile(profile_filename);
-	}
-	if (s_usage_profiler)
-	{
-		s_usage_profiler->SetCategory(gameid);
-	}
+	s_usage_profiler = ObjectUsageProfiler<SHADERUID, pKey_t, SHADERUID::ShaderUidHasher>::Create(
+		g_ActiveConfig.bShaderUsageProfiling, gameid, PIXELSHADERGEN_UID_VERSION * VERTEXSHADERGEN_UID_VERSION * GEOMETRYSHADERGEN_UID_VERSION, "Ishiiruka.ps.OGL", StringFromFormat("%s.ps.OGL",
+			SConfig::GetInstance().m_strUniqueID.c_str())
+	);
 
 	// Read our shader cache, only if supported
 	if (g_ogl_config.bSupportsGLSLCache)
@@ -498,7 +487,7 @@ void ProgramShaderCache::Init()
 
 	CurrentProgram = 0;
 	last_entry = nullptr;
-	if (profile_filename_exists && g_ActiveConfig.bCompileShaderOnStartup)
+	if (s_usage_profiler && g_ActiveConfig.bCompileShaderOnStartup)
 	{
 		std::vector<SHADERUID> shaders;
 		s_usage_profiler->GetMostUsedByCategory(gameid, shaders, true);
@@ -515,8 +504,7 @@ void ProgramShaderCache::Shutdown()
 {
 	if (s_usage_profiler)
 	{
-		std::string profile_filename = StringFromFormat("%s\\Ishiiruka.ps.OGL.usage", File::GetExeDirectory().c_str());
-		s_usage_profiler->PersistToFile(profile_filename);
+		s_usage_profiler->Persist();
 		delete s_usage_profiler;
 		s_usage_profiler = nullptr;
 	}

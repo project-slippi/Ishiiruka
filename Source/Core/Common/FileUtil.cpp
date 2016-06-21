@@ -784,6 +784,7 @@ static void RebuildUserDirectories(unsigned int dir_index)
 		s_user_paths[D_MAPS_IDX]           = s_user_paths[D_USER_IDX] + MAPS_DIR DIR_SEP;
 		s_user_paths[D_CACHE_IDX]          = s_user_paths[D_USER_IDX] + CACHE_DIR DIR_SEP;
 		s_user_paths[D_SHADERCACHE_IDX]    = s_user_paths[D_CACHE_IDX] + SHADERCACHE_DIR DIR_SEP;
+		s_user_paths[D_SHADERUIDCACHE_IDX] = s_user_paths[D_CACHE_IDX] + SHADERUIDCACHE_DIR DIR_SEP;
 		s_user_paths[D_SHADERS_IDX]        = s_user_paths[D_USER_IDX] + SHADERS_DIR DIR_SEP;
 		s_user_paths[D_STATESAVES_IDX]     = s_user_paths[D_USER_IDX] + STATESAVES_DIR DIR_SEP;
 		s_user_paths[D_SCREENSHOTS_IDX]    = s_user_paths[D_USER_IDX] + SCREENSHOTS_DIR DIR_SEP;
@@ -825,6 +826,7 @@ static void RebuildUserDirectories(unsigned int dir_index)
 
 	case D_CACHE_IDX:
 		s_user_paths[D_SHADERCACHE_IDX]    = s_user_paths[D_CACHE_IDX] + SHADERCACHE_DIR DIR_SEP;
+		s_user_paths[D_SHADERUIDCACHE_IDX] = s_user_paths[D_CACHE_IDX] + SHADERUIDCACHE_DIR DIR_SEP;
 		break;
 
 	case D_GCUSER_IDX:

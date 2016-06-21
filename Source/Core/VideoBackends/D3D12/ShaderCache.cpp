@@ -126,8 +126,7 @@ void ShaderCache::Init()
 	if (!File::Exists(shader_cache_path))
 		File::CreateDir(File::GetUserPath(D_SHADERCACHE_IDX));
 
-	std::string title_unique_id = SConfig::GetInstance().m_strUniqueID.c_str();
-	pKey_t gameid = (pKey_t)GetMurmurHash3(reinterpret_cast<const u8*>(title_unique_id.data()), (u32)title_unique_id.size(), 0);
+	std::string title_unique_id = SConfig::GetInstance().m_strUniqueID;	
 
 	std::string ds_cache_filename = StringFromFormat("%sIDX11-%s-ds.cache", shader_cache_path.c_str(), title_unique_id.c_str());
 	std::string hs_cache_filename = StringFromFormat("%sIDX11-%s-hs.cache", shader_cache_path.c_str(), title_unique_id.c_str());
@@ -135,65 +134,26 @@ void ShaderCache::Init()
 	std::string ps_cache_filename = StringFromFormat("%sIDX11-%s-ps.cache", shader_cache_path.c_str(), title_unique_id.c_str());
 	std::string vs_cache_filename = StringFromFormat("%sIDX11-%s-vs.cache", shader_cache_path.c_str(), title_unique_id.c_str());
 
-	std::string profile_vs_filename = StringFromFormat("%s\\Ishiiruka.vs.usage", File::GetExeDirectory().c_str());
-	bool profile_vs_exists = File::Exists(profile_vs_filename);
-	if (g_ActiveConfig.bShaderUsageProfiling || profile_vs_exists)
-	{
-		s_vs_profiler = new ObjectUsageProfiler<VertexShaderUid, pKey_t, VertexShaderUid::ShaderUidHasher>(VERTEXSHADERGEN_UID_VERSION);
-	}
-	if (profile_vs_exists)
-	{
-		s_vs_profiler->ReadFromFile(profile_vs_filename);
-	}
-	if (s_vs_profiler)
-	{
-		s_vs_profiler->SetCategory(gameid);
-	}
+	pKey_t gameid = (pKey_t)GetMurmurHash3(reinterpret_cast<const u8*>(SConfig::GetInstance().m_strUniqueID.data()), (u32)SConfig::GetInstance().m_strUniqueID.size(), 0);
+	s_vs_profiler = ObjectUsageProfiler<VertexShaderUid, pKey_t, VertexShaderUid::ShaderUidHasher>::Create(
+		g_ActiveConfig.bShaderUsageProfiling, gameid, VERTEXSHADERGEN_UID_VERSION, "Ishiiruka.vs", StringFromFormat("%s.vs",
+			title_unique_id.c_str())
+	);
 
-	std::string profile_ps_filename = StringFromFormat("%s\\Ishiiruka.ps.usage", File::GetExeDirectory().c_str());
-	bool profile_ps_exists = File::Exists(profile_ps_filename);
-	if (g_ActiveConfig.bShaderUsageProfiling || profile_ps_exists)
-	{
-		s_ps_profiler = new ObjectUsageProfiler<PixelShaderUid, pKey_t, PixelShaderUid::ShaderUidHasher>(PIXELSHADERGEN_UID_VERSION);
-	}
-	if (profile_ps_exists)
-	{
-		s_ps_profiler->ReadFromFile(profile_ps_filename);
-	}
-	if (s_ps_profiler)
-	{
-		s_ps_profiler->SetCategory(gameid);
-	}
+	s_ps_profiler = ObjectUsageProfiler<PixelShaderUid, pKey_t, PixelShaderUid::ShaderUidHasher>::Create(
+		g_ActiveConfig.bShaderUsageProfiling, gameid, PIXELSHADERGEN_UID_VERSION, "Ishiiruka.ps", StringFromFormat("%s.ps",
+			title_unique_id.c_str())
+	);
 
-	std::string profile_gs_filename = StringFromFormat("%s\\Ishiiruka.gs.usage", File::GetExeDirectory().c_str());
-	bool profile_gs_exists = File::Exists(profile_gs_filename);
-	if (g_ActiveConfig.bShaderUsageProfiling || profile_gs_exists)
-	{
-		s_gs_profiler = new ObjectUsageProfiler<GeometryShaderUid, pKey_t, GeometryShaderUid::ShaderUidHasher>(GEOMETRYSHADERGEN_UID_VERSION);
-	}
-	if (profile_gs_exists)
-	{
-		s_gs_profiler->ReadFromFile(profile_gs_filename);
-	}
-	if (s_gs_profiler)
-	{
-		s_gs_profiler->SetCategory(gameid);
-	}
+	s_gs_profiler = ObjectUsageProfiler<GeometryShaderUid, pKey_t, GeometryShaderUid::ShaderUidHasher>::Create(
+		g_ActiveConfig.bShaderUsageProfiling, gameid, GEOMETRYSHADERGEN_UID_VERSION, "Ishiiruka.gs", StringFromFormat("%s.gs",
+			title_unique_id.c_str())
+	);
 
-	std::string profile_hds_filename = StringFromFormat("%s\\Ishiiruka.ts.usage", File::GetExeDirectory().c_str());
-	bool profile_hds_exists = File::Exists(profile_hds_filename);
-	if (g_ActiveConfig.bShaderUsageProfiling || profile_hds_exists)
-	{
-		s_hds_profiler = new ObjectUsageProfiler<TessellationShaderUid, pKey_t, TessellationShaderUid::ShaderUidHasher>(TESSELLATIONSHADERGEN_UID_VERSION);
-	}
-	if (profile_hds_exists)
-	{
-		s_hds_profiler->ReadFromFile(profile_hds_filename);
-	}
-	if (s_hds_profiler)
-	{
-		s_hds_profiler->SetCategory(gameid);
-	}
+	s_hds_profiler = ObjectUsageProfiler<TessellationShaderUid, pKey_t, TessellationShaderUid::ShaderUidHasher>::Create(
+		g_ActiveConfig.bShaderUsageProfiling, gameid, TESSELLATIONSHADERGEN_UID_VERSION, "Ishiiruka.ts", StringFromFormat("%s.ts",
+			title_unique_id.c_str())
+	);
 
 	ShaderCacheInserter<TessellationShaderUid, TsBytecodeCache, &ds_bytecode_cache> ds_inserter;
 	s_ds_disk_cache.OpenAndRead(ds_cache_filename, ds_inserter);
@@ -219,7 +179,7 @@ void ShaderCache::Init()
 	SETSTAT(stats.numVertexShadersCreated, 0);
 	if (g_ActiveConfig.bCompileShaderOnStartup)
 	{
-		if (profile_ps_exists)
+		if (s_ps_profiler)
 		{
 			std::vector<PixelShaderUid> shaders;
 			s_ps_profiler->GetMostUsedByCategory(gameid, shaders, true);
@@ -239,7 +199,7 @@ void ShaderCache::Init()
 			s_compiler->WaitForFinish();
 		}
 
-		if (profile_vs_exists)
+		if (s_vs_profiler)
 		{
 			std::vector<VertexShaderUid> shaders;
 			s_vs_profiler->GetMostUsedByCategory(gameid, shaders, true);
@@ -259,7 +219,7 @@ void ShaderCache::Init()
 			s_compiler->WaitForFinish();
 		}
 
-		if (profile_gs_exists)
+		if (s_gs_profiler)
 		{
 			std::vector<GeometryShaderUid> shaders;
 			s_gs_profiler->GetMostUsedByCategory(gameid, shaders, true);
@@ -279,7 +239,7 @@ void ShaderCache::Init()
 			s_compiler->WaitForFinish();
 		}
 
-		if (profile_hds_exists)
+		if (s_hds_profiler)
 		{
 			std::vector<TessellationShaderUid> shaders;
 			s_hds_profiler->GetMostUsedByCategory(gameid, shaders, true);
@@ -310,15 +270,25 @@ void ShaderCache::Shutdown()
 {
 	if (s_vs_profiler)
 	{
-		std::string profile_filename = StringFromFormat("%s\\Ishiiruka.vs.usage", File::GetExeDirectory().c_str());
-		s_vs_profiler->PersistToFile(profile_filename);
+		s_vs_profiler->Persist();
 		delete s_vs_profiler;
 		s_vs_profiler = nullptr;
 	}
+	if (s_gs_profiler)
+	{
+		s_gs_profiler->Persist();
+		delete s_gs_profiler;
+		s_gs_profiler = nullptr;
+	}
+	if (s_hds_profiler)
+	{
+		s_hds_profiler->Persist();
+		delete s_hds_profiler;
+		s_hds_profiler = nullptr;
+	}
 	if (s_ps_profiler)
 	{
-		std::string profile_filename = StringFromFormat("%s\\Ishiiruka.ps.usage", File::GetExeDirectory().c_str());
-		s_ps_profiler->PersistToFile(profile_filename);
+		s_ps_profiler->Persist();
 		delete s_ps_profiler;
 		s_ps_profiler = nullptr;
 	}

@@ -88,22 +88,11 @@ namespace DX11
 		if (!File::Exists(File::GetUserPath(D_SHADERCACHE_IDX)))
 			File::CreateDir(File::GetUserPath(D_SHADERCACHE_IDX));
 
-		std::string profile_filename = StringFromFormat("%s\\Ishiiruka.ts.usage", File::GetExeDirectory().c_str());
-		bool profile_filename_exists = File::Exists(profile_filename);
-		if (g_ActiveConfig.bShaderUsageProfiling || profile_filename_exists)
-		{
-			s_usage_profiler = new ObjectUsageProfiler<TessellationShaderUid, pKey_t, TessellationShaderUid::ShaderUidHasher>(TESSELLATIONSHADERGEN_UID_VERSION);
-		}
-
 		pKey_t gameid = (pKey_t)GetMurmurHash3(reinterpret_cast<const u8*>(SConfig::GetInstance().m_strUniqueID.data()), (u32)SConfig::GetInstance().m_strUniqueID.size(), 0);
-		if (profile_filename_exists)
-		{
-			s_usage_profiler->ReadFromFile(profile_filename);
-		}
-		if (s_usage_profiler)
-		{
-			s_usage_profiler->SetCategory(gameid);
-		}
+		s_usage_profiler = ObjectUsageProfiler<TessellationShaderUid, pKey_t, TessellationShaderUid::ShaderUidHasher>::Create(
+			g_ActiveConfig.bShaderUsageProfiling, gameid, TESSELLATIONSHADERGEN_UID_VERSION, "Ishiiruka.ts", StringFromFormat("%s.ts",
+				SConfig::GetInstance().m_strUniqueID.c_str())
+		);
 
 		std::string h_cache_filename = StringFromFormat("%sIDX11-%s-hs.cache", File::GetUserPath(D_SHADERCACHE_IDX).c_str(),
 			SConfig::GetInstance().m_strUniqueID.c_str());
@@ -118,7 +107,7 @@ namespace DX11
 		SETSTAT(stats.numDomainShadersAlive, 0);		
 		SETSTAT(stats.numHullShadersCreated, 0);
 		SETSTAT(stats.numHullShadersAlive, 0);
-		if (profile_filename_exists && g_ActiveConfig.bCompileShaderOnStartup)
+		if (s_usage_profiler && g_ActiveConfig.bCompileShaderOnStartup)
 		{
 			std::vector<TessellationShaderUid> shaders;
 			s_usage_profiler->GetMostUsedByCategory(gameid, shaders, true);
@@ -154,8 +143,7 @@ namespace DX11
 	{
 		if (s_usage_profiler)
 		{
-			std::string profile_filename = StringFromFormat("%s\\Ishiiruka.ts.usage", File::GetExeDirectory().c_str());
-			s_usage_profiler->PersistToFile(profile_filename);
+			s_usage_profiler->Persist();
 			delete s_usage_profiler;
 			s_usage_profiler = nullptr;
 		}

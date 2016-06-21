@@ -168,29 +168,18 @@ void GeometryShaderCache::Init()
 	if (!File::Exists(File::GetUserPath(D_SHADERCACHE_IDX)))
 		File::CreateDir(File::GetUserPath(D_SHADERCACHE_IDX));
 
-	std::string profile_filename = StringFromFormat("%s\\Ishiiruka.gs.usage", File::GetExeDirectory().c_str());
-	bool profile_filename_exists = File::Exists(profile_filename);
-	if (g_ActiveConfig.bShaderUsageProfiling || profile_filename_exists)
-	{
-		s_usage_profiler = new ObjectUsageProfiler<GeometryShaderUid, pKey_t, GeometryShaderUid::ShaderUidHasher>(GEOMETRYSHADERGEN_UID_VERSION);
-	}
-
 	pKey_t gameid = (pKey_t)GetMurmurHash3(reinterpret_cast<const u8*>(SConfig::GetInstance().m_strUniqueID.data()), (u32)SConfig::GetInstance().m_strUniqueID.size(), 0);
-	if (profile_filename_exists)
-	{
-		s_usage_profiler->ReadFromFile(profile_filename);
-	}
-	if (s_usage_profiler)
-	{
-		s_usage_profiler->SetCategory(gameid);
-	}
+	s_usage_profiler = ObjectUsageProfiler<GeometryShaderUid, pKey_t, GeometryShaderUid::ShaderUidHasher>::Create(
+		g_ActiveConfig.bShaderUsageProfiling, gameid, GEOMETRYSHADERGEN_UID_VERSION, "Ishiiruka.gs", StringFromFormat("%s.gs",
+			SConfig::GetInstance().m_strUniqueID.c_str())
+	);
 
 	std::string cache_filename = StringFromFormat("%sIDX11-%s-gs.cache", File::GetUserPath(D_SHADERCACHE_IDX).c_str(),
 		SConfig::GetInstance().m_strUniqueID.c_str());
 	GeometryShaderCacheInserter inserter;
 	g_gs_disk_cache.OpenAndRead(cache_filename, inserter);
 	
-	if (profile_filename_exists && g_ActiveConfig.bCompileShaderOnStartup)
+	if (s_usage_profiler && g_ActiveConfig.bCompileShaderOnStartup)
 	{
 		std::vector<GeometryShaderUid> shaders;
 		s_usage_profiler->GetMostUsedByCategory(gameid, shaders, true);
@@ -228,8 +217,7 @@ void GeometryShaderCache::Shutdown()
 {
 	if (s_usage_profiler)
 	{
-		std::string profile_filename = StringFromFormat("%s\\Ishiiruka.gs.usage", File::GetExeDirectory().c_str());
-		s_usage_profiler->PersistToFile(profile_filename);
+		s_usage_profiler->Persist();
 		delete s_usage_profiler;
 		s_usage_profiler = nullptr;
 	}
