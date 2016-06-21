@@ -39,7 +39,7 @@
 
 #include "Common/FileUtil.h"
 
-typedef unsigned __int64 pKey_t;
+typedef uint64_t pKey_t;
 
 template <typename Tobj, typename TCaterogry, typename TobjHasher> class ObjectUsageProfiler
 {

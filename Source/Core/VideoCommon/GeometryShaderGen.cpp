@@ -136,7 +136,7 @@ inline void GenerateGeometryShader(ShaderCode& out, const geometry_shader_uid_da
 		out.Write("out VertexData {\n");
 		GenerateVSOutputMembers<ApiType>(out, uid_data.pixel_lighting, uid_data.numTexGens, GetInterpolationQualifier(ApiType, uid_data.msaa, uid_data.ssaa, false, true));
 
-		if (g_ActiveConfig.iStereoMode > 0)
+		if (uid_data.stereo)
 			out.Write("\tflat int layer;\n");
 
 		out.Write("} ps;\n");

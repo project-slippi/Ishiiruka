@@ -1289,41 +1289,116 @@ float4 GetBicubicSampleLocation(int idx, float2 location, out float4 scalingFact
 
 					return float4(texelCenter - 1.f + f0,texelCenter + 1.f + f1) * invTextureDimensions.xyxy;
 }
-float4 SampleInputBicubic(int idx, float2 location)
+
+float4 SampleInputBicubicLocation0(float2 location)
 {
 	float4 scalingFactor;
-	float4 texCoord = GetBicubicSampleLocation(idx, location, scalingFactor);
+	float4 texCoord = GetBicubicSampleLocation(0, location, scalingFactor);
 	return
-		 SampleInputLocation(idx, texCoord.xy) * scalingFactor.x +
-		 SampleInputLocation(idx, texCoord.zy) * scalingFactor.y +
-		 SampleInputLocation(idx, texCoord.xw) * scalingFactor.z +
-		 SampleInputLocation(idx, texCoord.zw) * scalingFactor.w;
+		 SampleInputLocation(0, texCoord.xy) * scalingFactor.x +
+		 SampleInputLocation(0, texCoord.zy) * scalingFactor.y +
+		 SampleInputLocation(0, texCoord.xw) * scalingFactor.z +
+		 SampleInputLocation(0, texCoord.zw) * scalingFactor.w;
 }
 
-float4 SampleInputBicubic(int idx)
+float4 SampleInputBicubicLocation1(float2 location)
 {
-	return SampleInputBicubic(idx, GetCoordinates());
+	float4 scalingFactor;
+	float4 texCoord = GetBicubicSampleLocation(1, location, scalingFactor);
+	return
+		 SampleInputLocation(1, texCoord.xy) * scalingFactor.x +
+		 SampleInputLocation(1, texCoord.zy) * scalingFactor.y +
+		 SampleInputLocation(1, texCoord.xw) * scalingFactor.z +
+		 SampleInputLocation(1, texCoord.zw) * scalingFactor.w;
 }
+
+float4 SampleInputBicubicLocation2(float2 location)
+{
+	float4 scalingFactor;
+	float4 texCoord = GetBicubicSampleLocation(2, location, scalingFactor);
+	return
+		 SampleInputLocation(2, texCoord.xy) * scalingFactor.x +
+		 SampleInputLocation(2, texCoord.zy) * scalingFactor.y +
+		 SampleInputLocation(2, texCoord.xw) * scalingFactor.z +
+		 SampleInputLocation(2, texCoord.zw) * scalingFactor.w;
+}
+
+float4 SampleInputBicubicLocation3(float2 location)
+{
+	float4 scalingFactor;
+	float4 texCoord = GetBicubicSampleLocation(3, location, scalingFactor);
+	return
+		 SampleInputLocation(3, texCoord.xy) * scalingFactor.x +
+		 SampleInputLocation(3, texCoord.zy) * scalingFactor.y +
+		 SampleInputLocation(3, texCoord.xw) * scalingFactor.z +
+		 SampleInputLocation(3, texCoord.zw) * scalingFactor.w;
+}
+
+float4 SampleInputBicubic0()
+{
+	return SampleInputBicubicLocation0(GetCoordinates());
+}
+
+float4 SampleInputBicubic1()
+{
+	return SampleInputBicubicLocation1(GetCoordinates());
+}
+
+float4 SampleInputBicubic2()
+{
+	return SampleInputBicubicLocation2(GetCoordinates());
+}
+
+float4 SampleInputBicubic3()
+{
+	return SampleInputBicubicLocation3(GetCoordinates());
+}
+
+#define SampleInputBicubic(idx)  SampleInputBicubic##idx()
+#define SampleInputBicubicLocation(idx, location)  SampleInputBicubicLocation##idx(location)
 
 float4 SampleBicubicLocation(float2 location)
 {
-	return SampleInputBicubic(COLOR_BUFFER_INPUT_INDEX, location);
+	float4 scalingFactor;
+	float4 texCoord = GetBicubicSampleLocation(COLOR_BUFFER_INPUT_INDEX, location, scalingFactor);
+	return
+			SampleInputLocation(COLOR_BUFFER_INPUT_INDEX, texCoord.xy) * scalingFactor.x +
+			SampleInputLocation(COLOR_BUFFER_INPUT_INDEX, texCoord.zy) * scalingFactor.y +
+			SampleInputLocation(COLOR_BUFFER_INPUT_INDEX, texCoord.xw) * scalingFactor.z +
+			SampleInputLocation(COLOR_BUFFER_INPUT_INDEX, texCoord.zw) * scalingFactor.w;
 }
 
 float4 SamplePrevBicubic()
 {
-	return SampleInputBicubic(PREV_OUTPUT_INPUT_INDEX, GetCoordinates());
+	float4 scalingFactor;
+	float4 texCoord = GetBicubicSampleLocation(PREV_OUTPUT_INPUT_INDEX, GetCoordinates(), scalingFactor);
+	return
+			SampleInputLocation(PREV_OUTPUT_INPUT_INDEX, texCoord.xy) * scalingFactor.x +
+			SampleInputLocation(PREV_OUTPUT_INPUT_INDEX, texCoord.zy) * scalingFactor.y +
+			SampleInputLocation(PREV_OUTPUT_INPUT_INDEX, texCoord.xw) * scalingFactor.z +
+			SampleInputLocation(PREV_OUTPUT_INPUT_INDEX, texCoord.zw) * scalingFactor.w;
 }
 
 float4 SamplePrevBicubicLocation(float2 location)
 {
-	return SampleInputBicubic(PREV_OUTPUT_INPUT_INDEX, location);
+	float4 scalingFactor;
+	float4 texCoord = GetBicubicSampleLocation(PREV_OUTPUT_INPUT_INDEX, location, scalingFactor);
+	return
+			SampleInputLocation(PREV_OUTPUT_INPUT_INDEX, texCoord.xy) * scalingFactor.x +
+			SampleInputLocation(PREV_OUTPUT_INPUT_INDEX, texCoord.zy) * scalingFactor.y +
+			SampleInputLocation(PREV_OUTPUT_INPUT_INDEX, texCoord.xw) * scalingFactor.z +
+			SampleInputLocation(PREV_OUTPUT_INPUT_INDEX, texCoord.zw) * scalingFactor.w;
 }
 
 float4 SampleBicubic() 
 { 
-	float4 outputcolor = SampleInputBicubic(COLOR_BUFFER_INPUT_INDEX, GetCoordinates());
-	return outputcolor;
+	float4 scalingFactor;
+	float4 texCoord = GetBicubicSampleLocation(COLOR_BUFFER_INPUT_INDEX, GetCoordinates(), scalingFactor);
+	return
+			SampleInputLocation(COLOR_BUFFER_INPUT_INDEX, texCoord.xy) * scalingFactor.x +
+			SampleInputLocation(COLOR_BUFFER_INPUT_INDEX, texCoord.zy) * scalingFactor.y +
+			SampleInputLocation(COLOR_BUFFER_INPUT_INDEX, texCoord.xw) * scalingFactor.z +
+			SampleInputLocation(COLOR_BUFFER_INPUT_INDEX, texCoord.zw) * scalingFactor.w;
 }
 
 #define SetOutput(color) ocol0 = color
