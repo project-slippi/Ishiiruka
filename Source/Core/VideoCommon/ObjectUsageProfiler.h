@@ -326,8 +326,8 @@ public:
 		if (output)
 		{
 			output->SetCategory(catid);
+			output->SetStorage(profile_filename);
 		}
-		output->SetStorage(profile_filename);
 		return output;
 	}
 
