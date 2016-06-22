@@ -50,7 +50,10 @@ private:
 	LPDIRECT3DPIXELSHADER9 m_unorm8Shader;
 	// Depalettizing shader for 16-bit indices as normalized float
 	LPDIRECT3DPIXELSHADER9 m_unorm16Shader;
-
+	u32 m_last_tlutFmt = {};
+	void* m_last_addr = {};
+	u32 m_last_size = {};
+	u64 m_last_hash = {};
 };
 
 }

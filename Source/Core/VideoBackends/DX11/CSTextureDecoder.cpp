@@ -2,7 +2,10 @@
 // Licensed under GPLv2+
 // Refer to the license.txt file included.
 
+#include "Common/Hash.h"
+
 #include "Core/HW/Memmap.h"
+
 #include "VideoCommon/VideoConfig.h"
 #include "VideoBackends/DX11/D3DPtr.h"
 #include "VideoBackends/DX11/D3DBase.h"
@@ -555,6 +558,17 @@ ID3D11ComputeShader* CSTextureDecoder::InsertShader( ComboKey const &key, u8 con
 
 void CSTextureDecoder::LoadLut(u32 lutFmt, void* addr, u32 size ) 
 {
+	if (lutFmt == m_lutFmt && addr == m_last_addr && size == m_last_size)
+	{
+		u64 hash = GetHash64(reinterpret_cast<u8*>(addr), size, g_ActiveConfig.iSafeTextureCache_ColorSamples);
+		if (hash == m_last_hash)
+		{
+			return;
+		}
+		m_last_hash = hash;
+	}
+	m_last_addr = addr;
+	m_last_size = size;
 	D3D11_BOX box{0,0,0,size,1,1};
 	D3D::context->UpdateSubresource(m_lutRsc.get(),0,&box,addr,0,0);
 	m_lutFmt = lutFmt;

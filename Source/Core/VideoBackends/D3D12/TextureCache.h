@@ -59,8 +59,10 @@ private:
 	void CompileShaders() override { }
 	void DeleteShaders() override { }
 
-	TlutFormat m_lut_format;
-	u32 m_lut_size;
+	TlutFormat m_lut_format = {};
+	u32 m_lut_size = {};
+	void* m_addr = {};
+	u64 m_hash = {};
 	std::unique_ptr<D3DStreamBuffer> m_palette_stream_buffer;
 
 	ID3D12Resource* m_palette_uniform_buffer = nullptr;

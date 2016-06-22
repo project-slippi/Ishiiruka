@@ -567,8 +567,18 @@ void main(
 
 void TextureCache::LoadLut(u32 lutFmt, void* palette, u32 size) {
 	
+	if (lutFmt == m_lut_format && palette == m_addr && size == m_lut_size)
+	{
+		u64 hash = GetHash64(reinterpret_cast<u8*>(palette), size, g_ActiveConfig.iSafeTextureCache_ColorSamples);
+		if (hash == m_hash)
+		{
+			return;
+		}
+		m_hash = hash;
+	}
 	m_lut_format = (TlutFormat)lutFmt;
 	m_lut_size = size;
+	m_addr = palette;
 	if (m_lut_size > 512)
 	{
 		return;

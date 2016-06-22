@@ -793,6 +793,18 @@ TextureCache::~TextureCache()
 
 void TextureCache::LoadLut(u32 lutFmt, void* addr, u32 size)
 {
+	if (lutFmt == m_last_lutFmt && addr == m_last_addr && size == m_last_size)
+	{
+		u64 hash = GetHash64(reinterpret_cast<u8*>(addr), size, g_ActiveConfig.iSafeTextureCache_ColorSamples);
+		if (hash == m_last_hash)
+		{
+			return;
+		}
+		m_last_hash = hash;
+	}
+	m_last_lutFmt = lutFmt;
+	m_last_addr = addr;
+	m_last_size = size;
 	if (g_ActiveConfig.backend_info.bSupportsPaletteConversion)
 	{
 		s_last_TlutFormat = (TlutFormat)lutFmt;

@@ -90,6 +90,9 @@ private:
 	LinearDiskCache<ComboKey, u8> m_shaderCache;
 	D3D::PixelShaderPtr m_depalettize_shaders[3][2];
 	ID3D11PixelShader* GetDepalettizerPShader(BaseType baseType, u32 lutfmt);
+	void* m_last_addr = {};
+	u32 m_last_size = {};
+	u64 m_last_hash = {};
 };
 
 }

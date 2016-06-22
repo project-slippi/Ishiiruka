@@ -72,6 +72,10 @@ private:
 	void LoadLut(u32 lutFmt, void* addr, u32 size);
 	void CompileShaders() override;
 	void DeleteShaders() override;
+	void* m_last_addr = {};
+	u32 m_last_size = {};
+	u64 m_last_hash = {};
+	u32 m_last_lutFmt = {};
 };
 
 bool SaveTexture(const std::string& filename, u32 textarget, u32 tex, int virtual_width, int virtual_height, u32 level);

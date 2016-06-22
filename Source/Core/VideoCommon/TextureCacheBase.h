@@ -4,8 +4,10 @@
 
 #pragma once
 #include <map>
-#include <unordered_map>
 #include <memory>
+#include <tuple>
+#include <unordered_map>
+#include <unordered_set>
 
 #include "Common/CommonTypes.h"
 #include "Common/Thread.h"
@@ -102,25 +104,30 @@ public:
 		TCacheEntryConfig config;
 
 		// common members
-		u32 addr;
-		u32 size_in_bytes;
-		u32 native_size_in_bytes;
-		u64 hash;
-		u64 base_hash;
-		u32 format; // bits 0-3 will contain the in-memory format.
-		bool is_efb_copy;
-
-		u32 native_width, native_height; // Texture dimensions from the GameCube's point of view
-		u32 native_levels;
-		
+		bool is_efb_copy = false;
+		bool is_custom_tex = false;
+		bool is_scaled = false;
+		u32 addr = {};
+		u32 size_in_bytes = {};
+		u32 native_size_in_bytes = {};
+		u32 format = {}; // bits 0-3 will contain the in-memory format.
+		u32 memory_stride = {};
+		u32 native_width = {}, native_height = {}; // Texture dimensions from the GameCube's point of view
+		u32 native_levels = {};
 		// used to delete textures which haven't been used for TEXTURE_KILL_THRESHOLD frames
-		s32 frameCount;
+		s32 frameCount = {};
+		u64 hash = {};
+		u64 base_hash = {};
+
 		// Keep an iterator to the entry in textures_by_hash, so it does not need to be searched when removing the cache entry
 		std::multimap<u64, TCacheEntryBase*>::iterator textures_by_hash_iter;
-		bool is_custom_tex;
-		bool is_scaled;
+
+		// This is used to keep track of both:
+		//   * efb copies used by this partially updated texture
+		//   * partially updated textures which refer to this efb copy
+		std::unordered_set<TCacheEntryBase*> references;
+		
 		std::string basename;
-		u32 memory_stride;
 
 		void SetGeneralParameters(u32 _addr, u32 _size, u32 _format)
 		{
@@ -150,12 +157,29 @@ public:
 			base_hash = _base_hash;
 		}
 
+		// This texture entry is used by the other entry as a sub-texture
+		void CreateReference(TCacheEntryBase* other_entry)
+		{
+			// References are two-way, so they can easily be destroyed later
+			this->references.emplace(other_entry);
+			other_entry->references.emplace(this);
+		}
+
+		void DestroyAllReferences()
+		{
+			for (auto& reference : references)
+				reference->references.erase(this);
+
+			references.clear();
+		}
+
 		void SetEfbCopy(u32 stride);
 
-		TCacheEntryBase(const TCacheEntryConfig& c) : config(c), is_custom_tex(false), basename()
+		TCacheEntryBase(const TCacheEntryConfig& c) : config(c)
 		{
 			native_size_in_bytes = config.GetSizeInBytes();
 		}
+
 		virtual ~TCacheEntryBase();
 
 		virtual void Bind(u32 stage, u32 last_texture) = 0;
@@ -177,6 +201,9 @@ public:
 			bool scaleByHalf, unsigned int cbufid, const float *colmat) = 0;		
 		bool OverlapsMemoryRange(u32 range_address, u32 range_size) const;
 		virtual bool SupportsMaterialMap() const = 0;
+
+		TextureCacheBase::TCacheEntryBase* ApplyPalette(u32 tlutaddr, u32 tlutfmt, u32 palette_size);
+
 		bool IsEfbCopy() { return is_efb_copy; }
 
 		u32 NumBlocksY() const;
@@ -205,15 +232,13 @@ public:
 	virtual void CompileShaders() = 0; // currently only implemented by OGL
 	virtual void DeleteShaders() = 0; // currently only implemented by OGL
 
+	virtual void LoadLut(u32 lutFmt, void* addr, u32 size) = 0;
+
 	static TCacheEntryBase* Load(const u32 stage);
 	static void UnbindTextures();
 	static void BindTextures();
 	static void CopyRenderTargetToTexture(u32 dstAddr, u32 dstFormat, u32 dstStride,
 		PEControl::PixelFormat srcFormat, const EFBRectangle& srcRect, bool isIntensity, bool scaleByHalf);
-
-	static void RequestInvalidateTextureCache();
-
-	virtual void LoadLut(u32 lutFmt, void* addr, u32 size) = 0;
 
 protected:
 	alignas(16) static u8 *temp;
@@ -225,14 +250,12 @@ private:
 	typedef std::unordered_map<std::string, TCacheEntryBase*> HiresTexPool;
 	static void ScaleTextureCacheEntryTo(TCacheEntryBase** entry, u32 new_width, u32 new_height);
 	static void CheckTempSize(size_t required_size);
-	static TCacheEntryBase* DoPartialTextureUpdates(TexCache::iterator iter);
+	static TCacheEntryBase* DoPartialTextureUpdates(TexCache::iterator iter, u32 tlutaddr, u32 tlutfmt, u32 palette_size);
 	static void DumpTexture(TCacheEntryBase* entry, std::string basename, u32 level);
 	static void InvalidateHiresCache();
-	static u32 s_prev_tlut_address;
-	static u32 s_prev_tlut_size;
-	static u64 s_prev_tlut_hash;
 	static TCacheEntryBase* AllocateTexture(const TCacheEntryConfig& config);
-	static TextureCacheBase::TexCache::iterator FreeTexture(TexCache::iterator t_iter);
+	static TexCache::iterator GetTexCacheIter(TCacheEntryBase* entry);
+	static TexCache::iterator InvalidateTexture(TexCache::iterator t_iter);
 	static TCacheEntryBase* ReturnEntry(u32 stage, TCacheEntryBase* entry);
 
 	
