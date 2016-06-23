@@ -358,8 +358,8 @@ private:
 		pKey_t Id;
 		pKey_t usage_count;
 	};
-	std::unordered_map<Tobj, ObjectMetadata, TobjHasher> m_objects = {};;
-	std::map<TCaterogry, CategoryMetadata> m_categories = {};;
+	std::unordered_map<Tobj, ObjectMetadata, TobjHasher> m_objects;
+	std::map<TCaterogry, CategoryMetadata> m_categories;
 	pKey_t m_category_id = {};
 	pKey_t m_category_index = {};
 	pKey_t m_max_category_index = {};

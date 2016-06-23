@@ -1525,7 +1525,7 @@ void PostProcessor::GetUniformBufferShaderSource(API_TYPE api, const PostProcess
 		}
 		else if (it.second.m_type == POST_PROCESSING_OPTION_TYPE_INTEGER)
 		{
-			u32 count = static_cast<u32>(it.second.m_integer_values.size());
+			count = static_cast<u32>(it.second.m_integer_values.size());
 
 			if (count == 1)
 				shader_source += StringFromFormat("\tint o_%s;\n", it.first.c_str());
@@ -1534,7 +1534,7 @@ void PostProcessor::GetUniformBufferShaderSource(API_TYPE api, const PostProcess
 		}
 		else if (it.second.m_type == POST_PROCESSING_OPTION_TYPE_FLOAT)
 		{
-			u32 count = static_cast<u32>(it.second.m_float_values.size());
+			count = static_cast<u32>(it.second.m_float_values.size());
 			if (count == 1)
 				shader_source += StringFromFormat("\tfloat o_%s;\n", it.first.c_str());
 			else

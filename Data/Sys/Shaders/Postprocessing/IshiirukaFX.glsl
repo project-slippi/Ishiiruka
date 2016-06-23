@@ -2022,7 +2022,7 @@ void BloomMerger()
 	if (OptionEnabled(C_GAUSSIAN_ANAMFLARE))
 	{
 		float3 anamflare = blur.a * GetOption(C_ANAMFLARE_COLOR).rgb * lumColor.rgb;
-		mergedcolor.rgb += pow(anamflare.rgb, 1.0 / GetOption(B_ANAMFLARE_CURVE));
+		mergedcolor.rgb += pow(anamflare.rgb, float3(1.0, 1.0, 1.0) / (float3(1.0,1.0,1.0) * GetOption(B_ANAMFLARE_CURVE)));
 	}
 	SetOutput(mergedcolor);
 }
