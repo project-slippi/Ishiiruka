@@ -274,8 +274,9 @@ bool PostProcessingShader::RecompileShaders()
 		std::string vertex_shader_source;
 		PostProcessor::GetUniformBufferShaderSource(API_OPENGL, m_config, vertex_shader_source);
 		vertex_shader_source += s_vertex_shader;
-		std::string fragment_shader_source = PostProcessor::GetPassFragmentShaderSource(API_OPENGL, m_config, &pass_config);
-		if (!ProgramShaderCache::CompileShader(*pass.program, vertex_shader_source.c_str(), (header_shader_source + common_source + fragment_shader_source).c_str()))
+		std::string fragment_shader_source = header_shader_source + common_source;
+		fragment_shader_source += PostProcessor::GetPassFragmentShaderSource(API_OPENGL, m_config, &pass_config);
+		if (!ProgramShaderCache::CompileShader(*pass.program, vertex_shader_source.c_str(), fragment_shader_source.c_str()))
 		{
 			ERROR_LOG(VIDEO, "Failed to compile post-processing shader %s (pass %s)", m_config->GetShaderName().c_str(), pass_config.entry_point.c_str());
 			m_ready = false;
