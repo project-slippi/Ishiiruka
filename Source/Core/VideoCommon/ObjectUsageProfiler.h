@@ -171,7 +171,7 @@ public:
 			}
 		}
 		size_t object_count = 0;
-		if (allcategories)
+		if (allcategories || m_categories.size() == 1)
 		{
 			object_count = m_objects.size();
 		}
@@ -188,7 +188,7 @@ public:
 		bwrite(out, object_count);
 		for (auto& item : m_objects)
 		{
-			if (allcategories || (item.second.category_mask[m_category_index] & m_category_mask) != 0)
+			if (allcategories || m_categories.size() == 1 || (item.second.category_mask[m_category_index] & m_category_mask) != 0)
 			{
 				bwrite(out, item.first);
 				if (allcategories)
