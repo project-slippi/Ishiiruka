@@ -1,9 +1,9 @@
 #if GLSL
-#define FIRST_LAYER_INDEX(1)
-#define SECOND_LAYER_INDEX(0)
+#define FIRST_LAYER_INDEX 1
+#define SECOND_LAYER_INDEX 0
 #else
-#define FIRST_LAYER_INDEX(0)
-#define SECOND_LAYER_INDEX(1)
+#define FIRST_LAYER_INDEX 0
+#define SECOND_LAYER_INDEX 1
 #endif
 
 void main()
