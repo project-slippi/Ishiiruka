@@ -98,6 +98,10 @@ var branch = GetFirstStdOutLine(gitexe + cmd_branch);
 var cacheversion = GetCacheVersion(gitexe);
 var isStable	= +("master" == branch || "stable" == branch);
 
+// Get environment information.
+var distributor = wshShell.ExpandEnvironmentStrings("%DOLPHIN_DISTRIBUTOR%");
+if (distributor == "%DOLPHIN_DISTRIBUTOR%") distributor = "Ishiiruka-based";
+
 // remove hash (and trailing "-0" if needed) from description
 describe = describe.replace(/(-0)?-[^-]+(-dirty)?$/, '$2');
 
@@ -105,9 +109,9 @@ var out_contents =
 	"#define SCM_REV_STR \"" + revision + "\"\n" +
 	"#define SCM_DESC_STR \"" + revcount + "(" + describe + ")\"\n" +
 	"#define SCM_BRANCH_STR \"" + branch + "\"\n" +
-    "#define SCM_CACHE_STR \"" + cacheversion + "\"\n" +
-	"#define SCM_IS_MASTER " + isStable + "\n";
-
+	"#define SCM_CACHE_STR \"" + cacheversion + "\"\n" +
+	"#define SCM_IS_MASTER " + isStable + "\n" +
+	"#define SCM_DISTRIBUTOR_STR \"" + distributor + "\"\n";
 // check if file needs updating
 if (out_contents == GetFileContents(outfile))
 {

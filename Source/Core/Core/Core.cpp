@@ -25,6 +25,7 @@
 #include "Common/Timer.h"
 #include "Common/Logging/LogManager.h"
 
+#include "Core/Analytics.h"
 #include "Core/ConfigManager.h"
 #include "Core/Core.h"
 #include "Core/CoreTiming.h"
@@ -355,6 +356,9 @@ static void CpuThread()
 		Common::SetCurrentThreadName("CPU-GPU thread");
 		video_backend->Video_Prepare();
 	}
+
+  // This needs to be delayed until after the video backend is ready.
+	DolphinAnalytics::Instance()->ReportGameStart();
 
 	if (_CoreParameter.bFastmem)
 		EMM::InstallExceptionHandler(); // Let's run under memory watch

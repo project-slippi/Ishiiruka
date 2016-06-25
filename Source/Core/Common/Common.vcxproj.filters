@@ -225,6 +225,7 @@
     </ClInclude>
     <ClInclude Include="Assert.h" />
     <ClInclude Include="NonCopyable.h" />
+    <ClInclude Include="Analytics.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="BreakPoints.cpp" />
@@ -286,6 +287,7 @@
       <Filter>GL\GLInterface</Filter>
     </ClCompile>
     <ClCompile Include="ucrtFreadWorkaround.cpp" />
+    <ClCompile Include="Analytics.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="CMakeLists.txt" />

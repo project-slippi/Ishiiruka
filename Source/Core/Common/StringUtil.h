@@ -96,6 +96,9 @@ bool TryParseVector(const std::string& str, std::vector<N>* output, const char d
 	return true;
 }
 
+// Generates an hexdump-like representation of a binary data blob.
+std::string HexDump(const u8* data, size_t size);
+
 inline bool StartsWith(const std::string& str, const std::string& prefix)
 {
 	return str.compare(0, prefix.size(), prefix) == 0;

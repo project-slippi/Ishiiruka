@@ -220,6 +220,9 @@ struct VideoConfig final
 		std::vector<std::string> Adapters; // for D3D9 and D3D11
 		std::vector<int> AAModes;
 
+		// TODO: merge AdapterName and Adapters array
+		std::string AdapterName; // for OpenGL
+
 		bool bSupportedFormats[16]; // used for D3D9 in TextureCache		
 		bool bSupportsDualSourceBlend; // only supported by D3D11 and OpenGL
 		bool bSupportsPixelLighting;
