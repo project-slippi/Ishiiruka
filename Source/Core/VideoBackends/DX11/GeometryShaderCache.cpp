@@ -21,19 +21,17 @@
 #include "VideoCommon/GeometryShaderGen.h"
 #include "VideoCommon/GeometryShaderManager.h"
 #include "VideoCommon/HLSLCompiler.h"
-#include "VideoCommon/ObjectUsageProfiler.h"
 #include "VideoCommon/Statistics.h"
 #include "VideoCommon/VideoConfig.h"
 
 namespace DX11
 {
 
-GeometryShaderCache::GSCache GeometryShaderCache::s_geometry_shaders;
+GeometryShaderCache::GSCache* GeometryShaderCache::s_geometry_shaders;
 const GeometryShaderCache::GSCacheEntry* GeometryShaderCache::s_last_entry;
 GeometryShaderUid GeometryShaderCache::s_last_uid;
 GeometryShaderUid GeometryShaderCache::s_external_last_uid;
 const GeometryShaderCache::GSCacheEntry GeometryShaderCache::s_pass_entry;
-static ObjectUsageProfiler<GeometryShaderUid, pKey_t, GeometryShaderUid::ShaderUidHasher>* s_usage_profiler = nullptr;
 static HLSLAsyncCompiler *s_compiler;
 static Common::SpinLock<true> s_geometry_shaders_lock;
 
@@ -169,9 +167,11 @@ void GeometryShaderCache::Init()
 		File::CreateDir(File::GetUserPath(D_SHADERCACHE_IDX));
 
 	pKey_t gameid = (pKey_t)GetMurmurHash3(reinterpret_cast<const u8*>(SConfig::GetInstance().m_strUniqueID.data()), (u32)SConfig::GetInstance().m_strUniqueID.size(), 0);
-	s_usage_profiler = ObjectUsageProfiler<GeometryShaderUid, pKey_t, GeometryShaderUid::ShaderUidHasher>::Create(
-		g_ActiveConfig.bShaderUsageProfiling, gameid, GEOMETRYSHADERGEN_UID_VERSION, "Ishiiruka.gs", StringFromFormat("%s.gs",
-			SConfig::GetInstance().m_strUniqueID.c_str())
+	s_geometry_shaders = GSCache::Create(
+		gameid,
+		GEOMETRYSHADERGEN_UID_VERSION,
+		"Ishiiruka.gs",
+		StringFromFormat("%s.gs", SConfig::GetInstance().m_strUniqueID.c_str())
 	);
 
 	std::string cache_filename = StringFromFormat("%sIDX11-%s-gs.cache", File::GetUserPath(D_SHADERCACHE_IDX).c_str(),
@@ -179,23 +179,24 @@ void GeometryShaderCache::Init()
 	GeometryShaderCacheInserter inserter;
 	g_gs_disk_cache.OpenAndRead(cache_filename, inserter);
 	
-	if (s_usage_profiler && g_ActiveConfig.bCompileShaderOnStartup)
+	if (g_ActiveConfig.bCompileShaderOnStartup)
 	{
-		std::vector<GeometryShaderUid> shaders;
-		s_usage_profiler->GetMostUsedByCategory(gameid, shaders, true);
 		size_t shader_count = 0;
-		for (const GeometryShaderUid& item : shaders)
+		s_geometry_shaders->ForEachMostUsedByCategory(gameid,
+			[&](const GeometryShaderUid& item)
 		{
-			if (s_geometry_shaders.find(item) == s_geometry_shaders.end())
-			{
-				CompileGShader(item, true);
-			}
+			CompileGShader(item, true);
 			shader_count++;
 			if ((shader_count & 31) == 0)
 			{
 				s_compiler->WaitForFinish();
 			}
+		},
+			[](GSCacheEntry& entry)
+		{
+			return !entry.shader;
 		}
+		, true);
 		s_compiler->WaitForFinish();
 	}
 
@@ -205,22 +206,21 @@ void GeometryShaderCache::Init()
 // ONLY to be used during shutdown.
 void GeometryShaderCache::Clear()
 {
-	for (auto& iter : s_geometry_shaders)
-		iter.second.Destroy();
-	s_geometry_shaders.clear();
-	s_geometry_shaders_lock.unlock();
-	
+	if (s_geometry_shaders)
+	{
+		s_geometry_shaders_lock.lock();
+		s_geometry_shaders->Persist();
+		s_geometry_shaders->Clear([](GSCacheEntry& item)
+		{
+			item.Destroy();
+		});
+		s_geometry_shaders_lock.unlock();
+	}
 	s_last_entry = nullptr;
 }
 
 void GeometryShaderCache::Shutdown()
 {
-	if (s_usage_profiler)
-	{
-		s_usage_profiler->Persist();
-		delete s_usage_profiler;
-		s_usage_profiler = nullptr;
-	}
 	if (s_compiler)
 	{
 		s_compiler->WaitForFinish();
@@ -234,7 +234,11 @@ void GeometryShaderCache::Shutdown()
 	ClearGeometryShader.reset();
 	CopyGeometryShader.reset();
 
+	
 	Clear();
+	delete s_geometry_shaders;
+	s_geometry_shaders = nullptr;
+
 	g_gs_disk_cache.Sync();
 	g_gs_disk_cache.Close();
 }
@@ -242,7 +246,7 @@ void GeometryShaderCache::Shutdown()
 void GeometryShaderCache::CompileGShader(const GeometryShaderUid& uid, bool ongputhread)
 {
 	s_geometry_shaders_lock.lock();
-	GSCacheEntry* entry = &s_geometry_shaders[uid];
+	GSCacheEntry* entry = &s_geometry_shaders->GetOrAdd(uid);
 	s_geometry_shaders_lock.unlock();
 	if (ongputhread)
 	{
@@ -325,8 +329,6 @@ void GeometryShaderCache::PrepareShader(
 			s_last_entry = &s_pass_entry;
 			return;
 		}
-		if (g_ActiveConfig.bShaderUsageProfiling)
-			s_usage_profiler->RegisterUsage(uid);
 		GFX_DEBUGGER_PAUSE_AT(NEXT_PIXEL_SHADER_CHANGE, true);
 	}
 	else
@@ -364,13 +366,13 @@ void GeometryShaderCache::PushByteCode(const void* bytecode, unsigned int byteco
 		// TODO: Somehow make the debug name a bit more specific
 		D3D::SetDebugObjectName(entry->shader.get(), "a Geometry shader of GeometryShaderCache");
 		INCSTAT(stats.numGeometryShadersCreated);
-		SETSTAT(stats.numGeometryShadersAlive, s_geometry_shaders.size());
+		SETSTAT(stats.numGeometryShadersAlive, static_cast<int>(s_geometry_shaders->size()));
 	}
 }
 
 void GeometryShaderCache::InsertByteCode(const GeometryShaderUid &uid, const void* bytecode, u32 bytecodelen)
 {
-	GSCacheEntry* entry = &s_geometry_shaders[uid];
+	GSCacheEntry* entry = &s_geometry_shaders->GetOrAdd(uid);
 	entry->initialized.test_and_set();
 	PushByteCode(bytecode, bytecodelen, entry);
 }

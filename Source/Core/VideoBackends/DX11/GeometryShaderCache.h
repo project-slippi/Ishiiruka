@@ -8,6 +8,7 @@
 #include <unordered_map>
 
 #include "VideoCommon/GeometryShaderGen.h"
+#include "VideoCommon/ObjectUsageProfiler.h"
 
 namespace DX11
 {
@@ -43,9 +44,9 @@ namespace DX11
 			void Destroy() { shader.reset(); }
 		};
 		static inline void PushByteCode(const void* bytecode, unsigned int bytecodelen, GSCacheEntry* entry);
-		typedef std::unordered_map<GeometryShaderUid, GSCacheEntry, GeometryShaderUid::ShaderUidHasher> GSCache;
+		typedef ObjectUsageProfiler<GeometryShaderUid, pKey_t, GSCacheEntry, GeometryShaderUid::ShaderUidHasher> GSCache;
 
-		static GSCache s_geometry_shaders;
+		static GSCache* s_geometry_shaders;
 		static const GSCacheEntry* s_last_entry;
 		static GeometryShaderUid s_last_uid;
 		static GeometryShaderUid s_external_last_uid;

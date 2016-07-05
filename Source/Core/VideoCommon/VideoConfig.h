@@ -147,7 +147,6 @@ struct VideoConfig final
 	bool bUseFFV1;
 	bool bFreeLook;
 	bool bBorderlessFullscreen;
-	bool bShaderUsageProfiling;
 	bool bCompileShaderOnStartup;
 
 	// Hacks

@@ -19,7 +19,6 @@
 #include "VideoCommon/PixelShaderManager.h"
 #include "VideoCommon/Statistics.h"
 #include "VideoCommon/VertexShaderManager.h"
-#include "VideoCommon/ObjectUsageProfiler.h"
 
 namespace OGL
 {
@@ -36,10 +35,10 @@ static int num_failures = 0;
 
 static LinearDiskCache<SHADERUID, u8> g_program_disk_cache;
 static GLuint CurrentProgram = 0;
-ProgramShaderCache::PCache ProgramShaderCache::pshaders;
+ProgramShaderCache::PCache* ProgramShaderCache::pshaders;
 ProgramShaderCache::PCacheEntry* ProgramShaderCache::last_entry;
 SHADERUID ProgramShaderCache::last_uid;
-static ObjectUsageProfiler<SHADERUID, pKey_t, SHADERUID::ShaderUidHasher>* s_usage_profiler = nullptr;
+
 static char s_glsl_header[1024] = "";
 
 static std::string GetGLSLVersionString()
@@ -199,18 +198,15 @@ GLuint ProgramShaderCache::GetCurrentProgram()
 SHADER* ProgramShaderCache::CompileShader(const SHADERUID& uid)
 {
 	// Check if shader is already in cache
-	PCache::iterator iter = pshaders.find(uid);
-	if (iter != pshaders.end())
+	PCacheEntry& newentry = pshaders->GetOrAdd(uid);
+	if (newentry.shader.glprogid)
 	{
-		PCacheEntry *entry = &iter->second;
-		last_entry = entry;
-
+		last_entry = &newentry;
 		GFX_DEBUGGER_PAUSE_AT(NEXT_PIXEL_SHADER_CHANGE, true);
 		last_entry->shader.Bind();
 		return &last_entry->shader;
 	}
 	// Make an entry in the table
-	PCacheEntry& newentry = pshaders[uid];
 	last_entry = &newentry;
 	newentry.in_cache = 0;
 
@@ -247,7 +243,7 @@ SHADER* ProgramShaderCache::CompileShader(const SHADERUID& uid)
 	}
 
 	INCSTAT(stats.numPixelShadersCreated);
-	SETSTAT(stats.numPixelShadersAlive, pshaders.size());
+	SETSTAT(stats.numPixelShadersAlive, static_cast<int>(pshaders->size()));
 	GFX_DEBUGGER_PAUSE_AT(NEXT_PIXEL_SHADER_CHANGE, true);
 
 	last_entry->shader.Bind();
@@ -271,11 +267,6 @@ SHADER* ProgramShaderCache::SetShader(PIXEL_SHADER_RENDER_MODE render_mode, u32 
 	}
 
 	last_uid = uid;
-	if (g_ActiveConfig.bShaderUsageProfiling)
-	{
-		s_usage_profiler->RegisterUsage(uid);
-	}
-
 	return CompileShader(uid);
 }
 
@@ -454,9 +445,11 @@ void ProgramShaderCache::Init()
 	s_g_buffer = std::move(StreamBuffer::Create(GL_UNIFORM_BUFFER, s_g_ubo_buffer_size * 1024));
 
 	pKey_t gameid = (pKey_t)GetMurmurHash3(reinterpret_cast<const u8*>(SConfig::GetInstance().m_strUniqueID.data()), (u32)SConfig::GetInstance().m_strUniqueID.size(), 0);
-	s_usage_profiler = ObjectUsageProfiler<SHADERUID, pKey_t, SHADERUID::ShaderUidHasher>::Create(
-		g_ActiveConfig.bShaderUsageProfiling, gameid, PIXELSHADERGEN_UID_VERSION * VERTEXSHADERGEN_UID_VERSION * GEOMETRYSHADERGEN_UID_VERSION, "Ishiiruka.ps.OGL", StringFromFormat("%s.ps.OGL",
-			SConfig::GetInstance().m_strUniqueID.c_str())
+	pshaders = PCache::Create(
+		gameid,
+		PIXELSHADERGEN_UID_VERSION * VERTEXSHADERGEN_UID_VERSION * GEOMETRYSHADERGEN_UID_VERSION,
+		"Ishiiruka.ps.OGL",
+		StringFromFormat("%s.ps.OGL", SConfig::GetInstance().m_strUniqueID.c_str())
 	);
 
 	// Read our shader cache, only if supported
@@ -480,79 +473,70 @@ void ProgramShaderCache::Init()
 			ProgramShaderCacheInserter inserter;
 			g_program_disk_cache.OpenAndRead(cache_filename, inserter);
 		}
-		SETSTAT(stats.numPixelShadersAlive, pshaders.size());
+		SETSTAT(stats.numPixelShadersAlive, pshaders->size());
 	}
 
 	CreateHeader();
 
 	CurrentProgram = 0;
 	last_entry = nullptr;
-	if (s_usage_profiler && g_ActiveConfig.bCompileShaderOnStartup)
+	if (g_ActiveConfig.bCompileShaderOnStartup)
 	{
-		std::vector<SHADERUID> shaders;
-		s_usage_profiler->GetMostUsedByCategory(gameid, shaders, true);
-		size_t shader_count = 0;
-		for (const SHADERUID& item : shaders)
+		pshaders->ForEachMostUsedByCategory(gameid,
+			[](const SHADERUID& item)
 		{
-			if (pshaders.find(item) == pshaders.end())
-				CompileShader(item);
+			CompileShader(item);
+		},
+			[](PCacheEntry& entry)
+		{
+			return !entry.shader.glprogid;
 		}
+		, true);
 	}
 }
 
 void ProgramShaderCache::Shutdown()
 {
-	if (s_usage_profiler)
-	{
-		s_usage_profiler->Persist();
-		delete s_usage_profiler;
-		s_usage_profiler = nullptr;
-	}
 	// store all shaders in cache on disk
 	if (g_ogl_config.bSupportsGLSLCache)
 	{
-		for (auto& entry : pshaders)
+		pshaders->Persist();
+		pshaders->Clear(
+		[&](const SHADERUID& uid, PCacheEntry& entry)
 		{
 			// Clear any prior error code
 			glGetError();
 
-			if (entry.second.in_cache)
+			if (entry.in_cache)
 			{
-				continue;
+				return;
 			}
 
 			GLint link_status = GL_FALSE, delete_status = GL_TRUE, binary_size = 0;
-			glGetProgramiv(entry.second.shader.glprogid, GL_LINK_STATUS, &link_status);
-			glGetProgramiv(entry.second.shader.glprogid, GL_DELETE_STATUS, &delete_status);
-			glGetProgramiv(entry.second.shader.glprogid, GL_PROGRAM_BINARY_LENGTH, &binary_size);
+			glGetProgramiv(entry.shader.glprogid, GL_LINK_STATUS, &link_status);
+			glGetProgramiv(entry.shader.glprogid, GL_DELETE_STATUS, &delete_status);
+			glGetProgramiv(entry.shader.glprogid, GL_PROGRAM_BINARY_LENGTH, &binary_size);
 			if (glGetError() != GL_NO_ERROR || link_status == GL_FALSE || delete_status == GL_TRUE || !binary_size)
 			{
-				continue;
+				return;
 			}
 
 			std::vector<u8> data(binary_size + sizeof(GLenum));
 			u8* binary = &data[sizeof(GLenum)];
 			GLenum* prog_format = (GLenum*)&data[0];
-			glGetProgramBinary(entry.second.shader.glprogid, binary_size, nullptr, prog_format, binary);
+			glGetProgramBinary(entry.shader.glprogid, binary_size, nullptr, prog_format, binary);
 			if (glGetError() != GL_NO_ERROR)
 			{
-				continue;
+				return;
 			}
 
-			g_program_disk_cache.Append(entry.first, &data[0], binary_size + sizeof(GLenum));
-		}
-
+			g_program_disk_cache.Append(uid, &data[0], binary_size + sizeof(GLenum));
+		});
+		delete pshaders;
+		pshaders = nullptr;
 		g_program_disk_cache.Sync();
 		g_program_disk_cache.Close();
 	}
-
-	glUseProgram(0);
-
-	for (auto& entry : pshaders)
-	{
-		entry.second.Destroy();
-	}
-	pshaders.clear();
 
 	s_v_buffer.reset();
 	s_g_buffer.reset();
@@ -694,7 +678,7 @@ void ProgramShaderCache::ProgramShaderCacheInserter::Read(const SHADERUID& key, 
 	GLenum *prog_format = (GLenum*)value;
 	GLint binary_size = value_size - sizeof(GLenum);
 
-	PCacheEntry entry;
+	PCacheEntry& entry = pshaders->GetOrAdd(key);
 	entry.in_cache = 1;
 	entry.shader.glprogid = glCreateProgram();
 	glProgramBinary(entry.shader.glprogid, *prog_format, binary, binary_size);
@@ -704,12 +688,12 @@ void ProgramShaderCache::ProgramShaderCacheInserter::Read(const SHADERUID& key, 
 
 	if (success)
 	{
-		pshaders[key] = entry;
 		entry.shader.SetProgramVariables();
 	}
 	else
 	{
 		glDeleteProgram(entry.shader.glprogid);
+		entry.shader.glprogid = 0;
 	}
 }
 

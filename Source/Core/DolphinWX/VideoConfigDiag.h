@@ -174,7 +174,6 @@ protected:
 	SettingCheckBox* hires_texturemaps;
 	SettingCheckBox* cache_hires_textures;
 	SettingCheckBox* cache_hires_texturesGPU;
-	SettingCheckBox* shaderprofiling;
 	SettingCheckBox* shaderprecompile;
 
 	wxButton* button_config_scalingshader;

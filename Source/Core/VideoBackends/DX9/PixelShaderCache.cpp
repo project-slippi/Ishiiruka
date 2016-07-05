@@ -12,7 +12,6 @@
 #include "VideoBackends/DX9/D3DBase.h"
 #include "VideoBackends/DX9/D3DShader.h"
 #include "VideoBackends/DX9/PixelShaderCache.h"
-#include "VideoCommon/ObjectUsageProfiler.h"
 
 #include "VideoCommon/Statistics.h"
 #include "VideoCommon/VideoConfig.h"
@@ -28,7 +27,7 @@
 namespace DX9
 {
 
-PixelShaderCache::PSCache PixelShaderCache::s_pixel_shaders;
+
 const PixelShaderCache::PSCacheEntry *PixelShaderCache::s_last_entry[PSRM_DEPTH_ONLY + 1];
 PixelShaderUid PixelShaderCache::s_last_uid[PSRM_DEPTH_ONLY + 1];
 PixelShaderUid PixelShaderCache::s_external_last_uid[PSRM_DEPTH_ONLY + 1];
@@ -37,7 +36,7 @@ static HLSLAsyncCompiler *s_compiler;
 static Common::SpinLock<true> s_pixel_shaders_lock;
 static LinearDiskCache<PixelShaderUid, u8> g_ps_disk_cache;
 static std::set<u32> s_unique_shaders;
-static ObjectUsageProfiler<PixelShaderUid, pKey_t, PixelShaderUid::ShaderUidHasher>* s_usage_profiler = nullptr;
+ObjectUsageProfiler<PixelShaderUid, pKey_t, PixelShaderCache::PSCacheEntry, PixelShaderUid::ShaderUidHasher>* PixelShaderCache::s_pshaders = nullptr;
 
 #define MAX_SSAA_SHADERS 3
 enum
@@ -291,9 +290,11 @@ void PixelShaderCache::Init()
 	SETSTAT(stats.numPixelShadersAlive, 0);
 	
 	pKey_t gameid = (pKey_t)GetMurmurHash3(reinterpret_cast<const u8*>(SConfig::GetInstance().m_strUniqueID.data()), (u32)SConfig::GetInstance().m_strUniqueID.size(), 0);
-	s_usage_profiler = ObjectUsageProfiler<PixelShaderUid, pKey_t, PixelShaderUid::ShaderUidHasher>::Create(
-		g_ActiveConfig.bShaderUsageProfiling, gameid, PIXELSHADERGEN_UID_VERSION, "Ishiiruka.ps.dx9", StringFromFormat("%s.ps.dx9",
-			SConfig::GetInstance().m_strUniqueID.c_str())
+	s_pshaders = ObjectUsageProfiler<PixelShaderUid, pKey_t, PSCacheEntry, PixelShaderUid::ShaderUidHasher>::Create(
+		gameid,
+		PIXELSHADERGEN_UID_VERSION,
+		"Ishiiruka.ps.dx9",
+		StringFromFormat("%s.ps.dx9", SConfig::GetInstance().m_strUniqueID.c_str())
 	);
 
 	std::string cache_filename = StringFromFormat("%sIDX9-%s-ps.cache", File::GetUserPath(D_SHADERCACHE_IDX).c_str(),
@@ -302,38 +303,43 @@ void PixelShaderCache::Init()
 	PixelShaderCacheInserter inserter;	
 	g_ps_disk_cache.OpenAndRead(cache_filename, inserter);
 
-	if (g_ActiveConfig.bCompileShaderOnStartup && s_usage_profiler)
+	if (g_ActiveConfig.bCompileShaderOnStartup)
 	{
 		std::vector<PixelShaderUid> shaders;
-		s_usage_profiler->GetMostUsedByCategory(gameid, shaders, true);
 		size_t shader_count = 0;
-		for (PixelShaderUid& item : shaders)
+		s_pshaders->ForEachMostUsedByCategory(gameid,
+		[&](const PixelShaderUid& item) 
 		{
-			pixel_shader_uid_data& uid_data = item.GetUidData<pixel_shader_uid_data>();
-			uid_data.msaa = false;
-			uid_data.ssaa = false;
-			if (s_pixel_shaders.find(item) == s_pixel_shaders.end())
+			PixelShaderUid newitem = item;
+			pixel_shader_uid_data& uid_data = newitem.GetUidData<pixel_shader_uid_data>();
+
+			if (uid_data.render_mode == PSRM_DUAL_SOURCE_BLEND && !g_ActiveConfig.backend_info.bSupportsDualSourceBlend)
 			{
-				if (uid_data.render_mode == PSRM_DUAL_SOURCE_BLEND && !g_ActiveConfig.backend_info.bSupportsDualSourceBlend)
-				{
-					uid_data.render_mode = PSRM_DEFAULT;
-					CompilePShader(item, PIXEL_SHADER_RENDER_MODE::PSRM_DEFAULT, true);
-					uid_data.render_mode = PSRM_ALPHA_PASS;
-					uid_data.fog_proj = 0;
-					uid_data.fog_RangeBaseEnabled = 0;
-					CompilePShader(item, PIXEL_SHADER_RENDER_MODE::PSRM_ALPHA_PASS, true);
-				}
-				else
-				{
-					CompilePShader(item, PIXEL_SHADER_RENDER_MODE::PSRM_DEFAULT, true);
-				}
+				uid_data.render_mode = PSRM_DEFAULT;
+				newitem.ClearHASH();
+				newitem.CalculateUIDHash();
+				CompilePShader(newitem, PIXEL_SHADER_RENDER_MODE::PSRM_DEFAULT, true);
+				uid_data.render_mode = PSRM_ALPHA_PASS;
+				uid_data.fog_proj = 0;
+				uid_data.fog_RangeBaseEnabled = 0;
+				newitem.ClearHASH();
+				newitem.CalculateUIDHash();
+				CompilePShader(newitem, PIXEL_SHADER_RENDER_MODE::PSRM_ALPHA_PASS, true);
+			}
+			else
+			{
+				CompilePShader(newitem, PIXEL_SHADER_RENDER_MODE::PSRM_DEFAULT, true);
 			}
 			shader_count++;
 			if ((shader_count & 31) == 0)
 			{
 				s_compiler->WaitForFinish();
 			}
-		}
+		},
+		[](PSCacheEntry& entry) 
+		{
+			return !entry.shader;
+		}, true);
 		s_compiler->WaitForFinish();
 	}
 }
@@ -341,12 +347,14 @@ void PixelShaderCache::Init()
 // ONLY to be used during shutdown.
 void PixelShaderCache::Clear()
 {
-	s_pixel_shaders_lock.lock();
-	for (PSCache::iterator iter = s_pixel_shaders.begin(); iter != s_pixel_shaders.end(); iter++)
-		iter->second.Destroy();
-	s_pixel_shaders.clear();
-	s_pixel_shaders_lock.unlock();
-
+	if (s_pshaders)
+	{
+		s_pixel_shaders_lock.lock();
+		s_pshaders->Clear([](auto& item) {
+			item.Destroy();
+		});
+		s_pixel_shaders_lock.unlock();
+	}
 	for (u32 i = 0; i < PSRM_DEPTH_ONLY + 1; i++)
 	{
 		s_last_entry[i] = nullptr;
@@ -355,11 +363,11 @@ void PixelShaderCache::Clear()
 
 void PixelShaderCache::Shutdown()
 {
-	if (s_usage_profiler)
+	if (s_pshaders)
 	{
-		s_usage_profiler->Persist();
-		delete s_usage_profiler;
-		s_usage_profiler = nullptr;
+		s_pshaders->Persist();
+		delete s_pshaders;
+		s_pshaders = nullptr;
 	}
 	if (s_compiler)
 	{
@@ -396,7 +404,7 @@ void PixelShaderCache::CompilePShader(const PixelShaderUid& uid, PIXEL_SHADER_RE
 {
 	const API_TYPE api = ((D3D::GetCaps().PixelShaderVersion >> 8) & 0xFF) < 3 ? API_D3D9_SM20 : API_D3D9_SM30;
 	s_pixel_shaders_lock.lock();
-	PSCacheEntry* entry = &s_pixel_shaders[uid];
+	PSCacheEntry* entry = &s_pshaders->GetOrAdd(uid);
 	s_pixel_shaders_lock.unlock();
 	if (ongputhread)
 	{
@@ -476,10 +484,6 @@ void PixelShaderCache::PrepareShader(
 				return;
 			}
 		}
-		if (g_ActiveConfig.bShaderUsageProfiling)
-		{
-			s_usage_profiler->RegisterUsage(uid);
-		}
 		s_last_uid[render_mode] = uid;
 		GFX_DEBUGGER_PAUSE_AT(NEXT_PIXEL_SHADER_CHANGE, true);
 	}
@@ -522,13 +526,13 @@ void PixelShaderCache::PushByteCode(const PixelShaderUid &uid, const u8 *bytecod
 	if (entry->shader)
 	{
 		INCSTAT(stats.numPixelShadersCreated);
-		SETSTAT(stats.numPixelShadersAlive, s_pixel_shaders.size());
+		SETSTAT(stats.numPixelShadersAlive, static_cast<int>(s_pshaders->size()));
 	}
 }
 
 void PixelShaderCache::InsertByteCode(const PixelShaderUid &uid, const u8 *bytecode, int bytecodelen)
 {
-	PixelShaderCache::PSCacheEntry *entry = &s_pixel_shaders[uid];
+	PixelShaderCache::PSCacheEntry *entry = &s_pshaders->GetOrAdd(uid);
 	entry->initialized.test_and_set();
 	PushByteCode(uid, bytecode, bytecodelen, entry);
 }

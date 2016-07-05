@@ -17,7 +17,6 @@
 #include "VideoCommon/Statistics.h"
 #include "VideoCommon/VideoConfig.h"
 #include "VideoCommon/HLSLCompiler.h"
-#include "VideoCommon/ObjectUsageProfiler.h"
 #include "VideoCommon/PixelShaderManager.h"
 
 
@@ -25,11 +24,10 @@
 namespace DX11
 {
 
-PixelShaderCache::PSCache PixelShaderCache::s_pixel_shaders;
+PixelShaderCache::PSCache* PixelShaderCache::s_pixel_shaders;
 const PixelShaderCache::PSCacheEntry* PixelShaderCache::s_last_entry;
 PixelShaderUid PixelShaderCache::s_last_uid;
 PixelShaderUid PixelShaderCache::s_external_last_uid;
-static ObjectUsageProfiler<PixelShaderUid, pKey_t, PixelShaderUid::ShaderUidHasher>* s_usage_profiler = nullptr;
 static HLSLAsyncCompiler *s_compiler;
 static Common::SpinLock<true> s_pixel_shaders_lock;
 static bool s_previous_per_pixel_lighting = false;
@@ -503,9 +501,11 @@ void PixelShaderCache::Init()
 	SETSTAT(stats.numPixelShadersAlive, 0);
 
 	pKey_t gameid = (pKey_t)GetMurmurHash3(reinterpret_cast<const u8*>(SConfig::GetInstance().m_strUniqueID.data()), (u32)SConfig::GetInstance().m_strUniqueID.size(), 0);
-	s_usage_profiler = ObjectUsageProfiler<PixelShaderUid, pKey_t, PixelShaderUid::ShaderUidHasher>::Create(
-		g_ActiveConfig.bShaderUsageProfiling, gameid, PIXELSHADERGEN_UID_VERSION, "Ishiiruka.ps", StringFromFormat("%s.ps",
-			SConfig::GetInstance().m_strUniqueID.c_str())
+	s_pixel_shaders = PSCache::Create(
+		gameid,
+		PIXELSHADERGEN_UID_VERSION,
+		"Ishiiruka.ps",
+		StringFromFormat("%s.ps", SConfig::GetInstance().m_strUniqueID.c_str())
 	);
 	
 	std::string cache_filename = StringFromFormat("%sIDX11-%s-ps.cache", File::GetUserPath(D_SHADERCACHE_IDX).c_str(),
@@ -513,23 +513,24 @@ void PixelShaderCache::Init()
 
 	PixelShaderCacheInserter inserter;
 	g_ps_disk_cache.OpenAndRead(cache_filename, inserter);
-	if (s_usage_profiler && g_ActiveConfig.bCompileShaderOnStartup)
+	if (g_ActiveConfig.bCompileShaderOnStartup)
 	{
-		std::vector<PixelShaderUid> shaders;
-		s_usage_profiler->GetMostUsedByCategory(gameid, shaders, true);
 		size_t shader_count = 0;
-		for (const PixelShaderUid& item : shaders)
+		s_pixel_shaders->ForEachMostUsedByCategory(gameid,
+			[&](const PixelShaderUid& item)
 		{
-			if (s_pixel_shaders.find(item) == s_pixel_shaders.end())
-			{
-				CompilePShader(item, true);
-			}
+			CompilePShader(item, true);
 			shader_count++;
 			if ((shader_count & 31) == 0)
 			{
 				s_compiler->WaitForFinish();
 			}
+		},
+			[](PSCacheEntry& entry)
+		{
+			return !entry.shader;
 		}
+		, true);
 		s_compiler->WaitForFinish();
 	}
 	s_last_entry = nullptr;
@@ -539,12 +540,16 @@ void PixelShaderCache::Init()
 // ONLY to be used during shutdown.
 void PixelShaderCache::Clear()
 {
-	s_pixel_shaders_lock.lock();
-	for (PSCache::iterator iter = s_pixel_shaders.begin(); iter != s_pixel_shaders.end(); iter++)
-		iter->second.Destroy();
-	s_pixel_shaders.clear();
-	s_pixel_shaders_lock.unlock();
-
+	if (s_pixel_shaders)
+	{
+		s_pixel_shaders_lock.lock();
+		s_pixel_shaders->Persist();
+		s_pixel_shaders->Clear([](PSCacheEntry& item)
+		{
+			item.Destroy();
+		});
+		s_pixel_shaders_lock.unlock();
+	}
 	s_last_entry = nullptr;
 }
 
@@ -561,12 +566,6 @@ void PixelShaderCache::InvalidateMSAAShaders()
 
 void PixelShaderCache::Shutdown()
 {
-	if (s_usage_profiler)
-	{
-		s_usage_profiler->Persist();
-		delete s_usage_profiler;
-		s_usage_profiler = nullptr;
-	}
 	if (pscbuf != nullptr)
 	{
 		delete pscbuf;
@@ -585,6 +584,8 @@ void PixelShaderCache::Shutdown()
 	for (auto & p : s_rgb8_to_rgba6)
 		p.reset();
 	Clear();
+	delete s_pixel_shaders;
+	s_pixel_shaders = nullptr;
 	g_ps_disk_cache.Sync();
 	g_ps_disk_cache.Close();
 }
@@ -592,7 +593,7 @@ void PixelShaderCache::Shutdown()
 void PixelShaderCache::CompilePShader(const PixelShaderUid& uid, bool ongputhread)
 {
 	s_pixel_shaders_lock.lock();
-	PSCacheEntry* entry = &s_pixel_shaders[uid];
+	PSCacheEntry* entry = &s_pixel_shaders->GetOrAdd(uid);
 	s_pixel_shaders_lock.unlock();
 	if (ongputhread)
 	{
@@ -665,8 +666,6 @@ void PixelShaderCache::PrepareShader(PIXEL_SHADER_RENDER_MODE render_mode,
 			}
 		}
 		s_last_uid = uid;
-		if(g_ActiveConfig.bShaderUsageProfiling)
-			s_usage_profiler->RegisterUsage(uid);
 		GFX_DEBUGGER_PAUSE_AT(NEXT_PIXEL_SHADER_CHANGE, true);
 	}
 	else
@@ -704,13 +703,13 @@ void PixelShaderCache::PushByteCode(const void* bytecode, u32 bytecodelen, Pixel
 		// TODO: Somehow make the debug name a bit more specific
 		D3D::SetDebugObjectName(entry->shader.get(), "a pixel shader of PixelShaderCache");
 		INCSTAT(stats.numPixelShadersCreated);
-		SETSTAT(stats.numPixelShadersAlive, s_pixel_shaders.size());
+		SETSTAT(stats.numPixelShadersAlive, static_cast<int>(s_pixel_shaders->size()));
 	}
 }
 
 void PixelShaderCache::InsertByteCode(const PixelShaderUid &uid, const void* bytecode, u32 bytecodelen)
 {
-	PSCacheEntry* entry = &s_pixel_shaders[uid];
+	PSCacheEntry* entry = &s_pixel_shaders->GetOrAdd(uid);
 	entry->initialized.test_and_set();
 	PushByteCode(bytecode, bytecodelen, entry);
 }

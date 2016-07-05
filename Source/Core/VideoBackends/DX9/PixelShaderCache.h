@@ -11,15 +11,12 @@
 
 #include "VideoBackends/DX9/D3DBase.h"
 
+#include "VideoCommon/ObjectUsageProfiler.h"
 #include "VideoCommon/PixelShaderGen.h"
 #include "VideoCommon/VertexShaderGen.h"
 
 namespace DX9
 {
-
-typedef u32 tevhash;
-
-tevhash GetCurrentTEV();
 
 class PixelShaderCache
 {
@@ -41,9 +38,8 @@ private:
 		}
 	};
 
-	typedef std::unordered_map<PixelShaderUid, PSCacheEntry, PixelShaderUid::ShaderUidHasher> PSCache;
 	static inline void PushByteCode(const PixelShaderUid &uid, const u8 *bytecode, int bytecodelen, PSCacheEntry* entry);
-	static PSCache s_pixel_shaders;
+	static ObjectUsageProfiler<PixelShaderUid, pKey_t, PixelShaderCache::PSCacheEntry, PixelShaderUid::ShaderUidHasher>* s_pshaders;
 	static const PSCacheEntry *s_last_entry[PSRM_DEPTH_ONLY + 1];
 	static PixelShaderUid s_last_uid[PSRM_DEPTH_ONLY + 1];
 	static PixelShaderUid s_external_last_uid[PSRM_DEPTH_ONLY + 1];

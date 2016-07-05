@@ -4,10 +4,13 @@
 
 #pragma once
 
-#include "Common/LinearDiskCache.h"
 #include "Core/ConfigManager.h"
+
 #include "Common/GL/GLUtil.h"
+#include "Common/LinearDiskCache.h"
+
 #include "VideoCommon/GeometryShaderGen.h"
+#include "VideoCommon/ObjectUsageProfiler.h"
 #include "VideoCommon/PixelShaderGen.h"
 #include "VideoCommon/VertexShaderGen.h"
 
@@ -93,7 +96,7 @@ public:
 		}
 	};
 
-	typedef std::map<SHADERUID, PCacheEntry> PCache;
+	typedef ObjectUsageProfiler<SHADERUID, pKey_t, PCacheEntry, SHADERUID::ShaderUidHasher> PCache;
 
 	static PCacheEntry GetShaderProgram();
 	static GLuint GetCurrentProgram();
@@ -119,7 +122,7 @@ private:
 		void Read(const SHADERUID &key, const u8 *value, u32 value_size) override;
 	};
 
-	static PCache pshaders;
+	static PCache* pshaders;
 	static PCacheEntry* last_entry;
 	static SHADERUID last_uid;
 

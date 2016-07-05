@@ -9,6 +9,7 @@
 
 #include "VideoBackends/DX9/D3DBase.h"
 
+#include "VideoCommon/ObjectUsageProfiler.h"
 #include "VideoCommon/VertexShaderGen.h"
 
 namespace DX9
@@ -34,9 +35,8 @@ private:
 		}
 	};
 
-	typedef std::unordered_map<VertexShaderUid, VSCacheEntry, VertexShaderUid::ShaderUidHasher> VSCache;
 	static inline void PushByteCode(const VertexShaderUid &uid, const u8 *bytecode, int bytecodelen, VSCacheEntry* entry);
-	static VSCache s_vshaders;
+	static ObjectUsageProfiler<VertexShaderUid, pKey_t, VSCacheEntry, VertexShaderUid::ShaderUidHasher>* s_vshaders;
 	static const VSCacheEntry *s_last_entry;
 	static VertexShaderUid s_last_uid;
 	static VertexShaderUid s_external_last_uid;

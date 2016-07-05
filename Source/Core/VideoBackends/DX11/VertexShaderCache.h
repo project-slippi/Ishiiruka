@@ -7,6 +7,8 @@
 #include <unordered_map>
 #include "VideoBackends/DX11/D3DBase.h"
 #include "VideoBackends/DX11/D3DBlob.h"
+
+#include "VideoCommon/ObjectUsageProfiler.h"
 #include "VideoCommon/VertexShaderGen.h"
 
 namespace DX11 {
@@ -57,9 +59,9 @@ private:
 		}
 	};
 	static inline void PushByteCode(D3DBlob&& bcodeblob, VSCacheEntry* entry);
-	typedef std::unordered_map<VertexShaderUid, VSCacheEntry, VertexShaderUid::ShaderUidHasher> VSCache;
+	typedef ObjectUsageProfiler<VertexShaderUid, pKey_t, VSCacheEntry, VertexShaderUid::ShaderUidHasher> VSCache;
 	
-	static VSCache s_vshaders;
+	static VSCache* s_vshaders;
 	static const VSCacheEntry* s_last_entry;
 	static VertexShaderUid s_last_uid;
 	static VertexShaderUid s_external_last_uid;

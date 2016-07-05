@@ -7,6 +7,7 @@
 #include <d3d11.h>
 #include <unordered_map>
 
+#include "VideoCommon/ObjectUsageProfiler.h"
 #include "VideoCommon/TessellationShaderGen.h"
 
 namespace DX11
@@ -52,9 +53,9 @@ namespace DX11
 			const void* bytecode,
 			unsigned int bytecodelen,
 			HDCacheEntry* entry, bool isdomain);
-		typedef std::unordered_map<TessellationShaderUid, HDCacheEntry, TessellationShaderUid::ShaderUidHasher> HDCache;
+		typedef ObjectUsageProfiler<TessellationShaderUid, pKey_t, HDCacheEntry, TessellationShaderUid::ShaderUidHasher> HDCache;
 
-		static HDCache s_hulldomain_shaders;
+		static HDCache* s_hulldomain_shaders;
 		static const HDCacheEntry* s_last_entry;
 		static TessellationShaderUid s_last_uid;
 		static TessellationShaderUid s_external_last_uid;

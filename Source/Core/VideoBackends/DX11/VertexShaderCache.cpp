@@ -13,7 +13,6 @@
 #include "VideoCommon/Statistics.h"
 #include "VideoCommon/VertexShaderGen.h"
 #include "VideoCommon/VertexShaderManager.h"
-#include "VideoCommon/ObjectUsageProfiler.h"
 
 #include "VideoBackends/DX11/D3DShader.h"
 #include "VideoBackends/DX11/D3DUtil.h"
@@ -21,11 +20,10 @@
 
 namespace DX11 {
 
-VertexShaderCache::VSCache VertexShaderCache::s_vshaders;
+VertexShaderCache::VSCache* VertexShaderCache::s_vshaders;
 const VertexShaderCache::VSCacheEntry *VertexShaderCache::s_last_entry;
 VertexShaderUid VertexShaderCache::s_last_uid;
 VertexShaderUid VertexShaderCache::s_external_last_uid;
-static ObjectUsageProfiler<VertexShaderUid, pKey_t, VertexShaderUid::ShaderUidHasher>* s_usage_profiler = nullptr;
 static HLSLAsyncCompiler *s_compiler;
 static Common::SpinLock<true> s_vshaders_lock;
 
@@ -154,9 +152,11 @@ void VertexShaderCache::Init()
 	SETSTAT(stats.numVertexShadersAlive, 0);
 
 	pKey_t gameid = (pKey_t)GetMurmurHash3(reinterpret_cast<const u8*>(SConfig::GetInstance().m_strUniqueID.data()), (u32)SConfig::GetInstance().m_strUniqueID.size(), 0);
-	s_usage_profiler = ObjectUsageProfiler<VertexShaderUid, pKey_t, VertexShaderUid::ShaderUidHasher>::Create(
-		g_ActiveConfig.bShaderUsageProfiling, gameid, VERTEXSHADERGEN_UID_VERSION, "Ishiiruka.vs", StringFromFormat("%s.vs",
-			SConfig::GetInstance().m_strUniqueID.c_str())
+	s_vshaders = VSCache::Create(
+		gameid,
+		VERTEXSHADERGEN_UID_VERSION,
+		"Ishiiruka.vs",
+		StringFromFormat("%s.vs", SConfig::GetInstance().m_strUniqueID.c_str())
 	);
 	
 	std::string cache_filename = StringFromFormat("%sIDX11-%s-vs.cache", File::GetUserPath(D_SHADERCACHE_IDX).c_str(),
@@ -164,23 +164,24 @@ void VertexShaderCache::Init()
 	
 	VertexShaderCacheInserter inserter;
 	g_vs_disk_cache.OpenAndRead(cache_filename, inserter);
-	if (s_usage_profiler && g_ActiveConfig.bCompileShaderOnStartup)
+	if (g_ActiveConfig.bCompileShaderOnStartup)
 	{
-		std::vector<VertexShaderUid> shaders;
-		s_usage_profiler->GetMostUsedByCategory(gameid, shaders, true);
 		size_t shader_count = 0;
-		for (const VertexShaderUid& item : shaders)
+		s_vshaders->ForEachMostUsedByCategory(gameid,
+			[&](const VertexShaderUid& item)
 		{
-			if (s_vshaders.find(item) == s_vshaders.end())
-			{
-				CompileVShader(item, true);
-			}
+			CompileVShader(item, true);
 			shader_count++;
-			if ((shader_count & 63) == 0)
+			if ((shader_count & 31) == 0)
 			{
 				s_compiler->WaitForFinish();
 			}
+		},
+			[](VSCacheEntry& entry)
+		{
+			return !entry.shader;
 		}
+		, true);
 		s_compiler->WaitForFinish();
 	}
 	s_last_entry = nullptr;
@@ -189,23 +190,21 @@ void VertexShaderCache::Init()
 
 void VertexShaderCache::Clear()
 {
-	s_vshaders_lock.lock();
-	for (VSCache::iterator iter = s_vshaders.begin(); iter != s_vshaders.end(); ++iter)
-		iter->second.Destroy();
-	s_vshaders.clear();
-	s_vshaders_lock.unlock();
-
+	if (s_vshaders)
+	{
+		s_vshaders_lock.lock();
+		s_vshaders->Persist();
+		s_vshaders->Clear([](VSCacheEntry& item)
+		{
+			item.Destroy();
+		});
+		s_vshaders_lock.unlock();
+	}
 	s_last_entry = nullptr;
 }
 
 void VertexShaderCache::Shutdown()
 {
-	if (s_usage_profiler)
-	{
-		s_usage_profiler->Persist();
-		delete s_usage_profiler;
-		s_usage_profiler = nullptr;
-	}
 	if (s_compiler)
 	{
 		s_compiler->WaitForFinish();
@@ -222,6 +221,9 @@ void VertexShaderCache::Shutdown()
 	s_clear_layout.reset();
 
 	Clear();
+	delete s_vshaders;
+	s_vshaders = nullptr;
+
 	g_vs_disk_cache.Sync();
 	g_vs_disk_cache.Close();
 }
@@ -229,7 +231,7 @@ void VertexShaderCache::Shutdown()
 void VertexShaderCache::CompileVShader(const VertexShaderUid& uid, bool ongputhread)
 {
 	s_vshaders_lock.lock();
-	VSCacheEntry* entry = &s_vshaders[uid];
+	VSCacheEntry* entry = &s_vshaders->GetOrAdd(uid);
 	s_vshaders_lock.unlock();
 	if (ongputhread)
 	{
@@ -299,10 +301,6 @@ void VertexShaderCache::PrepareShader(
 			}
 		}
 		s_last_uid = uid;
-		if (g_ActiveConfig.bShaderUsageProfiling)
-		{
-			s_usage_profiler->RegisterUsage(uid);
-		}
 		GFX_DEBUGGER_PAUSE_AT(NEXT_VERTEX_SHADER_CHANGE, true);
 	}
 	else
@@ -342,13 +340,13 @@ void VertexShaderCache::PushByteCode(D3DBlob&& bcodeblob, VSCacheEntry* entry)
 		// TODO: Somehow make the debug name a bit more specific
 		D3D::SetDebugObjectName(entry->shader.get(), "a vertex shader of VertexShaderCache");
 		INCSTAT(stats.numVertexShadersCreated);
-		SETSTAT(stats.numVertexShadersAlive, (int)s_vshaders.size());
+		SETSTAT(stats.numVertexShadersAlive, static_cast<int>(s_vshaders->size()));
 	}
 }
 
 void VertexShaderCache::InsertByteCode(const VertexShaderUid &uid, D3DBlob&& bcodeblob)
 {
-	VSCacheEntry* entry = &s_vshaders[uid];
+	VSCacheEntry* entry = &s_vshaders->GetOrAdd(uid);
 	entry->initialized.test_and_set();
 	PushByteCode(std::move(bcodeblob), entry);
 }

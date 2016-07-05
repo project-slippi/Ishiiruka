@@ -33,6 +33,11 @@ public:
 	template<class UidType, class ShaderCacheType>
 	static void InsertByteCode(const UidType& uid, ShaderCacheType* shader_cache, D3DBlob* bytecode_blob);
 
+	static void InsertDSByteCode(const TessellationShaderUid& uid, D3DBlob* bytecode_blob);
+
+	static void InsertHSByteCode(const TessellationShaderUid& uid, D3DBlob* bytecode_blob);
+
+
 	static D3D12_SHADER_BYTECODE GetActiveDomainShaderBytecode();	
 	static D3D12_SHADER_BYTECODE GetActiveGeometryShaderBytecode();
 	static D3D12_SHADER_BYTECODE GetActiveHullShaderBytecode();

@@ -32,6 +32,7 @@
 #pragma once
 #include <algorithm>
 #include <fstream>
+#include <functional>
 #include <map>
 #include <string>
 #include <unordered_map>
@@ -41,11 +42,10 @@
 
 typedef uint64_t pKey_t;
 
-template <typename Tobj, typename TCaterogry, typename TobjHasher> class ObjectUsageProfiler
+template <typename Tobj, typename TCaterogry, typename TInfo, typename TobjHasher> class ObjectUsageProfiler
 {
 public:
-	ObjectUsageProfiler(pKey_t version) : m_version(version) {};
-
+	ObjectUsageProfiler(pKey_t version) : m_version(version) {};	
 	void SetCategory(const TCaterogry& category)
 	{
 		if (m_categories.find(category) == m_categories.end())
@@ -70,24 +70,21 @@ public:
 		m_category_mask = pKey_t(1) << (m_category_id % (sizeof(pKey_t) * 8));
 	}
 
-	void RegisterUsage(const Tobj& obj)
+	TInfo& GetOrAdd(const Tobj& obj)
 	{
-		if (m_objects.find(obj) == m_objects.end())
-		{
-			ObjectMetadata metadata;
-			metadata.category_count = 0;
-			metadata.usage_count = 0;
-			metadata.category_mask.resize(m_max_category_index);
-			m_objects.emplace(obj, std::move(metadata));
-		}
 		ObjectMetadata& item = m_objects[obj];
+		
 		if (item.usage_count < LLONG_MAX)
 		{
 			item.usage_count++;
 		}
 		if (m_categories.size() == 1)
 		{
-			return;
+			return item.info;
+		}
+		if (item.category_mask.size() < m_max_category_index)
+		{
+			item.category_mask.resize(m_max_category_index);
 		}
 		if ((item.category_mask[m_category_index] & m_category_mask) == 0)
 		{
@@ -97,29 +94,92 @@ public:
 				item.category_count++;
 			}
 		}
+		return item.info;
 	}
 
-	void GetMostUsed(std::vector<Tobj>& output, pKey_t max_count = LLONG_MAX)
+	void ForEach(const std::function<void(TInfo&)>& func)
+	{
+		for (auto& item : m_objects)
+		{
+			func(item.second.info);
+		}
+	}
+
+	void Clear(const std::function<void(TInfo&)>& eachfunc = {})
+	{
+		if (eachfunc)
+		{
+			for (auto& item : m_objects)
+			{
+				eachfunc(item.second.info);
+			}
+		}
+		m_objects.clear();
+		m_categories.clear();
+		m_category_id = 0;
+		m_category_index = 0;
+		m_max_category_index = 0;
+		m_category_mask = 0;
+		m_version = 0;
+	}
+
+	void Clear(const std::function<void(const Tobj&, TInfo&)>& eachfunc = {})
+	{
+		if (eachfunc)
+		{
+			for (auto& item : m_objects)
+			{
+				eachfunc(item.first, item.second.info);
+			}
+		}
+		m_objects.clear();
+		m_categories.clear();
+		m_category_id = 0;
+		m_category_index = 0;
+		m_max_category_index = 0;
+		m_category_mask = 0;
+		m_version = 0;
+	}
+
+	const TInfo* GetInfoIfexists(const Tobj& obj) const 
+	{
+		auto it = m_objects.find(obj);
+		if (it != m_objects.end())
+		{
+			return &it->second.info;
+		}
+		return nullptr;
+	}
+
+	size_t size() const
+	{
+		return m_objects.size();
+	}
+
+	void ForEachMostUsed(const std::function<void(const Tobj&)>& outfunc, const std::function<bool(TInfo&)>& filter = {}, pKey_t max_count = LLONG_MAX)
 	{
 		std::vector<std::pair<const Tobj, ObjectMetadata>*> elements;
 		for (auto& item : m_objects)
 		{
+			if (filter && !filter(item.second.info))
+			{
+				continue;
+			}
 			elements.push_back(&item);
 		}
 		greater comparer;
 		std::sort(elements.begin(), elements.end(), comparer);
 		max_count = std::min(elements.size(), max_count);
-		output.resize(max_count);
 		for (size_t i = 0; i < max_count; i++)
 		{
-			output[i] = elements[i]->first;
+			outfunc(elements[i]->first);
 		}
 	}
-	void GetMostUsedByCategory(const TCaterogry& category, std::vector<Tobj>& output, bool include_globals = false, size_t global_limit = 3, size_t max_count = LLONG_MAX)
+
+	void ForEachMostUsedByCategory(const TCaterogry& category, const std::function<void(const Tobj&)>& outfunc, const std::function<bool(TInfo&)>& filter = {}, bool include_globals = false, size_t global_limit = 3, size_t max_count = LLONG_MAX)
 	{
 		if (m_categories.find(category) == m_categories.end() && !include_globals)
 		{
-			output.resize(0);
 			return;
 		}
 		include_globals = include_globals && (m_categories.find(category) == m_categories.end());
@@ -129,6 +189,10 @@ public:
 		std::vector<std::pair<const Tobj, ObjectMetadata>*> elements;
 		for (auto& item : m_objects)
 		{
+			if (filter && !filter(item.second.info))
+			{
+				continue;
+			}
 			if (include_globals && item.second.category_count > global_limit)
 			{
 				elements.push_back(&item);
@@ -145,10 +209,9 @@ public:
 		greater comparer;
 		std::sort(elements.begin(), elements.end(), comparer);
 		max_count = std::min(elements.size(), max_count);
-		output.resize(max_count);
 		for (size_t i = 0; i < max_count; i++)
 		{
-			output[i] = elements[i]->first;
+			outfunc(elements[i]->first);
 		}
 	}
 
@@ -211,7 +274,10 @@ public:
 	
 	void Persist()
 	{
-		PersistToFile(m_storage);
+		if (m_storage.length() > 0)
+		{
+			PersistToFile(m_storage);
+		}
 	}
 
 	void ReadFromFile(const std::string& path, bool multicategory = false)
@@ -261,7 +327,7 @@ public:
 		{
 			Tobj key;
 			bread(input, key);
-			ObjectMetadata data;
+			ObjectMetadata& data = m_objects[key];
 			if (multicategory)
 			{
 				bread(input, data.category_count);
@@ -281,16 +347,14 @@ public:
 					input.read(reinterpret_cast<char*>(data.category_mask.data()), sizeof(pKey_t) * mask_size);
 				}
 			}
-			m_objects.emplace(std::move(key), std::move(data));
 			if (!multicategory)
 			{
-				m_objects[key].category_mask.resize(m_max_category_index);
-				if ((m_objects[key].category_mask[category_index] & category_mask) == 0)
+				data.category_mask.resize(m_max_category_index);
+				if ((data.category_mask[category_index] & category_mask) == 0)
 				{
-					m_objects[key].category_count++;
-					m_objects[key].category_mask[category_index] |= category_mask;
+					data.category_count++;
+					data.category_mask[category_index] |= category_mask;
 				}
-				
 			}
 		}
 	}
@@ -300,21 +364,17 @@ public:
 		m_storage = storagefile;
 	}
 	
-	static ObjectUsageProfiler<Tobj, TCaterogry, TobjHasher>* Create(bool profilingEnabled, TCaterogry catid, pKey_t version, const std::string& global_filename, const std::string filename)
+	static ObjectUsageProfiler<Tobj, TCaterogry, TInfo, TobjHasher>* Create(TCaterogry catid, pKey_t version, const std::string& global_filename, const std::string filename)
 	{
 		if (!File::Exists(File::GetUserPath(D_SHADERUIDCACHE_IDX)))
 			File::CreateDir(File::GetUserPath(D_SHADERUIDCACHE_IDX));
-		ObjectUsageProfiler<Tobj, TCaterogry, TobjHasher>* output = nullptr;
 		std::string global_profile_filename = StringFromFormat("%s%s.usage", File::GetUserPath(D_SHADERUIDCACHE_IDX).c_str(), global_filename.c_str());
 		std::string profile_filename = StringFromFormat("%s%s.usage",
 			File::GetUserPath(D_SHADERUIDCACHE_IDX).c_str(),
 			filename.c_str());
 		bool profile_exists = File::Exists(profile_filename);
 		bool global_profile_exists = File::Exists(global_profile_filename);
-		if (profilingEnabled || profile_exists || global_profile_exists)
-		{
-			output = new ObjectUsageProfiler<Tobj, TCaterogry, TobjHasher>(version);
-		}
+		ObjectUsageProfiler<Tobj, TCaterogry, TInfo, TobjHasher>* output = new ObjectUsageProfiler<Tobj, TCaterogry, TInfo, TobjHasher>(version);
 		if (profile_exists)
 		{
 			output->ReadFromFile(profile_filename);
@@ -323,11 +383,8 @@ public:
 		{
 			output->ReadFromFile(global_profile_filename, true);
 		}
-		if (output)
-		{
-			output->SetCategory(catid);
-			output->SetStorage(profile_filename);
-		}
+		output->SetCategory(catid);
+		output->SetStorage(profile_filename);
 		return output;
 	}
 
@@ -337,6 +394,8 @@ private:
 		pKey_t category_count;
 		pKey_t usage_count;
 		std::vector<pKey_t> category_mask;
+		TInfo info;
+		ObjectMetadata() : category_count(0), usage_count(0) {}
 	};
 	struct greater
 	{

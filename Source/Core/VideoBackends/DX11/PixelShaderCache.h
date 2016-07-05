@@ -6,7 +6,10 @@
 #include <atomic>
 #include <unordered_map>
 #include <d3d11_2.h>
+
 #include "VideoBackends/DX11/D3DPtr.h"
+
+#include "VideoCommon/ObjectUsageProfiler.h"
 #include "VideoCommon/PixelShaderGen.h"
 
 
@@ -53,9 +56,9 @@ private:
 		void Destroy() { shader.reset(); }
 	};
 	static inline void PushByteCode(const void* bytecode, u32 bytecodelen, PSCacheEntry* entry);
-	typedef std::unordered_map<PixelShaderUid, PSCacheEntry, PixelShaderUid::ShaderUidHasher> PSCache;
+	typedef ObjectUsageProfiler<PixelShaderUid, pKey_t, PSCacheEntry, PixelShaderUid::ShaderUidHasher> PSCache;
 
-	static PSCache s_pixel_shaders;
+	static PSCache* s_pixel_shaders;
 	static const PSCacheEntry* s_last_entry;
 	static PixelShaderUid s_last_uid;
 	static PixelShaderUid s_external_last_uid;

@@ -38,6 +38,11 @@ public:
 		data = {};
 	}
 
+	inline void ClearHASH()
+	{
+		HASH = 0;
+	}
+
 	inline void CalculateUIDHash()
 	{
 		if (HASH == 0)

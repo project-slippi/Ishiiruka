@@ -20,19 +20,17 @@
 #include "VideoCommon/Debugger.h"
 #include "VideoCommon/TessellationShaderManager.h"
 #include "VideoCommon/HLSLCompiler.h"
-#include "VideoCommon/ObjectUsageProfiler.h"
 #include "VideoCommon/Statistics.h"
 #include "VideoCommon/VideoConfig.h"
 
 namespace DX11
 {
 
-	HullDomainShaderCache::HDCache HullDomainShaderCache::s_hulldomain_shaders;
+	HullDomainShaderCache::HDCache* HullDomainShaderCache::s_hulldomain_shaders;
 	const HullDomainShaderCache::HDCacheEntry* HullDomainShaderCache::s_last_entry;
 	TessellationShaderUid HullDomainShaderCache::s_last_uid;
 	TessellationShaderUid HullDomainShaderCache::s_external_last_uid;
 
-	static ObjectUsageProfiler<TessellationShaderUid, pKey_t, TessellationShaderUid::ShaderUidHasher>* s_usage_profiler = nullptr;
 	static HLSLAsyncCompiler *s_compiler;
 	static Common::SpinLock<true> s_hulldomain_shaders_lock;
 
@@ -89,9 +87,11 @@ namespace DX11
 			File::CreateDir(File::GetUserPath(D_SHADERCACHE_IDX));
 
 		pKey_t gameid = (pKey_t)GetMurmurHash3(reinterpret_cast<const u8*>(SConfig::GetInstance().m_strUniqueID.data()), (u32)SConfig::GetInstance().m_strUniqueID.size(), 0);
-		s_usage_profiler = ObjectUsageProfiler<TessellationShaderUid, pKey_t, TessellationShaderUid::ShaderUidHasher>::Create(
-			g_ActiveConfig.bShaderUsageProfiling, gameid, TESSELLATIONSHADERGEN_UID_VERSION, "Ishiiruka.ts", StringFromFormat("%s.ts",
-				SConfig::GetInstance().m_strUniqueID.c_str())
+		s_hulldomain_shaders = HDCache::Create(
+			gameid,
+			TESSELLATIONSHADERGEN_UID_VERSION,
+			"Ishiiruka.ts",
+			StringFromFormat("%s.ts", SConfig::GetInstance().m_strUniqueID.c_str())
 		);
 
 		std::string h_cache_filename = StringFromFormat("%sIDX11-%s-hs.cache", File::GetUserPath(D_SHADERCACHE_IDX).c_str(),
@@ -107,23 +107,24 @@ namespace DX11
 		SETSTAT(stats.numDomainShadersAlive, 0);		
 		SETSTAT(stats.numHullShadersCreated, 0);
 		SETSTAT(stats.numHullShadersAlive, 0);
-		if (s_usage_profiler && g_ActiveConfig.bCompileShaderOnStartup)
+		if (g_ActiveConfig.bCompileShaderOnStartup)
 		{
-			std::vector<TessellationShaderUid> shaders;
-			s_usage_profiler->GetMostUsedByCategory(gameid, shaders, true);
 			size_t shader_count = 0;
-			for (const TessellationShaderUid& item : shaders)
+			s_hulldomain_shaders->ForEachMostUsedByCategory(gameid,
+				[&](const TessellationShaderUid& item)
 			{
-				if (s_hulldomain_shaders.find(item) == s_hulldomain_shaders.end())
-				{
-					CompileHDShader(item, true);
-				}
+				CompileHDShader(item, true);
 				shader_count++;
 				if ((shader_count & 31) == 0)
 				{
 					s_compiler->WaitForFinish();
 				}
+			},
+				[](HDCacheEntry& entry)
+			{
+				return !entry.domainshader;
 			}
+			, true);
 			s_compiler->WaitForFinish();
 		}
 		s_last_entry = nullptr;
@@ -132,27 +133,31 @@ namespace DX11
 	// ONLY to be used during shutdown.
 	void HullDomainShaderCache::Clear()
 	{
-		for (auto& iter : s_hulldomain_shaders)
-			iter.second.Destroy();
-		s_hulldomain_shaders.clear();
-		s_hulldomain_shaders_lock.unlock();
+		if (s_hulldomain_shaders)
+		{
+			s_hulldomain_shaders_lock.lock();
+			s_hulldomain_shaders->Persist();
+			s_hulldomain_shaders->Clear([](HDCacheEntry& item)
+			{
+				item.Destroy();
+			});
+			s_hulldomain_shaders_lock.unlock();
+		}
 		s_last_entry = nullptr;
 	}
 
 	void HullDomainShaderCache::Shutdown()
 	{
-		if (s_usage_profiler)
-		{
-			s_usage_profiler->Persist();
-			delete s_usage_profiler;
-			s_usage_profiler = nullptr;
-		}
 		if (s_compiler)
 		{
 			s_compiler->WaitForFinish();
 		}
 		hdscbuf.reset();
+		
 		Clear();
+		delete s_hulldomain_shaders;
+		s_hulldomain_shaders = nullptr;
+
 		g_hs_disk_cache.Sync();
 		g_hs_disk_cache.Close();
 		g_ds_disk_cache.Sync();
@@ -162,7 +167,7 @@ namespace DX11
 	void HullDomainShaderCache::CompileHDShader(const TessellationShaderUid& uid, bool ongputhread)
 	{
 		s_hulldomain_shaders_lock.lock();
-		HDCacheEntry* entry = &s_hulldomain_shaders[uid];
+		HDCacheEntry* entry = &s_hulldomain_shaders->GetOrAdd(uid);
 		s_hulldomain_shaders_lock.unlock();
 		if (ongputhread)
 		{
@@ -286,8 +291,6 @@ namespace DX11
 				}
 			}
 			s_last_uid = uid;
-			if (g_ActiveConfig.bShaderUsageProfiling)
-				s_usage_profiler->RegisterUsage(uid);
 			GFX_DEBUGGER_PAUSE_AT(NEXT_PIXEL_SHADER_CHANGE, true);
 		}
 		else
@@ -331,7 +334,7 @@ namespace DX11
 				// TODO: Somehow make the debug name a bit more specific
 				D3D::SetDebugObjectName(entry->domainshader.get(), "a Domanin shader of HullDomainShaderCache");
 				INCSTAT(stats.numDomainShadersCreated);
-				SETSTAT(stats.numDomainShadersAlive, s_hulldomain_shaders.size());
+				SETSTAT(stats.numDomainShadersAlive, static_cast<int>(s_hulldomain_shaders->size()));
 			}
 		}
 		else
@@ -343,14 +346,14 @@ namespace DX11
 				// TODO: Somehow make the debug name a bit more specific
 				D3D::SetDebugObjectName(entry->hullshader.get(), "a Hull shader of HullDomainShaderCache");
 				INCSTAT(stats.numHullShadersCreated);
-				SETSTAT(stats.numHullShadersAlive, s_hulldomain_shaders.size());
+				SETSTAT(stats.numHullShadersAlive, static_cast<int>(s_hulldomain_shaders->size()));
 			}
 		}
 	}
 
 	void HullDomainShaderCache::InsertByteCode(const TessellationShaderUid &uid, const void* bytecode, u32 bytecodelen, bool isdomain)
 	{
-		HDCacheEntry* entry = &s_hulldomain_shaders[uid];
+		HDCacheEntry* entry = &s_hulldomain_shaders->GetOrAdd(uid);
 		entry->initialized.test_and_set();
 		PushByteCode(bytecode, bytecodelen, entry, isdomain);
 	}
