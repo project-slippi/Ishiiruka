@@ -165,6 +165,7 @@ void VertexShaderCache::Clear()
 	if (s_vshaders)
 	{
 		s_vshaderslock.lock();
+		s_vshaders->Persist();
 		s_vshaders->Clear([](auto& item) {
 			item.Destroy();
 		});
@@ -175,12 +176,6 @@ void VertexShaderCache::Clear()
 
 void VertexShaderCache::Shutdown()
 {
-	if (s_vshaders)
-	{
-		s_vshaders->Persist();
-		delete s_vshaders;
-		s_vshaders = nullptr;
-	}
 	if (s_compiler)
 	{
 		s_compiler->WaitForFinish();
@@ -197,6 +192,8 @@ void VertexShaderCache::Shutdown()
 	s_clear_vertex_shader = NULL;
 
 	Clear();
+	delete s_vshaders;
+	s_vshaders = nullptr;
 	g_vs_disk_cache.Sync();
 	g_vs_disk_cache.Close();
 }

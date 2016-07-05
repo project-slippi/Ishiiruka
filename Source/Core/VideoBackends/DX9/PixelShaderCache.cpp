@@ -350,6 +350,7 @@ void PixelShaderCache::Clear()
 	if (s_pshaders)
 	{
 		s_pixel_shaders_lock.lock();
+		s_pshaders->Persist();
 		s_pshaders->Clear([](auto& item) {
 			item.Destroy();
 		});
@@ -363,12 +364,6 @@ void PixelShaderCache::Clear()
 
 void PixelShaderCache::Shutdown()
 {
-	if (s_pshaders)
-	{
-		s_pshaders->Persist();
-		delete s_pshaders;
-		s_pshaders = nullptr;
-	}
 	if (s_compiler)
 	{
 		s_compiler->WaitForFinish();
@@ -394,6 +389,8 @@ void PixelShaderCache::Shutdown()
 
 
 	Clear();
+	delete s_pshaders;
+	s_pshaders = nullptr;
 	g_ps_disk_cache.Sync();
 	g_ps_disk_cache.Close();
 
