@@ -270,7 +270,6 @@ TextureCacheBase::TCacheEntryBase* TextureCacheBase::TCacheEntryBase::ApplyPalet
 	newconfig.width = config.width;
 	newconfig.height = config.height;
 	newconfig.layers = config.layers;
-	newconfig.pcformat = PC_TEX_FMT_RGBA32;
 	TCacheEntryBase *decoded_entry = AllocateTexture(newconfig);
 
 	if (decoded_entry)

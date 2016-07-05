@@ -477,9 +477,9 @@ bool TextureCache::Palettize(TCacheEntryBase* entry, const TCacheEntryBase* base
 	DX11::D3DTexture2D* texture = ((TextureCache::TCacheEntry*)entry)->texture;
 	u32 texformat = entry->format & 0xf;
 	BaseType baseType = Unorm4;
-	if (texformat == GX_TF_C4)
+	if (texformat == GX_TF_C4 || texformat == GX_TF_I4)
 		baseType = Unorm4;
-	else if (texformat == GX_TF_C8)
+	else if (texformat == GX_TF_C8 || texformat == GX_TF_I8)
 		baseType = Unorm8;
 	else
 		return false;

@@ -558,7 +558,7 @@ ID3D11ComputeShader* CSTextureDecoder::InsertShader( ComboKey const &key, u8 con
 
 void CSTextureDecoder::LoadLut(u32 lutFmt, void* addr, u32 size ) 
 {
-	if (lutFmt == m_lutFmt && addr == m_last_addr && size == m_last_size)
+	if (lutFmt == m_lutFmt && addr == m_last_addr && size == m_last_size && m_last_hash)
 	{
 		u64 hash = GetHash64(reinterpret_cast<u8*>(addr), size, g_ActiveConfig.iSafeTextureCache_ColorSamples);
 		if (hash == m_last_hash)
@@ -566,6 +566,10 @@ void CSTextureDecoder::LoadLut(u32 lutFmt, void* addr, u32 size )
 			return;
 		}
 		m_last_hash = hash;
+	}
+	else
+	{
+		m_last_hash = GetHash64(reinterpret_cast<u8*>(addr), size, g_ActiveConfig.iSafeTextureCache_ColorSamples);
 	}
 	m_last_addr = addr;
 	m_last_size = size;

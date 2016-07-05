@@ -496,9 +496,9 @@ bool TextureCache::Palettize(TCacheEntryBase* src_entry,const TCacheEntryBase* b
 	{
 		
 		Depalettizer::BaseType baseType = Depalettizer::Unorm8;
-		if (texformat == GX_TF_C4)
+		if (texformat == GX_TF_C4 || texformat == GX_TF_I4)
 			baseType = Depalettizer::Unorm4;
-		else if (texformat == GX_TF_C8)
+		else if (texformat == GX_TF_C8 || texformat == GX_TF_I8)
 			baseType = Depalettizer::Unorm8;
 		else
 			return false;
@@ -516,7 +516,7 @@ bool TextureCache::Palettize(TCacheEntryBase* src_entry,const TCacheEntryBase* b
 
 	
 	glUniform1i(s_palette_buffer_offset_uniform[s_last_TlutFormat], s_last_pallet_Buffer.second / 2);
-	glUniform1f(s_palette_multiplier_uniform[s_last_TlutFormat], texformat == GX_TF_C4 ? 15.0f : 255.0f);
+	glUniform1f(s_palette_multiplier_uniform[s_last_TlutFormat], texformat == GX_TF_C4 || texformat == GX_TF_I4 ? 15.0f : 255.0f);
 	glUniform4f(s_palette_copy_position_uniform[s_last_TlutFormat], 0.0f, 0.0f, (float)entry->config.width, (float)entry->config.height);
 
 	glActiveTexture(GL_TEXTURE10);
@@ -793,7 +793,7 @@ TextureCache::~TextureCache()
 
 void TextureCache::LoadLut(u32 lutFmt, void* addr, u32 size)
 {
-	if (lutFmt == m_last_lutFmt && addr == m_last_addr && size == m_last_size)
+	if (lutFmt == m_last_lutFmt && addr == m_last_addr && size == m_last_size && m_last_hash)
 	{
 		u64 hash = GetHash64(reinterpret_cast<u8*>(addr), size, g_ActiveConfig.iSafeTextureCache_ColorSamples);
 		if (hash == m_last_hash)
@@ -801,6 +801,10 @@ void TextureCache::LoadLut(u32 lutFmt, void* addr, u32 size)
 			return;
 		}
 		m_last_hash = hash;
+	}
+	else
+	{
+		m_last_hash = GetHash64(reinterpret_cast<u8*>(addr), size, g_ActiveConfig.iSafeTextureCache_ColorSamples);
 	}
 	m_last_lutFmt = lutFmt;
 	m_last_addr = addr;

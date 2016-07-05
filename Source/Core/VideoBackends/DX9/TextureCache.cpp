@@ -317,9 +317,9 @@ bool TextureCache::Palettize(TCacheEntryBase* entry, const TCacheEntryBase* base
 	LPDIRECT3DTEXTURE9 texture = ((TCacheEntry*)entry)->texture;
 	u32 texformat = entry->format & 0xf;
 	Depalettizer::BaseType baseType = Depalettizer::Unorm8;
-	if (texformat == GX_TF_C4)
+	if (texformat == GX_TF_C4 || texformat == GX_TF_I4)
 		baseType = Depalettizer::Unorm4;
-	else if (texformat == GX_TF_C8)
+	else if (texformat == GX_TF_C8 || texformat == GX_TF_I8)
 		baseType = Depalettizer::Unorm8;
 	else
 		return false;

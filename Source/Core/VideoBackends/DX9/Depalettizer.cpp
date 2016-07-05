@@ -183,7 +183,7 @@ inline void DecodeRGB5A3Palette(u32* dst, const u16* src, unsigned int numColors
 
 void Depalettizer::UploadPalette(u32 tlutFmt, void* addr, u32 size)
 {
-	if (tlutFmt == m_last_tlutFmt && addr == m_last_addr && size == m_last_size)
+	if (tlutFmt == m_last_tlutFmt && addr == m_last_addr && size == m_last_size && m_last_hash)
 	{
 		u64 hash = GetHash64(reinterpret_cast<u8*>(addr), size, g_ActiveConfig.iSafeTextureCache_ColorSamples);
 		if (hash == m_last_hash)
@@ -191,6 +191,10 @@ void Depalettizer::UploadPalette(u32 tlutFmt, void* addr, u32 size)
 			return;
 		}
 		m_last_hash = hash;
+	}
+	else
+	{
+		m_last_hash = GetHash64(reinterpret_cast<u8*>(addr), size, g_ActiveConfig.iSafeTextureCache_ColorSamples);
 	}
 	m_last_tlutFmt = tlutFmt;
 	m_last_addr = addr;
