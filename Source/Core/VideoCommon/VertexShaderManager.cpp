@@ -490,14 +490,15 @@ void VertexShaderManager::SetConstants()
 			g_fProjectionMatrix[15] = 0.0f;
 
 			// Heuristic to detect if a GameCube game is in 16:9 anamorphic widescreen mode.
-			if (!SConfig::GetInstance().bWii)
+			//Disable this cde as is causing mode swapping in a lot of games
+			/*if (!SConfig::GetInstance().bWii)
 			{
 				bool viewport_is_4_3 = AspectIs4_3(xfmem.viewport.wd, xfmem.viewport.ht);
 				if (AspectIs16_9(rawProjection[2], rawProjection[0]) && viewport_is_4_3)
 					Core::g_aspect_wide = true; // Projection is 16:9 and viewport is 4:3, we are rendering an anamorphic widescreen picture
 				else if (AspectIs4_3(rawProjection[2], rawProjection[0]) && viewport_is_4_3)
 					Core::g_aspect_wide = false; // Project and viewports are both 4:3, we are rendering a normal image.
-			}
+			}*/
 
 			SETSTAT_FT(stats.gproj_0, g_fProjectionMatrix[0]);
 			SETSTAT_FT(stats.gproj_1, g_fProjectionMatrix[1]);
