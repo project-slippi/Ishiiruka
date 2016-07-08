@@ -22,7 +22,6 @@
 
 namespace DiscIO
 {
-
 // Increment CACHE_REVISION if the enum below is modified (ISOFile.cpp & GameFile.cpp)
 enum class BlobType
 {
@@ -37,8 +36,8 @@ enum class BlobType
 class IBlobReader
 {
 public:
-	virtual ~IBlobReader() {}
-
+	virtual ~IBlobReader()
+	{}
 	virtual BlobType GetBlobType() const = 0;
 	virtual u64 GetRawSize() const = 0;
 	virtual u64 GetDataSize() const = 0;
@@ -46,14 +45,14 @@ public:
 	virtual bool Read(u64 offset, u64 size, u8* out_ptr) = 0;
 
 protected:
-	IBlobReader() {}
+	IBlobReader()
+	{}
 };
-
 
 // Provides caching and byte-operation-to-block-operations facilities.
 // Used for compressed blob and direct drive reading.
 // NOTE: GetDataSize() is expected to be evenly divisible by the sector size.
-class SectorReader : public IBlobReader
+class SectorReader: public IBlobReader
 {
 public:
 	virtual ~SectorReader() = 0;
@@ -66,7 +65,6 @@ protected:
 	{
 		return m_block_size;
 	}
-
 	// Set the chunk size -> the number of blocks to read at a time.
 	// Default value is 1 but that is too low for physical devices
 	// like CDROMs. Setting this to a higher value helps reduce seeking
@@ -77,7 +75,6 @@ protected:
 	{
 		return m_chunk_blocks;
 	}
-
 	// Read a single block/sector.
 	virtual bool GetBlock(u64 block_num, u8* out) = 0;
 
@@ -90,7 +87,7 @@ private:
 	struct Cache
 	{
 		std::vector<u8> data;
-		u64 block_idx  = 0;
+		u64 block_idx = 0;
 		u32 num_blocks = 0;
 
 		// [Pseudo-] Least Recently Used Shift Register
@@ -102,13 +99,13 @@ private:
 
 		void Reset()
 		{
-			block_idx  = 0;
+			block_idx = 0;
 			num_blocks = 0;
-			lru_sreg   = 0;
+			lru_sreg = 0;
 		}
 		void Fill(u64 block, u32 count)
 		{
-			block_idx  = block;
+			block_idx = block;
 			num_blocks = count;
 			// NOTE: Setting only the high bit means the newest line will
 			//   be selected for eviction if every line in the cache was
@@ -153,7 +150,7 @@ private:
 	u32 ReadChunk(u8* buffer, u64 chunk_num);
 
 	static constexpr int CACHE_LINES = 32;
-	u32 m_block_size   = 0;  // Bytes in a sector/block
+	u32 m_block_size = 0;    // Bytes in a sector/block
 	u32 m_chunk_blocks = 1;  // Number of sectors/blocks in a chunk
 	std::array<Cache, CACHE_LINES> m_cache;
 };
@@ -161,8 +158,8 @@ private:
 class CBlobBigEndianReader
 {
 public:
-	CBlobBigEndianReader(IBlobReader& reader) : m_reader(reader) {}
-
+	CBlobBigEndianReader(IBlobReader& reader): m_reader(reader)
+	{}
 	template <typename T>
 	bool ReadSwapped(u64 offset, T* buffer) const
 	{
@@ -180,11 +177,12 @@ private:
 // Factory function - examines the path to choose the right type of IBlobReader, and returns one.
 std::unique_ptr<IBlobReader> CreateBlobReader(const std::string& filename);
 
-typedef bool (*CompressCB)(const std::string& text, float percent, void* arg);
+typedef bool(*CompressCB)(const std::string& text, float percent, void* arg);
 
-bool CompressFileToBlob(const std::string& infile, const std::string& outfile, u32 sub_type = 0, int sector_size = 16384,
-		CompressCB callback = nullptr, void *arg = nullptr);
+bool CompressFileToBlob(const std::string& infile, const std::string& outfile, u32 sub_type = 0,
+	int sector_size = 16384, CompressCB callback = nullptr,
+	void* arg = nullptr);
 bool DecompressBlobToFile(const std::string& infile, const std::string& outfile,
-		CompressCB callback = nullptr, void *arg = nullptr);
+	CompressCB callback = nullptr, void* arg = nullptr);
 
 }  // namespace

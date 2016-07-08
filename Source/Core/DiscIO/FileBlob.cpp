@@ -2,15 +2,13 @@
 // Licensed under GPLv2+
 // Refer to the license.txt file included.
 
+#include "DiscIO/FileBlob.h"
 #include <memory>
 #include <string>
-#include "DiscIO/FileBlob.h"
 
 namespace DiscIO
 {
-
-PlainFileReader::PlainFileReader(std::FILE* file)
-	: m_file(file)
+PlainFileReader::PlainFileReader(std::FILE* file): m_file(file)
 {
 	m_size = m_file.GetSize();
 }

@@ -18,7 +18,7 @@
 
 class NetPlayUI;
 
-class NetPlayServer : public TraversalClientClient
+class NetPlayServer: public TraversalClientClient
 {
 public:
 	void ThreadFunc();
@@ -81,8 +81,10 @@ private:
 	unsigned int OnData(sf::Packet& packet, Client& player);
 
 	void OnTraversalStateChanged() override;
-	void OnConnectReady(ENetAddress) override {}
-	void OnConnectFailed(u8) override {}
+	void OnConnectReady(ENetAddress) override
+	{}
+	void OnConnectFailed(u8) override
+	{}
 
 	void UpdatePadMapping();
 	void UpdateWiimoteMapping();

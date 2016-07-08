@@ -154,7 +154,7 @@ bool DolphinApp::OnInit()
 	// Out of desktop check
 	int leftPos = GetSystemMetrics(SM_XVIRTUALSCREEN);
 	int topPos = GetSystemMetrics(SM_YVIRTUALSCREEN);
-	int width =  GetSystemMetrics(SM_CXVIRTUALSCREEN);
+	int width = GetSystemMetrics(SM_CXVIRTUALSCREEN);
 	int height = GetSystemMetrics(SM_CYVIRTUALSCREEN);
 	if ((leftPos + width) < (x + w) || leftPos > x || (topPos + height) < (y + h) || topPos > y)
 		x = y = wxDefaultCoord;
@@ -164,9 +164,9 @@ bool DolphinApp::OnInit()
 #endif
 
 	main_frame = new CFrame(nullptr, wxID_ANY,
-	                        StrToWxStr(scm_rev_str),
-	                        wxPoint(x, y), wxSize(w, h),
-	                        m_use_debugger, m_batch_mode, m_use_logger);
+		StrToWxStr(scm_rev_str),
+		wxPoint(x, y), wxSize(w, h),
+		m_use_debugger, m_batch_mode, m_use_logger);
 
 	SetTopWindow(main_frame);
 	main_frame->SetMinSize(wxSize(400, 300));
@@ -282,19 +282,19 @@ void DolphinApp::AfterInit()
 	if (!SConfig::GetInstance().m_analytics_permission_asked)
 	{
 		int answer = wxMessageBox(
-				_("If authorized, Dolphin can collect data on its performance, "
-				  "feature usage, and configuration, as well as data on your system's "
-				  "hardware and operating system.\n\n"
-				  "No private data is ever collected. This data helps us understand "
-				  "how people and emulated games use Dolphin and prioritize our "
-				  "efforts. It also helps us identify rare configurations that are "
-				  "causing bugs, performance and stability issues.\n"
-				  "This authorization can be revoked at any time through Dolphin's "
-				  "settings.\n\n"
-				  "Do you authorize Dolphin to report this information to Dolphin's "
-				  "developers?"),
-				_("Usage statistics reporting"),
-				wxYES_NO, main_frame);
+			_("If authorized, Dolphin can collect data on its performance, "
+				"feature usage, and configuration, as well as data on your system's "
+				"hardware and operating system.\n\n"
+				"No private data is ever collected. This data helps us understand "
+				"how people and emulated games use Dolphin and prioritize our "
+				"efforts. It also helps us identify rare configurations that are "
+				"causing bugs, performance and stability issues.\n"
+				"This authorization can be revoked at any time through Dolphin's "
+				"settings.\n\n"
+				"Do you authorize Dolphin to report this information to Dolphin's "
+				"developers?"),
+			_("Usage statistics reporting"),
+			wxYES_NO, main_frame);
 
 		SConfig::GetInstance().m_analytics_permission_asked = true;
 		SConfig::GetInstance().m_analytics_enabled = (answer == wxYES);
@@ -419,7 +419,7 @@ bool wxMsgAlert(const char* caption, const char* text, bool yes_no, int /*Style*
 		if (npd == nullptr)
 		{
 			return wxYES == wxMessageBox(StrToWxStr(text), StrToWxStr(caption),
-					(yes_no) ? wxYES_NO : wxOK, wxWindow::FindFocus());
+				(yes_no) ? wxYES_NO : wxOK, wxWindow::FindFocus());
 		}
 		else
 		{
@@ -593,17 +593,16 @@ void Host_ConnectWiimote(int wm_idx, bool connect)
 	}
 }
 
-void Host_ShowVideoConfig(void* parent, const std::string& backend_name,
-                          const std::string& config_name)
+void Host_ShowVideoConfig(void* parent, const std::string& backend_name)
 {
 	if (backend_name == "Software Renderer")
 	{
-		SoftwareVideoConfigDialog diag((wxWindow*)parent, backend_name, config_name);
+		SoftwareVideoConfigDialog diag((wxWindow*)parent, backend_name);
 		diag.ShowModal();
 	}
 	else
 	{
-		VideoConfigDiag diag((wxWindow*)parent, backend_name, config_name);
+		VideoConfigDiag diag((wxWindow*)parent, backend_name);
 		diag.ShowModal();
 	}
 }

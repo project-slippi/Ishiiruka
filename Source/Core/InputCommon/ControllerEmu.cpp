@@ -2,9 +2,9 @@
 // Licensed under GPLv2+
 // Refer to the license.txt file included.
 
+#include "InputCommon/ControllerEmu.h"
 #include <memory>
 #include "Common/Common.h"
-#include "InputCommon/ControllerEmu.h"
 
 void ControllerEmu::UpdateReferences(ControllerInterface& devi)
 {
@@ -38,7 +38,8 @@ void ControllerEmu::UpdateDefaultDevice()
 	}
 }
 
-void ControllerEmu::ControlGroup::LoadConfig(IniFile::Section *sec, const std::string& defdev, const std::string& base)
+void ControllerEmu::ControlGroup::LoadConfig(IniFile::Section* sec, const std::string& defdev,
+	const std::string& base)
 {
 	std::string group(base + name + "/");
 
@@ -61,7 +62,6 @@ void ControllerEmu::ControlGroup::LoadConfig(IniFile::Section *sec, const std::s
 		// range
 		sec->Get(group + c->name + "/Range", &c->control_ref->range, 100.0);
 		c->control_ref->range /= 100;
-
 	}
 
 	// extensions
@@ -87,7 +87,7 @@ void ControllerEmu::ControlGroup::LoadConfig(IniFile::Section *sec, const std::s
 	}
 }
 
-void ControllerEmu::LoadConfig(IniFile::Section *sec, const std::string& base)
+void ControllerEmu::LoadConfig(IniFile::Section* sec, const std::string& base)
 {
 	std::string defdev = default_device.ToString();
 	if (base.empty())
@@ -100,7 +100,8 @@ void ControllerEmu::LoadConfig(IniFile::Section *sec, const std::string& base)
 		cg->LoadConfig(sec, defdev, base);
 }
 
-void ControllerEmu::ControlGroup::SaveConfig(IniFile::Section *sec, const std::string& defdev, const std::string& base)
+void ControllerEmu::ControlGroup::SaveConfig(IniFile::Section* sec, const std::string& defdev,
+	const std::string& base)
 {
 	std::string group(base + name + "/");
 
@@ -120,7 +121,7 @@ void ControllerEmu::ControlGroup::SaveConfig(IniFile::Section *sec, const std::s
 		sec->Set(group + c->name, c->control_ref->expression, "");
 
 		// range
-		sec->Set(group + c->name + "/Range", c->control_ref->range*100.0, 100.0);
+		sec->Set(group + c->name + "/Range", c->control_ref->range * 100.0, 100.0);
 	}
 
 	// extensions
@@ -134,7 +135,7 @@ void ControllerEmu::ControlGroup::SaveConfig(IniFile::Section *sec, const std::s
 	}
 }
 
-void ControllerEmu::SaveConfig(IniFile::Section *sec, const std::string& base)
+void ControllerEmu::SaveConfig(IniFile::Section* sec, const std::string& base)
 {
 	const std::string defdev = default_device.ToString();
 	if (base.empty())
@@ -153,7 +154,8 @@ ControllerEmu::AnalogStick::AnalogStick(const char* const _name, ControlState de
 	: AnalogStick(_name, _name, GROUP_TYPE_STICK)
 {}
 
-ControllerEmu::AnalogStick::AnalogStick(const char* const _name, const char* const _ui_name, ControlState default_radius)
+ControllerEmu::AnalogStick::AnalogStick(const char* const _name, const char* const _ui_name,
+	ControlState default_radius)
 	: ControlGroup(_name, _ui_name, GROUP_TYPE_STICK)
 {
 	for (auto& named_direction : named_directions)
@@ -164,17 +166,19 @@ ControllerEmu::AnalogStick::AnalogStick(const char* const _name, const char* con
 	settings.emplace_back(std::make_unique<Setting>(_trans("Dead Zone"), 0, 0, 50));
 }
 
-ControllerEmu::Buttons::Buttons(const std::string& _name) : ControlGroup(_name, GROUP_TYPE_BUTTONS)
+ControllerEmu::Buttons::Buttons(const std::string& _name): ControlGroup(_name, GROUP_TYPE_BUTTONS)
 {
 	settings.emplace_back(std::make_unique<Setting>(_trans("Threshold"), 0.5));
 }
 
-ControllerEmu::MixedTriggers::MixedTriggers(const std::string& _name) : ControlGroup(_name, GROUP_TYPE_MIXED_TRIGGERS)
+ControllerEmu::MixedTriggers::MixedTriggers(const std::string& _name)
+	: ControlGroup(_name, GROUP_TYPE_MIXED_TRIGGERS)
 {
 	settings.emplace_back(std::make_unique<Setting>(_trans("Threshold"), 0.9));
 }
 
-ControllerEmu::Triggers::Triggers(const std::string& _name) : ControlGroup(_name, GROUP_TYPE_TRIGGERS)
+ControllerEmu::Triggers::Triggers(const std::string& _name)
+	: ControlGroup(_name, GROUP_TYPE_TRIGGERS)
 {
 	settings.emplace_back(std::make_unique<Setting>(_trans("Dead Zone"), 0, 0, 50));
 }
@@ -187,7 +191,7 @@ ControllerEmu::Slider::Slider(const std::string& _name) : ControlGroup(_name, GR
 	settings.emplace_back(std::make_unique<Setting>(_trans("Dead Zone"), 0, 0, 50));
 }
 
-ControllerEmu::Force::Force(const std::string& _name) : ControlGroup(_name, GROUP_TYPE_FORCE)
+ControllerEmu::Force::Force(const std::string& _name): ControlGroup(_name, GROUP_TYPE_FORCE)
 {
 	memset(m_swing, 0, sizeof(m_swing));
 
@@ -201,7 +205,7 @@ ControllerEmu::Force::Force(const std::string& _name) : ControlGroup(_name, GROU
 	settings.emplace_back(std::make_unique<Setting>(_trans("Dead Zone"), 0, 0, 50));
 }
 
-ControllerEmu::Tilt::Tilt(const std::string& _name) : ControlGroup(_name, GROUP_TYPE_TILT)
+ControllerEmu::Tilt::Tilt(const std::string& _name): ControlGroup(_name, GROUP_TYPE_TILT)
 {
 	memset(m_tilt, 0, sizeof(m_tilt));
 
@@ -218,8 +222,7 @@ ControllerEmu::Tilt::Tilt(const std::string& _name) : ControlGroup(_name, GROUP_
 }
 
 ControllerEmu::Cursor::Cursor(const std::string& _name)
-	: ControlGroup(_name, GROUP_TYPE_CURSOR)
-	, m_z(0)
+	: ControlGroup(_name, GROUP_TYPE_CURSOR), m_z(0)
 {
 	for (auto& named_direction : named_directions)
 		controls.emplace_back(std::make_unique<Input>(named_direction));
@@ -232,15 +235,16 @@ ControllerEmu::Cursor::Cursor(const std::string& _name)
 	settings.emplace_back(std::make_unique<Setting>(_trans("Height"), 0.5));
 }
 
-void ControllerEmu::LoadDefaults(const ControllerInterface &ciface)
+void ControllerEmu::LoadDefaults(const ControllerInterface& ciface)
 {
 	// load an empty inifile section, clears everything
 	IniFile::Section sec;
 	LoadConfig(&sec);
 
-	if (ciface.Devices().size())
+	const std::string& default_device_string = g_controller_interface.GetDefaultDeviceString();
+	if (!default_device_string.empty())
 	{
-		default_device.FromDevice(ciface.Devices()[0]);
+		default_device.FromString(default_device_string);
 		UpdateDefaultDevice();
 	}
 }

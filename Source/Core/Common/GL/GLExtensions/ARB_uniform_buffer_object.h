@@ -29,7 +29,7 @@ typedef void (APIENTRYP PFNDOLBINDBUFFERBASEPROC) (GLenum target, GLuint index, 
 typedef void (APIENTRYP PFNDOLGETUNIFORMINDICESPROC) (GLuint program, GLsizei uniformCount, const GLchar *const*uniformNames, GLuint *uniformIndices);
 typedef void (APIENTRYP PFNDOLGETACTIVEUNIFORMSIVPROC) (GLuint program, GLsizei uniformCount, const GLuint *uniformIndices, GLenum pname, GLint *params);
 typedef void (APIENTRYP PFNDOLGETACTIVEUNIFORMNAMEPROC) (GLuint program, GLuint uniformIndex, GLsizei bufSize, GLsizei *length, GLchar *uniformName);
-typedef GLuint (APIENTRYP PFNDOLGETUNIFORMBLOCKINDEXPROC) (GLuint program, const GLchar *uniformBlockName);
+typedef GLuint(APIENTRYP PFNDOLGETUNIFORMBLOCKINDEXPROC) (GLuint program, const GLchar *uniformBlockName);
 typedef void (APIENTRYP PFNDOLGETACTIVEUNIFORMBLOCKIVPROC) (GLuint program, GLuint uniformBlockIndex, GLenum pname, GLint *params);
 typedef void (APIENTRYP PFNDOLGETACTIVEUNIFORMBLOCKNAMEPROC) (GLuint program, GLuint uniformBlockIndex, GLsizei bufSize, GLsizei *length, GLchar *uniformBlockName);
 typedef void (APIENTRYP PFNDOLUNIFORMBLOCKBINDINGPROC) (GLuint program, GLuint uniformBlockIndex, GLuint uniformBlockBinding);

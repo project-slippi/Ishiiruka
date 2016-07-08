@@ -24,7 +24,7 @@ namespace DX11
 namespace D3D
 {
 
-UtilVertexBuffer::UtilVertexBuffer(int size) : m_buf(nullptr), m_offset(0), m_max_size(size)
+UtilVertexBuffer::UtilVertexBuffer(int size): m_buf(nullptr), m_offset(0), m_max_size(size)
 {
 	D3D11_BUFFER_DESC desc = CD3D11_BUFFER_DESC(m_max_size, D3D11_BIND_VERTEX_BUFFER, D3D11_USAGE_DYNAMIC, D3D11_CPU_ACCESS_WRITE);
 	device->CreateBuffer(&desc, nullptr, &m_buf);
@@ -97,7 +97,7 @@ void UtilVertexBuffer::AddWrapObserver(bool* observer)
 }
 
 
-ConstantStreamBuffer::ConstantStreamBuffer(int size) : m_max_size(ROUND_UP(size, 256)), m_need_init(true)
+ConstantStreamBuffer::ConstantStreamBuffer(int size): m_max_size(ROUND_UP(size, 256)), m_need_init(true)
 {
 	m_use_partial_buffer_update = D3D::SupportPartialContantBufferUpdate();
 	D3D11_BUFFER_DESC desc = CD3D11_BUFFER_DESC(m_max_size, D3D11_BIND_CONSTANT_BUFFER, D3D11_USAGE_DYNAMIC, D3D11_CPU_ACCESS_WRITE);
@@ -135,7 +135,8 @@ CD3DFont font;
 UtilVertexBuffer* util_vbuf = nullptr;
 
 #define MAX_NUM_VERTICES 50*6
-struct FONT2DVERTEX {
+struct FONT2DVERTEX
+{
 	float x, y, z;
 	float col[4];
 	float tu, tv;
@@ -151,7 +152,7 @@ inline FONT2DVERTEX InitFont2DVertex(float x, float y, u32 color, float tu, floa
 	return v;
 }
 
-CD3DFont::CD3DFont() : m_dwTexWidth(512), m_dwTexHeight(512)
+CD3DFont::CD3DFont(): m_dwTexWidth(512), m_dwTexHeight(512)
 {
 
 }
@@ -347,7 +348,7 @@ int CD3DFont::Init()
 	CHECK(hr == S_OK, "Create font rasterizer state");
 	D3D::SetDebugObjectName(m_raststate.get(), "rasterizer state of a CD3DFont object");
 
-	D3D11_BUFFER_DESC vbdesc = CD3D11_BUFFER_DESC(MAX_NUM_VERTICES*sizeof(FONT2DVERTEX), D3D11_BIND_VERTEX_BUFFER, D3D11_USAGE_DYNAMIC, D3D11_CPU_ACCESS_WRITE);
+	D3D11_BUFFER_DESC vbdesc = CD3D11_BUFFER_DESC(MAX_NUM_VERTICES * sizeof(FONT2DVERTEX), D3D11_BIND_VERTEX_BUFFER, D3D11_USAGE_DYNAMIC, D3D11_CPU_ACCESS_WRITE);
 	if (FAILED(hr = device->CreateBuffer(&vbdesc, nullptr, ToAddr(m_pVB))))
 	{
 		PanicAlert("Failed to create font vertex buffer at %s, line %d\n", __FILE__, __LINE__);
@@ -466,7 +467,7 @@ int CD3DFont::DrawTextScaled(float x, float y, float size, float spacing, u32 dw
 		D3D::context->Draw(3 * dwNumTriangles, 0);
 	}
 	D3D::stateman->PopBlendState();
-	D3D::stateman->PopRasterizerState();	
+	D3D::stateman->PopRasterizerState();
 	D3D::stateman->Apply();
 	return S_OK;
 }
@@ -474,8 +475,14 @@ int CD3DFont::DrawTextScaled(float x, float y, float size, float spacing, u32 dw
 SamplerStatePtr linear_copy_sampler;
 SamplerStatePtr point_copy_sampler;
 
-struct STQVertex { float x, y, z, u0, v0, s, u1, v1, g; };
-struct ColVertex { float x, y, z; u32 col; };
+struct STQVertex
+{
+	float x, y, z, u0, v0, s, u1, v1, g;
+};
+struct ColVertex
+{
+	float x, y, z; u32 col;
+};
 
 struct
 {
@@ -504,7 +511,7 @@ void InitUtils()
 {
 	util_vbuf = new UtilVertexBuffer(65535);
 
-	float border[4] = { 0.f, 0.f, 0.f, 0.f };
+	float border[4] = {0.f, 0.f, 0.f, 0.f};
 	D3D11_SAMPLER_DESC samDesc = CD3D11_SAMPLER_DESC(D3D11_FILTER_MIN_MAG_MIP_POINT, D3D11_TEXTURE_ADDRESS_BORDER, D3D11_TEXTURE_ADDRESS_BORDER, D3D11_TEXTURE_ADDRESS_BORDER, 0.f, 1, D3D11_COMPARISON_ALWAYS, border, 0.f, 0.f);
 	HRESULT hr = D3D::device->CreateSamplerState(&samDesc, ToAddr(point_copy_sampler));
 	if (FAILED(hr)) PanicAlert("Failed to create sampler state at %s %d\n", __FILE__, __LINE__);
@@ -516,7 +523,7 @@ void InitUtils()
 	else SetDebugObjectName(linear_copy_sampler.get(), "linear copy sampler state");
 
 	// cached data used to avoid unnecessarily reloading the vertex buffers
-	memset(&tex_quad_data, 0, sizeof(tex_quad_data));	
+	memset(&tex_quad_data, 0, sizeof(tex_quad_data));
 	memset(&draw_quad_data, 0, sizeof(draw_quad_data));
 	memset(&clear_quad_data, 0, sizeof(clear_quad_data));
 
@@ -562,7 +569,7 @@ void drawShadedTexQuad(
 	ID3D11ShaderResourceView* texture,
 	const D3D11_RECT* rSource,
 	int SourceWidth,
-	int SourceHeight,	
+	int SourceHeight,
 	ID3D11PixelShader* PShader,
 	ID3D11VertexShader* VShader,
 	ID3D11InputLayout* layout,
@@ -601,7 +608,7 @@ void drawShadedTexQuad(
 	if (stq_observer ||
 		tex_quad_data.u1 != u1 || tex_quad_data.v1 != v1 ||
 		tex_quad_data.u2 != u2 || tex_quad_data.v2 != v2 ||
-		tex_quad_data.u3 != dw || tex_quad_data.v3 != dh || 
+		tex_quad_data.u3 != dw || tex_quad_data.v3 != dh ||
 		tex_quad_data.S != S || tex_quad_data.G != G)
 	{
 		stq_offset = util_vbuf->AppendData(coords, sizeof(coords), sizeof(STQVertex));
@@ -721,7 +728,7 @@ void drawClearQuad(
 
 inline void InitColVertex(ColVertex* vert, float x, float y, float z, u32 col)
 {
-	*vert = { x, y, z, col };
+	*vert = {x, y, z, col};
 }
 
 void DrawEFBPokeQuads(EFBAccessType type, const EfbPokeData* points, size_t num_points)

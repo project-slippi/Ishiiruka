@@ -11,10 +11,10 @@
 #include "Common/CommonTypes.h"
 #include "Common/Event.h"
 #include "Common/Flag.h"
+#include "Common/Logging/Log.h"
 #include "Common/MsgHandler.h"
 #include "Common/Thread.h"
 #include "Common/Timer.h"
-#include "Common/Logging/Log.h"
 
 #include "Core/Core.h"
 #include "Core/CoreTiming.h"
@@ -27,7 +27,6 @@
 
 namespace DVDThread
 {
-
 static void DVDThread();
 
 static void FinishRead(u64 userdata, s64 cycles_late);
@@ -76,7 +75,7 @@ void Stop()
 	s_dvd_thread_exiting.Clear();
 }
 
-void DoState(PointerWrap &p)
+void DoState(PointerWrap& p)
 {
 	WaitUntilIdle();
 
@@ -108,8 +107,8 @@ void WaitUntilIdle()
 	s_dvd_thread_done_working.Set();
 }
 
-void StartRead(u64 dvd_offset, u32 output_address, u32 length, bool decrypt,
-               bool reply_to_ios, int ticks_until_completion)
+void StartRead(u64 dvd_offset, u32 output_address, u32 length, bool decrypt, bool reply_to_ios,
+	int ticks_until_completion)
 {
 	_assert_(Core::IsCPUThread());
 
@@ -134,16 +133,18 @@ static void FinishRead(u64 userdata, s64 cycles_late)
 	WaitUntilIdle();
 
 	DEBUG_LOG(DVDINTERFACE, "Disc has been read. Real time: %" PRIu64 " us. "
-	          "Real time including delay: %" PRIu64 " us. Emulated time including delay: %" PRIu64 " us.",
-	          s_realtime_done_us - s_realtime_started_us,
-	          Common::Timer::GetTimeUs() - s_realtime_started_us,
-	          (CoreTiming::GetTicks() - s_time_read_started) / (SystemTimers::GetTicksPerSecond() / 1000 / 1000));
+		"Real time including delay: %" PRIu64
+		" us. Emulated time including delay: %" PRIu64 " us.",
+		s_realtime_done_us - s_realtime_started_us,
+		Common::Timer::GetTimeUs() - s_realtime_started_us,
+		(CoreTiming::GetTicks() - s_time_read_started) /
+		(SystemTimers::GetTicksPerSecond() / 1000 / 1000));
 
 	if (s_dvd_success)
 		Memory::CopyToEmu(s_output_address, s_dvd_buffer.data(), s_length);
 	else
-		PanicAlertT("The disc could not be read (at 0x%" PRIx64 " - 0x%" PRIx64 ").",
-		            s_dvd_offset, s_dvd_offset + s_length);
+		PanicAlertT("The disc could not be read (at 0x%" PRIx64 " - 0x%" PRIx64 ").", s_dvd_offset,
+			s_dvd_offset + s_length);
 
 	// This will make the buffer take less space in savestates.
 	// Reducing the size doesn't change the amount of reserved memory,
@@ -169,10 +170,10 @@ static void DVDThread()
 
 		s_dvd_buffer.resize(s_length);
 
-		s_dvd_success = DVDInterface::GetVolume().Read(s_dvd_offset, s_length, s_dvd_buffer.data(), s_decrypt);
+		s_dvd_success =
+			DVDInterface::GetVolume().Read(s_dvd_offset, s_length, s_dvd_buffer.data(), s_decrypt);
 
 		s_realtime_done_us = Common::Timer::GetTimeUs();
 	}
 }
-
 }

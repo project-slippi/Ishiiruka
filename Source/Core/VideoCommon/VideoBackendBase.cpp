@@ -41,7 +41,7 @@ void VideoBackendBase::PopulateList()
 	}
 	g_available_video_backends.push_back(std::make_unique<DX9::VideoBackend>());
 #endif
-// disable OGL video Backend while is merged from master
+	// disable OGL video Backend while is merged from master
 #if !defined(USE_GLES) || USE_GLES3
 	g_available_video_backends.push_back(std::make_unique<OGL::VideoBackend>());
 #endif

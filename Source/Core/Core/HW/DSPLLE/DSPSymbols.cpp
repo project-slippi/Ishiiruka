@@ -17,12 +17,11 @@
 
 namespace DSPSymbols
 {
-
 DSPSymbolDB g_dsp_symbol_db;
 
 static std::map<u16, int> addr_to_line;
 static std::map<int, u16> line_to_addr;
-static std::map<int, const char *> line_to_symbol;
+static std::map<int, const char*> line_to_symbol;
 static std::vector<std::string> lines;
 static int line_counter = 0;
 
@@ -35,7 +34,7 @@ int Addr2Line(u16 address)  // -1 for not found
 		return -1;
 }
 
-int Line2Addr(int line)   // -1 for not found
+int Line2Addr(int line)  // -1 for not found
 {
 	std::map<int, u16>::iterator iter = line_to_addr.find(line);
 	if (iter != line_to_addr.end())
@@ -44,7 +43,7 @@ int Line2Addr(int line)   // -1 for not found
 		return -1;
 }
 
-const char *GetLineText(int line)
+const char* GetLineText(int line)
 {
 	if (line > 0 && line < (int)lines.size())
 	{
@@ -56,7 +55,7 @@ const char *GetLineText(int line)
 	}
 }
 
-Symbol *DSPSymbolDB::GetSymbolFromAddr(u32 addr)
+Symbol* DSPSymbolDB::GetSymbolFromAddr(u32 addr)
 {
 	XFuncMap::iterator it = functions.find(addr);
 
@@ -114,8 +113,7 @@ bool ReadAnnotatedAssembly(const std::string& filename)
 				else
 				{
 					// Remove hex notation
-					if ((int)i == first_hex + 3 &&
-						(first_hex == 0 || line[first_hex - 1] != 'x') &&
+					if ((int)i == first_hex + 3 && (first_hex == 0 || line[first_hex - 1] != 'x') &&
 						(i >= len - 1 || line[i + 1] == ' '))
 					{
 						hex_found = true;
@@ -221,7 +219,7 @@ void AutoDisassembly(u16 start_addr, u16 end_addr)
 	DSPDisassembler disasm(settings);
 
 	u16 addr = start_addr;
-	const u16 *ptr = (start_addr >> 15) ? g_dsp.irom : g_dsp.iram;
+	const u16* ptr = (start_addr >> 15) ? g_dsp.irom : g_dsp.iram;
 	while (addr < end_addr)
 	{
 		line_to_addr[line_counter] = addr;
@@ -234,7 +232,7 @@ void AutoDisassembly(u16 start_addr, u16 end_addr)
 			break;
 		}
 
-		//NOTICE_LOG(DSPLLE, "Added %04x %i %s", addr, line_counter, buf.c_str());
+		// NOTICE_LOG(DSPLLE, "Added %04x %i %s", addr, line_counter, buf.c_str());
 		lines.push_back(buf);
 		line_counter++;
 	}

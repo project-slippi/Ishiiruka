@@ -12,17 +12,14 @@
 #include "Common/CommonTypes.h"
 #include "Common/FileUtil.h"
 #include "Common/Hash.h"
-#include "Common/StringUtil.h"
 #include "Common/Logging/Log.h"
+#include "Common/StringUtil.h"
 #include "Core/ConfigManager.h"
 #include "Core/HW/DSPHLE/UCodes/ROM.h"
 #include "Core/HW/DSPHLE/UCodes/UCodes.h"
 
-ROMUCode::ROMUCode(DSPHLE *dsphle, u32 crc)
-	: UCodeInterface(dsphle, crc)
-	, m_current_ucode()
-	, m_boot_task_num_steps(0)
-	, m_next_parameter(0)
+ROMUCode::ROMUCode(DSPHLE* dsphle, u32 crc)
+	: UCodeInterface(dsphle, crc), m_current_ucode(), m_boot_task_num_steps(0), m_next_parameter(0)
 {
 	DEBUG_LOG(DSPHLE, "UCode_Rom - initialized");
 	m_mail_handler.Clear();
@@ -30,12 +27,10 @@ ROMUCode::ROMUCode(DSPHLE *dsphle, u32 crc)
 }
 
 ROMUCode::~ROMUCode()
-{
-}
+{}
 
 void ROMUCode::Update()
-{
-}
+{}
 
 void ROMUCode::HandleMail(u32 mail)
 {
@@ -68,7 +63,8 @@ void ROMUCode::HandleMail(u32 mail)
 			m_current_ucode.m_dmem_length = mail & 0xffff;
 			if (m_current_ucode.m_dmem_length)
 			{
-				NOTICE_LOG(DSPHLE, "m_current_ucode.m_dmem_length = 0x%04x.", m_current_ucode.m_dmem_length);
+				NOTICE_LOG(DSPHLE, "m_current_ucode.m_dmem_length = 0x%04x.",
+					m_current_ucode.m_dmem_length);
 			}
 			break;
 
@@ -85,27 +81,27 @@ void ROMUCode::HandleMail(u32 mail)
 			break;
 		}
 
-		// THE GODDAMN OVERWRITE WAS HERE. Without the return above, since BootUCode may delete "this", well ...
+		// THE GODDAMN OVERWRITE WAS HERE. Without the return above, since BootUCode may delete "this",
+		// well ...
 		m_next_parameter = 0;
 	}
 }
 
 void ROMUCode::BootUCode()
 {
-	u32 ector_crc = HashEctor(
-		(u8*)HLEMemory_Get_Pointer(m_current_ucode.m_ram_address),
+	u32 ector_crc = HashEctor((u8*)HLEMemory_Get_Pointer(m_current_ucode.m_ram_address),
 		m_current_ucode.m_length);
 
 	if (SConfig::GetInstance().m_DumpUCode)
 	{
-		std::string ucode_dump_path = StringFromFormat(
-			"%sDSP_UC_%08X.bin", File::GetUserPath(D_DUMPDSP_IDX).c_str(), ector_crc);
+		std::string ucode_dump_path =
+			StringFromFormat("%sDSP_UC_%08X.bin", File::GetUserPath(D_DUMPDSP_IDX).c_str(), ector_crc);
 
 		File::IOFile fp(ucode_dump_path, "wb");
 		if (fp)
 		{
 			fp.WriteArray((u8*)HLEMemory_Get_Pointer(m_current_ucode.m_ram_address),
-						  m_current_ucode.m_length);
+				m_current_ucode.m_length);
 		}
 	}
 
@@ -120,7 +116,7 @@ void ROMUCode::BootUCode()
 	m_dsphle->SetUCode(ector_crc);
 }
 
-void ROMUCode::DoState(PointerWrap &p)
+void ROMUCode::DoState(PointerWrap& p)
 {
 	p.Do(m_current_ucode);
 	p.Do(m_boot_task_num_steps);
@@ -128,4 +124,3 @@ void ROMUCode::DoState(PointerWrap &p)
 
 	DoStateShared(p);
 }
-

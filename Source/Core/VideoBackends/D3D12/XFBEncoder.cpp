@@ -113,7 +113,7 @@ void XFBEncoder::EncodeTextureToRam(u8* dst, u32 dst_pitch, u32 dst_height,
 
 	// Copy from YUYV intermediate texture to readback buffer. It's likely the pitch here is going to be different to dst_pitch.
 	u32 readback_pitch = ROUND_UP(dst_width * sizeof(u16), D3D12_TEXTURE_DATA_PITCH_ALIGNMENT);
-	D3D12_PLACED_SUBRESOURCE_FOOTPRINT dst_footprint = { 0,{ DXGI_FORMAT_R8G8B8A8_UNORM, dst_texture_width, dst_height, 1, readback_pitch } };
+	D3D12_PLACED_SUBRESOURCE_FOOTPRINT dst_footprint = {0,{ DXGI_FORMAT_R8G8B8A8_UNORM, dst_texture_width, dst_height, 1, readback_pitch }};
 	CD3DX12_TEXTURE_COPY_LOCATION dst_location(m_readback_buffer, dst_footprint);
 	CD3DX12_TEXTURE_COPY_LOCATION src_location(m_yuyv_texture->GetTex(), 0);
 	CD3DX12_BOX src_box(0, 0, dst_texture_width, dst_height);
@@ -126,7 +126,7 @@ void XFBEncoder::EncodeTextureToRam(u8* dst, u32 dst_pitch, u32 dst_height,
 	// Copy from the readback buffer to dst.
 	// Can't be done as one memcpy due to pitch difference.
 	void* readback_texture_map;
-	D3D12_RANGE read_range = { 0, readback_pitch * dst_height };
+	D3D12_RANGE read_range = {0, readback_pitch * dst_height};
 	CheckHR(m_readback_buffer->Map(0, &read_range, &readback_texture_map));
 
 	for (u32 row = 0; row < dst_height; row++)
@@ -154,7 +154,7 @@ void XFBEncoder::DecodeToTexture(D3DTexture2D* dst_texture, const u8* src, u32 s
 	}
 
 	// Copy from upload buffer to intermediate YUYV texture.
-	D3D12_PLACED_SUBRESOURCE_FOOTPRINT src_footprint = { m_upload_buffer->GetOffsetOfCurrentAllocation(),{ DXGI_FORMAT_R8G8B8A8_UNORM, src_width / 2, src_height, 1, buffer_pitch } };
+	D3D12_PLACED_SUBRESOURCE_FOOTPRINT src_footprint = {m_upload_buffer->GetOffsetOfCurrentAllocation(),{ DXGI_FORMAT_R8G8B8A8_UNORM, src_width / 2, src_height, 1, buffer_pitch }};
 	CD3DX12_TEXTURE_COPY_LOCATION src_location(m_upload_buffer->GetBuffer(), src_footprint);
 	CD3DX12_TEXTURE_COPY_LOCATION dst_location(m_yuyv_texture->GetTex(), 0);
 	CD3DX12_BOX src_box(0, 0, src_width / 2, src_height);

@@ -21,7 +21,6 @@
 
 namespace DiscIO
 {
-
 void SectorReader::SetSectorSize(int blocksize)
 {
 	m_block_size = std::max(blocksize, 0);
@@ -40,12 +39,12 @@ void SectorReader::SetChunkSize(int block_cnt)
 }
 
 SectorReader::~SectorReader()
-{
-}
+{}
 
 const SectorReader::Cache* SectorReader::FindCacheLine(u64 block_num)
 {
-	auto itr = std::find_if(m_cache.begin(), m_cache.end(), [&](const Cache& entry)
+	auto itr = std::find_if(m_cache.begin(), m_cache.end(),
+		[&](const Cache& entry)
 	{
 		return entry.Contains(block_num);
 	});
@@ -94,7 +93,7 @@ const SectorReader::Cache* SectorReader::GetCacheLine(u64 block_num)
 bool SectorReader::Read(u64 offset, u64 size, u8* out_ptr)
 {
 	u64 remain = size;
-	u64 block  = 0;
+	u64 block = 0;
 	u32 position_in_block = static_cast<u32>(offset % m_block_size);
 
 	while (remain > 0)
@@ -110,13 +109,12 @@ bool SectorReader::Read(u64 offset, u64 size, u8* out_ptr)
 		u32 can_read = m_block_size * cache->num_blocks - read_offset;
 		u32 was_read = static_cast<u32>(std::min<u64>(can_read, remain));
 
-		std::copy(cache->data.begin() + read_offset,
-		          cache->data.begin() + read_offset + was_read,
-		          out_ptr);
+		std::copy(cache->data.begin() + read_offset, cache->data.begin() + read_offset + was_read,
+			out_ptr);
 
-		offset  += was_read;
+		offset += was_read;
 		out_ptr += was_read;
-		remain  -= was_read;
+		remain -= was_read;
 		position_in_block = 0;
 	}
 	return true;
@@ -136,7 +134,7 @@ bool SectorReader::ReadMultipleAlignedBlocks(u64 block_num, u64 cnt_blocks, u8* 
 
 u32 SectorReader::ReadChunk(u8* buffer, u64 chunk_num)
 {
-	u64 block_num  = chunk_num * m_chunk_blocks;
+	u64 block_num = chunk_num * m_chunk_blocks;
 	u32 cnt_blocks = m_chunk_blocks;
 
 	// If we are reading the end of a disk, there may not be enough blocks to
@@ -149,9 +147,7 @@ u32 SectorReader::ReadChunk(u8* buffer, u64 chunk_num)
 	{
 		if (cnt_blocks < m_chunk_blocks)
 		{
-			std::fill(buffer + cnt_blocks * m_block_size,
-			          buffer + m_chunk_blocks * m_block_size,
-			          0u);
+			std::fill(buffer + cnt_blocks * m_block_size, buffer + m_chunk_blocks * m_block_size, 0u);
 		}
 		return cnt_blocks;
 	}

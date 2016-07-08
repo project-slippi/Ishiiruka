@@ -11,21 +11,21 @@
 // Lighting
 
 // Projection
-enum : u32
+enum: u32
 {
 	XF_TEXPROJ_ST = 0,
 	XF_TEXPROJ_STQ = 1
 };
 
 // Input form
-enum : u32
+enum: u32
 {
 	XF_TEXINPUT_AB11 = 0,
 	XF_TEXINPUT_ABC1 = 1
 };
 
 // Texture generation type
-enum : u32
+enum: u32
 {
 	XF_TEXGEN_REGULAR = 0,
 	XF_TEXGEN_EMBOSS_MAP = 1, // Used when bump mapping
@@ -34,7 +34,7 @@ enum : u32
 };
 
 // Source row
-enum : u32
+enum: u32
 {
 	XF_SRCGEOM_INROW = 0, // Input is abc
 	XF_SRCNORMAL_INROW = 1, // Input is abc
@@ -52,14 +52,14 @@ enum : u32
 };
 
 // Control source
-enum : u32
+enum: u32
 {
 	GX_SRC_REG = 0,
 	GX_SRC_VTX = 1
 };
 
 // Light diffuse attenuation function
-enum : u32
+enum: u32
 {
 	LIGHTDIF_NONE = 0,
 	LIGHTDIF_SIGN = 1,
@@ -67,7 +67,7 @@ enum : u32
 };
 
 // Light attenuation function
-enum : u32
+enum: u32
 {
 	LIGHTATTN_NONE = 0, // No attenuation
 	LIGHTATTN_SPEC = 1, // Point light attenuation
@@ -76,7 +76,7 @@ enum : u32
 };
 
 // Projection type
-enum : u32
+enum: u32
 {
 	GX_PERSPECTIVE = 0,
 	GX_ORTHOGRAPHIC = 1

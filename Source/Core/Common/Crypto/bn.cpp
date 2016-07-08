@@ -22,7 +22,8 @@ int bn_compare(const u8* a, const u8* b, u32 n)
 {
 	u32 i;
 
-	for (i = 0; i < n; i++) {
+	for (i = 0; i < n; i++)
+	{
 		if (a[i] < b[i])
 			return -1;
 		if (a[i] > b[i])
@@ -39,7 +40,8 @@ void bn_sub_modulus(u8* a, const u8* N, u32 n)
 	u8 c;
 
 	c = 0;
-	for (i = n - 1; i < n; i--) {
+	for (i = n - 1; i < n; i--)
+	{
 		dig = N[i] + c;
 		c = (a[i] < dig);
 		a[i] -= dig;
@@ -53,7 +55,8 @@ void bn_add(u8* d, const u8* a, const u8* b, const u8* N, u32 n)
 	u8 c;
 
 	c = 0;
-	for (i = n - 1; i < n; i--) {
+	for (i = n - 1; i < n; i--)
+	{
 		dig = a[i] + b[i] + c;
 		c = (dig >= 0x100);
 		d[i] = dig;
@@ -74,7 +77,8 @@ void bn_mul(u8* d, const u8* a, const u8* b, const u8* N, u32 n)
 	bn_zero(d, n);
 
 	for (i = 0; i < n; i++)
-		for (mask = 0x80; mask != 0; mask >>= 1) {
+		for (mask = 0x80; mask != 0; mask >>= 1)
+		{
 			bn_add(d, d, d, N, n);
 			if ((a[i] & mask) != 0)
 				bn_add(d, d, b, N, n);
@@ -88,9 +92,10 @@ void bn_exp(u8* d, const u8* a, const u8* N, u32 n, const u8* e, u32 en)
 	u8 mask;
 
 	bn_zero(d, n);
-	d[n-1] = 1;
+	d[n - 1] = 1;
 	for (i = 0; i < en; i++)
-		for (mask = 0x80; mask != 0; mask >>= 1) {
+		for (mask = 0x80; mask != 0; mask >>= 1)
+		{
 			bn_mul(t, d, d, N, n);
 			if ((e[i] & mask) != 0)
 				bn_mul(d, t, a, N, n);
@@ -106,7 +111,7 @@ void bn_inv(u8* d, const u8* a, const u8* N, u32 n)
 
 	bn_copy(t, N, n);
 	bn_zero(s, n);
-	s[n-1] = 2;
+	s[n - 1] = 2;
 	bn_sub_modulus(t, s, n);
 	bn_exp(d, a, N, n, t, n);
 }

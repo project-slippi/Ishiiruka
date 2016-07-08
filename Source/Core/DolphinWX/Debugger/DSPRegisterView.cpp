@@ -27,8 +27,7 @@ wxString CDSPRegTable::GetValue(int row, int col)
 }
 
 void CDSPRegTable::SetValue(int, int, const wxString &)
-{
-}
+{}
 
 void CDSPRegTable::UpdateCachedRegs()
 {

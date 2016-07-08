@@ -56,7 +56,7 @@ void G_SPXP41_pvt::Initialize(std::map<u64, TCompiledLoaderFunction> &pvlmap)
 #endif
 	{
 		pvlmap[23036678854665] = TemplatedLoader<0, 0x000f0300u, 0x41200009u, 0x00000009u, 0x00000000u>;
-	}	
+	}
 	// P_mtx1_3_I16_flt_Nrm_0_0_I16_flt_T0_mtx1_1_I16_flt_
 // num_verts= 121562691
 #if _M_SSE >= 0x301

@@ -2,35 +2,37 @@
 // Licensed under GPLv2+
 // Refer to the license.txt file included.
 
+#include <mutex>
+
 #include "Common/Thread.h"
 #include "InputCommon/ControllerInterface/ControllerInterface.h"
 
 #ifdef CIFACE_USE_XINPUT
-	#include "InputCommon/ControllerInterface/XInput/XInput.h"
+#include "InputCommon/ControllerInterface/XInput/XInput.h"
 #endif
 #ifdef CIFACE_USE_DINPUT
-	#include "InputCommon/ControllerInterface/DInput/DInput.h"
+#include "InputCommon/ControllerInterface/DInput/DInput.h"
 #endif
 #ifdef CIFACE_USE_XLIB
-	#include "InputCommon/ControllerInterface/Xlib/Xlib.h"
-	#ifdef CIFACE_USE_X11_XINPUT2
-		#include "InputCommon/ControllerInterface/Xlib/XInput2.h"
-	#endif
+#include "InputCommon/ControllerInterface/Xlib/Xlib.h"
+#ifdef CIFACE_USE_X11_XINPUT2
+#include "InputCommon/ControllerInterface/Xlib/XInput2.h"
+#endif
 #endif
 #ifdef CIFACE_USE_OSX
-	#include "InputCommon/ControllerInterface/OSX/OSX.h"
+#include "InputCommon/ControllerInterface/OSX/OSX.h"
 #endif
 #ifdef CIFACE_USE_SDL
-	#include "InputCommon/ControllerInterface/SDL/SDL.h"
+#include "InputCommon/ControllerInterface/SDL/SDL.h"
 #endif
 #ifdef CIFACE_USE_ANDROID
-	#include "InputCommon/ControllerInterface/Android/Android.h"
+#include "InputCommon/ControllerInterface/Android/Android.h"
 #endif
 #ifdef CIFACE_USE_EVDEV
-	#include "InputCommon/ControllerInterface/evdev/evdev.h"
+#include "InputCommon/ControllerInterface/evdev/evdev.h"
 #endif
 #ifdef CIFACE_USE_PIPES
-	#include "InputCommon/ControllerInterface/Pipes/Pipes.h"
+#include "InputCommon/ControllerInterface/Pipes/Pipes.h"
 #endif
 
 using namespace ciface::ExpressionParser;
@@ -55,31 +57,31 @@ void ControllerInterface::Initialize(void* const hwnd)
 	m_hwnd = hwnd;
 
 #ifdef CIFACE_USE_DINPUT
-	ciface::DInput::Init(m_devices, (HWND)hwnd);
+	ciface::DInput::Init((HWND)hwnd);
 #endif
 #ifdef CIFACE_USE_XINPUT
-	ciface::XInput::Init(m_devices);
+	ciface::XInput::Init();
 #endif
 #ifdef CIFACE_USE_XLIB
-	ciface::Xlib::Init(m_devices, hwnd);
-	#ifdef CIFACE_USE_X11_XINPUT2
-	ciface::XInput2::Init(m_devices, hwnd);
-	#endif
+	ciface::Xlib::Init(hwnd);
+#ifdef CIFACE_USE_X11_XINPUT2
+	ciface::XInput2::Init(hwnd);
+#endif
 #endif
 #ifdef CIFACE_USE_OSX
-	ciface::OSX::Init(m_devices, hwnd);
+	ciface::OSX::Init(hwnd);
 #endif
 #ifdef CIFACE_USE_SDL
-	ciface::SDL::Init(m_devices);
+	ciface::SDL::Init();
 #endif
 #ifdef CIFACE_USE_ANDROID
-	ciface::Android::Init(m_devices);
+	ciface::Android::Init();
 #endif
 #ifdef CIFACE_USE_EVDEV
-	ciface::evdev::Init(m_devices);
+	ciface::evdev::Init();
 #endif
 #ifdef CIFACE_USE_PIPES
-	ciface::Pipes::Init(m_devices);
+	ciface::Pipes::Init();
 #endif
 
 	m_is_init = true;
@@ -104,14 +106,13 @@ void ControllerInterface::Shutdown()
 	if (!m_is_init)
 		return;
 
-	for (ciface::Core::Device* d : m_devices)
+	std::lock_guard<std::mutex> lk(m_devices_mutex);
+
+	for (const auto& d : m_devices)
 	{
 		// Set outputs to ZERO before destroying device
 		for (ciface::Core::Device::Output* o : d->Outputs())
 			o->SetState(0);
-
-		// Delete device
-		delete d;
 	}
 
 	m_devices.clear();
@@ -123,7 +124,7 @@ void ControllerInterface::Shutdown()
 	// nothing needed
 #endif
 #ifdef CIFACE_USE_XLIB
-	// nothing needed
+// nothing needed
 #endif
 #ifdef CIFACE_USE_OSX
 	ciface::OSX::DeInit();
@@ -139,6 +140,12 @@ void ControllerInterface::Shutdown()
 	m_is_init = false;
 }
 
+void ControllerInterface::AddDevice(std::shared_ptr<ciface::Core::Device> device)
+{
+	std::lock_guard<std::mutex> lk(m_devices_mutex);
+	m_devices.emplace_back(std::move(device));
+}
+
 //
 // UpdateInput
 //
@@ -146,7 +153,8 @@ void ControllerInterface::Shutdown()
 //
 void ControllerInterface::UpdateInput()
 {
-	for (ciface::Core::Device* d : m_devices)
+	std::lock_guard<std::mutex> lk(m_devices_mutex);
+	for (const auto& d : m_devices)
 		d->UpdateInput();
 }
 
@@ -156,7 +164,7 @@ void ControllerInterface::UpdateInput()
 // Gets the state of an input reference
 // override function for ControlReference::State ...
 //
-ControlState ControllerInterface::InputReference::State( const ControlState ignore )
+ControlState ControllerInterface::InputReference::State(const ControlState ignore)
 {
 	if (parsed_expression)
 		return parsed_expression->GetValue() * range;
@@ -168,7 +176,8 @@ ControlState ControllerInterface::InputReference::State( const ControlState igno
 // OutputReference :: State
 //
 // Set the state of all binded outputs
-// overrides ControlReference::State .. combined them so I could make the GUI simple / inputs == same as outputs one list
+// overrides ControlReference::State .. combined them so I could make the GUI simple / inputs ==
+// same as outputs one list
 // I was lazy and it works so watever
 //
 ControlState ControllerInterface::OutputReference::State(const ControlState state)
@@ -184,8 +193,8 @@ ControlState ControllerInterface::OutputReference::State(const ControlState stat
 // Updates a controlreference's binded devices/controls
 // need to call this to re-parse a control reference's expression after changing it
 //
-void ControllerInterface::UpdateReference(ControllerInterface::ControlReference* ref
-	, const ciface::Core::DeviceQualifier& default_device) const
+void ControllerInterface::UpdateReference(ControllerInterface::ControlReference* ref,
+	const ciface::Core::DeviceQualifier& default_device) const
 {
 	delete ref->parsed_expression;
 	ref->parsed_expression = nullptr;
@@ -204,7 +213,9 @@ void ControllerInterface::UpdateReference(ControllerInterface::ControlReference*
 // upon input, return pointer to detected Control
 // else return nullptr
 //
-ciface::Core::Device::Control* ControllerInterface::InputReference::Detect(const unsigned int ms, ciface::Core::Device* const device)
+ciface::Core::Device::Control*
+ControllerInterface::InputReference::Detect(const unsigned int ms,
+	ciface::Core::Device* const device)
 {
 	unsigned int time = 0;
 	std::vector<bool> states(device->Inputs().size());
@@ -214,8 +225,7 @@ ciface::Core::Device::Control* ControllerInterface::InputReference::Detect(const
 
 	// get starting state of all inputs,
 	// so we can ignore those that were activated at time of Detect start
-	std::vector<ciface::Core::Device::Input*>::const_iterator
-		i = device->Inputs().begin(),
+	std::vector<ciface::Core::Device::Input *>::const_iterator i = device->Inputs().begin(),
 		e = device->Inputs().end();
 	for (std::vector<bool>::iterator state = states.begin(); i != e; ++i)
 		*state++ = ((*i)->GetState() > (1 - INPUT_DETECT_THRESHOLD));
@@ -224,7 +234,7 @@ ciface::Core::Device::Control* ControllerInterface::InputReference::Detect(const
 	{
 		device->UpdateInput();
 		i = device->Inputs().begin();
-		for (std::vector<bool>::iterator state = states.begin(); i != e; ++i,++state)
+		for (std::vector<bool>::iterator state = states.begin(); i != e; ++i, ++state)
 		{
 			// detected an input
 			if ((*i)->IsDetectable() && (*i)->GetState() > INPUT_DETECT_THRESHOLD)
@@ -239,7 +249,8 @@ ciface::Core::Device::Control* ControllerInterface::InputReference::Detect(const
 				*state = false;
 			}
 		}
-		Common::SleepCurrentThread(10); time += 10;
+		Common::SleepCurrentThread(10);
+		time += 10;
 	}
 
 	// no input was detected
@@ -249,12 +260,16 @@ ciface::Core::Device::Control* ControllerInterface::InputReference::Detect(const
 //
 // OutputReference :: Detect
 //
-// Totally different from the inputReference detect / I have them combined so it was simpler to make the GUI.
-// The GUI doesn't know the difference between an input and an output / it's odd but I was lazy and it was easy
+// Totally different from the inputReference detect / I have them combined so it was simpler to make
+// the GUI.
+// The GUI doesn't know the difference between an input and an output / it's odd but I was lazy and
+// it was easy
 //
 // set all binded outputs to <range> power for x milliseconds return false
 //
-ciface::Core::Device::Control* ControllerInterface::OutputReference::Detect(const unsigned int ms, ciface::Core::Device* const device)
+ciface::Core::Device::Control*
+ControllerInterface::OutputReference::Detect(const unsigned int ms,
+	ciface::Core::Device* const device)
 {
 	// ignore device
 

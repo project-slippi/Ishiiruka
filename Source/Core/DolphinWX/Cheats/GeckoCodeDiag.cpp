@@ -27,8 +27,8 @@ namespace Gecko
 {
 
 static const wxString wxstr_name(wxTRANSLATE("Name: ")),
-	wxstr_notes(wxTRANSLATE("Notes: ")),
-	wxstr_creator(wxTRANSLATE("Creator: "));
+wxstr_notes(wxTRANSLATE("Notes: ")),
+wxstr_creator(wxTRANSLATE("Creator: "));
 
 CodeConfigPanel::CodeConfigPanel(wxWindow* const parent)
 	: wxPanel(parent)
@@ -48,7 +48,7 @@ CodeConfigPanel::CodeConfigPanel(wxWindow* const parent)
 	// sizers
 	wxBoxSizer* const sizer_infobox = new wxBoxSizer(wxVERTICAL);
 	sizer_infobox->Add(m_infobox.label_name, 0, wxBOTTOM, 5);
-	sizer_infobox->Add(m_infobox.label_creator, 0,  wxBOTTOM, 5);
+	sizer_infobox->Add(m_infobox.label_creator, 0, wxBOTTOM, 5);
 	sizer_infobox->Add(m_infobox.label_notes, 0, wxBOTTOM, 5);
 	sizer_infobox->Add(m_infobox.textctrl_notes, 0, wxBOTTOM | wxEXPAND, 5);
 	sizer_infobox->Add(m_infobox.listbox_codes, 1, wxEXPAND, 5);
@@ -85,7 +85,7 @@ void CodeConfigPanel::UpdateCodeList(bool checkRunning)
 		m_listbox_gcodes->Append(StrToWxStr(code.name));
 		if (code.enabled)
 		{
-			m_listbox_gcodes->Check(m_listbox_gcodes->GetCount()-1, true);
+			m_listbox_gcodes->Check(m_listbox_gcodes->GetCount() - 1, true);
 		}
 	}
 
@@ -159,7 +159,7 @@ void CodeConfigPanel::DownloadCodes(wxCommandEvent&)
 	case 'G':
 		break;
 	default:
-	// All channels (WiiWare, VirtualConsole, etc) are identified by their first four characters
+		// All channels (WiiWare, VirtualConsole, etc) are identified by their first four characters
 		gameid = m_gameid.substr(0, 4);
 		break;
 	}
@@ -208,7 +208,7 @@ void CodeConfigPanel::DownloadCodes(wxCommandEvent&)
 			switch (read_state)
 			{
 				// read new code
-			case 0 :
+			case 0:
 			{
 				std::istringstream ssline(line);
 				// stop at [ character (beginning of contributor name)
@@ -219,10 +219,10 @@ void CodeConfigPanel::DownloadCodes(wxCommandEvent&)
 				std::getline(ssline, gcode.creator, ']');
 				read_state = 1;
 			}
-				break;
+			break;
 
-				// read code lines
-			case 1 :
+			// read code lines
+			case 1:
 			{
 				std::istringstream ssline(line);
 				std::string addr, data;
@@ -244,10 +244,10 @@ void CodeConfigPanel::DownloadCodes(wxCommandEvent&)
 				}
 
 			}
-				break;
+			break;
 
-				// read comment lines
-			case 2 :
+			// read comment lines
+			case 2:
 				// append comment line
 				gcode.notes.push_back(line);
 				break;

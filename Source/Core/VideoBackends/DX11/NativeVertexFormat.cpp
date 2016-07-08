@@ -13,8 +13,8 @@
 namespace DX11
 {
 
-class D3DVertexFormat : public NativeVertexFormat
-{	
+class D3DVertexFormat: public NativeVertexFormat
+{
 public:
 	D3DVertexFormat(const PortableVertexDeclaration &_vtx_decl);
 	void SetupVertexPointers() override;
@@ -33,7 +33,7 @@ NativeVertexFormat* VertexManager::CreateNativeVertexFormat(const PortableVertex
 DXGI_FORMAT VarToD3D(EVTXComponentFormat t, int size)
 {
 	DXGI_FORMAT retval = DXGI_FORMAT_UNKNOWN;
-	static const DXGI_FORMAT lookup[4][5] = 
+	static const DXGI_FORMAT lookup[4][5] =
 	{
 		{
 			DXGI_FORMAT_R8_UNORM, DXGI_FORMAT_R8_SNORM, DXGI_FORMAT_R16_UNORM, DXGI_FORMAT_R16_SNORM, DXGI_FORMAT_R32_FLOAT
@@ -46,7 +46,7 @@ DXGI_FORMAT VarToD3D(EVTXComponentFormat t, int size)
 		},
 		{
 			DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_FORMAT_R8G8B8A8_SNORM, DXGI_FORMAT_R16G16B16A16_UNORM, DXGI_FORMAT_R16G16B16A16_SNORM, DXGI_FORMAT_R32G32B32A32_FLOAT
-		} 
+		}
 	};
 	if (size < 5)
 	{
@@ -59,7 +59,7 @@ DXGI_FORMAT VarToD3D(EVTXComponentFormat t, int size)
 	return retval;
 }
 
-D3DVertexFormat::D3DVertexFormat(const PortableVertexDeclaration &_vtx_decl) : m_num_elems(0)
+D3DVertexFormat::D3DVertexFormat(const PortableVertexDeclaration &_vtx_decl): m_num_elems(0)
 {
 	vtx_decl = _vtx_decl;
 	const AttributeFormat* format = &vtx_decl.position;
@@ -111,10 +111,10 @@ D3DVertexFormat::D3DVertexFormat(const PortableVertexDeclaration &_vtx_decl) : m
 			++m_num_elems;
 		}
 	}
-	
+
 	format = &vtx_decl.posmtx;
 	if (format->enable)
- 	{
+	{
 		m_elems[m_num_elems].SemanticName = "BLENDINDICES";
 		m_elems[m_num_elems].AlignedByteOffset = format->offset;
 		m_elems[m_num_elems].Format = VarToD3D(format->type, format->components);

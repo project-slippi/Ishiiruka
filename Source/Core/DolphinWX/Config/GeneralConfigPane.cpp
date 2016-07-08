@@ -16,23 +16,22 @@
 #include "Core/ConfigManager.h"
 #include "Core/Core.h"
 #include "Core/PowerPC/PowerPC.h"
-#include "DolphinWX/Frame.h"
-#include "DolphinWX/Main.h"
 #include "DolphinWX/Config/GeneralConfigPane.h"
 #include "DolphinWX/Debugger/CodeWindow.h"
+#include "DolphinWX/Frame.h"
+#include "DolphinWX/Main.h"
 
-GeneralConfigPane::GeneralConfigPane(wxWindow* parent, wxWindowID id)
-	: wxPanel(parent, id)
+GeneralConfigPane::GeneralConfigPane(wxWindow* parent, wxWindowID id): wxPanel(parent, id)
 {
 	cpu_cores = {
-		{ PowerPC::CORE_INTERPRETER, _("Interpreter (slowest)") },
-		{ PowerPC::CORE_CACHEDINTERPRETER, _("Cached Interpreter (slower)") },
-#ifdef _M_X86_64
-		{ PowerPC::CORE_JIT64, _("JIT Recompiler (recommended)") },
-		{ PowerPC::CORE_JITIL64, _("JITIL Recompiler (slow, experimental)") },
-#elif defined(_M_ARM_64)
-		{ PowerPC::CORE_JITARM64, _("JIT Arm64 (experimental)") },
-#endif
+		 {PowerPC::CORE_INTERPRETER, _("Interpreter (slowest)")},
+		 {PowerPC::CORE_CACHEDINTERPRETER, _("Cached Interpreter (slower)")},
+ #ifdef _M_X86_64
+		 {PowerPC::CORE_JIT64, _("JIT Recompiler (recommended)")},
+		 {PowerPC::CORE_JITIL64, _("JITIL Recompiler (slow, experimental)")},
+ #elif defined(_M_ARM_64)
+		 {PowerPC::CORE_JITARM64, _("JIT Arm64 (experimental)")},
+ #endif
 	};
 
 	InitializeGUI();
@@ -43,7 +42,7 @@ GeneralConfigPane::GeneralConfigPane(wxWindow* parent, wxWindowID id)
 void GeneralConfigPane::InitializeGUI()
 {
 	m_throttler_array_string.Add(_("Unlimited"));
-	for (int i = 10; i <= 200; i += 10) // from 10% to 200%
+	for (int i = 10; i <= 200; i += 10)  // from 10% to 200%
 	{
 		if (i == 100)
 			m_throttler_array_string.Add(wxString::Format(_("%i%% (Normal Speed)"), i));
@@ -54,51 +53,73 @@ void GeneralConfigPane::InitializeGUI()
 	for (const CPUCore& cpu_core : cpu_cores)
 		m_cpu_engine_array_string.Add(cpu_core.name);
 
-	m_dual_core_checkbox   = new wxCheckBox(this, wxID_ANY, _("Enable Dual Core (speedup)"));
-	m_idle_skip_checkbox   = new wxCheckBox(this, wxID_ANY, _("Enable Idle Skipping (speedup)"));
-	m_cheats_checkbox      = new wxCheckBox(this, wxID_ANY, _("Enable Cheats"));
+	m_dual_core_checkbox = new wxCheckBox(this, wxID_ANY, _("Enable Dual Core (speedup)"));
+	m_idle_skip_checkbox = new wxCheckBox(this, wxID_ANY, _("Enable Idle Skipping (speedup)"));
+	m_cheats_checkbox = new wxCheckBox(this, wxID_ANY, _("Enable Cheats"));
 	m_force_ntscj_checkbox = new wxCheckBox(this, wxID_ANY, _("Force Console as NTSC-J"));
-	m_analytics_checkbox   = new wxCheckBox(this, wxID_ANY, _("Enable Usage Statistics Reporting"));
+	m_analytics_checkbox = new wxCheckBox(this, wxID_ANY, _("Enable Usage Statistics Reporting"));
 #ifdef __APPLE__
-	m_analytics_new_id     = new wxButton(this, wxID_ANY, _("Generate a New Statistics Identity"), wxDefaultPosition, wxSize(350, 25));
+	m_analytics_new_id = new wxButton(this, wxID_ANY, _("Generate a New Statistics Identity"),
+		wxDefaultPosition, wxSize(350, 25));
 #else
-	m_analytics_new_id     = new wxButton(this, wxID_ANY, _("Generate a New Statistics Identity"));
+	m_analytics_new_id = new wxButton(this, wxID_ANY, _("Generate a New Statistics Identity"));
 #endif
-	m_throttler_choice     = new wxChoice(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, m_throttler_array_string);
-	m_cpu_engine_radiobox  = new wxRadioBox(this, wxID_ANY, _("CPU Emulator Engine"), wxDefaultPosition, wxDefaultSize, m_cpu_engine_array_string, 0, wxRA_SPECIFY_ROWS);
+	m_throttler_choice =
+		new wxChoice(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, m_throttler_array_string);
+	m_cpu_engine_radiobox =
+		new wxRadioBox(this, wxID_ANY, _("CPU Emulator Engine"), wxDefaultPosition, wxDefaultSize,
+			m_cpu_engine_array_string, 0, wxRA_SPECIFY_ROWS);
 
-	m_dual_core_checkbox->SetToolTip(_("Splits the CPU and GPU threads so they can be run on separate cores.\nProvides major speed improvements on most modern PCs, but can cause occasional crashes/glitches."));
-	m_idle_skip_checkbox->SetToolTip(_("Attempt to detect and skip wait-loops.\nIf unsure, leave this checked."));
+	m_dual_core_checkbox->SetToolTip(
+		_("Splits the CPU and GPU threads so they can be run on separate cores.\nProvides major "
+			"speed improvements on most modern PCs, but can cause occasional crashes/glitches."));
+	m_idle_skip_checkbox->SetToolTip(
+		_("Attempt to detect and skip wait-loops.\nIf unsure, leave this checked."));
 	m_cheats_checkbox->SetToolTip(_("Enables the use of Action Replay and Gecko cheats."));
-	m_force_ntscj_checkbox->SetToolTip(_("Forces NTSC-J mode for using the Japanese ROM font.\nIf left unchecked, Dolphin defaults to NTSC-U and automatically enables this setting when playing Japanese games."));
-	m_analytics_checkbox->SetToolTip(_("Enables the collection and sharing of usage statistics data with the Dolphin development team. This data is used to improve the emulator and help us understand how our users interact with the system. No private data is ever collected."));
-	m_analytics_new_id->SetToolTip(_("Usage statistics reporting uses a unique random per-machine identifier to distinguish users from one another. This button generates a new random identifier for this machine which is dissociated from the previous one."));
-	m_throttler_choice->SetToolTip(_("Limits the emulation speed to the specified percentage.\nNote that raising or lowering the emulation speed will also raise or lower the audio pitch to prevent audio from stuttering."));
+	m_force_ntscj_checkbox->SetToolTip(
+		_("Forces NTSC-J mode for using the Japanese ROM font.\nIf left unchecked, Dolphin defaults "
+			"to NTSC-U and automatically enables this setting when playing Japanese games."));
+	m_analytics_checkbox->SetToolTip(
+		_("Enables the collection and sharing of usage statistics data with the Dolphin development "
+			"team. This data is used to improve the emulator and help us understand how our users "
+			"interact with the system. No private data is ever collected."));
+	m_analytics_new_id->SetToolTip(
+		_("Usage statistics reporting uses a unique random per-machine identifier to distinguish "
+			"users from one another. This button generates a new random identifier for this machine "
+			"which is dissociated from the previous one."));
+	m_throttler_choice->SetToolTip(_("Limits the emulation speed to the specified percentage.\nNote "
+		"that raising or lowering the emulation speed will also raise "
+		"or lower the audio pitch to prevent audio from stuttering."));
 
 	m_dual_core_checkbox->Bind(wxEVT_CHECKBOX, &GeneralConfigPane::OnDualCoreCheckBoxChanged, this);
 	m_idle_skip_checkbox->Bind(wxEVT_CHECKBOX, &GeneralConfigPane::OnIdleSkipCheckBoxChanged, this);
 	m_cheats_checkbox->Bind(wxEVT_CHECKBOX, &GeneralConfigPane::OnCheatCheckBoxChanged, this);
-	m_force_ntscj_checkbox->Bind(wxEVT_CHECKBOX, &GeneralConfigPane::OnForceNTSCJCheckBoxChanged, this);
+	m_force_ntscj_checkbox->Bind(wxEVT_CHECKBOX, &GeneralConfigPane::OnForceNTSCJCheckBoxChanged,
+		this);
 	m_analytics_checkbox->Bind(wxEVT_CHECKBOX, &GeneralConfigPane::OnAnalyticsCheckBoxChanged, this);
 	m_analytics_new_id->Bind(wxEVT_BUTTON, &GeneralConfigPane::OnAnalyticsNewIdButtonClick, this);
 	m_throttler_choice->Bind(wxEVT_CHOICE, &GeneralConfigPane::OnThrottlerChoiceChanged, this);
 	m_cpu_engine_radiobox->Bind(wxEVT_RADIOBOX, &GeneralConfigPane::OnCPUEngineRadioBoxChanged, this);
 
 	wxBoxSizer* const throttler_sizer = new wxBoxSizer(wxHORIZONTAL);
-	throttler_sizer->Add(new wxStaticText(this, wxID_ANY, _("Speed Limit:")), 0, wxALIGN_CENTER_VERTICAL | wxLEFT | wxRIGHT | wxBOTTOM, 5);
+	throttler_sizer->Add(new wxStaticText(this, wxID_ANY, _("Speed Limit:")), 0,
+		wxALIGN_CENTER_VERTICAL | wxLEFT | wxRIGHT | wxBOTTOM, 5);
 	throttler_sizer->Add(m_throttler_choice, 0, wxLEFT | wxRIGHT | wxBOTTOM | wxEXPAND, 5);
 
-	wxStaticBoxSizer* const basic_settings_sizer = new wxStaticBoxSizer(wxVERTICAL, this, _("Basic Settings"));
+	wxStaticBoxSizer* const basic_settings_sizer =
+		new wxStaticBoxSizer(wxVERTICAL, this, _("Basic Settings"));
 	basic_settings_sizer->Add(m_dual_core_checkbox, 0, wxALL, 5);
 	basic_settings_sizer->Add(m_idle_skip_checkbox, 0, wxALL, 5);
 	basic_settings_sizer->Add(m_cheats_checkbox, 0, wxALL, 5);
 	basic_settings_sizer->Add(throttler_sizer);
 
-	wxStaticBoxSizer* const analytics_sizer = new wxStaticBoxSizer(wxVERTICAL, this, _("Usage Statistics Reporting Settings"));
+	wxStaticBoxSizer* const analytics_sizer =
+		new wxStaticBoxSizer(wxVERTICAL, this, _("Usage Statistics Reporting Settings"));
 	analytics_sizer->Add(m_analytics_checkbox, 0, wxALL, 5);
 	analytics_sizer->Add(m_analytics_new_id, 0, wxALL, 5);
 
-	wxStaticBoxSizer* const advanced_settings_sizer = new wxStaticBoxSizer(wxVERTICAL, this, _("Advanced Settings"));
+	wxStaticBoxSizer* const advanced_settings_sizer =
+		new wxStaticBoxSizer(wxVERTICAL, this, _("Advanced Settings"));
 	advanced_settings_sizer->Add(m_cpu_engine_radiobox, 0, wxALL, 5);
 	advanced_settings_sizer->Add(m_force_ntscj_checkbox, 0, wxALL, 5);
 
@@ -177,7 +198,6 @@ void GeneralConfigPane::OnCPUEngineRadioBoxChanged(wxCommandEvent& event)
 
 	if (main_frame->g_pCodeWindow)
 	{
-
 		bool using_interp = (SConfig::GetInstance().iCPUCore == PowerPC::CORE_INTERPRETER);
 		main_frame->g_pCodeWindow->GetMenuBar()->Check(IDM_INTERPRETER, using_interp);
 	}

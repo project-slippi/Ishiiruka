@@ -50,7 +50,8 @@ public:
 	Renderer();
 	virtual ~Renderer();
 
-	enum PixelPerfQuery {
+	enum PixelPerfQuery
+	{
 		PP_ZCOMP_INPUT_ZCOMPLOC,
 		PP_ZCOMP_OUTPUT_ZCOMPLOC,
 		PP_ZCOMP_INPUT,
@@ -59,30 +60,56 @@ public:
 		PP_EFB_COPY_CLOCKS
 	};
 
-	virtual void SetColorMask() {}
-	virtual void SetBlendMode(bool forceUpdate) {}
-	virtual void SetScissorRect(const TargetRectangle& rc) {}
-	virtual void SetGenerationMode() {}
-	virtual void SetDepthMode() {}
-	virtual void SetLogicOpMode() {}
-	virtual void SetDitherMode() {}
-	virtual void SetSamplerState(int stage, int texindex, bool custom_tex) {}
-	virtual void SetInterlacingMode() {}
-	virtual void SetViewport() {}
+	virtual void SetColorMask()
+	{}
+	virtual void SetBlendMode(bool forceUpdate)
+	{}
+	virtual void SetScissorRect(const TargetRectangle& rc)
+	{}
+	virtual void SetGenerationMode()
+	{}
+	virtual void SetDepthMode()
+	{}
+	virtual void SetLogicOpMode()
+	{}
+	virtual void SetDitherMode()
+	{}
+	virtual void SetSamplerState(int stage, int texindex, bool custom_tex)
+	{}
+	virtual void SetInterlacingMode()
+	{}
+	virtual void SetViewport()
+	{}
 
-	virtual void ApplyState(bool bUseDstAlpha) {}
-	virtual void RestoreState() {}
+	virtual void ApplyState(bool bUseDstAlpha)
+	{}
+	virtual void RestoreState()
+	{}
 
-	virtual void ResetAPIState() {}
-	virtual void RestoreAPIState() {}
+	virtual void ResetAPIState()
+	{}
+	virtual void RestoreAPIState()
+	{}
 
 	// Ideal internal resolution - determined by display resolution (automatic scaling) and/or a multiple of the native EFB resolution
-	static int GetTargetWidth() { return s_target_width; }
-	static int GetTargetHeight() { return s_target_height; }
+	static int GetTargetWidth()
+	{
+		return s_target_width;
+	}
+	static int GetTargetHeight()
+	{
+		return s_target_height;
+	}
 
 	// Display resolution
-	static int GetBackbufferWidth() { return s_backbuffer_width; }
-	static int GetBackbufferHeight() { return s_backbuffer_height; }
+	static int GetBackbufferWidth()
+	{
+		return s_backbuffer_width;
+	}
+	static int GetBackbufferHeight()
+	{
+		return s_backbuffer_height;
+	}
 
 	static void SetWindowSize(int width, int height);
 
@@ -91,11 +118,17 @@ public:
 	// Use this to convert a whole native EFB rect to backbuffer coordinates
 	virtual TargetRectangle ConvertEFBRectangle(const EFBRectangle& rc) = 0;
 
-	static const TargetRectangle& GetTargetRectangle() { return target_rc; }
+	static const TargetRectangle& GetTargetRectangle()
+	{
+		return target_rc;
+	}
 	static void UpdateDrawRectangle(int backbuffer_width, int backbuffer_height);
 
 	// Window rectangle (client area of the render window)
-	static const TargetRectangle& GetWindowRectangle() { return window_rc; }
+	static const TargetRectangle& GetWindowRectangle()
+	{
+		return window_rc;
+	}
 
 	// Use this to convert a single target rectangle to two stereo rectangles
 	static void ConvertStereoRectangle(const TargetRectangle& rc, TargetRectangle& leftRc, TargetRectangle& rightRc);
@@ -105,8 +138,14 @@ public:
 	static int EFBToScaledY(int y);
 
 	// Floating point versions of the above - only use them if really necessary
-	static float EFBToScaledXf(float x) { return x * ((float)GetTargetWidth() / (float)EFB_WIDTH); }
-	static float EFBToScaledYf(float y) { return y * ((float)GetTargetHeight() / (float)EFB_HEIGHT); }
+	static float EFBToScaledXf(float x)
+	{
+		return x * ((float)GetTargetWidth() / (float)EFB_WIDTH);
+	}
+	static float EFBToScaledYf(float y)
+	{
+		return y * ((float)GetTargetHeight() / (float)EFB_HEIGHT);
+	}
 
 	// Random utilities
 	static void SetScreenshot(const std::string& filename);
@@ -122,7 +161,7 @@ public:
 	virtual void PokeEFB(EFBAccessType type, const EfbPokeData* data, size_t num_points) = 0;
 	virtual u16 BBoxRead(int index) = 0;
 	virtual void BBoxWrite(int index, u16 value) = 0;
-	
+
 	static void FlipImageData(u8* data, int w, int h, int pixel_width = 3);
 
 	// Finish up the current frame, print some stats
@@ -131,11 +170,20 @@ public:
 
 	virtual bool SaveScreenshot(const std::string &filename, const TargetRectangle &rc) = 0;
 
-	static PEControl::PixelFormat GetPrevPixelFormat() { return prev_efb_format; }
-	static void StorePixelFormat(PEControl::PixelFormat new_format) { prev_efb_format = new_format; }
+	static PEControl::PixelFormat GetPrevPixelFormat()
+	{
+		return prev_efb_format;
+	}
+	static void StorePixelFormat(PEControl::PixelFormat new_format)
+	{
+		prev_efb_format = new_format;
+	}
 
 
-	PostProcessor* GetPostProcessor() { return m_post_processor.get(); }
+	PostProcessor* GetPostProcessor()
+	{
+		return m_post_processor.get();
+	}
 	// Max height/width
 	virtual int GetMaxTextureSize() = 0;
 

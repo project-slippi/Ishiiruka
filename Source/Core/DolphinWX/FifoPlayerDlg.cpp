@@ -40,11 +40,10 @@ wxDEFINE_EVENT(RECORDING_FINISHED_EVENT, wxCommandEvent);
 wxDEFINE_EVENT(FRAME_WRITTEN_EVENT, wxCommandEvent);
 
 static std::recursive_mutex sMutex;
-wxEvtHandler *volatile FifoPlayerDlg::m_EvtHandler = nullptr;
+wxEvtHandler* volatile FifoPlayerDlg::m_EvtHandler = nullptr;
 
-FifoPlayerDlg::FifoPlayerDlg(wxWindow * const parent) :
-	wxDialog(parent, wxID_ANY, _("FIFO Player")),
-	m_search_result_idx(0), m_FramesToRecord(1)
+FifoPlayerDlg::FifoPlayerDlg(wxWindow* const parent)
+	: wxDialog(parent, wxID_ANY, _("FIFO Player")), m_search_result_idx(0), m_FramesToRecord(1)
 {
 	CreateGUIControls();
 
@@ -73,197 +72,215 @@ void FifoPlayerDlg::CreateGUIControls()
 	m_Notebook = new wxNotebook(this, wxID_ANY);
 
 	{
-	m_PlayPage = new wxPanel(m_Notebook, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL);
-	wxBoxSizer* sPlayPage;
-	sPlayPage = new wxBoxSizer(wxVERTICAL);
+		m_PlayPage =
+			new wxPanel(m_Notebook, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL);
+		wxBoxSizer* sPlayPage;
+		sPlayPage = new wxBoxSizer(wxVERTICAL);
 
-	wxStaticBoxSizer* sPlayInfo;
-	sPlayInfo = new wxStaticBoxSizer(new wxStaticBox(m_PlayPage, wxID_ANY, _("File Info")), wxVERTICAL);
+		wxStaticBoxSizer* sPlayInfo;
+		sPlayInfo =
+			new wxStaticBoxSizer(new wxStaticBox(m_PlayPage, wxID_ANY, _("File Info")), wxVERTICAL);
 
-	m_NumFramesLabel = new wxStaticText(m_PlayPage, wxID_ANY, wxEmptyString);
-	m_NumFramesLabel->Wrap(-1);
-	sPlayInfo->Add(m_NumFramesLabel, 0, wxALL, 5);
+		m_NumFramesLabel = new wxStaticText(m_PlayPage, wxID_ANY, wxEmptyString);
+		m_NumFramesLabel->Wrap(-1);
+		sPlayInfo->Add(m_NumFramesLabel, 0, wxALL, 5);
 
-	m_CurrentFrameLabel = new wxStaticText(m_PlayPage, wxID_ANY, wxEmptyString);
-	m_CurrentFrameLabel->Wrap(-1);
-	sPlayInfo->Add(m_CurrentFrameLabel, 0, wxALL, 5);
+		m_CurrentFrameLabel = new wxStaticText(m_PlayPage, wxID_ANY, wxEmptyString);
+		m_CurrentFrameLabel->Wrap(-1);
+		sPlayInfo->Add(m_CurrentFrameLabel, 0, wxALL, 5);
 
-	m_NumObjectsLabel = new wxStaticText(m_PlayPage, wxID_ANY, wxEmptyString);
-	m_NumObjectsLabel->Wrap(-1);
-	sPlayInfo->Add(m_NumObjectsLabel, 0, wxALL, 5);
+		m_NumObjectsLabel = new wxStaticText(m_PlayPage, wxID_ANY, wxEmptyString);
+		m_NumObjectsLabel->Wrap(-1);
+		sPlayInfo->Add(m_NumObjectsLabel, 0, wxALL, 5);
 
-	sPlayPage->Add(sPlayInfo, 1, wxEXPAND, 5);
+		sPlayPage->Add(sPlayInfo, 1, wxEXPAND, 5);
 
-	wxStaticBoxSizer* sFrameRange;
-	sFrameRange = new wxStaticBoxSizer(new wxStaticBox(m_PlayPage, wxID_ANY, _("Frame Range")), wxHORIZONTAL);
+		wxStaticBoxSizer* sFrameRange;
+		sFrameRange =
+			new wxStaticBoxSizer(new wxStaticBox(m_PlayPage, wxID_ANY, _("Frame Range")), wxHORIZONTAL);
 
-	m_FrameFromLabel = new wxStaticText(m_PlayPage, wxID_ANY, _("From"));
-	m_FrameFromLabel->Wrap(-1);
-	sFrameRange->Add(m_FrameFromLabel, 0, wxALL, 5);
+		m_FrameFromLabel = new wxStaticText(m_PlayPage, wxID_ANY, _("From"));
+		m_FrameFromLabel->Wrap(-1);
+		sFrameRange->Add(m_FrameFromLabel, 0, wxALL, 5);
 
-	m_FrameFromCtrl = new wxSpinCtrl(m_PlayPage, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxSP_ARROW_KEYS, 0, 10, 0);
-	sFrameRange->Add(m_FrameFromCtrl, 0, wxALL, 5);
+		m_FrameFromCtrl = new wxSpinCtrl(m_PlayPage, wxID_ANY, wxEmptyString, wxDefaultPosition,
+			wxDefaultSize, wxSP_ARROW_KEYS, 0, 10, 0);
+		sFrameRange->Add(m_FrameFromCtrl, 0, wxALL, 5);
 
-	m_FrameToLabel = new wxStaticText(m_PlayPage, wxID_ANY, _("To"));
-	m_FrameToLabel->Wrap(-1);
-	sFrameRange->Add(m_FrameToLabel, 0, wxALL, 5);
+		m_FrameToLabel = new wxStaticText(m_PlayPage, wxID_ANY, _("To"));
+		m_FrameToLabel->Wrap(-1);
+		sFrameRange->Add(m_FrameToLabel, 0, wxALL, 5);
 
-	m_FrameToCtrl = new wxSpinCtrl(m_PlayPage, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(-1, -1), wxSP_ARROW_KEYS, 0, 10, 0);
-	sFrameRange->Add(m_FrameToCtrl, 0, wxALL, 5);
+		m_FrameToCtrl = new wxSpinCtrl(m_PlayPage, wxID_ANY, wxEmptyString, wxDefaultPosition,
+			wxSize(-1, -1), wxSP_ARROW_KEYS, 0, 10, 0);
+		sFrameRange->Add(m_FrameToCtrl, 0, wxALL, 5);
 
-	sPlayPage->Add(sFrameRange, 0, wxEXPAND, 5);
+		sPlayPage->Add(sFrameRange, 0, wxEXPAND, 5);
 
-	wxStaticBoxSizer* sObjectRange;
-	sObjectRange = new wxStaticBoxSizer(new wxStaticBox(m_PlayPage, wxID_ANY, _("Object Range")), wxHORIZONTAL);
+		wxStaticBoxSizer* sObjectRange;
+		sObjectRange = new wxStaticBoxSizer(new wxStaticBox(m_PlayPage, wxID_ANY, _("Object Range")),
+			wxHORIZONTAL);
 
-	m_ObjectFromLabel = new wxStaticText(m_PlayPage, wxID_ANY, _("From"));
-	m_ObjectFromLabel->Wrap(-1);
-	sObjectRange->Add(m_ObjectFromLabel, 0, wxALL, 5);
+		m_ObjectFromLabel = new wxStaticText(m_PlayPage, wxID_ANY, _("From"));
+		m_ObjectFromLabel->Wrap(-1);
+		sObjectRange->Add(m_ObjectFromLabel, 0, wxALL, 5);
 
-	m_ObjectFromCtrl = new wxSpinCtrl(m_PlayPage, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxSP_ARROW_KEYS, 0, 10000, 0);
-	sObjectRange->Add(m_ObjectFromCtrl, 0, wxALL, 5);
+		m_ObjectFromCtrl = new wxSpinCtrl(m_PlayPage, wxID_ANY, wxEmptyString, wxDefaultPosition,
+			wxDefaultSize, wxSP_ARROW_KEYS, 0, 10000, 0);
+		sObjectRange->Add(m_ObjectFromCtrl, 0, wxALL, 5);
 
-	m_ObjectToLabel = new wxStaticText(m_PlayPage, wxID_ANY, _("To"));
-	m_ObjectToLabel->Wrap(-1);
-	sObjectRange->Add(m_ObjectToLabel, 0, wxALL, 5);
+		m_ObjectToLabel = new wxStaticText(m_PlayPage, wxID_ANY, _("To"));
+		m_ObjectToLabel->Wrap(-1);
+		sObjectRange->Add(m_ObjectToLabel, 0, wxALL, 5);
 
-	m_ObjectToCtrl = new wxSpinCtrl(m_PlayPage, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxSP_ARROW_KEYS, 0, 10000, 0);
-	sObjectRange->Add(m_ObjectToCtrl, 0, wxALL, 5);
+		m_ObjectToCtrl = new wxSpinCtrl(m_PlayPage, wxID_ANY, wxEmptyString, wxDefaultPosition,
+			wxDefaultSize, wxSP_ARROW_KEYS, 0, 10000, 0);
+		sObjectRange->Add(m_ObjectToCtrl, 0, wxALL, 5);
 
-	sPlayPage->Add(sObjectRange, 0, wxEXPAND, 5);
+		sPlayPage->Add(sObjectRange, 0, wxEXPAND, 5);
 
-	wxStaticBoxSizer* sPlayOptions;
-	sPlayOptions = new wxStaticBoxSizer(new wxStaticBox(m_PlayPage, wxID_ANY, _("Playback Options")), wxVERTICAL);
+		wxStaticBoxSizer* sPlayOptions;
+		sPlayOptions = new wxStaticBoxSizer(
+			new wxStaticBox(m_PlayPage, wxID_ANY, _("Playback Options")), wxVERTICAL);
 
-	m_EarlyMemoryUpdates = new wxCheckBox(m_PlayPage, wxID_ANY, _("Early Memory Updates"));
-	sPlayOptions->Add(m_EarlyMemoryUpdates, 0, wxALL, 5);
+		m_EarlyMemoryUpdates = new wxCheckBox(m_PlayPage, wxID_ANY, _("Early Memory Updates"));
+		sPlayOptions->Add(m_EarlyMemoryUpdates, 0, wxALL, 5);
 
-	sPlayPage->Add(sPlayOptions, 0, wxEXPAND, 5);
-	sPlayPage->AddStretchSpacer();
+		sPlayPage->Add(sPlayOptions, 0, wxEXPAND, 5);
+		sPlayPage->AddStretchSpacer();
 
-	m_PlayPage->SetSizer(sPlayPage);
-	m_PlayPage->Layout();
-	sPlayPage->Fit(m_PlayPage);
-	m_Notebook->AddPage(m_PlayPage, _("Play"), true);
+		m_PlayPage->SetSizer(sPlayPage);
+		m_PlayPage->Layout();
+		sPlayPage->Fit(m_PlayPage);
+		m_Notebook->AddPage(m_PlayPage, _("Play"), true);
 	}
 
 	{
-	m_RecordPage = new wxPanel(m_Notebook, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL);
-	wxBoxSizer* sRecordPage;
-	sRecordPage = new wxBoxSizer(wxVERTICAL);
+		m_RecordPage =
+			new wxPanel(m_Notebook, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL);
+		wxBoxSizer* sRecordPage;
+		sRecordPage = new wxBoxSizer(wxVERTICAL);
 
-	wxStaticBoxSizer* sRecordInfo;
-	sRecordInfo = new wxStaticBoxSizer(new wxStaticBox(m_RecordPage, wxID_ANY, _("Recording Info")), wxVERTICAL);
+		wxStaticBoxSizer* sRecordInfo;
+		sRecordInfo = new wxStaticBoxSizer(new wxStaticBox(m_RecordPage, wxID_ANY, _("Recording Info")),
+			wxVERTICAL);
 
-	m_RecordingFifoSizeLabel = new wxStaticText(m_RecordPage, wxID_ANY, wxEmptyString);
-	m_RecordingFifoSizeLabel->Wrap(-1);
-	sRecordInfo->Add(m_RecordingFifoSizeLabel, 0, wxALL, 5);
+		m_RecordingFifoSizeLabel = new wxStaticText(m_RecordPage, wxID_ANY, wxEmptyString);
+		m_RecordingFifoSizeLabel->Wrap(-1);
+		sRecordInfo->Add(m_RecordingFifoSizeLabel, 0, wxALL, 5);
 
-	m_RecordingMemSizeLabel = new wxStaticText(m_RecordPage, wxID_ANY, wxEmptyString);
-	m_RecordingMemSizeLabel->Wrap(-1);
-	sRecordInfo->Add(m_RecordingMemSizeLabel, 0, wxALL, 5);
+		m_RecordingMemSizeLabel = new wxStaticText(m_RecordPage, wxID_ANY, wxEmptyString);
+		m_RecordingMemSizeLabel->Wrap(-1);
+		sRecordInfo->Add(m_RecordingMemSizeLabel, 0, wxALL, 5);
 
-	m_RecordingFramesLabel = new wxStaticText(m_RecordPage, wxID_ANY, wxEmptyString);
-	m_RecordingFramesLabel->Wrap(-1);
-	sRecordInfo->Add(m_RecordingFramesLabel, 0, wxALL, 5);
+		m_RecordingFramesLabel = new wxStaticText(m_RecordPage, wxID_ANY, wxEmptyString);
+		m_RecordingFramesLabel->Wrap(-1);
+		sRecordInfo->Add(m_RecordingFramesLabel, 0, wxALL, 5);
 
-	sRecordPage->Add(sRecordInfo, 0, wxEXPAND, 5);
+		sRecordPage->Add(sRecordInfo, 0, wxEXPAND, 5);
 
-	wxBoxSizer* sRecordButtons;
-	sRecordButtons = new wxBoxSizer(wxHORIZONTAL);
+		wxBoxSizer* sRecordButtons;
+		sRecordButtons = new wxBoxSizer(wxHORIZONTAL);
 
-	m_RecordStop = new wxButton(m_RecordPage, wxID_ANY, _("Record"));
-	sRecordButtons->Add(m_RecordStop, 0, wxALL, 5);
+		m_RecordStop = new wxButton(m_RecordPage, wxID_ANY, _("Record"));
+		sRecordButtons->Add(m_RecordStop, 0, wxALL, 5);
 
-	m_Save = new wxButton(m_RecordPage, wxID_ANY, _("Save"));
-	sRecordButtons->Add(m_Save, 0, wxALL, 5);
+		m_Save = new wxButton(m_RecordPage, wxID_ANY, _("Save"));
+		sRecordButtons->Add(m_Save, 0, wxALL, 5);
 
-	sRecordPage->Add(sRecordButtons, 0, wxEXPAND, 5);
+		sRecordPage->Add(sRecordButtons, 0, wxEXPAND, 5);
 
-	wxStaticBoxSizer* sRecordingOptions;
-	sRecordingOptions = new wxStaticBoxSizer(new wxStaticBox(m_RecordPage, wxID_ANY, _("Recording Options")), wxHORIZONTAL);
+		wxStaticBoxSizer* sRecordingOptions;
+		sRecordingOptions = new wxStaticBoxSizer(
+			new wxStaticBox(m_RecordPage, wxID_ANY, _("Recording Options")), wxHORIZONTAL);
 
-	m_FramesToRecordLabel = new wxStaticText(m_RecordPage, wxID_ANY, _("Frames To Record"));
-	m_FramesToRecordLabel->Wrap(-1);
-	sRecordingOptions->Add(m_FramesToRecordLabel, 0, wxALL, 5);
+		m_FramesToRecordLabel = new wxStaticText(m_RecordPage, wxID_ANY, _("Frames To Record"));
+		m_FramesToRecordLabel->Wrap(-1);
+		sRecordingOptions->Add(m_FramesToRecordLabel, 0, wxALL, 5);
 
-	wxString initialNum = wxString::Format("%d", m_FramesToRecord);
-	m_FramesToRecordCtrl = new wxSpinCtrl(m_RecordPage, wxID_ANY, initialNum, wxDefaultPosition, wxDefaultSize, wxSP_ARROW_KEYS, 0, 10000, 1);
-	sRecordingOptions->Add(m_FramesToRecordCtrl, 0, wxALL, 5);
+		wxString initialNum = wxString::Format("%d", m_FramesToRecord);
+		m_FramesToRecordCtrl = new wxSpinCtrl(m_RecordPage, wxID_ANY, initialNum, wxDefaultPosition,
+			wxDefaultSize, wxSP_ARROW_KEYS, 0, 10000, 1);
+		sRecordingOptions->Add(m_FramesToRecordCtrl, 0, wxALL, 5);
 
-	sRecordPage->Add(sRecordingOptions, 0, wxEXPAND, 5);
-	sRecordPage->AddStretchSpacer();
+		sRecordPage->Add(sRecordingOptions, 0, wxEXPAND, 5);
+		sRecordPage->AddStretchSpacer();
 
-	m_RecordPage->SetSizer(sRecordPage);
-	m_RecordPage->Layout();
-	sRecordPage->Fit(m_RecordPage);
-	m_Notebook->AddPage(m_RecordPage, _("Record"), false);
+		m_RecordPage->SetSizer(sRecordPage);
+		m_RecordPage->Layout();
+		sRecordPage->Fit(m_RecordPage);
+		m_Notebook->AddPage(m_RecordPage, _("Record"), false);
 	}
 
 	// Analyze page
 	{
-	m_AnalyzePage = new wxPanel(m_Notebook, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL);
-	wxBoxSizer* sAnalyzePage;
-	sAnalyzePage = new wxBoxSizer(wxVERTICAL);
+		m_AnalyzePage =
+			new wxPanel(m_Notebook, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL);
+		wxBoxSizer* sAnalyzePage;
+		sAnalyzePage = new wxBoxSizer(wxVERTICAL);
 
-	wxStaticBoxSizer* sFrameInfoSizer;
-	sFrameInfoSizer = new wxStaticBoxSizer(new wxStaticBox(m_AnalyzePage, wxID_ANY, _("Frame Info")), wxVERTICAL);
+		wxStaticBoxSizer* sFrameInfoSizer;
+		sFrameInfoSizer =
+			new wxStaticBoxSizer(new wxStaticBox(m_AnalyzePage, wxID_ANY, _("Frame Info")), wxVERTICAL);
 
-	wxBoxSizer* sListsSizer = new wxBoxSizer(wxHORIZONTAL);
+		wxBoxSizer* sListsSizer = new wxBoxSizer(wxHORIZONTAL);
 
-	m_framesList = new wxListBox(m_AnalyzePage, wxID_ANY);
-	m_framesList->SetMinSize(wxSize(100, 250));
-	sListsSizer->Add(m_framesList, 0, wxALL, 5);
+		m_framesList = new wxListBox(m_AnalyzePage, wxID_ANY);
+		m_framesList->SetMinSize(wxSize(100, 250));
+		sListsSizer->Add(m_framesList, 0, wxALL, 5);
 
-	m_objectsList = new wxListBox(m_AnalyzePage, wxID_ANY);
-	m_objectsList->SetMinSize(wxSize(110, 250));
-	sListsSizer->Add(m_objectsList, 0, wxALL, 5);
+		m_objectsList = new wxListBox(m_AnalyzePage, wxID_ANY);
+		m_objectsList->SetMinSize(wxSize(110, 250));
+		sListsSizer->Add(m_objectsList, 0, wxALL, 5);
 
-	m_objectCmdList = new wxListBox(m_AnalyzePage, wxID_ANY);
-	m_objectCmdList->SetMinSize(wxSize(175, 250));
-	sListsSizer->Add(m_objectCmdList, 0, wxALL, 5);
+		m_objectCmdList = new wxListBox(m_AnalyzePage, wxID_ANY);
+		m_objectCmdList->SetMinSize(wxSize(175, 250));
+		sListsSizer->Add(m_objectCmdList, 0, wxALL, 5);
 
-	sFrameInfoSizer->Add(sListsSizer, 0, wxALL, 5);
+		sFrameInfoSizer->Add(sListsSizer, 0, wxALL, 5);
 
-	m_objectCmdInfo = new wxStaticText(m_AnalyzePage, wxID_ANY, wxString());
-	sFrameInfoSizer->Add(m_objectCmdInfo, 0, wxALL, 5);
+		m_objectCmdInfo = new wxStaticText(m_AnalyzePage, wxID_ANY, wxString());
+		sFrameInfoSizer->Add(m_objectCmdInfo, 0, wxALL, 5);
 
-	sAnalyzePage->Add(sFrameInfoSizer, 0, wxEXPAND, 5);
+		sAnalyzePage->Add(sFrameInfoSizer, 0, wxEXPAND, 5);
 
-	wxStaticBoxSizer* sSearchSizer = new wxStaticBoxSizer(new wxStaticBox(m_AnalyzePage, wxID_ANY, _("Search current Object")), wxVERTICAL);
+		wxStaticBoxSizer* sSearchSizer = new wxStaticBoxSizer(
+			new wxStaticBox(m_AnalyzePage, wxID_ANY, _("Search current Object")), wxVERTICAL);
 
-	wxBoxSizer* sSearchField = new wxBoxSizer(wxHORIZONTAL);
+		wxBoxSizer* sSearchField = new wxBoxSizer(wxHORIZONTAL);
 
-	sSearchField->Add(new wxStaticText(m_AnalyzePage, wxID_ANY, _("Search for hex Value:")), 0, wxALIGN_CENTER_VERTICAL, 5);
-	// TODO: ugh, wxValidator sucks - but we should use it anyway.
-	m_searchField = new wxTextCtrl(m_AnalyzePage, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxTE_PROCESS_ENTER);
-	m_numResultsText = new wxStaticText(m_AnalyzePage, wxID_ANY, wxEmptyString);
+		sSearchField->Add(new wxStaticText(m_AnalyzePage, wxID_ANY, _("Search for hex Value:")), 0,
+			wxALIGN_CENTER_VERTICAL, 5);
+		// TODO: ugh, wxValidator sucks - but we should use it anyway.
+		m_searchField = new wxTextCtrl(m_AnalyzePage, wxID_ANY, wxEmptyString, wxDefaultPosition,
+			wxDefaultSize, wxTE_PROCESS_ENTER);
+		m_numResultsText = new wxStaticText(m_AnalyzePage, wxID_ANY, wxEmptyString);
 
-	sSearchField->Add(m_searchField, 0, wxALL, 5);
-	sSearchField->Add(m_numResultsText, 0, wxALIGN_CENTER_VERTICAL, 5);
+		sSearchField->Add(m_searchField, 0, wxALL, 5);
+		sSearchField->Add(m_numResultsText, 0, wxALIGN_CENTER_VERTICAL, 5);
 
-	wxBoxSizer* sSearchButtons = new wxBoxSizer(wxHORIZONTAL);
+		wxBoxSizer* sSearchButtons = new wxBoxSizer(wxHORIZONTAL);
 
-	m_beginSearch = new wxButton(m_AnalyzePage, wxID_ANY, _("Search"));
-	m_findNext = new wxButton(m_AnalyzePage, wxID_ANY, _("Find next"));
-	m_findPrevious = new wxButton(m_AnalyzePage, wxID_ANY, _("Find previous"));
+		m_beginSearch = new wxButton(m_AnalyzePage, wxID_ANY, _("Search"));
+		m_findNext = new wxButton(m_AnalyzePage, wxID_ANY, _("Find next"));
+		m_findPrevious = new wxButton(m_AnalyzePage, wxID_ANY, _("Find previous"));
 
-	ResetSearch();
+		ResetSearch();
 
-	sSearchButtons->Add(m_beginSearch, 0, wxALL, 5);
-	sSearchButtons->Add(m_findNext, 0, wxALL, 5);
-	sSearchButtons->Add(m_findPrevious, 0, wxALL, 5);
+		sSearchButtons->Add(m_beginSearch, 0, wxALL, 5);
+		sSearchButtons->Add(m_findNext, 0, wxALL, 5);
+		sSearchButtons->Add(m_findPrevious, 0, wxALL, 5);
 
-	sSearchSizer->Add(sSearchField, 0, wxEXPAND, 5);
-	sSearchSizer->Add(sSearchButtons, 0, wxEXPAND, 5);
+		sSearchSizer->Add(sSearchField, 0, wxEXPAND, 5);
+		sSearchSizer->Add(sSearchButtons, 0, wxEXPAND, 5);
 
-	sAnalyzePage->Add(sSearchSizer, 0, wxEXPAND, 5);
-	sAnalyzePage->AddStretchSpacer();
+		sAnalyzePage->Add(sSearchSizer, 0, wxEXPAND, 5);
+		sAnalyzePage->AddStretchSpacer();
 
-	m_AnalyzePage->SetSizer(sAnalyzePage);
-	m_AnalyzePage->Layout();
-	sAnalyzePage->Fit(m_AnalyzePage);
-	m_Notebook->AddPage(m_AnalyzePage, _("Analyze"), false);
+		m_AnalyzePage->SetSizer(sAnalyzePage);
+		m_AnalyzePage->Layout();
+		sAnalyzePage->Fit(m_AnalyzePage);
+		m_Notebook->AddPage(m_AnalyzePage, _("Analyze"), false);
 	}
 
 	sMain->Add(m_Notebook, 1, wxEXPAND | wxALL, 5);
@@ -334,7 +351,7 @@ void FifoPlayerDlg::OnPaint(wxPaintEvent& event)
 
 void FifoPlayerDlg::OnFrameFrom(wxSpinEvent& event)
 {
-	FifoPlayer &player = FifoPlayer::GetInstance();
+	FifoPlayer& player = FifoPlayer::GetInstance();
 
 	player.SetFrameRangeStart(event.GetPosition());
 
@@ -344,7 +361,7 @@ void FifoPlayerDlg::OnFrameFrom(wxSpinEvent& event)
 
 void FifoPlayerDlg::OnFrameTo(wxSpinEvent& event)
 {
-	FifoPlayer &player = FifoPlayer::GetInstance();
+	FifoPlayer& player = FifoPlayer::GetInstance();
 	player.SetFrameRangeEnd(event.GetPosition());
 
 	m_FrameFromCtrl->SetValue(player.GetFrameRangeStart());
@@ -369,7 +386,7 @@ void FifoPlayerDlg::OnCheckEarlyMemoryUpdates(wxCommandEvent& event)
 void FifoPlayerDlg::OnSaveFile(wxCommandEvent& WXUNUSED(event))
 {
 	// Pointer to the file data that was created as a result of recording.
-	FifoDataFile *file = FifoRecorder::GetInstance().GetRecordedFile();
+	FifoDataFile* file = FifoRecorder::GetInstance().GetRecordedFile();
 
 	if (file)
 	{
@@ -404,7 +421,7 @@ void FifoPlayerDlg::OnRecordStop(wxCommandEvent& WXUNUSED(event))
 		// and change the button label accordingly.
 		m_RecordStop->SetLabel(_("Record"));
 	}
-	else // Recorder is actually about to start recording
+	else  // Recorder is actually about to start recording
 	{
 		// So start recording
 		recorder.StartRecording(m_FramesToRecord, RecordingFinished);
@@ -442,7 +459,7 @@ void FifoPlayerDlg::OnBeginSearch(wxCommandEvent& event)
 	std::vector<u8> search_val(val_length);
 	for (unsigned int i = 0; i < val_length; ++i)
 	{
-		wxString char_str = str_search_val.Mid(2*i, 2);
+		wxString char_str = str_search_val.Mid(2 * i, 2);
 		unsigned long val = 0;
 		if (!char_str.ToULong(&val, 16))
 		{
@@ -493,7 +510,9 @@ void FifoPlayerDlg::OnBeginSearch(wxCommandEvent& event)
 
 	ChangeSearchResult(0);
 	m_beginSearch->Disable();
-	m_numResultsText->SetLabel(wxString::Format(_("Found %u results for \'"), (u32)search_results.size()) + m_searchField->GetValue() + "\'");
+	m_numResultsText->SetLabel(
+		wxString::Format(_("Found %u results for \'"), (u32)search_results.size()) +
+		m_searchField->GetValue() + "\'");
 }
 
 void FifoPlayerDlg::OnSearchFieldTextChanged(wxCommandEvent& event)
@@ -541,7 +560,7 @@ void FifoPlayerDlg::OnFindPreviousClick(wxCommandEvent& event)
 
 void FifoPlayerDlg::ChangeSearchResult(unsigned int result_idx)
 {
-	if (result_idx < search_results.size()) // if index is valid
+	if (result_idx < search_results.size())  // if index is valid
 	{
 		m_search_result_idx = result_idx;
 		int prev_frame = m_framesList->GetSelection();
@@ -638,11 +657,10 @@ void FifoPlayerDlg::OnObjectListSelectionChanged(wxCommandEvent& event)
 		m_objectCmdList->Append(newLabel);
 		m_objectCmdOffsets.push_back(0);
 
-
 		// Between objectdata_end and next_objdata_start, there are register setting commands
 		if (object_idx + 1 < (int)frame.objectStarts.size())
 		{
-			const u8* next_objdata_start = &fifo_frame.fifoData[frame.objectStarts[object_idx+1]];
+			const u8* next_objdata_start = &fifo_frame.fifoData[frame.objectStarts[object_idx + 1]];
 			while (objectdata < next_objdata_start)
 			{
 				m_objectCmdOffsets.push_back(objectdata - objectdata_start);
@@ -663,48 +681,51 @@ void FifoPlayerDlg::OnObjectListSelectionChanged(wxCommandEvent& event)
 					break;
 
 				case GX_LOAD_CP_REG:
-					{
-						u32 cmd2 = *objectdata++;
-						u32 value = Common::swap32(objectdata);
-						objectdata += 4;
+				{
+					u32 cmd2 = *objectdata++;
+					u32 value = Common::swap32(objectdata);
+					objectdata += 4;
 
-						newLabel = wxString::Format("CP  %02X  %08X", cmd2, value);
-					}
-					break;
+					newLabel = wxString::Format("CP  %02X  %08X", cmd2, value);
+				}
+				break;
 
 				case GX_LOAD_XF_REG:
+				{
+					u32 cmd2 = Common::swap32(objectdata);
+					objectdata += 4;
+
+					u8 streamSize = ((cmd2 >> 16) & 15) + 1;
+
+					const u8* stream_start = objectdata;
+					const u8* stream_end = stream_start + streamSize * 4;
+
+					newLabel = wxString::Format("XF  %08X  ", cmd2);
+					while (objectdata < stream_end)
 					{
-						u32 cmd2 = Common::swap32(objectdata);
-						objectdata += 4;
+						newLabel += wxString::Format("%02X", *objectdata++);
 
-						u8 streamSize = ((cmd2 >> 16) & 15) + 1;
-
-						const u8* stream_start = objectdata;
-						const u8* stream_end = stream_start + streamSize * 4;
-
-						newLabel = wxString::Format("XF  %08X  ", cmd2);
-						while (objectdata < stream_end)
-						{
-							newLabel += wxString::Format("%02X", *objectdata++);
-
-							if (((objectdata - stream_start) % 4) == 0)
-								newLabel += " ";
-						}
+						if (((objectdata - stream_start) % 4) == 0)
+							newLabel += " ";
 					}
-					break;
+				}
+				break;
 
 				case GX_LOAD_INDX_A:
 				case GX_LOAD_INDX_B:
 				case GX_LOAD_INDX_C:
 				case GX_LOAD_INDX_D:
 					objectdata += 4;
-					newLabel = wxString::Format("LOAD INDX %s", (command == GX_LOAD_INDX_A) ? "A" :
-					                                            (command == GX_LOAD_INDX_B) ? "B" :
-					                                            (command == GX_LOAD_INDX_C) ? "C" : "D");
+					newLabel = wxString::Format("LOAD INDX %s", (command == GX_LOAD_INDX_A) ?
+						"A" :
+						(command == GX_LOAD_INDX_B) ?
+						"B" :
+						(command == GX_LOAD_INDX_C) ? "C" : "D");
 					break;
 
 				case GX_CMD_CALL_DL:
-					// The recorder should have expanded display lists into the fifo stream and skipped the call to start them
+					// The recorder should have expanded display lists into the fifo stream and skipped the
+					// call to start them
 					// That is done to make it easier to track where memory is updated
 					_assert_(false);
 					objectdata += 8;
@@ -712,12 +733,12 @@ void FifoPlayerDlg::OnObjectListSelectionChanged(wxCommandEvent& event)
 					break;
 
 				case GX_LOAD_BP_REG:
-					{
-						u32 cmd2 = Common::swap32(objectdata);
-						objectdata += 4;
-						newLabel = wxString::Format("BP  %02X %06X", cmd2 >> 24, cmd2 & 0xFFFFFF);
-					}
-					break;
+				{
+					u32 cmd2 = Common::swap32(objectdata);
+					objectdata += 4;
+					newLabel = wxString::Format("BP  %02X %06X", cmd2 >> 24, cmd2 & 0xFFFFFF);
+				}
+				break;
 
 				default:
 					newLabel = _("Unexpected 0x80 call? Aborting...");
@@ -751,7 +772,8 @@ void FifoPlayerDlg::OnObjectCmdListSelectionChanged(wxCommandEvent& event)
 	FifoPlayer& player = FifoPlayer::GetInstance();
 	const AnalyzedFrameInfo& frame = player.GetAnalyzedFrameInfo(frame_idx);
 	const FifoFrameInfo& fifo_frame = player.GetFile()->GetFrame(frame_idx);
-	const u8* cmddata = &fifo_frame.fifoData[frame.objectStarts[object_idx]] + m_objectCmdOffsets[event.GetInt()];
+	const u8* cmddata =
+		&fifo_frame.fifoData[frame.objectStarts[object_idx]] + m_objectCmdOffsets[event.GetInt()];
 
 	// TODO: Not sure whether we should bother translating the descriptions
 	wxString newLabel;
@@ -762,7 +784,8 @@ void FifoPlayerDlg::OnObjectCmdListSelectionChanged(wxCommandEvent& event)
 		GetBPRegInfo(cmddata + 1, &name, &desc);
 
 		newLabel = _("BP register ");
-		newLabel += (name.empty()) ? wxString::Format(_("UNKNOWN_%02X"), *(cmddata + 1)) : StrToWxStr(name);
+		newLabel +=
+			(name.empty()) ? wxString::Format(_("UNKNOWN_%02X"), *(cmddata + 1)) : StrToWxStr(name);
 		newLabel += ":\n";
 
 		if (desc.empty())
@@ -822,8 +845,8 @@ void FifoPlayerDlg::UpdatePlayGui()
 	m_CurrentFrameLabel->SetLabel(CreateCurrentFrameLabel());
 	m_NumObjectsLabel->SetLabel(CreateFileObjectCountLabel());
 
-	FifoPlayer &player = FifoPlayer::GetInstance();
-	FifoDataFile *file = player.GetFile();
+	FifoPlayer& player = FifoPlayer::GetInstance();
+	FifoDataFile* file = player.GetFile();
 	u32 frameCount = 0;
 	if (file)
 		frameCount = file->GetFrameCount();
@@ -848,7 +871,7 @@ void FifoPlayerDlg::UpdateRecorderGui()
 
 void FifoPlayerDlg::UpdateAnalyzerGui()
 {
-	FifoPlayer &player = FifoPlayer::GetInstance();
+	FifoPlayer& player = FifoPlayer::GetInstance();
 	FifoDataFile* file = player.GetFile();
 
 	size_t num_frames = (file) ? player.GetFile()->GetFrameCount() : 0U;
@@ -869,7 +892,7 @@ void FifoPlayerDlg::UpdateAnalyzerGui()
 
 wxString FifoPlayerDlg::CreateFileFrameCountLabel() const
 {
-	FifoDataFile *file = FifoPlayer::GetInstance().GetFile();
+	FifoDataFile* file = FifoPlayer::GetInstance().GetFile();
 
 	if (file)
 		return wxString::Format(_("%u frames"), file->GetFrameCount());
@@ -879,7 +902,7 @@ wxString FifoPlayerDlg::CreateFileFrameCountLabel() const
 
 wxString FifoPlayerDlg::CreateCurrentFrameLabel() const
 {
-	FifoDataFile *file = FifoPlayer::GetInstance().GetFile();
+	FifoDataFile* file = FifoPlayer::GetInstance().GetFile();
 
 	if (file)
 		return wxString::Format(_("Frame %u"), FifoPlayer::GetInstance().GetCurrentFrameNum());
@@ -889,7 +912,7 @@ wxString FifoPlayerDlg::CreateCurrentFrameLabel() const
 
 wxString FifoPlayerDlg::CreateFileObjectCountLabel() const
 {
-	FifoDataFile *file = FifoPlayer::GetInstance().GetFile();
+	FifoDataFile* file = FifoPlayer::GetInstance().GetFile();
 
 	if (file)
 		return wxString::Format(_("%u objects"), FifoPlayer::GetInstance().GetFrameObjectCount());
@@ -899,13 +922,13 @@ wxString FifoPlayerDlg::CreateFileObjectCountLabel() const
 
 wxString FifoPlayerDlg::CreateRecordingFifoSizeLabel() const
 {
-	FifoDataFile *file = FifoRecorder::GetInstance().GetRecordedFile();
+	FifoDataFile* file = FifoRecorder::GetInstance().GetRecordedFile();
 
 	if (file)
 	{
 		size_t fifoBytes = 0;
 		for (size_t i = 0; i < file->GetFrameCount(); ++i)
-			fifoBytes += file->GetFrame(i).fifoDataSize;
+			fifoBytes += file->GetFrame(i).fifoData.size();
 
 		return wxString::Format(_("%zu FIFO bytes"), fifoBytes);
 	}
@@ -915,7 +938,7 @@ wxString FifoPlayerDlg::CreateRecordingFifoSizeLabel() const
 
 wxString FifoPlayerDlg::CreateRecordingMemSizeLabel() const
 {
-	FifoDataFile *file = FifoRecorder::GetInstance().GetRecordedFile();
+	FifoDataFile* file = FifoRecorder::GetInstance().GetRecordedFile();
 
 	if (file)
 	{
@@ -923,8 +946,8 @@ wxString FifoPlayerDlg::CreateRecordingMemSizeLabel() const
 		for (size_t frameNum = 0; frameNum < file->GetFrameCount(); ++frameNum)
 		{
 			const std::vector<MemoryUpdate>& memUpdates = file->GetFrame(frameNum).memoryUpdates;
-			for (auto& memUpdate : memUpdates)
-				memBytes += memUpdate.size;
+			for (const auto& memUpdate : memUpdates)
+				memBytes += memUpdate.data.size();
 		}
 
 		return wxString::Format(_("%zu memory bytes"), memBytes);
@@ -935,7 +958,7 @@ wxString FifoPlayerDlg::CreateRecordingMemSizeLabel() const
 
 wxString FifoPlayerDlg::CreateRecordingFrameCountLabel() const
 {
-	FifoDataFile *file = FifoRecorder::GetInstance().GetRecordedFile();
+	FifoDataFile* file = FifoRecorder::GetInstance().GetRecordedFile();
 
 	if (file)
 		return wxString::Format(_("%u frames"), file->GetFrameCount());

@@ -7,24 +7,24 @@
 namespace SamplerCommon
 {
 
-	// Helper for checking if a BPMemory TexMode0 register is set to Point
-	// Filtering modes. This is used to decide whether Anisotropic enhancements
-	// are (mostly) safe in the VideoBackends.
-	// If both the minification and magnification filters are set to POINT modes
-	// then applying anisotropic filtering is equivalent to forced filtering. Point
-	// mode textures are usually some sort of 2D UI billboard which will end up
-	// misaligned from the correct pixels when filtered anisotropically.
-	template<class T>
-	constexpr bool IsBpTexMode0PointFilteringEnabled(const T& tm0)
-	{
-		return tm0.min_filter < 4 && !tm0.mag_filter;
-	}
+// Helper for checking if a BPMemory TexMode0 register is set to Point
+// Filtering modes. This is used to decide whether Anisotropic enhancements
+// are (mostly) safe in the VideoBackends.
+// If both the minification and magnification filters are set to POINT modes
+// then applying anisotropic filtering is equivalent to forced filtering. Point
+// mode textures are usually some sort of 2D UI billboard which will end up
+// misaligned from the correct pixels when filtered anisotropically.
+template<class T>
+constexpr bool IsBpTexMode0PointFilteringEnabled(const T& tm0)
+{
+	return tm0.min_filter < 4 && !tm0.mag_filter;
+}
 
-	// Check if the minification filter is not using mipmaps.
-	template<class T>
-	constexpr bool IsBpTexMode0MipmapsEnabled(const T& tm0)
-	{
-		return (tm0.min_filter & 3) != 0;
-	}
+// Check if the minification filter is not using mipmaps.
+template<class T>
+constexpr bool IsBpTexMode0MipmapsEnabled(const T& tm0)
+{
+	return (tm0.min_filter & 3) != 0;
+}
 
 }

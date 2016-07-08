@@ -845,7 +845,7 @@ __forceinline void TexCoordElement(TPipelineState &pipelinestate)
 				_mm_storeu_ps((float*)pipelinestate.GetWritePosition(), _mm_shuffle_ps(output, output, 0x45));
 				pipelinestate.WriteSkip(sizeof(float) * 3);
 			}
-			else			
+			else
 #endif
 			{
 				pipelinestate.Write(0.f);

@@ -10,27 +10,27 @@
 
 namespace VertexLoaderManager
 {
-	using NativeVertexFormatMap = std::map<PortableVertexDeclaration, std::unique_ptr<NativeVertexFormat>>;
+using NativeVertexFormatMap = std::map<PortableVertexDeclaration, std::unique_ptr<NativeVertexFormat>>;
 
-	void Init();
-	void Shutdown();
-	
-	void MarkAllDirty();
+void Init();
+void Shutdown();
 
-	NativeVertexFormatMap* GetNativeVertexFormatMap();
+void MarkAllDirty();
 
-	int GetVertexSize(const VertexLoaderParameters &parameters);
+NativeVertexFormatMap* GetNativeVertexFormatMap();
 
-	bool ConvertVertices(VertexLoaderParameters &parameters, u32 &readsize, u32 &writesize);
+int GetVertexSize(const VertexLoaderParameters &parameters);
 
-	void GetVertexSizeAndComponents(const VertexLoaderParameters &parameters, u32 &vertexsize, u32 &components);
+bool ConvertVertices(VertexLoaderParameters &parameters, u32 &readsize, u32 &writesize);
 
-	// For debugging
-	void AppendListToString(std::string *dest);
+void GetVertexSizeAndComponents(const VertexLoaderParameters &parameters, u32 &vertexsize, u32 &components);
 
-	void UpdateVertexArrayPointers();
+// For debugging
+void AppendListToString(std::string *dest);
 
-	NativeVertexFormat* GetCurrentVertexFormat();
-	
-	extern u32 g_current_components;
+void UpdateVertexArrayPointers();
+
+NativeVertexFormat* GetCurrentVertexFormat();
+
+extern u32 g_current_components;
 };

@@ -10,8 +10,8 @@
 #include "Common/ChunkFile.h"
 #include "Common/CommonTypes.h"
 #include "Common/FileUtil.h"
-#include "Common/Thread.h"
 #include "Common/Logging/Log.h"
+#include "Common/Thread.h"
 #include "Core/ConfigManager.h"
 #include "Core/Core.h"
 #include "Core/HW/GCMemcard.h"
@@ -21,8 +21,7 @@
 #define MC_HDR_SIZE 0xA000
 
 MemoryCard::MemoryCard(const std::string& filename, int _card_index, u16 sizeMb)
-	: MemoryCardBase(_card_index, sizeMb)
-	, m_filename(filename)
+	: MemoryCardBase(_card_index, sizeMb), m_filename(filename)
 {
 	File::IOFile pFile(m_filename, "rb");
 	if (pFile)
@@ -73,8 +72,7 @@ void MemoryCard::FlushThread()
 		return;
 	}
 
-	Common::SetCurrentThreadName(
-		StringFromFormat("Memcard %d flushing thread", card_index).c_str());
+	Common::SetCurrentThreadName(StringFromFormat("Memcard %d flushing thread", card_index).c_str());
 
 	const auto flush_interval = std::chrono::seconds(15);
 
@@ -130,9 +128,9 @@ void MemoryCard::FlushThread()
 
 		if (!do_exit)
 		{
-			Core::DisplayMessage(
-				StringFromFormat("Wrote memory card %c contents to %s",
-				card_index ? 'B' : 'A', m_filename.c_str()).c_str(),
+			Core::DisplayMessage(StringFromFormat("Wrote memory card %c contents to %s",
+				card_index ? 'B' : 'A', m_filename.c_str())
+				.c_str(),
 				4000);
 		}
 		else
@@ -147,12 +145,11 @@ void MemoryCard::MakeDirty()
 	m_dirty.Set();
 }
 
-s32 MemoryCard::Read(u32 srcaddress, s32 length, u8 *destaddress)
+s32 MemoryCard::Read(u32 srcaddress, s32 length, u8* destaddress)
 {
 	if (!IsAddressInBounds(srcaddress))
 	{
-		PanicAlertT("MemoryCard: Read called with invalid source address (0x%x)",
-					srcaddress);
+		PanicAlertT("MemoryCard: Read called with invalid source address (0x%x)", srcaddress);
 		return -1;
 	}
 
@@ -160,12 +157,11 @@ s32 MemoryCard::Read(u32 srcaddress, s32 length, u8 *destaddress)
 	return length;
 }
 
-s32 MemoryCard::Write(u32 destaddress, s32 length, u8 *srcaddress)
+s32 MemoryCard::Write(u32 destaddress, s32 length, u8* srcaddress)
 {
 	if (!IsAddressInBounds(destaddress))
 	{
-		PanicAlertT("MemoryCard: Write called with invalid destination address (0x%x)",
-					destaddress);
+		PanicAlertT("MemoryCard: Write called with invalid destination address (0x%x)", destaddress);
 		return -1;
 	}
 
@@ -181,8 +177,7 @@ void MemoryCard::ClearBlock(u32 address)
 {
 	if (address & (BLOCK_SIZE - 1) || !IsAddressInBounds(address))
 	{
-		PanicAlertT("MemoryCard: ClearBlock called on invalid address (0x%x)",
-			address);
+		PanicAlertT("MemoryCard: ClearBlock called on invalid address (0x%x)", address);
 		return;
 	}
 	else
@@ -202,7 +197,7 @@ void MemoryCard::ClearAll()
 	MakeDirty();
 }
 
-void MemoryCard::DoState(PointerWrap &p)
+void MemoryCard::DoState(PointerWrap& p)
 {
 	p.Do(card_index);
 	p.Do(memory_card_size);

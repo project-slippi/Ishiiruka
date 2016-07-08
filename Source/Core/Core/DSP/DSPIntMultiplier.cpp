@@ -55,11 +55,11 @@ inline s64 dsp_multiply_mulx(u8 axh0, u8 axh1, u16 val1, u16 val2)
 {
 	s64 result;
 
-	if ((axh0==0) && (axh1==0))
+	if ((axh0 == 0) && (axh1 == 0))
 		result = dsp_multiply(val1, val2, 1); // unsigned support ON if both ax?.l regs are used
-	else if ((axh0==0) && (axh1==1))
+	else if ((axh0 == 0) && (axh1 == 1))
 		result = dsp_multiply(val1, val2, 2); // mixed support ON (u16)axl.0  * (s16)axh.1
-	else if ((axh0==1) && (axh1==0))
+	else if ((axh0 == 1) && (axh1 == 0))
 		result = dsp_multiply(val2, val1, 2); // mixed support ON (u16)axl.1  * (s16)axh.0
 	else
 		result = dsp_multiply(val1, val2, 0); // unsigned support OFF if both ax?.h regs are used
@@ -201,7 +201,7 @@ void mulaxh(const UDSPInstruction opc)
 // $axS.h of secondary accumulator $axS (treat them both as signed).
 void mul(const UDSPInstruction opc)
 {
-	u8 sreg  = (opc >> 11) & 0x1;
+	u8 sreg = (opc >> 11) & 0x1;
 
 	u16 axl = dsp_get_ax_l(sreg);
 	u16 axh = dsp_get_ax_h(sreg);
@@ -245,8 +245,8 @@ void mulac(const UDSPInstruction opc)
 // flags out: --xx xx0x
 void mulmv(const UDSPInstruction opc)
 {
-	u8 rreg  = (opc >> 8) & 0x1;
-	u8 sreg  = ((opc >> 11) & 0x1);
+	u8 rreg = (opc >> 8) & 0x1;
+	u8 sreg = ((opc >> 11) & 0x1);
 
 	s64 acc = dsp_get_long_prod();
 	u16 axl = dsp_get_ax_l(sreg);
@@ -365,7 +365,7 @@ void mulxmv(const UDSPInstruction opc)
 // flags out: --xx xx0x
 void mulxmvz(const UDSPInstruction opc)
 {
-	u8 rreg  = (opc >> 8) & 0x1;
+	u8 rreg = (opc >> 8) & 0x1;
 	u8 treg = (opc >> 11) & 0x1;
 	u8 sreg = (opc >> 12) & 0x1;
 
@@ -411,8 +411,8 @@ void mulc(const UDSPInstruction opc)
 void mulcac(const UDSPInstruction opc)
 {
 	u8 rreg = (opc >> 8) & 0x1;
-	u8 treg  = (opc >> 11) & 0x1;
-	u8 sreg  = (opc >> 12) & 0x1;
+	u8 treg = (opc >> 11) & 0x1;
+	u8 sreg = (opc >> 12) & 0x1;
 
 	s64 acc = dsp_get_long_acc(rreg) + dsp_get_long_prod();
 	u16 accm = dsp_get_acc_m(sreg);
@@ -437,8 +437,8 @@ void mulcac(const UDSPInstruction opc)
 void mulcmv(const UDSPInstruction opc)
 {
 	u8 rreg = (opc >> 8) & 0x1;
-	u8 treg  = (opc >> 11) & 0x1;
-	u8 sreg  = (opc >> 12) & 0x1;
+	u8 treg = (opc >> 11) & 0x1;
+	u8 sreg = (opc >> 12) & 0x1;
 
 	s64 acc = dsp_get_long_prod();
 	u16 accm = dsp_get_acc_m(sreg);
@@ -464,8 +464,8 @@ void mulcmv(const UDSPInstruction opc)
 void mulcmvz(const UDSPInstruction opc)
 {
 	u8 rreg = (opc >> 8) & 0x1;
-	u8 treg  = (opc >> 11) & 0x1;
-	u8 sreg  = (opc >> 12) & 0x1;
+	u8 treg = (opc >> 11) & 0x1;
+	u8 sreg = (opc >> 12) & 0x1;
 
 	s64 acc = dsp_get_long_prod_round_prodl();
 	u16 accm = dsp_get_acc_m(sreg);

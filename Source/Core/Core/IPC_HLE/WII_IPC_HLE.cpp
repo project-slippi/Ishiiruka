@@ -54,7 +54,7 @@ They will also generate a true or false return for UpdateInterrupts() in WII_IPC
 #include "Core/IPC_HLE/WII_IPC_HLE_Device_usb_kbd.h"
 
 #if defined(__LIBUSB__) || defined (_WIN32)
-	#include "Core/IPC_HLE/WII_IPC_HLE_Device_hid.h"
+#include "Core/IPC_HLE/WII_IPC_HLE_Device_hid.h"
 #endif
 
 #include "Core/PowerPC/PowerPC.h"
@@ -134,7 +134,7 @@ void Init()
 	AddDevice<CWII_IPC_HLE_Device_fs>("/dev/fs");
 
 	// IOS allows two ES devices at a time
-	for (u32 j=0; j<ES_MAX_COUNT; j++)
+	for (u32 j = 0; j < ES_MAX_COUNT; j++)
 	{
 		es_handles[j] = AddDevice<CWII_IPC_HLE_Device_es>("/dev/es");
 		es_inuse[j] = false;
@@ -150,11 +150,11 @@ void Init()
 	AddDevice<CWII_IPC_HLE_Device_usb_kbd>("/dev/usb/kbd");
 	AddDevice<CWII_IPC_HLE_Device_sdio_slot0>("/dev/sdio/slot0");
 	AddDevice<CWII_IPC_HLE_Device_stub>("/dev/sdio/slot1");
-	#if defined(__LIBUSB__) || defined(_WIN32)
-		AddDevice<CWII_IPC_HLE_Device_hid>("/dev/usb/hid");
-	#else
-		AddDevice<CWII_IPC_HLE_Device_stub>("/dev/usb/hid");
-	#endif
+#if defined(__LIBUSB__) || defined(_WIN32)
+	AddDevice<CWII_IPC_HLE_Device_hid>("/dev/usb/hid");
+#else
+	AddDevice<CWII_IPC_HLE_Device_stub>("/dev/usb/hid");
+#endif
 	AddDevice<CWII_IPC_HLE_Device_stub>("/dev/usb/oh1");
 	AddDevice<IWII_IPC_HLE_Device>("_Unimplemented_Device_");
 
@@ -230,7 +230,7 @@ void SDIO_EventNotify()
 
 int getFreeDeviceId()
 {
-	for (u32 i=0; i<IPC_MAX_FDS; i++)
+	for (u32 i = 0; i < IPC_MAX_FDS; i++)
 	{
 		if (g_FdMap[i] == nullptr)
 		{
@@ -296,7 +296,7 @@ void DoState(PointerWrap &p)
 
 	if (p.GetMode() == PointerWrap::MODE_READ)
 	{
-		for (u32 i=0; i < IPC_MAX_FDS; i++)
+		for (u32 i = 0; i < IPC_MAX_FDS; i++)
 		{
 			u32 exists = 0;
 			p.Do(exists);
@@ -318,7 +318,7 @@ void DoState(PointerWrap &p)
 			}
 		}
 
-		for (u32 i=0; i < ES_MAX_COUNT; i++)
+		for (u32 i = 0; i < ES_MAX_COUNT; i++)
 		{
 			p.Do(es_inuse[i]);
 			u32 handleID = es_handles[i]->GetDeviceID();
@@ -349,7 +349,7 @@ void DoState(PointerWrap &p)
 			}
 		}
 
-		for (u32 i=0; i < ES_MAX_COUNT; i++)
+		for (u32 i = 0; i < ES_MAX_COUNT; i++)
 		{
 			p.Do(es_inuse[i]);
 			u32 handleID = es_handles[i]->GetDeviceID();
@@ -384,14 +384,14 @@ void ExecuteCommand(u32 _Address)
 			if (DeviceName.find("/dev/es") == 0)
 			{
 				u32 j;
-				for (j=0; j<ES_MAX_COUNT; j++)
+				for (j = 0; j < ES_MAX_COUNT; j++)
 				{
 					if (!es_inuse[j])
 					{
 						es_inuse[j] = true;
 						g_FdMap[DeviceID] = es_handles[j];
 						result = es_handles[j]->Open(_Address, Mode);
-						Memory::Write_U32(DeviceID, _Address+4);
+						Memory::Write_U32(DeviceID, _Address + 4);
 						break;
 					}
 				}
@@ -411,12 +411,12 @@ void ExecuteCommand(u32 _Address)
 					result = pDevice->Open(_Address, Mode);
 					INFO_LOG(WII_IPC_FILEIO, "IOP: ReOpen (Device=%s, DeviceID=%08x, Mode=%i)",
 						pDevice->GetDeviceName().c_str(), DeviceID, Mode);
-					Memory::Write_U32(DeviceID, _Address+4);
+					Memory::Write_U32(DeviceID, _Address + 4);
 				}
 				else
 				{
 					WARN_LOG(WII_IPC_HLE, "Unimplemented device: %s", DeviceName.c_str());
-					Memory::Write_U32(FS_ENOENT, _Address+4);
+					Memory::Write_U32(FS_ENOENT, _Address + 4);
 					result = IWII_IPC_HLE_Device::GetDefaultReply();
 				}
 			}
@@ -426,7 +426,7 @@ void ExecuteCommand(u32 _Address)
 				result = pDevice->Open(_Address, Mode);
 
 				INFO_LOG(WII_IPC_FILEIO, "IOP: Open File (Device=%s, ID=%08x, Mode=%i)",
-						pDevice->GetDeviceName().c_str(), DeviceID, Mode);
+					pDevice->GetDeviceName().c_str(), DeviceID, Mode);
 				if (Memory::Read_U32(_Address + 4) == (u32)DeviceID)
 				{
 					g_FdMap[DeviceID] = pDevice;
@@ -446,7 +446,7 @@ void ExecuteCommand(u32 _Address)
 		{
 			result = pDevice->Close(_Address);
 
-			for (u32 j=0; j<ES_MAX_COUNT; j++)
+			for (u32 j = 0; j < ES_MAX_COUNT; j++)
 			{
 				if (es_handles[j] == g_FdMap[DeviceID])
 				{
@@ -570,7 +570,7 @@ void EnqueueReply_Immediate(u32 address)
 void EnqueueCommandAcknowledgement(u32 address, int cycles_in_future)
 {
 	CoreTiming::ScheduleEvent(cycles_in_future, event_enqueue,
-	                          address | ENQUEUE_ACKNOWLEDGEMENT_FLAG);
+		address | ENQUEUE_ACKNOWLEDGEMENT_FLAG);
 }
 
 // This is called every IPC_HLE_PERIOD from SystemTimers.cpp

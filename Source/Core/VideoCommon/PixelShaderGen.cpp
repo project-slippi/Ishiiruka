@@ -243,10 +243,10 @@ static const char *tevRasTable[] =
 
 //static const char *tevTexFunc[] = { "tex2D", "texRECT" };
 
-static const char *tevCOutputTable[] = { "prev.rgb", "c0.rgb", "c1.rgb", "c2.rgb" };
-static const tevSources tevCOutputSourceMap[] = { tevSources::CPREV, tevSources::C0, tevSources::C1, tevSources::C2 };
-static const char *tevAOutputTable[] = { "prev.a", "c0.a", "c1.a", "c2.a" };
-static const tevSources tevAOutputSourceMap[] = { tevSources::APREV, tevSources::A0, tevSources::A1, tevSources::A2 };
+static const char *tevCOutputTable[] = {"prev.rgb", "c0.rgb", "c1.rgb", "c2.rgb"};
+static const tevSources tevCOutputSourceMap[] = {tevSources::CPREV, tevSources::C0, tevSources::C1, tevSources::C2};
+static const char *tevAOutputTable[] = {"prev.a", "c0.a", "c1.a", "c2.a"};
+static const tevSources tevAOutputSourceMap[] = {tevSources::APREV, tevSources::A0, tevSources::A1, tevSources::A2};
 
 static const char* headerUtil = R"hlsl(
 float4 CHK_O_U8(float4 x)
@@ -1115,8 +1115,8 @@ inline void WriteFetchStageTexture(ShaderCode& out, const pixel_shader_uid_data&
 		{
 			if (use_integer_math)
 			{
-				static const char *tevIndAlphaSel[] = { "", "x", "y", "z" };
-				static const char *tevIndAlphaMask[] = { "248", "224", "240", "248" }; // 0b11111000, 0b11100000, 0b11110000, 0b11111000
+				static const char *tevIndAlphaSel[] = {"", "x", "y", "z"};
+				static const char *tevIndAlphaMask[] = {"248", "224", "240", "248"}; // 0b11111000, 0b11100000, 0b11110000, 0b11111000
 				out.Write("a_bump = indtex%d.%s & %s;\n",
 					tevind.bt,
 					tevIndAlphaSel[tevind.bs],
@@ -1142,8 +1142,8 @@ inline void WriteFetchStageTexture(ShaderCode& out, const pixel_shader_uid_data&
 				// so for nb = 3 bit this will be n = 5  result = floor(x * (255.0/32.0)) * (32.0/255.0f);
 				// to optimize a litle al the coeficient are precalculated to avoid slowing thigs more than needed
 
-				static const char *tevIndAlphaSel[] = { "", "x", "y", "z" };
-				static const char *tevIndAlphaScale[] = { "(1.0/8.0)", "(1.0/32.0)", "(1.0/16.0)", "(1.0/8.0)" };
+				static const char *tevIndAlphaSel[] = {"", "x", "y", "z"};
+				static const char *tevIndAlphaScale[] = {"(1.0/8.0)", "(1.0/32.0)", "(1.0/16.0)", "(1.0/8.0)"};
 				static const char *tevIndAlphaNormFactor[] =
 				{
 					"8.0",	// 5 bits
@@ -1164,7 +1164,7 @@ inline void WriteFetchStageTexture(ShaderCode& out, const pixel_shader_uid_data&
 		{
 			if (use_integer_math)
 			{
-				static const char *tevIndFmtMask[] = { "255", "31", "15", "7" };
+				static const char *tevIndFmtMask[] = {"255", "31", "15", "7"};
 				out.Write("wu3 indtevcrd%d = indtex%d & %s;\n", n, tevind.bt, tevIndFmtMask[tevind.fmt]);
 			}
 			else
@@ -1209,8 +1209,8 @@ inline void WriteFetchStageTexture(ShaderCode& out, const pixel_shader_uid_data&
 
 
 
-			static const char *tevIndBiasField[] = { "", "x", "y", "xy", "z", "xz", "yz", "xyz" }; // indexed by bias
-			static const char *tevIndBiasAdd[] = { "wu(-128)", "wu(1)", "wu(1)", "wu(1)" }; // indexed by fmt
+			static const char *tevIndBiasField[] = {"", "x", "y", "xy", "z", "xz", "yz", "xyz"}; // indexed by bias
+			static const char *tevIndBiasAdd[] = {"wu(-128)", "wu(1)", "wu(1)", "wu(1)"}; // indexed by fmt
 																													  // bias
 			if (tevind.bias == ITB_S || tevind.bias == ITB_T || tevind.bias == ITB_U)
 				out.Write("indtevcrd%d.%s += %s;\n", n, tevIndBiasField[tevind.bias], tevIndBiasAdd[tevind.fmt]);
@@ -1265,7 +1265,7 @@ inline void WriteFetchStageTexture(ShaderCode& out, const pixel_shader_uid_data&
 		// ---------
 		// Wrapping
 		// ---------
-		static const char *tevIndWrapStart[] = { "wu(0)", "wu(256*128)", "wu(128*128)", "wu(64*128)", "wu(32*128)", "wu(16*128)", "wu(1)" };
+		static const char *tevIndWrapStart[] = {"wu(0)", "wu(256*128)", "wu(128*128)", "wu(64*128)", "wu(32*128)", "wu(16*128)", "wu(1)"};
 		// wrap S
 		if (tevind.sw == ITW_OFF)
 			out.Write("wrappedcoord.x = wu(uv%d.x);\n", texcoord);
@@ -1380,7 +1380,7 @@ inline void WriteStage(ShaderCode& out, const pixel_shader_uid_data& uid_data, i
 			"rgba"[stage.tevksel_swap2a],
 			"rgba"[stage.tevksel_swap1b],
 			"rgba"[stage.tevksel_swap2b],
-			'\0' };
+			'\0'};
 		int rasindex = stage.tevorders_colorchan;
 		if (rasindex == 0 && !register_state.Ras0Expanded())
 		{
@@ -1402,7 +1402,7 @@ inline void WriteStage(ShaderCode& out, const pixel_shader_uid_data& uid_data, i
 		"rgba"[stage.tevksel_swap2c],
 		"rgba"[stage.tevksel_swap1d],
 		"rgba"[stage.tevksel_swap2d],
-		'\0' };
+		'\0'};
 
 	out.Write("tex_t = tex_ta[%i].%s;", n, texswap);
 

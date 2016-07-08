@@ -11,10 +11,12 @@ class DataReader
 {
 public:
 	__forceinline DataReader()
-		: Rbuffer(nullptr), end(nullptr) {}
+		: Rbuffer(nullptr), end(nullptr)
+	{}
 
 	__forceinline DataReader(u8* src, u8* _end)
-		: Rbuffer(src), end(_end) {}
+		: Rbuffer(src), end(_end)
+	{}
 
 	__forceinline const u8* GetPointer() const
 	{
@@ -129,8 +131,10 @@ protected:
 class DataWriter
 {
 public:
-	inline DataWriter(u8 *destination) : Wbuffer(destination) {}
-	inline DataWriter() : Wbuffer(nullptr) {}
+	inline DataWriter(u8 *destination): Wbuffer(destination)
+	{}
+	inline DataWriter() : Wbuffer(nullptr)
+	{}
 	__forceinline void WriteSkip(u32 skip)
 	{
 		Wbuffer += skip;

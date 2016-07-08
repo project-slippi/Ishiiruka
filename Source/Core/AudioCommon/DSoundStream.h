@@ -12,7 +12,7 @@
 #include <dsound.h>
 #endif
 
-class DSound final : public SoundStream
+class DSound final: public SoundStream
 {
 #ifdef _WIN32
 	void  *hWnd;
@@ -54,13 +54,17 @@ public:
 		, hWnd(_hWnd)
 	{}
 
-	virtual ~DSound() {}
+	virtual ~DSound()
+	{}
 
 	virtual bool Start()  override;
 	virtual void SetVolume(int volume)  override;
 	virtual void Stop()  override;
 	virtual void Clear(bool mute)  override;
-	static bool isValid() { return true; }
+	static bool isValid()
+	{
+		return true;
+	}
 
 #else
 public:

@@ -29,7 +29,7 @@
 
 namespace
 {
-	const unsigned int MAX_CHEAT_SEARCH_RESULTS_DISPLAY = 1024;
+const unsigned int MAX_CHEAT_SEARCH_RESULTS_DISPLAY = 1024;
 }
 
 CheatSearchTab::CheatSearchTab(wxWindow* const parent)
@@ -48,7 +48,7 @@ CheatSearchTab::CheatSearchTab(wxWindow* const parent)
 	m_btn_next_scan->Disable();
 
 	// data sizes radiobox
-	std::array<wxString, 3> data_size_names = { { _("8-bit"), _("16-bit"), _("32-bit") } };
+	std::array<wxString, 3> data_size_names = {{ _("8-bit"), _("16-bit"), _("32-bit") }};
 	m_data_sizes = new wxRadioBox(this, wxID_ANY, _("Data Size"), wxDefaultPosition, wxDefaultSize, static_cast<int>(data_size_names.size()), data_size_names.data());
 
 	// ListView for search results
@@ -255,31 +255,31 @@ void CheatSearchTab::UpdateCheatSearchResultItem(long index)
 
 enum class ComparisonMask
 {
-	EQUAL        = 0x1,
+	EQUAL = 0x1,
 	GREATER_THAN = 0x2,
-	LESS_THAN    = 0x4
+	LESS_THAN = 0x4
 };
 
 static ComparisonMask operator | (ComparisonMask comp1, ComparisonMask comp2)
 {
 	return static_cast<ComparisonMask>(static_cast<int>(comp1) |
-					   static_cast<int>(comp2));
+		static_cast<int>(comp2));
 }
 
 static ComparisonMask operator & (ComparisonMask comp1, ComparisonMask comp2)
 {
 	return static_cast<ComparisonMask>(static_cast<int>(comp1) &
-					   static_cast<int>(comp2));
+		static_cast<int>(comp2));
 }
 
 void CheatSearchTab::FilterCheatSearchResults(u32 value, bool prev)
 {
 	static const std::array<ComparisonMask, 5> filters{{
-	    ComparisonMask::EQUAL | ComparisonMask::GREATER_THAN | ComparisonMask::LESS_THAN, // Unknown
-	    ComparisonMask::GREATER_THAN | ComparisonMask::LESS_THAN, // Not Equal
-	    ComparisonMask::EQUAL,
-	    ComparisonMask::GREATER_THAN,
-	    ComparisonMask::LESS_THAN
+		 ComparisonMask::EQUAL | ComparisonMask::GREATER_THAN | ComparisonMask::LESS_THAN, // Unknown
+		 ComparisonMask::GREATER_THAN | ComparisonMask::LESS_THAN, // Not Equal
+		 ComparisonMask::EQUAL,
+		 ComparisonMask::GREATER_THAN,
+		 ComparisonMask::LESS_THAN
 	}};
 	ComparisonMask filter_mask = filters[m_search_type->GetSelection()];
 

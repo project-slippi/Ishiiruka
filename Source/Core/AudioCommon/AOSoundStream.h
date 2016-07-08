@@ -16,7 +16,7 @@
 #include <ao/ao.h>
 #endif
 
-class AOSound final : public SoundStream
+class AOSound final: public SoundStream
 {
 #if defined(HAVE_AO) && HAVE_AO
 	std::thread thread;

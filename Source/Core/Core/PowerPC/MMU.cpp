@@ -10,8 +10,8 @@
 #include "Core/Core.h"
 #include "Core/HW/CPU.h"
 #include "Core/HW/GPFifo.h"
-#include "Core/HW/Memmap.h"
 #include "Core/HW/MMIO.h"
+#include "Core/HW/Memmap.h"
 #include "Core/PowerPC/PowerPC.h"
 
 #include "VideoCommon/VideoBackendBase.h"
@@ -22,7 +22,6 @@
 
 namespace PowerPC
 {
-
 #define HW_PAGE_SIZE 4096
 
 // EFB RE
@@ -40,18 +39,35 @@ GXPeekZ
 80322e0c: blr
 */
 
-
 // =================================
 // From Memmap.cpp
 // ----------------
 
 // Overloaded byteswap functions, for use within the templated functions below.
-inline u8 bswap(u8 val)   { return val; }
-inline s8 bswap(s8 val)   { return val; }
-inline u16 bswap(u16 val) { return Common::swap16(val); }
-inline s16 bswap(s16 val) { return Common::swap16(val); }
-inline u32 bswap(u32 val) { return Common::swap32(val); }
-inline u64 bswap(u64 val) { return Common::swap64(val); }
+inline u8 bswap(u8 val)
+{
+	return val;
+}
+inline s8 bswap(s8 val)
+{
+	return val;
+}
+inline u16 bswap(u16 val)
+{
+	return Common::swap16(val);
+}
+inline s16 bswap(s16 val)
+{
+	return Common::swap16(val);
+}
+inline u32 bswap(u32 val)
+{
+	return Common::swap32(val);
+}
+inline u64 bswap(u64 val)
+{
+	return Common::swap64(val);
+}
 // =================
 
 enum XCheckTLBFlag
@@ -61,7 +77,8 @@ enum XCheckTLBFlag
 	FLAG_WRITE,
 	FLAG_OPCODE,
 };
-template <const XCheckTLBFlag flag> static u32 TranslateAddress(const u32 address);
+template <const XCheckTLBFlag flag>
+static u32 TranslateAddress(const u32 address);
 
 // Nasty but necessary. Super Mario Galaxy pointer relies on this stuff.
 static u32 EFB_Read(const u32 addr)
@@ -113,7 +130,6 @@ static void EFB_Write(u32 data, u32 addr)
 	}
 }
 
-
 static void GenerateDSIException(u32 _EffectiveAddress, bool _bWrite);
 
 template <XCheckTLBFlag flag, typename T>
@@ -126,13 +142,15 @@ __forceinline static T ReadFromHardware(const u32 em_address)
 	// to speed up the MMU path.
 	if (!BitSet32(0xCFC)[segment] && performTranslation)
 	{
-		// TODO: Figure out the fastest order of tests for both read and write (they are probably different).
+		// TODO: Figure out the fastest order of tests for both read and write (they are probably
+		// different).
 		if (flag == FLAG_READ && (em_address & 0xF8000000) == 0xC8000000)
 		{
 			if (em_address < 0xcc000000)
 				return EFB_Read(em_address);
 			else
-				return (T)Memory::mmio_mapping->Read<typename std::make_unsigned<T>::type>(em_address & 0x0FFFFFFF);
+				return (T)Memory::mmio_mapping->Read<typename std::make_unsigned<T>::type>(em_address &
+					0x0FFFFFFF);
 		}
 		if (segment == 0x0 || segment == 0x8 || segment == 0xC)
 		{
@@ -141,7 +159,8 @@ __forceinline static T ReadFromHardware(const u32 em_address)
 			// TODO: Only the first REALRAM_SIZE is supposed to be backed by actual memory.
 			return bswap((*(const T*)&Memory::m_pRAM[em_address & Memory::RAM_MASK]));
 		}
-		if (Memory::m_pEXRAM && (segment == 0x9 || segment == 0xD) && (em_address & 0x0FFFFFFF) < Memory::EXRAM_SIZE)
+		if (Memory::m_pEXRAM && (segment == 0x9 || segment == 0xD) &&
+			(em_address & 0x0FFFFFFF) < Memory::EXRAM_SIZE)
 		{
 			// Handle EXRAM.
 			// TODO: Is this supposed to be mirrored like main RAM?
@@ -193,9 +212,11 @@ __forceinline static T ReadFromHardware(const u32 em_address)
 	}
 
 	// Handle loads that cross page boundaries (ewwww)
-	// The alignment check isn't strictly necessary, but since this is a rare slow path, it provides a faster
+	// The alignment check isn't strictly necessary, but since this is a rare slow path, it provides a
+	// faster
 	// (1 instruction on x86) bailout.
-	if (sizeof(T) > 1 && (em_address & (sizeof(T) - 1)) && (em_address & (HW_PAGE_SIZE - 1)) > HW_PAGE_SIZE - sizeof(T))
+	if (sizeof(T) > 1 && (em_address & (sizeof(T) - 1)) &&
+		(em_address & (HW_PAGE_SIZE - 1)) > HW_PAGE_SIZE - sizeof(T))
 	{
 		// This could be unaligned down to the byte level... hopefully this is rare, so doing it this
 		// way isn't too terrible.
@@ -223,7 +244,6 @@ __forceinline static T ReadFromHardware(const u32 em_address)
 	return bswap(*(const T*)&Memory::physical_base[tlb_addr]);
 }
 
-
 template <XCheckTLBFlag flag, typename T>
 __forceinline static void WriteToHardware(u32 em_address, const T data)
 {
@@ -242,10 +262,18 @@ __forceinline static void WriteToHardware(u32 em_address, const T data)
 		{
 			switch (sizeof(T))
 			{
-			case 1: GPFifo::Write8((u8)data); return;
-			case 2: GPFifo::Write16((u16)data); return;
-			case 4: GPFifo::Write32((u32)data); return;
-			case 8: GPFifo::Write64((u64)data); return;
+			case 1:
+				GPFifo::Write8((u8)data);
+				return;
+			case 2:
+				GPFifo::Write16((u16)data);
+				return;
+			case 4:
+				GPFifo::Write32((u32)data);
+				return;
+			case 8:
+				GPFifo::Write64((u64)data);
+				return;
 			}
 		}
 		if (flag == FLAG_WRITE && (em_address & 0xF8000000) == 0xC8000000)
@@ -270,7 +298,8 @@ __forceinline static void WriteToHardware(u32 em_address, const T data)
 			*(T*)&Memory::m_pRAM[em_address & Memory::RAM_MASK] = bswap(data);
 			return;
 		}
-		if (Memory::m_pEXRAM && (segment == 0x9 || segment == 0xD) && (em_address & 0x0FFFFFFF) < Memory::EXRAM_SIZE)
+		if (Memory::m_pEXRAM && (segment == 0x9 || segment == 0xD) &&
+			(em_address & 0x0FFFFFFF) < Memory::EXRAM_SIZE)
 		{
 			// Handle EXRAM.
 			// TODO: Is this supposed to be mirrored like main RAM?
@@ -297,10 +326,18 @@ __forceinline static void WriteToHardware(u32 em_address, const T data)
 		{
 			switch (sizeof(T))
 			{
-			case 1: GPFifo::Write8((u8)data); return;
-			case 2: GPFifo::Write16((u16)data); return;
-			case 4: GPFifo::Write32((u32)data); return;
-			case 8: GPFifo::Write64((u64)data); return;
+			case 1:
+				GPFifo::Write8((u8)data);
+				return;
+			case 2:
+				GPFifo::Write16((u16)data);
+				return;
+			case 4:
+				GPFifo::Write32((u32)data);
+				return;
+			case 8:
+				GPFifo::Write64((u64)data);
+				return;
 			}
 		}
 		if (flag == FLAG_WRITE && (em_address & 0xF8000000) == 0x08000000)
@@ -344,7 +381,8 @@ __forceinline static void WriteToHardware(u32 em_address, const T data)
 	}
 
 	// Handle stores that cross page boundaries (ewwww)
-	if (sizeof(T) > 1 && (em_address & (sizeof(T) - 1)) && (em_address & (HW_PAGE_SIZE - 1)) > HW_PAGE_SIZE - sizeof(T))
+	if (sizeof(T) > 1 && (em_address & (sizeof(T) - 1)) &&
+		(em_address & (HW_PAGE_SIZE - 1)) > HW_PAGE_SIZE - sizeof(T))
 	{
 		T val = bswap(data);
 
@@ -371,11 +409,10 @@ __forceinline static void WriteToHardware(u32 em_address, const T data)
 }
 // =====================
 
-
 // =================================
 /* These functions are primarily called by the Interpreter functions and are routed to the correct
-   location through ReadFromHardware and WriteToHardware */
-// ----------------
+	location through ReadFromHardware and WriteToHardware */
+	// ----------------
 
 static void GenerateISIException(u32 effective_address);
 
@@ -401,7 +438,7 @@ TryReadInstResult TryReadInstruction(u32 address)
 			u32 tlb_addr = TranslateAddress<FLAG_OPCODE>(address);
 			if (tlb_addr == 0)
 			{
-				return TryReadInstResult{ false, false, 0 };
+				return TryReadInstResult{false, false, 0};
 			}
 			else
 			{
@@ -423,11 +460,11 @@ TryReadInstResult TryReadInstruction(u32 address)
 			else if (Memory::bFakeVMEM && (segment == 0x7 || segment == 0x4))
 			{
 				u32 hex = bswap((*(const u32*)&Memory::m_pFakeVMEM[address & Memory::FAKEVMEM_MASK]));
-				return TryReadInstResult{ true, true, hex };
+				return TryReadInstResult{true, true, hex};
 			}
 			else
 			{
-				return TryReadInstResult{ false, false, 0 };
+				return TryReadInstResult{false, false, 0};
 			}
 		}
 	}
@@ -438,7 +475,7 @@ TryReadInstResult TryReadInstruction(u32 address)
 	}
 
 	u32 hex = PowerPC::ppcState.iCache.ReadInstruction(address);
-	return TryReadInstResult{ true, from_bat, hex };
+	return TryReadInstResult{true, from_bat, hex};
 }
 
 u32 HostRead_Instruction(const u32 address)
@@ -450,7 +487,7 @@ u32 HostRead_Instruction(const u32 address)
 static __forceinline void Memcheck(u32 address, u32 var, bool write, int size)
 {
 #ifdef ENABLE_MEM_CHECK
-	TMemCheck *mc = PowerPC::memchecks.GetMemCheck(address);
+	TMemCheck* mc = PowerPC::memchecks.GetMemCheck(address);
 	if (mc)
 	{
 		if (CPU::IsStepping())
@@ -555,7 +592,6 @@ void Write_U16_Swap(const u16 var, const u32 address)
 	Write_U16(Common::swap16(var), address);
 }
 
-
 void Write_U32(const u32 var, const u32 address)
 {
 	Memcheck(address, var, true, 4);
@@ -639,7 +675,8 @@ std::string HostGetString(u32 address, size_t size)
 			break;
 		s += static_cast<char>(res);
 		++address;
-	} while (size == 0 || s.length() < size);
+	}
+	while (size == 0 || s.length() < size);
 	return s;
 }
 
@@ -654,9 +691,11 @@ bool IsOptimizableRAMAddress(const u32 address)
 
 	int segment = address >> 28;
 
-	return (((segment == 0x8 || segment == 0xC || segment == 0x0) && (address & 0x0FFFFFFF) < Memory::REALRAM_SIZE) ||
-		(Memory::m_pEXRAM && (segment == 0x9 || segment == 0xD) && (address & 0x0FFFFFFF) < Memory::EXRAM_SIZE) ||
-		(segment == 0xE && (address < (0xE0000000 + Memory::L1_CACHE_SIZE))));
+	return (((segment == 0x8 || segment == 0xC || segment == 0x0) &&
+		(address & 0x0FFFFFFF) < Memory::REALRAM_SIZE) ||
+		(Memory::m_pEXRAM && (segment == 0x9 || segment == 0xD) &&
+		(address & 0x0FFFFFFF) < Memory::EXRAM_SIZE) ||
+			(segment == 0xE && (address < (0xE0000000 + Memory::L1_CACHE_SIZE))));
 }
 
 bool HostIsRAMAddress(u32 address)
@@ -667,9 +706,11 @@ bool HostIsRAMAddress(u32 address)
 	int segment = address >> 28;
 	if (performTranslation)
 	{
-		if ((segment == 0x8 || segment == 0xC || segment == 0x0) && (address & 0x0FFFFFFF) < Memory::REALRAM_SIZE)
+		if ((segment == 0x8 || segment == 0xC || segment == 0x0) &&
+			(address & 0x0FFFFFFF) < Memory::REALRAM_SIZE)
 			return true;
-		else if (Memory::m_pEXRAM && (segment == 0x9 || segment == 0xD) && (address & 0x0FFFFFFF) < Memory::EXRAM_SIZE)
+		else if (Memory::m_pEXRAM && (segment == 0x9 || segment == 0xD) &&
+			(address & 0x0FFFFFFF) < Memory::EXRAM_SIZE)
 			return true;
 		else if (Memory::bFakeVMEM && (segment == 0x7 || segment == 0x4))
 			return true;
@@ -686,8 +727,6 @@ bool HostIsRAMAddress(u32 address)
 	else if (Memory::m_pEXRAM && segment == 0x1 && (address & 0x0FFFFFFF) < Memory::EXRAM_SIZE)
 		return true;
 	return false;
-
-
 }
 
 void DMA_LCToMemory(const u32 memAddr, const u32 cacheAddr, const u32 numBlocks)
@@ -831,50 +870,49 @@ bool IsOptimizableGatherPipeWrite(u32 address)
 * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 */
 
+#define PPC_EXC_DSISR_PAGE (1 << 30)
+#define PPC_EXC_DSISR_PROT (1 << 27)
+#define PPC_EXC_DSISR_STORE (1 << 25)
 
-#define PPC_EXC_DSISR_PAGE (1<<30)
-#define PPC_EXC_DSISR_PROT (1<<27)
-#define PPC_EXC_DSISR_STORE (1<<25)
-
-#define SDR1_HTABORG(v) (((v)>>16)&0xffff)
+#define SDR1_HTABORG(v) (((v) >> 16) & 0xffff)
 #define SDR1_HTABMASK(v) ((v)&0x1ff)
 #define SDR1_PAGETABLE_BASE(v) ((v)&0xffff)
-#define SR_T  (1<<31)
-#define SR_Ks (1<<30)
-#define SR_Kp (1<<29)
-#define SR_N  (1<<28)
-#define SR_VSID(v)       ((v)&0xffffff)
-#define SR_BUID(v)       (((v)>>20)&0x1ff)
+#define SR_T (1 << 31)
+#define SR_Ks (1 << 30)
+#define SR_Kp (1 << 29)
+#define SR_N (1 << 28)
+#define SR_VSID(v) ((v)&0xffffff)
+#define SR_BUID(v) (((v) >> 20) & 0x1ff)
 #define SR_CNTRL_SPEC(v) ((v)&0xfffff)
 
-#define EA_SR(v)         (((v)>>28)&0xf)
-#define EA_PageIndex(v)  (((v)>>12)&0xffff)
-#define EA_Offset(v)     ((v)&0xfff)
-#define EA_API(v)        (((v)>>22)&0x3f)
+#define EA_SR(v) (((v) >> 28) & 0xf)
+#define EA_PageIndex(v) (((v) >> 12) & 0xffff)
+#define EA_Offset(v) ((v)&0xfff)
+#define EA_API(v) (((v) >> 22) & 0x3f)
 
-#define PA_RPN(v)        (((v)>>12)&0xfffff)
-#define PA_Offset(v)     ((v)&0xfff)
+#define PA_RPN(v) (((v) >> 12) & 0xfffff)
+#define PA_Offset(v) ((v)&0xfff)
 
-#define PTE1_V       (1<<31)
-#define PTE1_VSID(v) (((v)>>7)&0xffffff)
-#define PTE1_H       (1<<6)
-#define PTE1_API(v)  ((v)&0x3f)
+#define PTE1_V (1 << 31)
+#define PTE1_VSID(v) (((v) >> 7) & 0xffffff)
+#define PTE1_H (1 << 6)
+#define PTE1_API(v) ((v)&0x3f)
 
-#define PTE2_RPN(v)  ((v)&0xfffff000)
-#define PTE2_R       (1<<8)
-#define PTE2_C       (1<<7)
-#define PTE2_WIMG(v) (((v)>>3)&0xf)
-#define PTE2_PP(v)   ((v)&3)
+#define PTE2_RPN(v) ((v)&0xfffff000)
+#define PTE2_R (1 << 8)
+#define PTE2_C (1 << 7)
+#define PTE2_WIMG(v) (((v) >> 3) & 0xf)
+#define PTE2_PP(v) ((v)&3)
 
 // Hey! these duplicate a structure in Gekko.h
 union UPTE1
 {
 	struct
 	{
-		u32 API    : 6;
-		u32 H      : 1;
-		u32 VSID   : 24;
-		u32 V      : 1;
+		u32 API : 6;
+		u32 H : 1;
+		u32 VSID : 24;
+		u32 V : 1;
 	};
 	u32 Hex;
 };
@@ -883,13 +921,13 @@ union UPTE2
 {
 	struct
 	{
-		u32 PP     : 2;
-		u32        : 1;
-		u32 WIMG   : 4;
-		u32 C      : 1;
-		u32 R      : 1;
-		u32        : 3;
-		u32 RPN    : 20;
+		u32 PP : 2;
+		u32 : 1;
+				u32 WIMG : 4;
+				u32 C : 1;
+				u32 R : 1;
+				u32 : 3;
+						u32 RPN : 20;
 	};
 	u32 Hex;
 };
@@ -899,7 +937,8 @@ static void GenerateDSIException(u32 effectiveAddress, bool write)
 	// DSI exceptions are only supported in MMU mode.
 	if (!SConfig::GetInstance().bMMU)
 	{
-		PanicAlert("Invalid %s 0x%08x, PC = 0x%08x ", write ? "write to" : "read from", effectiveAddress, PC);
+		PanicAlert("Invalid %s 0x%08x, PC = 0x%08x ", write ? "write to" : "read from",
+			effectiveAddress, PC);
 		return;
 	}
 
@@ -913,7 +952,6 @@ static void GenerateDSIException(u32 effectiveAddress, bool write)
 	PowerPC::ppcState.Exceptions |= EXCEPTION_DSI;
 }
 
-
 static void GenerateISIException(u32 _EffectiveAddress)
 {
 	// Address of instruction could not be translated
@@ -921,7 +959,6 @@ static void GenerateISIException(u32 _EffectiveAddress)
 
 	PowerPC::ppcState.Exceptions |= EXCEPTION_ISI;
 }
-
 
 void SDRUpdated()
 {
@@ -932,8 +969,8 @@ void SDRUpdated()
 	while ((htabmask & x) && (n < 9))
 	{
 		n++;
-		xx|=x;
-		x<<=1;
+		xx |= x;
+		x <<= 1;
 	}
 	if (htabmask & ~xx)
 	{
@@ -944,8 +981,8 @@ void SDRUpdated()
 	{
 		return;
 	}
-	PowerPC::ppcState.pagetable_base = htaborg<<16;
-	PowerPC::ppcState.pagetable_hashmask = ((xx<<10)|0x3ff);
+	PowerPC::ppcState.pagetable_base = htaborg << 16;
+	PowerPC::ppcState.pagetable_hashmask = ((xx << 10) | 0x3ff);
 }
 
 enum TLBLookupResult
@@ -955,10 +992,11 @@ enum TLBLookupResult
 	TLB_UPDATE_C
 };
 
-static __forceinline TLBLookupResult LookupTLBPageAddress(const XCheckTLBFlag flag, const u32 vpa, u32 *paddr)
+static __forceinline TLBLookupResult LookupTLBPageAddress(const XCheckTLBFlag flag, const u32 vpa,
+	u32* paddr)
 {
 	u32 tag = vpa >> HW_PAGE_INDEX_SHIFT;
-	PowerPC::tlb_entry *tlbe = &PowerPC::ppcState.tlb[flag == FLAG_OPCODE][tag & HW_PAGE_INDEX_MASK];
+	PowerPC::tlb_entry* tlbe = &PowerPC::ppcState.tlb[flag == FLAG_OPCODE][tag & HW_PAGE_INDEX_MASK];
 	if (tlbe->tag[0] == tag)
 	{
 		// Check if C bit requires updating
@@ -1012,7 +1050,7 @@ static __forceinline void UpdateTLBEntry(const XCheckTLBFlag flag, UPTE2 PTE2, c
 		return;
 
 	int tag = address >> HW_PAGE_INDEX_SHIFT;
-	PowerPC::tlb_entry *tlbe = &PowerPC::ppcState.tlb[flag == FLAG_OPCODE][tag & HW_PAGE_INDEX_MASK];
+	PowerPC::tlb_entry* tlbe = &PowerPC::ppcState.tlb[flag == FLAG_OPCODE][tag & HW_PAGE_INDEX_MASK];
 	int index = tlbe->recent == 0 && tlbe->tag[0] != TLB_TAG_INVALID;
 	tlbe->recent = index;
 	tlbe->paddr[index] = PTE2.RPN << HW_PAGE_INDEX_SHIFT;
@@ -1022,10 +1060,12 @@ static __forceinline void UpdateTLBEntry(const XCheckTLBFlag flag, UPTE2 PTE2, c
 
 void InvalidateTLBEntry(u32 address)
 {
-	PowerPC::tlb_entry *tlbe = &PowerPC::ppcState.tlb[0][(address >> HW_PAGE_INDEX_SHIFT) & HW_PAGE_INDEX_MASK];
+	PowerPC::tlb_entry* tlbe =
+		&PowerPC::ppcState.tlb[0][(address >> HW_PAGE_INDEX_SHIFT) & HW_PAGE_INDEX_MASK];
 	tlbe->tag[0] = TLB_TAG_INVALID;
 	tlbe->tag[1] = TLB_TAG_INVALID;
-	PowerPC::tlb_entry *tlbe_i = &PowerPC::ppcState.tlb[1][(address >> HW_PAGE_INDEX_SHIFT) & HW_PAGE_INDEX_MASK];
+	PowerPC::tlb_entry* tlbe_i =
+		&PowerPC::ppcState.tlb[1][(address >> HW_PAGE_INDEX_SHIFT) & HW_PAGE_INDEX_MASK];
 	tlbe_i->tag[0] = TLB_TAG_INVALID;
 	tlbe_i->tag[1] = TLB_TAG_INVALID;
 }
@@ -1034,19 +1074,20 @@ void InvalidateTLBEntry(u32 address)
 static __forceinline u32 TranslatePageAddress(const u32 address, const XCheckTLBFlag flag)
 {
 	// TLB cache
-	// This catches 99%+ of lookups in practice, so the actual page table entry code below doesn't benefit
+	// This catches 99%+ of lookups in practice, so the actual page table entry code below doesn't
+	// benefit
 	// much from optimization.
 	u32 translatedAddress = 0;
-	TLBLookupResult res = LookupTLBPageAddress(flag , address, &translatedAddress);
+	TLBLookupResult res = LookupTLBPageAddress(flag, address, &translatedAddress);
 	if (res == TLB_FOUND)
 		return translatedAddress;
 
 	u32 sr = PowerPC::ppcState.sr[EA_SR(address)];
 
-	u32 offset = EA_Offset(address);        // 12 bit
-	u32 page_index = EA_PageIndex(address); // 16 bit
+	u32 offset = EA_Offset(address);         // 12 bit
+	u32 page_index = EA_PageIndex(address);  // 16 bit
 	u32 VSID = SR_VSID(sr);                  // 24 bit
-	u32 api = EA_API(address);              //  6 bit (part of page_index)
+	u32 api = EA_API(address);               //  6 bit (part of page_index)
 
 	// hash function no 1 "xor" .360
 	u32 hash = (VSID ^ page_index);
@@ -1061,7 +1102,8 @@ static __forceinline u32 TranslatePageAddress(const u32 address, const XCheckTLB
 			pte1 |= PTE1_H << 24;
 		}
 
-		u32 pteg_addr = ((hash & PowerPC::ppcState.pagetable_hashmask) << 6) | PowerPC::ppcState.pagetable_base;
+		u32 pteg_addr =
+			((hash & PowerPC::ppcState.pagetable_hashmask) << 6) | PowerPC::ppcState.pagetable_base;
 
 		for (int i = 0; i < 8; i++, pteg_addr += 8)
 		{
@@ -1073,10 +1115,18 @@ static __forceinline u32 TranslatePageAddress(const u32 address, const XCheckTLB
 				// set the access bits
 				switch (flag)
 				{
-				case FLAG_NO_EXCEPTION: break;
-				case FLAG_READ:     PTE2.R = 1; break;
-				case FLAG_WRITE:    PTE2.R = 1; PTE2.C = 1; break;
-				case FLAG_OPCODE:   PTE2.R = 1; break;
+				case FLAG_NO_EXCEPTION:
+					break;
+				case FLAG_READ:
+					PTE2.R = 1;
+					break;
+				case FLAG_WRITE:
+					PTE2.R = 1;
+					PTE2.C = 1;
+					break;
+				case FLAG_OPCODE:
+					PTE2.R = 1;
+					break;
 				}
 
 				if (flag != FLAG_NO_EXCEPTION)
@@ -1102,4 +1152,4 @@ __forceinline u32 TranslateAddress(const u32 address)
 	return TranslatePageAddress(address, flag);
 }
 
-} // namespace
+}  // namespace

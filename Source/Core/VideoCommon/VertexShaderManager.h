@@ -17,12 +17,17 @@ public:
 	static const size_t ConstantBufferSize = C_VENVCONST_END * 4;
 	static void Init();
 	static void Dirty();
-	static void Shutdown();
 	static void DoState(PointerWrap &p);
 	static float* GetBufferToUpdate(u32 const_number, u32 size);
 	static const float* GetBuffer();
-	static inline bool IsDirty() { return m_buffer.IsDirty(); }
-	static inline void Clear() { m_buffer.Clear(); }
+	static inline bool IsDirty()
+	{
+		return m_buffer.IsDirty();
+	}
+	static inline void Clear()
+	{
+		m_buffer.Clear();
+	}
 	static void EnableDirtyRegions();
 	static void DisableDirtyRegions();
 	static const regionvector &GetDirtyRegions();
@@ -32,7 +37,7 @@ public:
 	static void InvalidateXFRange(int start, int end);
 	static void SetTexMatrixChangedA(u32 value);
 	static void SetTexMatrixChangedB(u32 value);
-	
+
 	static inline void SetViewportChanged()
 	{
 		bViewportChanged = true;

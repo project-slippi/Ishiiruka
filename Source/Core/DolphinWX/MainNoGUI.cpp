@@ -36,8 +36,10 @@ static bool running = true;
 class Platform
 {
 public:
-	virtual void Init() {}
-	virtual void SetTitle(const std::string &title) {}
+	virtual void Init()
+	{}
+	virtual void SetTitle(const std::string &title)
+	{}
 	virtual void MainLoop()
 	{
 		while (running)
@@ -46,14 +48,18 @@ public:
 			std::this_thread::sleep_for(std::chrono::milliseconds(100));
 		}
 	}
-	virtual void Shutdown() {}
-	virtual ~Platform() {}
+	virtual void Shutdown()
+	{}
+	virtual ~Platform()
+	{}
 };
 
 static Platform* platform;
 
-void Host_NotifyMapLoaded() {}
-void Host_RefreshDSPDebuggerWindow() {}
+void Host_NotifyMapLoaded()
+{}
+void Host_RefreshDSPDebuggerWindow()
+{}
 
 static Common::Event updateMainFrameEvent;
 void Host_Message(int Id)
@@ -76,16 +82,19 @@ void Host_UpdateTitle(const std::string& title)
 	platform->SetTitle(title);
 }
 
-void Host_UpdateDisasmDialog(){}
+void Host_UpdateDisasmDialog()
+{}
 
 void Host_UpdateMainFrame()
 {
 	updateMainFrameEvent.Set();
 }
 
-void Host_RequestRenderWindowSize(int width, int height) {}
+void Host_RequestRenderWindowSize(int width, int height)
+{}
 
-void Host_RequestFullscreen(bool enable_fullscreen) {}
+void Host_RequestFullscreen(bool enable_fullscreen)
+{}
 
 void Host_SetStartupDebuggingParameters()
 {
@@ -123,15 +132,17 @@ void Host_ConnectWiimote(int wm_idx, bool connect)
 	}
 }
 
-void Host_SetWiiMoteConnectionState(int _State) {}
+void Host_SetWiiMoteConnectionState(int _State)
+{}
 
-void Host_ShowVideoConfig(void*, const std::string&, const std::string&) {}
+void Host_ShowVideoConfig(void*, const std::string&)
+{}
 
 #if HAVE_X11
 #include <X11/keysym.h>
 #include "DolphinWX/X11Utils.h"
 
-class PlatformX11 : public Platform
+class PlatformX11: public Platform
 {
 	Display *dpy;
 	Window win;
@@ -151,11 +162,11 @@ class PlatformX11 : public Platform
 		}
 
 		win = XCreateSimpleWindow(dpy, DefaultRootWindow(dpy),
-					  SConfig::GetInstance().iRenderWindowXPos,
-					  SConfig::GetInstance().iRenderWindowYPos,
-					  SConfig::GetInstance().iRenderWindowWidth,
-					  SConfig::GetInstance().iRenderWindowHeight,
-					  0, 0, BlackPixel(dpy, 0));
+			SConfig::GetInstance().iRenderWindowXPos,
+			SConfig::GetInstance().iRenderWindowYPos,
+			SConfig::GetInstance().iRenderWindowWidth,
+			SConfig::GetInstance().iRenderWindowHeight,
+			0, 0, BlackPixel(dpy, 0));
 		XSelectInput(dpy, win, KeyPressMask | FocusChangeMask);
 		Atom wmProtocols[1];
 		wmProtocols[0] = XInternAtom(dpy, "WM_DELETE_WINDOW", True);
@@ -176,7 +187,7 @@ class PlatformX11 : public Platform
 			// make a blank cursor
 			Pixmap Blank;
 			XColor DummyColor;
-			char ZeroData[1] = { 0 };
+			char ZeroData[1] = {0};
 			Blank = XCreateBitmapFromData(dpy, win, ZeroData, 1, 1);
 			blankCursor = XCreatePixmapCursor(dpy, Blank, Blank, &DummyColor, &DummyColor, 0, 0);
 			XFreePixmap(dpy, Blank);
@@ -259,7 +270,7 @@ class PlatformX11 : public Platform
 				case FocusIn:
 					rendererHasFocus = true;
 					if (SConfig::GetInstance().bHideCursor &&
-					    Core::GetState() != Core::CORE_PAUSE)
+						Core::GetState() != Core::CORE_PAUSE)
 						XDefineCursor(dpy, win, blankCursor);
 					break;
 				case FocusOut:
@@ -268,7 +279,7 @@ class PlatformX11 : public Platform
 						XUndefineCursor(dpy, win);
 					break;
 				case ClientMessage:
-					if ((unsigned long) event.xclient.data.l[0] == XInternAtom(dpy, "WM_DELETE_WINDOW", False))
+					if ((unsigned long)event.xclient.data.l[0] == XInternAtom(dpy, "WM_DELETE_WINDOW", False))
 						running = false;
 					break;
 				}
@@ -278,11 +289,11 @@ class PlatformX11 : public Platform
 				Window winDummy;
 				unsigned int borderDummy, depthDummy;
 				XGetGeometry(dpy, win, &winDummy,
-					     &SConfig::GetInstance().iRenderWindowXPos,
-					     &SConfig::GetInstance().iRenderWindowYPos,
-					     (unsigned int *)&SConfig::GetInstance().iRenderWindowWidth,
-					     (unsigned int *)&SConfig::GetInstance().iRenderWindowHeight,
-					     &borderDummy, &depthDummy);
+					&SConfig::GetInstance().iRenderWindowXPos,
+					&SConfig::GetInstance().iRenderWindowYPos,
+					(unsigned int *)&SConfig::GetInstance().iRenderWindowWidth,
+					(unsigned int *)&SConfig::GetInstance().iRenderWindowHeight,
+					&borderDummy, &depthDummy);
 				rendererIsFullscreen = false;
 			}
 			Core::HostDispatchJobs();

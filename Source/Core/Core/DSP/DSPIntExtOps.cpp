@@ -35,7 +35,7 @@ namespace Ext
 inline bool IsSameMemArea(u16 a, u16 b)
 {
 	// LM: tested on Wii
-	if ((a>>10)==(b>>10))
+	if ((a >> 10) == (b >> 10))
 		return true;
 	else
 		return false;
@@ -79,11 +79,11 @@ void mv(const UDSPInstruction opc)
 	{
 	case DSP_REG_ACL0:
 	case DSP_REG_ACL1:
-		writeToBackLog(0, dreg + DSP_REG_AXL0, g_dsp.r.ac[sreg-DSP_REG_ACL0].l);
+		writeToBackLog(0, dreg + DSP_REG_AXL0, g_dsp.r.ac[sreg - DSP_REG_ACL0].l);
 		break;
 	case DSP_REG_ACM0:
 	case DSP_REG_ACM1:
-		writeToBackLog(0, dreg + DSP_REG_AXL0, dsp_op_read_reg_and_saturate(sreg-DSP_REG_ACM0));
+		writeToBackLog(0, dreg + DSP_REG_AXL0, dsp_op_read_reg_and_saturate(sreg - DSP_REG_ACM0));
 		break;
 	}
 }
@@ -101,11 +101,11 @@ void s(const UDSPInstruction opc)
 	{
 	case DSP_REG_ACL0:
 	case DSP_REG_ACL1:
-		dsp_dmem_write(g_dsp.r.ar[dreg], g_dsp.r.ac[sreg-DSP_REG_ACL0].l);
+		dsp_dmem_write(g_dsp.r.ar[dreg], g_dsp.r.ac[sreg - DSP_REG_ACL0].l);
 		break;
 	case DSP_REG_ACM0:
 	case DSP_REG_ACM1:
-		dsp_dmem_write(g_dsp.r.ar[dreg], dsp_op_read_reg_and_saturate(sreg-DSP_REG_ACM0));
+		dsp_dmem_write(g_dsp.r.ar[dreg], dsp_op_read_reg_and_saturate(sreg - DSP_REG_ACM0));
 		break;
 	}
 	writeToBackLog(0, dreg, dsp_increment_addr_reg(dreg));
@@ -124,11 +124,11 @@ void sn(const UDSPInstruction opc)
 	{
 	case DSP_REG_ACL0:
 	case DSP_REG_ACL1:
-		dsp_dmem_write(g_dsp.r.ar[dreg], g_dsp.r.ac[sreg-DSP_REG_ACL0].l);
+		dsp_dmem_write(g_dsp.r.ar[dreg], g_dsp.r.ac[sreg - DSP_REG_ACL0].l);
 		break;
 	case DSP_REG_ACM0:
 	case DSP_REG_ACM1:
-		dsp_dmem_write(g_dsp.r.ar[dreg], dsp_op_read_reg_and_saturate(sreg-DSP_REG_ACM0));
+		dsp_dmem_write(g_dsp.r.ar[dreg], dsp_op_read_reg_and_saturate(sreg - DSP_REG_ACM0));
 		break;
 	}
 	writeToBackLog(0, dreg, dsp_increase_addr_reg(dreg, (s16)g_dsp.r.ix[dreg]));
@@ -429,7 +429,7 @@ void ldm(const UDSPInstruction opc)
 	writeToBackLog(2, sreg, dsp_increment_addr_reg(sreg));
 
 	writeToBackLog(3, DSP_REG_AR3,
-		       dsp_increase_addr_reg(DSP_REG_AR3, (s16)g_dsp.r.ix[3]));
+		dsp_increase_addr_reg(DSP_REG_AR3, (s16)g_dsp.r.ix[3]));
 }
 
 // LDAXM $axR, @$arS
@@ -449,7 +449,7 @@ void ldaxm(const UDSPInstruction opc)
 	writeToBackLog(2, sreg, dsp_increment_addr_reg(sreg));
 
 	writeToBackLog(3, DSP_REG_AR3,
-		       dsp_increase_addr_reg(DSP_REG_AR3, (s16)g_dsp.r.ix[3]));
+		dsp_increase_addr_reg(DSP_REG_AR3, (s16)g_dsp.r.ix[3]));
 }
 
 // LDNM $ax0.d, $ax1.r, @$arS
@@ -470,7 +470,7 @@ void ldnm(const UDSPInstruction opc)
 	writeToBackLog(2, sreg, dsp_increase_addr_reg(sreg, (s16)g_dsp.r.ix[sreg]));
 
 	writeToBackLog(3, DSP_REG_AR3,
-		       dsp_increase_addr_reg(DSP_REG_AR3, (s16)g_dsp.r.ix[3]));
+		dsp_increase_addr_reg(DSP_REG_AR3, (s16)g_dsp.r.ix[3]));
 }
 
 // LDAXNM $axR, @$arS
@@ -490,13 +490,12 @@ void ldaxnm(const UDSPInstruction opc)
 	writeToBackLog(2, sreg, dsp_increase_addr_reg(sreg, (s16)g_dsp.r.ix[sreg]));
 
 	writeToBackLog(3, DSP_REG_AR3,
-		       dsp_increase_addr_reg(DSP_REG_AR3, (s16)g_dsp.r.ix[3]));
+		dsp_increase_addr_reg(DSP_REG_AR3, (s16)g_dsp.r.ix[3]));
 }
 
 
 void nop(const UDSPInstruction opc)
-{
-}
+{}
 
 } // end namespace ext
 } // end namespace DSPInterpeter

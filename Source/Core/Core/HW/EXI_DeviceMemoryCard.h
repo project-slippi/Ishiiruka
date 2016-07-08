@@ -12,7 +12,7 @@
 class MemoryCardBase;
 class PointerWrap;
 
-class CEXIMemoryCard : public IEXIDevice
+class CEXIMemoryCard: public IEXIDevice
 {
 public:
 	CEXIMemoryCard(const int index, bool gciFolder);
@@ -21,7 +21,7 @@ public:
 	bool IsInterruptSet() override;
 	bool UseDelayedTransferCompletion() const override;
 	bool IsPresent() const override;
-	void DoState(PointerWrap &p) override;
+	void DoState(PointerWrap& p) override;
 	IEXIDevice* FindDevice(TEXIDevices device_type, int customIndex = -1) override;
 	void DMARead(u32 _uAddr, u32 _uSize) override;
 	void DMAWrite(u32 _uAddr, u32 _uSize) override;
@@ -29,7 +29,8 @@ public:
 private:
 	void SetupGciFolder(u16 sizeMb);
 	void SetupRawMemcard(u16 sizeMb);
-	static void EventCompleteFindInstance(u64 userdata, std::function<void(CEXIMemoryCard*)> callback);
+	static void EventCompleteFindInstance(u64 userdata,
+		std::function<void(CEXIMemoryCard*)> callback);
 
 	// Scheduled when a command that required delayed end signaling is done.
 	static void CmdDoneCallback(u64 userdata, s64 cyclesLate);
@@ -48,21 +49,21 @@ private:
 
 	enum
 	{
-		cmdNintendoID       = 0x00,
-		cmdReadArray        = 0x52,
-		cmdArrayToBuffer    = 0x53,
-		cmdSetInterrupt     = 0x81,
-		cmdWriteBuffer      = 0x82,
-		cmdReadStatus       = 0x83,
-		cmdReadID           = 0x85,
-		cmdReadErrorBuffer  = 0x86,
-		cmdWakeUp           = 0x87,
-		cmdSleep            = 0x88,
-		cmdClearStatus      = 0x89,
-		cmdSectorErase      = 0xF1,
-		cmdPageProgram      = 0xF2,
+		cmdNintendoID = 0x00,
+		cmdReadArray = 0x52,
+		cmdArrayToBuffer = 0x53,
+		cmdSetInterrupt = 0x81,
+		cmdWriteBuffer = 0x82,
+		cmdReadStatus = 0x83,
+		cmdReadID = 0x85,
+		cmdReadErrorBuffer = 0x86,
+		cmdWakeUp = 0x87,
+		cmdSleep = 0x88,
+		cmdClearStatus = 0x89,
+		cmdSectorErase = 0xF1,
+		cmdPageProgram = 0xF2,
 		cmdExtraByteProgram = 0xF3,
-		cmdChipErase        = 0xF4,
+		cmdChipErase = 0xF4,
 	};
 
 	int card_index;

@@ -49,22 +49,22 @@ enum
 };
 
 BEGIN_EVENT_TABLE(CMemoryWindow, wxPanel)
-	EVT_LISTBOX(IDM_SYMBOLLIST,     CMemoryWindow::OnSymbolListChange)
-	EVT_HOST_COMMAND(wxID_ANY,      CMemoryWindow::OnHostMessage)
-	EVT_BUTTON(IDM_SETVALBUTTON,    CMemoryWindow::SetMemoryValue)
-	EVT_BUTTON(IDM_DUMP_MEMORY,     CMemoryWindow::OnDumpMemory)
-	EVT_BUTTON(IDM_DUMP_MEM2,       CMemoryWindow::OnDumpMem2)
-	EVT_BUTTON(IDM_DUMP_FAKEVMEM,   CMemoryWindow::OnDumpFakeVMEM)
-	EVT_CHECKBOX(IDM_U8,            CMemoryWindow::U8)
-	EVT_CHECKBOX(IDM_U16,           CMemoryWindow::U16)
-	EVT_CHECKBOX(IDM_U32,           CMemoryWindow::U32)
-	EVT_BUTTON(IDM_SEARCH,          CMemoryWindow::onSearch)
-	EVT_CHECKBOX(IDM_ASCII,         CMemoryWindow::onAscii)
-	EVT_CHECKBOX(IDM_HEX,           CMemoryWindow::onHex)
+EVT_LISTBOX(IDM_SYMBOLLIST, CMemoryWindow::OnSymbolListChange)
+EVT_HOST_COMMAND(wxID_ANY, CMemoryWindow::OnHostMessage)
+EVT_BUTTON(IDM_SETVALBUTTON, CMemoryWindow::SetMemoryValue)
+EVT_BUTTON(IDM_DUMP_MEMORY, CMemoryWindow::OnDumpMemory)
+EVT_BUTTON(IDM_DUMP_MEM2, CMemoryWindow::OnDumpMem2)
+EVT_BUTTON(IDM_DUMP_FAKEVMEM, CMemoryWindow::OnDumpFakeVMEM)
+EVT_CHECKBOX(IDM_U8, CMemoryWindow::U8)
+EVT_CHECKBOX(IDM_U16, CMemoryWindow::U16)
+EVT_CHECKBOX(IDM_U32, CMemoryWindow::U32)
+EVT_BUTTON(IDM_SEARCH, CMemoryWindow::onSearch)
+EVT_CHECKBOX(IDM_ASCII, CMemoryWindow::onAscii)
+EVT_CHECKBOX(IDM_HEX, CMemoryWindow::onHex)
 END_EVENT_TABLE()
 
 CMemoryWindow::CMemoryWindow(wxWindow* parent, wxWindowID id,
-		const wxPoint& pos, const wxSize& size, long style, const wxString& name)
+	const wxPoint& pos, const wxSize& size, long style, const wxString& name)
 	: wxPanel(parent, id, pos, size, style, name)
 {
 	DebugInterface* di = &PowerPC::debug_interface;
@@ -210,14 +210,14 @@ void CMemoryWindow::NotifyMapLoaded()
 	symbols->Show(false); // hide it for faster filling
 	symbols->Clear();
 #if 0
-	#ifdef _WIN32
+#ifdef _WIN32
 	const FunctionDB::XFuncMap &syms = g_symbolDB.Symbols();
 	for (FuntionDB::XFuncMap::iterator iter = syms.begin(); iter != syms.end(); ++iter)
 	{
-	int idx = symbols->Append(iter->second.name.c_str());
-	symbols->SetClientData(idx, (void*)&iter->second);
+		int idx = symbols->Append(iter->second.name.c_str());
+		symbols->SetClientData(idx, (void*)&iter->second);
 	}
-	#endif
+#endif
 #endif
 	symbols->Show(true);
 	Update();
@@ -240,9 +240,9 @@ void CMemoryWindow::OnHostMessage(wxCommandEvent& event)
 {
 	switch (event.GetId())
 	{
-		case IDM_NOTIFY_MAP_LOADED:
-			NotifyMapLoaded();
-			break;
+	case IDM_NOTIFY_MAP_LOADED:
+		NotifyMapLoaded();
+		break;
 	}
 }
 
@@ -256,13 +256,13 @@ static void DumpArray(const std::string& filename, const u8* data, size_t length
 }
 
 // Write mram to file
-void CMemoryWindow::OnDumpMemory( wxCommandEvent& event )
+void CMemoryWindow::OnDumpMemory(wxCommandEvent& event)
 {
 	DumpArray(File::GetUserPath(F_RAMDUMP_IDX), Memory::m_pRAM, Memory::REALRAM_SIZE);
 }
 
 // Write exram (aram or mem2) to file
-void CMemoryWindow::OnDumpMem2( wxCommandEvent& event )
+void CMemoryWindow::OnDumpMem2(wxCommandEvent& event)
 {
 	if (SConfig::GetInstance().bWii)
 	{
@@ -275,7 +275,7 @@ void CMemoryWindow::OnDumpMem2( wxCommandEvent& event )
 }
 
 // Write fake vmem to file
-void CMemoryWindow::OnDumpFakeVMEM( wxCommandEvent& event )
+void CMemoryWindow::OnDumpFakeVMEM(wxCommandEvent& event)
 {
 	DumpArray(File::GetUserPath(F_FAKEVMEMDUMP_IDX), Memory::m_pFakeVMEM, Memory::FAKEVMEM_SIZE);
 }
@@ -316,15 +316,15 @@ void CMemoryWindow::onSearch(wxCommandEvent& event)
 		}
 		break;
 	case 1:
+	{
+		u8* aram = DSP::GetARAMPtr();
+		if (aram)
 		{
-			u8* aram = DSP::GetARAMPtr();
-			if (aram)
-			{
-				TheRAM = aram;
-				szRAM = DSP::ARAM_SIZE;
-			}
+			TheRAM = aram;
+			szRAM = DSP::ARAM_SIZE;
 		}
-		break;
+	}
+	break;
 	}
 	//Now we have memory to look in
 	//Are we looking for ASCII string, or hex?
@@ -332,7 +332,7 @@ void CMemoryWindow::onSearch(wxCommandEvent& event)
 	wxString rawData = valbox->GetValue();
 	std::vector<u8> Dest; //May need a better name
 	u32 size = 0;
-	int pad = rawData.size()%2; //If it's uneven
+	int pad = rawData.size() % 2; //If it's uneven
 	unsigned int i = 0;
 	long count = 0;
 	char copy[3] = {0};
@@ -344,8 +344,8 @@ void CMemoryWindow::onSearch(wxCommandEvent& event)
 	{
 		//We are looking for hex
 		//If it's uneven
-		size = (rawData.size()/2) + pad;
-		Dest.resize(size+32);
+		size = (rawData.size() / 2) + pad;
+		Dest.resize(size + 32);
 		newsize = rawData.size();
 
 		if (pad)
@@ -365,7 +365,7 @@ void CMemoryWindow::onSearch(wxCommandEvent& event)
 		for (i = 0; i < strlen(tmpstr); i++)
 		{
 			copy[0] = tmpstr[i];
-			copy[1] = tmpstr[i+1];
+			copy[1] = tmpstr[i + 1];
 			copy[2] = 0;
 			int tmpint;
 			sscanf(copy, "%02x", &tmpint);
@@ -381,8 +381,8 @@ void CMemoryWindow::onSearch(wxCommandEvent& event)
 	{
 		//Looking for an ascii string
 		size = rawData.size();
-		Dest.resize(size+1);
-		tmpstr = new char[size+1];
+		Dest.resize(size + 1);
+		tmpstr = new char[size + 1];
 
 		tmp2 = &Dest.front();
 		sprintf(tmpstr, "%s", WxStrToStr(rawData).c_str());
@@ -404,14 +404,14 @@ void CMemoryWindow::onSearch(wxCommandEvent& event)
 		{
 			sscanf(WxStrToStr(txt).c_str(), "%08x", &addr);
 		}
-		i = addr+4;
-		for ( ; i < szRAM; ++i)
+		i = addr + 4;
+		for (; i < szRAM; ++i)
 		{
 			for (k = 0; k < size; ++k)
 			{
 				if (i + k > szRAM) break;
 				if (k > size) break;
-				if (pnt[k] != TheRAM[i+k])
+				if (pnt[k] != TheRAM[i + k])
 				{
 					k = 0;
 					break;

@@ -64,7 +64,7 @@ static void SaveTexture(const std::string& filename, u32 texmap, s32 mip)
 
 	GetTextureRGBA(data, texmap, mip, width, height);
 
-	TextureToPng(data, width*4, filename, width, height, true);
+	TextureToPng(data, width * 4, filename, width, height, true);
 	delete[] data;
 
 }
@@ -106,15 +106,15 @@ void DumpActiveTextures()
 		for (s32 mip = 0; mip <= maxLod; ++mip)
 		{
 			SaveTexture(StringFromFormat("%star%i_ind%i_map%i_mip%i.png",
-						File::GetUserPath(D_DUMPTEXTURES_IDX).c_str(),
-						stats.thisFrame.numDrawnObjects, stageNum, texmap, mip), texmap, mip);
+				File::GetUserPath(D_DUMPTEXTURES_IDX).c_str(),
+				stats.thisFrame.numDrawnObjects, stageNum, texmap, mip), texmap, mip);
 		}
 	}
 
 	for (unsigned int stageNum = 0; stageNum <= bpmem.genMode.numtevstages; stageNum++)
 	{
 		int stageNum2 = stageNum >> 1;
-		int stageOdd = stageNum&1;
+		int stageOdd = stageNum & 1;
 		TwoTevStageOrders &order = bpmem.tevorders[stageNum2];
 
 		int texmap = order.getTexMap(stageOdd);
@@ -123,8 +123,8 @@ void DumpActiveTextures()
 		for (s32 mip = 0; mip <= maxLod; ++mip)
 		{
 			SaveTexture(StringFromFormat("%star%i_stage%i_map%i_mip%i.png",
-						File::GetUserPath(D_DUMPTEXTURES_IDX).c_str(),
-						stats.thisFrame.numDrawnObjects, stageNum, texmap, mip), texmap, mip);
+				File::GetUserPath(D_DUMPTEXTURES_IDX).c_str(),
+				stats.thisFrame.numDrawnObjects, stageNum, texmap, mip), texmap, mip);
 		}
 	}
 }
@@ -204,8 +204,8 @@ void OnObjectEnd()
 	{
 		if (g_ActiveConfig.bDumpObjects && stats.thisFrame.numDrawnObjects >= g_ActiveConfig.drawStart && stats.thisFrame.numDrawnObjects < g_ActiveConfig.drawEnd)
 			DumpEfb(StringFromFormat("%sobject%i.png",
-						File::GetUserPath(D_DUMPFRAMES_IDX).c_str(),
-						stats.thisFrame.numDrawnObjects));
+				File::GetUserPath(D_DUMPFRAMES_IDX).c_str(),
+				stats.thisFrame.numDrawnObjects));
 
 		for (int i = 0; i < NUM_OBJECT_BUFFERS; i++)
 		{

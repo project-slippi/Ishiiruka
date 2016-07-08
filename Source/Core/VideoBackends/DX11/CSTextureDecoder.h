@@ -13,7 +13,7 @@
 namespace DX11
 {
 
-class CSTextureDecoder : public TextureDecoder
+class CSTextureDecoder: public TextureDecoder
 {
 
 public:
@@ -24,17 +24,19 @@ public:
 	void Shutdown() override;
 	bool FormatSupported(u32 srcFmt);
 	bool Decode(const u8* src, u32 srcsize, u32 srcFmt, u32 w, u32 h, u32 levels, D3DTexture2D& dstTexture) override;
-	bool DecodeRGBAFromTMEM( u8 const * ar_src, u8 const * bg_src, u32 width, u32 height, D3DTexture2D& dstTexture) override;
+	bool DecodeRGBAFromTMEM(u8 const * ar_src, u8 const * bg_src, u32 width, u32 height, D3DTexture2D& dstTexture) override;
 	bool Depalettize(D3DTexture2D& dstTexture, D3DTexture2D& srcTexture, BaseType baseType, u32 width, u32 height) override;
-	void LoadLut(u32 lutFmt, void* addr, u32 size ) override;
+	void LoadLut(u32 lutFmt, void* addr, u32 size) override;
 private:
 
 	bool m_ready{};
-	struct PoolValue {
+	struct PoolValue
+	{
 		D3D::Texture2dPtr m_rsc;
 		D3D::UavPtr m_uav;
 		PoolValue() = default;
-		PoolValue( PoolValue && o) : m_rsc{std::move(o.m_rsc)}, m_uav{std::move(o.m_uav)} {}
+		PoolValue(PoolValue && o): m_rsc{std::move(o.m_rsc)}, m_uav{std::move(o.m_uav)}
+		{}
 	};
 
 	using TexturePool = std::vector<PoolValue>;
@@ -53,11 +55,11 @@ private:
 
 	typedef unsigned int ComboKey; // Key for a shader combination
 
-	ID3D11ComputeShader* InsertShader( ComboKey const &key, u8 const *data, u32 sz);
+	ID3D11ComputeShader* InsertShader(ComboKey const &key, u8 const *data, u32 sz);
 
 	ComboKey MakeComboKey(u32 srcFmt, u32 lutFmt)
 	{
-		return srcFmt | ((lutFmt&0xF)<<16);
+		return srcFmt | ((lutFmt & 0xF) << 16);
 	}
 
 	typedef std::map<ComboKey, D3D::ComputeShaderPtr> ComboMap;
@@ -74,14 +76,15 @@ private:
 
 	ComboMap m_staticShaders;
 
-	class ShaderCacheInserter : public LinearDiskCacheReader<ComboKey, u8>
+	class ShaderCacheInserter: public LinearDiskCacheReader<ComboKey, u8>
 	{
 	public:
 		void Read(const ComboKey &key, const u8 *value, u32 value_size)
 		{
 			m_encoder.InsertShader(key, value, value_size);
 		}
-		ShaderCacheInserter(CSTextureDecoder &encoder) : m_encoder(encoder) {}
+		ShaderCacheInserter(CSTextureDecoder &encoder): m_encoder(encoder)
+		{}
 	private:
 		CSTextureDecoder& m_encoder;
 	};

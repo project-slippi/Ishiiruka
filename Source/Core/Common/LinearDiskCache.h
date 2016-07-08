@@ -102,7 +102,7 @@ public:
 				if (Read(&key) &&
 					Read(value, value_size) &&
 					Read(&entry_number) &&
-					entry_number == m_num_entries+1)
+					entry_number == m_num_entries + 1)
 				{
 					reader.Read(key, value, value_size);
 				}
@@ -164,7 +164,7 @@ private:
 		char file_header[sizeof(Header)];
 
 		return (Read(file_header, sizeof(Header)) &&
-		        !memcmp((const char*)&m_header, file_header, sizeof(Header)));
+			!memcmp((const char*)&m_header, file_header, sizeof(Header)));
 	}
 
 	template <typename D>

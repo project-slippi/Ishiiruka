@@ -45,12 +45,13 @@ typedef uint64_t pKey_t;
 template <typename Tobj, typename TCaterogry, typename TInfo, typename TobjHasher> class ObjectUsageProfiler
 {
 public:
-	ObjectUsageProfiler(pKey_t version) : m_version(version) {};	
+	ObjectUsageProfiler(pKey_t version): m_version(version)
+	{};
 	void SetCategory(const TCaterogry& category)
 	{
 		if (m_categories.find(category) == m_categories.end())
 		{
-			m_categories[category] = { m_categories.size() + 1, 0 };
+			m_categories[category] = {m_categories.size() + 1, 0};
 		}
 		if (m_categories[category].usage_count < LLONG_MAX)
 		{
@@ -73,7 +74,7 @@ public:
 	TInfo& GetOrAdd(const Tobj& obj)
 	{
 		ObjectMetadata& item = m_objects[obj];
-		
+
 		if (item.usage_count < LLONG_MAX)
 		{
 			item.usage_count++;
@@ -141,7 +142,7 @@ public:
 		m_version = 0;
 	}
 
-	const TInfo* GetInfoIfexists(const Tobj& obj) const 
+	const TInfo* GetInfoIfexists(const Tobj& obj) const
 	{
 		auto it = m_objects.find(obj);
 		if (it != m_objects.end())
@@ -242,7 +243,7 @@ public:
 		{
 			for (auto& item : m_objects)
 			{
-				if((item.second.category_mask[m_category_index] & m_category_mask) != 0)
+				if ((item.second.category_mask[m_category_index] & m_category_mask) != 0)
 				{
 					object_count++;
 				}
@@ -271,7 +272,7 @@ public:
 			}
 		}
 	}
-	
+
 	void Persist()
 	{
 		if (m_storage.length() > 0)
@@ -293,7 +294,7 @@ public:
 		{
 			return;
 		}
-		pKey_t category_count = 0;	
+		pKey_t category_count = 0;
 		bread(input, category_count);
 		if (!multicategory)
 		{
@@ -363,7 +364,7 @@ public:
 	{
 		m_storage = storagefile;
 	}
-	
+
 	static ObjectUsageProfiler<Tobj, TCaterogry, TInfo, TobjHasher>* Create(TCaterogry catid, pKey_t version, const std::string& global_filename, const std::string filename)
 	{
 		if (!File::Exists(File::GetUserPath(D_SHADERUIDCACHE_IDX)))
@@ -395,7 +396,8 @@ private:
 		pKey_t usage_count;
 		std::vector<pKey_t> category_mask;
 		TInfo info;
-		ObjectMetadata() : category_count(0), usage_count(0) {}
+		ObjectMetadata(): category_count(0), usage_count(0)
+		{}
 	};
 	struct greater
 	{

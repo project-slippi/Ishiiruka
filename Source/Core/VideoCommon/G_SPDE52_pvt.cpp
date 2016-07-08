@@ -152,7 +152,7 @@ void G_SPDE52_pvt::Initialize(std::map<u64, TCompiledLoaderFunction> &pvlmap)
 #endif
 	{
 		pvlmap[27507235322871] = TemplatedLoader<0, 0x002a0200u, 0x40e00009u, 0x00000e07u, 0x00000000u>;
-	}	
+	}
 	// P_mtx0_3_I8_flt_Nrm_0_0_I8_s8_T0_mtx0_1_I8_s16_
 // num_verts= 421736
 #if _M_SSE >= 0x301

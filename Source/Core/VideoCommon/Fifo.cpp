@@ -303,7 +303,8 @@ void RunGpuLoop()
 	AsyncRequests::GetInstance()->SetPassthrough(false);
 
 	s_gpu_mainloop.Run(
-		[] {
+		[]
+	{
 		const SConfig& param = SConfig::GetInstance();
 
 		g_video_backend->PeekMessages();

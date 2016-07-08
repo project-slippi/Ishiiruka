@@ -47,7 +47,10 @@ struct SSysConfEntry
 	u8* data;
 
 	template<class T>
-	T GetData() { return *(T*)data; }
+	T GetData()
+	{
+		return *(T*)data;
+	}
 	bool GetArrayData(u8* dest, u16 destSize)
 	{
 		if (dest && destSize >= dataLength)
@@ -74,7 +77,10 @@ public:
 	SysConf();
 	~SysConf();
 
-	bool IsValid() { return m_IsValid; }
+	bool IsValid()
+	{
+		return m_IsValid;
+	}
 
 	template<class T>
 	T GetData(const char* sectionName)

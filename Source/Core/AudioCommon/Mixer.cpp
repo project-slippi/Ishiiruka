@@ -207,15 +207,17 @@ void CMixer::MixerFifo::PushSamples(const s16* samples, u32 num_samples)
 void CMixer::PushSamples(const s16 *samples, u32 num_samples)
 {
 	m_dma_mixer.PushSamples(samples, num_samples);
+	int sample_rate = m_dma_mixer.GetInputSampleRate();
 	if (m_log_dsp_audio)
-		g_wave_writer_dsp.AddStereoSamplesBE(samples, num_samples);
+		g_wave_writer_dsp.AddStereoSamplesBE(samples, num_samples, sample_rate);
 }
 
 void CMixer::PushStreamingSamples(const s16 *samples, u32 num_samples)
 {
 	m_streaming_mixer.PushSamples(samples, num_samples);
+	int sample_rate = m_streaming_mixer.GetInputSampleRate();
 	if (m_log_dtk_audio)
-		g_wave_writer_dtk.AddStereoSamplesBE(samples, num_samples);
+		g_wave_writer_dtk.AddStereoSamplesBE(samples, num_samples, sample_rate);
 }
 
 void CMixer::PushWiimoteSpeakerSamples(const s16 *samples, u32 num_samples, u32 sample_rate)
@@ -278,7 +280,7 @@ void CMixer::StartLogDTKAudio(const std::string& filename)
 	if (!m_log_dtk_audio)
 	{
 		m_log_dtk_audio = true;
-		g_wave_writer_dtk.Start(filename, 48000);
+		g_wave_writer_dtk.Start(filename, m_streaming_mixer.GetInputSampleRate());
 		g_wave_writer_dtk.SetSkipSilence(false);
 		NOTICE_LOG(AUDIO, "Starting DTK Audio logging");
 	}
@@ -307,7 +309,7 @@ void CMixer::StartLogDSPAudio(const std::string& filename)
 	if (!m_log_dsp_audio)
 	{
 		m_log_dsp_audio = true;
-		g_wave_writer_dsp.Start(filename, 32000);
+		g_wave_writer_dsp.Start(filename, m_dma_mixer.GetInputSampleRate());
 		g_wave_writer_dsp.SetSkipSilence(false);
 		NOTICE_LOG(AUDIO, "Starting DSP Audio logging");
 	}
@@ -329,4 +331,9 @@ void CMixer::StopLogDSPAudio()
 	{
 		WARN_LOG(AUDIO, "DSP Audio logging has already been stopped");
 	}
+}
+
+unsigned int CMixer::MixerFifo::GetInputSampleRate() const
+{
+	return m_input_sample_rate;
 }

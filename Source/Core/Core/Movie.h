@@ -34,13 +34,13 @@ enum PlayMode
 #pragma pack(push,1)
 struct ControllerState
 {
-	bool Start:1, A:1, B:1, X:1, Y:1, Z:1; // Binary buttons, 6 bits
-	bool DPadUp:1, DPadDown:1,             // Binary D-Pad buttons, 4 bits
-	     DPadLeft:1, DPadRight:1;
-	bool L:1, R:1;                         // Binary triggers, 2 bits
-	bool disc:1;                           // Checks for disc being changed
-	bool reset:1;                          // Console reset button
-	bool reserved:2;                       // Reserved bits used for padding, 2 bits
+	bool Start : 1, A : 1, B : 1, X : 1, Y : 1, Z : 1; // Binary buttons, 6 bits
+	bool DPadUp : 1, DPadDown : 1,             // Binary D-Pad buttons, 4 bits
+		DPadLeft : 1, DPadRight : 1;
+	bool L : 1, R : 1;                         // Binary triggers, 2 bits
+	bool disc : 1;                           // Checks for disc being changed
+	bool reset : 1;                          // Console reset button
+	bool reserved : 2;                       // Reserved bits used for padding, 2 bits
 
 	u8   TriggerL, TriggerR;               // Triggers, 16 bits
 	u8   AnalogStickX, AnalogStickY;       // Main Stick, 16 bits

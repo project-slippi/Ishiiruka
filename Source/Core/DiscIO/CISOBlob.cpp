@@ -12,11 +12,9 @@
 
 namespace DiscIO
 {
-
 static const char CISO_MAGIC[] = "CISO";
 
-CISOFileReader::CISOFileReader(std::FILE* file)
-	: m_file(file)
+CISOFileReader::CISOFileReader(std::FILE* file): m_file(file)
 {
 	m_size = m_file.GetSize();
 
@@ -76,8 +74,8 @@ bool CISOFileReader::Read(u64 offset, u64 nbytes, u8* out_ptr)
 		}
 
 		out_ptr += bytes_to_read;
-		offset  += bytes_to_read;
-		nbytes  -= bytes_to_read;
+		offset += bytes_to_read;
+		nbytes -= bytes_to_read;
 	}
 
 	return true;

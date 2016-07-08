@@ -49,7 +49,7 @@ void PCAP::AddHeader()
 		PCAP_MAGIC, PCAP_VERSION_MAJOR, PCAP_VERSION_MINOR,
 		0, 0, PCAP_CAPTURE_LENGTH, PCAP_DATA_LINK_TYPE
 	};
-	m_fp->WriteBytes(&hdr, sizeof (hdr));
+	m_fp->WriteBytes(&hdr, sizeof(hdr));
 }
 
 void PCAP::AddPacket(const u8* bytes, size_t size)
@@ -61,6 +61,6 @@ void PCAP::AddPacket(const u8* bytes, size_t size)
 		(u32)(std::chrono::duration_cast<std::chrono::microseconds>(ts).count() % 1000000),
 		(u32)size, (u32)size
 	};
-	m_fp->WriteBytes(&rec_hdr, sizeof (rec_hdr));
+	m_fp->WriteBytes(&rec_hdr, sizeof(rec_hdr));
 	m_fp->WriteBytes(bytes, size);
 }

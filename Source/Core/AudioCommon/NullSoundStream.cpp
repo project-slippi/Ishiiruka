@@ -12,13 +12,12 @@
 
 bool NullSound::Start()
 {
-	m_enablesoundloop = false;	
+	m_enablesoundloop = false;
 	return true;
 }
 
 void NullSound::SetVolume(int volume)
-{
-}
+{}
 
 void NullSound::Update()
 {
@@ -38,5 +37,4 @@ void NullSound::Clear(bool mute)
 }
 
 void NullSound::Stop()
-{
-}
+{}

@@ -9,15 +9,15 @@
 
 class CWatchView;
 
-class CWatchWindow : public wxPanel
+class CWatchWindow: public wxPanel
 {
 public:
 	CWatchWindow(wxWindow* parent,
-	             wxWindowID id = wxID_ANY,
-	             const wxPoint& pos = wxDefaultPosition,
-	             const wxSize& size = wxDefaultSize,
-	             long style = wxTAB_TRAVERSAL | wxNO_BORDER,
-	             const wxString& name = _("Watch"));
+		wxWindowID id = wxID_ANY,
+		const wxPoint& pos = wxDefaultPosition,
+		const wxSize& size = wxDefaultSize,
+		long style = wxTAB_TRAVERSAL | wxNO_BORDER,
+		const wxString& name = _("Watch"));
 	~CWatchWindow();
 
 	void NotifyUpdate();

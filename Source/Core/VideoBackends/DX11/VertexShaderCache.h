@@ -19,12 +19,18 @@ public:
 	static void Init();
 	static void Clear();
 	static void Shutdown();
-	static void PrepareShader(u32 components, 
-		const XFMemory &xfr, 
+	static void PrepareShader(u32 components,
+		const XFMemory &xfr,
 		const BPMemory &bpm, bool ongputhread);
 	static bool TestShader();
-	static ID3D11VertexShader* GetActiveShader() { return s_last_entry->shader.get(); }
-	static D3DBlob const& GetActiveShaderBytecode() { return s_last_entry->bytecode; }
+	static ID3D11VertexShader* GetActiveShader()
+	{
+		return s_last_entry->shader.get();
+	}
+	static D3DBlob const& GetActiveShaderBytecode()
+	{
+		return s_last_entry->bytecode;
+	}
 	static D3D::BufferDescriptor GetConstantBuffer();
 
 	static ID3D11VertexShader* GetSimpleVertexShader();
@@ -36,21 +42,21 @@ public:
 
 private:
 	struct VSCacheEntry
-	{ 
+	{
 		D3D::VertexShaderPtr shader;
 		D3DBlob bytecode; // needed to initialize the input layout
 
 		std::string code;
 		bool compiled;
 		std::atomic_flag initialized;
-		VSCacheEntry() : compiled(false)
+		VSCacheEntry(): compiled(false)
 		{
 			initialized.clear();
 		}
 		void SetByteCode(D3DBlob&& blob)
 		{
 			bytecode = std::move(blob);
-			
+
 		}
 		void Destroy()
 		{
@@ -60,7 +66,7 @@ private:
 	};
 	static inline void PushByteCode(D3DBlob&& bcodeblob, VSCacheEntry* entry);
 	typedef ObjectUsageProfiler<VertexShaderUid, pKey_t, VSCacheEntry, VertexShaderUid::ShaderUidHasher> VSCache;
-	
+
 	static VSCache* s_vshaders;
 	static const VSCacheEntry* s_last_entry;
 	static VertexShaderUid s_last_uid;

@@ -19,10 +19,9 @@
 
 #include <portaudio.h>
 
-void CEXIMic::StreamLog(const char *msg)
+void CEXIMic::StreamLog(const char* msg)
 {
-	DEBUG_LOG(EXPANSIONINTERFACE, "%s: %s",
-		msg, Pa_GetErrorText(pa_error));
+	DEBUG_LOG(EXPANSIONINTERFACE, "%s: %s", msg, Pa_GetErrorText(pa_error));
 }
 
 void CEXIMic::StreamInit()
@@ -45,25 +44,23 @@ void CEXIMic::StreamTerminate()
 		StreamLog("Pa_Terminate");
 }
 
-static int Pa_Callback(const void *inputBuffer, void *outputBuffer,
-	unsigned long framesPerBuffer,
-	const PaStreamCallbackTimeInfo *timeInfo,
-	PaStreamCallbackFlags statusFlags,
-	void *userData)
+static int Pa_Callback(const void* inputBuffer, void* outputBuffer, unsigned long framesPerBuffer,
+	const PaStreamCallbackTimeInfo* timeInfo, PaStreamCallbackFlags statusFlags,
+	void* userData)
 {
 	(void)outputBuffer;
 	(void)timeInfo;
 	(void)statusFlags;
 
-	CEXIMic *mic = (CEXIMic *)userData;
+	CEXIMic* mic = (CEXIMic*)userData;
 
 	std::lock_guard<std::mutex> lk(mic->ring_lock);
 
 	if (mic->stream_wpos + mic->buff_size_samples > mic->stream_size)
 		mic->stream_wpos = 0;
 
-	s16 *buff_in = (s16 *)inputBuffer;
-	s16 *buff_out = &mic->stream_buffer[mic->stream_wpos];
+	s16* buff_in = (s16*)inputBuffer;
+	s16* buff_out = &mic->stream_buffer[mic->stream_wpos];
 
 	if (buff_in == nullptr)
 	{
@@ -99,8 +96,8 @@ void CEXIMic::StreamStart()
 	stream_size = buff_size_samples * 500;
 	stream_buffer = new s16[stream_size];
 
-	pa_error = Pa_OpenDefaultStream(&pa_stream, 1, 0, paInt16,
-		sample_rate, buff_size_samples, Pa_Callback, this);
+	pa_error = Pa_OpenDefaultStream(&pa_stream, 1, 0, paInt16, sample_rate, buff_size_samples,
+		Pa_Callback, this);
 	StreamLog("Pa_OpenDefaultStream");
 	pa_error = Pa_StartStream(pa_stream);
 	StreamLog("Pa_StartStream");
@@ -113,7 +110,7 @@ void CEXIMic::StreamStop()
 
 	samples_avail = stream_wpos = stream_rpos = 0;
 
-	delete [] stream_buffer;
+	delete[] stream_buffer;
 	stream_buffer = nullptr;
 }
 
@@ -123,7 +120,7 @@ void CEXIMic::StreamReadOne()
 
 	if (samples_avail >= buff_size_samples)
 	{
-		s16 *last_buffer = &stream_buffer[stream_rpos];
+		s16* last_buffer = &stream_buffer[stream_rpos];
 		std::memcpy(ring_buffer, last_buffer, buff_size);
 
 		samples_avail -= buff_size_samples;
@@ -140,10 +137,9 @@ void CEXIMic::StreamReadOne()
 // cmdGetBuffer, which is when we actually read data from a buffer filled
 // in the background by Pa_Callback.
 
-u8 const CEXIMic::exi_id[] = { 0, 0x0a, 0, 0, 0 };
+u8 const CEXIMic::exi_id[] = {0, 0x0a, 0, 0, 0};
 
-CEXIMic::CEXIMic(int index)
-	: slot(index)
+CEXIMic::CEXIMic(int index): slot(index)
 {
 	m_position = 0;
 	command = 0;
@@ -173,10 +169,10 @@ bool CEXIMic::IsPresent() const
 
 void CEXIMic::SetCS(int cs)
 {
-	if (cs) // not-selected to selected
+	if (cs)  // not-selected to selected
 		m_position = 0;
 	// Doesn't appear to do anything we care about
-	//else if (command == cmdReset)
+	// else if (command == cmdReset)
 }
 
 void CEXIMic::UpdateNextInterruptTicks()
@@ -203,12 +199,12 @@ bool CEXIMic::IsInterruptSet()
 	}
 }
 
-void CEXIMic::TransferByte(u8 &byte)
+void CEXIMic::TransferByte(u8& byte)
 {
 	if (m_position == 0)
 	{
-		command = byte; // first byte is command
-		byte = 0xFF;    // would be tristate, but we don't care.
+		command = byte;  // first byte is command
+		byte = 0xFF;     // would be tristate, but we don't care.
 		m_position++;
 		return;
 	}
@@ -232,7 +228,7 @@ void CEXIMic::TransferByte(u8 &byte)
 		break;
 
 	case cmdSetStatus:
-		{
+	{
 		bool wasactive = status.is_active;
 		status.U8[pos ^ 1] = byte;
 
@@ -251,21 +247,21 @@ void CEXIMic::TransferByte(u8 &byte)
 		{
 			StreamStop();
 		}
-		}
-		break;
+	}
+	break;
 
 	case cmdGetBuffer:
-		{
+	{
 		if (ring_pos == 0)
 			StreamReadOne();
 
 		byte = ring_buffer[ring_pos ^ 1];
 		ring_pos = (ring_pos + 1) % buff_size;
-		}
-		break;
+	}
+	break;
 
 	default:
-		ERROR_LOG(EXPANSIONINTERFACE,  "EXI MIC: unknown command byte %02x", command);
+		ERROR_LOG(EXPANSIONINTERFACE, "EXI MIC: unknown command byte %02x", command);
 		break;
 	}
 

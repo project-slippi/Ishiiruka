@@ -8,7 +8,7 @@
 #include "Core/HW/SI_DeviceGCController.h"
 #include "InputCommon/GCPadStatus.h"
 
-class CSIDevice_GCAdapter : public CSIDevice_GCController
+class CSIDevice_GCAdapter: public CSIDevice_GCController
 {
 public:
 	CSIDevice_GCAdapter(SIDevices device, int _iDeviceNumber);

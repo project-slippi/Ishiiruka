@@ -96,7 +96,7 @@ static T FIRFilter(const T *buf, int pos, int len, int count, const float *coeff
 */
 static void Hamming(int n, float* w)
 {
-	float k = float(2*M_PI/((float)(n - 1))); // 2*pi/(N-1)
+	float k = float(2 * M_PI / ((float)(n - 1))); // 2*pi/(N-1)
 
 	// Calculate window coefficients
 	for (int i = 0; i < n; i++)
@@ -163,13 +163,13 @@ static float* DesignFIR(unsigned int *n, float* fc, float opt)
 	for (u32 i = 0; i < end; i++)
 	{
 		t1 = (float)(i + 1) - k2;
-		w[end - i - 1] = w[*n - end + i] = float(w[end - i - 1] * sin(k1 * t1)/(M_PI * t1)); // Sinc
-		g += 2*w[end - i - 1]; // Total gain in filter
+		w[end - i - 1] = w[*n - end + i] = float(w[end - i - 1] * sin(k1 * t1) / (M_PI * t1)); // Sinc
+		g += 2 * w[end - i - 1]; // Total gain in filter
 	}
 
 
 	// Normalize gain
-	g = 1/g;
+	g = 1 / g;
 	for (u32 i = 0; i < *n; i++)
 		w[i] *= g;
 

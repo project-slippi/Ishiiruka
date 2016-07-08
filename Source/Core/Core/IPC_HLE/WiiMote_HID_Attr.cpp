@@ -12,7 +12,7 @@
 
 #if 0
 // 0x00 (checked)
-u8 ServiceRecordHandle[] = { 0x0a, 0x00, 0x01, 0x00, 0x00 };
+u8 ServiceRecordHandle[] = {0x0a, 0x00, 0x01, 0x00, 0x00};
 
 // 0x01 (checked)
 u8 SrvClassIDList[] = {
@@ -64,24 +64,24 @@ u8 AdditionalProtocolDescriptorLists[] = {
 };
 
 // 0x100
-u8 ServiceName[] = { 0x25, 0x13, 'N','i','n','t','e','n','d','o',' ','R','V','L','-','C','N','T','-','0','1' };
+u8 ServiceName[] = {0x25, 0x13, 'N','i','n','t','e','n','d','o',' ','R','V','L','-','C','N','T','-','0','1'};
 // 0x101
-u8 ServiceDescription[] = { 0x25, 0x13, 'N','i','n','t','e','n','d','o',' ','R','V','L','-','C','N','T','-','0','1' };
+u8 ServiceDescription[] = {0x25, 0x13, 'N','i','n','t','e','n','d','o',' ','R','V','L','-','C','N','T','-','0','1'};
 // 0x102
-u8 ProviderName [] = { 0x25, 0x8, 'N','i','n','t','e','n','d','o'};
+u8 ProviderName[] = {0x25, 0x8, 'N','i','n','t','e','n','d','o'};
 
 // 0x200
-u8 HIDDeviceReleaseNumber[] = { 0x09, 0x01, 0x00 };
+u8 HIDDeviceReleaseNumber[] = {0x09, 0x01, 0x00};
 // 0x201
-u8 HIDParserVersion[] = { 0x09, 0x01, 0x11 };
+u8 HIDParserVersion[] = {0x09, 0x01, 0x11};
 // 0x202
-u8 HIDDeviceSubclass[] = { 0x09, 0x00, 0x04 };
+u8 HIDDeviceSubclass[] = {0x09, 0x00, 0x04};
 // 0x203
-u8 HIDCountryCode[] = { 0x09, 0x00, 0x33 };
+u8 HIDCountryCode[] = {0x09, 0x00, 0x33};
 // 0x204
-u8 HIDVirtualCable[] = { 0x09, 0x00, 0x00 };
+u8 HIDVirtualCable[] = {0x09, 0x00, 0x00};
 // 0x205
-u8 HIDReconnectInitiate[] = { 0x09, 0x00, 0x01 };
+u8 HIDReconnectInitiate[] = {0x09, 0x00, 0x01};
 
 // 0x206
 u8 HIDDescriptorList[] = {
@@ -130,19 +130,19 @@ u8 HIDLANGIDBaseList[] = {
 };
 
 // 0x208
-u8 HIDSDPDisable[] = { 0x28, 0x00 };
+u8 HIDSDPDisable[] = {0x28, 0x00};
 // 0x209
-u8 HIDBatteryPower[] = { 0x28, 0x01 };
+u8 HIDBatteryPower[] = {0x28, 0x01};
 // 0x20a
-u8 HIDRemoteWake[] = { 0x28, 0x01 };
+u8 HIDRemoteWake[] = {0x28, 0x01};
 // 0x20b
-u8 HIDUnk_020B[] = { 0x09, 0x01, 0x00 };
+u8 HIDUnk_020B[] = {0x09, 0x01, 0x00};
 // 0x20c
-u8 HIDUnk_020C[] = { 0x09, 0x0c, 0x80 };
+u8 HIDUnk_020C[] = {0x09, 0x0c, 0x80};
 // 0x20d
-u8 HIDUnk_020D[] = { 0x28, 0x00 };
+u8 HIDUnk_020D[] = {0x28, 0x00};
 // 0x20e
-u8 HIDBootDevice[] = { 0x28, 0x00 };
+u8 HIDBootDevice[] = {0x28, 0x00};
 #endif
 
 

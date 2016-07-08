@@ -33,7 +33,7 @@ public:
 	void Release();
 };
 
-class HLSLAsyncCompiler final : Common::IWorker
+class HLSLAsyncCompiler final: Common::IWorker
 {
 	friend class HLSLCompiler;
 	pD3DCompile PD3DCompile;
@@ -43,7 +43,7 @@ class HLSLAsyncCompiler final : Common::IWorker
 	Common::ManyToManyQueue<ShaderCompilerWorkUnit*, Common::CircularQueue<ShaderCompilerWorkUnit*>> m_input;
 	Common::ManyToOneQueue<ShaderCompilerWorkUnit*, Common::CircularQueue<ShaderCompilerWorkUnit*>> m_output;
 	HLSLAsyncCompiler(HLSLAsyncCompiler const&);
-	void operator=(HLSLAsyncCompiler const&);	
+	void operator=(HLSLAsyncCompiler const&);
 public:
 	static HLSLAsyncCompiler& getInstance();
 	void SetCompilerFunction(pD3DCompile compilerfunc);
@@ -84,7 +84,7 @@ public:
 		UINT Flags2,
 		ID3DBlob **ppCode,
 		ID3DBlob **ppErrorMsgs
-		);
-	HRESULT Reflect(LPCVOID, SIZE_T, REFIID, void**);	
+	);
+	HRESULT Reflect(LPCVOID, SIZE_T, REFIID, void**);
 	virtual ~HLSLCompiler();
 };

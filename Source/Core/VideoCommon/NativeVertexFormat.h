@@ -22,12 +22,12 @@ enum
 	VB_HAS_TEXMTXIDX7 = (1 << 7),
 	VB_HAS_TEXMTXIDXALL = 0xff,
 
-	
+
 	VB_HAS_NRM0 = (1 << 8),
 	VB_HAS_NRM1 = (1 << 9),
 	VB_HAS_NRM2 = (1 << 10),
 	VB_HAS_NRMALL = (7 << 8),
-	
+
 	VB_COL_SHIFT = 11,
 
 	VB_HAS_COL0 = (1 << 11),
@@ -50,21 +50,24 @@ enum
 #define LOADERDECL
 #endif
 
-enum PipelineStateFlags : u8
+enum PipelineStateFlags: u8
 {
 	TPS_NONE = 0,
 	TPS_USE_BBOX = 1,
 	TPS_SKIP_VERTEX = 2,
 };
 
-class TPipelineState : public DataReader, public DataWriter
+class TPipelineState: public DataReader, public DataWriter
 {
 public:
-	TPipelineState(u8* source, u8* _end, u8* destination) : DataReader(source, _end), DataWriter(destination)
+	TPipelineState(u8* source, u8* _end, u8* destination): DataReader(source, _end), DataWriter(destination)
 	{
 		Clear();
 	};
-	TPipelineState() : DataReader(), DataWriter(){ Clear(); };
+	TPipelineState(): DataReader(), DataWriter()
+	{
+		Clear();
+	};
 	void Initialize(u8* source, u8* _end, u8* destination)
 	{
 		DataReader::SetReadPosition(source, _end);
@@ -137,18 +140,26 @@ struct PortableVertexDeclaration
 
 // Note that this class can't just invent arbitrary vertex formats out of its input -
 // all the data loading code must always be made compatible.
-class NativeVertexFormat : NonCopyable
+class NativeVertexFormat: NonCopyable
 {
 public:
-	virtual ~NativeVertexFormat() {}
+	virtual ~NativeVertexFormat()
+	{}
 
 	virtual void SetupVertexPointers() = 0;
 
-	u32 GetVertexStride() const { return vtx_decl.stride; }
-	const PortableVertexDeclaration& GetVertexDeclaration() const { return vtx_decl; }
+	u32 GetVertexStride() const
+	{
+		return vtx_decl.stride;
+	}
+	const PortableVertexDeclaration& GetVertexDeclaration() const
+	{
+		return vtx_decl;
+	}
 protected:
 	// Let subclasses construct.
-	NativeVertexFormat() {}
+	NativeVertexFormat()
+	{}
 
 	PortableVertexDeclaration vtx_decl;
 };

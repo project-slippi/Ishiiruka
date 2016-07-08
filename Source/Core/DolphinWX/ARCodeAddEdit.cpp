@@ -65,9 +65,9 @@ CARCodeAddEdit::CARCodeAddEdit(int _selection, std::vector<ActionReplay::ARCode>
 
 	sgEntry->Add(EditCheatNameText, wxGBPosition(0, 0), wxGBSpan(1, 1), wxALIGN_CENTER | wxALL, 5);
 	sgEntry->Add(EditCheatCodeText, wxGBPosition(1, 0), wxGBSpan(1, 1), wxALIGN_CENTER | wxALL, 5);
-	sgEntry->Add(EditCheatName,     wxGBPosition(0, 1), wxGBSpan(1, 1), wxEXPAND | wxALL, 5);
-	sgEntry->Add(EntrySelection,    wxGBPosition(0, 2), wxGBSpan(2, 1), wxEXPAND | wxALL, 5);
-	sgEntry->Add(EditCheatCode,     wxGBPosition(1, 1), wxGBSpan(1, 1), wxEXPAND | wxALL, 5);
+	sgEntry->Add(EditCheatName, wxGBPosition(0, 1), wxGBSpan(1, 1), wxEXPAND | wxALL, 5);
+	sgEntry->Add(EntrySelection, wxGBPosition(0, 2), wxGBSpan(2, 1), wxEXPAND | wxALL, 5);
+	sgEntry->Add(EditCheatCode, wxGBPosition(1, 1), wxGBSpan(1, 1), wxEXPAND | wxALL, 5);
 	sgEntry->AddGrowableCol(1);
 	sgEntry->AddGrowableRow(1);
 	sbEntry->Add(sgEntry, 1, wxEXPAND | wxALL);
@@ -130,8 +130,8 @@ void CARCodeAddEdit::SaveCheatData(wxCommandEvent& WXUNUSED(event))
 
 		// If the above-mentioned conditions weren't met, then something went wrong.
 		if (!PanicYesNoT("Unable to parse line %u of the entered AR code as a valid "
-						"encrypted or decrypted code.  Make sure you typed it correctly.\n"
-						"Would you like to ignore this line and continue parsing?", (unsigned)(i + 1)))
+			"encrypted or decrypted code.  Make sure you typed it correctly.\n"
+			"Would you like to ignore this line and continue parsing?", (unsigned)(i + 1)))
 		{
 			return;
 		}

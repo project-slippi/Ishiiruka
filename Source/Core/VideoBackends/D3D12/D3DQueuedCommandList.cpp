@@ -43,7 +43,7 @@ void ID3D12QueuedCommandList::BackgroundThreadFunction(ID3D12QueuedCommandList* 
 
 			case D3DQueueItemType::ClearRenderTargetView:
 			{
-				float clearColor[4] = { 0.f, 0.f, 0.f, 1.f };
+				float clearColor[4] = {0.f, 0.f, 0.f, 1.f};
 				command_list->ClearRenderTargetView(qitem->ClearRenderTargetView.RenderTargetView, clearColor, 0, nullptr);
 
 				item += BufferOffsetForQueueItemType<ClearRenderTargetViewArguments>();
@@ -58,7 +58,7 @@ void ID3D12QueuedCommandList::BackgroundThreadFunction(ID3D12QueuedCommandList* 
 					qitem->CopyBufferRegion.pSrcBuffer,
 					qitem->CopyBufferRegion.SrcOffset,
 					qitem->CopyBufferRegion.NumBytes
-					);
+				);
 
 				item += BufferOffsetForQueueItemType<CopyBufferRegionArguments>();
 				break;
@@ -96,7 +96,7 @@ void ID3D12QueuedCommandList::BackgroundThreadFunction(ID3D12QueuedCommandList* 
 					&qitem->CopyTextureRegion.src,
 					empty_box ?
 					nullptr : src_box
-					);
+				);
 
 				item += BufferOffsetForQueueItemType<CopyTextureRegionArguments>();
 				break;
@@ -110,7 +110,7 @@ void ID3D12QueuedCommandList::BackgroundThreadFunction(ID3D12QueuedCommandList* 
 					qitem->DrawIndexedInstanced.StartIndexLocation,
 					qitem->DrawIndexedInstanced.BaseVertexLocation,
 					0
-					);
+				);
 
 				item += BufferOffsetForQueueItemType<DrawIndexedInstancedArguments>();
 				break;
@@ -123,7 +123,7 @@ void ID3D12QueuedCommandList::BackgroundThreadFunction(ID3D12QueuedCommandList* 
 					1,
 					qitem->DrawInstanced.StartVertexLocation,
 					0
-					);
+				);
 
 				item += BufferOffsetForQueueItemType<DrawInstancedArguments>();
 				break;
@@ -171,7 +171,7 @@ void ID3D12QueuedCommandList::BackgroundThreadFunction(ID3D12QueuedCommandList* 
 				command_list->SetDescriptorHeaps(
 					qitem->SetDescriptorHeaps.NumDescriptorHeaps,
 					qitem->SetDescriptorHeaps.ppDescriptorHeap
-					);
+				);
 
 				item += BufferOffsetForQueueItemType<SetDescriptorHeapsArguments>();
 				break;
@@ -182,7 +182,7 @@ void ID3D12QueuedCommandList::BackgroundThreadFunction(ID3D12QueuedCommandList* 
 				command_list->SetGraphicsRootConstantBufferView(
 					qitem->SetGraphicsRootConstantBufferView.RootParameterIndex,
 					qitem->SetGraphicsRootConstantBufferView.BufferLocation
-					);
+				);
 
 				item += BufferOffsetForQueueItemType<SetGraphicsRootConstantBufferViewArguments>();
 				break;
@@ -193,7 +193,7 @@ void ID3D12QueuedCommandList::BackgroundThreadFunction(ID3D12QueuedCommandList* 
 				command_list->SetGraphicsRootDescriptorTable(
 					qitem->SetGraphicsRootDescriptorTable.RootParameterIndex,
 					qitem->SetGraphicsRootDescriptorTable.BaseDescriptor
-					);
+				);
 
 				item += BufferOffsetForQueueItemType<SetGraphicsRootDescriptorTableArguments>();
 				break;
@@ -203,7 +203,7 @@ void ID3D12QueuedCommandList::BackgroundThreadFunction(ID3D12QueuedCommandList* 
 			{
 				command_list->SetGraphicsRootSignature(
 					qitem->SetGraphicsRootSignature.pRootSignature
-					);
+				);
 
 				item += BufferOffsetForQueueItemType<SetGraphicsRootSignatureArguments>();
 				break;
@@ -213,7 +213,7 @@ void ID3D12QueuedCommandList::BackgroundThreadFunction(ID3D12QueuedCommandList* 
 			{
 				command_list->IASetIndexBuffer(
 					&qitem->SetIndexBuffer.desc
-					);
+				);
 
 				item += BufferOffsetForQueueItemType<SetIndexBufferArguments>();
 				break;
@@ -225,7 +225,7 @@ void ID3D12QueuedCommandList::BackgroundThreadFunction(ID3D12QueuedCommandList* 
 					0,
 					1,
 					&qitem->SetVertexBuffers.desc
-					);
+				);
 
 				item += BufferOffsetForQueueItemType<SetVertexBuffersArguments>();
 				break;
@@ -256,7 +256,7 @@ void ID3D12QueuedCommandList::BackgroundThreadFunction(ID3D12QueuedCommandList* 
 					qitem->SetRenderTargets.DepthStencilDescriptor.ptr == NULL ?
 					nullptr :
 					&qitem->SetRenderTargets.DepthStencilDescriptor
-					);
+				);
 
 				item += BufferOffsetForQueueItemType<SetRenderTargetsArguments>();
 				break;
@@ -270,7 +270,7 @@ void ID3D12QueuedCommandList::BackgroundThreadFunction(ID3D12QueuedCommandList* 
 					qitem->ResolveSubresource.pSrcResource,
 					qitem->ResolveSubresource.SrcSubresource,
 					qitem->ResolveSubresource.Format
-					);
+				);
 
 				item += BufferOffsetForQueueItemType<ResolveSubresourceArguments>();
 				break;
@@ -282,7 +282,7 @@ void ID3D12QueuedCommandList::BackgroundThreadFunction(ID3D12QueuedCommandList* 
 					qitem->BeginQuery.pQueryHeap,
 					qitem->BeginQuery.Type,
 					qitem->BeginQuery.Index
-					);
+				);
 
 				item += BufferOffsetForQueueItemType<BeginQueryArguments>();
 				break;
@@ -294,7 +294,7 @@ void ID3D12QueuedCommandList::BackgroundThreadFunction(ID3D12QueuedCommandList* 
 					qitem->EndQuery.pQueryHeap,
 					qitem->EndQuery.Type,
 					qitem->EndQuery.Index
-					);
+				);
 
 				item += BufferOffsetForQueueItemType<EndQueryArguments>();
 				break;
@@ -309,7 +309,7 @@ void ID3D12QueuedCommandList::BackgroundThreadFunction(ID3D12QueuedCommandList* 
 					qitem->ResolveQueryData.ElementCount,
 					qitem->ResolveQueryData.pDestinationBuffer,
 					qitem->ResolveQueryData.AlignedDestinationBufferOffset
-					);
+				);
 
 				item += BufferOffsetForQueueItemType<ResolveQueryDataArguments>();
 				break;
@@ -407,7 +407,7 @@ void ID3D12QueuedCommandList::BackgroundThreadFunction(ID3D12QueuedCommandList* 
 	}
 }
 
-ID3D12QueuedCommandList::ID3D12QueuedCommandList(ID3D12GraphicsCommandList* backing_command_list, ID3D12CommandQueue* backing_command_queue) :
+ID3D12QueuedCommandList::ID3D12QueuedCommandList(ID3D12GraphicsCommandList* backing_command_list, ID3D12CommandQueue* backing_command_queue):
 	m_command_list(backing_command_list),
 	m_command_queue(backing_command_queue)
 {
@@ -556,7 +556,7 @@ ULONG ID3D12QueuedCommandList::Release()
 HRESULT STDMETHODCALLTYPE ID3D12QueuedCommandList::QueryInterface(
 	_In_ REFIID riid,
 	_COM_Outptr_ void** ppvObject
-	)
+)
 {
 	*ppvObject = nullptr;
 	HRESULT hr = S_OK;
@@ -596,7 +596,7 @@ HRESULT STDMETHODCALLTYPE ID3D12QueuedCommandList::GetPrivateData(
 	_In_  REFGUID guid,
 	_Inout_  UINT* pDataSize,
 	_Out_writes_bytes_opt_(*pDataSize)  void* pData
-	)
+)
 {
 	// Function not implemented yet.
 	DEBUGCHECK(0, "Function not implemented yet.");
@@ -607,7 +607,7 @@ HRESULT STDMETHODCALLTYPE ID3D12QueuedCommandList::SetPrivateData(
 	_In_  REFGUID guid,
 	_In_  UINT DataSize,
 	_In_reads_bytes_opt_(DataSize)  const void* pData
-	)
+)
 {
 	// Function not implemented yet.
 	DEBUGCHECK(0, "Function not implemented yet.");
@@ -617,7 +617,7 @@ HRESULT STDMETHODCALLTYPE ID3D12QueuedCommandList::SetPrivateData(
 HRESULT STDMETHODCALLTYPE ID3D12QueuedCommandList::SetPrivateDataInterface(
 	_In_  REFGUID guid,
 	_In_opt_  const IUnknown* pData
-	)
+)
 {
 	// Function not implemented yet.
 	DEBUGCHECK(0, "Function not implemented yet.");
@@ -626,7 +626,7 @@ HRESULT STDMETHODCALLTYPE ID3D12QueuedCommandList::SetPrivateDataInterface(
 
 HRESULT STDMETHODCALLTYPE ID3D12QueuedCommandList::SetName(
 	_In_z_  LPCWSTR pName
-	)
+)
 {
 	// Function not implemented yet.
 	DEBUGCHECK(0, "Function not implemented yet.");
@@ -645,12 +645,13 @@ D3D12_COMMAND_LIST_TYPE STDMETHODCALLTYPE ID3D12QueuedCommandList::GetType()
 HRESULT STDMETHODCALLTYPE ID3D12QueuedCommandList::GetDevice(
 	REFIID riid,
 	_Out_  void** ppDevice
-	)
+)
 {
 	return m_command_list->GetDevice(riid, ppDevice);
 }
 
-HRESULT STDMETHODCALLTYPE ID3D12QueuedCommandList::Close() {
+HRESULT STDMETHODCALLTYPE ID3D12QueuedCommandList::Close()
+{
 
 	reinterpret_cast<D3DQueueItem*>(m_queue_array_back)->Type = D3DQueueItemType::CloseCommandList;
 
@@ -664,7 +665,7 @@ HRESULT STDMETHODCALLTYPE ID3D12QueuedCommandList::Close() {
 HRESULT STDMETHODCALLTYPE ID3D12QueuedCommandList::Reset(
 	_In_  ID3D12CommandAllocator* pAllocator,
 	_In_opt_  ID3D12PipelineState* pInitialState
-	)
+)
 {
 	DEBUGCHECK(pInitialState == nullptr, "Error: Invalid assumption in ID3D12QueuedCommandList.");
 
@@ -680,7 +681,7 @@ HRESULT STDMETHODCALLTYPE ID3D12QueuedCommandList::Reset(
 
 void STDMETHODCALLTYPE ID3D12QueuedCommandList::ClearState(
 	_In_  ID3D12PipelineState* pPipelineState
-	)
+)
 {
 	// Function not implemented yet.
 	DEBUGCHECK(0, "Function not implemented yet.");
@@ -691,7 +692,7 @@ void STDMETHODCALLTYPE ID3D12QueuedCommandList::DrawInstanced(
 	_In_  UINT InstanceCount,
 	_In_  UINT StartVertexLocation,
 	_In_  UINT StartInstanceLocation
-	)
+)
 {
 	DEBUGCHECK(InstanceCount == 1, "Error: Invalid assumption in ID3D12QueuedCommandList.");
 	DEBUGCHECK(StartInstanceLocation == 0, "Error: Invalid assumption in ID3D12QueuedCommandList.");
@@ -702,7 +703,7 @@ void STDMETHODCALLTYPE ID3D12QueuedCommandList::DrawInstanced(
 	item->DrawInstanced.StartVertexLocation = StartVertexLocation;
 	item->DrawInstanced.VertexCount = VertexCountPerInstance;
 
-	m_queue_array_back += BufferOffsetForQueueItemType<DrawInstancedArguments>();	
+	m_queue_array_back += BufferOffsetForQueueItemType<DrawInstancedArguments>();
 	CheckForOverflow();
 }
 
@@ -712,7 +713,7 @@ void STDMETHODCALLTYPE ID3D12QueuedCommandList::DrawIndexedInstanced(
 	_In_  UINT StartIndexLocation,
 	_In_  INT BaseVertexLocation,
 	_In_  UINT StartInstanceLocation
-	)
+)
 {
 	DEBUGCHECK(InstanceCount == 1, "Error: Invalid assumption in ID3D12QueuedCommandList.");
 	DEBUGCHECK(StartInstanceLocation == 0, "Error: Invalid assumption in ID3D12QueuedCommandList.");
@@ -733,7 +734,7 @@ void STDMETHODCALLTYPE ID3D12QueuedCommandList::Dispatch(
 	_In_  UINT ThreadGroupCountX,
 	_In_  UINT ThreadGroupCountY,
 	_In_  UINT ThreadGroupCountZ
-	)
+)
 {
 	// Function not implemented yet.
 	DEBUGCHECK(0, "Function not implemented yet.");
@@ -742,7 +743,7 @@ void STDMETHODCALLTYPE ID3D12QueuedCommandList::Dispatch(
 void STDMETHODCALLTYPE ID3D12QueuedCommandList::DispatchIndirect(
 	_In_  ID3D12Resource* pBufferForArgs,
 	_In_  UINT AlignedByteOffsetForArgs
-	)
+)
 {
 	// Function not implemented yet.
 	DEBUGCHECK(0, "Function not implemented yet.");
@@ -754,7 +755,7 @@ void STDMETHODCALLTYPE ID3D12QueuedCommandList::CopyBufferRegion(
 	_In_  ID3D12Resource* pSrcBuffer,
 	UINT64 SrcOffset,
 	UINT64 NumBytes
-	)
+)
 {
 	D3DQueueItem* item = reinterpret_cast<D3DQueueItem*>(m_queue_array_back);
 	item->Type = D3DQueueItemType::CopyBufferRegion;
@@ -776,7 +777,7 @@ void STDMETHODCALLTYPE ID3D12QueuedCommandList::CopyTextureRegion(
 	UINT DstZ,
 	_In_  const D3D12_TEXTURE_COPY_LOCATION* pSrc,
 	_In_opt_  const D3D12_BOX* pSrcBox
-	)
+)
 {
 	D3DQueueItem* item = reinterpret_cast<D3DQueueItem*>(m_queue_array_back);
 
@@ -799,7 +800,7 @@ void STDMETHODCALLTYPE ID3D12QueuedCommandList::CopyTextureRegion(
 void STDMETHODCALLTYPE ID3D12QueuedCommandList::CopyResource(
 	_In_  ID3D12Resource* pDstResource,
 	_In_  ID3D12Resource* pSrcResource
-	)
+)
 {
 	D3DQueueItem* item = reinterpret_cast<D3DQueueItem*>(m_queue_array_back);
 
@@ -819,7 +820,7 @@ void STDMETHODCALLTYPE ID3D12QueuedCommandList::CopyTiles(
 	_In_  ID3D12Resource* pBuffer,
 	UINT64 BufferStartOffsetInBytes,
 	D3D12_TILE_COPY_FLAGS Flags
-	)
+)
 {
 	// Function not implemented yet.
 	DEBUGCHECK(0, "Function not implemented yet.");
@@ -831,7 +832,7 @@ void STDMETHODCALLTYPE ID3D12QueuedCommandList::ResolveSubresource(
 	_In_  ID3D12Resource* pSrcResource,
 	_In_  UINT SrcSubresource,
 	_In_  DXGI_FORMAT Format
-	)
+)
 {
 	// No ignored parameters, no assumptions to DEBUGCHECK.
 	D3DQueueItem* item = reinterpret_cast<D3DQueueItem*>(m_queue_array_back);
@@ -850,7 +851,7 @@ void STDMETHODCALLTYPE ID3D12QueuedCommandList::ResolveSubresource(
 
 void STDMETHODCALLTYPE ID3D12QueuedCommandList::IASetPrimitiveTopology(
 	_In_  D3D12_PRIMITIVE_TOPOLOGY PrimitiveTopology
-	)
+)
 {
 	// No ignored parameters, no assumptions to DEBUGCHECK.
 	D3DQueueItem* item = reinterpret_cast<D3DQueueItem*>(m_queue_array_back);
@@ -865,7 +866,7 @@ void STDMETHODCALLTYPE ID3D12QueuedCommandList::IASetPrimitiveTopology(
 void STDMETHODCALLTYPE ID3D12QueuedCommandList::RSSetViewports(
 	_In_range_(0, D3D12_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE)  UINT Count,
 	_In_reads_(Count)  const D3D12_VIEWPORT* pViewports
-	)
+)
 {
 	DEBUGCHECK(Count == 1, "Error: Invalid assumption in ID3D12QueuedCommandList.");
 	D3DQueueItem* item = reinterpret_cast<D3DQueueItem*>(m_queue_array_back);
@@ -879,7 +880,7 @@ void STDMETHODCALLTYPE ID3D12QueuedCommandList::RSSetViewports(
 void STDMETHODCALLTYPE ID3D12QueuedCommandList::RSSetScissorRects(
 	_In_range_(0, D3D12_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE)  UINT Count,
 	_In_reads_(Count)  const D3D12_RECT* pRects
-	)
+)
 {
 	DEBUGCHECK(Count == 1, "Error: Invalid assumption in ID3D12QueuedCommandList.");
 	D3DQueueItem* item = reinterpret_cast<D3DQueueItem*>(m_queue_array_back);
@@ -896,7 +897,7 @@ void STDMETHODCALLTYPE ID3D12QueuedCommandList::RSSetScissorRects(
 
 void STDMETHODCALLTYPE ID3D12QueuedCommandList::OMSetBlendFactor(
 	_In_opt_  const FLOAT BlendFactor[4]
-	)
+)
 {
 	// Function not implemented yet.
 	DEBUGCHECK(0, "Function not implemented yet.");
@@ -904,7 +905,7 @@ void STDMETHODCALLTYPE ID3D12QueuedCommandList::OMSetBlendFactor(
 
 void STDMETHODCALLTYPE ID3D12QueuedCommandList::OMSetStencilRef(
 	_In_  UINT StencilRef
-	)
+)
 {
 	// Function not implemented yet.
 	DEBUGCHECK(0, "Function not implemented yet.");
@@ -912,7 +913,7 @@ void STDMETHODCALLTYPE ID3D12QueuedCommandList::OMSetStencilRef(
 
 void STDMETHODCALLTYPE ID3D12QueuedCommandList::SetPipelineState(
 	_In_  ID3D12PipelineState* pPipelineState
-	)
+)
 {
 	// No ignored parameters, no assumptions to DEBUGCHECK.
 
@@ -929,11 +930,11 @@ void STDMETHODCALLTYPE ID3D12QueuedCommandList::SetPipelineState(
 void STDMETHODCALLTYPE ID3D12QueuedCommandList::ResourceBarrier(
 	_In_  UINT NumBarriers,
 	_In_reads_(NumBarriers)  const D3D12_RESOURCE_BARRIER* pBarriers
-	)
+)
 {
 	DEBUGCHECK(NumBarriers == 1, "Error: Invalid assumption in ID3D12QueuedCommandList.");
 	D3DQueueItem* item = reinterpret_cast<D3DQueueItem*>(m_queue_array_back);
-	
+
 	item->Type = D3DQueueItemType::ResourceBarrier;
 	item->ResourceBarrier.barrier = *pBarriers;
 
@@ -944,7 +945,7 @@ void STDMETHODCALLTYPE ID3D12QueuedCommandList::ResourceBarrier(
 
 void STDMETHODCALLTYPE ID3D12QueuedCommandList::ExecuteBundle(
 	_In_  ID3D12GraphicsCommandList *pCommandList
-	)
+)
 {
 	// Function not implemented yet.
 	DEBUGCHECK(0, "Function not implemented yet.");
@@ -954,7 +955,7 @@ void STDMETHODCALLTYPE ID3D12QueuedCommandList::BeginQuery(
 	_In_  ID3D12QueryHeap* pQueryHeap,
 	_In_  D3D12_QUERY_TYPE Type,
 	_In_  UINT Index
-	)
+)
 {
 	D3DQueueItem* item = reinterpret_cast<D3DQueueItem*>(m_queue_array_back);
 	item->Type = D3DQueueItemType::BeginQuery;
@@ -971,7 +972,7 @@ void STDMETHODCALLTYPE ID3D12QueuedCommandList::EndQuery(
 	_In_  ID3D12QueryHeap* pQueryHeap,
 	_In_  D3D12_QUERY_TYPE Type,
 	_In_  UINT Index
-	)
+)
 {
 	D3DQueueItem* item = reinterpret_cast<D3DQueueItem*>(m_queue_array_back);
 	item->Type = D3DQueueItemType::EndQuery;
@@ -991,7 +992,7 @@ void STDMETHODCALLTYPE ID3D12QueuedCommandList::ResolveQueryData(
 	_In_  UINT ElementCount,
 	_In_  ID3D12Resource* pDestinationBuffer,
 	_In_  UINT64 AlignedDestinationBufferOffset
-	)
+)
 {
 	// No ignored parameters, no assumptions to DEBUGCHECK.
 	D3DQueueItem* item = reinterpret_cast<D3DQueueItem*>(m_queue_array_back);
@@ -1010,7 +1011,7 @@ void STDMETHODCALLTYPE ID3D12QueuedCommandList::SetPredication(
 	_In_opt_  ID3D12Resource* pBuffer,
 	_In_  UINT64 AlignedBufferOffset,
 	_In_  D3D12_PREDICATION_OP Operation
-	)
+)
 {
 	// Function not implemented yet.
 	DEBUGCHECK(0, "Function not implemented yet.");
@@ -1019,7 +1020,7 @@ void STDMETHODCALLTYPE ID3D12QueuedCommandList::SetPredication(
 void STDMETHODCALLTYPE ID3D12QueuedCommandList::SetDescriptorHeaps(
 	_In_  UINT NumDescriptorHeaps,
 	_In_reads_(NumDescriptorHeaps)  ID3D12DescriptorHeap** pDescriptorHeaps
-	)
+)
 {
 	// No ignored parameters, no assumptions to DEBUGCHECK.
 	D3DQueueItem* item = reinterpret_cast<D3DQueueItem*>(m_queue_array_back);
@@ -1035,7 +1036,7 @@ void STDMETHODCALLTYPE ID3D12QueuedCommandList::SetDescriptorHeaps(
 
 void STDMETHODCALLTYPE ID3D12QueuedCommandList::SetComputeRootSignature(
 	_In_  ID3D12RootSignature* pRootSignature
-	)
+)
 {
 	// Function not implemented yet.
 	DEBUGCHECK(0, "Function not implemented yet.");
@@ -1043,7 +1044,7 @@ void STDMETHODCALLTYPE ID3D12QueuedCommandList::SetComputeRootSignature(
 
 void STDMETHODCALLTYPE ID3D12QueuedCommandList::SetGraphicsRootSignature(
 	_In_  ID3D12RootSignature* pRootSignature
-	)
+)
 {
 	// No ignored parameters, no assumptions to DEBUGCHECK.
 	D3DQueueItem* item = reinterpret_cast<D3DQueueItem*>(m_queue_array_back);
@@ -1059,7 +1060,7 @@ void STDMETHODCALLTYPE ID3D12QueuedCommandList::SetGraphicsRootSignature(
 void STDMETHODCALLTYPE ID3D12QueuedCommandList::SetComputeRootDescriptorTable(
 	_In_  UINT RootParameterIndex,
 	_In_  D3D12_GPU_DESCRIPTOR_HANDLE BaseDescriptor
-	)
+)
 {
 	// Function not implemented yet.
 	DEBUGCHECK(0, "Function not implemented yet.");
@@ -1068,7 +1069,7 @@ void STDMETHODCALLTYPE ID3D12QueuedCommandList::SetComputeRootDescriptorTable(
 void STDMETHODCALLTYPE ID3D12QueuedCommandList::SetGraphicsRootDescriptorTable(
 	_In_  UINT RootParameterIndex,
 	_In_  D3D12_GPU_DESCRIPTOR_HANDLE BaseDescriptor
-	)
+)
 {
 	// No ignored parameters, no assumptions to DEBUGCHECK.
 
@@ -1087,7 +1088,7 @@ void STDMETHODCALLTYPE ID3D12QueuedCommandList::SetComputeRoot32BitConstant(
 	_In_  UINT RootParameterIndex,
 	_In_  UINT SrcData,
 	_In_  UINT DestOffsetIn32BitValues
-	)
+)
 {
 	// Function not implemented yet.
 	DEBUGCHECK(0, "Function not implemented yet.");
@@ -1097,7 +1098,7 @@ void STDMETHODCALLTYPE ID3D12QueuedCommandList::SetGraphicsRoot32BitConstant(
 	_In_  UINT RootParameterIndex,
 	_In_  UINT SrcData,
 	_In_  UINT DestOffsetIn32BitValues
-	)
+)
 {
 	// Function not implemented yet.
 	DEBUGCHECK(0, "Function not implemented yet.");
@@ -1106,9 +1107,9 @@ void STDMETHODCALLTYPE ID3D12QueuedCommandList::SetGraphicsRoot32BitConstant(
 void STDMETHODCALLTYPE ID3D12QueuedCommandList::SetComputeRoot32BitConstants(
 	_In_  UINT RootParameterIndex,
 	_In_  UINT Num32BitValuesToSet,
-	_In_reads_(Num32BitValuesToSet*sizeof(UINT))  const void* pSrcData,
+	_In_reads_(Num32BitValuesToSet * sizeof(UINT))  const void* pSrcData,
 	_In_  UINT DestOffsetIn32BitValues
-	)
+)
 {
 	// Function not implemented yet.
 	DEBUGCHECK(0, "Function not implemented yet.");
@@ -1117,9 +1118,9 @@ void STDMETHODCALLTYPE ID3D12QueuedCommandList::SetComputeRoot32BitConstants(
 void STDMETHODCALLTYPE ID3D12QueuedCommandList::SetGraphicsRoot32BitConstants(
 	_In_  UINT RootParameterIndex,
 	_In_  UINT Num32BitValuesToSet,
-	_In_reads_(Num32BitValuesToSet*sizeof(UINT))  const void* pSrcData,
+	_In_reads_(Num32BitValuesToSet * sizeof(UINT))  const void* pSrcData,
 	_In_  UINT DestOffsetIn32BitValues
-	)
+)
 {
 	// Function not implemented yet.
 	DEBUGCHECK(0, "Function not implemented yet.");
@@ -1128,7 +1129,7 @@ void STDMETHODCALLTYPE ID3D12QueuedCommandList::SetGraphicsRoot32BitConstants(
 void STDMETHODCALLTYPE ID3D12QueuedCommandList::SetGraphicsRootConstantBufferView(
 	_In_  UINT RootParameterIndex,
 	_In_  D3D12_GPU_VIRTUAL_ADDRESS BufferLocation
-	)
+)
 {
 	// No ignored parameters, no assumptions to DEBUGCHECK.
 
@@ -1146,7 +1147,7 @@ void STDMETHODCALLTYPE ID3D12QueuedCommandList::SetGraphicsRootConstantBufferVie
 void STDMETHODCALLTYPE ID3D12QueuedCommandList::SetComputeRootConstantBufferView(
 	_In_  UINT RootParameterIndex,
 	_In_  D3D12_GPU_VIRTUAL_ADDRESS BufferLocation
-	)
+)
 {
 	// Function not implemented yet.
 	DEBUGCHECK(0, "Function not implemented yet.");
@@ -1155,7 +1156,7 @@ void STDMETHODCALLTYPE ID3D12QueuedCommandList::SetComputeRootConstantBufferView
 void STDMETHODCALLTYPE ID3D12QueuedCommandList::SetComputeRootShaderResourceView(
 	_In_  UINT RootParameterIndex,
 	_In_  D3D12_GPU_VIRTUAL_ADDRESS DescriptorHandle
-	)
+)
 {
 	// Function not implemented yet.
 	DEBUGCHECK(0, "Function not implemented yet.");
@@ -1164,7 +1165,7 @@ void STDMETHODCALLTYPE ID3D12QueuedCommandList::SetComputeRootShaderResourceView
 void STDMETHODCALLTYPE ID3D12QueuedCommandList::SetGraphicsRootShaderResourceView(
 	_In_  UINT RootParameterIndex,
 	_In_  D3D12_GPU_VIRTUAL_ADDRESS DescriptorHandle
-	)
+)
 {
 	// Function not implemented yet.
 	DEBUGCHECK(0, "Function not implemented yet.");
@@ -1173,7 +1174,7 @@ void STDMETHODCALLTYPE ID3D12QueuedCommandList::SetGraphicsRootShaderResourceVie
 void STDMETHODCALLTYPE ID3D12QueuedCommandList::SetComputeRootUnorderedAccessView(
 	_In_  UINT RootParameterIndex,
 	_In_  D3D12_GPU_VIRTUAL_ADDRESS DescriptorHandle
-	)
+)
 {
 	// Function not implemented yet.
 	DEBUGCHECK(0, "Function not implemented yet.");
@@ -1182,7 +1183,7 @@ void STDMETHODCALLTYPE ID3D12QueuedCommandList::SetComputeRootUnorderedAccessVie
 void STDMETHODCALLTYPE ID3D12QueuedCommandList::SetGraphicsRootUnorderedAccessView(
 	_In_  UINT RootParameterIndex,
 	_In_  D3D12_GPU_VIRTUAL_ADDRESS DescriptorHandle
-	)
+)
 {
 	// Function not implemented yet.
 	DEBUGCHECK(0, "Function not implemented yet.");
@@ -1190,7 +1191,7 @@ void STDMETHODCALLTYPE ID3D12QueuedCommandList::SetGraphicsRootUnorderedAccessVi
 
 void STDMETHODCALLTYPE ID3D12QueuedCommandList::IASetIndexBuffer(
 	_In_opt_  const D3D12_INDEX_BUFFER_VIEW* pDesc
-	)
+)
 {
 	// No ignored parameters, no assumptions to DEBUGCHECK.
 
@@ -1207,7 +1208,7 @@ void STDMETHODCALLTYPE ID3D12QueuedCommandList::IASetVertexBuffers(
 	_In_  UINT StartSlot,
 	_In_  UINT NumBuffers,
 	_In_  const D3D12_VERTEX_BUFFER_VIEW* pDesc
-	)
+)
 {
 	DEBUGCHECK(StartSlot == 0, "Error: Invalid assumption in ID3D12QueuedCommandList.");
 	DEBUGCHECK(NumBuffers == 1, "Error: Invalid assumption in ID3D12QueuedCommandList.");
@@ -1226,7 +1227,7 @@ void STDMETHODCALLTYPE ID3D12QueuedCommandList::SOSetTargets(
 	_In_  UINT StartSlot,
 	_In_  UINT NumViews,
 	_In_  const D3D12_STREAM_OUTPUT_BUFFER_VIEW* pViews
-	)
+)
 {
 	// Function not implemented yet.
 	DEBUGCHECK(0, "Function not implemented yet.");
@@ -1237,7 +1238,7 @@ void STDMETHODCALLTYPE ID3D12QueuedCommandList::OMSetRenderTargets(
 	_In_  const D3D12_CPU_DESCRIPTOR_HANDLE* pRenderTargetDescriptors,
 	_In_  BOOL RTsSingleHandleToDescriptorRange,
 	_In_opt_  const D3D12_CPU_DESCRIPTOR_HANDLE *pDepthStencilDescriptor
-	)
+)
 {
 	DEBUGCHECK(RTsSingleHandleToDescriptorRange == FALSE, "Error: Invalid assumption in ID3D12QueuedCommandList.");
 	D3DQueueItem* item = reinterpret_cast<D3DQueueItem*>(m_queue_array_back);
@@ -1266,7 +1267,7 @@ void STDMETHODCALLTYPE ID3D12QueuedCommandList::ClearDepthStencilView(
 	_In_  UINT8 Stencil,
 	_In_  UINT NumRects,
 	_In_reads_opt_(NumRects)  const D3D12_RECT* pRect
-	)
+)
 {
 	DEBUGCHECK(ClearFlags == D3D12_CLEAR_FLAG_DEPTH, "Error: Invalid assumption in ID3D12QueuedCommandList.");
 	DEBUGCHECK(Depth == 0.0f, "Error: Invalid assumption in ID3D12QueuedCommandList.");
@@ -1288,7 +1289,7 @@ void STDMETHODCALLTYPE ID3D12QueuedCommandList::ClearRenderTargetView(
 	_In_  const FLOAT ColorRGBA[4],
 	_In_  UINT NumRects,
 	_In_reads_opt_(NumRects)  const D3D12_RECT* pRects
-	)
+)
 {
 	DEBUGCHECK(ColorRGBA[0] == 0.0f, "Error: Invalid assumption in ID3D12QueuedCommandList.");
 	DEBUGCHECK(ColorRGBA[1] == 0.0f, "Error: Invalid assumption in ID3D12QueuedCommandList.");
@@ -1313,7 +1314,7 @@ void STDMETHODCALLTYPE ID3D12QueuedCommandList::ClearUnorderedAccessViewUint(
 	_In_  const UINT Values[4],
 	_In_  UINT NumRects,
 	_In_reads_opt_(NumRects)  const D3D12_RECT* pRects
-	)
+)
 {
 	// Function not implemented yet.
 	DEBUGCHECK(0, "Function not implemented yet.");
@@ -1326,7 +1327,7 @@ void STDMETHODCALLTYPE ID3D12QueuedCommandList::ClearUnorderedAccessViewFloat(
 	_In_  const FLOAT Values[4],
 	_In_  UINT NumRects,
 	_In_reads_opt_(NumRects)  const D3D12_RECT* pRects
-	)
+)
 {
 	// Function not implemented yet.
 	DEBUGCHECK(0, "Function not implemented yet.");
@@ -1335,7 +1336,7 @@ void STDMETHODCALLTYPE ID3D12QueuedCommandList::ClearUnorderedAccessViewFloat(
 void STDMETHODCALLTYPE ID3D12QueuedCommandList::DiscardResource(
 	_In_  ID3D12Resource* pResource,
 	_In_opt_  const D3D12_DISCARD_REGION* pDesc
-	)
+)
 {
 	// Function not implemented yet.
 	DEBUGCHECK(0, "Function not implemented yet.");
@@ -1345,7 +1346,7 @@ void STDMETHODCALLTYPE ID3D12QueuedCommandList::SetMarker(
 	UINT Metadata,
 	_In_reads_bytes_opt_(Size)  const void* pData,
 	UINT Size
-	)
+)
 {
 	// Function not implemented yet.
 	DEBUGCHECK(0, "Function not implemented yet.");
@@ -1355,7 +1356,7 @@ void STDMETHODCALLTYPE ID3D12QueuedCommandList::BeginEvent(
 	UINT Metadata,
 	_In_reads_bytes_opt_(Size)  const void* pData,
 	UINT Size
-	)
+)
 {
 	// Function not implemented yet.
 	DEBUGCHECK(0, "Function not implemented yet.");
@@ -1374,7 +1375,7 @@ void STDMETHODCALLTYPE ID3D12QueuedCommandList::ExecuteIndirect(
 	_In_  UINT64 ArgumentBufferOffset,
 	_In_opt_  ID3D12Resource* pCountBuffer,
 	_In_  UINT64 CountBufferOffset
-	)
+)
 {
 	// Function not implemented yet.
 	DEBUGCHECK(0, "Function not implemented yet.");

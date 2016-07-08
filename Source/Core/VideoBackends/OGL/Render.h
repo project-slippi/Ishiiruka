@@ -62,7 +62,7 @@ struct VideoConfig
 };
 extern VideoConfig g_ogl_config;
 
-class Renderer : public ::Renderer
+class Renderer: public ::Renderer
 {
 public:
 	Renderer();
@@ -83,8 +83,10 @@ public:
 	void SetViewport() override;
 
 	// TODO: Implement and use these
-	void ApplyState(bool bUseDstAlpha) override {}
-	void RestoreState() override {}
+	void ApplyState(bool bUseDstAlpha) override
+	{}
+	void RestoreState() override
+	{}
 
 	void RenderText(const std::string& text, int left, int top, u32 color) override;
 

@@ -139,7 +139,7 @@ struct HotkeyStatus
 	s8  err;
 };
 
-class HotkeyManager : public ControllerEmu
+class HotkeyManager: public ControllerEmu
 {
 public:
 	HotkeyManager();
@@ -156,13 +156,13 @@ private:
 
 namespace HotkeyManagerEmu
 {
-	void Initialize(void* const hwnd);
-	void Shutdown();
-	void LoadConfig();
+void Initialize(void* const hwnd);
+void Shutdown();
+void LoadConfig();
 
-	InputConfig* GetConfig();
-	void GetStatus();
-	bool IsEnabled();
-	void Enable(bool enable_toggle);
-	bool IsPressed(int Id, bool held);
+InputConfig* GetConfig();
+void GetStatus();
+bool IsEnabled();
+void Enable(bool enable_toggle);
+bool IsPressed(int Id, bool held);
 }

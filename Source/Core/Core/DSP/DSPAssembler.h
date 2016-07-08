@@ -56,8 +56,14 @@ public:
 	// If returns false, call GetErrorString to get some text to present to the user.
 	bool Assemble(const std::string& text, std::vector<u16> &code, std::vector<int> *line_numbers = nullptr);
 
-	std::string GetErrorString() const { return last_error_str; }
-	err_t GetError() const { return last_error; }
+	std::string GetErrorString() const
+	{
+		return last_error_str;
+	}
+	err_t GetError() const
+	{
+		return last_error;
+	}
 
 private:
 	struct param_t

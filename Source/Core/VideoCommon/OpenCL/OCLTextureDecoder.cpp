@@ -76,9 +76,9 @@ cl_mem g_clsrc, g_cldst;                    // texture buffer memory objects
 
 void TexDecoder_OpenCL_Initialize()
 {
-	if(!g_Inited)
+	if (!g_Inited)
 	{
-		if(!OpenCL::Initialize())
+		if (!OpenCL::Initialize())
 			return;
 
 		cl_int err = 1;
@@ -96,19 +96,19 @@ void TexDecoder_OpenCL_Initialize()
 		snprintf(dolphin_rev, HEADER_SIZE, "%-31s", scm_rev_str.c_str());
 
 		{
-		File::IOFile input(filename, "rb");
-		if (!input)
-		{
-			binary_size = 0;
-		}
-		else
-		{
-			binary_size = input.GetSize();
-			header = new char[HEADER_SIZE];
-			binary = new char[binary_size];
-			input.ReadBytes(header, HEADER_SIZE);
-			input.ReadBytes(binary, binary_size);
-		}
+			File::IOFile input(filename, "rb");
+			if (!input)
+			{
+				binary_size = 0;
+			}
+			else
+			{
+				binary_size = input.GetSize();
+				header = new char[HEADER_SIZE];
+				binary = new char[binary_size];
+				input.ReadBytes(header, HEADER_SIZE);
+				input.ReadBytes(binary, binary_size);
+			}
 		}
 
 		if (binary_size > 0)
@@ -133,8 +133,8 @@ void TexDecoder_OpenCL_Initialize()
 					}
 				}
 			}
-			delete [] header;
-			delete [] binary;
+			delete[] header;
+			delete[] binary;
 		}
 
 		// If an error occurred using the kernel binary, recompile the kernels
@@ -155,7 +155,7 @@ void TexDecoder_OpenCL_Initialize()
 			{
 				OpenCL::HandleCLError(err, "clGetProgramInfo");
 			}
-			devices = (cl_device_id *)malloc( sizeof(cl_device_id) *nDevices);
+			devices = (cl_device_id *)malloc(sizeof(cl_device_id) *nDevices);
 
 			err = clGetProgramInfo(g_program, CL_PROGRAM_DEVICES, sizeof(cl_device_id)*nDevices, devices, NULL);
 			if (err != CL_SUCCESS)
@@ -164,7 +164,7 @@ void TexDecoder_OpenCL_Initialize()
 			}
 
 			binary_sizes = (size_t *)malloc(sizeof(size_t)*nDevices);
-			err = clGetProgramInfo(g_program, CL_PROGRAM_BINARY_SIZES,	sizeof(size_t)*nDevices, binary_sizes, NULL);
+			err = clGetProgramInfo(g_program, CL_PROGRAM_BINARY_SIZES, sizeof(size_t)*nDevices, binary_sizes, NULL);
 			if (err != CL_SUCCESS)
 			{
 				OpenCL::HandleCLError(err, "clGetProgramInfo");
@@ -182,7 +182,7 @@ void TexDecoder_OpenCL_Initialize()
 					binaries[i] = NULL;
 				}
 			}
-			err = clGetProgramInfo( g_program, CL_PROGRAM_BINARIES,	sizeof(char *)*nDevices, binaries, NULL );
+			err = clGetProgramInfo(g_program, CL_PROGRAM_BINARIES, sizeof(char *)*nDevices, binaries, NULL);
 			if (err != CL_SUCCESS)
 			{
 				OpenCL::HandleCLError(err, "clGetProgramInfo");
@@ -224,17 +224,17 @@ void TexDecoder_OpenCL_Initialize()
 			if (g_DecodeParametersNative[i].name)
 				g_DecodeParametersNative[i].kernel =
 				OpenCL::CompileKernel(g_program,
-				g_DecodeParametersNative[i].name);
+					g_DecodeParametersNative[i].name);
 
 			if (g_DecodeParametersRGBA[i].name)
 				g_DecodeParametersRGBA[i].kernel =
 				OpenCL::CompileKernel(g_program,
-				g_DecodeParametersRGBA[i].name);
+					g_DecodeParametersRGBA[i].name);
 		}
 
 		// Allocating maximal Wii texture size in advance, so that we don't have to allocate/deallocate per texture
 #ifndef DEBUG_OPENCL
-		g_clsrc = clCreateBuffer(OpenCL::GetContext(), CL_MEM_READ_ONLY , 1024 * 1024 * sizeof(u32), NULL, NULL);
+		g_clsrc = clCreateBuffer(OpenCL::GetContext(), CL_MEM_READ_ONLY, 1024 * 1024 * sizeof(u32), NULL, NULL);
 		g_cldst = clCreateBuffer(OpenCL::GetContext(), CL_MEM_WRITE_ONLY, 1024 * 1024 * sizeof(u32), NULL, NULL);
 #endif
 
@@ -247,18 +247,19 @@ void TexDecoder_OpenCL_Shutdown()
 	if (g_program)
 		clReleaseProgram(g_program);
 
-	for (int i = 0; i < GX_TF_CMPR; ++i) {
+	for (int i = 0; i < GX_TF_CMPR; ++i)
+	{
 		if (g_DecodeParametersNative[i].kernel)
 			clReleaseKernel(g_DecodeParametersNative[i].kernel);
 
-		if(g_DecodeParametersRGBA[i].kernel)
+		if (g_DecodeParametersRGBA[i].kernel)
 			clReleaseKernel(g_DecodeParametersRGBA[i].kernel);
 	}
 
-	if(g_clsrc)
+	if (g_clsrc)
 		clReleaseMemObject(g_clsrc);
 
-	if(g_cldst)
+	if (g_cldst)
 		clReleaseMemObject(g_cldst);
 
 	g_Inited = false;
@@ -268,11 +269,11 @@ PC_TexFormat TexDecoder_Decode_OpenCL(u8 *dst, const u8 *src, int width, int hei
 {
 	cl_int err;
 	sDecoderParameter& decoder = rgba ? g_DecodeParametersRGBA[texformat] : g_DecodeParametersNative[texformat];
-	if(!g_Inited || !decoder.name || !decoder.kernel || decoder.format == PC_TEX_FMT_NONE)
+	if (!g_Inited || !decoder.name || !decoder.kernel || decoder.format == PC_TEX_FMT_NONE)
 		return PC_TEX_FMT_NONE;
 
 #ifdef DEBUG_OPENCL
-	g_clsrc = clCreateBuffer(OpenCL::GetContext(), CL_MEM_READ_ONLY , 1024 * 1024 * sizeof(u32), NULL, NULL);
+	g_clsrc = clCreateBuffer(OpenCL::GetContext(), CL_MEM_READ_ONLY, 1024 * 1024 * sizeof(u32), NULL, NULL);
 	g_cldst = clCreateBuffer(OpenCL::GetContext(), CL_MEM_WRITE_ONLY, 1024 * 1024 * sizeof(u32), NULL, NULL);
 #endif
 
@@ -282,7 +283,7 @@ PC_TexFormat TexDecoder_Decode_OpenCL(u8 *dst, const u8 *src, int width, int hei
 	clSetKernelArg(decoder.kernel, 1, sizeof(cl_mem), &g_clsrc);
 	clSetKernelArg(decoder.kernel, 2, sizeof(cl_int), &width);
 
-	size_t global[] = { (size_t)(width / decoder.xSkip), (size_t)(height / decoder.ySkip) };
+	size_t global[] = {(size_t)(width / decoder.xSkip), (size_t)(height / decoder.ySkip)};
 
 	// No work-groups for now
 	/*
@@ -293,7 +294,7 @@ PC_TexFormat TexDecoder_Decode_OpenCL(u8 *dst, const u8 *src, int width, int hei
 	*/
 
 	err = clEnqueueNDRangeKernel(OpenCL::GetCommandQueue(), decoder.kernel, 2, NULL, global, NULL, 0, NULL, NULL);
-	if(err)
+	if (err)
 		OpenCL::HandleCLError(err, "Failed to enqueue kernel");
 
 	clFinish(OpenCL::GetCommandQueue());

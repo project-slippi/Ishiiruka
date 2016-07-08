@@ -47,7 +47,7 @@ void LogConfigWindow::CreateGUIControls()
 	for (int i = 0; i < MAX_LOGLEVEL; ++i)
 		wxLevelsUse.Add(wxLevels[i]);
 	m_verbosity = new wxRadioBox(this, wxID_ANY, _("Verbosity"),
-			wxDefaultPosition, wxDefaultSize, wxLevelsUse, 0, wxRA_SPECIFY_ROWS);
+		wxDefaultPosition, wxDefaultSize, wxLevelsUse, 0, wxRA_SPECIFY_ROWS);
 	m_verbosity->Bind(wxEVT_RADIOBOX, &LogConfigWindow::OnVerbosityChange, this);
 
 	// Options
@@ -59,7 +59,7 @@ void LogConfigWindow::CreateGUIControls()
 	m_writeWindowCB->Bind(wxEVT_CHECKBOX, &LogConfigWindow::OnWriteWindowChecked, this);
 
 	wxButton *btn_toggle_all = new wxButton(this, wxID_ANY, _("Toggle All Log Types"),
-			wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT);
+		wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT);
 	btn_toggle_all->Bind(wxEVT_BUTTON, &LogConfigWindow::OnToggleAll, this);
 	m_checks = new wxCheckListBox(this, wxID_ANY);
 	m_checks->Bind(wxEVT_CHECKLISTBOX, &LogConfigWindow::OnLogCheck, this);

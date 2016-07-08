@@ -7,12 +7,10 @@
 #include "Common/Logging/ConsoleListener.h"
 
 ConsoleListener::ConsoleListener()
-{
-}
+{}
 
 ConsoleListener::~ConsoleListener()
-{
-}
+{}
 
 void ConsoleListener::Log(LogTypes::LOG_LEVELS level, const char* text)
 {

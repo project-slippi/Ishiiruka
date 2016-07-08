@@ -40,9 +40,12 @@ D3D::GeometryShaderPtr CopyGeometryShader;
 
 LinearDiskCache<GeometryShaderUid, u8> g_gs_disk_cache;
 
-ID3D11GeometryShader* GeometryShaderCache::GetClearGeometryShader() { return (g_ActiveConfig.iStereoMode > 0) ? ClearGeometryShader.get() : nullptr; }
-ID3D11GeometryShader* GeometryShaderCache::GetCopyGeometryShader() 
-{ 
+ID3D11GeometryShader* GeometryShaderCache::GetClearGeometryShader()
+{
+	return (g_ActiveConfig.iStereoMode > 0) ? ClearGeometryShader.get() : nullptr;
+}
+ID3D11GeometryShader* GeometryShaderCache::GetCopyGeometryShader()
+{
 	return (g_ActiveConfig.iStereoMode > 0) ? CopyGeometryShader.get() : nullptr;
 }
 
@@ -61,7 +64,7 @@ D3D::BufferDescriptor  GeometryShaderCache::GetConstantBuffer()
 }
 
 // this class will load the precompiled shaders into our cache
-class GeometryShaderCacheInserter : public LinearDiskCacheReader<GeometryShaderUid, u8>
+class GeometryShaderCacheInserter: public LinearDiskCacheReader<GeometryShaderUid, u8>
 {
 public:
 	void Read(const GeometryShaderUid &key, const u8* value, u32 value_size)
@@ -160,7 +163,7 @@ void GeometryShaderCache::Init()
 	CopyGeometryShader = D3D::CompileAndCreateGeometryShader(gs_copy_shader_code);
 	CHECK(CopyGeometryShader != nullptr, "Create copy geometry shader");
 	D3D::SetDebugObjectName(CopyGeometryShader.get(), "copy geometry shader");
-	
+
 	Clear();
 
 	if (!File::Exists(File::GetUserPath(D_SHADERCACHE_IDX)))
@@ -178,7 +181,7 @@ void GeometryShaderCache::Init()
 		SConfig::GetInstance().m_strUniqueID.c_str());
 	GeometryShaderCacheInserter inserter;
 	g_gs_disk_cache.OpenAndRead(cache_filename, inserter);
-	
+
 	if (g_ActiveConfig.bCompileShaderOnStartup)
 	{
 		size_t shader_count = 0;
@@ -234,7 +237,7 @@ void GeometryShaderCache::Shutdown()
 	ClearGeometryShader.reset();
 	CopyGeometryShader.reset();
 
-	
+
 	Clear();
 	delete s_geometry_shaders;
 	s_geometry_shaders = nullptr;

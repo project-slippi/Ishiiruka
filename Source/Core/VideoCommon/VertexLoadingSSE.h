@@ -78,7 +78,7 @@ __forceinline void SByte3ToFloat3_SSSE3(const u32* pData, __m128 scale, float* p
 
 __forceinline void UShort2ToFloat2_SSSE3(const u32* pData, __m128 scale, __m64* pDest)
 {
-	__m128i coords = _mm_cvtsi32_si128(*pData);	
+	__m128i coords = _mm_cvtsi32_si128(*pData);
 	coords = _mm_shuffle_epi8(coords, kMaskSwap16to32l_2);
 	__m128 out = _mm_cvtepi32_ps(coords);
 	out = _mm_mul_ps(out, scale);
@@ -96,7 +96,7 @@ __forceinline void UShort2ToFloat3_SSSE3(const u32* pData, __m128 scale, float* 
 
 __forceinline void UShort3ToFloat3_SSSE3(const __m128i* pData, __m128 scale, float* pDest)
 {
-	__m128i coords = _mm_loadl_epi64(pData);	
+	__m128i coords = _mm_loadl_epi64(pData);
 	coords = _mm_shuffle_epi8(coords, kMaskSwap16to32l_3);
 	__m128 out = _mm_cvtepi32_ps(coords);
 	out = _mm_mul_ps(out, scale);

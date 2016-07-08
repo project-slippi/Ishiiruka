@@ -7,7 +7,8 @@
 #include "CommonTypes.h"
 #include <Windows.h>
 
-struct PatchInfo {
+struct PatchInfo
+{
 	const wchar_t* module_name;
 	u32 checksum;
 	u32 rva;
@@ -23,7 +24,8 @@ struct PatchInfo {
 	{ L"ucrtbased.dll", 0x1C1915 , 0x91905, 5 },
 };
 
-bool ApplyPatch(const PatchInfo& patch) {
+bool ApplyPatch(const PatchInfo& patch)
+{
 	auto module = GetModuleHandleW(patch.module_name);
 	if (module == nullptr)
 	{
@@ -31,7 +33,8 @@ bool ApplyPatch(const PatchInfo& patch) {
 	}
 
 	auto ucrtbase_pe = (PIMAGE_NT_HEADERS)((uintptr_t)module + ((PIMAGE_DOS_HEADER)module)->e_lfanew);
-	if (ucrtbase_pe->OptionalHeader.CheckSum != patch.checksum) {
+	if (ucrtbase_pe->OptionalHeader.CheckSum != patch.checksum)
+	{
 		return false;
 	}
 
@@ -59,8 +62,10 @@ int __cdecl EnableucrtFreadWorkaround()
 	// synchronize the file object's internal buffer.
 
 	bool applied_at_least_one = false;
-	for (const auto &patch : s_patches) {
-		if (ApplyPatch(patch)) {
+	for (const auto &patch : s_patches)
+	{
+		if (ApplyPatch(patch))
+		{
 			applied_at_least_one = true;
 		}
 	}
@@ -85,7 +90,7 @@ int __cdecl EnableucrtFreadWorkaround()
 // Use /include:EnableucrtFreadWorkaround linker flag to enable this.
 extern "C" {
 	__declspec(allocate(".CRT$XIB"))
-	decltype(&EnableucrtFreadWorkaround) ucrtFreadWorkaround = EnableucrtFreadWorkaround;
+		decltype(&EnableucrtFreadWorkaround) ucrtFreadWorkaround = EnableucrtFreadWorkaround;
 };
 
 #endif

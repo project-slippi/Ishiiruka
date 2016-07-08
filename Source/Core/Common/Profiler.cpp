@@ -29,7 +29,7 @@ std::string Profiler::s_lazy_result = "";
 int Profiler::s_lazy_delay = 0;
 
 Profiler::Profiler(const std::string& name)
-: m_name(name), m_usecs(0), m_usecs_min(-1), m_usecs_max(0), m_usecs_quad(0), m_calls(0), m_depth(0)
+	: m_name(name), m_usecs(0), m_usecs_min(-1), m_usecs_max(0), m_usecs_quad(0), m_calls(0), m_depth(0)
 {
 	m_time = Common::Timer::GetTimeUs();
 	s_max_length = std::max<u32>(s_max_length, u32(m_name.length()));
@@ -78,7 +78,10 @@ std::string Profiler::ToString()
 	buffer << std::setw(PROFILER_FIELD_LENGTH) << std::right << "max" << " ";
 	buffer << "/ usec" << std::endl;
 
-	s_all_profilers.sort([](Profiler* a, Profiler* b) { return *b < *a; });
+	s_all_profilers.sort([](Profiler* a, Profiler* b)
+	{
+		return *b < *a;
+	});
 
 	for (auto profiler : s_all_profilers)
 	{
@@ -117,18 +120,18 @@ std::string Profiler::Read()
 	double avg = 0;
 	double stdev = 0;
 	double time_rel = 0;
-	if(m_calls)
+	if (m_calls)
 	{
-		avg = double(m_usecs)/m_calls;
-		stdev = std::sqrt(double(m_usecs_quad)/m_calls - avg*avg);
+		avg = double(m_usecs) / m_calls;
+		stdev = std::sqrt(double(m_usecs_quad) / m_calls - avg*avg);
 	}
 	else
 	{
 		m_usecs_min = 0;
 	}
-	if(s_usecs_frame)
+	if (s_usecs_frame)
 	{
-		time_rel = double(m_usecs)*100/s_usecs_frame;
+		time_rel = double(m_usecs) * 100 / s_usecs_frame;
 	}
 
 	std::ostringstream buffer;

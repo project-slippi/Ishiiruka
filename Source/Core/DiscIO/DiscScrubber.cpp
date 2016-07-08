@@ -20,10 +20,8 @@
 
 namespace DiscIO
 {
-
 namespace DiscScrubber
 {
-
 #define CLUSTER_SIZE 0x8000
 
 static u8* m_FreeTable = nullptr;
@@ -71,14 +69,12 @@ struct SPartitionGroup
 };
 static SPartitionGroup PartitionGroup[4];
 
-
 void MarkAsUsed(u64 _Offset, u64 _Size);
 void MarkAsUsedE(u64 _PartitionDataOffset, u64 _Offset, u64 _Size);
 bool ReadFromVolume(u64 _Offset, u32& _Buffer, bool _Decrypt);
 bool ReadFromVolume(u64 _Offset, u64& _Buffer, bool _Decrypt);
 bool ParseDisc();
 bool ParsePartitionData(SPartition& _rPartition);
-
 
 bool SetupScrub(const std::string& filename, int block_size)
 {
@@ -88,7 +84,8 @@ bool SetupScrub(const std::string& filename, int block_size)
 
 	if (CLUSTER_SIZE % m_BlockSize != 0)
 	{
-		ERROR_LOG(DISCIO, "Block size %i is not a factor of 0x8000, scrubbing not possible", m_BlockSize);
+		ERROR_LOG(DISCIO, "Block size %i is not a factor of 0x8000, scrubbing not possible",
+			m_BlockSize);
 		return false;
 	}
 
@@ -104,7 +101,8 @@ bool SetupScrub(const std::string& filename, int block_size)
 
 	// Warn if not DVD5 or DVD9 size
 	if (numClusters != 0x23048 && numClusters != 0x46090)
-		WARN_LOG(DISCIO, "%s is not a standard sized Wii disc! (%x blocks)", filename.c_str(), numClusters);
+		WARN_LOG(DISCIO, "%s is not a standard sized Wii disc! (%x blocks)", filename.c_str(),
+			numClusters);
 
 	// Table of free blocks
 	m_FreeTable = new u8[numClusters];
@@ -150,7 +148,8 @@ size_t GetNextBlock(File::IOFile& in, u8* buffer)
 
 void Cleanup()
 {
-	if (m_FreeTable) delete[] m_FreeTable;
+	if (m_FreeTable)
+		delete[] m_FreeTable;
 	m_FreeTable = nullptr;
 	m_FileSize = 0;
 	m_BlockCount = 0;
@@ -214,7 +213,7 @@ bool ParseDisc()
 	for (int x = 0; x < 4; x++)
 	{
 		if (!ReadFromVolume(0x40000 + (x * 8) + 0, PartitionGroup[x].numPartitions, false) ||
-		    !ReadFromVolume(0x40000 + (x * 8) + 4, PartitionGroup[x].PartitionsOffset, false))
+			!ReadFromVolume(0x40000 + (x * 8) + 4, PartitionGroup[x].PartitionsOffset, false))
 			return false;
 
 		// Read all partitions
@@ -225,15 +224,17 @@ bool ParseDisc()
 			Partition.GroupNumber = x;
 			Partition.Number = i;
 
-			if (!ReadFromVolume(PartitionGroup[x].PartitionsOffset + (i * 8) + 0, Partition.Offset, false) ||
-			    !ReadFromVolume(PartitionGroup[x].PartitionsOffset + (i * 8) + 4, Partition.Type, false) ||
-			    !ReadFromVolume(Partition.Offset + 0x2a4, Partition.Header.TMDSize, false) ||
-			    !ReadFromVolume(Partition.Offset + 0x2a8, Partition.Header.TMDOffset, false) ||
-			    !ReadFromVolume(Partition.Offset + 0x2ac, Partition.Header.CertChainSize, false) ||
-			    !ReadFromVolume(Partition.Offset + 0x2b0, Partition.Header.CertChainOffset, false) ||
-			    !ReadFromVolume(Partition.Offset + 0x2b4, Partition.Header.H3Offset, false) ||
-			    !ReadFromVolume(Partition.Offset + 0x2b8, Partition.Header.DataOffset, false) ||
-			    !ReadFromVolume(Partition.Offset + 0x2bc, Partition.Header.DataSize, false))
+			if (!ReadFromVolume(PartitionGroup[x].PartitionsOffset + (i * 8) + 0, Partition.Offset,
+				false) ||
+				!ReadFromVolume(PartitionGroup[x].PartitionsOffset + (i * 8) + 4, Partition.Type,
+					false) ||
+				!ReadFromVolume(Partition.Offset + 0x2a4, Partition.Header.TMDSize, false) ||
+				!ReadFromVolume(Partition.Offset + 0x2a8, Partition.Header.TMDOffset, false) ||
+				!ReadFromVolume(Partition.Offset + 0x2ac, Partition.Header.CertChainSize, false) ||
+				!ReadFromVolume(Partition.Offset + 0x2b0, Partition.Header.CertChainOffset, false) ||
+				!ReadFromVolume(Partition.Offset + 0x2b4, Partition.Header.H3Offset, false) ||
+				!ReadFromVolume(Partition.Offset + 0x2b8, Partition.Header.DataOffset, false) ||
+				!ReadFromVolume(Partition.Offset + 0x2bc, Partition.Header.DataSize, false))
 				return false;
 
 			PartitionGroup[x].PartitionsVec.push_back(Partition);
@@ -250,7 +251,7 @@ bool ParseDisc()
 			MarkAsUsed(rPartition.Offset + rHeader.H3Offset, 0x18000);
 			// This would mark the whole (encrypted) data area
 			// we need to parse FST and other crap to find what's free within it!
-			//MarkAsUsed(rPartition.Offset + rHeader.DataOffset, rHeader.DataSize);
+			// MarkAsUsed(rPartition.Offset + rHeader.DataOffset, rHeader.DataSize);
 
 			// Parse Data! This is where the big gain is
 			if (!ParsePartitionData(rPartition))
@@ -282,7 +283,8 @@ bool ParsePartitionData(SPartition& partition)
 	std::unique_ptr<IFileSystem> filesystem(CreateFileSystem(s_disc.get()));
 	if (!filesystem)
 	{
-		ERROR_LOG(DISCIO, "Failed to create filesystem for group %d partition %u", partition.GroupNumber, partition.Number);
+		ERROR_LOG(DISCIO, "Failed to create filesystem for group %d partition %u",
+			partition.GroupNumber, partition.Number);
 		parsed_ok = false;
 	}
 	else
@@ -290,30 +292,23 @@ bool ParsePartitionData(SPartition& partition)
 		// Mark things as used which are not in the filesystem
 		// Header, Header Information, Apploader
 		parsed_ok = parsed_ok && ReadFromVolume(0x2440 + 0x14, partition.Header.ApploaderSize, true);
-		parsed_ok = parsed_ok && ReadFromVolume(0x2440 + 0x18, partition.Header.ApploaderTrailerSize, true);
-		MarkAsUsedE(partition.Offset
-			+ partition.Header.DataOffset
-			, 0
-			, 0x2440
-			+ partition.Header.ApploaderSize
-			+ partition.Header.ApploaderTrailerSize);
+		parsed_ok =
+			parsed_ok && ReadFromVolume(0x2440 + 0x18, partition.Header.ApploaderTrailerSize, true);
+		MarkAsUsedE(partition.Offset + partition.Header.DataOffset, 0,
+			0x2440 + partition.Header.ApploaderSize + partition.Header.ApploaderTrailerSize);
 
 		// DOL
 		partition.Header.DOLOffset = filesystem->GetBootDOLOffset();
 		partition.Header.DOLSize = filesystem->GetBootDOLSize(partition.Header.DOLOffset);
 		parsed_ok = parsed_ok && partition.Header.DOLOffset && partition.Header.DOLSize;
-		MarkAsUsedE(partition.Offset
-			+ partition.Header.DataOffset
-			, partition.Header.DOLOffset
-			, partition.Header.DOLSize);
+		MarkAsUsedE(partition.Offset + partition.Header.DataOffset, partition.Header.DOLOffset,
+			partition.Header.DOLSize);
 
 		// FST
 		parsed_ok = parsed_ok && ReadFromVolume(0x424, partition.Header.FSTOffset, true);
 		parsed_ok = parsed_ok && ReadFromVolume(0x428, partition.Header.FSTSize, true);
-		MarkAsUsedE(partition.Offset
-			+ partition.Header.DataOffset
-			, partition.Header.FSTOffset
-			, partition.Header.FSTSize);
+		MarkAsUsedE(partition.Offset + partition.Header.DataOffset, partition.Header.FSTOffset,
+			partition.Header.FSTSize);
 
 		// Go through the filesystem and mark entries as used
 		for (SFileInfo file : filesystem->GetFileList())
@@ -330,6 +325,6 @@ bool ParsePartitionData(SPartition& partition)
 	return parsed_ok;
 }
 
-} // namespace DiscScrubber
+}  // namespace DiscScrubber
 
-} // namespace DiscIO
+}  // namespace DiscIO

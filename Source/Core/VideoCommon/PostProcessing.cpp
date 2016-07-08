@@ -71,8 +71,8 @@ static const LangDescriptor language_ids[LANGUAGE_ID_COUNT] =
 
 std::vector<std::string> PostProcessingShaderConfiguration::GetAvailableShaderNames(const std::string& sub_dir)
 {
-	const std::vector<std::string> search_dirs = { File::GetUserPath(D_SHADERS_IDX) + sub_dir, File::GetSysDirectory() + SHADERS_DIR DIR_SEP + sub_dir };
-	const std::vector<std::string> search_extensions = { ".glsl" };
+	const std::vector<std::string> search_dirs = {File::GetUserPath(D_SHADERS_IDX) + sub_dir, File::GetSysDirectory() + SHADERS_DIR DIR_SEP + sub_dir};
+	const std::vector<std::string> search_extensions = {".glsl"};
 	std::vector<std::string> result;
 	std::vector<std::string> paths;
 
@@ -97,7 +97,7 @@ std::vector<std::string> PostProcessingShaderConfiguration::GetAvailableShaderNa
 		if (pos != std::string::npos && (pos != dirname.length() - 1))
 		{
 			std::string shader_dirname = dirname.substr(pos + 1);
-			std::vector<std::string> sub_paths = DoFileSearch(search_extensions, { dirname }, false);
+			std::vector<std::string> sub_paths = DoFileSearch(search_extensions, {dirname}, false);
 			for (const std::string& sub_path : sub_paths)
 			{
 				std::string filename;
@@ -1480,7 +1480,7 @@ void PostProcessor::GetUniformBufferShaderSource(API_TYPE api, const PostProcess
 		bufferpacking = true;
 		shader_source += "cbuffer ConfigurationConstants : register(b1) {\n";
 	}
-		
+
 
 	u32 unused_counter = 2;
 	u32 size = 0;
@@ -1602,12 +1602,12 @@ std::string PostProcessor::GetCommonFragmentShaderSource(API_TYPE api, const Pos
 }
 
 std::string PostProcessor::GetPassFragmentShaderSource(
-	API_TYPE api, 
+	API_TYPE api,
 	const PostProcessingShaderConfiguration* config,
 	const PostProcessingShaderConfiguration::RenderPass* pass)
 {
 	std::string shader_source;
-	
+
 	// Include the user's code here
 	if (!pass->entry_point.empty())
 	{
@@ -1768,7 +1768,7 @@ void* PostProcessingShaderConfiguration::UpdateConfigurationBuffer(u32* buffer_s
 				constant_idx++;
 			}
 		}
-		
+
 
 		switch (it.second.m_type)
 		{

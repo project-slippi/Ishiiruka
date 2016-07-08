@@ -104,7 +104,8 @@ FONT2DVERTEX InitFont2DVertex(float x, float y, u32 color, float tu, float tv)
 	return v;
 }
 
-CD3DFont::CD3DFont() : m_tex_width(512), m_tex_height(512) {}
+CD3DFont::CD3DFont(): m_tex_width(512), m_tex_height(512)
+{}
 
 constexpr const char fontpixshader[] = {
 	"Texture2D tex2D;\n"
@@ -256,11 +257,11 @@ int CD3DFont::Init()
 			D3D12_RESOURCE_STATE_COMMON,
 			nullptr,
 			IID_PPV_ARGS(&m_texture12)
-			)
-		);
+		)
+	);
 
 	D3D::SetDebugObjectName12(m_texture12, "texture of a CD3DFont object");
-	
+
 	ID3D12Resource* temporaryFontTextureUploadBuffer;
 	CheckHR(
 		D3D::device->CreateCommittedResource(
@@ -270,8 +271,8 @@ int CD3DFont::Init()
 			D3D12_RESOURCE_STATE_GENERIC_READ,
 			nullptr,
 			IID_PPV_ARGS(&temporaryFontTextureUploadBuffer)
-			)
-		);
+		)
+	);
 
 	D3D12_SUBRESOURCE_DATA subresource_data_dest = {
 		tex_initial_data.data(), // const void *pData;
@@ -339,7 +340,7 @@ int CD3DFont::Init()
 	blenddesc.RenderTarget[0].LogicOpEnable = FALSE;
 	m_blendstate12 = blenddesc;
 
-	D3D12_RASTERIZER_DESC rastdesc = { D3D12_FILL_MODE_SOLID, D3D12_CULL_MODE_NONE, false, 0, 0.f, 0.f, false, false, false, false };
+	D3D12_RASTERIZER_DESC rastdesc = {D3D12_FILL_MODE_SOLID, D3D12_CULL_MODE_NONE, false, 0, 0.f, 0.f, false, false, false, false};
 	m_raststate12 = rastdesc;
 	const unsigned int text_vb_size = s_max_num_vertices * sizeof(FONT2DVERTEX);
 	m_vertex_buffer = std::make_unique<D3DStreamBuffer>(text_vb_size * 2, text_vb_size * 16, nullptr);
@@ -453,7 +454,7 @@ int CD3DFont::DrawTextScaled(float x, float y, float size, float spacing, u32 dw
 		u32 written_size = num_triangles * 3 * sizeof(FONT2DVERTEX);
 		m_vertex_buffer->OverrideSizeOfPreviousAllocation(written_size);
 
-		D3D12_VERTEX_BUFFER_VIEW vb_view = { m_vertex_buffer->GetGPUAddressOfCurrentAllocation(), written_size, sizeof(FONT2DVERTEX) };
+		D3D12_VERTEX_BUFFER_VIEW vb_view = {m_vertex_buffer->GetGPUAddressOfCurrentAllocation(), written_size, sizeof(FONT2DVERTEX)};
 		D3D::current_command_list->IASetVertexBuffers(0, 1, &vb_view);
 		D3D::current_command_list->DrawInstanced(3 * num_triangles, 1, 0, 0);
 	}
@@ -538,7 +539,7 @@ void InitUtils()
 	util_vbuf_efbpokequads = std::make_unique<UtilVertexBuffer>(vb_buff_size);
 
 	D3D::sampler_descriptor_heap_mgr->RegisterHeapRestartCallback(nullptr, InitBasicSamplers);
-	
+
 	// Init default samplers
 	InitBasicSamplers(nullptr);
 
@@ -583,7 +584,7 @@ void DrawShadedTexQuad(D3DTexture2D* texture,
 	bool inherit_srv_binding,
 	bool rt_multisampled,
 	D3D12_DEPTH_STENCIL_DESC* depth_stencil_desc_override
-	)
+)
 {
 	D3D::SetRootSignature(gshader12.pShaderBytecode != nullptr, false);
 	float sw = 1.0f / static_cast<float>(source_width);
@@ -737,7 +738,7 @@ void DrawClearQuad(u32 Color, float z, D3D12_BLEND_DESC* blend_desc, D3D12_DEPTH
 
 inline void InitColVertex(ColVertex* vert, float x, float y, float z, u32 col)
 {
-	*vert = { x, y, z, col };
+	*vert = {x, y, z, col};
 }
 
 void DrawEFBPokeQuads(EFBAccessType type,
@@ -795,10 +796,10 @@ void DrawEFBPokeQuads(EFBAccessType type,
 		// Map and reserve enough buffer space for this draw
 		size_t points_to_draw = std::min(num_points - current_point_index, points_per_draw);
 		size_t required_bytes = COL_QUAD_SIZE * points_to_draw;
-		
+
 		void* buffer_ptr = nullptr;
 		size_t base_vertex_index = util_vbuf_efbpokequads->ReserveData(&buffer_ptr, static_cast<int>(required_bytes), sizeof(ColVertex));
-		
+
 		CHECK(base_vertex_index * 16 + required_bytes <= util_vbuf_efbpokequads->GetSize(), "Uh oh");
 
 		// Corresponding dirty flags set outside loop.
@@ -813,11 +814,11 @@ void DrawEFBPokeQuads(EFBAccessType type,
 		};
 
 		D3D::command_list_mgr->SetCommandListDirtyState(COMMAND_LIST_STATE_VERTEX_BUFFER, true);
-		
+
 		D3D::current_command_list->IASetVertexBuffers(0, 1, &vb_view);
 		D3D::current_command_list->SetPipelineState(pso);
 		D3D::command_list_mgr->SetCommandListDirtyState(COMMAND_LIST_STATE_PSO, true);
-		
+
 		// generate quads for each efb point
 		ColVertex* base_vertex_ptr = static_cast<ColVertex*>(buffer_ptr);
 		for (size_t i = 0; i < points_to_draw; i++)

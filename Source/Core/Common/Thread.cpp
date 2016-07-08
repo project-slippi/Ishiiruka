@@ -68,7 +68,7 @@ void SetCurrentThreadName(const char* szThreadName)
 {
 	static const DWORD MS_VC_EXCEPTION = 0x406D1388;
 
-	#pragma pack(push,8)
+#pragma pack(push,8)
 	struct THREADNAME_INFO
 	{
 		DWORD dwType; // must be 0x1000
@@ -76,7 +76,7 @@ void SetCurrentThreadName(const char* szThreadName)
 		DWORD dwThreadID; // thread ID (-1=caller thread)
 		DWORD dwFlags; // reserved for future use, must be zero
 	} info;
-	#pragma pack(pop)
+#pragma pack(pop)
 
 	info.dwType = 0x1000;
 	info.szName = szThreadName;
@@ -85,9 +85,9 @@ void SetCurrentThreadName(const char* szThreadName)
 
 	__try
 	{
-		RaiseException(MS_VC_EXCEPTION, 0, sizeof(info)/sizeof(ULONG_PTR), (ULONG_PTR*)&info);
+		RaiseException(MS_VC_EXCEPTION, 0, sizeof(info) / sizeof(ULONG_PTR), (ULONG_PTR*)&info);
 	}
-	__except(EXCEPTION_CONTINUE_EXECUTION)
+	__except (EXCEPTION_CONTINUE_EXECUTION)
 	{}
 }
 

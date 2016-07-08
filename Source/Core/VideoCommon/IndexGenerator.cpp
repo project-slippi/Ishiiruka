@@ -17,7 +17,7 @@ u32 IndexGenerator::base_index;
 
 static const u16 s_primitive_restart = -1;
 
-static void (*primitive_table[8])(u32);
+static void(*primitive_table[8])(u32);
 
 void IndexGenerator::Init()
 {
@@ -91,20 +91,20 @@ void IndexGenerator::AddStrip(u32 const numVerts)
 
 /**
  * FAN simulator:
- * 
+ *
  *   2---3
  *  / \ / \
  * 1---0---4
- * 
+ *
  * would generate this triangles:
  * 012, 023, 034
- * 
+ *
  * rotated (for better striping):
  * 120, 302, 034
- * 
+ *
  * as odd ones have to winded, following strip is fine:
  * 12034
- * 
+ *
  * so we use 6 indices for 3 triangles
  */
 
@@ -124,18 +124,18 @@ void IndexGenerator::AddFan(u32 numVerts)
 
 /*
  * QUAD simulator
- * 
+ *
  * 0---1   4---5
  * |\  |   |\  |
  * | \ |   | \ |
  * |  \|   |  \|
  * 3---2   7---6
- * 
+ *
  * 012,023, 456,467 ...
  * or 120,302, 564,746
  * or as strip: 1203, 5647
- * 
- * Warning: 
+ *
+ * Warning:
  * A simple triangle has to be rendered for three vertices.
  * ZWW do this for sun rays
  */
@@ -152,7 +152,7 @@ void IndexGenerator::AddQuads(u32 numVerts)
 	}
 
 	// three vertices remaining, so render a triangle
-	if(i == top)
+	if (i == top)
 	{
 		ptr = WriteTriangle(ptr, top - 3, top - 2, top - 1);
 	}
@@ -192,7 +192,7 @@ void IndexGenerator::AddLineStrip(u32 numVerts)
 		*ptr++ = i - 1;
 		*ptr++ = i;
 		++i;
-	}	
+	}
 	index_buffer_current = ptr;
 }
 

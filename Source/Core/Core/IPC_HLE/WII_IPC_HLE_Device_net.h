@@ -36,40 +36,40 @@ struct netcfg_connection_t
 {
 	enum
 	{
-		WIRED_IF            =   1, // 0: wifi 1: wired
-		DNS_DHCP            =   2, // 0: manual 1: DHCP
-		IP_DHCP             =   4, // 0: manual 1: DHCP
-		USE_PROXY           =  16,
-		CONNECTION_TEST_OK  =  32,
+		WIRED_IF = 1, // 0: wifi 1: wired
+		DNS_DHCP = 2, // 0: manual 1: DHCP
+		IP_DHCP = 4, // 0: manual 1: DHCP
+		USE_PROXY = 16,
+		CONNECTION_TEST_OK = 32,
 		CONNECTION_SELECTED = 128
 	};
 
 	enum
 	{
-		OPEN     = 0,
-		WEP64    = 1,
-		WEP128   = 2,
+		OPEN = 0,
+		WEP64 = 1,
+		WEP128 = 2,
 		WPA_TKIP = 4,
 		WPA2_AES = 5,
-		WPA_AES  = 6
+		WPA_AES = 6
 	};
 
 	enum status
 	{
-		LINK_BUSY      = 1,
-		LINK_NONE      = 2,
-		LINK_WIRED     = 3,
+		LINK_BUSY = 1,
+		LINK_NONE = 2,
+		LINK_WIRED = 3,
 		LINK_WIFI_DOWN = 4,
-		LINK_WIFI_UP   = 5
+		LINK_WIFI_UP = 5
 	};
 
 	enum
 	{
-		PERM_NONE      = 0,
+		PERM_NONE = 0,
 		PERM_SEND_MAIL = 1,
 		PERM_RECV_MAIL = 2,
-		PERM_DOWNLOAD  = 4,
-		PERM_ALL       = PERM_SEND_MAIL | PERM_RECV_MAIL | PERM_DOWNLOAD
+		PERM_DOWNLOAD = 4,
+		PERM_ALL = PERM_SEND_MAIL | PERM_RECV_MAIL | PERM_DOWNLOAD
 	};
 
 	// settings common to both wired and wireless connections
@@ -122,11 +122,11 @@ struct network_config_t
 
 enum nwc24_err_t
 {
-	WC24_OK                    =   0,
-	WC24_ERR_FATAL             =  -1,
-	WC24_ERR_ID_NONEXISTANCE   = -34,
-	WC24_ERR_ID_GENERATED      = -35,
-	WC24_ERR_ID_REGISTERED     = -36,
+	WC24_OK = 0,
+	WC24_ERR_FATAL = -1,
+	WC24_ERR_ID_NONEXISTANCE = -34,
+	WC24_ERR_ID_GENERATED = -35,
+	WC24_ERR_ID_REGISTERED = -36,
 	WC24_ERR_ID_NOT_REGISTERED = -44,
 };
 
@@ -134,16 +134,16 @@ struct nwc24_config_t
 {
 	enum
 	{
-		NWC24_IDCS_INITIAL    = 0,
-		NWC24_IDCS_GENERATED  = 1,
+		NWC24_IDCS_INITIAL = 0,
+		NWC24_IDCS_GENERATED = 1,
 		NWC24_IDCS_REGISTERED = 2
 	};
 
 	enum
 	{
-		URL_COUNT           = 0x05,
-		MAX_URL_LENGTH      = 0x80,
-		MAX_EMAIL_LENGTH    = 0x40,
+		URL_COUNT = 0x05,
+		MAX_URL_LENGTH = 0x80,
+		MAX_EMAIL_LENGTH = 0x40,
 		MAX_PASSWORD_LENGTH = 0x20,
 	};
 
@@ -278,14 +278,32 @@ public:
 		return 0;
 	}
 
-	u32 Magic() const { return Common::swap32(config.magic); }
-	void SetMagic(u32 magic) { config.magic = Common::swap32(magic); }
+	u32 Magic() const
+	{
+		return Common::swap32(config.magic);
+	}
+	void SetMagic(u32 magic)
+	{
+		config.magic = Common::swap32(magic);
+	}
 
-	u32 Unk() const { return Common::swap32(config._unk_04); }
-	void SetUnk(u32 _unk_04) { config._unk_04 = Common::swap32(_unk_04); }
+	u32 Unk() const
+	{
+		return Common::swap32(config._unk_04);
+	}
+	void SetUnk(u32 _unk_04)
+	{
+		config._unk_04 = Common::swap32(_unk_04);
+	}
 
-	u32 IdGen() const { return Common::swap32(config.id_generation); }
-	void SetIdGen(u32 id_generation) { config.id_generation = Common::swap32(id_generation); }
+	u32 IdGen() const
+	{
+		return Common::swap32(config.id_generation);
+	}
+	void SetIdGen(u32 id_generation)
+	{
+		config.id_generation = Common::swap32(id_generation);
+	}
 
 	void IncrementIdGen()
 	{
@@ -295,23 +313,50 @@ public:
 		SetIdGen(id_ctr);
 	}
 
-	u32 Checksum() const { return Common::swap32(config.checksum); }
-	void SetChecksum(u32 checksum) { config.checksum = Common::swap32(checksum); }
+	u32 Checksum() const
+	{
+		return Common::swap32(config.checksum);
+	}
+	void SetChecksum(u32 checksum)
+	{
+		config.checksum = Common::swap32(checksum);
+	}
 
-	u32 CreationStage() const { return Common::swap32(config.creation_stage); }
-	void SetCreationStage(u32 creation_stage) { config.creation_stage = Common::swap32(creation_stage); }
+	u32 CreationStage() const
+	{
+		return Common::swap32(config.creation_stage);
+	}
+	void SetCreationStage(u32 creation_stage)
+	{
+		config.creation_stage = Common::swap32(creation_stage);
+	}
 
-	u32 EnableBooting() const { return Common::swap32(config.enable_booting); }
-	void SetEnableBooting(u32 enable_booting) { config.enable_booting = Common::swap32(enable_booting); }
+	u32 EnableBooting() const
+	{
+		return Common::swap32(config.enable_booting);
+	}
+	void SetEnableBooting(u32 enable_booting)
+	{
+		config.enable_booting = Common::swap32(enable_booting);
+	}
 
-	u64 Id() const { return Common::swap64(config.nwc24_id); }
-	void SetId(u64 nwc24_id) { config.nwc24_id = Common::swap64(nwc24_id); }
+	u64 Id() const
+	{
+		return Common::swap64(config.nwc24_id);
+	}
+	void SetId(u64 nwc24_id)
+	{
+		config.nwc24_id = Common::swap64(nwc24_id);
+	}
 
-	const char* Email() const { return config.email; }
+	const char* Email() const
+	{
+		return config.email;
+	}
 	void SetEmail(const char* email)
 	{
 		strncpy(config.email, email, nwc24_config_t::MAX_EMAIL_LENGTH);
-		config.email[nwc24_config_t::MAX_EMAIL_LENGTH-1] = '\0';
+		config.email[nwc24_config_t::MAX_EMAIL_LENGTH - 1] = '\0';
 	}
 
 };
@@ -387,7 +432,7 @@ public:
 // KD is the IOS module responsible for implementing WiiConnect24 functionality.
 // It can perform HTTPS downloads, send and receive mail via SMTP, and execute a
 // JavaScript-like language while the Wii is in standby mode.
-class CWII_IPC_HLE_Device_net_kd_request : public IWII_IPC_HLE_Device
+class CWII_IPC_HLE_Device_net_kd_request: public IWII_IPC_HLE_Device
 {
 public:
 	CWII_IPC_HLE_Device_net_kd_request(u32 _DeviceID, const std::string& _rDeviceName);
@@ -401,28 +446,28 @@ public:
 private:
 	enum
 	{
-		IOCTL_NWC24_SUSPEND_SCHEDULAR               = 0x01,
-		IOCTL_NWC24_EXEC_TRY_SUSPEND_SCHEDULAR      = 0x02,
-		IOCTL_NWC24_EXEC_RESUME_SCHEDULAR           = 0x03,
-		IOCTL_NWC24_KD_GET_TIME_TRIGGERS            = 0x04,
-		IOCTL_NWC24_SET_SCHEDULE_SPAN               = 0x05,
-		IOCTL_NWC24_STARTUP_SOCKET                  = 0x06,
-		IOCTL_NWC24_CLEANUP_SOCKET                  = 0x07,
-		IOCTL_NWC24_LOCK_SOCKET                     = 0x08,
-		IOCTL_NWC24_UNLOCK_SOCKET                   = 0x09,
-		IOCTL_NWC24_CHECK_MAIL_NOW                  = 0x0A,
-		IOCTL_NWC24_SEND_MAIL_NOW                   = 0x0B,
-		IOCTL_NWC24_RECEIVE_MAIL_NOW                = 0x0C,
-		IOCTL_NWC24_SAVE_MAIL_NOW                   = 0x0D,
-		IOCTL_NWC24_DOWNLOAD_NOW_EX                 = 0x0E,
-		IOCTL_NWC24_REQUEST_GENERATED_USER_ID       = 0x0F,
-		IOCTL_NWC24_REQUEST_REGISTER_USER_ID        = 0x10,
-		IOCTL_NWC24_GET_SCHEDULAR_STAT              = 0x1E,
-		IOCTL_NWC24_SET_FILTER_MODE                 = 0x1F,
-		IOCTL_NWC24_SET_DEBUG_MODE                  = 0x20,
-		IOCTL_NWC24_KD_SET_NEXT_WAKEUP              = 0x21,
-		IOCTL_NWC24_SET_SCRIPT_MODE                 = 0x22,
-		IOCTL_NWC24_REQUEST_SHUTDOWN                = 0x28,
+		IOCTL_NWC24_SUSPEND_SCHEDULAR = 0x01,
+		IOCTL_NWC24_EXEC_TRY_SUSPEND_SCHEDULAR = 0x02,
+		IOCTL_NWC24_EXEC_RESUME_SCHEDULAR = 0x03,
+		IOCTL_NWC24_KD_GET_TIME_TRIGGERS = 0x04,
+		IOCTL_NWC24_SET_SCHEDULE_SPAN = 0x05,
+		IOCTL_NWC24_STARTUP_SOCKET = 0x06,
+		IOCTL_NWC24_CLEANUP_SOCKET = 0x07,
+		IOCTL_NWC24_LOCK_SOCKET = 0x08,
+		IOCTL_NWC24_UNLOCK_SOCKET = 0x09,
+		IOCTL_NWC24_CHECK_MAIL_NOW = 0x0A,
+		IOCTL_NWC24_SEND_MAIL_NOW = 0x0B,
+		IOCTL_NWC24_RECEIVE_MAIL_NOW = 0x0C,
+		IOCTL_NWC24_SAVE_MAIL_NOW = 0x0D,
+		IOCTL_NWC24_DOWNLOAD_NOW_EX = 0x0E,
+		IOCTL_NWC24_REQUEST_GENERATED_USER_ID = 0x0F,
+		IOCTL_NWC24_REQUEST_REGISTER_USER_ID = 0x10,
+		IOCTL_NWC24_GET_SCHEDULAR_STAT = 0x1E,
+		IOCTL_NWC24_SET_FILTER_MODE = 0x1F,
+		IOCTL_NWC24_SET_DEBUG_MODE = 0x20,
+		IOCTL_NWC24_KD_SET_NEXT_WAKEUP = 0x21,
+		IOCTL_NWC24_SET_SCRIPT_MODE = 0x22,
+		IOCTL_NWC24_REQUEST_SHUTDOWN = 0x28,
 	};
 
 	enum
@@ -444,15 +489,14 @@ private:
 
 
 //////////////////////////////////////////////////////////////////////////
-class CWII_IPC_HLE_Device_net_kd_time : public IWII_IPC_HLE_Device
+class CWII_IPC_HLE_Device_net_kd_time: public IWII_IPC_HLE_Device
 {
 public:
 	CWII_IPC_HLE_Device_net_kd_time(u32 _DeviceID, const std::string& _rDeviceName)
 		: IWII_IPC_HLE_Device(_DeviceID, _rDeviceName)
 		, rtc()
 		, utcdiff()
-	{
-	}
+	{}
 
 	virtual ~CWII_IPC_HLE_Device_net_kd_time()
 	{}
@@ -460,7 +504,7 @@ public:
 	IPCCommandResult Open(u32 _CommandAddress, u32 _Mode) override
 	{
 		INFO_LOG(WII_IPC_NET, "NET_KD_TIME: Open");
-		Memory::Write_U32(GetDeviceID(), _CommandAddress+4);
+		Memory::Write_U32(GetDeviceID(), _CommandAddress + 4);
 		return GetDefaultReply();
 	}
 
@@ -475,7 +519,7 @@ public:
 	IPCCommandResult IOCtl(u32 _CommandAddress) override
 	{
 		u32 Parameter = Memory::Read_U32(_CommandAddress + 0x0C);
-		u32 BufferIn  = Memory::Read_U32(_CommandAddress + 0x10);
+		u32 BufferIn = Memory::Read_U32(_CommandAddress + 0x10);
 		u32 BufferOut = Memory::Read_U32(_CommandAddress + 0x18);
 
 		u32 result = 0;
@@ -523,9 +567,9 @@ private:
 	{
 		IOCTL_NW24_GET_UNIVERSAL_TIME = 0x14,
 		IOCTL_NW24_SET_UNIVERSAL_TIME = 0x15,
-		IOCTL_NW24_UNIMPLEMENTED      = 0x16,
-		IOCTL_NW24_SET_RTC_COUNTER    = 0x17,
-		IOCTL_NW24_GET_TIME_DIFF      = 0x18,
+		IOCTL_NW24_UNIMPLEMENTED = 0x16,
+		IOCTL_NW24_SET_RTC_COUNTER = 0x17,
+		IOCTL_NW24_GET_TIME_DIFF = 0x18,
 	};
 
 	u64 rtc;
@@ -594,7 +638,7 @@ enum NET_IOCTL
 };
 
 //////////////////////////////////////////////////////////////////////////
-class CWII_IPC_HLE_Device_net_ip_top : public IWII_IPC_HLE_Device
+class CWII_IPC_HLE_Device_net_ip_top: public IWII_IPC_HLE_Device
 {
 public:
 	CWII_IPC_HLE_Device_net_ip_top(u32 _DeviceID, const std::string& _rDeviceName);
@@ -616,7 +660,7 @@ private:
 
 // **********************************************************************************
 // Interface for reading and changing network configuration (probably some other stuff as well)
-class CWII_IPC_HLE_Device_net_ncd_manage : public IWII_IPC_HLE_Device
+class CWII_IPC_HLE_Device_net_ncd_manage: public IWII_IPC_HLE_Device
 {
 public:
 	CWII_IPC_HLE_Device_net_ncd_manage(u32 _DeviceID, const std::string& _rDeviceName);
@@ -630,13 +674,13 @@ public:
 private:
 	enum
 	{
-		IOCTLV_NCD_LOCKWIRELESSDRIVER    = 0x1,  // NCDLockWirelessDriver
-		IOCTLV_NCD_UNLOCKWIRELESSDRIVER  = 0x2,  // NCDUnlockWirelessDriver
-		IOCTLV_NCD_GETCONFIG             = 0x3,  // NCDiGetConfig
-		IOCTLV_NCD_SETCONFIG             = 0x4,  // NCDiSetConfig
-		IOCTLV_NCD_READCONFIG            = 0x5,
-		IOCTLV_NCD_WRITECONFIG           = 0x6,
-		IOCTLV_NCD_GETLINKSTATUS         = 0x7,  // NCDGetLinkStatus
+		IOCTLV_NCD_LOCKWIRELESSDRIVER = 0x1,  // NCDLockWirelessDriver
+		IOCTLV_NCD_UNLOCKWIRELESSDRIVER = 0x2,  // NCDUnlockWirelessDriver
+		IOCTLV_NCD_GETCONFIG = 0x3,  // NCDiGetConfig
+		IOCTLV_NCD_SETCONFIG = 0x4,  // NCDiSetConfig
+		IOCTLV_NCD_READCONFIG = 0x5,
+		IOCTLV_NCD_WRITECONFIG = 0x6,
+		IOCTLV_NCD_GETLINKSTATUS = 0x7,  // NCDGetLinkStatus
 		IOCTLV_NCD_GETWIRELESSMACADDRESS = 0x8,  // NCDGetWirelessMacAddress
 	};
 
@@ -644,7 +688,7 @@ private:
 };
 
 //////////////////////////////////////////////////////////////////////////
-class CWII_IPC_HLE_Device_net_wd_command : public IWII_IPC_HLE_Device
+class CWII_IPC_HLE_Device_net_wd_command: public IWII_IPC_HLE_Device
 {
 public:
 	CWII_IPC_HLE_Device_net_wd_command(u32 DeviceID, const std::string& DeviceName);
@@ -658,23 +702,23 @@ public:
 private:
 	enum
 	{
-		IOCTLV_WD_GET_MODE          = 0x1001, // WD_GetMode
-		IOCTLV_WD_SET_LINKSTATE     = 0x1002, // WD_SetLinkState
-		IOCTLV_WD_GET_LINKSTATE     = 0x1003, // WD_GetLinkState
-		IOCTLV_WD_SET_CONFIG        = 0x1004, // WD_SetConfig
-		IOCTLV_WD_GET_CONFIG        = 0x1005, // WD_GetConfig
-		IOCTLV_WD_CHANGE_BEACON     = 0x1006, // WD_ChangeBeacon
-		IOCTLV_WD_DISASSOC          = 0x1007, // WD_DisAssoc
-		IOCTLV_WD_MP_SEND_FRAME     = 0x1008, // WD_MpSendFrame
-		IOCTLV_WD_SEND_FRAME        = 0x1009, // WD_SendFrame
-		IOCTLV_WD_SCAN              = 0x100a, // WD_Scan
-		IOCTLV_WD_CALL_WL           = 0x100c, // WD_CallWL
-		IOCTLV_WD_MEASURE_CHANNEL   = 0x100b, // WD_MeasureChannel
-		IOCTLV_WD_GET_LASTERROR     = 0x100d, // WD_GetLastError
-		IOCTLV_WD_GET_INFO          = 0x100e, // WD_GetInfo
-		IOCTLV_WD_CHANGE_GAMEINFO   = 0x100f, // WD_ChangeGameInfo
-		IOCTLV_WD_CHANGE_VTSF       = 0x1010, // WD_ChangeVTSF
-		IOCTLV_WD_RECV_FRAME        = 0x8000, // WD_ReceiveFrame
+		IOCTLV_WD_GET_MODE = 0x1001, // WD_GetMode
+		IOCTLV_WD_SET_LINKSTATE = 0x1002, // WD_SetLinkState
+		IOCTLV_WD_GET_LINKSTATE = 0x1003, // WD_GetLinkState
+		IOCTLV_WD_SET_CONFIG = 0x1004, // WD_SetConfig
+		IOCTLV_WD_GET_CONFIG = 0x1005, // WD_GetConfig
+		IOCTLV_WD_CHANGE_BEACON = 0x1006, // WD_ChangeBeacon
+		IOCTLV_WD_DISASSOC = 0x1007, // WD_DisAssoc
+		IOCTLV_WD_MP_SEND_FRAME = 0x1008, // WD_MpSendFrame
+		IOCTLV_WD_SEND_FRAME = 0x1009, // WD_SendFrame
+		IOCTLV_WD_SCAN = 0x100a, // WD_Scan
+		IOCTLV_WD_CALL_WL = 0x100c, // WD_CallWL
+		IOCTLV_WD_MEASURE_CHANNEL = 0x100b, // WD_MeasureChannel
+		IOCTLV_WD_GET_LASTERROR = 0x100d, // WD_GetLastError
+		IOCTLV_WD_GET_INFO = 0x100e, // WD_GetInfo
+		IOCTLV_WD_CHANGE_GAMEINFO = 0x100f, // WD_ChangeGameInfo
+		IOCTLV_WD_CHANGE_VTSF = 0x1010, // WD_ChangeVTSF
+		IOCTLV_WD_RECV_FRAME = 0x8000, // WD_ReceiveFrame
 		IOCTLV_WD_RECV_NOTIFICATION = 0x8001  // WD_ReceiveNotification
 	};
 

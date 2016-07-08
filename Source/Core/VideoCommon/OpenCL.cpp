@@ -20,10 +20,10 @@ bool g_bInitialized = false;
 
 bool Initialize()
 {
-	if(g_bInitialized)
+	if (g_bInitialized)
 		return true;
 
-	if(g_context)
+	if (g_context)
 		return false;
 	int err;			// error code returned from api calls
 
@@ -33,7 +33,7 @@ bool Initialize()
 		return false;
 #else
 	clrInit();
-	if(!clrHasOpenCL())
+	if (!clrHasOpenCL())
 		return false;
 #endif
 
@@ -126,7 +126,7 @@ cl_program CompileProgram(const char *Kernel)
 	cl_int err;
 	cl_program program;
 	program = clCreateProgramWithSource(OpenCL::g_context, 1,
-		(const char **) & Kernel, NULL, &err);
+		(const char **)& Kernel, NULL, &err);
 
 	if (!program)
 	{
@@ -134,8 +134,9 @@ cl_program CompileProgram(const char *Kernel)
 	}
 
 	// Build the program executable
-	err = clBuildProgram(program , 0, NULL, NULL, NULL, NULL);
-	if(err != CL_SUCCESS) {
+	err = clBuildProgram(program, 0, NULL, NULL, NULL, NULL);
+	if (err != CL_SUCCESS)
+	{
 		HandleCLError(err, "Error: failed to build program");
 
 		char *buildlog = NULL;
@@ -145,11 +146,12 @@ cl_program CompileProgram(const char *Kernel)
 		buildlog = new char[buildlog_size + 1];
 		err = clGetProgramBuildInfo(program, OpenCL::device_id, CL_PROGRAM_BUILD_LOG, buildlog_size, buildlog, NULL);
 		buildlog[buildlog_size] = 0;
-		
-		if(err != CL_SUCCESS)
+
+		if (err != CL_SUCCESS)
 		{
 			HandleCLError(err, "Error: can't get build log");
-		} else
+		}
+		else
 		{
 			ERROR_LOG(COMMON, "Error log:\n%s\n", buildlog);
 		}
@@ -193,14 +195,14 @@ void Destroy()
 	{
 		clReleaseContext(g_context);
 		g_context = NULL;
-	}		
+	}
 	g_bInitialized = false;
 }
 
 void HandleCLError(cl_int error, const char* str)
 {
 	const char* name;
-	switch(error)
+	switch (error)
 	{
 #define CL_ERROR(x) case (x): name = #x; break
 		CL_ERROR(CL_SUCCESS);
@@ -253,8 +255,8 @@ void HandleCLError(cl_int error, const char* str)
 	default:
 		name = "Unknown error code";
 	}
-	if(!str)
+	if (!str)
 		str = "";
 	ERROR_LOG(COMMON, "OpenCL error: %s %s (%d)", str, name, error);
-	}
+}
 }

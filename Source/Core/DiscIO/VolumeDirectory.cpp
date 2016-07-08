@@ -14,8 +14,8 @@
 #include "Common/CommonPaths.h"
 #include "Common/CommonTypes.h"
 #include "Common/FileUtil.h"
-#include "Common/MathUtil.h"
 #include "Common/Logging/Log.h"
+#include "Common/MathUtil.h"
 #include "DiscIO/Blob.h"
 #include "DiscIO/FileMonitor.h"
 #include "DiscIO/Volume.h"
@@ -23,18 +23,13 @@
 
 namespace DiscIO
 {
-
 const size_t CVolumeDirectory::MAX_NAME_LENGTH;
 const size_t CVolumeDirectory::MAX_ID_LENGTH;
 
 CVolumeDirectory::CVolumeDirectory(const std::string& _rDirectory, bool _bIsWii,
-								   const std::string& _rApploader, const std::string& _rDOL)
-	: m_totalNameSize(0)
-	, m_dataStartAddress(-1)
-	, m_diskHeader(DISKHEADERINFO_ADDRESS)
-	, m_diskHeaderInfo(std::make_unique<SDiskHeaderInfo>())
-	, m_fst_address(0)
-	, m_dol_address(0)
+	const std::string& _rApploader, const std::string& _rDOL)
+	: m_totalNameSize(0), m_dataStartAddress(-1), m_diskHeader(DISKHEADERINFO_ADDRESS),
+	m_diskHeaderInfo(std::make_unique<SDiskHeaderInfo>()), m_fst_address(0), m_dol_address(0)
 {
 	m_rootDirectory = ExtractDirectoryName(_rDirectory);
 
@@ -55,8 +50,7 @@ CVolumeDirectory::CVolumeDirectory(const std::string& _rDirectory, bool _bIsWii,
 }
 
 CVolumeDirectory::~CVolumeDirectory()
-{
-}
+{}
 
 bool CVolumeDirectory::IsValidDirectory(const std::string& _rDirectory)
 {
@@ -81,17 +75,20 @@ bool CVolumeDirectory::Read(u64 _Offset, u64 _Length, u8* _pBuffer, bool decrypt
 	// header
 	if (_Offset < DISKHEADERINFO_ADDRESS)
 	{
-		WriteToBuffer(DISKHEADER_ADDRESS, DISKHEADERINFO_ADDRESS, m_diskHeader.data(), _Offset, _Length, _pBuffer);
+		WriteToBuffer(DISKHEADER_ADDRESS, DISKHEADERINFO_ADDRESS, m_diskHeader.data(), _Offset, _Length,
+			_pBuffer);
 	}
 	// header info
 	if (_Offset >= DISKHEADERINFO_ADDRESS && _Offset < APPLOADER_ADDRESS)
 	{
-		WriteToBuffer(DISKHEADERINFO_ADDRESS, sizeof(m_diskHeaderInfo), (u8*)m_diskHeaderInfo.get(), _Offset, _Length, _pBuffer);
+		WriteToBuffer(DISKHEADERINFO_ADDRESS, sizeof(m_diskHeaderInfo), (u8*)m_diskHeaderInfo.get(),
+			_Offset, _Length, _pBuffer);
 	}
 	// apploader
 	if (_Offset >= APPLOADER_ADDRESS && _Offset < APPLOADER_ADDRESS + m_apploader.size())
 	{
-		WriteToBuffer(APPLOADER_ADDRESS, m_apploader.size(), m_apploader.data(), _Offset, _Length, _pBuffer);
+		WriteToBuffer(APPLOADER_ADDRESS, m_apploader.size(), m_apploader.data(), _Offset, _Length,
+			_pBuffer);
 	}
 	// dol
 	if (_Offset >= m_dol_address && _Offset < m_dol_address + m_DOL.size())
@@ -138,9 +135,9 @@ bool CVolumeDirectory::Read(u64 _Offset, u64 _Length, u8* _pBuffer, bool decrypt
 			if (!file.ReadBytes(_pBuffer, fileBytes))
 				return false;
 
-			_Length  -= fileBytes;
+			_Length -= fileBytes;
 			_pBuffer += fileBytes;
-			_Offset  += fileBytes;
+			_Offset += fileBytes;
 		}
 
 		++fileIter;
@@ -185,12 +182,12 @@ std::string CVolumeDirectory::GetInternalName() const
 		return "";
 }
 
-std::map<IVolume::ELanguage, std::string> CVolumeDirectory::GetNames(bool prefer_long) const
+std::map<IVolume::ELanguage, std::string> CVolumeDirectory::GetLongNames() const
 {
 	std::string name = GetInternalName();
 	if (name.empty())
-		return { { } };
-	return { { IVolume::LANGUAGE_UNKNOWN, name } };
+		return{{}};
+	return{{IVolume::LANGUAGE_UNKNOWN, name}};
 }
 
 std::vector<u32> CVolumeDirectory::GetBanner(int* width, int* height) const
@@ -298,7 +295,8 @@ bool CVolumeDirectory::SetApploader(const std::string& _rApploader)
 			PanicAlertT("Apploader unable to load from file");
 			return false;
 		}
-		size_t apploaderSize = 0x20 + Common::swap32(*(u32*)&data.data()[0x14]) + Common::swap32(*(u32*)&data.data()[0x18]);
+		size_t apploaderSize = 0x20 + Common::swap32(*(u32*)&data.data()[0x14]) +
+			Common::swap32(*(u32*)&data.data()[0x18]);
 		if (apploaderSize != data.size())
 		{
 			PanicAlertT("Apploader is the wrong size...is it really an apploader?");
@@ -345,7 +343,7 @@ void CVolumeDirectory::BuildFST()
 	// read data from physical disk to rootEntry
 	u64 totalEntries = AddDirectoryEntries(m_rootDirectory, rootEntry) + 1;
 
-	m_fstNameOffset = totalEntries * ENTRY_SIZE; // offset in FST nameTable
+	m_fstNameOffset = totalEntries * ENTRY_SIZE;  // offset in FST nameTable
 	m_FSTData.resize(m_fstNameOffset + m_totalNameSize);
 
 	// if FST hasn't been assigned (ie no apploader/dol setup), set to default
@@ -356,9 +354,9 @@ void CVolumeDirectory::BuildFST()
 	m_dataStartAddress = ROUND_UP(m_fst_address + m_FSTData.size(), 0x8000ull);
 	u64 curDataAddress = m_dataStartAddress;
 
-	u32 fstOffset = 0;  // Offset within FST data
-	u32 nameOffset = 0; // Offset within name table
-	u32 rootOffset = 0; // Offset of root of FST
+	u32 fstOffset = 0;   // Offset within FST data
+	u32 nameOffset = 0;  // Offset within name table
+	u32 rootOffset = 0;  // Offset of root of FST
 
 	// write root entry
 	WriteEntryData(fstOffset, DIRECTORY_ENTRY, 0, 0, totalEntries);
@@ -378,7 +376,7 @@ void CVolumeDirectory::BuildFST()
 }
 
 void CVolumeDirectory::WriteToBuffer(u64 _SrcStartAddress, u64 _SrcLength, const u8* _Src,
-									 u64& _Address, u64& _Length, u8*& _pBuffer) const
+	u64& _Address, u64& _Length, u8*& _pBuffer) const
 {
 	if (_Length == 0)
 		return;
@@ -399,7 +397,8 @@ void CVolumeDirectory::WriteToBuffer(u64 _SrcStartAddress, u64 _SrcLength, const
 	}
 }
 
-void CVolumeDirectory::PadToAddress(u64 _StartAddress, u64& _Address, u64& _Length, u8*& _pBuffer) const
+void CVolumeDirectory::PadToAddress(u64 _StartAddress, u64& _Address, u64& _Length,
+	u8*& _pBuffer) const
 {
 	if (_StartAddress > _Address && _Length > 0)
 	{
@@ -419,7 +418,8 @@ void CVolumeDirectory::Write32(u32 data, u32 offset, std::vector<u8>* const buff
 	(*buffer)[offset] = (data) & 0xff;
 }
 
-void CVolumeDirectory::WriteEntryData(u32& entryOffset, u8 type, u32 nameOffset, u64 dataOffset, u64 length)
+void CVolumeDirectory::WriteEntryData(u32& entryOffset, u8 type, u32 nameOffset, u64 dataOffset,
+	u64 length)
 {
 	m_FSTData[entryOffset++] = type;
 
@@ -441,13 +441,15 @@ void CVolumeDirectory::WriteEntryName(u32& nameOffset, const std::string& name)
 	nameOffset += (u32)(name.length() + 1);
 }
 
-void CVolumeDirectory::WriteEntry(const File::FSTEntry& entry, u32& fstOffset, u32& nameOffset, u64& dataOffset, u32 parentEntryNum)
+void CVolumeDirectory::WriteEntry(const File::FSTEntry& entry, u32& fstOffset, u32& nameOffset,
+	u64& dataOffset, u32 parentEntryNum)
 {
 	if (entry.isDirectory)
 	{
 		u32 myOffset = fstOffset;
 		u32 myEntryNum = myOffset / ENTRY_SIZE;
-		WriteEntryData(fstOffset, DIRECTORY_ENTRY, nameOffset, parentEntryNum, myEntryNum + entry.size + 1);
+		WriteEntryData(fstOffset, DIRECTORY_ENTRY, nameOffset, parentEntryNum,
+			myEntryNum + entry.size + 1);
 		WriteEntryName(nameOffset, entry.virtualName);
 
 		for (const auto& child : entry.children)
@@ -486,11 +488,12 @@ static u32 ComputeNameSize(const File::FSTEntry& parentEntry)
 	return nameSize;
 }
 
-u64 CVolumeDirectory::AddDirectoryEntries(const std::string& _Directory, File::FSTEntry& parentEntry)
+u64 CVolumeDirectory::AddDirectoryEntries(const std::string& _Directory,
+	File::FSTEntry& parentEntry)
 {
 	parentEntry = File::ScanDirectoryTree(_Directory, true);
 	m_totalNameSize += ComputeNameSize(parentEntry);
 	return parentEntry.size;
 }
 
-} // namespace
+}  // namespace

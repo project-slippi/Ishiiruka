@@ -18,7 +18,8 @@ inline bool AddressRangesOverlap(u32 aLower, u32 aUpper, u32 bLower, u32 bUpper)
 
 struct XFBSourceBase
 {
-	virtual ~XFBSourceBase() {}
+	virtual ~XFBSourceBase()
+	{}
 
 	virtual void DecodeToTexture(u32 xfbAddr, u32 fbWidth, u32 fbHeight) = 0;
 
@@ -51,22 +52,36 @@ public:
 	static void CopyToXFB(u32 xfbAddr, u32 fbStride, u32 fbHeight, const EFBRectangle& sourceRc, float Gamma);
 	static const XFBSourceBase* const* GetXFBSource(u32 xfbAddr, u32 fbWidth, u32 fbHeight, u32* xfbCount);
 
-	static void SetLastXfbWidth(unsigned int width) { s_last_xfb_width = width; }
-	static void SetLastXfbHeight(unsigned int height) { s_last_xfb_height = height; }
-	static unsigned int LastXfbWidth() { return s_last_xfb_width; }
-	static unsigned int LastXfbHeight() { return s_last_xfb_height; }
+	static void SetLastXfbWidth(unsigned int width)
+	{
+		s_last_xfb_width = width;
+	}
+	static void SetLastXfbHeight(unsigned int height)
+	{
+		s_last_xfb_height = height;
+	}
+	static unsigned int LastXfbWidth()
+	{
+		return s_last_xfb_width;
+	}
+	static unsigned int LastXfbHeight()
+	{
+		return s_last_xfb_height;
+	}
 
 	static int ScaleToVirtualXfbWidth(int x);
 	static int ScaleToVirtualXfbHeight(int y);
 
-	static unsigned int GetEFBLayers() { return m_EFBLayers; }
+	static unsigned int GetEFBLayers()
+	{
+		return m_EFBLayers;
+	}
 
 protected:
 	struct VirtualXFB
 	{
 		VirtualXFB()
-		{
-		}
+		{}
 
 		// Address and size in GameCube RAM
 		u32 xfbAddr = 0;

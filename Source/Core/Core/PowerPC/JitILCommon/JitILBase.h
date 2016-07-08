@@ -6,25 +6,27 @@
 
 #include "Common/CommonTypes.h"
 #include "Core/PowerPC/Gekko.h"
-#include "Core/PowerPC/PPCAnalyst.h"
 #include "Core/PowerPC/JitCommon/JitBase.h"
 #include "Core/PowerPC/JitILCommon/IR.h"
+#include "Core/PowerPC/PPCAnalyst.h"
 
-class JitILBase : public Jitx86Base
+class JitILBase: public Jitx86Base
 {
 protected:
 	// The default code buffer. We keep it around to not have to alloc/dealloc a
 	// large chunk of memory for each recompiled block.
 	PPCAnalyst::CodeBuffer code_buffer;
-public:
-	JitILBase() : code_buffer(32000) {}
-	~JitILBase() {}
 
+public:
+	JitILBase(): code_buffer(32000)
+	{}
+	~JitILBase()
+	{}
 	IREmitter::IRBuilder ibuild;
 
 	virtual void Jit(u32 em_address) = 0;
 
-	virtual const CommonAsmRoutinesBase *GetAsmRoutines() = 0;
+	virtual const CommonAsmRoutinesBase* GetAsmRoutines() = 0;
 
 	// OPCODES
 	virtual void FallBackToInterpreter(UGeckoInstruction inst) = 0;
@@ -52,7 +54,7 @@ public:
 	void stXx(UGeckoInstruction inst);
 	void lmw(UGeckoInstruction inst);
 	void stmw(UGeckoInstruction inst);
-	void stX(UGeckoInstruction inst); //stw sth stb
+	void stX(UGeckoInstruction inst);  // stw sth stb
 	void lXz(UGeckoInstruction inst);
 	void lbzu(UGeckoInstruction inst);
 	void lha(UGeckoInstruction inst);
@@ -89,7 +91,7 @@ public:
 
 	void reg_imm(UGeckoInstruction inst);
 
-	void ps_arith(UGeckoInstruction inst); //aggregate
+	void ps_arith(UGeckoInstruction inst);  // aggregate
 	void ps_mergeXX(UGeckoInstruction inst);
 	void ps_maddXX(UGeckoInstruction inst);
 	void ps_sum(UGeckoInstruction inst);
@@ -128,5 +130,4 @@ public:
 	void subfcx(UGeckoInstruction inst);
 	void subfx(UGeckoInstruction inst);
 	void subfex(UGeckoInstruction inst);
-
 };

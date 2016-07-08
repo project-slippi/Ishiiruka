@@ -22,14 +22,18 @@
 
 #include <vector>
 
-class TextureScaler {
+class TextureScaler
+{
 public:
 	TextureScaler();
 	~TextureScaler();
 
 	u32* Scale(u32* data, int width, int height);
 
-	enum { NONE = 0, XBRZ = 1, HYBRID = 2, BICUBIC = 3, HYBRID_BICUBIC = 4, JINC = 5, JINC_SHARPER = 6, SMOOTHSTEP = 7, THREE_POINT = 8, DDT = 9, DDT_SHARP = 10 };
+	enum
+	{
+		NONE = 0, XBRZ = 1, HYBRID = 2, BICUBIC = 3, HYBRID_BICUBIC = 4, JINC = 5, JINC_SHARPER = 6, SMOOTHSTEP = 7, THREE_POINT = 8, DDT = 9, DDT_SHARP = 10
+	};
 
 private:
 

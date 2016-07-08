@@ -20,7 +20,7 @@ namespace DX12
 
 enum SHADER_STAGE
 {
-	SHADER_STAGE_GEOMETRY_SHADER = 0,	
+	SHADER_STAGE_GEOMETRY_SHADER = 0,
 	SHADER_STAGE_PIXEL_SHADER = 1,
 	SHADER_STAGE_VERTEX_SHADER = 2,
 	SHADER_STAGE_TESSELLATION_SHADER = 3,
@@ -48,7 +48,8 @@ void ShaderConstantsManager::Init()
 	PixelShaderManager::DisableDirtyRegions();
 	VertexShaderManager::DisableDirtyRegions();
 	// Allow a large maximum size, as we want to minimize stalls here
-	std::generate(std::begin(s_shader_constant_stream_buffers), std::end(s_shader_constant_stream_buffers), []() {
+	std::generate(std::begin(s_shader_constant_stream_buffers), std::end(s_shader_constant_stream_buffers), []()
+	{
 		return std::make_unique<D3DStreamBuffer>(2 * 1024 * 1024, 64 * 1024 * 1024, nullptr);
 	});
 }
@@ -104,7 +105,7 @@ bool ShaderConstantsManager::LoadAndSetHullDomainShaderConstants()
 		command_list_executed = s_shader_constant_stream_buffers[SHADER_STAGE_TESSELLATION_SHADER]->AllocateSpaceInBuffer(
 			s_shader_constant_buffer_padded_sizes[SHADER_STAGE_TESSELLATION_SHADER],
 			0 // The padded sizes are already aligned to 256 bytes, so don't need to worry about manually aligning offset.
-			);
+		);
 
 		memcpy(
 			s_shader_constant_stream_buffers[SHADER_STAGE_TESSELLATION_SHADER]->GetCPUAddressOfCurrentAllocation(),
@@ -122,11 +123,11 @@ bool ShaderConstantsManager::LoadAndSetHullDomainShaderConstants()
 		D3D::current_command_list->SetGraphicsRootConstantBufferView(
 			DESCRIPTOR_TABLE_HS_CBV0,
 			s_shader_constant_stream_buffers[SHADER_STAGE_TESSELLATION_SHADER]->GetGPUAddressOfCurrentAllocation()
-			);
+		);
 		D3D::current_command_list->SetGraphicsRootConstantBufferView(
 			DESCRIPTOR_TABLE_DS_CBV0,
 			s_shader_constant_stream_buffers[SHADER_STAGE_TESSELLATION_SHADER]->GetGPUAddressOfCurrentAllocation()
-			);
+		);
 
 		D3D::command_list_mgr->SetCommandListDirtyState(COMMAND_LIST_STATE_HDS_CBV, false);
 	}
@@ -160,17 +161,17 @@ bool ShaderConstantsManager::LoadAndSetPixelShaderConstants()
 		D3D::current_command_list->SetGraphicsRootConstantBufferView(
 			DESCRIPTOR_TABLE_PS_CBVONE,
 			calculated_gpu_va
-			);
+		);
 		if (g_ActiveConfig.TessellationEnabled() && D3D::TessellationEnabled())
 		{
 			D3D::current_command_list->SetGraphicsRootConstantBufferView(
 				DESCRIPTOR_TABLE_HS_CBV2,
 				calculated_gpu_va
-				);
+			);
 			D3D::current_command_list->SetGraphicsRootConstantBufferView(
 				DESCRIPTOR_TABLE_DS_CBV2,
 				calculated_gpu_va
-				);
+			);
 		}
 		D3D::command_list_mgr->SetCommandListDirtyState(COMMAND_LIST_STATE_PS_CBV, false);
 	}
@@ -205,23 +206,23 @@ bool ShaderConstantsManager::LoadAndSetVertexShaderConstants()
 		D3D::current_command_list->SetGraphicsRootConstantBufferView(
 			DESCRIPTOR_TABLE_VS_CBV,
 			calculated_gpu_va
-			);
+		);
 
 		if (g_ActiveConfig.bEnablePixelLighting)
 			D3D::current_command_list->SetGraphicsRootConstantBufferView(
 				DESCRIPTOR_TABLE_PS_CBVTWO,
 				calculated_gpu_va
-				);
+			);
 		if (g_ActiveConfig.TessellationEnabled() && D3D::TessellationEnabled())
 		{
 			D3D::current_command_list->SetGraphicsRootConstantBufferView(
 				DESCRIPTOR_TABLE_HS_CBV1,
 				calculated_gpu_va
-				);
+			);
 			D3D::current_command_list->SetGraphicsRootConstantBufferView(
 				DESCRIPTOR_TABLE_DS_CBV1,
 				calculated_gpu_va
-				);
+			);
 		}
 		D3D::command_list_mgr->SetCommandListDirtyState(COMMAND_LIST_STATE_VS_CBV, false);
 	}

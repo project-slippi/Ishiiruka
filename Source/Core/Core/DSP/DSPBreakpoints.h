@@ -24,7 +24,7 @@ public:
 	}
 
 	// AddBreakPoint
-	bool Add(u32 addr, bool temp=false)
+	bool Add(u32 addr, bool temp = false)
 	{
 		bool was_one = b[addr] != 0;
 

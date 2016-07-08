@@ -66,15 +66,15 @@ static std::string RootUserPath(FromWhichRoot from)
 std::string GetTicketFileName(u64 _titleID, FromWhichRoot from)
 {
 	return StringFromFormat("%s/ticket/%08x/%08x.tik",
-			RootUserPath(from).c_str(),
-			(u32)(_titleID >> 32), (u32)_titleID);
+		RootUserPath(from).c_str(),
+		(u32)(_titleID >> 32), (u32)_titleID);
 }
 
 std::string GetTitleDataPath(u64 _titleID, FromWhichRoot from)
 {
 	return StringFromFormat("%s/title/%08x/%08x/data/",
-			RootUserPath(from).c_str(),
-			(u32)(_titleID >> 32), (u32)_titleID);
+		RootUserPath(from).c_str(),
+		(u32)(_titleID >> 32), (u32)_titleID);
 }
 
 std::string GetTMDFileName(u64 _titleID, FromWhichRoot from)
@@ -84,8 +84,8 @@ std::string GetTMDFileName(u64 _titleID, FromWhichRoot from)
 std::string GetTitleContentPath(u64 _titleID, FromWhichRoot from)
 {
 	return StringFromFormat("%s/title/%08x/%08x/content/",
-			RootUserPath(from).c_str(),
-			(u32)(_titleID >> 32), (u32)_titleID);
+		RootUserPath(from).c_str(),
+		(u32)(_titleID >> 32), (u32)_titleID);
 }
 
 bool CheckTitleTMD(u64 _titleID, FromWhichRoot from)
@@ -122,7 +122,7 @@ static void CreateReplacementFile(std::string& filename)
 {
 	std::ofstream replace;
 	OpenFStream(replace, filename, std::ios_base::out);
-	replace <<"\" __22__\n";
+	replace << "\" __22__\n";
 	replace << "* __2a__\n";
 	//replace << "/ __2f__\n";
 	replace << ": __3a__\n";

@@ -551,7 +551,7 @@ void VertexManager::vFlush(bool useDstAlpha)
 			DX9::D3D::dev->SetPixelShaderConstantF(region.first, &buffer[region.first * 4], region.second - region.first + 1);
 		}
 		PixelShaderManager::Clear();
-	}	
+	}
 	PrepareDrawBuffers(stride);
 	if (forced_early_z)
 	{

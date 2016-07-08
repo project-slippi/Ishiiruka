@@ -41,14 +41,14 @@ private:
 
 namespace std
 {
-	template <>
-	struct hash<VertexLoaderUID>
+template <>
+struct hash<VertexLoaderUID>
+{
+	size_t operator()(const VertexLoaderUID& uid) const
 	{
-		size_t operator()(const VertexLoaderUID& uid) const
-		{
-			return uid.GetplatformHash();
-		}
-	};
+		return uid.GetplatformHash();
+	}
+};
 
 }
 
@@ -56,7 +56,7 @@ class VertexLoaderBase
 {
 public:
 	static std::unique_ptr<VertexLoaderBase> CreateVertexLoader(const TVtxDesc &vtx_desc, const VAT &vtx_attr);
-	virtual ~VertexLoaderBase() 
+	virtual ~VertexLoaderBase()
 	{
 		m_fallback.reset();
 	}
@@ -68,8 +68,14 @@ public:
 	{
 		return m_fallback.get();
 	}
-	virtual bool EnvironmentIsSupported(){ return true; }
-	virtual bool IsPrecompiled(){ return false; }
+	virtual bool EnvironmentIsSupported()
+	{
+		return true;
+	}
+	virtual bool IsPrecompiled()
+	{
+		return false;
+	}
 	virtual s32 RunVertices(const VertexLoaderParameters &parameters) = 0;
 
 	virtual bool IsInitialized() = 0;
@@ -87,7 +93,7 @@ public:
 	// used by VertexLoaderManager
 	NativeVertexFormat* m_native_vertex_format;
 	u64 m_numLoadedVertices;
-	
+
 protected:
 	VertexLoaderBase(const TVtxDesc &vtx_desc, const VAT &vtx_attr);
 	void InitializeVertexData();

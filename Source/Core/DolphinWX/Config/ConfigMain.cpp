@@ -11,7 +11,6 @@
 #include "Core/ConfigManager.h"
 #include "Core/Movie.h"
 #include "Core/NetPlayProto.h"
-#include "DolphinWX/WxUtils.h"
 #include "DolphinWX/Config/AdvancedConfigPane.h"
 #include "DolphinWX/Config/AudioConfigPane.h"
 #include "DolphinWX/Config/ConfigMain.h"
@@ -20,13 +19,14 @@
 #include "DolphinWX/Config/InterfaceConfigPane.h"
 #include "DolphinWX/Config/PathConfigPane.h"
 #include "DolphinWX/Config/WiiConfigPane.h"
+#include "DolphinWX/WxUtils.h"
 
 // Sent by child panes to signify that the game list should
 // be updated when this modal dialog closes.
 wxDEFINE_EVENT(wxDOLPHIN_CFG_REFRESH_LIST, wxCommandEvent);
 
 CConfigMain::CConfigMain(wxWindow* parent, wxWindowID id, const wxString& title,
-		const wxPoint& position, const wxSize& size, long style)
+	const wxPoint& position, const wxSize& size, long style)
 	: wxDialog(parent, id, title, position, size, style)
 {
 	// Control refreshing of the ISOs list
@@ -40,8 +40,7 @@ CConfigMain::CConfigMain(wxWindow* parent, wxWindowID id, const wxString& title,
 }
 
 CConfigMain::~CConfigMain()
-{
-}
+{}
 
 void CConfigMain::SetSelectedTab(int tab)
 {
@@ -95,14 +94,14 @@ void CConfigMain::CreateGUIControls()
 void CConfigMain::OnClose(wxCloseEvent& WXUNUSED(event))
 {
 	EndModal((m_refresh_game_list_on_close) ? wxID_OK : wxID_CANCEL);
+
+	// Save the config. Dolphin crashes too often to only save the settings on closing
+	SConfig::GetInstance().SaveSettings();
 }
 
 void CConfigMain::OnOk(wxCommandEvent& WXUNUSED(event))
 {
 	Close();
-
-	// Save the config. Dolphin crashes too often to only save the settings on closing
-	SConfig::GetInstance().SaveSettings();
 }
 
 void CConfigMain::OnSetRefreshGameListOnClose(wxCommandEvent& WXUNUSED(event))

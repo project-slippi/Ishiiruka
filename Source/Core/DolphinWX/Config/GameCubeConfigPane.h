@@ -12,7 +12,7 @@ class wxCheckBox;
 class wxChoice;
 class wxString;
 
-class GameCubeConfigPane final : public wxPanel
+class GameCubeConfigPane final: public wxPanel
 {
 public:
 	GameCubeConfigPane(wxWindow* parent, wxWindowID id);

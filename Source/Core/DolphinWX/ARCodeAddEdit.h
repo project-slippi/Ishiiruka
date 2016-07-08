@@ -10,9 +10,11 @@ class wxSpinButton;
 class wxSpinEvent;
 class wxTextCtrl;
 
-namespace ActionReplay { struct ARCode; }
+namespace ActionReplay {
+struct ARCode;
+}
 
-class CARCodeAddEdit : public wxDialog
+class CARCodeAddEdit: public wxDialog
 {
 public:
 	CARCodeAddEdit(int _selection, std::vector<ActionReplay::ARCode>* _arCodes,

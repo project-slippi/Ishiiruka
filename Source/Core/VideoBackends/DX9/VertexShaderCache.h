@@ -19,11 +19,11 @@ class VertexShaderCache
 {
 private:
 	struct VSCacheEntry
-	{ 
+	{
 		LPDIRECT3DVERTEXSHADER9 shader;
 		bool compiled;
 		std::atomic_flag initialized;
-		VSCacheEntry() : shader(NULL), compiled(false)
+		VSCacheEntry(): shader(NULL), compiled(false)
 		{
 			initialized.clear();
 		}
@@ -49,7 +49,7 @@ public:
 	static void PrepareShader(u32 components, const XFMemory &xfr, const BPMemory &bpm, bool ongputhread);
 	static bool TestShader();
 	static LPDIRECT3DVERTEXSHADER9 GetSimpleVertexShader(int level);
-	static LPDIRECT3DVERTEXSHADER9 GetClearVertexShader();	
+	static LPDIRECT3DVERTEXSHADER9 GetClearVertexShader();
 	static void InsertByteCode(const VertexShaderUid &uid, const u8 *bytecode, int bytecodelen);
 };
 

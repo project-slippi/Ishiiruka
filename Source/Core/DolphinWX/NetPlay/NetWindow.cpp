@@ -29,23 +29,23 @@
 #include "Common/IniFile.h"
 
 #include "Core/ConfigManager.h"
+#include "Core/HW/EXI_Device.h"
 #include "Core/NetPlayClient.h"
 #include "Core/NetPlayProto.h"
 #include "Core/NetPlayServer.h"
-#include "Core/HW/EXI_Device.h"
 
 #include "DolphinWX/Frame.h"
 #include "DolphinWX/GameListCtrl.h"
 #include "DolphinWX/ISOFile.h"
 #include "DolphinWX/Main.h"
-#include "DolphinWX/WxUtils.h"
 #include "DolphinWX/NetPlay/ChangeGameDialog.h"
 #include "DolphinWX/NetPlay/NetWindow.h"
 #include "DolphinWX/NetPlay/PadMapDialog.h"
+#include "DolphinWX/WxUtils.h"
 
 NetPlayServer* NetPlayDialog::netplay_server = nullptr;
 NetPlayClient* NetPlayDialog::netplay_client = nullptr;
-NetPlayDialog *NetPlayDialog::npd = nullptr;
+NetPlayDialog* NetPlayDialog::npd = nullptr;
 
 static wxString FailureReasonStringForHostLabel(int reason)
 {
@@ -88,8 +88,8 @@ static std::string BuildGameName(const GameListItem& game)
 	std::string lower_name = name;
 	std::transform(lower_name.begin(), lower_name.end(), lower_name.begin(), ::tolower);
 	if (disc_number > 1 &&
-			lower_name.find(std::string(wxString::Format("disc %i", disc_number))) == std::string::npos &&
-			lower_name.find(std::string(wxString::Format("disc%i", disc_number))) == std::string::npos)
+		lower_name.find(std::string(wxString::Format("disc %i", disc_number))) == std::string::npos &&
+		lower_name.find(std::string(wxString::Format("disc%i", disc_number))) == std::string::npos)
 	{
 		std::string disc_text = "Disc ";
 		info.push_back(disc_text + std::to_string(disc_number));
@@ -97,7 +97,7 @@ static std::string BuildGameName(const GameListItem& game)
 	if (info.empty())
 		return name;
 	std::ostringstream ss;
-	std::copy(info.begin(), info.end() -1, std::ostream_iterator<std::string>(ss, ", "));
+	std::copy(info.begin(), info.end() - 1, std::ostream_iterator<std::string>(ss, ", "));
 	ss << info.back();
 	return name + " (" + ss.str() + ")";
 }
@@ -110,23 +110,16 @@ void NetPlayDialog::FillWithGameNames(wxListBox* game_lbox, const CGameListCtrl&
 
 NetPlayDialog::NetPlayDialog(wxWindow* const parent, const CGameListCtrl* const game_list,
 	const std::string& game, const bool is_hosting)
-	: wxFrame(parent, wxID_ANY, _("Dolphin NetPlay"))
-	, m_selected_game(game)
-	, m_start_btn(nullptr)
-	, m_host_label(nullptr)
-	, m_host_type_choice(nullptr)
-	, m_host_copy_btn(nullptr)
-	, m_host_copy_btn_is_retry(false)
-	, m_is_hosting(is_hosting)
-	, m_game_list(game_list)
+	: wxFrame(parent, wxID_ANY, _("Dolphin NetPlay")), m_selected_game(game), m_start_btn(nullptr),
+	m_host_label(nullptr), m_host_type_choice(nullptr), m_host_copy_btn(nullptr),
+	m_host_copy_btn_is_retry(false), m_is_hosting(is_hosting), m_game_list(game_list)
 {
 	Bind(wxEVT_THREAD, &NetPlayDialog::OnThread, this);
 
 	wxPanel* const panel = new wxPanel(this);
 
 	// top crap
-	m_game_btn = new wxButton(panel, wxID_ANY,
-		StrToWxStr(m_selected_game).Prepend(_(" Game : ")),
+	m_game_btn = new wxButton(panel, wxID_ANY, StrToWxStr(m_selected_game).Prepend(_(" Game : ")),
 		wxDefaultPosition, wxDefaultSize, wxBU_LEFT);
 
 	if (m_is_hosting)
@@ -137,15 +130,16 @@ NetPlayDialog::NetPlayDialog(wxWindow* const parent, const CGameListCtrl* const 
 	// middle crap
 
 	// chat
-	m_chat_text = new wxTextCtrl(panel, wxID_ANY, wxEmptyString
-		, wxDefaultPosition, wxDefaultSize, wxTE_READONLY | wxTE_MULTILINE);
+	m_chat_text = new wxTextCtrl(panel, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize,
+		wxTE_READONLY | wxTE_MULTILINE);
 
-	m_chat_msg_text = new wxTextCtrl(panel, wxID_ANY, wxEmptyString
-		, wxDefaultPosition, wxSize(-1, 25), wxTE_PROCESS_ENTER);
+	m_chat_msg_text = new wxTextCtrl(panel, wxID_ANY, wxEmptyString, wxDefaultPosition,
+		wxSize(-1, 25), wxTE_PROCESS_ENTER);
 	m_chat_msg_text->Bind(wxEVT_TEXT_ENTER, &NetPlayDialog::OnChat, this);
 	m_chat_msg_text->SetMaxLength(2000);
 
-	wxButton* const chat_msg_btn = new wxButton(panel, wxID_ANY, _("Send"), wxDefaultPosition, wxSize(-1, 26));
+	wxButton* const chat_msg_btn =
+		new wxButton(panel, wxID_ANY, _("Send"), wxDefaultPosition, wxSize(-1, 26));
 	chat_msg_btn->Bind(wxEVT_BUTTON, &NetPlayDialog::OnChat, this);
 
 	wxBoxSizer* const chat_msg_szr = new wxBoxSizer(wxHORIZONTAL);
@@ -169,7 +163,8 @@ NetPlayDialog::NetPlayDialog(wxWindow* const parent, const CGameListCtrl* const 
 		m_host_type_choice->Append(_("Room ID:"));
 		host_szr->Add(m_host_type_choice);
 
-		m_host_label = new wxStaticText(panel, wxID_ANY, "555.555.555.555:55555", wxDefaultPosition, wxDefaultSize, wxST_NO_AUTORESIZE | wxALIGN_LEFT);
+		m_host_label = new wxStaticText(panel, wxID_ANY, "555.555.555.555:55555", wxDefaultPosition,
+			wxDefaultSize, wxST_NO_AUTORESIZE | wxALIGN_LEFT);
 		// Update() should fix this immediately.
 		m_host_label->SetLabel("");
 		host_szr->Add(m_host_label, 1, wxLEFT | wxCENTER, 5);
@@ -215,8 +210,9 @@ NetPlayDialog::NetPlayDialog(wxWindow* const parent, const CGameListCtrl* const 
 		bottom_szr->Add(m_start_btn);
 
 		bottom_szr->Add(new wxStaticText(panel, wxID_ANY, _("Buffer:")), 0, wxLEFT | wxCENTER, 5);
-		wxSpinCtrl* const padbuf_spin = new wxSpinCtrl(panel, wxID_ANY, std::to_string(INITIAL_PAD_BUFFER_SIZE)
-			, wxDefaultPosition, wxSize(64, -1), wxSP_ARROW_KEYS, 0, 200, INITIAL_PAD_BUFFER_SIZE);
+		wxSpinCtrl* const padbuf_spin =
+			new wxSpinCtrl(panel, wxID_ANY, std::to_string(INITIAL_PAD_BUFFER_SIZE), wxDefaultPosition,
+				wxSize(64, -1), wxSP_ARROW_KEYS, 0, 200, INITIAL_PAD_BUFFER_SIZE);
 		padbuf_spin->Bind(wxEVT_SPINCTRL, &NetPlayDialog::OnAdjustBuffer, this);
 		bottom_szr->AddSpacer(3);
 		bottom_szr->Add(padbuf_spin, 0, wxCENTER);
@@ -273,11 +269,12 @@ void NetPlayDialog::OnChat(wxCommandEvent&)
 	}
 }
 
-void NetPlayDialog::GetNetSettings(NetSettings &settings)
+void NetPlayDialog::GetNetSettings(NetSettings& settings)
 {
-	SConfig &instance = SConfig::GetInstance();
+	SConfig& instance = SConfig::GetInstance();
 	settings.m_CPUthread = instance.bCPUThread;
 	settings.m_CPUcore = instance.iCPUCore;
+	settings.m_EnableCheats = instance.bEnableCheats;
 	settings.m_SelectedLanguage = instance.SelectedLanguage;
 	settings.m_OverrideGCLanguage = instance.bOverrideGCLanguage;
 	settings.m_ProgressiveScan = instance.bProgressive;
@@ -461,7 +458,7 @@ void NetPlayDialog::OnThread(wxThreadEvent& event)
 	{
 		std::string s;
 		chat_msgs.Pop(s);
-		//PanicAlert("message: %s", s.c_str());
+		// PanicAlert("message: %s", s.c_str());
 		m_chat_text->AppendText(StrToWxStr(s).Append('\n'));
 	}
 }
@@ -536,12 +533,14 @@ void NetPlayDialog::OnChoice(wxCommandEvent& event)
 void NetPlayDialog::UpdateHostLabel()
 {
 	wxString label = _(" (internal IP)");
-	auto DeLabel = [=](wxString str) {
+	auto DeLabel = [=](wxString str)
+	{
 		if (str == _("Localhost"))
 			return std::string("!local!");
 		return WxStrToStr(str.Left(str.Len() - label.Len()));
 	};
-	auto EnLabel = [=](std::string str) -> wxString {
+	auto EnLabel = [=](std::string str) -> wxString
+	{
 		if (str == "!local!")
 			return _("Localhost");
 		return StrToWxStr(str) + label;
@@ -560,7 +559,8 @@ void NetPlayDialog::UpdateHostLabel()
 			break;
 		case TraversalClient::Connected:
 			m_host_label->SetForegroundColour(*wxBLACK);
-			m_host_label->SetLabel(wxString(g_TraversalClient->m_HostId.data(), g_TraversalClient->m_HostId.size()));
+			m_host_label->SetLabel(
+				wxString(g_TraversalClient->m_HostId.data(), g_TraversalClient->m_HostId.size()));
 			m_host_copy_btn->SetLabel(_("Copy"));
 			m_host_copy_btn->Enable();
 			m_host_copy_btn_is_retry = false;
@@ -574,10 +574,11 @@ void NetPlayDialog::UpdateHostLabel()
 			break;
 		}
 	}
-	else if (sel != wxNOT_FOUND) // wxNOT_FOUND shouldn't generally happen
+	else if (sel != wxNOT_FOUND)  // wxNOT_FOUND shouldn't generally happen
 	{
 		m_host_label->SetForegroundColour(*wxBLACK);
-		m_host_label->SetLabel(netplay_server->GetInterfaceHost(DeLabel(m_host_type_choice->GetString(sel))));
+		m_host_label->SetLabel(
+			netplay_server->GetInterfaceHost(DeLabel(m_host_type_choice->GetString(sel))));
 		m_host_copy_btn->SetLabel(_("Copy"));
 		m_host_copy_btn->Enable();
 		m_host_copy_btn_is_retry = false;

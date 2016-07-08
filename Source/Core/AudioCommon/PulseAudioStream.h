@@ -14,7 +14,7 @@
 #include "Common/CommonTypes.h"
 #include "Common/Thread.h"
 
-class PulseAudio final : public SoundStream
+class PulseAudio final: public SoundStream
 {
 #if defined(HAVE_PULSEAUDIO) && HAVE_PULSEAUDIO
 public:
@@ -24,7 +24,10 @@ public:
 	void Stop() override;
 	void Update() override;
 
-	static bool isValid() { return true; }
+	static bool isValid()
+	{
+		return true;
+	}
 
 	void StateCallback(pa_context *c);
 	void WriteCallback(pa_stream *s, size_t length);

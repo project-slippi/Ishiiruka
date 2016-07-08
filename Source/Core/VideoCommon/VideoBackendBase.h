@@ -11,7 +11,9 @@
 #include "Common/ChunkFile.h"
 #include "VideoCommon/PerfQueryBase.h"
 
-namespace MMIO { class Mapping; }
+namespace MMIO {
+class Mapping;
+}
 class PointerWrap;
 
 typedef struct _EFBPeekCacheElement
@@ -19,7 +21,7 @@ typedef struct _EFBPeekCacheElement
 	u32 ColorValue;
 	u32 DepthValue;
 	u32 ColorFrame;
-	u32 DepthFrame;	
+	u32 DepthFrame;
 }EFBPeekCacheElement;
 
 enum FieldType
@@ -60,7 +62,7 @@ struct SCPFifoStruct
 	volatile u32 bFF_Breakpoint;
 
 	volatile u32 CPCmdIdle;
-	volatile u32 CPReadIdle;        
+	volatile u32 CPReadIdle;
 
 	volatile u32 bFF_LoWatermarkInt;
 	volatile u32 bFF_HiWatermarkInt;
@@ -84,16 +86,19 @@ public:
 	virtual void Shutdown() = 0;
 
 	virtual std::string GetName() const = 0;
-	virtual std::string GetDisplayName() const { return GetName(); }
+	virtual std::string GetDisplayName() const
+	{
+		return GetName();
+	}
+	virtual void InitBackendInfo() = 0;
 
-	virtual void ShowConfig(void*) = 0;
+	void ShowConfig(void*);
 
 	virtual void Video_Prepare() = 0;
 	void Video_ExitLoop();
 	virtual void Video_Cleanup() = 0; // called from gl/d3d thread
 
 	void Video_BeginField(u32, u32, u32, u32);
-	void Video_EndField();
 
 	u32 Video_AccessEFB(EFBAccessType, u32, u32, u32);
 	u32 Video_GetQueryResult(PerfQueryType type);
@@ -105,7 +110,7 @@ public:
 
 	// the implementation needs not do synchronization logic, because calls to it are surrounded by PauseAndLock now
 	void DoState(PointerWrap &p);
-	
+
 	void CheckInvalidState();
 
 protected:

@@ -29,16 +29,16 @@ class wxMenu;
 class wxMenuBar;
 class wxToolBar;
 
-class CCodeWindow : public wxPanel
+class CCodeWindow: public wxPanel
 {
 public:
 	CCodeWindow(const SConfig& _LocalCoreStartupParameter,
-	            CFrame * parent,
-	            wxWindowID id = wxID_ANY,
-	            const wxPoint& pos = wxDefaultPosition,
-	            const wxSize& size = wxDefaultSize,
-	            long style = wxTAB_TRAVERSAL | wxBORDER_NONE,
-	            const wxString& name = _("Code"));
+		CFrame * parent,
+		wxWindowID id = wxID_ANY,
+		const wxPoint& pos = wxDefaultPosition,
+		const wxSize& size = wxDefaultSize,
+		long style = wxTAB_TRAVERSAL | wxBORDER_NONE,
+		const wxString& name = _("Code"));
 	~CCodeWindow();
 
 	void Load();

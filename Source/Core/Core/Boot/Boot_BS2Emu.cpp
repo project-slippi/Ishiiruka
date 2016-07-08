@@ -64,7 +64,7 @@ bool CBoot::EmulatedBS2_GC(bool skipAppLoader)
 	PowerPC::HostWrite_U32(0x10000006, 0x8000002C); // Console type - DevKit  (retail ID == 0x00000003) see YAGCD 4.2.1.1.2
 
 	PowerPC::HostWrite_U32(SConfig::GetInstance().bNTSC
-						 ? 0 : 1, 0x800000CC); // Fake the VI Init of the IPL (YAGCD 4.2.1.4)
+		? 0 : 1, 0x800000CC); // Fake the VI Init of the IPL (YAGCD 4.2.1.4)
 
 	PowerPC::HostWrite_U32(0x01000000, 0x800000d0); // ARAM Size. 16MB main + 4/16/32MB external (retail consoles have no external ARAM)
 
@@ -90,10 +90,10 @@ bool CBoot::EmulatedBS2_GC(bool skipAppLoader)
 	const u32 apploader_offset = 0x2440;
 	u32 apploader_entry, apploader_size, apploader_trailer;
 	if (skipAppLoader ||
-	    !volume.ReadSwapped(apploader_offset + 0x10, &apploader_entry, false) ||
-	    !volume.ReadSwapped(apploader_offset + 0x14, &apploader_size, false) ||
-	    !volume.ReadSwapped(apploader_offset + 0x18, &apploader_trailer, false) ||
-	    apploader_entry == (u32)-1 || apploader_size + apploader_trailer == (u32)-1)
+		!volume.ReadSwapped(apploader_offset + 0x10, &apploader_entry, false) ||
+		!volume.ReadSwapped(apploader_offset + 0x14, &apploader_size, false) ||
+		!volume.ReadSwapped(apploader_offset + 0x18, &apploader_trailer, false) ||
+		apploader_entry == (u32)-1 || apploader_size + apploader_trailer == (u32)-1)
 	{
 		INFO_LOG(BOOT, "GC BS2: Not running apploader!");
 		return false;
@@ -145,13 +145,14 @@ bool CBoot::EmulatedBS2_GC(bool skipAppLoader)
 		RunFunction(iAppLoaderMain);
 
 		u32 iRamAddress = PowerPC::Read_U32(0x81300004);
-		u32 iLength     = PowerPC::Read_U32(0x81300008);
-		u32 iDVDOffset  = PowerPC::Read_U32(0x8130000c);
+		u32 iLength = PowerPC::Read_U32(0x81300008);
+		u32 iDVDOffset = PowerPC::Read_U32(0x8130000c);
 
 		INFO_LOG(MASTER_LOG, "DVDRead: offset: %08x   memOffset: %08x   length: %i", iDVDOffset, iRamAddress, iLength);
 		DVDRead(iDVDOffset, iRamAddress, iLength, false);
 
-	} while (PowerPC::ppcState.gpr[3] != 0x00);
+	}
+	while (PowerPC::ppcState.gpr[3] != 0x00);
 
 	// iAppLoaderClose
 	DEBUG_LOG(MASTER_LOG, "call iAppLoaderClose");
@@ -172,9 +173,9 @@ bool CBoot::EmulatedBS2_GC(bool skipAppLoader)
 bool CBoot::SetupWiiMemory(DiscIO::IVolume::ECountry country)
 {
 	static const CountrySetting SETTING_EUROPE = {"EUR", "PAL",  "EU", "LE"};
-	static const CountrySetting SETTING_USA    = {"USA", "NTSC", "US", "LU"};
-	static const CountrySetting SETTING_JAPAN  = {"JPN", "NTSC", "JP", "LJ"};
-	static const CountrySetting SETTING_KOREA  = {"KOR", "NTSC", "KR", "LKH"};
+	static const CountrySetting SETTING_USA = {"USA", "NTSC", "US", "LU"};
+	static const CountrySetting SETTING_JAPAN = {"JPN", "NTSC", "JP", "LJ"};
+	static const CountrySetting SETTING_KOREA = {"KOR", "NTSC", "KR", "LKH"};
 	static const std::map<DiscIO::IVolume::ECountry, const CountrySetting> country_settings = {
 		{DiscIO::IVolume::COUNTRY_EUROPE, SETTING_EUROPE},
 		{DiscIO::IVolume::COUNTRY_USA,    SETTING_USA},
@@ -188,8 +189,8 @@ bool CBoot::SetupWiiMemory(DiscIO::IVolume::ECountry country)
 	auto entryPos = country_settings.find(country);
 	const CountrySetting& country_setting =
 		(entryPos != country_settings.end()) ?
-		  entryPos->second :
-		  (SConfig::GetInstance().bNTSC ? SETTING_USA : SETTING_EUROPE); // default to USA or EUR depending on game's video mode
+		entryPos->second :
+		(SConfig::GetInstance().bNTSC ? SETTING_USA : SETTING_EUROPE); // default to USA or EUR depending on game's video mode
 
 	SettingsHandler gen;
 	std::string serno;
@@ -371,8 +372,8 @@ bool CBoot::EmulatedBS2_Wii()
 		const DiscIO::IVolume& volume = DVDInterface::GetVolume();
 		u32 apploader_entry, apploader_size;
 		if (!volume.ReadSwapped(apploader_offset + 0x10, &apploader_entry, true) ||
-		    !volume.ReadSwapped(apploader_offset + 0x14, &apploader_size, true) ||
-		    apploader_entry == (u32)-1 || apploader_size == (u32)-1)
+			!volume.ReadSwapped(apploader_offset + 0x14, &apploader_size, true) ||
+			apploader_entry == (u32)-1 || apploader_size == (u32)-1)
 		{
 			ERROR_LOG(BOOT, "Invalid apploader. Probably your image is corrupted.");
 			return false;
@@ -411,12 +412,13 @@ bool CBoot::EmulatedBS2_Wii()
 			RunFunction(iAppLoaderMain);
 
 			u32 iRamAddress = PowerPC::Read_U32(0x81300004);
-			u32 iLength     = PowerPC::Read_U32(0x81300008);
-			u32 iDVDOffset  = PowerPC::Read_U32(0x8130000c) << 2;
+			u32 iLength = PowerPC::Read_U32(0x81300008);
+			u32 iDVDOffset = PowerPC::Read_U32(0x8130000c) << 2;
 
 			INFO_LOG(BOOT, "DVDRead: offset: %08x   memOffset: %08x   length: %i", iDVDOffset, iRamAddress, iLength);
 			DVDRead(iDVDOffset, iRamAddress, iLength, true);
-		} while (PowerPC::ppcState.gpr[3] != 0x00);
+		}
+		while (PowerPC::ppcState.gpr[3] != 0x00);
 
 		// iAppLoaderClose
 		DEBUG_LOG(BOOT, "Run iAppLoaderClose");

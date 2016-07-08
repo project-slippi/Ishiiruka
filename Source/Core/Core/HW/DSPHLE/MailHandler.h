@@ -20,7 +20,7 @@ public:
 	void PushMail(u32 _Mail, bool interrupt = false);
 	void Clear();
 	void Halt(bool _Halt);
-	void DoState(PointerWrap &p);
+	void DoState(PointerWrap& p);
 	bool IsEmpty() const;
 
 	u16 ReadDSPMailboxHigh();

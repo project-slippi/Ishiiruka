@@ -9,8 +9,11 @@
 
 class PointerWrap;
 class ISIDevice;
-enum SIDevices : int;
-namespace MMIO { class Mapping; }
+enum SIDevices: int;
+namespace MMIO
+{
+class Mapping;
+}
 
 // SI number of channels
 enum
@@ -20,10 +23,9 @@ enum
 
 namespace SerialInterface
 {
-
 void Init();
 void Shutdown();
-void DoState(PointerWrap &p);
+void DoState(PointerWrap& p);
 
 void RegisterMMIO(MMIO::Mapping* mmio, u32 base);
 
@@ -40,4 +42,4 @@ SIDevices GetDeviceType(int channel);
 
 u32 GetPollXLines();
 
-} // end of namespace SerialInterface
+}  // end of namespace SerialInterface

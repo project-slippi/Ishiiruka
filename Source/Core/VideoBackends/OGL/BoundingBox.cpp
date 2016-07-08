@@ -42,7 +42,7 @@ void BBox::Shutdown()
 
 void BBox::Update()
 {
-	if (g_ActiveConfig.backend_info.bSupportsBBox 
+	if (g_ActiveConfig.backend_info.bSupportsBBox
 		&& g_ActiveConfig.iBBoxMode == BBoxGPU
 		&& BoundingBox::active
 		&& s_cpu_dirty)

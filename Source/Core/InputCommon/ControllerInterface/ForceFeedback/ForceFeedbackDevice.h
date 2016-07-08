@@ -20,13 +20,11 @@ namespace ciface
 {
 namespace ForceFeedback
 {
-
-
-class ForceFeedbackDevice : public Core::Device
+class ForceFeedbackDevice: public Core::Device
 {
 private:
 	template <typename P>
-	class Force : public Output
+	class Force: public Output
 	{
 	public:
 		Force(const std::string& name, LPDIRECTINPUTEFFECT iface);
@@ -36,19 +34,18 @@ private:
 		void SetState(ControlState state) override;
 		void Update();
 		void Stop();
+
 	private:
 		const std::string m_name;
 		LPDIRECTINPUTEFFECT m_iface;
 		P params;
 	};
-	typedef Force<DICONSTANTFORCE>  ForceConstant;
-	typedef Force<DIRAMPFORCE>      ForceRamp;
-	typedef Force<DIPERIODIC>       ForcePeriodic;
+	typedef Force<DICONSTANTFORCE> ForceConstant;
+	typedef Force<DIRAMPFORCE> ForceRamp;
+	typedef Force<DIPERIODIC> ForcePeriodic;
 
 public:
 	bool InitForceFeedback(const LPDIRECTINPUTDEVICE8, int cAxes);
 };
-
-
 }
 }

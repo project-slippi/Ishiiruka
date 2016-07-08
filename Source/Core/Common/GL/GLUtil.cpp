@@ -106,12 +106,12 @@ void OpenGL_CreateAttributelessVAO()
 	glGenVertexArrays(1, &attributelessVAO);
 	_dbg_assert_msg_(VIDEO, attributelessVAO != 0, "Attributeless VAO should have been created successfully.")
 
-	// In a compatibility context, we require a valid, bound array buffer.
-	glGenBuffers(1, &attributelessVBO);
+		// In a compatibility context, we require a valid, bound array buffer.
+		glGenBuffers(1, &attributelessVBO);
 	_dbg_assert_msg_(VIDEO, attributelessVBO != 0, "Attributeless VBO should have been created successfully.")
 
-	// Initialize the buffer with nothing.  16 floats is an arbitrary size that may work around driver issues.
-	glBindBuffer(GL_ARRAY_BUFFER, attributelessVBO);
+		// Initialize the buffer with nothing.  16 floats is an arbitrary size that may work around driver issues.
+		glBindBuffer(GL_ARRAY_BUFFER, attributelessVBO);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * 16, nullptr, GL_STATIC_DRAW);
 
 	// We must also define vertex attribute 0.
@@ -123,18 +123,18 @@ void OpenGL_CreateAttributelessVAO()
 void OpenGL_BindAttributelessVAO()
 {
 	_dbg_assert_msg_(VIDEO, attributelessVAO != 0, "Attributeless VAO should have already been created.")
-	glBindVertexArray(attributelessVAO);
+		glBindVertexArray(attributelessVAO);
 }
 
 void OpenGL_DeleteAttributelessVAO()
 {
 	_dbg_assert_msg_(VIDEO, attributelessVAO != 0, "Attributeless VAO should have already been created.")
-	if (attributelessVAO != 0)
-	{
-		glDeleteVertexArrays(1, &attributelessVAO);
-		glDeleteBuffers(1, &attributelessVBO);
+		if (attributelessVAO != 0)
+		{
+			glDeleteVertexArrays(1, &attributelessVAO);
+			glDeleteBuffers(1, &attributelessVBO);
 
-		attributelessVAO = 0;
-		attributelessVBO = 0;
-	}
+			attributelessVAO = 0;
+			attributelessVBO = 0;
+		}
 }

@@ -14,22 +14,26 @@
 
 namespace DiscIO
 {
-
-class WbfsFileReader : public IBlobReader
+class WbfsFileReader: public IBlobReader
 {
 public:
 	~WbfsFileReader();
 
 	static std::unique_ptr<WbfsFileReader> Create(const std::string& filename);
 
-	BlobType GetBlobType() const override { return BlobType::WBFS; }
-
+	BlobType GetBlobType() const override
+	{
+		return BlobType::WBFS;
+	}
 	// The WBFS format does not save the original file size.
 	// This function returns a constant upper bound
 	// (the size of a double-layer Wii disc).
 	u64 GetDataSize() const override;
 
-	u64 GetRawSize() const override { return m_size; }
+	u64 GetRawSize() const override
+	{
+		return m_size;
+	}
 	bool Read(u64 offset, u64 nbytes, u8* out_ptr) override;
 
 private:
@@ -39,9 +43,10 @@ private:
 	bool ReadHeader();
 
 	File::IOFile& SeekToCluster(u64 offset, u64* available);
-	bool IsGood() {return m_good;}
-
-
+	bool IsGood()
+	{
+		return m_good;
+	}
 	struct file_entry
 	{
 		File::IOFile file;
@@ -78,6 +83,5 @@ private:
 };
 
 bool IsWbfsBlob(const std::string& filename);
-
 
 }  // namespace

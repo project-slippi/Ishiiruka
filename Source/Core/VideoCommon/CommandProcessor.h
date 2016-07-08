@@ -8,7 +8,9 @@
 #include "VideoCommon/VideoBackendBase.h"
 
 class PointerWrap;
-namespace MMIO { class Mapping; }
+namespace MMIO {
+class Mapping;
+}
 
 namespace CommandProcessor
 {
@@ -78,11 +80,17 @@ union UCPStatusReg
 		u16 ReadIdle : 1;
 		u16 CommandIdle : 1;
 		u16 Breakpoint : 1;
-	u16: 11;
+		u16 : 11;
 	};
 	u16 Hex;
-	UCPStatusReg() { Hex = 0; }
-	UCPStatusReg(u16 _hex) { Hex = _hex; }
+	UCPStatusReg()
+	{
+		Hex = 0;
+	}
+	UCPStatusReg(u16 _hex)
+	{
+		Hex = _hex;
+	}
 };
 
 // Fifo Control Register
@@ -96,11 +104,17 @@ union UCPCtrlReg
 		u16 FifoUnderflowIntEnable : 1;
 		u16 GPLinkEnable : 1;
 		u16 BPInt : 1;
-	u16: 10;
+		u16 : 10;
 	};
 	u16 Hex;
-	UCPCtrlReg() { Hex = 0; }
-	UCPCtrlReg(u16 _hex) { Hex = _hex; }
+	UCPCtrlReg()
+	{
+		Hex = 0;
+	}
+	UCPCtrlReg(u16 _hex)
+	{
+		Hex = _hex;
+	}
 };
 
 // Fifo Clear Register
@@ -111,11 +125,17 @@ union UCPClearReg
 		u16 ClearFifoOverflow : 1;
 		u16 ClearFifoUnderflow : 1;
 		u16 ClearMetrices : 1;
-	u16: 13;
+		u16 : 13;
 	};
 	u16 Hex;
-	UCPClearReg() { Hex = 0; }
-	UCPClearReg(u16 _hex) { Hex = _hex; }
+	UCPClearReg()
+	{
+		Hex = 0;
+	}
+	UCPClearReg(u16 _hex)
+	{
+		Hex = _hex;
+	}
 };
 
 // Init
@@ -138,6 +158,5 @@ void SetInterruptFinishWaiting(bool waiting);
 void SetCpClearRegister();
 void SetCpControlRegister();
 void SetCpStatusRegister();
-void ProcessFifoEvents();
 
 } // namespace CommandProcessor

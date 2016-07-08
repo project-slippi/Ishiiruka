@@ -368,7 +368,7 @@ void G_RBUP08_pvt::Initialize(std::map<u64, TCompiledLoaderFunction> &pvlmap)
 #endif
 	{
 		pvlmap[49678243802853] = TemplatedLoader<0, 0x00ae0a00u, 0x40a01009u, 0x001c0a05u, 0x00000000u>;
-	}	
+	}
 	// P_mtx0_3_I8_flt_Nrm_0_0_I8_flt_T0_mtx0_1_I8_s16_T1_mtx0_1_I16_u16_
 // num_verts= 5115936
 #if _M_SSE >= 0x301

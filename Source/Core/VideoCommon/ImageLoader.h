@@ -38,8 +38,8 @@
 enum DDSCompression
 {
 	DDSC_NONE,
-	DDSC_DXT1,		
-	DDSC_DXT3,		
+	DDSC_DXT1,
+	DDSC_DXT3,
 	DDSC_DXT5
 };
 struct ImageLoaderParams

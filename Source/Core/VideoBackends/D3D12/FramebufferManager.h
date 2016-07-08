@@ -43,10 +43,14 @@ namespace DX12
 // There may be multiple XFBs in GameCube RAM. This is the maximum number to
 // virtualize.
 
-struct XFBSource final : public XFBSourceBase
+struct XFBSource final: public XFBSourceBase
 {
-	XFBSource(D3DTexture2D* tex, int slices) : m_tex(tex), m_depthtex(nullptr), m_slices(slices) {}
-	~XFBSource() { SAFE_RELEASE(m_tex); SAFE_RELEASE(m_depthtex); }
+	XFBSource(D3DTexture2D* tex, int slices): m_tex(tex), m_depthtex(nullptr), m_slices(slices)
+	{}
+	~XFBSource()
+	{
+		SAFE_RELEASE(m_tex); SAFE_RELEASE(m_depthtex);
+	}
 
 	void DecodeToTexture(u32 xfbAddr, u32 fbWidth, u32 fbHeight) override;
 	void CopyEFB(float gamma) override;
@@ -56,7 +60,7 @@ struct XFBSource final : public XFBSourceBase
 	const int m_slices;
 };
 
-class FramebufferManager final : public FramebufferManagerBase
+class FramebufferManager final: public FramebufferManagerBase
 {
 public:
 	FramebufferManager();
@@ -69,7 +73,7 @@ public:
 
 	static D3DTexture2D*& GetEFBColorTempTexture();
 	static void SwapReinterpretTexture();
-	
+
 	static void ResolveDepthTexture();
 
 	static inline void RestoreEFBRenderTargets()
@@ -109,7 +113,7 @@ private:
 		D3DTexture2D* color_cache_tex{};
 		ComPtr<ID3D12Resource> color_cache_buf;
 		u8* color_cache_data{};
-		
+
 		D3DTexture2D* depth_cache_tex{};
 		ComPtr<ID3D12Resource> depth_cache_buf;
 		u8* depth_cache_data{};

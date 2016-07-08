@@ -9,7 +9,7 @@
 #include "Common/Hash.h"
 #include "Common/Intrinsics.h"
 
-static u64 (*ptrHashFunction)(const u8* src, u32 len, u32 samples) = &GetMurmurHash3;
+static u64(*ptrHashFunction)(const u8* src, u32 len, u32 samples) = &GetMurmurHash3;
 
 // uint32_t
 // WARNING - may read one more byte!
@@ -29,7 +29,8 @@ u32 HashFletcher(const u8* data_u8, size_t length)
 		{
 			sum1 += *data++;
 			sum2 += sum1;
-		} while (--tlen);
+		}
+		while (--tlen);
 
 		sum1 = (sum1 & 0xffff) + (sum1 >> 16);
 		sum2 = (sum2 & 0xffff) + (sum2 >> 16);
@@ -59,7 +60,8 @@ u32 HashAdler32(const u8* data, size_t len)
 		{
 			a += *data++;
 			b += a;
-		} while (--tlen);
+		}
+		while (--tlen);
 
 		a = (a & 0xffff) + (a >> 16) * (65536 - MOD_ADLER);
 		b = (b & 0xffff) + (b >> 16) * (65536 - MOD_ADLER);
@@ -115,15 +117,15 @@ inline u64 getblock(const u64* p, int i)
 inline void bmix64(u64 & h1, u64 & h2, u64 & k1, u64 & k2, u64 & c1, u64 & c2)
 {
 	k1 *= c1;
-	k1  = _rotl64(k1, 23);
+	k1 = _rotl64(k1, 23);
 	k1 *= c2;
 	h1 ^= k1;
 	h1 += h2;
 
-	h2  = _rotl64(h2, 41);
+	h2 = _rotl64(h2, 41);
 
 	k2 *= c2;
-	k2  = _rotl64(k2, 23);
+	k2 = _rotl64(k2, 23);
 	k2 *= c1;
 	h2 ^= k2;
 	h2 += h1;
@@ -172,18 +174,18 @@ u64 GetMurmurHash3(const u8* src, u32 len, u32 samples)
 
 	const u64* blocks = (const u64*)(data);
 
-	for (int i = 0; i < nblocks; i+=Step)
+	for (int i = 0; i < nblocks; i += Step)
 	{
-		u64 k1 = getblock(blocks, i*2+0);
-		u64 k2 = getblock(blocks, i*2+1);
+		u64 k1 = getblock(blocks, i * 2 + 0);
+		u64 k2 = getblock(blocks, i * 2 + 1);
 
-		bmix64(h1,h2,k1,k2,c1,c2);
+		bmix64(h1, h2, k1, k2, c1, c2);
 	}
 
 	//----------
 	// tail
 
-	const u8* tail = (const u8*)(data + nblocks*16);
+	const u8* tail = (const u8*)(data + nblocks * 16);
 
 	u64 k1 = 0;
 	u64 k2 = 0;
@@ -195,18 +197,18 @@ u64 GetMurmurHash3(const u8* src, u32 len, u32 samples)
 	case 13: k2 ^= u64(tail[12]) << 32;
 	case 12: k2 ^= u64(tail[11]) << 24;
 	case 11: k2 ^= u64(tail[10]) << 16;
-	case 10: k2 ^= u64(tail[ 9]) << 8;
-	case  9: k2 ^= u64(tail[ 8]) << 0;
+	case 10: k2 ^= u64(tail[9]) << 8;
+	case  9: k2 ^= u64(tail[8]) << 0;
 
-	case  8: k1 ^= u64(tail[ 7]) << 56;
-	case  7: k1 ^= u64(tail[ 6]) << 48;
-	case  6: k1 ^= u64(tail[ 5]) << 40;
-	case  5: k1 ^= u64(tail[ 4]) << 32;
-	case  4: k1 ^= u64(tail[ 3]) << 24;
-	case  3: k1 ^= u64(tail[ 2]) << 16;
-	case  2: k1 ^= u64(tail[ 1]) << 8;
-	case  1: k1 ^= u64(tail[ 0]) << 0;
-			bmix64(h1,h2,k1,k2,c1,c2);
+	case  8: k1 ^= u64(tail[7]) << 56;
+	case  7: k1 ^= u64(tail[6]) << 48;
+	case  6: k1 ^= u64(tail[5]) << 40;
+	case  5: k1 ^= u64(tail[4]) << 32;
+	case  4: k1 ^= u64(tail[3]) << 24;
+	case  3: k1 ^= u64(tail[2]) << 16;
+	case  2: k1 ^= u64(tail[1]) << 8;
+	case  1: k1 ^= u64(tail[0]) << 0;
+		bmix64(h1, h2, k1, k2, c1, c2);
 	};
 
 	//----------
@@ -230,7 +232,7 @@ u64 GetMurmurHash3(const u8* src, u32 len, u32 samples)
 u64 GetCRC32(const u8* src, u32 len, u32 samples)
 {
 #if _M_SSE >= 0x402 || defined(_M_ARM_64)
-	u64 h[4] = { len, 0, 0, 0 };
+	u64 h[4] = {len, 0, 0, 0};
 	u32 Step = (len / 8);
 	const u64* data = (const u64*)src;
 	const u64* end = data + Step;
@@ -270,49 +272,49 @@ u64 GetCRC32(const u8* src, u32 len, u32 samples)
 	// Once the Android NDK has a newer GCC version, update these to use intrinsics
 	while (data < end - Step * 3)
 	{
-		asm ("crc32x %w[res], %w[two], %x[three]"
-				: [res] "=r" (h[0])
-				: [two] "r" (h[0]),
-				  [three] "r" (data[Step * 0]));
-		asm ("crc32x %w[res], %w[two], %x[three]"
-				: [res] "=r" (h[1])
-				: [two] "r" (h[1]),
-				  [three] "r" (data[Step * 1]));
-		asm ("crc32x %w[res], %w[two], %x[three]"
-				: [res] "=r" (h[2])
-				: [two] "r" (h[2]),
-				  [three] "r" (data[Step * 2]));
-		asm ("crc32x %w[res], %w[two], %x[three]"
-				: [res] "=r" (h[3])
-				: [two] "r" (h[3]),
-				  [three] "r" (data[Step * 3]));
+		asm("crc32x %w[res], %w[two], %x[three]"
+			: [res] "=r" (h[0])
+			: [two] "r" (h[0]),
+			[three] "r" (data[Step * 0]));
+		asm("crc32x %w[res], %w[two], %x[three]"
+			: [res] "=r" (h[1])
+			: [two] "r" (h[1]),
+			[three] "r" (data[Step * 1]));
+		asm("crc32x %w[res], %w[two], %x[three]"
+			: [res] "=r" (h[2])
+			: [two] "r" (h[2]),
+			[three] "r" (data[Step * 2]));
+		asm("crc32x %w[res], %w[two], %x[three]"
+			: [res] "=r" (h[3])
+			: [two] "r" (h[3]),
+			[three] "r" (data[Step * 3]));
 
 		data += Step * 4;
 	}
 	if (data < end - Step * 0)
-		asm ("crc32x %w[res], %w[two], %x[three]"
-				: [res] "=r" (h[0])
-				: [two] "r" (h[0]),
-				  [three] "r" (data[Step * 0]));
+		asm("crc32x %w[res], %w[two], %x[three]"
+			: [res] "=r" (h[0])
+			: [two] "r" (h[0]),
+			[three] "r" (data[Step * 0]));
 	if (data < end - Step * 1)
-		asm ("crc32x %w[res], %w[two], %x[three]"
-				: [res] "=r" (h[1])
-				: [two] "r" (h[1]),
-				  [three] "r" (data[Step * 1]));
+		asm("crc32x %w[res], %w[two], %x[three]"
+			: [res] "=r" (h[1])
+			: [two] "r" (h[1]),
+			[three] "r" (data[Step * 1]));
 	if (data < end - Step * 2)
-		asm ("crc32x %w[res], %w[two], %x[three]"
-				: [res] "=r" (h[2])
-				: [two] "r" (h[2]),
-				  [three] "r" (data[Step * 2]));
+		asm("crc32x %w[res], %w[two], %x[three]"
+			: [res] "=r" (h[2])
+			: [two] "r" (h[2]),
+			[three] "r" (data[Step * 2]));
 
 	if (len & 7)
 	{
 		u64 temp = 0;
 		memcpy(&temp, end, len & 7);
-		asm ("crc32x %w[res], %w[two], %x[three]"
-				: [res] "=r" (h[0])
-				: [two] "r" (h[0]),
-				  [three] "r" (temp));
+		asm("crc32x %w[res], %w[two], %x[three]"
+			: [res] "=r" (h[0])
+			: [two] "r" (h[0]),
+			[three] "r" (temp));
 	}
 #endif
 
@@ -349,7 +351,7 @@ u64 GetHashHiresTexture(const u8* src, u32 len, u32 samples)
 	while (data < end)
 	{
 		u64 k = data[0];
-		data+=Step;
+		data += Step;
 		k *= m;
 		k ^= k >> r;
 		k *= m;
@@ -368,7 +370,7 @@ u64 GetHashHiresTexture(const u8* src, u32 len, u32 samples)
 	case 3: h ^= u64(data2[2]) << 16;
 	case 2: h ^= u64(data2[1]) << 8;
 	case 1: h ^= u64(data2[0]);
-			h *= m;
+		h *= m;
 	};
 
 	h ^= h >> r;
@@ -383,12 +385,12 @@ u64 GetCRC32(const u8* src, u32 len, u32 samples)
 {
 #if _M_SSE >= 0x402
 	u32 h = len;
-	u32 Step = (len/4);
+	u32 Step = (len / 4);
 	const u32* data = (const u32 *)src;
 	const u32* end = data + Step;
 	if (samples == 0)
 		samples = std::max(Step, 1u);
-	Step  = Step / samples;
+	Step = Step / samples;
 	if (Step < 1)
 		Step = 1;
 	while (data < end)
@@ -432,24 +434,24 @@ inline u32 fmix32(u32 h)
 inline void bmix32(u32 & h1, u32 & h2, u32 & k1, u32 & k2, u32 & c1, u32 & c2)
 {
 	k1 *= c1;
-	k1  = _rotl(k1, 11);
+	k1 = _rotl(k1, 11);
 	k1 *= c2;
 	h1 ^= k1;
 	h1 += h2;
 
-	h2  = _rotl(h2, 17);
+	h2 = _rotl(h2, 17);
 
 	k2 *= c2;
-	k2  = _rotl(k2, 11);
+	k2 = _rotl(k2, 11);
 	k2 *= c1;
 	h2 ^= k2;
 	h2 += h1;
 
-	h1  = h1*3+0x52dce729;
-	h2  = h2*3+0x38495ab5;
+	h1 = h1 * 3 + 0x52dce729;
+	h2 = h2 * 3 + 0x38495ab5;
 
-	c1  = c1*5+0x7b7d159c;
-	c2  = c2*5+0x6bce6396;
+	c1 = c1 * 5 + 0x7b7d159c;
+	c2 = c2 * 5 + 0x6bce6396;
 }
 
 //----------
@@ -475,20 +477,20 @@ u64 GetMurmurHash3(const u8* src, u32 len, u32 samples)
 	//----------
 	// body
 
-	const u32* blocks = (const u32*)(data + nblocks*8);
+	const u32* blocks = (const u32*)(data + nblocks * 8);
 
-	for (int i = -nblocks; i < 0; i+=Step)
+	for (int i = -nblocks; i < 0; i += Step)
 	{
-		u32 k1 = getblock(blocks,i*2+0);
-		u32 k2 = getblock(blocks,i*2+1);
+		u32 k1 = getblock(blocks, i * 2 + 0);
+		u32 k2 = getblock(blocks, i * 2 + 1);
 
-		bmix32(h1,h2,k1,k2,c1,c2);
+		bmix32(h1, h2, k1, k2, c1, c2);
 	}
 
 	//----------
 	// tail
 
-	const u8* tail = (const u8*)(data + nblocks*8);
+	const u8* tail = (const u8*)(data + nblocks * 8);
 
 	u32 k1 = 0;
 	u32 k2 = 0;
@@ -502,7 +504,7 @@ u64 GetMurmurHash3(const u8* src, u32 len, u32 samples)
 	case 3: k1 ^= tail[2] << 16;
 	case 2: k1 ^= tail[1] << 8;
 	case 1: k1 ^= tail[0] << 0;
-	        bmix32(h1,h2,k1,k2,c1,c2);
+		bmix32(h1, h2, k1, k2, c1, c2);
 	};
 
 	//----------
@@ -513,8 +515,8 @@ u64 GetMurmurHash3(const u8* src, u32 len, u32 samples)
 	h1 += h2;
 	h2 += h1;
 
-	h1  = fmix32(h1);
-	h2  = fmix32(h2);
+	h1 = fmix32(h1);
+	h2 = fmix32(h2);
 
 	h1 += h2;
 	h2 += h1;
@@ -546,7 +548,7 @@ u64 GetHashHiresTexture(const u8* src, u32 len, u32 samples)
 	while (data < end)
 	{
 		u64 k = data[0];
-		data+=Step;
+		data += Step;
 		k *= m;
 		k ^= k >> r;
 		k *= m;
@@ -565,7 +567,7 @@ u64 GetHashHiresTexture(const u8* src, u32 len, u32 samples)
 	case 3: h ^= u64(data2[2]) << 16;
 	case 2: h ^= u64(data2[1]) << 8;
 	case 1: h ^= u64(data2[0]);
-			h *= m;
+		h *= m;
 	};
 
 	h ^= h >> r;

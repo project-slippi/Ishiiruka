@@ -24,29 +24,31 @@ inline void LoadDataToRect(LPDIRECT3DTEXTURE9 pTexture, const u8* buffer, const 
 	case D3DFMT_A8:
 	case D3DFMT_A4L4:
 		pixelsize = 1;
-	break;
+		break;
 	case D3DFMT_R5G6B5:
 		pixelsize = 2;
-	break;
+		break;
 	case D3DFMT_A8P8:
 		TextureUtil::ExpandI8Data((u8*)Lock.pBits, buffer, width, height, pitch, Lock.Pitch);
-	break;
+		break;
 	case D3DFMT_A8L8:
 		pixelsize = 2;
-	break;
+		break;
 	case D3DFMT_A8R8G8B8:
-		if (!swap_r_b) {
+		if (!swap_r_b)
+		{
 			pixelsize = 4;
 		}
-		else {
+		else
+		{
 			TextureUtil::ConvertRGBA_BGRA((u32 *)Lock.pBits, Lock.Pitch, (u32*)buffer, width, height, pitch);
 		}
-	break;
+		break;
 	case D3DFMT_DXT1:
 	case D3DFMT_DXT3:
 	case D3DFMT_DXT5:
 		TextureUtil::CopyCompressedTextureData((u8*)Lock.pBits, buffer, width, height, pitch, fmt == D3DFMT_DXT1 ? 8 : 16, Lock.Pitch);
-	break;
+		break;
 	default:
 		PanicAlert("D3D: Invalid texture format %i", fmt);
 	}
@@ -61,7 +63,8 @@ LPDIRECT3DTEXTURE9 CreateTexture2D(const s32 width, const s32 height, D3DFORMAT 
 {
 	LPDIRECT3DTEXTURE9 pTexture;
 	D3DFORMAT cfmt = fmt;
-	if (fmt == D3DFMT_A8P8) {
+	if (fmt == D3DFMT_A8P8)
+	{
 		cfmt = D3DFMT_A8L8;
 	}
 	HRESULT hr = dev->CreateTexture(width, height, levels, 0, cfmt, pool, &pTexture, NULL);
@@ -69,7 +72,7 @@ LPDIRECT3DTEXTURE9 CreateTexture2D(const s32 width, const s32 height, D3DFORMAT 
 	{
 		PanicAlert("Failed to create texture at %s, line %d: hr=%#x\n", __FILE__, __LINE__, hr);
 		return 0;
-	}	
+	}
 	return pTexture;
 }
 

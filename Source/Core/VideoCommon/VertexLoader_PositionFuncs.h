@@ -36,7 +36,7 @@ __forceinline void _Pos_ReadDirect(TPipelineState &pipelinestate)
 	static_assert(N <= 3, "N > 3 is not sane!");
 
 	for (int i = 0; i < 3; ++i)
-		pipelinestate.Write(i<N ? PosScale(pipelinestate, pipelinestate.Read<T>()) : 0.f);
+		pipelinestate.Write(i < N ? PosScale(pipelinestate, pipelinestate.Read<T>()) : 0.f);
 }
 
 template <typename I, typename T, int N>
@@ -48,7 +48,7 @@ __forceinline void _Pos_ReadIndex(TPipelineState &pipelinestate)
 	auto const data = reinterpret_cast<const T*>(IndexedDataPosition<I>(pipelinestate));
 
 	for (int i = 0; i < 3; ++i)
-		pipelinestate.Write(i<N ? PosScale(pipelinestate, Common::FromBigEndian(data[i])) : 0.f);
+		pipelinestate.Write(i < N ? PosScale(pipelinestate, Common::FromBigEndian(data[i])) : 0.f);
 }
 
 #if _M_SSE >= 0x301

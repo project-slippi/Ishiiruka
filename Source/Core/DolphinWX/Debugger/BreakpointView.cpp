@@ -18,7 +18,7 @@
 
 CBreakPointView::CBreakPointView(wxWindow* parent, const wxWindowID id)
 	: wxListCtrl(parent, id, wxDefaultPosition, wxDefaultSize,
-			wxLC_REPORT | wxSUNKEN_BORDER | wxLC_ALIGN_LEFT | wxLC_SINGLE_SEL | wxLC_SORT_ASCENDING)
+		wxLC_REPORT | wxSUNKEN_BORDER | wxLC_ALIGN_LEFT | wxLC_SINGLE_SEL | wxLC_SORT_ASCENDING)
 {
 	SetFont(DebuggerFont);
 	Refresh();

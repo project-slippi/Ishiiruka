@@ -58,8 +58,14 @@
 #pragma pack(1)
 struct vertex_shader_uid_data
 {
-	u32 NumValues() const { return sizeof(vertex_shader_uid_data); }
-	u32 StartValue() const { return 0; }
+	u32 NumValues() const
+	{
+		return sizeof(vertex_shader_uid_data);
+	}
+	u32 StartValue() const
+	{
+		return 0;
+	}
 	u32 components : 22;
 	u32 numTexGens : 4;
 	u32 numColorChans : 2;
@@ -71,13 +77,15 @@ struct vertex_shader_uid_data
 	u32 texMtxInfo_n_projection : 16; // Stored separately to guarantee that the texMtxInfo struct is 8 bits wide
 	u32 pad0 : 16;
 
-	struct {
+	struct
+	{
 		u8 index : 6;
 		u8 normalize : 1;
 		u8 pad : 1;
 	} postMtxInfo[8];
 
-	struct {
+	struct
+	{
 		u16 inputform : 2;
 		u16 texgentype : 3;
 		u16 sourcerow : 5;

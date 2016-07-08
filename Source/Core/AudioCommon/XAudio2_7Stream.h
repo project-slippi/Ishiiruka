@@ -27,7 +27,7 @@ struct IXAudio2MasteringVoice;
 
 #endif
 
-class XAudio2_7 final : public SoundStream
+class XAudio2_7 final: public SoundStream
 {
 #ifdef _WIN32
 protected:
@@ -71,7 +71,10 @@ public:
 	virtual void Clear(bool mute);
 	virtual void SetVolume(int volume);
 
-	static bool isValid() { return InitLibrary(); }
+	static bool isValid()
+	{
+		return InitLibrary();
+	}
 
 #else
 

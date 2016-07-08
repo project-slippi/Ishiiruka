@@ -6,16 +6,22 @@
 #include "VideoCommon/NativeVertexFormat.h"
 #include "VideoCommon/VertexLoaderBase.h"
 
-class VertexLoaderCompiled : public VertexLoaderBase
+class VertexLoaderCompiled: public VertexLoaderBase
 {
 public:
 	static void Initialize();
 	VertexLoaderCompiled(const TVtxDesc &vtx_desc, const VAT &vtx_attr);
 	~VertexLoaderCompiled();
-	bool IsPrecompiled() override { return true; }
+	bool IsPrecompiled() override
+	{
+		return true;
+	}
 	s32 RunVertices(const VertexLoaderParameters &parameters) override;
-		
-	bool IsInitialized() override { return m_initialized; } // This vertex loader supports all formats
+
+	bool IsInitialized() override
+	{
+		return m_initialized;
+	} // This vertex loader supports all formats
 private:
 	static bool s_PrecompiledLoadersInitialized;
 	bool m_initialized;

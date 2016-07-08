@@ -10,7 +10,7 @@
 
 class PointerWrap;
 
-class CEXIIPL : public IEXIDevice
+class CEXIIPL: public IEXIDevice
 {
 public:
 	CEXIIPL();
@@ -18,7 +18,7 @@ public:
 
 	void SetCS(int _iCS) override;
 	bool IsPresent() const override;
-	void DoState(PointerWrap &p) override;
+	void DoState(PointerWrap& p) override;
 
 	static u32 GetGCTime();
 	static u64 NetPlay_GetGCTime();
@@ -28,22 +28,22 @@ public:
 private:
 	enum
 	{
-		ROM_SIZE = 1024*1024*2,
+		ROM_SIZE = 1024 * 1024 * 2,
 		ROM_MASK = (ROM_SIZE - 1)
 	};
 
 	enum
 	{
-		REGION_RTC       = 0x200000,
-		REGION_SRAM      = 0x200001,
-		REGION_UART      = 0x200100,
-		REGION_UART_UNK  = 0x200103,
-		REGION_BARNACLE  = 0x200113,
-		REGION_WRTC0     = 0x210000,
-		REGION_WRTC1     = 0x210001,
-		REGION_WRTC2     = 0x210008,
+		REGION_RTC = 0x200000,
+		REGION_SRAM = 0x200001,
+		REGION_UART = 0x200100,
+		REGION_UART_UNK = 0x200103,
+		REGION_BARNACLE = 0x200113,
+		REGION_WRTC0 = 0x210000,
+		REGION_WRTC1 = 0x210001,
+		REGION_WRTC2 = 0x210008,
 		REGION_EUART_UNK = 0x300000,
-		REGION_EUART     = 0x300001
+		REGION_EUART = 0x300001
 	};
 
 	// Region
@@ -67,9 +67,14 @@ private:
 	void UpdateRTC();
 
 	void TransferByte(u8& _uByte) override;
-	bool IsWriteCommand() const { return !!(m_uAddress & (1 << 31)); }
-	u32 CommandRegion() const { return (m_uAddress & ~(1 << 31)) >> 8; }
-
+	bool IsWriteCommand() const
+	{
+		return !!(m_uAddress & (1 << 31));
+	}
+	u32 CommandRegion() const
+	{
+		return (m_uAddress & ~(1 << 31)) >> 8;
+	}
 	void LoadFileToIPL(const std::string& filename, u32 offset);
 	void LoadFontFile(const std::string& filename, u32 offset);
 	std::string FindIPLDump(const std::string& path_prefix);

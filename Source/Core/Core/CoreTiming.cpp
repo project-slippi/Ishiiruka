@@ -84,7 +84,8 @@ static void FreeEvent(Event* ev)
 	eventPool = ev;
 }
 
-static void EmptyTimedCallback(u64 userdata, s64 cyclesLate) {}
+static void EmptyTimedCallback(u64 userdata, s64 cyclesLate)
+{}
 
 // Changing the CPU speed in Dolphin isn't actually done by changing the physical clock rate,
 // but by changing the amount of work done in a particular amount of time. This tends to be more
@@ -243,8 +244,8 @@ void ScheduleEvent_Threadsafe(s64 cyclesIntoFuture, int event_type, u64 userdata
 	if (Core::g_want_determinism)
 	{
 		ERROR_LOG(POWERPC, "Someone scheduled an off-thread \"%s\" event while netplay or movie play/record "
-		                   "was active.  This is likely to cause a desync.",
-		                   event_types[event_type].name.c_str());
+			"was active.  This is likely to cause a desync.",
+			event_types[event_type].name.c_str());
 	}
 	std::lock_guard<std::mutex> lk(tsWriteLock);
 	Event ne;
@@ -318,7 +319,7 @@ static void AddEventToQueue(Event* ne)
 void ScheduleEvent(s64 cyclesIntoFuture, int event_type, u64 userdata)
 {
 	_assert_msg_(POWERPC, Core::IsCPUThread() || Core::GetState() == Core::CORE_PAUSE,
-				 "ScheduleEvent from wrong thread");
+		"ScheduleEvent from wrong thread");
 
 	Event *ne = GetNewEvent();
 	ne->userdata = userdata;
@@ -376,31 +377,6 @@ void ForceExceptionCheck(s64 cycles)
 		// downcount is always (much) smaller than MAX_INT so we can safely cast cycles to an int here.
 		g_slicelength -= (DowncountToCycles(PowerPC::ppcState.downcount) - (int)cycles); // Account for cycles already executed by adjusting the g_slicelength
 		PowerPC::ppcState.downcount = CyclesToDowncount((int)cycles);
-	}
-}
-
-
-//This raise only the events required while the fifo is processing data
-void ProcessFifoWaitEvents()
-{
-	MoveEvents();
-
-	if (!first)
-		return;
-
-	while (first)
-	{
-		if (first->time <= g_globalTimer)
-		{
-			Event* evt = first;
-			first = first->next;
-			event_types[evt->type].callback(evt->userdata, (int)(g_globalTimer - evt->time));
-			FreeEvent(evt);
-		}
-		else
-		{
-			break;
-		}
 	}
 }
 
@@ -476,7 +452,6 @@ void Idle()
 		//When the FIFO is processing data we must not advance because in this way
 		//the VI will be desynchronized. So, We are waiting until the FIFO finish and
 		//while we process only the events required by the FIFO.
-		ProcessFifoWaitEvents();
 		Fifo::FlushGpu();
 	}
 

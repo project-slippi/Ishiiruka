@@ -78,7 +78,7 @@ void SetDebugObjectName(T resource, const char* name)
 #if defined(_DEBUG) || defined(DEBUGFAST)
 	if (name && resource) resource->SetPrivateData(WKPDID_D3DDebugObjectName, (UINT)strlen(name), name);
 #endif
-	}
+}
 
 }  // namespace D3D
 

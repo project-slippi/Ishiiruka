@@ -32,7 +32,7 @@ u8 *VertexManagerBase::s_pEndBufferPointer;
 
 bool VertexManagerBase::s_shader_refresh_required = true;
 bool VertexManagerBase::s_zslope_refresh_required = true;
-Slope VertexManagerBase::s_zslope = { 0.0f, 0.0f, float(0xFFFFFF) };
+Slope VertexManagerBase::s_zslope = {0.0f, 0.0f, float(0xFFFFFF)};
 
 PrimitiveType VertexManagerBase::current_primitive_type;
 
@@ -62,8 +62,7 @@ VertexManagerBase::VertexManagerBase()
 }
 
 VertexManagerBase::~VertexManagerBase()
-{
-}
+{}
 
 inline u32 GetRemainingSize()
 {
@@ -202,7 +201,7 @@ void VertexManagerBase::DoFlush()
 		TextureCacheBase::BindTextures();
 	}
 	// set global constants
-	VertexShaderManager::SetConstants();	
+	VertexShaderManager::SetConstants();
 	if (current_primitive_type == PRIMITIVE_TRIANGLES)
 	{
 		const PortableVertexDeclaration &vtx_dcl = current_vertex_format->GetVertexDeclaration();

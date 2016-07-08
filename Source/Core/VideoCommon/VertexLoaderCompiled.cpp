@@ -103,7 +103,7 @@ s32 VertexLoaderCompiled::RunVertices(const VertexLoaderParameters &parameters)
 		g_PipelineState.tcScale[5] = fractionTable[vat.g2.Tex5Frac];
 		g_PipelineState.tcScale[6] = fractionTable[vat.g2.Tex6Frac];
 		g_PipelineState.tcScale[7] = fractionTable[vat.g2.Tex7Frac];
-	}	
+	}
 	g_PipelineState.flags = g_ActiveConfig.iBBoxMode == BBoxCPU && BoundingBox::active ? TPS_USE_BBOX : TPS_NONE;
 	g_PipelineState.stride = m_native_stride;
 	g_PipelineState.skippedVertices = 0;
@@ -126,7 +126,7 @@ void VertexLoaderCompiled::InitializeVertexData()
 	m_native_components = 0;
 	m_VertexSize = 0;
 	// Colors
-	const u64 col[2] = { m_VtxDesc.Color0, m_VtxDesc.Color1 };
+	const u64 col[2] = {m_VtxDesc.Color0, m_VtxDesc.Color1};
 	// TextureCoord
 	const u64 tc[8] = {
 		m_VtxDesc.Tex0Coord, m_VtxDesc.Tex1Coord, m_VtxDesc.Tex2Coord, m_VtxDesc.Tex3Coord,
@@ -143,14 +143,38 @@ void VertexLoaderCompiled::InitializeVertexData()
 		m_VertexSize += 1;
 	}
 
-	if (m_VtxDesc.Tex0MatIdx) { m_VertexSize += 1; m_native_components |= VB_HAS_TEXMTXIDX0; }
-	if (m_VtxDesc.Tex1MatIdx) { m_VertexSize += 1; m_native_components |= VB_HAS_TEXMTXIDX1; }
-	if (m_VtxDesc.Tex2MatIdx) { m_VertexSize += 1; m_native_components |= VB_HAS_TEXMTXIDX2; }
-	if (m_VtxDesc.Tex3MatIdx) { m_VertexSize += 1; m_native_components |= VB_HAS_TEXMTXIDX3; }
-	if (m_VtxDesc.Tex4MatIdx) { m_VertexSize += 1; m_native_components |= VB_HAS_TEXMTXIDX4; }
-	if (m_VtxDesc.Tex5MatIdx) { m_VertexSize += 1; m_native_components |= VB_HAS_TEXMTXIDX5; }
-	if (m_VtxDesc.Tex6MatIdx) { m_VertexSize += 1; m_native_components |= VB_HAS_TEXMTXIDX6; }
-	if (m_VtxDesc.Tex7MatIdx) { m_VertexSize += 1; m_native_components |= VB_HAS_TEXMTXIDX7; }
+	if (m_VtxDesc.Tex0MatIdx)
+	{
+		m_VertexSize += 1; m_native_components |= VB_HAS_TEXMTXIDX0;
+	}
+	if (m_VtxDesc.Tex1MatIdx)
+	{
+		m_VertexSize += 1; m_native_components |= VB_HAS_TEXMTXIDX1;
+	}
+	if (m_VtxDesc.Tex2MatIdx)
+	{
+		m_VertexSize += 1; m_native_components |= VB_HAS_TEXMTXIDX2;
+	}
+	if (m_VtxDesc.Tex3MatIdx)
+	{
+		m_VertexSize += 1; m_native_components |= VB_HAS_TEXMTXIDX3;
+	}
+	if (m_VtxDesc.Tex4MatIdx)
+	{
+		m_VertexSize += 1; m_native_components |= VB_HAS_TEXMTXIDX4;
+	}
+	if (m_VtxDesc.Tex5MatIdx)
+	{
+		m_VertexSize += 1; m_native_components |= VB_HAS_TEXMTXIDX5;
+	}
+	if (m_VtxDesc.Tex6MatIdx)
+	{
+		m_VertexSize += 1; m_native_components |= VB_HAS_TEXMTXIDX6;
+	}
+	if (m_VtxDesc.Tex7MatIdx)
+	{
+		m_VertexSize += 1; m_native_components |= VB_HAS_TEXMTXIDX7;
+	}
 
 	m_VertexSize += VertexLoader_Position::GetSize(m_VtxDesc.Position, m_VtxAttr.PosFormat, m_VtxAttr.PosElements);
 	nat_offset += 12;

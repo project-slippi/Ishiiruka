@@ -266,7 +266,7 @@ typedef void (APIENTRYP PFNDOLGETBOOLEANI_VPROC) (GLenum target, GLuint index, G
 typedef void (APIENTRYP PFNDOLGETINTEGERI_VPROC) (GLenum target, GLuint index, GLint *data);
 typedef void (APIENTRYP PFNDOLENABLEIPROC) (GLenum target, GLuint index);
 typedef void (APIENTRYP PFNDOLDISABLEIPROC) (GLenum target, GLuint index);
-typedef GLboolean (APIENTRYP PFNDOLISENABLEDIPROC) (GLenum target, GLuint index);
+typedef GLboolean(APIENTRYP PFNDOLISENABLEDIPROC) (GLenum target, GLuint index);
 typedef void (APIENTRYP PFNDOLBEGINTRANSFORMFEEDBACKPROC) (GLenum primitiveMode);
 typedef void (APIENTRYP PFNDOLENDTRANSFORMFEEDBACKPROC) (void);
 typedef void (APIENTRYP PFNDOLBINDBUFFERRANGEPROC) (GLenum target, GLuint index, GLuint buffer, GLintptr offset, GLsizeiptr size);
@@ -301,7 +301,7 @@ typedef void (APIENTRYP PFNDOLVERTEXATTRIBI4UBVPROC) (GLuint index, const GLubyt
 typedef void (APIENTRYP PFNDOLVERTEXATTRIBI4USVPROC) (GLuint index, const GLushort *v);
 typedef void (APIENTRYP PFNDOLGETUNIFORMUIVPROC) (GLuint program, GLint location, GLuint *params);
 typedef void (APIENTRYP PFNDOLBINDFRAGDATALOCATIONPROC) (GLuint program, GLuint color, const GLchar *name);
-typedef GLint (APIENTRYP PFNDOLGETFRAGDATALOCATIONPROC) (GLuint program, const GLchar *name);
+typedef GLint(APIENTRYP PFNDOLGETFRAGDATALOCATIONPROC) (GLuint program, const GLchar *name);
 typedef void (APIENTRYP PFNDOLUNIFORM1UIPROC) (GLint location, GLuint v0);
 typedef void (APIENTRYP PFNDOLUNIFORM2UIPROC) (GLint location, GLuint v0, GLuint v1);
 typedef void (APIENTRYP PFNDOLUNIFORM3UIPROC) (GLint location, GLuint v0, GLuint v1, GLuint v2);
@@ -319,17 +319,17 @@ typedef void (APIENTRYP PFNDOLCLEARBUFFERUIVPROC) (GLenum buffer, GLint drawbuff
 typedef void (APIENTRYP PFNDOLCLEARBUFFERFVPROC) (GLenum buffer, GLint drawbuffer, const GLfloat *value);
 typedef void (APIENTRYP PFNDOLCLEARBUFFERFIPROC) (GLenum buffer, GLint drawbuffer, GLfloat depth, GLint stencil);
 typedef const GLubyte *(APIENTRYP PFNDOLGETSTRINGIPROC) (GLenum name, GLuint index);
-typedef GLboolean (APIENTRYP PFNDOLISRENDERBUFFERPROC) (GLuint renderbuffer);
+typedef GLboolean(APIENTRYP PFNDOLISRENDERBUFFERPROC) (GLuint renderbuffer);
 typedef void (APIENTRYP PFNDOLBINDRENDERBUFFERPROC) (GLenum target, GLuint renderbuffer);
 typedef void (APIENTRYP PFNDOLDELETERENDERBUFFERSPROC) (GLsizei n, const GLuint *renderbuffers);
 typedef void (APIENTRYP PFNDOLGENRENDERBUFFERSPROC) (GLsizei n, GLuint *renderbuffers);
 typedef void (APIENTRYP PFNDOLRENDERBUFFERSTORAGEPROC) (GLenum target, GLenum internalformat, GLsizei width, GLsizei height);
 typedef void (APIENTRYP PFNDOLGETRENDERBUFFERPARAMETERIVPROC) (GLenum target, GLenum pname, GLint *params);
-typedef GLboolean (APIENTRYP PFNDOLISFRAMEBUFFERPROC) (GLuint framebuffer);
+typedef GLboolean(APIENTRYP PFNDOLISFRAMEBUFFERPROC) (GLuint framebuffer);
 typedef void (APIENTRYP PFNDOLBINDFRAMEBUFFERPROC) (GLenum target, GLuint framebuffer);
 typedef void (APIENTRYP PFNDOLDELETEFRAMEBUFFERSPROC) (GLsizei n, const GLuint *framebuffers);
 typedef void (APIENTRYP PFNDOLGENFRAMEBUFFERSPROC) (GLsizei n, GLuint *framebuffers);
-typedef GLenum (APIENTRYP PFNDOLCHECKFRAMEBUFFERSTATUSPROC) (GLenum target);
+typedef GLenum(APIENTRYP PFNDOLCHECKFRAMEBUFFERSTATUSPROC) (GLenum target);
 typedef void (APIENTRYP PFNDOLFRAMEBUFFERTEXTURE1DPROC) (GLenum target, GLenum attachment, GLenum textarget, GLuint texture, GLint level);
 typedef void (APIENTRYP PFNDOLFRAMEBUFFERTEXTURE2DPROC) (GLenum target, GLenum attachment, GLenum textarget, GLuint texture, GLint level);
 typedef void (APIENTRYP PFNDOLFRAMEBUFFERTEXTURE3DPROC) (GLenum target, GLenum attachment, GLenum textarget, GLuint texture, GLint level, GLint zoffset);
@@ -344,7 +344,7 @@ typedef void (APIENTRYP PFNDOLFLUSHMAPPEDBUFFERRANGEPROC) (GLenum target, GLintp
 typedef void (APIENTRYP PFNDOLBINDVERTEXARRAYPROC) (GLuint array);
 typedef void (APIENTRYP PFNDOLDELETEVERTEXARRAYSPROC) (GLsizei n, const GLuint *arrays);
 typedef void (APIENTRYP PFNDOLGENVERTEXARRAYSPROC) (GLsizei n, GLuint *arrays);
-typedef GLboolean (APIENTRYP PFNDOLISVERTEXARRAYPROC) (GLuint array);
+typedef GLboolean(APIENTRYP PFNDOLISVERTEXARRAYPROC) (GLuint array);
 
 extern PFNDOLBEGINCONDITIONALRENDERPROC dolBeginConditionalRender;
 extern PFNDOLBEGINTRANSFORMFEEDBACKPROC dolBeginTransformFeedback;

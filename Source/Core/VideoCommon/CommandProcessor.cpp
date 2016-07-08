@@ -121,7 +121,8 @@ void Init()
 
 void RegisterMMIO(MMIO::Mapping* mmio, u32 base)
 {
-	struct {
+	struct
+	{
 		u32 addr;
 		u16* ptr;
 		bool readonly;
@@ -160,24 +161,27 @@ void RegisterMMIO(MMIO::Mapping* mmio, u32 base)
 			mapped_var.readonly
 			? MMIO::InvalidWrite<u16>()
 			: MMIO::DirectWrite<u16>(mapped_var.ptr, wmask)
-			);
+		);
 	}
 
 	mmio->Register(base | FIFO_BP_LO,
 		MMIO::DirectRead<u16>(MMIO::Utils::LowPart(&fifo.CPBreakpoint)),
-		MMIO::ComplexWrite<u16>([](u32, u16 val) {
+		MMIO::ComplexWrite<u16>([](u32, u16 val)
+	{
 		WriteLow(fifo.CPBreakpoint, val & 0xffe0);
 	})
-		);
+	);
 	mmio->Register(base | FIFO_BP_HI,
 		MMIO::DirectRead<u16>(MMIO::Utils::HighPart(&fifo.CPBreakpoint)),
-		MMIO::ComplexWrite<u16>([](u32, u16 val) {
+		MMIO::ComplexWrite<u16>([](u32, u16 val)
+	{
 		WriteHigh(fifo.CPBreakpoint, val);
 	})
-		);
+	);
 
 	// Timing and metrics MMIOs are stubbed with fixed values.
-	struct {
+	struct
+	{
 		u32 addr;
 		u16 value;
 	} metrics_mmios[] = {
@@ -202,11 +206,12 @@ void RegisterMMIO(MMIO::Mapping* mmio, u32 base)
 		mmio->Register(base | metrics_mmio.addr,
 			MMIO::Constant<u16>(metrics_mmio.value),
 			MMIO::InvalidWrite<u16>()
-			);
+		);
 	}
 
 	mmio->Register(base | STATUS_REGISTER,
-		MMIO::ComplexRead<u16>([](u32) {
+		MMIO::ComplexRead<u16>([](u32)
+	{
 		SetCpStatusRegister();
 		return m_CPStatusReg.Hex;
 	}),
@@ -215,33 +220,36 @@ void RegisterMMIO(MMIO::Mapping* mmio, u32 base)
 
 	mmio->Register(base | CTRL_REGISTER,
 		MMIO::DirectRead<u16>(&m_CPCtrlReg.Hex),
-		MMIO::ComplexWrite<u16>([](u32, u16 val) {
+		MMIO::ComplexWrite<u16>([](u32, u16 val)
+	{
 		UCPCtrlReg tmp(val);
 		m_CPCtrlReg.Hex = tmp.Hex;
 		SetCpControlRegister();
 		Fifo::RunGpu();
 	})
-		);
+	);
 
 	mmio->Register(base | CLEAR_REGISTER,
 		MMIO::DirectRead<u16>(&m_CPClearReg.Hex),
-		MMIO::ComplexWrite<u16>([](u32, u16 val) {
+		MMIO::ComplexWrite<u16>([](u32, u16 val)
+	{
 		UCPClearReg tmp(val);
 		m_CPClearReg.Hex = tmp.Hex;
 		SetCpClearRegister();
 		Fifo::RunGpu();
 	})
-		);
+	);
 
 	mmio->Register(base | PERF_SELECT,
 		MMIO::InvalidRead<u16>(),
 		MMIO::Nop<u16>()
-		);
+	);
 
 	// Some MMIOs have different handlers for single core vs. dual core mode.
 	mmio->Register(base | FIFO_RW_DISTANCE_LO,
 		IsOnThread()
-		? MMIO::ComplexRead<u16>([](u32) {
+		? MMIO::ComplexRead<u16>([](u32)
+	{
 		if (fifo.CPWritePointer >= fifo.SafeCPReadPointer)
 			return ReadLow(fifo.CPWritePointer - fifo.SafeCPReadPointer);
 		else
@@ -252,14 +260,16 @@ void RegisterMMIO(MMIO::Mapping* mmio, u32 base)
 		);
 	mmio->Register(base | FIFO_RW_DISTANCE_HI,
 		IsOnThread()
-		? MMIO::ComplexRead<u16>([](u32) {
+		? MMIO::ComplexRead<u16>([](u32)
+	{
 		if (fifo.CPWritePointer >= fifo.SafeCPReadPointer)
 			return ReadHigh(fifo.CPWritePointer - fifo.SafeCPReadPointer);
 		else
 			return ReadHigh(fifo.CPEnd - fifo.SafeCPReadPointer + fifo.CPWritePointer - fifo.CPBase + 32);
 	})
 		: MMIO::DirectRead<u16>(MMIO::Utils::HighPart(&fifo.CPReadWriteDistance)),
-		MMIO::ComplexWrite<u16>([](u32, u16 val) {
+		MMIO::ComplexWrite<u16>([](u32, u16 val)
+	{
 		WriteHigh(fifo.CPReadWriteDistance, val);
 		Fifo::SyncGPU(Fifo::SYNC_GPU_OTHER);
 		if (fifo.CPReadWriteDistance == 0)
@@ -279,13 +289,14 @@ void RegisterMMIO(MMIO::Mapping* mmio, u32 base)
 		? MMIO::DirectRead<u16>(MMIO::Utils::LowPart(&fifo.SafeCPReadPointer))
 		: MMIO::DirectRead<u16>(MMIO::Utils::LowPart(&fifo.CPReadPointer)),
 		MMIO::DirectWrite<u16>(MMIO::Utils::LowPart(&fifo.CPReadPointer), 0xFFE0)
-		);
+	);
 	mmio->Register(base | FIFO_READ_POINTER_HI,
 		IsOnThread()
 		? MMIO::DirectRead<u16>(MMIO::Utils::HighPart(&fifo.SafeCPReadPointer))
 		: MMIO::DirectRead<u16>(MMIO::Utils::HighPart(&fifo.CPReadPointer)),
 		IsOnThread()
-		? MMIO::ComplexWrite<u16>([](u32, u16 val) {
+		? MMIO::ComplexWrite<u16>([](u32, u16 val)
+	{
 		WriteHigh(fifo.CPReadPointer, val);
 		fifo.SafeCPReadPointer = fifo.CPReadPointer;
 	})
@@ -298,7 +309,6 @@ void GatherPipeBursted()
 	if (IsOnThread())
 		SetCPStatusFromCPU();
 
-	ProcessFifoEvents();
 	// if we aren't linked, we don't care about gather pipe data
 	if (!m_CPCtrlReg.GPLinkEnable)
 	{
@@ -474,12 +484,6 @@ void SetCPStatusFromCPU()
 	}
 }
 
-void ProcessFifoEvents()
-{
-	if (IsOnThread() && (s_interrupt_waiting.load() || s_interrupt_finish_waiting.load() || s_interrupt_token_waiting.load()))
-		CoreTiming::ProcessFifoWaitEvents();
-}
-
 void Shutdown()
 {
 
@@ -501,7 +505,7 @@ void SetCpStatusRegister()
 		, m_CPStatusReg.CommandIdle ? "ON" : "OFF"
 		, m_CPStatusReg.OverflowHiWatermark ? "ON" : "OFF"
 		, m_CPStatusReg.UnderflowLoWatermark ? "ON" : "OFF"
-		);
+	);
 }
 
 void SetCpControlRegister()
@@ -529,14 +533,13 @@ void SetCpControlRegister()
 		, m_CPCtrlReg.FifoOverflowIntEnable ? "ON" : "OFF"
 		, m_CPCtrlReg.FifoUnderflowIntEnable ? "ON" : "OFF"
 		, m_CPCtrlReg.GPLinkEnable ? "ON" : "OFF"
-		);
+	);
 
 }
 
 // NOTE: We intentionally don't emulate this function at the moment.
 // We don't emulate proper GP timing anyway at the moment, so it would just slow down emulation.
 void SetCpClearRegister()
-{
-}
+{}
 
 } // end of namespace CommandProcessor

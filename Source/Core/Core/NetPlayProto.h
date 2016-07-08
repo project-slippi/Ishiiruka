@@ -13,6 +13,7 @@ struct NetSettings
 {
 	bool m_CPUthread;
 	int m_CPUcore;
+	bool m_EnableCheats;
 	int m_SelectedLanguage;
 	bool m_OverrideGCLanguage;
 	bool m_ProgressiveScan;
@@ -28,7 +29,7 @@ struct NetSettings
 extern NetSettings g_NetPlaySettings;
 extern u64 g_netplay_initial_gctime;
 
-struct Rpt : public std::vector<u8>
+struct Rpt: public std::vector<u8>
 {
 	u16 channel;
 };
@@ -74,13 +75,13 @@ enum
 };
 
 using NetWiimote = std::vector<u8>;
-using MessageId  = u8;
-using PlayerId   = u8;
-using FrameNum   = u32;
+using MessageId = u8;
+using PlayerId = u8;
+using FrameNum = u32;
 using PadMapping = s8;
 using PadMappingArray = std::array<PadMapping, 4>;
 
 namespace NetPlay
 {
-	bool IsNetPlayRunning();
+bool IsNetPlayRunning();
 }

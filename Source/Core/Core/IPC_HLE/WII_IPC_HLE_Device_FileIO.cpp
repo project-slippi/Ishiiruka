@@ -81,8 +81,7 @@ CWII_IPC_HLE_Device_FileIO::CWII_IPC_HLE_Device_FileIO(u32 _DeviceID, const std:
 }
 
 CWII_IPC_HLE_Device_FileIO::~CWII_IPC_HLE_Device_FileIO()
-{
-}
+{}
 
 IPCCommandResult CWII_IPC_HLE_Device_FileIO::Close(u32 _CommandAddress, bool _bForce)
 {
@@ -129,7 +128,7 @@ IPCCommandResult CWII_IPC_HLE_Device_FileIO::Open(u32 _CommandAddress, u32 _Mode
 	}
 
 	if (_CommandAddress)
-		Memory::Write_U32(ReturnValue, _CommandAddress+4);
+		Memory::Write_U32(ReturnValue, _CommandAddress + 4);
 	m_Active = true;
 	return GetDefaultReply();
 }
@@ -187,49 +186,49 @@ IPCCommandResult CWII_IPC_HLE_Device_FileIO::Seek(u32 _CommandAddress)
 	{
 		ReturnValue = FS_RESULT_FATAL;
 
-		const s32 fileSize = (s32) m_file->GetSize();
+		const s32 fileSize = (s32)m_file->GetSize();
 		INFO_LOG(WII_IPC_FILEIO, "FileIO: Seek Pos: 0x%08x, Mode: %i (%s, Length=0x%08x)", SeekPosition, Mode, m_Name.c_str(), fileSize);
 
 		switch (Mode)
 		{
-			case WII_SEEK_SET:
+		case WII_SEEK_SET:
+		{
+			if ((SeekPosition >= 0) && (SeekPosition <= fileSize))
 			{
-				if ((SeekPosition >=0) && (SeekPosition <= fileSize))
-				{
-					m_SeekPos = SeekPosition;
-					ReturnValue = m_SeekPos;
-				}
-				break;
+				m_SeekPos = SeekPosition;
+				ReturnValue = m_SeekPos;
 			}
+			break;
+		}
 
-			case WII_SEEK_CUR:
+		case WII_SEEK_CUR:
+		{
+			s32 wantedPos = SeekPosition + m_SeekPos;
+			if (wantedPos >= 0 && wantedPos <= fileSize)
 			{
-				s32 wantedPos = SeekPosition+m_SeekPos;
-				if (wantedPos >=0 && wantedPos <= fileSize)
-				{
-					m_SeekPos = wantedPos;
-					ReturnValue = m_SeekPos;
-				}
-				break;
+				m_SeekPos = wantedPos;
+				ReturnValue = m_SeekPos;
 			}
+			break;
+		}
 
-			case WII_SEEK_END:
+		case WII_SEEK_END:
+		{
+			s32 wantedPos = SeekPosition + fileSize;
+			if (wantedPos >= 0 && wantedPos <= fileSize)
 			{
-				s32 wantedPos = SeekPosition+fileSize;
-				if (wantedPos >=0 && wantedPos <= fileSize)
-				{
-					m_SeekPos = wantedPos;
-					ReturnValue = m_SeekPos;
-				}
-				break;
+				m_SeekPos = wantedPos;
+				ReturnValue = m_SeekPos;
 			}
+			break;
+		}
 
-			default:
-			{
-				PanicAlert("CWII_IPC_HLE_Device_FileIO Unsupported seek mode %i", Mode);
-				ReturnValue = FS_RESULT_FATAL;
-				break;
-			}
+		default:
+		{
+			PanicAlert("CWII_IPC_HLE_Device_FileIO Unsupported seek mode %i", Mode);
+			ReturnValue = FS_RESULT_FATAL;
+			break;
+		}
 		}
 	}
 	else
@@ -245,7 +244,7 @@ IPCCommandResult CWII_IPC_HLE_Device_FileIO::Read(u32 _CommandAddress)
 {
 	u32 ReturnValue = FS_EACCESS;
 	const u32 Address = Memory::Read_U32(_CommandAddress + 0xC); // Read to this memory address
-	const u32 Size    = Memory::Read_U32(_CommandAddress + 0x10);
+	const u32 Size = Memory::Read_U32(_CommandAddress + 0x10);
 
 
 	if (m_file->IsOpen())
@@ -284,7 +283,7 @@ IPCCommandResult CWII_IPC_HLE_Device_FileIO::Write(u32 _CommandAddress)
 {
 	u32 ReturnValue = FS_EACCESS;
 	const u32 Address = Memory::Read_U32(_CommandAddress + 0xC); // Write data from this memory address
-	const u32 Size    = Memory::Read_U32(_CommandAddress + 0x10);
+	const u32 Size = Memory::Read_U32(_CommandAddress + 0x10);
 
 	if (m_file->IsOpen())
 	{
@@ -319,35 +318,35 @@ IPCCommandResult CWII_IPC_HLE_Device_FileIO::IOCtl(u32 _CommandAddress)
 #if defined(_DEBUG) || defined(DEBUGFAST)
 	DumpCommands(_CommandAddress);
 #endif
-	const u32 Parameter =  Memory::Read_U32(_CommandAddress + 0xC);
+	const u32 Parameter = Memory::Read_U32(_CommandAddress + 0xC);
 	u32 ReturnValue = 0;
 
 	switch (Parameter)
 	{
 	case ISFS_IOCTL_GETFILESTATS:
+	{
+		if (m_file->IsOpen())
 		{
-			if (m_file->IsOpen())
-			{
-				u32 m_FileLength = (u32)m_file->GetSize();
+			u32 m_FileLength = (u32)m_file->GetSize();
 
-				const u32 BufferOut = Memory::Read_U32(_CommandAddress + 0x18);
-				INFO_LOG(WII_IPC_FILEIO, "  File: %s, Length: %i, Pos: %i", m_Name.c_str(), m_FileLength, m_SeekPos);
+			const u32 BufferOut = Memory::Read_U32(_CommandAddress + 0x18);
+			INFO_LOG(WII_IPC_FILEIO, "  File: %s, Length: %i, Pos: %i", m_Name.c_str(), m_FileLength, m_SeekPos);
 
-				Memory::Write_U32(m_FileLength, BufferOut);
-				Memory::Write_U32(m_SeekPos, BufferOut+4);
-			}
-			else
-			{
-				ReturnValue = FS_FILE_NOT_EXIST;
-			}
+			Memory::Write_U32(m_FileLength, BufferOut);
+			Memory::Write_U32(m_SeekPos, BufferOut + 4);
 		}
-		break;
+		else
+		{
+			ReturnValue = FS_FILE_NOT_EXIST;
+		}
+	}
+	break;
 
 	default:
-		{
-			PanicAlert("CWII_IPC_HLE_Device_FileIO: Parameter %i", Parameter);
-		}
-		break;
+	{
+		PanicAlert("CWII_IPC_HLE_Device_FileIO: Parameter %i", Parameter);
+	}
+	break;
 
 	}
 

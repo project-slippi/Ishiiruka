@@ -30,25 +30,25 @@ struct CPUInfo
 	int num_cores = 0;
 	int logical_cpu_count = 0;
 
-	bool bSSE    = false;
-	bool bSSE2   = false;
-	bool bSSE3   = false;
-	bool bSSSE3  = false;
+	bool bSSE = false;
+	bool bSSE2 = false;
+	bool bSSE3 = false;
+	bool bSSSE3 = false;
 	bool bPOPCNT = false;
 	bool bSSE4_1 = false;
 	bool bSSE4_2 = false;
-	bool bLZCNT  = false;
-	bool bSSE4A  = false;
-	bool bAVX    = false;
-	bool bAVX2   = false;
-	bool bBMI1   = false;
-	bool bBMI2   = false;
-	bool bFMA    = false;
-	bool bFMA4   = false;
-	bool bAES    = false;
+	bool bLZCNT = false;
+	bool bSSE4A = false;
+	bool bAVX = false;
+	bool bAVX2 = false;
+	bool bBMI1 = false;
+	bool bBMI2 = false;
+	bool bFMA = false;
+	bool bFMA4 = false;
+	bool bAES = false;
 	// FXSAVE/FXRSTOR
-	bool bFXSR   = false;
-	bool bMOVBE  = false;
+	bool bFXSR = false;
+	bool bMOVBE = false;
 	// This flag indicates that the hardware supports some mode
 	// in which denormal inputs _and_ outputs are automatically set to (signed) zero.
 	bool bFlushToZero = false;
@@ -57,11 +57,11 @@ struct CPUInfo
 	bool bAtom = false;
 
 	// ARMv8 specific
-	bool bFP    = false;
+	bool bFP = false;
 	bool bASIMD = false;
 	bool bCRC32 = false;
-	bool bSHA1  = false;
-	bool bSHA2  = false;
+	bool bSHA1 = false;
+	bool bSHA2 = false;
 
 	// Call Detect()
 	explicit CPUInfo();

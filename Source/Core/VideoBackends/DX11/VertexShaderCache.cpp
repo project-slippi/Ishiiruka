@@ -34,10 +34,22 @@ static D3D::InputLayoutPtr s_clear_layout;
 
 LinearDiskCache<VertexShaderUid, u8> g_vs_disk_cache;
 
-ID3D11VertexShader* VertexShaderCache::GetSimpleVertexShader() { return s_simple_vertex_shader.get(); }
-ID3D11VertexShader* VertexShaderCache::GetClearVertexShader() { return s_clear_vertex_shader.get(); }
-ID3D11InputLayout* VertexShaderCache::GetSimpleInputLayout() { return s_simple_layout.get(); }
-ID3D11InputLayout* VertexShaderCache::GetClearInputLayout() { return s_clear_layout.get(); }
+ID3D11VertexShader* VertexShaderCache::GetSimpleVertexShader()
+{
+	return s_simple_vertex_shader.get();
+}
+ID3D11VertexShader* VertexShaderCache::GetClearVertexShader()
+{
+	return s_clear_vertex_shader.get();
+}
+ID3D11InputLayout* VertexShaderCache::GetSimpleInputLayout()
+{
+	return s_simple_layout.get();
+}
+ID3D11InputLayout* VertexShaderCache::GetClearInputLayout()
+{
+	return s_clear_layout.get();
+}
 
 D3D::ConstantStreamBuffer* vscbuf = nullptr;
 
@@ -55,7 +67,7 @@ D3D::BufferDescriptor VertexShaderCache::GetConstantBuffer()
 }
 
 // this class will load the precompiled shaders into our cache
-class VertexShaderCacheInserter : public LinearDiskCacheReader<VertexShaderUid, u8>
+class VertexShaderCacheInserter: public LinearDiskCacheReader<VertexShaderUid, u8>
 {
 public:
 	void Read(const VertexShaderUid &key, const u8 *value, u32 value_size)
@@ -114,12 +126,12 @@ void VertexShaderCache::Init()
 		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0,  0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 		{ "COLOR", 0, DXGI_FORMAT_R8G8B8A8_UNORM, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 	};
-	
+
 	bool use_partial_buffer_update = D3D::SupportPartialContantBufferUpdate();
 	u32 cbsize = VertexShaderManager::ConstantBufferSize * sizeof(float) * (use_partial_buffer_update ? 1024 : 1); // is always multiple of 16
 	vscbuf = new D3D::ConstantStreamBuffer(cbsize);
 	ID3D11Buffer* buf = vscbuf->GetBuffer();
-	
+
 	CHECK(buf != nullptr, "Create vertex shader constant buffer (size=%u)", cbsize);
 	D3D::SetDebugObjectName(buf, "vertex shader constant buffer used to emulate the GX pipeline");
 
@@ -130,7 +142,7 @@ void VertexShaderCache::Init()
 	if (s_simple_layout == nullptr ||
 		s_simple_vertex_shader == nullptr)
 		PanicAlert("Failed to create simple vertex shader or input layout at %s %d\n", __FILE__, __LINE__);
-	
+
 	D3D::SetDebugObjectName(s_simple_layout.get(), "simple input layout");
 	D3D::SetDebugObjectName(s_simple_vertex_shader.get(), "simple vertex shader");
 
@@ -158,10 +170,10 @@ void VertexShaderCache::Init()
 		"Ishiiruka.vs",
 		StringFromFormat("%s.vs", SConfig::GetInstance().m_strUniqueID.c_str())
 	);
-	
+
 	std::string cache_filename = StringFromFormat("%sIDX11-%s-vs.cache", File::GetUserPath(D_SHADERCACHE_IDX).c_str(),
 		SConfig::GetInstance().m_strUniqueID.c_str());
-	
+
 	VertexShaderCacheInserter inserter;
 	g_vs_disk_cache.OpenAndRead(cache_filename, inserter);
 	if (g_ActiveConfig.bCompileShaderOnStartup)
@@ -282,10 +294,10 @@ void VertexShaderCache::CompileVShader(const VertexShaderUid& uid, bool ongputhr
 }
 
 void VertexShaderCache::PrepareShader(
-	u32 components, 
-	const XFMemory 
-	&xfr, 
-	const BPMemory &bpm, 
+	u32 components,
+	const XFMemory
+	&xfr,
+	const BPMemory &bpm,
 	bool ongputhread)
 {
 	VertexShaderUid uid;

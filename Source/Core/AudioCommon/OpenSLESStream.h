@@ -9,13 +9,16 @@
 #include "AudioCommon/SoundStream.h"
 #include "Common/Event.h"
 
-class OpenSLESStream final : public SoundStream
+class OpenSLESStream final: public SoundStream
 {
 #ifdef ANDROID
 public:
 	bool Start() override;
 	void Stop() override;
-	static bool isValid() { return true; }
+	static bool isValid()
+	{
+		return true;
+	}
 
 private:
 	std::thread thread;

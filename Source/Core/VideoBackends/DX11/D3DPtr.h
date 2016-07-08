@@ -17,19 +17,20 @@ struct ToAddrImpl;
 // The single ownership semantics of std::unique_ptr is used and we hide the AddRef/Release API to prevent invalid uses.
 // When VS2014 will be here, think to add the noexcept where it is possible
 template <typename T>
-struct UniquePtr {
+struct UniquePtr
+{
 	friend struct ToAddrImpl<T>;
 	// http://en.cppreference.com/w/cpp/memory/unique_ptr/unique_ptr
 	UniquePtr() = default;
 
 	// http://en.cppreference.com/w/cpp/memory/unique_ptr/unique_ptr
-	UniquePtr(std::nullptr_t) {
-	}
+	UniquePtr(std::nullptr_t)
+	{}
 
 	// http://en.cppreference.com/w/cpp/memory/unique_ptr/unique_ptr
-	explicit UniquePtr(T* p) :
-		m_ptr{ p } {
-	}
+	explicit UniquePtr(T* p):
+		m_ptr{p}
+	{}
 
 	// http://en.cppreference.com/w/cpp/memory/unique_ptr/unique_ptr
 	// Copy semantics is unwanted
@@ -39,36 +40,42 @@ struct UniquePtr {
 	UniquePtr& operator=(UniquePtr const &) = delete;
 
 	// http://en.cppreference.com/w/cpp/memory/unique_ptr/unique_ptr
-	UniquePtr(UniquePtr && p) : m_ptr{ p.release() } {}
+	UniquePtr(UniquePtr && p): m_ptr{p.release()}
+	{}
 
 	// http://en.cppreference.com/w/cpp/memory/unique_ptr/operator%3D
-	UniquePtr& operator=(UniquePtr && p) {
+	UniquePtr& operator=(UniquePtr && p)
+	{
 		// the next line is important as it is safe with self assignment
 		reset(p.release());
 		return *this;
 	}
 
 	// http://en.cppreference.com/w/cpp/memory/unique_ptr/operator%3D
-	UniquePtr& operator=(std::nullptr_t) {
+	UniquePtr& operator=(std::nullptr_t)
+	{
 		reset();
 		return *this;
 	}
 
 	// http://en.cppreference.com/w/cpp/memory/unique_ptr/~unique_ptr
-	~UniquePtr() {
+	~UniquePtr()
+	{
 		if (m_ptr)
 			m_ptr->Release();
 	}
 
 	// http://en.cppreference.com/w/cpp/memory/unique_ptr/release
-	T* release() {
+	T* release()
+	{
 		auto p = m_ptr;
 		m_ptr = nullptr;
 		return p;
 	}
 
 	// http://en.cppreference.com/w/cpp/memory/unique_ptr/reset
-	void reset(T* p = nullptr) {
+	void reset(T* p = nullptr)
+	{
 		// the std enforce the order of the operation ( first assign, then delete )
 		auto old = m_ptr;
 		m_ptr = p;
@@ -77,43 +84,76 @@ struct UniquePtr {
 	}
 
 	// http://en.cppreference.com/w/cpp/memory/unique_ptr/reset
-	void reset(std::nullptr_t) {
+	void reset(std::nullptr_t)
+	{
 		reset();
 	}
 
 	// this is the ugly part but there is no real clean way to hide the unwanted API
-	struct ReleaseAndAddRefHiddenT : public T {
+	struct ReleaseAndAddRefHiddenT: public T
+	{
 	private:
 		virtual ULONG Release(void) override;
 		virtual ULONG AddRef(void) override;
 	};
 
 	// http://en.cppreference.com/w/cpp/memory/unique_ptr/get
-	inline ReleaseAndAddRefHiddenT* get() const { return static_cast<ReleaseAndAddRefHiddenT*>(m_ptr); }
+	inline ReleaseAndAddRefHiddenT* get() const
+	{
+		return static_cast<ReleaseAndAddRefHiddenT*>(m_ptr);
+	}
 
 	// http://en.cppreference.com/w/cpp/memory/unique_ptr/operator*
-	ReleaseAndAddRefHiddenT* operator->() const { return static_cast<ReleaseAndAddRefHiddenT*>(m_ptr); }
-	ReleaseAndAddRefHiddenT& operator*() const { return *static_cast<ReleaseAndAddRefHiddenT*>(m_ptr); }
+	ReleaseAndAddRefHiddenT* operator->() const
+	{
+		return static_cast<ReleaseAndAddRefHiddenT*>(m_ptr);
+	}
+	ReleaseAndAddRefHiddenT& operator*() const
+	{
+		return *static_cast<ReleaseAndAddRefHiddenT*>(m_ptr);
+	}
 
 	// Because D3D ojjects are ref counted, we are able to clone if really we need it,
 	// still it is better to keep owership in one place and use naked pointer in the rendering code
 	// to prune unneccessary AddRef/Release cycles
-	UniquePtr Share() {
+	UniquePtr Share()
+	{
 		if (m_ptr)
 			m_ptr->AddRef();
-		return UniquePtr{ m_ptr };
+		return UniquePtr{m_ptr};
 	}
 
 	// http://en.cppreference.com/w/cpp/memory/unique_ptr/operator_bool
-	explicit operator bool() const { return m_ptr != nullptr; }
+	explicit operator bool() const
+	{
+		return m_ptr != nullptr;
+	}
 
 	// http://en.cppreference.com/w/cpp/memory/unique_ptr/operator_cmp
-	friend bool operator!=(UniquePtr const& a, UniquePtr const& b) { return a.m_ptr != b.m_ptr; }
-	friend bool operator!=(UniquePtr const& p, std::nullptr_t)     { return p.m_ptr != nullptr; }
-	friend bool operator!=(std::nullptr_t, UniquePtr const& p)     { return p.m_ptr != nullptr; }
-	friend bool operator==(UniquePtr const& a, UniquePtr const& b) { return a.m_ptr == b.m_ptr; }
-	friend bool operator==(UniquePtr const& p, std::nullptr_t)     { return p.m_ptr == nullptr; }
-	friend bool operator==(std::nullptr_t, UniquePtr const& p)     { return p.m_ptr == nullptr; }
+	friend bool operator!=(UniquePtr const& a, UniquePtr const& b)
+	{
+		return a.m_ptr != b.m_ptr;
+	}
+	friend bool operator!=(UniquePtr const& p, std::nullptr_t)
+	{
+		return p.m_ptr != nullptr;
+	}
+	friend bool operator!=(std::nullptr_t, UniquePtr const& p)
+	{
+		return p.m_ptr != nullptr;
+	}
+	friend bool operator==(UniquePtr const& a, UniquePtr const& b)
+	{
+		return a.m_ptr == b.m_ptr;
+	}
+	friend bool operator==(UniquePtr const& p, std::nullptr_t)
+	{
+		return p.m_ptr == nullptr;
+	}
+	friend bool operator==(std::nullptr_t, UniquePtr const& p)
+	{
+		return p.m_ptr == nullptr;
+	}
 private:
 	T* m_ptr{};
 };
@@ -133,7 +173,7 @@ using Texture2dPtr = UniquePtr<ID3D11Texture2D>;
 using RtvPtr = UniquePtr<ID3D11RenderTargetView>;
 using DsvPtr = UniquePtr<ID3D11DepthStencilView>;
 using ClkPtr = UniquePtr<ID3D11ClassLinkage>;
-using CiPtr = UniquePtr<ID3D11ClassInstance> ;
+using CiPtr = UniquePtr<ID3D11ClassInstance>;
 using InputLayoutPtr = UniquePtr<ID3D11InputLayout>;
 using BlendStatePtr = UniquePtr<ID3D11BlendState>;
 
@@ -146,21 +186,30 @@ using BufferDescriptor = std::tuple<ID3D11Buffer*, UINT, UINT>;
 // helper class to use a UniquePtr in the various CreateSomething( (T**)/(void**) result )
 // use with the following function
 template <typename T>
-struct ToAddrImpl {
-	ToAddrImpl(UniquePtr<T> & ptr) : m_ptr{ ptr } {}
+struct ToAddrImpl
+{
+	ToAddrImpl(UniquePtr<T> & ptr): m_ptr{ptr}
+	{}
 	ToAddrImpl(ToAddrImpl const &) = delete;
 	ToAddrImpl& operator=(ToAddrImpl const &) = delete;
 
-	operator void**() { return (void**)&m_ptr.m_ptr; }	
-	operator T**() { return &m_ptr.m_ptr; }
+	operator void**()
+	{
+		return (void**)&m_ptr.m_ptr;
+	}
+	operator T**()
+	{
+		return &m_ptr.m_ptr;
+	}
 private:
 	UniquePtr<T> &m_ptr;
 };
 
 // usage example : device->CreateBuffer( bla, ToAddr( m_myBuffer ) );
 template <typename T>
-inline ToAddrImpl<T> ToAddr(UniquePtr<T>& ptr) {
-	return{ ptr };
+inline ToAddrImpl<T> ToAddr(UniquePtr<T>& ptr)
+{
+	return{ptr};
 }
 
 }  // namespace D3D

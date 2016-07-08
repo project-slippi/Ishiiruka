@@ -13,7 +13,7 @@
 namespace OGL
 {
 
-class SamplerCache : NonCopyable
+class SamplerCache: NonCopyable
 {
 public:
 	SamplerCache();

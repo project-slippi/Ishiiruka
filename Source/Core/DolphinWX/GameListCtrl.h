@@ -13,20 +13,23 @@
 
 #include "DolphinWX/ISOFile.h"
 
-class wxEmuStateTip : public wxTipWindow
+class wxEmuStateTip: public wxTipWindow
 {
 public:
 	wxEmuStateTip(wxWindow* parent, const wxString& text, wxEmuStateTip** windowPtr)
-	    : wxTipWindow(parent, text, 70, (wxTipWindow**)windowPtr)
+		: wxTipWindow(parent, text, 70, (wxTipWindow**)windowPtr)
 	{
 		Bind(wxEVT_KEY_DOWN, &wxEmuStateTip::OnKeyDown, this);
 	}
 
 	// wxTipWindow doesn't correctly handle KeyEvents and crashes... we must overload that.
-	void OnKeyDown(wxKeyEvent& event) { event.StopPropagation(); Close(); }
+	void OnKeyDown(wxKeyEvent& event)
+	{
+		event.StopPropagation(); Close();
+	}
 };
 
-class CGameListCtrl : public wxListCtrl
+class CGameListCtrl: public wxListCtrl
 {
 public:
 

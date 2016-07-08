@@ -15,8 +15,8 @@ void GenerateMacAddress(const MACConsumer type, u8* mac)
 {
 	memset(mac, 0, MAC_ADDRESS_SIZE);
 
-	u8 const oui_bba[] = { 0x00, 0x09, 0xbf };
-	u8 const oui_ios[] = { 0x00, 0x17, 0xab };
+	u8 const oui_bba[] = {0x00, 0x09, 0xbf};
+	u8 const oui_ios[] = {0x00, 0x17, 0xab};
 
 	switch (type)
 	{
@@ -39,8 +39,8 @@ void GenerateMacAddress(const MACConsumer type, u8* mac)
 std::string MacAddressToString(const u8* mac)
 {
 	return StringFromFormat("%02x:%02x:%02x:%02x:%02x:%02x",
-	                        mac[0], mac[1], mac[2],
-	                        mac[3], mac[4], mac[5]);
+		mac[0], mac[1], mac[2],
+		mac[3], mac[4], mac[5]);
 }
 
 bool StringToMacAddress(const std::string& mac_string, u8* mac)
@@ -51,7 +51,7 @@ bool StringToMacAddress(const std::string& mac_string, u8* mac)
 		int x = 0;
 		memset(mac, 0, MAC_ADDRESS_SIZE);
 
-		for (size_t i = 0; i < mac_string.size() && x < (MAC_ADDRESS_SIZE*2); ++i)
+		for (size_t i = 0; i < mac_string.size() && x < (MAC_ADDRESS_SIZE * 2); ++i)
 		{
 			char c = tolower(mac_string.at(i));
 			if (c >= '0' && c <= '9')

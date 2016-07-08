@@ -81,24 +81,24 @@ void SWRenderer::UpdateColorTexture(EfbInterface::yuv422_packed *xfb, u32 fbWidt
 
 	for (u16 y = 0; y < fbHeight; y++)
 	{
-		for (u16 x = 0; x < fbWidth; x+=2)
+		for (u16 x = 0; x < fbWidth; x += 2)
 		{
 			// We do this one color sample (aka 2 RGB pixles) at a time
 			int Y1 = xfb[x].Y - 16;
 			int Y2 = xfb[x + 1].Y - 16;
-			int U  = int(xfb[x].UV) - 128;
-			int V  = int(xfb[x + 1].UV) - 128;
+			int U = int(xfb[x].UV) - 128;
+			int V = int(xfb[x + 1].UV) - 128;
 
 			// We do the inverse BT.601 conversion for YCbCr to RGB
 			// http://www.equasys.de/colorconversion.html#YCbCr-RGBColorFormatConversion
-			TexturePointer[offset++] = MathUtil::Clamp(int(1.164f * Y1              + 1.596f * V), 0, 255);
+			TexturePointer[offset++] = MathUtil::Clamp(int(1.164f * Y1 + 1.596f * V), 0, 255);
 			TexturePointer[offset++] = MathUtil::Clamp(int(1.164f * Y1 - 0.392f * U - 0.813f * V), 0, 255);
-			TexturePointer[offset++] = MathUtil::Clamp(int(1.164f * Y1 + 2.017f * U             ), 0, 255);
+			TexturePointer[offset++] = MathUtil::Clamp(int(1.164f * Y1 + 2.017f * U), 0, 255);
 			TexturePointer[offset++] = 255;
 
-			TexturePointer[offset++] = MathUtil::Clamp(int(1.164f * Y2              + 1.596f * V), 0, 255);
+			TexturePointer[offset++] = MathUtil::Clamp(int(1.164f * Y2 + 1.596f * V), 0, 255);
 			TexturePointer[offset++] = MathUtil::Clamp(int(1.164f * Y2 - 0.392f * U - 0.813f * V), 0, 255);
-			TexturePointer[offset++] = MathUtil::Clamp(int(1.164f * Y2 + 2.017f * U             ), 0, 255);
+			TexturePointer[offset++] = MathUtil::Clamp(int(1.164f * Y2 + 2.017f * U), 0, 255);
 			TexturePointer[offset++] = 255;
 		}
 		xfb += fbWidth;
@@ -140,7 +140,7 @@ void SWRenderer::SwapImpl(u32 xfbAddr, u32 fbWidth, u32 fbStride, u32 fbHeight, 
 		{
 			static int frame_index = 0;
 			TextureToPng(GetCurrentColorTexture(), fbWidth * 4, StringFromFormat("%sframe%i_color.png",
-					File::GetUserPath(D_DUMPFRAMES_IDX).c_str(), frame_index), fbWidth, fbHeight, true);
+				File::GetUserPath(D_DUMPFRAMES_IDX).c_str(), frame_index), fbWidth, fbHeight, true);
 			frame_index++;
 		}
 	}
@@ -194,9 +194,9 @@ void SWRenderer::BBoxWrite(int index, u16 value)
 TargetRectangle SWRenderer::ConvertEFBRectangle(const EFBRectangle& rc)
 {
 	TargetRectangle result;
-	result.left   = rc.left;
-	result.top    = rc.top;
-	result.right  = rc.right;
+	result.left = rc.left;
+	result.top = rc.top;
+	result.right = rc.right;
 	result.bottom = rc.bottom;
 	return result;
 }

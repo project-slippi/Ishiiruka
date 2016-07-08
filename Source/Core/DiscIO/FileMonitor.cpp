@@ -11,12 +11,12 @@
 #include <vector>
 
 #include "Common/CommonTypes.h"
-#include "Common/StringUtil.h"
 #include "Common/Logging/LogManager.h"
+#include "Common/StringUtil.h"
 
+#include "Core/Boot/Boot.h"
 #include "Core/ConfigManager.h"
 #include "Core/Core.h"
-#include "Core/Boot/Boot.h"
 
 #include "DiscIO/FileMonitor.h"
 #include "DiscIO/Filesystem.h"
@@ -25,7 +25,6 @@
 
 namespace FileMon
 {
-
 static std::unique_ptr<DiscIO::IVolume> s_open_iso;
 static std::unique_ptr<DiscIO::IFileSystem> s_filesystem;
 static std::string ISOFile = "", CurrentFile = "";
@@ -39,24 +38,23 @@ bool IsSoundFile(const std::string& filename)
 	std::transform(extension.begin(), extension.end(), extension.begin(), ::tolower);
 
 	static std::unordered_set<std::string> extensions = {
-		".adp",   // 1080 Avalanche, Crash Bandicoot, etc.
-		".adx",   // Sonic Adventure 2 Battle, etc.
-		".afc",   // Zelda WW
-		".ast",   // Zelda TP, Mario Kart
-		".brstm", // Wii Sports, Wario Land, etc.
-		".dsp",   // Metroid Prime
-		".hps",   // SSB Melee
-		".ogg",   // Tony Hawk's Underground 2
-		".sad",   // Disaster
-		".snd",   // Tales of Symphonia
-		".song",  // Tales of Symphonia
-		".ssm",   // Custom Robo, Kirby Air Ride, etc.
-		".str",   // Harry Potter & the Sorcerer's Stone
+		 ".adp",    // 1080 Avalanche, Crash Bandicoot, etc.
+		 ".adx",    // Sonic Adventure 2 Battle, etc.
+		 ".afc",    // Zelda WW
+		 ".ast",    // Zelda TP, Mario Kart
+		 ".brstm",  // Wii Sports, Wario Land, etc.
+		 ".dsp",    // Metroid Prime
+		 ".hps",    // SSB Melee
+		 ".ogg",    // Tony Hawk's Underground 2
+		 ".sad",    // Disaster
+		 ".snd",    // Tales of Symphonia
+		 ".song",   // Tales of Symphonia
+		 ".ssm",    // Custom Robo, Kirby Air Ride, etc.
+		 ".str",    // Harry Potter & the Sorcerer's Stone
 	};
 
 	return extensions.find(extension) != extensions.end();
 }
-
 
 // Read the file system
 void ReadFileSystem(const std::string& filename)
@@ -107,7 +105,6 @@ void CheckFile(const std::string& file, u64 size)
 	CurrentFile = file;
 }
 
-
 // Find the filename
 void FindFilename(u64 offset)
 {
@@ -150,5 +147,4 @@ void Close()
 	FileAccess = true;
 }
 
-
-} // FileMon
+}  // FileMon

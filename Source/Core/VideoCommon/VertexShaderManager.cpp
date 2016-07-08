@@ -53,16 +53,18 @@ struct ProjectionHack
 {
 	float sign;
 	float value;
-	ProjectionHack() { }
+	ProjectionHack()
+	{}
 	ProjectionHack(float new_sign, float new_value)
-		: sign(new_sign), value(new_value) {}
+		: sign(new_sign), value(new_value)
+	{}
 };
 
 namespace
 {
-	// Control Variables
-	static ProjectionHack g_ProjHack1;
-	static ProjectionHack g_ProjHack2;
+// Control Variables
+static ProjectionHack g_ProjHack1;
+static ProjectionHack g_ProjHack2;
 } // Namespace
 
 static float PHackValue(std::string sValue)
@@ -211,10 +213,6 @@ void VertexShaderManager::Init()
 		g_fProjectionMatrix[i * 5] = 1.0f;
 }
 
-void VertexShaderManager::Shutdown()
-{
-
-}
 const float* VertexShaderManager::GetBuffer()
 {
 	return vsconstants;
@@ -490,15 +488,14 @@ void VertexShaderManager::SetConstants()
 			g_fProjectionMatrix[15] = 0.0f;
 
 			// Heuristic to detect if a GameCube game is in 16:9 anamorphic widescreen mode.
-			//Disable this cde as is causing mode swapping in a lot of games
-			/*if (!SConfig::GetInstance().bWii)
+			if (!SConfig::GetInstance().bWii)
 			{
 				bool viewport_is_4_3 = AspectIs4_3(xfmem.viewport.wd, xfmem.viewport.ht);
 				if (AspectIs16_9(rawProjection[2], rawProjection[0]) && viewport_is_4_3)
 					Core::g_aspect_wide = true; // Projection is 16:9 and viewport is 4:3, we are rendering an anamorphic widescreen picture
 				else if (AspectIs4_3(rawProjection[2], rawProjection[0]) && viewport_is_4_3)
 					Core::g_aspect_wide = false; // Project and viewports are both 4:3, we are rendering a normal image.
-			}*/
+			}
 
 			SETSTAT_FT(stats.gproj_0, g_fProjectionMatrix[0]);
 			SETSTAT_FT(stats.gproj_1, g_fProjectionMatrix[1]);
@@ -629,7 +626,7 @@ void VertexShaderManager::InvalidateXFRange(int start, int end)
 		else
 		{
 			if (s_transform_matrices_changed[0] > start) s_transform_matrices_changed[0] = start;
-			if (s_transform_matrices_changed[1] < end) s_transform_matrices_changed[1] = end>XFMEM_POSMATRICES_END ? XFMEM_POSMATRICES_END : end;
+			if (s_transform_matrices_changed[1] < end) s_transform_matrices_changed[1] = end > XFMEM_POSMATRICES_END ? XFMEM_POSMATRICES_END : end;
 		}
 	}
 
@@ -708,7 +705,7 @@ void VertexShaderManager::SetTexMatrixChangedB(u32 Value)
 void VertexShaderManager::TranslateView(float x, float y, float z)
 {
 	float result[3];
-	float vector[3] = { x, z, y };
+	float vector[3] = {x, z, y};
 
 	Matrix33::Multiply(s_viewInvRotationMatrix, vector, result);
 

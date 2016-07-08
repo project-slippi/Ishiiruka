@@ -7,14 +7,13 @@
 
 #include "Core/ConfigManager.h"
 #include "Core/HW/DSP.h"
-#include "Core/PowerPC/JitInterface.h"
-#include "Core/PowerPC/PowerPC.h"
 #include "Core/PowerPC/Interpreter/Interpreter.h"
 #include "Core/PowerPC/Interpreter/Interpreter_FPUtils.h"
-
+#include "Core/PowerPC/JitInterface.h"
+#include "Core/PowerPC/PowerPC.h"
 
 bool Interpreter::g_bReserve;
-u32  Interpreter::g_reserveAddr;
+u32 Interpreter::g_reserveAddr;
 
 u32 Interpreter::Helper_Get_EA(const UGeckoInstruction _inst)
 {
@@ -68,7 +67,7 @@ void Interpreter::lfdu(UGeckoInstruction _inst)
 	if (!(PowerPC::ppcState.Exceptions & EXCEPTION_DSI))
 	{
 		riPS0(_inst.FD) = temp;
-		rGPR[_inst.RA]  = uAddress;
+		rGPR[_inst.RA] = uAddress;
 	}
 }
 
@@ -112,7 +111,6 @@ void Interpreter::lfsu(UGeckoInstruction _inst)
 		riPS1(_inst.FD) = value;
 		rGPR[_inst.RA] = uAddress;
 	}
-
 }
 
 void Interpreter::lfsux(UGeckoInstruction _inst)
@@ -203,7 +201,7 @@ void Interpreter::lmw(UGeckoInstruction _inst)
 void Interpreter::stmw(UGeckoInstruction _inst)
 {
 	u32 uAddress = Helper_Get_EA(_inst);
-	for (int iReg = _inst.RS; iReg <= 31; iReg++, uAddress+=4)
+	for (int iReg = _inst.RS; iReg <= 31; iReg++, uAddress += 4)
 	{
 		PowerPC::Write_U32(rGPR[iReg], uAddress);
 		if (PowerPC::ppcState.Exceptions & EXCEPTION_DSI)
@@ -313,64 +311,70 @@ void Interpreter::stwu(UGeckoInstruction _inst)
 
 void Interpreter::dcba(UGeckoInstruction _inst)
 {
-	_assert_msg_(POWERPC,0,"dcba - Not implemented - not a Gekko instruction");
+	_assert_msg_(POWERPC, 0, "dcba - Not implemented - not a Gekko instruction");
 }
 
 void Interpreter::dcbf(UGeckoInstruction _inst)
 {
-	//This should tell GFX backend to throw out any cached data here
-	// !!! SPEEDUP HACK for OSProtectRange !!!
-/*	u32 tmp1 = PowerPC::HostRead_U32(PC+4);
-	u32 tmp2 = PowerPC::HostRead_U32(PC+8);
+	// TODO: Implement some sort of L2 emulation.
+	// TODO: Raise DSI if translation fails (except for direct-store segments).
 
-	if ((tmp1 == 0x38630020) &&
-		(tmp2 == 0x4200fff8))
-	{
-		NPC = PC + 12;
-	}*/
+	// Invalidate the JIT cache here as a heuristic to compensate for
+	// the lack of precise L1 icache emulation in the JIT. (Portable software
+	// should use icbi consistently, but games aren't portable.)
 	u32 address = Helper_Get_EA_X(_inst);
 	JitInterface::InvalidateICache(address & ~0x1f, 32, false);
 }
 
 void Interpreter::dcbi(UGeckoInstruction _inst)
 {
-	// Removes a block from data cache. Since we don't emulate the data cache, we don't need to do anything to the data cache
-	// However, we invalidate the jit block cache on dcbi
+	// TODO: Implement some sort of L2 emulation.
+	// TODO: Raise DSI if translation fails (except for direct-store segments).
+
+	// Invalidate the JIT cache here as a heuristic to compensate for
+	// the lack of precise L1 icache emulation in the JIT. (Portable software
+	// should use icbi consistently, but games aren't portable.)
 	u32 address = Helper_Get_EA_X(_inst);
 	JitInterface::InvalidateICache(address & ~0x1f, 32, false);
 
-	// The following detects a situation where the game is writing to the dcache at the address being DMA'd. As we do not
-	// have dcache emulation, invalid data is being DMA'd causing audio glitches. The following code detects this and
-	// enables the DMA to complete instantly before the invalid data is written. Resident Evil 2 & 3 trigger this.
+	// The following detects a situation where the game is writing to the dcache at the address being
+	// DMA'd. As we do not
+	// have dcache emulation, invalid data is being DMA'd causing audio glitches. The following code
+	// detects this and
+	// enables the DMA to complete instantly before the invalid data is written. Resident Evil 2 & 3
+	// trigger this.
 	DSP::FlushInstantDMA(address);
 }
 
 void Interpreter::dcbst(UGeckoInstruction _inst)
 {
-	// Cache line flush. Since we don't emulate the data cache, we don't need to do anything.
-	// Invalidate the jit block cache on dcbst in case new code has been loaded via the data cache
+	// TODO: Implement some sort of L2 emulation.
+	// TODO: Raise DSI if translation fails (except for direct-store segments).
+
+	// Invalidate the JIT cache here as a heuristic to compensate for
+	// the lack of precise L1 icache emulation in the JIT. (Portable software
+	// should use icbi consistently, but games aren't portable.)
 	u32 address = Helper_Get_EA_X(_inst);
 	JitInterface::InvalidateICache(address & ~0x1f, 32, false);
 }
 
 void Interpreter::dcbt(UGeckoInstruction _inst)
 {
-	// Prefetch. Since we don't emulate the data cache, we don't need to do anything.
+	// TODO: Implement some sort of L2 emulation.
 }
 
 void Interpreter::dcbtst(UGeckoInstruction _inst)
 {
-	// This is just some sort of store "prefetching".
-	// Since we don't emulate the data cache, we don't need to do anything.
+	// TODO: Implement some sort of L2 emulation.
 }
 
 void Interpreter::dcbz(UGeckoInstruction _inst)
 {
-	// HACK but works... we think
+	// TODO: Implement some sort of L2 emulation.
+	// DCBZOFF is a hack to fix certain games which would otherwise require
+	// accurate L2 emulation.
 	if (!SConfig::GetInstance().bDCBZOFF)
 		PowerPC::ClearCacheLine(Helper_Get_EA_X(_inst) & (~31));
-	if (!JitInterface::GetCore())
-		PowerPC::CheckExceptions();
 }
 
 // eciwx/ecowx technically should access the specified device
@@ -386,8 +390,8 @@ void Interpreter::eciwx(UGeckoInstruction _inst)
 	if (EA & 3)
 		PowerPC::ppcState.Exceptions |= EXCEPTION_ALIGNMENT;
 
-// 	_assert_msg_(POWERPC,0,"eciwx - fill r%i with word @ %08x from device %02x",
-// 		_inst.RS, EA, PowerPC::ppcState.spr[SPR_EAR] & 0x1f);
+	// _assert_msg_(POWERPC,0,"eciwx - fill r%i with word @ %08x from device %02x",
+	//              _inst.RS, EA, PowerPC::ppcState.spr[SPR_EAR] & 0x1f);
 
 	rGPR[_inst.RD] = PowerPC::Read_U32(EA);
 }
@@ -403,8 +407,8 @@ void Interpreter::ecowx(UGeckoInstruction _inst)
 	if (EA & 3)
 		PowerPC::ppcState.Exceptions |= EXCEPTION_ALIGNMENT;
 
-// 	_assert_msg_(POWERPC,0,"ecowx - send stw request (%08x@%08x) to device %02x",
-// 		rGPR[_inst.RS], EA, PowerPC::ppcState.spr[SPR_EAR] & 0x1f);
+	// _assert_msg_(POWERPC,0,"ecowx - send stw request (%08x@%08x) to device %02x",
+	//              rGPR[_inst.RS], EA, PowerPC::ppcState.spr[SPR_EAR] & 0x1f);
 
 	PowerPC::Write_U32(rGPR[_inst.RS], EA);
 }
@@ -419,6 +423,7 @@ void Interpreter::eieio(UGeckoInstruction _inst)
 
 void Interpreter::icbi(UGeckoInstruction _inst)
 {
+	// TODO: Raise DSI if translation fails (except for direct-store segments).
 	u32 address = Helper_Get_EA_X(_inst);
 	PowerPC::ppcState.iCache.Invalidate(address);
 }
@@ -524,7 +529,8 @@ void Interpreter::lswx(UGeckoInstruction _inst)
 				r = (r + 1) & 31;
 				rGPR[r] = 0;
 			}
-		} while (n > 0);
+		}
+		while (n > 0);
 	}
 }
 
@@ -596,7 +602,6 @@ void Interpreter::stfiwx(UGeckoInstruction _inst)
 	PowerPC::Write_U32((u32)riPS0(_inst.FS), uAddress);
 }
 
-
 void Interpreter::stfsux(UGeckoInstruction _inst)
 {
 	u32 uAddress = Helper_Get_EA_UX(_inst);
@@ -651,9 +656,9 @@ void Interpreter::lswi(UGeckoInstruction _inst)
 
 	int r = _inst.RD - 1;
 	int i = 0;
-	while (n>0)
+	while (n > 0)
 	{
-		if (i==0)
+		if (i == 0)
 		{
 			r++;
 			r &= 31;
@@ -747,7 +752,6 @@ void Interpreter::stwbrx(UGeckoInstruction _inst)
 	PowerPC::Write_U32(Common::swap32(rGPR[_inst.RS]), uAddress);
 }
 
-
 // The following two instructions are for SMP communications. On a single
 // CPU, they cannot fail unless an interrupt happens in between.
 
@@ -804,7 +808,7 @@ void Interpreter::stwx(UGeckoInstruction _inst)
 
 void Interpreter::sync(UGeckoInstruction _inst)
 {
-	//ignored
+	// ignored
 }
 
 void Interpreter::tlbie(UGeckoInstruction _inst)
@@ -816,5 +820,5 @@ void Interpreter::tlbie(UGeckoInstruction _inst)
 
 void Interpreter::tlbsync(UGeckoInstruction _inst)
 {
-	//MessageBox(0,"TLBsync","TLBsyncE",0);
+	// MessageBox(0,"TLBsync","TLBsyncE",0);
 }

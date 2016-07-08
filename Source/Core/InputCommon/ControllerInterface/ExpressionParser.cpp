@@ -6,6 +6,7 @@
 #include <cassert>
 #include <iostream>
 #include <map>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -17,7 +18,6 @@ namespace ciface
 {
 namespace ExpressionParser
 {
-
 enum TokenType
 {
 	TOK_DISCARD,
@@ -56,9 +56,10 @@ public:
 	TokenType type;
 	ControlQualifier qualifier;
 
-	Token(TokenType type_) : type(type_) {}
-	Token(TokenType type_, ControlQualifier qualifier_) : type(type_), qualifier(qualifier_) {}
-
+	Token(TokenType type_): type(type_)
+	{}
+	Token(TokenType type_, ControlQualifier qualifier_): type(type_), qualifier(qualifier_)
+	{}
 	operator std::string()
 	{
 		switch (type)
@@ -89,17 +90,17 @@ public:
 	}
 };
 
-class Lexer {
+class Lexer
+{
 public:
 	std::string expr;
 	std::string::iterator it;
 
-	Lexer(const std::string& expr_) : expr(expr_)
+	Lexer(const std::string& expr_): expr(expr_)
 	{
 		it = expr.begin();
 	}
-
-	bool FetchBacktickString(std::string &value, char otherDelim = 0)
+	bool FetchBacktickString(std::string& value, char otherDelim = 0)
 	{
 		value = "";
 		while (it != expr.end())
@@ -187,7 +188,7 @@ public:
 		}
 	}
 
-	ExpressionParseStatus Tokenize(std::vector<Token> &tokens)
+	ExpressionParseStatus Tokenize(std::vector<Token>& tokens)
 	{
 		while (true)
 		{
@@ -214,77 +215,85 @@ public:
 class ExpressionNode
 {
 public:
-	virtual ~ExpressionNode() {}
-	virtual ControlState GetValue() { return 0; }
-	virtual void SetValue(ControlState state) {}
-	virtual int CountNumControls() { return 0; }
-	virtual operator std::string() { return ""; }
+	virtual ~ExpressionNode()
+	{}
+	virtual ControlState GetValue()
+	{
+		return 0;
+	}
+	virtual void SetValue(ControlState state)
+	{}
+	virtual int CountNumControls()
+	{
+		return 0;
+	}
+	virtual operator std::string()
+	{
+		return "";
+	}
 };
 
-class DummyExpression : public ExpressionNode
+class DummyExpression: public ExpressionNode
 {
 public:
 	std::string name;
 
-	DummyExpression(const std::string& name_) : name(name_) {}
-
+	DummyExpression(const std::string& name_): name(name_)
+	{}
 	ControlState GetValue() override
 	{
 		return 0.0;
 	}
-
 	void SetValue(ControlState value) override
-	{
-	}
-
+	{}
 	int CountNumControls() override
 	{
 		return 0;
 	}
-
 	operator std::string() override
 	{
 		return "`" + name + "`";
 	}
 };
 
-class ControlExpression : public ExpressionNode
+class ControlExpression: public ExpressionNode
 {
 public:
 	ControlQualifier qualifier;
-	Device::Control *control;
+	Device::Control* control;
 
-	ControlExpression(ControlQualifier qualifier_, Device::Control *control_) : qualifier(qualifier_), control(control_) {}
+	ControlExpression(ControlQualifier qualifier_, Device::Control* control_)
+		: qualifier(qualifier_), control(control_)
+	{}
 
 	ControlState GetValue() override
 	{
 		return control->ToInput()->GetGatedState();
 	}
-
 	void SetValue(ControlState value) override
 	{
 		control->ToOutput()->SetGatedState(value);
 	}
-
 	int CountNumControls() override
 	{
 		return 1;
 	}
-
 	operator std::string() override
 	{
 		return "`" + (std::string)qualifier + "`";
 	}
 };
 
-class BinaryExpression : public ExpressionNode
+class BinaryExpression: public ExpressionNode
 {
 public:
 	TokenType op;
-	ExpressionNode *lhs;
-	ExpressionNode *rhs;
+	ExpressionNode* lhs;
+	ExpressionNode* rhs;
 
-	BinaryExpression(TokenType op_, ExpressionNode *lhs_, ExpressionNode *rhs_) : op(op_), lhs(lhs_), rhs(rhs_) {}
+	BinaryExpression(TokenType op_, ExpressionNode* lhs_, ExpressionNode* rhs_)
+		: op(op_), lhs(lhs_), rhs(rhs_)
+	{}
 	virtual ~BinaryExpression()
 	{
 		delete lhs;
@@ -321,25 +330,24 @@ public:
 	{
 		return lhs->CountNumControls() + rhs->CountNumControls();
 	}
-
 	operator std::string() override
 	{
 		return OpName(op) + "(" + (std::string)(*lhs) + ", " + (std::string)(*rhs) + ")";
 	}
 };
 
-class UnaryExpression : public ExpressionNode
+class UnaryExpression: public ExpressionNode
 {
 public:
 	TokenType op;
-	ExpressionNode *inner;
+	ExpressionNode* inner;
 
-	UnaryExpression(TokenType op_, ExpressionNode *inner_) : op(op_), inner(inner_) {}
+	UnaryExpression(TokenType op_, ExpressionNode* inner_): op(op_), inner(inner_)
+	{}
 	virtual ~UnaryExpression()
 	{
 		delete inner;
 	}
-
 	ControlState GetValue() override
 	{
 		ControlState value = inner->GetValue();
@@ -370,14 +378,13 @@ public:
 	{
 		return inner->CountNumControls();
 	}
-
 	operator std::string() override
 	{
 		return OpName(op) + "(" + (std::string)(*inner) + ")";
 	}
 };
 
-Device *ControlFinder::FindDevice(ControlQualifier qualifier)
+std::shared_ptr<Device> ControlFinder::FindDevice(ControlQualifier qualifier)
 {
 	if (qualifier.has_device)
 		return container.FindDevice(qualifier.device_qualifier);
@@ -385,9 +392,9 @@ Device *ControlFinder::FindDevice(ControlQualifier qualifier)
 		return container.FindDevice(default_device);
 }
 
-Device::Control *ControlFinder::FindControl(ControlQualifier qualifier)
+Device::Control* ControlFinder::FindControl(ControlQualifier qualifier)
 {
-	Device *device = FindDevice(qualifier);
+	const std::shared_ptr<Device> device = FindDevice(qualifier);
 	if (!device)
 		return nullptr;
 
@@ -400,15 +407,14 @@ Device::Control *ControlFinder::FindControl(ControlQualifier qualifier)
 class Parser
 {
 public:
-
-	Parser(std::vector<Token> tokens_, ControlFinder &finder_) : tokens(tokens_), finder(finder_)
+	Parser(std::vector<Token> tokens_, ControlFinder& finder_): tokens(tokens_), finder(finder_)
 	{
 		m_it = tokens.begin();
 	}
 
-	ExpressionParseStatus Parse(Expression **expr_out)
+	ExpressionParseStatus Parse(Expression** expr_out)
 	{
-		ExpressionNode *node;
+		ExpressionNode* node;
 		ExpressionParseStatus status = Toplevel(&node);
 		if (status != EXPRESSION_PARSE_SUCCESS)
 			return status;
@@ -420,41 +426,39 @@ public:
 private:
 	std::vector<Token> tokens;
 	std::vector<Token>::iterator m_it;
-	ControlFinder &finder;
+	ControlFinder& finder;
 
 	Token Chew()
 	{
 		return *m_it++;
 	}
-
 	Token Peek()
 	{
 		return *m_it;
 	}
-
 	bool Expects(TokenType type)
 	{
 		Token tok = Chew();
 		return tok.type == type;
 	}
 
-	ExpressionParseStatus Atom(ExpressionNode **expr_out)
+	ExpressionParseStatus Atom(ExpressionNode** expr_out)
 	{
 		Token tok = Chew();
 		switch (tok.type)
 		{
 		case TOK_CONTROL:
+		{
+			Device::Control* control = finder.FindControl(tok.qualifier);
+			if (control == nullptr)
 			{
-				Device::Control *control = finder.FindControl(tok.qualifier);
-				if (control == nullptr)
-				{
-					*expr_out = new DummyExpression(tok.qualifier);
-					return EXPRESSION_PARSE_SUCCESS;
-				}
-
-				*expr_out = new ControlExpression(tok.qualifier, control);
+				*expr_out = new DummyExpression(tok.qualifier);
 				return EXPRESSION_PARSE_SUCCESS;
 			}
+
+			*expr_out = new ControlExpression(tok.qualifier, control);
+			return EXPRESSION_PARSE_SUCCESS;
+		}
 		case TOK_LPAREN:
 			return Paren(expr_out);
 		default:
@@ -473,14 +477,14 @@ private:
 		}
 	}
 
-	ExpressionParseStatus Unary(ExpressionNode **expr_out)
+	ExpressionParseStatus Unary(ExpressionNode** expr_out)
 	{
 		ExpressionParseStatus status;
 
 		if (IsUnaryExpression(Peek().type))
 		{
 			Token tok = Chew();
-			ExpressionNode *atom_expr;
+			ExpressionNode* atom_expr;
 			if ((status = Atom(&atom_expr)) != EXPRESSION_PARSE_SUCCESS)
 				return status;
 			*expr_out = new UnaryExpression(tok.type, atom_expr);
@@ -503,7 +507,7 @@ private:
 		}
 	}
 
-	ExpressionParseStatus Binary(ExpressionNode **expr_out)
+	ExpressionParseStatus Binary(ExpressionNode** expr_out)
 	{
 		ExpressionParseStatus status;
 
@@ -513,7 +517,7 @@ private:
 		while (IsBinaryToken(Peek().type))
 		{
 			Token tok = Chew();
-			ExpressionNode *unary_expr;
+			ExpressionNode* unary_expr;
 			if ((status = Unary(&unary_expr)) != EXPRESSION_PARSE_SUCCESS)
 			{
 				delete *expr_out;
@@ -526,7 +530,7 @@ private:
 		return EXPRESSION_PARSE_SUCCESS;
 	}
 
-	ExpressionParseStatus Paren(ExpressionNode **expr_out)
+	ExpressionParseStatus Paren(ExpressionNode** expr_out)
 	{
 		ExpressionParseStatus status;
 
@@ -543,7 +547,7 @@ private:
 		return EXPRESSION_PARSE_SUCCESS;
 	}
 
-	ExpressionParseStatus Toplevel(ExpressionNode **expr_out)
+	ExpressionParseStatus Toplevel(ExpressionNode** expr_out)
 	{
 		return Binary(expr_out);
 	}
@@ -559,7 +563,7 @@ void Expression::SetValue(ControlState value)
 	node->SetValue(value);
 }
 
-Expression::Expression(ExpressionNode *node_)
+Expression::Expression(ExpressionNode* node_)
 {
 	node = node_;
 	num_controls = node->CountNumControls();
@@ -570,10 +574,11 @@ Expression::~Expression()
 	delete node;
 }
 
-static ExpressionParseStatus ParseExpressionInner(const std::string& str, ControlFinder &finder, Expression **expr_out)
+static ExpressionParseStatus ParseExpressionInner(const std::string& str, ControlFinder& finder,
+	Expression** expr_out)
 {
 	ExpressionParseStatus status;
-	Expression *expr;
+	Expression* expr;
 	*expr_out = nullptr;
 
 	if (str == "")
@@ -594,7 +599,8 @@ static ExpressionParseStatus ParseExpressionInner(const std::string& str, Contro
 	return EXPRESSION_PARSE_SUCCESS;
 }
 
-ExpressionParseStatus ParseExpression(const std::string& str, ControlFinder &finder, Expression **expr_out)
+ExpressionParseStatus ParseExpression(const std::string& str, ControlFinder& finder,
+	Expression** expr_out)
 {
 	// Add compatibility with old simple expressions, which are simple
 	// barewords control names.
@@ -603,7 +609,7 @@ ExpressionParseStatus ParseExpression(const std::string& str, ControlFinder &fin
 	qualifier.control_name = str;
 	qualifier.has_device = false;
 
-	Device::Control *control = finder.FindControl(qualifier);
+	Device::Control* control = finder.FindControl(qualifier);
 	if (control)
 	{
 		*expr_out = new Expression(new ControlExpression(qualifier, control));
@@ -612,6 +618,5 @@ ExpressionParseStatus ParseExpression(const std::string& str, ControlFinder &fin
 
 	return ParseExpressionInner(str, finder, expr_out);
 }
-
 }
 }

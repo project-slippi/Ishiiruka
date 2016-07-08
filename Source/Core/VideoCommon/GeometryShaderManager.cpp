@@ -36,8 +36,7 @@ void GeometryShaderManager::Init()
 }
 
 void GeometryShaderManager::Shutdown()
-{
-}
+{}
 
 void GeometryShaderManager::Dirty()
 {
@@ -64,7 +63,7 @@ void GeometryShaderManager::SetConstants()
 		}
 
 		constants.stereoparams[2] = (float)(g_ActiveConfig.iStereoConvergence * (g_ActiveConfig.iStereoConvergencePercentage / 100.0f));
-		
+
 		s_projection_changed = false;
 		dirty = true;
 	}
@@ -77,14 +76,14 @@ void GeometryShaderManager::SetConstants()
 		s_viewport_changed = false;
 		dirty = true;
 	}
-	
+
 	if (s_line_width_changed)
 	{
 		constants.lineptparams[2] = bpmem.lineptwidth.linesize / 6.f;
 		constants.lineptparams[3] = bpmem.lineptwidth.pointsize / 6.f;
 		constants.texoffset[2] = LINE_PT_TEX_OFFSETS[bpmem.lineptwidth.lineoff];
 		constants.texoffset[3] = LINE_PT_TEX_OFFSETS[bpmem.lineptwidth.pointoff];
-		
+
 		s_line_width_changed = false;
 		dirty = true;
 	}
@@ -99,7 +98,7 @@ void GeometryShaderManager::SetConstants()
 				constants.texoffset[0] &= ~bitmask;
 				constants.texoffset[0] |= tc.s.line_offset << texmapid;
 				constants.texoffset[1] &= ~bitmask;
-				constants.texoffset[1] |= tc.s.point_offset << texmapid;				
+				constants.texoffset[1] |= tc.s.point_offset << texmapid;
 			}
 		}
 		s_texcoord_changed = 0;

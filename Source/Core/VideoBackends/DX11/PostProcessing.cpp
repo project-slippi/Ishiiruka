@@ -186,8 +186,8 @@ bool PostProcessingShader::CreatePasses()
 					input_config.external_image_size.width, input_config.external_image_size.height, 1, 1,
 					D3D11_BIND_SHADER_RESOURCE, D3D11_USAGE_DEFAULT, 0, 1, 0, 0);
 
-				D3D11_SUBRESOURCE_DATA initial_data = { input_config.external_image_data.get(),
-					static_cast<UINT>(input_config.external_image_size.width * 4), 0 };
+				D3D11_SUBRESOURCE_DATA initial_data = {input_config.external_image_data.get(),
+					static_cast<UINT>(input_config.external_image_size.width * 4), 0};
 
 				std::unique_ptr<D3D11_SUBRESOURCE_DATA[]> initial_data_layers = std::make_unique<D3D11_SUBRESOURCE_DATA[]>(m_internal_layers);
 				for (int i = 0; i < m_internal_layers; i++)
@@ -210,9 +210,9 @@ bool PostProcessingShader::CreatePasses()
 				input.type = POST_PROCESSING_INPUT_TYPE_COLOR_BUFFER;
 
 			// Lookup tables for samplers
-			static const D3D11_FILTER d3d_sampler_filters[] = { D3D11_FILTER_MIN_MAG_MIP_POINT, D3D11_FILTER_MIN_MAG_LINEAR_MIP_POINT };
-			static const D3D11_TEXTURE_ADDRESS_MODE d3d_address_modes[] = { D3D11_TEXTURE_ADDRESS_CLAMP, D3D11_TEXTURE_ADDRESS_WRAP, D3D11_TEXTURE_ADDRESS_BORDER };
-			static const float d3d_border_color[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+			static const D3D11_FILTER d3d_sampler_filters[] = {D3D11_FILTER_MIN_MAG_MIP_POINT, D3D11_FILTER_MIN_MAG_LINEAR_MIP_POINT};
+			static const D3D11_TEXTURE_ADDRESS_MODE d3d_address_modes[] = {D3D11_TEXTURE_ADDRESS_CLAMP, D3D11_TEXTURE_ADDRESS_WRAP, D3D11_TEXTURE_ADDRESS_BORDER};
+			static const float d3d_border_color[4] = {0.0f, 0.0f, 0.0f, 0.0f};
 
 			// Create sampler object matching the values from config
 			CD3D11_SAMPLER_DESC sampler_desc(d3d_sampler_filters[input_config.filter],
@@ -240,7 +240,7 @@ bool PostProcessingShader::CreatePasses()
 
 bool PostProcessingShader::RecompileShaders()
 {
-	static const char *inputs[] = { "0", "1", "2", "3", "4" };
+	static const char *inputs[] = {"0", "1", "2", "3", "4"};
 	static D3D_SHADER_MACRO macros[] = {
 		{ "API_D3D", "1" },
 		{ "HLSL", "1" },
@@ -258,13 +258,13 @@ bool PostProcessingShader::RecompileShaders()
 		int color_buffer_index = 0;
 		int depth_buffer_index = 0;
 		int prev_output_index = 0;
-	
+
 		pass_config.GetInputLocations(color_buffer_index, depth_buffer_index, prev_output_index);
 
 		macros[2].Definition = inputs[color_buffer_index];
 		macros[3].Definition = inputs[depth_buffer_index];
 		macros[4].Definition = inputs[prev_output_index];
-		
+
 		std::string hlsl_source = PostProcessor::GetPassFragmentShaderSource(API_D3D11, m_config, &pass_config);
 		pass.pixel_shader = D3D::CompileAndCreatePixelShader(common_source + hlsl_source, macros, "passmain");
 		if (pass.pixel_shader.get() == nullptr)
@@ -331,8 +331,8 @@ void PostProcessingShader::LinkPassOutputs()
 			case POST_PROCESSING_INPUT_TYPE_PASS_OUTPUT:
 			case POST_PROCESSING_INPUT_TYPE_PREVIOUS_PASS_OUTPUT:
 			{
-				s32 pass_output_index = (input_binding.type == POST_PROCESSING_INPUT_TYPE_PASS_OUTPUT) ? 
-					static_cast<s32>(pass_config.inputs[input_index].pass_output_index) 
+				s32 pass_output_index = (input_binding.type == POST_PROCESSING_INPUT_TYPE_PASS_OUTPUT) ?
+					static_cast<s32>(pass_config.inputs[input_index].pass_output_index)
 					: static_cast<s32>(previous_pass_index);
 				while (pass_output_index >= 0)
 				{
@@ -620,9 +620,9 @@ void D3DPostProcessor::PostProcessEFBToTexture(uintptr_t dst_texture)
 	// Uses the current viewport as the "visible" region to post-process.
 	g_renderer->ResetAPIState();
 
-	TargetRectangle target_rect = { 0, 0, g_renderer->GetTargetWidth(), g_renderer->GetTargetHeight() };
+	TargetRectangle target_rect = {0, 0, g_renderer->GetTargetWidth(), g_renderer->GetTargetHeight()};
 	TargetSize target_size(g_renderer->GetTargetWidth(), g_renderer->GetTargetHeight());
-	
+
 	// Source and target textures, if MSAA is enabled, this needs to be resolved
 	D3DTexture2D* color_texture = FramebufferManager::GetResolvedEFBColorTexture();
 	D3DTexture2D* depth_texture = nullptr;
@@ -824,7 +824,7 @@ void D3DPostProcessor::PostProcess(TargetRectangle* output_rect, TargetSize* out
 			else
 			{
 				// Write to The output texturre directly.
-				shader->Draw(this, dst_rect!= nullptr ? *dst_rect : src_rect, dst_size != nullptr ? *dst_size : src_size, real_dst_texture, buffer_rect, buffer_size, input_color_texture, input_depth_texture, -1, 1.0f);
+				shader->Draw(this, dst_rect != nullptr ? *dst_rect : src_rect, dst_size != nullptr ? *dst_size : src_size, real_dst_texture, buffer_rect, buffer_size, input_color_texture, input_depth_texture, -1, 1.0f);
 				if (output_texture)
 				{
 					*output_rect = buffer_rect;
@@ -955,7 +955,7 @@ void D3DPostProcessor::DrawStereoBuffers(const TargetRectangle& dst_rect, const 
 	D3DTexture2D* stereo_buffer = (m_scaling_shader || triguer_after_blit) ? m_stereo_buffer_texture : src_texture;
 	TargetRectangle stereo_buffer_rect(src_rect);
 	TargetSize stereo_buffer_size(src_size);
-	
+
 	// Apply scaling shader if enabled, otherwise just use the source buffers
 	if (triguer_after_blit)
 	{

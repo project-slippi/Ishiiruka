@@ -23,7 +23,8 @@
 class NetPlayUI
 {
 public:
-	virtual ~NetPlayUI() {}
+	virtual ~NetPlayUI()
+	{}
 
 	virtual void BootGame(const std::string& filename) = 0;
 	virtual void StopGame() = 0;
@@ -46,7 +47,7 @@ public:
 	u32         ping;
 };
 
-class NetPlayClient : public TraversalClientClient
+class NetPlayClient: public TraversalClientClient
 {
 public:
 	void ThreadFunc();
@@ -59,7 +60,10 @@ public:
 	std::vector<const Player*> GetPlayers();
 
 	// Called from the GUI thread.
-	bool IsConnected() const { return m_is_connected; }
+	bool IsConnected() const
+	{
+		return m_is_connected;
+	}
 
 	bool StartGame(const std::string &path);
 	bool StopGame();

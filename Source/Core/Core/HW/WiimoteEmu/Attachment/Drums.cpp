@@ -6,37 +6,26 @@
 
 #include "Common/Common.h"
 #include "Common/CommonTypes.h"
-#include "Core/HW/WiimoteEmu/WiimoteEmu.h"
 #include "Core/HW/WiimoteEmu/Attachment/Drums.h"
+#include "Core/HW/WiimoteEmu/WiimoteEmu.h"
 
 namespace WiimoteEmu
 {
+static const u8 drums_id[] = {0x01, 0x00, 0xa4, 0x20, 0x01, 0x03};
 
-static const u8 drums_id[] = { 0x01, 0x00, 0xa4, 0x20, 0x01, 0x03 };
-
-static const u16 drum_pad_bitmasks[] =
-{
-	Drums::PAD_RED,
-	Drums::PAD_YELLOW,
-	Drums::PAD_BLUE,
-	Drums::PAD_GREEN,
-	Drums::PAD_ORANGE,
-	Drums::PAD_BASS,
+static const u16 drum_pad_bitmasks[] = {
+	 Drums::PAD_RED,   Drums::PAD_YELLOW, Drums::PAD_BLUE,
+	 Drums::PAD_GREEN, Drums::PAD_ORANGE, Drums::PAD_BASS,
 };
 
-static const char* const drum_pad_names[] =
-{
-	_trans("Red"), _trans("Yellow"), _trans("Blue"),
-	_trans("Green"), _trans("Orange"), _trans("Bass")
+static const char* const drum_pad_names[] = {_trans("Red"),   _trans("Yellow"), _trans("Blue"),
+															_trans("Green"), _trans("Orange"), _trans("Bass")};
+
+static const u16 drum_button_bitmasks[] = {
+	 Drums::BUTTON_MINUS, Drums::BUTTON_PLUS,
 };
 
-static const u16 drum_button_bitmasks[] =
-{
-	Drums::BUTTON_MINUS,
-	Drums::BUTTON_PLUS,
-};
-
-Drums::Drums(WiimoteEmu::ExtensionReg& _reg) : Attachment(_trans("Drums"), _reg)
+Drums::Drums(WiimoteEmu::ExtensionReg& _reg): Attachment(_trans("Drums"), _reg)
 {
 	// pads
 	groups.emplace_back(m_pads = new Buttons(_trans("Pads")));
@@ -65,11 +54,11 @@ void Drums::GetState(u8* const data)
 
 	// stick
 	{
-	ControlState x, y;
-	m_stick->GetState(&x, &y);
+		ControlState x, y;
+		m_stick->GetState(&x, &y);
 
-	ddata->sx = static_cast<u8>((x * 0x1F) + 0x20);
-	ddata->sy = static_cast<u8>((y * 0x1F) + 0x20);
+		ddata->sx = static_cast<u8>((x * 0x1F) + 0x20);
+		ddata->sy = static_cast<u8>((y * 0x1F) + 0x20);
 	}
 
 	// TODO: softness maybe
@@ -92,5 +81,4 @@ bool Drums::IsButtonPressed() const
 	m_pads->GetState(&buttons, drum_pad_bitmasks);
 	return buttons != 0;
 }
-
 }

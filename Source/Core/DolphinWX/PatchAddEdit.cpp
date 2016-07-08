@@ -32,8 +32,7 @@ CPatchAddEdit::CPatchAddEdit(int _selection, std::vector<PatchEngine::Patch>* _o
 }
 
 CPatchAddEdit::~CPatchAddEdit()
-{
-}
+{}
 
 void CPatchAddEdit::CreateGUIControls(int _selection)
 {
@@ -191,7 +190,7 @@ void CPatchAddEdit::RemoveEntry(wxCommandEvent& event)
 void CPatchAddEdit::UpdateEntryCtrls(PatchEngine::PatchEntry pE)
 {
 	sbEntry->GetStaticBox()->SetLabel(wxString::Format(_("Entry %d/%d"), currentItem,
-									  (int)tempEntries.size()));
+		(int)tempEntries.size()));
 	EditPatchOffset->SetValue(wxString::Format("%08X", pE.address));
 	EditPatchType->SetSelection(pE.type);
 	EditPatchValue->SetValue(wxString::Format("%0*X",
@@ -209,7 +208,7 @@ bool CPatchAddEdit::UpdateTempEntryData(std::vector<PatchEngine::PatchEntry>::it
 		parsed_ok = false;
 
 	PatchEngine::PatchType tempType =
-	(*iterEntry).type = (PatchEngine::PatchType)EditPatchType->GetSelection();
+		(*iterEntry).type = (PatchEngine::PatchType)EditPatchType->GetSelection();
 
 	if (EditPatchValue->GetValue().ToULong(&value, 16))
 	{

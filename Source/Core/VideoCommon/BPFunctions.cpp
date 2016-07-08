@@ -60,10 +60,10 @@ void SetScissor()
 	if (rc.right > EFB_WIDTH) rc.right = EFB_WIDTH;
 	if (rc.bottom > EFB_HEIGHT) rc.bottom = EFB_HEIGHT;
 
-	if (rc.left > rc.right) std::swap(rc.right , rc.left);
+	if (rc.left > rc.right) std::swap(rc.right, rc.left);
 	if (rc.top > rc.bottom) std::swap(rc.bottom, rc.top);
 
-	TargetRectangle trc = g_renderer->ConvertEFBRectangle(rc);	
+	TargetRectangle trc = g_renderer->ConvertEFBRectangle(rc);
 	g_renderer->SetScissorRect(trc);
 	VertexShaderManager::SetViewportChanged();
 	GeometryShaderManager::SetViewportChanged();
@@ -229,20 +229,20 @@ void SetInterlacingMode(const BPCmd &bp)
 	{
 		// SDK always sets bpmem.lineptwidth.lineaspect via BPMEM_LINEPTWIDTH
 		// just before this cmd
-		const char *action[] = { "don't adjust", "adjust" };
+		const char *action[] = {"don't adjust", "adjust"};
 		DEBUG_LOG(VIDEO, "BPMEM_FIELDMODE texLOD:%s lineaspect:%s",
 			action[bpmem.fieldmode.texLOD],
 			action[bpmem.lineptwidth.lineaspect]);
 	}
-		break;
+	break;
 	case BPMEM_FIELDMASK:
 	{
 		// Determines if fields will be written to EFB (always computed)
-		const char *action[] = { "skip", "write" };
+		const char *action[] = {"skip", "write"};
 		DEBUG_LOG(VIDEO, "BPMEM_FIELDMASK even:%s odd:%s",
 			action[bpmem.fieldmask.even], action[bpmem.fieldmask.odd]);
 	}
-		break;
+	break;
 	default:
 		ERROR_LOG(VIDEO, "SetInterlacingMode default");
 		break;

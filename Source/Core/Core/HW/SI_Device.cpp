@@ -6,8 +6,8 @@
 #include <string>
 
 #include "Common/CommonTypes.h"
-#include "Common/StringUtil.h"
 #include "Common/Logging/Log.h"
+#include "Common/StringUtil.h"
 #include "Core/HW/SI_Device.h"
 #include "Core/HW/SI_DeviceAMBaseboard.h"
 #include "Core/HW/SI_DeviceDanceMat.h"
@@ -21,14 +21,15 @@
 int ISIDevice::RunBuffer(u8* _pBuffer, int _iLength)
 {
 #ifdef _DEBUG
-	DEBUG_LOG(SERIALINTERFACE, "Send Data Device(%i) - Length(%i)   ", ISIDevice::m_iDeviceNumber, _iLength);
+	DEBUG_LOG(SERIALINTERFACE, "Send Data Device(%i) - Length(%i)   ", ISIDevice::m_iDeviceNumber,
+		_iLength);
 
 	std::string temp;
 	int num = 0;
 
 	while (num < _iLength)
 	{
-		temp += StringFromFormat("0x%02x ", _pBuffer[num^3]);
+		temp += StringFromFormat("0x%02x ", _pBuffer[num ^ 3]);
 		num++;
 
 		if ((num % 8) == 0)
@@ -49,23 +50,26 @@ int ISIDevice::TransferInterval()
 }
 
 // Stub class for saying nothing is attached, and not having to deal with null pointers :)
-class CSIDevice_Null : public ISIDevice
+class CSIDevice_Null: public ISIDevice
 {
 public:
-	CSIDevice_Null(SIDevices device, int _iDeviceNumber) : ISIDevice(device, _iDeviceNumber) {}
-	virtual ~CSIDevice_Null() {}
-
-	int RunBuffer(u8* _pBuffer, int _iLength) override {
+	CSIDevice_Null(SIDevices device, int _iDeviceNumber): ISIDevice(device, _iDeviceNumber)
+	{}
+	virtual ~CSIDevice_Null()
+	{}
+	int RunBuffer(u8* _pBuffer, int _iLength) override
+	{
 		reinterpret_cast<u32*>(_pBuffer)[0] = SI_ERROR_NO_RESPONSE;
 		return 4;
 	}
-	bool GetData(u32& _Hi, u32& _Low) override {
+	bool GetData(u32& _Hi, u32& _Low) override
+	{
 		_Hi = 0x80000000;
 		return true;
 	}
-	void SendCommand(u32 _Cmd, u8 _Poll) override {}
+	void SendCommand(u32 _Cmd, u8 _Poll) override
+	{}
 };
-
 
 // Check if a device class is inheriting from CSIDevice_GCController
 // The goal of this function is to avoid special casing a long list of
@@ -85,7 +89,6 @@ bool SIDevice_IsGCController(SIDevices type)
 		return false;
 	}
 }
-
 
 // F A C T O R Y
 std::unique_ptr<ISIDevice> SIDevice_Create(const SIDevices device, const int port_number)

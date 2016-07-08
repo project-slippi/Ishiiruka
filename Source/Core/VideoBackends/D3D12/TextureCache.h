@@ -12,21 +12,22 @@ namespace DX12
 
 class D3DStreamBuffer;
 
-class TextureCache : public TextureCacheBase
+class TextureCache: public TextureCacheBase
 {
 public:
 	TextureCache();
 	~TextureCache();
 	static D3D12_GPU_DESCRIPTOR_HANDLE GetTextureGroupHandle();
 private:
-	struct TCacheEntry : TCacheEntryBase
+	struct TCacheEntry: TCacheEntryBase
 	{
 		D3DTexture2D* m_texture;
 		D3DTexture2D* m_nrm_texture;
 		DXGI_FORMAT DXGI_format;
 		bool compressed;
 
-		TCacheEntry(const TCacheEntryConfig& config, D3DTexture2D *_tex) : TCacheEntryBase(config), m_texture(_tex), m_nrm_texture(nullptr), compressed(false) {}
+		TCacheEntry(const TCacheEntryConfig& config, D3DTexture2D *_tex): TCacheEntryBase(config), m_texture(_tex), m_nrm_texture(nullptr), compressed(false)
+		{}
 		~TCacheEntry();
 
 		void CopyRectangleFromTexture(
@@ -43,7 +44,10 @@ private:
 
 		void FromRenderTarget(u8* dst, PEControl::PixelFormat src_format, const EFBRectangle& src_rect,
 			bool scale_by_half, u32 cbuf_id, const float* colmat) override;
-		bool SupportsMaterialMap() const override { return m_nrm_texture != nullptr; };
+		bool SupportsMaterialMap() const override
+		{
+			return m_nrm_texture != nullptr;
+		};
 		void Bind(u32 stage, u32 last_Texture) override;
 		bool Save(const std::string& filename, u32 level) override;
 	};
@@ -56,8 +60,10 @@ private:
 		PEControl::PixelFormat src_format, const EFBRectangle& src_rect,
 		bool is_intensity, bool scale_by_half) override;
 	void LoadLut(u32 lutFmt, void* addr, u32 size) override;
-	void CompileShaders() override { }
-	void DeleteShaders() override { }
+	void CompileShaders() override
+	{}
+	void DeleteShaders() override
+	{}
 
 	TlutFormat m_lut_format = {};
 	u32 m_lut_size = {};

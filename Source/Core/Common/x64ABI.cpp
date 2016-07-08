@@ -66,7 +66,7 @@ void XEmitter::ABI_PopRegistersAndAdjustStack(BitSet32 mask, size_t rsp_alignmen
 
 	for (int x : mask & ABI_ALL_FPRS)
 	{
-		MOVAPD((X64Reg) (x - 16), MDisp(RSP, (int)xmm_offset));
+		MOVAPD((X64Reg)(x - 16), MDisp(RSP, (int)xmm_offset));
 		xmm_offset += 16;
 	}
 
@@ -85,7 +85,7 @@ void XEmitter::ABI_CallFunction(const void* func)
 {
 	u64 distance = u64(func) - (u64(code) + 5);
 	if (distance >= 0x0000000080000000ULL &&
-	    distance <  0xFFFFFFFF80000000ULL)
+		distance < 0xFFFFFFFF80000000ULL)
 	{
 		// Far call
 		MOV(64, R(RAX), Imm64((u64)func));

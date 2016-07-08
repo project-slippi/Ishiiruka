@@ -346,9 +346,9 @@ bool IniFile::Load(const std::string& filename, bool keep_current_data)
 
 #ifndef _WIN32
 		// Check for CRLF eol and convert it to LF
-		if (!line.empty() && line.at(line.size()-1) == '\r')
+		if (!line.empty() && line.at(line.size() - 1) == '\r')
 		{
-			line.erase(line.size()-1);
+			line.erase(line.size() - 1);
 		}
 #endif
 
@@ -376,10 +376,10 @@ bool IniFile::Load(const std::string& filename, bool keep_current_data)
 					// Kind of a hack, but the support for raw lines inside an
 					// INI is a hack anyway.
 					if ((key == "" && value == "") ||
-					    (line.size() >= 1 &&
-					     (line[0] == '$' ||
-					      line[0] == '+' ||
-					      line[0] == '*')))
+						(line.size() >= 1 &&
+						(line[0] == '$' ||
+							line[0] == '+' ||
+							line[0] == '*')))
 						current_section->lines.push_back(line);
 					else
 						current_section->Set(key, value);
@@ -430,21 +430,21 @@ bool IniFile::Save(const std::string& filename)
 
 // Unit test. TODO: Move to the real unit test framework.
 /*
-   int main()
-   {
-    IniFile ini;
-    ini.Load("my.ini");
-    ini.Set("Hej", "A", "amaskdfl");
-    ini.Set("Mossa", "A", "amaskdfl");
-    ini.Set("Aissa", "A", "amaskdfl");
-    //ini.Read("my.ini");
-    std::string x;
-    ini.Get("Hej", "B", &x, "boo");
-    ini.DeleteKey("Mossa", "A");
-    ini.DeleteSection("Mossa");
-    ini.SortSections();
-    ini.Save("my.ini");
-    //UpdateVars(ini);
-    return 0;
-   }
+	int main()
+	{
+	 IniFile ini;
+	 ini.Load("my.ini");
+	 ini.Set("Hej", "A", "amaskdfl");
+	 ini.Set("Mossa", "A", "amaskdfl");
+	 ini.Set("Aissa", "A", "amaskdfl");
+	 //ini.Read("my.ini");
+	 std::string x;
+	 ini.Get("Hej", "B", &x, "boo");
+	 ini.DeleteKey("Mossa", "A");
+	 ini.DeleteSection("Mossa");
+	 ini.SortSections();
+	 ini.Save("my.ini");
+	 //UpdateVars(ini);
+	 return 0;
+	}
  */

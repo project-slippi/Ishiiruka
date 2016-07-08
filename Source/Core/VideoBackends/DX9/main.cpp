@@ -68,7 +68,7 @@ std::string VideoBackend::GetDisplayName() const
 	return "Direct3D9";
 }
 
-void InitBackendInfo()
+void VideoBackend::InitBackendInfo()
 {
 	DX9::D3D::Init();
 	D3DCAPS9 device_caps = DX9::D3D::GetCaps();
@@ -112,15 +112,6 @@ void InitBackendInfo()
 	DX9::D3D::Shutdown();
 }
 
-void VideoBackend::ShowConfig(void* parent)
-{
-#if defined(HAVE_WX) && HAVE_WX
-	InitBackendInfo();
-	VideoConfigDiag diag((wxWindow*)parent, _trans("Direct3D9"), "gfx_dx9");
-	diag.ShowModal();
-#endif
-}
-
 bool VideoBackend::Initialize(void *window_handle)
 {
 	InitializeShared();
@@ -162,7 +153,7 @@ void VideoBackend::Video_Prepare()
 	g_texture_cache = std::make_unique<TextureCache>();
 	g_vertex_manager = std::make_unique<VertexManager>();
 	g_perf_query = std::make_unique<PerfQuery>();
-	g_renderer = std::make_unique<Renderer>(m_window_handle);	
+	g_renderer = std::make_unique<Renderer>(m_window_handle);
 	// VideoCommon
 	BPInit();
 	Fifo::Init();
@@ -186,9 +177,6 @@ void VideoBackend::Shutdown()
 	// VideoCommon
 	Fifo::Shutdown();
 	CommandProcessor::Shutdown();
-	PixelShaderManager::Shutdown();
-	VertexShaderManager::Shutdown();
-	OpcodeDecoder::Shutdown();
 	VertexLoaderManager::Shutdown();
 
 	// internal interfaces
@@ -201,7 +189,7 @@ void VideoBackend::Shutdown()
 	D3D::Shutdown();
 }
 
-void VideoBackend::Video_Cleanup() {
-}
+void VideoBackend::Video_Cleanup()
+{}
 
 }

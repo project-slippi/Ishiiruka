@@ -17,7 +17,7 @@ namespace DX12
 
 PerfQuery::PerfQuery()
 {
-	D3D12_QUERY_HEAP_DESC desc = { D3D12_QUERY_HEAP_TYPE_OCCLUSION, PERF_QUERY_BUFFER_SIZE, 0 };
+	D3D12_QUERY_HEAP_DESC desc = {D3D12_QUERY_HEAP_TYPE_OCCLUSION, PERF_QUERY_BUFFER_SIZE, 0};
 	CheckHR(D3D::device->CreateQueryHeap(&desc, IID_PPV_ARGS(m_query_heap.ReleaseAndGetAddressOf())));
 
 	CheckHR(D3D::device->CreateCommittedResource(
@@ -34,7 +34,7 @@ PerfQuery::PerfQuery()
 
 PerfQuery::~PerfQuery()
 {
-	D3D::command_list_mgr->RemoveQueueFenceCallback(this);	
+	D3D::command_list_mgr->RemoveQueueFenceCallback(this);
 	m_query_heap.Reset();
 	D3D::command_list_mgr->DestroyResourceAfterCurrentCommandListExecuted(m_query_readback_buffer.Detach());
 }
@@ -113,7 +113,7 @@ void PerfQuery::FlushOne()
 	D3D::command_list_mgr->WaitOnCPUForFence(m_tracking_fence, entry.fence_value);
 
 	// Copy from readback buffer to local
-	D3D12_RANGE range = { sizeof(UINT64) * index, sizeof(UINT64) * (index + 1) };
+	D3D12_RANGE range = {sizeof(UINT64) * index, sizeof(UINT64) * (index + 1)};
 	void* readback_buffer_map;
 	CheckHR(m_query_readback_buffer->Map(0, &range, &readback_buffer_map));
 

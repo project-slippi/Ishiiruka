@@ -17,7 +17,10 @@ public:
 	// Called when a frame is rendered (updated every second).
 	void Update();
 
-	unsigned int GetFPS() const { return m_fps; }
+	unsigned int GetFPS() const
+	{
+		return m_fps;
+	}
 
 private:
 	unsigned int m_fps = 0;

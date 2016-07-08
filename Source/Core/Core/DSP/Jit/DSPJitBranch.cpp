@@ -15,7 +15,7 @@ static void ReJitConditional(const UDSPInstruction opc, DSPEmitter& emitter)
 	u8 cond = opc & 0xf;
 	if (cond == 0xf) // Always true.
 	{
-		jitCode(opc,emitter);
+		jitCode(opc, emitter);
 		return;
 	}
 
@@ -67,8 +67,8 @@ static void ReJitConditional(const UDSPInstruction opc, DSPEmitter& emitter)
 		break;
 	}
 	DSPJitRegCache c1(emitter.gpr);
-	FixupBranch skipCode = cond == 0xe ? emitter.J_CC(CC_E,true) : emitter.J_CC((CCFlags)(CC_NE - (cond & 1)),true);
-	jitCode(opc,emitter);
+	FixupBranch skipCode = cond == 0xe ? emitter.J_CC(CC_E, true) : emitter.J_CC((CCFlags)(CC_NE - (cond & 1)), true);
+	jitCode(opc, emitter);
 	emitter.gpr.FlushRegs(c1);
 	emitter.SetJumpTarget(skipCode);
 }
@@ -87,7 +87,7 @@ static void WriteBranchExit(DSPEmitter& emitter)
 	}
 	emitter.JMP(emitter.returnDispatcher, true);
 	emitter.gpr.LoadRegs(false);
-	emitter.gpr.FlushRegs(c,false);
+	emitter.gpr.FlushRegs(c, false);
 }
 
 static void WriteBlockLink(DSPEmitter& emitter, u16 dest)
@@ -95,7 +95,7 @@ static void WriteBlockLink(DSPEmitter& emitter, u16 dest)
 	// Jump directly to the called block if it has already been compiled.
 	if (!(dest >= emitter.startAddr && dest <= emitter.compilePC))
 	{
-		if (emitter.blockLinks[dest] != nullptr )
+		if (emitter.blockLinks[dest] != nullptr)
 		{
 			emitter.gpr.FlushRegs();
 			// Check if we have enough cycles to execute the next block
@@ -252,10 +252,10 @@ void DSPEmitter::ret(const UDSPInstruction opc)
 // location.
 void DSPEmitter::rti(const UDSPInstruction opc)
 {
-//	g_dsp.r[DSP_REG_SR] = dsp_reg_load_stack(DSP_STACK_D);
+	//	g_dsp.r[DSP_REG_SR] = dsp_reg_load_stack(DSP_STACK_D);
 	dsp_reg_load_stack(DSP_STACK_D);
 	dsp_op_write_reg(DSP_REG_SR, RDX);
-//	g_dsp.pc = dsp_reg_load_stack(DSP_STACK_C);
+	//	g_dsp.pc = dsp_reg_load_stack(DSP_STACK_C);
 	dsp_reg_load_stack(DSP_STACK_C);
 	MOV(16, M(&g_dsp.pc), R(DX));
 }
@@ -318,8 +318,8 @@ void DSPEmitter::HandleLoop()
 void DSPEmitter::loop(const UDSPInstruction opc)
 {
 	u16 reg = opc & 0x1f;
-//	u16 cnt = g_dsp.r[reg];
-//todo: check if we can use normal variant here
+	//	u16 cnt = g_dsp.r[reg];
+	//todo: check if we can use normal variant here
 	dsp_op_read_reg_dont_saturate(reg, RDX, ZERO);
 	u16 loop_pc = compilePC + 1;
 
@@ -339,7 +339,7 @@ void DSPEmitter::loop(const UDSPInstruction opc)
 	//		dsp_skip_inst();
 	MOV(16, M(&g_dsp.pc), Imm16(loop_pc + opTable[dsp_imem_read(loop_pc)]->size));
 	WriteBranchExit(*this);
-	gpr.FlushRegs(c,false);
+	gpr.FlushRegs(c, false);
 	SetJumpTarget(exit);
 }
 
@@ -369,7 +369,7 @@ void DSPEmitter::loopi(const UDSPInstruction opc)
 	}
 	else
 	{
-//		dsp_skip_inst();
+		//		dsp_skip_inst();
 		MOV(16, M(&g_dsp.pc), Imm16(loop_pc + opTable[dsp_imem_read(loop_pc)]->size));
 		WriteBranchExit(*this);
 	}
@@ -388,8 +388,8 @@ void DSPEmitter::loopi(const UDSPInstruction opc)
 void DSPEmitter::bloop(const UDSPInstruction opc)
 {
 	u16 reg = opc & 0x1f;
-//	u16 cnt = g_dsp.r[reg];
-//todo: check if we can use normal variant here
+	//	u16 cnt = g_dsp.r[reg];
+	//todo: check if we can use normal variant here
 	dsp_op_read_reg_dont_saturate(reg, RDX, ZERO);
 	u16 loop_pc = dsp_imem_read(compilePC + 1);
 
@@ -402,7 +402,7 @@ void DSPEmitter::bloop(const UDSPInstruction opc)
 	MOV(16, R(RDX), Imm16(loop_pc));
 	dsp_reg_store_stack(2);
 	MOV(16, M(&(g_dsp.pc)), Imm16(compilePC + 2));
-	gpr.FlushRegs(c,true);
+	gpr.FlushRegs(c, true);
 	FixupBranch exit = J(true);
 
 	SetJumpTarget(cnt);
@@ -410,7 +410,7 @@ void DSPEmitter::bloop(const UDSPInstruction opc)
 	//		dsp_skip_inst();
 	MOV(16, M(&g_dsp.pc), Imm16(loop_pc + opTable[dsp_imem_read(loop_pc)]->size));
 	WriteBranchExit(*this);
-	gpr.FlushRegs(c,false);
+	gpr.FlushRegs(c, false);
 	SetJumpTarget(exit);
 }
 
@@ -426,7 +426,7 @@ void DSPEmitter::bloop(const UDSPInstruction opc)
 void DSPEmitter::bloopi(const UDSPInstruction opc)
 {
 	u16 cnt = opc & 0xff;
-//	u16 loop_pc = dsp_fetch_code();
+	//	u16 loop_pc = dsp_fetch_code();
 	u16 loop_pc = dsp_imem_read(compilePC + 1);
 
 	if (cnt)
@@ -442,8 +442,8 @@ void DSPEmitter::bloopi(const UDSPInstruction opc)
 	}
 	else
 	{
-//		g_dsp.pc = loop_pc;
-//		dsp_skip_inst();
+		//		g_dsp.pc = loop_pc;
+		//		dsp_skip_inst();
 		MOV(16, M(&g_dsp.pc), Imm16(loop_pc + opTable[dsp_imem_read(loop_pc)]->size));
 		WriteBranchExit(*this);
 	}

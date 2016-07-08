@@ -8,7 +8,7 @@
 
 class PointerWrap;
 
-class CEXIAMBaseboard : public IEXIDevice
+class CEXIAMBaseboard: public IEXIDevice
 {
 public:
 	CEXIAMBaseboard();
@@ -16,7 +16,7 @@ public:
 	void SetCS(int _iCS) override;
 	bool IsPresent() const override;
 	bool IsInterruptSet() override;
-	void DoState(PointerWrap &p) override;
+	void DoState(PointerWrap& p) override;
 
 private:
 	void TransferByte(u8& _uByte) override;

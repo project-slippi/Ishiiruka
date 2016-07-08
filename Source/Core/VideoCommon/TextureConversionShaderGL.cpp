@@ -42,7 +42,7 @@ static void WriteSwizzler(char*& p, u32 format, API_TYPE ApiType)
 		WRITE(p, "{\n"
 			"  int2 sampleUv;\n"
 			"  int2 uv1 = int2(gl_FragCoord.xy);\n"
-			);
+		);
 	}
 	else // D3D
 	{
@@ -54,7 +54,7 @@ static void WriteSwizzler(char*& p, u32 format, API_TYPE ApiType)
 		WRITE(p, "{\n"
 			"  int2 sampleUv;\n"
 			"  int2 uv1 = int2(rawpos.xy);\n"
-			);
+		);
 	}
 
 	WRITE(p, "  int x_block_position = (uv1.x >> %d) << %d;\n", IntLog2(blkH * blkW / samples), IntLog2(blkW));
@@ -91,13 +91,13 @@ static void WriteSampleColor(char*& p, const char* colorComp, const char* dest, 
 	{
 		WRITE(p, "  %s = texture(samp0, float3(uv0 + float2(%d, 0) * sample_offset, 0.0)).%s;\n",
 			dest, xoffset, colorComp
-			);
+		);
 	}
 	else
 	{
 		WRITE(p, "  %s = Tex0.Sample(samp0, float3(uv0 + float2(%d, 0) * sample_offset, 0.0)).%s;\n",
 			dest, xoffset, colorComp
-			);
+		);
 
 		// Handle D3D depth inversion.
 		if (depth)

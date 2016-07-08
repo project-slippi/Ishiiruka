@@ -163,14 +163,14 @@ static inline void dsp_op_write_reg(int _reg, u16 val)
 
 	switch (reg)
 	{
-	// 8-bit sign extended registers. Should look at prod.h too...
+		// 8-bit sign extended registers. Should look at prod.h too...
 	case DSP_REG_ACH0:
 	case DSP_REG_ACH1:
 		// sign extend from the bottom 8 bits.
-		g_dsp.r.ac[reg-DSP_REG_ACH0].h = (u16)(s16)(s8)(u8)val;
+		g_dsp.r.ac[reg - DSP_REG_ACH0].h = (u16)(s16)(s8)(u8)val;
 		break;
 
-	// Stack registers.
+		// Stack registers.
 	case DSP_REG_ST0:
 	case DSP_REG_ST1:
 	case DSP_REG_ST2:
@@ -230,7 +230,7 @@ static inline void dsp_conditional_extend_accum(int reg)
 		if (g_dsp.r.sr & SR_40_MODE_BIT)
 		{
 			// Sign extend into whole accum.
-			u16 val = g_dsp.r.ac[reg-DSP_REG_ACM0].m;
+			u16 val = g_dsp.r.ac[reg - DSP_REG_ACM0].m;
 			g_dsp.r.ac[reg - DSP_REG_ACM0].h = (val & 0x8000) ? 0xFFFF : 0x0000;
 			g_dsp.r.ac[reg - DSP_REG_ACM0].l = 0;
 		}
@@ -243,9 +243,9 @@ static inline void dsp_conditional_extend_accum(int reg)
 
 static inline s64 dsp_get_long_prod()
 {
-	s64 val   = (s8)(u8)g_dsp.r.prod.h;
+	s64 val = (s8)(u8)g_dsp.r.prod.h;
 	val <<= 32;
-	s64 low_prod  = g_dsp.r.prod.m;
+	s64 low_prod = g_dsp.r.prod.m;
 	low_prod += g_dsp.r.prod.m2;
 	low_prod <<= 16;
 	low_prod |= g_dsp.r.prod.l;

@@ -10,7 +10,7 @@
 namespace DX12
 {
 
-enum TEXTURE_BIND_FLAG : u32
+enum TEXTURE_BIND_FLAG: u32
 {
 	TEXTURE_BIND_FLAG_SHADER_RESOURCE = (1 << 0),
 	TEXTURE_BIND_FLAG_RENDER_TARGET = (1 << 1),
@@ -19,8 +19,8 @@ enum TEXTURE_BIND_FLAG : u32
 
 namespace D3D
 {
-	void ReplaceTexture2D(ID3D12Resource* pTexture, const u8* buffer, DXGI_FORMAT fmt, unsigned int width, unsigned int height, unsigned int src_pitch, unsigned int level, D3D12_RESOURCE_STATES current_resource_state = D3D12_RESOURCE_STATE_COMMON);
-	void CleanupPersistentD3DTextureResources();
+void ReplaceTexture2D(ID3D12Resource* pTexture, const u8* buffer, DXGI_FORMAT fmt, unsigned int width, unsigned int height, unsigned int src_pitch, unsigned int level, D3D12_RESOURCE_STATES current_resource_state = D3D12_RESOURCE_STATE_COMMON);
+void CleanupPersistentD3DTextureResources();
 }
 
 class D3DTexture2D

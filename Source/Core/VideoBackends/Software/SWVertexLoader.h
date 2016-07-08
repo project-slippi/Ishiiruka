@@ -17,17 +17,21 @@
 
 class SetupUnit;
 
-class SWVertexLoader : public VertexManagerBase
+class SWVertexLoader: public VertexManagerBase
 {
 public:
 	SWVertexLoader();
 	~SWVertexLoader();
-	void PrepareShaders(PrimitiveType primitive, u32 components, const XFMemory &xfr, const BPMemory &bpm, bool ongputhread) override {}
+	void PrepareShaders(PrimitiveType primitive, u32 components, const XFMemory &xfr, const BPMemory &bpm, bool ongputhread) override
+	{}
 	NativeVertexFormat* CreateNativeVertexFormat(const PortableVertexDeclaration& vdec) override;
 
 protected:
 	void ResetBuffer(u32 stride) override;
-	u16* GetIndexBuffer() { return &LocalIBuffer[0]; }
+	u16* GetIndexBuffer()
+	{
+		return &LocalIBuffer[0];
+	}
 private:
 	void vFlush(bool useDstAlpha) override;
 	std::vector<u8> LocalVBuffer;

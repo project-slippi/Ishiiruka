@@ -32,7 +32,10 @@ public:
 	D3DTexture2D* GetLastPassOutputTexture() const;
 	bool IsLastPassScaled() const;
 
-	bool IsReady() const { return m_ready; }
+	bool IsReady() const
+	{
+		return m_ready;
+	}
 
 	bool Initialize(PostProcessingShaderConfiguration* config, int target_layers);
 	bool Reconfigure(const TargetSize& new_size);
@@ -85,7 +88,7 @@ private:
 	bool m_ready = false;
 };
 
-class D3DPostProcessor final : public PostProcessor
+class D3DPostProcessor final: public PostProcessor
 {
 public:
 	D3DPostProcessor() = default;
@@ -122,10 +125,16 @@ public:
 		bool force_shader_copy = false);
 
 	// Shadered shader stages
-	const D3D12_SHADER_BYTECODE& GetVertexShader() const { return m_vertex_shader; }
-	const D3D12_SHADER_BYTECODE& GetGeometryShader() const { return m_geometry_shader; }
-	const D3D12_CPU_DESCRIPTOR_HANDLE GetSamplerHandle(UINT idx) const 
-	{ 
+	const D3D12_SHADER_BYTECODE& GetVertexShader() const
+	{
+		return m_vertex_shader;
+	}
+	const D3D12_SHADER_BYTECODE& GetGeometryShader() const
+	{
+		return m_geometry_shader;
+	}
+	const D3D12_CPU_DESCRIPTOR_HANDLE GetSamplerHandle(UINT idx) const
+	{
 		D3D12_CPU_DESCRIPTOR_HANDLE handle;
 		handle.ptr = texture_sampler_cpu_handle.ptr + idx * D3D::sampler_descriptor_size;
 		return handle;
@@ -167,7 +176,7 @@ protected:
 
 	TargetSize m_stereo_buffer_size{};
 	D3DTexture2D* m_stereo_buffer_texture{};
-	
+
 	ComPtr<ID3D12DescriptorHeap> m_texture_samplers_descriptor_heap;
 	D3D12_CPU_DESCRIPTOR_HANDLE texture_sampler_cpu_handle{};
 };

@@ -14,9 +14,18 @@
 
 struct geometry_shader_uid_data
 {
-	u32 NumValues() const { return sizeof(geometry_shader_uid_data); }
-	u32 StartValue() const { return 0; }
-	bool IsPassthrough() const { return primitive_type == PRIMITIVE_TRIANGLES && !stereo && !wireframe; }
+	u32 NumValues() const
+	{
+		return sizeof(geometry_shader_uid_data);
+	}
+	u32 StartValue() const
+	{
+		return 0;
+	}
+	bool IsPassthrough() const
+	{
+		return primitive_type == PRIMITIVE_TRIANGLES && !stereo && !wireframe;
+	}
 
 	u32 stereo : 1;
 	u32 numTexGens : 4;

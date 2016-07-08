@@ -10,7 +10,7 @@ class CBreakPointWindow;
 class wxCheckBox;
 class wxTextCtrl;
 
-class MemoryCheckDlg : public wxDialog
+class MemoryCheckDlg: public wxDialog
 {
 public:
 	MemoryCheckDlg(CBreakPointWindow *parent);

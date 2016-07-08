@@ -8,13 +8,12 @@
 #include "Common/CommonTypes.h"
 #include "Core/HW/GCKeyboard.h"
 #include "Core/HW/GCKeyboardEmu.h"
+#include "InputCommon/ControllerInterface/ControllerInterface.h"
 #include "InputCommon/InputConfig.h"
 #include "InputCommon/KeyboardStatus.h"
-#include "InputCommon/ControllerInterface/ControllerInterface.h"
 
 namespace Keyboard
 {
-
 static InputConfig s_config("GCKeyNew", _trans("Keyboard"), "GCKey");
 InputConfig* GetConfig()
 {
@@ -55,5 +54,4 @@ void GetStatus(u8 port, KeyboardStatus* keyboard_status)
 	// Get input
 	static_cast<GCKeyboard*>(s_config.GetController(port))->GetInput(keyboard_status);
 }
-
 }

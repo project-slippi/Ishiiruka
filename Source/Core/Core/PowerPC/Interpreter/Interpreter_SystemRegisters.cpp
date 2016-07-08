@@ -2,15 +2,15 @@
 // Licensed under GPLv2+
 // Refer to the license.txt file included.
 
+#include "Core/PowerPC/Interpreter/Interpreter.h"
 #include "Common/Assert.h"
 #include "Common/CommonTypes.h"
 #include "Common/FPURoundMode.h"
 #include "Common/Logging/Log.h"
 #include "Core/HW/GPFifo.h"
 #include "Core/HW/SystemTimers.h"
-#include "Core/PowerPC/PowerPC.h"
-#include "Core/PowerPC/Interpreter/Interpreter.h"
 #include "Core/PowerPC/Interpreter/Interpreter_FPUtils.h"
+#include "Core/PowerPC/PowerPC.h"
 
 /*
 
@@ -33,8 +33,8 @@ static void FPSCRtoFPUSettings(UReg_FPSCR fp)
 
 	if (fp.VE || fp.OE || fp.UE || fp.ZE || fp.XE)
 	{
-		//PanicAlert("FPSCR - exceptions enabled. Please report. VE=%i OE=%i UE=%i ZE=%i XE=%i",
-		//	fp.VE, fp.OE, fp.UE, fp.ZE, fp.XE);
+		// PanicAlert("FPSCR - exceptions enabled. Please report. VE=%i OE=%i UE=%i ZE=%i XE=%i",
+		// fp.VE, fp.OE, fp.UE, fp.ZE, fp.XE);
 		// Pokemon Colosseum does this. Gah.
 	}
 
@@ -47,7 +47,7 @@ void Interpreter::mtfsb0x(UGeckoInstruction _inst)
 	u32 b = 0x80000000 >> _inst.CRBD;
 
 	/*if (b & 0x9ff80700)
-		PanicAlert("mtfsb0 clears bit %d, PC=%x", _inst.CRBD, PC);*/
+	  PanicAlert("mtfsb0 clears bit %d, PC=%x", _inst.CRBD, PC);*/
 
 	FPSCR.Hex &= ~b;
 	FPSCRtoFPUSettings(FPSCR);
@@ -77,7 +77,7 @@ void Interpreter::mtfsfix(UGeckoInstruction _inst)
 
 	/*u32 cleared = ~(imm >> (4 * _inst.CRFD)) & FPSCR.Hex & mask;
 	if (cleared & 0x9ff80700)
-		PanicAlert("mtfsfi clears %08x, PC=%x", cleared, PC);*/
+	  PanicAlert("mtfsfi clears %08x, PC=%x", cleared, PC);*/
 
 	FPSCR.Hex = (FPSCR.Hex & ~mask) | (imm >> (4 * _inst.CRFD));
 
@@ -99,7 +99,7 @@ void Interpreter::mtfsfx(UGeckoInstruction _inst)
 
 	/*u32 cleared = ~((u32)(riPS0(_inst.FB))) & FPSCR.Hex & m;
 	if (cleared & 0x9ff80700)
-		PanicAlert("mtfsf clears %08x, PC=%x", cleared, PC);*/
+	  PanicAlert("mtfsf clears %08x, PC=%x", cleared, PC);*/
 
 	FPSCR.Hex = (FPSCR.Hex & ~m) | ((u32)(riPS0(_inst.FB)) & m);
 	FPSCRtoFPUSettings(FPSCR);
@@ -129,22 +129,21 @@ void Interpreter::mtcrf(UGeckoInstruction _inst)
 	}
 	else
 	{
-		//TODO: use lookup table? probably not worth it
+		// TODO: use lookup table? probably not worth it
 		u32 mask = 0;
 		for (int i = 0; i < 8; i++)
 		{
 			if (crm & (1 << i))
-				mask |= 0xF << (i*4);
+				mask |= 0xF << (i * 4);
 		}
 
 		SetCR((GetCR() & ~mask) | (rGPR[_inst.RS] & mask));
 	}
 }
 
-
 void Interpreter::mfmsr(UGeckoInstruction _inst)
 {
-	//Privileged?
+	// Privileged?
 	rGPR[_inst.RD] = MSR;
 }
 
@@ -171,7 +170,8 @@ void Interpreter::mtmsr(UGeckoInstruction _inst)
 
 static void SetSR(int index, u32 value)
 {
-	DEBUG_LOG(POWERPC, "%08x: MMU: Segment register %i set to %08x", PowerPC::ppcState.pc, index, value);
+	DEBUG_LOG(POWERPC, "%08x: MMU: Segment register %i set to %08x", PowerPC::ppcState.pc, index,
+		value);
 	PowerPC::ppcState.sr[index] = value;
 }
 
@@ -189,8 +189,6 @@ void Interpreter::mtsrin(UGeckoInstruction _inst)
 	SetSR(index, value);
 }
 
-
-
 void Interpreter::mftb(UGeckoInstruction _inst)
 {
 	int iIndex = (_inst.TBR >> 5) | ((_inst.TBR & 0x1F) << 5);
@@ -199,19 +197,18 @@ void Interpreter::mftb(UGeckoInstruction _inst)
 	mfspr(_inst);
 }
 
-
 void Interpreter::mfspr(UGeckoInstruction _inst)
 {
 	u32 iIndex = ((_inst.SPR & 0x1F) << 5) + ((_inst.SPR >> 5) & 0x1F);
 
-	//TODO - check processor privilege level - many of these require privilege
-	//XER LR CTR are the only ones available in user mode, time base can be read too.
-	//GameCube games always run in superuser mode, but hey....
+	// TODO - check processor privilege level - many of these require privilege
+	// XER LR CTR are the only ones available in user mode, time base can be read too.
+	// GameCube games always run in superuser mode, but hey....
 
 	switch (iIndex)
 	{
 	case SPR_DEC:
-		if ((rSPR(iIndex) & 0x80000000) == 0) // We are still decrementing
+		if ((rSPR(iIndex) & 0x80000000) == 0)  // We are still decrementing
 		{
 			rSPR(iIndex) = SystemTimers::GetFakeDecrementer();
 		}
@@ -219,20 +216,21 @@ void Interpreter::mfspr(UGeckoInstruction _inst)
 
 	case SPR_TL:
 	case SPR_TU:
-		*((u64 *)&TL) = SystemTimers::GetFakeTimeBase(); //works since we are little endian and TL comes first :)
+		*((u64*)&TL) =
+			SystemTimers::GetFakeTimeBase();  // works since we are little endian and TL comes first :)
 		break;
 
 	case SPR_WPAR:
-		{
-			// TODO: If wpar_empty ever is false, Paper Mario hangs. Strange.
-			// Maybe WPAR is automatically flushed after a certain amount of time?
-			bool wpar_empty = true; //GPFifo::IsEmpty();
-			if (!wpar_empty)
-				rSPR(iIndex) |= 1;  // BNE = buffer not empty
-			else
-				rSPR(iIndex) &= ~1;
-		}
-		break;
+	{
+		// TODO: If wpar_empty ever is false, Paper Mario hangs. Strange.
+		// Maybe WPAR is automatically flushed after a certain amount of time?
+		bool wpar_empty = true;  // GPFifo::IsEmpty();
+		if (!wpar_empty)
+			rSPR(iIndex) |= 1;  // BNE = buffer not empty
+		else
+			rSPR(iIndex) &= ~1;
+	}
+	break;
 	case SPR_XER:
 		rSPR(iIndex) = GetXER().Hex;
 		break;
@@ -246,12 +244,12 @@ void Interpreter::mtspr(UGeckoInstruction _inst)
 	u32 oldValue = rSPR(iIndex);
 	rSPR(iIndex) = rGPR[_inst.RD];
 
-	//TODO - check processor privilege level - many of these require privilege
-	//XER LR CTR are the only ones available in user mode, time base can be read too.
-	//GameCube games always run in superuser mode, but hey....
+	// TODO - check processor privilege level - many of these require privilege
+	// XER LR CTR are the only ones available in user mode, time base can be read too.
+	// GameCube games always run in superuser mode, but hey....
 
-	//Our DMA emulation is highly inaccurate - instead of properly emulating the queue
-	//and so on, we simply make all DMA:s complete instantaneously.
+	// Our DMA emulation is highly inaccurate - instead of properly emulating the queue
+	// and so on, we simply make all DMA:s complete instantaneously.
 
 	switch (iIndex)
 	{
@@ -270,33 +268,33 @@ void Interpreter::mtspr(UGeckoInstruction _inst)
 		SystemTimers::TimeBaseSet();
 		break;
 
-	case SPR_HID0: // HID0
+	case SPR_HID0:  // HID0
+	{
+		UReg_HID0 old_hid0;
+		old_hid0.Hex = oldValue;
+		if (HID0.ICE != old_hid0.ICE)
 		{
-			UReg_HID0 old_hid0;
-			old_hid0.Hex = oldValue;
-			if (HID0.ICE != old_hid0.ICE)
-			{
-				INFO_LOG(POWERPC, "Instruction Cache Enable (HID0.ICE) = %d", (int)HID0.ICE);
-			}
-			if (HID0.ILOCK != old_hid0.ILOCK)
-			{
-				INFO_LOG(POWERPC, "Instruction Cache Lock (HID0.ILOCK) = %d", (int)HID0.ILOCK);
-			}
-			if (HID0.ICFI)
-			{
-				HID0.ICFI = 0;
-				INFO_LOG(POWERPC, "Flush Instruction Cache! ICE=%d", (int)HID0.ICE);
-				// this is rather slow
-				// most games do it only once during initialization
-				PowerPC::ppcState.iCache.Reset();
-			}
+			INFO_LOG(POWERPC, "Instruction Cache Enable (HID0.ICE) = %d", (int)HID0.ICE);
 		}
-		break;
-	case SPR_HID2: // HID2
-		// TODO: generate illegal instruction for paired inst if PSE or LSQE
-		// not set.
-		// TODO: disable write gather pipe if WPE not set
-		// TODO: emulate locked cache and DMA bits.
+		if (HID0.ILOCK != old_hid0.ILOCK)
+		{
+			INFO_LOG(POWERPC, "Instruction Cache Lock (HID0.ILOCK) = %d", (int)HID0.ILOCK);
+		}
+		if (HID0.ICFI)
+		{
+			HID0.ICFI = 0;
+			INFO_LOG(POWERPC, "Flush Instruction Cache! ICE=%d", (int)HID0.ICE);
+			// this is rather slow
+			// most games do it only once during initialization
+			PowerPC::ppcState.iCache.Reset();
+		}
+	}
+	break;
+	case SPR_HID2:  // HID2
+	  // TODO: generate illegal instruction for paired inst if PSE or LSQE
+	  // not set.
+	  // TODO: disable write gather pipe if WPE not set
+	  // TODO: emulate locked cache and DMA bits.
 		break;
 
 	case SPR_WPAR:
@@ -304,7 +302,7 @@ void Interpreter::mtspr(UGeckoInstruction _inst)
 		GPFifo::ResetGatherPipe();
 		break;
 
-	// Graphics Quantization Registers
+		// Graphics Quantization Registers
 	case SPR_GQR0:
 	case SPR_GQR0 + 1:
 	case SPR_GQR0 + 2:
@@ -323,7 +321,8 @@ void Interpreter::mtspr(UGeckoInstruction _inst)
 			u32 dwMemAddress = DMAU.MEM_ADDR << 5;
 			u32 dwCacheAddress = DMAL.LC_ADDR << 5;
 			u32 iLength = ((DMAU.DMA_LEN_U << 2) | DMAL.DMA_LEN_L);
-			// INFO_LOG(POWERPC, "DMA: mem = %x, cache = %x, len = %u, LD = %d, PC=%x", dwMemAddress, dwCacheAddress, iLength, (int)DMAL.DMA_LD, PC);
+			// INFO_LOG(POWERPC, "DMA: mem = %x, cache = %x, len = %u, LD = %d, PC=%x", dwMemAddress,
+			// dwCacheAddress, iLength, (int)DMAL.DMA_LD, PC);
 			if (iLength == 0)
 				iLength = 128;
 			if (DMAL.DMA_LD)
@@ -335,11 +334,11 @@ void Interpreter::mtspr(UGeckoInstruction _inst)
 		break;
 
 	case SPR_L2CR:
-		//PanicAlert("mtspr( L2CR )!");
+		// PanicAlert("mtspr( L2CR )!");
 		break;
 
 	case SPR_DEC:
-		if (!(oldValue >> 31) && (rGPR[_inst.RD]>>31))   //top bit from 0 to 1
+		if (!(oldValue >> 31) && (rGPR[_inst.RD] >> 31))  // top bit from 0 to 1
 		{
 			PanicAlert("Interesting - Software triggered Decrementer exception");
 			PowerPC::ppcState.Exceptions |= EXCEPTION_DECREMENTER;
@@ -347,7 +346,7 @@ void Interpreter::mtspr(UGeckoInstruction _inst)
 		SystemTimers::DecrementerSet();
 		break;
 
-	// Page table base etc
+		// Page table base etc
 	case SPR_SDR:
 		PowerPC::SDRUpdated();
 		break;
@@ -406,15 +405,15 @@ void Interpreter::mcrf(UGeckoInstruction _inst)
 
 void Interpreter::isync(UGeckoInstruction _inst)
 {
-	//shouldn't do anything
+	// shouldn't do anything
 }
 
 // the following commands read from FPSCR
 
 void Interpreter::mcrfs(UGeckoInstruction _inst)
 {
-	//if (_inst.CRFS != 3 && _inst.CRFS != 4)
-	//	PanicAlert("msrfs at %x, CRFS = %d, CRFD = %d", PC, (int)_inst.CRFS, (int)_inst.CRFD);
+	// if (_inst.CRFS != 3 && _inst.CRFS != 4)
+	//   PanicAlert("msrfs at %x, CRFS = %d, CRFD = %d", PC, (int)_inst.CRFS, (int)_inst.CRFD);
 
 	UpdateFPSCR();
 	u32 fpflags = ((FPSCR.Hex >> (4 * (7 - _inst.CRFS))) & 0xF);

@@ -151,7 +151,7 @@ void NetPlayServer::ThreadFunc()
 					Send(accept_peer, spac);
 					if (netEvent.peer->data)
 					{
-						delete (PlayerId *) netEvent.peer->data;
+						delete (PlayerId *)netEvent.peer->data;
 						netEvent.peer->data = nullptr;
 					}
 					enet_peer_disconnect(accept_peer, 0);
@@ -183,7 +183,7 @@ void NetPlayServer::ThreadFunc()
 			case ENET_EVENT_TYPE_DISCONNECT:
 			{
 				std::lock_guard<std::recursive_mutex> lkg(m_crit.game);
-				if  (!netEvent.peer->data)
+				if (!netEvent.peer->data)
 					break;
 				auto it = m_players.find(*(PlayerId *)netEvent.peer->data);
 				if (it != m_players.end())
@@ -200,7 +200,7 @@ void NetPlayServer::ThreadFunc()
 			}
 			break;
 			default:
-			break;
+				break;
 			}
 		}
 	}
@@ -222,7 +222,8 @@ unsigned int NetPlayServer::OnConnect(ENetPeer* socket)
 	do
 	{
 		epack = enet_peer_receive(socket, nullptr);
-	} while (epack == nullptr);
+	}
+	while (epack == nullptr);
 	rpac.append(epack->data, epack->dataLength);
 
 	// give new client first available id
@@ -500,15 +501,15 @@ unsigned int NetPlayServer::OnData(sf::Packet& packet, Client& player)
 		PadMapping map = 0;
 		GCPadStatus pad;
 		packet >> map
-		       >> pad.button
-		       >> pad.analogA
-		       >> pad.analogB
-		       >> pad.stickX
-		       >> pad.stickY
-		       >> pad.substickX
-		       >> pad.substickY
-		       >> pad.triggerLeft
-		       >> pad.triggerRight;
+			>> pad.button
+			>> pad.analogA
+			>> pad.analogB
+			>> pad.stickX
+			>> pad.stickY
+			>> pad.substickX
+			>> pad.substickY
+			>> pad.triggerLeft
+			>> pad.triggerRight;
 
 		// If the data is not from the correct player,
 		// then disconnect them.
@@ -521,15 +522,15 @@ unsigned int NetPlayServer::OnData(sf::Packet& packet, Client& player)
 		sf::Packet spac;
 		spac << (MessageId)NP_MSG_PAD_DATA;
 		spac << map
-		     << pad.button
-		     << pad.analogA
-		     << pad.analogB
-		     << pad.stickX
-		     << pad.stickY
-		     << pad.substickX
-		     << pad.substickY
-		     << pad.triggerLeft
-		     << pad.triggerRight;
+			<< pad.button
+			<< pad.analogA
+			<< pad.analogB
+			<< pad.stickX
+			<< pad.stickY
+			<< pad.substickX
+			<< pad.substickY
+			<< pad.triggerLeft
+			<< pad.triggerRight;
 
 		SendToClients(spac, player.pid);
 	}
@@ -623,14 +624,18 @@ unsigned int NetPlayServer::OnData(sf::Packet& packet, Client& player)
 		{
 			// we have all records for this frame
 
-			if (!std::all_of(timebases.begin(), timebases.end(), [&](std::pair<PlayerId, u64> pair){ return pair.second == timebases[0].second; }))
+			if (!std::all_of(timebases.begin(), timebases.end(), [&](std::pair<PlayerId, u64> pair)
+			{
+				return pair.second == timebases[0].second;
+			}))
 			{
 				int pid_to_blame = -1;
 				if (timebases.size() > 2)
 				{
 					for (auto pair : timebases)
 					{
-						if (std::all_of(timebases.begin(), timebases.end(), [&](std::pair<PlayerId, u64> other) {
+						if (std::all_of(timebases.begin(), timebases.end(), [&](std::pair<PlayerId, u64> other)
+						{
 							return other.first == pair.first || other.second != pair.second;
 						}))
 						{
@@ -642,7 +647,7 @@ unsigned int NetPlayServer::OnData(sf::Packet& packet, Client& player)
 				}
 
 				sf::Packet spac;
-				spac << (MessageId) NP_MSG_DESYNC_DETECTED;
+				spac << (MessageId)NP_MSG_DESYNC_DETECTED;
 				spac << pid_to_blame;
 				spac << frame;
 				SendToClients(spac);
@@ -723,6 +728,7 @@ bool NetPlayServer::StartGame()
 	*spac << m_current_game;
 	*spac << m_settings.m_CPUthread;
 	*spac << m_settings.m_CPUcore;
+	*spac << m_settings.m_EnableCheats;
 	*spac << m_settings.m_SelectedLanguage;
 	*spac << m_settings.m_OverrideGCLanguage;
 	*spac << m_settings.m_ProgressiveScan;
@@ -871,7 +877,7 @@ void NetPlayServer::TryPortmapping(u16 port)
 // UPnP thread: try to map a port
 void NetPlayServer::mapPortThread(const u16 port)
 {
-	ENetAddress adr = { ENET_HOST_ANY, port };
+	ENetAddress adr = {ENET_HOST_ANY, port};
 	char cIP[20];
 
 	enet_address_get_host(&adr, cIP, 20);

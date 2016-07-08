@@ -8,26 +8,27 @@
 #include "Common/CommonPaths.h"
 #include "Common/CommonTypes.h"
 #include "Common/FileUtil.h"
+#include "Common/Logging/Log.h"
 #include "Common/MemoryUtil.h"
 #include "Common/Timer.h"
-#include "Common/Logging/Log.h"
 #include "Core/ConfigManager.h"
 #include "Core/CoreTiming.h"
-#include "Core/Movie.h"
-#include "Core/NetPlayProto.h"
 #include "Core/HW/EXI_DeviceIPL.h"
 #include "Core/HW/Sram.h"
 #include "Core/HW/SystemTimers.h"
+#include "Core/Movie.h"
+#include "Core/NetPlayProto.h"
 
-// We should provide an option to choose from the above, or figure out the checksum (the algo in yagcd seems wrong)
+// We should provide an option to choose from the above, or figure out the checksum (the algo in
+// yagcd seems wrong)
 // so that people can change default language.
 
-static const char iplverPAL[0x100]  = "(C) 1999-2001 Nintendo.  All rights reserved."
-                                      "(C) 1999 ArtX Inc.  All rights reserved."
-                                      "PAL  Revision 1.0  ";
+static const char iplverPAL[0x100] = "(C) 1999-2001 Nintendo.  All rights reserved."
+"(C) 1999 ArtX Inc.  All rights reserved."
+"PAL  Revision 1.0  ";
 
 static const char iplverNTSC[0x100] = "(C) 1999-2001 Nintendo.  All rights reserved."
-                                      "(C) 1999 ArtX Inc.  All rights reserved.";
+"(C) 1999 ArtX Inc.  All rights reserved.";
 
 // bootrom descrambler reversed by segher
 // Copyright 2008 Segher Boessenkool <segher@kernel.crashing.org>
@@ -73,7 +74,7 @@ void CEXIIPL::Descrambler(u8* data, u32 size)
 			t ^= 0xa740;
 
 		nacc++;
-		acc = 2*acc + x;
+		acc = 2 * acc + x;
 		if (nacc == 8)
 		{
 			data[it++] ^= acc;
@@ -82,11 +83,7 @@ void CEXIIPL::Descrambler(u8* data, u32 size)
 	}
 }
 
-CEXIIPL::CEXIIPL() :
-	m_uPosition(0),
-	m_uAddress(0),
-	m_uRWOffset(0),
-	m_FontsLoaded(false)
+CEXIIPL::CEXIIPL(): m_uPosition(0), m_uAddress(0), m_uRWOffset(0), m_FontsLoaded(false)
 {
 	// Determine region
 	m_bNTSC = SConfig::GetInstance().bNTSC;
@@ -97,7 +94,8 @@ CEXIIPL::CEXIIPL() :
 	if (SConfig::GetInstance().bHLE_BS2)
 	{
 		// Copy header
-		memcpy(m_pIPL, m_bNTSC ? iplverNTSC : iplverPAL, m_bNTSC ? sizeof(iplverNTSC) : sizeof(iplverPAL));
+		memcpy(m_pIPL, m_bNTSC ? iplverNTSC : iplverPAL,
+			m_bNTSC ? sizeof(iplverNTSC) : sizeof(iplverPAL));
 
 		// Load fonts
 		LoadFontFile((File::GetSysDirectory() + GC_SYS_DIR + DIR_SEP + FONT_SJIS), 0x1aff00);
@@ -109,13 +107,14 @@ CEXIIPL::CEXIIPL() :
 		LoadFileToIPL(SConfig::GetInstance().m_strBootROM, 0);
 		// Descramble the encrypted section (contains BS1 and BS2)
 		Descrambler(m_pIPL + 0x100, 0x1afe00);
-		INFO_LOG(BOOT, "Loaded bootrom: %s", m_pIPL); // yay for null-terminated strings ;p
+		INFO_LOG(BOOT, "Loaded bootrom: %s", m_pIPL);  // yay for null-terminated strings ;p
 	}
 
 	// Clear RTC
 	memset(m_RTC, 0, sizeof(m_RTC));
 
-	// We Overwrite language selection here since it's possible on the GC to change the language as you please
+	// We Overwrite language selection here since it's possible on the GC to change the language as
+	// you please
 	g_SRAM.lang = SConfig::GetInstance().SelectedLanguage;
 	FixSRAMChecksums();
 
@@ -139,7 +138,7 @@ CEXIIPL::~CEXIIPL()
 		g_SRAM_netplay_initialized = false;
 	}
 }
-void CEXIIPL::DoState(PointerWrap &p)
+void CEXIIPL::DoState(PointerWrap& p)
 {
 	p.Do(m_RTC);
 	p.Do(m_uPosition);
@@ -201,7 +200,8 @@ void CEXIIPL::LoadFontFile(const std::string& filename, u32 offset)
 		// long respectively, so, determine the size of the font being loaded based on the offset
 		u64 fontsize = (offset == 0x1aff00) ? 0x4a24d : 0x2575;
 
-		INFO_LOG(BOOT, "Found IPL dump, loading %s font from %s", ((offset == 0x1aff00) ? "SJIS" : "Windows-1252"), (ipl_rom_path).c_str());
+		INFO_LOG(BOOT, "Found IPL dump, loading %s font from %s",
+			((offset == 0x1aff00) ? "SJIS" : "Windows-1252"), (ipl_rom_path).c_str());
 
 		stream.Seek(offset, 0);
 		stream.ReadBytes(m_pIPL + offset, fontsize);
@@ -298,8 +298,8 @@ void CEXIIPL::TransferByte(u8& _uByte)
 				else
 				{
 					device_name = "illegal address";
-					_dbg_assert_msg_(EXPANSIONINTERFACE, 0,
-						"EXI IPL-DEV: %s %08x", device_name.c_str(), m_uAddress);
+					_dbg_assert_msg_(EXPANSIONINTERFACE, 0, "EXI IPL-DEV: %s %08x", device_name.c_str(),
+						m_uAddress);
 				}
 				break;
 			}
@@ -379,18 +379,17 @@ void CEXIIPL::TransferByte(u8& _uByte)
 
 					if ((position >= 0x001AFF00) && (position <= 0x001FF474) && !m_FontsLoaded)
 					{
-						PanicAlertT(
-							"Error: Trying to access %s fonts but they are not loaded. "
+						PanicAlertT("Error: Trying to access %s fonts but they are not loaded. "
 							"Games may not show fonts correctly, or crash.",
 							(position >= 0x001FCF00) ? "ANSI" : "SJIS");
-						m_FontsLoaded = true; // Don't be a nag :p
+						m_FontsLoaded = true;  // Don't be a nag :p
 					}
 				}
 			}
 			else
 			{
-				NOTICE_LOG(OSREPORT, "EXI IPL-DEV: %s %x at %08x",
-					IsWriteCommand() ? "write" : "read", _uByte, m_uAddress);
+				NOTICE_LOG(OSREPORT, "EXI IPL-DEV: %s %x at %08x", IsWriteCommand() ? "write" : "read",
+					_uByte, m_uAddress);
 			}
 			break;
 		}
@@ -436,7 +435,7 @@ u32 CEXIIPL::GetGCTime()
 
 	for (int i = 0; i < 4; i++)
 	{
-		((u8*)&Bias)[i] = sram_dump[0xc + (i^3)];
+		((u8*)&Bias)[i] = sram_dump[0xc + (i ^ 3)];
 	}
 
 	// Get the time ...

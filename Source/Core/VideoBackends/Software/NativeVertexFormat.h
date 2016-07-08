@@ -46,9 +46,9 @@ struct OutputVertexData
 
 	void Lerp(float t, OutputVertexData *a, OutputVertexData *b)
 	{
-		#define LINTERP(T, OUT, IN) (OUT) + ((IN - OUT) * T)
+#define LINTERP(T, OUT, IN) (OUT) + ((IN - OUT) * T)
 
-		#define LINTERP_INT(T, OUT, IN) (OUT) + (((IN - OUT) * T) >> 8)
+#define LINTERP_INT(T, OUT, IN) (OUT) + (((IN - OUT) * T) >> 8)
 
 		mvPosition = LINTERP(t, a->mvPosition, b->mvPosition);
 
@@ -74,7 +74,7 @@ struct OutputVertexData
 			texCoords[i] = LINTERP(t, a->texCoords[i], b->texCoords[i]);
 		}
 
-		#undef LINTERP
-		#undef LINTERP_INT
+#undef LINTERP
+#undef LINTERP_INT
 	}
 };

@@ -14,16 +14,16 @@ extern SoundStream *g_sound_stream;
 
 namespace AudioCommon
 {
-	SoundStream* InitSoundStream(void *hWnd);
-	void ShutdownSoundStream();
-	std::vector<std::string> GetSoundBackends();
-	void PauseAndLock(bool doLock, bool unpauseOnUnlock=true);
-	void UpdateSoundStream();
-	void ClearAudioBuffer(bool mute);
-	void SendAIBuffer(short* samples, unsigned int num_samples);
-	void StartAudioDump();
-	void StopAudioDump();
-	void IncreaseVolume(unsigned short offset);
-	void DecreaseVolume(unsigned short offset);
-	void ToggleMuteVolume();
+SoundStream* InitSoundStream(void *hWnd);
+void ShutdownSoundStream();
+std::vector<std::string> GetSoundBackends();
+void PauseAndLock(bool doLock, bool unpauseOnUnlock = true);
+void UpdateSoundStream();
+void ClearAudioBuffer(bool mute);
+void SendAIBuffer(short* samples, unsigned int num_samples);
+void StartAudioDump();
+void StopAudioDump();
+void IncreaseVolume(unsigned short offset);
+void DecreaseVolume(unsigned short offset);
+void ToggleMuteVolume();
 }

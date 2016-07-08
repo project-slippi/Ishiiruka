@@ -5,7 +5,8 @@
 #pragma once
 #include "VideoCommon/NativeVertexFormat.h"
 
-class VertexLoader_Position {
+class VertexLoader_Position
+{
 public:
 
 	// Init

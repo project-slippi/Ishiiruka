@@ -10,13 +10,17 @@
 
 //wrapper between disasm control and Dolphin debugger
 
-class PPCDebugInterface final : public DebugInterface
+class PPCDebugInterface final: public DebugInterface
 {
 public:
-	PPCDebugInterface(){}
+	PPCDebugInterface()
+	{}
 	std::string Disassemble(unsigned int address) override;
 	void GetRawMemoryString(int memory, unsigned int address, char *dest, int max_size) override;
-	int GetInstructionSize(int /*instruction*/) override {return 4;}
+	int GetInstructionSize(int /*instruction*/) override
+	{
+		return 4;
+	}
 	bool IsAlive() override;
 	bool IsBreakpoint(unsigned int address) override;
 	void SetBreakpoint(unsigned int address) override;
@@ -38,7 +42,8 @@ public:
 	unsigned int ReadInstruction(unsigned int address) override;
 	unsigned int GetPC() override;
 	void SetPC(unsigned int address) override;
-	void Step() override {}
+	void Step() override
+	{}
 	void RunToBreakpoint() override;
 	void InsertBLR(unsigned int address, unsigned int value) override;
 	int GetColor(unsigned int address) override;

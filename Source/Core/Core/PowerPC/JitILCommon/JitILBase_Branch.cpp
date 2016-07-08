@@ -2,12 +2,11 @@
 // Licensed under GPLv2+
 // Refer to the license.txt file included.
 
+#include "Core/PowerPC/JitILCommon/JitILBase.h"
 #include "Common/CommonTypes.h"
 #include "Core/ConfigManager.h"
 #include "Core/PowerPC/Gekko.h"
 #include "Core/PowerPC/PowerPC.h"
-#include "Core/PowerPC/JitILCommon/JitILBase.h"
-
 
 // The branches are known good, or at least reasonably good.
 // No need for a disable-mechanism.
@@ -36,7 +35,7 @@ void JitILBase::rfi(UGeckoInstruction inst)
 void JitILBase::bx(UGeckoInstruction inst)
 {
 	NORMALBRANCH_START
-	INSTRUCTION_START;
+		INSTRUCTION_START;
 
 	// We must always process the following sentence
 	// even if the blocks are merged by PPCAnalyst::Flatten().
@@ -130,8 +129,8 @@ static IREmitter::InstLoc TestBranch(IREmitter::IRBuilder& ibuild, UGeckoInstruc
 void JitILBase::bcx(UGeckoInstruction inst)
 {
 	NORMALBRANCH_START
-	if (inst.LK)
-		ibuild.EmitStoreLink(ibuild.EmitIntConst(js.compilerPC + 4));
+		if (inst.LK)
+			ibuild.EmitStoreLink(ibuild.EmitIntConst(js.compilerPC + 4));
 
 	IREmitter::InstLoc Test = TestBranch(ibuild, inst);
 
@@ -146,12 +145,10 @@ void JitILBase::bcx(UGeckoInstruction inst)
 	// If idle skipping is enabled, then this branch will only be reached when the branch is not
 	// taken.
 	// TODO: We shouldn't use debug reads here.
-	if (SConfig::GetInstance().bSkipIdle &&
-		inst.hex == 0x4182fff8 &&
+	if (SConfig::GetInstance().bSkipIdle && inst.hex == 0x4182fff8 &&
 		(PowerPC::HostRead_U32(js.compilerPC - 8) & 0xFFFF0000) == 0x800D0000 &&
 		(PowerPC::HostRead_U32(js.compilerPC - 4) == 0x28000000 ||
-		(SConfig::GetInstance().bWii && PowerPC::HostRead_U32(js.compilerPC - 4) == 0x2C000000))
-		)
+		(SConfig::GetInstance().bWii && PowerPC::HostRead_U32(js.compilerPC - 4) == 0x2C000000)))
 	{
 		// Uh, Do nothing.
 	}
@@ -165,12 +162,12 @@ void JitILBase::bcx(UGeckoInstruction inst)
 void JitILBase::bcctrx(UGeckoInstruction inst)
 {
 	NORMALBRANCH_START
-	if ((inst.BO & 4) == 0)
-	{
-		IREmitter::InstLoc c = ibuild.EmitLoadCTR();
-		c = ibuild.EmitSub(c, ibuild.EmitIntConst(1));
-		ibuild.EmitStoreCTR(c);
-	}
+		if ((inst.BO & 4) == 0)
+		{
+			IREmitter::InstLoc c = ibuild.EmitLoadCTR();
+			c = ibuild.EmitSub(c, ibuild.EmitIntConst(1));
+			ibuild.EmitStoreCTR(c);
+		}
 
 	IREmitter::InstLoc test;
 	if ((inst.BO & 16) == 0)  // Test a CR bit
@@ -195,13 +192,12 @@ void JitILBase::bclrx(UGeckoInstruction inst)
 {
 	NORMALBRANCH_START
 
-	if (!js.isLastInstruction &&
-	    (inst.BO & (1 << 4)) && (inst.BO & (1 << 2)))
-	{
-		if (inst.LK)
-			ibuild.EmitStoreLink(ibuild.EmitIntConst(js.compilerPC + 4));
-		return;
-	}
+		if (!js.isLastInstruction && (inst.BO & (1 << 4)) && (inst.BO & (1 << 2)))
+		{
+			if (inst.LK)
+				ibuild.EmitStoreLink(ibuild.EmitIntConst(js.compilerPC + 4));
+			return;
+		}
 
 	if (inst.hex == 0x4e800020)
 	{

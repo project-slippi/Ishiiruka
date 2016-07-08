@@ -101,7 +101,8 @@ public:
 
 	static void Init();
 
-	void GetPipelineState(D3D12_GRAPHICS_PIPELINE_STATE_DESC** pso_desc) {
+	void GetPipelineState(D3D12_GRAPHICS_PIPELINE_STATE_DESC** pso_desc)
+	{
 		*pso_desc = &m_current_pso_desc;
 	};
 

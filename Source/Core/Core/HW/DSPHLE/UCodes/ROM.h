@@ -6,7 +6,7 @@
 
 #include "Core/HW/DSPHLE/UCodes/UCodes.h"
 
-class ROMUCode : public UCodeInterface
+class ROMUCode: public UCodeInterface
 {
 public:
 	ROMUCode(DSPHLE* dsphle, u32 crc);
@@ -15,7 +15,7 @@ public:
 	void HandleMail(u32 mail) override;
 	void Update() override;
 
-	void DoState(PointerWrap &p) override;
+	void DoState(PointerWrap& p) override;
 
 private:
 	struct UCodeBootInfo

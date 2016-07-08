@@ -149,12 +149,12 @@ static void SetSpecialRegValue(int reg, u32 value)
 	case 6: PowerPC::ppcState.spr[SPR_SRR0] = value; break;
 	case 7: PowerPC::ppcState.spr[SPR_SRR1] = value; break;
 	case 8: PowerPC::ppcState.Exceptions = value; break;
-	// Should we just change the value, or use ProcessorInterface::SetInterrupt() to make the system aware?
-	// case 9: return ProcessorInterface::GetMask();
-	// case 10: return ProcessorInterface::GetCause();
+		// Should we just change the value, or use ProcessorInterface::SetInterrupt() to make the system aware?
+		// case 9: return ProcessorInterface::GetMask();
+		// case 10: return ProcessorInterface::GetCause();
 	case 11: PowerPC::ppcState.spr[SPR_DSISR] = value; break;
 	case 12: PowerPC::ppcState.spr[SPR_DAR] = value; break;
-	//case 13: (PowerPC::ppcState.pagetable_hashmask << 6) | PowerPC::ppcState.pagetable_base;
+		//case 13: (PowerPC::ppcState.pagetable_hashmask << 6) | PowerPC::ppcState.pagetable_base;
 	default: return;
 	}
 }
@@ -226,9 +226,9 @@ wxGridCellAttr *CRegTable::GetAttr(int row, int col, wxGridCellAttr::wxAttrKind)
 	bool red = false;
 	switch (col)
 	{
-	case 1: red = row < 32 ? m_CachedRegHasChanged[row] : m_CachedSpecialRegHasChanged[row-32]; break;
+	case 1: red = row < 32 ? m_CachedRegHasChanged[row] : m_CachedSpecialRegHasChanged[row - 32]; break;
 	case 3:
-	case 4: red = row < 32 ? m_CachedFRegHasChanged[row][col-3] : false; break;
+	case 4: red = row < 32 ? m_CachedFRegHasChanged[row][col - 3] : false; break;
 	}
 
 	attr->SetTextColour(red ? *wxRED : *wxBLACK);

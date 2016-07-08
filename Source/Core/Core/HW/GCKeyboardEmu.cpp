@@ -2,219 +2,49 @@
 // Licensed under GPLv2+
 // Refer to the license.txt file included.
 
-#include "Common/Common.h"
 #include "Core/HW/GCKeyboardEmu.h"
+#include "Common/Common.h"
 #include "InputCommon/KeyboardStatus.h"
 
-static const u16 keys0_bitmasks[] =
-{
-	KEYMASK_HOME,
-	KEYMASK_END,
-	KEYMASK_PGUP,
-	KEYMASK_PGDN,
-	KEYMASK_SCROLLLOCK,
-	KEYMASK_A,
-	KEYMASK_B,
-	KEYMASK_C,
-	KEYMASK_D,
-	KEYMASK_E,
-	KEYMASK_F,
-	KEYMASK_G,
-	KEYMASK_H,
-	KEYMASK_I,
-	KEYMASK_J,
-	KEYMASK_K
-};
-static const u16 keys1_bitmasks[] =
-{
-	KEYMASK_L,
-	KEYMASK_M,
-	KEYMASK_N,
-	KEYMASK_O,
-	KEYMASK_P,
-	KEYMASK_Q,
-	KEYMASK_R,
-	KEYMASK_S,
-	KEYMASK_T,
-	KEYMASK_U,
-	KEYMASK_V,
-	KEYMASK_W,
-	KEYMASK_X,
-	KEYMASK_Y,
-	KEYMASK_Z,
-	KEYMASK_1
-};
-static const u16 keys2_bitmasks[] =
-{
-	KEYMASK_2,
-	KEYMASK_3,
-	KEYMASK_4,
-	KEYMASK_5,
-	KEYMASK_6,
-	KEYMASK_7,
-	KEYMASK_8,
-	KEYMASK_9,
-	KEYMASK_0,
-	KEYMASK_MINUS,
-	KEYMASK_PLUS,
-	KEYMASK_PRINTSCR,
-	KEYMASK_BRACE_OPEN,
-	KEYMASK_BRACE_CLOSE,
-	KEYMASK_COLON,
-	KEYMASK_QUOTE
-};
-static const u16 keys3_bitmasks[] =
-{
-	KEYMASK_HASH,
-	KEYMASK_COMMA,
-	KEYMASK_PERIOD,
-	KEYMASK_QUESTIONMARK,
-	KEYMASK_INTERNATIONAL1,
-	KEYMASK_F1,
-	KEYMASK_F2,
-	KEYMASK_F3,
-	KEYMASK_F4,
-	KEYMASK_F5,
-	KEYMASK_F6,
-	KEYMASK_F7,
-	KEYMASK_F8,
-	KEYMASK_F9,
-	KEYMASK_F10,
-	KEYMASK_F11
-};
-static const u16 keys4_bitmasks[] =
-{
-	KEYMASK_F12,
-	KEYMASK_ESC,
-	KEYMASK_INSERT,
-	KEYMASK_DELETE,
-	KEYMASK_TILDE,
-	KEYMASK_BACKSPACE,
-	KEYMASK_TAB,
-	KEYMASK_CAPSLOCK,
-	KEYMASK_LEFTSHIFT,
-	KEYMASK_RIGHTSHIFT,
-	KEYMASK_LEFTCONTROL,
-	KEYMASK_RIGHTALT,
-	KEYMASK_LEFTWINDOWS,
-	KEYMASK_SPACE,
-	KEYMASK_RIGHTWINDOWS,
-	KEYMASK_MENU
-};
-static const u16 keys5_bitmasks[] =
-{
-	KEYMASK_LEFTARROW,
-	KEYMASK_DOWNARROW,
-	KEYMASK_UPARROW,
-	KEYMASK_RIGHTARROW,
-	KEYMASK_ENTER
-};
+static const u16 keys0_bitmasks[] = {KEYMASK_HOME,       KEYMASK_END, KEYMASK_PGUP, KEYMASK_PGDN,
+												 KEYMASK_SCROLLLOCK, KEYMASK_A,   KEYMASK_B,    KEYMASK_C,
+												 KEYMASK_D,          KEYMASK_E,   KEYMASK_F,    KEYMASK_G,
+												 KEYMASK_H,          KEYMASK_I,   KEYMASK_J,    KEYMASK_K};
+static const u16 keys1_bitmasks[] = {
+	 KEYMASK_L, KEYMASK_M, KEYMASK_N, KEYMASK_O, KEYMASK_P, KEYMASK_Q, KEYMASK_R, KEYMASK_S,
+	 KEYMASK_T, KEYMASK_U, KEYMASK_V, KEYMASK_W, KEYMASK_X, KEYMASK_Y, KEYMASK_Z, KEYMASK_1};
+static const u16 keys2_bitmasks[] = {
+	 KEYMASK_2,          KEYMASK_3,           KEYMASK_4,     KEYMASK_5,
+	 KEYMASK_6,          KEYMASK_7,           KEYMASK_8,     KEYMASK_9,
+	 KEYMASK_0,          KEYMASK_MINUS,       KEYMASK_PLUS,  KEYMASK_PRINTSCR,
+	 KEYMASK_BRACE_OPEN, KEYMASK_BRACE_CLOSE, KEYMASK_COLON, KEYMASK_QUOTE};
+static const u16 keys3_bitmasks[] = {
+	 KEYMASK_HASH, KEYMASK_COMMA, KEYMASK_PERIOD, KEYMASK_QUESTIONMARK, KEYMASK_INTERNATIONAL1,
+	 KEYMASK_F1,   KEYMASK_F2,    KEYMASK_F3,     KEYMASK_F4,           KEYMASK_F5,
+	 KEYMASK_F6,   KEYMASK_F7,    KEYMASK_F8,     KEYMASK_F9,           KEYMASK_F10,
+	 KEYMASK_F11};
+static const u16 keys4_bitmasks[] = {
+	 KEYMASK_F12,         KEYMASK_ESC,        KEYMASK_INSERT,       KEYMASK_DELETE,
+	 KEYMASK_TILDE,       KEYMASK_BACKSPACE,  KEYMASK_TAB,          KEYMASK_CAPSLOCK,
+	 KEYMASK_LEFTSHIFT,   KEYMASK_RIGHTSHIFT, KEYMASK_LEFTCONTROL,  KEYMASK_RIGHTALT,
+	 KEYMASK_LEFTWINDOWS, KEYMASK_SPACE,      KEYMASK_RIGHTWINDOWS, KEYMASK_MENU};
+static const u16 keys5_bitmasks[] = {KEYMASK_LEFTARROW, KEYMASK_DOWNARROW, KEYMASK_UPARROW,
+												 KEYMASK_RIGHTARROW, KEYMASK_ENTER};
 
-static const char* const named_keys0[] =
-{
-	"HOME",
-	"END",
-	"PGUP",
-	"PGDN",
-	"SCR LK",
-	"A",
-	"B",
-	"C",
-	"D",
-	"E",
-	"F",
-	"G",
-	"H",
-	"I",
-	"J",
-	"K"
-};
-static const char* const named_keys1[] =
-{
-	"L",
-	"M",
-	"N",
-	"O",
-	"P",
-	"Q",
-	"R",
-	"S",
-	"T",
-	"U",
-	"V",
-	"W",
-	"X",
-	"Y",
-	"Z",
-	"1"
-};
-static const char* const named_keys2[] =
-{
-	"2",
-	"3",
-	"4",
-	"5",
-	"6",
-	"7",
-	"8",
-	"9",
-	"0",
-	"-",
-	"`",
-	"PRT SC",
-	"'",
-	"[",
-	"EQUALS",
-	"*"
-};
-static const char* const named_keys3[] =
-{
-	"]",
-	",",
-	".",
-	"/",
-	"\\",
-	"F1",
-	"F2",
-	"F3",
-	"F4",
-	"F5",
-	"F6",
-	"F7",
-	"F8",
-	"F9",
-	"F10",
-	"F11"
-};
-static const char* const named_keys4[] =
-{
-	"F12",
-	"ESC",
-	"INSERT",
-	"DELETE",
-	";",
-	"BACKSPACE",
-	"TAB",
-	"CAPS LOCK",
-	"L SHIFT",
-	"R SHIFT",
-	"L CTRL",
-	"R ALT",
-	"L WIN",
-	"SPACE",
-	"R WIN",
-	"MENU"
-};
-static const char* const named_keys5[] =
-{
-	"LEFT",
-	"DOWN",
-	"UP",
-	"RIGHT",
-	"ENTER"
-};
+static const char* const named_keys0[] = {"HOME", "END", "PGUP", "PGDN", "SCR LK", "A", "B", "C",
+														"D",    "E",   "F",    "G",    "H",      "I", "J", "K"};
+static const char* const named_keys1[] = {"L", "M", "N", "O", "P", "Q", "R", "S",
+														"T", "U", "V", "W", "X", "Y", "Z", "1"};
+static const char* const named_keys2[] = {"2", "3", "4", "5",      "6", "7", "8",      "9",
+														"0", "-", "`", "PRT SC", "'", "[", "EQUALS", "*"};
+static const char* const named_keys3[] = {"]",  ",",  ".",  "/",  "\\", "F1", "F2",  "F3",
+														"F4", "F5", "F6", "F7", "F8", "F9", "F10", "F11"};
+static const char* const named_keys4[] = {
+	 "F12",     "ESC",     "INSERT", "DELETE", ";",     "BACKSPACE", "TAB",   "CAPS LOCK",
+	 "L SHIFT", "R SHIFT", "L CTRL", "R ALT",  "L WIN", "SPACE",     "R WIN", "MENU"};
+static const char* const named_keys5[] = {"LEFT", "DOWN", "UP", "RIGHT", "ENTER"};
 
-GCKeyboard::GCKeyboard(const unsigned int index) : m_index(index)
+GCKeyboard::GCKeyboard(const unsigned int index): m_index(index)
 {
 	// buttons
 	groups.emplace_back(m_keys0x = new Buttons(_trans("Keys")));
@@ -241,10 +71,10 @@ GCKeyboard::GCKeyboard(const unsigned int index) : m_index(index)
 	for (const char* key : named_keys5)
 		m_keys5x->controls.emplace_back(new ControlGroup::Input(key));
 
-
 	// options
 	groups.emplace_back(m_options = new ControlGroup(_trans("Options")));
-	m_options->settings.emplace_back(new ControlGroup::BackgroundInputSetting(_trans("Background Input")));
+	m_options->settings.emplace_back(
+		new ControlGroup::BackgroundInputSetting(_trans("Background Input")));
 	m_options->settings.emplace_back(new ControlGroup::IterateUI(_trans("Iterative Input")));
 }
 
@@ -365,11 +195,11 @@ void GCKeyboard::LoadDefaults(const ControllerInterface& ciface)
 	m_keys0x->SetControlExpression(1, "End");
 	m_keys0x->SetControlExpression(2, "Page Up");
 	m_keys0x->SetControlExpression(3, "Page Down");
-	m_keys0x->SetControlExpression(4, ""); // Scroll lock
+	m_keys0x->SetControlExpression(4, "");  // Scroll lock
 
 	m_keys2x->SetControlExpression(9, "-");
 	m_keys2x->SetControlExpression(10, "Paragraph");
-	m_keys2x->SetControlExpression(11, ""); // Print Scr
+	m_keys2x->SetControlExpression(11, "");  // Print Scr
 	m_keys2x->SetControlExpression(12, "'");
 	m_keys2x->SetControlExpression(13, "[");
 	m_keys2x->SetControlExpression(14, "=");
@@ -394,14 +224,14 @@ void GCKeyboard::LoadDefaults(const ControllerInterface& ciface)
 	m_keys4x->SetControlExpression(12, "Left Command");
 	m_keys4x->SetControlExpression(13, "Space");
 	m_keys4x->SetControlExpression(14, "Right Command");
-	m_keys4x->SetControlExpression(15, ""); // Menu
+	m_keys4x->SetControlExpression(15, "");  // Menu
 
 	m_keys5x->SetControlExpression(0, "Left Arrow");
 	m_keys5x->SetControlExpression(1, "Down Arrow");
 	m_keys5x->SetControlExpression(2, "Up Arrow");
 	m_keys5x->SetControlExpression(3, "Right Arrow");
 	m_keys5x->SetControlExpression(4, "Return");
-#else // linux
+#else  // linux
 	m_keys0x->SetControlExpression(0, "Home");
 	m_keys0x->SetControlExpression(1, "End");
 	m_keys0x->SetControlExpression(2, "Prior");
@@ -443,5 +273,4 @@ void GCKeyboard::LoadDefaults(const ControllerInterface& ciface)
 	m_keys5x->SetControlExpression(3, "Right");
 	m_keys5x->SetControlExpression(4, "Return");
 #endif
-
 }

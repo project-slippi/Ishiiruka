@@ -25,8 +25,8 @@ public:
 private:
 	enum
 	{
-		OFFSET_GPR    = 0x4,
-		OFFSET_PC     = 0x194,
+		OFFSET_GPR = 0x4,
+		OFFSET_PC = 0x194,
 		STRUCTUR_SIZE = 0x2BC
 	};
 

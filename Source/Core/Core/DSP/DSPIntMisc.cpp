@@ -21,7 +21,7 @@ void mrr(const UDSPInstruction opc)
 	u8 dreg = (opc >> 5) & 0x1f;
 
 	if (sreg >= DSP_REG_ACM0)
-		dsp_op_write_reg(dreg, dsp_op_read_reg_and_saturate(sreg-DSP_REG_ACM0));
+		dsp_op_write_reg(dreg, dsp_op_read_reg_and_saturate(sreg - DSP_REG_ACM0));
 	else
 		dsp_op_write_reg(dreg, dsp_op_read_reg(sreg));
 
@@ -39,7 +39,7 @@ void mrr(const UDSPInstruction opc)
 // S16 mode.
 void lri(const UDSPInstruction opc)
 {
-	u8 reg  = opc & DSP_REG_MASK;
+	u8 reg = opc & DSP_REG_MASK;
 	u16 imm = dsp_fetch_code();
 	dsp_op_write_reg(reg, imm);
 	dsp_conditional_extend_accum(reg);
@@ -50,7 +50,7 @@ void lri(const UDSPInstruction opc)
 // Load immediate value I (8-bit sign extended) to accumulator register.
 void lris(const UDSPInstruction opc)
 {
-	u8 reg  = ((opc >> 8) & 0x7) + DSP_REG_AXL0;
+	u8 reg = ((opc >> 8) & 0x7) + DSP_REG_AXL0;
 	u16 imm = (s8)opc;
 	dsp_op_write_reg(reg, imm);
 	dsp_conditional_extend_accum(reg);

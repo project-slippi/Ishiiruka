@@ -36,7 +36,7 @@ private:
 	{
 		DepalProgram()
 			: program(0)
-		{ }
+		{}
 		~DepalProgram();
 
 		GLuint program;
@@ -47,7 +47,7 @@ private:
 
 	DepalProgram m_unorm4Program;
 	DepalProgram m_unorm8Program;
-	
+
 	InternalPaletteFormat m_pallete_format;
 	GLuint m_palette_texture[3][2];
 	u8 m_temp_decoding_buffer[256 * 4];

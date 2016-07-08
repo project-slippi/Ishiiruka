@@ -50,8 +50,8 @@ static void WalkTheStack(const std::function<void(u32)>& stack_step)
 
 		// Walk the stack chain
 		for (int count = 0;
-		     !IsStackBottom(addr + 4) && (count++ < 20);
-		     ++count)
+			!IsStackBottom(addr + 4) && (count++ < 20);
+			++count)
 		{
 			u32 func_addr = PowerPC::HostRead_U32(addr + 4);
 			stack_step(func_addr);
@@ -86,12 +86,13 @@ bool GetCallstack(std::vector<CallstackEntry> &output)
 	entry.vAddress = LR - 4;
 	output.push_back(entry);
 
-	WalkTheStack([&entry, &output](u32 func_addr) {
+	WalkTheStack([&entry, &output](u32 func_addr)
+	{
 		std::string func_desc = g_symbolDB.GetDescription(func_addr);
 		if (func_desc.empty() || func_desc == "Invalid")
 			func_desc = "(unknown)";
 		entry.Name = StringFromFormat(" * %s [ addr = %08x ]\n",
-		                              func_desc.c_str(), func_addr - 4);
+			func_desc.c_str(), func_addr - 4);
 		entry.vAddress = func_addr - 4;
 		output.push_back(entry);
 	});
@@ -113,7 +114,8 @@ void PrintCallstack()
 		printf(" * %s  [ LR = %08x ]", g_symbolDB.GetDescription(LR).c_str(), LR);
 	}
 
-	WalkTheStack([](u32 func_addr) {
+	WalkTheStack([](u32 func_addr)
+	{
 		std::string func_desc = g_symbolDB.GetDescription(func_addr);
 		if (func_desc.empty() || func_desc == "Invalid")
 			func_desc = "(unknown)";
@@ -124,7 +126,7 @@ void PrintCallstack()
 void PrintCallstack(LogTypes::LOG_TYPE type, LogTypes::LOG_LEVELS level)
 {
 	GENERIC_LOG(type, level, "== STACK TRACE - SP = %08x ==",
-				PowerPC::ppcState.gpr[1]);
+		PowerPC::ppcState.gpr[1]);
 
 	if (LR == 0)
 	{
@@ -134,10 +136,11 @@ void PrintCallstack(LogTypes::LOG_TYPE type, LogTypes::LOG_LEVELS level)
 	if (g_symbolDB.GetDescription(PC) != g_symbolDB.GetDescription(LR))
 	{
 		GENERIC_LOG(type, level, " * %s  [ LR = %08x ]",
-					g_symbolDB.GetDescription(LR).c_str(), LR);
+			g_symbolDB.GetDescription(LR).c_str(), LR);
 	}
 
-	WalkTheStack([type, level](u32 func_addr) {
+	WalkTheStack([type, level](u32 func_addr)
+	{
 		std::string func_desc = g_symbolDB.GetDescription(func_addr);
 		if (func_desc.empty() || func_desc == "Invalid")
 			func_desc = "(unknown)";

@@ -17,7 +17,7 @@ class wxRadioButton;
 class wxStaticText;
 class wxTextCtrl;
 
-class CheatSearchTab final : public wxPanel
+class CheatSearchTab final: public wxPanel
 {
 public:
 	CheatSearchTab(wxWindow* const parent);
@@ -26,7 +26,8 @@ private:
 	class CheatSearchResult final
 	{
 	public:
-		CheatSearchResult() : address(0), old_value(0) {}
+		CheatSearchResult(): address(0), old_value(0)
+		{}
 
 		u32 address;
 		u32 old_value;

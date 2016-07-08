@@ -9,20 +9,20 @@
 
 namespace OGL
 {
-	class GLVertexFormat : public NativeVertexFormat
-	{
-	public:
-		GLVertexFormat(const PortableVertexDeclaration &_vtx_decl);
-		~GLVertexFormat();
+class GLVertexFormat: public NativeVertexFormat
+{
+public:
+	GLVertexFormat(const PortableVertexDeclaration &_vtx_decl);
+	~GLVertexFormat();
 
-		virtual void SetupVertexPointers() override;
+	virtual void SetupVertexPointers() override;
 
-		GLuint VAO;
-	};
+	GLuint VAO;
+};
 
 // Handles the OpenGL details of drawing lots of vertices quickly.
 // Other functionality is moving out.
-class VertexManager : public ::VertexManagerBase
+class VertexManager: public ::VertexManagerBase
 {
 public:
 	VertexManager();

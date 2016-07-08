@@ -20,12 +20,12 @@
 #include "Common/FileUtil.h"
 #include "Common/NonCopyable.h"
 
-class PCAP final : public NonCopyable
+class PCAP final: public NonCopyable
 {
 public:
 	// Takes ownership of the file object. Assumes the file object is already
 	// opened in write mode.
-	explicit PCAP(File::IOFile* fp) : m_fp(fp)
+	explicit PCAP(File::IOFile* fp): m_fp(fp)
 	{
 		AddHeader();
 	}
@@ -33,7 +33,7 @@ public:
 	template <typename T>
 	void AddPacket(const T& obj)
 	{
-		AddPacket(reinterpret_cast<const u8*>(&obj), sizeof (obj));
+		AddPacket(reinterpret_cast<const u8*>(&obj), sizeof(obj));
 	}
 
 	void AddPacket(const u8* bytes, size_t size);

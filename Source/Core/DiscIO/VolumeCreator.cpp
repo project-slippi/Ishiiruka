@@ -12,8 +12,8 @@
 #include <mbedtls/aes.h>
 
 #include "Common/CommonTypes.h"
-#include "Common/StringUtil.h"
 #include "Common/Logging/Log.h"
+#include "Common/StringUtil.h"
 #include "DiscIO/Blob.h"
 #include "DiscIO/Volume.h"
 #include "DiscIO/VolumeCreator.h"
@@ -21,7 +21,6 @@
 #include "DiscIO/VolumeGC.h"
 #include "DiscIO/VolumeWad.h"
 #include "DiscIO/VolumeWiiCrypted.h"
-
 
 namespace DiscIO
 {
@@ -34,20 +33,19 @@ enum EDiscType
 	DISC_TYPE_WAD
 };
 
-static const unsigned char s_master_key[16] = {
-	0xeb,0xe4,0x2a,0x22,0x5e,0x85,0x93,0xe4,
-	0x48,0xd9,0xc5,0x45,0x73,0x81,0xaa,0xf7
-};
+static const unsigned char s_master_key[16] = {0xeb, 0xe4, 0x2a, 0x22, 0x5e, 0x85, 0x93, 0xe4,
+															  0x48, 0xd9, 0xc5, 0x45, 0x73, 0x81, 0xaa, 0xf7};
 
 static const unsigned char s_master_key_korean[16] = {
-	0x63,0xb8,0x2b,0xb4,0xf4,0x61,0x4e,0x2e,
-	0x13,0xf2,0xfe,0xfb,0xba,0x4c,0x9b,0x7e
-};
+	 0x63, 0xb8, 0x2b, 0xb4, 0xf4, 0x61, 0x4e, 0x2e, 0x13, 0xf2, 0xfe, 0xfb, 0xba, 0x4c, 0x9b, 0x7e};
 
-static std::unique_ptr<IVolume> CreateVolumeFromCryptedWiiImage(std::unique_ptr<IBlobReader> reader, u32 partition_group, u32 volume_type, u32 volume_number);
+static std::unique_ptr<IVolume> CreateVolumeFromCryptedWiiImage(std::unique_ptr<IBlobReader> reader,
+	u32 partition_group,
+	u32 volume_type, u32 volume_number);
 EDiscType GetDiscType(IBlobReader& _rReader);
 
-std::unique_ptr<IVolume> CreateVolumeFromFilename(const std::string& filename, u32 partition_group, u32 volume_number)
+std::unique_ptr<IVolume> CreateVolumeFromFilename(const std::string& filename, u32 partition_group,
+	u32 volume_number)
 {
 	std::unique_ptr<IBlobReader> reader(CreateBlobReader(filename));
 	if (reader == nullptr)
@@ -55,29 +53,33 @@ std::unique_ptr<IVolume> CreateVolumeFromFilename(const std::string& filename, u
 
 	switch (GetDiscType(*reader))
 	{
-		case DISC_TYPE_WII:
-		case DISC_TYPE_GC:
-			return std::make_unique<CVolumeGC>(std::move(reader));
+	case DISC_TYPE_WII:
+	case DISC_TYPE_GC:
+		return std::make_unique<CVolumeGC>(std::move(reader));
 
-		case DISC_TYPE_WAD:
-			return std::make_unique<CVolumeWAD>(std::move(reader));
+	case DISC_TYPE_WAD:
+		return std::make_unique<CVolumeWAD>(std::move(reader));
 
-		case DISC_TYPE_WII_CONTAINER:
-			return CreateVolumeFromCryptedWiiImage(std::move(reader), partition_group, 0, volume_number);
+	case DISC_TYPE_WII_CONTAINER:
+		return CreateVolumeFromCryptedWiiImage(std::move(reader), partition_group, 0, volume_number);
 
-		case DISC_TYPE_UNK:
-		default:
-			std::string name, extension;
-			SplitPath(filename, nullptr, &name, &extension);
-			name += extension;
-			NOTICE_LOG(DISCIO, "%s does not have the Magic word for a gcm, wiidisc or wad file\n"
-						"Set Log Verbosity to Warning and attempt to load the game again to view the values", name.c_str());
+	case DISC_TYPE_UNK:
+	default:
+		std::string name, extension;
+		SplitPath(filename, nullptr, &name, &extension);
+		name += extension;
+		NOTICE_LOG(DISCIO,
+			"%s does not have the Magic word for a gcm, wiidisc or wad file\n"
+			"Set Log Verbosity to Warning and attempt to load the game again to view the values",
+			name.c_str());
 	}
 
 	return nullptr;
 }
 
-std::unique_ptr<IVolume> CreateVolumeFromDirectory(const std::string& directory, bool is_wii, const std::string& apploader, const std::string& dol)
+std::unique_ptr<IVolume> CreateVolumeFromDirectory(const std::string& directory, bool is_wii,
+	const std::string& apploader,
+	const std::string& dol)
 {
 	if (CVolumeDirectory::IsValidDirectory(directory))
 		return std::make_unique<CVolumeDirectory>(directory, is_wii, apploader, dol);
@@ -104,12 +106,15 @@ void VolumeKeyForPartition(IBlobReader& _rReader, u64 offset, u8* VolumeKey)
 	_rReader.Read(0x3, sizeof(u8), &region);
 
 	mbedtls_aes_context AES_ctx;
-	mbedtls_aes_setkey_dec(&AES_ctx, (using_korean_key == 1 && region == 'K' ? s_master_key_korean : s_master_key), 128);
+	mbedtls_aes_setkey_dec(
+		&AES_ctx, (using_korean_key == 1 && region == 'K' ? s_master_key_korean : s_master_key), 128);
 
 	mbedtls_aes_crypt_cbc(&AES_ctx, MBEDTLS_AES_DECRYPT, 16, IV, SubKey, VolumeKey);
 }
 
-static std::unique_ptr<IVolume> CreateVolumeFromCryptedWiiImage(std::unique_ptr<IBlobReader> reader, u32 partition_group, u32 volume_type, u32 volume_number)
+static std::unique_ptr<IVolume> CreateVolumeFromCryptedWiiImage(std::unique_ptr<IBlobReader> reader,
+	u32 partition_group,
+	u32 volume_type, u32 volume_number)
 {
 	CBlobBigEndianReader big_endian_reader(*reader);
 
@@ -122,14 +127,15 @@ static std::unique_ptr<IVolume> CreateVolumeFromCryptedWiiImage(std::unique_ptr<
 		return nullptr;
 
 	u32 partitions_offset_unshifted;
-	if (!big_endian_reader.ReadSwapped(0x40000 + (partition_group * 8) + 4, &partitions_offset_unshifted))
+	if (!big_endian_reader.ReadSwapped(0x40000 + (partition_group * 8) + 4,
+		&partitions_offset_unshifted))
 		return nullptr;
 	u64 partitions_offset = (u64)partitions_offset_unshifted << 2;
 
 	struct SPartition
 	{
-		SPartition(u64 offset_, u32 type_) : offset(offset_), type(type_) {}
-
+		SPartition(u64 offset_, u32 type_): offset(offset_), type(type_)
+		{}
 		u64 offset;
 		u32 type;
 	};
@@ -149,7 +155,7 @@ static std::unique_ptr<IVolume> CreateVolumeFromCryptedWiiImage(std::unique_ptr<
 		{
 			u32 partition_offset, partition_type;
 			if (big_endian_reader.ReadSwapped(partitions_offset + (i * 8) + 0, &partition_offset) &&
-			    big_endian_reader.ReadSwapped(partitions_offset + (i * 8) + 4, &partition_type))
+				big_endian_reader.ReadSwapped(partitions_offset + (i * 8) + 4, &partition_type))
 			{
 				group.partitions.emplace_back((u64)partition_offset << 2, partition_type);
 			}

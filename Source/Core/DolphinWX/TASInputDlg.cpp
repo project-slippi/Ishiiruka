@@ -40,18 +40,17 @@ struct TASWiimoteReport
 };
 
 TASInputDlg::TASInputDlg(wxWindow* parent, wxWindowID id, const wxString& title,
-                         const wxPoint& position, const wxSize& size, long style)
-: wxDialog(parent, id, title, position, size, style)
-{
-}
+	const wxPoint& position, const wxSize& size, long style)
+	: wxDialog(parent, id, title, position, size, style)
+{}
 
 void TASInputDlg::CreateBaseLayout()
 {
 	for (unsigned int i = 0; i < ArraySize(m_controls); ++i)
 		m_controls[i] = nullptr;
-	for (unsigned int i = 0; i <  ArraySize(m_buttons); ++i)
+	for (unsigned int i = 0; i < ArraySize(m_buttons); ++i)
 		m_buttons[i] = nullptr;
-	for (unsigned int i = 0; i <  ArraySize(m_cc_controls); ++i)
+	for (unsigned int i = 0; i < ArraySize(m_cc_controls); ++i)
 		m_cc_controls[i] = nullptr;
 
 	m_buttons[0] = &m_dpad_down;
@@ -704,81 +703,81 @@ void TASInputDlg::GetValues(u8* data, WiimoteEmu::ReportFeatures rptf, int ext, 
 	u8* const extData = rptf.ext ? (data + rptf.ext) : nullptr;
 	if (ext != 2)
 	{
-	if (coreData)
-		SetWiiButtons(&((wm_buttons*)coreData)->hex);
+		if (coreData)
+			SetWiiButtons(&((wm_buttons*)coreData)->hex);
 
-	if (accelData)
-	{
-		wm_accel& dt = *(wm_accel*)accelData;
-		wm_buttons& but = *(wm_buttons*)coreData;
-		dt.x = m_x_cont.value >> 2;
-		dt.y = m_y_cont.value >> 2;
-		dt.z = m_z_cont.value >> 2;
-		but.acc_x_lsb = m_x_cont.value & 0x3;
-		but.acc_y_lsb = m_y_cont.value >> 1 & 0x1;
-		but.acc_z_lsb = m_z_cont.value >> 1 & 0x1;
-	}
-	if (irData)
-	{
-		u16 x[4];
-		u16 y;
-
-		x[0] = m_main_stick.x_cont.value;
-		y = m_main_stick.y_cont.value;
-		x[1] = x[0] + 100;
-		x[2] = x[0] - 10;
-		x[3] = x[1] + 10;
-
-		u8 mode;
-		// Mode 5 not supported in core anyway.
-		if (rptf.ext)
-			mode = (rptf.ext - rptf.ir) == 10 ? 1 : 3;
-		else
-			mode = (rptf.size - rptf.ir) == 10 ? 1 : 3;
-
-		if (mode == 1)
+		if (accelData)
 		{
-			memset(irData, 0xFF, sizeof(wm_ir_basic) * 2);
-			wm_ir_basic* ir_data = (wm_ir_basic*)irData;
-			for (unsigned int i = 0; i < 2; ++i)
+			wm_accel& dt = *(wm_accel*)accelData;
+			wm_buttons& but = *(wm_buttons*)coreData;
+			dt.x = m_x_cont.value >> 2;
+			dt.y = m_y_cont.value >> 2;
+			dt.z = m_z_cont.value >> 2;
+			but.acc_x_lsb = m_x_cont.value & 0x3;
+			but.acc_y_lsb = m_y_cont.value >> 1 & 0x1;
+			but.acc_z_lsb = m_z_cont.value >> 1 & 0x1;
+		}
+		if (irData)
+		{
+			u16 x[4];
+			u16 y;
+
+			x[0] = m_main_stick.x_cont.value;
+			y = m_main_stick.y_cont.value;
+			x[1] = x[0] + 100;
+			x[2] = x[0] - 10;
+			x[3] = x[1] + 10;
+
+			u8 mode;
+			// Mode 5 not supported in core anyway.
+			if (rptf.ext)
+				mode = (rptf.ext - rptf.ir) == 10 ? 1 : 3;
+			else
+				mode = (rptf.size - rptf.ir) == 10 ? 1 : 3;
+
+			if (mode == 1)
 			{
-				if (x[i * 2] < 1024 && y < 768)
+				memset(irData, 0xFF, sizeof(wm_ir_basic) * 2);
+				wm_ir_basic* ir_data = (wm_ir_basic*)irData;
+				for (unsigned int i = 0; i < 2; ++i)
 				{
-					ir_data[i].x1 = static_cast<u8>(x[i*2]);
-					ir_data[i].x1hi = x[i*2] >> 8;
+					if (x[i * 2] < 1024 && y < 768)
+					{
+						ir_data[i].x1 = static_cast<u8>(x[i * 2]);
+						ir_data[i].x1hi = x[i * 2] >> 8;
 
-					ir_data[i].y1 = static_cast<u8>(y);
-					ir_data[i].y1hi = y >> 8;
+						ir_data[i].y1 = static_cast<u8>(y);
+						ir_data[i].y1hi = y >> 8;
+					}
+					if (x[i * 2 + 1] < 1024 && y < 768)
+					{
+						ir_data[i].x2 = static_cast<u8>(x[i * 2 + 1]);
+						ir_data[i].x2hi = x[i * 2 + 1] >> 8;
+
+						ir_data[i].y2 = static_cast<u8>(y);
+						ir_data[i].y2hi = y >> 8;
+					}
 				}
-				if (x[i*2 + 1] < 1024 && y < 768)
+			}
+			else
+			{
+				memset(data, 0xFF, sizeof(wm_ir_extended) * 4);
+				wm_ir_extended* const ir_data = (wm_ir_extended*)irData;
+				for (unsigned int i = 0; i < 4; ++i)
 				{
-					ir_data[i].x2 = static_cast<u8>(x[i*2 + 1]);
-					ir_data[i].x2hi = x[i*2 + 1] >> 8;
+					if (x[i] < 1024 && y < 768)
+					{
+						ir_data[i].x = static_cast<u8>(x[i]);
+						ir_data[i].xhi = x[i] >> 8;
 
-					ir_data[i].y2 = static_cast<u8>(y);
-					ir_data[i].y2hi = y >> 8;
+						ir_data[i].y = static_cast<u8>(y);
+						ir_data[i].yhi = y >> 8;
+
+						ir_data[i].size = 10;
+					}
 				}
 			}
 		}
-		else
-		{
-			memset(data, 0xFF, sizeof(wm_ir_extended) * 4);
-			wm_ir_extended* const ir_data = (wm_ir_extended*)irData;
-			for (unsigned int i = 0; i < 4; ++i)
-			{
-				if (x[i] < 1024 && y < 768)
-				{
-					ir_data[i].x = static_cast<u8>(x[i]);
-					ir_data[i].xhi = x[i] >> 8;
-
-					ir_data[i].y = static_cast<u8>(y);
-					ir_data[i].yhi = y >> 8;
-
-					ir_data[i].size = 10;
-				}
-			}
-		}
-	}
 	}
 	if (ext != m_ext)
 	{
@@ -792,11 +791,11 @@ void TASInputDlg::GetValues(u8* data, WiimoteEmu::ReportFeatures rptf, int ext, 
 		nunchuk.jx = m_c_stick.x_cont.value;
 		nunchuk.jy = m_c_stick.y_cont.value;
 
-		nunchuk.ax    = m_nx_cont.value >> 2;
+		nunchuk.ax = m_nx_cont.value >> 2;
 		nunchuk.bt.acc_x_lsb = m_nx_cont.value & 0x3;
-		nunchuk.ay    = m_ny_cont.value >> 2;
+		nunchuk.ay = m_ny_cont.value >> 2;
 		nunchuk.bt.acc_y_lsb = m_ny_cont.value & 0x3;
-		nunchuk.az    = m_nz_cont.value >> 2;
+		nunchuk.az = m_nz_cont.value >> 2;
 		nunchuk.bt.acc_z_lsb = m_nz_cont.value & 0x3;
 
 		nunchuk.bt.hex |= (m_buttons[11]->is_checked) ? WiimoteEmu::Nunchuk::BUTTON_C : 0;

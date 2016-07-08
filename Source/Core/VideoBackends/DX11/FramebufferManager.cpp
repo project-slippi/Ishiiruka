@@ -23,8 +23,14 @@ static XFBEncoder s_xfbEncoder;
 FramebufferManager::Efb FramebufferManager::m_efb;
 u32 FramebufferManager::m_target_width;
 u32 FramebufferManager::m_target_height;
-D3DTexture2D* &FramebufferManager::GetEFBColorTexture() { return m_efb.color_tex; }
-D3DTexture2D* &FramebufferManager::GetEFBDepthTexture() { return m_efb.depth_tex; }
+D3DTexture2D* &FramebufferManager::GetEFBColorTexture()
+{
+	return m_efb.color_tex;
+}
+D3DTexture2D* &FramebufferManager::GetEFBDepthTexture()
+{
+	return m_efb.depth_tex;
+}
 
 D3DTexture2D* &FramebufferManager::GetResolvedEFBColorTexture()
 {

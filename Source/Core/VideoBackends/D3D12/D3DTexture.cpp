@@ -84,9 +84,9 @@ void ReplaceTexture2D(ID3D12Resource* texture12, const u8* buffer, DXGI_FORMAT f
 	u32 upload_rows = 0;
 	u64 upload_row_size_in_bytes = 0;
 	u64 upload_total_bytes = 0;
-	
+
 	D3D::device->GetCopyableFootprints(&texture12->GetDesc(), level, 1, upload_buffer_offset, &upload_footprint, &upload_rows, &upload_row_size_in_bytes, &upload_total_bytes);
-	
+
 	const u8* src_data = reinterpret_cast<const u8*>(buffer);
 	for (u32 y = 0; y < upload_rows; ++y)
 	{
@@ -97,14 +97,14 @@ void ReplaceTexture2D(ID3D12Resource* texture12, const u8* buffer, DXGI_FORMAT f
 		);
 	}
 	D3D::current_command_list->CopyTextureRegion(&CD3DX12_TEXTURE_COPY_LOCATION(texture12, level), 0, 0, 0, &CD3DX12_TEXTURE_COPY_LOCATION(upload_buffer, upload_footprint), nullptr);
-	
+
 	// Release temporary buffer after commands complete.
 	// We block here because otherwise if there was a large number of texture uploads, we may run out of memory.
 	if (upload_size > MAXIMUM_TEXTURE_UPLOAD_BUFFER_SIZE)
 	{
 		D3D::command_list_mgr->ExecuteQueuedWork(true);
 		g_renderer->RestoreAPIState();
-		D3D12_RANGE write_range = { 0, upload_size };
+		D3D12_RANGE write_range = {0, upload_size};
 		upload_buffer->Unmap(0, &write_range);
 		upload_buffer->Release();
 
@@ -129,7 +129,7 @@ D3DTexture2D* D3DTexture2D::Create(unsigned int width, unsigned int height, u32 
 		height,
 		slices,
 		levels
-		);
+	);
 
 	D3D12_CLEAR_VALUE optimized_clear_value = {};
 	optimized_clear_value.Format = fmt;
@@ -158,8 +158,8 @@ D3DTexture2D* D3DTexture2D::Create(unsigned int width, unsigned int height, u32 
 			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
 			&optimized_clear_value,
 			IID_PPV_ARGS(texture.GetAddressOf())
-			)
-		);
+		)
+	);
 
 	D3D::SetDebugObjectName12(texture.Get(), "Texture created via D3DTexture2D::Create");
 	D3DTexture2D* ret = new D3DTexture2D(texture.Get(), bind, DXGI_FORMAT_UNKNOWN, DXGI_FORMAT_UNKNOWN, DXGI_FORMAT_UNKNOWN, false, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);

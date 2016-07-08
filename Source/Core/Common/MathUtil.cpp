@@ -18,7 +18,7 @@ u32 ClassifyDouble(double dvalue)
 	// TODO: Optimize the below to be as fast as possible.
 	IntDouble value(dvalue);
 	u64 sign = value.i & DOUBLE_SIGN;
-	u64 exp  = value.i & DOUBLE_EXP;
+	u64 exp = value.i & DOUBLE_EXP;
 	if (exp > DOUBLE_ZERO && exp < DOUBLE_EXP)
 	{
 		// Nice normalized number.
@@ -57,7 +57,7 @@ u32 ClassifyFloat(float fvalue)
 	// TODO: Optimize the below to be as fast as possible.
 	IntFloat value(fvalue);
 	u32 sign = value.i & FLOAT_SIGN;
-	u32 exp  = value.i & FLOAT_EXP;
+	u32 exp = value.i & FLOAT_EXP;
 	if (exp > FLOAT_ZERO && exp < FLOAT_EXP)
 	{
 		// Nice normalized number.
@@ -155,7 +155,8 @@ double ApproximateReciprocalSquareRoot(double val)
 		{
 			exponent -= 1LL << 52;
 			mantissa <<= 1;
-		} while (!(mantissa & (1LL << 52)));
+		}
+		while (!(mantissa & (1LL << 52)));
 		mantissa &= (1LL << 52) - 1;
 		exponent += 1LL << 52;
 	}

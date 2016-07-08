@@ -120,9 +120,9 @@ static void EnsureTmpInputSize(size_t bound)
 static bool IsMovieHeader(u8 magic[4])
 {
 	return magic[0] == 'D' &&
-	       magic[1] == 'T' &&
-	       magic[2] == 'M' &&
-	       magic[3] == 0x1A;
+		magic[1] == 'T' &&
+		magic[2] == 'M' &&
+		magic[3] == 0x1A;
 }
 
 static std::array<u8, 20> ConvertGitRevisionToBytes(const std::string& revision)
@@ -308,7 +308,7 @@ void DoFrameStep()
 void SetReadOnly(bool bEnabled)
 {
 	if (s_bReadOnly != bEnabled)
-		Core::DisplayMessage(bEnabled ? "Read-only mode." :  "Read+Write mode.", 1000);
+		Core::DisplayMessage(bEnabled ? "Read-only mode." : "Read+Write mode.", 1000);
 
 	s_bReadOnly = bEnabled;
 }
@@ -557,8 +557,8 @@ bool BeginRecordingInput(int controllers)
 	// Wiimotes cause desync issues if they're not reset before launching the game
 	if (!Core::IsRunningAndStarted())
 	{
-	        // This will also reset the wiimotes for gamecube games, but that shouldn't do anything
-	        Wiimote::ResetAllWiimotes();
+		// This will also reset the wiimotes for gamecube games, but that shouldn't do anything
+		Wiimote::ResetAllWiimotes();
 	}
 
 	s_playMode = MODE_RECORDING;
@@ -579,7 +579,7 @@ static std::string Analog2DToString(u8 x, u8 y, const std::string& prefix, u8 ra
 {
 	u8 center = range / 2 + 1;
 	if ((x <= 1 || x == center || x >= range) &&
-	    (y <= 1 || y == center || y >= range))
+		(y <= 1 || y == center || y >= range))
 	{
 		if (x != center || y != center)
 		{
@@ -680,27 +680,27 @@ static void SetWiiInputDisplayString(int remoteID, u8* const data, const Wiimote
 	if (coreData)
 	{
 		wm_buttons buttons = *(wm_buttons*)coreData;
-		if(buttons.left)
+		if (buttons.left)
 			display_str += " LEFT";
-		if(buttons.right)
+		if (buttons.right)
 			display_str += " RIGHT";
-		if(buttons.down)
+		if (buttons.down)
 			display_str += " DOWN";
-		if(buttons.up)
+		if (buttons.up)
 			display_str += " UP";
-		if(buttons.a)
+		if (buttons.a)
 			display_str += " A";
-		if(buttons.b)
+		if (buttons.b)
 			display_str += " B";
-		if(buttons.plus)
+		if (buttons.plus)
 			display_str += " +";
-		if(buttons.minus)
+		if (buttons.minus)
 			display_str += " -";
-		if(buttons.one)
+		if (buttons.one)
 			display_str += " 1";
-		if(buttons.two)
+		if (buttons.two)
 			display_str += " 2";
-		if(buttons.home)
+		if (buttons.home)
 			display_str += " HOME";
 	}
 
@@ -708,9 +708,9 @@ static void SetWiiInputDisplayString(int remoteID, u8* const data, const Wiimote
 	{
 		wm_accel* dt = (wm_accel*)accelData;
 		display_str += StringFromFormat(" ACC:%d,%d,%d",
-		                                dt->x << 2 | ((wm_buttons*)coreData)->acc_x_lsb,
-		                                dt->y << 2 | ((wm_buttons*)coreData)->acc_y_lsb << 1,
-		                                dt->z << 2 | ((wm_buttons*)coreData)->acc_z_lsb << 1);
+			dt->x << 2 | ((wm_buttons*)coreData)->acc_x_lsb,
+			dt->y << 2 | ((wm_buttons*)coreData)->acc_y_lsb << 1,
+			dt->z << 2 | ((wm_buttons*)coreData)->acc_z_lsb << 1);
 	}
 
 	if (irData)
@@ -789,28 +789,28 @@ static void SetWiiInputDisplayString(int remoteID, u8* const data, const Wiimote
 // NOTE: CPU Thread
 void CheckPadStatus(GCPadStatus* PadStatus, int controllerID)
 {
-	s_padState.A         = ((PadStatus->button & PAD_BUTTON_A) != 0);
-	s_padState.B         = ((PadStatus->button & PAD_BUTTON_B) != 0);
-	s_padState.X         = ((PadStatus->button & PAD_BUTTON_X) != 0);
-	s_padState.Y         = ((PadStatus->button & PAD_BUTTON_Y) != 0);
-	s_padState.Z         = ((PadStatus->button & PAD_TRIGGER_Z) != 0);
-	s_padState.Start     = ((PadStatus->button & PAD_BUTTON_START) != 0);
+	s_padState.A = ((PadStatus->button & PAD_BUTTON_A) != 0);
+	s_padState.B = ((PadStatus->button & PAD_BUTTON_B) != 0);
+	s_padState.X = ((PadStatus->button & PAD_BUTTON_X) != 0);
+	s_padState.Y = ((PadStatus->button & PAD_BUTTON_Y) != 0);
+	s_padState.Z = ((PadStatus->button & PAD_TRIGGER_Z) != 0);
+	s_padState.Start = ((PadStatus->button & PAD_BUTTON_START) != 0);
 
-	s_padState.DPadUp    = ((PadStatus->button & PAD_BUTTON_UP) != 0);
-	s_padState.DPadDown  = ((PadStatus->button & PAD_BUTTON_DOWN) != 0);
-	s_padState.DPadLeft  = ((PadStatus->button & PAD_BUTTON_LEFT) != 0);
+	s_padState.DPadUp = ((PadStatus->button & PAD_BUTTON_UP) != 0);
+	s_padState.DPadDown = ((PadStatus->button & PAD_BUTTON_DOWN) != 0);
+	s_padState.DPadLeft = ((PadStatus->button & PAD_BUTTON_LEFT) != 0);
 	s_padState.DPadRight = ((PadStatus->button & PAD_BUTTON_RIGHT) != 0);
 
-	s_padState.L         = ((PadStatus->button & PAD_TRIGGER_L) != 0);
-	s_padState.R         = ((PadStatus->button & PAD_TRIGGER_R) != 0);
-	s_padState.TriggerL  = PadStatus->triggerLeft;
-	s_padState.TriggerR  = PadStatus->triggerRight;
+	s_padState.L = ((PadStatus->button & PAD_TRIGGER_L) != 0);
+	s_padState.R = ((PadStatus->button & PAD_TRIGGER_R) != 0);
+	s_padState.TriggerL = PadStatus->triggerLeft;
+	s_padState.TriggerR = PadStatus->triggerRight;
 
 	s_padState.AnalogStickX = PadStatus->stickX;
 	s_padState.AnalogStickY = PadStatus->stickY;
 
-	s_padState.CStickX   = PadStatus->substickX;
-	s_padState.CStickY   = PadStatus->substickY;
+	s_padState.CStickX = PadStatus->substickX;
+	s_padState.CStickY = PadStatus->substickY;
 
 	s_padState.disc = g_bDiscChange;
 	g_bDiscChange = false;
@@ -887,9 +887,9 @@ void ReadHeader()
 		GetSettings();
 	}
 
-	s_videoBackend = (char*) tmpHeader.videoBackend;
-	g_discChange = (char*) tmpHeader.discChange;
-	s_author = (char*) tmpHeader.author;
+	s_videoBackend = (char*)tmpHeader.videoBackend;
+	g_discChange = (char*)tmpHeader.discChange;
+	s_author = (char*)tmpHeader.author;
 	memcpy(s_MD5, tmpHeader.md5, 16);
 	s_DSPiromHash = tmpHeader.DSPiromHash;
 	s_DSPcoefHash = tmpHeader.DSPcoefHash;
@@ -1004,7 +1004,7 @@ void LoadInput(const std::string& filename)
 	// This can only happen if the user manually deletes data from the dtm.
 	if (s_currentByte > totalSavedBytes)
 	{
-		PanicAlertT("Warning: You loaded a save whose movie ends before the current frame in the save (byte %u < %u) (frame %u < %u). You should load another save before continuing.", (u32)totalSavedBytes+256, (u32)s_currentByte+256, (u32)tmpHeader.frameCount, (u32)g_currentFrame);
+		PanicAlertT("Warning: You loaded a save whose movie ends before the current frame in the save (byte %u < %u) (frame %u < %u). You should load another save before continuing.", (u32)totalSavedBytes + 256, (u32)s_currentByte + 256, (u32)tmpHeader.frameCount, (u32)g_currentFrame);
 		afterEnd = true;
 	}
 
@@ -1027,7 +1027,7 @@ void LoadInput(const std::string& filename)
 		else if (s_currentByte > s_totalBytes)
 		{
 			afterEnd = true;
-			PanicAlertT("Warning: You loaded a save that's after the end of the current movie. (byte %u > %u) (frame %u > %u). You should load another save before continuing, or load this state with read-only mode off.", (u32)s_currentByte+256, (u32)s_totalBytes+256, (u32)g_currentFrame, (u32)g_totalFrames);
+			PanicAlertT("Warning: You loaded a save that's after the end of the current movie. (byte %u > %u) (frame %u > %u). You should load another save before continuing, or load this state with read-only mode off.", (u32)s_currentByte + 256, (u32)s_totalBytes + 256, (u32)g_currentFrame, (u32)g_totalFrames);
 		}
 		else if (s_currentByte > 0 && s_totalBytes > 0)
 		{
@@ -1044,16 +1044,16 @@ void LoadInput(const std::string& filename)
 					if (IsUsingWiimote(0))
 					{
 						// TODO: more detail
-						PanicAlertT("Warning: You loaded a save whose movie mismatches on byte %d (0x%X). You should load another save before continuing, or load this state with read-only mode off. Otherwise you'll probably get a desync.", i+256, i+256);
+						PanicAlertT("Warning: You loaded a save whose movie mismatches on byte %d (0x%X). You should load another save before continuing, or load this state with read-only mode off. Otherwise you'll probably get a desync.", i + 256, i + 256);
 						memcpy(tmpInput, movInput, s_currentByte);
 					}
 					else
 					{
 						int frame = i / 8;
 						ControllerState curPadState;
-						memcpy(&curPadState, &(tmpInput[frame*8]), 8);
+						memcpy(&curPadState, &(tmpInput[frame * 8]), 8);
 						ControllerState movPadState;
-						memcpy(&movPadState, &(movInput[frame*8]), 8);
+						memcpy(&movPadState, &(movInput[frame * 8]), 8);
 						PanicAlertT("Warning: You loaded a save whose movie mismatches on frame %d. You should load another save before continuing, or load this state with read-only mode off. Otherwise you'll probably get a desync.\n\n"
 							"More information: The current movie is %d frames long and the savestate's movie is %d frames long.\n\n"
 							"On frame %d, the current movie presses:\n"
@@ -1072,7 +1072,7 @@ void LoadInput(const std::string& filename)
 					break;
 				}
 			}
-			delete [] movInput;
+			delete[] movInput;
 		}
 	}
 	t_record.Close();
@@ -1242,7 +1242,7 @@ bool PlayWiimote(int wiimote, u8 *data, const WiimoteEmu::ReportFeatures& rptf, 
 	if (size != sizeInMovie)
 	{
 		PanicAlertT("Fatal desync. Aborting playback. (Error in PlayWiimote: %u != %u, byte %u.)%s", (u32)sizeInMovie, (u32)size, (u32)s_currentByte,
-					(s_numPads & 0xF)?" Try re-creating the recording with all GameCube controllers disabled (in Configure > GameCube > Device Settings)." : "");
+			(s_numPads & 0xF) ? " Try re-creating the recording with all GameCube controllers disabled (in Configure > GameCube > Device Settings)." : "");
 		EndPlayInput(!s_bReadOnly);
 		return false;
 	}
@@ -1325,7 +1325,7 @@ void SaveRecording(const std::string& filename)
 	header.bPAL60 = s_bPAL60;
 	header.bDSPHLE = s_bDSPHLE;
 	header.bFastDiscSpeed = s_bFastDiscSpeed;
-	strncpy((char *)header.videoBackend, s_videoBackend.c_str(),ArraySize(header.videoBackend));
+	strncpy((char *)header.videoBackend, s_videoBackend.c_str(), ArraySize(header.videoBackend));
 	header.CPUCore = s_iCPUCore;
 	header.bEFBAccessEnable = g_ActiveConfig.bEFBAccessEnable;
 	header.bEFBCopyEnable = true;
@@ -1338,9 +1338,9 @@ void SaveRecording(const std::string& filename)
 	header.bClearSave = g_bClearSave;
 	header.bSyncGPU = s_bSyncGPU;
 	header.bNetPlay = s_bNetPlay;
-	strncpy((char *)header.discChange, g_discChange.c_str(),ArraySize(header.discChange));
-	strncpy((char *)header.author, s_author.c_str(),ArraySize(header.author));
-	memcpy(header.md5,s_MD5,16);
+	strncpy((char *)header.discChange, g_discChange.c_str(), ArraySize(header.discChange));
+	strncpy((char *)header.author, s_author.c_str(), ArraySize(header.author));
+	memcpy(header.md5, s_MD5, 16);
 	header.bongos = s_bongos;
 	memcpy(header.revision, s_revision, ArraySize(header.revision));
 	header.DSPiromHash = s_DSPiromHash;
@@ -1475,7 +1475,7 @@ void CheckMD5()
 	unsigned char gameMD5[16];
 	mbedtls_md_file(s_md5_info, SConfig::GetInstance().m_strFilename.c_str(), gameMD5);
 
-	if (memcmp(gameMD5,s_MD5,16) == 0)
+	if (memcmp(gameMD5, s_MD5, 16) == 0)
 		Core::DisplayMessage("Checksum of current game matches the recorded game.", 2000);
 	else
 		Core::DisplayMessage("Checksum of current game does not match the recorded game!", 3000);
@@ -1494,7 +1494,7 @@ void GetMD5()
 void Shutdown()
 {
 	g_currentInputCount = g_totalInputCount = g_totalFrames = s_totalBytes = s_tickCountAtLastInput = 0;
-	delete [] tmpInput;
+	delete[] tmpInput;
 	tmpInput = nullptr;
 	tmpInputAllocated = 0;
 }

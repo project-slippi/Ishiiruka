@@ -17,8 +17,14 @@ class TessellationShaderManager
 public:
 	static void Init();
 	static void Dirty();
-	static inline bool IsDirty() { return dirty && g_ActiveConfig.TessellationEnabled(); }
-	static inline void Clear() { dirty = false; }
+	static inline bool IsDirty()
+	{
+		return dirty && g_ActiveConfig.TessellationEnabled();
+	}
+	static inline void Clear()
+	{
+		dirty = false;
+	}
 	static void Shutdown();
 	static void DoState(PointerWrap &p);
 

@@ -15,11 +15,12 @@ namespace OGL
 {
 std::unique_ptr<PerfQueryBase> GetPerfQuery();
 
-class PerfQuery : public PerfQueryBase
+class PerfQuery: public PerfQueryBase
 {
 public:
 	PerfQuery();
-	~PerfQuery() {}
+	~PerfQuery()
+	{}
 
 	void EnableQuery(PerfQueryGroup type) override;
 	void DisableQuery(PerfQueryGroup type) override;
@@ -48,7 +49,7 @@ private:
 };
 
 // Implementations
-class PerfQueryGL : public PerfQuery
+class PerfQueryGL: public PerfQuery
 {
 public:
 	PerfQueryGL(GLenum query_type);
@@ -67,7 +68,7 @@ private:
 	GLenum m_query_type;
 };
 
-class PerfQueryGLESNV : public PerfQuery
+class PerfQueryGLESNV: public PerfQuery
 {
 public:
 	PerfQueryGLESNV();

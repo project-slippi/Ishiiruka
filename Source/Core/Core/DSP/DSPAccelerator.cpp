@@ -28,8 +28,8 @@ static s16 ADPCM_Step(u32& _rSamplePos)
 	s32 coef2 = pCoefTable[coef_idx * 2 + 1];
 
 	int temp = (_rSamplePos & 1) ?
-	       (DSPHost::ReadHostMemory(_rSamplePos >> 1) & 0xF) :
-	       (DSPHost::ReadHostMemory(_rSamplePos >> 1) >> 4);
+		(DSPHost::ReadHostMemory(_rSamplePos >> 1) & 0xF) :
+		(DSPHost::ReadHostMemory(_rSamplePos >> 1) >> 4);
 
 	if (temp >= 8)
 		temp -= 16;
@@ -57,17 +57,17 @@ u16 dsp_read_aram_d3()
 
 	switch (g_dsp.ifx_regs[DSP_FORMAT])
 	{
-		case 0x5:   // u8 reads
-			val = DSPHost::ReadHostMemory(Address);
-			Address++;
-			break;
-		case 0x6:   // u16 reads
-			val = (DSPHost::ReadHostMemory(Address * 2) << 8) | DSPHost::ReadHostMemory(Address * 2 + 1);
-			Address++;
-			break;
-		default:
-			ERROR_LOG(DSPLLE, "dsp_read_aram_d3() - unknown format 0x%x", g_dsp.ifx_regs[DSP_FORMAT]);
-			break;
+	case 0x5:   // u8 reads
+		val = DSPHost::ReadHostMemory(Address);
+		Address++;
+		break;
+	case 0x6:   // u16 reads
+		val = (DSPHost::ReadHostMemory(Address * 2) << 8) | DSPHost::ReadHostMemory(Address * 2 + 1);
+		Address++;
+		break;
+	default:
+		ERROR_LOG(DSPLLE, "dsp_read_aram_d3() - unknown format 0x%x", g_dsp.ifx_regs[DSP_FORMAT]);
+		break;
 	}
 
 	if (Address >= EndAddress)
@@ -91,14 +91,14 @@ void dsp_write_aram_d3(u16 value)
 
 	switch (g_dsp.ifx_regs[DSP_FORMAT])
 	{
-		case 0xA:   // u16 writes
-			DSPHost::WriteHostMemory(value >> 8, Address * 2);
-			DSPHost::WriteHostMemory(value & 0xFF, Address * 2 + 1);
-			Address++;
-			break;
-		default:
-			ERROR_LOG(DSPLLE, "dsp_write_aram_d3() - unknown format 0x%x", g_dsp.ifx_regs[DSP_FORMAT]);
-			break;
+	case 0xA:   // u16 writes
+		DSPHost::WriteHostMemory(value >> 8, Address * 2);
+		DSPHost::WriteHostMemory(value & 0xFF, Address * 2 + 1);
+		Address++;
+		break;
+	default:
+		ERROR_LOG(DSPLLE, "dsp_write_aram_d3() - unknown format 0x%x", g_dsp.ifx_regs[DSP_FORMAT]);
+		break;
 	}
 
 	g_dsp.ifx_regs[DSP_ACCAH] = Address >> 16;
@@ -120,41 +120,41 @@ u16 dsp_read_accelerator()
 	// address" and 0xd3.
 	switch (g_dsp.ifx_regs[DSP_FORMAT])
 	{
-		case 0x00:  // ADPCM audio
-			switch (EndAddress & 15)
-			{
-			case 0: // Tom and Jerry
-				step_size_bytes = 1;
-				break;
-			case 1: // Blazing Angels
-				step_size_bytes = 0;
-				break;
-			default:
-				step_size_bytes = 2;
-				break;
-			}
-			val = ADPCM_Step(Address);
+	case 0x00:  // ADPCM audio
+		switch (EndAddress & 15)
+		{
+		case 0: // Tom and Jerry
+			step_size_bytes = 1;
 			break;
-		case 0x0A:  // 16-bit PCM audio
-			val = (DSPHost::ReadHostMemory(Address * 2) << 8) | DSPHost::ReadHostMemory(Address * 2 + 1);
-			g_dsp.ifx_regs[DSP_YN2] = g_dsp.ifx_regs[DSP_YN1];
-			g_dsp.ifx_regs[DSP_YN1] = val;
-			step_size_bytes = 2;
-			Address++;
-			break;
-		case 0x19:  // 8-bit PCM audio
-			val = DSPHost::ReadHostMemory(Address) << 8;
-			g_dsp.ifx_regs[DSP_YN2] = g_dsp.ifx_regs[DSP_YN1];
-			g_dsp.ifx_regs[DSP_YN1] = val;
-			step_size_bytes = 2;
-			Address++;
+		case 1: // Blazing Angels
+			step_size_bytes = 0;
 			break;
 		default:
-			ERROR_LOG(DSPLLE, "dsp_read_accelerator() - unknown format 0x%x", g_dsp.ifx_regs[DSP_FORMAT]);
 			step_size_bytes = 2;
-			Address++;
-			val = 0;
 			break;
+		}
+		val = ADPCM_Step(Address);
+		break;
+	case 0x0A:  // 16-bit PCM audio
+		val = (DSPHost::ReadHostMemory(Address * 2) << 8) | DSPHost::ReadHostMemory(Address * 2 + 1);
+		g_dsp.ifx_regs[DSP_YN2] = g_dsp.ifx_regs[DSP_YN1];
+		g_dsp.ifx_regs[DSP_YN1] = val;
+		step_size_bytes = 2;
+		Address++;
+		break;
+	case 0x19:  // 8-bit PCM audio
+		val = DSPHost::ReadHostMemory(Address) << 8;
+		g_dsp.ifx_regs[DSP_YN2] = g_dsp.ifx_regs[DSP_YN1];
+		g_dsp.ifx_regs[DSP_YN1] = val;
+		step_size_bytes = 2;
+		Address++;
+		break;
+	default:
+		ERROR_LOG(DSPLLE, "dsp_read_accelerator() - unknown format 0x%x", g_dsp.ifx_regs[DSP_FORMAT]);
+		step_size_bytes = 2;
+		Address++;
+		val = 0;
+		break;
 	}
 
 	// TODO: Take GAIN into account

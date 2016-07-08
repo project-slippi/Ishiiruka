@@ -8,13 +8,13 @@
 
 #include "Common/CommonFuncs.h"
 #include "Common/CommonTypes.h"
+#include "Common/Logging/Log.h"
 #include "Common/MemoryUtil.h"
 #include "Common/MsgHandler.h"
-#include "Common/Logging/Log.h"
 
 #ifdef _WIN32
-#include <windows.h>
 #include <psapi.h>
+#include <windows.h>
 #include "Common/StringUtil.h"
 #else
 #include <stdio.h>
@@ -31,10 +31,13 @@
 // Uncomment the following line to be able to run Dolphin in Valgrind.
 //#undef MAP_32BIT
 
-#if !defined(_WIN32) && defined(_M_X86_64) && !defined(MAP_32BIT)
+#if !defined(_WIN32)
 #include <unistd.h>
-#define PAGE_MASK     (getpagesize() - 1)
-#define round_page(x) ((((unsigned long)(x)) + PAGE_MASK) & ~(PAGE_MASK))
+static uintptr_t RoundPage(uintptr_t addr)
+{
+	uintptr_t mask = getpagesize() - 1;
+	return (addr + mask) & ~mask;
+}
 #endif
 
 // This is purposely not a full wrapper for virtualalloc/mmap, but it
@@ -54,14 +57,14 @@ void* AllocateExecutableMemory(size_t size, bool low)
 	// effect of discarding already mapped pages that happen to be in the
 	// requested virtual memory range (such as the emulated RAM, sometimes).
 	if (low && (!map_hint))
-		map_hint = (char*)round_page(512*1024*1024); /* 0.5 GB rounded up to the next page */
+		map_hint = (char*)RoundPage(512 * 1024 * 1024); /* 0.5 GB rounded up to the next page */
 #endif
-	void* ptr = mmap(map_hint, size, PROT_READ | PROT_WRITE | PROT_EXEC,
-		MAP_ANON | MAP_PRIVATE
+	void* ptr = mmap(map_hint, size, PROT_READ | PROT_WRITE | PROT_EXEC, MAP_ANON | MAP_PRIVATE
 #if defined(_M_X86_64) && defined(MAP_32BIT)
 		| (low ? MAP_32BIT : 0)
 #endif
-		, -1, 0);
+		,
+		-1, 0);
 #endif /* defined(_WIN32) */
 
 #ifdef _WIN32
@@ -72,7 +75,8 @@ void* AllocateExecutableMemory(size_t size, bool low)
 	{
 		ptr = nullptr;
 #endif
-		PanicAlert("Failed to allocate executable memory. If you are running Dolphin in Valgrind, try '#undef MAP_32BIT'.");
+		PanicAlert("Failed to allocate executable memory. If you are running Dolphin in Valgrind, try "
+			"'#undef MAP_32BIT'.");
 	}
 #if !defined(_WIN32) && defined(_M_X86_64) && !defined(MAP_32BIT)
 	else
@@ -80,7 +84,7 @@ void* AllocateExecutableMemory(size_t size, bool low)
 		if (low)
 		{
 			map_hint += size;
-			map_hint = (char*)round_page(map_hint); /* round up to the next page */
+			map_hint = (char*)RoundPage((uintptr_t)map_hint); /* round up to the next page */
 		}
 	}
 #endif
@@ -91,15 +95,14 @@ void* AllocateExecutableMemory(size_t size, bool low)
 #endif
 
 	return ptr;
-}
+	}
 
 void* AllocateMemoryPages(size_t size)
 {
 #ifdef _WIN32
 	void* ptr = VirtualAlloc(0, size, MEM_COMMIT, PAGE_READWRITE);
 #else
-	void* ptr = mmap(nullptr, size, PROT_READ | PROT_WRITE,
-			MAP_ANON | MAP_PRIVATE, -1, 0);
+	void* ptr = mmap(nullptr, size, PROT_READ | PROT_WRITE, MAP_ANON | MAP_PRIVATE, -1, 0);
 
 	if (ptr == MAP_FAILED)
 		ptr = nullptr;
@@ -207,7 +210,8 @@ void UnWriteProtectMemory(void* ptr, size_t size, bool allowExecute)
 	if (!VirtualProtect(ptr, size, allowExecute ? PAGE_EXECUTE_READWRITE : PAGE_READWRITE, &oldValue))
 		error_occurred = true;
 #else
-	int retval = mprotect(ptr, size, allowExecute ? (PROT_READ | PROT_WRITE | PROT_EXEC) : PROT_WRITE | PROT_READ);
+	int retval = mprotect(ptr, size, allowExecute ? (PROT_READ | PROT_WRITE | PROT_EXEC) :
+		PROT_WRITE | PROT_READ);
 
 	if (retval != 0)
 		error_occurred = true;
@@ -229,7 +233,8 @@ std::string MemUsage()
 	// Print information about the memory usage of the process.
 
 	hProcess = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, processID);
-	if (nullptr == hProcess) return "MemUsage Error";
+	if (nullptr == hProcess)
+		return "MemUsage Error";
 
 	if (GetProcessMemoryInfo(hProcess, &pmc, sizeof(pmc)))
 		Ret = StringFromFormat("%s K", ThousandSeparate(pmc.WorkingSetSize / 1024, 7).c_str());
@@ -240,7 +245,6 @@ std::string MemUsage()
 	return "";
 #endif
 }
-
 
 size_t MemPhysical()
 {
@@ -263,7 +267,7 @@ size_t MemPhysical()
 	return physical_memory;
 #else
 	struct sysinfo memInfo;
-	sysinfo (&memInfo);
+	sysinfo(&memInfo);
 	return (size_t)memInfo.totalram * memInfo.mem_unit;
 #endif
 }

@@ -46,14 +46,14 @@ IPCCommandResult CWII_IPC_HLE_Device_usb_oh0::IOCtlV(u32 CommandAddress)
 	{
 	case USBV0_IOCTL_DEVINSERTHOOKID:
 	case USBV0_IOCTL_DEVINSERTHOOK:
-		{
-			u16 vid = Memory::Read_U16(CommandBuffer.InBuffer[0].m_Address);
-			u16 pid = Memory::Read_U16(CommandBuffer.InBuffer[1].m_Address);
-			WARN_LOG(OSHLE, "DEVINSERTHOOK %x/%x", vid, pid);
-			// It is inserted
-			SendReply = GetDefaultReply();
-		}
-		break;
+	{
+		u16 vid = Memory::Read_U16(CommandBuffer.InBuffer[0].m_Address);
+		u16 pid = Memory::Read_U16(CommandBuffer.InBuffer[1].m_Address);
+		WARN_LOG(OSHLE, "DEVINSERTHOOK %x/%x", vid, pid);
+		// It is inserted
+		SendReply = GetDefaultReply();
+	}
+	break;
 
 	default:
 		WARN_LOG(OSHLE, "%s - IOCtlV:", GetDeviceName().c_str());
@@ -72,11 +72,11 @@ IPCCommandResult CWII_IPC_HLE_Device_usb_oh0::IOCtlV(u32 CommandAddress)
 
 IPCCommandResult CWII_IPC_HLE_Device_usb_oh0::IOCtl(u32 CommandAddress)
 {
-	u32 Command			= Memory::Read_U32(CommandAddress + 0x0c);
-	u32 BufferIn		= Memory::Read_U32(CommandAddress + 0x10);
-	u32 BufferInSize	= Memory::Read_U32(CommandAddress + 0x14);
-	u32 BufferOut		= Memory::Read_U32(CommandAddress + 0x18);
-	u32 BufferOutSize	= Memory::Read_U32(CommandAddress + 0x1c);
+	u32 Command = Memory::Read_U32(CommandAddress + 0x0c);
+	u32 BufferIn = Memory::Read_U32(CommandAddress + 0x10);
+	u32 BufferInSize = Memory::Read_U32(CommandAddress + 0x14);
+	u32 BufferOut = Memory::Read_U32(CommandAddress + 0x18);
+	u32 BufferOutSize = Memory::Read_U32(CommandAddress + 0x1c);
 
 	WARN_LOG(OSHLE, "%s - IOCtl:%x", GetDeviceName().c_str(), Command);
 	WARN_LOG(OSHLE, "%x:%x %x:%x", BufferIn, BufferInSize, BufferOut, BufferOutSize);
@@ -112,7 +112,7 @@ CWII_IPC_HLE_Device_usb_ven::CWII_IPC_HLE_Device_usb_ven(u32 DeviceID, const std
 		9, 4, 1, 0, 0, 1, 2, 0, 0, NULL, 0, NULL
 	};
 	vantage_desc.audio_stream = vantage_audio_stream_interface;
-	
+
 	usb_interfacedesc vantage_audio_stream_alt_interface = {
 		9, 4, 1, 1, 1, 1, 2, 0, 0, NULL, 0, NULL
 	};
@@ -176,11 +176,11 @@ IPCCommandResult CWII_IPC_HLE_Device_usb_ven::IOCtlV(u32 CommandAddress)
 IPCCommandResult CWII_IPC_HLE_Device_usb_ven::IOCtl(u32 CommandAddress)
 {
 	IPCCommandResult SendReply = GetNoReply();
-	u32 Command			= Memory::Read_U32(CommandAddress + 0x0c);
-	u32 BufferIn		= Memory::Read_U32(CommandAddress + 0x10);
-	u32 BufferInSize	= Memory::Read_U32(CommandAddress + 0x14);
-	u32 BufferOut		= Memory::Read_U32(CommandAddress + 0x18);
-	u32 BufferOutSize	= Memory::Read_U32(CommandAddress + 0x1c);
+	u32 Command = Memory::Read_U32(CommandAddress + 0x0c);
+	u32 BufferIn = Memory::Read_U32(CommandAddress + 0x10);
+	u32 BufferInSize = Memory::Read_U32(CommandAddress + 0x14);
+	u32 BufferOut = Memory::Read_U32(CommandAddress + 0x18);
+	u32 BufferOutSize = Memory::Read_U32(CommandAddress + 0x1c);
 
 	WARN_LOG(OSHLE, "%s - IOCtl:%x", GetDeviceName().c_str(), Command);
 	WARN_LOG(OSHLE, "%x:%x %x:%x", BufferIn, BufferInSize, BufferOut, BufferOutSize);
@@ -193,14 +193,14 @@ IPCCommandResult CWII_IPC_HLE_Device_usb_ven::IOCtl(u32 CommandAddress)
 		break;
 
 	case USBV5_IOCTL_GETDEVICECHANGE:
-		{
+	{
 		// fd
 		Memory::Write_U32(0xcd000030, BufferOut);
 		// vid, pid
 		Memory::Write_U32(0x046d0a03, BufferOut + 4);
 		// token
 		//Memory::Write_U32(0, BufferOut + 8);
-		
+
 		// sent on change
 		static bool firstcall = true;
 		if (firstcall)
@@ -208,8 +208,8 @@ IPCCommandResult CWII_IPC_HLE_Device_usb_ven::IOCtl(u32 CommandAddress)
 		// num devices
 		Memory::Write_U32(1, CommandAddress + 4);
 		return SendReply;
-		}
-		break;
+	}
+	break;
 
 	case USBV5_IOCTL_ATTACHFINISH:
 		SendReply = GetDefaultReply();
@@ -221,7 +221,7 @@ IPCCommandResult CWII_IPC_HLE_Device_usb_ven::IOCtl(u32 CommandAddress)
 		break;
 
 	case USBV5_IOCTL_GETDEVPARAMS:
-		{
+	{
 		s32 device = Memory::Read_U32(BufferIn);
 		u32 unk = Memory::Read_U32(BufferIn + 4);
 
@@ -230,8 +230,8 @@ IPCCommandResult CWII_IPC_HLE_Device_usb_ven::IOCtl(u32 CommandAddress)
 		Memory::Write_U32(0, BufferOut);
 
 		SendReply = GetDefaultReply();
-		}
-		break;
+	}
+	break;
 
 	default:
 		//WARN_LOG(OSHLE, "%x:%x %x:%x", BufferIn, BufferInSize, BufferOut, BufferOutSize);
@@ -409,17 +409,17 @@ IPCCommandResult CWII_IPC_HLE_Device_usb_oh0_57e_308::IOCtlV(u32 CommandAddress)
 	switch (CommandBuffer.Parameter)
 	{
 	case USBV0_IOCTL_CTRLMSG:
-		{
-			USBSetupPacket setup_packet;
-			setup_packet.bmRequestType	= *( u8*)Memory::GetPointer(CommandBuffer.InBuffer[0].m_Address);
-			setup_packet.bRequest		= *( u8*)Memory::GetPointer(CommandBuffer.InBuffer[1].m_Address);
-			setup_packet.wValue			= *(u16*)Memory::GetPointer(CommandBuffer.InBuffer[2].m_Address);
-			setup_packet.wIndex			= *(u16*)Memory::GetPointer(CommandBuffer.InBuffer[3].m_Address);
-			setup_packet.wLength		= *(u16*)Memory::GetPointer(CommandBuffer.InBuffer[4].m_Address);
+	{
+		USBSetupPacket setup_packet;
+		setup_packet.bmRequestType = *(u8*)Memory::GetPointer(CommandBuffer.InBuffer[0].m_Address);
+		setup_packet.bRequest = *(u8*)Memory::GetPointer(CommandBuffer.InBuffer[1].m_Address);
+		setup_packet.wValue = *(u16*)Memory::GetPointer(CommandBuffer.InBuffer[2].m_Address);
+		setup_packet.wIndex = *(u16*)Memory::GetPointer(CommandBuffer.InBuffer[3].m_Address);
+		setup_packet.wLength = *(u16*)Memory::GetPointer(CommandBuffer.InBuffer[4].m_Address);
 
-			const u32 payload_addr = CommandBuffer.PayloadBuffer[0].m_Address;
+		const u32 payload_addr = CommandBuffer.PayloadBuffer[0].m_Address;
 
-			static bool initialized = false;
+		static bool initialized = false;
 
 #define DIR_TO_DEV	0
 #define DIR_TO_HOST	1
@@ -431,65 +431,65 @@ IPCCommandResult CWII_IPC_HLE_Device_usb_oh0_57e_308::IOCtlV(u32 CommandAddress)
 #define USBHDR(dir, type, recipient, request) \
 	((((dir << 7) | (type << 5) | recipient) << 8) | request)
 
-			switch (((u16)setup_packet.bmRequestType << 8) | setup_packet.bRequest)
-			{
-			case USBHDR(DIR_TO_DEV, TYPE_STANDARD, RECP_INT, 11):
-				_dbg_assert_(OSHLE, setup_packet.wValue == 1);
-				break;
-			case USBHDR(DIR_TO_HOST, TYPE_STANDARD, RECP_INT, 10):
+		switch (((u16)setup_packet.bmRequestType << 8) | setup_packet.bRequest)
+		{
+		case USBHDR(DIR_TO_DEV, TYPE_STANDARD, RECP_INT, 11):
+			_dbg_assert_(OSHLE, setup_packet.wValue == 1);
+			break;
+		case USBHDR(DIR_TO_HOST, TYPE_STANDARD, RECP_INT, 10):
+			Memory::Write_U8(1, payload_addr);
+			break;
+		case USBHDR(DIR_TO_HOST, TYPE_VENDOR, RECP_INT, 6):
+			if (!initialized)
+				Memory::Write_U8(0, payload_addr), initialized = true;
+			else
 				Memory::Write_U8(1, payload_addr);
-				break;
-			case USBHDR(DIR_TO_HOST, TYPE_VENDOR, RECP_INT, 6):
-				if (!initialized)
-					Memory::Write_U8(0, payload_addr), initialized = true;
-				else
-					Memory::Write_U8(1, payload_addr);
-				break;
-			case USBHDR(DIR_TO_DEV, TYPE_VENDOR, RECP_INT, 1):
-				SetRegister(payload_addr);
-				break;
-			case USBHDR(DIR_TO_HOST, TYPE_VENDOR, RECP_INT, 2):
-				GetRegister(payload_addr);
-				break;
-			case USBHDR(DIR_TO_DEV, TYPE_VENDOR, RECP_INT, 0):
-				initialized = false;
-				break;
-			default:
-				WARN_LOG(OSHLE, "UNK %02x %02x %04x %04x",
-					setup_packet.bmRequestType, setup_packet.bRequest,
-					setup_packet.wValue, setup_packet.wLength);
-				break;
-			}
-
-			// command finished, send a reply to command
-			WII_IPC_HLE_Interface::EnqueueReply(CommandBuffer.m_Address);
+			break;
+		case USBHDR(DIR_TO_DEV, TYPE_VENDOR, RECP_INT, 1):
+			SetRegister(payload_addr);
+			break;
+		case USBHDR(DIR_TO_HOST, TYPE_VENDOR, RECP_INT, 2):
+			GetRegister(payload_addr);
+			break;
+		case USBHDR(DIR_TO_DEV, TYPE_VENDOR, RECP_INT, 0):
+			initialized = false;
+			break;
+		default:
+			WARN_LOG(OSHLE, "UNK %02x %02x %04x %04x",
+				setup_packet.bmRequestType, setup_packet.bRequest,
+				setup_packet.wValue, setup_packet.wLength);
+			break;
 		}
-		break;
+
+		// command finished, send a reply to command
+		WII_IPC_HLE_Interface::EnqueueReply(CommandBuffer.m_Address);
+	}
+	break;
 
 	case USBV0_IOCTL_BLKMSG:
-		{
+	{
 		u8 Command = Memory::Read_U8(CommandBuffer.InBuffer[0].m_Address);
 
 		switch (Command)
 		{
-		// used for sending firmware
+			// used for sending firmware
 		case DATA_OUT:
-			{
+		{
 			u16 len = Memory::Read_U16(CommandBuffer.InBuffer[1].m_Address);
 			WARN_LOG(OSHLE, "SEND DATA %x %x %x", len, CommandBuffer.PayloadBuffer[0].m_Address, CommandBuffer.PayloadBuffer[0].m_Size);
 			SendReply = GetDefaultReply();
-			}
-			break;
+		}
+		break;
 
 		default:
 			WARN_LOG(OSHLE, "UNK BLKMSG %i", Command);
 			break;
 		}
-		}
-		break;
+	}
+	break;
 
 	case USBV0_IOCTL_ISOMSG:
-		{
+	{
 		// endp 81 = mic -> console
 		// endp 03 = console -> mic
 		u8 endpoint = Memory::Read_U8(CommandBuffer.InBuffer[0].m_Address);
@@ -507,15 +507,15 @@ IPCCommandResult CWII_IPC_HLE_Device_usb_oh0_57e_308::IOCtlV(u32 CommandAddress)
 			packets += packet_len;
 		}
 		*/
-		
+
 		if (endpoint == AUDIO_IN)
 			for (u16 *sample = (u16*)packets; sample != (u16*)(packets + length); sample++)
 				*sample = 0x8000;
-		
+
 		// TODO actual responses should obey some kinda timey thing
 		SendReply = GetDefaultReply();
-		}
-		break;
+	}
+	break;
 
 	default:
 		WARN_LOG(OSHLE, "%s - IOCtlV:", GetDeviceName().c_str());
@@ -748,15 +748,15 @@ IPCCommandResult CWII_IPC_HLE_Device_usb_oh0_46d_a03::IOCtlV(u32 CommandAddress)
 	switch (CommandBuffer.Parameter)
 	{
 	case USBV0_IOCTL_CTRLMSG:
-		{
-			USBSetupPacket setup_packet;
-			setup_packet.bmRequestType	= *( u8*)Memory::GetPointer(CommandBuffer.InBuffer[0].m_Address);
-			setup_packet.bRequest		= *( u8*)Memory::GetPointer(CommandBuffer.InBuffer[1].m_Address);
-			setup_packet.wValue			= *(u16*)Memory::GetPointer(CommandBuffer.InBuffer[2].m_Address);
-			setup_packet.wIndex			= *(u16*)Memory::GetPointer(CommandBuffer.InBuffer[3].m_Address);
-			setup_packet.wLength		= *(u16*)Memory::GetPointer(CommandBuffer.InBuffer[4].m_Address);
+	{
+		USBSetupPacket setup_packet;
+		setup_packet.bmRequestType = *(u8*)Memory::GetPointer(CommandBuffer.InBuffer[0].m_Address);
+		setup_packet.bRequest = *(u8*)Memory::GetPointer(CommandBuffer.InBuffer[1].m_Address);
+		setup_packet.wValue = *(u16*)Memory::GetPointer(CommandBuffer.InBuffer[2].m_Address);
+		setup_packet.wIndex = *(u16*)Memory::GetPointer(CommandBuffer.InBuffer[3].m_Address);
+		setup_packet.wLength = *(u16*)Memory::GetPointer(CommandBuffer.InBuffer[4].m_Address);
 
-			const u32 payload_addr = CommandBuffer.PayloadBuffer[0].m_Address;
+		const u32 payload_addr = CommandBuffer.PayloadBuffer[0].m_Address;
 
 #define DIR_TO_DEV	0
 #define DIR_TO_HOST	1
@@ -769,154 +769,163 @@ IPCCommandResult CWII_IPC_HLE_Device_usb_oh0_46d_a03::IOCtlV(u32 CommandAddress)
 #define USBHDR(dir, type, recipient, request) \
 	((((dir << 7) | (type << 5) | recipient) << 8) | request)
 
-			switch (((u16)setup_packet.bmRequestType << 8) | setup_packet.bRequest)
+		switch (((u16)setup_packet.bmRequestType << 8) | setup_packet.bRequest)
+		{
+		case USBHDR(DIR_TO_HOST, TYPE_STANDARD, RECP_DEV, 6):
+			// GET_DESCRIPTOR
+			switch (setup_packet.wValue >> 8)
 			{
-			case USBHDR(DIR_TO_HOST, TYPE_STANDARD, RECP_DEV, 6):
-				// GET_DESCRIPTOR
-				switch (setup_packet.wValue >> 8)
+				// CONFIGURATION
+			case 2:
+			{
+				const usb_configurationdesc config = {9, 2, 121, 2, 1, 3, 0x80, 30};
+				if (setup_packet.wLength == 9)
 				{
-					// CONFIGURATION
-				case 2:
-					{
-					const usb_configurationdesc config = { 9, 2, 121, 2, 1, 3, 0x80, 30 };
-					if (setup_packet.wLength == 9)
-					{
-						memcpy(Memory::GetPointer(payload_addr), &config, setup_packet.wLength);
-					}
-					else
-					{
-						#define LE24(x) (x & 0xff), ((x >> 8) & 0xff), (x >> 16)
-						#pragma pack(push, 1)
-						struct {
-							usb_configurationdesc config;
-							usb_interfacedesc int0;
-							struct audiocontrol_hdr {
-								u8 bLength;
-								u8 bDescriptorType;
-								u8 bDescriptorSubtype;
-							};
-							struct {
-								audiocontrol_hdr hdr;
-								u16 bcdADC;
-								u16 wTotalLength;
-								u8 bInCollection;
-								u8 baInterfaceNr;
-							} audiocontrol_header;
-							struct {
-								audiocontrol_hdr hdr;
-								u8 bTerminalID;
-								u16 wTerminalType;
-								u8 bAssocTerminal;
-								u8 bNrChannels;
-								u16 wChannelConfig;
-								u8 iChannelNames;
-								u8 iTerminal;
-							} audiocontrol_input_terminal;
-							struct {
-								audiocontrol_hdr hdr;
-								u8 bUnitID;
-								u8 bSourceID;
-								u8 bControlSize;
-								u8 bmaControls0;
-								u8 bmaControls1;
-								u8 iFeature;
-							} audiocontrol_feature_unit;
-							struct {
-								audiocontrol_hdr hdr;
-								u8 bTerminalID;
-								u16 wTerminalType;
-								u8 bAssocTerminal;
-								u8 bSourceID;
-								u8 iTerminal;
-							} audiocontrol_output_terminal;
-							usb_interfacedesc int1;
-							usb_interfacedesc int2;
-							struct {
-								audiocontrol_hdr hdr;
-								u8 bTerminalLink;
-								u8 bDelay;
-								u16 wFormatTag;
-							} audiocontrol_as_general;
-							struct {
-								audiocontrol_hdr hdr;
-								u8 bFormatType;
-								u8 bNrChannels;
-								u8 bSubframeSize;
-								u8 bBitResolution;
-								u8 bSamFreqType;
-								u8 tSamFreq[3 * 5];
-							} audiocontrol_format_type;
-							usb_endpointdesc endp;
-							struct {
-								audiocontrol_hdr hdr;
-								u8 bmAttributes;
-								u8 bLockDelayUnits;
-								u16 wLockDelay;
-							} audiocontrol_ep_general;
-						} const fullconfig = {
-							config,
-								{ 9, 4, 0, 0, 0, 1, 1, 0, 0 },
-									{ 9, 36, 1, 0x100, 39, 1, 1 },
-									{ 12, 36, 2, 13, 0x201, 0, 1, 0, 0, 0 },
-									{ 9, 36, 6, 2, 13, 1, 3, 0 },
-									{ 9, 36, 3, 10, 0x101, 0, 2, 0 },
-								{ 9, 4, 1, 0, 0, 1, 2, 0, 0 },
-								{ 9, 4, 1, 1, 1, 1, 2, 0, 0 },
-									{ 7, 36, 1, 10, 0, 1 },
-									{ 23, 36, 2, 1, 1, 2, 16, 5,
-										LE24(8000), LE24(11025), LE24(22050),
-										LE24(44100), LE24(48000) },
-									{ 9, 5, 0x84, 13, 0x60, 1, 0, 0	},
-										{ 7, 37, 1, 1, 2, 1 }
-						};
-						#pragma pack(pop)
-						#undef LE24
-						memcpy(Memory::GetPointer(payload_addr), &fullconfig, setup_packet.wLength);
-					}
-
-					Memory::Write_U32(sizeof(USBSetupPacket) + setup_packet.wLength, CommandAddress + 4);
-					return GetDefaultReply();
-					}
-					break;
-
-				default:
-					goto outerdefault;
+					memcpy(Memory::GetPointer(payload_addr), &config, setup_packet.wLength);
 				}
-				break;
-
-			case USBHDR(DIR_TO_HOST, TYPE_CLASS, RECP_INT, 0x82):
-			case USBHDR(DIR_TO_HOST, TYPE_CLASS, RECP_INT, 0x83):
-				if (setup_packet.bRequest & 1)
-					Memory::Write_U16(0x7fff, payload_addr);
 				else
-					Memory::Write_U16(0x8000, payload_addr);
-				break;
-
-			case USBHDR(DIR_TO_DEV, TYPE_CLASS, RECP_ENDP, 1):
 				{
-				u32 freq = *(u32*)Memory::GetPointer(payload_addr) & 0xffffff;
-				WARN_LOG(OSHLE, "set freq: %x", freq);
+#define LE24(x) (x & 0xff), ((x >> 8) & 0xff), (x >> 16)
+#pragma pack(push, 1)
+					struct
+					{
+						usb_configurationdesc config;
+						usb_interfacedesc int0;
+						struct audiocontrol_hdr
+						{
+							u8 bLength;
+							u8 bDescriptorType;
+							u8 bDescriptorSubtype;
+						};
+						struct
+						{
+							audiocontrol_hdr hdr;
+							u16 bcdADC;
+							u16 wTotalLength;
+							u8 bInCollection;
+							u8 baInterfaceNr;
+						} audiocontrol_header;
+						struct
+						{
+							audiocontrol_hdr hdr;
+							u8 bTerminalID;
+							u16 wTerminalType;
+							u8 bAssocTerminal;
+							u8 bNrChannels;
+							u16 wChannelConfig;
+							u8 iChannelNames;
+							u8 iTerminal;
+						} audiocontrol_input_terminal;
+						struct
+						{
+							audiocontrol_hdr hdr;
+							u8 bUnitID;
+							u8 bSourceID;
+							u8 bControlSize;
+							u8 bmaControls0;
+							u8 bmaControls1;
+							u8 iFeature;
+						} audiocontrol_feature_unit;
+						struct
+						{
+							audiocontrol_hdr hdr;
+							u8 bTerminalID;
+							u16 wTerminalType;
+							u8 bAssocTerminal;
+							u8 bSourceID;
+							u8 iTerminal;
+						} audiocontrol_output_terminal;
+						usb_interfacedesc int1;
+						usb_interfacedesc int2;
+						struct
+						{
+							audiocontrol_hdr hdr;
+							u8 bTerminalLink;
+							u8 bDelay;
+							u16 wFormatTag;
+						} audiocontrol_as_general;
+						struct
+						{
+							audiocontrol_hdr hdr;
+							u8 bFormatType;
+							u8 bNrChannels;
+							u8 bSubframeSize;
+							u8 bBitResolution;
+							u8 bSamFreqType;
+							u8 tSamFreq[3 * 5];
+						} audiocontrol_format_type;
+						usb_endpointdesc endp;
+						struct
+						{
+							audiocontrol_hdr hdr;
+							u8 bmAttributes;
+							u8 bLockDelayUnits;
+							u16 wLockDelay;
+						} audiocontrol_ep_general;
+					} const fullconfig = {
+						config,
+							{ 9, 4, 0, 0, 0, 1, 1, 0, 0 },
+								{ 9, 36, 1, 0x100, 39, 1, 1 },
+								{ 12, 36, 2, 13, 0x201, 0, 1, 0, 0, 0 },
+								{ 9, 36, 6, 2, 13, 1, 3, 0 },
+								{ 9, 36, 3, 10, 0x101, 0, 2, 0 },
+							{ 9, 4, 1, 0, 0, 1, 2, 0, 0 },
+							{ 9, 4, 1, 1, 1, 1, 2, 0, 0 },
+								{ 7, 36, 1, 10, 0, 1 },
+								{ 23, 36, 2, 1, 1, 2, 16, 5,
+									LE24(8000), LE24(11025), LE24(22050),
+									LE24(44100), LE24(48000) },
+								{ 9, 5, 0x84, 13, 0x60, 1, 0, 0	},
+									{ 7, 37, 1, 1, 2, 1 }
+					};
+#pragma pack(pop)
+#undef LE24
+					memcpy(Memory::GetPointer(payload_addr), &fullconfig, setup_packet.wLength);
 				}
-				break;
 
-			case USBHDR(DIR_TO_DEV, TYPE_STANDARD, RECP_INT, 11):
-				break;
-
-			outerdefault:
-			default:
-				WARN_LOG(OSHLE, "UNK %02x %02x %04x %04x",
-					setup_packet.bmRequestType, setup_packet.bRequest,
-					setup_packet.wValue, setup_packet.wLength);
-				break;
+				Memory::Write_U32(sizeof(USBSetupPacket) + setup_packet.wLength, CommandAddress + 4);
+				return GetDefaultReply();
 			}
+			break;
 
-			// command finished, send a reply to command
-			WII_IPC_HLE_Interface::EnqueueReply(CommandBuffer.m_Address);
+			default:
+				goto outerdefault;
+			}
+			break;
+
+		case USBHDR(DIR_TO_HOST, TYPE_CLASS, RECP_INT, 0x82):
+		case USBHDR(DIR_TO_HOST, TYPE_CLASS, RECP_INT, 0x83):
+			if (setup_packet.bRequest & 1)
+				Memory::Write_U16(0x7fff, payload_addr);
+			else
+				Memory::Write_U16(0x8000, payload_addr);
+			break;
+
+		case USBHDR(DIR_TO_DEV, TYPE_CLASS, RECP_ENDP, 1):
+		{
+			u32 freq = *(u32*)Memory::GetPointer(payload_addr) & 0xffffff;
+			WARN_LOG(OSHLE, "set freq: %x", freq);
 		}
 		break;
 
+		case USBHDR(DIR_TO_DEV, TYPE_STANDARD, RECP_INT, 11):
+			break;
+
+		outerdefault:
+		default:
+			WARN_LOG(OSHLE, "UNK %02x %02x %04x %04x",
+				setup_packet.bmRequestType, setup_packet.bRequest,
+				setup_packet.wValue, setup_packet.wLength);
+			break;
+		}
+
+		// command finished, send a reply to command
+		WII_IPC_HLE_Interface::EnqueueReply(CommandBuffer.m_Address);
+	}
+	break;
+
 	case USBV0_IOCTL_ISOMSG:
-		{
+	{
 		// endp 81 = mic -> console
 		// endp 03 = console -> mic
 		u8 endpoint = Memory::Read_U8(CommandBuffer.InBuffer[0].m_Address);
@@ -937,15 +946,15 @@ IPCCommandResult CWII_IPC_HLE_Device_usb_oh0_46d_a03::IOCtlV(u32 CommandAddress)
 			packets += packet_len;
 		}
 		*/
-		
+
 		if (endpoint == AUDIO_IN)
 			for (u16 *sample = (u16*)packets; sample != (u16*)(packets + length); sample++)
 				*sample = 0;
-		
+
 		// TODO actual responses should obey some kinda timey thing
 		SendReply = GetDefaultReply();
-		}
-		break;
+	}
+	break;
 
 	default:
 		WARN_LOG(OSHLE, "%s - IOCtlV:", GetDeviceName().c_str());

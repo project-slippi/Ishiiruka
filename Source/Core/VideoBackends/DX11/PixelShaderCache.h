@@ -30,7 +30,10 @@ public:
 	static bool TestShader();
 	static void InsertByteCode(const PixelShaderUid &uid, const void* bytecode, u32 bytecodelen);
 
-	static ID3D11PixelShader* GetActiveShader() { return s_last_entry->shader.get(); }
+	static ID3D11PixelShader* GetActiveShader()
+	{
+		return s_last_entry->shader.get();
+	}
 	static D3D::BufferDescriptor GetConstantBuffer();
 
 	static ID3D11PixelShader* GetColorMatrixProgram(bool multisampled);
@@ -49,11 +52,14 @@ private:
 		bool compiled;
 		std::atomic_flag initialized;
 
-		PSCacheEntry() : compiled(false)
+		PSCacheEntry(): compiled(false)
 		{
 			initialized.clear();
 		}
-		void Destroy() { shader.reset(); }
+		void Destroy()
+		{
+			shader.reset();
+		}
 	};
 	static inline void PushByteCode(const void* bytecode, u32 bytecodelen, PSCacheEntry* entry);
 	typedef ObjectUsageProfiler<PixelShaderUid, pKey_t, PSCacheEntry, PixelShaderUid::ShaderUidHasher> PSCache;

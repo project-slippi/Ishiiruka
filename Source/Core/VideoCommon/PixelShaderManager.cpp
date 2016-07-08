@@ -69,11 +69,6 @@ void PixelShaderManager::Dirty()
 	sbflagschanged = true;
 }
 
-void PixelShaderManager::Shutdown()
-{
-	
-}
-
 const float* PixelShaderManager::GetBuffer()
 {
 	return psconstants;
@@ -158,7 +153,7 @@ void PixelShaderManager::SetConstants()
 				break;
 			case TEV_ZTEX_TYPE_U24:
 				// 24 bits
-				temp[0] = 65536; temp[1] =256; temp[2] = 1; temp[3] = 0;
+				temp[0] = 65536; temp[1] = 256; temp[2] = 1; temp[3] = 0;
 				break;
 			}
 		}
@@ -574,17 +569,17 @@ void PixelShaderManager::InvalidateXFRange(int start, int end)
 void PixelShaderManager::SetEfbScaleChanged()
 {
 	m_buffer.SetConstant4<float>(C_EFBSCALE,
-			1.0f / float(Renderer::EFBToScaledXf(1)),
-			1.0f / float(Renderer::EFBToScaledYf(1)), 0.0f, 0.0f);
+		1.0f / float(Renderer::EFBToScaledXf(1)),
+		1.0f / float(Renderer::EFBToScaledYf(1)), 0.0f, 0.0f);
 	s_bViewPortChanged = true;
 }
 
 void PixelShaderManager::SetZSlope(float dfdx, float dfdy, float f0)
 {
-	m_buffer.SetConstant4(C_ZSLOPE, 
-		dfdx, 
-		dfdy, 
-		f0, 
+	m_buffer.SetConstant4(C_ZSLOPE,
+		dfdx,
+		dfdy,
+		f0,
 		0.0f);
 }
 

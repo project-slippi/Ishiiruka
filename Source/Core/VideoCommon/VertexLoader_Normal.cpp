@@ -25,194 +25,194 @@ bool VertexLoader_Normal::Initialized = false;
 namespace
 {
 
-	template <typename T, int N>
-	struct Normal_Direct
+template <typename T, int N>
+struct Normal_Direct
+{
+	static void LOADERDECL function()
 	{
-		static void LOADERDECL function()
-		{
-			_Normal_Direct<T, N>(g_PipelineState);
-		}
-		static const int size = sizeof(T) * N * 3;
-	};
+		_Normal_Direct<T, N>(g_PipelineState);
+	}
+	static const int size = sizeof(T) * N * 3;
+};
 
-	template <typename I, typename T, int N>
-	struct Normal_Index
+template <typename I, typename T, int N>
+struct Normal_Index
+{
+	static void LOADERDECL function()
 	{
-		static void LOADERDECL function()
-		{
-			_Normal_Index_Offset<I, T, N, 0>(g_PipelineState);
-		}
+		_Normal_Index_Offset<I, T, N, 0>(g_PipelineState);
+	}
 
-		static const int size = sizeof(I);
-	};
+	static const int size = sizeof(I);
+};
 
-	template <typename I, typename T>
-	struct Normal_Index_Indices3
+template <typename I, typename T>
+struct Normal_Index_Indices3
+{
+	static void LOADERDECL function()
 	{
-		static void LOADERDECL function()
-		{
-			_Normal_Index_Offset3<I, T>(g_PipelineState);
-		}
+		_Normal_Index_Offset3<I, T>(g_PipelineState);
+	}
 
-		static const int size = sizeof(I) * 3;
-	};
+	static const int size = sizeof(I) * 3;
+};
 
 #if _M_SSE >= 0x301
 
-	template <int N>
-	struct Normal_Direct_UByte_SSSE3
+template <int N>
+struct Normal_Direct_UByte_SSSE3
+{
+	static void LOADERDECL function()
 	{
-		static void LOADERDECL function()
-		{
-			_Normal_Direct_UByte_SSSE3<N>(g_PipelineState);
-		}
-		static const int size = sizeof(u8) * N * 3;
-	};
+		_Normal_Direct_UByte_SSSE3<N>(g_PipelineState);
+	}
+	static const int size = sizeof(u8) * N * 3;
+};
 
-	template <int N>
-	struct Normal_Direct_SByte_SSSE3
+template <int N>
+struct Normal_Direct_SByte_SSSE3
+{
+	static void LOADERDECL function()
 	{
-		static void LOADERDECL function()
-		{
-			_Normal_Direct_SByte_SSSE3<N>(g_PipelineState);
-		}
-		static const int size = sizeof(s8) * N * 3;
-	};
+		_Normal_Direct_SByte_SSSE3<N>(g_PipelineState);
+	}
+	static const int size = sizeof(s8) * N * 3;
+};
 
-	template <int N>
-	struct Normal_Direct_UShort_SSSE3
+template <int N>
+struct Normal_Direct_UShort_SSSE3
+{
+	static void LOADERDECL function()
 	{
-		static void LOADERDECL function()
-		{
-			_Normal_Direct_UShort_SSSE3<N>(g_PipelineState);
-		}
-		static const int size = sizeof(u16) * N * 3;
-	};
+		_Normal_Direct_UShort_SSSE3<N>(g_PipelineState);
+	}
+	static const int size = sizeof(u16) * N * 3;
+};
 
-	template <int N>
-	struct Normal_Direct_Short_SSSE3
+template <int N>
+struct Normal_Direct_Short_SSSE3
+{
+	static void LOADERDECL function()
 	{
-		static void LOADERDECL function()
-		{
-			_Normal_Direct_Short_SSSE3<N>(g_PipelineState);
-		}
-		static const int size = sizeof(s16) * N * 3;
-	};
+		_Normal_Direct_Short_SSSE3<N>(g_PipelineState);
+	}
+	static const int size = sizeof(s16) * N * 3;
+};
 
-	template <int N>
-	struct Normal_Direct_FLOAT_SSSE3
+template <int N>
+struct Normal_Direct_FLOAT_SSSE3
+{
+	static void LOADERDECL function()
 	{
-		static void LOADERDECL function()
-		{
-			_Normal_Direct_FLOAT_SSSE3<N>(g_PipelineState);
-		}
-		static const int size = sizeof(float) * N * 3;
-	};
+		_Normal_Direct_FLOAT_SSSE3<N>(g_PipelineState);
+	}
+	static const int size = sizeof(float) * N * 3;
+};
 
-	template <typename I, int N>
-	struct Normal_Index_UByte_SSSE3
+template <typename I, int N>
+struct Normal_Index_UByte_SSSE3
+{
+	static void LOADERDECL function()
 	{
-		static void LOADERDECL function()
-		{
-			_Normal_Index_UByte_SSSE3<I, N>(g_PipelineState);
-		}
+		_Normal_Index_UByte_SSSE3<I, N>(g_PipelineState);
+	}
 
-		static const int size = sizeof(I);
-	};
+	static const int size = sizeof(I);
+};
 
-	template <typename I, int N>
-	struct Normal_Index_SByte_SSSE3
+template <typename I, int N>
+struct Normal_Index_SByte_SSSE3
+{
+	static void LOADERDECL function()
 	{
-		static void LOADERDECL function()
-		{
-			_Normal_Index_SByte_SSSE3<I, N>(g_PipelineState);
-		}
+		_Normal_Index_SByte_SSSE3<I, N>(g_PipelineState);
+	}
 
-		static const int size = sizeof(I);
-	};
+	static const int size = sizeof(I);
+};
 
-	template <typename I, int N>
-	struct Normal_Index_UShort_SSSE3
+template <typename I, int N>
+struct Normal_Index_UShort_SSSE3
+{
+	static void LOADERDECL function()
 	{
-		static void LOADERDECL function()
-		{
-			_Normal_Index_UShort_SSSE3<I, N>(g_PipelineState);
-		}
+		_Normal_Index_UShort_SSSE3<I, N>(g_PipelineState);
+	}
 
-		static const int size = sizeof(I);
-	};
+	static const int size = sizeof(I);
+};
 
-	template <typename I, int N>
-	struct Normal_Index_Short_SSSE3
+template <typename I, int N>
+struct Normal_Index_Short_SSSE3
+{
+	static void LOADERDECL function()
 	{
-		static void LOADERDECL function()
-		{
-			_Normal_Index_Short_SSSE3<I, N>(g_PipelineState);
-		}
+		_Normal_Index_Short_SSSE3<I, N>(g_PipelineState);
+	}
 
-		static const int size = sizeof(I);
-	};
+	static const int size = sizeof(I);
+};
 
-	template <typename I, int N>
-	struct Normal_Index_FLOAT_SSSE3
+template <typename I, int N>
+struct Normal_Index_FLOAT_SSSE3
+{
+	static void LOADERDECL function()
 	{
-		static void LOADERDECL function()
-		{
-			_Normal_Index_FLOAT_SSSE3<I, N>(g_PipelineState);
-		}
+		_Normal_Index_FLOAT_SSSE3<I, N>(g_PipelineState);
+	}
 
-		static const int size = sizeof(I);
-	};
+	static const int size = sizeof(I);
+};
 
-	template <typename I>
-	struct Normal_Index3_UByte_SSSE3
+template <typename I>
+struct Normal_Index3_UByte_SSSE3
+{
+	static void LOADERDECL function()
 	{
-		static void LOADERDECL function()
-		{
-			_Normal_Index3_UByte_SSSE3<I>(g_PipelineState);
-		}
-		static const int size = sizeof(I) * 3;
-	};
+		_Normal_Index3_UByte_SSSE3<I>(g_PipelineState);
+	}
+	static const int size = sizeof(I) * 3;
+};
 
-	template <typename I>
-	struct Normal_Index3_SByte_SSSE3
+template <typename I>
+struct Normal_Index3_SByte_SSSE3
+{
+	static void LOADERDECL function()
 	{
-		static void LOADERDECL function()
-		{
-			_Normal_Index3_SByte_SSSE3<I>(g_PipelineState);
-		}
-		static const int size = sizeof(I) * 3;
-	};
+		_Normal_Index3_SByte_SSSE3<I>(g_PipelineState);
+	}
+	static const int size = sizeof(I) * 3;
+};
 
-	template <typename I>
-	struct Normal_Index3_UShort_SSSE3
+template <typename I>
+struct Normal_Index3_UShort_SSSE3
+{
+	static void LOADERDECL function()
 	{
-		static void LOADERDECL function()
-		{
-			_Normal_Index3_UShort_SSSE3<I>(g_PipelineState);
-		}
-		static const int size = sizeof(I) * 3;
-	};
+		_Normal_Index3_UShort_SSSE3<I>(g_PipelineState);
+	}
+	static const int size = sizeof(I) * 3;
+};
 
-	template <typename I>
-	struct Normal_Index3_Short_SSSE3
+template <typename I>
+struct Normal_Index3_Short_SSSE3
+{
+	static void LOADERDECL function()
 	{
-		static void LOADERDECL function()
-		{
-			_Normal_Index3_Short_SSSE3<I>(g_PipelineState);
-		}
-		static const int size = sizeof(I) * 3;
-	};
+		_Normal_Index3_Short_SSSE3<I>(g_PipelineState);
+	}
+	static const int size = sizeof(I) * 3;
+};
 
-	template <typename I>
-	struct Normal_Index3_FLOAT_SSSE3
+template <typename I>
+struct Normal_Index3_FLOAT_SSSE3
+{
+	static void LOADERDECL function()
 	{
-		static void LOADERDECL function()
-		{
-			_Normal_Index3_FLOAT_SSSE3<I>(g_PipelineState);
-		}
-		static const int size = sizeof(I) * 3;
-	};
+		_Normal_Index3_FLOAT_SSSE3<I>(g_PipelineState);
+	}
+	static const int size = sizeof(I) * 3;
+};
 #endif
 }
 
@@ -334,7 +334,7 @@ void VertexLoader_Normal::Init(void)
 		m_Table[INDEX8][NRM_INDICES3][NRM_NBT][FORMAT_BYTE] = Normal_Index_SByte_SSSE3<u8, 1>();
 		m_Table[INDEX8][NRM_INDICES3][NRM_NBT][FORMAT_USHORT] = Normal_Index_UShort_SSSE3<u8, 1>();
 		m_Table[INDEX8][NRM_INDICES3][NRM_NBT][FORMAT_SHORT] = Normal_Index_Short_SSSE3<u8, 1>();
-		m_Table[INDEX8][NRM_INDICES3][NRM_NBT][FORMAT_FLOAT] = Normal_Index_FLOAT_SSSE3<u8, 1>();		
+		m_Table[INDEX8][NRM_INDICES3][NRM_NBT][FORMAT_FLOAT] = Normal_Index_FLOAT_SSSE3<u8, 1>();
 		m_Table[INDEX8][NRM_INDICES3][NRM_NBT3][FORMAT_UBYTE] = Normal_Index3_UByte_SSSE3<u8>();
 		m_Table[INDEX8][NRM_INDICES3][NRM_NBT3][FORMAT_BYTE] = Normal_Index3_SByte_SSSE3<u8>();
 		m_Table[INDEX8][NRM_INDICES3][NRM_NBT3][FORMAT_USHORT] = Normal_Index3_UShort_SSSE3<u8>();

@@ -13,14 +13,14 @@
 bool CBoot::IsElfWii(const std::string& filename)
 {
 	/* We already check if filename existed before we called this function, so
-	   there is no need for another check, just read the file right away */
+		there is no need for another check, just read the file right away */
 
 	size_t filesize = File::GetSize(filename);
-	auto elf = std::make_unique<u8 []>(filesize);
+	auto elf = std::make_unique<u8[]>(filesize);
 
 	{
-	File::IOFile f(filename, "rb");
-	f.ReadBytes(elf.get(), filesize);
+		File::IOFile f(filename, "rb");
+		f.ReadBytes(elf.get(), filesize);
 	}
 
 	// Use the same method as the DOL loader uses: search for mfspr from HID4,
@@ -55,11 +55,11 @@ bool CBoot::Boot_ELF(const std::string& filename)
 {
 	// Read ELF from file
 	size_t filesize = File::GetSize(filename);
-	auto elf = std::make_unique<u8 []>(filesize);
+	auto elf = std::make_unique<u8[]>(filesize);
 
 	{
-	File::IOFile f(filename, "rb");
-	f.ReadBytes(elf.get(), filesize);
+		File::IOFile f(filename, "rb");
+		f.ReadBytes(elf.get(), filesize);
 	}
 
 	// Load ELF into GameCube Memory

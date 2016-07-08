@@ -17,8 +17,8 @@
 namespace DX9
 {
 
-class D3DVertexFormat : public NativeVertexFormat
-{	
+class D3DVertexFormat: public NativeVertexFormat
+{
 public:
 	D3DVertexFormat(const PortableVertexDeclaration &_vtx_decl);
 	~D3DVertexFormat();
@@ -26,7 +26,7 @@ public:
 	std::array<D3DVERTEXELEMENT9, 16> m_elems{};
 	int m_num_elems = 0;
 private:
-	
+
 
 	LPDIRECT3DVERTEXDECLARATION9 d3d_decl{};
 };
@@ -58,11 +58,12 @@ D3DVertexFormat::~D3DVertexFormat()
 
 D3DDECLTYPE VarToD3D(EVTXComponentFormat t, int size)
 {
-	if (t < 0 || t > 4) {
+	if (t < 0 || t > 4)
+	{
 		PanicAlert("VarToD3D: Invalid VarType %i", t);
 	}
 	// Sadly, D3D9 has no SBYTE4N. D3D10 does, though.
-	static const D3DDECLTYPE lookup[4][5] = 
+	static const D3DDECLTYPE lookup[4][5] =
 	{
 		{
 			D3DDECLTYPE_UNUSED, D3DDECLTYPE_UNUSED, D3DDECLTYPE_UNUSED, D3DDECLTYPE_UNUSED, D3DDECLTYPE_FLOAT1
@@ -75,20 +76,21 @@ D3DDECLTYPE VarToD3D(EVTXComponentFormat t, int size)
 		},
 		{
 			D3DDECLTYPE_UBYTE4N, D3DDECLTYPE_UNUSED, D3DDECLTYPE_USHORT4N, D3DDECLTYPE_SHORT4N, D3DDECLTYPE_FLOAT4
-		} 
+		}
 	};
 	D3DDECLTYPE retval = D3DDECLTYPE_UNUSED;
 	if (size < 5)
 	{
 		retval = lookup[size - 1][t];
 	}
-	if (retval == D3DDECLTYPE_UNUSED) {
+	if (retval == D3DDECLTYPE_UNUSED)
+	{
 		PanicAlert("VarToD3D: Invalid type/size combo %i , %i", (int)t, size);
 	}
 	return retval;
 }
 
-D3DVertexFormat::D3DVertexFormat(const PortableVertexDeclaration &_vtx_decl) : d3d_decl(nullptr)
+D3DVertexFormat::D3DVertexFormat(const PortableVertexDeclaration &_vtx_decl): d3d_decl(nullptr)
 {
 	vtx_decl = _vtx_decl;
 

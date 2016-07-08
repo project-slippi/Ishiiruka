@@ -36,22 +36,41 @@ protected:
 	bool m_muted;
 	std::unique_ptr<std::thread> thread;
 	virtual void SoundLoop();
-	virtual void InitializeSoundLoop() {}
-	virtual u32 SamplesNeeded(){ return 0; }
-	virtual void WriteSamples(s16 *src, u32 numsamples){}
-	virtual bool SupportSurroundOutput(){ return false; };
+	virtual void InitializeSoundLoop()
+	{}
+	virtual u32 SamplesNeeded()
+	{
+		return 0;
+	}
+	virtual void WriteSamples(s16 *src, u32 numsamples)
+	{}
+	virtual bool SupportSurroundOutput()
+	{
+		return false;
+	};
 public:
 	SoundStream();
 	virtual ~SoundStream();
 
-	static  bool isValid() { return false; }
-	CMixer *GetMixer() const { return m_mixer.get(); }
+	static  bool isValid()
+	{
+		return false;
+	}
+	CMixer *GetMixer() const
+	{
+		return m_mixer.get();
+	}
 	virtual bool Start();
-	virtual void SetVolume(int) {}	
+	virtual void SetVolume(int)
+	{}
 	virtual void Stop();
 	virtual void Clear(bool mute);
-	virtual void Update() {};
-	bool IsMuted() const { return m_muted; }
+	virtual void Update()
+	{};
+	bool IsMuted() const
+	{
+		return m_muted;
+	}
 	void StartLogAudio(const char *filename);
 	void StopLogAudio();
 };

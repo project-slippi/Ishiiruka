@@ -18,7 +18,8 @@ inline float Signed16ToFloat(const s16 s)
 	return s * 0.000030517578125f;//(1.0f/32768.0f)
 }
 
-class CMixer {
+class CMixer
+{
 
 public:
 	CMixer(u32 BackendSampleRate);
@@ -29,7 +30,8 @@ public:
 	static const float CONTROL_FACTOR;
 	static const float CONTROL_AVG;
 
-	virtual ~CMixer() {}
+	virtual ~CMixer()
+	{}
 
 	// Called from audio threads
 	u32 Mix(s16* samples, u32 numSamples, bool consider_framelimit = true);
@@ -39,7 +41,10 @@ public:
 	virtual void PushSamples(const s16* samples, u32 num_samples);
 	virtual void PushStreamingSamples(const s16* samples, u32 num_samples);
 	virtual void PushWiimoteSpeakerSamples(const s16* samples, u32 num_samples, u32 sample_rate);
-	u32 GetSampleRate() const { return m_sample_rate; }
+	u32 GetSampleRate() const
+	{
+		return m_sample_rate;
+	}
 
 	void SetDMAInputSampleRate(u32 rate);
 	void SetStreamInputSampleRate(u32 rate);
@@ -52,10 +57,19 @@ public:
 	void StartLogDSPAudio(const std::string& filename);
 	void StopLogDSPAudio();
 
-	std::mutex& MixerCritical() { return m_cs_mixing; }
+	std::mutex& MixerCritical()
+	{
+		return m_cs_mixing;
+	}
 
-	float GetCurrentSpeed() const { return m_speed.load(); }
-	void UpdateSpeed(float val) { m_speed.store(val); }
+	float GetCurrentSpeed() const
+	{
+		return m_speed.load();
+	}
+	void UpdateSpeed(float val)
+	{
+		m_speed.store(val);
+	}
 
 protected:
 	class MixerFifo
@@ -79,6 +93,7 @@ protected:
 		void PushSamples(const s16* samples, u32 num_samples);
 		void Mix(float* samples, u32 numSamples, bool consider_framelimit = true);
 		void SetInputSampleRate(u32 rate);
+		unsigned int GetInputSampleRate() const;
 		void SetVolume(u32 lvolume, u32 rvolume);
 		void GetVolume(u32* lvolume, u32* rvolume) const;
 		u32 AvailableSamples();
@@ -99,20 +114,28 @@ protected:
 		float m_fraction;
 	};
 
-	class LinearMixerFifo : public MixerFifo
+	class LinearMixerFifo: public MixerFifo
 	{
 	public:
-		LinearMixerFifo(CMixer* mixer, u32 sample_rate) : MixerFifo(mixer, sample_rate) {}
+		LinearMixerFifo(CMixer* mixer, u32 sample_rate): MixerFifo(mixer, sample_rate)
+		{}
 		void Interpolate(u32 left_input_index, float* left_output, float* right_output) override;
-		u32 GetWindowSize() override { return 4; };
+		u32 GetWindowSize() override
+		{
+			return 4;
+		};
 	};
 
-	class CubicMixerFifo : public MixerFifo
+	class CubicMixerFifo: public MixerFifo
 	{
 	public:
-		CubicMixerFifo(CMixer* mixer, u32 sample_rate) : MixerFifo(mixer, sample_rate) {}
+		CubicMixerFifo(CMixer* mixer, u32 sample_rate): MixerFifo(mixer, sample_rate)
+		{}
 		void Interpolate(u32 left_input_index, float* left_output, float* right_output) override;
-		u32 GetWindowSize() override { return 8; };
+		u32 GetWindowSize() override
+		{
+			return 8;
+		};
 	};
 
 	CubicMixerFifo m_dma_mixer;

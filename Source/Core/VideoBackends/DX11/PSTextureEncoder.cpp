@@ -32,8 +32,7 @@ struct EFBEncodeParams
 PSTextureEncoder::PSTextureEncoder()
 	: m_ready(false), m_out(nullptr), m_outRTV(nullptr), m_outStage(nullptr),
 	m_encodeParams(nullptr)
-{
-}
+{}
 
 void PSTextureEncoder::Init()
 {
@@ -144,7 +143,7 @@ void PSTextureEncoder::Encode(u8* dest_ptr, u32 format, u32 native_width, u32 by
 		D3D::context->CopySubresourceRegion(m_outStage.get(), 0, 0, 0, 0, m_out.get(), 0, &srcBox);
 
 		// Transfer staging buffer to GameCube/Wii RAM
-		D3D11_MAPPED_SUBRESOURCE map = { 0 };
+		D3D11_MAPPED_SUBRESOURCE map = {0};
 		hr = D3D::context->Map(m_outStage.get(), 0, D3D11_MAP_READ, 0, &map);
 		CHECK(SUCCEEDED(hr), "map staging buffer (0x%x)", hr);
 
@@ -218,7 +217,7 @@ ID3D11PixelShader* PSTextureEncoder::SetStaticShader(unsigned int dstFormat, PEC
 			dstFormat, srcFormat, isIntensity, scaleByHalf);
 		D3D::SetDebugObjectName(newShader, debugName);
 
-		it = m_staticShaders.emplace(key, D3D::PixelShaderPtr(newShader)).first;		
+		it = m_staticShaders.emplace(key, D3D::PixelShaderPtr(newShader)).first;
 	}
 
 	return it->second.get();

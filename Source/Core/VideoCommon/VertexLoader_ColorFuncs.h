@@ -143,7 +143,7 @@ __forceinline void Color_ReadIndex_16b_4444(TPipelineState &pipelinestate)
 template <typename I>
 __forceinline void Color_ReadIndex_24b_6666(TPipelineState &pipelinestate)
 {
-	const u8* pData = IndexedColorPosition<I>(pipelinestate) -1;
+	const u8* pData = IndexedColorPosition<I>(pipelinestate) - 1;
 	u32 val = Common::swap32(pData);
 	_SetCol6666(pipelinestate, val);
 }

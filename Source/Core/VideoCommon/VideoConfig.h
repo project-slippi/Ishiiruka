@@ -26,10 +26,10 @@
 
 enum AspectMode
 {
-	ASPECT_AUTO        = 0,
+	ASPECT_AUTO = 0,
 	ASPECT_ANALOG_WIDE = 1,
-	ASPECT_ANALOG      = 2,
-	ASPECT_STRETCH     = 3,
+	ASPECT_ANALOG = 2,
+	ASPECT_STRETCH = 3,
 	ASPECT_4_3 = 4,
 	ASPECT_16_9 = 5,
 	ASPECT_16_10 = 6,
@@ -58,16 +58,16 @@ enum StereoMode
 	STEREO_SBS,
 	STEREO_TAB,
 	STEREO_SHADER,
-	STEREO_3DVISION,	
+	STEREO_3DVISION,
 };
 
-enum BBoxMode : s32
+enum BBoxMode: s32
 {
 	BBoxNone = 0,
 	BBoxCPU = 1,
 	BBoxGPU = 2
 };
-	
+
 
 
 class IniFile;
@@ -111,7 +111,7 @@ struct VideoConfig final
 	std::string sPostProcessingShaders;
 	std::string sScalingShader;
 	std::string sStereoShader;
-	bool bUseScalingFilter;	
+	bool bUseScalingFilter;
 	bool bTexDeposterize;
 	int iTexScalingType;
 	int iTexScalingFactor;
@@ -129,7 +129,7 @@ struct VideoConfig final
 	bool bTexFmtOverlayEnable;
 	bool bTexFmtOverlayCenter;
 	bool bLogRenderTimeToFile;
-	
+
 
 	// Render
 	bool bWireFrame;
@@ -170,7 +170,7 @@ struct VideoConfig final
 	bool bForcedLighting;
 	bool bForcePhongShading;
 	int iRimPower;
-	int iRimIntesity; 
+	int iRimIntesity;
 	int iRimBase;
 	int iSpecularMultiplier;
 	bool bLastStoryEFBToRam;
@@ -247,11 +247,26 @@ struct VideoConfig final
 	} backend_info;
 
 	// Utility
-	inline bool RealXFBEnabled() const { return bUseXFB && bUseRealXFB; }
-	inline bool VirtualXFBEnabled() const { return bUseXFB && !bUseRealXFB; }
-	inline bool ExclusiveFullscreenEnabled() const { return backend_info.bSupportsExclusiveFullscreen && !bBorderlessFullscreen; }
-	inline bool HiresMaterialMapsEnabled() const { return backend_info.bSupportsNormalMaps && bHiresTextures && bHiresMaterialMaps; }
-	inline bool TessellationEnabled() const { return backend_info.bSupportsTessellation && bTessellation && bEnablePixelLighting; }
+	inline bool RealXFBEnabled() const
+	{
+		return bUseXFB && bUseRealXFB;
+	}
+	inline bool VirtualXFBEnabled() const
+	{
+		return bUseXFB && !bUseRealXFB;
+	}
+	inline bool ExclusiveFullscreenEnabled() const
+	{
+		return backend_info.bSupportsExclusiveFullscreen && !bBorderlessFullscreen;
+	}
+	inline bool HiresMaterialMapsEnabled() const
+	{
+		return backend_info.bSupportsNormalMaps && bHiresTextures && bHiresMaterialMaps;
+	}
+	inline bool TessellationEnabled() const
+	{
+		return backend_info.bSupportsTessellation && bTessellation && bEnablePixelLighting;
+	}
 };
 
 extern VideoConfig g_Config;

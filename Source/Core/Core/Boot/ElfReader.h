@@ -9,9 +9,9 @@
 enum KnownElfTypes
 {
 	KNOWNELF_PSP = 0,
-	KNOWNELF_DS  = 1,
+	KNOWNELF_DS = 1,
 	KNOWNELF_GBA = 2,
-	KNOWNELF_GC  = 3,
+	KNOWNELF_GC = 3,
 };
 
 typedef int SectionID;
@@ -32,21 +32,46 @@ private:
 
 public:
 	ElfReader(void* ptr);
-	~ElfReader() { }
+	~ElfReader()
+	{}
 
-	u32 Read32(int off) const { return base32[off>>2]; }
+	u32 Read32(int off) const
+	{
+		return base32[off >> 2];
+	}
 
 	// Quick accessors
-	ElfType GetType() const { return (ElfType)(header->e_type); }
-	ElfMachine GetMachine() const { return (ElfMachine)(header->e_machine); }
-	u32 GetEntryPoint() const { return entryPoint; }
-	u32 GetFlags() const { return (u32)(header->e_flags); }
+	ElfType GetType() const
+	{
+		return (ElfType)(header->e_type);
+	}
+	ElfMachine GetMachine() const
+	{
+		return (ElfMachine)(header->e_machine);
+	}
+	u32 GetEntryPoint() const
+	{
+		return entryPoint;
+	}
+	u32 GetFlags() const
+	{
+		return (u32)(header->e_flags);
+	}
 	bool LoadIntoMemory();
 	bool LoadSymbols();
 
-	int GetNumSegments() const { return (int)(header->e_phnum); }
-	int GetNumSections() const { return (int)(header->e_shnum); }
-	const u8* GetPtr(int offset) const { return (u8*)base + offset; }
+	int GetNumSegments() const
+	{
+		return (int)(header->e_phnum);
+	}
+	int GetNumSections() const
+	{
+		return (int)(header->e_shnum);
+	}
+	const u8* GetPtr(int offset) const
+	{
+		return (u8*)base + offset;
+	}
 	const char* GetSectionName(int section) const;
 	const u8 *GetSectionDataPtr(int section) const
 	{
@@ -65,8 +90,14 @@ public:
 	{
 		return GetPtr(segments[segment].p_offset);
 	}
-	u32 GetSectionAddr(SectionID section) const { return sectionAddrs[section]; }
-	int GetSectionSize(SectionID section) const { return sections[section].sh_size; }
+	u32 GetSectionAddr(SectionID section) const
+	{
+		return sectionAddrs[section];
+	}
+	int GetSectionSize(SectionID section) const
+	{
+		return sections[section].sh_size;
+	}
 	SectionID GetSectionByName(const char* name, int firstSection = 0) const; //-1 for not found
 
 	bool DidRelocate() const

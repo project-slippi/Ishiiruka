@@ -5,12 +5,12 @@
 #include <cstring>
 
 #include "Common/CommonTypes.h"
-#include "Common/MsgHandler.h"
 #include "Common/Logging/Log.h"
+#include "Common/MsgHandler.h"
 #include "Core/ConfigManager.h"
-#include "Core/NetPlayProto.h"
 #include "Core/HW/GCPad.h"
 #include "Core/HW/SI_DeviceGCAdapter.h"
+#include "Core/NetPlayProto.h"
 #include "InputCommon/GCAdapter.h"
 
 CSIDevice_GCAdapter::CSIDevice_GCAdapter(SIDevices device, int _iDeviceNumber)

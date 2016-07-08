@@ -37,8 +37,8 @@ public:
 	//
 	// Returns true if a map file exists, false if none could be found.
 	static bool FindMapFile(std::string* existing_map_file,
-	                        std::string* writable_map_file,
-	                        std::string* title_id = nullptr);
+		std::string* writable_map_file,
+		std::string* title_id = nullptr);
 
 private:
 	static bool DVDRead(u64 dvd_offset, u32 output_address, u32 length, bool decrypt);

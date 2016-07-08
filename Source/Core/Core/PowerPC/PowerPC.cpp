@@ -6,31 +6,29 @@
 #include "Common/ChunkFile.h"
 #include "Common/CommonTypes.h"
 #include "Common/FPURoundMode.h"
-#include "Common/MathUtil.h"
 #include "Common/Logging/Log.h"
+#include "Common/MathUtil.h"
 
 #include "Core/ConfigManager.h"
-#include "Core/Host.h"
 #include "Core/HW/CPU.h"
 #include "Core/HW/Memmap.h"
 #include "Core/HW/SystemTimers.h"
+#include "Core/Host.h"
 #include "Core/PowerPC/CPUCoreBase.h"
-#include "Core/PowerPC/JitInterface.h"
-#include "Core/PowerPC/PowerPC.h"
-#include "Core/PowerPC/PPCTables.h"
 #include "Core/PowerPC/Interpreter/Interpreter.h"
-
+#include "Core/PowerPC/JitInterface.h"
+#include "Core/PowerPC/PPCTables.h"
+#include "Core/PowerPC/PowerPC.h"
 
 namespace PowerPC
 {
-
 // STATE_TO_SAVE
 PowerPCState ppcState;
 
-static CPUCoreBase* s_cpu_core_base             = nullptr;
-static bool         s_cpu_core_base_is_injected = false;
-Interpreter* const  s_interpreter               = Interpreter::getInstance();
-static CoreMode     s_mode                      = MODE_INTERPRETER;
+static CPUCoreBase* s_cpu_core_base = nullptr;
+static bool s_cpu_core_base_is_injected = false;
+Interpreter* const s_interpreter = Interpreter::getInstance();
+static CoreMode s_mode = MODE_INTERPRETER;
 
 Watches watches;
 BreakPoints breakpoints;
@@ -55,14 +53,17 @@ void ExpandCR(u32 cr)
 	}
 }
 
-void DoState(PointerWrap &p)
+void DoState(PointerWrap& p)
 {
 	// some of this code has been disabled, because
-	// it changes registers even in MODE_MEASURE (which is suspicious and seems like it could cause desyncs)
-	// and because the values it's changing have been added to CoreTiming::DoState, so it might conflict to mess with them here.
+	// it changes registers even in MODE_MEASURE (which is suspicious and seems like it could cause
+	// desyncs)
+	// and because the values it's changing have been added to CoreTiming::DoState, so it might
+	// conflict to mess with them here.
 
 	// rSPR(SPR_DEC) = SystemTimers::GetFakeDecrementer();
-	// *((u64 *)&TL) = SystemTimers::GetFakeTimeBase(); //works since we are little endian and TL comes first :)
+	// *((u64 *)&TL) = SystemTimers::GetFakeTimeBase(); //works since we are little endian and TL
+	// comes first :)
 
 	p.DoPOD(ppcState);
 
@@ -88,7 +89,7 @@ static void ResetRegisters()
 	0x00083214 = gekko 2.4e (8SE) - retail HW2
 	*/
 	ppcState.spr[SPR_PVR] = 0x00083214;
-	ppcState.spr[SPR_HID1] = 0x80000000; // We're running at 3x the bus clock
+	ppcState.spr[SPR_HID1] = 0x80000000;  // We're running at 3x the bus clock
 	ppcState.spr[SPR_ECID_U] = 0x0d96e200;
 	ppcState.spr[SPR_ECID_M] = 0x1840c00d;
 	ppcState.spr[SPR_ECID_L] = 0x82bb08e8;
@@ -149,7 +150,7 @@ void Init(int cpu_core)
 
 	default:
 		s_cpu_core_base = JitInterface::InitJitCore(cpu_core);
-		if (!s_cpu_core_base) // Handle Situations where JIT core isn't available
+		if (!s_cpu_core_base)  // Handle Situations where JIT core isn't available
 		{
 			WARN_LOG(POWERPC, "Jit core %d not available. Defaulting to interpreter.", cpu_core);
 			s_cpu_core_base = s_interpreter;
@@ -194,9 +195,9 @@ static void ApplyMode()
 		break;
 
 	case MODE_JIT:  // Switching from interpreter to JIT.
-		// Don't really need to do much. It'll work, the cache will refill itself.
+	  // Don't really need to do much. It'll work, the cache will refill itself.
 		s_cpu_core_base = JitInterface::GetCore();
-		if (!s_cpu_core_base) // Has a chance to not get a working JIT core if one isn't active on host
+		if (!s_cpu_core_base)  // Has a chance to not get a working JIT core if one isn't active on host
 			s_cpu_core_base = s_interpreter;
 		break;
 	}
@@ -259,9 +260,9 @@ void UpdatePerformanceMonitor(u32 cycles, u32 num_load_stores, u32 num_fp_inst)
 {
 	switch (MMCR0.PMC1SELECT)
 	{
-	case 0: // No change
+	case 0:  // No change
 		break;
-	case 1: // Processor cycles
+	case 1:  // Processor cycles
 		PowerPC::ppcState.spr[SPR_PMC1] += cycles;
 		break;
 	default:
@@ -270,12 +271,12 @@ void UpdatePerformanceMonitor(u32 cycles, u32 num_load_stores, u32 num_fp_inst)
 
 	switch (MMCR0.PMC2SELECT)
 	{
-	case 0: // No change
+	case 0:  // No change
 		break;
-	case 1: // Processor cycles
+	case 1:  // Processor cycles
 		PowerPC::ppcState.spr[SPR_PMC2] += cycles;
 		break;
-	case 11: // Number of loads and stores completed
+	case 11:  // Number of loads and stores completed
 		PowerPC::ppcState.spr[SPR_PMC2] += num_load_stores;
 		break;
 	default:
@@ -284,12 +285,12 @@ void UpdatePerformanceMonitor(u32 cycles, u32 num_load_stores, u32 num_fp_inst)
 
 	switch (MMCR1.PMC3SELECT)
 	{
-	case 0: // No change
+	case 0:  // No change
 		break;
-	case 1: // Processor cycles
+	case 1:  // Processor cycles
 		PowerPC::ppcState.spr[SPR_PMC3] += cycles;
 		break;
-	case 11: // Number of FPU instructions completed
+	case 11:  // Number of FPU instructions completed
 		PowerPC::ppcState.spr[SPR_PMC3] += num_fp_inst;
 		break;
 	default:
@@ -298,9 +299,9 @@ void UpdatePerformanceMonitor(u32 cycles, u32 num_load_stores, u32 num_fp_inst)
 
 	switch (MMCR1.PMC4SELECT)
 	{
-	case 0: // No change
+	case 0:  // No change
 		break;
-	case 1: // Processor cycles
+	case 1:  // Processor cycles
 		PowerPC::ppcState.spr[SPR_PMC4] += cycles;
 		break;
 	default:
@@ -320,15 +321,15 @@ void CheckExceptions()
 
 	// Example procedure:
 	// set SRR0 to either PC or NPC
-	//SRR0 = NPC;
+	// SRR0 = NPC;
 	// save specified MSR bits
-	//SRR1 = MSR & 0x87C0FFFF;
+	// SRR1 = MSR & 0x87C0FFFF;
 	// copy ILE bit to LE
-	//MSR |= (MSR >> 16) & 1;
+	// MSR |= (MSR >> 16) & 1;
 	// clear MSR as specified
-	//MSR &= ~0x04EF36; // 0x04FF36 also clears ME (only for machine check exception)
+	// MSR &= ~0x04EF36; // 0x04FF36 also clears ME (only for machine check exception)
 	// set to exception type entry point
-	//NPC = 0x00000x00;
+	// NPC = 0x00000x00;
 
 	// TODO(delroth): Exception priority is completely wrong here: depending on
 	// the instruction class, exceptions should be executed in a given order,
@@ -372,8 +373,8 @@ void CheckExceptions()
 	}
 	else if (exceptions & EXCEPTION_FPU_UNAVAILABLE)
 	{
-		//This happens a lot - GameCube OS uses deferred FPU context switching
-		SRR0 = PC; // re-execute the instruction
+		// This happens a lot - GameCube OS uses deferred FPU context switching
+		SRR0 = PC;  // re-execute the instruction
 		SRR1 = MSR & 0x87C0FFFF;
 		MSR |= (MSR >> 16) & 1;
 		MSR &= ~0x04EF36;
@@ -395,14 +396,14 @@ void CheckExceptions()
 		MSR |= (MSR >> 16) & 1;
 		MSR &= ~0x04EF36;
 		PC = NPC = 0x00000300;
-		//DSISR and DAR regs are changed in GenerateDSIException()
+		// DSISR and DAR regs are changed in GenerateDSIException()
 
 		INFO_LOG(POWERPC, "EXCEPTION_DSI");
 		ppcState.Exceptions &= ~EXCEPTION_DSI;
 	}
 	else if (exceptions & EXCEPTION_ALIGNMENT)
 	{
-		//This never happens ATM
+		// This never happens ATM
 		// perhaps we can get dcb* instructions to use this :p
 		SRR0 = PC;
 		SRR1 = MSR & 0x87C0FFFF;
@@ -410,51 +411,16 @@ void CheckExceptions()
 		MSR &= ~0x04EF36;
 		PC = NPC = 0x00000600;
 
-		//TODO crazy amount of DSISR options to check out
+		// TODO crazy amount of DSISR options to check out
 
 		INFO_LOG(POWERPC, "EXCEPTION_ALIGNMENT");
 		ppcState.Exceptions &= ~EXCEPTION_ALIGNMENT;
 	}
 
 	// EXTERNAL INTERRUPT
-	else if (MSR & 0x0008000)  // Handling is delayed until MSR.EE=1.
+	else
 	{
-		if (exceptions & EXCEPTION_EXTERNAL_INT)
-		{
-			// Pokemon gets this "too early", it hasn't a handler yet
-			SRR0 = NPC;
-			SRR1 = MSR & 0x87C0FFFF;
-			MSR |= (MSR >> 16) & 1;
-			MSR &= ~0x04EF36;
-			PC = NPC = 0x00000500;
-
-			INFO_LOG(POWERPC, "EXCEPTION_EXTERNAL_INT");
-			ppcState.Exceptions &= ~EXCEPTION_EXTERNAL_INT;
-
-			_dbg_assert_msg_(POWERPC, (SRR1 & 0x02) != 0, "EXTERNAL_INT unrecoverable???");
-		}
-		else if (exceptions & EXCEPTION_PERFORMANCE_MONITOR)
-		{
-			SRR0 = NPC;
-			SRR1 = MSR & 0x87C0FFFF;
-			MSR |= (MSR >> 16) & 1;
-			MSR &= ~0x04EF36;
-			PC = NPC = 0x00000F00;
-
-			INFO_LOG(POWERPC, "EXCEPTION_PERFORMANCE_MONITOR");
-			ppcState.Exceptions &= ~EXCEPTION_PERFORMANCE_MONITOR;
-		}
-		else if (exceptions & EXCEPTION_DECREMENTER)
-		{
-			SRR0 = NPC;
-			SRR1 = MSR & 0x87C0FFFF;
-			MSR |= (MSR >> 16) & 1;
-			MSR &= ~0x04EF36;
-			PC = NPC = 0x00000900;
-
-			INFO_LOG(POWERPC, "EXCEPTION_DECREMENTER");
-			ppcState.Exceptions &= ~EXCEPTION_DECREMENTER;
-		}
+		CheckExternalExceptions();
 	}
 }
 
@@ -521,12 +487,11 @@ void CheckBreakPoints()
 
 }  // namespace
 
-
 // FPSCR update functions
 
 void UpdateFPRF(double dvalue)
 {
 	FPSCR.FPRF = MathUtil::ClassifyDouble(dvalue);
-	//if (FPSCR.FPRF == 0x11)
+	// if (FPSCR.FPRF == 0x11)
 	//	PanicAlert("QNAN alert");
 }

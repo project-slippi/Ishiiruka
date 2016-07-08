@@ -23,12 +23,12 @@
 #include "DolphinWX/Debugger/CodeWindow.h"
 #include "DolphinWX/Debugger/MemoryCheckDlg.h"
 
-class CBreakPointBar : public wxAuiToolBar
+class CBreakPointBar: public wxAuiToolBar
 {
 public:
 	CBreakPointBar(CBreakPointWindow* parent, const wxWindowID id)
 		: wxAuiToolBar(parent, id, wxDefaultPosition, wxDefaultSize,
-				wxAUI_TB_DEFAULT_STYLE | wxAUI_TB_TEXT)
+			wxAUI_TB_DEFAULT_STYLE | wxAUI_TB_TEXT)
 	{
 		SetToolBitmapSize(wxSize(24, 24));
 
@@ -83,8 +83,8 @@ private:
 };
 
 CBreakPointWindow::CBreakPointWindow(CCodeWindow* _pCodeWindow, wxWindow* parent,
-	    wxWindowID id, const wxString& title, const wxPoint& position,
-	    const wxSize& size, long style)
+	wxWindowID id, const wxString& title, const wxPoint& position,
+	const wxSize& size, long style)
 	: wxPanel(parent, id, position, size, style, title)
 	, m_pCodeWindow(_pCodeWindow)
 {
@@ -97,7 +97,7 @@ CBreakPointWindow::CBreakPointWindow(CCodeWindow* _pCodeWindow, wxWindow* parent
 	m_BreakPointListView->Bind(wxEVT_LIST_ITEM_SELECTED, &CBreakPointWindow::OnSelectBP, this);
 
 	m_mgr.AddPane(new CBreakPointBar(this, wxID_ANY), wxAuiPaneInfo().ToolbarPane().Top().
-	              LeftDockable(true).RightDockable(true).BottomDockable(false).Floatable(false));
+		LeftDockable(true).RightDockable(true).BottomDockable(false).Floatable(false));
 	m_mgr.AddPane(m_BreakPointListView, wxAuiPaneInfo().CenterPane());
 	m_mgr.Update();
 }

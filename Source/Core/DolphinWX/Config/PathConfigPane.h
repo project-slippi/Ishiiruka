@@ -12,7 +12,7 @@ class wxListBox;
 class wxDirPickerCtrl;
 class wxFilePickerCtrl;
 
-class PathConfigPane final : public wxPanel
+class PathConfigPane final: public wxPanel
 {
 public:
 	PathConfigPane(wxWindow* parent, wxWindowID id);
@@ -30,6 +30,7 @@ private:
 	void OnDVDRootChanged(wxCommandEvent&);
 	void OnApploaderPathChanged(wxCommandEvent&);
 	void OnNANDRootChanged(wxCommandEvent&);
+	void OnDumpPathChanged(wxCommandEvent&);
 
 	void SaveISOPathChanges();
 
@@ -42,4 +43,5 @@ private:
 	wxDirPickerCtrl* m_nand_root_dirpicker;
 	wxFilePickerCtrl* m_default_iso_filepicker;
 	wxFilePickerCtrl* m_apploader_path_filepicker;
+	wxDirPickerCtrl* m_dump_path_dirpicker;
 };

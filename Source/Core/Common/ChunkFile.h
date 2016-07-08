@@ -45,7 +45,7 @@
 
 
 template <class T>
-struct LinkedListItem : public T
+struct LinkedListItem: public T
 {
 	LinkedListItem<T> *next;
 };
@@ -66,10 +66,17 @@ public:
 	Mode mode;
 
 public:
-	PointerWrap(u8 **ptr_, Mode mode_) : ptr(ptr_), mode(mode_) {}
+	PointerWrap(u8 **ptr_, Mode mode_): ptr(ptr_), mode(mode_)
+	{}
 
-	void SetMode(Mode mode_) { mode = mode_; }
-	Mode GetMode() const { return mode; }
+	void SetMode(Mode mode_)
+	{
+		mode = mode_;
+	}
+	Mode GetMode() const
+	{
+		return mode;
+	}
 
 	template <typename K, class V>
 	void Do(std::map<K, V>& x)
@@ -174,7 +181,7 @@ public:
 	}
 
 	template <typename T, std::size_t N>
-	void DoArray(T (&arr)[N])
+	void DoArray(T(&arr)[N])
 	{
 		DoArray(arr, static_cast<u32>(N));
 	}
@@ -240,8 +247,8 @@ public:
 	}
 
 	// Let's pretend std::list doesn't exist!
-	template <class T, LinkedListItem<T>* (*TNew)(), void (*TFree)(LinkedListItem<T>*), void (*TDo)(PointerWrap&, T*)>
-	void DoLinkedList(LinkedListItem<T>*& list_start, LinkedListItem<T>** list_end=0)
+	template <class T, LinkedListItem<T>* (*TNew)(), void(*TFree)(LinkedListItem<T>*), void(*TDo)(PointerWrap&, T*)>
+	void DoLinkedList(LinkedListItem<T>*& list_start, LinkedListItem<T>** list_end = 0)
 	{
 		LinkedListItem<T>* list_cur = list_start;
 		LinkedListItem<T>* prev = nullptr;
@@ -289,7 +296,8 @@ public:
 							LinkedListItem<T>* next = list_cur->next;
 							TFree(list_cur);
 							list_cur = next;
-						} while (list_cur);
+						}
+						while (list_cur);
 					}
 				}
 				break;
@@ -325,7 +333,7 @@ private:
 	}
 
 	__forceinline
-	void DoVoid(void* data, u32 size)
+		void DoVoid(void* data, u32 size)
 	{
 		switch (mode)
 		{
@@ -343,7 +351,7 @@ private:
 		case MODE_VERIFY:
 			_dbg_assert_msg_(COMMON, !memcmp(data, *ptr, size),
 				"Savestate verification failure: buf %p != %p (size %u).\n",
-					data, *ptr, size);
+				data, *ptr, size);
 			break;
 		}
 

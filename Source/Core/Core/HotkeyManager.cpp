@@ -232,8 +232,7 @@ HotkeyManager::HotkeyManager()
 }
 
 HotkeyManager::~HotkeyManager()
-{
-}
+{}
 
 std::string HotkeyManager::GetName() const
 {
@@ -269,7 +268,8 @@ void HotkeyManager::LoadDefaults(const ControllerInterface& ciface)
 	const std::string CTRL = "(!`Alt_L` & !(`Shift_L` | `Shift_R`) & (`Control_L` | `Control_R` ))";
 #endif
 
-	auto set_key_expression = [this](int index, const std::string& expression) {
+	auto set_key_expression = [this](int index, const std::string& expression)
+	{
 		m_keys[index / 32]->controls[index % 32]->control_ref->expression = expression;
 	};
 

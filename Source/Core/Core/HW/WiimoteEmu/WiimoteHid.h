@@ -8,7 +8,7 @@
 
 // what is this ?
 #ifdef _MSC_VER
-#pragma warning(disable:4200)
+#pragma warning(disable : 4200)
 #endif
 
 #pragma pack(push, 1)
@@ -33,7 +33,7 @@ struct hid_packet
 
 // Source: http://wiibrew.org/wiki/Wiimote
 
-union wm_buttons // also just called "core data"
+union wm_buttons  // also just called "core data"
 {
 	u16 hex;
 
@@ -44,7 +44,7 @@ union wm_buttons // also just called "core data"
 		u8 down : 1;
 		u8 up : 1;
 		u8 plus : 1;
-		u8 acc_x_lsb : 2; // LSB of accelerometer (10 bits in total)
+		u8 acc_x_lsb : 2;  // LSB of accelerometer (10 bits in total)
 		u8 unknown : 1;
 
 		u8 two : 1;
@@ -52,8 +52,8 @@ union wm_buttons // also just called "core data"
 		u8 b : 1;
 		u8 a : 1;
 		u8 minus : 1;
-		u8 acc_y_lsb : 1; // LSB of accelerometer (9 bits in total)
-		u8 acc_z_lsb : 1; // LSB of accelerometer (9 bits in total)
+		u8 acc_y_lsb : 1;  // LSB of accelerometer (9 bits in total)
+		u8 acc_z_lsb : 1;  // LSB of accelerometer (9 bits in total)
 		u8 home : 1;
 	};
 };
@@ -116,18 +116,18 @@ union wm_nc
 		u8 ay;
 		u8 az;
 
-		wm_nc_core bt; // buttons + accelerometer LSBs
-	}; // regular data
+		wm_nc_core bt;  // buttons + accelerometer LSBs
+	};                // regular data
 
 	struct
 	{
-		u8 reserved[4]; // jx, jy, ax and ay as in regular case
+		u8 reserved[4];  // jx, jy, ax and ay as in regular case
 
 		u8 extension_connected : 1;
-		u8 acc_z : 7; // MSBs of accelerometer data
+		u8 acc_z : 7;  // MSBs of accelerometer data
 
-		u8 unknown : 1; // always 0?
-		u8 report_type : 1; // 1: report contains M+ data, 0: report contains extension data
+		u8 unknown : 1;      // always 0?
+		u8 report_type : 1;  // 1: report contains M+ data, 0: report contains extension data
 
 		u8 z : 1;
 		u8 c : 1;
@@ -146,22 +146,22 @@ union wm_classic_extension_buttons
 	struct
 	{
 		u8 extension_connected : 1;
-		u8 rt : 1; // right trigger
+		u8 rt : 1;  // right trigger
 		u8 plus : 1;
 		u8 home : 1;
 		u8 minus : 1;
-		u8 lt : 1; // left trigger
+		u8 lt : 1;  // left trigger
 		u8 dpad_down : 1;
 		u8 dpad_right : 1;
 
-		u8 : 2; // cf. extension_data and passthrough_data
-		u8 zr : 1; // right z button
-		u8 x : 1;
-		u8 a : 1;
-		u8 y : 1;
-		u8 b : 1;
-		u8 zl : 1; // left z button
-	}; // common data
+		u8 : 2;     // cf. extension_data and passthrough_data
+			  u8 zr : 1;  // right z button
+			  u8 x : 1;
+			  u8 a : 1;
+			  u8 y : 1;
+			  u8 b : 1;
+			  u8 zl : 1;  // left z button
+	};            // common data
 
 	// M+ pass-through mode slightly differs from the regular data.
 	// Refer to the common data for unnamed fields
@@ -169,18 +169,18 @@ union wm_classic_extension_buttons
 	{
 		u8 : 8;
 
-		u8 dpad_up : 1;
-		u8 dpad_left : 1;
-		u8 : 6;
+			  u8 dpad_up : 1;
+			  u8 dpad_left : 1;
+			  u8 : 6;
 	} regular_data;
 
 	struct
 	{
 		u8 : 8;
 
-		u8 unknown : 1; // always 0?
-		u8 report_type : 1; // 1: report contains M+ data, 0: report contains extension data
-		u8 : 6;
+			  u8 unknown : 1;      // always 0?
+			  u8 report_type : 1;  // 1: report contains M+ data, 0: report contains extension data
+			  u8 : 6;
 	} passthrough_data;
 };
 
@@ -194,89 +194,89 @@ union wm_classic_extension
 	struct
 	{
 		u8 : 6;
-		u8 rx3 : 2;
+			  u8 rx3 : 2;
 
-		u8 : 6;
-		u8 rx2 : 2;
+			  u8 : 6;
+					 u8 rx2 : 2;
 
-		u8 ry : 5;
-		u8 lt2 : 2;
-		u8 rx1 : 1;
+					 u8 ry : 5;
+					 u8 lt2 : 2;
+					 u8 rx1 : 1;
 
-		u8 rt : 5;
-		u8 lt1 : 3;
+					 u8 rt : 5;
+					 u8 lt1 : 3;
 
-		wm_classic_extension_buttons bt; // byte 4, 5
+					 wm_classic_extension_buttons bt;  // byte 4, 5
 	};
 
 	struct
 	{
-		u8 lx : 6; // byte 0
+		u8 lx : 6;  // byte 0
 		u8 : 2;
 
-		u8 ly : 6; // byte 1
-		u8 : 2;
+			  u8 ly : 6;  // byte 1
+			  u8 : 2;
 
-		unsigned : 32;
+					 unsigned : 32;
 	} regular_data;
 
 	struct
 	{
 		u8 dpad_up : 1;
-		u8 lx : 5; // Bits 1-5
+		u8 lx : 5;  // Bits 1-5
 		u8 : 2;
 
-		u8 dpad_left : 1;
-		u8 ly : 5; // Bits 1-5
-		u8 : 2;
+			  u8 dpad_left : 1;
+			  u8 ly : 5;  // Bits 1-5
+			  u8 : 2;
 
-		unsigned : 32;
+					 unsigned : 32;
 	} passthrough_data;
 };
 
 struct wm_guitar_extension
 {
-	u8 sx   : 6;
-	u8 pad1 : 2; // 1 on gh3, 0 on ghwt
+	u8 sx : 6;
+	u8 pad1 : 2;  // 1 on gh3, 0 on ghwt
 
-	u8 sy   : 6;
-	u8 pad2 : 2; // 1 on gh3, 0 on ghwt
+	u8 sy : 6;
+	u8 pad2 : 2;  // 1 on gh3, 0 on ghwt
 
-	u8 tb   : 5; // not used in gh3
-	u8 pad3 : 3; // always 0
+	u8 tb : 5;    // not used in gh3
+	u8 pad3 : 3;  // always 0
 
 	u8 whammy : 5;
-	u8 pad4 : 3; // always 0
+	u8 pad4 : 3;  // always 0
 
-	u16 bt; // buttons
+	u16 bt;  // buttons
 };
 
 struct wm_drums_extension
 {
-	u8 sx   : 6;
-	u8 pad1 : 2; // always 0
+	u8 sx : 6;
+	u8 pad1 : 2;  // always 0
 
-	u8 sy   : 6;
-	u8 pad2 : 2; // always 0
+	u8 sy : 6;
+	u8 pad2 : 2;  // always 0
 
-	u8 pad3 : 1; // unknown
+	u8 pad3 : 1;  // unknown
 	u8 which : 5;
 	u8 none : 1;
 	u8 hhp : 1;
 
-	u8 pad4 : 1; // unknown
-	u8 velocity : 4; // unknown
+	u8 pad4 : 1;      // unknown
+	u8 velocity : 4;  // unknown
 	u8 softness : 3;
 
-	u16 bt; // buttons
+	u16 bt;  // buttons
 };
 
 struct wm_turntable_extension
 {
-	u8 sx   : 6;
+	u8 sx : 6;
 	u8 rtable3 : 2;
 
-	u8 sy   : 6;
+	u8 sy : 6;
 	u8 rtable2 : 2;
 
 	u8 rtable4 : 1;
@@ -290,7 +290,7 @@ struct wm_turntable_extension
 	union
 	{
 		u16 ltable2 : 1;
-		u16 bt; // buttons
+		u16 bt;  // buttons
 	};
 };
 
@@ -324,10 +324,10 @@ struct wm_report
 		u8 data[0];
 		struct
 		{
-			u8 rumble : 1; // enable/disable rumble
+			u8 rumble : 1;  // enable/disable rumble
 			// only valid for certain reports
-			u8 ack    : 1; // respond with an ack
-			u8 enable : 1; // enable/disable certain features
+			u8 ack : 1;     // respond with an ack
+			u8 enable : 1;  // enable/disable certain features
 		};
 	};
 };
@@ -340,7 +340,7 @@ struct wm_leds
 	u8 rumble : 1;
 	// real Wii also sets bit 0x2 (unknown purpose)
 	u8 : 3;
-	u8 leds : 4;
+		  u8 leds : 4;
 };
 
 #define WM_REPORT_MODE 0x12
@@ -351,7 +351,7 @@ struct wm_report_mode
 	u8 all_the_time : 1;
 	u8 continuous : 1;
 	u8 : 5;
-	u8 mode;
+		  u8 mode;
 };
 
 #define WM_IR_PIXEL_CLOCK 0x13
@@ -373,7 +373,7 @@ struct wm_status_report
 	u8 speaker : 1;
 	u8 ir : 1;
 	u8 leds : 4;
-	u8 padding2[2]; // two 00, TODO: this needs more investigation
+	u8 padding2[2];  // two 00, TODO: this needs more investigation
 	u8 battery;
 };
 
@@ -381,11 +381,11 @@ struct wm_status_report
 struct wm_write_data
 {
 	u8 rumble : 1;
-	u8 space : 2; //see WM_SPACE_*
+	u8 space : 2;  // see WM_SPACE_*
 	u8 : 5;
-	u8 address[3];
-	u8 size;
-	u8 data[16];
+		  u8 address[3];
+		  u8 size;
+		  u8 data[16];
 };
 
 #define WM_ACK_DATA 0x22
@@ -400,10 +400,10 @@ struct wm_acknowledge
 struct wm_read_data
 {
 	u8 rumble : 1;
-	u8 space : 2; //see WM_SPACE_*
+	u8 space : 2;  // see WM_SPACE_*
 	u8 : 5;
-	u8 address[3];
-	u16 size;
+		  u8 address[3];
+		  u16 size;
 };
 
 #define WM_SPACE_EEPROM 0
@@ -415,7 +415,7 @@ struct wm_read_data
 struct wm_read_data_reply
 {
 	wm_buttons buttons;
-	u8 error : 4; //see WM_RDERR_*
+	u8 error : 4;  // see WM_RDERR_*
 	u8 size : 4;
 	u16 address;
 	u8 data[16];
@@ -423,7 +423,6 @@ struct wm_read_data_reply
 
 #define WM_RDERR_WOREG 7
 #define WM_RDERR_NOMEM 8
-
 
 // Data reports
 
@@ -456,10 +455,9 @@ struct wm_report_core_accel_ext16
 {
 	wm_buttons c;
 	wm_accel a;
-	wm_nc ext; // TODO: Does this make any sense? Shouldn't it be just a general "extension" field?
-	//wm_ir_basic ir[2];
+	wm_nc ext;  // TODO: Does this make any sense? Shouldn't it be just a general "extension" field?
+	// wm_ir_basic ir[2];
 	u8 pad[10];
-
 };
 
 #define WM_REPORT_CORE_IR10_EXT9 0x36
@@ -470,11 +468,11 @@ struct wm_report_core_accel_ir10_ext6
 	wm_buttons c;
 	wm_accel a;
 	wm_ir_basic ir[2];
-	//u8 ext[6];
-	wm_nc ext; // TODO: Does this make any sense? Shouldn't it be just a general "extension" field?
+	// u8 ext[6];
+	wm_nc ext;  // TODO: Does this make any sense? Shouldn't it be just a general "extension" field?
 };
 
-#define WM_REPORT_EXT21 0x3d // never used?
+#define WM_REPORT_EXT21 0x3d  // never used?
 struct wm_report_ext21
 {
 	u8 ext[21];

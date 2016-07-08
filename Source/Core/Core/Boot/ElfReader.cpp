@@ -13,8 +13,14 @@
 #include "Core/HW/Memmap.h"
 #include "Core/PowerPC/PPCSymbolDB.h"
 
-static void bswap(u32 &w) {w = Common::swap32(w);}
-static void bswap(u16 &w) {w = Common::swap16(w);}
+static void bswap(u32 &w)
+{
+	w = Common::swap32(w);
+}
+static void bswap(u16 &w)
+{
+	w = Common::swap16(w);
+}
 
 static void byteswapHeader(Elf32_Ehdr &ELF_H)
 {
@@ -117,7 +123,7 @@ bool ElfReader::LoadIntoMemory()
 		Elf32_Phdr* p = segments + i;
 
 		INFO_LOG(MASTER_LOG, "Type: %i Vaddr: %08x Filesz: %i Memsz: %i ",
-							 p->p_type, p->p_vaddr, p->p_filesz, p->p_memsz);
+			p->p_type, p->p_vaddr, p->p_filesz, p->p_memsz);
 
 		if (p->p_type == PT_LOAD)
 		{

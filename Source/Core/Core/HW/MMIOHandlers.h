@@ -22,40 +22,51 @@
 
 namespace MMIO
 {
-
 class Mapping;
 
 // Read and write handling methods are separated for type safety. On top of
 // that, some handling methods require different arguments for reads and writes
 // (Complex, for example).
-template <typename T> class ReadHandlingMethod;
-template <typename T> class WriteHandlingMethod;
+template <typename T>
+class ReadHandlingMethod;
+template <typename T>
+class WriteHandlingMethod;
 
 // Constant: use when the value read on this MMIO is always the same. This is
 // only for reads.
-template <typename T> ReadHandlingMethod<T>* Constant(T value);
+template <typename T>
+ReadHandlingMethod<T>* Constant(T value);
 
 // Nop: use for writes that shouldn't have any effect and shouldn't log an
 // error either.
-template <typename T> WriteHandlingMethod<T>* Nop();
+template <typename T>
+WriteHandlingMethod<T>* Nop();
 
 // Direct: use when all the MMIO does is read/write the given value to/from a
 // global variable, with an optional mask applied on the read/written value.
-template <typename T> ReadHandlingMethod<T>* DirectRead(const T* addr, u32 mask = 0xFFFFFFFF);
-template <typename T> ReadHandlingMethod<T>* DirectRead(volatile const T* addr, u32 mask = 0xFFFFFFFF);
-template <typename T> WriteHandlingMethod<T>* DirectWrite(T* addr, u32 mask = 0xFFFFFFFF);
-template <typename T> WriteHandlingMethod<T>* DirectWrite(volatile T* addr, u32 mask = 0xFFFFFFFF);
+template <typename T>
+ReadHandlingMethod<T>* DirectRead(const T* addr, u32 mask = 0xFFFFFFFF);
+template <typename T>
+ReadHandlingMethod<T>* DirectRead(volatile const T* addr, u32 mask = 0xFFFFFFFF);
+template <typename T>
+WriteHandlingMethod<T>* DirectWrite(T* addr, u32 mask = 0xFFFFFFFF);
+template <typename T>
+WriteHandlingMethod<T>* DirectWrite(volatile T* addr, u32 mask = 0xFFFFFFFF);
 
 // Complex: use when no other handling method fits your needs. These allow you
 // to directly provide a function that will be called when a read/write needs
 // to be done.
-template <typename T> ReadHandlingMethod<T>* ComplexRead(std::function<T(u32)>);
-template <typename T> WriteHandlingMethod<T>* ComplexWrite(std::function<void(u32, T)>);
+template <typename T>
+ReadHandlingMethod<T>* ComplexRead(std::function<T(u32)>);
+template <typename T>
+WriteHandlingMethod<T>* ComplexWrite(std::function<void(u32, T)>);
 
 // Invalid: log an error and return -1 in case of a read. These are the default
 // handlers set for all MMIO types.
-template <typename T> ReadHandlingMethod<T>* InvalidRead();
-template <typename T> WriteHandlingMethod<T>* InvalidWrite();
+template <typename T>
+ReadHandlingMethod<T>* InvalidRead();
+template <typename T>
+WriteHandlingMethod<T>* InvalidWrite();
 
 // {Read,Write}To{Smaller,Larger}: these functions are not themselves handling
 // methods but will try to combine accesses to two handlers into one new
@@ -75,9 +86,12 @@ template <typename T> WriteHandlingMethod<T>* InvalidWrite();
 //
 // Warning: unlike the other handling methods, *ToSmaller are obviously not
 // available for u8, and *ToLarger are not available for u32.
-template <typename T> ReadHandlingMethod<T>* ReadToSmaller(Mapping* mmio, u32 high_part_addr, u32 low_part_addr);
-template <typename T> WriteHandlingMethod<T>* WriteToSmaller(Mapping* mmio, u32 high_part_addr, u32 low_part_addr);
-template <typename T> ReadHandlingMethod<T>* ReadToLarger(Mapping* mmio, u32 larger_addr, u32 shift);
+template <typename T>
+ReadHandlingMethod<T>* ReadToSmaller(Mapping* mmio, u32 high_part_addr, u32 low_part_addr);
+template <typename T>
+WriteHandlingMethod<T>* WriteToSmaller(Mapping* mmio, u32 high_part_addr, u32 low_part_addr);
+template <typename T>
+ReadHandlingMethod<T>* ReadToLarger(Mapping* mmio, u32 larger_addr, u32 shift);
 
 // Use these visitors interfaces if you need to write code that performs
 // different actions based on the handling method used by a handler. Write your
@@ -105,7 +119,7 @@ public:
 // inlinable, we need to provide some of the implementation of these two
 // classes here and can't just use a forward declaration.
 template <typename T>
-class ReadHandler : public NonCopyable
+class ReadHandler: public NonCopyable
 {
 public:
 	ReadHandler();
@@ -140,12 +154,11 @@ private:
 	{
 		ResetMethod(InvalidRead<T>());
 	}
-
 	std::unique_ptr<ReadHandlingMethod<T>> m_Method;
 	std::function<T(u32)> m_ReadFunc;
 };
 template <typename T>
-class WriteHandler : public NonCopyable
+class WriteHandler: public NonCopyable
 {
 public:
 	WriteHandler();
@@ -181,7 +194,6 @@ private:
 	{
 		ResetMethod(InvalidWrite<T>());
 	}
-
 	std::unique_ptr<WriteHandlingMethod<T>> m_Method;
 	std::function<void(u32, T)> m_WriteFunc;
 };
@@ -195,36 +207,41 @@ private:
 //
 // The "MaybeExtern" is there because that same macro is used for declaration
 // (where MaybeExtern = "extern") and definition (MaybeExtern = "").
-#define MMIO_GENERIC_PUBLIC_SPECIALIZATIONS(MaybeExtern, T) \
-	MaybeExtern template ReadHandlingMethod<T>* Constant<T>(T value); \
-	MaybeExtern template WriteHandlingMethod<T>* Nop<T>(); \
-	MaybeExtern template ReadHandlingMethod<T>* DirectRead(const T* addr, u32 mask); \
-	MaybeExtern template ReadHandlingMethod<T>* DirectRead(volatile const T* addr, u32 mask); \
-	MaybeExtern template WriteHandlingMethod<T>* DirectWrite(T* addr, u32 mask); \
-	MaybeExtern template WriteHandlingMethod<T>* DirectWrite(volatile T* addr, u32 mask); \
-	MaybeExtern template ReadHandlingMethod<T>* ComplexRead<T>(std::function<T(u32)>); \
-	MaybeExtern template WriteHandlingMethod<T>* ComplexWrite<T>(std::function<void(u32, T)>); \
-	MaybeExtern template ReadHandlingMethod<T>* InvalidRead<T>(); \
-	MaybeExtern template WriteHandlingMethod<T>* InvalidWrite<T>(); \
-	MaybeExtern template class ReadHandler<T>; \
-	MaybeExtern template class WriteHandler<T>
+#define MMIO_GENERIC_PUBLIC_SPECIALIZATIONS(MaybeExtern, T)                                        \
+  MaybeExtern template ReadHandlingMethod<T>* Constant<T>(T value);                                \
+  MaybeExtern template WriteHandlingMethod<T>* Nop<T>();                                           \
+  MaybeExtern template ReadHandlingMethod<T>* DirectRead(const T* addr, u32 mask);                 \
+  MaybeExtern template ReadHandlingMethod<T>* DirectRead(volatile const T* addr, u32 mask);        \
+  MaybeExtern template WriteHandlingMethod<T>* DirectWrite(T* addr, u32 mask);                     \
+  MaybeExtern template WriteHandlingMethod<T>* DirectWrite(volatile T* addr, u32 mask);            \
+  MaybeExtern template ReadHandlingMethod<T>* ComplexRead<T>(std::function<T(u32)>);               \
+  MaybeExtern template WriteHandlingMethod<T>* ComplexWrite<T>(std::function<void(u32, T)>);       \
+  MaybeExtern template ReadHandlingMethod<T>* InvalidRead<T>();                                    \
+  MaybeExtern template WriteHandlingMethod<T>* InvalidWrite<T>();                                  \
+  MaybeExtern template class ReadHandler<T>;                                                       \
+  MaybeExtern template class WriteHandler<T>
 
-#define MMIO_SPECIAL_PUBLIC_SPECIALIZATIONS(MaybeExtern) \
-	MaybeExtern template ReadHandlingMethod<u16>* ReadToSmaller(Mapping* mmio, u32 high_part_addr, u32 low_part_addr); \
-	MaybeExtern template ReadHandlingMethod<u32>* ReadToSmaller(Mapping* mmio, u32 high_part_addr, u32 low_part_addr); \
-	MaybeExtern template WriteHandlingMethod<u16>* WriteToSmaller(Mapping* mmio, u32 high_part_addr, u32 low_part_addr); \
-	MaybeExtern template WriteHandlingMethod<u32>* WriteToSmaller(Mapping* mmio, u32 high_part_addr, u32 low_part_addr); \
-	MaybeExtern template ReadHandlingMethod<u8>* ReadToLarger(Mapping* mmio, u32 larger_addr, u32 shift); \
-	MaybeExtern template ReadHandlingMethod<u16>* ReadToLarger(Mapping* mmio, u32 larger_addr, u32 shift)
+#define MMIO_SPECIAL_PUBLIC_SPECIALIZATIONS(MaybeExtern)                                           \
+  MaybeExtern template ReadHandlingMethod<u16>* ReadToSmaller(Mapping* mmio, u32 high_part_addr,   \
+                                                              u32 low_part_addr);                  \
+  MaybeExtern template ReadHandlingMethod<u32>* ReadToSmaller(Mapping* mmio, u32 high_part_addr,   \
+                                                              u32 low_part_addr);                  \
+  MaybeExtern template WriteHandlingMethod<u16>* WriteToSmaller(Mapping* mmio, u32 high_part_addr, \
+                                                                u32 low_part_addr);                \
+  MaybeExtern template WriteHandlingMethod<u32>* WriteToSmaller(Mapping* mmio, u32 high_part_addr, \
+                                                                u32 low_part_addr);                \
+  MaybeExtern template ReadHandlingMethod<u8>* ReadToLarger(Mapping* mmio, u32 larger_addr,        \
+                                                            u32 shift);                            \
+  MaybeExtern template ReadHandlingMethod<u16>* ReadToLarger(Mapping* mmio, u32 larger_addr,       \
+                                                             u32 shift)
 
-#define MMIO_PUBLIC_SPECIALIZATIONS() \
-	MMIO_GENERIC_PUBLIC_SPECIALIZATIONS(MaybeExtern, u8); \
-	MMIO_GENERIC_PUBLIC_SPECIALIZATIONS(MaybeExtern, u16); \
-	MMIO_GENERIC_PUBLIC_SPECIALIZATIONS(MaybeExtern, u32); \
-	MMIO_SPECIAL_PUBLIC_SPECIALIZATIONS(MaybeExtern);
+#define MMIO_PUBLIC_SPECIALIZATIONS()                                                              \
+  MMIO_GENERIC_PUBLIC_SPECIALIZATIONS(MaybeExtern, u8);                                            \
+  MMIO_GENERIC_PUBLIC_SPECIALIZATIONS(MaybeExtern, u16);                                           \
+  MMIO_GENERIC_PUBLIC_SPECIALIZATIONS(MaybeExtern, u32);                                           \
+  MMIO_SPECIAL_PUBLIC_SPECIALIZATIONS(MaybeExtern);
 
 #define MaybeExtern extern
 MMIO_PUBLIC_SPECIALIZATIONS()
 #undef MaybeExtern
-
 }

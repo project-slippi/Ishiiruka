@@ -4,13 +4,13 @@
 
 #pragma once
 
-#define SLIDER_TICK_COUNT    100
-#define DETECT_WAIT_TIME     2500
-#define PREVIEW_UPDATE_TIME  25
-#define DEFAULT_HIGH_VALUE   100
+#define SLIDER_TICK_COUNT 100
+#define DETECT_WAIT_TIME 2500
+#define PREVIEW_UPDATE_TIME 25
+#define DEFAULT_HIGH_VALUE 100
 
 // might have to change this setup for Wiimote
-#define PROFILES_PATH       "Profiles/"
+#define PROFILES_PATH "Profiles/"
 
 #include <cstddef>
 #include <string>
@@ -39,18 +39,20 @@ class wxTextCtrl;
 class PadSetting
 {
 protected:
-	PadSetting(wxControl* const _control) : wxcontrol(_control) { wxcontrol->SetClientData(this); }
-
+	PadSetting(wxControl* const _control): wxcontrol(_control)
+	{
+		wxcontrol->SetClientData(this);
+	}
 public:
 	virtual void UpdateGUI() = 0;
 	virtual void UpdateValue() = 0;
 
-	virtual ~PadSetting() {}
-
+	virtual ~PadSetting()
+	{}
 	wxControl* const wxcontrol;
 };
 
-class PadSettingExtension : public PadSetting
+class PadSettingExtension: public PadSetting
 {
 public:
 	PadSettingExtension(wxWindow* const parent, ControllerEmu::Extension* const ext);
@@ -60,13 +62,15 @@ public:
 	ControllerEmu::Extension* const extension;
 };
 
-class PadSettingSpin : public PadSetting
+class PadSettingSpin: public PadSetting
 {
 public:
 	PadSettingSpin(wxWindow* const parent, ControllerEmu::ControlGroup::Setting* const _setting)
 		: PadSetting(new wxSpinCtrl(parent, wxID_ANY, wxEmptyString, wxDefaultPosition,
-					    wxSize(54, -1), 0, _setting->low, _setting->high, (int)(_setting->value * 100)))
-		, setting(_setting) {}
+			wxSize(54, -1), 0, _setting->low, _setting->high,
+			(int)(_setting->value * 100))),
+		setting(_setting)
+	{}
 
 	void UpdateGUI() override;
 	void UpdateValue() override;
@@ -74,7 +78,7 @@ public:
 	ControllerEmu::ControlGroup::Setting* const setting;
 };
 
-class PadSettingCheckBox : public PadSetting
+class PadSettingCheckBox: public PadSetting
 {
 public:
 	PadSettingCheckBox(wxWindow* const parent, ControllerEmu::ControlGroup::Setting* const setting);
@@ -84,31 +88,30 @@ public:
 	ControllerEmu::ControlGroup::Setting* const setting;
 };
 
-class InputEventFilter : public wxEventFilter
+class InputEventFilter: public wxEventFilter
 {
 public:
 	InputEventFilter()
 	{
 		wxEvtHandler::AddFilter(this);
 	}
-
 	~InputEventFilter()
 	{
 		wxEvtHandler::RemoveFilter(this);
 	}
-
 	int FilterEvent(wxEvent& event) override;
 
-	void BlockEvents(bool block) { m_block = block; }
-
+	void BlockEvents(bool block)
+	{
+		m_block = block;
+	}
 private:
 	static bool ShouldCatchEventType(wxEventType type)
 	{
-		return type == wxEVT_KEY_DOWN || type == wxEVT_KEY_UP ||
-			type == wxEVT_CHAR || type == wxEVT_CHAR_HOOK ||
-			type == wxEVT_LEFT_DOWN || type == wxEVT_LEFT_UP ||
-			type == wxEVT_MIDDLE_DOWN || type == wxEVT_MIDDLE_UP ||
-			type == wxEVT_RIGHT_DOWN || type == wxEVT_RIGHT_UP;
+		return type == wxEVT_KEY_DOWN || type == wxEVT_KEY_UP || type == wxEVT_CHAR ||
+			type == wxEVT_CHAR_HOOK || type == wxEVT_LEFT_DOWN || type == wxEVT_LEFT_UP ||
+			type == wxEVT_MIDDLE_DOWN || type == wxEVT_MIDDLE_UP || type == wxEVT_RIGHT_DOWN ||
+			type == wxEVT_RIGHT_UP;
 	}
 
 	bool m_block = false;
@@ -116,10 +119,11 @@ private:
 
 class GamepadPage;
 
-class ControlDialog : public wxDialog
+class ControlDialog: public wxDialog
 {
 public:
-	ControlDialog(GamepadPage* const parent, InputConfig& config, ControllerInterface::ControlReference* const ref);
+	ControlDialog(GamepadPage* const parent, InputConfig& config,
+		ControllerInterface::ControlReference* const ref);
 
 	bool Validate() override;
 
@@ -142,65 +146,70 @@ private:
 	void SetSelectedControl(wxCommandEvent& event);
 	void AppendControl(wxCommandEvent& event);
 
-	bool GetExpressionForSelectedControl(wxString &expr);
+	bool GetExpressionForSelectedControl(wxString& expr);
 
 	GamepadPage* const m_parent;
-	wxComboBox*        device_cbox;
-	wxTextCtrl*        textctrl;
-	wxListBox*         control_lbox;
-	wxSlider*          range_slider;
-	wxStaticText*      m_bound_label;
-	wxStaticText*      m_error_label;
-	InputEventFilter   m_event_filter;
+	wxComboBox* device_cbox;
+	wxTextCtrl* textctrl;
+	wxListBox* control_lbox;
+	wxSlider* range_slider;
+	wxStaticText* m_bound_label;
+	wxStaticText* m_error_label;
+	InputEventFilter m_event_filter;
 	ciface::Core::DeviceQualifier m_devq;
 };
 
-class ExtensionButton : public wxButton
+class ExtensionButton: public wxButton
 {
 public:
 	ExtensionButton(wxWindow* const parent, ControllerEmu::Extension* const ext)
-		: wxButton(parent, wxID_ANY, _("Configure"), wxDefaultPosition)
-		, extension(ext) {}
+		: wxButton(parent, wxID_ANY, _("Configure"), wxDefaultPosition), extension(ext)
+	{}
 
 	ControllerEmu::Extension* const extension;
 };
 
-class ControlButton : public wxButton
+class ControlButton: public wxButton
 {
 public:
-	ControlButton(wxWindow* const parent, ControllerInterface::ControlReference* const _ref, const unsigned int width, const std::string& label = "");
+	ControlButton(wxWindow* const parent, ControllerInterface::ControlReference* const _ref,
+		const unsigned int width, const std::string& label = "");
 
 	ControllerInterface::ControlReference* const control_reference;
 };
 
-class ControlGroupBox : public wxBoxSizer
+class ControlGroupBox: public wxBoxSizer
 {
 public:
-	ControlGroupBox(ControllerEmu::ControlGroup* const group, wxWindow* const parent, GamepadPage* const eventsink);
+	ControlGroupBox(ControllerEmu::ControlGroup* const group, wxWindow* const parent,
+		GamepadPage* const eventsink);
 	~ControlGroupBox();
 
 	std::vector<PadSetting*> options;
 
 	ControllerEmu::ControlGroup* const control_group;
-	wxStaticBitmap*                    static_bitmap;
-	std::vector<ControlButton*>        control_buttons;
+	wxStaticBitmap* static_bitmap;
+	std::vector<ControlButton*> control_buttons;
 };
 
-class ControlGroupsSizer : public wxBoxSizer
+class ControlGroupsSizer: public wxBoxSizer
 {
 public:
-	ControlGroupsSizer(ControllerEmu* const controller, wxWindow* const parent, GamepadPage* const eventsink, std::vector<ControlGroupBox*>* const groups = nullptr);
+	ControlGroupsSizer(ControllerEmu* const controller, wxWindow* const parent,
+		GamepadPage* const eventsink,
+		std::vector<ControlGroupBox*>* const groups = nullptr);
 };
 
 class InputConfigDialog;
 
-class GamepadPage : public wxPanel
+class GamepadPage: public wxPanel
 {
 	friend class InputConfigDialog;
 	friend class ControlDialog;
 
 public:
-	GamepadPage(wxWindow* parent, InputConfig& config, const int pad_num, InputConfigDialog* const config_dialog);
+	GamepadPage(wxWindow* parent, InputConfig& config, const int pad_num,
+		InputConfigDialog* const config_dialog);
 
 	void UpdateGUI();
 
@@ -231,27 +240,26 @@ public:
 	wxComboBox* device_cbox;
 
 	std::vector<ControlGroupBox*> control_groups;
-	std::vector<ControlButton*>   control_buttons;
+	std::vector<ControlButton*> control_buttons;
 
 protected:
-
 	ControllerEmu* const controller;
 
 private:
-
-	ControlDialog*           m_control_dialog;
+	ControlDialog* m_control_dialog;
 	InputConfigDialog* const m_config_dialog;
-	InputConfig&             m_config;
-	InputEventFilter         m_event_filter;
+	InputConfig& m_config;
+	InputEventFilter m_event_filter;
 
 	bool DetectButton(ControlButton* button);
 	bool m_iterate = false;
 };
 
-class InputConfigDialog : public wxDialog
+class InputConfigDialog: public wxDialog
 {
 public:
-	InputConfigDialog(wxWindow* const parent, InputConfig& config, const wxString& name, const int tab_num = 0);
+	InputConfigDialog(wxWindow* const parent, InputConfig& config, const wxString& name,
+		const int tab_num = 0);
 
 	void ClickSave(wxCommandEvent& event);
 
@@ -262,9 +270,8 @@ public:
 	void UpdateBitmaps(wxTimerEvent&);
 
 private:
-
-	wxNotebook*               m_pad_notebook;
+	wxNotebook* m_pad_notebook;
 	std::vector<GamepadPage*> m_padpages;
-	InputConfig&              m_config;
-	wxTimer                   m_update_timer;
+	InputConfig& m_config;
+	wxTimer m_update_timer;
 };

@@ -116,7 +116,8 @@ TODO (in no particular order):
 */
 
 #ifdef _MSC_VER
-#pragma warning(disable:4146)   // unary minus operator applied to unsigned type, result still unsigned
+#pragma warning(                                                                                   \
+    disable : 4146)  // unary minus operator applied to unsigned type, result still unsigned
 #endif
 
 #include <algorithm>
@@ -136,7 +137,6 @@ using namespace Gen;
 
 namespace IREmitter
 {
-
 InstLoc IRBuilder::EmitZeroOp(unsigned Opcode, unsigned extra = 0)
 {
 	InstLoc curIndex = InstList.data() + InstList.size();
@@ -236,32 +236,27 @@ unsigned IRBuilder::ComputeKnownZeroBits(InstLoc I) const
 	case Load8:
 		return 0xFFFFFF00;
 	case Or:
-		return ComputeKnownZeroBits(getOp1(I)) &
-		       ComputeKnownZeroBits(getOp2(I));
+		return ComputeKnownZeroBits(getOp1(I)) & ComputeKnownZeroBits(getOp2(I));
 	case And:
-		return ComputeKnownZeroBits(getOp1(I)) |
-		       ComputeKnownZeroBits(getOp2(I));
+		return ComputeKnownZeroBits(getOp1(I)) | ComputeKnownZeroBits(getOp2(I));
 	case Shl:
 		if (isImm(*getOp2(I)))
 		{
 			unsigned samt = GetImmValue(getOp2(I)) & 31;
-			return (ComputeKnownZeroBits(getOp1(I)) << samt) |
-			        ~(-1U << samt);
+			return (ComputeKnownZeroBits(getOp1(I)) << samt) | ~(-1U << samt);
 		}
 		return 0;
 	case Shrl:
 		if (isImm(*getOp2(I)))
 		{
 			unsigned samt = GetImmValue(getOp2(I)) & 31;
-			return (ComputeKnownZeroBits(getOp1(I)) >> samt) |
-			        ~(-1U >> samt);
+			return (ComputeKnownZeroBits(getOp1(I)) >> samt) | ~(-1U >> samt);
 		}
 		return 0;
 	case Rol:
 		if (isImm(*getOp2(I)))
 		{
-			return _rotl(ComputeKnownZeroBits(getOp1(I)),
-			             GetImmValue(getOp2(I)));
+			return _rotl(ComputeKnownZeroBits(getOp1(I)), GetImmValue(getOp2(I)));
 		}
 	default:
 		return 0;
@@ -288,7 +283,7 @@ InstLoc IRBuilder::FoldZeroOp(unsigned Opcode, unsigned extra)
 	}
 	else if (Opcode == LoadFRegDENToZero)
 	{
-		FRegCacheStore[extra] = nullptr; // prevent previous store operation from zapping
+		FRegCacheStore[extra] = nullptr;  // prevent previous store operation from zapping
 		FRegCache[extra] = EmitZeroOp(LoadFRegDENToZero, extra);
 		return FRegCache[extra];
 	}
@@ -376,8 +371,7 @@ InstLoc IRBuilder::FoldUOp(unsigned Opcode, InstLoc Op1, unsigned extra)
 		if (getOpcode(*Op1) >= FDMul && getOpcode(*Op1) <= FDSub)
 		{
 			InstLoc OOp1 = getOp1(Op1), OOp2 = getOp2(Op1);
-			if (getOpcode(*OOp1) == DupSingleToMReg &&
-			    getOpcode(*OOp2) == DupSingleToMReg)
+			if (getOpcode(*OOp1) == DupSingleToMReg && getOpcode(*OOp2) == DupSingleToMReg)
 			{
 				if (getOpcode(*Op1) == FDMul)
 					return FoldBiOp(FSMul, getOp1(OOp1), getOp2(OOp2));
@@ -457,7 +451,7 @@ InstLoc IRBuilder::FoldAdd(InstLoc Op1, InstLoc Op2)
 	{
 		//// TODO: Test the folding below
 		//// -A + -B  -->  -(A + B)
-		//if (InstLoc negOp2 = isNeg(Op2))
+		// if (InstLoc negOp2 = isNeg(Op2))
 		//{
 		//	return FoldSub(EmitIntConst(0), FoldAdd(negOp1, negOp2));
 		//}
@@ -480,9 +474,11 @@ InstLoc IRBuilder::FoldAdd(InstLoc Op1, InstLoc Op2)
 
 	//// TODO: Test the folding below
 	//// (x * i0) + (x * i1) => x * (i0 + i1)
-	//if (getOpcode(*Op1) == Mul && getOpcode(*Op2) == Mul && isSameValue(getOp1(Op1), getOp1(Op2)) && isImm(*getOp2(Op1)) && isImm(*getOp2(Op2)))
+	// if (getOpcode(*Op1) == Mul && getOpcode(*Op2) == Mul && isSameValue(getOp1(Op1), getOp1(Op2))
+	// && isImm(*getOp2(Op1)) && isImm(*getOp2(Op2)))
 	//{
-	//	return FoldMul(getOp1(Op1), EmitIntConst(GetImmValue(getOp2(Op1)) + GetImmValue(getOp2(Op2))));
+	//	return FoldMul(getOp1(Op1), EmitIntConst(GetImmValue(getOp2(Op1)) +
+	// GetImmValue(getOp2(Op2))));
 	//}
 
 	// x + x * i0 => x * (i0 + 1)
@@ -569,14 +565,14 @@ InstLoc IRBuilder::FoldSub(InstLoc Op1, InstLoc Op2)
 
 	//// TODO: Test the folding below
 	//// 0 - (C << X)  -> (-C << X)
-	//if (isImm(*Op1) && GetImmValue(Op1) == 0 && getOpcode(*Op2) == Shl && isImm(*getOp1(Op2)))
+	// if (isImm(*Op1) && GetImmValue(Op1) == 0 && getOpcode(*Op2) == Shl && isImm(*getOp1(Op2)))
 	//{
 	//	return FoldShl(EmitIntConst(-GetImmValue(getOp1(Op2))), getOp2(Op2));
 	//}
 
 	//// TODO: Test the folding below
 	//// x - x * i0 = x * (1 - i0)
-	//if (getOpcode(*Op2) == Mul && isImm(*getOp2(Op2)) && isSameValue(Op1, getOp1(Op2)))
+	// if (getOpcode(*Op2) == Mul && isImm(*getOp2(Op2)) && isSameValue(Op1, getOp1(Op2)))
 	//{
 	//	return FoldMul(Op1, EmitIntConst(1 - GetImmValue(getOp2(Op2))));
 	//}
@@ -596,7 +592,7 @@ InstLoc IRBuilder::FoldSub(InstLoc Op1, InstLoc Op2)
 		}
 	}
 
-	//if (getOpcode(*Op1) == Sub)
+	// if (getOpcode(*Op1) == Sub)
 	//{
 	//	// TODO: Test the folding below
 	//	// (x - y) - x => -y
@@ -616,16 +612,20 @@ InstLoc IRBuilder::FoldSub(InstLoc Op1, InstLoc Op2)
 
 		//// TODO: Test the folding below
 		//// x * i0 - x * i1 => x * (i0 - i1)
-		//if (getOpcode(*Op2) == Mul && isSameValue(getOp1(Op1), getOp1(Op2)) && isImm(*getOp2(Op1)) && isImm(*getOp2(Op2)))
+		// if (getOpcode(*Op2) == Mul && isSameValue(getOp1(Op1), getOp1(Op2)) && isImm(*getOp2(Op1)) &&
+		// isImm(*getOp2(Op2)))
 		//{
-		//	return FoldMul(getOp1(Op1), EmitIntConst(GetImmValue(getOp2(Op1)) + GetImmValue(getOp2(Op2))));
+		//	return FoldMul(getOp1(Op1), EmitIntConst(GetImmValue(getOp2(Op1)) +
+		// GetImmValue(getOp2(Op2))));
 		//}
 	}
 
 	// (x + i0) - (y + i1) => (x - y) + (i0 - i1)
-	if (getOpcode(*Op1) == Add && getOpcode(*Op2) == Add && isImm(*getOp2(Op1)) && isImm(*getOp2(Op2)))
+	if (getOpcode(*Op1) == Add && getOpcode(*Op2) == Add && isImm(*getOp2(Op1)) &&
+		isImm(*getOp2(Op2)))
 	{
-		return FoldAdd(FoldSub(getOp1(Op1), getOp1(Op2)), EmitIntConst(GetImmValue(getOp2(Op1)) - GetImmValue(getOp2(Op2))));
+		return FoldAdd(FoldSub(getOp1(Op1), getOp1(Op2)),
+			EmitIntConst(GetImmValue(getOp2(Op1)) - GetImmValue(getOp2(Op2))));
 	}
 
 	// w * x - y * z => w * (x - z) iff w == y
@@ -710,12 +710,13 @@ InstLoc IRBuilder::FoldMul(InstLoc Op1, InstLoc Op2)
 	// The later format can be folded by other rules, again.
 	if (getOpcode(*Op1) == Add && isImm(*getOp2(Op1)) && isImm(*Op2))
 	{
-		return FoldAdd(FoldMul(getOp1(Op1), Op2), EmitIntConst(GetImmValue(getOp2(Op1)) * GetImmValue(Op2)));
+		return FoldAdd(FoldMul(getOp1(Op1), Op2),
+			EmitIntConst(GetImmValue(getOp2(Op1)) * GetImmValue(Op2)));
 	}
 
 	//// TODO: Test the folding below
 	//// -X * -Y => X * Y
-	//if (InstLoc negOp1 = isNeg(Op1))
+	// if (InstLoc negOp1 = isNeg(Op1))
 	//{
 	//	if (InstLoc negOp2 = isNeg(Op2))
 	//	{
@@ -725,14 +726,14 @@ InstLoc IRBuilder::FoldMul(InstLoc Op1, InstLoc Op2)
 
 	//// TODO: Test the folding below
 	//// x * (1 << y) => x << y
-	//if (getOpcode(*Op2) == Shl && isImm(*getOp1(Op2)) && GetImmValue(getOp1(Op2)) == 1)
+	// if (getOpcode(*Op2) == Shl && isImm(*getOp1(Op2)) && GetImmValue(getOp1(Op2)) == 1)
 	//{
 	//	return FoldShl(Op1, getOp2(Op2));
 	//}
 
 	//// TODO: Test the folding below
 	//// (1 << y) * x => x << y
-	//if (getOpcode(*Op1) == Shl && isImm(*getOp1(Op1)) && GetImmValue(getOp1(Op1)) == 1)
+	// if (getOpcode(*Op1) == Shl && isImm(*getOp1(Op1)) && GetImmValue(getOp1(Op1)) == 1)
 	//{
 	//	return FoldShl(Op2, getOp2(Op1));
 	//}
@@ -832,7 +833,7 @@ InstLoc IRBuilder::FoldAnd(InstLoc Op1, InstLoc Op2)
 			return Op1;
 		}
 
-		//if (getOpcode(*Op1) == Xor || getOpcode(*Op1) == Or)
+		// if (getOpcode(*Op1) == Xor || getOpcode(*Op1) == Or)
 		//{
 		//	// TODO: Test the folding below
 		//	// (x op y) & z => (x & z) op y if (y & z) == 0
@@ -852,7 +853,8 @@ InstLoc IRBuilder::FoldAnd(InstLoc Op1, InstLoc Op2)
 
 	//// TODO: Test the folding below
 	//// (x >> z) & (y >> z) => (x & y) >> z
-	//if (getOpcode(*Op1) == Shrl && getOpcode(*Op2) == Shrl && isSameValue(getOp2(Op1), getOp2(Op2)))
+	// if (getOpcode(*Op1) == Shrl && getOpcode(*Op2) == Shrl && isSameValue(getOp2(Op1),
+	// getOp2(Op2)))
 	//{
 	//	return FoldShl(FoldAnd(getOp1(Op1), getOp2(Op1)), getOp2(Op1));
 	//}
@@ -862,7 +864,7 @@ InstLoc IRBuilder::FoldAnd(InstLoc Op1, InstLoc Op2)
 	//// ((A ^ N) + B) & AndRHS -> (A + B) & AndRHS iff N&AndRHS == 0
 	//// ((A | N) - B) & AndRHS -> (A - B) & AndRHS iff N&AndRHS == 0
 	//// ((A ^ N) - B) & AndRHS -> (A - B) & AndRHS iff N&AndRHS == 0
-	//if ((getOpcode(*Op1) == Add || getOpcode(*Op1) == Sub) &&
+	// if ((getOpcode(*Op1) == Add || getOpcode(*Op1) == Sub) &&
 	//    (getOpcode(*getOp1(Op1)) == Or || getOpcode(*getOp1(Op1)) == Xor))
 	//{
 	//	const InstLoc A = getOp1(getOp1(Op1));
@@ -877,7 +879,7 @@ InstLoc IRBuilder::FoldAnd(InstLoc Op1, InstLoc Op2)
 
 	//// TODO: Test the folding below
 	//// (~A & ~B) == (~(A | B)) - De Morgan's Law
-	//if (InstLoc notOp1 = isNot(Op1))
+	// if (InstLoc notOp1 = isNot(Op1))
 	//{
 	//	if (InstLoc notOp2 = isNot(Op2))
 	//	{
@@ -887,7 +889,8 @@ InstLoc IRBuilder::FoldAnd(InstLoc Op1, InstLoc Op2)
 
 	//// TODO: Test the folding below
 	//// (X^C)|Y -> (X|Y)^C iff Y&C == 0
-	//if (getOpcode(*Op1) == Xor && isImm(*getOp2(Op1)) && (~ComputeKnownZeroBits(Op2) & GetImmValue(getOp2(Op1))) == 0)
+	// if (getOpcode(*Op1) == Xor && isImm(*getOp2(Op1)) && (~ComputeKnownZeroBits(Op2) &
+	// GetImmValue(getOp2(Op1))) == 0)
 	//{
 	//	return FoldXor(FoldOr(getOp1(Op1), Op2), getOp2(Op1));
 	//}
@@ -924,15 +927,18 @@ InstLoc IRBuilder::FoldOr(InstLoc Op1, InstLoc Op2)
 
 		// (X & C1) | C2 --> (X | C2) & (C1|C2)
 		// iff (C1 & C2) == 0.
-		if (getOpcode(*Op1) == And && isImm(*getOp2(Op1)) && (GetImmValue(getOp2(Op1)) & GetImmValue(Op2)) == 0)
+		if (getOpcode(*Op1) == And && isImm(*getOp2(Op1)) &&
+			(GetImmValue(getOp2(Op1)) & GetImmValue(Op2)) == 0)
 		{
-			return FoldAnd(FoldOr(getOp1(Op1), Op2), EmitIntConst(GetImmValue(getOp2(Op1)) | GetImmValue(Op2)));
+			return FoldAnd(FoldOr(getOp1(Op1), Op2),
+				EmitIntConst(GetImmValue(getOp2(Op1)) | GetImmValue(Op2)));
 		}
 
 		// (X ^ C1) | C2 --> (X | C2) ^ (C1&~C2)
 		if (getOpcode(*Op1) == Xor && isImm(*getOp2(Op1)) && isImm(*Op2))
 		{
-			return FoldXor(FoldOr(getOp1(Op1), Op2), EmitIntConst(GetImmValue(getOp2(Op1)) & ~GetImmValue(Op2)));
+			return FoldXor(FoldOr(getOp1(Op1), Op2),
+				EmitIntConst(GetImmValue(getOp2(Op1)) & ~GetImmValue(Op2)));
 		}
 	}
 
@@ -999,8 +1005,7 @@ InstLoc IRBuilder::FoldXor(InstLoc Op1, InstLoc Op2)
 
 		if (getOpcode(*Op1) == Xor && isImm(*getOp2(Op1)))
 		{
-			unsigned RHS = GetImmValue(Op2) ^
-				       GetImmValue(getOp2(Op1));
+			unsigned RHS = GetImmValue(Op2) ^ GetImmValue(getOp2(Op1));
 			return FoldXor(getOp1(Op1), EmitIntConst(RHS));
 		}
 
@@ -1109,10 +1114,10 @@ InstLoc IRBuilder::FoldICmp(unsigned Opcode, InstLoc Op1, InstLoc Op2)
 				result = GetImmValue(Op1) <= GetImmValue(Op2);
 				break;
 			case ICmpSgt:
-				result = (signed)GetImmValue(Op1) >  (signed)GetImmValue(Op2);
+				result = (signed)GetImmValue(Op1) > (signed)GetImmValue(Op2);
 				break;
 			case ICmpSlt:
-				result = (signed)GetImmValue(Op1) <  (signed)GetImmValue(Op2);
+				result = (signed)GetImmValue(Op1) < (signed)GetImmValue(Op2);
 				break;
 			case ICmpSge:
 				result = (signed)GetImmValue(Op1) >= (signed)GetImmValue(Op2);
@@ -1216,44 +1221,51 @@ InstLoc IRBuilder::FoldBiOp(unsigned Opcode, InstLoc Op1, InstLoc Op2, unsigned 
 {
 	switch (Opcode)
 	{
-		case Add:
-			return FoldAdd(Op1, Op2);
-		case Sub:
-			return FoldSub(Op1, Op2);
-		case Mul:
-			return FoldMul(Op1, Op2);
-		case MulHighUnsigned:
-			return FoldMulHighUnsigned(Op1, Op2);
-		case And:
-			return FoldAnd(Op1, Op2);
-		case Or:
-			return FoldOr(Op1, Op2);
-		case Xor:
-			return FoldXor(Op1, Op2);
-		case Shl:
-			return FoldShl(Op1, Op2);
-		case Shrl:
-			return FoldShrl(Op1, Op2);
-		case Rol:
-			return FoldRol(Op1, Op2);
-		case BranchCond:
-			return FoldBranchCond(Op1, Op2);
-		case ICmpEq: case ICmpNe:
-		case ICmpUgt: case ICmpUlt: case ICmpUge: case ICmpUle:
-		case ICmpSgt: case ICmpSlt: case ICmpSge: case ICmpSle:
-			return FoldICmp(Opcode, Op1, Op2);
-		case ICmpCRSigned:
-			return FoldICmpCRSigned(Op1, Op2);
-		case ICmpCRUnsigned:
-			return FoldICmpCRUnsigned(Op1, Op2);
-		case FallBackToInterpreter:
-			return FoldFallBackToInterpreter(Op1, Op2);
-		case FDMul:
-		case FDAdd:
-		case FDSub:
-			return FoldDoubleBiOp(Opcode, Op1, Op2);
-		default:
-			return EmitBiOp(Opcode, Op1, Op2, extra);
+	case Add:
+		return FoldAdd(Op1, Op2);
+	case Sub:
+		return FoldSub(Op1, Op2);
+	case Mul:
+		return FoldMul(Op1, Op2);
+	case MulHighUnsigned:
+		return FoldMulHighUnsigned(Op1, Op2);
+	case And:
+		return FoldAnd(Op1, Op2);
+	case Or:
+		return FoldOr(Op1, Op2);
+	case Xor:
+		return FoldXor(Op1, Op2);
+	case Shl:
+		return FoldShl(Op1, Op2);
+	case Shrl:
+		return FoldShrl(Op1, Op2);
+	case Rol:
+		return FoldRol(Op1, Op2);
+	case BranchCond:
+		return FoldBranchCond(Op1, Op2);
+	case ICmpEq:
+	case ICmpNe:
+	case ICmpUgt:
+	case ICmpUlt:
+	case ICmpUge:
+	case ICmpUle:
+	case ICmpSgt:
+	case ICmpSlt:
+	case ICmpSge:
+	case ICmpSle:
+		return FoldICmp(Opcode, Op1, Op2);
+	case ICmpCRSigned:
+		return FoldICmpCRSigned(Op1, Op2);
+	case ICmpCRUnsigned:
+		return FoldICmpCRUnsigned(Op1, Op2);
+	case FallBackToInterpreter:
+		return FoldFallBackToInterpreter(Op1, Op2);
+	case FDMul:
+	case FDAdd:
+	case FDSub:
+		return FoldDoubleBiOp(Opcode, Op1, Op2);
+	default:
+		return EmitBiOp(Opcode, Op1, Op2, extra);
 	}
 }
 
@@ -1295,8 +1307,9 @@ bool IRBuilder::isSameValue(InstLoc Op1, InstLoc Op2) const
 		return true;
 	}
 
-	if (getNumberOfOperands(Op1) == 2 && getOpcode(*Op1) != StorePaired && getOpcode(*Op1) == getOpcode(*Op2) &&
-	    isSameValue(getOp1(Op1), getOp1(Op2)) && isSameValue(getOp2(Op1), getOp2(Op2)))
+	if (getNumberOfOperands(Op1) == 2 && getOpcode(*Op1) != StorePaired &&
+		getOpcode(*Op1) == getOpcode(*Op2) && isSameValue(getOp1(Op1), getOp1(Op2)) &&
+		isSameValue(getOp2(Op1), getOp2(Op2)))
 	{
 		return true;
 	}
@@ -1328,7 +1341,6 @@ unsigned IRBuilder::getComplexity(InstLoc I) const
 	return numberOfOperands + 2;
 }
 
-
 unsigned IRBuilder::getNumberOfOperands(InstLoc I) const
 {
 	static unsigned numberOfOperands[256];
@@ -1342,9 +1354,97 @@ unsigned IRBuilder::getNumberOfOperands(InstLoc I) const
 		numberOfOperands[CInt16] = 0;
 		numberOfOperands[CInt32] = 0;
 
-		static unsigned ZeroOp[] = { LoadCR, LoadLink, LoadMSR, LoadGReg, LoadCTR, InterpreterBranch, LoadCarry, RFIExit, LoadFReg, LoadFRegDENToZero, LoadGQR, Int3, };
-		static unsigned UOp[] = { StoreLink, BranchUncond, StoreCR, StoreMSR, StoreFPRF, StoreGReg, StoreCTR, Load8, Load16, Load32, SExt16, SExt8, Cntlzw, Not, StoreCarry, SystemCall, ShortIdleLoop, LoadSingle, LoadDouble, LoadPaired, StoreFReg, DupSingleToMReg, DupSingleToPacked, ExpandPackedToMReg, CompactMRegToPacked, FSNeg, FDNeg, FPDup0, FPDup1, FPNeg, DoubleToSingle, StoreGQR, StoreSRR, ConvertFromFastCR, ConvertToFastCR, FastCRSOSet, FastCREQSet, FastCRGTSet, FastCRLTSet, };
-		static unsigned BiOp[] = { BranchCond, IdleBranch, And, Xor, Sub, Or, Add, Mul, Rol, Shl, Shrl, Sarl, ICmpEq, ICmpNe, ICmpUgt, ICmpUlt, ICmpSgt, ICmpSlt, ICmpSge, ICmpSle, Store8, Store16, Store32, ICmpCRSigned, ICmpCRUnsigned, FallBackToInterpreter, StoreSingle, StoreDouble, StorePaired, InsertDoubleInMReg, FSMul, FSAdd, FSSub, FDMul, FDAdd, FDSub, FPAdd, FPMul, FPSub, FPMerge00, FPMerge01, FPMerge10, FPMerge11, FDCmpCR, };
+		static unsigned ZeroOp[] = {
+			 LoadCR,    LoadLink, LoadMSR,  LoadGReg,          LoadCTR, InterpreterBranch,
+			 LoadCarry, RFIExit,  LoadFReg, LoadFRegDENToZero, LoadGQR, Int3,
+		};
+		static unsigned UOp[] = {
+			 StoreLink,
+			 BranchUncond,
+			 StoreCR,
+			 StoreMSR,
+			 StoreFPRF,
+			 StoreGReg,
+			 StoreCTR,
+			 Load8,
+			 Load16,
+			 Load32,
+			 SExt16,
+			 SExt8,
+			 Cntlzw,
+			 Not,
+			 StoreCarry,
+			 SystemCall,
+			 ShortIdleLoop,
+			 LoadSingle,
+			 LoadDouble,
+			 LoadPaired,
+			 StoreFReg,
+			 DupSingleToMReg,
+			 DupSingleToPacked,
+			 ExpandPackedToMReg,
+			 CompactMRegToPacked,
+			 FSNeg,
+			 FDNeg,
+			 FPDup0,
+			 FPDup1,
+			 FPNeg,
+			 DoubleToSingle,
+			 StoreGQR,
+			 StoreSRR,
+			 ConvertFromFastCR,
+			 ConvertToFastCR,
+			 FastCRSOSet,
+			 FastCREQSet,
+			 FastCRGTSet,
+			 FastCRLTSet,
+		};
+		static unsigned BiOp[] = {
+			 BranchCond,
+			 IdleBranch,
+			 And,
+			 Xor,
+			 Sub,
+			 Or,
+			 Add,
+			 Mul,
+			 Rol,
+			 Shl,
+			 Shrl,
+			 Sarl,
+			 ICmpEq,
+			 ICmpNe,
+			 ICmpUgt,
+			 ICmpUlt,
+			 ICmpSgt,
+			 ICmpSlt,
+			 ICmpSge,
+			 ICmpSle,
+			 Store8,
+			 Store16,
+			 Store32,
+			 ICmpCRSigned,
+			 ICmpCRUnsigned,
+			 FallBackToInterpreter,
+			 StoreSingle,
+			 StoreDouble,
+			 StorePaired,
+			 InsertDoubleInMReg,
+			 FSMul,
+			 FSAdd,
+			 FSSub,
+			 FDMul,
+			 FDAdd,
+			 FDSub,
+			 FPAdd,
+			 FPMul,
+			 FPSub,
+			 FPMerge00,
+			 FPMerge01,
+			 FPMerge10,
+			 FPMerge11,
+			 FDCmpCR,
+		};
 		for (auto& op : ZeroOp)
 			numberOfOperands[op] = 0;
 
@@ -1373,14 +1473,14 @@ void IRBuilder::simplifyCommutative(unsigned Opcode, InstLoc& Op1, InstLoc& Op2)
 	// Is this associative?
 	switch (Opcode)
 	{
-		case Add:
-		case Mul:
-		case And:
-		case Or:
-		case Xor:
-			break;
-		default:
-			return;
+	case Add:
+	case Mul:
+	case And:
+	case Or:
+	case Xor:
+		break;
+	default:
+		return;
 	}
 
 	// (V op C1) op C2 => V + (C1 + C2)
@@ -1394,7 +1494,8 @@ void IRBuilder::simplifyCommutative(unsigned Opcode, InstLoc& Op1, InstLoc& Op2)
 
 	// ((V1 op C1) op (V2 op C2)) => ((V1 op V2) op (C1 op C2))
 	// Transform: (op (op V1, C1), (op V2, C2)) ==> (op (op V1, V2), (op C1,C2))
-	if (getOpcode(*Op1) == Opcode && isImm(*getOp2(Op1)) && getOpcode(*Op2) == Opcode && isImm(*getOp2(Op2)))
+	if (getOpcode(*Op1) == Opcode && isImm(*getOp2(Op1)) && getOpcode(*Op2) == Opcode &&
+		isImm(*getOp2(Op2)))
 	{
 		const InstLoc Op1Old = Op1;
 		const InstLoc Op2Old = Op2;
@@ -1407,16 +1508,16 @@ void IRBuilder::simplifyCommutative(unsigned Opcode, InstLoc& Op1, InstLoc& Op2)
 	/*
 	if (getOpcode(*Op1) == Opcode && getOpcode(*Op2) == Opcode)
 	{
-		// Sort the operands where the complexities will be descending order.
-		std::pair<unsigned, InstLoc> ops[4];
-		ops[0] = std::make_pair(getComplexity(getOp1(Op1)), getOp1(Op1));
-		ops[1] = std::make_pair(getComplexity(getOp2(Op1)), getOp2(Op1));
-		ops[2] = std::make_pair(getComplexity(getOp1(Op2)), getOp1(Op2));
-		ops[3] = std::make_pair(getComplexity(getOp2(Op2)), getOp2(Op2));
-		std::sort(ops, ops + 4, std::greater<std::pair<unsigned, InstLoc> >());
+	  // Sort the operands where the complexities will be descending order.
+	  std::pair<unsigned, InstLoc> ops[4];
+	  ops[0] = std::make_pair(getComplexity(getOp1(Op1)), getOp1(Op1));
+	  ops[1] = std::make_pair(getComplexity(getOp2(Op1)), getOp2(Op1));
+	  ops[2] = std::make_pair(getComplexity(getOp1(Op2)), getOp1(Op2));
+	  ops[3] = std::make_pair(getComplexity(getOp2(Op2)), getOp2(Op2));
+	  std::sort(ops, ops + 4, std::greater<std::pair<unsigned, InstLoc> >());
 
-		Op1 = FoldBiOp(Opcode, FoldBiOp(Opcode, ops[0].second, ops[1].second), ops[2].second);
-		Op2 = ops[3].second;
+	  Op1 = FoldBiOp(Opcode, FoldBiOp(Opcode, ops[0].second, ops[1].second), ops[2].second);
+	  Op2 = ops[3].second;
 	}
 	*/
 }
@@ -1441,65 +1542,191 @@ InstLoc IRBuilder::isNeg(InstLoc I) const
 struct Writer
 {
 	File::IOFile file;
-	Writer() : file(nullptr)
+	Writer(): file(nullptr)
 	{
 		std::string filename = StringFromFormat("JitIL_IR_%d.txt", (int)time(nullptr));
 		file.Open(filename, "w");
 		setvbuf(file.GetHandle(), nullptr, _IOFBF, 1024 * 1024);
 	}
 
-	virtual ~Writer() {}
+	virtual ~Writer()
+	{}
 };
 
 static std::unique_ptr<Writer> writer;
 
 static const std::string opcodeNames[] = {
-	"Nop", "LoadGReg", "LoadLink", "LoadCR", "LoadCarry", "LoadCTR",
-	"LoadMSR", "LoadGQR", "SExt8", "SExt16", "BSwap32", "BSwap16", "Cntlzw",
-	"Not", "Load8", "Load16", "Load32", "BranchUncond", "ConvertFromFastCR",
-	"ConvertToFastCR", "StoreGReg",	"StoreCR", "StoreLink", "StoreCarry",
-	"StoreCTR", "StoreMSR", "StoreFPRF", "StoreGQR", "StoreSRR",
-	"FastCRSOSet", "FastCREQSet", "FastCRGTSet", "FastCRLTSet",
-	"FallBackToInterpreter", "Add", "Mul", "And", "Or",	"Xor",
-	"MulHighUnsigned", "Sub", "Shl", "Shrl", "Sarl", "Rol",
-	"ICmpCRSigned", "ICmpCRUnsigned", "ICmpEq", "ICmpNe", "ICmpUgt",
-	"ICmpUlt", "ICmpUge", "ICmpUle", "ICmpSgt", "ICmpSlt", "ICmpSge",
-	"ICmpSle", "Store8", "Store16", "Store32", "BranchCond", "FResult_Start",
-	"LoadSingle", "LoadDouble", "LoadPaired", "DoubleToSingle",
-	"DupSingleToMReg", "DupSingleToPacked", "InsertDoubleInMReg",
-	"ExpandPackedToMReg", "CompactMRegToPacked", "LoadFReg",
-	"LoadFRegDENToZero", "FSMul", "FSAdd", "FSSub", "FSNeg", "FSRSqrt",
-	"FPAdd", "FPMul", "FPSub", "FPNeg", "FDMul", "FDAdd", "FDSub", "FDNeg",
-	"FPMerge00", "FPMerge01", "FPMerge10", "FPMerge11", "FPDup0", "FPDup1",
-	"FResult_End", "StorePaired", "StoreSingle", "StoreDouble", "StoreFReg",
-	"FDCmpCR", "CInt16", "CInt32", "SystemCall", "RFIExit",
-	"InterpreterBranch", "IdleBranch", "ShortIdleLoop",
-	"FPExceptionCheckStart", "FPExceptionCheckEnd", "ExtExceptionCheck",
-	"Tramp", "BlockStart", "BlockEnd", "Int3",
+	 "Nop",
+	 "LoadGReg",
+	 "LoadLink",
+	 "LoadCR",
+	 "LoadCarry",
+	 "LoadCTR",
+	 "LoadMSR",
+	 "LoadGQR",
+	 "SExt8",
+	 "SExt16",
+	 "BSwap32",
+	 "BSwap16",
+	 "Cntlzw",
+	 "Not",
+	 "Load8",
+	 "Load16",
+	 "Load32",
+	 "BranchUncond",
+	 "ConvertFromFastCR",
+	 "ConvertToFastCR",
+	 "StoreGReg",
+	 "StoreCR",
+	 "StoreLink",
+	 "StoreCarry",
+	 "StoreCTR",
+	 "StoreMSR",
+	 "StoreFPRF",
+	 "StoreGQR",
+	 "StoreSRR",
+	 "FastCRSOSet",
+	 "FastCREQSet",
+	 "FastCRGTSet",
+	 "FastCRLTSet",
+	 "FallBackToInterpreter",
+	 "Add",
+	 "Mul",
+	 "And",
+	 "Or",
+	 "Xor",
+	 "MulHighUnsigned",
+	 "Sub",
+	 "Shl",
+	 "Shrl",
+	 "Sarl",
+	 "Rol",
+	 "ICmpCRSigned",
+	 "ICmpCRUnsigned",
+	 "ICmpEq",
+	 "ICmpNe",
+	 "ICmpUgt",
+	 "ICmpUlt",
+	 "ICmpUge",
+	 "ICmpUle",
+	 "ICmpSgt",
+	 "ICmpSlt",
+	 "ICmpSge",
+	 "ICmpSle",
+	 "Store8",
+	 "Store16",
+	 "Store32",
+	 "BranchCond",
+	 "FResult_Start",
+	 "LoadSingle",
+	 "LoadDouble",
+	 "LoadPaired",
+	 "DoubleToSingle",
+	 "DupSingleToMReg",
+	 "DupSingleToPacked",
+	 "InsertDoubleInMReg",
+	 "ExpandPackedToMReg",
+	 "CompactMRegToPacked",
+	 "LoadFReg",
+	 "LoadFRegDENToZero",
+	 "FSMul",
+	 "FSAdd",
+	 "FSSub",
+	 "FSNeg",
+	 "FSRSqrt",
+	 "FPAdd",
+	 "FPMul",
+	 "FPSub",
+	 "FPNeg",
+	 "FDMul",
+	 "FDAdd",
+	 "FDSub",
+	 "FDNeg",
+	 "FPMerge00",
+	 "FPMerge01",
+	 "FPMerge10",
+	 "FPMerge11",
+	 "FPDup0",
+	 "FPDup1",
+	 "FResult_End",
+	 "StorePaired",
+	 "StoreSingle",
+	 "StoreDouble",
+	 "StoreFReg",
+	 "FDCmpCR",
+	 "CInt16",
+	 "CInt32",
+	 "SystemCall",
+	 "RFIExit",
+	 "InterpreterBranch",
+	 "IdleBranch",
+	 "ShortIdleLoop",
+	 "FPExceptionCheckStart",
+	 "FPExceptionCheckEnd",
+	 "ExtExceptionCheck",
+	 "Tramp",
+	 "BlockStart",
+	 "BlockEnd",
+	 "Int3",
 };
-static const unsigned alwaysUsedList[] = {
-	FallBackToInterpreter, StoreGReg, StoreCR, StoreLink, StoreCTR, StoreMSR,
-	StoreGQR, StoreSRR, StoreCarry, StoreFPRF, Load8, Load16, Load32, Store8,
-	Store16, Store32, StoreSingle, StoreDouble, StorePaired, StoreFReg, FDCmpCR,
-	BlockStart, BlockEnd, IdleBranch, BranchCond, BranchUncond, ShortIdleLoop,
-	SystemCall, InterpreterBranch, RFIExit, FPExceptionCheck,
-	DSIExceptionCheck, ExtExceptionCheck, BreakPointCheck,
-	Int3, Tramp, Nop
-};
+static const unsigned alwaysUsedList[] = {FallBackToInterpreter,
+														StoreGReg,
+														StoreCR,
+														StoreLink,
+														StoreCTR,
+														StoreMSR,
+														StoreGQR,
+														StoreSRR,
+														StoreCarry,
+														StoreFPRF,
+														Load8,
+														Load16,
+														Load32,
+														Store8,
+														Store16,
+														Store32,
+														StoreSingle,
+														StoreDouble,
+														StorePaired,
+														StoreFReg,
+														FDCmpCR,
+														BlockStart,
+														BlockEnd,
+														IdleBranch,
+														BranchCond,
+														BranchUncond,
+														ShortIdleLoop,
+														SystemCall,
+														InterpreterBranch,
+														RFIExit,
+														FPExceptionCheck,
+														DSIExceptionCheck,
+														ExtExceptionCheck,
+														BreakPointCheck,
+														Int3,
+														Tramp,
+														Nop};
 static const unsigned extra8RegList[] = {
-	LoadGReg, LoadCR, LoadGQR, LoadFReg, LoadFRegDENToZero,
+	 LoadGReg, LoadCR, LoadGQR, LoadFReg, LoadFRegDENToZero,
 };
 static const unsigned extra16RegList[] = {
-	StoreGReg, StoreCR, StoreGQR, StoreSRR, LoadPaired, StoreFReg,
+	 StoreGReg, StoreCR, StoreGQR, StoreSRR, LoadPaired, StoreFReg,
 };
 static const unsigned extra24RegList[] = {
-	StorePaired,
+	 StorePaired,
 };
 
-static const std::set<unsigned> alwaysUseds(alwaysUsedList, alwaysUsedList + sizeof(alwaysUsedList) / sizeof(alwaysUsedList[0]));
-static const std::set<unsigned> extra8Regs(extra8RegList, extra8RegList + sizeof(extra8RegList) / sizeof(extra8RegList[0]));
-static const std::set<unsigned> extra16Regs(extra16RegList, extra16RegList + sizeof(extra16RegList) / sizeof(extra16RegList[0]));
-static const std::set<unsigned> extra24Regs(extra24RegList, extra24RegList + sizeof(extra24RegList) / sizeof(extra24RegList[0]));
+static const std::set<unsigned> alwaysUseds(alwaysUsedList,
+	alwaysUsedList +
+	sizeof(alwaysUsedList) / sizeof(alwaysUsedList[0]));
+static const std::set<unsigned>
+extra8Regs(extra8RegList, extra8RegList + sizeof(extra8RegList) / sizeof(extra8RegList[0]));
+static const std::set<unsigned> extra16Regs(extra16RegList,
+	extra16RegList +
+	sizeof(extra16RegList) / sizeof(extra16RegList[0]));
+static const std::set<unsigned> extra24Regs(extra24RegList,
+	extra24RegList +
+	sizeof(extra24RegList) / sizeof(extra24RegList[0]));
 
 void IRBuilder::WriteToFile(u64 codeHash)
 {
@@ -1520,8 +1747,7 @@ void IRBuilder::WriteToFile(u64 codeHash)
 	{
 		const InstLoc I = ReadForward();
 		const unsigned opcode = getOpcode(*I);
-		const bool thisUsed = IsMarkUsed(I) ||
-			alwaysUseds.find(opcode) != alwaysUseds.end();
+		const bool thisUsed = IsMarkUsed(I) || alwaysUseds.find(opcode) != alwaysUseds.end();
 
 		// Line number
 		fprintf(file, "%4u", i);
@@ -1573,5 +1799,4 @@ void IRBuilder::WriteToFile(u64 codeHash)
 
 	curReadPtr = lastCurReadPtr;
 }
-
 }

@@ -15,7 +15,7 @@
 #include "Common/MsgHandler.h"
 #include "Common/Logging/Log.h"
 
-struct StreamingVoiceContext2_7 : public IXAudio2VoiceCallback
+struct StreamingVoiceContext2_7: public IXAudio2VoiceCallback
 {
 private:
 	CMixer* const m_mixer;
@@ -41,12 +41,18 @@ public:
 	void StreamingVoiceContext2_7::Play();
 	void StreamingVoiceContext2_7::WriteFrame(s16* src, u32 numsamples);
 	bool StreamingVoiceContext2_7::BufferReady();
-	STDMETHOD_(void, OnVoiceError) (THIS_ void* pBufferContext, HRESULT Error) {}
-	STDMETHOD_(void, OnVoiceProcessingPassStart) (UINT32) {}
-	STDMETHOD_(void, OnVoiceProcessingPassEnd) () {}
-	STDMETHOD_(void, OnBufferStart) (void*) {}
-	STDMETHOD_(void, OnLoopEnd) (void*) {}
-	STDMETHOD_(void, OnStreamEnd) () {}
+	STDMETHOD_(void, OnVoiceError) (THIS_ void* pBufferContext, HRESULT Error)
+	{}
+	STDMETHOD_(void, OnVoiceProcessingPassStart) (UINT32)
+	{}
+	STDMETHOD_(void, OnVoiceProcessingPassEnd) ()
+	{}
+	STDMETHOD_(void, OnBufferStart) (void*)
+	{}
+	STDMETHOD_(void, OnLoopEnd) (void*)
+	{}
+	STDMETHOD_(void, OnStreamEnd) ()
+	{}
 
 	STDMETHOD_(void, OnBufferEnd) (void* context);
 };
@@ -69,7 +75,7 @@ void StreamingVoiceContext2_7::SubmitBuffer(u32 index, u32 sizeinbytes)
 }
 
 StreamingVoiceContext2_7::StreamingVoiceContext2_7(IXAudio2 *pXAudio2, CMixer *pMixer, bool useSurround, bool directstreaming)
-	: m_mixer(pMixer), 
+	: m_mixer(pMixer),
 	m_useSurround(useSurround),
 	m_bufferReady(nullptr),
 	m_bufferAddress(nullptr),
@@ -83,19 +89,19 @@ StreamingVoiceContext2_7::StreamingVoiceContext2_7(IXAudio2 *pXAudio2, CMixer *p
 	m_framesizeinbytes = m_useSurround ? SOUND_SURROUND_FRAME_SIZE_BYTES : (directstreaming ? BUFFER_SIZE_BYTES : SOUND_STEREO_FRAME_SIZE_BYTES);
 	m_samplesizeinBytes = (m_useSurround ? SOUND_SAMPLES_SURROUND : SOUND_SAMPLES_STEREO) * sizeof(s16);
 	m_xaudio_buffer.reset(new BYTE[m_buffercount * m_framesizeinbytes]);
-	
+
 	WAVEFORMATEXTENSIBLE wfx = {};
-	
-	wfx.Format.wFormatTag      = WAVE_FORMAT_EXTENSIBLE;
-	wfx.Format.nSamplesPerSec  = m_mixer->GetSampleRate();
+
+	wfx.Format.wFormatTag = WAVE_FORMAT_EXTENSIBLE;
+	wfx.Format.nSamplesPerSec = m_mixer->GetSampleRate();
 	wfx.Format.nChannels = m_useSurround ? 6 : 2;
-	wfx.Format.wBitsPerSample  = 16;
-	wfx.Format.nBlockAlign     = wfx.Format.nChannels*wfx.Format.wBitsPerSample / 8;
+	wfx.Format.wBitsPerSample = 16;
+	wfx.Format.nBlockAlign = wfx.Format.nChannels*wfx.Format.wBitsPerSample / 8;
 	wfx.Format.nAvgBytesPerSec = wfx.Format.nSamplesPerSec * wfx.Format.nBlockAlign;
-	wfx.Format.cbSize          = sizeof(WAVEFORMATEXTENSIBLE) - sizeof(WAVEFORMATEX);
+	wfx.Format.cbSize = sizeof(WAVEFORMATEXTENSIBLE) - sizeof(WAVEFORMATEX);
 	wfx.Samples.wValidBitsPerSample = 16;
 	wfx.dwChannelMask = m_useSurround ? SPEAKER_5POINT1_SURROUND : SPEAKER_STEREO;
-	wfx.SubFormat              = KSDATAFORMAT_SUBTYPE_PCM;
+	wfx.SubFormat = KSDATAFORMAT_SUBTYPE_PCM;
 
 	// create source voice
 	HRESULT hr;
@@ -262,7 +268,7 @@ void XAudio2_7::SetVolume(int volume)
 
 void XAudio2_7::Update()
 {
-	
+
 }
 
 void XAudio2_7::Clear(bool mute)

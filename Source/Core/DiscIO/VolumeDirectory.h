@@ -13,7 +13,10 @@
 #include "DiscIO/Blob.h"
 #include "DiscIO/Volume.h"
 
-namespace File { struct FSTEntry; }
+namespace File
+{
+struct FSTEntry;
+}
 
 //
 // --- this volume type is used for reading files directly from the hard drive ---
@@ -21,11 +24,9 @@ namespace File { struct FSTEntry; }
 
 namespace DiscIO
 {
-
-class CVolumeDirectory : public IVolume
+class CVolumeDirectory: public IVolume
 {
 public:
-
 	CVolumeDirectory(const std::string& _rDirectory, bool _bIsWii,
 		const std::string& _rApploader = "", const std::string& _rDOL = "");
 
@@ -40,9 +41,12 @@ public:
 
 	std::string GetMakerID() const override;
 
-	u16 GetRevision() const override { return 0; }
+	u16 GetRevision() const override
+	{
+		return 0;
+	}
 	std::string GetInternalName() const override;
-	std::map<IVolume::ELanguage, std::string> GetNames(bool prefer_long) const override;
+	std::map<IVolume::ELanguage, std::string> GetLongNames() const override;
 	std::vector<u32> GetBanner(int* width, int* height) const override;
 	void SetName(const std::string&);
 
@@ -70,8 +74,8 @@ private:
 	void SetDOL(const std::string& _rDOL);
 
 	// writing to read buffer
-	void WriteToBuffer(u64 _SrcStartAddress, u64 _SrcLength, const u8* _Src,
-					   u64& _Address, u64& _Length, u8*& _pBuffer) const;
+	void WriteToBuffer(u64 _SrcStartAddress, u64 _SrcLength, const u8* _Src, u64& _Address,
+		u64& _Length, u8*& _pBuffer) const;
 
 	void PadToAddress(u64 _StartAddress, u64& _Address, u64& _Length, u8*& _pBuffer) const;
 
@@ -80,7 +84,8 @@ private:
 	// FST creation
 	void WriteEntryData(u32& entryOffset, u8 type, u32 nameOffset, u64 dataOffset, u64 length);
 	void WriteEntryName(u32& nameOffset, const std::string& name);
-	void WriteEntry(const File::FSTEntry& entry, u32& fstOffset, u32& nameOffset, u64& dataOffset, u32 parentEntryNum);
+	void WriteEntry(const File::FSTEntry& entry, u32& fstOffset, u32& nameOffset, u64& dataOffset,
+		u32 parentEntryNum);
 
 	// returns number of entries found in _Directory
 	u64 AddDirectoryEntries(const std::string& _Directory, File::FSTEntry& parentEntry);
@@ -104,7 +109,7 @@ private:
 
 	std::vector<u8> m_diskHeader;
 
-	#pragma pack(push, 1)
+#pragma pack(push, 1)
 	struct SDiskHeaderInfo
 	{
 		u32 debug_mntr_size;
@@ -131,7 +136,7 @@ private:
 			unknown2 = 0;
 		}
 	};
-	#pragma pack(pop)
+#pragma pack(pop)
 	std::unique_ptr<SDiskHeaderInfo> m_diskHeaderInfo;
 
 	std::vector<u8> m_apploader;
@@ -150,4 +155,4 @@ private:
 	static const size_t MAX_ID_LENGTH = 6;
 };
 
-} // namespace
+}  // namespace

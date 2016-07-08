@@ -21,10 +21,22 @@
 namespace Common
 {
 
+#ifdef _WIN32
+inline double GetFreq()
+{
+	LARGE_INTEGER freq;
+	QueryPerformanceFrequency(&freq);
+	return 1000000.0 / double(freq.QuadPart);
+}
+#endif
+
 u32 Timer::GetTimeMs()
 {
 #ifdef _WIN32
-	return timeGetTime();
+	LARGE_INTEGER time;
+	static double freq = GetFreq();
+	QueryPerformanceCounter(&time);
+	return static_cast<u32>(double(time.QuadPart) * freq * 0.001);
 #elif defined __APPLE__
 	struct timeval t;
 	(void)gettimeofday(&t, nullptr);
@@ -36,14 +48,7 @@ u32 Timer::GetTimeMs()
 #endif
 }
 
-#ifdef _WIN32
-double GetFreq()
-{
-	LARGE_INTEGER freq;
-	QueryPerformanceFrequency(&freq);
-	return 1000000.0 / double(freq.QuadPart);
-}
-#endif
+
 
 u64 Timer::GetTimeUs()
 {

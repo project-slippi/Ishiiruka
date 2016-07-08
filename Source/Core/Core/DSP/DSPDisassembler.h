@@ -18,16 +18,15 @@ struct AssemblerSettings
 {
 	AssemblerSettings()
 		: print_tabs(false),
-		  show_hex(false),
-		  show_pc(false),
-		  force(false),
-		  decode_names(true),
-		  decode_registers(true),
-		  ext_separator('\''),
-		  lower_case_ops(true),
-		  pc(0)
-	{
-	}
+		show_hex(false),
+		show_pc(false),
+		force(false),
+		decode_names(true),
+		decode_registers(true),
+		ext_separator('\''),
+		lower_case_ops(true),
+		pc(0)
+	{}
 
 	bool print_tabs;
 	bool show_hex;

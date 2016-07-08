@@ -9,8 +9,8 @@
 #include "Core/ConfigManager.h"
 #include "Core/HW/Wiimote.h"
 #include "InputCommon/ControllerEmu.h"
-#include "InputCommon/InputConfig.h"
 #include "InputCommon/ControllerInterface/ControllerInterface.h"
+#include "InputCommon/InputConfig.h"
 
 bool InputConfig::LoadConfig(bool isGC)
 {
@@ -126,8 +126,10 @@ bool InputConfig::IsControllerControlledByGamepadDevice(int index) const
 	const auto& controller = m_controllers.at(index).get()->default_device;
 
 	// Filter out anything which obviously not a gamepad
-	return !((controller.source == "Keyboard") // OSX Keyboard/Mouse
-		|| (controller.source == "XInput2") // Linux and BSD Keyboard/Mouse
-		|| (controller.source == "Android" && controller.name == "Touchscreen") // Android Touchscreen
-		|| (controller.source == "DInput" && controller.name == "Keyboard Mouse")); // Windows Keyboard/Mouse
+	return !((controller.source == "Keyboard")    // OSX Keyboard/Mouse
+		|| (controller.source == "XInput2")  // Linux and BSD Keyboard/Mouse
+		|| (controller.source == "Android" &&
+			controller.name == "Touchscreen")  // Android Touchscreen
+		|| (controller.source == "DInput" &&
+			controller.name == "Keyboard Mouse"));  // Windows Keyboard/Mouse
 }

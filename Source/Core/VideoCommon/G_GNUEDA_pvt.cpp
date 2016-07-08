@@ -152,5 +152,5 @@ void G_GNUEDA_pvt::Initialize(std::map<u64, TCompiledLoaderFunction> &pvlmap)
 #endif
 	{
 		pvlmap[20541983854904] = TemplatedLoader<0, 0x00021100u, 0x40216009u, 0x00000000u, 0x00000000u>;
-	}	
+	}
 }

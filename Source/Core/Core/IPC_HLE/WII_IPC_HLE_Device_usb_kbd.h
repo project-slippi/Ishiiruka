@@ -9,7 +9,7 @@
 
 #include "Core/IPC_HLE/WII_IPC_HLE_Device.h"
 
-class CWII_IPC_HLE_Device_usb_kbd : public IWII_IPC_HLE_Device
+class CWII_IPC_HLE_Device_usb_kbd: public IWII_IPC_HLE_Device
 {
 public:
 	CWII_IPC_HLE_Device_usb_kbd(u32 _DeviceID, const std::string& _rDeviceName);
@@ -24,12 +24,12 @@ public:
 private:
 	enum
 	{
-		MSG_KBD_CONNECT    = 0,
+		MSG_KBD_CONNECT = 0,
 		MSG_KBD_DISCONNECT = 1,
-		MSG_EVENT          = 2
+		MSG_EVENT = 2
 	};
 
-	#pragma pack(push, 1)
+#pragma pack(push, 1)
 	struct SMessageData
 	{
 		u32 MsgType;
@@ -51,7 +51,7 @@ private:
 				memset(PressedKeys, 0, sizeof(PressedKeys));
 		}
 	};
-	#pragma pack(pop)
+#pragma pack(pop)
 	std::queue<SMessageData> m_MessageQueue;
 
 	bool m_OldKeyBuffer[256];

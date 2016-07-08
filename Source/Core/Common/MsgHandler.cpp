@@ -66,18 +66,18 @@ bool MsgAlert(bool yes_no, int Style, const char* format, ...)
 
 	switch (Style)
 	{
-		case INFORMATION:
-			caption = info_caption;
-			break;
-		case QUESTION:
-			caption = ques_caption;
-			break;
-		case WARNING:
-			caption = warn_caption;
-			break;
-		case CRITICAL:
-			caption = crit_caption;
-			break;
+	case INFORMATION:
+		caption = info_caption;
+		break;
+	case QUESTION:
+		caption = ques_caption;
+		break;
+	case WARNING:
+		caption = warn_caption;
+		break;
+	case CRITICAL:
+		caption = crit_caption;
+		break;
 	}
 
 	va_list args;

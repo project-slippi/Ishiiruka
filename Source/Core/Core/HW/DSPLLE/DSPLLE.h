@@ -13,17 +13,19 @@
 
 class PointerWrap;
 
-class DSPLLE : public DSPEmulator
+class DSPLLE: public DSPEmulator
 {
 public:
 	DSPLLE();
 
 	bool Initialize(bool bWii, bool bDSPThread) override;
 	void Shutdown() override;
-	bool IsLLE() override { return true; }
-
-	void DoState(PointerWrap &p) override;
-	void PauseAndLock(bool doLock, bool unpauseOnUnlock=true) override;
+	bool IsLLE() override
+	{
+		return true;
+	}
+	void DoState(PointerWrap& p) override;
+	void PauseAndLock(bool doLock, bool unpauseOnUnlock = true) override;
 
 	void DSP_WriteMailBoxHigh(bool _CPUMailbox, unsigned short) override;
 	void DSP_WriteMailBoxLow(bool _CPUMailbox, unsigned short) override;

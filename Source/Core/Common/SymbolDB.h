@@ -16,7 +16,7 @@
 
 struct SCall
 {
-	SCall(u32 a, u32 b) :
+	SCall(u32 a, u32 b):
 		function(a),
 		callAddress(b)
 	{}
@@ -26,12 +26,13 @@ struct SCall
 
 struct Symbol
 {
-	enum {
+	enum
+	{
 		SYMBOL_FUNCTION = 0,
 		SYMBOL_DATA = 1,
 	};
 
-	Symbol() :
+	Symbol():
 		hash(0),
 		address(0),
 		flags(0),
@@ -56,12 +57,12 @@ struct Symbol
 
 enum
 {
-	FFLAG_TIMERINSTRUCTIONS  = (1<<0),
-	FFLAG_LEAF               = (1<<1),
-	FFLAG_ONLYCALLSNICELEAFS = (1<<2),
-	FFLAG_EVIL               = (1<<3),
-	FFLAG_RFI                = (1<<4),
-	FFLAG_STRAIGHT           = (1<<5)
+	FFLAG_TIMERINSTRUCTIONS = (1 << 0),
+	FFLAG_LEAF = (1 << 1),
+	FFLAG_ONLYCALLSNICELEAFS = (1 << 2),
+	FFLAG_EVIL = (1 << 3),
+	FFLAG_RFI = (1 << 4),
+	FFLAG_STRAIGHT = (1 << 5)
 };
 
 
@@ -77,10 +78,18 @@ protected:
 	XFuncPtrMap checksumToFunction;
 
 public:
-	SymbolDB() {}
-	virtual ~SymbolDB() {}
-	virtual Symbol* GetSymbolFromAddr(u32 addr) { return nullptr; }
-	virtual Symbol* AddFunction(u32 startAddr) { return nullptr; }
+	SymbolDB()
+	{}
+	virtual ~SymbolDB()
+	{}
+	virtual Symbol* GetSymbolFromAddr(u32 addr)
+	{
+		return nullptr;
+	}
+	virtual Symbol* AddFunction(u32 startAddr)
+	{
+		return nullptr;
+	}
 
 	void AddCompleteSymbol(const Symbol& symbol);
 
@@ -94,8 +103,14 @@ public:
 			return nullptr;
 	}
 
-	const XFuncMap& Symbols() const { return functions; }
-	XFuncMap& AccessSymbols() { return functions; }
+	const XFuncMap& Symbols() const
+	{
+		return functions;
+	}
+	XFuncMap& AccessSymbols()
+	{
+		return functions;
+	}
 
 	void Clear(const char* prefix = "");
 	void List();

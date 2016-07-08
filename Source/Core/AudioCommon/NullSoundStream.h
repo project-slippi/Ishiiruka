@@ -7,19 +7,23 @@
 #include <array>
 #include "AudioCommon/SoundStream.h"
 
-class NullSound final : public SoundStream
+class NullSound final: public SoundStream
 {
 public:
 	NullSound()
 	{}
 
-	virtual ~NullSound() {}
+	virtual ~NullSound()
+	{}
 
 	virtual bool Start() override;
 	virtual void SetVolume(int volume) override;
 	virtual void Stop() override;
 	virtual void Clear(bool mute) override;
-	static bool isValid() { return true; }
+	static bool isValid()
+	{
+		return true;
+	}
 	virtual void Update() override;
 private:
 	static constexpr size_t BUFFER_SIZE = 48000 * 4 / 32;

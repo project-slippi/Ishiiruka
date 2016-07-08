@@ -13,7 +13,7 @@
 // having to prefix them with gen-> or something similar.
 // Example implementation:
 // class JIT : public CodeBlock<ARMXEmitter> {}
-template<class T> class CodeBlock : public T, NonCopyable
+template<class T> class CodeBlock: public T, NonCopyable
 {
 private:
 	// A privately used function to set the executable RAM space to something invalid.
@@ -32,11 +32,13 @@ protected:
 public:
 	CodeBlock()
 		: region(nullptr), region_size(0), parent_region_size(0),
-		  m_has_child(false), m_is_child(false), m_child(nullptr)
-	{
-	}
+		m_has_child(false), m_is_child(false), m_child(nullptr)
+	{}
 
-	virtual ~CodeBlock() { if (region) FreeCodeSpace(); }
+	virtual ~CodeBlock()
+	{
+		if (region) FreeCodeSpace();
+	}
 
 	// Call this before you generate any code.
 	void AllocCodeSpace(int size, bool need_low = true)

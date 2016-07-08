@@ -106,7 +106,7 @@ void EmuThread();
 static bool s_is_stopping = false;
 static bool s_hardware_initialized = false;
 static bool s_is_started = false;
-static std::atomic<bool> s_is_booting{ false };
+static std::atomic<bool> s_is_booting{false};
 static void* s_window_handle = nullptr;
 static std::string s_state_filename;
 static std::thread s_emu_thread;
@@ -146,8 +146,14 @@ void SetIsThrottlerTempDisabled(bool disable)
 	s_is_throttler_temp_disabled = disable;
 }
 
-std::string GetStateFileName() { return s_state_filename; }
-void SetStateFileName(const std::string& val) { s_state_filename = val; }
+std::string GetStateFileName()
+{
+	return s_state_filename;
+}
+void SetStateFileName(const std::string& val)
+{
+	s_state_filename = val;
+}
 
 void FrameUpdateOnCPUThread()
 {
@@ -255,7 +261,7 @@ bool Init()
 	{
 		IniFile gameIni = _CoreParameter.LoadGameIni();
 		gameIni.GetOrCreateSection("Wii")->Get("Widescreen", &g_aspect_wide,
-		     !!SConfig::GetInstance().m_SYSCONF->GetData<u8>("IPL.AR"));
+			!!SConfig::GetInstance().m_SYSCONF->GetData<u8>("IPL.AR"));
 	}
 
 	s_window_handle = Host_GetRenderHandle();
@@ -357,7 +363,7 @@ static void CpuThread()
 		video_backend->Video_Prepare();
 	}
 
-  // This needs to be delayed until after the video backend is ready.
+	// This needs to be delayed until after the video backend is ready.
 	DolphinAnalytics::Instance()->ReportGameStart();
 
 	if (_CoreParameter.bFastmem)
@@ -379,22 +385,22 @@ static void CpuThread()
 	s_is_started = true;
 	CPUSetInitialExecutionState();
 
-	#ifdef USE_GDBSTUB
-	#ifndef _WIN32
+#ifdef USE_GDBSTUB
+#ifndef _WIN32
 	if (!_CoreParameter.gdb_socket.empty())
 	{
 		gdb_init_local(_CoreParameter.gdb_socket.data());
 		gdb_break();
 	}
 	else
-	#endif
-	if (_CoreParameter.iGDBPort > 0)
-	{
-		gdb_init(_CoreParameter.iGDBPort);
-		// break at next instruction (the first instruction)
-		gdb_break();
-	}
-	#endif
+#endif
+		if (_CoreParameter.iGDBPort > 0)
+		{
+			gdb_init(_CoreParameter.iGDBPort);
+			// break at next instruction (the first instruction)
+			gdb_break();
+		}
+#endif
 
 #ifdef USE_MEMORYWATCHER
 	MemoryWatcher::Init();
@@ -566,7 +572,7 @@ void EmuThread()
 
 	// Setup our core, but can't use dynarec if we are compare server
 	if (core_parameter.iCPUCore != PowerPC::CORE_INTERPRETER
-	    && (!core_parameter.bRunCompareServer || core_parameter.bRunCompareClient))
+		&& (!core_parameter.bRunCompareServer || core_parameter.bRunCompareClient))
 	{
 		PowerPC::SetMode(PowerPC::MODE_JIT);
 	}
@@ -580,7 +586,7 @@ void EmuThread()
 	Host_UpdateMainFrame();
 
 	// Determine the CPU thread function
-	void (*cpuThreadFunc)(void);
+	void(*cpuThreadFunc)(void);
 	if (core_parameter.m_BootType == SConfig::BOOT_DFF)
 		cpuThreadFunc = FifoPlayerThread;
 	else
@@ -628,11 +634,11 @@ void EmuThread()
 	// Wait for s_cpu_thread to exit
 	INFO_LOG(CONSOLE, "%s", StopMessage(true, "Stopping CPU-GPU thread ...").c_str());
 
-	#ifdef USE_GDBSTUB
+#ifdef USE_GDBSTUB
 	INFO_LOG(CONSOLE, "%s", StopMessage(true, "Stopping GDB ...").c_str());
 	gdb_deinit();
 	INFO_LOG(CONSOLE, "%s", StopMessage(true, "GDB stopped.").c_str());
-	#endif
+#endif
 
 	s_cpu_thread.join();
 
@@ -781,7 +787,7 @@ void SaveScreenShot(const std::string& name)
 	Renderer::SetScreenshot(filePath);
 
 	if (!bPaused)
-	 	SetState(CORE_RUN);
+		SetState(CORE_RUN);
 }
 
 void RequestRefreshInfo()
@@ -899,8 +905,8 @@ void UpdateTitle()
 	if (ElapseTime == 0)
 		ElapseTime = 1;
 
-	float FPS   = (float)(s_drawn_frame.load() * 1000.0 / ElapseTime);
-	float VPS   = (float)(s_drawn_video.load() * 1000.0 / ElapseTime);
+	float FPS = (float)(s_drawn_frame.load() * 1000.0 / ElapseTime);
+	float VPS = (float)(s_drawn_video.load() * 1000.0 / ElapseTime);
 	float Speed = (float)(s_drawn_video.load() * (100 * 1000.0) / (VideoInterface::GetTargetRefreshRate() * ElapseTime));
 
 	// Settings are shown the same for both extended and summary info
@@ -934,13 +940,13 @@ void UpdateTitle()
 			float TicksPercentage = (float)diff / (float)(SystemTimers::GetTicksPerSecond() / 1000000) * 100;
 
 			SFPS += StringFromFormat(" | CPU: %s%i MHz [Real: %i + IdleSkip: %i] / %i MHz (%s%3.0f%%)",
-					_CoreParameter.bSkipIdle ? "~" : "",
-					(int)(diff),
-					(int)(diff - idleDiff),
-					(int)(idleDiff),
-					SystemTimers::GetTicksPerSecond() / 1000000,
-					_CoreParameter.bSkipIdle ? "~" : "",
-					TicksPercentage);
+				_CoreParameter.bSkipIdle ? "~" : "",
+				(int)(diff),
+				(int)(diff - idleDiff),
+				(int)(idleDiff),
+				SystemTimers::GetTicksPerSecond() / 1000000,
+				_CoreParameter.bSkipIdle ? "~" : "",
+				TicksPercentage);
 		}
 	}
 	// This is our final "frame counter" string
@@ -1003,7 +1009,7 @@ void QueueHostJob(std::function<void()> job, bool run_during_stop)
 	{
 		std::lock_guard<std::mutex> guard(s_host_jobs_lock);
 		send_message = s_host_jobs_queue.empty();
-		s_host_jobs_queue.emplace(HostJob{ std::move(job), run_during_stop });
+		s_host_jobs_queue.emplace(HostJob{std::move(job), run_during_stop});
 	}
 	// If the the queue was empty then kick the Host to come and get this job.
 	if (send_message)

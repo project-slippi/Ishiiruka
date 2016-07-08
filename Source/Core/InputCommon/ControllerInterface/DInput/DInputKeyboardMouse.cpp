@@ -4,65 +4,55 @@
 
 #include <algorithm>
 
+#include "InputCommon/ControllerInterface/ControllerInterface.h"
 #include "InputCommon/ControllerInterface/DInput/DInput.h"
 #include "InputCommon/ControllerInterface/DInput/DInputKeyboardMouse.h"
 
-	// (lower would be more sensitive) user can lower sensitivity by setting range
-	// seems decent here ( at 8 ), I don't think anyone would need more sensitive than this
-	// and user can lower it much farther than they would want to with the range
-#define MOUSE_AXIS_SENSITIVITY   8
+// (lower would be more sensitive) user can lower sensitivity by setting range
+// seems decent here ( at 8 ), I don't think anyone would need more sensitive than this
+// and user can lower it much farther than they would want to with the range
+#define MOUSE_AXIS_SENSITIVITY 8
 
-	// if input hasn't been received for this many ms, mouse input will be skipped
-	// otherwise it is just some crazy value
-#define DROP_INPUT_TIME          250
+// if input hasn't been received for this many ms, mouse input will be skipped
+// otherwise it is just some crazy value
+#define DROP_INPUT_TIME 250
 
 namespace ciface
 {
 namespace DInput
 {
-
 static const struct
 {
-	const BYTE        code;
+	const BYTE code;
 	const char* const name;
-} named_keys[] =
-{
-#include "InputCommon/ControllerInterface/DInput/NamedKeys.h" // NOLINT
+} named_keys[] = {
+#include "InputCommon/ControllerInterface/DInput/NamedKeys.h"  // NOLINT
 };
 
 // lil silly
 static HWND m_hwnd;
 
-void InitKeyboardMouse(IDirectInput8* const idi8, std::vector<Core::Device*>& devices, HWND _hwnd)
+void InitKeyboardMouse(IDirectInput8* const idi8, HWND _hwnd)
 {
 	m_hwnd = _hwnd;
 
 	// mouse and keyboard are a combined device, to allow shift+click and stuff
-	// if that's dumb, I will make a VirtualDevice class that just uses ranges of inputs/outputs from other devices
+	// if that's dumb, I will make a VirtualDevice class that just uses ranges of inputs/outputs from
+	// other devices
 	// so there can be a separated Keyboard and mouse, as well as combined KeyboardMouse
 
 	LPDIRECTINPUTDEVICE8 kb_device = nullptr;
 	LPDIRECTINPUTDEVICE8 mo_device = nullptr;
 
-	if (SUCCEEDED(idi8->CreateDevice( GUID_SysKeyboard, &kb_device, nullptr)))
+	if (SUCCEEDED(idi8->CreateDevice(GUID_SysKeyboard, &kb_device, nullptr)) &&
+		SUCCEEDED(kb_device->SetDataFormat(&c_dfDIKeyboard)) &&
+		SUCCEEDED(kb_device->SetCooperativeLevel(nullptr, DISCL_BACKGROUND | DISCL_NONEXCLUSIVE)) &&
+		SUCCEEDED(idi8->CreateDevice(GUID_SysMouse, &mo_device, nullptr)) &&
+		SUCCEEDED(mo_device->SetDataFormat(&c_dfDIMouse2)) &&
+		SUCCEEDED(mo_device->SetCooperativeLevel(nullptr, DISCL_BACKGROUND | DISCL_NONEXCLUSIVE)))
 	{
-		if (SUCCEEDED(kb_device->SetDataFormat(&c_dfDIKeyboard)))
-		{
-			if (SUCCEEDED(kb_device->SetCooperativeLevel(nullptr, DISCL_BACKGROUND | DISCL_NONEXCLUSIVE)))
-			{
-				if (SUCCEEDED(idi8->CreateDevice( GUID_SysMouse, &mo_device, nullptr )))
-				{
-					if (SUCCEEDED(mo_device->SetDataFormat(&c_dfDIMouse2)))
-					{
-						if (SUCCEEDED(mo_device->SetCooperativeLevel(nullptr, DISCL_BACKGROUND | DISCL_NONEXCLUSIVE)))
-						{
-							devices.push_back(new KeyboardMouse(kb_device, mo_device));
-							return;
-						}
-					}
-				}
-			}
-		}
+		g_controller_interface.AddDevice(std::make_shared<KeyboardMouse>(kb_device, mo_device));
+		return;
 	}
 
 	if (kb_device)
@@ -81,9 +71,9 @@ KeyboardMouse::~KeyboardMouse()
 	m_mo_device->Release();
 }
 
-KeyboardMouse::KeyboardMouse(const LPDIRECTINPUTDEVICE8 kb_device, const LPDIRECTINPUTDEVICE8 mo_device)
-	: m_kb_device(kb_device)
-	, m_mo_device(mo_device)
+KeyboardMouse::KeyboardMouse(const LPDIRECTINPUTDEVICE8 kb_device,
+	const LPDIRECTINPUTDEVICE8 mo_device)
+	: m_kb_device(kb_device), m_mo_device(mo_device)
 {
 	m_kb_device->Acquire();
 	m_mo_device->Acquire();
@@ -94,13 +84,13 @@ KeyboardMouse::KeyboardMouse(const LPDIRECTINPUTDEVICE8 kb_device, const LPDIREC
 
 	// KEYBOARD
 	// add keys
-	for (u8 i = 0; i < sizeof(named_keys)/sizeof(*named_keys); ++i)
+	for (u8 i = 0; i < sizeof(named_keys) / sizeof(*named_keys); ++i)
 		AddInput(new Key(i, m_state_in.keyboard[named_keys[i].code]));
 
 	// MOUSE
 	// get caps
 	DIDEVCAPS mouse_caps;
-	ZeroMemory( &mouse_caps, sizeof(mouse_caps) );
+	ZeroMemory(&mouse_caps, sizeof(mouse_caps));
 	mouse_caps.dwSize = sizeof(mouse_caps);
 	m_mo_device->GetCapabilities(&mouse_caps);
 	// mouse buttons
@@ -112,19 +102,20 @@ KeyboardMouse::KeyboardMouse(const LPDIRECTINPUTDEVICE8 kb_device, const LPDIREC
 		const LONG& ax = (&m_state_in.mouse.lX)[i];
 
 		// each axis gets a negative and a positive input instance associated with it
-		AddInput(new Axis(i, ax, (2==i) ? -1 : -MOUSE_AXIS_SENSITIVITY));
-		AddInput(new Axis(i, ax, -(2==i) ? 1 : MOUSE_AXIS_SENSITIVITY));
+		AddInput(new Axis(i, ax, (2 == i) ? -1 : -MOUSE_AXIS_SENSITIVITY));
+		AddInput(new Axis(i, ax, -(2 == i) ? 1 : MOUSE_AXIS_SENSITIVITY));
 	}
 	// cursor, with a hax for-loop
-	for (unsigned int i=0; i<4; ++i)
-		AddInput(new Cursor(!!(i&2), (&m_state_in.cursor.x)[i/2], !!(i&1)));
+	for (unsigned int i = 0; i < 4; ++i)
+		AddInput(new Cursor(!!(i & 2), (&m_state_in.cursor.x)[i / 2], !!(i & 1)));
 }
 
 void GetMousePos(ControlState* const x, ControlState* const y)
 {
-	POINT point = { 1, 1 };
+	POINT point = {1, 1};
 	GetCursorPos(&point);
-	// Get the cursor position relative to the upper left corner of the current window (separate or render to main)
+	// Get the cursor position relative to the upper left corner of the current window (separate or
+	// render to main)
 	HWND hwnd = WindowFromPoint(point);
 	DWORD processId;
 	GetWindowThreadProcessId(hwnd, &processId);
@@ -220,7 +211,7 @@ std::string KeyboardMouse::Axis::GetName() const
 {
 	static char tmpstr[] = "Axis ..";
 	tmpstr[5] = (char)('X' + m_index);
-	tmpstr[6] = (m_range<0 ? '-' : '+');
+	tmpstr[6] = (m_range < 0 ? '-' : '+');
 	return tmpstr;
 }
 
@@ -252,6 +243,5 @@ ControlState KeyboardMouse::Cursor::GetState() const
 {
 	return std::max(0.0, ControlState(m_axis) / (m_positive ? 1.0 : -1.0));
 }
-
 }
 }

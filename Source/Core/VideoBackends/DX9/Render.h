@@ -9,7 +9,7 @@
 namespace DX9
 {
 
-class Renderer : public ::Renderer
+class Renderer: public ::Renderer
 {
 private:
 	bool m_bColorMaskChanged;
@@ -49,8 +49,12 @@ public:
 
 	u32 AccessEFB(EFBAccessType type, u32 x, u32 y, u32 poke_data);
 	void PokeEFB(EFBAccessType type, const EfbPokeData* points, size_t num_points) override;
-	u16 BBoxRead(int index) override { return 0; };
-	void BBoxWrite(int index, u16 value) override {};
+	u16 BBoxRead(int index) override
+	{
+		return 0;
+	};
+	void BBoxWrite(int index, u16 value) override
+	{};
 
 	void ResetAPIState();
 	void RestoreAPIState();

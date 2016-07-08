@@ -27,7 +27,8 @@ public:
 	// Declared as explicit since we do not want "= true" to work on a flag
 	// object - it should be made explicit that a flag is *not* a normal
 	// variable.
-	explicit Flag(bool initial_value = false) : m_val(initial_value) {}
+	explicit Flag(bool initial_value = false): m_val(initial_value)
+	{}
 
 	void Set(bool val = true)
 	{

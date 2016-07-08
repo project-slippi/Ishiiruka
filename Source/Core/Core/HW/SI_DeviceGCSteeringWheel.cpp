@@ -2,10 +2,10 @@
 // Licensed under GPLv2+
 // Refer to the license.txt file included.
 
+#include "Core/HW/SI_DeviceGCSteeringWheel.h"
 #include "Common/CommonTypes.h"
 #include "Common/Logging/Log.h"
 #include "Core/HW/GCPad.h"
-#include "Core/HW/SI_DeviceGCSteeringWheel.h"
 
 CSIDevice_GCSteeringWheel::CSIDevice_GCSteeringWheel(SIDevices device, int _iDeviceNumber)
 	: CSIDevice_GCController(device, _iDeviceNumber)
@@ -27,7 +27,7 @@ int CSIDevice_GCSteeringWheel::RunBuffer(u8* _pBuffer, int _iLength)
 		*(u32*)&_pBuffer[0] = SI_GC_STEERING;
 		break;
 
-	// DEFAULT
+		// DEFAULT
 	default:
 	{
 		return CSIDevice_GCController::RunBuffer(_pBuffer, _iLength);
@@ -44,20 +44,20 @@ bool CSIDevice_GCSteeringWheel::GetData(u32& _Hi, u32& _Low)
 	{
 		GCPadStatus PadStatus = GetPadStatus();
 
-		_Hi = (u32)((u8)PadStatus.stickX); // Steering
-		_Hi |= 0x800; // Pedal connected flag
+		_Hi = (u32)((u8)PadStatus.stickX);  // Steering
+		_Hi |= 0x800;                       // Pedal connected flag
 		_Hi |= (u32)((u16)(PadStatus.button | PAD_USE_ORIGIN) << 16);
 
-		_Low = (u8)PadStatus.triggerRight;                     // All 8 bits
-		_Low |= (u32)((u8)PadStatus.triggerLeft << 8);          // All 8 bits
+		_Low = (u8)PadStatus.triggerRight;              // All 8 bits
+		_Low |= (u32)((u8)PadStatus.triggerLeft << 8);  // All 8 bits
 
 		// The GC Steering Wheel appears to have combined pedals
 		// (both the Accelerate and Brake pedals are mapped to a single axis)
 		// We use the stickY axis for the pedals.
 		if (PadStatus.stickY < 128)
-			_Low |= (u32)((u8)(255 - ((PadStatus.stickY & 0x7f) * 2)) << 16); // All 8 bits (Brake)
+			_Low |= (u32)((u8)(255 - ((PadStatus.stickY & 0x7f) * 2)) << 16);  // All 8 bits (Brake)
 		if (PadStatus.stickY >= 128)
-			_Low |= (u32)((u8)((PadStatus.stickY & 0x7f) * 2) << 24); // All 8 bits (Accelerate)
+			_Low |= (u32)((u8)((PadStatus.stickY & 0x7f) * 2) << 24);  // All 8 bits (Accelerate)
 
 		HandleButtonCombos(PadStatus);
 	}
@@ -75,7 +75,9 @@ void CSIDevice_GCSteeringWheel::SendCommand(u32 _Cmd, u8 _Poll)
 
 	if (command.Command == CMD_FORCE)
 	{
-		unsigned int uStrength = command.Parameter1; // 0 = left strong, 127 = left weak, 128 = right weak, 255 = right strong
+		unsigned int uStrength =
+			command
+			.Parameter1;  // 0 = left strong, 127 = left weak, 128 = right weak, 255 = right strong
 		unsigned int uType = command.Parameter2;  // 06 = motor on, 04 = motor off
 
 		// get the correct pad number that should rumble locally when using netplay

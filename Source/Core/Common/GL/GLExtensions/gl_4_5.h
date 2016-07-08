@@ -62,7 +62,7 @@ typedef void (APIENTRYP PFNDOLCLEARNAMEDBUFFERDATAPROC) (GLuint buffer, GLenum i
 typedef void (APIENTRYP PFNDOLCLEARNAMEDBUFFERSUBDATAPROC) (GLuint buffer, GLenum internalformat, GLintptr offset, GLsizeiptr size, GLenum format, GLenum type, const void *data);
 typedef void *(APIENTRYP PFNDOLMAPNAMEDBUFFERPROC) (GLuint buffer, GLenum access);
 typedef void *(APIENTRYP PFNDOLMAPNAMEDBUFFERRANGEPROC) (GLuint buffer, GLintptr offset, GLsizeiptr length, GLbitfield access);
-typedef GLboolean (APIENTRYP PFNDOLUNMAPNAMEDBUFFERPROC) (GLuint buffer);
+typedef GLboolean(APIENTRYP PFNDOLUNMAPNAMEDBUFFERPROC) (GLuint buffer);
 typedef void (APIENTRYP PFNDOLFLUSHMAPPEDNAMEDBUFFERRANGEPROC) (GLuint buffer, GLintptr offset, GLsizeiptr length);
 typedef void (APIENTRYP PFNDOLGETNAMEDBUFFERPARAMETERIVPROC) (GLuint buffer, GLenum pname, GLint *params);
 typedef void (APIENTRYP PFNDOLGETNAMEDBUFFERPARAMETERI64VPROC) (GLuint buffer, GLenum pname, GLint64 *params);
@@ -83,7 +83,7 @@ typedef void (APIENTRYP PFNDOLCLEARNAMEDFRAMEBUFFERUIVPROC) (GLuint framebuffer,
 typedef void (APIENTRYP PFNDOLCLEARNAMEDFRAMEBUFFERFVPROC) (GLuint framebuffer, GLenum buffer, GLint drawbuffer, const GLfloat *value);
 typedef void (APIENTRYP PFNDOLCLEARNAMEDFRAMEBUFFERFIPROC) (GLuint framebuffer, GLenum buffer, const GLfloat depth, GLint stencil);
 typedef void (APIENTRYP PFNDOLBLITNAMEDFRAMEBUFFERPROC) (GLuint readFramebuffer, GLuint drawFramebuffer, GLint srcX0, GLint srcY0, GLint srcX1, GLint srcY1, GLint dstX0, GLint dstY0, GLint dstX1, GLint dstY1, GLbitfield mask, GLenum filter);
-typedef GLenum (APIENTRYP PFNDOLCHECKNAMEDFRAMEBUFFERSTATUSPROC) (GLuint framebuffer, GLenum target);
+typedef GLenum(APIENTRYP PFNDOLCHECKNAMEDFRAMEBUFFERSTATUSPROC) (GLuint framebuffer, GLenum target);
 typedef void (APIENTRYP PFNDOLGETNAMEDFRAMEBUFFERPARAMETERIVPROC) (GLuint framebuffer, GLenum pname, GLint *param);
 typedef void (APIENTRYP PFNDOLGETNAMEDFRAMEBUFFERATTACHMENTPARAMETERIVPROC) (GLuint framebuffer, GLenum attachment, GLenum pname, GLint *params);
 typedef void (APIENTRYP PFNDOLCREATERENDERBUFFERSPROC) (GLsizei n, GLuint *renderbuffers);
@@ -147,7 +147,7 @@ typedef void (APIENTRYP PFNDOLGETQUERYBUFFEROBJECTUIVPROC) (GLuint id, GLuint bu
 typedef void (APIENTRYP PFNDOLMEMORYBARRIERBYREGIONPROC) (GLbitfield barriers);
 typedef void (APIENTRYP PFNDOLGETTEXTURESUBIMAGEPROC) (GLuint texture, GLint level, GLint xoffset, GLint yoffset, GLint zoffset, GLsizei width, GLsizei height, GLsizei depth, GLenum format, GLenum type, GLsizei bufSize, void *pixels);
 typedef void (APIENTRYP PFNDOLGETCOMPRESSEDTEXTURESUBIMAGEPROC) (GLuint texture, GLint level, GLint xoffset, GLint yoffset, GLint zoffset, GLsizei width, GLsizei height, GLsizei depth, GLsizei bufSize, void *pixels);
-typedef GLenum (APIENTRYP PFNDOLGETGRAPHICSRESETSTATUSPROC) (void);
+typedef GLenum(APIENTRYP PFNDOLGETGRAPHICSRESETSTATUSPROC) (void);
 typedef void (APIENTRYP PFNDOLGETNCOMPRESSEDTEXIMAGEPROC) (GLenum target, GLint lod, GLsizei bufSize, void *pixels);
 typedef void (APIENTRYP PFNDOLGETNTEXIMAGEPROC) (GLenum target, GLint level, GLenum format, GLenum type, GLsizei bufSize, void *pixels);
 typedef void (APIENTRYP PFNDOLGETNUNIFORMDVPROC) (GLuint program, GLint location, GLsizei bufSize, GLdouble *params);

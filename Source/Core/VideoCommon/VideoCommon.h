@@ -41,12 +41,13 @@ typedef MathUtil::Rectangle<int> EFBRectangle;
 // coordinates, where the origin is at the lower left and the frame dimensions
 // depend on the resolution settings. Use Renderer::ConvertEFBRectangle to
 // convert an EFBRectangle to a TargetRectangle.
-struct TargetRectangle : public MathUtil::Rectangle<int>
+struct TargetRectangle: public MathUtil::Rectangle<int>
 {
 	constexpr TargetRectangle() = default;
 
 	constexpr TargetRectangle(int theLeft, int theTop, int theRight, int theBottom)
-		: Rectangle<int>(theLeft, theTop, theRight, theBottom) {}
+		: Rectangle<int>(theLeft, theTop, theRight, theBottom)
+	{}
 
 #ifdef _WIN32
 	// Only used by D3D backend.
@@ -67,16 +68,38 @@ struct TargetRectangle : public MathUtil::Rectangle<int>
 struct TargetSize final
 {
 	constexpr TargetSize() = default;
-	constexpr TargetSize(int new_width, int new_height) : width(new_width), height(new_height) {}
+	constexpr TargetSize(int new_width, int new_height): width(new_width), height(new_height)
+	{}
 
-	void Set(int new_width, int new_height) { width = new_width; height = new_height; }
+	void Set(int new_width, int new_height)
+	{
+		width = new_width; height = new_height;
+	}
 
-	bool operator==(const TargetSize& rhs) const { return std::tie(width, height) == std::tie(rhs.width, rhs.height); }
-	bool operator!=(const TargetSize& rhs) const { return std::tie(width, height) != std::tie(rhs.width, rhs.height); }
-	bool operator<=(const TargetSize& rhs) const { return std::tie(width, height) <= std::tie(rhs.width, rhs.height); }
-	bool operator>=(const TargetSize& rhs) const { return std::tie(width, height) >= std::tie(rhs.width, rhs.height); }
-	bool operator<(const TargetSize& rhs) const { return std::tie(width, height) < std::tie(rhs.width, rhs.height); }
-	bool operator>(const TargetSize& rhs) const { return std::tie(width, height) > std::tie(rhs.width, rhs.height); }
+	bool operator==(const TargetSize& rhs) const
+	{
+		return std::tie(width, height) == std::tie(rhs.width, rhs.height);
+	}
+	bool operator!=(const TargetSize& rhs) const
+	{
+		return std::tie(width, height) != std::tie(rhs.width, rhs.height);
+	}
+	bool operator<=(const TargetSize& rhs) const
+	{
+		return std::tie(width, height) <= std::tie(rhs.width, rhs.height);
+	}
+	bool operator>=(const TargetSize& rhs) const
+	{
+		return std::tie(width, height) >= std::tie(rhs.width, rhs.height);
+	}
+	bool operator<(const TargetSize& rhs) const
+	{
+		return std::tie(width, height) < std::tie(rhs.width, rhs.height);
+	}
+	bool operator>(const TargetSize& rhs) const
+	{
+		return std::tie(width, height) > std::tie(rhs.width, rhs.height);
+	}
 
 	int width = 1;
 	int height = 1;

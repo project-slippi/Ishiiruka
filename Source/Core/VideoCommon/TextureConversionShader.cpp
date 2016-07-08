@@ -7,7 +7,7 @@
 #include <math.h>
 #include <locale.h>
 #ifdef __APPLE__
-	#include <xlocale.h>
+#include <xlocale.h>
 #endif
 
 #include "TextureConversionShader.h"
@@ -21,7 +21,7 @@
 #define WRITE p+=sprintf
 
 static char text[16384];
-static bool IntensityConstantAdded =  false;
+static bool IntensityConstantAdded = false;
 
 namespace TextureConversionShaderLegacy
 {
@@ -46,14 +46,14 @@ void WriteSwizzler(char*& p, u32 format)
 	u32 blkH = TexDecoder_GetBlockHeightInTexels(format);
 	u32 samples = TextureConversionShader::GetEncodedSampleCount(format);
 
-	WRITE(p,"uniform sampler samp0 : register(s0);\n");	
-	WRITE(p,"void main(\n");
-	WRITE(p,"  out float4 ocol0 : SV_Target,\n");
-	WRITE(p,"  in float2 uv0 : TEXCOORD0)\n");
+	WRITE(p, "uniform sampler samp0 : register(s0);\n");
+	WRITE(p, "void main(\n");
+	WRITE(p, "  out float4 ocol0 : SV_Target,\n");
+	WRITE(p, "  in float2 uv0 : TEXCOORD0)\n");
 
-	WRITE(p, "{\n"    
-	"  float2 sampleUv;\n"
-	"  float2 uv1 = floor(uv0);\n");
+	WRITE(p, "{\n"
+		"  float2 sampleUv;\n"
+		"  float2 uv1 = floor(uv0);\n");
 
 	WRITE(p, "  uv1.x = uv1.x * %u.0;\n", samples);
 
@@ -81,7 +81,7 @@ void WriteSwizzler(char*& p, u32 format)
 // block dimensions : widthStride, heightStride 
 // texture dims : width, height, x offset, y offset
 void Write32BitSwizzler(char*& p, u32 format)
-{	
+{
 	// [0] left, top, right, bottom of source rectangle within source texture
 	// [1] width and height of destination texture in pixels
 	// Two were merged for GLSL
@@ -91,14 +91,14 @@ void Write32BitSwizzler(char*& p, u32 format)
 	u32 blkH = TexDecoder_GetBlockHeightInTexels(format);
 
 	// 32 bit textures (RGBA8 and Z24) are store in 2 cache line increments
-	WRITE(p,"uniform sampler samp0 : register(s0);\n");
-	
-	WRITE(p,"void main(\n");
+	WRITE(p, "uniform sampler samp0 : register(s0);\n");
+
+	WRITE(p, "void main(\n");
 	WRITE(p, "  out float4 ocol0 : COLOR0,\n");
 	WRITE(p, "  in float2 uv0 : TEXCOORD0)\n");
-	WRITE(p, "{\n"    
-	"  float2 sampleUv;\n"
-	"  float2 uv1 = floor(uv0);\n");
+	WRITE(p, "{\n"
+		"  float2 sampleUv;\n"
+		"  float2 uv1 = floor(uv0);\n");
 
 	WRITE(p, "  float yl = floor(uv1.y / %u.0);\n", blkH);
 	WRITE(p, "  float yb = yl * %u.0;\n", blkH);
@@ -109,7 +109,7 @@ void Write32BitSwizzler(char*& p, u32 format)
 	WRITE(p, "  float xoff = xel - (xb * %u.0);\n", blkH);
 
 	WRITE(p, "  float x2 = uv1.x * 2.0f;\n");
-	WRITE(p, "  float xl = floor(x2 / %u.0);\n", blkW);	
+	WRITE(p, "  float xl = floor(x2 / %u.0);\n", blkW);
 	WRITE(p, "  float xib = x2 - (xl * %u.0);\n", blkW);
 	WRITE(p, "  float halfxb = floor(xb / 2.0f);\n");
 
@@ -154,10 +154,10 @@ void WriteEncoderEnd(char* p)
 void WriteI8Encoder(char* p)
 {
 	WriteSwizzler(p, GX_TF_I8);
-	WRITE(p, "  float3 texSample;\n");	
+	WRITE(p, "  float3 texSample;\n");
 
 	WriteSampleColor(p, "rgb", "texSample", 0);
-	WriteColorToIntensity(p, "texSample", "ocol0.b");	
+	WriteColorToIntensity(p, "texSample", "ocol0.b");
 
 	WriteSampleColor(p, "rgb", "texSample", 1);
 	WriteColorToIntensity(p, "texSample", "ocol0.g");
@@ -217,7 +217,7 @@ void WriteI4Encoder(char* p)
 void WriteIA8Encoder(char* p)
 {
 	WriteSwizzler(p, GX_TF_IA8);
-	WRITE(p, "  float4 texSample;\n");	
+	WRITE(p, "  float4 texSample;\n");
 
 	WriteSampleColor(p, "rgba", "texSample", 0);
 	WRITE(p, "  ocol0.b = texSample.a;\n");
@@ -273,7 +273,7 @@ void WriteRGB565Encoder(char* p)
 	WRITE(p, "  float2 texRs = float2(texSample0.r, texSample1.r);\n");
 	WRITE(p, "  float2 texGs = float2(texSample0.g, texSample1.g);\n");
 	WRITE(p, "  float2 texBs = float2(texSample0.b, texSample1.b);\n");
-  
+
 	WriteToBitDepth(p, 6, "texGs", "float2 gInt");
 	WRITE(p, "  float2 gUpper = floor(gInt / 8.0f);\n");
 	WRITE(p, "  float2 gLower = gInt - gUpper * 8.0f;\n");
@@ -531,7 +531,7 @@ void WriteZ16LEncoder(char* p)
 
 	WRITE(p, "  ocol0.b = expanded.b / 255.0f;\n");
 	WRITE(p, "  ocol0.g = expanded.g / 255.0f;\n");
-	
+
 	WriteSampleColor(p, "b", "depth", 1);
 	WRITE(p, " depth = 1.0f - depth;\n");
 	WRITE(p, "  depth *= 16777215.0f;\n");
@@ -665,22 +665,22 @@ const char *GenerateEncodingShader(u32 format)
 		WriteZ8Encoder(p, "256.0f");
 		break;
 	case GX_CTF_Z8L:
-		WriteZ8Encoder(p, "65536.0f" );
+		WriteZ8Encoder(p, "65536.0f");
 		break;
 	case GX_CTF_Z16L:
 		WriteZ16LEncoder(p);
 		break;
 	default:
 		PanicAlert("Unknown texture copy format: 0x%x\n", format);
-		break;		
+		break;
 	}
 
 	if (text[sizeof(text) - 1] != 0x7C)
-		PanicAlert("TextureConversionShader generator - buffer too small, canary has been eaten!");	
+		PanicAlert("TextureConversionShader generator - buffer too small, canary has been eaten!");
 	return text;
 }
 
-void SetShaderParameters(float width, float height, float offsetX, float offsetY, float widthStride, float heightStride,float buffW,float buffH)
+void SetShaderParameters(float width, float height, float offsetX, float offsetY, float widthStride, float heightStride, float buffW, float buffH)
 {
 	float* cbuff = PixelShaderManager::GetBufferToUpdate(C_COLORMATRIX, 2);
 	cbuff[0] = widthStride;

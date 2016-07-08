@@ -55,7 +55,7 @@ void clrl(const UDSPInstruction opc)
 // flags out: -x-- ----
 void andcf(const UDSPInstruction opc)
 {
-	u8 reg  = (opc >> 8) & 0x1;
+	u8 reg = (opc >> 8) & 0x1;
 
 	u16 imm = dsp_fetch_code();
 	u16 val = dsp_get_acc_m(reg);
@@ -72,7 +72,7 @@ void andcf(const UDSPInstruction opc)
 // flags out: -x-- ----
 void andf(const UDSPInstruction opc)
 {
-	u8 reg  = (opc >> 8) & 0x1;
+	u8 reg = (opc >> 8) & 0x1;
 
 	u16 imm = dsp_fetch_code();
 	u16 val = dsp_get_acc_m(reg);
@@ -102,7 +102,7 @@ void tst(const UDSPInstruction opc)
 // flags out: --x0 xx00
 void tstaxh(const UDSPInstruction opc)
 {
-	u8 reg  = (opc >> 8) & 0x1;
+	u8 reg = (opc >> 8) & 0x1;
 
 	s16 val = dsp_get_ax_h(reg);
 	Update_SR_Register16(val);
@@ -155,7 +155,7 @@ void cmpar(const UDSPInstruction opc)
 // flags out: x-xx xxxx
 void cmpi(const UDSPInstruction opc)
 {
-	u8 reg  = (opc >> 8) & 0x1;
+	u8 reg = (opc >> 8) & 0x1;
 
 	s64 val = dsp_get_long_acc(reg);
 	s64 imm = (s64)(s16)dsp_fetch_code() << 16; // Immediate is considered to be at M level in the 40-bit accumulator.
@@ -321,7 +321,7 @@ void notc(const UDSPInstruction opc)
 // flags out: --xx xx00
 void xori(const UDSPInstruction opc)
 {
-	u8 reg  = (opc >> 8) & 0x1;
+	u8 reg = (opc >> 8) & 0x1;
 	u16 imm = dsp_fetch_code();
 	g_dsp.r.ac[reg].m ^= imm;
 
@@ -336,7 +336,7 @@ void xori(const UDSPInstruction opc)
 // flags out: --xx xx00
 void andi(const UDSPInstruction opc)
 {
-	u8 reg  = (opc >> 8) & 0x1;
+	u8 reg = (opc >> 8) & 0x1;
 	u16 imm = dsp_fetch_code();
 	g_dsp.r.ac[reg].m &= imm;
 
@@ -351,7 +351,7 @@ void andi(const UDSPInstruction opc)
 // flags out: --xx xx00
 void ori(const UDSPInstruction opc)
 {
-	u8 reg  = (opc >> 8) & 0x1;
+	u8 reg = (opc >> 8) & 0x1;
 	u16 imm = dsp_fetch_code();
 	g_dsp.r.ac[reg].m |= imm;
 
@@ -377,11 +377,11 @@ void addr(const UDSPInstruction opc)
 	{
 	case DSP_REG_AXL0:
 	case DSP_REG_AXL1:
-		ax = (s16)g_dsp.r.ax[sreg-DSP_REG_AXL0].l;
+		ax = (s16)g_dsp.r.ax[sreg - DSP_REG_AXL0].l;
 		break;
 	case DSP_REG_AXH0:
 	case DSP_REG_AXH1:
-		ax = (s16)g_dsp.r.ax[sreg-DSP_REG_AXH0].h;
+		ax = (s16)g_dsp.r.ax[sreg - DSP_REG_AXH0].h;
 		break;
 	default:
 		ax = 0;
@@ -409,7 +409,7 @@ void addax(const UDSPInstruction opc)
 	u8 sreg = (opc >> 9) & 0x1;
 
 	s64 acc = dsp_get_long_acc(dreg);
-	s64 ax  = dsp_get_long_acx(sreg);
+	s64 ax = dsp_get_long_acx(sreg);
 	s64 res = acc + ax;
 
 	zeroWriteBackLog();
@@ -426,7 +426,7 @@ void addax(const UDSPInstruction opc)
 // flags out: x-xx xxxx
 void add(const UDSPInstruction opc)
 {
-	u8 dreg  = (opc >> 8) & 0x1;
+	u8 dreg = (opc >> 8) & 0x1;
 
 	s64 acc0 = dsp_get_long_acc(dreg);
 	s64 acc1 = dsp_get_long_acc(1 - dreg);
@@ -579,11 +579,11 @@ void subr(const UDSPInstruction opc)
 	{
 	case DSP_REG_AXL0:
 	case DSP_REG_AXL1:
-		ax = (s16)g_dsp.r.ax[sreg-DSP_REG_AXL0].l;
+		ax = (s16)g_dsp.r.ax[sreg - DSP_REG_AXL0].l;
 		break;
 	case DSP_REG_AXH0:
 	case DSP_REG_AXH1:
-		ax = (s16)g_dsp.r.ax[sreg-DSP_REG_AXH0].h;
+		ax = (s16)g_dsp.r.ax[sreg - DSP_REG_AXH0].h;
 		break;
 	default:
 		ax = 0;
@@ -757,11 +757,11 @@ void movr(const UDSPInstruction opc)
 	{
 	case DSP_REG_AXL0:
 	case DSP_REG_AXL1:
-		ax = (s16)g_dsp.r.ax[sreg-DSP_REG_AXL0].l;
+		ax = (s16)g_dsp.r.ax[sreg - DSP_REG_AXL0].l;
 		break;
 	case DSP_REG_AXH0:
 	case DSP_REG_AXH1:
-		ax = (s16)g_dsp.r.ax[sreg-DSP_REG_AXH0].h;
+		ax = (s16)g_dsp.r.ax[sreg - DSP_REG_AXH0].h;
 		break;
 	default:
 		ax = 0;

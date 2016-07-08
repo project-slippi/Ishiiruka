@@ -47,13 +47,15 @@ namespace DX11
 // There may be multiple XFBs in GameCube RAM. This is the maximum number to
 // virtualize.
 
-struct XFBSource : public XFBSourceBase
+struct XFBSource: public XFBSourceBase
 {
-	XFBSource(D3DTexture2D *_tex, int slices) : 
+	XFBSource(D3DTexture2D *_tex, int slices):
 		tex(_tex),
 		m_slices(slices),
-		depthtex(nullptr) {}
-	~XFBSource() {
+		depthtex(nullptr)
+	{}
+	~XFBSource()
+	{
 		tex->Release();
 		if (depthtex)
 		{
@@ -68,7 +70,7 @@ struct XFBSource : public XFBSourceBase
 	const int m_slices;
 };
 
-class FramebufferManager : public FramebufferManagerBase
+class FramebufferManager: public FramebufferManagerBase
 {
 public:
 	FramebufferManager();
@@ -79,7 +81,10 @@ public:
 	static D3DTexture2D* &GetResolvedEFBColorTexture();
 	static D3DTexture2D* &GetResolvedEFBDepthTexture();
 
-	static D3DTexture2D* &GetEFBColorTempTexture() { return m_efb.color_temp_tex; }
+	static D3DTexture2D* &GetEFBColorTempTexture()
+	{
+		return m_efb.color_temp_tex;
+	}
 	static void SwapReinterpretTexture()
 	{
 		D3DTexture2D* swaptex = GetEFBColorTempTexture();
@@ -109,7 +114,7 @@ private:
 
 		D3DTexture2D* depth_tex{};
 		D3DTexture2D* resolved_depth_tex{};
-		
+
 		// EFB Cache
 		D3DTexture2D* color_cache_tex{};
 		ID3D11Texture2D* color_cache_buf{};

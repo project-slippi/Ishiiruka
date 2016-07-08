@@ -2,7 +2,6 @@
 // Licensed under GPLv2+
 // Refer to the license.txt file included.
 
-
 // PatchEngine
 // Supports simple memory patches, and has a partial Action Replay implementation
 // in ActionReplay.cpp/h.
@@ -37,18 +36,15 @@ using namespace Common;
 
 namespace PatchEngine
 {
-
-const char *PatchTypeStrings[] =
-{
-	"byte",
-	"word",
-	"dword",
+const char* PatchTypeStrings[] = {
+	 "byte", "word", "dword",
 };
 
 static std::vector<Patch> onFrame;
 static std::map<u32, int> speedHacks;
 
-void LoadPatchSection(const std::string& section, std::vector<Patch>& patches, IniFile& globalIni, IniFile& localIni)
+void LoadPatchSection(const std::string& section, std::vector<Patch>& patches, IniFile& globalIni,
+	IniFile& localIni)
 {
 	// Load the name of all enabled patches
 	std::string enabledSectionName = section + "_Enabled";
@@ -110,7 +106,8 @@ void LoadPatchSection(const std::string& section, std::vector<Patch>& patches, I
 					success &= TryParse(items[0], &pE.address);
 					success &= TryParse(items[2], &pE.value);
 
-					pE.type = PatchType(std::find(PatchTypeStrings, PatchTypeStrings + 3, items[1]) - PatchTypeStrings);
+					pE.type = PatchType(std::find(PatchTypeStrings, PatchTypeStrings + 3, items[1]) -
+						PatchTypeStrings);
 					success &= (pE.type != (PatchType)3);
 					if (success)
 					{
@@ -176,7 +173,7 @@ void LoadPatches()
 	LoadSpeedhacks("Speedhacks", merged);
 }
 
-static void ApplyPatches(const std::vector<Patch> &patches)
+static void ApplyPatches(const std::vector<Patch>& patches)
 {
 	for (const Patch& patch : patches)
 	{
@@ -198,7 +195,7 @@ static void ApplyPatches(const std::vector<Patch> &patches)
 					PowerPC::HostWrite_U32(value, addr);
 					break;
 				default:
-					//unknown patchtype
+					// unknown patchtype
 					break;
 				}
 			}
@@ -227,6 +224,9 @@ void ApplyFramePatches()
 void Shutdown()
 {
 	onFrame.clear();
+	speedHacks.clear();
+	ActionReplay::ApplyCodes({});
+	Gecko::SetActiveCodes({});
 }
 
 }  // namespace

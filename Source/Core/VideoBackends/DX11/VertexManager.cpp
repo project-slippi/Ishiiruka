@@ -81,7 +81,7 @@ void VertexManager::PrepareDrawBuffers(u32 stride)
 	u32 vertexBufferSize = u32(s_pCurBufferPointer - s_pBaseBufferPointer);
 	u32 indexBufferSize = IndexGenerator::GetIndexLen() * sizeof(u16);
 	u32 totalBufferSize = vertexBufferSize + indexBufferSize;
-	
+
 	u32 cursor = m_bufferCursor;
 	u32 padding = cursor % stride;
 	if (padding)
@@ -100,7 +100,7 @@ void VertexManager::PrepareDrawBuffers(u32 stride)
 	m_indexDrawOffset = cursor + vertexBufferSize;
 
 	D3D::context->Map(m_buffers[m_currentBuffer].get(), 0, MapType, 0, &map);
-	u8* mappedData = reinterpret_cast<u8*>(map.pData);	
+	u8* mappedData = reinterpret_cast<u8*>(map.pData);
 	memcpy(mappedData + m_vertexDrawOffset, s_pBaseBufferPointer, vertexBufferSize);
 	memcpy(mappedData + m_indexDrawOffset, m_index_buffer_start, indexBufferSize);
 	D3D::context->Unmap(m_buffers[m_currentBuffer].get(), 0);
@@ -124,10 +124,10 @@ void VertexManager::Draw(UINT stride)
 	if (current_primitive_type == PRIMITIVE_TRIANGLES)
 	{
 		auto pt = HullDomainShaderCache::GetActiveHullShader() != nullptr ?
-		D3D11_PRIMITIVE_TOPOLOGY_3_CONTROL_POINT_PATCHLIST :
-		D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+			D3D11_PRIMITIVE_TOPOLOGY_3_CONTROL_POINT_PATCHLIST :
+			D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 
-		D3D::stateman->SetPrimitiveTopology(pt);		
+		D3D::stateman->SetPrimitiveTopology(pt);
 	}
 	else
 	{

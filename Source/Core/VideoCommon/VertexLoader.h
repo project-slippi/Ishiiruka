@@ -6,7 +6,7 @@
 #include "VideoCommon/NativeVertexFormat.h"
 #include "VideoCommon/VertexLoaderBase.h"
 
-class VertexLoader : public VertexLoaderBase
+class VertexLoader: public VertexLoaderBase
 {
 public:
 	VertexLoader(const TVtxDesc &vtx_desc, const VAT &vtx_attr);
@@ -15,7 +15,10 @@ public:
 	s32 RunVertices(const VertexLoaderParameters &parameters) override;
 
 	// For debugging / profiling
-	bool IsInitialized() override { return true; } // This vertex loader supports all formats
+	bool IsInitialized() override
+	{
+		return true;
+	} // This vertex loader supports all formats
 private:
 	// Pipeline.
 	TPipelineFunction m_PipelineStages[32];

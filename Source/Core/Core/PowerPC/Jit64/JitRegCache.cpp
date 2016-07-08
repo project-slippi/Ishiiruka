@@ -12,17 +12,16 @@
 #include "Common/CommonTypes.h"
 #include "Common/MsgHandler.h"
 #include "Common/x64Emitter.h"
-#include "Core/PowerPC/PowerPC.h"
 #include "Core/PowerPC/Jit64/Jit.h"
 #include "Core/PowerPC/Jit64/JitRegCache.h"
 #include "Core/PowerPC/JitCommon/Jit_Util.h"
+#include "Core/PowerPC/PowerPC.h"
 
 using namespace Gen;
 using namespace PowerPC;
 
-RegCache::RegCache() : emit(nullptr)
-{
-}
+RegCache::RegCache(): emit(nullptr)
+{}
 
 void RegCache::Start()
 {
@@ -45,16 +44,16 @@ void RegCache::Start()
 	int maxPreload = 2;
 	for (int i = 0; i < 32; i++)
 	{
-		if (stats.numReads[i] > 2 || stats.numWrites[i] >= 2)
-		{
-			LoadToX64(i, true, false); //stats.firstRead[i] <= stats.firstWrite[i], false);
-			maxPreload--;
-			if (!maxPreload)
-				break;
-		}
+	  if (stats.numReads[i] > 2 || stats.numWrites[i] >= 2)
+	  {
+		 LoadToX64(i, true, false); //stats.firstRead[i] <= stats.firstWrite[i], false);
+		 maxPreload--;
+		 if (!maxPreload)
+			break;
+	  }
 	}*/
-	//Find top regs - preload them (load bursts ain't bad)
-	//But only preload IF written OR reads >= 3
+	// Find top regs - preload them (load bursts ain't bad)
+	// But only preload IF written OR reads >= 3
 }
 
 void RegCache::UnlockAll()
@@ -176,7 +175,7 @@ X64Reg RegCache::GetFreeXReg()
 		return best_xreg;
 	}
 
-	//Still no dice? Die!
+	// Still no dice? Die!
 	_assert_msg_(DYNA_REC, 0, "Regcache ran out of regs");
 	return INVALID_REG;
 }
@@ -227,7 +226,6 @@ void RegCache::DiscardRegContentsIfCached(size_t preg)
 	}
 }
 
-
 void GPRRegCache::SetImmediate32(size_t preg, u32 immValue)
 {
 	DiscardRegContentsIfCached(preg);
@@ -237,14 +235,16 @@ void GPRRegCache::SetImmediate32(size_t preg, u32 immValue)
 
 const X64Reg* GPRRegCache::GetAllocationOrder(size_t* count)
 {
-	static const X64Reg allocationOrder[] =
-	{
-		// R12, when used as base register, for example in a LEA, can generate bad code! Need to look into this.
-#ifdef _WIN32
-		RSI, RDI, R13, R14, R15, R8, R9, R10, R11, R12, RCX
-#else
-		R12, R13, R14, R15, RSI, RDI, R8, R9, R10, R11, RCX
-#endif
+	static const X64Reg allocationOrder[] = {
+		// R12, when used as base register, for example in a LEA, can generate bad code! Need to look into
+		// this.
+		#ifdef _WIN32
+				RSI, RDI, R13, R14, R15, R8,
+				R9,  R10, R11, R12, RCX
+		#else
+				R12, R13, R14, R15, RSI, RDI,
+				R8,  R9,  R10, R11, RCX
+		#endif
 	};
 	*count = sizeof(allocationOrder) / sizeof(X64Reg);
 	return allocationOrder;
@@ -252,10 +252,8 @@ const X64Reg* GPRRegCache::GetAllocationOrder(size_t* count)
 
 const X64Reg* FPURegCache::GetAllocationOrder(size_t* count)
 {
-	static const X64Reg allocationOrder[] =
-	{
-		XMM6, XMM7, XMM8, XMM9, XMM10, XMM11, XMM12, XMM13, XMM14, XMM15, XMM2, XMM3, XMM4, XMM5
-	};
+	static const X64Reg allocationOrder[] = {XMM6,  XMM7,  XMM8,  XMM9, XMM10, XMM11, XMM12,
+														  XMM13, XMM14, XMM15, XMM2, XMM3,  XMM4,  XMM5};
 	*count = sizeof(allocationOrder) / sizeof(X64Reg);
 	return allocationOrder;
 }
@@ -289,8 +287,10 @@ void RegCache::BindToRegister(size_t i, bool doLoad, bool makeDirty)
 	if (!regs[i].away || (regs[i].away && regs[i].location.IsImm()))
 	{
 		X64Reg xr = GetFreeXReg();
-		if (xregs[xr].dirty) PanicAlert("Xreg already dirty");
-		if (xregs[xr].locked) PanicAlert("GetFreeXReg returned locked register");
+		if (xregs[xr].dirty)
+			PanicAlert("Xreg already dirty");
+		if (xregs[xr].locked)
+			PanicAlert("GetFreeXReg returned locked register");
 		xregs[xr].free = false;
 		xregs[xr].ppcReg = i;
 		xregs[xr].dirty = makeDirty || regs[i].location.IsImm();
@@ -337,7 +337,7 @@ void RegCache::StoreFromRegister(size_t i, FlushMode mode)
 		}
 		else
 		{
-			//must be immediate - do nothing
+			// must be immediate - do nothing
 			doStore = true;
 		}
 		OpArg newLoc = GetDefaultLocation(i);
@@ -394,7 +394,7 @@ void RegCache::Flush(FlushMode mode, BitSet32 regsToFlush)
 			}
 			else
 			{
-				_assert_msg_(DYNA_REC,0,"Jit64 - Flush unhandled case, reg %u PC: %08x", i, PC);
+				_assert_msg_(DYNA_REC, 0, "Jit64 - Flush unhandled case, reg %u PC: %08x", i, PC);
 			}
 		}
 	}

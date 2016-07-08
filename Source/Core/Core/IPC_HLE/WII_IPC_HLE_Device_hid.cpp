@@ -135,10 +135,10 @@ IPCCommandResult CWII_IPC_HLE_Device_hid::IOCtl(u32 _CommandAddress)
 		return GetDefaultReply();
 	}
 
-	u32 Parameter     = Memory::Read_U32(_CommandAddress + 0xC);
-	u32 BufferIn      = Memory::Read_U32(_CommandAddress + 0x10);
-	u32 BufferInSize  = Memory::Read_U32(_CommandAddress + 0x14);
-	u32 BufferOut     = Memory::Read_U32(_CommandAddress + 0x18);
+	u32 Parameter = Memory::Read_U32(_CommandAddress + 0xC);
+	u32 BufferIn = Memory::Read_U32(_CommandAddress + 0x10);
+	u32 BufferInSize = Memory::Read_U32(_CommandAddress + 0x14);
+	u32 BufferOut = Memory::Read_U32(_CommandAddress + 0x18);
 	u32 BufferOutSize = Memory::Read_U32(_CommandAddress + 0x1C);
 
 	u32 ReturnValue = 0;
@@ -236,7 +236,7 @@ IPCCommandResult CWII_IPC_HLE_Device_hid::IOCtl(u32 _CommandAddress)
 		struct libusb_transfer *transfer = libusb_alloc_transfer(0);
 		transfer->flags |= LIBUSB_TRANSFER_FREE_TRANSFER;
 		libusb_fill_interrupt_transfer(transfer, dev_handle, endpoint, Memory::GetPointer(data), length,
-									   handleUsbUpdates, (void*)(size_t)_CommandAddress, 0);
+			handleUsbUpdates, (void*)(size_t)_CommandAddress, 0);
 		libusb_submit_transfer(transfer);
 
 		//DEBUG_LOG(WII_IPC_HID, "HID::IOCtl(Interrupt %s)(%d,%d,%X) (BufferIn: (%08x, %i), BufferOut: (%08x, %i)",
@@ -320,9 +320,9 @@ IPCCommandResult CWII_IPC_HLE_Device_hid::IOCtlV(u32 _CommandAddress)
 	DEBUG_LOG(WII_IPC_HID, "    BufferVector: 0x%08x", CommandBuffer.BufferVector);
 	DEBUG_LOG(WII_IPC_HID, "    PayloadAddr: 0x%08x", CommandBuffer.PayloadBuffer[0].m_Address);
 	DEBUG_LOG(WII_IPC_HID, "    PayloadSize: 0x%08x", CommandBuffer.PayloadBuffer[0].m_Size);
-	#if defined(_DEBUG) || defined(DEBUGFAST)
+#if defined(_DEBUG) || defined(DEBUGFAST)
 	DumpAsync(CommandBuffer.BufferVector, CommandBuffer.NumberInBuffer, CommandBuffer.NumberPayloadBuffer);
-	#endif
+#endif
 
 	Memory::Write_U32(ReturnValue, _CommandAddress + 4);
 	return GetDefaultReply();
@@ -332,36 +332,36 @@ IPCCommandResult CWII_IPC_HLE_Device_hid::IOCtlV(u32 _CommandAddress)
 
 void CWII_IPC_HLE_Device_hid::ConvertDeviceToWii(WiiHIDDeviceDescriptor *dest, const struct libusb_device_descriptor *src)
 {
-	dest->bLength            = src->bLength;
-	dest->bDescriptorType    = src->bDescriptorType;
-	dest->bcdUSB             = Common::swap16(src->bcdUSB);
-	dest->bDeviceClass       = src->bDeviceClass;
-	dest->bDeviceSubClass    = src->bDeviceSubClass;
-	dest->bDeviceProtocol    = src->bDeviceProtocol;
-	dest->bMaxPacketSize0    = src->bMaxPacketSize0;
-	dest->idVendor           = Common::swap16(src->idVendor);
-	dest->idProduct          = Common::swap16(src->idProduct);
-	dest->bcdDevice          = Common::swap16(src->bcdDevice);
-	dest->iManufacturer      = src->iManufacturer;
-	dest->iProduct           = src->iProduct;
-	dest->iSerialNumber      = src->iSerialNumber;
+	dest->bLength = src->bLength;
+	dest->bDescriptorType = src->bDescriptorType;
+	dest->bcdUSB = Common::swap16(src->bcdUSB);
+	dest->bDeviceClass = src->bDeviceClass;
+	dest->bDeviceSubClass = src->bDeviceSubClass;
+	dest->bDeviceProtocol = src->bDeviceProtocol;
+	dest->bMaxPacketSize0 = src->bMaxPacketSize0;
+	dest->idVendor = Common::swap16(src->idVendor);
+	dest->idProduct = Common::swap16(src->idProduct);
+	dest->bcdDevice = Common::swap16(src->bcdDevice);
+	dest->iManufacturer = src->iManufacturer;
+	dest->iProduct = src->iProduct;
+	dest->iSerialNumber = src->iSerialNumber;
 	dest->bNumConfigurations = src->bNumConfigurations;
 }
 
 void CWII_IPC_HLE_Device_hid::ConvertConfigToWii(WiiHIDConfigDescriptor *dest, const struct libusb_config_descriptor *src)
 {
-	memcpy(dest,src,sizeof(WiiHIDConfigDescriptor));
+	memcpy(dest, src, sizeof(WiiHIDConfigDescriptor));
 	dest->wTotalLength = Common::swap16(dest->wTotalLength);
 }
 
 void CWII_IPC_HLE_Device_hid::ConvertInterfaceToWii(WiiHIDInterfaceDescriptor *dest, const struct libusb_interface_descriptor *src)
 {
-	memcpy(dest,src,sizeof(WiiHIDInterfaceDescriptor));
+	memcpy(dest, src, sizeof(WiiHIDInterfaceDescriptor));
 }
 
 void CWII_IPC_HLE_Device_hid::ConvertEndpointToWii(WiiHIDEndpointDescriptor *dest, const struct libusb_endpoint_descriptor *src)
 {
-	memcpy(dest,src,sizeof(WiiHIDEndpointDescriptor));
+	memcpy(dest, src, sizeof(WiiHIDEndpointDescriptor));
 	dest->wMaxPacketSize = Common::swap16(dest->wMaxPacketSize);
 }
 
@@ -371,7 +371,7 @@ void CWII_IPC_HLE_Device_hid::FillOutDevices(u32 BufferOut, u32 BufferOutSize)
 	int OffsetBuffer = BufferOut;
 	int OffsetStart = 0;
 	//int OffsetDevice = 0;
-	int d,c,ic,i,e; /* config, interface container, interface, endpoint  */
+	int d, c, ic, i, e; /* config, interface container, interface, endpoint  */
 
 	libusb_device **list;
 	//libusb_device *found = nullptr;
@@ -381,7 +381,7 @@ void CWII_IPC_HLE_Device_hid::FillOutDevices(u32 BufferOut, u32 BufferOutSize)
 	{
 		libusb_device *device = list[d];
 		struct libusb_device_descriptor desc;
-		int dRet = libusb_get_device_descriptor (device, &desc);
+		int dRet = libusb_get_device_descriptor(device, &desc);
 		if (dRet)
 		{
 			// could not aquire the descriptor, no point in trying to use it.
@@ -460,14 +460,14 @@ void CWII_IPC_HLE_Device_hid::FillOutDevices(u32 BufferOut, u32 BufferOutSize)
 
 		if (deviceValid)
 		{
-			Memory::Write_U32(OffsetBuffer-OffsetStart, OffsetStart); // fill in length
+			Memory::Write_U32(OffsetBuffer - OffsetStart, OffsetStart); // fill in length
 
 			int devNum = GetAvailableDevNum(desc.idVendor,
-											desc.idProduct,
-											libusb_get_bus_number (device),
-											libusb_get_device_address (device),
-											check);
-			if (devNum < 0 )
+				desc.idProduct,
+				libusb_get_bus_number(device),
+				libusb_get_device_address(device),
+				check);
+			if (devNum < 0)
 			{
 				// too many devices to handle.
 				ERROR_LOG(WII_IPC_HID, "Exhausted device list, there are way too many usb devices plugged in.");
@@ -477,12 +477,12 @@ void CWII_IPC_HLE_Device_hid::FillOutDevices(u32 BufferOut, u32 BufferOutSize)
 
 			DEBUG_LOG(WII_IPC_HID, "Found device with Vendor: %X Product: %X Devnum: %d", desc.idVendor, desc.idProduct, devNum);
 
-			Memory::Write_U32(devNum , OffsetStart+4); //write device num
+			Memory::Write_U32(devNum, OffsetStart + 4); //write device num
 		}
 	}
 
 	// Find devices that no longer exists and free them
-	for (i=0; i<MAX_DEVICE_DEVNUM; i++)
+	for (i = 0; i < MAX_DEVICE_DEVNUM; i++)
 	{
 		u16 check_cur = (u16)(hidDeviceAliases[i] >> 48);
 		if (hidDeviceAliases[i] != 0 && check_cur != check)
@@ -509,7 +509,7 @@ void CWII_IPC_HLE_Device_hid::FillOutDevices(u32 BufferOut, u32 BufferOutSize)
 
 int CWII_IPC_HLE_Device_hid::Align(int num, int alignment)
 {
-	return (num + (alignment-1)) & ~(alignment-1);
+	return (num + (alignment - 1)) & ~(alignment - 1);
 }
 
 
@@ -552,9 +552,9 @@ libusb_device_handle * CWII_IPC_HLE_Device_hid::GetDeviceByDevNum(u32 devNum)
 	{
 		libusb_device *device = list[i];
 		struct libusb_device_descriptor desc;
-		int dRet = libusb_get_device_descriptor (device, &desc);
-		u8 bus = libusb_get_bus_number (device);
-		u8 port = libusb_get_device_address (device);
+		int dRet = libusb_get_device_descriptor(device, &desc);
+		u8 bus = libusb_get_bus_number(device);
+		u8 port = libusb_get_device_address(device);
 		u64 unique_id = ((u64)desc.idVendor << 32) | ((u64)desc.idProduct << 16) | ((u64)bus << 8) | (u64)port;
 		if ((hidDeviceAliases[devNum] & HID_ID_MASK) == unique_id)
 		{
@@ -566,17 +566,17 @@ libusb_device_handle * CWII_IPC_HLE_Device_hid::GetDeviceByDevNum(u32 devNum)
 					if (dRet)
 					{
 						ERROR_LOG(WII_IPC_HID, "Dolphin does not have access to this device: Bus %03d Device %03d: ID ????:???? (couldn't get id).",
-								bus,
-								port
+							bus,
+							port
 						);
 					}
 					else
 					{
 						ERROR_LOG(WII_IPC_HID, "Dolphin does not have access to this device: Bus %03d Device %03d: ID %04X:%04X.",
-								bus,
-								port,
-								desc.idVendor,
-								desc.idProduct
+							bus,
+							port,
+							desc.idVendor,
+							desc.idProduct
 						);
 					}
 				}
@@ -627,7 +627,7 @@ int CWII_IPC_HLE_Device_hid::GetAvailableDevNum(u16 idVendor, u16 idProduct, u8 
 	int pos = -1;
 	u64 unique_id = ((u64)idVendor << 32) | ((u64)idProduct << 16) | ((u64)bus << 8) | (u64)port;
 
-	for (int i=0; i<MAX_DEVICE_DEVNUM; i++)
+	for (int i = 0; i < MAX_DEVICE_DEVNUM; i++)
 	{
 		u64 id = hidDeviceAliases[i] & HID_ID_MASK;
 		if (id == 0 && pos == -1)

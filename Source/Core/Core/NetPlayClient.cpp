@@ -313,15 +313,15 @@ unsigned int NetPlayClient::OnData(sf::Packet& packet)
 		PadMapping map = 0;
 		GCPadStatus pad;
 		packet >> map
-		       >> pad.button
-		       >> pad.analogA
-		       >> pad.analogB
-		       >> pad.stickX
-		       >> pad.stickY
-		       >> pad.substickX
-		       >> pad.substickY
-		       >> pad.triggerLeft
-		       >> pad.triggerRight;
+			>> pad.button
+			>> pad.analogA
+			>> pad.analogB
+			>> pad.stickX
+			>> pad.stickY
+			>> pad.substickX
+			>> pad.substickY
+			>> pad.triggerLeft
+			>> pad.triggerRight;
 
 		// Trusting server for good map value (>=0 && <4)
 		// add to pad buffer
@@ -376,6 +376,7 @@ unsigned int NetPlayClient::OnData(sf::Packet& packet)
 			packet >> m_current_game;
 			packet >> g_NetPlaySettings.m_CPUthread;
 			packet >> g_NetPlaySettings.m_CPUcore;
+			packet >> g_NetPlaySettings.m_EnableCheats;
 			packet >> g_NetPlaySettings.m_SelectedLanguage;
 			packet >> g_NetPlaySettings.m_OverrideGCLanguage;
 			packet >> g_NetPlaySettings.m_ProgressiveScan;
@@ -585,7 +586,8 @@ void NetPlayClient::GetPlayerList(std::string& list, std::vector<int>& pid_list)
 
 	std::ostringstream ss;
 
-	const auto enumerate_player_controller_mappings = [&ss](const PadMappingArray& mappings, const Player& player) {
+	const auto enumerate_player_controller_mappings = [&ss](const PadMappingArray& mappings, const Player& player)
+	{
 		for (size_t i = 0; i < mappings.size(); i++)
 		{
 			if (mappings[i] == player.pid)
@@ -639,14 +641,14 @@ void NetPlayClient::SendPadState(const PadMapping in_game_pad, const GCPadStatus
 	*spac << static_cast<MessageId>(NP_MSG_PAD_DATA);
 	*spac << in_game_pad;
 	*spac << pad.button
-	      << pad.analogA
-	      << pad.analogB
-	      << pad.stickX
-	      << pad.stickY
-	      << pad.substickX
-	      << pad.substickY
-	      << pad.triggerLeft
-	      << pad.triggerRight;
+		<< pad.analogA
+		<< pad.analogB
+		<< pad.stickX
+		<< pad.stickY
+		<< pad.substickX
+		<< pad.substickY
+		<< pad.triggerLeft
+		<< pad.triggerRight;
 
 	SendAsync(std::move(spac));
 }
@@ -788,7 +790,7 @@ void NetPlayClient::UpdateDevices()
 void NetPlayClient::ClearBuffers()
 {
 	// clear pad buffers, Clear method isn't thread safe
-	for (unsigned int i = 0; i<4; ++i)
+	for (unsigned int i = 0; i < 4; ++i)
 	{
 		while (m_pad_buffer[i].Size())
 			m_pad_buffer[i].Pop();
@@ -930,7 +932,7 @@ bool NetPlayClient::GetNetPads(const u8 pad_nb, GCPadStatus* pad_status)
 bool NetPlayClient::WiimoteUpdate(int _number, u8* data, const u8 size)
 {
 	NetWiimote nw;
-	static u8 previousSize[4] = { 4, 4, 4, 4 };
+	static u8 previousSize[4] = {4, 4, 4, 4};
 	{
 		std::lock_guard<std::recursive_mutex> lkp(m_crit.players);
 
@@ -948,7 +950,8 @@ bool NetPlayClient::WiimoteUpdate(int _number, u8* data, const u8 size)
 					m_wiimote_buffer[in_game_num].Push(nw);
 
 					SendWiimoteState(in_game_num, nw);
-				} while (m_wiimote_buffer[in_game_num].Size() <= m_target_buffer_size * 200 / 120); // TODO: add a seperate setting for wiimote buffer?
+				}
+				while (m_wiimote_buffer[in_game_num].Size() <= m_target_buffer_size * 200 / 120); // TODO: add a seperate setting for wiimote buffer?
 			}
 			else
 			{
@@ -1066,24 +1069,27 @@ void NetPlayClient::Stop()
 // called from ---GUI--- thread
 bool NetPlayClient::LocalPlayerHasControllerMapped() const
 {
-	const auto mapping_matches_player_id = [this](const PadMapping& mapping) {
+	const auto mapping_matches_player_id = [this](const PadMapping& mapping)
+	{
 		return mapping == m_local_player->pid;
 	};
 
-	return std::any_of(m_pad_map.begin(),     m_pad_map.end(),     mapping_matches_player_id) ||
-	       std::any_of(m_wiimote_map.begin(), m_wiimote_map.end(), mapping_matches_player_id);
+	return std::any_of(m_pad_map.begin(), m_pad_map.end(), mapping_matches_player_id) ||
+		std::any_of(m_wiimote_map.begin(), m_wiimote_map.end(), mapping_matches_player_id);
 }
 
 bool NetPlayClient::IsFirstInGamePad(u8 ingame_pad) const
 {
-	return std::none_of(m_pad_map.begin(), m_pad_map.begin() + ingame_pad, [](auto mapping) {
+	return std::none_of(m_pad_map.begin(), m_pad_map.begin() + ingame_pad, [](auto mapping)
+	{
 		return mapping > 0;
 	});
 }
 
 u8 NetPlayClient::NumLocalPads() const
 {
-	return static_cast<u8>(std::count_if(m_pad_map.begin(), m_pad_map.end(), [this](auto mapping) {
+	return static_cast<u8>(std::count_if(m_pad_map.begin(), m_pad_map.end(), [this](auto mapping)
+	{
 		return mapping == m_local_player->pid;
 	}));
 }

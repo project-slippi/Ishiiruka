@@ -2,16 +2,16 @@
 // Licensed under GPLv2+
 // Refer to the license.txt file included.
 
+#include "Core/PowerPC/JitILCommon/JitILBase.h"
 #include "Common/Assert.h"
 #include "Common/CommonTypes.h"
 #include "Common/MsgHandler.h"
 #include "Core/ConfigManager.h"
-#include "Core/PowerPC/JitILCommon/JitILBase.h"
 
 void JitILBase::fp_arith_s(UGeckoInstruction inst)
 {
 	INSTRUCTION_START
-	JITDISABLE(bJITFloatingPointOff);
+		JITDISABLE(bJITFloatingPointOff);
 	FALLBACK_IF(inst.Rc || (inst.SUBOP5 != 25 && inst.SUBOP5 != 20 && inst.SUBOP5 != 21));
 
 	// Only the interpreter has "proper" support for (some) FP flags
@@ -20,13 +20,13 @@ void JitILBase::fp_arith_s(UGeckoInstruction inst)
 	IREmitter::InstLoc val = ibuild.EmitLoadFReg(inst.FA);
 	switch (inst.SUBOP5)
 	{
-	case 20: //sub
+	case 20:  // sub
 		val = ibuild.EmitFDSub(val, ibuild.EmitLoadFReg(inst.FB));
 		break;
-	case 21: //add
+	case 21:  // add
 		val = ibuild.EmitFDAdd(val, ibuild.EmitLoadFReg(inst.FB));
 		break;
-	case 25: //mul
+	case 25:  // mul
 		val = ibuild.EmitFDMul(val, ibuild.EmitLoadFReg(inst.FC));
 		break;
 	default:
@@ -48,7 +48,7 @@ void JitILBase::fp_arith_s(UGeckoInstruction inst)
 void JitILBase::fmaddXX(UGeckoInstruction inst)
 {
 	INSTRUCTION_START
-	JITDISABLE(bJITFloatingPointOff);
+		JITDISABLE(bJITFloatingPointOff);
 	FALLBACK_IF(inst.Rc);
 
 	// Only the interpreter has "proper" support for (some) FP flags
@@ -81,7 +81,7 @@ void JitILBase::fmaddXX(UGeckoInstruction inst)
 void JitILBase::fmrx(UGeckoInstruction inst)
 {
 	INSTRUCTION_START
-	JITDISABLE(bJITFloatingPointOff);
+		JITDISABLE(bJITFloatingPointOff);
 	FALLBACK_IF(inst.Rc);
 
 	IREmitter::InstLoc val = ibuild.EmitLoadFReg(inst.FB);
@@ -92,7 +92,7 @@ void JitILBase::fmrx(UGeckoInstruction inst)
 void JitILBase::fcmpX(UGeckoInstruction inst)
 {
 	INSTRUCTION_START
-	JITDISABLE(bJITFloatingPointOff);
+		JITDISABLE(bJITFloatingPointOff);
 	IREmitter::InstLoc lhs, rhs, res;
 	lhs = ibuild.EmitLoadFReg(inst.FA);
 	rhs = ibuild.EmitLoadFReg(inst.FB);
@@ -105,7 +105,7 @@ void JitILBase::fcmpX(UGeckoInstruction inst)
 void JitILBase::fsign(UGeckoInstruction inst)
 {
 	INSTRUCTION_START
-	JITDISABLE(bJITFloatingPointOff);
+		JITDISABLE(bJITFloatingPointOff);
 
 	FALLBACK_IF(true);
 
@@ -114,9 +114,9 @@ void JitILBase::fsign(UGeckoInstruction inst)
 	{
 	case 40:  // fnegx
 		break;
-	case 264: // fabsx
+	case 264:  // fabsx
 		break;
-	case 136: // fnabs
+	case 136:  // fnabs
 		break;
 	default:
 		PanicAlert("fsign bleh");

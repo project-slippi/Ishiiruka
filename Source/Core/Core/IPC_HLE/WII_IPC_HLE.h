@@ -21,19 +21,19 @@ struct IPCCommandResult
 	u64 reply_delay_ticks;
 };
 
-enum IPCCommandType : u32
+enum IPCCommandType: u32
 {
-	IPC_CMD_OPEN   = 1,
-	IPC_CMD_CLOSE  = 2,
-	IPC_CMD_READ   = 3,
-	IPC_CMD_WRITE  = 4,
-	IPC_CMD_SEEK   = 5,
-	IPC_CMD_IOCTL  = 6,
+	IPC_CMD_OPEN = 1,
+	IPC_CMD_CLOSE = 2,
+	IPC_CMD_READ = 3,
+	IPC_CMD_WRITE = 4,
+	IPC_CMD_SEEK = 5,
+	IPC_CMD_IOCTL = 6,
 	IPC_CMD_IOCTLV = 7,
 	// IPC_REP_ASYNC is used for messages that are automatically
 	// sent to an IOS queue when an asynchronous syscall completes.
 	// Reference: http://wiibrew.org/wiki/IOS
-	IPC_REP_ASYNC  = 8
+	IPC_REP_ASYNC = 8
 };
 
 namespace WII_IPC_HLE_Interface

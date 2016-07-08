@@ -14,7 +14,7 @@
 namespace OGL
 {
 
-class TextureCache : public ::TextureCacheBase
+class TextureCache: public ::TextureCacheBase
 {
 public:
 	TextureCache();
@@ -24,7 +24,7 @@ public:
 	static void SetStage();
 
 private:
-	struct TCacheEntry : TextureCacheBase::TCacheEntryBase
+	struct TCacheEntry: TextureCacheBase::TCacheEntryBase
 	{
 		GLuint texture;
 		GLuint nrm_texture;
@@ -33,7 +33,7 @@ private:
 
 		int gl_format;
 		int gl_iformat;
-		int gl_type;		
+		int gl_type;
 		void SetFormat();
 		//TexMode0 mode; // current filter and clamp modes that texture is set to
 		//TexMode1 mode1; // current filter and clamp modes that texture is set to
@@ -56,7 +56,10 @@ private:
 
 		void FromRenderTarget(u8* dst, PEControl::PixelFormat srcFormat, const EFBRectangle& srcRect,
 			bool scaleByHalf, unsigned int cbufid, const float *colmat) override;
-		bool SupportsMaterialMap() const override { return nrm_texture != 0; };
+		bool SupportsMaterialMap() const override
+		{
+			return nrm_texture != 0;
+		};
 		void Bind(u32 stage, u32 last_texture) override;
 		bool Save(const std::string& filename, u32 level) override;
 	};

@@ -91,7 +91,10 @@ unsigned int Renderer::efb_scale_denominatorX = 1;
 unsigned int Renderer::efb_scale_denominatorY = 1;
 unsigned int Renderer::ssaa_multiplier = 1;
 
-static float AspectToWidescreen(float aspect) { return aspect * ((16.0f / 9.0f) / (4.0f / 3.0f)); }
+static float AspectToWidescreen(float aspect)
+{
+	return aspect * ((16.0f / 9.0f) / (4.0f / 3.0f));
+}
 
 Renderer::Renderer()
 	: frame_data()
@@ -145,10 +148,10 @@ int Renderer::EFBToScaledX(int x)
 	switch (g_ActiveConfig.iEFBScale)
 	{
 	case SCALE_AUTO: // fractional
-			return (int)ssaa_multiplier * FramebufferManagerBase::ScaleToVirtualXfbWidth(x);
+		return (int)ssaa_multiplier * FramebufferManagerBase::ScaleToVirtualXfbWidth(x);
 
-		default:
-			return x * (int)ssaa_multiplier * (int)efb_scale_numeratorX / (int)efb_scale_denominatorX;
+	default:
+		return x * (int)ssaa_multiplier * (int)efb_scale_numeratorX / (int)efb_scale_denominatorX;
 	};
 }
 
@@ -156,11 +159,11 @@ int Renderer::EFBToScaledY(int y)
 {
 	switch (g_ActiveConfig.iEFBScale)
 	{
-		case SCALE_AUTO: // fractional
-			return (int)ssaa_multiplier * FramebufferManagerBase::ScaleToVirtualXfbHeight(y);
+	case SCALE_AUTO: // fractional
+		return (int)ssaa_multiplier * FramebufferManagerBase::ScaleToVirtualXfbHeight(y);
 
-		default:
-			return y * (int)ssaa_multiplier * (int)efb_scale_numeratorY / (int)efb_scale_denominatorY;
+	default:
+		return y * (int)ssaa_multiplier * (int)efb_scale_numeratorY / (int)efb_scale_denominatorY;
 	};
 }
 
@@ -187,49 +190,49 @@ bool Renderer::CalculateTargetSize(unsigned int framebuffer_width, unsigned int 
 	// TODO: Ugly. Clean up
 	switch (s_last_efb_scale)
 	{
-		case SCALE_AUTO:
-		case SCALE_AUTO_INTEGRAL:
-			newEFBWidth = FramebufferManagerBase::ScaleToVirtualXfbWidth(EFB_WIDTH);
-			newEFBHeight = FramebufferManagerBase::ScaleToVirtualXfbHeight(EFB_HEIGHT);
+	case SCALE_AUTO:
+	case SCALE_AUTO_INTEGRAL:
+		newEFBWidth = FramebufferManagerBase::ScaleToVirtualXfbWidth(EFB_WIDTH);
+		newEFBHeight = FramebufferManagerBase::ScaleToVirtualXfbHeight(EFB_HEIGHT);
 
-			if (s_last_efb_scale == SCALE_AUTO_INTEGRAL)
-			{
-				efb_scale_numeratorX = efb_scale_numeratorY = std::max((newEFBWidth - 1) / EFB_WIDTH + 1, (newEFBHeight - 1) / EFB_HEIGHT + 1);
-				efb_scale_denominatorX = efb_scale_denominatorY = 1;
-				newEFBWidth = EFBToScaledX(EFB_WIDTH);
-				newEFBHeight = EFBToScaledY(EFB_HEIGHT);
-			}
-			else
-			{
-				efb_scale_numeratorX = newEFBWidth;
-				efb_scale_denominatorX = EFB_WIDTH;
-				efb_scale_numeratorY = newEFBHeight;
-				efb_scale_denominatorY = EFB_HEIGHT;
-			}
-			break;
-		case SCALE_1X:
-			efb_scale_numeratorX = efb_scale_numeratorY = 1;
+		if (s_last_efb_scale == SCALE_AUTO_INTEGRAL)
+		{
+			efb_scale_numeratorX = efb_scale_numeratorY = std::max((newEFBWidth - 1) / EFB_WIDTH + 1, (newEFBHeight - 1) / EFB_HEIGHT + 1);
 			efb_scale_denominatorX = efb_scale_denominatorY = 1;
-			break;
+			newEFBWidth = EFBToScaledX(EFB_WIDTH);
+			newEFBHeight = EFBToScaledY(EFB_HEIGHT);
+		}
+		else
+		{
+			efb_scale_numeratorX = newEFBWidth;
+			efb_scale_denominatorX = EFB_WIDTH;
+			efb_scale_numeratorY = newEFBHeight;
+			efb_scale_denominatorY = EFB_HEIGHT;
+		}
+		break;
+	case SCALE_1X:
+		efb_scale_numeratorX = efb_scale_numeratorY = 1;
+		efb_scale_denominatorX = efb_scale_denominatorY = 1;
+		break;
 
-		case SCALE_1_5X:
-			efb_scale_numeratorX = efb_scale_numeratorY = 3;
-			efb_scale_denominatorX = efb_scale_denominatorY = 2;
-			break;
+	case SCALE_1_5X:
+		efb_scale_numeratorX = efb_scale_numeratorY = 3;
+		efb_scale_denominatorX = efb_scale_denominatorY = 2;
+		break;
 
-		case SCALE_2X:
-			efb_scale_numeratorX = efb_scale_numeratorY = 2;
-			efb_scale_denominatorX = efb_scale_denominatorY = 1;
-			break;
+	case SCALE_2X:
+		efb_scale_numeratorX = efb_scale_numeratorY = 2;
+		efb_scale_denominatorX = efb_scale_denominatorY = 1;
+		break;
 
-		case SCALE_2_5X: // 2.5x
-			efb_scale_numeratorX = efb_scale_numeratorY = 5;
-			efb_scale_denominatorX = efb_scale_denominatorY = 2;
-			break;
-		default:
-			efb_scale_numeratorX = efb_scale_numeratorY = s_last_efb_scale - 3;
-			efb_scale_denominatorX = efb_scale_denominatorY = 1;			
-			break;
+	case SCALE_2_5X: // 2.5x
+		efb_scale_numeratorX = efb_scale_numeratorY = 5;
+		efb_scale_denominatorX = efb_scale_denominatorY = 2;
+		break;
+	default:
+		efb_scale_numeratorX = efb_scale_numeratorY = s_last_efb_scale - 3;
+		efb_scale_denominatorX = efb_scale_denominatorY = 1;
+		break;
 	}
 	int maxSize;
 	maxSize = GetMaxTextureSize();
@@ -248,7 +251,7 @@ bool Renderer::CalculateTargetSize(unsigned int framebuffer_width, unsigned int 
 
 	if (newEFBWidth != s_target_width || newEFBHeight != s_target_height)
 	{
-		s_target_width  = newEFBWidth;
+		s_target_width = newEFBWidth;
 		s_target_height = newEFBHeight;
 		VertexShaderManager::SetViewportChanged();
 		GeometryShaderManager::SetViewportChanged();
@@ -368,7 +371,7 @@ void Renderer::DrawDebugText()
 		{
 		case ASPECT_AUTO:
 			ar_text = "Auto";
-			break;		
+			break;
 		case ASPECT_STRETCH:
 			ar_text = "Stretch";
 			break;
@@ -389,7 +392,10 @@ void Renderer::DrawDebugText()
 			SConfig::GetInstance().m_EmulationSpeed <= 0 ? "Speed Limit: Unlimited" :
 			StringFromFormat("Speed Limit: %li%%", std::lround(SConfig::GetInstance().m_EmulationSpeed * 100.f)),
 		};
-		enum { lines_count = sizeof(lines) / sizeof(*lines) };
+		enum
+		{
+			lines_count = sizeof(lines) / sizeof(*lines)
+		};
 		// The latest changed setting in yellow
 		for (int i = 0; i != lines_count; ++i)
 		{
@@ -429,16 +435,16 @@ void Renderer::UpdateDrawRectangle(int backbuffer_width, int backbuffer_height)
 	// Update aspect ratio hack values
 	// Won't take effect until next frame
 	// Don't know if there is a better place for this code so there isn't a 1 frame delay
-	if ( g_ActiveConfig.bWidescreenHack )
+	if (g_ActiveConfig.bWidescreenHack)
 	{
 		float source_aspect = VideoInterface::GetAspectRatio();
 		if (Core::g_aspect_wide)
 			source_aspect = AspectToWidescreen(source_aspect);
 		float target_aspect;
 
-		switch ( g_ActiveConfig.iAspectRatio )
-		{		
-		case ASPECT_STRETCH :
+		switch (g_ActiveConfig.iAspectRatio)
+		{
+		case ASPECT_STRETCH:
 			target_aspect = WinWidth / WinHeight;
 			break;
 		case ASPECT_ANALOG:
@@ -456,18 +462,18 @@ void Renderer::UpdateDrawRectangle(int backbuffer_width, int backbuffer_height)
 		case ASPECT_16_10:
 			target_aspect = 16.0f / 10.0f;
 			break;
-		default :
+		default:
 			// ASPECT_AUTO
 			target_aspect = source_aspect;
 			break;
 		}
 
 		float adjust = source_aspect / target_aspect;
-		if ( adjust > 1 )
+		if (adjust > 1)
 		{
 			// Vert+
 			g_Config.fAspectRatioHackW = 1.0f;
-			g_Config.fAspectRatioHackH = 1.0f/adjust;
+			g_Config.fAspectRatioHackH = 1.0f / adjust;
 		}
 		else
 		{

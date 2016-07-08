@@ -21,7 +21,7 @@
 // To add a new asm routine, just add another const here, and add the code to Generate.
 // Also, possibly increase the size of the code buffer.
 
-class Jit64AsmRoutineManager : public CommonAsmRoutines
+class Jit64AsmRoutineManager: public CommonAsmRoutines
 {
 private:
 	void Generate();

@@ -12,7 +12,7 @@
 class wxCheckBox;
 class wxChoice;
 
-class WiiConfigPane final : public wxPanel
+class WiiConfigPane final: public wxPanel
 {
 public:
 	WiiConfigPane(wxWindow* parent, wxWindowID id);
@@ -28,7 +28,6 @@ private:
 	void OnConnectKeyboardCheckBoxChanged(wxCommandEvent&);
 	void OnSystemLanguageChoiceChanged(wxCommandEvent&);
 	void OnAspectRatioChoiceChanged(wxCommandEvent&);
-	void OnWiiSpeakCheckBoxChanged(wxCommandEvent&);
 
 	static u8 GetSADRCountryCode(DiscIO::IVolume::ELanguage language);
 
@@ -36,7 +35,6 @@ private:
 	wxArrayString m_aspect_ratio_strings;
 
 	wxCheckBox* m_screensaver_checkbox;
-	wxCheckBox* m_wiispeak_checkbox;
 	wxCheckBox* m_pal60_mode_checkbox;
 	wxCheckBox* m_sd_card_checkbox;
 	wxCheckBox* m_connect_keyboard_checkbox;

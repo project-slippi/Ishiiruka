@@ -14,7 +14,7 @@
 
 class PointerWrap;
 
-class MemoryCard : public MemoryCardBase
+class MemoryCard: public MemoryCardBase
 {
 public:
 	MemoryCard(const std::string& filename, int _card_index, u16 sizeMb = MemCard2043Mb);
@@ -22,11 +22,11 @@ public:
 	void FlushThread();
 	void MakeDirty();
 
-	s32 Read(u32 address, s32 length, u8 *destaddress) override;
-	s32 Write(u32 destaddress, s32 length, u8 *srcaddress) override;
+	s32 Read(u32 address, s32 length, u8* destaddress) override;
+	s32 Write(u32 destaddress, s32 length, u8* srcaddress) override;
 	void ClearBlock(u32 address) override;
 	void ClearAll() override;
-	void DoState(PointerWrap &p) override;
+	void DoState(PointerWrap& p) override;
 
 private:
 	std::string m_filename;

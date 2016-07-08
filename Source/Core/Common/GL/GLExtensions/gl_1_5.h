@@ -76,7 +76,7 @@
 
 typedef void (APIENTRYP PFNDOLGENQUERIESPROC) (GLsizei n, GLuint *ids);
 typedef void (APIENTRYP PFNDOLDELETEQUERIESPROC) (GLsizei n, const GLuint *ids);
-typedef GLboolean (APIENTRYP PFNDOLISQUERYPROC) (GLuint id);
+typedef GLboolean(APIENTRYP PFNDOLISQUERYPROC) (GLuint id);
 typedef void (APIENTRYP PFNDOLBEGINQUERYPROC) (GLenum target, GLuint id);
 typedef void (APIENTRYP PFNDOLENDQUERYPROC) (GLenum target);
 typedef void (APIENTRYP PFNDOLGETQUERYIVPROC) (GLenum target, GLenum pname, GLint *params);
@@ -85,12 +85,12 @@ typedef void (APIENTRYP PFNDOLGETQUERYOBJECTUIVPROC) (GLuint id, GLenum pname, G
 typedef void (APIENTRYP PFNDOLBINDBUFFERPROC) (GLenum target, GLuint buffer);
 typedef void (APIENTRYP PFNDOLDELETEBUFFERSPROC) (GLsizei n, const GLuint *buffers);
 typedef void (APIENTRYP PFNDOLGENBUFFERSPROC) (GLsizei n, GLuint *buffers);
-typedef GLboolean (APIENTRYP PFNDOLISBUFFERPROC) (GLuint buffer);
+typedef GLboolean(APIENTRYP PFNDOLISBUFFERPROC) (GLuint buffer);
 typedef void (APIENTRYP PFNDOLBUFFERDATAPROC) (GLenum target, GLsizeiptr size, const void *data, GLenum usage);
 typedef void (APIENTRYP PFNDOLBUFFERSUBDATAPROC) (GLenum target, GLintptr offset, GLsizeiptr size, const void *data);
 typedef void (APIENTRYP PFNDOLGETBUFFERSUBDATAPROC) (GLenum target, GLintptr offset, GLsizeiptr size, void *data);
 typedef void *(APIENTRYP PFNDOLMAPBUFFERPROC) (GLenum target, GLenum access);
-typedef GLboolean (APIENTRYP PFNDOLUNMAPBUFFERPROC) (GLenum target);
+typedef GLboolean(APIENTRYP PFNDOLUNMAPBUFFERPROC) (GLenum target);
 typedef void (APIENTRYP PFNDOLGETBUFFERPARAMETERIVPROC) (GLenum target, GLenum pname, GLint *params);
 typedef void (APIENTRYP PFNDOLGETBUFFERPOINTERVPROC) (GLenum target, GLenum pname, void **params);
 

@@ -6,7 +6,7 @@
 #endif
 using namespace Common;
 
-ThreadPool::ThreadPool() : m_workflag(0), m_workercount(0), m_workers(16)
+ThreadPool::ThreadPool(): m_workflag(0), m_workercount(0), m_workers(16)
 {
 	m_working.store(true);
 	int workers = cpu_info.logical_cpu_count - 1;
@@ -98,7 +98,7 @@ void ThreadPool::Workloop(ThreadPool &state, size_t ID)
 				Common::YieldCPU();
 				continue;
 			}
-			else if(state.m_workflag.load() > ID)
+			else if (state.m_workflag.load() > ID)
 			{
 				state.m_workflag.fetch_sub(1);
 			}
@@ -113,7 +113,7 @@ AsyncWorker& AsyncWorker::Getinstance()
 	return intance;
 }
 
-AsyncWorker::AsyncWorker() : m_inputsize(0), m_TaskQueue()
+AsyncWorker::AsyncWorker(): m_inputsize(0), m_TaskQueue()
 {
 	ThreadPool::RegisterWorker(this);
 }

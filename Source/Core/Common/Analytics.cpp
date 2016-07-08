@@ -21,7 +21,7 @@ constexpr u8 WIRE_FORMAT_VERSION = 0;
 
 // Identifiers for the value types supported by the analytics reporting wire
 // format.
-enum class TypeId : u8
+enum class TypeId: u8
 {
 	STRING = 0,
 	BOOL = 1,
@@ -48,7 +48,7 @@ void AppendVarInt(std::string* out, u64 v)
 }
 
 void AppendBytes(std::string* out, const u8* bytes, u32 length,
-                 bool encode_length = true)
+	bool encode_length = true)
 {
 	if (encode_length)
 	{
@@ -76,34 +76,34 @@ AnalyticsReportBuilder::AnalyticsReportBuilder()
 }
 
 void AnalyticsReportBuilder::AppendSerializedValue(std::string* report,
-                                                   const std::string& v)
+	const std::string& v)
 {
 	AppendType(report, TypeId::STRING);
 	AppendBytes(report, reinterpret_cast<const u8*>(v.data()), static_cast<u32>(v.size()));
 }
 
 void AnalyticsReportBuilder::AppendSerializedValue(std::string* report,
-                                                   const char* v)
+	const char* v)
 {
 	AppendSerializedValue(report, std::string(v));
 }
 
 void AnalyticsReportBuilder::AppendSerializedValue(std::string* report,
-                                                   bool v)
+	bool v)
 {
 	AppendType(report, TypeId::BOOL);
 	AppendBool(report, v);
 }
 
 void AnalyticsReportBuilder::AppendSerializedValue(std::string* report,
-                                                   u64 v)
+	u64 v)
 {
 	AppendType(report, TypeId::UINT);
 	AppendVarInt(report, v);
 }
 
 void AnalyticsReportBuilder::AppendSerializedValue(std::string* report,
-                                                   s64 v)
+	s64 v)
 {
 	AppendType(report, TypeId::SINT);
 	AppendBool(report, v >= 0);
@@ -111,22 +111,22 @@ void AnalyticsReportBuilder::AppendSerializedValue(std::string* report,
 }
 
 void AnalyticsReportBuilder::AppendSerializedValue(std::string* report,
-                                                   u32 v)
+	u32 v)
 {
 	AppendSerializedValue(report, static_cast<u64>(v));
 }
 
 void AnalyticsReportBuilder::AppendSerializedValue(std::string* report,
-                                                   s32 v)
+	s32 v)
 {
 	AppendSerializedValue(report, static_cast<s64>(v));
 }
 
 void AnalyticsReportBuilder::AppendSerializedValue(std::string* report,
-                                                   float v)
+	float v)
 {
 	AppendType(report, TypeId::FLOAT);
-	AppendBytes(report, reinterpret_cast<u8*>(&v), sizeof (v), false);
+	AppendBytes(report, reinterpret_cast<u8*>(&v), sizeof(v), false);
 }
 
 AnalyticsReporter::AnalyticsReporter()
@@ -190,7 +190,7 @@ void AnalyticsReporter::ThreadProc()
 void StdoutAnalyticsBackend::Send(std::string report)
 {
 	printf("Analytics report sent:\n%s", HexDump(
-	    reinterpret_cast<const u8*>(report.data()), report.size()).c_str());
+		reinterpret_cast<const u8*>(report.data()), report.size()).c_str());
 }
 
 HttpAnalyticsBackend::HttpAnalyticsBackend(const std::string& endpoint)

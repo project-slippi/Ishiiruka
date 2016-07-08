@@ -15,10 +15,10 @@
 #define COMPILED_CODE_SIZE 2097152
 #define MAX_BLOCKS         0x10000
 
-typedef u32 (*DSPCompiledCode)();
+typedef u32(*DSPCompiledCode)();
 typedef const u8 *Block;
 
-class DSPEmitter : public Gen::X64CodeBlock
+class DSPEmitter: public Gen::X64CodeBlock
 {
 public:
 	DSPEmitter();
@@ -90,7 +90,8 @@ public:
 	void dr(const UDSPInstruction opc);
 	void ir(const UDSPInstruction opc);
 	void nr(const UDSPInstruction opc);
-	void nop(const UDSPInstruction opc) {}
+	void nop(const UDSPInstruction opc)
+	{}
 
 	// Command helpers
 	void dsp_reg_stack_push(int stack_reg);

@@ -2,18 +2,16 @@
 // Licensed under GPLv2+
 // Refer to the license.txt file included.
 
-#include "Common/ChunkFile.h"
-#include "Common/CommonTypes.h"
-#include "Core/Movie.h"
 #include "Core/HW/Wiimote.h"
+#include "Common/ChunkFile.h"
 #include "Core/HW/WiimoteEmu/WiimoteEmu.h"
 #include "Core/HW/WiimoteReal/WiimoteReal.h"
-#include "InputCommon/InputConfig.h"
+#include "Core/Movie.h"
 #include "InputCommon/ControllerInterface/ControllerInterface.h"
+#include "InputCommon/InputConfig.h"
 
 namespace Wiimote
 {
-
 static InputConfig s_config(WIIMOTE_INI_NAME, _trans("Wiimote"), "Wiimote");
 
 InputConfig* GetConfig()
@@ -52,14 +50,13 @@ void Initialize(void* const hwnd, bool wait)
 void ResetAllWiimotes()
 {
 	for (int i = WIIMOTE_CHAN_0; i < MAX_BBMOTES; ++i)
-	        static_cast<WiimoteEmu::Wiimote*>(s_config.GetController(i))->Reset();
+		static_cast<WiimoteEmu::Wiimote*>(s_config.GetController(i))->Reset();
 }
 
 void LoadConfig()
 {
 	s_config.LoadConfig(false);
 }
-
 
 void Resume()
 {
@@ -71,19 +68,22 @@ void Pause()
 	WiimoteReal::Pause();
 }
 
-
 // An L2CAP packet is passed from the Core to the Wiimote on the HID CONTROL channel.
 void ControlChannel(int number, u16 channel_id, const void* data, u32 size)
 {
-	if (WIIMOTE_SRC_HYBRID & g_wiimote_sources[number])
-		static_cast<WiimoteEmu::Wiimote*>(s_config.GetController(number))->ControlChannel(channel_id, data, size);
+	if (WIIMOTE_SRC_REAL & g_wiimote_sources[number])
+		WiimoteReal::ControlChannel(number, channel_id, data, size);
+	else if (WIIMOTE_SRC_HYBRID & g_wiimote_sources[number])
+		static_cast<WiimoteEmu::Wiimote*>(s_config.GetController(number))
+		->ControlChannel(channel_id, data, size);
 }
 
 // An L2CAP packet is passed from the Core to the Wiimote on the HID INTERRUPT channel.
 void InterruptChannel(int number, u16 channel_id, const void* data, u32 size)
 {
 	if (WIIMOTE_SRC_HYBRID & g_wiimote_sources[number])
-		static_cast<WiimoteEmu::Wiimote*>(s_config.GetController(number))->InterruptChannel(channel_id, data, size);
+		static_cast<WiimoteEmu::Wiimote*>(s_config.GetController(number))
+		->InterruptChannel(channel_id, data, size);
 }
 
 // This function is called periodically by the Core to update Wiimote state.
@@ -128,5 +128,4 @@ void EmuStateChange(EMUSTATE_CHANGE newState)
 {
 	WiimoteReal::StateChange(newState);
 }
-
 }

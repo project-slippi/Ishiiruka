@@ -46,30 +46,31 @@ NativeVertexFormat* GetCurrentVertexFormat()
 
 namespace
 {
-	struct entry
+struct entry
+{
+	std::string text;
+	u64 num_verts;
+	bool operator < (const entry &other) const
 	{
-		std::string text;
-		u64 num_verts;
-		bool operator < (const entry &other) const
-		{
-			return num_verts > other.num_verts;
-		}
-	};
+		return num_verts > other.num_verts;
+	}
+};
 
-	struct codeentry
+struct codeentry
+{
+	std::string name;
+	std::string conf;
+	u64 num_verts;
+	std::string hash;
+	bool operator < (const codeentry &other) const
 	{
-		std::string name;
-		std::string conf;
-		u64 num_verts;
-		std::string hash;
-		bool operator < (const codeentry &other) const
-		{
-			return num_verts > other.num_verts;
-		}
-	};
+		return num_verts > other.num_verts;
+	}
+};
 }
 
-static std::string To_HexString(u32 in) {
+static std::string To_HexString(u32 in)
+{
 	char hexString[2 * sizeof(u32) + 8];
 	sprintf(hexString, "0x%08xu", in);
 	return std::string(hexString);
@@ -89,7 +90,7 @@ static void DumpLoadersCode()
 			e.conf.append(", ");
 			e.conf.append(To_HexString(iter->first.GetElement(2)));
 			e.conf.append(", ");
-			e.conf.append(To_HexString(iter->first.GetElement(3)));				
+			e.conf.append(To_HexString(iter->first.GetElement(3)));
 			e.name = iter->second->GetName();
 			e.num_verts = iter->second->m_numLoadedVertices;
 			e.hash = std::to_string(iter->first.GetHash());
@@ -99,8 +100,8 @@ static void DumpLoadersCode()
 	if (entries.size() == 0)
 	{
 		return;
-	}		
-	std::string filename = StringFromFormat("%sG_%s_pvt.h", File::GetUserPath(D_DUMP_IDX).c_str(), last_game_code.c_str());		
+	}
+	std::string filename = StringFromFormat("%sG_%s_pvt.h", File::GetUserPath(D_DUMP_IDX).c_str(), last_game_code.c_str());
 	std::string header;
 	header.append("// Copyright 2013 Dolphin Emulator Project\n");
 	header.append("// Licensed under GPLv2+\n");
@@ -117,7 +118,7 @@ static void DumpLoadersCode()
 	std::ofstream headerfile(filename);
 	headerfile << header;
 	headerfile.close();
-	filename = StringFromFormat("%sG_%s_pvt.cpp", File::GetUserPath(D_DUMP_IDX).c_str(), last_game_code.c_str());		
+	filename = StringFromFormat("%sG_%s_pvt.cpp", File::GetUserPath(D_DUMP_IDX).c_str(), last_game_code.c_str());
 	sort(entries.begin(), entries.end());
 	std::string sourcecode;
 	sourcecode.append("#include \"VideoCommon/G_");
@@ -132,7 +133,7 @@ static void DumpLoadersCode()
 		sourcecode.append("\t// ");
 		sourcecode.append(iter->name);
 		sourcecode.append("\n// num_verts= ");
-		sourcecode.append(std::to_string(iter->num_verts));			
+		sourcecode.append(std::to_string(iter->num_verts));
 		sourcecode.append("#if _M_SSE >= 0x301\n");
 		sourcecode.append("\tif (cpu_info.bSSSE3)\n");
 		sourcecode.append("\t{\n");
@@ -303,7 +304,7 @@ bool ConvertVertices(VertexLoaderParameters &parameters, u32 &readsize, u32 &wri
 	s_current_vtx_fmt = nativefmt;
 	g_current_components = loader->m_native_components;
 	VertexManagerBase::PrepareForAdditionalData(parameters.primitive, parameters.count, loader->m_native_stride);
-	parameters.destination = VertexManagerBase::s_pCurBufferPointer;		
+	parameters.destination = VertexManagerBase::s_pCurBufferPointer;
 	s32 finalcount = loader->RunVertices(parameters);
 	writesize = loader->m_native_stride * finalcount;
 	IndexGenerator::AddIndices(parameters.primitive, finalcount);

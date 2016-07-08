@@ -20,8 +20,14 @@ class GeometryShaderManager
 public:
 	static void Init();
 	static void Dirty();
-	static inline bool IsDirty() { return dirty; }
-	static inline void Clear(){ dirty = false; }
+	static inline bool IsDirty()
+	{
+		return dirty;
+	}
+	static inline void Clear()
+	{
+		dirty = false;
+	}
 	static void Shutdown();
 	static void DoState(PointerWrap &p);
 
@@ -35,7 +41,7 @@ public:
 	{
 		s_projection_changed = true;
 	}
-	 
+
 	static inline void SetLinePtWidthChanged()
 	{
 		s_line_width_changed = true;
@@ -46,5 +52,5 @@ public:
 		s_texcoord_changed |= 1u << texmapid;
 	}
 
-	static GeometryShaderConstants constants;	
+	static GeometryShaderConstants constants;
 };

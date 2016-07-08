@@ -11,35 +11,35 @@
 // The user data dir
 #define ROOT_DIR "."
 #ifdef _WIN32
-	#define USERDATA_DIR "User"
-	#define DOLPHIN_DATA_DIR "Dolphin"
+#define USERDATA_DIR "User"
+#define DOLPHIN_DATA_DIR "Dolphin"
 #elif defined __APPLE__
 	// On OS X, USERDATA_DIR exists within the .app, but *always* reference
 	// the copy in Application Support instead! (Copied on first run)
 	// You can use the File::GetUserPath() util for this
-	#define USERDATA_DIR "Contents/Resources/User"
-	#define DOLPHIN_DATA_DIR "Library/Application Support/Dolphin"
+#define USERDATA_DIR "Contents/Resources/User"
+#define DOLPHIN_DATA_DIR "Library/Application Support/Dolphin"
 #elif defined ANDROID
-	#define USERDATA_DIR "user"
-	#define DOLPHIN_DATA_DIR "/sdcard/dolphin-emu"
+#define USERDATA_DIR "user"
+#define DOLPHIN_DATA_DIR "/sdcard/dolphin-emu"
 #else
-	#define USERDATA_DIR "user"
-	#define DOLPHIN_DATA_DIR "dolphin-emu"
+#define USERDATA_DIR "user"
+#define DOLPHIN_DATA_DIR "dolphin-emu"
 #endif
 
 // Shared data dirs (Sys and shared User for Linux)
 #if defined(_WIN32) || defined(LINUX_LOCAL_DEV)
-	#define SYSDATA_DIR "Sys"
+#define SYSDATA_DIR "Sys"
 #elif defined __APPLE__
-	#define SYSDATA_DIR "Contents/Resources/Sys"
+#define SYSDATA_DIR "Contents/Resources/Sys"
 #elif defined ANDROID
-	#define SYSDATA_DIR "/sdcard/dolphin-emu"
+#define SYSDATA_DIR "/sdcard/dolphin-emu"
 #else
-	#ifdef DATA_DIR
-		#define SYSDATA_DIR DATA_DIR "sys"
-	#else
-		#define SYSDATA_DIR "sys"
-	#endif
+#ifdef DATA_DIR
+#define SYSDATA_DIR DATA_DIR "sys"
+#else
+#define SYSDATA_DIR "sys"
+#endif
 #endif
 
 // Dirs in both User and Sys
@@ -79,6 +79,9 @@
 
 // This one is only used to remove it if it was present
 #define SHADERCACHE_LEGACY_DIR "ShaderCache"
+
+// The theme directory used by default
+#define DEFAULT_THEME_DIR "Clean"
 
 // Subdirectory names for post-processing shader types
 #define POSTPROCESSING_SHADER_SUBDIR  "Postprocessing"

@@ -98,8 +98,8 @@ void RefreshPixelShader();
 void SetPixelShader(LPDIRECT3DPIXELSHADER9 shader);
 void ChangePixelShader(LPDIRECT3DPIXELSHADER9 shader);
 
-void SetStreamSource(UINT StreamNumber,IDirect3DVertexBuffer9* pStreamData,UINT OffsetInBytes,UINT Stride);
-void ChangeStreamSource(UINT StreamNumber,IDirect3DVertexBuffer9* pStreamData,UINT OffsetInBytes,UINT Stride);
+void SetStreamSource(UINT StreamNumber, IDirect3DVertexBuffer9* pStreamData, UINT OffsetInBytes, UINT Stride);
+void ChangeStreamSource(UINT StreamNumber, IDirect3DVertexBuffer9* pStreamData, UINT OffsetInBytes, UINT Stride);
 void RefreshStreamSource(UINT StreamNumber);
 
 void SetIndices(LPDIRECT3DINDEXBUFFER9 pIndexData);
@@ -122,10 +122,11 @@ struct Resolution
 
 struct AALevel
 {
-	AALevel(const char *n, D3DMULTISAMPLE_TYPE m, int q) {
+	AALevel(const char *n, D3DMULTISAMPLE_TYPE m, int q)
+	{
 		strncpy(name, n, 32);
 		name[31] = '\0';
-		ms_setting = m; 
+		ms_setting = m;
 		qual_setting = q;
 	}
 	char name[32];
@@ -160,8 +161,8 @@ int GetNumAdapters();
 // Linking with d3dx9.lib makes the most recent d3dx9_xx.dll of the
 // compiler's SDK an actually unnecessary requirement.
 // Add any d3dx9 functions which you want to use here and load them in LoadD3DX9()
-typedef HRESULT (WINAPI* D3DXSAVESURFACETOFILEATYPE)(LPCSTR, D3DXIMAGE_FILEFORMAT, LPDIRECT3DSURFACE9, CONST PALETTEENTRY*, CONST RECT*);
-typedef HRESULT (WINAPI* D3DXSAVETEXTURETOFILEATYPE)(LPCSTR, D3DXIMAGE_FILEFORMAT, LPDIRECT3DBASETEXTURE9, CONST PALETTEENTRY*);
+typedef HRESULT(WINAPI* D3DXSAVESURFACETOFILEATYPE)(LPCSTR, D3DXIMAGE_FILEFORMAT, LPDIRECT3DSURFACE9, CONST PALETTEENTRY*, CONST RECT*);
+typedef HRESULT(WINAPI* D3DXSAVETEXTURETOFILEATYPE)(LPCSTR, D3DXIMAGE_FILEFORMAT, LPDIRECT3DBASETEXTURE9, CONST PALETTEENTRY*);
 
 extern D3DXSAVESURFACETOFILEATYPE PD3DXSaveSurfaceToFileA;
 extern D3DXSAVETEXTURETOFILEATYPE PD3DXSaveTextureToFileA;

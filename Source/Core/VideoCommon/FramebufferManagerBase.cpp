@@ -188,7 +188,8 @@ FramebufferManagerBase::VirtualXFBListType::iterator FramebufferManagerBase::Fin
 	const u32 srcLower = xfbAddr;
 	const u32 srcUpper = xfbAddr + 2 * width * height;
 
-	return std::find_if(m_virtualXFBList.begin(), m_virtualXFBList.end(), [srcLower, srcUpper](const VirtualXFB& xfb) {
+	return std::find_if(m_virtualXFBList.begin(), m_virtualXFBList.end(), [srcLower, srcUpper](const VirtualXFB& xfb)
+	{
 		const u32 dstLower = xfb.xfbAddr;
 		const u32 dstUpper = xfb.xfbAddr + 2 * xfb.xfbWidth * xfb.xfbHeight;
 

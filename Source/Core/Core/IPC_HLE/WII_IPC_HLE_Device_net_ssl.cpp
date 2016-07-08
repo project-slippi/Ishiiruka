@@ -57,7 +57,7 @@ int CWII_IPC_HLE_Device_net_ssl::GetSSLFreeID() const
 
 IPCCommandResult CWII_IPC_HLE_Device_net_ssl::Open(u32 _CommandAddress, u32 _Mode)
 {
-	Memory::Write_U32(GetDeviceID(), _CommandAddress+4);
+	Memory::Write_U32(GetDeviceID(), _CommandAddress + 4);
 	m_Active = true;
 	return GetDefaultReply();
 }
@@ -74,16 +74,16 @@ IPCCommandResult CWII_IPC_HLE_Device_net_ssl::Close(u32 _CommandAddress, bool _b
 
 IPCCommandResult CWII_IPC_HLE_Device_net_ssl::IOCtl(u32 _CommandAddress)
 {
-	u32 BufferIn      = Memory::Read_U32(_CommandAddress + 0x10);
-	u32 BufferInSize  = Memory::Read_U32(_CommandAddress + 0x14);
-	u32 BufferOut     = Memory::Read_U32(_CommandAddress + 0x18);
+	u32 BufferIn = Memory::Read_U32(_CommandAddress + 0x10);
+	u32 BufferInSize = Memory::Read_U32(_CommandAddress + 0x14);
+	u32 BufferOut = Memory::Read_U32(_CommandAddress + 0x18);
 	u32 BufferOutSize = Memory::Read_U32(_CommandAddress + 0x1C);
-	u32 Command       = Memory::Read_U32(_CommandAddress + 0x0C);
+	u32 Command = Memory::Read_U32(_CommandAddress + 0x0C);
 
 	INFO_LOG(WII_IPC_SSL, "%s unknown %i "
-	         "(BufferIn: (%08x, %i), BufferOut: (%08x, %i)",
-	         GetDeviceName().c_str(), Command,
-	         BufferIn, BufferInSize, BufferOut, BufferOutSize);
+		"(BufferIn: (%08x, %i), BufferOut: (%08x, %i)",
+		GetDeviceName().c_str(), Command,
+		BufferIn, BufferInSize, BufferOut, BufferOutSize);
 	Memory::Write_U32(0, _CommandAddress + 0x4);
 	return GetDefaultReply();
 }
@@ -155,9 +155,9 @@ IPCCommandResult CWII_IPC_HLE_Device_net_ssl::IOCtlV(u32 _CommandAddress)
 			const char* pers = "dolphin-emu";
 			mbedtls_ctr_drbg_init(&ssl->ctr_drbg);
 			int ret = mbedtls_ctr_drbg_seed(&ssl->ctr_drbg, mbedtls_entropy_func,
-			                                &ssl->entropy,
-			                                (const unsigned char*)pers,
-			                                strlen(pers));
+				&ssl->entropy,
+				(const unsigned char*)pers,
+				strlen(pers));
 			if (ret)
 			{
 				mbedtls_ssl_free(&ssl->ctx);
@@ -167,7 +167,7 @@ IPCCommandResult CWII_IPC_HLE_Device_net_ssl::IOCtlV(u32 _CommandAddress)
 
 			mbedtls_ssl_config_init(&ssl->config);
 			mbedtls_ssl_config_defaults(&ssl->config, MBEDTLS_SSL_IS_CLIENT,
-			                            MBEDTLS_SSL_TRANSPORT_STREAM, MBEDTLS_SSL_PRESET_DEFAULT);
+				MBEDTLS_SSL_TRANSPORT_STREAM, MBEDTLS_SSL_PRESET_DEFAULT);
 			mbedtls_ssl_conf_rng(&ssl->config, mbedtls_ctr_drbg_random, &ssl->ctr_drbg);
 
 			// For some reason we can't use TLSv1.2, v1.1 and below are fine!
@@ -186,7 +186,7 @@ IPCCommandResult CWII_IPC_HLE_Device_net_ssl::IOCtlV(u32 _CommandAddress)
 		}
 		else
 		{
-_SSL_NEW_ERROR:
+		_SSL_NEW_ERROR:
 			Memory::Write_U32(SSL_ERR_FAILED, _BufferIn);
 		}
 
@@ -381,7 +381,7 @@ _SSL_NEW_ERROR:
 			ssl->sockfd = Memory::Read_U32(BufferOut2);
 			INFO_LOG(WII_IPC_SSL, "IOCTLV_NET_SSL_CONNECT socket = %d", ssl->sockfd);
 			mbedtls_ssl_set_bio(&ssl->ctx, &ssl->sockfd, mbedtls_net_send,
-			                    mbedtls_net_recv, nullptr);
+				mbedtls_net_recv, nullptr);
 			Memory::Write_U32(SSL_OK, _BufferIn);
 		}
 		else
@@ -515,7 +515,7 @@ _SSL_NEW_ERROR:
 	}
 
 	// SSL return codes are written to BufferIn
-	Memory::Write_U32(0, _CommandAddress+4);
+	Memory::Write_U32(0, _CommandAddress + 4);
 
 	return GetDefaultReply();
 }

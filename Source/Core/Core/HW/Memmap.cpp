@@ -2,7 +2,6 @@
 // Licensed under GPLv2+
 // Refer to the license.txt file included.
 
-
 // NOTE:
 // These functions are primarily used by the interpreter versions of the LoadStore instructions.
 // However, if a JITed instruction (for example lwz) wants to access a bad memory area that call
@@ -14,22 +13,22 @@
 #include "Common/ChunkFile.h"
 #include "Common/CommonFuncs.h"
 #include "Common/CommonTypes.h"
-#include "Common/MemArena.h"
 #include "Common/Logging/Log.h"
+#include "Common/MemArena.h"
 #include "Core/ConfigManager.h"
 #include "Core/HW/AudioInterface.h"
 #include "Core/HW/DSP.h"
 #include "Core/HW/DVDInterface.h"
 #include "Core/HW/EXI.h"
+#include "Core/HW/MMIO.h"
 #include "Core/HW/Memmap.h"
 #include "Core/HW/MemoryInterface.h"
-#include "Core/HW/MMIO.h"
 #include "Core/HW/ProcessorInterface.h"
 #include "Core/HW/SI.h"
 #include "Core/HW/VideoInterface.h"
 #include "Core/HW/WII_IPC.h"
-#include "Core/PowerPC/PowerPC.h"
 #include "Core/PowerPC/JitCommon/JitBase.h"
+#include "Core/PowerPC/PowerPC.h"
 #include "VideoCommon/CommandProcessor.h"
 #include "VideoCommon/PixelEngine.h"
 
@@ -50,7 +49,7 @@ static MemArena g_arena;
 // ==============
 
 // STATE_TO_SAVE
-static bool m_IsInitialized = false; // Save the Init(), Shutdown() state
+static bool m_IsInitialized = false;  // Save the Init(), Shutdown() state
 // END STATE_TO_SAVE
 
 u8* m_pRAM;
@@ -65,16 +64,16 @@ static std::unique_ptr<MMIO::Mapping> InitMMIO()
 {
 	auto mmio = std::make_unique<MMIO::Mapping>();
 
-	CommandProcessor  ::RegisterMMIO(mmio.get(), 0x0C000000);
-	PixelEngine       ::RegisterMMIO(mmio.get(), 0x0C001000);
-	VideoInterface    ::RegisterMMIO(mmio.get(), 0x0C002000);
+	CommandProcessor::RegisterMMIO(mmio.get(), 0x0C000000);
+	PixelEngine::RegisterMMIO(mmio.get(), 0x0C001000);
+	VideoInterface::RegisterMMIO(mmio.get(), 0x0C002000);
 	ProcessorInterface::RegisterMMIO(mmio.get(), 0x0C003000);
-	MemoryInterface   ::RegisterMMIO(mmio.get(), 0x0C004000);
-	DSP               ::RegisterMMIO(mmio.get(), 0x0C005000);
-	DVDInterface      ::RegisterMMIO(mmio.get(), 0x0C006000);
-	SerialInterface   ::RegisterMMIO(mmio.get(), 0x0C006400);
+	MemoryInterface::RegisterMMIO(mmio.get(), 0x0C004000);
+	DSP::RegisterMMIO(mmio.get(), 0x0C005000);
+	DVDInterface::RegisterMMIO(mmio.get(), 0x0C006000);
+	SerialInterface::RegisterMMIO(mmio.get(), 0x0C006400);
 	ExpansionInterface::RegisterMMIO(mmio.get(), 0x0C006800);
-	AudioInterface    ::RegisterMMIO(mmio.get(), 0x0C006C00);
+	AudioInterface::RegisterMMIO(mmio.get(), 0x0C006C00);
 
 	return mmio;
 }
@@ -83,11 +82,11 @@ static std::unique_ptr<MMIO::Mapping> InitMMIOWii()
 {
 	auto mmio = InitMMIO();
 
-	WII_IPCInterface  ::RegisterMMIO(mmio.get(), 0x0D000000);
-	DVDInterface      ::RegisterMMIO(mmio.get(), 0x0D006000);
-	SerialInterface   ::RegisterMMIO(mmio.get(), 0x0D006400);
+	WII_IPCInterface::RegisterMMIO(mmio.get(), 0x0D000000);
+	DVDInterface::RegisterMMIO(mmio.get(), 0x0D006000);
+	SerialInterface::RegisterMMIO(mmio.get(), 0x0D006400);
 	ExpansionInterface::RegisterMMIO(mmio.get(), 0x0D006800);
-	AudioInterface    ::RegisterMMIO(mmio.get(), 0x0D006C00);
+	AudioInterface::RegisterMMIO(mmio.get(), 0x0D006C00);
 
 	return mmio;
 }
@@ -96,7 +95,6 @@ bool IsInitialized()
 {
 	return m_IsInitialized;
 }
-
 
 // Dolphin allocates memory to represent four regions:
 // - 32MB RAM (actually 24MB on hardware), available on Gamecube and Wii
@@ -154,17 +152,16 @@ bool IsInitialized()
 //
 // TODO: The actual size of RAM is REALRAM_SIZE (24MB); the other 8MB shouldn't
 // be backed by actual memory.
-static MemoryView views[] =
-{
-	{&m_pRAM,      0x00000000, RAM_SIZE,      0},
-	{nullptr,      0x200000000, RAM_SIZE,     MV_MIRROR_PREVIOUS},
-	{nullptr,      0x280000000, RAM_SIZE,     MV_MIRROR_PREVIOUS},
-	{nullptr,      0x2C0000000, RAM_SIZE,     MV_MIRROR_PREVIOUS},
-	{&m_pL1Cache,  0x2E0000000, L1_CACHE_SIZE, 0},
-	{&m_pFakeVMEM, 0x27E000000, FAKEVMEM_SIZE, MV_FAKE_VMEM},
-	{&m_pEXRAM,    0x10000000, EXRAM_SIZE,    MV_WII_ONLY},
-	{nullptr,      0x290000000, EXRAM_SIZE,   MV_WII_ONLY | MV_MIRROR_PREVIOUS},
-	{nullptr,      0x2D0000000, EXRAM_SIZE,   MV_WII_ONLY | MV_MIRROR_PREVIOUS},
+static MemoryView views[] = {
+	 {&m_pRAM, 0x00000000, RAM_SIZE, 0},
+	 {nullptr, 0x200000000, RAM_SIZE, MV_MIRROR_PREVIOUS},
+	 {nullptr, 0x280000000, RAM_SIZE, MV_MIRROR_PREVIOUS},
+	 {nullptr, 0x2C0000000, RAM_SIZE, MV_MIRROR_PREVIOUS},
+	 {&m_pL1Cache, 0x2E0000000, L1_CACHE_SIZE, 0},
+	 {&m_pFakeVMEM, 0x27E000000, FAKEVMEM_SIZE, MV_FAKE_VMEM},
+	 {&m_pEXRAM, 0x10000000, EXRAM_SIZE, MV_WII_ONLY},
+	 {nullptr, 0x290000000, EXRAM_SIZE, MV_WII_ONLY | MV_MIRROR_PREVIOUS},
+	 {nullptr, 0x2D0000000, EXRAM_SIZE, MV_WII_ONLY | MV_MIRROR_PREVIOUS},
 };
 static const int num_views = sizeof(views) / sizeof(MemoryView);
 
@@ -200,7 +197,7 @@ void Init()
 	m_IsInitialized = true;
 }
 
-void DoState(PointerWrap &p)
+void DoState(PointerWrap& p)
 {
 	bool wii = SConfig::GetInstance().bWii;
 	p.DoArray(m_pRAM, RAM_SIZE);
@@ -218,8 +215,10 @@ void Shutdown()
 {
 	m_IsInitialized = false;
 	u32 flags = 0;
-	if (SConfig::GetInstance().bWii) flags |= MV_WII_ONLY;
-	if (bFakeVMEM) flags |= MV_FAKE_VMEM;
+	if (SConfig::GetInstance().bWii)
+		flags |= MV_WII_ONLY;
+	if (bFakeVMEM)
+		flags |= MV_FAKE_VMEM;
 	MemoryMap_Shutdown(views, num_views, flags, &g_arena);
 	g_arena.ReleaseSHMSegment();
 	physical_base = nullptr;
@@ -309,11 +308,11 @@ std::string GetString(u32 em_address, size_t size)
 	if (ptr == nullptr)
 		return "";
 
-	if (size == 0) // Null terminated string.
+	if (size == 0)  // Null terminated string.
 	{
 		return std::string(ptr);
 	}
-	else // Fixed size string, potentially null terminated or null padded.
+	else  // Fixed size string, potentially null terminated or null padded.
 	{
 		size_t length = strnlen(ptr, size);
 		return std::string(ptr, length);

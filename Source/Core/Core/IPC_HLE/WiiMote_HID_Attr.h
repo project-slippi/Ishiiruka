@@ -17,7 +17,7 @@ struct SAttrib
 		: ID(_ID)
 		, pData(_Data)
 		, size(_size)
-	{ }
+	{}
 };
 
 typedef std::vector<SAttrib> CAttribTable;

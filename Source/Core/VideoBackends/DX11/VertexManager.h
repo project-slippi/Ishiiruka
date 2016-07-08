@@ -9,7 +9,7 @@
 namespace DX11
 {
 
-class VertexManager : public ::VertexManagerBase
+class VertexManager: public ::VertexManagerBase
 {
 public:
 	VertexManager();
@@ -25,7 +25,10 @@ public:
 		bool fromgputhread = true);
 protected:
 	void ResetBuffer(u32 stride) override;
-	u16* GetIndexBuffer() override { return m_index_buffer_start; }
+	u16* GetIndexBuffer() override
+	{
+		return m_index_buffer_start;
+	}
 private:
 
 	void PrepareDrawBuffers(u32 stride);
@@ -37,8 +40,11 @@ private:
 	u32 m_indexDrawOffset;
 	u32 m_currentBuffer;
 	u32 m_bufferCursor;
-	enum { MAX_BUFFER_COUNT = 2 };
-	
+	enum
+	{
+		MAX_BUFFER_COUNT = 2
+	};
+
 	D3D::BufferPtr m_buffers[MAX_BUFFER_COUNT];
 
 	std::vector<u8> LocalVBuffer;

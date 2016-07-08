@@ -27,7 +27,7 @@ namespace WxUtils
 // Launch a file according to its mime type
 void Launch(const std::string& filename)
 {
-	if (! ::wxLaunchDefaultBrowser(StrToWxStr(filename)))
+	if (!::wxLaunchDefaultBrowser(StrToWxStr(filename)))
 	{
 		// WARN_LOG
 	}
@@ -39,7 +39,7 @@ void Explore(const std::string& path)
 	wxString wxPath = StrToWxStr(path);
 #ifndef _WIN32
 	// Default to file
-	if (! wxPath.Contains("://"))
+	if (!wxPath.Contains("://"))
 	{
 		wxPath = "file://" + wxPath;
 	}
@@ -49,7 +49,7 @@ void Explore(const std::string& path)
 	wxPath.Replace(" ", "\\ ");
 #endif
 
-	if (! ::wxLaunchDefaultBrowser(wxPath))
+	if (!::wxLaunchDefaultBrowser(wxPath))
 	{
 		// WARN_LOG
 	}

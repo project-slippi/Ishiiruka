@@ -19,10 +19,12 @@
 #include "Core/DSP/DSPDisassembler.h"
 #include "Core/HW/DSPLLE/DSPLLETools.h"
 
-bool DumpDSPCode(const u8 *code_be, int size_in_bytes, u32 crc)
+bool DumpDSPCode(const u8* code_be, int size_in_bytes, u32 crc)
 {
-	const std::string binFile = StringFromFormat("%sDSP_UC_%08X.bin", File::GetUserPath(D_DUMPDSP_IDX).c_str(), crc);
-	const std::string txtFile = StringFromFormat("%sDSP_UC_%08X.txt", File::GetUserPath(D_DUMPDSP_IDX).c_str(), crc);
+	const std::string binFile =
+		StringFromFormat("%sDSP_UC_%08X.bin", File::GetUserPath(D_DUMPDSP_IDX).c_str(), crc);
+	const std::string txtFile =
+		StringFromFormat("%sDSP_UC_%08X.txt", File::GetUserPath(D_DUMPDSP_IDX).c_str(), crc);
 
 	File::IOFile pFile(binFile, "wb");
 	if (pFile)

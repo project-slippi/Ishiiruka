@@ -31,4 +31,4 @@ bool IsDriverDetected();
 bool DeviceConnected(int chan);
 bool UseAdapter();
 
-} // end of namespace GCAdapter
+}  // end of namespace GCAdapter

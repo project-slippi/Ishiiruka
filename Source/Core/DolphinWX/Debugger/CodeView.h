@@ -21,11 +21,11 @@ class DebugInterface;
 class SymbolDB;
 class wxPaintDC;
 
-class CCodeView : public wxControl
+class CCodeView: public wxControl
 {
 public:
 	CCodeView(DebugInterface* debuginterface, SymbolDB *symbol_db,
-			wxWindow* parent, wxWindowID Id = wxID_ANY);
+		wxWindow* parent, wxWindowID Id = wxID_ANY);
 
 	void ToggleBreakpoint(u32 address);
 

@@ -34,11 +34,11 @@ enum
 	INITIAL_PAD_BUFFER_SIZE = 5
 };
 
-class NetPlayDialog : public wxFrame, public NetPlayUI
+class NetPlayDialog: public wxFrame, public NetPlayUI
 {
 public:
-	NetPlayDialog(wxWindow* parent, const CGameListCtrl* const game_list
-		, const std::string& game, const bool is_hosting = false);
+	NetPlayDialog(wxWindow* parent, const CGameListCtrl* const game_list, const std::string& game,
+		const bool is_hosting = false);
 	~NetPlayDialog();
 
 	Common::FifoQueue<std::string> chat_msgs;
@@ -56,9 +56,18 @@ public:
 	void OnMsgStartGame() override;
 	void OnMsgStopGame() override;
 
-	static NetPlayDialog*& GetInstance() { return npd; }
-	static NetPlayClient*& GetNetPlayClient() { return netplay_client; }
-	static NetPlayServer*& GetNetPlayServer() { return netplay_server; }
+	static NetPlayDialog*& GetInstance()
+	{
+		return npd;
+	}
+	static NetPlayClient*& GetNetPlayClient()
+	{
+		return netplay_client;
+	}
+	static NetPlayServer*& GetNetPlayServer()
+	{
+		return netplay_server;
+	}
 	static void FillWithGameNames(wxListBox* game_lbox, const CGameListCtrl& game_list);
 
 	bool IsRecording() override;
@@ -79,22 +88,22 @@ private:
 	void OnChoice(wxCommandEvent& event);
 	void UpdateHostLabel();
 
-	wxListBox*    m_player_lbox;
-	wxTextCtrl*   m_chat_text;
-	wxTextCtrl*   m_chat_msg_text;
-	wxCheckBox*   m_memcard_write;
-	wxCheckBox*   m_record_chkbox;
+	wxListBox* m_player_lbox;
+	wxTextCtrl* m_chat_text;
+	wxTextCtrl* m_chat_msg_text;
+	wxCheckBox* m_memcard_write;
+	wxCheckBox* m_record_chkbox;
 
-	std::string   m_selected_game;
-	wxButton*     m_player_config_btn;
-	wxButton*     m_game_btn;
-	wxButton*     m_start_btn;
-	wxButton*     m_kick_btn;
+	std::string m_selected_game;
+	wxButton* m_player_config_btn;
+	wxButton* m_game_btn;
+	wxButton* m_start_btn;
+	wxButton* m_kick_btn;
 	wxStaticText* m_host_label;
-	wxChoice*     m_host_type_choice;
-	wxButton*     m_host_copy_btn;
-	bool          m_host_copy_btn_is_retry;
-	bool          m_is_hosting;
+	wxChoice* m_host_type_choice;
+	wxButton* m_host_copy_btn;
+	bool m_host_copy_btn_is_retry;
+	bool m_is_hosting;
 
 	std::vector<int> m_playerids;
 

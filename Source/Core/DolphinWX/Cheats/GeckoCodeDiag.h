@@ -21,14 +21,17 @@ namespace Gecko
 {
 
 
-class CodeConfigPanel : public wxPanel
+class CodeConfigPanel: public wxPanel
 {
 public:
 	CodeConfigPanel(wxWindow* const parent);
 
 
 	void LoadCodes(const IniFile& globalIni, const IniFile& localIni, const std::string& gameid = "", bool checkRunning = false);
-	const std::vector<GeckoCode>& GetCodes() const { return m_gcodes; }
+	const std::vector<GeckoCode>& GetCodes() const
+	{
+		return m_gcodes;
+	}
 
 protected:
 	void UpdateInfoBox(wxCommandEvent&);

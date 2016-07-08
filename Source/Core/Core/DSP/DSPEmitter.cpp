@@ -16,7 +16,7 @@
 
 using namespace Gen;
 
-DSPEmitter::DSPEmitter() : gpr(*this), storeIndex(-1), storeIndex2(-1)
+DSPEmitter::DSPEmitter(): gpr(*this), storeIndex(-1), storeIndex2(-1)
 {
 	m_compiledCode = nullptr;
 
@@ -94,7 +94,7 @@ void DSPEmitter::checkExceptions(u32 retval)
 	MOV(32, R(EAX), Imm32(retval));
 	JMP(returnDispatcher, true);
 	gpr.LoadRegs(false);
-	gpr.FlushRegs(c,false);
+	gpr.FlushRegs(c, false);
 
 	SetJumpTarget(skipCheck);
 }
@@ -120,7 +120,7 @@ void DSPEmitter::FallBackToInterpreter(UDSPInstruction inst)
 
 	// Fall back to interpreter
 	gpr.PushRegs();
-	_assert_msg_(DSPLLE, opTable[inst]->intFunc, "No function for %04x",inst);
+	_assert_msg_(DSPLLE, opTable[inst]->intFunc, "No function for %04x", inst);
 	ABI_CallFunctionC16((void*)opTable[inst]->intFunc, inst);
 	gpr.PopRegs();
 }
@@ -135,7 +135,7 @@ void DSPEmitter::EmitInstruction(UDSPInstruction inst)
 	{
 		if ((inst >> 12) == 0x3)
 		{
-			if (! extOpTable[inst & 0x7F]->jitFunc)
+			if (!extOpTable[inst & 0x7F]->jitFunc)
 			{
 				// Fall back to interpreter
 				gpr.PushRegs();
@@ -274,7 +274,7 @@ void DSPEmitter::Compile(u16 start_addr)
 			}
 			JMP(returnDispatcher, true);
 			gpr.LoadRegs(false);
-			gpr.FlushRegs(c,false);
+			gpr.FlushRegs(c, false);
 
 			SetJumpTarget(rLoopAddressExit);
 			SetJumpTarget(rLoopCounterExit);
@@ -308,7 +308,7 @@ void DSPEmitter::Compile(u16 start_addr)
 				}
 				JMP(returnDispatcher, true);
 				gpr.LoadRegs(false);
-				gpr.FlushRegs(c,false);
+				gpr.FlushRegs(c, false);
 
 				SetJumpTarget(rNoBranch);
 			}

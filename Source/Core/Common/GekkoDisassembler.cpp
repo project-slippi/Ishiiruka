@@ -30,7 +30,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-// Modified for use with Dolphin
+ // Modified for use with Dolphin
 
 #include <string>
 
@@ -250,7 +250,7 @@ void GekkoDisassembler::ill(u32 in)
 	else
 	{
 		m_opcode = "(ill)";
-		m_operands =  StringFromFormat("%08x", in);
+		m_operands = StringFromFormat("%08x", in);
 	}
 
 	m_flags |= PPCF_ILLEGAL;
@@ -690,7 +690,7 @@ void GekkoDisassembler::rrn(u32 in, const char* name, int smode, int chkoe, int 
 		m_opcode = StringFromFormat("%s%s%s", name, oesel[chkoe && (in&PPCOE)], rcsel[(chkrc < 0) && (in & 1)]);
 
 		m_operands = rd_ra_rb(in, 6);
-		m_operands += StringFromFormat(",%d",(int)PPCGETB(in));
+		m_operands += StringFromFormat(",%d", (int)PPCGETB(in));
 	}
 }
 
@@ -1190,7 +1190,7 @@ u32* GekkoDisassembler::DoDisassembly(bool big_endian)
 	if (!big_endian)
 	{
 		in = (in & 0xff) << 24 | (in & 0xff00) << 8 | (in & 0xff0000) >> 8 |
-		     (in & 0xff000000) >> 24;
+			(in & 0xff000000) >> 24;
 	}
 
 	m_opcode.clear();

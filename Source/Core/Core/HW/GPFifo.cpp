@@ -15,7 +15,6 @@
 
 namespace GPFifo
 {
-
 // 32 Byte gather pipe with extra space
 // Overfilling is no problem (up to the real limit), CheckGatherPipe will blast the
 // contents in nicely sized chunks
@@ -33,7 +32,7 @@ alignas(32) u8 m_gatherPipe[GATHER_PIPE_SIZE * 16];
 // pipe counter
 u32 m_gatherPipeCount = 0;
 
-void DoState(PointerWrap &p)
+void DoState(PointerWrap& p)
 {
 	p.Do(m_gatherPipe);
 	p.Do(m_gatherPipeCount);
@@ -154,4 +153,4 @@ void FastWrite64(u64 value)
 	m_gatherPipeCount += sizeof(u64);
 }
 
-} // end of namespace GPFifo
+}  // end of namespace GPFifo

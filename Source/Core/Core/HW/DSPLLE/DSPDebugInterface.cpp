@@ -16,7 +16,8 @@ std::string DSPDebugInterface::Disassemble(unsigned int address)
 	return DSPSymbols::GetLineText(address);
 }
 
-void DSPDebugInterface::GetRawMemoryString(int memory, unsigned int address, char *dest, int max_size)
+void DSPDebugInterface::GetRawMemoryString(int memory, unsigned int address, char* dest,
+	int max_size)
 {
 	if (DSPCore_GetState() == DSPCORE_STOP)
 	{
@@ -68,7 +69,7 @@ unsigned int DSPDebugInterface::ReadInstruction(unsigned int address)
 
 bool DSPDebugInterface::IsAlive()
 {
-	return true; //Core::GetState() != Core::CORE_UNINITIALIZED;
+	return true;  // Core::GetState() != Core::CORE_UNINITIALIZED;
 }
 
 bool DSPDebugInterface::IsBreakpoint(unsigned int address)
@@ -88,7 +89,6 @@ void DSPDebugInterface::SetBreakpoint(unsigned int address)
 	{
 		if (g_dsp_breakpoints.Add(real_addr))
 		{
-
 		}
 	}
 }
@@ -101,7 +101,6 @@ void DSPDebugInterface::ClearBreakpoint(unsigned int address)
 	{
 		if (g_dsp_breakpoints.Remove(real_addr))
 		{
-
 		}
 	}
 }
@@ -148,14 +147,13 @@ void DSPDebugInterface::InsertBLR(unsigned int address, unsigned int value)
 // -------------
 int DSPDebugInterface::GetColor(unsigned int address)
 {
-	static const int colors[6] =
-	{
-		0xd0FFFF,  // light cyan
-		0xFFd0d0,  // light red
-		0xd8d8FF,  // light blue
-		0xFFd0FF,  // light purple
-		0xd0FFd0,  // light green
-		0xFFFFd0,  // light yellow
+	static const int colors[6] = {
+		 0xd0FFFF,  // light cyan
+		 0xFFd0d0,  // light red
+		 0xd8d8FF,  // light blue
+		 0xFFd0FF,  // light purple
+		 0xd0FFd0,  // light green
+		 0xFFFFd0,  // light yellow
 	};
 
 	// Scan backwards so we don't miss it. Hm, actually, let's not - it looks pretty good.
@@ -169,7 +167,7 @@ int DSPDebugInterface::GetColor(unsigned int address)
 	if (addr == -1)
 		return 0xFFFFFF;
 
-	Symbol *symbol = DSPSymbols::g_dsp_symbol_db.GetSymbolFromAddr(addr);
+	Symbol* symbol = DSPSymbols::g_dsp_symbol_db.GetSymbolFromAddr(addr);
 	if (!symbol)
 		return 0xFFFFFF;
 	if (symbol->type != Symbol::SYMBOL_FUNCTION)
@@ -177,7 +175,6 @@ int DSPDebugInterface::GetColor(unsigned int address)
 	return colors[symbol->index % 6];
 }
 // =============
-
 
 std::string DSPDebugInterface::GetDescription(unsigned int address)
 {
@@ -197,6 +194,4 @@ void DSPDebugInterface::SetPC(unsigned int address)
 }
 
 void DSPDebugInterface::RunToBreakpoint()
-{
-
-}
+{}

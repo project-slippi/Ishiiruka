@@ -14,9 +14,8 @@
 // Removed Wiimote UI elements due to Wiimotes being flat out broken in netplay.
 
 PadMapDialog::PadMapDialog(wxWindow* parent, NetPlayServer* server, NetPlayClient* client)
-	: wxDialog(parent, wxID_ANY, _("Controller Ports"))
-	, m_pad_mapping(server->GetPadMapping())
-	, m_player_list(client->GetPlayers())
+	: wxDialog(parent, wxID_ANY, _("Controller Ports")), m_pad_mapping(server->GetPadMapping()),
+	m_player_list(client->GetPlayers())
 {
 	wxBoxSizer* const h_szr = new wxBoxSizer(wxHORIZONTAL);
 	h_szr->AddSpacer(10);
@@ -29,8 +28,8 @@ PadMapDialog::PadMapDialog(wxWindow* parent, NetPlayServer* server, NetPlayClien
 	for (unsigned int i = 0; i < 4; ++i)
 	{
 		wxBoxSizer* const v_szr = new wxBoxSizer(wxVERTICAL);
-		v_szr->Add(new wxStaticText(this, wxID_ANY, (wxString(_("GC Port ")) + (wxChar)('1' + i))),
-			1, wxALIGN_CENTER_HORIZONTAL);
+		v_szr->Add(new wxStaticText(this, wxID_ANY, (wxString(_("GC Port ")) + (wxChar)('1' + i))), 1,
+			wxALIGN_CENTER_HORIZONTAL);
 
 		m_map_cbox[i] = new wxChoice(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, player_names);
 		m_map_cbox[i]->Bind(wxEVT_CHOICE, &PadMapDialog::OnAdjust, this);

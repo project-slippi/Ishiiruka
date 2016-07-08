@@ -66,12 +66,12 @@ FramebufferManager::FramebufferManager()
 	s_efb.color_surface_Format = D3DFMT_A8R8G8B8;
 
 	// EFB color texture - primary render target
-	HRESULT hr = D3D::dev->CreateTexture(m_target_width, m_target_height, 1, D3DUSAGE_RENDERTARGET, s_efb.color_surface_Format, 
-										D3DPOOL_DEFAULT, &s_efb.color_texture, NULL);
+	HRESULT hr = D3D::dev->CreateTexture(m_target_width, m_target_height, 1, D3DUSAGE_RENDERTARGET, s_efb.color_surface_Format,
+		D3DPOOL_DEFAULT, &s_efb.color_texture, NULL);
 	GetSurface(s_efb.color_texture, &s_efb.color_surface);
 	CHECK(hr, "Create color texture (size: %dx%d; hr=%#x)", m_target_width, m_target_height, hr);
 
-	
+
 
 	// Select a Z-buffer texture format with hardware support
 	s_efb.depth_surface_Format = D3D::GetSupportedDepthTextureFormat();
@@ -86,8 +86,8 @@ FramebufferManager::FramebufferManager()
 	if (s_efb.depth_textures_supported)
 	{
 		// EFB depth buffer - primary depth buffer
-		hr = D3D::dev->CreateTexture(m_target_width, m_target_height, 1, D3DUSAGE_DEPTHSTENCIL, s_efb.depth_surface_Format, 
-									 D3DPOOL_DEFAULT, &s_efb.depth_texture, NULL);
+		hr = D3D::dev->CreateTexture(m_target_width, m_target_height, 1, D3DUSAGE_DEPTHSTENCIL, s_efb.depth_surface_Format,
+			D3DPOOL_DEFAULT, &s_efb.depth_texture, NULL);
 		GetSurface(s_efb.depth_texture, &s_efb.depth_surface);
 		CHECK(hr, "Framebuffer depth texture (size: %dx%d; hr=%#x)", m_target_width, m_target_height, hr);
 
@@ -115,7 +115,7 @@ FramebufferManager::FramebufferManager()
 
 	// ReinterpretPixelData - EFB color data will be copy-converted to this texture and the buffers are swapped then
 	hr = D3D::dev->CreateTexture(m_target_width, m_target_height, 1, D3DUSAGE_RENDERTARGET, s_efb.color_surface_Format,
-										D3DPOOL_DEFAULT, &s_efb.color_reinterpret_texture, NULL);
+		D3DPOOL_DEFAULT, &s_efb.color_reinterpret_texture, NULL);
 	GetSurface(s_efb.color_reinterpret_texture, &s_efb.color_reinterpret_surface);
 	CHECK(hr, "Create color reinterpret texture (size: %dx%d; hr=%#x)", m_target_width, m_target_height, hr);
 	InitializeEFBCache();
@@ -164,7 +164,7 @@ void XFBSource::Draw(const MathUtil::Rectangle<float> &sourcerc,
 	{
 		multisamplemode = std::max(std::min((int)(sourcerc.GetWidth() / drawrc.GetWidth()) - 1, 2), 0);
 	}
-	D3D::drawShadedTexSubQuad(texture, &sourcerc, texWidth, texHeight, &drawrc, width , height,
+	D3D::drawShadedTexSubQuad(texture, &sourcerc, texWidth, texHeight, &drawrc, width, height,
 		PixelShaderCache::GetColorCopyProgram(multisamplemode), VertexShaderCache::GetSimpleVertexShader(multisamplemode));
 }
 
@@ -190,7 +190,7 @@ void FramebufferManager::CopyToRealXFB(u32 xfbAddr, u32 fbStride, u32 fbHeight, 
 void XFBSource::CopyEFB(float Gamma)
 {
 	g_renderer->ResetAPIState(); // reset any game specific settings
-	
+
 	// Copy EFB data to XFB and restore render target again
 	LPDIRECT3DSURFACE9 Rendersurf = NULL;
 	texture->GetSurfaceLevel(0, &Rendersurf);
@@ -200,7 +200,7 @@ void XFBSource::CopyEFB(float Gamma)
 	D3DVIEWPORT9 vp;
 	vp.X = 0;
 	vp.Y = 0;
-	vp.Width  = texWidth;
+	vp.Width = texWidth;
 	vp.Height = texHeight;
 	vp.MinZ = 0.0f;
 	vp.MaxZ = 1.0f;
@@ -210,12 +210,12 @@ void XFBSource::CopyEFB(float Gamma)
 	D3D::ChangeSamplerState(0, D3DSAMP_MAGFILTER, D3DTEXF_POINT);
 
 	D3D::drawShadedTexQuad(
-		FramebufferManager::GetEFBColorTexture(), 
-		nullptr, 
-		Renderer::GetTargetWidth(), 
-		Renderer::GetTargetHeight(), 
-		texWidth, 
-		texHeight, 
+		FramebufferManager::GetEFBColorTexture(),
+		nullptr,
+		Renderer::GetTargetWidth(),
+		Renderer::GetTargetHeight(),
+		texWidth,
+		texHeight,
 		PixelShaderCache::GetColorCopyProgram(0),
 		VertexShaderCache::GetSimpleVertexShader(0),
 		Gamma);
@@ -227,7 +227,7 @@ void XFBSource::CopyEFB(float Gamma)
 	D3D::dev->SetDepthStencilSurface(FramebufferManager::GetEFBDepthRTSurface());
 
 	Rendersurf->Release();
-	
+
 	g_renderer->RestoreAPIState();
 }
 
@@ -303,7 +303,7 @@ void FramebufferManager::PopulateEFBDepthCache()
 	vp.MaxZ = 1.0f;
 	D3D::dev->SetViewport(&vp);
 
-	float colmat[28] = { 0.0f };
+	float colmat[28] = {0.0f};
 	colmat[0] = colmat[5] = colmat[10] = 1.0f;
 	PixelShaderManager::SetColorMatrix(colmat); // set transformation
 	D3D::dev->SetPixelShaderConstantF(C_COLORMATRIX, PixelShaderManager::GetBuffer(), 7);

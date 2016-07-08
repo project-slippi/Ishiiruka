@@ -258,7 +258,7 @@ inline void WriteFetchDisplacement(ShaderCode& out, int n, const Tessellation_sh
 	u32 texcoord = stage.tevorders_texcoord;
 	bool bHasTexCoord = texcoord < uid_data.numTexGens;
 	bool bHasIndStage = stage.hasindstage;
-	
+
 	TevStageIndirect tevind;
 	tevind.hex = stage.tevind;
 	int texmap = stage.tevorders_texmap;
@@ -269,11 +269,11 @@ inline void WriteFetchDisplacement(ShaderCode& out, int n, const Tessellation_sh
 		// perform the indirect op on the incoming regular coordinates using indtex%d as the offset coords
 		if (tevind.mid != 0)
 		{
-			static const char *tevIndFmtMask[] = { "255", "31", "15", "7" };
+			static const char *tevIndFmtMask[] = {"255", "31", "15", "7"};
 			out.Write("int3 indtevcrd%d = indtex%d & %s;\n", n, tevind.bt, tevIndFmtMask[tevind.fmt]);
 
-			static const char *tevIndBiasField[] = { "", "x", "y", "xy", "z", "xz", "yz", "xyz" }; // indexed by bias
-			static const char *tevIndBiasAdd[] = { "int(-128)", "int(1)", "int(1)", "int(1)" }; // indexed by fmt
+			static const char *tevIndBiasField[] = {"", "x", "y", "xy", "z", "xz", "yz", "xyz"}; // indexed by bias
+			static const char *tevIndBiasAdd[] = {"int(-128)", "int(1)", "int(1)", "int(1)"}; // indexed by fmt
 																															// bias
 			if (tevind.bias == ITB_S || tevind.bias == ITB_T || tevind.bias == ITB_U)
 				out.Write("indtevcrd%d.%s += %s;\n", n, tevIndBiasField[tevind.bias], tevIndBiasAdd[tevind.fmt]);
@@ -320,7 +320,7 @@ inline void WriteFetchDisplacement(ShaderCode& out, int n, const Tessellation_sh
 		// ---------
 		// Wrapping
 		// ---------
-		static const char *tevIndWrapStart[] = { "int(0)", "int(256*128)", "int(128*128)", "int(64*128)", "int(32*128)", "int(16*128)", "int(1)" };
+		static const char *tevIndWrapStart[] = {"int(0)", "int(256*128)", "int(128*128)", "int(64*128)", "int(32*128)", "int(16*128)", "int(1)"};
 		// wrap S
 		if (tevind.sw == ITW_OFF)
 			out.Write("wrappedcoord.x = int(uv[%d].x);\n", texcoord);
@@ -418,7 +418,7 @@ inline void GenerateTessellationShader(ShaderCode& out, const Tessellation_shade
 		"\tfloat4 " I_TESSPARAMS";\n"
 		"\tint4 " I_CULLPARAMS";\n"
 		"};\n");
-	
+
 	if (ApiType == API_OPENGL)
 		out.Write("layout(std140%s) uniform VSBlock {\n", g_ActiveConfig.backend_info.bSupportsBindingLayout ? ", binding = 2" : "");
 	else
@@ -467,9 +467,9 @@ inline void GenerateTessellationShader(ShaderCode& out, const Tessellation_shade
 		for (unsigned int i = 0; i < texcount; ++i)
 			out.Write("float4 tex%d[3] : TEXCOORD%d;\n", i, i * 3 + 1);
 		out.Write("float4 Normal[3]: TEXCOORD%d;\n", texcount * 3 + 1);
-		
+
 		out.Write("};\n");
-		out.Write(s_hlsl_hull_header_str);		
+		out.Write(s_hlsl_hull_header_str);
 		if (uid_data.numTexGens < 7)
 		{
 			out.Write("result.pos = float4(patch[id].clipPos.x,patch[id].clipPos.y,patch[id].Normal.w, 1.0);\n");
@@ -483,22 +483,22 @@ inline void GenerateTessellationShader(ShaderCode& out, const Tessellation_shade
 			"return result;\n}\n");
 		out.Write(s_hlsl_constant_header_str);
 		out.Write(
-		"if (" I_CULLPARAMS ".y != 0) {\n"
-		"float3 spos0 = patch[0].pos.xyz / patch[0].pos.w;\n"
-		"float3 spos1 = patch[1].pos.xyz / patch[1].pos.w;\n"
-		"float3 spos2 = patch[2].pos.xyz / patch[2].pos.w;\n"
-		"float3 posmax = max(max(spos0, spos1), spos2);\n"
-		"float3 posmin = min(min(spos0, spos1), spos2);\n"		
-		"if (\n"
+			"if (" I_CULLPARAMS ".y != 0) {\n"
+			"float3 spos0 = patch[0].pos.xyz / patch[0].pos.w;\n"
+			"float3 spos1 = patch[1].pos.xyz / patch[1].pos.w;\n"
+			"float3 spos2 = patch[2].pos.xyz / patch[2].pos.w;\n"
+			"float3 posmax = max(max(spos0, spos1), spos2);\n"
+			"float3 posmin = min(min(spos0, spos1), spos2);\n"
+			"if (\n"
 			"(posmin.x > 1.5 || posmax.x < -1.5 || posmin.y > 1.5 || posmax.y < -1.5 || posmin.z > 1.5 || posmax.z < -0.5)"
 			")\n"
-		"{\n"
+			"{\n"
 			"result.EFactor[0] = 0;\n"
 			"result.EFactor[1] = 0;\n"
 			"result.EFactor[2] = 0;\n"
 			"result.InsideFactor = 0;\n"
 			"return result; // culled, so no further processing\n"
-		"}\n}\n");
+			"}\n}\n");
 		out.Write("float4 pos[3];\n");
 		out.Write("[unroll]\n"
 			"for(int i = 0; i < 3; i++)\n{\n");
@@ -512,7 +512,7 @@ inline void GenerateTessellationShader(ShaderCode& out, const Tessellation_shade
 		}
 		for (u32 i = 0; i < texcount; ++i)
 		{
-			
+
 			out.Write("result.tex%d[i].xyz = patch[i].tex%d.xyz;\n", i, i);
 			if (((uid_data.texMtxInfo_n_projection >> i) & 1) == XF_TEXPROJ_STQ)
 			{
@@ -532,8 +532,8 @@ inline void GenerateTessellationShader(ShaderCode& out, const Tessellation_shade
 				out.Write("result.tex%d[i].w = distance(t0, t1);\n", i);
 				out.Write("}\n");
 			}
-		}		
-		if(normalpresent)
+		}
+		if (normalpresent)
 		{
 			if (uid_data.numTexGens < 7)
 			{
@@ -543,7 +543,7 @@ inline void GenerateTessellationShader(ShaderCode& out, const Tessellation_shade
 			{
 				out.Write("result.Normal[i] = float4(patch[i].tex4.w, patch[i].tex5.w, patch[i].tex6.w, 1.0f);\n");
 			}
-		}		
+		}
 		out.Write("}\n");
 		out.Write("float3 edge0 = pos[1].xyz - pos[0].xyz;\n"
 			"float3 edge2 = pos[2].xyz - pos[0].xyz;\n"
@@ -555,7 +555,7 @@ inline void GenerateTessellationShader(ShaderCode& out, const Tessellation_shade
 			out.Write("result.Normal[2] = result.Normal[0];\n");
 		}
 		out.Write(
-			"if (" I_CULLPARAMS ".x != 0) {\n"			
+			"if (" I_CULLPARAMS ".x != 0) {\n"
 			"float3 view = normalize(-pos[0].xyz);\n"
 			"float visibility = dot(view, faceNormal);\n"
 			"bool notvisible = " I_CULLPARAMS ".x < 0 ? (visibility < -0.25) : (visibility > 0.25);\n"
@@ -576,7 +576,7 @@ inline void GenerateTessellationShader(ShaderCode& out, const Tessellation_shade
 			"result.EFactor[2] = CalcTessFactor((pos[0].xyz+pos[1].xyz) * 0.5, l2);\n"
 			"result.InsideFactor = (result.EFactor[0] + result.EFactor[1] + result.EFactor[2]) / 3;\n"
 			"return result;\n};\n"
-			);
+		);
 		out.Write(s_hlsl_ds_str);
 
 		for (u32 i = 0; i < texcount; ++i)
@@ -638,9 +638,9 @@ inline void GenerateTessellationShader(ShaderCode& out, const Tessellation_shade
 			"float3 position = BInterpolate(pos0, pos1, pos2, bCoords);\n");
 
 		out.Write(
-				"float3 norm0 = pconstans.Normal[0].xyz;\n"
-				"float3 norm1 = pconstans.Normal[1].xyz;\n"
-				"float3 norm2 = pconstans.Normal[2].xyz;\n");
+			"float3 norm0 = pconstans.Normal[0].xyz;\n"
+			"float3 norm1 = pconstans.Normal[1].xyz;\n"
+			"float3 norm2 = pconstans.Normal[2].xyz;\n");
 
 		out.Write("float3 normal = normalize(BInterpolate(norm0, norm1, norm2, bCoords));\n"
 			"pos0 = PrjToPlane(norm0, pos0, position);\n"
@@ -668,8 +668,8 @@ inline void GenerateTessellationShader(ShaderCode& out, const Tessellation_shade
 				"result.tex2.w = result.pos.z;\n"
 				"result.tex3.w = result.pos.w;\n");
 			out.Write("result.tex4.w = normal.x;\n"
-					"result.tex5.w = normal.y;\n"
-					"result.tex6.w = normal.z;\n");
+				"result.tex5.w = normal.y;\n"
+				"result.tex6.w = normal.z;\n");
 
 			if (uid_data.numTexGens < 8)
 				out.Write("result.tex7 = position.xyzz;\n");

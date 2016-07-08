@@ -49,7 +49,7 @@ static __m128 scale_factors[13] = {
 	_mm_set_ps1(0.0f)
 };
 
-VertexLoaderX64::VertexLoaderX64(const TVtxDesc& vtx_desc, const VAT& vtx_att) : VertexLoaderBase(vtx_desc, vtx_att)
+VertexLoaderX64::VertexLoaderX64(const TVtxDesc& vtx_desc, const VAT& vtx_att): VertexLoaderBase(vtx_desc, vtx_att)
 {
 	if (!IsInitialized())
 		return;
@@ -111,7 +111,7 @@ int VertexLoaderX64::ReadVertex(OpArg data, u64 attribute, int format, int count
 	int elem_size = 1 << (format / 2);
 	int load_bytes = elem_size * count_in;
 	OpArg dest = MDisp(dst_reg, m_dst_ofs);
-	
+
 	native_format->components = count_out;
 	native_format->enable = true;
 	native_format->offset = m_dst_ofs;
@@ -369,7 +369,7 @@ void VertexLoaderX64::ReadColor(OpArg data, u64 attribute, int format)
 
 void VertexLoaderX64::GenerateVertexLoader()
 {
-	BitSet32 regs = { src_reg, dst_reg, scratch1, scratch2, scratch3, count_reg, skipped_reg, base_reg };
+	BitSet32 regs = {src_reg, dst_reg, scratch1, scratch2, scratch3, count_reg, skipped_reg, base_reg};
 	regs &= ABI_ALL_CALLEE_SAVED;
 	ABI_PushRegistersAndAdjustStack(regs, 0);
 
@@ -398,7 +398,7 @@ void VertexLoaderX64::GenerateVertexLoader()
 		XMM4, XMM5, XMM6, XMM7,
 		XMM8, XMM9, XMM10, XMM11,
 	};
-	
+
 	if (m_VtxAttr.ByteDequant)
 	{
 		for (int i = 0; i < 8; i++)
@@ -454,7 +454,7 @@ void VertexLoaderX64::GenerateVertexLoader()
 			m_native_components |= VB_HAS_NRM1 | VB_HAS_NRM2;
 	}
 
-	const u64 col[2] = { m_VtxDesc.Color0, m_VtxDesc.Color1 };
+	const u64 col[2] = {m_VtxDesc.Color0, m_VtxDesc.Color1};
 	for (int i = 0; i < 2; i++)
 	{
 		if (col[i])
@@ -475,9 +475,9 @@ void VertexLoaderX64::GenerateVertexLoader()
 		int elements = m_VtxAttr.texCoord[i].Elements + 1;
 		if (tc[i])
 		{
-			data = GetVertexAddr(ARRAY_TEXCOORD0 + i, tc[i]);			
+			data = GetVertexAddr(ARRAY_TEXCOORD0 + i, tc[i]);
 			ReadVertex(data, tc[i], m_VtxAttr.texCoord[i].Format, elements, tm[i] ? 2 : elements,
-				m_VtxAttr.ByteDequant,&m_native_vtx_decl.texcoords[i], treg[i]);
+				m_VtxAttr.ByteDequant, &m_native_vtx_decl.texcoords[i], treg[i]);
 			m_native_components |= VB_HAS_UV0 << i;
 		}
 		if (tm[i])

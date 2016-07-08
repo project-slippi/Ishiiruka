@@ -43,9 +43,9 @@
 #endif
 
 
-/*
- * Init call
- */
+ /*
+  * Init call
+  */
 ALDeviceList::ALDeviceList()
 {
 	ALDEVICEINFO ALDeviceInfo;
@@ -58,82 +58,82 @@ ALDeviceList::ALDeviceList()
 
 	// grab function pointers for 1.0-API functions, and if successful proceed to enumerate all devices
 	//if (LoadOAL10Library(nullptr, &ALFunction) == TRUE) {
-		if (alcIsExtensionPresent(nullptr, "ALC_ENUMERATION_EXT"))
+	if (alcIsExtensionPresent(nullptr, "ALC_ENUMERATION_EXT"))
+	{
+		const char *devices = alcGetString(nullptr, ALC_DEVICE_SPECIFIER);
+		const char *defaultDeviceName = alcGetString(nullptr, ALC_DEFAULT_DEVICE_SPECIFIER);
+		// go through device list (each device terminated with a single nullptr, list terminated with double nullptr)
+		for (s32 index = 0; devices != nullptr && strlen(devices) > 0; index++, devices += strlen(devices) + 1)
 		{
-			const char *devices = alcGetString(nullptr, ALC_DEVICE_SPECIFIER);
-			const char *defaultDeviceName = alcGetString(nullptr, ALC_DEFAULT_DEVICE_SPECIFIER);
-			// go through device list (each device terminated with a single nullptr, list terminated with double nullptr)
-			for (s32 index = 0; devices != nullptr && strlen(devices) > 0; index++, devices += strlen(devices) + 1)
+			if (strcmp(defaultDeviceName, devices) == 0)
 			{
-				if (strcmp(defaultDeviceName, devices) == 0)
+				defaultDeviceIndex = index;
+			}
+			ALCdevice *device = alcOpenDevice(devices);
+			if (device)
+			{
+				ALCcontext *context = alcCreateContext(device, nullptr);
+				if (context)
 				{
-					defaultDeviceIndex = index;
-				}
-				ALCdevice *device = alcOpenDevice(devices);
-				if (device)
-				{
-					ALCcontext *context = alcCreateContext(device, nullptr);
-					if (context)
+					alcMakeContextCurrent(context);
+					// if new actual device name isn't already in the list, then add it...
+					const char *actualDeviceName = alcGetString(device, ALC_DEVICE_SPECIFIER);
+					bool bNewName = true;
+					for (s32 i = 0; i < GetNumDevices(); i++)
 					{
-						alcMakeContextCurrent(context);
-						// if new actual device name isn't already in the list, then add it...
-						const char *actualDeviceName = alcGetString(device, ALC_DEVICE_SPECIFIER);
-						bool bNewName = true;
-						for (s32 i = 0; i < GetNumDevices(); i++)
+						if (strcmp(GetDeviceName(i), actualDeviceName) == 0)
 						{
-							if (strcmp(GetDeviceName(i), actualDeviceName) == 0)
-							{
-								bNewName = false;
-							}
+							bNewName = false;
 						}
-						if ((bNewName) && (actualDeviceName != nullptr) && (strlen(actualDeviceName) > 0))
-						{
-							ALDeviceInfo.bSelected = true;
-							ALDeviceInfo.strDeviceName = actualDeviceName;
-							alcGetIntegerv(device, ALC_MAJOR_VERSION, sizeof(s32), &ALDeviceInfo.iMajorVersion);
-							alcGetIntegerv(device, ALC_MINOR_VERSION, sizeof(s32), &ALDeviceInfo.iMinorVersion);
-
-							ALDeviceInfo.pvstrExtensions = new std::vector<std::string>;
-
-							// Check for ALC Extensions
-							if (alcIsExtensionPresent(device, "ALC_EXT_CAPTURE") == AL_TRUE)
-								ALDeviceInfo.pvstrExtensions->push_back("ALC_EXT_CAPTURE");
-							if (alcIsExtensionPresent(device, "ALC_EXT_EFX") == AL_TRUE)
-								ALDeviceInfo.pvstrExtensions->push_back("ALC_EXT_EFX");
-
-							// Check for AL Extensions
-							if (alIsExtensionPresent("AL_EXT_OFFSET") == AL_TRUE)
-								ALDeviceInfo.pvstrExtensions->push_back("AL_EXT_OFFSET");
-
-							if (alIsExtensionPresent("AL_EXT_LINEAR_DISTANCE") == AL_TRUE)
-								ALDeviceInfo.pvstrExtensions->push_back("AL_EXT_LINEAR_DISTANCE");
-							if (alIsExtensionPresent("AL_EXT_EXPONENT_DISTANCE") == AL_TRUE)
-								ALDeviceInfo.pvstrExtensions->push_back("AL_EXT_EXPONENT_DISTANCE");
-
-							if (alIsExtensionPresent("EAX2.0") == AL_TRUE)
-								ALDeviceInfo.pvstrExtensions->push_back("EAX2.0");
-							if (alIsExtensionPresent("EAX3.0") == AL_TRUE)
-								ALDeviceInfo.pvstrExtensions->push_back("EAX3.0");
-							if (alIsExtensionPresent("EAX4.0") == AL_TRUE)
-								ALDeviceInfo.pvstrExtensions->push_back("EAX4.0");
-							if (alIsExtensionPresent("EAX5.0") == AL_TRUE)
-								ALDeviceInfo.pvstrExtensions->push_back("EAX5.0");
-
-							if (alIsExtensionPresent("EAX-RAM") == AL_TRUE)
-								ALDeviceInfo.pvstrExtensions->push_back("EAX-RAM");
-
-							// Get Source Count
-							ALDeviceInfo.uiSourceCount = GetMaxNumSources();
-
-							vDeviceInfo.push_back(ALDeviceInfo);
-						}
-						alcMakeContextCurrent(nullptr);
-						alcDestroyContext(context);
 					}
-					alcCloseDevice(device);
+					if ((bNewName) && (actualDeviceName != nullptr) && (strlen(actualDeviceName) > 0))
+					{
+						ALDeviceInfo.bSelected = true;
+						ALDeviceInfo.strDeviceName = actualDeviceName;
+						alcGetIntegerv(device, ALC_MAJOR_VERSION, sizeof(s32), &ALDeviceInfo.iMajorVersion);
+						alcGetIntegerv(device, ALC_MINOR_VERSION, sizeof(s32), &ALDeviceInfo.iMinorVersion);
+
+						ALDeviceInfo.pvstrExtensions = new std::vector<std::string>;
+
+						// Check for ALC Extensions
+						if (alcIsExtensionPresent(device, "ALC_EXT_CAPTURE") == AL_TRUE)
+							ALDeviceInfo.pvstrExtensions->push_back("ALC_EXT_CAPTURE");
+						if (alcIsExtensionPresent(device, "ALC_EXT_EFX") == AL_TRUE)
+							ALDeviceInfo.pvstrExtensions->push_back("ALC_EXT_EFX");
+
+						// Check for AL Extensions
+						if (alIsExtensionPresent("AL_EXT_OFFSET") == AL_TRUE)
+							ALDeviceInfo.pvstrExtensions->push_back("AL_EXT_OFFSET");
+
+						if (alIsExtensionPresent("AL_EXT_LINEAR_DISTANCE") == AL_TRUE)
+							ALDeviceInfo.pvstrExtensions->push_back("AL_EXT_LINEAR_DISTANCE");
+						if (alIsExtensionPresent("AL_EXT_EXPONENT_DISTANCE") == AL_TRUE)
+							ALDeviceInfo.pvstrExtensions->push_back("AL_EXT_EXPONENT_DISTANCE");
+
+						if (alIsExtensionPresent("EAX2.0") == AL_TRUE)
+							ALDeviceInfo.pvstrExtensions->push_back("EAX2.0");
+						if (alIsExtensionPresent("EAX3.0") == AL_TRUE)
+							ALDeviceInfo.pvstrExtensions->push_back("EAX3.0");
+						if (alIsExtensionPresent("EAX4.0") == AL_TRUE)
+							ALDeviceInfo.pvstrExtensions->push_back("EAX4.0");
+						if (alIsExtensionPresent("EAX5.0") == AL_TRUE)
+							ALDeviceInfo.pvstrExtensions->push_back("EAX5.0");
+
+						if (alIsExtensionPresent("EAX-RAM") == AL_TRUE)
+							ALDeviceInfo.pvstrExtensions->push_back("EAX-RAM");
+
+						// Get Source Count
+						ALDeviceInfo.uiSourceCount = GetMaxNumSources();
+
+						vDeviceInfo.push_back(ALDeviceInfo);
+					}
+					alcMakeContextCurrent(nullptr);
+					alcDestroyContext(context);
 				}
+				alcCloseDevice(device);
 			}
 		}
+	}
 	//}
 
 	ResetFilters();

@@ -87,17 +87,17 @@ void VideoConfig::Load(const std::string& ini_file)
 	settings->Get("DumpEFBTarget", &bDumpEFBTarget, 0);
 	settings->Get("FreeLook", &bFreeLook, 0);
 	settings->Get("CompileShaderOnStartup", &bCompileShaderOnStartup, 1);
-	
+
 	settings->Get("UseFFV1", &bUseFFV1, 0);
 	settings->Get("EnablePixelLighting", &bEnablePixelLighting, 0);
 	settings->Get("ForcedLighting", &bForcedLighting, 0);
-	
+
 	settings->Get("ForcePhongShading", &bForcePhongShading, 0);
 	settings->Get("RimPower", &iRimPower, 80);
 	settings->Get("RimIntesity", &iRimIntesity, 0);
 	settings->Get("RimBase", &iRimBase, 10);
 	settings->Get("SpecularMultiplier", &iSpecularMultiplier, 255);
-	
+
 	settings->Get("SimBumpEnabled", &bSimBumpEnabled, 0);
 	settings->Get("SimBumpStrength", &iSimBumpStrength, 0);
 	settings->Get("SimBumpDetailFrequency", &iSimBumpDetailFrequency, 128);
@@ -136,7 +136,7 @@ void VideoConfig::Load(const std::string& ini_file)
 	enhancements->Get("TextureScalingFactor", &iTexScalingFactor, 2);
 	enhancements->Get("UseDePosterize", &bTexDeposterize, true);
 	enhancements->Get("Tessellation", &bTessellation, 0);
-	enhancements->Get("TessellationEarlyCulling", &bTessellationEarlyCulling, 0);	
+	enhancements->Get("TessellationEarlyCulling", &bTessellationEarlyCulling, 0);
 	enhancements->Get("TessellationDistance", &iTessellationDistance, 0);
 	enhancements->Get("TessellationMax", &iTessellationMax, 6);
 	enhancements->Get("TessellationRoundingIntensity", &iTessellationRoundingIntensity, 0);
@@ -148,7 +148,7 @@ void VideoConfig::Load(const std::string& ini_file)
 	stereoscopy->Get("StereoConvergencePercentage", &iStereoConvergencePercentage, 100);
 	stereoscopy->Get("StereoSwapEyes", &bStereoSwapEyes, false);
 	stereoscopy->Get("StereoShader", &sStereoShader, "Anaglyph/dubois");
-	
+
 	IniFile::Section* hacks = iniFile.GetOrCreateSection("Hacks");
 	hacks->Get("EFBAccessEnable", &bEFBAccessEnable, true);
 	hacks->Get("EFBFastAccess", &bEFBFastAccess, false);
@@ -165,7 +165,7 @@ void VideoConfig::Load(const std::string& ini_file)
 	hacks->Get("BoundingBoxMode", &iBBoxMode, (int)BBoxMode::BBoxNone);
 	hacks->Get("ViewportCorrection", &bViewportCorrection, false);
 	hacks->Get("LastStoryEFBToRam", &bLastStoryEFBToRam, false);
-	
+
 
 	// hacks which are disabled by default
 	iPhackvalue[0] = 0;
@@ -223,13 +223,13 @@ void VideoConfig::GameIniLoad()
 	CHECK_SETTING("Video_Settings", "CacheHiresTexturesonGPU", bCacheHiresTexturesGPU);
 	CHECK_SETTING("Video_Settings", "EnablePixelLighting", bEnablePixelLighting);
 	CHECK_SETTING("Video_Settings", "ForcedLighting", bForcedLighting);
-	
+
 	CHECK_SETTING("Video_Settings", "ForcePhongShading", bForcePhongShading);
 	CHECK_SETTING("Video_Settings", "RimPower", iRimPower);
 	CHECK_SETTING("Video_Settings", "RimIntesity", iRimIntesity);
 	CHECK_SETTING("Video_Settings", "RimBase", iRimBase);
 	CHECK_SETTING("Video_Settings", "SpecularMultiplier", iSpecularMultiplier);
-	CHECK_SETTING("Video_Settings", "SimBumpEnabled", bSimBumpEnabled);	
+	CHECK_SETTING("Video_Settings", "SimBumpEnabled", bSimBumpEnabled);
 	CHECK_SETTING("Video_Settings", "SimBumpStrength", iSimBumpStrength);
 	CHECK_SETTING("Video_Settings", "SimBumpDetailFrequency", iSimBumpDetailFrequency);
 	CHECK_SETTING("Video_Settings", "SimBumpThreshold", iSimBumpThreshold);
@@ -281,7 +281,7 @@ void VideoConfig::GameIniLoad()
 	CHECK_SETTING("Video_Enhancements", "TextureScalingFactor", iTexScalingFactor);
 	CHECK_SETTING("Video_Enhancements", "UseDePosterize", bTexDeposterize);
 	CHECK_SETTING("Video_Enhancements", "Tessellation", bTessellation);
-	CHECK_SETTING("Video_Enhancements", "TessellationEarlyCulling", bTessellationEarlyCulling);	
+	CHECK_SETTING("Video_Enhancements", "TessellationEarlyCulling", bTessellationEarlyCulling);
 	CHECK_SETTING("Video_Enhancements", "TessellationDistance", iTessellationDistance);
 	CHECK_SETTING("Video_Enhancements", "TessellationMax", iTessellationMax);
 	CHECK_SETTING("Video_Enhancements", "TessellationRoundingIntensity", iTessellationRoundingIntensity);
@@ -292,7 +292,7 @@ void VideoConfig::GameIniLoad()
 	CHECK_SETTING("Video_Enhancements", "ScalingShader", sScalingShader);
 
 	CHECK_SETTING("Video_Stereoscopy", "StereoMode", iStereoMode);
-	CHECK_SETTING("Video_Stereoscopy", "StereoDepth", iStereoDepth);	
+	CHECK_SETTING("Video_Stereoscopy", "StereoDepth", iStereoDepth);
 	CHECK_SETTING("Video_Stereoscopy", "StereoSwapEyes", bStereoSwapEyes);
 	CHECK_SETTING("Video_Stereoscopy", "StereoShader", sStereoShader);
 
@@ -305,7 +305,7 @@ void VideoConfig::GameIniLoad()
 	CHECK_SETTING("Video_Hacks", "BoundingBoxMode", iBBoxMode);
 	CHECK_SETTING("Video_Hacks", "ViewportCorrection", bViewportCorrection);
 	CHECK_SETTING("Video_Hacks", "LastStoryEFBToRam", bLastStoryEFBToRam);
-	
+
 
 	CHECK_SETTING("Video", "ProjectionHack", iPhackvalue[0]);
 	CHECK_SETTING("Video", "PH_SZNear", iPhackvalue[1]);
@@ -422,7 +422,7 @@ void VideoConfig::Save(const std::string& ini_file)
 	settings->Set("DumpEFBTarget", bDumpEFBTarget);
 	settings->Set("FreeLook", bFreeLook);
 	settings->Set("CompileShaderOnStartup", bCompileShaderOnStartup);
-	
+
 	settings->Set("UseFFV1", bUseFFV1);
 	settings->Set("EnablePixelLighting", bEnablePixelLighting);
 	settings->Set("ForcedLighting", bForcedLighting);
@@ -430,8 +430,8 @@ void VideoConfig::Save(const std::string& ini_file)
 	settings->Set("RimPower", iRimPower);
 	settings->Set("RimIntesity", iRimIntesity);
 	settings->Set("RimBase", iRimBase);
-	settings->Set("SpecularMultiplier", iSpecularMultiplier);	
-	
+	settings->Set("SpecularMultiplier", iSpecularMultiplier);
+
 	settings->Set("SimBumpEnabled", bSimBumpEnabled);
 	settings->Set("SimBumpStrength", iSimBumpStrength);
 	settings->Set("SimBumpDetailFrequency", iSimBumpDetailFrequency);
@@ -447,7 +447,7 @@ void VideoConfig::Save(const std::string& ini_file)
 	settings->Set("Wireframe", bWireFrame);
 	settings->Set("DisableFog", bDisableFog);
 
-	settings->Set("EnableOpenCL", bEnableOpenCL);	
+	settings->Set("EnableOpenCL", bEnableOpenCL);
 	settings->Set("BorderlessFullscreen", bBorderlessFullscreen);
 
 	settings->Set("SWZComploc", bZComploc);
@@ -483,7 +483,7 @@ void VideoConfig::Save(const std::string& ini_file)
 	stereoscopy->Set("StereoConvergencePercentage", iStereoConvergencePercentage);
 	stereoscopy->Set("StereoSwapEyes", bStereoSwapEyes);
 	stereoscopy->Set("StereoShader", sStereoShader);
-	
+
 	IniFile::Section* hacks = iniFile.GetOrCreateSection("Hacks");
 	hacks->Set("EFBAccessEnable", bEFBAccessEnable);
 	hacks->Set("EFBFastAccess", bEFBFastAccess);
@@ -500,7 +500,7 @@ void VideoConfig::Save(const std::string& ini_file)
 	hacks->Set("BoundingBoxMode", iBBoxMode);
 	hacks->Set("ViewportCorrection", bViewportCorrection);
 	hacks->Set("LastStoryEFBToRam", bLastStoryEFBToRam);
-	
+
 
 	iniFile.Save(ini_file);
 }

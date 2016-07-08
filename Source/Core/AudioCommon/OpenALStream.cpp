@@ -55,7 +55,7 @@ bool OpenALStream::Start()
 	}
 
 	// Initialize DPL2 parameters
-	
+
 	return false;
 }
 
@@ -117,10 +117,10 @@ void OpenALStream::InitializeSoundLoop()
 	// Set the default sound volume as saved in the config file.
 	alSourcef(uiSource, AL_GAIN, fVolume);
 	s16* temp = new s16[SOUND_FRAME_SIZE * samplesize];
-	memset(temp, 0, SOUND_FRAME_SIZE * samplesize* sizeof(u16));
+	memset(temp, 0, SOUND_FRAME_SIZE * samplesize * sizeof(u16));
 	for (u8 i = 0; i < numBuffers; i++)
 	{
-		alBufferData(uiBuffers[i], format, temp, SOUND_FRAME_SIZE * samplesize* sizeof(u16), ulFrequency);
+		alBufferData(uiBuffers[i], format, temp, SOUND_FRAME_SIZE * samplesize * sizeof(u16), ulFrequency);
 	}
 	delete[] temp;
 	alSourceQueueBuffers(uiSource, numBuffers, uiBuffers);
@@ -157,7 +157,7 @@ bool OpenALStream::SupportSurroundOutput()
 {
 	bool surround_capable = SConfig::GetInstance().bDPL2Decoder;
 #if defined(__APPLE__)
-	surround_capable = false;	
+	surround_capable = false;
 #endif	
 	return surround_capable;
 }

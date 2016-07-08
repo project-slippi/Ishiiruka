@@ -47,7 +47,8 @@ namespace Common
 class AnalyticsReportingBackend
 {
 public:
-	virtual ~AnalyticsReportingBackend() {}
+	virtual ~AnalyticsReportingBackend()
+	{}
 
 	// Called from the AnalyticsReporter backend thread.
 	virtual void Send(std::string report) = 0;
@@ -146,16 +147,25 @@ public:
 	// Gets the base report builder which is closed for each subsequent report
 	// being sent. DO NOT use this builder to send a report. Only use it to add
 	// new fields that should be globally available.
-	AnalyticsReportBuilder& BaseBuilder() { return m_base_builder; }
+	AnalyticsReportBuilder& BaseBuilder()
+	{
+		return m_base_builder;
+	}
 
 	// Gets a cloned builder that can be used to send a report.
-	AnalyticsReportBuilder Builder() const { return m_base_builder; }
+	AnalyticsReportBuilder Builder() const
+	{
+		return m_base_builder;
+	}
 
 	// Enqueues a report for sending. Consumes the report builder.
 	void Send(AnalyticsReportBuilder&& report);
 
 	// For convenience.
-	void Send(AnalyticsReportBuilder& report) { Send(std::move(report)); }
+	void Send(AnalyticsReportBuilder& report)
+	{
+		Send(std::move(report));
+	}
 
 protected:
 	void ThreadProc();
@@ -171,7 +181,7 @@ protected:
 
 // Analytics backend to be used for debugging purpose, which dumps reports to
 // stdout.
-class StdoutAnalyticsBackend : public AnalyticsReportingBackend
+class StdoutAnalyticsBackend: public AnalyticsReportingBackend
 {
 public:
 	void Send(std::string report) override;
@@ -179,7 +189,7 @@ public:
 
 // Analytics backend that POSTs data to a remote HTTP(s) endpoint. WARNING:
 // remember to get explicit user consent before using.
-class HttpAnalyticsBackend : public AnalyticsReportingBackend
+class HttpAnalyticsBackend: public AnalyticsReportingBackend
 {
 public:
 	HttpAnalyticsBackend(const std::string& endpoint);

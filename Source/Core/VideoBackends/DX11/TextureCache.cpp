@@ -89,14 +89,15 @@ bool TextureCache::TCacheEntry::Save(const std::string& filename, u32 level)
 	else
 	{
 		encode_result = TextureToPng(reinterpret_cast<u8*>(map.pData), map.RowPitch, filename, mip_width, mip_height);
-	} 
+	}
 	D3D::context->Unmap(staging_texture, 0);
 	staging_texture->Release();
 
 	return encode_result;
 }
 
-void TextureCache::LoadLut(u32 lutFmt, void* addr, u32 size) {
+void TextureCache::LoadLut(u32 lutFmt, void* addr, u32 size)
+{
 	s_decoder->LoadLut(lutFmt, addr, size);
 }
 
@@ -139,7 +140,7 @@ void TextureCache::TCacheEntry::CopyRectangleFromTexture(
 		D3D::context->CopyResource(
 			ptexture->GetTex(),
 			texture->GetTex());
-		
+
 		texture->Release();
 		texture = ptexture;
 	}
@@ -359,7 +360,7 @@ TextureCache::TCacheEntryBase* TextureCache::CreateTexture(const TCacheEntryConf
 	ID3D11Texture2D *pTexture;
 	const HRESULT hr = D3D::device->CreateTexture2D(&texdesc, NULL, &pTexture);
 	CHECK(SUCCEEDED(hr), "Create texture of the TextureCache");
-	
+
 	TCacheEntry* const entry = new TCacheEntry(config, new D3DTexture2D(pTexture, D3D11_BIND_SHADER_RESOURCE));
 	entry->usage = usage;
 	entry->DXGI_format = format;

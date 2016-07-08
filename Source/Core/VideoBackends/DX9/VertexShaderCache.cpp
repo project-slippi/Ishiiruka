@@ -47,7 +47,7 @@ LPDIRECT3DVERTEXSHADER9 VertexShaderCache::GetClearVertexShader()
 }
 
 // this class will load the precompiled shaders into our cache
-class VertexShaderCacheInserter : public LinearDiskCacheReader<VertexShaderUid, u8>
+class VertexShaderCacheInserter: public LinearDiskCacheReader<VertexShaderUid, u8>
 {
 public:
 	void Read(const VertexShaderUid &key, const u8 *value, u32 value_size)
@@ -136,7 +136,7 @@ void VertexShaderCache::Init()
 	{
 		size_t shader_count = 0;
 		s_vshaders->ForEachMostUsedByCategory(gameid,
-		[&](const VertexShaderUid& item)
+			[&](const VertexShaderUid& item)
 		{
 			VertexShaderUid newitem = item;
 			vertex_shader_uid_data& uid_data = newitem.GetUidData<vertex_shader_uid_data>();
@@ -151,7 +151,7 @@ void VertexShaderCache::Init()
 				s_compiler->WaitForFinish();
 			}
 		},
-		[](VSCacheEntry& entry) 
+			[](VSCacheEntry& entry)
 		{
 			return !entry.shader;
 		}, true);
@@ -166,7 +166,8 @@ void VertexShaderCache::Clear()
 	{
 		s_vshaderslock.lock();
 		s_vshaders->Persist();
-		s_vshaders->Clear([](auto& item) {
+		s_vshaders->Clear([](auto& item)
+		{
 			item.Destroy();
 		});
 		s_vshaderslock.unlock();

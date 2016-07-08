@@ -10,15 +10,14 @@
 #include "Common/Event.h"
 #include "Common/Logging/Log.h"
 #include "Core/Core.h"
-#include "Core/Host.h"
 #include "Core/HW/CPU.h"
 #include "Core/HW/Memmap.h"
+#include "Core/Host.h"
 #include "Core/PowerPC/PowerPC.h"
 #include "VideoCommon/Fifo.h"
 
 namespace CPU
 {
-
 // CPU Thread execution state.
 // Requires s_state_change_lock to modify the value.
 // Read access is unsynchronized.
@@ -36,16 +35,16 @@ static std::mutex s_stepping_lock;
 
 // Primary lock. Protects changing s_state, requesting instruction stepping and
 // pause-and-locking.
-static std::mutex              s_state_change_lock;
+static std::mutex s_state_change_lock;
 // When s_state_cpu_thread_active changes to false
 static std::condition_variable s_state_cpu_idle_cvar;
 // When s_state changes / s_state_paused_and_locked becomes false (for CPU Thread only)
 static std::condition_variable s_state_cpu_cvar;
-static bool                    s_state_cpu_thread_active         = false;
-static bool                    s_state_paused_and_locked         = false;
-static bool                    s_state_system_request_stepping   = false;
-static bool                    s_state_cpu_step_instruction      = false;
-static Common::Event*          s_state_cpu_step_instruction_sync = nullptr;
+static bool s_state_cpu_thread_active = false;
+static bool s_state_paused_and_locked = false;
+static bool s_state_system_request_stepping = false;
+static bool s_state_cpu_step_instruction = false;
+static Common::Event* s_state_cpu_step_instruction_sync = nullptr;
 
 void Init(int cpu_core)
 {
@@ -75,7 +74,10 @@ void Run()
 	std::unique_lock<std::mutex> state_lock(s_state_change_lock);
 	while (s_state != CPU_POWERDOWN)
 	{
-		s_state_cpu_cvar.wait(state_lock, [] { return !s_state_paused_and_locked; });
+		s_state_cpu_cvar.wait(state_lock, []
+		{
+			return !s_state_paused_and_locked;
+		});
 
 		switch (s_state)
 		{
@@ -110,10 +112,10 @@ void Run()
 
 		case CPU_STEPPING:
 			// Wait for step command.
-			s_state_cpu_cvar.wait(state_lock, []
+			s_state_cpu_cvar.wait(state_lock,
+				[]
 			{
-				return s_state_cpu_step_instruction ||
-				       s_state != CPU_STEPPING;
+				return s_state_cpu_step_instruction || s_state != CPU_STEPPING;
 			});
 			if (s_state != CPU_STEPPING)
 			{
@@ -164,7 +166,8 @@ void Stop()
 	s_state = CPU_POWERDOWN;
 	s_state_cpu_cvar.notify_one();
 	// FIXME: MsgHandler can cause this to deadlock the GUI Thread. Remove the timeout.
-	bool success = s_state_cpu_idle_cvar.wait_for(state_lock, std::chrono::seconds(5), []
+	bool success = s_state_cpu_idle_cvar.wait_for(state_lock, std::chrono::seconds(5),
+		[]
 	{
 		return !s_state_cpu_thread_active;
 	});
@@ -190,8 +193,7 @@ const volatile State* GetStatePtr()
 }
 
 void Reset()
-{
-}
+{}
 
 void StepOpcode(Common::Event* event)
 {
@@ -233,7 +235,8 @@ void EnableStepping(bool stepping)
 
 		// Wait for the CPU Thread to leave the run loop
 		// FIXME: MsgHandler can cause this to deadlock the GUI Thread. Remove the timeout.
-		bool success = s_state_cpu_idle_cvar.wait_for(state_lock, std::chrono::seconds(5), []
+		bool success = s_state_cpu_idle_cvar.wait_for(state_lock, std::chrono::seconds(5),
+			[]
 		{
 			return !s_state_cpu_thread_active;
 		});
@@ -284,12 +287,15 @@ bool PauseAndLock(bool do_lock, bool unpause_on_unlock, bool control_adjacent)
 		SetStateLocked(CPU_STEPPING);
 
 		// FIXME: MsgHandler can cause this to deadlock the GUI Thread. Remove the timeout.
-		bool success = s_state_cpu_idle_cvar.wait_for(state_lock, std::chrono::seconds(10), []
+		bool success = s_state_cpu_idle_cvar.wait_for(state_lock, std::chrono::seconds(10),
+			[]
 		{
 			return !s_state_cpu_thread_active;
 		});
 		if (!success)
-			NOTICE_LOG(POWERPC, "Abandoned CPU Thread synchronization in CPU::PauseAndLock! We'll probably crash now.");
+			NOTICE_LOG(
+				POWERPC,
+				"Abandoned CPU Thread synchronization in CPU::PauseAndLock! We'll probably crash now.");
 
 		if (control_adjacent)
 			RunAdjacentSystems(false);
@@ -332,5 +338,4 @@ bool PauseAndLock(bool do_lock, bool unpause_on_unlock, bool control_adjacent)
 	}
 	return was_unpaused;
 }
-
 }

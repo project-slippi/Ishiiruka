@@ -20,9 +20,18 @@ FramebufferManager::Efb FramebufferManager::m_efb;
 unsigned int FramebufferManager::m_target_width;
 unsigned int FramebufferManager::m_target_height;
 
-D3DTexture2D*& FramebufferManager::GetEFBColorTexture() { return m_efb.color_tex; }
-D3DTexture2D*& FramebufferManager::GetEFBDepthTexture() { return m_efb.depth_tex; }
-D3DTexture2D*& FramebufferManager::GetEFBColorTempTexture() { return m_efb.color_temp_tex; }
+D3DTexture2D*& FramebufferManager::GetEFBColorTexture()
+{
+	return m_efb.color_tex;
+}
+D3DTexture2D*& FramebufferManager::GetEFBDepthTexture()
+{
+	return m_efb.depth_tex;
+}
+D3DTexture2D*& FramebufferManager::GetEFBColorTempTexture()
+{
+	return m_efb.color_temp_tex;
+}
 
 void FramebufferManager::SwapReinterpretTexture()
 {
@@ -107,7 +116,7 @@ FramebufferManager::FramebufferManager()
 
 	ComPtr<ID3D12Resource> buff;
 	D3D12_RESOURCE_DESC text_desc;
-	D3D12_CLEAR_VALUE clear_valueRTV = { DXGI_FORMAT_R8G8B8A8_UNORM,{ 0.0f, 0.0f, 0.0f, 1.0f } };
+	D3D12_CLEAR_VALUE clear_valueRTV = {DXGI_FORMAT_R8G8B8A8_UNORM,{ 0.0f, 0.0f, 0.0f, 1.0f }};
 	D3D12_CLEAR_VALUE clear_valueDSV = CD3DX12_CLEAR_VALUE(DXGI_FORMAT_D32_FLOAT, 0.0f, 0);
 	clear_valueDSV.Color[3] = 0;
 	HRESULT hr;
@@ -223,7 +232,7 @@ void FramebufferManager::ResolveDepthTexture()
 		StaticShaderCache::GetCopyGeometryShader(),
 		0,
 		DXGI_FORMAT_R32_FLOAT
-		);
+	);
 	// Restores proper viewport/scissor settings.
 	g_renderer->RestoreAPIState();
 }
@@ -251,8 +260,8 @@ void XFBSource::CopyEFB(float gamma)
 				D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
 				nullptr,
 				IID_PPV_ARGS(dtexture.ReleaseAndGetAddressOf())
-				)
-			);
+			)
+		);
 		m_depthtex = new D3DTexture2D(
 			dtexture.Get(),
 			TEXTURE_BIND_FLAG_SHADER_RESOURCE | TEXTURE_BIND_FLAG_RENDER_TARGET,
@@ -261,7 +270,7 @@ void XFBSource::CopyEFB(float gamma)
 			DXGI_FORMAT_UNKNOWN,
 			false,
 			D3D12_RESOURCE_STATE_RENDER_TARGET
-			);
+		);
 	}
 	if (apply_post_proccesing)
 	{
@@ -312,7 +321,7 @@ void XFBSource::CopyEFB(float gamma)
 					DXGI_FORMAT_R32_FLOAT,
 					false,
 					m_depthtex->GetMultisampled()
-					);
+				);
 			}
 		}
 		else
@@ -380,7 +389,7 @@ void FramebufferManager::PopulateEFBColorCache()
 	DX12::D3DTexture2D* src_texture;
 	if (g_ActiveConfig.iEFBScale != SCALE_1X || g_ActiveConfig.iMultisamples > 1)
 	{
-		D3D12_RECT src_rect = { 0, 0, static_cast<LONG>(m_target_width), static_cast<LONG>(m_target_height) };
+		D3D12_RECT src_rect = {0, 0, static_cast<LONG>(m_target_width), static_cast<LONG>(m_target_height)};
 		D3D::SetViewportAndScissor(0, 0, EFB_WIDTH, EFB_HEIGHT);
 		m_efb.color_cache_tex->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_RENDER_TARGET);
 		D3D::current_command_list->OMSetRenderTargets(1, &m_efb.color_cache_tex->GetRTV(), FALSE, nullptr);
@@ -395,7 +404,7 @@ void FramebufferManager::PopulateEFBColorCache()
 			StaticShaderCache::GetSimpleVertexShader(),
 			StaticShaderCache::GetSimpleVertexShaderInputLayout(),
 			D3D12_SHADER_BYTECODE()
-			);
+		);
 		src_texture = m_efb.color_cache_tex;
 	}
 	else
@@ -428,7 +437,7 @@ void FramebufferManager::PopulateEFBColorCache()
 
 	// Need to wait for the CPU to complete the copy (and all prior operations) before we can read it on the CPU.
 	D3D::command_list_mgr->ExecuteQueuedWork(true);
-	D3D12_RANGE read_range = { 0, EFB_CACHE_PITCH * EFB_HEIGHT };
+	D3D12_RANGE read_range = {0, EFB_CACHE_PITCH * EFB_HEIGHT};
 	HRESULT hr = m_efb.color_cache_buf->Map(0, &read_range, reinterpret_cast<void**>(&m_efb.color_cache_data));
 	CHECK(SUCCEEDED(hr), "failed to map efb peek color cache texture (hr=%08X)", hr);
 }
@@ -461,7 +470,7 @@ void FramebufferManager::PopulateEFBDepthCache()
 			StaticShaderCache::GetCopyGeometryShader(),
 			0,
 			DXGI_FORMAT_R32_FLOAT
-			);
+		);
 		src_texture = m_efb.depth_cache_tex;
 	}
 	else
@@ -493,7 +502,7 @@ void FramebufferManager::PopulateEFBDepthCache()
 
 	// Need to wait for the CPU to complete the copy (and all prior operations) before we can read it on the CPU.
 	D3D::command_list_mgr->ExecuteQueuedWork(true);
-	D3D12_RANGE read_range = { 0, EFB_CACHE_PITCH * EFB_HEIGHT };
+	D3D12_RANGE read_range = {0, EFB_CACHE_PITCH * EFB_HEIGHT};
 	HRESULT hr = m_efb.depth_cache_buf->Map(0, &read_range, reinterpret_cast<void**>(&m_efb.depth_cache_data));
 	CHECK(SUCCEEDED(hr), "failed to map efb peek color cache texture (hr=%08X)", hr);
 }

@@ -55,7 +55,7 @@ bool CompileShader(const char *code, u32 len, u8 **bytecode, u32 *bytecodelen, S
 	{
 		static u32 num_failures = 0;
 		char szTemp[MAX_PATH];
-		sprintf(szTemp, "%sbad_%s_%04i.txt", File::GetUserPath(D_DUMP_IDX).c_str(), shader_type == vertex_shaer ? "vs" : "ps" , num_failures++);
+		sprintf(szTemp, "%sbad_%s_%04i.txt", File::GetUserPath(D_DUMP_IDX).c_str(), shader_type == vertex_shaer ? "vs" : "ps", num_failures++);
 		std::ofstream file;
 		OpenFStream(file, szTemp, std::ios_base::out);
 		file << code;
@@ -115,7 +115,7 @@ LPDIRECT3DVERTEXSHADER9 CompileAndCreateVertexShader(const char *code, u32 len, 
 	if (CompileVertexShader(code, len, &bytecode, &bytecodelen, macros))
 	{
 		LPDIRECT3DVERTEXSHADER9 v_shader = CreateVertexShaderFromByteCode(bytecode, len);
-		delete [] bytecode;
+		delete[] bytecode;
 		return v_shader;
 	}
 	return NULL;
@@ -128,7 +128,7 @@ LPDIRECT3DPIXELSHADER9 CompileAndCreatePixelShader(const char* code, u32 len, co
 	if (CompilePixelShader(code, len, &bytecode, &bytecodelen, macros))
 	{
 		LPDIRECT3DPIXELSHADER9 p_shader = CreatePixelShaderFromByteCode(bytecode, len);
-		delete [] bytecode;
+		delete[] bytecode;
 		return p_shader;
 	}
 	return NULL;

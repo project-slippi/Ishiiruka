@@ -2,6 +2,7 @@
 // Licensed under GPLv2+
 // Refer to the license.txt file included.
 
+#include "Core/PowerPC/Jit64/Jit.h"
 #include "Common/CommonTypes.h"
 #include "Common/JitRegister.h"
 #include "Common/x64ABI.h"
@@ -10,9 +11,8 @@
 #include "Core/CoreTiming.h"
 #include "Core/HW/CPU.h"
 #include "Core/HW/Memmap.h"
-#include "Core/PowerPC/PowerPC.h"
-#include "Core/PowerPC/Jit64/Jit.h"
 #include "Core/PowerPC/Jit64/JitAsm.h"
+#include "Core/PowerPC/PowerPC.h"
 
 using namespace Gen;
 
@@ -45,174 +45,176 @@ void Jit64AsmRoutineManager::Generate()
 	MOV(64, MDisp(RSP, 8), Imm32((u32)-1));
 
 	// Two statically allocated registers.
-	//MOV(64, R(RMEM), Imm64((u64)Memory::physical_base));
+	// MOV(64, R(RMEM), Imm64((u64)Memory::physical_base));
 	MOV(64, R(RPPCSTATE), Imm64((u64)&PowerPC::ppcState + 0x80));
 
 	const u8* outerLoop = GetCodePtr();
+	ABI_PushRegistersAndAdjustStack({}, 0);
+	ABI_CallFunction(reinterpret_cast<void*>(&CoreTiming::Advance));
+	ABI_PopRegistersAndAdjustStack({}, 0);
+	FixupBranch skipToRealDispatch =
+		J(SConfig::GetInstance().bEnableDebugging);  // skip the sync and compare first time
+	dispatcherMispredictedBLR = GetCodePtr();
+	AND(32, PPCSTATE(pc), Imm32(0xFFFFFFFC));
+
+#if 0  // debug mispredicts
+	MOV(32, R(ABI_PARAM1), MDisp(RSP, 8)); // guessed_pc
+	ABI_PushRegistersAndAdjustStack(1 << RSCRATCH2, 0);
+	CALL(reinterpret_cast<void *>(&ReportMispredict));
+	ABI_PopRegistersAndAdjustStack(1 << RSCRATCH2, 0);
+#endif
+
+	ResetStack();
+
+	SUB(32, PPCSTATE(downcount), R(RSCRATCH2));
+
+	dispatcher = GetCodePtr();
+	// The result of slice decrementation should be in flags if somebody jumped here
+	// IMPORTANT - We jump on negative, not carry!!!
+	FixupBranch bail = J_CC(CC_BE, true);
+
+	FixupBranch dbg_exit;
+
+	if (SConfig::GetInstance().bEnableDebugging)
+	{
+		TEST(32, M(CPU::GetStatePtr()), Imm32(CPU::CPU_STEPPING));
+		FixupBranch notStepping = J_CC(CC_Z);
 		ABI_PushRegistersAndAdjustStack({}, 0);
-		ABI_CallFunction(reinterpret_cast<void *>(&CoreTiming::Advance));
+		ABI_CallFunction(reinterpret_cast<void*>(&PowerPC::CheckBreakPoints));
 		ABI_PopRegistersAndAdjustStack({}, 0);
-		FixupBranch skipToRealDispatch = J(SConfig::GetInstance().bEnableDebugging); //skip the sync and compare first time
-		dispatcherMispredictedBLR = GetCodePtr();
-		AND(32, PPCSTATE(pc), Imm32(0xFFFFFFFC));
-
-		#if 0 // debug mispredicts
-		MOV(32, R(ABI_PARAM1), MDisp(RSP, 8)); // guessed_pc
-		ABI_PushRegistersAndAdjustStack(1 << RSCRATCH2, 0);
-		CALL(reinterpret_cast<void *>(&ReportMispredict));
-		ABI_PopRegistersAndAdjustStack(1 << RSCRATCH2, 0);
-		#endif
-
-		ResetStack();
-
-		SUB(32, PPCSTATE(downcount), R(RSCRATCH2));
-
-		dispatcher = GetCodePtr();
-			// The result of slice decrementation should be in flags if somebody jumped here
-			// IMPORTANT - We jump on negative, not carry!!!
-			FixupBranch bail = J_CC(CC_BE, true);
-
-			FixupBranch dbg_exit;
-
-			if (SConfig::GetInstance().bEnableDebugging)
-			{
-				TEST(32, M(CPU::GetStatePtr()), Imm32(CPU::CPU_STEPPING));
-				FixupBranch notStepping = J_CC(CC_Z);
-				ABI_PushRegistersAndAdjustStack({}, 0);
-				ABI_CallFunction(reinterpret_cast<void *>(&PowerPC::CheckBreakPoints));
-				ABI_PopRegistersAndAdjustStack({}, 0);
-				TEST(32, M(CPU::GetStatePtr()), Imm32(0xFFFFFFFF));
-				dbg_exit = J_CC(CC_NZ, true);
-				SetJumpTarget(notStepping);
-			}
-
-			SetJumpTarget(skipToRealDispatch);
-
-			dispatcherNoCheck = GetCodePtr();
-
-			// Switch to the correct memory base, in case MSR.DR has changed.
-			// TODO: Is there a more efficient place to put this?  We don't
-			// need to do this for indirect jumps, just exceptions etc.
-			TEST(32, PPCSTATE(msr), Imm32(1 << (31 - 27)));
-			FixupBranch physmem = J_CC(CC_NZ);
-			MOV(64, R(RMEM), Imm64((u64)Memory::physical_base));
-			FixupBranch membaseend = J();
-			SetJumpTarget(physmem);
-			MOV(64, R(RMEM), Imm64((u64)Memory::logical_base));
-			SetJumpTarget(membaseend);
-
-			MOV(32, R(RSCRATCH), PPCSTATE(pc));
-
-			// TODO: We need to handle code which executes the same PC with
-			// different values of MSR.IR. It probably makes sense to handle
-			// MSR.DR here too, to allow IsOptimizableRAMAddress-based
-			// optimizations safe, because IR and DR are usually set/cleared together.
-			// TODO: Branching based on the 20 most significant bits of instruction
-			// addresses without translating them is wrong.
-			u64 icache = (u64)jit->GetBlockCache()->iCache.data();
-			u64 icacheVmem = (u64)jit->GetBlockCache()->iCacheVMEM.data();
-			u64 icacheEx = (u64)jit->GetBlockCache()->iCacheEx.data();
-			u32 mask = 0;
-			FixupBranch no_mem;
-			FixupBranch exit_mem;
-			FixupBranch exit_vmem;
-			if (SConfig::GetInstance().bWii)
-				mask = JIT_ICACHE_EXRAM_BIT;
-			mask |= JIT_ICACHE_VMEM_BIT;
-			TEST(32, R(RSCRATCH), Imm32(mask));
-			no_mem = J_CC(CC_NZ);
-			AND(32, R(RSCRATCH), Imm32(JIT_ICACHE_MASK));
-
-			if (icache <= INT_MAX)
-			{
-				MOV(32, R(RSCRATCH), MDisp(RSCRATCH, (s32)icache));
-			}
-			else
-			{
-				MOV(64, R(RSCRATCH2), Imm64(icache));
-				MOV(32, R(RSCRATCH), MRegSum(RSCRATCH2, RSCRATCH));
-			}
-
-			exit_mem = J();
-			SetJumpTarget(no_mem);
-			TEST(32, R(RSCRATCH), Imm32(JIT_ICACHE_VMEM_BIT));
-			FixupBranch no_vmem = J_CC(CC_Z);
-			AND(32, R(RSCRATCH), Imm32(JIT_ICACHE_MASK));
-			if (icacheVmem <= INT_MAX)
-			{
-				MOV(32, R(RSCRATCH), MDisp(RSCRATCH, (s32)icacheVmem));
-			}
-			else
-			{
-				MOV(64, R(RSCRATCH2), Imm64(icacheVmem));
-				MOV(32, R(RSCRATCH), MRegSum(RSCRATCH2, RSCRATCH));
-			}
-
-			if (SConfig::GetInstance().bWii) exit_vmem = J();
-			SetJumpTarget(no_vmem);
-			if (SConfig::GetInstance().bWii)
-			{
-				TEST(32, R(RSCRATCH), Imm32(JIT_ICACHE_EXRAM_BIT));
-				FixupBranch no_exram = J_CC(CC_Z);
-				AND(32, R(RSCRATCH), Imm32(JIT_ICACHEEX_MASK));
-
-				if (icacheEx <= INT_MAX)
-				{
-					MOV(32, R(RSCRATCH), MDisp(RSCRATCH, (s32)icacheEx));
-				}
-				else
-				{
-					MOV(64, R(RSCRATCH2), Imm64(icacheEx));
-					MOV(32, R(RSCRATCH), MRegSum(RSCRATCH2, RSCRATCH));
-				}
-
-				SetJumpTarget(no_exram);
-			}
-			SetJumpTarget(exit_mem);
-			if (SConfig::GetInstance().bWii)
-				SetJumpTarget(exit_vmem);
-
-			TEST(32, R(RSCRATCH), R(RSCRATCH));
-			FixupBranch notfound = J_CC(CC_L);
-			//grab from list and jump to it
-			u64 codePointers = (u64)jit->GetBlockCache()->GetCodePointers();
-			if (codePointers <= INT_MAX)
-			{
-				JMPptr(MScaled(RSCRATCH, SCALE_8, (s32)codePointers));
-			}
-			else
-			{
-				MOV(64, R(RSCRATCH2), Imm64(codePointers));
-				JMPptr(MComplex(RSCRATCH2, RSCRATCH, SCALE_8, 0));
-			}
-			SetJumpTarget(notfound);
-
-			// We reset the stack because Jit might clear the code cache.
-			// Also if we are in the middle of disabling BLR optimization on windows
-			// we need to reset the stack before _resetstkoflw() is called in Jit
-			// otherwise we will generate a second stack overflow exception during DoJit()
-			ResetStack();
-
-			//Ok, no block, let's jit
-			ABI_PushRegistersAndAdjustStack({}, 0);
-			ABI_CallFunctionA(32, (void *)&Jit, PPCSTATE(pc));
-			ABI_PopRegistersAndAdjustStack({}, 0);
-
-			JMP(dispatcherNoCheck, true); // no point in special casing this
-
-		SetJumpTarget(bail);
-		doTiming = GetCodePtr();
-
-		// make sure npc contains the next pc (needed for exception checking in CoreTiming::Advance)
-		MOV(32, R(RSCRATCH), PPCSTATE(pc));
-		MOV(32, PPCSTATE(npc), R(RSCRATCH));
-
-		// Check the state pointer to see if we are exiting
-		// Gets checked on at the end of every slice
 		TEST(32, M(CPU::GetStatePtr()), Imm32(0xFFFFFFFF));
-		J_CC(CC_Z, outerLoop);
+		dbg_exit = J_CC(CC_NZ, true);
+		SetJumpTarget(notStepping);
+	}
 
-	//Landing pad for drec space
+	SetJumpTarget(skipToRealDispatch);
+
+	dispatcherNoCheck = GetCodePtr();
+
+	// Switch to the correct memory base, in case MSR.DR has changed.
+	// TODO: Is there a more efficient place to put this?  We don't
+	// need to do this for indirect jumps, just exceptions etc.
+	TEST(32, PPCSTATE(msr), Imm32(1 << (31 - 27)));
+	FixupBranch physmem = J_CC(CC_NZ);
+	MOV(64, R(RMEM), Imm64((u64)Memory::physical_base));
+	FixupBranch membaseend = J();
+	SetJumpTarget(physmem);
+	MOV(64, R(RMEM), Imm64((u64)Memory::logical_base));
+	SetJumpTarget(membaseend);
+
+	MOV(32, R(RSCRATCH), PPCSTATE(pc));
+
+	// TODO: We need to handle code which executes the same PC with
+	// different values of MSR.IR. It probably makes sense to handle
+	// MSR.DR here too, to allow IsOptimizableRAMAddress-based
+	// optimizations safe, because IR and DR are usually set/cleared together.
+	// TODO: Branching based on the 20 most significant bits of instruction
+	// addresses without translating them is wrong.
+	u64 icache = (u64)jit->GetBlockCache()->iCache.data();
+	u64 icacheVmem = (u64)jit->GetBlockCache()->iCacheVMEM.data();
+	u64 icacheEx = (u64)jit->GetBlockCache()->iCacheEx.data();
+	u32 mask = 0;
+	FixupBranch no_mem;
+	FixupBranch exit_mem;
+	FixupBranch exit_vmem;
+	if (SConfig::GetInstance().bWii)
+		mask = JIT_ICACHE_EXRAM_BIT;
+	mask |= JIT_ICACHE_VMEM_BIT;
+	TEST(32, R(RSCRATCH), Imm32(mask));
+	no_mem = J_CC(CC_NZ);
+	AND(32, R(RSCRATCH), Imm32(JIT_ICACHE_MASK));
+
+	if (icache <= INT_MAX)
+	{
+		MOV(32, R(RSCRATCH), MDisp(RSCRATCH, (s32)icache));
+	}
+	else
+	{
+		MOV(64, R(RSCRATCH2), Imm64(icache));
+		MOV(32, R(RSCRATCH), MRegSum(RSCRATCH2, RSCRATCH));
+	}
+
+	exit_mem = J();
+	SetJumpTarget(no_mem);
+	TEST(32, R(RSCRATCH), Imm32(JIT_ICACHE_VMEM_BIT));
+	FixupBranch no_vmem = J_CC(CC_Z);
+	AND(32, R(RSCRATCH), Imm32(JIT_ICACHE_MASK));
+	if (icacheVmem <= INT_MAX)
+	{
+		MOV(32, R(RSCRATCH), MDisp(RSCRATCH, (s32)icacheVmem));
+	}
+	else
+	{
+		MOV(64, R(RSCRATCH2), Imm64(icacheVmem));
+		MOV(32, R(RSCRATCH), MRegSum(RSCRATCH2, RSCRATCH));
+	}
+
+	if (SConfig::GetInstance().bWii)
+		exit_vmem = J();
+	SetJumpTarget(no_vmem);
+	if (SConfig::GetInstance().bWii)
+	{
+		TEST(32, R(RSCRATCH), Imm32(JIT_ICACHE_EXRAM_BIT));
+		FixupBranch no_exram = J_CC(CC_Z);
+		AND(32, R(RSCRATCH), Imm32(JIT_ICACHEEX_MASK));
+
+		if (icacheEx <= INT_MAX)
+		{
+			MOV(32, R(RSCRATCH), MDisp(RSCRATCH, (s32)icacheEx));
+		}
+		else
+		{
+			MOV(64, R(RSCRATCH2), Imm64(icacheEx));
+			MOV(32, R(RSCRATCH), MRegSum(RSCRATCH2, RSCRATCH));
+		}
+
+		SetJumpTarget(no_exram);
+	}
+	SetJumpTarget(exit_mem);
+	if (SConfig::GetInstance().bWii)
+		SetJumpTarget(exit_vmem);
+
+	TEST(32, R(RSCRATCH), R(RSCRATCH));
+	FixupBranch notfound = J_CC(CC_L);
+	// grab from list and jump to it
+	u64 codePointers = (u64)jit->GetBlockCache()->GetCodePointers();
+	if (codePointers <= INT_MAX)
+	{
+		JMPptr(MScaled(RSCRATCH, SCALE_8, (s32)codePointers));
+	}
+	else
+	{
+		MOV(64, R(RSCRATCH2), Imm64(codePointers));
+		JMPptr(MComplex(RSCRATCH2, RSCRATCH, SCALE_8, 0));
+	}
+	SetJumpTarget(notfound);
+
+	// We reset the stack because Jit might clear the code cache.
+	// Also if we are in the middle of disabling BLR optimization on windows
+	// we need to reset the stack before _resetstkoflw() is called in Jit
+	// otherwise we will generate a second stack overflow exception during DoJit()
+	ResetStack();
+
+	// Ok, no block, let's jit
+	ABI_PushRegistersAndAdjustStack({}, 0);
+	ABI_CallFunctionA(32, (void*)&Jit, PPCSTATE(pc));
+	ABI_PopRegistersAndAdjustStack({}, 0);
+
+	JMP(dispatcherNoCheck, true);  // no point in special casing this
+
+	SetJumpTarget(bail);
+	doTiming = GetCodePtr();
+
+	// make sure npc contains the next pc (needed for exception checking in CoreTiming::Advance)
+	MOV(32, R(RSCRATCH), PPCSTATE(pc));
+	MOV(32, PPCSTATE(npc), R(RSCRATCH));
+
+	// Check the state pointer to see if we are exiting
+	// Gets checked on at the end of every slice
+	TEST(32, M(CPU::GetStatePtr()), Imm32(0xFFFFFFFF));
+	J_CC(CC_Z, outerLoop);
+
+	// Landing pad for drec space
 	if (SConfig::GetInstance().bEnableDebugging)
 		SetJumpTarget(dbg_exit);
 	ResetStack();
@@ -238,7 +240,6 @@ void Jit64AsmRoutineManager::ResetStack()
 		MOV(64, R(RSP), M(&s_saved_rsp));
 }
 
-
 void Jit64AsmRoutineManager::GenerateCommon()
 {
 	fifoDirectWrite8 = AlignCode4();
@@ -260,7 +261,7 @@ void Jit64AsmRoutineManager::GenerateCommon()
 	GenQuantizedStores();
 	GenQuantizedSingleStores();
 
-	//CMPSD(R(XMM0), M(&zero),
+	// CMPSD(R(XMM0), M(&zero),
 	// TODO
 
 	// Fast write routines - special case the most common hardware write

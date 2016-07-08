@@ -8,10 +8,9 @@
 
 #include "InputCommon/ControllerEmu.h"
 
-class GCPad : public ControllerEmu
+class GCPad: public ControllerEmu
 {
 public:
-
 	GCPad(const unsigned int index);
 	void GetInput(GCPadStatus* const pad);
 	void SetOutput(const ControlState strength);
@@ -23,14 +22,13 @@ public:
 	void LoadDefaults(const ControllerInterface& ciface) override;
 
 private:
-
-	Buttons*       m_buttons;
-	AnalogStick*   m_main_stick;
-	AnalogStick*   m_c_stick;
-	Buttons*       m_dpad;
+	Buttons* m_buttons;
+	AnalogStick* m_main_stick;
+	AnalogStick* m_c_stick;
+	Buttons* m_dpad;
 	MixedTriggers* m_triggers;
-	ControlGroup*  m_rumble;
-	ControlGroup*  m_options;
+	ControlGroup* m_rumble;
+	ControlGroup* m_options;
 
 	const unsigned int m_index;
 

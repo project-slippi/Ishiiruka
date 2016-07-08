@@ -11,16 +11,16 @@ class DSPEmitter;
 
 enum DSPJitRegSpecial
 {
-	DSP_REG_AX0_32   =32,
-	DSP_REG_AX1_32   =33,
-	DSP_REG_ACC0_64  =34,
-	DSP_REG_ACC1_64  =35,
-	DSP_REG_PROD_64  =36,
+	DSP_REG_AX0_32 = 32,
+	DSP_REG_AX1_32 = 33,
+	DSP_REG_ACC0_64 = 34,
+	DSP_REG_ACC1_64 = 35,
+	DSP_REG_PROD_64 = 36,
 	DSP_REG_MAX_MEM_BACKED = 36,
 
-	DSP_REG_USED     =253,
-	DSP_REG_STATIC   =254,
-	DSP_REG_NONE     =255
+	DSP_REG_USED = 253,
+	DSP_REG_STATIC = 254,
+	DSP_REG_NONE = 255
 };
 
 enum DSPJitSignExtend
@@ -46,55 +46,55 @@ public:
 	void FlushRegs(DSPJitRegCache &cache, bool emit = true);
 	/* since some use cases are non-trivial, some examples:
 
-	   //this does not modify the final state of gpr
-	   <code using gpr>
-	   FixupBranch b = JCC();
-	     DSPJitRegCache c = gpr;
-	     <code using c>
-	     gpr.FlushRegs(c);
-	   SetBranchTarget(b);
-	   <code using gpr>
+		//this does not modify the final state of gpr
+		<code using gpr>
+		FixupBranch b = JCC();
+		  DSPJitRegCache c = gpr;
+		  <code using c>
+		  gpr.FlushRegs(c);
+		SetBranchTarget(b);
+		<code using gpr>
 
-	   //this does not modify the final state of gpr
-	   <code using gpr>
-	   DSPJitRegCache c = gpr;
-	   FixupBranch b1 = JCC();
-	     <code using gpr>
-	     gpr.FlushRegs(c);
-	     FixupBranch b2 = JMP();
-	   SetBranchTarget(b1);
-	     <code using gpr>
-	     gpr.FlushRegs(c);
-	   SetBranchTarget(b2);
-	   <code using gpr>
+		//this does not modify the final state of gpr
+		<code using gpr>
+		DSPJitRegCache c = gpr;
+		FixupBranch b1 = JCC();
+		  <code using gpr>
+		  gpr.FlushRegs(c);
+		  FixupBranch b2 = JMP();
+		SetBranchTarget(b1);
+		  <code using gpr>
+		  gpr.FlushRegs(c);
+		SetBranchTarget(b2);
+		<code using gpr>
 
-	   //this allows gpr to be modified in the second branch
-	   //and fixes gpr according to the results form in the first branch
-	   <code using gpr>
-	   DSPJitRegCache c = gpr;
-	   FixupBranch b1 = JCC();
-	     <code using c>
-	     FixupBranch b2 = JMP();
-	   SetBranchTarget(b1);
-	     <code using gpr>
-	     gpr.FlushRegs(c);
-	   SetBranchTarget(b2);
-	   <code using gpr>
+		//this allows gpr to be modified in the second branch
+		//and fixes gpr according to the results form in the first branch
+		<code using gpr>
+		DSPJitRegCache c = gpr;
+		FixupBranch b1 = JCC();
+		  <code using c>
+		  FixupBranch b2 = JMP();
+		SetBranchTarget(b1);
+		  <code using gpr>
+		  gpr.FlushRegs(c);
+		SetBranchTarget(b2);
+		<code using gpr>
 
-	   //this does not modify the final state of gpr
-	   <code using gpr>
-	   u8* b = GetCodePtr();
-	     DSPJitRegCache c = gpr;
-	     <code using gpr>
-	     gpr.FlushRegs(c);
-	     JCC(b);
-	   <code using gpr>
+		//this does not modify the final state of gpr
+		<code using gpr>
+		u8* b = GetCodePtr();
+		  DSPJitRegCache c = gpr;
+		  <code using gpr>
+		  gpr.FlushRegs(c);
+		  JCC(b);
+		<code using gpr>
 
-	   this all is not needed when gpr would not be used at all in the
-	   conditional branch
+		this all is not needed when gpr would not be used at all in the
+		conditional branch
 	 */
 
-	// Drop this copy without warning
+	 // Drop this copy without warning
 	void Drop();
 
 	// Prepare state so that another flushed DSPJitRegCache can take over
@@ -144,7 +144,7 @@ private:
 		int last_use_ctr;
 		int parentReg;
 		int shift; // Current shift if parentReg == DSP_REG_NONE
-		           // otherwise the shift this part can be found at
+					  // otherwise the shift this part can be found at
 		Gen::X64Reg host_reg;
 
 		// TODO:

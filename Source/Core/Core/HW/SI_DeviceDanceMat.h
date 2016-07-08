@@ -9,7 +9,7 @@
 
 struct GCPadStatus;
 
-class CSIDevice_DanceMat : public CSIDevice_GCController
+class CSIDevice_DanceMat: public CSIDevice_GCController
 {
 public:
 	CSIDevice_DanceMat(SIDevices device, int _iDeviceNumber);

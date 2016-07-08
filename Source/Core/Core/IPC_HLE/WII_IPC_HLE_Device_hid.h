@@ -31,7 +31,7 @@ struct libusb_transfer;
 
 #define HIDERR_NO_DEVICE_FOUND -4
 
-class CWII_IPC_HLE_Device_hid : public IWII_IPC_HLE_Device
+class CWII_IPC_HLE_Device_hid: public IWII_IPC_HLE_Device
 {
 public:
 	CWII_IPC_HLE_Device_hid(u32 _DeviceID, const std::string& _rDeviceName);
@@ -47,14 +47,14 @@ public:
 private:
 	enum
 	{
-		IOCTL_HID_GET_ATTACHED     = 0x00,
-		IOCTL_HID_SET_SUSPEND      = 0x01,
-		IOCTL_HID_CONTROL          = 0x02,
-		IOCTL_HID_INTERRUPT_IN     = 0x03,
-		IOCTL_HID_INTERRUPT_OUT    = 0x04,
-		IOCTL_HID_GET_US_STRING    = 0x05,
-		IOCTL_HID_OPEN             = 0x06,
-		IOCTL_HID_SHUTDOWN         = 0x07,
+		IOCTL_HID_GET_ATTACHED = 0x00,
+		IOCTL_HID_SET_SUSPEND = 0x01,
+		IOCTL_HID_CONTROL = 0x02,
+		IOCTL_HID_INTERRUPT_IN = 0x03,
+		IOCTL_HID_INTERRUPT_OUT = 0x04,
+		IOCTL_HID_GET_US_STRING = 0x05,
+		IOCTL_HID_OPEN = 0x06,
+		IOCTL_HID_SHUTDOWN = 0x07,
 		IOCTL_HID_CANCEL_INTERRUPT = 0x08,
 	};
 

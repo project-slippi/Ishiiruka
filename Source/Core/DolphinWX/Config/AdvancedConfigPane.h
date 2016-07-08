@@ -10,7 +10,7 @@ class wxCheckBox;
 class wxSlider;
 class wxStaticText;
 
-class AdvancedConfigPane final : public wxPanel
+class AdvancedConfigPane final: public wxPanel
 {
 public:
 	AdvancedConfigPane(wxWindow* parent, wxWindowID id);

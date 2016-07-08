@@ -20,8 +20,9 @@ namespace D3D
 CD3DFont font;
 
 #define MAX_NUM_VERTICES 50*6
-struct FONT2DVERTEX {
-	float x,y,z;
+struct FONT2DVERTEX
+{
+	float x, y, z;
 	float rhw;
 	u32 color;
 	float tu, tv;
@@ -32,39 +33,42 @@ struct FONT2DVERTEX {
 
 inline FONT2DVERTEX InitFont2DVertex(float x, float y, u32 color, float tu, float tv)
 {
-	FONT2DVERTEX v;   v.x=x; v.y=y; v.z=0; v.rhw=1.0f;  v.color = color;   v.tu = tu;   v.tv = tv;
+	FONT2DVERTEX v;   v.x = x; v.y = y; v.z = 0; v.rhw = 1.0f;  v.color = color;   v.tu = tu;   v.tv = tv;
 	return v;
 }
 
 CD3DFont::CD3DFont()
 {
-	m_pTexture			   = NULL;
-	m_pVB				   = NULL;
+	m_pTexture = NULL;
+	m_pVB = NULL;
 }
 
-enum {m_dwTexWidth = 512, m_dwTexHeight = 512};
+enum
+{
+	m_dwTexWidth = 512, m_dwTexHeight = 512
+};
 
 int CD3DFont::Init()
 {
 	// Create vertex buffer for the letters
 	HRESULT hr;
-	if (FAILED(hr = dev->CreateVertexBuffer(MAX_NUM_VERTICES*sizeof(FONT2DVERTEX),
+	if (FAILED(hr = dev->CreateVertexBuffer(MAX_NUM_VERTICES * sizeof(FONT2DVERTEX),
 		D3DUSAGE_WRITEONLY | D3DUSAGE_DYNAMIC, 0, D3DPOOL_DEFAULT, &m_pVB, NULL)))
 	{
 		return hr;
 	}
-	m_fTextScale  = 1.0f; // Draw fonts into texture without scaling
+	m_fTextScale = 1.0f; // Draw fonts into texture without scaling
 
 	// Prepare to create a bitmap
 	unsigned int* pBitmapBits;
 	BITMAPINFO bmi;
 	ZeroMemory(&bmi.bmiHeader, sizeof(BITMAPINFOHEADER));
-	bmi.bmiHeader.biSize        = sizeof(BITMAPINFOHEADER);
-	bmi.bmiHeader.biWidth       =  (int)m_dwTexWidth;
-	bmi.bmiHeader.biHeight      = -(int)m_dwTexHeight;
-	bmi.bmiHeader.biPlanes      = 1;
+	bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+	bmi.bmiHeader.biWidth = (int)m_dwTexWidth;
+	bmi.bmiHeader.biHeight = -(int)m_dwTexHeight;
+	bmi.bmiHeader.biPlanes = 1;
 	bmi.bmiHeader.biCompression = BI_RGB;
-	bmi.bmiHeader.biBitCount    = 32;
+	bmi.bmiHeader.biBitCount = 32;
 
 	// Create a DC and a bitmap for the font
 	HDC hDC = CreateCompatibleDC(NULL);
@@ -89,7 +93,7 @@ int CD3DFont::Init()
 
 	// Set text properties
 	SetTextColor(hDC, 0xFFFFFF);
-	SetBkColor  (hDC, 0);
+	SetBkColor(hDC, 0);
 	SetTextAlign(hDC, TA_TOP);
 
 	// Loop through all printable characters and output them to the bitmap
@@ -101,17 +105,17 @@ int CD3DFont::Init()
 		str[0] = c + 32;
 		SIZE size;
 		GetTextExtentPoint32A(hDC, str, 1, &size);
-		if ((int)(x+size.cx+1) > m_dwTexWidth)
+		if ((int)(x + size.cx + 1) > m_dwTexWidth)
 		{
-			x  = 0;
+			x = 0;
 			y += size.cy + 1;
 		}
 
-		ExtTextOutA(hDC, x+1, y+0, ETO_OPAQUE | ETO_CLIPPED, NULL, str, 1, NULL);
-		m_fTexCoords[c][0] = ((float)(x+0))/m_dwTexWidth;
-		m_fTexCoords[c][1] = ((float)(y+0))/m_dwTexHeight;
-		m_fTexCoords[c][2] = ((float)(x+0+size.cx))/m_dwTexWidth;
-		m_fTexCoords[c][3] = ((float)(y+0+size.cy))/m_dwTexHeight;
+		ExtTextOutA(hDC, x + 1, y + 0, ETO_OPAQUE | ETO_CLIPPED, NULL, str, 1, NULL);
+		m_fTexCoords[c][0] = ((float)(x + 0)) / m_dwTexWidth;
+		m_fTexCoords[c][1] = ((float)(y + 0)) / m_dwTexHeight;
+		m_fTexCoords[c][2] = ((float)(x + 0 + size.cx)) / m_dwTexWidth;
+		m_fTexCoords[c][3] = ((float)(y + 0 + size.cy)) / m_dwTexHeight;
 
 		x += size.cx + 3;  // 3 to work around annoying ij conflict (part of the j ends up with the i)
 	}
@@ -120,7 +124,7 @@ int CD3DFont::Init()
 	// possible optimization: store the converted data in a buffer and fill the texture on creation.
 	//							That way, we can use a static texture
 	hr = dev->CreateTexture(m_dwTexWidth, m_dwTexHeight, 1, D3DUSAGE_DYNAMIC,
-							D3DFMT_A4R4G4B4, D3DPOOL_DEFAULT, &m_pTexture, NULL);
+		D3DFMT_A4R4G4B4, D3DPOOL_DEFAULT, &m_pTexture, NULL);
 	if (FAILED(hr))
 	{
 		PanicAlert("Failed to create font texture");
@@ -173,7 +177,7 @@ const int RS[6][2] =
 	{D3DRS_ZENABLE,			 FALSE},
 	{D3DRS_FOGENABLE,		 FALSE},
 };
-const int TS[6][2] = 
+const int TS[6][2] =
 {
 	{D3DTSS_COLOROP,   D3DTOP_MODULATE},
 	{D3DTSS_COLORARG1, D3DTA_TEXTURE},
@@ -231,8 +235,8 @@ int CD3DFont::DrawTextScaled(float x, float y, float fXScale, float fYScale, flo
 	float vpWidth = 1;
 	float vpHeight = 1;
 
-	float sx = x*vpWidth-0.5f;
-	float sy = y*vpHeight-0.5f;
+	float sx = x*vpWidth - 0.5f;
+	float sy = y*vpHeight - 0.5f;
 
 	float fStartX = sx;
 
@@ -241,29 +245,29 @@ int CD3DFont::DrawTextScaled(float x, float y, float fXScale, float fYScale, flo
 	FONT2DVERTEX* pVertices;
 	int dwNumTriangles = 0L;
 	m_pVB->Lock(0, 0, (void**)&pVertices, D3DLOCK_DISCARD);
-	
-	//First, let's measure the text
-	float tw=0;
-	float mx=0;
-	float maxx=0;
 
-	for ( char c : Text)
+	//First, let's measure the text
+	float tw = 0;
+	float mx = 0;
+	float maxx = 0;
+
+	for (char c : Text)
 	{
 		if (c == ('\n'))
 			mx = 0;
 		if (c < (' '))
 			continue;
 
-		float tx1 = m_fTexCoords[c-32][0];
-		float tx2 = m_fTexCoords[c-32][2];
+		float tx1 = m_fTexCoords[c - 32][0];
+		float tx2 = m_fTexCoords[c - 32][2];
 
-		float w = (tx2-tx1)*m_dwTexWidth;
+		float w = (tx2 - tx1)*m_dwTexWidth;
 		w *= (fXScale*vpHeight)*invLineHeight;
 		mx += w + spacing*fXScale*vpWidth;
 		if (mx > maxx) maxx = mx;
 	}
 
-	float offset = -maxx/2;
+	float offset = -maxx / 2;
 
 	float wScale = (fXScale*vpHeight)*invLineHeight;
 	float hScale = (fYScale*vpHeight)*invLineHeight;
@@ -273,7 +277,7 @@ int CD3DFont::DrawTextScaled(float x, float y, float fXScale, float fYScale, flo
 	{
 		if (c == ('\n'))
 		{
-			sx  = fStartX;
+			sx = fStartX;
 			sy += fYScale*vpHeight;
 		}
 		if (c < (' '))
@@ -285,23 +289,23 @@ int CD3DFont::DrawTextScaled(float x, float y, float fXScale, float fYScale, flo
 		float tx2 = m_fTexCoords[c][2];
 		float ty2 = m_fTexCoords[c][3];
 
-		float w = (tx2-tx1)*m_dwTexWidth;
-		float h = (ty2-ty1)*m_dwTexHeight;
+		float w = (tx2 - tx1)*m_dwTexWidth;
+		float h = (ty2 - ty1)*m_dwTexHeight;
 
 		w *= wScale;
 		h *= hScale;
 
 		FONT2DVERTEX v[6];
-		v[0] = InitFont2DVertex(sx,   sy+h, dwColor, tx1, ty2);
-		v[1] = InitFont2DVertex(sx,   sy,   dwColor, tx1, ty1);
-		v[2] = InitFont2DVertex(sx+w, sy+h, dwColor, tx2, ty2);
-		v[3] = InitFont2DVertex(sx+w, sy,   dwColor, tx2, ty1);
+		v[0] = InitFont2DVertex(sx, sy + h, dwColor, tx1, ty2);
+		v[1] = InitFont2DVertex(sx, sy, dwColor, tx1, ty1);
+		v[2] = InitFont2DVertex(sx + w, sy + h, dwColor, tx2, ty2);
+		v[3] = InitFont2DVertex(sx + w, sy, dwColor, tx2, ty1);
 		v[4] = v[2];
 		v[5] = v[1];
 
-		memcpy(pVertices, v, 6*sizeof(FONT2DVERTEX));
+		memcpy(pVertices, v, 6 * sizeof(FONT2DVERTEX));
 
-		pVertices+=6;
+		pVertices += 6;
 		dwNumTriangles += 2;
 
 		if (dwNumTriangles * 3 > (MAX_NUM_VERTICES - 6))
@@ -348,19 +352,19 @@ int CD3DFont::DrawTextScaled(float x, float y, float fXScale, float fYScale, flo
 	For a detailed explanation of this read the MSDN article "Directly Mapping Texels to Pixels (Direct3D 9)".
 */
 void drawShadedTexQuad(IDirect3DTexture9 *texture,
-					   const RECT *rSource,
-					   int SourceWidth,
-					   int SourceHeight,
-					   int DestWidth,
-					   int DestHeight,
-					   IDirect3DPixelShader9 *PShader,
-					   IDirect3DVertexShader9 *Vshader,
-					   float Gamma)
+	const RECT *rSource,
+	int SourceWidth,
+	int SourceHeight,
+	int DestWidth,
+	int DestHeight,
+	IDirect3DPixelShader9 *PShader,
+	IDirect3DVertexShader9 *Vshader,
+	float Gamma)
 {
-	float sw = 1.0f /(float) SourceWidth;
-	float sh = 1.0f /(float) SourceHeight;
-	float dw = 1.0f /(float) DestWidth;
-	float dh = 1.0f /(float) DestHeight;
+	float sw = 1.0f / (float)SourceWidth;
+	float sh = 1.0f / (float)SourceHeight;
+	float dw = 1.0f / (float)DestWidth;
+	float dh = 1.0f / (float)DestHeight;
 	float u1 = 0.0f;
 	float u2 = 1.0f;
 	float v1 = 0.0f;
@@ -372,55 +376,61 @@ void drawShadedTexQuad(IDirect3DTexture9 *texture,
 		v1 = ((float)rSource->top) * sh;
 		v2 = ((float)rSource->bottom) * sh;
 	}
-	float g = 1.0f/Gamma;
+	float g = 1.0f / Gamma;
 
-	const struct Q2DVertex { float x,y,z,rhw,u,v,w,h,G; } coords[4] = {
-		{-1.0f - dw,-1.0f + dh, 0.0f,1.0f, u1, v2, dw, dh, g},
-		{-1.0f - dw, 1.0f + dh, 0.0f,1.0f, u1, v1, dw, dh, g},
-		{ 1.0f - dw,-1.0f + dh, 0.0f,1.0f, u2, v2, dw, dh, g},
-		{ 1.0f - dw, 1.0f + dh, 0.0f,1.0f, u2, v1, dw, dh, g}
+	const struct Q2DVertex
+	{
+		float x, y, z, rhw, u, v, w, h, G;
+	} coords[4] = {
+{-1.0f - dw,-1.0f + dh, 0.0f,1.0f, u1, v2, dw, dh, g},
+{-1.0f - dw, 1.0f + dh, 0.0f,1.0f, u1, v1, dw, dh, g},
+{ 1.0f - dw,-1.0f + dh, 0.0f,1.0f, u2, v2, dw, dh, g},
+{ 1.0f - dw, 1.0f + dh, 0.0f,1.0f, u2, v1, dw, dh, g}
 	};
 	D3D::ChangeVertexShader(Vshader);
 	D3D::ChangePixelShader(PShader);
 	D3D::SetTexture(0, texture);
 	D3D::ChangeVertexDeclaration(0);
-	dev->SetFVF(D3DFVF_XYZW | D3DFVF_TEX3 |  D3DFVF_TEXCOORDSIZE1(2));
+	dev->SetFVF(D3DFVF_XYZW | D3DFVF_TEX3 | D3DFVF_TEXCOORDSIZE1(2));
 	dev->DrawPrimitiveUP(D3DPT_TRIANGLESTRIP, 2, coords, sizeof(Q2DVertex));
 	RestoreShaders();
 }
 
 void drawShadedTexSubQuad(IDirect3DTexture9 *texture,
-							const MathUtil::Rectangle<float> *rSource,
-							int SourceWidth,
-							int SourceHeight,
-							const MathUtil::Rectangle<float> *rDest,
-							int DestWidth,
-							int DestHeight,
-							IDirect3DPixelShader9 *PShader,
-							IDirect3DVertexShader9 *Vshader,
-							float Gamma)
+	const MathUtil::Rectangle<float> *rSource,
+	int SourceWidth,
+	int SourceHeight,
+	const MathUtil::Rectangle<float> *rDest,
+	int DestWidth,
+	int DestHeight,
+	IDirect3DPixelShader9 *PShader,
+	IDirect3DVertexShader9 *Vshader,
+	float Gamma)
 {
-	float sw = 1.0f /(float) SourceWidth;
-	float sh = 1.0f /(float) SourceHeight;
-	float dw = 1.0f /(float) DestWidth;
-	float dh = 1.0f /(float) DestHeight;
-	float u1= rSource->left * sw;
-	float u2= rSource->right * sw;
-	float v1= rSource->top * sh;
-	float v2= rSource->bottom * sh;
-	float g = 1.0f/Gamma;
+	float sw = 1.0f / (float)SourceWidth;
+	float sh = 1.0f / (float)SourceHeight;
+	float dw = 1.0f / (float)DestWidth;
+	float dh = 1.0f / (float)DestHeight;
+	float u1 = rSource->left * sw;
+	float u2 = rSource->right * sw;
+	float v1 = rSource->top * sh;
+	float v2 = rSource->bottom * sh;
+	float g = 1.0f / Gamma;
 
-	struct Q2DVertex { float x,y,z,rhw,u,v,w,h,G; } coords[4] = {
-		{ rDest->left  - dw , rDest->top    + dh, 1.0f,1.0f, u1, v2, dw, dh, g},
-		{ rDest->left  - dw , rDest->bottom + dh, 1.0f,1.0f, u1, v1, dw, dh, g},
-		{ rDest->right - dw , rDest->top    + dh, 1.0f,1.0f, u2, v2, dw, dh, g},
-		{ rDest->right - dw , rDest->bottom + dh, 1.0f,1.0f, u2, v1, dw, dh, g}
+	struct Q2DVertex
+	{
+		float x, y, z, rhw, u, v, w, h, G;
+	} coords[4] = {
+{ rDest->left - dw , rDest->top + dh, 1.0f,1.0f, u1, v2, dw, dh, g},
+{ rDest->left - dw , rDest->bottom + dh, 1.0f,1.0f, u1, v1, dw, dh, g},
+{ rDest->right - dw , rDest->top + dh, 1.0f,1.0f, u2, v2, dw, dh, g},
+{ rDest->right - dw , rDest->bottom + dh, 1.0f,1.0f, u2, v1, dw, dh, g}
 	};
 	D3D::ChangeVertexShader(Vshader);
 	D3D::ChangePixelShader(PShader);
 	D3D::SetTexture(0, texture);
 	D3D::ChangeVertexDeclaration(0);
-	dev->SetFVF(D3DFVF_XYZW | D3DFVF_TEX3 |  D3DFVF_TEXCOORDSIZE1(2));
+	dev->SetFVF(D3DFVF_XYZW | D3DFVF_TEX3 | D3DFVF_TEXCOORDSIZE1(2));
 	dev->DrawPrimitiveUP(D3DPT_TRIANGLESTRIP, 2, coords, sizeof(Q2DVertex));
 	RestoreShaders();
 }
@@ -429,11 +439,14 @@ void drawShadedTexSubQuad(IDirect3DTexture9 *texture,
 // Z buffer disabled; destination coordinates normalized to (-1;1)
 void drawColorQuad(u32 Color, float x1, float y1, float x2, float y2)
 {
-	struct CQVertex { float x, y, z, rhw; u32 col; } coords[4] = {
-		{ x1, y2, 0.f, 1.f, Color },
-		{ x2, y2, 0.f, 1.f, Color },
-		{ x1, y1, 0.f, 1.f, Color },
-		{ x2, y1, 0.f, 1.f, Color },
+	struct CQVertex
+	{
+		float x, y, z, rhw; u32 col;
+	} coords[4] = {
+{ x1, y2, 0.f, 1.f, Color },
+{ x2, y2, 0.f, 1.f, Color },
+{ x1, y1, 0.f, 1.f, Color },
+{ x2, y1, 0.f, 1.f, Color },
 	};
 	D3D::ChangeVertexShader(VertexShaderCache::GetClearVertexShader());
 	D3D::ChangePixelShader(PixelShaderCache::GetClearProgram());
@@ -443,9 +456,12 @@ void drawColorQuad(u32 Color, float x1, float y1, float x2, float y2)
 	RestoreShaders();
 }
 
-struct Q2DVertex { float x, y, z, rhw; u32 color; };
+struct Q2DVertex
+{
+	float x, y, z, rhw; u32 color;
+};
 
-void drawClearQuad(u32 Color,float z,IDirect3DPixelShader9 *PShader,IDirect3DVertexShader9 *Vshader)
+void drawClearQuad(u32 Color, float z, IDirect3DPixelShader9 *PShader, IDirect3DVertexShader9 *Vshader)
 {
 	Q2DVertex coords[4] = {
 		{-1.0f,  1.0f, z, 1.0f, Color},
@@ -478,16 +494,16 @@ void DrawEFBPokeQuads(EFBAccessType type, const EfbPokeData* points, size_t num_
 		float y2 = -float(point.y + 1) * 2.0f / EFB_HEIGHT + 1.0f;
 		float z = (type == POKE_Z) ? (1.0f - float(point.data & 0xFFFFFF) / 16777216.0f) : 0.0f;
 		u32 col = (type == POKE_Z) ? 0 : RGBA8ToBGRA8(point.data);
-		
+
 
 		// quad -> triangles
 		Q2DVertex* vertex = &PokeData[i * 6];
-		vertex[0] = { x1, y1, z, 1.0, col };
-		vertex[1] = { x2, y1, z, 1.0, col };
-		vertex[2] = { x1, y2, z, 1.0, col };
-		vertex[3] = { x1, y2, z, 1.0, col };
-		vertex[4] = { x2, y1, z, 1.0, col };
-		vertex[5] = { x2, y2, z, 1.0, col };
+		vertex[0] = {x1, y1, z, 1.0, col};
+		vertex[1] = {x2, y1, z, 1.0, col};
+		vertex[2] = {x1, y2, z, 1.0, col};
+		vertex[3] = {x1, y2, z, 1.0, col};
+		vertex[4] = {x2, y1, z, 1.0, col};
+		vertex[5] = {x2, y2, z, 1.0, col};
 		if (type == POKE_COLOR)
 			FramebufferManager::SetEFBCachedColor(point.x, point.y, col);
 		else

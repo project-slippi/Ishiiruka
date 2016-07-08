@@ -150,11 +150,11 @@ void MemChecks::AddFromStrings(const TMemChecksStr& mcstrs)
 		std::stringstream ss;
 		ss << std::hex << mcstr;
 		ss >> mc.StartAddress;
-		mc.bRange  = mcstr.find("n") != mcstr.npos;
-		mc.OnRead  = mcstr.find("r") != mcstr.npos;
+		mc.bRange = mcstr.find("n") != mcstr.npos;
+		mc.OnRead = mcstr.find("r") != mcstr.npos;
 		mc.OnWrite = mcstr.find("w") != mcstr.npos;
-		mc.Log     = mcstr.find("l") != mcstr.npos;
-		mc.Break   = mcstr.find("p") != mcstr.npos;
+		mc.Log = mcstr.find("l") != mcstr.npos;
+		mc.Break = mcstr.find("p") != mcstr.npos;
 		if (mc.bRange)
 			ss >> mc.EndAddress;
 		else
@@ -215,9 +215,9 @@ bool TMemCheck::Action(DebugInterface* debug_interface, u32 iValue, u32 addr, bo
 		{
 			INFO_LOG(MEMMAP, "CHK %08x (%s) %s%i %0*x at %08x (%s)",
 				pc, debug_interface->GetDescription(pc).c_str(),
-				write ? "Write" : "Read", size*8, size*2, iValue, addr,
+				write ? "Write" : "Read", size * 8, size * 2, iValue, addr,
 				debug_interface->GetDescription(addr).c_str()
-				);
+			);
 		}
 
 		return true;

@@ -40,10 +40,14 @@
 namespace DX9
 {
 
-struct XFBSource : public XFBSourceBase
+struct XFBSource: public XFBSourceBase
 {
-	XFBSource(LPDIRECT3DTEXTURE9 tex) : texture(tex) {}
-	~XFBSource() { texture->Release(); }
+	XFBSource(LPDIRECT3DTEXTURE9 tex): texture(tex)
+	{}
+	~XFBSource()
+	{
+		texture->Release();
+	}
 
 	void Draw(const MathUtil::Rectangle<float> &sourcerc,
 		const MathUtil::Rectangle<float> &drawrc, int width, int height) const;
@@ -53,23 +57,47 @@ struct XFBSource : public XFBSourceBase
 	LPDIRECT3DTEXTURE9 const texture;
 };
 
-class FramebufferManager : public FramebufferManagerBase
+class FramebufferManager: public FramebufferManagerBase
 {
 public:
 	FramebufferManager();
 	~FramebufferManager();
 
-	static LPDIRECT3DTEXTURE9 GetEFBColorTexture() { return s_efb.color_texture; }
-	static LPDIRECT3DTEXTURE9 GetEFBDepthTexture() { return s_efb.depth_texture; }
+	static LPDIRECT3DTEXTURE9 GetEFBColorTexture()
+	{
+		return s_efb.color_texture;
+	}
+	static LPDIRECT3DTEXTURE9 GetEFBDepthTexture()
+	{
+		return s_efb.depth_texture;
+	}
 
-	static LPDIRECT3DSURFACE9 GetEFBColorRTSurface() { return s_efb.color_surface; }
-	static LPDIRECT3DSURFACE9 GetEFBDepthRTSurface() { return s_efb.depth_surface; }
+	static LPDIRECT3DSURFACE9 GetEFBColorRTSurface()
+	{
+		return s_efb.color_surface;
+	}
+	static LPDIRECT3DSURFACE9 GetEFBDepthRTSurface()
+	{
+		return s_efb.depth_surface;
+	}
 
-	static D3DFORMAT GetEFBDepthRTSurfaceFormat() { return s_efb.depth_surface_Format; }
-	static D3DFORMAT GetEFBColorRTSurfaceFormat() { return s_efb.color_surface_Format; }
+	static D3DFORMAT GetEFBDepthRTSurfaceFormat()
+	{
+		return s_efb.depth_surface_Format;
+	}
+	static D3DFORMAT GetEFBColorRTSurfaceFormat()
+	{
+		return s_efb.color_surface_Format;
+	}
 
-	static LPDIRECT3DTEXTURE9 GetEFBColorReinterpretTexture() { return s_efb.color_reinterpret_texture; }
-	static LPDIRECT3DSURFACE9 GetEFBColorReinterpretSurface() { return s_efb.color_reinterpret_surface; }
+	static LPDIRECT3DTEXTURE9 GetEFBColorReinterpretTexture()
+	{
+		return s_efb.color_reinterpret_texture;
+	}
+	static LPDIRECT3DSURFACE9 GetEFBColorReinterpretSurface()
+	{
+		return s_efb.color_reinterpret_surface;
+	}
 
 	static void SwapReinterpretTexture()
 	{
@@ -99,10 +127,10 @@ private:
 	{
 		LPDIRECT3DTEXTURE9 color_texture{};//Texture that contains the color data of the render target
 		LPDIRECT3DSURFACE9 color_surface{};//Color Surface
-		
+
 		LPDIRECT3DTEXTURE9 depth_texture{};//Texture that contains the depth data of the render target
 		LPDIRECT3DSURFACE9 depth_surface{};//Depth Surface
-		
+
 		D3DFORMAT color_surface_Format{};//Format of the color Surface
 		D3DFORMAT depth_surface_Format{};//Format of the Depth Surface
 		D3DFORMAT depth_cache_Format{};//Format of the Depth color Read Surface

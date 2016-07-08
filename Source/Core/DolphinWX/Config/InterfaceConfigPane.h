@@ -11,7 +11,7 @@ class wxButton;
 class wxCheckBox;
 class wxChoice;
 
-class InterfaceConfigPane final : public wxPanel
+class InterfaceConfigPane final: public wxPanel
 {
 public:
 	InterfaceConfigPane(wxWindow* parent, wxWindowID id);

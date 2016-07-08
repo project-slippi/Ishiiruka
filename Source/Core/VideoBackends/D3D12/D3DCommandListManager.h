@@ -47,7 +47,7 @@ public:
 	void SetCommandListPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY primitive_topology);
 	D3D_PRIMITIVE_TOPOLOGY GetCommandListPrimitiveTopology() const;
 
-	
+
 
 	void CPUAccessNotify();
 
@@ -59,7 +59,7 @@ public:
 	void WaitOnCPUForFence(ID3D12Fence* fence, UINT64 fence_value);
 
 private:
-	
+
 	void DestroyAllPendingResources();
 	void ResetAllCommandAllocators();
 	void WaitForGPUCompletion();
@@ -67,7 +67,7 @@ private:
 	void PerformGPURolloverChecks();
 	void MoveToNextCommandAllocator();
 	void ResetCommandList();
-	
+
 	unsigned int m_draws_since_last_execution = 0;
 	unsigned int m_this_frame_draws = 0;
 	unsigned int m_last_frame_draws = 0;

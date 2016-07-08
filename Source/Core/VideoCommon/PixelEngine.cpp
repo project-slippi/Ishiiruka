@@ -32,7 +32,7 @@ union UPEZConfReg
 		u16 ZCompEnable : 1; // Z Comparator Enable
 		u16 Function : 3;
 		u16 ZUpdEnable : 1;
-	u16: 11;
+		u16 : 11;
 	};
 };
 
@@ -60,7 +60,7 @@ union UPEDstAlphaConfReg
 	{
 		u16 DstAlpha : 8;
 		u16 Enable : 1;
-	u16: 7;
+		u16 : 7;
 	};
 };
 
@@ -83,11 +83,17 @@ union UPECtrlReg
 		u16 PEFinishEnable : 1;
 		u16 PEToken : 1; // write only
 		u16 PEFinish : 1; // write only
-	u16: 12;
+		u16 : 12;
 	};
 	u16 Hex;
-	UPECtrlReg() { Hex = 0; }
-	UPECtrlReg(u16 _hex) { Hex = _hex; }
+	UPECtrlReg()
+	{
+		Hex = 0;
+	}
+	UPECtrlReg(u16 _hex)
+	{
+		Hex = _hex;
+	}
 };
 
 // STATE_TO_SAVE
@@ -149,7 +155,8 @@ void Init()
 void RegisterMMIO(MMIO::Mapping* mmio, u32 base)
 {
 	// Directly mapped registers.
-	struct {
+	struct
+	{
 		u32 addr;
 		u16* ptr;
 	} directly_mapped_vars[] = {
@@ -164,12 +171,13 @@ void RegisterMMIO(MMIO::Mapping* mmio, u32 base)
 		mmio->Register(base | mapped_var.addr,
 			MMIO::DirectRead<u16>(mapped_var.ptr),
 			MMIO::DirectWrite<u16>(mapped_var.ptr)
-			);
+		);
 	}
 
 	// Performance queries registers: read only, need to call the video backend
 	// to get the results.
-	struct {
+	struct
+	{
 		u32 addr;
 		PerfQueryType pqtype;
 	} pq_regs[] = {
@@ -183,13 +191,15 @@ void RegisterMMIO(MMIO::Mapping* mmio, u32 base)
 	for (auto& pq_reg : pq_regs)
 	{
 		mmio->Register(base | pq_reg.addr,
-			MMIO::ComplexRead<u16>([pq_reg](u32) {
+			MMIO::ComplexRead<u16>([pq_reg](u32)
+		{
 			return g_video_backend->Video_GetQueryResult(pq_reg.pqtype) & 0xFFFF;
 		}),
 			MMIO::InvalidWrite<u16>()
 			);
 		mmio->Register(base | (pq_reg.addr + 2),
-			MMIO::ComplexRead<u16>([pq_reg](u32) {
+			MMIO::ComplexRead<u16>([pq_reg](u32)
+		{
 			return g_video_backend->Video_GetQueryResult(pq_reg.pqtype) >> 16;
 		}),
 			MMIO::InvalidWrite<u16>()
@@ -199,7 +209,8 @@ void RegisterMMIO(MMIO::Mapping* mmio, u32 base)
 	// Control register
 	mmio->Register(base | PE_CTRL_REGISTER,
 		MMIO::DirectRead<u16>(&m_Control.Hex),
-		MMIO::ComplexWrite<u16>([](u32, u16 val) {
+		MMIO::ComplexWrite<u16>([](u32, u16 val)
+	{
 		UPECtrlReg tmpCtrl(val);
 
 		if (tmpCtrl.PEToken)
@@ -216,19 +227,20 @@ void RegisterMMIO(MMIO::Mapping* mmio, u32 base)
 		DEBUG_LOG(PIXELENGINE, "(w16) CTRL_REGISTER: 0x%04x", val);
 		UpdateInterrupts();
 	})
-		);
+	);
 
 	// Token register, readonly.
 	mmio->Register(base | PE_TOKEN_REG,
 		MMIO::DirectRead<u16>(&CommandProcessor::fifo.PEToken),
 		MMIO::InvalidWrite<u16>()
-		);
+	);
 
 	// BBOX registers, readonly and need to update a flag.
 	for (int i = 0; i < 4; ++i)
 	{
 		mmio->Register(base | (PE_BBOX_LEFT + 2 * i),
-			MMIO::ComplexRead<u16>([i](u32) {
+			MMIO::ComplexRead<u16>([i](u32)
+		{
 			BoundingBox::active = false;
 			return g_video_backend->Video_GetBoundingBox(i);
 		}),

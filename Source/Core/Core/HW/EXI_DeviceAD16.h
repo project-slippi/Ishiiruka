@@ -8,20 +8,20 @@
 
 class PointerWrap;
 
-class CEXIAD16 : public IEXIDevice
+class CEXIAD16: public IEXIDevice
 {
 public:
 	CEXIAD16();
 	void SetCS(int _iCS) override;
 	bool IsPresent() const override;
-	void DoState(PointerWrap &p) override;
+	void DoState(PointerWrap& p) override;
 
 private:
 	enum
 	{
-		init  = 0x00,
+		init = 0x00,
 		write = 0xa0,
-		read  = 0xa2
+		read = 0xa2
 	};
 
 	union UAD16Reg

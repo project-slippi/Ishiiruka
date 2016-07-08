@@ -7,7 +7,7 @@
 
 namespace DX9 {
 
-class PerfQuery : public PerfQueryBase
+class PerfQuery: public PerfQueryBase
 {
 public:
 	PerfQuery();
@@ -29,7 +29,7 @@ private:
 		PerfQueryGroup query_type;
 	};
 
-	void WeakFlush();	
+	void WeakFlush();
 	// Only use when non-empty
 	void FlushOne();
 

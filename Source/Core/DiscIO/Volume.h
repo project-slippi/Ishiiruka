@@ -65,9 +65,10 @@ public:
 		LANGUAGE_UNKNOWN
 	};
 
-	IVolume() {}
-	virtual ~IVolume() {}
-
+	IVolume()
+	{}
+	virtual ~IVolume()
+	{}
 	// decrypt parameter must be false if not reading a Wii disc
 	virtual bool Read(u64 _Offset, u64 _Length, u8* _pBuffer, bool decrypt) const = 0;
 	template <typename T>
@@ -80,26 +81,59 @@ public:
 		return true;
 	}
 
-	virtual bool GetTitleID(u64*) const { return false; }
-	virtual std::vector<u8> GetTMD() const { return {}; }
+	virtual bool GetTitleID(u64*) const
+	{
+		return false;
+	}
+	virtual std::vector<u8> GetTMD() const
+	{
+		return{};
+	}
 	virtual std::string GetUniqueID() const = 0;
 	virtual std::string GetMakerID() const = 0;
 	virtual u16 GetRevision() const = 0;
 	virtual std::string GetInternalName() const = 0;
-	virtual std::map<ELanguage, std::string> GetNames(bool prefer_long) const = 0;
-	virtual std::map<ELanguage, std::string> GetDescriptions() const { return std::map<ELanguage, std::string>(); }
-	virtual std::string GetCompany() const { return std::string(); }
+	virtual std::map<ELanguage, std::string> GetShortNames() const
+	{
+		return std::map<ELanguage, std::string>();
+	}
+	virtual std::map<ELanguage, std::string> GetLongNames() const
+	{
+		return std::map<ELanguage, std::string>();
+	}
+	virtual std::map<ELanguage, std::string> GetShortMakers() const
+	{
+		return std::map<ELanguage, std::string>();
+	}
+	virtual std::map<ELanguage, std::string> GetLongMakers() const
+	{
+		return std::map<ELanguage, std::string>();
+	}
+	virtual std::map<ELanguage, std::string> GetDescriptions() const
+	{
+		return std::map<ELanguage, std::string>();
+	}
 	virtual std::vector<u32> GetBanner(int* width, int* height) const = 0;
 	virtual u64 GetFSTSize() const = 0;
 	virtual std::string GetApploaderDate() const = 0;
 	// 0 is the first disc, 1 is the second disc
-	virtual u8 GetDiscNumber() const { return 0; }
-
+	virtual u8 GetDiscNumber() const
+	{
+		return 0;
+	}
 	virtual EPlatform GetVolumeType() const = 0;
-	virtual bool SupportsIntegrityCheck() const { return false; }
-	virtual bool CheckIntegrity() const { return false; }
-	virtual bool ChangePartition(u64 offset) { return false; }
-
+	virtual bool SupportsIntegrityCheck() const
+	{
+		return false;
+	}
+	virtual bool CheckIntegrity() const
+	{
+		return false;
+	}
+	virtual bool ChangePartition(u64 offset)
+	{
+		return false;
+	}
 	virtual ECountry GetCountry() const = 0;
 	virtual BlobType GetBlobType() const = 0;
 	// Size of virtual disc (not always accurate)
@@ -116,7 +150,7 @@ protected:
 		// strnlen to trim NULLs
 		std::string string(data, strnlen(data, sizeof(data)));
 
-		// There don't seem to be any GC discs with the country set to Taiwan...
+		// There doesn't seem to be any GC discs with the country set to Taiwan...
 		// But maybe they would use Shift_JIS if they existed? Not sure
 		bool use_shift_jis = (COUNTRY_JAPAN == GetCountry() || COUNTRY_TAIWAN == GetCountry());
 
@@ -139,4 +173,4 @@ IVolume::ECountry CountrySwitch(u8 country_code);
 u8 GetSysMenuRegion(u16 _TitleVersion);
 std::string GetCompanyFromID(const std::string& company_id);
 
-} // namespace
+}  // namespace

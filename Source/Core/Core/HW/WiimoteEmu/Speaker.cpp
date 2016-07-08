@@ -19,30 +19,30 @@
 
 namespace WiimoteEmu
 {
-
 // Yamaha ADPCM decoder code based on The ffmpeg Project (Copyright (s) 2001-2003)
 
-static const s32 yamaha_difflookup[] = {
-	1, 3, 5, 7, 9, 11, 13, 15,
-	-1, -3, -5, -7, -9, -11, -13, -15
-};
+static const s32 yamaha_difflookup[] = {1,  3,  5,  7,  9,  11,  13,  15,
+													 -1, -3, -5, -7, -9, -11, -13, -15};
 
-static const s32 yamaha_indexscale[] = {
-	230, 230, 230, 230, 307, 409, 512, 614,
-	230, 230, 230, 230, 307, 409, 512, 614
-};
+static const s32 yamaha_indexscale[] = {230, 230, 230, 230, 307, 409, 512, 614,
+													 230, 230, 230, 230, 307, 409, 512, 614};
 
 static s16 av_clip16(s32 a)
 {
-	if ((a+32768) & ~65535) return (a>>31) ^ 32767;
-	else                    return a;
+	if ((a + 32768) & ~65535)
+		return (a >> 31) ^ 32767;
+	else
+		return a;
 }
 
 static s32 av_clip(s32 a, s32 amin, s32 amax)
 {
-	if      (a < amin) return amin;
-	else if (a > amax) return amax;
-	else               return a;
+	if (a < amin)
+		return amin;
+	else if (a > amax)
+		return amax;
+	else
+		return a;
 }
 
 static s16 adpcm_yamaha_expand_nibble(ADPCMState& s, u8 nibble)
@@ -58,7 +58,11 @@ static s16 adpcm_yamaha_expand_nibble(ADPCMState& s, u8 nibble)
 std::ofstream ofile;
 WaveFileWriter wav;
 
-void stopdamnwav(){wav.Stop();ofile.close();}
+void stopdamnwav()
+{
+	wav.Stop();
+	ofile.close();
+}
 #endif
 
 void Wiimote::SpeakerData(wm_speaker_data* sd)
@@ -126,7 +130,8 @@ void Wiimote::SpeakerData(wm_speaker_data* sd)
 	g_sound_stream->GetMixer()->SetWiimoteSpeakerVolume(left_volume, right_volume);
 
 	// ADPCM sample rate is thought to be x2.(3000 x2 = 6000).
-	g_sound_stream->GetMixer()->PushWiimoteSpeakerSamples(samples.get(), sample_length, sample_rate * 2);
+	g_sound_stream->GetMixer()->PushWiimoteSpeakerSamples(samples.get(), sample_length,
+		sample_rate * 2);
 
 #ifdef WIIMOTE_SPEAKER_DUMP
 	static int num = 0;
@@ -137,9 +142,9 @@ void Wiimote::SpeakerData(wm_speaker_data* sd)
 		File::Delete("rmtdump.bin");
 		atexit(stopdamnwav);
 		OpenFStream(ofile, "rmtdump.bin", ofile.binary | ofile.out);
-		wav.Start("rmtdump.wav", 6000/*Common::swap16(m_reg_speaker.sample_rate)*/);
+		wav.Start("rmtdump.wav", 6000 /*Common::swap16(m_reg_speaker.sample_rate)*/);
 	}
-	wav.AddMonoSamples(samples.get(), sd->length*2);
+	wav.AddMonoSamples(samples.get(), sd->length * 2);
 	if (ofile.good())
 	{
 		for (int i = 0; i < sd->length; i++)
@@ -150,5 +155,4 @@ void Wiimote::SpeakerData(wm_speaker_data* sd)
 	num++;
 #endif
 }
-
 }

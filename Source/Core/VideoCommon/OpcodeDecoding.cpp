@@ -81,7 +81,7 @@ __forceinline void InterpretDisplayListPreprocess(u32 address, u32 size)
 	if (startAddress != nullptr)
 	{
 		DataReader dlist_reader(startAddress, startAddress + size);
-		OpcodeDecoder::Run<true, false>(dlist_reader , nullptr);
+		OpcodeDecoder::Run<true, false>(dlist_reader, nullptr);
 	}
 }
 
@@ -130,7 +130,7 @@ static void UnknownOpcode(u8 cmd_byte, const void *buffer, bool preprocess)
 			, fifo.bFF_GPLinkEnable ? "true" : "false"
 			, fifo.bFF_HiWatermarkInt ? "true" : "false"
 			, fifo.bFF_LoWatermarkInt ? "true" : "false"
-			);
+		);
 	}
 }
 
@@ -156,11 +156,6 @@ DataReadU32xNfunc DataReadU32xFuncs[16] = {
 void Init()
 {
 	s_bFifoErrorSeen = false;
-}
-
-
-void Shutdown()
-{
 }
 
 template <bool is_preprocess, bool sizeCheck>
@@ -300,8 +295,8 @@ u8* Run(DataReader& reader, u32* cycles)
 					u32 vtx_attr_group = cmd_byte & GX_VAT_MASK;
 					parameters.vtx_attr_group = vtx_attr_group;
 					parameters.needloaderrefresh = (state.attr_dirty & (1u << vtx_attr_group)) != 0;
-					parameters.skip_draw = Fifo::WillSkipCurrentFrame() 
-						|| xfmem.viewport.wd == 0.0f 
+					parameters.skip_draw = Fifo::WillSkipCurrentFrame()
+						|| xfmem.viewport.wd == 0.0f
 						|| xfmem.viewport.ht == 0.0f
 						|| (bpmem.scissorBR.x + 1 - bpmem.scissorTL.x) == 0
 						|| (bpmem.scissorBR.y + 1 - bpmem.scissorTL.y) == 0;
@@ -309,7 +304,7 @@ u8* Run(DataReader& reader, u32* cycles)
 					parameters.VtxAttr = &state.vtx_attr[vtx_attr_group];
 					parameters.source = reader.GetReadPosition();
 					state.attr_dirty &= ~(1 << vtx_attr_group);
-					u32 readsize = 0;					
+					u32 readsize = 0;
 					if (is_preprocess)
 					{
 						u32 components = 0;

@@ -2,17 +2,14 @@
 // Licensed under GPLv2+
 // Refer to the license.txt file included.
 
+#include "Core/HW/EXI.h"
 #include "Common/ChunkFile.h"
 #include "Common/CommonTypes.h"
 #include "Common/Logging/Log.h"
-#include "Core/HW/EXI.h"
 #include "Core/HW/EXI_DeviceAMBaseboard.h"
 
-CEXIAMBaseboard::CEXIAMBaseboard()
-	: m_position(0)
-	, m_have_irq(false)
-{
-}
+CEXIAMBaseboard::CEXIAMBaseboard(): m_position(0), m_have_irq(false)
+{}
 
 void CEXIAMBaseboard::SetCS(int cs)
 {
@@ -30,25 +27,25 @@ void CEXIAMBaseboard::TransferByte(u8& _byte)
 {
 	/*
 	ID:
-		00 00 xx xx xx xx
-		xx xx 06 04 10 00
+	  00 00 xx xx xx xx
+	  xx xx 06 04 10 00
 	CMD:
-		01 00 00 b3 xx
-		xx xx xx xx 04
+	  01 00 00 b3 xx
+	  xx xx xx xx 04
 	exi_lanctl_write:
-		ff 02 01 63 xx
-		xx xx xx xx 04
+	  ff 02 01 63 xx
+	  xx xx xx xx 04
 	exi_imr_read:
-		86 00 00 f5 xx xx xx
-		xx xx xx xx 04 rr rr
+	  86 00 00 f5 xx xx xx
+	  xx xx xx xx 04 rr rr
 	exi_imr_write:
-		87 80 5c 17 xx
-		xx xx xx xx 04
+	  87 80 5c 17 xx
+	  xx xx xx xx 04
 
 	exi_isr_read:
-		82 .. .. .. xx xx xx
-		xx xx xx xx 04 rr rr
-		3 byte command, 1 byte checksum
+	  82 .. .. .. xx xx xx
+	  xx xx xx xx 04 rr rr
+	  3 byte command, 1 byte checksum
 	*/
 	DEBUG_LOG(SP1, "AM-BB > %02x", _byte);
 	if (m_position < 4)
@@ -94,13 +91,13 @@ void CEXIAMBaseboard::TransferByte(u8& _byte)
 		{
 			switch (m_command[0])
 			{
-			case 0xFF: // lan
+			case 0xFF:  // lan
 				_byte = 0xFF;
 				break;
-			case 0x86: // imr
+			case 0x86:  // imr
 				_byte = 0x00;
 				break;
-			case 0x82: // isr
+			case 0x82:  // isr
 				_byte = m_have_irq ? 0xFF : 0;
 				break;
 			default:
@@ -124,7 +121,7 @@ bool CEXIAMBaseboard::IsInterruptSet()
 	return m_have_irq;
 }
 
-void CEXIAMBaseboard::DoState(PointerWrap &p)
+void CEXIAMBaseboard::DoState(PointerWrap& p)
 {
 	p.Do(m_position);
 	p.Do(m_have_irq);

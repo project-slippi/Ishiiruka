@@ -97,13 +97,13 @@ inline void GenerateGeometryShader(ShaderCode& out, const geometry_shader_uid_da
 		// Insert layout parameters
 		if (g_ActiveConfig.backend_info.bSupportsGSInstancing)
 		{
-			out.Write("layout(%s, invocations = %d) in;\n", primitives_ogl[uid_data.primitive_type],uid_data.stereo ? 2 : 1);
+			out.Write("layout(%s, invocations = %d) in;\n", primitives_ogl[uid_data.primitive_type], uid_data.stereo ? 2 : 1);
 			out.Write("layout(%s_strip, max_vertices = %d) out;\n", uid_data.wireframe ? "line" : "triangle", vertex_out);
 		}
 		else
 		{
 			out.Write("layout(%s) in;\n", primitives_ogl[uid_data.primitive_type]);
-			out.Write("layout(%s_strip, max_vertices = %d) out;\n", uid_data.wireframe ? "line" : "triangle",uid_data.stereo ? vertex_out * 2 : vertex_out);
+			out.Write("layout(%s_strip, max_vertices = %d) out;\n", uid_data.wireframe ? "line" : "triangle", uid_data.stereo ? vertex_out * 2 : vertex_out);
 		}
 	}
 
@@ -155,12 +155,12 @@ inline void GenerateGeometryShader(ShaderCode& out, const geometry_shader_uid_da
 
 		if (g_ActiveConfig.backend_info.bSupportsGSInstancing)
 		{
-			out.Write("[maxvertexcount(%d)]\n[instance(%d)]\n", vertex_out,uid_data.stereo ? 2 : 1);
+			out.Write("[maxvertexcount(%d)]\n[instance(%d)]\n", vertex_out, uid_data.stereo ? 2 : 1);
 			out.Write("void main(%s VS_OUTPUT o[%d], inout %sStream<VertexData> output, in uint InstanceID : SV_GSInstanceID)\n{\n", primitives_d3d[uid_data.primitive_type], vertex_in, uid_data.wireframe ? "Line" : "Triangle");
 		}
 		else
 		{
-			out.Write("[maxvertexcount(%d)]\n",uid_data.stereo ? vertex_out * 2 : vertex_out);
+			out.Write("[maxvertexcount(%d)]\n", uid_data.stereo ? vertex_out * 2 : vertex_out);
 			out.Write("void main(%s VS_OUTPUT o[%d], inout %sStream<VertexData> output)\n{\n", primitives_d3d[uid_data.primitive_type], vertex_in, uid_data.wireframe ? "Line" : "Triangle");
 		}
 
@@ -294,7 +294,7 @@ inline void GenerateGeometryShader(ShaderCode& out, const geometry_shader_uid_da
 		out.Write("\tif (" I_TEXOFFSET"[3] != 0) {\n");
 		out.Write("\tfloat2 texOffset = float2(1.0 / float(" I_TEXOFFSET"[3]), 1.0 / float(" I_TEXOFFSET"[3]));\n");
 
-		for (unsigned int i = 0; i <  uid_data.numTexGens; ++i)
+		for (unsigned int i = 0; i < uid_data.numTexGens; ++i)
 		{
 			out.Write("\tif (((" I_TEXOFFSET"[1] >> %d) & 0x1) != 0) {\n", i);
 			out.Write("\t\tll.tex%d.xy += float2(0,1) * texOffset;\n", i);

@@ -25,8 +25,7 @@ void TessellationShaderManager::Init()
 }
 
 void TessellationShaderManager::Shutdown()
-{
-}
+{}
 
 void TessellationShaderManager::Dirty()
 {

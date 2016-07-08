@@ -20,7 +20,7 @@
 #include "Common/FileUtil.h"
 #include "Common/NonCopyable.h"
 
-class WaveFileWriter : NonCopyable
+class WaveFileWriter: NonCopyable
 {
 public:
 	WaveFileWriter();
@@ -29,12 +29,16 @@ public:
 	bool Start(const std::string& filename, unsigned int HLESampleRate);
 	void Stop();
 
-	void SetSkipSilence(bool skip) { skip_silence = skip; }
-
-	void AddStereoSamples(const short *sample_data, u32 count);
-	void AddStereoSamplesBE(const short *sample_data, u32 count);  // big endian
-	u32 GetAudioSize() const { return audio_size; }
-
+	void SetSkipSilence(bool skip)
+	{
+		skip_silence = skip;
+	}
+	void AddStereoSamples(const short* sample_data, u32 count, int sample_rate);
+	void AddStereoSamplesBE(const short* sample_data, u32 count, int sample_rate);  // big endian
+	u32 GetAudioSize() const
+	{
+		return audio_size;
+	}
 private:
 	static constexpr size_t BUFFER_SIZE = 32 * 1024;
 
@@ -44,4 +48,8 @@ private:
 	std::array<short, BUFFER_SIZE> conv_buffer{};
 	void Write(u32 value);
 	void Write4(const char* ptr);
+	void CheckSampleRate(int sample_rate);
+	std::string basename;
+	int current_sample_rate;
+	int file_index = 0;
 };

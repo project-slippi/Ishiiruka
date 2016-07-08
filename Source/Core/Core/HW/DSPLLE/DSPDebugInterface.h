@@ -9,14 +9,17 @@
 #include "Common/CommonTypes.h"
 #include "Common/DebugInterface.h"
 
-class DSPDebugInterface final : public DebugInterface
+class DSPDebugInterface final: public DebugInterface
 {
 public:
-	DSPDebugInterface() {}
-
+	DSPDebugInterface()
+	{}
 	std::string Disassemble(unsigned int address) override;
-	void GetRawMemoryString(int memory, unsigned int address, char *dest, int max_size) override;
-	int GetInstructionSize(int instruction) override { return 1; }
+	void GetRawMemoryString(int memory, unsigned int address, char* dest, int max_size) override;
+	int GetInstructionSize(int instruction) override
+	{
+		return 1;
+	}
 	bool IsAlive() override;
 	bool IsBreakpoint(unsigned int address) override;
 	void SetBreakpoint(unsigned int address) override;
@@ -30,7 +33,8 @@ public:
 	unsigned int ReadInstruction(unsigned int address) override;
 	unsigned int GetPC() override;
 	void SetPC(unsigned int address) override;
-	void Step() override {}
+	void Step() override
+	{}
 	void RunToBreakpoint() override;
 	void InsertBLR(unsigned int address, unsigned int value) override;
 	int GetColor(unsigned int address) override;

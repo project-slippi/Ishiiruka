@@ -177,7 +177,7 @@ static wxString stereo_3d_desc = _("Select the stereoscopic 3D  mode, stereoscop
 static wxString stereo_separation_desc = _("Control the separation distance, this is the distance between the virtual cameras.\nA higher value creates a stronger feeling of depth while a lower value is more comfortable.");
 static wxString stereo_convergence_desc = _("Control the convergence distance, this controls the apparant distance of virtual objects.\nA higher value creates stronger out-of-screen effects while a lower value is more comfortable.");
 static wxString stereo_swap_desc = _("Swap the left and right eye, mostly useful if you want to view side-by-side cross-eyed.\n\nIf unsure, leave this unchecked.");
-static const char *s_bbox_mode_text[] = { "Disabled", "CPU", "GPU" };
+static const char *s_bbox_mode_text[] = {"Disabled", "CPU", "GPU"};
 static wxString texture_scaling_desc = _("Apply the selected scaling algorithm to improve texture quality.");
 static wxString Tessellation_desc = _("Apply the selected Tessellation levels to increase geometry detail.");
 static wxString Tessellation_forced_lights_desc = _("Force Lighting in all 3d elements.");
@@ -250,7 +250,7 @@ static  wxArrayString GetListOfResolutions()
 	return retlist;
 }
 
-VideoConfigDiag::VideoConfigDiag(wxWindow* parent, const std::string &title, const std::string& ininame)
+VideoConfigDiag::VideoConfigDiag(wxWindow* parent, const std::string &title)
 	: wxDialog(parent, wxID_ANY,
 		wxString::Format(_("Dolphin %s Graphics Configuration"), StrToWxStr(title)),
 		wxDefaultPosition, wxDefaultSize)
@@ -258,8 +258,6 @@ VideoConfigDiag::VideoConfigDiag(wxWindow* parent, const std::string &title, con
 {
 	if (File::Exists(File::GetUserPath(D_CONFIG_IDX) + "GFX.ini"))
 		vconfig.Load(File::GetUserPath(D_CONFIG_IDX) + "GFX.ini");
-	else
-		vconfig.Load(File::GetUserPath(D_CONFIG_IDX) + ininame + ".ini");
 
 	Bind(wxEVT_UPDATE_UI, &VideoConfigDiag::OnUpdateUI, this);
 
@@ -267,293 +265,293 @@ VideoConfigDiag::VideoConfigDiag(wxWindow* parent, const std::string &title, con
 
 	// -- GENERAL --
 	{
-	wxPanel* const page_general = new wxPanel(notebook, -1, wxDefaultPosition);
-	notebook->AddPage(page_general, _("General"));
-	wxBoxSizer* const szr_general = new wxBoxSizer(wxVERTICAL);
+		wxPanel* const page_general = new wxPanel(notebook, -1, wxDefaultPosition);
+		notebook->AddPage(page_general, _("General"));
+		wxBoxSizer* const szr_general = new wxBoxSizer(wxVERTICAL);
 
-	// - basic
-	{
-	wxFlexGridSizer* const szr_basic = new wxFlexGridSizer(2, 5, 5);
-
-	// backend
-	{
-	label_backend = new wxStaticText(page_general, wxID_ANY, _("Backend:"));
-	choice_backend = new wxChoice(page_general, wxID_ANY, wxDefaultPosition);
-	RegisterControl(choice_backend, backend_desc);
-
-	for (auto& backend : g_available_video_backends)
-	{
-		choice_backend->AppendString(StrToWxStr(backend->GetDisplayName()));
-	}
-
-	choice_backend->SetStringSelection(StrToWxStr(g_video_backend->GetDisplayName()));
-	choice_backend->Bind(wxEVT_CHOICE, &VideoConfigDiag::Event_Backend, this);
-
-	szr_basic->Add(label_backend, 1, wxALIGN_CENTER_VERTICAL, 5);
-	szr_basic->Add(choice_backend, 1, 0, 0);
-	}
-
-	// adapter (D3D only)
-	if (vconfig.backend_info.Adapters.size())
-	{
-		choice_adapter = CreateChoice(page_general, vconfig.iAdapter, adapter_desc);
-
-		for (const std::string& adapter : vconfig.backend_info.Adapters)
+		// - basic
 		{
-			choice_adapter->AppendString(StrToWxStr(adapter));
-		}
+			wxFlexGridSizer* const szr_basic = new wxFlexGridSizer(2, 5, 5);
 
-		choice_adapter->Select(vconfig.iAdapter);
+			// backend
+			{
+				label_backend = new wxStaticText(page_general, wxID_ANY, _("Backend:"));
+				choice_backend = new wxChoice(page_general, wxID_ANY, wxDefaultPosition);
+				RegisterControl(choice_backend, backend_desc);
 
-		label_adapter = new wxStaticText(page_general, wxID_ANY, _("Adapter:"));
-		szr_basic->Add(label_adapter, 1, wxALIGN_CENTER_VERTICAL, 5);
-		szr_basic->Add(choice_adapter, 1, 0, 0);
-	}
+				for (auto& backend : g_available_video_backends)
+				{
+					choice_backend->AppendString(StrToWxStr(backend->GetDisplayName()));
+				}
+
+				choice_backend->SetStringSelection(StrToWxStr(g_video_backend->GetDisplayName()));
+				choice_backend->Bind(wxEVT_CHOICE, &VideoConfigDiag::Event_Backend, this);
+
+				szr_basic->Add(label_backend, 1, wxALIGN_CENTER_VERTICAL, 5);
+				szr_basic->Add(choice_backend, 1, 0, 0);
+			}
+
+			// adapter (D3D only)
+			if (vconfig.backend_info.Adapters.size())
+			{
+				choice_adapter = CreateChoice(page_general, vconfig.iAdapter, adapter_desc);
+
+				for (const std::string& adapter : vconfig.backend_info.Adapters)
+				{
+					choice_adapter->AppendString(StrToWxStr(adapter));
+				}
+
+				choice_adapter->Select(vconfig.iAdapter);
+
+				label_adapter = new wxStaticText(page_general, wxID_ANY, _("Adapter:"));
+				szr_basic->Add(label_adapter, 1, wxALIGN_CENTER_VERTICAL, 5);
+				szr_basic->Add(choice_adapter, 1, 0, 0);
+			}
 
 
-	// - display
-	wxFlexGridSizer* const szr_display = new wxFlexGridSizer(2, 5, 5);
+			// - display
+			wxFlexGridSizer* const szr_display = new wxFlexGridSizer(2, 5, 5);
 
-	{
+			{
 
 #if !defined(__APPLE__)
-	// display resolution
-	{
-		wxArrayString res_list = GetListOfResolutions();
-		if (res_list.empty())
-			res_list.Add(_("<No resolutions found>"));
-		label_display_resolution = new wxStaticText(page_general, wxID_ANY, _("Fullscreen resolution:"));
-		choice_display_resolution = new wxChoice(page_general, wxID_ANY, wxDefaultPosition, wxDefaultSize, res_list);
-		RegisterControl(choice_display_resolution, (display_res_desc));
-		choice_display_resolution->Bind(wxEVT_CHOICE, &VideoConfigDiag::Event_DisplayResolution, this);
+				// display resolution
+				{
+					wxArrayString res_list = GetListOfResolutions();
+					if (res_list.empty())
+						res_list.Add(_("<No resolutions found>"));
+					label_display_resolution = new wxStaticText(page_general, wxID_ANY, _("Fullscreen resolution:"));
+					choice_display_resolution = new wxChoice(page_general, wxID_ANY, wxDefaultPosition, wxDefaultSize, res_list);
+					RegisterControl(choice_display_resolution, (display_res_desc));
+					choice_display_resolution->Bind(wxEVT_CHOICE, &VideoConfigDiag::Event_DisplayResolution, this);
 
-		choice_display_resolution->SetStringSelection(StrToWxStr(SConfig::GetInstance().strFullscreenResolution));
+					choice_display_resolution->SetStringSelection(StrToWxStr(SConfig::GetInstance().strFullscreenResolution));
 
-		szr_display->Add(label_display_resolution, 1, wxALIGN_CENTER_VERTICAL, 0);
-		szr_display->Add(choice_display_resolution);
-	}
+					szr_display->Add(label_display_resolution, 1, wxALIGN_CENTER_VERTICAL, 0);
+					szr_display->Add(choice_display_resolution);
+				}
 #endif
 
-	// aspect-ratio
-	{
-	const wxString ar_choices[] = { _("Auto"), _("Force Analog 16:9"), _("Force Analog 4:3"), _("Stretch to Window"), _("Force 4:3"), _("Force 16:9"), _("Force 16:10") };
+				// aspect-ratio
+				{
+					const wxString ar_choices[] = {_("Auto"), _("Force Analog 16:9"), _("Force Analog 4:3"), _("Stretch to Window"), _("Force 4:3"), _("Force 16:9"), _("Force 16:10")};
 
-	szr_display->Add(new wxStaticText(page_general, wxID_ANY, _("Aspect Ratio:")), 1, wxALIGN_CENTER_VERTICAL, 0);
-	wxChoice* const choice_aspect = CreateChoice(page_general, vconfig.iAspectRatio, (ar_desc),
-														sizeof(ar_choices)/sizeof(*ar_choices), ar_choices);
-	szr_display->Add(choice_aspect, 1, 0, 0);
-	}
+					szr_display->Add(new wxStaticText(page_general, wxID_ANY, _("Aspect Ratio:")), 1, wxALIGN_CENTER_VERTICAL, 0);
+					wxChoice* const choice_aspect = CreateChoice(page_general, vconfig.iAspectRatio, (ar_desc),
+						sizeof(ar_choices) / sizeof(*ar_choices), ar_choices);
+					szr_display->Add(choice_aspect, 1, 0, 0);
+				}
 
-	// various other display options
-	{
-	szr_display->Add(CreateCheckBox(page_general, _("V-Sync"), (vsync_desc), vconfig.bVSync));
-	szr_display->Add(CreateCheckBox(page_general, _("Use Fullscreen"), (use_fullscreen_desc), SConfig::GetInstance().bFullscreen));
-	}
-	}
+				// various other display options
+				{
+					szr_display->Add(CreateCheckBox(page_general, _("V-Sync"), (vsync_desc), vconfig.bVSync));
+					szr_display->Add(CreateCheckBox(page_general, _("Use Fullscreen"), (use_fullscreen_desc), SConfig::GetInstance().bFullscreen));
+				}
+			}
 
-	// - other
-	wxFlexGridSizer* const szr_other = new wxFlexGridSizer(2, 5, 5);
+			// - other
+			wxFlexGridSizer* const szr_other = new wxFlexGridSizer(2, 5, 5);
 
-	{
-	szr_other->Add(CreateCheckBox(page_general, _("Show FPS"), (show_fps_desc), vconfig.bShowFPS));
-	szr_other->Add(CreateCheckBox(page_general, _("Auto adjust Window Size"), (auto_window_size_desc), SConfig::GetInstance().bRenderWindowAutoSize));
-	szr_other->Add(CreateCheckBox(page_general, _("Keep window on top"), (keep_window_on_top_desc), SConfig::GetInstance().bKeepWindowOnTop));
-	szr_other->Add(CreateCheckBox(page_general, _("Hide Mouse Cursor"), (hide_mouse_cursor_desc), SConfig::GetInstance().bHideCursor));
-	szr_other->Add(render_to_main_checkbox = CreateCheckBox(page_general, _("Render to Main Window"), (render_to_main_win_desc), SConfig::GetInstance().bRenderToMain));
-	}
+			{
+				szr_other->Add(CreateCheckBox(page_general, _("Show FPS"), (show_fps_desc), vconfig.bShowFPS));
+				szr_other->Add(CreateCheckBox(page_general, _("Auto adjust Window Size"), (auto_window_size_desc), SConfig::GetInstance().bRenderWindowAutoSize));
+				szr_other->Add(CreateCheckBox(page_general, _("Keep window on top"), (keep_window_on_top_desc), SConfig::GetInstance().bKeepWindowOnTop));
+				szr_other->Add(CreateCheckBox(page_general, _("Hide Mouse Cursor"), (hide_mouse_cursor_desc), SConfig::GetInstance().bHideCursor));
+				szr_other->Add(render_to_main_checkbox = CreateCheckBox(page_general, _("Render to Main Window"), (render_to_main_win_desc), SConfig::GetInstance().bRenderToMain));
+			}
 
 
-	wxStaticBoxSizer* const group_basic = new wxStaticBoxSizer(wxVERTICAL, page_general, _("Basic"));
-	group_basic->Add(szr_basic, 1, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 5);
-	szr_general->Add(group_basic, 0, wxEXPAND | wxALL, 5);
+			wxStaticBoxSizer* const group_basic = new wxStaticBoxSizer(wxVERTICAL, page_general, _("Basic"));
+			group_basic->Add(szr_basic, 1, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 5);
+			szr_general->Add(group_basic, 0, wxEXPAND | wxALL, 5);
 
-	wxStaticBoxSizer* const group_display = new wxStaticBoxSizer(wxVERTICAL, page_general, _("Display"));
-	group_display->Add(szr_display, 1, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 5);
-	szr_general->Add(group_display, 0, wxEXPAND | wxALL, 5);
+			wxStaticBoxSizer* const group_display = new wxStaticBoxSizer(wxVERTICAL, page_general, _("Display"));
+			group_display->Add(szr_display, 1, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 5);
+			szr_general->Add(group_display, 0, wxEXPAND | wxALL, 5);
 
-	wxStaticBoxSizer* const group_other = new wxStaticBoxSizer(wxVERTICAL, page_general, _("Other"));
-	group_other->Add(szr_other, 1, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 5);
-	szr_general->Add(group_other, 0, wxEXPAND | wxALL, 5);
-	}
+			wxStaticBoxSizer* const group_other = new wxStaticBoxSizer(wxVERTICAL, page_general, _("Other"));
+			group_other->Add(szr_other, 1, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 5);
+			szr_general->Add(group_other, 0, wxEXPAND | wxALL, 5);
+		}
 
-	szr_general->AddStretchSpacer();
-	CreateDescriptionArea(page_general, szr_general);
-	page_general->SetSizerAndFit(szr_general);
+		szr_general->AddStretchSpacer();
+		CreateDescriptionArea(page_general, szr_general);
+		page_general->SetSizerAndFit(szr_general);
 	}
 
 	// -- ENHANCEMENTS --
 	{
-	wxPanel* const page_enh = new wxPanel(notebook);
-	notebook->AddPage(page_enh, _("Enhancements"));
-	wxBoxSizer* const szr_enh_main = new wxBoxSizer(wxVERTICAL);
+		wxPanel* const page_enh = new wxPanel(notebook);
+		notebook->AddPage(page_enh, _("Enhancements"));
+		wxBoxSizer* const szr_enh_main = new wxBoxSizer(wxVERTICAL);
 
-	// - enhancements
-	wxFlexGridSizer* const szr_enh = new wxFlexGridSizer(3, 5, 5);
+		// - enhancements
+		wxFlexGridSizer* const szr_enh = new wxFlexGridSizer(3, 5, 5);
 
-	// Internal resolution
-	{
-	const wxString efbscale_choices[] = { _("Auto (Window Size)"), _("Auto (Multiple of 640x528)"),
-		_("1x (640x528)"), _("1.5x (960x792)"), _("2x (1280x1056) for 720p"), _("2.5x (1600x1320)"),
-		_("3x (1920x1584) for 1080p"), _("4x (2560x2112) for WQHD"), _("5x (3200x2640)"),
-		_("6x (3840x3168) for 4K UHD"), _("7x (4480x3696)"), _("8x (5120x4224)"), _("Custom") };
-
-
-	wxChoice *const choice_efbscale = CreateChoice(page_enh,
-		vconfig.iEFBScale, (internal_res_desc), (vconfig.iEFBScale > 11) ?
-		ArraySize(efbscale_choices) : ArraySize(efbscale_choices) - 1, efbscale_choices);
-
-
-	if (vconfig.iEFBScale > 11)
-		choice_efbscale->SetSelection(12);
-
-	szr_enh->Add(new wxStaticText(page_enh, wxID_ANY, _("Internal Resolution:")), 1, wxALIGN_CENTER_VERTICAL, 0);
-	szr_enh->Add(choice_efbscale);
-	szr_enh->AddSpacer(0);
-	}
-	
-	// AA
-	{
-	text_aamode = new wxStaticText(page_enh, wxID_ANY, _("Anti-Aliasing:"));
-	choice_aamode = new wxChoice(page_enh, wxID_ANY);
-	PopulateAAList();
-	choice_aamode->Bind(wxEVT_CHOICE, &VideoConfigDiag::OnAAChanged, this);
-	szr_enh->Add(text_aamode, 1, wxALIGN_CENTER_VERTICAL, 0);
-	szr_enh->Add(choice_aamode);
-	szr_enh->AddSpacer(0);
-	}
-
-	// AF
-	{
-	const wxString af_choices[] = {wxT("1x"), wxT("2x"), wxT("4x"), wxT("8x"), wxT("16x")};
-	szr_enh->Add(new wxStaticText(page_enh, wxID_ANY, _("Anisotropic Filtering:")), 1, wxALIGN_CENTER_VERTICAL, 0);
-	szr_enh->Add(CreateChoice(page_enh, vconfig.iMaxAnisotropy, (af_desc), 5, af_choices));
-	szr_enh->AddSpacer(0);
-	}
-
-	// Scaled copy, PL, Bilinear filter, 3D Vision
-	szr_enh->Add(CreateCheckBox(page_enh, _("Scaled EFB Copy"), (scaled_efb_copy_desc), vconfig.bCopyEFBScaled));
-	if (vconfig.backend_info.bSupportsScaling)
-	{
-		szr_enh->Add(CreateCheckBox(page_enh, _("Use Scaling Filter"), (Use_Scaling_filter_desc), vconfig.bUseScalingFilter));
-	}
-	szr_enh->Add(CreateCheckBox(page_enh, _("Force Texture Filtering"), (force_filtering_desc), vconfig.bForceFiltering));
-	szr_enh->Add(CreateCheckBox(page_enh, _("Disable Texture Filtering"), (disable_filtering_desc), vconfig.bDisableTextureFiltering));
-	
-	szr_enh->Add(CreateCheckBox(page_enh, _("Widescreen Hack"), (ws_hack_desc), vconfig.bWidescreenHack));
-	szr_enh->Add(CreateCheckBox(page_enh, _("Disable Fog"), (disable_fog_desc), vconfig.bDisableFog));
-	szr_enh->Add(pixel_lighting = CreateCheckBox(page_enh, _("Per-Pixel Lighting"), (pixel_lighting_desc), vconfig.bEnablePixelLighting));
-	szr_enh->Add(phong_lighting = CreateCheckBox(page_enh, _("Phong Lighting"), (phong_lighting_desc), vconfig.bForcePhongShading));
-	szr_enh->Add(sim_bump = CreateCheckBox(page_enh, _("Auto Bumps"), (bump_desc), vconfig.bSimBumpEnabled));
-	wxStaticBoxSizer* const group_enh = new wxStaticBoxSizer(wxVERTICAL, page_enh, _("Enhancements"));
-	group_enh->Add(szr_enh, 1, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 5);
-	szr_enh_main->Add(group_enh, 0, wxEXPAND | wxALL, 5);
-	{
-		wxFlexGridSizer* const szr_texturescaling = new wxFlexGridSizer(3, 5, 5);
-		szr_texturescaling->AddGrowableCol(1, 1);
-
-		szr_texturescaling->Add(new wxStaticText(page_enh, wxID_ANY, _("Texture Scaling Mode:")), 1, wxALIGN_CENTER_VERTICAL, 0);
-		const wxString scaling_choices[] = { "Off", "XBRZ", "Hybrid", "Bicubic", "Hybrid-Bicubic", "Jinc", "Jinc-Sharper", "Smoothstep", "3-Point", "DDT", "DDT-Sharp" };
-		wxChoice* scaling_choice = CreateChoice(page_enh, vconfig.iTexScalingType, (texture_scaling_desc), ArraySize(scaling_choices), scaling_choices);
-		szr_texturescaling->Add(scaling_choice, 1, wxEXPAND | wxRIGHT);
-		szr_texturescaling->Add(CreateCheckBox(page_enh, _("DePosterize"), (texture_deposterize_desc), vconfig.bTexDeposterize), 1, wxALIGN_CENTER_VERTICAL);
-
-		wxSlider* const factor_slider = new wxSlider(
-			page_enh,
-			wxID_ANY,
-			vconfig.iTexScalingFactor,
-			2,
-			5,
-			wxDefaultPosition, wxDefaultSize,
-			wxSL_HORIZONTAL | wxSL_BOTTOM);
-		factor_slider->Bind(wxEVT_SLIDER, &VideoConfigDiag::Event_ScalingFactor, this);
-		RegisterControl(factor_slider, (scaling_factor_desc));
-
-		szr_texturescaling->Add(new wxStaticText(page_enh, wxID_ANY, _("Scaling factor:")), 1, wxALIGN_CENTER_VERTICAL, 0);
-		szr_texturescaling->Add(factor_slider, 1, wxEXPAND | wxRIGHT, 0);
-		const wxString sf_choices[] = { wxT("1x"), wxT("2x"), wxT("3x"), wxT("4x"), wxT("5x") };
-		szr_texturescaling->Add(label_TextureScale = new wxStaticText(page_enh, wxID_ANY, sf_choices[vconfig.iTexScalingFactor - 1]), 1, wxRIGHT | wxTOP | wxBOTTOM, 5);
-
-		wxStaticBoxSizer* const group_scaling = new wxStaticBoxSizer(wxVERTICAL, page_enh, _("Texture Scaling"));
-		group_scaling->Add(szr_texturescaling, 1, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 5);
-		szr_enh_main->Add(group_scaling, 0, wxEXPAND | wxALL, 5);
-	}
-	{
-		wxFlexGridSizer* const szr_phong = new wxFlexGridSizer(4, 5, 5);
-		szr_phong->AddGrowableCol(1, 1);
-		szr_phong->AddGrowableCol(3, 1);
+		// Internal resolution
 		{
-			wxSlider* const pintensity_slider = new wxSlider(page_enh, wxID_ANY, vconfig.iSpecularMultiplier, 0, 510, wxDefaultPosition, wxDefaultSize);
-			pintensity_slider->Bind(wxEVT_SLIDER, &VideoConfigDiag::Event_SpecularIntensity, this);
-			RegisterControl(pintensity_slider, (phong_intensity_desc));
+			const wxString efbscale_choices[] = {_("Auto (Window Size)"), _("Auto (Multiple of 640x528)"),
+				_("1x (640x528)"), _("1.5x (960x792)"), _("2x (1280x1056) for 720p"), _("2.5x (1600x1320)"),
+				_("3x (1920x1584) for 1080p"), _("4x (2560x2112) for WQHD"), _("5x (3200x2640)"),
+				_("6x (3840x3168) for 4K UHD"), _("7x (4480x3696)"), _("8x (5120x4224)"), _("Custom")};
 
-			szr_phong->Add(new wxStaticText(page_enh, wxID_ANY, _("Specular Intensity:")), 1, wxALIGN_CENTER_VERTICAL, 0);
-			szr_phong->Add(pintensity_slider, 1, wxEXPAND | wxRIGHT);
-		}
-		{
-			wxSlider* const rimintensity_slider = new wxSlider(page_enh, wxID_ANY, vconfig.iRimIntesity, 0, 255, wxDefaultPosition, wxDefaultSize);
-			rimintensity_slider->Bind(wxEVT_SLIDER, &VideoConfigDiag::Event_RimIntensity, this);
-			RegisterControl(rimintensity_slider, (rim_intensity_desc));
 
-			szr_phong->Add(new wxStaticText(page_enh, wxID_ANY, _("Rim Intensity:")), 1, wxALIGN_CENTER_VERTICAL, 0);
-			szr_phong->Add(rimintensity_slider, 1, wxEXPAND | wxRIGHT);
-		}
-		{
-			wxSlider* const rimpower_slider = new wxSlider(page_enh, wxID_ANY, vconfig.iRimPower, 0, 255, wxDefaultPosition, wxDefaultSize);
-			rimpower_slider->Bind(wxEVT_SLIDER, &VideoConfigDiag::Event_RimPower, this);
-			RegisterControl(rimpower_slider, (rim_intensity_desc));
+			wxChoice *const choice_efbscale = CreateChoice(page_enh,
+				vconfig.iEFBScale, (internal_res_desc), (vconfig.iEFBScale > 11) ?
+				ArraySize(efbscale_choices) : ArraySize(efbscale_choices) - 1, efbscale_choices);
 
-			szr_phong->Add(new wxStaticText(page_enh, wxID_ANY, _("Rim Exponent:")), 1, wxALIGN_CENTER_VERTICAL, 0);
-			szr_phong->Add(rimpower_slider, 1, wxEXPAND | wxRIGHT);
-		}
-		{
-			wxSlider* const rimbase_slider = new wxSlider(page_enh, wxID_ANY, vconfig.iRimBase, 0, 127, wxDefaultPosition, wxDefaultSize);
-			rimbase_slider->Bind(wxEVT_SLIDER, &VideoConfigDiag::Event_RimBase, this);
-			RegisterControl(rimbase_slider, (rim_base_desc));
 
-			szr_phong->Add(new wxStaticText(page_enh, wxID_ANY, _("Rim Base:")), 1, wxALIGN_CENTER_VERTICAL, 0);
-			szr_phong->Add(rimbase_slider, 1, wxEXPAND | wxRIGHT);
-		}
-		{
-			bump_strenght_slider = new wxSlider(page_enh, wxID_ANY, vconfig.iSimBumpStrength, 0, 1023, wxDefaultPosition, wxDefaultSize);
-			bump_strenght_slider->Bind(wxEVT_SLIDER, &VideoConfigDiag::Event_BumpStrength, this);
-			RegisterControl(bump_strenght_slider, (bump_strength_desc));
+			if (vconfig.iEFBScale > 11)
+				choice_efbscale->SetSelection(12);
 
-			szr_phong->Add(new wxStaticText(page_enh, wxID_ANY, _("Bump Strength:")), 1, wxALIGN_CENTER_VERTICAL, 0);
-			szr_phong->Add(bump_strenght_slider, 1, wxEXPAND | wxRIGHT);
-		}
-		{
-			bump_threshold_slider = new wxSlider(page_enh, wxID_ANY, vconfig.iSimBumpThreshold, 0, 255, wxDefaultPosition, wxDefaultSize);
-			bump_threshold_slider->Bind(wxEVT_SLIDER, &VideoConfigDiag::Event_BumpThreshold, this);
-			RegisterControl(bump_threshold_slider, (bump_threshold_desc));
-
-			szr_phong->Add(new wxStaticText(page_enh, wxID_ANY, _("Bump Threshold:")), 1, wxALIGN_CENTER_VERTICAL, 0);
-			szr_phong->Add(bump_threshold_slider, 1, wxEXPAND | wxRIGHT);
-		}
-		{
-			bump_blend_slider = new wxSlider(page_enh, wxID_ANY, vconfig.iSimBumpDetailBlend, 0, 255, wxDefaultPosition, wxDefaultSize);
-			bump_blend_slider->Bind(wxEVT_SLIDER, &VideoConfigDiag::Event_BumpDetailBlend, this);
-			RegisterControl(bump_blend_slider, (bump_detail_blend_desc));
-
-			szr_phong->Add(new wxStaticText(page_enh, wxID_ANY, _("Detail Strength:")), 1, wxALIGN_CENTER_VERTICAL, 0);
-			szr_phong->Add(bump_blend_slider, 1, wxEXPAND | wxRIGHT);
-		}
-		{
-			bump_frequency_slider = new wxSlider(page_enh, wxID_ANY, vconfig.iSimBumpDetailFrequency, 4, 255, wxDefaultPosition, wxDefaultSize);
-			bump_frequency_slider->Bind(wxEVT_SLIDER, &VideoConfigDiag::Event_BumpDetailFrequency, this);
-			RegisterControl(bump_frequency_slider, (bump_detail_frequency_desc));
-
-			szr_phong->Add(new wxStaticText(page_enh, wxID_ANY, _("Detail Frequency:")), 1, wxALIGN_CENTER_VERTICAL, 0);
-			szr_phong->Add(bump_frequency_slider, 1, wxEXPAND | wxRIGHT);
+			szr_enh->Add(new wxStaticText(page_enh, wxID_ANY, _("Internal Resolution:")), 1, wxALIGN_CENTER_VERTICAL, 0);
+			szr_enh->Add(choice_efbscale);
+			szr_enh->AddSpacer(0);
 		}
 
+		// AA
+		{
+			text_aamode = new wxStaticText(page_enh, wxID_ANY, _("Anti-Aliasing:"));
+			choice_aamode = new wxChoice(page_enh, wxID_ANY);
+			PopulateAAList();
+			choice_aamode->Bind(wxEVT_CHOICE, &VideoConfigDiag::OnAAChanged, this);
+			szr_enh->Add(text_aamode, 1, wxALIGN_CENTER_VERTICAL, 0);
+			szr_enh->Add(choice_aamode);
+			szr_enh->AddSpacer(0);
+		}
 
-		group_phong = new wxStaticBoxSizer(wxVERTICAL, page_enh, _("Light Parameters"));
-		group_phong->Add(szr_phong, 1, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 5);
-		szr_enh_main->Add(group_phong, 0, wxEXPAND | wxALL, 5);
-	}
-	szr_enh_main->AddStretchSpacer();
-	CreateDescriptionArea(page_enh, szr_enh_main);
-	page_enh->SetSizerAndFit(szr_enh_main);
+		// AF
+		{
+			const wxString af_choices[] = {wxT("1x"), wxT("2x"), wxT("4x"), wxT("8x"), wxT("16x")};
+			szr_enh->Add(new wxStaticText(page_enh, wxID_ANY, _("Anisotropic Filtering:")), 1, wxALIGN_CENTER_VERTICAL, 0);
+			szr_enh->Add(CreateChoice(page_enh, vconfig.iMaxAnisotropy, (af_desc), 5, af_choices));
+			szr_enh->AddSpacer(0);
+		}
+
+		// Scaled copy, PL, Bilinear filter, 3D Vision
+		szr_enh->Add(CreateCheckBox(page_enh, _("Scaled EFB Copy"), (scaled_efb_copy_desc), vconfig.bCopyEFBScaled));
+		if (vconfig.backend_info.bSupportsScaling)
+		{
+			szr_enh->Add(CreateCheckBox(page_enh, _("Use Scaling Filter"), (Use_Scaling_filter_desc), vconfig.bUseScalingFilter));
+		}
+		szr_enh->Add(CreateCheckBox(page_enh, _("Force Texture Filtering"), (force_filtering_desc), vconfig.bForceFiltering));
+		szr_enh->Add(CreateCheckBox(page_enh, _("Disable Texture Filtering"), (disable_filtering_desc), vconfig.bDisableTextureFiltering));
+
+		szr_enh->Add(CreateCheckBox(page_enh, _("Widescreen Hack"), (ws_hack_desc), vconfig.bWidescreenHack));
+		szr_enh->Add(CreateCheckBox(page_enh, _("Disable Fog"), (disable_fog_desc), vconfig.bDisableFog));
+		szr_enh->Add(pixel_lighting = CreateCheckBox(page_enh, _("Per-Pixel Lighting"), (pixel_lighting_desc), vconfig.bEnablePixelLighting));
+		szr_enh->Add(phong_lighting = CreateCheckBox(page_enh, _("Phong Lighting"), (phong_lighting_desc), vconfig.bForcePhongShading));
+		szr_enh->Add(sim_bump = CreateCheckBox(page_enh, _("Auto Bumps"), (bump_desc), vconfig.bSimBumpEnabled));
+		wxStaticBoxSizer* const group_enh = new wxStaticBoxSizer(wxVERTICAL, page_enh, _("Enhancements"));
+		group_enh->Add(szr_enh, 1, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 5);
+		szr_enh_main->Add(group_enh, 0, wxEXPAND | wxALL, 5);
+		{
+			wxFlexGridSizer* const szr_texturescaling = new wxFlexGridSizer(3, 5, 5);
+			szr_texturescaling->AddGrowableCol(1, 1);
+
+			szr_texturescaling->Add(new wxStaticText(page_enh, wxID_ANY, _("Texture Scaling Mode:")), 1, wxALIGN_CENTER_VERTICAL, 0);
+			const wxString scaling_choices[] = {"Off", "XBRZ", "Hybrid", "Bicubic", "Hybrid-Bicubic", "Jinc", "Jinc-Sharper", "Smoothstep", "3-Point", "DDT", "DDT-Sharp"};
+			wxChoice* scaling_choice = CreateChoice(page_enh, vconfig.iTexScalingType, (texture_scaling_desc), ArraySize(scaling_choices), scaling_choices);
+			szr_texturescaling->Add(scaling_choice, 1, wxEXPAND | wxRIGHT);
+			szr_texturescaling->Add(CreateCheckBox(page_enh, _("DePosterize"), (texture_deposterize_desc), vconfig.bTexDeposterize), 1, wxALIGN_CENTER_VERTICAL);
+
+			wxSlider* const factor_slider = new wxSlider(
+				page_enh,
+				wxID_ANY,
+				vconfig.iTexScalingFactor,
+				2,
+				5,
+				wxDefaultPosition, wxDefaultSize,
+				wxSL_HORIZONTAL | wxSL_BOTTOM);
+			factor_slider->Bind(wxEVT_SLIDER, &VideoConfigDiag::Event_ScalingFactor, this);
+			RegisterControl(factor_slider, (scaling_factor_desc));
+
+			szr_texturescaling->Add(new wxStaticText(page_enh, wxID_ANY, _("Scaling factor:")), 1, wxALIGN_CENTER_VERTICAL, 0);
+			szr_texturescaling->Add(factor_slider, 1, wxEXPAND | wxRIGHT, 0);
+			const wxString sf_choices[] = {wxT("1x"), wxT("2x"), wxT("3x"), wxT("4x"), wxT("5x")};
+			szr_texturescaling->Add(label_TextureScale = new wxStaticText(page_enh, wxID_ANY, sf_choices[vconfig.iTexScalingFactor - 1]), 1, wxRIGHT | wxTOP | wxBOTTOM, 5);
+
+			wxStaticBoxSizer* const group_scaling = new wxStaticBoxSizer(wxVERTICAL, page_enh, _("Texture Scaling"));
+			group_scaling->Add(szr_texturescaling, 1, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 5);
+			szr_enh_main->Add(group_scaling, 0, wxEXPAND | wxALL, 5);
+		}
+		{
+			wxFlexGridSizer* const szr_phong = new wxFlexGridSizer(4, 5, 5);
+			szr_phong->AddGrowableCol(1, 1);
+			szr_phong->AddGrowableCol(3, 1);
+			{
+				wxSlider* const pintensity_slider = new wxSlider(page_enh, wxID_ANY, vconfig.iSpecularMultiplier, 0, 510, wxDefaultPosition, wxDefaultSize);
+				pintensity_slider->Bind(wxEVT_SLIDER, &VideoConfigDiag::Event_SpecularIntensity, this);
+				RegisterControl(pintensity_slider, (phong_intensity_desc));
+
+				szr_phong->Add(new wxStaticText(page_enh, wxID_ANY, _("Specular Intensity:")), 1, wxALIGN_CENTER_VERTICAL, 0);
+				szr_phong->Add(pintensity_slider, 1, wxEXPAND | wxRIGHT);
+			}
+			{
+				wxSlider* const rimintensity_slider = new wxSlider(page_enh, wxID_ANY, vconfig.iRimIntesity, 0, 255, wxDefaultPosition, wxDefaultSize);
+				rimintensity_slider->Bind(wxEVT_SLIDER, &VideoConfigDiag::Event_RimIntensity, this);
+				RegisterControl(rimintensity_slider, (rim_intensity_desc));
+
+				szr_phong->Add(new wxStaticText(page_enh, wxID_ANY, _("Rim Intensity:")), 1, wxALIGN_CENTER_VERTICAL, 0);
+				szr_phong->Add(rimintensity_slider, 1, wxEXPAND | wxRIGHT);
+			}
+			{
+				wxSlider* const rimpower_slider = new wxSlider(page_enh, wxID_ANY, vconfig.iRimPower, 0, 255, wxDefaultPosition, wxDefaultSize);
+				rimpower_slider->Bind(wxEVT_SLIDER, &VideoConfigDiag::Event_RimPower, this);
+				RegisterControl(rimpower_slider, (rim_intensity_desc));
+
+				szr_phong->Add(new wxStaticText(page_enh, wxID_ANY, _("Rim Exponent:")), 1, wxALIGN_CENTER_VERTICAL, 0);
+				szr_phong->Add(rimpower_slider, 1, wxEXPAND | wxRIGHT);
+			}
+			{
+				wxSlider* const rimbase_slider = new wxSlider(page_enh, wxID_ANY, vconfig.iRimBase, 0, 127, wxDefaultPosition, wxDefaultSize);
+				rimbase_slider->Bind(wxEVT_SLIDER, &VideoConfigDiag::Event_RimBase, this);
+				RegisterControl(rimbase_slider, (rim_base_desc));
+
+				szr_phong->Add(new wxStaticText(page_enh, wxID_ANY, _("Rim Base:")), 1, wxALIGN_CENTER_VERTICAL, 0);
+				szr_phong->Add(rimbase_slider, 1, wxEXPAND | wxRIGHT);
+			}
+			{
+				bump_strenght_slider = new wxSlider(page_enh, wxID_ANY, vconfig.iSimBumpStrength, 0, 1023, wxDefaultPosition, wxDefaultSize);
+				bump_strenght_slider->Bind(wxEVT_SLIDER, &VideoConfigDiag::Event_BumpStrength, this);
+				RegisterControl(bump_strenght_slider, (bump_strength_desc));
+
+				szr_phong->Add(new wxStaticText(page_enh, wxID_ANY, _("Bump Strength:")), 1, wxALIGN_CENTER_VERTICAL, 0);
+				szr_phong->Add(bump_strenght_slider, 1, wxEXPAND | wxRIGHT);
+			}
+			{
+				bump_threshold_slider = new wxSlider(page_enh, wxID_ANY, vconfig.iSimBumpThreshold, 0, 255, wxDefaultPosition, wxDefaultSize);
+				bump_threshold_slider->Bind(wxEVT_SLIDER, &VideoConfigDiag::Event_BumpThreshold, this);
+				RegisterControl(bump_threshold_slider, (bump_threshold_desc));
+
+				szr_phong->Add(new wxStaticText(page_enh, wxID_ANY, _("Bump Threshold:")), 1, wxALIGN_CENTER_VERTICAL, 0);
+				szr_phong->Add(bump_threshold_slider, 1, wxEXPAND | wxRIGHT);
+			}
+			{
+				bump_blend_slider = new wxSlider(page_enh, wxID_ANY, vconfig.iSimBumpDetailBlend, 0, 255, wxDefaultPosition, wxDefaultSize);
+				bump_blend_slider->Bind(wxEVT_SLIDER, &VideoConfigDiag::Event_BumpDetailBlend, this);
+				RegisterControl(bump_blend_slider, (bump_detail_blend_desc));
+
+				szr_phong->Add(new wxStaticText(page_enh, wxID_ANY, _("Detail Strength:")), 1, wxALIGN_CENTER_VERTICAL, 0);
+				szr_phong->Add(bump_blend_slider, 1, wxEXPAND | wxRIGHT);
+			}
+			{
+				bump_frequency_slider = new wxSlider(page_enh, wxID_ANY, vconfig.iSimBumpDetailFrequency, 4, 255, wxDefaultPosition, wxDefaultSize);
+				bump_frequency_slider->Bind(wxEVT_SLIDER, &VideoConfigDiag::Event_BumpDetailFrequency, this);
+				RegisterControl(bump_frequency_slider, (bump_detail_frequency_desc));
+
+				szr_phong->Add(new wxStaticText(page_enh, wxID_ANY, _("Detail Frequency:")), 1, wxALIGN_CENTER_VERTICAL, 0);
+				szr_phong->Add(bump_frequency_slider, 1, wxEXPAND | wxRIGHT);
+			}
+
+
+			group_phong = new wxStaticBoxSizer(wxVERTICAL, page_enh, _("Light Parameters"));
+			group_phong->Add(szr_phong, 1, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 5);
+			szr_enh_main->Add(group_phong, 0, wxEXPAND | wxALL, 5);
+		}
+		szr_enh_main->AddStretchSpacer();
+		CreateDescriptionArea(page_enh, szr_enh_main);
+		page_enh->SetSizerAndFit(szr_enh_main);
 	}
 
 	// -- ENHANCEMENTS 2 --
@@ -568,7 +566,7 @@ VideoConfigDiag::VideoConfigDiag(wxWindow* parent, const std::string &title, con
 
 			szr_stereo->Add(new wxStaticText(page_enh, wxID_ANY, _("Stereoscopic 3D Mode:")), 1, wxALIGN_CENTER_VERTICAL, 0);
 
-			const wxString stereo_choices[] = { "Off", "Side-by-Side", "Top-and-Bottom", "Shader", "Nvidia 3D Vision" };
+			const wxString stereo_choices[] = {"Off", "Side-by-Side", "Top-and-Bottom", "Shader", "Nvidia 3D Vision"};
 			wxChoice* stereo_choice = CreateChoice(page_enh, vconfig.iStereoMode, (stereo_3d_desc), vconfig.backend_info.bSupports3DVision ? ArraySize(stereo_choices) : ArraySize(stereo_choices) - 1, stereo_choices);
 			stereo_choice->Bind(wxEVT_CHOICE, &VideoConfigDiag::Event_StereoMode, this);
 			szr_stereo->Add(stereo_choice, 0, wxEXPAND);
@@ -633,7 +631,7 @@ VideoConfigDiag::VideoConfigDiag(wxWindow* parent, const std::string &title, con
 
 			szr_tessellation->Add(new wxStaticText(page_enh, wxID_ANY, _("Rounding Intensity:")), 1, wxALIGN_CENTER_VERTICAL, 0);
 			szr_tessellation->Add(round_slider, 1, wxEXPAND | wxRIGHT);
-			
+
 			szr_tessellation->AddSpacer(0);
 
 			wxSlider* const displacement_slider = new wxSlider(page_enh, wxID_ANY, vconfig.iTessellationDisplacementIntensity, 0, 150, wxDefaultPosition, wxDefaultSize);
@@ -644,7 +642,7 @@ VideoConfigDiag::VideoConfigDiag(wxWindow* parent, const std::string &title, con
 			szr_tessellation->Add(displacement_slider, 1, wxEXPAND | wxRIGHT);
 
 			group_Tessellation = new wxStaticBoxSizer(wxVERTICAL, page_enh, _("Tessellation"));
-			group_Tessellation->Add(szr_tessellation, 1, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 5);			
+			group_Tessellation->Add(szr_tessellation, 1, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 5);
 			szr_enh_main->Add(group_Tessellation, 0, wxEXPAND | wxALL, 5);
 		}
 		szr_enh_main->AddStretchSpacer();
@@ -716,7 +714,7 @@ VideoConfigDiag::VideoConfigDiag(wxWindow* parent, const std::string &title, con
 			szr_options->AddGrowableCol(1, 1);
 
 			// Trigger
-			const wxString pptrigger_choices[] = { _("On Swap"), _("On Projection"), _("On EFB Copy"), _("After Blit") };
+			const wxString pptrigger_choices[] = {_("On Swap"), _("On Projection"), _("On EFB Copy"), _("After Blit")};
 			choice_pptrigger = CreateChoice(page_postprocessing, vconfig.iPostProcessingTrigger, wxGetTranslation(pptrigger_desc), 4, pptrigger_choices);
 			szr_options->Add(new wxStaticText(page_postprocessing, wxID_ANY, _("Post-Processing Trigger:")), 0, wxALIGN_CENTER_VERTICAL, 0);
 			szr_options->Add(choice_pptrigger, 1, wxEXPAND | wxALIGN_CENTER_VERTICAL);
@@ -761,183 +759,183 @@ VideoConfigDiag::VideoConfigDiag(wxWindow* parent, const std::string &title, con
 
 	// -- SPEED HACKS --
 	{
-	wxPanel* const page_hacks = new wxPanel(notebook, -1, wxDefaultPosition);
-	notebook->AddPage(page_hacks, _("Hacks"));
-	wxBoxSizer* const szr_hacks = new wxBoxSizer(wxVERTICAL);
+		wxPanel* const page_hacks = new wxPanel(notebook, -1, wxDefaultPosition);
+		notebook->AddPage(page_hacks, _("Hacks"));
+		wxBoxSizer* const szr_hacks = new wxBoxSizer(wxVERTICAL);
 
-	// - EFB hacks
-	wxStaticBoxSizer* const szr_efb = new wxStaticBoxSizer(wxVERTICAL, page_hacks, _("Embedded Frame Buffer"));
+		// - EFB hacks
+		wxStaticBoxSizer* const szr_efb = new wxStaticBoxSizer(wxVERTICAL, page_hacks, _("Embedded Frame Buffer"));
 
-	// format change emulation
-	emulate_efb_format_changes = CreateCheckBox(page_hacks, _("Ignore Format Changes"), (efb_emulate_format_changes_desc), vconfig.bEFBEmulateFormatChanges, true);
+		// format change emulation
+		emulate_efb_format_changes = CreateCheckBox(page_hacks, _("Ignore Format Changes"), (efb_emulate_format_changes_desc), vconfig.bEFBEmulateFormatChanges, true);
 
-	szr_efb->Add(CreateCheckBox(page_hacks, _("Skip EFB Access from CPU"), (efb_access_desc), vconfig.bEFBAccessEnable, true), 0, wxBOTTOM | wxLEFT, 5);
-	Fast_efb_cache = CreateCheckBox(page_hacks, _("Fast EFB Access"), (efb_fast_access_desc), vconfig.bEFBFastAccess, false);
-	szr_efb->Add(Fast_efb_cache, 0, wxBOTTOM | wxLEFT, 5);
-	szr_efb->Add(emulate_efb_format_changes, 0, wxBOTTOM | wxLEFT, 5);
-	szr_efb->Add(CreateCheckBox(page_hacks, _("Store EFB copies to Texture Only"), (skip_efb_copy_to_ram_desc), vconfig.bSkipEFBCopyToRam), 0, wxBOTTOM | wxLEFT, 5);
+		szr_efb->Add(CreateCheckBox(page_hacks, _("Skip EFB Access from CPU"), (efb_access_desc), vconfig.bEFBAccessEnable, true), 0, wxBOTTOM | wxLEFT, 5);
+		Fast_efb_cache = CreateCheckBox(page_hacks, _("Fast EFB Access"), (efb_fast_access_desc), vconfig.bEFBFastAccess, false);
+		szr_efb->Add(Fast_efb_cache, 0, wxBOTTOM | wxLEFT, 5);
+		szr_efb->Add(emulate_efb_format_changes, 0, wxBOTTOM | wxLEFT, 5);
+		szr_efb->Add(CreateCheckBox(page_hacks, _("Store EFB copies to Texture Only"), (skip_efb_copy_to_ram_desc), vconfig.bSkipEFBCopyToRam), 0, wxBOTTOM | wxLEFT, 5);
 #if defined WIN32
-	vieport_correction = CreateCheckBox(page_hacks, _("Viewport Correction"), (viewport_correction_desc), vconfig.bViewportCorrection, false);
-	szr_efb->Add(vieport_correction, 0, wxBOTTOM | wxLEFT, 5);
+		vieport_correction = CreateCheckBox(page_hacks, _("Viewport Correction"), (viewport_correction_desc), vconfig.bViewportCorrection, false);
+		szr_efb->Add(vieport_correction, 0, wxBOTTOM | wxLEFT, 5);
 #endif	
-	szr_hacks->Add(szr_efb, 0, wxEXPAND | wxALL, 5);
+		szr_hacks->Add(szr_efb, 0, wxEXPAND | wxALL, 5);
 
-	// Texture cache
-	{
-	wxStaticBoxSizer* const szr_safetex = new wxStaticBoxSizer(wxHORIZONTAL, page_hacks, _("Texture Cache"));
+		// Texture cache
+		{
+			wxStaticBoxSizer* const szr_safetex = new wxStaticBoxSizer(wxHORIZONTAL, page_hacks, _("Texture Cache"));
 
-	// TODO: Use wxSL_MIN_MAX_LABELS or wxSL_VALUE_LABEL with wx 2.9.1
-	wxSlider* const stc_slider = new wxSlider(page_hacks, wxID_ANY, 0, 0, 2, wxDefaultPosition, wxDefaultSize, wxSL_HORIZONTAL|wxSL_BOTTOM);
-	stc_slider->Bind(wxEVT_COMMAND_SLIDER_UPDATED, &VideoConfigDiag::Event_Stc, this);
-	RegisterControl(stc_slider, (stc_desc));
+			// TODO: Use wxSL_MIN_MAX_LABELS or wxSL_VALUE_LABEL with wx 2.9.1
+			wxSlider* const stc_slider = new wxSlider(page_hacks, wxID_ANY, 0, 0, 2, wxDefaultPosition, wxDefaultSize, wxSL_HORIZONTAL | wxSL_BOTTOM);
+			stc_slider->Bind(wxEVT_COMMAND_SLIDER_UPDATED, &VideoConfigDiag::Event_Stc, this);
+			RegisterControl(stc_slider, (stc_desc));
 
-	if (vconfig.iSafeTextureCache_ColorSamples == 0) stc_slider->SetValue(0);
-	else if (vconfig.iSafeTextureCache_ColorSamples == 512) stc_slider->SetValue(1);
-	else if (vconfig.iSafeTextureCache_ColorSamples == 128) stc_slider->SetValue(2);
-	else stc_slider->Disable(); // Using custom number of samples; TODO: Inform the user why this is disabled..
+			if (vconfig.iSafeTextureCache_ColorSamples == 0) stc_slider->SetValue(0);
+			else if (vconfig.iSafeTextureCache_ColorSamples == 512) stc_slider->SetValue(1);
+			else if (vconfig.iSafeTextureCache_ColorSamples == 128) stc_slider->SetValue(2);
+			else stc_slider->Disable(); // Using custom number of samples; TODO: Inform the user why this is disabled..
 
-	szr_safetex->Add(new wxStaticText(page_hacks, wxID_ANY, _("Accuracy:")), 0, wxALL, 5);
-	szr_safetex->AddStretchSpacer(1);
-	szr_safetex->Add(new wxStaticText(page_hacks, wxID_ANY, _("Safe")), 0, wxLEFT|wxTOP|wxBOTTOM, 5);
-	szr_safetex->Add(stc_slider, 2, wxRIGHT, 0);
-	szr_safetex->Add(new wxStaticText(page_hacks, wxID_ANY, _("Fast")), 0, wxRIGHT|wxTOP|wxBOTTOM, 5);
-	szr_hacks->Add(szr_safetex, 0, wxEXPAND | wxALL, 5);
-	}
-	// - XFB
-	{
-	wxStaticBoxSizer* const group_xfb = new wxStaticBoxSizer(wxHORIZONTAL, page_hacks, _("External Frame Buffer"));
+			szr_safetex->Add(new wxStaticText(page_hacks, wxID_ANY, _("Accuracy:")), 0, wxALL, 5);
+			szr_safetex->AddStretchSpacer(1);
+			szr_safetex->Add(new wxStaticText(page_hacks, wxID_ANY, _("Safe")), 0, wxLEFT | wxTOP | wxBOTTOM, 5);
+			szr_safetex->Add(stc_slider, 2, wxRIGHT, 0);
+			szr_safetex->Add(new wxStaticText(page_hacks, wxID_ANY, _("Fast")), 0, wxRIGHT | wxTOP | wxBOTTOM, 5);
+			szr_hacks->Add(szr_safetex, 0, wxEXPAND | wxALL, 5);
+		}
+		// - XFB
+		{
+			wxStaticBoxSizer* const group_xfb = new wxStaticBoxSizer(wxHORIZONTAL, page_hacks, _("External Frame Buffer"));
 
-	SettingCheckBox* disable_xfb = CreateCheckBox(page_hacks, _("Disable"), (xfb_desc), vconfig.bUseXFB, true);
-	virtual_xfb = CreateRadioButton(page_hacks, _("Virtual"), (xfb_virtual_desc), vconfig.bUseRealXFB, true, wxRB_GROUP);
-	real_xfb = CreateRadioButton(page_hacks, _("Real"), (xfb_real_desc), vconfig.bUseRealXFB);
+			SettingCheckBox* disable_xfb = CreateCheckBox(page_hacks, _("Disable"), (xfb_desc), vconfig.bUseXFB, true);
+			virtual_xfb = CreateRadioButton(page_hacks, _("Virtual"), (xfb_virtual_desc), vconfig.bUseRealXFB, true, wxRB_GROUP);
+			real_xfb = CreateRadioButton(page_hacks, _("Real"), (xfb_real_desc), vconfig.bUseRealXFB);
 
-	group_xfb->Add(disable_xfb, 0, wxLEFT | wxRIGHT | wxBOTTOM, 5);
-	group_xfb->AddStretchSpacer(1);
-	group_xfb->Add(virtual_xfb, 0, wxRIGHT, 5);
-	group_xfb->Add(real_xfb, 0, wxRIGHT, 5);
-	szr_hacks->Add(group_xfb, 0, wxEXPAND | wxALL, 5);
-	}	// xfb
+			group_xfb->Add(disable_xfb, 0, wxLEFT | wxRIGHT | wxBOTTOM, 5);
+			group_xfb->AddStretchSpacer(1);
+			group_xfb->Add(virtual_xfb, 0, wxRIGHT, 5);
+			group_xfb->Add(real_xfb, 0, wxRIGHT, 5);
+			szr_hacks->Add(group_xfb, 0, wxEXPAND | wxALL, 5);
+		}	// xfb
 
-	// Bounding Box
-	{
-	wxStaticBoxSizer* const group_bbox = new wxStaticBoxSizer(wxHORIZONTAL, page_hacks, _("Bounding Box"));
+		// Bounding Box
+		{
+			wxStaticBoxSizer* const group_bbox = new wxStaticBoxSizer(wxHORIZONTAL, page_hacks, _("Bounding Box"));
 
-	wxSlider* const bbox_slider = new wxSlider(
-		page_hacks,
-		wxID_ANY, 0, 0,
-		(vconfig.backend_info.APIType & API_D3D9) == 0 ? 2 : 1,
-		wxDefaultPosition, wxDefaultSize, wxSL_HORIZONTAL | wxSL_BOTTOM);
-	bbox_slider->Bind(wxEVT_COMMAND_SLIDER_UPDATED, &VideoConfigDiag::Event_Bbox, this);
-	RegisterControl(bbox_slider, (bbox_desc));
+			wxSlider* const bbox_slider = new wxSlider(
+				page_hacks,
+				wxID_ANY, 0, 0,
+				(vconfig.backend_info.APIType & API_D3D9) == 0 ? 2 : 1,
+				wxDefaultPosition, wxDefaultSize, wxSL_HORIZONTAL | wxSL_BOTTOM);
+			bbox_slider->Bind(wxEVT_COMMAND_SLIDER_UPDATED, &VideoConfigDiag::Event_Bbox, this);
+			RegisterControl(bbox_slider, (bbox_desc));
 
 
 
-	group_bbox->Add(new wxStaticText(page_hacks, wxID_ANY, _("Mode:")), 0, wxALL, 5);
-	group_bbox->AddStretchSpacer(0);
-	group_bbox->Add(bbox_slider, 3, wxRIGHT, 0);
-	group_bbox->Add(text_bboxmode = new wxStaticText(page_hacks, wxID_ANY, _("GPU")), 1, wxRIGHT | wxTOP | wxBOTTOM, 5);
-	szr_hacks->Add(group_bbox, 0, wxEXPAND | wxALL, 5);
-	bbox_slider->SetValue(vconfig.iBBoxMode);
-	text_bboxmode->SetLabel((s_bbox_mode_text[vconfig.iBBoxMode]));
-	}
-	// - other hacks
-	{
-	wxGridSizer* const szr_other = new wxGridSizer(2, 5, 5);	
-	// Disable while i fix opencl
-	//szr_other->Add(CreateCheckBox(page_hacks, _("OpenCL Texture Decoder"), (opencl_desc), vconfig.bEnableOpenCL));	
-	szr_other->Add(CreateCheckBox(page_hacks, _("Fast Depth Calculation"), (fast_depth_calc_desc), vconfig.bFastDepthCalc));
-	//szr_other->Add(Predictive_FIFO = CreateCheckBox(page_hacks, _("Predictive FIFO"), (predictiveFifo_desc), vconfig.bPredictiveFifo));
-	//szr_other->Add(Wait_For_Shaders = CreateCheckBox(page_hacks, _("Wait for Shader Compilation"), (waitforshadercompilation_desc), vconfig.bWaitForShaderCompilation));
-	szr_other->Add(Async_Shader_compilation = CreateCheckBox(page_hacks, _("Full Async Shader Compilation"), (fullAsyncShaderCompilation_desc), vconfig.bFullAsyncShaderCompilation));
-	szr_other->Add(Compute_Shader_decoding = CreateCheckBox(page_hacks, _("Compute Texture Decoding"), (compute_texture_decoding_desc), vconfig.bEnableComputeTextureDecoding));
-	szr_other->Add(Compute_Shader_encoding = CreateCheckBox(page_hacks, _("Compute Texture Encoding"), (Compute_texture_encoding_desc), vconfig.bEnableComputeTextureEncoding));
-	wxStaticBoxSizer* const group_other = new wxStaticBoxSizer(wxVERTICAL, page_hacks, _("Other"));
-	group_other->Add(szr_other, 1, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 5);
-	szr_hacks->Add(group_other, 0, wxEXPAND | wxALL, 5);
-	}
+			group_bbox->Add(new wxStaticText(page_hacks, wxID_ANY, _("Mode:")), 0, wxALL, 5);
+			group_bbox->AddStretchSpacer(0);
+			group_bbox->Add(bbox_slider, 3, wxRIGHT, 0);
+			group_bbox->Add(text_bboxmode = new wxStaticText(page_hacks, wxID_ANY, _("GPU")), 1, wxRIGHT | wxTOP | wxBOTTOM, 5);
+			szr_hacks->Add(group_bbox, 0, wxEXPAND | wxALL, 5);
+			bbox_slider->SetValue(vconfig.iBBoxMode);
+			text_bboxmode->SetLabel((s_bbox_mode_text[vconfig.iBBoxMode]));
+		}
+		// - other hacks
+		{
+			wxGridSizer* const szr_other = new wxGridSizer(2, 5, 5);
+			// Disable while i fix opencl
+			//szr_other->Add(CreateCheckBox(page_hacks, _("OpenCL Texture Decoder"), (opencl_desc), vconfig.bEnableOpenCL));	
+			szr_other->Add(CreateCheckBox(page_hacks, _("Fast Depth Calculation"), (fast_depth_calc_desc), vconfig.bFastDepthCalc));
+			//szr_other->Add(Predictive_FIFO = CreateCheckBox(page_hacks, _("Predictive FIFO"), (predictiveFifo_desc), vconfig.bPredictiveFifo));
+			//szr_other->Add(Wait_For_Shaders = CreateCheckBox(page_hacks, _("Wait for Shader Compilation"), (waitforshadercompilation_desc), vconfig.bWaitForShaderCompilation));
+			szr_other->Add(Async_Shader_compilation = CreateCheckBox(page_hacks, _("Full Async Shader Compilation"), (fullAsyncShaderCompilation_desc), vconfig.bFullAsyncShaderCompilation));
+			szr_other->Add(Compute_Shader_decoding = CreateCheckBox(page_hacks, _("Compute Texture Decoding"), (compute_texture_decoding_desc), vconfig.bEnableComputeTextureDecoding));
+			szr_other->Add(Compute_Shader_encoding = CreateCheckBox(page_hacks, _("Compute Texture Encoding"), (Compute_texture_encoding_desc), vconfig.bEnableComputeTextureEncoding));
+			wxStaticBoxSizer* const group_other = new wxStaticBoxSizer(wxVERTICAL, page_hacks, _("Other"));
+			group_other->Add(szr_other, 1, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 5);
+			szr_hacks->Add(group_other, 0, wxEXPAND | wxALL, 5);
+		}
 
-	szr_hacks->AddStretchSpacer();
-	CreateDescriptionArea(page_hacks, szr_hacks);
-	page_hacks->SetSizerAndFit(szr_hacks);
+		szr_hacks->AddStretchSpacer();
+		CreateDescriptionArea(page_hacks, szr_hacks);
+		page_hacks->SetSizerAndFit(szr_hacks);
 	}
 
 	// -- ADVANCED --
 	{
-	wxPanel* const page_advanced = new wxPanel(notebook, -1, wxDefaultPosition);
-	notebook->AddPage(page_advanced, _("Advanced"));
-	wxBoxSizer* const szr_advanced = new wxBoxSizer(wxVERTICAL);
+		wxPanel* const page_advanced = new wxPanel(notebook, -1, wxDefaultPosition);
+		notebook->AddPage(page_advanced, _("Advanced"));
+		wxBoxSizer* const szr_advanced = new wxBoxSizer(wxVERTICAL);
 
-	// - debug
-	{
-	wxGridSizer* const szr_debug = new wxGridSizer(2, 5, 5);
+		// - debug
+		{
+			wxGridSizer* const szr_debug = new wxGridSizer(2, 5, 5);
 
-	szr_debug->Add(CreateCheckBox(page_advanced, _("Enable Wireframe"), (wireframe_desc), vconfig.bWireFrame));
-	szr_debug->Add(CreateCheckBox(page_advanced, _("Show Statistics"), (show_stats_desc), vconfig.bOverlayStats));
-	szr_debug->Add(CreateCheckBox(page_advanced, _("Texture Format Overlay"), (texfmt_desc), vconfig.bTexFmtOverlayEnable));
+			szr_debug->Add(CreateCheckBox(page_advanced, _("Enable Wireframe"), (wireframe_desc), vconfig.bWireFrame));
+			szr_debug->Add(CreateCheckBox(page_advanced, _("Show Statistics"), (show_stats_desc), vconfig.bOverlayStats));
+			szr_debug->Add(CreateCheckBox(page_advanced, _("Texture Format Overlay"), (texfmt_desc), vconfig.bTexFmtOverlayEnable));
 
-	wxStaticBoxSizer* const group_debug = new wxStaticBoxSizer(wxVERTICAL, page_advanced, _("Debugging"));
-	szr_advanced->Add(group_debug, 0, wxEXPAND | wxALL, 5);
-	group_debug->Add(szr_debug, 1, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 5);
-	}
+			wxStaticBoxSizer* const group_debug = new wxStaticBoxSizer(wxVERTICAL, page_advanced, _("Debugging"));
+			szr_advanced->Add(group_debug, 0, wxEXPAND | wxALL, 5);
+			group_debug->Add(szr_debug, 1, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 5);
+		}
 
-	// - utility
-	{
-	wxGridSizer* const szr_utility = new wxGridSizer(2, 5, 5);
+		// - utility
+		{
+			wxGridSizer* const szr_utility = new wxGridSizer(2, 5, 5);
 
-	szr_utility->Add(CreateCheckBox(page_advanced, _("Dump Textures"), (dump_textures_desc), vconfig.bDumpTextures));
-	szr_utility->Add(CreateCheckBox(page_advanced, _("Dump Vertex Loaders"), (dump_VertexTranslators_desc), vconfig.bDumpVertexLoaders));
-	szr_utility->Add(CreateCheckBox(page_advanced, _("Load Custom Textures"), (load_hires_textures_desc), vconfig.bHiresTextures));
-	cache_hires_textures = CreateCheckBox(page_advanced, _("Prefetch Custom Textures"), cache_hires_textures_desc, vconfig.bCacheHiresTextures);
-	cache_hires_texturesGPU = CreateCheckBox(page_advanced, _("Cache Custom Textures on GPU"), cache_hires_textures_gpu_desc, vconfig.bCacheHiresTexturesGPU);
-	hires_texturemaps = CreateCheckBox(page_advanced, _("Load Custom Material Maps"), load_hires_material_maps_desc, vconfig.bHiresMaterialMaps);
-	szr_utility->Add(cache_hires_textures);
-	szr_utility->Add(cache_hires_texturesGPU);
-	szr_utility->Add(hires_texturemaps);
-	szr_utility->Add(CreateCheckBox(page_advanced, _("Dump EFB Target"), (dump_efb_desc), vconfig.bDumpEFBTarget));
-	szr_utility->Add(CreateCheckBox(page_advanced, _("Free Look"), (free_look_desc), vconfig.bFreeLook));
-	szr_utility->Add(shaderprecompile = CreateCheckBox(page_advanced, _("Compile Shaders on Startup"), (shader_precompile_desc), vconfig.bCompileShaderOnStartup));
-	
+			szr_utility->Add(CreateCheckBox(page_advanced, _("Dump Textures"), (dump_textures_desc), vconfig.bDumpTextures));
+			szr_utility->Add(CreateCheckBox(page_advanced, _("Dump Vertex Loaders"), (dump_VertexTranslators_desc), vconfig.bDumpVertexLoaders));
+			szr_utility->Add(CreateCheckBox(page_advanced, _("Load Custom Textures"), (load_hires_textures_desc), vconfig.bHiresTextures));
+			cache_hires_textures = CreateCheckBox(page_advanced, _("Prefetch Custom Textures"), cache_hires_textures_desc, vconfig.bCacheHiresTextures);
+			cache_hires_texturesGPU = CreateCheckBox(page_advanced, _("Cache Custom Textures on GPU"), cache_hires_textures_gpu_desc, vconfig.bCacheHiresTexturesGPU);
+			hires_texturemaps = CreateCheckBox(page_advanced, _("Load Custom Material Maps"), load_hires_material_maps_desc, vconfig.bHiresMaterialMaps);
+			szr_utility->Add(cache_hires_textures);
+			szr_utility->Add(cache_hires_texturesGPU);
+			szr_utility->Add(hires_texturemaps);
+			szr_utility->Add(CreateCheckBox(page_advanced, _("Dump EFB Target"), (dump_efb_desc), vconfig.bDumpEFBTarget));
+			szr_utility->Add(CreateCheckBox(page_advanced, _("Free Look"), (free_look_desc), vconfig.bFreeLook));
+			szr_utility->Add(shaderprecompile = CreateCheckBox(page_advanced, _("Compile Shaders on Startup"), (shader_precompile_desc), vconfig.bCompileShaderOnStartup));
+
 #if !defined WIN32 && defined HAVE_LIBAV
-	szr_utility->Add(CreateCheckBox(page_advanced, _("Frame Dumps use FFV1"), (use_ffv1_desc), vconfig.bUseFFV1));
+			szr_utility->Add(CreateCheckBox(page_advanced, _("Frame Dumps use FFV1"), (use_ffv1_desc), vconfig.bUseFFV1));
 #endif
 
-	wxStaticBoxSizer* const group_utility = new wxStaticBoxSizer(wxVERTICAL, page_advanced, _("Utility"));
-	szr_advanced->Add(group_utility, 0, wxEXPAND | wxALL, 5);
-	group_utility->Add(szr_utility, 1, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 5);
-	}
+			wxStaticBoxSizer* const group_utility = new wxStaticBoxSizer(wxVERTICAL, page_advanced, _("Utility"));
+			szr_advanced->Add(group_utility, 0, wxEXPAND | wxALL, 5);
+			group_utility->Add(szr_utility, 1, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 5);
+		}
 
-	// - misc
-	{
-	wxGridSizer* const szr_misc = new wxGridSizer(2, 5, 5);
+		// - misc
+		{
+			wxGridSizer* const szr_misc = new wxGridSizer(2, 5, 5);
 
-	szr_misc->Add(CreateCheckBox(page_advanced, _("Show Input Display"), (show_input_display_desc), vconfig.bShowInputDisplay));
-	szr_misc->Add(CreateCheckBox(page_advanced, _("Crop"), (crop_desc), vconfig.bCrop));
+			szr_misc->Add(CreateCheckBox(page_advanced, _("Show Input Display"), (show_input_display_desc), vconfig.bShowInputDisplay));
+			szr_misc->Add(CreateCheckBox(page_advanced, _("Crop"), (crop_desc), vconfig.bCrop));
 
-	// Progressive Scan
-	{
-	progressive_scan_checkbox = new wxCheckBox(page_advanced, wxID_ANY, _("Enable Progressive Scan"));
-	RegisterControl(progressive_scan_checkbox, (prog_scan_desc));
-	progressive_scan_checkbox->Bind(wxEVT_CHECKBOX, &VideoConfigDiag::Event_ProgressiveScan, this);
+			// Progressive Scan
+			{
+				progressive_scan_checkbox = new wxCheckBox(page_advanced, wxID_ANY, _("Enable Progressive Scan"));
+				RegisterControl(progressive_scan_checkbox, (prog_scan_desc));
+				progressive_scan_checkbox->Bind(wxEVT_CHECKBOX, &VideoConfigDiag::Event_ProgressiveScan, this);
 
-	progressive_scan_checkbox->SetValue(SConfig::GetInstance().bProgressive);
-	// A bit strange behavior, but this needs to stay in sync with the main progressive boolean; TODO: Is this still necessary?
-	SConfig::GetInstance().m_SYSCONF->SetData("IPL.PGS", SConfig::GetInstance().bProgressive);
+				progressive_scan_checkbox->SetValue(SConfig::GetInstance().bProgressive);
+				// A bit strange behavior, but this needs to stay in sync with the main progressive boolean; TODO: Is this still necessary?
+				SConfig::GetInstance().m_SYSCONF->SetData("IPL.PGS", SConfig::GetInstance().bProgressive);
 
-	szr_misc->Add(progressive_scan_checkbox);
-	}
+				szr_misc->Add(progressive_scan_checkbox);
+			}
 #if defined WIN32
-	// Borderless Fullscreen
-	borderless_fullscreen = CreateCheckBox(page_advanced, _("Borderless Fullscreen"), (borderless_fullscreen_desc), vconfig.bBorderlessFullscreen);
-	szr_misc->Add(borderless_fullscreen);
+			// Borderless Fullscreen
+			borderless_fullscreen = CreateCheckBox(page_advanced, _("Borderless Fullscreen"), (borderless_fullscreen_desc), vconfig.bBorderlessFullscreen);
+			szr_misc->Add(borderless_fullscreen);
 #endif
-	wxStaticBoxSizer* const group_misc = new wxStaticBoxSizer(wxVERTICAL, page_advanced, _("Misc"));
-	szr_advanced->Add(group_misc, 0, wxEXPAND | wxALL, 5);
-	group_misc->Add(szr_misc, 1, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 5);
-	}
+			wxStaticBoxSizer* const group_misc = new wxStaticBoxSizer(wxVERTICAL, page_advanced, _("Misc"));
+			szr_advanced->Add(group_misc, 0, wxEXPAND | wxALL, 5);
+			group_misc->Add(szr_misc, 1, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 5);
+		}
 
-	szr_advanced->AddStretchSpacer();
-	CreateDescriptionArea(page_advanced, szr_advanced);
-	page_advanced->SetSizerAndFit(szr_advanced);
+		szr_advanced->AddStretchSpacer();
+		CreateDescriptionArea(page_advanced, szr_advanced);
+		page_advanced->SetSizerAndFit(szr_advanced);
 	}
 
 	wxButton* const btn_close = new wxButton(this, wxID_OK, _("Close"), wxDefaultPosition);
@@ -990,7 +988,7 @@ SettingRadioButton* VideoConfigDiag::CreateRadioButton(wxWindow* parent, const w
 /* Use this to register descriptions for controls which have NOT been created using the Create* functions from above */
 wxControl* VideoConfigDiag::RegisterControl(wxControl* const control, const wxString& description)
 {
-	ctrl_descs.insert(std::pair<wxWindow*,wxString>(control, description));
+	ctrl_descs.insert(std::pair<wxWindow*, wxString>(control, description));
 	control->Bind(wxEVT_ENTER_WINDOW, &VideoConfigDiag::Evt_EnterControl, this);
 	control->Bind(wxEVT_LEAVE_WINDOW, &VideoConfigDiag::Evt_LeaveControl, this);
 	return control;
@@ -1045,7 +1043,7 @@ void VideoConfigDiag::CreateDescriptionArea(wxPanel* const page, wxBoxSizer* con
 	desc_sizer->Add(desc_text, 1, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 5);
 
 	// Store description text object for later lookup
-	desc_texts.insert(std::pair<wxWindow*,wxStaticText*>(page, desc_text));
+	desc_texts.insert(std::pair<wxWindow*, wxStaticText*>(page, desc_text));
 }
 
 void VideoConfigDiag::Event_Backend(wxCommandEvent &ev)
@@ -1082,7 +1080,10 @@ void VideoConfigDiag::Event_Backend(wxCommandEvent &ev)
 	ev.Skip();
 }
 
-void VideoConfigDiag::Event_Adapter(wxCommandEvent &ev) { ev.Skip(); } // TODO
+void VideoConfigDiag::Event_Adapter(wxCommandEvent &ev)
+{
+	ev.Skip();
+} // TODO
 
 void VideoConfigDiag::Event_ProgressiveScan(wxCommandEvent &ev)
 {
@@ -1094,7 +1095,7 @@ void VideoConfigDiag::Event_ProgressiveScan(wxCommandEvent &ev)
 
 void VideoConfigDiag::Event_Stc(wxCommandEvent &ev)
 {
-	int samples[] = { 0, 512, 128 };
+	int samples[] = {0, 512, 128};
 	vconfig.iSafeTextureCache_ColorSamples = samples[ev.GetInt()];
 
 	ev.Skip();
@@ -1102,7 +1103,7 @@ void VideoConfigDiag::Event_Stc(wxCommandEvent &ev)
 
 void VideoConfigDiag::Event_Bbox(wxCommandEvent &ev)
 {
-	vconfig.iBBoxMode =ev.GetInt();
+	vconfig.iBBoxMode = ev.GetInt();
 	text_bboxmode->SetLabel((s_bbox_mode_text[vconfig.iBBoxMode]));
 	ev.Skip();
 }
@@ -1223,7 +1224,7 @@ void VideoConfigDiag::Event_PPShaderListRemove(wxCommandEvent& ev)
 	listbox_selected_ppshaders->Delete(sel);
 	if (!listbox_selected_ppshaders->IsEmpty())
 	{
-		if (sel >(int)listbox_selected_ppshaders->GetCount() - 1)
+		if (sel > (int)listbox_selected_ppshaders->GetCount() - 1)
 			listbox_selected_ppshaders->SetSelection(sel - 1);
 		else
 			listbox_selected_ppshaders->SetSelection(sel);
@@ -1338,7 +1339,7 @@ void VideoConfigDiag::Event_BumpThreshold(wxCommandEvent &ev)
 
 void VideoConfigDiag::Event_ScalingFactor(wxCommandEvent &ev)
 {
-	const wxString sf_choices[] = { wxT("1x"), wxT("2x"), wxT("3x"), wxT("4x"), wxT("5x") };
+	const wxString sf_choices[] = {wxT("1x"), wxT("2x"), wxT("3x"), wxT("4x"), wxT("5x")};
 	vconfig.iTexScalingFactor = ev.GetInt();
 	label_TextureScale->SetLabel(sf_choices[vconfig.iTexScalingFactor - 1]);
 	ev.Skip();
@@ -1407,7 +1408,7 @@ void VideoConfigDiag::OnUpdateUI(wxUpdateUIEvent& ev)
 
 	// Anti-aliasing
 	choice_aamode->Enable(vconfig.backend_info.AAModes.size() > 1);
-	text_aamode->Enable(vconfig.backend_info.AAModes.size() > 1);	
+	text_aamode->Enable(vconfig.backend_info.AAModes.size() > 1);
 
 	// pixel lighting
 	pixel_lighting->Enable(vconfig.backend_info.bSupportsPixelLighting);
@@ -1431,9 +1432,9 @@ void VideoConfigDiag::OnUpdateUI(wxUpdateUIEvent& ev)
 	cache_hires_textures->Enable(vconfig.bHiresTextures);
 	cache_hires_texturesGPU->Enable(vconfig.bHiresTextures);
 	hires_texturemaps->Enable(vconfig.bHiresTextures && vconfig.bEnablePixelLighting);
-	hires_texturemaps->Show(vconfig.backend_info.bSupportsNormalMaps);	
+	hires_texturemaps->Show(vconfig.backend_info.bSupportsNormalMaps);
 
-	
+
 	Async_Shader_compilation->Show(vconfig.backend_info.APIType != API_OPENGL);
 	Compute_Shader_decoding->Show(vconfig.backend_info.bSupportsComputeTextureDecoding);
 	Compute_Shader_encoding->Show(vconfig.backend_info.bSupportsComputeTextureEncoding);
@@ -1510,10 +1511,10 @@ void VideoConfigDiag::PopulatePostProcessingShaders()
 	SplitString(vconfig.sPostProcessingShaders, ':', ppshader_list);
 	for (const std::string& shader_name : ppshader_list)
 		listbox_selected_ppshaders->AppendString(StrToWxStr(shader_name));
-	
+
 	if (!listbox_selected_ppshaders->IsEmpty())
 		listbox_selected_ppshaders->SetSelection(0);
-	
+
 }
 
 void VideoConfigDiag::PopulateScalingShaders()
@@ -1571,7 +1572,7 @@ void VideoConfigDiag::PopulateStereoShaders()
 void VideoConfigDiag::PopulateAAList()
 {
 	const std::vector<int>& aa_modes = vconfig.backend_info.AAModes;
-	const bool supports_ssaa = vconfig.backend_info.bSupportsSSAA;	
+	const bool supports_ssaa = vconfig.backend_info.bSupportsSSAA;
 	for (int mode : aa_modes)
 	{
 		if (mode == 1)

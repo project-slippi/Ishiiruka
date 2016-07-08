@@ -66,7 +66,7 @@ bool cInterfaceWGL::Create(void *window_handle, bool core)
 		return false;
 
 	// Control window size and picture scaling
-	int twidth  = (window_rect.right - window_rect.left);
+	int twidth = (window_rect.right - window_rect.left);
 	int theight = (window_rect.bottom - window_rect.top);
 	s_backbuffer_width = twidth;
 	s_backbuffer_height = theight;
@@ -149,11 +149,11 @@ void cInterfaceWGL::Update()
 	GetClientRect(m_window_handle, &rcWindow);
 
 	// Get the new window width and height
-	s_backbuffer_width  = (rcWindow.right - rcWindow.left);
+	s_backbuffer_width = (rcWindow.right - rcWindow.left);
 	s_backbuffer_height = (rcWindow.bottom - rcWindow.top);
 
 	// Get the top-left corner of the client area in screen coordinates
-	POINT originPoint = { 0, 0 };
+	POINT originPoint = {0, 0};
 	ClientToScreen(m_window_handle, &originPoint);
 	s_window_xpos = originPoint.x;
 	s_window_ypos = originPoint.y;

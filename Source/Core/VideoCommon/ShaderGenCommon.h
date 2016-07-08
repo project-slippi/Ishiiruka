@@ -31,7 +31,8 @@ template<class uid_data>
 class ShaderUid
 {
 public:
-	ShaderUid() : HASH(0){}
+	ShaderUid(): HASH(0)
+	{}
 
 	inline void ClearUID()
 	{
@@ -72,10 +73,19 @@ public:
 	}
 
 	template<class T>
-	inline T& GetUidData() { return data; }
+	inline T& GetUidData()
+	{
+		return data;
+	}
 
-	const uid_data& GetUidData() const { return data; }
-	size_t GetUidDataSize() const { return sizeof(uid_data); }
+	const uid_data& GetUidData() const
+	{
+		return data;
+	}
+	size_t GetUidDataSize() const
+	{
+		return sizeof(uid_data);
+	}
 	struct ShaderUidHasher
 	{
 		std::size_t operator()(const ShaderUid<uid_data>& k) const
@@ -91,7 +101,7 @@ private:
 class ShaderCode
 {
 public:
-	ShaderCode() : buf(NULL), write_ptr(NULL)
+	ShaderCode(): buf(NULL), write_ptr(NULL)
 	{
 
 	}
@@ -104,9 +114,18 @@ public:
 		va_end(arglist);
 	}
 
-	char* GetBuffer() { return buf; }
-	void SetBuffer(char* buffer) { buf = buffer; write_ptr = buffer; }
-	ptrdiff_t BufferSize() { return write_ptr - buf; }
+	char* GetBuffer()
+	{
+		return buf;
+	}
+	void SetBuffer(char* buffer)
+	{
+		buf = buffer; write_ptr = buffer;
+	}
+	ptrdiff_t BufferSize()
+	{
+		return write_ptr - buf;
+	}
 private:
 	char* buf;
 	char* write_ptr;

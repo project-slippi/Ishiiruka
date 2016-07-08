@@ -17,7 +17,7 @@ class InputConfig;
 class wxButton;
 class wxStaticBoxSizer;
 
-class ControllerConfigDiag : public wxDialog
+class ControllerConfigDiag: public wxDialog
 {
 public:
 	ControllerConfigDiag(wxWindow* const parent);

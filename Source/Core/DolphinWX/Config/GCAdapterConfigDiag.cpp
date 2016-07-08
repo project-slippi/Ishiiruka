@@ -13,12 +13,11 @@
 
 wxDEFINE_EVENT(wxEVT_ADAPTER_UPDATE, wxCommandEvent);
 
-
-GCAdapterConfigDiag::GCAdapterConfigDiag(wxWindow* const parent, const wxString& name, const int tab_num)
-	: wxDialog(parent, wxID_ANY, name, wxPoint(128,-1)), m_pad_id(tab_num)
+GCAdapterConfigDiag::GCAdapterConfigDiag(wxWindow* const parent, const wxString& name,
+	const int tab_num)
+	: wxDialog(parent, wxID_ANY, name, wxPoint(128, -1)), m_pad_id(tab_num)
 {
 	wxBoxSizer* const szr = new wxBoxSizer(wxVERTICAL);
-
 
 	wxCheckBox* const gamecube_rumble = new wxCheckBox(this, wxID_ANY, _("Rumble"));
 	gamecube_rumble->SetValue(SConfig::GetInstance().m_AdapterRumble[m_pad_id]);
@@ -47,7 +46,7 @@ GCAdapterConfigDiag::GCAdapterConfigDiag(wxWindow* const parent, const wxString&
 	szr->Add(m_adapter_status, 0, wxEXPAND);
 	szr->Add(gamecube_rumble, 0, wxEXPAND);
 	szr->Add(gamecube_konga, 0, wxEXPAND);
-	szr->Add(CreateButtonSizer(wxOK | wxNO_DEFAULT), 0, wxEXPAND|wxALL, 5);
+	szr->Add(CreateButtonSizer(wxOK | wxNO_DEFAULT), 0, wxEXPAND | wxALL, 5);
 
 	SetLayoutAdaptationMode(wxDIALOG_ADAPTATION_MODE_ENABLED);
 	SetSizerAndFit(szr);

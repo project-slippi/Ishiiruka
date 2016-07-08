@@ -39,15 +39,15 @@ public:
 
 		u32 GetSizeInBytes() const
 		{
-			u32 result = 0; 
+			u32 result = 0;
 			switch (pcformat)
 			{
 			case PC_TEX_FMT_BGRA32:
-			case PC_TEX_FMT_RGBA32:			
-				result = ((width + 3) & (~3)) * ((height + 3) & (~3)) *  4;
-				break;			
+			case PC_TEX_FMT_RGBA32:
+				result = ((width + 3) & (~3)) * ((height + 3) & (~3)) * 4;
+				break;
 			case PC_TEX_FMT_IA4_AS_IA8:
-			case PC_TEX_FMT_IA8:				
+			case PC_TEX_FMT_IA8:
 			case PC_TEX_FMT_RGB565:
 				result = ((width + 3) & (~3)) * ((height + 3) & (~3)) * 2;
 				break;
@@ -126,14 +126,14 @@ public:
 		//   * efb copies used by this partially updated texture
 		//   * partially updated textures which refer to this efb copy
 		std::unordered_set<TCacheEntryBase*> references;
-		
+
 		std::string basename;
 
 		void SetGeneralParameters(u32 _addr, u32 _size, u32 _format)
 		{
 			addr = _addr;
 			size_in_bytes = _size;
-			format = _format;			
+			format = _format;
 		}
 
 		void SetDimensions(u32 _native_width, u32 _native_height, u32 _native_levels)
@@ -175,7 +175,7 @@ public:
 
 		void SetEfbCopy(u32 stride);
 
-		TCacheEntryBase(const TCacheEntryConfig& c) : config(c)
+		TCacheEntryBase(const TCacheEntryConfig& c): config(c)
 		{
 			native_size_in_bytes = config.GetSizeInBytes();
 		}
@@ -198,13 +198,16 @@ public:
 		virtual void LoadFromTmem(const u8* ar_src, const u8* gb_src, u32 width, u32 height,
 			u32 expanded_width, u32 expanded_Height, u32 level) = 0;
 		virtual void FromRenderTarget(u8* dst, PEControl::PixelFormat srcFormat, const EFBRectangle& srcRect,
-			bool scaleByHalf, unsigned int cbufid, const float *colmat) = 0;		
+			bool scaleByHalf, unsigned int cbufid, const float *colmat) = 0;
 		bool OverlapsMemoryRange(u32 range_address, u32 range_size) const;
 		virtual bool SupportsMaterialMap() const = 0;
 
 		TextureCacheBase::TCacheEntryBase* ApplyPalette(u32 tlutaddr, u32 tlutfmt, u32 palette_size);
 
-		bool IsEfbCopy() { return is_efb_copy; }
+		bool IsEfbCopy()
+		{
+			return is_efb_copy;
+		}
 
 		u32 NumBlocksY() const;
 		u32 BytesPerRow() const;
@@ -258,7 +261,7 @@ private:
 	static TexCache::iterator InvalidateTexture(TexCache::iterator t_iter);
 	static TCacheEntryBase* ReturnEntry(u32 stage, TCacheEntryBase* entry);
 
-	
+
 
 	static TexCache textures_by_address;
 	static TexCache textures_by_hash;

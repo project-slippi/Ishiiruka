@@ -10,7 +10,7 @@
 namespace DX12
 {
 
-D3DDescriptorHeapManager::D3DDescriptorHeapManager(D3D12_DESCRIPTOR_HEAP_DESC* desc, ID3D12Device* device, unsigned int temporarySlots) :
+D3DDescriptorHeapManager::D3DDescriptorHeapManager(D3D12_DESCRIPTOR_HEAP_DESC* desc, ID3D12Device* device, unsigned int temporarySlots):
 	m_device(device), m_heap_restart_in_progress(false)
 {
 	CheckHR(device->CreateDescriptorHeap(desc, IID_PPV_ARGS(m_descriptor_heap.ReleaseAndGetAddressOf())));
@@ -45,7 +45,7 @@ void D3DDescriptorHeapManager::NotifyHeapRestart()
 	else
 	{
 		// we need to flush all the work here because heap values will be overwrited
-		if(!PerfQueryBase::ShouldEmulate())
+		if (!PerfQueryBase::ShouldEmulate())
 			D3D::command_list_mgr->ExecuteQueuedWork(true);
 		m_heap_restart_in_progress = true;
 		// Notify observers that the heap is restarted
@@ -63,7 +63,7 @@ bool D3DDescriptorHeapManager::Allocate(D3D12_CPU_DESCRIPTOR_HANDLE* cpu_handle,
 	{
 		// If out of room in the heap, start back at beginning.
 		allocated_from_current_heap = false;
-		m_current_permanent_offset_in_heap = 0;		
+		m_current_permanent_offset_in_heap = 0;
 		NotifyHeapRestart();
 	}
 	if (temporary)

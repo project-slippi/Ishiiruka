@@ -19,7 +19,7 @@ namespace BoundingBox
 
 // External vars
 bool active = false;
-u16 coords[4] = { 0x80, 0xA0, 0x80, 0xA0 };
+u16 coords[4] = {0x80, 0xA0, 0x80, 0xA0};
 const TPipelineState *pState;
 u8 * bufferPos;
 

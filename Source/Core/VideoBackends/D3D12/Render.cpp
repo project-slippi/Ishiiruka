@@ -273,13 +273,13 @@ Renderer::Renderer(void*& window_handle)
 	gx_state.raster.cull_mode = D3D12_CULL_MODE_NONE;
 
 	// Clear EFB textures
-	float clear_color[4] = { 0.f, 0.f, 0.f, 1.f };
+	float clear_color[4] = {0.f, 0.f, 0.f, 1.f};
 	FramebufferManager::GetEFBColorTexture()->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_RENDER_TARGET);
 	FramebufferManager::GetEFBDepthTexture()->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_DEPTH_WRITE);
 	D3D::current_command_list->ClearRenderTargetView(FramebufferManager::GetEFBColorTexture()->GetRTV(), clear_color, 0, nullptr);
 	D3D::current_command_list->ClearDepthStencilView(FramebufferManager::GetEFBDepthTexture()->GetDSV(), D3D12_CLEAR_FLAG_DEPTH, 0.f, 0, 0, nullptr);
 
-	s_vp = { 0.f, 0.f, static_cast<float>(s_target_width), static_cast<float>(s_target_height), D3D12_MIN_DEPTH, D3D12_MAX_DEPTH };
+	s_vp = {0.f, 0.f, static_cast<float>(s_target_width), static_cast<float>(s_target_height), D3D12_MIN_DEPTH, D3D12_MAX_DEPTH};
 	D3D::current_command_list->RSSetViewports(1, &s_vp);
 
 	// Already transitioned to appropriate states a few lines up for the clears.
@@ -504,7 +504,7 @@ void Renderer::SetViewport()
 	width = (x + width <= GetTargetWidth()) ? width : (GetTargetWidth() - x);
 	height = (y + height <= GetTargetHeight()) ? height : (GetTargetHeight() - y);
 
-	s_vp = { x, y, width, height, 0.0f, 1.0f };
+	s_vp = {x, y, width, height, 0.0f, 1.0f};
 	float nearz = xfmem.viewport.farZ - MathUtil::Clamp<float>(xfmem.viewport.zRange, 0.0f, 16777216.0f);
 	float farz = xfmem.viewport.farZ;
 
@@ -693,7 +693,7 @@ bool Renderer::SaveScreenshot(const std::string& filename, const TargetRectangle
 	D3D::command_list_mgr->ExecuteQueuedWork(true);
 
 	void* screenshot_texture_map;
-	D3D12_RANGE read_range = { 0, dst_location.PlacedFootprint.Footprint.RowPitch * (source_box.bottom - source_box.top) };
+	D3D12_RANGE read_range = {0, dst_location.PlacedFootprint.Footprint.RowPitch * (source_box.bottom - source_box.top)};
 	CheckHR(s_screenshot_texture->Map(0, &read_range, &screenshot_texture_map));
 
 	saved_png = TextureToPng(static_cast<u8*>(screenshot_texture_map), dst_location.PlacedFootprint.Footprint.RowPitch, filename, source_box.right - source_box.left, source_box.bottom - source_box.top, false);
@@ -763,7 +763,7 @@ void Renderer::SwapImpl(u32 xfb_addr, u32 fb_width, u32 fb_stride, u32 fb_height
 	D3D::GetBackBuffer()->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_RENDER_TARGET);
 	D3D::current_command_list->OMSetRenderTargets(1, &D3D::GetBackBuffer()->GetRTV(), FALSE, nullptr);
 
-	float clear_color[4] = { 0.f, 0.f, 0.f, 1.f };
+	float clear_color[4] = {0.f, 0.f, 0.f, 1.f};
 	D3D::current_command_list->ClearRenderTargetView(D3D::GetBackBuffer()->GetRTV(), clear_color, 0, nullptr);
 
 	// activate linear filtering for the buffer copies
@@ -864,12 +864,8 @@ void Renderer::SwapImpl(u32 xfb_addr, u32 fb_width, u32 fb_stride, u32 fb_height
 	}
 
 	// Dump frames
-	static int w = 0, h = 0;
 	if (SConfig::GetInstance().m_DumpFrames)
 	{
-		static unsigned int s_record_width;
-		static unsigned int s_record_height;
-
 		if (!s_screenshot_texture)
 			CreateScreenshotTexture();
 
@@ -900,9 +896,7 @@ void Renderer::SwapImpl(u32 xfb_addr, u32 fb_width, u32 fb_stride, u32 fb_height
 
 		if (!bLastFrameDumped)
 		{
-			s_record_width = source_width;
-			s_record_height = source_height;
-			bAVIDumping = AVIDump::Start(s_record_width, s_record_height, AVIDump::DumpFormat::FORMAT_BGR);
+			bAVIDumping = AVIDump::Start(source_width, source_height, AVIDump::DumpFormat::FORMAT_BGR);
 			if (!bAVIDumping)
 			{
 				PanicAlert("Error dumping frames to AVI.");
@@ -910,22 +904,18 @@ void Renderer::SwapImpl(u32 xfb_addr, u32 fb_width, u32 fb_stride, u32 fb_height
 			else
 			{
 				std::string msg = StringFromFormat("Dumping Frames to \"%sframedump0.avi\" (%dx%d RGB24)",
-					File::GetUserPath(D_DUMPFRAMES_IDX).c_str(), s_record_width, s_record_height);
+					File::GetUserPath(D_DUMPFRAMES_IDX).c_str(), source_width, source_height);
 
 				OSD::AddMessage(msg, 2000);
 			}
 		}
 		if (bAVIDumping)
 		{
-			if (frame_data.empty() || w != s_record_width || h != s_record_height)
-			{
-				frame_data.resize(3 * s_record_width * s_record_height);
-				w = s_record_width;
-				h = s_record_height;
-			}
+			if (frame_data.capacity() != 3 * source_width * source_height)
+				frame_data.resize(3 * source_width * source_height);
 
 			void* screenshot_texture_map;
-			D3D12_RANGE read_range = { 0, dst_location.PlacedFootprint.Footprint.RowPitch * source_height };
+			D3D12_RANGE read_range = {0, dst_location.PlacedFootprint.Footprint.RowPitch * source_height};
 			CheckHR(s_screenshot_texture->Map(0, &read_range, &screenshot_texture_map));
 
 			formatBufferDump(static_cast<u8*>(screenshot_texture_map), &frame_data[0], source_width, source_height, dst_location.PlacedFootprint.Footprint.RowPitch);
@@ -933,8 +923,8 @@ void Renderer::SwapImpl(u32 xfb_addr, u32 fb_width, u32 fb_stride, u32 fb_height
 			D3D12_RANGE write_range = {};
 			s_screenshot_texture->Unmap(0, &write_range);
 
-			FlipImageData(&frame_data[0], w, h);
-			AVIDump::AddFrame(&frame_data[0], source_height, source_height);
+			FlipImageData(&frame_data[0], source_width, source_height);
+			AVIDump::AddFrame(&frame_data[0], source_width, source_height);
 		}
 		bLastFrameDumped = true;
 	}
@@ -943,7 +933,6 @@ void Renderer::SwapImpl(u32 xfb_addr, u32 fb_width, u32 fb_stride, u32 fb_height
 		if (bLastFrameDumped && bAVIDumping)
 		{
 			std::vector<u8>().swap(frame_data);
-			w = h = 0;
 
 			AVIDump::Stop();
 			bAVIDumping = false;
@@ -1030,7 +1019,7 @@ void Renderer::SwapImpl(u32 xfb_addr, u32 fb_width, u32 fb_stride, u32 fb_height
 
 		g_framebuffer_manager.reset();
 		g_framebuffer_manager = std::make_unique<FramebufferManager>();
-		const float clear_color[4] = { 0.f, 0.f, 0.f, 1.f };
+		const float clear_color[4] = {0.f, 0.f, 0.f, 1.f};
 
 		FramebufferManager::GetEFBColorTexture()->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_RENDER_TARGET);
 		D3D::current_command_list->ClearRenderTargetView(FramebufferManager::GetEFBColorTexture()->GetRTV(), clear_color, 0, nullptr);
@@ -1216,8 +1205,7 @@ void Renderer::ApplyState(bool use_dst_alpha)
 }
 
 void Renderer::RestoreState()
-{
-}
+{}
 
 void Renderer::ApplyCullDisable()
 {

@@ -14,10 +14,10 @@ class ControllerEmu;
 class InputConfig
 {
 public:
-	InputConfig(const std::string& ini_name, const std::string& gui_name, const std::string& profile_name)
+	InputConfig(const std::string& ini_name, const std::string& gui_name,
+		const std::string& profile_name)
 		: m_ini_name(ini_name), m_gui_name(gui_name), m_profile_name(profile_name)
-	{
-	}
+	{}
 
 	bool LoadConfig(bool isGC);
 	void SaveConfig();
@@ -33,9 +33,14 @@ public:
 	bool ControllersNeedToBeCreated() const;
 	bool IsControllerControlledByGamepadDevice(int index) const;
 
-	std::string GetGUIName() const { return m_gui_name; }
-	std::string GetProfileName() const { return m_profile_name; }
-
+	std::string GetGUIName() const
+	{
+		return m_gui_name;
+	}
+	std::string GetProfileName() const
+	{
+		return m_profile_name;
+	}
 private:
 	std::vector<std::unique_ptr<ControllerEmu>> m_controllers;
 	const std::string m_ini_name;

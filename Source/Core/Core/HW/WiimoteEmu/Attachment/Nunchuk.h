@@ -8,10 +8,9 @@
 
 namespace WiimoteEmu
 {
-
 struct ExtensionReg;
 
-class Nunchuk : public Attachment
+class Nunchuk: public Attachment
 {
 public:
 	Nunchuk(WiimoteEmu::ExtensionReg& _reg);
@@ -41,15 +40,14 @@ public:
 	void LoadDefaults(const ControllerInterface& ciface) override;
 
 private:
-	Tilt*        m_tilt;
-	Force*       m_swing;
+	Tilt* m_tilt;
+	Force* m_swing;
 
-	Buttons*     m_shake;
+	Buttons* m_shake;
 
-	Buttons*     m_buttons;
+	Buttons* m_buttons;
 	AnalogStick* m_stick;
 
 	u8 m_shake_step[3];
 };
-
 }

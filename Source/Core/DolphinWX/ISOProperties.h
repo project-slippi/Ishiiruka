@@ -33,16 +33,19 @@ class wxStaticBitmap;
 class wxTextCtrl;
 class wxTreeCtrl;
 
-namespace DiscIO { struct SFileInfo; }
-namespace Gecko { class CodeConfigPanel; }
+namespace DiscIO {
+struct SFileInfo;
+}
+namespace Gecko {
+class CodeConfigPanel;
+}
 
-class WiiPartition final : public wxTreeItemData
+class WiiPartition final: public wxTreeItemData
 {
 public:
 	WiiPartition(std::unique_ptr<DiscIO::IVolume> partition, std::unique_ptr<DiscIO::IFileSystem> file_system)
 		: Partition(std::move(partition)), FileSystem(std::move(file_system))
-	{
-	}
+	{}
 
 	std::unique_ptr<DiscIO::IVolume> Partition;
 	std::unique_ptr<DiscIO::IFileSystem> FileSystem;
@@ -56,16 +59,16 @@ struct PHackData
 	std::string PHZFar;
 };
 
-class CISOProperties : public wxDialog
+class CISOProperties: public wxDialog
 {
 public:
 	CISOProperties(const GameListItem& game_list_item,
-			wxWindow* parent,
-			wxWindowID id = wxID_ANY,
-			const wxString& title = _("Properties"),
-			const wxPoint& pos = wxDefaultPosition,
-			const wxSize& size = wxDefaultSize,
-			long style = wxDEFAULT_DIALOG_STYLE | wxRESIZE_BORDER);
+		wxWindow* parent,
+		wxWindowID id = wxID_ANY,
+		const wxString& title = _("Properties"),
+		const wxPoint& pos = wxDefaultPosition,
+		const wxSize& size = wxDefaultSize,
+		long style = wxDEFAULT_DIALOG_STYLE | wxRESIZE_BORDER);
 	virtual ~CISOProperties();
 
 private:
@@ -218,13 +221,13 @@ private:
 	typedef std::vector<const DiscIO::SFileInfo*>::iterator fileIter;
 
 	size_t CreateDirectoryTree(wxTreeItemId& parent,
-			const std::vector<DiscIO::SFileInfo>& fileInfos);
+		const std::vector<DiscIO::SFileInfo>& fileInfos);
 	size_t CreateDirectoryTree(wxTreeItemId& parent,
-			const std::vector<DiscIO::SFileInfo>& fileInfos,
-			const size_t _FirstIndex,
-			const size_t _LastIndex);
+		const std::vector<DiscIO::SFileInfo>& fileInfos,
+		const size_t _FirstIndex,
+		const size_t _LastIndex);
 	void ExportDir(const std::string& _rFullPath, const std::string& _rExportFilename,
-			const WiiPartition* partition = nullptr);
+		const WiiPartition* partition = nullptr);
 
 	IniFile GameIniDefault;
 	IniFile GameIniLocal;

@@ -4,13 +4,12 @@
 
 // Adapted from in_cube by hcs & destop
 
+#include "Core/HW/StreamADPCM.h"
 #include "Common/CommonTypes.h"
 #include "Common/MathUtil.h"
-#include "Core/HW/StreamADPCM.h"
 
 namespace StreamADPCM
 {
-
 // STATE_TO_SAVE (not saved yet!)
 static s32 histl1;
 static s32 histl2;
@@ -60,9 +59,10 @@ void DecodeBlock(s16* pcm, const u8* adpcm)
 {
 	for (int i = 0; i < SAMPLES_PER_BLOCK; i++)
 	{
-		pcm[i * 2]     = ADPDecodeSample(adpcm[i + (ONE_BLOCK_SIZE - SAMPLES_PER_BLOCK)] & 0xf, adpcm[0], histl1, histl2);
-		pcm[i * 2 + 1] = ADPDecodeSample(adpcm[i + (ONE_BLOCK_SIZE - SAMPLES_PER_BLOCK)] >> 4,  adpcm[1], histr1, histr2);
+		pcm[i * 2] = ADPDecodeSample(adpcm[i + (ONE_BLOCK_SIZE - SAMPLES_PER_BLOCK)] & 0xf, adpcm[0],
+			histl1, histl2);
+		pcm[i * 2 + 1] = ADPDecodeSample(adpcm[i + (ONE_BLOCK_SIZE - SAMPLES_PER_BLOCK)] >> 4, adpcm[1],
+			histr1, histr2);
 	}
 }
-
 }

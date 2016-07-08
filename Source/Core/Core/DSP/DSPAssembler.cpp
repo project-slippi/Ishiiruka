@@ -45,15 +45,14 @@ static const char *err_string[] =
 	"Number out of range"
 };
 
-DSPAssembler::DSPAssembler(const AssemblerSettings &settings) :
+DSPAssembler::DSPAssembler(const AssemblerSettings &settings):
 	gdg_buffer(nullptr),
 	m_cur_addr(0),
 	m_cur_pass(0),
 	m_current_param(0),
 	settings_(settings)
 
-{
-}
+{}
 
 DSPAssembler::~DSPAssembler()
 {
@@ -80,7 +79,8 @@ bool DSPAssembler::Assemble(const std::string& text, std::vector<u16> &code, std
 			return false;
 
 		memset(gdg_buffer, 0, m_totalSize * sizeof(u16));
-	} else
+	}
+	else
 		return false;
 
 	InitPass(2);
@@ -121,7 +121,7 @@ void DSPAssembler::ShowError(err_t err_code, const char *extra_info)
 		buf_ptr += sprintf(buf_ptr, "ERROR: %s Line: %d : %s\n", err_string[err_code], code_line, extra_info);
 	else
 		buf_ptr += sprintf(buf_ptr, "ERROR: %s Line: %d Param: %d : %s\n",
-						   err_string[err_code], code_line, m_current_param, extra_info);
+			err_string[err_code], code_line, m_current_param, extra_info);
 	last_error_str = error_buffer;
 	last_error = err_code;
 }
@@ -168,13 +168,13 @@ s32 DSPAssembler::ParseValue(const char *str)
 			switch (ptr[1])
 			{
 			case 'X': // hex
-				for (int i = 2 ; ptr[i] != 0 ; i++)
+				for (int i = 2; ptr[i] != 0; i++)
 				{
 					val <<= 4;
 					if (ptr[i] >= 'a' && ptr[i] <= 'f')
-						val += (ptr[i]-'a'+10);
+						val += (ptr[i] - 'a' + 10);
 					else if (ptr[i] >= 'A' && ptr[i] <= 'F')
-						val += (ptr[i]-'A'+10);
+						val += (ptr[i] - 'A' + 10);
 					else if (ptr[i] >= '0' && ptr[i] <= '9')
 						val += (ptr[i] - '0');
 					else
@@ -184,7 +184,7 @@ s32 DSPAssembler::ParseValue(const char *str)
 			case '\'': // binary
 				for (int i = 2; ptr[i] != 0; i++)
 				{
-					val *=2;
+					val *= 2;
 					if (ptr[i] >= '0' && ptr[i] <= '1')
 						val += ptr[i] - '0';
 					else
@@ -241,12 +241,12 @@ s32 DSPAssembler::ParseValue(const char *str)
 //
 char *DSPAssembler::FindBrackets(char *src, char *dst)
 {
-	s32 len = (s32) strlen(src);
+	s32 len = (s32)strlen(src);
 	s32 first = -1;
 	s32 count = 0;
 	s32 i, j;
 	j = 0;
-	for (i = 0 ; i < len ; i++)
+	for (i = 0; i < len; i++)
 	{
 		if (src[i] == '(')
 		{
@@ -267,7 +267,7 @@ char *DSPAssembler::FindBrackets(char *src, char *dst)
 			if (--count == 0)
 			{
 				dst[j] = 0;
-				return &src[i+1];
+				return &src[i + 1];
 			}
 			else
 			{
@@ -303,14 +303,14 @@ u32 DSPAssembler::ParseExpression(const char *ptr)
 	}
 
 	int j = 0;
-	for (int i = 0; i < ((s32)strlen(s_buffer) + 1) ; i++)
+	for (int i = 0; i < ((s32)strlen(s_buffer) + 1); i++)
 	{
 		char c = s_buffer[i];
 		if (c != ' ')
 			d_buffer[j++] = c;
 	}
 
-	for (int i = 0; i < ((s32)strlen(d_buffer) + 1) ; i++)
+	for (int i = 0; i < ((s32)strlen(d_buffer) + 1); i++)
 	{
 		char c = d_buffer[i];
 		if (c == '-')
@@ -334,14 +334,14 @@ u32 DSPAssembler::ParseExpression(const char *ptr)
 	while ((pbuf = strstr(d_buffer, "+")) != nullptr)
 	{
 		*pbuf = 0x0;
-		val = ParseExpression(d_buffer) + ParseExpression(pbuf+1);
+		val = ParseExpression(d_buffer) + ParseExpression(pbuf + 1);
 		sprintf(d_buffer, "%d", val);
 	}
 
 	while ((pbuf = strstr(d_buffer, "-")) != nullptr)
 	{
 		*pbuf = 0x0;
-		val = ParseExpression(d_buffer) - ParseExpression(pbuf+1);
+		val = ParseExpression(d_buffer) - ParseExpression(pbuf + 1);
 		if (val < 0)
 		{
 			val = 0x10000 + (val & 0xffff); // ATTENTION: avoid a terrible bug!!! number cannot write with '-' in sprintf
@@ -353,28 +353,28 @@ u32 DSPAssembler::ParseExpression(const char *ptr)
 	while ((pbuf = strstr(d_buffer, "*")) != nullptr)
 	{
 		*pbuf = 0x0;
-		val = ParseExpression(d_buffer) * ParseExpression(pbuf+1);
+		val = ParseExpression(d_buffer) * ParseExpression(pbuf + 1);
 		sprintf(d_buffer, "%d", val);
 	}
 
 	while ((pbuf = strstr(d_buffer, "/")) != nullptr)
 	{
 		*pbuf = 0x0;
-		val = ParseExpression(d_buffer) / ParseExpression(pbuf+1);
+		val = ParseExpression(d_buffer) / ParseExpression(pbuf + 1);
 		sprintf(d_buffer, "%d", val);
 	}
 
 	while ((pbuf = strstr(d_buffer, "|")) != nullptr)
 	{
 		*pbuf = 0x0;
-		val = ParseExpression(d_buffer) | ParseExpression(pbuf+1);
+		val = ParseExpression(d_buffer) | ParseExpression(pbuf + 1);
 		sprintf(d_buffer, "%d", val);
 	}
 
 	while ((pbuf = strstr(d_buffer, "&")) != nullptr)
 	{
 		*pbuf = 0x0;
-		val = ParseExpression(d_buffer) & ParseExpression(pbuf+1);
+		val = ParseExpression(d_buffer) & ParseExpression(pbuf + 1);
 		sprintf(d_buffer, "%d", val);
 	}
 
@@ -592,12 +592,12 @@ bool DSPAssembler::VerifyParams(const opc_t *opc, param_t *par, int count, bool 
 						}
 					}
 					break;
-/*				case P_ACCM_D: //P_ACC_MID:
-					if ((int)par[i].val < 0x1e || (int)par[i].val > 0x1f)
-					{
-						ShowError(ERR_WRONG_PARAMETER_MID_ACC);
-					}
-					break;*/
+					/*				case P_ACCM_D: //P_ACC_MID:
+										if ((int)par[i].val < 0x1e || (int)par[i].val > 0x1f)
+										{
+											ShowError(ERR_WRONG_PARAMETER_MID_ACC);
+										}
+										break;*/
 				}
 				continue;
 			}
@@ -633,13 +633,13 @@ bool DSPAssembler::VerifyParams(const opc_t *opc, param_t *par, int count, bool 
 			{
 				if (value == 7) // value 7 por sbclr/sbset
 				{
-					fprintf(stderr,"Value must be from 0x0 to 0x%x\n", value);
+					fprintf(stderr, "Value must be from 0x0 to 0x%x\n", value);
 					ShowError(ERR_OUT_RANGE_NUMBER);
 				}
 				else if (opc->params[i].type == P_MEM)
 				{
 					if (value < 256)
-						fprintf(stderr, "Address value must be from 0x%x to 0x%x\n",valueu, (value>>1));
+						fprintf(stderr, "Address value must be from 0x%x to 0x%x\n", valueu, (value >> 1));
 					else
 						fprintf(stderr, "Address value must be from 0x0 to 0x%x\n", value);
 
@@ -649,10 +649,10 @@ bool DSPAssembler::VerifyParams(const opc_t *opc, param_t *par, int count, bool 
 				{
 					if (value < 128)
 						fprintf(stderr, "Value must be from -0x%x to 0x%x, is %i\n",
-						        (value >> 1) + 1, value >> 1, par[i].val);
+						(value >> 1) + 1, value >> 1, par[i].val);
 					else
 						fprintf(stderr, "Value must be from -0x%x to 0x%x or 0x0 to 0x%x, is %i\n",
-						        (value >> 1) + 1, value >> 1, value, par[i].val);
+						(value >> 1) + 1, value >> 1, value, par[i].val);
 
 					ShowError(ERR_OUT_RANGE_NUMBER);
 				}
@@ -663,7 +663,7 @@ bool DSPAssembler::VerifyParams(const opc_t *opc, param_t *par, int count, bool 
 				{
 					if (par[i].val > (unsigned)value)
 					{
-						fprintf(stderr,"Value must be from 0x%x to 0x%x, is %i\n",valueu, value, par[i].val);
+						fprintf(stderr, "Value must be from 0x%x to 0x%x, is %i\n", valueu, value, par[i].val);
 						ShowError(ERR_OUT_RANGE_NUMBER);
 					}
 				}
@@ -672,12 +672,12 @@ bool DSPAssembler::VerifyParams(const opc_t *opc, param_t *par, int count, bool 
 					if (value < 256)
 						value >>= 1; // addressing 8 bit with sign
 					if (par[i].val > (unsigned)value &&
-						(par[i].val < valueu || par[i].val > (unsigned)0xffff))
+						(par[i].val < valueu || par[i].val >(unsigned)0xffff))
 					{
 						if (value < 256)
-							fprintf(stderr,"Address value must be from 0x%x to 0x%x, is %04x\n", valueu, value, par[i].val);
+							fprintf(stderr, "Address value must be from 0x%x to 0x%x, is %04x\n", valueu, value, par[i].val);
 						else
-							fprintf(stderr,"Address value must be minor of 0x%x\n", value+1);
+							fprintf(stderr, "Address value must be minor of 0x%x\n", value + 1);
 						ShowError(ERR_OUT_RANGE_NUMBER);
 					}
 				}
@@ -688,9 +688,9 @@ bool DSPAssembler::VerifyParams(const opc_t *opc, param_t *par, int count, bool 
 					if (par[i].val > (unsigned)value)
 					{
 						if (value < 64)
-							fprintf(stderr,"Value must be from -0x%x to 0x%x, is %i\n", (value + 1), value, par[i].val);
+							fprintf(stderr, "Value must be from -0x%x to 0x%x, is %i\n", (value + 1), value, par[i].val);
 						else
-							fprintf(stderr,"Value must be minor of 0x%x, is %i\n", value + 1, par[i].val);
+							fprintf(stderr, "Value must be minor of 0x%x, is %i\n", value + 1, par[i].val);
 						ShowError(ERR_OUT_RANGE_NUMBER);
 					}
 				}
@@ -788,9 +788,9 @@ bool DSPAssembler::AssembleFile(const char *fname, int pass)
 			{
 				if (i < 1023)
 				{
-					if (line[i+1] == '/')
+					if (line[i + 1] == '/')
 						c = 0x00;
-					else if (line[i+1] == '*')
+					else if (line[i + 1] == '*')
 					{
 						// toggle comment mode.
 						disable_text = !disable_text;
@@ -799,7 +799,7 @@ bool DSPAssembler::AssembleFile(const char *fname, int pass)
 			}
 			else if (c == '*')
 			{
-				if (i < 1023 && line[i+1] == '/' && disable_text)
+				if (i < 1023 && line[i + 1] == '/' && disable_text)
 				{
 					disable_text = 0;
 					c = 32;

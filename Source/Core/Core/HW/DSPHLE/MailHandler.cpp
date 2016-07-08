@@ -2,16 +2,15 @@
 // Licensed under GPLv2+
 // Refer to the license.txt file included.
 
+#include "Core/HW/DSPHLE/MailHandler.h"
 #include "Common/ChunkFile.h"
 #include "Common/CommonTypes.h"
-#include "Common/MsgHandler.h"
 #include "Common/Logging/Log.h"
+#include "Common/MsgHandler.h"
 #include "Core/HW/DSP.h"
-#include "Core/HW/DSPHLE/MailHandler.h"
 
 CMailHandler::CMailHandler()
-{
-}
+{}
 
 CMailHandler::~CMailHandler()
 {
@@ -85,7 +84,7 @@ void CMailHandler::Halt(bool _Halt)
 	}
 }
 
-void CMailHandler::DoState(PointerWrap &p)
+void CMailHandler::DoState(PointerWrap& p)
 {
 	if (p.GetMode() == PointerWrap::MODE_READ)
 	{

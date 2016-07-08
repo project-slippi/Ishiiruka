@@ -14,7 +14,7 @@
 namespace DX9
 {
 
-class VertexManager : public ::VertexManagerBase
+class VertexManager: public ::VertexManagerBase
 {
 public:
 	VertexManager();
@@ -26,11 +26,14 @@ public:
 
 	void CreateDeviceObjects();
 	void DestroyDeviceObjects();
-	
+
 	void PrepareShaders(PrimitiveType primitive, u32 components, const XFMemory &xfr, const BPMemory &bpm, bool ongputhread = true);
 protected:
 	void ResetBuffer(u32 stride) override;
-	u16* GetIndexBuffer() override { return &LocalIBuffer[0]; }
+	u16* GetIndexBuffer() override
+	{
+		return &LocalIBuffer[0];
+	}
 private:
 	void PrepareDrawBuffers(u32 stride);
 	void Draw(u32 stride);
@@ -54,7 +57,7 @@ private:
 
 	LPDIRECT3DVERTEXBUFFER9 *m_vertex_buffers;
 	LPDIRECT3DINDEXBUFFER9 *m_index_buffers;
-	
+
 	std::vector<u8> LocalVBuffer;
 	std::vector<u16> LocalIBuffer;
 };

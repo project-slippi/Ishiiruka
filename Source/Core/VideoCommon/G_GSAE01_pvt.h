@@ -8,5 +8,5 @@
 class G_GSAE01_pvt
 {
 public:
-static void Initialize(std::map<u64, TCompiledLoaderFunction> &pvlmap);
+	static void Initialize(std::map<u64, TCompiledLoaderFunction> &pvlmap);
 };

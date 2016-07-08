@@ -48,12 +48,13 @@
 namespace OGL
 {
 
-struct XFBSource : public XFBSourceBase
+struct XFBSource: public XFBSourceBase
 {
-	XFBSource(GLuint tex, unsigned int target_width, unsigned int target_height, unsigned int layers) :
+	XFBSource(GLuint tex, unsigned int target_width, unsigned int target_height, unsigned int layers):
 		texture(tex),
 		depthtexture(0),
-		m_layers(layers), m_target_width(target_width), m_target_height(target_height){}
+		m_layers(layers), m_target_width(target_width), m_target_height(target_height)
+	{}
 
 	~XFBSource();
 
@@ -65,7 +66,7 @@ struct XFBSource : public XFBSourceBase
 	const unsigned int m_layers, m_target_width, m_target_height;
 };
 
-class FramebufferManager : public FramebufferManagerBase
+class FramebufferManager: public FramebufferManagerBase
 {
 public:
 	FramebufferManager(int targetWidth, int targetHeight, int msaaSamples);
@@ -76,11 +77,20 @@ public:
 	static GLuint GetEFBColorTexture(const EFBRectangle& sourceRc);
 	static GLuint GetEFBDepthTexture(const EFBRectangle& sourceRc);
 
-	static GLuint GetEFBFramebuffer(unsigned int layer = 0) { return (layer < m_EFBLayers) ? m_efbFramebuffer[layer] : m_efbFramebuffer.back(); }
-	static GLuint GetXFBFramebuffer() { return m_xfbFramebuffer; }
+	static GLuint GetEFBFramebuffer(unsigned int layer = 0)
+	{
+		return (layer < m_EFBLayers) ? m_efbFramebuffer[layer] : m_efbFramebuffer.back();
+	}
+	static GLuint GetXFBFramebuffer()
+	{
+		return m_xfbFramebuffer;
+	}
 
 	// Resolved framebuffer is only used in MSAA mode.
-	static GLuint GetResolvedFramebuffer() { return m_resolvedFramebuffer[0]; }
+	static GLuint GetResolvedFramebuffer()
+	{
+		return m_resolvedFramebuffer[0];
+	}
 
 	static void SetFramebuffer(GLuint fb);
 	static void FramebufferTexture(GLenum target, GLenum attachment, GLenum textarget, GLuint texture, GLint level);

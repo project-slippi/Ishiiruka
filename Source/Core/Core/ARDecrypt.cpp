@@ -150,71 +150,71 @@ static const u32 table7[0x40] = {
 static void generateseeds(u32 *seeds, const u8 *seedtable, u8 doreverse)
 {
 	u32 tmp3;
-	u8 array0[0x38],array1[0x38],array2[0x08];
-	u8 tmp,tmp2;
+	u8 array0[0x38], array1[0x38], array2[0x08];
+	u8 tmp, tmp2;
 
 	for (int i = 0; i < 0x38; ++i)
 	{
 		tmp = (gentable0[i] - 1);
-		array0[i] = ((u32)(0-(seedtable[tmp>>3] & gentable1[tmp&7])) >> 31);
+		array0[i] = ((u32)(0 - (seedtable[tmp >> 3] & gentable1[tmp & 7])) >> 31);
 	}
 
 	for (int i = 0; i < 0x10; ++i)
 	{
-		memset(array2,0,8);
+		memset(array2, 0, 8);
 		tmp2 = gentable2[i];
 
 		for (int j = 0; j < 0x38; j++)
 		{
-			tmp = (tmp2+j);
+			tmp = (tmp2 + j);
 
 			if (j > 0x1B)
 			{
 				if (tmp > 0x37)
 				{
-					tmp-=0x1C;
+					tmp -= 0x1C;
 				}
 			}
 			else if (tmp > 0x1B)
 			{
-				tmp-=0x1C;
+				tmp -= 0x1C;
 			}
 
 			array1[j] = array0[tmp];
 		}
 		for (int j = 0; j < 0x30; j++)
 		{
-			if (!array1[gentable3[j]-1])
+			if (!array1[gentable3[j] - 1])
 			{
 				continue;
 			}
-			tmp = (((j*0x2AAB)>>16) - (j>>0x1F));
-			array2[tmp] |= (gentable1[j-(tmp*6)]>>2);
+			tmp = (((j * 0x2AAB) >> 16) - (j >> 0x1F));
+			array2[tmp] |= (gentable1[j - (tmp * 6)] >> 2);
 		}
-		seeds[i<<1] = ((array2[0]<<24)|(array2[2]<<16)|(array2[4]<<8)|array2[6]);
-		seeds[(i<<1)+1] = ((array2[1]<<24)|(array2[3]<<16)|(array2[5]<<8)|array2[7]);
+		seeds[i << 1] = ((array2[0] << 24) | (array2[2] << 16) | (array2[4] << 8) | array2[6]);
+		seeds[(i << 1) + 1] = ((array2[1] << 24) | (array2[3] << 16) | (array2[5] << 8) | array2[7]);
 	}
 
 	if (!doreverse)
 	{
 		int j = 0x1F;
-		for (int i = 0; i < 16; i+=2)
+		for (int i = 0; i < 16; i += 2)
 		{
 			tmp3 = seeds[i];
-			seeds[i] = seeds[j-1];
-			seeds[j-1] = tmp3;
+			seeds[i] = seeds[j - 1];
+			seeds[j - 1] = tmp3;
 
-			tmp3 = seeds[i+1];
-			seeds[i+1] = seeds[j];
+			tmp3 = seeds[i + 1];
+			seeds[i + 1] = seeds[j];
 			seeds[j] = tmp3;
-			j-=2;
+			j -= 2;
 		}
 	}
 }
 
 static void buildseeds()
 {
-	generateseeds(genseeds,gensubtable,0);
+	generateseeds(genseeds, gensubtable, 0);
 }
 
 static void getcode(u32 *src, u32 *addr, u32 *val)
@@ -239,8 +239,8 @@ static u16 gencrc16(u32 *codes, u16 size)
 		{
 			for (int i = 0; i < 4; ++i)
 			{
-				u8 tmp2 = ((codes[tmp] >> (i<<3))^ret);
-				ret = ((crctable0[(tmp2>>4)&0x0F]^crctable1[tmp2&0x0F])^(ret>>8));
+				u8 tmp2 = ((codes[tmp] >> (i << 3)) ^ ret);
+				ret = ((crctable0[(tmp2 >> 4) & 0x0F] ^ crctable1[tmp2 & 0x0F]) ^ (ret >> 8));
 			}
 		}
 	}
@@ -249,34 +249,34 @@ static u16 gencrc16(u32 *codes, u16 size)
 
 static u8 verifycode(u32 *codes, u16 size)
 {
-	u16 tmp = gencrc16(codes,size);
-	return (((tmp>>12)^(tmp>>8)^(tmp>>4)^tmp)&0x0F);
+	u16 tmp = gencrc16(codes, size);
+	return (((tmp >> 12) ^ (tmp >> 8) ^ (tmp >> 4) ^ tmp) & 0x0F);
 }
 
 static void unscramble1(u32 *addr, u32 *val)
 {
 	u32 tmp;
 
-	*val = _rotl(*val,4);
+	*val = _rotl(*val, 4);
 
-	tmp = ((*addr^*val)&0xF0F0F0F0);
+	tmp = ((*addr^*val) & 0xF0F0F0F0);
 	*addr ^= tmp;
-	*val = _rotr((*val^tmp),0x14);
+	*val = _rotr((*val^tmp), 0x14);
 
-	tmp = ((*addr^*val)&0xFFFF0000);
+	tmp = ((*addr^*val) & 0xFFFF0000);
 	*addr ^= tmp;
-	*val = _rotr((*val^tmp),0x12);
+	*val = _rotr((*val^tmp), 0x12);
 
-	tmp = ((*addr^*val)&0x33333333);
+	tmp = ((*addr^*val) & 0x33333333);
 	*addr ^= tmp;
-	*val = _rotr((*val^tmp),6);
+	*val = _rotr((*val^tmp), 6);
 
-	tmp = ((*addr^*val)&0x00FF00FF);
+	tmp = ((*addr^*val) & 0x00FF00FF);
 	*addr ^= tmp;
-	*val = _rotl((*val^tmp),9);
+	*val = _rotl((*val^tmp), 9);
 
-	tmp = ((*addr^*val)&0xAAAAAAAA);
-	*addr = _rotl((*addr^tmp),1);
+	tmp = ((*addr^*val) & 0xAAAAAAAA);
+	*addr = _rotl((*addr^tmp), 1);
 	*val ^= tmp;
 }
 
@@ -284,54 +284,54 @@ static void unscramble2(u32 *addr, u32 *val)
 {
 	u32 tmp;
 
-	*val = _rotr(*val,1);
+	*val = _rotr(*val, 1);
 
-	tmp = ((*addr^*val)&0xAAAAAAAA);
+	tmp = ((*addr^*val) & 0xAAAAAAAA);
 	*val ^= tmp;
-	*addr = _rotr((*addr^tmp),9);
+	*addr = _rotr((*addr^tmp), 9);
 
-	tmp = ((*addr^*val)&0x00FF00FF);
+	tmp = ((*addr^*val) & 0x00FF00FF);
 	*val ^= tmp;
-	*addr = _rotl((*addr^tmp),6);
+	*addr = _rotl((*addr^tmp), 6);
 
-	tmp = ((*addr^*val)&0x33333333);
+	tmp = ((*addr^*val) & 0x33333333);
 	*val ^= tmp;
-	*addr = _rotl((*addr^tmp),0x12);
+	*addr = _rotl((*addr^tmp), 0x12);
 
-	tmp = ((*addr^*val)&0xFFFF0000);
+	tmp = ((*addr^*val) & 0xFFFF0000);
 	*val ^= tmp;
-	*addr = _rotl((*addr^tmp),0x14);
+	*addr = _rotl((*addr^tmp), 0x14);
 
-	tmp = ((*addr^*val)&0xF0F0F0F0);
+	tmp = ((*addr^*val) & 0xF0F0F0F0);
 	*val ^= tmp;
-	*addr = _rotr((*addr^tmp),4);
+	*addr = _rotr((*addr^tmp), 4);
 }
 
 static void decryptcode(u32 *seeds, u32 *code)
 {
-	u32 addr,val;
-	u32 tmp,tmp2;
-	int i=0;
+	u32 addr, val;
+	u32 tmp, tmp2;
+	int i = 0;
 
-	getcode(code,&addr,&val);
-	unscramble1(&addr,&val);
+	getcode(code, &addr, &val);
+	unscramble1(&addr, &val);
 	while (i < 32)
 	{
-		tmp = (_rotr(val,4)^seeds[i++]);
+		tmp = (_rotr(val, 4) ^ seeds[i++]);
 		tmp2 = (val^seeds[i++]);
-		addr ^= (table6[tmp&0x3F]^table4[(tmp>>8)&0x3F]^table2[(tmp>>16)&0x3F]^table0[(tmp>>24)&0x3F]^table7[tmp2&0x3F]^table5[(tmp2>>8)&0x3F]^table3[(tmp2>>16)&0x3F]^table1[(tmp2>>24)&0x3F]);
+		addr ^= (table6[tmp & 0x3F] ^ table4[(tmp >> 8) & 0x3F] ^ table2[(tmp >> 16) & 0x3F] ^ table0[(tmp >> 24) & 0x3F] ^ table7[tmp2 & 0x3F] ^ table5[(tmp2 >> 8) & 0x3F] ^ table3[(tmp2 >> 16) & 0x3F] ^ table1[(tmp2 >> 24) & 0x3F]);
 
-		tmp = (_rotr(addr,4)^seeds[i++]);
+		tmp = (_rotr(addr, 4) ^ seeds[i++]);
 		tmp2 = (addr^seeds[i++]);
-		val ^= (table6[tmp&0x3F]^table4[(tmp>>8)&0x3F]^table2[(tmp>>16)&0x3F]^table0[(tmp>>24)&0x3F]^table7[tmp2&0x3F]^table5[(tmp2>>8)&0x3F]^table3[(tmp2>>16)&0x3F]^table1[(tmp2>>24)&0x3F]);
+		val ^= (table6[tmp & 0x3F] ^ table4[(tmp >> 8) & 0x3F] ^ table2[(tmp >> 16) & 0x3F] ^ table0[(tmp >> 24) & 0x3F] ^ table7[tmp2 & 0x3F] ^ table5[(tmp2 >> 8) & 0x3F] ^ table3[(tmp2 >> 16) & 0x3F] ^ table1[(tmp2 >> 24) & 0x3F]);
 	}
-	unscramble2(&addr,&val);
-	setcode(code,val,addr);
+	unscramble2(&addr, &val);
+	setcode(code, val, addr);
 }
 
 static bool getbitstring(u32 *ctrl, u32 *out, u8 len)
 {
-	u32 tmp=(ctrl[0]+(ctrl[1]<<2));
+	u32 tmp = (ctrl[0] + (ctrl[1] << 2));
 
 	*out = 0;
 	while (len--)
@@ -340,13 +340,13 @@ static bool getbitstring(u32 *ctrl, u32 *out, u8 len)
 		{
 			ctrl[2] = 0;
 			ctrl[1]++;
-			tmp = (ctrl[0]+(ctrl[1]<<2));
+			tmp = (ctrl[0] + (ctrl[1] << 2));
 		}
 		if (ctrl[1] >= ctrl[3])
 		{
 			return false;
 		}
-		*out = ((*out<<1) | ((tmp >> (0x1F-ctrl[2])) & 1));
+		*out = ((*out << 1) | ((tmp >> (0x1F - ctrl[2])) & 1));
 		ctrl[2]++;
 	}
 	return true;
@@ -354,8 +354,8 @@ static bool getbitstring(u32 *ctrl, u32 *out, u8 len)
 
 static bool batchdecrypt(u32 *codes, u16 size)
 {
-	u32 tmp,*ptr=codes;
-	u32 tmparray[4] = { 0 },tmparray2[8] = { 0 };
+	u32 tmp, *ptr = codes;
+	u32 tmparray[4] = {0}, tmparray2[8] = {0};
 
 	// Not required
 	//if (size & 1) return 0;
@@ -364,19 +364,19 @@ static bool batchdecrypt(u32 *codes, u16 size)
 	tmp = (size >> 1);
 	while (tmp--)
 	{
-		decryptcode(genseeds,ptr);
-		ptr+=2;
+		decryptcode(genseeds, ptr);
+		ptr += 2;
 	}
 
 	tmparray[0] = *codes;
 	tmparray[1] = 0;
 	tmparray[2] = 4; // Skip crc
 	tmparray[3] = size;
-	getbitstring(tmparray,tmparray2+1,11); // Game id
-	getbitstring(tmparray,tmparray2+2,17); // Code id
-	getbitstring(tmparray,tmparray2+3,1);  // Master code
-	getbitstring(tmparray,tmparray2+4,1);  // Unknown
-	getbitstring(tmparray,tmparray2+5,2);  // Region
+	getbitstring(tmparray, tmparray2 + 1, 11); // Game id
+	getbitstring(tmparray, tmparray2 + 2, 17); // Code id
+	getbitstring(tmparray, tmparray2 + 3, 1);  // Master code
+	getbitstring(tmparray, tmparray2 + 4, 1);  // Unknown
+	getbitstring(tmparray, tmparray2 + 5, 2);  // Region
 
 	// Grab gameid and region from the last decrypted code
 	// TODO: Maybe check this against Dolphin's GameID? - "code is for wrong game" type msg
@@ -385,7 +385,7 @@ static bool batchdecrypt(u32 *codes, u16 size)
 
 	tmp = codes[0];
 	codes[0] &= 0x0FFFFFFF;
-	if ((tmp>>28) != verifycode(codes,size))
+	if ((tmp >> 28) != verifycode(codes, size))
 	{
 		return false;
 	}
@@ -397,7 +397,7 @@ static bool batchdecrypt(u32 *codes, u16 size)
 
 static int GetVal(const char *flt, char chr)
 {
-	int ret = (int)(strchr(flt,chr) - flt);
+	int ret = (int)(strchr(flt, chr) - flt);
 	switch (ret)
 	{
 	case 32: // 'I'
@@ -427,17 +427,17 @@ static int alphatobin(u32 *dst, const std::vector<std::string>& alpha, int size)
 		bin[0] = 0;
 		for (int i = 0; i < 6; i++)
 		{
-			bin[0] |= (GetVal(filter,alpha[j>>1][i]) << (((5-i)*5)+2));
+			bin[0] |= (GetVal(filter, alpha[j >> 1][i]) << (((5 - i) * 5) + 2));
 		}
-		bin[0] |= (GetVal(filter,alpha[j>>1][6]) >> 3);
+		bin[0] |= (GetVal(filter, alpha[j >> 1][6]) >> 3);
 		dst[j++] = bin[0];
 
 		bin[1] = 0;
 		for (int i = 0; i < 6; i++)
 		{
-			bin[1] |= (GetVal(filter,alpha[j>>1][i+6]) << (((5-i)*5)+4));
+			bin[1] |= (GetVal(filter, alpha[j >> 1][i + 6]) << (((5 - i) * 5) + 4));
 		}
-		bin[1] |= (GetVal(filter,alpha[j>>1][12]) >> 1);
+		bin[1] |= (GetVal(filter, alpha[j >> 1][12]) >> 1);
 		dst[j++] = bin[1];
 
 		//verify parity bit
@@ -449,11 +449,11 @@ static int alphatobin(u32 *dst, const std::vector<std::string>& alpha, int size)
 			{
 				k++;
 			}
-			parity ^= (bin[k] >> (i-(k<<5)));
+			parity ^= (bin[k] >> (i - (k << 5)));
 		}
-		if ((parity&1) != (GetVal(filter,alpha[(j-2)>>1][12])&1))
+		if ((parity & 1) != (GetVal(filter, alpha[(j - 2) >> 1][12]) & 1))
 		{
-			ret=(org-size);
+			ret = (org - size);
 		}
 	}
 
@@ -473,22 +473,22 @@ void DecryptARCode(std::vector<std::string> vCodes, std::vector<AREntry> &ops)
 		std::transform(s.begin(), s.end(), s.begin(), toupper);
 	}
 
-	if ((ret=alphatobin(uCodes, vCodes, (int)vCodes.size())))
+	if ((ret = alphatobin(uCodes, vCodes, (int)vCodes.size())))
 	{
 		PanicAlertT("Action Replay Code Decryption Error:\nParity Check Failed\n\nCulprit Code:\n%s", vCodes[ret].c_str());
-		batchdecrypt(uCodes, (u16)vCodes.size()<<1);
+		batchdecrypt(uCodes, (u16)vCodes.size() << 1);
 	}
-	else if (!batchdecrypt(uCodes, (u16)vCodes.size()<<1))
+	else if (!batchdecrypt(uCodes, (u16)vCodes.size() << 1))
 	{
 		// Commented out since we just send the code anyways and hope for the best XD
 		//PanicAlert("Action Replay Code Decryption Error:\nCRC Check Failed\n\n"
 		// "First Code in Block(should be verification code):\n%s", vCodes[0].c_str());
 
-		for (size_t i = 0; i < (vCodes.size()<<1); i+=2)
+		for (size_t i = 0; i < (vCodes.size() << 1); i += 2)
 		{
 			AREntry op;
 			op.cmd_addr = uCodes[i];
-			op.value = uCodes[i+1];
+			op.value = uCodes[i + 1];
 			ops.push_back(op);
 			//PanicAlert("Decrypted AR Code without verification code:\n%08X %08X", uCodes[i], uCodes[i+1]);
 		}
@@ -496,11 +496,11 @@ void DecryptARCode(std::vector<std::string> vCodes, std::vector<AREntry> &ops)
 	else
 	{
 		// Skip passing the verification code back
-		for (size_t i = 2; i < (vCodes.size()<<1); i+=2)
+		for (size_t i = 2; i < (vCodes.size() << 1); i += 2)
 		{
 			AREntry op;
 			op.cmd_addr = uCodes[i];
-			op.value = uCodes[i+1];
+			op.value = uCodes[i + 1];
 			ops.push_back(op);
 			//PanicAlert("Decrypted AR Code:\n%08X %08X", uCodes[i], uCodes[i+1]);
 		}

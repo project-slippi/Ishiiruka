@@ -21,7 +21,7 @@ namespace HLE
 
 using namespace PowerPC;
 
-typedef void (*TPatchFunction)();
+typedef void(*TPatchFunction)();
 
 static std::map<u32, u32> s_original_instructions;
 

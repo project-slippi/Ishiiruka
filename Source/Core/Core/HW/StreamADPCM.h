@@ -10,7 +10,6 @@
 
 namespace StreamADPCM
 {
-
 enum
 {
 	ONE_BLOCK_SIZE = 32,
@@ -19,5 +18,4 @@ enum
 
 void InitFilter();
 void DecodeBlock(s16* pcm, const u8* adpcm);
-
 }

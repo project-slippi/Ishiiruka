@@ -562,7 +562,7 @@ void LoadAs(const std::string& filename)
 		SaveToBuffer(g_undo_load_buffer);
 		if (Movie::IsMovieActive())
 			Movie::SaveRecording(File::GetUserPath(D_STATESAVES_IDX) + "undo.dtm");
-		else if (File::Exists(File::GetUserPath(D_STATESAVES_IDX) +"undo.dtm"))
+		else if (File::Exists(File::GetUserPath(D_STATESAVES_IDX) + "undo.dtm"))
 			File::Delete(File::GetUserPath(D_STATESAVES_IDX) + "undo.dtm");
 	}
 
@@ -698,7 +698,7 @@ void LoadLastSaved(int i)
 	else
 	{
 		std::map<double, int>::iterator it = savedStates.begin();
-		std::advance(it, i-1);
+		std::advance(it, i - 1);
 		Load(it->second);
 	}
 }
@@ -715,7 +715,7 @@ void SaveFirstSaved()
 	else
 	{
 		std::map<double, int>::iterator it = savedStates.begin();
-		std::advance(it, savedStates.size()-1);
+		std::advance(it, savedStates.size() - 1);
 		Save(it->second, true);
 	}
 }

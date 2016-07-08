@@ -7,22 +7,22 @@
 #include <cmath>
 #include <limits>
 
-#include "Common/CommonTypes.h"
 #include "Common/CPUDetect.h"
+#include "Common/CommonTypes.h"
 #include "Common/MathUtil.h"
 #include "Core/PowerPC/Gekko.h"
 #include "Core/PowerPC/PowerPC.h"
 
 const u64 PPC_NAN_U64 = 0x7ff8000000000000ull;
-const double PPC_NAN  = *(double* const)&PPC_NAN_U64;
+const double PPC_NAN = *(double* const)& PPC_NAN_U64;
 
 // the 4 less-significand bits in FPSCR[FPRF]
 enum FPCC
 {
-	FL = 8, // <
-	FG = 4, // >
-	FE = 2, // =
-	FU = 1, // ?
+	FL = 8,  // <
+	FG = 4,  // >
+	FE = 2,  // =
+	FU = 1,  // ?
 };
 
 inline void SetFPException(u32 mask)
@@ -46,13 +46,13 @@ inline void SetFI(int FI)
 inline void UpdateFPSCR()
 {
 	FPSCR.VX = (FPSCR.Hex & FPSCR_VX_ANY) != 0;
-	FPSCR.FEX = 0; // we assume that "?E" bits are always 0
+	FPSCR.FEX = 0;  // we assume that "?E" bits are always 0
 }
 
 inline double ForceSingle(double _x)
 {
 	// convert to float...
-	float x = (float) _x;
+	float x = (float)_x;
 	if (!cpu_info.bFlushToZero && FPSCR.NI)
 	{
 		x = MathUtil::FlushToZero(x);
@@ -92,8 +92,10 @@ inline double NI_mul(double a, double b)
 	double t = a * b;
 	if (std::isnan(t))
 	{
-		if (std::isnan(a)) return MakeQuiet(a);
-		if (std::isnan(b)) return MakeQuiet(b);
+		if (std::isnan(a))
+			return MakeQuiet(a);
+		if (std::isnan(b))
+			return MakeQuiet(b);
 		SetFPException(FPSCR_VXIMZ);
 		return PPC_NAN;
 	}
@@ -105,8 +107,10 @@ inline double NI_div(double a, double b)
 	double t = a / b;
 	if (std::isnan(t))
 	{
-		if (std::isnan(a)) return MakeQuiet(a);
-		if (std::isnan(b)) return MakeQuiet(b);
+		if (std::isnan(a))
+			return MakeQuiet(a);
+		if (std::isnan(b))
+			return MakeQuiet(b);
 		if (b == 0.0)
 		{
 			SetFPException(FPSCR_ZX);
@@ -127,8 +131,10 @@ inline double NI_add(double a, double b)
 	double t = a + b;
 	if (std::isnan(t))
 	{
-		if (std::isnan(a)) return MakeQuiet(a);
-		if (std::isnan(b)) return MakeQuiet(b);
+		if (std::isnan(a))
+			return MakeQuiet(a);
+		if (std::isnan(b))
+			return MakeQuiet(b);
 		SetFPException(FPSCR_VXISI);
 		return PPC_NAN;
 	}
@@ -140,8 +146,10 @@ inline double NI_sub(double a, double b)
 	double t = a - b;
 	if (std::isnan(t))
 	{
-		if (std::isnan(a)) return MakeQuiet(a);
-		if (std::isnan(b)) return MakeQuiet(b);
+		if (std::isnan(a))
+			return MakeQuiet(a);
+		if (std::isnan(b))
+			return MakeQuiet(b);
 		SetFPException(FPSCR_VXISI);
 		return PPC_NAN;
 	}
@@ -156,16 +164,20 @@ inline double NI_madd(double a, double c, double b)
 	double t = a * c;
 	if (std::isnan(t))
 	{
-		if (std::isnan(a)) return MakeQuiet(a);
-		if (std::isnan(b)) return MakeQuiet(b); // !
-		if (std::isnan(c)) return MakeQuiet(c);
+		if (std::isnan(a))
+			return MakeQuiet(a);
+		if (std::isnan(b))
+			return MakeQuiet(b);  // !
+		if (std::isnan(c))
+			return MakeQuiet(c);
 		SetFPException(FPSCR_VXIMZ);
 		return PPC_NAN;
 	}
 	t += b;
 	if (std::isnan(t))
 	{
-		if (std::isnan(b)) return MakeQuiet(b);
+		if (std::isnan(b))
+			return MakeQuiet(b);
 		SetFPException(FPSCR_VXISI);
 		return PPC_NAN;
 	}
@@ -177,9 +189,12 @@ inline double NI_msub(double a, double c, double b)
 	double t = a * c;
 	if (std::isnan(t))
 	{
-		if (std::isnan(a)) return MakeQuiet(a);
-		if (std::isnan(b)) return MakeQuiet(b); // !
-		if (std::isnan(c)) return MakeQuiet(c);
+		if (std::isnan(a))
+			return MakeQuiet(a);
+		if (std::isnan(b))
+			return MakeQuiet(b);  // !
+		if (std::isnan(c))
+			return MakeQuiet(c);
 		SetFPException(FPSCR_VXIMZ);
 		return PPC_NAN;
 	}
@@ -187,7 +202,8 @@ inline double NI_msub(double a, double c, double b)
 	t -= b;
 	if (std::isnan(t))
 	{
-		if (std::isnan(b)) return MakeQuiet(b);
+		if (std::isnan(b))
+			return MakeQuiet(b);
 		SetFPException(FPSCR_VXISI);
 		return PPC_NAN;
 	}
@@ -242,28 +258,28 @@ inline u64 ConvertToDouble(u32 _x)
 	u64 exp = (x >> 23) & 0xff;
 	u64 frac = x & 0x007fffff;
 
-	if (exp > 0 && exp < 255) // Normal number
+	if (exp > 0 && exp < 255)  // Normal number
 	{
 		u64 y = !(exp >> 7);
 		u64 z = y << 61 | y << 60 | y << 59;
 		return ((x & 0xc0000000) << 32) | z | ((x & 0x3fffffff) << 29);
 	}
-	else if (exp == 0 && frac != 0) // Subnormal number
+	else if (exp == 0 && frac != 0)  // Subnormal number
 	{
 		exp = 1023 - 126;
 		do
 		{
 			frac <<= 1;
 			exp -= 1;
-		} while ((frac & 0x00800000) == 0);
+		}
+		while ((frac & 0x00800000) == 0);
 
 		return ((x & 0x80000000) << 32) | (exp << 52) | ((frac & 0x007fffff) << 29);
 	}
-	else // QNaN, SNaN or Zero
+	else  // QNaN, SNaN or Zero
 	{
 		u64 y = exp >> 7;
 		u64 z = y << 61 | y << 60 | y << 59;
 		return ((x & 0xc0000000) << 32) | z | ((x & 0x3fffffff) << 29);
 	}
 }
-

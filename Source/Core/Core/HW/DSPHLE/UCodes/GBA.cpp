@@ -2,11 +2,11 @@
 // Licensed under GPLv2+
 // Refer to the license.txt file included.
 
+#include "Core/HW/DSPHLE/UCodes/GBA.h"
 #include "Common/CommonFuncs.h"
 #include "Common/CommonTypes.h"
 #include "Common/Logging/Log.h"
 #include "Core/HW/DSP.h"
-#include "Core/HW/DSPHLE/UCodes/GBA.h"
 #include "Core/HW/DSPHLE/UCodes/UCodes.h"
 
 void ProcessGBACrypto(u32 address)
@@ -26,8 +26,7 @@ void ProcessGBACrypto(u32 address)
 		((u32*)&sec_params)[i] = HLEMemory_Read_U32(address);
 
 	// This is the main decrypt routine
-	u16 x11 = 0, x12 = 0,
-		x20 = 0, x21 = 0, x22 = 0, x23 = 0;
+	u16 x11 = 0, x12 = 0, x20 = 0, x21 = 0, x22 = 0, x23 = 0;
 
 	x20 = Common::swap16(sec_params.key[0]) ^ 0x6f64;
 	x21 = Common::swap16(sec_params.key[1]) ^ 0x6573;
@@ -41,7 +40,7 @@ void ProcessGBACrypto(u32 address)
 	{
 		x11 = (sec_params.unk1[0] << 1) | 0x70;
 	}
-	else // unk2 > 0
+	else  // unk2 > 0
 	{
 		x11 = ((unk2 - 1) << 1) | (sec_params.unk1[0] << 4);
 	}
@@ -53,7 +52,8 @@ void ProcessGBACrypto(u32 address)
 	s16 t_low = (s8)(t >> 8);
 	t += (t_low & size) << 16;
 	x12 = t >> 16;
-	x11 |= (size & 0x4000) >> 14; // this would be stored in ac0.h if we weren't constrained to 32bit :)
+	x11 |=
+		(size & 0x4000) >> 14;  // this would be stored in ac0.h if we weren't constrained to 32bit :)
 	t = ((x11 & 0xff) << 16) + ((x12 & 0xff) << 16) + (x12 << 8);
 
 	u16 final11 = 0, final12 = 0;
@@ -73,19 +73,16 @@ void ProcessGBACrypto(u32 address)
 
 	// Send the result back to mram
 	*(u32*)HLEMemory_Get_Pointer(sec_params.dest_addr) = Common::swap32((x20 << 16) | x21);
-	*(u32*)HLEMemory_Get_Pointer(sec_params.dest_addr+4) = Common::swap32((x22 << 16) | x23);
+	*(u32*)HLEMemory_Get_Pointer(sec_params.dest_addr + 4) = Common::swap32((x22 << 16) | x23);
 
 	// Done!
 	DEBUG_LOG(DSPHLE, "\n%08x -> key: %08x, len: %08x, dest_addr: %08x, unk1: %08x, unk2: %08x"
 		" 22: %04x, 23: %04x",
-		address,
-		*(u32*)sec_params.key, sec_params.length, sec_params.dest_addr,
-		*(u32*)sec_params.unk1, *(u32*)sec_params.unk2,
-		x22, x23);
+		address, *(u32*)sec_params.key, sec_params.length, sec_params.dest_addr,
+		*(u32*)sec_params.unk1, *(u32*)sec_params.unk2, x22, x23);
 }
 
-GBAUCode::GBAUCode(DSPHLE *dsphle, u32 crc)
-: UCodeInterface(dsphle, crc)
+GBAUCode::GBAUCode(DSPHLE* dsphle, u32 crc): UCodeInterface(dsphle, crc)
 {
 	m_mail_handler.PushMail(DSP_INIT);
 }

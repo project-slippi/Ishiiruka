@@ -2,24 +2,25 @@
 // Licensed under GPLv2+
 // Refer to the license.txt file included.
 
+#include "Core/PowerPC/Jit64/Jit.h"
 #include "Common/BitSet.h"
-#include "Common/CommonTypes.h"
 #include "Common/CPUDetect.h"
+#include "Common/CommonTypes.h"
 #include "Common/x64Emitter.h"
 #include "Core/ConfigManager.h"
-#include "Core/PowerPC/Jit64/Jit.h"
 #include "Core/PowerPC/Jit64/JitRegCache.h"
 #include "Core/PowerPC/JitCommon/Jit_Util.h"
 
 using namespace Gen;
 
-// TODO: Add peephole optimizations for multiple consecutive lfd/lfs/stfd/stfs since they are so common,
+// TODO: Add peephole optimizations for multiple consecutive lfd/lfs/stfd/stfs since they are so
+// common,
 // and pshufb could help a lot.
 
 void Jit64::lfXXX(UGeckoInstruction inst)
 {
 	INSTRUCTION_START
-	JITDISABLE(bJITLoadStoreFloatingOff);
+		JITDISABLE(bJITLoadStoreFloatingOff);
 	bool indexed = inst.OPCD == 31;
 	bool update = indexed ? !!(inst.SUBOP10 & 0x20) : !!(inst.OPCD & 1);
 	bool single = indexed ? !(inst.SUBOP10 & 0x40) : !(inst.OPCD & 2);
@@ -49,14 +50,7 @@ void Jit64::lfXXX(UGeckoInstruction inst)
 		else
 		{
 			addr = R(RSCRATCH2);
-			if (a && gpr.R(a).IsSimpleReg() && gpr.R(b).IsSimpleReg())
-				LEA(32, RSCRATCH2, MRegSum(gpr.RX(a), gpr.RX(b)));
-			else
-			{
-				MOV(32, addr, gpr.R(b));
-				if (a)
-					ADD(32, addr, gpr.R(a));
-			}
+			MOV_sum(32, RSCRATCH2, a ? gpr.R(a) : Imm32(0), gpr.R(b));
 		}
 	}
 	else
@@ -79,7 +73,6 @@ void Jit64::lfXXX(UGeckoInstruction inst)
 		registersInUse[RSCRATCH2] = true;
 	SafeLoadToReg(RSCRATCH, addr, single ? 32 : 64, offset, registersInUse, false);
 
-	MemoryExceptionCheck();
 	if (single)
 	{
 		ConvertSingleToDouble(fpr.RX(d), RSCRATCH, true);
@@ -98,10 +91,10 @@ void Jit64::lfXXX(UGeckoInstruction inst)
 void Jit64::stfXXX(UGeckoInstruction inst)
 {
 	INSTRUCTION_START
-	JITDISABLE(bJITLoadStoreFloatingOff);
+		JITDISABLE(bJITLoadStoreFloatingOff);
 	bool indexed = inst.OPCD == 31;
-	bool update = indexed ? !!(inst.SUBOP10&0x20) : !!(inst.OPCD&1);
-	bool single = indexed ? !(inst.SUBOP10&0x40) : !(inst.OPCD&2);
+	bool update = indexed ? !!(inst.SUBOP10 & 0x20) : !!(inst.OPCD & 1);
+	bool single = indexed ? !(inst.SUBOP10 & 0x40) : !(inst.OPCD & 2);
 	update &= indexed || inst.SIMM_16;
 
 	int s = inst.RS;
@@ -136,7 +129,8 @@ void Jit64::stfXXX(UGeckoInstruction inst)
 	if (!indexed && (!a || gpr.R(a).IsImm()))
 	{
 		u32 addr = (a ? gpr.R(a).Imm32() : 0) + imm;
-		bool exception = WriteToConstAddress(accessSize, R(RSCRATCH), addr, CallerSavedRegistersInUse());
+		bool exception =
+			WriteToConstAddress(accessSize, R(RSCRATCH), addr, CallerSavedRegistersInUse());
 
 		if (update)
 		{
@@ -161,14 +155,7 @@ void Jit64::stfXXX(UGeckoInstruction inst)
 		gpr.BindToRegister(a, true, true);
 	if (indexed)
 	{
-		if (a && gpr.R(a).IsSimpleReg() && gpr.R(b).IsSimpleReg())
-			LEA(32, RSCRATCH2, MRegSum(gpr.RX(a), gpr.RX(b)));
-		else
-		{
-			MOV(32, R(RSCRATCH2), gpr.R(b));
-			if (a)
-				ADD(32, R(RSCRATCH2), gpr.R(a));
-		}
+		MOV_sum(32, RSCRATCH2, a ? gpr.R(a) : Imm32(0), gpr.R(b));
 	}
 	else
 	{
@@ -191,10 +178,7 @@ void Jit64::stfXXX(UGeckoInstruction inst)
 	SafeWriteRegToReg(RSCRATCH, RSCRATCH2, accessSize, offset, registersInUse);
 
 	if (update)
-	{
-		MemoryExceptionCheck();
 		MOV(32, gpr.R(a), R(RSCRATCH2));
-	}
 
 	fpr.UnlockAll();
 	gpr.UnlockAll();
@@ -205,15 +189,13 @@ void Jit64::stfXXX(UGeckoInstruction inst)
 void Jit64::stfiwx(UGeckoInstruction inst)
 {
 	INSTRUCTION_START
-	JITDISABLE(bJITLoadStoreFloatingOff);
+		JITDISABLE(bJITLoadStoreFloatingOff);
 
 	int s = inst.RS;
 	int a = inst.RA;
 	int b = inst.RB;
 
-	MOV(32, R(RSCRATCH2), gpr.R(b));
-	if (a)
-		ADD(32, R(RSCRATCH2), gpr.R(a));
+	MOV_sum(32, RSCRATCH2, a ? gpr.R(a) : Imm32(0), gpr.R(b));
 
 	if (fpr.R(s).IsSimpleReg())
 		MOVD_xmm(R(RSCRATCH), fpr.RX(s));

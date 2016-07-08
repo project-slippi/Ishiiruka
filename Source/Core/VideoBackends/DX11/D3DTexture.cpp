@@ -27,7 +27,7 @@ inline void LoadDataMap(ID3D11Texture2D* pTexture, const u8* buffer, const s32 l
 	case DXGI_FORMAT_R8_UNORM:
 		pixelsize = 1;
 		break;
-	case DXGI_FORMAT_B5G6R5_UNORM:		
+	case DXGI_FORMAT_B5G6R5_UNORM:
 	case DXGI_FORMAT_R8G8_UNORM:
 		pixelsize = 2;
 		break;
@@ -81,7 +81,7 @@ inline void LoadDataResource(ID3D11Texture2D* pTexture, const u8* buffer, const 
 	case DXGI_FORMAT_R8G8_UNORM:
 		pixelsize = 2;
 		break;
-	case DXGI_FORMAT_B8G8R8A8_UNORM:		
+	case DXGI_FORMAT_B8G8R8A8_UNORM:
 	case DXGI_FORMAT_R8G8B8A8_UNORM:
 		pixelsize = 4;
 		if (swap_rb)
@@ -125,7 +125,7 @@ D3DTexture2D* D3DTexture2D::Create(unsigned int width, unsigned int height, D3D1
 	HRESULT hr;
 
 	D3D11_CPU_ACCESS_FLAG cpuflags;
-	if (usage == D3D11_USAGE_STAGING) cpuflags = (D3D11_CPU_ACCESS_FLAG)((int)D3D11_CPU_ACCESS_WRITE|(int)D3D11_CPU_ACCESS_READ);
+	if (usage == D3D11_USAGE_STAGING) cpuflags = (D3D11_CPU_ACCESS_FLAG)((int)D3D11_CPU_ACCESS_WRITE | (int)D3D11_CPU_ACCESS_READ);
 	else if (usage == D3D11_USAGE_DYNAMIC) cpuflags = D3D11_CPU_ACCESS_WRITE;
 	else cpuflags = (D3D11_CPU_ACCESS_FLAG)0;
 	D3D11_TEXTURE2D_DESC texdesc = CD3D11_TEXTURE2D_DESC(fmt, width, height, slices, levels, bind, usage, cpuflags);
@@ -157,15 +157,30 @@ UINT D3DTexture2D::Release()
 	return ref;
 }
 
-ID3D11Texture2D* &D3DTexture2D::GetTex() { return tex; }
-ID3D11ShaderResourceView* &D3DTexture2D::GetSRV() { return srv; }
-ID3D11RenderTargetView* &D3DTexture2D::GetRTV() { return rtv; }
-ID3D11DepthStencilView* &D3DTexture2D::GetDSV() { return dsv; }
-ID3D11UnorderedAccessView* &D3DTexture2D::GetUAV() { return uav; }
+ID3D11Texture2D* &D3DTexture2D::GetTex()
+{
+	return tex;
+}
+ID3D11ShaderResourceView* &D3DTexture2D::GetSRV()
+{
+	return srv;
+}
+ID3D11RenderTargetView* &D3DTexture2D::GetRTV()
+{
+	return rtv;
+}
+ID3D11DepthStencilView* &D3DTexture2D::GetDSV()
+{
+	return dsv;
+}
+ID3D11UnorderedAccessView* &D3DTexture2D::GetUAV()
+{
+	return uav;
+}
 
 D3DTexture2D::D3DTexture2D(ID3D11Texture2D* texptr, D3D11_BIND_FLAG bind,
-							DXGI_FORMAT srv_format, DXGI_FORMAT dsv_format, DXGI_FORMAT rtv_format, bool multisampled)
-							: ref(1), tex(texptr), srv(NULL), rtv(NULL), dsv(NULL), uav(NULL)
+	DXGI_FORMAT srv_format, DXGI_FORMAT dsv_format, DXGI_FORMAT rtv_format, bool multisampled)
+	: ref(1), tex(texptr), srv(NULL), rtv(NULL), dsv(NULL), uav(NULL)
 {
 	D3D11_SRV_DIMENSION srv_dim = multisampled ? D3D11_SRV_DIMENSION_TEXTURE2DMSARRAY : D3D11_SRV_DIMENSION_TEXTURE2DARRAY;
 	D3D11_DSV_DIMENSION dsv_dim = multisampled ? D3D11_DSV_DIMENSION_TEXTURE2DMSARRAY : D3D11_DSV_DIMENSION_TEXTURE2DARRAY;

@@ -58,29 +58,29 @@ inline void XFRegWritten(int transferSize, u32 baseAddress)
 
 		case XFMEM_SETCHAN0_AMBCOLOR: // Channel Ambient Color
 		case XFMEM_SETCHAN1_AMBCOLOR:
+		{
+			u8 chan = address - XFMEM_SETCHAN0_AMBCOLOR;
+			if (xfmem.ambColor[chan] != newValue)
 			{
-				u8 chan = address - XFMEM_SETCHAN0_AMBCOLOR;
-				if (xfmem.ambColor[chan] != newValue) 
-				{
-					VertexManagerBase::Flush();
-					VertexShaderManager::SetMaterialColorChanged(chan);
-					PixelShaderManager::SetMaterialColorChanged(chan);
-				}
-				break;
+				VertexManagerBase::Flush();
+				VertexShaderManager::SetMaterialColorChanged(chan);
+				PixelShaderManager::SetMaterialColorChanged(chan);
 			}
+			break;
+		}
 
 		case XFMEM_SETCHAN0_MATCOLOR: // Channel Material Color
 		case XFMEM_SETCHAN1_MATCOLOR:
+		{
+			u8 chan = address - XFMEM_SETCHAN0_MATCOLOR;
+			if (xfmem.matColor[chan] != newValue)
 			{
-				u8 chan = address - XFMEM_SETCHAN0_MATCOLOR;
-				if (xfmem.matColor[chan] != newValue)
-				{
-					VertexManagerBase::Flush();
-					VertexShaderManager::SetMaterialColorChanged(chan + 2);
-					PixelShaderManager::SetMaterialColorChanged(chan + 2);
-				}
-				break;
+				VertexManagerBase::Flush();
+				VertexShaderManager::SetMaterialColorChanged(chan + 2);
+				PixelShaderManager::SetMaterialColorChanged(chan + 2);
 			}
+			break;
+		}
 
 		case XFMEM_SETCHAN0_COLOR: // Channel Color
 		case XFMEM_SETCHAN1_COLOR:
@@ -106,11 +106,11 @@ inline void XFRegWritten(int transferSize, u32 baseAddress)
 			break;
 
 		case XFMEM_SETVIEWPORT:
-		case XFMEM_SETVIEWPORT+1:
-		case XFMEM_SETVIEWPORT+2:
-		case XFMEM_SETVIEWPORT+3:
-		case XFMEM_SETVIEWPORT+4:
-		case XFMEM_SETVIEWPORT+5:
+		case XFMEM_SETVIEWPORT + 1:
+		case XFMEM_SETVIEWPORT + 2:
+		case XFMEM_SETVIEWPORT + 3:
+		case XFMEM_SETVIEWPORT + 4:
+		case XFMEM_SETVIEWPORT + 5:
 			VertexManagerBase::Flush();
 			VertexShaderManager::SetViewportChanged();
 			GeometryShaderManager::SetViewportChanged();
@@ -119,12 +119,12 @@ inline void XFRegWritten(int transferSize, u32 baseAddress)
 			break;
 
 		case XFMEM_SETPROJECTION:
-		case XFMEM_SETPROJECTION+1:
-		case XFMEM_SETPROJECTION+2:
-		case XFMEM_SETPROJECTION+3:
-		case XFMEM_SETPROJECTION+4:
-		case XFMEM_SETPROJECTION+5:
-		case XFMEM_SETPROJECTION+6:
+		case XFMEM_SETPROJECTION + 1:
+		case XFMEM_SETPROJECTION + 2:
+		case XFMEM_SETPROJECTION + 3:
+		case XFMEM_SETPROJECTION + 4:
+		case XFMEM_SETPROJECTION + 5:
+		case XFMEM_SETPROJECTION + 6:
 			VertexManagerBase::Flush();
 			VertexShaderManager::SetProjectionChanged();
 			GeometryShaderManager::SetProjectionChanged();
@@ -137,36 +137,36 @@ inline void XFRegWritten(int transferSize, u32 baseAddress)
 			break;
 
 		case XFMEM_SETTEXMTXINFO:
-		case XFMEM_SETTEXMTXINFO+1:
-		case XFMEM_SETTEXMTXINFO+2:
-		case XFMEM_SETTEXMTXINFO+3:
-		case XFMEM_SETTEXMTXINFO+4:
-		case XFMEM_SETTEXMTXINFO+5:
-		case XFMEM_SETTEXMTXINFO+6:
-		case XFMEM_SETTEXMTXINFO+7:
+		case XFMEM_SETTEXMTXINFO + 1:
+		case XFMEM_SETTEXMTXINFO + 2:
+		case XFMEM_SETTEXMTXINFO + 3:
+		case XFMEM_SETTEXMTXINFO + 4:
+		case XFMEM_SETTEXMTXINFO + 5:
+		case XFMEM_SETTEXMTXINFO + 6:
+		case XFMEM_SETTEXMTXINFO + 7:
 			VertexManagerBase::Flush();
 
 			nextAddress = XFMEM_SETTEXMTXINFO + 8;
 			break;
 
 		case XFMEM_SETPOSMTXINFO:
-		case XFMEM_SETPOSMTXINFO+1:
-		case XFMEM_SETPOSMTXINFO+2:
-		case XFMEM_SETPOSMTXINFO+3:
-		case XFMEM_SETPOSMTXINFO+4:
-		case XFMEM_SETPOSMTXINFO+5:
-		case XFMEM_SETPOSMTXINFO+6:
-		case XFMEM_SETPOSMTXINFO+7:
+		case XFMEM_SETPOSMTXINFO + 1:
+		case XFMEM_SETPOSMTXINFO + 2:
+		case XFMEM_SETPOSMTXINFO + 3:
+		case XFMEM_SETPOSMTXINFO + 4:
+		case XFMEM_SETPOSMTXINFO + 5:
+		case XFMEM_SETPOSMTXINFO + 6:
+		case XFMEM_SETPOSMTXINFO + 7:
 			VertexManagerBase::Flush();
 
 			nextAddress = XFMEM_SETPOSMTXINFO + 8;
 			break;
 
-		// --------------
-		// Unknown Regs
-		// --------------
+			// --------------
+			// Unknown Regs
+			// --------------
 
-		// Maybe these are for Normals?
+			// Maybe these are for Normals?
 		case 0x1048: //xfmem.texcoords[0].nrmmtxinfo.hex = data; break; ??
 		case 0x1049:
 		case 0x104a:
@@ -266,7 +266,7 @@ void LoadIndexedXF(u32 val, int refarray)
 	{
 		if (currData[i] != Common::swap32(newData[i]))
 		{
-			changed = true;			
+			changed = true;
 			break;
 		}
 	}

@@ -23,19 +23,19 @@
 #include "UICommon/Disassembler.h"
 
 CJitWindow::CJitWindow(wxWindow* parent, wxWindowID id, const wxPoint& pos,
-		const wxSize& size, long style, const wxString& name)
-: wxPanel(parent, id, pos, size, style, name)
+	const wxSize& size, long style, const wxString& name)
+	: wxPanel(parent, id, pos, size, style, name)
 {
-	wxBoxSizer* sizerBig   = new wxBoxSizer(wxVERTICAL);
+	wxBoxSizer* sizerBig = new wxBoxSizer(wxVERTICAL);
 	wxBoxSizer* sizerSplit = new wxBoxSizer(wxHORIZONTAL);
 	sizerSplit->Add(ppc_box = new wxTextCtrl(this, wxID_ANY, "(ppc)",
-				wxDefaultPosition, wxDefaultSize, wxTE_MULTILINE), 1, wxEXPAND);
+		wxDefaultPosition, wxDefaultSize, wxTE_MULTILINE), 1, wxEXPAND);
 	sizerSplit->Add(x86_box = new wxTextCtrl(this, wxID_ANY, "(x86)",
-				wxDefaultPosition, wxDefaultSize, wxTE_MULTILINE), 1, wxEXPAND);
+		wxDefaultPosition, wxDefaultSize, wxTE_MULTILINE), 1, wxEXPAND);
 	sizerBig->Add(block_list = new JitBlockList(this, wxID_ANY,
-				wxDefaultPosition, wxSize(100, 140),
-				wxLC_REPORT | wxSUNKEN_BORDER | wxLC_ALIGN_LEFT | wxLC_SINGLE_SEL | wxLC_SORT_ASCENDING),
-				0, wxEXPAND);
+		wxDefaultPosition, wxSize(100, 140),
+		wxLC_REPORT | wxSUNKEN_BORDER | wxLC_ALIGN_LEFT | wxLC_SINGLE_SEL | wxLC_SORT_ASCENDING),
+		0, wxEXPAND);
 	sizerBig->Add(sizerSplit, 2, wxEXPAND);
 
 	sizerBig->Add(button_refresh = new wxButton(this, wxID_ANY, _("&Refresh")));
@@ -114,14 +114,14 @@ void CJitWindow::Compare(u32 em_address)
 		ppc_disasm << st.numCycles << " estimated cycles" << std::endl;
 
 		ppc_disasm << "Num instr: PPC: " << code_block.m_num_instructions
-		           << " x86: " << host_instructions_count
-		           << " (blowup: " << 100 * host_instructions_count / code_block.m_num_instructions - 100
-		           << "%)" << std::endl;
+			<< " x86: " << host_instructions_count
+			<< " (blowup: " << 100 * host_instructions_count / code_block.m_num_instructions - 100
+			<< "%)" << std::endl;
 
 		ppc_disasm << "Num bytes: PPC: " << code_block.m_num_instructions * 4
-		           << " x86: " << host_code_size
-		           << " (blowup: " << 100 * host_code_size / (4 * code_block.m_num_instructions) - 100
-		           << "%)" << std::endl;
+			<< " x86: " << host_code_size
+			<< " (blowup: " << 100 * host_code_size / (4 * code_block.m_num_instructions) - 100
+			<< "%)" << std::endl;
 
 		ppc_box->SetValue(ppc_disasm.str());
 	}
@@ -141,9 +141,9 @@ void CJitWindow::OnHostMessage(wxCommandEvent& event)
 {
 	switch (event.GetId())
 	{
-		case IDM_NOTIFY_MAP_LOADED:
-			//NotifyMapLoaded();
-			break;
+	case IDM_NOTIFY_MAP_LOADED:
+		//NotifyMapLoaded();
+		break;
 	}
 }
 
@@ -162,7 +162,7 @@ enum
 };
 
 JitBlockList::JitBlockList(wxWindow* parent, const wxWindowID id,
-		const wxPoint& pos, const wxSize& size, long style)
+	const wxPoint& pos, const wxSize& size, long style)
 	: wxListCtrl(parent, id, pos, size, style) // | wxLC_VIRTUAL)
 {
 	Init();
@@ -180,5 +180,4 @@ void JitBlockList::Init()
 }
 
 void JitBlockList::Update()
-{
-}
+{}

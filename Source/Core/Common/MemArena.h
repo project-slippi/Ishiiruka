@@ -35,7 +35,8 @@ private:
 #endif
 };
 
-enum {
+enum
+{
 	MV_MIRROR_PREVIOUS = 1,
 	MV_FAKE_VMEM = 2,
 	MV_WII_ONLY = 4,

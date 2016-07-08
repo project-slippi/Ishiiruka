@@ -2,12 +2,13 @@
 // Licensed under GPLv2+
 // Refer to the license.txt file included.
 
-#include "Common/CommonTypes.h"
 #include "Core/HW/SI_DeviceDanceMat.h"
+#include "Common/CommonTypes.h"
 #include "InputCommon/GCPadStatus.h"
 
 CSIDevice_DanceMat::CSIDevice_DanceMat(SIDevices device, int _iDeviceNumber)
-	: CSIDevice_GCController(device, _iDeviceNumber) {}
+	: CSIDevice_GCController(device, _iDeviceNumber)
+{}
 
 int CSIDevice_DanceMat::RunBuffer(u8* _pBuffer, int _iLength)
 {

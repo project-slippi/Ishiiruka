@@ -62,8 +62,14 @@ public:
 	void EndAppendData();
 	void AddWrapObserver(bool* observer);
 
-	inline ID3D11Buffer* &GetBuffer() { return m_buf; }
-	inline int GetSize() const { return m_max_size; }
+	inline ID3D11Buffer* &GetBuffer()
+	{
+		return m_buf;
+	}
+	inline int GetSize() const
+	{
+		return m_max_size;
+	}
 private:
 	ID3D11Buffer* m_buf;
 	int m_offset;
@@ -83,8 +89,11 @@ public:
 	// returns vertex offset to the new data
 	void AppendData(void* data, int size);
 
-	inline ID3D11Buffer* &GetBuffer() { return  m_buf; }
-	inline D3D::BufferDescriptor GetDescriptor() 
+	inline ID3D11Buffer* &GetBuffer()
+	{
+		return  m_buf;
+	}
+	inline D3D::BufferDescriptor GetDescriptor()
 	{
 		return D3D::BufferDescriptor(m_buf, (m_offset - m_current_size) >> 4, ROUND_UP(m_current_size, 256) >> 4);
 	};
@@ -112,7 +121,7 @@ ID3D11SamplerState* GetLinearCopySampler();
 void drawShadedTexQuad(ID3D11ShaderResourceView* texture,
 	const D3D11_RECT* rSource,
 	int SourceWidth,
-	int SourceHeight,	
+	int SourceHeight,
 	ID3D11PixelShader* PShader,
 	ID3D11VertexShader* VShader,
 	ID3D11InputLayout* layout,

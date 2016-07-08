@@ -61,7 +61,9 @@ std::vector<std::string> cdio_get_devices()
 			}
 
 			// advance to next drive
-			while (*drive++) {}
+			while (*drive++)
+			{
+			}
 		}
 	}
 	return drives;
@@ -127,7 +129,8 @@ std::vector<std::string> cdio_get_devices()
 			}
 			CFRelease(str_bsd_path);
 			IOObjectRelease(next_media);
-		} while ((next_media = IOIteratorNext(media_iterator)) != 0);
+		}
+		while ((next_media = IOIteratorNext(media_iterator)) != 0);
 	}
 	IOObjectRelease(media_iterator);
 	return drives;
@@ -140,7 +143,7 @@ static struct
 	unsigned int num_min;
 	unsigned int num_max;
 } checklist[] =
-	{
+{
 #ifdef __linux__
 		{ "/dev/cdrom", 0, 0 },
 		{ "/dev/dvd", 0, 0 },
@@ -152,7 +155,7 @@ static struct
 		{ "/dev/cd%d", 0, 27 },
 #endif
 		{ nullptr, 0, 0 }
-	};
+};
 
 // Returns true if a device is a block or char device and not a symbolic link
 static bool is_device(const std::string& source_name)

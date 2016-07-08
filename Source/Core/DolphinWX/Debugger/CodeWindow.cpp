@@ -131,29 +131,29 @@ void CCodeWindow::OnHostMessage(wxCommandEvent& event)
 {
 	switch (event.GetId())
 	{
-		case IDM_NOTIFY_MAP_LOADED:
-			NotifyMapLoaded();
-			if (m_BreakpointWindow) m_BreakpointWindow->NotifyUpdate();
-			break;
+	case IDM_NOTIFY_MAP_LOADED:
+		NotifyMapLoaded();
+		if (m_BreakpointWindow) m_BreakpointWindow->NotifyUpdate();
+		break;
 
-		case IDM_UPDATE_DISASM_DIALOG:
-			Update();
-			if (codeview) codeview->Center(PC);
-			if (m_RegisterWindow) m_RegisterWindow->NotifyUpdate();
-			if (m_WatchWindow) m_WatchWindow->NotifyUpdate();
-			break;
+	case IDM_UPDATE_DISASM_DIALOG:
+		Update();
+		if (codeview) codeview->Center(PC);
+		if (m_RegisterWindow) m_RegisterWindow->NotifyUpdate();
+		if (m_WatchWindow) m_WatchWindow->NotifyUpdate();
+		break;
 
-		case IDM_UPDATE_BREAKPOINTS:
-			Update();
-			if (m_BreakpointWindow) m_BreakpointWindow->NotifyUpdate();
-			break;
+	case IDM_UPDATE_BREAKPOINTS:
+		Update();
+		if (m_BreakpointWindow) m_BreakpointWindow->NotifyUpdate();
+		break;
 
-		case IDM_UPDATE_JIT_PANE:
-			// Check if the JIT pane is in the AUI notebook. If not, add it and switch to it.
-			if (!m_JitWindow)
-				ToggleJitWindow(true);
-			m_JitWindow->ViewAddr(codeview->GetSelection());
-			break;
+	case IDM_UPDATE_JIT_PANE:
+		// Check if the JIT pane is in the AUI notebook. If not, add it and switch to it.
+		if (!m_JitWindow)
+			ToggleJitWindow(true);
+		m_JitWindow->ViewAddr(codeview->GetSelection());
+		break;
 	}
 }
 
@@ -162,35 +162,35 @@ void CCodeWindow::OnCodeStep(wxCommandEvent& event)
 {
 	switch (event.GetId())
 	{
-		case IDM_STEP:
-			SingleStep();
-			break;
+	case IDM_STEP:
+		SingleStep();
+		break;
 
-		case IDM_STEPOVER:
-			StepOver();
-			break;
+	case IDM_STEPOVER:
+		StepOver();
+		break;
 
-		case IDM_STEPOUT:
-			StepOut();
-			break;
+	case IDM_STEPOUT:
+		StepOut();
+		break;
 
-		case IDM_TOGGLE_BREAKPOINT:
-			ToggleBreakpoint();
-			break;
+	case IDM_TOGGLE_BREAKPOINT:
+		ToggleBreakpoint();
+		break;
 
-		case IDM_SKIP:
-			PC += 4;
-			Update();
-			break;
+	case IDM_SKIP:
+		PC += 4;
+		Update();
+		break;
 
-		case IDM_SETPC:
-			PC = codeview->GetSelection();
-			Update();
-			break;
+	case IDM_SETPC:
+		PC = codeview->GetSelection();
+		Update();
+		break;
 
-		case IDM_GOTOPC:
-			JumpToAddress(PC);
-			break;
+	case IDM_GOTOPC:
+		JumpToAddress(PC);
+		break;
 	}
 
 	UpdateButtonStates();
@@ -244,7 +244,7 @@ void CCodeWindow::OnAddrBoxChange(wxCommandEvent& event)
 
 void CCodeWindow::OnCallstackListChange(wxCommandEvent& event)
 {
-	int index   = callstack->GetSelection();
+	int index = callstack->GetSelection();
 	if (index >= 0)
 	{
 		u32 address = (u32)(u64)(callstack->GetClientData(index));
@@ -383,7 +383,7 @@ void CCodeWindow::UpdateLists()
 		if (caller_symbol)
 		{
 			int idx = callers->Append(StrToWxStr(StringFromFormat
-						("< %s (%08x)", caller_symbol->name.c_str(), caller_addr).c_str()));
+			("< %s (%08x)", caller_symbol->name.c_str(), caller_addr).c_str()));
 			callers->SetClientData(idx, (void*)(u64)caller_addr);
 		}
 	}
@@ -396,7 +396,7 @@ void CCodeWindow::UpdateLists()
 		if (call_symbol)
 		{
 			int idx = calls->Append(StrToWxStr(StringFromFormat
-						("> %s (%08x)", call_symbol->name.c_str(), call_addr).c_str()));
+			("> %s (%08x)", call_symbol->name.c_str(), call_addr).c_str()));
 			calls->SetClientData(idx, (void*)(u64)call_addr);
 		}
 	}
@@ -430,8 +430,8 @@ void CCodeWindow::CreateMenu(const SConfig& core_startup_parameter, wxMenuBar *p
 
 	wxMenuItem* interpreter = pCoreMenu->Append(IDM_INTERPRETER, _("&Interpreter core"),
 		_("This is necessary to get break points"
-		" and stepping to work as explained in the Developer Documentation. But it can be very"
-		" slow, perhaps slower than 1 fps."),
+			" and stepping to work as explained in the Developer Documentation. But it can be very"
+			" slow, perhaps slower than 1 fps."),
 		wxITEM_CHECK);
 	interpreter->Check(core_startup_parameter.iCPUCore == PowerPC::CORE_INTERPRETER);
 	pCoreMenu->AppendSeparator();
@@ -454,25 +454,25 @@ void CCodeWindow::CreateMenu(const SConfig& core_startup_parameter, wxMenuBar *p
 		_("Turn off all JIT functions, but still use the JIT core from Jit.cpp"),
 		wxITEM_CHECK);
 	pCoreMenu->Append(IDM_JIT_LS_OFF, _("&JIT LoadStore off"),
-			wxEmptyString, wxITEM_CHECK);
+		wxEmptyString, wxITEM_CHECK);
 	pCoreMenu->Append(IDM_JIT_LSLBZX_OFF, _("    &JIT LoadStore lbzx off"),
-			wxEmptyString, wxITEM_CHECK);
+		wxEmptyString, wxITEM_CHECK);
 	pCoreMenu->Append(IDM_JIT_LSLXZ_OFF, _("    &JIT LoadStore lXz off"),
-			wxEmptyString, wxITEM_CHECK);
+		wxEmptyString, wxITEM_CHECK);
 	pCoreMenu->Append(IDM_JIT_LSLWZ_OFF, _("&JIT LoadStore lwz off"),
-			wxEmptyString, wxITEM_CHECK);
+		wxEmptyString, wxITEM_CHECK);
 	pCoreMenu->Append(IDM_JIT_LSF_OFF, _("&JIT LoadStore Floating off"),
-			wxEmptyString, wxITEM_CHECK);
+		wxEmptyString, wxITEM_CHECK);
 	pCoreMenu->Append(IDM_JIT_LSP_OFF, _("&JIT LoadStore Paired off"),
-			wxEmptyString, wxITEM_CHECK);
+		wxEmptyString, wxITEM_CHECK);
 	pCoreMenu->Append(IDM_JIT_FP_OFF, _("&JIT FloatingPoint off"),
-			wxEmptyString, wxITEM_CHECK);
+		wxEmptyString, wxITEM_CHECK);
 	pCoreMenu->Append(IDM_JIT_I_OFF, _("&JIT Integer off"),
-			wxEmptyString, wxITEM_CHECK);
+		wxEmptyString, wxITEM_CHECK);
 	pCoreMenu->Append(IDM_JIT_P_OFF, _("&JIT Paired off"),
-			wxEmptyString, wxITEM_CHECK);
+		wxEmptyString, wxITEM_CHECK);
 	pCoreMenu->Append(IDM_JIT_SR_OFF, _("&JIT SystemRegisters off"),
-			wxEmptyString, wxITEM_CHECK);
+		wxEmptyString, wxITEM_CHECK);
 
 	pMenuBar->Append(pCoreMenu, _("&JIT"));
 
@@ -521,11 +521,11 @@ void CCodeWindow::CreateMenuOptions(wxMenu* pMenu)
 
 	wxMenuItem* automaticstart = pMenu->Append(IDM_AUTOMATIC_START, _("&Automatic start"),
 		_(
-		"Automatically load the Default ISO when Dolphin starts, or the last game you loaded,"
-		" if you have not given it an elf file with the --elf command line. [This can be"
-		" convenient if you are bug-testing with a certain game and want to rebuild"
-		" and retry it several times, either with changes to Dolphin or if you are"
-		" developing a homebrew game.]"),
+			"Automatically load the Default ISO when Dolphin starts, or the last game you loaded,"
+			" if you have not given it an elf file with the --elf command line. [This can be"
+			" convenient if you are bug-testing with a certain game and want to rebuild"
+			" and retry it several times, either with changes to Dolphin or if you are"
+			" developing a homebrew game.]"),
 		wxITEM_CHECK);
 	automaticstart->Check(bAutomaticStart);
 
@@ -537,48 +537,48 @@ void CCodeWindow::OnCPUMode(wxCommandEvent& event)
 {
 	switch (event.GetId())
 	{
-		case IDM_INTERPRETER:
-			PowerPC::SetMode(UseInterpreter() ? PowerPC::MODE_INTERPRETER : PowerPC::MODE_JIT);
-			break;
-		case IDM_BOOT_TO_PAUSE:
-			bBootToPause = !bBootToPause;
-			return;
-		case IDM_AUTOMATIC_START:
-			bAutomaticStart = !bAutomaticStart;
-			return;
-		case IDM_JIT_OFF:
-			SConfig::GetInstance().bJITOff = event.IsChecked();
-			break;
-		case IDM_JIT_LS_OFF:
-			SConfig::GetInstance().bJITLoadStoreOff = event.IsChecked();
-			break;
-		case IDM_JIT_LSLXZ_OFF:
-			SConfig::GetInstance().bJITLoadStorelXzOff = event.IsChecked();
-			break;
-		case IDM_JIT_LSLWZ_OFF:
-			SConfig::GetInstance().bJITLoadStorelwzOff = event.IsChecked();
-			break;
-		case IDM_JIT_LSLBZX_OFF:
-			SConfig::GetInstance().bJITLoadStorelbzxOff = event.IsChecked();
-			break;
-		case IDM_JIT_LSF_OFF:
-			SConfig::GetInstance().bJITLoadStoreFloatingOff = event.IsChecked();
-			break;
-		case IDM_JIT_LSP_OFF:
-			SConfig::GetInstance().bJITLoadStorePairedOff = event.IsChecked();
-			break;
-		case IDM_JIT_FP_OFF:
-			SConfig::GetInstance().bJITFloatingPointOff = event.IsChecked();
-			break;
-		case IDM_JIT_I_OFF:
-			SConfig::GetInstance().bJITIntegerOff = event.IsChecked();
-			break;
-		case IDM_JIT_P_OFF:
-			SConfig::GetInstance().bJITPairedOff = event.IsChecked();
-			break;
-		case IDM_JIT_SR_OFF:
-			SConfig::GetInstance().bJITSystemRegistersOff = event.IsChecked();
-			break;
+	case IDM_INTERPRETER:
+		PowerPC::SetMode(UseInterpreter() ? PowerPC::MODE_INTERPRETER : PowerPC::MODE_JIT);
+		break;
+	case IDM_BOOT_TO_PAUSE:
+		bBootToPause = !bBootToPause;
+		return;
+	case IDM_AUTOMATIC_START:
+		bAutomaticStart = !bAutomaticStart;
+		return;
+	case IDM_JIT_OFF:
+		SConfig::GetInstance().bJITOff = event.IsChecked();
+		break;
+	case IDM_JIT_LS_OFF:
+		SConfig::GetInstance().bJITLoadStoreOff = event.IsChecked();
+		break;
+	case IDM_JIT_LSLXZ_OFF:
+		SConfig::GetInstance().bJITLoadStorelXzOff = event.IsChecked();
+		break;
+	case IDM_JIT_LSLWZ_OFF:
+		SConfig::GetInstance().bJITLoadStorelwzOff = event.IsChecked();
+		break;
+	case IDM_JIT_LSLBZX_OFF:
+		SConfig::GetInstance().bJITLoadStorelbzxOff = event.IsChecked();
+		break;
+	case IDM_JIT_LSF_OFF:
+		SConfig::GetInstance().bJITLoadStoreFloatingOff = event.IsChecked();
+		break;
+	case IDM_JIT_LSP_OFF:
+		SConfig::GetInstance().bJITLoadStorePairedOff = event.IsChecked();
+		break;
+	case IDM_JIT_FP_OFF:
+		SConfig::GetInstance().bJITFloatingPointOff = event.IsChecked();
+		break;
+	case IDM_JIT_I_OFF:
+		SConfig::GetInstance().bJITIntegerOff = event.IsChecked();
+		break;
+	case IDM_JIT_P_OFF:
+		SConfig::GetInstance().bJITPairedOff = event.IsChecked();
+		break;
+	case IDM_JIT_SR_OFF:
+		SConfig::GetInstance().bJITSystemRegistersOff = event.IsChecked();
+		break;
 	}
 
 	// Clear the JIT cache to enable these changes
@@ -592,32 +592,32 @@ void CCodeWindow::OnJitMenu(wxCommandEvent& event)
 {
 	switch (event.GetId())
 	{
-		case IDM_LOG_INSTRUCTIONS:
-			PPCTables::LogCompiledInstructions();
-			break;
+	case IDM_LOG_INSTRUCTIONS:
+		PPCTables::LogCompiledInstructions();
+		break;
 
-		case IDM_CLEAR_CODE_CACHE:
-			JitInterface::ClearCache();
-			break;
+	case IDM_CLEAR_CODE_CACHE:
+		JitInterface::ClearCache();
+		break;
 
-		case IDM_SEARCH_INSTRUCTION:
+	case IDM_SEARCH_INSTRUCTION:
+	{
+		wxString str = wxGetTextFromUser("", _("Op?"), wxEmptyString, this);
+		auto const wx_name = WxStrToStr(str);
+		bool found = false;
+		for (u32 addr = 0x80000000; addr < 0x80180000; addr += 4)
 		{
-			wxString str = wxGetTextFromUser("", _("Op?"), wxEmptyString, this);
-			auto const wx_name = WxStrToStr(str);
-			bool found = false;
-			for (u32 addr = 0x80000000; addr < 0x80180000; addr += 4)
+			const char *name = PPCTables::GetInstructionName(PowerPC::HostRead_U32(addr));
+			if (name && (wx_name == name))
 			{
-				const char *name = PPCTables::GetInstructionName(PowerPC::HostRead_U32(addr));
-				if (name && (wx_name == name))
-				{
-					NOTICE_LOG(POWERPC, "Found %s at %08x", wx_name.c_str(), addr);
-					found = true;
-				}
+				NOTICE_LOG(POWERPC, "Found %s at %08x", wx_name.c_str(), addr);
+				found = true;
 			}
-			if (!found)
-				NOTICE_LOG(POWERPC, "Opcode %s not found", wx_name.c_str());
-			break;
 		}
+		if (!found)
+			NOTICE_LOG(POWERPC, "Opcode %s not found", wx_name.c_str());
+		break;
+	}
 	}
 }
 
@@ -664,13 +664,13 @@ void CCodeWindow::PopulateToolbar(wxToolBar* toolBar)
 		h = m_Bitmaps[0].GetHeight();
 
 	toolBar->SetToolBitmapSize(wxSize(w, h));
-	WxUtils::AddToolbarButton(toolBar, IDM_STEP,     _("Step"),      m_Bitmaps[Toolbar_Step],     _("Step into the next instruction"));
+	WxUtils::AddToolbarButton(toolBar, IDM_STEP, _("Step"), m_Bitmaps[Toolbar_Step], _("Step into the next instruction"));
 	WxUtils::AddToolbarButton(toolBar, IDM_STEPOVER, _("Step Over"), m_Bitmaps[Toolbar_StepOver], _("Step over the next instruction"));
-	WxUtils::AddToolbarButton(toolBar, IDM_STEPOUT,  _("Step Out"),  m_Bitmaps[Toolbar_StepOut],  _("Step out of the current function"));
-	WxUtils::AddToolbarButton(toolBar, IDM_SKIP,     _("Skip"),      m_Bitmaps[Toolbar_Skip],     _("Skips the next instruction completely"));
+	WxUtils::AddToolbarButton(toolBar, IDM_STEPOUT, _("Step Out"), m_Bitmaps[Toolbar_StepOut], _("Step out of the current function"));
+	WxUtils::AddToolbarButton(toolBar, IDM_SKIP, _("Skip"), m_Bitmaps[Toolbar_Skip], _("Skips the next instruction completely"));
 	toolBar->AddSeparator();
-	WxUtils::AddToolbarButton(toolBar, IDM_GOTOPC,   _("Show PC"),   m_Bitmaps[Toolbar_GotoPC],   _("Go to the current instruction"));
-	WxUtils::AddToolbarButton(toolBar, IDM_SETPC,    _("Set PC"),    m_Bitmaps[Toolbar_SetPC],    _("Set the current instruction"));
+	WxUtils::AddToolbarButton(toolBar, IDM_GOTOPC, _("Show PC"), m_Bitmaps[Toolbar_GotoPC], _("Go to the current instruction"));
+	WxUtils::AddToolbarButton(toolBar, IDM_SETPC, _("Set PC"), m_Bitmaps[Toolbar_SetPC], _("Set the current instruction"));
 }
 
 // Update GUI

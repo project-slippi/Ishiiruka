@@ -14,7 +14,7 @@ class NetPlayServer;
 class Player;
 class wxChoice;
 
-class PadMapDialog final : public wxDialog
+class PadMapDialog final: public wxDialog
 {
 public:
 	PadMapDialog(wxWindow* parent, NetPlayServer* server, NetPlayClient* client);

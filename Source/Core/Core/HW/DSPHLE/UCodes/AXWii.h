@@ -8,13 +8,13 @@
 
 struct AXPBWii;
 
-class AXWiiUCode : public AXUCode
+class AXWiiUCode: public AXUCode
 {
 public:
-	AXWiiUCode(DSPHLE *dsphle, u32 crc);
+	AXWiiUCode(DSPHLE* dsphle, u32 crc);
 	virtual ~AXWiiUCode();
 
-	void DoState(PointerWrap &p) override;
+	void DoState(PointerWrap& p) override;
 
 protected:
 	// Additional AUX buffers
@@ -42,8 +42,7 @@ protected:
 
 	// If needed, extract the updates related fields from a PB. We need to
 	// reinject them afterwards so that the correct PB typs is written to RAM.
-	bool ExtractUpdatesFields(AXPBWii& pb, u16* num_updates, u16* updates,
-	                          u32* updates_addr);
+	bool ExtractUpdatesFields(AXPBWii& pb, u16* num_updates, u16* updates, u32* updates_addr);
 	void ReinjectUpdatesFields(AXPBWii& pb, u16* num_updates, u32 updates_addr);
 
 	// Convert a mixer_control bitfield to our internal representation for that
@@ -64,28 +63,27 @@ protected:
 	void ProcessPBList(u32 pb_addr);
 	void MixAUXSamples(int aux_id, u32 write_addr, u32 read_addr, u16 volume);
 	void UploadAUXMixLRSC(int aux_id, u32* addresses, u16 volume);
-	void OutputSamples(u32 lr_addr, u32 surround_addr, u16 volume,
-	                   bool upload_auxc);
-	void OutputWMSamples(u32* addresses); // 4 addresses
+	void OutputSamples(u32 lr_addr, u32 surround_addr, u16 volume, bool upload_auxc);
+	void OutputWMSamples(u32* addresses);  // 4 addresses
 
 private:
 	enum CmdType
 	{
-		CMD_SETUP             = 0x00,
-		CMD_ADD_TO_LR         = 0x01,
-		CMD_SUB_TO_LR         = 0x02,
-		CMD_ADD_SUB_TO_LR     = 0x03,
-		CMD_PROCESS           = 0x04,
-		CMD_MIX_AUXA          = 0x05,
-		CMD_MIX_AUXB          = 0x06,
-		CMD_MIX_AUXC          = 0x07,
+		CMD_SETUP = 0x00,
+		CMD_ADD_TO_LR = 0x01,
+		CMD_SUB_TO_LR = 0x02,
+		CMD_ADD_SUB_TO_LR = 0x03,
+		CMD_PROCESS = 0x04,
+		CMD_MIX_AUXA = 0x05,
+		CMD_MIX_AUXB = 0x06,
+		CMD_MIX_AUXC = 0x07,
 		CMD_UPL_AUXA_MIX_LRSC = 0x08,
 		CMD_UPL_AUXB_MIX_LRSC = 0x09,
-		CMD_UNK_0A            = 0x0A,
-		CMD_OUTPUT            = 0x0B,
-		CMD_OUTPUT_DPL2       = 0x0C,
-		CMD_WM_OUTPUT         = 0x0D,
-		CMD_END               = 0x0E,
+		CMD_UNK_0A = 0x0A,
+		CMD_OUTPUT = 0x0B,
+		CMD_OUTPUT_DPL2 = 0x0C,
+		CMD_WM_OUTPUT = 0x0D,
+		CMD_END = 0x0E,
 	};
 
 	// A lot of these are similar to the new version, but there is an offset in
@@ -93,21 +91,21 @@ private:
 	// new AXWii).
 	enum CmdTypeOld
 	{
-		CMD_SETUP_OLD             = 0x00,
-		CMD_ADD_TO_LR_OLD         = 0x01,
-		CMD_SUB_TO_LR_OLD         = 0x02,
-		CMD_ADD_SUB_TO_LR_OLD     = 0x03,
-		CMD_PB_ADDR_OLD           = 0x04,
-		CMD_PROCESS_OLD           = 0x05,
-		CMD_MIX_AUXA_OLD          = 0x06,
-		CMD_MIX_AUXB_OLD          = 0x07,
-		CMD_MIX_AUXC_OLD          = 0x08,
+		CMD_SETUP_OLD = 0x00,
+		CMD_ADD_TO_LR_OLD = 0x01,
+		CMD_SUB_TO_LR_OLD = 0x02,
+		CMD_ADD_SUB_TO_LR_OLD = 0x03,
+		CMD_PB_ADDR_OLD = 0x04,
+		CMD_PROCESS_OLD = 0x05,
+		CMD_MIX_AUXA_OLD = 0x06,
+		CMD_MIX_AUXB_OLD = 0x07,
+		CMD_MIX_AUXC_OLD = 0x08,
 		CMD_UPL_AUXA_MIX_LRSC_OLD = 0x09,
 		CMD_UPL_AUXB_MIX_LRSC_OLD = 0x0a,
-		CMD_UNK_0B_OLD            = 0x0B,
-		CMD_OUTPUT_OLD            = 0x0C, // no volume!
-		CMD_OUTPUT_DPL2_OLD       = 0x0D,
-		CMD_WM_OUTPUT_OLD         = 0x0E,
-		CMD_END_OLD               = 0x0F
+		CMD_UNK_0B_OLD = 0x0B,
+		CMD_OUTPUT_OLD = 0x0C,  // no volume!
+		CMD_OUTPUT_DPL2_OLD = 0x0D,
+		CMD_WM_OUTPUT_OLD = 0x0E,
+		CMD_END_OLD = 0x0F
 	};
 };

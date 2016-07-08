@@ -41,14 +41,18 @@
 namespace SW
 {
 
-class PerfQuery : public PerfQueryBase
+class PerfQuery: public PerfQueryBase
 {
 public:
-	PerfQuery() {}
-	~PerfQuery() {}
+	PerfQuery()
+	{}
+	~PerfQuery()
+	{}
 
-	void EnableQuery(PerfQueryGroup type) override {}
-	void DisableQuery(PerfQueryGroup type) override {}
+	void EnableQuery(PerfQueryGroup type) override
+	{}
+	void DisableQuery(PerfQueryGroup type) override
+	{}
 	void ResetQuery() override
 	{
 		memset(EfbInterface::perf_values, 0, sizeof(EfbInterface::perf_values));
@@ -57,42 +61,62 @@ public:
 	{
 		return EfbInterface::perf_values[type];
 	};
-	void FlushResults() override {}
-	bool IsFlushed() const override { return true; };
+	void FlushResults() override
+	{}
+	bool IsFlushed() const override
+	{
+		return true;
+	};
 };
 
-class TextureCache : public TextureCacheBase
+class TextureCache: public TextureCacheBase
 {
 public:
 	virtual PC_TexFormat GetNativeTextureFormat(const s32 texformat,
-		const TlutFormat tlutfmt, u32 width, u32 height) override {
+		const TlutFormat tlutfmt, u32 width, u32 height) override
+	{
 		return PC_TexFormat::PC_TEX_FMT_RGBA32;
 	};
-	void CompileShaders() override {};
-	void DeleteShaders() override {};
-	bool Palettize(TCacheEntryBase* entry, const TCacheEntryBase* base_entry) override { return false; }
+	void CompileShaders() override
+	{};
+	void DeleteShaders() override
+	{};
+	bool Palettize(TCacheEntryBase* entry, const TCacheEntryBase* base_entry) override
+	{
+		return false;
+	}
 	void CopyEFB(u8* dst, u32 format, u32 native_width, u32 bytes_per_row, u32 num_blocks_y, u32 memory_stride,
 		PEControl::PixelFormat srcFormat, const EFBRectangle& srcRect,
 		bool isIntensity, bool scaleByHalf) override
 	{
 		EfbCopy::CopyEfb();
 	}
-	void LoadLut(u32 lutFmt, void* addr, u32 size) override {}
+	void LoadLut(u32 lutFmt, void* addr, u32 size) override
+	{}
 
 private:
-	struct TCacheEntry : TCacheEntryBase
+	struct TCacheEntry: TCacheEntryBase
 	{
-		TCacheEntry(const TCacheEntryConfig& _config) : TCacheEntryBase(_config) {}
-		~TCacheEntry() {}
+		TCacheEntry(const TCacheEntryConfig& _config): TCacheEntryBase(_config)
+		{}
+		~TCacheEntry()
+		{}
 
 		void Load(const u8* src, u32 width, u32 height,
-			u32 expanded_width, u32 level) override {}
-		void LoadMaterialMap(const u8* src, u32 width, u32 height, u32 level) override {}
+			u32 expanded_width, u32 level) override
+		{}
+		void LoadMaterialMap(const u8* src, u32 width, u32 height, u32 level) override
+		{}
 		void Load(const u8* src, u32 width, u32 height, u32 expandedWidth,
-			u32 expandedHeight, const s32 texformat, const u32 tlutaddr, const TlutFormat tlutfmt, u32 level) override {}
+			u32 expandedHeight, const s32 texformat, const u32 tlutaddr, const TlutFormat tlutfmt, u32 level) override
+		{}
 		void LoadFromTmem(const u8* ar_src, const u8* gb_src, u32 width, u32 height,
-			u32 expanded_width, u32 expanded_Height, u32 level) override {}
-		bool SupportsMaterialMap() const override { return false; }
+			u32 expanded_width, u32 expanded_Height, u32 level) override
+		{}
+		bool SupportsMaterialMap() const override
+		{
+			return false;
+		}
 
 		void FromRenderTarget(u8* dst, PEControl::PixelFormat srcFormat, const EFBRectangle& srcRect,
 			bool scaleByHalf, unsigned int cbufid, const float *colmat) override
@@ -103,11 +127,16 @@ private:
 		void CopyRectangleFromTexture(
 			const TCacheEntryBase* source,
 			const MathUtil::Rectangle<int>& srcrect,
-			const MathUtil::Rectangle<int>& dstrect) override {}
+			const MathUtil::Rectangle<int>& dstrect) override
+		{}
 
-		void Bind(u32 stage, u32 last_texture) override {}
+		void Bind(u32 stage, u32 last_texture) override
+		{}
 
-		bool Save(const std::string& filename, unsigned int level) override { return false; }
+		bool Save(const std::string& filename, unsigned int level) override
+		{
+			return false;
+		}
 	};
 
 	TCacheEntryBase* CreateTexture(const TCacheEntryConfig& config) override
@@ -116,16 +145,22 @@ private:
 	}
 };
 
-class XFBSource : public XFBSourceBase
+class XFBSource: public XFBSourceBase
 {
-	void DecodeToTexture(u32 xfbAddr, u32 fbWidth, u32 fbHeight) override {}
-	void CopyEFB(float Gamma) override {}
+	void DecodeToTexture(u32 xfbAddr, u32 fbWidth, u32 fbHeight) override
+	{}
+	void CopyEFB(float Gamma) override
+	{}
 };
 
-class FramebufferManager : public FramebufferManagerBase
+class FramebufferManager: public FramebufferManagerBase
 {
-	std::unique_ptr<XFBSourceBase> CreateXFBSource(unsigned int target_width, unsigned int target_height, unsigned int layers) override { return std::make_unique<XFBSource>(); }
-	void GetTargetSize(unsigned int* width, unsigned int* height) override {};
+	std::unique_ptr<XFBSourceBase> CreateXFBSource(unsigned int target_width, unsigned int target_height, unsigned int layers) override
+	{
+		return std::make_unique<XFBSource>();
+	}
+	void GetTargetSize(unsigned int* width, unsigned int* height) override
+	{};
 	void CopyToRealXFB(u32 xfbAddr, u32 fbStride, u32 fbHeight, const EFBRectangle& sourceRc, float Gamma = 1.0f) override
 	{
 		EfbCopy::CopyEfb();
@@ -142,7 +177,7 @@ std::string VideoSoftware::GetDisplayName() const
 	return "Software Renderer";
 }
 
-static void InitBackendInfo()
+void VideoSoftware::InitBackendInfo()
 {
 	g_Config.backend_info.APIType = API_NONE;
 	g_Config.backend_info.bSupports3DVision = false;
@@ -152,13 +187,6 @@ static void InitBackendInfo()
 
 	// aamodes
 	g_Config.backend_info.AAModes = {1};
-}
-
-void VideoSoftware::ShowConfig(void *hParent)
-{
-	if (!m_initialized)
-		InitBackendInfo();
-	Host_ShowVideoConfig(hParent, GetDisplayName(), "gfx_software");
 }
 
 bool VideoSoftware::Initialize(void *window_handle)
@@ -211,11 +239,8 @@ void VideoSoftware::Video_Cleanup()
 		VertexLoaderManager::Shutdown();
 		g_framebuffer_manager.reset();
 		g_texture_cache.reset();
-		VertexShaderManager::Shutdown();
-		PixelShaderManager::Shutdown();
 		g_perf_query.reset();
 		g_vertex_manager.reset();
-		OpcodeDecoder::Shutdown();
 		g_renderer.reset();
 	}
 }

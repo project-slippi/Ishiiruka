@@ -45,7 +45,7 @@
 #define C_PENVCONST_END (C_PPHONG + 2)
 #define C_PCONST_END    (C_PMATERIALS)
 // Different ways to achieve rendering with destination alpha
-enum PIXEL_SHADER_RENDER_MODE : unsigned int
+enum PIXEL_SHADER_RENDER_MODE: unsigned int
 {
 	PSRM_DEFAULT = 0, // Render normally, without destination alpha
 	PSRM_ALPHA_PASS = 1, // Render normally first, then render again for alpha
@@ -89,8 +89,14 @@ union stage_hash_data
 
 struct pixel_shader_uid_data
 {
-	u32 NumValues() const { return sizeof(pixel_shader_uid_data) - (sizeof(stage_hash_data) * (16 - (genMode_numtevstages + 1))); }
-	u32 StartValue() const { return pixel_lighting ? 0 : sizeof(LightingUidData); }
+	u32 NumValues() const
+	{
+		return sizeof(pixel_shader_uid_data) - (sizeof(stage_hash_data) * (16 - (genMode_numtevstages + 1)));
+	}
+	u32 StartValue() const
+	{
+		return pixel_lighting ? 0 : sizeof(LightingUidData);
+	}
 
 	// TODO: Optimize field order for easy access!
 	LightingUidData lighting;
@@ -102,7 +108,7 @@ struct pixel_shader_uid_data
 	u32 stereo : 1;
 	u32 msaa : 1;
 	u32 ssaa : 1;
-	u32 numColorChans : 2; 
+	u32 numColorChans : 2;
 	u32 late_ztest : 1;
 	u32 pad0 : 12;
 
@@ -143,25 +149,63 @@ struct pixel_shader_uid_data
 
 	inline void SetTevindrefValues(int index, u32 texcoord, u32 texmap)
 	{
-		if (index == 0) { tevindref_bc0 = texcoord; tevindref_bi0 = texmap; }
-		else if (index == 1) { tevindref_bc1 = texcoord; tevindref_bi1 = texmap; }
-		else if (index == 2) { tevindref_bc3 = texcoord; tevindref_bi2 = texmap; }
-		else if (index == 3) { tevindref_bc4 = texcoord; tevindref_bi4 = texmap; }
+		if (index == 0)
+		{
+			tevindref_bc0 = texcoord; tevindref_bi0 = texmap;
+		}
+		else if (index == 1)
+		{
+			tevindref_bc1 = texcoord; tevindref_bi1 = texmap;
+		}
+		else if (index == 2)
+		{
+			tevindref_bc3 = texcoord; tevindref_bi2 = texmap;
+		}
+		else if (index == 3)
+		{
+			tevindref_bc4 = texcoord; tevindref_bi4 = texmap;
+		}
 	}
 
-	inline u32 GetTevindirefCoord(int index) const {
-		if (index == 0) { return tevindref_bc0; }
-		else if (index == 1) { return tevindref_bc1; }
-		else if (index == 2) { return tevindref_bc3; }
-		else if (index == 3) { return tevindref_bc4; }
+	inline u32 GetTevindirefCoord(int index) const
+	{
+		if (index == 0)
+		{
+			return tevindref_bc0;
+		}
+		else if (index == 1)
+		{
+			return tevindref_bc1;
+		}
+		else if (index == 2)
+		{
+			return tevindref_bc3;
+		}
+		else if (index == 3)
+		{
+			return tevindref_bc4;
+		}
 		return 0;
 	}
 
-	inline u32 GetTevindirefMap(int index) const {
-		if (index == 0) { return tevindref_bi0; }
-		else if (index == 1) { return tevindref_bi1; }
-		else if (index == 2) { return tevindref_bi2; }
-		else if (index == 3) { return tevindref_bi4; }
+	inline u32 GetTevindirefMap(int index) const
+	{
+		if (index == 0)
+		{
+			return tevindref_bi0;
+		}
+		else if (index == 1)
+		{
+			return tevindref_bi1;
+		}
+		else if (index == 2)
+		{
+			return tevindref_bi2;
+		}
+		else if (index == 3)
+		{
+			return tevindref_bi4;
+		}
 		return 0;
 	}
 };

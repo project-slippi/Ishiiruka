@@ -42,7 +42,7 @@ struct TMemCheck
 
 	// returns whether to break
 	bool Action(DebugInterface* dbg_interface, u32 _iValue, u32 addr,
-	            bool write, int size, u32 pc);
+		bool write, int size, u32 pc);
 };
 
 struct TWatch
@@ -59,7 +59,10 @@ public:
 	typedef std::vector<TBreakPoint> TBreakPoints;
 	typedef std::vector<std::string> TBreakPointsStr;
 
-	const TBreakPoints& GetBreakPoints() { return m_BreakPoints; }
+	const TBreakPoints& GetBreakPoints()
+	{
+		return m_BreakPoints;
+	}
 
 	TBreakPointsStr GetStrings() const;
 	void AddFromStrings(const TBreakPointsStr& bps);
@@ -91,7 +94,10 @@ public:
 
 	TMemChecks m_MemChecks;
 
-	const TMemChecks& GetMemChecks() { return m_MemChecks; }
+	const TMemChecks& GetMemChecks()
+	{
+		return m_MemChecks;
+	}
 
 	TMemChecksStr GetStrings() const;
 	void AddFromStrings(const TMemChecksStr& mcs);
@@ -102,9 +108,15 @@ public:
 	TMemCheck* GetMemCheck(u32 address);
 	void Remove(u32 _Address);
 
-	void Clear() { m_MemChecks.clear(); }
+	void Clear()
+	{
+		m_MemChecks.clear();
+	}
 
-	bool HasAny() const { return !m_MemChecks.empty(); }
+	bool HasAny() const
+	{
+		return !m_MemChecks.empty();
+	}
 };
 
 class Watches
@@ -113,7 +125,10 @@ public:
 	typedef std::vector<TWatch> TWatches;
 	typedef std::vector<std::string> TWatchesStr;
 
-	const TWatches& GetWatches() { return m_Watches; }
+	const TWatches& GetWatches()
+	{
+		return m_Watches;
+	}
 
 	TWatchesStr GetStrings() const;
 	void AddFromStrings(const TWatchesStr& bps);

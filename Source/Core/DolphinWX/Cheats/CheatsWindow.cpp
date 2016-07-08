@@ -43,7 +43,7 @@
 
 wxDEFINE_EVENT(DOLPHIN_EVT_ADD_NEW_ACTION_REPLAY_CODE, wxCommandEvent);
 
-struct wxCheatsWindow::CodeData : public wxClientData
+struct wxCheatsWindow::CodeData: public wxClientData
 {
 	ActionReplay::ARCode code;
 };
@@ -196,7 +196,7 @@ void wxCheatsWindow::Load_ARCodes()
 		CodeData* cd = new CodeData();
 		cd->code = std::move(code);
 		int index = m_checklistbox_cheats_list->Append(wxCheckListBox::EscapeMnemonics(StrToWxStr(cd->code.name)),
-		                                               cd);
+			cd);
 		m_checklistbox_cheats_list->Check(index, cd->code.active);
 	}
 	m_checklistbox_cheats_list->Thaw();
@@ -215,7 +215,7 @@ void wxCheatsWindow::OnNewARCodeCreated(wxCommandEvent& ev)
 	CodeData* cd = new CodeData();
 	cd->code = *code;
 	int idx = m_checklistbox_cheats_list->Append(wxCheckListBox::EscapeMnemonics(StrToWxStr(code->name)),
-	                                             cd);
+		cd);
 	m_checklistbox_cheats_list->Check(idx, code->active);
 }
 

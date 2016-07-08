@@ -41,15 +41,15 @@
 // A struct for IOS ioctlv calls
 struct SIOCtlVBuffer
 {
-	SIOCtlVBuffer(u32 _Address) : m_Address(_Address)
+	SIOCtlVBuffer(u32 _Address): m_Address(_Address)
 	{
 		// These are the Ioctlv parameters in the IOS communication. The BufferVector
 		// is a memory address offset at where the in and out buffer addresses are
 		// stored.
-		Parameter           = Memory::Read_U32(m_Address + 0x0C); // command 3, arg0
-		NumberInBuffer      = Memory::Read_U32(m_Address + 0x10); // 4, arg1
+		Parameter = Memory::Read_U32(m_Address + 0x0C); // command 3, arg0
+		NumberInBuffer = Memory::Read_U32(m_Address + 0x10); // 4, arg1
 		NumberPayloadBuffer = Memory::Read_U32(m_Address + 0x14); // 5, arg2
-		BufferVector        = Memory::Read_U32(m_Address + 0x18); // 6, arg3
+		BufferVector = Memory::Read_U32(m_Address + 0x18); // 6, arg3
 
 		// The start of the out buffer
 		u32 BufferVectorOffset = BufferVector;
@@ -60,11 +60,11 @@ struct SIOCtlVBuffer
 			SBuffer Buffer;
 			Buffer.m_Address = Memory::Read_U32(BufferVectorOffset);
 			BufferVectorOffset += 4;
-			Buffer.m_Size    = Memory::Read_U32(BufferVectorOffset);
+			Buffer.m_Size = Memory::Read_U32(BufferVectorOffset);
 			BufferVectorOffset += 4;
 			InBuffer.push_back(Buffer);
 			DEBUG_LOG(WII_IPC_HLE, "SIOCtlVBuffer in%i: 0x%08x, 0x%x",
-						i, Buffer.m_Address, Buffer.m_Size);
+				i, Buffer.m_Address, Buffer.m_Size);
 		}
 
 		// Write the address and size for all out or in-out messages
@@ -73,11 +73,11 @@ struct SIOCtlVBuffer
 			SBuffer Buffer;
 			Buffer.m_Address = Memory::Read_U32(BufferVectorOffset);
 			BufferVectorOffset += 4;
-			Buffer.m_Size    = Memory::Read_U32(BufferVectorOffset);
+			Buffer.m_Size = Memory::Read_U32(BufferVectorOffset);
 			BufferVectorOffset += 4;
 			PayloadBuffer.push_back(Buffer);
 			DEBUG_LOG(WII_IPC_HLE, "SIOCtlVBuffer io%i: 0x%08x, 0x%x",
-						i, Buffer.m_Address, Buffer.m_Size);
+				i, Buffer.m_Address, Buffer.m_Size);
 		}
 	}
 
@@ -88,7 +88,10 @@ struct SIOCtlVBuffer
 	u32 NumberPayloadBuffer;
 	u32 BufferVector;
 
-	struct SBuffer { u32 m_Address, m_Size; };
+	struct SBuffer
+	{
+		u32 m_Address, m_Size;
+	};
 	std::vector<SBuffer> InBuffer;
 	std::vector<SBuffer> PayloadBuffer;
 };
@@ -97,22 +100,19 @@ class IWII_IPC_HLE_Device
 {
 public:
 
-	IWII_IPC_HLE_Device(u32 _DeviceID, const std::string& _rName, bool _Hardware = true) :
+	IWII_IPC_HLE_Device(u32 _DeviceID, const std::string& _rName, bool _Hardware = true):
 		m_Name(_rName),
 		m_DeviceID(_DeviceID),
 		m_Hardware(_Hardware),
 		m_Active(false)
-	{
-	}
+	{}
 
 	virtual ~IWII_IPC_HLE_Device()
-	{
-	}
+	{}
 
 	// Release any resources which might interfere with savestating.
 	virtual void PrepareForState(PointerWrap::Mode mode)
-	{
-	}
+	{}
 
 	virtual void DoState(PointerWrap& p)
 	{
@@ -122,8 +122,14 @@ public:
 
 	void DoStateShared(PointerWrap& p);
 
-	const std::string& GetDeviceName() const { return m_Name; }
-	u32 GetDeviceID() const { return m_DeviceID; }
+	const std::string& GetDeviceName() const
+	{
+		return m_Name;
+	}
+	u32 GetDeviceID() const
+	{
+		return m_DeviceID;
+	}
 
 	virtual IPCCommandResult Open(u32 _CommandAddress, u32 _Mode)
 	{
@@ -144,22 +150,52 @@ public:
 	}
 
 #define UNIMPLEMENTED_CMD(cmd) WARN_LOG(WII_IPC_HLE, "%s does not support "#cmd"()", m_Name.c_str()); return GetDefaultReply();
-	virtual IPCCommandResult Seek(u32)   { UNIMPLEMENTED_CMD(Seek) }
-	virtual IPCCommandResult Read(u32)   { UNIMPLEMENTED_CMD(Read) }
-	virtual IPCCommandResult Write(u32)  { UNIMPLEMENTED_CMD(Write) }
-	virtual IPCCommandResult IOCtl(u32)  { UNIMPLEMENTED_CMD(IOCtl) }
-	virtual IPCCommandResult IOCtlV(u32) { UNIMPLEMENTED_CMD(IOCtlV) }
+	virtual IPCCommandResult Seek(u32)
+	{
+		UNIMPLEMENTED_CMD(Seek)
+	}
+	virtual IPCCommandResult Read(u32)
+	{
+		UNIMPLEMENTED_CMD(Read)
+	}
+	virtual IPCCommandResult Write(u32)
+	{
+		UNIMPLEMENTED_CMD(Write)
+	}
+	virtual IPCCommandResult IOCtl(u32)
+	{
+		UNIMPLEMENTED_CMD(IOCtl)
+	}
+	virtual IPCCommandResult IOCtlV(u32)
+	{
+		UNIMPLEMENTED_CMD(IOCtlV)
+	}
 #undef UNIMPLEMENTED_CMD
 
-	virtual u32 Update() { return 0; }
+	virtual u32 Update()
+	{
+		return 0;
+	}
 
-	virtual bool IsHardware() { return m_Hardware; }
-	virtual bool IsOpened() { return m_Active; }
+	virtual bool IsHardware()
+	{
+		return m_Hardware;
+	}
+	virtual bool IsOpened()
+	{
+		return m_Active;
+	}
 
 	// Returns an IPCCommandResult for a reply that takes 250 us (arbitrarily chosen value)
-	static IPCCommandResult GetDefaultReply() { return { true, SystemTimers::GetTicksPerSecond() / 4000 }; }
+	static IPCCommandResult GetDefaultReply()
+	{
+		return{true, SystemTimers::GetTicksPerSecond() / 4000};
+	}
 	// Returns an IPCCommandResult with no reply. Useful for async commands that will generate a reply later
-	static IPCCommandResult GetNoReply() { return { false, 0 }; }
+	static IPCCommandResult GetNoReply()
+	{
+		return{false, 0};
+	}
 
 	std::string m_Name;
 protected:
@@ -176,11 +212,11 @@ protected:
 		LogTypes::LOG_LEVELS Verbosity = LogTypes::LDEBUG)
 	{
 		GENERIC_LOG(LogType, Verbosity, "CommandDump of %s",
-					GetDeviceName().c_str());
+			GetDeviceName().c_str());
 		for (u32 i = 0; i < _NumberOfCommands; i++)
 		{
 			GENERIC_LOG(LogType, Verbosity, "    Command%02i: 0x%08x", i,
-						Memory::Read_U32(_CommandAddress + i*4));
+				Memory::Read_U32(_CommandAddress + i * 4));
 		}
 	}
 
@@ -193,8 +229,8 @@ protected:
 		u32 BufferOffset = BufferVector;
 		for (u32 i = 0; i < NumberInBuffer; i++)
 		{
-			u32 InBuffer        = Memory::Read_U32(BufferOffset); BufferOffset += 4;
-			u32 InBufferSize    = Memory::Read_U32(BufferOffset); BufferOffset += 4;
+			u32 InBuffer = Memory::Read_U32(BufferOffset); BufferOffset += 4;
+			u32 InBufferSize = Memory::Read_U32(BufferOffset); BufferOffset += 4;
 
 			GENERIC_LOG(LogType, LogTypes::LINFO, "%s - IOCtlV InBuffer[%i]:",
 				GetDeviceName().c_str(), i);
@@ -202,7 +238,7 @@ protected:
 			std::string Temp;
 			for (u32 j = 0; j < InBufferSize; j++)
 			{
-				Temp += StringFromFormat("%02x ", Memory::Read_U8(InBuffer+j));
+				Temp += StringFromFormat("%02x ", Memory::Read_U8(InBuffer + j));
 			}
 
 			GENERIC_LOG(LogType, LogTypes::LDEBUG, "    Buffer: %s", Temp.c_str());
@@ -210,8 +246,8 @@ protected:
 
 		for (u32 i = 0; i < NumberOutBuffer; i++)
 		{
-			u32 OutBuffer        = Memory::Read_U32(BufferOffset); BufferOffset += 4;
-			u32 OutBufferSize    = Memory::Read_U32(BufferOffset); BufferOffset += 4;
+			u32 OutBuffer = Memory::Read_U32(BufferOffset); BufferOffset += 4;
+			u32 OutBufferSize = Memory::Read_U32(BufferOffset); BufferOffset += 4;
 
 			GENERIC_LOG(LogType, LogTypes::LINFO, "%s - IOCtlV OutBuffer[%i]:",
 				GetDeviceName().c_str(), i);
@@ -224,13 +260,12 @@ protected:
 	}
 };
 
-class CWII_IPC_HLE_Device_stub : public IWII_IPC_HLE_Device
+class CWII_IPC_HLE_Device_stub: public IWII_IPC_HLE_Device
 {
 public:
 	CWII_IPC_HLE_Device_stub(u32 DeviceID, const std::string& Name)
 		: IWII_IPC_HLE_Device(DeviceID, Name)
-	{
-	}
+	{}
 
 	IPCCommandResult Open(u32 CommandAddress, u32 Mode) override
 	{

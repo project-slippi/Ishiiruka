@@ -172,8 +172,8 @@ void TextureCache::TCacheEntry::ReplaceTexture(const u8* src, u32 width, u32 hei
 	s_memPoolTexture[pcformatidx]->GetSurfaceLevel(0, &srcsurf);
 	PDIRECT3DSURFACE9 dstsurface;
 	texture->GetSurfaceLevel(level, &dstsurface);
-	RECT srcr{ 0, 0, LONG(width), LONG(height) };
-	POINT dstp{ 0, 0 };
+	RECT srcr{0, 0, LONG(width), LONG(height)};
+	POINT dstp{0, 0};
 	D3D::dev->UpdateSurface(srcsurf, &srcr, dstsurface, &dstp);
 	srcsurf->Release();
 	dstsurface->Release();

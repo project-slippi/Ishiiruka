@@ -25,7 +25,7 @@
 
 typedef void (APIENTRYP PFNDOLGENSAMPLERSPROC) (GLsizei count, GLuint *samplers);
 typedef void (APIENTRYP PFNDOLDELETESAMPLERSPROC) (GLsizei count, const GLuint *samplers);
-typedef GLboolean (APIENTRYP PFNDOLISSAMPLERPROC) (GLuint sampler);
+typedef GLboolean(APIENTRYP PFNDOLISSAMPLERPROC) (GLuint sampler);
 typedef void (APIENTRYP PFNDOLBINDSAMPLERPROC) (GLuint unit, GLuint sampler);
 typedef void (APIENTRYP PFNDOLSAMPLERPARAMETERIPROC) (GLuint sampler, GLenum pname, GLint param);
 typedef void (APIENTRYP PFNDOLSAMPLERPARAMETERIVPROC) (GLuint sampler, GLenum pname, const GLint *param);

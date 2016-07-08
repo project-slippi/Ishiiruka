@@ -20,7 +20,7 @@ using namespace Gen;
 // Note: pc+=2 in duddie's doc seems wrong
 void DSPEmitter::srs(const UDSPInstruction opc)
 {
-	u8 reg   = ((opc >> 8) & 0x7) + 0x18;
+	u8 reg = ((opc >> 8) & 0x7) + 0x18;
 	//u16 addr = (g_dsp.r.cr << 8) | (opc & 0xFF);
 
 	X64Reg tmp1 = gpr.GetFreeXReg();
@@ -41,7 +41,7 @@ void DSPEmitter::srs(const UDSPInstruction opc)
 // from CR, and the lower 8 bits are from the 8-bit immediate.
 void DSPEmitter::lrs(const UDSPInstruction opc)
 {
-	u8 reg   = ((opc >> 8) & 0x7) + 0x18;
+	u8 reg = ((opc >> 8) & 0x7) + 0x18;
 
 	X64Reg tmp1 = gpr.GetFreeXReg();
 
@@ -76,7 +76,7 @@ void DSPEmitter::lr(const UDSPInstruction opc)
 // Store value from register $S to a memory pointed by address M.
 void DSPEmitter::sr(const UDSPInstruction opc)
 {
-	u8 reg   = opc & DSP_REG_MASK;
+	u8 reg = opc & DSP_REG_MASK;
 	u16 address = dsp_imem_read(compilePC + 1);
 
 	X64Reg tmp1 = gpr.GetFreeXReg();
@@ -271,7 +271,7 @@ void DSPEmitter::srrn(const UDSPInstruction opc)
 // $arS to mid accumulator register $acD.m.
 void DSPEmitter::ilrr(const UDSPInstruction opc)
 {
-	u16 reg  = opc & 0x3;
+	u16 reg = opc & 0x3;
 	u16 dreg = (opc >> 8) & 1;
 
 	X64Reg tmp1 = gpr.GetFreeXReg();
@@ -291,7 +291,7 @@ void DSPEmitter::ilrr(const UDSPInstruction opc)
 // $arS to mid accumulator register $acD.m. Decrement addressing register $arS.
 void DSPEmitter::ilrrd(const UDSPInstruction opc)
 {
-	u16 reg  = opc & 0x3;
+	u16 reg = opc & 0x3;
 	u16 dreg = (opc >> 8) & 1;
 
 	X64Reg tmp1 = gpr.GetFreeXReg();
@@ -312,7 +312,7 @@ void DSPEmitter::ilrrd(const UDSPInstruction opc)
 // $arS to mid accumulator register $acD.m. Increment addressing register $arS.
 void DSPEmitter::ilrri(const UDSPInstruction opc)
 {
-	u16 reg  = opc & 0x3;
+	u16 reg = opc & 0x3;
 	u16 dreg = (opc >> 8) & 1;
 
 	X64Reg tmp1 = gpr.GetFreeXReg();
@@ -334,7 +334,7 @@ void DSPEmitter::ilrri(const UDSPInstruction opc)
 // register $ixS to addressing register $arS.
 void DSPEmitter::ilrrn(const UDSPInstruction opc)
 {
-	u16 reg  = opc & 0x3;
+	u16 reg = opc & 0x3;
 	u16 dreg = (opc >> 8) & 1;
 
 	X64Reg tmp1 = gpr.GetFreeXReg();

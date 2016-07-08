@@ -29,11 +29,12 @@ struct ByteCodeCacheEntry
 	bool m_compiled;
 	std::atomic_flag m_initialized;
 
-	ByteCodeCacheEntry() : m_compiled(false), m_shader_bytecode({})
+	ByteCodeCacheEntry(): m_compiled(false), m_shader_bytecode({})
 	{
 		m_initialized.clear();
 	}
-	void Release() {
+	void Release()
+	{
 		if (m_shader_bytecode.pShaderBytecode)
 			delete[] m_shader_bytecode.pShaderBytecode;
 		m_shader_bytecode.pShaderBytecode = nullptr;
@@ -80,7 +81,7 @@ static HLSLAsyncCompiler *s_compiler;
 static Common::SpinLock<true> s_shaders_lock;
 
 template<typename UidType, typename ShaderCacheType, ShaderCacheType** cache>
-class ShaderCacheInserter final : public LinearDiskCacheReader<UidType, u8>
+class ShaderCacheInserter final: public LinearDiskCacheReader<UidType, u8>
 {
 public:
 	void Read(const UidType &key, const u8* value, u32 value_size)
@@ -90,7 +91,7 @@ public:
 	}
 };
 
-class DShaderCacheInserter final : public LinearDiskCacheReader<TessellationShaderUid, u8>
+class DShaderCacheInserter final: public LinearDiskCacheReader<TessellationShaderUid, u8>
 {
 public:
 	void Read(const TessellationShaderUid &key, const u8* value, u32 value_size)
@@ -100,7 +101,7 @@ public:
 	}
 };
 
-class HShaderCacheInserter final : public LinearDiskCacheReader<TessellationShaderUid, u8>
+class HShaderCacheInserter final: public LinearDiskCacheReader<TessellationShaderUid, u8>
 {
 public:
 	void Read(const TessellationShaderUid &key, const u8* value, u32 value_size)
@@ -140,7 +141,7 @@ void ShaderCache::Init()
 	if (!File::Exists(shader_cache_path))
 		File::CreateDir(File::GetUserPath(D_SHADERCACHE_IDX));
 
-	std::string title_unique_id = SConfig::GetInstance().m_strUniqueID;	
+	std::string title_unique_id = SConfig::GetInstance().m_strUniqueID;
 
 	std::string ds_cache_filename = StringFromFormat("%sIDX11-%s-ds.cache", shader_cache_path.c_str(), title_unique_id.c_str());
 	std::string hs_cache_filename = StringFromFormat("%sIDX11-%s-hs.cache", shader_cache_path.c_str(), title_unique_id.c_str());
@@ -149,7 +150,7 @@ void ShaderCache::Init()
 	std::string vs_cache_filename = StringFromFormat("%sIDX11-%s-vs.cache", shader_cache_path.c_str(), title_unique_id.c_str());
 
 	pKey_t gameid = (pKey_t)GetMurmurHash3(reinterpret_cast<const u8*>(SConfig::GetInstance().m_strUniqueID.data()), (u32)SConfig::GetInstance().m_strUniqueID.size(), 0);
-	
+
 	vs_bytecode_cache = VsBytecodeCache::Create(
 		gameid,
 		VERTEXSHADERGEN_UID_VERSION,
@@ -172,7 +173,7 @@ void ShaderCache::Init()
 	);
 
 	ts_bytecode_cache = TsBytecodeCache::Create(
-		 gameid,
+		gameid,
 		TESSELLATIONSHADERGEN_UID_VERSION,
 		"Ishiiruka.ts",
 		StringFromFormat("%s.ts", title_unique_id.c_str())
@@ -528,7 +529,7 @@ void ShaderCache::HandleTSUIDChange(
 	bool on_gpu_thread)
 {
 	s_shaders_lock.lock();
-	std::pair<ByteCodeCacheEntry, ByteCodeCacheEntry>& entry = ts_bytecode_cache->GetOrAdd(ts_uid);	
+	std::pair<ByteCodeCacheEntry, ByteCodeCacheEntry>& entry = ts_bytecode_cache->GetOrAdd(ts_uid);
 	s_shaders_lock.unlock();
 	ByteCodeCacheEntry* dentry = &entry.first;
 	ByteCodeCacheEntry* hentry = &entry.second;
@@ -815,7 +816,10 @@ void ShaderCache::InsertByteCode(const UidType& uid, ShaderCacheType* shader_cac
 	entry->m_initialized.test_and_set();
 }
 
-D3D12_PRIMITIVE_TOPOLOGY_TYPE ShaderCache::GetCurrentPrimitiveTopology() { return s_current_primitive_topology; }
+D3D12_PRIMITIVE_TOPOLOGY_TYPE ShaderCache::GetCurrentPrimitiveTopology()
+{
+	return s_current_primitive_topology;
+}
 
 D3D12_SHADER_BYTECODE ShaderCache::GetActiveDomainShaderBytecode()
 {
@@ -829,16 +833,37 @@ D3D12_SHADER_BYTECODE ShaderCache::GetActiveHullShaderBytecode()
 		&& s_last_hull_shader_bytecode->m_compiled
 		&& s_last_domain_shader_bytecode->m_compiled ? s_last_hull_shader_bytecode->m_shader_bytecode : s_pass_entry.m_shader_bytecode;
 }
-D3D12_SHADER_BYTECODE ShaderCache::GetActiveGeometryShaderBytecode() { return s_last_geometry_shader_bytecode->m_shader_bytecode; }
-D3D12_SHADER_BYTECODE ShaderCache::GetActivePixelShaderBytecode() { return s_last_pixel_shader_bytecode->m_shader_bytecode; }
-D3D12_SHADER_BYTECODE ShaderCache::GetActiveVertexShaderBytecode() { return s_last_vertex_shader_bytecode->m_shader_bytecode; }
+D3D12_SHADER_BYTECODE ShaderCache::GetActiveGeometryShaderBytecode()
+{
+	return s_last_geometry_shader_bytecode->m_shader_bytecode;
+}
+D3D12_SHADER_BYTECODE ShaderCache::GetActivePixelShaderBytecode()
+{
+	return s_last_pixel_shader_bytecode->m_shader_bytecode;
+}
+D3D12_SHADER_BYTECODE ShaderCache::GetActiveVertexShaderBytecode()
+{
+	return s_last_vertex_shader_bytecode->m_shader_bytecode;
+}
 
-const GeometryShaderUid* ShaderCache::GetActiveGeometryShaderUid() { return &s_last_geometry_shader_uid; }
-const PixelShaderUid* ShaderCache::GetActivePixelShaderUid() { return &s_last_pixel_shader_uid; }
-const VertexShaderUid* ShaderCache::GetActiveVertexShaderUid() { return &s_last_vertex_shader_uid; }
-const TessellationShaderUid* ShaderCache::GetActiveTessellationShaderUid() { return &s_last_tessellation_shader_uid; }
+const GeometryShaderUid* ShaderCache::GetActiveGeometryShaderUid()
+{
+	return &s_last_geometry_shader_uid;
+}
+const PixelShaderUid* ShaderCache::GetActivePixelShaderUid()
+{
+	return &s_last_pixel_shader_uid;
+}
+const VertexShaderUid* ShaderCache::GetActiveVertexShaderUid()
+{
+	return &s_last_vertex_shader_uid;
+}
+const TessellationShaderUid* ShaderCache::GetActiveTessellationShaderUid()
+{
+	return &s_last_tessellation_shader_uid;
+}
 
-static const D3D12_SHADER_BYTECODE empty = { 0 };
+static const D3D12_SHADER_BYTECODE empty = {0};
 
 D3D12_SHADER_BYTECODE ShaderCache::GetDomainShaderFromUid(const TessellationShaderUid* uid)
 {

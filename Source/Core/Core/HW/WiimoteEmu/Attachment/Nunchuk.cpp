@@ -7,21 +7,18 @@
 #include "Common/Common.h"
 #include "Common/CommonTypes.h"
 #include "Common/MathUtil.h"
-#include "Core/HW/WiimoteEmu/WiimoteEmu.h"
 #include "Core/HW/WiimoteEmu/Attachment/Nunchuk.h"
+#include "Core/HW/WiimoteEmu/WiimoteEmu.h"
 
 namespace WiimoteEmu
 {
+static const u8 nunchuk_id[] = {0x00, 0x00, 0xa4, 0x20, 0x00, 0x00};
 
-static const u8 nunchuk_id[] = { 0x00, 0x00, 0xa4, 0x20, 0x00, 0x00 };
-
-static const u8 nunchuk_button_bitmasks[] =
-{
-	Nunchuk::BUTTON_C,
-	Nunchuk::BUTTON_Z,
+static const u8 nunchuk_button_bitmasks[] = {
+	 Nunchuk::BUTTON_C, Nunchuk::BUTTON_Z,
 };
 
-Nunchuk::Nunchuk(WiimoteEmu::ExtensionReg& _reg) : Attachment(_trans("Nunchuk"), _reg)
+Nunchuk::Nunchuk(WiimoteEmu::ExtensionReg& _reg): Attachment(_trans("Nunchuk"), _reg)
 {
 	// buttons
 	groups.emplace_back(m_buttons = new Buttons("Buttons"));
@@ -120,22 +117,21 @@ bool Nunchuk::IsButtonPressed() const
 void Nunchuk::LoadDefaults(const ControllerInterface& ciface)
 {
 	// Stick
-	m_stick->SetControlExpression(0, "W"); // up
-	m_stick->SetControlExpression(1, "S"); // down
-	m_stick->SetControlExpression(2, "A"); // left
-	m_stick->SetControlExpression(3, "D"); // right
+	m_stick->SetControlExpression(0, "W");  // up
+	m_stick->SetControlExpression(1, "S");  // down
+	m_stick->SetControlExpression(2, "A");  // left
+	m_stick->SetControlExpression(3, "D");  // right
 
-	// Buttons
+ // Buttons
 #ifdef _WIN32
 	m_buttons->SetControlExpression(0, "LCONTROL");  // C
 	m_buttons->SetControlExpression(1, "LSHIFT");    // Z
 #elif __APPLE__
-	m_buttons->SetControlExpression(0, "Left Control"); // C
-	m_buttons->SetControlExpression(1, "Left Shift");   // Z
+	m_buttons->SetControlExpression(0, "Left Control");  // C
+	m_buttons->SetControlExpression(1, "Left Shift");    // Z
 #else
-	m_buttons->SetControlExpression(0, "Control_L"); // C
-	m_buttons->SetControlExpression(1, "Shift_L");   // Z
+	m_buttons->SetControlExpression(0, "Control_L");  // C
+	m_buttons->SetControlExpression(1, "Shift_L");    // Z
 #endif
 }
-
 }

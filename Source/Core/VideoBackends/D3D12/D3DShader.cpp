@@ -47,7 +47,8 @@ bool CompileShader(
 
 	std::string profile;
 	const char* sufix = nullptr;
-	switch (type) {
+	switch (type)
+	{
 	case DX12::D3D::ShaderType::Vertex:
 		profile = D3D::VertexShaderVersionString();
 		sufix = "vs";

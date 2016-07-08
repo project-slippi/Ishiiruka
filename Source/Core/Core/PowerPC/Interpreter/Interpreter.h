@@ -8,7 +8,7 @@
 #include "Core/PowerPC/CPUCoreBase.h"
 #include "Core/PowerPC/Gekko.h"
 
-class Interpreter : public CPUCoreBase
+class Interpreter: public CPUCoreBase
 {
 public:
 	void Init() override;
@@ -18,7 +18,7 @@ public:
 
 	void Run() override;
 	void ClearCache() override;
-	const char *GetName() override;
+	const char* GetName() override;
 
 	static bool m_EndBlock;
 
@@ -262,7 +262,7 @@ public:
 	static void sync(UGeckoInstruction _inst);
 	static void isync(UGeckoInstruction _inst);
 
-	using Instruction = void (*)(UGeckoInstruction instCode);
+	using Instruction = void(*)(UGeckoInstruction instCode);
 	static Instruction m_opTable[64];
 	static Instruction m_opTable4[1024];
 	static Instruction m_opTable19[1024];
@@ -288,9 +288,9 @@ private:
 	static void Helper_UpdateCRx(int _x, u32 _uValue);
 
 	// address helper
-	static u32 Helper_Get_EA   (const UGeckoInstruction _inst);
-	static u32 Helper_Get_EA_U (const UGeckoInstruction _inst);
-	static u32 Helper_Get_EA_X (const UGeckoInstruction _inst);
+	static u32 Helper_Get_EA(const UGeckoInstruction _inst);
+	static u32 Helper_Get_EA_U(const UGeckoInstruction _inst);
+	static u32 Helper_Get_EA_X(const UGeckoInstruction _inst);
 	static u32 Helper_Get_EA_UX(const UGeckoInstruction _inst);
 
 	// paired helper
@@ -306,5 +306,5 @@ private:
 	// TODO: These should really be in the save state, although it's unlikely to matter much.
 	// They are for lwarx and its friend stwcxd.
 	static bool g_bReserve;
-	static u32  g_reserveAddr;
+	static u32 g_reserveAddr;
 };

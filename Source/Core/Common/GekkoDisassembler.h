@@ -30,7 +30,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-// Modified for use with Dolphin
+ // Modified for use with Dolphin
 
 #pragma once
 
@@ -131,18 +131,18 @@ private:
 
 	enum InstructionType
 	{
-		PPCINSTR_OTHER  = 0, // No additional info for other instr.
+		PPCINSTR_OTHER = 0, // No additional info for other instr.
 		PPCINSTR_BRANCH = 1, // Branch dest. = PC+displacement
-		PPCINSTR_LDST   = 2, // Load/store instruction: displ(sreg)
-		PPCINSTR_IMM    = 3, // 16-bit immediate val. in displacement
+		PPCINSTR_LDST = 2, // Load/store instruction: displ(sreg)
+		PPCINSTR_IMM = 3, // 16-bit immediate val. in displacement
 	};
 
 	enum Flags
 	{
-		PPCF_ILLEGAL  = (1 << 0), // Illegal PowerPC instruction
+		PPCF_ILLEGAL = (1 << 0), // Illegal PowerPC instruction
 		PPCF_UNSIGNED = (1 << 1), // Unsigned immediate instruction
-		PPCF_SUPER    = (1 << 2), // Supervisor level instruction
-		PPCF_64       = (1 << 3), // 64-bit only instruction
+		PPCF_SUPER = (1 << 2), // Supervisor level instruction
+		PPCF_64 = (1 << 3), // 64-bit only instruction
 	};
 
 	static u32* m_instr;           // Pointer to instruction to disassemble

@@ -11,10 +11,10 @@
 #include <vector>
 
 #include "Common/CommonTypes.h"
+#include "Common/Logging/Log.h"
 #include "Common/MathUtil.h"
 #include "Common/MsgHandler.h"
 #include "Common/StringUtil.h"
-#include "Common/Logging/Log.h"
 #include "DiscIO/Blob.h"
 #include "DiscIO/Volume.h"
 #include "DiscIO/VolumeWad.h"
@@ -40,8 +40,7 @@ CVolumeWAD::CVolumeWAD(std::unique_ptr<IBlobReader> reader)
 }
 
 CVolumeWAD::~CVolumeWAD()
-{
-}
+{}
 
 bool CVolumeWAD::Read(u64 _Offset, u64 _Length, u8* _pBuffer, bool decrypt) const
 {
@@ -63,7 +62,7 @@ IVolume::ECountry CVolumeWAD::GetCountry() const
 	u8 country_code;
 	Read(m_tmd_offset + 0x0193, 1, &country_code);
 
-	if (country_code == 2) // SYSMENU
+	if (country_code == 2)  // SYSMENU
 	{
 		u16 title_version = 0;
 		Read(m_tmd_offset + 0x01dc, 2, (u8*)&title_version);
@@ -119,7 +118,7 @@ IVolume::EPlatform CVolumeWAD::GetVolumeType() const
 	return WII_WAD;
 }
 
-std::map<IVolume::ELanguage, std::string> CVolumeWAD::GetNames(bool prefer_long) const
+std::map<IVolume::ELanguage, std::string> CVolumeWAD::GetLongNames() const
 {
 	std::vector<u8> name_data(NAMES_TOTAL_BYTES);
 	if (!Read(m_opening_bnr_offset + 0x9C, NAMES_TOTAL_BYTES, name_data.data()))
@@ -160,4 +159,4 @@ u64 CVolumeWAD::GetRawSize() const
 		return 0;
 }
 
-} // namespace
+}  // namespace

@@ -74,20 +74,20 @@ inline T AtomicLoadAcquire(volatile T& src)
 template <typename T, typename U>
 inline void AtomicStore(volatile T& dest, U value)
 {
-	dest = (T) value; // 32-bit writes are always atomic.
+	dest = (T)value; // 32-bit writes are always atomic.
 }
 
 template <typename T, typename U>
 inline void AtomicStoreRelease(volatile T& dest, U value)
 {
 	_WriteBarrier(); // Compiler instruction only. x86 stores always have release semantics.
-	dest = (T) value; // 32-bit writes are always atomic.
+	dest = (T)value; // 32-bit writes are always atomic.
 }
 
 template <typename T, typename U>
 inline T* AtomicExchangeAcquire(T* volatile& loc, U newval)
 {
-	return (T*) _InterlockedExchangePointer_acq((void* volatile*) &loc, (void*) newval);
+	return (T*)_InterlockedExchangePointer_acq((void* volatile*)&loc, (void*)newval);
 }
 
 }

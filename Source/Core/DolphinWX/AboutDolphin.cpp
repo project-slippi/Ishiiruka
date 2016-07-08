@@ -21,12 +21,12 @@
 #include "DolphinWX/WxUtils.h"
 
 AboutDolphin::AboutDolphin(wxWindow *parent, wxWindowID id,
-		const wxString &title, const wxPoint &position,
-		const wxSize& size, long style)
+	const wxString &title, const wxPoint &position,
+	const wxSize& size, long style)
 	: wxDialog(parent, id, title, position, size, style)
 {
 	wxGenericStaticBitmap* const sbDolphinLogo = new wxGenericStaticBitmap(this, wxID_ANY,
-			WxUtils::LoadResourceBitmap("dolphin_logo"));
+		WxUtils::LoadResourceBitmap("dolphin_logo"));
 
 	const wxString DolphinText = _("Ishiiruka - Dolphin");
 	const wxString RevisionText = scm_desc_str;

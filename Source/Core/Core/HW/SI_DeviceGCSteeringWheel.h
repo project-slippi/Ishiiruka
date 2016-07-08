@@ -6,16 +6,16 @@
 
 #include "Core/HW/SI_DeviceGCController.h"
 
-class CSIDevice_GCSteeringWheel : public CSIDevice_GCController
+class CSIDevice_GCSteeringWheel: public CSIDevice_GCController
 {
 private:
 	// Commands
 	enum EBufferCommands
 	{
-		CMD_RESET       = 0x00,
-		CMD_ORIGIN      = 0x41,
+		CMD_RESET = 0x00,
+		CMD_ORIGIN = 0x41,
 		CMD_RECALIBRATE = 0x42,
-		CMD_ID          = 0xff,
+		CMD_ID = 0xff,
 	};
 
 	enum EDirectCommands

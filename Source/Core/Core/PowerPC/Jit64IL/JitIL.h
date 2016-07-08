@@ -17,22 +17,24 @@
 #pragma once
 
 #include "Common/CommonTypes.h"
+#include "Common/x64ABI.h"
 #include "Common/x64Emitter.h"
 #include "Core/PowerPC/Gekko.h"
-#include "Core/PowerPC/PPCAnalyst.h"
 #include "Core/PowerPC/Jit64/JitAsm.h"
 #include "Core/PowerPC/JitCommon/JitBase.h"
 #include "Core/PowerPC/JitCommon/JitCache.h"
 #include "Core/PowerPC/JitILCommon/JitILBase.h"
+#include "Core/PowerPC/PPCAnalyst.h"
 
-class JitIL : public JitILBase
+class JitIL: public JitILBase
 {
 public:
 	Jit64AsmRoutineManager asm_routines;
 
-	JitIL() {}
-	~JitIL() {}
-
+	JitIL()
+	{}
+	~JitIL()
+	{}
 	// Initialization, etc
 
 	void Init() override;
@@ -44,24 +46,24 @@ public:
 	// Jit!
 
 	void Jit(u32 em_address) override;
-	const u8* DoJit(u32 em_address, PPCAnalyst::CodeBuffer *code_buf, JitBlock *b, u32 nextPC);
+	const u8* DoJit(u32 em_address, PPCAnalyst::CodeBuffer* code_buf, JitBlock* b, u32 nextPC);
 
 	void Trace();
 
-	JitBlockCache *GetBlockCache() override { return &blocks; }
-
+	JitBlockCache* GetBlockCache() override
+	{
+		return &blocks;
+	}
 	void ClearCache() override;
 
-	const CommonAsmRoutines *GetAsmRoutines() override
+	const CommonAsmRoutines* GetAsmRoutines() override
 	{
 		return &asm_routines;
 	}
-
-	const char *GetName() override
+	const char* GetName() override
 	{
 		return "JIT64IL";
 	}
-
 	// Run!
 	void Run() override;
 	void SingleStep() override;

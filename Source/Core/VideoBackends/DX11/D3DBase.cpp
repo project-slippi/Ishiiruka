@@ -225,7 +225,7 @@ HRESULT Create(HWND wnd)
 	yres = client.bottom - client.top;
 
 	hr = LoadDXGI();
-	if (SUCCEEDED(hr)) hr = LoadD3D();	
+	if (SUCCEEDED(hr)) hr = LoadD3D();
 	if (FAILED(hr))
 	{
 		UnloadDXGI();
@@ -265,8 +265,11 @@ HRESULT Create(HWND wnd)
 	if (std::find_if(
 		aa_modes.begin(),
 		aa_modes.end(),
-		[](const DXGI_SAMPLE_DESC& desc) {return desc.Count == g_Config.iMultisamples; }
-		) == aa_modes.end())
+		[](const DXGI_SAMPLE_DESC& desc)
+	{
+		return desc.Count == g_Config.iMultisamples;
+	}
+	) == aa_modes.end())
 	{
 		g_Config.iMultisamples = 1;
 		UpdateActiveConfig();
@@ -292,7 +295,7 @@ HRESULT Create(HWND wnd)
 	mode_desc.Format = DXGI_BaseFormat;
 	mode_desc.Scaling = DXGI_MODE_SCALING_UNSPECIFIED;
 	hr = output->FindClosestMatchingMode(&mode_desc, &swap_chain_desc.BufferDesc, nullptr);
-	if (FAILED(hr)) MessageBox(wnd, _T("Failed to find a supported video mode"), _T("Dolphin Direct3D 11 backend"), MB_OK | MB_ICONERROR);	
+	if (FAILED(hr)) MessageBox(wnd, _T("Failed to find a supported video mode"), _T("Dolphin Direct3D 11 backend"), MB_OK | MB_ICONERROR);
 	if (swap_chain_desc.Windowed)
 	{
 		// forcing buffer resolution to xres and yres..
@@ -347,7 +350,7 @@ HRESULT Create(HWND wnd)
 			d3dDebug->Release();
 		}
 	}
-	else	
+	else
 #endif
 	{
 		hr = PD3D11CreateDeviceAndSwapChain(adapter, D3D_DRIVER_TYPE_UNKNOWN, nullptr,
@@ -412,7 +415,7 @@ HRESULT Create(HWND wnd)
 	{
 		D3D11_FEATURE_DATA_D3D11_OPTIONS options;
 		hr = device1->CheckFeatureSupport(D3D11_FEATURE_D3D11_OPTIONS, &options, sizeof(options));
-		partial_buffer_update_supported = SUCCEEDED(hr) 
+		partial_buffer_update_supported = SUCCEEDED(hr)
 			&& options.MapNoOverwriteOnDynamicConstantBuffer
 			&& options.ConstantBufferOffsetting
 			&& options.ConstantBufferPartialUpdate;
@@ -503,13 +506,31 @@ const char* ComputeShaderVersionString()
 	else /*if(featlevel == D3D_FEATURE_LEVEL_10_0)*/ return "cs_4_0";
 }
 
-D3DTexture2D* &GetBackBuffer() { return backbuf; }
-unsigned int GetBackBufferWidth() { return xres; }
-unsigned int GetBackBufferHeight() { return yres; }
+D3DTexture2D* &GetBackBuffer()
+{
+	return backbuf;
+}
+unsigned int GetBackBufferWidth()
+{
+	return xres;
+}
+unsigned int GetBackBufferHeight()
+{
+	return yres;
+}
 
-bool BGRATexturesSupported() { return bgra_textures_supported; }
-bool BGRA565TexturesSupported() { return bgra565_textures_supported; }
-DXGI_FORMAT GetBaseBufferFormat(){ return DXGI_BaseFormat; }
+bool BGRATexturesSupported()
+{
+	return bgra_textures_supported;
+}
+bool BGRA565TexturesSupported()
+{
+	return bgra565_textures_supported;
+}
+DXGI_FORMAT GetBaseBufferFormat()
+{
+	return DXGI_BaseFormat;
+}
 
 // Returns the maximum width/height of a texture. This value only depends upon the feature level in DX11
 unsigned int GetMaxTextureSize()

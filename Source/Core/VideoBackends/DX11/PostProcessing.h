@@ -32,7 +32,10 @@ public:
 	D3DTexture2D* GetLastPassOutputTexture() const;
 	bool IsLastPassScaled() const;
 
-	bool IsReady() const { return m_ready; }
+	bool IsReady() const
+	{
+		return m_ready;
+	}
 
 	bool Initialize(PostProcessingShaderConfiguration* config, int target_layers);
 	bool Reconfigure(const TargetSize& new_size);
@@ -84,7 +87,7 @@ private:
 	bool m_ready = false;
 };
 
-class D3DPostProcessor final : public PostProcessor
+class D3DPostProcessor final: public PostProcessor
 {
 public:
 	D3DPostProcessor() = default;
@@ -121,8 +124,14 @@ public:
 		bool force_shader_copy = false);
 
 	// Shadered shader stages
-	ID3D11VertexShader* GetVertexShader() const { return m_vertex_shader.get(); }
-	ID3D11GeometryShader* GetGeometryShader() const { return m_geometry_shader.get(); }
+	ID3D11VertexShader* GetVertexShader() const
+	{
+		return m_vertex_shader.get();
+	}
+	ID3D11GeometryShader* GetGeometryShader() const
+	{
+		return m_geometry_shader.get();
+	}
 
 protected:
 	bool CreateCommonShaders();

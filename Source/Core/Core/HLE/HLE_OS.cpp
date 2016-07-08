@@ -62,11 +62,11 @@ void GetStringVA(std::string& _rOutBuffer, u32 strReg)
 {
 	_rOutBuffer = "";
 	std::string ArgumentBuffer = "";
-	u32 ParameterCounter = strReg+1;
+	u32 ParameterCounter = strReg + 1;
 	u32 FloatingParameterCounter = 1;
 	std::string string = PowerPC::HostGetString(GPR(strReg));
 
-	for(u32 i = 0; i < string.size(); i++)
+	for (u32 i = 0; i < string.size(); i++)
 	{
 		if (string[i] == '%')
 		{
@@ -89,10 +89,10 @@ void GetStringVA(std::string& _rOutBuffer, u32 strReg)
 			}
 			else
 			{
-				if (string[i-1] == 'l' && string[i-2] == 'l') // hax, just seen this on sysmenu osreport
+				if (string[i - 1] == 'l' && string[i - 2] == 'l') // hax, just seen this on sysmenu osreport
 				{
 					Parameter = GPR(++ParameterCounter);
-					Parameter = (Parameter<<32)|GPR(++ParameterCounter);
+					Parameter = (Parameter << 32) | GPR(++ParameterCounter);
 				}
 				else // normal, 32bit
 					Parameter = GPR(ParameterCounter);
@@ -115,7 +115,7 @@ void GetStringVA(std::string& _rOutBuffer, u32 strReg)
 			case 'f':
 			{
 				_rOutBuffer += StringFromFormat(ArgumentBuffer.c_str(),
-												rPS0(FloatingParameterCounter));
+					rPS0(FloatingParameterCounter));
 				FloatingParameterCounter++;
 				ParameterCounter--;
 				break;

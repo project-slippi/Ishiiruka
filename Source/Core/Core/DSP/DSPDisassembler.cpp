@@ -17,8 +17,7 @@
 
 DSPDisassembler::DSPDisassembler(const AssemblerSettings &settings)
 	: settings_(settings)
-{
-}
+{}
 
 DSPDisassembler::~DSPDisassembler()
 {
@@ -56,8 +55,8 @@ bool DSPDisassembler::Disassemble(int start_pc, const std::vector<u16> &code, in
 
 	// First we have to dump the code to a bin file.
 	{
-	File::IOFile f(tmp1, "wb");
-	f.WriteArray(&code[0], code.size());
+		File::IOFile f(tmp1, "wb");
+		f.WriteArray(&code[0], code.size());
 	}
 
 	// Run the two passes.

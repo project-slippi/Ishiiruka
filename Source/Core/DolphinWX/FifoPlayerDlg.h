@@ -21,7 +21,7 @@ class wxSpinEvent;
 class wxStaticText;
 class wxTextCtrl;
 
-class FifoPlayerDlg : public wxDialog
+class FifoPlayerDlg: public wxDialog
 {
 public:
 	FifoPlayerDlg(wxWindow* parent);
@@ -74,7 +74,7 @@ private:
 	static void FileLoaded();
 	static void FrameWritten();
 
-	static wxEvtHandler *volatile m_EvtHandler;
+	static wxEvtHandler* volatile m_EvtHandler;
 
 	wxNotebook* m_Notebook;
 	wxPanel* m_PlayPage;
@@ -112,7 +112,8 @@ private:
 	wxButton* m_findPrevious;
 	wxStaticText* m_numResultsText;
 
-	struct SearchResult {
+	struct SearchResult
+	{
 		int frame_idx;
 		int obj_idx;
 		int cmd_idx;

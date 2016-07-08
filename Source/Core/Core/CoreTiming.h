@@ -35,7 +35,7 @@ extern float g_lastOCFactor_inverted;
 void Init();
 void Shutdown();
 
-typedef void (*TimedCallback)(u64 userdata, s64 cyclesLate);
+typedef void(*TimedCallback)(u64 userdata, s64 cyclesLate);
 
 // This should only be called from the CPU thread, if you are calling it any other thread, you are doing something evil
 u64 GetTicks();
@@ -59,7 +59,6 @@ void RemoveEvent(int event_type);
 void RemoveAllEvents(int event_type);
 void Advance();
 void MoveEvents();
-void ProcessFifoWaitEvents();
 
 // Pretend that the main CPU has executed enough cycles to reach the next event.
 void Idle();

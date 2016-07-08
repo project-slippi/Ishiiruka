@@ -7,13 +7,13 @@
 #include "Core/HW/SI_Device.h"
 
 // triforce (GC-AM) baseboard
-class CSIDevice_AMBaseboard : public ISIDevice
+class CSIDevice_AMBaseboard: public ISIDevice
 {
 private:
 	enum EBufferCommands
 	{
 		CMD_RESET = 0x00,
-		CMD_GCAM  = 0x70,
+		CMD_GCAM = 0x70,
 	};
 
 public:

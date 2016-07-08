@@ -1,13 +1,16 @@
 #include "Common/x64Emitter.h"
 #include "VideoCommon/VertexLoaderBase.h"
 
-class VertexLoaderX64 : public VertexLoaderBase, public Gen::X64CodeBlock
+class VertexLoaderX64: public VertexLoaderBase, public Gen::X64CodeBlock
 {
 public:
 	VertexLoaderX64(const TVtxDesc& vtx_desc, const VAT& vtx_att);
 
 protected:
-	bool IsInitialized() override { return true; }
+	bool IsInitialized() override
+	{
+		return true;
+	}
 	int RunVertices(const VertexLoaderParameters &parameters) override;
 	bool EnvironmentIsSupported() override;
 private:

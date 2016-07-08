@@ -11,24 +11,26 @@
 
 class PointerWrap;
 
-class CEXIAgp
-	: public IEXIDevice
+class CEXIAgp: public IEXIDevice
 {
 public:
 	CEXIAgp(const int index);
 	virtual ~CEXIAgp() override;
-	bool IsPresent() const override { return true; }
+	bool IsPresent() const override
+	{
+		return true;
+	}
 	void ImmWrite(u32 _uData, u32 _uSize) override;
-	u32  ImmRead(u32 _uSize) override;
-	void DoState(PointerWrap &p) override;
+	u32 ImmRead(u32 _uSize) override;
+	void DoState(PointerWrap& p) override;
 
 private:
 	enum
 	{
 		EE_IGNORE_BITS = 0x4,
-		EE_DATA_BITS   = 0x40,
-		EE_READ_FALSE  = 0xA,
-		EE_READ_TRUE   = 0xB,
+		EE_DATA_BITS = 0x40,
+		EE_READ_FALSE = 0xA,
+		EE_READ_TRUE = 0xB,
 	};
 
 	int m_slot;

@@ -292,7 +292,7 @@ const DSPOPCTemplate opcodes[] =
 };
 
 const DSPOPCTemplate cw =
-	{"CW",     0x0000, 0x0000, nop, nullptr, 1, 1, {{P_VAL, 2, 0, 0, 0xffff}}, false, false, false, false, false};
+{"CW",     0x0000, 0x0000, nop, nullptr, 1, 1, {{P_VAL, 2, 0, 0, 0xffff}}, false, false, false, false, false};
 
 // extended opcodes
 

@@ -62,8 +62,7 @@ public:
 			} bbox;
 
 			struct
-			{
-			} perf_query;
+			{} perf_query;
 		};
 	};
 
@@ -78,7 +77,10 @@ public:
 	void SetEnable(bool enable);
 	void SetPassthrough(bool enable);
 
-	static AsyncRequests* GetInstance() { return &s_singleton; }
+	static AsyncRequests* GetInstance()
+	{
+		return &s_singleton;
+	}
 
 private:
 	void PullEventsInternal();

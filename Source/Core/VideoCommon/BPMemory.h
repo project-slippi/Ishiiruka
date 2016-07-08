@@ -101,7 +101,7 @@ enum
 // Tev/combiner things
 
 // TEV scaling type
-enum : u32
+enum: u32
 {
 	TEVSCALE_1 = 0,
 	TEVSCALE_2 = 1,
@@ -109,7 +109,7 @@ enum : u32
 	TEVDIVIDE_2 = 3
 };
 
-enum : u32
+enum: u32
 {
 	TEVCMP_R8 = 0,
 	TEVCMP_GR16 = 1,
@@ -118,7 +118,7 @@ enum : u32
 };
 
 // TEV combiner operator
-enum : u32
+enum: u32
 {
 	TEVOP_ADD = 0,
 	TEVOP_SUB = 1,
@@ -135,7 +135,7 @@ enum : u32
 };
 
 // TEV color combiner input
-enum : u32
+enum: u32
 {
 	TEVCOLORARG_CPREV = 0,
 	TEVCOLORARG_APREV = 1,
@@ -156,7 +156,7 @@ enum : u32
 };
 
 // TEV alpha combiner input
-enum : u32
+enum: u32
 {
 	TEVALPHAARG_APREV = 0,
 	TEVALPHAARG_A0 = 1,
@@ -169,7 +169,7 @@ enum : u32
 };
 
 // TEV output registers
-enum : u32
+enum: u32
 {
 	GX_TEVPREV = 0,
 	GX_TEVREG0 = 1,
@@ -178,7 +178,7 @@ enum : u32
 };
 
 // Z-texture formats
-enum : u32
+enum: u32
 {
 	TEV_ZTEX_TYPE_U8 = 0,
 	TEV_ZTEX_TYPE_U16 = 1,
@@ -186,7 +186,7 @@ enum : u32
 };
 
 // Z texture operator
-enum : u32
+enum: u32
 {
 	ZTEXTURE_DISABLE = 0,
 	ZTEXTURE_ADD = 1,
@@ -194,7 +194,7 @@ enum : u32
 };
 
 // TEV bias value
-enum : u32
+enum: u32
 {
 	TEVBIAS_ZERO = 0,
 	TEVBIAS_ADDHALF = 1,
@@ -203,7 +203,7 @@ enum : u32
 };
 
 // Indirect texture format
-enum : u32
+enum: u32
 {
 	ITF_8 = 0,
 	ITF_5 = 1,
@@ -212,7 +212,7 @@ enum : u32
 };
 
 // Indirect texture bias
-enum : u32
+enum: u32
 {
 	ITB_NONE = 0,
 	ITB_S = 1,
@@ -225,7 +225,7 @@ enum : u32
 };
 
 // Indirect texture bump alpha
-enum : u32
+enum: u32
 {
 	ITBA_OFF = 0,
 	ITBA_S = 1,
@@ -234,7 +234,7 @@ enum : u32
 };
 
 // Indirect texture wrap value
-enum : u32
+enum: u32
 {
 	ITW_OFF = 0,
 	ITW_256 = 1,
@@ -392,7 +392,10 @@ union TevStageIndirect
 		u32 unused : 11;
 	};
 
-	bool IsActive() const { return bs != ITBA_OFF || mid != 0; }
+	bool IsActive() const
+	{
+		return bs != ITBA_OFF || mid != 0;
+	}
 };
 
 union TwoTevStageOrders
@@ -415,10 +418,22 @@ union TwoTevStageOrders
 		u32 rid : 8;
 	};
 	u32 hex;
-	int getTexMap(int i) const { return i ? texmap1 : texmap0; }
-	int getTexCoord(int i) const { return i ? texcoord1 : texcoord0; }
-	int getEnable(int i) const { return i ? enable1 : enable0; }
-	int getColorChan(int i) const { return i ? colorchan1 : colorchan0; }
+	int getTexMap(int i) const
+	{
+		return i ? texmap1 : texmap0;
+	}
+	int getTexCoord(int i) const
+	{
+		return i ? texcoord1 : texcoord0;
+	}
+	int getEnable(int i) const
+	{
+		return i ? enable1 : enable0;
+	}
+	int getColorChan(int i) const
+	{
+		return i ? colorchan1 : colorchan0;
+	}
 };
 
 union TEXSCALE
@@ -451,8 +466,14 @@ union RAS1_IREF
 	};
 	u32 hex;
 
-	u32 getTexCoord(int i) const  { return (hex >> (6 * i + 3)) & 7; }
-	u32 getTexMap(int i) const { return (hex >> (6 * i)) & 7; }
+	u32 getTexCoord(int i) const
+	{
+		return (hex >> (6 * i + 3)) & 7;
+	}
+	u32 getTexMap(int i) const
+	{
+		return (hex >> (6 * i)) & 7;
+	}
 };
 
 
@@ -460,7 +481,7 @@ union RAS1_IREF
 
 union TexMode0
 {
-	enum TextureFilter : u32
+	enum TextureFilter: u32
 	{
 		TEXF_NONE = 0,
 		TEXF_POINT = 1,
@@ -578,7 +599,7 @@ struct FourTexUnits
 
 union GenMode
 {
-	enum CullMode : u32
+	enum CullMode: u32
 	{
 		CULL_NONE = 0,
 		CULL_BACK = 1, // cull back-facing primitives
@@ -638,7 +659,7 @@ union X10Y10
 
 union BlendMode
 {
-	enum BlendFactor : u32
+	enum BlendFactor: u32
 	{
 		ZERO = 0,
 		ONE = 1,
@@ -652,7 +673,7 @@ union BlendMode
 		INVDSTALPHA = 7
 	};
 
-	enum LogicOp : u32
+	enum LogicOp: u32
 	{
 		CLEAR = 0,
 		AND = 1,
@@ -697,7 +718,10 @@ union FogParam0
 
 	float GetA() const
 	{
-		union { u32 i; float f; } dummy;
+		union
+		{
+			u32 i; float f;
+		} dummy;
 		dummy.i = ((u32)sign << 31) | ((u32)exponent << 23) | ((u32)mantissa << 12); // scale mantissa from 11 to 23 bits
 		return dummy.f;
 	}
@@ -719,7 +743,10 @@ union FogParam3
 	// amount to subtract from eyespacez after range adjustment
 	float GetC() const
 	{
-		union { u32 i; float f; } dummy;
+		union
+		{
+			u32 i; float f;
+		} dummy;
 		dummy.i = ((u32)c_sign << 31) | ((u32)c_exp << 23) | ((u32)c_mant << 12); // scale mantissa from 11 to 23 bits
 		return dummy.f;
 	}
@@ -737,7 +764,10 @@ union FogRangeKElement
 	};
 
 	// TODO: Which scaling coefficient should we use here? This is just a guess!
-	float GetValue(int i) { return (i ? HI : LO) / 256.f; }
+	float GetValue(int i)
+	{
+		return (i ? HI : LO) / 256.f;
+	}
 	u32 HEX;
 };
 
@@ -781,7 +811,7 @@ struct FogParams
 
 union ZMode
 {
-	enum CompareMode : u32
+	enum CompareMode: u32
 	{
 		NEVER = 0,
 		LESS = 1,
@@ -832,7 +862,7 @@ union FieldMask
 
 union PEControl
 {
-	enum PixelFormat : u32
+	enum PixelFormat: u32
 	{
 		RGB8_Z24 = 0,
 		RGBA6_Z24 = 1,
@@ -845,7 +875,7 @@ union PEControl
 		INVALID_FMT = 0xffffffff, // Used by Dolphin to represent a missing value.
 	};
 
-	enum DepthFormat : u32
+	enum DepthFormat: u32
 	{
 		ZLINEAR = 0,
 		ZNEAR = 1,
@@ -913,7 +943,8 @@ union TevReg
 
 union TevKSel
 {
-	struct {
+	struct
+	{
 		u32 swap1 : 2;
 		u32 swap2 : 2;
 		u32 kcsel0 : 5;
@@ -923,13 +954,19 @@ union TevKSel
 	};
 	u32 hex;
 
-	int getKC(int i) const { return i ? kcsel1 : kcsel0; }
-	int getKA(int i) const { return i ? kasel1 : kasel0; }
+	int getKC(int i) const
+	{
+		return i ? kcsel1 : kcsel0;
+	}
+	int getKA(int i) const
+	{
+		return i ? kasel1 : kasel0;
+	}
 };
 
 union AlphaTest
 {
-	enum CompareMode : u32
+	enum CompareMode: u32
 	{
 		NEVER = 0,
 		LESS = 1,
@@ -941,7 +978,7 @@ union AlphaTest
 		ALWAYS = 7
 	};
 
-	enum Op : u32
+	enum Op: u32
 	{
 		AND = 0,
 		OR = 1,
@@ -1121,8 +1158,14 @@ struct BPMemory
 	u32 bpMask; //0xFE
 	u32 unknown18; //ff
 
-	bool UseEarlyDepthTest() const { return zcontrol.early_ztest && zmode.testenable; }
-	bool UseLateDepthTest() const { return !zcontrol.early_ztest && zmode.testenable; }
+	bool UseEarlyDepthTest() const
+	{
+		return zcontrol.early_ztest && zmode.testenable;
+	}
+	bool UseLateDepthTest() const
+	{
+		return !zcontrol.early_ztest && zmode.testenable;
+	}
 };
 
 #pragma pack()

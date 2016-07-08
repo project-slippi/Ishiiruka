@@ -68,41 +68,40 @@ enum ZeldaUCodeFlag
 
 static const std::map<u32, u32> UCODE_FLAGS = {
 	// GameCube IPL/BIOS, NTSC.
-	{ 0x24B22038, LIGHT_PROTOCOL | FOUR_MIXING_DESTS | TINY_VPB |
-	              VOLUME_EXPLICIT_STEP | NO_CMD_0D | WEIRD_CMD_0C },
+	{0x24B22038, LIGHT_PROTOCOL | FOUR_MIXING_DESTS | TINY_VPB | VOLUME_EXPLICIT_STEP | NO_CMD_0D |
+						  WEIRD_CMD_0C},
 	// GameCube IPL/BIOS, PAL.
-	{ 0x6BA3B3EA, LIGHT_PROTOCOL | FOUR_MIXING_DESTS | NO_CMD_0D |
-	              WEIRD_CMD_0C },
+	{0x6BA3B3EA, LIGHT_PROTOCOL | FOUR_MIXING_DESTS | NO_CMD_0D | WEIRD_CMD_0C},
 	// Pikmin 1 GC NTSC.
 	// Animal Crossing.
-	{ 0x4BE6A5CB, LIGHT_PROTOCOL | NO_CMD_0D | SUPPORTS_GBA_CRYPTO },
+	{0x4BE6A5CB, LIGHT_PROTOCOL | NO_CMD_0D | SUPPORTS_GBA_CRYPTO},
 	// Luigi's Mansion.
-	{ 0x42F64AC4, LIGHT_PROTOCOL | NO_CMD_0D | WEIRD_CMD_0C },
+	{0x42F64AC4, LIGHT_PROTOCOL | NO_CMD_0D | WEIRD_CMD_0C},
 	// Pikmin 1 GC PAL.
-	{ 0x267FD05A, SYNC_PER_FRAME | NO_CMD_0D },
+	{0x267FD05A, SYNC_PER_FRAME | NO_CMD_0D},
 	// Super Mario Sunshine.
-	{ 0x56D36052, SYNC_PER_FRAME | NO_CMD_0D },
+	{0x56D36052, SYNC_PER_FRAME | NO_CMD_0D},
 	// The Legend of Zelda: The Wind Waker.
-	{ 0x86840740, 0 },
+	{0x86840740, 0},
 	// The Legend of Zelda: Four Swords Adventures.
 	// Mario Kart: Double Dash.
 	// Pikmin 2 GC NTSC.
-	{ 0x2FCDF1EC, MAKE_DOLBY_LOUDER },
+	{0x2FCDF1EC, MAKE_DOLBY_LOUDER},
 	// The Legend of Zelda: Twilight Princess / GC.
 	// Donkey Kong Jungle Beat.
 	//
 	// TODO: These do additional filtering at frame rendering time. We don't
 	// implement this yet.
-	{ 0x6CA33A6D, MAKE_DOLBY_LOUDER },
+	{0x6CA33A6D, MAKE_DOLBY_LOUDER},
 	// The Legend of Zelda: Twilight Princess / Wii.
-	{ 0x6C3F6F94, NO_ARAM | MAKE_DOLBY_LOUDER },
+	{0x6C3F6F94, NO_ARAM | MAKE_DOLBY_LOUDER},
 	// Super Mario Galaxy.
 	// Super Mario Galaxy 2.
-	{ 0xD643001F, NO_ARAM | MAKE_DOLBY_LOUDER },
+	{0xD643001F, NO_ARAM | MAKE_DOLBY_LOUDER},
 	// Pikmin 1 New Play Control.
-	{ 0xB7EB9A9C, NO_ARAM | MAKE_DOLBY_LOUDER | COMBINED_CMD_0D },
+	{0xB7EB9A9C, NO_ARAM | MAKE_DOLBY_LOUDER | COMBINED_CMD_0D},
 	// Pikmin 2 New Play Control.
-	{ 0xEAEB38CC, NO_ARAM | MAKE_DOLBY_LOUDER },
+	{0xEAEB38CC, NO_ARAM | MAKE_DOLBY_LOUDER},
 
 	// TODO: Other games that use this UCode (exhaustive list):
 	// * Link's Crossbow Training
@@ -110,8 +109,7 @@ static const std::map<u32, u32> UCODE_FLAGS = {
 	// * The Legend of Zelda: Twilight Princess / Wii (type ????, CRC ????)
 };
 
-ZeldaUCode::ZeldaUCode(DSPHLE *dsphle, u32 crc)
-	: UCodeInterface(dsphle, crc)
+ZeldaUCode::ZeldaUCode(DSPHLE* dsphle, u32 crc): UCodeInterface(dsphle, crc)
 {
 	auto it = UCODE_FLAGS.find(crc);
 	if (it == UCODE_FLAGS.end())
@@ -129,7 +127,7 @@ ZeldaUCode::ZeldaUCode(DSPHLE *dsphle, u32 crc)
 	else
 	{
 		m_mail_handler.PushMail(DSP_INIT, true);
-		m_mail_handler.PushMail(0xF3551111); // handshake
+		m_mail_handler.PushMail(0xF3551111);  // handshake
 	}
 }
 
@@ -146,7 +144,7 @@ void ZeldaUCode::Update()
 	}
 }
 
-void ZeldaUCode::DoState(PointerWrap &p)
+void ZeldaUCode::DoState(PointerWrap& p)
 {
 	p.Do(m_flags);
 	p.Do(m_mail_current_state);
@@ -174,7 +172,7 @@ void ZeldaUCode::DoState(PointerWrap &p)
 
 void ZeldaUCode::HandleMail(u32 mail)
 {
-	if (m_upload_setup_in_progress) // evaluated first!
+	if (m_upload_setup_in_progress)  // evaluated first!
 	{
 		PrepareBootUCode(mail);
 		return;
@@ -195,8 +193,7 @@ void ZeldaUCode::HandleMailDefault(u32 mail)
 		{
 			if ((mail >> 16) != 0xCDD1)
 			{
-				PanicAlert("Rendering end mail without prefix CDD1: %08x",
-				           mail);
+				PanicAlert("Rendering end mail without prefix CDD1: %08x", mail);
 			}
 
 			switch (mail & 0xFFFF)
@@ -235,7 +232,7 @@ void ZeldaUCode::HandleMailDefault(u32 mail)
 			else
 			{
 				NOTICE_LOG(DSPHLE, "Sync mail (%08x) received when rendering was not active. Halting.",
-				           mail);
+					mail);
 				SetMailState(MailState::HALTED);
 			}
 		}
@@ -304,12 +301,20 @@ void ZeldaUCode::HandleMailLight(u32 mail)
 
 		switch ((mail >> 24) & 0x7F)
 		{
-		case 0x00: m_mail_expected_cmd_mails = 0; break;
-		case 0x01: m_mail_expected_cmd_mails = 4; break;
-		case 0x02: m_mail_expected_cmd_mails = 2; break;
-		// Doesn't even register as a command, just rejumps to the dispatcher.
-		// TODO: That's true on 0x4BE6A5CB and 0x42F64AC4, what about others?
-		case 0x03: add_command = false; break;
+		case 0x00:
+			m_mail_expected_cmd_mails = 0;
+			break;
+		case 0x01:
+			m_mail_expected_cmd_mails = 4;
+			break;
+		case 0x02:
+			m_mail_expected_cmd_mails = 2;
+			break;
+			// Doesn't even register as a command, just rejumps to the dispatcher.
+			// TODO: That's true on 0x4BE6A5CB and 0x42F64AC4, what about others?
+		case 0x03:
+			add_command = false;
+			break;
 		case 0x0C:
 			if (m_flags & SUPPORTS_GBA_CRYPTO)
 				m_mail_expected_cmd_mails = 1;
@@ -420,9 +425,9 @@ void ZeldaUCode::RunPendingCommands()
 			SetMailState(MailState::HALTED);
 			return;
 
-		// Command 01: Setup/initialization command. Provides the address to
-		// voice parameter blocks (VPBs) as well as some array of coefficients
-		// used for mixing.
+			// Command 01: Setup/initialization command. Provides the address to
+			// voice parameter blocks (VPBs) as well as some array of coefficients
+			// used for mixing.
 		case 0x01:
 		{
 			m_rendering_voices_per_frame = extra_data;
@@ -489,10 +494,10 @@ void ZeldaUCode::RunPendingCommands()
 			}
 			return;
 
-		// Command 0C: used for multiple purpose depending on the UCode version:
-		// * IPL NTSC/PAL, Luigi's Mansion: TODO (unknown as of now).
-		// * Pikmin/AC: GBA crypto.
-		// * SMS and onwards: NOP.
+			// Command 0C: used for multiple purpose depending on the UCode version:
+			// * IPL NTSC/PAL, Luigi's Mansion: TODO (unknown as of now).
+			// * Pikmin/AC: GBA crypto.
+			// * SMS and onwards: NOP.
 		case 0x0C:
 			if (m_flags & SUPPORTS_GBA_CRYPTO)
 			{
@@ -501,7 +506,8 @@ void ZeldaUCode::RunPendingCommands()
 			else if (m_flags & WEIRD_CMD_0C)
 			{
 				// TODO
-				NOTICE_LOG(DSPHLE, "Received an unhandled 0C command, params: %08x %08x", Read32(), Read32());
+				NOTICE_LOG(DSPHLE, "Received an unhandled 0C command, params: %08x %08x", Read32(),
+					Read32());
 			}
 			else
 			{
@@ -510,7 +516,7 @@ void ZeldaUCode::RunPendingCommands()
 			SendCommandAck(CommandAck::STANDARD, sync);
 			break;
 
-		// Command 0D: TODO: find a name and implement.
+			// Command 0D: TODO: find a name and implement.
 		case 0x0D:
 			if (m_flags & NO_CMD_0D)
 			{
@@ -523,9 +529,9 @@ void ZeldaUCode::RunPendingCommands()
 			SendCommandAck(CommandAck::STANDARD, sync);
 			break;
 
-		// Command 0E: Sets the base address of the ARAM for Wii UCodes. Used
-		// because the Wii does not have an ARAM, so it simulates it with MRAM
-		// and DMAs.
+			// Command 0E: Sets the base address of the ARAM for Wii UCodes. Used
+			// because the Wii does not have an ARAM, so it simulates it with MRAM
+			// and DMAs.
 		case 0x0E:
 			if (!(m_flags & NO_ARAM))
 				PanicAlert("Setting base ARAM addr on non Wii DAC.");
@@ -555,8 +561,12 @@ void ZeldaUCode::SendCommandAck(CommandAck ack_type, u16 sync_value)
 		u32 ack_mail = 0;
 		switch (ack_type)
 		{
-		case CommandAck::STANDARD: ack_mail = DSP_SYNC; break;
-		case CommandAck::DONE_RENDERING: ack_mail = DSP_FRAME_END; break;
+		case CommandAck::STANDARD:
+			ack_mail = DSP_SYNC;
+			break;
+		case CommandAck::DONE_RENDERING:
+			ack_mail = DSP_FRAME_END;
+			break;
 		}
 		m_mail_handler.PushMail(ack_mail, true);
 
@@ -617,13 +627,13 @@ void ZeldaUCode::RenderAudio()
 
 // Utility to define 32 bit accessors/modifiers methods based on two 16 bit
 // fields named _l and _h.
-#define DEFINE_32BIT_ACCESSOR(field_name, name) \
-	u32 Get##name() const { return (field_name##_h << 16) | field_name##_l; } \
-	void Set##name(u32 v) \
-	{ \
-		field_name##_h = v >> 16; \
-		field_name##_l = v & 0xFFFF; \
-	}
+#define DEFINE_32BIT_ACCESSOR(field_name, name)                                                    \
+  u32 Get##name() const { return (field_name##_h << 16) | field_name##_l; }                        \
+  void Set##name(u32 v)                                                                            \
+  {                                                                                                \
+    field_name##_h = v >> 16;                                                                      \
+    field_name##_l = v & 0xFFFF;                                                                   \
+  }
 
 #pragma pack(push, 1)
 struct ZeldaAudioRenderer::VPB
@@ -684,9 +694,14 @@ struct ZeldaAudioRenderer::VPB
 	// (left/right) and Y (front/back) coordinates of the sound. 0x00 is all
 	// right/back, 0x7F is all left/front. Format is 0XXXXXXX0YYYYYYY.
 	u16 dolby_voice_position;
-	u8 GetDolbyVoiceX() const { return (dolby_voice_position >> 8) & 0x7F; }
-	u8 GetDolbyVoiceY() const { return dolby_voice_position & 0x7F; }
-
+	u8 GetDolbyVoiceX() const
+	{
+		return (dolby_voice_position >> 8) & 0x7F;
+	}
+	u8 GetDolbyVoiceY() const
+	{
+		return dolby_voice_position & 0x7F;
+	}
 	// How much reverbation to apply to the Dolby mixed voice. 0 is none,
 	// 0x7FFF is the maximum value.
 	s16 dolby_reverb_factor;
@@ -727,10 +742,10 @@ struct ZeldaAudioRenderer::VPB
 	u16 current_position_l;
 	DEFINE_32BIT_ACCESSOR(current_position, CurrentPosition)
 
-	// Number of samples that will be processed before the loop point of the
-	// voice is reached. Maintained by the UCode and used by the game to
-	// schedule some parameters updates.
-	u16 samples_before_loop;
+		// Number of samples that will be processed before the loop point of the
+		// voice is reached. Maintained by the UCode and used by the game to
+		// schedule some parameters updates.
+		u16 samples_before_loop;
 
 	u16 unk_37;
 
@@ -739,17 +754,17 @@ struct ZeldaAudioRenderer::VPB
 	u16 current_aram_addr_l;
 	DEFINE_32BIT_ACCESSOR(current_aram_addr, CurrentARAMAddr)
 
-	// Remaining number of samples to load before considering the voice
-	// rendering complete and setting the done flag. Note that this is an
-	// absolute value that does not take into account loops. If a loop of 100
-	// samples is played 4 times, remaining_length will have decreased by 400.
-	u16 remaining_length_h;
+		// Remaining number of samples to load before considering the voice
+		// rendering complete and setting the done flag. Note that this is an
+		// absolute value that does not take into account loops. If a loop of 100
+		// samples is played 4 times, remaining_length will have decreased by 400.
+		u16 remaining_length_h;
 	u16 remaining_length_l;
 	DEFINE_32BIT_ACCESSOR(remaining_length, RemainingLength)
 
-	// Stores the last 4 resampled input samples after each frame, so that they
-	// can be used for future linear interpolation.
-	s16 resample_buffer[4];
+		// Stores the last 4 resampled input samples after each frame, so that they
+		// can be used for future linear interpolation.
+		s16 resample_buffer[4];
 
 	// TODO: document and implement.
 	s16 prev_input_samples[0x18];
@@ -759,9 +774,14 @@ struct ZeldaAudioRenderer::VPB
 	// requires the two latest sample values to be able to decode future
 	// samples.
 	s16 afc_remaining_samples[0x10];
-	s16* AFCYN2() { return &afc_remaining_samples[0xE]; }
-	s16* AFCYN1() { return &afc_remaining_samples[0xF]; }
-
+	s16* AFCYN2()
+	{
+		return &afc_remaining_samples[0xE];
+	}
+	s16* AFCYN1()
+	{
+		return &afc_remaining_samples[0xF];
+	}
 	u16 unk_68_80[0x80 - 0x68];
 
 	enum SamplesSourceType
@@ -824,21 +844,21 @@ struct ZeldaAudioRenderer::VPB
 	u16 loop_address_l;
 	DEFINE_32BIT_ACCESSOR(loop_address, LoopAddress)
 
-	// Offset (in number of raw samples) of the start of the loop area in the
-	// voice. Note: some sample sources only use the _h part of this.
-	//
-	// TODO: rename to length? confusion with remaining_length...
-	u16 loop_start_position_h;
+		// Offset (in number of raw samples) of the start of the loop area in the
+		// voice. Note: some sample sources only use the _h part of this.
+		//
+		// TODO: rename to length? confusion with remaining_length...
+		u16 loop_start_position_h;
 	u16 loop_start_position_l;
 	DEFINE_32BIT_ACCESSOR(loop_start_position, LoopStartPosition)
 
-	// Base address used to download samples data before the loop point of the
-	// voice has been reached.
-	u16 base_address_h;
+		// Base address used to download samples data before the loop point of the
+		// voice has been reached.
+		u16 base_address_h;
 	u16 base_address_l;
 	DEFINE_32BIT_ACCESSOR(base_address, BaseAddress)
 
-	u16 padding[0xC0];
+		u16 padding[0xC0];
 
 	// These next two functions are terrible hacks used in order to support two
 	// different VPB sizes.
@@ -934,18 +954,13 @@ void ZeldaAudioRenderer::PrepareFrame()
 
 	// Add reverb data from previous frame.
 	ApplyReverb(false);
-	AddBuffersWithVolume(m_buf_front_left_reverb.data(),
-	                     m_buf_back_left_reverb.data(),
-	                     0x50, 0x7FFF);
-	AddBuffersWithVolume(m_buf_front_right_reverb.data(),
-	                     m_buf_back_left_reverb.data(),
-	                     0x50, 0xB820);
-	AddBuffersWithVolume(m_buf_front_left_reverb.data(),
-	                     m_buf_back_right_reverb.data() + 0x28,
-	                     0x28, 0xB820);
-	AddBuffersWithVolume(m_buf_front_right_reverb.data(),
-	                     m_buf_back_left_reverb.data() + 0x28,
-	                     0x28, 0x7FFF);
+	AddBuffersWithVolume(m_buf_front_left_reverb.data(), m_buf_back_left_reverb.data(), 0x50, 0x7FFF);
+	AddBuffersWithVolume(m_buf_front_right_reverb.data(), m_buf_back_left_reverb.data(), 0x50,
+		0xB820);
+	AddBuffersWithVolume(m_buf_front_left_reverb.data(), m_buf_back_right_reverb.data() + 0x28, 0x28,
+		0xB820);
+	AddBuffersWithVolume(m_buf_front_right_reverb.data(), m_buf_back_left_reverb.data() + 0x28, 0x28,
+		0x7FFF);
 	m_buf_back_left_reverb.fill(0);
 	m_buf_back_right_reverb.fill(0);
 
@@ -955,13 +970,18 @@ void ZeldaAudioRenderer::PrepareFrame()
 	for (int i = 0; i < 0x40; i += 2)
 	{
 		v = yn2 * yn1 - (pattern2[i] << 16);
-		yn2 = yn1; yn1 = pattern2[i]; pattern2[i] = v >> 16;
+		yn2 = yn1;
+		yn1 = pattern2[i];
+		pattern2[i] = v >> 16;
 
 		v = 2 * (yn2 * yn1 + (pattern2[i + 1] << 16));
-		yn2 = yn1; yn1 = pattern2[i + 1]; pattern2[i + 1] = v >> 16;
+		yn2 = yn1;
+		yn1 = pattern2[i + 1];
+		pattern2[i + 1] = v >> 16;
 	}
 	s16* pattern3 = m_const_patterns.data() + 3 * 0x40;
-	yn2 = pattern3[0x40 - 2]; yn1 = pattern3[0x40 - 1];
+	yn2 = pattern3[0x40 - 2];
+	yn1 = pattern3[0x40 - 1];
 	s16 acc = yn1;
 	s16 step = pattern3[0] + ((yn1 * yn2 + ((yn2 << 16) + yn1)) >> 16);
 	step = (step & 0x1FF) | 0x2000;
@@ -983,16 +1003,11 @@ void ZeldaAudioRenderer::ApplyReverb(bool post_rendering)
 
 	// Each of the 4 RPBs maps to one of these buffers.
 	MixingBuffer* reverb_buffers[4] = {
-		&m_buf_unk0_reverb,
-		&m_buf_unk1_reverb,
-		&m_buf_front_left_reverb,
-		&m_buf_front_right_reverb,
+		 &m_buf_unk0_reverb, &m_buf_unk1_reverb, &m_buf_front_left_reverb, &m_buf_front_right_reverb,
 	};
 	std::array<s16, 8>* last8_samples_buffers[4] = {
-		&m_buf_unk0_reverb_last8,
-		&m_buf_unk1_reverb_last8,
-		&m_buf_front_left_reverb_last8,
-		&m_buf_front_right_reverb_last8,
+		 &m_buf_unk0_reverb_last8, &m_buf_unk1_reverb_last8, &m_buf_front_left_reverb_last8,
+		 &m_buf_front_right_reverb_last8,
 	};
 
 	u16* rpb_base_ptr = (u16*)HLEMemory_Get_Pointer(m_reverb_pb_base_addr);
@@ -1000,17 +1015,16 @@ void ZeldaAudioRenderer::ApplyReverb(bool post_rendering)
 	{
 		ReverbPB rpb;
 		u16* rpb_raw_ptr = reinterpret_cast<u16*>(&rpb);
-		for (size_t i = 0; i < sizeof (ReverbPB) / 2; ++i)
-			rpb_raw_ptr[i] = Common::swap16(rpb_base_ptr[rpb_idx * sizeof (ReverbPB) / 2 + i]);
+		for (size_t i = 0; i < sizeof(ReverbPB) / 2; ++i)
+			rpb_raw_ptr[i] = Common::swap16(rpb_base_ptr[rpb_idx * sizeof(ReverbPB) / 2 + i]);
 
 		if (!rpb.enabled)
 			continue;
 
 		u16 mram_buffer_idx = m_reverb_pb_frames_count[rpb_idx];
 
-		u32 mram_addr = ((rpb.circular_buffer_base_h << 16) |
-						 rpb.circular_buffer_base_l) +
-						 mram_buffer_idx * 0x50 * sizeof (s16);
+		u32 mram_addr = ((rpb.circular_buffer_base_h << 16) | rpb.circular_buffer_base_l) +
+			mram_buffer_idx * 0x50 * sizeof(s16);
 		s16* mram_ptr = (s16*)HLEMemory_Get_Pointer(mram_addr);
 
 		if (!post_rendering)
@@ -1027,7 +1041,8 @@ void ZeldaAudioRenderer::ApplyReverb(bool post_rendering)
 			for (u16 i = 0; i < 8; ++i)
 				(*last8_samples_buffers[rpb_idx])[i] = buffer[0x50 + i];
 
-			auto ApplyFilter = [&]() {
+			auto ApplyFilter = [&]()
+			{
 				// Filter the buffer using provided coefficients.
 				for (u16 i = 0; i < 0x50; ++i)
 				{
@@ -1056,8 +1071,7 @@ void ZeldaAudioRenderer::ApplyReverb(bool post_rendering)
 #endif
 					continue;
 				}
-				AddBuffersWithVolume(dest_buffer->data(), buffer.data(),
-				                     0x50, dest.volume);
+				AddBuffersWithVolume(dest_buffer->data(), buffer.data(), 0x50, dest.volume);
 			}
 
 			// LSB not set, bit 1 set -> post-filtering.
@@ -1085,20 +1099,34 @@ ZeldaAudioRenderer::MixingBuffer* ZeldaAudioRenderer::BufferForID(u16 buffer_id)
 {
 	switch (buffer_id)
 	{
-		case 0x0D00: return &m_buf_front_left;
-		case 0x0D60: return &m_buf_front_right;
-		case 0x0F40: return &m_buf_back_left;
-		case 0x0CA0: return &m_buf_back_right;
-		case 0x0E80: return &m_buf_front_left_reverb;
-		case 0x0EE0: return &m_buf_front_right_reverb;
-		case 0x0C00: return &m_buf_back_left_reverb;
-		case 0x0C50: return &m_buf_back_right_reverb;
-		case 0x0DC0: return &m_buf_unk0_reverb;
-		case 0x0E20: return &m_buf_unk1_reverb;
-		case 0x09A0: return &m_buf_unk0;  // Used by the GC IPL as a reverb dest.
-		case 0x0FA0: return &m_buf_unk1;  // Used by the GC IPL as a mixing dest.
-		case 0x0B00: return &m_buf_unk2;  // Used by Pikmin 1 as a mixing dest.
-		default: return nullptr;
+	case 0x0D00:
+		return &m_buf_front_left;
+	case 0x0D60:
+		return &m_buf_front_right;
+	case 0x0F40:
+		return &m_buf_back_left;
+	case 0x0CA0:
+		return &m_buf_back_right;
+	case 0x0E80:
+		return &m_buf_front_left_reverb;
+	case 0x0EE0:
+		return &m_buf_front_right_reverb;
+	case 0x0C00:
+		return &m_buf_back_left_reverb;
+	case 0x0C50:
+		return &m_buf_back_right_reverb;
+	case 0x0DC0:
+		return &m_buf_unk0_reverb;
+	case 0x0E20:
+		return &m_buf_unk1_reverb;
+	case 0x09A0:
+		return &m_buf_unk0;  // Used by the GC IPL as a reverb dest.
+	case 0x0FA0:
+		return &m_buf_unk1;  // Used by the GC IPL as a mixing dest.
+	case 0x0B00:
+		return &m_buf_unk2;  // Used by Pikmin 1 as a mixing dest.
+	default:
+		return nullptr;
 	}
 }
 
@@ -1135,10 +1163,10 @@ void ZeldaAudioRenderer::AddVoice(u16 voice_id)
 		// Compute volume for each quadrant.
 		u16 shift_factor = (m_flags & MAKE_DOLBY_LOUDER) ? 15 : 16;
 		s16 quadrant_volumes[4] = {
-			(s16)((left_volume * front_volume) >> shift_factor),
-			(s16)((left_volume * back_volume) >> shift_factor),
-			(s16)((right_volume * front_volume) >> shift_factor),
-			(s16)((right_volume * back_volume) >> shift_factor),
+			 (s16)((left_volume * front_volume) >> shift_factor),
+			 (s16)((left_volume * back_volume) >> shift_factor),
+			 (s16)((right_volume * front_volume) >> shift_factor),
+			 (s16)((right_volume * back_volume) >> shift_factor),
 		};
 
 		// Compute the volume delta for each sample to match the difference
@@ -1154,32 +1182,34 @@ void ZeldaAudioRenderer::AddVoice(u16 voice_id)
 
 		// Compute reverb volume and ramp deltas.
 		s16 reverb_volumes[4], reverb_volume_deltas[4];
-		s16 reverb_volume_factor = (vpb.dolby_volume_current * vpb.dolby_reverb_factor) >> (shift_factor - 1);
+		s16 reverb_volume_factor =
+			(vpb.dolby_volume_current * vpb.dolby_reverb_factor) >> (shift_factor - 1);
 		for (size_t i = 0; i < 4; ++i)
 		{
 			reverb_volumes[i] = (quadrant_volumes[i] * reverb_volume_factor) >> shift_factor;
 			reverb_volume_deltas[i] = (volume_deltas[i] * vpb.dolby_reverb_factor) >> shift_factor;
 		}
 
-		struct {
+		struct
+		{
 			MixingBuffer* buffer;
 			s16 volume;
 			s16 volume_delta;
 		} buffers[8] = {
-			{ &m_buf_front_left, quadrant_volumes[0], volume_deltas[0] },
-			{ &m_buf_back_left, quadrant_volumes[1], volume_deltas[1] },
-			{ &m_buf_front_right, quadrant_volumes[2], volume_deltas[2] },
-			{ &m_buf_back_right, quadrant_volumes[3], volume_deltas[3] },
+			 {&m_buf_front_left, quadrant_volumes[0], volume_deltas[0]},
+			 {&m_buf_back_left, quadrant_volumes[1], volume_deltas[1]},
+			 {&m_buf_front_right, quadrant_volumes[2], volume_deltas[2]},
+			 {&m_buf_back_right, quadrant_volumes[3], volume_deltas[3]},
 
-			{ &m_buf_front_left_reverb, reverb_volumes[0], reverb_volume_deltas[0] },
-			{ &m_buf_back_left_reverb, reverb_volumes[1], reverb_volume_deltas[1] },
-			{ &m_buf_front_right_reverb, reverb_volumes[2], reverb_volume_deltas[2] },
-			{ &m_buf_back_right_reverb, reverb_volumes[3], reverb_volume_deltas[3] },
+			 {&m_buf_front_left_reverb, reverb_volumes[0], reverb_volume_deltas[0]},
+			 {&m_buf_back_left_reverb, reverb_volumes[1], reverb_volume_deltas[1]},
+			 {&m_buf_front_right_reverb, reverb_volumes[2], reverb_volume_deltas[2]},
+			 {&m_buf_back_right_reverb, reverb_volumes[3], reverb_volume_deltas[3]},
 		};
 		for (const auto& buffer : buffers)
 		{
 			AddBuffersWithVolumeRamp(buffer.buffer, input_samples, buffer.volume << 16,
-			                         (buffer.volume_delta << 16) / (s32)buffer.buffer->size());
+				(buffer.volume_delta << 16) / (s32)buffer.buffer->size());
 		}
 
 		vpb.dolby_volume_current = vpb.dolby_volume_target;
@@ -1232,9 +1262,8 @@ void ZeldaAudioRenderer::AddVoice(u16 voice_id)
 				continue;
 			}
 
-			s32 new_volume = AddBuffersWithVolumeRamp(
-					dst_buffer, input_samples, vpb.channels[i].current_volume << 16,
-					volume_step);
+			s32 new_volume = AddBuffersWithVolumeRamp(dst_buffer, input_samples,
+				vpb.channels[i].current_volume << 16, volume_step);
 			vpb.channels[i].current_volume = new_volume >> 16;
 		}
 	}
@@ -1261,8 +1290,8 @@ void ZeldaAudioRenderer::FinalizeFrame()
 		ram_left_buffer[i] = Common::swap16(m_buf_front_left[i]);
 		ram_right_buffer[i] = Common::swap16(m_buf_front_right[i]);
 	}
-	m_output_lbuf_addr += sizeof (u16) * (u32)m_buf_front_left.size();
-	m_output_rbuf_addr += sizeof (u16) * (u32)m_buf_front_right.size();
+	m_output_lbuf_addr += sizeof(u16) * (u32)m_buf_front_left.size();
+	m_output_rbuf_addr += sizeof(u16) * (u32)m_buf_front_right.size();
 
 	// TODO: Some more Dolby mixing.
 
@@ -1325,104 +1354,100 @@ void ZeldaAudioRenderer::LoadInputSamples(MixingBuffer* buffer, VPB* vpb)
 
 	switch (vpb->samples_source_type)
 	{
-		case VPB::SRC_SQUARE_WAVE:
-		case VPB::SRC_SQUARE_WAVE_25PCT:
-		{
-			u32 shift;
-			if (vpb->samples_source_type == VPB::SRC_SQUARE_WAVE)
-				shift = 1;
-			else
-				shift = 2;
-			u32 mask = (1 << shift) - 1;
+	case VPB::SRC_SQUARE_WAVE:
+	case VPB::SRC_SQUARE_WAVE_25PCT:
+	{
+		u32 shift;
+		if (vpb->samples_source_type == VPB::SRC_SQUARE_WAVE)
+			shift = 1;
+		else
+			shift = 2;
+		u32 mask = (1 << shift) - 1;
 
-			u32 pos = vpb->current_pos_frac << shift;
-			for (size_t i = 0; i < buffer->size(); ++i)
-			{
-				(*buffer)[i] = ((pos >> 16) & mask) ? 0xC000 : 0x4000;
-				pos += vpb->resampling_ratio;
-			}
-			vpb->current_pos_frac = (pos >> shift) & 0xFFFF;
-			break;
+		u32 pos = vpb->current_pos_frac << shift;
+		for (size_t i = 0; i < buffer->size(); ++i)
+		{
+			(*buffer)[i] = ((pos >> 16) & mask) ? 0xC000 : 0x4000;
+			pos += vpb->resampling_ratio;
+		}
+		vpb->current_pos_frac = (pos >> shift) & 0xFFFF;
+		break;
+	}
+
+	case VPB::SRC_SAW_WAVE:
+	{
+		u32 pos = vpb->current_pos_frac;
+		for (size_t i = 0; i < buffer->size(); ++i)
+		{
+			(*buffer)[i] = pos & 0xFFFF;
+			pos += (vpb->resampling_ratio) >> 1;
+		}
+		vpb->current_pos_frac = pos & 0xFFFF;
+		break;
+	}
+
+	case VPB::SRC_CONST_PATTERN_0:
+	case VPB::SRC_CONST_PATTERN_0_VARIABLE_STEP:
+	case VPB::SRC_CONST_PATTERN_1:
+	case VPB::SRC_CONST_PATTERN_2:
+	case VPB::SRC_CONST_PATTERN_3:
+	{
+		const u16 PATTERN_SIZE = 0x40;
+
+		struct PatternInfo
+		{
+			u16 idx;
+			bool variable_step;
+		};
+		std::map<u16, PatternInfo> samples_source_to_pattern = {
+			 {VPB::SRC_CONST_PATTERN_0, {0, false}}, {VPB::SRC_CONST_PATTERN_0_VARIABLE_STEP, {0, true}},
+			 {VPB::SRC_CONST_PATTERN_1, {1, false}}, {VPB::SRC_CONST_PATTERN_2, {2, false}},
+			 {VPB::SRC_CONST_PATTERN_3, {3, false}},
+		};
+		auto& pattern_info = samples_source_to_pattern[vpb->samples_source_type];
+		u16 pattern_offset = pattern_info.idx * PATTERN_SIZE;
+		s16* pattern = m_const_patterns.data() + pattern_offset;
+
+		u32 pos = vpb->current_pos_frac << 6;  // log2(PATTERN_SIZE)
+		u32 step = vpb->resampling_ratio << 5;
+
+		for (size_t i = 0; i < buffer->size(); ++i)
+		{
+			(*buffer)[i] = pattern[pos >> 16];
+			pos = (pos + step) % (PATTERN_SIZE << 16);
+			if (pattern_info.variable_step)
+				pos = ((pos << 10) + m_buf_back_right[i] * vpb->resampling_ratio) >> 10;
 		}
 
-		case VPB::SRC_SAW_WAVE:
-		{
-			u32 pos = vpb->current_pos_frac;
-			for (size_t i = 0; i < buffer->size(); ++i)
-			{
-				(*buffer)[i] = pos & 0xFFFF;
-				pos += (vpb->resampling_ratio) >> 1;
-			}
-			vpb->current_pos_frac = pos & 0xFFFF;
-			break;
-		}
+		vpb->current_pos_frac = pos >> 6;
+		break;
+	}
 
-		case VPB::SRC_CONST_PATTERN_0:
-		case VPB::SRC_CONST_PATTERN_0_VARIABLE_STEP:
-		case VPB::SRC_CONST_PATTERN_1:
-		case VPB::SRC_CONST_PATTERN_2:
-		case VPB::SRC_CONST_PATTERN_3:
-		{
-			const u16 PATTERN_SIZE = 0x40;
+	case VPB::SRC_PCM8_FROM_ARAM:
+		DownloadPCMSamplesFromARAM<s8>(raw_input_samples.data() + 4, vpb, NeededRawSamplesCount(*vpb));
+		Resample(vpb, raw_input_samples.data(), buffer);
+		break;
 
-			struct PatternInfo { u16 idx; bool variable_step; };
-			std::map<u16, PatternInfo> samples_source_to_pattern = {
-				{ VPB::SRC_CONST_PATTERN_0, {0, false} },
-				{ VPB::SRC_CONST_PATTERN_0_VARIABLE_STEP, {0, true} },
-				{ VPB::SRC_CONST_PATTERN_1, {1, false} },
-				{ VPB::SRC_CONST_PATTERN_2, {2, false} },
-				{ VPB::SRC_CONST_PATTERN_3, {3, false} },
-			};
-			auto& pattern_info = samples_source_to_pattern[vpb->samples_source_type];
-			u16 pattern_offset = pattern_info.idx * PATTERN_SIZE;
-			s16* pattern = m_const_patterns.data() + pattern_offset;
+	case VPB::SRC_AFC_HQ_FROM_ARAM:
+	case VPB::SRC_AFC_LQ_FROM_ARAM:
+		DownloadAFCSamplesFromARAM(raw_input_samples.data() + 4, vpb, NeededRawSamplesCount(*vpb));
+		Resample(vpb, raw_input_samples.data(), buffer);
+		break;
 
-			u32 pos = vpb->current_pos_frac << 6;  // log2(PATTERN_SIZE)
-			u32 step = vpb->resampling_ratio << 5;
+	case VPB::SRC_PCM16_FROM_ARAM:
+		DownloadPCMSamplesFromARAM<s16>(raw_input_samples.data() + 4, vpb, NeededRawSamplesCount(*vpb));
+		Resample(vpb, raw_input_samples.data(), buffer);
+		break;
 
-			for (size_t i = 0; i < buffer->size(); ++i)
-			{
-				(*buffer)[i] = pattern[pos >> 16];
-				pos = (pos + step) % (PATTERN_SIZE << 16);
-				if (pattern_info.variable_step)
-					pos = ((pos << 10) + m_buf_back_right[i] * vpb->resampling_ratio) >> 10;
-			}
+	case VPB::SRC_PCM16_FROM_MRAM:
+		DownloadRawSamplesFromMRAM(raw_input_samples.data() + 4, vpb, NeededRawSamplesCount(*vpb));
+		Resample(vpb, raw_input_samples.data(), buffer);
+		break;
 
-			vpb->current_pos_frac = pos >> 6;
-			break;
-		}
-
-
-
-		case VPB::SRC_PCM8_FROM_ARAM:
-			DownloadPCMSamplesFromARAM<s8>(raw_input_samples.data() + 4, vpb,
-			                               NeededRawSamplesCount(*vpb));
-			Resample(vpb, raw_input_samples.data(), buffer);
-			break;
-
-		case VPB::SRC_AFC_HQ_FROM_ARAM:
-		case VPB::SRC_AFC_LQ_FROM_ARAM:
-			DownloadAFCSamplesFromARAM(raw_input_samples.data() + 4, vpb,
-			                           NeededRawSamplesCount(*vpb));
-			Resample(vpb, raw_input_samples.data(), buffer);
-			break;
-
-		case VPB::SRC_PCM16_FROM_ARAM:
-			DownloadPCMSamplesFromARAM<s16>(raw_input_samples.data() + 4, vpb,
-			                                NeededRawSamplesCount(*vpb));
-			Resample(vpb, raw_input_samples.data(), buffer);
-			break;
-
-		case VPB::SRC_PCM16_FROM_MRAM:
-			DownloadRawSamplesFromMRAM(raw_input_samples.data() + 4, vpb,
-			                           NeededRawSamplesCount(*vpb));
-			Resample(vpb, raw_input_samples.data(), buffer);
-			break;
-
-		default:
-			PanicAlert("Using an unknown/unimplemented sample source: %04x", vpb->samples_source_type);
-			buffer->fill(0);
-			return;
+	default:
+		PanicAlert("Using an unknown/unimplemented sample source: %04x", vpb->samples_source_type);
+		buffer->fill(0);
+		return;
 	}
 }
 
@@ -1497,10 +1522,8 @@ void ZeldaAudioRenderer::DownloadPCMSamplesFromARAM(s16* dst, VPB* vpb, u16 requ
 
 	if (vpb->reset_vpb)
 	{
-		vpb->SetRemainingLength(
-				vpb->GetLoopStartPosition() - vpb->GetCurrentPosition());
-		vpb->SetCurrentARAMAddr(
-				vpb->GetBaseAddress() + vpb->GetCurrentPosition() * sizeof (T));
+		vpb->SetRemainingLength(vpb->GetLoopStartPosition() - vpb->GetCurrentPosition());
+		vpb->SetCurrentARAMAddr(vpb->GetBaseAddress() + vpb->GetCurrentPosition() * sizeof(T));
 	}
 
 	vpb->end_reached = false;
@@ -1517,29 +1540,25 @@ void ZeldaAudioRenderer::DownloadPCMSamplesFromARAM(s16* dst, VPB* vpb, u16 requ
 				break;
 			}
 			vpb->SetCurrentPosition(vpb->GetLoopAddress());
-			vpb->SetRemainingLength(
-					vpb->GetLoopStartPosition() - vpb->GetCurrentPosition());
-			vpb->SetCurrentARAMAddr(
-					vpb->GetBaseAddress() + vpb->GetCurrentPosition() * sizeof (T));
+			vpb->SetRemainingLength(vpb->GetLoopStartPosition() - vpb->GetCurrentPosition());
+			vpb->SetCurrentARAMAddr(vpb->GetBaseAddress() + vpb->GetCurrentPosition() * sizeof(T));
 		}
 
 		T* src_ptr = (T*)((u8*)GetARAMPtr() + vpb->GetCurrentARAMAddr());
-		u16 samples_to_download = std::min(vpb->GetRemainingLength(),
-		                                   (u32)requested_samples_count);
+		u16 samples_to_download = std::min(vpb->GetRemainingLength(), (u32)requested_samples_count);
 
 		for (u16 i = 0; i < samples_to_download; ++i)
-			*dst++ = Common::FromBigEndian<T>(*src_ptr++) << (16 - 8 * sizeof (T));
+			*dst++ = Common::FromBigEndian<T>(*src_ptr++) << (16 - 8 * sizeof(T));
 
 		vpb->SetRemainingLength(vpb->GetRemainingLength() - samples_to_download);
-		vpb->SetCurrentARAMAddr(vpb->GetCurrentARAMAddr() + samples_to_download * sizeof (T));
+		vpb->SetCurrentARAMAddr(vpb->GetCurrentARAMAddr() + samples_to_download * sizeof(T));
 		requested_samples_count -= samples_to_download;
 		if (!vpb->GetRemainingLength())
 			vpb->end_reached = true;
 	}
 }
 
-void ZeldaAudioRenderer::DownloadAFCSamplesFromARAM(
-		s16* dst, VPB* vpb, u16 requested_samples_count)
+void ZeldaAudioRenderer::DownloadAFCSamplesFromARAM(s16* dst, VPB* vpb, u16 requested_samples_count)
 {
 	if (vpb->reset_vpb)
 	{
@@ -1561,8 +1580,7 @@ void ZeldaAudioRenderer::DownloadAFCSamplesFromARAM(
 	while (true)
 	{
 		// Try to push currently cached/already decoded samples.
-		u16 remaining_to_output = std::min(vpb->afc_remaining_decoded_samples,
-		                                   requested_samples_count);
+		u16 remaining_to_output = std::min(vpb->afc_remaining_decoded_samples, requested_samples_count);
 		s16* base = &vpb->afc_remaining_samples[0x10 - vpb->afc_remaining_decoded_samples];
 		for (size_t i = 0; i < remaining_to_output; ++i)
 			*dst++ = base[i];
@@ -1582,14 +1600,12 @@ void ZeldaAudioRenderer::DownloadAFCSamplesFromARAM(
 
 			if (decoded_samples_count < vpb->GetRemainingLength())
 			{
-				vpb->afc_remaining_decoded_samples =
-					decoded_samples_count - requested_samples_count;
+				vpb->afc_remaining_decoded_samples = decoded_samples_count - requested_samples_count;
 				vpb->SetRemainingLength(vpb->GetRemainingLength() - decoded_samples_count);
 			}
 			else
 			{
-				vpb->afc_remaining_decoded_samples =
-					vpb->GetRemainingLength() - requested_samples_count;
+				vpb->afc_remaining_decoded_samples = vpb->GetRemainingLength() - requested_samples_count;
 				vpb->SetRemainingLength(0);
 			}
 
@@ -1637,8 +1653,7 @@ void ZeldaAudioRenderer::DownloadAFCSamplesFromARAM(
 
 				// Use the fact that the sample source number also represents
 				// the number of bytes per 16 samples.
-				u32 loop_off_in_bytes =
-					(vpb->GetLoopAddress() >> 4) * vpb->samples_source_type;
+				u32 loop_off_in_bytes = (vpb->GetLoopAddress() >> 4) * vpb->samples_source_type;
 				u32 loop_start_addr = vpb->GetBaseAddress() + loop_off_in_bytes;
 				vpb->SetCurrentARAMAddr(loop_start_addr);
 
@@ -1649,8 +1664,7 @@ void ZeldaAudioRenderer::DownloadAFCSamplesFromARAM(
 
 				// Realign and recompute the number of internally cached
 				// samples and the current position.
-				vpb->afc_remaining_decoded_samples =
-					0x10 - (vpb->GetLoopAddress() & 0xF);
+				vpb->afc_remaining_decoded_samples = 0x10 - (vpb->GetLoopAddress() & 0xF);
 
 				u32 remaining_length = vpb->GetLoopStartPosition();
 				remaining_length -= vpb->afc_remaining_decoded_samples;
@@ -1711,9 +1725,8 @@ void ZeldaAudioRenderer::DecodeAFC(VPB* vpb, s16* dst, size_t block_count)
 		s32 yn1 = *vpb->AFCYN1(), yn2 = *vpb->AFCYN2();
 		for (size_t i = 0; i < 16; ++i)
 		{
-			s32 sample = delta * nibbles[i] +
-				yn1 * m_afc_coeffs[idx * 2] +
-				yn2 * m_afc_coeffs[idx * 2 + 1];
+			s32 sample =
+				delta * nibbles[i] + yn1 * m_afc_coeffs[idx * 2] + yn2 * m_afc_coeffs[idx * 2 + 1];
 			sample >>= 11;
 			sample = MathUtil::Clamp(sample, -0x8000, 0x7fff);
 			*dst++ = (s16)sample;
@@ -1726,10 +1739,9 @@ void ZeldaAudioRenderer::DecodeAFC(VPB* vpb, s16* dst, size_t block_count)
 	}
 }
 
-void ZeldaAudioRenderer::DownloadRawSamplesFromMRAM(
-		s16* dst, VPB* vpb, u16 requested_samples_count)
+void ZeldaAudioRenderer::DownloadRawSamplesFromMRAM(s16* dst, VPB* vpb, u16 requested_samples_count)
 {
-	u32 addr = vpb->GetBaseAddress() + vpb->current_position_h * sizeof (u16);
+	u32 addr = vpb->GetBaseAddress() + vpb->current_position_h * sizeof(u16);
 	s16* src_ptr = (s16*)HLEMemory_Get_Pointer(addr);
 
 	if (requested_samples_count > vpb->GetRemainingLength())

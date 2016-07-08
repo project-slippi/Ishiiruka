@@ -16,7 +16,7 @@ class wxSpinEvent;
 class wxStaticBoxSizer;
 class wxTextCtrl;
 
-class CPatchAddEdit : public wxDialog
+class CPatchAddEdit: public wxDialog
 {
 public:
 	CPatchAddEdit(int _selection, std::vector<PatchEngine::Patch>* _onFrame,

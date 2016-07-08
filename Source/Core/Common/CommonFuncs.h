@@ -14,7 +14,7 @@
 
 // Will fail to compile on a non-array:
 template <typename T, size_t N>
-constexpr size_t ArraySize(T (&arr)[N])
+constexpr size_t ArraySize(T(&arr)[N])
 {
 	return N;
 }
@@ -70,24 +70,24 @@ inline u64 _rotr64(u64 x, unsigned int shift)
 
 #else // WIN32
 // Function Cross-Compatibility
-	#define strcasecmp _stricmp
-	#define strncasecmp _strnicmp
-	#define unlink _unlink
-	#define vscprintf _vscprintf
+#define strcasecmp _stricmp
+#define strncasecmp _strnicmp
+#define unlink _unlink
+#define vscprintf _vscprintf
 
 // 64 bit offsets for Windows
-	#define fseeko _fseeki64
-	#define ftello _ftelli64
-	#define atoll _atoi64
-	#define stat64 _stat64
-	#define fstat64 _fstat64
-	#define fileno _fileno
+#define fseeko _fseeki64
+#define ftello _ftelli64
+#define atoll _atoi64
+#define stat64 _stat64
+#define fstat64 _fstat64
+#define fileno _fileno
 
 extern "C"
 {
 	__declspec(dllimport) void __stdcall DebugBreak(void);
 }
-	#define Crash() {DebugBreak();}
+#define Crash() {DebugBreak();}
 #endif // WIN32 ndef
 
 // Generic function to get last error message.
@@ -98,8 +98,14 @@ std::string GetLastErrorMsg();
 
 namespace Common
 {
-inline u8 swap8(u8 _data) {return _data;}
-inline u32 swap24(const u8* _data) {return (_data[0] << 16) | (_data[1] << 8) | _data[2];}
+inline u8 swap8(u8 _data)
+{
+	return _data;
+}
+inline u32 swap24(const u8* _data)
+{
+	return (_data[0] << 16) | (_data[1] << 8) | _data[2];
+}
 
 #ifdef ANDROID
 #undef swap16
@@ -108,36 +114,87 @@ inline u32 swap24(const u8* _data) {return (_data[0] << 16) | (_data[1] << 8) | 
 #endif
 
 #ifdef _WIN32
-inline u16 swap16(u16 _data) {return _byteswap_ushort(_data);}
-inline u32 swap32(u32 _data) {return _byteswap_ulong (_data);}
-inline u64 swap64(u64 _data) {return _byteswap_uint64(_data);}
+inline u16 swap16(u16 _data)
+{
+	return _byteswap_ushort(_data);
+}
+inline u32 swap32(u32 _data)
+{
+	return _byteswap_ulong(_data);
+}
+inline u64 swap64(u64 _data)
+{
+	return _byteswap_uint64(_data);
+}
 #elif __linux__ && !(ANDROID && _M_ARM_64)
 // Android NDK r10c has broken builtin byte swap routines
 // Disabled for now.
-inline u16 swap16(u16 _data) {return bswap_16(_data);}
-inline u32 swap32(u32 _data) {return bswap_32(_data);}
-inline u64 swap64(u64 _data) {return bswap_64(_data);}
+inline u16 swap16(u16 _data)
+{
+	return bswap_16(_data);
+}
+inline u32 swap32(u32 _data)
+{
+	return bswap_32(_data);
+}
+inline u64 swap64(u64 _data)
+{
+	return bswap_64(_data);
+}
 #elif __APPLE__
 inline __attribute__((always_inline)) u16 swap16(u16 _data)
-	{return OSSwapInt16(_data);}
+{
+	return OSSwapInt16(_data);
+}
 inline __attribute__((always_inline)) u32 swap32(u32 _data)
-	{return OSSwapInt32(_data);}
+{
+	return OSSwapInt32(_data);
+}
 inline __attribute__((always_inline)) u64 swap64(u64 _data)
-	{return OSSwapInt64(_data);}
+{
+	return OSSwapInt64(_data);
+}
 #elif __FreeBSD__
-inline u16 swap16(u16 _data) {return bswap16(_data);}
-inline u32 swap32(u32 _data) {return bswap32(_data);}
-inline u64 swap64(u64 _data) {return bswap64(_data);}
+inline u16 swap16(u16 _data)
+{
+	return bswap16(_data);
+}
+inline u32 swap32(u32 _data)
+{
+	return bswap32(_data);
+}
+inline u64 swap64(u64 _data)
+{
+	return bswap64(_data);
+}
 #else
 // Slow generic implementation.
-inline u16 swap16(u16 data) {return (data >> 8) | (data << 8);}
-inline u32 swap32(u32 data) {return (swap16(data) << 16) | swap16(data >> 16);}
-inline u64 swap64(u64 data) {return ((u64)swap32(data) << 32) | swap32(data >> 32);}
+inline u16 swap16(u16 data)
+{
+	return (data >> 8) | (data << 8);
+}
+inline u32 swap32(u32 data)
+{
+	return (swap16(data) << 16) | swap16(data >> 16);
+}
+inline u64 swap64(u64 data)
+{
+	return ((u64)swap32(data) << 32) | swap32(data >> 32);
+}
 #endif
 
-inline u16 swap16(const u8* _pData) {return swap16(*(const u16*)_pData);}
-inline u32 swap32(const u8* _pData) {return swap32(*(const u32*)_pData);}
-inline u64 swap64(const u8* _pData) {return swap64(*(const u64*)_pData);}
+inline u16 swap16(const u8* _pData)
+{
+	return swap16(*(const u16*)_pData);
+}
+inline u32 swap32(const u8* _pData)
+{
+	return swap32(*(const u32*)_pData);
+}
+inline u64 swap64(const u8* _pData)
+{
+	return swap64(*(const u64*)_pData);
+}
 
 template <int count>
 void swap(u8*);

@@ -21,7 +21,7 @@ static char psVersions[5][7] = {"ERROR", "ps_1_4", "ps_2_a", "ps_3_0", "ps_4_0"}
 HINSTANCE hD3DXDll = nullptr;
 int d3dx_dll_ref = 0;
 
-typedef HRESULT (WINAPI* DIRECT3DCREATE9EX)(UINT, IDirect3D9Ex **ppD3D);
+typedef HRESULT(WINAPI* DIRECT3DCREATE9EX)(UINT, IDirect3D9Ex **ppD3D);
 typedef IDirect3D9 *(WINAPI* DIRECT3DCREATE9)(UINT);
 DIRECT3DCREATE9 PDirect3DCreate9 = nullptr;
 DIRECT3DCREATE9EX PDirect3DCreate9EX = nullptr;
@@ -114,9 +114,18 @@ D3DFORMAT DepthFormats[] = {
 
 void Enumerate();
 
-int GetNumAdapters() { return numAdapters; }
-const Adapter &GetAdapter(int i) { return adapters[i]; }
-const Adapter &GetCurAdapter() { return adapters[cur_adapter]; }
+int GetNumAdapters()
+{
+	return numAdapters;
+}
+const Adapter &GetAdapter(int i)
+{
+	return adapters[i];
+}
+const Adapter &GetCurAdapter()
+{
+	return adapters[cur_adapter];
+}
 
 bool IsATIDevice()
 {
@@ -169,7 +178,8 @@ HRESULT Init()
 	int adapter = g_Config.iAdapter;
 	D3D->GetDeviceCaps((adapter >= 0 && adapter < std::min(MAX_ADAPTERS, numAdapters)) ? adapter : D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, &caps);
 	Enumerate();
-	if(IsIntelDevice()){
+	if (IsIntelDevice())
+	{
 		// Murder the a because Intel doesn't support 2.0a because the 'a' part was a ATI and Nvidia war going on
 		psVersions[2][5] = '0';
 		vsVersions[2][5] = '0';
@@ -206,7 +216,9 @@ void InitPP(int adapter, int f, int aa_mode, D3DPRESENT_PARAMETERS *pp)
 	{
 		pp->EnableAutoDepthStencil = TRUE;
 		pp->AutoDepthStencilFormat = D3DFMT_D24S8;
-	} else {
+	}
+	else
+	{
 		pp->EnableAutoDepthStencil = FALSE;
 		pp->AutoDepthStencilFormat = D3DFMT_UNKNOWN;
 	}
@@ -221,11 +233,11 @@ void InitPP(int adapter, int f, int aa_mode, D3DPRESENT_PARAMETERS *pp)
 
 	RECT client;
 	GetClientRect(hWnd, &client);
-	xres = pp->BackBufferWidth  = client.right - client.left;
+	xres = pp->BackBufferWidth = client.right - client.left;
 	yres = pp->BackBufferHeight = client.bottom - client.top;
 	pp->SwapEffect = D3DSWAPEFFECT_DISCARD;
-	pp->PresentationInterval = g_Config.IsVSync() ? D3DPRESENT_INTERVAL_DEFAULT : D3DPRESENT_INTERVAL_IMMEDIATE;	
-	pp->Windowed = !(g_ActiveConfig.ExclusiveFullscreenEnabled()  && g_ActiveConfig.bFullscreen);
+	pp->PresentationInterval = g_Config.IsVSync() ? D3DPRESENT_INTERVAL_DEFAULT : D3DPRESENT_INTERVAL_IMMEDIATE;
+	pp->Windowed = !(g_ActiveConfig.ExclusiveFullscreenEnabled() && g_ActiveConfig.bFullscreen);
 }
 
 void Enumerate()
@@ -328,7 +340,7 @@ void Enumerate()
 			}
 
 			Resolution temp;
-			Resolution &r = found==-1 ? temp : a.resolutions[found];
+			Resolution &r = found == -1 ? temp : a.resolutions[found];
 
 			sprintf(r.name, "%ix%i", mode.Width, mode.Height);
 			r.bitdepths.insert(mode.Format);
@@ -358,7 +370,7 @@ HRESULT LoadD3DX9()
 	else
 	{
 		// if that fails, try loading older dlls (no need to look for newer ones)
-		for (unsigned int num = D3DX_SDK_VERSION-1; num >= 24; --num)
+		for (unsigned int num = D3DX_SDK_VERSION - 1; num >= 24; --num)
 		{
 			hD3DXDll = LoadLibraryA(StringFromFormat("d3dx9_%d.dll", num).c_str());
 			if (hD3DXDll != nullptr)
@@ -374,7 +386,7 @@ HRESULT LoadD3DX9()
 			return hr;
 		}
 	}
-	
+
 	PD3DXSaveSurfaceToFileA = (D3DXSAVESURFACETOFILEATYPE)GetProcAddress(hD3DXDll, "D3DXSaveSurfaceToFileA");
 	if (PD3DXSaveSurfaceToFileA == nullptr)
 	{
@@ -435,7 +447,7 @@ HRESULT Create(int adapter, HWND wnd, int _resolution, int aa_mode, bool auto_de
 			D3DDEVTYPE_HAL,
 			wnd,
 			D3DCREATE_HARDWARE_VERTEXPROCESSING | D3DCREATE_PUREDEVICE,  //doesn't seem to make a difference
-			&d3dpp, nullptr,  &devEX)))
+			&d3dpp, nullptr, &devEX)))
 		{
 			if (FAILED(D3DEX->CreateDeviceEx(
 				adapter,
@@ -480,7 +492,7 @@ HRESULT Create(int adapter, HWND wnd, int _resolution, int aa_mode, bool auto_de
 	dev->GetRenderTarget(0, &back_buffer);
 	if (dev->GetDepthStencilSurface(&back_buffer_z) == D3DERR_NOTFOUND)
 		back_buffer_z = nullptr;
-	SetRenderState(D3DRS_ZENABLE, D3DZB_TRUE );
+	SetRenderState(D3DRS_ZENABLE, D3DZB_TRUE);
 	SetRenderState(D3DRS_FILLMODE, g_Config.bWireFrame ? D3DFILL_WIREFRAME : D3DFILL_SOLID);
 	memset(m_Textures, 0, sizeof(m_Textures));
 	m_TextureStageStatesSet.assign(MaxTextureStages * MaxTextureTypes, false);
@@ -496,7 +508,7 @@ HRESULT Create(int adapter, HWND wnd, int _resolution, int aa_mode, bool auto_de
 	m_index_buffer = nullptr;
 	memset(m_stream_sources, 0, sizeof(m_stream_sources));
 	m_index_buffer = nullptr;
-	
+
 	m_VtxDeclChanged = false;
 	m_PixelShaderChanged = false;
 	m_VertexShaderChanged = false;
@@ -525,7 +537,7 @@ void Close()
 	if (back_buffer_z)
 		back_buffer_z->Release();
 	back_buffer_z = nullptr;
-	if( back_buffer )
+	if (back_buffer)
 		back_buffer->Release();
 	back_buffer = nullptr;
 
@@ -572,7 +584,7 @@ bool CheckDepthStencilSupport(D3DFORMAT target_format, D3DFORMAT depth_format)
 
 D3DFORMAT GetSupportedDepthTextureFormat()
 {
-	for (int i = 0; i < sizeof(DepthFormats)/sizeof(D3DFORMAT); ++i)
+	for (int i = 0; i < sizeof(DepthFormats) / sizeof(D3DFORMAT); ++i)
 		if (CheckTextureSupport(D3DUSAGE_DEPTHSTENCIL, DepthFormats[i]))
 			return DepthFormats[i];
 
@@ -581,7 +593,7 @@ D3DFORMAT GetSupportedDepthTextureFormat()
 
 D3DFORMAT GetSupportedDepthSurfaceFormat(D3DFORMAT target_format)
 {
-	for (int i = 0; i < sizeof(DepthFormats)/sizeof(D3DFORMAT); ++i)
+	for (int i = 0; i < sizeof(DepthFormats) / sizeof(D3DFORMAT); ++i)
 		if (CheckDepthStencilSupport(target_format, DepthFormats[i]))
 			return DepthFormats[i];
 
@@ -722,7 +734,7 @@ void ApplyCachedState()
 		for (int type = 0; type < MaxSamplerTypes; type++)
 		{
 			u32 index = sampler * MaxSamplerSize + type;
-			if(m_SamplerStatesSet[index])
+			if (m_SamplerStatesSet[index])
 				dev->SetSamplerState(sampler, (D3DSAMPLERSTATETYPE)type, m_SamplerStates[index]);
 		}
 	}
@@ -761,7 +773,7 @@ void SetTexture(DWORD Stage, LPDIRECT3DBASETEXTURE9 pTexture)
 
 void RefreshRenderState(D3DRENDERSTATETYPE State)
 {
-	if(m_RenderStatesSet[State] && m_RenderStatesChanged[State])
+	if (m_RenderStatesSet[State] && m_RenderStatesChanged[State])
 	{
 		dev->SetRenderState(State, m_RenderStates[State]);
 		m_RenderStatesChanged[State] = false;
@@ -808,7 +820,7 @@ void SetTextureStageState(DWORD Stage, D3DTEXTURESTAGESTATETYPE Type, DWORD Valu
 void RefreshTextureStageState(DWORD Stage, D3DTEXTURESTAGESTATETYPE Type)
 {
 	u32 index = Stage * MaxTextureStages + Type;
-	if(m_TextureStageStatesSet[index] && m_TextureStageStatesChanged[index])
+	if (m_TextureStageStatesSet[index] && m_TextureStageStatesChanged[index])
 	{
 		dev->SetTextureStageState(Stage, Type, m_TextureStageStates[index]);
 		m_TextureStageStatesChanged[index] = false;
@@ -820,10 +832,10 @@ void ChangeTextureStageState(DWORD Stage, D3DTEXTURESTAGESTATETYPE Type, DWORD V
 	u32 index = Stage * MaxTextureStages + Type;
 	if (m_TextureStageStates[index] != Value || !m_TextureStageStatesSet[index] || m_TextureStageStatesChanged[index])
 	{
-		if(!m_TextureStageStatesSet[index])
+		if (!m_TextureStageStatesSet[index])
 		{
 			m_TextureStageStates[index] = Value;
-			m_TextureStageStatesSet[index]=true;
+			m_TextureStageStatesSet[index] = true;
 		}
 		m_TextureStageStatesChanged[index] = m_TextureStageStatesSet[index] && m_TextureStageStates[index] != Value;
 		dev->SetTextureStageState(Stage, Type, Value);
@@ -845,7 +857,7 @@ void SetSamplerState(DWORD Sampler, D3DSAMPLERSTATETYPE Type, DWORD Value)
 void RefreshSamplerState(DWORD Sampler, D3DSAMPLERSTATETYPE Type)
 {
 	u32 index = Sampler * MaxSamplerSize + Type;
-	if(m_SamplerStatesSet[index] && m_SamplerStatesChanged[index])
+	if (m_SamplerStatesSet[index] && m_SamplerStatesChanged[index])
 	{
 		dev->SetSamplerState(Sampler, Type, m_SamplerStates[index]);
 		m_SamplerStatesChanged[index] = false;
@@ -857,7 +869,7 @@ void ChangeSamplerState(DWORD Sampler, D3DSAMPLERSTATETYPE Type, DWORD Value)
 	u32 index = Sampler * MaxSamplerSize + Type;
 	if (m_SamplerStates[index] != Value || !m_SamplerStatesSet[index] || m_SamplerStatesChanged[index])
 	{
-		if(!m_SamplerStatesSet[index])
+		if (!m_SamplerStatesSet[index])
 		{
 			m_SamplerStates[index] = Value;
 			m_SamplerStatesSet[index] = true;
@@ -878,7 +890,7 @@ void RefreshVertexDeclaration()
 
 void SetVertexDeclaration(LPDIRECT3DVERTEXDECLARATION9 decl)
 {
-	if (decl != m_VtxDecl  || m_VtxDeclChanged)
+	if (decl != m_VtxDecl || m_VtxDeclChanged)
 	{
 		dev->SetVertexDeclaration(decl);
 		m_VtxDecl = decl;
@@ -888,7 +900,8 @@ void SetVertexDeclaration(LPDIRECT3DVERTEXDECLARATION9 decl)
 
 void ChangeVertexDeclaration(LPDIRECT3DVERTEXDECLARATION9 decl)
 {
-	if (decl != m_VtxDecl || m_VtxDeclChanged) {
+	if (decl != m_VtxDecl || m_VtxDeclChanged)
+	{
 		dev->SetVertexDeclaration(decl);
 		m_VtxDeclChanged = true;
 	}
@@ -914,7 +927,7 @@ void RefreshVertexShader()
 
 void SetVertexShader(LPDIRECT3DVERTEXSHADER9 shader)
 {
-	if (shader != m_VertexShader  || m_VertexShaderChanged)
+	if (shader != m_VertexShader || m_VertexShaderChanged)
 	{
 		dev->SetVertexShader(shader);
 		m_VertexShader = shader;
@@ -947,7 +960,7 @@ void ChangePixelShader(LPDIRECT3DPIXELSHADER9 shader)
 	m_PixelShaderChanged = true;
 }
 
-void SetStreamSource(UINT StreamNumber,IDirect3DVertexBuffer9* pStreamData,UINT OffsetInBytes,UINT Stride)
+void SetStreamSource(UINT StreamNumber, IDirect3DVertexBuffer9* pStreamData, UINT OffsetInBytes, UINT Stride)
 {
 	if (m_stream_sources[StreamNumber].OffsetInBytes != OffsetInBytes
 		|| m_stream_sources[StreamNumber].pStreamData != pStreamData
@@ -961,7 +974,7 @@ void SetStreamSource(UINT StreamNumber,IDirect3DVertexBuffer9* pStreamData,UINT 
 	}
 }
 
-void ChangeStreamSource(UINT StreamNumber,IDirect3DVertexBuffer9* pStreamData,UINT OffsetInBytes,UINT Stride)
+void ChangeStreamSource(UINT StreamNumber, IDirect3DVertexBuffer9* pStreamData, UINT OffsetInBytes, UINT Stride)
 {
 	if (m_stream_sources[StreamNumber].OffsetInBytes != OffsetInBytes
 		|| m_stream_sources[StreamNumber].pStreamData != pStreamData
@@ -977,9 +990,9 @@ void RefreshStreamSource(UINT StreamNumber)
 	if (m_PixelShaderChanged)
 	{
 		dev->SetStreamSource(
-			StreamNumber, 
-			m_stream_sources[StreamNumber].pStreamData, 
-			m_stream_sources[StreamNumber].OffsetInBytes, 
+			StreamNumber,
+			m_stream_sources[StreamNumber].pStreamData,
+			m_stream_sources[StreamNumber].OffsetInBytes,
 			m_stream_sources[StreamNumber].Stride);
 		m_stream_sources_Changed[StreamNumber] = false;
 	}
@@ -987,7 +1000,7 @@ void RefreshStreamSource(UINT StreamNumber)
 
 void SetIndices(LPDIRECT3DINDEXBUFFER9 pIndexData)
 {
-	if(pIndexData != m_index_buffer || m_index_buffer_Changed)
+	if (pIndexData != m_index_buffer || m_index_buffer_Changed)
 	{
 		m_index_buffer = pIndexData;
 		dev->SetIndices(pIndexData);
@@ -997,7 +1010,7 @@ void SetIndices(LPDIRECT3DINDEXBUFFER9 pIndexData)
 
 void ChangeIndices(LPDIRECT3DINDEXBUFFER9 pIndexData)
 {
-	if(pIndexData != m_index_buffer  || m_index_buffer_Changed)
+	if (pIndexData != m_index_buffer || m_index_buffer_Changed)
 	{
 		dev->SetIndices(pIndexData);
 		m_index_buffer_Changed = true;

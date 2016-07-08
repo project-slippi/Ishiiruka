@@ -124,7 +124,7 @@ TextureCache::TCacheEntry::~TCacheEntry()
 }
 
 TextureCache::TCacheEntry::TCacheEntry(const TCacheEntryConfig& _config)
-: TCacheEntryBase(_config)
+	: TCacheEntryBase(_config)
 {
 	glGenTextures(1, &texture);
 	nrm_texture = 0;
@@ -234,10 +234,10 @@ void TextureCache::TCacheEntry::SetFormat()
 
 TextureCache::TCacheEntryBase* TextureCache::CreateTexture(const TCacheEntryConfig& config)
 {
-	TCacheEntry* entry = new TCacheEntry(config);	
-	
+	TCacheEntry* entry = new TCacheEntry(config);
+
 	glActiveTexture(GL_TEXTURE9);
-	glBindTexture(GL_TEXTURE_2D_ARRAY, entry->texture);	
+	glBindTexture(GL_TEXTURE_2D_ARRAY, entry->texture);
 	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAX_LEVEL, config.levels - 1);
 
 	if (config.rendertarget)
@@ -249,7 +249,7 @@ TextureCache::TCacheEntryBase* TextureCache::CreateTexture(const TCacheEntryConf
 		for (u32 level = 0; level <= config.levels; level++)
 		{
 			glTexImage3D(GL_TEXTURE_2D_ARRAY, level, GL_RGBA, config.width, config.height, config.layers, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
-		}		
+		}
 		glGenFramebuffers(1, &entry->framebuffer);
 		FramebufferManager::SetFramebuffer(entry->framebuffer);
 		FramebufferManager::FramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D_ARRAY, entry->texture, 0);
@@ -326,7 +326,7 @@ void TextureCache::TCacheEntry::Load(const u8* src, u32 width, u32 height,
 	u32 expanded_width, u32 level)
 {
 	glActiveTexture(GL_TEXTURE9);
-	glBindTexture(GL_TEXTURE_2D_ARRAY, texture);	
+	glBindTexture(GL_TEXTURE_2D_ARRAY, texture);
 
 	u32 blocksize = (config.pcformat == PC_TEX_FMT_DXT1) ? 8u : 16u;
 	switch (config.pcformat)
@@ -368,7 +368,7 @@ void TextureCache::TCacheEntry::Load(const u8* src, u32 width, u32 height,
 	TextureCache::SetStage();
 }
 
-void TextureCache::TCacheEntry::LoadMaterialMap(const u8* src, u32 width, u32 height,u32 level)
+void TextureCache::TCacheEntry::LoadMaterialMap(const u8* src, u32 width, u32 height, u32 level)
 {
 	glActiveTexture(GL_TEXTURE9);
 	glBindTexture(GL_TEXTURE_2D_ARRAY, nrm_texture);
@@ -402,7 +402,7 @@ void TextureCache::TCacheEntry::Load(const u8* src, u32 width, u32 height, u32 e
 		width *= g_ActiveConfig.iTexScalingFactor;
 		height *= g_ActiveConfig.iTexScalingFactor;
 		expandedWidth *= g_ActiveConfig.iTexScalingFactor;
-	}	
+	}
 	Load(data, width, height, expandedWidth, level);
 }
 void TextureCache::TCacheEntry::LoadFromTmem(const u8* ar_src, const u8* gb_src, u32 width, u32 height,
@@ -488,13 +488,13 @@ void TextureCache::CopyEFB(u8* dst, u32 format, u32 native_width, u32 bytes_per_
 		srcRect);
 }
 
-bool TextureCache::Palettize(TCacheEntryBase* src_entry,const TCacheEntryBase* base_entry)
+bool TextureCache::Palettize(TCacheEntryBase* src_entry, const TCacheEntryBase* base_entry)
 {
 	TextureCache::TCacheEntry* entry = (TextureCache::TCacheEntry*)src_entry;
 	u32 texformat = entry->format & 0xf;
 	if (!g_ActiveConfig.backend_info.bSupportsPaletteConversion)
 	{
-		
+
 		Depalettizer::BaseType baseType = Depalettizer::Unorm8;
 		if (texformat == GX_TF_C4 || texformat == GX_TF_I4)
 			baseType = Depalettizer::Unorm4;
@@ -509,12 +509,12 @@ bool TextureCache::Palettize(TCacheEntryBase* src_entry,const TCacheEntryBase* b
 	glActiveTexture(GL_TEXTURE9);
 	glBindTexture(GL_TEXTURE_2D_ARRAY, ((TextureCache::TCacheEntry*)base_entry)->texture);
 	g_sampler_cache->BindLinearSampler(9);
-	
+
 	FramebufferManager::SetFramebuffer(entry->framebuffer);
 	glViewport(0, 0, entry->config.width, entry->config.height);
 	s_palette_pixel_shader[s_last_TlutFormat].Bind();
 
-	
+
 	glUniform1i(s_palette_buffer_offset_uniform[s_last_TlutFormat], s_last_pallet_Buffer.second / 2);
 	glUniform1f(s_palette_multiplier_uniform[s_last_TlutFormat], texformat == GX_TF_C4 || texformat == GX_TF_I4 ? 15.0f : 255.0f);
 	glUniform4f(s_palette_copy_position_uniform[s_last_TlutFormat], 0.0f, 0.0f, (float)entry->config.width, (float)entry->config.height);
@@ -570,7 +570,7 @@ void TextureCache::CompileShaders()
 		"out vec4 ocol0;\n"
 		"\n"
 		"void main(){\n"
-		"	vec4 texcol = texture(samp9, f_uv0);\n"		
+		"	vec4 texcol = texture(samp9, f_uv0);\n"
 		"	ocol0 = texcol;\n"
 		"}\n";
 
@@ -640,7 +640,7 @@ void TextureCache::CompileShaders()
 
 	const char* prefix = (GProgram == nullptr) ? "f" : "v";
 	const char* depth_layer = (g_ActiveConfig.bStereoEFBMonoDepth) ? "0.0" : "f_uv0.z";
-	
+
 	ProgramShaderCache::CompileShader(s_ColorCopyProgram, StringFromFormat(VProgram, prefix, prefix).c_str(), pColorCopyProg, GProgram);
 	ProgramShaderCache::CompileShader(s_ColorMatrixProgram, StringFromFormat(VProgram, prefix, prefix).c_str(), pColorMatrixProg, GProgram);
 	ProgramShaderCache::CompileShader(s_DepthMatrixProgram, StringFromFormat(VProgram, prefix, prefix).c_str(), StringFromFormat(pDepthMatrixProg, depth_layer).c_str(), GProgram);
@@ -823,8 +823,7 @@ void TextureCache::LoadLut(u32 lutFmt, void* addr, u32 size)
 }
 
 void TextureCache::DisableStage(u32 stage)
-{
-}
+{}
 
 void TextureCache::SetStage()
 {

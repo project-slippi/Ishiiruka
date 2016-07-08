@@ -41,7 +41,7 @@ void callr(const UDSPInstruction opc)
 {
 	if (CheckCondition(opc & 0xf))
 	{
-		u8 reg  = (opc >> 5) & 0x7;
+		u8 reg = (opc >> 5) & 0x7;
 		u16 addr = dsp_op_read_reg(reg);
 		dsp_reg_store_stack(DSP_STACK_C, g_dsp.pc);
 		g_dsp.pc = addr;
@@ -84,7 +84,7 @@ void jmprcc(const UDSPInstruction opc)
 {
 	if (CheckCondition(opc & 0xf))
 	{
-		u8 reg  = (opc >> 5) & 0x7;
+		u8 reg = (opc >> 5) & 0x7;
 		g_dsp.pc = dsp_op_read_reg(reg);
 	}
 }

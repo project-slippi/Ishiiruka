@@ -6,7 +6,7 @@
 
 #include "Common/Logging/LogManager.h"
 
-class ConsoleListener : public LogListener
+class ConsoleListener: public LogListener
 {
 public:
 	ConsoleListener();

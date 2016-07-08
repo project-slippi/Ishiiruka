@@ -13,7 +13,6 @@
 
 namespace Pad
 {
-
 static InputConfig s_config("GCPadNew", _trans("Pad"), "GCPad");
 InputConfig* GetConfig()
 {
@@ -46,7 +45,6 @@ void LoadConfig()
 	s_config.LoadConfig(true);
 }
 
-
 void GetStatus(u8 pad_num, GCPadStatus* pad_status)
 {
 	memset(pad_status, 0, sizeof(*pad_status));
@@ -65,5 +63,4 @@ bool GetMicButton(const u8 pad_num)
 {
 	return static_cast<GCPad*>(s_config.GetController(pad_num))->GetMicButton();
 }
-
 }

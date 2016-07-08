@@ -278,7 +278,7 @@ static void BuildBlock(s32 blockX, s32 blockY)
 
 	for (unsigned int i = 0; i <= bpmem.genMode.numtevstages; i++)
 	{
-		int stageOdd = i&1;
+		int stageOdd = i & 1;
 		const TwoTevStageOrders& order = bpmem.tevorders[i >> 1];
 		if (order.getEnable(stageOdd))
 		{
@@ -349,7 +349,7 @@ void DrawTriangleFrontFace(OutputVertexData *v0, OutputVertexData *v1, OutputVer
 
 	InitTriangle(fltx1, flty1, (X1 + 0xF) >> 4, (Y1 + 0xF) >> 4);
 
-	float w[3] = { 1.0f / v0->projectedPosition.w, 1.0f / v1->projectedPosition.w, 1.0f / v2->projectedPosition.w };
+	float w[3] = {1.0f / v0->projectedPosition.w, 1.0f / v1->projectedPosition.w, 1.0f / v2->projectedPosition.w};
 	InitSlope(&WSlope, w[0], w[1], w[2], fltdx31, fltdx12, fltdy12, fltdy31);
 
 	// TODO: The zfreeze emulation is not quite correct, yet!
@@ -464,7 +464,7 @@ void DrawTriangleFrontFace(OutputVertexData *v0, OutputVertexData *v1, OutputVer
 				}
 			}
 		}
-	}	
+	}
 	else
 	{
 		// Calculating bbox

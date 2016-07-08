@@ -22,7 +22,7 @@ class wxChoice;
 class wxTextCtrl;
 
 // Uses multiple inheritance - only sane because LogListener is a pure virtual interface.
-class CLogWindow : public wxPanel, LogListener
+class CLogWindow: public wxPanel, LogListener
 {
 public:
 	CLogWindow(CFrame* parent,
@@ -31,7 +31,7 @@ public:
 		const wxSize& size = wxDefaultSize,
 		long style = wxTAB_TRAVERSAL,
 		const wxString& name = _("Log")
-		);
+	);
 	~CLogWindow();
 
 	void SaveSettings();

@@ -10,19 +10,18 @@
 
 #include "Core/ConfigManager.h"
 #include "Core/CoreTiming.h"
-#include "Core/Movie.h"
 #include "Core/HW/EXI.h"
 #include "Core/HW/EXI_Channel.h"
 #include "Core/HW/MMIO.h"
 #include "Core/HW/ProcessorInterface.h"
 #include "Core/HW/Sram.h"
+#include "Core/Movie.h"
 
 SRAM g_SRAM;
 bool g_SRAM_netplay_initialized = false;
 
 namespace ExpansionInterface
 {
-
 static int changeDevice;
 static int updateInterrupts;
 
@@ -43,17 +42,19 @@ void Init()
 
 	if (Movie::IsPlayingInput() && Movie::IsConfigSaved())
 	{
-		g_Channels[0]->AddDevice(Movie::IsUsingMemcard(0) ? EXIDEVICE_MEMORYCARD : EXIDEVICE_NONE, 0); // SlotA
-		g_Channels[1]->AddDevice(Movie::IsUsingMemcard(1) ? EXIDEVICE_MEMORYCARD : EXIDEVICE_NONE, 0); // SlotB
+		g_Channels[0]->AddDevice(Movie::IsUsingMemcard(0) ? EXIDEVICE_MEMORYCARD : EXIDEVICE_NONE,
+			0);  // SlotA
+		g_Channels[1]->AddDevice(Movie::IsUsingMemcard(1) ? EXIDEVICE_MEMORYCARD : EXIDEVICE_NONE,
+			0);  // SlotB
 	}
 	else
 	{
-		g_Channels[0]->AddDevice(SConfig::GetInstance().m_EXIDevice[0], 0); // SlotA
-		g_Channels[1]->AddDevice(SConfig::GetInstance().m_EXIDevice[1], 0); // SlotB
+		g_Channels[0]->AddDevice(SConfig::GetInstance().m_EXIDevice[0], 0);  // SlotA
+		g_Channels[1]->AddDevice(SConfig::GetInstance().m_EXIDevice[1], 0);  // SlotB
 	}
-	g_Channels[0]->AddDevice(EXIDEVICE_MASKROM,                         1);
-	g_Channels[0]->AddDevice(SConfig::GetInstance().m_EXIDevice[2],     2); // Serial Port 1
-	g_Channels[2]->AddDevice(EXIDEVICE_AD16,                            0);
+	g_Channels[0]->AddDevice(EXIDEVICE_MASKROM, 1);
+	g_Channels[0]->AddDevice(SConfig::GetInstance().m_EXIDevice[2], 2);  // Serial Port 1
+	g_Channels[2]->AddDevice(EXIDEVICE_AD16, 0);
 
 	changeDevice = CoreTiming::RegisterEvent("ChangeEXIDevice", ChangeDeviceCallback);
 	updateInterrupts = CoreTiming::RegisterEvent("EXIUpdateInterrupts", UpdateInterruptsCallback);
@@ -65,7 +66,7 @@ void Shutdown()
 		channel.reset();
 }
 
-void DoState(PointerWrap &p)
+void DoState(PointerWrap& p)
 {
 	for (auto& channel : g_Channels)
 		channel->DoState(p);
@@ -104,8 +105,10 @@ void ChangeDevice(const u8 channel, const TEXIDevices device_type, const u8 devi
 {
 	// Called from GUI, so we need to make it thread safe.
 	// Let the hardware see no device for .5b cycles
-	CoreTiming::ScheduleEvent_Threadsafe(0, changeDevice, ((u64)channel << 32) | ((u64)EXIDEVICE_NONE << 16) | device_num);
-	CoreTiming::ScheduleEvent_Threadsafe(500000000, changeDevice, ((u64)channel << 32) | ((u64)device_type << 16) | device_num);
+	CoreTiming::ScheduleEvent_Threadsafe(
+		0, changeDevice, ((u64)channel << 32) | ((u64)EXIDEVICE_NONE << 16) | device_num);
+	CoreTiming::ScheduleEvent_Threadsafe(
+		500000000, changeDevice, ((u64)channel << 32) | ((u64)device_type << 16) | device_num);
 }
 
 CEXIChannel* GetChannel(u32 index)
@@ -154,4 +157,4 @@ void ScheduleUpdateInterrupts(int cycles_late)
 	CoreTiming::ScheduleEvent(cycles_late, updateInterrupts, 0);
 }
 
-} // end of namespace ExpansionInterface
+}  // end of namespace ExpansionInterface

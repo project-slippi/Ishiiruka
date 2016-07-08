@@ -11,7 +11,7 @@ class wxButton;
 class wxChoice;
 class wxTextCtrl;
 
-class GFXDebuggerPanel : public wxPanel, public GFXDebuggerBase
+class GFXDebuggerPanel: public wxPanel, public GFXDebuggerBase
 {
 public:
 	GFXDebuggerPanel(wxWindow* parent,

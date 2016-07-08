@@ -16,7 +16,7 @@
 #include "AudioCommon/SoundStream.h"
 #include "Common/CommonTypes.h"
 
-class AlsaSound final : public SoundStream
+class AlsaSound final: public SoundStream
 {
 #if defined(HAVE_ALSA) && HAVE_ALSA
 public:

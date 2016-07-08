@@ -27,8 +27,8 @@
 namespace OGL
 {
 //This are the initially requested size for the buffers expressed in bytes
-const u32 MAX_IBUFFER_SIZE =  2*1024*1024;
-const u32 MAX_VBUFFER_SIZE = 32*1024*1024;
+const u32 MAX_IBUFFER_SIZE = 2 * 1024 * 1024;
+const u32 MAX_VBUFFER_SIZE = 32 * 1024 * 1024;
 
 static std::unique_ptr<StreamBuffer> s_vertexBuffer;
 static std::unique_ptr<StreamBuffer> s_indexBuffer;
@@ -81,10 +81,10 @@ void VertexManager::ResetBuffer(u32 stride)
 	s_pEndBufferPointer = buffer.first + MAXVBUFFERSIZE;
 	s_baseVertex = buffer.second / stride;
 
-		buffer = s_indexBuffer->Map(MAXIBUFFERSIZE * sizeof(u16));
+	buffer = s_indexBuffer->Map(MAXIBUFFERSIZE * sizeof(u16));
 	s_index_buffer_base = (u16*)buffer.first;
 	IndexGenerator::Start(s_index_buffer_base);
-		s_index_offset = buffer.second;
+	s_index_offset = buffer.second;
 }
 
 void VertexManager::Draw(u32 stride)
@@ -95,26 +95,26 @@ void VertexManager::Draw(u32 stride)
 
 	switch (current_primitive_type)
 	{
-		case PRIMITIVE_POINTS:
-			primitive_mode = GL_POINTS;
-			glDisable(GL_CULL_FACE);
-			break;
-		case PRIMITIVE_LINES:
-			primitive_mode = GL_LINES;
-			glDisable(GL_CULL_FACE);
-			break;
-		case PRIMITIVE_TRIANGLES:
-			primitive_mode = GL_TRIANGLES;
-			break;
+	case PRIMITIVE_POINTS:
+		primitive_mode = GL_POINTS;
+		glDisable(GL_CULL_FACE);
+		break;
+	case PRIMITIVE_LINES:
+		primitive_mode = GL_LINES;
+		glDisable(GL_CULL_FACE);
+		break;
+	case PRIMITIVE_TRIANGLES:
+		primitive_mode = GL_TRIANGLES;
+		break;
 	}
 
 	if (g_ogl_config.bSupportsGLBaseVertex)
 	{
-		glDrawRangeElementsBaseVertex(primitive_mode, 0, max_index, index_size, GL_UNSIGNED_SHORT, (u8*)nullptr+s_index_offset, (GLint)s_baseVertex);
+		glDrawRangeElementsBaseVertex(primitive_mode, 0, max_index, index_size, GL_UNSIGNED_SHORT, (u8*)nullptr + s_index_offset, (GLint)s_baseVertex);
 	}
 	else
 	{
-		glDrawRangeElements(primitive_mode, 0, max_index, index_size, GL_UNSIGNED_SHORT, (u8*)nullptr+s_index_offset);
+		glDrawRangeElements(primitive_mode, 0, max_index, index_size, GL_UNSIGNED_SHORT, (u8*)nullptr + s_index_offset);
 	}
 
 	INCSTAT(stats.thisFrame.numDrawCalls);
@@ -135,7 +135,7 @@ u16* VertexManager::GetIndexBuffer()
 void VertexManager::vFlush(bool useDstAlpha)
 {
 	GLVertexFormat *nativeVertexFmt = (GLVertexFormat*)VertexLoaderManager::GetCurrentVertexFormat();
-	u32 stride  = nativeVertexFmt->GetVertexStride();
+	u32 stride = nativeVertexFmt->GetVertexStride();
 
 	if (m_last_vao != nativeVertexFmt->VAO)
 	{

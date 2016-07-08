@@ -26,7 +26,7 @@
 typedef void (APIENTRYP PFNDOLBINDFRAMEBUFFERPROC) (GLenum target, GLuint framebuffer);
 typedef void (APIENTRYP PFNDOLBINDRENDERBUFFERPROC) (GLenum target, GLuint renderbuffer);
 typedef void (APIENTRYP PFNDOLBLITFRAMEBUFFERPROC) (GLint srcX0, GLint srcY0, GLint srcX1, GLint srcY1, GLint dstX0, GLint dstY0, GLint dstX1, GLint dstY1, GLbitfield mask, GLenum filter);
-typedef GLenum (APIENTRYP PFNDOLCHECKFRAMEBUFFERSTATUSPROC) (GLenum target);
+typedef GLenum(APIENTRYP PFNDOLCHECKFRAMEBUFFERSTATUSPROC) (GLenum target);
 typedef void (APIENTRYP PFNDOLDELETEFRAMEBUFFERSPROC) (GLsizei n, const GLuint *framebuffers);
 typedef void (APIENTRYP PFNDOLDELETERENDERBUFFERSPROC) (GLsizei n, const GLuint *renderbuffers);
 typedef void (APIENTRYP PFNDOLFRAMEBUFFERRENDERBUFFERPROC) (GLenum target, GLenum attachment, GLenum renderbuffertarget, GLuint renderbuffer);
@@ -39,8 +39,8 @@ typedef void (APIENTRYP PFNDOLGENRENDERBUFFERSPROC) (GLsizei n, GLuint *renderbu
 typedef void (APIENTRYP PFNDOLGENERATEMIPMAPPROC) (GLenum target);
 typedef void (APIENTRYP PFNDOLGETFRAMEBUFFERATTACHMENTPARAMETERIVPROC) (GLenum target, GLenum attachment, GLenum pname, GLint *params);
 typedef void (APIENTRYP PFNDOLGETRENDERBUFFERPARAMETERIVPROC) (GLenum target, GLenum pname, GLint *params);
-typedef GLboolean (APIENTRYP PFNDOLISFRAMEBUFFERPROC) (GLuint framebuffer);
-typedef GLboolean (APIENTRYP PFNDOLISRENDERBUFFERPROC) (GLuint renderbuffer);
+typedef GLboolean(APIENTRYP PFNDOLISFRAMEBUFFERPROC) (GLuint framebuffer);
+typedef GLboolean(APIENTRYP PFNDOLISRENDERBUFFERPROC) (GLuint renderbuffer);
 typedef void (APIENTRYP PFNDOLRENDERBUFFERSTORAGEPROC) (GLenum target, GLenum internalformat, GLsizei width, GLsizei height);
 typedef void (APIENTRYP PFNDOLRENDERBUFFERSTORAGEMULTISAMPLEPROC) (GLenum target, GLsizei samples, GLenum internalformat, GLsizei width, GLsizei height);
 

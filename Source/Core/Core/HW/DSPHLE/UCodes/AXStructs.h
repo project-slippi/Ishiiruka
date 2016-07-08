@@ -162,8 +162,8 @@ struct PBDpopWM
 
 struct PBVolumeEnvelope
 {
-	u16 cur_volume;       // Volume at start of frame
-	s16 cur_volume_delta; // Signed per sample delta (96 samples per frame)
+	u16 cur_volume;        // Volume at start of frame
+	s16 cur_volume_delta;  // Signed per sample delta (96 samples per frame)
 };
 
 struct PBUnknown2
@@ -175,9 +175,10 @@ struct PBAudioAddr
 {
 	u16 looping;
 	u16 sample_format;
-	u16 loop_addr_hi;  // Start of loop (this will point to a shared "zero" buffer if one-shot mode is active)
+	u16 loop_addr_hi;  // Start of loop (this will point to a shared "zero" buffer if one-shot mode is
+							 // active)
 	u16 loop_addr_lo;
-	u16 end_addr_hi;   // End of sample (and loop), inclusive
+	u16 end_addr_hi;  // End of sample (and loop), inclusive
 	u16 end_addr_lo;
 	u16 cur_addr_hi;
 	u16 cur_addr_lo;
@@ -196,8 +197,8 @@ struct PBSampleRateConverter
 {
 	// ratio = (f32)ratio * 0x10000;
 	// valid range is 1/512 to 4.0000
-	u16 ratio_hi; // integer part of sampling ratio
-	u16 ratio_lo; // fraction part of sampling ratio
+	u16 ratio_hi;  // integer part of sampling ratio
+	u16 ratio_lo;  // fraction part of sampling ratio
 	u16 cur_addr_frac;
 	s16 last_samples[4];
 };
@@ -230,12 +231,12 @@ struct AXPB
 	u16 this_pb_hi;
 	u16 this_pb_lo;
 
-	u16 src_type;     // Type of sample rate converter (none, ?, linear)
+	u16 src_type;  // Type of sample rate converter (none, ?, linear)
 	u16 coef_select;
 	u16 mixer_control;
 
-	u16 running;       // 1=RUN 0=STOP
-	u16 is_stream;     // 1 = stream, 0 = one shot
+	u16 running;    // 1=RUN 0=STOP
+	u16 is_stream;  // 1 = stream, 0 = one shot
 
 	PBMixer mixer;
 	PBInitialTimeDelay initial_time_delay;
@@ -254,9 +255,8 @@ struct AXPB
 
 struct PBBiquadFilter
 {
-
-	u16 on;  // on = 2, off = 0
-	u16 xn1; // History data
+	u16 on;   // on = 2, off = 0
+	u16 xn1;  // History data
 	u16 xn2;
 	u16 yn1;
 	u16 yn2;
@@ -265,7 +265,6 @@ struct PBBiquadFilter
 	u16 b2;
 	u16 a1;
 	u16 a2;
-
 };
 
 union PBInfImpulseResponseWM
@@ -281,13 +280,13 @@ struct AXPBWii
 	u16 this_pb_hi;
 	u16 this_pb_lo;
 
-	u16 src_type;       // Type of sample rate converter (none, 4-tap, linear)
-	u16 coef_select;    // coef for the 4-tap src
+	u16 src_type;     // Type of sample rate converter (none, 4-tap, linear)
+	u16 coef_select;  // coef for the 4-tap src
 	u16 mixer_control_hi;
 	u16 mixer_control_lo;
 
-	u16 running;        // 1=RUN   0=STOP
-	u16 is_stream;      // 1 = stream, 0 = one shot
+	u16 running;    // 1=RUN   0=STOP
+	u16 is_stream;  // 1 = stream, 0 = one shot
 
 	PBMixerWii mixer;
 	PBInitialTimeDelay initial_time_delay;
@@ -309,21 +308,21 @@ struct AXPBWii
 	PBSampleRateConverterWM remote_src;
 	PBInfImpulseResponseWM remote_iir;
 
-	u16 padding[12]; // align us, captain! (32B)
+	u16 pad[12];  // align us, captain! (32B)
 };
 
 // TODO: All these enums have changed a lot for Wii
 enum
 {
 	AUDIOFORMAT_ADPCM = 0,
-	AUDIOFORMAT_PCM8  = 0x19,
+	AUDIOFORMAT_PCM8 = 0x19,
 	AUDIOFORMAT_PCM16 = 0xA,
 };
 
 enum
 {
 	SRCTYPE_POLYPHASE = 0,
-	SRCTYPE_LINEAR  = 1,
+	SRCTYPE_LINEAR = 1,
 	SRCTYPE_NEAREST = 2,
 };
 

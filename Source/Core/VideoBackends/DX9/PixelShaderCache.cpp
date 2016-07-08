@@ -57,7 +57,7 @@ static LPDIRECT3DPIXELSHADER9 s_clear_program = NULL;
 static LPDIRECT3DPIXELSHADER9 s_rgba6_to_rgb8 = NULL;
 static LPDIRECT3DPIXELSHADER9 s_rgb8_to_rgba6 = NULL;
 
-class PixelShaderCacheInserter : public LinearDiskCacheReader<PixelShaderUid, u8>
+class PixelShaderCacheInserter: public LinearDiskCacheReader<PixelShaderUid, u8>
 {
 public:
 	void Read(const PixelShaderUid &key, const u8 *value, u32 value_size)
@@ -164,12 +164,12 @@ static LPDIRECT3DPIXELSHADER9 CreateCopyShader(int copyMatrixType, int depthConv
 	WRITE(p, "// Copy/Color Matrix/Depth Matrix shader (matrix=%d, depth=%d, ssaa=%d)\n", copyMatrixType, depthConversionType, SSAAMode);
 
 	WRITE(p, "uniform sampler samp0 : register(s0);\n");
-	if(copyMatrixType == COPY_TYPE_MATRIXCOLOR)
+	if (copyMatrixType == COPY_TYPE_MATRIXCOLOR)
 		WRITE(p, "uniform float4 cColMatrix[7] : register(c%d);\n", C_COLORMATRIX);
 	WRITE(p, "void main(\n"
 		"out float4 ocol0 : COLOR0,\n");
 
-	switch(SSAAMode % MAX_SSAA_SHADERS)
+	switch (SSAAMode % MAX_SSAA_SHADERS)
 	{
 	case 0: // 1 Sample
 		WRITE(p, "in float2 uv0 : TEXCOORD0,\n"
@@ -186,7 +186,7 @@ static LPDIRECT3DPIXELSHADER9 CreateCopyShader(int copyMatrixType, int depthConv
 		break;
 	}
 
-	if(depthConversionType != DEPTH_CONVERSION_TYPE_NONE)
+	if (depthConversionType != DEPTH_CONVERSION_TYPE_NONE)
 	{
 		// Watch out for the fire fumes effect in Metroid it's really sensitive to this,
 		// the lighting in RE0 is also way beyond sensitive since the "good value" is hardcoded and Dolphin is almost always off.
@@ -210,7 +210,7 @@ static LPDIRECT3DPIXELSHADER9 CreateCopyShader(int copyMatrixType, int depthConv
 			"	texcol.w = texcol.w * 15.0;\n"
 			"	texcol.w = floor(texcol.w);\n"
 			"	texcol.w = texcol.w / 15.0;\n"          // w component
-			);
+		);
 	}
 	else
 	{
@@ -218,9 +218,9 @@ static LPDIRECT3DPIXELSHADER9 CreateCopyShader(int copyMatrixType, int depthConv
 		WRITE(p, "texcol = pow(texcol,uv1.xxxx);\n");
 	}
 
-	if(copyMatrixType == COPY_TYPE_MATRIXCOLOR)
+	if (copyMatrixType == COPY_TYPE_MATRIXCOLOR)
 	{
-		if(depthConversionType == DEPTH_CONVERSION_TYPE_NONE)
+		if (depthConversionType == DEPTH_CONVERSION_TYPE_NONE)
 			WRITE(p, "texcol = round(texcol * cColMatrix[5])*cColMatrix[6];\n");
 
 		WRITE(p, "ocol0 = float4(dot(texcol,cColMatrix[0]),dot(texcol,cColMatrix[1]),dot(texcol,cColMatrix[2]),dot(texcol,cColMatrix[3])) + cColMatrix[4];\n");
@@ -259,15 +259,15 @@ void PixelShaderCache::Init()
 	int maxConstants = (shaderModel < 3) ? 32 : ((shaderModel < 4) ? 224 : 65536);
 
 	// other screen copy/convert programs
-	for(int copyMatrixType = 0; copyMatrixType < NUM_COPY_TYPES; copyMatrixType++)
+	for (int copyMatrixType = 0; copyMatrixType < NUM_COPY_TYPES; copyMatrixType++)
 	{
-		for(int depthType = 0; depthType < NUM_DEPTH_CONVERSION_TYPES; depthType++)
+		for (int depthType = 0; depthType < NUM_DEPTH_CONVERSION_TYPES; depthType++)
 		{
-			for(int ssaaMode = 0; ssaaMode < MAX_SSAA_SHADERS; ssaaMode++)
+			for (int ssaaMode = 0; ssaaMode < MAX_SSAA_SHADERS; ssaaMode++)
 			{
-				if(ssaaMode && !s_copy_program[copyMatrixType][depthType][ssaaMode-1]
-				|| depthType && !s_copy_program[copyMatrixType][depthType-1][ssaaMode]
-				|| copyMatrixType && !s_copy_program[copyMatrixType-1][depthType][ssaaMode])
+				if (ssaaMode && !s_copy_program[copyMatrixType][depthType][ssaaMode - 1]
+					|| depthType && !s_copy_program[copyMatrixType][depthType - 1][ssaaMode]
+					|| copyMatrixType && !s_copy_program[copyMatrixType - 1][depthType][ssaaMode])
 				{
 					// if it failed at a lower setting, it's going to fail here for the same reason it did there,
 					// so skip this attempt to avoid duplicate error messages.
@@ -288,7 +288,7 @@ void PixelShaderCache::Init()
 
 	SETSTAT(stats.numPixelShadersCreated, 0);
 	SETSTAT(stats.numPixelShadersAlive, 0);
-	
+
 	pKey_t gameid = (pKey_t)GetMurmurHash3(reinterpret_cast<const u8*>(SConfig::GetInstance().m_strUniqueID.data()), (u32)SConfig::GetInstance().m_strUniqueID.size(), 0);
 	s_pshaders = ObjectUsageProfiler<PixelShaderUid, pKey_t, PSCacheEntry, PixelShaderUid::ShaderUidHasher>::Create(
 		gameid,
@@ -299,8 +299,8 @@ void PixelShaderCache::Init()
 
 	std::string cache_filename = StringFromFormat("%sIDX9-%s-ps.cache", File::GetUserPath(D_SHADERCACHE_IDX).c_str(),
 		SConfig::GetInstance().m_strUniqueID.c_str());
-	
-	PixelShaderCacheInserter inserter;	
+
+	PixelShaderCacheInserter inserter;
 	g_ps_disk_cache.OpenAndRead(cache_filename, inserter);
 
 	if (g_ActiveConfig.bCompileShaderOnStartup)
@@ -308,7 +308,7 @@ void PixelShaderCache::Init()
 		std::vector<PixelShaderUid> shaders;
 		size_t shader_count = 0;
 		s_pshaders->ForEachMostUsedByCategory(gameid,
-		[&](const PixelShaderUid& item) 
+			[&](const PixelShaderUid& item)
 		{
 			PixelShaderUid newitem = item;
 			pixel_shader_uid_data& uid_data = newitem.GetUidData<pixel_shader_uid_data>();
@@ -336,7 +336,7 @@ void PixelShaderCache::Init()
 				s_compiler->WaitForFinish();
 			}
 		},
-		[](PSCacheEntry& entry) 
+			[](PSCacheEntry& entry)
 		{
 			return !entry.shader;
 		}, true);
@@ -351,7 +351,8 @@ void PixelShaderCache::Clear()
 	{
 		s_pixel_shaders_lock.lock();
 		s_pshaders->Persist();
-		s_pshaders->Clear([](auto& item) {
+		s_pshaders->Clear([](auto& item)
+		{
 			item.Destroy();
 		});
 		s_pixel_shaders_lock.unlock();
@@ -368,16 +369,16 @@ void PixelShaderCache::Shutdown()
 	{
 		s_compiler->WaitForFinish();
 	}
-	for(int copyMatrixType = 0; copyMatrixType < NUM_COPY_TYPES; copyMatrixType++)
-		for(int depthType = 0; depthType < NUM_DEPTH_CONVERSION_TYPES; depthType++)
-			for(int ssaaMode = 0; ssaaMode < MAX_SSAA_SHADERS; ssaaMode++)
-				if(s_copy_program[copyMatrixType][depthType][ssaaMode]
-				&& (copyMatrixType == 0 || s_copy_program[copyMatrixType][depthType][ssaaMode] != s_copy_program[copyMatrixType-1][depthType][ssaaMode]))
+	for (int copyMatrixType = 0; copyMatrixType < NUM_COPY_TYPES; copyMatrixType++)
+		for (int depthType = 0; depthType < NUM_DEPTH_CONVERSION_TYPES; depthType++)
+			for (int ssaaMode = 0; ssaaMode < MAX_SSAA_SHADERS; ssaaMode++)
+				if (s_copy_program[copyMatrixType][depthType][ssaaMode]
+					&& (copyMatrixType == 0 || s_copy_program[copyMatrixType][depthType][ssaaMode] != s_copy_program[copyMatrixType - 1][depthType][ssaaMode]))
 					s_copy_program[copyMatrixType][depthType][ssaaMode]->Release();
 
-	for(int copyMatrixType = 0; copyMatrixType < NUM_COPY_TYPES; copyMatrixType++)
-		for(int depthType = 0; depthType < NUM_DEPTH_CONVERSION_TYPES; depthType++)
-			for(int ssaaMode = 0; ssaaMode < MAX_SSAA_SHADERS; ssaaMode++)
+	for (int copyMatrixType = 0; copyMatrixType < NUM_COPY_TYPES; copyMatrixType++)
+		for (int depthType = 0; depthType < NUM_DEPTH_CONVERSION_TYPES; depthType++)
+			for (int ssaaMode = 0; ssaaMode < MAX_SSAA_SHADERS; ssaaMode++)
 				s_copy_program[copyMatrixType][depthType][ssaaMode] = NULL;
 
 	if (s_clear_program) s_clear_program->Release();
@@ -463,7 +464,7 @@ void PixelShaderCache::CompilePShader(const PixelShaderUid& uid, PIXEL_SHADER_RE
 
 void PixelShaderCache::PrepareShader(
 	PIXEL_SHADER_RENDER_MODE render_mode,
-	u32 components, 
+	u32 components,
 	const XFMemory &xfr,
 	const BPMemory &bpm,
 	bool ongputhread)

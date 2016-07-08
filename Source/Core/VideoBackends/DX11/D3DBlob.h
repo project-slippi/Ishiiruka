@@ -20,10 +20,11 @@ public:
 	D3DBlob() = default;
 	D3DBlob(D3DBlob const &) = delete;
 	D3DBlob& operator=(D3DBlob const &) = delete;
-	D3DBlob(D3DBlob && b) : blob_{ b.blob_.release() }, data_{ std::move(b.data_) }, size_(b.size_) {
+	D3DBlob(D3DBlob && b): blob_{b.blob_.release()}, data_{std::move(b.data_)}, size_(b.size_) {
 	}
 
-	D3DBlob& operator=(D3DBlob && b) {
+	D3DBlob& operator=(D3DBlob && b)
+	{
 		*this = nullptr;
 		blob_.reset(b.blob_.release());
 		data_.reset(b.data_.release());
@@ -31,7 +32,8 @@ public:
 		return *this;
 	}
 
-	D3DBlob& operator=(std::nullptr_t) {
+	D3DBlob& operator=(std::nullptr_t)
+	{
 		if (blob_)
 			data_.release();
 		blob_.reset();
@@ -49,7 +51,8 @@ public:
 	D3DBlob(unsigned int blob_size, const u8* init_data = nullptr);
 
 	D3DBlob(ID3DBlobPtr && d3dblob);
-	D3DBlob& operator=(ID3DBlobPtr && b){
+	D3DBlob& operator=(ID3DBlobPtr && b)
+	{
 		*this = nullptr;
 		blob_.reset(b.release());
 		data_.reset((u8*)blob_->GetBufferPointer());

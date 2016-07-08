@@ -8,6 +8,7 @@
 //#define JIT_LOG_GPR     // Enables logging of the PPC general purpose regs
 //#define JIT_LOG_FPR     // Enables logging of the PPC floating point regs
 
+#include <map>
 #include <unordered_set>
 
 #include "Common/CommonTypes.h"
@@ -15,11 +16,11 @@
 #include "Core/ConfigManager.h"
 #include "Core/MachineContext.h"
 #include "Core/PowerPC/CPUCoreBase.h"
-#include "Core/PowerPC/PPCAnalyst.h"
 #include "Core/PowerPC/Jit64Common/Jit64AsmCommon.h"
-#include "Core/PowerPC/JitCommon/Jit_Util.h"
 #include "Core/PowerPC/JitCommon/JitCache.h"
+#include "Core/PowerPC/JitCommon/Jit_Util.h"
 #include "Core/PowerPC/JitCommon/TrampolineCache.h"
+#include "Core/PowerPC/PPCAnalyst.h"
 
 // TODO: find a better place for x86-specific stuff
 // The following register assignments are common to Jit64 and Jit64IL:
@@ -41,12 +42,20 @@
 // #define INSTRUCTION_START PPCTables::CountInstruction(inst);
 #define INSTRUCTION_START
 
-#define FALLBACK_IF(cond) do { if (cond) { FallBackToInterpreter(inst); return; } } while (0)
+#define FALLBACK_IF(cond)                                                                          \
+  do                                                                                               \
+  {                                                                                                \
+    if (cond)                                                                                      \
+    {                                                                                              \
+      FallBackToInterpreter(inst);                                                                 \
+      return;                                                                                      \
+    }                                                                                              \
+  } while (0)
 
-#define JITDISABLE(setting) FALLBACK_IF(SConfig::GetInstance().bJITOff || \
-                                        SConfig::GetInstance().setting)
+#define JITDISABLE(setting)                                                                        \
+  FALLBACK_IF(SConfig::GetInstance().bJITOff || SConfig::GetInstance().setting)
 
-class JitBase : public CPUCoreBase
+class JitBase: public CPUCoreBase
 {
 protected:
 	struct JitOptions
@@ -73,17 +82,22 @@ protected:
 		// so just fixup that branch instead of testing for a DSI again.
 		bool fixupExceptionHandler;
 		Gen::FixupBranch exceptionHandler;
-		// If these are set, we've stored the old value of a register which will be loaded in revertLoad,
+		// If these are set, we've stored the old value of a register which will be loaded in
+		// revertLoad,
 		// which lets us revert it on the exception path.
 		int revertGprLoad;
 		int revertFprLoad;
 
 		bool assumeNoPairedQuantize;
+		std::map<u8, u32> constantGqr;
 		bool firstFPInstructionFound;
 		bool isLastInstruction;
 		int skipInstructions;
 		bool carryFlagSet;
 		bool carryFlagInverted;
+
+		bool generatingTrampoline = false;
+		u8* trampolineExceptionHandler;
 
 		int fifoBytesThisBlock;
 
@@ -93,7 +107,7 @@ protected:
 		PPCAnalyst::CodeOp* op;
 		u8* rewriteStart;
 
-		JitBlock *curBlock;
+		JitBlock* curBlock;
 
 		std::unordered_set<u32> fifoWriteAddresses;
 		std::unordered_set<u32> pairedQuantizeAddresses;
@@ -111,31 +125,39 @@ public:
 	JitOptions jo;
 	JitState js;
 
-	virtual JitBaseBlockCache *GetBlockCache() = 0;
+	virtual JitBaseBlockCache* GetBlockCache() = 0;
 
 	virtual void Jit(u32 em_address) = 0;
 
-	virtual const CommonAsmRoutinesBase *GetAsmRoutines() = 0;
+	virtual const CommonAsmRoutinesBase* GetAsmRoutines() = 0;
 
 	virtual bool HandleFault(uintptr_t access_address, SContext* ctx) = 0;
-	virtual bool HandleStackFault() { return false; }
+	virtual bool HandleStackFault()
+	{
+		return false;
+	}
 };
 
-class Jitx86Base : public JitBase, public EmuCodeBlock
+class Jitx86Base: public JitBase, public QuantizedMemoryRoutines
 {
 protected:
 	bool BackPatch(u32 emAddress, SContext* ctx);
 	JitBlockCache blocks;
 	TrampolineCache trampolines;
+
 public:
-	JitBlockCache *GetBlockCache() override { return &blocks; }
+	JitBlockCache* GetBlockCache() override
+	{
+		return &blocks;
+	}
 	bool HandleFault(uintptr_t access_address, SContext* ctx) override;
 };
 
-extern JitBase *jit;
+extern JitBase* jit;
 
 void Jit(u32 em_address);
 
 // Merged routines that should be moved somewhere better
 u32 Helper_Mask(u8 mb, u8 me);
-void LogGeneratedX86(int size, PPCAnalyst::CodeBuffer *code_buffer, const u8 *normalEntry, JitBlock *b);
+void LogGeneratedX86(int size, PPCAnalyst::CodeBuffer* code_buffer, const u8* normalEntry,
+	JitBlock* b);

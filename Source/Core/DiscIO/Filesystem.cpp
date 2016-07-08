@@ -2,21 +2,17 @@
 // Licensed under GPLv2+
 // Refer to the license.txt file included.
 
-#include <memory>
 #include "DiscIO/Filesystem.h"
+#include <memory>
 #include "DiscIO/FileSystemGCWii.h"
 
 namespace DiscIO
 {
-
-IFileSystem::IFileSystem(const IVolume *_rVolume)
-	: m_rVolume(_rVolume)
+IFileSystem::IFileSystem(const IVolume* _rVolume): m_rVolume(_rVolume)
 {}
-
 
 IFileSystem::~IFileSystem()
 {}
-
 
 std::unique_ptr<IFileSystem> CreateFileSystem(const IVolume* volume)
 {
@@ -31,4 +27,4 @@ std::unique_ptr<IFileSystem> CreateFileSystem(const IVolume* volume)
 	return filesystem;
 }
 
-} // namespace
+}  // namespace

@@ -23,11 +23,11 @@ typedef std::vector<u8> Report;
 
 namespace WiimoteReal
 {
-
-class Wiimote : NonCopyable
+class Wiimote: NonCopyable
 {
 public:
-	virtual ~Wiimote() {}
+	virtual ~Wiimote()
+	{}
 	// This needs to be called in derived destructors!
 	void Shutdown();
 
@@ -50,9 +50,10 @@ public:
 	void EmuResume();
 	void EmuPause();
 
-	virtual void EnablePowerAssertionInternal() {}
-	virtual void DisablePowerAssertionInternal() {}
-
+	virtual void EnablePowerAssertionInternal()
+	{}
+	virtual void DisablePowerAssertionInternal()
+	{}
 	// connecting and disconnecting from physical devices
 	// (using address inserted by FindWiimotes)
 	// these are called from the Wiimote's thread.
@@ -81,6 +82,10 @@ protected:
 	Report m_last_input_report;
 	u16 m_channel;
 	u8 m_last_connect_request_counter;
+	// If true, the Wiimote will be really disconnected when it is disconnected by Dolphin,
+	// instead of just pausing data reporting.
+	// This is not enabled on all platforms as connecting a Wiimote can be a pain on some platforms.
+	bool m_really_disconnect = false;
 
 private:
 	void ClearReadQueue();
@@ -96,15 +101,15 @@ private:
 
 	bool m_rumble_state;
 
-	std::thread               m_wiimote_thread;
+	std::thread m_wiimote_thread;
 	// Whether to keep running the thread.
-	std::atomic<bool>         m_run_thread {false};
+	std::atomic<bool> m_run_thread{false};
 	// Whether to call PrepareOnThread.
-	std::atomic<bool>         m_need_prepare {false};
+	std::atomic<bool> m_need_prepare{false};
 	// Whether the thread has finished ConnectInternal.
-	std::atomic<bool>         m_thread_ready {false};
-	std::mutex                m_thread_ready_mutex;
-	std::condition_variable   m_thread_ready_cond;
+	std::atomic<bool> m_thread_ready{false};
+	std::mutex m_thread_ready_mutex;
+	std::condition_variable m_thread_ready_cond;
 
 	Common::FifoQueue<Report> m_read_reports;
 	Common::FifoQueue<Report> m_write_reports;
@@ -134,12 +139,13 @@ private:
 
 	std::thread m_scan_thread;
 
-	std::atomic<bool> m_run_thread {false};
-	std::atomic<bool> m_want_wiimotes {false};
-	std::atomic<bool> m_want_bb {false};
+	std::atomic<bool> m_run_thread{false};
+	std::atomic<bool> m_want_wiimotes{false};
+	std::atomic<bool> m_want_bb{false};
 
 #if defined(_WIN32)
-	void CheckDeviceType(std::basic_string<TCHAR> &devicepath, WinWriteMethod &write_method, bool &real_wiimote, bool &is_bb);
+	void CheckDeviceType(std::basic_string<TCHAR>& devicepath, WinWriteMethod& write_method,
+		bool& real_wiimote, bool& is_bb);
 #elif defined(__linux__) && HAVE_BLUEZ
 	int device_id;
 	int device_sock;
@@ -148,7 +154,7 @@ private:
 
 extern std::recursive_mutex g_refresh_lock;
 extern WiimoteScanner g_wiimote_scanner;
-extern Wiimote *g_wiimotes[MAX_BBMOTES];
+extern Wiimote* g_wiimotes[MAX_BBMOTES];
 
 void InterruptChannel(int _WiimoteNumber, u16 _channelID, const void* _pData, u32 _Size);
 void ControlChannel(int _WiimoteNumber, u16 _channelID, const void* _pData, u32 _Size);
@@ -165,4 +171,4 @@ bool IsBalanceBoardName(const std::string& name);
 void InitAdapterClass();
 #endif
 
-} // WiimoteReal
+}  // WiimoteReal

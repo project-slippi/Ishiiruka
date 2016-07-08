@@ -22,7 +22,7 @@ void LoadBPReg(u32 value0)
 	int newval = (oldval & ~bpmem.bpMask) | (value0 & bpmem.bpMask);
 	int changes = (oldval ^ newval) & 0xFFFFFF;
 
-	BPCmd bp = { opcode, changes, newval };
+	BPCmd bp = {opcode, changes, newval};
 
 	//reset the mask register
 	if (opcode != BPMEM_BP_MASK)
@@ -53,7 +53,7 @@ void LoadBPRegPreprocess(u32 value0)
 
 void GetBPRegInfo(const u8* data, std::string* name, std::string* desc)
 {
-	const char* no_yes[2] = { "No", "Yes" };
+	const char* no_yes[2] = {"No", "Yes"};
 
 	u32 cmddata = Common::swap32(*(u32*)data) & 0xFFFFFF;
 	switch (data[0])
@@ -86,15 +86,15 @@ void GetBPRegInfo(const u8* data, std::string* name, std::string* desc)
 		X10Y10 left_top; left_top.hex = cmddata;
 		*desc = StringFromFormat("Left: %d\nTop: %d", left_top.x, left_top.y);
 	}
-		break;
+	break;
 
 	case BPMEM_BLENDMODE: // 0x41
 	{
 		SetRegName(BPMEM_BLENDMODE);
 		BlendMode mode; mode.hex = cmddata;
-		const char* dstfactors[] = { "0", "1", "src_color", "1-src_color", "src_alpha", "1-src_alpha", "dst_alpha", "1-dst_alpha" };
-		const char* srcfactors[] = { "0", "1", "dst_color", "1-dst_color", "src_alpha", "1-src_alpha", "dst_alpha", "1-dst_alpha" };
-		const char* logicmodes[] = { "0", "s & d", "s & ~d", "s", "~s & d", "d", "s ^ d", "s | d", "~(s | d)", "~(s ^ d)", "~d", "s | ~d", "~s", "~s | d", "~(s & d)", "1" };
+		const char* dstfactors[] = {"0", "1", "src_color", "1-src_color", "src_alpha", "1-src_alpha", "dst_alpha", "1-dst_alpha"};
+		const char* srcfactors[] = {"0", "1", "dst_color", "1-dst_color", "src_alpha", "1-src_alpha", "dst_alpha", "1-dst_alpha"};
+		const char* logicmodes[] = {"0", "s & d", "s & ~d", "s", "~s & d", "d", "s ^ d", "s | d", "~(s | d)", "~(s ^ d)", "~d", "s | ~d", "~s", "~s | d", "~(s & d)", "1"};
 		*desc = StringFromFormat("Enable: %s\n"
 			"Logic ops: %s\n"
 			"Dither: %s\n"
@@ -108,20 +108,20 @@ void GetBPRegInfo(const u8* data, std::string* name, std::string* desc)
 			no_yes[mode.colorupdate], no_yes[mode.alphaupdate], dstfactors[mode.dstfactor],
 			srcfactors[mode.srcfactor], no_yes[mode.subtract], logicmodes[mode.logicmode]);
 	}
-		break;
+	break;
 
 	case BPMEM_ZCOMPARE:
 	{
 		SetRegName(BPMEM_ZCOMPARE);
 		PEControl config; config.hex = cmddata;
-		const char* pixel_formats[] = { "RGB8_Z24", "RGBA6_Z24", "RGB565_Z16", "Z24", "Y8", "U8", "V8", "YUV420" };
-		const char* zformats[] = { "linear", "compressed (near)", "compressed (mid)", "compressed (far)", "inv linear", "compressed (inv near)", "compressed (inv mid)", "compressed (inv far)" };
+		const char* pixel_formats[] = {"RGB8_Z24", "RGBA6_Z24", "RGB565_Z16", "Z24", "Y8", "U8", "V8", "YUV420"};
+		const char* zformats[] = {"linear", "compressed (near)", "compressed (mid)", "compressed (far)", "inv linear", "compressed (inv near)", "compressed (inv mid)", "compressed (inv far)"};
 		*desc = StringFromFormat("EFB pixel format: %s\n"
 			"Depth format: %s\n"
 			"Early depth test: %s\n",
 			pixel_formats[config.pixel_format], zformats[config.zformat], no_yes[config.early_ztest]);
 	}
-		break;
+	break;
 
 	case BPMEM_EFB_BR: // 0x4A
 	{
@@ -130,7 +130,7 @@ void GetBPRegInfo(const u8* data, std::string* name, std::string* desc)
 		X10Y10 width_height; width_height.hex = cmddata;
 		*desc = StringFromFormat("Width: %d\nHeight: %d", width_height.x + 1, width_height.y + 1);
 	}
-		break;
+	break;
 
 	case BPMEM_EFB_ADDR: // 0x4B
 		SetRegName(BPMEM_EFB_ADDR);
@@ -184,7 +184,7 @@ void GetBPRegInfo(const u8* data, std::string* name, std::string* desc)
 			no_yes[copy.intensity_fmt],
 			no_yes[copy.auto_conv]);
 	}
-		break;
+	break;
 
 	case BPMEM_COPYFILTER0: // 0x53
 		SetRegName(BPMEM_COPYFILTER0);
@@ -209,7 +209,7 @@ void GetBPRegInfo(const u8* data, std::string* name, std::string* desc)
 		TexImage3 teximg; teximg.hex = cmddata;
 		*desc = StringFromFormat("Source address (32 byte aligned): 0x%06X", teximg.image_base << 5);
 	}
-		break;
+	break;
 
 	case BPMEM_TEV_COLOR_ENV: // 0xC0
 	case BPMEM_TEV_COLOR_ENV + 2:
@@ -239,10 +239,10 @@ void GetBPRegInfo(const u8* data, std::string* name, std::string* desc)
 			"ras.rgb", "ras.aaa",
 			"ONE", "HALF", "konst.rgb", "ZERO",
 		};
-		const char* tevbias[] = { "0", "+0.5", "-0.5", "compare" };
-		const char* tevop[] = { "add", "sub" };
-		const char* tevscale[] = { "1", "2", "4", "0.5" };
-		const char* tevout[] = { "prev.rgb", "c0.rgb", "c1.rgb", "c2.rgb" };
+		const char* tevbias[] = {"0", "+0.5", "-0.5", "compare"};
+		const char* tevop[] = {"add", "sub"};
+		const char* tevscale[] = {"1", "2", "4", "0.5"};
+		const char* tevout[] = {"prev.rgb", "c0.rgb", "c1.rgb", "c2.rgb"};
 		*desc = StringFromFormat("Tev stage: %d\n"
 			"a: %s\n"
 			"b: %s\n"
@@ -282,10 +282,10 @@ void GetBPRegInfo(const u8* data, std::string* name, std::string* desc)
 			"prev", "c0", "c1", "c2",
 			"tex", "ras", "konst", "ZERO",
 		};
-		const char* tevbias[] = { "0", "+0.5", "-0.5", "compare" };
-		const char* tevop[] = { "add", "sub" };
-		const char* tevscale[] = { "1", "2", "4", "0.5" };
-		const char* tevout[] = { "prev", "c0", "c1", "c2" };
+		const char* tevbias[] = {"0", "+0.5", "-0.5", "compare"};
+		const char* tevop[] = {"add", "sub"};
+		const char* tevscale[] = {"1", "2", "4", "0.5"};
+		const char* tevout[] = {"prev", "c0", "c1", "c2"};
 		*desc = StringFromFormat("Tev stage: %d\n"
 			"a: %s\n"
 			"b: %s\n"
@@ -308,8 +308,8 @@ void GetBPRegInfo(const u8* data, std::string* name, std::string* desc)
 	{
 		SetRegName(BPMEM_ALPHACOMPARE);
 		AlphaTest test; test.hex = cmddata;
-		const char* functions[] = { "NEVER", "LESS", "EQUAL", "LEQUAL", "GREATER", "NEQUAL", "GEQUAL", "ALWAYS" };
-		const char* logic[] = { "AND", "OR", "XOR", "XNOR" };
+		const char* functions[] = {"NEVER", "LESS", "EQUAL", "LEQUAL", "GREATER", "NEQUAL", "GEQUAL", "ALWAYS"};
+		const char* logic[] = {"AND", "OR", "XOR", "XNOR"};
 		*desc = StringFromFormat("Test 1: %s (ref: %#02x)\n"
 			"Test 2: %s (ref: %#02x)\n"
 			"Logic: %s\n",

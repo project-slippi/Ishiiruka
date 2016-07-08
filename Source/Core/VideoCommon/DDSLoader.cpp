@@ -135,21 +135,25 @@ typedef struct _DDSCAPS2
 	};
 } DDSCAPS2;
 
-typedef struct _DDSHeader {
+typedef struct _DDSHeader
+{
 	u32      dwSignature;
 	u32      dwSize;
 	u32      dwFlags;
 	u32      dwHeight;
 	u32      dwWidth;
-	union {
+	union
+	{
 		s32  lPitch;
 		u32 dwLinearSize;
 	};
-	union {
+	union
+	{
 		u32 dwBackBufferCount;
 		u32 dwDepth;
 	};
-	union {
+	union
+	{
 		u32 dwMipMapCount;
 		u32 dwRefreshRate;
 		u32 dwSrcVBHandle;
@@ -157,14 +161,16 @@ typedef struct _DDSHeader {
 	u32      dwAlphaBitDepth;
 	u32      dwReserved;
 	u32     lpSurface;
-	union {
+	union
+	{
 		DDCOLORKEY ddckCKDestOverlay;
 		u32      dwEmptyFaceColor;
 	};
 	DDCOLORKEY ddckCKDestBlt;
 	DDCOLORKEY ddckCKSrcOverlay;
 	DDCOLORKEY ddckCKSrcBlt;
-	union {
+	union
+	{
 		DDPIXELFORMAT ddpfPixelFormat;
 		u32         dwFVF;
 	};
@@ -293,7 +299,7 @@ DDSCompression ImageLoader::ReadDDS(ImageLoaderParams& loader_params)
 		// Just load the first level
 		ddsd.dwMipMapCount = 0;
 	}
-	
+
 	u32 FourCC = ddsd.ddpfPixelFormat.dwFourCC;
 	Result = (FourCC == FOURCC_DXT1) ? DDSC_DXT1 : ((FourCC == FOURCC_DXT3) ? DDSC_DXT3 : DDSC_DXT5);
 	loader_params.Width = ddsd.dwWidth;
@@ -329,7 +335,7 @@ bool TextureToDDS(u8* data, int row_stride, const std::string& filename, int wid
 	header.dwLinearSize = ((header.dwWidth + 3) >> 2)*((header.dwHeight + 3) >> 2) * 16;
 	header.dwMipMapCount = 1;
 	File::IOFile fp(filename, "wb");
-	if(!fp.IsOpen())
+	if (!fp.IsOpen())
 	{
 		PanicAlertT("Screenshot failed: Could not open file %s %d", filename.c_str(), errno);
 		return false;

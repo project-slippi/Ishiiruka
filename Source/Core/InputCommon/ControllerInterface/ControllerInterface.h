@@ -17,29 +17,26 @@
 
 // enable disable sources
 #ifdef _WIN32
-	#define CIFACE_USE_XINPUT
-	#define CIFACE_USE_DINPUT
+#define CIFACE_USE_XINPUT
+#define CIFACE_USE_DINPUT
 #endif
 #if defined(HAVE_X11) && HAVE_X11
-	#define CIFACE_USE_XLIB
-	#if defined(HAVE_X11_XINPUT2) && HAVE_X11_XINPUT2
-		#define CIFACE_USE_X11_XINPUT2
-	#endif
+#define CIFACE_USE_XLIB
+#if defined(HAVE_X11_XINPUT2) && HAVE_X11_XINPUT2
+#define CIFACE_USE_X11_XINPUT2
+#endif
 #endif
 #if defined(__APPLE__)
-	#define CIFACE_USE_OSX
-#endif
-#ifdef ANDROID
-	#define CIFACE_USE_ANDROID
+#define CIFACE_USE_OSX
 #endif
 #if defined(HAVE_SDL) && HAVE_SDL
-	#define CIFACE_USE_SDL
+#define CIFACE_USE_SDL
 #endif
 #if defined(HAVE_LIBEVDEV) && defined(HAVE_LIBUDEV)
-	#define CIFACE_USE_EVDEV
+#define CIFACE_USE_EVDEV
 #endif
 #if defined(USE_PIPES)
-	#define CIFACE_USE_PIPES
+#define CIFACE_USE_PIPES
 #endif
 
 //
@@ -48,10 +45,9 @@
 // Some crazy shit I made to control different device inputs and outputs
 // from lots of different sources, hopefully more easily.
 //
-class ControllerInterface : public ciface::Core::DeviceContainer
+class ControllerInterface: public ciface::Core::DeviceContainer
 {
 public:
-
 	//
 	// ControlReference
 	//
@@ -65,20 +61,21 @@ public:
 	class ControlReference
 	{
 		friend class ControllerInterface;
+
 	public:
 		virtual ControlState State(const ControlState state = 0) = 0;
-		virtual ciface::Core::Device::Control* Detect(const unsigned int ms, ciface::Core::Device* const device) = 0;
+		virtual ciface::Core::Device::Control* Detect(const unsigned int ms,
+			ciface::Core::Device* const device) = 0;
 
 		ControlState range;
-		std::string  expression;
-		const bool   is_input;
+		std::string expression;
+		const bool is_input;
 		ciface::ExpressionParser::ExpressionParseStatus parse_error;
 
 		virtual ~ControlReference()
 		{
 			delete parsed_expression;
 		}
-
 		int BoundCount()
 		{
 			if (parsed_expression)
@@ -88,8 +85,10 @@ public:
 		}
 
 	protected:
-		ControlReference(const bool _is_input) : range(1), is_input(_is_input), parsed_expression(nullptr) {}
-		ciface::ExpressionParser::Expression *parsed_expression;
+		ControlReference(const bool _is_input)
+			: range(1), is_input(_is_input), parsed_expression(nullptr)
+		{}
+		ciface::ExpressionParser::Expression* parsed_expression;
 	};
 
 	//
@@ -97,12 +96,14 @@ public:
 	//
 	// Control reference for inputs
 	//
-	class InputReference : public ControlReference
+	class InputReference: public ControlReference
 	{
 	public:
-		InputReference() : ControlReference(true) {}
+		InputReference(): ControlReference(true)
+		{}
 		ControlState State(const ControlState state) override;
-		ciface::Core::Device::Control* Detect(const unsigned int ms, ciface::Core::Device* const device) override;
+		ciface::Core::Device::Control* Detect(const unsigned int ms,
+			ciface::Core::Device* const device) override;
 	};
 
 	//
@@ -110,27 +111,33 @@ public:
 	//
 	// Control reference for outputs
 	//
-	class OutputReference : public ControlReference
+	class OutputReference: public ControlReference
 	{
 	public:
-		OutputReference() : ControlReference(false) {}
+		OutputReference(): ControlReference(false)
+		{}
 		ControlState State(const ControlState state) override;
-		ciface::Core::Device::Control* Detect(const unsigned int ms, ciface::Core::Device* const device) override;
+		ciface::Core::Device::Control* Detect(const unsigned int ms,
+			ciface::Core::Device* const device) override;
 	};
 
-	ControllerInterface() : m_is_init(false), m_hwnd(nullptr) {}
-
+	ControllerInterface(): m_is_init(false), m_hwnd(nullptr)
+	{}
 	void Initialize(void* const hwnd);
 	void Reinitialize();
 	void Shutdown();
-	bool IsInit() const { return m_is_init; }
-
-	void UpdateReference(ControlReference* control, const ciface::Core::DeviceQualifier& default_device) const;
+	void AddDevice(std::shared_ptr<ciface::Core::Device> device);
+	bool IsInit() const
+	{
+		return m_is_init;
+	}
+	void UpdateReference(ControlReference* control,
+		const ciface::Core::DeviceQualifier& default_device) const;
 	void UpdateInput();
 
 private:
-	bool   m_is_init;
-	void*  m_hwnd;
+	bool m_is_init;
+	void* m_hwnd;
 };
 
 extern ControllerInterface g_controller_interface;

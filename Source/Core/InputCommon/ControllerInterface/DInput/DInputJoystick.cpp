@@ -6,6 +6,7 @@
 #include <map>
 #include <sstream>
 
+#include "InputCommon/ControllerInterface/ControllerInterface.h"
 #include "InputCommon/ControllerInterface/DInput/DInput.h"
 #include "InputCommon/ControllerInterface/DInput/DInputJoystick.h"
 #include "InputCommon/ControllerInterface/DInput/XInputFilter.h"
@@ -14,17 +15,17 @@ namespace ciface
 {
 namespace DInput
 {
-
 #define DATA_BUFFER_SIZE 32
 
-void InitJoystick(IDirectInput8* const idi8, std::vector<Core::Device*>& devices, HWND hwnd)
+void InitJoystick(IDirectInput8* const idi8, HWND hwnd)
 {
 	std::list<DIDEVICEINSTANCE> joysticks;
-	idi8->EnumDevices(DI8DEVCLASS_GAMECTRL, DIEnumDevicesCallback, (LPVOID)&joysticks, DIEDFL_ATTACHEDONLY);
+	idi8->EnumDevices(DI8DEVCLASS_GAMECTRL, DIEnumDevicesCallback, (LPVOID)&joysticks,
+		DIEDFL_ATTACHEDONLY);
 
 	// this is used to number the joysticks
 	// multiple joysticks with the same name shall get unique ids starting at 0
-	std::map< std::basic_string<TCHAR>, int> name_counts;
+	std::map<std::basic_string<TCHAR>, int> name_counts;
 
 	std::vector<DWORD> xinput_guids;
 	GetXInputGUIDS(&xinput_guids);
@@ -32,7 +33,8 @@ void InitJoystick(IDirectInput8* const idi8, std::vector<Core::Device*>& devices
 	for (DIDEVICEINSTANCE& joystick : joysticks)
 	{
 		// skip XInput Devices
-		if (std::find(xinput_guids.begin(), xinput_guids.end(), joystick.guidProduct.Data1) != xinput_guids.end())
+		if (std::find(xinput_guids.begin(), xinput_guids.end(), joystick.guidProduct.Data1) !=
+			xinput_guids.end())
 		{
 			continue;
 		}
@@ -42,37 +44,37 @@ void InitJoystick(IDirectInput8* const idi8, std::vector<Core::Device*>& devices
 		{
 			if (SUCCEEDED(js_device->SetDataFormat(&c_dfDIJoystick)))
 			{
-				if (FAILED(js_device->SetCooperativeLevel(GetAncestor(hwnd, GA_ROOT), DISCL_BACKGROUND | DISCL_EXCLUSIVE)))
+				if (FAILED(js_device->SetCooperativeLevel(GetAncestor(hwnd, GA_ROOT),
+					DISCL_BACKGROUND | DISCL_EXCLUSIVE)))
 				{
-					//PanicAlert("SetCooperativeLevel(DISCL_EXCLUSIVE) failed!");
+					// PanicAlert("SetCooperativeLevel(DISCL_EXCLUSIVE) failed!");
 					// fall back to non-exclusive mode, with no rumble
-					if (FAILED(js_device->SetCooperativeLevel(nullptr, DISCL_BACKGROUND | DISCL_NONEXCLUSIVE)))
+					if (FAILED(
+						js_device->SetCooperativeLevel(nullptr, DISCL_BACKGROUND | DISCL_NONEXCLUSIVE)))
 					{
-						//PanicAlert("SetCooperativeLevel failed!");
+						// PanicAlert("SetCooperativeLevel failed!");
 						js_device->Release();
 						continue;
 					}
 				}
 
-				Joystick* js = new Joystick(/*&*i, */js_device, name_counts[joystick.tszInstanceName]++);
+				auto js = std::make_shared<Joystick>(js_device, name_counts[joystick.tszInstanceName]++);
 				// only add if it has some inputs/outputs
 				if (js->Inputs().size() || js->Outputs().size())
-					devices.push_back(js);
-				else
-					delete js;
+					g_controller_interface.AddDevice(std::move(js));
 			}
 			else
 			{
-				//PanicAlert("SetDataFormat failed!");
+				// PanicAlert("SetDataFormat failed!");
 				js_device->Release();
 			}
 		}
 	}
 }
 
-Joystick::Joystick( /*const LPCDIDEVICEINSTANCE lpddi, */const LPDIRECTINPUTDEVICE8 device, const unsigned int index )
-	: m_device(device)
-	, m_index(index)
+Joystick::Joystick(/*const LPCDIDEVICEINSTANCE lpddi, */ const LPDIRECTINPUTDEVICE8 device,
+	const unsigned int index)
+	: m_device(device), m_index(index)
 	//, m_name(TStringToString(lpddi->tszInstanceName))
 {
 	// seems this needs to be done before GetCapabilities
@@ -100,7 +102,7 @@ Joystick::Joystick( /*const LPCDIDEVICEINSTANCE lpddi, */const LPDIRECTINPUTDEVI
 	js_caps.dwButtons = std::min((DWORD)32, js_caps.dwButtons);
 	js_caps.dwPOVs = std::min((DWORD)4, js_caps.dwPOVs);
 
-	//m_must_poll = (js_caps.dwFlags & DIDC_POLLEDDATAFORMAT) != 0;
+	// m_must_poll = (js_caps.dwFlags & DIDC_POLLEDDATAFORMAT) != 0;
 
 	// buttons
 	for (u8 i = 0; i != js_caps.dwButtons; ++i)
@@ -137,8 +139,8 @@ Joystick::Joystick( /*const LPCDIDEVICEINSTANCE lpddi, */const LPDIRECTINPUTDEVI
 			const LONG& ax = (&m_state_in.lX)[offset];
 
 			// each axis gets a negative and a positive input instance associated with it
-			AddAnalogInputs(new Axis(offset, ax, base, range.lMin-base),
-				new Axis(offset, ax, base, range.lMax-base));
+			AddAnalogInputs(new Axis(offset, ax, base, range.lMin - base),
+				new Axis(offset, ax, base, range.lMax - base));
 		}
 	}
 
@@ -276,6 +278,5 @@ ControlState Joystick::Hat::GetState() const
 
 	return (abs((int)(m_hat / 4500 - m_direction * 2 + 8) % 8 - 4) > 2);
 }
-
 }
 }

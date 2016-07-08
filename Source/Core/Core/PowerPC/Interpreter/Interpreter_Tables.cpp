@@ -2,11 +2,11 @@
 // Licensed under GPLv2+
 // Refer to the license.txt file included.
 
+#include "Core/PowerPC/Interpreter/Interpreter.h"
 #include "Common/MsgHandler.h"
 #include "Core/PowerPC/Gekko.h"
-#include "Core/PowerPC/PPCTables.h"
-#include "Core/PowerPC/Interpreter/Interpreter.h"
 #include "Core/PowerPC/Interpreter/Interpreter_Tables.h"
+#include "Core/PowerPC/PPCTables.h"
 
 struct GekkoOPTemplate
 {
@@ -15,7 +15,8 @@ struct GekkoOPTemplate
 	GekkoOPInfo opinfo;
 };
 
-static GekkoOPInfo unknownopinfo = { "unknown_instruction", OPTYPE_UNKNOWN, FL_ENDBLOCK, 0, 0, 0, 0 };
+// clang-format off
+static GekkoOPInfo unknownopinfo = {"unknown_instruction", OPTYPE_UNKNOWN, FL_ENDBLOCK, 0, 0, 0, 0};
 
 static GekkoOPTemplate primarytable[] =
 {
@@ -352,9 +353,10 @@ static GekkoOPTemplate table63_2[] =
 	{30, Interpreter::fnmsubx,      {"fnmsubx",  OPTYPE_DOUBLEFP, FL_INOUT_FLOAT_D | FL_IN_FLOAT_ABC | FL_RC_BIT_F | FL_USE_FPU | FL_SET_FPRF, 1, 0, 0, 0}},
 	{31, Interpreter::fnmaddx,      {"fnmaddx",  OPTYPE_DOUBLEFP, FL_INOUT_FLOAT_D | FL_IN_FLOAT_ABC | FL_RC_BIT_F | FL_USE_FPU | FL_SET_FPRF, 1, 0, 0, 0}},
 };
+// clang-format on
+
 namespace InterpreterTables
 {
-
 void InitTables()
 {
 	// once initialized, tables are read-only
@@ -362,7 +364,7 @@ void InitTables()
 	if (initialized)
 		return;
 
-	//clear
+	// clear
 	for (int i = 0; i < 64; i++)
 	{
 		Interpreter::m_opTable[i] = Interpreter::unknown_instruction;
@@ -377,7 +379,7 @@ void InitTables()
 
 	for (int i = 0; i < 1024; i++)
 	{
-		Interpreter::m_opTable4 [i] = Interpreter::unknown_instruction;
+		Interpreter::m_opTable4[i] = Interpreter::unknown_instruction;
 		Interpreter::m_opTable19[i] = Interpreter::unknown_instruction;
 		Interpreter::m_opTable31[i] = Interpreter::unknown_instruction;
 		Interpreter::m_opTable63[i] = Interpreter::unknown_instruction;
@@ -398,7 +400,7 @@ void InitTables()
 		int fill = i << 5;
 		for (auto& tpl : table4_2)
 		{
-			int op = fill+tpl.opcode;
+			int op = fill + tpl.opcode;
 			Interpreter::m_opTable4[op] = tpl.Inst;
 			m_infoTable4[op] = &tpl.opinfo;
 		}
@@ -409,7 +411,7 @@ void InitTables()
 		int fill = i << 6;
 		for (auto& tpl : table4_3)
 		{
-			int op = fill+tpl.opcode;
+			int op = fill + tpl.opcode;
 			Interpreter::m_opTable4[op] = tpl.Inst;
 			m_infoTable4[op] = &tpl.opinfo;
 		}
@@ -488,6 +490,5 @@ void InitTables()
 
 	initialized = true;
 }
-
 }
-//remove
+// remove

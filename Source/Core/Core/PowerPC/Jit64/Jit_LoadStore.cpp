@@ -5,6 +5,7 @@
 // TODO(ector): Tons of pshufb optimization of the loads/stores, for SSSE3+, possibly SSE4, only.
 // Should give a very noticable speed boost to paired single heavy code.
 
+#include "Core/PowerPC/Jit64/Jit.h"
 #include "Common/BitSet.h"
 #include "Common/CommonTypes.h"
 #include "Common/MsgHandler.h"
@@ -15,24 +16,25 @@
 #include "Core/HW/CPU.h"
 #include "Core/HW/DSP.h"
 #include "Core/HW/Memmap.h"
-#include "Core/PowerPC/JitInterface.h"
-#include "Core/PowerPC/PowerPC.h"
-#include "Core/PowerPC/Jit64/Jit.h"
 #include "Core/PowerPC/Jit64/JitRegCache.h"
 #include "Core/PowerPC/JitCommon/Jit_Util.h"
+#include "Core/PowerPC/JitInterface.h"
+#include "Core/PowerPC/PowerPC.h"
 
 using namespace Gen;
 
 void Jit64::lXXx(UGeckoInstruction inst)
 {
 	INSTRUCTION_START
-	JITDISABLE(bJITLoadStoreOff);
+		JITDISABLE(bJITLoadStoreOff);
 
 	int a = inst.RA, b = inst.RB, d = inst.RD;
 
 	// Skip disabled JIT instructions
-	FALLBACK_IF(SConfig::GetInstance().bJITLoadStorelbzxOff && (inst.OPCD == 31) && (inst.SUBOP10 == 87));
-	FALLBACK_IF(SConfig::GetInstance().bJITLoadStorelXzOff && ((inst.OPCD == 34) || (inst.OPCD == 40) || (inst.OPCD == 32)));
+	FALLBACK_IF(SConfig::GetInstance().bJITLoadStorelbzxOff && (inst.OPCD == 31) &&
+		(inst.SUBOP10 == 87));
+	FALLBACK_IF(SConfig::GetInstance().bJITLoadStorelXzOff &&
+		((inst.OPCD == 34) || (inst.OPCD == 40) || (inst.OPCD == 32)));
 	FALLBACK_IF(SConfig::GetInstance().bJITLoadStorelwzOff && (inst.OPCD == 32));
 
 	// Determine memory access size and sign extend
@@ -41,26 +43,26 @@ void Jit64::lXXx(UGeckoInstruction inst)
 	bool byte_reversed = false;
 	switch (inst.OPCD)
 	{
-	case 32: // lwz
-	case 33: // lwzu
+	case 32:  // lwz
+	case 33:  // lwzu
 		accessSize = 32;
 		signExtend = false;
 		break;
 
-	case 34: // lbz
-	case 35: // lbzu
+	case 34:  // lbz
+	case 35:  // lbzu
 		accessSize = 8;
 		signExtend = false;
 		break;
 
-	case 40: // lhz
-	case 41: // lhzu
+	case 40:  // lhz
+	case 41:  // lhzu
 		accessSize = 16;
 		signExtend = false;
 		break;
 
-	case 42: // lha
-	case 43: // lhau
+	case 42:  // lha
+	case 43:  // lhau
 		accessSize = 16;
 		signExtend = true;
 		break;
@@ -68,29 +70,29 @@ void Jit64::lXXx(UGeckoInstruction inst)
 	case 31:
 		switch (inst.SUBOP10)
 		{
-		case 534: // lwbrx
+		case 534:  // lwbrx
 			byte_reversed = true;
-		case 23: // lwzx
-		case 55: // lwzux
+		case 23:  // lwzx
+		case 55:  // lwzux
 			accessSize = 32;
 			signExtend = false;
 			break;
 
-		case 87:  // lbzx
-		case 119: // lbzux
+		case 87:   // lbzx
+		case 119:  // lbzux
 			accessSize = 8;
 			signExtend = false;
 			break;
-		case 790: // lhbrx
+		case 790:  // lhbrx
 			byte_reversed = true;
-		case 279: // lhzx
-		case 311: // lhzux
+		case 279:  // lhzx
+		case 311:  // lhzux
 			accessSize = 16;
 			signExtend = false;
 			break;
 
-		case 343: // lhax
-		case 375: // lhaux
+		case 343:  // lhax
+		case 375:  // lhaux
 			accessSize = 16;
 			signExtend = true;
 			break;
@@ -104,9 +106,11 @@ void Jit64::lXXx(UGeckoInstruction inst)
 		PanicAlert("Invalid instruction");
 	}
 
-	// PowerPC has no 8-bit sign extended load, but x86 does, so merge extsb with the load if we find it.
-	if (MergeAllowedNextInstructions(1) && accessSize == 8 && js.op[1].inst.OPCD == 31 && js.op[1].inst.SUBOP10 == 954 &&
-	    js.op[1].inst.RS == inst.RD && js.op[1].inst.RA == inst.RD && !js.op[1].inst.Rc)
+	// PowerPC has no 8-bit sign extended load, but x86 does, so merge extsb with the load if we find
+	// it.
+	if (MergeAllowedNextInstructions(1) && accessSize == 8 && js.op[1].inst.OPCD == 31 &&
+		js.op[1].inst.SUBOP10 == 954 && js.op[1].inst.RS == inst.RD && js.op[1].inst.RA == inst.RD &&
+		!js.op[1].inst.Rc)
 	{
 		js.downcountAmount++;
 		js.skipInstructions = 1;
@@ -116,18 +120,16 @@ void Jit64::lXXx(UGeckoInstruction inst)
 	// TODO(ector): Make it dynamically enable/disable idle skipping where appropriate
 	// Will give nice boost to dual core mode
 	// (mb2): I agree,
-	// IMHO those Idles should always be skipped and replaced by a more controllable "native" Idle methode
+	// IMHO those Idles should always be skipped and replaced by a more controllable "native" Idle
+	// methode
 	// ... maybe the throttle one already do that :p
 	// TODO: We shouldn't use a debug read here.  It should be possible to get
 	// the following instructions out of the JIT state.
-	if (SConfig::GetInstance().bSkipIdle &&
-	    CPU::GetState() != CPU::CPU_STEPPING &&
-	    inst.OPCD == 32 &&
-	    MergeAllowedNextInstructions(2) &&
-	    (inst.hex & 0xFFFF0000) == 0x800D0000 &&
-	    (js.op[1].inst.hex == 0x28000000 ||
-	    (SConfig::GetInstance().bWii && js.op[1].inst.hex == 0x2C000000)) &&
-	    js.op[2].inst.hex == 0x4182fff8)
+	if (SConfig::GetInstance().bSkipIdle && CPU::GetState() != CPU::CPU_STEPPING && inst.OPCD == 32 &&
+		MergeAllowedNextInstructions(2) && (inst.hex & 0xFFFF0000) == 0x800D0000 &&
+		(js.op[1].inst.hex == 0x28000000 ||
+		(SConfig::GetInstance().bWii && js.op[1].inst.hex == 0x2C000000)) &&
+		js.op[2].inst.hex == 0x4182fff8)
 	{
 		// TODO(LinesPrower):
 		// - Rewrite this!
@@ -147,17 +149,18 @@ void Jit64::lXXx(UGeckoInstruction inst)
 		BitSet32 registersInUse = CallerSavedRegistersInUse();
 		ABI_PushRegistersAndAdjustStack(registersInUse, 0);
 
-		ABI_CallFunction((void *)&CoreTiming::Idle);
+		ABI_CallFunction((void*)&CoreTiming::Idle);
 
 		ABI_PopRegistersAndAdjustStack(registersInUse, 0);
 
-		// ! we must continue executing of the loop after exception handling, maybe there is still 0 in r0
-		//MOV(32, PPCSTATE(pc), Imm32(js.compilerPC));
+		// ! we must continue executing of the loop after exception handling, maybe there is still 0 in
+		// r0
+		// MOV(32, PPCSTATE(pc), Imm32(js.compilerPC));
 		WriteExceptionExit();
 
 		SetJumpTarget(noIdle);
 
-		//js.compilerPC += 8;
+		// js.compilerPC += 8;
 		return;
 	}
 
@@ -233,27 +236,9 @@ void Jit64::lXXx(UGeckoInstruction inst)
 				opAddress = R(RSCRATCH2);
 				storeAddress = true;
 				if (use_constant_offset)
-				{
-					if (gpr.R(a).IsSimpleReg() && offset != 0)
-					{
-						LEA(32, RSCRATCH2, MDisp(gpr.RX(a), offset));
-					}
-					else
-					{
-						MOV(32, opAddress, gpr.R(a));
-						if (offset != 0)
-							ADD(32, opAddress, Imm32((u32)offset));
-					}
-				}
-				else if (gpr.R(a).IsSimpleReg() && gpr.R(b).IsSimpleReg())
-				{
-					LEA(32, RSCRATCH2, MRegSum(gpr.RX(a), gpr.RX(b)));
-				}
+					MOV_sum(32, RSCRATCH2, gpr.R(a), Imm32((u32)offset));
 				else
-				{
-					MOV(32, opAddress, gpr.R(a));
-					ADD(32, opAddress, gpr.R(b));
-				}
+					MOV_sum(32, RSCRATCH2, gpr.R(a), gpr.R(b));
 			}
 		}
 	}
@@ -284,17 +269,11 @@ void Jit64::lXXx(UGeckoInstruction inst)
 	SafeLoadToReg(gpr.RX(d), opAddress, accessSize, loadOffset, registersInUse, signExtend);
 
 	if (update && storeAddress)
-	{
-		MemoryExceptionCheck();
 		MOV(32, gpr.R(a), opAddress);
-	}
 
 	// TODO: support no-swap in SafeLoadToReg instead
 	if (byte_reversed)
-	{
-		MemoryExceptionCheck();
 		BSWAP(accessSize, gpr.RX(d));
-	}
 
 	gpr.UnlockAll();
 	gpr.UnlockAllX();
@@ -303,27 +282,18 @@ void Jit64::lXXx(UGeckoInstruction inst)
 void Jit64::dcbx(UGeckoInstruction inst)
 {
 	INSTRUCTION_START
-	JITDISABLE(bJITLoadStoreOff);
+		JITDISABLE(bJITLoadStoreOff);
 
 	X64Reg addr = RSCRATCH;
 	X64Reg value = RSCRATCH2;
 	X64Reg tmp = gpr.GetFreeXReg();
 	gpr.FlushLockX(tmp);
 
-	if (inst.RA && gpr.R(inst.RA).IsSimpleReg() && gpr.R(inst.RB).IsSimpleReg())
-	{
-		LEA(32, addr, MRegSum(gpr.RX(inst.RA), gpr.RX(inst.RB)));
-	}
-	else
-	{
-		MOV(32, R(addr), gpr.R(inst.RB));
-		if (inst.RA)
-			ADD(32, R(addr), gpr.R(inst.RA));
-	}
+	MOV_sum(32, addr, inst.RA ? gpr.R(inst.RA) : Imm32(0), gpr.R(inst.RB));
 
 	// Check whether a JIT cache line needs to be invalidated.
-	LEA(32, value, MScaled(addr, SCALE_8, 0)); // addr << 3 (masks the first 3 bits)
-	SHR(32, R(value), Imm8(3 + 5 + 5));        // >> 5 for cache line size, >> 5 for width of bitset
+	LEA(32, value, MScaled(addr, SCALE_8, 0));  // addr << 3 (masks the first 3 bits)
+	SHR(32, R(value), Imm8(3 + 5 + 5));         // >> 5 for cache line size, >> 5 for width of bitset
 	MOV(64, R(tmp), ImmPtr(jit->GetBlockCache()->GetBlockBitSet()));
 	MOV(32, R(value), MComplex(tmp, value, SCALE_4, 0));
 	SHR(32, R(addr), Imm8(5));
@@ -367,7 +337,7 @@ void Jit64::dcbx(UGeckoInstruction inst)
 void Jit64::dcbt(UGeckoInstruction inst)
 {
 	INSTRUCTION_START
-	JITDISABLE(bJITLoadStoreOff);
+		JITDISABLE(bJITLoadStoreOff);
 
 	// Prefetch. Since we don't emulate the data cache, we don't need to do anything.
 
@@ -376,9 +346,8 @@ void Jit64::dcbt(UGeckoInstruction inst)
 	// This is important because invalidating the block cache when we don't
 	// need to is terrible for performance.
 	// (Invalidating the jit block cache on dcbst is a heuristic.)
-	if (MergeAllowedNextInstructions(1) &&
-	    js.op[1].inst.OPCD == 31 && js.op[1].inst.SUBOP10 == 54 &&
-	    js.op[1].inst.RA == inst.RA && js.op[1].inst.RB == inst.RB)
+	if (MergeAllowedNextInstructions(1) && js.op[1].inst.OPCD == 31 && js.op[1].inst.SUBOP10 == 54 &&
+		js.op[1].inst.RA == inst.RA && js.op[1].inst.RB == inst.RB)
 	{
 		js.skipInstructions = 1;
 	}
@@ -388,7 +357,7 @@ void Jit64::dcbt(UGeckoInstruction inst)
 void Jit64::dcbz(UGeckoInstruction inst)
 {
 	INSTRUCTION_START
-	JITDISABLE(bJITLoadStoreOff);
+		JITDISABLE(bJITLoadStoreOff);
 	if (SConfig::GetInstance().bDCBZOFF)
 		return;
 
@@ -410,13 +379,13 @@ void Jit64::dcbz(UGeckoInstruction inst)
 	// Should this code ever run? I can't find any games that use DCBZ on non-physical addresses, but
 	// supposedly there are, at least for some MMU titles. Let's be careful and support it to be sure.
 	SwitchToFarCode();
-		SetJumpTarget(slow);
-		MOV(32, M(&PC), Imm32(jit->js.compilerPC));
-		BitSet32 registersInUse = CallerSavedRegistersInUse();
-		ABI_PushRegistersAndAdjustStack(registersInUse, 0);
-		ABI_CallFunctionR((void *)&PowerPC::ClearCacheLine, RSCRATCH);
-		ABI_PopRegistersAndAdjustStack(registersInUse, 0);
-		FixupBranch exit = J(true);
+	SetJumpTarget(slow);
+	MOV(32, M(&PC), Imm32(jit->js.compilerPC));
+	BitSet32 registersInUse = CallerSavedRegistersInUse();
+	ABI_PushRegistersAndAdjustStack(registersInUse, 0);
+	ABI_CallFunctionR((void*)&PowerPC::ClearCacheLine, RSCRATCH);
+	ABI_PopRegistersAndAdjustStack(registersInUse, 0);
+	FixupBranch exit = J(true);
 	SwitchToNearCode();
 
 	// Mask out the address so we don't write to MEM1 out of bounds
@@ -432,7 +401,7 @@ void Jit64::dcbz(UGeckoInstruction inst)
 void Jit64::stX(UGeckoInstruction inst)
 {
 	INSTRUCTION_START
-	JITDISABLE(bJITLoadStoreOff);
+		JITDISABLE(bJITLoadStoreOff);
 
 	int s = inst.RS;
 	int a = inst.RA;
@@ -445,13 +414,13 @@ void Jit64::stX(UGeckoInstruction inst)
 	int accessSize;
 	switch (inst.OPCD & ~1)
 	{
-	case 36: // stw
+	case 36:  // stw
 		accessSize = 32;
 		break;
-	case 44: // sth
+	case 44:  // sth
 		accessSize = 16;
 		break;
-	case 38: // stb
+	case 38:  // stb
 		accessSize = 8;
 		break;
 	default:
@@ -484,7 +453,8 @@ void Jit64::stX(UGeckoInstruction inst)
 		gpr.BindToRegister(a, true, update);
 		if (gpr.R(s).IsImm())
 		{
-			SafeWriteRegToReg(gpr.R(s), gpr.RX(a), accessSize, offset, CallerSavedRegistersInUse(), SAFE_LOADSTORE_CLOBBER_RSCRATCH_INSTEAD_OF_ADDR);
+			SafeWriteRegToReg(gpr.R(s), gpr.RX(a), accessSize, offset, CallerSavedRegistersInUse(),
+				SAFE_LOADSTORE_CLOBBER_RSCRATCH_INSTEAD_OF_ADDR);
 		}
 		else
 		{
@@ -499,14 +469,12 @@ void Jit64::stX(UGeckoInstruction inst)
 				gpr.BindToRegister(s, true, false);
 				reg_value = gpr.RX(s);
 			}
-			SafeWriteRegToReg(reg_value, gpr.RX(a), accessSize, offset, CallerSavedRegistersInUse(), SAFE_LOADSTORE_CLOBBER_RSCRATCH_INSTEAD_OF_ADDR);
+			SafeWriteRegToReg(reg_value, gpr.RX(a), accessSize, offset, CallerSavedRegistersInUse(),
+				SAFE_LOADSTORE_CLOBBER_RSCRATCH_INSTEAD_OF_ADDR);
 		}
 
 		if (update)
-		{
-			MemoryExceptionCheck();
 			ADD(32, gpr.R(a), Imm32((u32)offset));
-		}
 	}
 	gpr.UnlockAll();
 }
@@ -514,7 +482,7 @@ void Jit64::stX(UGeckoInstruction inst)
 void Jit64::stXx(UGeckoInstruction inst)
 {
 	INSTRUCTION_START
-	JITDISABLE(bJITLoadStoreOff);
+		JITDISABLE(bJITLoadStoreOff);
 
 	int a = inst.RA, b = inst.RB, s = inst.RS;
 	bool update = !!(inst.SUBOP10 & 32);
@@ -526,34 +494,26 @@ void Jit64::stXx(UGeckoInstruction inst)
 	if (update)
 		gpr.BindToRegister(a, true, true);
 
-	if (gpr.R(a).IsSimpleReg() && gpr.R(b).IsSimpleReg())
-	{
-		LEA(32, RSCRATCH2, MRegSum(gpr.RX(a), gpr.RX(b)));
-	}
-	else
-	{
-		MOV(32, R(RSCRATCH2), gpr.R(a));
-		ADD(32, R(RSCRATCH2), gpr.R(b));
-	}
+	MOV_sum(32, RSCRATCH2, gpr.R(a), gpr.R(b));
 
 	int accessSize;
 	switch (inst.SUBOP10 & ~32)
 	{
-		case 151:
-		case 662:
-			accessSize = 32;
-			break;
-		case 407:
-		case 918:
-			accessSize = 16;
-			break;
-		case 215:
-			accessSize = 8;
-			break;
-		default:
-			PanicAlert("stXx: invalid access size");
-			accessSize = 0;
-			break;
+	case 151:
+	case 662:
+		accessSize = 32;
+		break;
+	case 407:
+	case 918:
+		accessSize = 16;
+		break;
+	case 215:
+		accessSize = 8;
+		break;
+	default:
+		PanicAlert("stXx: invalid access size");
+		accessSize = 0;
+		break;
 	}
 
 	if (gpr.R(s).IsImm())
@@ -561,7 +521,8 @@ void Jit64::stXx(UGeckoInstruction inst)
 		BitSet32 registersInUse = CallerSavedRegistersInUse();
 		if (update)
 			registersInUse[RSCRATCH2] = true;
-		SafeWriteRegToReg(gpr.R(s), RSCRATCH2, accessSize, 0, registersInUse, byte_reverse ? SAFE_LOADSTORE_NO_SWAP : 0);
+		SafeWriteRegToReg(gpr.R(s), RSCRATCH2, accessSize, 0, registersInUse,
+			byte_reverse ? SAFE_LOADSTORE_NO_SWAP : 0);
 	}
 	else
 	{
@@ -579,14 +540,12 @@ void Jit64::stXx(UGeckoInstruction inst)
 		BitSet32 registersInUse = CallerSavedRegistersInUse();
 		if (update)
 			registersInUse[RSCRATCH2] = true;
-		SafeWriteRegToReg(reg_value, RSCRATCH2, accessSize, 0, registersInUse, byte_reverse ? SAFE_LOADSTORE_NO_SWAP : 0);
+		SafeWriteRegToReg(reg_value, RSCRATCH2, accessSize, 0, registersInUse,
+			byte_reverse ? SAFE_LOADSTORE_NO_SWAP : 0);
 	}
 
 	if (update)
-	{
-		MemoryExceptionCheck();
 		MOV(32, gpr.R(a), R(RSCRATCH2));
-	}
 
 	gpr.UnlockAll();
 	gpr.UnlockAllX();
@@ -596,7 +555,7 @@ void Jit64::stXx(UGeckoInstruction inst)
 void Jit64::lmw(UGeckoInstruction inst)
 {
 	INSTRUCTION_START
-	JITDISABLE(bJITLoadStoreOff);
+		JITDISABLE(bJITLoadStoreOff);
 
 	// TODO: This doesn't handle rollback on DSI correctly
 	MOV(32, R(RSCRATCH2), Imm32((u32)(s32)inst.SIMM_16));
@@ -604,7 +563,8 @@ void Jit64::lmw(UGeckoInstruction inst)
 		ADD(32, R(RSCRATCH2), gpr.R(inst.RA));
 	for (int i = inst.RD; i < 32; i++)
 	{
-		SafeLoadToReg(RSCRATCH, R(RSCRATCH2), 32, (i - inst.RD) * 4, CallerSavedRegistersInUse() | BitSet32 { RSCRATCH2 }, false);
+		SafeLoadToReg(RSCRATCH, R(RSCRATCH2), 32, (i - inst.RD) * 4,
+			CallerSavedRegistersInUse() | BitSet32{RSCRATCH2}, false);
 		gpr.BindToRegister(i, false, true);
 		MOV(32, gpr.R(i), R(RSCRATCH));
 	}
@@ -614,7 +574,7 @@ void Jit64::lmw(UGeckoInstruction inst)
 void Jit64::stmw(UGeckoInstruction inst)
 {
 	INSTRUCTION_START
-	JITDISABLE(bJITLoadStoreOff);
+		JITDISABLE(bJITLoadStoreOff);
 
 	// TODO: This doesn't handle rollback on DSI correctly
 	for (int i = inst.RD; i < 32; i++)
@@ -625,12 +585,14 @@ void Jit64::stmw(UGeckoInstruction inst)
 			XOR(32, R(RSCRATCH), R(RSCRATCH));
 		if (gpr.R(i).IsImm())
 		{
-			SafeWriteRegToReg(gpr.R(i), RSCRATCH, 32, (i - inst.RD) * 4 + (u32)(s32)inst.SIMM_16, CallerSavedRegistersInUse());
+			SafeWriteRegToReg(gpr.R(i), RSCRATCH, 32, (i - inst.RD) * 4 + (u32)(s32)inst.SIMM_16,
+				CallerSavedRegistersInUse());
 		}
 		else
 		{
 			MOV(32, R(RSCRATCH2), gpr.R(i));
-			SafeWriteRegToReg(RSCRATCH2, RSCRATCH, 32, (i - inst.RD) * 4 + (u32)(s32)inst.SIMM_16, CallerSavedRegistersInUse());
+			SafeWriteRegToReg(RSCRATCH2, RSCRATCH, 32, (i - inst.RD) * 4 + (u32)(s32)inst.SIMM_16,
+				CallerSavedRegistersInUse());
 		}
 	}
 	gpr.UnlockAllX();

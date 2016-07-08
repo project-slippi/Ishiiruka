@@ -38,7 +38,7 @@ public:
 	static void InsertHSByteCode(const TessellationShaderUid& uid, D3DBlob* bytecode_blob);
 
 
-	static D3D12_SHADER_BYTECODE GetActiveDomainShaderBytecode();	
+	static D3D12_SHADER_BYTECODE GetActiveDomainShaderBytecode();
 	static D3D12_SHADER_BYTECODE GetActiveGeometryShaderBytecode();
 	static D3D12_SHADER_BYTECODE GetActiveHullShaderBytecode();
 	static D3D12_SHADER_BYTECODE GetActivePixelShaderBytecode();
@@ -49,13 +49,13 @@ public:
 	static const PixelShaderUid*    GetActivePixelShaderUid();
 	static const VertexShaderUid*   GetActiveVertexShaderUid();
 	static const TessellationShaderUid* GetActiveTessellationShaderUid();
-	
-	static D3D12_SHADER_BYTECODE GetDomainShaderFromUid(const TessellationShaderUid* uid);	
+
+	static D3D12_SHADER_BYTECODE GetDomainShaderFromUid(const TessellationShaderUid* uid);
 	static D3D12_SHADER_BYTECODE GetGeometryShaderFromUid(const GeometryShaderUid* uid);
 	static D3D12_SHADER_BYTECODE GetHullShaderFromUid(const TessellationShaderUid* uid);
 	static D3D12_SHADER_BYTECODE GetPixelShaderFromUid(const PixelShaderUid* uid);
 	static D3D12_SHADER_BYTECODE GetVertexShaderFromUid(const VertexShaderUid* uid);
-	
+
 
 	static D3D12_PRIMITIVE_TOPOLOGY_TYPE GetCurrentPrimitiveTopology();
 private:
@@ -64,16 +64,16 @@ private:
 	static void HandleGSUIDChange(
 		const GeometryShaderUid& gs_uid,
 		bool on_gpu_thread);
-	
+
 	static void HandlePSUIDChange(
 		const PixelShaderUid& ps_uid,
 		bool on_gpu_thread
-		);
-	
+	);
+
 	static void HandleVSUIDChange(
 		const VertexShaderUid& vs_uid,
 		bool on_gpu_thread);
-	
+
 	static void HandleTSUIDChange(
 		const TessellationShaderUid& ts_uid,
 		bool on_gpu_thread);

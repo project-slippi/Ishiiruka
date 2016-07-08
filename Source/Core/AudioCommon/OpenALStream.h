@@ -20,7 +20,7 @@
 #endif
 #endif
 
-class OpenALStream final : public SoundStream
+class OpenALStream final: public SoundStream
 {
 #if defined HAVE_OPENAL && HAVE_OPENAL
 protected:
@@ -33,13 +33,17 @@ public:
 		: uiSource(0)
 	{}
 
-	~OpenALStream() {}
+	~OpenALStream()
+	{}
 
 	virtual bool Start() override;
 	virtual void SetVolume(int volume) override;
 	virtual void Stop() override;
 	virtual void Clear(bool mute) override;
-	static bool isValid() { return true; }
+	static bool isValid()
+	{
+		return true;
+	}
 
 private:
 	ALuint uiBuffers[SOUND_BUFFER_COUNT + 32];

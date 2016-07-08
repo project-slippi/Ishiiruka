@@ -9,7 +9,7 @@
 class CBreakPointWindow;
 class wxTextCtrl;
 
-class BreakPointDlg : public wxDialog
+class BreakPointDlg: public wxDialog
 {
 public:
 	BreakPointDlg(CBreakPointWindow *_Parent);

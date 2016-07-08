@@ -296,7 +296,7 @@ void G_SMNP01_pvt::Initialize(std::map<u64, TCompiledLoaderFunction> &pvlmap)
 #endif
 	{
 		pvlmap[22064073478373] = TemplatedLoader<0, 0x000a2a00u, 0x40a16c09u, 0x00000005u, 0x00000000u>;
-	}	
+	}
 	// P_mtx0_2_I8_s16_C0_1_I8_8888_T0_mtx0_1_I8_s16_
 // num_verts= 88880
 #if _M_SSE >= 0x301

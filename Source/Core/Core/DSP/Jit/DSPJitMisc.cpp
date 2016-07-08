@@ -33,8 +33,8 @@ void DSPEmitter::mrr(const UDSPInstruction opc)
 // S16 mode.
 void DSPEmitter::lri(const UDSPInstruction opc)
 {
-	u8 reg  = opc & DSP_REG_MASK;
-	u16 imm = dsp_imem_read(compilePC+1);
+	u8 reg = opc & DSP_REG_MASK;
+	u16 imm = dsp_imem_read(compilePC + 1);
 	dsp_op_write_reg_imm(reg, imm);
 	dsp_conditional_extend_accum_imm(reg, imm);
 }
@@ -44,7 +44,7 @@ void DSPEmitter::lri(const UDSPInstruction opc)
 // Load immediate value I (8-bit sign extended) to accumulator register.
 void DSPEmitter::lris(const UDSPInstruction opc)
 {
-	u8 reg  = ((opc >> 8) & 0x7) + DSP_REG_AXL0;
+	u8 reg = ((opc >> 8) & 0x7) + DSP_REG_AXL0;
 	u16 imm = (s8)opc;
 	dsp_op_write_reg_imm(reg, imm);
 	dsp_conditional_extend_accum_imm(reg, imm);
@@ -58,8 +58,7 @@ void DSPEmitter::lris(const UDSPInstruction opc)
 // This opcode is supposed to do nothing - it's used if you want to use
 // an opcode extension but not do anything. At least according to duddie.
 void DSPEmitter::nx(const UDSPInstruction opc)
-{
-}
+{}
 
 //----
 
@@ -115,7 +114,7 @@ void DSPEmitter::setCompileSR(u16 bit)
 
 	//	g_dsp.r[DSP_REG_SR] |= bit
 	OpArg sr_reg;
-	gpr.GetReg(DSP_REG_SR,sr_reg);
+	gpr.GetReg(DSP_REG_SR, sr_reg);
 	OR(16, sr_reg, Imm16(bit));
 	gpr.PutReg(DSP_REG_SR);
 
@@ -127,11 +126,11 @@ void DSPEmitter::clrCompileSR(u16 bit)
 
 	//	g_dsp.r[DSP_REG_SR] &= bit
 	OpArg sr_reg;
-	gpr.GetReg(DSP_REG_SR,sr_reg);
+	gpr.GetReg(DSP_REG_SR, sr_reg);
 	AND(16, sr_reg, Imm16(~bit));
 	gpr.PutReg(DSP_REG_SR);
 
-	compileSR  &= ~bit;
+	compileSR &= ~bit;
 }
 // SBCLR #I
 // 0001 0011 aaaa aiii
@@ -162,7 +161,7 @@ void DSPEmitter::srbith(const UDSPInstruction opc)
 {
 	switch ((opc >> 8) & 0xf)
 	{
-	// M0/M2 change the multiplier mode (it can multiply by 2 for free).
+		// M0/M2 change the multiplier mode (it can multiply by 2 for free).
 	case 0xa:  // M2
 		clrCompileSR(SR_MUL_MODIFY);
 		break;
@@ -170,8 +169,8 @@ void DSPEmitter::srbith(const UDSPInstruction opc)
 		setCompileSR(SR_MUL_MODIFY);
 		break;
 
-	// If set, treat multiplicands as unsigned.
-	// If clear, treat them as signed.
+		// If set, treat multiplicands as unsigned.
+		// If clear, treat them as signed.
 	case 0xc:  // CLR15
 		clrCompileSR(SR_MUL_UNSIGNED);
 		break;
@@ -179,8 +178,8 @@ void DSPEmitter::srbith(const UDSPInstruction opc)
 		setCompileSR(SR_MUL_UNSIGNED);
 		break;
 
-	// Automatic 40-bit sign extension when loading ACx.M.
-	// SET40 changes something very important: see the LRI instruction above.
+		// Automatic 40-bit sign extension when loading ACx.M.
+		// SET40 changes something very important: see the LRI instruction above.
 	case 0xe:  // SET16 (CLR40)
 		clrCompileSR(SR_40_MODE_BIT);
 		break;

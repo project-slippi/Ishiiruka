@@ -50,16 +50,16 @@ const u16 idle_skip_sigs[NUM_IDLE_SIGS][MAX_IDLE_SIG_SIZE + 1] =
 	  0x03a0, 0x8000, // ANDF $AC1.M, #0x8000
 	  0x029c, 0xFFFF, // JLNZ 0x????
 	  0, 0 },
-	// From Zelda:
-	{ 0x00de, 0xFFFE, // LR    $AC0.M, @CMBH
-	  0x02c0, 0x8000, // ANDCF $AC0.M, #0x8000
-	  0x029c, 0xFFFF, // JLNZ 0x05cf
-	  0 },
-	// From Zelda - experimental
-	{ 0x00da, 0x0352, // LR     $AX0.H, @0x0352
-	  0x8600,         // TSTAXH $AX0.H
-	  0x0295, 0xFFFF, // JZ    0x????
-	  0, 0 }
+	  // From Zelda:
+	  { 0x00de, 0xFFFE, // LR    $AC0.M, @CMBH
+		 0x02c0, 0x8000, // ANDCF $AC0.M, #0x8000
+		 0x029c, 0xFFFF, // JLNZ 0x05cf
+		 0 },
+		 // From Zelda - experimental
+		 { 0x00da, 0x0352, // LR     $AX0.H, @0x0352
+			0x8600,         // TSTAXH $AX0.H
+			0x0295, 0xFFFF, // JZ    0x????
+			0, 0 }
 };
 
 static void Reset()
@@ -122,7 +122,7 @@ static void AnalyzeRange(u16 start_addr, u16 end_addr)
 			opcode->opcode == 0x2000 ||
 			opcode->extended
 			)
-		code_flags[static_cast<u16>(addr + opcode->size)] |= CODE_CHECK_INT;
+			code_flags[static_cast<u16>(addr + opcode->size)] |= CODE_CHECK_INT;
 
 		addr += opcode->size;
 	}
@@ -144,7 +144,7 @@ static void AnalyzeRange(u16 start_addr, u16 end_addr)
 			}
 			if (found)
 			{
-				INFO_LOG(DSPLLE, "Idle skip location found at %02x (sigNum:%d)", addr, s+1);
+				INFO_LOG(DSPLLE, "Idle skip location found at %02x (sigNum:%d)", addr, s + 1);
 				code_flags[addr] |= CODE_IDLE_SKIP;
 			}
 		}

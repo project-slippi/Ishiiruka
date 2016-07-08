@@ -2,23 +2,20 @@
 // Licensed under GPLv2+
 // Refer to the license.txt file included.
 //
-#define AX_WII // Used in AXVoice.
+#define AX_WII  // Used in AXVoice.
 
+#include "Core/HW/DSPHLE/UCodes/AXWii.h"
 #include "Common/ChunkFile.h"
 #include "Common/CommonFuncs.h"
 #include "Common/CommonTypes.h"
+#include "Common/Logging/Log.h"
 #include "Common/MathUtil.h"
 #include "Common/StringUtil.h"
-#include "Common/Logging/Log.h"
 #include "Core/HW/DSPHLE/UCodes/AXStructs.h"
 #include "Core/HW/DSPHLE/UCodes/AXVoice.h"
-#include "Core/HW/DSPHLE/UCodes/AXWii.h"
 #include "Core/HW/DSPHLE/UCodes/UCodes.h"
 
-
-AXWiiUCode::AXWiiUCode(DSPHLE *dsphle, u32 crc)
-	: AXUCode(dsphle, crc),
-	  m_last_main_volume(0x8000)
+AXWiiUCode::AXWiiUCode(DSPHLE* dsphle, u32 crc): AXUCode(dsphle, crc), m_last_main_volume(0x8000)
 {
 	for (u16& volume : m_last_aux_volumes)
 		volume = 0x8000;
@@ -29,8 +26,7 @@ AXWiiUCode::AXWiiUCode(DSPHLE *dsphle, u32 crc)
 }
 
 AXWiiUCode::~AXWiiUCode()
-{
-}
+{}
 
 void AXWiiUCode::HandleCommandList()
 {
@@ -59,93 +55,94 @@ void AXWiiUCode::HandleCommandList()
 				// Some of these commands are unknown, or unused in this AX HLE.
 				// We still need to skip their arguments using "curr_idx += N".
 
-				case CMD_SETUP_OLD:
-					addr_hi = m_cmdlist[curr_idx++];
-					addr_lo = m_cmdlist[curr_idx++];
-					SetupProcessing(HILO_TO_32(addr));
-					break;
+			case CMD_SETUP_OLD:
+				addr_hi = m_cmdlist[curr_idx++];
+				addr_lo = m_cmdlist[curr_idx++];
+				SetupProcessing(HILO_TO_32(addr));
+				break;
 
-				case CMD_ADD_TO_LR_OLD:
-				case CMD_SUB_TO_LR_OLD:
-					addr_hi = m_cmdlist[curr_idx++];
-					addr_lo = m_cmdlist[curr_idx++];
-					AddToLR(HILO_TO_32(addr), cmd == CMD_SUB_TO_LR_OLD);
-					break;
+			case CMD_ADD_TO_LR_OLD:
+			case CMD_SUB_TO_LR_OLD:
+				addr_hi = m_cmdlist[curr_idx++];
+				addr_lo = m_cmdlist[curr_idx++];
+				AddToLR(HILO_TO_32(addr), cmd == CMD_SUB_TO_LR_OLD);
+				break;
 
-				case CMD_ADD_SUB_TO_LR_OLD:
-					addr_hi = m_cmdlist[curr_idx++];
-					addr_lo = m_cmdlist[curr_idx++];
-					AddSubToLR(HILO_TO_32(addr));
-					break;
+			case CMD_ADD_SUB_TO_LR_OLD:
+				addr_hi = m_cmdlist[curr_idx++];
+				addr_lo = m_cmdlist[curr_idx++];
+				AddSubToLR(HILO_TO_32(addr));
+				break;
 
-				case CMD_PB_ADDR_OLD:
-					addr_hi = m_cmdlist[curr_idx++];
-					addr_lo = m_cmdlist[curr_idx++];
-					pb_addr = HILO_TO_32(addr);
-					break;
+			case CMD_PB_ADDR_OLD:
+				addr_hi = m_cmdlist[curr_idx++];
+				addr_lo = m_cmdlist[curr_idx++];
+				pb_addr = HILO_TO_32(addr);
+				break;
 
-				case CMD_PROCESS_OLD:
-					ProcessPBList(pb_addr);
-					break;
+			case CMD_PROCESS_OLD:
+				ProcessPBList(pb_addr);
+				break;
 
-				case CMD_MIX_AUXA_OLD:
-				case CMD_MIX_AUXB_OLD:
-				case CMD_MIX_AUXC_OLD:
-					volume = m_cmdlist[curr_idx++];
-					addr_hi = m_cmdlist[curr_idx++];
-					addr_lo = m_cmdlist[curr_idx++];
-					addr2_hi = m_cmdlist[curr_idx++];
-					addr2_lo = m_cmdlist[curr_idx++];
-					MixAUXSamples(cmd - CMD_MIX_AUXA_OLD, HILO_TO_32(addr), HILO_TO_32(addr2), volume);
-					break;
+			case CMD_MIX_AUXA_OLD:
+			case CMD_MIX_AUXB_OLD:
+			case CMD_MIX_AUXC_OLD:
+				volume = m_cmdlist[curr_idx++];
+				addr_hi = m_cmdlist[curr_idx++];
+				addr_lo = m_cmdlist[curr_idx++];
+				addr2_hi = m_cmdlist[curr_idx++];
+				addr2_lo = m_cmdlist[curr_idx++];
+				MixAUXSamples(cmd - CMD_MIX_AUXA_OLD, HILO_TO_32(addr), HILO_TO_32(addr2), volume);
+				break;
 
-				case CMD_UPL_AUXA_MIX_LRSC_OLD:
-				case CMD_UPL_AUXB_MIX_LRSC_OLD:
-				{
-					volume = m_cmdlist[curr_idx++];
-					u32 addresses[6] = {
-						(u32)(m_cmdlist[curr_idx + 0] << 16) | m_cmdlist[curr_idx + 1],
-						(u32)(m_cmdlist[curr_idx + 2] << 16) | m_cmdlist[curr_idx + 3],
-						(u32)(m_cmdlist[curr_idx + 4] << 16) | m_cmdlist[curr_idx + 5],
-						(u32)(m_cmdlist[curr_idx + 6] << 16) | m_cmdlist[curr_idx + 7],
-						(u32)(m_cmdlist[curr_idx + 8] << 16) | m_cmdlist[curr_idx + 9],
-						(u32)(m_cmdlist[curr_idx + 10] << 16) | m_cmdlist[curr_idx + 11],
-					};
-					curr_idx += 12;
-					UploadAUXMixLRSC(cmd == CMD_UPL_AUXB_MIX_LRSC_OLD, addresses, volume);
-					break;
-				}
+			case CMD_UPL_AUXA_MIX_LRSC_OLD:
+			case CMD_UPL_AUXB_MIX_LRSC_OLD:
+			{
+				volume = m_cmdlist[curr_idx++];
+				u32 addresses[6] = {
+					 (u32)(m_cmdlist[curr_idx + 0] << 16) | m_cmdlist[curr_idx + 1],
+					 (u32)(m_cmdlist[curr_idx + 2] << 16) | m_cmdlist[curr_idx + 3],
+					 (u32)(m_cmdlist[curr_idx + 4] << 16) | m_cmdlist[curr_idx + 5],
+					 (u32)(m_cmdlist[curr_idx + 6] << 16) | m_cmdlist[curr_idx + 7],
+					 (u32)(m_cmdlist[curr_idx + 8] << 16) | m_cmdlist[curr_idx + 9],
+					 (u32)(m_cmdlist[curr_idx + 10] << 16) | m_cmdlist[curr_idx + 11],
+				};
+				curr_idx += 12;
+				UploadAUXMixLRSC(cmd == CMD_UPL_AUXB_MIX_LRSC_OLD, addresses, volume);
+				break;
+			}
 
-				// TODO(delroth): figure this one out, it's used by almost every
-				// game I've tested so far.
-				case CMD_UNK_0B_OLD: curr_idx += 4; break;
+			// TODO(delroth): figure this one out, it's used by almost every
+			// game I've tested so far.
+			case CMD_UNK_0B_OLD:
+				curr_idx += 4;
+				break;
 
-				case CMD_OUTPUT_OLD:
-				case CMD_OUTPUT_DPL2_OLD:
-					addr_hi = m_cmdlist[curr_idx++];
-					addr_lo = m_cmdlist[curr_idx++];
-					addr2_hi = m_cmdlist[curr_idx++];
-					addr2_lo = m_cmdlist[curr_idx++];
-					OutputSamples(HILO_TO_32(addr2), HILO_TO_32(addr), 0x8000,
-					             cmd == CMD_OUTPUT_DPL2_OLD);
-					break;
+			case CMD_OUTPUT_OLD:
+			case CMD_OUTPUT_DPL2_OLD:
+				addr_hi = m_cmdlist[curr_idx++];
+				addr_lo = m_cmdlist[curr_idx++];
+				addr2_hi = m_cmdlist[curr_idx++];
+				addr2_lo = m_cmdlist[curr_idx++];
+				OutputSamples(HILO_TO_32(addr2), HILO_TO_32(addr), 0x8000, cmd == CMD_OUTPUT_DPL2_OLD);
+				break;
 
-				case CMD_WM_OUTPUT_OLD:
-				{
-					u32 addresses[4] = {
-						(u32)(m_cmdlist[curr_idx + 0] << 16) | m_cmdlist[curr_idx + 1],
-						(u32)(m_cmdlist[curr_idx + 2] << 16) | m_cmdlist[curr_idx + 3],
-						(u32)(m_cmdlist[curr_idx + 4] << 16) | m_cmdlist[curr_idx + 5],
-						(u32)(m_cmdlist[curr_idx + 6] << 16) | m_cmdlist[curr_idx + 7],
-					};
-					curr_idx += 8;
-					OutputWMSamples(addresses);
-					break;
-				}
+			case CMD_WM_OUTPUT_OLD:
+			{
+				u32 addresses[4] = {
+					 (u32)(m_cmdlist[curr_idx + 0] << 16) | m_cmdlist[curr_idx + 1],
+					 (u32)(m_cmdlist[curr_idx + 2] << 16) | m_cmdlist[curr_idx + 3],
+					 (u32)(m_cmdlist[curr_idx + 4] << 16) | m_cmdlist[curr_idx + 5],
+					 (u32)(m_cmdlist[curr_idx + 6] << 16) | m_cmdlist[curr_idx + 7],
+				};
+				curr_idx += 8;
+				OutputWMSamples(addresses);
+				break;
+			}
 
-				case CMD_END_OLD:
-					end = true;
-					break;
+			case CMD_END_OLD:
+				end = true;
+				break;
 			}
 		}
 		else
@@ -155,90 +152,91 @@ void AXWiiUCode::HandleCommandList()
 				// Some of these commands are unknown, or unused in this AX HLE.
 				// We still need to skip their arguments using "curr_idx += N".
 
-				case CMD_SETUP:
-					addr_hi = m_cmdlist[curr_idx++];
-					addr_lo = m_cmdlist[curr_idx++];
-					SetupProcessing(HILO_TO_32(addr));
-					break;
+			case CMD_SETUP:
+				addr_hi = m_cmdlist[curr_idx++];
+				addr_lo = m_cmdlist[curr_idx++];
+				SetupProcessing(HILO_TO_32(addr));
+				break;
 
-				case CMD_ADD_TO_LR:
-				case CMD_SUB_TO_LR:
-					addr_hi = m_cmdlist[curr_idx++];
-					addr_lo = m_cmdlist[curr_idx++];
-					AddToLR(HILO_TO_32(addr), cmd == CMD_SUB_TO_LR);
-					break;
+			case CMD_ADD_TO_LR:
+			case CMD_SUB_TO_LR:
+				addr_hi = m_cmdlist[curr_idx++];
+				addr_lo = m_cmdlist[curr_idx++];
+				AddToLR(HILO_TO_32(addr), cmd == CMD_SUB_TO_LR);
+				break;
 
-				case CMD_ADD_SUB_TO_LR:
-					addr_hi = m_cmdlist[curr_idx++];
-					addr_lo = m_cmdlist[curr_idx++];
-					AddSubToLR(HILO_TO_32(addr));
-					break;
+			case CMD_ADD_SUB_TO_LR:
+				addr_hi = m_cmdlist[curr_idx++];
+				addr_lo = m_cmdlist[curr_idx++];
+				AddSubToLR(HILO_TO_32(addr));
+				break;
 
-				case CMD_PROCESS:
-					addr_hi = m_cmdlist[curr_idx++];
-					addr_lo = m_cmdlist[curr_idx++];
-					ProcessPBList(HILO_TO_32(addr));
-					break;
+			case CMD_PROCESS:
+				addr_hi = m_cmdlist[curr_idx++];
+				addr_lo = m_cmdlist[curr_idx++];
+				ProcessPBList(HILO_TO_32(addr));
+				break;
 
-				case CMD_MIX_AUXA:
-				case CMD_MIX_AUXB:
-				case CMD_MIX_AUXC:
-					volume = m_cmdlist[curr_idx++];
-					addr_hi = m_cmdlist[curr_idx++];
-					addr_lo = m_cmdlist[curr_idx++];
-					addr2_hi = m_cmdlist[curr_idx++];
-					addr2_lo = m_cmdlist[curr_idx++];
-					MixAUXSamples(cmd - CMD_MIX_AUXA, HILO_TO_32(addr), HILO_TO_32(addr2), volume);
-					break;
+			case CMD_MIX_AUXA:
+			case CMD_MIX_AUXB:
+			case CMD_MIX_AUXC:
+				volume = m_cmdlist[curr_idx++];
+				addr_hi = m_cmdlist[curr_idx++];
+				addr_lo = m_cmdlist[curr_idx++];
+				addr2_hi = m_cmdlist[curr_idx++];
+				addr2_lo = m_cmdlist[curr_idx++];
+				MixAUXSamples(cmd - CMD_MIX_AUXA, HILO_TO_32(addr), HILO_TO_32(addr2), volume);
+				break;
 
-				case CMD_UPL_AUXA_MIX_LRSC:
-				case CMD_UPL_AUXB_MIX_LRSC:
-				{
-					volume = m_cmdlist[curr_idx++];
-					u32 addresses[6] = {
-						(u32)(m_cmdlist[curr_idx + 0] << 16) | m_cmdlist[curr_idx + 1],
-						(u32)(m_cmdlist[curr_idx + 2] << 16) | m_cmdlist[curr_idx + 3],
-						(u32)(m_cmdlist[curr_idx + 4] << 16) | m_cmdlist[curr_idx + 5],
-						(u32)(m_cmdlist[curr_idx + 6] << 16) | m_cmdlist[curr_idx + 7],
-						(u32)(m_cmdlist[curr_idx + 8] << 16) | m_cmdlist[curr_idx + 9],
-						(u32)(m_cmdlist[curr_idx + 10] << 16) | m_cmdlist[curr_idx + 11],
-					};
-					curr_idx += 12;
-					UploadAUXMixLRSC(cmd == CMD_UPL_AUXB_MIX_LRSC, addresses, volume);
-					break;
-				}
+			case CMD_UPL_AUXA_MIX_LRSC:
+			case CMD_UPL_AUXB_MIX_LRSC:
+			{
+				volume = m_cmdlist[curr_idx++];
+				u32 addresses[6] = {
+					 (u32)(m_cmdlist[curr_idx + 0] << 16) | m_cmdlist[curr_idx + 1],
+					 (u32)(m_cmdlist[curr_idx + 2] << 16) | m_cmdlist[curr_idx + 3],
+					 (u32)(m_cmdlist[curr_idx + 4] << 16) | m_cmdlist[curr_idx + 5],
+					 (u32)(m_cmdlist[curr_idx + 6] << 16) | m_cmdlist[curr_idx + 7],
+					 (u32)(m_cmdlist[curr_idx + 8] << 16) | m_cmdlist[curr_idx + 9],
+					 (u32)(m_cmdlist[curr_idx + 10] << 16) | m_cmdlist[curr_idx + 11],
+				};
+				curr_idx += 12;
+				UploadAUXMixLRSC(cmd == CMD_UPL_AUXB_MIX_LRSC, addresses, volume);
+				break;
+			}
 
-				// TODO(delroth): figure this one out, it's used by almost every
-				// game I've tested so far.
-				case CMD_UNK_0A: curr_idx += 4; break;
+			// TODO(delroth): figure this one out, it's used by almost every
+			// game I've tested so far.
+			case CMD_UNK_0A:
+				curr_idx += 4;
+				break;
 
-				case CMD_OUTPUT:
-				case CMD_OUTPUT_DPL2:
-					volume = m_cmdlist[curr_idx++];
-					addr_hi = m_cmdlist[curr_idx++];
-					addr_lo = m_cmdlist[curr_idx++];
-					addr2_hi = m_cmdlist[curr_idx++];
-					addr2_lo = m_cmdlist[curr_idx++];
-					OutputSamples(HILO_TO_32(addr2), HILO_TO_32(addr), volume,
-					              cmd == CMD_OUTPUT_DPL2);
-					break;
+			case CMD_OUTPUT:
+			case CMD_OUTPUT_DPL2:
+				volume = m_cmdlist[curr_idx++];
+				addr_hi = m_cmdlist[curr_idx++];
+				addr_lo = m_cmdlist[curr_idx++];
+				addr2_hi = m_cmdlist[curr_idx++];
+				addr2_lo = m_cmdlist[curr_idx++];
+				OutputSamples(HILO_TO_32(addr2), HILO_TO_32(addr), volume, cmd == CMD_OUTPUT_DPL2);
+				break;
 
-				case CMD_WM_OUTPUT:
-				{
-					u32 addresses[4] = {
-						(u32)(m_cmdlist[curr_idx + 0] << 16) | m_cmdlist[curr_idx + 1],
-						(u32)(m_cmdlist[curr_idx + 2] << 16) | m_cmdlist[curr_idx + 3],
-						(u32)(m_cmdlist[curr_idx + 4] << 16) | m_cmdlist[curr_idx + 5],
-						(u32)(m_cmdlist[curr_idx + 6] << 16) | m_cmdlist[curr_idx + 7],
-					};
-					curr_idx += 8;
-					OutputWMSamples(addresses);
-					break;
-				}
+			case CMD_WM_OUTPUT:
+			{
+				u32 addresses[4] = {
+					 (u32)(m_cmdlist[curr_idx + 0] << 16) | m_cmdlist[curr_idx + 1],
+					 (u32)(m_cmdlist[curr_idx + 2] << 16) | m_cmdlist[curr_idx + 3],
+					 (u32)(m_cmdlist[curr_idx + 4] << 16) | m_cmdlist[curr_idx + 5],
+					 (u32)(m_cmdlist[curr_idx + 6] << 16) | m_cmdlist[curr_idx + 7],
+				};
+				curr_idx += 8;
+				OutputWMSamples(addresses);
+				break;
+			}
 
-				case CMD_END:
-					end = true;
-					break;
+			case CMD_END:
+				end = true;
+				break;
 			}
 		}
 	}
@@ -258,28 +256,14 @@ void AXWiiUCode::SetupProcessing(u32 init_addr)
 		int* ptr;
 		u32 samples;
 	} buffers[] = {
-		{ m_samples_left, 32 },
-		{ m_samples_right, 32 },
-		{ m_samples_surround, 32 },
-		{ m_samples_auxA_left, 32 },
-		{ m_samples_auxA_right, 32 },
-		{ m_samples_auxA_surround, 32 },
-		{ m_samples_auxB_left, 32 },
-		{ m_samples_auxB_right, 32 },
-		{ m_samples_auxB_surround, 32 },
-		{ m_samples_auxC_left, 32 },
-		{ m_samples_auxC_right, 32 },
-		{ m_samples_auxC_surround, 32 },
+		 {m_samples_left, 32},      {m_samples_right, 32},      {m_samples_surround, 32},
+		 {m_samples_auxA_left, 32}, {m_samples_auxA_right, 32}, {m_samples_auxA_surround, 32},
+		 {m_samples_auxB_left, 32}, {m_samples_auxB_right, 32}, {m_samples_auxB_surround, 32},
+		 {m_samples_auxC_left, 32}, {m_samples_auxC_right, 32}, {m_samples_auxC_surround, 32},
 
-		{ m_samples_wm0, 6 },
-		{ m_samples_aux0, 6 },
-		{ m_samples_wm1, 6 },
-		{ m_samples_aux1, 6 },
-		{ m_samples_wm2, 6 },
-		{ m_samples_aux2, 6 },
-		{ m_samples_wm3, 6 },
-		{ m_samples_aux3, 6 }
-	};
+		 {m_samples_wm0, 6},        {m_samples_aux0, 6},        {m_samples_wm1, 6},
+		 {m_samples_aux1, 6},       {m_samples_wm2, 6},         {m_samples_aux2, 6},
+		 {m_samples_wm3, 6},        {m_samples_aux3, 6}};
 
 	u32 init_idx = 0;
 	for (auto& buffer : buffers)
@@ -291,7 +275,7 @@ void AXWiiUCode::SetupProcessing(u32 init_addr)
 
 		if (!init_val)
 		{
-			memset(buffer.ptr, 0, 3 * buffer.samples * sizeof (int));
+			memset(buffer.ptr, 0, 3 * buffer.samples * sizeof(int));
 		}
 		else
 		{
@@ -337,26 +321,46 @@ AXMixControl AXWiiUCode::ConvertMixerControl(u32 mixer_control)
 {
 	u32 ret = 0;
 
-	if (mixer_control & 0x00000001) ret |= MIX_L;
-	if (mixer_control & 0x00000002) ret |= MIX_R;
-	if (mixer_control & 0x00000004) ret |= MIX_L_RAMP | MIX_R_RAMP;
-	if (mixer_control & 0x00000008) ret |= MIX_S;
-	if (mixer_control & 0x00000010) ret |= MIX_S_RAMP;
-	if (mixer_control & 0x00010000) ret |= MIX_AUXA_L;
-	if (mixer_control & 0x00020000) ret |= MIX_AUXA_R;
-	if (mixer_control & 0x00040000) ret |= MIX_AUXA_L_RAMP | MIX_AUXA_R_RAMP;
-	if (mixer_control & 0x00080000) ret |= MIX_AUXA_S;
-	if (mixer_control & 0x00100000) ret |= MIX_AUXA_S_RAMP;
-	if (mixer_control & 0x00200000) ret |= MIX_AUXB_L;
-	if (mixer_control & 0x00400000) ret |= MIX_AUXB_R;
-	if (mixer_control & 0x00800000) ret |= MIX_AUXB_L_RAMP | MIX_AUXB_R_RAMP;
-	if (mixer_control & 0x01000000) ret |= MIX_AUXB_S;
-	if (mixer_control & 0x02000000) ret |= MIX_AUXB_S_RAMP;
-	if (mixer_control & 0x04000000) ret |= MIX_AUXC_L;
-	if (mixer_control & 0x08000000) ret |= MIX_AUXC_R;
-	if (mixer_control & 0x10000000) ret |= MIX_AUXC_L_RAMP | MIX_AUXC_R_RAMP;
-	if (mixer_control & 0x20000000) ret |= MIX_AUXC_S;
-	if (mixer_control & 0x40000000) ret |= MIX_AUXC_S_RAMP;
+	if (mixer_control & 0x00000001)
+		ret |= MIX_L;
+	if (mixer_control & 0x00000002)
+		ret |= MIX_R;
+	if (mixer_control & 0x00000004)
+		ret |= MIX_L_RAMP | MIX_R_RAMP;
+	if (mixer_control & 0x00000008)
+		ret |= MIX_S;
+	if (mixer_control & 0x00000010)
+		ret |= MIX_S_RAMP;
+	if (mixer_control & 0x00010000)
+		ret |= MIX_AUXA_L;
+	if (mixer_control & 0x00020000)
+		ret |= MIX_AUXA_R;
+	if (mixer_control & 0x00040000)
+		ret |= MIX_AUXA_L_RAMP | MIX_AUXA_R_RAMP;
+	if (mixer_control & 0x00080000)
+		ret |= MIX_AUXA_S;
+	if (mixer_control & 0x00100000)
+		ret |= MIX_AUXA_S_RAMP;
+	if (mixer_control & 0x00200000)
+		ret |= MIX_AUXB_L;
+	if (mixer_control & 0x00400000)
+		ret |= MIX_AUXB_R;
+	if (mixer_control & 0x00800000)
+		ret |= MIX_AUXB_L_RAMP | MIX_AUXB_R_RAMP;
+	if (mixer_control & 0x01000000)
+		ret |= MIX_AUXB_S;
+	if (mixer_control & 0x02000000)
+		ret |= MIX_AUXB_S_RAMP;
+	if (mixer_control & 0x04000000)
+		ret |= MIX_AUXC_L;
+	if (mixer_control & 0x08000000)
+		ret |= MIX_AUXC_R;
+	if (mixer_control & 0x10000000)
+		ret |= MIX_AUXC_L_RAMP | MIX_AUXC_R_RAMP;
+	if (mixer_control & 0x20000000)
+		ret |= MIX_AUXC_S;
+	if (mixer_control & 0x40000000)
+		ret |= MIX_AUXC_S_RAMP;
 
 	return (AXMixControl)ret;
 }
@@ -367,12 +371,12 @@ void AXWiiUCode::GenerateVolumeRamp(u16* output, u16 vol1, u16 vol2, size_t nval
 	for (size_t i = 0; i < nvals; ++i)
 	{
 		curr += (vol2 - vol1) / (float)nvals;
-		output[i] = (u16) curr;
+		output[i] = (u16)curr;
 	}
 }
 
 bool AXWiiUCode::ExtractUpdatesFields(AXPBWii& pb, u16* num_updates, u16* updates,
-                                        u32* updates_addr)
+	u32* updates_addr)
 {
 	u16* pb_mem = (u16*)&pb;
 
@@ -406,7 +410,7 @@ bool AXWiiUCode::ExtractUpdatesFields(AXPBWii& pb, u16* num_updates, u16* update
 	}
 
 	// Remove the updates data from the PB
-	memmove(pb_mem + 41, pb_mem + 46, sizeof (pb) - 2 * 46);
+	memmove(pb_mem + 41, pb_mem + 46, sizeof(pb) - 2 * 46);
 
 	return true;
 }
@@ -416,7 +420,7 @@ void AXWiiUCode::ReinjectUpdatesFields(AXPBWii& pb, u16* num_updates, u32 update
 	u16* pb_mem = (u16*)&pb;
 
 	// Make some space
-	memmove(pb_mem + 46, pb_mem + 41, sizeof (pb) - 2 * 46);
+	memmove(pb_mem + 46, pb_mem + 41, sizeof(pb) - 2 * 46);
 
 	// Reinsert previous values
 	pb_mem[41] = num_updates[0];
@@ -432,28 +436,13 @@ void AXWiiUCode::ProcessPBList(u32 pb_addr)
 
 	while (pb_addr)
 	{
-		AXBuffers buffers = {{
-			m_samples_left,
-			m_samples_right,
-			m_samples_surround,
-			m_samples_auxA_left,
-			m_samples_auxA_right,
-			m_samples_auxA_surround,
-			m_samples_auxB_left,
-			m_samples_auxB_right,
-			m_samples_auxB_surround,
-			m_samples_auxC_left,
-			m_samples_auxC_right,
-			m_samples_auxC_surround,
-			m_samples_wm0,
-			m_samples_aux0,
-			m_samples_wm1,
-			m_samples_aux1,
-			m_samples_wm2,
-			m_samples_aux2,
-			m_samples_wm3,
-			m_samples_aux3
-		}};
+		AXBuffers buffers = {{m_samples_left,      m_samples_right,      m_samples_surround,
+									 m_samples_auxA_left, m_samples_auxA_right, m_samples_auxA_surround,
+									 m_samples_auxB_left, m_samples_auxB_right, m_samples_auxB_surround,
+									 m_samples_auxC_left, m_samples_auxC_right, m_samples_auxC_surround,
+									 m_samples_wm0,       m_samples_aux0,       m_samples_wm1,
+									 m_samples_aux1,      m_samples_wm2,        m_samples_aux2,
+									 m_samples_wm3,       m_samples_aux3}};
 
 		ReadPB(pb_addr, pb);
 
@@ -465,9 +454,8 @@ void AXWiiUCode::ProcessPBList(u32 pb_addr)
 			for (int curr_ms = 0; curr_ms < 3; ++curr_ms)
 			{
 				ApplyUpdatesForMs(curr_ms, (u16*)&pb, num_updates, updates);
-				ProcessVoice(pb, buffers, 32,
-				             ConvertMixerControl(HILO_TO_32(pb.mixer_control)),
-				             m_coeffs_available ? m_coeffs : nullptr);
+				ProcessVoice(pb, buffers, 32, ConvertMixerControl(HILO_TO_32(pb.mixer_control)),
+					m_coeffs_available ? m_coeffs : nullptr);
 
 				// Forward the buffers
 				for (size_t i = 0; i < ArraySize(buffers.ptrs); ++i)
@@ -477,9 +465,8 @@ void AXWiiUCode::ProcessPBList(u32 pb_addr)
 		}
 		else
 		{
-			ProcessVoice(pb, buffers, 96,
-			             ConvertMixerControl(HILO_TO_32(pb.mixer_control)),
-			             m_coeffs_available ? m_coeffs : nullptr);
+			ProcessVoice(pb, buffers, 96, ConvertMixerControl(HILO_TO_32(pb.mixer_control)),
+				m_coeffs_available ? m_coeffs : nullptr);
 		}
 
 		WritePB(pb_addr, pb);
@@ -493,12 +480,8 @@ void AXWiiUCode::MixAUXSamples(int aux_id, u32 write_addr, u32 read_addr, u16 vo
 	GenerateVolumeRamp(volume_ramp, m_last_aux_volumes[aux_id], volume, ArraySize(volume_ramp));
 	m_last_aux_volumes[aux_id] = volume;
 
-	int* buffers[3] = { nullptr };
-	int* main_buffers[3] = {
-		m_samples_left,
-		m_samples_right,
-		m_samples_surround
-	};
+	int* buffers[3] = {nullptr};
+	int* main_buffers[3] = {m_samples_left, m_samples_right, m_samples_surround};
 
 	switch (aux_id)
 	{
@@ -564,12 +547,7 @@ void AXWiiUCode::UploadAUXMixLRSC(int aux_id, u32* addresses, u16 volume)
 	GenerateVolumeRamp(volume_ramp, m_last_aux_volumes[aux_id], volume, 96);
 	m_last_aux_volumes[aux_id] = volume;
 
-	int* mix_dest[4] = {
-		m_samples_left,
-		m_samples_right,
-		m_samples_surround,
-		m_samples_auxC_left
-	};
+	int* mix_dest[4] = {m_samples_left, m_samples_right, m_samples_surround, m_samples_auxC_left};
 	for (u32 mix_i = 0; mix_i < 4; ++mix_i)
 	{
 		int* dl_ptr = (int*)HLEMemory_Get_Pointer(addresses[2 + mix_i]);
@@ -585,25 +563,24 @@ void AXWiiUCode::UploadAUXMixLRSC(int aux_id, u32* addresses, u16 volume)
 	}
 }
 
-void AXWiiUCode::OutputSamples(u32 lr_addr, u32 surround_addr, u16 volume,
-                                 bool upload_auxc)
+void AXWiiUCode::OutputSamples(u32 lr_addr, u32 surround_addr, u16 volume, bool upload_auxc)
 {
 	u16 volume_ramp[96];
 	GenerateVolumeRamp(volume_ramp, m_last_main_volume, volume, ArraySize(volume_ramp));
 	m_last_main_volume = volume;
 
-	int upload_buffer[3 * 32] = { 0 };
+	int upload_buffer[3 * 32] = {0};
 
 	for (u32 i = 0; i < 3 * 32; ++i)
 		upload_buffer[i] = Common::swap32(m_samples_surround[i]);
-	memcpy(HLEMemory_Get_Pointer(surround_addr), upload_buffer, sizeof (upload_buffer));
+	memcpy(HLEMemory_Get_Pointer(surround_addr), upload_buffer, sizeof(upload_buffer));
 
 	if (upload_auxc)
 	{
-		surround_addr += sizeof (upload_buffer);
+		surround_addr += sizeof(upload_buffer);
 		for (u32 i = 0; i < 3 * 32; ++i)
 			upload_buffer[i] = Common::swap32(m_samples_auxC_left[i]);
-		memcpy(HLEMemory_Get_Pointer(surround_addr), upload_buffer, sizeof (upload_buffer));
+		memcpy(HLEMemory_Get_Pointer(surround_addr), upload_buffer, sizeof(upload_buffer));
 	}
 
 	short buffer[3 * 32 * 2];
@@ -611,14 +588,14 @@ void AXWiiUCode::OutputSamples(u32 lr_addr, u32 surround_addr, u16 volume,
 	// Clamp internal buffers to 16 bits.
 	for (u32 i = 0; i < 3 * 32; ++i)
 	{
-		int left  = m_samples_left[i];
+		int left = m_samples_left[i];
 		int right = m_samples_right[i];
 
 		// Apply global volume. Cast to s64 to avoid overflow.
 		left = ((s64)left * volume_ramp[i]) >> 15;
 		right = ((s64)right * volume_ramp[i]) >> 15;
 
-		m_samples_left[i]  = MathUtil::Clamp(left, -32767, 32767);
+		m_samples_left[i] = MathUtil::Clamp(left, -32767, 32767);
 		m_samples_right[i] = MathUtil::Clamp(right, -32767, 32767);
 	}
 
@@ -628,7 +605,7 @@ void AXWiiUCode::OutputSamples(u32 lr_addr, u32 surround_addr, u16 volume,
 		buffer[2 * i + 1] = Common::swap16(m_samples_left[i]);
 	}
 
-	memcpy(HLEMemory_Get_Pointer(lr_addr), buffer, sizeof (buffer));
+	memcpy(HLEMemory_Get_Pointer(lr_addr), buffer, sizeof(buffer));
 
 	// There should be a DSP_SYNC message sent here. However, it looks like not
 	// sending it does not cause any issue, and sending it actually causes some
@@ -637,12 +614,7 @@ void AXWiiUCode::OutputSamples(u32 lr_addr, u32 surround_addr, u16 volume,
 
 void AXWiiUCode::OutputWMSamples(u32* addresses)
 {
-	int* buffers[] = {
-		m_samples_wm0,
-		m_samples_wm1,
-		m_samples_wm2,
-		m_samples_wm3
-	};
+	int* buffers[] = {m_samples_wm0, m_samples_wm1, m_samples_wm2, m_samples_wm3};
 
 	for (u32 i = 0; i < 4; ++i)
 	{
@@ -656,7 +628,7 @@ void AXWiiUCode::OutputWMSamples(u32* addresses)
 	}
 }
 
-void AXWiiUCode::DoState(PointerWrap &p)
+void AXWiiUCode::DoState(PointerWrap& p)
 {
 	DoStateShared(p);
 	DoAXState(p);

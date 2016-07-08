@@ -52,44 +52,50 @@ constexpr bool IsPow2(u32 imm)
 // The most significant bit of the fraction is an is-quiet bit on all architectures we care about.
 
 static const u64 DOUBLE_SIGN = 0x8000000000000000ULL,
-                 DOUBLE_EXP  = 0x7FF0000000000000ULL,
-                 DOUBLE_FRAC = 0x000FFFFFFFFFFFFFULL,
-                 DOUBLE_ZERO = 0x0000000000000000ULL,
-                 DOUBLE_QBIT = 0x0008000000000000ULL;
+DOUBLE_EXP = 0x7FF0000000000000ULL,
+DOUBLE_FRAC = 0x000FFFFFFFFFFFFFULL,
+DOUBLE_ZERO = 0x0000000000000000ULL,
+DOUBLE_QBIT = 0x0008000000000000ULL;
 
 static const u32 FLOAT_SIGN = 0x80000000,
-                 FLOAT_EXP  = 0x7F800000,
-                 FLOAT_FRAC = 0x007FFFFF,
-                 FLOAT_ZERO = 0x00000000;
+FLOAT_EXP = 0x7F800000,
+FLOAT_FRAC = 0x007FFFFF,
+FLOAT_ZERO = 0x00000000;
 
-union IntDouble {
+union IntDouble
+{
 	double d;
 	u64 i;
 
-	explicit IntDouble(u64 _i) : i(_i) {}
-	explicit IntDouble(double _d) : d(_d) {}
+	explicit IntDouble(u64 _i): i(_i)
+	{}
+	explicit IntDouble(double _d): d(_d)
+	{}
 };
-union IntFloat {
+union IntFloat
+{
 	float f;
 	u32 i;
 
-	explicit IntFloat(u32 _i) : i(_i) {}
-	explicit IntFloat(float _f) : f(_f) {}
+	explicit IntFloat(u32 _i): i(_i)
+	{}
+	explicit IntFloat(float _f): f(_f)
+	{}
 };
 
 inline bool IsQNAN(double d)
 {
 	IntDouble x(d);
 	return ((x.i & DOUBLE_EXP) == DOUBLE_EXP) &&
-	       ((x.i & DOUBLE_QBIT) == DOUBLE_QBIT);
+		((x.i & DOUBLE_QBIT) == DOUBLE_QBIT);
 }
 
 inline bool IsSNAN(double d)
 {
 	IntDouble x(d);
 	return ((x.i & DOUBLE_EXP) == DOUBLE_EXP) &&
-	       ((x.i & DOUBLE_FRAC) != DOUBLE_ZERO) &&
-	       ((x.i & DOUBLE_QBIT) == DOUBLE_ZERO);
+		((x.i & DOUBLE_FRAC) != DOUBLE_ZERO) &&
+		((x.i & DOUBLE_QBIT) == DOUBLE_ZERO);
 }
 
 inline float FlushToZero(float f)
@@ -116,12 +122,12 @@ enum PPCFpClass
 {
 	PPC_FPCLASS_QNAN = 0x11,
 	PPC_FPCLASS_NINF = 0x9,
-	PPC_FPCLASS_NN   = 0x8,
-	PPC_FPCLASS_ND   = 0x18,
-	PPC_FPCLASS_NZ   = 0x12,
-	PPC_FPCLASS_PZ   = 0x2,
-	PPC_FPCLASS_PD   = 0x14,
-	PPC_FPCLASS_PN   = 0x4,
+	PPC_FPCLASS_NN = 0x8,
+	PPC_FPCLASS_ND = 0x18,
+	PPC_FPCLASS_NZ = 0x12,
+	PPC_FPCLASS_PZ = 0x2,
+	PPC_FPCLASS_PD = 0x14,
+	PPC_FPCLASS_PN = 0x4,
 	PPC_FPCLASS_PINF = 0x5,
 };
 
@@ -159,16 +165,22 @@ struct Rectangle
 		return left == r.left && top == r.top && right == r.right && bottom == r.bottom;
 	}
 
-	T GetWidth() const { return abs(right - left); }
-	T GetHeight() const { return abs(bottom - top); }
+	T GetWidth() const
+	{
+		return abs(right - left);
+	}
+	T GetHeight() const
+	{
+		return abs(bottom - top);
+	}
 
 	// If the rectangle is in a coordinate system with a lower-left origin, use
 	// this Clamp.
 	void ClampLL(T x1, T y1, T x2, T y2)
 	{
-		left   = Clamp(left, x1, x2);
-		right  = Clamp(right, x1, x2);
-		top    = Clamp(top, y2, y1);
+		left = Clamp(left, x1, x2);
+		right = Clamp(right, x1, x2);
+		top = Clamp(top, y2, y1);
 		bottom = Clamp(bottom, y2, y1);
 	}
 
@@ -176,9 +188,9 @@ struct Rectangle
 	// use this Clamp.
 	void ClampUL(T x1, T y1, T x2, T y2)
 	{
-		left   = Clamp(left, x1, x2);
-		right  = Clamp(right, x1, x2);
-		top    = Clamp(top, y1, y2);
+		left = Clamp(left, x1, x2);
+		right = Clamp(right, x1, x2);
+		top = Clamp(top, y1, y2);
 		bottom = Clamp(bottom, y1, y2);
 	}
 

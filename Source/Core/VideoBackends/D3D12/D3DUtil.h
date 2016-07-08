@@ -76,8 +76,14 @@ public:
 	size_t AppendData(void* data, size_t size, size_t vertex_size);
 	size_t ReserveData(void** write_ptr, size_t size, size_t vertex_size);
 
-	inline ID3D12Resource* GetBuffer() { return m_stream_buffer->GetBuffer(); }
-	inline size_t GetSize() const { return m_stream_buffer->GetSize(); }
+	inline ID3D12Resource* GetBuffer()
+	{
+		return m_stream_buffer->GetBuffer();
+	}
+	inline size_t GetSize() const
+	{
+		return m_stream_buffer->GetSize();
+	}
 private:
 	std::unique_ptr<D3DStreamBuffer> m_stream_buffer;
 };
@@ -125,7 +131,7 @@ void DrawShadedTexQuad(D3DTexture2D* texture,
 	bool inherit_srv_binding = false,
 	bool rt_multisampled = false,
 	D3D12_DEPTH_STENCIL_DESC* depth_stencil_desc_override = nullptr
-	);
+);
 
 void DrawClearQuad(u32 Color, float z, D3D12_BLEND_DESC* blend_desc, D3D12_DEPTH_STENCIL_DESC* depth_stencil_desc, bool rt_multisampled);
 void DrawEFBPokeQuads(EFBAccessType type,

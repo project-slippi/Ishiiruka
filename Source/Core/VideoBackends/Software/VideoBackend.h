@@ -7,12 +7,14 @@
 #include <string>
 #include "VideoCommon/VideoBackendBase.h"
 
-namespace MMIO { class Mapping; }
+namespace MMIO {
+class Mapping;
+}
 
 namespace SW
 {
 
-class VideoSoftware : public VideoBackendBase
+class VideoSoftware: public VideoBackendBase
 {
 	bool Initialize(void *window_handle) override;
 	void Shutdown() override;
@@ -23,7 +25,7 @@ class VideoSoftware : public VideoBackendBase
 	void Video_Prepare() override;
 	void Video_Cleanup() override;
 
-	void ShowConfig(void* parent) override;
+	void InitBackendInfo() override;
 
 	unsigned int PeekMessages() override;
 };

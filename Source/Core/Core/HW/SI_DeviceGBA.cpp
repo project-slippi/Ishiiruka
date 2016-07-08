@@ -9,8 +9,8 @@
 
 #include "Common/CommonTypes.h"
 #include "Common/Flag.h"
-#include "Common/Thread.h"
 #include "Common/Logging/Log.h"
+#include "Common/Thread.h"
 #include "Core/CoreTiming.h"
 #include "Core/HW/SI_Device.h"
 #include "Core/HW/SI_DeviceGBA.h"
@@ -25,14 +25,17 @@ static std::mutex cs_gba;
 static std::mutex cs_gba_clk;
 static u8 num_connected;
 
-namespace { Common::Flag server_running; }
+namespace
+{
+Common::Flag server_running;
+}
 
 enum EJoybusCmds
 {
-	CMD_RESET  = 0xff,
+	CMD_RESET = 0xff,
 	CMD_STATUS = 0x00,
-	CMD_READ   = 0x14,
-	CMD_WRITE  = 0x15
+	CMD_READ = 0x14,
+	CMD_WRITE = 0x15
 };
 
 const u64 BITS_PER_SECOND = 115200;
@@ -77,7 +80,8 @@ int GetTransferTime(u8 cmd)
 		break;
 	}
 	}
-	return (int)(bytes_transferred * SystemTimers::GetTicksPerSecond() / (GetNumConnected() * BYTES_PER_SECOND));
+	return (int)(bytes_transferred * SystemTimers::GetTicksPerSecond() /
+		(GetNumConnected() * BYTES_PER_SECOND));
 }
 
 static void GBAConnectionWaiter()
@@ -216,7 +220,7 @@ void GBASockServer::ClockSync()
 
 	time_slice = (u32)((u64)time_slice * 16777216 / SystemTimers::GetTicksPerSecond());
 	last_time_slice = CoreTiming::GetTicks();
-	char bytes[4] = { 0, 0, 0, 0 };
+	char bytes[4] = {0, 0, 0, 0};
 	bytes[0] = (time_slice >> 24) & 0xff;
 	bytes[1] = (time_slice >> 16) & 0xff;
 	bytes[2] = (time_slice >> 8) & 0xff;
@@ -242,10 +246,8 @@ void GBASockServer::Send(u8* si_buffer)
 	cmd = (u8)send_data[0];
 
 #ifdef _DEBUG
-	NOTICE_LOG(SERIALINTERFACE, "%01d cmd %02x [> %02x%02x%02x%02x]",
-		device_number,
-		(u8)send_data[0], (u8)send_data[1], (u8)send_data[2],
-		(u8)send_data[3], (u8)send_data[4]);
+	NOTICE_LOG(SERIALINTERFACE, "%01d cmd %02x [> %02x%02x%02x%02x]", device_number, (u8)send_data[0],
+		(u8)send_data[1], (u8)send_data[2], (u8)send_data[3], (u8)send_data[4]);
 #endif
 
 	client->setBlocking(false);
@@ -302,18 +304,14 @@ int GBASockServer::Receive(u8* si_buffer)
 		if ((u8)send_data[0] == 0x00 || (u8)send_data[0] == 0xff)
 		{
 			WARN_LOG(SERIALINTERFACE, "%01d                              [< %02x%02x%02x%02x%02x] (%lu)",
-				device_number,
-				(u8)recv_data[0], (u8)recv_data[1], (u8)recv_data[2],
-				(u8)recv_data[3], (u8)recv_data[4],
-				num_received);
+				device_number, (u8)recv_data[0], (u8)recv_data[1], (u8)recv_data[2],
+				(u8)recv_data[3], (u8)recv_data[4], num_received);
 		}
 		else
 		{
 			ERROR_LOG(SERIALINTERFACE, "%01d                              [< %02x%02x%02x%02x%02x] (%lu)",
-				device_number,
-				(u8)recv_data[0], (u8)recv_data[1], (u8)recv_data[2],
-				(u8)recv_data[3], (u8)recv_data[4],
-				num_received);
+				device_number, (u8)recv_data[0], (u8)recv_data[1], (u8)recv_data[2],
+				(u8)recv_data[3], (u8)recv_data[4], num_received);
 		}
 #endif
 
@@ -321,12 +319,11 @@ int GBASockServer::Receive(u8* si_buffer)
 			si_buffer[i ^ 3] = recv_data[i];
 	}
 
-	 return (int)num_received;
+	return (int)num_received;
 }
 
 CSIDevice_GBA::CSIDevice_GBA(SIDevices _device, int _iDeviceNumber)
-	: ISIDevice(_device, _iDeviceNumber)
-	, GBASockServer(_iDeviceNumber)
+	: ISIDevice(_device, _iDeviceNumber), GBASockServer(_iDeviceNumber)
 {
 	waiting_for_response = false;
 }

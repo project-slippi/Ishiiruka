@@ -20,22 +20,23 @@ public:
 
 	static std::shared_ptr<HiresTexture> Search(const std::string& basename,
 		std::function<u8*(size_t)> request_buffer_delegate
-		);
+	);
 
 	static std::string GenBaseName(
 		const u8* texture, size_t texture_size,
 		const u8* tlut, size_t tlut_size,
 		u32 width, u32 height,
-		int format, 
+		int format,
 		bool has_mipmaps,
 		bool dump = false);
 
-	~HiresTexture() {};
-	PC_TexFormat m_format;	
+	~HiresTexture()
+	{};
+	PC_TexFormat m_format;
 	u32 m_width, m_height, m_levels, m_nrm_levels;
 	std::unique_ptr<u8> m_cached_data;
 	size_t m_cached_data_size;
-private:	
+private:
 	static HiresTexture* Load(const std::string& base_filename,
 		std::function<u8*(size_t)> request_buffer_delegate, bool cacheresult);
 	static void Prefetch();

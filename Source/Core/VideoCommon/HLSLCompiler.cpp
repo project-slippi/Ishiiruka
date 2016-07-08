@@ -7,16 +7,16 @@
 #include "VideoCommon/HLSLCompiler.h"
 
 
-ShaderCompilerWorkUnit::ShaderCompilerWorkUnit() :
-flags(0),
-cresult(0),
-code(),
-defines(nullptr),
-entrypoint(nullptr),
-target(nullptr),
-shaderbytecode(nullptr),
-error(nullptr),
-ResultHandler()
+ShaderCompilerWorkUnit::ShaderCompilerWorkUnit():
+	flags(0),
+	cresult(0),
+	code(),
+	defines(nullptr),
+	entrypoint(nullptr),
+	target(nullptr),
+	shaderbytecode(nullptr),
+	error(nullptr),
+	ResultHandler()
 {
 
 }
@@ -56,10 +56,10 @@ void ShaderCompilerWorkUnit::Release()
 	}
 }
 
-HLSLAsyncCompiler::HLSLAsyncCompiler() :
-m_repositoryIndex(0),
-m_input(256),
-m_output(256)
+HLSLAsyncCompiler::HLSLAsyncCompiler():
+	m_repositoryIndex(0),
+	m_input(256),
+	m_output(256)
 {
 	WorkUnitRepository = new ShaderCompilerWorkUnit[256];
 	Common::ThreadPool::RegisterWorker(this);
@@ -167,12 +167,12 @@ HLSLAsyncCompiler& HLSLAsyncCompiler::getInstance()
 	return HLSLCompiler::getInstance().m_AsyncCompiler;
 }
 
-HLSLCompiler::HLSLCompiler() :
-hD3DCompilerDll(nullptr),
-PD3DCompile(nullptr),
-PD3DReflect(nullptr),
-d3dcompiler_dll_ref(0),
-m_AsyncCompiler()
+HLSLCompiler::HLSLCompiler():
+	hD3DCompilerDll(nullptr),
+	PD3DCompile(nullptr),
+	PD3DReflect(nullptr),
+	d3dcompiler_dll_ref(0),
+	m_AsyncCompiler()
 {
 	LoadCompiler();
 	m_AsyncCompiler.SetCompilerFunction(PD3DCompile);
@@ -180,7 +180,7 @@ m_AsyncCompiler()
 
 HLSLCompiler::~HLSLCompiler()
 {
-	UnloadCompiler();	
+	UnloadCompiler();
 }
 
 HRESULT HLSLCompiler::CompileShader(LPCVOID pSrcData,
@@ -203,14 +203,14 @@ HRESULT HLSLCompiler::CompileShader(LPCVOID pSrcData,
 		pEntrypoint,
 		pTarget,
 		Flags1, Flags2,
-		ppCode, 
+		ppCode,
 		ppErrorMsgs);
 }
 
 HRESULT HLSLCompiler::Reflect(
-	LPCVOID bytecode, 
-	SIZE_T bytecodesize, 
-	REFIID interfaceid, 
+	LPCVOID bytecode,
+	SIZE_T bytecodesize,
+	REFIID interfaceid,
 	void** interfaceobject)
 {
 	return PD3DReflect(bytecode, bytecodesize, interfaceid, interfaceobject);
@@ -229,8 +229,8 @@ HRESULT HLSLCompiler::LoadCompiler()
 		hD3DCompilerDll = LoadLibraryA(compilerfile.c_str());
 		if (hD3DCompilerDll != nullptr)
 		{
-			NOTICE_LOG(VIDEO, 
-				"Successfully loaded %s.", 
+			NOTICE_LOG(VIDEO,
+				"Successfully loaded %s.",
 				compilerfile.c_str());
 			hr = S_OK;
 			break;
@@ -239,23 +239,23 @@ HRESULT HLSLCompiler::LoadCompiler()
 	if (FAILED(hr))
 	{
 		MessageBoxA(
-			nullptr, 
-			"Failed to load any D3DCompiler dll", 
-			"Critical error", 
+			nullptr,
+			"Failed to load any D3DCompiler dll",
+			"Critical error",
 			MB_OK | MB_ICONERROR);
 		return hr;
 	}
 	PD3DCompile = (pD3DCompile)GetProcAddress(hD3DCompilerDll, "D3DCompile");
-	if (PD3DCompile == nullptr) 
-		MessageBoxA(nullptr, 
-		"GetProcAddress failed for D3DCompile!", 
-		"Critical error",
-		MB_OK | MB_ICONERROR);
+	if (PD3DCompile == nullptr)
+		MessageBoxA(nullptr,
+			"GetProcAddress failed for D3DCompile!",
+			"Critical error",
+			MB_OK | MB_ICONERROR);
 	PD3DReflect = (D3DREFLECT)GetProcAddress(hD3DCompilerDll, "D3DReflect");
-	if (PD3DReflect == NULL) 
-		MessageBoxA(NULL, 
-		"GetProcAddress failed for D3DReflect!", 
-		"Critical error", MB_OK | MB_ICONERROR);
+	if (PD3DReflect == NULL)
+		MessageBoxA(NULL,
+			"GetProcAddress failed for D3DReflect!",
+			"Critical error", MB_OK | MB_ICONERROR);
 	return S_OK;
 }
 

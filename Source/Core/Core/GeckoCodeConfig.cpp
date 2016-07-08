@@ -15,7 +15,7 @@ namespace Gecko
 
 void LoadCodes(const IniFile& globalIni, const IniFile& localIni, std::vector<GeckoCode>& gcodes)
 {
-	const IniFile* inis[2] = { &globalIni, &localIni };
+	const IniFile* inis[2] = {&globalIni, &localIni};
 
 	for (const IniFile* ini : inis)
 	{
@@ -35,9 +35,9 @@ void LoadCodes(const IniFile& globalIni, const IniFile& localIni, std::vector<Ge
 			{
 
 				// enabled or disabled code
-			case '+' :
+			case '+':
 				ss.seekg(1);
-			case '$' :
+			case '$':
 				if (gcode.name.size())
 					gcodes.push_back(gcode);
 				gcode = GeckoCode();
@@ -57,7 +57,7 @@ void LoadCodes(const IniFile& globalIni, const IniFile& localIni, std::vector<Ge
 				break;
 
 				// either part of the code, or an option choice
-			default :
+			default:
 			{
 				GeckoCode::Code new_code;
 				// TODO: support options
@@ -65,7 +65,7 @@ void LoadCodes(const IniFile& globalIni, const IniFile& localIni, std::vector<Ge
 				ss >> std::hex >> new_code.address >> new_code.data;
 				gcode.codes.push_back(new_code);
 			}
-				break;
+			break;
 			}
 
 		}

@@ -10,7 +10,7 @@
 
 #include "Common/CommonTypes.h"
 
-class CWatchTable : public wxGridTableBase
+class CWatchTable: public wxGridTableBase
 {
 	enum
 	{
@@ -19,11 +19,16 @@ class CWatchTable : public wxGridTableBase
 
 public:
 	CWatchTable()
-	{
-	}
+	{}
 
-	int GetNumberCols() override { return 5; }
-	int GetNumberRows() override { return MAX_SPECIALS; }
+	int GetNumberCols() override
+	{
+		return 5;
+	}
+	int GetNumberRows() override
+	{
+		return MAX_SPECIALS;
+	}
 	wxString GetValue(int row, int col) override;
 	void SetValue(int row, int col, const wxString&) override;
 	wxGridCellAttr* GetAttr(int, int, wxGridCellAttr::wxAttrKind) override;
@@ -36,7 +41,7 @@ private:
 	DECLARE_NO_COPY_CLASS(CWatchTable);
 };
 
-class CWatchView : public wxGrid
+class CWatchView: public wxGrid
 {
 public:
 	CWatchView(wxWindow* parent, wxWindowID id = wxID_ANY);

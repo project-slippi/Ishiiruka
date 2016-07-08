@@ -34,7 +34,7 @@ enum GPUDeterminismMode
 	GPU_DETERMINISM_FAKE_COMPLETION,
 };
 
-struct SConfig : NonCopyable
+struct SConfig: NonCopyable
 {
 	// Wii Devices
 	bool m_WiiSDCard;
@@ -51,12 +51,12 @@ struct SConfig : NonCopyable
 
 	// Settings
 	bool bEnableDebugging;
-	#ifdef USE_GDBSTUB
+#ifdef USE_GDBSTUB
 	int iGDBPort;
-	#ifndef _WIN32
+#ifndef _WIN32
 	std::string gdb_socket;
-	#endif
-	#endif
+#endif
+#endif
 	bool bAutomaticStart;
 	bool bBootToPause;
 
@@ -180,7 +180,10 @@ struct SConfig : NonCopyable
 
 	void LoadDefaults();
 	bool AutoSetup(EBootBS2 _BootBS2);
-	const std::string &GetUniqueID() const { return m_strUniqueID; }
+	const std::string &GetUniqueID() const
+	{
+		return m_strUniqueID;
+	}
 	void CheckMemcardPath(std::string& memcardPath, const std::string& gameRegion, bool isSlotA);
 	DiscIO::IVolume::ELanguage GetCurrentLanguage(bool wii) const;
 
@@ -195,6 +198,7 @@ struct SConfig : NonCopyable
 	static std::vector<std::string> GetGameIniFilenames(const std::string& id, u16 revision);
 
 	std::string m_NANDPath;
+	std::string m_DumpPath;
 
 	std::string m_strMemoryCardA;
 	std::string m_strMemoryCardB;
@@ -286,7 +290,10 @@ struct SConfig : NonCopyable
 	void LoadSettings();
 
 	// Return the permanent and somewhat globally used instance of this struct
-	static SConfig& GetInstance() { return(*m_Instance); }
+	static SConfig& GetInstance()
+	{
+		return(*m_Instance);
+	}
 
 	static void Init();
 	static void Shutdown();

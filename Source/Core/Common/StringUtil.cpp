@@ -21,11 +21,11 @@
 #include "Common/Logging/Log.h"
 
 #ifdef _WIN32
-	#include <Windows.h>
+#include <Windows.h>
 #else
-	#include <iconv.h>
-	#include <locale.h>
-	#include <errno.h>
+#include <iconv.h>
+#include <locale.h>
+#include <errno.h>
 #endif
 
 #if !defined(_WIN32) && !defined(ANDROID)
@@ -121,13 +121,13 @@ bool CharArrayFromFormatV(char* out, int outsize, const char* format, va_list ar
 		c_locale = _create_locale(LC_ALL, "C");
 	writtenCount = _vsnprintf_l(out, outsize, format, c_locale, args);
 #else
-	#if !defined(ANDROID)
+#if !defined(ANDROID)
 	locale_t previousLocale = uselocale(GetCLocale());
-	#endif
+#endif
 	writtenCount = vsnprintf(out, outsize, format, args);
-	#if !defined(ANDROID)
+#if !defined(ANDROID)
 	uselocale(previousLocale);
-	#endif
+#endif
 #endif
 
 	if (writtenCount > 0 && writtenCount < outsize)
@@ -162,14 +162,14 @@ std::string StringFromFormatV(const char* format, va_list args)
 	std::string temp = buf;
 	delete[] buf;
 #else
-	#if !defined(ANDROID)
+#if !defined(ANDROID)
 	locale_t previousLocale = uselocale(GetCLocale());
-	#endif
+#endif
 	if (vasprintf(&buf, format, args) < 0)
 		ERROR_LOG(COMMON, "Unable to allocate memory for string");
-	#if !defined(ANDROID)
+#if !defined(ANDROID)
 	uselocale(previousLocale);
-	#endif
+#endif
 
 	std::string temp = buf;
 	free(buf);
@@ -238,7 +238,7 @@ bool TryParse(const std::string& str, u32* const output)
 
 #if ULONG_MAX > UINT_MAX
 	if (value >= 0x100000000ull &&
-	    value <= 0xFFFFFFFF00000000ull)
+		value <= 0xFFFFFFFF00000000ull)
 		return false;
 #endif
 
@@ -276,7 +276,7 @@ bool SplitPath(const std::string& full_path, std::string* _pPath, std::string* _
 		return false;
 
 	size_t dir_end = full_path.find_last_of("/"
-	// Windows needs the : included for something like just "C:" to be considered a directory
+		// Windows needs the : included for something like just "C:" to be considered a directory
 #ifdef _WIN32
 		":"
 #endif

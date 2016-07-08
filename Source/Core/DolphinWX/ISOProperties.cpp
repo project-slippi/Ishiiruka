@@ -71,30 +71,30 @@
 #include "DolphinWX/Cheats/GeckoCodeDiag.h"
 
 BEGIN_EVENT_TABLE(CISOProperties, wxDialog)
-	EVT_CLOSE(CISOProperties::OnClose)
-	EVT_BUTTON(wxID_OK, CISOProperties::OnCloseClick)
-	EVT_BUTTON(ID_EDITCONFIG, CISOProperties::OnEditConfig)
-	EVT_BUTTON(ID_MD5SUMCOMPUTE, CISOProperties::OnComputeMD5Sum)
-	EVT_BUTTON(ID_SHOWDEFAULTCONFIG, CISOProperties::OnShowDefaultConfig)
-	EVT_CHOICE(ID_EMUSTATE, CISOProperties::OnEmustateChanged)
-	EVT_LISTBOX(ID_PATCHES_LIST, CISOProperties::ListSelectionChanged)
-	EVT_BUTTON(ID_EDITPATCH, CISOProperties::PatchButtonClicked)
-	EVT_BUTTON(ID_ADDPATCH, CISOProperties::PatchButtonClicked)
-	EVT_BUTTON(ID_REMOVEPATCH, CISOProperties::PatchButtonClicked)
-	EVT_LISTBOX(ID_CHEATS_LIST, CISOProperties::ListSelectionChanged)
-	EVT_BUTTON(ID_EDITCHEAT, CISOProperties::ActionReplayButtonClicked)
-	EVT_BUTTON(ID_ADDCHEAT, CISOProperties::ActionReplayButtonClicked)
-	EVT_BUTTON(ID_REMOVECHEAT, CISOProperties::ActionReplayButtonClicked)
-	EVT_MENU(IDM_BNRSAVEAS, CISOProperties::OnBannerImageSave)
-	EVT_TREE_ITEM_RIGHT_CLICK(ID_TREECTRL, CISOProperties::OnRightClickOnTree)
-	EVT_MENU(IDM_EXTRACTFILE, CISOProperties::OnExtractFile)
-	EVT_MENU(IDM_EXTRACTDIR, CISOProperties::OnExtractDir)
-	EVT_MENU(IDM_EXTRACTALL, CISOProperties::OnExtractDir)
-	EVT_MENU(IDM_EXTRACTAPPLOADER, CISOProperties::OnExtractDataFromHeader)
-	EVT_MENU(IDM_EXTRACTDOL, CISOProperties::OnExtractDataFromHeader)
-	EVT_MENU(IDM_CHECKINTEGRITY, CISOProperties::CheckPartitionIntegrity)
-	EVT_CHOICE(ID_LANG, CISOProperties::OnChangeBannerLang)
-	EVT_CHECKLISTBOX(ID_CHEATS_LIST, CISOProperties::OnActionReplayCodeChecked)
+EVT_CLOSE(CISOProperties::OnClose)
+EVT_BUTTON(wxID_OK, CISOProperties::OnCloseClick)
+EVT_BUTTON(ID_EDITCONFIG, CISOProperties::OnEditConfig)
+EVT_BUTTON(ID_MD5SUMCOMPUTE, CISOProperties::OnComputeMD5Sum)
+EVT_BUTTON(ID_SHOWDEFAULTCONFIG, CISOProperties::OnShowDefaultConfig)
+EVT_CHOICE(ID_EMUSTATE, CISOProperties::OnEmustateChanged)
+EVT_LISTBOX(ID_PATCHES_LIST, CISOProperties::ListSelectionChanged)
+EVT_BUTTON(ID_EDITPATCH, CISOProperties::PatchButtonClicked)
+EVT_BUTTON(ID_ADDPATCH, CISOProperties::PatchButtonClicked)
+EVT_BUTTON(ID_REMOVEPATCH, CISOProperties::PatchButtonClicked)
+EVT_LISTBOX(ID_CHEATS_LIST, CISOProperties::ListSelectionChanged)
+EVT_BUTTON(ID_EDITCHEAT, CISOProperties::ActionReplayButtonClicked)
+EVT_BUTTON(ID_ADDCHEAT, CISOProperties::ActionReplayButtonClicked)
+EVT_BUTTON(ID_REMOVECHEAT, CISOProperties::ActionReplayButtonClicked)
+EVT_MENU(IDM_BNRSAVEAS, CISOProperties::OnBannerImageSave)
+EVT_TREE_ITEM_RIGHT_CLICK(ID_TREECTRL, CISOProperties::OnRightClickOnTree)
+EVT_MENU(IDM_EXTRACTFILE, CISOProperties::OnExtractFile)
+EVT_MENU(IDM_EXTRACTDIR, CISOProperties::OnExtractDir)
+EVT_MENU(IDM_EXTRACTALL, CISOProperties::OnExtractDir)
+EVT_MENU(IDM_EXTRACTAPPLOADER, CISOProperties::OnExtractDataFromHeader)
+EVT_MENU(IDM_EXTRACTDOL, CISOProperties::OnExtractDataFromHeader)
+EVT_MENU(IDM_CHECKINTEGRITY, CISOProperties::CheckPartitionIntegrity)
+EVT_CHOICE(ID_LANG, CISOProperties::OnChangeBannerLang)
+EVT_CHECKLISTBOX(ID_CHEATS_LIST, CISOProperties::OnActionReplayCodeChecked)
 END_EVENT_TABLE()
 
 CISOProperties::CISOProperties(const GameListItem& game_list_item, wxWindow* parent, wxWindowID id, const wxString& title, const wxPoint& position, const wxSize& size, long style)
@@ -232,8 +232,7 @@ CISOProperties::CISOProperties(const GameListItem& game_list_item, wxWindow* par
 }
 
 CISOProperties::~CISOProperties()
-{
-}
+{}
 
 size_t CISOProperties::CreateDirectoryTree(wxTreeItemId& parent, const std::vector<DiscIO::SFileInfo>& fileInfos)
 {
@@ -244,9 +243,9 @@ size_t CISOProperties::CreateDirectoryTree(wxTreeItemId& parent, const std::vect
 }
 
 size_t CISOProperties::CreateDirectoryTree(wxTreeItemId& parent,
-		const std::vector<DiscIO::SFileInfo>& fileInfos,
-		const size_t _FirstIndex,
-		const size_t _LastIndex)
+	const std::vector<DiscIO::SFileInfo>& fileInfos,
+	const size_t _FirstIndex,
+	const size_t _LastIndex)
 {
 	size_t CurrentIndex = _FirstIndex;
 
@@ -291,7 +290,7 @@ long CISOProperties::GetElementStyle(const char* section, const char* key)
 	if (GameIniDefault.Exists(section, key))
 		return 0;
 
-	return wxCHK_3STATE|wxCHK_ALLOW_3RD_STATE_FOR_USER;
+	return wxCHK_3STATE | wxCHK_ALLOW_3RD_STATE_FOR_USER;
 }
 
 void CISOProperties::CreateGUIControls()
@@ -390,7 +389,7 @@ void CISOProperties::CreateGUIControls()
 	sbCoreOverrides->Add(SyncGPU, 0, wxLEFT, 5);
 	sbCoreOverrides->Add(FastDiscSpeed, 0, wxLEFT, 5);
 	sbCoreOverrides->Add(DSPHLE, 0, wxLEFT, 5);
-	sbCoreOverrides->Add(sGPUDeterminism, 0, wxEXPAND|wxALL, 5);
+	sbCoreOverrides->Add(sGPUDeterminism, 0, wxEXPAND | wxALL, 5);
 
 	wxStaticBoxSizer * const sbWiiOverrides = new wxStaticBoxSizer(wxVERTICAL, m_GameConfig, _("Wii Console"));
 	if (m_open_iso->GetVolumeType() == DiscIO::IVolume::GAMECUBE_DISC)
@@ -407,15 +406,15 @@ void CISOProperties::CreateGUIControls()
 	sbStereoOverrides->Add(MonoDepth);
 
 	wxStaticBoxSizer * const sbGameConfig = new wxStaticBoxSizer(wxVERTICAL, m_GameConfig, _("Game-Specific Settings"));
-	sbGameConfig->Add(OverrideText, 0, wxEXPAND|wxALL, 5);
+	sbGameConfig->Add(OverrideText, 0, wxEXPAND | wxALL, 5);
 	sbGameConfig->Add(sbCoreOverrides, 0, wxEXPAND);
 	sbGameConfig->Add(sbWiiOverrides, 0, wxEXPAND);
 	sbGameConfig->Add(sbStereoOverrides, 0, wxEXPAND);
-	sConfigPage->Add(sbGameConfig, 0, wxEXPAND|wxALL, 5);
+	sConfigPage->Add(sbGameConfig, 0, wxEXPAND | wxALL, 5);
 	sEmuState->Add(EmuStateText, 0, wxALIGN_CENTER_VERTICAL);
 	sEmuState->Add(EmuState, 0, wxEXPAND);
 	sEmuState->Add(EmuIssues, 1, wxEXPAND);
-	sConfigPage->Add(sEmuState, 0, wxEXPAND|wxALL, 5);
+	sConfigPage->Add(sEmuState, 0, wxEXPAND | wxALL, 5);
 	m_GameConfig->SetSizer(sConfigPage);
 
 
@@ -430,13 +429,13 @@ void CISOProperties::CreateGUIControls()
 	RemovePatch->Disable();
 
 	wxBoxSizer* sPatchPage = new wxBoxSizer(wxVERTICAL);
-	sPatches->Add(Patches, 1, wxEXPAND|wxALL, 0);
-	sPatchButtons->Add(EditPatch,  0, wxEXPAND|wxALL, 0);
+	sPatches->Add(Patches, 1, wxEXPAND | wxALL, 0);
+	sPatchButtons->Add(EditPatch, 0, wxEXPAND | wxALL, 0);
 	sPatchButtons->AddStretchSpacer();
-	sPatchButtons->Add(AddPatch,  0, wxEXPAND|wxALL, 0);
-	sPatchButtons->Add(RemovePatch,  0, wxEXPAND|wxALL, 0);
-	sPatches->Add(sPatchButtons, 0, wxEXPAND|wxALL, 0);
-	sPatchPage->Add(sPatches, 1, wxEXPAND|wxALL, 5);
+	sPatchButtons->Add(AddPatch, 0, wxEXPAND | wxALL, 0);
+	sPatchButtons->Add(RemovePatch, 0, wxEXPAND | wxALL, 0);
+	sPatches->Add(sPatchButtons, 0, wxEXPAND | wxALL, 0);
+	sPatchPage->Add(sPatches, 1, wxEXPAND | wxALL, 5);
 	m_PatchPage->SetSizer(sPatchPage);
 
 
@@ -451,13 +450,13 @@ void CISOProperties::CreateGUIControls()
 	RemoveCheat->Disable();
 
 	wxBoxSizer* sCheatPage = new wxBoxSizer(wxVERTICAL);
-	sCheats->Add(Cheats, 1, wxEXPAND|wxALL, 0);
-	sCheatButtons->Add(EditCheat,  0, wxEXPAND|wxALL, 0);
+	sCheats->Add(Cheats, 1, wxEXPAND | wxALL, 0);
+	sCheatButtons->Add(EditCheat, 0, wxEXPAND | wxALL, 0);
 	sCheatButtons->AddStretchSpacer();
-	sCheatButtons->Add(AddCheat,  0, wxEXPAND|wxALL, 0);
-	sCheatButtons->Add(RemoveCheat,  0, wxEXPAND|wxALL, 0);
-	sCheats->Add(sCheatButtons, 0, wxEXPAND|wxALL, 0);
-	sCheatPage->Add(sCheats, 1, wxEXPAND|wxALL, 5);
+	sCheatButtons->Add(AddCheat, 0, wxEXPAND | wxALL, 0);
+	sCheatButtons->Add(RemoveCheat, 0, wxEXPAND | wxALL, 0);
+	sCheats->Add(sCheatButtons, 0, wxEXPAND | wxALL, 0);
+	sCheatPage->Add(sCheats, 1, wxEXPAND | wxALL, 5);
 	m_CheatPage->SetSizer(sCheatPage);
 
 
@@ -539,31 +538,31 @@ void CISOProperties::CreateGUIControls()
 	wxStaticText* const m_MakerText = new wxStaticText(m_Information, wxID_ANY, _("Maker:"));
 	m_Maker = new wxTextCtrl(m_Information, ID_MAKER, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxTE_READONLY);
 	wxStaticText* const m_CommentText = new wxStaticText(m_Information, wxID_ANY, _("Description:"));
-	m_Comment = new wxTextCtrl(m_Information, ID_COMMENT, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxTE_MULTILINE|wxTE_READONLY);
+	m_Comment = new wxTextCtrl(m_Information, ID_COMMENT, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxTE_MULTILINE | wxTE_READONLY);
 	wxStaticText* const m_BannerText = new wxStaticText(m_Information, wxID_ANY, _("Banner:"));
 	m_Banner = new wxStaticBitmap(m_Information, ID_BANNER, wxNullBitmap, wxDefaultPosition, wxSize(96, 32));
 
 	// ISO Details
 	wxGridBagSizer* const sISODetails = new wxGridBagSizer(0, 0);
-	sISODetails->Add(m_InternalNameText, wxGBPosition(0, 0), wxGBSpan(1, 1), wxALIGN_CENTER_VERTICAL|wxALL, 5);
-	sISODetails->Add(m_InternalName, wxGBPosition(0, 1), wxGBSpan(1, 2), wxEXPAND|wxALL, 5);
-	sISODetails->Add(m_GameIDText, wxGBPosition(1, 0), wxGBSpan(1, 1), wxALIGN_CENTER_VERTICAL|wxALL, 5);
-	sISODetails->Add(m_GameID, wxGBPosition(1, 1), wxGBSpan(1, 2), wxEXPAND|wxALL, 5);
-	sISODetails->Add(m_CountryText, wxGBPosition(2, 0), wxGBSpan(1, 1), wxALIGN_CENTER_VERTICAL|wxALL, 5);
-	sISODetails->Add(m_Country, wxGBPosition(2, 1), wxGBSpan(1, 2), wxEXPAND|wxALL, 5);
-	sISODetails->Add(m_MakerIDText, wxGBPosition(3, 0), wxGBSpan(1, 1), wxALIGN_CENTER_VERTICAL|wxALL, 5);
-	sISODetails->Add(m_MakerID, wxGBPosition(3, 1), wxGBSpan(1, 2), wxEXPAND|wxALL, 5);
-	sISODetails->Add(m_RevisionText, wxGBPosition(4, 0), wxGBSpan(1, 1), wxALIGN_CENTER_VERTICAL|wxALL, 5);
-	sISODetails->Add(m_Revision, wxGBPosition(4, 1), wxGBSpan(1, 2), wxEXPAND|wxALL, 5);
-	sISODetails->Add(m_DateText, wxGBPosition(5, 0), wxGBSpan(1, 1), wxALIGN_CENTER_VERTICAL|wxALL, 5);
-	sISODetails->Add(m_Date, wxGBPosition(5, 1), wxGBSpan(1, 2), wxEXPAND|wxALL, 5);
-	sISODetails->Add(m_FSTText, wxGBPosition(6, 0), wxGBSpan(1, 1), wxALIGN_CENTER_VERTICAL|wxALL, 5);
-	sISODetails->Add(m_FST, wxGBPosition(6, 1), wxGBSpan(1, 2), wxEXPAND|wxALL, 5);
-	sISODetails->Add(m_MD5SumText, wxGBPosition(7, 0), wxGBSpan(1, 1), wxALIGN_CENTER_VERTICAL|wxALL, 5);
-	sISODetails->Add(m_MD5Sum, wxGBPosition(7, 1), wxGBSpan(1, 1), wxEXPAND|wxALL, 5);
+	sISODetails->Add(m_InternalNameText, wxGBPosition(0, 0), wxGBSpan(1, 1), wxALIGN_CENTER_VERTICAL | wxALL, 5);
+	sISODetails->Add(m_InternalName, wxGBPosition(0, 1), wxGBSpan(1, 2), wxEXPAND | wxALL, 5);
+	sISODetails->Add(m_GameIDText, wxGBPosition(1, 0), wxGBSpan(1, 1), wxALIGN_CENTER_VERTICAL | wxALL, 5);
+	sISODetails->Add(m_GameID, wxGBPosition(1, 1), wxGBSpan(1, 2), wxEXPAND | wxALL, 5);
+	sISODetails->Add(m_CountryText, wxGBPosition(2, 0), wxGBSpan(1, 1), wxALIGN_CENTER_VERTICAL | wxALL, 5);
+	sISODetails->Add(m_Country, wxGBPosition(2, 1), wxGBSpan(1, 2), wxEXPAND | wxALL, 5);
+	sISODetails->Add(m_MakerIDText, wxGBPosition(3, 0), wxGBSpan(1, 1), wxALIGN_CENTER_VERTICAL | wxALL, 5);
+	sISODetails->Add(m_MakerID, wxGBPosition(3, 1), wxGBSpan(1, 2), wxEXPAND | wxALL, 5);
+	sISODetails->Add(m_RevisionText, wxGBPosition(4, 0), wxGBSpan(1, 1), wxALIGN_CENTER_VERTICAL | wxALL, 5);
+	sISODetails->Add(m_Revision, wxGBPosition(4, 1), wxGBSpan(1, 2), wxEXPAND | wxALL, 5);
+	sISODetails->Add(m_DateText, wxGBPosition(5, 0), wxGBSpan(1, 1), wxALIGN_CENTER_VERTICAL | wxALL, 5);
+	sISODetails->Add(m_Date, wxGBPosition(5, 1), wxGBSpan(1, 2), wxEXPAND | wxALL, 5);
+	sISODetails->Add(m_FSTText, wxGBPosition(6, 0), wxGBSpan(1, 1), wxALIGN_CENTER_VERTICAL | wxALL, 5);
+	sISODetails->Add(m_FST, wxGBPosition(6, 1), wxGBSpan(1, 2), wxEXPAND | wxALL, 5);
+	sISODetails->Add(m_MD5SumText, wxGBPosition(7, 0), wxGBSpan(1, 1), wxALIGN_CENTER_VERTICAL | wxALL, 5);
+	sISODetails->Add(m_MD5Sum, wxGBPosition(7, 1), wxGBSpan(1, 1), wxEXPAND | wxALL, 5);
 	wxSizer* sMD5SumButtonSizer = CreateButtonSizer(wxNO_DEFAULT);
 	sMD5SumButtonSizer->Add(m_MD5SumCompute);
-	sISODetails->Add(sMD5SumButtonSizer, wxGBPosition(7, 2), wxGBSpan(1, 1), wxEXPAND|wxALL, 5);
+	sISODetails->Add(sMD5SumButtonSizer, wxGBPosition(7, 2), wxGBSpan(1, 1), wxEXPAND | wxALL, 5);
 
 	sISODetails->AddGrowableCol(1);
 	wxStaticBoxSizer* const sbISODetails =
@@ -572,24 +571,24 @@ void CISOProperties::CreateGUIControls()
 
 	// Banner Details
 	wxGridBagSizer* const sBannerDetails = new wxGridBagSizer(0, 0);
-	sBannerDetails->Add(m_LangText, wxGBPosition(0, 0), wxGBSpan(1, 1), wxALIGN_CENTER_VERTICAL|wxALL, 5);
-	sBannerDetails->Add(m_Lang, wxGBPosition(0, 1), wxGBSpan(1, 1), wxEXPAND|wxALL, 5);
-	sBannerDetails->Add(m_NameText, wxGBPosition(1, 0), wxGBSpan(1, 1), wxALIGN_CENTER_VERTICAL|wxALL, 5);
-	sBannerDetails->Add(m_Name, wxGBPosition(1, 1), wxGBSpan(1, 1), wxEXPAND|wxALL, 5);
-	sBannerDetails->Add(m_MakerText, wxGBPosition(2, 0), wxGBSpan(1, 1), wxALIGN_CENTER_VERTICAL|wxALL, 5);
-	sBannerDetails->Add(m_Maker, wxGBPosition(2, 1), wxGBSpan(1, 1), wxEXPAND|wxALL, 5);
+	sBannerDetails->Add(m_LangText, wxGBPosition(0, 0), wxGBSpan(1, 1), wxALIGN_CENTER_VERTICAL | wxALL, 5);
+	sBannerDetails->Add(m_Lang, wxGBPosition(0, 1), wxGBSpan(1, 1), wxEXPAND | wxALL, 5);
+	sBannerDetails->Add(m_NameText, wxGBPosition(1, 0), wxGBSpan(1, 1), wxALIGN_CENTER_VERTICAL | wxALL, 5);
+	sBannerDetails->Add(m_Name, wxGBPosition(1, 1), wxGBSpan(1, 1), wxEXPAND | wxALL, 5);
+	sBannerDetails->Add(m_MakerText, wxGBPosition(2, 0), wxGBSpan(1, 1), wxALIGN_CENTER_VERTICAL | wxALL, 5);
+	sBannerDetails->Add(m_Maker, wxGBPosition(2, 1), wxGBSpan(1, 1), wxEXPAND | wxALL, 5);
 	sBannerDetails->Add(m_CommentText, wxGBPosition(3, 0), wxGBSpan(1, 1), wxALL, 5);
-	sBannerDetails->Add(m_Comment, wxGBPosition(3, 1), wxGBSpan(1, 1), wxEXPAND|wxALL, 5);
+	sBannerDetails->Add(m_Comment, wxGBPosition(3, 1), wxGBSpan(1, 1), wxEXPAND | wxALL, 5);
 	sBannerDetails->Add(m_BannerText, wxGBPosition(4, 0), wxGBSpan(1, 1), wxALL, 5);
-	sBannerDetails->Add(m_Banner, wxGBPosition(4, 1), wxGBSpan(1, 1), wxEXPAND|wxALL, 5);
+	sBannerDetails->Add(m_Banner, wxGBPosition(4, 1), wxGBSpan(1, 1), wxEXPAND | wxALL, 5);
 	sBannerDetails->AddGrowableCol(1);
 	wxStaticBoxSizer* const sbBannerDetails =
 		new wxStaticBoxSizer(wxVERTICAL, m_Information, _("Banner Details"));
 	sbBannerDetails->Add(sBannerDetails, 0, wxEXPAND, 5);
 
 	wxBoxSizer* const sInfoPage = new wxBoxSizer(wxVERTICAL);
-	sInfoPage->Add(sbISODetails, 0, wxEXPAND|wxALL, 5);
-	sInfoPage->Add(sbBannerDetails, 0, wxEXPAND|wxALL, 5);
+	sInfoPage->Add(sbISODetails, 0, wxEXPAND | wxALL, 5);
+	sInfoPage->Add(sbBannerDetails, 0, wxEXPAND | wxALL, 5);
 	m_Information->SetSizer(sInfoPage);
 
 	if (m_open_iso->GetVolumeType() != DiscIO::IVolume::WII_WAD)
@@ -609,7 +608,7 @@ void CISOProperties::CreateGUIControls()
 		RootId = m_Treectrl->AddRoot(_("Disc"), 0, 0, nullptr);
 
 		wxBoxSizer* sTreePage = new wxBoxSizer(wxVERTICAL);
-		sTreePage->Add(m_Treectrl, 1, wxEXPAND|wxALL, 5);
+		sTreePage->Add(m_Treectrl, 1, wxEXPAND | wxALL, 5);
 		filesystem_panel->SetSizer(sTreePage);
 	}
 
@@ -633,8 +632,8 @@ void CISOProperties::CreateGUIControls()
 
 	// Add notebook and buttons to the dialog
 	wxBoxSizer* sMain = new wxBoxSizer(wxVERTICAL);
-	sMain->Add(m_Notebook, 1, wxEXPAND|wxALL, 5);
-	sMain->Add(sButtons, 0, wxEXPAND|wxLEFT|wxRIGHT|wxBOTTOM, 5);
+	sMain->Add(m_Notebook, 1, wxEXPAND | wxALL, 5);
+	sMain->Add(sButtons, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 5);
 	sMain->SetMinSize(wxSize(500, -1));
 
 	SetSizerAndFit(sMain);
@@ -642,14 +641,14 @@ void CISOProperties::CreateGUIControls()
 	SetFocus();
 }
 
-void CISOProperties::OnClose(wxCloseEvent& WXUNUSED (event))
+void CISOProperties::OnClose(wxCloseEvent& WXUNUSED(event))
 {
 	if (!SaveGameConfig())
 		WxUtils::ShowErrorDialog(wxString::Format(_("Could not save %s."), GameIniFileLocal.c_str()));
 	Destroy();
 }
 
-void CISOProperties::OnCloseClick(wxCommandEvent& WXUNUSED (event))
+void CISOProperties::OnCloseClick(wxCommandEvent& WXUNUSED(event))
 {
 	Close();
 }
@@ -663,12 +662,12 @@ void CISOProperties::RightClickOnBanner(wxMouseEvent& event)
 	event.Skip();
 }
 
-void CISOProperties::OnBannerImageSave(wxCommandEvent& WXUNUSED (event))
+void CISOProperties::OnBannerImageSave(wxCommandEvent& WXUNUSED(event))
 {
 	wxString dirHome;
 
 	wxFileDialog dialog(this, _("Save as..."), wxGetHomeDir(&dirHome), wxString::Format("%s.png", m_GameID->GetValue().c_str()),
-		wxALL_FILES_PATTERN, wxFD_SAVE|wxFD_OVERWRITE_PROMPT);
+		wxALL_FILES_PATTERN, wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
 	if (dialog.ShowModal() == wxID_OK)
 	{
 		m_Banner->GetBitmap().ConvertToImage().SaveFile(dialog.GetPath());
@@ -683,7 +682,7 @@ void CISOProperties::OnRightClickOnTree(wxTreeEvent& event)
 	wxMenu popupMenu;
 
 	if (m_Treectrl->GetItemImage(m_Treectrl->GetSelection()) == 0 &&
-	    m_Treectrl->GetFirstVisibleItem() != m_Treectrl->GetSelection())
+		m_Treectrl->GetFirstVisibleItem() != m_Treectrl->GetSelection())
 	{
 		popupMenu.Append(IDM_EXTRACTDIR, _("Extract Partition..."));
 	}
@@ -700,7 +699,7 @@ void CISOProperties::OnRightClickOnTree(wxTreeEvent& event)
 
 	if (m_open_iso->GetVolumeType() != DiscIO::IVolume::WII_DISC ||
 		(m_Treectrl->GetItemImage(m_Treectrl->GetSelection()) == 0 &&
-		m_Treectrl->GetFirstVisibleItem() != m_Treectrl->GetSelection()))
+			m_Treectrl->GetFirstVisibleItem() != m_Treectrl->GetSelection()))
 	{
 		popupMenu.AppendSeparator();
 		popupMenu.Append(IDM_EXTRACTAPPLOADER, _("Extract Apploader..."));
@@ -719,7 +718,7 @@ void CISOProperties::OnRightClickOnTree(wxTreeEvent& event)
 	event.Skip();
 }
 
-void CISOProperties::OnExtractFile(wxCommandEvent& WXUNUSED (event))
+void CISOProperties::OnExtractFile(wxCommandEvent& WXUNUSED(event))
 {
 	wxString File = m_Treectrl->GetItemText(m_Treectrl->GetSelection());
 
@@ -787,7 +786,7 @@ void CISOProperties::ExportDir(const std::string& _rFullPath, const std::string&
 			}
 		}
 
-		DEBUG_LOG(DISCIO,"Directory found from %u to %u\nextracting to:\n%s", index , size, _rExportFolder.c_str());
+		DEBUG_LOG(DISCIO, "Directory found from %u to %u\nextracting to:\n%s", index, size, _rExportFolder.c_str());
 	}
 
 	wxString dialogTitle = (index != 0) ? _("Extracting Directory") : _("Extracting All Files");
@@ -799,7 +798,7 @@ void CISOProperties::ExportDir(const std::string& _rFullPath, const std::string&
 		wxPD_APP_MODAL | wxPD_AUTO_HIDE | wxPD_CAN_ABORT |
 		wxPD_ELAPSED_TIME | wxPD_ESTIMATED_TIME | wxPD_REMAINING_TIME |
 		wxPD_SMOOTH
-		);
+	);
 
 	// Extraction
 	for (u32 i = index; i < size; i++)
@@ -931,7 +930,7 @@ void CISOProperties::OnExtractDataFromHeader(wxCommandEvent& event)
 		WxUtils::ShowErrorDialog(wxString::Format(_("Failed to extract to %s!"), WxStrToStr(Path).c_str()));
 }
 
-class IntegrityCheckThread : public wxThread
+class IntegrityCheckThread: public wxThread
 {
 public:
 	IntegrityCheckThread(const WiiPartition& Partition)
@@ -976,15 +975,15 @@ void CISOProperties::CheckPartitionIntegrity(wxCommandEvent& event)
 	{
 		wxMessageBox(
 			wxString::Format(_("Integrity check for %s failed. The disc image is most "
-			                   "likely corrupted or has been patched incorrectly."),
-			                 m_Treectrl->GetItemText(m_Treectrl->GetSelection())),
+				"likely corrupted or has been patched incorrectly."),
+				m_Treectrl->GetItemText(m_Treectrl->GetSelection())),
 			_("Integrity Check Error"), wxOK | wxICON_ERROR, this
 		);
 	}
 	else
 	{
 		wxMessageBox(_("Integrity check completed. No errors have been found."),
-					 _("Integrity check completed"), wxOK | wxICON_INFORMATION, this);
+			_("Integrity check completed"), wxOK | wxICON_INFORMATION, this);
 	}
 }
 
@@ -1114,7 +1113,7 @@ bool CISOProperties::SaveGameConfig()
 	SaveGameIniValueFrom3StateCheckbox("Wii", "Widescreen", EnableWideScreen);
 	SaveGameIniValueFrom3StateCheckbox("Video_Stereoscopy", "StereoEFBMonoDepth", MonoDepth);
 
-	#define SAVE_IF_NOT_DEFAULT(section, key, val, def) do { \
+#define SAVE_IF_NOT_DEFAULT(section, key, val, def) do { \
 		if (GameIniDefault.Exists((section), (key))) { \
 			std::remove_reference<decltype((val))>::type tmp__; \
 			GameIniDefault.GetOrCreateSection((section))->Get((key), &tmp__); \
@@ -1174,8 +1173,8 @@ void CISOProperties::LaunchExternalEditor(const std::string& filename, bool wait
 #ifdef __APPLE__
 	// wxTheMimeTypesManager is not yet implemented for wxCocoa
 	[[NSWorkspace sharedWorkspace] openFile:
-		[NSString stringWithUTF8String: filename.c_str()]
-		withApplication: @"TextEdit"];
+	[NSString stringWithUTF8String : filename.c_str()]
+	withApplication : @"TextEdit"];
 #else
 	wxFileType* filetype = wxTheMimeTypesManager->GetFileTypeFromExtension("ini");
 	if (filetype == nullptr) // From extension failed, trying with MIME type now
@@ -1228,7 +1227,7 @@ void CISOProperties::OnLocalIniModified(wxCommandEvent& ev)
 	LoadGameConfig();
 }
 
-void CISOProperties::OnEditConfig(wxCommandEvent& WXUNUSED (event))
+void CISOProperties::OnEditConfig(wxCommandEvent& WXUNUSED(event))
 {
 	SaveGameConfig();
 	// Create blank file to prevent editor from prompting to create it.
@@ -1241,7 +1240,7 @@ void CISOProperties::OnEditConfig(wxCommandEvent& WXUNUSED (event))
 	GenerateLocalIniModified();
 }
 
-void CISOProperties::OnComputeMD5Sum(wxCommandEvent& WXUNUSED (event))
+void CISOProperties::OnComputeMD5Sum(wxCommandEvent& WXUNUSED(event))
 {
 	u8 output[16];
 	std::string output_string;
@@ -1260,11 +1259,11 @@ void CISOProperties::OnComputeMD5Sum(wxCommandEvent& WXUNUSED (event))
 		wxPD_APP_MODAL | wxPD_CAN_ABORT |
 		wxPD_ELAPSED_TIME | wxPD_ESTIMATED_TIME | wxPD_REMAINING_TIME |
 		wxPD_SMOOTH
-		);
+	);
 
 	mbedtls_md5_starts(&ctx);
 
-	while(read_offset < game_size)
+	while (read_offset < game_size)
 	{
 		if (!progressDialog.Update((int)((double)read_offset / (double)game_size * 1000)))
 			return;
@@ -1288,7 +1287,7 @@ void CISOProperties::OnComputeMD5Sum(wxCommandEvent& WXUNUSED (event))
 
 // Opens all pre-defined INIs for the game. If there are multiple ones,
 // they will all be opened, but there is usually only one
-void CISOProperties::OnShowDefaultConfig(wxCommandEvent& WXUNUSED (event))
+void CISOProperties::OnShowDefaultConfig(wxCommandEvent& WXUNUSED(event))
 {
 	for (const std::string& filename : SConfig::GetGameIniFilenames(game_id, m_open_iso->GetRevision()))
 	{
@@ -1304,7 +1303,7 @@ void CISOProperties::ListSelectionChanged(wxCommandEvent& event)
 	{
 	case ID_PATCHES_LIST:
 		if (Patches->GetSelection() == wxNOT_FOUND ||
-		    DefaultPatches.find(Patches->GetString(Patches->GetSelection()).ToStdString()) != DefaultPatches.end())
+			DefaultPatches.find(Patches->GetString(Patches->GetSelection()).ToStdString()) != DefaultPatches.end())
 		{
 			EditPatch->Disable();
 			RemovePatch->Disable();
@@ -1317,7 +1316,7 @@ void CISOProperties::ListSelectionChanged(wxCommandEvent& event)
 		break;
 	case ID_CHEATS_LIST:
 		if (Cheats->GetSelection() == wxNOT_FOUND ||
-		    DefaultCheats.find(Cheats->RemoveMnemonics(Cheats->GetString(Cheats->GetSelection())).ToStdString()) != DefaultCheats.end())
+			DefaultCheats.find(Cheats->RemoveMnemonics(Cheats->GetString(Cheats->GetSelection())).ToStdString()) != DefaultCheats.end())
 		{
 			EditCheat->Disable();
 			RemoveCheat->Disable();
@@ -1387,14 +1386,14 @@ void CISOProperties::PatchButtonClicked(wxCommandEvent& event)
 	switch (event.GetId())
 	{
 	case ID_EDITPATCH:
-		{
+	{
 		CPatchAddEdit dlg(selection, &onFrame, this);
 		dlg.ShowModal();
 		Raise();
-		}
-		break;
+	}
+	break;
 	case ID_ADDPATCH:
-		{
+	{
 		CPatchAddEdit dlg(-1, &onFrame, this, 1, _("Add Patch"));
 		int res = dlg.ShowModal();
 		Raise();
@@ -1403,8 +1402,8 @@ void CISOProperties::PatchButtonClicked(wxCommandEvent& event)
 			Patches->Append(StrToWxStr(onFrame.back().name));
 			Patches->Check((unsigned int)(onFrame.size() - 1), onFrame.back().active);
 		}
-		}
-		break;
+	}
+	break;
 	case ID_REMOVEPATCH:
 		onFrame.erase(onFrame.begin() + Patches->GetSelection());
 		Patches->Delete(Patches->GetSelection());
@@ -1448,24 +1447,24 @@ void CISOProperties::ActionReplayButtonClicked(wxCommandEvent& event)
 	switch (event.GetId())
 	{
 	case ID_EDITCHEAT:
-		{
+	{
 		CARCodeAddEdit dlg(selection, &arCodes, this);
 		dlg.ShowModal();
 		Raise();
-		}
-		break;
+	}
+	break;
 	case ID_ADDCHEAT:
+	{
+		CARCodeAddEdit dlg(-1, &arCodes, this, 1, _("Add ActionReplay Code"));
+		int res = dlg.ShowModal();
+		Raise();
+		if (res == wxID_OK)
 		{
-			CARCodeAddEdit dlg(-1, &arCodes, this, 1, _("Add ActionReplay Code"));
-			int res = dlg.ShowModal();
-			Raise();
-			if (res == wxID_OK)
-			{
-				Cheats->Append(StrToWxStr(arCodes.back().name));
-				Cheats->Check((unsigned int)(arCodes.size() - 1), arCodes.back().active);
-			}
+			Cheats->Append(StrToWxStr(arCodes.back().name));
+			Cheats->Check((unsigned int)(arCodes.size() - 1), arCodes.back().active);
 		}
-		break;
+	}
+	break;
 	case ID_REMOVECHEAT:
 		arCodes.erase(arCodes.begin() + Cheats->GetSelection());
 		Cheats->Delete(Cheats->GetSelection());

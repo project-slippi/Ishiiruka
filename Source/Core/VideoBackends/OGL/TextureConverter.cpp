@@ -70,7 +70,7 @@ static void CreatePrograms()
 	 *     The current implementation Centers both UV channels at the same place
 	 *     inbetween the two Pixels, and only blurs over these two pixels.
 	 */
-	// Output is BGRA because that is slightly faster than RGBA.
+	 // Output is BGRA because that is slightly faster than RGBA.
 	const char *VProgramRgbToYuyv =
 		"out vec2 uv0;\n"
 		"uniform vec4 copy_position;\n" // left, top, right, bottom
@@ -119,7 +119,7 @@ static void CreatePrograms()
 		"void main()\n"
 		"{\n"
 		"	ivec2 uv = ivec2(gl_FragCoord.xy);\n"
-			// We switch top/bottom here. TODO: move this to screen blit.
+		// We switch top/bottom here. TODO: move this to screen blit.
 		"	ivec2 ts = textureSize(samp9, 0);\n"
 		"	vec4 c0 = texelFetch(samp9, ivec2(uv.x>>1, ts.y-uv.y-1), 0);\n"
 		"	float y = mix(c0.r, c0.b, (uv.x & 1) == 1);\n"

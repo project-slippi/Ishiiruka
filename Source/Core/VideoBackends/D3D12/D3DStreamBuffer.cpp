@@ -12,7 +12,7 @@
 namespace DX12
 {
 
-D3DStreamBuffer::D3DStreamBuffer(size_t initial_size, size_t max_size, bool* buffer_reallocation_notification) :
+D3DStreamBuffer::D3DStreamBuffer(size_t initial_size, size_t max_size, bool* buffer_reallocation_notification):
 	m_buffer_size(initial_size),
 	m_buffer_max_size(max_size),
 	m_buffer_reallocation_notification(buffer_reallocation_notification)
@@ -28,7 +28,7 @@ D3DStreamBuffer::D3DStreamBuffer(size_t initial_size, size_t max_size, bool* buf
 D3DStreamBuffer::~D3DStreamBuffer()
 {
 	D3D::command_list_mgr->RemoveQueueFenceCallback(this);
-	D3D12_RANGE write_range = { 0, m_buffer_size };
+	D3D12_RANGE write_range = {0, m_buffer_size};
 	m_buffer->Unmap(0, &write_range);
 	D3D::command_list_mgr->DestroyResourceAfterCurrentCommandListExecuted(m_buffer.Detach());
 }
@@ -94,7 +94,7 @@ void D3DStreamBuffer::AllocateBuffer(size_t size)
 	// First, put existing buffer (if it exists) in deferred destruction list.
 	if (m_buffer)
 	{
-		D3D12_RANGE write_range = { 0, m_buffer_size };
+		D3D12_RANGE write_range = {0, m_buffer_size};
 		m_buffer->Unmap(0, &write_range);
 		D3D::command_list_mgr->DestroyResourceAfterCurrentCommandListExecuted(m_buffer.Detach());
 	}
@@ -107,9 +107,9 @@ void D3DStreamBuffer::AllocateBuffer(size_t size)
 			D3D12_RESOURCE_STATE_GENERIC_READ,
 			nullptr,
 			IID_PPV_ARGS(m_buffer.ReleaseAndGetAddressOf())
-			)
-		);
-	
+		)
+	);
+
 	D3D12_RANGE read_range = {};
 	CheckHR(m_buffer->Map(0, &read_range, &m_buffer_cpu_address));
 
@@ -337,7 +337,7 @@ void D3DStreamBuffer::QueueFence(UINT64 fence_value)
 	}
 	if (add_to_queue)
 	{
-		FenceTrackingInformation tracking_information = { fence_value , m_buffer_offset };
+		FenceTrackingInformation tracking_information = {fence_value , m_buffer_offset};
 		m_queued_fences.emplace_back(std::move(tracking_information));
 	}
 }

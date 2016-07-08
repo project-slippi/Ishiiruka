@@ -15,8 +15,7 @@ public:
 	float x, y, z;
 
 	Vec3()
-	{
-	}
+	{}
 
 	explicit Vec3(float f)
 	{
@@ -92,8 +91,8 @@ public:
 	float operator*(const Vec3 &other) const
 	{
 		return (x * other.x) +
-		       (y * other.y) +
-		       (z * other.z);
+			(y * other.y) +
+			(z * other.z);
 	}
 
 	void operator*=(const float f)
@@ -109,8 +108,8 @@ public:
 	Vec3 operator%(const Vec3 &v) const
 	{
 		return Vec3((y * v.z) - (z * v.y),
-		            (z * v.x) - (x * v.z),
-		            (x * v.y) - (y * v.x));
+			(z * v.x) - (x * v.z),
+			(x * v.y) - (y * v.x));
 	}
 
 	float Length2() const

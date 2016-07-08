@@ -18,7 +18,7 @@
 #include "VideoCommon/VideoConfig.h"
 
 static char text[VERTEXSHADERGEN_BUFFERSIZE];
-static const char *texOffsetMemberSelector[] = { "x", "y", "z", "w" };
+static const char *texOffsetMemberSelector[] = {"x", "y", "z", "w"};
 
 void GetVertexShaderUID(VertexShaderUid& out, u32 components, const XFMemory &xfr, const BPMemory &bpm)
 {
@@ -237,7 +237,7 @@ inline void GenerateVertexShader(ShaderCode& out, const vertex_shader_uid_data& 
 	{
 		out.Write("int normidx = posmtx >= 32 ? (posmtx-32) : posmtx;\n");
 		out.Write("float3 N0 = " I_NORMALMATRICES"[normidx].xyz, N1 = " I_NORMALMATRICES"[normidx+1].xyz, N2 = " I_NORMALMATRICES"[normidx+2].xyz;\n");
-		
+
 		if (components & VB_HAS_NRM0)
 			out.Write("float3 _norm0 = normalize(float3(dot(N0, rawnorm0), dot(N1, rawnorm0), dot(N2, rawnorm0)));\n");
 		if (components & VB_HAS_NRM1)

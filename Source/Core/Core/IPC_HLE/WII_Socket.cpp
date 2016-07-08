@@ -226,7 +226,7 @@ void WiiSocket::Update(bool read, bool write, bool except)
 				int ret = connect(fd, (sockaddr*)&local_name, sizeof(local_name));
 				ReturnValue = WiiSockMan::GetNetErrorCode(ret, "SO_CONNECT", false);
 
-				INFO_LOG(WII_IPC_NET,"IOCTL_SO_CONNECT (%08x, %s:%d)",
+				INFO_LOG(WII_IPC_NET, "IOCTL_SO_CONNECT (%08x, %s:%d)",
 					fd, inet_ntoa(local_name.sin_addr), Common::swap16(local_name.sin_port));
 				break;
 			}
@@ -266,7 +266,7 @@ void WiiSocket::Update(bool read, bool write, bool except)
 			if (!nonBlock)
 			{
 				if (it->net_type == IOCTL_SO_CONNECT &&
-				    ReturnValue == -SO_EISCONN)
+					ReturnValue == -SO_EISCONN)
 				{
 					ReturnValue = SO_SUCCESS;
 				}
@@ -430,7 +430,7 @@ void WiiSocket::Update(bool read, bool write, bool except)
 					u32 flags = Memory::Read_U32(BufferIn2 + 0x04);
 					u32 has_destaddr = Memory::Read_U32(BufferIn2 + 0x08);
 
-                                        // Not a string, Windows requires a const char* for sendto
+					// Not a string, Windows requires a const char* for sendto
 					const char* data = (const char*)Memory::GetPointer(BufferIn);
 
 					// Act as non blocking when SO_MSG_NONBLOCK is specified
@@ -447,7 +447,7 @@ void WiiSocket::Update(bool read, bool write, bool except)
 
 					int ret = sendto(fd, data, BufferInSize, flags,
 						has_destaddr ? (struct sockaddr*)&local_name : nullptr,
-						has_destaddr ? sizeof(sockaddr) :  0);
+						has_destaddr ? sizeof(sockaddr) : 0);
 					ReturnValue = WiiSockMan::GetNetErrorCode(ret, "SO_SENDTO", true);
 
 					INFO_LOG(WII_IPC_NET,
@@ -459,7 +459,7 @@ void WiiSocket::Update(bool read, bool write, bool except)
 						(local_name.sin_addr.s_addr >> 8) & 0xFF,
 						(local_name.sin_addr.s_addr >> 16) & 0xFF,
 						(local_name.sin_addr.s_addr >> 24) & 0xFF
-						);
+					);
 					break;
 				}
 				case IOCTLV_SO_RECVFROM:
@@ -494,17 +494,17 @@ void WiiSocket::Update(bool read, bool write, bool except)
 #endif
 					socklen_t addrlen = sizeof(sockaddr_in);
 					int ret = recvfrom(fd, data, data_len, flags,
-									BufferOutSize2 ? (struct sockaddr*) &local_name : nullptr,
-									BufferOutSize2 ? &addrlen : nullptr);
+						BufferOutSize2 ? (struct sockaddr*) &local_name : nullptr,
+						BufferOutSize2 ? &addrlen : nullptr);
 					ReturnValue = WiiSockMan::GetNetErrorCode(ret, BufferOutSize2 ? "SO_RECVFROM" : "SO_RECV", true);
 
 					INFO_LOG(WII_IPC_NET, "%s(%d, %p) Socket: %08X, Flags: %08X, "
-					"BufferIn: (%08x, %i), BufferIn2: (%08x, %i), "
-					"BufferOut: (%08x, %i), BufferOut2: (%08x, %i)",
-					BufferOutSize2 ? "IOCTLV_SO_RECVFROM " : "IOCTLV_SO_RECV ",
-					ReturnValue, data, fd, flags,
-					BufferIn, BufferInSize, BufferIn2, BufferInSize2,
-					BufferOut, BufferOutSize, BufferOut2, BufferOutSize2);
+						"BufferIn: (%08x, %i), BufferIn2: (%08x, %i), "
+						"BufferOut: (%08x, %i), BufferOut2: (%08x, %i)",
+						BufferOutSize2 ? "IOCTLV_SO_RECVFROM " : "IOCTLV_SO_RECV ",
+						ReturnValue, data, fd, flags,
+						BufferIn, BufferInSize, BufferIn2, BufferInSize2,
+						BufferOut, BufferOutSize, BufferOut2, BufferOutSize2);
 
 					if (BufferOutSize2 != 0)
 					{
@@ -521,17 +521,17 @@ void WiiSocket::Update(bool read, bool write, bool except)
 
 		if (nonBlock ||
 			forceNonBlock ||
-		    (!it->is_ssl &&
-		     ReturnValue != -SO_EAGAIN &&
-		     ReturnValue != -SO_EINPROGRESS &&
-		     ReturnValue != -SO_EALREADY) ||
-		    (it->is_ssl &&
-		     ReturnValue != SSL_ERR_WAGAIN &&
-		     ReturnValue != SSL_ERR_RAGAIN))
+			(!it->is_ssl &&
+				ReturnValue != -SO_EAGAIN &&
+				ReturnValue != -SO_EINPROGRESS &&
+				ReturnValue != -SO_EALREADY) ||
+				(it->is_ssl &&
+					ReturnValue != SSL_ERR_WAGAIN &&
+					ReturnValue != SSL_ERR_RAGAIN))
 		{
 			DEBUG_LOG(WII_IPC_NET,
-			          "IOCTL(V) Sock: %08x ioctl/v: %d returned: %d nonBlock: %d forceNonBlock: %d",
-			          fd, it->is_ssl ? (int) it->ssl_type : (int) it->net_type, ReturnValue, nonBlock, forceNonBlock);
+				"IOCTL(V) Sock: %08x ioctl/v: %d returned: %d nonBlock: %d forceNonBlock: %d",
+				fd, it->is_ssl ? (int)it->ssl_type : (int)it->net_type, ReturnValue, nonBlock, forceNonBlock);
 			WiiSockMan::EnqueueReply(it->_CommandAddress, ReturnValue, ct);
 			it = pending_sockops.erase(it);
 		}
@@ -601,7 +601,7 @@ void WiiSockMan::Update()
 			FD_SET(sock.fd, &read_fds);
 			FD_SET(sock.fd, &write_fds);
 			FD_SET(sock.fd, &except_fds);
-			nfds = std::max(nfds, sock.fd+1);
+			nfds = std::max(nfds, sock.fd + 1);
 			++socket_iter;
 		}
 		else
@@ -659,7 +659,7 @@ void WiiSockMan::Convert(sockaddr_in const & from, WiiSockAddrIn& to, s32 addrle
 	to.addr.addr = from.sin_addr.s_addr;
 	to.family = from.sin_family & 0xFF;
 	to.port = from.sin_port;
-	if (addrlen < 0 || addrlen > (s32) sizeof(WiiSockAddrIn))
+	if (addrlen < 0 || addrlen >(s32) sizeof(WiiSockAddrIn))
 		to.len = sizeof(WiiSockAddrIn);
 	else
 		to.len = addrlen;

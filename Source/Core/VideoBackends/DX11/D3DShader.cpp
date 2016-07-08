@@ -109,10 +109,11 @@ bool CompileShader(
 		flags |= D3DCOMPILE_SKIP_OPTIMIZATION;
 	}
 #endif
-	
+
 	char const *profile = nullptr;
 	char const *sufix = nullptr;
-	switch (type) {
+	switch (type)
+	{
 	case DX11::D3D::ShaderType::Vertex:
 		profile = D3D::VertexShaderVersionString();
 		sufix = "vs";

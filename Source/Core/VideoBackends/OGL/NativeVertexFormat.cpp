@@ -45,7 +45,7 @@ static void SetPointer(u32 attrib, u32 stride, const AttributeFormat &format)
 		return;
 
 	glEnableVertexAttribArray(attrib);
-		glVertexAttribPointer(attrib, format.components, VarToGL(format.type), true, stride, (u8*)nullptr + format.offset);
+	glVertexAttribPointer(attrib, format.components, VarToGL(format.type), true, stride, (u8*)nullptr + format.offset);
 }
 
 GLVertexFormat::GLVertexFormat(const PortableVertexDeclaration &_vtx_decl)
@@ -76,7 +76,8 @@ GLVertexFormat::GLVertexFormat(const PortableVertexDeclaration &_vtx_decl)
 	for (int i = 0; i < 8; i++)
 		SetPointer(SHADER_TEXTURE0_ATTRIB + i, vtx_decl.stride, vtx_decl.texcoords[i]);
 
-	if (vtx_decl.posmtx.enable) {
+	if (vtx_decl.posmtx.enable)
+	{
 		glEnableVertexAttribArray(SHADER_POSMTX_ATTRIB);
 		glVertexAttribPointer(SHADER_POSMTX_ATTRIB, 4, GL_UNSIGNED_BYTE, GL_FALSE, vtx_decl.stride, (u8*)NULL + vtx_decl.posmtx.offset);
 	}
@@ -84,7 +85,6 @@ GLVertexFormat::GLVertexFormat(const PortableVertexDeclaration &_vtx_decl)
 }
 
 void GLVertexFormat::SetupVertexPointers()
-{
-}
+{}
 
 }

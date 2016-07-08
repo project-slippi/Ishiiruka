@@ -32,8 +32,7 @@ struct EFBEncodeParams
 };
 
 PSTextureEncoder::PSTextureEncoder()
-{
-}
+{}
 
 void PSTextureEncoder::InitializeRTV()
 {
@@ -66,9 +65,9 @@ void PSTextureEncoder::Init()
 		1,
 		0,
 		D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET
-		);
+	);
 
-	D3D12_CLEAR_VALUE optimized_clear_value = { DXGI_FORMAT_B8G8R8A8_UNORM,{ 0.0f, 0.0f, 0.0f, 1.0f } };
+	D3D12_CLEAR_VALUE optimized_clear_value = {DXGI_FORMAT_B8G8R8A8_UNORM,{ 0.0f, 0.0f, 0.0f, 1.0f }};
 
 	CheckHR(
 		D3D::device->CreateCommittedResource(
@@ -78,8 +77,8 @@ void PSTextureEncoder::Init()
 			D3D12_RESOURCE_STATE_COPY_SOURCE,
 			&optimized_clear_value,
 			IID_PPV_ARGS(m_out.ReleaseAndGetAddressOf())
-			)
-		);
+		)
+	);
 
 	D3D::SetDebugObjectName12(m_out.Get(), "efb encoder output texture");
 
@@ -94,12 +93,12 @@ void PSTextureEncoder::Init()
 			&CD3DX12_RESOURCE_DESC::Buffer(
 				ROUND_UP(static_cast<unsigned int>(out_tex_desc.Width) * 4, D3D12_TEXTURE_DATA_PITCH_ALIGNMENT) *
 				out_tex_desc.Height
-				),
+			),
 			D3D12_RESOURCE_STATE_COPY_DEST,
 			nullptr,
 			IID_PPV_ARGS(m_out_readback_buffer.ReleaseAndGetAddressOf())
-			)
-		);
+		)
+	);
 
 	D3D::SetDebugObjectName12(m_out_readback_buffer.Get(), "efb encoder output staging buffer");
 
@@ -114,8 +113,8 @@ void PSTextureEncoder::Init()
 			D3D12_RESOURCE_STATE_GENERIC_READ,
 			nullptr,
 			IID_PPV_ARGS(m_encode_params_buffer.ReleaseAndGetAddressOf())
-			)
-		);
+		)
+	);
 
 	D3D::SetDebugObjectName12(m_encode_params_buffer.Get(), "efb encoder params buffer");
 	// NOTE: This upload buffer is okay to overwrite each time, since we block until completion when it's used anyway.
@@ -182,7 +181,7 @@ void PSTextureEncoder::Encode(u8* dst, u32 format, u32 native_width, u32 bytes_p
 	D3D::current_command_list->SetGraphicsRootConstantBufferView(
 		DESCRIPTOR_TABLE_PS_CBVONE,
 		m_encode_params_buffer->GetGPUVirtualAddress()
-		);
+	);
 
 	D3D::command_list_mgr->SetCommandListDirtyState(COMMAND_LIST_STATE_PS_CBV, true);
 
@@ -204,7 +203,7 @@ void PSTextureEncoder::Encode(u8* dst, u32 format, u32 native_width, u32 bytes_p
 		DXGI_FORMAT_B8G8R8A8_UNORM,
 		false,
 		false /* Render target is not multisampled */
-		);
+	);
 
 	// Copy to staging buffer
 	D3D12_BOX src_box = CD3DX12_BOX(0, 0, 0, words_per_row, num_blocks_y, 1);
@@ -232,7 +231,7 @@ void PSTextureEncoder::Encode(u8* dst, u32 format, u32 native_width, u32 bytes_p
 
 	// Transfer staging buffer to GameCube/Wii RAM
 	void* readback_data_map;
-	D3D12_RANGE read_range = { 0, dst_location.PlacedFootprint.Footprint.RowPitch * num_blocks_y };
+	D3D12_RANGE read_range = {0, dst_location.PlacedFootprint.Footprint.RowPitch * num_blocks_y};
 	CheckHR(m_out_readback_buffer->Map(0, &read_range, &readback_data_map));
 
 	u8* src = static_cast<u8*>(readback_data_map);

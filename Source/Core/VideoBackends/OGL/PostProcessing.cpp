@@ -214,9 +214,9 @@ bool PostProcessingShader::CreatePasses()
 				input.type = POST_PROCESSING_INPUT_TYPE_COLOR_BUFFER;
 
 			// Lookup tables for samplers, simple due to no mipmaps
-			static const GLenum gl_sampler_filters[] = { GL_NEAREST, GL_LINEAR };
-			static const GLenum gl_sampler_modes[] = { GL_CLAMP_TO_EDGE, GL_REPEAT,  GL_CLAMP_TO_BORDER };
-			static const float gl_border_color[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+			static const GLenum gl_sampler_filters[] = {GL_NEAREST, GL_LINEAR};
+			static const GLenum gl_sampler_modes[] = {GL_CLAMP_TO_EDGE, GL_REPEAT,  GL_CLAMP_TO_BORDER};
+			static const float gl_border_color[4] = {0.0f, 0.0f, 0.0f, 0.0f};
 
 			// Create sampler object matching the values from config
 			glGenSamplers(1, &input.sampler_id);
@@ -250,7 +250,7 @@ bool PostProcessingShader::RecompileShaders()
 		int prev_output_index = 0;
 
 		pass_config.GetInputLocations(color_buffer_index, depth_buffer_index, prev_output_index);
-		
+
 		std::string header_shader_source = StringFromFormat("#define COLOR_BUFFER_INPUT_INDEX %d\n", color_buffer_index);
 		header_shader_source += StringFromFormat("#define DEPTH_BUFFER_INPUT_INDEX %d\n", depth_buffer_index);
 		header_shader_source += StringFromFormat("#define PREV_OUTPUT_INPUT_INDEX %d\n", prev_output_index);
@@ -379,7 +379,7 @@ void PostProcessingShader::LinkPassOutputs()
 				}
 				if (pass_output_index < 0)
 				{
-					input_binding.texture_id = 0;					
+					input_binding.texture_id = 0;
 					m_last_pass_uses_color_buffer = true;
 				}
 				else
@@ -692,7 +692,7 @@ void OGLPostProcessor::PostProcessEFBToTexture(uintptr_t dst_texture)
 	g_renderer->ResetAPIState();
 
 	EFBRectangle efb_rect(0, EFB_HEIGHT, EFB_WIDTH, 0);
-	TargetRectangle target_rect = { 0, g_renderer->GetTargetHeight(), g_renderer->GetTargetWidth(), 0 };
+	TargetRectangle target_rect = {0, g_renderer->GetTargetHeight(), g_renderer->GetTargetWidth(), 0};
 	TargetSize target_size(g_renderer->GetTargetWidth(), g_renderer->GetTargetHeight());
 
 	// Source and target textures, if MSAA is enabled, this needs to be resolved
@@ -829,7 +829,7 @@ void OGLPostProcessor::PostProcess(TargetRectangle* output_rect, TargetSize* out
 	GLuint real_src_texture = static_cast<GLuint>(src_texture);
 	GLuint real_src_depth_texture = static_cast<GLuint>(src_depth_texture);
 	GLuint real_dst_texture = static_cast<GLuint>(dst_texture);
-	real_dst_texture = real_dst_texture == 0  && dst_rect == nullptr ? real_src_texture : real_dst_texture;
+	real_dst_texture = real_dst_texture == 0 && dst_rect == nullptr ? real_src_texture : real_dst_texture;
 	// Setup copy buffers first, and update compile-time constants.
 	TargetSize buffer_size(src_rect.GetWidth(), src_rect.GetHeight());
 	if (!ResizeCopyBuffers(buffer_size, FramebufferManager::GetEFBLayers()) ||

@@ -16,7 +16,7 @@ class wxButton;
 class wxListBox;
 class wxTextCtrl;
 
-class JitBlockList : public wxListCtrl
+class JitBlockList: public wxListCtrl
 {
 public:
 	JitBlockList(wxWindow* parent, const wxWindowID id, const wxPoint& pos, const wxSize& size, long style);
@@ -24,7 +24,7 @@ public:
 	void Update() override;
 };
 
-class CJitWindow : public wxPanel
+class CJitWindow: public wxPanel
 {
 public:
 	CJitWindow(wxWindow* parent,

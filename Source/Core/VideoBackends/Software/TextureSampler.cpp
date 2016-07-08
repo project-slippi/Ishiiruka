@@ -23,22 +23,22 @@ static inline void WrapCoord(int* coordp, int wrapMode, int imageSize)
 	int coord = *coordp;
 	switch (wrapMode)
 	{
-		case 0: // clamp
-			coord = (coord>imageSize)?imageSize:(coord<0)?0:coord;
-			break;
-		case 1: // wrap
-			coord = coord % (imageSize + 1);
-			coord = (coord<0)?imageSize+coord:coord;
-			break;
-		case 2: // mirror
-			{
-				int sizePlus1 = imageSize + 1;
-				int div = coord / sizePlus1;
-				coord = coord - (div * sizePlus1);
-				coord = (coord<0)?-coord:coord;
-				coord = (div&1)?imageSize - coord:coord;
-			}
-			break;
+	case 0: // clamp
+		coord = (coord > imageSize) ? imageSize : (coord < 0) ? 0 : coord;
+		break;
+	case 1: // wrap
+		coord = coord % (imageSize + 1);
+		coord = (coord < 0) ? imageSize + coord : coord;
+		break;
+	case 2: // mirror
+	{
+		int sizePlus1 = imageSize + 1;
+		int div = coord / sizePlus1;
+		coord = coord - (div * sizePlus1);
+		coord = (coord < 0) ? -coord : coord;
+		coord = (div & 1) ? imageSize - coord : coord;
+	}
+	break;
 	}
 	*coordp = coord;
 }
@@ -111,7 +111,7 @@ void SampleMip(s32 s, s32 t, s32 mip, bool linear, u8 texmap, u8 *sample)
 	TexMode0& tm0 = texUnit.texMode0[subTexmap];
 	TexImage0& ti0 = texUnit.texImage0[subTexmap];
 	TexTLUT& texTlut = texUnit.texTlut[subTexmap];
-	TlutFormat tlutfmt = (TlutFormat) texTlut.tlut_format;
+	TlutFormat tlutfmt = (TlutFormat)texTlut.tlut_format;
 
 	u8 *imageSrc, *imageSrcOdd = nullptr;
 	if (texUnit.texImage1[subTexmap].image_type)

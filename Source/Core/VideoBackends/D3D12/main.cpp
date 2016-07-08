@@ -63,14 +63,14 @@ std::string VideoBackend::GetDisplayName() const
 	return "Direct3D 12";
 }
 
-void InitBackendInfo()
+void VideoBackend::InitBackendInfo()
 {
 	HRESULT hr = D3D::LoadDXGI();
 	if (FAILED(hr))
 		return;
 
 	hr = D3D::LoadD3D();
-	
+
 	if (FAILED(hr))
 	{
 		D3D::UnloadDXGI();
@@ -88,7 +88,7 @@ void InitBackendInfo()
 	g_Config.backend_info.bSupportedFormats[PC_TEX_FMT_DXT1] = true;
 	g_Config.backend_info.bSupportedFormats[PC_TEX_FMT_DXT3] = true;
 	g_Config.backend_info.bSupportedFormats[PC_TEX_FMT_DXT5] = true;
-	
+
 	g_Config.backend_info.bSupportsScaling = false;
 	g_Config.backend_info.bSupportsExclusiveFullscreen = false;
 	g_Config.backend_info.bSupportsDualSourceBlend = true;
@@ -154,12 +154,6 @@ void InitBackendInfo()
 	D3D::UnloadD3D();
 }
 
-void VideoBackend::ShowConfig(void *hParent)
-{
-	InitBackendInfo();
-	Host_ShowVideoConfig(hParent, GetDisplayName(), "gfx_dx12");
-}
-
 bool VideoBackend::Initialize(void *window_handle)
 {
 	if (window_handle == nullptr)
@@ -176,7 +170,7 @@ bool VideoBackend::Initialize(void *window_handle)
 		g_Config.Load(File::GetUserPath(D_CONFIG_IDX) + "GFX.ini");
 	else
 		g_Config.Load(File::GetUserPath(D_CONFIG_IDX) + "gfx_dx12.ini");
-	
+
 	g_Config.GameIniLoad();
 	g_Config.UpdateProjectionHack();
 	g_Config.VerifyValidity();
@@ -227,7 +221,7 @@ void VideoBackend::Shutdown()
 	// TODO: should be in Video_Cleanup
 	if (!g_renderer)
 		return;
-	
+
 	// Immediately stop app from submitting work to GPU, and wait for all submitted work to complete. D3D12TODO: Check this.
 	D3D::WaitForOutstandingRenderingToComplete();
 
@@ -235,9 +229,6 @@ void VideoBackend::Shutdown()
 	Fifo::Shutdown();
 	CommandProcessor::Shutdown();
 	GeometryShaderManager::Shutdown();
-	PixelShaderManager::Shutdown();
-	VertexShaderManager::Shutdown();
-	OpcodeDecoder::Shutdown();
 	VertexLoaderManager::Shutdown();
 
 	// internal interfaces
@@ -247,7 +238,7 @@ void VideoBackend::Shutdown()
 	StaticShaderCache::Shutdown();
 	BBox::Shutdown();
 	D3D::WaitForOutstandingRenderingToComplete();
-	
+
 	g_xfb_encoder.reset();
 	g_perf_query.reset();
 	g_vertex_manager.reset();
@@ -258,7 +249,6 @@ void VideoBackend::Shutdown()
 }
 
 void VideoBackend::Video_Cleanup()
-{
-}
+{}
 
 }

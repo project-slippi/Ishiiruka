@@ -63,32 +63,45 @@ void IEXIDevice::DMARead(u32 _uAddr, u32 _uSize)
 	}
 }
 
-
 // --- class CEXIDummy ---
 // Just a dummy that logs reads and writes
 // to be used for EXI devices we haven't emulated
 // DOES NOT FUNCTION AS "NO DEVICE INSERTED" -> Appears as unknown device
-class CEXIDummy : public IEXIDevice
+class CEXIDummy: public IEXIDevice
 {
 	std::string m_strName;
 
-	void TransferByte(u8& _byte) override {}
-
+	void TransferByte(u8& _byte) override
+	{}
 public:
-	CEXIDummy(const std::string& _strName) :
-	  m_strName(_strName)
+	CEXIDummy(const std::string& _strName): m_strName(_strName)
+	{}
+	virtual ~CEXIDummy()
+	{}
+	void ImmWrite(u32 data, u32 size) override
 	{
+		INFO_LOG(EXPANSIONINTERFACE, "EXI DUMMY %s ImmWrite: %08x", m_strName.c_str(), data);
 	}
-
-	virtual ~CEXIDummy(){}
-
-	void ImmWrite(u32 data, u32 size) override {INFO_LOG(EXPANSIONINTERFACE, "EXI DUMMY %s ImmWrite: %08x", m_strName.c_str(), data);}
-	u32  ImmRead (u32 size) override           {INFO_LOG(EXPANSIONINTERFACE, "EXI DUMMY %s ImmRead", m_strName.c_str()); return 0;}
-	void DMAWrite(u32 addr, u32 size) override {INFO_LOG(EXPANSIONINTERFACE, "EXI DUMMY %s DMAWrite: %08x bytes, from %08x to device", m_strName.c_str(), size, addr);}
-	void DMARead (u32 addr, u32 size) override {INFO_LOG(EXPANSIONINTERFACE, "EXI DUMMY %s DMARead:  %08x bytes, from device to %08x", m_strName.c_str(), size, addr);}
-	bool IsPresent() const override { return true; }
+	u32 ImmRead(u32 size) override
+	{
+		INFO_LOG(EXPANSIONINTERFACE, "EXI DUMMY %s ImmRead", m_strName.c_str());
+		return 0;
+	}
+	void DMAWrite(u32 addr, u32 size) override
+	{
+		INFO_LOG(EXPANSIONINTERFACE, "EXI DUMMY %s DMAWrite: %08x bytes, from %08x to device",
+			m_strName.c_str(), size, addr);
+	}
+	void DMARead(u32 addr, u32 size) override
+	{
+		INFO_LOG(EXPANSIONINTERFACE, "EXI DUMMY %s DMARead:  %08x bytes, from device to %08x",
+			m_strName.c_str(), size, addr);
+	}
+	bool IsPresent() const override
+	{
+		return true;
+	}
 };
-
 
 // F A C T O R Y
 std::unique_ptr<IEXIDevice> EXIDevice_Create(TEXIDevices device_type, const int channel_num)

@@ -22,16 +22,16 @@ static inline void RGBA_to_RGBA8(const u8 *src, u8* r, u8* g, u8* b, u8* a)
 	u32 srcColor = *(u32*)src;
 	*a = Convert6To8(srcColor & 0x3f);
 	*b = Convert6To8((srcColor >> 6) & 0x3f);
-	*g = Convert6To8((srcColor >> 12)& 0x3f);
-	*r = Convert6To8((srcColor >> 18)& 0x3f);
+	*g = Convert6To8((srcColor >> 12) & 0x3f);
+	*r = Convert6To8((srcColor >> 18) & 0x3f);
 }
 
 static inline void RGBA_to_RGB8(const u8 *src, u8* r, u8* g, u8* b)
 {
 	u32 srcColor = *(u32*)src;
 	*b = Convert6To8((srcColor >> 6) & 0x3f);
-	*g = Convert6To8((srcColor >> 12)& 0x3f);
-	*r = Convert6To8((srcColor >> 18)& 0x3f);
+	*g = Convert6To8((srcColor >> 12) & 0x3f);
+	*r = Convert6To8((srcColor >> 18) & 0x3f);
 }
 
 static inline u8 RGB8_to_I(u8 r, u8 g, u8 b)
@@ -217,7 +217,7 @@ static void SetSpans(int sBlkSize, int tBlkSize, s32* tSpan, s32* sBlkSpan, s32*
 {
 	// width is 1 less than the number of pixels of width
 	u32 width = bpmem.copyTexSrcWH.x >> bpmem.triggerEFBCopy.half_scale;
-	u32 alignedWidth = (width + sBlkSize) & (~(sBlkSize-1));
+	u32 alignedWidth = (width + sBlkSize) & (~(sBlkSize - 1));
 
 	u32 readStride = 3 << bpmem.triggerEFBCopy.half_scale;
 
@@ -282,8 +282,8 @@ static void EncodeRGBA6(u8 *dst, u8 *src, u32 format)
 			*dst |= RGB8_to_I(r, g, b) >> 4;
 			dst++;
 		}
-		ENCODE_LOOP_SPANS
-		break;
+			ENCODE_LOOP_SPANS
+			break;
 
 	case GX_TF_I8:
 		SetBlockDimensions(3, 2, &sBlkCount, &tBlkCount, &sBlkSize, &tBlkSize);
@@ -294,8 +294,8 @@ static void EncodeRGBA6(u8 *dst, u8 *src, u32 format)
 			src += readStride;
 			*dst++ = RGB8_to_I(r, g, b);
 		}
-		ENCODE_LOOP_SPANS
-		break;
+			ENCODE_LOOP_SPANS
+			break;
 
 	case GX_TF_IA4:
 		SetBlockDimensions(3, 2, &sBlkCount, &tBlkCount, &sBlkSize, &tBlkSize);
@@ -306,8 +306,8 @@ static void EncodeRGBA6(u8 *dst, u8 *src, u32 format)
 			src += readStride;
 			*dst++ = (a & 0xf0) | (RGB8_to_I(r, g, b) >> 4);
 		}
-		ENCODE_LOOP_SPANS
-		break;
+			ENCODE_LOOP_SPANS
+			break;
 
 	case GX_TF_IA8:
 		SetBlockDimensions(2, 2, &sBlkCount, &tBlkCount, &sBlkSize, &tBlkSize);
@@ -319,8 +319,8 @@ static void EncodeRGBA6(u8 *dst, u8 *src, u32 format)
 			*dst++ = a;
 			*dst++ = RGB8_to_I(r, g, b);
 		}
-		ENCODE_LOOP_SPANS
-		break;
+			ENCODE_LOOP_SPANS
+			break;
 
 	case GX_TF_RGB565:
 		SetBlockDimensions(2, 2, &sBlkCount, &tBlkCount, &sBlkSize, &tBlkSize);
@@ -332,10 +332,10 @@ static void EncodeRGBA6(u8 *dst, u8 *src, u32 format)
 
 			u16 val = ((srcColor >> 8) & 0xf800) | ((srcColor >> 7) & 0x07e0) | ((srcColor >> 7) & 0x001e);
 			*(u16*)dst = Common::swap16(val);
-			dst+=2;
+			dst += 2;
 		}
-		ENCODE_LOOP_SPANS
-		break;
+			ENCODE_LOOP_SPANS
+			break;
 
 	case GX_TF_RGB5A3:
 		SetBlockDimensions(2, 2, &sBlkCount, &tBlkCount, &sBlkSize, &tBlkSize);
@@ -353,10 +353,10 @@ static void EncodeRGBA6(u8 *dst, u8 *src, u32 format)
 				val = alpha | ((srcColor >> 12) & 0x0f00) | ((srcColor >> 10) & 0x00f0) | ((srcColor >> 8) & 0x000f);
 
 			*(u16*)dst = Common::swap16(val);
-			dst+=2;
+			dst += 2;
 		}
-		ENCODE_LOOP_SPANS
-		break;
+			ENCODE_LOOP_SPANS
+			break;
 
 	case GX_TF_RGBA8:
 		SetBlockDimensions(2, 2, &sBlkCount, &tBlkCount, &sBlkSize, &tBlkSize);
@@ -367,8 +367,8 @@ static void EncodeRGBA6(u8 *dst, u8 *src, u32 format)
 			src += readStride;
 			dst += 2;
 		}
-		ENCODE_LOOP_SPANS2
-		break;
+			ENCODE_LOOP_SPANS2
+			break;
 
 	case GX_CTF_R4:
 		SetBlockDimensions(3, 3, &sBlkCount, &tBlkCount, &sBlkSize, &tBlkSize);
@@ -385,8 +385,8 @@ static void EncodeRGBA6(u8 *dst, u8 *src, u32 format)
 			*dst |= (srcColor >> 20) & 0x0f;
 			dst++;
 		}
-		ENCODE_LOOP_SPANS
-		break;
+			ENCODE_LOOP_SPANS
+			break;
 
 	case GX_CTF_RA4:
 		SetBlockDimensions(3, 2, &sBlkCount, &tBlkCount, &sBlkSize, &tBlkSize);
@@ -397,8 +397,8 @@ static void EncodeRGBA6(u8 *dst, u8 *src, u32 format)
 			src += readStride;
 			*dst++ = ((srcColor << 2) & 0xf0) | ((srcColor >> 20) & 0x0f);
 		}
-		ENCODE_LOOP_SPANS
-		break;
+			ENCODE_LOOP_SPANS
+			break;
 
 	case GX_CTF_RA8:
 		SetBlockDimensions(2, 2, &sBlkCount, &tBlkCount, &sBlkSize, &tBlkSize);
@@ -410,8 +410,8 @@ static void EncodeRGBA6(u8 *dst, u8 *src, u32 format)
 			*dst++ = Convert6To8(srcColor & 0x3f);
 			*dst++ = Convert6To8((srcColor >> 18) & 0x3f);
 		}
-		ENCODE_LOOP_SPANS
-		break;
+			ENCODE_LOOP_SPANS
+			break;
 
 	case GX_CTF_A8:
 		SetBlockDimensions(3, 2, &sBlkCount, &tBlkCount, &sBlkSize, &tBlkSize);
@@ -422,8 +422,8 @@ static void EncodeRGBA6(u8 *dst, u8 *src, u32 format)
 			*dst++ = Convert6To8(srcColor & 0x3f);
 			src += readStride;
 		}
-		ENCODE_LOOP_SPANS
-		break;
+			ENCODE_LOOP_SPANS
+			break;
 
 	case GX_CTF_R8:
 		SetBlockDimensions(3, 2, &sBlkCount, &tBlkCount, &sBlkSize, &tBlkSize);
@@ -434,8 +434,8 @@ static void EncodeRGBA6(u8 *dst, u8 *src, u32 format)
 			*dst++ = Convert6To8((srcColor >> 18) & 0x3f);
 			src += readStride;
 		}
-		ENCODE_LOOP_SPANS
-		break;
+			ENCODE_LOOP_SPANS
+			break;
 
 	case GX_CTF_G8:
 		SetBlockDimensions(3, 2, &sBlkCount, &tBlkCount, &sBlkSize, &tBlkSize);
@@ -446,8 +446,8 @@ static void EncodeRGBA6(u8 *dst, u8 *src, u32 format)
 			*dst++ = Convert6To8((srcColor >> 12) & 0x3f);
 			src += readStride;
 		}
-		ENCODE_LOOP_SPANS
-		break;
+			ENCODE_LOOP_SPANS
+			break;
 
 	case GX_CTF_B8:
 		SetBlockDimensions(3, 2, &sBlkCount, &tBlkCount, &sBlkSize, &tBlkSize);
@@ -458,8 +458,8 @@ static void EncodeRGBA6(u8 *dst, u8 *src, u32 format)
 			*dst++ = Convert6To8((srcColor >> 6) & 0x3f);
 			src += readStride;
 		}
-		ENCODE_LOOP_SPANS
-		break;
+			ENCODE_LOOP_SPANS
+			break;
 
 	case GX_CTF_RG8:
 		SetBlockDimensions(2, 2, &sBlkCount, &tBlkCount, &sBlkSize, &tBlkSize);
@@ -471,8 +471,8 @@ static void EncodeRGBA6(u8 *dst, u8 *src, u32 format)
 			*dst++ = Convert6To8((srcColor >> 12) & 0x3f);
 			*dst++ = Convert6To8((srcColor >> 18) & 0x3f);
 		}
-		ENCODE_LOOP_SPANS
-		break;
+			ENCODE_LOOP_SPANS
+			break;
 
 	case GX_CTF_GB8:
 		SetBlockDimensions(2, 2, &sBlkCount, &tBlkCount, &sBlkSize, &tBlkSize);
@@ -484,8 +484,8 @@ static void EncodeRGBA6(u8 *dst, u8 *src, u32 format)
 			*dst++ = Convert6To8((srcColor >> 6) & 0x3f);
 			*dst++ = Convert6To8((srcColor >> 12) & 0x3f);
 		}
-		ENCODE_LOOP_SPANS
-		break;
+			ENCODE_LOOP_SPANS
+			break;
 
 	default:
 		PanicAlert("Unknown texture copy format: 0x%x\n", format);
@@ -519,8 +519,8 @@ static void EncodeRGBA6halfscale(u8 *dst, u8 *src, u32 format)
 			*dst |= RGB8_to_I(r, g, b) >> 4;
 			dst++;
 		}
-		ENCODE_LOOP_SPANS
-		break;
+			ENCODE_LOOP_SPANS
+			break;
 
 	case GX_TF_I8:
 		SetBlockDimensions(3, 2, &sBlkCount, &tBlkCount, &sBlkSize, &tBlkSize);
@@ -531,8 +531,8 @@ static void EncodeRGBA6halfscale(u8 *dst, u8 *src, u32 format)
 			src += readStride;
 			*dst++ = RGB8_to_I(r, g, b);
 		}
-		ENCODE_LOOP_SPANS
-		break;
+			ENCODE_LOOP_SPANS
+			break;
 
 	case GX_TF_IA4:
 		SetBlockDimensions(3, 2, &sBlkCount, &tBlkCount, &sBlkSize, &tBlkSize);
@@ -543,8 +543,8 @@ static void EncodeRGBA6halfscale(u8 *dst, u8 *src, u32 format)
 			src += readStride;
 			*dst++ = (a & 0xf0) | (RGB8_to_I(r, g, b) >> 4);
 		}
-		ENCODE_LOOP_SPANS
-		break;
+			ENCODE_LOOP_SPANS
+			break;
 
 	case GX_TF_IA8:
 		SetBlockDimensions(2, 2, &sBlkCount, &tBlkCount, &sBlkSize, &tBlkSize);
@@ -556,8 +556,8 @@ static void EncodeRGBA6halfscale(u8 *dst, u8 *src, u32 format)
 			*dst++ = a;
 			*dst++ = RGB8_to_I(r, g, b);
 		}
-		ENCODE_LOOP_SPANS
-		break;
+			ENCODE_LOOP_SPANS
+			break;
 
 	case GX_TF_RGB565:
 		SetBlockDimensions(2, 2, &sBlkCount, &tBlkCount, &sBlkSize, &tBlkSize);
@@ -569,10 +569,10 @@ static void EncodeRGBA6halfscale(u8 *dst, u8 *src, u32 format)
 
 			u16 val = ((r << 8) & 0xf800) | ((g << 3) & 0x07e0) | ((b >> 3) & 0x001e);
 			*(u16*)dst = Common::swap16(val);
-			dst+=2;
+			dst += 2;
 		}
-		ENCODE_LOOP_SPANS
-		break;
+			ENCODE_LOOP_SPANS
+			break;
 
 	case GX_TF_RGB5A3:
 		SetBlockDimensions(2, 2, &sBlkCount, &tBlkCount, &sBlkSize, &tBlkSize);
@@ -589,10 +589,10 @@ static void EncodeRGBA6halfscale(u8 *dst, u8 *src, u32 format)
 				val = ((a << 7) & 0x7000) | ((r << 4) & 0x0f00) | (g & 0x00f0) | ((b >> 4) & 0x000f);
 
 			*(u16*)dst = Common::swap16(val);
-			dst+=2;
+			dst += 2;
 		}
-		ENCODE_LOOP_SPANS
-		break;
+			ENCODE_LOOP_SPANS
+			break;
 
 	case GX_TF_RGBA8:
 		SetBlockDimensions(2, 2, &sBlkCount, &tBlkCount, &sBlkSize, &tBlkSize);
@@ -603,8 +603,8 @@ static void EncodeRGBA6halfscale(u8 *dst, u8 *src, u32 format)
 			src += readStride;
 			dst += 2;
 		}
-		ENCODE_LOOP_SPANS2
-		break;
+			ENCODE_LOOP_SPANS2
+			break;
 
 	case GX_CTF_R4:
 		SetBlockDimensions(3, 3, &sBlkCount, &tBlkCount, &sBlkSize, &tBlkSize);
@@ -621,8 +621,8 @@ static void EncodeRGBA6halfscale(u8 *dst, u8 *src, u32 format)
 			*dst |= r >> 4;
 			dst++;
 		}
-		ENCODE_LOOP_SPANS
-		break;
+			ENCODE_LOOP_SPANS
+			break;
 
 	case GX_CTF_RA4:
 		SetBlockDimensions(3, 2, &sBlkCount, &tBlkCount, &sBlkSize, &tBlkSize);
@@ -633,8 +633,8 @@ static void EncodeRGBA6halfscale(u8 *dst, u8 *src, u32 format)
 			src += readStride;
 			*dst++ = (a & 0xf0) | (r >> 4);
 		}
-		ENCODE_LOOP_SPANS
-		break;
+			ENCODE_LOOP_SPANS
+			break;
 
 	case GX_CTF_RA8:
 		SetBlockDimensions(2, 2, &sBlkCount, &tBlkCount, &sBlkSize, &tBlkSize);
@@ -646,8 +646,8 @@ static void EncodeRGBA6halfscale(u8 *dst, u8 *src, u32 format)
 			*dst++ = a;
 			*dst++ = r;
 		}
-		ENCODE_LOOP_SPANS
-		break;
+			ENCODE_LOOP_SPANS
+			break;
 
 	case GX_CTF_A8:
 		SetBlockDimensions(3, 2, &sBlkCount, &tBlkCount, &sBlkSize, &tBlkSize);
@@ -658,8 +658,8 @@ static void EncodeRGBA6halfscale(u8 *dst, u8 *src, u32 format)
 			*dst++ = a;
 			src += readStride;
 		}
-		ENCODE_LOOP_SPANS
-		break;
+			ENCODE_LOOP_SPANS
+			break;
 
 	case GX_CTF_R8:
 		SetBlockDimensions(3, 2, &sBlkCount, &tBlkCount, &sBlkSize, &tBlkSize);
@@ -670,8 +670,8 @@ static void EncodeRGBA6halfscale(u8 *dst, u8 *src, u32 format)
 			*dst++ = r;
 			src += readStride;
 		}
-		ENCODE_LOOP_SPANS
-		break;
+			ENCODE_LOOP_SPANS
+			break;
 
 	case GX_CTF_G8:
 		SetBlockDimensions(3, 2, &sBlkCount, &tBlkCount, &sBlkSize, &tBlkSize);
@@ -682,8 +682,8 @@ static void EncodeRGBA6halfscale(u8 *dst, u8 *src, u32 format)
 			*dst++ = g;
 			src += readStride;
 		}
-		ENCODE_LOOP_SPANS
-		break;
+			ENCODE_LOOP_SPANS
+			break;
 
 	case GX_CTF_B8:
 		SetBlockDimensions(3, 2, &sBlkCount, &tBlkCount, &sBlkSize, &tBlkSize);
@@ -694,8 +694,8 @@ static void EncodeRGBA6halfscale(u8 *dst, u8 *src, u32 format)
 			*dst++ = b;
 			src += readStride;
 		}
-		ENCODE_LOOP_SPANS
-		break;
+			ENCODE_LOOP_SPANS
+			break;
 
 	case GX_CTF_RG8:
 		SetBlockDimensions(2, 2, &sBlkCount, &tBlkCount, &sBlkSize, &tBlkSize);
@@ -707,8 +707,8 @@ static void EncodeRGBA6halfscale(u8 *dst, u8 *src, u32 format)
 			*dst++ = g;
 			*dst++ = r;
 		}
-		ENCODE_LOOP_SPANS
-		break;
+			ENCODE_LOOP_SPANS
+			break;
 
 	case GX_CTF_GB8:
 		SetBlockDimensions(2, 2, &sBlkCount, &tBlkCount, &sBlkSize, &tBlkSize);
@@ -720,8 +720,8 @@ static void EncodeRGBA6halfscale(u8 *dst, u8 *src, u32 format)
 			*dst++ = b;
 			*dst++ = g;
 		}
-		ENCODE_LOOP_SPANS
-		break;
+			ENCODE_LOOP_SPANS
+			break;
 
 	default:
 		PanicAlert("Unknown texture copy format: 0x%x\n", format);
@@ -751,8 +751,8 @@ static void EncodeRGB8(u8 *dst, u8 *src, u32 format)
 			src += readStride;
 			dst++;
 		}
-		ENCODE_LOOP_SPANS
-		break;
+			ENCODE_LOOP_SPANS
+			break;
 
 	case GX_TF_I8:
 		SetBlockDimensions(3, 2, &sBlkCount, &tBlkCount, &sBlkSize, &tBlkSize);
@@ -762,8 +762,8 @@ static void EncodeRGB8(u8 *dst, u8 *src, u32 format)
 			*dst++ = RGB8_to_I(src[2], src[1], src[0]);
 			src += readStride;
 		}
-		ENCODE_LOOP_SPANS
-		break;
+			ENCODE_LOOP_SPANS
+			break;
 
 	case GX_TF_IA4:
 		SetBlockDimensions(3, 2, &sBlkCount, &tBlkCount, &sBlkSize, &tBlkSize);
@@ -773,8 +773,8 @@ static void EncodeRGB8(u8 *dst, u8 *src, u32 format)
 			*dst++ = 0xf0 | (RGB8_to_I(src[2], src[1], src[0]) >> 4);
 			src += readStride;
 		}
-		ENCODE_LOOP_SPANS
-		break;
+			ENCODE_LOOP_SPANS
+			break;
 
 	case GX_TF_IA8:
 		SetBlockDimensions(2, 2, &sBlkCount, &tBlkCount, &sBlkSize, &tBlkSize);
@@ -786,8 +786,8 @@ static void EncodeRGB8(u8 *dst, u8 *src, u32 format)
 
 			src += readStride;
 		}
-		ENCODE_LOOP_SPANS
-		break;
+			ENCODE_LOOP_SPANS
+			break;
 
 	case GX_TF_RGB565:
 		SetBlockDimensions(2, 2, &sBlkCount, &tBlkCount, &sBlkSize, &tBlkSize);
@@ -797,10 +797,10 @@ static void EncodeRGB8(u8 *dst, u8 *src, u32 format)
 			u16 val = ((src[2] << 8) & 0xf800) | ((src[1] << 3) & 0x07e0) | ((src[0] >> 3) & 0x001e);
 			*(u16*)dst = Common::swap16(val);
 			src += readStride;
-			dst+=2;
+			dst += 2;
 		}
-		ENCODE_LOOP_SPANS
-		break;
+			ENCODE_LOOP_SPANS
+			break;
 
 	case GX_TF_RGB5A3:
 		SetBlockDimensions(2, 2, &sBlkCount, &tBlkCount, &sBlkSize, &tBlkSize);
@@ -810,10 +810,10 @@ static void EncodeRGB8(u8 *dst, u8 *src, u32 format)
 			u16 val = 0x8000 | ((src[2] << 7) & 0x7c00) | ((src[1] << 2) & 0x03e0) | ((src[0] >> 3) & 0x001e);
 			*(u16*)dst = Common::swap16(val);
 			src += readStride;
-			dst+=2;
+			dst += 2;
 		}
-		ENCODE_LOOP_SPANS
-		break;
+			ENCODE_LOOP_SPANS
+			break;
 
 	case GX_TF_RGBA8:
 		SetBlockDimensions(2, 2, &sBlkCount, &tBlkCount, &sBlkSize, &tBlkSize);
@@ -827,8 +827,8 @@ static void EncodeRGB8(u8 *dst, u8 *src, u32 format)
 			src += readStride;
 			dst += 2;
 		}
-		ENCODE_LOOP_SPANS2
-		break;
+			ENCODE_LOOP_SPANS2
+			break;
 
 	case GX_CTF_R4:
 		SetBlockDimensions(3, 3, &sBlkCount, &tBlkCount, &sBlkSize, &tBlkSize);
@@ -844,8 +844,8 @@ static void EncodeRGB8(u8 *dst, u8 *src, u32 format)
 
 			dst++;
 		}
-		ENCODE_LOOP_SPANS
-		break;
+			ENCODE_LOOP_SPANS
+			break;
 
 	case GX_CTF_RA4:
 		SetBlockDimensions(3, 2, &sBlkCount, &tBlkCount, &sBlkSize, &tBlkSize);
@@ -855,8 +855,8 @@ static void EncodeRGB8(u8 *dst, u8 *src, u32 format)
 			*dst++ = 0xf0 | (src[2] >> 4);
 			src += readStride;
 		}
-		ENCODE_LOOP_SPANS
-		break;
+			ENCODE_LOOP_SPANS
+			break;
 
 	case GX_CTF_RA8:
 		SetBlockDimensions(2, 2, &sBlkCount, &tBlkCount, &sBlkSize, &tBlkSize);
@@ -867,8 +867,8 @@ static void EncodeRGB8(u8 *dst, u8 *src, u32 format)
 			*dst++ = src[2];
 			src += readStride;
 		}
-		ENCODE_LOOP_SPANS
-		break;
+			ENCODE_LOOP_SPANS
+			break;
 
 	case GX_CTF_A8:
 		SetBlockDimensions(3, 2, &sBlkCount, &tBlkCount, &sBlkSize, &tBlkSize);
@@ -877,8 +877,8 @@ static void EncodeRGB8(u8 *dst, u8 *src, u32 format)
 		{
 			*dst++ = 0xff;
 		}
-		ENCODE_LOOP_SPANS
-		break;
+			ENCODE_LOOP_SPANS
+			break;
 
 	case GX_CTF_R8:
 		SetBlockDimensions(3, 2, &sBlkCount, &tBlkCount, &sBlkSize, &tBlkSize);
@@ -888,8 +888,8 @@ static void EncodeRGB8(u8 *dst, u8 *src, u32 format)
 			*dst++ = src[2];
 			src += readStride;
 		}
-		ENCODE_LOOP_SPANS
-		break;
+			ENCODE_LOOP_SPANS
+			break;
 
 	case GX_CTF_G8:
 		SetBlockDimensions(3, 2, &sBlkCount, &tBlkCount, &sBlkSize, &tBlkSize);
@@ -899,8 +899,8 @@ static void EncodeRGB8(u8 *dst, u8 *src, u32 format)
 			*dst++ = src[1];
 			src += readStride;
 		}
-		ENCODE_LOOP_SPANS
-		break;
+			ENCODE_LOOP_SPANS
+			break;
 
 	case GX_CTF_B8:
 		SetBlockDimensions(3, 2, &sBlkCount, &tBlkCount, &sBlkSize, &tBlkSize);
@@ -910,8 +910,8 @@ static void EncodeRGB8(u8 *dst, u8 *src, u32 format)
 			*dst++ = src[0];
 			src += readStride;
 		}
-		ENCODE_LOOP_SPANS
-		break;
+			ENCODE_LOOP_SPANS
+			break;
 
 	case GX_CTF_RG8:
 		SetBlockDimensions(2, 2, &sBlkCount, &tBlkCount, &sBlkSize, &tBlkSize);
@@ -922,8 +922,8 @@ static void EncodeRGB8(u8 *dst, u8 *src, u32 format)
 			*dst++ = src[2];
 			src += readStride;
 		}
-		ENCODE_LOOP_SPANS
-		break;
+			ENCODE_LOOP_SPANS
+			break;
 
 	case GX_CTF_GB8:
 		SetBlockDimensions(2, 2, &sBlkCount, &tBlkCount, &sBlkSize, &tBlkSize);
@@ -934,8 +934,8 @@ static void EncodeRGB8(u8 *dst, u8 *src, u32 format)
 			*dst++ = src[1];
 			src += readStride;
 		}
-		ENCODE_LOOP_SPANS
-		break;
+			ENCODE_LOOP_SPANS
+			break;
 
 	default:
 		PanicAlert("Unknown texture copy format: 0x%x\n", format);
@@ -968,8 +968,8 @@ static void EncodeRGB8halfscale(u8 *dst, u8 *src, u32 format)
 			src += readStride;
 			dst++;
 		}
-		ENCODE_LOOP_SPANS
-		break;
+			ENCODE_LOOP_SPANS
+			break;
 
 	case GX_TF_I8:
 		SetBlockDimensions(3, 2, &sBlkCount, &tBlkCount, &sBlkSize, &tBlkSize);
@@ -980,8 +980,8 @@ static void EncodeRGB8halfscale(u8 *dst, u8 *src, u32 format)
 			*dst++ = RGB8_to_I(r, g, b);
 			src += readStride;
 		}
-		ENCODE_LOOP_SPANS
-		break;
+			ENCODE_LOOP_SPANS
+			break;
 
 	case GX_TF_IA4:
 		SetBlockDimensions(3, 2, &sBlkCount, &tBlkCount, &sBlkSize, &tBlkSize);
@@ -992,8 +992,8 @@ static void EncodeRGB8halfscale(u8 *dst, u8 *src, u32 format)
 			*dst++ = 0xf0 | (RGB8_to_I(r, g, b) >> 4);
 			src += readStride;
 		}
-		ENCODE_LOOP_SPANS
-		break;
+			ENCODE_LOOP_SPANS
+			break;
 
 	case GX_TF_IA8:
 		SetBlockDimensions(2, 2, &sBlkCount, &tBlkCount, &sBlkSize, &tBlkSize);
@@ -1005,8 +1005,8 @@ static void EncodeRGB8halfscale(u8 *dst, u8 *src, u32 format)
 			*dst++ = RGB8_to_I(r, g, b);
 			src += readStride;
 		}
-		ENCODE_LOOP_SPANS
-		break;
+			ENCODE_LOOP_SPANS
+			break;
 
 	case GX_TF_RGB565:
 		SetBlockDimensions(2, 2, &sBlkCount, &tBlkCount, &sBlkSize, &tBlkSize);
@@ -1017,10 +1017,10 @@ static void EncodeRGB8halfscale(u8 *dst, u8 *src, u32 format)
 			u16 val = ((r << 8) & 0xf800) | ((g << 3) & 0x07e0) | ((b >> 3) & 0x001e);
 			*(u16*)dst = Common::swap16(val);
 			src += readStride;
-			dst+=2;
+			dst += 2;
 		}
-		ENCODE_LOOP_SPANS
-		break;
+			ENCODE_LOOP_SPANS
+			break;
 
 	case GX_TF_RGB5A3:
 		SetBlockDimensions(2, 2, &sBlkCount, &tBlkCount, &sBlkSize, &tBlkSize);
@@ -1031,10 +1031,10 @@ static void EncodeRGB8halfscale(u8 *dst, u8 *src, u32 format)
 			u16 val = 0x8000 | ((r << 7) & 0x7c00) | ((g << 2) & 0x03e0) | ((b >> 3) & 0x001e);
 			*(u16*)dst = Common::swap16(val);
 			src += readStride;
-			dst+=2;
+			dst += 2;
 		}
-		ENCODE_LOOP_SPANS
-		break;
+			ENCODE_LOOP_SPANS
+			break;
 
 	case GX_TF_RGBA8:
 		SetBlockDimensions(2, 2, &sBlkCount, &tBlkCount, &sBlkSize, &tBlkSize);
@@ -1049,8 +1049,8 @@ static void EncodeRGB8halfscale(u8 *dst, u8 *src, u32 format)
 			src += readStride;
 			dst += 2;
 		}
-		ENCODE_LOOP_SPANS2
-		break;
+			ENCODE_LOOP_SPANS2
+			break;
 
 	case GX_CTF_R4:
 		SetBlockDimensions(3, 3, &sBlkCount, &tBlkCount, &sBlkSize, &tBlkSize);
@@ -1068,8 +1068,8 @@ static void EncodeRGB8halfscale(u8 *dst, u8 *src, u32 format)
 
 			dst++;
 		}
-		ENCODE_LOOP_SPANS
-		break;
+			ENCODE_LOOP_SPANS
+			break;
 
 	case GX_CTF_RA4:
 		SetBlockDimensions(3, 2, &sBlkCount, &tBlkCount, &sBlkSize, &tBlkSize);
@@ -1080,8 +1080,8 @@ static void EncodeRGB8halfscale(u8 *dst, u8 *src, u32 format)
 			*dst++ = 0xf0 | (r >> 4);
 			src += readStride;
 		}
-		ENCODE_LOOP_SPANS
-		break;
+			ENCODE_LOOP_SPANS
+			break;
 
 	case GX_CTF_RA8:
 		SetBlockDimensions(2, 2, &sBlkCount, &tBlkCount, &sBlkSize, &tBlkSize);
@@ -1093,8 +1093,8 @@ static void EncodeRGB8halfscale(u8 *dst, u8 *src, u32 format)
 			*dst++ = r;
 			src += readStride;
 		}
-		ENCODE_LOOP_SPANS
-		break;
+			ENCODE_LOOP_SPANS
+			break;
 
 	case GX_CTF_A8:
 		SetBlockDimensions(3, 2, &sBlkCount, &tBlkCount, &sBlkSize, &tBlkSize);
@@ -1103,8 +1103,8 @@ static void EncodeRGB8halfscale(u8 *dst, u8 *src, u32 format)
 		{
 			*dst++ = 0xff;
 		}
-		ENCODE_LOOP_SPANS
-		break;
+			ENCODE_LOOP_SPANS
+			break;
 
 	case GX_CTF_R8:
 		SetBlockDimensions(3, 2, &sBlkCount, &tBlkCount, &sBlkSize, &tBlkSize);
@@ -1115,8 +1115,8 @@ static void EncodeRGB8halfscale(u8 *dst, u8 *src, u32 format)
 			*dst++ = r;
 			src += readStride;
 		}
-		ENCODE_LOOP_SPANS
-		break;
+			ENCODE_LOOP_SPANS
+			break;
 
 	case GX_CTF_G8:
 		SetBlockDimensions(3, 2, &sBlkCount, &tBlkCount, &sBlkSize, &tBlkSize);
@@ -1127,8 +1127,8 @@ static void EncodeRGB8halfscale(u8 *dst, u8 *src, u32 format)
 			*dst++ = g;
 			src += readStride;
 		}
-		ENCODE_LOOP_SPANS
-		break;
+			ENCODE_LOOP_SPANS
+			break;
 
 	case GX_CTF_B8:
 		SetBlockDimensions(3, 2, &sBlkCount, &tBlkCount, &sBlkSize, &tBlkSize);
@@ -1139,8 +1139,8 @@ static void EncodeRGB8halfscale(u8 *dst, u8 *src, u32 format)
 			*dst++ = b;
 			src += readStride;
 		}
-		ENCODE_LOOP_SPANS
-		break;
+			ENCODE_LOOP_SPANS
+			break;
 
 	case GX_CTF_RG8:
 		SetBlockDimensions(2, 2, &sBlkCount, &tBlkCount, &sBlkSize, &tBlkSize);
@@ -1152,8 +1152,8 @@ static void EncodeRGB8halfscale(u8 *dst, u8 *src, u32 format)
 			*dst++ = r;
 			src += readStride;
 		}
-		ENCODE_LOOP_SPANS
-		break;
+			ENCODE_LOOP_SPANS
+			break;
 
 	case GX_CTF_GB8:
 		SetBlockDimensions(2, 2, &sBlkCount, &tBlkCount, &sBlkSize, &tBlkSize);
@@ -1165,8 +1165,8 @@ static void EncodeRGB8halfscale(u8 *dst, u8 *src, u32 format)
 			*dst++ = g;
 			src += readStride;
 		}
-		ENCODE_LOOP_SPANS
-		break;
+			ENCODE_LOOP_SPANS
+			break;
 
 	default:
 		PanicAlert("Unknown texture copy format: 0x%x\n", format);
@@ -1191,8 +1191,8 @@ static void EncodeZ24(u8 *dst, u8 *src, u32 format)
 			*dst++ = src[2];
 			src += readStride;
 		}
-		ENCODE_LOOP_SPANS
-		break;
+			ENCODE_LOOP_SPANS
+			break;
 
 	case GX_TF_Z16:
 		SetBlockDimensions(2, 2, &sBlkCount, &tBlkCount, &sBlkSize, &tBlkSize);
@@ -1203,8 +1203,8 @@ static void EncodeZ24(u8 *dst, u8 *src, u32 format)
 			*dst++ = src[2];
 			src += readStride;
 		}
-		ENCODE_LOOP_SPANS
-		break;
+			ENCODE_LOOP_SPANS
+			break;
 
 	case GX_TF_Z24X8:
 		SetBlockDimensions(2, 2, &sBlkCount, &tBlkCount, &sBlkSize, &tBlkSize);
@@ -1218,8 +1218,8 @@ static void EncodeZ24(u8 *dst, u8 *src, u32 format)
 			src += readStride;
 			dst += 2;
 		}
-		ENCODE_LOOP_SPANS2
-		break;
+			ENCODE_LOOP_SPANS2
+			break;
 
 	case GX_CTF_Z4:
 		SetBlockDimensions(3, 3, &sBlkCount, &tBlkCount, &sBlkSize, &tBlkSize);
@@ -1235,8 +1235,8 @@ static void EncodeZ24(u8 *dst, u8 *src, u32 format)
 
 			dst++;
 		}
-		ENCODE_LOOP_SPANS
-		break;
+			ENCODE_LOOP_SPANS
+			break;
 
 	case GX_CTF_Z8M:
 		SetBlockDimensions(3, 2, &sBlkCount, &tBlkCount, &sBlkSize, &tBlkSize);
@@ -1246,8 +1246,8 @@ static void EncodeZ24(u8 *dst, u8 *src, u32 format)
 			*dst++ = src[1];
 			src += readStride;
 		}
-		ENCODE_LOOP_SPANS
-		break;
+			ENCODE_LOOP_SPANS
+			break;
 
 	case GX_CTF_Z8L:
 		SetBlockDimensions(3, 2, &sBlkCount, &tBlkCount, &sBlkSize, &tBlkSize);
@@ -1257,8 +1257,8 @@ static void EncodeZ24(u8 *dst, u8 *src, u32 format)
 			*dst++ = src[0];
 			src += readStride;
 		}
-		ENCODE_LOOP_SPANS
-		break;
+			ENCODE_LOOP_SPANS
+			break;
 
 	case GX_CTF_Z16L:
 		SetBlockDimensions(2, 2, &sBlkCount, &tBlkCount, &sBlkSize, &tBlkSize);
@@ -1269,8 +1269,8 @@ static void EncodeZ24(u8 *dst, u8 *src, u32 format)
 			*dst++ = src[1];
 			src += readStride;
 		}
-		ENCODE_LOOP_SPANS
-		break;
+			ENCODE_LOOP_SPANS
+			break;
 
 	default:
 		PanicAlert("Unknown texture copy format: 0x%x\n", format);
@@ -1297,8 +1297,8 @@ static void EncodeZ24halfscale(u8 *dst, u8 *src, u32 format)
 			*dst++ = b;
 			src += readStride;
 		}
-		ENCODE_LOOP_SPANS
-		break;
+			ENCODE_LOOP_SPANS
+			break;
 
 	case GX_TF_Z16:
 		SetBlockDimensions(2, 2, &sBlkCount, &tBlkCount, &sBlkSize, &tBlkSize);
@@ -1310,8 +1310,8 @@ static void EncodeZ24halfscale(u8 *dst, u8 *src, u32 format)
 			*dst++ = g;
 			src += readStride;
 		}
-		ENCODE_LOOP_SPANS
-		break;
+			ENCODE_LOOP_SPANS
+			break;
 
 	case GX_TF_Z24X8:
 		SetBlockDimensions(2, 2, &sBlkCount, &tBlkCount, &sBlkSize, &tBlkSize);
@@ -1323,8 +1323,8 @@ static void EncodeZ24halfscale(u8 *dst, u8 *src, u32 format)
 			src += readStride;
 			dst += 2;
 		}
-		ENCODE_LOOP_SPANS2
-		break;
+			ENCODE_LOOP_SPANS2
+			break;
 
 	case GX_CTF_Z4:
 		SetBlockDimensions(3, 3, &sBlkCount, &tBlkCount, &sBlkSize, &tBlkSize);
@@ -1342,8 +1342,8 @@ static void EncodeZ24halfscale(u8 *dst, u8 *src, u32 format)
 
 			dst++;
 		}
-		ENCODE_LOOP_SPANS
-		break;
+			ENCODE_LOOP_SPANS
+			break;
 
 	case GX_CTF_Z8M:
 		SetBlockDimensions(3, 2, &sBlkCount, &tBlkCount, &sBlkSize, &tBlkSize);
@@ -1354,8 +1354,8 @@ static void EncodeZ24halfscale(u8 *dst, u8 *src, u32 format)
 			*dst++ = g;
 			src += readStride;
 		}
-		ENCODE_LOOP_SPANS
-		break;
+			ENCODE_LOOP_SPANS
+			break;
 
 	case GX_CTF_Z8L:
 		SetBlockDimensions(3, 2, &sBlkCount, &tBlkCount, &sBlkSize, &tBlkSize);
@@ -1366,8 +1366,8 @@ static void EncodeZ24halfscale(u8 *dst, u8 *src, u32 format)
 			*dst++ = r;
 			src += readStride;
 		}
-		ENCODE_LOOP_SPANS
-		break;
+			ENCODE_LOOP_SPANS
+			break;
 
 	case GX_CTF_Z16L:
 		SetBlockDimensions(2, 2, &sBlkCount, &tBlkCount, &sBlkSize, &tBlkSize);
@@ -1379,8 +1379,8 @@ static void EncodeZ24halfscale(u8 *dst, u8 *src, u32 format)
 			*dst++ = r;
 			src += readStride;
 		}
-		ENCODE_LOOP_SPANS
-		break;
+			ENCODE_LOOP_SPANS
+			break;
 
 	default:
 		PanicAlert("Unknown texture copy format: 0x%x\n", format);

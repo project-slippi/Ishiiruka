@@ -2,16 +2,16 @@
 // Licensed under GPLv2+
 // Refer to the license.txt file included.
 
+#include "Core/PowerPC/CachedInterpreter.h"
 #include "Common/CommonTypes.h"
 #include "Common/Logging/Log.h"
 #include "Core/ConfigManager.h"
 #include "Core/CoreTiming.h"
 #include "Core/HLE/HLE.h"
 #include "Core/HW/CPU.h"
-#include "Core/PowerPC/CachedInterpreter.h"
 #include "Core/PowerPC/Gekko.h"
-#include "Core/PowerPC/PowerPC.h"
 #include "Core/PowerPC/PPCAnalyst.h"
+#include "Core/PowerPC/PowerPC.h"
 
 void CachedInterpreter::Init()
 {
@@ -102,7 +102,8 @@ static bool CheckFPU(u32 data)
 
 void CachedInterpreter::Jit(u32 address)
 {
-	if (m_code.size() >= CODE_SIZE / sizeof(Instruction) - 0x1000 || IsFull() || SConfig::GetInstance().bJITNoBlockCache)
+	if (m_code.size() >= CODE_SIZE / sizeof(Instruction) - 0x1000 || IsFull() ||
+		SConfig::GetInstance().bJITNoBlockCache)
 	{
 		ClearCache();
 	}
@@ -119,7 +120,7 @@ void CachedInterpreter::Jit(u32 address)
 	}
 
 	int block_num = AllocateBlock(PC);
-	JitBlock *b = GetBlock(block_num);
+	JitBlock* b = GetBlock(block_num);
 
 	js.blockStart = PC;
 	js.firstFPInstructionFound = false;
@@ -127,7 +128,7 @@ void CachedInterpreter::Jit(u32 address)
 	js.downcountAmount = 0;
 	js.curBlock = b;
 
-	PPCAnalyst::CodeOp *ops = code_buffer.codebuffer;
+	PPCAnalyst::CodeOp* ops = code_buffer.codebuffer;
 
 	b->checkedEntry = GetCodePtr();
 	b->normalEntry = GetCodePtr();
@@ -193,9 +194,7 @@ void CachedInterpreter::ClearCache()
 }
 
 void CachedInterpreter::WriteDestroyBlock(const u8* location, u32 address)
-{
-}
+{}
 
 void CachedInterpreter::WriteLinkBlock(u8* location, const JitBlock& block)
-{
-}
+{}

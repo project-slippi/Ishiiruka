@@ -8,13 +8,12 @@
 #include "Common/CommonTypes.h"
 #include "Common/MsgHandler.h"
 #include "Core/Core.h"
-#include "Core/HW/SystemTimers.h"
 #include "Core/HW/DSPHLE/DSPHLE.h"
 #include "Core/HW/DSPHLE/UCodes/UCodes.h"
+#include "Core/HW/SystemTimers.h"
 
 DSPHLE::DSPHLE()
-{
-}
+{}
 
 bool DSPHLE::Initialize(bool bWii, bool bDSPThread)
 {
@@ -34,8 +33,7 @@ bool DSPHLE::Initialize(bool bWii, bool bDSPThread)
 }
 
 void DSPHLE::DSP_StopSoundStream()
-{
-}
+{}
 
 void DSPHLE::Shutdown()
 {
@@ -99,13 +97,14 @@ void DSPHLE::SwapUCode(u32 _crc)
 	}
 }
 
-void DSPHLE::DoState(PointerWrap &p)
+void DSPHLE::DoState(PointerWrap& p)
 {
 	bool isHLE = true;
 	p.Do(isHLE);
 	if (isHLE != true && p.GetMode() == PointerWrap::MODE_READ)
 	{
-		Core::DisplayMessage("State is incompatible with current DSP engine. Aborting load state.", 3000);
+		Core::DisplayMessage("State is incompatible with current DSP engine. Aborting load state.",
+			3000);
 		p.SetMode(PointerWrap::MODE_VERIFY);
 		return;
 	}
@@ -123,8 +122,11 @@ void DSPHLE::DoState(PointerWrap &p)
 
 	// if a different type of ucode was being used when the savestate was created,
 	// we have to reconstruct the old type of ucode so that we have a valid thing to call DoState on.
-	UCodeInterface*     ucode =     (ucode_crc ==     ucode_crc_beforeLoad) ?    m_pUCode : UCodeFactory(    ucode_crc, this, m_bWii);
-	UCodeInterface* lastucode = (lastucode_crc != lastucode_crc_beforeLoad) ? m_lastUCode : UCodeFactory(lastucode_crc, this, m_bWii);
+	UCodeInterface* ucode =
+		(ucode_crc == ucode_crc_beforeLoad) ? m_pUCode : UCodeFactory(ucode_crc, this, m_bWii);
+	UCodeInterface* lastucode = (lastucode_crc != lastucode_crc_beforeLoad) ?
+		m_lastUCode :
+		UCodeFactory(lastucode_crc, this, m_bWii);
 
 	if (ucode)
 		ucode->DoState(p);
@@ -240,5 +242,4 @@ u16 DSPHLE::DSP_ReadControlRegister()
 }
 
 void DSPHLE::PauseAndLock(bool doLock, bool unpauseOnUnlock)
-{
-}
+{}

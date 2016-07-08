@@ -15,18 +15,50 @@ public:
 	void AddVoice(u16 voice_id);
 	void FinalizeFrame();
 
-	void SetFlags(u32 flags) { m_flags = flags; }
-	void SetSineTable(std::array<s16, 0x80>&& sine_table) { m_sine_table = sine_table; }
-	void SetConstPatterns(std::array<s16, 0x100>&& patterns) { m_const_patterns = patterns; }
-	void SetResamplingCoeffs(std::array<s16, 0x100>&& coeffs) { m_resampling_coeffs = coeffs; }
-	void SetAfcCoeffs(std::array<s16, 0x20>&& coeffs) { m_afc_coeffs = coeffs; }
-	void SetVPBBaseAddress(u32 addr) { m_vpb_base_addr = addr; }
-	void SetReverbPBBaseAddress(u32 addr) { m_reverb_pb_base_addr = addr; }
-	void SetOutputVolume(u16 volume) { m_output_volume = volume; }
-	void SetOutputLeftBufferAddr(u32 addr) { m_output_lbuf_addr = addr; }
-	void SetOutputRightBufferAddr(u32 addr) { m_output_rbuf_addr = addr; }
-	void SetARAMBaseAddr(u32 addr) { m_aram_base_addr = addr; }
-
+	void SetFlags(u32 flags)
+	{
+		m_flags = flags;
+	}
+	void SetSineTable(std::array<s16, 0x80>&& sine_table)
+	{
+		m_sine_table = sine_table;
+	}
+	void SetConstPatterns(std::array<s16, 0x100>&& patterns)
+	{
+		m_const_patterns = patterns;
+	}
+	void SetResamplingCoeffs(std::array<s16, 0x100>&& coeffs)
+	{
+		m_resampling_coeffs = coeffs;
+	}
+	void SetAfcCoeffs(std::array<s16, 0x20>&& coeffs)
+	{
+		m_afc_coeffs = coeffs;
+	}
+	void SetVPBBaseAddress(u32 addr)
+	{
+		m_vpb_base_addr = addr;
+	}
+	void SetReverbPBBaseAddress(u32 addr)
+	{
+		m_reverb_pb_base_addr = addr;
+	}
+	void SetOutputVolume(u16 volume)
+	{
+		m_output_volume = volume;
+	}
+	void SetOutputLeftBufferAddr(u32 addr)
+	{
+		m_output_lbuf_addr = addr;
+	}
+	void SetOutputRightBufferAddr(u32 addr)
+	{
+		m_output_rbuf_addr = addr;
+	}
+	void SetARAMBaseAddr(u32 addr)
+	{
+		m_aram_base_addr = addr;
+	}
 	void DoState(PointerWrap& p);
 
 private:
@@ -67,9 +99,8 @@ private:
 	// Note: On a real GC, the stepping happens in 32 steps instead. But hey,
 	// we can do better here with very low risk. Why not? :)
 	template <size_t N>
-	s32 AddBuffersWithVolumeRamp(std::array<s16, N>* dst,
-	                             const std::array<s16, N>& src,
-	                             s32 vol, s32 step)
+	s32 AddBuffersWithVolumeRamp(std::array<s16, N>* dst, const std::array<s16, N>& src, s32 vol,
+		s32 step)
 	{
 		if (!vol && !step)
 			return vol;
@@ -159,7 +190,8 @@ private:
 
 	// Downloads PCM encoded samples from ARAM. Handles looping and other
 	// parameters appropriately.
-	template <typename T> void DownloadPCMSamplesFromARAM(s16* dst, VPB* vpb, u16 requested_samples_count);
+	template <typename T>
+	void DownloadPCMSamplesFromARAM(s16* dst, VPB* vpb, u16 requested_samples_count);
 
 	// Downloads AFC encoded samples from ARAM and decode them. Handles looping
 	// and other parameters appropriately.
@@ -183,16 +215,16 @@ private:
 	u32 m_reverb_pb_base_addr = 0;
 };
 
-class ZeldaUCode : public UCodeInterface
+class ZeldaUCode: public UCodeInterface
 {
 public:
-	ZeldaUCode(DSPHLE *dsphle, u32 crc);
+	ZeldaUCode(DSPHLE* dsphle, u32 crc);
 	virtual ~ZeldaUCode();
 
 	void HandleMail(u32 mail) override;
 	void Update() override;
 
-	void DoState(PointerWrap &p) override;
+	void DoState(PointerWrap& p) override;
 
 private:
 	// Flags that alter the behavior of the UCode. See Zelda.cpp for complete
@@ -210,7 +242,7 @@ private:
 	// of the original DSP implementation is rewritten in an asynchronous/coro
 	// + state machine style. It is less readable, but the best we can do given
 	// our constraints.
-	enum class MailState : u32
+	enum class MailState: u32
 	{
 		WAITING,
 		RENDERING,
@@ -256,7 +288,7 @@ private:
 		}
 
 		u32 res = m_cmd_buffer[m_read_offset];
-		m_read_offset = (m_read_offset + 1) % (sizeof (m_cmd_buffer) / sizeof (u32));
+		m_read_offset = (m_read_offset + 1) % (sizeof(m_cmd_buffer) / sizeof(u32));
 		return res;
 	}
 
@@ -264,7 +296,7 @@ private:
 	void Write32(u32 val)
 	{
 		m_cmd_buffer[m_write_offset] = val;
-		m_write_offset = (m_write_offset + 1) % (sizeof (m_cmd_buffer) / sizeof (u32));
+		m_write_offset = (m_write_offset + 1) % (sizeof(m_cmd_buffer) / sizeof(u32));
 	}
 
 	// Tries to run as many commands as possible until either the command
@@ -275,7 +307,7 @@ private:
 	void RunPendingCommands();
 
 	// Sends the two mails from DSP to CPU to ack the command execution.
-	enum class CommandAck : u32
+	enum class CommandAck: u32
 	{
 		STANDARD,
 		DONE_RENDERING,
@@ -288,7 +320,10 @@ private:
 	u32 m_rendering_curr_frame = 0;
 	u32 m_rendering_curr_voice = 0;
 
-	bool RenderingInProgress() const { return m_rendering_curr_frame != m_rendering_requested_frames; }
+	bool RenderingInProgress() const
+	{
+		return m_rendering_curr_frame != m_rendering_requested_frames;
+	}
 	void RenderAudio();
 
 	// Main object handling audio rendering logic and state.

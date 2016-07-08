@@ -46,7 +46,7 @@ static bool s_handle_changed = false;
 
 D3D12_GPU_DESCRIPTOR_HANDLE TextureCache::GetTextureGroupHandle()
 {
-	D3D12_GPU_DESCRIPTOR_HANDLE Handle = { 0 };
+	D3D12_GPU_DESCRIPTOR_HANDLE Handle = {0};
 	if (s_handle_changed)
 	{
 		s_handle_changed = false;
@@ -71,7 +71,7 @@ void TextureCache::TCacheEntry::Bind(unsigned int stage, unsigned int last_Textu
 		s_group_base_texture_gpu_handle = this->m_texture->GetSRVGPU();
 		return;
 	}
-	
+
 	if (s_first_texture_in_group)
 	{
 		const unsigned int num_handles = use_materials ? 16 : 8;
@@ -89,7 +89,7 @@ void TextureCache::TCacheEntry::Bind(unsigned int stage, unsigned int last_Textu
 				nullDestDescriptor,
 				DX12::D3D::null_srv_cpu_shadow,
 				D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV
-				);
+			);
 		}
 
 		// Future binding calls will not be the first texture in the group.. until stage == count, below.
@@ -103,7 +103,7 @@ void TextureCache::TCacheEntry::Bind(unsigned int stage, unsigned int last_Textu
 		textureDestDescriptor,
 		this->m_texture->GetSRVGPUCPUShadow(),
 		D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV
-		);
+	);
 
 	if (m_nrm_texture && use_materials)
 	{
@@ -113,7 +113,7 @@ void TextureCache::TCacheEntry::Bind(unsigned int stage, unsigned int last_Textu
 			textureDestDescriptor,
 			this->m_nrm_texture->GetSRVGPUCPUShadow(),
 			D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV
-			);
+		);
 	}
 
 	// Stage is zero-based, count is one-based
@@ -129,7 +129,7 @@ bool TextureCache::TCacheEntry::Save(const std::string& filename, unsigned int l
 	u32 level_width = std::max(config.width >> level, 1u);
 	u32 level_height = std::max(config.height >> level, 1u);
 	size_t level_pitch = level_width;
-	size_t num_lines = level_height;	
+	size_t num_lines = level_height;
 	if (this->compressed)
 	{
 		level_pitch = (level_pitch + 3) >> 2;
@@ -179,7 +179,7 @@ bool TextureCache::TCacheEntry::Save(const std::string& filename, unsigned int l
 
 	// Map readback buffer and save to file.
 	void* readback_texture_map;
-	D3D12_RANGE read_range = { 0, required_readback_buffer_size };
+	D3D12_RANGE read_range = {0, required_readback_buffer_size};
 	CheckHR(s_texture_cache_entry_readback_buffer->Map(0, &read_range, &readback_texture_map));
 
 	bool saved = false;
@@ -203,7 +203,7 @@ bool TextureCache::TCacheEntry::Save(const std::string& filename, unsigned int l
 			dst_location.PlacedFootprint.Footprint.Height
 		);
 	}
-	
+
 	D3D12_RANGE write_range = {};
 	s_texture_cache_entry_readback_buffer->Unmap(0, &write_range);
 	return saved;
@@ -219,7 +219,7 @@ void TextureCache::TCacheEntry::CopyRectangleFromTexture(
 		&& src_rect.GetHeight() == dst_rect.GetHeight())
 	{
 		CD3DX12_BOX src_box(src_rect.left, src_rect.top, 0, src_rect.right, src_rect.bottom, srcentry->config.layers);
-		
+
 		D3D12_TEXTURE_COPY_LOCATION dst = CD3DX12_TEXTURE_COPY_LOCATION(m_texture->GetTex(), 0);
 		D3D12_TEXTURE_COPY_LOCATION src = CD3DX12_TEXTURE_COPY_LOCATION(srcentry->m_texture->GetTex(), 0);
 
@@ -361,14 +361,14 @@ TextureCacheBase::TCacheEntryBase* TextureCache::CreateTexture(const TCacheEntry
 
 		CheckHR(
 			D3D::device->CreateCommittedResource(
-			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
-			D3D12_HEAP_FLAG_NONE,
-			&CD3DX12_RESOURCE_DESC(texdesc12),
-			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
-			nullptr,
-			IID_PPV_ARGS(pTexture.ReleaseAndGetAddressOf())
+				&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
+				D3D12_HEAP_FLAG_NONE,
+				&CD3DX12_RESOURCE_DESC(texdesc12),
+				D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
+				nullptr,
+				IID_PPV_ARGS(pTexture.ReleaseAndGetAddressOf())
 			)
-			);
+		);
 
 		D3DTexture2D* texture = new D3DTexture2D(
 			pTexture.Get(),
@@ -378,11 +378,11 @@ TextureCacheBase::TCacheEntryBase* TextureCache::CreateTexture(const TCacheEntry
 			DXGI_FORMAT_UNKNOWN,
 			false,
 			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE
-			);
+		);
 
 		TCacheEntry* const entry = new TCacheEntry(
 			config, texture
-			);
+		);
 
 		entry->DXGI_format = format;
 		if (format != DXGI_FORMAT_R8G8B8A8_UNORM)
@@ -402,8 +402,8 @@ TextureCacheBase::TCacheEntryBase* TextureCache::CreateTexture(const TCacheEntry
 					D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
 					nullptr,
 					IID_PPV_ARGS(pTexture.ReleaseAndGetAddressOf())
-					)
-				);
+				)
+			);
 			entry->m_nrm_texture = new D3DTexture2D(
 				pTexture.Get(),
 				TEXTURE_BIND_FLAG_SHADER_RESOURCE,
@@ -412,7 +412,7 @@ TextureCacheBase::TCacheEntryBase* TextureCache::CreateTexture(const TCacheEntry
 				DXGI_FORMAT_UNKNOWN,
 				false,
 				D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE
-				);
+			);
 		}
 		return entry;
 	}
@@ -434,7 +434,7 @@ void TextureCache::TCacheEntry::FromRenderTarget(u8* dst, PEControl::PixelFormat
 		efb_tex = (src_format == PEControl::Z24) ?
 			FramebufferManager::GetResolvedEFBDepthTexture() :
 			FramebufferManager::GetResolvedEFBColorTexture();
-	}	
+	}
 	// set transformation
 	if (s_efb_copy_last_cbuf_id != cbuf_id)
 	{
@@ -474,7 +474,7 @@ void TextureCache::TCacheEntry::FromRenderTarget(u8* dst, PEControl::PixelFormat
 		StaticShaderCache::GetSimpleVertexShaderInputLayout(),
 		StaticShaderCache::GetCopyGeometryShader(),
 		0, DXGI_FORMAT_R8G8B8A8_UNORM, false, m_texture->GetMultisampled()
-		);
+	);
 	g_renderer->RestoreAPIState();
 }
 
@@ -565,7 +565,7 @@ void main(
 }
 )HLSL";
 
-void TextureCache::LoadLut(u32 lutFmt, void* palette, u32 size) 
+void TextureCache::LoadLut(u32 lutFmt, void* palette, u32 size)
 {
 	if (m_lut_size > 512)
 	{
@@ -587,7 +587,7 @@ void TextureCache::LoadLut(u32 lutFmt, void* palette, u32 size)
 	m_lut_format = (TlutFormat)lutFmt;
 	m_lut_size = size;
 	m_addr = palette;
-	
+
 	// D3D12: Copy the palette into a free place in the palette_buf12 upload heap.
 	// Only 1024 palette buffers are supported in flight at once (arbitrary, this should be plenty).
 	const unsigned int palette_buffer_allocation_size = 512;
@@ -636,7 +636,7 @@ bool TextureCache::Palettize(TCacheEntryBase* entry, const TCacheEntryBase* unco
 		srv_group_cpu_handle[0],
 		base_entry->m_texture->GetSRVGPUCPUShadow(),
 		D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV
-		);
+	);
 
 	// Finally, bind our temporary location.
 	D3D::current_command_list->SetGraphicsRootDescriptorTable(DESCRIPTOR_TABLE_PS_SRV, srv_group_gpu_handle[0]);
@@ -679,8 +679,8 @@ bool TextureCache::Palettize(TCacheEntryBase* entry, const TCacheEntryBase* unco
 		DXGI_FORMAT_R8G8B8A8_UNORM,
 		true,
 		static_cast<TCacheEntry*>(entry)->m_texture->GetMultisampled()
-		);
-	
+	);
+
 	g_renderer->RestoreAPIState();
 	return true;
 }
@@ -695,7 +695,7 @@ D3D12_SHADER_BYTECODE GetConvertShader(const std::string& type)
 	D3DBlob* Blob = nullptr;
 	D3D::CompilePixelShader(shader, &Blob);
 
-	return { Blob->Data(), Blob->Size() };
+	return{Blob->Data(), Blob->Size()};
 }
 
 TextureCache::TextureCache()
@@ -703,7 +703,7 @@ TextureCache::TextureCache()
 	// FIXME: Is it safe here?
 	s_encoder = std::make_unique<PSTextureEncoder>();
 	s_encoder->Init();
-	s_scaler = std::make_unique<TextureScaler>();	
+	s_scaler = std::make_unique<TextureScaler>();
 	s_texture_cache_entry_readback_buffer = nullptr;
 	s_texture_cache_entry_readback_buffer_size = 0;
 
@@ -719,14 +719,14 @@ TextureCache::TextureCache()
 	// Right now, there are only two variants of palette_uniform data. So, we'll just create an upload heap to permanently store both of these.
 	CheckHR(
 		D3D::device->CreateCommittedResource(
-		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
-		D3D12_HEAP_FLAG_NONE,
-		&CD3DX12_RESOURCE_DESC::Buffer(((16 + 255) & ~255) * 2), // Constant Buffers have to be 256b aligned. "* 2" to create for two sets of data.
-		D3D12_RESOURCE_STATE_COPY_DEST,
-		nullptr,
-		IID_PPV_ARGS(&m_palette_uniform_buffer)
+			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
+			D3D12_HEAP_FLAG_NONE,
+			&CD3DX12_RESOURCE_DESC::Buffer(((16 + 255) & ~255) * 2), // Constant Buffers have to be 256b aligned. "* 2" to create for two sets of data.
+			D3D12_RESOURCE_STATE_COPY_DEST,
+			nullptr,
+			IID_PPV_ARGS(&m_palette_uniform_buffer)
 		)
-		);
+	);
 
 	D3D::SetDebugObjectName12(m_palette_uniform_buffer, "a constant buffer used in TextureCache::ConvertTexture");
 
@@ -735,8 +735,8 @@ TextureCache::TextureCache()
 	u8* upload_heap_data_location = reinterpret_cast<u8*>(m_palette_stream_buffer->GetCPUAddressOfCurrentAllocation());
 	memset(upload_heap_data_location, 0, 256 * 2);
 
-	float paramsFormatZero[4] = { 15.f };
-	float paramsFormatNonzero[4] = { 255.f };
+	float paramsFormatZero[4] = {15.f};
+	float paramsFormatNonzero[4] = {255.f};
 
 	memcpy(upload_heap_data_location, paramsFormatZero, sizeof(paramsFormatZero));
 	memcpy(upload_heap_data_location + 256, paramsFormatNonzero, sizeof(paramsFormatNonzero));

@@ -8,5 +8,5 @@
 class G_GB4P51_pvt
 {
 public:
-static void Initialize(std::map<u64, TCompiledLoaderFunction> &pvlmap);
+	static void Initialize(std::map<u64, TCompiledLoaderFunction> &pvlmap);
 };

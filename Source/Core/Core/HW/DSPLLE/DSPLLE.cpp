@@ -11,44 +11,40 @@
 #include "Common/CommonPaths.h"
 #include "Common/CommonTypes.h"
 #include "Common/Event.h"
-#include "Common/Thread.h"
 #include "Common/Logging/Log.h"
+#include "Common/Thread.h"
 #include "Core/ConfigManager.h"
 #include "Core/Core.h"
+#include "Core/DSP/DSPCaptureLogger.h"
+#include "Core/DSP/DSPCore.h"
+#include "Core/DSP/DSPHWInterface.h"
+#include "Core/DSP/DSPHost.h"
+#include "Core/DSP/DSPInterpreter.h"
+#include "Core/DSP/DSPTables.h"
+#include "Core/HW/DSPLLE/DSPLLE.h"
+#include "Core/HW/DSPLLE/DSPLLEGlobals.h"
+#include "Core/HW/Memmap.h"
 #include "Core/Host.h"
 #include "Core/Movie.h"
 #include "Core/NetPlayProto.h"
-#include "Core/DSP/DSPCaptureLogger.h"
-#include "Core/DSP/DSPCore.h"
-#include "Core/DSP/DSPHost.h"
-#include "Core/DSP/DSPHWInterface.h"
-#include "Core/DSP/DSPInterpreter.h"
-#include "Core/DSP/DSPTables.h"
-#include "Core/HW/Memmap.h"
-#include "Core/HW/DSPLLE/DSPLLE.h"
-#include "Core/HW/DSPLLE/DSPLLEGlobals.h"
 
 DSPLLE::DSPLLE()
-	: m_hDSPThread()
-	, m_csDSPThreadActive()
-	, m_bWii(false)
-	, m_bDSPThread(false)
-	, m_bIsRunning(false)
-	, m_cycle_count(0)
-{
-}
+	: m_hDSPThread(), m_csDSPThreadActive(), m_bWii(false), m_bDSPThread(false),
+	m_bIsRunning(false), m_cycle_count(0)
+{}
 
 static Common::Event dspEvent;
 static Common::Event ppcEvent;
 static bool requestDisableThread;
 
-void DSPLLE::DoState(PointerWrap &p)
+void DSPLLE::DoState(PointerWrap& p)
 {
 	bool is_hle = false;
 	p.Do(is_hle);
 	if (is_hle && p.GetMode() == PointerWrap::MODE_READ)
 	{
-		Core::DisplayMessage("State is incompatible with current DSP engine. Aborting load state.", 3000);
+		Core::DisplayMessage("State is incompatible with current DSP engine. Aborting load state.",
+			3000);
 		p.SetMode(PointerWrap::MODE_VERIFY);
 		return;
 	}
@@ -119,8 +115,8 @@ static bool LoadDSPRom(u16* rom, const std::string& filename, u32 size_in_bytes)
 
 	if (bytes.size() != size_in_bytes)
 	{
-		ERROR_LOG(DSPLLE, "%s has a wrong size (%zu, expected %u)",
-		          filename.c_str(), bytes.size(), size_in_bytes);
+		ERROR_LOG(DSPLLE, "%s has a wrong size (%zu, expected %u)", filename.c_str(), bytes.size(),
+			size_in_bytes);
 		return false;
 	}
 
@@ -146,8 +142,8 @@ static bool FillDSPInitOptions(DSPInitOptions* opts)
 	if (!LoadDSPRom(opts->coef_contents.data(), coef_file, DSP_COEF_BYTE_SIZE))
 		return false;
 
-	opts->core_type = SConfig::GetInstance().m_DSPEnableJIT ?
-		DSPInitOptions::CORE_JIT : DSPInitOptions::CORE_INTERPRETER;
+	opts->core_type = SConfig::GetInstance().m_DSPEnableJIT ? DSPInitOptions::CORE_JIT :
+		DSPInitOptions::CORE_INTERPRETER;
 
 	if (SConfig::GetInstance().m_DSPCaptureLog)
 	{
@@ -169,8 +165,8 @@ bool DSPLLE::Initialize(bool bWii, bool bDSPThread)
 		return false;
 
 	// needs to be after DSPCore_Init for the dspjit ptr
-	if (NetPlay::IsNetPlayRunning() || Movie::IsMovieActive() ||
-	    Core::g_want_determinism    || !g_dsp_jit)
+	if (NetPlay::IsNetPlayRunning() || Movie::IsMovieActive() || Core::g_want_determinism ||
+		!g_dsp_jit)
 	{
 		bDSPThread = false;
 	}
@@ -230,7 +226,6 @@ u16 DSPLLE::DSP_WriteControlRegister(u16 _uFlag)
 
 			DSPCore_SetExternalInterrupt(true);
 		}
-
 	}
 
 	return DSPInterpreter::ReadCR();
@@ -293,27 +288,29 @@ void DSPLLE::DSP_Update(int cycles)
 
 	if (dsp_cycles <= 0)
 		return;
-// Sound stream update job has been handled by AudioDMA routine, which is more efficient
-/*
-	// This gets called VERY OFTEN. The soundstream update might be expensive so only do it 200 times per second or something.
-	int cycles_between_ss_update;
+	// Sound stream update job has been handled by AudioDMA routine, which is more efficient
+	/*
+	  // This gets called VERY OFTEN. The soundstream update might be expensive so only do it 200
+	  times per second or something.
+	  int cycles_between_ss_update;
 
-	if (g_dspInitialize.bWii)
-		cycles_between_ss_update = 121500000 / 200;
-	else
-		cycles_between_ss_update = 81000000 / 200;
+	  if (g_dspInitialize.bWii)
+		 cycles_between_ss_update = 121500000 / 200;
+	  else
+		 cycles_between_ss_update = 81000000 / 200;
 
-	m_cycle_count += cycles;
-	if (m_cycle_count > cycles_between_ss_update)
-	{
-		while (m_cycle_count > cycles_between_ss_update)
+	  m_cycle_count += cycles;
+	  if (m_cycle_count > cycles_between_ss_update)
+	  {
+		 while (m_cycle_count > cycles_between_ss_update)
 			m_cycle_count -= cycles_between_ss_update;
-		soundStream->Update();
-	}
-*/
+		 soundStream->Update();
+	  }
+	*/
 	if (m_bDSPThread)
 	{
-		if (requestDisableThread || NetPlay::IsNetPlayRunning() || Movie::IsMovieActive() || Core::g_want_determinism)
+		if (requestDisableThread || NetPlay::IsNetPlayRunning() || Movie::IsMovieActive() ||
+			Core::g_want_determinism)
 		{
 			DSP_StopSoundStream();
 			m_bDSPThread = false;
@@ -339,7 +336,7 @@ void DSPLLE::DSP_Update(int cycles)
 
 u32 DSPLLE::DSP_UpdateRate()
 {
-	return 12600; // TO BE TWEAKED
+	return 12600;  // TO BE TWEAKED
 }
 
 void DSPLLE::PauseAndLock(bool doLock, bool unpauseOnUnlock)

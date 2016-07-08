@@ -105,51 +105,51 @@ public:
 
 			switch (m_running_state.load())
 			{
-				case STATE_NEED_EXECUTION:
-					// We won't get notified while we are in the STATE_NEED_EXECUTION state, so maybe Wakeup was called.
-					// So we have to assume on finishing the STATE_NEED_EXECUTION state, that there may be some remaining tasks.
-					// To process this tasks, we call the payload again within the STATE_LAST_EXECUTION state.
-					m_running_state--;
+			case STATE_NEED_EXECUTION:
+				// We won't get notified while we are in the STATE_NEED_EXECUTION state, so maybe Wakeup was called.
+				// So we have to assume on finishing the STATE_NEED_EXECUTION state, that there may be some remaining tasks.
+				// To process this tasks, we call the payload again within the STATE_LAST_EXECUTION state.
+				m_running_state--;
+				break;
+
+			case STATE_LAST_EXECUTION:
+				// If we're still in the STATE_LAST_EXECUTION state, then Wakeup wasn't called within the last
+				// execution of the payload. This means we should be ready now.
+				// But bad luck, Wakeup may have been called right now. So break and rerun the payload
+				// if the state was touched.
+				if (m_running_state-- != STATE_LAST_EXECUTION)
 					break;
 
-				case STATE_LAST_EXECUTION:
-					// If we're still in the STATE_LAST_EXECUTION state, then Wakeup wasn't called within the last
-					// execution of the payload. This means we should be ready now.
-					// But bad luck, Wakeup may have been called right now. So break and rerun the payload
-					// if the state was touched.
-					if (m_running_state-- != STATE_LAST_EXECUTION)
+				// Else we're likely in the STATE_DONE state now, so wakeup the waiting threads right now.
+				// However, if we're not in the STATE_DONE state any more, the event should also be
+				// triggered so that we'll skip the next waiting call quite fast.
+				m_done_event.Set();
+
+			case STATE_DONE:
+				// We're done now. So time to check if we want to sleep or if we want to stay in a busy loop.
+				if (m_may_sleep.TestAndClear())
+				{
+					// Try to set the sleeping state.
+					if (m_running_state-- != STATE_DONE)
 						break;
-
-					// Else we're likely in the STATE_DONE state now, so wakeup the waiting threads right now.
-					// However, if we're not in the STATE_DONE state any more, the event should also be
-					// triggered so that we'll skip the next waiting call quite fast.
-					m_done_event.Set();
-
-				case STATE_DONE:
-					// We're done now. So time to check if we want to sleep or if we want to stay in a busy loop.
-					if (m_may_sleep.TestAndClear())
-					{
-						// Try to set the sleeping state.
-						if (m_running_state-- != STATE_DONE)
-							break;
-					}
-					else
-					{
-						// Busy loop.
-						break;
-					}
-
-				case STATE_SLEEPING:
-					// Just relax
-					if (timeout > 0)
-					{
-						m_new_work_event.WaitFor(std::chrono::milliseconds(timeout));
-					}
-					else
-					{
-						m_new_work_event.Wait();
-					}
+				}
+				else
+				{
+					// Busy loop.
 					break;
+				}
+
+			case STATE_SLEEPING:
+				// Just relax
+				if (timeout > 0)
+				{
+					m_new_work_event.WaitFor(std::chrono::milliseconds(timeout));
+				}
+				else
+				{
+					m_new_work_event.Wait();
+				}
+				break;
 			}
 		}
 
@@ -205,7 +205,8 @@ private:
 	Event m_new_work_event;
 	Event m_done_event;
 
-	enum RUNNING_TYPE {
+	enum RUNNING_TYPE
+	{
 		STATE_SLEEPING = 0,
 		STATE_DONE = 1,
 		STATE_LAST_EXECUTION = 2,

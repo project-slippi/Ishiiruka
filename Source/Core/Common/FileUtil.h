@@ -18,7 +18,8 @@
 #endif
 
 // User directory indices for GetUserPath
-enum {
+enum
+{
 	D_USER_IDX,
 	D_GCUSER_IDX,
 	D_WIIROOT_IDX, // always points to User/Wii or global user-configured directory
@@ -159,7 +160,7 @@ bool ReadFileToString(const std::string& filename, std::string& str);
 // simple wrapper for cstdlib file functions to
 // hopefully will make error checking easier
 // and make forgetting an fclose() harder
-class IOFile : public NonCopyable
+class IOFile: public NonCopyable
 {
 public:
 	IOFile();
@@ -208,15 +209,27 @@ public:
 		return WriteArray(reinterpret_cast<const char*>(data), length);
 	}
 
-	bool IsOpen() const { return nullptr != m_file; }
+	bool IsOpen() const
+	{
+		return nullptr != m_file;
+	}
 
 	// m_good is set to false when a read, write or other function fails
-	bool IsGood() const { return m_good; }
-	operator void*() { return m_good ? m_file : nullptr; }
+	bool IsGood() const
+	{
+		return m_good;
+	}
+	operator void*()
+	{
+		return m_good ? m_file : nullptr;
+	}
 
 	std::FILE* ReleaseHandle();
 
-	std::FILE* GetHandle() { return m_file; }
+	std::FILE* GetHandle()
+	{
+		return m_file;
+	}
 
 	void SetHandle(std::FILE* file);
 
@@ -227,7 +240,10 @@ public:
 	bool Flush();
 
 	// clear error state
-	void Clear() { m_good = true; std::clearerr(m_file); }
+	void Clear()
+	{
+		m_good = true; std::clearerr(m_file);
+	}
 
 	std::FILE* m_file;
 	bool m_good;

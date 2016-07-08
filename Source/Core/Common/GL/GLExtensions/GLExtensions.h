@@ -50,13 +50,13 @@
 
 namespace GLExtensions
 {
-	// Initializes the interface
-	bool Init();
+// Initializes the interface
+bool Init();
 
-	// Function for checking if the hardware supports an extension
-	// example: if (GLExtensions::Supports("GL_ARB_multi_map"))
-	bool Supports(const std::string& name);
+// Function for checking if the hardware supports an extension
+// example: if (GLExtensions::Supports("GL_ARB_multi_map"))
+bool Supports(const std::string& name);
 
-	// Returns OpenGL version in format 430
-	u32 Version();
+// Returns OpenGL version in format 430
+u32 Version();
 }

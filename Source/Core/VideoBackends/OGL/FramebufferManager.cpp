@@ -219,7 +219,7 @@ FramebufferManager::FramebufferManager(int targetWidth, int targetHeight, int ms
 	glScissor(0, 0, m_targetWidth, m_targetHeight);
 	glClearColor(0.f, 0.f, 0.f, 1.f);
 	glClearDepthf(1.0f);
-	glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	// reinterpret pixel format
 	const char* vs = m_EFBLayers > 1 ?
@@ -351,50 +351,50 @@ FramebufferManager::FramebufferManager(int targetWidth, int targetHeight, int ms
 
 	ProgramShaderCache::CompileShader(m_EfbPokes,
 		StringFromFormat(
-		"in vec2 rawpos;\n"
-		"in vec4 color0;\n" // color
-		"in int color1;\n" // depth
-		"out vec4 v_c;\n"
-		"out float v_z;\n"
-		"void main(void) {\n"
-		"	gl_Position = vec4(((rawpos + 0.5) / vec2(640.0, 528.0) * 2.0 - 1.0) * vec2(1.0, -1.0), 0.0, 1.0);\n"
-		"	gl_PointSize = %d.0 / 640.0;\n"
-		"	v_c = color0.bgra;\n"
-		"	v_z = float(color1 & 0xFFFFFF) / 16777216.0;\n"
-		"}\n", m_targetWidth).c_str(),
+			"in vec2 rawpos;\n"
+			"in vec4 color0;\n" // color
+			"in int color1;\n" // depth
+			"out vec4 v_c;\n"
+			"out float v_z;\n"
+			"void main(void) {\n"
+			"	gl_Position = vec4(((rawpos + 0.5) / vec2(640.0, 528.0) * 2.0 - 1.0) * vec2(1.0, -1.0), 0.0, 1.0);\n"
+			"	gl_PointSize = %d.0 / 640.0;\n"
+			"	v_c = color0.bgra;\n"
+			"	v_z = float(color1 & 0xFFFFFF) / 16777216.0;\n"
+			"}\n", m_targetWidth).c_str(),
 
 		StringFromFormat(
-		"in vec4 %s_c;\n"
-		"in float %s_z;\n"
-		"out vec4 ocol0;\n"
-		"void main(void) {\n"
-		"	ocol0 = %s_c;\n"
-		"	gl_FragDepth = %s_z;\n"
-		"}\n", m_EFBLayers > 1 ? "g" : "v", m_EFBLayers > 1 ? "g" : "v", m_EFBLayers > 1 ? "g" : "v", m_EFBLayers > 1 ? "g" : "v").c_str(),
+			"in vec4 %s_c;\n"
+			"in float %s_z;\n"
+			"out vec4 ocol0;\n"
+			"void main(void) {\n"
+			"	ocol0 = %s_c;\n"
+			"	gl_FragDepth = %s_z;\n"
+			"}\n", m_EFBLayers > 1 ? "g" : "v", m_EFBLayers > 1 ? "g" : "v", m_EFBLayers > 1 ? "g" : "v", m_EFBLayers > 1 ? "g" : "v").c_str(),
 
 		m_EFBLayers > 1 ? StringFromFormat(
-		"layout(points) in;\n"
-		"layout(points, max_vertices = %d) out;\n"
-		"in vec4 v_c[1];\n"
-		"in float v_z[1];\n"
-		"out vec4 g_c;\n"
-		"out float g_z;\n"
-		"void main()\n"
-		"{\n"
-		"	for (int j = 0; j < %d; ++j) {\n"
-		"		gl_Layer = j;\n"
-		"		gl_Position = gl_in[0].gl_Position;\n"
-		"		gl_PointSize = %d.0 / 640.0;\n"
-		"		g_c = v_c[0];\n"
-		"		g_z = v_z[0];\n"
-		"		EmitVertex();\n"
-		"		EndPrimitive();\n"
-		"	}\n"
-		"}\n", m_EFBLayers, m_EFBLayers, m_targetWidth).c_str() : nullptr);
+			"layout(points) in;\n"
+			"layout(points, max_vertices = %d) out;\n"
+			"in vec4 v_c[1];\n"
+			"in float v_z[1];\n"
+			"out vec4 g_c;\n"
+			"out float g_z;\n"
+			"void main()\n"
+			"{\n"
+			"	for (int j = 0; j < %d; ++j) {\n"
+			"		gl_Layer = j;\n"
+			"		gl_Position = gl_in[0].gl_Position;\n"
+			"		gl_PointSize = %d.0 / 640.0;\n"
+			"		g_c = v_c[0];\n"
+			"		g_z = v_z[0];\n"
+			"		EmitVertex();\n"
+			"		EndPrimitive();\n"
+			"	}\n"
+			"}\n", m_EFBLayers, m_EFBLayers, m_targetWidth).c_str(): nullptr);
 	glGenBuffers(1, &m_EfbPokes_VBO);
 	glGenVertexArrays(1, &m_EfbPokes_VAO);
 	glBindBuffer(GL_ARRAY_BUFFER, m_EfbPokes_VBO);
-	glBindVertexArray(m_EfbPokes_VAO );
+	glBindVertexArray(m_EfbPokes_VAO);
 	glEnableVertexAttribArray(SHADER_POSITION_ATTRIB);
 	glVertexAttribPointer(SHADER_POSITION_ATTRIB, 2, GL_UNSIGNED_SHORT, 0, sizeof(EfbPokeData), (void*)offsetof(EfbPokeData, x));
 	glEnableVertexAttribArray(SHADER_COLOR0_ATTRIB);
@@ -471,7 +471,7 @@ GLuint FramebufferManager::GetEFBColorTexture(const EFBRectangle& sourceRc)
 				targetRc.left, targetRc.top, targetRc.right, targetRc.bottom,
 				targetRc.left, targetRc.top, targetRc.right, targetRc.bottom,
 				GL_COLOR_BUFFER_BIT, GL_NEAREST
-				);
+			);
 		}
 
 		// Return to EFB.
@@ -503,7 +503,7 @@ GLuint FramebufferManager::GetEFBDepthTexture(const EFBRectangle& sourceRc)
 				targetRc.left, targetRc.top, targetRc.right, targetRc.bottom,
 				targetRc.left, targetRc.top, targetRc.right, targetRc.bottom,
 				GL_DEPTH_BUFFER_BIT, GL_NEAREST
-				);
+			);
 		}
 
 		// Return to EFB.
@@ -513,7 +513,7 @@ GLuint FramebufferManager::GetEFBDepthTexture(const EFBRectangle& sourceRc)
 	}
 }
 
-void FramebufferManager::CopyToRealXFB(u32 xfbAddr, u32 fbStride, u32 fbHeight, const EFBRectangle& sourceRc,float Gamma)
+void FramebufferManager::CopyToRealXFB(u32 xfbAddr, u32 fbStride, u32 fbHeight, const EFBRectangle& sourceRc, float Gamma)
 {
 	u8* xfb_in_ram = Memory::GetPointer(xfbAddr);
 	if (!xfb_in_ram)
@@ -574,7 +574,7 @@ void FramebufferManager::ReinterpretPixelData(unsigned int convtype)
 	m_efbColorSwap = src_texture;
 	FramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, m_textureType, m_efbColor, 0);
 
-	glViewport(0,0, m_targetWidth, m_targetHeight);
+	glViewport(0, 0, m_targetWidth, m_targetHeight);
 	glActiveTexture(GL_TEXTURE9);
 	glBindTexture(m_textureType, src_texture);
 	g_sampler_cache->BindNearestSampler(9);
@@ -618,7 +618,7 @@ void XFBSource::CopyEFB(float Gamma)
 		g_renderer->GetPostProcessor()->PostProcessEFBToTexture(texture);
 	}
 	g_renderer->GetPostProcessor()->OnEndFrame();
-	
+
 	if (!apply_post_proccesing || depth_copy_required)
 	{
 		g_renderer->ResetAPIState();
@@ -638,7 +638,7 @@ void XFBSource::CopyEFB(float Gamma)
 					0, 0, texWidth, texHeight,
 					0, 0, texWidth, texHeight,
 					GL_COLOR_BUFFER_BIT, GL_NEAREST
-					);
+				);
 			}
 			if (depth_copy_required)
 			{
@@ -648,7 +648,7 @@ void XFBSource::CopyEFB(float Gamma)
 					0, 0, texWidth, texHeight,
 					0, 0, texWidth, texHeight,
 					GL_DEPTH_BUFFER_BIT, GL_NEAREST
-					);
+				);
 			}
 		}
 

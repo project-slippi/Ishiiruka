@@ -13,7 +13,7 @@ class wxLocale;
 extern CFrame* main_frame;
 
 // Define a new application
-class DolphinApp : public wxApp
+class DolphinApp: public wxApp
 {
 public:
 	CFrame* GetCFrame();

@@ -8,11 +8,10 @@
 
 namespace FifoFileStruct
 {
-
 enum
 {
-	FILE_ID            = 0x0d01f1f0,
-	VERSION_NUMBER     = 3,
+	FILE_ID = 0x0d01f1f0,
+	VERSION_NUMBER = 3,
 	MIN_LOADER_VERSION = 1,
 };
 
@@ -54,7 +53,6 @@ union FileFrameInfo
 	u32 rawData[16];
 };
 
-
 struct FileMemoryUpdate
 {
 	u32 fifoPosition;
@@ -65,5 +63,4 @@ struct FileMemoryUpdate
 };
 
 #pragma pack(pop)
-
 }

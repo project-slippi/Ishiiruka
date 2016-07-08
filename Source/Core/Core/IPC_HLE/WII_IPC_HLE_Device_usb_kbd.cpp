@@ -16,7 +16,7 @@
 // TODO: support in netplay/movies.
 
 CWII_IPC_HLE_Device_usb_kbd::CWII_IPC_HLE_Device_usb_kbd(u32 _DeviceID, const std::string& _rDeviceName)
-: IWII_IPC_HLE_Device(_DeviceID, _rDeviceName)
+	: IWII_IPC_HLE_Device(_DeviceID, _rDeviceName)
 {}
 
 CWII_IPC_HLE_Device_usb_kbd::~CWII_IPC_HLE_Device_usb_kbd()
@@ -37,7 +37,7 @@ IPCCommandResult CWII_IPC_HLE_Device_usb_kbd::Open(u32 _CommandAddress, u32 _Mod
 	m_OldModifiers = 0x00;
 
 	//m_MessageQueue.push(SMessageData(MSG_KBD_CONNECT, 0, nullptr));
-	Memory::Write_U32(m_DeviceID, _CommandAddress+4);
+	Memory::Write_U32(m_DeviceID, _CommandAddress + 4);
 	m_Active = true;
 	return GetDefaultReply();
 }

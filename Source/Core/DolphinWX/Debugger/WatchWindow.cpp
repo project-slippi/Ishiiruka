@@ -16,23 +16,23 @@
 #include "DolphinWX/Debugger/WatchView.h"
 #include "DolphinWX/Debugger/WatchWindow.h"
 
-class CWatchToolbar : public wxAuiToolBar
+class CWatchToolbar: public wxAuiToolBar
 {
 public:
-CWatchToolbar(CWatchWindow* parent, const wxWindowID id)
-	: wxAuiToolBar(parent, id, wxDefaultPosition, wxDefaultSize,
+	CWatchToolbar(CWatchWindow* parent, const wxWindowID id)
+		: wxAuiToolBar(parent, id, wxDefaultPosition, wxDefaultSize,
 			wxAUI_TB_DEFAULT_STYLE | wxAUI_TB_TEXT)
-{
-	SetToolBitmapSize(wxSize(16, 16));
+	{
+		SetToolBitmapSize(wxSize(16, 16));
 
-	m_Bitmaps[Toolbar_File] = WxUtils::LoadResourceBitmap("toolbar_debugger_delete");
+		m_Bitmaps[Toolbar_File] = WxUtils::LoadResourceBitmap("toolbar_debugger_delete");
 
-	AddTool(ID_LOAD, _("Load"), m_Bitmaps[Toolbar_File]);
-	Bind(wxEVT_TOOL, &CWatchWindow::Event_LoadAll, parent, ID_LOAD);
+		AddTool(ID_LOAD, _("Load"), m_Bitmaps[Toolbar_File]);
+		Bind(wxEVT_TOOL, &CWatchWindow::Event_LoadAll, parent, ID_LOAD);
 
-	AddTool(ID_SAVE, _("Save"), m_Bitmaps[Toolbar_File]);
-	Bind(wxEVT_TOOL, &CWatchWindow::Event_SaveAll, parent, ID_SAVE);
-}
+		AddTool(ID_SAVE, _("Save"), m_Bitmaps[Toolbar_File]);
+		Bind(wxEVT_TOOL, &CWatchWindow::Event_SaveAll, parent, ID_SAVE);
+	}
 
 private:
 
@@ -52,8 +52,8 @@ private:
 };
 
 CWatchWindow::CWatchWindow(wxWindow* parent, wxWindowID id,
-		const wxPoint& position, const wxSize& size,
-		long style, const wxString& name)
+	const wxPoint& position, const wxSize& size,
+	long style, const wxString& name)
 	: wxPanel(parent, id, position, size, style, name)
 	, m_GPRGridView(nullptr)
 {

@@ -7,7 +7,7 @@
 
 class DataReader;
 
-enum GxOpCodes : u8
+enum GxOpCodes: u8
 {
 	GX_NOP = 0x00,
 	GX_UNKNOWN_RESET = 0x01,
@@ -24,9 +24,9 @@ enum GxOpCodes : u8
 	GX_DRAW_PRIMITIVES = 0xC0
 };
 
-enum GxOpCodesReadSize : s8
+enum GxOpCodesReadSize: s8
 {
-	GX_NOP_SIZE	= 0,
+	GX_NOP_SIZE = 0,
 	GX_LOAD_CP_REG_SIZE = 5,
 	GX_LOAD_XF_REG_SIZE = 4,
 	GX_LOAD_INDX_SIZE = 4,
@@ -37,7 +37,7 @@ enum GxOpCodesReadSize : s8
 	GX_DRAW_PRIMITIVES_SIZE = 2
 };
 
-enum GxOpcodesCycles : u32
+enum GxOpcodesCycles: u32
 {
 	GX_NOP_CYCLES = 6,
 	GX_LOAD_CP_REG_CYCLES = 12,
@@ -61,7 +61,7 @@ enum
 // These values are the values extracted using GX_PRIMITIVE_MASK
 // and GX_PRIMITIVE_SHIFT.
 // GX_DRAW_QUADS_2 behaves the same way as GX_DRAW_QUADS.
-enum GxDrawMode : u32
+enum GxDrawMode: u32
 {
 	GX_DRAW_QUADS = 0x0,			// 0x80
 	GX_DRAW_QUADS_2 = 0x1,			// 0x88
@@ -77,7 +77,6 @@ namespace OpcodeDecoder
 {
 
 void Init();
-void Shutdown();
 
 template <bool is_preprocess = false, bool sizeCheck = true>
 u8* Run(DataReader& reader, u32* cycles);

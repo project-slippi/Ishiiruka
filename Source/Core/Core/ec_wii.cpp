@@ -151,8 +151,7 @@ EcWii::EcWii()
 }
 
 EcWii::~EcWii()
-{
-}
+{}
 
 void EcWii::InitDefaults()
 {

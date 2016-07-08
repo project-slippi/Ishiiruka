@@ -19,8 +19,7 @@
 
 namespace DiscIO
 {
-
-class CVolumeWAD : public IVolume
+class CVolumeWAD: public IVolume
 {
 public:
 	CVolumeWAD(std::unique_ptr<IBlobReader> reader);
@@ -30,12 +29,20 @@ public:
 	std::string GetUniqueID() const override;
 	std::string GetMakerID() const override;
 	u16 GetRevision() const override;
-	std::string GetInternalName() const override { return ""; }
-	std::map<IVolume::ELanguage, std::string> GetNames(bool prefer_long) const override;
+	std::string GetInternalName() const override
+	{
+		return "";
+	}
+	std::map<IVolume::ELanguage, std::string> GetLongNames() const override;
 	std::vector<u32> GetBanner(int* width, int* height) const override;
-	u64 GetFSTSize() const override { return 0; }
-	std::string GetApploaderDate() const override { return ""; }
-
+	u64 GetFSTSize() const override
+	{
+		return 0;
+	}
+	std::string GetApploaderDate() const override
+	{
+		return "";
+	}
 	EPlatform GetVolumeType() const override;
 	ECountry GetCountry() const override;
 
@@ -55,4 +62,4 @@ private:
 	u32 m_data_size;
 };
 
-} // namespace
+}  // namespace

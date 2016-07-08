@@ -8,24 +8,24 @@
 using namespace Gen;
 
 /* It is safe to directly write to the address registers as they are
-   neither read not written by any extendable opcode. The same is true
-   for memory accesses.
-   It probably even is safe to write to all registers except for
-   SR, ACx.x, AXx.x and PROD, which may be modified by the main op.
+	neither read not written by any extendable opcode. The same is true
+	for memory accesses.
+	It probably even is safe to write to all registers except for
+	SR, ACx.x, AXx.x and PROD, which may be modified by the main op.
 
-   This code uses EBX to keep the values of the registers written by
-   the extended op so the main op can still access the old values.
-   storeIndex and storeIndex2 control where the lower and upper 16bits
-   of EBX are written to. Additionally, the upper 16bits can contain the
-   original SR so we can do sign extension in 40bit mode. There is only
-   the 'ld family of opcodes writing to two registers at the same time,
-   and those always are AXx.x, thus no need to leave space for SR for
-   sign extension.
+	This code uses EBX to keep the values of the registers written by
+	the extended op so the main op can still access the old values.
+	storeIndex and storeIndex2 control where the lower and upper 16bits
+	of EBX are written to. Additionally, the upper 16bits can contain the
+	original SR so we can do sign extension in 40bit mode. There is only
+	the 'ld family of opcodes writing to two registers at the same time,
+	and those always are AXx.x, thus no need to leave space for SR for
+	sign extension.
  */
 
-// DR $arR
-// xxxx xxxx 0000 01rr
-// Decrement addressing register $arR.
+ // DR $arR
+ // xxxx xxxx 0000 01rr
+ // Decrement addressing register $arR.
 void DSPEmitter::dr(const UDSPInstruction opc)
 {
 	decrement_addr_reg(opc & 0x3);
@@ -113,7 +113,7 @@ void DSPEmitter::l(const UDSPInstruction opc)
 
 	pushExtValueFromMem(dreg, sreg);
 
-	if (dreg  >= DSP_REG_ACM0)
+	if (dreg >= DSP_REG_ACM0)
 	{
 		//save SR too, so we can decide later.
 		//even if only for one bit, can only
@@ -138,7 +138,7 @@ void DSPEmitter::ln(const UDSPInstruction opc)
 
 	pushExtValueFromMem(dreg, sreg);
 
-	if (dreg  >= DSP_REG_ACM0)
+	if (dreg >= DSP_REG_ACM0)
 	{
 		//save SR too, so we can decide later.
 		//even if only for one bit, can only
@@ -378,7 +378,7 @@ void DSPEmitter::ld(const UDSPInstruction opc)
 	gpr.PutXReg(tmp);
 	DSPJitRegCache c(gpr);
 	TEST(16, R(ECX), Imm16(0xfc00));
-	FixupBranch not_equal = J_CC(CC_NE,true);
+	FixupBranch not_equal = J_CC(CC_NE, true);
 	pushExtValueFromMem2((rreg << 1) + DSP_REG_AXL1, sreg);
 	gpr.FlushRegs(c);
 	FixupBranch after = J(true);
@@ -441,7 +441,7 @@ void DSPEmitter::ldn(const UDSPInstruction opc)
 	gpr.PutXReg(tmp);
 	DSPJitRegCache c(gpr);
 	TEST(16, R(ECX), Imm16(0xfc00));
-	FixupBranch not_equal = J_CC(CC_NE,true);
+	FixupBranch not_equal = J_CC(CC_NE, true);
 	pushExtValueFromMem2((rreg << 1) + DSP_REG_AXL1, sreg);
 	gpr.FlushRegs(c);
 	FixupBranch after = J(true);
@@ -472,7 +472,7 @@ void DSPEmitter::ldaxn(const UDSPInstruction opc)
 	gpr.PutXReg(tmp);
 	DSPJitRegCache c(gpr);
 	TEST(16, R(ECX), Imm16(0xfc00));
-	FixupBranch not_equal = J_CC(CC_NE,true);
+	FixupBranch not_equal = J_CC(CC_NE, true);
 	pushExtValueFromMem2(rreg + DSP_REG_AXL0, sreg);
 	gpr.FlushRegs(c);
 	FixupBranch after = J(true); // else
@@ -504,7 +504,7 @@ void DSPEmitter::ldm(const UDSPInstruction opc)
 	gpr.PutXReg(tmp);
 	DSPJitRegCache c(gpr);
 	TEST(16, R(ECX), Imm16(0xfc00));
-	FixupBranch not_equal = J_CC(CC_NE,true);
+	FixupBranch not_equal = J_CC(CC_NE, true);
 	pushExtValueFromMem2((rreg << 1) + DSP_REG_AXL1, sreg);
 	gpr.FlushRegs(c);
 	FixupBranch after = J(true);
@@ -535,7 +535,7 @@ void DSPEmitter::ldaxm(const UDSPInstruction opc)
 	gpr.PutXReg(tmp);
 	DSPJitRegCache c(gpr);
 	TEST(16, R(ECX), Imm16(0xfc00));
-	FixupBranch not_equal = J_CC(CC_NE,true);
+	FixupBranch not_equal = J_CC(CC_NE, true);
 	pushExtValueFromMem2(rreg + DSP_REG_AXL0, sreg);
 	gpr.FlushRegs(c);
 	FixupBranch after = J(true); // else
@@ -567,7 +567,7 @@ void DSPEmitter::ldnm(const UDSPInstruction opc)
 	gpr.PutXReg(tmp);
 	DSPJitRegCache c(gpr);
 	TEST(16, R(ECX), Imm16(0xfc00));
-	FixupBranch not_equal = J_CC(CC_NE,true);
+	FixupBranch not_equal = J_CC(CC_NE, true);
 	pushExtValueFromMem2((rreg << 1) + DSP_REG_AXL1, sreg);
 	gpr.FlushRegs(c);
 	FixupBranch after = J(true);
@@ -598,7 +598,7 @@ void DSPEmitter::ldaxnm(const UDSPInstruction opc)
 	gpr.PutXReg(tmp);
 	DSPJitRegCache c(gpr);
 	TEST(16, R(ECX), Imm16(0xfc00));
-	FixupBranch not_equal = J_CC(CC_NE,true);
+	FixupBranch not_equal = J_CC(CC_NE, true);
 	pushExtValueFromMem2(rreg + DSP_REG_AXL0, sreg);
 	gpr.FlushRegs(c);
 	FixupBranch after = J(true); // else
@@ -659,7 +659,7 @@ void DSPEmitter::popExtValueToReg()
 	if (storeIndex != -1)
 	{
 		dsp_op_write_reg(storeIndex, RBX);
-		if (storeIndex  >= DSP_REG_ACM0 && storeIndex2 == -1)
+		if (storeIndex >= DSP_REG_ACM0 && storeIndex2 == -1)
 		{
 			TEST(32, R(EBX), Imm32(SR_40_MODE_BIT << 16));
 			FixupBranch not_40bit = J_CC(CC_Z, true);

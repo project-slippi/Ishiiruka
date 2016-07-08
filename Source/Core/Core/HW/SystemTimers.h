@@ -8,7 +8,6 @@
 
 namespace SystemTimers
 {
-
 /*
 GameCube                   MHz
 flipper <-> ARAM bus:      81 (DSP)
@@ -45,5 +44,4 @@ u32 GetFakeDecrementer();
 
 void TimeBaseSet();
 u64 GetFakeTimeBase();
-
 }

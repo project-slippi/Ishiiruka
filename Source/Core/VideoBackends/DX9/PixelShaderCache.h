@@ -26,7 +26,7 @@ private:
 		LPDIRECT3DPIXELSHADER9 shader;
 		bool compiled;
 		std::atomic_flag initialized;
-		PSCacheEntry() : shader(NULL), compiled(false)
+		PSCacheEntry(): shader(NULL), compiled(false)
 		{
 			initialized.clear();
 		}
@@ -54,14 +54,14 @@ public:
 		PIXEL_SHADER_RENDER_MODE render_mode,
 		u32 componets,
 		const XFMemory &xfr,
-		const BPMemory &bpm, 
+		const BPMemory &bpm,
 		bool ongputhread);
 	static bool SetShader(PIXEL_SHADER_RENDER_MODE render_mode);
 	static void InsertByteCode(const PixelShaderUid &uid, const u8 *bytecode, int bytecodelen);
 	static LPDIRECT3DPIXELSHADER9 GetColorMatrixProgram(int SSAAMode);
 	static LPDIRECT3DPIXELSHADER9 GetColorCopyProgram(int SSAAMode);
 	static LPDIRECT3DPIXELSHADER9 GetDepthMatrixProgram(int SSAAMode, bool depthConversion);
-	static LPDIRECT3DPIXELSHADER9 GetClearProgram();	
+	static LPDIRECT3DPIXELSHADER9 GetClearProgram();
 	static LPDIRECT3DPIXELSHADER9 ReinterpRGBA6ToRGB8();
 	static LPDIRECT3DPIXELSHADER9 ReinterpRGB8ToRGBA6();
 };

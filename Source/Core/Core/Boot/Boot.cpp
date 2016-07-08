@@ -83,8 +83,8 @@ void CBoot::UpdateDebugger_MapLoaded()
 }
 
 bool CBoot::FindMapFile(std::string* existing_map_file,
-                        std::string* writable_map_file,
-                        std::string* title_id)
+	std::string* writable_map_file,
+	std::string* title_id)
 {
 	std::string title_id_str;
 	size_t name_begin_index;
@@ -95,13 +95,13 @@ bool CBoot::FindMapFile(std::string* existing_map_file,
 	case SConfig::BOOT_WII_NAND:
 	{
 		const DiscIO::CNANDContentLoader& Loader =
-				DiscIO::CNANDContentManager::Access().GetNANDLoader(_StartupPara.m_strFilename);
+			DiscIO::CNANDContentManager::Access().GetNANDLoader(_StartupPara.m_strFilename);
 		if (Loader.IsValid())
 		{
 			u64 TitleID = Loader.GetTitleID();
 			title_id_str = StringFromFormat("%08X_%08X",
-					(u32)(TitleID >> 32) & 0xFFFFFFFF,
-					(u32)TitleID & 0xFFFFFFFF);
+				(u32)(TitleID >> 32) & 0xFFFFFFFF,
+				(u32)TitleID & 0xFFFFFFFF);
 		}
 		break;
 	}
@@ -115,7 +115,7 @@ bool CBoot::FindMapFile(std::string* existing_map_file,
 			name_begin_index = _StartupPara.m_strFilename.find_last_of("\\") + 1;
 		}
 		title_id_str = _StartupPara.m_strFilename.substr(
-				name_begin_index, _StartupPara.m_strFilename.size() - 4 - name_begin_index);
+			name_begin_index, _StartupPara.m_strFilename.size() - 4 - name_begin_index);
 		break;
 
 	default:
@@ -209,7 +209,7 @@ bool CBoot::Load_BS2(const std::string& _rBootROMFilename)
 	std::string BootRegion = _rBootROMFilename.substr(_rBootROMFilename.find_last_of(DIR_SEP) - 3, 3);
 	if (BootRegion != ipl_region)
 		PanicAlertT("%s IPL found in %s directory. The disc might not be recognized",
-		            ipl_region.c_str(), BootRegion.c_str());
+			ipl_region.c_str(), BootRegion.c_str());
 
 	// Run the descrambler over the encrypted section containing BS1/BS2
 	CEXIIPL::Descrambler((u8*)data.data() + 0x100, 0x1AFE00);
@@ -254,7 +254,7 @@ bool CBoot::BootUp()
 
 	switch (_StartupPara.m_BootType)
 	{
-	// GCM and Wii
+		// GCM and Wii
 	case SConfig::BOOT_ISO:
 	{
 		DVDInterface::SetVolumeName(_StartupPara.m_strFilename);
@@ -339,7 +339,7 @@ bool CBoot::BootUp()
 			BS2Success = EmulatedBS2(dolWii);
 		}
 		else if ((!DVDInterface::VolumeIsValid() || DVDInterface::GetVolume().GetVolumeType() != DiscIO::IVolume::WII_DISC) &&
-		         !_StartupPara.m_strDefaultISO.empty())
+			!_StartupPara.m_strDefaultISO.empty())
 		{
 			DVDInterface::SetVolumeName(_StartupPara.m_strDefaultISO);
 			BS2Success = EmulatedBS2(dolWii);
@@ -407,13 +407,13 @@ bool CBoot::BootUp()
 		DVDInterface::SetDiscInside(DVDInterface::VolumeIsValid());
 
 		// Poor man's bootup
-		if(_StartupPara.bWii)
+		if (_StartupPara.bWii)
 			SetupWiiMemory(DiscIO::IVolume::COUNTRY_UNKNOWN);
 		else
 			EmulatedBS2_GC(true);
 
 		Load_FST(_StartupPara.bWii);
-		if(!Boot_ELF(_StartupPara.m_strFilename))
+		if (!Boot_ELF(_StartupPara.m_strFilename))
 			return false;
 
 		UpdateDebugger_MapLoaded();
@@ -438,7 +438,7 @@ bool CBoot::BootUp()
 		break;
 
 
-	// Bootstrap 2 (AKA: Initial Program Loader, "BIOS")
+		// Bootstrap 2 (AKA: Initial Program Loader, "BIOS")
 	case SConfig::BOOT_BS2:
 	{
 		DVDInterface::SetDiscInside(DVDInterface::VolumeIsValid());

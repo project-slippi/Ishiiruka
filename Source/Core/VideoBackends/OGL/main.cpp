@@ -93,7 +93,7 @@ std::string VideoBackend::GetDisplayName() const
 		return "OpenGL";
 }
 
-static void InitBackendInfo()
+void VideoBackend::InitBackendInfo()
 {
 	g_Config.backend_info.APIType = API_OPENGL;
 #ifdef _WIN32
@@ -123,15 +123,7 @@ static void InitBackendInfo()
 	g_Config.backend_info.Adapters.clear();
 
 	// aamodes
-	g_Config.backend_info.AAModes = { 1, 2, 4, 8 };
-}
-
-void VideoBackend::ShowConfig(void* parent_handle)
-{
-	if (!m_initialized)
-		InitBackendInfo();
-
-	Host_ShowVideoConfig(parent_handle, GetDisplayName(), "gfx_opengl");
+	g_Config.backend_info.AAModes = {1, 2, 4, 8};
 }
 
 bool VideoBackend::Initialize(void* window_handle)
@@ -143,8 +135,7 @@ bool VideoBackend::Initialize(void* window_handle)
 
 	if (File::Exists(File::GetUserPath(D_CONFIG_IDX) + "GFX.ini"))
 		g_Config.Load(File::GetUserPath(D_CONFIG_IDX) + "GFX.ini");
-	else
-		g_Config.Load(File::GetUserPath(D_CONFIG_IDX) + "gfx_opengl.ini");
+
 	g_Config.GameIniLoad();
 	g_Config.UpdateProjectionHack();
 	g_Config.VerifyValidity();
@@ -221,12 +212,9 @@ void VideoBackend::Video_Cleanup()
 	g_sampler_cache.reset();
 	g_texture_cache.reset();
 	ProgramShaderCache::Shutdown();
-	VertexShaderManager::Shutdown();
-	PixelShaderManager::Shutdown();
 	GeometryShaderManager::Shutdown();
 	g_perf_query.reset();
 	g_vertex_manager.reset();
-	OpcodeDecoder::Shutdown();
 	g_renderer.reset();
 	GLInterface->ClearCurrent();
 }

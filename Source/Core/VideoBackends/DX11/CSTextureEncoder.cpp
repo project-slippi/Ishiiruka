@@ -850,7 +850,8 @@ void CSTextureEncoder::Init()
 	// Create output buffer
 	bool bSupportsShaderModel5 = DX11::D3D::GetFeatureLevel() >= D3D_FEATURE_LEVEL_11_0;
 	auto outBd = CD3D11_BUFFER_DESC((4 * 4)*EFB_WIDTH*EFB_HEIGHT / 4, D3D11_BIND_UNORDERED_ACCESS);
-	if (!bSupportsShaderModel5) {
+	if (!bSupportsShaderModel5)
+	{
 		outBd.MiscFlags |= D3D11_RESOURCE_MISC_BUFFER_ALLOW_RAW_VIEWS;
 	}
 	hr = D3D::device->CreateBuffer(&outBd, nullptr, ToAddr(m_out));
@@ -870,7 +871,8 @@ void CSTextureEncoder::Init()
 	// UAV to write the shader result
 
 	auto outUavDesc = CD3D11_UNORDERED_ACCESS_VIEW_DESC(m_out.get(), DXGI_FORMAT_R32_UINT, 0, (4)*EFB_WIDTH*EFB_HEIGHT / 4);
-	if (!bSupportsShaderModel5) {
+	if (!bSupportsShaderModel5)
+	{
 		outUavDesc.Format = DXGI_FORMAT_R32_TYPELESS;
 		outUavDesc.Buffer.Flags |= D3D11_BUFFER_UAV_FLAG_RAW;
 	}
@@ -939,7 +941,7 @@ void CSTextureEncoder::Encode(u8* dest_ptr, u32 format, u32 native_width, u32 by
 {
 	if (!m_ready) // Make sure we initialized OK
 		return;
-	
+
 	HRESULT hr;
 	u32 cacheLinesPerRow = bytes_per_row / 32;
 	// Reset API
@@ -963,7 +965,7 @@ void CSTextureEncoder::Encode(u8* dest_ptr, u32 format, u32 native_width, u32 by
 		fullSrcRect.bottom = EFB_HEIGHT;
 		TargetRectangle targetRect = g_renderer->ConvertEFBRectangle(fullSrcRect);
 
-		EFBEncodeParams params = { 0 };
+		EFBEncodeParams params = {0};
 		params.NumHalfCacheLinesX = FLOAT(cacheLinesPerRow * 2);
 		params.NumBlocksY = FLOAT(num_blocks_y);
 		params.PosX = FLOAT(source.left);
@@ -986,7 +988,7 @@ void CSTextureEncoder::Encode(u8* dest_ptr, u32 format, u32 native_width, u32 by
 			FramebufferManager::GetResolvedEFBColorTexture()->GetSRV();
 
 		D3D::context->CSSetShaderResources(0, 1, &pEFB);
-		
+
 		D3D::context->CSSetSamplers(0, 1, D3D::ToAddr(m_efbSampler));
 
 		// Encode!
@@ -1006,7 +1008,7 @@ void CSTextureEncoder::Encode(u8* dest_ptr, u32 format, u32 native_width, u32 by
 		// nVidia is unable to sync properly with a blocking Map
 		// That workaround works and NES games do not flick as hell anymore
 		D3D::context->Flush();
-		D3D11_MAPPED_SUBRESOURCE map = { 0 };
+		D3D11_MAPPED_SUBRESOURCE map = {0};
 		while ((hr = D3D::context->Map(m_outStage.get(), 0, D3D11_MAP_READ, D3D11_MAP_FLAG_DO_NOT_WAIT, &map)) != S_OK && hr == DXGI_ERROR_WAS_STILL_DRAWING)
 		{
 			Common::YieldCPU();
@@ -1065,10 +1067,12 @@ bool CSTextureEncoder::SetStaticShader(u32 dstFormat, u32 srcFormat,
 	ComboMap::iterator it = m_staticShaders.find(key);
 
 	ID3D11ComputeShader* shader{};
-	if (it != m_staticShaders.end()) {
+	if (it != m_staticShaders.end())
+	{
 		shader = it->second.get();
 	}
-	else {
+	else
+	{
 		const char* generatorFuncName = nullptr;
 		switch (generatorNum)
 		{
@@ -1126,7 +1130,8 @@ bool CSTextureEncoder::SetStaticShader(u32 dstFormat, u32 srcFormat,
 	return false;
 }
 
-ID3D11ComputeShader* CSTextureEncoder::InsertShader(ComboKey const &key, u8 const *data, u32 sz) {
+ID3D11ComputeShader* CSTextureEncoder::InsertShader(ComboKey const &key, u8 const *data, u32 sz)
+{
 	ID3D11ComputeShader* newShader;
 	HRESULT hr = D3D::device->CreateComputeShader(data, sz, nullptr, &newShader);
 	CHECK(SUCCEEDED(hr), "create efb encoder pixel shader");
@@ -1146,7 +1151,7 @@ bool CSTextureEncoder::InitDynamicMode()
 	};
 
 	D3DBlob bytecode;
-	if (!D3D::CompileShader(D3D::ShaderType::Compute,  EFB_ENCODE_CS, bytecode, macros))
+	if (!D3D::CompileShader(D3D::ShaderType::Compute, EFB_ENCODE_CS, bytecode, macros))
 	{
 		ERROR_LOG(VIDEO, "EFB encode pixel shader failed to compile");
 		return false;
@@ -1163,7 +1168,7 @@ bool CSTextureEncoder::InitDynamicMode()
 	// Use D3DReflect
 
 	D3D::UniquePtr<ID3D11ShaderReflection> reflect;
-	hr =  HLSLCompiler::getInstance().Reflect(bytecode.Data(), bytecode.Size(), IID_ID3D11ShaderReflection, ToAddr(reflect));
+	hr = HLSLCompiler::getInstance().Reflect(bytecode.Data(), bytecode.Size(), IID_ID3D11ShaderReflection, ToAddr(reflect));
 	CHECK(SUCCEEDED(hr), "reflect on efb encoder shader");
 
 	// Get number of slots and create dynamic linkage array

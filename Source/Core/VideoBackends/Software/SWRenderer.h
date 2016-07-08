@@ -11,7 +11,7 @@
 
 #include "VideoCommon/RenderBase.h"
 
-class SWRenderer : public Renderer
+class SWRenderer: public Renderer
 {
 public:
 	~SWRenderer() override;
@@ -26,12 +26,16 @@ public:
 
 	void RenderText(const std::string& pstr, int left, int top, u32 color) override;
 	u32 AccessEFB(EFBAccessType type, u32 x, u32 y, u32 poke_data) override;
-	void PokeEFB(EFBAccessType type, const EfbPokeData* points, size_t num_points) override {};
+	void PokeEFB(EFBAccessType type, const EfbPokeData* points, size_t num_points) override
+	{};
 
 	u16 BBoxRead(int index) override;
 	void BBoxWrite(int index, u16 value) override;
 
-	int GetMaxTextureSize() override { return 16 * 1024; };
+	int GetMaxTextureSize() override
+	{
+		return 16 * 1024;
+	};
 
 	TargetRectangle ConvertEFBRectangle(const EFBRectangle& rc) override;
 
@@ -39,7 +43,11 @@ public:
 
 	void ClearScreen(const EFBRectangle& rc, bool colorEnable, bool alphaEnable, bool zEnable, u32 color, u32 z) override;
 
-	void ReinterpretPixelData(unsigned int convtype) override {}
+	void ReinterpretPixelData(unsigned int convtype) override
+	{}
 
-	bool SaveScreenshot(const std::string& filename, const TargetRectangle& rc) override { return true; };
+	bool SaveScreenshot(const std::string& filename, const TargetRectangle& rc) override
+	{
+		return true;
+	};
 };

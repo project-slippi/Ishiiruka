@@ -30,7 +30,7 @@ static DSPDebuggerLLE* m_DebuggerFrame = nullptr;
 
 DSPDebuggerLLE::DSPDebuggerLLE(wxWindow* parent, wxWindowID id)
 	: wxPanel(parent, id, wxDefaultPosition, wxDefaultSize,
-			wxTAB_TRAVERSAL, _("DSP LLE Debugger"))
+		wxTAB_TRAVERSAL, _("DSP LLE Debugger"))
 	, m_CachedStepCounter(-1)
 {
 	Bind(wxEVT_CLOSE_WINDOW, &DSPDebuggerLLE::OnClose, this);
@@ -45,11 +45,11 @@ DSPDebuggerLLE::DSPDebuggerLLE(wxWindow* parent, wxWindowID id)
 	m_Toolbar = new wxAuiToolBar(this, ID_TOOLBAR,
 		wxDefaultPosition, wxDefaultSize, wxAUI_TB_HORZ_TEXT);
 	m_Toolbar->AddTool(ID_RUNTOOL, _("Pause"),
-		wxArtProvider::GetBitmap(wxART_TICK_MARK, wxART_OTHER, wxSize(10,10)));
+		wxArtProvider::GetBitmap(wxART_TICK_MARK, wxART_OTHER, wxSize(10, 10)));
 	m_Toolbar->AddTool(ID_STEPTOOL, _("Step"),
-		wxArtProvider::GetBitmap(wxART_GO_DOWN, wxART_OTHER, wxSize(10,10)));
+		wxArtProvider::GetBitmap(wxART_GO_DOWN, wxART_OTHER, wxSize(10, 10)));
 	m_Toolbar->AddTool(ID_SHOWPCTOOL, _("Show PC"),
-		wxArtProvider::GetBitmap(wxART_GO_TO_PARENT, wxART_OTHER, wxSize(10,10)));
+		wxArtProvider::GetBitmap(wxART_GO_TO_PARENT, wxART_OTHER, wxSize(10, 10)));
 	m_Toolbar->AddSeparator();
 
 	m_addr_txtctrl = new wxTextCtrl(m_Toolbar, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxTE_PROCESS_ENTER);
@@ -124,24 +124,24 @@ void DSPDebuggerLLE::OnChangeState(wxCommandEvent& event)
 
 	switch (event.GetId())
 	{
-		case ID_RUNTOOL:
-			if (DSPCore_GetState() == DSPCORE_RUNNING)
-				DSPCore_SetState(DSPCORE_STEPPING);
-			else
-				DSPCore_SetState(DSPCORE_RUNNING);
-			break;
+	case ID_RUNTOOL:
+		if (DSPCore_GetState() == DSPCORE_RUNNING)
+			DSPCore_SetState(DSPCORE_STEPPING);
+		else
+			DSPCore_SetState(DSPCORE_RUNNING);
+		break;
 
-		case ID_STEPTOOL:
-			if (DSPCore_GetState() == DSPCORE_STEPPING)
-			{
-				DSPCore_Step();
-				Update();
-			}
-			break;
+	case ID_STEPTOOL:
+		if (DSPCore_GetState() == DSPCORE_STEPPING)
+		{
+			DSPCore_Step();
+			Update();
+		}
+		break;
 
-		case ID_SHOWPCTOOL:
-			FocusOnPC();
-			break;
+	case ID_SHOWPCTOOL:
+		FocusOnPC();
+		break;
 	}
 
 	UpdateState();
@@ -181,14 +181,14 @@ void DSPDebuggerLLE::UpdateState()
 	{
 		m_Toolbar->SetToolLabel(ID_RUNTOOL, _("Pause"));
 		m_Toolbar->SetToolBitmap(ID_RUNTOOL,
-			wxArtProvider::GetBitmap(wxART_TICK_MARK, wxART_OTHER, wxSize(10,10)));
+			wxArtProvider::GetBitmap(wxART_TICK_MARK, wxART_OTHER, wxSize(10, 10)));
 		m_Toolbar->EnableTool(ID_STEPTOOL, false);
 	}
 	else
 	{
 		m_Toolbar->SetToolLabel(ID_RUNTOOL, _("Run"));
 		m_Toolbar->SetToolBitmap(ID_RUNTOOL,
-			wxArtProvider::GetBitmap(wxART_GO_FORWARD, wxART_OTHER, wxSize(10,10)));
+			wxArtProvider::GetBitmap(wxART_GO_FORWARD, wxART_OTHER, wxSize(10, 10)));
 		m_Toolbar->EnableTool(ID_STEPTOOL, true);
 	}
 	m_Toolbar->Realize();
@@ -237,8 +237,7 @@ void DSPDebuggerLLE::OnSymbolListChange(wxCommandEvent& event)
 }
 
 void DSPDebuggerLLE::UpdateRegisterFlags()
-{
-}
+{}
 
 void DSPDebuggerLLE::OnAddrBoxChange(wxCommandEvent& event)
 {

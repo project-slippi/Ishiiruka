@@ -118,7 +118,7 @@ bool Depalettizer::Depalettize(BaseType source_type, GLuint dstTex, GLuint baseT
 	glDrawBuffer(GL_COLOR_ATTACHMENT0);
 
 	// Bind fragment program and uniforms
-	glUseProgram(program->program);	
+	glUseProgram(program->program);
 
 	// Bind base texture to sampler 9
 	glActiveTexture(GL_TEXTURE9);
@@ -299,13 +299,13 @@ void Depalettizer::UploadPalette(u32 tlutFmt, void* addr, u32 size)
 
 	if (!m_palette_texture[tlutFmt][source_type])
 		glGenTextures(1, &m_palette_texture[tlutFmt][source_type]);
-	
-	glBindTexture(GL_TEXTURE_1D, m_palette_texture[format][source_type]);	
+
+	glBindTexture(GL_TEXTURE_1D, m_palette_texture[format][source_type]);
 
 	GLint useInternalFormat;
 	GLenum useFormat;
 	GLenum useType;
-	
+
 	switch (format)
 	{
 	case IA:

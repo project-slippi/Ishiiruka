@@ -48,8 +48,7 @@ TextureCacheBase::BackupConfig TextureCacheBase::backup_config;
 size_t TextureCacheBase::texture_pool_memory_usage = 0;
 
 TextureCacheBase::TCacheEntryBase::~TCacheEntryBase()
-{
-}
+{}
 
 void TextureCacheBase::CheckTempSize(size_t required_size)
 {
@@ -129,7 +128,7 @@ void TextureCacheBase::OnConfigChanged(VideoConfig& config)
 			config.bHiresTextures != backup_config.s_hires_textures ||
 			config.iTexScalingFactor != backup_config.s_scaling_factor ||
 			config.iTexScalingType != backup_config.s_scaling_mode ||
-			config.bTexDeposterize != backup_config.s_scaling_deposterize )
+			config.bTexDeposterize != backup_config.s_scaling_deposterize)
 		{
 			g_texture_cache->Invalidate();
 
@@ -449,7 +448,7 @@ TextureCacheBase::TCacheEntryBase* TextureCacheBase::DoPartialTextureUpdates(Tex
 				dstrect.right = (dst_x + copy_width);
 				dstrect.bottom = (dst_y + copy_height);
 				entry_to_update->CopyRectangleFromTexture(entry, srcrect, dstrect);
-				
+
 				if (isPaletteTexture)
 				{
 					// Remove the temporary converted texture, it won't be used anywhere else
@@ -946,7 +945,7 @@ void TextureCacheBase::CopyRenderTargetToTexture(u32 dstAddr, u32 dstFormat, u32
 	//
 	// For historical reasons, Dolphin doesn't actually implement "pure" EFB to RAM emulation, but only EFB to texture and hybrid EFB copies.
 
-	float colmat[28] = { 0 };
+	float colmat[28] = {0};
 	float *const fConstAdd = colmat + 16;
 	float *const ColorMask = colmat + 20;
 	ColorMask[0] = ColorMask[1] = ColorMask[2] = ColorMask[3] = 255.0f;
@@ -1052,7 +1051,8 @@ void TextureCacheBase::CopyRenderTargetToTexture(u32 dstAddr, u32 dstFormat, u32
 					ColorMask[0] = ColorMask[1] = ColorMask[2] = ColorMask[3] = 15.0f;
 					ColorMask[4] = ColorMask[5] = ColorMask[6] = ColorMask[7] = 1.0f / 15.0f;
 					cbufid = 11;
-					if (!efbHasAlpha) {
+					if (!efbHasAlpha)
+					{
 						ColorMask[3] = 0.0f;
 						fConstAdd[3] = 1.0f;
 						cbufid = 12;
@@ -1061,7 +1061,8 @@ void TextureCacheBase::CopyRenderTargetToTexture(u32 dstAddr, u32 dstFormat, u32
 				else
 				{
 					cbufid = 13;
-					if (!efbHasAlpha) {
+					if (!efbHasAlpha)
+					{
 						ColorMask[3] = 0.0f;
 						fConstAdd[3] = 1.0f;
 						cbufid = 14;
@@ -1101,7 +1102,8 @@ void TextureCacheBase::CopyRenderTargetToTexture(u32 dstAddr, u32 dstFormat, u32
 			ColorMask[0] = ColorMask[3] = 15.0f;
 			ColorMask[4] = ColorMask[7] = 1.0f / 15.0f;
 			cbufid = 17;
-			if (!efbHasAlpha) {
+			if (!efbHasAlpha)
+			{
 				ColorMask[3] = 0.0f;
 				fConstAdd[3] = 1.0f;
 				cbufid = 18;
@@ -1111,7 +1113,8 @@ void TextureCacheBase::CopyRenderTargetToTexture(u32 dstAddr, u32 dstFormat, u32
 		case 3: // RA8
 			colmat[0] = colmat[4] = colmat[8] = colmat[15] = 1.0f;
 			cbufid = 19;
-			if (!efbHasAlpha) {
+			if (!efbHasAlpha)
+			{
 				ColorMask[3] = 0.0f;
 				fConstAdd[3] = 1.0f;
 				cbufid = 20;
@@ -1122,7 +1125,8 @@ void TextureCacheBase::CopyRenderTargetToTexture(u32 dstAddr, u32 dstFormat, u32
 		case 7: // A8
 			colmat[3] = colmat[7] = colmat[11] = colmat[15] = 1.0f;
 			cbufid = 21;
-			if (!efbHasAlpha) {
+			if (!efbHasAlpha)
+			{
 				ColorMask[3] = 0.0f;
 				fConstAdd[0] = 1.0f;
 				fConstAdd[1] = 1.0f;
@@ -1173,7 +1177,8 @@ void TextureCacheBase::CopyRenderTargetToTexture(u32 dstAddr, u32 dstFormat, u32
 			ColorMask[3] = 7.0f;
 			ColorMask[7] = 1.0f / 7.0f;
 			cbufid = 28;
-			if (!efbHasAlpha) {
+			if (!efbHasAlpha)
+			{
 				ColorMask[3] = 0.0f;
 				fConstAdd[3] = 1.0f;
 				cbufid = 29;
@@ -1182,7 +1187,8 @@ void TextureCacheBase::CopyRenderTargetToTexture(u32 dstAddr, u32 dstFormat, u32
 		case 6: // RGBA8
 			colmat[0] = colmat[5] = colmat[10] = colmat[15] = 1.0f;
 			cbufid = 30;
-			if (!efbHasAlpha) {
+			if (!efbHasAlpha)
+			{
 				ColorMask[3] = 0.0f;
 				fConstAdd[3] = 1.0f;
 				cbufid = 31;
@@ -1245,7 +1251,7 @@ void TextureCacheBase::CopyRenderTargetToTexture(u32 dstAddr, u32 dstFormat, u32
 		// mimimi085181: Ugly speedhack for the Last Story 
 		copy_to_ram = copy_to_ram || ((tex_w == 64 || tex_w == 128 || tex_w == 256) && !isIntensity && tex_h != 1 && (dstFormat == 6 || dstFormat == 32));
 	}
-	
+
 	bool copy_to_vram = true;
 	// Only apply triggered post-processing on specific formats, to avoid false positives.
 	// Skip depth copies, single-channel textures (basically RGB565/RGB5A3/RGBA8 only)

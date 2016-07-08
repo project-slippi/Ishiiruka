@@ -25,8 +25,10 @@ extern const char *PatchTypeStrings[];
 
 struct PatchEntry
 {
-	PatchEntry() {}
-	PatchEntry(PatchType _t, u32 _addr, u32 _value) : type(_t), address(_addr), value(_value) {}
+	PatchEntry()
+	{}
+	PatchEntry(PatchType _t, u32 _addr, u32 _value): type(_t), address(_addr), value(_value)
+	{}
 	PatchType type;
 	u32 address;
 	u32 value;
@@ -42,7 +44,7 @@ struct Patch
 
 int GetSpeedhackCycles(const u32 addr);
 void LoadPatchSection(const std::string& section, std::vector<Patch> &patches,
-                      IniFile &globalIni, IniFile &localIni);
+	IniFile &globalIni, IniFile &localIni);
 void LoadPatches();
 void ApplyFramePatches();
 void Shutdown();

@@ -7,11 +7,14 @@
 class GFXDebuggerBase
 {
 public:
-	virtual ~GFXDebuggerBase() {}
+	virtual ~GFXDebuggerBase()
+	{}
 
 	// if paused, debugging functions can be enabled
-	virtual void OnPause() {};
-	virtual void OnContinue() {};
+	virtual void OnPause()
+	{};
+	virtual void OnContinue()
+	{};
 
 	void DumpPixelShader(const std::string& path);
 	void DumpVertexShader(const std::string& path);
@@ -25,28 +28,29 @@ public:
 	void DumpStats(const std::string& path);
 };
 
-enum PauseEvent {
-	NOT_PAUSE	=	0,
-	NEXT_FRAME	=	1<<0,
-	NEXT_FLUSH	=	1<<1,
+enum PauseEvent
+{
+	NOT_PAUSE = 0,
+	NEXT_FRAME = 1 << 0,
+	NEXT_FLUSH = 1 << 1,
 
-	NEXT_PIXEL_SHADER_CHANGE	=	1<<2,
-	NEXT_VERTEX_SHADER_CHANGE	=	1<<3,
-	NEXT_TEXTURE_CHANGE	=	1<<4,
-	NEXT_NEW_TEXTURE	=	1<<5,
+	NEXT_PIXEL_SHADER_CHANGE = 1 << 2,
+	NEXT_VERTEX_SHADER_CHANGE = 1 << 3,
+	NEXT_TEXTURE_CHANGE = 1 << 4,
+	NEXT_NEW_TEXTURE = 1 << 5,
 
-	NEXT_XFB_CMD	=	1<<6, // TODO
-	NEXT_EFB_CMD	=	1<<7, // TODO
+	NEXT_XFB_CMD = 1 << 6, // TODO
+	NEXT_EFB_CMD = 1 << 7, // TODO
 
-	NEXT_MATRIX_CMD	=	1<<8, // TODO
-	NEXT_VERTEX_CMD	=	1<<9, // TODO
-	NEXT_TEXTURE_CMD	=	1<<10, // TODO
-	NEXT_LIGHT_CMD	=	1<<11, // TODO
-	NEXT_FOG_CMD	=	1<<12, // TODO
+	NEXT_MATRIX_CMD = 1 << 8, // TODO
+	NEXT_VERTEX_CMD = 1 << 9, // TODO
+	NEXT_TEXTURE_CMD = 1 << 10, // TODO
+	NEXT_LIGHT_CMD = 1 << 11, // TODO
+	NEXT_FOG_CMD = 1 << 12, // TODO
 
-	NEXT_SET_TLUT	=	1<<13, // TODO
+	NEXT_SET_TLUT = 1 << 13, // TODO
 
-	NEXT_ERROR	=	1<<14, // TODO
+	NEXT_ERROR = 1 << 14, // TODO
 };
 
 extern GFXDebuggerBase *g_pdebugger;

@@ -17,7 +17,7 @@ class wxAuiNotebook;
 class wxAuiToolBar;
 class wxListBox;
 
-class DSPDebuggerLLE : public wxPanel
+class DSPDebuggerLLE: public wxPanel
 {
 public:
 	DSPDebuggerLLE(wxWindow *parent, wxWindowID id = wxID_ANY);

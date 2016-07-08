@@ -7,12 +7,12 @@
 #include <cstring>
 
 #include "Common/CommonTypes.h"
-#include "Core/HW/Memmap.h"
 #include "Core/HW/DSPHLE/DSPHLE.h"
+#include "Core/HW/Memmap.h"
 
-#define UCODE_ROM                   0x00000000
-#define UCODE_INIT_AUDIO_SYSTEM     0x00000001
-#define UCODE_NULL                  0xFFFFFFFF
+#define UCODE_ROM 0x00000000
+#define UCODE_INIT_AUDIO_SYSTEM 0x00000001
+#define UCODE_NULL 0xFFFFFFFF
 
 class CMailHandler;
 class PointerWrap;
@@ -65,34 +65,25 @@ inline void* HLEMemory_Get_Pointer(u32 address)
 class UCodeInterface
 {
 public:
-	UCodeInterface(DSPHLE *dsphle, u32 crc)
-		: m_mail_handler(dsphle->AccessMailHandler())
-		, m_upload_setup_in_progress(false)
-		, m_dsphle(dsphle)
-		, m_crc(crc)
-		, m_next_ucode()
-		, m_next_ucode_steps(0)
-		, m_needs_resume_mail(false)
-	{
-	}
+	UCodeInterface(DSPHLE* dsphle, u32 crc)
+		: m_mail_handler(dsphle->AccessMailHandler()), m_upload_setup_in_progress(false),
+		m_dsphle(dsphle), m_crc(crc), m_next_ucode(), m_next_ucode_steps(0),
+		m_needs_resume_mail(false)
+	{}
 
 	virtual ~UCodeInterface()
-	{
-	}
-
+	{}
 	virtual void HandleMail(u32 mail) = 0;
 	virtual void Update() = 0;
 
-	virtual void DoState(PointerWrap &p)
+	virtual void DoState(PointerWrap& p)
 	{
 		DoStateShared(p);
 	}
-
 	static u32 GetCRC(UCodeInterface* ucode)
 	{
 		return ucode ? ucode->m_crc : UCODE_NULL;
 	}
-
 protected:
 	void PrepareBootUCode(u32 mail);
 
@@ -101,17 +92,17 @@ protected:
 	// The HLE can use this to
 	bool NeedsResumeMail();
 
-	void DoStateShared(PointerWrap &p);
+	void DoStateShared(PointerWrap& p);
 
 	CMailHandler& m_mail_handler;
 
 	enum EDSP_Codes
 	{
-		DSP_INIT      = 0xDCD10000,
-		DSP_RESUME    = 0xDCD10001,
-		DSP_YIELD     = 0xDCD10002,
-		DSP_DONE      = 0xDCD10003,
-		DSP_SYNC      = 0xDCD10004,
+		DSP_INIT = 0xDCD10000,
+		DSP_RESUME = 0xDCD10001,
+		DSP_YIELD = 0xDCD10002,
+		DSP_DONE = 0xDCD10003,
+		DSP_SYNC = 0xDCD10004,
 		DSP_FRAME_END = 0xDCD10005,
 	};
 
@@ -120,7 +111,7 @@ protected:
 	bool m_upload_setup_in_progress;
 
 	// Need a pointer back to DSPHLE to switch ucodes.
-	DSPHLE *m_dsphle;
+	DSPHLE* m_dsphle;
 
 	// used for reconstruction when loading saves,
 	// and for variations within certain ucodes.
@@ -146,4 +137,4 @@ private:
 	bool m_needs_resume_mail;
 };
 
-UCodeInterface* UCodeFactory(u32 crc, DSPHLE *dsphle, bool wii);
+UCodeInterface* UCodeFactory(u32 crc, DSPHLE* dsphle, bool wii);

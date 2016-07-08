@@ -61,11 +61,11 @@ enum LOG_TYPE
 
 enum LOG_LEVELS
 {
-	LNOTICE  = 1, // VERY important information that is NOT errors. Like startup and OSReports.
-	LERROR   = 2, // Critical errors
+	LNOTICE = 1, // VERY important information that is NOT errors. Like startup and OSReports.
+	LERROR = 2, // Critical errors
 	LWARNING = 3, // Something is suspicious.
-	LINFO    = 4, // General information.
-	LDEBUG   = 5, // Detailed debugging - might make things slow.
+	LINFO = 4, // General information.
+	LDEBUG = 5, // Detailed debugging - might make things slow.
 };
 
 static const char LOG_LEVEL_TO_CHAR[7] = "-NEWID";
@@ -73,11 +73,11 @@ static const char LOG_LEVEL_TO_CHAR[7] = "-NEWID";
 }  // namespace
 
 void GenericLog(LogTypes::LOG_LEVELS level, LogTypes::LOG_TYPE type,
-		const char* file, int line, const char* fmt, ...)
+	const char* file, int line, const char* fmt, ...)
 #ifdef __GNUC__
-		__attribute__((format(printf, 5, 6)))
+	__attribute__((format(printf, 5, 6)))
 #endif
-		;
+	;
 
 #if defined LOGGING || defined _DEBUG || defined DEBUGFAST
 #define MAX_LOGLEVEL LogTypes::LOG_LEVELS::LDEBUG

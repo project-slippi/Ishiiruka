@@ -165,7 +165,7 @@ wxStaticBoxSizer* ControllerConfigDiag::CreateWiimoteConfigSizer()
 
 		// reserve four ids, so that we can calculate the index from the ids later on
 		// Stupid wx 2.8 doesn't support reserving sequential IDs, so we need to do that more complicated..
-		int source_ctrl_id =  wxWindow::NewControlId();
+		int source_ctrl_id = wxWindow::NewControlId();
 		m_wiimote_index_from_ctrl_id.emplace(source_ctrl_id, i);
 
 		int config_bt_id = wxWindow::NewControlId();
@@ -189,7 +189,7 @@ wxStaticBoxSizer* ControllerConfigDiag::CreateWiimoteConfigSizer()
 	}
 
 	// "Wiimotes" layout
-	wxStaticBoxSizer* const wiimote_group = new wxStaticBoxSizer(wxVERTICAL,this, _("Wiimotes"));
+	wxStaticBoxSizer* const wiimote_group = new wxStaticBoxSizer(wxVERTICAL, this, _("Wiimotes"));
 	wxBoxSizer* const wiimote_control_section = new wxBoxSizer(wxHORIZONTAL);
 	wxFlexGridSizer* const wiimote_sizer = new wxFlexGridSizer(3, 5, 5);
 	for (unsigned int i = 0; i < 4; ++i)
@@ -198,7 +198,7 @@ wxStaticBoxSizer* ControllerConfigDiag::CreateWiimoteConfigSizer()
 		wiimote_sizer->Add(wiimote_source_ch[i], 0, wxALIGN_CENTER_VERTICAL);
 		wiimote_sizer->Add(wiimote_configure_bt[i]);
 	}
-	wiimote_control_section->Add(wiimote_sizer, 1, wxEXPAND, 5 );
+	wiimote_control_section->Add(wiimote_sizer, 1, wxEXPAND, 5);
 
 	// Disable some controls when emulation is running
 	if (Core::GetState() != Core::CORE_UNINITIALIZED && NetPlay::IsNetPlayRunning())
@@ -225,7 +225,7 @@ wxStaticBoxSizer* ControllerConfigDiag::CreateBalanceBoardSizer()
 {
 	wxStaticBoxSizer* const bb_group = new wxStaticBoxSizer(wxHORIZONTAL, this, _("Balance Board"));
 	wxFlexGridSizer* const bb_sizer = new wxFlexGridSizer(1, 5, 5);
-	int source_ctrl_id =  wxWindow::NewControlId();
+	int source_ctrl_id = wxWindow::NewControlId();
 
 	m_wiimote_index_from_ctrl_id.emplace(source_ctrl_id, WIIMOTE_BALANCE_BOARD);
 
@@ -261,7 +261,7 @@ wxStaticBoxSizer* ControllerConfigDiag::CreateRealWiimoteSizer()
 
 	if (!WiimoteReal::g_wiimote_scanner.IsReady())
 		real_wiimotes_group->Add(new wxStaticText(this, wxID_ANY, _("A supported Bluetooth device could not be found.\n"
-		                                                            "You must manually connect your Wiimotes.")), 0, wxALIGN_CENTER | wxALL, 5);
+			"You must manually connect your Wiimotes.")), 0, wxALIGN_CENTER | wxALL, 5);
 
 	wxCheckBox* const continuous_scanning = new wxCheckBox(this, wxID_ANY, _("Continuous Scanning"));
 	continuous_scanning->Bind(wxEVT_CHECKBOX, &ControllerConfigDiag::OnContinuousScanning, this);
@@ -278,7 +278,7 @@ wxStaticBoxSizer* ControllerConfigDiag::CreateRealWiimoteSizer()
 
 wxStaticBoxSizer* ControllerConfigDiag::CreateGeneralWiimoteSettingsSizer()
 {
-	const wxString str[] = { _("Bottom"), _("Top") };
+	const wxString str[] = {_("Bottom"), _("Top")};
 	wxChoice* const WiiSensBarPos = new wxChoice(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, 2, str);
 	wxSlider* const WiiSensBarSens = new wxSlider(this, wxID_ANY, 0, 0, 4);
 	wxSlider* const WiimoteSpkVolume = new wxSlider(this, wxID_ANY, 0, 0, 127);
@@ -297,8 +297,8 @@ wxStaticBoxSizer* ControllerConfigDiag::CreateGeneralWiimoteSettingsSizer()
 	wxStaticText* const WiimoteSpkVolumeMaxText = new wxStaticText(this, wxID_ANY, _("Max"));
 
 	// With some GTK themes, no minimum size will be applied - so do this manually here
-	WiiSensBarSens->SetMinSize(wxSize(100,-1));
-	WiimoteSpkVolume->SetMinSize(wxSize(100,-1));
+	WiiSensBarSens->SetMinSize(wxSize(100, -1));
+	WiimoteSpkVolume->SetMinSize(wxSize(100, -1));
 
 	// Disable some controls when emulation is running
 	if (Core::GetState() != Core::CORE_UNINITIALIZED)
@@ -409,7 +409,7 @@ void ControllerConfigDiag::Save(wxCommandEvent& event)
 	IniFile inifile;
 	inifile.Load(ini_filename);
 
-	for (unsigned int i=0; i<MAX_WIIMOTES; ++i)
+	for (unsigned int i = 0; i < MAX_WIIMOTES; ++i)
 	{
 		std::string secname("Wiimote");
 		secname += (char)('1' + i);

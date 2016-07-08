@@ -30,8 +30,10 @@ public:
 		friend class IniFile;
 
 	public:
-		Section() {}
-		Section(const std::string& _name) : name(_name) {}
+		Section()
+		{}
+		Section(const std::string& _name): name(_name)
+		{}
 
 		bool Exists(const std::string& key) const;
 		bool Delete(const std::string& key);

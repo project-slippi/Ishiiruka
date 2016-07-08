@@ -30,7 +30,7 @@ void LabelMap::RegisterLabel(const std::string &label, u16 lval, LabelType type)
 	if (GetLabelValue(label, &old_value) && old_value != lval)
 	{
 		printf("WARNING: Redefined label %s to %04x - old value %04x\n",
-			   label.c_str(), lval, old_value);
+			label.c_str(), lval, old_value);
 		DeleteLabel(label);
 	}
 	labels.emplace_back(label, lval, type);

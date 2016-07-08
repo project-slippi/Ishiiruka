@@ -502,7 +502,7 @@ void ProgramShaderCache::Shutdown()
 	{
 		pshaders->Persist();
 		pshaders->Clear(
-		[&](const SHADERUID& uid, PCacheEntry& entry)
+			[&](const SHADERUID& uid, PCacheEntry& entry)
 		{
 			// Clear any prior error code
 			glGetError();

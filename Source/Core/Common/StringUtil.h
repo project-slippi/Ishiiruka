@@ -19,7 +19,7 @@ std::string StringFromFormat(const char* format, ...)
 #if !defined _WIN32
 // On compilers that support function attributes, this gives StringFromFormat
 // the same errors and warnings that printf would give.
- __attribute__ ((__format__(printf, 1, 2)))
+__attribute__((__format__(printf, 1, 2)))
 #endif
 ;
 
@@ -27,7 +27,7 @@ std::string StringFromFormat(const char* format, ...)
 bool CharArrayFromFormatV(char* out, int outsize, const char* format, va_list args);
 
 template<size_t Count>
-inline void CharArrayFromFormat(char (& out)[Count], const char* format, ...)
+inline void CharArrayFromFormat(char(&out)[Count], const char* format, ...)
 {
 	va_list args;
 	va_start(args, format);
@@ -47,7 +47,7 @@ std::string ThousandSeparate(I value, int spaces = 0)
 {
 	std::ostringstream oss;
 
-// std::locale("") seems to be broken on many platforms
+	// std::locale("") seems to be broken on many platforms
 #if defined _WIN32 || (defined __linux__ && !defined __clang__)
 	oss.imbue(std::locale(""));
 #endif
@@ -104,11 +104,14 @@ inline bool StartsWith(const std::string& str, const std::string& prefix)
 	return str.compare(0, prefix.size(), prefix) == 0;
 }
 
-inline bool EndsWith(const std::string& str, const std::string& ending) {
-	if (str.length() >= ending.length()) {
+inline bool EndsWith(const std::string& str, const std::string& ending)
+{
+	if (str.length() >= ending.length())
+	{
 		return (0 == str.compare(str.length() - ending.length(), ending.length(), ending));
 	}
-	else {
+	else
+	{
 		return false;
 	}
 }
@@ -136,16 +139,24 @@ std::wstring UTF8ToUTF16(const std::string& str);
 
 #ifdef _UNICODE
 inline std::string TStrToUTF8(const std::wstring& str)
-{ return UTF16ToUTF8(str); }
+{
+	return UTF16ToUTF8(str);
+}
 
 inline std::wstring UTF8ToTStr(const std::string& str)
-{ return UTF8ToUTF16(str); }
+{
+	return UTF8ToUTF16(str);
+}
 #else
 inline std::string TStrToUTF8(const std::string& str)
-{ return str; }
+{
+	return str;
+}
 
 inline std::string UTF8ToTStr(const std::string& str)
-{ return str; }
+{
+	return str;
+}
 #endif
 
 #endif

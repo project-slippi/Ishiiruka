@@ -27,11 +27,11 @@ static inline void __cpuidex(int info[4], int function_id, int subfunction_id)
 	__asm__(
 		"cpuid"
 		: "=a" (info[0]),
-		  "=b" (info[1]),
-		  "=c" (info[2]),
-		  "=d" (info[3])
+		"=b" (info[1]),
+		"=c" (info[2]),
+		"=d" (info[3])
 		: "a" (function_id),
-		  "c" (subfunction_id)
+		"c" (subfunction_id)
 	);
 #endif
 }
@@ -107,16 +107,16 @@ void CPUInfo::Detect()
 		int family = ((cpu_id[0] >> 8) & 0xf) + ((cpu_id[0] >> 20) & 0xff);
 		int model = ((cpu_id[0] >> 4) & 0xf) + ((cpu_id[0] >> 12) & 0xf0);
 		// Detect people unfortunate enough to be running Dolphin on an Atom
-		if (family == 6 && (model == 0x1C || model == 0x26 ||model == 0x27 || model == 0x35 || model == 0x36 ||
-		                    model == 0x37 || model == 0x4A || model == 0x4D || model == 0x5A || model == 0x5D))
+		if (family == 6 && (model == 0x1C || model == 0x26 || model == 0x27 || model == 0x35 || model == 0x36 ||
+			model == 0x37 || model == 0x4A || model == 0x4D || model == 0x5A || model == 0x5D))
 			bAtom = true;
 		logical_cpu_count = (cpu_id[1] >> 16) & 0xFF;
 		ht = (cpu_id[3] >> 28) & 1;
 
 		if ((cpu_id[3] >> 25) & 1) bSSE = true;
 		if ((cpu_id[3] >> 26) & 1) bSSE2 = true;
-		if ((cpu_id[2])       & 1) bSSE3 = true;
-		if ((cpu_id[2] >> 9)  & 1) bSSSE3 = true;
+		if ((cpu_id[2]) & 1) bSSE3 = true;
+		if ((cpu_id[2] >> 9) & 1) bSSSE3 = true;
 		if ((cpu_id[2] >> 19) & 1) bSSE4_1 = true;
 		if ((cpu_id[2] >> 20) & 1) bSSE4_2 = true;
 		if ((cpu_id[2] >> 22) & 1) bMOVBE = true;

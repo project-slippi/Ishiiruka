@@ -7,9 +7,9 @@
 
 #include "Common/CommonTypes.h"
 #include "Common/MathUtil.h"
-#include "Core/PowerPC/PowerPC.h"
 #include "Core/PowerPC/Interpreter/Interpreter.h"
 #include "Core/PowerPC/Interpreter/Interpreter_FPUtils.h"
+#include "Core/PowerPC/PowerPC.h"
 
 using namespace MathUtil;
 
@@ -35,7 +35,7 @@ void Interpreter::Helper_FloatCompareOrdered(UGeckoInstruction _inst, double fa,
 				SetFPException(FPSCR_VXVC);
 			}
 		}
-		else // QNaN
+		else  // QNaN
 		{
 			SetFPException(FPSCR_VXVC);
 		}
@@ -48,7 +48,7 @@ void Interpreter::Helper_FloatCompareOrdered(UGeckoInstruction _inst, double fa,
 	{
 		compareResult = FPCC::FG;
 	}
-	else // Equals
+	else  // Equals
 	{
 		compareResult = FPCC::FE;
 	}
@@ -80,7 +80,7 @@ void Interpreter::Helper_FloatCompareUnordered(UGeckoInstruction _inst, double f
 	{
 		compareResult = FPCC::FG;
 	}
-	else // Equals
+	else  // Equals
 	{
 		compareResult = FPCC::FE;
 	}
@@ -126,28 +126,28 @@ void Interpreter::fctiwx(UGeckoInstruction _inst)
 		s32 i = 0;
 		switch (FPSCR.RN)
 		{
-		case 0: // nearest
-			{
-				double t = b + 0.5;
-				i = (s32)t;
+		case 0:  // nearest
+		{
+			double t = b + 0.5;
+			i = (s32)t;
 
-				if (t - i < 0 || (t - i == 0 && b > 0))
-				{
-					i--;
-				}
-				break;
+			if (t - i < 0 || (t - i == 0 && b > 0))
+			{
+				i--;
 			}
-		case 1: // zero
+			break;
+		}
+		case 1:  // zero
 			i = (s32)b;
 			break;
-		case 2: // +inf
+		case 2:  // +inf
 			i = (s32)b;
 			if (b - i > 0)
 			{
 				i++;
 			}
 			break;
-		case 3: // -inf
+		case 3:  // -inf
 			i = (s32)b;
 			if (b - i < 0)
 			{
@@ -285,11 +285,10 @@ void Interpreter::frspx(UGeckoInstruction inst)  // round to single
 		Helper_UpdateCR1();
 }
 
-
 void Interpreter::fmulx(UGeckoInstruction _inst)
 {
 	rPS0(_inst.FD) = ForceDouble(NI_mul(rPS0(_inst.FA), rPS0(_inst.FC)));
-	FPSCR.FI = 0; // are these flags important?
+	FPSCR.FI = 0;  // are these flags important?
 	FPSCR.FR = 0;
 	UpdateFPRF(rPS0(_inst.FD));
 
@@ -301,7 +300,7 @@ void Interpreter::fmulsx(UGeckoInstruction _inst)
 	double c_value = Force25Bit(rPS0(_inst.FC));
 	double d_value = NI_mul(rPS0(_inst.FA), c_value);
 	rPS0(_inst.FD) = rPS1(_inst.FD) = ForceSingle(d_value);
-	//FPSCR.FI = d_value != rPS0(_inst.FD);
+	// FPSCR.FI = d_value != rPS0(_inst.FD);
 	FPSCR.FI = 0;
 	FPSCR.FR = 0;
 	UpdateFPRF(rPS0(_inst.FD));
@@ -332,7 +331,6 @@ void Interpreter::fmaddsx(UGeckoInstruction _inst)
 	if (_inst.Rc)
 		Helper_UpdateCR1();
 }
-
 
 void Interpreter::faddx(UGeckoInstruction _inst)
 {

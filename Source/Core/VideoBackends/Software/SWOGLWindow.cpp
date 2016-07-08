@@ -67,10 +67,10 @@ void SWOGLWindow::Prepare()
 
 	std::string header =
 		GLInterface->GetMode() == GLInterfaceMode::MODE_OPENGL ?
-			"#version 140\n"
+		"#version 140\n"
 		:
-			"#version 300 es\n"
-			"precision highp float;\n";
+		"#version 300 es\n"
+		"precision highp float;\n";
 
 	m_image_program = OpenGL_CompileProgram(header + vertex_shader, header + frag_shader);
 
@@ -114,10 +114,10 @@ void SWOGLWindow::ShowImage(u8* data, int stride, int width, int height, float a
 	glBindVertexArray(m_image_vao);
 	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
-// TODO: implement OSD
-//	for (TextData& text : m_text)
-//	{
-//	}
+	// TODO: implement OSD
+	//	for (TextData& text : m_text)
+	//	{
+	//	}
 	m_text.clear();
 
 	GLInterface->Swap();

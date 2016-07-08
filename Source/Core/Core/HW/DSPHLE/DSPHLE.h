@@ -12,16 +12,19 @@
 class PointerWrap;
 class UCodeInterface;
 
-class DSPHLE : public DSPEmulator {
+class DSPHLE: public DSPEmulator
+{
 public:
 	DSPHLE();
 
 	bool Initialize(bool bWii, bool bDSPThread) override;
 	void Shutdown() override;
-	bool IsLLE() override { return false ; }
-
-	void DoState(PointerWrap &p) override;
-	void PauseAndLock(bool doLock, bool unpauseOnUnlock=true) override;
+	bool IsLLE() override
+	{
+		return false;
+	}
+	void DoState(PointerWrap& p) override;
+	void PauseAndLock(bool doLock, bool unpauseOnUnlock = true) override;
 
 	void DSP_WriteMailBoxHigh(bool _CPUMailbox, unsigned short) override;
 	void DSP_WriteMailBoxLow(bool _CPUMailbox, unsigned short) override;
@@ -33,10 +36,12 @@ public:
 	void DSP_StopSoundStream() override;
 	u32 DSP_UpdateRate() override;
 
-	CMailHandler& AccessMailHandler() { return m_MailHandler; }
-
+	CMailHandler& AccessMailHandler()
+	{
+		return m_MailHandler;
+	}
 	// Formerly DSPHandler
-	UCodeInterface *GetUCode();
+	UCodeInterface* GetUCode();
 	void SetUCode(u32 _crc);
 	void SwapUCode(u32 _crc);
 

@@ -12,13 +12,12 @@ class wxCheckBox;
 class wxChoice;
 class wxRadioBox;
 
-class GeneralConfigPane final : public wxPanel
+class GeneralConfigPane final: public wxPanel
 {
 public:
 	GeneralConfigPane(wxWindow* parent, wxWindowID id);
 
 private:
-
 	struct CPUCore
 	{
 		int CPUid;

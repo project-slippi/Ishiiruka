@@ -17,7 +17,8 @@ namespace DX11
 
 namespace D3D
 {
-enum class ShaderType : u32 {
+enum class ShaderType: u32
+{
 	Vertex,
 	Pixel,
 	Geometry,
@@ -34,9 +35,9 @@ PixelShaderPtr CreatePixelShaderFromByteCode(const void* bytecode, size_t len);
 ComputeShaderPtr CreateComputeShaderFromByteCode(const void* bytecode, size_t len);
 
 bool CompileShader(
-	ShaderType type, 
+	ShaderType type,
 	const std::string& code,
-	D3DBlob& blob, 
+	D3DBlob& blob,
 	const D3D_SHADER_MACRO* pDefines = nullptr,
 	const char* pEntry = nullptr, bool throwError = true);
 

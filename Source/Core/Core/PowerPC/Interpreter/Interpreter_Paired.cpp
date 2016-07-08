@@ -6,9 +6,9 @@
 
 #include "Common/CommonTypes.h"
 #include "Common/MathUtil.h"
-#include "Core/PowerPC/PowerPC.h"
 #include "Core/PowerPC/Interpreter/Interpreter.h"
 #include "Core/PowerPC/Interpreter/Interpreter_FPUtils.h"
+#include "Core/PowerPC/PowerPC.h"
 
 using namespace MathUtil;
 
@@ -154,7 +154,6 @@ void Interpreter::ps_rsqrte(UGeckoInstruction _inst)
 		Helper_UpdateCR1();
 }
 
-
 void Interpreter::ps_sub(UGeckoInstruction _inst)
 {
 	rPS0(_inst.FD) = ForceSingle(NI_sub(rPS0(_inst.FA), rPS0(_inst.FB)));
@@ -186,7 +185,6 @@ void Interpreter::ps_mul(UGeckoInstruction _inst)
 	if (_inst.Rc)
 		Helper_UpdateCR1();
 }
-
 
 void Interpreter::ps_msub(UGeckoInstruction _inst)
 {
@@ -341,6 +339,6 @@ void Interpreter::ps_cmpo1(UGeckoInstruction _inst)
 // TODO(ector) check docs
 void Interpreter::dcbz_l(UGeckoInstruction _inst)
 {
-	//FAKE: clear memory instead of clearing the cache block
+	// FAKE: clear memory instead of clearing the cache block
 	PowerPC::ClearCacheLine(Helper_Get_EA_X(_inst) & (~31));
 }

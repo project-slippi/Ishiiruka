@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -11,30 +12,28 @@
 
 namespace File
 {
-	class IOFile;
+class IOFile;
 }
 
 struct MemoryUpdate
 {
 	enum Type
 	{
-		TEXTURE_MAP   = 0x01,
-		XF_DATA       = 0x02,
+		TEXTURE_MAP = 0x01,
+		XF_DATA = 0x02,
 		VERTEX_STREAM = 0x04,
-		TMEM          = 0x08,
+		TMEM = 0x08,
 	};
 
 	u32 fifoPosition;
 	u32 address;
-	u32 size;
-	u8* data;
+	std::vector<u8> data;
 	Type type;
 };
 
 struct FifoFrameInfo
 {
-	u8* fifoData;
-	u32 fifoDataSize;
+	std::vector<u8> fifoData;
 
 	u32 fifoStart;
 	u32 fifoEnd;
@@ -61,18 +60,34 @@ public:
 	bool GetIsWii() const;
 	bool HasBrokenEFBCopies() const;
 
-	u32 *GetBPMem() { return m_BPMem; }
-	u32 *GetCPMem() { return m_CPMem; }
-	u32 *GetXFMem() { return m_XFMem; }
-	u32 *GetXFRegs() { return m_XFRegs; }
-
-	void AddFrame(const FifoFrameInfo &frameInfo);
-	const FifoFrameInfo &GetFrame(u32 frame) const { return m_Frames[frame]; }
-	u32 GetFrameCount() const { return static_cast<u32>(m_Frames.size()); }
-
+	u32* GetBPMem()
+	{
+		return m_BPMem;
+	}
+	u32* GetCPMem()
+	{
+		return m_CPMem;
+	}
+	u32* GetXFMem()
+	{
+		return m_XFMem;
+	}
+	u32* GetXFRegs()
+	{
+		return m_XFRegs;
+	}
+	void AddFrame(const FifoFrameInfo& frameInfo);
+	const FifoFrameInfo& GetFrame(u32 frame) const
+	{
+		return m_Frames[frame];
+	}
+	u32 GetFrameCount() const
+	{
+		return static_cast<u32>(m_Frames.size());
+	}
 	bool Save(const std::string& filename);
 
-	static FifoDataFile* Load(const std::string &filename, bool flagsOnly);
+	static std::unique_ptr<FifoDataFile> Load(const std::string& filename, bool flagsOnly);
 
 private:
 	enum
@@ -80,13 +95,14 @@ private:
 		FLAG_IS_WII = 1
 	};
 
-	void PadFile(size_t numBytes, File::IOFile &file);
+	void PadFile(size_t numBytes, File::IOFile& file);
 
 	void SetFlag(u32 flag, bool set);
 	bool GetFlag(u32 flag) const;
 
-	u64 WriteMemoryUpdates(const std::vector<MemoryUpdate>& memUpdates, File::IOFile &file);
-	static void ReadMemoryUpdates(u64 fileOffset, u32 numUpdates, std::vector<MemoryUpdate>& memUpdates, File::IOFile& file);
+	u64 WriteMemoryUpdates(const std::vector<MemoryUpdate>& memUpdates, File::IOFile& file);
+	static void ReadMemoryUpdates(u64 fileOffset, u32 numUpdates,
+		std::vector<MemoryUpdate>& memUpdates, File::IOFile& file);
 
 	u32 m_BPMem[BP_MEM_SIZE];
 	u32 m_CPMem[CP_MEM_SIZE];

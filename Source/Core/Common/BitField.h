@@ -165,8 +165,8 @@ private:
 	// former case to workaround compile errors which arise when using
 	// std::underlying_type<T>::type directly.
 	typedef typename std::conditional<std::is_enum<T>::value,
-	                                  std::underlying_type<T>,
-	                                  std::enable_if<true,T>>::type::type StorageType;
+		std::underlying_type<T>,
+		std::enable_if<true, T>>::type::type StorageType;
 
 	// Unsigned version of StorageType
 	typedef typename std::make_unsigned<StorageType>::type StorageTypeU;

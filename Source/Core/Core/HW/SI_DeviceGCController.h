@@ -8,18 +8,17 @@
 #include "Core/HW/SI_Device.h"
 #include "InputCommon/GCPadStatus.h"
 
-class CSIDevice_GCController : public ISIDevice
+class CSIDevice_GCController: public ISIDevice
 {
 protected:
-
 	// Commands
 	enum EBufferCommands
 	{
-		CMD_RESET       = 0x00,
-		CMD_DIRECT      = 0x40,
-		CMD_ORIGIN      = 0x41,
+		CMD_RESET = 0x00,
+		CMD_DIRECT = 0x40,
+		CMD_ORIGIN = 0x41,
 		CMD_RECALIBRATE = 0x42,
-		CMD_ID          = 0xff,
+		CMD_ID = 0xff,
 	};
 
 	struct SOrigin
@@ -49,11 +48,17 @@ protected:
 		{
 			u32 Parameter1 : 8;
 			u32 Parameter2 : 8;
-			u32 Command    : 8;
-			u32            : 8;
+			u32 Command : 8;
+			u32 : 8;
 		};
-		UCommand()            {Hex = 0;}
-		UCommand(u32 _iValue) {Hex = _iValue;}
+		UCommand()
+		{
+			Hex = 0;
+		}
+		UCommand(u32 _iValue)
+		{
+			Hex = _iValue;
+		}
 	};
 
 	enum EButtonCombo
@@ -84,7 +89,6 @@ protected:
 	bool m_simulate_konga = false;
 
 public:
-
 	// Constructor
 	CSIDevice_GCController(SIDevices device, int _iDeviceNumber);
 
@@ -116,12 +120,12 @@ protected:
 	void HandleMoviePadStatus(GCPadStatus* PadStatus);
 };
 
-
 // "TaruKonga", the DK Bongo controller
-class CSIDevice_TaruKonga : public CSIDevice_GCController
+class CSIDevice_TaruKonga: public CSIDevice_GCController
 {
 public:
-	CSIDevice_TaruKonga(SIDevices device, int _iDeviceNumber) : CSIDevice_GCController(device, _iDeviceNumber)
+	CSIDevice_TaruKonga(SIDevices device, int _iDeviceNumber)
+		: CSIDevice_GCController(device, _iDeviceNumber)
 	{
 		m_simulate_konga = true;
 	}

@@ -25,11 +25,15 @@
 #include "VideoCommon/VideoConfig.h"
 #include "VideoCommon/XFMemory.h"
 
-class NullNativeVertexFormat : public NativeVertexFormat
+class NullNativeVertexFormat: public NativeVertexFormat
 {
 public:
-	NullNativeVertexFormat(const PortableVertexDeclaration& _vtx_decl) { vtx_decl = _vtx_decl; }
-	void SetupVertexPointers() override {}
+	NullNativeVertexFormat(const PortableVertexDeclaration& _vtx_decl)
+	{
+		vtx_decl = _vtx_decl;
+	}
+	void SetupVertexPointers() override
+	{}
 };
 
 NativeVertexFormat* SWVertexLoader::CreateNativeVertexFormat(const PortableVertexDeclaration& vtx_decl)
@@ -64,15 +68,15 @@ void SWVertexLoader::vFlush(bool useDstAlpha)
 	u8 primitiveType = 0;
 	switch (current_primitive_type)
 	{
-		case PRIMITIVE_POINTS:
-			primitiveType = GX_DRAW_POINTS;
-			break;
-		case PRIMITIVE_LINES:
-			primitiveType = GX_DRAW_LINES;
-			break;
-		case PRIMITIVE_TRIANGLES:
-			primitiveType = GX_DRAW_TRIANGLES;
-			break;
+	case PRIMITIVE_POINTS:
+		primitiveType = GX_DRAW_POINTS;
+		break;
+	case PRIMITIVE_LINES:
+		primitiveType = GX_DRAW_LINES;
+		break;
+	case PRIMITIVE_TRIANGLES:
+		primitiveType = GX_DRAW_TRIANGLES;
+		break;
 	}
 
 	m_SetupUnit->Init(primitiveType);
@@ -170,11 +174,11 @@ void SWVertexLoader::SetFormat(u8 attributeIndex, u8 primitiveType)
 template <typename T, typename I>
 static T ReadNormalized(I value)
 {
-	T casted = (T) value;
+	T casted = (T)value;
 	if (!std::numeric_limits<T>::is_integer && std::numeric_limits<I>::is_integer)
 	{
 		// normalize if non-float is converted to a float
-		casted *= (T) (1.0 / std::numeric_limits<I>::max());
+		casted *= (T)(1.0 / std::numeric_limits<I>::max());
 	}
 	return casted;
 }
@@ -185,7 +189,7 @@ static void ReadVertexAttribute(T* dst, DataReader src, const AttributeFormat& f
 	if (format.enable)
 	{
 		src.ReadSkip(format.offset);
-		src.ReadSkip(base_component * (1<<(format.type>>1)));
+		src.ReadSkip(base_component * (1 << (format.type >> 1)));
 
 		int i;
 		for (i = 0; i < std::min(format.components - base_component, components); i++)
@@ -193,21 +197,21 @@ static void ReadVertexAttribute(T* dst, DataReader src, const AttributeFormat& f
 			int i_dst = reverse ? components - i - 1 : i;
 			switch (format.type)
 			{
-				case FORMAT_UBYTE:
-					dst[i_dst] = ReadNormalized<T, u8>(src.Read<u8, swap>());
-					break;
-				case FORMAT_BYTE:
-					dst[i_dst] = ReadNormalized<T, s8>(src.Read<s8, swap>());
-					break;
-				case FORMAT_USHORT:
-					dst[i_dst] = ReadNormalized<T, u16>(src.Read<u16, swap>());
-					break;
-				case FORMAT_SHORT:
-					dst[i_dst] = ReadNormalized<T, s16>(src.Read<s16, swap>());
-					break;
-				case FORMAT_FLOAT:
-					dst[i_dst] = ReadNormalized<T, float>(src.Read<float, swap>());
-					break;
+			case FORMAT_UBYTE:
+				dst[i_dst] = ReadNormalized<T, u8>(src.Read<u8, swap>());
+				break;
+			case FORMAT_BYTE:
+				dst[i_dst] = ReadNormalized<T, s8>(src.Read<s8, swap>());
+				break;
+			case FORMAT_USHORT:
+				dst[i_dst] = ReadNormalized<T, u16>(src.Read<u16, swap>());
+				break;
+			case FORMAT_SHORT:
+				dst[i_dst] = ReadNormalized<T, s16>(src.Read<s16, swap>());
+				break;
+			case FORMAT_FLOAT:
+				dst[i_dst] = ReadNormalized<T, float>(src.Read<float, swap>());
+				break;
 			}
 
 			_assert_msg_(VIDEO, format.type != FORMAT_FLOAT, "only non-float values are allowed to be streamed as integer");

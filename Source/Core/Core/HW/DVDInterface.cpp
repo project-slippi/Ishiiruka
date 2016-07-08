@@ -16,17 +16,17 @@
 #include "Core/ConfigManager.h"
 #include "Core/Core.h"
 #include "Core/CoreTiming.h"
-#include "Core/Movie.h"
 #include "Core/HW/AudioInterface.h"
 #include "Core/HW/DVDInterface.h"
 #include "Core/HW/DVDThread.h"
-#include "Core/HW/Memmap.h"
 #include "Core/HW/MMIO.h"
+#include "Core/HW/Memmap.h"
 #include "Core/HW/ProcessorInterface.h"
 #include "Core/HW/StreamADPCM.h"
 #include "Core/HW/SystemTimers.h"
 #include "Core/IPC_HLE/WII_IPC_HLE.h"
 #include "Core/IPC_HLE/WII_IPC_HLE_Device_DI.h"
+#include "Core/Movie.h"
 
 #include "DiscIO/Volume.h"
 #include "DiscIO/VolumeCreator.h"
@@ -49,14 +49,15 @@ static const u64 WII_DISC_LAYER_SIZE = 4699979776;
 //
 // These speeds are approximations of speeds measured on real Wiis.
 
-static const u32 GC_DISC_LOCATION_1_OFFSET = 0;             // The beginning of a GC disc - 48 mm
+static const u32 GC_DISC_LOCATION_1_OFFSET = 0;  // The beginning of a GC disc - 48 mm
 static const u32 GC_DISC_LOCATION_1_READ_SPEED = (u32)(1024 * 1024 * 2.1);
-static const u32 GC_DISC_LOCATION_2_OFFSET = 1459978239;    // The end of a GC disc - 76 mm
+static const u32 GC_DISC_LOCATION_2_OFFSET = 1459978239;  // The end of a GC disc - 76 mm
 static const u32 GC_DISC_LOCATION_2_READ_SPEED = (u32)(1024 * 1024 * 3.325);
 
-static const u32 WII_DISC_LOCATION_1_OFFSET = 0;                    // The beginning of a Wii disc - 48 mm
+static const u32 WII_DISC_LOCATION_1_OFFSET = 0;  // The beginning of a Wii disc - 48 mm
 static const u32 WII_DISC_LOCATION_1_READ_SPEED = (u32)(1024 * 1024 * 3.5);
-static const u64 WII_DISC_LOCATION_2_OFFSET = WII_DISC_LAYER_SIZE;  // The end of a Wii disc - 116 mm
+static const u64 WII_DISC_LOCATION_2_OFFSET =
+WII_DISC_LAYER_SIZE;  // The end of a Wii disc - 116 mm
 static const u32 WII_DISC_LOCATION_2_READ_SPEED = (u32)(1024 * 1024 * 8.45);
 
 // These values are used for disc read speed calculations. Calculations
@@ -64,46 +65,45 @@ static const u32 WII_DISC_LOCATION_2_READ_SPEED = (u32)(1024 * 1024 * 8.45);
 // is the same as the read speed at that track in bytes per second.
 
 static const double GC_DISC_AREA_UP_TO_LOCATION_1 =
-	PI * GC_DISC_LOCATION_1_READ_SPEED * GC_DISC_LOCATION_1_READ_SPEED;
+PI * GC_DISC_LOCATION_1_READ_SPEED * GC_DISC_LOCATION_1_READ_SPEED;
 static const double GC_DISC_AREA_UP_TO_LOCATION_2 =
-	PI * GC_DISC_LOCATION_2_READ_SPEED * GC_DISC_LOCATION_2_READ_SPEED;
+PI * GC_DISC_LOCATION_2_READ_SPEED * GC_DISC_LOCATION_2_READ_SPEED;
 static const double GC_BYTES_PER_AREA_UNIT =
-	(GC_DISC_LOCATION_2_OFFSET - GC_DISC_LOCATION_1_OFFSET) /
-	(GC_DISC_AREA_UP_TO_LOCATION_2 - GC_DISC_AREA_UP_TO_LOCATION_1);
+(GC_DISC_LOCATION_2_OFFSET - GC_DISC_LOCATION_1_OFFSET) /
+(GC_DISC_AREA_UP_TO_LOCATION_2 - GC_DISC_AREA_UP_TO_LOCATION_1);
 
 static const double WII_DISC_AREA_UP_TO_LOCATION_1 =
-	PI * WII_DISC_LOCATION_1_READ_SPEED * WII_DISC_LOCATION_1_READ_SPEED;
+PI * WII_DISC_LOCATION_1_READ_SPEED * WII_DISC_LOCATION_1_READ_SPEED;
 static const double WII_DISC_AREA_UP_TO_LOCATION_2 =
-	PI * WII_DISC_LOCATION_2_READ_SPEED * WII_DISC_LOCATION_2_READ_SPEED;
+PI * WII_DISC_LOCATION_2_READ_SPEED * WII_DISC_LOCATION_2_READ_SPEED;
 static const double WII_BYTES_PER_AREA_UNIT =
-	(WII_DISC_LOCATION_2_OFFSET - WII_DISC_LOCATION_1_OFFSET) /
-	(WII_DISC_AREA_UP_TO_LOCATION_2 - WII_DISC_AREA_UP_TO_LOCATION_1);
+(WII_DISC_LOCATION_2_OFFSET - WII_DISC_LOCATION_1_OFFSET) /
+(WII_DISC_AREA_UP_TO_LOCATION_2 - WII_DISC_AREA_UP_TO_LOCATION_1);
 
 namespace DVDInterface
 {
-
 // internal hardware addresses
 enum
 {
-	DI_STATUS_REGISTER       = 0x00,
-	DI_COVER_REGISTER        = 0x04,
-	DI_COMMAND_0             = 0x08,
-	DI_COMMAND_1             = 0x0C,
-	DI_COMMAND_2             = 0x10,
-	DI_DMA_ADDRESS_REGISTER  = 0x14,
-	DI_DMA_LENGTH_REGISTER   = 0x18,
-	DI_DMA_CONTROL_REGISTER  = 0x1C,
+	DI_STATUS_REGISTER = 0x00,
+	DI_COVER_REGISTER = 0x04,
+	DI_COMMAND_0 = 0x08,
+	DI_COMMAND_1 = 0x0C,
+	DI_COMMAND_2 = 0x10,
+	DI_DMA_ADDRESS_REGISTER = 0x14,
+	DI_DMA_LENGTH_REGISTER = 0x18,
+	DI_DMA_CONTROL_REGISTER = 0x1C,
 	DI_IMMEDIATE_DATA_BUFFER = 0x20,
-	DI_CONFIG_REGISTER       = 0x24
+	DI_CONFIG_REGISTER = 0x24
 };
 
 // debug commands which may be ORd
 enum
 {
-	STOP_DRIVE  = 0,
+	STOP_DRIVE = 0,
 	START_DRIVE = 0x100,
 	ACCEPT_COPY = 0x4000,
-	DISC_CHECK  = 0x8000,
+	DISC_CHECK = 0x8000,
 };
 
 // DI Status Register
@@ -112,17 +112,23 @@ union UDISR
 	u32 Hex;
 	struct
 	{
-		u32 BREAK      :  1; // Stop the Device + Interrupt
-		u32 DEINITMASK :  1; // Access Device Error Int Mask
-		u32 DEINT      :  1; // Access Device Error Int
-		u32 TCINTMASK  :  1; // Transfer Complete Int Mask
-		u32 TCINT      :  1; // Transfer Complete Int
-		u32 BRKINTMASK :  1;
-		u32 BRKINT     :  1; // w 1: clear brkint
-		u32            : 25;
+		u32 BREAK : 1;       // Stop the Device + Interrupt
+		u32 DEINITMASK : 1;  // Access Device Error Int Mask
+		u32 DEINT : 1;       // Access Device Error Int
+		u32 TCINTMASK : 1;   // Transfer Complete Int Mask
+		u32 TCINT : 1;       // Transfer Complete Int
+		u32 BRKINTMASK : 1;
+		u32 BRKINT : 1;  // w 1: clear brkint
+		u32 : 25;
 	};
-	UDISR() {Hex = 0;}
-	UDISR(u32 _hex) {Hex = _hex;}
+	UDISR()
+	{
+		Hex = 0;
+	}
+	UDISR(u32 _hex)
+	{
+		Hex = _hex;
+	}
 };
 
 // DI Cover Register
@@ -131,13 +137,19 @@ union UDICVR
 	u32 Hex;
 	struct
 	{
-		u32 CVR        :  1; // 0: Cover closed  1: Cover open
-		u32 CVRINTMASK :  1; // 1: Interrupt enabled
-		u32 CVRINT     :  1; // r 1: Interrupt requested w 1: Interrupt clear
-		u32            : 29;
+		u32 CVR : 1;         // 0: Cover closed  1: Cover open
+		u32 CVRINTMASK : 1;  // 1: Interrupt enabled
+		u32 CVRINT : 1;      // r 1: Interrupt requested w 1: Interrupt clear
+		u32 : 29;
 	};
-	UDICVR() {Hex = 0;}
-	UDICVR(u32 _hex) {Hex = _hex;}
+	UDICVR()
+	{
+		Hex = 0;
+	}
+	UDICVR(u32 _hex)
+	{
+		Hex = _hex;
+	}
 };
 
 union UDICMDBUF
@@ -158,13 +170,13 @@ union UDIMAR
 	u32 Hex;
 	struct
 	{
-		u32 Zerobits : 5; // Must be zero (32byte aligned)
-		u32          : 27;
+		u32 Zerobits : 5;  // Must be zero (32byte aligned)
+		u32 : 27;
 	};
 	struct
 	{
 		u32 Address : 26;
-		u32         : 6;
+		u32 : 6;
 	};
 };
 
@@ -174,13 +186,13 @@ union UDILENGTH
 	u32 Hex;
 	struct
 	{
-		u32 Zerobits : 5; // Must be zero (32byte aligned)
-		u32          : 27;
+		u32 Zerobits : 5;  // Must be zero (32byte aligned)
+		u32 : 27;
 	};
 	struct
 	{
 		u32 Length : 26;
-		u32        : 6;
+		u32 : 6;
 	};
 };
 
@@ -190,10 +202,10 @@ union UDICR
 	u32 Hex;
 	struct
 	{
-		u32 TSTART : 1; // w:1 start   r:0 ready
-		u32 DMA    : 1; // 1: DMA Mode    0: Immediate Mode (can only do Access Register Command)
-		u32 RW     : 1; // 0: Read Command (DVD to Memory)  1: Write Command (Memory to DVD)
-		u32        : 29;
+		u32 TSTART : 1;  // w:1 start   r:0 ready
+		u32 DMA : 1;     // 1: DMA Mode    0: Immediate Mode (can only do Access Register Command)
+		u32 RW : 1;      // 0: Read Command (DVD to Memory)  1: Write Command (Memory to DVD)
+		u32 : 29;
 	};
 };
 
@@ -216,24 +228,30 @@ union UDICFG
 	struct
 	{
 		u32 CONFIG : 8;
-		u32        : 24;
+		u32 : 24;
 	};
-	UDICFG() {Hex = 0;}
-	UDICFG(u32 _hex) {Hex = _hex;}
+	UDICFG()
+	{
+		Hex = 0;
+	}
+	UDICFG(u32 _hex)
+	{
+		Hex = _hex;
+	}
 };
 
 static std::unique_ptr<DiscIO::IVolume> s_inserted_volume;
 
 // STATE_TO_SAVE
 // hardware registers
-static UDISR     s_DISR;
-static UDICVR    s_DICVR;
+static UDISR s_DISR;
+static UDICVR s_DICVR;
 static UDICMDBUF s_DICMDBUF[3];
-static UDIMAR    s_DIMAR;
+static UDIMAR s_DIMAR;
 static UDILENGTH s_DILENGTH;
-static UDICR     s_DICR;
+static UDICR s_DICR;
 static UDIIMMBUF s_DIIMMBUF;
-static UDICFG    s_DICFG;
+static UDICFG s_DICFG;
 
 static u32 s_audio_position;
 static u32 s_current_start;
@@ -241,13 +259,12 @@ static u32 s_current_length;
 static u32 s_next_start;
 static u32 s_next_length;
 
-
-static u32  s_error_code = 0;
+static u32 s_error_code = 0;
 static bool s_disc_inside = false;
 static bool s_stream = false;
 static bool s_stop_at_track_end = false;
-static int  s_finish_executing_command = 0;
-static int  s_dtk = 0;
+static int s_finish_executing_command = 0;
+static int s_dtk = 0;
 
 static u64 s_last_read_offset;
 static u64 s_last_read_time;
@@ -268,13 +285,14 @@ void UpdateInterrupts();
 void GenerateDIInterrupt(DIInterruptType _DVDInterrupt);
 
 void WriteImmediate(u32 value, u32 output_address, bool reply_to_ios);
-bool ExecuteReadCommand(u64 DVD_offset, u32 output_address, u32 DVD_length, u32 output_length, bool decrypt,
-                        bool reply_to_ios, DIInterruptType* interrupt_type, u64* ticks_until_completion);
+bool ExecuteReadCommand(u64 DVD_offset, u32 output_address, u32 DVD_length, u32 output_length,
+	bool decrypt, bool reply_to_ios, DIInterruptType* interrupt_type,
+	u64* ticks_until_completion);
 
 u64 SimulateDiscReadTime(u64 offset, u32 length);
 s64 CalculateRawDiscReadTime(u64 offset, s64 length);
 
-void DoState(PointerWrap &p)
+void DoState(PointerWrap& p)
 {
 	p.DoPOD(s_DISR);
 	p.DoPOD(s_DICVR);
@@ -304,7 +322,7 @@ void DoState(PointerWrap &p)
 	DVDThread::DoState(p);
 }
 
-static u32 ProcessDTKSamples(short *tempPCM, u32 num_samples)
+static u32 ProcessDTKSamples(short* tempPCM, u32 num_samples)
 {
 	// TODO: Read audio data using the DVD thread instead of blocking on it?
 	DVDThread::WaitUntilIdle();
@@ -314,9 +332,10 @@ static u32 ProcessDTKSamples(short *tempPCM, u32 num_samples)
 	{
 		if (s_audio_position >= s_current_start + s_current_length)
 		{
-			DEBUG_LOG(DVDINTERFACE,
-			          "ProcessDTKSamples: NextStart=%08x,NextLength=%08x,CurrentStart=%08x,CurrentLength=%08x,AudioPos=%08x",
-			          s_next_start, s_next_length, s_current_start, s_current_length, s_audio_position);
+			DEBUG_LOG(DVDINTERFACE, "ProcessDTKSamples: "
+				"NextStart=%08x,NextLength=%08x,CurrentStart=%08x,CurrentLength=%08x,"
+				"AudioPos=%08x",
+				s_next_start, s_next_length, s_current_start, s_current_length, s_audio_position);
 
 			s_audio_position = s_next_start;
 			s_current_start = s_next_start;
@@ -338,7 +357,8 @@ static u32 ProcessDTKSamples(short *tempPCM, u32 num_samples)
 		s_audio_position += sizeof(tempADPCM);
 		StreamADPCM::DecodeBlock(tempPCM + samples_processed * 2, tempADPCM);
 		samples_processed += StreamADPCM::SAMPLES_PER_BLOCK;
-	} while (samples_processed < num_samples);
+	}
+	while (samples_processed < num_samples);
 	for (unsigned i = 0; i < samples_processed * 2; ++i)
 	{
 		// TODO: Fix the mixer so it can accept non-byte-swapped samples.
@@ -375,17 +395,17 @@ void Init()
 {
 	DVDThread::Start();
 
-	s_DISR.Hex        = 0;
-	s_DICVR.Hex       = 1; // Disc Channel relies on cover being open when no disc is inserted
+	s_DISR.Hex = 0;
+	s_DICVR.Hex = 1;  // Disc Channel relies on cover being open when no disc is inserted
 	s_DICMDBUF[0].Hex = 0;
 	s_DICMDBUF[1].Hex = 0;
 	s_DICMDBUF[2].Hex = 0;
-	s_DIMAR.Hex       = 0;
-	s_DILENGTH.Hex    = 0;
-	s_DICR.Hex        = 0;
-	s_DIIMMBUF.Hex    = 0;
-	s_DICFG.Hex       = 0;
-	s_DICFG.CONFIG    = 1; // Disable bootrom descrambler
+	s_DIMAR.Hex = 0;
+	s_DILENGTH.Hex = 0;
+	s_DICR.Hex = 0;
+	s_DIIMMBUF.Hex = 0;
+	s_DICFG.Hex = 0;
+	s_DICFG.CONFIG = 1;  // Disable bootrom descrambler
 
 	s_audio_position = 0;
 	s_next_start = 0;
@@ -404,7 +424,8 @@ void Init()
 	s_eject_disc = CoreTiming::RegisterEvent("EjectDisc", EjectDiscCallback);
 	s_insert_disc = CoreTiming::RegisterEvent("InsertDisc", InsertDiscCallback);
 
-	s_finish_executing_command = CoreTiming::RegisterEvent("FinishExecutingCommand", FinishExecutingCommandCallback);
+	s_finish_executing_command =
+		CoreTiming::RegisterEvent("FinishExecutingCommand", FinishExecutingCommandCallback);
 	s_dtk = CoreTiming::RegisterEvent("StreamingTimer", DTKStreamingCallback);
 
 	CoreTiming::ScheduleEvent(0, s_dtk);
@@ -428,10 +449,12 @@ bool SetVolumeName(const std::string& disc_path)
 	return VolumeIsValid();
 }
 
-bool SetVolumeDirectory(const std::string& full_path, bool is_wii, const std::string& apploader_path, const std::string& DOL_path)
+bool SetVolumeDirectory(const std::string& full_path, bool is_wii,
+	const std::string& apploader_path, const std::string& DOL_path)
 {
 	DVDThread::WaitUntilIdle();
-	s_inserted_volume = DiscIO::CreateVolumeFromDirectory(full_path, is_wii, apploader_path, DOL_path);
+	s_inserted_volume =
+		DiscIO::CreateVolumeFromDirectory(full_path, is_wii, apploader_path, DOL_path);
 	return VolumeIsValid();
 }
 
@@ -467,7 +490,7 @@ static void EjectDiscCallback(u64 userdata, s64 cyclesLate)
 static void InsertDiscCallback(u64 userdata, s64 cyclesLate)
 {
 	std::string& SavedFileName = SConfig::GetInstance().m_strFilename;
-	std::string *_FileName = (std::string *)userdata;
+	std::string* _FileName = (std::string*)userdata;
 
 	if (!SetVolumeName(*_FileName))
 	{
@@ -494,7 +517,8 @@ void ChangeDisc(const std::string& newFileName)
 		if (fileName.substr(sizeofpath).length() > 40)
 		{
 			PanicAlertT("The disc change to \"%s\" could not be saved in the .dtm file.\n"
-			            "The filename of the disc image must not be longer than 40 characters.", newFileName.c_str());
+				"The filename of the disc image must not be longer than 40 characters.",
+				newFileName.c_str());
 		}
 		Movie::g_discChange = fileName.substr(sizeofpath);
 	}
@@ -516,97 +540,82 @@ bool ChangePartition(u64 offset)
 
 void RegisterMMIO(MMIO::Mapping* mmio, u32 base)
 {
-	mmio->Register(base | DI_STATUS_REGISTER,
-		MMIO::DirectRead<u32>(&s_DISR.Hex),
-		MMIO::ComplexWrite<u32>([](u32, u32 val) {
-			UDISR tmpStatusReg(val);
+	mmio->Register(base | DI_STATUS_REGISTER, MMIO::DirectRead<u32>(&s_DISR.Hex),
+		MMIO::ComplexWrite<u32>([](u32, u32 val)
+	{
+		UDISR tmpStatusReg(val);
 
-			s_DISR.DEINITMASK = tmpStatusReg.DEINITMASK;
-			s_DISR.TCINTMASK  = tmpStatusReg.TCINTMASK;
-			s_DISR.BRKINTMASK = tmpStatusReg.BRKINTMASK;
-			s_DISR.BREAK      = tmpStatusReg.BREAK;
+		s_DISR.DEINITMASK = tmpStatusReg.DEINITMASK;
+		s_DISR.TCINTMASK = tmpStatusReg.TCINTMASK;
+		s_DISR.BRKINTMASK = tmpStatusReg.BRKINTMASK;
+		s_DISR.BREAK = tmpStatusReg.BREAK;
 
-			if (tmpStatusReg.DEINT)
-				s_DISR.DEINT = 0;
+		if (tmpStatusReg.DEINT)
+			s_DISR.DEINT = 0;
 
-			if (tmpStatusReg.TCINT)
-				s_DISR.TCINT = 0;
+		if (tmpStatusReg.TCINT)
+			s_DISR.TCINT = 0;
 
-			if (tmpStatusReg.BRKINT)
-				s_DISR.BRKINT = 0;
+		if (tmpStatusReg.BRKINT)
+			s_DISR.BRKINT = 0;
 
-			if (s_DISR.BREAK)
-			{
-				_dbg_assert_(DVDINTERFACE, 0);
-			}
+		if (s_DISR.BREAK)
+		{
+			_dbg_assert_(DVDINTERFACE, 0);
+		}
 
-			UpdateInterrupts();
-		})
-	);
+		UpdateInterrupts();
+	}));
 
-	mmio->Register(base | DI_COVER_REGISTER,
-		MMIO::DirectRead<u32>(&s_DICVR.Hex),
-		MMIO::ComplexWrite<u32>([](u32, u32 val) {
-			UDICVR tmpCoverReg(val);
+	mmio->Register(base | DI_COVER_REGISTER, MMIO::DirectRead<u32>(&s_DICVR.Hex),
+		MMIO::ComplexWrite<u32>([](u32, u32 val)
+	{
+		UDICVR tmpCoverReg(val);
 
-			s_DICVR.CVRINTMASK = tmpCoverReg.CVRINTMASK;
+		s_DICVR.CVRINTMASK = tmpCoverReg.CVRINTMASK;
 
-			if (tmpCoverReg.CVRINT)
-				s_DICVR.CVRINT = 0;
+		if (tmpCoverReg.CVRINT)
+			s_DICVR.CVRINT = 0;
 
-			UpdateInterrupts();
-		})
-	);
+		UpdateInterrupts();
+	}));
 
 	// Command registers are very similar and we can register them with a
 	// simple loop.
 	for (int i = 0; i < 3; ++i)
-		mmio->Register(base | (DI_COMMAND_0 + 4 * i),
-			MMIO::DirectRead<u32>(&s_DICMDBUF[i].Hex),
-			MMIO::DirectWrite<u32>(&s_DICMDBUF[i].Hex)
-		);
+		mmio->Register(base | (DI_COMMAND_0 + 4 * i), MMIO::DirectRead<u32>(&s_DICMDBUF[i].Hex),
+			MMIO::DirectWrite<u32>(&s_DICMDBUF[i].Hex));
 
 	// DMA related registers. Mostly direct accesses (+ masking for writes to
 	// handle things like address alignment) and complex write on the DMA
 	// control register that will trigger the DMA.
-	mmio->Register(base | DI_DMA_ADDRESS_REGISTER,
-		MMIO::DirectRead<u32>(&s_DIMAR.Hex),
-		MMIO::DirectWrite<u32>(&s_DIMAR.Hex, ~0xFC00001F)
-	);
-	mmio->Register(base | DI_DMA_LENGTH_REGISTER,
-		MMIO::DirectRead<u32>(&s_DILENGTH.Hex),
-		MMIO::DirectWrite<u32>(&s_DILENGTH.Hex, ~0x1F)
-	);
-	mmio->Register(base | DI_DMA_CONTROL_REGISTER,
-		MMIO::DirectRead<u32>(&s_DICR.Hex),
-		MMIO::ComplexWrite<u32>([](u32, u32 val) {
-			s_DICR.Hex = val & 7;
-			if (s_DICR.TSTART)
-			{
-				ExecuteCommand(s_DICMDBUF[0].Hex, s_DICMDBUF[1].Hex, s_DICMDBUF[2].Hex,
-				               s_DIMAR.Hex, s_DILENGTH.Hex, false);
-			}
-		})
-	);
+	mmio->Register(base | DI_DMA_ADDRESS_REGISTER, MMIO::DirectRead<u32>(&s_DIMAR.Hex),
+		MMIO::DirectWrite<u32>(&s_DIMAR.Hex, ~0xFC00001F));
+	mmio->Register(base | DI_DMA_LENGTH_REGISTER, MMIO::DirectRead<u32>(&s_DILENGTH.Hex),
+		MMIO::DirectWrite<u32>(&s_DILENGTH.Hex, ~0x1F));
+	mmio->Register(base | DI_DMA_CONTROL_REGISTER, MMIO::DirectRead<u32>(&s_DICR.Hex),
+		MMIO::ComplexWrite<u32>([](u32, u32 val)
+	{
+		s_DICR.Hex = val & 7;
+		if (s_DICR.TSTART)
+		{
+			ExecuteCommand(s_DICMDBUF[0].Hex, s_DICMDBUF[1].Hex, s_DICMDBUF[2].Hex,
+				s_DIMAR.Hex, s_DILENGTH.Hex, false);
+		}
+	}));
 
-	mmio->Register(base | DI_IMMEDIATE_DATA_BUFFER,
-		MMIO::DirectRead<u32>(&s_DIIMMBUF.Hex),
-		MMIO::DirectWrite<u32>(&s_DIIMMBUF.Hex)
-	);
+	mmio->Register(base | DI_IMMEDIATE_DATA_BUFFER, MMIO::DirectRead<u32>(&s_DIIMMBUF.Hex),
+		MMIO::DirectWrite<u32>(&s_DIIMMBUF.Hex));
 
 	// DI config register is read only.
-	mmio->Register(base | DI_CONFIG_REGISTER,
-		MMIO::DirectRead<u32>(&s_DICFG.Hex),
-		MMIO::InvalidWrite<u32>()
-	);
+	mmio->Register(base | DI_CONFIG_REGISTER, MMIO::DirectRead<u32>(&s_DICFG.Hex),
+		MMIO::InvalidWrite<u32>());
 }
 
 void UpdateInterrupts()
 {
-	if ((s_DISR.DEINT   & s_DISR.DEINITMASK) ||
-	    (s_DISR.TCINT   & s_DISR.TCINTMASK)  ||
-	    (s_DISR.BRKINT  & s_DISR.BRKINTMASK) ||
-	    (s_DICVR.CVRINT & s_DICVR.CVRINTMASK))
+	if ((s_DISR.DEINT & s_DISR.DEINITMASK) || (s_DISR.TCINT & s_DISR.TCINTMASK) ||
+		(s_DISR.BRKINT & s_DISR.BRKINTMASK) || (s_DICVR.CVRINT & s_DICVR.CVRINTMASK))
 	{
 		ProcessorInterface::SetInterrupt(ProcessorInterface::INT_CAUSE_DI, true);
 	}
@@ -623,10 +632,18 @@ void GenerateDIInterrupt(DIInterruptType dvd_interrupt)
 {
 	switch (dvd_interrupt)
 	{
-	case INT_DEINT:  s_DISR.DEINT   = 1; break;
-	case INT_TCINT:  s_DISR.TCINT   = 1; break;
-	case INT_BRKINT: s_DISR.BRKINT  = 1; break;
-	case INT_CVRINT: s_DICVR.CVRINT = 1; break;
+	case INT_DEINT:
+		s_DISR.DEINT = 1;
+		break;
+	case INT_TCINT:
+		s_DISR.TCINT = 1;
+		break;
+	case INT_BRKINT:
+		s_DISR.BRKINT = 1;
+		break;
+	case INT_CVRINT:
+		s_DICVR.CVRINT = 1;
+		break;
 	}
 
 	UpdateInterrupts();
@@ -641,8 +658,9 @@ void WriteImmediate(u32 value, u32 output_address, bool reply_to_ios)
 }
 
 // Iff false is returned, ScheduleEvent must be used to finish executing the command
-bool ExecuteReadCommand(u64 DVD_offset, u32 output_address, u32 DVD_length, u32 output_length, bool decrypt,
-                        bool reply_to_ios, DIInterruptType* interrupt_type, u64* ticks_until_completion)
+bool ExecuteReadCommand(u64 DVD_offset, u32 output_address, u32 DVD_length, u32 output_length,
+	bool decrypt, bool reply_to_ios, DIInterruptType* interrupt_type,
+	u64* ticks_until_completion)
 {
 	if (!s_disc_inside)
 	{
@@ -659,18 +677,21 @@ bool ExecuteReadCommand(u64 DVD_offset, u32 output_address, u32 DVD_length, u32 
 
 	if (DVD_length > output_length)
 	{
-		WARN_LOG(DVDINTERFACE, "Detected attempt to read more data from the DVD than fit inside the out buffer. Clamp.");
+		WARN_LOG(
+			DVDINTERFACE,
+			"Detected attempt to read more data from the DVD than fit inside the out buffer. Clamp.");
 		DVD_length = output_length;
 	}
 
 	if (SConfig::GetInstance().bFastDiscSpeed)
 		// An optional hack to speed up loading times
-		*ticks_until_completion = output_length * (SystemTimers::GetTicksPerSecond() / BUFFER_TRANSFER_RATE);
+		*ticks_until_completion =
+		output_length * (SystemTimers::GetTicksPerSecond() / BUFFER_TRANSFER_RATE);
 	else
 		*ticks_until_completion = SimulateDiscReadTime(DVD_offset, DVD_length);
 
-	DVDThread::StartRead(DVD_offset, output_address, DVD_length, decrypt,
-	                     reply_to_ios, (int)*ticks_until_completion);
+	DVDThread::StartRead(DVD_offset, output_address, DVD_length, decrypt, reply_to_ios,
+		(int)*ticks_until_completion);
 	return true;
 }
 
@@ -678,14 +699,14 @@ bool ExecuteReadCommand(u64 DVD_offset, u32 output_address, u32 DVD_length, u32 
 // will be called using CoreTiming::ScheduleEvent,
 // with the userdata set to the interrupt type.
 void ExecuteCommand(u32 command_0, u32 command_1, u32 command_2, u32 output_address,
-                    u32 output_length, bool reply_to_ios)
+	u32 output_length, bool reply_to_ios)
 {
 	DIInterruptType interrupt_type = INT_TCINT;
 	u64 ticks_until_completion = SystemTimers::GetTicksPerSecond() / 15000;
 	bool command_handled_by_thread = false;
 
 	bool GCAM = (SConfig::GetInstance().m_SIDevice[0] == SIDEVICE_AM_BASEBOARD) &&
-	            (SConfig::GetInstance().m_EXIDevice[2] == EXIDEVICE_AM_BASEBOARD);
+		(SConfig::GetInstance().m_EXIDevice[2] == EXIDEVICE_AM_BASEBOARD);
 
 	// DVDLowRequestError needs access to the error code set by the previous command
 	if (command_0 >> 24 != DVDLowRequestError)
@@ -693,8 +714,8 @@ void ExecuteCommand(u32 command_0, u32 command_1, u32 command_2, u32 output_addr
 
 	if (GCAM)
 	{
-		ERROR_LOG(DVDINTERFACE, "DVD: %08x, %08x, %08x, DMA=addr:%08x,len:%08x,ctrl:%08x",
-		          command_0, command_1, command_2, output_address, output_length, s_DICR.Hex);
+		ERROR_LOG(DVDINTERFACE, "DVD: %08x, %08x, %08x, DMA=addr:%08x,len:%08x,ctrl:%08x", command_0,
+			command_1, command_2, output_address, output_length, s_DICR.Hex);
 		// decrypt command. But we have a zero key, that simplifies things a lot.
 		// If you get crazy dvd command errors, make sure 0x80000000 - 0x8000000c is zero'd
 		command_0 <<= 24;
@@ -702,7 +723,7 @@ void ExecuteCommand(u32 command_0, u32 command_1, u32 command_2, u32 output_addr
 
 	switch (command_0 >> 24)
 	{
-	// Seems to be used by both GC and Wii
+		// Seems to be used by both GC and Wii
 	case DVDLowInquiry:
 		if (GCAM)
 		{
@@ -716,91 +737,95 @@ void ExecuteCommand(u32 command_0, u32 command_1, u32 command_2, u32 output_addr
 			Memory::Write_U32(0x00000002, output_address);
 			Memory::Write_U32(0x20060526, output_address + 4);
 			// This was in the oubuf even though this cmd is only supposed to reply with 64bits
-			// However, this and other tests strongly suggest that the buffer is static, and it's never - or rarely cleared.
+			// However, this and other tests strongly suggest that the buffer is static, and it's never -
+			// or rarely cleared.
 			Memory::Write_U32(0x41000000, output_address + 8);
 
-			INFO_LOG(DVDINTERFACE, "DVDLowInquiry (Buffer 0x%08x, 0x%x)",
-			         output_address, output_length);
+			INFO_LOG(DVDINTERFACE, "DVDLowInquiry (Buffer 0x%08x, 0x%x)", output_address, output_length);
 		}
 		break;
 
-	// Only seems to be used from WII_IPC, not through direct access
+		// Only seems to be used from WII_IPC, not through direct access
 	case DVDLowReadDiskID:
 		INFO_LOG(DVDINTERFACE, "DVDLowReadDiskID");
-		command_handled_by_thread = ExecuteReadCommand(0, output_address, 0x20, output_length, false,
-		                                               reply_to_ios, &interrupt_type, &ticks_until_completion);
+		command_handled_by_thread =
+			ExecuteReadCommand(0, output_address, 0x20, output_length, false, reply_to_ios,
+				&interrupt_type, &ticks_until_completion);
 		break;
 
-	// Only used from WII_IPC. This is the only read command that decrypts data
+		// Only used from WII_IPC. This is the only read command that decrypts data
 	case DVDLowRead:
-		INFO_LOG(DVDINTERFACE, "DVDLowRead: DVDAddr: 0x%09" PRIx64 ", Size: 0x%x", (u64)command_2 << 2, command_1);
-		command_handled_by_thread = ExecuteReadCommand((u64)command_2 << 2, output_address, command_1, output_length, true,
-		                                               reply_to_ios, &interrupt_type, &ticks_until_completion);
+		INFO_LOG(DVDINTERFACE, "DVDLowRead: DVDAddr: 0x%09" PRIx64 ", Size: 0x%x", (u64)command_2 << 2,
+			command_1);
+		command_handled_by_thread =
+			ExecuteReadCommand((u64)command_2 << 2, output_address, command_1, output_length, true,
+				reply_to_ios, &interrupt_type, &ticks_until_completion);
 		break;
 
-	// Probably only used by Wii
+		// Probably only used by Wii
 	case DVDLowWaitForCoverClose:
 		INFO_LOG(DVDINTERFACE, "DVDLowWaitForCoverClose");
-		interrupt_type = (DIInterruptType)4; // ???
+		interrupt_type = (DIInterruptType)4;  // ???
 		break;
 
-	// "Set Extension"...not sure what it does. GC only?
+		// "Set Extension"...not sure what it does. GC only?
 	case 0x55:
 		INFO_LOG(DVDINTERFACE, "SetExtension");
 		break;
 
-	// Probably only used though WII_IPC
+		// Probably only used though WII_IPC
 	case DVDLowGetCoverReg:
 		WriteImmediate(s_DICVR.Hex, output_address, reply_to_ios);
 		INFO_LOG(DVDINTERFACE, "DVDLowGetCoverReg 0x%08x", s_DICVR.Hex);
 		break;
 
-	// Probably only used by Wii
+		// Probably only used by Wii
 	case DVDLowNotifyReset:
 		ERROR_LOG(DVDINTERFACE, "DVDLowNotifyReset");
 		PanicAlert("DVDLowNotifyReset");
 		break;
-	// Probably only used by Wii
+		// Probably only used by Wii
 	case DVDLowReadDvdPhysical:
 		ERROR_LOG(DVDINTERFACE, "DVDLowReadDvdPhysical");
 		PanicAlert("DVDLowReadDvdPhysical");
 		break;
-	// Probably only used by Wii
+		// Probably only used by Wii
 	case DVDLowReadDvdCopyright:
 		ERROR_LOG(DVDINTERFACE, "DVDLowReadDvdCopyright");
 		PanicAlert("DVDLowReadDvdCopyright");
 		break;
-	// Probably only used by Wii
+		// Probably only used by Wii
 	case DVDLowReadDvdDiscKey:
 		ERROR_LOG(DVDINTERFACE, "DVDLowReadDvdDiscKey");
 		PanicAlert("DVDLowReadDvdDiscKey");
 		break;
 
-	// Probably only used by Wii
+		// Probably only used by Wii
 	case DVDLowClearCoverInterrupt:
 		INFO_LOG(DVDINTERFACE, "DVDLowClearCoverInterrupt");
 		s_DICVR.CVRINT = 0;
 		break;
 
-	// Probably only used by Wii
+		// Probably only used by Wii
 	case DVDLowGetCoverStatus:
 		WriteImmediate(s_disc_inside ? 2 : 1, output_address, reply_to_ios);
 		INFO_LOG(DVDINTERFACE, "DVDLowGetCoverStatus: Disc %sInserted", s_disc_inside ? "" : "Not ");
 		break;
 
-	// Probably only used by Wii
+		// Probably only used by Wii
 	case DVDLowReset:
 		INFO_LOG(DVDINTERFACE, "DVDLowReset");
 		break;
 
-	// Probably only used by Wii
+		// Probably only used by Wii
 	case DVDLowClosePartition:
 		INFO_LOG(DVDINTERFACE, "DVDLowClosePartition");
 		break;
 
-	// Probably only used by Wii
+		// Probably only used by Wii
 	case DVDLowUnencryptedRead:
-		INFO_LOG(DVDINTERFACE, "DVDLowUnencryptedRead: DVDAddr: 0x%09" PRIx64 ", Size: 0x%x", (u64)command_2 << 2, command_1);
+		INFO_LOG(DVDINTERFACE, "DVDLowUnencryptedRead: DVDAddr: 0x%09" PRIx64 ", Size: 0x%x",
+			(u64)command_2 << 2, command_1);
 
 		// We must make sure it is in a valid area! (#001 check)
 		// Are these checks correct? They seem to mix 32-bit offsets and 8-bit lengths
@@ -814,12 +839,14 @@ void ExecuteCommand(u32 command_0, u32 command_1, u32 command_2, u32 output_addr
 			(command_2 > 0x7ed40000 && command_2 < 0x7ed40008) ||
 			(((command_2 + command_1) > 0x7ed40000) && (command_2 + command_1) < 0x7ed40008)))
 		{
-			command_handled_by_thread = ExecuteReadCommand((u64)command_2 << 2, output_address, command_1, output_length, false,
-			                                               reply_to_ios, &interrupt_type, &ticks_until_completion);
+			command_handled_by_thread =
+				ExecuteReadCommand((u64)command_2 << 2, output_address, command_1, output_length, false,
+					reply_to_ios, &interrupt_type, &ticks_until_completion);
 		}
 		else
 		{
-			WARN_LOG(DVDINTERFACE, "DVDLowUnencryptedRead: trying to read out of bounds @ %09" PRIx64, (u64)command_2 << 2);
+			WARN_LOG(DVDINTERFACE, "DVDLowUnencryptedRead: trying to read out of bounds @ %09" PRIx64,
+				(u64)command_2 << 2);
 			s_error_code = ERROR_READY | ERROR_BLOCK_OOB;
 			// Should cause software to call DVDLowRequestError
 			interrupt_type = INT_BRKINT;
@@ -827,21 +854,21 @@ void ExecuteCommand(u32 command_0, u32 command_1, u32 command_2, u32 output_addr
 
 		break;
 
-	// Probably only used by Wii
+		// Probably only used by Wii
 	case DVDLowEnableDvdVideo:
 		ERROR_LOG(DVDINTERFACE, "DVDLowEnableDvdVideo");
 		break;
 
-	// New Super Mario Bros. Wii sends these commands,
-	// but it seems we don't need to implement anything.
-	// Probably only used by Wii
+		// New Super Mario Bros. Wii sends these commands,
+		// but it seems we don't need to implement anything.
+		// Probably only used by Wii
 	case 0x95:
 	case 0x96:
-		ERROR_LOG(DVDINTERFACE, "Unimplemented BCA command 0x%08x (Buffer 0x%08x, 0x%x)",
-		          command_0, output_address, output_length);
+		ERROR_LOG(DVDINTERFACE, "Unimplemented BCA command 0x%08x (Buffer 0x%08x, 0x%x)", command_0,
+			output_address, output_length);
 		break;
 
-	// Probably only used by Wii
+		// Probably only used by Wii
 	case DVDLowReportKey:
 		INFO_LOG(DVDINTERFACE, "DVDLowReportKey");
 		// Does not work on retail discs/drives
@@ -850,76 +877,79 @@ void ExecuteCommand(u32 command_0, u32 command_1, u32 command_2, u32 output_addr
 		interrupt_type = INT_BRKINT;
 		break;
 
-	// DMA Read from Disc. Only seems to be used through direct access, not WII_IPC
+		// DMA Read from Disc. Only seems to be used through direct access, not WII_IPC
 	case 0xA8:
 		switch (command_0 & 0xFF)
 		{
-		case 0x00: // Read Sector
+		case 0x00:  // Read Sector
+		{
+			u64 iDVDOffset = (u64)command_1 << 2;
+
+			INFO_LOG(DVDINTERFACE, "Read: DVDOffset=%08" PRIx64
+				", DMABuffer = %08x, SrcLength = %08x, DMALength = %08x",
+				iDVDOffset, output_address, command_2, output_length);
+
+			if (GCAM)
 			{
-				u64 iDVDOffset = (u64)command_1 << 2;
-
-				INFO_LOG(DVDINTERFACE, "Read: DVDOffset=%08" PRIx64 ", DMABuffer = %08x, SrcLength = %08x, DMALength = %08x",
-					        iDVDOffset, output_address, command_2, output_length);
-
-				if (GCAM)
+				if (iDVDOffset & 0x80000000)  // read request to hardware buffer
 				{
-					if (iDVDOffset & 0x80000000) // read request to hardware buffer
+					switch (iDVDOffset)
 					{
-						switch (iDVDOffset)
-						{
-						case 0x80000000:
-							ERROR_LOG(DVDINTERFACE, "GC-AM: READ MEDIA BOARD STATUS (80000000)");
-							for (u32 i = 0; i < output_length; i += 4)
-								Memory::Write_U32(0, output_address + i);
-							break;
-						case 0x80000040:
-							ERROR_LOG(DVDINTERFACE, "GC-AM: READ MEDIA BOARD STATUS (2) (80000040)");
-							for (u32 i = 0; i < output_length; i += 4)
-								Memory::Write_U32(~0, output_address + i);
-							Memory::Write_U32(0x00000020, output_address); // DIMM SIZE, LE
-							Memory::Write_U32(0x4743414D, output_address + 4); // GCAM signature
-							break;
-						case 0x80000120:
-							ERROR_LOG(DVDINTERFACE, "GC-AM: READ FIRMWARE STATUS (80000120)");
-							for (u32 i = 0; i < output_length; i += 4)
-								Memory::Write_U32(0x01010101, output_address + i);
-							break;
-						case 0x80000140:
-							ERROR_LOG(DVDINTERFACE, "GC-AM: READ FIRMWARE STATUS (80000140)");
-							for (u32 i = 0; i < output_length; i += 4)
-								Memory::Write_U32(0x01010101, output_address + i);
-							break;
-						case 0x84000020:
-							ERROR_LOG(DVDINTERFACE, "GC-AM: READ MEDIA BOARD STATUS (1) (84000020)");
-							for (u32 i = 0; i < output_length; i += 4)
-								Memory::Write_U32(0x00000000, output_address + i);
-							break;
-						default:
-							ERROR_LOG(DVDINTERFACE, "GC-AM: UNKNOWN MEDIA BOARD LOCATION %" PRIx64, iDVDOffset);
-							break;
-						}
-						break;
-					}
-					else if ((iDVDOffset == 0x1f900000) || (iDVDOffset == 0x1f900020))
-					{
-						ERROR_LOG(DVDINTERFACE, "GC-AM: READ MEDIA BOARD COMM AREA (1f900020)");
-						u8* source = s_media_buffer + iDVDOffset - 0x1f900000;
-						Memory::CopyToEmu(output_address, source, output_length);
+					case 0x80000000:
+						ERROR_LOG(DVDINTERFACE, "GC-AM: READ MEDIA BOARD STATUS (80000000)");
 						for (u32 i = 0; i < output_length; i += 4)
-							ERROR_LOG(DVDINTERFACE, "GC-AM: %08x", Memory::Read_U32(output_address + i));
+							Memory::Write_U32(0, output_address + i);
+						break;
+					case 0x80000040:
+						ERROR_LOG(DVDINTERFACE, "GC-AM: READ MEDIA BOARD STATUS (2) (80000040)");
+						for (u32 i = 0; i < output_length; i += 4)
+							Memory::Write_U32(~0, output_address + i);
+						Memory::Write_U32(0x00000020, output_address);      // DIMM SIZE, LE
+						Memory::Write_U32(0x4743414D, output_address + 4);  // GCAM signature
+						break;
+					case 0x80000120:
+						ERROR_LOG(DVDINTERFACE, "GC-AM: READ FIRMWARE STATUS (80000120)");
+						for (u32 i = 0; i < output_length; i += 4)
+							Memory::Write_U32(0x01010101, output_address + i);
+						break;
+					case 0x80000140:
+						ERROR_LOG(DVDINTERFACE, "GC-AM: READ FIRMWARE STATUS (80000140)");
+						for (u32 i = 0; i < output_length; i += 4)
+							Memory::Write_U32(0x01010101, output_address + i);
+						break;
+					case 0x84000020:
+						ERROR_LOG(DVDINTERFACE, "GC-AM: READ MEDIA BOARD STATUS (1) (84000020)");
+						for (u32 i = 0; i < output_length; i += 4)
+							Memory::Write_U32(0x00000000, output_address + i);
+						break;
+					default:
+						ERROR_LOG(DVDINTERFACE, "GC-AM: UNKNOWN MEDIA BOARD LOCATION %" PRIx64, iDVDOffset);
 						break;
 					}
+					break;
 				}
-
-				command_handled_by_thread = ExecuteReadCommand(iDVDOffset, output_address, command_2, output_length, false,
-				                                               reply_to_ios, &interrupt_type, &ticks_until_completion);
+				else if ((iDVDOffset == 0x1f900000) || (iDVDOffset == 0x1f900020))
+				{
+					ERROR_LOG(DVDINTERFACE, "GC-AM: READ MEDIA BOARD COMM AREA (1f900020)");
+					u8* source = s_media_buffer + iDVDOffset - 0x1f900000;
+					Memory::CopyToEmu(output_address, source, output_length);
+					for (u32 i = 0; i < output_length; i += 4)
+						ERROR_LOG(DVDINTERFACE, "GC-AM: %08x", Memory::Read_U32(output_address + i));
+					break;
+				}
 			}
-			break;
 
-		case 0x40: // Read DiscID
+			command_handled_by_thread =
+				ExecuteReadCommand(iDVDOffset, output_address, command_2, output_length, false,
+					reply_to_ios, &interrupt_type, &ticks_until_completion);
+		}
+		break;
+
+		case 0x40:  // Read DiscID
 			INFO_LOG(DVDINTERFACE, "Read DiscID %08x", Memory::Read_U32(output_address));
-			command_handled_by_thread = ExecuteReadCommand(0, output_address, 0x20, output_length, false,
-			                                               reply_to_ios, &interrupt_type, &ticks_until_completion);
+			command_handled_by_thread =
+				ExecuteReadCommand(0, output_address, 0x20, output_length, false, reply_to_ios,
+					&interrupt_type, &ticks_until_completion);
 			break;
 
 		default:
@@ -928,18 +958,19 @@ void ExecuteCommand(u32 command_0, u32 command_1, u32 command_2, u32 output_addr
 		}
 		break;
 
-	// GC-AM only
+		// GC-AM only
 	case 0xAA:
 		if (GCAM)
 		{
-			ERROR_LOG(DVDINTERFACE, "GC-AM: 0xAA, DMABuffer=%08x, DMALength=%08x", output_address, output_length);
+			ERROR_LOG(DVDINTERFACE, "GC-AM: 0xAA, DMABuffer=%08x, DMALength=%08x", output_address,
+				output_length);
 			u64 iDVDOffset = (u64)command_1 << 2;
 			u32 len = output_length;
 			s64 offset = iDVDOffset - 0x1F900000;
 			/*
 			if (iDVDOffset == 0x84800000)
 			{
-				ERROR_LOG(DVDINTERFACE, "Firmware upload");
+			  ERROR_LOG(DVDINTERFACE, "Firmware upload");
 			}
 			else*/
 			if ((offset < 0) || ((offset + len) > 0x40) || len > 0x40)
@@ -956,7 +987,8 @@ void ExecuteCommand(u32 command_0, u32 command_1, u32 command_2, u32 output_addr
 
 				while (len >= 4)
 				{
-					ERROR_LOG(DVDINTERFACE, "GC-AM Media Board WRITE (0xAA): %08" PRIx64 ": %08x", iDVDOffset, Memory::Read_U32(addr));
+					ERROR_LOG(DVDINTERFACE, "GC-AM Media Board WRITE (0xAA): %08" PRIx64 ": %08x", iDVDOffset,
+						Memory::Read_U32(addr));
 					addr += 4;
 					len -= 4;
 					iDVDOffset += 4;
@@ -968,7 +1000,8 @@ void ExecuteCommand(u32 command_0, u32 command_1, u32 command_2, u32 output_addr
 				Memory::CopyFromEmu(s_media_buffer + offset, addr, len);
 				while (len >= 4)
 				{
-					ERROR_LOG(DVDINTERFACE, "GC-AM Media Board WRITE (0xAA): %08" PRIx64 ": %08x", iDVDOffset, Memory::Read_U32(addr));
+					ERROR_LOG(DVDINTERFACE, "GC-AM Media Board WRITE (0xAA): %08" PRIx64 ": %08x", iDVDOffset,
+						Memory::Read_U32(addr));
 					addr += 4;
 					len -= 4;
 					iDVDOffset += 4;
@@ -977,7 +1010,7 @@ void ExecuteCommand(u32 command_0, u32 command_1, u32 command_2, u32 output_addr
 		}
 		break;
 
-	// Seems to be used by both GC and Wii
+		// Seems to be used by both GC and Wii
 	case DVDLowSeek:
 		if (!GCAM)
 		{
@@ -987,10 +1020,10 @@ void ExecuteCommand(u32 command_0, u32 command_1, u32 command_2, u32 output_addr
 		else
 		{
 			memset(s_media_buffer, 0, 0x20);
-			s_media_buffer[0] = s_media_buffer[0x20]; // ID
+			s_media_buffer[0] = s_media_buffer[0x20];  // ID
 			s_media_buffer[2] = s_media_buffer[0x22];
 			s_media_buffer[3] = s_media_buffer[0x23] | 0x80;
-			int cmd = (s_media_buffer[0x23]<<8)|s_media_buffer[0x22];
+			int cmd = (s_media_buffer[0x23] << 8) | s_media_buffer[0x22];
 			ERROR_LOG(DVDINTERFACE, "GC-AM: execute buffer, cmd=%04x", cmd);
 			switch (cmd)
 			{
@@ -998,46 +1031,46 @@ void ExecuteCommand(u32 command_0, u32 command_1, u32 command_2, u32 output_addr
 				s_media_buffer[4] = 1;
 				break;
 			case 0x1:
-				s_media_buffer[7] = 0x20; // DIMM Size
+				s_media_buffer[7] = 0x20;  // DIMM Size
 				break;
 			case 0x100:
+			{
+				// urgh
+				static int percentage = 0;
+				static int status = 0;
+				percentage++;
+				if (percentage > 100)
 				{
-					// urgh
-					static int percentage = 0;
-					static int status = 0;
-					percentage++;
-					if (percentage > 100)
-					{
-						status++;
-						percentage = 0;
-					}
-					s_media_buffer[4] = status;
-					/* status:
-					0 - "Initializing media board. Please wait.."
-					1 - "Checking network. Please wait..."
-					2 - "Found a system disc. Insert a game disc"
-					3 - "Testing a game program. %d%%"
-					4 - "Loading a game program. %d%%"
-					5  - go
-					6  - error xx
-					*/
-					s_media_buffer[8] = percentage;
-					s_media_buffer[4] = 0x05;
-					s_media_buffer[8] = 0x64;
-					break;
+					status++;
+					percentage = 0;
 				}
+				s_media_buffer[4] = status;
+				/* status:
+				0 - "Initializing media board. Please wait.."
+				1 - "Checking network. Please wait..."
+				2 - "Found a system disc. Insert a game disc"
+				3 - "Testing a game program. %d%%"
+				4 - "Loading a game program. %d%%"
+				5  - go
+				6  - error xx
+				*/
+				s_media_buffer[8] = percentage;
+				s_media_buffer[4] = 0x05;
+				s_media_buffer[8] = 0x64;
+				break;
+			}
 			case 0x101:
-				s_media_buffer[4] = 3; // version
+				s_media_buffer[4] = 3;  // version
 				s_media_buffer[5] = 3;
-				s_media_buffer[6] = 1; // xxx
+				s_media_buffer[6] = 1;  // xxx
 				s_media_buffer[8] = 1;
 				s_media_buffer[16] = 0xFF;
 				s_media_buffer[17] = 0xFF;
 				s_media_buffer[18] = 0xFF;
 				s_media_buffer[19] = 0xFF;
 				break;
-			case 0x102:  // get error code
-				s_media_buffer[4] = 1; // 0: download incomplete (31), 1: corrupted, other error 1
+			case 0x102:               // get error code
+				s_media_buffer[4] = 1;  // 0: download incomplete (31), 1: corrupted, other error 1
 				s_media_buffer[5] = 0;
 				break;
 			case 0x103:
@@ -1055,138 +1088,144 @@ void ExecuteCommand(u32 command_0, u32 command_1, u32 command_2, u32 output_addr
 				break;
 			}
 			memset(s_media_buffer + 0x20, 0, 0x20);
-			WriteImmediate(0x66556677, output_address, reply_to_ios); // just a random value that works.
+			WriteImmediate(0x66556677, output_address, reply_to_ios);  // just a random value that works.
 		}
 		break;
 
-	// Probably only used by Wii
+		// Probably only used by Wii
 	case DVDLowReadDvd:
 		ERROR_LOG(DVDINTERFACE, "DVDLowReadDvd");
 		break;
-	// Probably only used by Wii
+		// Probably only used by Wii
 	case DVDLowReadDvdConfig:
 		ERROR_LOG(DVDINTERFACE, "DVDLowReadDvdConfig");
 		break;
-	// Probably only used by Wii
+		// Probably only used by Wii
 	case DVDLowStopLaser:
 		ERROR_LOG(DVDINTERFACE, "DVDLowStopLaser");
 		break;
-	// Probably only used by Wii
+		// Probably only used by Wii
 	case DVDLowOffset:
 		ERROR_LOG(DVDINTERFACE, "DVDLowOffset");
 		break;
-	// Probably only used by Wii
+		// Probably only used by Wii
 	case DVDLowReadDiskBca:
 		WARN_LOG(DVDINTERFACE, "DVDLowReadDiskBca");
 		Memory::Write_U32(1, output_address + 0x30);
 		break;
-	// Probably only used by Wii
+		// Probably only used by Wii
 	case DVDLowRequestDiscStatus:
 		ERROR_LOG(DVDINTERFACE, "DVDLowRequestDiscStatus");
 		break;
-	// Probably only used by Wii
+		// Probably only used by Wii
 	case DVDLowRequestRetryNumber:
 		ERROR_LOG(DVDINTERFACE, "DVDLowRequestRetryNumber");
 		break;
-	// Probably only used by Wii
+		// Probably only used by Wii
 	case DVDLowSetMaximumRotation:
 		ERROR_LOG(DVDINTERFACE, "DVDLowSetMaximumRotation");
 		break;
-	// Probably only used by Wii
+		// Probably only used by Wii
 	case DVDLowSerMeasControl:
 		ERROR_LOG(DVDINTERFACE, "DVDLowSerMeasControl");
 		break;
 
-	// Used by both GC and Wii
+		// Used by both GC and Wii
 	case DVDLowRequestError:
 		INFO_LOG(DVDINTERFACE, "Requesting error... (0x%08x)", s_error_code);
 		WriteImmediate(s_error_code, output_address, reply_to_ios);
 		s_error_code = 0;
 		break;
 
-	// Audio Stream (Immediate). Only seems to be used by some GC games
-	// (command_0 >> 16) & 0xFF = Subcommand
-	// command_1 << 2           = Offset on disc
-	// command_2                = Length of the stream
+		// Audio Stream (Immediate). Only seems to be used by some GC games
+		// (command_0 >> 16) & 0xFF = Subcommand
+		// command_1 << 2           = Offset on disc
+		// command_2                = Length of the stream
 	case 0xE1:
+	{
+		u8 cancel_stream = (command_0 >> 16) & 0xFF;
+		if (cancel_stream)
 		{
-			u8 cancel_stream = (command_0 >> 16) & 0xFF;
-			if (cancel_stream)
-			{
-				s_stop_at_track_end = false;
-				s_stream = false;
-				s_audio_position = 0;
-				s_next_start = 0;
-				s_next_length = 0;
-				s_current_start = 0;
-				s_current_length = 0;
-			}
-			else
-			{
-				if ((command_1 == 0) && (command_2 == 0))
-				{
-					s_stop_at_track_end = true;
-				}
-				else if (!s_stop_at_track_end)
-				{
-					// Setting s_next_start (a u32) like this discards two bits,
-					// but GC games can't be 4 GiB big, so it shouldn't matter
-					s_next_start = command_1 << 2;
-					s_next_length = command_2;
-					if (!s_stream)
-					{
-						s_current_start = s_next_start;
-						s_current_length = s_next_length;
-						s_audio_position = s_current_start;
-						StreamADPCM::InitFilter();
-						s_stream = true;
-					}
-				}
-			}
-
-			INFO_LOG(DVDINTERFACE, "(Audio) Stream cmd: %08x offset: %08" PRIx64 " length: %08x",
-			         command_0, (u64)command_1 << 2, command_2);
+			s_stop_at_track_end = false;
+			s_stream = false;
+			s_audio_position = 0;
+			s_next_start = 0;
+			s_next_length = 0;
+			s_current_start = 0;
+			s_current_length = 0;
 		}
-		break;
+		else
+		{
+			if ((command_1 == 0) && (command_2 == 0))
+			{
+				s_stop_at_track_end = true;
+			}
+			else if (!s_stop_at_track_end)
+			{
+				// Setting s_next_start (a u32) like this discards two bits,
+				// but GC games can't be 4 GiB big, so it shouldn't matter
+				s_next_start = command_1 << 2;
+				s_next_length = command_2;
+				if (!s_stream)
+				{
+					s_current_start = s_next_start;
+					s_current_length = s_next_length;
+					s_audio_position = s_current_start;
+					StreamADPCM::InitFilter();
+					s_stream = true;
+				}
+			}
+		}
+
+		INFO_LOG(DVDINTERFACE, "(Audio) Stream cmd: %08x offset: %08" PRIx64 " length: %08x", command_0,
+			(u64)command_1 << 2, command_2);
+	}
+	break;
 
 	// Request Audio Status (Immediate). Only seems to be used by some GC games
 	case 0xE2:
+	{
+		switch (command_0 >> 16 & 0xFF)
 		{
-			switch (command_0 >> 16 & 0xFF)
-			{
-			case 0x00: // Returns streaming status
-				INFO_LOG(DVDINTERFACE, "(Audio): Stream Status: Request Audio status AudioPos:%08x/%08x CurrentStart:%08x CurrentLength:%08x",
-				         s_audio_position, s_current_start + s_current_length, s_current_start, s_current_length);
-				WriteImmediate(s_stream ? 1 : 0, output_address, reply_to_ios);
-				break;
-			case 0x01: // Returns the current offset
-				INFO_LOG(DVDINTERFACE, "(Audio): Stream Status: Request Audio status AudioPos:%08x", s_audio_position);
-				WriteImmediate(s_audio_position >> 2, output_address, reply_to_ios);
-				break;
-			case 0x02: // Returns the start offset
-				INFO_LOG(DVDINTERFACE, "(Audio): Stream Status: Request Audio status CurrentStart:%08x", s_current_start);
-				WriteImmediate(s_current_start >> 2, output_address, reply_to_ios);
-				break;
-			case 0x03: // Returns the total length
-				INFO_LOG(DVDINTERFACE, "(Audio): Stream Status: Request Audio status CurrentLength:%08x", s_current_length);
-				WriteImmediate(s_current_length >> 2, output_address, reply_to_ios);
-				break;
-			default:
-				WARN_LOG(DVDINTERFACE, "(Audio): Subcommand: %02x  Request Audio status %s", command_0 >> 16 & 0xFF, s_stream ? "on" : "off");
-				break;
-			}
+		case 0x00:  // Returns streaming status
+			INFO_LOG(DVDINTERFACE, "(Audio): Stream Status: Request Audio status AudioPos:%08x/%08x "
+				"CurrentStart:%08x CurrentLength:%08x",
+				s_audio_position, s_current_start + s_current_length, s_current_start,
+				s_current_length);
+			WriteImmediate(s_stream ? 1 : 0, output_address, reply_to_ios);
+			break;
+		case 0x01:  // Returns the current offset
+			INFO_LOG(DVDINTERFACE, "(Audio): Stream Status: Request Audio status AudioPos:%08x",
+				s_audio_position);
+			WriteImmediate(s_audio_position >> 2, output_address, reply_to_ios);
+			break;
+		case 0x02:  // Returns the start offset
+			INFO_LOG(DVDINTERFACE, "(Audio): Stream Status: Request Audio status CurrentStart:%08x",
+				s_current_start);
+			WriteImmediate(s_current_start >> 2, output_address, reply_to_ios);
+			break;
+		case 0x03:  // Returns the total length
+			INFO_LOG(DVDINTERFACE, "(Audio): Stream Status: Request Audio status CurrentLength:%08x",
+				s_current_length);
+			WriteImmediate(s_current_length >> 2, output_address, reply_to_ios);
+			break;
+		default:
+			WARN_LOG(DVDINTERFACE, "(Audio): Subcommand: %02x  Request Audio status %s",
+				command_0 >> 16 & 0xFF, s_stream ? "on" : "off");
+			break;
 		}
-		break;
+	}
+	break;
 
 	case DVDLowStopMotor:
-		INFO_LOG(DVDINTERFACE, "DVDLowStopMotor %s %s",
-		         command_1 ? "eject" : "", command_2 ? "kill!" : "");
+		INFO_LOG(DVDINTERFACE, "DVDLowStopMotor %s %s", command_1 ? "eject" : "",
+			command_2 ? "kill!" : "");
 
 		if (command_1 && !command_2)
 			EjectDiscCallback(0, 0);
 		break;
 
-	// DVD Audio Enable/Disable (Immediate). GC uses this, and apparently Wii also does...?
+		// DVD Audio Enable/Disable (Immediate). GC uses this, and apparently Wii also does...?
 	case DVDLowAudioBufferConfig:
 		// For more information: http://www.crazynation.org/GC/GC_DD_TECH/GCTech.htm (dead link?)
 		//
@@ -1211,46 +1250,42 @@ void ExecuteCommand(u32 command_0, u32 command_1, u32 command_2, u32 output_addr
 		}
 		break;
 
-	// yet another (GC?) command we prolly don't care about
+		// yet another (GC?) command we prolly don't care about
 	case 0xEE:
 		INFO_LOG(DVDINTERFACE, "SetStatus");
 		break;
 
-	// Debug commands; see yagcd. We don't really care
-	// NOTE: commands to stream data will send...a raw data stream
-	// This will appear as unknown commands, unless the check is re-instated to catch such data.
-	// Can probably only be used through direct access
+		// Debug commands; see yagcd. We don't really care
+		// NOTE: commands to stream data will send...a raw data stream
+		// This will appear as unknown commands, unless the check is re-instated to catch such data.
+		// Can probably only be used through direct access
 	case 0xFE:
 		ERROR_LOG(DVDINTERFACE, "Unsupported DVD Drive debug command 0x%08x", command_0);
 		break;
 
-	// Unlock Commands. 1: "MATSHITA" 2: "DVD-GAME"
-	// Just for fun
-	// Can probably only be used through direct access
+		// Unlock Commands. 1: "MATSHITA" 2: "DVD-GAME"
+		// Just for fun
+		// Can probably only be used through direct access
 	case 0xFF:
+	{
+		if (command_0 == 0xFF014D41 && command_1 == 0x54534849 && command_2 == 0x54410200)
 		{
-			if (command_0 == 0xFF014D41 &&
-			    command_1 == 0x54534849 &&
-			    command_2 == 0x54410200)
-			{
-				INFO_LOG(DVDINTERFACE, "Unlock test 1 passed");
-			}
-			else if (command_0 == 0xFF004456 &&
-			         command_1 == 0x442D4741 &&
-			         command_2 == 0x4D450300)
-			{
-				INFO_LOG(DVDINTERFACE, "Unlock test 2 passed");
-			}
-			else
-			{
-				INFO_LOG(DVDINTERFACE, "Unlock test failed");
-			}
+			INFO_LOG(DVDINTERFACE, "Unlock test 1 passed");
 		}
-		break;
+		else if (command_0 == 0xFF004456 && command_1 == 0x442D4741 && command_2 == 0x4D450300)
+		{
+			INFO_LOG(DVDINTERFACE, "Unlock test 2 passed");
+		}
+		else
+		{
+			INFO_LOG(DVDINTERFACE, "Unlock test failed");
+		}
+	}
+	break;
 
 	default:
-		ERROR_LOG(DVDINTERFACE, "Unknown command 0x%08x (Buffer 0x%08x, 0x%x)",
-		          command_0, output_address, output_length);
+		ERROR_LOG(DVDINTERFACE, "Unknown command 0x%08x (Buffer 0x%08x, 0x%x)", command_0,
+			output_address, output_length);
 		PanicAlertT("Unknown DVD command %08x - fatal error", command_0);
 		break;
 	}
@@ -1331,8 +1366,7 @@ u64 SimulateDiscReadTime(u64 offset, u32 length)
 	if (offset + length > s_last_read_offset + 1024 * 1024 || offset < s_last_read_offset)
 	{
 		// No buffer; just use the simple seek time + read time.
-		DEBUG_LOG(DVDINTERFACE, "Seeking %" PRId64 " bytes",
-		          s64(offset) - s64(s_last_read_offset));
+		DEBUG_LOG(DVDINTERFACE, "Seeking %" PRId64 " bytes", s64(offset) - s64(s_last_read_offset));
 		ticks_until_completion = disk_read_duration;
 		s_last_read_time = current_time + ticks_until_completion;
 	}
@@ -1343,12 +1377,11 @@ u64 SimulateDiscReadTime(u64 offset, u32 length)
 		// it appears to be a decent approximation.
 
 		// Time at which the buffer will contain the data we need.
-		u64 buffer_fill_time = s_last_read_time +
-		                       CalculateRawDiscReadTime(s_last_read_offset,
-		                       offset + length - s_last_read_offset);
+		u64 buffer_fill_time =
+			s_last_read_time +
+			CalculateRawDiscReadTime(s_last_read_offset, offset + length - s_last_read_offset);
 		// Number of ticks it takes to transfer the data from the buffer to memory.
-		u64 buffer_read_duration = length *
-			(SystemTimers::GetTicksPerSecond() / BUFFER_TRANSFER_RATE);
+		u64 buffer_read_duration = length * (SystemTimers::GetTicksPerSecond() / BUFFER_TRANSFER_RATE);
 
 		if (current_time > buffer_fill_time)
 		{
@@ -1359,14 +1392,13 @@ u64 SimulateDiscReadTime(u64 offset, u32 length)
 		else if (current_time + disk_read_duration > buffer_fill_time)
 		{
 			DEBUG_LOG(DVDINTERFACE, "Slow buffer read at %" PRIx64, offset);
-			ticks_until_completion = std::max(buffer_fill_time - current_time,
-			                                  buffer_read_duration);
+			ticks_until_completion = std::max(buffer_fill_time - current_time, buffer_read_duration);
 			s_last_read_time = buffer_fill_time;
 		}
 		else
 		{
 			DEBUG_LOG(DVDINTERFACE, "Short seek %" PRId64 " bytes",
-			          s64(offset) - s64(s_last_read_offset));
+				s64(offset) - s64(s_last_read_offset));
 			ticks_until_completion = disk_read_duration;
 			s_last_read_time = current_time + ticks_until_completion;
 		}
@@ -1411,13 +1443,15 @@ s64 CalculateRawDiscReadTime(u64 offset, s64 length)
 	double speed;
 	if (s_inserted_volume->GetVolumeType() == DiscIO::IVolume::WII_DISC)
 	{
-		speed = std::sqrt(((average_offset - WII_DISC_LOCATION_1_OFFSET) /
-			WII_BYTES_PER_AREA_UNIT + WII_DISC_AREA_UP_TO_LOCATION_1) / PI);
+		speed = std::sqrt(((average_offset - WII_DISC_LOCATION_1_OFFSET) / WII_BYTES_PER_AREA_UNIT +
+			WII_DISC_AREA_UP_TO_LOCATION_1) /
+			PI);
 	}
 	else
 	{
-		speed = std::sqrt(((average_offset - GC_DISC_LOCATION_1_OFFSET) /
-			GC_BYTES_PER_AREA_UNIT + GC_DISC_AREA_UP_TO_LOCATION_1) / PI);
+		speed = std::sqrt(((average_offset - GC_DISC_LOCATION_1_OFFSET) / GC_BYTES_PER_AREA_UNIT +
+			GC_DISC_AREA_UP_TO_LOCATION_1) /
+			PI);
 	}
 	DEBUG_LOG(DVDINTERFACE, "Disc speed: %f MiB/s", speed / 1024 / 1024);
 

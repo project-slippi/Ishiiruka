@@ -2,14 +2,11 @@
 // Licensed under GPLv2+
 // Refer to the license.txt file included.
 
-#include "Common/Assert.h"
+#include "Core/FifoPlayer/FifoPlaybackAnalyzer.h"
+
 #include "Common/CommonTypes.h"
 #include "Core/FifoPlayer/FifoAnalyzer.h"
 #include "Core/FifoPlayer/FifoDataFile.h"
-#include "Core/FifoPlayer/FifoPlaybackAnalyzer.h"
-#include "VideoCommon/OpcodeDecoding.h"
-#include "VideoCommon/TextureDecoder.h"
-#include "VideoCommon/VertexLoader.h"
 
 using namespace FifoAnalyzer;
 
@@ -19,10 +16,11 @@ struct CmdData
 {
 	u32 size;
 	u32 offset;
-	u8* ptr;
+	const u8* ptr;
 };
 
-void FifoPlaybackAnalyzer::AnalyzeFrames(FifoDataFile* file, std::vector<AnalyzedFrameInfo>& frameInfo)
+void FifoPlaybackAnalyzer::AnalyzeFrames(FifoDataFile* file,
+	std::vector<AnalyzedFrameInfo>& frameInfo)
 {
 	u32* cpMem = file->GetCPMem();
 	FifoAnalyzer::LoadCPReg(0x50, cpMem[0x50], s_CpMem);
@@ -50,13 +48,14 @@ void FifoPlaybackAnalyzer::AnalyzeFrames(FifoDataFile* file, std::vector<Analyze
 
 #if LOG_FIFO_CMDS
 		// Debugging
-		vector<CmdData> prevCmds;
+		std::vector<CmdData> prevCmds;
 #endif
 
-		while (cmdStart < frame.fifoDataSize)
+		while (cmdStart < frame.fifoData.size())
 		{
 			// Add memory updates that have occurred before this point in the frame
-			while (nextMemUpdate < frame.memoryUpdates.size() && frame.memoryUpdates[nextMemUpdate].fifoPosition <= cmdStart)
+			while (nextMemUpdate < frame.memoryUpdates.size() &&
+				frame.memoryUpdates[nextMemUpdate].fifoPosition <= cmdStart)
 			{
 				analyzed.memoryUpdates.push_back(frame.memoryUpdates[nextMemUpdate]);
 				++nextMemUpdate;

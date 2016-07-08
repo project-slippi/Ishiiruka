@@ -25,8 +25,8 @@
 #include "Common/IniFile.h"
 #include "Common/StringUtil.h"
 
-#include "Core/ConfigManager.h"
 #include "Core/Boot/Boot.h"
+#include "Core/ConfigManager.h"
 
 #include "DiscIO/Volume.h"
 #include "DiscIO/VolumeCreator.h"
@@ -34,12 +34,13 @@
 #include "DolphinWX/ISOFile.h"
 #include "DolphinWX/WxUtils.h"
 
-static const u32 CACHE_REVISION = 0x127; // Last changed in PR 3309
+static const u32 CACHE_REVISION = 0x127;  // Last changed in PR 3309
 
 #define DVD_BANNER_WIDTH 96
 #define DVD_BANNER_HEIGHT 32
 
-static std::string GetLanguageString(DiscIO::IVolume::ELanguage language, std::map<DiscIO::IVolume::ELanguage, std::string> strings)
+static std::string GetLanguageString(DiscIO::IVolume::ELanguage language,
+	std::map<DiscIO::IVolume::ELanguage, std::string> strings)
 {
 	auto end = strings.end();
 	auto it = strings.find(language);
@@ -61,18 +62,11 @@ static std::string GetLanguageString(DiscIO::IVolume::ELanguage language, std::m
 	return "";
 }
 
-GameListItem::GameListItem(const std::string& _rFileName, const std::unordered_map<std::string, std::string>& custom_titles)
-	: m_FileName(_rFileName)
-	, m_title_id(0)
-	, m_emu_state(0)
-	, m_FileSize(0)
-	, m_Country(DiscIO::IVolume::COUNTRY_UNKNOWN)
-	, m_Revision(0)
-	, m_Valid(false)
-	, m_ImageWidth(0)
-	, m_ImageHeight(0)
-	, m_disc_number(0)
-	, m_has_custom_name(false)
+GameListItem::GameListItem(const std::string& _rFileName,
+	const std::unordered_map<std::string, std::string>& custom_titles)
+	: m_FileName(_rFileName), m_title_id(0), m_emu_state(0), m_FileSize(0),
+	m_Country(DiscIO::IVolume::COUNTRY_UNKNOWN), m_Revision(0), m_Valid(false), m_ImageWidth(0),
+	m_ImageHeight(0), m_disc_number(0), m_has_custom_name(false)
 {
 	if (LoadFromCache())
 	{
@@ -83,7 +77,8 @@ GameListItem::GameListItem(const std::string& _rFileName, const std::unordered_m
 		// if a banner has become available after the cache was made.
 		if (m_pImage.empty())
 		{
-			std::vector<u32> buffer = DiscIO::IVolume::GetWiiBanner(&m_ImageWidth, &m_ImageHeight, m_title_id);
+			std::vector<u32> buffer =
+				DiscIO::IVolume::GetWiiBanner(&m_ImageWidth, &m_ImageHeight, m_title_id);
 			ReadVolumeBanner(buffer, m_ImageWidth, m_ImageHeight);
 			if (!m_pImage.empty())
 				SaveToCache();
@@ -97,9 +92,13 @@ GameListItem::GameListItem(const std::string& _rFileName, const std::unordered_m
 		{
 			m_Platform = volume->GetVolumeType();
 
-			m_names = volume->GetNames(true);
 			m_descriptions = volume->GetDescriptions();
-			m_company = volume->GetCompany();
+			m_names = volume->GetLongNames();
+			if (m_names.empty())
+				m_names = volume->GetShortNames();
+			m_company = GetLanguageString(DiscIO::IVolume::LANGUAGE_ENGLISH, volume->GetLongMakers());
+			if (m_company.empty())
+				m_company = GetLanguageString(DiscIO::IVolume::LANGUAGE_ENGLISH, volume->GetShortMakers());
 
 			m_Country = volume->GetCountry();
 			m_blob_type = volume->GetBlobType();
@@ -150,12 +149,14 @@ GameListItem::GameListItem(const std::string& _rFileName, const std::unordered_m
 	std::string path, name;
 	SplitPath(m_FileName, &path, &name, nullptr);
 
-	// A bit like the Homebrew Channel icon, except there can be multiple files in a folder with their own icons.
-	// Useful for those who don't want to have a Homebrew Channel-style folder structure.
+	// A bit like the Homebrew Channel icon, except there can be multiple files
+	// in a folder with their own icons. Useful for those who don't want to have
+	// a Homebrew Channel-style folder structure.
 	if (ReadPNGBanner(path + name + ".png"))
 		return;
 
-	// Homebrew Channel icon. Typical for DOLs and ELFs, but can be also used with volumes.
+	// Homebrew Channel icon. Typical for DOLs and ELFs,
+	// but can be also used with volumes.
 	if (ReadPNGBanner(path + "icon.png"))
 		return;
 
@@ -172,8 +173,7 @@ GameListItem::GameListItem(const std::string& _rFileName, const std::unordered_m
 }
 
 GameListItem::~GameListItem()
-{
-}
+{}
 
 void GameListItem::ReloadINI()
 {
@@ -206,7 +206,7 @@ void GameListItem::SaveToCache()
 	CChunkFileReader::Save<GameListItem>(CreateCacheFilename(), CACHE_REVISION, *this);
 }
 
-void GameListItem::DoState(PointerWrap &p)
+void GameListItem::DoState(PointerWrap& p)
 {
 	p.Do(m_names);
 	p.Do(m_descriptions);
@@ -240,13 +240,15 @@ std::string GameListItem::CreateCacheFilename() const
 	std::string Filename, LegalPathname, extension;
 	SplitPath(m_FileName, &LegalPathname, &Filename, &extension);
 
-	if (Filename.empty()) return Filename; // Disc Drive
+	if (Filename.empty())
+		return Filename;  // Disc Drive
 
-	// Filename.extension_HashOfFolderPath_Size.cache
-	// Append hash to prevent ISO name-clashing in different folders.
-	Filename.append(StringFromFormat("%s_%x_%" PRIx64 ".cache",
-		extension.c_str(), HashFletcher((const u8 *)LegalPathname.c_str(), LegalPathname.size()),
-		File::GetSize(m_FileName)));
+	 // Filename.extension_HashOfFolderPath_Size.cache
+	 // Append hash to prevent ISO name-clashing in different folders.
+	Filename.append(
+		StringFromFormat("%s_%x_%" PRIx64 ".cache", extension.c_str(),
+			HashFletcher((const u8*)LegalPathname.c_str(), LegalPathname.size()),
+			File::GetSize(m_FileName)));
 
 	std::string fullname(File::GetUserPath(D_CACHE_IDX));
 	fullname += Filename;
@@ -281,8 +283,10 @@ wxBitmap GameListItem::ScaleBanner(wxImage* image)
 	const double gui_scale = wxTheApp->GetTopWindow()->GetContentScaleFactor();
 	const double target_width = DVD_BANNER_WIDTH * gui_scale;
 	const double target_height = DVD_BANNER_HEIGHT * gui_scale;
-	const double banner_scale = std::min(target_width / image->GetWidth(), target_height / image->GetHeight());
-	image->Rescale(image->GetWidth() * banner_scale, image->GetHeight() * banner_scale, wxIMAGE_QUALITY_HIGH);
+	const double banner_scale =
+		std::min(target_width / image->GetWidth(), target_height / image->GetHeight());
+	image->Rescale(image->GetWidth() * banner_scale, image->GetHeight() * banner_scale,
+		wxIMAGE_QUALITY_HIGH);
 	image->Resize(wxSize(target_width, target_height), wxPoint(), 0xFF, 0xFF, 0xFF);
 #ifdef __APPLE__
 	return wxBitmap(*image, -1, gui_scale);
@@ -344,8 +348,9 @@ const std::string GameListItem::GetWiiFSPath() const
 		u64 title_id = 0;
 		iso->GetTitleID(&title_id);
 
-		const std::string path = StringFromFormat("%s/title/%08x/%08x/data/",
-				File::GetUserPath(D_WIIROOT_IDX).c_str(), (u32)(title_id >> 32), (u32)title_id);
+		const std::string path =
+			StringFromFormat("%s/title/%08x/%08x/data/", File::GetUserPath(D_WIIROOT_IDX).c_str(),
+			(u32)(title_id >> 32), (u32)title_id);
 
 		if (!File::Exists(path))
 			File::CreateFullPath(path);

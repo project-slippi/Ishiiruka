@@ -12,8 +12,8 @@
 #include "Common/CommonFuncs.h"
 #include "Common/CommonTypes.h"
 #include "Common/FileUtil.h"
-#include "Common/MsgHandler.h"
 #include "Common/Logging/Log.h"
+#include "Common/MsgHandler.h"
 #include "DiscIO/WbfsBlob.h"
 
 namespace DiscIO
@@ -38,15 +38,15 @@ WbfsFileReader::WbfsFileReader(const std::string& filename)
 
 	// Grab disc info (assume slot 0, checked in ReadHeader())
 	m_wlba_table.resize(m_blocks_per_disc);
-	m_files[0]->file.Seek(m_hd_sector_size + WII_DISC_HEADER_SIZE /*+ i * m_disc_info_size*/, SEEK_SET);
+	m_files[0]->file.Seek(m_hd_sector_size + WII_DISC_HEADER_SIZE /*+ i * m_disc_info_size*/,
+		SEEK_SET);
 	m_files[0]->file.ReadBytes(m_wlba_table.data(), m_blocks_per_disc * sizeof(u16));
 	for (size_t i = 0; i < m_blocks_per_disc; i++)
 		m_wlba_table[i] = Common::swap16(m_wlba_table[i]);
 }
 
 WbfsFileReader::~WbfsFileReader()
-{
-}
+{}
 
 u64 WbfsFileReader::GetDataSize() const
 {
@@ -100,8 +100,10 @@ bool WbfsFileReader::ReadHeader()
 	if (m_wbfs_sector_size < WII_SECTOR_SIZE)
 		return false;
 
-	m_blocks_per_disc = (WII_SECTOR_COUNT * WII_SECTOR_SIZE + m_wbfs_sector_size - 1) / m_wbfs_sector_size;
-	m_disc_info_size = align(WII_DISC_HEADER_SIZE + m_blocks_per_disc * sizeof(u16), m_hd_sector_size);
+	m_blocks_per_disc =
+		(WII_SECTOR_COUNT * WII_SECTOR_SIZE + m_wbfs_sector_size - 1) / m_wbfs_sector_size;
+	m_disc_info_size =
+		align(WII_DISC_HEADER_SIZE + m_blocks_per_disc * sizeof(u16), m_hd_sector_size);
 
 	return m_header.disc_table[0] != 0;
 }
@@ -180,10 +182,7 @@ bool IsWbfsBlob(const std::string& filename)
 	u8 magic[4] = {0, 0, 0, 0};
 	f.ReadBytes(&magic, 4);
 
-	return (magic[0] == 'W') &&
-	       (magic[1] == 'B') &&
-	       (magic[2] == 'F') &&
-	       (magic[3] == 'S');
+	return (magic[0] == 'W') && (magic[1] == 'B') && (magic[2] == 'F') && (magic[3] == 'S');
 }
 
 }  // namespace

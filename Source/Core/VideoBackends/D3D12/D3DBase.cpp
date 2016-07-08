@@ -214,7 +214,7 @@ HRESULT Create(HWND wnd)
 
 	ComPtr<IDXGIFactory> factory;
 	ComPtr<IDXGIAdapter> adapter;
-	
+
 	hr = create_dxgi_factory(__uuidof(IDXGIFactory), (void**)factory.GetAddressOf());
 	if (FAILED(hr))
 		MessageBox(wnd, _T("Failed to create IDXGIFactory object"), _T("Dolphin Direct3D 12 backend"), MB_OK | MB_ICONERROR);
@@ -292,16 +292,19 @@ HRESULT Create(HWND wnd)
 	{
 		// get supported AA modes
 		s_aa_modes = EnumAAModes(device);
-		
+
 		if (std::find_if(s_aa_modes.begin(), s_aa_modes.end(),
-		[](const DXGI_SAMPLE_DESC& desc) {return desc.Count == g_Config.iMultisamples; }
+			[](const DXGI_SAMPLE_DESC& desc)
+		{
+			return desc.Count == g_Config.iMultisamples;
+		}
 		) == s_aa_modes.end())
 		{
 			g_Config.iMultisamples = 1;
 			UpdateActiveConfig();
 		}
 	}
-	
+
 	if (SUCCEEDED(hr))
 	{
 		D3D12_COMMAND_QUEUE_DESC command_queue_desc = {
@@ -409,7 +412,7 @@ HRESULT Create(HWND wnd)
 			DXGI_FORMAT_UNKNOWN,
 			false,
 			D3D12_RESOURCE_STATE_PRESENT // Swap Chain back buffers start out in D3D12_RESOURCE_STATE_PRESENT.
-			);
+		);
 
 		SetDebugObjectName12(s_backbuf[i]->GetTex(), "backbuffer texture");
 	}
@@ -597,7 +600,7 @@ void CreateRootSignatures()
 	root_parameters[DESCRIPTOR_TABLE_DS_CBV2].Descriptor.ShaderRegister = 2;
 	root_parameters[DESCRIPTOR_TABLE_DS_CBV2].ShaderVisibility = D3D12_SHADER_VISIBILITY_DOMAIN;
 
-	
+
 
 	D3D12_ROOT_SIGNATURE_DESC root_signature_desc = {};
 	root_signature_desc.pParameters = root_parameters;
@@ -686,7 +689,7 @@ void Close()
 	command_list_mgr.reset();
 	command_queue.Reset();
 
-	
+
 
 	gpu_descriptor_heap_mgr.reset();
 	sampler_descriptor_heap_mgr.reset();
@@ -696,7 +699,7 @@ void Close()
 	{
 		root_signatures[i].Reset();
 	}
-	
+
 
 	ULONG remaining_references = device->Release();
 	if ((!s_debug_device && remaining_references) || (s_debug_device && remaining_references > 1))
@@ -818,7 +821,7 @@ void Reset()
 			DXGI_FORMAT_UNKNOWN,
 			false,
 			D3D12_RESOURCE_STATE_PRESENT
-			);
+		);
 
 		SetDebugObjectName12(s_backbuf[i]->GetTex(), "backbuffer texture");
 	}
@@ -890,7 +893,7 @@ void Present()
 
 	command_list_mgr->ExecuteQueuedWorkAndPresent(s_swap_chain.Get(), g_ActiveConfig.IsVSync() ? 1 : 0, present_flags);
 
-	
+
 }
 
 HRESULT SetFullscreenState(bool enable_fullscreen)

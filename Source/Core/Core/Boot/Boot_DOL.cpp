@@ -23,16 +23,15 @@ CDolLoader::CDolLoader(const std::string& filename)
 	std::vector<u8> temp_buffer(size);
 
 	{
-	File::IOFile pStream(filename, "rb");
-	pStream.ReadBytes(temp_buffer.data(), temp_buffer.size());
+		File::IOFile pStream(filename, "rb");
+		pStream.ReadBytes(temp_buffer.data(), temp_buffer.size());
 	}
 
 	m_is_valid = Initialize(temp_buffer);
 }
 
 CDolLoader::~CDolLoader()
-{
-}
+{}
 
 bool CDolLoader::Initialize(const std::vector<u8>& buffer)
 {

@@ -38,30 +38,30 @@ static const char XFB_ENCODE_VS[] =
 
 "cbuffer cbParams : register(b0)\n"
 "{\n"
-	"struct\n" // Should match XFBEncodeParams above
-	"{\n"
-		"float Width;\n"
-		"float Height;\n"
-		"float TexLeft;\n"
-		"float TexTop;\n"
-		"float TexRight;\n"
-		"float TexBottom;\n"
-		"float Gamma;\n"
-	"} Params;\n"
+"struct\n" // Should match XFBEncodeParams above
+"{\n"
+"float Width;\n"
+"float Height;\n"
+"float TexLeft;\n"
+"float TexTop;\n"
+"float TexRight;\n"
+"float TexBottom;\n"
+"float Gamma;\n"
+"} Params;\n"
 "}\n"
 
 "struct Output\n"
 "{\n"
-	"float4 Pos : SV_Position;\n"
-	"float2 Coord : ENCODECOORD;\n"
+"float4 Pos : SV_Position;\n"
+"float2 Coord : ENCODECOORD;\n"
 "};\n"
 
 "Output main(in float2 Pos : POSITION)\n"
 "{\n"
-	"Output result;\n"
-	"result.Pos = float4(2*Pos.x-1, -2*Pos.y+1, 0, 1);\n"
-	"result.Coord = Pos * float2(floor(Params.Width/2), Params.Height);\n"
-	"return result;\n"
+"Output result;\n"
+"result.Pos = float4(2*Pos.x-1, -2*Pos.y+1, 0, 1);\n"
+"result.Coord = Pos * float2(floor(Params.Width/2), Params.Height);\n"
+"return result;\n"
 "}\n"
 ;
 
@@ -70,16 +70,16 @@ static const char XFB_ENCODE_PS[] =
 
 "cbuffer cbParams : register(b0)\n"
 "{\n"
-	"struct\n" // Should match XFBEncodeParams above
-	"{\n"
-		"float Width;\n"
-		"float Height;\n"
-		"float TexLeft;\n"
-		"float TexTop;\n"
-		"float TexRight;\n"
-		"float TexBottom;\n"
-		"float Gamma;\n"
-	"} Params;\n"
+"struct\n" // Should match XFBEncodeParams above
+"{\n"
+"float Width;\n"
+"float Height;\n"
+"float TexLeft;\n"
+"float TexTop;\n"
+"float TexRight;\n"
+"float TexBottom;\n"
+"float Gamma;\n"
+"} Params;\n"
 "}\n"
 
 "Texture2D EFBTexture : register(t0);\n"
@@ -88,39 +88,39 @@ static const char XFB_ENCODE_PS[] =
 // GameCube/Wii uses the BT.601 standard algorithm for converting to YCbCr; see
 // <http://www.equasys.de/colorconversion.html#YCbCr-RGBColorFormatConversion>
 "static const float3x4 RGB_TO_YCBCR = float3x4(\n"
-	"0.257, 0.504, 0.098, 16.0/255.0,\n"
-	"-0.148, -0.291, 0.439, 128.0/255.0,\n"
-	"0.439, -0.368, -0.071, 128.0/255.0\n"
-	");\n"
+"0.257, 0.504, 0.098, 16.0/255.0,\n"
+"-0.148, -0.291, 0.439, 128.0/255.0,\n"
+"0.439, -0.368, -0.071, 128.0/255.0\n"
+");\n"
 
 "float3 SampleEFB(float2 coord)\n"
 "{\n"
-	"float2 texCoord = lerp(float2(Params.TexLeft,Params.TexTop), float2(Params.TexRight,Params.TexBottom), coord / float2(Params.Width,Params.Height));\n"
-	"return EFBTexture.Sample(EFBSampler, texCoord).rgb;\n"
+"float2 texCoord = lerp(float2(Params.TexLeft,Params.TexTop), float2(Params.TexRight,Params.TexBottom), coord / float2(Params.Width,Params.Height));\n"
+"return EFBTexture.Sample(EFBSampler, texCoord).rgb;\n"
 "}\n"
 
 "void main(out float4 ocol0 : SV_Target, in float4 Pos : SV_Position, in float2 Coord : ENCODECOORD)\n"
 "{\n"
-	// Multiplying X by 2, moves pixel centers from (x+0.5) to (2x+1) instead of (2x+0.5), so subtract 0.5 to compensate
-	"float2 baseCoord = Coord * float2(2,1) - float2(0.5,0);\n"
-	// FIXME: Shall we apply gamma here, or apply it below to the Y components?
-	// Be careful if you apply it to Y! The Y components are in the range (16..235) / 255.
-	"float3 sampleL = pow(abs(SampleEFB(baseCoord+float2(-1,0))), Params.Gamma);\n" // Left
-	"float3 sampleM = pow(abs(SampleEFB(baseCoord)), Params.Gamma);\n" // Middle
-	"float3 sampleR = pow(abs(SampleEFB(baseCoord+float2(1,0))), Params.Gamma);\n" // Right
+// Multiplying X by 2, moves pixel centers from (x+0.5) to (2x+1) instead of (2x+0.5), so subtract 0.5 to compensate
+"float2 baseCoord = Coord * float2(2,1) - float2(0.5,0);\n"
+// FIXME: Shall we apply gamma here, or apply it below to the Y components?
+// Be careful if you apply it to Y! The Y components are in the range (16..235) / 255.
+"float3 sampleL = pow(abs(SampleEFB(baseCoord+float2(-1,0))), Params.Gamma);\n" // Left
+"float3 sampleM = pow(abs(SampleEFB(baseCoord)), Params.Gamma);\n" // Middle
+"float3 sampleR = pow(abs(SampleEFB(baseCoord+float2(1,0))), Params.Gamma);\n" // Right
 
-	"float3 yuvL = mul(RGB_TO_YCBCR, float4(sampleL,1));\n"
-	"float3 yuvM = mul(RGB_TO_YCBCR, float4(sampleM,1));\n"
-	"float3 yuvR = mul(RGB_TO_YCBCR, float4(sampleR,1));\n"
+"float3 yuvL = mul(RGB_TO_YCBCR, float4(sampleL,1));\n"
+"float3 yuvM = mul(RGB_TO_YCBCR, float4(sampleM,1));\n"
+"float3 yuvR = mul(RGB_TO_YCBCR, float4(sampleR,1));\n"
 
-	// The Y components correspond to two EFB pixels, while the U and V are
-	// made from a blend of three EFB pixels.
-	"float y0 = yuvM.r;\n"
-	"float y1 = yuvR.r;\n"
-	"float u0 = 0.25*yuvL.g + 0.5*yuvM.g + 0.25*yuvR.g;\n"
-	"float v0 = 0.25*yuvL.b + 0.5*yuvM.b + 0.25*yuvR.b;\n"
+// The Y components correspond to two EFB pixels, while the U and V are
+// made from a blend of three EFB pixels.
+"float y0 = yuvM.r;\n"
+"float y1 = yuvR.r;\n"
+"float u0 = 0.25*yuvL.g + 0.5*yuvM.g + 0.25*yuvR.g;\n"
+"float v0 = 0.25*yuvL.b + 0.5*yuvM.b + 0.25*yuvR.b;\n"
 
-	"ocol0 = float4(y0, u0, y1, v0);\n"
+"ocol0 = float4(y0, u0, y1, v0);\n"
 "}\n"
 ;
 
@@ -132,14 +132,14 @@ static const struct QuadVertex
 {
 	float posX;
 	float posY;
-} QUAD_VERTS[4] = { { 0, 0 }, { 1, 0 }, { 0, 1 }, { 1, 1 } };
+} QUAD_VERTS[4] = {{ 0, 0 }, { 1, 0 }, { 0, 1 }, { 1, 1 }};
 
 XFBEncoder::XFBEncoder()
 	: m_out(nullptr), m_outRTV(nullptr), m_outStage(nullptr), m_encodeParams(nullptr),
 	m_quad(nullptr), m_vShader(nullptr), m_quadLayout(nullptr), m_pShader(nullptr),
 	m_xfbEncodeBlendState(nullptr), m_xfbEncodeDepthState(nullptr),
 	m_xfbEncodeRastState(nullptr), m_efbSampler(nullptr)
-{ }
+{}
 
 void XFBEncoder::Init()
 {
@@ -150,7 +150,7 @@ void XFBEncoder::Init()
 	// The pixel shader can generate one YUYV entry per pixel. One YUYV entry
 	// is created for every two EFB pixels.
 	D3D11_TEXTURE2D_DESC t2dd = CD3D11_TEXTURE2D_DESC(
-		DXGI_FORMAT_R8G8B8A8_UNORM, MAX_XFB_WIDTH/2, MAX_XFB_HEIGHT, 1, 1,
+		DXGI_FORMAT_R8G8B8A8_UNORM, MAX_XFB_WIDTH / 2, MAX_XFB_HEIGHT, 1, 1,
 		D3D11_BIND_RENDER_TARGET);
 	hr = D3D::device->CreateTexture2D(&t2dd, nullptr, D3D::ToAddr(m_out));
 	CHECK(SUCCEEDED(hr), "create xfb encoder output texture");
@@ -185,7 +185,7 @@ void XFBEncoder::Init()
 
 	bd = CD3D11_BUFFER_DESC(sizeof(QUAD_VERTS), D3D11_BIND_VERTEX_BUFFER,
 		D3D11_USAGE_IMMUTABLE);
-	D3D11_SUBRESOURCE_DATA srd = { QUAD_VERTS, 0, 0 };
+	D3D11_SUBRESOURCE_DATA srd = {QUAD_VERTS, 0, 0};
 
 	hr = D3D::device->CreateBuffer(&bd, &srd, D3D::ToAddr(m_quad));
 	CHECK(SUCCEEDED(hr), "create xfb encode quad vertex buffer");
@@ -194,7 +194,7 @@ void XFBEncoder::Init()
 	// Create vertex shader
 
 	D3DBlob bytecode;
-	if (!D3D::CompileShader(D3D::ShaderType::Vertex,  XFB_ENCODE_VS, bytecode))
+	if (!D3D::CompileShader(D3D::ShaderType::Vertex, XFB_ENCODE_VS, bytecode))
 	{
 		ERROR_LOG(VIDEO, "XFB encode vertex shader failed to compile");
 		return;
@@ -207,7 +207,7 @@ void XFBEncoder::Init()
 	// Create input layout for vertex quad using bytecode from vertex shader
 
 	hr = D3D::device->CreateInputLayout(QUAD_LAYOUT_DESC,
-		sizeof(QUAD_LAYOUT_DESC)/sizeof(D3D11_INPUT_ELEMENT_DESC),
+		sizeof(QUAD_LAYOUT_DESC) / sizeof(D3D11_INPUT_ELEMENT_DESC),
 		bytecode.Data(), bytecode.Size(), D3D::ToAddr(m_quadLayout));
 	CHECK(SUCCEEDED(hr), "create xfb encode quad vertex layout");
 	D3D::SetDebugObjectName(m_quadLayout.get(), "xfb encoder quad layout");
@@ -302,7 +302,7 @@ void XFBEncoder::Encode(u8* dst, u32 width, u32 height, const EFBRectangle& srcR
 
 	TargetRectangle targetRect = g_renderer->ConvertEFBRectangle(srcRect);
 
-	XFBEncodeParams params = { 0 };
+	XFBEncodeParams params = {0};
 	params.Width = FLOAT(width / 2);
 	params.Height = FLOAT(height);
 	params.TexLeft = FLOAT(targetRect.left) / g_renderer->GetTargetWidth();
@@ -349,7 +349,7 @@ void XFBEncoder::Encode(u8* dst, u32 width, u32 height, const EFBRectangle& srcR
 
 	// Transfer staging buffer to GameCube/Wii RAM
 
-	D3D11_MAPPED_SUBRESOURCE map = { 0 };
+	D3D11_MAPPED_SUBRESOURCE map = {0};
 	hr = D3D::context->Map(m_outStage.get(), 0, D3D11_MAP_READ, 0, &map);
 	CHECK(SUCCEEDED(hr), "map staging buffer");
 

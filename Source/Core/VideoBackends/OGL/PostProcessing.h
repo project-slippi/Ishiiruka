@@ -32,7 +32,10 @@ public:
 	GLuint GetLastPassOutputTexture() const;
 	bool IsLastPassScaled() const;
 
-	bool IsReady() const { return m_ready; }
+	bool IsReady() const
+	{
+		return m_ready;
+	}
 
 	bool Initialize(PostProcessingShaderConfiguration* config, int target_layers);
 	bool Reconfigure(const TargetSize& new_size);
@@ -83,7 +86,7 @@ private:
 	bool m_ready = false;
 };
 
-class OGLPostProcessor final : public PostProcessor
+class OGLPostProcessor final: public PostProcessor
 {
 public:
 	OGLPostProcessor() = default;
@@ -120,8 +123,14 @@ public:
 		bool force_blit = false);
 
 	// Shared FBOs
-	GLuint GetDrawFramebuffer() const { return m_draw_framebuffer; }
-	GLuint GetReadFramebuffer() const { return m_read_framebuffer; }
+	GLuint GetDrawFramebuffer() const
+	{
+		return m_draw_framebuffer;
+	}
+	GLuint GetReadFramebuffer() const
+	{
+		return m_read_framebuffer;
+	}
 
 protected:
 	std::unique_ptr<PostProcessingShader> CreateShader(PostProcessingShaderConfiguration* config);

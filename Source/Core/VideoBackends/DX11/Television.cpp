@@ -24,44 +24,44 @@ static const char YUYV_DECODER_PS[] =
 "sampler Samp0 : register(s0);\n"
 
 "static const float3x3 YCBCR_TO_RGB = float3x3(\n"
-	"1.164, 0.000, 1.596,\n"
-	"1.164, -0.392, -0.813,\n"
-	"1.164, 2.017, 0.000\n"
-	");\n"
+"1.164, 0.000, 1.596,\n"
+"1.164, -0.392, -0.813,\n"
+"1.164, 2.017, 0.000\n"
+");\n"
 
 "void main(out float4 ocol0 : SV_Target, in float4 pos : SV_Position, in float2 uv0 : TEXCOORD0)\n"
 "{\n"
-	"float3 sample = Tex0.Sample(Samp0, uv0).rgb;\n"
+"float3 sample = Tex0.Sample(Samp0, uv0).rgb;\n"
 
-	// GameCube/Wii XFB data is in YUYV format with ITU-R Rec. BT.601 color
-	// primaries, compressed to the range Y in 16..235, U and V in 16..240.
-	// We want to convert it to RGB format with sRGB color primaries, with
-	// range 0..255.
+// GameCube/Wii XFB data is in YUYV format with ITU-R Rec. BT.601 color
+// primaries, compressed to the range Y in 16..235, U and V in 16..240.
+// We want to convert it to RGB format with sRGB color primaries, with
+// range 0..255.
 
-	// Recover RGB components
-	"float3 yuv_601_sub = sample.grb - float3(16.0/255.0, 128.0/255.0, 128.0/255.0);\n"
-	"float3 rgb_601 = mul(YCBCR_TO_RGB, yuv_601_sub);\n"
+// Recover RGB components
+"float3 yuv_601_sub = sample.grb - float3(16.0/255.0, 128.0/255.0, 128.0/255.0);\n"
+"float3 rgb_601 = mul(YCBCR_TO_RGB, yuv_601_sub);\n"
 
-	// If we were really obsessed with accuracy, we would correct for the
-	// differing color primaries between BT.601 and sRGB. However, this may not
-	// be worth the trouble because:
-	// - BT.601 defines two sets of primaries: one for NTSC and one for PAL.
-	// - sRGB's color primaries are actually an intermediate between BT.601's
-	//   NTSC and PAL primaries.
-	// - If users even noticed any difference at all, they would be confused by
-	//   the slightly-different colors in the NTSC and PAL versions of the same
-	//   game.
-	// - Even the game designers probably don't pay close attention to this
-	//   stuff.
-	// Still, instructions on how to do it can be found at
-	// <http://www.poynton.com/notes/colour_and_gamma/ColorFAQ.html#RTFToC20>
+// If we were really obsessed with accuracy, we would correct for the
+// differing color primaries between BT.601 and sRGB. However, this may not
+// be worth the trouble because:
+// - BT.601 defines two sets of primaries: one for NTSC and one for PAL.
+// - sRGB's color primaries are actually an intermediate between BT.601's
+//   NTSC and PAL primaries.
+// - If users even noticed any difference at all, they would be confused by
+//   the slightly-different colors in the NTSC and PAL versions of the same
+//   game.
+// - Even the game designers probably don't pay close attention to this
+//   stuff.
+// Still, instructions on how to do it can be found at
+// <http://www.poynton.com/notes/colour_and_gamma/ColorFAQ.html#RTFToC20>
 
-	"ocol0 = float4(rgb_601, 1);\n"
+"ocol0 = float4(rgb_601, 1);\n"
 "}\n"
 ;
 
 Television::Television()
-{ }
+{}
 
 void Television::Init()
 {
@@ -75,11 +75,11 @@ void Television::Init()
 	// Some games use narrower XFB widths (Nintendo titles are fond of 608),
 	// so the sampler's BorderColor won't cover the right side
 	// (see sampler state below)
-	const unsigned int MAX_XFB_SIZE = 2*(MAX_XFB_WIDTH) * MAX_XFB_HEIGHT;
+	const unsigned int MAX_XFB_SIZE = 2 * (MAX_XFB_WIDTH)* MAX_XFB_HEIGHT;
 	std::vector<u8> fill(MAX_XFB_SIZE);
 	for (size_t i = 0; i < MAX_XFB_SIZE / sizeof(u32); ++i)
 		reinterpret_cast<u32*>(fill.data())[i] = 0x80108010;
-	D3D11_SUBRESOURCE_DATA srd = { fill.data(), 2*(MAX_XFB_WIDTH), 0 };
+	D3D11_SUBRESOURCE_DATA srd = {fill.data(), 2 * (MAX_XFB_WIDTH), 0};
 
 	// This texture format is designed for YUYV data.
 	D3D11_TEXTURE2D_DESC t2dd = CD3D11_TEXTURE2D_DESC(
@@ -110,7 +110,7 @@ void Television::Init()
 	// (remember, the XFB is being interpreted as YUYV, and 0,0,0,0
 	// is actually two green pixels in YUYV - black should be 16,128,16,128,
 	// but we reverse the order to match DXGI_FORMAT_G8R8_G8B8_UNORM's ordering)
-	float border[4] = { 128.0f/255.0f, 16.0f/255.0f, 128.0f/255.0f, 16.0f/255.0f };
+	float border[4] = {128.0f / 255.0f, 16.0f / 255.0f, 128.0f / 255.0f, 16.0f / 255.0f};
 	D3D11_SAMPLER_DESC samDesc = CD3D11_SAMPLER_DESC(D3D11_FILTER_MIN_MAG_MIP_LINEAR,
 		D3D11_TEXTURE_ADDRESS_BORDER, D3D11_TEXTURE_ADDRESS_BORDER, D3D11_TEXTURE_ADDRESS_BORDER,
 		0.f, 1, D3D11_COMPARISON_ALWAYS, border, 0.f, 0.f);

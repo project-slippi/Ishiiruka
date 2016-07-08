@@ -13,12 +13,12 @@ namespace DX9 {
 PerfQuery::PerfQuery()
 	: m_query_read_pos()
 {
-	
+
 }
 
 PerfQuery::~PerfQuery()
 {
-	
+
 }
 
 void PerfQuery::CreateDeviceObjects()
@@ -39,7 +39,7 @@ void PerfQuery::DestroyDeviceObjects()
 
 void PerfQuery::EnableQuery(PerfQueryGroup type)
 {
-    if (!ShouldEmulate())
+	if (!ShouldEmulate())
 		return;
 	// Is this sane?
 	if (m_query_count > ArraySize(m_query_buffer) / 2)
@@ -64,12 +64,12 @@ void PerfQuery::EnableQuery(PerfQueryGroup type)
 
 void PerfQuery::DisableQuery(PerfQueryGroup type)
 {
-    if (!ShouldEmulate())
+	if (!ShouldEmulate())
 		return;
 	// stop query
 	if (type == PQG_ZCOMP_ZCOMPLOC || type == PQG_ZCOMP)
 	{
-		auto& entry = m_query_buffer[(m_query_read_pos + m_query_count + ArraySize(m_query_buffer)-1) % ArraySize(m_query_buffer)];
+		auto& entry = m_query_buffer[(m_query_read_pos + m_query_count + ArraySize(m_query_buffer) - 1) % ArraySize(m_query_buffer)];
 		entry.query->Issue(D3DISSUE_END);
 	}
 }
@@ -82,7 +82,7 @@ void PerfQuery::ResetQuery()
 
 u32 PerfQuery::GetQueryResult(PerfQueryType type)
 {
-    if (!ShouldEmulate())
+	if (!ShouldEmulate())
 		return 0;
 	u32 result = 0;
 
@@ -108,7 +108,7 @@ u32 PerfQuery::GetQueryResult(PerfQueryType type)
 
 void PerfQuery::FlushOne()
 {
-    if (!ShouldEmulate())
+	if (!ShouldEmulate())
 		return;
 	auto& entry = m_query_buffer[m_query_read_pos];
 
@@ -130,7 +130,7 @@ void PerfQuery::FlushOne()
 // TODO: could selectively flush things, but I don't think that will do much
 void PerfQuery::FlushResults()
 {
-    if (!ShouldEmulate())
+	if (!ShouldEmulate())
 		return;
 	while (!IsFlushed())
 		FlushOne();
@@ -138,7 +138,7 @@ void PerfQuery::FlushResults()
 
 void PerfQuery::WeakFlush()
 {
-    if (!ShouldEmulate())
+	if (!ShouldEmulate())
 		return;
 	while (!IsFlushed())
 	{
@@ -164,7 +164,7 @@ void PerfQuery::WeakFlush()
 
 bool PerfQuery::IsFlushed() const
 {
-    if (!ShouldEmulate())
+	if (!ShouldEmulate())
 		return true;
 	return 0 == m_query_count;
 }

@@ -20,7 +20,8 @@ class PCAP;
 class DSPCaptureLogger
 {
 public:
-	virtual ~DSPCaptureLogger() {}
+	virtual ~DSPCaptureLogger()
+	{}
 
 	// Accesses (reads or writes) to memory mapped registers (external
 	// interface, also known as IFX). These are always 16 bits accesses.
@@ -34,25 +35,28 @@ public:
 	//
 	// Length is expressed in bytes, not DSP words.
 	virtual void LogDMA(u16 control, u32 gc_address, u16 dsp_address,
-	                    u16 length, const u8* data) = 0;
+		u16 length, const u8* data) = 0;
 };
 
 // A dummy implementation of a capture logger that does nothing. This is the
 // default implementation used by the DSP emulator.
 //
 // Can also be inherited from if you want to only override part of the methods.
-class DefaultDSPCaptureLogger : public DSPCaptureLogger
+class DefaultDSPCaptureLogger: public DSPCaptureLogger
 {
 public:
-	void LogIFXRead(u16 address, u16 read_value) override {}
-	void LogIFXWrite(u16 address, u16 written_value) override {}
+	void LogIFXRead(u16 address, u16 read_value) override
+	{}
+	void LogIFXWrite(u16 address, u16 written_value) override
+	{}
 	void LogDMA(u16 control, u32 gc_address, u16 dsp_address,
-	                    u16 length, const u8* data) override {}
+		u16 length, const u8* data) override
+	{}
 };
 
 // A capture logger implementation that logs to PCAP files in a custom
 // packet-based format.
-class PCAPDSPCaptureLogger final : public DSPCaptureLogger, NonCopyable
+class PCAPDSPCaptureLogger final: public DSPCaptureLogger, NonCopyable
 {
 public:
 	// Automatically creates a writeable file (truncate existing file).
@@ -70,7 +74,7 @@ public:
 		LogIFXAccess(false, address, written_value);
 	}
 	void LogDMA(u16 control, u32 gc_address, u16 dsp_address,
-	                    u16 length, const u8* data) override;
+		u16 length, const u8* data) override;
 
 private:
 	void LogIFXAccess(bool read, u16 address, u16 value);

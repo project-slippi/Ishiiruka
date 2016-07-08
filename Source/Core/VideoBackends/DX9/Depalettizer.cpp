@@ -100,7 +100,7 @@ bool Depalettizer::Depalettize(LPDIRECT3DTEXTURE9 dstTex,
 	dstTex->GetSurfaceLevel(0, &renderSurface);
 	D3D::dev->SetRenderTarget(0, renderSurface);
 
-	D3DVIEWPORT9 vp = { 0, 0, dstDesc.Width, dstDesc.Height, 0.f, 1.f };
+	D3DVIEWPORT9 vp = {0, 0, dstDesc.Width, dstDesc.Height, 0.f, 1.f};
 	D3D::dev->SetViewport(&vp);
 
 	if (m_palette_texture[m_PalleteFormat][baseType] == nullptr)
@@ -117,14 +117,14 @@ bool Depalettizer::Depalettize(LPDIRECT3DTEXTURE9 dstTex,
 	D3D::SetSamplerState(1, D3DSAMP_MINFILTER, D3DTEXF_POINT);
 
 	// Depalettize!
-	RECT rectSrc = { 0, 0, 1, 1 };
+	RECT rectSrc = {0, 0, 1, 1};
 	D3D::drawShadedTexQuad(baseTex,
 		&rectSrc,
 		1, 1,
 		dstDesc.Width, dstDesc.Height,
 		shader,
 		VertexShaderCache::GetSimpleVertexShader(0)
-		);
+	);
 
 	SAFE_RELEASE(renderSurface);
 	D3D::dev->SetRenderTarget(0, FramebufferManager::GetEFBColorRTSurface());
@@ -213,7 +213,7 @@ void Depalettizer::UploadPalette(u32 tlutFmt, void* addr, u32 size)
 	}
 	else
 	{
-		return;		
+		return;
 	}
 	switch (tlutFmt)
 	{
@@ -223,11 +223,11 @@ void Depalettizer::UploadPalette(u32 tlutFmt, void* addr, u32 size)
 	default:
 		ERROR_LOG(VIDEO, "Invalid TLUT format");
 		return;
-	}	
+	}
 	const u16* lut = (const u16*)addr;
 	LPDIRECT3DTEXTURE9 staging_texture;
 	LPDIRECT3DTEXTURE9 palette_texture;
-	D3DLOCKED_RECT lock;	
+	D3DLOCKED_RECT lock;
 	if (m_palette_texture[format][source_type] == nullptr)
 	{
 		m_palette_texture[format][source_type] = D3D::CreateTexture2D(
@@ -242,7 +242,8 @@ void Depalettizer::UploadPalette(u32 tlutFmt, void* addr, u32 size)
 	staging_texture = m_staging_texture[format][source_type];
 	palette_texture = m_palette_texture[format][source_type];
 	hr = staging_texture->LockRect(0, &lock, NULL, D3DLOCK_DISCARD);
-	if (FAILED(hr)) {
+	if (FAILED(hr))
+	{
 		ERROR_LOG(VIDEO, "Failed to lock palette texture");
 		return;
 	}

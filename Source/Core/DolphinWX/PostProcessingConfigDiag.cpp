@@ -21,8 +21,8 @@
 #include "VideoCommon/RenderBase.h"
 
 PostProcessingConfigDiag::PostProcessingConfigDiag(wxWindow* parent, const std::string& shader_dir, const std::string& shader_name, PostProcessingShaderConfiguration* config)
- : wxDialog(parent, wxID_ANY, _("Post Processing Shader Configuration"))
- , m_config(config)
+	: wxDialog(parent, wxID_ANY, _("Post Processing Shader Configuration"))
+	, m_config(config)
 {
 	if (!m_config)
 	{
@@ -89,7 +89,7 @@ PostProcessingConfigDiag::PostProcessingConfigDiag(wxWindow* parent, const std::
 				child->GenerateUI(this, page_option, grid);
 			}
 			szr_option->Add(grid);
-			CreateDescriptionArea(page_option, szr_option);		
+			CreateDescriptionArea(page_option, szr_option);
 			page_option->SetSizerAndFit(szr_option);
 			notebook->AddPage(page_option, _(it->GetGUIName()));
 		}
@@ -121,7 +121,7 @@ PostProcessingConfigDiag::PostProcessingConfigDiag(wxWindow* parent, const std::
 	btn_defaults->Bind(wxEVT_BUTTON, &PostProcessingConfigDiag::Event_RestoreDefaults, this);
 	buttons_szr->Add(btn_defaults, 0, wxRIGHT, 5);
 	wxButton* const btn_close = new wxButton(this, wxID_OK, _("Cl&ose"));
-	
+
 	btn_close->Bind(wxEVT_BUTTON, &PostProcessingConfigDiag::Event_ClickClose, this);
 	Bind(wxEVT_CLOSE_WINDOW, &PostProcessingConfigDiag::Event_Close, this);
 	buttons_szr->Add(btn_close, 0, wxRIGHT, 1);
@@ -150,7 +150,7 @@ void PostProcessingConfigDiag::ConfigGrouping::GenerateUI(PostProcessingConfigDi
 		m_option_checkbox = new wxCheckBox(parent, wxID_ANY, _(m_gui_name));
 		m_option_checkbox->SetValue(m_config_option->m_bool_value);
 		m_option_checkbox->Bind(wxEVT_CHECKBOX, &PostProcessingConfigDiag::Event_CheckBox,
-		                        dialog, wxID_ANY, wxID_ANY, new UserEventData(m_option));
+			dialog, wxID_ANY, wxID_ANY, new UserEventData(m_option));
 
 		sizer->Add(dialog->RegisterControl(m_option_checkbox, _(m_gui_description)));
 		sizer->AddStretchSpacer();
@@ -201,7 +201,7 @@ void PostProcessingConfigDiag::ConfigGrouping::GenerateUI(PostProcessingConfigDi
 			}
 
 			wxSlider* slider = new wxSlider(parent, wxID_ANY, current_value, 0, steps,
-			                                wxDefaultPosition, wxSize(200, -1), wxSL_HORIZONTAL | wxSL_BOTTOM);
+				wxDefaultPosition, wxSize(200, -1), wxSL_HORIZONTAL | wxSL_BOTTOM);
 			wxTextCtrl* text_ctrl = new wxTextCtrl(parent, wxID_ANY, string_value);
 
 			// Disable the textctrl, it's only there to show the absolute value from the slider
@@ -210,7 +210,7 @@ void PostProcessingConfigDiag::ConfigGrouping::GenerateUI(PostProcessingConfigDi
 			// wxWidget takes over the pointer provided to it in the event handler.
 			// This won't be a memory leak, it'll be destroyed on dialog close.
 			slider->Bind(wxEVT_SLIDER, &PostProcessingConfigDiag::Event_Slider,
-					 dialog, wxID_ANY, wxID_ANY, new UserEventData(m_option));
+				dialog, wxID_ANY, wxID_ANY, new UserEventData(m_option));
 			slider->Bind(wxEVT_SCROLL_THUMBRELEASE, &PostProcessingConfigDiag::Event_Slider_Finish,
 				dialog, wxID_ANY, wxID_ANY, new UserEventData(m_option));
 			dialog->RegisterControl(slider, m_gui_description);
@@ -340,7 +340,7 @@ void PostProcessingConfigDiag::Event_Slider(wxCommandEvent &ev)
 		{
 			float value = option_data.m_float_step_values[i] * current_step + option_data.m_float_min_values[i];
 			if (!option_data.m_compile_time_constant)
-			m_config->SetOptionf(config->GetOption(), i, value);
+				m_config->SetOptionf(config->GetOption(), i, value);
 			string_value = std::to_string(value);
 		}
 		// Update the text box to include the new value

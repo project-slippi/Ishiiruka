@@ -35,7 +35,7 @@ public:
 		return m_buffer.Get();
 	}
 
-	inline void* GetCPUAddressOfCurrentAllocation() const 
+	inline void* GetCPUAddressOfCurrentAllocation() const
 	{
 		return static_cast<u8*>(m_buffer_cpu_address) + m_buffer_current_allocation_offset;
 	}
@@ -67,7 +67,7 @@ private:
 
 	void UpdateGPUProgress();
 
-	void ClearFences();	
+	void ClearFences();
 	void QueueFence(UINT64 fence_value);
 
 	struct FenceTrackingInformation

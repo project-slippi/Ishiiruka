@@ -25,7 +25,7 @@
 
 #include "Common/MathUtil.h"
 
-SoundStream::SoundStream() : m_enablesoundloop(true), m_mixer(new CMixer(48000)), threadData(true), m_logAudio(false), m_muted(false)
+SoundStream::SoundStream(): m_enablesoundloop(true), m_mixer(new CMixer(48000)), threadData(true), m_logAudio(false), m_muted(false)
 {
 
 }
@@ -35,25 +35,31 @@ SoundStream::~SoundStream()
 	m_mixer.reset();
 }
 
-void SoundStream::StartLogAudio(const char *filename) {
-	if (!m_logAudio) {
+void SoundStream::StartLogAudio(const char *filename)
+{
+	if (!m_logAudio)
+	{
 		m_logAudio = true;
 		g_wave_writer.Start(filename, GetMixer()->GetSampleRate());
 		g_wave_writer.SetSkipSilence(false);
 		NOTICE_LOG(AUDIO, "Starting Audio logging");
 	}
-	else {
+	else
+	{
 		WARN_LOG(AUDIO, "Audio logging already started");
 	}
 }
 
-void SoundStream::StopLogAudio() {
-	if (m_logAudio) {
+void SoundStream::StopLogAudio()
+{
+	if (m_logAudio)
+	{
 		m_logAudio = false;
 		g_wave_writer.Stop();
 		NOTICE_LOG(AUDIO, "Stopping Audio logging");
 	}
-	else {
+	else
+	{
 		WARN_LOG(AUDIO, "Audio logging already stopped");
 	}
 }

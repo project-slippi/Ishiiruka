@@ -116,7 +116,7 @@ void G_RSBP01_pvt::Initialize(std::map<u64, TCompiledLoaderFunction> &pvlmap)
 #endif
 	{
 		pvlmap[20160025977319] = TemplatedLoader<0, 0x00000b00u, 0x40001008u, 0x00000000u, 0x00000000u>;
-	}	
+	}
 	// P_mtx0_2_I16_flt_Nrm_0_0_I8_flt_T0_mtx0_1_I8_flt_
 // num_verts= 315040
 #if _M_SSE >= 0x301
@@ -236,7 +236,7 @@ void G_RSBP01_pvt::Initialize(std::map<u64, TCompiledLoaderFunction> &pvlmap)
 #endif
 	{
 		pvlmap[20553174326853] = TemplatedLoader<0, 0x00022200u, 0x40216006u, 0x00000000u, 0x00000000u>;
-	}	
+	}
 	// P_mtx0_2_I8_flt_T0_mtx0_1_I8_flt_
 // num_verts= 23029
 #if _M_SSE >= 0x301
@@ -332,7 +332,7 @@ void G_RSBP01_pvt::Initialize(std::map<u64, TCompiledLoaderFunction> &pvlmap)
 #endif
 	{
 		pvlmap[22198782627256] = TemplatedLoader<0, 0x000a0a00u, 0x41201008u, 0x00000009u, 0x00000000u>;
-	}	
+	}
 	// P_mtx0_2_I8_flt_C0_1_I8_8888_T0_mtx0_1_I8_flt_
 // num_verts= 2736
 #if _M_SSE >= 0x301
@@ -344,7 +344,7 @@ void G_RSBP01_pvt::Initialize(std::map<u64, TCompiledLoaderFunction> &pvlmap)
 #endif
 	{
 		pvlmap[20868065931495] = TemplatedLoader<0, 0x00022200u, 0x41216008u, 0x00000000u, 0x00000000u>;
-	}	
+	}
 	// P_mtx0_2_I8_s16_Nrm_0_0_I8_s8_T0_mtx0_1_I8_s8_
 // num_verts= 2160
 #if _M_SSE >= 0x301

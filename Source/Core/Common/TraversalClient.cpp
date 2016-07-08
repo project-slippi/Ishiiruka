@@ -33,8 +33,7 @@ TraversalClient::TraversalClient(ENetHost* netHost, const std::string& server, c
 }
 
 TraversalClient::~TraversalClient()
-{
-}
+{}
 
 void TraversalClient::ReconnectToServer()
 {
@@ -87,7 +86,7 @@ void TraversalClient::ConnectToClient(const std::string& host)
 bool TraversalClient::TestPacket(u8* data, size_t size, ENetAddress* from)
 {
 	if (from->host == m_ServerAddress.host &&
-	    from->port == m_ServerAddress.port)
+		from->port == m_ServerAddress.port)
 	{
 		if (size < sizeof(TraversalPacket))
 		{
@@ -95,7 +94,7 @@ bool TraversalClient::TestPacket(u8* data, size_t size, ENetAddress* from)
 		}
 		else
 		{
-			HandleServerPacket((TraversalPacket*) data);
+			HandleServerPacket((TraversalPacket*)data);
 			return true;
 		}
 	}
@@ -156,7 +155,7 @@ void TraversalClient::HandleServerPacket(TraversalPacket* packet)
 			m_Client->OnTraversalStateChanged();
 		break;
 	case TraversalPacketPleaseSendPacket:
-		{
+	{
 		// security is overrated.
 		ENetAddress addr = MakeENetAddress(&packet->pleaseSendPacket.address);
 		if (addr.port != 0)
@@ -173,10 +172,10 @@ void TraversalClient::HandleServerPacket(TraversalPacket* packet)
 			ok = 0;
 		}
 		break;
-		}
+	}
 	case TraversalPacketConnectReady:
 	case TraversalPacketConnectFailed:
-		{
+	{
 		if (!m_PendingConnect || packet->connectReady.requestId != m_ConnectRequestId)
 			break;
 
@@ -190,7 +189,7 @@ void TraversalClient::HandleServerPacket(TraversalPacket* packet)
 		else
 			m_Client->OnConnectFailed(packet->connectFailed.reason);
 		break;
-		}
+	}
 	default:
 		WARN_LOG(NETPLAY, "Received unknown packet with type %d", packet->type);
 		break;
@@ -254,7 +253,7 @@ void TraversalClient::HandleResends()
 	enet_uint32 now = enet_time_get();
 	for (auto& tpi : m_OutgoingTraversalPackets)
 	{
-		if (now - tpi.sendTime >= (u32) (300 * tpi.tries))
+		if (now - tpi.sendTime >= (u32)(300 * tpi.tries))
 		{
 			if (tpi.tries >= 5)
 			{
@@ -288,7 +287,7 @@ TraversalRequestId TraversalClient::SendTraversalPacket(const TraversalPacket& p
 {
 	OutgoingTraversalPacketInfo info;
 	info.packet = packet;
-	GetRandomishBytes((u8*) &info.packet.requestId, sizeof(info.packet.requestId));
+	GetRandomishBytes((u8*)&info.packet.requestId, sizeof(info.packet.requestId));
 	info.tries = 0;
 	m_OutgoingTraversalPackets.push_back(info);
 	ResendPacket(&m_OutgoingTraversalPackets.back());
@@ -305,7 +304,7 @@ int ENET_CALLBACK TraversalClient::InterceptCallback(ENetHost* host, ENetEvent* 
 {
 	auto traversalClient = g_TraversalClient.get();
 	if (traversalClient->TestPacket(host->receivedData, host->receivedDataLength, &host->receivedAddress)
-			|| (host->receivedDataLength == 1 && host->receivedData[0] == 0))
+		|| (host->receivedDataLength == 1 && host->receivedData[0] == 0))
 	{
 		event->type = (ENetEventType)42;
 		return 1;
@@ -332,7 +331,7 @@ bool EnsureTraversalClient(const std::string& server, u16 server_port, u16 liste
 		g_OldServerPort = server_port;
 		g_OldListenPort = listen_port;
 
-		ENetAddress addr = { ENET_HOST_ANY, listen_port };
+		ENetAddress addr = {ENET_HOST_ANY, listen_port};
 		ENetHost* host = enet_host_create(
 			&addr, // address
 			50, // peerCount

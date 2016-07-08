@@ -41,29 +41,29 @@ class wxAuiNotebookEvent;
 class wxListEvent;
 class wxMenuItem;
 
-class CRenderFrame : public wxFrame
+class CRenderFrame: public wxFrame
 {
-	public:
-		CRenderFrame(wxFrame* parent,
-			wxWindowID id = wxID_ANY,
-			const wxString& title = "Dolphin",
-			const wxPoint& pos = wxDefaultPosition,
-			const wxSize& size = wxDefaultSize,
-			long style = wxDEFAULT_FRAME_STYLE | wxNO_FULL_REPAINT_ON_RESIZE);
+public:
+	CRenderFrame(wxFrame* parent,
+		wxWindowID id = wxID_ANY,
+		const wxString& title = "Dolphin",
+		const wxPoint& pos = wxDefaultPosition,
+		const wxSize& size = wxDefaultSize,
+		long style = wxDEFAULT_FRAME_STYLE | wxNO_FULL_REPAINT_ON_RESIZE);
 
-		bool ShowFullScreen(bool show, long style = wxFULLSCREEN_ALL) override;
+	bool ShowFullScreen(bool show, long style = wxFULLSCREEN_ALL) override;
 
-	private:
-		void OnDropFiles(wxDropFilesEvent& event);
-		static bool IsValidSavestateDropped(const std::string& filepath);
-		#ifdef _WIN32
-			// Receive WndProc messages
-			WXLRESULT MSWWindowProc(WXUINT nMsg, WXWPARAM wParam, WXLPARAM lParam);
-		#endif
+private:
+	void OnDropFiles(wxDropFilesEvent& event);
+	static bool IsValidSavestateDropped(const std::string& filepath);
+#ifdef _WIN32
+	// Receive WndProc messages
+	WXLRESULT MSWWindowProc(WXUINT nMsg, WXWPARAM wParam, WXLPARAM lParam);
+#endif
 
 };
 
-class CFrame : public CRenderFrame
+class CFrame: public CRenderFrame
 {
 public:
 	CFrame(wxFrame* parent,
@@ -80,11 +80,11 @@ public:
 
 	void* GetRenderHandle()
 	{
-		#if defined(HAVE_X11) && HAVE_X11
-			return reinterpret_cast<void*>(X11Utils::XWindowFromHandle(m_RenderParent->GetHandle()));
-		#else
-			return reinterpret_cast<void*>(m_RenderParent->GetHandle());
-		#endif
+#if defined(HAVE_X11) && HAVE_X11
+		return reinterpret_cast<void*>(X11Utils::XWindowFromHandle(m_RenderParent->GetHandle()));
+#else
+		return reinterpret_cast<void*>(m_RenderParent->GetHandle());
+#endif
 	}
 
 	// These have to be public
@@ -113,8 +113,8 @@ public:
 	bool UIHasFocus();
 	bool RendererIsFullscreen();
 	void DoFullscreen(bool bF);
-	void ToggleDisplayMode (bool bFullscreen);
-	void UpdateWiiMenuChoice(wxMenuItem *WiiMenuItem=nullptr);
+	void ToggleDisplayMode(bool bFullscreen);
+	void UpdateWiiMenuChoice(wxMenuItem *WiiMenuItem = nullptr);
 	void PopulateSavedPerspectives();
 	static void ConnectWiimote(int wm_idx, bool connect);
 	void UpdateTitle(const std::string &str);
@@ -234,8 +234,8 @@ private:
 	void OnFloatingPageSize(wxSizeEvent& event);
 	void DoFloatNotebookPage(wxWindowID Id);
 	wxFrame * CreateParentFrame(wxWindowID Id = wxID_ANY,
-			const wxString& title = "",
-			wxWindow * = nullptr);
+		const wxString& title = "",
+		wxWindow * = nullptr);
 	wxString AuiFullscreen, AuiCurrent;
 	void AddPane(int dir);
 	void UpdateCurrentPerspective();

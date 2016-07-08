@@ -12,14 +12,12 @@ class wxPanel;
 
 wxDECLARE_EVENT(wxDOLPHIN_CFG_REFRESH_LIST, wxCommandEvent);
 
-class CConfigMain : public wxDialog
+class CConfigMain: public wxDialog
 {
 public:
-	CConfigMain(wxWindow* parent,
-		wxWindowID id = wxID_ANY,
+	CConfigMain(wxWindow* parent, wxWindowID id = wxID_ANY,
 		const wxString& title = _("Dolphin Configuration"),
-		const wxPoint& pos = wxDefaultPosition,
-		const wxSize& size = wxDefaultSize,
+		const wxPoint& pos = wxDefaultPosition, const wxSize& size = wxDefaultSize,
 		long style = wxDEFAULT_DIALOG_STYLE);
 	virtual ~CConfigMain();
 

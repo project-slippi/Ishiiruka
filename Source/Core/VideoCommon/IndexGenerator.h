@@ -15,9 +15,15 @@ public:
 	static void AddIndices(int primitive, u32 numVertices);
 
 	// returns numprimitives
-	static inline u32 GetNumVerts() { return base_index; }
+	static inline u32 GetNumVerts()
+	{
+		return base_index;
+	}
 
-	static inline u32 GetIndexLen() { return (u32)(index_buffer_current - BASEIptr); }
+	static inline u32 GetIndexLen()
+	{
+		return (u32)(index_buffer_current - BASEIptr);
+	}
 
 	static inline u32 GetRemainingIndices()
 	{

@@ -9,7 +9,7 @@
 
 #include "Common/CommonTypes.h"
 
-class CDSPRegTable : public wxGridTableBase
+class CDSPRegTable: public wxGridTableBase
 {
 private:
 	u64 m_CachedCounter;
@@ -25,16 +25,25 @@ public:
 		memset(m_CachedRegHasChanged, 0, sizeof(m_CachedRegHasChanged));
 	}
 
-	int GetNumberCols() override { return 2; }
-	int GetNumberRows() override { return 32; }
-	bool IsEmptyCell(int row, int col) override { return false; }
+	int GetNumberCols() override
+	{
+		return 2;
+	}
+	int GetNumberRows() override
+	{
+		return 32;
+	}
+	bool IsEmptyCell(int row, int col) override
+	{
+		return false;
+	}
 	wxString GetValue(int row, int col) override;
 	void SetValue(int row, int col, const wxString &) override;
 	wxGridCellAttr *GetAttr(int, int, wxGridCellAttr::wxAttrKind) override;
 	void UpdateCachedRegs();
 };
 
-class DSPRegisterView : public wxGrid
+class DSPRegisterView: public wxGrid
 {
 public:
 	DSPRegisterView(wxWindow* parent, wxWindowID id = wxID_ANY);

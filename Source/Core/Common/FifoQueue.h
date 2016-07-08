@@ -20,9 +20,9 @@ template <typename T, bool NeedSize = true>
 class FifoQueue
 {
 public:
-	FifoQueue() : m_size(0)
+	FifoQueue(): m_size(0)
 	{
-		 m_write_ptr = m_read_ptr = new ElementPtr();
+		m_write_ptr = m_read_ptr = new ElementPtr();
 	}
 
 	~FifoQueue()
@@ -103,7 +103,8 @@ private:
 	class ElementPtr
 	{
 	public:
-		ElementPtr() : next(nullptr) {}
+		ElementPtr(): next(nullptr)
+		{}
 
 		~ElementPtr()
 		{

@@ -38,17 +38,14 @@ struct DMAPacket
 
 PCAPDSPCaptureLogger::PCAPDSPCaptureLogger(const std::string& pcap_filename)
 	: m_pcap(new PCAP(new File::IOFile(pcap_filename, "wb")))
-{
-}
+{}
 
 PCAPDSPCaptureLogger::PCAPDSPCaptureLogger(PCAP* pcap) : m_pcap(pcap)
-{
-}
+{}
 
 PCAPDSPCaptureLogger::PCAPDSPCaptureLogger(std::unique_ptr<PCAP>&& pcap)
 	: m_pcap(std::move(pcap))
-{
-}
+{}
 
 void PCAPDSPCaptureLogger::LogIFXAccess(bool read, u16 address, u16 value)
 {
@@ -62,7 +59,7 @@ void PCAPDSPCaptureLogger::LogIFXAccess(bool read, u16 address, u16 value)
 }
 
 void PCAPDSPCaptureLogger::LogDMA(u16 control, u32 gc_address, u16 dsp_address,
-                                  u16 length, const u8* data)
+	u16 length, const u8* data)
 {
 	// The length of a DMA cannot be above 64K, so we use a static buffer for
 	// the construction of the packet.
@@ -74,7 +71,7 @@ void PCAPDSPCaptureLogger::LogDMA(u16 control, u32 gc_address, u16 dsp_address,
 	pkt->gc_address = gc_address;
 	pkt->dsp_address = dsp_address;
 	pkt->length = length;
-	memcpy(&buffer[sizeof (DMAPacket)], data, length);
+	memcpy(&buffer[sizeof(DMAPacket)], data, length);
 
-	m_pcap->AddPacket(buffer, sizeof (DMAPacket) + length);
+	m_pcap->AddPacket(buffer, sizeof(DMAPacket) + length);
 }

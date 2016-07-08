@@ -18,7 +18,7 @@
 
 #include "VideoCommon/VideoCommon.h"
 
-enum PostProcessingTrigger : u32
+enum PostProcessingTrigger: u32
 {
 	POST_PROCESSING_TRIGGER_ON_SWAP,
 	POST_PROCESSING_TRIGGER_ON_PROJECTION,
@@ -26,14 +26,14 @@ enum PostProcessingTrigger : u32
 	POST_PROCESSING_TRIGGER_AFTER_BLIT
 };
 
-enum PostProcessingOptionType : u32
+enum PostProcessingOptionType: u32
 {
 	POST_PROCESSING_OPTION_TYPE_BOOL,
 	POST_PROCESSING_OPTION_TYPE_FLOAT,
 	POST_PROCESSING_OPTION_TYPE_INTEGER
 };
 
-enum PostProcessingInputType : u32
+enum PostProcessingInputType: u32
 {
 	POST_PROCESSING_INPUT_TYPE_IMAGE,                   // external image loaded from file
 	POST_PROCESSING_INPUT_TYPE_COLOR_BUFFER,            // colorbuffer at internal resolution
@@ -42,13 +42,13 @@ enum PostProcessingInputType : u32
 	POST_PROCESSING_INPUT_TYPE_PASS_OUTPUT              // output of a previous pass
 };
 
-enum PostProcessingInputFilter : u32
+enum PostProcessingInputFilter: u32
 {
 	POST_PROCESSING_INPUT_FILTER_NEAREST,               // nearest/point sampling
 	POST_PROCESSING_INPUT_FILTER_LINEAR                 // linear sampling
 };
 
-enum PostProcessingAddressMode : u32
+enum PostProcessingAddressMode: u32
 {
 	POST_PROCESSING_ADDRESS_MODE_CLAMP,                 // clamp to edge
 	POST_PROCESSING_ADDRESS_MODE_WRAP,                  // wrap around at edge
@@ -170,19 +170,35 @@ public:
 	using RenderPassList = std::vector<RenderPass>;
 
 	PostProcessingShaderConfiguration() = default;
-	virtual ~PostProcessingShaderConfiguration() {}
+	virtual ~PostProcessingShaderConfiguration()
+	{}
 
 	// Loads the configuration with a shader
 	// If the argument is "" the class will load the shader from the g_activeConfig option.
 	// Returns the loaded shader source from file
 	bool LoadShader(const std::string& sub_dir, const std::string& name);
 	void SaveOptionsConfiguration();
-	const std::string &GetShaderName() const { return m_shader_name; }
-	const std::string &GetShaderSource() const { return m_shader_source; }
+	const std::string &GetShaderName() const
+	{
+		return m_shader_name;
+	}
+	const std::string &GetShaderSource() const
+	{
+		return m_shader_source;
+	}
 
-	bool IsDirty() const { return m_any_options_dirty; }
-	bool IsCompileTimeConstantsDirty() const { return m_compile_time_constants_dirty; }
-	void SetDirty(bool dirty = true) { m_any_options_dirty = dirty; }
+	bool IsDirty() const
+	{
+		return m_any_options_dirty;
+	}
+	bool IsCompileTimeConstantsDirty() const
+	{
+		return m_compile_time_constants_dirty;
+	}
+	void SetDirty(bool dirty = true)
+	{
+		m_any_options_dirty = dirty;
+	}
 	void ClearDirty()
 	{
 		if (m_any_options_dirty || m_compile_time_constants_dirty)
@@ -194,15 +210,36 @@ public:
 				it.second.m_dirty = false;
 		}
 	}
-	bool RequiresDepthBuffer() const { return m_requires_depth_buffer; }
+	bool RequiresDepthBuffer() const
+	{
+		return m_requires_depth_buffer;
+	}
 
-	bool HasOptions() const { return !m_options.empty(); }
-	ConfigMap& GetOptions() { return m_options; }
-	const ConfigMap& GetOptions() const { return m_options; }
-	const ConfigurationOption& GetOption(const std::string& option) { return m_options[option]; }
+	bool HasOptions() const
+	{
+		return !m_options.empty();
+	}
+	ConfigMap& GetOptions()
+	{
+		return m_options;
+	}
+	const ConfigMap& GetOptions() const
+	{
+		return m_options;
+	}
+	const ConfigurationOption& GetOption(const std::string& option)
+	{
+		return m_options[option];
+	}
 
-	const RenderPassList& GetPasses() const { return m_render_passes; }
-	const RenderPass& GetPass(size_t index) const { return m_render_passes.at(index); }
+	const RenderPassList& GetPasses() const
+	{
+		return m_render_passes;
+	}
+	const RenderPass& GetPass(size_t index) const
+	{
+		return m_render_passes.at(index);
+	}
 
 	// For updating option's values
 	void SetOptionf(const std::string& option, int index, float value);
@@ -220,7 +257,7 @@ private:
 		std::string m_type;
 		std::vector<std::pair<std::string, std::string>> m_options;
 	};
-	
+
 	using StringOptionList = std::vector<ConfigBlock>;
 	bool m_configuration_buffer_dirty = true;
 	bool m_any_options_dirty = false;
@@ -234,10 +271,10 @@ private:
 
 	bool ParseShader(const std::string& dirname, const std::string& path);
 	bool ParseConfiguration(const std::string& dirname, const std::string& configuration_string);
-	
+
 	std::vector<ConfigBlock> ReadConfigSections(const std::string& configuration_string);
 	bool ParseConfigSections(const std::string& dirname, const std::vector<ConfigBlock>& config_blocks);
-	
+
 	bool ParseOptionBlock(const std::string& dirname, const ConfigBlock& block);
 	bool ParsePassBlock(const std::string& dirname, const ConfigBlock& block);
 	bool LoadExternalImage(const std::string& path, RenderPass::Input* input);
@@ -255,7 +292,7 @@ public:
 	// Size of the constant buffer reserved for post-processing.
 	// 4KiB = 256 constants, a shader should not have this many options.
 	static const size_t UNIFORM_BUFFER_SIZE = 4096;
-	
+
 	// List of texture sizes for shader inputs, used to update uniforms.
 	using InputTextureSizeArray = std::array<TargetSize, POST_PROCESSING_MAX_TEXTURE_INPUTS>;
 	// Constructor needed for timer object
@@ -269,18 +306,33 @@ public:
 	PostProcessingShaderConfiguration* GetPostShaderConfig(const std::string& shader_name);
 
 	// Get the current blit shader config.
-	PostProcessingShaderConfiguration* GetScalingShaderConfig() { return m_scaling_config.get(); }
+	PostProcessingShaderConfiguration* GetScalingShaderConfig()
+	{
+		return m_scaling_config.get();
+	}
 
-	bool IsActive() const { return m_active; }
-	bool RequiresDepthBuffer() const { return m_requires_depth_buffer; }
+	bool IsActive() const
+	{
+		return m_active;
+	}
+	bool RequiresDepthBuffer() const
+	{
+		return m_requires_depth_buffer;
+	}
 	bool ShouldTriggerOnSwap() const;
 
 	bool ShouldTriggerAfterBlit() const;
-	
+
 	bool XFBDepthDataRequired() const;
 
-	void SetReloadFlag() { m_reload_flag.Set(); }
-	bool RequiresReload() { return m_reload_flag.TestAndClear(); }
+	void SetReloadFlag()
+	{
+		m_reload_flag.Set();
+	}
+	bool RequiresReload()
+	{
+		return m_reload_flag.TestAndClear();
+	}
 
 	void OnProjectionLoaded(u32 type);
 	void OnEFBCopy(const TargetRectangle* src_rect);
@@ -300,7 +352,7 @@ public:
 	virtual void BlitScreen(const TargetRectangle& dst_rect, const TargetSize& dst_size, uintptr_t dst_texture,
 		const TargetRectangle& src_rect, const TargetSize& src_size, uintptr_t src_texture, uintptr_t src_depth_texture,
 		int src_layer, float gamma = 1.0f) = 0;
-	
+
 	// Post-process the source image, if output_texture is null, it will be written back to src_texture,
 	// otherwise a temporary texture will be returned that is valid until the next call to PostProcess.
 	virtual void PostProcess(TargetRectangle* output_rect, TargetSize* output_size, uintptr_t* output_texture,
@@ -325,7 +377,7 @@ public:
 
 
 protected:
-	enum PROJECTION_STATE : u32
+	enum PROJECTION_STATE: u32
 	{
 		PROJECTION_STATE_INITIAL,
 		PROJECTION_STATE_PERSPECTIVE,

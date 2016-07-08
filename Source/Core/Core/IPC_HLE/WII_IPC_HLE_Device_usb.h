@@ -37,15 +37,14 @@ struct SQueuedEvent
 	SQueuedEvent()
 		: m_size(0)
 		, m_connectionHandle(0)
-	{
-	}
+	{}
 };
 
 // Important to remember that this class is for /dev/usb/oh1/57e/305 ONLY
 // /dev/usb/oh1 -> internal usb bus
 // 57e/305 -> VendorID/ProductID of device on usb bus
 // This device is ONLY the internal Bluetooth module (based on BCM2045 chip)
-class CWII_IPC_HLE_Device_usb_oh1_57e_305 : public IWII_IPC_HLE_Device
+class CWII_IPC_HLE_Device_usb_oh1_57e_305: public IWII_IPC_HLE_Device
 {
 public:
 	CWII_IPC_HLE_Device_usb_oh1_57e_305(u32 _DeviceID, const std::string& _rDeviceName);
@@ -67,7 +66,7 @@ public:
 
 	bool RemoteDisconnect(u16 _connectionHandle);
 
-// hack for Wiimote plugin
+	// hack for Wiimote plugin
 public:
 	std::vector<CWII_IPC_HLE_WiiMote> m_WiiMotes;
 	CWII_IPC_HLE_WiiMote* AccessWiiMote(const bdaddr_t& _rAddr);
@@ -79,15 +78,15 @@ private:
 	enum USBIOCtl
 	{
 		USBV0_IOCTL_CTRLMSG = 0,
-		USBV0_IOCTL_BLKMSG  = 1,
+		USBV0_IOCTL_BLKMSG = 1,
 		USBV0_IOCTL_INTRMSG = 2,
 	};
 
 	enum USBEndpoint
 	{
-		HCI_CTRL     = 0x00,
-		HCI_EVENT    = 0x81,
-		ACL_DATA_IN  = 0x82,
+		HCI_CTRL = 0x00,
+		HCI_EVENT = 0x81,
+		ACL_DATA_IN = 0x82,
 		ACL_DATA_OUT = 0x02
 	};
 
@@ -110,11 +109,11 @@ private:
 		u32 m_address;
 		u32 m_buffer;
 
-		CtrlBuffer(u32 _Address) : m_address(_Address), m_buffer()
+		CtrlBuffer(u32 _Address): m_address(_Address), m_buffer()
 		{
 			if (m_address)
 			{
-				u32 InBufferNum  = Memory::Read_U32(m_address + 0x10);
+				u32 InBufferNum = Memory::Read_U32(m_address + 0x10);
 				u32 BufferVector = Memory::Read_U32(m_address + 0x18);
 				m_buffer = Memory::Read_U32(
 					BufferVector + InBufferNum * sizeof(SIOCtlVBuffer::SBuffer));

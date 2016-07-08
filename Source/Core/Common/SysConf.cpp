@@ -35,7 +35,7 @@ SysConf::~SysConf()
 void SysConf::Clear()
 {
 	for (auto i = m_Entries.begin(); i < m_Entries.end() - 1; ++i)
-		delete [] i->data;
+		delete[] i->data;
 
 	m_Entries.clear();
 }
@@ -58,7 +58,7 @@ bool SysConf::LoadFromFile(const std::string& filename)
 	if (size != SYSCONF_SIZE)
 	{
 		if (AskYesNoT("Your SYSCONF file is the wrong size.\nIt should be 0x%04x (but is 0x%04" PRIx64 ")\nDo you want to generate a new one?",
-					SYSCONF_SIZE, size))
+			SYSCONF_SIZE, size))
 		{
 			GenerateSysConf();
 			return true;
@@ -133,12 +133,12 @@ bool SysConf::LoadFromFileInternal(FILE* fh)
 			break;
 
 		case Type_SmallArray:
-			{
+		{
 			u8 dlength = 0;
 			f.ReadBytes(&dlength, 1);
 			curEntry.dataLength = dlength;
 			break;
-			}
+		}
 
 		case Type_Byte:
 		case Type_Bool:
@@ -172,7 +172,7 @@ bool SysConf::LoadFromFileInternal(FILE* fh)
 
 // Returns the size of the item in file
 static unsigned int create_item(SSysConfEntry& item, SysconfType type, const std::string& name,
-		const int data_length, unsigned int offset)
+	const int data_length, unsigned int offset)
 {
 	item.offset = offset;
 	item.type = type;
@@ -183,20 +183,20 @@ static unsigned int create_item(SSysConfEntry& item, SysconfType type, const std
 	memset(item.data, 0, data_length);
 	switch (type)
 	{
-		case Type_BigArray:
-			// size of description + name length + size of dataLength + data length + null
-			return 1 + item.nameLength + 2 + item.dataLength + 1;
-		case Type_SmallArray:
-			// size of description + name length + size of dataLength + data length + null
-			return 1 + item.nameLength + 1 + item.dataLength + 1;
-		case Type_Byte:
-		case Type_Bool:
-		case Type_Short:
-		case Type_Long:
-			// size of description + name length + data length
-			return 1 + item.nameLength + item.dataLength;
-		default:
-			return 0;
+	case Type_BigArray:
+		// size of description + name length + size of dataLength + data length + null
+		return 1 + item.nameLength + 2 + item.dataLength + 1;
+	case Type_SmallArray:
+		// size of description + name length + size of dataLength + data length + null
+		return 1 + item.nameLength + 1 + item.dataLength + 1;
+	case Type_Byte:
+	case Type_Bool:
+	case Type_Short:
+	case Type_Long:
+		// size of description + name length + data length
+		return 1 + item.nameLength + item.dataLength;
+	default:
+		return 0;
 	}
 }
 
@@ -349,24 +349,24 @@ void SysConf::GenerateSysConf()
 		g.WriteBytes(&items[i].name, items[i].nameLength);
 		switch (items[i].type)
 		{
-			case Type_BigArray:
-				{
-					const u16 tmpDataLength = Common::swap16(items[i].dataLength);
-					g.WriteBytes(&tmpDataLength, 2);
-					g.WriteBytes(items[i].data, items[i].dataLength);
-					g.WriteBytes(&null_byte, 1);
-				}
-				break;
+		case Type_BigArray:
+		{
+			const u16 tmpDataLength = Common::swap16(items[i].dataLength);
+			g.WriteBytes(&tmpDataLength, 2);
+			g.WriteBytes(items[i].data, items[i].dataLength);
+			g.WriteBytes(&null_byte, 1);
+		}
+		break;
 
-			case Type_SmallArray:
-				g.WriteBytes(&items[i].dataLength, 1);
-				g.WriteBytes(items[i].data, items[i].dataLength);
-				g.WriteBytes(&null_byte, 1);
-				break;
+		case Type_SmallArray:
+			g.WriteBytes(&items[i].dataLength, 1);
+			g.WriteBytes(items[i].data, items[i].dataLength);
+			g.WriteBytes(&null_byte, 1);
+			break;
 
-			default:
-				g.WriteBytes(items[i].data, items[i].dataLength);
-				break;
+		default:
+			g.WriteBytes(items[i].data, items[i].dataLength);
+			break;
 		}
 	}
 

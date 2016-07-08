@@ -209,7 +209,7 @@ std::string VertexLoaderBase::GetName() const
 			m_VtxAttr.NormalElements, m_VtxAttr.NormalIndex3, posMode[m_VtxDesc.Normal], posFormats[m_VtxAttr.NormalFormat]));
 	}
 
-	u64 color_mode[2] = { m_VtxDesc.Color0, m_VtxDesc.Color1 };
+	u64 color_mode[2] = {m_VtxDesc.Color0, m_VtxDesc.Color1};
 	for (int i = 0; i < 2; i++)
 	{
 		if (color_mode[i])
@@ -245,13 +245,13 @@ void VertexLoaderBase::AppendToString(std::string *dest) const
 }
 
 // a hacky implementation to compare two vertex loaders
-class VertexLoaderTester : public VertexLoaderBase
+class VertexLoaderTester: public VertexLoaderBase
 {
 public:
 	VertexLoaderTester(std::unique_ptr<VertexLoaderBase> _a, std::unique_ptr<VertexLoaderBase> _b, const TVtxDesc& vtx_desc, const VAT& vtx_attr)
 		: VertexLoaderBase(vtx_desc, vtx_attr), a(std::move(_a)), b(std::move(_b))
 	{
-		
+
 		m_initialized = a && b && a->IsInitialized() && b->IsInitialized();
 		bool can_test = a->m_VertexSize == b->m_VertexSize &&
 			a->m_native_components == b->m_native_components &&
@@ -301,14 +301,17 @@ public:
 
 		if (memcmp(buffer_a.data(), buffer_b.data(), std::min(count_a, count_b) * m_native_vtx_decl.stride))
 			ERROR_LOG(VIDEO, "The two vertex loaders have loaded different data "
-			"(guru meditation 0x%016" PRIx64 ", 0x%08x, 0x%08x, 0x%08x).",
-			m_VtxDesc.Hex, m_vat.g0.Hex, m_vat.g1.Hex, m_vat.g2.Hex);
+				"(guru meditation 0x%016" PRIx64 ", 0x%08x, 0x%08x, 0x%08x).",
+				m_VtxDesc.Hex, m_vat.g0.Hex, m_vat.g1.Hex, m_vat.g2.Hex);
 
 		memcpy(parameters.destination, buffer_a.data(), count_a * m_native_vtx_decl.stride);
 		m_numLoadedVertices += parameters.count;
 		return count_a;
-	}	
-	bool IsInitialized() override { return m_initialized; }
+	}
+	bool IsInitialized() override
+	{
+		return m_initialized;
+	}
 
 private:
 	std::unique_ptr<VertexLoaderBase> a;
@@ -339,7 +342,7 @@ std::unique_ptr<VertexLoaderBase> VertexLoaderBase::CreateVertexLoader(const TVt
 	if (!loader->IsInitialized())
 	{
 		loader.reset();
-	}	
+	}
 #endif
 	std::unique_ptr<VertexLoaderBase> fallback = std::make_unique<VertexLoaderCompiled>(vtx_desc, vtx_attr);
 	if (!fallback->IsInitialized())
@@ -356,6 +359,6 @@ std::unique_ptr<VertexLoaderBase> VertexLoaderBase::CreateVertexLoader(const TVt
 		loader = std::move(fallback);
 		fallback.reset();
 	}
-	loader->SetFallback(fallback);	
-	return loader;	
+	loader->SetFallback(fallback);
+	return loader;
 }

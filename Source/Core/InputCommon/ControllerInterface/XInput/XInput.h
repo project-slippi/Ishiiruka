@@ -9,10 +9,10 @@
 
 #pragma once
 
-#include <windows.h>
 #include <XInput.h>
+#include <windows.h>
 
-#include "InputCommon/ControllerInterface/Device.h"
+#include "InputCommon/ControllerInterface/ControllerInterface.h"
 
 #ifndef XINPUT_DEVSUBTYPE_FLIGHT_STICK
 #error You are building this module against the wrong version of DirectX. You probably need to remove DXSDK_DIR from your include path and/or _WIN32_WINNT is wrong.
@@ -22,54 +22,63 @@ namespace ciface
 {
 namespace XInput
 {
-
-void Init(std::vector<Core::Device*>& devices);
+void Init();
 void DeInit();
 
-class Device : public Core::Device
+class Device: public Core::Device
 {
 private:
-	class Button : public Core::Device::Input
+	class Button: public Core::Device::Input
 	{
 	public:
-		Button(u8 index, const WORD& buttons) : m_buttons(buttons), m_index(index) {}
+		Button(u8 index, const WORD& buttons): m_buttons(buttons), m_index(index)
+		{}
 		std::string GetName() const override;
 		ControlState GetState() const override;
+
 	private:
 		const WORD& m_buttons;
 		u8 m_index;
 	};
 
-	class Axis : public Core::Device::Input
+	class Axis: public Core::Device::Input
 	{
 	public:
-		Axis(u8 index, const SHORT& axis, SHORT range) : m_axis(axis), m_range(range), m_index(index) {}
+		Axis(u8 index, const SHORT& axis, SHORT range): m_axis(axis), m_range(range), m_index(index)
+		{}
 		std::string GetName() const override;
 		ControlState GetState() const override;
+
 	private:
 		const SHORT& m_axis;
 		const SHORT m_range;
 		const u8 m_index;
 	};
 
-	class Trigger : public Core::Device::Input
+	class Trigger: public Core::Device::Input
 	{
 	public:
-		Trigger(u8 index, const BYTE& trigger, BYTE range) : m_trigger(trigger), m_range(range), m_index(index) {}
+		Trigger(u8 index, const BYTE& trigger, BYTE range)
+			: m_trigger(trigger), m_range(range), m_index(index)
+		{}
 		std::string GetName() const override;
 		ControlState GetState() const override;
+
 	private:
 		const BYTE& m_trigger;
 		const BYTE m_range;
 		const u8 m_index;
 	};
 
-	class Motor : public Core::Device::Output
+	class Motor: public Core::Device::Output
 	{
 	public:
-		Motor(u8 index, Device* parent, WORD &motor, WORD range) : m_motor(motor), m_range(range), m_index(index), m_parent(parent) {}
+		Motor(u8 index, Device* parent, WORD& motor, WORD range)
+			: m_motor(motor), m_range(range), m_index(index), m_parent(parent)
+		{}
 		std::string GetName() const override;
 		void SetState(ControlState state) override;
+
 	private:
 		WORD& m_motor;
 		const WORD m_range;
@@ -95,7 +104,5 @@ private:
 	const BYTE m_subtype;
 	const u8 m_index;
 };
-
-
 }
 }

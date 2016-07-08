@@ -69,7 +69,7 @@ std::string VideoBackend::GetDisplayName() const
 	return "Direct3D11";
 }
 
-void InitBackendInfo()
+void VideoBackend::InitBackendInfo()
 {
 	HRESULT hr = DX11::D3D::LoadDXGI();
 	if (SUCCEEDED(hr)) hr = DX11::D3D::LoadD3D();
@@ -152,16 +152,6 @@ void InitBackendInfo()
 	DX11::D3D::UnloadD3D();
 }
 
-void VideoBackend::ShowConfig(void *_hParent)
-{
-#if defined(HAVE_WX) && HAVE_WX
-	if (!m_initialized)
-		InitBackendInfo();
-	VideoConfigDiag diag((wxWindow*)_hParent, _trans("Direct3D11"), "gfx_dx11");
-	diag.ShowModal();
-#endif
-}
-
 bool VideoBackend::Initialize(void *window_handle)
 {
 	InitializeShared();
@@ -226,11 +216,8 @@ void VideoBackend::Shutdown()
 	// VideoCommon
 	Fifo::Shutdown();
 	CommandProcessor::Shutdown();
-	PixelShaderManager::Shutdown();
-	VertexShaderManager::Shutdown();
 	GeometryShaderManager::Shutdown();
 	TessellationShaderManager::Shutdown();
-	OpcodeDecoder::Shutdown();
 	VertexLoaderManager::Shutdown();
 
 	// internal interfaces
@@ -246,7 +233,7 @@ void VideoBackend::Shutdown()
 	g_renderer.reset();
 }
 
-void VideoBackend::Video_Cleanup() {
-}
+void VideoBackend::Video_Cleanup()
+{}
 
 }

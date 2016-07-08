@@ -7,7 +7,7 @@
 #include "WII_IPC_HLE.h"
 #include "WII_IPC_HLE_Device.h"
 
-class CWII_IPC_HLE_Device_usb_oh0 : public IWII_IPC_HLE_Device
+class CWII_IPC_HLE_Device_usb_oh0: public IWII_IPC_HLE_Device
 {
 public:
 	CWII_IPC_HLE_Device_usb_oh0(u32 DeviceID, const std::string& DeviceName);
@@ -25,21 +25,21 @@ public:
 private:
 	enum USBIOCtl
 	{
-		USBV0_IOCTL_CTRLMSG				= 0,
-		USBV0_IOCTL_BLKMSG				= 1,
-		USBV0_IOCTL_INTRMSG				= 2,
-		USBV0_IOCTL_SUSPENDDEV			= 5,
-		USBV0_IOCTL_RESUMEDEV			= 6,
-		USBV0_IOCTL_ISOMSG				= 9,
-		USBV0_IOCTL_GETDEVLIST			= 12,
-		USBV0_IOCTL_DEVREMOVALHOOK		= 26,
-		USBV0_IOCTL_DEVINSERTHOOK		= 27,
-		USBV0_IOCTL_DEVICECLASSCHANGE	= 28,
-		USBV0_IOCTL_DEVINSERTHOOKID		= 30
+		USBV0_IOCTL_CTRLMSG = 0,
+		USBV0_IOCTL_BLKMSG = 1,
+		USBV0_IOCTL_INTRMSG = 2,
+		USBV0_IOCTL_SUSPENDDEV = 5,
+		USBV0_IOCTL_RESUMEDEV = 6,
+		USBV0_IOCTL_ISOMSG = 9,
+		USBV0_IOCTL_GETDEVLIST = 12,
+		USBV0_IOCTL_DEVREMOVALHOOK = 26,
+		USBV0_IOCTL_DEVINSERTHOOK = 27,
+		USBV0_IOCTL_DEVICECLASSCHANGE = 28,
+		USBV0_IOCTL_DEVINSERTHOOKID = 30
 	};
 };
 
-class CWII_IPC_HLE_Device_usb_ven : public IWII_IPC_HLE_Device
+class CWII_IPC_HLE_Device_usb_ven: public IWII_IPC_HLE_Device
 {
 public:
 	CWII_IPC_HLE_Device_usb_ven(u32 DeviceID, const std::string& DeviceName);
@@ -57,18 +57,18 @@ public:
 private:
 	enum USBIOCtl
 	{
-		USBV5_IOCTL_GETVERSION			= 0,
-		USBV5_IOCTL_GETDEVICECHANGE		= 1,
-		USBV5_IOCTL_SHUTDOWN			= 2,
-		USBV5_IOCTL_GETDEVPARAMS		= 3,
-		USBV5_IOCTL_ATTACHFINISH		= 6,
-		USBV5_IOCTL_SETALTERNATE		= 7,
-		USBV5_IOCTL_SUSPEND_RESUME		= 16,
-		USBV5_IOCTL_CANCELENDPOINT		= 17,
-		USBV5_IOCTL_CTRLMSG				= 18,
-		USBV5_IOCTL_INTRMSG				= 19,
-		USBV5_IOCTL_ISOMSG				= 20,
-		USBV5_IOCTL_BULKMSG				= 21
+		USBV5_IOCTL_GETVERSION = 0,
+		USBV5_IOCTL_GETDEVICECHANGE = 1,
+		USBV5_IOCTL_SHUTDOWN = 2,
+		USBV5_IOCTL_GETDEVPARAMS = 3,
+		USBV5_IOCTL_ATTACHFINISH = 6,
+		USBV5_IOCTL_SETALTERNATE = 7,
+		USBV5_IOCTL_SUSPEND_RESUME = 16,
+		USBV5_IOCTL_CANCELENDPOINT = 17,
+		USBV5_IOCTL_CTRLMSG = 18,
+		USBV5_IOCTL_INTRMSG = 19,
+		USBV5_IOCTL_ISOMSG = 20,
+		USBV5_IOCTL_BULKMSG = 21
 	};
 #pragma pack(push, 1)
 	struct usb_endpointdesc
@@ -163,7 +163,7 @@ private:
 #pragma pack(pop)
 };
 
-class CWII_IPC_HLE_Device_usb_oh0_57e_308 : public IWII_IPC_HLE_Device
+class CWII_IPC_HLE_Device_usb_oh0_57e_308: public IWII_IPC_HLE_Device
 {
 public:
 	CWII_IPC_HLE_Device_usb_oh0_57e_308(u32 DeviceID, const std::string& DeviceName);
@@ -196,17 +196,17 @@ public:
 private:
 	enum USBIOCtl
 	{
-		USBV0_IOCTL_CTRLMSG				= 0,
-		USBV0_IOCTL_BLKMSG				= 1,
-		USBV0_IOCTL_ISOMSG				= 9,
-		USBV0_IOCTL_DEVREMOVALHOOK		= 26
+		USBV0_IOCTL_CTRLMSG = 0,
+		USBV0_IOCTL_BLKMSG = 1,
+		USBV0_IOCTL_ISOMSG = 9,
+		USBV0_IOCTL_DEVREMOVALHOOK = 26
 	};
 
 	enum USBEndpoint
 	{
-		AUDIO_OUT	= 0x03,	
-		AUDIO_IN	= 0x81,
-		DATA_OUT	= 0x02
+		AUDIO_OUT = 0x03,
+		AUDIO_IN = 0x81,
+		DATA_OUT = 0x02
 	};
 
 	struct USBSetupPacket
@@ -223,17 +223,17 @@ private:
 		SAMPLER_STATE = 0,
 		SAMPLER_MUTE = 0xc0,
 
-		SAMPLER_FREQ	= 2,
-		FREQ_8KHZ		= 0,
-		FREQ_11KHZ		= 1,
-		FREQ_RESERVED	= 2,
-		FREQ_16KHZ		= 3, // default
+		SAMPLER_FREQ = 2,
+		FREQ_8KHZ = 0,
+		FREQ_11KHZ = 1,
+		FREQ_RESERVED = 2,
+		FREQ_16KHZ = 3, // default
 
-		SAMPLER_GAIN	= 4,
-		GAIN_00dB		= 0,
-		GAIN_15dB		= 1,
-		GAIN_30dB		= 2,
-		GAIN_36dB		= 3, // default
+		SAMPLER_GAIN = 4,
+		GAIN_00dB = 0,
+		GAIN_15dB = 1,
+		GAIN_30dB = 2,
+		GAIN_36dB = 3, // default
 
 		EC_STATE = 0x14,
 
@@ -259,7 +259,7 @@ private:
 	void StreamReadOne();
 };
 
-class CWII_IPC_HLE_Device_usb_oh0_46d_a03 : public IWII_IPC_HLE_Device
+class CWII_IPC_HLE_Device_usb_oh0_46d_a03: public IWII_IPC_HLE_Device
 {
 public:
 	CWII_IPC_HLE_Device_usb_oh0_46d_a03(u32 DeviceID, const std::string& DeviceName);
@@ -279,17 +279,17 @@ public:
 private:
 	enum USBIOCtl
 	{
-		USBV0_IOCTL_CTRLMSG				= 0,
-		USBV0_IOCTL_BLKMSG				= 1,
-		USBV0_IOCTL_ISOMSG				= 9,
-		USBV0_IOCTL_DEVREMOVALHOOK		= 26
+		USBV0_IOCTL_CTRLMSG = 0,
+		USBV0_IOCTL_BLKMSG = 1,
+		USBV0_IOCTL_ISOMSG = 9,
+		USBV0_IOCTL_DEVREMOVALHOOK = 26
 	};
 
 	enum USBEndpoint
 	{
-		AUDIO_IN	= 0x84
+		AUDIO_IN = 0x84
 	};
-	
+
 #pragma pack(push, 1)
 
 	struct USBSetupPacket

@@ -9,6 +9,9 @@
 #include "Common/Event.h"
 #include "Common/Flag.h"
 #include "Common/Logging/Log.h"
+
+#include "Core/Host.h"
+
 #include "VideoCommon/AsyncRequests.h"
 #include "VideoCommon/BPStructs.h"
 #include "VideoCommon/BoundingBox.h"
@@ -31,6 +34,15 @@ static volatile struct
 	u32 fbStride;
 } s_beginFieldArgs;
 
+void VideoBackendBase::ShowConfig(void* parent_handle)
+{
+	if (!m_initialized)
+	{
+		InitBackendInfo();
+	}
+	Host_ShowVideoConfig(parent_handle, GetDisplayName());
+}
+
 void VideoBackendBase::Video_ExitLoop()
 {
 	Fifo::ExitGpuLoop();
@@ -40,18 +52,6 @@ void VideoBackendBase::Video_ExitLoop()
 // Run from the CPU thread (from VideoInterface.cpp)
 void VideoBackendBase::Video_BeginField(u32 xfbAddr, u32 fbWidth, u32 fbStride, u32 fbHeight)
 {
-	if (m_initialized && g_ActiveConfig.bUseXFB)
-	{
-		s_beginFieldArgs.xfbAddr = xfbAddr;
-		s_beginFieldArgs.fbWidth = fbWidth;
-		s_beginFieldArgs.fbStride = fbStride;
-		s_beginFieldArgs.fbHeight = fbHeight;
-	}
-}
-
-// Run from the CPU thread (from VideoInterface.cpp)
-void VideoBackendBase::Video_EndField()
-{
 	if (m_initialized && g_ActiveConfig.bUseXFB && g_renderer)
 	{
 		Fifo::SyncGPU(Fifo::SYNC_GPU_SWAP);
@@ -60,10 +60,10 @@ void VideoBackendBase::Video_EndField()
 		e.time = 0;
 		e.type = AsyncRequests::Event::SWAP_EVENT;
 
-		e.swap_event.xfbAddr = s_beginFieldArgs.xfbAddr;
-		e.swap_event.fbWidth = s_beginFieldArgs.fbWidth;
-		e.swap_event.fbStride = s_beginFieldArgs.fbStride;
-		e.swap_event.fbHeight = s_beginFieldArgs.fbHeight;
+		e.swap_event.xfbAddr = xfbAddr;
+		e.swap_event.fbWidth = fbWidth;
+		e.swap_event.fbStride = fbStride;
+		e.swap_event.fbHeight = fbHeight;
 		AsyncRequests::GetInstance()->PushEvent(e, false);
 	}
 }
@@ -78,14 +78,14 @@ VideoBackendBase::VideoBackendBase()
 	m_EFB_PCache_Width = EFB_WIDTH >> m_EFB_PCache_Divisor;
 	m_EFB_PCache_Height = EFB_HEIGHT >> m_EFB_PCache_Divisor;
 	m_EFB_PCache_Size = m_EFB_PCache_Width * m_EFB_PCache_Height;
-	m_EFB_PCache = new EFBPeekCacheElement[m_EFB_PCache_Size];	
+	m_EFB_PCache = new EFBPeekCacheElement[m_EFB_PCache_Size];
 }
 
 VideoBackendBase::~VideoBackendBase()
 {
 	if (m_EFB_PCache)
 	{
-		delete [] m_EFB_PCache;
+		delete[] m_EFB_PCache;
 	}
 }
 
@@ -108,7 +108,7 @@ u32 VideoBackendBase::Video_AccessEFB(EFBAccessType type, u32 x, u32 y, u32 Inpu
 		AsyncRequests::GetInstance()->PushEvent(e, false);
 	}
 	else
-	{			
+	{
 		if (g_ActiveConfig.bEFBFastAccess)
 		{
 			if (type == PEEK_COLOR && m_EFB_PCache[efb_p_cache_stride].ColorFrame > s_EFB_PCache_Frame)
@@ -167,7 +167,7 @@ u16 VideoBackendBase::Video_GetBoundingBox(int index)
 {
 	if (!g_ActiveConfig.backend_info.bSupportsBBox || g_ActiveConfig.iBBoxMode == BBoxNone)
 		return BoundingBox::coords[index];
-	
+
 	Fifo::SyncGPU(Fifo::SYNC_GPU_BBOX);
 
 	AsyncRequests::Event e;
@@ -182,12 +182,12 @@ u16 VideoBackendBase::Video_GetBoundingBox(int index)
 
 void VideoBackendBase::InitializeShared()
 {
-	VideoCommon_Init();
-
+	memset(&g_main_cp_state, 0, sizeof(g_main_cp_state));
+	memset(texMem, 0, TMEM_SIZE);
 	s_FifoShuttingDown.Clear();
 	memset((void*)&s_beginFieldArgs, 0, sizeof(s_beginFieldArgs));
 	m_invalid = false;
-	memset(m_EFB_PCache, 0 , m_EFB_PCache_Size * sizeof(EFBPeekCacheElement));
+	memset(m_EFB_PCache, 0, m_EFB_PCache_Size * sizeof(EFBPeekCacheElement));
 	s_EFB_PCache_Frame = 1;
 }
 
@@ -224,7 +224,7 @@ void VideoBackendBase::CheckInvalidState()
 	if (m_invalid)
 	{
 		m_invalid = false;
-		
+
 		BPReload();
 		TextureCacheBase::Invalidate();
 	}
