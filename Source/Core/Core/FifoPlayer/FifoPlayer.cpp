@@ -28,7 +28,8 @@
 bool IsPlayingBackFifologWithBrokenEFBCopies = false;
 
 FifoPlayer::~FifoPlayer()
-{}
+{
+}
 
 bool FifoPlayer::Open(const std::string& filename)
 {
@@ -61,62 +62,54 @@ void FifoPlayer::Close()
 class FifoPlayer::CPUCore final : public CPUCoreBase
 {
 public:
-  explicit CPUCore(FifoPlayer* parent): m_parent(parent)
- {}
-CPUCore(const CPUCore&) = delete;
-~CPUCore()
-{}
-CPUCore& operator=(const CPUCore&) = delete;
+	explicit CPUCore(FifoPlayer* parent) : m_parent(parent) {}
+	CPUCore(const CPUCore&) = delete;
+	~CPUCore() {}
+	CPUCore& operator=(const CPUCore&) = delete;
 
-void Init() override
-{
-  IsPlayingBackFifologWithBrokenEFBCopies = m_parent->m_File->HasBrokenEFBCopies();
+	void Init() override
+	{
+		IsPlayingBackFifologWithBrokenEFBCopies = m_parent->m_File->HasBrokenEFBCopies();
 
-  m_parent->m_CurrentFrame = m_parent->m_FrameRangeStart;
-  m_parent->LoadMemory();
-}
+		m_parent->m_CurrentFrame = m_parent->m_FrameRangeStart;
+		m_parent->LoadMemory();
+	}
 
-void Shutdown() override
-{
-IsPlayingBackFifologWithBrokenEFBCopies = false;
-}
-void ClearCache() override
-{
-	// Nothing to clear.
- }
+	void Shutdown() override { IsPlayingBackFifologWithBrokenEFBCopies = false; }
+	void ClearCache() override
+	{
+		// Nothing to clear.
+	}
 
- void SingleStep() override
- {
-	 // NOTE: AdvanceFrame() will get stuck forever in Dual Core because the FIFO
-	 //   is disabled by CPU::EnableStepping(true) so the frame never gets displayed.
-	 PanicAlertT("Cannot SingleStep the FIFO. Use Frame Advance instead.");
-  }
+	void SingleStep() override
+	{
+		// NOTE: AdvanceFrame() will get stuck forever in Dual Core because the FIFO
+		//   is disabled by CPU::EnableStepping(true) so the frame never gets displayed.
+		PanicAlertT("Cannot SingleStep the FIFO. Use Frame Advance instead.");
+	}
 
-  const char* GetName() override
- {
-return "FifoPlayer";
-}
-void Run() override
-{
-  while (CPU::GetState() == CPU::CPU_RUNNING)
-  {
-	 switch (m_parent->AdvanceFrame())
-	 {
-	 case CPU::CPU_POWERDOWN:
-		CPU::Break();
-		Host_Message(WM_USER_STOP);
-		break;
+	const char* GetName() override { return "FifoPlayer"; }
+	void Run() override
+	{
+		while (CPU::GetState() == CPU::CPU_RUNNING)
+		{
+			switch (m_parent->AdvanceFrame())
+			{
+			case CPU::CPU_POWERDOWN:
+				CPU::Break();
+				Host_Message(WM_USER_STOP);
+				break;
 
-	 case CPU::CPU_STEPPING:
-		CPU::Break();
-		Host_UpdateMainFrame();
-		break;
-	 }
-  }
-}
+			case CPU::CPU_STEPPING:
+				CPU::Break();
+				Host_UpdateMainFrame();
+				break;
+			}
+		}
+	}
 
 private:
-  FifoPlayer* m_parent;
+	FifoPlayer* m_parent;
 };
 
 int FifoPlayer::AdvanceFrame()

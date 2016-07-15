@@ -17,7 +17,7 @@ class InputConfig;
 class wxButton;
 class wxStaticBoxSizer;
 
-class ControllerConfigDiag: public wxDialog
+class ControllerConfigDiag : public wxDialog
 {
 public:
 	ControllerConfigDiag(wxWindow* const parent);
@@ -59,7 +59,7 @@ private:
 	void OnContinuousScanning(wxCommandEvent& event)
 	{
 		SConfig::GetInstance().m_WiimoteContinuousScanning = event.IsChecked();
-		WiimoteReal::Initialize();
+		WiimoteReal::Initialize(Wiimote::InitializeMode::DO_NOT_WAIT_FOR_WIIMOTES);
 		event.Skip();
 	}
 

@@ -9,23 +9,24 @@
 #include "Common/FileUtil.h"
 #include "Common/NandPaths.h"
 
-#include "Core/ConfigManager.h"
-#include "Core/PatchEngine.h"
 #include "Core/Boot/Boot.h"
 #include "Core/Boot/Boot_DOL.h"
+#include "Core/ConfigManager.h"
 #include "Core/HLE/HLE.h"
 #include "Core/HW/Memmap.h"
 #include "Core/HW/VideoInterface.h"
 #include "Core/IPC_HLE/WII_IPC_HLE.h"
 #include "Core/IPC_HLE/WII_IPC_HLE_Device_FileIO.h"
+#include "Core/PatchEngine.h"
 #include "Core/PowerPC/PowerPC.h"
 
+#include "DiscIO/Enums.h"
 #include "DiscIO/NANDContentLoader.h"
 #include "DiscIO/Volume.h"
 #include "DiscIO/VolumeCreator.h"
 #include "DiscIO/WiiWad.h"
 
-static u32 state_checksum(u32 *buf, int len)
+static u32 state_checksum(u32* buf, int len)
 {
 	u32 checksum = 0;
 	len = len >> 2;
@@ -50,7 +51,8 @@ struct StateFlags
 
 bool CBoot::Boot_WiiWAD(const std::string& _pFilename)
 {
-	std::string state_filename(Common::GetTitleDataPath(TITLEID_SYSMENU, Common::FROM_SESSION_ROOT) + WII_STATE);
+	std::string state_filename(Common::GetTitleDataPath(TITLEID_SYSMENU, Common::FROM_SESSION_ROOT) +
+		WII_STATE);
 
 	if (File::Exists(state_filename))
 	{
@@ -58,7 +60,7 @@ bool CBoot::Boot_WiiWAD(const std::string& _pFilename)
 		StateFlags state;
 		state_file.ReadBytes(&state, sizeof(StateFlags));
 
-		state.type = 0x03; // TYPE_RETURN
+		state.type = 0x03;  // TYPE_RETURN
 		state.checksum = state_checksum((u32*)&state.flags, sizeof(StateFlags) - 4);
 
 		state_file.Seek(0, SEEK_SET);
@@ -70,13 +72,14 @@ bool CBoot::Boot_WiiWAD(const std::string& _pFilename)
 		File::IOFile state_file(state_filename, "a+b");
 		StateFlags state;
 		memset(&state, 0, sizeof(StateFlags));
-		state.type = 0x03; // TYPE_RETURN
-		state.discstate = 0x01; // DISCSTATE_WII
+		state.type = 0x03;       // TYPE_RETURN
+		state.discstate = 0x01;  // DISCSTATE_WII
 		state.checksum = state_checksum((u32*)&state.flags, sizeof(StateFlags) - 4);
 		state_file.WriteBytes(&state, sizeof(StateFlags));
 	}
 
-	const DiscIO::CNANDContentLoader& ContentLoader = DiscIO::CNANDContentManager::Access().GetNANDLoader(_pFilename);
+	const DiscIO::CNANDContentLoader& ContentLoader =
+		DiscIO::CNANDContentManager::Access().GetNANDLoader(_pFilename);
 	if (!ContentLoader.IsValid())
 		return false;
 
@@ -90,12 +93,13 @@ bool CBoot::Boot_WiiWAD(const std::string& _pFilename)
 	if (!SetupWiiMemory(ContentLoader.GetCountry()))
 		return false;
 	// this sets a bit that is used to detect NTSC-J
-	if (ContentLoader.GetCountry() == DiscIO::IVolume::COUNTRY_JAPAN)
+	if (ContentLoader.GetCountry() == DiscIO::Country::COUNTRY_JAPAN)
 	{
 		VideoInterface::SetRegionReg('J');
 	}
 	// DOL
-	const DiscIO::SNANDContent* pContent = ContentLoader.GetContentByIndex(ContentLoader.GetBootIndex());
+	const DiscIO::SNANDContent* pContent =
+		ContentLoader.GetContentByIndex(ContentLoader.GetBootIndex());
 	if (pContent == nullptr)
 		return false;
 
@@ -125,4 +129,3 @@ bool CBoot::Boot_WiiWAD(const std::string& _pFilename)
 
 	return true;
 }
-

@@ -4,9 +4,9 @@
 
 #pragma once
 
+#include <wx/aui/framemanager.h>
 #include <wx/bitmap.h>
 #include <wx/panel.h>
-#include <wx/aui/framemanager.h>
 
 #include "Common/CommonTypes.h"
 #include "Common/Event.h"
@@ -29,25 +29,21 @@ class wxMenu;
 class wxMenuBar;
 class wxToolBar;
 
-class CCodeWindow: public wxPanel
+class CCodeWindow : public wxPanel
 {
 public:
-	CCodeWindow(const SConfig& _LocalCoreStartupParameter,
-		CFrame * parent,
-		wxWindowID id = wxID_ANY,
-		const wxPoint& pos = wxDefaultPosition,
-		const wxSize& size = wxDefaultSize,
-		long style = wxTAB_TRAVERSAL | wxBORDER_NONE,
-		const wxString& name = _("Code"));
+	CCodeWindow(const SConfig& _LocalCoreStartupParameter, CFrame* parent, wxWindowID id = wxID_ANY,
+		const wxPoint& pos = wxDefaultPosition, const wxSize& size = wxDefaultSize,
+		long style = wxTAB_TRAVERSAL | wxBORDER_NONE, const wxString& name = _("Code"));
 	~CCodeWindow();
 
 	void Load();
 	void Save();
 
 	// Parent interaction
-	CFrame *Parent;
-	wxMenuBar * GetMenuBar();
-	wxToolBar * GetToolBar();
+	CFrame* Parent;
+	wxMenuBar* GetMenuBar();
+	wxToolBar* GetToolBar();
 	wxBitmap m_Bitmaps[Toolbar_Debug_Bitmap_Max];
 
 	bool UseInterpreter();
@@ -59,9 +55,9 @@ public:
 
 	void Update() override;
 	void NotifyMapLoaded();
-	void CreateMenu(const SConfig& _LocalCoreStartupParameter, wxMenuBar *pMenuBar);
-	void CreateMenuOptions(wxMenu *pMenu);
-	void CreateMenuSymbols(wxMenuBar *pMenuBar);
+	void CreateMenu(const SConfig& _LocalCoreStartupParameter, wxMenuBar* pMenuBar);
+	void CreateMenuOptions(wxMenu* pMenu);
+	void CreateMenuSymbols(wxMenuBar* pMenuBar);
 	void PopulateToolbar(wxToolBar* toolBar);
 	void UpdateButtonStates();
 	void OpenPages();
@@ -86,7 +82,8 @@ public:
 	GFXDebuggerPanel* m_VideoWindow;
 
 	// Settings
-	bool bAutomaticStart; bool bBootToPause;
+	bool bAutomaticStart;
+	bool bBootToPause;
 	bool bShowOnStart[IDM_VIDEO_WINDOW - IDM_LOG_WINDOW + 1];
 	int iNbAffiliation[IDM_CODE_WINDOW - IDM_LOG_WINDOW + 1];
 
@@ -106,7 +103,7 @@ private:
 	void OnCallstackListChange(wxCommandEvent& event);
 	void OnCallersListChange(wxCommandEvent& event);
 	void OnCallsListChange(wxCommandEvent& event);
-	void OnCodeViewChange(wxCommandEvent &event);
+	void OnCodeViewChange(wxCommandEvent& event);
 	void OnHostMessage(wxCommandEvent& event);
 
 	// Debugger functions
@@ -127,6 +124,6 @@ private:
 	wxListBox* calls;
 	Common::Event sync_event;
 
-	wxAuiManager  m_aui_manager;
+	wxAuiManager m_aui_manager;
 	wxAuiToolBar* m_aui_toolbar;
 };

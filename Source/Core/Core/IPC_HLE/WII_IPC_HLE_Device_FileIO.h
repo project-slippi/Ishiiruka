@@ -8,14 +8,15 @@
 #include "Core/IPC_HLE/WII_IPC_HLE_Device.h"
 
 class PointerWrap;
-namespace File {
+namespace File
+{
 class IOFile;
 }
 
 std::string HLE_IPC_BuildFilename(std::string _pFilename);
 void HLE_IPC_CreateVirtualFATFilesystem();
 
-class CWII_IPC_HLE_Device_FileIO: public IWII_IPC_HLE_Device
+class CWII_IPC_HLE_Device_FileIO : public IWII_IPC_HLE_Device
 {
 public:
 	CWII_IPC_HLE_Device_FileIO(u32 _DeviceID, const std::string& _rDeviceName);
@@ -29,7 +30,7 @@ public:
 	IPCCommandResult Write(u32 _CommandAddress) override;
 	IPCCommandResult IOCtl(u32 _CommandAddress) override;
 	void PrepareForState(PointerWrap::Mode mode) override;
-	void DoState(PointerWrap &p) override;
+	void DoState(PointerWrap& p) override;
 
 	void OpenFile();
 

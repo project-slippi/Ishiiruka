@@ -26,9 +26,6 @@ void ShowErrorDialog(const wxString& error_msg);
 // Reads a PNG from the Resources folder
 wxBitmap LoadResourceBitmap(const std::string& name, const wxSize& padded_size = wxSize());
 
-// From a wxBitmap, creates the corresponding disabled version for toolbar buttons
-wxBitmap CreateDisabledButtonBitmap(const wxBitmap& original);
-
 // Helper function to add a button to a toolbar
 void AddToolbarButton(wxToolBar* toolbar, int toolID, const wxString& label, const wxBitmap& bitmap, const wxString& shortHelp);
 

@@ -21,7 +21,7 @@ struct IPCCommandResult
 	u64 reply_delay_ticks;
 };
 
-enum IPCCommandType: u32
+enum IPCCommandType : u32
 {
 	IPC_CMD_OPEN = 1,
 	IPC_CMD_CLOSE = 2,
@@ -38,9 +38,8 @@ enum IPCCommandType: u32
 
 namespace WII_IPC_HLE_Interface
 {
-
-#define IPC_FIRST_ID  0x00 // First IPC device ID
-#define IPC_MAX_FILES 0x10 // First IPC file ID
+#define IPC_FIRST_ID 0x00   // First IPC device ID
+#define IPC_MAX_FILES 0x10  // First IPC file ID
 
 // Init
 void Init();
@@ -52,14 +51,13 @@ void Shutdown();
 void Reset(bool _bHard = false);
 
 // Do State
-void DoState(PointerWrap &p);
+void DoState(PointerWrap& p);
 
 // Set default content file
 void SetDefaultContentFile(const std::string& _rFilename);
 void ES_DIVerify(const std::vector<u8>& tmd);
 
 void SDIO_EventNotify();
-
 
 std::shared_ptr<IWII_IPC_HLE_Device> CreateFileIO(u32 _DeviceID, const std::string& _rDeviceName);
 
@@ -81,4 +79,4 @@ void EnqueueReply_Threadsafe(u32 address, int cycles_in_future = 0);
 void EnqueueReply_Immediate(u32 address);
 void EnqueueCommandAcknowledgement(u32 _Address, int cycles_in_future = 0);
 
-} // end of namespace WII_IPC_HLE_Interface
+}  // end of namespace WII_IPC_HLE_Interface

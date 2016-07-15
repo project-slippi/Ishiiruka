@@ -28,6 +28,7 @@
 #include "Core/IPC_HLE/WII_IPC_HLE_Device_DI.h"
 #include "Core/Movie.h"
 
+#include "DiscIO/Enums.h"
 #include "DiscIO/Volume.h"
 #include "DiscIO/VolumeCreator.h"
 
@@ -107,8 +108,7 @@ enum
 };
 
 // DI Status Register
-union UDISR
-{
+union UDISR {
 	u32 Hex;
 	struct
 	{
@@ -121,19 +121,12 @@ union UDISR
 		u32 BRKINT : 1;  // w 1: clear brkint
 		u32 : 25;
 	};
-	UDISR()
-	{
-		Hex = 0;
-	}
-	UDISR(u32 _hex)
-	{
-		Hex = _hex;
-	}
+	UDISR() { Hex = 0; }
+	UDISR(u32 _hex) { Hex = _hex; }
 };
 
 // DI Cover Register
-union UDICVR
-{
+union UDICVR {
 	u32 Hex;
 	struct
 	{
@@ -142,18 +135,11 @@ union UDICVR
 		u32 CVRINT : 1;      // r 1: Interrupt requested w 1: Interrupt clear
 		u32 : 29;
 	};
-	UDICVR()
-	{
-		Hex = 0;
-	}
-	UDICVR(u32 _hex)
-	{
-		Hex = _hex;
-	}
+	UDICVR() { Hex = 0; }
+	UDICVR(u32 _hex) { Hex = _hex; }
 };
 
-union UDICMDBUF
-{
+union UDICMDBUF {
 	u32 Hex;
 	struct
 	{
@@ -165,8 +151,7 @@ union UDICMDBUF
 };
 
 // DI DMA Address Register
-union UDIMAR
-{
+union UDIMAR {
 	u32 Hex;
 	struct
 	{
@@ -181,8 +166,7 @@ union UDIMAR
 };
 
 // DI DMA Address Length Register
-union UDILENGTH
-{
+union UDILENGTH {
 	u32 Hex;
 	struct
 	{
@@ -197,8 +181,7 @@ union UDILENGTH
 };
 
 // DI DMA Control Register
-union UDICR
-{
+union UDICR {
 	u32 Hex;
 	struct
 	{
@@ -209,8 +192,7 @@ union UDICR
 	};
 };
 
-union UDIIMMBUF
-{
+union UDIIMMBUF {
 	u32 Hex;
 	struct
 	{
@@ -222,22 +204,15 @@ union UDIIMMBUF
 };
 
 // DI Config Register
-union UDICFG
-{
+union UDICFG {
 	u32 Hex;
 	struct
 	{
 		u32 CONFIG : 8;
 		u32 : 24;
 	};
-	UDICFG()
-	{
-		Hex = 0;
-	}
-	UDICFG(u32 _hex)
-	{
-		Hex = _hex;
-	}
+	UDICFG() { Hex = 0; }
+	UDICFG(u32 _hex) { Hex = _hex; }
 };
 
 static std::unique_ptr<DiscIO::IVolume> s_inserted_volume;
@@ -357,8 +332,7 @@ static u32 ProcessDTKSamples(short* tempPCM, u32 num_samples)
 		s_audio_position += sizeof(tempADPCM);
 		StreamADPCM::DecodeBlock(tempPCM + samples_processed * 2, tempADPCM);
 		samples_processed += StreamADPCM::SAMPLES_PER_BLOCK;
-	}
-	while (samples_processed < num_samples);
+	} while (samples_processed < num_samples);
 	for (unsigned i = 0; i < samples_processed * 2; ++i)
 	{
 		// TODO: Fix the mixer so it can accept non-byte-swapped samples.
@@ -502,10 +476,20 @@ static void InsertDiscCallback(u64 userdata, s64 cyclesLate)
 	delete _FileName;
 }
 
-void ChangeDisc(const std::string& newFileName)
+// Can only be called by the host thread
+void ChangeDiscAsHost(const std::string& newFileName)
 {
-	// WARNING: Can only run on Host Thread
 	bool was_unpaused = Core::PauseAndLock(true);
+
+	// The host thread is now temporarily the CPU thread
+	ChangeDiscAsCPU(newFileName);
+
+	Core::PauseAndLock(false, was_unpaused);
+}
+
+// Can only be called by the CPU thread
+void ChangeDiscAsCPU(const std::string& newFileName)
+{
 	std::string* _FileName = new std::string(newFileName);
 	CoreTiming::ScheduleEvent(0, s_eject_disc);
 	CoreTiming::ScheduleEvent(500000000, s_insert_disc, (u64)_FileName);
@@ -522,7 +506,6 @@ void ChangeDisc(const std::string& newFileName)
 		}
 		Movie::g_discChange = fileName.substr(sizeofpath);
 	}
-	Core::PauseAndLock(false, was_unpaused);
 }
 
 void SetLidOpen(bool open)
@@ -541,8 +524,7 @@ bool ChangePartition(u64 offset)
 void RegisterMMIO(MMIO::Mapping* mmio, u32 base)
 {
 	mmio->Register(base | DI_STATUS_REGISTER, MMIO::DirectRead<u32>(&s_DISR.Hex),
-		MMIO::ComplexWrite<u32>([](u32, u32 val)
-	{
+		MMIO::ComplexWrite<u32>([](u32, u32 val) {
 		UDISR tmpStatusReg(val);
 
 		s_DISR.DEINITMASK = tmpStatusReg.DEINITMASK;
@@ -568,8 +550,7 @@ void RegisterMMIO(MMIO::Mapping* mmio, u32 base)
 	}));
 
 	mmio->Register(base | DI_COVER_REGISTER, MMIO::DirectRead<u32>(&s_DICVR.Hex),
-		MMIO::ComplexWrite<u32>([](u32, u32 val)
-	{
+		MMIO::ComplexWrite<u32>([](u32, u32 val) {
 		UDICVR tmpCoverReg(val);
 
 		s_DICVR.CVRINTMASK = tmpCoverReg.CVRINTMASK;
@@ -594,8 +575,7 @@ void RegisterMMIO(MMIO::Mapping* mmio, u32 base)
 	mmio->Register(base | DI_DMA_LENGTH_REGISTER, MMIO::DirectRead<u32>(&s_DILENGTH.Hex),
 		MMIO::DirectWrite<u32>(&s_DILENGTH.Hex, ~0x1F));
 	mmio->Register(base | DI_DMA_CONTROL_REGISTER, MMIO::DirectRead<u32>(&s_DICR.Hex),
-		MMIO::ComplexWrite<u32>([](u32, u32 val)
-	{
+		MMIO::ComplexWrite<u32>([](u32, u32 val) {
 		s_DICR.Hex = val & 7;
 		if (s_DICR.TSTART)
 		{
@@ -970,7 +950,7 @@ void ExecuteCommand(u32 command_0, u32 command_1, u32 command_2, u32 output_addr
 			/*
 			if (iDVDOffset == 0x84800000)
 			{
-			  ERROR_LOG(DVDINTERFACE, "Firmware upload");
+				ERROR_LOG(DVDINTERFACE, "Firmware upload");
 			}
 			else*/
 			if ((offset < 0) || ((offset + len) > 0x40) || len > 0x40)
@@ -1441,7 +1421,7 @@ s64 CalculateRawDiscReadTime(u64 offset, s64 length)
 	// Note that the speed at a track (in bytes per second) is the same as
 	// the radius of that track because of the length unit used.
 	double speed;
-	if (s_inserted_volume->GetVolumeType() == DiscIO::IVolume::WII_DISC)
+	if (s_inserted_volume->GetVolumeType() == DiscIO::Platform::WII_DISC)
 	{
 		speed = std::sqrt(((average_offset - WII_DISC_LOCATION_1_OFFSET) / WII_BYTES_PER_AREA_UNIT +
 			WII_DISC_AREA_UP_TO_LOCATION_1) /

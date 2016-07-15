@@ -11,35 +11,35 @@
 
 namespace WiimoteEmu
 {
-static const u8 classic_id[] = {0x00, 0x00, 0xa4, 0x20, 0x01, 0x01};
+static const u8 classic_id[] = { 0x00, 0x00, 0xa4, 0x20, 0x01, 0x01 };
 /* Classic Controller calibration */
-static const u8 classic_calibration[] = {0xff, 0x00, 0x80, 0xff, 0x00, 0x80, 0xff, 0x00,
-													  0x80, 0xff, 0x00, 0x80, 0x00, 0x00, 0x51, 0xa6};
+static const u8 classic_calibration[] = { 0xff, 0x00, 0x80, 0xff, 0x00, 0x80, 0xff, 0x00,
+																				 0x80, 0xff, 0x00, 0x80, 0x00, 0x00, 0x51, 0xa6 };
 
 static const u16 classic_button_bitmasks[] = {
-	 Classic::BUTTON_A,     Classic::BUTTON_B,    Classic::BUTTON_X, Classic::BUTTON_Y,
+		Classic::BUTTON_A,     Classic::BUTTON_B,    Classic::BUTTON_X, Classic::BUTTON_Y,
 
-	 Classic::BUTTON_ZL,    Classic::BUTTON_ZR,
+		Classic::BUTTON_ZL,    Classic::BUTTON_ZR,
 
-	 Classic::BUTTON_MINUS, Classic::BUTTON_PLUS,
+		Classic::BUTTON_MINUS, Classic::BUTTON_PLUS,
 
-	 Classic::BUTTON_HOME,
+		Classic::BUTTON_HOME,
 };
 
 static const char* const classic_button_names[] = {
-	 "A", "B", "X", "Y", "ZL", "ZR", "-", "+", "Home",
+		"A", "B", "X", "Y", "ZL", "ZR", "-", "+", "Home",
 };
 
 static const u16 classic_trigger_bitmasks[] = {
-	 Classic::TRIGGER_L, Classic::TRIGGER_R,
+		Classic::TRIGGER_L, Classic::TRIGGER_R,
 };
 
-static const char* const classic_trigger_names[] = {"L", "R", "L-Analog", "R-Analog"};
+static const char* const classic_trigger_names[] = { "L", "R", "L-Analog", "R-Analog" };
 
-static const u16 classic_dpad_bitmasks[] = {Classic::PAD_UP, Classic::PAD_DOWN, Classic::PAD_LEFT,
-														  Classic::PAD_RIGHT};
+static const u16 classic_dpad_bitmasks[] = { Classic::PAD_UP, Classic::PAD_DOWN, Classic::PAD_LEFT,
+																						Classic::PAD_RIGHT };
 
-Classic::Classic(WiimoteEmu::ExtensionReg& _reg): Attachment(_trans("Classic"), _reg)
+Classic::Classic(WiimoteEmu::ExtensionReg& _reg) : Attachment(_trans("Classic"), _reg)
 {
 	// buttons
 	groups.emplace_back(m_buttons = new Buttons("Buttons"));
@@ -104,7 +104,7 @@ void Classic::GetState(u8* const data)
 
 	// triggers
 	{
-		ControlState trigs[2] = {0, 0};
+		ControlState trigs[2] = { 0, 0 };
 		u8 lt, rt;
 		m_triggers->GetState(&ccdata->bt.hex, classic_trigger_bitmasks, trigs);
 
@@ -128,7 +128,7 @@ void Classic::GetState(u8* const data)
 bool Classic::IsButtonPressed() const
 {
 	u16 buttons = 0;
-	ControlState trigs[2] = {0, 0};
+	ControlState trigs[2] = { 0, 0 };
 	m_buttons->GetState(&buttons, classic_button_bitmasks);
 	m_dpad->GetState(&buttons, classic_dpad_bitmasks);
 	m_triggers->GetState(&buttons, classic_trigger_bitmasks, trigs);

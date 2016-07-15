@@ -7,7 +7,7 @@
 #include "WII_IPC_HLE.h"
 #include "WII_IPC_HLE_Device.h"
 
-class CWII_IPC_HLE_Device_usb_oh0: public IWII_IPC_HLE_Device
+class CWII_IPC_HLE_Device_usb_oh0 : public IWII_IPC_HLE_Device
 {
 public:
 	CWII_IPC_HLE_Device_usb_oh0(u32 DeviceID, const std::string& DeviceName);
@@ -39,7 +39,7 @@ private:
 	};
 };
 
-class CWII_IPC_HLE_Device_usb_ven: public IWII_IPC_HLE_Device
+class CWII_IPC_HLE_Device_usb_ven : public IWII_IPC_HLE_Device
 {
 public:
 	CWII_IPC_HLE_Device_usb_ven(u32 DeviceID, const std::string& DeviceName);
@@ -163,7 +163,7 @@ private:
 #pragma pack(pop)
 };
 
-class CWII_IPC_HLE_Device_usb_oh0_57e_308: public IWII_IPC_HLE_Device
+class CWII_IPC_HLE_Device_usb_oh0_57e_308 : public IWII_IPC_HLE_Device
 {
 public:
 	CWII_IPC_HLE_Device_usb_oh0_57e_308(u32 DeviceID, const std::string& DeviceName);
@@ -259,7 +259,7 @@ private:
 	void StreamReadOne();
 };
 
-class CWII_IPC_HLE_Device_usb_oh0_46d_a03: public IWII_IPC_HLE_Device
+class CWII_IPC_HLE_Device_usb_oh0_46d_a03 : public IWII_IPC_HLE_Device
 {
 public:
 	CWII_IPC_HLE_Device_usb_oh0_46d_a03(u32 DeviceID, const std::string& DeviceName);

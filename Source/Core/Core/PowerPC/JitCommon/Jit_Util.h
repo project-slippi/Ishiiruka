@@ -29,7 +29,7 @@ class Mapping;
 
 // A place to throw blocks of code we don't want polluting the cache, e.g. rarely taken
 // exception branches.
-class FarCodeCache: public Gen::X64CodeBlock
+class FarCodeCache : public Gen::X64CodeBlock
 {
 private:
 	bool m_enabled = false;
@@ -104,7 +104,7 @@ struct TrampolineInfo final
 };
 
 // Like XCodeBlock but has some utilities for memory access.
-class EmuCodeBlock: public Gen::X64CodeBlock
+class EmuCodeBlock : public Gen::X64CodeBlock
 {
 public:
 	FarCodeCache farcode;

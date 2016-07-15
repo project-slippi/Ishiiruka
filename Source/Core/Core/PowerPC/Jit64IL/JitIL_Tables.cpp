@@ -64,7 +64,7 @@ static GekkoOPTemplate primarytable[] = {
 	 {15, &JitIL::reg_imm},  //"addis",    OPTYPE_INTEGER, FL_OUT_D | FL_IN_A0}},
 
 	 {20,
-	  &JitIL::rlwimix},  //"rlwimix",  OPTYPE_INTEGER, FL_OUT_A | FL_IN_A | FL_IN_S | FL_RC_BIT}},
+		&JitIL::rlwimix},  //"rlwimix",  OPTYPE_INTEGER, FL_OUT_A | FL_IN_A | FL_IN_S | FL_RC_BIT}},
 	 {21, &JitIL::rlwinmx},  //"rlwinmx",  OPTYPE_INTEGER, FL_OUT_A | FL_IN_S | FL_RC_BIT}},
 	 {23, &JitIL::rlwnmx},  //"rlwnmx",   OPTYPE_INTEGER, FL_OUT_A | FL_IN_S | FL_IN_B | FL_RC_BIT}},
 
@@ -193,9 +193,9 @@ static GekkoOPTemplate table31[] = {
 									 // FL_SET_CA | FL_RC_BIT}},
 	 {714, &JitIL::addzex},  //"addzeox"
 	 {491, &JitIL::FallBackToInterpreter},   //"divwx",   OPTYPE_INTEGER, FL_OUT_D | FL_IN_AB |
-														  // FL_RC_BIT, 39}},
+															// FL_RC_BIT, 39}},
 	 {1003, &JitIL::FallBackToInterpreter},  //"divwox",  OPTYPE_INTEGER, FL_OUT_D | FL_IN_AB |
-														  // FL_RC_BIT, 39}},
+															// FL_RC_BIT, 39}},
 	 {459, &JitIL::divwux},  //"divwux",  OPTYPE_INTEGER, FL_OUT_D | FL_IN_AB | FL_RC_BIT, 39}},
 	 {971, &JitIL::divwux},  //"divwuox", OPTYPE_INTEGER, FL_OUT_D | FL_IN_AB | FL_RC_BIT, 39}},
 	 {75, &JitIL::FallBackToInterpreter},  //"mulhwx",  OPTYPE_INTEGER, FL_OUT_D | FL_IN_AB |
@@ -208,9 +208,9 @@ static GekkoOPTemplate table31[] = {
 	 {40, &JitIL::subfx},    //"subfx",   OPTYPE_INTEGER, FL_OUT_D | FL_IN_AB | FL_RC_BIT}},
 	 {552, &JitIL::subfx},   //"subfox",  OPTYPE_INTEGER, FL_OUT_D | FL_IN_AB | FL_RC_BIT}},
 	 {8,
-	  &JitIL::subfcx},  //"subfcx",  OPTYPE_INTEGER, FL_OUT_D | FL_IN_AB | FL_SET_CA | FL_RC_BIT}},
+		&JitIL::subfcx},  //"subfcx",  OPTYPE_INTEGER, FL_OUT_D | FL_IN_AB | FL_SET_CA | FL_RC_BIT}},
 	 {520,
-	  &JitIL::subfcx},  //"subfcox", OPTYPE_INTEGER, FL_OUT_D | FL_IN_AB | FL_SET_CA | FL_RC_BIT}},
+		&JitIL::subfcx},  //"subfcox", OPTYPE_INTEGER, FL_OUT_D | FL_IN_AB | FL_SET_CA | FL_RC_BIT}},
 	 {136, &JitIL::subfex},  //"subfex",  OPTYPE_INTEGER, FL_OUT_D | FL_IN_AB | FL_READ_CA |
 									 // FL_SET_CA | FL_RC_BIT}},
 	 {648, &JitIL::subfex},  //"subfeox"

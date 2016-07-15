@@ -27,13 +27,12 @@ void CWII_IPC_HLE_Device_sdio_slot0::EnqueueReply(u32 CommandAddress, u32 Return
 	WII_IPC_HLE_Interface::EnqueueReply(CommandAddress);
 }
 
-CWII_IPC_HLE_Device_sdio_slot0::CWII_IPC_HLE_Device_sdio_slot0(u32 _DeviceID, const std::string& _rDeviceName)
-	: IWII_IPC_HLE_Device(_DeviceID, _rDeviceName)
-	, m_Status(CARD_NOT_EXIST)
-	, m_BlockLength(0)
-	, m_BusWidth(0)
-	, m_Card(nullptr)
-{}
+CWII_IPC_HLE_Device_sdio_slot0::CWII_IPC_HLE_Device_sdio_slot0(u32 _DeviceID,
+	const std::string& _rDeviceName)
+	: IWII_IPC_HLE_Device(_DeviceID, _rDeviceName), m_Status(CARD_NOT_EXIST), m_BlockLength(0),
+	m_BusWidth(0), m_Card(nullptr)
+{
+}
 
 void CWII_IPC_HLE_Device_sdio_slot0::DoState(PointerWrap& p)
 {
@@ -50,6 +49,8 @@ void CWII_IPC_HLE_Device_sdio_slot0::DoState(PointerWrap& p)
 
 void CWII_IPC_HLE_Device_sdio_slot0::EventNotify()
 {
+	// Accessing SConfig variables like this isn't really threadsafe,
+	// but this is how it's done all over the place...
 	if ((SConfig::GetInstance().m_WiiSDCard && m_event.type == EVENT_INSERT) ||
 		(!SConfig::GetInstance().m_WiiSDCard && m_event.type == EVENT_REMOVE))
 	{
@@ -73,7 +74,8 @@ void CWII_IPC_HLE_Device_sdio_slot0::OpenInternal()
 		}
 		if (!m_Card)
 		{
-			ERROR_LOG(WII_IPC_SD, "Could not open SD Card image or create a new one, are you running from a read-only directory?");
+			ERROR_LOG(WII_IPC_SD, "Could not open SD Card image or create a new one, are you running "
+				"from a read-only directory?");
 		}
 	}
 }
@@ -190,8 +192,7 @@ IPCCommandResult CWII_IPC_HLE_Device_sdio_slot0::IOCtl(u32 _CommandAddress)
 	break;
 
 	case IOCTL_SENDCMD:
-		INFO_LOG(WII_IPC_SD, "IOCTL_SENDCMD %x IPC:%08x",
-			Memory::Read_U32(BufferIn), _CommandAddress);
+		INFO_LOG(WII_IPC_SD, "IOCTL_SENDCMD %x IPC:%08x", Memory::Read_U32(BufferIn), _CommandAddress);
 		ReturnValue = ExecuteCommand(BufferIn, BufferInSize, 0, 0, BufferOut, BufferOutSize);
 		break;
 
@@ -266,7 +267,8 @@ IPCCommandResult CWII_IPC_HLE_Device_sdio_slot0::IOCtlV(u32 _CommandAddress)
 	switch (CommandBuffer.Parameter)
 	{
 	case IOCTLV_SENDCMD:
-		INFO_LOG(WII_IPC_SD, "IOCTLV_SENDCMD 0x%08x", Memory::Read_U32(CommandBuffer.InBuffer[0].m_Address));
+		INFO_LOG(WII_IPC_SD, "IOCTLV_SENDCMD 0x%08x",
+			Memory::Read_U32(CommandBuffer.InBuffer[0].m_Address));
 		ReturnValue = ExecuteCommand(
 			CommandBuffer.InBuffer[0].m_Address, CommandBuffer.InBuffer[0].m_Size,
 			CommandBuffer.InBuffer[1].m_Address, CommandBuffer.InBuffer[1].m_Size,
@@ -278,16 +280,17 @@ IPCCommandResult CWII_IPC_HLE_Device_sdio_slot0::IOCtlV(u32 _CommandAddress)
 		break;
 	}
 
-	//DumpAsync(CommandBuffer.BufferVector, CommandBuffer.NumberInBuffer, CommandBuffer.NumberPayloadBuffer, LogTypes::WII_IPC_SD);
+	// DumpAsync(CommandBuffer.BufferVector, CommandBuffer.NumberInBuffer,
+	// CommandBuffer.NumberPayloadBuffer, LogTypes::WII_IPC_SD);
 
 	Memory::Write_U32(ReturnValue, _CommandAddress + 0x4);
 
 	return GetDefaultReply();
 }
 
-u32 CWII_IPC_HLE_Device_sdio_slot0::ExecuteCommand(u32 _BufferIn, u32 _BufferInSize,
-	u32 _rwBuffer, u32 _rwBufferSize,
-	u32 _BufferOut, u32 _BufferOutSize)
+u32 CWII_IPC_HLE_Device_sdio_slot0::ExecuteCommand(u32 _BufferIn, u32 _BufferInSize, u32 _rwBuffer,
+	u32 _rwBufferSize, u32 _BufferOut,
+	u32 _BufferOutSize)
 {
 	// The game will send us a SendCMD with this information. To be able to read and write
 	// to a file we need to prepare a 0x10 byte output buffer as response.
@@ -315,7 +318,6 @@ u32 CWII_IPC_HLE_Device_sdio_slot0::ExecuteCommand(u32 _BufferIn, u32 _BufferInS
 	req.pad0 = Memory::Read_U32(_BufferIn + 32);
 
 	// Note: req.addr is the virtual address of _rwBuffer
-
 
 	u32 ret = RET_OK;
 
@@ -400,15 +402,14 @@ u32 CWII_IPC_HLE_Device_sdio_slot0::ExecuteCommand(u32 _BufferIn, u32 _BufferInS
 			if (!m_Card.Seek(req.arg, SEEK_SET))
 				ERROR_LOG(WII_IPC_SD, "Seek failed WTF");
 
-
 			if (m_Card.ReadBytes(Memory::GetPointer(req.addr), size))
 			{
 				DEBUG_LOG(WII_IPC_SD, "Outbuffer size %i got %i", _rwBufferSize, size);
 			}
 			else
 			{
-				ERROR_LOG(WII_IPC_SD, "Read Failed - error: %i, eof: %i",
-					ferror(m_Card.GetHandle()), feof(m_Card.GetHandle()));
+				ERROR_LOG(WII_IPC_SD, "Read Failed - error: %i, eof: %i", ferror(m_Card.GetHandle()),
+					feof(m_Card.GetHandle()));
 				ret = RET_FAIL;
 			}
 		}
@@ -432,8 +433,8 @@ u32 CWII_IPC_HLE_Device_sdio_slot0::ExecuteCommand(u32 _BufferIn, u32 _BufferInS
 
 			if (!m_Card.WriteBytes(Memory::GetPointer(req.addr), size))
 			{
-				ERROR_LOG(WII_IPC_SD, "Write Failed - error: %i, eof: %i",
-					ferror(m_Card.GetHandle()), feof(m_Card.GetHandle()));
+				ERROR_LOG(WII_IPC_SD, "Write Failed - error: %i, eof: %i", ferror(m_Card.GetHandle()),
+					feof(m_Card.GetHandle()));
 				ret = RET_FAIL;
 			}
 		}
@@ -441,13 +442,13 @@ u32 CWII_IPC_HLE_Device_sdio_slot0::ExecuteCommand(u32 _BufferIn, u32 _BufferInS
 	Memory::Write_U32(0x900, _BufferOut);
 	break;
 
-	case EVENT_REGISTER: // async
+	case EVENT_REGISTER:  // async
 		DEBUG_LOG(WII_IPC_SD, "Register event %x", req.arg);
 		m_event.type = (EventType)req.arg;
 		ret = RET_EVENT_REGISTER;
 		break;
 
-	case EVENT_UNREGISTER: // synchronous
+	case EVENT_UNREGISTER:  // synchronous
 		DEBUG_LOG(WII_IPC_SD, "Unregister event %x", req.arg);
 		m_event.type = (EventType)req.arg;
 		ret = RET_EVENT_UNREGISTER;

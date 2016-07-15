@@ -10,7 +10,7 @@ namespace WiimoteEmu
 {
 struct ExtensionReg;
 
-class Turntable: public Attachment
+class Turntable : public Attachment
 {
 public:
 	Turntable(WiimoteEmu::ExtensionReg& _reg);

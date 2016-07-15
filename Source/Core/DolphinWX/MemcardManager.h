@@ -17,7 +17,7 @@ class wxFileDirPickerEvent;
 class wxFilePickerCtrl;
 class wxStaticText;
 
-class CMemcardManager final: public wxDialog
+class CMemcardManager final : public wxDialog
 {
 public:
 	CMemcardManager(wxWindow* parent);
@@ -113,7 +113,7 @@ private:
 		bool column[NUMBER_OF_COLUMN + 1];
 	} mcmSettings;
 
-	class CMemcardListCtrl: public wxListCtrl
+	class CMemcardListCtrl : public wxListCtrl
 	{
 	public:
 		CMemcardListCtrl(wxWindow* parent, const wxWindowID id,

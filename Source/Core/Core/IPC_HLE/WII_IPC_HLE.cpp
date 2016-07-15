@@ -32,6 +32,7 @@ They will also generate a true or false return for UpdateInterrupts() in WII_IPC
 #include "Common/Thread.h"
 
 #include "Core/ConfigManager.h"
+#include "Core/Core.h"
 #include "Core/CoreTiming.h"
 #include "Core/Debugger/Debugger_SymbolMap.h"
 #include "Core/HW/CPU.h"
@@ -42,8 +43,8 @@ They will also generate a true or false return for UpdateInterrupts() in WII_IPC
 #include "Core/IPC_HLE/WII_IPC_HLE.h"
 #include "Core/IPC_HLE/WII_IPC_HLE_Device.h"
 #include "Core/IPC_HLE/WII_IPC_HLE_Device_DI.h"
-#include "Core/IPC_HLE/WII_IPC_HLE_Device_es.h"
 #include "Core/IPC_HLE/WII_IPC_HLE_Device_FileIO.h"
+#include "Core/IPC_HLE/WII_IPC_HLE_Device_es.h"
 #include "Core/IPC_HLE/WII_IPC_HLE_Device_fs.h"
 #include "Core/IPC_HLE/WII_IPC_HLE_Device_net.h"
 #include "Core/IPC_HLE/WII_IPC_HLE_Device_net_ssl.h"
@@ -53,7 +54,7 @@ They will also generate a true or false return for UpdateInterrupts() in WII_IPC
 #include "Core/IPC_HLE/WII_IPC_HLE_WiiSpeak.h"
 #include "Core/IPC_HLE/WII_IPC_HLE_Device_usb_kbd.h"
 
-#if defined(__LIBUSB__) || defined (_WIN32)
+#if defined(__LIBUSB__) || defined(_WIN32)
 #include "Core/IPC_HLE/WII_IPC_HLE_Device_hid.h"
 #endif
 
@@ -61,7 +62,6 @@ They will also generate a true or false return for UpdateInterrupts() in WII_IPC
 
 namespace WII_IPC_HLE_Interface
 {
-
 typedef std::map<u32, std::shared_ptr<IWII_IPC_HLE_Device>> TDeviceMap;
 static TDeviceMap g_DeviceMap;
 
@@ -72,13 +72,13 @@ static std::shared_ptr<IWII_IPC_HLE_Device> g_FdMap[IPC_MAX_FDS];
 static bool es_inuse[ES_MAX_COUNT];
 static std::shared_ptr<IWII_IPC_HLE_Device> es_handles[ES_MAX_COUNT];
 
-
 typedef std::deque<u32> ipc_msg_queue;
-static ipc_msg_queue request_queue; // ppc -> arm
-static ipc_msg_queue reply_queue;   // arm -> ppc
-static ipc_msg_queue ack_queue;   // arm -> ppc
+static ipc_msg_queue request_queue;  // ppc -> arm
+static ipc_msg_queue reply_queue;    // arm -> ppc
+static ipc_msg_queue ack_queue;      // arm -> ppc
 
 static int event_enqueue;
+static int event_sdio_notify;
 
 static u64 last_reply_time;
 
@@ -99,6 +99,14 @@ static void EnqueueEvent(u64 userdata, s64 cycles_late = 0)
 		reply_queue.push_back((u32)userdata);
 	}
 	Update();
+}
+
+void SDIO_EventNotify_CPUThread(u64 userdata, s64 cycles_late)
+{
+	auto device =
+		static_cast<CWII_IPC_HLE_Device_sdio_slot0*>(GetDeviceByName("/dev/sdio/slot0").get());
+	if (device)
+		device->EventNotify();
 }
 
 static u32 num_devices;
@@ -159,6 +167,7 @@ void Init()
 	AddDevice<IWII_IPC_HLE_Device>("_Unimplemented_Device_");
 
 	event_enqueue = CoreTiming::RegisterEvent("IPCEvent", EnqueueEvent);
+	event_sdio_notify = CoreTiming::RegisterEvent("SDIO_EventNotify", SDIO_EventNotify_CPUThread);
 }
 
 void Reset(bool _bHard)
@@ -223,9 +232,10 @@ void ES_DIVerify(const std::vector<u8>& tmd)
 
 void SDIO_EventNotify()
 {
-	auto pDevice = static_cast<CWII_IPC_HLE_Device_sdio_slot0*>(GetDeviceByName("/dev/sdio/slot0").get());
-	if (pDevice)
-		pDevice->EventNotify();
+	// TODO: Potential race condition: If IsRunning() becomes false after
+	// it's checked, an event may be scheduled after CoreTiming shuts down.
+	if (SConfig::GetInstance().bWii && Core::IsRunning())
+		CoreTiming::ScheduleEvent_Threadsafe(0, event_sdio_notify);
 }
 
 int getFreeDeviceId()
@@ -272,14 +282,14 @@ std::shared_ptr<IWII_IPC_HLE_Device> CreateFileIO(u32 _DeviceID, const std::stri
 	return std::make_shared<CWII_IPC_HLE_Device_FileIO>(_DeviceID, _rDeviceName);
 }
 
-
-void DoState(PointerWrap &p)
+void DoState(PointerWrap& p)
 {
 	p.Do(request_queue);
 	p.Do(reply_queue);
 	p.Do(last_reply_time);
 
-	// We need to make sure all file handles are closed so WII_IPC_Devices_fs::DoState can successfully save or re-create /tmp
+	// We need to make sure all file handles are closed so WII_IPC_Devices_fs::DoState can
+	// successfully save or re-create /tmp
 	for (auto& descriptor : g_FdMap)
 	{
 		if (descriptor)
@@ -365,9 +375,11 @@ void ExecuteCommand(u32 _Address)
 	IPCCommandType Command = static_cast<IPCCommandType>(Memory::Read_U32(_Address));
 	s32 DeviceID = Memory::Read_U32(_Address + 8);
 
-	std::shared_ptr<IWII_IPC_HLE_Device> pDevice = (DeviceID >= 0 && DeviceID < IPC_MAX_FDS) ? g_FdMap[DeviceID] : nullptr;
+	std::shared_ptr<IWII_IPC_HLE_Device> pDevice =
+		(DeviceID >= 0 && DeviceID < IPC_MAX_FDS) ? g_FdMap[DeviceID] : nullptr;
 
-	INFO_LOG(WII_IPC_HLE, "-->> Execute Command Address: 0x%08x (code: %x, device: %x) %p", _Address, Command, DeviceID, pDevice.get());
+	INFO_LOG(WII_IPC_HLE, "-->> Execute Command Address: 0x%08x (code: %x, device: %x) %p", _Address,
+		Command, DeviceID, pDevice.get());
 
 	switch (Command)
 	{
@@ -619,8 +631,7 @@ void UpdateDevices()
 	}
 }
 
-
-} // end of namespace WII_IPC_HLE_Interface
+}  // end of namespace WII_IPC_HLE_Interface
 
 // TODO: create WII_IPC_HLE_Device.cpp ?
 void IWII_IPC_HLE_Device::DoStateShared(PointerWrap& p)

@@ -15,7 +15,7 @@
 
 #include "Core/ConfigManager.h"
 
-class GCAdapterConfigDiag: public wxDialog
+class GCAdapterConfigDiag : public wxDialog
 {
 public:
 	GCAdapterConfigDiag(wxWindow* const parent, const wxString& name, const int tab_num = 0);

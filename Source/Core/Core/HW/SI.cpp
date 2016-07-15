@@ -58,8 +58,7 @@ enum
 };
 
 // SI Channel Output
-union USIChannelOut
-{
+union USIChannelOut {
 	u32 Hex;
 	struct
 	{
@@ -71,8 +70,7 @@ union USIChannelOut
 };
 
 // SI Channel Input High u32
-union USIChannelIn_Hi
-{
+union USIChannelIn_Hi {
 	u32 Hex;
 	struct
 	{
@@ -86,8 +84,7 @@ union USIChannelIn_Hi
 };
 
 // SI Channel Input Low u32
-union USIChannelIn_Lo
-{
+union USIChannelIn_Lo {
 	u32 Hex;
 	struct
 	{
@@ -108,8 +105,7 @@ struct SSIChannel
 };
 
 // SI Poll: Controls how often a device is polled
-union USIPoll
-{
+union USIPoll {
 	u32 Hex;
 	struct
 	{
@@ -128,41 +124,33 @@ union USIPoll
 };
 
 // SI Communication Control Status Register
-union USIComCSR
-{
+union USIComCSR {
 	u32 Hex;
 	struct
 	{
 		u32 TSTART : 1;   // write: start transfer  read: transfer status
 		u32 CHANNEL : 2;  // determines which SI channel will be used on the communication interface.
 		u32 : 3;
-				u32 CALLBEN : 1;  // Callback enable
-				u32 CMDEN : 1;    // Command enable?
-				u32 INLNGTH : 7;
-				u32 : 1;
-						u32 OUTLNGTH : 7;  // Communication Channel Output Length in bytes
-						u32 : 1;
-								u32 CHANEN : 1;      // Channel enable?
-								u32 CHANNUM : 2;     // Channel number?
-								u32 RDSTINTMSK : 1;  // Read Status Interrupt Status Mask
-								u32 RDSTINT : 1;     // Read Status Interrupt Status
-								u32 COMERR : 1;      // Communication Error (set 0)
-								u32 TCINTMSK : 1;    // Transfer Complete Interrupt Mask
-								u32 TCINT : 1;       // Transfer Complete Interrupt
+					u32 CALLBEN : 1;  // Callback enable
+					u32 CMDEN : 1;    // Command enable?
+					u32 INLNGTH : 7;
+					u32 : 1;
+								u32 OUTLNGTH : 7;  // Communication Channel Output Length in bytes
+								u32 : 1;
+											u32 CHANEN : 1;      // Channel enable?
+											u32 CHANNUM : 2;     // Channel number?
+											u32 RDSTINTMSK : 1;  // Read Status Interrupt Status Mask
+											u32 RDSTINT : 1;     // Read Status Interrupt Status
+											u32 COMERR : 1;      // Communication Error (set 0)
+											u32 TCINTMSK : 1;    // Transfer Complete Interrupt Mask
+											u32 TCINT : 1;       // Transfer Complete Interrupt
 	};
-	USIComCSR()
-	{
-		Hex = 0;
-	}
-	USIComCSR(u32 _hex)
-	{
-		Hex = _hex;
-	}
+	USIComCSR() { Hex = 0; }
+	USIComCSR(u32 _hex) { Hex = _hex; }
 };
 
 // SI Status Register
-union USIStatusReg
-{
+union USIStatusReg {
 	u32 Hex;
 	struct
 	{
@@ -173,42 +161,35 @@ union USIStatusReg
 		u32 WRST3 : 1;   // (R) 1: buffer channel0 not copied
 		u32 RDST3 : 1;   // (R) 1: new Data available
 		u32 : 2;         // 7:6
-				u32 UNRUN2 : 1;  // (RWC) write 1: bit cleared  read 1: main proc underrun error
-				u32 OVRUN2 : 1;  // (RWC) write 1: bit cleared  read 1: overrun error
-				u32 COLL2 : 1;   // (RWC) write 1: bit cleared  read 1: collision error
-				u32 NOREP2 : 1;  // (RWC) write 1: bit cleared  read 1: response error
-				u32 WRST2 : 1;   // (R) 1: buffer channel0 not copied
-				u32 RDST2 : 1;   // (R) 1: new Data available
-				u32 : 2;         // 15:14
-						u32 UNRUN1 : 1;  // (RWC) write 1: bit cleared  read 1: main proc underrun error
-						u32 OVRUN1 : 1;  // (RWC) write 1: bit cleared  read 1: overrun error
-						u32 COLL1 : 1;   // (RWC) write 1: bit cleared  read 1: collision error
-						u32 NOREP1 : 1;  // (RWC) write 1: bit cleared  read 1: response error
-						u32 WRST1 : 1;   // (R) 1: buffer channel0 not copied
-						u32 RDST1 : 1;   // (R) 1: new Data available
-						u32 : 2;         // 23:22
-								u32 UNRUN0 : 1;  // (RWC) write 1: bit cleared  read 1: main proc underrun error
-								u32 OVRUN0 : 1;  // (RWC) write 1: bit cleared  read 1: overrun error
-								u32 COLL0 : 1;   // (RWC) write 1: bit cleared  read 1: collision error
-								u32 NOREP0 : 1;  // (RWC) write 1: bit cleared  read 1: response error
-								u32 WRST0 : 1;   // (R) 1: buffer channel0 not copied
-								u32 RDST0 : 1;   // (R) 1: new Data available
-								u32 : 1;
-										u32 WR : 1;  // (RW) write 1 start copy, read 0 copy done
+					u32 UNRUN2 : 1;  // (RWC) write 1: bit cleared  read 1: main proc underrun error
+					u32 OVRUN2 : 1;  // (RWC) write 1: bit cleared  read 1: overrun error
+					u32 COLL2 : 1;   // (RWC) write 1: bit cleared  read 1: collision error
+					u32 NOREP2 : 1;  // (RWC) write 1: bit cleared  read 1: response error
+					u32 WRST2 : 1;   // (R) 1: buffer channel0 not copied
+					u32 RDST2 : 1;   // (R) 1: new Data available
+					u32 : 2;         // 15:14
+								u32 UNRUN1 : 1;  // (RWC) write 1: bit cleared  read 1: main proc underrun error
+								u32 OVRUN1 : 1;  // (RWC) write 1: bit cleared  read 1: overrun error
+								u32 COLL1 : 1;   // (RWC) write 1: bit cleared  read 1: collision error
+								u32 NOREP1 : 1;  // (RWC) write 1: bit cleared  read 1: response error
+								u32 WRST1 : 1;   // (R) 1: buffer channel0 not copied
+								u32 RDST1 : 1;   // (R) 1: new Data available
+								u32 : 2;         // 23:22
+											u32 UNRUN0 : 1;  // (RWC) write 1: bit cleared  read 1: main proc underrun error
+											u32 OVRUN0 : 1;  // (RWC) write 1: bit cleared  read 1: overrun error
+											u32 COLL0 : 1;   // (RWC) write 1: bit cleared  read 1: collision error
+											u32 NOREP0 : 1;  // (RWC) write 1: bit cleared  read 1: response error
+											u32 WRST0 : 1;   // (R) 1: buffer channel0 not copied
+											u32 RDST0 : 1;   // (R) 1: new Data available
+											u32 : 1;
+														u32 WR : 1;  // (RW) write 1 start copy, read 0 copy done
 	};
-	USIStatusReg()
-	{
-		Hex = 0;
-	}
-	USIStatusReg(u32 _hex)
-	{
-		Hex = _hex;
-	}
+	USIStatusReg() { Hex = 0; }
+	USIStatusReg(u32 _hex) { Hex = _hex; }
 };
 
 // SI EXI Clock Count
-union USIEXIClockCount
-{
+union USIEXIClockCount {
 	u32 Hex;
 	struct
 	{
@@ -338,16 +319,14 @@ void RegisterMMIO(MMIO::Mapping* mmio, u32 base)
 			MMIO::DirectRead<u32>(&g_Channel[i].m_Out.Hex),
 			MMIO::DirectWrite<u32>(&g_Channel[i].m_Out.Hex));
 		mmio->Register(base | (SI_CHANNEL_0_IN_HI + 0xC * i),
-			MMIO::ComplexRead<u32>([i, rdst_bit](u32)
-		{
+			MMIO::ComplexRead<u32>([i, rdst_bit](u32) {
 			g_StatusReg.Hex &= ~(1 << rdst_bit);
 			UpdateInterrupts();
 			return g_Channel[i].m_InHi.Hex;
 		}),
 			MMIO::DirectWrite<u32>(&g_Channel[i].m_InHi.Hex));
 		mmio->Register(base | (SI_CHANNEL_0_IN_LO + 0xC * i),
-			MMIO::ComplexRead<u32>([i, rdst_bit](u32)
-		{
+			MMIO::ComplexRead<u32>([i, rdst_bit](u32) {
 			g_StatusReg.Hex &= ~(1 << rdst_bit);
 			UpdateInterrupts();
 			return g_Channel[i].m_InLo.Hex;
@@ -359,8 +338,7 @@ void RegisterMMIO(MMIO::Mapping* mmio, u32 base)
 		MMIO::DirectWrite<u32>(&g_Poll.Hex));
 
 	mmio->Register(base | SI_COM_CSR, MMIO::DirectRead<u32>(&g_ComCSR.Hex),
-		MMIO::ComplexWrite<u32>([](u32, u32 val)
-	{
+		MMIO::ComplexWrite<u32>([](u32, u32 val) {
 		USIComCSR tmpComCSR(val);
 
 		g_ComCSR.CHANNEL = tmpComCSR.CHANNEL;
@@ -392,8 +370,7 @@ void RegisterMMIO(MMIO::Mapping* mmio, u32 base)
 	}));
 
 	mmio->Register(base | SI_STATUS_REG, MMIO::DirectRead<u32>(&g_StatusReg.Hex),
-		MMIO::ComplexWrite<u32>([](u32, u32 val)
-	{
+		MMIO::ComplexWrite<u32>([](u32, u32 val) {
 		USIStatusReg tmpStatus(val);
 
 		// clear bits ( if (tmp.bit) SISR.bit=0 )

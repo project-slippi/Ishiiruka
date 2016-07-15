@@ -195,7 +195,7 @@ static void ApplyMode()
 		break;
 
 	case MODE_JIT:  // Switching from interpreter to JIT.
-	  // Don't really need to do much. It'll work, the cache will refill itself.
+		// Don't really need to do much. It'll work, the cache will refill itself.
 		s_cpu_core_base = JitInterface::GetCore();
 		if (!s_cpu_core_base)  // Has a chance to not get a working JIT core if one isn't active on host
 			s_cpu_core_base = s_interpreter;

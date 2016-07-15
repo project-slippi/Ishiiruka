@@ -16,27 +16,27 @@ static const struct
 {
 	const char* const name;
 	const WORD bitmask;
-} named_buttons[] = {{"Button A", XINPUT_GAMEPAD_A},
-							{"Button B", XINPUT_GAMEPAD_B},
-							{"Button X", XINPUT_GAMEPAD_X},
-							{"Button Y", XINPUT_GAMEPAD_Y},
-							{"Pad N", XINPUT_GAMEPAD_DPAD_UP},
-							{"Pad S", XINPUT_GAMEPAD_DPAD_DOWN},
-							{"Pad W", XINPUT_GAMEPAD_DPAD_LEFT},
-							{"Pad E", XINPUT_GAMEPAD_DPAD_RIGHT},
-							{"Start", XINPUT_GAMEPAD_START},
-							{"Back", XINPUT_GAMEPAD_BACK},
-							{"Shoulder L", XINPUT_GAMEPAD_LEFT_SHOULDER},
-							{"Shoulder R", XINPUT_GAMEPAD_RIGHT_SHOULDER},
-							{"Guide", XINPUT_GAMEPAD_GUIDE},
-							{"Thumb L", XINPUT_GAMEPAD_LEFT_THUMB},
-							{"Thumb R", XINPUT_GAMEPAD_RIGHT_THUMB}};
+} named_buttons[] = { {"Button A", XINPUT_GAMEPAD_A},
+										 {"Button B", XINPUT_GAMEPAD_B},
+										 {"Button X", XINPUT_GAMEPAD_X},
+										 {"Button Y", XINPUT_GAMEPAD_Y},
+										 {"Pad N", XINPUT_GAMEPAD_DPAD_UP},
+										 {"Pad S", XINPUT_GAMEPAD_DPAD_DOWN},
+										 {"Pad W", XINPUT_GAMEPAD_DPAD_LEFT},
+										 {"Pad E", XINPUT_GAMEPAD_DPAD_RIGHT},
+										 {"Start", XINPUT_GAMEPAD_START},
+										 {"Back", XINPUT_GAMEPAD_BACK},
+										 {"Shoulder L", XINPUT_GAMEPAD_LEFT_SHOULDER},
+										 {"Shoulder R", XINPUT_GAMEPAD_RIGHT_SHOULDER},
+										 {"Guide", XINPUT_GAMEPAD_GUIDE},
+										 {"Thumb L", XINPUT_GAMEPAD_LEFT_THUMB},
+										 {"Thumb R", XINPUT_GAMEPAD_RIGHT_THUMB} };
 
-static const char* const named_triggers[] = {"Trigger L", "Trigger R"};
+static const char* const named_triggers[] = { "Trigger L", "Trigger R" };
 
-static const char* const named_axes[] = {"Left X", "Left Y", "Right X", "Right Y"};
+static const char* const named_axes[] = { "Left X", "Left Y", "Right X", "Right Y" };
 
-static const char* const named_motors[] = {"Motor L", "Motor R"};
+static const char* const named_motors[] = { "Motor L", "Motor R" };
 
 static HMODULE hXInput = nullptr;
 
@@ -101,7 +101,7 @@ void DeInit()
 	}
 }
 
-Device::Device(const XINPUT_CAPABILITIES& caps, u8 index): m_subtype(caps.SubType), m_index(index)
+Device::Device(const XINPUT_CAPABILITIES& caps, u8 index) : m_subtype(caps.SubType), m_index(index)
 {
 	// XInputGetCaps seems to always claim all capabilities are supported
 	// but I will leave all this stuff in, incase m$ fixes xinput up a bit
@@ -169,11 +169,6 @@ std::string Device::GetName() const
 	default:
 		return "Device";
 	}
-}
-
-int Device::GetId() const
-{
-	return m_index;
 }
 
 std::string Device::GetSource() const

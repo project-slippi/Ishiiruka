@@ -6,7 +6,7 @@
 
 #include "Core/HW/SI_DeviceGCController.h"
 
-class CSIDevice_GCSteeringWheel: public CSIDevice_GCController
+class CSIDevice_GCSteeringWheel : public CSIDevice_GCController
 {
 private:
 	// Commands

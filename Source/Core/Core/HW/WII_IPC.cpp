@@ -58,18 +58,9 @@ struct CtrlRegister
 	u8 IY1 : 1;
 	u8 IY2 : 1;
 
-	CtrlRegister()
-	{
-		X1 = X2 = Y1 = Y2 = IX1 = IX2 = IY1 = IY2 = 0;
-	}
-	inline u8 ppc()
-	{
-		return (IY2 << 5) | (IY1 << 4) | (X2 << 3) | (Y1 << 2) | (Y2 << 1) | X1;
-	}
-	inline u8 arm()
-	{
-		return (IX2 << 5) | (IX1 << 4) | (Y2 << 3) | (X1 << 2) | (X2 << 1) | Y1;
-	}
+	CtrlRegister() { X1 = X2 = Y1 = Y2 = IX1 = IX2 = IY1 = IY2 = 0; }
+	inline u8 ppc() { return (IY2 << 5) | (IY1 << 4) | (X2 << 3) | (Y1 << 2) | (Y2 << 1) | X1; }
+	inline u8 arm() { return (IX2 << 5) | (IX1 << 4) | (Y2 << 3) | (X1 << 2) | (X2 << 1) | Y1; }
 	inline void ppc(u32 v)
 	{
 		X1 = v & 1;
@@ -148,18 +139,15 @@ void Reset()
 }
 
 void Shutdown()
-{}
+{
+}
 
 void RegisterMMIO(MMIO::Mapping* mmio, u32 base)
 {
 	mmio->Register(base | IPC_PPCMSG, MMIO::InvalidRead<u32>(), MMIO::DirectWrite<u32>(&ppc_msg));
 
-	mmio->Register(base | IPC_PPCCTRL, MMIO::ComplexRead<u32>([](u32)
-	{
-		return ctrl.ppc();
-	}),
-		MMIO::ComplexWrite<u32>([](u32, u32 val)
-	{
+	mmio->Register(base | IPC_PPCCTRL, MMIO::ComplexRead<u32>([](u32) { return ctrl.ppc(); }),
+		MMIO::ComplexWrite<u32>([](u32, u32 val) {
 		ctrl.ppc(val);
 		if (ctrl.X1)
 			WII_IPC_HLE_Interface::EnqueueRequest(ppc_msg);
@@ -170,16 +158,14 @@ void RegisterMMIO(MMIO::Mapping* mmio, u32 base)
 	mmio->Register(base | IPC_ARMMSG, MMIO::DirectRead<u32>(&arm_msg), MMIO::InvalidWrite<u32>());
 
 	mmio->Register(base | PPC_IRQFLAG, MMIO::InvalidRead<u32>(),
-		MMIO::ComplexWrite<u32>([](u32, u32 val)
-	{
+		MMIO::ComplexWrite<u32>([](u32, u32 val) {
 		ppc_irq_flags &= ~val;
 		WII_IPC_HLE_Interface::Update();
 		CoreTiming::ScheduleEvent(0, updateInterrupts, 0);
 	}));
 
 	mmio->Register(base | PPC_IRQMASK, MMIO::InvalidRead<u32>(),
-		MMIO::ComplexWrite<u32>([](u32, u32 val)
-	{
+		MMIO::ComplexWrite<u32>([](u32, u32 val) {
 		ppc_irq_masks = val;
 		if (ppc_irq_masks & INT_CAUSE_IPC_BROADWAY)  // wtf?
 			Reset();

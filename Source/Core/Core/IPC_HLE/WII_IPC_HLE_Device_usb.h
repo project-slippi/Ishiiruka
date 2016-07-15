@@ -10,9 +10,9 @@
 #include <vector>
 
 #include "Core/HW/Wiimote.h"
-#include "Core/IPC_HLE/hci.h"
 #include "Core/IPC_HLE/WII_IPC_HLE.h"
 #include "Core/IPC_HLE/WII_IPC_HLE_Device.h"
+#include "Core/IPC_HLE/hci.h"
 
 class CWII_IPC_HLE_WiiMote;
 
@@ -22,9 +22,7 @@ struct SQueuedEvent
 	u32 m_size;
 	u16 m_connectionHandle;
 
-	SQueuedEvent(u32 size, u16 connectionHandle)
-		: m_size(size)
-		, m_connectionHandle(connectionHandle)
+	SQueuedEvent(u32 size, u16 connectionHandle) : m_size(size), m_connectionHandle(connectionHandle)
 	{
 		if (m_size > 1024)
 		{
@@ -34,17 +32,14 @@ struct SQueuedEvent
 		memset(m_buffer, 0, 1024);
 	}
 
-	SQueuedEvent()
-		: m_size(0)
-		, m_connectionHandle(0)
-	{}
+	SQueuedEvent() : m_size(0), m_connectionHandle(0) {}
 };
 
 // Important to remember that this class is for /dev/usb/oh1/57e/305 ONLY
 // /dev/usb/oh1 -> internal usb bus
 // 57e/305 -> VendorID/ProductID of device on usb bus
 // This device is ONLY the internal Bluetooth module (based on BCM2045 chip)
-class CWII_IPC_HLE_Device_usb_oh1_57e_305: public IWII_IPC_HLE_Device
+class CWII_IPC_HLE_Device_usb_oh1_57e_305 : public IWII_IPC_HLE_Device
 {
 public:
 	CWII_IPC_HLE_Device_usb_oh1_57e_305(u32 _DeviceID, const std::string& _rDeviceName);
@@ -72,7 +67,7 @@ public:
 	CWII_IPC_HLE_WiiMote* AccessWiiMote(const bdaddr_t& _rAddr);
 	CWII_IPC_HLE_WiiMote* AccessWiiMote(u16 _ConnectionHandle);
 
-	void DoState(PointerWrap &p) override;
+	void DoState(PointerWrap& p) override;
 
 private:
 	enum USBIOCtl
@@ -92,8 +87,8 @@ private:
 
 	struct SHCICommandMessage
 	{
-		u8  bRequestType;
-		u8  bRequest;
+		u8 bRequestType;
+		u8 bRequest;
 		u16 wValue;
 		u16 wIndex;
 		u16 wLength;
@@ -109,14 +104,13 @@ private:
 		u32 m_address;
 		u32 m_buffer;
 
-		CtrlBuffer(u32 _Address): m_address(_Address), m_buffer()
+		CtrlBuffer(u32 _Address) : m_address(_Address), m_buffer()
 		{
 			if (m_address)
 			{
 				u32 InBufferNum = Memory::Read_U32(m_address + 0x10);
 				u32 BufferVector = Memory::Read_U32(m_address + 0x18);
-				m_buffer = Memory::Read_U32(
-					BufferVector + InBufferNum * sizeof(SIOCtlVBuffer::SBuffer));
+				m_buffer = Memory::Read_U32(BufferVector + InBufferNum * sizeof(SIOCtlVBuffer::SBuffer));
 			}
 		}
 
@@ -125,20 +119,9 @@ private:
 			Memory::CopyToEmu(m_buffer, (u8*)src, size);
 		}
 
-		inline void SetRetVal(const u32 retval) const
-		{
-			Memory::Write_U32(retval, m_address + 4);
-		}
-
-		inline bool IsValid() const
-		{
-			return m_address != 0;
-		}
-
-		inline void Invalidate()
-		{
-			m_address = m_buffer = 0;
-		}
+		inline void SetRetVal(const u32 retval) const { Memory::Write_U32(retval, m_address + 4); }
+		inline bool IsValid() const { return m_address != 0; }
+		inline void Invalidate() { m_address = m_buffer = 0; }
 	};
 
 	bdaddr_t m_ControllerBD;
@@ -168,24 +151,14 @@ private:
 		std::deque<Packet> m_queue;
 
 	public:
-		ACLPool()
-			: m_queue()
-		{}
-
+		ACLPool() : m_queue() {}
 		void Store(const u8* data, const u16 size, const u16 conn_handle);
 
 		void WriteToEndpoint(CtrlBuffer& endpoint);
 
-		bool IsEmpty() const
-		{
-			return m_queue.empty();
-		}
-
+		bool IsEmpty() const { return m_queue.empty(); }
 		// For SaveStates
-		void DoState(PointerWrap &p)
-		{
-			p.Do(m_queue);
-		}
+		void DoState(PointerWrap& p) { p.Do(m_queue); }
 	} m_acl_pool;
 
 	u32 m_PacketCount[MAX_BBMOTES];
@@ -269,7 +242,7 @@ private:
 	// Debugging
 	void LOG_LinkKey(const u8* _pLinkKey);
 
-#pragma pack(push,1)
+#pragma pack(push, 1)
 #define CONF_PAD_MAX_REGISTERED 10
 
 	struct _conf_pad_device
@@ -286,5 +259,4 @@ private:
 		u8 unknown[0x45];
 	};
 #pragma pack(pop)
-
 };

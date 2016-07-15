@@ -91,21 +91,21 @@ template <>
 std::pair<u8, u8> ReadPair<u8>(u32 addr)
 {
 	u16 val = PowerPC::Read_U16(addr);
-	return{(u8)(val >> 8), (u8)val};
+	return{ (u8)(val >> 8), (u8)val };
 }
 
 template <>
 std::pair<u16, u16> ReadPair<u16>(u32 addr)
 {
 	u32 val = PowerPC::Read_U32(addr);
-	return{(u16)(val >> 16), (u16)val};
+	return{ (u16)(val >> 16), (u16)val };
 }
 
 template <>
 std::pair<u32, u32> ReadPair<u32>(u32 addr)
 {
 	u64 val = PowerPC::Read_U64(addr);
-	return{(u32)(val >> 32), (u32)val};
+	return{ (u32)(val >> 32), (u32)val };
 }
 
 template <typename T>
@@ -232,7 +232,7 @@ std::pair<float, float> LoadAndDequantize(u32 addr, u32 instW, u32 ldScale)
 		ps0 = (float)(T)(value.first) * m_dequantizeTable[ldScale];
 		ps1 = (float)(T)(value.second) * m_dequantizeTable[ldScale];
 	}
-	return{ps0, ps1};
+	return{ ps0, ps1 };
 }
 
 void Interpreter::Helper_Dequantize(u32 addr, u32 instI, u32 instRD, u32 instW)

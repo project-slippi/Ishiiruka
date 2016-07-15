@@ -16,7 +16,7 @@ class GeckoCode
 {
 public:
 
-	GeckoCode(): enabled(false)
+	GeckoCode() : enabled(false)
 	{}
 
 	struct Code

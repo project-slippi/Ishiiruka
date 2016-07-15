@@ -12,7 +12,7 @@
 class MemoryCardBase;
 class PointerWrap;
 
-class CEXIMemoryCard: public IEXIDevice
+class CEXIMemoryCard : public IEXIDevice
 {
 public:
 	CEXIMemoryCard(const int index, bool gciFolder);

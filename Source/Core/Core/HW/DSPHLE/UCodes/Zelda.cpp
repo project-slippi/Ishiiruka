@@ -69,7 +69,7 @@ enum ZeldaUCodeFlag
 static const std::map<u32, u32> UCODE_FLAGS = {
 	// GameCube IPL/BIOS, NTSC.
 	{0x24B22038, LIGHT_PROTOCOL | FOUR_MIXING_DESTS | TINY_VPB | VOLUME_EXPLICIT_STEP | NO_CMD_0D |
-						  WEIRD_CMD_0C},
+									 WEIRD_CMD_0C},
 	// GameCube IPL/BIOS, PAL.
 	{0x6BA3B3EA, LIGHT_PROTOCOL | FOUR_MIXING_DESTS | NO_CMD_0D | WEIRD_CMD_0C},
 	// Pikmin 1 GC NTSC.
@@ -109,7 +109,7 @@ static const std::map<u32, u32> UCODE_FLAGS = {
 	// * The Legend of Zelda: Twilight Princess / Wii (type ????, CRC ????)
 };
 
-ZeldaUCode::ZeldaUCode(DSPHLE* dsphle, u32 crc): UCodeInterface(dsphle, crc)
+ZeldaUCode::ZeldaUCode(DSPHLE* dsphle, u32 crc) : UCodeInterface(dsphle, crc)
 {
 	auto it = UCODE_FLAGS.find(crc);
 	if (it == UCODE_FLAGS.end())
@@ -694,14 +694,8 @@ struct ZeldaAudioRenderer::VPB
 	// (left/right) and Y (front/back) coordinates of the sound. 0x00 is all
 	// right/back, 0x7F is all left/front. Format is 0XXXXXXX0YYYYYYY.
 	u16 dolby_voice_position;
-	u8 GetDolbyVoiceX() const
-	{
-		return (dolby_voice_position >> 8) & 0x7F;
-	}
-	u8 GetDolbyVoiceY() const
-	{
-		return dolby_voice_position & 0x7F;
-	}
+	u8 GetDolbyVoiceX() const { return (dolby_voice_position >> 8) & 0x7F; }
+	u8 GetDolbyVoiceY() const { return dolby_voice_position & 0x7F; }
 	// How much reverbation to apply to the Dolby mixed voice. 0 is none,
 	// 0x7FFF is the maximum value.
 	s16 dolby_reverb_factor;
@@ -774,14 +768,8 @@ struct ZeldaAudioRenderer::VPB
 	// requires the two latest sample values to be able to decode future
 	// samples.
 	s16 afc_remaining_samples[0x10];
-	s16* AFCYN2()
-	{
-		return &afc_remaining_samples[0xE];
-	}
-	s16* AFCYN1()
-	{
-		return &afc_remaining_samples[0xF];
-	}
+	s16* AFCYN2() { return &afc_remaining_samples[0xE]; }
+	s16* AFCYN1() { return &afc_remaining_samples[0xF]; }
 	u16 unk_68_80[0x80 - 0x68];
 
 	enum SamplesSourceType
@@ -1003,11 +991,11 @@ void ZeldaAudioRenderer::ApplyReverb(bool post_rendering)
 
 	// Each of the 4 RPBs maps to one of these buffers.
 	MixingBuffer* reverb_buffers[4] = {
-		 &m_buf_unk0_reverb, &m_buf_unk1_reverb, &m_buf_front_left_reverb, &m_buf_front_right_reverb,
+			&m_buf_unk0_reverb, &m_buf_unk1_reverb, &m_buf_front_left_reverb, &m_buf_front_right_reverb,
 	};
 	std::array<s16, 8>* last8_samples_buffers[4] = {
-		 &m_buf_unk0_reverb_last8, &m_buf_unk1_reverb_last8, &m_buf_front_left_reverb_last8,
-		 &m_buf_front_right_reverb_last8,
+			&m_buf_unk0_reverb_last8, &m_buf_unk1_reverb_last8, &m_buf_front_left_reverb_last8,
+			&m_buf_front_right_reverb_last8,
 	};
 
 	u16* rpb_base_ptr = (u16*)HLEMemory_Get_Pointer(m_reverb_pb_base_addr);
@@ -1041,8 +1029,7 @@ void ZeldaAudioRenderer::ApplyReverb(bool post_rendering)
 			for (u16 i = 0; i < 8; ++i)
 				(*last8_samples_buffers[rpb_idx])[i] = buffer[0x50 + i];
 
-			auto ApplyFilter = [&]()
-			{
+			auto ApplyFilter = [&]() {
 				// Filter the buffer using provided coefficients.
 				for (u16 i = 0; i < 0x50; ++i)
 				{
@@ -1163,10 +1150,10 @@ void ZeldaAudioRenderer::AddVoice(u16 voice_id)
 		// Compute volume for each quadrant.
 		u16 shift_factor = (m_flags & MAKE_DOLBY_LOUDER) ? 15 : 16;
 		s16 quadrant_volumes[4] = {
-			 (s16)((left_volume * front_volume) >> shift_factor),
-			 (s16)((left_volume * back_volume) >> shift_factor),
-			 (s16)((right_volume * front_volume) >> shift_factor),
-			 (s16)((right_volume * back_volume) >> shift_factor),
+				(s16)((left_volume * front_volume) >> shift_factor),
+				(s16)((left_volume * back_volume) >> shift_factor),
+				(s16)((right_volume * front_volume) >> shift_factor),
+				(s16)((right_volume * back_volume) >> shift_factor),
 		};
 
 		// Compute the volume delta for each sample to match the difference
@@ -1196,15 +1183,15 @@ void ZeldaAudioRenderer::AddVoice(u16 voice_id)
 			s16 volume;
 			s16 volume_delta;
 		} buffers[8] = {
-			 {&m_buf_front_left, quadrant_volumes[0], volume_deltas[0]},
-			 {&m_buf_back_left, quadrant_volumes[1], volume_deltas[1]},
-			 {&m_buf_front_right, quadrant_volumes[2], volume_deltas[2]},
-			 {&m_buf_back_right, quadrant_volumes[3], volume_deltas[3]},
+				{&m_buf_front_left, quadrant_volumes[0], volume_deltas[0]},
+				{&m_buf_back_left, quadrant_volumes[1], volume_deltas[1]},
+				{&m_buf_front_right, quadrant_volumes[2], volume_deltas[2]},
+				{&m_buf_back_right, quadrant_volumes[3], volume_deltas[3]},
 
-			 {&m_buf_front_left_reverb, reverb_volumes[0], reverb_volume_deltas[0]},
-			 {&m_buf_back_left_reverb, reverb_volumes[1], reverb_volume_deltas[1]},
-			 {&m_buf_front_right_reverb, reverb_volumes[2], reverb_volume_deltas[2]},
-			 {&m_buf_back_right_reverb, reverb_volumes[3], reverb_volume_deltas[3]},
+				{&m_buf_front_left_reverb, reverb_volumes[0], reverb_volume_deltas[0]},
+				{&m_buf_back_left_reverb, reverb_volumes[1], reverb_volume_deltas[1]},
+				{&m_buf_front_right_reverb, reverb_volumes[2], reverb_volume_deltas[2]},
+				{&m_buf_back_right_reverb, reverb_volumes[3], reverb_volume_deltas[3]},
 		};
 		for (const auto& buffer : buffers)
 		{
@@ -1400,9 +1387,9 @@ void ZeldaAudioRenderer::LoadInputSamples(MixingBuffer* buffer, VPB* vpb)
 			bool variable_step;
 		};
 		std::map<u16, PatternInfo> samples_source_to_pattern = {
-			 {VPB::SRC_CONST_PATTERN_0, {0, false}}, {VPB::SRC_CONST_PATTERN_0_VARIABLE_STEP, {0, true}},
-			 {VPB::SRC_CONST_PATTERN_1, {1, false}}, {VPB::SRC_CONST_PATTERN_2, {2, false}},
-			 {VPB::SRC_CONST_PATTERN_3, {3, false}},
+				{VPB::SRC_CONST_PATTERN_0, {0, false}}, {VPB::SRC_CONST_PATTERN_0_VARIABLE_STEP, {0, true}},
+				{VPB::SRC_CONST_PATTERN_1, {1, false}}, {VPB::SRC_CONST_PATTERN_2, {2, false}},
+				{VPB::SRC_CONST_PATTERN_3, {3, false}},
 		};
 		auto& pattern_info = samples_source_to_pattern[vpb->samples_source_type];
 		u16 pattern_offset = pattern_info.idx * PATTERN_SIZE;

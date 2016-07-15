@@ -4,23 +4,19 @@
 
 #pragma once
 
-#include <wx/panel.h>
 #include <wx/aui/framemanager.h>
+#include <wx/panel.h>
 
 class CBreakPointView;
 class CCodeWindow;
 class wxListEvent;
 
-class CBreakPointWindow: public wxPanel
+class CBreakPointWindow : public wxPanel
 {
 public:
-
-	CBreakPointWindow(CCodeWindow* _pCodeWindow,
-		wxWindow* parent,
-		wxWindowID id = wxID_ANY,
+	CBreakPointWindow(CCodeWindow* _pCodeWindow, wxWindow* parent, wxWindowID id = wxID_ANY,
 		const wxString& title = _("Breakpoints"),
-		const wxPoint& pos = wxDefaultPosition,
-		const wxSize& size = wxDefaultSize,
+		const wxPoint& pos = wxDefaultPosition, const wxSize& size = wxDefaultSize,
 		long style = wxTAB_TRAVERSAL | wxBORDER_NONE);
 	~CBreakPointWindow();
 

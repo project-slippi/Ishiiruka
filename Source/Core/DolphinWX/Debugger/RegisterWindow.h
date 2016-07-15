@@ -8,13 +8,11 @@
 
 class CRegisterView;
 
-class CRegisterWindow: public wxPanel
+class CRegisterWindow : public wxPanel
 {
 public:
-	CRegisterWindow(wxWindow* parent,
-		wxWindowID id = wxID_ANY,
-		const wxPoint& pos = wxDefaultPosition,
-		const wxSize& size = wxDefaultSize,
+	CRegisterWindow(wxWindow* parent, wxWindowID id = wxID_ANY,
+		const wxPoint& pos = wxDefaultPosition, const wxSize& size = wxDefaultSize,
 		long style = wxTAB_TRAVERSAL | wxNO_BORDER,
 		const wxString& name = _("Registers"));
 

@@ -8,7 +8,7 @@
 
 struct AXPBWii;
 
-class AXWiiUCode: public AXUCode
+class AXWiiUCode : public AXUCode
 {
 public:
 	AXWiiUCode(DSPHLE* dsphle, u32 crc);

@@ -17,8 +17,7 @@ enum
 
 #pragma pack(push, 4)
 
-union FileHeader
-{
+union FileHeader {
 	struct
 	{
 		u32 fileId;
@@ -39,8 +38,7 @@ union FileHeader
 	u32 rawData[32];
 };
 
-union FileFrameInfo
-{
+union FileFrameInfo {
 	struct
 	{
 		u64 fifoDataOffset;

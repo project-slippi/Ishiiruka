@@ -13,7 +13,8 @@
 #include "Core/HW/SystemTimers.h"
 
 DSPHLE::DSPHLE()
-{}
+{
+}
 
 bool DSPHLE::Initialize(bool bWii, bool bDSPThread)
 {
@@ -33,7 +34,8 @@ bool DSPHLE::Initialize(bool bWii, bool bDSPThread)
 }
 
 void DSPHLE::DSP_StopSoundStream()
-{}
+{
+}
 
 void DSPHLE::Shutdown()
 {
@@ -242,4 +244,5 @@ u16 DSPHLE::DSP_ReadControlRegister()
 }
 
 void DSPHLE::PauseAndLock(bool doLock, bool unpauseOnUnlock)
-{}
+{
+}

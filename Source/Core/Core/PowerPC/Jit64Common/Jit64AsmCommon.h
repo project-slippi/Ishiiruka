@@ -7,9 +7,9 @@
 #include "Core/PowerPC/JitCommon/JitAsmCommon.h"
 #include "Core/PowerPC/JitCommon/Jit_Util.h"
 
-enum EQuantizeType: u32;
+enum EQuantizeType : u32;
 
-class QuantizedMemoryRoutines: public EmuCodeBlock
+class QuantizedMemoryRoutines : public EmuCodeBlock
 {
 public:
 	void GenQuantizedLoad(bool single, EQuantizeType type, int quantize);
@@ -20,7 +20,7 @@ private:
 	void GenQuantizedStoreFloat(bool single, bool isInline);
 };
 
-class CommonAsmRoutines: public CommonAsmRoutinesBase, public QuantizedMemoryRoutines
+class CommonAsmRoutines : public CommonAsmRoutinesBase, public QuantizedMemoryRoutines
 {
 public:
 	void GenFifoWrite(int size);

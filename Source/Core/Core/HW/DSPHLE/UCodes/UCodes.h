@@ -69,21 +69,15 @@ public:
 		: m_mail_handler(dsphle->AccessMailHandler()), m_upload_setup_in_progress(false),
 		m_dsphle(dsphle), m_crc(crc), m_next_ucode(), m_next_ucode_steps(0),
 		m_needs_resume_mail(false)
-	{}
+	{
+	}
 
-	virtual ~UCodeInterface()
-	{}
+	virtual ~UCodeInterface() {}
 	virtual void HandleMail(u32 mail) = 0;
 	virtual void Update() = 0;
 
-	virtual void DoState(PointerWrap& p)
-	{
-		DoStateShared(p);
-	}
-	static u32 GetCRC(UCodeInterface* ucode)
-	{
-		return ucode ? ucode->m_crc : UCODE_NULL;
-	}
+	virtual void DoState(PointerWrap& p) { DoStateShared(p); }
+	static u32 GetCRC(UCodeInterface* ucode) { return ucode ? ucode->m_crc : UCODE_NULL; }
 protected:
 	void PrepareBootUCode(u32 mail);
 

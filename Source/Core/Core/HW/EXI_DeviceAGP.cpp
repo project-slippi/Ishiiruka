@@ -218,7 +218,7 @@ u32 CEXIAgp::ImmRead(u32 _uSize)
 		}
 		break;
 	case 0xAE040000:  // read 1 byte from 16 bit address
-	  // ToDo: Flash special handling
+		// ToDo: Flash special handling
 		if (m_eeprom_size == 0)
 			RomVal1 = 0xFF;
 		else
@@ -228,7 +228,7 @@ u32 CEXIAgp::ImmRead(u32 _uSize)
 		m_current_cmd = 0;
 		break;
 	case 0xAE0B0000:  // read 1 bit from DMA with 6 or 14 bit address
-	  // Change to byte access instead of endian file access?
+		// Change to byte access instead of endian file access?
 		RomVal1 = EE_READ_FALSE;
 		if ((m_eeprom_size != 0) && (m_eeprom_pos >= EE_IGNORE_BITS) &&
 			((((u64*)m_eeprom.data())[(m_eeprom_cmd >> 1) & m_eeprom_add_mask]) >>
@@ -271,7 +271,7 @@ void CEXIAgp::ImmWrite(u32 _uData, u32 _uSize)
 	{
 	case 0xAE020000:  // set up 24 bit address for read 2 bytes
 	case 0xAE030000:  // set up 24 bit address for read (0x10000 byte group)
-	  // 25 bit address shifted one bit right = 24 bits
+		// 25 bit address shifted one bit right = 24 bits
 		m_rw_offset = ((_uData & 0xFFFFFF00) >> (8 - 1));
 		m_return_pos = 0;
 		HashCmd = (_uData & 0xFF000000) >> 24;
@@ -282,7 +282,7 @@ void CEXIAgp::ImmWrite(u32 _uData, u32 _uSize)
 		CRC8(&HashCmd, 1);
 		break;
 	case 0xAE040000:  // set up 16 bit address for read 1 byte
-	  // ToDo: Flash special handling
+		// ToDo: Flash special handling
 		m_eeprom_pos = ((_uData & 0xFFFF0000) >> 0x10) & m_eeprom_mask;
 		HashCmd = (_uData & 0xFF000000) >> 24;
 		CRC8(&HashCmd, 1);
@@ -290,7 +290,7 @@ void CEXIAgp::ImmWrite(u32 _uData, u32 _uSize)
 		CRC8(&HashCmd, 1);
 		break;
 	case 0xAE070000:  // write 1 byte from 16 bit address
-	  // ToDo: Flash special handling
+		// ToDo: Flash special handling
 		m_eeprom_pos = ((_uData & 0xFFFF0000) >> 0x10) & m_eeprom_mask;
 		if (m_eeprom_size != 0)
 			((m_eeprom.data()))[(m_eeprom_pos)] = (_uData & 0x0000FF00) >> 0x8;
@@ -341,7 +341,7 @@ void CEXIAgp::ImmWrite(u32 _uData, u32 _uSize)
 	case 0xAE010000:
 	case 0xAE090000:                  // start DMA
 		m_eeprom_write_status = false;  // ToDo: Verify with hardware which commands disable EEPROM CS
-	 // Fall-through intentional
+	// Fall-through intentional
 	case 0xAE0A0000:  // end DMA
 		m_eeprom_pos = 0;
 		// Fall-through intentional

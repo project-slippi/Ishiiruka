@@ -22,13 +22,11 @@ struct SFileInfo
 	u64 m_FileSize = 0u;
 	std::string m_FullPath;
 
-	bool IsDirectory() const
-	{
-		return (m_NameOffset & 0xFF000000) != 0;
-	}
+	bool IsDirectory() const { return (m_NameOffset & 0xFF000000) != 0; }
 	SFileInfo(u64 name_offset, u64 offset, u64 filesize)
 		: m_NameOffset(name_offset), m_Offset(offset), m_FileSize(filesize)
-	{}
+	{
+	}
 
 	SFileInfo(SFileInfo const&) = default;
 	SFileInfo() = default;

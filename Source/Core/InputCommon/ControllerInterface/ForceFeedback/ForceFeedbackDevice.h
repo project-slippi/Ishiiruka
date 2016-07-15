@@ -20,11 +20,11 @@ namespace ciface
 {
 namespace ForceFeedback
 {
-class ForceFeedbackDevice: public Core::Device
+class ForceFeedbackDevice : public Core::Device
 {
 private:
 	template <typename P>
-	class Force: public Output
+	class Force : public Output
 	{
 	public:
 		Force(const std::string& name, LPDIRECTINPUTEFFECT iface);

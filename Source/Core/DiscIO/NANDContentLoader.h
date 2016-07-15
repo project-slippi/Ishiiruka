@@ -5,13 +5,18 @@
 #pragma once
 
 #include <cstddef>
+#include <memory>
 #include <string>
 #include <unordered_map>
 #include <vector>
 
 #include "Common/CommonTypes.h"
 #include "Common/NandPaths.h"
-#include "DiscIO/Volume.h"
+
+namespace DiscIO
+{
+enum class Country;
+}
 
 namespace DiscIO
 {
@@ -20,19 +25,16 @@ bool AddTicket(u64 title_id, const std::vector<u8>& ticket);
 class CNANDContentData
 {
 public:
-	virtual void Open()
-	{};
+	virtual void Open(){};
 	virtual const std::vector<u8> Get() = 0;
 	virtual bool GetRange(u32 start, u32 size, u8* buffer) = 0;
-	virtual void Close()
-	{};
+	virtual void Close(){};
 };
 
-class CNANDContentDataFile final: public CNANDContentData
+class CNANDContentDataFile final : public CNANDContentData
 {
 public:
-	CNANDContentDataFile(const std::string& filename): m_filename(filename)
-	{};
+	CNANDContentDataFile(const std::string& filename) : m_filename(filename){};
 
 	void Open() override;
 	const std::vector<u8> Get() override;
@@ -45,16 +47,12 @@ private:
 	const std::string m_filename;
 	std::unique_ptr<File::IOFile> m_file;
 };
-class CNANDContentDataBuffer final: public CNANDContentData
+class CNANDContentDataBuffer final : public CNANDContentData
 {
 public:
-	CNANDContentDataBuffer(const std::vector<u8>& buffer): m_buffer(buffer)
-	{};
+	CNANDContentDataBuffer(const std::vector<u8>& buffer) : m_buffer(buffer){};
 
-	const std::vector<u8> Get() override
-	{
-		return m_buffer;
-	};
+	const std::vector<u8> Get() override { return m_buffer; };
 	bool GetRange(u32 start, u32 size, u8* buffer) override;
 
 private:
@@ -80,57 +78,21 @@ public:
 	CNANDContentLoader(const std::string& content_name);
 	virtual ~CNANDContentLoader();
 
-	bool IsValid() const
-	{
-		return m_Valid;
-	}
+	bool IsValid() const { return m_Valid; }
 	void RemoveTitle() const;
-	u64 GetTitleID() const
-	{
-		return m_TitleID;
-	}
-	u16 GetIosVersion() const
-	{
-		return m_IosVersion;
-	}
-	u32 GetBootIndex() const
-	{
-		return m_BootIndex;
-	}
-	size_t GetContentSize() const
-	{
-		return m_Content.size();
-	}
+	u64 GetTitleID() const { return m_TitleID; }
+	u16 GetIosVersion() const { return m_IosVersion; }
+	u32 GetBootIndex() const { return m_BootIndex; }
+	size_t GetContentSize() const { return m_Content.size(); }
 	const SNANDContent* GetContentByIndex(int index) const;
-	const u8* GetTMDView() const
-	{
-		return m_TMDView;
-	}
-	const u8* GetTMDHeader() const
-	{
-		return m_TMDHeader;
-	}
-	const std::vector<u8>& GetTicket() const
-	{
-		return m_Ticket;
-	}
-	const std::vector<SNANDContent>& GetContent() const
-	{
-		return m_Content;
-	}
-	u16 GetTitleVersion() const
-	{
-		return m_TitleVersion;
-	}
-	u16 GetNumEntries() const
-	{
-		return m_NumEntries;
-	}
-	DiscIO::IVolume::ECountry GetCountry() const;
-	u8 GetCountryChar() const
-	{
-		return m_Country;
-	}
+	const u8* GetTMDView() const { return m_TMDView; }
+	const u8* GetTMDHeader() const { return m_TMDHeader; }
+	const std::vector<u8>& GetTicket() const { return m_Ticket; }
+	const std::vector<SNANDContent>& GetContent() const { return m_Content; }
+	u16 GetTitleVersion() const { return m_TitleVersion; }
+	u16 GetNumEntries() const { return m_NumEntries; }
+	DiscIO::Country GetCountry() const;
+	u8 GetCountryChar() const { return m_Country; }
 	enum
 	{
 		TMD_VIEW_SIZE = 0x58,
@@ -181,8 +143,7 @@ public:
 	void ClearCache();
 
 private:
-	CNANDContentManager()
-	{}
+	CNANDContentManager() {}
 	~CNANDContentManager();
 
 	CNANDContentManager(CNANDContentManager const&) = delete;

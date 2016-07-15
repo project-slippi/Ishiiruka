@@ -16,19 +16,9 @@ public:
 	CDolLoader(const std::vector<u8>& buffer);
 	~CDolLoader();
 
-	bool IsValid()      const
-	{
-		return m_is_valid;
-	}
-	bool IsWii()        const
-	{
-		return m_is_wii;
-	}
-	u32 GetEntryPoint() const
-	{
-		return m_dolheader.entryPoint;
-	}
-
+	bool IsValid() const { return m_is_valid; }
+	bool IsWii() const { return m_is_wii; }
+	u32 GetEntryPoint() const { return m_dolheader.entryPoint; }
 	// Load into emulated memory
 	void Load() const;
 

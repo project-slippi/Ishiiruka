@@ -45,15 +45,11 @@ private:
 	static std::queue<std::unique_ptr<sf::TcpSocket>> waiting_socks;
 };
 
-class CEXIGecko: public IEXIDevice, private GeckoSockServer
+class CEXIGecko : public IEXIDevice, private GeckoSockServer
 {
 public:
-	CEXIGecko()
-	{}
-	bool IsPresent() const override
-	{
-		return true;
-	}
+	CEXIGecko() {}
+	bool IsPresent() const override { return true; }
 	void ImmReadWrite(u32& _uData, u32 _uSize) override;
 
 private:

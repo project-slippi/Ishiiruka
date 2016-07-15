@@ -9,7 +9,7 @@
 class CEXIChannel;
 class IEXIDevice;
 class PointerWrap;
-enum TEXIDevices: int;
+enum TEXIDevices : int;
 namespace MMIO
 {
 class Mapping;

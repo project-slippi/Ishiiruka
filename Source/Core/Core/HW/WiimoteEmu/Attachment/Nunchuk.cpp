@@ -12,13 +12,13 @@
 
 namespace WiimoteEmu
 {
-static const u8 nunchuk_id[] = {0x00, 0x00, 0xa4, 0x20, 0x00, 0x00};
+static const u8 nunchuk_id[] = { 0x00, 0x00, 0xa4, 0x20, 0x00, 0x00 };
 
 static const u8 nunchuk_button_bitmasks[] = {
-	 Nunchuk::BUTTON_C, Nunchuk::BUTTON_Z,
+		Nunchuk::BUTTON_C, Nunchuk::BUTTON_Z,
 };
 
-Nunchuk::Nunchuk(WiimoteEmu::ExtensionReg& _reg): Attachment(_trans("Nunchuk"), _reg)
+Nunchuk::Nunchuk(WiimoteEmu::ExtensionReg& _reg) : Attachment(_trans("Nunchuk"), _reg)
 {
 	// buttons
 	groups.emplace_back(m_buttons = new Buttons("Buttons"));
@@ -122,7 +122,7 @@ void Nunchuk::LoadDefaults(const ControllerInterface& ciface)
 	m_stick->SetControlExpression(2, "A");  // left
 	m_stick->SetControlExpression(3, "D");  // right
 
- // Buttons
+// Buttons
 #ifdef _WIN32
 	m_buttons->SetControlExpression(0, "LCONTROL");  // C
 	m_buttons->SetControlExpression(1, "LSHIFT");    // Z

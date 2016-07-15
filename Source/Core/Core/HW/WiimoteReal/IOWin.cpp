@@ -82,8 +82,7 @@ std::mutex g_connected_wiimotes_lock;
 
 bool load_hid()
 {
-	auto loader = [&]()
-	{
+	auto loader = [&]() {
 		s_hid_lib = ::LoadLibrary(_T("hid.dll"));
 		if (!s_hid_lib)
 		{
@@ -119,8 +118,7 @@ bool load_hid()
 
 bool load_bthprops()
 {
-	auto loader = [&]()
-	{
+	auto loader = [&]() {
 		s_bthprops_lib = ::LoadLibrary(_T("bthprops.cpl"));
 		if (!s_bthprops_lib)
 		{
@@ -194,7 +192,7 @@ inline void init_lib()
 
 namespace WiimoteReal
 {
-class WiimoteWindows final: public Wiimote
+class WiimoteWindows final : public Wiimote
 {
 public:
 	WiimoteWindows(const std::basic_string<TCHAR>& path, WinWriteMethod initial_write_method);
@@ -250,8 +248,7 @@ void WiimoteScanner::Update()
 
 	bool forgot_some = false;
 
-	ProcessWiimotes(false, [&](HANDLE, BLUETOOTH_RADIO_INFO&, BLUETOOTH_DEVICE_INFO_STRUCT& btdi)
-	{
+	ProcessWiimotes(false, [&](HANDLE, BLUETOOTH_RADIO_INFO&, BLUETOOTH_DEVICE_INFO_STRUCT& btdi) {
 		forgot_some |= ForgetWiimote(btdi);
 	});
 
@@ -380,8 +377,7 @@ void WiimoteScanner::FindWiimotes(std::vector<Wiimote*>& found_wiimotes, Wiimote
 		return;
 
 	ProcessWiimotes(true, [](HANDLE hRadio, const BLUETOOTH_RADIO_INFO& rinfo,
-		BLUETOOTH_DEVICE_INFO_STRUCT& btdi)
-	{
+		BLUETOOTH_DEVICE_INFO_STRUCT& btdi) {
 		ForgetWiimote(btdi);
 		AttachWiimote(hRadio, rinfo, btdi);
 	});
@@ -510,17 +506,17 @@ void WiimoteScanner::CheckDeviceType(std::basic_string<TCHAR>& devicepath,
 	{
 		// max_cycles insures we are never stuck here due to bad coding...
 		int max_cycles = 20;
-		u8 buf[MAX_PAYLOAD] = {0};
+		u8 buf[MAX_PAYLOAD] = { 0 };
 
-		u8 const req_status_report[] = {WM_SET_REPORT | WM_BT_OUTPUT, WM_REQUEST_STATUS, 0};
+		u8 const req_status_report[] = { WM_SET_REPORT | WM_BT_OUTPUT, WM_REQUEST_STATUS, 0 };
 		// The new way to initialize the extension is by writing 0x55 to 0x(4)A400F0, then writing 0x00
 		// to 0x(4)A400FB
 		// 52 16 04 A4 00 F0 01 55
 		// 52 16 04 A4 00 FB 01 00
 		u8 const disable_enc_pt1_report[MAX_PAYLOAD] = {
-			 WM_SET_REPORT | WM_BT_OUTPUT, WM_WRITE_DATA, 0x04, 0xa4, 0x00, 0xf0, 0x01, 0x55};
+				WM_SET_REPORT | WM_BT_OUTPUT, WM_WRITE_DATA, 0x04, 0xa4, 0x00, 0xf0, 0x01, 0x55 };
 		u8 const disable_enc_pt2_report[MAX_PAYLOAD] = {
-			 WM_SET_REPORT | WM_BT_OUTPUT, WM_WRITE_DATA, 0x04, 0xa4, 0x00, 0xfb, 0x01, 0x00};
+				WM_SET_REPORT | WM_BT_OUTPUT, WM_WRITE_DATA, 0x04, 0xa4, 0x00, 0xfb, 0x01, 0x00 };
 
 		CheckDeviceType_Write(dev_handle, write_method, disable_enc_pt1_report,
 			sizeof(disable_enc_pt1_report), 1);
@@ -549,7 +545,7 @@ void WiimoteScanner::CheckDeviceType(std::basic_string<TCHAR>& devicepath,
 				if (wsr->extension)
 				{
 					// Wiimote with extension, we ask it what kind.
-					u8 read_ext[MAX_PAYLOAD] = {0};
+					u8 read_ext[MAX_PAYLOAD] = { 0 };
 					read_ext[0] = WM_SET_REPORT | WM_BT_OUTPUT;
 					read_ext[1] = WM_READ_DATA;
 					// Extension type register.
@@ -694,10 +690,10 @@ bool WiimoteWindows::ConnectInternal()
 	// This isn't as drastic as it sounds, since the process in which the threads
 	// reside is normal priority. Needed for keeping audio reports at a decent rate
 	/*
-	  if (!SetThreadPriority(m_wiimote_thread.native_handle(), THREAD_PRIORITY_TIME_CRITICAL))
-	  {
-		 ERROR_LOG(WIIMOTE, "Failed to set Wiimote thread priority");
-	  }
+		if (!SetThreadPriority(m_wiimote_thread.native_handle(), THREAD_PRIORITY_TIME_CRITICAL))
+		{
+			ERROR_LOG(WIIMOTE, "Failed to set Wiimote thread priority");
+		}
 	*/
 #ifdef SHARE_WRITE_WIIMOTES
 	g_connected_wiimotes.insert(m_devicepath);
@@ -820,8 +816,8 @@ static int IOWritePerSetOutputReport(HANDLE& dev_handle, const u8* buf, size_t l
 			NOTICE_LOG(WIIMOTE, "IOWrite[WWM_SET_OUTPUT_REPORT]: Unable to send data to the Wiimote");
 		}
 		else if (err != 0x1F)  // Some third-party adapters (DolphinBar) use this
-									  // error code to signal the absence of a Wiimote
-									  // linked to the HID device.
+													 // error code to signal the absence of a Wiimote
+													 // linked to the HID device.
 		{
 			WARN_LOG(WIIMOTE, "IOWrite[WWM_SET_OUTPUT_REPORT]: Error: %08x", err);
 		}
@@ -1056,7 +1052,7 @@ bool AttachWiimote(HANDLE hRadio, const BLUETOOTH_RADIO_INFO& radio_info,
 		// Authenticate
 		auto const& radio_addr = radio_info.address.rgBytes;
 		// FIXME Not sure this usage of OOB_DATA_INFO is correct...
-		BLUETOOTH_OOB_DATA_INFO oob_data_info = {0};
+		BLUETOOTH_OOB_DATA_INFO oob_data_info = { 0 };
 		memcpy(&oob_data_info.C[0], &radio_addr[0], sizeof(WCHAR) * 6);
 		const DWORD auth_result = pBluetoothAuthenticateDeviceEx(nullptr, hRadio, &btdi, &oob_data_info,
 			MITMProtectionNotDefined);

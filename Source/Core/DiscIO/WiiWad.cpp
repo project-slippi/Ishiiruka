@@ -29,7 +29,8 @@ WiiWAD::WiiWAD(const std::string& name)
 }
 
 WiiWAD::~WiiWAD()
-{}
+{
+}
 
 std::vector<u8> WiiWAD::CreateWADEntry(IBlobReader& reader, u32 size, u64 offset)
 {

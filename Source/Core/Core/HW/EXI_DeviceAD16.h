@@ -8,7 +8,7 @@
 
 class PointerWrap;
 
-class CEXIAD16: public IEXIDevice
+class CEXIAD16 : public IEXIDevice
 {
 public:
 	CEXIAD16();
@@ -24,8 +24,7 @@ private:
 		read = 0xa2
 	};
 
-	union UAD16Reg
-	{
+	union UAD16Reg {
 		u32 U32;
 		u32 U8[4];
 	};

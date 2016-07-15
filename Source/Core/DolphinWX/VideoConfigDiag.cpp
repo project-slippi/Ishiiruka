@@ -177,7 +177,7 @@ static wxString stereo_3d_desc = _("Select the stereoscopic 3D  mode, stereoscop
 static wxString stereo_separation_desc = _("Control the separation distance, this is the distance between the virtual cameras.\nA higher value creates a stronger feeling of depth while a lower value is more comfortable.");
 static wxString stereo_convergence_desc = _("Control the convergence distance, this controls the apparant distance of virtual objects.\nA higher value creates stronger out-of-screen effects while a lower value is more comfortable.");
 static wxString stereo_swap_desc = _("Swap the left and right eye, mostly useful if you want to view side-by-side cross-eyed.\n\nIf unsure, leave this unchecked.");
-static const char *s_bbox_mode_text[] = {"Disabled", "CPU", "GPU"};
+static const char *s_bbox_mode_text[] = { "Disabled", "CPU", "GPU" };
 static wxString texture_scaling_desc = _("Apply the selected scaling algorithm to improve texture quality.");
 static wxString Tessellation_desc = _("Apply the selected Tessellation levels to increase geometry detail.");
 static wxString Tessellation_forced_lights_desc = _("Force Lighting in all 3d elements.");
@@ -334,7 +334,7 @@ VideoConfigDiag::VideoConfigDiag(wxWindow* parent, const std::string &title)
 
 				// aspect-ratio
 				{
-					const wxString ar_choices[] = {_("Auto"), _("Force Analog 16:9"), _("Force Analog 4:3"), _("Stretch to Window"), _("Force 4:3"), _("Force 16:9"), _("Force 16:10")};
+					const wxString ar_choices[] = { _("Auto"), _("Force Analog 16:9"), _("Force Analog 4:3"), _("Stretch to Window"), _("Force 4:3"), _("Force 16:9"), _("Force 16:10") };
 
 					szr_display->Add(new wxStaticText(page_general, wxID_ANY, _("Aspect Ratio:")), 1, wxALIGN_CENTER_VERTICAL, 0);
 					wxChoice* const choice_aspect = CreateChoice(page_general, vconfig.iAspectRatio, (ar_desc),
@@ -390,10 +390,10 @@ VideoConfigDiag::VideoConfigDiag(wxWindow* parent, const std::string &title)
 
 		// Internal resolution
 		{
-			const wxString efbscale_choices[] = {_("Auto (Window Size)"), _("Auto (Multiple of 640x528)"),
+			const wxString efbscale_choices[] = { _("Auto (Window Size)"), _("Auto (Multiple of 640x528)"),
 				_("1x (640x528)"), _("1.5x (960x792)"), _("2x (1280x1056) for 720p"), _("2.5x (1600x1320)"),
 				_("3x (1920x1584) for 1080p"), _("4x (2560x2112) for WQHD"), _("5x (3200x2640)"),
-				_("6x (3840x3168) for 4K UHD"), _("7x (4480x3696)"), _("8x (5120x4224)"), _("Custom")};
+				_("6x (3840x3168) for 4K UHD"), _("7x (4480x3696)"), _("8x (5120x4224)"), _("Custom") };
 
 
 			wxChoice *const choice_efbscale = CreateChoice(page_enh,
@@ -422,7 +422,7 @@ VideoConfigDiag::VideoConfigDiag(wxWindow* parent, const std::string &title)
 
 		// AF
 		{
-			const wxString af_choices[] = {wxT("1x"), wxT("2x"), wxT("4x"), wxT("8x"), wxT("16x")};
+			const wxString af_choices[] = { wxT("1x"), wxT("2x"), wxT("4x"), wxT("8x"), wxT("16x") };
 			szr_enh->Add(new wxStaticText(page_enh, wxID_ANY, _("Anisotropic Filtering:")), 1, wxALIGN_CENTER_VERTICAL, 0);
 			szr_enh->Add(CreateChoice(page_enh, vconfig.iMaxAnisotropy, (af_desc), 5, af_choices));
 			szr_enh->AddSpacer(0);
@@ -450,7 +450,7 @@ VideoConfigDiag::VideoConfigDiag(wxWindow* parent, const std::string &title)
 			szr_texturescaling->AddGrowableCol(1, 1);
 
 			szr_texturescaling->Add(new wxStaticText(page_enh, wxID_ANY, _("Texture Scaling Mode:")), 1, wxALIGN_CENTER_VERTICAL, 0);
-			const wxString scaling_choices[] = {"Off", "XBRZ", "Hybrid", "Bicubic", "Hybrid-Bicubic", "Jinc", "Jinc-Sharper", "Smoothstep", "3-Point", "DDT", "DDT-Sharp"};
+			const wxString scaling_choices[] = { "Off", "XBRZ", "Hybrid", "Bicubic", "Hybrid-Bicubic", "Jinc", "Jinc-Sharper", "Smoothstep", "3-Point", "DDT", "DDT-Sharp" };
 			wxChoice* scaling_choice = CreateChoice(page_enh, vconfig.iTexScalingType, (texture_scaling_desc), ArraySize(scaling_choices), scaling_choices);
 			szr_texturescaling->Add(scaling_choice, 1, wxEXPAND | wxRIGHT);
 			szr_texturescaling->Add(CreateCheckBox(page_enh, _("DePosterize"), (texture_deposterize_desc), vconfig.bTexDeposterize), 1, wxALIGN_CENTER_VERTICAL);
@@ -468,7 +468,7 @@ VideoConfigDiag::VideoConfigDiag(wxWindow* parent, const std::string &title)
 
 			szr_texturescaling->Add(new wxStaticText(page_enh, wxID_ANY, _("Scaling factor:")), 1, wxALIGN_CENTER_VERTICAL, 0);
 			szr_texturescaling->Add(factor_slider, 1, wxEXPAND | wxRIGHT, 0);
-			const wxString sf_choices[] = {wxT("1x"), wxT("2x"), wxT("3x"), wxT("4x"), wxT("5x")};
+			const wxString sf_choices[] = { wxT("1x"), wxT("2x"), wxT("3x"), wxT("4x"), wxT("5x") };
 			szr_texturescaling->Add(label_TextureScale = new wxStaticText(page_enh, wxID_ANY, sf_choices[vconfig.iTexScalingFactor - 1]), 1, wxRIGHT | wxTOP | wxBOTTOM, 5);
 
 			wxStaticBoxSizer* const group_scaling = new wxStaticBoxSizer(wxVERTICAL, page_enh, _("Texture Scaling"));
@@ -566,7 +566,7 @@ VideoConfigDiag::VideoConfigDiag(wxWindow* parent, const std::string &title)
 
 			szr_stereo->Add(new wxStaticText(page_enh, wxID_ANY, _("Stereoscopic 3D Mode:")), 1, wxALIGN_CENTER_VERTICAL, 0);
 
-			const wxString stereo_choices[] = {"Off", "Side-by-Side", "Top-and-Bottom", "Shader", "Nvidia 3D Vision"};
+			const wxString stereo_choices[] = { "Off", "Side-by-Side", "Top-and-Bottom", "Shader", "Nvidia 3D Vision" };
 			wxChoice* stereo_choice = CreateChoice(page_enh, vconfig.iStereoMode, (stereo_3d_desc), vconfig.backend_info.bSupports3DVision ? ArraySize(stereo_choices) : ArraySize(stereo_choices) - 1, stereo_choices);
 			stereo_choice->Bind(wxEVT_CHOICE, &VideoConfigDiag::Event_StereoMode, this);
 			szr_stereo->Add(stereo_choice, 0, wxEXPAND);
@@ -714,7 +714,7 @@ VideoConfigDiag::VideoConfigDiag(wxWindow* parent, const std::string &title)
 			szr_options->AddGrowableCol(1, 1);
 
 			// Trigger
-			const wxString pptrigger_choices[] = {_("On Swap"), _("On Projection"), _("On EFB Copy"), _("After Blit")};
+			const wxString pptrigger_choices[] = { _("On Swap"), _("On Projection"), _("On EFB Copy"), _("After Blit") };
 			choice_pptrigger = CreateChoice(page_postprocessing, vconfig.iPostProcessingTrigger, wxGetTranslation(pptrigger_desc), 4, pptrigger_choices);
 			szr_options->Add(new wxStaticText(page_postprocessing, wxID_ANY, _("Post-Processing Trigger:")), 0, wxALIGN_CENTER_VERTICAL, 0);
 			szr_options->Add(choice_pptrigger, 1, wxEXPAND | wxALIGN_CENTER_VERTICAL);
@@ -1095,7 +1095,7 @@ void VideoConfigDiag::Event_ProgressiveScan(wxCommandEvent &ev)
 
 void VideoConfigDiag::Event_Stc(wxCommandEvent &ev)
 {
-	int samples[] = {0, 512, 128};
+	int samples[] = { 0, 512, 128 };
 	vconfig.iSafeTextureCache_ColorSamples = samples[ev.GetInt()];
 
 	ev.Skip();
@@ -1339,7 +1339,7 @@ void VideoConfigDiag::Event_BumpThreshold(wxCommandEvent &ev)
 
 void VideoConfigDiag::Event_ScalingFactor(wxCommandEvent &ev)
 {
-	const wxString sf_choices[] = {wxT("1x"), wxT("2x"), wxT("3x"), wxT("4x"), wxT("5x")};
+	const wxString sf_choices[] = { wxT("1x"), wxT("2x"), wxT("3x"), wxT("4x"), wxT("5x") };
 	vconfig.iTexScalingFactor = ev.GetInt();
 	label_TextureScale->SetLabel(sf_choices[vconfig.iTexScalingFactor - 1]);
 	ev.Skip();

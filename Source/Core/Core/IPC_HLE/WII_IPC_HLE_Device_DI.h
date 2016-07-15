@@ -8,14 +8,14 @@
 #include "Core/IPC_HLE/WII_IPC_HLE_Device.h"
 
 class PointerWrap;
-namespace DVDInterface {
-enum DIInterruptType: int;
+namespace DVDInterface
+{
+enum DIInterruptType : int;
 }
 
-class CWII_IPC_HLE_Device_di: public IWII_IPC_HLE_Device
+class CWII_IPC_HLE_Device_di : public IWII_IPC_HLE_Device
 {
 public:
-
 	CWII_IPC_HLE_Device_di(u32 _DeviceID, const std::string& _rDeviceName);
 
 	virtual ~CWII_IPC_HLE_Device_di();
@@ -29,8 +29,8 @@ public:
 	IPCCommandResult IOCtlV(u32 _CommandAddress) override;
 
 	void FinishIOCtl(DVDInterface::DIInterruptType interrupt_type);
-private:
 
+private:
 	void StartIOCtl(u32 command_address);
 
 	std::deque<u32> m_commands_to_execute;

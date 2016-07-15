@@ -15,50 +15,17 @@ public:
 	void AddVoice(u16 voice_id);
 	void FinalizeFrame();
 
-	void SetFlags(u32 flags)
-	{
-		m_flags = flags;
-	}
-	void SetSineTable(std::array<s16, 0x80>&& sine_table)
-	{
-		m_sine_table = sine_table;
-	}
-	void SetConstPatterns(std::array<s16, 0x100>&& patterns)
-	{
-		m_const_patterns = patterns;
-	}
-	void SetResamplingCoeffs(std::array<s16, 0x100>&& coeffs)
-	{
-		m_resampling_coeffs = coeffs;
-	}
-	void SetAfcCoeffs(std::array<s16, 0x20>&& coeffs)
-	{
-		m_afc_coeffs = coeffs;
-	}
-	void SetVPBBaseAddress(u32 addr)
-	{
-		m_vpb_base_addr = addr;
-	}
-	void SetReverbPBBaseAddress(u32 addr)
-	{
-		m_reverb_pb_base_addr = addr;
-	}
-	void SetOutputVolume(u16 volume)
-	{
-		m_output_volume = volume;
-	}
-	void SetOutputLeftBufferAddr(u32 addr)
-	{
-		m_output_lbuf_addr = addr;
-	}
-	void SetOutputRightBufferAddr(u32 addr)
-	{
-		m_output_rbuf_addr = addr;
-	}
-	void SetARAMBaseAddr(u32 addr)
-	{
-		m_aram_base_addr = addr;
-	}
+	void SetFlags(u32 flags) { m_flags = flags; }
+	void SetSineTable(std::array<s16, 0x80>&& sine_table) { m_sine_table = sine_table; }
+	void SetConstPatterns(std::array<s16, 0x100>&& patterns) { m_const_patterns = patterns; }
+	void SetResamplingCoeffs(std::array<s16, 0x100>&& coeffs) { m_resampling_coeffs = coeffs; }
+	void SetAfcCoeffs(std::array<s16, 0x20>&& coeffs) { m_afc_coeffs = coeffs; }
+	void SetVPBBaseAddress(u32 addr) { m_vpb_base_addr = addr; }
+	void SetReverbPBBaseAddress(u32 addr) { m_reverb_pb_base_addr = addr; }
+	void SetOutputVolume(u16 volume) { m_output_volume = volume; }
+	void SetOutputLeftBufferAddr(u32 addr) { m_output_lbuf_addr = addr; }
+	void SetOutputRightBufferAddr(u32 addr) { m_output_rbuf_addr = addr; }
+	void SetARAMBaseAddr(u32 addr) { m_aram_base_addr = addr; }
 	void DoState(PointerWrap& p);
 
 private:
@@ -215,7 +182,7 @@ private:
 	u32 m_reverb_pb_base_addr = 0;
 };
 
-class ZeldaUCode: public UCodeInterface
+class ZeldaUCode : public UCodeInterface
 {
 public:
 	ZeldaUCode(DSPHLE* dsphle, u32 crc);
@@ -242,7 +209,7 @@ private:
 	// of the original DSP implementation is rewritten in an asynchronous/coro
 	// + state machine style. It is less readable, but the best we can do given
 	// our constraints.
-	enum class MailState: u32
+	enum class MailState : u32
 	{
 		WAITING,
 		RENDERING,
@@ -307,7 +274,7 @@ private:
 	void RunPendingCommands();
 
 	// Sends the two mails from DSP to CPU to ack the command execution.
-	enum class CommandAck: u32
+	enum class CommandAck : u32
 	{
 		STANDARD,
 		DONE_RENDERING,

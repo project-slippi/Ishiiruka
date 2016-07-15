@@ -82,7 +82,7 @@ enum
 	ACCEL_RANGE = (ACCEL_ONE_G - ACCEL_ZERO_G),
 };
 
-class Wiimote: public ControllerEmu
+class Wiimote : public ControllerEmu
 {
 	friend class WiimoteReal::Wiimote;
 
@@ -117,10 +117,7 @@ public:
 
 	void LoadDefaults(const ControllerInterface& ciface) override;
 
-	int CurrentExtension() const
-	{
-		return m_extension->active_extension;
-	}
+	int CurrentExtension() const { return m_extension->active_extension; }
 protected:
 	bool Step();
 	void HidOutputReport(const wm_report* const sr, const bool send_ack = true);
@@ -132,14 +129,8 @@ protected:
 	void GetIRData(u8* const data, bool use_accel);
 	void GetExtData(u8* const data);
 
-	bool HaveExtension() const
-	{
-		return m_extension->active_extension > 0;
-	}
-	bool WantExtension() const
-	{
-		return m_extension->switch_extension != 0;
-	}
+	bool HaveExtension() const { return m_extension->active_extension > 0; }
+	bool WantExtension() const { return m_extension->switch_extension != 0; }
 private:
 	struct ReadRequest
 	{

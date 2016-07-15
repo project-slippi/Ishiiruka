@@ -20,7 +20,7 @@
 using namespace Gen;
 using namespace PowerPC;
 
-RegCache::RegCache(): emit(nullptr)
+RegCache::RegCache() : emit(nullptr)
 {}
 
 void RegCache::Start()
@@ -44,13 +44,13 @@ void RegCache::Start()
 	int maxPreload = 2;
 	for (int i = 0; i < 32; i++)
 	{
-	  if (stats.numReads[i] > 2 || stats.numWrites[i] >= 2)
-	  {
+		if (stats.numReads[i] > 2 || stats.numWrites[i] >= 2)
+		{
 		 LoadToX64(i, true, false); //stats.firstRead[i] <= stats.firstWrite[i], false);
 		 maxPreload--;
 		 if (!maxPreload)
 			break;
-	  }
+		}
 	}*/
 	// Find top regs - preload them (load bursts ain't bad)
 	// But only preload IF written OR reads >= 3
@@ -252,8 +252,8 @@ const X64Reg* GPRRegCache::GetAllocationOrder(size_t* count)
 
 const X64Reg* FPURegCache::GetAllocationOrder(size_t* count)
 {
-	static const X64Reg allocationOrder[] = {XMM6,  XMM7,  XMM8,  XMM9, XMM10, XMM11, XMM12,
-														  XMM13, XMM14, XMM15, XMM2, XMM3,  XMM4,  XMM5};
+	static const X64Reg allocationOrder[] = { XMM6,  XMM7,  XMM8,  XMM9, XMM10, XMM11, XMM12,
+															XMM13, XMM14, XMM15, XMM2, XMM3,  XMM4,  XMM5 };
 	*count = sizeof(allocationOrder) / sizeof(X64Reg);
 	return allocationOrder;
 }

@@ -15,13 +15,16 @@
 #include "Core/HW/SystemTimers.h"
 #include "Core/IPC_HLE/WII_IPC_HLE.h"
 #include "Core/IPC_HLE/WII_IPC_HLE_Device_DI.h"
+#include "DiscIO/Volume.h"
 
 CWII_IPC_HLE_Device_di::CWII_IPC_HLE_Device_di(u32 _DeviceID, const std::string& _rDeviceName)
 	: IWII_IPC_HLE_Device(_DeviceID, _rDeviceName)
-{}
+{
+}
 
 CWII_IPC_HLE_Device_di::~CWII_IPC_HLE_Device_di()
-{}
+{
+}
 
 void CWII_IPC_HLE_Device_di::DoState(PointerWrap& p)
 {
@@ -135,17 +138,21 @@ IPCCommandResult CWII_IPC_HLE_Device_di::IOCtlV(u32 _CommandAddress)
 	{
 	case DVDInterface::DVDLowOpenPartition:
 	{
-		_dbg_assert_msg_(WII_IPC_DVD, CommandBuffer.InBuffer[1].m_Address == 0, "DVDLowOpenPartition with ticket");
-		_dbg_assert_msg_(WII_IPC_DVD, CommandBuffer.InBuffer[2].m_Address == 0, "DVDLowOpenPartition with cert chain");
+		_dbg_assert_msg_(WII_IPC_DVD, CommandBuffer.InBuffer[1].m_Address == 0,
+			"DVDLowOpenPartition with ticket");
+		_dbg_assert_msg_(WII_IPC_DVD, CommandBuffer.InBuffer[2].m_Address == 0,
+			"DVDLowOpenPartition with cert chain");
 
-		u64 const partition_offset = ((u64)Memory::Read_U32(CommandBuffer.InBuffer[0].m_Address + 4) << 2);
+		u64 const partition_offset =
+			((u64)Memory::Read_U32(CommandBuffer.InBuffer[0].m_Address + 4) << 2);
 		DVDInterface::ChangePartition(partition_offset);
 
 		INFO_LOG(WII_IPC_DVD, "DVDLowOpenPartition: partition_offset 0x%016" PRIx64, partition_offset);
 
 		// Read TMD to the buffer
 		std::vector<u8> tmd_buffer = DVDInterface::GetVolume().GetTMD();
-		Memory::CopyToEmu(CommandBuffer.PayloadBuffer[0].m_Address, tmd_buffer.data(), tmd_buffer.size());
+		Memory::CopyToEmu(CommandBuffer.PayloadBuffer[0].m_Address, tmd_buffer.data(),
+			tmd_buffer.size());
 		WII_IPC_HLE_Interface::ES_DIVerify(tmd_buffer);
 
 		ReturnValue = 1;

@@ -199,18 +199,24 @@ void CalculateVertexElementSizes(int sizes[], int vatIndex, const CPMemory& cpMe
 	const VAT& vtxAttr = cpMem.vtxAttr[vatIndex];
 
 	// Colors
-	const u64 colDesc[2] = {vtxDesc.Color0, vtxDesc.Color1};
-	const u32 colComp[2] = {vtxAttr.g0.Color0Comp, vtxAttr.g0.Color1Comp};
+	const u64 colDesc[2] = { vtxDesc.Color0, vtxDesc.Color1 };
+	const u32 colComp[2] = { vtxAttr.g0.Color0Comp, vtxAttr.g0.Color1Comp };
 
-	const u32 tcElements[8] = {vtxAttr.g0.Tex0CoordElements, vtxAttr.g1.Tex1CoordElements,
-										vtxAttr.g1.Tex2CoordElements, vtxAttr.g1.Tex3CoordElements,
-										vtxAttr.g1.Tex4CoordElements, vtxAttr.g2.Tex5CoordElements,
-										vtxAttr.g2.Tex6CoordElements, vtxAttr.g2.Tex7CoordElements};
+	const u32 tcElements[8] =
+	{
+		vtxAttr.g0.Tex0CoordElements, vtxAttr.g1.Tex1CoordElements,
+		vtxAttr.g1.Tex2CoordElements, vtxAttr.g1.Tex3CoordElements,
+		vtxAttr.g1.Tex4CoordElements, vtxAttr.g2.Tex5CoordElements,
+		vtxAttr.g2.Tex6CoordElements, vtxAttr.g2.Tex7CoordElements
+	};
 
-	const u32 tcFormat[8] = {vtxAttr.g0.Tex0CoordFormat, vtxAttr.g1.Tex1CoordFormat,
-									 vtxAttr.g1.Tex2CoordFormat, vtxAttr.g1.Tex3CoordFormat,
-									 vtxAttr.g1.Tex4CoordFormat, vtxAttr.g2.Tex5CoordFormat,
-									 vtxAttr.g2.Tex6CoordFormat, vtxAttr.g2.Tex7CoordFormat};
+	const u32 tcFormat[8] =
+	{
+		vtxAttr.g0.Tex0CoordFormat, vtxAttr.g1.Tex1CoordFormat,
+		vtxAttr.g1.Tex2CoordFormat, vtxAttr.g1.Tex3CoordFormat,
+		vtxAttr.g1.Tex4CoordFormat, vtxAttr.g2.Tex5CoordFormat,
+		vtxAttr.g2.Tex6CoordFormat, vtxAttr.g2.Tex7CoordFormat
+	};
 
 	// Add position and texture matrix indices
 	u64 vtxDescHex = cpMem.vtxDesc.Hex;

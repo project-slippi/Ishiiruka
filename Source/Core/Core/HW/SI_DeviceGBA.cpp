@@ -220,7 +220,7 @@ void GBASockServer::ClockSync()
 
 	time_slice = (u32)((u64)time_slice * 16777216 / SystemTimers::GetTicksPerSecond());
 	last_time_slice = CoreTiming::GetTicks();
-	char bytes[4] = {0, 0, 0, 0};
+	char bytes[4] = { 0, 0, 0, 0 };
 	bytes[0] = (time_slice >> 24) & 0xff;
 	bytes[1] = (time_slice >> 16) & 0xff;
 	bytes[2] = (time_slice >> 8) & 0xff;

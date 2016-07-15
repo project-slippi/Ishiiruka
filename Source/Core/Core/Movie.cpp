@@ -5,9 +5,9 @@
 #include <algorithm>
 #include <array>
 #include <cctype>
-#include <mutex>
 #include <mbedtls/config.h>
 #include <mbedtls/md.h>
+#include <mutex>
 
 #include "Common/ChunkFile.h"
 #include "Common/CommonPaths.h"
@@ -19,14 +19,10 @@
 #include "Core/ConfigManager.h"
 #include "Core/Core.h"
 #include "Core/CoreTiming.h"
-#include "Core/Movie.h"
-#include "Core/NetPlayClient.h"
-#include "Core/NetPlayProto.h"
-#include "Core/State.h"
 #include "Core/DSP/DSPCore.h"
 #include "Core/HW/CPU.h"
 #include "Core/HW/DVDInterface.h"
-#include "Core/HW/EXI_Device.h"
+#include "Core/HW/EXI_DeviceIPL.h"
 #include "Core/HW/ProcessorInterface.h"
 #include "Core/HW/SI.h"
 #include "Core/HW/Wiimote.h"
@@ -34,7 +30,11 @@
 #include "Core/HW/WiimoteEmu/WiimoteHid.h"
 #include "Core/IPC_HLE/WII_IPC_HLE_Device_usb.h"
 #include "Core/IPC_HLE/WII_IPC_HLE_WiiMote.h"
+#include "Core/Movie.h"
+#include "Core/NetPlayProto.h"
 #include "Core/PowerPC/PowerPC.h"
+#include "Core/State.h"
+#include "DiscIO/Enums.h"
 #include "InputCommon/GCPadStatus.h"
 #include "VideoCommon/Fifo.h"
 #include "VideoCommon/VideoBackendBase.h"
@@ -45,8 +45,8 @@
 
 static std::mutex cs_frameSkip;
 
-namespace Movie {
-
+namespace Movie
+{
 static bool s_bFrameStep = false;
 static bool s_bReadOnly = true;
 static u32 s_rerecords = 0;
@@ -60,12 +60,12 @@ static DTMHeader tmpHeader;
 static u8* tmpInput = nullptr;
 static size_t tmpInputAllocated = 0;
 static u64 s_currentByte = 0, s_totalBytes = 0;
-u64 g_currentFrame = 0, g_totalFrames = 0; // VI
+u64 g_currentFrame = 0, g_totalFrames = 0;  // VI
 u64 g_currentLagCount = 0;
-static u64 s_totalLagCount = 0; // just stats
-u64 g_currentInputCount = 0, g_totalInputCount = 0; // just stats
-static u64 s_totalTickCount = 0, s_tickCountAtLastInput = 0; // just stats
-static u64 s_recordingStartTime; // seconds since 1970 that recording started
+static u64 s_totalLagCount = 0;                               // just stats
+u64 g_currentInputCount = 0, g_totalInputCount = 0;           // just stats
+static u64 s_totalTickCount = 0, s_tickCountAtLastInput = 0;  // just stats
+static u64 s_recordingStartTime;  // seconds since 1970 that recording started
 static bool s_bSaveConfig = false, s_bSkipIdle = false, s_bDualCore = false;
 static bool s_bProgressive = false, s_bPAL60 = false;
 static bool s_bDSPHLE = false, s_bFastDiscSpeed = false;
@@ -83,13 +83,13 @@ static u8 s_bongos, s_memcards;
 static u8 s_revision[20];
 static u32 s_DSPiromHash = 0;
 static u32 s_DSPcoefHash = 0;
-static u8 s_language = 10; //Set to unknown until language is known
+static u8 s_language = static_cast<u8>(DiscIO::Language::LANGUAGE_UNKNOWN);
 
 static bool s_bRecordingFromSaveState = false;
 static bool s_bPolled = false;
 
 // s_InputDisplay is used by both CPU and GPU (is mutable).
-static std::mutex  s_input_display_lock;
+static std::mutex s_input_display_lock;
 static std::string s_InputDisplay[8];
 
 static GCManipFunction gcmfunc = nullptr;
@@ -119,10 +119,7 @@ static void EnsureTmpInputSize(size_t bound)
 
 static bool IsMovieHeader(u8 magic[4])
 {
-	return magic[0] == 'D' &&
-		magic[1] == 'T' &&
-		magic[2] == 'M' &&
-		magic[3] == 0x1A;
+	return magic[0] == 'D' && magic[1] == 'T' && magic[2] == 'M' && magic[3] == 0x1A;
 }
 
 static std::array<u8, 20> ConvertGitRevisionToBytes(const std::string& revision)
@@ -223,7 +220,8 @@ void Init()
 		md5thread.detach();
 		if (strncmp(tmpHeader.gameID, SConfig::GetInstance().GetUniqueID().c_str(), 6))
 		{
-			PanicAlertT("The recorded game (%s) is not the same as the selected game (%s)", tmpHeader.gameID, SConfig::GetInstance().GetUniqueID().c_str());
+			PanicAlertT("The recorded game (%s) is not the same as the selected game (%s)",
+				tmpHeader.gameID, SConfig::GetInstance().GetUniqueID().c_str());
 			EndPlayInput(false);
 		}
 	}
@@ -317,7 +315,7 @@ void SetReadOnly(bool bEnabled)
 void FrameSkipping()
 {
 	// Frameskipping will desync movie playback
-	if (!IsMovieActive() || NetPlay::IsNetPlayRunning())
+	if (!Core::g_want_determinism)
 	{
 		std::lock_guard<std::mutex> lk(cs_frameSkip);
 
@@ -473,7 +471,7 @@ void ChangePads(bool instantly)
 				device = IsUsingBongo(i) ? SIDEVICE_GC_TARUKONGA : SIDEVICE_GC_CONTROLLER;
 		}
 
-		if (instantly) // Changes from savestates need to be instantaneous
+		if (instantly)  // Changes from savestates need to be instantaneous
 			SerialInterface::AddDevice(device, i);
 		else
 			SerialInterface::ChangeDevice(device, i);
@@ -518,7 +516,7 @@ bool BeginRecordingInput(int controllers)
 	if (NetPlay::IsNetPlayRunning())
 	{
 		s_bNetPlay = true;
-		s_recordingStartTime = g_netplay_initial_gctime;
+		s_recordingStartTime = CEXIIPL::NetPlay_GetGCTime();
 	}
 	else
 	{
@@ -540,11 +538,13 @@ bool BeginRecordingInput(int controllers)
 		State::SaveAs(save_path);
 		s_bRecordingFromSaveState = true;
 
-		// This is only done here if starting from save state because otherwise we won't have the titleid. Otherwise it's set in WII_IPC_HLE_Device_es.cpp.
+		// This is only done here if starting from save state because otherwise we won't have the
+		// titleid. Otherwise it's set in WII_IPC_HLE_Device_es.cpp.
 		// TODO: find a way to GetTitleDataPath() from Movie::Init()
 		if (SConfig::GetInstance().bWii)
 		{
-			if (File::Exists(Common::GetTitleDataPath(g_titleID, Common::FROM_SESSION_ROOT) + "banner.bin"))
+			if (File::Exists(Common::GetTitleDataPath(g_titleID, Common::FROM_SESSION_ROOT) +
+				"banner.bin"))
 				Movie::g_bClearSave = false;
 			else
 				Movie::g_bClearSave = true;
@@ -578,14 +578,14 @@ bool BeginRecordingInput(int controllers)
 static std::string Analog2DToString(u8 x, u8 y, const std::string& prefix, u8 range = 255)
 {
 	u8 center = range / 2 + 1;
-	if ((x <= 1 || x == center || x >= range) &&
-		(y <= 1 || y == center || y >= range))
+	if ((x <= 1 || x == center || x >= range) && (y <= 1 || y == center || y >= range))
 	{
 		if (x != center || y != center)
 		{
 			if (x != center && y != center)
 			{
-				return StringFromFormat("%s:%s,%s", prefix.c_str(), x < center ? "LEFT" : "RIGHT", y < center ? "DOWN" : "UP");
+				return StringFromFormat("%s:%s,%s", prefix.c_str(), x < center ? "LEFT" : "RIGHT",
+					y < center ? "DOWN" : "UP");
 			}
 			else if (x != center)
 			{
@@ -666,7 +666,9 @@ static void SetInputDisplayString(ControllerState padState, int controllerID)
 }
 
 // NOTE: CPU Thread
-static void SetWiiInputDisplayString(int remoteID, u8* const data, const WiimoteEmu::ReportFeatures& rptf, int ext, const wiimote_key key)
+static void SetWiiInputDisplayString(int remoteID, u8* const data,
+	const WiimoteEmu::ReportFeatures& rptf, int ext,
+	const wiimote_key key)
 {
 	int controllerID = remoteID + 4;
 
@@ -707,10 +709,10 @@ static void SetWiiInputDisplayString(int remoteID, u8* const data, const Wiimote
 	if (accelData)
 	{
 		wm_accel* dt = (wm_accel*)accelData;
-		display_str += StringFromFormat(" ACC:%d,%d,%d",
-			dt->x << 2 | ((wm_buttons*)coreData)->acc_x_lsb,
-			dt->y << 2 | ((wm_buttons*)coreData)->acc_y_lsb << 1,
-			dt->z << 2 | ((wm_buttons*)coreData)->acc_z_lsb << 1);
+		display_str +=
+			StringFromFormat(" ACC:%d,%d,%d", dt->x << 2 | ((wm_buttons*)coreData)->acc_x_lsb,
+				dt->y << 2 | ((wm_buttons*)coreData)->acc_y_lsb << 1,
+				dt->z << 2 | ((wm_buttons*)coreData)->acc_z_lsb << 1);
 	}
 
 	if (irData)
@@ -728,8 +730,9 @@ static void SetWiiInputDisplayString(int remoteID, u8* const data, const Wiimote
 		WiimoteDecrypt(&key, (u8*)&nunchuk, 0, sizeof(wm_nc));
 		nunchuk.bt.hex = nunchuk.bt.hex ^ 0x3;
 
-		std::string accel = StringFromFormat(" N-ACC:%d,%d,%d",
-			(nunchuk.ax << 2) | nunchuk.bt.acc_x_lsb, (nunchuk.ay << 2) | nunchuk.bt.acc_y_lsb, (nunchuk.az << 2) | nunchuk.bt.acc_z_lsb);
+		std::string accel = StringFromFormat(
+			" N-ACC:%d,%d,%d", (nunchuk.ax << 2) | nunchuk.bt.acc_x_lsb,
+			(nunchuk.ay << 2) | nunchuk.bt.acc_y_lsb, (nunchuk.az << 2) | nunchuk.bt.acc_z_lsb);
 
 		if (nunchuk.bt.c)
 			display_str += " C";
@@ -835,7 +838,8 @@ void RecordInput(GCPadStatus* PadStatus, int controllerID)
 }
 
 // NOTE: CPU Thread
-void CheckWiimoteStatus(int wiimote, u8 *data, const WiimoteEmu::ReportFeatures& rptf, int ext, const wiimote_key key)
+void CheckWiimoteStatus(int wiimote, u8* data, const WiimoteEmu::ReportFeatures& rptf, int ext,
+	const wiimote_key key)
 {
 	SetWiiInputDisplayString(wiimote, data, rptf, ext, key);
 
@@ -843,7 +847,7 @@ void CheckWiimoteStatus(int wiimote, u8 *data, const WiimoteEmu::ReportFeatures&
 		RecordWiimote(wiimote, data, rptf.size);
 }
 
-void RecordWiimote(int wiimote, u8 *data, u8 size)
+void RecordWiimote(int wiimote, u8* data, u8 size)
 {
 	if (!IsRecordingInput() || !IsUsingWiimote(wiimote))
 		return;
@@ -953,7 +957,7 @@ bool PlayInput(const std::string& filename)
 	return true;
 }
 
-void DoState(PointerWrap &p)
+void DoState(PointerWrap& p)
 {
 	// many of these could be useful to save even when no movie is active,
 	// and the data is tiny, so let's just save it regardless of movie state.
@@ -1004,7 +1008,10 @@ void LoadInput(const std::string& filename)
 	// This can only happen if the user manually deletes data from the dtm.
 	if (s_currentByte > totalSavedBytes)
 	{
-		PanicAlertT("Warning: You loaded a save whose movie ends before the current frame in the save (byte %u < %u) (frame %u < %u). You should load another save before continuing.", (u32)totalSavedBytes + 256, (u32)s_currentByte + 256, (u32)tmpHeader.frameCount, (u32)g_currentFrame);
+		PanicAlertT("Warning: You loaded a save whose movie ends before the current frame in the save "
+			"(byte %u < %u) (frame %u < %u). You should load another save before continuing.",
+			(u32)totalSavedBytes + 256, (u32)s_currentByte + 256, (u32)tmpHeader.frameCount,
+			(u32)g_currentFrame);
 		afterEnd = true;
 	}
 
@@ -1027,7 +1034,11 @@ void LoadInput(const std::string& filename)
 		else if (s_currentByte > s_totalBytes)
 		{
 			afterEnd = true;
-			PanicAlertT("Warning: You loaded a save that's after the end of the current movie. (byte %u > %u) (frame %u > %u). You should load another save before continuing, or load this state with read-only mode off.", (u32)s_currentByte + 256, (u32)s_totalBytes + 256, (u32)g_currentFrame, (u32)g_totalFrames);
+			PanicAlertT("Warning: You loaded a save that's after the end of the current movie. (byte %u "
+				"> %u) (input %u > %u). You should load another save before continuing, or load "
+				"this state with read-only mode off.",
+				(u32)s_currentByte + 256, (u32)s_totalBytes + 256, (u32)g_currentInputCount,
+				(u32)g_totalInputCount);
 		}
 		else if (s_currentByte > 0 && s_totalBytes > 0)
 		{
@@ -1040,11 +1051,15 @@ void LoadInput(const std::string& filename)
 				if (movInput[i] != tmpInput[i])
 				{
 					// this is a "you did something wrong" alert for the user's benefit.
-					// we'll try to say what's going on in excruciating detail, otherwise the user might not believe us.
+					// we'll try to say what's going on in excruciating detail, otherwise the user might not
+					// believe us.
 					if (IsUsingWiimote(0))
 					{
 						// TODO: more detail
-						PanicAlertT("Warning: You loaded a save whose movie mismatches on byte %d (0x%X). You should load another save before continuing, or load this state with read-only mode off. Otherwise you'll probably get a desync.", i + 256, i + 256);
+						PanicAlertT("Warning: You loaded a save whose movie mismatches on byte %d (0x%X). You "
+							"should load another save before continuing, or load this state with "
+							"read-only mode off. Otherwise you'll probably get a desync.",
+							i + 256, i + 256);
 						memcpy(tmpInput, movInput, s_currentByte);
 					}
 					else
@@ -1054,20 +1069,32 @@ void LoadInput(const std::string& filename)
 						memcpy(&curPadState, &(tmpInput[frame * 8]), 8);
 						ControllerState movPadState;
 						memcpy(&movPadState, &(movInput[frame * 8]), 8);
-						PanicAlertT("Warning: You loaded a save whose movie mismatches on frame %d. You should load another save before continuing, or load this state with read-only mode off. Otherwise you'll probably get a desync.\n\n"
-							"More information: The current movie is %d frames long and the savestate's movie is %d frames long.\n\n"
+						PanicAlertT(
+							"Warning: You loaded a save whose movie mismatches on frame %d. You should load "
+							"another save before continuing, or load this state with read-only mode off. "
+							"Otherwise you'll probably get a desync.\n\n"
+							"More information: The current movie is %d frames long and the savestate's movie "
+							"is %d frames long.\n\n"
 							"On frame %d, the current movie presses:\n"
-							"Start=%d, A=%d, B=%d, X=%d, Y=%d, Z=%d, DUp=%d, DDown=%d, DLeft=%d, DRight=%d, L=%d, R=%d, LT=%d, RT=%d, AnalogX=%d, AnalogY=%d, CX=%d, CY=%d"
+							"Start=%d, A=%d, B=%d, X=%d, Y=%d, Z=%d, DUp=%d, DDown=%d, DLeft=%d, DRight=%d, "
+							"L=%d, R=%d, LT=%d, RT=%d, AnalogX=%d, AnalogY=%d, CX=%d, CY=%d"
 							"\n\n"
 							"On frame %d, the savestate's movie presses:\n"
-							"Start=%d, A=%d, B=%d, X=%d, Y=%d, Z=%d, DUp=%d, DDown=%d, DLeft=%d, DRight=%d, L=%d, R=%d, LT=%d, RT=%d, AnalogX=%d, AnalogY=%d, CX=%d, CY=%d",
-							(int)frame,
-							(int)g_totalFrames, (int)tmpHeader.frameCount,
-							(int)frame,
-							(int)curPadState.Start, (int)curPadState.A, (int)curPadState.B, (int)curPadState.X, (int)curPadState.Y, (int)curPadState.Z, (int)curPadState.DPadUp, (int)curPadState.DPadDown, (int)curPadState.DPadLeft, (int)curPadState.DPadRight, (int)curPadState.L, (int)curPadState.R, (int)curPadState.TriggerL, (int)curPadState.TriggerR, (int)curPadState.AnalogStickX, (int)curPadState.AnalogStickY, (int)curPadState.CStickX, (int)curPadState.CStickY,
-							(int)frame,
-							(int)movPadState.Start, (int)movPadState.A, (int)movPadState.B, (int)movPadState.X, (int)movPadState.Y, (int)movPadState.Z, (int)movPadState.DPadUp, (int)movPadState.DPadDown, (int)movPadState.DPadLeft, (int)movPadState.DPadRight, (int)movPadState.L, (int)movPadState.R, (int)movPadState.TriggerL, (int)movPadState.TriggerR, (int)movPadState.AnalogStickX, (int)movPadState.AnalogStickY, (int)movPadState.CStickX, (int)movPadState.CStickY);
-
+							"Start=%d, A=%d, B=%d, X=%d, Y=%d, Z=%d, DUp=%d, DDown=%d, DLeft=%d, DRight=%d, "
+							"L=%d, R=%d, LT=%d, RT=%d, AnalogX=%d, AnalogY=%d, CX=%d, CY=%d",
+							(int)frame, (int)g_totalFrames, (int)tmpHeader.frameCount, (int)frame,
+							(int)curPadState.Start, (int)curPadState.A, (int)curPadState.B, (int)curPadState.X,
+							(int)curPadState.Y, (int)curPadState.Z, (int)curPadState.DPadUp,
+							(int)curPadState.DPadDown, (int)curPadState.DPadLeft, (int)curPadState.DPadRight,
+							(int)curPadState.L, (int)curPadState.R, (int)curPadState.TriggerL,
+							(int)curPadState.TriggerR, (int)curPadState.AnalogStickX,
+							(int)curPadState.AnalogStickY, (int)curPadState.CStickX, (int)curPadState.CStickY,
+							(int)frame, (int)movPadState.Start, (int)movPadState.A, (int)movPadState.B,
+							(int)movPadState.X, (int)movPadState.Y, (int)movPadState.Z, (int)movPadState.DPadUp,
+							(int)movPadState.DPadDown, (int)movPadState.DPadLeft, (int)movPadState.DPadRight,
+							(int)movPadState.L, (int)movPadState.R, (int)movPadState.TriggerL,
+							(int)movPadState.TriggerR, (int)movPadState.AnalogStickX,
+							(int)movPadState.AnalogStickY, (int)movPadState.CStickX, (int)movPadState.CStickY);
 					}
 					break;
 				}
@@ -1107,7 +1134,8 @@ void LoadInput(const std::string& filename)
 // NOTE: CPU Thread
 static void CheckInputEnd()
 {
-	if (g_currentFrame > g_totalFrames || s_currentByte >= s_totalBytes || (CoreTiming::GetTicks() > s_totalTickCount && !IsRecordingInputFromSaveState()))
+	if (s_currentByte >= s_totalBytes ||
+		(CoreTiming::GetTicks() > s_totalTickCount && !IsRecordingInputFromSaveState()))
 	{
 		EndPlayInput(!s_bReadOnly);
 	}
@@ -1123,16 +1151,17 @@ void PlayController(GCPadStatus* PadStatus, int controllerID)
 
 	if (s_currentByte + 8 > s_totalBytes)
 	{
-		PanicAlertT("Premature movie end in PlayController. %u + 8 > %u", (u32)s_currentByte, (u32)s_totalBytes);
+		PanicAlertT("Premature movie end in PlayController. %u + 8 > %u", (u32)s_currentByte,
+			(u32)s_totalBytes);
 		EndPlayInput(!s_bReadOnly);
 		return;
 	}
 
-	// dtm files don't save the mic button or error bit. not sure if they're actually used, but better safe than sorry
+	// dtm files don't save the mic button or error bit. not sure if they're actually used, but better
+	// safe than sorry
 	signed char e = PadStatus->err;
 	memset(PadStatus, 0, sizeof(GCPadStatus));
 	PadStatus->err = e;
-
 
 	memcpy(&s_padState, &(tmpInput[s_currentByte]), 8);
 	s_currentByte += 8;
@@ -1182,15 +1211,15 @@ void PlayController(GCPadStatus* PadStatus, int controllerID)
 		PadStatus->button |= PAD_TRIGGER_R;
 	if (s_padState.disc)
 	{
-		// This implementation assumes the disc change will only happen once. Trying to change more than that will cause
-		// it to load the last disc every time. As far as i know though, there are no 3+ disc games, so this should be fine.
-		CPU::Break();
+		// This implementation assumes the disc change will only happen once. Trying
+		// to change more than that will cause it to load the last disc every time.
+		// As far as I know, there are no 3+ disc games, so this should be fine.
 		bool found = false;
 		std::string path;
-		for (size_t i = 0; i < SConfig::GetInstance().m_ISOFolder.size(); ++i)
+		for (const std::string& iso_folder : SConfig::GetInstance().m_ISOFolder)
 		{
-			path = SConfig::GetInstance().m_ISOFolder[i];
-			if (File::Exists(path + '/' + g_discChange))
+			path = iso_folder + '/' + g_discChange;
+			if (File::Exists(path))
 			{
 				found = true;
 				break;
@@ -1198,19 +1227,11 @@ void PlayController(GCPadStatus* PadStatus, int controllerID)
 		}
 		if (found)
 		{
-			path += '/' + g_discChange;
-
-			Core::QueueHostJob([=]
-			{
-				if (!Movie::IsPlayingInput())
-					return;
-
-				DVDInterface::ChangeDisc(path);
-				CPU::EnableStepping(false);
-			});
+			DVDInterface::ChangeDiscAsCPU(path);
 		}
 		else
 		{
+			CPU::Break();
 			PanicAlertT("Change the disc to %s", g_discChange.c_str());
 		}
 	}
@@ -1223,14 +1244,16 @@ void PlayController(GCPadStatus* PadStatus, int controllerID)
 }
 
 // NOTE: CPU Thread
-bool PlayWiimote(int wiimote, u8 *data, const WiimoteEmu::ReportFeatures& rptf, int ext, const wiimote_key key)
+bool PlayWiimote(int wiimote, u8* data, const WiimoteEmu::ReportFeatures& rptf, int ext,
+	const wiimote_key key)
 {
 	if (!IsPlayingInput() || !IsUsingWiimote(wiimote) || tmpInput == nullptr)
 		return false;
 
 	if (s_currentByte > s_totalBytes)
 	{
-		PanicAlertT("Premature movie end in PlayWiimote. %u > %u", (u32)s_currentByte, (u32)s_totalBytes);
+		PanicAlertT("Premature movie end in PlayWiimote. %u > %u", (u32)s_currentByte,
+			(u32)s_totalBytes);
 		EndPlayInput(!s_bReadOnly);
 		return false;
 	}
@@ -1241,8 +1264,11 @@ bool PlayWiimote(int wiimote, u8 *data, const WiimoteEmu::ReportFeatures& rptf, 
 
 	if (size != sizeInMovie)
 	{
-		PanicAlertT("Fatal desync. Aborting playback. (Error in PlayWiimote: %u != %u, byte %u.)%s", (u32)sizeInMovie, (u32)size, (u32)s_currentByte,
-			(s_numPads & 0xF) ? " Try re-creating the recording with all GameCube controllers disabled (in Configure > GameCube > Device Settings)." : "");
+		PanicAlertT("Fatal desync. Aborting playback. (Error in PlayWiimote: %u != %u, byte %u.)%s",
+			(u32)sizeInMovie, (u32)size, (u32)s_currentByte,
+			(s_numPads & 0xF) ? " Try re-creating the recording with all GameCube controllers "
+			"disabled (in Configure > GameCube > Device Settings)." :
+			"");
 		EndPlayInput(!s_bReadOnly);
 		return false;
 	}
@@ -1251,7 +1277,8 @@ bool PlayWiimote(int wiimote, u8 *data, const WiimoteEmu::ReportFeatures& rptf, 
 
 	if (s_currentByte + size > s_totalBytes)
 	{
-		PanicAlertT("Premature movie end in PlayWiimote. %u + %d > %u", (u32)s_currentByte, size, (u32)s_totalBytes);
+		PanicAlertT("Premature movie end in PlayWiimote. %u + %d > %u", (u32)s_currentByte, size,
+			(u32)s_totalBytes);
 		EndPlayInput(!s_bReadOnly);
 		return false;
 	}
@@ -1284,13 +1311,13 @@ void EndPlayInput(bool cont)
 		s_playMode = MODE_NONE;
 		Core::DisplayMessage("Movie End.", 2000);
 		s_bRecordingFromSaveState = false;
-		// we don't clear these things because otherwise we can't resume playback if we load a movie state later
-		//g_totalFrames = s_totalBytes = 0;
-		//delete tmpInput;
-		//tmpInput = nullptr;
+		// we don't clear these things because otherwise we can't resume playback if we load a movie
+		// state later
+		// g_totalFrames = s_totalBytes = 0;
+		// delete tmpInput;
+		// tmpInput = nullptr;
 
-		Core::QueueHostJob([=]
-		{
+		Core::QueueHostJob([=] {
 			Core::UpdateWantDeterminism();
 			if (was_running && !SConfig::GetInstance().m_PauseMovie)
 				CPU::EnableStepping(false);
@@ -1306,7 +1333,10 @@ void SaveRecording(const std::string& filename)
 	DTMHeader header;
 	memset(&header, 0, sizeof(DTMHeader));
 
-	header.filetype[0] = 'D'; header.filetype[1] = 'T'; header.filetype[2] = 'M'; header.filetype[3] = 0x1A;
+	header.filetype[0] = 'D';
+	header.filetype[1] = 'T';
+	header.filetype[2] = 'M';
+	header.filetype[3] = 0x1A;
 	strncpy(header.gameID, SConfig::GetInstance().GetUniqueID().c_str(), 6);
 	header.bWii = SConfig::GetInstance().bWii;
 	header.numControllers = s_numPads & (SConfig::GetInstance().bWii ? 0xFF : 0x0F);
@@ -1325,7 +1355,7 @@ void SaveRecording(const std::string& filename)
 	header.bPAL60 = s_bPAL60;
 	header.bDSPHLE = s_bDSPHLE;
 	header.bFastDiscSpeed = s_bFastDiscSpeed;
-	strncpy((char *)header.videoBackend, s_videoBackend.c_str(), ArraySize(header.videoBackend));
+	strncpy((char*)header.videoBackend, s_videoBackend.c_str(), ArraySize(header.videoBackend));
 	header.CPUCore = s_iCPUCore;
 	header.bEFBAccessEnable = g_ActiveConfig.bEFBAccessEnable;
 	header.bEFBCopyEnable = true;
@@ -1338,8 +1368,8 @@ void SaveRecording(const std::string& filename)
 	header.bClearSave = g_bClearSave;
 	header.bSyncGPU = s_bSyncGPU;
 	header.bNetPlay = s_bNetPlay;
-	strncpy((char *)header.discChange, g_discChange.c_str(), ArraySize(header.discChange));
-	strncpy((char *)header.author, s_author.c_str(), ArraySize(header.author));
+	strncpy((char*)header.discChange, g_discChange.c_str(), ArraySize(header.discChange));
+	strncpy((char*)header.author, s_author.c_str(), ArraySize(header.author));
 	memcpy(header.md5, s_MD5, 16);
 	header.bongos = s_bongos;
 	memcpy(header.revision, s_revision, ArraySize(header.revision));
@@ -1384,7 +1414,8 @@ void CallGCInputManip(GCPadStatus* PadStatus, int controllerID)
 		(*gcmfunc)(PadStatus, controllerID);
 }
 // NOTE: CPU Thread
-void CallWiiInputManip(u8* data, WiimoteEmu::ReportFeatures rptf, int controllerID, int ext, const wiimote_key key)
+void CallWiiInputManip(u8* data, WiimoteEmu::ReportFeatures rptf, int controllerID, int ext,
+	const wiimote_key key)
 {
 	if (wiimfunc)
 		(*wiimfunc)(data, rptf, controllerID, ext, key);
@@ -1493,7 +1524,8 @@ void GetMD5()
 // NOTE: EmuThread
 void Shutdown()
 {
-	g_currentInputCount = g_totalInputCount = g_totalFrames = s_totalBytes = s_tickCountAtLastInput = 0;
+	g_currentInputCount = g_totalInputCount = g_totalFrames = s_totalBytes = s_tickCountAtLastInput =
+		0;
 	delete[] tmpInput;
 	tmpInput = nullptr;
 	tmpInputAllocated = 0;

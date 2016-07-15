@@ -12,7 +12,8 @@
 
 WII_SSL CWII_IPC_HLE_Device_net_ssl::_SSL[NET_SSL_MAXINSTANCES];
 
-CWII_IPC_HLE_Device_net_ssl::CWII_IPC_HLE_Device_net_ssl(u32 _DeviceID, const std::string& _rDeviceName)
+CWII_IPC_HLE_Device_net_ssl::CWII_IPC_HLE_Device_net_ssl(u32 _DeviceID,
+	const std::string& _rDeviceName)
 	: IWII_IPC_HLE_Device(_DeviceID, _rDeviceName)
 {
 	for (WII_SSL& ssl : _SSL)
@@ -82,8 +83,7 @@ IPCCommandResult CWII_IPC_HLE_Device_net_ssl::IOCtl(u32 _CommandAddress)
 
 	INFO_LOG(WII_IPC_SSL, "%s unknown %i "
 		"(BufferIn: (%08x, %i), BufferOut: (%08x, %i)",
-		GetDeviceName().c_str(), Command,
-		BufferIn, BufferInSize, BufferOut, BufferOutSize);
+		GetDeviceName().c_str(), Command, BufferIn, BufferInSize, BufferOut, BufferOutSize);
 	Memory::Write_U32(0, _CommandAddress + 0x4);
 	return GetDefaultReply();
 }
@@ -154,10 +154,8 @@ IPCCommandResult CWII_IPC_HLE_Device_net_ssl::IOCtlV(u32 _CommandAddress)
 			mbedtls_entropy_init(&ssl->entropy);
 			const char* pers = "dolphin-emu";
 			mbedtls_ctr_drbg_init(&ssl->ctr_drbg);
-			int ret = mbedtls_ctr_drbg_seed(&ssl->ctr_drbg, mbedtls_entropy_func,
-				&ssl->entropy,
-				(const unsigned char*)pers,
-				strlen(pers));
+			int ret = mbedtls_ctr_drbg_seed(&ssl->ctr_drbg, mbedtls_entropy_func, &ssl->entropy,
+				(const unsigned char*)pers, strlen(pers));
 			if (ret)
 			{
 				mbedtls_ssl_free(&ssl->ctx);
@@ -166,12 +164,13 @@ IPCCommandResult CWII_IPC_HLE_Device_net_ssl::IOCtlV(u32 _CommandAddress)
 			}
 
 			mbedtls_ssl_config_init(&ssl->config);
-			mbedtls_ssl_config_defaults(&ssl->config, MBEDTLS_SSL_IS_CLIENT,
-				MBEDTLS_SSL_TRANSPORT_STREAM, MBEDTLS_SSL_PRESET_DEFAULT);
+			mbedtls_ssl_config_defaults(&ssl->config, MBEDTLS_SSL_IS_CLIENT, MBEDTLS_SSL_TRANSPORT_STREAM,
+				MBEDTLS_SSL_PRESET_DEFAULT);
 			mbedtls_ssl_conf_rng(&ssl->config, mbedtls_ctr_drbg_random, &ssl->ctr_drbg);
 
 			// For some reason we can't use TLSv1.2, v1.1 and below are fine!
-			mbedtls_ssl_conf_max_version(&ssl->config, MBEDTLS_SSL_MAJOR_VERSION_3, MBEDTLS_SSL_MINOR_VERSION_2);
+			mbedtls_ssl_conf_max_version(&ssl->config, MBEDTLS_SSL_MAJOR_VERSION_3,
+				MBEDTLS_SSL_MINOR_VERSION_2);
 
 			mbedtls_ssl_set_session(&ssl->ctx, &ssl->session);
 
@@ -194,10 +193,9 @@ IPCCommandResult CWII_IPC_HLE_Device_net_ssl::IOCtlV(u32 _CommandAddress)
 			"BufferIn: (%08x, %i), BufferIn2: (%08x, %i), "
 			"BufferIn3: (%08x, %i), BufferOut: (%08x, %i), "
 			"BufferOut2: (%08x, %i), BufferOut3: (%08x, %i)",
-			verifyOption, hostname.c_str(),
-			_BufferIn, BufferInSize, _BufferIn2, BufferInSize2,
-			_BufferIn3, BufferInSize3, BufferOut, BufferOutSize,
-			BufferOut2, BufferOutSize2, BufferOut3, BufferOutSize3);
+			verifyOption, hostname.c_str(), _BufferIn, BufferInSize, _BufferIn2, BufferInSize2,
+			_BufferIn3, BufferInSize3, BufferOut, BufferOutSize, BufferOut2, BufferOutSize2,
+			BufferOut3, BufferOutSize3);
 		break;
 	}
 	case IOCTLV_NET_SSL_SHUTDOWN:
@@ -230,9 +228,8 @@ IPCCommandResult CWII_IPC_HLE_Device_net_ssl::IOCtlV(u32 _CommandAddress)
 			"BufferIn: (%08x, %i), BufferIn2: (%08x, %i), "
 			"BufferIn3: (%08x, %i), BufferOut: (%08x, %i), "
 			"BufferOut2: (%08x, %i), BufferOut3: (%08x, %i)",
-			_BufferIn, BufferInSize, _BufferIn2, BufferInSize2,
-			_BufferIn3, BufferInSize3, BufferOut, BufferOutSize,
-			BufferOut2, BufferOutSize2, BufferOut3, BufferOutSize3);
+			_BufferIn, BufferInSize, _BufferIn2, BufferInSize2, _BufferIn3, BufferInSize3,
+			BufferOut, BufferOutSize, BufferOut2, BufferOutSize2, BufferOut3, BufferOutSize3);
 		break;
 	}
 	case IOCTLV_NET_SSL_SETROOTCA:
@@ -241,19 +238,15 @@ IPCCommandResult CWII_IPC_HLE_Device_net_ssl::IOCtlV(u32 _CommandAddress)
 			"BufferIn: (%08x, %i), BufferIn2: (%08x, %i), "
 			"BufferIn3: (%08x, %i), BufferOut: (%08x, %i), "
 			"BufferOut2: (%08x, %i), BufferOut3: (%08x, %i)",
-			_BufferIn, BufferInSize, _BufferIn2, BufferInSize2,
-			_BufferIn3, BufferInSize3, BufferOut, BufferOutSize,
-			BufferOut2, BufferOutSize2, BufferOut3, BufferOutSize3);
-
+			_BufferIn, BufferInSize, _BufferIn2, BufferInSize2, _BufferIn3, BufferInSize3,
+			BufferOut, BufferOutSize, BufferOut2, BufferOutSize2, BufferOut3, BufferOutSize3);
 
 		int sslID = Memory::Read_U32(BufferOut) - 1;
 		if (SSLID_VALID(sslID))
 		{
 			WII_SSL* ssl = &_SSL[sslID];
-			int ret = mbedtls_x509_crt_parse_der(
-				&ssl->cacert,
-				Memory::GetPointer(BufferOut2),
-				BufferOutSize2);
+			int ret =
+				mbedtls_x509_crt_parse_der(&ssl->cacert, Memory::GetPointer(BufferOut2), BufferOutSize2);
 
 			if (ret)
 			{
@@ -279,17 +272,18 @@ IPCCommandResult CWII_IPC_HLE_Device_net_ssl::IOCtlV(u32 _CommandAddress)
 			"BufferIn: (%08x, %i), BufferIn2: (%08x, %i), "
 			"BufferIn3: (%08x, %i), BufferOut: (%08x, %i), "
 			"BufferOut2: (%08x, %i), BufferOut3: (%08x, %i)",
-			_BufferIn, BufferInSize, _BufferIn2, BufferInSize2,
-			_BufferIn3, BufferInSize3, BufferOut, BufferOutSize,
-			BufferOut2, BufferOutSize2, BufferOut3, BufferOutSize3);
+			_BufferIn, BufferInSize, _BufferIn2, BufferInSize2, _BufferIn3, BufferInSize3,
+			BufferOut, BufferOutSize, BufferOut2, BufferOutSize2, BufferOut3, BufferOutSize3);
 
 		int sslID = Memory::Read_U32(BufferOut) - 1;
 		if (SSLID_VALID(sslID))
 		{
 			WII_SSL* ssl = &_SSL[sslID];
 			std::string cert_base_path = File::GetUserPath(D_SESSION_WIIROOT_IDX);
-			int ret = mbedtls_x509_crt_parse_file(&ssl->clicert, (cert_base_path + "/clientca.pem").c_str());
-			int pk_ret = mbedtls_pk_parse_keyfile(&ssl->pk, (cert_base_path + "/clientcakey.pem").c_str(), nullptr);
+			int ret =
+				mbedtls_x509_crt_parse_file(&ssl->clicert, (cert_base_path + "/clientca.pem").c_str());
+			int pk_ret = mbedtls_pk_parse_keyfile(&ssl->pk, (cert_base_path + "/clientcakey.pem").c_str(),
+				nullptr);
 			if (ret || pk_ret)
 			{
 				mbedtls_x509_crt_free(&ssl->clicert);
@@ -317,9 +311,8 @@ IPCCommandResult CWII_IPC_HLE_Device_net_ssl::IOCtlV(u32 _CommandAddress)
 			"BufferIn: (%08x, %i), BufferIn2: (%08x, %i), "
 			"BufferIn3: (%08x, %i), BufferOut: (%08x, %i), "
 			"BufferOut2: (%08x, %i), BufferOut3: (%08x, %i)",
-			_BufferIn, BufferInSize, _BufferIn2, BufferInSize2,
-			_BufferIn3, BufferInSize3, BufferOut, BufferOutSize,
-			BufferOut2, BufferOutSize2, BufferOut3, BufferOutSize3);
+			_BufferIn, BufferInSize, _BufferIn2, BufferInSize2, _BufferIn3, BufferInSize3,
+			BufferOut, BufferOutSize, BufferOut2, BufferOutSize2, BufferOut3, BufferOutSize3);
 
 		int sslID = Memory::Read_U32(BufferOut) - 1;
 		if (SSLID_VALID(sslID))
@@ -345,7 +338,8 @@ IPCCommandResult CWII_IPC_HLE_Device_net_ssl::IOCtlV(u32 _CommandAddress)
 		{
 			WII_SSL* ssl = &_SSL[sslID];
 
-			int ret = mbedtls_x509_crt_parse_file(&ssl->cacert, (File::GetUserPath(D_SESSION_WIIROOT_IDX) + "/rootca.pem").c_str());
+			int ret = mbedtls_x509_crt_parse_file(
+				&ssl->cacert, (File::GetUserPath(D_SESSION_WIIROOT_IDX) + "/rootca.pem").c_str());
 			if (ret)
 			{
 				mbedtls_x509_crt_free(&ssl->clicert);
@@ -366,9 +360,8 @@ IPCCommandResult CWII_IPC_HLE_Device_net_ssl::IOCtlV(u32 _CommandAddress)
 			"BufferIn: (%08x, %i), BufferIn2: (%08x, %i), "
 			"BufferIn3: (%08x, %i), BufferOut: (%08x, %i), "
 			"BufferOut2: (%08x, %i), BufferOut3: (%08x, %i)",
-			_BufferIn, BufferInSize, _BufferIn2, BufferInSize2,
-			_BufferIn3, BufferInSize3, BufferOut, BufferOutSize,
-			BufferOut2, BufferOutSize2, BufferOut3, BufferOutSize3);
+			_BufferIn, BufferInSize, _BufferIn2, BufferInSize2, _BufferIn3, BufferInSize3,
+			BufferOut, BufferOutSize, BufferOut2, BufferOutSize2, BufferOut3, BufferOutSize3);
 		break;
 	}
 	case IOCTLV_NET_SSL_CONNECT:
@@ -380,8 +373,7 @@ IPCCommandResult CWII_IPC_HLE_Device_net_ssl::IOCtlV(u32 _CommandAddress)
 			mbedtls_ssl_setup(&ssl->ctx, &ssl->config);
 			ssl->sockfd = Memory::Read_U32(BufferOut2);
 			INFO_LOG(WII_IPC_SSL, "IOCTLV_NET_SSL_CONNECT socket = %d", ssl->sockfd);
-			mbedtls_ssl_set_bio(&ssl->ctx, &ssl->sockfd, mbedtls_net_send,
-				mbedtls_net_recv, nullptr);
+			mbedtls_ssl_set_bio(&ssl->ctx, &ssl->sockfd, mbedtls_net_send, mbedtls_net_recv, nullptr);
 			Memory::Write_U32(SSL_OK, _BufferIn);
 		}
 		else
@@ -392,9 +384,8 @@ IPCCommandResult CWII_IPC_HLE_Device_net_ssl::IOCtlV(u32 _CommandAddress)
 			"BufferIn: (%08x, %i), BufferIn2: (%08x, %i), "
 			"BufferIn3: (%08x, %i), BufferOut: (%08x, %i), "
 			"BufferOut2: (%08x, %i), BufferOut3: (%08x, %i)",
-			_BufferIn, BufferInSize, _BufferIn2, BufferInSize2,
-			_BufferIn3, BufferInSize3, BufferOut, BufferOutSize,
-			BufferOut2, BufferOutSize2, BufferOut3, BufferOutSize3);
+			_BufferIn, BufferInSize, _BufferIn2, BufferInSize2, _BufferIn3, BufferInSize3,
+			BufferOut, BufferOutSize, BufferOut2, BufferOutSize2, BufferOut3, BufferOutSize3);
 		break;
 	}
 	case IOCTLV_NET_SSL_DOHANDSHAKE:
@@ -402,7 +393,7 @@ IPCCommandResult CWII_IPC_HLE_Device_net_ssl::IOCtlV(u32 _CommandAddress)
 		int sslID = Memory::Read_U32(BufferOut) - 1;
 		if (SSLID_VALID(sslID))
 		{
-			WiiSockMan &sm = WiiSockMan::GetInstance();
+			WiiSockMan& sm = WiiSockMan::GetInstance();
 			sm.DoSock(_SSL[sslID].sockfd, _CommandAddress, IOCTLV_NET_SSL_DOHANDSHAKE);
 			return GetNoReply();
 		}
@@ -417,7 +408,7 @@ IPCCommandResult CWII_IPC_HLE_Device_net_ssl::IOCtlV(u32 _CommandAddress)
 		int sslID = Memory::Read_U32(BufferOut) - 1;
 		if (SSLID_VALID(sslID))
 		{
-			WiiSockMan &sm = WiiSockMan::GetInstance();
+			WiiSockMan& sm = WiiSockMan::GetInstance();
 			sm.DoSock(_SSL[sslID].sockfd, _CommandAddress, IOCTLV_NET_SSL_WRITE);
 			return GetNoReply();
 		}
@@ -429,20 +420,18 @@ IPCCommandResult CWII_IPC_HLE_Device_net_ssl::IOCtlV(u32 _CommandAddress)
 			"BufferIn: (%08x, %i), BufferIn2: (%08x, %i), "
 			"BufferIn3: (%08x, %i), BufferOut: (%08x, %i), "
 			"BufferOut2: (%08x, %i), BufferOut3: (%08x, %i)",
-			_BufferIn, BufferInSize, _BufferIn2, BufferInSize2,
-			_BufferIn3, BufferInSize3, BufferOut, BufferOutSize,
-			BufferOut2, BufferOutSize2, BufferOut3, BufferOutSize3);
+			_BufferIn, BufferInSize, _BufferIn2, BufferInSize2, _BufferIn3, BufferInSize3,
+			BufferOut, BufferOutSize, BufferOut2, BufferOutSize2, BufferOut3, BufferOutSize3);
 		INFO_LOG(WII_IPC_SSL, "%s", Memory::GetString(BufferOut2).c_str());
 		break;
 	}
 	case IOCTLV_NET_SSL_READ:
 	{
-
 		int ret = 0;
 		int sslID = Memory::Read_U32(BufferOut) - 1;
 		if (SSLID_VALID(sslID))
 		{
-			WiiSockMan &sm = WiiSockMan::GetInstance();
+			WiiSockMan& sm = WiiSockMan::GetInstance();
 			sm.DoSock(_SSL[sslID].sockfd, _CommandAddress, IOCTLV_NET_SSL_READ);
 			return GetNoReply();
 		}
@@ -455,10 +444,8 @@ IPCCommandResult CWII_IPC_HLE_Device_net_ssl::IOCtlV(u32 _CommandAddress)
 			"BufferIn: (%08x, %i), BufferIn2: (%08x, %i), "
 			"BufferIn3: (%08x, %i), BufferOut: (%08x, %i), "
 			"BufferOut2: (%08x, %i), BufferOut3: (%08x, %i)",
-			ret,
-			_BufferIn, BufferInSize, _BufferIn2, BufferInSize2,
-			_BufferIn3, BufferInSize3, BufferOut, BufferOutSize,
-			BufferOut2, BufferOutSize2, BufferOut3, BufferOutSize3);
+			ret, _BufferIn, BufferInSize, _BufferIn2, BufferInSize2, _BufferIn3, BufferInSize3,
+			BufferOut, BufferOutSize, BufferOut2, BufferOutSize2, BufferOut3, BufferOutSize3);
 		break;
 	}
 	case IOCTLV_NET_SSL_SETROOTCADEFAULT:
@@ -476,9 +463,8 @@ IPCCommandResult CWII_IPC_HLE_Device_net_ssl::IOCtlV(u32 _CommandAddress)
 			"BufferIn: (%08x, %i), BufferIn2: (%08x, %i), "
 			"BufferIn3: (%08x, %i), BufferOut: (%08x, %i), "
 			"BufferOut2: (%08x, %i), BufferOut3: (%08x, %i)",
-			_BufferIn, BufferInSize, _BufferIn2, BufferInSize2,
-			_BufferIn3, BufferInSize3, BufferOut, BufferOutSize,
-			BufferOut2, BufferOutSize2, BufferOut3, BufferOutSize3);
+			_BufferIn, BufferInSize, _BufferIn2, BufferInSize2, _BufferIn3, BufferInSize3,
+			BufferOut, BufferOutSize, BufferOut2, BufferOutSize2, BufferOut3, BufferOutSize3);
 		break;
 	}
 	case IOCTLV_NET_SSL_SETCLIENTCERTDEFAULT:
@@ -487,9 +473,8 @@ IPCCommandResult CWII_IPC_HLE_Device_net_ssl::IOCtlV(u32 _CommandAddress)
 			"BufferIn: (%08x, %i), BufferIn2: (%08x, %i), "
 			"BufferIn3: (%08x, %i), BufferOut: (%08x, %i), "
 			"BufferOut2: (%08x, %i), BufferOut3: (%08x, %i)",
-			_BufferIn, BufferInSize, _BufferIn2, BufferInSize2,
-			_BufferIn3, BufferInSize3, BufferOut, BufferOutSize,
-			BufferOut2, BufferOutSize2, BufferOut3, BufferOutSize3);
+			_BufferIn, BufferInSize, _BufferIn2, BufferInSize2, _BufferIn3, BufferInSize3,
+			BufferOut, BufferOutSize, BufferOut2, BufferOutSize2, BufferOut3, BufferOutSize3);
 
 		int sslID = Memory::Read_U32(BufferOut) - 1;
 		if (SSLID_VALID(sslID))
@@ -507,10 +492,9 @@ IPCCommandResult CWII_IPC_HLE_Device_net_ssl::IOCtlV(u32 _CommandAddress)
 			"BufferIn: (%08x, %i), BufferIn2: (%08x, %i), "
 			"BufferIn3: (%08x, %i), BufferOut: (%08x, %i), "
 			"BufferOut2: (%08x, %i), BufferOut3: (%08x, %i)",
-			CommandBuffer.Parameter,
-			_BufferIn, BufferInSize, _BufferIn2, BufferInSize2,
-			_BufferIn3, BufferInSize3, BufferOut, BufferOutSize,
-			BufferOut2, BufferOutSize2, BufferOut3, BufferOutSize3);
+			CommandBuffer.Parameter, _BufferIn, BufferInSize, _BufferIn2, BufferInSize2,
+			_BufferIn3, BufferInSize3, BufferOut, BufferOutSize, BufferOut2, BufferOutSize2,
+			BufferOut3, BufferOutSize3);
 		break;
 	}
 
@@ -519,4 +503,3 @@ IPCCommandResult CWII_IPC_HLE_Device_net_ssl::IOCtlV(u32 _CommandAddress)
 
 	return GetDefaultReply();
 }
-

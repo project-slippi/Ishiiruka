@@ -21,7 +21,7 @@ class LabelMap
 {
 	struct label_t
 	{
-		label_t(const std::string &lbl, s32 address, LabelType ltype): name(lbl), addr(address), type(ltype)
+		label_t(const std::string &lbl, s32 address, LabelType ltype) : name(lbl), addr(address), type(ltype)
 		{}
 		std::string name;
 		s32 addr;

@@ -5,9 +5,9 @@
 #pragma once
 
 #ifdef _WIN32
-#include <ws2tcpip.h>
-#include <iphlpapi.h>
 #include <WinSock2.h>
+#include <iphlpapi.h>
+#include <ws2tcpip.h>
 
 typedef pollfd pollfd_t;
 
@@ -16,29 +16,29 @@ typedef pollfd pollfd_t;
 #define FREE(x) HeapFree(GetProcessHeap(), 0, (x))
 
 #elif defined(__linux__) or defined(__APPLE__) or defined(__FreeBSD__)
-#include <netdb.h>
 #include <arpa/inet.h>
-#include <sys/types.h>
-#include <sys/socket.h>
+#include <netdb.h>
 #include <sys/ioctl.h>
+#include <sys/socket.h>
+#include <sys/types.h>
 #if defined(ANDROID)
 #include <fcntl.h>
 #else
 #include <sys/fcntl.h>
 #endif
-#include <netinet/in.h>
-#include <net/if.h>
 #include <errno.h>
+#include <net/if.h>
+#include <netinet/in.h>
 #include <poll.h>
 #include <string.h>
 
 typedef struct pollfd pollfd_t;
 #else
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <sys/fcntl.h>
-#include <netinet/in.h>
 #include <errno.h>
+#include <netinet/in.h>
+#include <sys/fcntl.h>
+#include <sys/socket.h>
+#include <sys/types.h>
 #endif
 
 #include <algorithm>
@@ -171,12 +171,12 @@ class WiiSocket
 	{
 		u32 _CommandAddress;
 		bool is_ssl;
-		union
-		{
+		union {
 			NET_IOCTL net_type;
 			SSL_IOCTL ssl_type;
 		};
 	};
+
 private:
 	s32 fd;
 	bool nonBlock;
@@ -190,19 +190,14 @@ private:
 	void DoSock(u32 _CommandAddress, NET_IOCTL type);
 	void DoSock(u32 _CommandAddress, SSL_IOCTL type);
 	void Update(bool read, bool write, bool except);
-	bool IsValid() const
-	{
-		return fd >= 0;
-	}
+	bool IsValid() const { return fd >= 0; }
 public:
-	WiiSocket(): fd(-1), nonBlock(false)
-	{}
+	WiiSocket() : fd(-1), nonBlock(false) {}
 	~WiiSocket();
 	void operator=(WiiSocket const&) = delete;
-
 };
 
-class WiiSockMan: public ::NonCopyable
+class WiiSockMan : public ::NonCopyable
 {
 public:
 	static s32 GetNetErrorCode(s32 ret, const char* caller, bool isRW);
@@ -210,31 +205,20 @@ public:
 
 	static WiiSockMan& GetInstance()
 	{
-		static WiiSockMan instance; // Guaranteed to be destroyed.
-		return instance;            // Instantiated on first use.
+		static WiiSockMan instance;  // Guaranteed to be destroyed.
+		return instance;             // Instantiated on first use.
 	}
 	void Update();
 	static void EnqueueReply(u32 CommandAddress, s32 ReturnValue, IPCCommandType CommandType);
-	static void Convert(WiiSockAddrIn const & from, sockaddr_in& to);
-	static void Convert(sockaddr_in const & from, WiiSockAddrIn& to, s32 addrlen = -1);
+	static void Convert(WiiSockAddrIn const& from, sockaddr_in& to);
+	static void Convert(sockaddr_in const& from, WiiSockAddrIn& to, s32 addrlen = -1);
 	// NON-BLOCKING FUNCTIONS
 	s32 NewSocket(s32 af, s32 type, s32 protocol);
 	void AddSocket(s32 fd);
 	s32 DeleteSocket(s32 s);
-	s32 GetLastNetError() const
-	{
-		return errno_last;
-	}
-	void SetLastNetError(s32 error)
-	{
-		errno_last = error;
-	}
-
-	void Clean()
-	{
-		WiiSockets.clear();
-	}
-
+	s32 GetLastNetError() const { return errno_last; }
+	void SetLastNetError(s32 error) { errno_last = error; }
+	void Clean() { WiiSockets.clear(); }
 	template <typename T>
 	void DoSock(s32 sock, u32 CommandAddress, T type)
 	{
@@ -242,9 +226,8 @@ public:
 		if (socket_entry == WiiSockets.end())
 		{
 			IPCCommandType ct = static_cast<IPCCommandType>(Memory::Read_U32(CommandAddress));
-			ERROR_LOG(WII_IPC_NET,
-				"DoSock: Error, fd not found (%08x, %08X, %08X)",
-				sock, CommandAddress, type);
+			ERROR_LOG(WII_IPC_NET, "DoSock: Error, fd not found (%08x, %08X, %08X)", sock, CommandAddress,
+				type);
 			EnqueueReply(CommandAddress, -SO_EBADF, ct);
 		}
 		else

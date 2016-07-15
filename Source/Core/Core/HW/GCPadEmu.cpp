@@ -8,24 +8,24 @@
 #include "Core/Host.h"
 
 static const u16 button_bitmasks[] = {
-	 PAD_BUTTON_A,
-	 PAD_BUTTON_B,
-	 PAD_BUTTON_X,
-	 PAD_BUTTON_Y,
-	 PAD_TRIGGER_Z,
-	 PAD_BUTTON_START,
-	 0  // MIC HAX
+		PAD_BUTTON_A,
+		PAD_BUTTON_B,
+		PAD_BUTTON_X,
+		PAD_BUTTON_Y,
+		PAD_TRIGGER_Z,
+		PAD_BUTTON_START,
+		0  // MIC HAX
 };
 
 static const u16 trigger_bitmasks[] = {
-	 PAD_TRIGGER_L, PAD_TRIGGER_R,
+		PAD_TRIGGER_L, PAD_TRIGGER_R,
 };
 
-static const u16 dpad_bitmasks[] = {PAD_BUTTON_UP, PAD_BUTTON_DOWN, PAD_BUTTON_LEFT,
-												PAD_BUTTON_RIGHT};
+static const u16 dpad_bitmasks[] = { PAD_BUTTON_UP, PAD_BUTTON_DOWN, PAD_BUTTON_LEFT,
+																		PAD_BUTTON_RIGHT };
 
-static const char* const named_buttons[] = {"A",          "B", "X", "Y", "Z", _trans("Start"),
-														  _trans("Mic")};
+static const char* const named_buttons[] = { "A",          "B", "X", "Y", "Z", _trans("Start"),
+																						_trans("Mic") };
 
 static const char* const named_triggers[] = {
 	// i18n:  Left
@@ -35,9 +35,9 @@ static const char* const named_triggers[] = {
 	// i18n:  Left-Analog
 	_trans("L-Analog"),
 	// i18n:  Right-Analog
-	_trans("R-Analog")};
+	_trans("R-Analog") };
 
-GCPad::GCPad(const unsigned int index): m_index(index)
+GCPad::GCPad(const unsigned int index) : m_index(index)
 {
 	int const mic_hax = index > 1;
 
@@ -68,9 +68,10 @@ GCPad::GCPad(const unsigned int index): m_index(index)
 
 	// options
 	groups.emplace_back(m_options = new ControlGroup(_trans("Options")));
-	m_options->settings.emplace_back(
-		new ControlGroup::BackgroundInputSetting(_trans("Background Input")));
-	m_options->settings.emplace_back(new ControlGroup::IterateUI(_trans("Iterative Input")));
+	m_options->boolean_settings.emplace_back(
+		std::make_unique<ControlGroup::BackgroundInputSetting>(_trans("Background Input")));
+	m_options->boolean_settings.emplace_back(std::make_unique<ControlGroup::BooleanSetting>(
+		_trans("Iterative Input"), false, ControlGroup::SettingType::VIRTUAL));
 }
 
 std::string GCPad::GetName() const
@@ -131,11 +132,11 @@ void GCPad::LoadDefaults(const ControllerInterface& ciface)
 #ifdef _WIN32
 	m_buttons->SetControlExpression(5, "!LMENU & RETURN");  // Start
 #else
-  // OS X/Linux
+	// OS X/Linux
 	m_buttons->SetControlExpression(5, "!`Alt_L` & Return");  // Start
 #endif
 
-  // stick modifiers to 50 %
+	// stick modifiers to 50 %
 	m_main_stick->controls[4]->control_ref->range = 0.5f;
 	m_c_stick->controls[4]->control_ref->range = 0.5f;
 
@@ -170,7 +171,7 @@ void GCPad::LoadDefaults(const ControllerInterface& ciface)
 	m_main_stick->SetControlExpression(3, "Right Arrow");  // Right
 	m_main_stick->SetControlExpression(4, "Left Shift");   // Modifier
 #else
-  // not sure if these are right
+	// not sure if these are right
 
 	m_c_stick->SetControlExpression(4, "Control_L");  // Modifier
 
@@ -182,7 +183,7 @@ void GCPad::LoadDefaults(const ControllerInterface& ciface)
 	m_main_stick->SetControlExpression(4, "Shift_L");  // Modifier
 #endif
 
-  // Triggers
+	// Triggers
 	m_triggers->SetControlExpression(0, "Q");  // L
 	m_triggers->SetControlExpression(1, "W");  // R
 }

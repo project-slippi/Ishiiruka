@@ -12,7 +12,7 @@ class wxPanel;
 
 wxDECLARE_EVENT(wxDOLPHIN_CFG_REFRESH_LIST, wxCommandEvent);
 
-class CConfigMain: public wxDialog
+class CConfigMain : public wxDialog
 {
 public:
 	CConfigMain(wxWindow* parent, wxWindowID id = wxID_ANY,

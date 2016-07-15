@@ -15,7 +15,7 @@ namespace Gecko
 
 void LoadCodes(const IniFile& globalIni, const IniFile& localIni, std::vector<GeckoCode>& gcodes)
 {
-	const IniFile* inis[2] = {&globalIni, &localIni};
+	const IniFile* inis[2] = { &globalIni, &localIni };
 
 	for (const IniFile* ini : inis)
 	{

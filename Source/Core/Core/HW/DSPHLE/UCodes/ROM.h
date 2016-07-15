@@ -6,7 +6,7 @@
 
 #include "Core/HW/DSPHLE/UCodes/UCodes.h"
 
-class ROMUCode: public UCodeInterface
+class ROMUCode : public UCodeInterface
 {
 public:
 	ROMUCode(DSPHLE* dsphle, u32 crc);

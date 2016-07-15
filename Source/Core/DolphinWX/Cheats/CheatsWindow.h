@@ -31,7 +31,7 @@ class CodeConfigPanel;
 
 wxDECLARE_EVENT(DOLPHIN_EVT_ADD_NEW_ACTION_REPLAY_CODE, wxCommandEvent);
 
-class wxCheatsWindow final: public wxDialog
+class wxCheatsWindow final : public wxDialog
 {
 public:
 	wxCheatsWindow(wxWindow* const parent);

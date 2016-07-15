@@ -21,7 +21,7 @@ namespace Gecko
 {
 
 
-class CodeConfigPanel: public wxPanel
+class CodeConfigPanel : public wxPanel
 {
 public:
 	CodeConfigPanel(wxWindow* const parent);

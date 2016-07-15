@@ -30,7 +30,7 @@ void GetXInputGUIDS(std::vector<DWORD>* guids)
 {
 	IWbemLocator* pIWbemLocator = nullptr;
 	IEnumWbemClassObject* pEnumDevices = nullptr;
-	IWbemClassObject* pDevices[20] = {0};
+	IWbemClassObject* pDevices[20] = { 0 };
 	IWbemServices* pIWbemServices = nullptr;
 	BSTR bstrNamespace = nullptr;
 	BSTR bstrDeviceID = nullptr;

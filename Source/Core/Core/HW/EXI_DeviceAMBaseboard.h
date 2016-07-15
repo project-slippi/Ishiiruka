@@ -8,7 +8,7 @@
 
 class PointerWrap;
 
-class CEXIAMBaseboard: public IEXIDevice
+class CEXIAMBaseboard : public IEXIDevice
 {
 public:
 	CEXIAMBaseboard();

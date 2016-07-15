@@ -14,7 +14,7 @@
 #include "Core/Debugger/PPCDebugInterface.h"
 
 // This has functionality overlapping Debugger_Symbolmap. Should merge that stuff in here later.
-class PPCSymbolDB: public SymbolDB
+class PPCSymbolDB : public SymbolDB
 {
 private:
 	DebugInterface* debugger;

@@ -13,16 +13,16 @@
 #include "Core/HW/Memmap.h"
 #include "Core/PowerPC/PPCSymbolDB.h"
 
-static void bswap(u32 &w)
+static void bswap(u32& w)
 {
 	w = Common::swap32(w);
 }
-static void bswap(u16 &w)
+static void bswap(u16& w)
 {
 	w = Common::swap16(w);
 }
 
-static void byteswapHeader(Elf32_Ehdr &ELF_H)
+static void byteswapHeader(Elf32_Ehdr& ELF_H)
 {
 	bswap(ELF_H.e_type);
 	bswap(ELF_H.e_machine);
@@ -39,7 +39,7 @@ static void byteswapHeader(Elf32_Ehdr &ELF_H)
 	bswap(ELF_H.e_flags);
 }
 
-static void byteswapSegment(Elf32_Phdr &sec)
+static void byteswapSegment(Elf32_Phdr& sec)
 {
 	bswap(sec.p_align);
 	bswap(sec.p_filesz);
@@ -51,7 +51,7 @@ static void byteswapSegment(Elf32_Phdr &sec)
 	bswap(sec.p_type);
 }
 
-static void byteswapSection(Elf32_Shdr &sec)
+static void byteswapSection(Elf32_Shdr& sec)
 {
 	bswap(sec.sh_addr);
 	bswap(sec.sh_addralign);
@@ -65,15 +65,15 @@ static void byteswapSection(Elf32_Shdr &sec)
 	bswap(sec.sh_type);
 }
 
-ElfReader::ElfReader(void *ptr)
+ElfReader::ElfReader(void* ptr)
 {
 	base = (char*)ptr;
 	base32 = (u32*)ptr;
 	header = (Elf32_Ehdr*)ptr;
 	byteswapHeader(*header);
 
-	segments = (Elf32_Phdr *)(base + header->e_phoff);
-	sections = (Elf32_Shdr *)(base + header->e_shoff);
+	segments = (Elf32_Phdr*)(base + header->e_phoff);
+	sections = (Elf32_Shdr*)(base + header->e_shoff);
 
 	for (int i = 0; i < GetNumSegments(); i++)
 	{
@@ -122,8 +122,8 @@ bool ElfReader::LoadIntoMemory()
 	{
 		Elf32_Phdr* p = segments + i;
 
-		INFO_LOG(MASTER_LOG, "Type: %i Vaddr: %08x Filesz: %i Memsz: %i ",
-			p->p_type, p->p_vaddr, p->p_filesz, p->p_memsz);
+		INFO_LOG(MASTER_LOG, "Type: %i Vaddr: %08x Filesz: %i Memsz: %i ", p->p_type, p->p_vaddr,
+			p->p_filesz, p->p_memsz);
 
 		if (p->p_type == PT_LOAD)
 		{
@@ -134,7 +134,7 @@ bool ElfReader::LoadIntoMemory()
 
 			Memory::CopyToEmu(writeAddr, src, srcSize);
 			if (srcSize < dstSize)
-				Memory::Memset(writeAddr + srcSize, 0, dstSize - srcSize); //zero out bss
+				Memory::Memset(writeAddr + srcSize, 0, dstSize - srcSize);  // zero out bss
 
 			INFO_LOG(MASTER_LOG, "Loadable Segment Copied to %08x, size %08x", writeAddr, p->p_memsz);
 		}
@@ -144,7 +144,7 @@ bool ElfReader::LoadIntoMemory()
 	return true;
 }
 
-SectionID ElfReader::GetSectionByName(const char *name, int firstSection) const
+SectionID ElfReader::GetSectionByName(const char* name, int firstSection) const
 {
 	for (int i = firstSection; i < header->e_shnum; i++)
 	{
@@ -163,10 +163,10 @@ bool ElfReader::LoadSymbols()
 	if (sec != -1)
 	{
 		int stringSection = sections[sec].sh_link;
-		const char* stringBase = (const char *)GetSectionDataPtr(stringSection);
+		const char* stringBase = (const char*)GetSectionDataPtr(stringSection);
 
-		//We have a symbol table!
-		Elf32_Sym* symtab = (Elf32_Sym *)(GetSectionDataPtr(sec));
+		// We have a symbol table!
+		Elf32_Sym* symtab = (Elf32_Sym*)(GetSectionDataPtr(sec));
 		int numSymbols = sections[sec].sh_size / sizeof(Elf32_Sym);
 		for (int sym = 0; sym < numSymbols; sym++)
 		{
@@ -186,9 +186,11 @@ bool ElfReader::LoadSymbols()
 			switch (type)
 			{
 			case STT_OBJECT:
-				symtype = Symbol::SYMBOL_DATA; break;
+				symtype = Symbol::SYMBOL_DATA;
+				break;
 			case STT_FUNC:
-				symtype = Symbol::SYMBOL_FUNCTION; break;
+				symtype = Symbol::SYMBOL_FUNCTION;
+				break;
 			default:
 				continue;
 			}

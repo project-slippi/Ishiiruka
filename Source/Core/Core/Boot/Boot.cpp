@@ -12,12 +12,10 @@
 #include "Common/MathUtil.h"
 #include "Common/StringUtil.h"
 
-#include "Core/ConfigManager.h"
-#include "Core/Core.h"
-#include "Core/Host.h"
-#include "Core/PatchEngine.h"
 #include "Core/Boot/Boot.h"
 #include "Core/Boot/Boot_DOL.h"
+#include "Core/ConfigManager.h"
+#include "Core/Core.h"
 #include "Core/Debugger/Debugger_SymbolMap.h"
 #include "Core/HLE/HLE.h"
 #include "Core/HW/DVDInterface.h"
@@ -25,13 +23,17 @@
 #include "Core/HW/Memmap.h"
 #include "Core/HW/ProcessorInterface.h"
 #include "Core/HW/VideoInterface.h"
+#include "Core/Host.h"
 #include "Core/IPC_HLE/WII_IPC_HLE.h"
-#include "Core/PowerPC/PowerPC.h"
+#include "Core/PatchEngine.h"
 #include "Core/PowerPC/PPCAnalyst.h"
 #include "Core/PowerPC/PPCSymbolDB.h"
+#include "Core/PowerPC/PowerPC.h"
 #include "Core/PowerPC/SignatureDB.h"
 
+#include "DiscIO/Enums.h"
 #include "DiscIO/NANDContentLoader.h"
+#include "DiscIO/Volume.h"
 #include "DiscIO/VolumeCreator.h"
 
 bool CBoot::DVDRead(u64 dvd_offset, u32 output_address, u32 length, bool decrypt)
@@ -51,7 +53,7 @@ void CBoot::Load_FST(bool _bIsWii)
 	const DiscIO::IVolume& volume = DVDInterface::GetVolume();
 
 	// copy first 20 bytes of disc to start of Mem 1
-	DVDRead(/*offset*/0, /*address*/0, /*length*/0x20, false);
+	DVDRead(/*offset*/ 0, /*address*/ 0, /*length*/ 0x20, false);
 
 	// copy of game id
 	Memory::Write_U32(Memory::Read_U32(0x0000), 0x3180);
@@ -82,8 +84,7 @@ void CBoot::UpdateDebugger_MapLoaded()
 	Host_NotifyMapLoaded();
 }
 
-bool CBoot::FindMapFile(std::string* existing_map_file,
-	std::string* writable_map_file,
+bool CBoot::FindMapFile(std::string* existing_map_file, std::string* writable_map_file,
 	std::string* title_id)
 {
 	std::string title_id_str;
@@ -99,8 +100,7 @@ bool CBoot::FindMapFile(std::string* existing_map_file,
 		if (Loader.IsValid())
 		{
 			u64 TitleID = Loader.GetTitleID();
-			title_id_str = StringFromFormat("%08X_%08X",
-				(u32)(TitleID >> 32) & 0xFFFFFFFF,
+			title_id_str = StringFromFormat("%08X_%08X", (u32)(TitleID >> 32) & 0xFFFFFFFF,
 				(u32)TitleID & 0xFFFFFFFF);
 		}
 		break;
@@ -130,7 +130,8 @@ bool CBoot::FindMapFile(std::string* existing_map_file,
 		*title_id = title_id_str;
 
 	bool found = false;
-	static const std::string maps_directories[] = {
+	static const std::string maps_directories[] =
+ 	{
 		File::GetUserPath(D_MAPS_IDX),
 		File::GetSysDirectory() + MAPS_DIR DIR_SEP
 	};
@@ -167,14 +168,18 @@ bool CBoot::LoadMapFromFilename()
 bool CBoot::Load_BS2(const std::string& _rBootROMFilename)
 {
 	// CRC32
-	const u32 USA_v1_0 = 0x6D740AE7; // https://forums.dolphin-emu.org/Thread-unknown-hash-on-ipl-bin?pid=385344#pid385344
-	const u32 USA_v1_1 = 0xD5E6FEEA; // https://forums.dolphin-emu.org/Thread-unknown-hash-on-ipl-bin?pid=385334#pid385334
-	const u32 USA_v1_2 = 0x86573808; // https://forums.dolphin-emu.org/Thread-unknown-hash-on-ipl-bin?pid=385399#pid385399
-	const u32 BRA_v1_0 = 0x667D0B64; // GameCubes sold in Brazil have this IPL. Same as USA v1.2 but localized
-	const u32 JAP_v1_0 = 0x6DAC1F2A; // Redump
-	const u32 JAP_v1_1 = 0xD235E3F9; // https://bugs.dolphin-emu.org/issues/8936
-	const u32 PAL_v1_0 = 0x4F319F43; // Redump
-	const u32 PAL_v1_2 = 0xAD1B7F16; // Redump
+	const u32 USA_v1_0 =
+		0x6D740AE7;  // https://forums.dolphin-emu.org/Thread-unknown-hash-on-ipl-bin?pid=385344#pid385344
+	const u32 USA_v1_1 =
+		0xD5E6FEEA;  // https://forums.dolphin-emu.org/Thread-unknown-hash-on-ipl-bin?pid=385334#pid385334
+	const u32 USA_v1_2 =
+		0x86573808;  // https://forums.dolphin-emu.org/Thread-unknown-hash-on-ipl-bin?pid=385399#pid385399
+	const u32 BRA_v1_0 =
+		0x667D0B64;  // GameCubes sold in Brazil have this IPL. Same as USA v1.2 but localized
+	const u32 JAP_v1_0 = 0x6DAC1F2A;  // Redump
+	const u32 JAP_v1_1 = 0xD235E3F9;  // https://bugs.dolphin-emu.org/issues/8936
+	const u32 PAL_v1_0 = 0x4F319F43;  // Redump
+	const u32 PAL_v1_2 = 0xAD1B7F16;  // Redump
 
 	// Load the whole ROM dump
 	std::string data;
@@ -239,7 +244,6 @@ bool CBoot::Load_BS2(const std::string& _rBootROMFilename)
 	return true;
 }
 
-
 // Third boot step after BootManager and Core. See Call schedule in BootManager.cpp
 bool CBoot::BootUp()
 {
@@ -264,7 +268,7 @@ bool CBoot::BootUp()
 
 		const DiscIO::IVolume& pVolume = DVDInterface::GetVolume();
 
-		if ((pVolume.GetVolumeType() == DiscIO::IVolume::WII_DISC) != _StartupPara.bWii)
+		if ((pVolume.GetVolumeType() == DiscIO::Platform::WII_DISC) != _StartupPara.bWii)
 		{
 			PanicAlertT("Warning - starting ISO in wrong console mode!");
 		}
@@ -279,7 +283,7 @@ bool CBoot::BootUp()
 			WII_IPC_HLE_Interface::ES_DIVerify(tmd_buffer);
 		}
 
-		_StartupPara.bWii = pVolume.GetVolumeType() == DiscIO::IVolume::WII_DISC;
+		_StartupPara.bWii = pVolume.GetVolumeType() == DiscIO::Platform::WII_DISC;
 
 		// HLE BS2 or not
 		if (_StartupPara.bHLE_BS2)
@@ -338,7 +342,8 @@ bool CBoot::BootUp()
 		{
 			BS2Success = EmulatedBS2(dolWii);
 		}
-		else if ((!DVDInterface::VolumeIsValid() || DVDInterface::GetVolume().GetVolumeType() != DiscIO::IVolume::WII_DISC) &&
+		else if ((!DVDInterface::VolumeIsValid() ||
+			DVDInterface::GetVolume().GetVolumeType() != DiscIO::Platform::WII_DISC) &&
 			!_StartupPara.m_strDefaultISO.empty())
 		{
 			DVDInterface::SetVolumeName(_StartupPara.m_strDefaultISO);
@@ -348,7 +353,8 @@ bool CBoot::BootUp()
 		if (!_StartupPara.m_strDVDRoot.empty())
 		{
 			NOTICE_LOG(BOOT, "Setting DVDRoot %s", _StartupPara.m_strDVDRoot.c_str());
-			DVDInterface::SetVolumeDirectory(_StartupPara.m_strDVDRoot, dolWii, _StartupPara.m_strApploader, _StartupPara.m_strFilename);
+			DVDInterface::SetVolumeDirectory(_StartupPara.m_strDVDRoot, dolWii,
+				_StartupPara.m_strApploader, _StartupPara.m_strFilename);
 			BS2Success = EmulatedBS2(dolWii);
 		}
 
@@ -408,7 +414,7 @@ bool CBoot::BootUp()
 
 		// Poor man's bootup
 		if (_StartupPara.bWii)
-			SetupWiiMemory(DiscIO::IVolume::COUNTRY_UNKNOWN);
+			SetupWiiMemory(DiscIO::Country::COUNTRY_UNKNOWN);
 		else
 			EmulatedBS2_GC(true);
 
@@ -437,7 +443,6 @@ bool CBoot::BootUp()
 		DVDInterface::SetDiscInside(DVDInterface::VolumeIsValid());
 		break;
 
-
 		// Bootstrap 2 (AKA: Initial Program Loader, "BIOS")
 	case SConfig::BOOT_BS2:
 	{
@@ -465,7 +470,8 @@ bool CBoot::BootUp()
 	}
 	}
 
-	// HLE jump to loader (homebrew).  Disabled when Gecko is active as it interferes with the code handler
+	// HLE jump to loader (homebrew).  Disabled when Gecko is active as it interferes with the code
+	// handler
 	if (!SConfig::GetInstance().bEnableCheats)
 	{
 		HLE::Patch(0x80001800, "HBReload");

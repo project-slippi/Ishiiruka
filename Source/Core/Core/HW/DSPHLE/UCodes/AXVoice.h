@@ -16,6 +16,7 @@
 
 #include "Common/CommonTypes.h"
 #include "Common/MathUtil.h"
+#include "Core/ConfigManager.h"
 #include "Core/HW/DSP.h"
 #include "Core/HW/DSPHLE/UCodes/AX.h"
 #include "Core/HW/DSPHLE/UCodes/AXStructs.h"
@@ -37,8 +38,7 @@ namespace
 #define HILO_TO_32(name) ((name##_hi << 16) | name##_lo)
 
 // Used to pass a large amount of buffers to the mixing function.
-union AXBuffers
-{
+union AXBuffers {
 	struct
 	{
 		int* left;
@@ -225,10 +225,28 @@ u16 AcceleratorGetSample()
 			// stream type. This is what the AX UCode does and I don't really
 			// know why.
 			acc_pb->adpcm.pred_scale = acc_pb->adpcm_loop_info.pred_scale;
-			if (!acc_pb->is_stream)
+			if (SConfig::GetInstance().bRSHACK)
 			{
 				acc_pb->adpcm.yn1 = acc_pb->adpcm_loop_info.yn1;
 				acc_pb->adpcm.yn2 = acc_pb->adpcm_loop_info.yn2;
+				if (acc_pb->is_stream)
+				{
+					// HORRIBLE HACK: this behavior changed between versions at some point; needs some sort
+					// of branch. delroth says anyone who submits this code as a serious PR will be banned
+					// from Dolphin.
+					// needed for RS2
+					acc_pb->lpf.enabled += 1;
+					// needed for RS3
+					acc_pb->padding[0] += 1;
+				}
+			}
+			else
+			{
+				if (!acc_pb->is_stream)
+				{
+					acc_pb->adpcm.yn1 = acc_pb->adpcm_loop_info.yn1;
+					acc_pb->adpcm.yn2 = acc_pb->adpcm_loop_info.yn2;
+				}
 			}
 		}
 		else
@@ -395,10 +413,7 @@ void GetInputSamples(PB_TYPE& pb, s16* samples, u16 count, const s16* coeffs)
 	if (coeffs)
 		coeffs += pb.coef_select * 0x200;
 	u32 curr_pos =
-		ResampleAudio([](u32)
-	{
-		return AcceleratorGetSample();
-	}, samples, count, pb.src.last_samples,
+		ResampleAudio([](u32) { return AcceleratorGetSample(); }, samples, count, pb.src.last_samples,
 			pb.src.cur_addr_frac, HILO_TO_32(pb.src.ratio), pb.src_type, coeffs);
 	pb.src.cur_addr_frac = (curr_pos & 0xFFFF);
 
@@ -537,10 +552,7 @@ void ProcessVoice(PB_TYPE& pb, const AXBuffers& buffers, u16 count, AXMixControl
 
 		// We use ratio 0x55555 == (5 * 65536 + 21845) / 65536 == 5.3333 which
 		// is the nearest we can get to 96/18
-		u32 curr_pos = ResampleAudio([&samples](u32 i)
-		{
-			return samples[i];
-		}, wm_samples, wm_count,
+		u32 curr_pos = ResampleAudio([&samples](u32 i) { return samples[i]; }, wm_samples, wm_count,
 			pb.remote_src.last_samples, pb.remote_src.cur_addr_frac, 0x55555,
 			SRCTYPE_POLYPHASE, coeffs);
 		pb.remote_src.cur_addr_frac = curr_pos & 0xFFFF;

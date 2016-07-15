@@ -271,8 +271,7 @@ void RegisterMMIO(MMIO::Mapping* mmio, u32 base)
 	for (auto& mapped_var : update_params_on_read_vars)
 	{
 		mmio->Register(base | mapped_var.addr, MMIO::DirectRead<u16>(mapped_var.ptr),
-			MMIO::ComplexWrite<u16>([mapped_var](u32, u16 val)
-		{
+			MMIO::ComplexWrite<u16>([mapped_var](u32, u16 val) {
 			*mapped_var.ptr = val;
 			UpdateParameters();
 		}));
@@ -280,29 +279,25 @@ void RegisterMMIO(MMIO::Mapping* mmio, u32 base)
 
 	// XFB related MMIOs that require special handling on writes.
 	mmio->Register(base | VI_FB_LEFT_TOP_HI, MMIO::DirectRead<u16>(&m_XFBInfoTop.Hi),
-		MMIO::ComplexWrite<u16>([](u32, u16 val)
-	{
+		MMIO::ComplexWrite<u16>([](u32, u16 val) {
 		m_XFBInfoTop.Hi = val;
 		if (m_XFBInfoTop.CLRPOFF)
 			m_XFBInfoTop.POFF = 0;
 	}));
 	mmio->Register(base | VI_FB_LEFT_BOTTOM_HI, MMIO::DirectRead<u16>(&m_XFBInfoBottom.Hi),
-		MMIO::ComplexWrite<u16>([](u32, u16 val)
-	{
+		MMIO::ComplexWrite<u16>([](u32, u16 val) {
 		m_XFBInfoBottom.Hi = val;
 		if (m_XFBInfoBottom.CLRPOFF)
 			m_XFBInfoBottom.POFF = 0;
 	}));
 	mmio->Register(base | VI_FB_RIGHT_TOP_HI, MMIO::DirectRead<u16>(&m_3DFBInfoTop.Hi),
-		MMIO::ComplexWrite<u16>([](u32, u16 val)
-	{
+		MMIO::ComplexWrite<u16>([](u32, u16 val) {
 		m_3DFBInfoTop.Hi = val;
 		if (m_3DFBInfoTop.CLRPOFF)
 			m_3DFBInfoTop.POFF = 0;
 	}));
 	mmio->Register(base | VI_FB_RIGHT_BOTTOM_HI, MMIO::DirectRead<u16>(&m_3DFBInfoBottom.Hi),
-		MMIO::ComplexWrite<u16>([](u32, u16 val)
-	{
+		MMIO::ComplexWrite<u16>([](u32, u16 val) {
 		m_3DFBInfoBottom.Hi = val;
 		if (m_3DFBInfoBottom.CLRPOFF)
 			m_3DFBInfoBottom.POFF = 0;
@@ -311,27 +306,21 @@ void RegisterMMIO(MMIO::Mapping* mmio, u32 base)
 	// MMIOs with unimplemented writes that trigger warnings.
 	mmio->Register(
 		base | VI_VERTICAL_BEAM_POSITION,
-		MMIO::ComplexRead<u16>([](u32)
-	{
-		return 1 + (s_half_line_count - 1) / 2;
-	}),
-		MMIO::ComplexWrite<u16>([](u32, u16 val)
-	{
+		MMIO::ComplexRead<u16>([](u32) { return 1 + (s_half_line_count - 1) / 2; }),
+		MMIO::ComplexWrite<u16>([](u32, u16 val) {
 		WARN_LOG(VIDEOINTERFACE,
 			"Changing vertical beam position to 0x%04x - not documented or implemented yet",
 			val);
 	}));
 	mmio->Register(
-		base | VI_HORIZONTAL_BEAM_POSITION, MMIO::ComplexRead<u16>([](u32)
-	{
+		base | VI_HORIZONTAL_BEAM_POSITION, MMIO::ComplexRead<u16>([](u32) {
 		u16 value =
 			static_cast<u16>(1 +
 				m_HTiming0.HLW * (CoreTiming::GetTicks() - s_ticks_last_line_start) /
 				(GetTicksPerHalfLine()));
 		return MathUtil::Clamp(value, static_cast<u16>(1), static_cast<u16>(m_HTiming0.HLW * 2));
 	}),
-		MMIO::ComplexWrite<u16>([](u32, u16 val)
-	{
+		MMIO::ComplexWrite<u16>([](u32, u16 val) {
 		WARN_LOG(VIDEOINTERFACE,
 			"Changing horizontal beam position to 0x%04x - not documented or implemented yet",
 			val);
@@ -340,28 +329,24 @@ void RegisterMMIO(MMIO::Mapping* mmio, u32 base)
 	// The following MMIOs are interrupts related and update interrupt status
 	// on writes.
 	mmio->Register(base | VI_PRERETRACE_HI, MMIO::DirectRead<u16>(&m_InterruptRegister[0].Hi),
-		MMIO::ComplexWrite<u16>([](u32, u16 val)
-	{
+		MMIO::ComplexWrite<u16>([](u32, u16 val) {
 		m_InterruptRegister[0].Hi = val;
 		UpdateInterrupts();
 	}));
 	mmio->Register(base | VI_POSTRETRACE_HI, MMIO::DirectRead<u16>(&m_InterruptRegister[1].Hi),
-		MMIO::ComplexWrite<u16>([](u32, u16 val)
-	{
+		MMIO::ComplexWrite<u16>([](u32, u16 val) {
 		m_InterruptRegister[1].Hi = val;
 		UpdateInterrupts();
 	}));
 	mmio->Register(base | VI_DISPLAY_INTERRUPT_2_HI,
 		MMIO::DirectRead<u16>(&m_InterruptRegister[2].Hi),
-		MMIO::ComplexWrite<u16>([](u32, u16 val)
-	{
+		MMIO::ComplexWrite<u16>([](u32, u16 val) {
 		m_InterruptRegister[2].Hi = val;
 		UpdateInterrupts();
 	}));
 	mmio->Register(base | VI_DISPLAY_INTERRUPT_3_HI,
 		MMIO::DirectRead<u16>(&m_InterruptRegister[3].Hi),
-		MMIO::ComplexWrite<u16>([](u32, u16 val)
-	{
+		MMIO::ComplexWrite<u16>([](u32, u16 val) {
 		m_InterruptRegister[3].Hi = val;
 		UpdateInterrupts();
 	}));
@@ -369,22 +354,14 @@ void RegisterMMIO(MMIO::Mapping* mmio, u32 base)
 	// Unknown anti-aliasing related MMIO register: puts a warning on log and
 	// needs to shift/mask when reading/writing.
 	mmio->Register(base | VI_UNK_AA_REG_HI,
-		MMIO::ComplexRead<u16>([](u32)
-	{
-		return m_UnkAARegister >> 16;
-	}),
-		MMIO::ComplexWrite<u16>([](u32, u16 val)
-	{
+		MMIO::ComplexRead<u16>([](u32) { return m_UnkAARegister >> 16; }),
+		MMIO::ComplexWrite<u16>([](u32, u16 val) {
 		m_UnkAARegister = (m_UnkAARegister & 0x0000FFFF) | ((u32)val << 16);
 		WARN_LOG(VIDEOINTERFACE, "Writing to the unknown AA register (hi)");
 	}));
 	mmio->Register(base | VI_UNK_AA_REG_LO,
-		MMIO::ComplexRead<u16>([](u32)
-	{
-		return m_UnkAARegister & 0xFFFF;
-	}),
-		MMIO::ComplexWrite<u16>([](u32, u16 val)
-	{
+		MMIO::ComplexRead<u16>([](u32) { return m_UnkAARegister & 0xFFFF; }),
+		MMIO::ComplexWrite<u16>([](u32, u16 val) {
 		m_UnkAARegister = (m_UnkAARegister & 0xFFFF0000) | val;
 		WARN_LOG(VIDEOINTERFACE, "Writing to the unknown AA register (lo)");
 	}));
@@ -392,8 +369,7 @@ void RegisterMMIO(MMIO::Mapping* mmio, u32 base)
 	// Control register writes only updates some select bits, and additional
 	// processing needs to be done if a reset is requested.
 	mmio->Register(base | VI_CONTROL_REGISTER, MMIO::DirectRead<u16>(&m_DisplayControlRegister.Hex),
-		MMIO::ComplexWrite<u16>([](u32, u16 val)
-	{
+		MMIO::ComplexWrite<u16>([](u32, u16 val) {
 		UVIDisplayControlRegister tmpConfig(val);
 		m_DisplayControlRegister.ENB = tmpConfig.ENB;
 		m_DisplayControlRegister.NIN = tmpConfig.NIN;
@@ -649,7 +625,8 @@ u32 GetTargetRefreshRate()
 
 u32 GetTicksPerSample()
 {
-	return 2 * SystemTimers::GetTicksPerSecond() / s_clock_freqs[m_Clock];
+	const u32 multiplier = SConfig::GetInstance().bDoubleVideoRate ? 1 : 2;
+	return multiplier * SystemTimers::GetTicksPerSecond() / s_clock_freqs[m_Clock];
 }
 
 u32 GetTicksPerHalfLine()
@@ -709,7 +686,7 @@ static void BeginField(FieldType field)
 			xfbAddr -= fbStride * 2;
 	}
 
-	static const char* const fieldTypeNames[] = {"Odd", "Even"};
+	static const char* const fieldTypeNames[] = { "Odd", "Even" };
 
 	static const UVIVBlankTimingRegister* vert_timing[] = {
 			&m_VBlankTimingOdd, &m_VBlankTimingEven,
@@ -723,6 +700,7 @@ static void BeginField(FieldType field)
 
 	DEBUG_LOG(VIDEOINTERFACE, "HorizScaling: %04x | fbwidth %d | %u | %u", m_HorizontalScaling.Hex,
 		m_FBWidth.Hex, GetTicksPerEvenField(), GetTicksPerOddField());
+
 	// This assumes the game isn't going to change the VI registers while a
 	// frame is scanning out.
 	// To correctly handle that case we would need to collate all changes

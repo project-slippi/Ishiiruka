@@ -21,11 +21,11 @@ namespace WiimoteEmu
 {
 // Yamaha ADPCM decoder code based on The ffmpeg Project (Copyright (s) 2001-2003)
 
-static const s32 yamaha_difflookup[] = {1,  3,  5,  7,  9,  11,  13,  15,
-													 -1, -3, -5, -7, -9, -11, -13, -15};
+static const s32 yamaha_difflookup[] = { 1,  3,  5,  7,  9,  11,  13,  15,
+																				-1, -3, -5, -7, -9, -11, -13, -15 };
 
-static const s32 yamaha_indexscale[] = {230, 230, 230, 230, 307, 409, 512, 614,
-													 230, 230, 230, 230, 307, 409, 512, 614};
+static const s32 yamaha_indexscale[] = { 230, 230, 230, 230, 307, 409, 512, 614,
+																				230, 230, 230, 230, 307, 409, 512, 614 };
 
 static s16 av_clip16(s32 a)
 {
@@ -115,7 +115,7 @@ void Wiimote::SpeakerData(wm_speaker_data* sd)
 	}
 
 	// Speaker Pan
-	unsigned int vol = (unsigned int)(m_options->settings[4]->GetValue() * 100);
+	unsigned int vol = (unsigned int)(m_options->numeric_settings[0]->GetValue() * 100);
 
 	unsigned int sample_rate = sample_rate_dividend / m_reg_speaker.sample_rate;
 	float speaker_volume_ratio = (float)m_reg_speaker.volume / volume_divisor;

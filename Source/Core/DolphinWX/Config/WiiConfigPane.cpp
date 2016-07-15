@@ -11,11 +11,11 @@
 #include "Core/ConfigManager.h"
 #include "Core/Core.h"
 #include "Core/IPC_HLE/WII_IPC_HLE.h"
-#include "DiscIO/Volume.h"
+#include "DiscIO/Enums.h"
 #include "DolphinWX/Config/WiiConfigPane.h"
 #include "DolphinWX/WxUtils.h"
 
-WiiConfigPane::WiiConfigPane(wxWindow* parent, wxWindowID id): wxPanel(parent, id)
+WiiConfigPane::WiiConfigPane(wxWindow* parent, wxWindowID id) : wxPanel(parent, id)
 {
 	InitializeGUI();
 	LoadGUIValues();
@@ -46,6 +46,7 @@ void WiiConfigPane::InitializeGUI()
 		new wxChoice(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, m_system_language_strings);
 	m_sd_card_checkbox = new wxCheckBox(this, wxID_ANY, _("Insert SD Card"));
 	m_connect_keyboard_checkbox = new wxCheckBox(this, wxID_ANY, _("Connect USB Keyboard"));
+	m_wiispeak_checkbox = new wxCheckBox(this, wxID_ANY, _("Enable Wii Speak Dummy Support"));
 
 	m_screensaver_checkbox->Bind(wxEVT_CHECKBOX, &WiiConfigPane::OnScreenSaverCheckBoxChanged, this);
 	m_pal60_mode_checkbox->Bind(wxEVT_CHECKBOX, &WiiConfigPane::OnPAL60CheckBoxChanged, this);
@@ -54,6 +55,7 @@ void WiiConfigPane::InitializeGUI()
 	m_sd_card_checkbox->Bind(wxEVT_CHECKBOX, &WiiConfigPane::OnSDCardCheckBoxChanged, this);
 	m_connect_keyboard_checkbox->Bind(wxEVT_CHECKBOX,
 		&WiiConfigPane::OnConnectKeyboardCheckBoxChanged, this);
+	m_wiispeak_checkbox->Bind(wxEVT_CHECKBOX, &WiiConfigPane::OnWiiSpeakCheckBoxChanged, this);
 
 	m_screensaver_checkbox->SetToolTip(_("Dims the screen after five minutes of inactivity."));
 	m_pal60_mode_checkbox->SetToolTip(_("Sets the Wii display mode to 60Hz (480i) instead of 50Hz "
@@ -61,6 +63,7 @@ void WiiConfigPane::InitializeGUI()
 	m_system_language_choice->SetToolTip(_("Sets the Wii system language."));
 	m_sd_card_checkbox->SetToolTip(_("Saved to /Wii/sd.raw (default size is 128mb)"));
 	m_connect_keyboard_checkbox->SetToolTip(_("May cause slow down in Wii Menu and some games."));
+	m_wiispeak_checkbox->SetToolTip(_("Adds Dummy Support for WiiSpeak to allow games that requires it to boot properly."));
 
 	wxGridBagSizer* const misc_settings_grid_sizer = new wxGridBagSizer();
 	misc_settings_grid_sizer->Add(m_screensaver_checkbox, wxGBPosition(0, 0), wxGBSpan(1, 2), wxALL,
@@ -85,6 +88,7 @@ void WiiConfigPane::InitializeGUI()
 		new wxStaticBoxSizer(wxVERTICAL, this, _("Device Settings"));
 	device_settings_sizer->Add(m_sd_card_checkbox, 0, wxALL, 5);
 	device_settings_sizer->Add(m_connect_keyboard_checkbox, 0, wxALL, 5);
+	device_settings_sizer->Add(m_wiispeak_checkbox, 0, wxALL, 5);
 
 	wxBoxSizer* const main_sizer = new wxBoxSizer(wxVERTICAL);
 	main_sizer->Add(misc_settings_static_sizer, 0, wxEXPAND | wxALL, 5);
@@ -101,6 +105,7 @@ void WiiConfigPane::LoadGUIValues()
 	m_system_language_choice->SetSelection(SConfig::GetInstance().m_SYSCONF->GetData<u8>("IPL.LNG"));
 
 	m_sd_card_checkbox->SetValue(SConfig::GetInstance().m_WiiSDCard);
+	m_wiispeak_checkbox->SetValue(SConfig::GetInstance().bWiiSpeakSupport);
 	m_connect_keyboard_checkbox->SetValue(SConfig::GetInstance().m_WiiKeyboard);
 }
 
@@ -112,6 +117,7 @@ void WiiConfigPane::RefreshGUI()
 		m_pal60_mode_checkbox->Disable();
 		m_aspect_ratio_choice->Disable();
 		m_system_language_choice->Disable();
+		m_wiispeak_checkbox->Disable();
 	}
 }
 
@@ -139,8 +145,8 @@ void WiiConfigPane::OnConnectKeyboardCheckBoxChanged(wxCommandEvent& event)
 
 void WiiConfigPane::OnSystemLanguageChoiceChanged(wxCommandEvent& event)
 {
-	DiscIO::IVolume::ELanguage wii_system_lang =
-		(DiscIO::IVolume::ELanguage)m_system_language_choice->GetSelection();
+	DiscIO::Language wii_system_lang =
+		static_cast<DiscIO::Language>(m_system_language_choice->GetSelection());
 	SConfig::GetInstance().m_SYSCONF->SetData("IPL.LNG", wii_system_lang);
 	u8 country_code = GetSADRCountryCode(wii_system_lang);
 
@@ -153,32 +159,37 @@ void WiiConfigPane::OnAspectRatioChoiceChanged(wxCommandEvent& event)
 	SConfig::GetInstance().m_SYSCONF->SetData("IPL.AR", m_aspect_ratio_choice->GetSelection());
 }
 
+void WiiConfigPane::OnWiiSpeakCheckBoxChanged(wxCommandEvent& event)
+{
+	SConfig::GetInstance().bWiiSpeakSupport = m_wiispeak_checkbox->IsChecked();
+}
+
 // Change from IPL.LNG value to IPL.SADR country code.
 // http://wiibrew.org/wiki/Country_Codes
-u8 WiiConfigPane::GetSADRCountryCode(DiscIO::IVolume::ELanguage language)
+u8 WiiConfigPane::GetSADRCountryCode(DiscIO::Language language)
 {
 	switch (language)
 	{
-	case DiscIO::IVolume::LANGUAGE_JAPANESE:
+	case DiscIO::Language::LANGUAGE_JAPANESE:
 		return 1;  // Japan
-	case DiscIO::IVolume::LANGUAGE_ENGLISH:
+	case DiscIO::Language::LANGUAGE_ENGLISH:
 		return 49;  // USA
-	case DiscIO::IVolume::LANGUAGE_GERMAN:
+	case DiscIO::Language::LANGUAGE_GERMAN:
 		return 78;  // Germany
-	case DiscIO::IVolume::LANGUAGE_FRENCH:
+	case DiscIO::Language::LANGUAGE_FRENCH:
 		return 77;  // France
-	case DiscIO::IVolume::LANGUAGE_SPANISH:
+	case DiscIO::Language::LANGUAGE_SPANISH:
 		return 105;  // Spain
-	case DiscIO::IVolume::LANGUAGE_ITALIAN:
+	case DiscIO::Language::LANGUAGE_ITALIAN:
 		return 83;  // Italy
-	case DiscIO::IVolume::LANGUAGE_DUTCH:
+	case DiscIO::Language::LANGUAGE_DUTCH:
 		return 94;  // Netherlands
-	case DiscIO::IVolume::LANGUAGE_SIMPLIFIED_CHINESE:
-	case DiscIO::IVolume::LANGUAGE_TRADITIONAL_CHINESE:
+	case DiscIO::Language::LANGUAGE_SIMPLIFIED_CHINESE:
+	case DiscIO::Language::LANGUAGE_TRADITIONAL_CHINESE:
 		return 157;  // China
-	case DiscIO::IVolume::LANGUAGE_KOREAN:
+	case DiscIO::Language::LANGUAGE_KOREAN:
 		return 136;  // Korea
-	case DiscIO::IVolume::LANGUAGE_UNKNOWN:
+	case DiscIO::Language::LANGUAGE_UNKNOWN:
 		break;
 	}
 

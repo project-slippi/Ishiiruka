@@ -18,10 +18,9 @@ class CNANDContentLoader;
 struct SNANDContent;
 }
 
-class CWII_IPC_HLE_Device_es: public IWII_IPC_HLE_Device
+class CWII_IPC_HLE_Device_es : public IWII_IPC_HLE_Device
 {
 public:
-
 	CWII_IPC_HLE_Device_es(u32 _DeviceID, const std::string& _rDeviceName);
 
 	virtual ~CWII_IPC_HLE_Device_es();
@@ -107,7 +106,7 @@ private:
 
 	enum EErrorCodes
 	{
-		ES_INVALID_TMD = -106,   // or access denied
+		ES_INVALID_TMD = -106,  // or access denied
 		ES_READ_LESS_DATA_THAN_EXPECTED = -1009,
 		ES_WRITE_FAILURE = -1010,
 		ES_PARAMTER_SIZE_OR_ALIGNMENT = -1017,
@@ -118,7 +117,7 @@ private:
 		ES_INSTALLED_TICKET_INVALID = -1029,
 		ES_INVALID_PARAMETR = -2008,
 		ES_SIGNATURE_CHECK_FAILED = -2011,
-		ES_HASH_SIZE_WRONG = -2014, // HASH !=20
+		ES_HASH_SIZE_WRONG = -2014,  // HASH !=20
 	};
 
 	struct SContentAccess
@@ -136,7 +135,7 @@ private:
 	u64 m_TitleID;
 	u32 m_AccessIdentID;
 
-	static u8 *keyTable[11];
+	static u8* keyTable[11];
 
 	const DiscIO::CNANDContentLoader& AccessContentDevice(u64 title_id);
 	u32 OpenTitleContent(u32 CFD, u64 TitleID, u16 Index);

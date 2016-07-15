@@ -26,17 +26,15 @@ enum
 };
 
 // The /dev/stm/immediate
-class CWII_IPC_HLE_Device_stm_immediate: public IWII_IPC_HLE_Device
+class CWII_IPC_HLE_Device_stm_immediate : public IWII_IPC_HLE_Device
 {
 public:
+	CWII_IPC_HLE_Device_stm_immediate(u32 _DeviceID, const std::string& _rDeviceName)
+		: IWII_IPC_HLE_Device(_DeviceID, _rDeviceName)
+	{
+	}
 
-	CWII_IPC_HLE_Device_stm_immediate(u32 _DeviceID, const std::string& _rDeviceName):
-		IWII_IPC_HLE_Device(_DeviceID, _rDeviceName)
-	{}
-
-	virtual ~CWII_IPC_HLE_Device_stm_immediate()
-	{}
-
+	virtual ~CWII_IPC_HLE_Device_stm_immediate() {}
 	IPCCommandResult Open(u32 _CommandAddress, u32 _Mode) override
 	{
 		INFO_LOG(WII_IPC_STM, "STM immediate: Open");
@@ -79,12 +77,12 @@ public:
 			INFO_LOG(WII_IPC_STM, "    IOCTL_STM_HOTRESET");
 			break;
 
-		case IOCTL_STM_VIDIMMING: // (Input: 20 bytes, Output: 20 bytes)
+		case IOCTL_STM_VIDIMMING:  // (Input: 20 bytes, Output: 20 bytes)
 			INFO_LOG(WII_IPC_STM, "%s - IOCtl:", GetDeviceName().c_str());
 			INFO_LOG(WII_IPC_STM, "    IOCTL_STM_VIDIMMING");
-			//DumpCommands(BufferIn, BufferInSize / 4, LogTypes::WII_IPC_STM);
-			//Memory::Write_U32(1, BufferOut);
-			//ReturnValue = 1;
+			// DumpCommands(BufferIn, BufferInSize / 4, LogTypes::WII_IPC_STM);
+			// Memory::Write_U32(1, BufferOut);
+			// ReturnValue = 1;
 			break;
 
 		case IOCTL_STM_LEDMODE:  // (Input: 20 bytes, Output: 20 bytes)
@@ -113,18 +111,15 @@ public:
 };
 
 // The /dev/stm/eventhook
-class CWII_IPC_HLE_Device_stm_eventhook: public IWII_IPC_HLE_Device
+class CWII_IPC_HLE_Device_stm_eventhook : public IWII_IPC_HLE_Device
 {
 public:
-
 	CWII_IPC_HLE_Device_stm_eventhook(u32 _DeviceID, const std::string& _rDeviceName)
-		: IWII_IPC_HLE_Device(_DeviceID, _rDeviceName)
-		, m_EventHookAddress(0)
-	{}
+		: IWII_IPC_HLE_Device(_DeviceID, _rDeviceName), m_EventHookAddress(0)
+	{
+	}
 
-	virtual ~CWII_IPC_HLE_Device_stm_eventhook()
-	{}
-
+	virtual ~CWII_IPC_HLE_Device_stm_eventhook() {}
 	IPCCommandResult Open(u32 _CommandAddress, u32 _Mode) override
 	{
 		Memory::Write_U32(GetDeviceID(), _CommandAddress + 4);
@@ -175,8 +170,7 @@ public:
 		break;
 
 		default:
-			_dbg_assert_msg_(WII_IPC_STM, 0, "unknown %s ioctl %x",
-				GetDeviceName().c_str(), Parameter);
+			_dbg_assert_msg_(WII_IPC_STM, 0, "unknown %s ioctl %x", GetDeviceName().c_str(), Parameter);
 			break;
 		}
 

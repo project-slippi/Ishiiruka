@@ -10,14 +10,14 @@
 #include "Core/IPC_HLE/WII_IPC_HLE_Device.h"
 
 class PointerWrap;
-namespace File {
+namespace File
+{
 class IOFile;
 }
 
-class CWII_IPC_HLE_Device_sdio_slot0: public IWII_IPC_HLE_Device
+class CWII_IPC_HLE_Device_sdio_slot0 : public IWII_IPC_HLE_Device
 {
 public:
-
 	CWII_IPC_HLE_Device_sdio_slot0(u32 _DeviceID, const std::string& _rDeviceName);
 
 	void DoState(PointerWrap& p) override;
@@ -32,7 +32,6 @@ public:
 	void EventNotify();
 
 private:
-
 	// SD Host Controller Registers
 	enum
 	{
@@ -63,7 +62,7 @@ private:
 	{
 		RET_OK,
 		RET_FAIL,
-		RET_EVENT_REGISTER, // internal state only - not actually returned
+		RET_EVENT_REGISTER,  // internal state only - not actually returned
 		RET_EVENT_UNREGISTER
 	};
 
@@ -113,10 +112,7 @@ private:
 	{
 		EventType type;
 		u32 addr;
-		Event()
-			: type(EVENT_NONE)
-			, addr()
-		{}
+		Event() : type(EVENT_NONE), addr() {}
 	} m_event;
 
 	u32 m_Status;
@@ -127,8 +123,7 @@ private:
 
 	File::IOFile m_Card;
 
-	u32 ExecuteCommand(u32 BufferIn, u32 BufferInSize,
-		u32 BufferIn2, u32 BufferInSize2,
+	u32 ExecuteCommand(u32 BufferIn, u32 BufferInSize, u32 BufferIn2, u32 BufferInSize2,
 		u32 _BufferOut, u32 BufferOutSize);
 	void OpenInternal();
 };

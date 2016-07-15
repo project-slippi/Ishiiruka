@@ -4,17 +4,18 @@
 
 #pragma once
 
-#include <string>
 #include <mbedtls/ctr_drbg.h>
 #include <mbedtls/entropy.h>
 #include <mbedtls/net.h>
 #include <mbedtls/ssl.h>
+#include <string>
 
 #include "Core/IPC_HLE/WII_IPC_HLE_Device.h"
 
 #define NET_SSL_MAXINSTANCES 4
 
-#define SSLID_VALID(x) (x >= 0 && x < NET_SSL_MAXINSTANCES && CWII_IPC_HLE_Device_net_ssl::_SSL[x].active)
+#define SSLID_VALID(x)                                                                             \
+  (x >= 0 && x < NET_SSL_MAXINSTANCES && CWII_IPC_HLE_Device_net_ssl::_SSL[x].active)
 
 enum ssl_err_t
 {
@@ -23,14 +24,14 @@ enum ssl_err_t
 	SSL_ERR_RAGAIN = -2,
 	SSL_ERR_WAGAIN = -3,
 	SSL_ERR_SYSCALL = -5,
-	SSL_ERR_ZERO = -6,  // read or write returned 0
-	SSL_ERR_CAGAIN = -7,  // BIO not connected
-	SSL_ERR_ID = -8,  // invalid SSL id
-	SSL_ERR_VCOMMONNAME = -9,  // verify failed: common name
-	SSL_ERR_VROOTCA = -10, // verify failed: root ca
-	SSL_ERR_VCHAIN = -11, // verify failed: certificate chain
-	SSL_ERR_VDATE = -12, // verify failed: date invalid
-	SSL_ERR_SERVER_CERT = -13, // certificate cert invalid
+	SSL_ERR_ZERO = -6,          // read or write returned 0
+	SSL_ERR_CAGAIN = -7,        // BIO not connected
+	SSL_ERR_ID = -8,            // invalid SSL id
+	SSL_ERR_VCOMMONNAME = -9,   // verify failed: common name
+	SSL_ERR_VROOTCA = -10,      // verify failed: root ca
+	SSL_ERR_VCHAIN = -11,       // verify failed: certificate chain
+	SSL_ERR_VDATE = -12,        // verify failed: date invalid
+	SSL_ERR_SERVER_CERT = -13,  // certificate cert invalid
 };
 
 enum SSL_IOCTL
@@ -69,10 +70,9 @@ struct WII_SSL
 	bool active;
 };
 
-class CWII_IPC_HLE_Device_net_ssl: public IWII_IPC_HLE_Device
+class CWII_IPC_HLE_Device_net_ssl : public IWII_IPC_HLE_Device
 {
 public:
-
 	CWII_IPC_HLE_Device_net_ssl(u32 _DeviceID, const std::string& _rDeviceName);
 
 	virtual ~CWII_IPC_HLE_Device_net_ssl();

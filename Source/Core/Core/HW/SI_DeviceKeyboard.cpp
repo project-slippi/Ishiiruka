@@ -12,7 +12,8 @@
 // --- GameCube keyboard ---
 CSIDevice_Keyboard::CSIDevice_Keyboard(SIDevices device, int _iDeviceNumber)
 	: ISIDevice(device, _iDeviceNumber)
-{}
+{
+}
 
 int CSIDevice_Keyboard::RunBuffer(u8* _pBuffer, int _iLength)
 {
@@ -63,7 +64,7 @@ KeyboardStatus CSIDevice_Keyboard::GetKeyboardStatus()
 bool CSIDevice_Keyboard::GetData(u32& _Hi, u32& _Low)
 {
 	KeyboardStatus KeyStatus = GetKeyboardStatus();
-	u8 key[3] = {0x00, 0x00, 0x00};
+	u8 key[3] = { 0x00, 0x00, 0x00 };
 	MapKeys(KeyStatus, key);
 	u8 checksum = key[0] ^ key[1] ^ key[2] ^ m_Counter;
 

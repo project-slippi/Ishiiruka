@@ -16,7 +16,7 @@ class wxSpinCtrl;
 class wxStaticText;
 class wxTextCtrl;
 
-class NetPlaySetupFrame final: public wxFrame
+class NetPlaySetupFrame final : public wxFrame
 {
 public:
 	NetPlaySetupFrame(wxWindow* const parent, const CGameListCtrl* const game_list);

@@ -45,7 +45,7 @@
 // Some crazy shit I made to control different device inputs and outputs
 // from lots of different sources, hopefully more easily.
 //
-class ControllerInterface: public ciface::Core::DeviceContainer
+class ControllerInterface : public ciface::Core::DeviceContainer
 {
 public:
 	//
@@ -72,10 +72,7 @@ public:
 		const bool is_input;
 		ciface::ExpressionParser::ExpressionParseStatus parse_error;
 
-		virtual ~ControlReference()
-		{
-			delete parsed_expression;
-		}
+		virtual ~ControlReference() { delete parsed_expression; }
 		int BoundCount()
 		{
 			if (parsed_expression)
@@ -87,7 +84,8 @@ public:
 	protected:
 		ControlReference(const bool _is_input)
 			: range(1), is_input(_is_input), parsed_expression(nullptr)
-		{}
+		{
+		}
 		ciface::ExpressionParser::Expression* parsed_expression;
 	};
 
@@ -96,11 +94,10 @@ public:
 	//
 	// Control reference for inputs
 	//
-	class InputReference: public ControlReference
+	class InputReference : public ControlReference
 	{
 	public:
-		InputReference(): ControlReference(true)
-		{}
+		InputReference() : ControlReference(true) {}
 		ControlState State(const ControlState state) override;
 		ciface::Core::Device::Control* Detect(const unsigned int ms,
 			ciface::Core::Device* const device) override;
@@ -111,26 +108,21 @@ public:
 	//
 	// Control reference for outputs
 	//
-	class OutputReference: public ControlReference
+	class OutputReference : public ControlReference
 	{
 	public:
-		OutputReference(): ControlReference(false)
-		{}
+		OutputReference() : ControlReference(false) {}
 		ControlState State(const ControlState state) override;
 		ciface::Core::Device::Control* Detect(const unsigned int ms,
 			ciface::Core::Device* const device) override;
 	};
 
-	ControllerInterface(): m_is_init(false), m_hwnd(nullptr)
-	{}
+	ControllerInterface() : m_is_init(false), m_hwnd(nullptr) {}
 	void Initialize(void* const hwnd);
 	void Reinitialize();
 	void Shutdown();
 	void AddDevice(std::shared_ptr<ciface::Core::Device> device);
-	bool IsInit() const
-	{
-		return m_is_init;
-	}
+	bool IsInit() const { return m_is_init; }
 	void UpdateReference(ControlReference* control,
 		const ciface::Core::DeviceQualifier& default_device) const;
 	void UpdateInput();

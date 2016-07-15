@@ -87,8 +87,7 @@ struct wm_ir_extended
 };
 
 // Nunchuk
-union wm_nc_core
-{
+union wm_nc_core {
 	u8 hex;
 
 	struct
@@ -103,8 +102,7 @@ union wm_nc_core
 	};
 };
 
-union wm_nc
-{
+union wm_nc {
 	struct
 	{
 		// joystick x, y
@@ -139,8 +137,7 @@ union wm_nc
 	} passthrough_data;
 };
 
-union wm_classic_extension_buttons
-{
+union wm_classic_extension_buttons {
 	u16 hex;
 
 	struct
@@ -155,12 +152,12 @@ union wm_classic_extension_buttons
 		u8 dpad_right : 1;
 
 		u8 : 2;     // cf. extension_data and passthrough_data
-			  u8 zr : 1;  // right z button
-			  u8 x : 1;
-			  u8 a : 1;
-			  u8 y : 1;
-			  u8 b : 1;
-			  u8 zl : 1;  // left z button
+				 u8 zr : 1;  // right z button
+				 u8 x : 1;
+				 u8 a : 1;
+				 u8 y : 1;
+				 u8 b : 1;
+				 u8 zl : 1;  // left z button
 	};            // common data
 
 	// M+ pass-through mode slightly differs from the regular data.
@@ -169,23 +166,22 @@ union wm_classic_extension_buttons
 	{
 		u8 : 8;
 
-			  u8 dpad_up : 1;
-			  u8 dpad_left : 1;
-			  u8 : 6;
+				 u8 dpad_up : 1;
+				 u8 dpad_left : 1;
+				 u8 : 6;
 	} regular_data;
 
 	struct
 	{
 		u8 : 8;
 
-			  u8 unknown : 1;      // always 0?
-			  u8 report_type : 1;  // 1: report contains M+ data, 0: report contains extension data
-			  u8 : 6;
+				 u8 unknown : 1;      // always 0?
+				 u8 report_type : 1;  // 1: report contains M+ data, 0: report contains extension data
+				 u8 : 6;
 	} passthrough_data;
 };
 
-union wm_classic_extension
-{
+union wm_classic_extension {
 	// lx/ly/lz; left joystick
 	// rx/ry/rz; right joystick
 	// lt; left trigger
@@ -194,19 +190,19 @@ union wm_classic_extension
 	struct
 	{
 		u8 : 6;
-			  u8 rx3 : 2;
+				 u8 rx3 : 2;
 
-			  u8 : 6;
-					 u8 rx2 : 2;
+				 u8 : 6;
+							u8 rx2 : 2;
 
-					 u8 ry : 5;
-					 u8 lt2 : 2;
-					 u8 rx1 : 1;
+							u8 ry : 5;
+							u8 lt2 : 2;
+							u8 rx1 : 1;
 
-					 u8 rt : 5;
-					 u8 lt1 : 3;
+							u8 rt : 5;
+							u8 lt1 : 3;
 
-					 wm_classic_extension_buttons bt;  // byte 4, 5
+							wm_classic_extension_buttons bt;  // byte 4, 5
 	};
 
 	struct
@@ -214,10 +210,10 @@ union wm_classic_extension
 		u8 lx : 6;  // byte 0
 		u8 : 2;
 
-			  u8 ly : 6;  // byte 1
-			  u8 : 2;
+				 u8 ly : 6;  // byte 1
+				 u8 : 2;
 
-					 unsigned : 32;
+							unsigned : 32;
 	} regular_data;
 
 	struct
@@ -226,11 +222,11 @@ union wm_classic_extension
 		u8 lx : 5;  // Bits 1-5
 		u8 : 2;
 
-			  u8 dpad_left : 1;
-			  u8 ly : 5;  // Bits 1-5
-			  u8 : 2;
+				 u8 dpad_left : 1;
+				 u8 ly : 5;  // Bits 1-5
+				 u8 : 2;
 
-					 unsigned : 32;
+							unsigned : 32;
 	} passthrough_data;
 };
 
@@ -287,8 +283,7 @@ struct wm_turntable_extension
 	u8 ltable1 : 5;
 	u8 dial1 : 3;
 
-	union
-	{
+	union {
 		u16 ltable2 : 1;
 		u16 bt;  // buttons
 	};
@@ -319,8 +314,7 @@ struct wm_motionplus_data
 struct wm_report
 {
 	u8 wm;
-	union
-	{
+	union {
 		u8 data[0];
 		struct
 		{
@@ -340,7 +334,7 @@ struct wm_leds
 	u8 rumble : 1;
 	// real Wii also sets bit 0x2 (unknown purpose)
 	u8 : 3;
-		  u8 leds : 4;
+			 u8 leds : 4;
 };
 
 #define WM_REPORT_MODE 0x12
@@ -351,7 +345,7 @@ struct wm_report_mode
 	u8 all_the_time : 1;
 	u8 continuous : 1;
 	u8 : 5;
-		  u8 mode;
+			 u8 mode;
 };
 
 #define WM_IR_PIXEL_CLOCK 0x13
@@ -383,9 +377,9 @@ struct wm_write_data
 	u8 rumble : 1;
 	u8 space : 2;  // see WM_SPACE_*
 	u8 : 5;
-		  u8 address[3];
-		  u8 size;
-		  u8 data[16];
+			 u8 address[3];
+			 u8 size;
+			 u8 data[16];
 };
 
 #define WM_ACK_DATA 0x22
@@ -402,8 +396,8 @@ struct wm_read_data
 	u8 rumble : 1;
 	u8 space : 2;  // see WM_SPACE_*
 	u8 : 5;
-		  u8 address[3];
-		  u16 size;
+			 u8 address[3];
+			 u16 size;
 };
 
 #define WM_SPACE_EEPROM 0

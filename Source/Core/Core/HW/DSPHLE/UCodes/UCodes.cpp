@@ -47,13 +47,13 @@ UCodeInterface* UCodeFactory(u32 crc, DSPHLE* dsphle, bool wii)
 	case 0x3ad3b7ac:  // Naruto 3, Paper Mario - The Thousand Year Door
 	case 0x3daf59b9:  // Alien Hominid
 	case 0x4e8a8b21:  // spdemo, Crazy Taxi, 18 Wheeler, Disney, Monkeyball 1/2, Cubivore, Nintendo
-							// Puzzle Collection, Wario,
+										// Puzzle Collection, Wario,
 	// Capcom vs. SNK 2, Naruto 2, Lost Kingdoms, Star Fox, Mario Party 4, Mortal Kombat,
 	// Smugglers Run Warzone, Smash Brothers, Sonic Mega Collection, ZooCube
 	// nddemo, Star Fox
 	case 0x07f88145:  // bustamove, Ikaruga, F-Zero GX, Robotech Battle Cry, Star Soldier, Soul
-							// Calibur 2,
-							// Zelda:OOT, Tony Hawk, Viewtiful Joe
+										// Calibur 2,
+										// Zelda:OOT, Tony Hawk, Viewtiful Joe
 	case 0xe2136399:  // Billy Hatcher, Dragon Ball Z, Mario Party 5, TMNT, 1080° Avalanche
 	case 0x3389a79e:  // MP1/MP2 Wii (Metroid Prime Trilogy)
 		INFO_LOG(DSPHLE, "CRC %08x: AX ucode chosen", crc);

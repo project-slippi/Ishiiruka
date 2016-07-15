@@ -43,7 +43,7 @@
 
 wxDEFINE_EVENT(DOLPHIN_EVT_ADD_NEW_ACTION_REPLAY_CODE, wxCommandEvent);
 
-struct wxCheatsWindow::CodeData: public wxClientData
+struct wxCheatsWindow::CodeData : public wxClientData
 {
 	ActionReplay::ARCode code;
 };

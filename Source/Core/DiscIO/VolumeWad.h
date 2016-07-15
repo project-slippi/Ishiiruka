@@ -10,7 +10,6 @@
 #include <vector>
 
 #include "Common/CommonTypes.h"
-#include "DiscIO/Blob.h"
 #include "DiscIO/Volume.h"
 
 // --- this volume type is used for Wad files ---
@@ -19,7 +18,12 @@
 
 namespace DiscIO
 {
-class CVolumeWAD: public IVolume
+enum class BlobType;
+enum class Country;
+enum class Language;
+enum class Platform;
+
+class CVolumeWAD : public IVolume
 {
 public:
 	CVolumeWAD(std::unique_ptr<IBlobReader> reader);
@@ -29,22 +33,13 @@ public:
 	std::string GetUniqueID() const override;
 	std::string GetMakerID() const override;
 	u16 GetRevision() const override;
-	std::string GetInternalName() const override
-	{
-		return "";
-	}
-	std::map<IVolume::ELanguage, std::string> GetLongNames() const override;
+	std::string GetInternalName() const override { return ""; }
+	std::map<Language, std::string> GetLongNames() const override;
 	std::vector<u32> GetBanner(int* width, int* height) const override;
-	u64 GetFSTSize() const override
-	{
-		return 0;
-	}
-	std::string GetApploaderDate() const override
-	{
-		return "";
-	}
-	EPlatform GetVolumeType() const override;
-	ECountry GetCountry() const override;
+	u64 GetFSTSize() const override { return 0; }
+	std::string GetApploaderDate() const override { return ""; }
+	Platform GetVolumeType() const override;
+	Country GetCountry() const override;
 
 	BlobType GetBlobType() const override;
 	u64 GetSize() const override;

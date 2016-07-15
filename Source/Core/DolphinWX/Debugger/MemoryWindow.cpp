@@ -26,10 +26,10 @@
 #include "Core/HW/DSP.h"
 #include "Core/HW/Memmap.h"
 #include "Core/PowerPC/PowerPC.h"
-#include "DolphinWX/Globals.h"
-#include "DolphinWX/WxUtils.h"
 #include "DolphinWX/Debugger/MemoryView.h"
 #include "DolphinWX/Debugger/MemoryWindow.h"
+#include "DolphinWX/Globals.h"
+#include "DolphinWX/WxUtils.h"
 
 enum
 {
@@ -63,8 +63,8 @@ EVT_CHECKBOX(IDM_ASCII, CMemoryWindow::onAscii)
 EVT_CHECKBOX(IDM_HEX, CMemoryWindow::onHex)
 END_EVENT_TABLE()
 
-CMemoryWindow::CMemoryWindow(wxWindow* parent, wxWindowID id,
-	const wxPoint& pos, const wxSize& size, long style, const wxString& name)
+CMemoryWindow::CMemoryWindow(wxWindow* parent, wxWindowID id, const wxPoint& pos,
+	const wxSize& size, long style, const wxString& name)
 	: wxPanel(parent, id, pos, size, style, name)
 {
 	DebugInterface* di = &PowerPC::debug_interface;
@@ -75,7 +75,8 @@ CMemoryWindow::CMemoryWindow(wxWindow* parent, wxWindowID id,
 	addrbox->Bind(wxEVT_TEXT, &CMemoryWindow::OnAddrBoxChange, this);
 	addrbox->SetDescriptiveText(_("Search Address"));
 
-	valbox = new wxTextCtrl(this, IDM_VALBOX, "", wxDefaultPosition, wxDefaultSize, wxTE_PROCESS_ENTER);
+	valbox =
+		new wxTextCtrl(this, IDM_VALBOX, "", wxDefaultPosition, wxDefaultSize, wxTE_PROCESS_ENTER);
 	valbox->Bind(wxEVT_TEXT_ENTER, &CMemoryWindow::SetMemoryValueFromValBox, this);
 
 	wxGridSizer* const search_sizer = new wxGridSizer(1);
@@ -112,7 +113,7 @@ CMemoryWindow::CMemoryWindow(wxWindow* parent, wxWindowID id,
 	sizerBig->Add(sizerRight, 0, wxEXPAND | wxALL, 3);
 
 	SetSizer(sizerBig);
-	chkHex->SetValue(1); //Set defaults
+	chkHex->SetValue(1);  // Set defaults
 	chk8->SetValue(1);
 
 	sizerRight->Fit(this);
@@ -154,7 +155,6 @@ void CMemoryWindow::SetMemoryValueFromValBox(wxCommandEvent& event)
 {
 	SetMemoryValue(event);
 	valbox->SetFocus();
-
 }
 
 void CMemoryWindow::SetMemoryValue(wxCommandEvent& event)
@@ -207,7 +207,7 @@ void CMemoryWindow::Update()
 
 void CMemoryWindow::NotifyMapLoaded()
 {
-	symbols->Show(false); // hide it for faster filling
+	symbols->Show(false);  // hide it for faster filling
 	symbols->Clear();
 #if 0
 #ifdef _WIN32
@@ -228,7 +228,7 @@ void CMemoryWindow::OnSymbolListChange(wxCommandEvent& event)
 	int index = symbols->GetSelection();
 	if (index >= 0)
 	{
-		Symbol* pSymbol = static_cast<Symbol *>(symbols->GetClientData(index));
+		Symbol* pSymbol = static_cast<Symbol*>(symbols->GetClientData(index));
 		if (pSymbol != nullptr)
 		{
 			memview->Center(pSymbol->address);
@@ -326,24 +326,24 @@ void CMemoryWindow::onSearch(wxCommandEvent& event)
 	}
 	break;
 	}
-	//Now we have memory to look in
-	//Are we looking for ASCII string, or hex?
-	//memview->cu
+	// Now we have memory to look in
+	// Are we looking for ASCII string, or hex?
+	// memview->cu
 	wxString rawData = valbox->GetValue();
-	std::vector<u8> Dest; //May need a better name
+	std::vector<u8> Dest;  // May need a better name
 	u32 size = 0;
-	int pad = rawData.size() % 2; //If it's uneven
+	int pad = rawData.size() % 2;  // If it's uneven
 	unsigned int i = 0;
 	long count = 0;
-	char copy[3] = {0};
+	char copy[3] = { 0 };
 	long newsize = 0;
-	unsigned char *tmp2 = nullptr;
+	unsigned char* tmp2 = nullptr;
 	char* tmpstr = nullptr;
 
 	if (chkHex->GetValue())
 	{
-		//We are looking for hex
-		//If it's uneven
+		// We are looking for hex
+		// If it's uneven
 		size = (rawData.size() / 2) + pad;
 		Dest.resize(size + 32);
 		newsize = rawData.size();
@@ -372,14 +372,14 @@ void CMemoryWindow::onSearch(wxCommandEvent& event)
 			tmp2[count++] = tmpint;
 			// Dest[count] should now be the hex of what the two chars were!
 			// Also should add a check to make sure it's A-F only
-			//sscanf(copy, "%02x", &tmp2[count++]);
+			// sscanf(copy, "%02x", &tmp2[count++]);
 			i += 1;
 		}
 		delete[] tmpstr;
 	}
 	else
 	{
-		//Looking for an ascii string
+		// Looking for an ascii string
 		size = rawData.size();
 		Dest.resize(size + 1);
 		tmpstr = new char[size + 1];
@@ -397,7 +397,7 @@ void CMemoryWindow::onSearch(wxCommandEvent& event)
 	{
 		unsigned char* pnt = &Dest.front();
 		unsigned int k = 0;
-		//grab
+		// grab
 		wxString txt = addrbox->GetValue();
 		u32 addr = 0;
 		if (txt.size())
@@ -409,8 +409,10 @@ void CMemoryWindow::onSearch(wxCommandEvent& event)
 		{
 			for (k = 0; k < size; ++k)
 			{
-				if (i + k > szRAM) break;
-				if (k > size) break;
+				if (i + k > szRAM)
+					break;
+				if (k > size)
+					break;
 				if (pnt[k] != TheRAM[i + k])
 				{
 					k = 0;
@@ -419,11 +421,11 @@ void CMemoryWindow::onSearch(wxCommandEvent& event)
 			}
 			if (k == size)
 			{
-				//Match was found
+				// Match was found
 				wxMessageBox(_("A match was found. Placing viewer at the offset."));
 				addrbox->SetValue(wxString::Format("%08x", i));
-				//memview->curAddress = i;
-				//memview->Refresh();
+				// memview->curAddress = i;
+				// memview->Refresh();
 				OnAddrBoxChange(event);
 				return;
 			}

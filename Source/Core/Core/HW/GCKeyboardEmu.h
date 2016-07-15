@@ -10,7 +10,7 @@
 
 struct KeyboardStatus;
 
-class GCKeyboard: public ControllerEmu
+class GCKeyboard : public ControllerEmu
 {
 public:
 	GCKeyboard(const unsigned int index);

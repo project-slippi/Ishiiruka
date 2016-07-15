@@ -12,7 +12,9 @@
 #include <vector>
 
 #include "Common/Common.h"
+#include "Common/Event.h"
 #include "Common/FifoQueue.h"
+#include "Common/Flag.h"
 #include "Common/NonCopyable.h"
 #include "Core/HW/Wiimote.h"
 #include "Core/HW/WiimoteReal/WiimoteRealBase.h"
@@ -23,11 +25,10 @@ typedef std::vector<u8> Report;
 
 namespace WiimoteReal
 {
-class Wiimote: NonCopyable
+class Wiimote : NonCopyable
 {
 public:
-	virtual ~Wiimote()
-	{}
+	virtual ~Wiimote() {}
 	// This needs to be called in derived destructors!
 	void Shutdown();
 
@@ -50,10 +51,8 @@ public:
 	void EmuResume();
 	void EmuPause();
 
-	virtual void EnablePowerAssertionInternal()
-	{}
-	virtual void DisablePowerAssertionInternal()
-	{}
+	virtual void EnablePowerAssertionInternal() {}
+	virtual void DisablePowerAssertionInternal() {}
 	// connecting and disconnecting from physical devices
 	// (using address inserted by FindWiimotes)
 	// these are called from the Wiimote's thread.
@@ -103,16 +102,23 @@ private:
 
 	std::thread m_wiimote_thread;
 	// Whether to keep running the thread.
-	std::atomic<bool> m_run_thread{false};
+	std::atomic<bool> m_run_thread{ false };
 	// Whether to call PrepareOnThread.
-	std::atomic<bool> m_need_prepare{false};
+	std::atomic<bool> m_need_prepare{ false };
 	// Whether the thread has finished ConnectInternal.
-	std::atomic<bool> m_thread_ready{false};
+	std::atomic<bool> m_thread_ready{ false };
 	std::mutex m_thread_ready_mutex;
 	std::condition_variable m_thread_ready_cond;
 
 	Common::FifoQueue<Report> m_read_reports;
 	Common::FifoQueue<Report> m_write_reports;
+};
+
+enum class WiimoteScanMode
+{
+	DO_NOT_SCAN,
+	CONTINUOUSLY_SCAN,
+	SCAN_ONCE
 };
 
 class WiimoteScanner
@@ -123,11 +129,9 @@ public:
 
 	bool IsReady() const;
 
-	void WantWiimotes(bool do_want);
-	void WantBB(bool do_want);
-
-	void StartScanning();
-	void StopScanning();
+	void StartThread();
+	void StopThread();
+	void SetScanMode(WiimoteScanMode scan_mode);
 
 	void FindWiimotes(std::vector<Wiimote*>&, Wiimote*&);
 
@@ -139,9 +143,9 @@ private:
 
 	std::thread m_scan_thread;
 
-	std::atomic<bool> m_run_thread{false};
-	std::atomic<bool> m_want_wiimotes{false};
-	std::atomic<bool> m_want_bb{false};
+	Common::Event m_scan_mode_changed_event;
+	Common::Flag m_scan_thread_running;
+	std::atomic<WiimoteScanMode> m_scan_mode{ WiimoteScanMode::DO_NOT_SCAN };
 
 #if defined(_WIN32)
 	void CheckDeviceType(std::basic_string<TCHAR>& devicepath, WinWriteMethod& write_method,
@@ -152,7 +156,7 @@ private:
 #endif
 };
 
-extern std::recursive_mutex g_refresh_lock;
+extern std::mutex g_wiimotes_mutex;
 extern WiimoteScanner g_wiimote_scanner;
 extern Wiimote* g_wiimotes[MAX_BBMOTES];
 

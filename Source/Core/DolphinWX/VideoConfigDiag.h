@@ -25,7 +25,7 @@
 #include "DolphinWX/WxUtils.h"
 #include "DolphinWX/PostProcessingConfigDiag.h"
 template <typename W>
-class BoolSetting: public W
+class BoolSetting : public W
 {
 public:
 	BoolSetting(wxWindow* parent, const wxString& label, const wxString& tooltip, bool &setting, bool reverse = false, long style = 0);
@@ -44,7 +44,7 @@ typedef BoolSetting<wxCheckBox> SettingCheckBox;
 typedef BoolSetting<wxRadioButton> SettingRadioButton;
 
 template <typename T>
-class IntegerSetting: public wxSpinCtrl
+class IntegerSetting : public wxSpinCtrl
 {
 public:
 	IntegerSetting(wxWindow* parent, const wxString& label, T& setting, int minVal, int maxVal, long style = 0);
@@ -60,7 +60,7 @@ private:
 
 typedef IntegerSetting<u32> U32Setting;
 
-class SettingChoice: public wxChoice
+class SettingChoice : public wxChoice
 {
 public:
 	SettingChoice(wxWindow* parent, int &setting, const wxString& tooltip, int num = 0, const wxString choices[] = NULL, long style = 0);
@@ -69,7 +69,7 @@ private:
 	int &m_setting;
 };
 
-class VideoConfigDiag: public wxDialog
+class VideoConfigDiag : public wxDialog
 {
 public:
 	VideoConfigDiag(wxWindow* parent, const std::string &title);

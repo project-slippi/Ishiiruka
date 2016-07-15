@@ -4,8 +4,8 @@
 
 #pragma once
 
-#include <wx/panel.h>
 #include <wx/aui/framemanager.h>
+#include <wx/panel.h>
 
 #include "Common/CommonTypes.h"
 #include "Core/HW/DSPLLE/DSPDebugInterface.h"
@@ -17,10 +17,10 @@ class wxAuiNotebook;
 class wxAuiToolBar;
 class wxListBox;
 
-class DSPDebuggerLLE: public wxPanel
+class DSPDebuggerLLE : public wxPanel
 {
 public:
-	DSPDebuggerLLE(wxWindow *parent, wxWindowID id = wxID_ANY);
+	DSPDebuggerLLE(wxWindow* parent, wxWindowID id = wxID_ANY);
 	virtual ~DSPDebuggerLLE();
 
 	void Update() override;
@@ -55,14 +55,13 @@ private:
 
 	void OnClose(wxCloseEvent& event);
 	void OnChangeState(wxCommandEvent& event);
-	//void OnRightClick(wxListEvent& event);
-	//void OnDoubleClick(wxListEvent& event);
+	// void OnRightClick(wxListEvent& event);
+	// void OnDoubleClick(wxListEvent& event);
 	void OnAddrBoxChange(wxCommandEvent& event);
 	void OnSymbolListChange(wxCommandEvent& event);
 
 	bool JumpToAddress(u16 addr);
 
 	void FocusOnPC();
-	//void UnselectAll();
+	// void UnselectAll();
 };
-

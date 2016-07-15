@@ -45,11 +45,11 @@ static const u8 eeprom_data_0[] = {
 	ACCEL_ZERO_G, ACCEL_ZERO_G, ACCEL_ZERO_G, 0, ACCEL_ONE_G, ACCEL_ONE_G, ACCEL_ONE_G, 0, 0, 0xA3,
 };
 
-static const u8 motion_plus_id[] = {0x00, 0x00, 0xA6, 0x20, 0x00, 0x05};
+static const u8 motion_plus_id[] = { 0x00, 0x00, 0xA6, 0x20, 0x00, 0x05 };
 
-static const u8 eeprom_data_16D0[] = {0x00, 0x00, 0x00, 0xFF, 0x11, 0xEE, 0x00, 0x00,
-												  0x33, 0xCC, 0x44, 0xBB, 0x00, 0x00, 0x66, 0x99,
-												  0x77, 0x88, 0x00, 0x00, 0x2B, 0x01, 0xE8, 0x13};
+static const u8 eeprom_data_16D0[] = { 0x00, 0x00, 0x00, 0xFF, 0x11, 0xEE, 0x00, 0x00,
+																			0x33, 0xCC, 0x44, 0xBB, 0x00, 0x00, 0x66, 0x99,
+																			0x77, 0x88, 0x00, 0x00, 0x2B, 0x01, 0xE8, 0x13 };
 
 static const ReportFeatures reporting_mode_features[] = {
 	// 0x30: Core Buttons
@@ -87,7 +87,7 @@ void EmulateShake(AccelData* const accel, ControllerEmu::Buttons* const buttons_
 	auto const shake_intensity = 3.0;
 
 	// shake is a bitfield of X,Y,Z shake button states
-	static const unsigned int btns[] = {0x01, 0x02, 0x04};
+	static const unsigned int btns[] = { 0x01, 0x02, 0x04 };
 	unsigned int shake = 0;
 	buttons_group->GetState(&shake, btns);
 
@@ -126,7 +126,7 @@ void EmulateTilt(AccelData* const accel, ControllerEmu::Tilt* const tilt_group, 
 	lr = sideways;
 	fb = upright ? 2 : (sideways ? 0 : 1);
 
-	int sgn[3] = {-1, 1, 1};  // sign fix
+	int sgn[3] = { -1, 1, 1 };  // sign fix
 
 	if (sideways && !upright)
 		sgn[fb] *= -1;
@@ -146,7 +146,7 @@ void EmulateSwing(AccelData* const accel, ControllerEmu::Force* const swing_grou
 	ControlState swing[3];
 	swing_group->GetState(swing);
 
-	s8 g_dir[3] = {-1, -1, -1};
+	s8 g_dir[3] = { -1, -1, -1 };
 	u8 axis_map[3];
 
 	// determine which axis is which direction
@@ -166,16 +166,16 @@ void EmulateSwing(AccelData* const accel, ControllerEmu::Force* const swing_grou
 }
 
 static const u16 button_bitmasks[] = {
-	 Wiimote::BUTTON_A,     Wiimote::BUTTON_B,    Wiimote::BUTTON_ONE, Wiimote::BUTTON_TWO,
-	 Wiimote::BUTTON_MINUS, Wiimote::BUTTON_PLUS, Wiimote::BUTTON_HOME};
+		Wiimote::BUTTON_A,     Wiimote::BUTTON_B,    Wiimote::BUTTON_ONE, Wiimote::BUTTON_TWO,
+		Wiimote::BUTTON_MINUS, Wiimote::BUTTON_PLUS, Wiimote::BUTTON_HOME };
 
-static const u16 dpad_bitmasks[] = {Wiimote::PAD_UP, Wiimote::PAD_DOWN, Wiimote::PAD_LEFT,
-												Wiimote::PAD_RIGHT};
-static const u16 dpad_sideways_bitmasks[] = {Wiimote::PAD_RIGHT, Wiimote::PAD_LEFT, Wiimote::PAD_UP,
-															Wiimote::PAD_DOWN};
+static const u16 dpad_bitmasks[] = { Wiimote::PAD_UP, Wiimote::PAD_DOWN, Wiimote::PAD_LEFT,
+																		Wiimote::PAD_RIGHT };
+static const u16 dpad_sideways_bitmasks[] = { Wiimote::PAD_RIGHT, Wiimote::PAD_LEFT, Wiimote::PAD_UP,
+																						 Wiimote::PAD_DOWN };
 
 static const char* const named_buttons[] = {
-	 "A", "B", "1", "2", "-", "+", "Home",
+		"A", "B", "1", "2", "-", "+", "Home",
 };
 
 void Wiimote::Reset()
@@ -216,7 +216,7 @@ void Wiimote::Reset()
 	//   0x33 - 0x43: level 2
 	//   0x33 - 0x54: level 3
 	//   0x55 - 0xff: level 4
-	m_status.battery = (u8)(m_options->settings[5]->GetValue() * 100);
+	m_status.battery = (u8)(m_options->numeric_settings[1]->GetValue() * 100);
 
 	memset(m_shake_step, 0, sizeof(m_shake_step));
 
@@ -266,7 +266,8 @@ Wiimote::Wiimote(const unsigned int index)
 	m_extension->attachments.emplace_back(new WiimoteEmu::Drums(m_reg_ext));
 	m_extension->attachments.emplace_back(new WiimoteEmu::Turntable(m_reg_ext));
 
-	m_extension->settings.emplace_back(new ControlGroup::Setting(_trans("Motion Plus"), 0, 0, 1));
+	m_extension->boolean_settings.emplace_back(
+		std::make_unique<ControlGroup::BooleanSetting>(_trans("Motion Plus"), false));
 
 	// rumble
 	groups.emplace_back(m_rumble = new ControlGroup(_trans("Rumble")));
@@ -279,14 +280,18 @@ Wiimote::Wiimote(const unsigned int index)
 
 	// options
 	groups.emplace_back(m_options = new ControlGroup(_trans("Options")));
-	m_options->settings.emplace_back(
-		new ControlGroup::BackgroundInputSetting(_trans("Background Input")));
-	m_options->settings.emplace_back(new ControlGroup::Setting(_trans("Sideways Wiimote"), false));
-	m_options->settings.emplace_back(new ControlGroup::Setting(_trans("Upright Wiimote"), false));
-	m_options->settings.emplace_back(new ControlGroup::IterateUI(_trans("Iterative Input")));
-	m_options->settings.emplace_back(new ControlGroup::Setting(_trans("Speaker Pan"), 0, -127, 127));
-	m_options->settings.emplace_back(
-		new ControlGroup::Setting(_trans("Battery"), 95.0 / 100, 0, 255));
+	m_options->boolean_settings.emplace_back(
+		std::make_unique<ControlGroup::BackgroundInputSetting>(_trans("Background Input")));
+	m_options->boolean_settings.emplace_back(
+		std::make_unique<ControlGroup::BooleanSetting>(_trans("Sideways Wiimote"), false));
+	m_options->boolean_settings.emplace_back(
+		std::make_unique<ControlGroup::BooleanSetting>(_trans("Upright Wiimote"), false));
+	m_options->boolean_settings.emplace_back(std::make_unique<ControlGroup::BooleanSetting>(
+		_trans("Iterative Input"), false, ControlGroup::SettingType::VIRTUAL));
+	m_options->numeric_settings.emplace_back(
+		std::make_unique<ControlGroup::NumericSetting>(_trans("Speaker Pan"), 0, -127, 127));
+	m_options->numeric_settings.emplace_back(
+		std::make_unique<ControlGroup::NumericSetting>(_trans("Battery"), 95.0 / 100, 0, 255));
 
 	// TODO: This value should probably be re-read if SYSCONF gets changed
 	m_sensor_bar_on_top = SConfig::GetInstance().m_SYSCONF->GetData<u8>("BT.BAR") != 0;
@@ -303,7 +308,7 @@ std::string Wiimote::GetName() const
 bool Wiimote::Step()
 {
 	// TODO: change this a bit
-	m_motion_plus_present = m_extension->settings[0]->value != 0;
+	m_motion_plus_present = m_extension->boolean_settings[0]->GetValue();
 
 	m_rumble->controls[0]->control_ref->State(m_rumble_on);
 
@@ -356,7 +361,7 @@ void Wiimote::UpdateButtonsStatus()
 {
 	// update buttons in status struct
 	m_status.buttons.hex = 0;
-	const bool is_sideways = m_options->settings[1]->value != 0;
+	const bool is_sideways = m_options->boolean_settings[1]->GetValue();
 	m_buttons->GetState(&m_status.buttons.hex, button_bitmasks);
 	m_dpad->GetState(&m_status.buttons.hex, is_sideways ? dpad_sideways_bitmasks : dpad_bitmasks);
 }
@@ -375,8 +380,8 @@ void Wiimote::GetButtonData(u8* const data)
 
 void Wiimote::GetAccelData(u8* const data, const ReportFeatures& rptf)
 {
-	const bool is_sideways = m_options->settings[1]->value != 0;
-	const bool is_upright = m_options->settings[2]->value != 0;
+	const bool is_sideways = m_options->boolean_settings[1]->GetValue();
+	const bool is_upright = m_options->boolean_settings[2]->GetValue();
 
 	EmulateTilt(&m_accel, m_tilt, is_sideways, is_upright);
 	EmulateSwing(&m_accel, m_swing, is_sideways, is_upright);
@@ -626,7 +631,7 @@ void Wiimote::Update()
 
 	Movie::SetPolledDevice();
 
-	m_status.battery = (u8)(m_options->settings[5]->GetValue() * 100);
+	m_status.battery = (u8)(m_options->numeric_settings[1]->GetValue() * 100);
 
 	const ReportFeatures& rptf = reporting_mode_features[m_reporting_mode - WM_REPORT_CORE];
 	s8 rptf_size = rptf.size;
@@ -662,7 +667,7 @@ void Wiimote::Update()
 		{
 			using namespace WiimoteReal;
 
-			std::lock_guard<std::recursive_mutex> lk(g_refresh_lock);
+			std::lock_guard<std::mutex> lk(g_wiimotes_mutex);
 			if (g_wiimotes[m_index])
 			{
 				const Report& rpt = g_wiimotes[m_index]->ProcessReadQueue();
@@ -904,7 +909,7 @@ void Wiimote::LoadDefaults(const ControllerInterface& ciface)
 	m_buttons->SetControlExpression(6, "!`Alt_L` & Return");  // Home
 #endif
 
-  // Shake
+	// Shake
 	for (int i = 0; i < 3; ++i)
 		m_shake->SetControlExpression(i, "Click 2");
 
@@ -932,8 +937,8 @@ void Wiimote::LoadDefaults(const ControllerInterface& ciface)
 	m_dpad->SetControlExpression(3, "Right");  // Right
 #endif
 
-  // ugly stuff
-  // enable nunchuk
+	// ugly stuff
+	// enable nunchuk
 	m_extension->switch_extension = 1;
 
 	// set nunchuk defaults

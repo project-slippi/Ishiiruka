@@ -11,7 +11,7 @@
 // written back to RAM at the dest address provided in the crypto parameters.
 void ProcessGBACrypto(u32 address);
 
-struct GBAUCode: public UCodeInterface
+struct GBAUCode : public UCodeInterface
 {
 	GBAUCode(DSPHLE* dsphle, u32 crc);
 	virtual ~GBAUCode();

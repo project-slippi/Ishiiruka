@@ -221,7 +221,7 @@ public:
 		OPTION_CROR_MERGE = (1 << 6),
 	};
 
-	PPCAnalyzer(): m_options(0)
+	PPCAnalyzer() : m_options(0)
 	{}
 	// Option setting/getting
 	void SetOption(AnalystOption option)

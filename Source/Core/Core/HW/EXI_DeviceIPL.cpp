@@ -4,6 +4,7 @@
 
 #include <cstring>
 
+#include "Common/Assert.h"
 #include "Common/ChunkFile.h"
 #include "Common/CommonPaths.h"
 #include "Common/CommonTypes.h"
@@ -12,6 +13,7 @@
 #include "Common/MemoryUtil.h"
 #include "Common/Timer.h"
 #include "Core/ConfigManager.h"
+#include "Core/Core.h"
 #include "Core/CoreTiming.h"
 #include "Core/HW/EXI_DeviceIPL.h"
 #include "Core/HW/Sram.h"
@@ -83,7 +85,7 @@ void CEXIIPL::Descrambler(u8* data, u32 size)
 	}
 }
 
-CEXIIPL::CEXIIPL(): m_uPosition(0), m_uAddress(0), m_uRWOffset(0), m_FontsLoaded(false)
+CEXIIPL::CEXIIPL() : m_uPosition(0), m_uAddress(0), m_uRWOffset(0), m_FontsLoaded(false)
 {
 	// Determine region
 	m_bNTSC = SConfig::GetInstance().bNTSC;
@@ -421,6 +423,7 @@ u32 CEXIIPL::GetGCTime()
 	}
 	else
 	{
+		_assert_(!Core::g_want_determinism);
 		ltime = Common::Timer::GetLocalTimeSinceJan1970();
 	}
 

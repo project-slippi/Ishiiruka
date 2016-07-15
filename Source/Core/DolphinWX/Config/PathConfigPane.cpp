@@ -23,7 +23,7 @@
 #include "DolphinWX/Main.h"
 #include "DolphinWX/WxUtils.h"
 
-PathConfigPane::PathConfigPane(wxWindow* panel, wxWindowID id): wxPanel(panel, id)
+PathConfigPane::PathConfigPane(wxWindow* panel, wxWindowID id) : wxPanel(panel, id)
 {
 	InitializeGUI();
 	LoadGUIValues();

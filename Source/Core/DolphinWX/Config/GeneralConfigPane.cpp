@@ -21,17 +21,17 @@
 #include "DolphinWX/Frame.h"
 #include "DolphinWX/Main.h"
 
-GeneralConfigPane::GeneralConfigPane(wxWindow* parent, wxWindowID id): wxPanel(parent, id)
+GeneralConfigPane::GeneralConfigPane(wxWindow* parent, wxWindowID id) : wxPanel(parent, id)
 {
 	cpu_cores = {
-		 {PowerPC::CORE_INTERPRETER, _("Interpreter (slowest)")},
-		 {PowerPC::CORE_CACHEDINTERPRETER, _("Cached Interpreter (slower)")},
- #ifdef _M_X86_64
-		 {PowerPC::CORE_JIT64, _("JIT Recompiler (recommended)")},
-		 {PowerPC::CORE_JITIL64, _("JITIL Recompiler (slow, experimental)")},
- #elif defined(_M_ARM_64)
-		 {PowerPC::CORE_JITARM64, _("JIT Arm64 (experimental)")},
- #endif
+			{PowerPC::CORE_INTERPRETER, _("Interpreter (slowest)")},
+			{PowerPC::CORE_CACHEDINTERPRETER, _("Cached Interpreter (slower)")},
+#ifdef _M_X86_64
+			{PowerPC::CORE_JIT64, _("JIT Recompiler (recommended)")},
+			{PowerPC::CORE_JITIL64, _("JITIL Recompiler (slow, experimental)")},
+#elif defined(_M_ARM_64)
+			{PowerPC::CORE_JITARM64, _("JIT Arm64 (experimental)")},
+#endif
 	};
 
 	InitializeGUI();

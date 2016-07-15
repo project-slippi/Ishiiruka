@@ -778,7 +778,7 @@ IPCCommandResult CWII_IPC_HLE_Device_usb_oh0_46d_a03::IOCtlV(u32 CommandAddress)
 				// CONFIGURATION
 			case 2:
 			{
-				const usb_configurationdesc config = {9, 2, 121, 2, 1, 3, 0x80, 30};
+				const usb_configurationdesc config = { 9, 2, 121, 2, 1, 3, 0x80, 30 };
 				if (setup_packet.wLength == 9)
 				{
 					memcpy(Memory::GetPointer(payload_addr), &config, setup_packet.wLength);

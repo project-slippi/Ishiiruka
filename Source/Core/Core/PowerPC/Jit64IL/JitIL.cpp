@@ -96,15 +96,15 @@ using namespace PowerPC;
 
 // Optimization Ideas -
 /*
-  * Assume SP is in main RAM (in Wii mode too?) - partly done
-  * Assume all floating point loads and double precision loads+stores are to/from main ram
+	* Assume SP is in main RAM (in Wii mode too?) - partly done
+	* Assume all floating point loads and double precision loads+stores are to/from main ram
 	 (single precision can be used in write gather pipe, specialized fast check added)
-  * AMD only - use movaps instead of movapd when loading ps from memory?
-  * HLE functions like floorf, sin, memcpy, etc - they can be much faster
-  * ABI optimizations - drop F0-F13 on blr, for example. Watch out for context switching.
+	* AMD only - use movaps instead of movapd when loading ps from memory?
+	* HLE functions like floorf, sin, memcpy, etc - they can be much faster
+	* ABI optimizations - drop F0-F13 on blr, for example. Watch out for context switching.
 	 CR2-CR4 are non-volatile, rest of CR is volatile -> dropped on blr.
-  R5-R12 are volatile -> dropped on blr.
-  * classic inlining across calls.
+	R5-R12 are volatile -> dropped on blr.
+	* classic inlining across calls.
 
 Low hanging fruit:
 stfd -- guaranteed in memory
@@ -187,7 +187,7 @@ struct Block
 	u64 totalElapsed;
 	u64 numberOfCalls;
 
-	Block(): index(0), codeHash(0), totalElapsed(0), numberOfCalls(0)
+	Block() : index(0), codeHash(0), totalElapsed(0), numberOfCalls(0)
 	{}
 };
 
@@ -550,7 +550,7 @@ const u8* JitIL::DoJit(u32 em_address, PPCAnalyst::CodeBuffer* code_buf, JitBloc
 
 	if (ImHereDebug)
 		ABI_CallFunction((void*)&ImHere);  // Used to get a trace of the last few blocks before a crash,
-													  // sometimes VERY useful
+														// sometimes VERY useful
 
 	if (js.fpa.any)
 	{

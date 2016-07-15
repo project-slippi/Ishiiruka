@@ -8,8 +8,9 @@
 #include "Common/Logging/Log.h"
 #include "Core/HW/EXI_DeviceAMBaseboard.h"
 
-CEXIAMBaseboard::CEXIAMBaseboard(): m_position(0), m_have_irq(false)
-{}
+CEXIAMBaseboard::CEXIAMBaseboard() : m_position(0), m_have_irq(false)
+{
+}
 
 void CEXIAMBaseboard::SetCS(int cs)
 {
@@ -27,25 +28,25 @@ void CEXIAMBaseboard::TransferByte(u8& _byte)
 {
 	/*
 	ID:
-	  00 00 xx xx xx xx
-	  xx xx 06 04 10 00
+		00 00 xx xx xx xx
+		xx xx 06 04 10 00
 	CMD:
-	  01 00 00 b3 xx
-	  xx xx xx xx 04
+		01 00 00 b3 xx
+		xx xx xx xx 04
 	exi_lanctl_write:
-	  ff 02 01 63 xx
-	  xx xx xx xx 04
+		ff 02 01 63 xx
+		xx xx xx xx 04
 	exi_imr_read:
-	  86 00 00 f5 xx xx xx
-	  xx xx xx xx 04 rr rr
+		86 00 00 f5 xx xx xx
+		xx xx xx xx 04 rr rr
 	exi_imr_write:
-	  87 80 5c 17 xx
-	  xx xx xx xx 04
+		87 80 5c 17 xx
+		xx xx xx xx 04
 
 	exi_isr_read:
-	  82 .. .. .. xx xx xx
-	  xx xx xx xx 04 rr rr
-	  3 byte command, 1 byte checksum
+		82 .. .. .. xx xx xx
+		xx xx xx xx 04 rr rr
+		3 byte command, 1 byte checksum
 	*/
 	DEBUG_LOG(SP1, "AM-BB > %02x", _byte);
 	if (m_position < 4)

@@ -11,15 +11,12 @@ class wxButton;
 class wxChoice;
 class wxTextCtrl;
 
-class GFXDebuggerPanel: public wxPanel, public GFXDebuggerBase
+class GFXDebuggerPanel : public wxPanel, public GFXDebuggerBase
 {
 public:
-	GFXDebuggerPanel(wxWindow* parent,
-		wxWindowID id = wxID_ANY,
-		const wxPoint& pos = wxDefaultPosition,
-		const wxSize& size = wxDefaultSize,
-		long style = wxTAB_TRAVERSAL,
-		const wxString &title = _("GFX Debugger"));
+	GFXDebuggerPanel(wxWindow* parent, wxWindowID id = wxID_ANY,
+		const wxPoint& pos = wxDefaultPosition, const wxSize& size = wxDefaultSize,
+		long style = wxTAB_TRAVERSAL, const wxString& title = _("GFX Debugger"));
 
 	virtual ~GFXDebuggerPanel();
 
@@ -38,18 +35,18 @@ public:
 	void OnContinue() override;
 
 private:
-	wxButton*   m_pButtonPause;
-	wxButton*   m_pButtonPauseAtNext;
-	wxButton*   m_pButtonPauseAtNextFrame;
-	wxButton*   m_pButtonCont;
-	wxChoice*   m_pPauseAtList;
-	wxButton*   m_pButtonDump;
-	wxChoice*   m_pDumpList;
-	wxButton*   m_pButtonUpdateScreen;
-	wxButton*   m_pButtonClearScreen;
-	wxButton*   m_pButtonClearTextureCache;
-	wxButton*   m_pButtonClearVertexShaderCache;
-	wxButton*   m_pButtonClearPixelShaderCache;
+	wxButton* m_pButtonPause;
+	wxButton* m_pButtonPauseAtNext;
+	wxButton* m_pButtonPauseAtNextFrame;
+	wxButton* m_pButtonCont;
+	wxChoice* m_pPauseAtList;
+	wxButton* m_pButtonDump;
+	wxChoice* m_pDumpList;
+	wxButton* m_pButtonUpdateScreen;
+	wxButton* m_pButtonClearScreen;
+	wxButton* m_pButtonClearTextureCache;
+	wxButton* m_pButtonClearVertexShaderCache;
+	wxButton* m_pButtonClearPixelShaderCache;
 	wxTextCtrl* m_pCount;
 
 	void OnClose(wxCloseEvent& event);
@@ -57,7 +54,8 @@ private:
 
 	void GeneralSettings(wxCommandEvent& event);
 
-	// These set GFXDebuggerPauseFlag to true (either immediately or once the specified event has occurred)
+	// These set GFXDebuggerPauseFlag to true (either immediately or once the specified event has
+	// occurred)
 	void OnPauseButton(wxCommandEvent& event);
 	void OnPauseAtNextButton(wxCommandEvent& event);
 

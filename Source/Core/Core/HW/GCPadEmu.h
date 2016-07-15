@@ -8,7 +8,7 @@
 
 #include "InputCommon/ControllerEmu.h"
 
-class GCPad: public ControllerEmu
+class GCPad : public ControllerEmu
 {
 public:
 	GCPad(const unsigned int index);

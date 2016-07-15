@@ -18,12 +18,12 @@
 
 using namespace Gen;
 
-alignas(16) static const u64 psSignBits[2] = {0x8000000000000000ULL, 0x0000000000000000ULL};
-alignas(16) static const u64 psSignBits2[2] = {0x8000000000000000ULL, 0x8000000000000000ULL};
-alignas(16) static const u64 psAbsMask[2] = {0x7FFFFFFFFFFFFFFFULL, 0xFFFFFFFFFFFFFFFFULL};
-alignas(16) static const u64 psAbsMask2[2] = {0x7FFFFFFFFFFFFFFFULL, 0x7FFFFFFFFFFFFFFFULL};
-alignas(16) static const u64 psGeneratedQNaN[2] = {0x7FF8000000000000ULL, 0x7FF8000000000000ULL};
-alignas(16) static const double half_qnan_and_s32_max[2] = {0x7FFFFFFF, -0x80000};
+alignas(16) static const u64 psSignBits[2] = { 0x8000000000000000ULL, 0x0000000000000000ULL };
+alignas(16) static const u64 psSignBits2[2] = { 0x8000000000000000ULL, 0x8000000000000000ULL };
+alignas(16) static const u64 psAbsMask[2] = { 0x7FFFFFFFFFFFFFFFULL, 0xFFFFFFFFFFFFFFFFULL };
+alignas(16) static const u64 psAbsMask2[2] = { 0x7FFFFFFFFFFFFFFFULL, 0x7FFFFFFFFFFFFFFFULL };
+alignas(16) static const u64 psGeneratedQNaN[2] = { 0x7FF8000000000000ULL, 0x7FF8000000000000ULL };
+alignas(16) static const double half_qnan_and_s32_max[2] = { 0x7FFFFFFF, -0x80000 };
 
 X64Reg Jit64::fp_tri_op(int d, int a, int b, bool reversible, bool single,
 	void (XEmitter::*avxOp)(X64Reg, X64Reg, const OpArg&),
@@ -487,7 +487,7 @@ void Jit64::FloatCompare(UGeckoInstruction inst, bool upper)
 	int a = inst.FA;
 	int b = inst.FB;
 	int crf = inst.CRFD;
-	int output[4] = {CR_SO, CR_EQ, CR_GT, CR_LT};
+	int output[4] = { CR_SO, CR_EQ, CR_GT, CR_LT };
 
 	// Merge neighboring fcmp and cror (the primary use of cror).
 	UGeckoInstruction next = js.op[1].inst;

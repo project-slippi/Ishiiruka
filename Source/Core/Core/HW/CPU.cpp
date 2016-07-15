@@ -74,10 +74,7 @@ void Run()
 	std::unique_lock<std::mutex> state_lock(s_state_change_lock);
 	while (s_state != CPU_POWERDOWN)
 	{
-		s_state_cpu_cvar.wait(state_lock, []
-		{
-			return !s_state_paused_and_locked;
-		});
+		s_state_cpu_cvar.wait(state_lock, [] { return !s_state_paused_and_locked; });
 
 		switch (s_state)
 		{
@@ -113,10 +110,7 @@ void Run()
 		case CPU_STEPPING:
 			// Wait for step command.
 			s_state_cpu_cvar.wait(state_lock,
-				[]
-			{
-				return s_state_cpu_step_instruction || s_state != CPU_STEPPING;
-			});
+				[] { return s_state_cpu_step_instruction || s_state != CPU_STEPPING; });
 			if (s_state != CPU_STEPPING)
 			{
 				// Signal event if the mode changes.
@@ -167,10 +161,7 @@ void Stop()
 	s_state_cpu_cvar.notify_one();
 	// FIXME: MsgHandler can cause this to deadlock the GUI Thread. Remove the timeout.
 	bool success = s_state_cpu_idle_cvar.wait_for(state_lock, std::chrono::seconds(5),
-		[]
-	{
-		return !s_state_cpu_thread_active;
-	});
+		[] { return !s_state_cpu_thread_active; });
 	if (!success)
 		ERROR_LOG(POWERPC, "CPU Thread failed to acknowledge CPU_POWERDOWN. It may be deadlocked.");
 	RunAdjacentSystems(false);
@@ -193,7 +184,8 @@ const volatile State* GetStatePtr()
 }
 
 void Reset()
-{}
+{
+}
 
 void StepOpcode(Common::Event* event)
 {
@@ -236,10 +228,7 @@ void EnableStepping(bool stepping)
 		// Wait for the CPU Thread to leave the run loop
 		// FIXME: MsgHandler can cause this to deadlock the GUI Thread. Remove the timeout.
 		bool success = s_state_cpu_idle_cvar.wait_for(state_lock, std::chrono::seconds(5),
-			[]
-		{
-			return !s_state_cpu_thread_active;
-		});
+			[] { return !s_state_cpu_thread_active; });
 		if (!success)
 			ERROR_LOG(POWERPC, "Abandoned waiting for CPU Thread! The Core may be deadlocked.");
 
@@ -288,10 +277,7 @@ bool PauseAndLock(bool do_lock, bool unpause_on_unlock, bool control_adjacent)
 
 		// FIXME: MsgHandler can cause this to deadlock the GUI Thread. Remove the timeout.
 		bool success = s_state_cpu_idle_cvar.wait_for(state_lock, std::chrono::seconds(10),
-			[]
-		{
-			return !s_state_cpu_thread_active;
-		});
+			[] { return !s_state_cpu_thread_active; });
 		if (!success)
 			NOTICE_LOG(
 				POWERPC,

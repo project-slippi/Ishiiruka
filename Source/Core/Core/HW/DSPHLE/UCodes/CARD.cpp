@@ -9,7 +9,7 @@
 #include "Core/HW/DSPHLE/DSPHLE.h"
 #include "Core/HW/DSPHLE/UCodes/UCodes.h"
 
-CARDUCode::CARDUCode(DSPHLE* dsphle, u32 crc): UCodeInterface(dsphle, crc)
+CARDUCode::CARDUCode(DSPHLE* dsphle, u32 crc) : UCodeInterface(dsphle, crc)
 {
 	DEBUG_LOG(DSPHLE, "CARDUCode - initialized");
 	m_mail_handler.PushMail(DSP_INIT);

@@ -26,7 +26,7 @@
 #include "Core/PowerPC/JitILCommon/JitILBase.h"
 #include "Core/PowerPC/PPCAnalyst.h"
 
-class JitIL: public JitILBase
+class JitIL : public JitILBase
 {
 public:
 	Jit64AsmRoutineManager asm_routines;

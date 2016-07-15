@@ -31,7 +31,7 @@ struct libusb_transfer;
 
 #define HIDERR_NO_DEVICE_FOUND -4
 
-class CWII_IPC_HLE_Device_hid: public IWII_IPC_HLE_Device
+class CWII_IPC_HLE_Device_hid : public IWII_IPC_HLE_Device
 {
 public:
 	CWII_IPC_HLE_Device_hid(u32 _DeviceID, const std::string& _rDeviceName);
@@ -124,7 +124,8 @@ private:
 
 	void ConvertDeviceToWii(WiiHIDDeviceDescriptor* dest, const libusb_device_descriptor* src);
 	void ConvertConfigToWii(WiiHIDConfigDescriptor* dest, const libusb_config_descriptor* src);
-	void ConvertInterfaceToWii(WiiHIDInterfaceDescriptor* dest, const libusb_interface_descriptor* src);
+	void ConvertInterfaceToWii(WiiHIDInterfaceDescriptor* dest,
+		const libusb_interface_descriptor* src);
 	void ConvertEndpointToWii(WiiHIDEndpointDescriptor* dest, const libusb_endpoint_descriptor* src);
 
 	int Align(int num, int alignment);

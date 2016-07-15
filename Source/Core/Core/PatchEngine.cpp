@@ -60,7 +60,7 @@ void LoadPatchSection(const std::string& section, std::vector<Patch>& patches, I
 		}
 	}
 
-	const IniFile* inis[2] = {&globalIni, &localIni};
+	const IniFile* inis[2] = { &globalIni, &localIni };
 
 	for (const IniFile* ini : inis)
 	{

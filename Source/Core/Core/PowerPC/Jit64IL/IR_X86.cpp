@@ -186,13 +186,13 @@ static void fregSpill(RegInfo& RI, X64Reg reg)
 
 // 64-bit - calling conventions differ between Linux & Windows, so...
 #ifdef _WIN32
-static const X64Reg RegAllocOrder[] = {RSI, RDI, R12, R13, R14, R8, R9, R10, R11};
+static const X64Reg RegAllocOrder[] = { RSI, RDI, R12, R13, R14, R8, R9, R10, R11 };
 #else
-static const X64Reg RegAllocOrder[] = {R12, R13, R14, R8, R9, R10, R11};
+static const X64Reg RegAllocOrder[] = { R12, R13, R14, R8, R9, R10, R11 };
 #endif
 static const int RegAllocSize = sizeof(RegAllocOrder) / sizeof(X64Reg);
-static const X64Reg FRegAllocOrder[] = {XMM6,  XMM7,  XMM8,  XMM9, XMM10, XMM11, XMM12,
-													 XMM13, XMM14, XMM15, XMM2, XMM3,  XMM4,  XMM5};
+static const X64Reg FRegAllocOrder[] = { XMM6,  XMM7,  XMM8,  XMM9, XMM10, XMM11, XMM12,
+													 XMM13, XMM14, XMM15, XMM2, XMM3,  XMM4,  XMM5 };
 static const int FRegAllocSize = sizeof(FRegAllocOrder) / sizeof(X64Reg);
 
 static X64Reg regFindFreeReg(RegInfo& RI)
@@ -1754,7 +1754,7 @@ static void DoWriteCode(IRBuilder* ibuild, JitIL* Jit, u32 exitAddress)
 				break;
 
 			X64Reg reg = fregURegWithMov(RI, I);
-			alignas(16) static const u32 ssSignBits[4] = {0x80000000};
+			alignas(16) static const u32 ssSignBits[4] = { 0x80000000 };
 			Jit->PXOR(reg, M(ssSignBits));
 			RI.fregs[reg] = I;
 			fregNormalRegClear(RI, I);
@@ -1766,7 +1766,7 @@ static void DoWriteCode(IRBuilder* ibuild, JitIL* Jit, u32 exitAddress)
 				break;
 
 			X64Reg reg = fregURegWithMov(RI, I);
-			alignas(16) static const u64 sdSignBits[2] = {0x8000000000000000ULL};
+			alignas(16) static const u64 sdSignBits[2] = { 0x8000000000000000ULL };
 			Jit->PXOR(reg, M(sdSignBits));
 			RI.fregs[reg] = I;
 			fregNormalRegClear(RI, I);
@@ -1778,7 +1778,7 @@ static void DoWriteCode(IRBuilder* ibuild, JitIL* Jit, u32 exitAddress)
 				break;
 
 			X64Reg reg = fregURegWithMov(RI, I);
-			alignas(16) static const u32 psSignBits[4] = {0x80000000, 0x80000000};
+			alignas(16) static const u32 psSignBits[4] = { 0x80000000, 0x80000000 };
 			Jit->PXOR(reg, M(psSignBits));
 			RI.fregs[reg] = I;
 			fregNormalRegClear(RI, I);

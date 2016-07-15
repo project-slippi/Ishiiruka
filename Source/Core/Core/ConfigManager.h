@@ -12,7 +12,11 @@
 #include "Common/SysConf.h"
 #include "Core/HW/EXI_Device.h"
 #include "Core/HW/SI_Device.h"
-#include "DiscIO/Volume.h"
+
+namespace DiscIO
+{
+enum class Language;
+}
 
 // DSP Backend Types
 #define BACKEND_NULLSOUND   _trans("No audio output")
@@ -34,7 +38,7 @@ enum GPUDeterminismMode
 	GPU_DETERMINISM_FAKE_COMPLETION,
 };
 
-struct SConfig: NonCopyable
+struct SConfig : NonCopyable
 {
 	// Wii Devices
 	bool m_WiiSDCard;
@@ -80,7 +84,7 @@ struct SConfig: NonCopyable
 	bool bFPRF;
 	bool bAccurateNaNs;
 
-	int iTimingVariance; // in milli secounds
+	int iTimingVariance;  // in milli secounds
 	bool bCPUThread;
 	bool bDSPThread;
 	bool bDSPHLE;
@@ -180,12 +184,9 @@ struct SConfig: NonCopyable
 
 	void LoadDefaults();
 	bool AutoSetup(EBootBS2 _BootBS2);
-	const std::string &GetUniqueID() const
-	{
-		return m_strUniqueID;
-	}
+	const std::string& GetUniqueID() const { return m_strUniqueID; }
 	void CheckMemcardPath(std::string& memcardPath, const std::string& gameRegion, bool isSlotA);
-	DiscIO::IVolume::ELanguage GetCurrentLanguage(bool wii) const;
+	DiscIO::Language GetCurrentLanguage(bool wii) const;
 
 	IniFile LoadDefaultGameIni() const;
 	IniFile LoadLocalGameIni() const;
@@ -290,11 +291,7 @@ struct SConfig: NonCopyable
 	void LoadSettings();
 
 	// Return the permanent and somewhat globally used instance of this struct
-	static SConfig& GetInstance()
-	{
-		return(*m_Instance);
-	}
-
+	static SConfig& GetInstance() { return (*m_Instance); }
 	static void Init();
 	static void Shutdown();
 

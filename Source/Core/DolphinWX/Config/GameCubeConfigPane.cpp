@@ -36,7 +36,7 @@
 #define EXIDEV_AM_BB_STR _trans("AM Baseboard")
 #define EXIDEV_GECKO_STR _trans("USB Gecko")
 
-GameCubeConfigPane::GameCubeConfigPane(wxWindow* parent, wxWindowID id): wxPanel(parent, id)
+GameCubeConfigPane::GameCubeConfigPane(wxWindow* parent, wxWindowID id) : wxPanel(parent, id)
 {
 	InitializeGUI();
 	LoadGUIValues();
@@ -81,8 +81,8 @@ void GameCubeConfigPane::InitializeGUI()
 	// Device settings
 	// EXI Devices
 	wxStaticText* GCEXIDeviceText[3] = {
-		 new wxStaticText(this, wxID_ANY, _("Slot A")), new wxStaticText(this, wxID_ANY, _("Slot B")),
-		 new wxStaticText(this, wxID_ANY, "SP1"),
+			new wxStaticText(this, wxID_ANY, _("Slot A")), new wxStaticText(this, wxID_ANY, _("Slot B")),
+			new wxStaticText(this, wxID_ANY, "SP1"),
 	};
 
 	m_exi_devices[0] = new wxChoice(this, wxID_ANY);

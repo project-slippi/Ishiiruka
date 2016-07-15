@@ -15,16 +15,13 @@ namespace DiscIO
 {
 class IVolume;
 
-class CFileSystemGCWii: public IFileSystem
+class CFileSystemGCWii : public IFileSystem
 {
 public:
 	CFileSystemGCWii(const IVolume* _rVolume);
 	virtual ~CFileSystemGCWii();
 
-	bool IsValid() const override
-	{
-		return m_Valid;
-	}
+	bool IsValid() const override { return m_Valid; }
 	u64 GetFileSize(const std::string& _rFullPath) override;
 	const std::vector<SFileInfo>& GetFileList() override;
 	const std::string GetFileName(u64 _Address) override;

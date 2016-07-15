@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include <SFML/Network/Packet.hpp>
 #include <array>
 #include <atomic>
 #include <map>
@@ -12,20 +13,16 @@
 #include <string>
 #include <thread>
 #include <vector>
-#include <SFML/Network/Packet.hpp>
 #include "Common/CommonTypes.h"
 #include "Common/FifoQueue.h"
 #include "Common/TraversalClient.h"
 #include "Core/NetPlayProto.h"
 #include "InputCommon/GCPadStatus.h"
 
-
 class NetPlayUI
 {
 public:
-	virtual ~NetPlayUI()
-	{}
-
+	virtual ~NetPlayUI() {}
 	virtual void BootGame(const std::string& filename) = 0;
 	virtual void StopGame() = 0;
 
@@ -36,36 +33,43 @@ public:
 	virtual void OnMsgStartGame() = 0;
 	virtual void OnMsgStopGame() = 0;
 	virtual bool IsRecording() = 0;
+	virtual std::string FindGame(const std::string& game) = 0;
+};
+
+enum class PlayerGameStatus
+{
+	Unknown,
+	Ok,
+	NotFound
 };
 
 class Player
 {
 public:
-	PlayerId    pid;
+	PlayerId pid;
 	std::string name;
 	std::string revision;
-	u32         ping;
+	u32 ping;
+	PlayerGameStatus game_status;
 };
 
-class NetPlayClient: public TraversalClientClient
+class NetPlayClient : public TraversalClientClient
 {
 public:
 	void ThreadFunc();
 	void SendAsync(std::unique_ptr<sf::Packet> packet);
 
-	NetPlayClient(const std::string& address, const u16 port, NetPlayUI* dialog, const std::string& name, bool traversal, const std::string& centralServer, u16 centralPort);
+	NetPlayClient(const std::string& address, const u16 port, NetPlayUI* dialog,
+		const std::string& name, bool traversal, const std::string& centralServer,
+		u16 centralPort);
 	~NetPlayClient();
 
 	void GetPlayerList(std::string& list, std::vector<int>& pid_list);
 	std::vector<const Player*> GetPlayers();
 
 	// Called from the GUI thread.
-	bool IsConnected() const
-	{
-		return m_is_connected;
-	}
-
-	bool StartGame(const std::string &path);
+	bool IsConnected() const { return m_is_connected; }
+	bool StartGame(const std::string& path);
 	bool StopGame();
 	void Stop();
 	bool ChangeGame(const std::string& game);
@@ -88,6 +92,7 @@ public:
 	u8 LocalWiimoteToInGameWiimote(u8 local_pad);
 
 	static void SendTimeBase();
+	bool DoAllPlayersHaveGame();
 
 protected:
 	void ClearBuffers();
@@ -103,17 +108,18 @@ protected:
 	Common::FifoQueue<std::unique_ptr<sf::Packet>, false> m_async_queue;
 
 	std::array<Common::FifoQueue<GCPadStatus>, 4> m_pad_buffer;
-	std::array<Common::FifoQueue<NetWiimote >, 4> m_wiimote_buffer;
+	std::array<Common::FifoQueue<NetWiimote>, 4> m_wiimote_buffer;
+	std::array<u32, 4> m_wiimote_current_data_size;
 
-	NetPlayUI*   m_dialog = nullptr;
+	NetPlayUI* m_dialog = nullptr;
 
-	ENetHost*    m_client = nullptr;
-	ENetPeer*    m_server = nullptr;
-	std::thread  m_thread;
+	ENetHost* m_client = nullptr;
+	ENetPeer* m_server = nullptr;
+	std::thread m_thread;
 
-	std::string       m_selected_game;
-	std::atomic<bool> m_is_running{false};
-	std::atomic<bool> m_do_loop{true};
+	std::string m_selected_game;
+	std::atomic<bool> m_is_running{ false };
+	std::atomic<bool> m_do_loop{ true };
 
 	unsigned int m_target_buffer_size = 20;
 

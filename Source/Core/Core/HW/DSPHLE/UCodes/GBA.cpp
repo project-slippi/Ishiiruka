@@ -82,7 +82,7 @@ void ProcessGBACrypto(u32 address)
 		*(u32*)sec_params.unk1, *(u32*)sec_params.unk2, x22, x23);
 }
 
-GBAUCode::GBAUCode(DSPHLE* dsphle, u32 crc): UCodeInterface(dsphle, crc)
+GBAUCode::GBAUCode(DSPHLE* dsphle, u32 crc) : UCodeInterface(dsphle, crc)
 {
 	m_mail_handler.PushMail(DSP_INIT);
 }

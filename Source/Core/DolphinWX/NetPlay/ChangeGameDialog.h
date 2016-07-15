@@ -9,7 +9,7 @@
 class CGameListCtrl;
 class wxListBox;
 
-class ChangeGameDialog final: public wxDialog
+class ChangeGameDialog final : public wxDialog
 {
 public:
 	ChangeGameDialog(wxWindow* parent, const CGameListCtrl* const game_list);

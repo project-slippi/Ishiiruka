@@ -24,8 +24,7 @@ private:
 	void ReadBKHDR();
 	void WriteHDR();
 	void WriteBKHDR();
-	void Extract()
-	{}
+	void Extract() {}
 	void ImportWiiSaveFiles();
 	void ExportWiiSaveFiles();
 	void do_sig();

@@ -26,7 +26,7 @@ struct netcfg_proxy_t
 	u8 padding_1[2];
 	u8 proxy_name[255];
 	u8 padding_2;
-	u16 proxy_port;        // 0-34463
+	u16 proxy_port;  // 0-34463
 	u8 proxy_username[32];
 	u8 padding_3;
 	u8 proxy_password[32];
@@ -36,9 +36,9 @@ struct netcfg_connection_t
 {
 	enum
 	{
-		WIRED_IF = 1, // 0: wifi 1: wired
-		DNS_DHCP = 2, // 0: manual 1: DHCP
-		IP_DHCP = 4, // 0: manual 1: DHCP
+		WIRED_IF = 1,  // 0: wifi 1: wired
+		DNS_DHCP = 2,  // 0: manual 1: DHCP
+		IP_DHCP = 4,   // 0: manual 1: DHCP
 		USE_PROXY = 16,
 		CONNECTION_TEST_OK = 32,
 		CONNECTION_SELECTED = 128
@@ -91,14 +91,16 @@ struct netcfg_connection_t
 	// wireless specific settings
 	u8 ssid[32];
 	u8 padding_6;
-	u8 ssid_length;     // length of ssid in bytes.
+	u8 ssid_length;  // length of ssid in bytes.
 	u8 padding_7[3];
 	u8 encryption;
 	u8 padding_8[3];
-	u8 key_length;      // length of key in bytes.  0x00 for WEP64 and WEP128.
-	u8 unknown;         // 0x00 or 0x01 toggled with a WPA-PSK (TKIP) and with a WEP entered with hex instead of ascii.
+	u8 key_length;  // length of key in bytes.  0x00 for WEP64 and WEP128.
+	u8 unknown;  // 0x00 or 0x01 toggled with a WPA-PSK (TKIP) and with a WEP entered with hex instead
+							 // of ascii.
 	u8 padding_9;
-	u8 key[64];         // encryption key; for WEP, key is stored 4 times (20 bytes for WEP64 and 52 bytes for WEP128) then padded with 0x00
+	u8 key[64];  // encryption key; for WEP, key is stored 4 times (20 bytes for WEP64 and 52 bytes
+							 // for WEP128) then padded with 0x00
 	u8 padding_10[236];
 };
 
@@ -147,8 +149,8 @@ struct nwc24_config_t
 		MAX_PASSWORD_LENGTH = 0x20,
 	};
 
-	u32 magic;      /* 'WcCf' 0x57634366 */
-	u32 _unk_04;    /* must be 8 */
+	u32 magic;   /* 'WcCf' 0x57634366 */
+	u32 _unk_04; /* must be 8 */
 	u64 nwc24_id;
 	u32 id_generation;
 	u32 creation_stage; /* 0==not_generated;1==generated;2==registered; */
@@ -162,8 +164,6 @@ struct nwc24_config_t
 };
 
 #pragma pack(pop)
-
-
 
 class NWC24Config
 {
@@ -184,11 +184,11 @@ public:
 			File::Delete(path);
 
 		const char* urls[5] = {
-			"https://amw.wc24.wii.com/cgi-bin/account.cgi",
-			"http://rcw.wc24.wii.com/cgi-bin/check.cgi",
-			"http://mtw.wc24.wii.com/cgi-bin/receive.cgi",
-			"http://mtw.wc24.wii.com/cgi-bin/delete.cgi",
-			"http://mtw.wc24.wii.com/cgi-bin/send.cgi",
+				"https://amw.wc24.wii.com/cgi-bin/account.cgi",
+				"http://rcw.wc24.wii.com/cgi-bin/check.cgi",
+				"http://mtw.wc24.wii.com/cgi-bin/receive.cgi",
+				"http://mtw.wc24.wii.com/cgi-bin/delete.cgi",
+				"http://mtw.wc24.wii.com/cgi-bin/send.cgi",
 		};
 
 		memset(&config, 0, sizeof(config));
@@ -221,7 +221,6 @@ public:
 
 		File::IOFile(path, "wb").WriteBytes((void*)&config, sizeof(config));
 	}
-
 
 	void ReadConfig()
 	{
@@ -278,33 +277,12 @@ public:
 		return 0;
 	}
 
-	u32 Magic() const
-	{
-		return Common::swap32(config.magic);
-	}
-	void SetMagic(u32 magic)
-	{
-		config.magic = Common::swap32(magic);
-	}
-
-	u32 Unk() const
-	{
-		return Common::swap32(config._unk_04);
-	}
-	void SetUnk(u32 _unk_04)
-	{
-		config._unk_04 = Common::swap32(_unk_04);
-	}
-
-	u32 IdGen() const
-	{
-		return Common::swap32(config.id_generation);
-	}
-	void SetIdGen(u32 id_generation)
-	{
-		config.id_generation = Common::swap32(id_generation);
-	}
-
+	u32 Magic() const { return Common::swap32(config.magic); }
+	void SetMagic(u32 magic) { config.magic = Common::swap32(magic); }
+	u32 Unk() const { return Common::swap32(config._unk_04); }
+	void SetUnk(u32 _unk_04) { config._unk_04 = Common::swap32(_unk_04); }
+	u32 IdGen() const { return Common::swap32(config.id_generation); }
+	void SetIdGen(u32 id_generation) { config.id_generation = Common::swap32(id_generation); }
 	void IncrementIdGen()
 	{
 		u32 id_ctr = IdGen();
@@ -313,52 +291,28 @@ public:
 		SetIdGen(id_ctr);
 	}
 
-	u32 Checksum() const
-	{
-		return Common::swap32(config.checksum);
-	}
-	void SetChecksum(u32 checksum)
-	{
-		config.checksum = Common::swap32(checksum);
-	}
-
-	u32 CreationStage() const
-	{
-		return Common::swap32(config.creation_stage);
-	}
+	u32 Checksum() const { return Common::swap32(config.checksum); }
+	void SetChecksum(u32 checksum) { config.checksum = Common::swap32(checksum); }
+	u32 CreationStage() const { return Common::swap32(config.creation_stage); }
 	void SetCreationStage(u32 creation_stage)
 	{
 		config.creation_stage = Common::swap32(creation_stage);
 	}
 
-	u32 EnableBooting() const
-	{
-		return Common::swap32(config.enable_booting);
-	}
+	u32 EnableBooting() const { return Common::swap32(config.enable_booting); }
 	void SetEnableBooting(u32 enable_booting)
 	{
 		config.enable_booting = Common::swap32(enable_booting);
 	}
 
-	u64 Id() const
-	{
-		return Common::swap64(config.nwc24_id);
-	}
-	void SetId(u64 nwc24_id)
-	{
-		config.nwc24_id = Common::swap64(nwc24_id);
-	}
-
-	const char* Email() const
-	{
-		return config.email;
-	}
+	u64 Id() const { return Common::swap64(config.nwc24_id); }
+	void SetId(u64 nwc24_id) { config.nwc24_id = Common::swap64(nwc24_id); }
+	const char* Email() const { return config.email; }
 	void SetEmail(const char* email)
 	{
 		strncpy(config.email, email, nwc24_config_t::MAX_EMAIL_LENGTH);
 		config.email[nwc24_config_t::MAX_EMAIL_LENGTH - 1] = '\0';
 	}
-
 };
 
 class WiiNetConfig
@@ -380,9 +334,7 @@ public:
 
 		memset(&config, 0, sizeof(config));
 		config.connType = network_config_t::IF_WIRED;
-		config.connection[0].flags =
-			netcfg_connection_t::WIRED_IF |
-			netcfg_connection_t::DNS_DHCP |
+		config.connection[0].flags = netcfg_connection_t::WIRED_IF | netcfg_connection_t::DNS_DHCP |
 			netcfg_connection_t::IP_DHCP |
 			netcfg_connection_t::CONNECTION_TEST_OK |
 			netcfg_connection_t::CONNECTION_SELECTED;
@@ -394,7 +346,8 @@ public:
 	{
 		if (!File::Exists(path))
 		{
-			if (!File::CreateFullPath(std::string(File::GetUserPath(D_SESSION_WIIROOT_IDX) + "/" WII_SYSCONF_DIR "/net/02/")))
+			if (!File::CreateFullPath(std::string(File::GetUserPath(D_SESSION_WIIROOT_IDX) +
+				"/" WII_SYSCONF_DIR "/net/02/")))
 			{
 				ERROR_LOG(WII_IPC_NET, "Failed to create directory for network config file");
 			}
@@ -403,16 +356,8 @@ public:
 		File::IOFile(path, "wb").WriteBytes((void*)&config, sizeof(config));
 	}
 
-	void WriteToMem(const u32 address)
-	{
-		Memory::CopyToEmu(address, &config, sizeof(config));
-	}
-
-	void ReadFromMem(const u32 address)
-	{
-		Memory::CopyFromEmu(&config, address, sizeof(config));
-	}
-
+	void WriteToMem(const u32 address) { Memory::CopyToEmu(address, &config, sizeof(config)); }
+	void ReadFromMem(const u32 address) { Memory::CopyFromEmu(&config, address, sizeof(config)); }
 	void ReadConfig()
 	{
 		if (File::Exists(path))
@@ -427,12 +372,11 @@ public:
 	}
 };
 
-
 //////////////////////////////////////////////////////////////////////////
 // KD is the IOS module responsible for implementing WiiConnect24 functionality.
 // It can perform HTTPS downloads, send and receive mail via SMTP, and execute a
 // JavaScript-like language while the Wii is in standby mode.
-class CWII_IPC_HLE_Device_net_kd_request: public IWII_IPC_HLE_Device
+class CWII_IPC_HLE_Device_net_kd_request : public IWII_IPC_HLE_Device
 {
 public:
 	CWII_IPC_HLE_Device_net_kd_request(u32 _DeviceID, const std::string& _rDeviceName);
@@ -487,20 +431,16 @@ private:
 	NWC24Config config;
 };
 
-
 //////////////////////////////////////////////////////////////////////////
-class CWII_IPC_HLE_Device_net_kd_time: public IWII_IPC_HLE_Device
+class CWII_IPC_HLE_Device_net_kd_time : public IWII_IPC_HLE_Device
 {
 public:
 	CWII_IPC_HLE_Device_net_kd_time(u32 _DeviceID, const std::string& _rDeviceName)
-		: IWII_IPC_HLE_Device(_DeviceID, _rDeviceName)
-		, rtc()
-		, utcdiff()
-	{}
+		: IWII_IPC_HLE_Device(_DeviceID, _rDeviceName), rtc(), utcdiff()
+	{
+	}
 
-	virtual ~CWII_IPC_HLE_Device_net_kd_time()
-	{}
-
+	virtual ~CWII_IPC_HLE_Device_net_kd_time() {}
 	IPCCommandResult Open(u32 _CommandAddress, u32 _Mode) override
 	{
 		INFO_LOG(WII_IPC_NET, "NET_KD_TIME: Open");
@@ -525,7 +465,7 @@ public:
 		u32 result = 0;
 		u32 common_result = 0;
 		// TODO Writes stuff to /shared2/nwc24/misc.bin
-		//u32 update_misc = 0;
+		// u32 update_misc = 0;
 
 		switch (Parameter)
 		{
@@ -535,12 +475,12 @@ public:
 
 		case IOCTL_NW24_SET_UNIVERSAL_TIME:
 			SetAdjustedUTC(Memory::Read_U64(BufferIn));
-			//update_misc = Memory::Read_U32(BufferIn + 8);
+			// update_misc = Memory::Read_U32(BufferIn + 8);
 			break;
 
 		case IOCTL_NW24_SET_RTC_COUNTER:
 			rtc = Memory::Read_U32(BufferIn);
-			//update_misc = Memory::Read_U32(BufferIn + 4);
+			// update_misc = Memory::Read_U32(BufferIn + 4);
 			break;
 
 		case IOCTL_NW24_GET_TIME_DIFF:
@@ -585,17 +525,10 @@ private:
 
 	// Returns seconds since Wii epoch
 	// +/- any bias set from IOCTL_NW24_SET_UNIVERSAL_TIME
-	u64 GetAdjustedUTC() const
-	{
-		return CEXIIPL::GetGCTime() - wii_bias + utcdiff;
-	}
-
+	u64 GetAdjustedUTC() const { return CEXIIPL::GetGCTime() - wii_bias + utcdiff; }
 	// Store the difference between what the Wii thinks is UTC and
 	// what the host OS thinks
-	void SetAdjustedUTC(u64 wii_utc)
-	{
-		utcdiff = CEXIIPL::GetGCTime() - wii_bias - wii_utc;
-	}
+	void SetAdjustedUTC(u64 wii_utc) { utcdiff = CEXIIPL::GetGCTime() - wii_bias - wii_utc; }
 };
 
 enum NET_IOCTL
@@ -638,7 +571,7 @@ enum NET_IOCTL
 };
 
 //////////////////////////////////////////////////////////////////////////
-class CWII_IPC_HLE_Device_net_ip_top: public IWII_IPC_HLE_Device
+class CWII_IPC_HLE_Device_net_ip_top : public IWII_IPC_HLE_Device
 {
 public:
 	CWII_IPC_HLE_Device_net_ip_top(u32 _DeviceID, const std::string& _rDeviceName);
@@ -660,7 +593,7 @@ private:
 
 // **********************************************************************************
 // Interface for reading and changing network configuration (probably some other stuff as well)
-class CWII_IPC_HLE_Device_net_ncd_manage: public IWII_IPC_HLE_Device
+class CWII_IPC_HLE_Device_net_ncd_manage : public IWII_IPC_HLE_Device
 {
 public:
 	CWII_IPC_HLE_Device_net_ncd_manage(u32 _DeviceID, const std::string& _rDeviceName);
@@ -674,13 +607,13 @@ public:
 private:
 	enum
 	{
-		IOCTLV_NCD_LOCKWIRELESSDRIVER = 0x1,  // NCDLockWirelessDriver
+		IOCTLV_NCD_LOCKWIRELESSDRIVER = 0x1,    // NCDLockWirelessDriver
 		IOCTLV_NCD_UNLOCKWIRELESSDRIVER = 0x2,  // NCDUnlockWirelessDriver
-		IOCTLV_NCD_GETCONFIG = 0x3,  // NCDiGetConfig
-		IOCTLV_NCD_SETCONFIG = 0x4,  // NCDiSetConfig
+		IOCTLV_NCD_GETCONFIG = 0x3,             // NCDiGetConfig
+		IOCTLV_NCD_SETCONFIG = 0x4,             // NCDiSetConfig
 		IOCTLV_NCD_READCONFIG = 0x5,
 		IOCTLV_NCD_WRITECONFIG = 0x6,
-		IOCTLV_NCD_GETLINKSTATUS = 0x7,  // NCDGetLinkStatus
+		IOCTLV_NCD_GETLINKSTATUS = 0x7,          // NCDGetLinkStatus
 		IOCTLV_NCD_GETWIRELESSMACADDRESS = 0x8,  // NCDGetWirelessMacAddress
 	};
 
@@ -688,7 +621,7 @@ private:
 };
 
 //////////////////////////////////////////////////////////////////////////
-class CWII_IPC_HLE_Device_net_wd_command: public IWII_IPC_HLE_Device
+class CWII_IPC_HLE_Device_net_wd_command : public IWII_IPC_HLE_Device
 {
 public:
 	CWII_IPC_HLE_Device_net_wd_command(u32 DeviceID, const std::string& DeviceName);
@@ -702,23 +635,23 @@ public:
 private:
 	enum
 	{
-		IOCTLV_WD_GET_MODE = 0x1001, // WD_GetMode
-		IOCTLV_WD_SET_LINKSTATE = 0x1002, // WD_SetLinkState
-		IOCTLV_WD_GET_LINKSTATE = 0x1003, // WD_GetLinkState
-		IOCTLV_WD_SET_CONFIG = 0x1004, // WD_SetConfig
-		IOCTLV_WD_GET_CONFIG = 0x1005, // WD_GetConfig
-		IOCTLV_WD_CHANGE_BEACON = 0x1006, // WD_ChangeBeacon
-		IOCTLV_WD_DISASSOC = 0x1007, // WD_DisAssoc
-		IOCTLV_WD_MP_SEND_FRAME = 0x1008, // WD_MpSendFrame
-		IOCTLV_WD_SEND_FRAME = 0x1009, // WD_SendFrame
-		IOCTLV_WD_SCAN = 0x100a, // WD_Scan
-		IOCTLV_WD_CALL_WL = 0x100c, // WD_CallWL
-		IOCTLV_WD_MEASURE_CHANNEL = 0x100b, // WD_MeasureChannel
-		IOCTLV_WD_GET_LASTERROR = 0x100d, // WD_GetLastError
-		IOCTLV_WD_GET_INFO = 0x100e, // WD_GetInfo
-		IOCTLV_WD_CHANGE_GAMEINFO = 0x100f, // WD_ChangeGameInfo
-		IOCTLV_WD_CHANGE_VTSF = 0x1010, // WD_ChangeVTSF
-		IOCTLV_WD_RECV_FRAME = 0x8000, // WD_ReceiveFrame
+		IOCTLV_WD_GET_MODE = 0x1001,          // WD_GetMode
+		IOCTLV_WD_SET_LINKSTATE = 0x1002,     // WD_SetLinkState
+		IOCTLV_WD_GET_LINKSTATE = 0x1003,     // WD_GetLinkState
+		IOCTLV_WD_SET_CONFIG = 0x1004,        // WD_SetConfig
+		IOCTLV_WD_GET_CONFIG = 0x1005,        // WD_GetConfig
+		IOCTLV_WD_CHANGE_BEACON = 0x1006,     // WD_ChangeBeacon
+		IOCTLV_WD_DISASSOC = 0x1007,          // WD_DisAssoc
+		IOCTLV_WD_MP_SEND_FRAME = 0x1008,     // WD_MpSendFrame
+		IOCTLV_WD_SEND_FRAME = 0x1009,        // WD_SendFrame
+		IOCTLV_WD_SCAN = 0x100a,              // WD_Scan
+		IOCTLV_WD_CALL_WL = 0x100c,           // WD_CallWL
+		IOCTLV_WD_MEASURE_CHANNEL = 0x100b,   // WD_MeasureChannel
+		IOCTLV_WD_GET_LASTERROR = 0x100d,     // WD_GetLastError
+		IOCTLV_WD_GET_INFO = 0x100e,          // WD_GetInfo
+		IOCTLV_WD_CHANGE_GAMEINFO = 0x100f,   // WD_ChangeGameInfo
+		IOCTLV_WD_CHANGE_VTSF = 0x1010,       // WD_ChangeVTSF
+		IOCTLV_WD_RECV_FRAME = 0x8000,        // WD_ReceiveFrame
 		IOCTLV_WD_RECV_NOTIFICATION = 0x8001  // WD_ReceiveNotification
 	};
 

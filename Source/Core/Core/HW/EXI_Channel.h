@@ -9,7 +9,7 @@
 
 class IEXIDevice;
 class PointerWrap;
-enum TEXIDevices: int;
+enum TEXIDevices : int;
 namespace MMIO
 {
 class Mapping;
@@ -28,8 +28,7 @@ private:
 	};
 
 	// EXI Status Register - "Channel Parameter Register"
-	union UEXI_STATUS
-	{
+	union UEXI_STATUS {
 		u32 Hex;
 		// DO NOT obey the warning and give this struct a name. Things will fail.
 		struct
@@ -50,19 +49,12 @@ private:
 			u32 ROMDIS : 1;  // ROM Disable
 			u32 : 18;
 		};
-		UEXI_STATUS()
-		{
-			Hex = 0;
-		}
-		UEXI_STATUS(u32 _hex)
-		{
-			Hex = _hex;
-		}
+		UEXI_STATUS() { Hex = 0; }
+		UEXI_STATUS(u32 _hex) { Hex = _hex; }
 	};
 
 	// EXI Control Register
-	union UEXI_CONTROL
-	{
+	union UEXI_CONTROL {
 		u32 Hex;
 		struct
 		{
@@ -116,8 +108,5 @@ public:
 	void PauseAndLock(bool doLock, bool unpauseOnUnlock);
 
 	// This should only be used to transition interrupts from SP1 to Channel 2
-	void SetEXIINT(bool exiint)
-	{
-		m_Status.EXIINT = !!exiint;
-	}
+	void SetEXIINT(bool exiint) { m_Status.EXIINT = !!exiint; }
 };

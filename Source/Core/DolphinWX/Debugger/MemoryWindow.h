@@ -15,14 +15,11 @@ class wxListBox;
 class wxSearchCtrl;
 class wxTextCtrl;
 
-class CMemoryWindow: public wxPanel
+class CMemoryWindow : public wxPanel
 {
 public:
-	CMemoryWindow(wxWindow* parent,
-		wxWindowID id = wxID_ANY,
-		const wxPoint& pos = wxDefaultPosition,
-		const wxSize& size = wxDefaultSize,
-		long style = wxTAB_TRAVERSAL | wxBORDER_NONE,
+	CMemoryWindow(wxWindow* parent, wxWindowID id = wxID_ANY, const wxPoint& pos = wxDefaultPosition,
+		const wxSize& size = wxDefaultSize, long style = wxTAB_TRAVERSAL | wxBORDER_NONE,
 		const wxString& name = _("Memory"));
 
 	void Save(IniFile& _IniFile) const;
@@ -54,7 +51,7 @@ private:
 	wxCheckBox* chk8;
 	wxCheckBox* chk16;
 	wxCheckBox* chk32;
-	wxButton*   btnSearch;
+	wxButton* btnSearch;
 	wxCheckBox* chkAscii;
 	wxCheckBox* chkHex;
 

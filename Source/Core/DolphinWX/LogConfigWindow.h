@@ -11,7 +11,7 @@ class wxCheckBox;
 class wxCheckListBox;
 class wxRadioBox;
 
-class LogConfigWindow: public wxPanel
+class LogConfigWindow : public wxPanel
 {
 public:
 	LogConfigWindow(wxWindow* parent, wxWindowID id = wxID_ANY);

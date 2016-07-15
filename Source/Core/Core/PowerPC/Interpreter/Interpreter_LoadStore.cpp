@@ -529,8 +529,7 @@ void Interpreter::lswx(UGeckoInstruction _inst)
 				r = (r + 1) & 31;
 				rGPR[r] = 0;
 			}
-		}
-		while (n > 0);
+		} while (n > 0);
 	}
 }
 

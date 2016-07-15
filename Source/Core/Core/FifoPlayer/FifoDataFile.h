@@ -60,31 +60,13 @@ public:
 	bool GetIsWii() const;
 	bool HasBrokenEFBCopies() const;
 
-	u32* GetBPMem()
-	{
-		return m_BPMem;
-	}
-	u32* GetCPMem()
-	{
-		return m_CPMem;
-	}
-	u32* GetXFMem()
-	{
-		return m_XFMem;
-	}
-	u32* GetXFRegs()
-	{
-		return m_XFRegs;
-	}
+	u32* GetBPMem() { return m_BPMem; }
+	u32* GetCPMem() { return m_CPMem; }
+	u32* GetXFMem() { return m_XFMem; }
+	u32* GetXFRegs() { return m_XFRegs; }
 	void AddFrame(const FifoFrameInfo& frameInfo);
-	const FifoFrameInfo& GetFrame(u32 frame) const
-	{
-		return m_Frames[frame];
-	}
-	u32 GetFrameCount() const
-	{
-		return static_cast<u32>(m_Frames.size());
-	}
+	const FifoFrameInfo& GetFrame(u32 frame) const { return m_Frames[frame]; }
+	u32 GetFrameCount() const { return static_cast<u32>(m_Frames.size()); }
 	bool Save(const std::string& filename);
 
 	static std::unique_ptr<FifoDataFile> Load(const std::string& filename, bool flagsOnly);

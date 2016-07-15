@@ -12,9 +12,9 @@ using namespace Gen;
 
 // Ordered in order of prefered use.
 // Not all of these are actually available
-const std::array<X64Reg, 15> DSPJitRegCache::m_allocation_order = {{
+const std::array<X64Reg, 15> DSPJitRegCache::m_allocation_order = { {
 	R8, R9, R10, R11, R12, R13, R14, R15, RSI, RDI, RBX, RCX, RDX, RAX, RBP
-}};
+} };
 
 static void* GetRegisterPointer(size_t reg)
 {
@@ -233,8 +233,7 @@ void DSPJitRegCache::FlushRegs(DSPJitRegCache &cache, bool emit)
 				movcnt++;
 			}
 		}
-	}
-	while (movcnt != 0);
+	} while (movcnt != 0);
 
 	// free all host regs that are not used for the same guest reg
 	for (size_t i = 0; i < regs.size(); i++)

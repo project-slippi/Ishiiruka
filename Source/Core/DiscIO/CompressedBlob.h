@@ -43,27 +43,15 @@ struct CompressedBlobHeader  // 32 bytes
 	u32 num_blocks;
 };
 
-class CompressedBlobReader: public SectorReader
+class CompressedBlobReader : public SectorReader
 {
 public:
 	static std::unique_ptr<CompressedBlobReader> Create(const std::string& filename);
 	~CompressedBlobReader();
-	const CompressedBlobHeader& GetHeader() const
-	{
-		return m_header;
-	}
-	BlobType GetBlobType() const override
-	{
-		return BlobType::GCZ;
-	}
-	u64 GetDataSize() const override
-	{
-		return m_header.data_size;
-	}
-	u64 GetRawSize() const override
-	{
-		return m_file_size;
-	}
+	const CompressedBlobHeader& GetHeader() const { return m_header; }
+	BlobType GetBlobType() const override { return BlobType::GCZ; }
+	u64 GetDataSize() const override { return m_header.data_size; }
+	u64 GetRawSize() const override { return m_file_size; }
 	u64 GetBlockCompressedSize(u64 block_num) const;
 	bool GetBlock(u64 block_num, u8* out_ptr) override;
 

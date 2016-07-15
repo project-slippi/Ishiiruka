@@ -6,7 +6,7 @@
 
 #include <wx/listctrl.h>
 
-class CBreakPointView: public wxListCtrl
+class CBreakPointView : public wxListCtrl
 {
 public:
 	CBreakPointView(wxWindow* parent, const wxWindowID id);

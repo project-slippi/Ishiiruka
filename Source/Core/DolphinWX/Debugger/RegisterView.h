@@ -27,11 +27,9 @@
 
 #define NUM_SPECIALS 14
 
-class CRegTable: public wxGridTableBase
+class CRegTable : public wxGridTableBase
 {
-
 public:
-
 	CRegTable()
 	{
 		memset(m_CachedRegs, 0, sizeof(m_CachedRegs));
@@ -42,21 +40,12 @@ public:
 		memset(m_CachedFRegHasChanged, 0, sizeof(m_CachedFRegHasChanged));
 	}
 
-	int GetNumberCols() override
-	{
-		return 9;
-	}
-	int GetNumberRows() override
-	{
-		return 32 + NUM_SPECIALS;
-	}
-	bool IsEmptyCell(int row, int col) override
-	{
-		return row > 31 && col > 2;
-	}
+	int GetNumberCols() override { return 9; }
+	int GetNumberRows() override { return 32 + NUM_SPECIALS; }
+	bool IsEmptyCell(int row, int col) override { return row > 31 && col > 2; }
 	wxString GetValue(int row, int col) override;
-	void SetValue(int row, int col, const wxString &) override;
-	wxGridCellAttr *GetAttr(int, int, wxGridCellAttr::wxAttrKind) override;
+	void SetValue(int row, int col, const wxString&) override;
+	wxGridCellAttr* GetAttr(int, int, wxGridCellAttr::wxAttrKind) override;
 	void UpdateCachedRegs();
 
 private:
@@ -70,7 +59,7 @@ private:
 	DECLARE_NO_COPY_CLASS(CRegTable);
 };
 
-class CRegisterView: public wxGrid
+class CRegisterView : public wxGrid
 {
 public:
 	CRegisterView(wxWindow* parent, wxWindowID id = wxID_ANY);

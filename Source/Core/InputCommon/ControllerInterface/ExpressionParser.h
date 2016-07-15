@@ -19,8 +19,7 @@ public:
 	Core::DeviceQualifier device_qualifier;
 	std::string control_name;
 
-	ControlQualifier(): has_device(false)
-	{}
+	ControlQualifier() : has_device(false) {}
 	operator std::string()
 	{
 		if (has_device)
@@ -36,7 +35,8 @@ public:
 	ControlFinder(const Core::DeviceContainer& container_, const Core::DeviceQualifier& default_,
 		const bool is_input_)
 		: container(container_), default_device(default_), is_input(is_input_)
-	{}
+	{
+	}
 	Core::Device::Control* FindControl(ControlQualifier qualifier);
 
 private:
@@ -50,8 +50,7 @@ class ExpressionNode;
 class Expression
 {
 public:
-	Expression(): node(nullptr)
-	{}
+	Expression() : node(nullptr) {}
 	Expression(ExpressionNode* node);
 	~Expression();
 	ControlState GetValue();

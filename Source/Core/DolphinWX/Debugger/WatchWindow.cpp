@@ -4,19 +4,21 @@
 
 #include <cstddef>
 
+// clang-format off
 #include <wx/bitmap.h>
-#include <wx/panel.h>
 #include <wx/aui/auibar.h>
+#include <wx/panel.h>
+// clang-format on
 
 #include "Common/FileUtil.h"
 #include "Common/IniFile.h"
 #include "Core/ConfigManager.h"
 #include "Core/PowerPC/PowerPC.h"
-#include "DolphinWX/WxUtils.h"
 #include "DolphinWX/Debugger/WatchView.h"
 #include "DolphinWX/Debugger/WatchWindow.h"
+#include "DolphinWX/WxUtils.h"
 
-class CWatchToolbar: public wxAuiToolBar
+class CWatchToolbar : public wxAuiToolBar
 {
 public:
 	CWatchToolbar(CWatchWindow* parent, const wxWindowID id)
@@ -35,7 +37,6 @@ public:
 	}
 
 private:
-
 	enum
 	{
 		Toolbar_File,
@@ -51,19 +52,22 @@ private:
 	wxBitmap m_Bitmaps[Num_Bitmaps];
 };
 
-CWatchWindow::CWatchWindow(wxWindow* parent, wxWindowID id,
-	const wxPoint& position, const wxSize& size,
-	long style, const wxString& name)
-	: wxPanel(parent, id, position, size, style, name)
-	, m_GPRGridView(nullptr)
+CWatchWindow::CWatchWindow(wxWindow* parent, wxWindowID id, const wxPoint& position,
+	const wxSize& size, long style, const wxString& name)
+	: wxPanel(parent, id, position, size, style, name), m_GPRGridView(nullptr)
 {
 	m_mgr.SetManagedWindow(this);
 	m_mgr.SetFlags(wxAUI_MGR_DEFAULT | wxAUI_MGR_LIVE_RESIZE);
 
 	m_GPRGridView = new CWatchView(this);
 
-	m_mgr.AddPane(new CWatchToolbar(this, wxID_ANY), wxAuiPaneInfo().ToolbarPane().Top().
-		LeftDockable(true).RightDockable(true).BottomDockable(false).Floatable(false));
+	m_mgr.AddPane(new CWatchToolbar(this, wxID_ANY), wxAuiPaneInfo()
+		.ToolbarPane()
+		.Top()
+		.LeftDockable(true)
+		.RightDockable(true)
+		.BottomDockable(false)
+		.Floatable(false));
 	m_mgr.AddPane(m_GPRGridView, wxAuiPaneInfo().CenterPane());
 	m_mgr.Update();
 }
@@ -87,7 +91,8 @@ void CWatchWindow::Event_SaveAll(wxCommandEvent& WXUNUSED(event))
 void CWatchWindow::SaveAll()
 {
 	IniFile ini;
-	ini.Load(File::GetUserPath(D_GAMESETTINGS_IDX) + SConfig::GetInstance().GetUniqueID() + ".ini", false);
+	ini.Load(File::GetUserPath(D_GAMESETTINGS_IDX) + SConfig::GetInstance().GetUniqueID() + ".ini",
+		false);
 	ini.SetLines("Watches", PowerPC::watches.GetStrings());
 	ini.Save(File::GetUserPath(D_GAMESETTINGS_IDX) + SConfig::GetInstance().GetUniqueID() + ".ini");
 }
@@ -102,7 +107,9 @@ void CWatchWindow::LoadAll()
 	IniFile ini;
 	Watches::TWatchesStr watches;
 
-	if (!ini.Load(File::GetUserPath(D_GAMESETTINGS_IDX) + SConfig::GetInstance().GetUniqueID() + ".ini", false))
+	if (!ini.Load(File::GetUserPath(D_GAMESETTINGS_IDX) + SConfig::GetInstance().GetUniqueID() +
+		".ini",
+		false))
 	{
 		return;
 	}

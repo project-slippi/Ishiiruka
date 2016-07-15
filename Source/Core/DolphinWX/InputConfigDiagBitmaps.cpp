@@ -64,26 +64,38 @@ static void DrawDodecagon(wxDC* dc, ShapePosition p)
 	const int vertices = 12;
 
 	wxPoint point[vertices];
-	point[0].x = p.dz; point[0].y = p.max;
-	point[1].x = p.diag; point[1].y = p.diag;
-	point[2].x = p.max; point[2].y = p.dz;
+	point[0].x = p.dz;
+	point[0].y = p.max;
+	point[1].x = p.diag;
+	point[1].y = p.diag;
+	point[2].x = p.max;
+	point[2].y = p.dz;
 
-	point[3].x = p.max; point[3].y = -p.dz;
-	point[4].x = p.diag; point[4].y = -p.diag;
-	point[5].x = p.dz; point[5].y = -p.max;
+	point[3].x = p.max;
+	point[3].y = -p.dz;
+	point[4].x = p.diag;
+	point[4].y = -p.diag;
+	point[5].x = p.dz;
+	point[5].y = -p.max;
 
-	point[6].x = -p.dz; point[6].y = -p.max;
-	point[7].x = -p.diag; point[7].y = -p.diag;
-	point[8].x = -p.max; point[8].y = -p.dz;
+	point[6].x = -p.dz;
+	point[6].y = -p.max;
+	point[7].x = -p.diag;
+	point[7].y = -p.diag;
+	point[8].x = -p.max;
+	point[8].y = -p.dz;
 
-	point[9].x = -p.max; point[9].y = p.dz;
-	point[10].x = -p.diag; point[10].y = p.diag;
-	point[11].x = -p.dz; point[11].y = p.max;
+	point[9].x = -p.max;
+	point[9].y = p.dz;
+	point[10].x = -p.diag;
+	point[10].y = p.diag;
+	point[11].x = -p.dz;
+	point[11].y = p.max;
 
 	dc->DrawPolygon(vertices, point, p.offset, p.offset);
 }
 
-static void DrawCenteredRectangle(wxDC &dc, int x, int y, int w, int h)
+static void DrawCenteredRectangle(wxDC& dc, int x, int y, int w, int h)
 {
 	x -= w / 2;
 	y -= h / 2;
@@ -97,14 +109,15 @@ static void DrawCenteredRectangle(wxDC &dc, int x, int y, int w, int h)
 
 #define COORD_VIS_SIZE 4
 
-static void DrawCoordinate(wxDC &dc, ControlState x, ControlState y)
+static void DrawCoordinate(wxDC& dc, ControlState x, ControlState y)
 {
 	int xc = VIS_COORD(x);
 	int yc = VIS_COORD(y);
 	DrawCenteredRectangle(dc, xc, yc, COORD_VIS_SIZE, COORD_VIS_SIZE);
 }
 
-static void DrawButton(unsigned int* const bitmasks, unsigned int buttons, unsigned int n, wxDC& dc, ControlGroupBox* g, unsigned int row)
+static void DrawButton(unsigned int* const bitmasks, unsigned int buttons, unsigned int n, wxDC& dc,
+	ControlGroupBox* g, unsigned int row)
 {
 	if (buttons & bitmasks[(row * 8) + n])
 	{
@@ -120,10 +133,11 @@ static void DrawButton(unsigned int* const bitmasks, unsigned int buttons, unsig
 	// text
 	const std::string name = g->control_group->controls[(row * 8) + n]->name;
 	// bit of hax so ZL, ZR show up as L, R
-	dc.DrawText(StrToWxStr(std::string(1, (name[1] && name[1] < 'a') ? name[1] : name[0])), n * 12 + 2, 1 + ((row == 0) ? 0 : (row * 11)));
+	dc.DrawText(StrToWxStr(std::string(1, (name[1] && name[1] < 'a') ? name[1] : name[0])),
+		n * 12 + 2, 1 + ((row == 0) ? 0 : (row * 11)));
 }
 
-static void DrawControlGroupBox(wxDC &dc, ControlGroupBox *g)
+static void DrawControlGroupBox(wxDC& dc, ControlGroupBox* g)
 {
 	switch (g->control_group->type)
 	{
@@ -214,7 +228,7 @@ static void DrawControlGroupBox(wxDC &dc, ControlGroupBox *g)
 		{
 			// deadzone circle
 			dc.SetBrush(*wxLIGHT_GREY_BRUSH);
-			dc.DrawCircle(32, 32, g->control_group->settings[SETTING_DEADZONE]->value * 32);
+			dc.DrawCircle(32, 32, g->control_group->numeric_settings[SETTING_DEADZONE]->GetValue() * 32);
 		}
 
 		// raw dot
@@ -245,7 +259,7 @@ static void DrawControlGroupBox(wxDC &dc, ControlGroupBox *g)
 	{
 		ControlState raw_dot[3];
 		ControlState adj_dot[3];
-		const ControlState deadzone = g->control_group->settings[0]->value;
+		const ControlState deadzone = g->control_group->numeric_settings[0]->GetValue();
 
 		// adjusted
 		((ControllerEmu::Force*)g->control_group)->GetState(adj_dot);
@@ -286,7 +300,8 @@ static void DrawControlGroupBox(wxDC &dc, ControlGroupBox *g)
 		// empty deadzone square
 		dc.SetBrush(*wxWHITE_BRUSH);
 		dc.SetPen(*wxLIGHT_GREY_PEN);
-		DrawCenteredRectangle(dc, VIS_BITMAP_SIZE / 2, VIS_BITMAP_SIZE / 2, DEADZONE_RECT_SIZE, DEADZONE_RECT_SIZE);
+		DrawCenteredRectangle(dc, VIS_BITMAP_SIZE / 2, VIS_BITMAP_SIZE / 2, DEADZONE_RECT_SIZE,
+			DEADZONE_RECT_SIZE);
 
 		// deadzone square
 		dc.SetBrush(*wxLIGHT_GREY_BRUSH);
@@ -305,7 +320,6 @@ static void DrawControlGroupBox(wxDC &dc, ControlGroupBox *g)
 			dc.SetBrush(*wxRED_BRUSH);
 			DrawCoordinate(dc, adj_dot[1], adj_dot[0]);
 		}
-
 	}
 	break;
 	case GROUP_TYPE_BUTTONS:
@@ -336,7 +350,6 @@ static void DrawControlGroupBox(wxDC &dc, ControlGroupBox *g)
 		}
 
 		delete[] bitmasks;
-
 	}
 	break;
 	case GROUP_TYPE_TRIGGERS:
@@ -345,7 +358,7 @@ static void DrawControlGroupBox(wxDC &dc, ControlGroupBox *g)
 
 		// draw the shit
 		dc.SetPen(*wxGREY_PEN);
-		ControlState deadzone = g->control_group->settings[0]->value;
+		ControlState deadzone = g->control_group->numeric_settings[0]->GetValue();
 
 		ControlState* const trigs = new ControlState[trigger_count];
 		((ControllerEmu::Triggers*)g->control_group)->GetState(trigs);
@@ -377,7 +390,6 @@ static void DrawControlGroupBox(wxDC &dc, ControlGroupBox *g)
 		dc.SetPen(*wxLIGHT_GREY_PEN);
 		dc.SetBrush(*wxTRANSPARENT_BRUSH);
 		dc.DrawRectangle(0, 0, deadzone * 64, trigger_count * 14);
-
 	}
 	break;
 	case GROUP_TYPE_MIXED_TRIGGERS:
@@ -386,15 +398,15 @@ static void DrawControlGroupBox(wxDC &dc, ControlGroupBox *g)
 
 		// draw the shit
 		dc.SetPen(*wxGREY_PEN);
-		ControlState thresh = g->control_group->settings[0]->value;
+		ControlState thresh = g->control_group->numeric_settings[0]->GetValue();
 
 		for (unsigned int n = 0; n < trigger_count; ++n)
 		{
 			dc.SetBrush(*wxRED_BRUSH);
 			ControlState trig_d = g->control_group->controls[n]->control_ref->State();
 
-			ControlState trig_a = trig_d > thresh ? 1
-				: g->control_group->controls[n + trigger_count]->control_ref->State();
+			ControlState trig_a =
+				trig_d > thresh ? 1 : g->control_group->controls[n + trigger_count]->control_ref->State();
 
 			dc.DrawRectangle(0, n * 12, 64 + 20, 14);
 			if (trig_d <= thresh)
@@ -404,21 +416,22 @@ static void DrawControlGroupBox(wxDC &dc, ControlGroupBox *g)
 
 			// text
 			dc.DrawText(StrToWxStr(g->control_group->controls[n + trigger_count]->name), 3, n * 12 + 1);
-			dc.DrawText(StrToWxStr(std::string(1, g->control_group->controls[n]->name[0])), 64 + 3, n * 12 + 1);
+			dc.DrawText(StrToWxStr(std::string(1, g->control_group->controls[n]->name[0])), 64 + 3,
+				n * 12 + 1);
 		}
 
 		// threshold box
 		dc.SetPen(*wxLIGHT_GREY_PEN);
 		dc.SetBrush(*wxTRANSPARENT_BRUSH);
 		dc.DrawRectangle(thresh * 64, 0, 128, trigger_count * 14);
-
 	}
 	break;
 	case GROUP_TYPE_SLIDER:
 	{
-		const ControlState deadzone = g->control_group->settings[0]->value;
+		const ControlState deadzone = g->control_group->numeric_settings[0]->GetValue();
 
-		ControlState state = g->control_group->controls[1]->control_ref->State() - g->control_group->controls[0]->control_ref->State();
+		ControlState state = g->control_group->controls[1]->control_ref->State() -
+			g->control_group->controls[0]->control_ref->State();
 		dc.SetPen(*wxGREY_PEN);
 		dc.SetBrush(*wxGREY_BRUSH);
 		dc.DrawRectangle(31 + state * 30, 0, 2, 14);
@@ -449,7 +462,8 @@ void InputConfigDialog::UpdateBitmaps(wxTimerEvent& WXUNUSED(event))
 
 	g_controller_interface.UpdateInput();
 
-	GamepadPage* const current_page = (GamepadPage*)m_pad_notebook->GetPage(m_pad_notebook->GetSelection());
+	GamepadPage* const current_page =
+		(GamepadPage*)m_pad_notebook->GetPage(m_pad_notebook->GetSelection());
 
 	for (ControlGroupBox* g : current_page->control_groups)
 	{

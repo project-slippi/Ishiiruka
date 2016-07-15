@@ -47,7 +47,7 @@ void Interpreter::mtfsb0x(UGeckoInstruction _inst)
 	u32 b = 0x80000000 >> _inst.CRBD;
 
 	/*if (b & 0x9ff80700)
-	  PanicAlert("mtfsb0 clears bit %d, PC=%x", _inst.CRBD, PC);*/
+		PanicAlert("mtfsb0 clears bit %d, PC=%x", _inst.CRBD, PC);*/
 
 	FPSCR.Hex &= ~b;
 	FPSCRtoFPUSettings(FPSCR);
@@ -77,7 +77,7 @@ void Interpreter::mtfsfix(UGeckoInstruction _inst)
 
 	/*u32 cleared = ~(imm >> (4 * _inst.CRFD)) & FPSCR.Hex & mask;
 	if (cleared & 0x9ff80700)
-	  PanicAlert("mtfsfi clears %08x, PC=%x", cleared, PC);*/
+		PanicAlert("mtfsfi clears %08x, PC=%x", cleared, PC);*/
 
 	FPSCR.Hex = (FPSCR.Hex & ~mask) | (imm >> (4 * _inst.CRFD));
 
@@ -99,7 +99,7 @@ void Interpreter::mtfsfx(UGeckoInstruction _inst)
 
 	/*u32 cleared = ~((u32)(riPS0(_inst.FB))) & FPSCR.Hex & m;
 	if (cleared & 0x9ff80700)
-	  PanicAlert("mtfsf clears %08x, PC=%x", cleared, PC);*/
+		PanicAlert("mtfsf clears %08x, PC=%x", cleared, PC);*/
 
 	FPSCR.Hex = (FPSCR.Hex & ~m) | ((u32)(riPS0(_inst.FB)) & m);
 	FPSCRtoFPUSettings(FPSCR);
@@ -291,10 +291,10 @@ void Interpreter::mtspr(UGeckoInstruction _inst)
 	}
 	break;
 	case SPR_HID2:  // HID2
-	  // TODO: generate illegal instruction for paired inst if PSE or LSQE
-	  // not set.
-	  // TODO: disable write gather pipe if WPE not set
-	  // TODO: emulate locked cache and DMA bits.
+		// TODO: generate illegal instruction for paired inst if PSE or LSQE
+		// not set.
+		// TODO: disable write gather pipe if WPE not set
+		// TODO: emulate locked cache and DMA bits.
 		break;
 
 	case SPR_WPAR:

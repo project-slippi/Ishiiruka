@@ -18,7 +18,7 @@ class wxSlider;
 class wxStaticBitmap;
 class wxTextCtrl;
 
-class TASInputDlg: public wxDialog
+class TASInputDlg : public wxDialog
 {
 public:
 	TASInputDlg(wxWindow* parent,

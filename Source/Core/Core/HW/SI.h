@@ -9,7 +9,7 @@
 
 class PointerWrap;
 class ISIDevice;
-enum SIDevices: int;
+enum SIDevices : int;
 namespace MMIO
 {
 class Mapping;

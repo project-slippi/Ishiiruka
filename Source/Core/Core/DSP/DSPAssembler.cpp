@@ -45,7 +45,7 @@ static const char *err_string[] =
 	"Number out of range"
 };
 
-DSPAssembler::DSPAssembler(const AssemblerSettings &settings):
+DSPAssembler::DSPAssembler(const AssemblerSettings &settings) :
 	gdg_buffer(nullptr),
 	m_cur_addr(0),
 	m_cur_pass(0),
@@ -763,7 +763,7 @@ bool DSPAssembler::AssembleFile(const char *fname, int pass)
 	m_cur_pass = pass;
 
 #define LINEBUF_SIZE 1024
-	char line[LINEBUF_SIZE] = {0};
+	char line[LINEBUF_SIZE] = { 0 };
 	while (!failed && !fsrc.fail() && !fsrc.eof())
 	{
 		int opcode_size = 0;
@@ -775,8 +775,8 @@ bool DSPAssembler::AssembleFile(const char *fname, int pass)
 		//printf("A: %s\n", line);
 		code_line++;
 
-		param_t params[10] = {{0, P_NONE, nullptr}};
-		param_t params_ext[10] = {{0, P_NONE, nullptr}};
+		param_t params[10] = { {0, P_NONE, nullptr} };
+		param_t params_ext[10] = { {0, P_NONE, nullptr} };
 
 		bool upper = true;
 		for (int i = 0; i < LINEBUF_SIZE; i++)

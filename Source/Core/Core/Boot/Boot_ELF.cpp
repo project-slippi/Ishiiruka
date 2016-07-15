@@ -4,6 +4,7 @@
 
 #include <memory>
 
+#include "Common/CommonFuncs.h"
 #include "Common/FileUtil.h"
 #include "Core/Boot/Boot.h"
 #include "Core/Boot/ElfReader.h"
@@ -13,7 +14,7 @@
 bool CBoot::IsElfWii(const std::string& filename)
 {
 	/* We already check if filename existed before we called this function, so
-		there is no need for another check, just read the file right away */
+		 there is no need for another check, just read the file right away */
 
 	size_t filesize = File::GetSize(filename);
 	auto elf = std::make_unique<u8[]>(filesize);
@@ -49,7 +50,6 @@ bool CBoot::IsElfWii(const std::string& filename)
 
 	return false;
 }
-
 
 bool CBoot::Boot_ELF(const std::string& filename)
 {

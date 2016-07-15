@@ -131,11 +131,11 @@ const std::string hotkey_labels[] =
 	_trans("Switch Hires Textures"),
 	_trans("Switch Material Textures"),
 };
-static_assert(NUM_HOTKEYS == sizeof(hotkey_labels) / sizeof(hotkey_labels[0]), "Wrong count of hotkey_labels");
+static_assert(NUM_HOTKEYS == sizeof(hotkey_labels) / sizeof(hotkey_labels[0]),
+	"Wrong count of hotkey_labels");
 
 namespace HotkeyManagerEmu
 {
-
 static u32 s_hotkeyDown[(NUM_HOTKEYS + 31) / 32];
 static HotkeyStatus s_hotkey;
 static bool s_enabled;
@@ -211,7 +211,6 @@ void Shutdown()
 
 	g_controller_interface.Shutdown();
 }
-
 }
 
 HotkeyManager::HotkeyManager()
@@ -227,12 +226,15 @@ HotkeyManager::HotkeyManager()
 	}
 
 	groups.emplace_back(m_options = new ControlGroup(_trans("Options")));
-	m_options->settings.emplace_back(new ControlGroup::BackgroundInputSetting(_trans("Background Input")));
-	m_options->settings.emplace_back(new ControlGroup::IterateUI(_trans("Iterative Input")));
+	m_options->boolean_settings.emplace_back(
+		std::make_unique<ControlGroup::BackgroundInputSetting>(_trans("Background Input")));
+	m_options->boolean_settings.emplace_back(std::make_unique<ControlGroup::BooleanSetting>(
+		_trans("Iterative Input"), false, ControlGroup::SettingType::VIRTUAL));
 }
 
 HotkeyManager::~HotkeyManager()
-{}
+{
+}
 
 std::string HotkeyManager::GetName() const
 {
@@ -268,8 +270,7 @@ void HotkeyManager::LoadDefaults(const ControllerInterface& ciface)
 	const std::string CTRL = "(!`Alt_L` & !(`Shift_L` | `Shift_R`) & (`Control_L` | `Control_R` ))";
 #endif
 
-	auto set_key_expression = [this](int index, const std::string& expression)
-	{
+	auto set_key_expression = [this](int index, const std::string& expression) {
 		m_keys[index / 32]->controls[index % 32]->control_ref->expression = expression;
 	};
 
@@ -310,8 +311,10 @@ void HotkeyManager::LoadDefaults(const ControllerInterface& ciface)
 	// Savestates
 	for (int i = 0; i < 8; i++)
 	{
-		set_key_expression(HK_LOAD_STATE_SLOT_1 + i, StringFromFormat((NON + " & `F%d`").c_str(), i + 1));
-		set_key_expression(HK_SAVE_STATE_SLOT_1 + i, StringFromFormat((SHIFT + " & `F%d`").c_str(), i + 1));
+		set_key_expression(HK_LOAD_STATE_SLOT_1 + i,
+			StringFromFormat((NON + " & `F%d`").c_str(), i + 1));
+		set_key_expression(HK_SAVE_STATE_SLOT_1 + i,
+			StringFromFormat((SHIFT + " & `F%d`").c_str(), i + 1));
 	}
 	set_key_expression(HK_UNDO_LOAD_STATE, NON + " & `F12`");
 	set_key_expression(HK_UNDO_SAVE_STATE, SHIFT + " & `F12`");

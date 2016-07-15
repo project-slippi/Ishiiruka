@@ -10,13 +10,13 @@ class CBreakPointWindow;
 class wxCheckBox;
 class wxTextCtrl;
 
-class MemoryCheckDlg: public wxDialog
+class MemoryCheckDlg : public wxDialog
 {
 public:
-	MemoryCheckDlg(CBreakPointWindow *parent);
+	MemoryCheckDlg(CBreakPointWindow* parent);
 
 private:
-	CBreakPointWindow *m_parent;
+	CBreakPointWindow* m_parent;
 	wxCheckBox* m_pReadFlag;
 	wxCheckBox* m_pWriteFlag;
 	wxCheckBox* m_log_flag;

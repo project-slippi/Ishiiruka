@@ -17,7 +17,6 @@
 #include "Core/ActionReplay.h"
 #include "DiscIO/Filesystem.h"
 #include "DiscIO/Volume.h"
-#include "DiscIO/VolumeCreator.h"
 #include "DolphinWX/ARCodeAddEdit.h"
 #include "DolphinWX/ISOFile.h"
 #include "DolphinWX/PatchAddEdit.h"
@@ -33,19 +32,23 @@ class wxStaticBitmap;
 class wxTextCtrl;
 class wxTreeCtrl;
 
-namespace DiscIO {
-struct SFileInfo;
+namespace DiscIO
+{
+enum class Language;
 }
-namespace Gecko {
+namespace Gecko
+{
 class CodeConfigPanel;
 }
 
-class WiiPartition final: public wxTreeItemData
+class WiiPartition final : public wxTreeItemData
 {
 public:
-	WiiPartition(std::unique_ptr<DiscIO::IVolume> partition, std::unique_ptr<DiscIO::IFileSystem> file_system)
+	WiiPartition(std::unique_ptr<DiscIO::IVolume> partition,
+		std::unique_ptr<DiscIO::IFileSystem> file_system)
 		: Partition(std::move(partition)), FileSystem(std::move(file_system))
-	{}
+	{
+	}
 
 	std::unique_ptr<DiscIO::IVolume> Partition;
 	std::unique_ptr<DiscIO::IFileSystem> FileSystem;
@@ -59,14 +62,11 @@ struct PHackData
 	std::string PHZFar;
 };
 
-class CISOProperties: public wxDialog
+class CISOProperties : public wxDialog
 {
 public:
-	CISOProperties(const GameListItem& game_list_item,
-		wxWindow* parent,
-		wxWindowID id = wxID_ANY,
-		const wxString& title = _("Properties"),
-		const wxPoint& pos = wxDefaultPosition,
+	CISOProperties(const GameListItem& game_list_item, wxWindow* parent, wxWindowID id = wxID_ANY,
+		const wxString& title = _("Properties"), const wxPoint& pos = wxDefaultPosition,
 		const wxSize& size = wxDefaultSize,
 		long style = wxDEFAULT_DIALOG_STYLE | wxRESIZE_BORDER);
 	virtual ~CISOProperties();
@@ -115,9 +115,9 @@ private:
 	wxTextCtrl* m_Date;
 	wxTextCtrl* m_FST;
 	wxTextCtrl* m_MD5Sum;
-	wxButton*   m_MD5SumCompute;
+	wxButton* m_MD5SumCompute;
 	wxArrayString arrayStringFor_Lang;
-	wxChoice*   m_Lang;
+	wxChoice* m_Lang;
 	wxTextCtrl* m_Name;
 	wxTextCtrl* m_Maker;
 	wxTextCtrl* m_Comment;
@@ -220,12 +220,9 @@ private:
 
 	typedef std::vector<const DiscIO::SFileInfo*>::iterator fileIter;
 
-	size_t CreateDirectoryTree(wxTreeItemId& parent,
-		const std::vector<DiscIO::SFileInfo>& fileInfos);
-	size_t CreateDirectoryTree(wxTreeItemId& parent,
-		const std::vector<DiscIO::SFileInfo>& fileInfos,
-		const size_t _FirstIndex,
-		const size_t _LastIndex);
+	size_t CreateDirectoryTree(wxTreeItemId& parent, const std::vector<DiscIO::SFileInfo>& fileInfos);
+	size_t CreateDirectoryTree(wxTreeItemId& parent, const std::vector<DiscIO::SFileInfo>& fileInfos,
+		const size_t _FirstIndex, const size_t _LastIndex);
 	void ExportDir(const std::string& _rFullPath, const std::string& _rExportFilename,
 		const WiiPartition* partition = nullptr);
 
@@ -245,9 +242,10 @@ private:
 	void PatchList_Save();
 	void ActionReplayList_Load();
 	void ActionReplayList_Save();
-	void ChangeBannerDetails(DiscIO::IVolume::ELanguage language);
+	void ChangeBannerDetails(DiscIO::Language language);
 
 	long GetElementStyle(const char* section, const char* key);
 	void SetCheckboxValueFromGameini(const char* section, const char* key, wxCheckBox* checkbox);
-	void SaveGameIniValueFrom3StateCheckbox(const char* section, const char* key, wxCheckBox* checkbox);
+	void SaveGameIniValueFrom3StateCheckbox(const char* section, const char* key,
+		wxCheckBox* checkbox);
 };

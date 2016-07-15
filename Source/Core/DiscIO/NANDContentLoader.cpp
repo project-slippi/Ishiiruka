@@ -23,8 +23,8 @@
 #include "Common/NandPaths.h"
 #include "Common/StringUtil.h"
 
+#include "DiscIO/Enums.h"
 #include "DiscIO/NANDContentLoader.h"
-#include "DiscIO/Volume.h"
 #include "DiscIO/WiiWad.h"
 
 namespace DiscIO
@@ -51,7 +51,8 @@ void CSharedContent::UpdateLocation()
 }
 
 CSharedContent::~CSharedContent()
-{}
+{
+}
 
 std::string CSharedContent::GetFilenameFromSHA1(const u8* hash)
 {
@@ -154,7 +155,8 @@ CNANDContentLoader::CNANDContentLoader(const std::string& content_name)
 }
 
 CNANDContentLoader::~CNANDContentLoader()
-{}
+{
+}
 
 const SNANDContent* CNANDContentLoader::GetContentByIndex(int index) const
 {
@@ -293,24 +295,25 @@ std::vector<u8> CNANDContentLoader::AESDecode(const u8* key, u8* iv, const u8* s
 
 std::vector<u8> CNANDContentLoader::GetKeyFromTicket(const std::vector<u8>& ticket)
 {
-	const u8 common_key[16] = {0xeb, 0xe4, 0x2a, 0x22, 0x5e, 0x85, 0x93, 0xe4,
-										0x48, 0xd9, 0xc5, 0x45, 0x73, 0x81, 0xaa, 0xf7};
+	const u8 common_key[16] = { 0xeb, 0xe4, 0x2a, 0x22, 0x5e, 0x85, 0x93, 0xe4,
+														 0x48, 0xd9, 0xc5, 0x45, 0x73, 0x81, 0xaa, 0xf7 };
 	u8 iv[16] = {};
 
 	std::copy(&ticket[0x01DC], &ticket[0x01DC + 8], iv);
 	return AESDecode(common_key, iv, &ticket[0x01BF], 16);
 }
 
-DiscIO::IVolume::ECountry CNANDContentLoader::GetCountry() const
+DiscIO::Country CNANDContentLoader::GetCountry() const
 {
 	if (!IsValid())
-		return DiscIO::IVolume::COUNTRY_UNKNOWN;
+		return DiscIO::Country::COUNTRY_UNKNOWN;
 
 	return CountrySwitch(m_Country);
 }
 
 CNANDContentManager::~CNANDContentManager()
-{}
+{
+}
 
 const CNANDContentLoader& CNANDContentManager::GetNANDLoader(const std::string& content_path)
 {
@@ -397,7 +400,8 @@ void cUIDsys::UpdateLocation()
 }
 
 cUIDsys::~cUIDsys()
-{}
+{
+}
 
 u32 cUIDsys::GetUIDFromTitle(u64 title_id)
 {

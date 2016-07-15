@@ -12,19 +12,18 @@
 #include "Common/CommonTypes.h"
 #include "Common/StringUtil.h"
 #include "Core/PowerPC/PowerPC.h"
-#include "DolphinWX/WxUtils.h"
 #include "DolphinWX/Debugger/BreakpointDlg.h"
 #include "DolphinWX/Debugger/BreakpointWindow.h"
+#include "DolphinWX/WxUtils.h"
 
-BreakPointDlg::BreakPointDlg(CBreakPointWindow *_Parent)
-	: wxDialog(_Parent, wxID_ANY, _("Add Breakpoint"))
-	, Parent(_Parent)
+BreakPointDlg::BreakPointDlg(CBreakPointWindow* _Parent)
+	: wxDialog(_Parent, wxID_ANY, _("Add Breakpoint")), Parent(_Parent)
 {
 	Bind(wxEVT_BUTTON, &BreakPointDlg::OnOK, this, wxID_OK);
 
 	m_pEditAddress = new wxTextCtrl(this, wxID_ANY, "80000000");
 
-	wxBoxSizer *sMainSizer = new wxBoxSizer(wxVERTICAL);
+	wxBoxSizer* sMainSizer = new wxBoxSizer(wxVERTICAL);
 	sMainSizer->Add(m_pEditAddress, 0, wxEXPAND | wxALL, 5);
 	sMainSizer->Add(CreateButtonSizer(wxOK | wxCANCEL), 0, wxALL, 5);
 
@@ -44,7 +43,8 @@ void BreakPointDlg::OnOK(wxCommandEvent& event)
 	}
 	else
 	{
-		WxUtils::ShowErrorDialog(wxString::Format(_("The address %s is invalid."), WxStrToStr(AddressString).c_str()));
+		WxUtils::ShowErrorDialog(
+			wxString::Format(_("The address %s is invalid."), WxStrToStr(AddressString).c_str()));
 	}
 
 	event.Skip();

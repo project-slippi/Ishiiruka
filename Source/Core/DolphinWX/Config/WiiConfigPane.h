@@ -7,12 +7,16 @@
 #include <wx/arrstr.h>
 #include <wx/panel.h>
 #include "Common/CommonTypes.h"
-#include "DiscIO/Volume.h"
+
+namespace DiscIO
+{
+enum class Language;
+}
 
 class wxCheckBox;
 class wxChoice;
 
-class WiiConfigPane final: public wxPanel
+class WiiConfigPane final : public wxPanel
 {
 public:
 	WiiConfigPane(wxWindow* parent, wxWindowID id);
@@ -28,8 +32,9 @@ private:
 	void OnConnectKeyboardCheckBoxChanged(wxCommandEvent&);
 	void OnSystemLanguageChoiceChanged(wxCommandEvent&);
 	void OnAspectRatioChoiceChanged(wxCommandEvent&);
+	void OnWiiSpeakCheckBoxChanged(wxCommandEvent&);
 
-	static u8 GetSADRCountryCode(DiscIO::IVolume::ELanguage language);
+	static u8 GetSADRCountryCode(DiscIO::Language language);
 
 	wxArrayString m_system_language_strings;
 	wxArrayString m_aspect_ratio_strings;
@@ -40,4 +45,5 @@ private:
 	wxCheckBox* m_connect_keyboard_checkbox;
 	wxChoice* m_system_language_choice;
 	wxChoice* m_aspect_ratio_choice;
+	wxCheckBox* m_wiispeak_checkbox;
 };

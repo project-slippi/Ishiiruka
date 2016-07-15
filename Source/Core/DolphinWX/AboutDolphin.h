@@ -6,7 +6,7 @@
 
 #include <wx/dialog.h>
 
-class AboutDolphin: public wxDialog
+class AboutDolphin : public wxDialog
 {
 public:
 	AboutDolphin(wxWindow *parent,

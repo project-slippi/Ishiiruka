@@ -9,7 +9,7 @@
 class PointerWrap;
 struct KeyboardStatus;
 
-class CSIDevice_Keyboard: public ISIDevice
+class CSIDevice_Keyboard : public ISIDevice
 {
 protected:
 	// Commands
@@ -26,8 +26,7 @@ protected:
 		CMD_POLL = 0x54
 	};
 
-	union UCommand
-	{
+	union UCommand {
 		u32 Hex;
 		struct
 		{
@@ -36,14 +35,8 @@ protected:
 			u32 Command : 8;
 			u32 : 8;
 		};
-		UCommand()
-		{
-			Hex = 0;
-		}
-		UCommand(u32 _iValue)
-		{
-			Hex = _iValue;
-		}
+		UCommand() { Hex = 0; }
+		UCommand(u32 _iValue) { Hex = _iValue; }
 	};
 
 	// PADAnalogMode

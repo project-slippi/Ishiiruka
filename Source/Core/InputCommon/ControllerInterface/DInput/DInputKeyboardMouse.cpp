@@ -112,7 +112,7 @@ KeyboardMouse::KeyboardMouse(const LPDIRECTINPUTDEVICE8 kb_device,
 
 void GetMousePos(ControlState* const x, ControlState* const y)
 {
-	POINT point = {1, 1};
+	POINT point = { 1, 1 };
 	GetCursorPos(&point);
 	// Get the cursor position relative to the upper left corner of the current window (separate or
 	// render to main)
@@ -183,12 +183,6 @@ void KeyboardMouse::UpdateInput()
 std::string KeyboardMouse::GetName() const
 {
 	return "Keyboard Mouse";
-}
-
-int KeyboardMouse::GetId() const
-{
-	// should this be -1, idk
-	return 0;
 }
 
 std::string KeyboardMouse::GetSource() const

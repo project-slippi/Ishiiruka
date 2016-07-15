@@ -10,8 +10,6 @@
 #include "Core/Core.h"
 #include "Core/HW/Memmap.h"
 #include "Core/PowerPC/PowerPC.h"
-#include "DolphinWX/Frame.h"
-#include "DolphinWX/WxUtils.h"
 #include "DolphinWX/Debugger/BreakpointWindow.h"
 #include "DolphinWX/Debugger/CodeWindow.h"
 #include "DolphinWX/Debugger/DebuggerUIUtil.h"
@@ -19,6 +17,8 @@
 #include "DolphinWX/Debugger/RegisterView.h"
 #include "DolphinWX/Debugger/WatchView.h"
 #include "DolphinWX/Debugger/WatchWindow.h"
+#include "DolphinWX/Frame.h"
+#include "DolphinWX/WxUtils.h"
 
 enum
 {
@@ -26,7 +26,6 @@ enum
 	IDM_ADDMEMCHECK,
 	IDM_VIEWMEMORY,
 };
-
 
 static std::string GetWatchName(int count)
 {
@@ -78,12 +77,18 @@ static wxString GetValueByRowCol(int row, int col)
 		// Column Labels
 		switch (col)
 		{
-		case 0: return _("Label");
-		case 1: return _("Address");
-		case 2: return _("Hexadecimal");
-		case 3: return _("Decimal");
-		case 4: return _("String");
-		default: return wxEmptyString;
+		case 0:
+			return _("Label");
+		case 1:
+			return _("Address");
+		case 2:
+			return _("Hexadecimal");
+		case 3:
+			return _("Decimal");
+		case 4:
+			return _("String");
+		default:
+			return wxEmptyString;
 		}
 	}
 	else if (row <= (int)PowerPC::watches.GetWatches().size())
@@ -92,10 +97,14 @@ static wxString GetValueByRowCol(int row, int col)
 		{
 			switch (col)
 			{
-			case 0: return wxString::Format("%s", GetWatchName(row));
-			case 1: return wxString::Format("%08x", GetWatchAddr(row));
-			case 2: return wxString::Format("%08x", GetWatchValue(row));
-			case 3: return wxString::Format("%u", GetWatchValue(row));
+			case 0:
+				return wxString::Format("%s", GetWatchName(row));
+			case 1:
+				return wxString::Format("%08x", GetWatchAddr(row));
+			case 2:
+				return wxString::Format("%08x", GetWatchValue(row));
+			case 3:
+				return wxString::Format("%u", GetWatchValue(row));
 			case 4:
 			{
 				u32 addr = GetWatchAddr(row);
@@ -104,7 +113,8 @@ static wxString GetValueByRowCol(int row, int col)
 				else
 					return wxEmptyString;
 			}
-			default: return wxEmptyString;
+			default:
+				return wxEmptyString;
 			}
 		}
 	}
@@ -209,8 +219,7 @@ wxGridCellAttr* CWatchTable::GetAttr(int row, int col, wxGridCellAttr::wxAttrKin
 	return attr;
 }
 
-CWatchView::CWatchView(wxWindow* parent, wxWindowID id)
-	: wxGrid(parent, id)
+CWatchView::CWatchView(wxWindow* parent, wxWindowID id) : wxGrid(parent, id)
 {
 	m_watch_table = new CWatchTable();
 

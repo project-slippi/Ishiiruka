@@ -117,7 +117,7 @@ class JitBaseBlockCache
 	virtual void WriteDestroyBlock(const u8* location, u32 address) = 0;
 
 public:
-	JitBaseBlockCache(): num_blocks(0), m_initialized(false)
+	JitBaseBlockCache() : num_blocks(0), m_initialized(false)
 	{}
 	virtual ~JitBaseBlockCache()
 	{}
@@ -154,7 +154,7 @@ public:
 };
 
 // x86 BlockCache
-class JitBlockCache: public JitBaseBlockCache
+class JitBlockCache : public JitBaseBlockCache
 {
 private:
 	void WriteLinkBlock(u8* location, const JitBlock& block) override;

@@ -14,46 +14,46 @@
 #include "Core/DSP/DSPCaptureLogger.h"
 #include "Core/DSP/DSPEmitter.h"
 
-enum: u32
+enum : u32
 {
 	DSP_IRAM_BYTE_SIZE = 0x2000,
 	DSP_IRAM_SIZE = 0x1000,
 	DSP_IRAM_MASK = 0x0fff
 };
 
-enum: u32
+enum : u32
 {
 	DSP_IROM_BYTE_SIZE = 0x2000,
 	DSP_IROM_SIZE = 0x1000,
 	DSP_IROM_MASK = 0x0fff
 };
 
-enum: u32
+enum : u32
 {
 	DSP_DRAM_BYTE_SIZE = 0x2000,
 	DSP_DRAM_SIZE = 0x1000,
 	DSP_DRAM_MASK = 0x0fff
 };
 
-enum: u32
+enum : u32
 {
 	DSP_COEF_BYTE_SIZE = 0x1000,
 	DSP_COEF_SIZE = 0x800,
 	DSP_COEF_MASK = 0x7ff
 };
 
-enum: u16
+enum : u16
 {
 	DSP_RESET_VECTOR = 0x8000
 };
 
-enum: u8
+enum : u8
 {
 	DSP_STACK_DEPTH = 0x20,
 	DSP_STACK_MASK = 0x1f
 };
 
-enum: u32
+enum : u32
 {
 	DSP_CR_IMEM = 2,
 	DSP_CR_DMEM = 0,
@@ -62,7 +62,7 @@ enum: u32
 };
 
 // Register table taken from libasnd
-enum: int
+enum : int
 {
 	// Address registers
 	DSP_REG_AR0 = 0x00,
@@ -116,7 +116,7 @@ enum: int
 };
 
 // Hardware registers address
-enum: u32
+enum : u32
 {
 	DSP_COEF_A1_0 = 0xa0,
 
@@ -152,7 +152,7 @@ enum: u32
 };
 
 // Stacks
-enum: int
+enum : int
 {
 	DSP_STACK_C,
 	DSP_STACK_D
@@ -160,7 +160,7 @@ enum: int
 
 // cr (Not g_dsp.r[CR]) bits
 // See HW/DSP.cpp.
-enum: u32
+enum : u32
 {
 	CR_EXTERNAL_INT = 0x0002,
 	CR_HALT = 0x0004,
@@ -168,7 +168,7 @@ enum: u32
 };
 
 // SR bits
-enum: u16
+enum : u16
 {
 	SR_CARRY = 0x0001,
 	SR_OVERFLOW = 0x0002,
@@ -192,7 +192,7 @@ enum: u16
 };
 
 // Exception vectors
-enum: int
+enum : int
 {
 	EXP_STOVF = 1, // 0x0002 stack under/over flow
 	EXP_2 = 2, // 0x0004

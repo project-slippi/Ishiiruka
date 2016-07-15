@@ -14,7 +14,7 @@
 
 class PointerWrap;
 
-class MemoryCard: public MemoryCardBase
+class MemoryCard : public MemoryCardBase
 {
 public:
 	MemoryCard(const std::string& filename, int _card_index, u16 sizeMb = MemCard2043Mb);

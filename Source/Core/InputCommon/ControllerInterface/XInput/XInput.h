@@ -25,14 +25,13 @@ namespace XInput
 void Init();
 void DeInit();
 
-class Device: public Core::Device
+class Device : public Core::Device
 {
 private:
-	class Button: public Core::Device::Input
+	class Button : public Core::Device::Input
 	{
 	public:
-		Button(u8 index, const WORD& buttons): m_buttons(buttons), m_index(index)
-		{}
+		Button(u8 index, const WORD& buttons) : m_buttons(buttons), m_index(index) {}
 		std::string GetName() const override;
 		ControlState GetState() const override;
 
@@ -41,11 +40,10 @@ private:
 		u8 m_index;
 	};
 
-	class Axis: public Core::Device::Input
+	class Axis : public Core::Device::Input
 	{
 	public:
-		Axis(u8 index, const SHORT& axis, SHORT range): m_axis(axis), m_range(range), m_index(index)
-		{}
+		Axis(u8 index, const SHORT& axis, SHORT range) : m_axis(axis), m_range(range), m_index(index) {}
 		std::string GetName() const override;
 		ControlState GetState() const override;
 
@@ -55,12 +53,13 @@ private:
 		const u8 m_index;
 	};
 
-	class Trigger: public Core::Device::Input
+	class Trigger : public Core::Device::Input
 	{
 	public:
 		Trigger(u8 index, const BYTE& trigger, BYTE range)
 			: m_trigger(trigger), m_range(range), m_index(index)
-		{}
+		{
+		}
 		std::string GetName() const override;
 		ControlState GetState() const override;
 
@@ -70,12 +69,13 @@ private:
 		const u8 m_index;
 	};
 
-	class Motor: public Core::Device::Output
+	class Motor : public Core::Device::Output
 	{
 	public:
 		Motor(u8 index, Device* parent, WORD& motor, WORD range)
 			: m_motor(motor), m_range(range), m_index(index), m_parent(parent)
-		{}
+		{
+		}
 		std::string GetName() const override;
 		void SetState(ControlState state) override;
 
@@ -92,7 +92,6 @@ public:
 	Device(const XINPUT_CAPABILITIES& capabilities, u8 index);
 
 	std::string GetName() const override;
-	int GetId() const override;
 	std::string GetSource() const override;
 
 	void UpdateMotors();

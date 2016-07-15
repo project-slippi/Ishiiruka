@@ -9,7 +9,7 @@
 
 #include "Core/IPC_HLE/WII_IPC_HLE_Device.h"
 
-class CWII_IPC_HLE_Device_usb_kbd: public IWII_IPC_HLE_Device
+class CWII_IPC_HLE_Device_usb_kbd : public IWII_IPC_HLE_Device
 {
 public:
 	CWII_IPC_HLE_Device_usb_kbd(u32 _DeviceID, const std::string& _rDeviceName);
@@ -38,14 +38,14 @@ private:
 		u8 Unk2;
 		u8 PressedKeys[6];
 
-		SMessageData(u32 _MsgType, u8 _Modifiers, u8 *_PressedKeys)
+		SMessageData(u32 _MsgType, u8 _Modifiers, u8* _PressedKeys)
 		{
 			MsgType = Common::swap32(_MsgType);
-			Unk1 = 0; // swapped
+			Unk1 = 0;  // swapped
 			Modifiers = _Modifiers;
 			Unk2 = 0;
 
-			if (_PressedKeys) // Doesn't need to be in a specific order
+			if (_PressedKeys)  // Doesn't need to be in a specific order
 				memcpy(PressedKeys, _PressedKeys, sizeof(PressedKeys));
 			else
 				memset(PressedKeys, 0, sizeof(PressedKeys));

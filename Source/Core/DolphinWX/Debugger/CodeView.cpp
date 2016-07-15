@@ -25,10 +25,10 @@
 #include "Common/SymbolDB.h"
 #include "Core/Core.h"
 #include "Core/Host.h"
-#include "DolphinWX/Globals.h"
-#include "DolphinWX/WxUtils.h"
 #include "DolphinWX/Debugger/CodeView.h"
 #include "DolphinWX/Debugger/DebuggerUIUtil.h"
+#include "DolphinWX/Globals.h"
+#include "DolphinWX/WxUtils.h"
 
 wxDEFINE_EVENT(wxEVT_CODEVIEW_CHANGE, wxCommandEvent);
 
@@ -38,7 +38,8 @@ enum
 	IDM_COPYADDRESS,
 	IDM_COPYHEX,
 	IDM_COPYCODE,
-	IDM_INSERTBLR, IDM_INSERTNOP,
+	IDM_INSERTBLR,
+	IDM_INSERTNOP,
 	IDM_RUNTOHERE,
 	IDM_JITRESULTS,
 	IDM_FOLLOWBRANCH,
@@ -48,20 +49,11 @@ enum
 	IDM_ADDFUNCTION,
 };
 
-CCodeView::CCodeView(DebugInterface* debuginterface, SymbolDB *symboldb,
-	wxWindow* parent, wxWindowID Id)
-	: wxControl(parent, Id),
-	m_debugger(debuginterface),
-	m_symbol_db(symboldb),
-	m_plain(false),
-	m_curAddress(debuginterface->GetPC()),
-	m_align(debuginterface->GetInstructionSize(0)),
-	m_rowHeight(13),
-	m_selection(0),
-	m_oldSelection(0),
-	m_selecting(false),
-	m_lx(-1),
-	m_ly(-1)
+CCodeView::CCodeView(DebugInterface* debuginterface, SymbolDB* symboldb, wxWindow* parent,
+	wxWindowID Id)
+	: wxControl(parent, Id), m_debugger(debuginterface), m_symbol_db(symboldb), m_plain(false),
+	m_curAddress(debuginterface->GetPC()), m_align(debuginterface->GetInstructionSize(0)),
+	m_rowHeight(13), m_selection(0), m_oldSelection(0), m_selecting(false), m_lx(-1), m_ly(-1)
 {
 	Bind(wxEVT_ERASE_BACKGROUND, &CCodeView::OnErase, this);
 	Bind(wxEVT_PAINT, &CCodeView::OnPaint, this);
@@ -259,10 +251,9 @@ void CCodeView::OnPopupMenu(wxCommandEvent& event)
 	}
 	break;
 
-
 	case IDM_COPYFUNCTION:
 	{
-		Symbol *symbol = m_symbol_db->GetSymbolFromAddr(m_selection);
+		Symbol* symbol = m_symbol_db->GetSymbolFromAddr(m_selection);
 		if (symbol)
 		{
 			std::string text;
@@ -324,16 +315,15 @@ void CCodeView::OnPopupMenu(wxCommandEvent& event)
 
 	case IDM_RENAMESYMBOL:
 	{
-		Symbol *symbol = m_symbol_db->GetSymbolFromAddr(m_selection);
+		Symbol* symbol = m_symbol_db->GetSymbolFromAddr(m_selection);
 		if (symbol)
 		{
-			wxTextEntryDialog input_symbol(this, _("Rename symbol:"),
-				wxGetTextFromUserPromptStr,
+			wxTextEntryDialog input_symbol(this, _("Rename symbol:"), wxGetTextFromUserPromptStr,
 				StrToWxStr(symbol->name));
 			if (input_symbol.ShowModal() == wxID_OK)
 			{
 				symbol->name = WxStrToStr(input_symbol.GetValue());
-				Refresh(); // Redraw to show the renamed symbol
+				Refresh();  // Redraw to show the renamed symbol
 			}
 			Host_NotifyMapLoaded();
 		}
@@ -355,8 +345,9 @@ void CCodeView::OnMouseUpR(wxMouseEvent& event)
 	bool isSymbol = m_symbol_db->GetSymbolFromAddr(m_selection) != nullptr;
 	// popup menu
 	wxMenu menu;
-	//menu->Append(IDM_GOTOINMEMVIEW, "&Goto in mem view");
-	menu.Append(IDM_FOLLOWBRANCH, _("&Follow branch"))->Enable(AddrToBranch(m_selection) ? true : false);
+	// menu->Append(IDM_GOTOINMEMVIEW, "&Goto in mem view");
+	menu.Append(IDM_FOLLOWBRANCH, _("&Follow branch"))
+		->Enable(AddrToBranch(m_selection) ? true : false);
 	menu.AppendSeparator();
 #if wxUSE_CLIPBOARD
 	menu.Append(IDM_COPYADDRESS, _("Copy &address"));
@@ -378,7 +369,8 @@ void CCodeView::OnMouseUpR(wxMouseEvent& event)
 }
 
 void CCodeView::OnErase(wxEraseEvent& event)
-{}
+{
+}
 
 void CCodeView::OnPaint(wxPaintEvent& event)
 {
@@ -498,7 +490,9 @@ void CCodeView::OnPaint(wxPaintEvent& event)
 
 				branches[numBranches].src = rowY1 + (m_rowHeight / 2);
 				branches[numBranches].srcAddr = (address / m_align);
-				branches[numBranches++].dst = (int)(rowY1 + ((s64)(u32)offs - (s64)(u32)address) * m_rowHeight / m_align + m_rowHeight / 2);
+				branches[numBranches++].dst =
+					(int)(rowY1 + ((s64)(u32)offs - (s64)(u32)address) * m_rowHeight / m_align +
+						m_rowHeight / 2);
 				desc = StringFromFormat("-->%s", m_debugger->GetDescription(offs).c_str());
 
 				// the -> arrow illustrations are purple
@@ -529,8 +523,8 @@ void CCodeView::OnPaint(wxPaintEvent& event)
 			{
 				ctx->SetFont(DebuggerFont, *wxBLUE);
 
-				//char temp[256];
-				//UnDecorateSymbolName(desc,temp,255,UNDNAME_COMPLETE);
+				// char temp[256];
+				// UnDecorateSymbolName(desc,temp,255,UNDNAME_COMPLETE);
 				if (!desc.empty())
 				{
 					ctx->DrawText(StrToWxStr(desc), 17 + 35 * charWidth, rowY1);
@@ -544,7 +538,7 @@ void CCodeView::OnPaint(wxPaintEvent& event)
 				ctx->DrawRectangle(2, rowY1 + 1, 11, 11);
 			}
 		}
-	} // end of for
+	}  // end of for
 	// ------------
 
 	// -------------------------
@@ -567,26 +561,26 @@ void CCodeView::OnPaint(wxPaintEvent& event)
 			LineTo(ctx, x - 4, branches[i].dst);
 			LineTo(ctx, x + 1, branches[i].dst + 5);
 		}
-		//else
+		// else
 		//{
-			// This can be re-enabled when there is a scrollbar or
-			// something on the codeview (the lines are too long)
+		// This can be re-enabled when there is a scrollbar or
+		// something on the codeview (the lines are too long)
 
-			//LineTo(ctx, x+4, branches[i].src);
-			//MoveTo(x+2, branches[i].dst-4);
-			//LineTo(ctx, x+6, branches[i].dst);
-			//LineTo(ctx, x+1, branches[i].dst+5);
+		// LineTo(ctx, x+4, branches[i].src);
+		// MoveTo(x+2, branches[i].dst-4);
+		// LineTo(ctx, x+6, branches[i].dst);
+		// LineTo(ctx, x+1, branches[i].dst+5);
 		//}
 
-		//LineTo(ctx, x, branches[i].dst+4);
-		//LineTo(ctx, x-2, branches[i].dst);
+		// LineTo(ctx, x, branches[i].dst+4);
+		// LineTo(ctx, x-2, branches[i].dst);
 	}
 	// ------------
 }
 
 void CCodeView::LineTo(std::unique_ptr<wxGraphicsContext>& ctx, int x, int y)
 {
-	std::vector<wxPoint2DDouble> points{wxPoint2DDouble(m_lx, m_ly), wxPoint2DDouble(x, y)};
+	std::vector<wxPoint2DDouble> points{ wxPoint2DDouble(m_lx, m_ly), wxPoint2DDouble(x, y) };
 
 	ctx->DrawLines(points.size(), points.data());
 	m_lx = x;

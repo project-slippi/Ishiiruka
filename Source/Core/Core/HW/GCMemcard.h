@@ -66,22 +66,16 @@ class MemoryCardBase
 public:
 	MemoryCardBase(int _card_index = 0, int sizeMb = MemCard2043Mb)
 		: card_index(_card_index), nintendo_card_id(sizeMb)
-	{}
-	virtual ~MemoryCardBase()
-	{}
+	{
+	}
+	virtual ~MemoryCardBase() {}
 	virtual s32 Read(u32 address, s32 length, u8* destaddress) = 0;
 	virtual s32 Write(u32 destaddress, s32 length, u8* srcaddress) = 0;
 	virtual void ClearBlock(u32 address) = 0;
 	virtual void ClearAll() = 0;
 	virtual void DoState(PointerWrap& p) = 0;
-	u32 GetCardId() const
-	{
-		return nintendo_card_id;
-	}
-	bool IsAddressInBounds(u32 address) const
-	{
-		return address <= (memory_card_size - 1);
-	}
+	u32 GetCardId() const { return nintendo_card_id; }
+	bool IsAddressInBounds(u32 address) const { return address <= (memory_card_size - 1); }
 protected:
 	int card_index;
 	u16 nintendo_card_id;
@@ -90,14 +84,8 @@ protected:
 
 struct GCMBlock
 {
-	GCMBlock()
-	{
-		Erase();
-	}
-	void Erase()
-	{
-		memset(block, 0xFF, BLOCK_SIZE);
-	}
+	GCMBlock() { Erase(); }
+	void Erase() { memset(block, 0xFF, BLOCK_SIZE); }
 	u8 block[BLOCK_SIZE];
 };
 
@@ -164,10 +152,7 @@ struct Header  // Offset    Size    Description
 struct DEntry
 {
 	static const u8 DENTRY_SIZE = 0x40;
-	DEntry()
-	{
-		memset(this, 0xFF, DENTRY_SIZE);
-	}
+	DEntry() { memset(this, 0xFF, DENTRY_SIZE); }
 	std::string GCI_FileName() const
 	{
 		std::string filename = std::string((char*)Makercode, 2) + '-' +
@@ -208,7 +193,7 @@ struct DEntry
 	//
 	u8 Filename[DENTRY_STRLEN];  // 0x08      0x20     Filename
 	u8 ModTime[4];      // 0x28      0x04    Time of file's last modification in seconds since 12am,
-							  // January 1st, 2000
+											// January 1st, 2000
 	u8 ImageOffset[4];  // 0x2c      0x04    image data offset
 	u8 IconFmt[2];      // 0x30      0x02    icon gfx format (2bits per icon)
 	//      Bits    Description
@@ -256,10 +241,7 @@ struct Directory
 		Dir[idx] = d;
 		fixChecksums();
 	}
-	void fixChecksums()
-	{
-		calc_checksumsBE((u16*)this, 0xFFE, &Checksum, &Checksum_Inv);
-	}
+	void fixChecksums() { calc_checksumsBE((u16*)this, 0xFFE, &Checksum, &Checksum_Inv); }
 };
 
 struct BlockAlloc
@@ -273,10 +255,7 @@ struct BlockAlloc
 	u16 GetNextBlock(u16 Block) const;
 	u16 NextFreeBlock(u16 MaxBlock, u16 StartingBlock = MC_FST_BLOCKS) const;
 	bool ClearBlocks(u16 StartingBlock, u16 Length);
-	void fixChecksums()
-	{
-		calc_checksumsBE((u16*)&UpdateCounter, 0xFFE, &Checksum, &Checksum_Inv);
-	}
+	void fixChecksums() { calc_checksumsBE((u16*)&UpdateCounter, 0xFFE, &Checksum, &Checksum_Inv); }
 	BlockAlloc(u16 sizeMb = MemCard2043Mb)
 	{
 		memset(this, 0, BLOCK_SIZE);
@@ -327,7 +306,7 @@ public:
 	std::string m_filename;
 };
 
-class GCMemcard: NonCopyable
+class GCMemcard : NonCopyable
 {
 private:
 	bool m_valid;
@@ -347,10 +326,7 @@ private:
 
 public:
 	GCMemcard(const std::string& fileName, bool forceCreation = false, bool sjis = false);
-	bool IsValid() const
-	{
-		return m_valid;
-	}
+	bool IsValid() const { return m_valid; }
 	bool IsAsciiEncoding() const;
 	bool Save();
 	bool Format(bool ascii = true, u16 SizeMb = MemCard2043Mb);

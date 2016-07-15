@@ -27,7 +27,7 @@
 #include "Core/PowerPC/JitCommon/JitCache.h"
 #include "Core/PowerPC/PPCAnalyst.h"
 
-class Jit64: public Jitx86Base
+class Jit64 : public Jitx86Base
 {
 private:
 	void AllocStack();
@@ -46,7 +46,7 @@ private:
 	u8* m_stack;
 
 public:
-	Jit64(): code_buffer(32000)
+	Jit64() : code_buffer(32000)
 	{}
 	~Jit64()
 	{}

@@ -30,7 +30,7 @@ CEXIETHERNET::CEXIETHERNET()
 	// Parse MAC address from config, and generate a new one if it doesn't
 	// exist or can't be parsed.
 	std::string& mac_addr_setting = SConfig::GetInstance().m_bba_mac;
-	u8 mac_addr[MAC_ADDRESS_SIZE] = {0};
+	u8 mac_addr[MAC_ADDRESS_SIZE] = { 0 };
 
 	if (!StringToMacAddress(mac_addr_setting, mac_addr))
 	{
@@ -436,7 +436,7 @@ inline u8 CEXIETHERNET::HashIndex(u8* dest_eth_addr)
 
 inline bool CEXIETHERNET::RecvMACFilter()
 {
-	static u8 const broadcast[] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
+	static u8 const broadcast[] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
 
 	// Accept all destination addrs?
 	if (mBbaMem[BBA_NCRB] & NCRB_PR)
@@ -522,13 +522,13 @@ bool CEXIETHERNET::RecvHandlePacket()
 			/*
 			halt copy
 			if (cur_packet_size >= PAGE_SIZE)
-			  desc.status |= FO | BF
+				desc.status |= FO | BF
 			if (RBFIM)
-			  raise RBFI
+				raise RBFI
 			if (AUTORCVR)
-			  discard bad packet
+				discard bad packet
 			else
-			  inc MPC instead of receiving packets
+				inc MPC instead of receiving packets
 			*/
 			status |= DESC_FO | DESC_BF;
 			mBbaMem[BBA_IR] |= mBbaMem[BBA_IMR] & INT_RBF;

@@ -7,7 +7,7 @@
 #include "Core/HW/SI_Device.h"
 
 // triforce (GC-AM) baseboard
-class CSIDevice_AMBaseboard: public ISIDevice
+class CSIDevice_AMBaseboard : public ISIDevice
 {
 private:
 	enum EBufferCommands

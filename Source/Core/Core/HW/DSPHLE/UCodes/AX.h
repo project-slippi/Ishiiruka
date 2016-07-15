@@ -49,7 +49,7 @@ enum AXMixControl
 	MIX_AUXC_S_RAMP = 0x800000
 };
 
-class AXUCode: public UCodeInterface
+class AXUCode : public UCodeInterface
 {
 public:
 	AXUCode(DSPHLE* dsphle, u32 crc);

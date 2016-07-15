@@ -9,7 +9,8 @@
 
 CSIDevice_GCSteeringWheel::CSIDevice_GCSteeringWheel(SIDevices device, int _iDeviceNumber)
 	: CSIDevice_GCController(device, _iDeviceNumber)
-{}
+{
+}
 
 int CSIDevice_GCSteeringWheel::RunBuffer(u8* _pBuffer, int _iLength)
 {

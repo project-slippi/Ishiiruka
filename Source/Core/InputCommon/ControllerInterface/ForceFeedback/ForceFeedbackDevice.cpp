@@ -23,17 +23,17 @@ struct ForceType
 };
 
 static const ForceType force_type_names[] = {
-	 {GUID_ConstantForce, "Constant"},  // DICONSTANTFORCE
-	 {GUID_RampForce, "Ramp"},          // DIRAMPFORCE
-	 {GUID_Square, "Square"},           // DIPERIODIC ...
-	 {GUID_Sine, "Sine"},
-	 {GUID_Triangle, "Triangle"},
-	 {GUID_SawtoothUp, "Sawtooth Up"},
-	 {GUID_SawtoothDown, "Sawtooth Down"},
-	 //{GUID_Spring, "Spring"},          // DICUSTOMFORCE ... < I think
-	 //{GUID_Damper, "Damper"},
-	 //{GUID_Inertia, "Inertia"},
-	 //{GUID_Friction, "Friction"},
+		{GUID_ConstantForce, "Constant"},  // DICONSTANTFORCE
+		{GUID_RampForce, "Ramp"},          // DIRAMPFORCE
+		{GUID_Square, "Square"},           // DIPERIODIC ...
+		{GUID_Sine, "Sine"},
+		{GUID_Triangle, "Triangle"},
+		{GUID_SawtoothUp, "Sawtooth Up"},
+		{GUID_SawtoothDown, "Sawtooth Down"},
+		//{GUID_Spring, "Spring"},          // DICUSTOMFORCE ... < I think
+		//{GUID_Damper, "Damper"},
+		//{GUID_Inertia, "Inertia"},
+		//{GUID_Friction, "Friction"},
 };
 
 bool ForceFeedbackDevice::InitForceFeedback(const LPDIRECTINPUTDEVICE8 device, int cAxes)
@@ -44,8 +44,8 @@ bool ForceFeedbackDevice::InitForceFeedback(const LPDIRECTINPUTDEVICE8 device, i
 	// TODO: check for DIDC_FORCEFEEDBACK in devcaps?
 
 	// temporary
-	DWORD rgdwAxes[2] = {DIJOFS_X, DIJOFS_Y};
-	LONG rglDirection[2] = {-200, 0};
+	DWORD rgdwAxes[2] = { DIJOFS_X, DIJOFS_Y };
+	LONG rglDirection[2] = { -200, 0 };
 
 	DIEFFECT eff;
 	memset(&eff, 0, sizeof(eff));
@@ -61,10 +61,10 @@ bool ForceFeedbackDevice::InitForceFeedback(const LPDIRECTINPUTDEVICE8 device, i
 	eff.rglDirection = rglDirection;
 
 	// initialize parameters
-	DICONSTANTFORCE diCF = {-10000};
+	DICONSTANTFORCE diCF = { -10000 };
 	diCF.lMagnitude = DI_FFNOMINALMAX;
-	DIRAMPFORCE diRF = {0};
-	DIPERIODIC diPE = {0};
+	DIRAMPFORCE diRF = { 0 };
+	DIPERIODIC diPE = { 0 };
 
 	// doesn't seem needed
 	// DIENVELOPE env;

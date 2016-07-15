@@ -31,8 +31,7 @@ enum
 
 // UDSPControl
 #define DSP_CONTROL_MASK 0x0C07
-union UDSPControl
-{
+union UDSPControl {
 	u16 Hex;
 	struct
 	{
@@ -51,13 +50,12 @@ union UDSPControl
 		u16 DSP_mask : 1;
 		// Other ???
 		u16 DMAState : 1;     // DSPGetDMAStatus() uses this flag. __ARWaitForDMA() uses it too...maybe
-									 // it's just general DMA flag
+													// it's just general DMA flag
 		u16 DSPInitCode : 1;  // Indicator that the DSP was initialized?
 		u16 DSPInit : 1;      // DSPInit() writes to this flag
 		u16 pad : 4;
 	};
-	UDSPControl(u16 _Hex = 0): Hex(_Hex)
-	{}
+	UDSPControl(u16 _Hex = 0) : Hex(_Hex) {}
 };
 
 extern UDSPControl g_dspState;

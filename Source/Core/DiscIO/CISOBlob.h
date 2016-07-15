@@ -31,15 +31,12 @@ struct CISOHeader
 	u8 map[CISO_MAP_SIZE];
 };
 
-class CISOFileReader: public IBlobReader
+class CISOFileReader : public IBlobReader
 {
 public:
 	static std::unique_ptr<CISOFileReader> Create(const std::string& filename);
 
-	BlobType GetBlobType() const override
-	{
-		return BlobType::CISO;
-	}
+	BlobType GetBlobType() const override { return BlobType::CISO; }
 	// The CISO format does not save the original file size.
 	// This function returns an upper bound.
 	u64 GetDataSize() const override;

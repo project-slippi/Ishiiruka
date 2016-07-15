@@ -7,7 +7,10 @@
 #include <cstdlib>
 #include <string>
 
-#include "DiscIO/Volume.h"
+namespace DiscIO
+{
+enum class Country;
+}
 
 struct CountrySetting
 {
@@ -20,7 +23,6 @@ struct CountrySetting
 class CBoot
 {
 public:
-
 	static bool BootUp();
 	static bool IsElfWii(const std::string& filename);
 
@@ -36,8 +38,7 @@ public:
 	// If title_id is not nullptr, it is set to the title id
 	//
 	// Returns true if a map file exists, false if none could be found.
-	static bool FindMapFile(std::string* existing_map_file,
-		std::string* writable_map_file,
+	static bool FindMapFile(std::string* existing_map_file, std::string* writable_map_file,
 		std::string* title_id = nullptr);
 
 private:
@@ -56,5 +57,5 @@ private:
 	static bool Load_BS2(const std::string& _rBootROMFilename);
 	static void Load_FST(bool _bIsWii);
 
-	static bool SetupWiiMemory(DiscIO::IVolume::ECountry country);
+	static bool SetupWiiMemory(DiscIO::Country country);
 };

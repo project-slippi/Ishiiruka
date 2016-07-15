@@ -10,7 +10,7 @@
 #include "Core/PowerPC/JitILCommon/IR.h"
 #include "Core/PowerPC/PPCAnalyst.h"
 
-class JitILBase: public Jitx86Base
+class JitILBase : public Jitx86Base
 {
 protected:
 	// The default code buffer. We keep it around to not have to alloc/dealloc a
@@ -18,7 +18,7 @@ protected:
 	PPCAnalyst::CodeBuffer code_buffer;
 
 public:
-	JitILBase(): code_buffer(32000)
+	JitILBase() : code_buffer(32000)
 	{}
 	~JitILBase()
 	{}

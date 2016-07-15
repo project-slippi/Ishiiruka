@@ -8,11 +8,13 @@
 
 namespace DiscIO
 {
-IFileSystem::IFileSystem(const IVolume* _rVolume): m_rVolume(_rVolume)
-{}
+IFileSystem::IFileSystem(const IVolume* _rVolume) : m_rVolume(_rVolume)
+{
+}
 
 IFileSystem::~IFileSystem()
-{}
+{
+}
 
 std::unique_ptr<IFileSystem> CreateFileSystem(const IVolume* volume)
 {

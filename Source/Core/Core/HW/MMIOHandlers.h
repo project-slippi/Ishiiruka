@@ -119,7 +119,7 @@ public:
 // inlinable, we need to provide some of the implementation of these two
 // classes here and can't just use a forward declaration.
 template <typename T>
-class ReadHandler: public NonCopyable
+class ReadHandler : public NonCopyable
 {
 public:
 	ReadHandler();
@@ -150,15 +150,12 @@ public:
 private:
 	// Initialize this handler to an invalid handler. Done lazily to avoid
 	// useless initialization of thousands of unused handler objects.
-	void InitializeInvalid()
-	{
-		ResetMethod(InvalidRead<T>());
-	}
+	void InitializeInvalid() { ResetMethod(InvalidRead<T>()); }
 	std::unique_ptr<ReadHandlingMethod<T>> m_Method;
 	std::function<T(u32)> m_ReadFunc;
 };
 template <typename T>
-class WriteHandler: public NonCopyable
+class WriteHandler : public NonCopyable
 {
 public:
 	WriteHandler();
@@ -190,10 +187,7 @@ public:
 private:
 	// Initialize this handler to an invalid handler. Done lazily to avoid
 	// useless initialization of thousands of unused handler objects.
-	void InitializeInvalid()
-	{
-		ResetMethod(InvalidWrite<T>());
-	}
+	void InitializeInvalid() { ResetMethod(InvalidWrite<T>()); }
 	std::unique_ptr<WriteHandlingMethod<T>> m_Method;
 	std::function<void(u32, T)> m_WriteFunc;
 };

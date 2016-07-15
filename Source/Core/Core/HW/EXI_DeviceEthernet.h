@@ -194,7 +194,7 @@ enum RecvStatus
 
 #define BBA_RECV_SIZE 0x800
 
-class CEXIETHERNET: public IEXIDevice
+class CEXIETHERNET : public IEXIDevice
 {
 public:
 	CEXIETHERNET();
@@ -291,10 +291,7 @@ public:
 		return ((u16)mBbaMem[index + 1] << 8) | mBbaMem[index];
 	}
 
-	inline u8* ptr_from_page_ptr(int const index) const
-	{
-		return &mBbaMem[page_ptr(index) << 8];
-	}
+	inline u8* ptr_from_page_ptr(int const index) const { return &mBbaMem[page_ptr(index) << 8]; }
 	bool IsMXCommand(u32 const data);
 	bool IsWriteCommand(u32 const data);
 	const char* GetRegisterName() const;

@@ -17,15 +17,15 @@
 #include "Common/CommonFuncs.h"
 #include "Common/CommonPaths.h"
 #include "Common/CommonTypes.h"
-#include "Common/StringUtil.h"
 #include "Common/Logging/Log.h"
+#include "Common/StringUtil.h"
 
 #ifdef _WIN32
 #include <Windows.h>
 #else
+#include <errno.h>
 #include <iconv.h>
 #include <locale.h>
-#include <errno.h>
 #endif
 
 #if !defined(_WIN32) && !defined(ANDROID)
@@ -237,8 +237,7 @@ bool TryParse(const std::string& str, u32* const output)
 		return false;
 
 #if ULONG_MAX > UINT_MAX
-	if (value >= 0x100000000ull &&
-		value <= 0xFFFFFFFF00000000ull)
+	if (value >= 0x100000000ull && value <= 0xFFFFFFFF00000000ull)
 		return false;
 #endif
 
@@ -248,9 +247,11 @@ bool TryParse(const std::string& str, u32* const output)
 
 bool TryParse(const std::string& str, bool* const output)
 {
-	if ("1" == str || !strcasecmp("true", str.c_str()))
+	float value;
+	const bool is_valid_float = TryParse(str, &value);
+	if ((is_valid_float && value == 1) || !strcasecmp("true", str.c_str()))
 		*output = true;
-	else if ("0" == str || !strcasecmp("false", str.c_str()))
+	else if ((is_valid_float && value == 0) || !strcasecmp("false", str.c_str()))
 		*output = false;
 	else
 		return false;
@@ -270,7 +271,8 @@ std::string StringFromBool(bool value)
 	return value ? "True" : "False";
 }
 
-bool SplitPath(const std::string& full_path, std::string* _pPath, std::string* _pFilename, std::string* _pExtension)
+bool SplitPath(const std::string& full_path, std::string* _pPath, std::string* _pFilename,
+	std::string* _pExtension)
 {
 	if (full_path.empty())
 		return false;
@@ -302,7 +304,8 @@ bool SplitPath(const std::string& full_path, std::string* _pPath, std::string* _
 	return true;
 }
 
-void BuildCompleteFilename(std::string& _CompleteFilename, const std::string& _Path, const std::string& _Filename)
+void BuildCompleteFilename(std::string& _CompleteFilename, const std::string& _Path,
+	const std::string& _Filename)
 {
 	_CompleteFilename = _Path;
 
@@ -357,12 +360,15 @@ std::string ReplaceAll(std::string result, const std::string& src, const std::st
 
 std::string UTF16ToUTF8(const std::wstring& input)
 {
-	auto const size = WideCharToMultiByte(CP_UTF8, 0, input.data(), (int)input.size(), nullptr, 0, nullptr, nullptr);
+	auto const size = WideCharToMultiByte(CP_UTF8, 0, input.data(), (int)input.size(), nullptr, 0,
+		nullptr, nullptr);
 
 	std::string output;
 	output.resize(size);
 
-	if (size == 0 || size != WideCharToMultiByte(CP_UTF8, 0, input.data(), (int)input.size(), &output[0], (int)output.size(), nullptr, nullptr))
+	if (size == 0 ||
+		size != WideCharToMultiByte(CP_UTF8, 0, input.data(), (int)input.size(), &output[0],
+		(int)output.size(), nullptr, nullptr))
 	{
 		output.clear();
 	}
@@ -377,7 +383,9 @@ std::wstring CPToUTF16(u32 code_page, const std::string& input)
 	std::wstring output;
 	output.resize(size);
 
-	if (size == 0 || size != MultiByteToWideChar(code_page, 0, input.data(), (int)input.size(), &output[0], (int)output.size()))
+	if (size == 0 ||
+		size != MultiByteToWideChar(code_page, 0, input.data(), (int)input.size(), &output[0],
+		(int)output.size()))
 	{
 		output.clear();
 	}
@@ -427,8 +435,8 @@ std::string CodeToUTF8(const char* fromcode, const std::basic_string<T>& input)
 
 		while (src_bytes != 0)
 		{
-			size_t const iconv_result = iconv(conv_desc, (char**)(&src_buffer), &src_bytes,
-				&dst_buffer, &dst_bytes);
+			size_t const iconv_result =
+				iconv(conv_desc, (char**)(&src_buffer), &src_bytes, &dst_buffer, &dst_bytes);
 
 			if ((size_t)-1 == iconv_result)
 			{
@@ -460,14 +468,14 @@ std::string CodeToUTF8(const char* fromcode, const std::basic_string<T>& input)
 
 std::string CP1252ToUTF8(const std::string& input)
 {
-	//return CodeToUTF8("CP1252//TRANSLIT", input);
-	//return CodeToUTF8("CP1252//IGNORE", input);
+	// return CodeToUTF8("CP1252//TRANSLIT", input);
+	// return CodeToUTF8("CP1252//IGNORE", input);
 	return CodeToUTF8("CP1252", input);
 }
 
 std::string SHIFTJISToUTF8(const std::string& input)
 {
-	//return CodeToUTF8("CP932", input);
+	// return CodeToUTF8("CP932", input);
 	return CodeToUTF8("SJIS", input);
 }
 

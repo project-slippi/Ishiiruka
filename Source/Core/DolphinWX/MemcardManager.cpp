@@ -36,7 +36,7 @@
 
 static wxBitmap wxBitmapFromMemoryRGBA(const unsigned char* data, u32 width, u32 height)
 {
-	static const std::array<u8, 54> header = {{
+	static const std::array<u8, 54> header = { {
 		0x42, 0x4D,
 		0x38, 0x30, 0x00, 0x00,
 		0x00, 0x00, 0x00, 0x00,
@@ -52,7 +52,7 @@ static wxBitmap wxBitmapFromMemoryRGBA(const unsigned char* data, u32 width, u32
 		0x12, 0x0B, 0x00, 0x00,
 		0x00, 0x00, 0x00, 0x00,
 		0x00, 0x00, 0x00, 0x00
-	}};
+	} };
 
 	u32 stride = (4 * width);
 
@@ -189,7 +189,7 @@ void CMemcardManager::CreateGUIControls()
 {
 	// Create the controls for both memcards
 
-	const char* ARROW[2] = {"<-", "->"};
+	const char* ARROW[2] = { "<-", "->" };
 
 	m_ConvertToGci = new wxButton(this, ID_CONVERTTOGCI, _("Convert to GCI"));
 

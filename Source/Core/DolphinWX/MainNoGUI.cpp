@@ -142,7 +142,7 @@ void Host_ShowVideoConfig(void*, const std::string&)
 #include <X11/keysym.h>
 #include "DolphinWX/X11Utils.h"
 
-class PlatformX11: public Platform
+class PlatformX11 : public Platform
 {
 	Display *dpy;
 	Window win;
@@ -187,7 +187,7 @@ class PlatformX11: public Platform
 			// make a blank cursor
 			Pixmap Blank;
 			XColor DummyColor;
-			char ZeroData[1] = {0};
+			char ZeroData[1] = { 0 };
 			Blank = XCreateBitmapFromData(dpy, win, ZeroData, 1, 1);
 			blankCursor = XCreatePixmapCursor(dpy, Blank, Blank, &DummyColor, &DummyColor, 0, 0);
 			XFreePixmap(dpy, Blank);

@@ -10,10 +10,10 @@
 #include "Core/PowerPC/JitCommon/JitBase.h"
 #include "Core/PowerPC/PPCAnalyst.h"
 
-class CachedInterpreter: public JitBase, JitBaseBlockCache
+class CachedInterpreter : public JitBase, JitBaseBlockCache
 {
 public:
-	CachedInterpreter(): code_buffer(32000)
+	CachedInterpreter() : code_buffer(32000)
 	{}
 	~CachedInterpreter()
 	{}
@@ -53,7 +53,7 @@ private:
 		typedef void(*CommonCallback)(UGeckoInstruction);
 		typedef bool(*ConditionalCallback)(u32 data);
 
-		Instruction(): type(INSTRUCTION_ABORT)
+		Instruction() : type(INSTRUCTION_ABORT)
 		{};
 		Instruction(const CommonCallback c, UGeckoInstruction i)
 			: common_callback(c), data(i.hex), type(INSTRUCTION_TYPE_COMMON)

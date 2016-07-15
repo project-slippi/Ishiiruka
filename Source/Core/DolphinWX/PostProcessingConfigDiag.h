@@ -18,7 +18,7 @@ class wxButton;
 class wxCheckBox;
 class wxFlexGridSizer;
 
-class PostProcessingConfigDiag final: public wxDialog
+class PostProcessingConfigDiag final : public wxDialog
 {
 public:
 	PostProcessingConfigDiag(wxWindow* parent, const std::string& shader_dir, const std::string& shader_name, PostProcessingShaderConfiguration* config = nullptr);
@@ -29,10 +29,10 @@ private:
 	// This is literally the stupidest thing ever
 	// wxWidgets takes ownership of any pointer given to a event handler
 	// Instead of passing them a pointer to a std::string, we wrap around it here.
-	class UserEventData: public wxObject
+	class UserEventData : public wxObject
 	{
 	public:
-		UserEventData(const std::string& data): m_data(data)
+		UserEventData(const std::string& data) : m_data(data)
 		{}
 		const std::string& GetData()
 		{

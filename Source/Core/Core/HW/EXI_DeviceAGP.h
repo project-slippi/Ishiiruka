@@ -11,15 +11,12 @@
 
 class PointerWrap;
 
-class CEXIAgp: public IEXIDevice
+class CEXIAgp : public IEXIDevice
 {
 public:
 	CEXIAgp(const int index);
 	virtual ~CEXIAgp() override;
-	bool IsPresent() const override
-	{
-		return true;
-	}
+	bool IsPresent() const override { return true; }
 	void ImmWrite(u32 _uData, u32 _uSize) override;
 	u32 ImmRead(u32 _uSize) override;
 	void DoState(PointerWrap& p) override;

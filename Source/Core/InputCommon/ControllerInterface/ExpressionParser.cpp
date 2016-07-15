@@ -56,10 +56,8 @@ public:
 	TokenType type;
 	ControlQualifier qualifier;
 
-	Token(TokenType type_): type(type_)
-	{}
-	Token(TokenType type_, ControlQualifier qualifier_): type(type_), qualifier(qualifier_)
-	{}
+	Token(TokenType type_) : type(type_) {}
+	Token(TokenType type_, ControlQualifier qualifier_) : type(type_), qualifier(qualifier_) {}
 	operator std::string()
 	{
 		switch (type)
@@ -96,10 +94,7 @@ public:
 	std::string expr;
 	std::string::iterator it;
 
-	Lexer(const std::string& expr_): expr(expr_)
-	{
-		it = expr.begin();
-	}
+	Lexer(const std::string& expr_) : expr(expr_) { it = expr.begin(); }
 	bool FetchBacktickString(std::string& value, char otherDelim = 0)
 	{
 		value = "";
@@ -215,48 +210,26 @@ public:
 class ExpressionNode
 {
 public:
-	virtual ~ExpressionNode()
-	{}
-	virtual ControlState GetValue()
-	{
-		return 0;
-	}
-	virtual void SetValue(ControlState state)
-	{}
-	virtual int CountNumControls()
-	{
-		return 0;
-	}
-	virtual operator std::string()
-	{
-		return "";
-	}
+	virtual ~ExpressionNode() {}
+	virtual ControlState GetValue() { return 0; }
+	virtual void SetValue(ControlState state) {}
+	virtual int CountNumControls() { return 0; }
+	virtual operator std::string() { return ""; }
 };
 
-class DummyExpression: public ExpressionNode
+class DummyExpression : public ExpressionNode
 {
 public:
 	std::string name;
 
-	DummyExpression(const std::string& name_): name(name_)
-	{}
-	ControlState GetValue() override
-	{
-		return 0.0;
-	}
-	void SetValue(ControlState value) override
-	{}
-	int CountNumControls() override
-	{
-		return 0;
-	}
-	operator std::string() override
-	{
-		return "`" + name + "`";
-	}
+	DummyExpression(const std::string& name_) : name(name_) {}
+	ControlState GetValue() override { return 0.0; }
+	void SetValue(ControlState value) override {}
+	int CountNumControls() override { return 0; }
+	operator std::string() override { return "`" + name + "`"; }
 };
 
-class ControlExpression: public ExpressionNode
+class ControlExpression : public ExpressionNode
 {
 public:
 	ControlQualifier qualifier;
@@ -264,27 +237,16 @@ public:
 
 	ControlExpression(ControlQualifier qualifier_, Device::Control* control_)
 		: qualifier(qualifier_), control(control_)
-	{}
+	{
+	}
 
-	ControlState GetValue() override
-	{
-		return control->ToInput()->GetGatedState();
-	}
-	void SetValue(ControlState value) override
-	{
-		control->ToOutput()->SetGatedState(value);
-	}
-	int CountNumControls() override
-	{
-		return 1;
-	}
-	operator std::string() override
-	{
-		return "`" + (std::string)qualifier + "`";
-	}
+	ControlState GetValue() override { return control->ToInput()->GetGatedState(); }
+	void SetValue(ControlState value) override { control->ToOutput()->SetGatedState(value); }
+	int CountNumControls() override { return 1; }
+	operator std::string() override { return "`" + (std::string)qualifier + "`"; }
 };
 
-class BinaryExpression: public ExpressionNode
+class BinaryExpression : public ExpressionNode
 {
 public:
 	TokenType op;
@@ -293,7 +255,8 @@ public:
 
 	BinaryExpression(TokenType op_, ExpressionNode* lhs_, ExpressionNode* rhs_)
 		: op(op_), lhs(lhs_), rhs(rhs_)
-	{}
+	{
+	}
 	virtual ~BinaryExpression()
 	{
 		delete lhs;
@@ -326,28 +289,21 @@ public:
 		rhs->SetValue(value);
 	}
 
-	int CountNumControls() override
-	{
-		return lhs->CountNumControls() + rhs->CountNumControls();
-	}
+	int CountNumControls() override { return lhs->CountNumControls() + rhs->CountNumControls(); }
 	operator std::string() override
 	{
 		return OpName(op) + "(" + (std::string)(*lhs) + ", " + (std::string)(*rhs) + ")";
 	}
 };
 
-class UnaryExpression: public ExpressionNode
+class UnaryExpression : public ExpressionNode
 {
 public:
 	TokenType op;
 	ExpressionNode* inner;
 
-	UnaryExpression(TokenType op_, ExpressionNode* inner_): op(op_), inner(inner_)
-	{}
-	virtual ~UnaryExpression()
-	{
-		delete inner;
-	}
+	UnaryExpression(TokenType op_, ExpressionNode* inner_) : op(op_), inner(inner_) {}
+	virtual ~UnaryExpression() { delete inner; }
 	ControlState GetValue() override
 	{
 		ControlState value = inner->GetValue();
@@ -374,14 +330,8 @@ public:
 		}
 	}
 
-	int CountNumControls() override
-	{
-		return inner->CountNumControls();
-	}
-	operator std::string() override
-	{
-		return OpName(op) + "(" + (std::string)(*inner) + ")";
-	}
+	int CountNumControls() override { return inner->CountNumControls(); }
+	operator std::string() override { return OpName(op) + "(" + (std::string)(*inner) + ")"; }
 };
 
 std::shared_ptr<Device> ControlFinder::FindDevice(ControlQualifier qualifier)
@@ -407,7 +357,7 @@ Device::Control* ControlFinder::FindControl(ControlQualifier qualifier)
 class Parser
 {
 public:
-	Parser(std::vector<Token> tokens_, ControlFinder& finder_): tokens(tokens_), finder(finder_)
+	Parser(std::vector<Token> tokens_, ControlFinder& finder_) : tokens(tokens_), finder(finder_)
 	{
 		m_it = tokens.begin();
 	}
@@ -428,14 +378,8 @@ private:
 	std::vector<Token>::iterator m_it;
 	ControlFinder& finder;
 
-	Token Chew()
-	{
-		return *m_it++;
-	}
-	Token Peek()
-	{
-		return *m_it;
-	}
+	Token Chew() { return *m_it++; }
+	Token Peek() { return *m_it; }
 	bool Expects(TokenType type)
 	{
 		Token tok = Chew();
@@ -547,10 +491,7 @@ private:
 		return EXPRESSION_PARSE_SUCCESS;
 	}
 
-	ExpressionParseStatus Toplevel(ExpressionNode** expr_out)
-	{
-		return Binary(expr_out);
-	}
+	ExpressionParseStatus Toplevel(ExpressionNode** expr_out) { return Binary(expr_out); }
 };
 
 ControlState Expression::GetValue()

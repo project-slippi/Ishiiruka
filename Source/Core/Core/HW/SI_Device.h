@@ -49,7 +49,7 @@ enum TSIDevices
 };
 
 // For configuration use, since some devices can have the same SI Device ID
-enum SIDevices: int
+enum SIDevices : int
 {
 	SIDEVICE_NONE,
 	SIDEVICE_N64_MIC,
@@ -76,11 +76,11 @@ public:
 	// Constructor
 	ISIDevice(SIDevices deviceType, int _iDeviceNumber)
 		: m_iDeviceNumber(_iDeviceNumber), m_deviceType(deviceType)
-	{}
+	{
+	}
 
 	// Destructor
-	virtual ~ISIDevice()
-	{}
+	virtual ~ISIDevice() {}
 	// Run the SI Buffer
 	virtual int RunBuffer(u8* _pBuffer, int _iLength);
 	virtual int TransferInterval();
@@ -92,16 +92,9 @@ public:
 	virtual void SendCommand(u32 _Cmd, u8 _Poll) = 0;
 
 	// Savestate support
-	virtual void DoState(PointerWrap& p)
-	{}
-	int GetDeviceNumber() const
-	{
-		return m_iDeviceNumber;
-	}
-	SIDevices GetDeviceType() const
-	{
-		return m_deviceType;
-	}
+	virtual void DoState(PointerWrap& p) {}
+	int GetDeviceNumber() const { return m_iDeviceNumber; }
+	SIDevices GetDeviceType() const { return m_deviceType; }
 };
 
 bool SIDevice_IsGCController(SIDevices type);

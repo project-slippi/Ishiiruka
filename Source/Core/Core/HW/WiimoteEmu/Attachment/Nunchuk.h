@@ -10,7 +10,7 @@ namespace WiimoteEmu
 {
 struct ExtensionReg;
 
-class Nunchuk: public Attachment
+class Nunchuk : public Attachment
 {
 public:
 	Nunchuk(WiimoteEmu::ExtensionReg& _reg);

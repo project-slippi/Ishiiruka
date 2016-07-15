@@ -46,7 +46,8 @@ WbfsFileReader::WbfsFileReader(const std::string& filename)
 }
 
 WbfsFileReader::~WbfsFileReader()
-{}
+{
+}
 
 u64 WbfsFileReader::GetDataSize() const
 {
@@ -179,7 +180,7 @@ bool IsWbfsBlob(const std::string& filename)
 {
 	File::IOFile f(filename, "rb");
 
-	u8 magic[4] = {0, 0, 0, 0};
+	u8 magic[4] = { 0, 0, 0, 0 };
 	f.ReadBytes(&magic, 4);
 
 	return (magic[0] == 'W') && (magic[1] == 'B') && (magic[2] == 'F') && (magic[3] == 'S');

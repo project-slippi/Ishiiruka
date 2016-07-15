@@ -20,30 +20,12 @@ public:
 	WiiWAD(const std::string& name);
 	~WiiWAD();
 
-	bool IsValid() const
-	{
-		return m_valid;
-	}
-	const std::vector<u8>& GetCertificateChain() const
-	{
-		return m_certificate_chain;
-	}
-	const std::vector<u8>& GetTicket() const
-	{
-		return m_ticket;
-	}
-	const std::vector<u8>& GetTMD() const
-	{
-		return m_tmd;
-	}
-	const std::vector<u8>& GetDataApp() const
-	{
-		return m_data_app;
-	}
-	const std::vector<u8>& GetFooter() const
-	{
-		return m_footer;
-	}
+	bool IsValid() const { return m_valid; }
+	const std::vector<u8>& GetCertificateChain() const { return m_certificate_chain; }
+	const std::vector<u8>& GetTicket() const { return m_ticket; }
+	const std::vector<u8>& GetTMD() const { return m_tmd; }
+	const std::vector<u8>& GetDataApp() const { return m_data_app; }
+	const std::vector<u8>& GetFooter() const { return m_footer; }
 private:
 	bool ParseWAD(IBlobReader& reader);
 	static std::vector<u8> CreateWADEntry(IBlobReader& reader, u32 size, u64 offset);

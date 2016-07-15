@@ -34,7 +34,7 @@ enum
 	INITIAL_PAD_BUFFER_SIZE = 5
 };
 
-class NetPlayDialog: public wxFrame, public NetPlayUI
+class NetPlayDialog : public wxFrame, public NetPlayUI
 {
 public:
 	NetPlayDialog(wxWindow* parent, const CGameListCtrl* const game_list, const std::string& game,
@@ -56,18 +56,9 @@ public:
 	void OnMsgStartGame() override;
 	void OnMsgStopGame() override;
 
-	static NetPlayDialog*& GetInstance()
-	{
-		return npd;
-	}
-	static NetPlayClient*& GetNetPlayClient()
-	{
-		return netplay_client;
-	}
-	static NetPlayServer*& GetNetPlayServer()
-	{
-		return netplay_server;
-	}
+	static NetPlayDialog*& GetInstance() { return npd; }
+	static NetPlayClient*& GetNetPlayClient() { return netplay_client; }
+	static NetPlayServer*& GetNetPlayServer() { return netplay_server; }
 	static void FillWithGameNames(wxListBox* game_lbox, const CGameListCtrl& game_list);
 
 	bool IsRecording() override;
@@ -82,7 +73,8 @@ private:
 	void OnKick(wxCommandEvent& event);
 	void OnPlayerSelect(wxCommandEvent& event);
 	void GetNetSettings(NetSettings& settings);
-	std::string FindGame();
+	std::string FindCurrentGame();
+	std::string FindGame(const std::string& game);
 
 	void OnCopyIP(wxCommandEvent&);
 	void OnChoice(wxCommandEvent& event);

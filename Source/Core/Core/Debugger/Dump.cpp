@@ -10,7 +10,7 @@
 
 #include "Core/Debugger/Dump.h"
 
-CDump::CDump(const std::string& filename):
+CDump::CDump(const std::string& filename) :
 	m_pData(nullptr)
 {
 	File::IOFile pStream(filename, "rb");

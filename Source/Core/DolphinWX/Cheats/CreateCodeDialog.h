@@ -12,7 +12,7 @@
 class wxCheckBox;
 class wxTextCtrl;
 
-class CreateCodeDialog final: public wxDialog
+class CreateCodeDialog final : public wxDialog
 {
 public:
 	CreateCodeDialog(wxWindow* const parent, const u32 address);

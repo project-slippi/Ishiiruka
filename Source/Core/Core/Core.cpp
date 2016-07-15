@@ -15,15 +15,15 @@
 
 #include "AudioCommon/AudioCommon.h"
 
+#include "Common/CPUDetect.h"
 #include "Common/CommonPaths.h"
 #include "Common/CommonTypes.h"
-#include "Common/CPUDetect.h"
+#include "Common/Logging/LogManager.h"
 #include "Common/MathUtil.h"
 #include "Common/MemoryUtil.h"
 #include "Common/StringUtil.h"
 #include "Common/Thread.h"
 #include "Common/Timer.h"
-#include "Common/Logging/LogManager.h"
 
 #include "Core/Analytics.h"
 #include "Core/ConfigManager.h"
@@ -35,11 +35,6 @@
 #ifdef USE_MEMORYWATCHER
 #include "Core/MemoryWatcher.h"
 #endif
-#include "Core/Movie.h"
-#include "Core/NetPlayClient.h"
-#include "Core/NetPlayProto.h"
-#include "Core/PatchEngine.h"
-#include "Core/State.h"
 #include "Core/Boot/Boot.h"
 #include "Core/FifoPlayer/FifoPlayer.h"
 #include "Core/HW/AudioInterface.h"
@@ -58,35 +53,35 @@
 #include "Core/IPC_HLE/WII_IPC_HLE_Device_usb.h"
 #include "Core/IPC_HLE/WII_IPC_HLE_WiiMote.h"
 #include "Core/IPC_HLE/WII_Socket.h"
+#include "Core/Movie.h"
+#include "Core/NetPlayClient.h"
+#include "Core/NetPlayProto.h"
+#include "Core/PatchEngine.h"
 #include "Core/PowerPC/JitInterface.h"
 #include "Core/PowerPC/PowerPC.h"
+#include "Core/State.h"
 
 #ifdef USE_GDBSTUB
 #include "Core/PowerPC/GDBStub.h"
 #endif
 
 #include "DiscIO/FileMonitor.h"
-#include "InputCommon/GCAdapter.h"
 #include "InputCommon/ControllerInterface/ControllerInterface.h"
+#include "InputCommon/GCAdapter.h"
 #include "VideoCommon/Fifo.h"
 #include "VideoCommon/OnScreenDisplay.h"
 #include "VideoCommon/RenderBase.h"
 #include "VideoCommon/VideoBackendBase.h"
 
-// This can mostly be removed when we move to VS2015
-// to use the thread_local keyword
-#ifdef _MSC_VER
-#define ThreadLocalStorage __declspec(thread)
-#elif defined __ANDROID__ || defined __APPLE__
-// This will most likely have to stay, to support android
+// Android and OSX haven't implemented the keyword yet.
+#if defined __ANDROID__ || defined __APPLE__
 #include <pthread.h>
-#else // Everything besides VS and Android
-#define ThreadLocalStorage __thread
+#else  // Everything besides OSX and Android
+#define ThreadLocalStorage thread_local
 #endif
 
 namespace Core
 {
-
 // TODO: ugly, remove
 bool g_aspect_wide;
 
@@ -106,7 +101,7 @@ void EmuThread();
 static bool s_is_stopping = false;
 static bool s_hardware_initialized = false;
 static bool s_is_started = false;
-static std::atomic<bool> s_is_booting{false};
+static std::atomic<bool> s_is_booting{ false };
 static void* s_window_handle = nullptr;
 static std::string s_state_filename;
 static std::thread s_emu_thread;
@@ -122,7 +117,7 @@ struct HostJob
 	std::function<void()> job;
 	bool run_after_stop;
 };
-static std::mutex          s_host_jobs_lock;
+static std::mutex s_host_jobs_lock;
 static std::queue<HostJob> s_host_jobs_queue;
 
 #ifdef ThreadLocalStorage
@@ -166,8 +161,8 @@ void FrameUpdateOnCPUThread()
 // Formatted stop message
 std::string StopMessage(bool main_thread, const std::string& message)
 {
-	return StringFromFormat("Stop [%s %i]\t%s\t%s",
-		main_thread ? "Main Thread" : "Video Thread", Common::CurrentThreadId(), MemUsage().c_str(), message.c_str());
+	return StringFromFormat("Stop [%s %i]\t%s\t%s", main_thread ? "Main Thread" : "Video Thread",
+		Common::CurrentThreadId(), MemUsage().c_str(), message.c_str());
 }
 
 void DisplayMessage(const std::string& message, int time_in_ms)
@@ -249,19 +244,17 @@ bool Init()
 
 	Core::UpdateWantDeterminism(/*initial*/ true);
 
-	INFO_LOG(OSREPORT, "Starting core = %s mode",
-		_CoreParameter.bWii ? "Wii" : "GameCube");
-	INFO_LOG(OSREPORT, "CPU Thread separate = %s",
-		_CoreParameter.bCPUThread ? "Yes" : "No");
+	INFO_LOG(OSREPORT, "Starting core = %s mode", _CoreParameter.bWii ? "Wii" : "GameCube");
+	INFO_LOG(OSREPORT, "CPU Thread separate = %s", _CoreParameter.bCPUThread ? "Yes" : "No");
 
-	Host_UpdateMainFrame(); // Disable any menus or buttons at boot
+	Host_UpdateMainFrame();  // Disable any menus or buttons at boot
 
 	g_aspect_wide = _CoreParameter.bWii;
 	if (g_aspect_wide)
 	{
 		IniFile gameIni = _CoreParameter.LoadGameIni();
-		gameIni.GetOrCreateSection("Wii")->Get("Widescreen", &g_aspect_wide,
-			!!SConfig::GetInstance().m_SYSCONF->GetData<u8>("IPL.AR"));
+		gameIni.GetOrCreateSection("Wii")->Get(
+			"Widescreen", &g_aspect_wide, !!SConfig::GetInstance().m_SYSCONF->GetData<u8>("IPL.AR"));
 	}
 
 	s_window_handle = Host_GetRenderHandle();
@@ -338,8 +331,7 @@ void UndeclareAsCPUThread()
 // For the CPU Thread only.
 static void CPUSetInitialExecutionState()
 {
-	QueueHostJob([]
-	{
+	QueueHostJob([] {
 		SetState(SConfig::GetInstance().bBootToPause ? CORE_PAUSE : CORE_RUN);
 		Host_UpdateMainFrame();
 	});
@@ -367,15 +359,14 @@ static void CpuThread()
 	DolphinAnalytics::Instance()->ReportGameStart();
 
 	if (_CoreParameter.bFastmem)
-		EMM::InstallExceptionHandler(); // Let's run under memory watch
+		EMM::InstallExceptionHandler();  // Let's run under memory watch
 
 	if (!s_state_filename.empty())
 	{
 		// Needs to PauseAndLock the Core
 		// NOTE: EmuThread should have left us in CPU_STEPPING so nothing will happen
 		//   until after the job is serviced.
-		QueueHostJob([]
-		{
+		QueueHostJob([] {
 			// Recheck in case Movie cleared it since.
 			if (!s_state_filename.empty())
 				State::LoadAs(s_state_filename);
@@ -496,7 +487,7 @@ void EmuThread()
 
 	HW::Init();
 
-	if (!g_video_backend->Initialize(s_window_handle))
+	if (!video_backend->Initialize(s_window_handle))
 	{
 		s_is_booting.store(false);
 		PanicAlert("Failed to initialize video backend!");
@@ -539,7 +530,9 @@ void EmuThread()
 	if (core_parameter.bWii)
 	{
 		if (init_controllers)
-			Wiimote::Initialize(s_window_handle, !s_state_filename.empty());
+			Wiimote::Initialize(s_window_handle, !s_state_filename.empty() ?
+				Wiimote::InitializeMode::DO_WAIT_FOR_WIIMOTES :
+				Wiimote::InitializeMode::DO_NOT_WAIT_FOR_WIIMOTES);
 		else
 			Wiimote::LoadConfig();
 
@@ -547,7 +540,6 @@ void EmuThread()
 		for (unsigned int i = 0; i != MAX_BBMOTES; ++i)
 			if (g_wiimote_sources[i])
 				GetUsbPointer()->AccessWiiMote(i | 0x100)->Activate(true);
-
 	}
 
 	AudioCommon::InitSoundStream(s_window_handle);
@@ -571,8 +563,8 @@ void EmuThread()
 	UndeclareAsCPUThread();
 
 	// Setup our core, but can't use dynarec if we are compare server
-	if (core_parameter.iCPUCore != PowerPC::CORE_INTERPRETER
-		&& (!core_parameter.bRunCompareServer || core_parameter.bRunCompareClient))
+	if (core_parameter.iCPUCore != PowerPC::CORE_INTERPRETER &&
+		(!core_parameter.bRunCompareServer || core_parameter.bRunCompareClient))
 	{
 		PowerPC::SetMode(PowerPC::MODE_JIT);
 	}
@@ -610,7 +602,7 @@ void EmuThread()
 		// We have now exited the Video Loop
 		INFO_LOG(CONSOLE, "%s", StopMessage(false, "Video Loop Ended").c_str());
 	}
-	else // SingleCore mode
+	else  // SingleCore mode
 	{
 		// The spawned CPU Thread also does the graphics.
 		// The EmuThread is thus an idle thread, which sleeps while
@@ -752,7 +744,7 @@ static std::string GenerateScreenshotName()
 {
 	std::string path = GenerateScreenshotFolderPath();
 
-	//append gameId, path only contains the folder here.
+	// append gameId, path only contains the folder here.
 	path += SConfig::GetInstance().GetUniqueID();
 
 	std::string name;
@@ -820,7 +812,8 @@ bool PauseAndLock(bool do_lock, bool unpause_on_unlock)
 	// audio has to come after CPU, because CPU thread can wait for audio thread (m_throttle).
 	DSP::GetDSPEmulator()->PauseAndLock(do_lock, false);
 
-	// video has to come after CPU, because CPU thread can wait for video thread (s_efbAccessRequested).
+	// video has to come after CPU, because CPU thread can wait for video thread
+	// (s_efbAccessRequested).
 	Fifo::PauseAndLock(do_lock, false);
 
 #if defined(__LIBUSB__) || defined(_WIN32)
@@ -907,25 +900,32 @@ void UpdateTitle()
 
 	float FPS = (float)(s_drawn_frame.load() * 1000.0 / ElapseTime);
 	float VPS = (float)(s_drawn_video.load() * 1000.0 / ElapseTime);
-	float Speed = (float)(s_drawn_video.load() * (100 * 1000.0) / (VideoInterface::GetTargetRefreshRate() * ElapseTime));
+	float Speed = (float)(s_drawn_video.load() * (100 * 1000.0) /
+		(VideoInterface::GetTargetRefreshRate() * ElapseTime));
 
 	// Settings are shown the same for both extended and summary info
-	std::string SSettings = StringFromFormat("%s %s | %s | %s", PowerPC::GetCPUName(), _CoreParameter.bCPUThread ? "DC" : "SC",
+	std::string SSettings = StringFromFormat(
+		"%s %s | %s | %s", PowerPC::GetCPUName(), _CoreParameter.bCPUThread ? "DC" : "SC",
 		g_video_backend->GetDisplayName().c_str(), _CoreParameter.bDSPHLE ? "HLE" : "LLE");
 
 	std::string SFPS;
 
 	if (Movie::IsPlayingInput())
-		SFPS = StringFromFormat("VI: %u/%u - Input: %u/%u - FPS: %.0f - VPS: %.0f - %.0f%%", (u32)Movie::g_currentFrame, (u32)Movie::g_totalFrames, (u32)Movie::g_currentInputCount, (u32)Movie::g_totalInputCount, FPS, VPS, Speed);
+		SFPS = StringFromFormat("Input: %u/%u - VI: %u - FPS: %.0f - VPS: %.0f - %.0f%%",
+		(u32)Movie::g_currentInputCount, (u32)Movie::g_totalInputCount,
+			(u32)Movie::g_currentFrame, FPS, VPS, Speed);
 	else if (Movie::IsRecordingInput())
-		SFPS = StringFromFormat("VI: %u - Input: %u - FPS: %.0f - VPS: %.0f - %.0f%%", (u32)Movie::g_currentFrame, (u32)Movie::g_currentInputCount, FPS, VPS, Speed);
+		SFPS = StringFromFormat("Input: %u - VI: %u - FPS: %.0f - VPS: %.0f - %.0f%%",
+		(u32)Movie::g_currentInputCount, (u32)Movie::g_currentFrame, FPS, VPS,
+			Speed);
 	else
 	{
 		SFPS = StringFromFormat("FPS: %.0f - VPS: %.0f - %.0f%%", FPS, VPS, Speed);
 		if (SConfig::GetInstance().m_InterfaceExtendedFPSInfo)
 		{
 			// Use extended or summary information. The summary information does not print the ticks data,
-			// that's more of a debugging interest, it can always be optional of course if someone is interested.
+			// that's more of a debugging interest, it can always be optional of course if someone is
+			// interested.
 			static u64 ticks = 0;
 			static u64 idleTicks = 0;
 			u64 newTicks = CoreTiming::GetTicks();
@@ -937,16 +937,14 @@ void UpdateTitle()
 			ticks = newTicks;
 			idleTicks = newIdleTicks;
 
-			float TicksPercentage = (float)diff / (float)(SystemTimers::GetTicksPerSecond() / 1000000) * 100;
+			float TicksPercentage =
+				(float)diff / (float)(SystemTimers::GetTicksPerSecond() / 1000000) * 100;
 
-			SFPS += StringFromFormat(" | CPU: %s%i MHz [Real: %i + IdleSkip: %i] / %i MHz (%s%3.0f%%)",
-				_CoreParameter.bSkipIdle ? "~" : "",
-				(int)(diff),
-				(int)(diff - idleDiff),
-				(int)(idleDiff),
-				SystemTimers::GetTicksPerSecond() / 1000000,
-				_CoreParameter.bSkipIdle ? "~" : "",
-				TicksPercentage);
+			SFPS +=
+				StringFromFormat(" | CPU: %s%i MHz [Real: %i + IdleSkip: %i] / %i MHz (%s%3.0f%%)",
+					_CoreParameter.bSkipIdle ? "~" : "", (int)(diff), (int)(diff - idleDiff),
+					(int)(idleDiff), SystemTimers::GetTicksPerSecond() / 1000000,
+					_CoreParameter.bSkipIdle ? "~" : "", TicksPercentage);
 		}
 	}
 	// This is our final "frame counter" string
@@ -979,10 +977,7 @@ void UpdateWantDeterminism(bool initial)
 	// For now, this value is not itself configurable.  Instead, individual
 	// settings that depend on it, such as GPU determinism mode. should have
 	// override options for testing,
-	bool new_want_determinism =
-		Movie::IsPlayingInput() ||
-		Movie::IsRecordingInput() ||
-		NetPlay::IsNetPlayRunning();
+	bool new_want_determinism = Movie::IsMovieActive() || NetPlay::IsNetPlayRunning();
 	if (new_want_determinism != g_want_determinism || initial)
 	{
 		WARN_LOG(COMMON, "Want determinism <- %s", new_want_determinism ? "true" : "false");
@@ -992,7 +987,8 @@ void UpdateWantDeterminism(bool initial)
 		g_want_determinism = new_want_determinism;
 		WiiSockMan::GetInstance().UpdateWantDeterminism(new_want_determinism);
 		Fifo::UpdateWantDeterminism(new_want_determinism);
-		// We need to clear the cache because some parts of the JIT depend on want_determinism, e.g. use of FMA.
+		// We need to clear the cache because some parts of the JIT depend on want_determinism, e.g. use
+		// of FMA.
 		JitInterface::ClearCache();
 		Common::InitializeWiiRoot(g_want_determinism);
 
@@ -1009,7 +1005,7 @@ void QueueHostJob(std::function<void()> job, bool run_during_stop)
 	{
 		std::lock_guard<std::mutex> guard(s_host_jobs_lock);
 		send_message = s_host_jobs_queue.empty();
-		s_host_jobs_queue.emplace(HostJob{std::move(job), run_during_stop});
+		s_host_jobs_queue.emplace(HostJob{ std::move(job), run_during_stop });
 	}
 	// If the the queue was empty then kick the Host to come and get this job.
 	if (send_message)
@@ -1041,4 +1037,4 @@ void HostDispatchJobs()
 	}
 }
 
-} // Core
+}  // Core

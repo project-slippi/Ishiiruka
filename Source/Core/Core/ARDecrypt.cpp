@@ -355,7 +355,7 @@ static bool getbitstring(u32 *ctrl, u32 *out, u8 len)
 static bool batchdecrypt(u32 *codes, u16 size)
 {
 	u32 tmp, *ptr = codes;
-	u32 tmparray[4] = {0}, tmparray2[8] = {0};
+	u32 tmparray[4] = { 0 }, tmparray2[8] = { 0 };
 
 	// Not required
 	//if (size & 1) return 0;

@@ -139,7 +139,7 @@ struct HotkeyStatus
 	s8  err;
 };
 
-class HotkeyManager: public ControllerEmu
+class HotkeyManager : public ControllerEmu
 {
 public:
 	HotkeyManager();

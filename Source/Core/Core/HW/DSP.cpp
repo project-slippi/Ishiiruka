@@ -65,8 +65,7 @@ enum
 };
 
 // UARAMCount
-union UARAMCount
-{
+union UARAMCount {
 	u32 Hex;
 	struct
 	{
@@ -76,8 +75,7 @@ union UARAMCount
 };
 
 // Blocks are 32 bytes.
-union UAudioDMAControl
-{
+union UAudioDMAControl {
 	u16 Hex;
 	struct
 	{
@@ -85,8 +83,7 @@ union UAudioDMAControl
 		u16 Enable : 1;
 	};
 
-	UAudioDMAControl(u16 _Hex = 0): Hex(_Hex)
-	{}
+	UAudioDMAControl(u16 _Hex = 0) : Hex(_Hex) {}
 };
 
 // AudioDMA
@@ -99,7 +96,8 @@ struct AudioDMA
 
 	AudioDMA()
 		: current_source_address(0), remaining_blocks_count(0), SourceAddress(0), AudioDMAControl(0)
-	{}
+	{
+	}
 };
 
 // ARAM_DMA
@@ -144,8 +142,7 @@ static u32 last_aram_dma_count;
 static bool instant_dma;
 UDSPControl g_dspState;
 
-union ARAM_Info
-{
+union ARAM_Info {
 	u16 Hex;
 	struct
 	{
@@ -290,17 +287,17 @@ void RegisterMMIO(MMIO::Mapping* mmio, u32 base)
 		u16* ptr;
 		bool align_writes_on_32_bytes;
 	} directly_mapped_vars[] = {
-		 {AR_INFO, &g_ARAM_Info.Hex},
-		 {AR_MODE, &g_AR_MODE},
-		 {AR_REFRESH, &g_AR_REFRESH},
-		 {AR_DMA_MMADDR_H, MMIO::Utils::HighPart(&g_arDMA.MMAddr)},
-		 {AR_DMA_MMADDR_L, MMIO::Utils::LowPart(&g_arDMA.MMAddr), true},
-		 {AR_DMA_ARADDR_H, MMIO::Utils::HighPart(&g_arDMA.ARAddr)},
-		 {AR_DMA_ARADDR_L, MMIO::Utils::LowPart(&g_arDMA.ARAddr), true},
-		 {AR_DMA_CNT_H, MMIO::Utils::HighPart(&g_arDMA.Cnt.Hex)},
-		 // AR_DMA_CNT_L triggers DMA
-		 {AUDIO_DMA_START_HI, MMIO::Utils::HighPart(&g_audioDMA.SourceAddress)},
-		 {AUDIO_DMA_START_LO, MMIO::Utils::LowPart(&g_audioDMA.SourceAddress)},
+			{AR_INFO, &g_ARAM_Info.Hex},
+			{AR_MODE, &g_AR_MODE},
+			{AR_REFRESH, &g_AR_REFRESH},
+			{AR_DMA_MMADDR_H, MMIO::Utils::HighPart(&g_arDMA.MMAddr)},
+			{AR_DMA_MMADDR_L, MMIO::Utils::LowPart(&g_arDMA.MMAddr), true},
+			{AR_DMA_ARADDR_H, MMIO::Utils::HighPart(&g_arDMA.ARAddr)},
+			{AR_DMA_ARADDR_L, MMIO::Utils::LowPart(&g_arDMA.ARAddr), true},
+			{AR_DMA_CNT_H, MMIO::Utils::HighPart(&g_arDMA.Cnt.Hex)},
+			// AR_DMA_CNT_L triggers DMA
+			{AUDIO_DMA_START_HI, MMIO::Utils::HighPart(&g_audioDMA.SourceAddress)},
+			{AUDIO_DMA_START_LO, MMIO::Utils::LowPart(&g_audioDMA.SourceAddress)},
 	};
 	for (auto& mapped_var : directly_mapped_vars)
 	{
@@ -311,8 +308,7 @@ void RegisterMMIO(MMIO::Mapping* mmio, u32 base)
 
 	// DSP mail MMIOs call DSP emulator functions to get results or write data.
 	mmio->Register(
-		base | DSP_MAIL_TO_DSP_HI, MMIO::ComplexRead<u16>([](u32)
-	{
+		base | DSP_MAIL_TO_DSP_HI, MMIO::ComplexRead<u16>([](u32) {
 		if (dsp_slice > DSP_MAIL_SLICE && dsp_is_lle)
 		{
 			dsp_emulator->DSP_Update(DSP_MAIL_SLICE);
@@ -320,22 +316,12 @@ void RegisterMMIO(MMIO::Mapping* mmio, u32 base)
 		}
 		return dsp_emulator->DSP_ReadMailBoxHigh(true);
 	}),
-		MMIO::ComplexWrite<u16>([](u32, u16 val)
-	{
-		dsp_emulator->DSP_WriteMailBoxHigh(true, val);
-	}));
+		MMIO::ComplexWrite<u16>([](u32, u16 val) { dsp_emulator->DSP_WriteMailBoxHigh(true, val); }));
 	mmio->Register(
 		base | DSP_MAIL_TO_DSP_LO,
-		MMIO::ComplexRead<u16>([](u32)
-	{
-		return dsp_emulator->DSP_ReadMailBoxLow(true);
-	}),
-		MMIO::ComplexWrite<u16>([](u32, u16 val)
-	{
-		dsp_emulator->DSP_WriteMailBoxLow(true, val);
-	}));
-	mmio->Register(base | DSP_MAIL_FROM_DSP_HI, MMIO::ComplexRead<u16>([](u32)
-	{
+		MMIO::ComplexRead<u16>([](u32) { return dsp_emulator->DSP_ReadMailBoxLow(true); }),
+		MMIO::ComplexWrite<u16>([](u32, u16 val) { dsp_emulator->DSP_WriteMailBoxLow(true, val); }));
+	mmio->Register(base | DSP_MAIL_FROM_DSP_HI, MMIO::ComplexRead<u16>([](u32) {
 		if (dsp_slice > DSP_MAIL_SLICE && dsp_is_lle)
 		{
 			dsp_emulator->DSP_Update(DSP_MAIL_SLICE);
@@ -344,20 +330,17 @@ void RegisterMMIO(MMIO::Mapping* mmio, u32 base)
 		return dsp_emulator->DSP_ReadMailBoxHigh(false);
 	}),
 		MMIO::InvalidWrite<u16>());
-	mmio->Register(base | DSP_MAIL_FROM_DSP_LO, MMIO::ComplexRead<u16>([](u32)
-	{
+	mmio->Register(base | DSP_MAIL_FROM_DSP_LO, MMIO::ComplexRead<u16>([](u32) {
 		return dsp_emulator->DSP_ReadMailBoxLow(false);
 	}),
 		MMIO::InvalidWrite<u16>());
 
 	mmio->Register(
-		base | DSP_CONTROL, MMIO::ComplexRead<u16>([](u32)
-	{
+		base | DSP_CONTROL, MMIO::ComplexRead<u16>([](u32) {
 		return (g_dspState.Hex & ~DSP_CONTROL_MASK) |
 			(dsp_emulator->DSP_ReadControlRegister() & DSP_CONTROL_MASK);
 	}),
-		MMIO::ComplexWrite<u16>([](u32, u16 val)
-	{
+		MMIO::ComplexWrite<u16>([](u32, u16 val) {
 		UDSPControl tmpControl;
 		tmpControl.Hex = (val & ~DSP_CONTROL_MASK) |
 			(dsp_emulator->DSP_WriteControlRegister(val) & DSP_CONTROL_MASK);
@@ -404,8 +387,7 @@ void RegisterMMIO(MMIO::Mapping* mmio, u32 base)
 
 	// ARAM MMIO controlling the DMA start.
 	mmio->Register(base | AR_DMA_CNT_L, MMIO::DirectRead<u16>(MMIO::Utils::LowPart(&g_arDMA.Cnt.Hex)),
-		MMIO::ComplexWrite<u16>([](u32, u16 val)
-	{
+		MMIO::ComplexWrite<u16>([](u32, u16 val) {
 		g_arDMA.Cnt.Hex = (g_arDMA.Cnt.Hex & 0xFFFF0000) | (val & ~31);
 		Do_ARAM_DMA();
 	}));
@@ -413,8 +395,7 @@ void RegisterMMIO(MMIO::Mapping* mmio, u32 base)
 	// Audio DMA MMIO controlling the DMA start.
 	mmio->Register(
 		base | AUDIO_DMA_CONTROL_LEN, MMIO::DirectRead<u16>(&g_audioDMA.AudioDMAControl.Hex),
-		MMIO::ComplexWrite<u16>([](u32, u16 val)
-	{
+		MMIO::ComplexWrite<u16>([](u32, u16 val) {
 		bool already_enabled = g_audioDMA.AudioDMAControl.Enable;
 		g_audioDMA.AudioDMAControl.Hex = val;
 
@@ -443,8 +424,7 @@ void RegisterMMIO(MMIO::Mapping* mmio, u32 base)
 	// Audio DMA blocks remaining is invalid to write to, and requires logic on
 	// the read side.
 	mmio->Register(
-		base | AUDIO_DMA_BLOCKS_LEFT, MMIO::ComplexRead<u16>([](u32)
-	{
+		base | AUDIO_DMA_BLOCKS_LEFT, MMIO::ComplexRead<u16>([](u32) {
 		// remaining_blocks_count is zero-based.  DreamMix World Fighters will hang if it never
 		// reaches zero.
 		return (g_audioDMA.remaining_blocks_count > 0 ? g_audioDMA.remaining_blocks_count - 1 : 0);
@@ -508,7 +488,7 @@ void UpdateDSPSlice(int cycles)
 // This happens at 4 khz, since 32 bytes at 4khz = 4 bytes at 32 khz (16bit stereo pcm)
 void UpdateAudioDMA()
 {
-	static short zero_samples[8 * 2] = {0};
+	static short zero_samples[8 * 2] = { 0 };
 	if (g_audioDMA.AudioDMAControl.Enable)
 	{
 		// Read audio at g_audioDMA.current_source_address in RAM and push onto an

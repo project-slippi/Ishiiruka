@@ -9,6 +9,8 @@
 
 #include "Common/Assert.h"
 #include "Common/Logging/Log.h"
+#include "Common/MathUtil.h"
+#include "Common/StringUtil.h"
 #include "InputCommon/ControllerInterface/ControllerInterface.h"
 #include "InputCommon/ControllerInterface/evdev/evdev.h"
 
@@ -34,12 +36,6 @@ static std::string GetName(const std::string& devnode)
 
 void Init()
 {
-  // this is used to number the joysticks
-  // multiple joysticks with the same name shall get unique ids starting at 0
-  std::map<std::string, int> name_counts;
-
-  int num_controllers = 0;
-
   // We use Udev to find any devices. In the future this will allow for hotplugging.
   // But for now it is essentially iterating over /dev/input/event0 to event31. However if the
   // naming scheme is ever updated in the future, this *should* be forwards compatable.
@@ -68,12 +64,11 @@ void Init()
       // Unfortunately udev gives us no way to filter out the non event device interfaces.
       // So we open it and see if it works with evdev ioctls or not.
       std::string name = GetName(devnode);
-      auto input = std::make_shared<evdevDevice>(devnode, name_counts[name]++);
+      auto input = std::make_shared<evdevDevice>(devnode);
 
       if (input->IsInteresting())
       {
         g_controller_interface.AddDevice(std::move(input));
-        num_controllers++;
       }
     }
     udev_device_unref(dev);
@@ -82,7 +77,7 @@ void Init()
   udev_unref(udev);
 }
 
-evdevDevice::evdevDevice(const std::string& devnode, int id) : m_devfile(devnode), m_id(id)
+evdevDevice::evdevDevice(const std::string& devnode) : m_devfile(devnode)
 {
   // The device file will be read on one of the main threads, so we open in non-blocking mode.
   m_fd = open(devnode.c_str(), O_RDWR | O_NONBLOCK);
@@ -96,7 +91,7 @@ evdevDevice::evdevDevice(const std::string& devnode, int id) : m_devfile(devnode
     return;
   }
 
-  m_name = libevdev_get_name(m_dev);
+  m_name = StripSpaces(libevdev_get_name(m_dev));
 
   // Controller buttons (and keyboard keys)
   int num_buttons = 0;
@@ -164,7 +159,7 @@ std::string evdevDevice::Button::GetName() const
   {
     const char* name = libevdev_event_code_get_name(EV_KEY, m_code);
     if (name)
-      return std::string(name);
+      return StripSpaces(name);
   }
   // But controllers use codes above 0x100, and the standard label often doesn't match.
   // We are better off with Button 0 and so on.
@@ -196,7 +191,7 @@ ControlState evdevDevice::Axis::GetState() const
   libevdev_fetch_event_value(m_dev, EV_ABS, m_code, &value);
 
   // Value from 0.0 to 1.0
-  ControlState fvalue = double(value - m_min) / double(m_range);
+  ControlState fvalue = MathUtil::Clamp(double(value - m_min) / double(m_range), 0.0, 1.0);
 
   // Split into two axis, each covering half the range from 0.0 to 1.0
   if (m_upper)
@@ -222,7 +217,7 @@ std::string evdevDevice::ForceFeedback::GetName() const
   {
     const char* name = libevdev_event_code_get_name(EV_FF, m_type);
     if (name)
-      return std::string(name);
+      return StripSpaces(name);
     return "Unknown";
   }
   }

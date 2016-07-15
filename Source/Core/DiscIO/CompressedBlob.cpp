@@ -28,7 +28,7 @@
 
 namespace DiscIO
 {
-CompressedBlobReader::CompressedBlobReader(const std::string& filename): m_file_name(filename)
+CompressedBlobReader::CompressedBlobReader(const std::string& filename) : m_file_name(filename)
 {
 	m_file.Open(filename, "rb");
 	m_file_size = File::GetSize(filename);
@@ -62,7 +62,8 @@ std::unique_ptr<CompressedBlobReader> CompressedBlobReader::Create(const std::st
 }
 
 CompressedBlobReader::~CompressedBlobReader()
-{}
+{
+}
 
 // IMPORTANT: Calling this function invalidates all earlier pointers gotten from this function.
 u64 CompressedBlobReader::GetBlockCompressedSize(u64 block_num) const

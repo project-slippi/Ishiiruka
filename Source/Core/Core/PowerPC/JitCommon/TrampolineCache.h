@@ -14,7 +14,7 @@ struct InstructionInfo;
 // We need at least this many bytes for backpatching.
 const int BACKPATCH_SIZE = 5;
 
-class TrampolineCache: public EmuCodeBlock
+class TrampolineCache : public EmuCodeBlock
 {
 	const u8* GenerateReadTrampoline(const TrampolineInfo& info);
 	const u8* GenerateWriteTrampoline(const TrampolineInfo& info);

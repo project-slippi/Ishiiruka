@@ -290,7 +290,7 @@ void Jit64::mfspr(UGeckoInstruction inst)
 		CVTSS2SI(RDX, R(XMM0));  // RDX is downcount scaled by the overclocking factor
 		MOV(32, R(RAX), M(&CoreTiming::g_slicelength));
 		SUB(64, R(RAX), R(RDX));  // cycles since the last CoreTiming::Advance() event is (slicelength -
-										  // Scaled_downcount)
+											// Scaled_downcount)
 		ADD(64, R(RAX), M(&CoreTiming::g_globalTimer));
 		SUB(64, R(RAX), M(&CoreTiming::g_fakeTBStartTicks));
 		// It might seem convenient to correct the timer for the block position here for even more

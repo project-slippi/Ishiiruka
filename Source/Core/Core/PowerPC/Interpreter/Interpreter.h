@@ -8,7 +8,7 @@
 #include "Core/PowerPC/CPUCoreBase.h"
 #include "Core/PowerPC/Gekko.h"
 
-class Interpreter: public CPUCoreBase
+class Interpreter : public CPUCoreBase
 {
 public:
 	void Init() override;

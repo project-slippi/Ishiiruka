@@ -11,52 +11,41 @@
 #include "Common/FileUtil.h"
 #include "Common/StringUtil.h"
 
-#include "Core/ConfigManager.h"
-#include "Core/Core.h" // for bWii
 #include "Core/Boot/Boot.h"
 #include "Core/Boot/Boot_DOL.h"
+#include "Core/ConfigManager.h"
+#include "Core/Core.h"  // for bWii
 #include "Core/FifoPlayer/FifoDataFile.h"
 #include "Core/HW/SI.h"
 #include "Core/PowerPC/PowerPC.h"
 
+#include "DiscIO/Enums.h"
 #include "DiscIO/NANDContentLoader.h"
+#include "DiscIO/Volume.h"
 #include "DiscIO/VolumeCreator.h"
 
 SConfig* SConfig::m_Instance;
 
 SConfig::SConfig()
-	: bEnableDebugging(false), bAutomaticStart(false), bBootToPause(false),
-	bJITNoBlockCache(false), bJITNoBlockLinking(false),
-	bJITOff(false),
-	bJITLoadStoreOff(false), bJITLoadStorelXzOff(false),
-	bJITLoadStorelwzOff(false), bJITLoadStorelbzxOff(false),
-	bJITLoadStoreFloatingOff(false), bJITLoadStorePairedOff(false),
-	bJITFloatingPointOff(false), bJITIntegerOff(false),
-	bJITPairedOff(false), bJITSystemRegistersOff(false),
-	bJITBranchOff(false),
-	bJITILTimeProfiling(false), bJITILOutputIR(false),
-	bFPRF(false), bAccurateNaNs(false), iTimingVariance(40),
-	bCPUThread(true), bDSPThread(false), bDSPHLE(true),
+	: bEnableDebugging(false), bAutomaticStart(false), bBootToPause(false), bJITNoBlockCache(false),
+	bJITNoBlockLinking(false), bJITOff(false), bJITLoadStoreOff(false),
+	bJITLoadStorelXzOff(false), bJITLoadStorelwzOff(false), bJITLoadStorelbzxOff(false),
+	bJITLoadStoreFloatingOff(false), bJITLoadStorePairedOff(false), bJITFloatingPointOff(false),
+	bJITIntegerOff(false), bJITPairedOff(false), bJITSystemRegistersOff(false),
+	bJITBranchOff(false), bJITILTimeProfiling(false), bJITILOutputIR(false), bFPRF(false),
+	bAccurateNaNs(false), iTimingVariance(40), bCPUThread(true), bDSPThread(false), bDSPHLE(true),
 	bSkipIdle(true), bSyncGPUOnSkipIdleHack(true), bNTSC(false), bForceNTSCJ(false),
-	bHLE_BS2(true), bEnableCheats(false),
-	bEnableMemcardSdWriting(true),
-	bDPL2Decoder(false), bTimeStretching(false), bRSHACK(false), bWiiSpeakSupport(false), iLatency(14),
-	bRunCompareServer(false), bRunCompareClient(false),
-	bMMU(false), bDCBZOFF(false),
-	iBBDumpPort(0), bDoubleVideoRate(false),
-	bFastDiscSpeed(false), bSyncGPU(false),
-	SelectedLanguage(0), bOverrideGCLanguage(false), bWii(false),
-	bConfirmStop(false), bHideCursor(false),
+	bHLE_BS2(true), bEnableCheats(false), bEnableMemcardSdWriting(true), bDPL2Decoder(false),
+	iLatency(14), bRunCompareServer(false), bRunCompareClient(false), bMMU(false),
+	bDCBZOFF(false), iBBDumpPort(0), bFastDiscSpeed(false), bSyncGPU(false), SelectedLanguage(0),
+	bOverrideGCLanguage(false), bWii(false), bConfirmStop(false), bHideCursor(false),
+	bTimeStretching(false), bRSHACK(false), bWiiSpeakSupport(false),
 	bAutoHideCursor(false), bUsePanicHandlers(true), bOnScreenDisplayMessages(true),
-	iRenderWindowXPos(-1), iRenderWindowYPos(-1),
-	iRenderWindowWidth(640), iRenderWindowHeight(480),
-	bRenderWindowAutoSize(false), bKeepWindowOnTop(false),
-	bFullscreen(false), bRenderToMain(false),
-	bProgressive(false), bPAL60(false),
-	bDisableScreenSaver(false),
-	iPosX(100), iPosY(100), iWidth(800), iHeight(600),
-	m_analytics_enabled(false), m_analytics_permission_asked(false),
-	bLoopFifoReplay(true)
+	iRenderWindowXPos(-1), iRenderWindowYPos(-1), iRenderWindowWidth(640),
+	iRenderWindowHeight(480), bRenderWindowAutoSize(false), bKeepWindowOnTop(false),
+	bFullscreen(false), bRenderToMain(false), bProgressive(false), bPAL60(false),
+	bDisableScreenSaver(false), iPosX(100), iPosY(100), iWidth(800), iHeight(600),
+	m_analytics_enabled(false), m_analytics_permission_asked(false), bLoopFifoReplay(true)
 {
 	LoadDefaults();
 	// Make sure we have log manager
@@ -80,12 +69,11 @@ SConfig::~SConfig()
 	delete m_SYSCONF;
 }
 
-
 void SConfig::SaveSettings()
 {
 	NOTICE_LOG(BOOT, "Saving settings to %s", File::GetUserPath(F_DOLPHINCONFIG_IDX).c_str());
 	IniFile ini;
-	ini.Load(File::GetUserPath(F_DOLPHINCONFIG_IDX)); // load first to not kill unknown stuff
+	ini.Load(File::GetUserPath(F_DOLPHINCONFIG_IDX));  // load first to not kill unknown stuff
 
 	SaveGeneralSettings(ini);
 	SaveInterfaceSettings(ini);
@@ -164,8 +152,8 @@ void SConfig::SaveInterfaceSettings(IniFile& ini)
 	interface->Set("OnScreenDisplayMessages", bOnScreenDisplayMessages);
 	interface->Set("HideCursor", bHideCursor);
 	interface->Set("AutoHideCursor", bAutoHideCursor);
-	interface->Set("MainWindowPosX", (iPosX == -32000) ? 0 : iPosX); // TODO - HAX
-	interface->Set("MainWindowPosY", (iPosY == -32000) ? 0 : iPosY); // TODO - HAX
+	interface->Set("MainWindowPosX", (iPosX == -32000) ? 0 : iPosX);  // TODO - HAX
+	interface->Set("MainWindowPosY", (iPosY == -32000) ? 0 : iPosY);  // TODO - HAX
 	interface->Set("MainWindowWidth", iWidth);
 	interface->Set("MainWindowHeight", iHeight);
 	interface->Set("Language", m_InterfaceLanguage);
@@ -415,6 +403,8 @@ void SConfig::LoadGeneralSettings(IniFile& ini)
 
 	general->Get("NANDRootPath", &m_NANDPath);
 	File::SetUserPath(D_WIIROOT_IDX, m_NANDPath);
+	general->Get("DumpPath", &m_DumpPath);
+	CreateDumpPath(m_DumpPath);
 	general->Get("WirelessMac", &m_WirelessMac);
 }
 
@@ -542,7 +532,8 @@ void SConfig::LoadCoreSettings(IniFile& ini)
 	core->Get("OutputIR", &bJITILOutputIR, false);
 	for (int i = 0; i < MAX_SI_CHANNELS; ++i)
 	{
-		core->Get(StringFromFormat("SIDevice%i", i), (u32*)&m_SIDevice[i], (i == 0) ? SIDEVICE_GC_CONTROLLER : SIDEVICE_NONE);
+		core->Get(StringFromFormat("SIDevice%i", i), (u32*)&m_SIDevice[i],
+			(i == 0) ? SIDEVICE_GC_CONTROLLER : SIDEVICE_NONE);
 		core->Get(StringFromFormat("AdapterRumble%i", i), &m_AdapterRumble[i], true);
 		core->Get(StringFromFormat("SimulateKonga%i", i), &m_AdapterKonga[i], false);
 	}
@@ -679,7 +670,7 @@ void SConfig::LoadDefaults()
 
 	bLoopFifoReplay = true;
 
-	bJITOff = false; // debugger only settings
+	bJITOff = false;  // debugger only settings
 	bJITLoadStoreOff = false;
 	bJITLoadStoreFloatingOff = false;
 	bJITLoadStorePairedOff = false;
@@ -693,31 +684,32 @@ void SConfig::LoadDefaults()
 	m_strUniqueID = "00000000";
 	m_revision = 0;
 }
-static const char* GetRegionOfCountry(DiscIO::IVolume::ECountry country)
+
+static const char* GetRegionOfCountry(DiscIO::Country country)
 {
 	switch (country)
 	{
-	case DiscIO::IVolume::COUNTRY_USA:
+	case DiscIO::Country::COUNTRY_USA:
 		return USA_DIR;
 
-	case DiscIO::IVolume::COUNTRY_TAIWAN:
-	case DiscIO::IVolume::COUNTRY_KOREA:
+	case DiscIO::Country::COUNTRY_TAIWAN:
+	case DiscIO::Country::COUNTRY_KOREA:
 		// TODO: Should these have their own Region Dir?
-	case DiscIO::IVolume::COUNTRY_JAPAN:
+	case DiscIO::Country::COUNTRY_JAPAN:
 		return JAP_DIR;
 
-	case DiscIO::IVolume::COUNTRY_AUSTRALIA:
-	case DiscIO::IVolume::COUNTRY_EUROPE:
-	case DiscIO::IVolume::COUNTRY_FRANCE:
-	case DiscIO::IVolume::COUNTRY_GERMANY:
-	case DiscIO::IVolume::COUNTRY_ITALY:
-	case DiscIO::IVolume::COUNTRY_NETHERLANDS:
-	case DiscIO::IVolume::COUNTRY_RUSSIA:
-	case DiscIO::IVolume::COUNTRY_SPAIN:
-	case DiscIO::IVolume::COUNTRY_WORLD:
+	case DiscIO::Country::COUNTRY_AUSTRALIA:
+	case DiscIO::Country::COUNTRY_EUROPE:
+	case DiscIO::Country::COUNTRY_FRANCE:
+	case DiscIO::Country::COUNTRY_GERMANY:
+	case DiscIO::Country::COUNTRY_ITALY:
+	case DiscIO::Country::COUNTRY_NETHERLANDS:
+	case DiscIO::Country::COUNTRY_RUSSIA:
+	case DiscIO::Country::COUNTRY_SPAIN:
+	case DiscIO::Country::COUNTRY_WORLD:
 		return EUR_DIR;
 
-	case DiscIO::IVolume::COUNTRY_UNKNOWN:
+	case DiscIO::Country::COUNTRY_UNKNOWN:
 	default:
 		return nullptr;
 	}
@@ -742,12 +734,9 @@ bool SConfig::AutoSetup(EBootBS2 _BootBS2)
 
 		std::string Extension;
 		SplitPath(m_strFilename, nullptr, nullptr, &Extension);
-		if (!strcasecmp(Extension.c_str(), ".gcm") ||
-			!strcasecmp(Extension.c_str(), ".iso") ||
-			!strcasecmp(Extension.c_str(), ".wbfs") ||
-			!strcasecmp(Extension.c_str(), ".ciso") ||
-			!strcasecmp(Extension.c_str(), ".gcz") ||
-			bootDrive)
+		if (!strcasecmp(Extension.c_str(), ".gcm") || !strcasecmp(Extension.c_str(), ".iso") ||
+			!strcasecmp(Extension.c_str(), ".wbfs") || !strcasecmp(Extension.c_str(), ".ciso") ||
+			!strcasecmp(Extension.c_str(), ".gcz") || bootDrive)
 		{
 			m_BootType = BOOT_ISO;
 			std::unique_ptr<DiscIO::IVolume> pVolume(DiscIO::CreateVolumeFromFilename(m_strFilename));
@@ -757,7 +746,8 @@ bool SConfig::AutoSetup(EBootBS2 _BootBS2)
 					PanicAlertT("Could not read \"%s\".  "
 						"There is no disc in the drive, or it is not a GC/Wii backup.  "
 						"Please note that original GameCube and Wii discs cannot be read "
-						"by most PC DVD drives.", m_strFilename.c_str());
+						"by most PC DVD drives.",
+						m_strFilename.c_str());
 				else
 					PanicAlertT("\"%s\" is an invalid GCM/ISO file, or is not a GC/Wii ISO.",
 						m_strFilename.c_str());
@@ -768,7 +758,7 @@ bool SConfig::AutoSetup(EBootBS2 _BootBS2)
 			m_revision = pVolume->GetRevision();
 
 			// Check if we have a Wii disc
-			bWii = pVolume->GetVolumeType() == DiscIO::IVolume::WII_DISC;
+			bWii = pVolume->GetVolumeType() == DiscIO::Platform::WII_DISC;
 
 			const char* retrieved_region_dir = GetRegionOfCountry(pVolume->GetCountry());
 			if (!retrieved_region_dir)
@@ -786,8 +776,10 @@ bool SConfig::AutoSetup(EBootBS2 _BootBS2)
 		{
 			bWii = CBoot::IsElfWii(m_strFilename);
 			// TODO: Right now GC homebrew boots in NTSC and Wii homebrew in PAL.
-			// This is intentional so that Wii homebrew can boot in both 50Hz and 60Hz, without forcing all GC homebrew to 50Hz.
-			// In the future, it probably makes sense to add a Region setting for homebrew somewhere in the emulator config.
+			// This is intentional so that Wii homebrew can boot in both 50Hz and 60Hz, without forcing
+			// all GC homebrew to 50Hz.
+			// In the future, it probably makes sense to add a Region setting for homebrew somewhere in
+			// the emulator config.
 			bNTSC = bWii ? false : true;
 			set_region_dir = bNTSC ? USA_DIR : EUR_DIR;
 			m_BootType = BOOT_ELF;
@@ -818,15 +810,16 @@ bool SConfig::AutoSetup(EBootBS2 _BootBS2)
 		else if (DiscIO::CNANDContentManager::Access().GetNANDLoader(m_strFilename).IsValid())
 		{
 			std::unique_ptr<DiscIO::IVolume> pVolume(DiscIO::CreateVolumeFromFilename(m_strFilename));
-			const DiscIO::CNANDContentLoader& ContentLoader = DiscIO::CNANDContentManager::Access().GetNANDLoader(m_strFilename);
+			const DiscIO::CNANDContentLoader& ContentLoader =
+				DiscIO::CNANDContentManager::Access().GetNANDLoader(m_strFilename);
 
 			if (ContentLoader.GetContentByIndex(ContentLoader.GetBootIndex()) == nullptr)
 			{
-				//WAD is valid yet cannot be booted. Install instead.
+				// WAD is valid yet cannot be booted. Install instead.
 				u64 installed = DiscIO::CNANDContentManager::Access().Install_WiiWAD(m_strFilename);
 				if (installed)
 					SuccessAlertT("The WAD has been installed successfully");
-				return false; //do not boot
+				return false;  // do not boot
 			}
 
 			const char* retrieved_region_dir = GetRegionOfCountry(ContentLoader.GetCountry());
@@ -850,7 +843,8 @@ bool SConfig::AutoSetup(EBootBS2 _BootBS2)
 			}
 
 			// Use the TitleIDhex for name and/or unique ID if launching from nand folder
-			// or if it is not ascii characters (specifically sysmenu could potentially apply to other things)
+			// or if it is not ascii characters (specifically sysmenu could potentially apply to other
+			// things)
 			std::string titleidstr = StringFromFormat("%016" PRIx64, ContentLoader.GetTitleID());
 
 			if (m_strName.empty())
@@ -899,7 +893,8 @@ bool SConfig::AutoSetup(EBootBS2 _BootBS2)
 		{
 			m_strBootROM = File::GetUserPath(D_GCUSER_IDX) + DIR_SEP + set_region_dir + DIR_SEP GC_IPL;
 			if (!File::Exists(m_strBootROM))
-				m_strBootROM = File::GetSysDirectory() + GC_SYS_DIR + DIR_SEP + set_region_dir + DIR_SEP GC_IPL;
+				m_strBootROM =
+				File::GetSysDirectory() + GC_SYS_DIR + DIR_SEP + set_region_dir + DIR_SEP GC_IPL;
 
 			if (!File::Exists(m_strBootROM))
 			{
@@ -917,7 +912,8 @@ bool SConfig::AutoSetup(EBootBS2 _BootBS2)
 	return true;
 }
 
-void SConfig::CheckMemcardPath(std::string& memcardPath, const std::string& gameRegion, bool isSlotA)
+void SConfig::CheckMemcardPath(std::string& memcardPath, const std::string& gameRegion,
+	bool isSlotA)
 {
 	std::string ext("." + gameRegion + ".raw");
 	if (memcardPath.empty())
@@ -953,7 +949,7 @@ void SConfig::CheckMemcardPath(std::string& memcardPath, const std::string& game
 						PanicAlertT("Copy failed");
 				}
 			}
-			memcardPath = filename; // Always correct the path!
+			memcardPath = filename;  // Always correct the path!
 		}
 		else if (region.compare(gameRegion) != 0)
 		{
@@ -964,17 +960,19 @@ void SConfig::CheckMemcardPath(std::string& memcardPath, const std::string& game
 	}
 }
 
-DiscIO::IVolume::ELanguage SConfig::GetCurrentLanguage(bool wii) const
+DiscIO::Language SConfig::GetCurrentLanguage(bool wii) const
 {
-	DiscIO::IVolume::ELanguage language;
+	int language_value;
 	if (wii)
-		language = (DiscIO::IVolume::ELanguage)SConfig::GetInstance().m_SYSCONF->GetData<u8>("IPL.LNG");
+		language_value = SConfig::GetInstance().m_SYSCONF->GetData<u8>("IPL.LNG");
 	else
-		language = (DiscIO::IVolume::ELanguage)(SConfig::GetInstance().SelectedLanguage + 1);
+		language_value = SConfig::GetInstance().SelectedLanguage + 1;
+	DiscIO::Language language = static_cast<DiscIO::Language>(language_value);
 
 	// Get rid of invalid values (probably doesn't matter, but might as well do it)
-	if (language > DiscIO::IVolume::ELanguage::LANGUAGE_UNKNOWN || language < 0)
-		language = DiscIO::IVolume::ELanguage::LANGUAGE_UNKNOWN;
+	if (language > DiscIO::Language::LANGUAGE_UNKNOWN ||
+		language < DiscIO::Language::LANGUAGE_JAPANESE)
+		language = DiscIO::Language::LANGUAGE_UNKNOWN;
 	return language;
 }
 

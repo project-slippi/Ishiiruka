@@ -6,7 +6,7 @@
 
 #include "Core/HW/DSPHLE/UCodes/UCodes.h"
 
-class CARDUCode: public UCodeInterface
+class CARDUCode : public UCodeInterface
 {
 public:
 	CARDUCode(DSPHLE* dsphle, u32 crc);

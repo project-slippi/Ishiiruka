@@ -15,7 +15,7 @@
 #include "Core/HW/DSPHLE/UCodes/AXVoice.h"
 #include "Core/HW/DSPHLE/UCodes/UCodes.h"
 
-AXWiiUCode::AXWiiUCode(DSPHLE* dsphle, u32 crc): AXUCode(dsphle, crc), m_last_main_volume(0x8000)
+AXWiiUCode::AXWiiUCode(DSPHLE* dsphle, u32 crc) : AXUCode(dsphle, crc), m_last_main_volume(0x8000)
 {
 	for (u16& volume : m_last_aux_volumes)
 		volume = 0x8000;
@@ -26,7 +26,8 @@ AXWiiUCode::AXWiiUCode(DSPHLE* dsphle, u32 crc): AXUCode(dsphle, crc), m_last_ma
 }
 
 AXWiiUCode::~AXWiiUCode()
-{}
+{
+}
 
 void AXWiiUCode::HandleCommandList()
 {
@@ -100,12 +101,12 @@ void AXWiiUCode::HandleCommandList()
 			{
 				volume = m_cmdlist[curr_idx++];
 				u32 addresses[6] = {
-					 (u32)(m_cmdlist[curr_idx + 0] << 16) | m_cmdlist[curr_idx + 1],
-					 (u32)(m_cmdlist[curr_idx + 2] << 16) | m_cmdlist[curr_idx + 3],
-					 (u32)(m_cmdlist[curr_idx + 4] << 16) | m_cmdlist[curr_idx + 5],
-					 (u32)(m_cmdlist[curr_idx + 6] << 16) | m_cmdlist[curr_idx + 7],
-					 (u32)(m_cmdlist[curr_idx + 8] << 16) | m_cmdlist[curr_idx + 9],
-					 (u32)(m_cmdlist[curr_idx + 10] << 16) | m_cmdlist[curr_idx + 11],
+						(u32)(m_cmdlist[curr_idx + 0] << 16) | m_cmdlist[curr_idx + 1],
+						(u32)(m_cmdlist[curr_idx + 2] << 16) | m_cmdlist[curr_idx + 3],
+						(u32)(m_cmdlist[curr_idx + 4] << 16) | m_cmdlist[curr_idx + 5],
+						(u32)(m_cmdlist[curr_idx + 6] << 16) | m_cmdlist[curr_idx + 7],
+						(u32)(m_cmdlist[curr_idx + 8] << 16) | m_cmdlist[curr_idx + 9],
+						(u32)(m_cmdlist[curr_idx + 10] << 16) | m_cmdlist[curr_idx + 11],
 				};
 				curr_idx += 12;
 				UploadAUXMixLRSC(cmd == CMD_UPL_AUXB_MIX_LRSC_OLD, addresses, volume);
@@ -130,10 +131,10 @@ void AXWiiUCode::HandleCommandList()
 			case CMD_WM_OUTPUT_OLD:
 			{
 				u32 addresses[4] = {
-					 (u32)(m_cmdlist[curr_idx + 0] << 16) | m_cmdlist[curr_idx + 1],
-					 (u32)(m_cmdlist[curr_idx + 2] << 16) | m_cmdlist[curr_idx + 3],
-					 (u32)(m_cmdlist[curr_idx + 4] << 16) | m_cmdlist[curr_idx + 5],
-					 (u32)(m_cmdlist[curr_idx + 6] << 16) | m_cmdlist[curr_idx + 7],
+						(u32)(m_cmdlist[curr_idx + 0] << 16) | m_cmdlist[curr_idx + 1],
+						(u32)(m_cmdlist[curr_idx + 2] << 16) | m_cmdlist[curr_idx + 3],
+						(u32)(m_cmdlist[curr_idx + 4] << 16) | m_cmdlist[curr_idx + 5],
+						(u32)(m_cmdlist[curr_idx + 6] << 16) | m_cmdlist[curr_idx + 7],
 				};
 				curr_idx += 8;
 				OutputWMSamples(addresses);
@@ -193,12 +194,12 @@ void AXWiiUCode::HandleCommandList()
 			{
 				volume = m_cmdlist[curr_idx++];
 				u32 addresses[6] = {
-					 (u32)(m_cmdlist[curr_idx + 0] << 16) | m_cmdlist[curr_idx + 1],
-					 (u32)(m_cmdlist[curr_idx + 2] << 16) | m_cmdlist[curr_idx + 3],
-					 (u32)(m_cmdlist[curr_idx + 4] << 16) | m_cmdlist[curr_idx + 5],
-					 (u32)(m_cmdlist[curr_idx + 6] << 16) | m_cmdlist[curr_idx + 7],
-					 (u32)(m_cmdlist[curr_idx + 8] << 16) | m_cmdlist[curr_idx + 9],
-					 (u32)(m_cmdlist[curr_idx + 10] << 16) | m_cmdlist[curr_idx + 11],
+						(u32)(m_cmdlist[curr_idx + 0] << 16) | m_cmdlist[curr_idx + 1],
+						(u32)(m_cmdlist[curr_idx + 2] << 16) | m_cmdlist[curr_idx + 3],
+						(u32)(m_cmdlist[curr_idx + 4] << 16) | m_cmdlist[curr_idx + 5],
+						(u32)(m_cmdlist[curr_idx + 6] << 16) | m_cmdlist[curr_idx + 7],
+						(u32)(m_cmdlist[curr_idx + 8] << 16) | m_cmdlist[curr_idx + 9],
+						(u32)(m_cmdlist[curr_idx + 10] << 16) | m_cmdlist[curr_idx + 11],
 				};
 				curr_idx += 12;
 				UploadAUXMixLRSC(cmd == CMD_UPL_AUXB_MIX_LRSC, addresses, volume);
@@ -224,10 +225,10 @@ void AXWiiUCode::HandleCommandList()
 			case CMD_WM_OUTPUT:
 			{
 				u32 addresses[4] = {
-					 (u32)(m_cmdlist[curr_idx + 0] << 16) | m_cmdlist[curr_idx + 1],
-					 (u32)(m_cmdlist[curr_idx + 2] << 16) | m_cmdlist[curr_idx + 3],
-					 (u32)(m_cmdlist[curr_idx + 4] << 16) | m_cmdlist[curr_idx + 5],
-					 (u32)(m_cmdlist[curr_idx + 6] << 16) | m_cmdlist[curr_idx + 7],
+						(u32)(m_cmdlist[curr_idx + 0] << 16) | m_cmdlist[curr_idx + 1],
+						(u32)(m_cmdlist[curr_idx + 2] << 16) | m_cmdlist[curr_idx + 3],
+						(u32)(m_cmdlist[curr_idx + 4] << 16) | m_cmdlist[curr_idx + 5],
+						(u32)(m_cmdlist[curr_idx + 6] << 16) | m_cmdlist[curr_idx + 7],
 				};
 				curr_idx += 8;
 				OutputWMSamples(addresses);
@@ -256,14 +257,14 @@ void AXWiiUCode::SetupProcessing(u32 init_addr)
 		int* ptr;
 		u32 samples;
 	} buffers[] = {
-		 {m_samples_left, 32},      {m_samples_right, 32},      {m_samples_surround, 32},
-		 {m_samples_auxA_left, 32}, {m_samples_auxA_right, 32}, {m_samples_auxA_surround, 32},
-		 {m_samples_auxB_left, 32}, {m_samples_auxB_right, 32}, {m_samples_auxB_surround, 32},
-		 {m_samples_auxC_left, 32}, {m_samples_auxC_right, 32}, {m_samples_auxC_surround, 32},
+			{m_samples_left, 32},      {m_samples_right, 32},      {m_samples_surround, 32},
+			{m_samples_auxA_left, 32}, {m_samples_auxA_right, 32}, {m_samples_auxA_surround, 32},
+			{m_samples_auxB_left, 32}, {m_samples_auxB_right, 32}, {m_samples_auxB_surround, 32},
+			{m_samples_auxC_left, 32}, {m_samples_auxC_right, 32}, {m_samples_auxC_surround, 32},
 
-		 {m_samples_wm0, 6},        {m_samples_aux0, 6},        {m_samples_wm1, 6},
-		 {m_samples_aux1, 6},       {m_samples_wm2, 6},         {m_samples_aux2, 6},
-		 {m_samples_wm3, 6},        {m_samples_aux3, 6}};
+			{m_samples_wm0, 6},        {m_samples_aux0, 6},        {m_samples_wm1, 6},
+			{m_samples_aux1, 6},       {m_samples_wm2, 6},         {m_samples_aux2, 6},
+			{m_samples_wm3, 6},        {m_samples_aux3, 6} };
 
 	u32 init_idx = 0;
 	for (auto& buffer : buffers)
@@ -436,13 +437,18 @@ void AXWiiUCode::ProcessPBList(u32 pb_addr)
 
 	while (pb_addr)
 	{
-		AXBuffers buffers = {{m_samples_left,      m_samples_right,      m_samples_surround,
-									 m_samples_auxA_left, m_samples_auxA_right, m_samples_auxA_surround,
-									 m_samples_auxB_left, m_samples_auxB_right, m_samples_auxB_surround,
-									 m_samples_auxC_left, m_samples_auxC_right, m_samples_auxC_surround,
-									 m_samples_wm0,       m_samples_aux0,       m_samples_wm1,
-									 m_samples_aux1,      m_samples_wm2,        m_samples_aux2,
-									 m_samples_wm3,       m_samples_aux3}};
+		AXBuffers buffers =
+		{
+			{
+				m_samples_left,      m_samples_right,      m_samples_surround,
+				m_samples_auxA_left, m_samples_auxA_right, m_samples_auxA_surround,
+				m_samples_auxB_left, m_samples_auxB_right, m_samples_auxB_surround,
+				m_samples_auxC_left, m_samples_auxC_right, m_samples_auxC_surround,
+				m_samples_wm0,       m_samples_aux0,       m_samples_wm1,
+				m_samples_aux1,      m_samples_wm2,        m_samples_aux2,
+				m_samples_wm3,       m_samples_aux3
+			}
+		};
 
 		ReadPB(pb_addr, pb);
 
@@ -480,8 +486,8 @@ void AXWiiUCode::MixAUXSamples(int aux_id, u32 write_addr, u32 read_addr, u16 vo
 	GenerateVolumeRamp(volume_ramp, m_last_aux_volumes[aux_id], volume, ArraySize(volume_ramp));
 	m_last_aux_volumes[aux_id] = volume;
 
-	int* buffers[3] = {nullptr};
-	int* main_buffers[3] = {m_samples_left, m_samples_right, m_samples_surround};
+	int* buffers[3] = { nullptr };
+	int* main_buffers[3] = { m_samples_left, m_samples_right, m_samples_surround };
 
 	switch (aux_id)
 	{
@@ -547,7 +553,7 @@ void AXWiiUCode::UploadAUXMixLRSC(int aux_id, u32* addresses, u16 volume)
 	GenerateVolumeRamp(volume_ramp, m_last_aux_volumes[aux_id], volume, 96);
 	m_last_aux_volumes[aux_id] = volume;
 
-	int* mix_dest[4] = {m_samples_left, m_samples_right, m_samples_surround, m_samples_auxC_left};
+	int* mix_dest[4] = { m_samples_left, m_samples_right, m_samples_surround, m_samples_auxC_left };
 	for (u32 mix_i = 0; mix_i < 4; ++mix_i)
 	{
 		int* dl_ptr = (int*)HLEMemory_Get_Pointer(addresses[2 + mix_i]);
@@ -569,7 +575,7 @@ void AXWiiUCode::OutputSamples(u32 lr_addr, u32 surround_addr, u16 volume, bool 
 	GenerateVolumeRamp(volume_ramp, m_last_main_volume, volume, ArraySize(volume_ramp));
 	m_last_main_volume = volume;
 
-	int upload_buffer[3 * 32] = {0};
+	int upload_buffer[3 * 32] = { 0 };
 
 	for (u32 i = 0; i < 3 * 32; ++i)
 		upload_buffer[i] = Common::swap32(m_samples_surround[i]);
@@ -614,7 +620,7 @@ void AXWiiUCode::OutputSamples(u32 lr_addr, u32 surround_addr, u16 volume, bool 
 
 void AXWiiUCode::OutputWMSamples(u32* addresses)
 {
-	int* buffers[] = {m_samples_wm0, m_samples_wm1, m_samples_wm2, m_samples_wm3};
+	int* buffers[] = { m_samples_wm0, m_samples_wm1, m_samples_wm2, m_samples_wm3 };
 
 	for (u32 i = 0; i < 4; ++i)
 	{

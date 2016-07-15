@@ -22,7 +22,7 @@
 
 namespace DiscIO
 {
-// Increment CACHE_REVISION if the enum below is modified (ISOFile.cpp & GameFile.cpp)
+// Increment CACHE_REVISION (ISOFile.cpp & GameFile.cpp) if the enum below is modified
 enum class BlobType
 {
 	PLAIN,
@@ -36,8 +36,7 @@ enum class BlobType
 class IBlobReader
 {
 public:
-	virtual ~IBlobReader()
-	{}
+	virtual ~IBlobReader() {}
 	virtual BlobType GetBlobType() const = 0;
 	virtual u64 GetRawSize() const = 0;
 	virtual u64 GetDataSize() const = 0;
@@ -45,14 +44,13 @@ public:
 	virtual bool Read(u64 offset, u64 size, u8* out_ptr) = 0;
 
 protected:
-	IBlobReader()
-	{}
+	IBlobReader() {}
 };
 
 // Provides caching and byte-operation-to-block-operations facilities.
 // Used for compressed blob and direct drive reading.
 // NOTE: GetDataSize() is expected to be evenly divisible by the sector size.
-class SectorReader: public IBlobReader
+class SectorReader : public IBlobReader
 {
 public:
 	virtual ~SectorReader() = 0;
@@ -61,20 +59,14 @@ public:
 
 protected:
 	void SetSectorSize(int blocksize);
-	int GetSectorSize() const
-	{
-		return m_block_size;
-	}
+	int GetSectorSize() const { return m_block_size; }
 	// Set the chunk size -> the number of blocks to read at a time.
 	// Default value is 1 but that is too low for physical devices
 	// like CDROMs. Setting this to a higher value helps reduce seeking
 	// and IO overhead by batching reads. Do not set it too high either
 	// as large reads are slow and will take too long to resolve.
 	void SetChunkSize(int blocks);
-	int GetChunkSize() const
-	{
-		return m_chunk_blocks;
-	}
+	int GetChunkSize() const { return m_chunk_blocks; }
 	// Read a single block/sector.
 	virtual bool GetBlock(u64 block_num, u8* out) = 0;
 
@@ -113,22 +105,10 @@ private:
 			//   desirable in that case.
 			MarkUsed();
 		}
-		bool Contains(u64 block) const
-		{
-			return block >= block_idx && block - block_idx < num_blocks;
-		}
-		void MarkUsed()
-		{
-			lru_sreg |= 0x80000000;
-		}
-		void ShiftLRU()
-		{
-			lru_sreg >>= 1;
-		}
-		bool IsLessRecentlyUsedThan(const Cache& other) const
-		{
-			return lru_sreg < other.lru_sreg;
-		}
+		bool Contains(u64 block) const { return block >= block_idx && block - block_idx < num_blocks; }
+		void MarkUsed() { lru_sreg |= 0x80000000; }
+		void ShiftLRU() { lru_sreg >>= 1; }
+		bool IsLessRecentlyUsedThan(const Cache& other) const { return lru_sreg < other.lru_sreg; }
 	};
 
 	// Gets the cache line that contains the given block, or nullptr.
@@ -158,8 +138,7 @@ private:
 class CBlobBigEndianReader
 {
 public:
-	CBlobBigEndianReader(IBlobReader& reader): m_reader(reader)
-	{}
+	CBlobBigEndianReader(IBlobReader& reader) : m_reader(reader) {}
 	template <typename T>
 	bool ReadSwapped(u64 offset, T* buffer) const
 	{

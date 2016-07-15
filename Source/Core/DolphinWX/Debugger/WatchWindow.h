@@ -4,19 +4,16 @@
 
 #pragma once
 
-#include <wx/panel.h>
 #include <wx/aui/framemanager.h>
+#include <wx/panel.h>
 
 class CWatchView;
 
-class CWatchWindow: public wxPanel
+class CWatchWindow : public wxPanel
 {
 public:
-	CWatchWindow(wxWindow* parent,
-		wxWindowID id = wxID_ANY,
-		const wxPoint& pos = wxDefaultPosition,
-		const wxSize& size = wxDefaultSize,
-		long style = wxTAB_TRAVERSAL | wxNO_BORDER,
+	CWatchWindow(wxWindow* parent, wxWindowID id = wxID_ANY, const wxPoint& pos = wxDefaultPosition,
+		const wxSize& size = wxDefaultSize, long style = wxTAB_TRAVERSAL | wxNO_BORDER,
 		const wxString& name = _("Watch"));
 	~CWatchWindow();
 

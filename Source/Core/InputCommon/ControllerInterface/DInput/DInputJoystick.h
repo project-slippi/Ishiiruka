@@ -13,14 +13,13 @@ namespace DInput
 {
 void InitJoystick(IDirectInput8* const idi8, HWND hwnd);
 
-class Joystick: public ForceFeedback::ForceFeedbackDevice
+class Joystick : public ForceFeedback::ForceFeedbackDevice
 {
 private:
-	class Button: public Input
+	class Button : public Input
 	{
 	public:
-		Button(u8 index, const BYTE& button): m_button(button), m_index(index)
-		{}
+		Button(u8 index, const BYTE& button) : m_button(button), m_index(index) {}
 		std::string GetName() const override;
 		ControlState GetState() const override;
 
@@ -29,12 +28,13 @@ private:
 		const u8 m_index;
 	};
 
-	class Axis: public Input
+	class Axis : public Input
 	{
 	public:
 		Axis(u8 index, const LONG& axis, LONG base, LONG range)
 			: m_axis(axis), m_base(base), m_range(range), m_index(index)
-		{}
+		{
+		}
 		std::string GetName() const override;
 		ControlState GetState() const override;
 
@@ -44,12 +44,13 @@ private:
 		const u8 m_index;
 	};
 
-	class Hat: public Input
+	class Hat : public Input
 	{
 	public:
 		Hat(u8 index, const DWORD& hat, u8 direction)
 			: m_hat(hat), m_direction(direction), m_index(index)
-		{}
+		{
+		}
 		std::string GetName() const override;
 		ControlState GetState() const override;
 
@@ -61,16 +62,14 @@ private:
 public:
 	void UpdateInput() override;
 
-	Joystick(const LPDIRECTINPUTDEVICE8 device, const unsigned int index);
+	Joystick(const LPDIRECTINPUTDEVICE8 device);
 	~Joystick();
 
 	std::string GetName() const override;
-	int GetId() const override;
 	std::string GetSource() const override;
 
 private:
 	const LPDIRECTINPUTDEVICE8 m_device;
-	const unsigned int m_index;
 
 	DIJOYSTATE m_state_in;
 

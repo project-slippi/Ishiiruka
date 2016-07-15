@@ -10,7 +10,8 @@
 #include "Core/HW/DSP.h"
 
 CMailHandler::CMailHandler()
-{}
+{
+}
 
 CMailHandler::~CMailHandler()
 {

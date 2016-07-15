@@ -16,6 +16,7 @@
 #include "Common/MsgHandler.h"
 #include "Common/StringUtil.h"
 #include "DiscIO/Blob.h"
+#include "DiscIO/Enums.h"
 #include "DiscIO/Volume.h"
 #include "DiscIO/VolumeWad.h"
 
@@ -40,7 +41,8 @@ CVolumeWAD::CVolumeWAD(std::unique_ptr<IBlobReader> reader)
 }
 
 CVolumeWAD::~CVolumeWAD()
-{}
+{
+}
 
 bool CVolumeWAD::Read(u64 _Offset, u64 _Length, u8* _pBuffer, bool decrypt) const
 {
@@ -53,10 +55,10 @@ bool CVolumeWAD::Read(u64 _Offset, u64 _Length, u8* _pBuffer, bool decrypt) cons
 	return m_pReader->Read(_Offset, _Length, _pBuffer);
 }
 
-IVolume::ECountry CVolumeWAD::GetCountry() const
+Country CVolumeWAD::GetCountry() const
 {
 	if (!m_pReader)
-		return COUNTRY_UNKNOWN;
+		return Country::COUNTRY_UNKNOWN;
 
 	// read the last digit of the titleID in the ticket
 	u8 country_code;
@@ -87,7 +89,7 @@ std::string CVolumeWAD::GetUniqueID() const
 
 std::string CVolumeWAD::GetMakerID() const
 {
-	char temp[2] = {1};
+	char temp[2] = { 1 };
 	// Some weird channels use 0x0000 in place of the MakerID, so we need a check there
 	if (!Read(0x198 + m_tmd_offset, 2, (u8*)temp) || temp[0] == 0 || temp[1] == 0)
 		return "00";
@@ -113,16 +115,16 @@ u16 CVolumeWAD::GetRevision() const
 	return Common::swap16(revision);
 }
 
-IVolume::EPlatform CVolumeWAD::GetVolumeType() const
+Platform CVolumeWAD::GetVolumeType() const
 {
-	return WII_WAD;
+	return Platform::WII_WAD;
 }
 
-std::map<IVolume::ELanguage, std::string> CVolumeWAD::GetLongNames() const
+std::map<Language, std::string> CVolumeWAD::GetLongNames() const
 {
 	std::vector<u8> name_data(NAMES_TOTAL_BYTES);
 	if (!Read(m_opening_bnr_offset + 0x9C, NAMES_TOTAL_BYTES, name_data.data()))
-		return std::map<IVolume::ELanguage, std::string>();
+		return std::map<Language, std::string>();
 	return ReadWiiNames(name_data);
 }
 

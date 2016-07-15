@@ -26,21 +26,21 @@ frame.
 
 
 IPC_HLE_PERIOD: For the Wiimote this is the call schedule:
-  IPC_HLE_UpdateCallback() // In this file
+	IPC_HLE_UpdateCallback() // In this file
 
-	 // This function seems to call all devices' Update() function four times per frame
-	 WII_IPC_HLE_Interface::Update()
+		// This function seems to call all devices' Update() function four times per frame
+		WII_IPC_HLE_Interface::Update()
 
-		// If the AclFrameQue is empty this will call Wiimote_Update() and make it send
-		the current input status to the game. I'm not sure if this occurs approximately
-		once every frame or if the frequency is not exactly tied to rendered frames
-		CWII_IPC_HLE_Device_usb_oh1_57e_305::Update()
-		PluginWiimote::Wiimote_Update()
+			// If the AclFrameQue is empty this will call Wiimote_Update() and make it send
+			the current input status to the game. I'm not sure if this occurs approximately
+			once every frame or if the frequency is not exactly tied to rendered frames
+			CWII_IPC_HLE_Device_usb_oh1_57e_305::Update()
+			PluginWiimote::Wiimote_Update()
 
-		// This is also a device updated by WII_IPC_HLE_Interface::Update() but it doesn't
-		seem to ultimately call PluginWiimote::Wiimote_Update(). However it can be called
-		by the /dev/usb/oh1 device if the AclFrameQue is empty.
-		CWII_IPC_HLE_WiiMote::Update()
+			// This is also a device updated by WII_IPC_HLE_Interface::Update() but it doesn't
+			seem to ultimately call PluginWiimote::Wiimote_Update(). However it can be called
+			by the /dev/usb/oh1 device if the AclFrameQue is empty.
+			CWII_IPC_HLE_WiiMote::Update()
 */
 
 #include "Core/HW/SystemTimers.h"

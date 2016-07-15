@@ -82,7 +82,7 @@ enum
 static std::mutex s_lock;
 static std::vector<ARCode> s_active_codes;
 static std::vector<std::string> s_internal_log;
-static std::atomic<bool> s_use_internal_log{false};
+static std::atomic<bool> s_use_internal_log{ false };
 // pointer to the code currently being run, (used by log messages that include the code name)
 static const ARCode* s_current_code = nullptr;
 static bool s_disable_logging = false;
@@ -101,7 +101,7 @@ struct ARAddr
 		};
 	};
 
-	ARAddr(const u32 addr): address(addr)
+	ARAddr(const u32 addr) : address(addr)
 	{}
 	u32 GCAddress() const
 	{
@@ -167,7 +167,7 @@ std::vector<ARCode> LoadCodes(const IniFile& global_ini, const IniFile& local_in
 		}
 	}
 
-	const IniFile* inis[2] = {&global_ini, &local_ini};
+	const IniFile* inis[2] = { &global_ini, &local_ini };
 	for (const IniFile* ini : inis)
 	{
 		std::vector<std::string> lines;

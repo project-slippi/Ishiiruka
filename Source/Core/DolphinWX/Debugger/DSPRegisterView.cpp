@@ -8,26 +8,29 @@
 #include "Common/CommonTypes.h"
 #include "Core/DSP/DSPCore.h"
 #include "Core/DSP/DSPTables.h"
-#include "DolphinWX/WxUtils.h"
 #include "DolphinWX/Debugger/DSPRegisterView.h"
-
+#include "DolphinWX/WxUtils.h"
 
 wxString CDSPRegTable::GetValue(int row, int col)
 {
-	if (row < 32) // 32 "normal" regs
+	if (row < 32)  // 32 "normal" regs
 	{
 		switch (col)
 		{
-		case 0: return StrToWxStr(pdregname(row));
-		case 1: return wxString::Format("0x%04x", DSPCore_ReadRegister(row));
-		default: return wxEmptyString;
+		case 0:
+			return StrToWxStr(pdregname(row));
+		case 1:
+			return wxString::Format("0x%04x", DSPCore_ReadRegister(row));
+		default:
+			return wxEmptyString;
 		}
 	}
 	return wxEmptyString;
 }
 
-void CDSPRegTable::SetValue(int, int, const wxString &)
-{}
+void CDSPRegTable::SetValue(int, int, const wxString&)
+{
+}
 
 void CDSPRegTable::UpdateCachedRegs()
 {
@@ -45,9 +48,9 @@ void CDSPRegTable::UpdateCachedRegs()
 	}
 }
 
-wxGridCellAttr *CDSPRegTable::GetAttr(int row, int col, wxGridCellAttr::wxAttrKind)
+wxGridCellAttr* CDSPRegTable::GetAttr(int row, int col, wxGridCellAttr::wxAttrKind)
 {
-	wxGridCellAttr *attr = new wxGridCellAttr();
+	wxGridCellAttr* attr = new wxGridCellAttr();
 
 	attr->SetBackgroundColour(*wxWHITE);
 
@@ -67,7 +70,7 @@ wxGridCellAttr *CDSPRegTable::GetAttr(int row, int col, wxGridCellAttr::wxAttrKi
 	return attr;
 }
 
-DSPRegisterView::DSPRegisterView(wxWindow *parent, wxWindowID id)
+DSPRegisterView::DSPRegisterView(wxWindow* parent, wxWindowID id)
 	: wxGrid(parent, id, wxDefaultPosition, wxSize(130, 120))
 {
 	m_register_table = new CDSPRegTable();

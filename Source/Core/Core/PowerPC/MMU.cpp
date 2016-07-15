@@ -438,7 +438,7 @@ TryReadInstResult TryReadInstruction(u32 address)
 			u32 tlb_addr = TranslateAddress<FLAG_OPCODE>(address);
 			if (tlb_addr == 0)
 			{
-				return TryReadInstResult{false, false, 0};
+				return TryReadInstResult{ false, false, 0 };
 			}
 			else
 			{
@@ -460,11 +460,11 @@ TryReadInstResult TryReadInstruction(u32 address)
 			else if (Memory::bFakeVMEM && (segment == 0x7 || segment == 0x4))
 			{
 				u32 hex = bswap((*(const u32*)&Memory::m_pFakeVMEM[address & Memory::FAKEVMEM_MASK]));
-				return TryReadInstResult{true, true, hex};
+				return TryReadInstResult{ true, true, hex };
 			}
 			else
 			{
-				return TryReadInstResult{false, false, 0};
+				return TryReadInstResult{ false, false, 0 };
 			}
 		}
 	}
@@ -475,7 +475,7 @@ TryReadInstResult TryReadInstruction(u32 address)
 	}
 
 	u32 hex = PowerPC::ppcState.iCache.ReadInstruction(address);
-	return TryReadInstResult{true, from_bat, hex};
+	return TryReadInstResult{ true, from_bat, hex };
 }
 
 u32 HostRead_Instruction(const u32 address)
@@ -675,8 +675,7 @@ std::string HostGetString(u32 address, size_t size)
 			break;
 		s += static_cast<char>(res);
 		++address;
-	}
-	while (size == 0 || s.length() < size);
+	} while (size == 0 || s.length() < size);
 	return s;
 }
 
@@ -923,11 +922,11 @@ union UPTE2
 	{
 		u32 PP : 2;
 		u32 : 1;
-				u32 WIMG : 4;
-				u32 C : 1;
-				u32 R : 1;
-				u32 : 3;
-						u32 RPN : 20;
+					u32 WIMG : 4;
+					u32 C : 1;
+					u32 R : 1;
+					u32 : 3;
+								u32 RPN : 20;
 	};
 	u32 Hex;
 };

@@ -423,7 +423,7 @@ bool wxMsgAlert(const char* caption, const char* text, bool yes_no, int /*Style*
 		}
 		else
 		{
-			npd->AppendChat("/!\\ " + std::string{text});
+			npd->AppendChat("/!\\ " + std::string{ text });
 			return true;
 		}
 #ifdef __WXGTK__

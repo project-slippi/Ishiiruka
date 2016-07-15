@@ -271,8 +271,7 @@ inline u64 ConvertToDouble(u32 _x)
 		{
 			frac <<= 1;
 			exp -= 1;
-		}
-		while ((frac & 0x00800000) == 0);
+		} while ((frac & 0x00800000) == 0);
 
 		return ((x & 0x80000000) << 32) | (exp << 52) | ((frac & 0x007fffff) << 29);
 	}

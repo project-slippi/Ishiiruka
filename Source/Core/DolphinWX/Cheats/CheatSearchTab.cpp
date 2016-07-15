@@ -48,7 +48,7 @@ CheatSearchTab::CheatSearchTab(wxWindow* const parent)
 	m_btn_next_scan->Disable();
 
 	// data sizes radiobox
-	std::array<wxString, 3> data_size_names = {{ _("8-bit"), _("16-bit"), _("32-bit") }};
+	std::array<wxString, 3> data_size_names = { { _("8-bit"), _("16-bit"), _("32-bit") } };
 	m_data_sizes = new wxRadioBox(this, wxID_ANY, _("Data Size"), wxDefaultPosition, wxDefaultSize, static_cast<int>(data_size_names.size()), data_size_names.data());
 
 	// ListView for search results
@@ -274,13 +274,13 @@ static ComparisonMask operator & (ComparisonMask comp1, ComparisonMask comp2)
 
 void CheatSearchTab::FilterCheatSearchResults(u32 value, bool prev)
 {
-	static const std::array<ComparisonMask, 5> filters{{
+	static const std::array<ComparisonMask, 5> filters{ {
 		 ComparisonMask::EQUAL | ComparisonMask::GREATER_THAN | ComparisonMask::LESS_THAN, // Unknown
 		 ComparisonMask::GREATER_THAN | ComparisonMask::LESS_THAN, // Not Equal
 		 ComparisonMask::EQUAL,
 		 ComparisonMask::GREATER_THAN,
 		 ComparisonMask::LESS_THAN
-	}};
+	} };
 	ComparisonMask filter_mask = filters[m_search_type->GetSelection()];
 
 	std::vector<CheatSearchResult> filtered_results;

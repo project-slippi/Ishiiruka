@@ -79,8 +79,7 @@ enum
 	// VI_INTERLACE                      = 0x850, // ??? MYSTERY OLD CODE
 };
 
-union UVIVerticalTimingRegister
-{
+union UVIVerticalTimingRegister {
 	u16 Hex;
 	struct
 	{
@@ -88,43 +87,29 @@ union UVIVerticalTimingRegister
 		u16 ACV : 10;  // Active video in lines per field (seems always zero)
 		u16 : 2;
 	};
-	UVIVerticalTimingRegister(u16 _hex)
-	{
-		Hex = _hex;
-	}
-	UVIVerticalTimingRegister()
-	{
-		Hex = 0;
-	}
+	UVIVerticalTimingRegister(u16 _hex) { Hex = _hex; }
+	UVIVerticalTimingRegister() { Hex = 0; }
 };
 
-union UVIDisplayControlRegister
-{
+union UVIDisplayControlRegister {
 	u16 Hex;
 	struct
 	{
 		u16 ENB : 1;  // Enables video timing generation and data request
 		u16 RST : 1;  // Clears all data requests and puts VI into its idle state
 		u16 NIN : 1;  // 0: Interlaced, 1: Non-Interlaced: top field drawn at field rate and bottom
-						  // field is not displayed
+									// field is not displayed
 		u16 DLR : 1;  // Selects 3D Display Mode
 		u16 LE0 : 2;  // Display Latch; 0: Off, 1: On for 1 field, 2: On for 2 fields, 3: Always on
 		u16 LE1 : 2;
 		u16 FMT : 2;  // 0: NTSC, 1: PAL, 2: MPAL, 3: Debug
 		u16 : 6;
 	};
-	UVIDisplayControlRegister(u16 _hex)
-	{
-		Hex = _hex;
-	}
-	UVIDisplayControlRegister()
-	{
-		Hex = 0;
-	}
+	UVIDisplayControlRegister(u16 _hex) { Hex = _hex; }
+	UVIDisplayControlRegister() { Hex = 0; }
 };
 
-union UVIHorizontalTiming0
-{
+union UVIHorizontalTiming0 {
 	u32 Hex;
 	struct
 	{
@@ -134,15 +119,14 @@ union UVIHorizontalTiming0
 	{
 		u32 HLW : 10;  // Halfline Width (W*16 = Width (720))
 		u32 : 6;
-				u32 HCE : 7;  // Horizontal Sync Start to Color Burst End
-				u32 : 1;
-						u32 HCS : 7;  // Horizontal Sync Start to Color Burst Start
-						u32 : 1;
+					u32 HCE : 7;  // Horizontal Sync Start to Color Burst End
+					u32 : 1;
+								u32 HCS : 7;  // Horizontal Sync Start to Color Burst Start
+								u32 : 1;
 	};
 };
 
-union UVIHorizontalTiming1
-{
+union UVIHorizontalTiming1 {
 	u32 Hex;
 	struct
 	{
@@ -158,8 +142,7 @@ union UVIHorizontalTiming1
 };
 
 // Exists for both odd and even fields
-union UVIVBlankTimingRegister
-{
+union UVIVBlankTimingRegister {
 	u32 Hex;
 	struct
 	{
@@ -169,14 +152,13 @@ union UVIVBlankTimingRegister
 	{
 		u32 PRB : 10;  // Pre-blanking in half lines
 		u32 : 6;
-				u32 PSB : 10;  // Post blanking in half lines
-				u32 : 6;
+					u32 PSB : 10;  // Post blanking in half lines
+					u32 : 6;
 	};
 };
 
 // Exists for both odd and even fields
-union UVIBurstBlankingRegister
-{
+union UVIBurstBlankingRegister {
 	u32 Hex;
 	struct
 	{
@@ -191,8 +173,7 @@ union UVIBurstBlankingRegister
 	};
 };
 
-union UVIFBInfoRegister
-{
+union UVIFBInfoRegister {
 	u32 Hex;
 	struct
 	{
@@ -204,15 +185,14 @@ union UVIFBInfoRegister
 		u32 FBB : 24;  // Base address of the framebuffer in external mem
 		// POFF only seems to exist in the top reg. XOFF, unknown.
 		u32 XOFF : 4;  // Horizontal Offset of the left-most pixel within the first word of the fetched
-							// picture
+									 // picture
 		u32 POFF : 1;  // Page offest: 1: fb address is (address>>5)
 		u32 CLRPOFF : 3;  // ? setting bit 31 clears POFF
 	};
 };
 
 // VI Interrupt Register
-union UVIInterruptRegister
-{
+union UVIInterruptRegister {
 	u32 Hex;
 	struct
 	{
@@ -222,16 +202,15 @@ union UVIInterruptRegister
 	{
 		u32 HCT : 11;  // Horizontal Position
 		u32 : 5;
-				u32 VCT : 11;  // Vertical Position
-				u32 : 1;
-						u32 IR_MASK : 1;  // Interrupt Mask Bit
-						u32 : 2;
-								u32 IR_INT : 1;  // Interrupt Status (1=Active, 0=Clear)
+					u32 VCT : 11;  // Vertical Position
+					u32 : 1;
+								u32 IR_MASK : 1;  // Interrupt Mask Bit
+								u32 : 2;
+											u32 IR_INT : 1;  // Interrupt Status (1=Active, 0=Clear)
 	};
 };
 
-union UVILatchRegister
-{
+union UVILatchRegister {
 	u32 Hex;
 	struct
 	{
@@ -241,14 +220,13 @@ union UVILatchRegister
 	{
 		u32 HCT : 11;  // Horizontal Count
 		u32 : 5;
-				u32 VCT : 11;  // Vertical Count
-				u32 : 4;
-						u32 TRG : 1;  // Trigger Flag
+					u32 VCT : 11;  // Vertical Count
+					u32 : 4;
+								u32 TRG : 1;  // Trigger Flag
 	};
 };
 
-union PictureConfigurationRegister
-{
+union PictureConfigurationRegister {
 	u16 Hex;
 	struct
 	{
@@ -258,29 +236,21 @@ union PictureConfigurationRegister
 	};
 };
 
-union UVIHorizontalScaling
-{
+union UVIHorizontalScaling {
 	u16 Hex;
 	struct
 	{
 		u16 STP : 9;  // Horizontal stepping size (U1.8 Scaler Value) (0x160 Works for 320)
 		u16 : 3;
-				u16 HS_EN : 1;  // Enable Horizontal Scaling
-				u16 : 3;
+					u16 HS_EN : 1;  // Enable Horizontal Scaling
+					u16 : 3;
 	};
-	UVIHorizontalScaling(u16 _hex)
-	{
-		Hex = _hex;
-	}
-	UVIHorizontalScaling()
-	{
-		Hex = 0;
-	}
+	UVIHorizontalScaling(u16 _hex) { Hex = _hex; }
+	UVIHorizontalScaling() { Hex = 0; }
 };
 
 // Used for tables 0-2
-union UVIFilterCoefTable3
-{
+union UVIFilterCoefTable3 {
 	u32 Hex;
 	struct
 	{
@@ -296,8 +266,7 @@ union UVIFilterCoefTable3
 };
 
 // Used for tables 3-6
-union UVIFilterCoefTable4
-{
+union UVIFilterCoefTable4 {
 	u32 Hex;
 	struct
 	{
@@ -319,8 +288,7 @@ struct SVIFilterCoefTables
 };
 
 // Debug video mode only, probably never used in Dolphin...
-union UVIBorderBlankRegister
-{
+union UVIBorderBlankRegister {
 	u32 Hex;
 	struct
 	{
@@ -330,14 +298,13 @@ union UVIBorderBlankRegister
 	{
 		u32 HBE656 : 10;  // Border Horizontal Blank End
 		u32 : 11;
-				u32 HBS656 : 10;  // Border Horizontal Blank start
-				u32 BRDR_EN : 1;  // Border Enable
+					u32 HBS656 : 10;  // Border Horizontal Blank start
+					u32 BRDR_EN : 1;  // Border Enable
 	};
 };
 
 // ntsc-j and component cable bits
-union UVIDTVStatus
-{
+union UVIDTVStatus {
 	u16 Hex;
 	struct
 	{
@@ -347,8 +314,7 @@ union UVIDTVStatus
 	};
 };
 
-union UVIHorizontalStepping
-{
+union UVIHorizontalStepping {
 	u16 Hex;
 	struct
 	{

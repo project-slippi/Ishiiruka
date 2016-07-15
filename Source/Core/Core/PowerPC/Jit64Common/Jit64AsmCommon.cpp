@@ -185,7 +185,7 @@ void CommonAsmRoutines::GenMfcr()
 	XOR(32, R(tmp), R(tmp));
 	for (int i = 0; i < 8; i++)
 	{
-		static const u32 m_flagTable[8] = {0x0, 0x1, 0x8, 0x9, 0x0, 0x1, 0x8, 0x9};
+		static const u32 m_flagTable[8] = { 0x0, 0x1, 0x8, 0x9, 0x0, 0x1, 0x8, 0x9 };
 		if (i != 0)
 			SHL(32, R(dst), Imm8(4));
 
@@ -213,7 +213,7 @@ void CommonAsmRoutines::GenMfcr()
 }
 
 // Safe + Fast Quantizers, originally from JITIL by magumagu
-alignas(16) static const float m_65535[4] = {65535.0f, 65535.0f, 65535.0f, 65535.0f};
+alignas(16) static const float m_65535[4] = { 65535.0f, 65535.0f, 65535.0f, 65535.0f };
 alignas(16) static const float m_32767 = 32767.0f;
 alignas(16) static const float m_m32768 = -32768.0f;
 alignas(16) static const float m_255 = 255.0f;
@@ -221,7 +221,7 @@ alignas(16) static const float m_127 = 127.0f;
 alignas(16) static const float m_m128 = -128.0f;
 
 // Sizes of the various quantized store types
-constexpr std::array<u8, 8> sizes{{32, 0, 0, 0, 8, 16, 8, 16}};
+constexpr std::array<u8, 8> sizes{ {32, 0, 0, 0, 8, 16, 8, 16} };
 
 void CommonAsmRoutines::GenQuantizedStores()
 {

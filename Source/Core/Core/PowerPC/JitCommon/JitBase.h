@@ -55,7 +55,7 @@
 #define JITDISABLE(setting)                                                                        \
   FALLBACK_IF(SConfig::GetInstance().bJITOff || SConfig::GetInstance().setting)
 
-class JitBase: public CPUCoreBase
+class JitBase : public CPUCoreBase
 {
 protected:
 	struct JitOptions
@@ -138,7 +138,7 @@ public:
 	}
 };
 
-class Jitx86Base: public JitBase, public QuantizedMemoryRoutines
+class Jitx86Base : public JitBase, public QuantizedMemoryRoutines
 {
 protected:
 	bool BackPatch(u32 emAddress, SContext* ctx);

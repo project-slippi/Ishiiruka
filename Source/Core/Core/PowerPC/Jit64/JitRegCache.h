@@ -170,7 +170,7 @@ public:
 	int NumFreeRegisters();
 };
 
-class GPRRegCache final: public RegCache
+class GPRRegCache final : public RegCache
 {
 public:
 	void StoreRegister(size_t preg, const Gen::OpArg& newLoc) override;
@@ -182,7 +182,7 @@ public:
 	BitSet32 CountRegsIn(size_t preg, u32 lookahead) override;
 };
 
-class FPURegCache final: public RegCache
+class FPURegCache final : public RegCache
 {
 public:
 	void StoreRegister(size_t preg, const Gen::OpArg& newLoc) override;

@@ -17,7 +17,7 @@ struct AREntry
 {
 	AREntry()
 	{}
-	AREntry(u32 _addr, u32 _value): cmd_addr(_addr), value(_value)
+	AREntry(u32 _addr, u32 _value) : cmd_addr(_addr), value(_value)
 	{}
 	u32 cmd_addr;
 	u32 value;

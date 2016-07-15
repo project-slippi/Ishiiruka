@@ -81,21 +81,21 @@ TODO (in no particular order):
 - JIT for bcctrx
 - Misc optimizations for FP instructions
 - Inter-block dead register elimination; this seems likely to have large
-  performance benefits, although I'm not completely sure.
+	performance benefits, although I'm not completely sure.
 
 - Inter-block inlining; also likely to have large performance benefits.
-  The tricky parts are deciding which blocks to inline, and that the
-  IR can't really deal with branches whose destination is in the
-  the middle of a generated block.
+	The tricky parts are deciding which blocks to inline, and that the
+	IR can't really deal with branches whose destination is in the
+	the middle of a generated block.
 
 - Specialized slw/srw/sraw; I think there are some tricks that could
-  have a non-trivial effect, and there are significantly shorter
-  implementations for 64-bit involving abusing 64-bit shifts.
-  64-bit compat (it should only be a few tweaks to register allocation and the load/store code)
+	have a non-trivial effect, and there are significantly shorter
+	implementations for 64-bit involving abusing 64-bit shifts.
+	64-bit compat (it should only be a few tweaks to register allocation and the load/store code)
 
 - Scheduling to reduce register pressure: PowerPCcompilers like to push
-  uses far away from definitions, but it's rather unfriendly to modern
-  x86 processors, which are short on registers and extremely good at instruction reordering.
+	uses far away from definitions, but it's rather unfriendly to modern
+	x86 processors, which are short on registers and extremely good at instruction reordering.
 
 - Common subexpression elimination
 - Optimize load/store of sum using complex addressing (partially implemented)
@@ -103,15 +103,15 @@ TODO (in no particular order):
 - Code refactoring/cleanup
 
 - Investigate performance of the JIT itself; this doesn't affect
-  framerates significantly, but it does take a visible amount
-  of time for a complicated piece of code like a video decoder to compile.
+	framerates significantly, but it does take a visible amount
+	of time for a complicated piece of code like a video decoder to compile.
 
 - Fix profiled loads/stores to work safely.  On 32-bit, one solution is to
-  use a spare segment register, and expand the backpatch solution
-  to work in all the relevant situations.  On 64-bit, the existing
-  fast memory solution should basically work.  An alternative
-  would be to figure out a heuristic for what loads actually
-  vary their "type", and special-case them.
+	use a spare segment register, and expand the backpatch solution
+	to work in all the relevant situations.  On 64-bit, the existing
+	fast memory solution should basically work.  An alternative
+	would be to figure out a heuristic for what loads actually
+	vary their "type", and special-case them.
 
 */
 
@@ -1508,16 +1508,16 @@ void IRBuilder::simplifyCommutative(unsigned Opcode, InstLoc& Op1, InstLoc& Op2)
 	/*
 	if (getOpcode(*Op1) == Opcode && getOpcode(*Op2) == Opcode)
 	{
-	  // Sort the operands where the complexities will be descending order.
-	  std::pair<unsigned, InstLoc> ops[4];
-	  ops[0] = std::make_pair(getComplexity(getOp1(Op1)), getOp1(Op1));
-	  ops[1] = std::make_pair(getComplexity(getOp2(Op1)), getOp2(Op1));
-	  ops[2] = std::make_pair(getComplexity(getOp1(Op2)), getOp1(Op2));
-	  ops[3] = std::make_pair(getComplexity(getOp2(Op2)), getOp2(Op2));
-	  std::sort(ops, ops + 4, std::greater<std::pair<unsigned, InstLoc> >());
+		// Sort the operands where the complexities will be descending order.
+		std::pair<unsigned, InstLoc> ops[4];
+		ops[0] = std::make_pair(getComplexity(getOp1(Op1)), getOp1(Op1));
+		ops[1] = std::make_pair(getComplexity(getOp2(Op1)), getOp2(Op1));
+		ops[2] = std::make_pair(getComplexity(getOp1(Op2)), getOp1(Op2));
+		ops[3] = std::make_pair(getComplexity(getOp2(Op2)), getOp2(Op2));
+		std::sort(ops, ops + 4, std::greater<std::pair<unsigned, InstLoc> >());
 
-	  Op1 = FoldBiOp(Opcode, FoldBiOp(Opcode, ops[0].second, ops[1].second), ops[2].second);
-	  Op2 = ops[3].second;
+		Op1 = FoldBiOp(Opcode, FoldBiOp(Opcode, ops[0].second, ops[1].second), ops[2].second);
+		Op2 = ops[3].second;
 	}
 	*/
 }
@@ -1542,7 +1542,7 @@ InstLoc IRBuilder::isNeg(InstLoc I) const
 struct Writer
 {
 	File::IOFile file;
-	Writer(): file(nullptr)
+	Writer() : file(nullptr)
 	{
 		std::string filename = StringFromFormat("JitIL_IR_%d.txt", (int)time(nullptr));
 		file.Open(filename, "w");
@@ -1669,7 +1669,7 @@ static const std::string opcodeNames[] = {
 	 "BlockEnd",
 	 "Int3",
 };
-static const unsigned alwaysUsedList[] = {FallBackToInterpreter,
+static const unsigned alwaysUsedList[] = { FallBackToInterpreter,
 														StoreGReg,
 														StoreCR,
 														StoreLink,
@@ -1705,7 +1705,7 @@ static const unsigned alwaysUsedList[] = {FallBackToInterpreter,
 														BreakPointCheck,
 														Int3,
 														Tramp,
-														Nop};
+														Nop };
 static const unsigned extra8RegList[] = {
 	 LoadGReg, LoadCR, LoadGQR, LoadFReg, LoadFRegDENToZero,
 };

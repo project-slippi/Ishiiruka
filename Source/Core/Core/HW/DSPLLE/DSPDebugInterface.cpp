@@ -148,12 +148,12 @@ void DSPDebugInterface::InsertBLR(unsigned int address, unsigned int value)
 int DSPDebugInterface::GetColor(unsigned int address)
 {
 	static const int colors[6] = {
-		 0xd0FFFF,  // light cyan
-		 0xFFd0d0,  // light red
-		 0xd8d8FF,  // light blue
-		 0xFFd0FF,  // light purple
-		 0xd0FFd0,  // light green
-		 0xFFFFd0,  // light yellow
+			0xd0FFFF,  // light cyan
+			0xFFd0d0,  // light red
+			0xd8d8FF,  // light blue
+			0xFFd0FF,  // light purple
+			0xd0FFd0,  // light green
+			0xFFFFd0,  // light yellow
 	};
 
 	// Scan backwards so we don't miss it. Hm, actually, let's not - it looks pretty good.
@@ -194,4 +194,5 @@ void DSPDebugInterface::SetPC(unsigned int address)
 }
 
 void DSPDebugInterface::RunToBreakpoint()
-{}
+{
+}

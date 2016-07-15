@@ -37,25 +37,23 @@ distribution.
 #include "Common/CommonTypes.h"
 
 #pragma pack(push, 1)
-union SRAMFlags
-{
+union SRAMFlags {
 	u8 Hex;
 	struct
 	{
 		u8 : 2;
-			  u8 sound : 1;        // Audio settings; 0 = Mono, 1 = Stereo
-			  u8 initialized : 1;  // if 0, displays prompt to set language on boot and asks user to set
-										  // options and time/date
-			  u8 : 2;
-					 u8 boot_menu : 1;  // if 1, skips logo animation and boots into the system menu regardless of if
-											  // there is a disc inserted
-					 u8 progressive : 1;  // if 1, automatically displays Progressive Scan prompt in games that
-												 // support it
+				 u8 sound : 1;        // Audio settings; 0 = Mono, 1 = Stereo
+				 u8 initialized : 1;  // if 0, displays prompt to set language on boot and asks user to set
+															// options and time/date
+				 u8 : 2;
+							u8 boot_menu : 1;  // if 1, skips logo animation and boots into the system menu regardless of if
+																 // there is a disc inserted
+							u8 progressive : 1;  // if 1, automatically displays Progressive Scan prompt in games that
+																	 // support it
 	};
 };
 
-union SRAM
-{
+union SRAM {
 	u8 p_SRAM[64];
 	struct  // Stored configuration value from the system SRAM area
 	{

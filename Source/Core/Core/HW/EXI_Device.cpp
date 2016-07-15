@@ -67,17 +67,14 @@ void IEXIDevice::DMARead(u32 _uAddr, u32 _uSize)
 // Just a dummy that logs reads and writes
 // to be used for EXI devices we haven't emulated
 // DOES NOT FUNCTION AS "NO DEVICE INSERTED" -> Appears as unknown device
-class CEXIDummy: public IEXIDevice
+class CEXIDummy : public IEXIDevice
 {
 	std::string m_strName;
 
-	void TransferByte(u8& _byte) override
-	{}
+	void TransferByte(u8& _byte) override {}
 public:
-	CEXIDummy(const std::string& _strName): m_strName(_strName)
-	{}
-	virtual ~CEXIDummy()
-	{}
+	CEXIDummy(const std::string& _strName) : m_strName(_strName) {}
+	virtual ~CEXIDummy() {}
 	void ImmWrite(u32 data, u32 size) override
 	{
 		INFO_LOG(EXPANSIONINTERFACE, "EXI DUMMY %s ImmWrite: %08x", m_strName.c_str(), data);
@@ -97,10 +94,7 @@ public:
 		INFO_LOG(EXPANSIONINTERFACE, "EXI DUMMY %s DMARead:  %08x bytes, from device to %08x",
 			m_strName.c_str(), size, addr);
 	}
-	bool IsPresent() const override
-	{
-		return true;
-	}
+	bool IsPresent() const override { return true; }
 };
 
 // F A C T O R Y

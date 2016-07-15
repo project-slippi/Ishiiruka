@@ -16,7 +16,7 @@
 #include "VideoCommon/VideoBackendBase.h"
 #include "VideoCommon/VideoConfig.h"
 
-class SoftwareVideoConfigDialog: public wxDialog
+class SoftwareVideoConfigDialog : public wxDialog
 {
 public:
 	SoftwareVideoConfigDialog(wxWindow* parent, const std::string &title);

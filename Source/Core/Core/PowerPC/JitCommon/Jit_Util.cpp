@@ -105,7 +105,7 @@ bool EmuCodeBlock::UnsafeLoadToReg(X64Reg reg_value, OpArg opAddress, int access
 
 // Visitor that generates code to read a MMIO value.
 template <typename T>
-class MMIOReadCodeGenerator: public MMIO::ReadHandlingMethodVisitor<T>
+class MMIOReadCodeGenerator : public MMIO::ReadHandlingMethodVisitor<T>
 {
 public:
 	MMIOReadCodeGenerator(Gen::X64CodeBlock* code, BitSet32 registers_in_use, Gen::X64Reg dst_reg,
@@ -784,8 +784,8 @@ void EmuCodeBlock::avx_op(void (XEmitter::*avxOp)(X64Reg, X64Reg, const OpArg&, 
 	}
 }
 
-alignas(16) static const u64 psMantissaTruncate[2] = {0xFFFFFFFFF8000000ULL, 0xFFFFFFFFF8000000ULL};
-alignas(16) static const u64 psRoundBit[2] = {0x8000000, 0x8000000};
+alignas(16) static const u64 psMantissaTruncate[2] = { 0xFFFFFFFFF8000000ULL, 0xFFFFFFFFF8000000ULL };
+alignas(16) static const u64 psRoundBit[2] = { 0x8000000, 0x8000000 };
 
 // Emulate the odd truncation/rounding that the PowerPC does on the RHS operand before
 // a single precision multiply. To be precise, it drops the low 28 bits of the mantissa,
@@ -996,9 +996,9 @@ void EmuCodeBlock::ConvertSingleToDouble(X64Reg dst, X64Reg src, bool src_is_gpr
 	MOVDDUP(dst, R(dst));
 }
 
-alignas(16) static const u64 psDoubleExp[2] = {0x7FF0000000000000ULL, 0};
-alignas(16) static const u64 psDoubleFrac[2] = {0x000FFFFFFFFFFFFFULL, 0};
-alignas(16) static const u64 psDoubleNoSign[2] = {0x7FFFFFFFFFFFFFFFULL, 0};
+alignas(16) static const u64 psDoubleExp[2] = { 0x7FF0000000000000ULL, 0 };
+alignas(16) static const u64 psDoubleFrac[2] = { 0x000FFFFFFFFFFFFFULL, 0 };
+alignas(16) static const u64 psDoubleNoSign[2] = { 0x7FFFFFFFFFFFFFFFULL, 0 };
 
 // TODO: it might be faster to handle FPRF in the same way as CR is currently handled for integer,
 // storing

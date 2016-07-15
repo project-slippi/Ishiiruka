@@ -50,13 +50,11 @@ int ISIDevice::TransferInterval()
 }
 
 // Stub class for saying nothing is attached, and not having to deal with null pointers :)
-class CSIDevice_Null: public ISIDevice
+class CSIDevice_Null : public ISIDevice
 {
 public:
-	CSIDevice_Null(SIDevices device, int _iDeviceNumber): ISIDevice(device, _iDeviceNumber)
-	{}
-	virtual ~CSIDevice_Null()
-	{}
+	CSIDevice_Null(SIDevices device, int _iDeviceNumber) : ISIDevice(device, _iDeviceNumber) {}
+	virtual ~CSIDevice_Null() {}
 	int RunBuffer(u8* _pBuffer, int _iLength) override
 	{
 		reinterpret_cast<u32*>(_pBuffer)[0] = SI_ERROR_NO_RESPONSE;
@@ -67,8 +65,7 @@ public:
 		_Hi = 0x80000000;
 		return true;
 	}
-	void SendCommand(u32 _Cmd, u8 _Poll) override
-	{}
+	void SendCommand(u32 _Cmd, u8 _Poll) override {}
 };
 
 // Check if a device class is inheriting from CSIDevice_GCController

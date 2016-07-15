@@ -39,20 +39,16 @@ class wxTextCtrl;
 class PadSetting
 {
 protected:
-	PadSetting(wxControl* const _control): wxcontrol(_control)
-	{
-		wxcontrol->SetClientData(this);
-	}
+	PadSetting(wxControl* const _control) : wxcontrol(_control) { wxcontrol->SetClientData(this); }
 public:
 	virtual void UpdateGUI() = 0;
 	virtual void UpdateValue() = 0;
 
-	virtual ~PadSetting()
-	{}
+	virtual ~PadSetting() {}
 	wxControl* const wxcontrol;
 };
 
-class PadSettingExtension: public PadSetting
+class PadSettingExtension : public PadSetting
 {
 public:
 	PadSettingExtension(wxWindow* const parent, ControllerEmu::Extension* const ext);
@@ -62,49 +58,43 @@ public:
 	ControllerEmu::Extension* const extension;
 };
 
-class PadSettingSpin: public PadSetting
+class PadSettingSpin : public PadSetting
 {
 public:
-	PadSettingSpin(wxWindow* const parent, ControllerEmu::ControlGroup::Setting* const _setting)
+	PadSettingSpin(wxWindow* const parent,
+		ControllerEmu::ControlGroup::NumericSetting* const _setting)
 		: PadSetting(new wxSpinCtrl(parent, wxID_ANY, wxEmptyString, wxDefaultPosition,
-			wxSize(54, -1), 0, _setting->low, _setting->high,
-			(int)(_setting->value * 100))),
+			wxSize(54, -1), 0, _setting->m_low, _setting->m_high,
+			(int)(_setting->GetValue() * 100))),
 		setting(_setting)
-	{}
+	{
+	}
 
 	void UpdateGUI() override;
 	void UpdateValue() override;
 
-	ControllerEmu::ControlGroup::Setting* const setting;
+	ControllerEmu::ControlGroup::NumericSetting* const setting;
 };
 
-class PadSettingCheckBox: public PadSetting
+class PadSettingCheckBox : public PadSetting
 {
 public:
-	PadSettingCheckBox(wxWindow* const parent, ControllerEmu::ControlGroup::Setting* const setting);
+	PadSettingCheckBox(wxWindow* const parent,
+		ControllerEmu::ControlGroup::BooleanSetting* const setting);
 	void UpdateGUI() override;
 	void UpdateValue() override;
 
-	ControllerEmu::ControlGroup::Setting* const setting;
+	ControllerEmu::ControlGroup::BooleanSetting* const setting;
 };
 
-class InputEventFilter: public wxEventFilter
+class InputEventFilter : public wxEventFilter
 {
 public:
-	InputEventFilter()
-	{
-		wxEvtHandler::AddFilter(this);
-	}
-	~InputEventFilter()
-	{
-		wxEvtHandler::RemoveFilter(this);
-	}
+	InputEventFilter() { wxEvtHandler::AddFilter(this); }
+	~InputEventFilter() { wxEvtHandler::RemoveFilter(this); }
 	int FilterEvent(wxEvent& event) override;
 
-	void BlockEvents(bool block)
-	{
-		m_block = block;
-	}
+	void BlockEvents(bool block) { m_block = block; }
 private:
 	static bool ShouldCatchEventType(wxEventType type)
 	{
@@ -119,7 +109,7 @@ private:
 
 class GamepadPage;
 
-class ControlDialog: public wxDialog
+class ControlDialog : public wxDialog
 {
 public:
 	ControlDialog(GamepadPage* const parent, InputConfig& config,
@@ -159,17 +149,18 @@ private:
 	ciface::Core::DeviceQualifier m_devq;
 };
 
-class ExtensionButton: public wxButton
+class ExtensionButton : public wxButton
 {
 public:
 	ExtensionButton(wxWindow* const parent, ControllerEmu::Extension* const ext)
 		: wxButton(parent, wxID_ANY, _("Configure"), wxDefaultPosition), extension(ext)
-	{}
+	{
+	}
 
 	ControllerEmu::Extension* const extension;
 };
 
-class ControlButton: public wxButton
+class ControlButton : public wxButton
 {
 public:
 	ControlButton(wxWindow* const parent, ControllerInterface::ControlReference* const _ref,
@@ -178,7 +169,7 @@ public:
 	ControllerInterface::ControlReference* const control_reference;
 };
 
-class ControlGroupBox: public wxBoxSizer
+class ControlGroupBox : public wxBoxSizer
 {
 public:
 	ControlGroupBox(ControllerEmu::ControlGroup* const group, wxWindow* const parent,
@@ -192,7 +183,7 @@ public:
 	std::vector<ControlButton*> control_buttons;
 };
 
-class ControlGroupsSizer: public wxBoxSizer
+class ControlGroupsSizer : public wxBoxSizer
 {
 public:
 	ControlGroupsSizer(ControllerEmu* const controller, wxWindow* const parent,
@@ -202,7 +193,7 @@ public:
 
 class InputConfigDialog;
 
-class GamepadPage: public wxPanel
+class GamepadPage : public wxPanel
 {
 	friend class InputConfigDialog;
 	friend class ControlDialog;
@@ -255,7 +246,7 @@ private:
 	bool m_iterate = false;
 };
 
-class InputConfigDialog: public wxDialog
+class InputConfigDialog : public wxDialog
 {
 public:
 	InputConfigDialog(wxWindow* const parent, InputConfig& config, const wxString& name,

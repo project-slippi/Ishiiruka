@@ -31,10 +31,9 @@ enum
 	FS_NO_HANDLE = -106,
 };
 
-class CWII_IPC_HLE_Device_fs: public IWII_IPC_HLE_Device
+class CWII_IPC_HLE_Device_fs : public IWII_IPC_HLE_Device
 {
 public:
-
 	CWII_IPC_HLE_Device_fs(u32 _DeviceID, const std::string& _rDeviceName);
 	virtual ~CWII_IPC_HLE_Device_fs();
 
@@ -47,7 +46,6 @@ public:
 	IPCCommandResult IOCtlV(u32 _CommandAddress) override;
 
 private:
-
 	enum
 	{
 		IOCTL_GET_STATS = 0x02,
@@ -64,10 +62,7 @@ private:
 
 	// ~1/1000th of a second is too short and causes hangs in Wii Party
 	// Play it safe at 1/500th
-	IPCCommandResult GetFSReply() const
-	{
-		return{true, SystemTimers::GetTicksPerSecond() / 500};
-	}
-
-	s32 ExecuteCommand(u32 Parameter, u32 _BufferIn, u32 _BufferInSize, u32 _BufferOut, u32 _BufferOutSize);
+	IPCCommandResult GetFSReply() const { return{ true, SystemTimers::GetTicksPerSecond() / 500 }; }
+	s32 ExecuteCommand(u32 Parameter, u32 _BufferIn, u32 _BufferInSize, u32 _BufferOut,
+		u32 _BufferOutSize);
 };

@@ -16,7 +16,7 @@ struct GekkoOPTemplate
 };
 
 // clang-format off
-static GekkoOPInfo unknownopinfo = {"unknown_instruction", OPTYPE_UNKNOWN, FL_ENDBLOCK, 0, 0, 0, 0};
+static GekkoOPInfo unknownopinfo = { "unknown_instruction", OPTYPE_UNKNOWN, FL_ENDBLOCK, 0, 0, 0, 0 };
 
 static GekkoOPTemplate primarytable[] =
 {

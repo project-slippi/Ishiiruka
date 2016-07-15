@@ -176,7 +176,7 @@ struct PBAudioAddr
 	u16 looping;
 	u16 sample_format;
 	u16 loop_addr_hi;  // Start of loop (this will point to a shared "zero" buffer if one-shot mode is
-							 // active)
+	// active)
 	u16 loop_addr_lo;
 	u16 end_addr_hi;  // End of sample (and loop), inclusive
 	u16 end_addr_lo;
@@ -267,8 +267,7 @@ struct PBBiquadFilter
 	u16 a2;
 };
 
-union PBInfImpulseResponseWM
-{
+union PBInfImpulseResponseWM {
 	PBLowPassFilter lpf;
 	PBBiquadFilter biquad;
 };
@@ -308,7 +307,7 @@ struct AXPBWii
 	PBSampleRateConverterWM remote_src;
 	PBInfImpulseResponseWM remote_iir;
 
-	u16 pad[12];  // align us, captain! (32B)
+	u16 padding[12];  // align us, captain! (32B)
 };
 
 // TODO: All these enums have changed a lot for Wii

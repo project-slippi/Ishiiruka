@@ -137,9 +137,9 @@ void CEXIMic::StreamReadOne()
 // cmdGetBuffer, which is when we actually read data from a buffer filled
 // in the background by Pa_Callback.
 
-u8 const CEXIMic::exi_id[] = {0, 0x0a, 0, 0, 0};
+u8 const CEXIMic::exi_id[] = { 0, 0x0a, 0, 0, 0 };
 
-CEXIMic::CEXIMic(int index): slot(index)
+CEXIMic::CEXIMic(int index) : slot(index)
 {
 	m_position = 0;
 	command = 0;

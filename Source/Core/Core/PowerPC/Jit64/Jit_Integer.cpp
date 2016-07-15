@@ -50,7 +50,7 @@ void Jit64::GenerateOverflow()
 	// We need to do this without modifying flags so as not to break stuff that assumes flags
 	// aren't clobbered (carry, branch merging): speed doesn't really matter here (this is really
 	// rare).
-	static const u8 ovtable[4] = {0, 0, XER_SO_MASK, XER_SO_MASK};
+	static const u8 ovtable[4] = { 0, 0, XER_SO_MASK, XER_SO_MASK };
 	MOVZX(32, 8, RSCRATCH, PPCSTATE(xer_so_ov));
 	MOV(8, R(RSCRATCH), MDisp(RSCRATCH, (u32)(u64)ovtable));
 	MOV(8, PPCSTATE(xer_so_ov), R(RSCRATCH));
@@ -282,7 +282,7 @@ void Jit64::reg_imm(UGeckoInstruction inst)
 	switch (inst.OPCD)
 	{
 	case 14:  // addi
-	  // occasionally used as MOV - emulate, with immediate propagation
+		// occasionally used as MOV - emulate, with immediate propagation
 		if (gpr.R(a).IsImm() && d != a && a != 0)
 		{
 			gpr.SetImmediate32(d, gpr.R(a).Imm32() + (u32)(s32)inst.SIMM_16);
@@ -954,7 +954,7 @@ void Jit64::MultiplyImmediate(u32 imm, int a, int d, bool overflow)
 
 		// We could handle factors of 2^N*3, 2^N*5, and 2^N*9 using lea+shl, but testing shows
 		// it seems to be slower overall.
-		static u8 lea_scales[3] = {3, 5, 9};
+		static u8 lea_scales[3] = { 3, 5, 9 };
 		for (int i = 0; i < 3; i++)
 		{
 			if (imm == lea_scales[i])
@@ -1887,7 +1887,7 @@ void Jit64::twX(UGeckoInstruction inst)
 	}
 
 	std::vector<FixupBranch> fixups;
-	CCFlags conditions[] = {CC_A, CC_B, CC_E, CC_G, CC_L};
+	CCFlags conditions[] = { CC_A, CC_B, CC_E, CC_G, CC_L };
 
 	for (int i = 0; i < 5; i++)
 	{

@@ -282,7 +282,7 @@ void CFileSystemGCWii::InitFileSystem()
 		!m_rVolume->ReadSwapped(FSTOffset + 0x4, &offset, m_Wii) ||
 		!m_rVolume->ReadSwapped(FSTOffset + 0x8, &size, m_Wii))
 		return;
-	SFileInfo root = {name_offset, static_cast<u64>(offset) << shift, size};
+	SFileInfo root = { name_offset, static_cast<u64>(offset) << shift, size };
 
 	if (!root.IsDirectory())
 		return;
@@ -329,7 +329,7 @@ size_t CFileSystemGCWii::BuildFilenames(const size_t _FirstIndex, const size_t _
 	{
 		SFileInfo& rFileInfo = m_FileInfoVector[CurrentIndex];
 		u64 const uOffset = _NameTableOffset + (rFileInfo.m_NameOffset & 0xFFFFFF);
-		std::string const offset_str{GetStringFromOffset(uOffset)};
+		std::string const offset_str{ GetStringFromOffset(uOffset) };
 		bool const is_dir = rFileInfo.IsDirectory();
 		rFileInfo.m_FullPath.reserve(_szDirectory.size() + offset_str.size());
 

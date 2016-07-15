@@ -8,7 +8,7 @@
 #include "Core/HW/SI_Device.h"
 #include "InputCommon/GCPadStatus.h"
 
-class CSIDevice_GCController: public ISIDevice
+class CSIDevice_GCController : public ISIDevice
 {
 protected:
 	// Commands
@@ -41,8 +41,7 @@ protected:
 		CMD_WRITE = 0x40
 	};
 
-	union UCommand
-	{
+	union UCommand {
 		u32 Hex;
 		struct
 		{
@@ -51,14 +50,8 @@ protected:
 			u32 Command : 8;
 			u32 : 8;
 		};
-		UCommand()
-		{
-			Hex = 0;
-		}
-		UCommand(u32 _iValue)
-		{
-			Hex = _iValue;
-		}
+		UCommand() { Hex = 0; }
+		UCommand(u32 _iValue) { Hex = _iValue; }
 	};
 
 	enum EButtonCombo
@@ -121,7 +114,7 @@ protected:
 };
 
 // "TaruKonga", the DK Bongo controller
-class CSIDevice_TaruKonga: public CSIDevice_GCController
+class CSIDevice_TaruKonga : public CSIDevice_GCController
 {
 public:
 	CSIDevice_TaruKonga(SIDevices device, int _iDeviceNumber)

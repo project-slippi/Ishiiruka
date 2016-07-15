@@ -32,18 +32,12 @@ public:
 	void Start(int node)
 	{
 		m_last_start = m_ptr;
-		unsigned char hdr[3] = {0xe0, (unsigned char)node, 0};
+		unsigned char hdr[3] = { 0xe0, (unsigned char)node, 0 };
 		m_csum = 0;
 		AddData(hdr, 3, 1);
 	}
-	void AddData(const void* data, size_t len)
-	{
-		AddData((const unsigned char*)data, len);
-	}
-	void AddData(const char* data)
-	{
-		AddData(data, strlen(data));
-	}
+	void AddData(const void* data, size_t len) { AddData((const unsigned char*)data, len); }
+	void AddData(const char* data) { AddData(data, strlen(data)); }
 	void AddData(int n)
 	{
 		unsigned char cs = n;
@@ -84,7 +78,8 @@ public:
 // AM-Baseboard device on SI
 CSIDevice_AMBaseboard::CSIDevice_AMBaseboard(SIDevices device, int _iDeviceNumber)
 	: ISIDevice(device, _iDeviceNumber)
-{}
+{
+}
 
 int CSIDevice_AMBaseboard::RunBuffer(u8* _pBuffer, int _iLength)
 {
@@ -306,7 +301,7 @@ int CSIDevice_AMBaseboard::RunBuffer(u8* _pBuffer, int _iLength)
 							{
 								GCPadStatus PadStatus;
 								Pad::GetStatus(i, &PadStatus);
-								unsigned char player_data[2] = {0, 0};
+								unsigned char player_data[2] = { 0, 0 };
 								if (PadStatus.button & PAD_BUTTON_START)
 									player_data[0] |= 0x80;
 								if (PadStatus.button & PAD_BUTTON_UP)

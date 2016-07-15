@@ -21,19 +21,15 @@ class DebugInterface;
 class SymbolDB;
 class wxPaintDC;
 
-class CCodeView: public wxControl
+class CCodeView : public wxControl
 {
 public:
-	CCodeView(DebugInterface* debuginterface, SymbolDB *symbol_db,
-		wxWindow* parent, wxWindowID Id = wxID_ANY);
+	CCodeView(DebugInterface* debuginterface, SymbolDB* symbol_db, wxWindow* parent,
+		wxWindowID Id = wxID_ANY);
 
 	void ToggleBreakpoint(u32 address);
 
-	u32 GetSelection() const
-	{
-		return m_selection;
-	}
-
+	u32 GetSelection() const { return m_selection; }
 	void Center(u32 addr)
 	{
 		m_curAddress = addr;
@@ -41,11 +37,7 @@ public:
 		Refresh();
 	}
 
-	void SetPlain()
-	{
-		m_plain = true;
-	}
-
+	void SetPlain() { m_plain = true; }
 private:
 	void OnPaint(wxPaintEvent& event);
 	void OnErase(wxEraseEvent& event);
@@ -71,7 +63,7 @@ private:
 
 	void LineTo(std::unique_ptr<wxGraphicsContext>& dc, int x, int y);
 
-	struct BlrStruct // for IDM_INSERTBLR
+	struct BlrStruct  // for IDM_INSERTBLR
 	{
 		u32 address;
 		u32 oldValue;

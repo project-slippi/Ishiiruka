@@ -16,7 +16,7 @@
 
 using namespace Gen;
 
-DSPEmitter::DSPEmitter(): gpr(*this), storeIndex(-1), storeIndex2(-1)
+DSPEmitter::DSPEmitter() : gpr(*this), storeIndex(-1), storeIndex2(-1)
 {
 	m_compiledCode = nullptr;
 

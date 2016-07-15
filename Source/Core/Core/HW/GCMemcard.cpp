@@ -765,13 +765,13 @@ u32 GCMemcard::RemoveFile(u8 index)  // index in the directory array
 	*PreviousDir = UpdatedDir;
 	if (PreviousDir == &dir )
 	{
-	  CurrentDir = &dir;
-	  PreviousDir = &dir_backup;
+		CurrentDir = &dir;
+		PreviousDir = &dir_backup;
 	}
 	else
 	{
-	  CurrentDir = &dir_backup;
-	  PreviousDir = &dir;
+		CurrentDir = &dir_backup;
+		PreviousDir = &dir;
 	}
 	*/
 	memset(&(UpdatedDir.Dir[index]), 0xFF, DENTRY_SIZE);

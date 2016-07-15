@@ -11,27 +11,27 @@
 
 namespace WiimoteEmu
 {
-static const u8 turntable_id[] = {0x03, 0x00, 0xa4, 0x20, 0x01, 0x03};
+static const u8 turntable_id[] = { 0x03, 0x00, 0xa4, 0x20, 0x01, 0x03 };
 
 static const u16 turntable_button_bitmasks[] = {
-	 Turntable::BUTTON_L_GREEN, Turntable::BUTTON_L_RED, Turntable::BUTTON_L_BLUE,
-	 Turntable::BUTTON_R_GREEN, Turntable::BUTTON_R_RED, Turntable::BUTTON_R_BLUE,
-	 Turntable::BUTTON_MINUS,   Turntable::BUTTON_PLUS,  Turntable::BUTTON_EUPHORIA,
+		Turntable::BUTTON_L_GREEN, Turntable::BUTTON_L_RED, Turntable::BUTTON_L_BLUE,
+		Turntable::BUTTON_R_GREEN, Turntable::BUTTON_R_RED, Turntable::BUTTON_R_BLUE,
+		Turntable::BUTTON_MINUS,   Turntable::BUTTON_PLUS,  Turntable::BUTTON_EUPHORIA,
 };
 
 static const char* const turntable_button_names[] = {
-	 _trans("Green Left"),
-	 _trans("Red Left"),
-	 _trans("Blue Left"),
-	 _trans("Green Right"),
-	 _trans("Red Right"),
-	 _trans("Blue Right"),
-	 "-",
-	 "+",
-	 _trans("Euphoria"),
+		_trans("Green Left"),
+		_trans("Red Left"),
+		_trans("Blue Left"),
+		_trans("Green Right"),
+		_trans("Red Right"),
+		_trans("Blue Right"),
+		"-",
+		"+",
+		_trans("Euphoria"),
 };
 
-Turntable::Turntable(WiimoteEmu::ExtensionReg& _reg): Attachment(_trans("Turntable"), _reg)
+Turntable::Turntable(WiimoteEmu::ExtensionReg& _reg) : Attachment(_trans("Turntable"), _reg)
 {
 	// buttons
 	groups.emplace_back(m_buttons = new Buttons("Buttons"));

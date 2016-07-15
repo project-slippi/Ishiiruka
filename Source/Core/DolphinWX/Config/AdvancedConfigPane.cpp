@@ -12,7 +12,7 @@
 #include "Core/ConfigManager.h"
 #include "DolphinWX/Config/AdvancedConfigPane.h"
 
-AdvancedConfigPane::AdvancedConfigPane(wxWindow* parent, wxWindowID id): wxPanel(parent, id)
+AdvancedConfigPane::AdvancedConfigPane(wxWindow* parent, wxWindowID id) : wxPanel(parent, id)
 {
 	InitializeGUI();
 	LoadGUIValues();

@@ -42,7 +42,7 @@ private:
 	bool booted;
 };
 
-class CSIDevice_GBA: public ISIDevice, private GBASockServer
+class CSIDevice_GBA : public ISIDevice, private GBASockServer
 {
 public:
 	CSIDevice_GBA(SIDevices device, int _iDeviceNumber);
@@ -51,12 +51,8 @@ public:
 	int RunBuffer(u8* _pBuffer, int _iLength) override;
 	int TransferInterval() override;
 
-	bool GetData(u32& _Hi, u32& _Low) override
-	{
-		return false;
-	}
-	void SendCommand(u32 _Cmd, u8 _Poll) override
-	{}
+	bool GetData(u32& _Hi, u32& _Low) override { return false; }
+	void SendCommand(u32 _Cmd, u8 _Poll) override {}
 private:
 	u8 send_data[5];
 	int num_data_received;

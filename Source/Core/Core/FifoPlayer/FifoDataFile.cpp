@@ -12,11 +12,13 @@
 
 using namespace FifoFileStruct;
 
-FifoDataFile::FifoDataFile(): m_Flags(0)
-{}
+FifoDataFile::FifoDataFile() : m_Flags(0)
+{
+}
 
 FifoDataFile::~FifoDataFile()
-{}
+{
+}
 
 bool FifoDataFile::HasBrokenEFBCopies() const
 {

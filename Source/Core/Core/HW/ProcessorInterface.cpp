@@ -72,15 +72,13 @@ void Init()
 void RegisterMMIO(MMIO::Mapping* mmio, u32 base)
 {
 	mmio->Register(base | PI_INTERRUPT_CAUSE, MMIO::DirectRead<u32>(&m_InterruptCause),
-		MMIO::ComplexWrite<u32>([](u32, u32 val)
-	{
+		MMIO::ComplexWrite<u32>([](u32, u32 val) {
 		m_InterruptCause &= ~val;
 		UpdateException();
 	}));
 
 	mmio->Register(base | PI_INTERRUPT_MASK, MMIO::DirectRead<u32>(&m_InterruptMask),
-		MMIO::ComplexWrite<u32>([](u32, u32 val)
-	{
+		MMIO::ComplexWrite<u32>([](u32, u32 val) {
 		m_InterruptMask = val;
 		UpdateException();
 	}));
@@ -96,10 +94,7 @@ void RegisterMMIO(MMIO::Mapping* mmio, u32 base)
 
 	mmio->Register(base | PI_FIFO_RESET, MMIO::InvalidRead<u32>(),
 		MMIO::ComplexWrite<u32>(
-			[](u32, u32 val)
-	{
-		WARN_LOG(PROCESSORINTERFACE, "Fifo reset (%08x)", val);
-	}));
+			[](u32, u32 val) { WARN_LOG(PROCESSORINTERFACE, "Fifo reset (%08x)", val); }));
 
 	mmio->Register(base | PI_RESET_CODE, MMIO::DirectRead<u32>(&m_ResetCode),
 		MMIO::DirectWrite<u32>(&m_ResetCode));
@@ -185,8 +180,8 @@ void SetInterrupt(u32 _causemask, bool _bSet)
 		m_InterruptCause |= _causemask;
 	else
 		m_InterruptCause &= ~_causemask;  // is there any reason to have this possibility?
-	 // F|RES: i think the hw devices reset the interrupt in the PI to 0
-	 // if the interrupt cause is eliminated. that isn't done by software (afaik)
+	// F|RES: i think the hw devices reset the interrupt in the PI to 0
+	// if the interrupt cause is eliminated. that isn't done by software (afaik)
 	UpdateException();
 }
 

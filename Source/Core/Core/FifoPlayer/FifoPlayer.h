@@ -65,64 +65,28 @@ public:
 	// PowerPC state.
 	std::unique_ptr<CPUCoreBase> GetCPUCore();
 
-	FifoDataFile* GetFile()
-	{
-		return m_File.get();
-	}
+	FifoDataFile* GetFile() { return m_File.get(); }
 	u32 GetFrameObjectCount();
-	u32 GetCurrentFrameNum() const
-	{
-		return m_CurrentFrame;
-	}
-	const AnalyzedFrameInfo& GetAnalyzedFrameInfo(u32 frame) const
-	{
-		return m_FrameInfo[frame];
-	}
+	u32 GetCurrentFrameNum() const { return m_CurrentFrame; }
+	const AnalyzedFrameInfo& GetAnalyzedFrameInfo(u32 frame) const { return m_FrameInfo[frame]; }
 	// Frame range
-	u32 GetFrameRangeStart() const
-	{
-		return m_FrameRangeStart;
-	}
+	u32 GetFrameRangeStart() const { return m_FrameRangeStart; }
 	void SetFrameRangeStart(u32 start);
 
-	u32 GetFrameRangeEnd() const
-	{
-		return m_FrameRangeEnd;
-	}
+	u32 GetFrameRangeEnd() const { return m_FrameRangeEnd; }
 	void SetFrameRangeEnd(u32 end);
 
 	// Object range
-	u32 GetObjectRangeStart() const
-	{
-		return m_ObjectRangeStart;
-	}
-	void SetObjectRangeStart(u32 start)
-	{
-		m_ObjectRangeStart = start;
-	}
-	u32 GetObjectRangeEnd() const
-	{
-		return m_ObjectRangeEnd;
-	}
-	void SetObjectRangeEnd(u32 end)
-	{
-		m_ObjectRangeEnd = end;
-	}
+	u32 GetObjectRangeStart() const { return m_ObjectRangeStart; }
+	void SetObjectRangeStart(u32 start) { m_ObjectRangeStart = start; }
+	u32 GetObjectRangeEnd() const { return m_ObjectRangeEnd; }
+	void SetObjectRangeEnd(u32 end) { m_ObjectRangeEnd = end; }
 	// If enabled then all memory updates happen at once before the first frame
 	// Default is disabled
-	void SetEarlyMemoryUpdates(bool enabled)
-	{
-		m_EarlyMemoryUpdates = enabled;
-	}
+	void SetEarlyMemoryUpdates(bool enabled) { m_EarlyMemoryUpdates = enabled; }
 	// Callbacks
-	void SetFileLoadedCallback(CallbackFunc callback)
-	{
-		m_FileLoadedCb = callback;
-	}
-	void SetFrameWrittenCallback(CallbackFunc callback)
-	{
-		m_FrameWrittenCb = callback;
-	}
+	void SetFileLoadedCallback(CallbackFunc callback) { m_FileLoadedCb = callback; }
+	void SetFrameWrittenCallback(CallbackFunc callback) { m_FrameWrittenCb = callback; }
 	static FifoPlayer& GetInstance();
 
 private:

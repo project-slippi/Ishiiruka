@@ -13,7 +13,7 @@
 
 #include "DolphinWX/ISOFile.h"
 
-class wxEmuStateTip: public wxTipWindow
+class wxEmuStateTip : public wxTipWindow
 {
 public:
 	wxEmuStateTip(wxWindow* parent, const wxString& text, wxEmuStateTip** windowPtr)
@@ -29,7 +29,7 @@ public:
 	}
 };
 
-class CGameListCtrl: public wxListCtrl
+class CGameListCtrl : public wxListCtrl
 {
 public:
 

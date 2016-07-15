@@ -15,9 +15,9 @@ union UGeckoInstruction
 {
 	u32 hex;
 
-	UGeckoInstruction(u32 _hex): hex(_hex)
+	UGeckoInstruction(u32 _hex) : hex(_hex)
 	{}
-	UGeckoInstruction(): hex(0)
+	UGeckoInstruction() : hex(0)
 	{}
 	struct
 	{
@@ -39,27 +39,27 @@ union UGeckoInstruction
 		// Immediate, signed 16-bit
 		signed SIMM_16 : 16;
 		u32 : 5;
-				// Conditions on which to trap
-				u32 TO : 5;
-				u32 OPCD_2 : 6;
+		// Conditions on which to trap
+		u32 TO : 5;
+		u32 OPCD_2 : 6;
 	};
 	struct
 	{
 		u32 Rc_2 : 1;
 		u32 : 10;
-				u32 : 5;
-						u32 : 5;
-								// Source GPR
-								u32 RS : 5;
-								u32 OPCD_3 : 6;
+		u32 : 5;
+		u32 : 5;
+		// Source GPR
+		u32 RS : 5;
+		u32 OPCD_3 : 6;
 	};
 	struct
 	{
 		// Immediate, unsigned 16-bit
 		u32 UIMM : 16;
 		u32 : 5;
-				u32 : 5;
-						u32 OPCD_4 : 6;
+		u32 : 5;
+		u32 OPCD_4 : 6;
 	};
 	struct
 	{
@@ -90,22 +90,22 @@ union UGeckoInstruction
 	{
 		u32 LK_3 : 1;
 		u32 : 10;
-				u32 : 5;
-						u32 BI_2 : 5;
-						u32 BO_2 : 5;
-						u32 OPCD_7 : 6;
+		u32 : 5;
+		u32 BI_2 : 5;
+		u32 BO_2 : 5;
+		u32 OPCD_7 : 6;
 	};
 	struct
 	{
 		u32 : 11;
-				u32 RB_2 : 5;
-				u32 RA_2 : 5;
-				// ?
-				u32 L : 1;
-				u32 : 1;
-						// Destination field in CR or FPSCR
-						u32 CRFD : 3;
-						u32 OPCD_8 : 6;
+		u32 RB_2 : 5;
+		u32 RA_2 : 5;
+		// ?
+		u32 L : 1;
+		u32 : 1;
+		// Destination field in CR or FPSCR
+		u32 CRFD : 3;
+		u32 OPCD_8 : 6;
 	};
 	struct
 	{
@@ -113,8 +113,8 @@ union UGeckoInstruction
 		u32 RA_3 : 5;
 		u32 L_2 : 1;
 		u32 : 1;
-				u32 CRFD_2 : 3;
-				u32 OPCD_9 : 6;
+		u32 CRFD_2 : 3;
+		u32 OPCD_9 : 6;
 	};
 	struct
 	{
@@ -122,28 +122,28 @@ union UGeckoInstruction
 		u32 RA_4 : 5;
 		u32 L_3 : 1;
 		u32 : 1;
-				u32 CRFD_3 : 3;
-				u32 OPCD_A : 6;
+		u32 CRFD_3 : 3;
+		u32 OPCD_A : 6;
 	};
 	struct
 	{
 		u32 : 1;
-				u32 SUBOP10_2 : 10;
-				u32 RB_5 : 5;
-				u32 RA_5 : 5;
-				u32 L_4 : 1;
-				u32 : 1;
-						u32 CRFD_4 : 3;
-						u32 OPCD_B : 6;
+		u32 SUBOP10_2 : 10;
+		u32 RB_5 : 5;
+		u32 RA_5 : 5;
+		u32 L_4 : 1;
+		u32 : 1;
+		u32 CRFD_4 : 3;
+		u32 OPCD_B : 6;
 	};
 	struct
 	{
 		u32 : 16;
-				// Segment register
-				u32 SR : 4;
-				u32 : 1;
-						u32 RS_2 : 5;
-						u32 OPCD_C : 6;
+		// Segment register
+		u32 SR : 4;
+		u32 : 1;
+		u32 RS_2 : 5;
+		u32 OPCD_C : 6;
 	};
 
 	// Table 59
@@ -154,29 +154,29 @@ union UGeckoInstruction
 		// ?
 		u32 RC : 5;
 		u32 : 5;
-				u32 RA_6 : 5;
-				u32 RD_2 : 5;
-				u32 OPCD_D : 6;
+		u32 RA_6 : 5;
+		u32 RD_2 : 5;
+		u32 OPCD_D : 6;
 	};
 
 	struct
 	{
 		u32 : 10;
-				// Overflow enable
-				u32 OE : 1;
-				// Special-purpose register
-				u32 SPR : 10;
-				u32 : 11;
+		// Overflow enable
+		u32 OE : 1;
+		// Special-purpose register
+		u32 SPR : 10;
+		u32 : 11;
 	};
 	struct
 	{
 		u32 : 10;
-				u32 OE_3 : 1;
-				// Upper special-purpose register
-				u32 SPRU : 5;
-				// Lower special-purpose register
-				u32 SPRL : 5;
-				u32 : 11;
+		u32 OE_3 : 1;
+		// Upper special-purpose register
+		u32 SPRU : 5;
+		// Lower special-purpose register
+		u32 SPRL : 5;
+		u32 : 11;
 	};
 
 	// rlwinmx
@@ -196,90 +196,90 @@ union UGeckoInstruction
 	struct
 	{
 		u32 : 11;
-				// Source bit in the CR
-				u32 CRBB : 5;
-				// Source bit in the CR
-				u32 CRBA : 5;
-				// Destination bit in the CR
-				u32 CRBD : 5;
-				u32 : 6;
+		// Source bit in the CR
+		u32 CRBB : 5;
+		// Source bit in the CR
+		u32 CRBA : 5;
+		// Destination bit in the CR
+		u32 CRBD : 5;
+		u32 : 6;
 	};
 
 	// mftb
 	struct
 	{
 		u32 : 11;
-				// Time base register
-				u32 TBR : 10;
-				u32 : 11;
+		// Time base register
+		u32 TBR : 10;
+		u32 : 11;
 	};
 
 	struct
 	{
 		u32 : 11;
-				// Upper time base register
-				u32 TBRU : 5;
-				// Lower time base register
-				u32 TBRL : 5;
-				u32 : 11;
+		// Upper time base register
+		u32 TBRU : 5;
+		// Lower time base register
+		u32 TBRL : 5;
+		u32 : 11;
 	};
 
 	struct
 	{
 		u32 : 18;
-				// Source field in the CR or FPSCR
-				u32 CRFS : 3;
-				u32 : 2;
-						u32 CRFD_5 : 3;
-						u32 : 6;
+		// Source field in the CR or FPSCR
+		u32 CRFS : 3;
+		u32 : 2;
+		u32 CRFD_5 : 3;
+		u32 : 6;
 	};
 
 	struct
 	{
 		u32 : 12;
-				// Field mask, identifies the CR fields to be updated by mtcrf
-				u32 CRM : 8;
-				u32 : 1;
-						// Destination FPR
-						u32 FD : 5;
-						u32 : 6;
+		// Field mask, identifies the CR fields to be updated by mtcrf
+		u32 CRM : 8;
+		u32 : 1;
+		// Destination FPR
+		u32 FD : 5;
+		u32 : 6;
 	};
 	struct
 	{
 		u32 : 6;
-				// Source FPR
-				u32 FC : 5;
-				// Source FPR
-				u32 FB : 5;
-				// Source FPR
-				u32 FA : 5;
-				// Source FPR
-				u32 FS : 5;
-				u32 : 6;
+		// Source FPR
+		u32 FC : 5;
+		// Source FPR
+		u32 FB : 5;
+		// Source FPR
+		u32 FA : 5;
+		// Source FPR
+		u32 FS : 5;
+		u32 : 6;
 	};
 	struct
 	{
 		u32 : 17;
-				// Field mask, identifies the FPSCR fields to be updated by mtfsf
-				u32 FM : 8;
-				u32 : 7;
+		// Field mask, identifies the FPSCR fields to be updated by mtfsf
+		u32 FM : 8;
+		u32 : 7;
 	};
 
 	// paired single quantized load/store
 	struct
 	{
 		u32 : 1;
-				u32 SUBOP6 : 6;
-				// Graphics quantization register to use
-				u32 Ix : 3;
-				// 0: paired single, 1: scalar
-				u32 Wx : 1;
-				u32 : 1;
-						// Graphics quantization register to use
-						u32 I : 3;
-						// 0: paired single, 1: scalar
-						u32 W : 1;
-						u32 : 16;
+		u32 SUBOP6 : 6;
+		// Graphics quantization register to use
+		u32 Ix : 3;
+		// 0: paired single, 1: scalar
+		u32 Wx : 1;
+		u32 : 1;
+		// Graphics quantization register to use
+		u32 I : 3;
+		// 0: paired single, 1: scalar
+		u32 W : 1;
+		u32 : 16;
 	};
 
 	struct
@@ -291,8 +291,8 @@ union UGeckoInstruction
 	struct
 	{
 		u32 : 11;
-				// Number of bytes to use in lswi/stswi (0 means 32 bytes)
-				u32 NB : 5;
+		// Number of bytes to use in lswi/stswi (0 means 32 bytes)
+		u32 NB : 5;
 	};
 };
 
@@ -301,7 +301,7 @@ union UGeckoInstruction
 //
 
 // quantize types
-enum EQuantizeType: u32
+enum EQuantizeType : u32
 {
 	QUANTIZE_FLOAT = 0,
 	QUANTIZE_INVALID1 = 1,
@@ -356,11 +356,11 @@ union UReg_XER
 	{
 		u32 BYTE_COUNT : 7;
 		u32 : 1;
-				u32 BYTE_CMP : 8;
-				u32 : 13;
-						u32 CA : 1;
-						u32 OV : 1;
-						u32 SO : 1;
+		u32 BYTE_CMP : 8;
+		u32 : 13;
+		u32 CA : 1;
+		u32 OV : 1;
+		u32 SO : 1;
 	};
 	u32 Hex;
 
@@ -383,22 +383,22 @@ union UReg_MSR
 		u32 RI : 1;
 		u32 PM : 1;
 		u32 : 1;  // res28
-				u32 DR : 1;
-				u32 IR : 1;
-				u32 IP : 1;
-				u32 : 1;  // res24
-						u32 FE1 : 1;
-						u32 BE : 1;
-						u32 SE : 1;
-						u32 FE0 : 1;
-						u32 MCHECK : 1;
-						u32 FP : 1;
-						u32 PR : 1;
-						u32 EE : 1;
-						u32 ILE : 1;
-						u32 : 1;  // res14
-								u32 POW : 1;
-								u32 res : 13;
+		u32 DR : 1;
+		u32 IR : 1;
+		u32 IP : 1;
+		u32 : 1;  // res24
+		u32 FE1 : 1;
+		u32 BE : 1;
+		u32 SE : 1;
+		u32 FE0 : 1;
+		u32 MCHECK : 1;
+		u32 FP : 1;
+		u32 PR : 1;
+		u32 EE : 1;
+		u32 ILE : 1;
+		u32 : 1;  // res14
+		u32 POW : 1;
+		u32 res : 13;
 	};
 	u32 Hex;
 
@@ -416,7 +416,7 @@ union UReg_MSR
 #define FPRF_MASK (0x1F << FPRF_SHIFT)
 
 // FPSCR exception flags
-enum FPSCRExceptionFlag: u32
+enum FPSCRExceptionFlag : u32
 {
 	FPSCR_FX = 1U << (31 - 0),
 	FPSCR_FEX = 1U << (31 - 1),
@@ -469,39 +469,39 @@ union UReg_FPSCR
 		u32 VXSOFT : 1;
 		// reserved
 		u32 : 1;
-				// Floating point result flags (includes FPCC) (not sticky)
-				// from more to less significand: class, <, >, =, ?
-				u32 FPRF : 5;
-				// Fraction inexact (not sticky)
-				u32 FI : 1;
-				// Fraction rounded (not sticky)
-				u32 FR : 1;
-				// Invalid operation exception for invalid comparison (sticky)
-				u32 VXVC : 1;
-				// Invalid operation exception for inf * 0 (sticky)
-				u32 VXIMZ : 1;
-				// Invalid operation exception for 0 / 0 (sticky)
-				u32 VXZDZ : 1;
-				// Invalid operation exception for inf / inf (sticky)
-				u32 VXIDI : 1;
-				// Invalid operation exception for inf - inf (sticky)
-				u32 VXISI : 1;
-				// Invalid operation exception for SNaN (sticky)
-				u32 VXSNAN : 1;
-				// Inexact exception (sticky)
-				u32 XX : 1;
-				// Division by zero exception (sticky)
-				u32 ZX : 1;
-				// Underflow exception (sticky)
-				u32 UX : 1;
-				// Overflow exception (sticky)
-				u32 OX : 1;
-				// Invalid operation exception summary (not sticky)
-				u32 VX : 1;
-				// Enabled exception summary (not sticky)
-				u32 FEX : 1;
-				// Exception summary (sticky)
-				u32 FX : 1;
+		// Floating point result flags (includes FPCC) (not sticky)
+		// from more to less significand: class, <, >, =, ?
+		u32 FPRF : 5;
+		// Fraction inexact (not sticky)
+		u32 FI : 1;
+		// Fraction rounded (not sticky)
+		u32 FR : 1;
+		// Invalid operation exception for invalid comparison (sticky)
+		u32 VXVC : 1;
+		// Invalid operation exception for inf * 0 (sticky)
+		u32 VXIMZ : 1;
+		// Invalid operation exception for 0 / 0 (sticky)
+		u32 VXZDZ : 1;
+		// Invalid operation exception for inf / inf (sticky)
+		u32 VXIDI : 1;
+		// Invalid operation exception for inf - inf (sticky)
+		u32 VXISI : 1;
+		// Invalid operation exception for SNaN (sticky)
+		u32 VXSNAN : 1;
+		// Inexact exception (sticky)
+		u32 XX : 1;
+		// Division by zero exception (sticky)
+		u32 ZX : 1;
+		// Underflow exception (sticky)
+		u32 UX : 1;
+		// Overflow exception (sticky)
+		u32 OX : 1;
+		// Invalid operation exception summary (not sticky)
+		u32 VX : 1;
+		// Enabled exception summary (not sticky)
+		u32 FEX : 1;
+		// Exception summary (sticky)
+		u32 FX : 1;
 	};
 	u32 Hex;
 
@@ -522,34 +522,34 @@ union UReg_HID0
 	{
 		u32 NOOPTI : 1;
 		u32 : 1;
-				u32 BHT : 1;
-				u32 ABE : 1;
-				u32 : 1;
-						u32 BTIC : 1;
-						u32 DCFA : 1;
-						u32 SGE : 1;
-						u32 IFEM : 1;
-						u32 SPD : 1;
-						u32 DCFI : 1;
-						u32 ICFI : 1;
-						u32 DLOCK : 1;
-						u32 ILOCK : 1;
-						u32 DCE : 1;
-						u32 ICE : 1;
-						u32 NHR : 1;
-						u32 : 3;
-								u32 DPM : 1;
-								u32 SLEEP : 1;
-								u32 NAP : 1;
-								u32 DOZE : 1;
-								u32 PAR : 1;
-								u32 ECLK : 1;
-								u32 : 1;
-										u32 BCLK : 1;
-										u32 EBD : 1;
-										u32 EBA : 1;
-										u32 DBP : 1;
-										u32 EMCP : 1;
+		u32 BHT : 1;
+		u32 ABE : 1;
+		u32 : 1;
+		u32 BTIC : 1;
+		u32 DCFA : 1;
+		u32 SGE : 1;
+		u32 IFEM : 1;
+		u32 SPD : 1;
+		u32 DCFI : 1;
+		u32 ICFI : 1;
+		u32 DLOCK : 1;
+		u32 ILOCK : 1;
+		u32 DCE : 1;
+		u32 ICE : 1;
+		u32 NHR : 1;
+		u32 : 3;
+		u32 DPM : 1;
+		u32 SLEEP : 1;
+		u32 NAP : 1;
+		u32 DOZE : 1;
+		u32 PAR : 1;
+		u32 ECLK : 1;
+		u32 : 1;
+		u32 BCLK : 1;
+		u32 EBD : 1;
+		u32 EBA : 1;
+		u32 DBP : 1;
+		u32 EMCP : 1;
 	};
 	u32 Hex;
 };
@@ -560,19 +560,19 @@ union UReg_HID2
 	struct
 	{
 		u32 : 16;
-				u32 DQOEE : 1;
-				u32 DCMEE : 1;
-				u32 DNCEE : 1;
-				u32 DCHEE : 1;
-				u32 DQOERR : 1;
-				u32 DCMERR : 1;
-				u32 DNCERR : 1;
-				u32 DCHERR : 1;
-				u32 DMAQL : 4;
-				u32 LCE : 1;
-				u32 PSE : 1;
-				u32 WPE : 1;
-				u32 LSQE : 1;
+		u32 DQOEE : 1;
+		u32 DCMEE : 1;
+		u32 DNCEE : 1;
+		u32 DCHEE : 1;
+		u32 DQOERR : 1;
+		u32 DCMERR : 1;
+		u32 DNCERR : 1;
+		u32 DCHERR : 1;
+		u32 DMAQL : 4;
+		u32 LCE : 1;
+		u32 PSE : 1;
+		u32 WPE : 1;
+		u32 LSQE : 1;
 	};
 	u32 Hex;
 
@@ -592,16 +592,16 @@ union UReg_HID4
 	struct
 	{
 		u32 : 20;
-				u32 L2CFI : 1;
-				u32 L2MUM : 1;
-				u32 DBP : 1;
-				u32 LPE : 1;
-				u32 ST0 : 1;
-				u32 SBE : 1;
-				u32 : 1;
-						u32 BPD : 2;
-						u32 L2FM : 2;
-						u32 : 1;
+		u32 L2CFI : 1;
+		u32 L2MUM : 1;
+		u32 DBP : 1;
+		u32 LPE : 1;
+		u32 ST0 : 1;
+		u32 SBE : 1;
+		u32 : 1;
+		u32 BPD : 2;
+		u32 L2FM : 2;
+		u32 : 1;
 	};
 	u32 Hex;
 
@@ -623,7 +623,7 @@ union UReg_SPR1
 	{
 		u32 htaborg : 16;
 		u32 : 7;
-				u32 htabmask : 9;
+		u32 htabmask : 9;
 	};
 };
 
@@ -658,8 +658,8 @@ union UReg_MMCR1
 	struct
 	{
 		u32 : 22;
-				u32 PMC4SELECT : 5;
-				u32 PMC3SELECT : 5;
+		u32 PMC4SELECT : 5;
+		u32 PMC3SELECT : 5;
 	};
 };
 
@@ -670,7 +670,7 @@ union UReg_WPAR
 	{
 		u32 BNE : 1;
 		u32 : 4;
-				u32 GB_ADDR : 27;
+		u32 GB_ADDR : 27;
 	};
 	u32 Hex;
 
@@ -735,7 +735,7 @@ union UReg_BAT_Up
 		u32 VS : 1;
 		u32 BL : 11;  // Block length (aka block size mask)
 		u32 : 4;
-				u32 BEPI : 15;
+		u32 BEPI : 15;
 	};
 	u32 Hex;
 
@@ -755,9 +755,9 @@ union UReg_BAT_Lo
 	{
 		u32 PP : 2;
 		u32 : 1;
-				u32 WIMG : 4;
-				u32 : 10;
-						u32 BRPN : 15;  // Physical Block Number
+		u32 WIMG : 4;
+		u32 : 10;
+		u32 BRPN : 15;  // Physical Block Number
 	};
 	u32 Hex;
 
@@ -781,11 +781,11 @@ union UReg_PTE
 		u64 V : 1;
 		u64 PP : 2;
 		u64 : 1;
-				u64 WIMG : 4;
-				u64 C : 1;
-				u64 R : 1;
-				u64 : 3;
-						u64 RPN : 20;
+		u64 WIMG : 4;
+		u64 C : 1;
+		u64 R : 1;
+		u64 : 3;
+		u64 RPN : 20;
 	};
 
 	u64 Hex;

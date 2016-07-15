@@ -16,22 +16,20 @@ class wxButton;
 class wxListBox;
 class wxTextCtrl;
 
-class JitBlockList: public wxListCtrl
+class JitBlockList : public wxListCtrl
 {
 public:
-	JitBlockList(wxWindow* parent, const wxWindowID id, const wxPoint& pos, const wxSize& size, long style);
+	JitBlockList(wxWindow* parent, const wxWindowID id, const wxPoint& pos, const wxSize& size,
+		long style);
 	void Init();
 	void Update() override;
 };
 
-class CJitWindow: public wxPanel
+class CJitWindow : public wxPanel
 {
 public:
-	CJitWindow(wxWindow* parent,
-		wxWindowID id = wxID_ANY,
-		const wxPoint& pos = wxDefaultPosition,
-		const wxSize& size = wxDefaultSize,
-		long style = wxTAB_TRAVERSAL | wxBORDER_NONE,
+	CJitWindow(wxWindow* parent, wxWindowID id = wxID_ANY, const wxPoint& pos = wxDefaultPosition,
+		const wxSize& size = wxDefaultSize, long style = wxTAB_TRAVERSAL | wxBORDER_NONE,
 		const wxString& name = _("JIT Block Viewer"));
 
 	void ViewAddr(u32 em_address);

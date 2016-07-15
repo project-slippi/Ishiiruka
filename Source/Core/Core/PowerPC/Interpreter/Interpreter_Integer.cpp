@@ -128,15 +128,15 @@ void Interpreter::oris(UGeckoInstruction _inst)
 void Interpreter::subfic(UGeckoInstruction _inst)
 {
 	/*	u32 rra = ~rGPR[_inst.RA];
-	  s32 immediate = (s16)_inst.SIMM_16 + 1;
+		s32 immediate = (s16)_inst.SIMM_16 + 1;
 
 	//	#define CALC_XER_CA(X,Y) (((X) + (Y) < X) ? SET_XER_CA : CLEAR_XER_CA)
-	  if ((rra + immediate) < rra)
+		if ((rra + immediate) < rra)
 		 SetCarry(1);
-	  else
+		else
 		 SetCarry(0);
 
-	  rGPR[_inst.RD] = rra - immediate;
+		rGPR[_inst.RD] = rra - immediate;
 	*/
 
 	s32 immediate = _inst.SIMM_16;

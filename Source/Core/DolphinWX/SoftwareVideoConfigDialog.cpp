@@ -21,7 +21,7 @@
 #include "DolphinWX/WxUtils.h"
 
 template <typename T>
-IntegerSetting<T>::IntegerSetting(wxWindow* parent, const wxString& label, T& setting, int minVal, int maxVal, long style):
+IntegerSetting<T>::IntegerSetting(wxWindow* parent, const wxString& label, T& setting, int minVal, int maxVal, long style) :
 	wxSpinCtrl(parent, wxID_ANY, label, wxDefaultPosition, wxDefaultSize, style),
 	m_setting(setting)
 {
@@ -31,7 +31,7 @@ IntegerSetting<T>::IntegerSetting(wxWindow* parent, const wxString& label, T& se
 }
 
 
-SoftwareVideoConfigDialog::SoftwareVideoConfigDialog(wxWindow* parent, const std::string& title):
+SoftwareVideoConfigDialog::SoftwareVideoConfigDialog(wxWindow* parent, const std::string& title) :
 	wxDialog(parent, wxID_ANY,
 		wxString(wxString::Format(_("Dolphin %s Graphics Configuration"), title)))
 {

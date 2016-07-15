@@ -10,7 +10,7 @@
 
 //wrapper between disasm control and Dolphin debugger
 
-class PPCDebugInterface final: public DebugInterface
+class PPCDebugInterface final : public DebugInterface
 {
 public:
 	PPCDebugInterface()

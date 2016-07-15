@@ -12,7 +12,7 @@ class wxListBox;
 class wxDirPickerCtrl;
 class wxFilePickerCtrl;
 
-class PathConfigPane final: public wxPanel
+class PathConfigPane final : public wxPanel
 {
 public:
 	PathConfigPane(wxWindow* parent, wxWindowID id);

@@ -18,6 +18,7 @@
 #include "Core/ConfigManager.h"
 #include "Core/Core.h"
 
+#include "DiscIO/Enums.h"
 #include "DiscIO/FileMonitor.h"
 #include "DiscIO/Filesystem.h"
 #include "DiscIO/Volume.h"
@@ -38,19 +39,19 @@ bool IsSoundFile(const std::string& filename)
 	std::transform(extension.begin(), extension.end(), extension.begin(), ::tolower);
 
 	static std::unordered_set<std::string> extensions = {
-		 ".adp",    // 1080 Avalanche, Crash Bandicoot, etc.
-		 ".adx",    // Sonic Adventure 2 Battle, etc.
-		 ".afc",    // Zelda WW
-		 ".ast",    // Zelda TP, Mario Kart
-		 ".brstm",  // Wii Sports, Wario Land, etc.
-		 ".dsp",    // Metroid Prime
-		 ".hps",    // SSB Melee
-		 ".ogg",    // Tony Hawk's Underground 2
-		 ".sad",    // Disaster
-		 ".snd",    // Tales of Symphonia
-		 ".song",   // Tales of Symphonia
-		 ".ssm",    // Custom Robo, Kirby Air Ride, etc.
-		 ".str",    // Harry Potter & the Sorcerer's Stone
+			".adp",    // 1080 Avalanche, Crash Bandicoot, etc.
+			".adx",    // Sonic Adventure 2 Battle, etc.
+			".afc",    // Zelda WW
+			".ast",    // Zelda TP, Mario Kart
+			".brstm",  // Wii Sports, Wario Land, etc.
+			".dsp",    // Metroid Prime
+			".hps",    // SSB Melee
+			".ogg",    // Tony Hawk's Underground 2
+			".sad",    // Disaster
+			".snd",    // Tales of Symphonia
+			".song",   // Tales of Symphonia
+			".ssm",    // Custom Robo, Kirby Air Ride, etc.
+			".str",    // Harry Potter & the Sorcerer's Stone
 	};
 
 	return extensions.find(extension) != extensions.end();
@@ -67,7 +68,7 @@ void ReadFileSystem(const std::string& filename)
 	if (!s_open_iso)
 		return;
 
-	if (s_open_iso->GetVolumeType() != DiscIO::IVolume::WII_WAD)
+	if (s_open_iso->GetVolumeType() != DiscIO::Platform::WII_WAD)
 	{
 		s_filesystem = DiscIO::CreateFileSystem(s_open_iso.get());
 

@@ -42,7 +42,7 @@ public:
 // default implementation used by the DSP emulator.
 //
 // Can also be inherited from if you want to only override part of the methods.
-class DefaultDSPCaptureLogger: public DSPCaptureLogger
+class DefaultDSPCaptureLogger : public DSPCaptureLogger
 {
 public:
 	void LogIFXRead(u16 address, u16 read_value) override
@@ -56,7 +56,7 @@ public:
 
 // A capture logger implementation that logs to PCAP files in a custom
 // packet-based format.
-class PCAPDSPCaptureLogger final: public DSPCaptureLogger, NonCopyable
+class PCAPDSPCaptureLogger final : public DSPCaptureLogger, NonCopyable
 {
 public:
 	// Automatically creates a writeable file (truncate existing file).

@@ -22,7 +22,7 @@ class wxChoice;
 class wxTextCtrl;
 
 // Uses multiple inheritance - only sane because LogListener is a pure virtual interface.
-class CLogWindow: public wxPanel, LogListener
+class CLogWindow : public wxPanel, LogListener
 {
 public:
 	CLogWindow(CFrame* parent,

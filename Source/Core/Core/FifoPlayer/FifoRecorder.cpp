@@ -21,7 +21,8 @@ FifoRecorder::FifoRecorder()
 	m_RecordFramesRemaining(0), m_FinishedCb(nullptr), m_File(nullptr), m_SkipNextData(true),
 	m_SkipFutureData(true), m_FrameEnded(false), m_Ram(Memory::RAM_SIZE),
 	m_ExRam(Memory::EXRAM_SIZE)
-{}
+{
+}
 
 FifoRecorder::~FifoRecorder()
 {

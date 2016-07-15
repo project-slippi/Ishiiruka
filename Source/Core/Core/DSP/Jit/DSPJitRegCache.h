@@ -49,9 +49,9 @@ public:
 		//this does not modify the final state of gpr
 		<code using gpr>
 		FixupBranch b = JCC();
-		  DSPJitRegCache c = gpr;
-		  <code using c>
-		  gpr.FlushRegs(c);
+			DSPJitRegCache c = gpr;
+			<code using c>
+			gpr.FlushRegs(c);
 		SetBranchTarget(b);
 		<code using gpr>
 
@@ -59,12 +59,12 @@ public:
 		<code using gpr>
 		DSPJitRegCache c = gpr;
 		FixupBranch b1 = JCC();
-		  <code using gpr>
-		  gpr.FlushRegs(c);
-		  FixupBranch b2 = JMP();
+			<code using gpr>
+			gpr.FlushRegs(c);
+			FixupBranch b2 = JMP();
 		SetBranchTarget(b1);
-		  <code using gpr>
-		  gpr.FlushRegs(c);
+			<code using gpr>
+			gpr.FlushRegs(c);
 		SetBranchTarget(b2);
 		<code using gpr>
 
@@ -73,21 +73,21 @@ public:
 		<code using gpr>
 		DSPJitRegCache c = gpr;
 		FixupBranch b1 = JCC();
-		  <code using c>
-		  FixupBranch b2 = JMP();
+			<code using c>
+			FixupBranch b2 = JMP();
 		SetBranchTarget(b1);
-		  <code using gpr>
-		  gpr.FlushRegs(c);
+			<code using gpr>
+			gpr.FlushRegs(c);
 		SetBranchTarget(b2);
 		<code using gpr>
 
 		//this does not modify the final state of gpr
 		<code using gpr>
 		u8* b = GetCodePtr();
-		  DSPJitRegCache c = gpr;
-		  <code using gpr>
-		  gpr.FlushRegs(c);
-		  JCC(b);
+			DSPJitRegCache c = gpr;
+			<code using gpr>
+			gpr.FlushRegs(c);
+			JCC(b);
 		<code using gpr>
 
 		this all is not needed when gpr would not be used at all in the
@@ -144,7 +144,7 @@ private:
 		int last_use_ctr;
 		int parentReg;
 		int shift; // Current shift if parentReg == DSP_REG_NONE
-					  // otherwise the shift this part can be found at
+		// otherwise the shift this part can be found at
 		Gen::X64Reg host_reg;
 
 		// TODO:

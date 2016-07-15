@@ -11,21 +11,21 @@
 
 namespace WiimoteEmu
 {
-static const u8 drums_id[] = {0x01, 0x00, 0xa4, 0x20, 0x01, 0x03};
+static const u8 drums_id[] = { 0x01, 0x00, 0xa4, 0x20, 0x01, 0x03 };
 
 static const u16 drum_pad_bitmasks[] = {
-	 Drums::PAD_RED,   Drums::PAD_YELLOW, Drums::PAD_BLUE,
-	 Drums::PAD_GREEN, Drums::PAD_ORANGE, Drums::PAD_BASS,
+		Drums::PAD_RED,   Drums::PAD_YELLOW, Drums::PAD_BLUE,
+		Drums::PAD_GREEN, Drums::PAD_ORANGE, Drums::PAD_BASS,
 };
 
-static const char* const drum_pad_names[] = {_trans("Red"),   _trans("Yellow"), _trans("Blue"),
-															_trans("Green"), _trans("Orange"), _trans("Bass")};
+static const char* const drum_pad_names[] = { _trans("Red"),   _trans("Yellow"), _trans("Blue"),
+																						 _trans("Green"), _trans("Orange"), _trans("Bass") };
 
 static const u16 drum_button_bitmasks[] = {
-	 Drums::BUTTON_MINUS, Drums::BUTTON_PLUS,
+		Drums::BUTTON_MINUS, Drums::BUTTON_PLUS,
 };
 
-Drums::Drums(WiimoteEmu::ExtensionReg& _reg): Attachment(_trans("Drums"), _reg)
+Drums::Drums(WiimoteEmu::ExtensionReg& _reg) : Attachment(_trans("Drums"), _reg)
 {
 	// pads
 	groups.emplace_back(m_pads = new Buttons(_trans("Pads")));

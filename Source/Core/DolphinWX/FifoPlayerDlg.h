@@ -21,7 +21,7 @@ class wxSpinEvent;
 class wxStaticText;
 class wxTextCtrl;
 
-class FifoPlayerDlg: public wxDialog
+class FifoPlayerDlg : public wxDialog
 {
 public:
 	FifoPlayerDlg(wxWindow* parent);

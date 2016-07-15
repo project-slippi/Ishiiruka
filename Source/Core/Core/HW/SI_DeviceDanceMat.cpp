@@ -8,7 +8,8 @@
 
 CSIDevice_DanceMat::CSIDevice_DanceMat(SIDevices device, int _iDeviceNumber)
 	: CSIDevice_GCController(device, _iDeviceNumber)
-{}
+{
+}
 
 int CSIDevice_DanceMat::RunBuffer(u8* _pBuffer, int _iLength)
 {

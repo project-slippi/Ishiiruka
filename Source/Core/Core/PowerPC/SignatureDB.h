@@ -19,7 +19,7 @@ class SignatureDB
 	{
 		std::string name;
 		u32 size;
-		DBFunc(): size(0)
+		DBFunc() : size(0)
 		{}
 	};
 

@@ -11,26 +11,26 @@
 
 namespace WiimoteEmu
 {
-static const u8 guitar_id[] = {0x00, 0x00, 0xa4, 0x20, 0x01, 0x03};
+static const u8 guitar_id[] = { 0x00, 0x00, 0xa4, 0x20, 0x01, 0x03 };
 
 static const u16 guitar_fret_bitmasks[] = {
-	 Guitar::FRET_GREEN, Guitar::FRET_RED,    Guitar::FRET_YELLOW,
-	 Guitar::FRET_BLUE,  Guitar::FRET_ORANGE,
+		Guitar::FRET_GREEN, Guitar::FRET_RED,    Guitar::FRET_YELLOW,
+		Guitar::FRET_BLUE,  Guitar::FRET_ORANGE,
 };
 
 static const char* const guitar_fret_names[] = {
-	 "Green", "Red", "Yellow", "Blue", "Orange",
+		"Green", "Red", "Yellow", "Blue", "Orange",
 };
 
 static const u16 guitar_button_bitmasks[] = {
-	 Guitar::BUTTON_MINUS, Guitar::BUTTON_PLUS,
+		Guitar::BUTTON_MINUS, Guitar::BUTTON_PLUS,
 };
 
 static const u16 guitar_strum_bitmasks[] = {
-	 Guitar::BAR_UP, Guitar::BAR_DOWN,
+		Guitar::BAR_UP, Guitar::BAR_DOWN,
 };
 
-Guitar::Guitar(WiimoteEmu::ExtensionReg& _reg): Attachment(_trans("Guitar"), _reg)
+Guitar::Guitar(WiimoteEmu::ExtensionReg& _reg) : Attachment(_trans("Guitar"), _reg)
 {
 	// frets
 	groups.emplace_back(m_frets = new Buttons(_trans("Frets")));

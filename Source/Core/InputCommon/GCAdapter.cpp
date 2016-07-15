@@ -30,15 +30,15 @@ static void Setup();
 static bool s_detected = false;
 static libusb_device_handle* s_handle = nullptr;
 static u8 s_controller_type[MAX_SI_CHANNELS] = {
-	 ControllerTypes::CONTROLLER_NONE, ControllerTypes::CONTROLLER_NONE,
-	 ControllerTypes::CONTROLLER_NONE, ControllerTypes::CONTROLLER_NONE};
+		ControllerTypes::CONTROLLER_NONE, ControllerTypes::CONTROLLER_NONE,
+		ControllerTypes::CONTROLLER_NONE, ControllerTypes::CONTROLLER_NONE };
 static u8 s_controller_rumble[4];
 
 static std::mutex s_mutex;
 static u8 s_controller_payload[37];
 static u8 s_controller_payload_swap[37];
 
-static std::atomic<int> s_controller_payload_size = {0};
+static std::atomic<int> s_controller_payload_size = { 0 };
 
 static std::thread s_adapter_thread;
 static Common::Flag s_adapter_thread_running;
@@ -124,7 +124,7 @@ static void ScanThreadFunc()
 	{
 		if (s_libusb_hotplug_enabled)
 		{
-			static timeval tv = {0, 500000};
+			static timeval tv = { 0, 500000 };
 			libusb_handle_events_timeout(s_libusb_context, &tv);
 		}
 		else
@@ -453,9 +453,9 @@ void Input(int chan, GCPadStatus* pad)
 			pad->triggerLeft = controller_payload_copy[1 + (9 * chan) + 7];
 			pad->triggerRight = controller_payload_copy[1 + (9 * chan) + 8];
 		}
-		else if (!NetPlay::IsNetPlayRunning())
+		else if (!Core::g_want_determinism)
 		{
-			// This is a hack to prevent a netplay desync due to SI devices
+			// This is a hack to prevent a desync due to SI devices
 			// being different and returning different values.
 			// The corresponding code in DeviceGCAdapter has the same check
 			pad->button = PAD_ERR_STATUS;
@@ -495,8 +495,8 @@ static void ResetRumbleLockNeeded()
 
 	std::fill(std::begin(s_controller_rumble), std::end(s_controller_rumble), 0);
 
-	unsigned char rumble[5] = {0x11, s_controller_rumble[0], s_controller_rumble[1],
-										s_controller_rumble[2], s_controller_rumble[3]};
+	unsigned char rumble[5] = { 0x11, s_controller_rumble[0], s_controller_rumble[1],
+														 s_controller_rumble[2], s_controller_rumble[3] };
 
 	int size = 0;
 	libusb_interrupt_transfer(s_handle, s_endpoint_out, rumble, sizeof(rumble), &size, 16);
@@ -515,8 +515,8 @@ void Output(int chan, u8 rumble_command)
 	{
 		s_controller_rumble[chan] = rumble_command;
 
-		unsigned char rumble[5] = {0x11, s_controller_rumble[0], s_controller_rumble[1],
-											s_controller_rumble[2], s_controller_rumble[3]};
+		unsigned char rumble[5] = { 0x11, s_controller_rumble[0], s_controller_rumble[1],
+															 s_controller_rumble[2], s_controller_rumble[3] };
 		int size = 0;
 
 		libusb_interrupt_transfer(s_handle, s_endpoint_out, rumble, sizeof(rumble), &size, 16);

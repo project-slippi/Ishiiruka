@@ -8,7 +8,7 @@
 
 namespace DiscIO
 {
-PlainFileReader::PlainFileReader(std::FILE* file): m_file(file)
+PlainFileReader::PlainFileReader(std::FILE* file) : m_file(file)
 {
 	m_size = m_file.GetSize();
 }
