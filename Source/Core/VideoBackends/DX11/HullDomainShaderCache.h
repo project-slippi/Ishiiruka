@@ -48,7 +48,7 @@ private:
 		bool hcompiled;
 		bool dcompiled;
 		std::atomic_flag initialized;
-		HDCacheEntry(): hullshader(nullptr), domainshader(nullptr), hcompiled(false), dcompiled(false)
+		HDCacheEntry() : hullshader(nullptr), domainshader(nullptr), hcompiled(false), dcompiled(false)
 		{
 			initialized.clear();
 		}

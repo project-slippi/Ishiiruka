@@ -38,7 +38,7 @@ extern s32 frameCount;
 namespace DX9
 {
 
-static const D3DFORMAT PC_TexFormat_To_D3DFORMAT[11]
+static const D3DFORMAT PC_TexFormat_To_D3DFORMAT[12]
 {
 	D3DFMT_UNKNOWN,//PC_TEX_FMT_NONE
 	D3DFMT_A8R8G8B8,//PC_TEX_FMT_BGRA32
@@ -51,9 +51,10 @@ static const D3DFORMAT PC_TexFormat_To_D3DFORMAT[11]
 	D3DFMT_DXT1,//PC_TEX_FMT_DXT1
 	D3DFMT_DXT3,//PC_TEX_FMT_DXT3
 	D3DFMT_DXT5,//PC_TEX_FMT_DXT5
+	D3DFMT_R32F,//PC_TEX_FMT_R32
 };
 
-static const u32 PC_TexFormat_To_Buffer_Index[11]
+static const u32 PC_TexFormat_To_Buffer_Index[12]
 {
 	0,//PC_TEX_FMT_NONE
 	0,//PC_TEX_FMT_BGRA32
@@ -66,6 +67,7 @@ static const u32 PC_TexFormat_To_Buffer_Index[11]
 	3,//PC_TEX_FMT_DXT1
 	4,//PC_TEX_FMT_DXT3
 	5,//PC_TEX_FMT_DXT5
+	6,//PC_TEX_FMT_R32
 };
 
 #define MEM_TEXTURE_POOL_SIZE 6
@@ -172,8 +174,8 @@ void TextureCache::TCacheEntry::ReplaceTexture(const u8* src, u32 width, u32 hei
 	s_memPoolTexture[pcformatidx]->GetSurfaceLevel(0, &srcsurf);
 	PDIRECT3DSURFACE9 dstsurface;
 	texture->GetSurfaceLevel(level, &dstsurface);
-	RECT srcr{0, 0, LONG(width), LONG(height)};
-	POINT dstp{0, 0};
+	RECT srcr{ 0, 0, LONG(width), LONG(height) };
+	POINT dstp{ 0, 0 };
 	D3D::dev->UpdateSurface(srcsurf, &srcr, dstsurface, &dstp);
 	srcsurf->Release();
 	dstsurface->Release();
@@ -340,9 +342,9 @@ TextureCache::TCacheEntryBase* TextureCache::CreateTexture(const TCacheEntryConf
 	{
 		LPDIRECT3DTEXTURE9 texture;
 		D3D::dev->CreateTexture(config.width, config.height, 1, D3DUSAGE_RENDERTARGET,
-			D3DFMT_A8R8G8B8, D3DPOOL_DEFAULT, &texture, 0);
+			PC_TexFormat_To_D3DFORMAT[config.pcformat], D3DPOOL_DEFAULT, &texture, 0);
 		TCacheEntry* entry = new TCacheEntry(config, texture);
-		entry->d3d_fmt = D3DFMT_A8R8G8B8;
+		entry->d3d_fmt = PC_TexFormat_To_D3DFORMAT[config.pcformat];
 		return entry;
 	}
 	// if no rgba support so swap is needed

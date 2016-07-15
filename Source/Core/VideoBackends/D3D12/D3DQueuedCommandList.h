@@ -275,7 +275,7 @@ struct D3DQueueItem
 	};
 };
 
-class ID3D12QueuedCommandList: public ID3D12GraphicsCommandList
+class ID3D12QueuedCommandList : public ID3D12GraphicsCommandList
 {
 public:
 

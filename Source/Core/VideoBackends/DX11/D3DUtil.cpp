@@ -24,7 +24,7 @@ namespace DX11
 namespace D3D
 {
 
-UtilVertexBuffer::UtilVertexBuffer(int size): m_buf(nullptr), m_offset(0), m_max_size(size)
+UtilVertexBuffer::UtilVertexBuffer(int size) : m_buf(nullptr), m_offset(0), m_max_size(size)
 {
 	D3D11_BUFFER_DESC desc = CD3D11_BUFFER_DESC(m_max_size, D3D11_BIND_VERTEX_BUFFER, D3D11_USAGE_DYNAMIC, D3D11_CPU_ACCESS_WRITE);
 	device->CreateBuffer(&desc, nullptr, &m_buf);
@@ -97,7 +97,7 @@ void UtilVertexBuffer::AddWrapObserver(bool* observer)
 }
 
 
-ConstantStreamBuffer::ConstantStreamBuffer(int size): m_max_size(ROUND_UP(size, 256)), m_need_init(true)
+ConstantStreamBuffer::ConstantStreamBuffer(int size) : m_max_size(ROUND_UP(size, 256)), m_need_init(true)
 {
 	m_use_partial_buffer_update = D3D::SupportPartialContantBufferUpdate();
 	D3D11_BUFFER_DESC desc = CD3D11_BUFFER_DESC(m_max_size, D3D11_BIND_CONSTANT_BUFFER, D3D11_USAGE_DYNAMIC, D3D11_CPU_ACCESS_WRITE);
@@ -152,7 +152,7 @@ inline FONT2DVERTEX InitFont2DVertex(float x, float y, u32 color, float tu, floa
 	return v;
 }
 
-CD3DFont::CD3DFont(): m_dwTexWidth(512), m_dwTexHeight(512)
+CD3DFont::CD3DFont() : m_dwTexWidth(512), m_dwTexHeight(512)
 {
 
 }
@@ -511,7 +511,7 @@ void InitUtils()
 {
 	util_vbuf = new UtilVertexBuffer(65535);
 
-	float border[4] = {0.f, 0.f, 0.f, 0.f};
+	float border[4] = { 0.f, 0.f, 0.f, 0.f };
 	D3D11_SAMPLER_DESC samDesc = CD3D11_SAMPLER_DESC(D3D11_FILTER_MIN_MAG_MIP_POINT, D3D11_TEXTURE_ADDRESS_BORDER, D3D11_TEXTURE_ADDRESS_BORDER, D3D11_TEXTURE_ADDRESS_BORDER, 0.f, 1, D3D11_COMPARISON_ALWAYS, border, 0.f, 0.f);
 	HRESULT hr = D3D::device->CreateSamplerState(&samDesc, ToAddr(point_copy_sampler));
 	if (FAILED(hr)) PanicAlert("Failed to create sampler state at %s %d\n", __FILE__, __LINE__);
@@ -728,7 +728,7 @@ void drawClearQuad(
 
 inline void InitColVertex(ColVertex* vert, float x, float y, float z, u32 col)
 {
-	*vert = {x, y, z, col};
+	*vert = { x, y, z, col };
 }
 
 void DrawEFBPokeQuads(EFBAccessType type, const EfbPokeData* points, size_t num_points)

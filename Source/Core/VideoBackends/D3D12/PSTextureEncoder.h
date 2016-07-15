@@ -11,7 +11,7 @@
 namespace DX12
 {
 
-class PSTextureEncoder final: public TextureEncoder
+class PSTextureEncoder final : public TextureEncoder
 {
 public:
 	PSTextureEncoder();

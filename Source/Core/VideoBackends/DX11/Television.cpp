@@ -79,7 +79,7 @@ void Television::Init()
 	std::vector<u8> fill(MAX_XFB_SIZE);
 	for (size_t i = 0; i < MAX_XFB_SIZE / sizeof(u32); ++i)
 		reinterpret_cast<u32*>(fill.data())[i] = 0x80108010;
-	D3D11_SUBRESOURCE_DATA srd = {fill.data(), 2 * (MAX_XFB_WIDTH), 0};
+	D3D11_SUBRESOURCE_DATA srd = { fill.data(), 2 * (MAX_XFB_WIDTH), 0 };
 
 	// This texture format is designed for YUYV data.
 	D3D11_TEXTURE2D_DESC t2dd = CD3D11_TEXTURE2D_DESC(
@@ -110,7 +110,7 @@ void Television::Init()
 	// (remember, the XFB is being interpreted as YUYV, and 0,0,0,0
 	// is actually two green pixels in YUYV - black should be 16,128,16,128,
 	// but we reverse the order to match DXGI_FORMAT_G8R8_G8B8_UNORM's ordering)
-	float border[4] = {128.0f / 255.0f, 16.0f / 255.0f, 128.0f / 255.0f, 16.0f / 255.0f};
+	float border[4] = { 128.0f / 255.0f, 16.0f / 255.0f, 128.0f / 255.0f, 16.0f / 255.0f };
 	D3D11_SAMPLER_DESC samDesc = CD3D11_SAMPLER_DESC(D3D11_FILTER_MIN_MAG_MIP_LINEAR,
 		D3D11_TEXTURE_ADDRESS_BORDER, D3D11_TEXTURE_ADDRESS_BORDER, D3D11_TEXTURE_ADDRESS_BORDER,
 		0.f, 1, D3D11_COMPARISON_ALWAYS, border, 0.f, 0.f);

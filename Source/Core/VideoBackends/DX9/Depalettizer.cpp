@@ -100,7 +100,7 @@ bool Depalettizer::Depalettize(LPDIRECT3DTEXTURE9 dstTex,
 	dstTex->GetSurfaceLevel(0, &renderSurface);
 	D3D::dev->SetRenderTarget(0, renderSurface);
 
-	D3DVIEWPORT9 vp = {0, 0, dstDesc.Width, dstDesc.Height, 0.f, 1.f};
+	D3DVIEWPORT9 vp = { 0, 0, dstDesc.Width, dstDesc.Height, 0.f, 1.f };
 	D3D::dev->SetViewport(&vp);
 
 	if (m_palette_texture[m_PalleteFormat][baseType] == nullptr)
@@ -117,7 +117,7 @@ bool Depalettizer::Depalettize(LPDIRECT3DTEXTURE9 dstTex,
 	D3D::SetSamplerState(1, D3DSAMP_MINFILTER, D3DTEXF_POINT);
 
 	// Depalettize!
-	RECT rectSrc = {0, 0, 1, 1};
+	RECT rectSrc = { 0, 0, 1, 1 };
 	D3D::drawShadedTexQuad(baseTex,
 		&rectSrc,
 		1, 1,

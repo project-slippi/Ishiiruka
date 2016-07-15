@@ -9,7 +9,7 @@
 
 namespace OGL
 {
-class GLVertexFormat: public NativeVertexFormat
+class GLVertexFormat : public NativeVertexFormat
 {
 public:
 	GLVertexFormat(const PortableVertexDeclaration &_vtx_decl);
@@ -22,7 +22,7 @@ public:
 
 // Handles the OpenGL details of drawing lots of vertices quickly.
 // Other functionality is moving out.
-class VertexManager: public ::VertexManagerBase
+class VertexManager : public ::VertexManagerBase
 {
 public:
 	VertexManager();

@@ -390,7 +390,7 @@ FramebufferManager::FramebufferManager(int targetWidth, int targetHeight, int ms
 			"		EmitVertex();\n"
 			"		EndPrimitive();\n"
 			"	}\n"
-			"}\n", m_EFBLayers, m_EFBLayers, m_targetWidth).c_str(): nullptr);
+			"}\n", m_EFBLayers, m_EFBLayers, m_targetWidth).c_str() : nullptr);
 	glGenBuffers(1, &m_EfbPokes_VBO);
 	glGenVertexArrays(1, &m_EfbPokes_VAO);
 	glBindBuffer(GL_ARRAY_BUFFER, m_EfbPokes_VBO);

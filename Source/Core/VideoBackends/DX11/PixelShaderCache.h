@@ -52,7 +52,7 @@ private:
 		bool compiled;
 		std::atomic_flag initialized;
 
-		PSCacheEntry(): compiled(false)
+		PSCacheEntry() : compiled(false)
 		{
 			initialized.clear();
 		}

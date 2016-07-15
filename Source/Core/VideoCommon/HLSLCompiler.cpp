@@ -7,7 +7,7 @@
 #include "VideoCommon/HLSLCompiler.h"
 
 
-ShaderCompilerWorkUnit::ShaderCompilerWorkUnit():
+ShaderCompilerWorkUnit::ShaderCompilerWorkUnit() :
 	flags(0),
 	cresult(0),
 	code(),
@@ -56,7 +56,7 @@ void ShaderCompilerWorkUnit::Release()
 	}
 }
 
-HLSLAsyncCompiler::HLSLAsyncCompiler():
+HLSLAsyncCompiler::HLSLAsyncCompiler() :
 	m_repositoryIndex(0),
 	m_input(256),
 	m_output(256)
@@ -167,7 +167,7 @@ HLSLAsyncCompiler& HLSLAsyncCompiler::getInstance()
 	return HLSLCompiler::getInstance().m_AsyncCompiler;
 }
 
-HLSLCompiler::HLSLCompiler():
+HLSLCompiler::HLSLCompiler() :
 	hD3DCompilerDll(nullptr),
 	PD3DCompile(nullptr),
 	PD3DReflect(nullptr),

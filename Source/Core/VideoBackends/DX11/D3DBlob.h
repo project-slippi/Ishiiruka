@@ -20,7 +20,7 @@ public:
 	D3DBlob() = default;
 	D3DBlob(D3DBlob const &) = delete;
 	D3DBlob& operator=(D3DBlob const &) = delete;
-	D3DBlob(D3DBlob && b): blob_{b.blob_.release()}, data_{std::move(b.data_)}, size_(b.size_) {
+	D3DBlob(D3DBlob && b) : blob_{ b.blob_.release() }, data_{ std::move(b.data_) }, size_(b.size_) {
 	}
 
 	D3DBlob& operator=(D3DBlob && b)

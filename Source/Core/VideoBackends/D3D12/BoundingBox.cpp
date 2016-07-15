@@ -62,7 +62,7 @@ void BBox::Init()
 	if (!D3D::gpu_descriptor_heap_mgr->Allocate(&cpu_descriptor_handle, &s_bbox_descriptor_handle, nullptr, false))
 		PanicAlert("Failed to create bounding box UAV descriptor");
 
-	D3D12_UNORDERED_ACCESS_VIEW_DESC view_desc = {DXGI_FORMAT_R32_SINT, D3D12_UAV_DIMENSION_BUFFER};
+	D3D12_UNORDERED_ACCESS_VIEW_DESC view_desc = { DXGI_FORMAT_R32_SINT, D3D12_UAV_DIMENSION_BUFFER };
 	view_desc.Buffer.FirstElement = 0;
 	view_desc.Buffer.NumElements = 4;
 	view_desc.Buffer.StructureByteStride = 0;
@@ -133,7 +133,7 @@ int BBox::Get(int index)
 		D3D::current_command_list->CopyBufferRegion(s_bbox_staging_buffer.Get(), 0, s_bbox_buffer.Get(), 0, BBOX_BUFFER_SIZE);
 
 		D3D::command_list_mgr->ExecuteQueuedWork(true);
-		D3D12_RANGE read_range = {0, BBOX_BUFFER_SIZE};
+		D3D12_RANGE read_range = { 0, BBOX_BUFFER_SIZE };
 		void* bbox_staging_buffer_map = nullptr;
 		CheckHR(s_bbox_staging_buffer->Map(0, &read_range, &bbox_staging_buffer_map));
 		memcpy(s_bbox_shadow_copy, bbox_staging_buffer_map, BBOX_BUFFER_SIZE);

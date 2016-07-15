@@ -965,7 +965,7 @@ void CSTextureEncoder::Encode(u8* dest_ptr, u32 format, u32 native_width, u32 by
 		fullSrcRect.bottom = EFB_HEIGHT;
 		TargetRectangle targetRect = g_renderer->ConvertEFBRectangle(fullSrcRect);
 
-		EFBEncodeParams params = {0};
+		EFBEncodeParams params = { 0 };
 		params.NumHalfCacheLinesX = FLOAT(cacheLinesPerRow * 2);
 		params.NumBlocksY = FLOAT(num_blocks_y);
 		params.PosX = FLOAT(source.left);
@@ -1008,7 +1008,7 @@ void CSTextureEncoder::Encode(u8* dest_ptr, u32 format, u32 native_width, u32 by
 		// nVidia is unable to sync properly with a blocking Map
 		// That workaround works and NES games do not flick as hell anymore
 		D3D::context->Flush();
-		D3D11_MAPPED_SUBRESOURCE map = {0};
+		D3D11_MAPPED_SUBRESOURCE map = { 0 };
 		while ((hr = D3D::context->Map(m_outStage.get(), 0, D3D11_MAP_READ, D3D11_MAP_FLAG_DO_NOT_WAIT, &map)) != S_OK && hr == DXGI_ERROR_WAS_STILL_DRAWING)
 		{
 			Common::YieldCPU();

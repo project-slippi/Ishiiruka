@@ -13,7 +13,7 @@
 namespace DX11
 {
 
-class CSTextureDecoder: public TextureDecoder
+class CSTextureDecoder : public TextureDecoder
 {
 
 public:
@@ -35,7 +35,7 @@ private:
 		D3D::Texture2dPtr m_rsc;
 		D3D::UavPtr m_uav;
 		PoolValue() = default;
-		PoolValue(PoolValue && o): m_rsc{std::move(o.m_rsc)}, m_uav{std::move(o.m_uav)}
+		PoolValue(PoolValue && o) : m_rsc{ std::move(o.m_rsc) }, m_uav{ std::move(o.m_uav) }
 		{}
 	};
 
@@ -76,14 +76,14 @@ private:
 
 	ComboMap m_staticShaders;
 
-	class ShaderCacheInserter: public LinearDiskCacheReader<ComboKey, u8>
+	class ShaderCacheInserter : public LinearDiskCacheReader<ComboKey, u8>
 	{
 	public:
 		void Read(const ComboKey &key, const u8 *value, u32 value_size)
 		{
 			m_encoder.InsertShader(key, value, value_size);
 		}
-		ShaderCacheInserter(CSTextureDecoder &encoder): m_encoder(encoder)
+		ShaderCacheInserter(CSTextureDecoder &encoder) : m_encoder(encoder)
 		{}
 	private:
 		CSTextureDecoder& m_encoder;

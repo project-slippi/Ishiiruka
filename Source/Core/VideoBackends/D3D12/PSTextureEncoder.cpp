@@ -67,7 +67,7 @@ void PSTextureEncoder::Init()
 		D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET
 	);
 
-	D3D12_CLEAR_VALUE optimized_clear_value = {DXGI_FORMAT_B8G8R8A8_UNORM,{ 0.0f, 0.0f, 0.0f, 1.0f }};
+	D3D12_CLEAR_VALUE optimized_clear_value = { DXGI_FORMAT_B8G8R8A8_UNORM,{ 0.0f, 0.0f, 0.0f, 1.0f } };
 
 	CheckHR(
 		D3D::device->CreateCommittedResource(
@@ -231,7 +231,7 @@ void PSTextureEncoder::Encode(u8* dst, u32 format, u32 native_width, u32 bytes_p
 
 	// Transfer staging buffer to GameCube/Wii RAM
 	void* readback_data_map;
-	D3D12_RANGE read_range = {0, dst_location.PlacedFootprint.Footprint.RowPitch * num_blocks_y};
+	D3D12_RANGE read_range = { 0, dst_location.PlacedFootprint.Footprint.RowPitch * num_blocks_y };
 	CheckHR(m_out_readback_buffer->Map(0, &read_range, &readback_data_map));
 
 	u8* src = static_cast<u8*>(readback_data_map);

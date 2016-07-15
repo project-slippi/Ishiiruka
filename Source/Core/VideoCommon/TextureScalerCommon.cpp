@@ -225,7 +225,7 @@ void mix(u32* data, u32* source, u32* mask, u32 maskmax, int width, int l, int u
 		for (int x = 0; x < width; ++x)
 		{
 			int pos = y*width + x;
-			u8 mixFactors[2] = {0, static_cast<u8>((std::min(mask[pos], maskmax) * 255) / maskmax)};
+			u8 mixFactors[2] = { 0, static_cast<u8>((std::min(mask[pos], maskmax) * 255) / maskmax) };
 			mixFactors[0] = 255 - mixFactors[1];
 			data[pos] = MIX_PIXELS(data[pos], source[pos], mixFactors);
 			if (A(source[pos]) == 0) data[pos] = data[pos] & 0x00FFFFFF; // xBRZ always does a better job with hard alpha
@@ -341,11 +341,11 @@ float auxWeights[3][5][5];
 void initFilterWeights()
 {
 	float pi = 3.1415926535897932384626433832795f;
-	float wa[2] = {0.50f*pi, 0.42f*pi};
-	float wb[2] = {0.82f*pi, 0.92f*pi};
-	float wab[2] = {wa[0] * wb[0], wa[1] * wb[1]};
-	float B[2] = {1.0f, 0.334f};
-	float C[2] = {0.0f, 0.334f};
+	float wa[2] = { 0.50f*pi, 0.42f*pi };
+	float wb[2] = { 0.82f*pi, 0.92f*pi };
+	float wab[2] = { wa[0] * wb[0], wa[1] * wb[1] };
+	float B[2] = { 1.0f, 0.334f };
+	float C[2] = { 0.0f, 0.334f };
 	for (int type = 0; type < 2; ++type)
 	{
 		for (int factor = 2; factor <= 5; ++factor)
@@ -354,7 +354,7 @@ void initFilterWeights()
 			{
 				for (int y = 0; y < factor; ++y)
 				{
-					float sum[3] = {0.0f, 0.0f, 0.0f};
+					float sum[3] = { 0.0f, 0.0f, 0.0f };
 					for (int sx = 0; sx < 4; ++sx)
 					{
 						for (int sy = 0; sy < 4; ++sy)

@@ -175,13 +175,13 @@ public:
 
 		void SetEfbCopy(u32 stride);
 
-		TCacheEntryBase(const TCacheEntryConfig& c): config(c)
+		TCacheEntryBase(const TCacheEntryConfig& c) : config(c)
 		{
 			native_size_in_bytes = config.GetSizeInBytes();
 		}
 
 		virtual ~TCacheEntryBase();
-
+		virtual uintptr_t GetInternalObject() = 0;
 		virtual void Bind(u32 stage, u32 last_texture) = 0;
 		virtual bool Save(const std::string& filename, u32 level) = 0;
 

@@ -11,7 +11,7 @@ namespace DX12
 
 class D3DStreamBuffer;
 
-class VertexManager final: public VertexManagerBase
+class VertexManager final : public VertexManagerBase
 {
 public:
 	VertexManager();

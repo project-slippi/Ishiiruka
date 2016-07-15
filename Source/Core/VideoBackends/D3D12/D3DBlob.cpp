@@ -9,14 +9,14 @@
 namespace DX12
 {
 
-D3DBlob::D3DBlob(unsigned int blob_size, const u8* init_data): m_size(blob_size)
+D3DBlob::D3DBlob(unsigned int blob_size, const u8* init_data) : m_size(blob_size)
 {
 	m_data = new u8[blob_size];
 	if (init_data)
 		memcpy(m_data, init_data, m_size);
 }
 
-D3DBlob::D3DBlob(ID3DBlob* d3dblob): m_ref(1)
+D3DBlob::D3DBlob(ID3DBlob* d3dblob) : m_ref(1)
 {
 	m_blob = d3dblob;
 	m_data = static_cast<u8*>(m_blob->GetBufferPointer());

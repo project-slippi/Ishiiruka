@@ -41,7 +41,7 @@ typedef MathUtil::Rectangle<int> EFBRectangle;
 // coordinates, where the origin is at the lower left and the frame dimensions
 // depend on the resolution settings. Use Renderer::ConvertEFBRectangle to
 // convert an EFBRectangle to a TargetRectangle.
-struct TargetRectangle: public MathUtil::Rectangle<int>
+struct TargetRectangle : public MathUtil::Rectangle<int>
 {
 	constexpr TargetRectangle() = default;
 
@@ -68,7 +68,7 @@ struct TargetRectangle: public MathUtil::Rectangle<int>
 struct TargetSize final
 {
 	constexpr TargetSize() = default;
-	constexpr TargetSize(int new_width, int new_height): width(new_width), height(new_height)
+	constexpr TargetSize(int new_width, int new_height) : width(new_width), height(new_height)
 	{}
 
 	void Set(int new_width, int new_height)

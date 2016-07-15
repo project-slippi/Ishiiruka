@@ -123,7 +123,7 @@ void VideoBackend::InitBackendInfo()
 	g_Config.backend_info.Adapters.clear();
 
 	// aamodes
-	g_Config.backend_info.AAModes = {1, 2, 4, 8};
+	g_Config.backend_info.AAModes = { 1, 2, 4, 8 };
 }
 
 bool VideoBackend::Initialize(void* window_handle)

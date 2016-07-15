@@ -10,7 +10,7 @@
 namespace DX11
 {
 
-class Renderer: public ::Renderer
+class Renderer : public ::Renderer
 {
 private:
 	void BlitScreen(TargetRectangle dst_rect, TargetRectangle src_rect, TargetSize src_size, D3DTexture2D* src_texture, D3DTexture2D* depth_texture, float Gamma);

@@ -38,16 +38,16 @@ struct hires_mip_level
 	bool is_compressed;
 	std::string path;
 	std::string extension;
-	hires_mip_level(): is_compressed(false), path(), extension()
+	hires_mip_level() : is_compressed(false), path(), extension()
 	{}
-	hires_mip_level(const std::string &p, const std::string &e, bool compressed): is_compressed(compressed), path(p), extension(e)
+	hires_mip_level(const std::string &p, const std::string &e, bool compressed) : is_compressed(compressed), path(p), extension(e)
 	{}
 };
 struct HiresTextureCacheItem
 {
 	std::vector<hires_mip_level> color_map;
 	std::vector<hires_mip_level> normal_map;
-	HiresTextureCacheItem(size_t minsize): color_map(minsize), normal_map()
+	HiresTextureCacheItem(size_t minsize) : color_map(minsize), normal_map()
 	{}
 };
 
@@ -65,7 +65,7 @@ static size_t max_mem = 0;
 static std::thread s_prefetcher;
 
 static const std::string s_format_prefix = "tex1_";
-HiresTexture::HiresTexture():
+HiresTexture::HiresTexture() :
 	m_format(PC_TEX_FMT_NONE),
 	m_height(0),
 	m_levels(0),
@@ -143,7 +143,7 @@ void HiresTexture::Update()
 		".dds"
 	};
 
-	std::vector<std::string> filenames = DoFileSearch(Extensions, {texture_directory}, /*recursive*/ true);
+	std::vector<std::string> filenames = DoFileSearch(Extensions, { texture_directory }, /*recursive*/ true);
 
 	const std::string code = game_id + "_";
 	const std::string miptag = "mip";

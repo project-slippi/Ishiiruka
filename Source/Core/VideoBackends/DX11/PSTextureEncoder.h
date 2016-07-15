@@ -11,7 +11,7 @@
 namespace DX11
 {
 
-class PSTextureEncoder: public TextureEncoder
+class PSTextureEncoder : public TextureEncoder
 {
 public:
 	PSTextureEncoder();

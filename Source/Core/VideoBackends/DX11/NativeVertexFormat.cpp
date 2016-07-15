@@ -13,7 +13,7 @@
 namespace DX11
 {
 
-class D3DVertexFormat: public NativeVertexFormat
+class D3DVertexFormat : public NativeVertexFormat
 {
 public:
 	D3DVertexFormat(const PortableVertexDeclaration &_vtx_decl);
@@ -59,7 +59,7 @@ DXGI_FORMAT VarToD3D(EVTXComponentFormat t, int size)
 	return retval;
 }
 
-D3DVertexFormat::D3DVertexFormat(const PortableVertexDeclaration &_vtx_decl): m_num_elems(0)
+D3DVertexFormat::D3DVertexFormat(const PortableVertexDeclaration &_vtx_decl) : m_num_elems(0)
 {
 	vtx_decl = _vtx_decl;
 	const AttributeFormat* format = &vtx_decl.position;

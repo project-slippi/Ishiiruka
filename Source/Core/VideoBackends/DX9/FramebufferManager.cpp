@@ -303,7 +303,7 @@ void FramebufferManager::PopulateEFBDepthCache()
 	vp.MaxZ = 1.0f;
 	D3D::dev->SetViewport(&vp);
 
-	float colmat[28] = {0.0f};
+	float colmat[28] = { 0.0f };
 	colmat[0] = colmat[5] = colmat[10] = 1.0f;
 	PixelShaderManager::SetColorMatrix(colmat); // set transformation
 	D3D::dev->SetPixelShaderConstantF(C_COLORMATRIX, PixelShaderManager::GetBuffer(), 7);

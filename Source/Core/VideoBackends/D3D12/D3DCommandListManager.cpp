@@ -27,7 +27,7 @@ D3DCommandListManager::D3DCommandListManager(
 	D3D12_COMMAND_LIST_TYPE command_list_type,
 	ID3D12Device* device,
 	ID3D12CommandQueue* command_queue
-):
+) :
 	m_device(device),
 	m_command_queue(command_queue)
 {
@@ -136,7 +136,7 @@ void D3DCommandListManager::ExecuteQueuedWork(bool wait_for_gpu_completion)
 #else
 	CheckHR(m_backing_command_list->Close());
 
-	ID3D12CommandList* const execute_list[1] = {m_backing_command_list};
+	ID3D12CommandList* const execute_list[1] = { m_backing_command_list };
 	m_command_queue->ExecuteCommandLists(1, execute_list);
 
 	CheckHR(m_command_queue->Signal(m_queue_fence, m_queue_fence_value));
@@ -168,7 +168,7 @@ void D3DCommandListManager::ExecuteQueuedWorkAndPresent(IDXGISwapChain* swap_cha
 #else
 	CheckHR(m_backing_command_list->Close());
 
-	ID3D12CommandList* const execute_list[1] = {m_backing_command_list};
+	ID3D12CommandList* const execute_list[1] = { m_backing_command_list };
 	m_command_queue->ExecuteCommandLists(1, execute_list);
 
 	CheckHR(swap_chain->Present(sync_interval, flags));

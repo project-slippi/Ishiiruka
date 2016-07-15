@@ -43,7 +43,7 @@ private:
 		bool compiled;
 		std::atomic_flag initialized;
 
-		GSCacheEntry(): shader(nullptr), compiled(false)
+		GSCacheEntry() : shader(nullptr), compiled(false)
 		{
 			initialized.clear();
 		}

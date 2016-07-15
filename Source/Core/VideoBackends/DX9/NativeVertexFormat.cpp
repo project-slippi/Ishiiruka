@@ -17,7 +17,7 @@
 namespace DX9
 {
 
-class D3DVertexFormat: public NativeVertexFormat
+class D3DVertexFormat : public NativeVertexFormat
 {
 public:
 	D3DVertexFormat(const PortableVertexDeclaration &_vtx_decl);
@@ -90,7 +90,7 @@ D3DDECLTYPE VarToD3D(EVTXComponentFormat t, int size)
 	return retval;
 }
 
-D3DVertexFormat::D3DVertexFormat(const PortableVertexDeclaration &_vtx_decl): d3d_decl(nullptr)
+D3DVertexFormat::D3DVertexFormat(const PortableVertexDeclaration &_vtx_decl) : d3d_decl(nullptr)
 {
 	vtx_decl = _vtx_decl;
 

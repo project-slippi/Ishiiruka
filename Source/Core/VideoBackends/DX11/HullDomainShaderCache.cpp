@@ -52,7 +52,7 @@ D3D::BufferDescriptor  HullDomainShaderCache::GetConstantBuffer()
 }
 
 // this class will load the precompiled shaders into our cache
-class HullShaderCacheInserter: public LinearDiskCacheReader<TessellationShaderUid, u8>
+class HullShaderCacheInserter : public LinearDiskCacheReader<TessellationShaderUid, u8>
 {
 public:
 	void Read(const TessellationShaderUid &key, const u8* value, u32 value_size)
@@ -61,7 +61,7 @@ public:
 	}
 };
 
-class DomainShaderCacheInserter: public LinearDiskCacheReader<TessellationShaderUid, u8>
+class DomainShaderCacheInserter : public LinearDiskCacheReader<TessellationShaderUid, u8>
 {
 public:
 	void Read(const TessellationShaderUid &key, const u8* value, u32 value_size)

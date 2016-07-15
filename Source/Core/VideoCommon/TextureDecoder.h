@@ -5,14 +5,14 @@
 #pragma once
 #include "Common/CommonTypes.h"
 #include "Common/Hash.h"
-enum TMEM_S: u32
+enum TMEM_S : u32
 {
 	TMEM_SIZE = 1024 * 1024,
 	TMEM_LINE_SIZE = 32,
 };
 alignas(16) extern u8 texMem[TMEM_SIZE];
 
-enum TextureFormat: u32
+enum TextureFormat : u32
 {
 	// These are the texture formats that can be read by the texture mapper.
 	GX_TF_I4 = 0x0,
@@ -85,6 +85,7 @@ enum PC_TexFormat
 	PC_TEX_FMT_DXT1,
 	PC_TEX_FMT_DXT3,
 	PC_TEX_FMT_DXT5,
+	PC_TEX_FMT_R32,
 };
 PC_TexFormat TexDecoder_Decode(u8 *dst, const u8 *src, u32 width, u32 height, u32 texformat, u32 tlutaddr, TlutFormat tlutfmt, bool rgbaOnly = false, bool compressed_supported = false);
 PC_TexFormat GetPC_TexFormat(u32 texformat, TlutFormat tlutfmt, bool compressed_supported = false);

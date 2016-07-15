@@ -15,19 +15,19 @@
 namespace DX9
 {
 
-class TextureCache: public ::TextureCacheBase
+class TextureCache : public ::TextureCacheBase
 {
 public:
 	TextureCache();
 	~TextureCache();
 private:
-	struct TCacheEntry: TCacheEntryBase
+	struct TCacheEntry : TCacheEntryBase
 	{
 		LPDIRECT3DTEXTURE9 texture;
 
 		D3DFORMAT d3d_fmt;
 		bool compressed;
-		TCacheEntry(const TCacheEntryConfig& config, LPDIRECT3DTEXTURE9 _tex): TCacheEntryBase(config), texture(_tex), compressed(false)
+		TCacheEntry(const TCacheEntryConfig& config, LPDIRECT3DTEXTURE9 _tex) : TCacheEntryBase(config), texture(_tex), compressed(false)
 		{}
 		~TCacheEntry();
 
@@ -56,6 +56,10 @@ private:
 		}
 		void Bind(u32 stage, u32 last_texture) override;
 		bool Save(const std::string& filename, u32 level) override;
+		inline uintptr_t GetInternalObject() override
+		{
+			return reinterpret_cast<uintptr_t>(texture);
+		}
 	};
 
 	PC_TexFormat GetNativeTextureFormat(const s32 texformat, const TlutFormat tlutfmt, u32 width, u32 height);

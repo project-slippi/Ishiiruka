@@ -7,7 +7,7 @@
 
 namespace DX9 {
 
-class PerfQuery: public PerfQueryBase
+class PerfQuery : public PerfQueryBase
 {
 public:
 	PerfQuery();

@@ -30,7 +30,7 @@ namespace DX12
 static bool s_cache_is_corrupted = false;
 LinearDiskCache<SmallPsoDiskDesc, u8> s_pso_disk_cache;
 
-class PipelineStateCacheInserter: public LinearDiskCacheReader<SmallPsoDiskDesc, u8>
+class PipelineStateCacheInserter : public LinearDiskCacheReader<SmallPsoDiskDesc, u8>
 {
 public:
 	void Read(const SmallPsoDiskDesc &key, const u8* value, u32 value_size)
@@ -341,7 +341,7 @@ inline D3D12_DEPTH_STENCIL_DESC StateCache::GetDesc(ZMode state)
 	depthdc.StencilReadMask = D3D12_DEFAULT_STENCIL_READ_MASK;
 	depthdc.StencilWriteMask = D3D12_DEFAULT_STENCIL_WRITE_MASK;
 
-	D3D12_DEPTH_STENCILOP_DESC defaultStencilOp = {D3D12_STENCIL_OP_KEEP, D3D12_STENCIL_OP_KEEP, D3D12_STENCIL_OP_KEEP, D3D12_COMPARISON_FUNC_ALWAYS};
+	D3D12_DEPTH_STENCILOP_DESC defaultStencilOp = { D3D12_STENCIL_OP_KEEP, D3D12_STENCIL_OP_KEEP, D3D12_STENCIL_OP_KEEP, D3D12_COMPARISON_FUNC_ALWAYS };
 	depthdc.FrontFace = defaultStencilOp;
 	depthdc.BackFace = defaultStencilOp;
 

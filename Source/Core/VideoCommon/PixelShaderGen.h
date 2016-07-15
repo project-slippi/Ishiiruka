@@ -45,7 +45,7 @@
 #define C_PENVCONST_END (C_PPHONG + 2)
 #define C_PCONST_END    (C_PMATERIALS)
 // Different ways to achieve rendering with destination alpha
-enum PIXEL_SHADER_RENDER_MODE: unsigned int
+enum PIXEL_SHADER_RENDER_MODE : unsigned int
 {
 	PSRM_DEFAULT = 0, // Render normally, without destination alpha
 	PSRM_ALPHA_PASS = 1, // Render normally first, then render again for alpha

@@ -209,7 +209,7 @@ std::string VertexLoaderBase::GetName() const
 			m_VtxAttr.NormalElements, m_VtxAttr.NormalIndex3, posMode[m_VtxDesc.Normal], posFormats[m_VtxAttr.NormalFormat]));
 	}
 
-	u64 color_mode[2] = {m_VtxDesc.Color0, m_VtxDesc.Color1};
+	u64 color_mode[2] = { m_VtxDesc.Color0, m_VtxDesc.Color1 };
 	for (int i = 0; i < 2; i++)
 	{
 		if (color_mode[i])
@@ -245,7 +245,7 @@ void VertexLoaderBase::AppendToString(std::string *dest) const
 }
 
 // a hacky implementation to compare two vertex loaders
-class VertexLoaderTester: public VertexLoaderBase
+class VertexLoaderTester : public VertexLoaderBase
 {
 public:
 	VertexLoaderTester(std::unique_ptr<VertexLoaderBase> _a, std::unique_ptr<VertexLoaderBase> _b, const TVtxDesc& vtx_desc, const VAT& vtx_attr)

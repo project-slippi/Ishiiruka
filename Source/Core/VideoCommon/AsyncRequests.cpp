@@ -46,8 +46,7 @@ void AsyncRequests::PullEventsInternal()
 				m_merged_efb_pokes.push_back(d);
 
 				m_queue.pop();
-			}
-			while (!m_queue.empty() && m_queue.front().type == first_event.type);
+			} while (!m_queue.empty() && m_queue.front().type == first_event.type);
 
 			lock.unlock();
 			g_renderer->PokeEFB(t, m_merged_efb_pokes.data(), m_merged_efb_pokes.size());
@@ -119,14 +118,14 @@ void AsyncRequests::HandleEvent(const AsyncRequests::Event& e)
 	{
 	case Event::EFB_POKE_COLOR:
 	{
-		EfbPokeData poke = {e.efb_poke.x, e.efb_poke.y, e.efb_poke.data};
+		EfbPokeData poke = { e.efb_poke.x, e.efb_poke.y, e.efb_poke.data };
 		g_renderer->PokeEFB(POKE_COLOR, &poke, 1);
 	}
 	break;
 
 	case Event::EFB_POKE_Z:
 	{
-		EfbPokeData poke = {e.efb_poke.x, e.efb_poke.y, e.efb_poke.data};
+		EfbPokeData poke = { e.efb_poke.x, e.efb_poke.y, e.efb_poke.data };
 		g_renderer->PokeEFB(POKE_Z, &poke, 1);
 	}
 	break;

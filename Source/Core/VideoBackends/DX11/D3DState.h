@@ -310,7 +310,7 @@ private:
 	ID3D11DepthStencilState* m_currentDepthState;
 	ID3D11RasterizerState* m_currentRasterizerState;
 
-	enum DirtyFlags: u64
+	enum DirtyFlags : u64
 	{
 		DirtyFlag_Texture0 = 1ull << 0,
 		DirtyFlag_Texture1 = 1ull << 1,

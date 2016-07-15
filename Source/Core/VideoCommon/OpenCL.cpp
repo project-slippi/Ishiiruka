@@ -78,8 +78,8 @@ bool Initialize()
 		return false;
 	}
 
-	cl_context_properties cps[3] = {CL_CONTEXT_PLATFORM,
-		(cl_context_properties)platform, 0};
+	cl_context_properties cps[3] = { CL_CONTEXT_PLATFORM,
+		(cl_context_properties)platform, 0 };
 
 	cl_context_properties* cprops = (NULL == platform) ? NULL : cps;
 

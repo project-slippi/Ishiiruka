@@ -9,7 +9,7 @@
 namespace DX11
 {
 
-class VertexManager: public ::VertexManagerBase
+class VertexManager : public ::VertexManagerBase
 {
 public:
 	VertexManager();

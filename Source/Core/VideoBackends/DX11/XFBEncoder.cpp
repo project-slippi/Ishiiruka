@@ -132,7 +132,7 @@ static const struct QuadVertex
 {
 	float posX;
 	float posY;
-} QUAD_VERTS[4] = {{ 0, 0 }, { 1, 0 }, { 0, 1 }, { 1, 1 }};
+} QUAD_VERTS[4] = { { 0, 0 }, { 1, 0 }, { 0, 1 }, { 1, 1 } };
 
 XFBEncoder::XFBEncoder()
 	: m_out(nullptr), m_outRTV(nullptr), m_outStage(nullptr), m_encodeParams(nullptr),
@@ -185,7 +185,7 @@ void XFBEncoder::Init()
 
 	bd = CD3D11_BUFFER_DESC(sizeof(QUAD_VERTS), D3D11_BIND_VERTEX_BUFFER,
 		D3D11_USAGE_IMMUTABLE);
-	D3D11_SUBRESOURCE_DATA srd = {QUAD_VERTS, 0, 0};
+	D3D11_SUBRESOURCE_DATA srd = { QUAD_VERTS, 0, 0 };
 
 	hr = D3D::device->CreateBuffer(&bd, &srd, D3D::ToAddr(m_quad));
 	CHECK(SUCCEEDED(hr), "create xfb encode quad vertex buffer");
@@ -302,7 +302,7 @@ void XFBEncoder::Encode(u8* dst, u32 width, u32 height, const EFBRectangle& srcR
 
 	TargetRectangle targetRect = g_renderer->ConvertEFBRectangle(srcRect);
 
-	XFBEncodeParams params = {0};
+	XFBEncodeParams params = { 0 };
 	params.Width = FLOAT(width / 2);
 	params.Height = FLOAT(height);
 	params.TexLeft = FLOAT(targetRect.left) / g_renderer->GetTargetWidth();
@@ -349,7 +349,7 @@ void XFBEncoder::Encode(u8* dst, u32 width, u32 height, const EFBRectangle& srcR
 
 	// Transfer staging buffer to GameCube/Wii RAM
 
-	D3D11_MAPPED_SUBRESOURCE map = {0};
+	D3D11_MAPPED_SUBRESOURCE map = { 0 };
 	hr = D3D::context->Map(m_outStage.get(), 0, D3D11_MAP_READ, 0, &map);
 	CHECK(SUCCEEDED(hr), "map staging buffer");
 

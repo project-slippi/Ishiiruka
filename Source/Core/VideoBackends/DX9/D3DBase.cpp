@@ -15,8 +15,8 @@ D3DXSAVETEXTURETOFILEATYPE PD3DXSaveTextureToFileA = nullptr;
 
 namespace DX9
 {
-static char vsVersions[5][7] = {"ERROR", "vs_1_4", "vs_2_a", "vs_3_0", "vs_4_0"};
-static char psVersions[5][7] = {"ERROR", "ps_1_4", "ps_2_a", "ps_3_0", "ps_4_0"};
+static char vsVersions[5][7] = { "ERROR", "vs_1_4", "vs_2_a", "vs_3_0", "vs_4_0" };
+static char psVersions[5][7] = { "ERROR", "ps_1_4", "ps_2_a", "ps_3_0", "ps_4_0" };
 // D3DX
 HINSTANCE hD3DXDll = nullptr;
 int d3dx_dll_ref = 0;

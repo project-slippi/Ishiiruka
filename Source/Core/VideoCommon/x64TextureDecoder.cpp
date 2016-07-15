@@ -754,7 +754,7 @@ static PC_TexFormat GetPCFormatFromTLUTFormat(TlutFormat tlutfmt)
 	case GX_TL_IA8: return PC_TEX_FMT_IA8;    // IA8
 	case GX_TL_RGB565: return PC_TEX_FMT_RGB565; // RGB565
 	case GX_TL_RGB5A3: return PC_TEX_FMT_BGRA32; // RGB5A3: This TLUT format requires
-									  // extra work to decode.
+										// extra work to decode.
 	}
 	return PC_TEX_FMT_NONE; // Error
 }

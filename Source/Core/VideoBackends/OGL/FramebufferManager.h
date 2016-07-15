@@ -48,9 +48,9 @@
 namespace OGL
 {
 
-struct XFBSource: public XFBSourceBase
+struct XFBSource : public XFBSourceBase
 {
-	XFBSource(GLuint tex, unsigned int target_width, unsigned int target_height, unsigned int layers):
+	XFBSource(GLuint tex, unsigned int target_width, unsigned int target_height, unsigned int layers) :
 		texture(tex),
 		depthtexture(0),
 		m_layers(layers), m_target_width(target_width), m_target_height(target_height)
@@ -66,7 +66,7 @@ struct XFBSource: public XFBSourceBase
 	const unsigned int m_layers, m_target_width, m_target_height;
 };
 
-class FramebufferManager: public FramebufferManagerBase
+class FramebufferManager : public FramebufferManagerBase
 {
 public:
 	FramebufferManager(int targetWidth, int targetHeight, int msaaSamples);

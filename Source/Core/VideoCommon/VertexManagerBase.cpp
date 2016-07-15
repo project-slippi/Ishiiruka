@@ -32,7 +32,7 @@ u8 *VertexManagerBase::s_pEndBufferPointer;
 
 bool VertexManagerBase::s_shader_refresh_required = true;
 bool VertexManagerBase::s_zslope_refresh_required = true;
-Slope VertexManagerBase::s_zslope = {0.0f, 0.0f, float(0xFFFFFF)};
+Slope VertexManagerBase::s_zslope = { 0.0f, 0.0f, float(0xFFFFFF) };
 
 PrimitiveType VertexManagerBase::current_primitive_type;
 

@@ -9,7 +9,7 @@
 
 namespace DX12
 {
-class D3DVertexFormat final: public NativeVertexFormat
+class D3DVertexFormat final : public NativeVertexFormat
 {
 public:
 	D3DVertexFormat(const PortableVertexDeclaration &vtx_decl);

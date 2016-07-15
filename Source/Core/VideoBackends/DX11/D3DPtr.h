@@ -28,8 +28,8 @@ struct UniquePtr
 	{}
 
 	// http://en.cppreference.com/w/cpp/memory/unique_ptr/unique_ptr
-	explicit UniquePtr(T* p):
-		m_ptr{p}
+	explicit UniquePtr(T* p) :
+		m_ptr{ p }
 	{}
 
 	// http://en.cppreference.com/w/cpp/memory/unique_ptr/unique_ptr
@@ -40,7 +40,7 @@ struct UniquePtr
 	UniquePtr& operator=(UniquePtr const &) = delete;
 
 	// http://en.cppreference.com/w/cpp/memory/unique_ptr/unique_ptr
-	UniquePtr(UniquePtr && p): m_ptr{p.release()}
+	UniquePtr(UniquePtr && p) : m_ptr{ p.release() }
 	{}
 
 	// http://en.cppreference.com/w/cpp/memory/unique_ptr/operator%3D
@@ -90,7 +90,7 @@ struct UniquePtr
 	}
 
 	// this is the ugly part but there is no real clean way to hide the unwanted API
-	struct ReleaseAndAddRefHiddenT: public T
+	struct ReleaseAndAddRefHiddenT : public T
 	{
 	private:
 		virtual ULONG Release(void) override;
@@ -120,7 +120,7 @@ struct UniquePtr
 	{
 		if (m_ptr)
 			m_ptr->AddRef();
-		return UniquePtr{m_ptr};
+		return UniquePtr{ m_ptr };
 	}
 
 	// http://en.cppreference.com/w/cpp/memory/unique_ptr/operator_bool
@@ -188,7 +188,7 @@ using BufferDescriptor = std::tuple<ID3D11Buffer*, UINT, UINT>;
 template <typename T>
 struct ToAddrImpl
 {
-	ToAddrImpl(UniquePtr<T> & ptr): m_ptr{ptr}
+	ToAddrImpl(UniquePtr<T> & ptr) : m_ptr{ ptr }
 	{}
 	ToAddrImpl(ToAddrImpl const &) = delete;
 	ToAddrImpl& operator=(ToAddrImpl const &) = delete;
@@ -209,7 +209,7 @@ private:
 template <typename T>
 inline ToAddrImpl<T> ToAddr(UniquePtr<T>& ptr)
 {
-	return{ptr};
+	return{ ptr };
 }
 
 }  // namespace D3D

@@ -67,7 +67,7 @@ D3D::BufferDescriptor VertexShaderCache::GetConstantBuffer()
 }
 
 // this class will load the precompiled shaders into our cache
-class VertexShaderCacheInserter: public LinearDiskCacheReader<VertexShaderUid, u8>
+class VertexShaderCacheInserter : public LinearDiskCacheReader<VertexShaderUid, u8>
 {
 public:
 	void Read(const VertexShaderUid &key, const u8 *value, u32 value_size)

@@ -6,7 +6,7 @@
 #include "VideoCommon/NativeVertexFormat.h"
 #include "VideoCommon/VertexLoaderBase.h"
 
-class VertexLoaderCompiled: public VertexLoaderBase
+class VertexLoaderCompiled : public VertexLoaderBase
 {
 public:
 	static void Initialize();

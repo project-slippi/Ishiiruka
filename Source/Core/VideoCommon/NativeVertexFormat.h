@@ -50,21 +50,21 @@ enum
 #define LOADERDECL
 #endif
 
-enum PipelineStateFlags: u8
+enum PipelineStateFlags : u8
 {
 	TPS_NONE = 0,
 	TPS_USE_BBOX = 1,
 	TPS_SKIP_VERTEX = 2,
 };
 
-class TPipelineState: public DataReader, public DataWriter
+class TPipelineState : public DataReader, public DataWriter
 {
 public:
-	TPipelineState(u8* source, u8* _end, u8* destination): DataReader(source, _end), DataWriter(destination)
+	TPipelineState(u8* source, u8* _end, u8* destination) : DataReader(source, _end), DataWriter(destination)
 	{
 		Clear();
 	};
-	TPipelineState(): DataReader(), DataWriter()
+	TPipelineState() : DataReader(), DataWriter()
 	{
 		Clear();
 	};
@@ -140,7 +140,7 @@ struct PortableVertexDeclaration
 
 // Note that this class can't just invent arbitrary vertex formats out of its input -
 // all the data loading code must always be made compatible.
-class NativeVertexFormat: NonCopyable
+class NativeVertexFormat : NonCopyable
 {
 public:
 	virtual ~NativeVertexFormat()

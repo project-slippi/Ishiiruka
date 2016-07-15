@@ -15,7 +15,7 @@ namespace DX12
 
 namespace D3D
 {
-enum class ShaderType: u32
+enum class ShaderType : u32
 {
 	Vertex,
 	Pixel,

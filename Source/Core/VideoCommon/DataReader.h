@@ -131,7 +131,7 @@ protected:
 class DataWriter
 {
 public:
-	inline DataWriter(u8 *destination): Wbuffer(destination)
+	inline DataWriter(u8 *destination) : Wbuffer(destination)
 	{}
 	inline DataWriter() : Wbuffer(nullptr)
 	{}

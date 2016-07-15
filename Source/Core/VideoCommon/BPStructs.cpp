@@ -362,8 +362,8 @@ void BPWritten(const BPCmd& bp)
 		if (bp.changes & 3)
 			PixelShaderManager::SetZTextureTypeChanged();
 #if defined(_DEBUG) || defined(DEBUGFAST)
-		const char* pzop[] = {"DISABLE", "ADD", "REPLACE", "?"};
-		const char* pztype[] = {"Z8", "Z16", "Z24", "?"};
+		const char* pzop[] = { "DISABLE", "ADD", "REPLACE", "?" };
+		const char* pztype[] = { "Z8", "Z16", "Z24", "?" };
 		PRIM_LOG("ztex op=%s, type=%s", pzop[bpmem.ztex2.op], pztype[bpmem.ztex2.type]);
 #endif
 	}
@@ -741,11 +741,11 @@ void BPReload()
 	SetColorMask();
 	OnPixelFormatChange();
 	{
-		BPCmd bp = {BPMEM_FIELDMASK, 0xFFFFFF, static_cast<int>(((u32*)&bpmem)[BPMEM_FIELDMASK])};
+		BPCmd bp = { BPMEM_FIELDMASK, 0xFFFFFF, static_cast<int>(((u32*)&bpmem)[BPMEM_FIELDMASK]) };
 		SetInterlacingMode(bp);
 	}
 	{
-		BPCmd bp = {BPMEM_FIELDMODE, 0xFFFFFF, static_cast<int>(((u32*)&bpmem)[BPMEM_FIELDMODE])};
+		BPCmd bp = { BPMEM_FIELDMODE, 0xFFFFFF, static_cast<int>(((u32*)&bpmem)[BPMEM_FIELDMODE]) };
 		SetInterlacingMode(bp);
 	}
 }

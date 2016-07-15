@@ -269,11 +269,11 @@ inline void WriteFetchDisplacement(ShaderCode& out, int n, const Tessellation_sh
 		// perform the indirect op on the incoming regular coordinates using indtex%d as the offset coords
 		if (tevind.mid != 0)
 		{
-			static const char *tevIndFmtMask[] = {"255", "31", "15", "7"};
+			static const char *tevIndFmtMask[] = { "255", "31", "15", "7" };
 			out.Write("int3 indtevcrd%d = indtex%d & %s;\n", n, tevind.bt, tevIndFmtMask[tevind.fmt]);
 
-			static const char *tevIndBiasField[] = {"", "x", "y", "xy", "z", "xz", "yz", "xyz"}; // indexed by bias
-			static const char *tevIndBiasAdd[] = {"int(-128)", "int(1)", "int(1)", "int(1)"}; // indexed by fmt
+			static const char *tevIndBiasField[] = { "", "x", "y", "xy", "z", "xz", "yz", "xyz" }; // indexed by bias
+			static const char *tevIndBiasAdd[] = { "int(-128)", "int(1)", "int(1)", "int(1)" }; // indexed by fmt
 																															// bias
 			if (tevind.bias == ITB_S || tevind.bias == ITB_T || tevind.bias == ITB_U)
 				out.Write("indtevcrd%d.%s += %s;\n", n, tevIndBiasField[tevind.bias], tevIndBiasAdd[tevind.fmt]);
@@ -320,7 +320,7 @@ inline void WriteFetchDisplacement(ShaderCode& out, int n, const Tessellation_sh
 		// ---------
 		// Wrapping
 		// ---------
-		static const char *tevIndWrapStart[] = {"int(0)", "int(256*128)", "int(128*128)", "int(64*128)", "int(32*128)", "int(16*128)", "int(1)"};
+		static const char *tevIndWrapStart[] = { "int(0)", "int(256*128)", "int(128*128)", "int(64*128)", "int(32*128)", "int(16*128)", "int(1)" };
 		// wrap S
 		if (tevind.sw == ITW_OFF)
 			out.Write("wrappedcoord.x = int(uv[%d].x);\n", texcoord);

@@ -43,7 +43,7 @@ void ID3D12QueuedCommandList::BackgroundThreadFunction(ID3D12QueuedCommandList* 
 
 			case D3DQueueItemType::ClearRenderTargetView:
 			{
-				float clearColor[4] = {0.f, 0.f, 0.f, 1.f};
+				float clearColor[4] = { 0.f, 0.f, 0.f, 1.f };
 				command_list->ClearRenderTargetView(qitem->ClearRenderTargetView.RenderTargetView, clearColor, 0, nullptr);
 
 				item += BufferOffsetForQueueItemType<ClearRenderTargetViewArguments>();
@@ -407,7 +407,7 @@ void ID3D12QueuedCommandList::BackgroundThreadFunction(ID3D12QueuedCommandList* 
 	}
 }
 
-ID3D12QueuedCommandList::ID3D12QueuedCommandList(ID3D12GraphicsCommandList* backing_command_list, ID3D12CommandQueue* backing_command_queue):
+ID3D12QueuedCommandList::ID3D12QueuedCommandList(ID3D12GraphicsCommandList* backing_command_list, ID3D12CommandQueue* backing_command_queue) :
 	m_command_list(backing_command_list),
 	m_command_queue(backing_command_queue)
 {

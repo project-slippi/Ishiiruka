@@ -6,7 +6,7 @@
 #include "VideoCommon/NativeVertexFormat.h"
 #include "VideoCommon/VertexLoaderBase.h"
 
-class VertexLoader: public VertexLoaderBase
+class VertexLoader : public VertexLoaderBase
 {
 public:
 	VertexLoader(const TVtxDesc &vtx_desc, const VAT &vtx_attr);

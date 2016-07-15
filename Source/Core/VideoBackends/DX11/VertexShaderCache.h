@@ -49,7 +49,7 @@ private:
 		std::string code;
 		bool compiled;
 		std::atomic_flag initialized;
-		VSCacheEntry(): compiled(false)
+		VSCacheEntry() : compiled(false)
 		{
 			initialized.clear();
 		}

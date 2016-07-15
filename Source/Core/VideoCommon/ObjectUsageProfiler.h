@@ -45,13 +45,13 @@ typedef uint64_t pKey_t;
 template <typename Tobj, typename TCaterogry, typename TInfo, typename TobjHasher> class ObjectUsageProfiler
 {
 public:
-	ObjectUsageProfiler(pKey_t version): m_version(version)
+	ObjectUsageProfiler(pKey_t version) : m_version(version)
 	{};
 	void SetCategory(const TCaterogry& category)
 	{
 		if (m_categories.find(category) == m_categories.end())
 		{
-			m_categories[category] = {m_categories.size() + 1, 0};
+			m_categories[category] = { m_categories.size() + 1, 0 };
 		}
 		if (m_categories[category].usage_count < LLONG_MAX)
 		{
@@ -396,7 +396,7 @@ private:
 		pKey_t usage_count;
 		std::vector<pKey_t> category_mask;
 		TInfo info;
-		ObjectMetadata(): category_count(0), usage_count(0)
+		ObjectMetadata() : category_count(0), usage_count(0)
 		{}
 	};
 	struct greater

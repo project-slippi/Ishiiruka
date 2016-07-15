@@ -522,7 +522,7 @@ D3D12_SHADER_BYTECODE StaticShaderCache::GetReinterpRGBA6ToRGB8PixelShader(bool 
 			D3D::CompilePixelShader(s_reint_rgba6_to_rgb8_program_hlsl, &s_rgba6_to_rgb8_program_blob[0]);
 		}
 
-		bytecode = {s_rgba6_to_rgb8_program_blob[0]->Data(), s_rgba6_to_rgb8_program_blob[0]->Size()};
+		bytecode = { s_rgba6_to_rgb8_program_blob[0]->Data(), s_rgba6_to_rgb8_program_blob[0]->Size() };
 		return bytecode;
 	}
 	else if (!s_rgba6_to_rgb8_program_blob[1])
@@ -531,7 +531,7 @@ D3D12_SHADER_BYTECODE StaticShaderCache::GetReinterpRGBA6ToRGB8PixelShader(bool 
 		std::string buf = StringFromFormat(s_reint_rgba6_to_rgb8_program_msaa_hlsl, g_ActiveConfig.iMultisamples);
 
 		D3D::CompilePixelShader(buf, &s_rgba6_to_rgb8_program_blob[1]);
-		bytecode = {s_rgba6_to_rgb8_program_blob[1]->Data(), s_rgba6_to_rgb8_program_blob[1]->Size()};
+		bytecode = { s_rgba6_to_rgb8_program_blob[1]->Data(), s_rgba6_to_rgb8_program_blob[1]->Size() };
 	}
 	return bytecode;
 }
@@ -547,7 +547,7 @@ D3D12_SHADER_BYTECODE StaticShaderCache::GetReinterpRGB8ToRGBA6PixelShader(bool 
 			D3D::CompilePixelShader(s_reint_rgb8_to_rgba6_program_hlsl, &s_rgb8_to_rgba6_program_blob[0]);
 		}
 
-		bytecode = {s_rgb8_to_rgba6_program_blob[0]->Data(), s_rgb8_to_rgba6_program_blob[0]->Size()};
+		bytecode = { s_rgb8_to_rgba6_program_blob[0]->Data(), s_rgb8_to_rgba6_program_blob[0]->Size() };
 		return bytecode;
 	}
 	else if (!s_rgb8_to_rgba6_program_blob[1])
@@ -556,7 +556,7 @@ D3D12_SHADER_BYTECODE StaticShaderCache::GetReinterpRGB8ToRGBA6PixelShader(bool 
 		std::string buf = StringFromFormat(s_reint_rgb8_to_rgba6_program_msaa_hlsl, g_ActiveConfig.iMultisamples);
 
 		D3D::CompilePixelShader(buf, &s_rgb8_to_rgba6_program_blob[1]);
-		bytecode = {s_rgb8_to_rgba6_program_blob[1]->Data(), s_rgb8_to_rgba6_program_blob[1]->Size()};
+		bytecode = { s_rgb8_to_rgba6_program_blob[1]->Data(), s_rgb8_to_rgba6_program_blob[1]->Size() };
 	}
 
 	return bytecode;
@@ -568,11 +568,11 @@ D3D12_SHADER_BYTECODE StaticShaderCache::GetColorCopyPixelShader(bool multisampl
 
 	if (!multisampled || g_ActiveConfig.iMultisamples == 1)
 	{
-		bytecode = {s_color_copy_program_blob[0]->Data(), s_color_copy_program_blob[0]->Size()};
+		bytecode = { s_color_copy_program_blob[0]->Data(), s_color_copy_program_blob[0]->Size() };
 	}
 	else if (s_color_copy_program_blob[1])
 	{
-		bytecode = {s_color_copy_program_blob[1]->Data(), s_color_copy_program_blob[1]->Size()};
+		bytecode = { s_color_copy_program_blob[1]->Data(), s_color_copy_program_blob[1]->Size() };
 	}
 	else
 	{
@@ -580,7 +580,7 @@ D3D12_SHADER_BYTECODE StaticShaderCache::GetColorCopyPixelShader(bool multisampl
 		std::string buf = StringFromFormat(s_color_copy_program_msaa_hlsl, g_ActiveConfig.iMultisamples);
 
 		D3D::CompilePixelShader(buf, &s_color_copy_program_blob[1]);
-		bytecode = {s_color_copy_program_blob[1]->Data(), s_color_copy_program_blob[1]->Size()};
+		bytecode = { s_color_copy_program_blob[1]->Data(), s_color_copy_program_blob[1]->Size() };
 	}
 
 	return bytecode;
@@ -592,11 +592,11 @@ D3D12_SHADER_BYTECODE StaticShaderCache::GetDepthCopyPixelShader(bool multisampl
 
 	if (!multisampled || g_ActiveConfig.iMultisamples == 1)
 	{
-		bytecode = {s_depth_copy_program_blob[0]->Data(), s_depth_copy_program_blob[0]->Size()};
+		bytecode = { s_depth_copy_program_blob[0]->Data(), s_depth_copy_program_blob[0]->Size() };
 	}
 	else if (s_depth_copy_program_blob[1])
 	{
-		bytecode = {s_depth_copy_program_blob[1]->Data(), s_depth_copy_program_blob[1]->Size()};
+		bytecode = { s_depth_copy_program_blob[1]->Data(), s_depth_copy_program_blob[1]->Size() };
 	}
 	else
 	{
@@ -604,7 +604,7 @@ D3D12_SHADER_BYTECODE StaticShaderCache::GetDepthCopyPixelShader(bool multisampl
 		std::string buf = StringFromFormat(s_depth_copy_program_msaa_hlsl, g_ActiveConfig.iMultisamples);
 
 		D3D::CompilePixelShader(buf, &s_depth_copy_program_blob[1]);
-		bytecode = {s_depth_copy_program_blob[1]->Data(), s_depth_copy_program_blob[1]->Size()};
+		bytecode = { s_depth_copy_program_blob[1]->Data(), s_depth_copy_program_blob[1]->Size() };
 	}
 
 	return bytecode;
@@ -616,11 +616,11 @@ D3D12_SHADER_BYTECODE StaticShaderCache::GetColorMatrixPixelShader(bool multisam
 
 	if (!multisampled || g_ActiveConfig.iMultisamples == 1)
 	{
-		bytecode = {s_color_matrix_program_blob[0]->Data(), s_color_matrix_program_blob[0]->Size()};
+		bytecode = { s_color_matrix_program_blob[0]->Data(), s_color_matrix_program_blob[0]->Size() };
 	}
 	else if (s_color_matrix_program_blob[1])
 	{
-		bytecode = {s_color_matrix_program_blob[1]->Data(), s_color_matrix_program_blob[1]->Size()};
+		bytecode = { s_color_matrix_program_blob[1]->Data(), s_color_matrix_program_blob[1]->Size() };
 	}
 	else
 	{
@@ -628,7 +628,7 @@ D3D12_SHADER_BYTECODE StaticShaderCache::GetColorMatrixPixelShader(bool multisam
 		std::string buf = StringFromFormat(s_color_matrix_program_msaa_hlsl, g_ActiveConfig.iMultisamples);
 
 		D3D::CompilePixelShader(buf, &s_color_matrix_program_blob[1]);
-		bytecode = {s_color_matrix_program_blob[1]->Data(), s_color_matrix_program_blob[1]->Size()};
+		bytecode = { s_color_matrix_program_blob[1]->Data(), s_color_matrix_program_blob[1]->Size() };
 	}
 
 	return bytecode;
@@ -640,11 +640,11 @@ D3D12_SHADER_BYTECODE StaticShaderCache::GetDepthMatrixPixelShader(bool multisam
 
 	if (!multisampled || g_ActiveConfig.iMultisamples == 1)
 	{
-		bytecode = {s_depth_matrix_program_blob[0]->Data(), s_depth_matrix_program_blob[0]->Size()};
+		bytecode = { s_depth_matrix_program_blob[0]->Data(), s_depth_matrix_program_blob[0]->Size() };
 	}
 	else if (s_depth_matrix_program_blob[1])
 	{
-		bytecode = {s_depth_matrix_program_blob[1]->Data(), s_depth_matrix_program_blob[1]->Size()};
+		bytecode = { s_depth_matrix_program_blob[1]->Data(), s_depth_matrix_program_blob[1]->Size() };
 	}
 	else
 	{
@@ -653,7 +653,7 @@ D3D12_SHADER_BYTECODE StaticShaderCache::GetDepthMatrixPixelShader(bool multisam
 
 		D3D::CompilePixelShader(buf, &s_depth_matrix_program_blob[1]);
 
-		bytecode = {s_depth_matrix_program_blob[1]->Data(), s_depth_matrix_program_blob[1]->Size()};
+		bytecode = { s_depth_matrix_program_blob[1]->Data(), s_depth_matrix_program_blob[1]->Size() };
 	}
 
 	return bytecode;

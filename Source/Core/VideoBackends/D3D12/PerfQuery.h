@@ -12,7 +12,7 @@
 namespace DX12
 {
 
-class PerfQuery final: public PerfQueryBase
+class PerfQuery final : public PerfQueryBase
 {
 public:
 	PerfQuery();

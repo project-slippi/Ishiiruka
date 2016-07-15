@@ -57,7 +57,7 @@ static LPDIRECT3DPIXELSHADER9 s_clear_program = NULL;
 static LPDIRECT3DPIXELSHADER9 s_rgba6_to_rgb8 = NULL;
 static LPDIRECT3DPIXELSHADER9 s_rgb8_to_rgba6 = NULL;
 
-class PixelShaderCacheInserter: public LinearDiskCacheReader<PixelShaderUid, u8>
+class PixelShaderCacheInserter : public LinearDiskCacheReader<PixelShaderUid, u8>
 {
 public:
 	void Read(const PixelShaderUid &key, const u8 *value, u32 value_size)

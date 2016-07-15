@@ -40,9 +40,9 @@
 namespace DX9
 {
 
-struct XFBSource: public XFBSourceBase
+struct XFBSource : public XFBSourceBase
 {
-	XFBSource(LPDIRECT3DTEXTURE9 tex): texture(tex)
+	XFBSource(LPDIRECT3DTEXTURE9 tex) : texture(tex)
 	{}
 	~XFBSource()
 	{
@@ -57,7 +57,7 @@ struct XFBSource: public XFBSourceBase
 	LPDIRECT3DTEXTURE9 const texture;
 };
 
-class FramebufferManager: public FramebufferManagerBase
+class FramebufferManager : public FramebufferManagerBase
 {
 public:
 	FramebufferManager();

@@ -9,17 +9,17 @@
 namespace DX11
 {
 
-D3DBlob::D3DBlob(unsigned int blob_size, const u8* init_data):
-	data_{new u8[blob_size]},
-	size_{blob_size}
+D3DBlob::D3DBlob(unsigned int blob_size, const u8* init_data) :
+	data_{ new u8[blob_size] },
+	size_{ blob_size }
 {
 	if (init_data)
 		memcpy(data_.get(), init_data, size_);
 }
 
-D3DBlob::D3DBlob(ID3DBlobPtr && d3dblob):
-	blob_{std::move(d3dblob)},
-	size_{0}
+D3DBlob::D3DBlob(ID3DBlobPtr && d3dblob) :
+	blob_{ std::move(d3dblob) },
+	size_{ 0 }
 {
 	if (blob_)
 	{

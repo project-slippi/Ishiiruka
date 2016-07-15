@@ -10,7 +10,7 @@
 namespace DX12
 {
 
-D3DDescriptorHeapManager::D3DDescriptorHeapManager(D3D12_DESCRIPTOR_HEAP_DESC* desc, ID3D12Device* device, unsigned int temporarySlots):
+D3DDescriptorHeapManager::D3DDescriptorHeapManager(D3D12_DESCRIPTOR_HEAP_DESC* desc, ID3D12Device* device, unsigned int temporarySlots) :
 	m_device(device), m_heap_restart_in_progress(false)
 {
 	CheckHR(device->CreateDescriptorHeap(desc, IID_PPV_ARGS(m_descriptor_heap.ReleaseAndGetAddressOf())));

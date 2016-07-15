@@ -266,6 +266,7 @@ TextureCacheBase::TCacheEntryBase* TextureCacheBase::TCacheEntryBase::ApplyPalet
 {
 	TCacheEntryConfig newconfig;
 	newconfig.rendertarget = true;
+	newconfig.pcformat = PC_TEX_FMT_RGBA32;
 	newconfig.width = config.width;
 	newconfig.height = config.height;
 	newconfig.layers = config.layers;
@@ -308,7 +309,7 @@ void TextureCacheBase::ScaleTextureCacheEntryTo(TextureCacheBase::TCacheEntryBas
 	newconfig.height = new_height;
 	newconfig.layers = (*entry)->config.layers;
 	newconfig.rendertarget = true;
-
+	newconfig.pcformat = PC_TEX_FMT_RGBA32;
 	TCacheEntryBase* newentry = AllocateTexture(newconfig);
 	if (newentry)
 	{
@@ -945,7 +946,7 @@ void TextureCacheBase::CopyRenderTargetToTexture(u32 dstAddr, u32 dstFormat, u32
 	//
 	// For historical reasons, Dolphin doesn't actually implement "pure" EFB to RAM emulation, but only EFB to texture and hybrid EFB copies.
 
-	float colmat[28] = {0};
+	float colmat[28] = { 0 };
 	float *const fConstAdd = colmat + 16;
 	float *const ColorMask = colmat + 20;
 	ColorMask[0] = ColorMask[1] = ColorMask[2] = ColorMask[3] = 255.0f;
@@ -1336,6 +1337,7 @@ void TextureCacheBase::CopyRenderTargetToTexture(u32 dstAddr, u32 dstFormat, u32
 		// create the texture
 		TCacheEntryConfig config;
 		config.rendertarget = true;
+		config.pcformat = PC_TEX_FMT_RGBA32;
 		config.width = scaled_tex_w;
 		config.height = scaled_tex_h;
 		config.layers = FramebufferManagerBase::GetEFBLayers();

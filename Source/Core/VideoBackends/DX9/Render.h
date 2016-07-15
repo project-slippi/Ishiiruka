@@ -9,7 +9,7 @@
 namespace DX9
 {
 
-class Renderer: public ::Renderer
+class Renderer : public ::Renderer
 {
 private:
 	bool m_bColorMaskChanged;

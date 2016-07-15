@@ -705,7 +705,7 @@ void VertexShaderManager::SetTexMatrixChangedB(u32 Value)
 void VertexShaderManager::TranslateView(float x, float y, float z)
 {
 	float result[3];
-	float vector[3] = {x, z, y};
+	float vector[3] = { x, z, y };
 
 	Matrix33::Multiply(s_viewInvRotationMatrix, vector, result);
 

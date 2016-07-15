@@ -23,7 +23,7 @@ private:
 		LPDIRECT3DVERTEXSHADER9 shader;
 		bool compiled;
 		std::atomic_flag initialized;
-		VSCacheEntry(): shader(NULL), compiled(false)
+		VSCacheEntry() : shader(NULL), compiled(false)
 		{
 			initialized.clear();
 		}

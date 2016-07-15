@@ -270,7 +270,7 @@ Renderer::Renderer(void *&window_handle)
 	gx_state.raster.cull_mode = D3D11_CULL_NONE;
 
 	// Clear EFB textures
-	float ClearColor[4] = {0.f, 0.f, 0.f, 1.f};
+	float ClearColor[4] = { 0.f, 0.f, 0.f, 1.f };
 	D3D::context->ClearRenderTargetView(FramebufferManager::GetEFBColorTexture()->GetRTV(), ClearColor);
 	D3D::context->ClearDepthStencilView(FramebufferManager::GetEFBDepthTexture()->GetDSV(), D3D11_CLEAR_DEPTH, 1.f, 0);
 
@@ -322,7 +322,7 @@ bool Renderer::CheckForResize()
 	int client_height = rcWindow.bottom - rcWindow.top;
 
 	// Get the top-left corner of the client area in screen coordinates
-	POINT originPoint = {0, 0};
+	POINT originPoint = { 0, 0 };
 	ClientToScreen(D3D::hWnd, &originPoint);
 	window_rc.left = originPoint.x;
 	window_rc.right = originPoint.x + client_width;
@@ -701,7 +701,7 @@ void Renderer::SwapImpl(u32 xfbAddr, u32 fbWidth, u32 fbStride, u32 fbHeight, co
 	const TargetRectangle targetRc = GetTargetRectangle();
 
 	D3D::context->OMSetRenderTargets(1, &D3D::GetBackBuffer()->GetRTV(), nullptr);
-	float ClearColor[4] = {0.f, 0.f, 0.f, 1.f};
+	float ClearColor[4] = { 0.f, 0.f, 0.f, 1.f };
 	D3D::context->ClearRenderTargetView(D3D::GetBackBuffer()->GetRTV(), ClearColor);
 	// activate linear filtering for the buffer copies
 	D3D::SetLinearCopySampler();
@@ -958,7 +958,7 @@ void Renderer::SwapImpl(u32 xfbAddr, u32 fbWidth, u32 fbStride, u32 fbHeight, co
 
 		g_framebuffer_manager.reset();
 		g_framebuffer_manager = std::make_unique<FramebufferManager>();
-		float clear_col[4] = {0.f, 0.f, 0.f, 1.f};
+		float clear_col[4] = { 0.f, 0.f, 0.f, 1.f };
 		D3D::context->ClearRenderTargetView(FramebufferManager::GetEFBColorTexture()->GetRTV(), clear_col);
 		D3D::context->ClearDepthStencilView(FramebufferManager::GetEFBDepthTexture()->GetDSV(), D3D11_CLEAR_DEPTH, 1.f, 0);
 		if (s_last_stereo_mode != g_ActiveConfig.iStereoMode)

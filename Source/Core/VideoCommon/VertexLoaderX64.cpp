@@ -49,7 +49,7 @@ static __m128 scale_factors[13] = {
 	_mm_set_ps1(0.0f)
 };
 
-VertexLoaderX64::VertexLoaderX64(const TVtxDesc& vtx_desc, const VAT& vtx_att): VertexLoaderBase(vtx_desc, vtx_att)
+VertexLoaderX64::VertexLoaderX64(const TVtxDesc& vtx_desc, const VAT& vtx_att) : VertexLoaderBase(vtx_desc, vtx_att)
 {
 	if (!IsInitialized())
 		return;
@@ -369,7 +369,7 @@ void VertexLoaderX64::ReadColor(OpArg data, u64 attribute, int format)
 
 void VertexLoaderX64::GenerateVertexLoader()
 {
-	BitSet32 regs = {src_reg, dst_reg, scratch1, scratch2, scratch3, count_reg, skipped_reg, base_reg};
+	BitSet32 regs = { src_reg, dst_reg, scratch1, scratch2, scratch3, count_reg, skipped_reg, base_reg };
 	regs &= ABI_ALL_CALLEE_SAVED;
 	ABI_PushRegistersAndAdjustStack(regs, 0);
 
@@ -454,7 +454,7 @@ void VertexLoaderX64::GenerateVertexLoader()
 			m_native_components |= VB_HAS_NRM1 | VB_HAS_NRM2;
 	}
 
-	const u64 col[2] = {m_VtxDesc.Color0, m_VtxDesc.Color1};
+	const u64 col[2] = { m_VtxDesc.Color0, m_VtxDesc.Color1 };
 	for (int i = 0; i < 2; i++)
 	{
 		if (col[i])

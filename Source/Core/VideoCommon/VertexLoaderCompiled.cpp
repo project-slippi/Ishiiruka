@@ -126,7 +126,7 @@ void VertexLoaderCompiled::InitializeVertexData()
 	m_native_components = 0;
 	m_VertexSize = 0;
 	// Colors
-	const u64 col[2] = {m_VtxDesc.Color0, m_VtxDesc.Color1};
+	const u64 col[2] = { m_VtxDesc.Color0, m_VtxDesc.Color1 };
 	// TextureCoord
 	const u64 tc[8] = {
 		m_VtxDesc.Tex0Coord, m_VtxDesc.Tex1Coord, m_VtxDesc.Tex2Coord, m_VtxDesc.Tex3Coord,

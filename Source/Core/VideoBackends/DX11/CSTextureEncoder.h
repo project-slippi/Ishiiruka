@@ -11,7 +11,7 @@
 namespace DX11
 {
 
-class CSTextureEncoder: public TextureEncoder
+class CSTextureEncoder : public TextureEncoder
 {
 
 public:
@@ -54,14 +54,14 @@ private:
 
 	ComboMap m_staticShaders;
 
-	class ShaderCacheInserter: public LinearDiskCacheReader<ComboKey, u8>
+	class ShaderCacheInserter : public LinearDiskCacheReader<ComboKey, u8>
 	{
 	public:
 		void Read(const ComboKey &key, const u8 *value, u32 value_size)
 		{
 			encoder_.InsertShader(key, value, value_size);
 		}
-		ShaderCacheInserter(CSTextureEncoder &encoder): encoder_(encoder)
+		ShaderCacheInserter(CSTextureEncoder &encoder) : encoder_(encoder)
 		{}
 	private:
 		CSTextureEncoder& encoder_;

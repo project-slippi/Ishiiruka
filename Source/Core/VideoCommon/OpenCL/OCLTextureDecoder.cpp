@@ -283,7 +283,7 @@ PC_TexFormat TexDecoder_Decode_OpenCL(u8 *dst, const u8 *src, int width, int hei
 	clSetKernelArg(decoder.kernel, 1, sizeof(cl_mem), &g_clsrc);
 	clSetKernelArg(decoder.kernel, 2, sizeof(cl_int), &width);
 
-	size_t global[] = {(size_t)(width / decoder.xSkip), (size_t)(height / decoder.ySkip)};
+	size_t global[] = { (size_t)(width / decoder.xSkip), (size_t)(height / decoder.ySkip) };
 
 	// No work-groups for now
 	/*

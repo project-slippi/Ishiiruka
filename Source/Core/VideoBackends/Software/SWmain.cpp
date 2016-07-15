@@ -133,9 +133,14 @@ private:
 		void Bind(u32 stage, u32 last_texture) override
 		{}
 
-		bool Save(const std::string& filename, unsigned int level) override
+		bool Save(const std::string& filename, u32 level) override
 		{
 			return false;
+		}
+
+		uintptr_t GetInternalObject() override
+		{
+			return 0;
 		}
 	};
 

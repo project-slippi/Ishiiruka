@@ -121,10 +121,10 @@ void StreamBuffer::AllocMemory(u32 size)
 *
 * As reallocation is an overhead, this method isn't as fast as it is known to be.
 */
-class MapAndOrphan: public StreamBuffer
+class MapAndOrphan : public StreamBuffer
 {
 public:
-	MapAndOrphan(u32 type, u32 size): StreamBuffer(type, size)
+	MapAndOrphan(u32 type, u32 size) : StreamBuffer(type, size)
 	{
 		glBindBuffer(m_buffertype, m_buffer);
 		glBufferData(m_buffertype, m_size, nullptr, GL_STREAM_DRAW);
@@ -160,10 +160,10 @@ public:
 * Else this fifo may overflow.
 * So we had traded orphan vs syncing.
 */
-class MapAndSync: public StreamBuffer
+class MapAndSync : public StreamBuffer
 {
 public:
-	MapAndSync(u32 type, u32 size): StreamBuffer(type, size)
+	MapAndSync(u32 type, u32 size) : StreamBuffer(type, size)
 	{
 		CreateFences();
 		glBindBuffer(m_buffertype, m_buffer);
@@ -204,10 +204,10 @@ public:
 *
 * As persistently mapped buffer can't use orphaning, we also have to sync.
 */
-class BufferStorage: public StreamBuffer
+class BufferStorage : public StreamBuffer
 {
 public:
-	BufferStorage(u32 type, u32 size, bool _coherent = false): StreamBuffer(type, size), coherent(_coherent)
+	BufferStorage(u32 type, u32 size, bool _coherent = false) : StreamBuffer(type, size), coherent(_coherent)
 	{
 		CreateFences();
 		glBindBuffer(m_buffertype, m_buffer);
@@ -252,10 +252,10 @@ public:
 * This one uses AMD_pinned_memory which is available on all AMD GPUs.
 * OpenGL 4.4 drivers should use BufferStorage.
 */
-class PinnedMemory: public StreamBuffer
+class PinnedMemory : public StreamBuffer
 {
 public:
-	PinnedMemory(u32 type, u32 size): StreamBuffer(type, size, ALIGN_PINNED_MEMORY)
+	PinnedMemory(u32 type, u32 size) : StreamBuffer(type, size, ALIGN_PINNED_MEMORY)
 	{
 		CreateFences();
 		m_pointer = (u8*)AllocateAlignedMemory(m_size, ALIGN_PINNED_MEMORY);
@@ -294,10 +294,10 @@ public:
 * an additional memcpy in the driver will be done.
 * So this is a huge overhead, only use it if required.
 */
-class BufferSubData: public StreamBuffer
+class BufferSubData : public StreamBuffer
 {
 public:
-	BufferSubData(u32 type, u32 size): StreamBuffer(type, size)
+	BufferSubData(u32 type, u32 size) : StreamBuffer(type, size)
 	{
 		glBindBuffer(m_buffertype, m_buffer);
 		glBufferData(m_buffertype, size, nullptr, GL_STATIC_DRAW);
@@ -327,10 +327,10 @@ public:
 * So here we use glBufferData, which realloc this buffer every time.
 * This may avoid stalls, but it is a bigger overhead than BufferSubData.
 */
-class BufferData: public StreamBuffer
+class BufferData : public StreamBuffer
 {
 public:
-	BufferData(u32 type, u32 size): StreamBuffer(type, size)
+	BufferData(u32 type, u32 size) : StreamBuffer(type, size)
 	{
 		glBindBuffer(m_buffertype, m_buffer);
 		m_pointer = new u8[m_size];

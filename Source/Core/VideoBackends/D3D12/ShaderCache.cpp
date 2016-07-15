@@ -29,7 +29,7 @@ struct ByteCodeCacheEntry
 	bool m_compiled;
 	std::atomic_flag m_initialized;
 
-	ByteCodeCacheEntry(): m_compiled(false), m_shader_bytecode({})
+	ByteCodeCacheEntry() : m_compiled(false), m_shader_bytecode({})
 	{
 		m_initialized.clear();
 	}
@@ -81,7 +81,7 @@ static HLSLAsyncCompiler *s_compiler;
 static Common::SpinLock<true> s_shaders_lock;
 
 template<typename UidType, typename ShaderCacheType, ShaderCacheType** cache>
-class ShaderCacheInserter final: public LinearDiskCacheReader<UidType, u8>
+class ShaderCacheInserter final : public LinearDiskCacheReader<UidType, u8>
 {
 public:
 	void Read(const UidType &key, const u8* value, u32 value_size)
@@ -91,7 +91,7 @@ public:
 	}
 };
 
-class DShaderCacheInserter final: public LinearDiskCacheReader<TessellationShaderUid, u8>
+class DShaderCacheInserter final : public LinearDiskCacheReader<TessellationShaderUid, u8>
 {
 public:
 	void Read(const TessellationShaderUid &key, const u8* value, u32 value_size)
@@ -101,7 +101,7 @@ public:
 	}
 };
 
-class HShaderCacheInserter final: public LinearDiskCacheReader<TessellationShaderUid, u8>
+class HShaderCacheInserter final : public LinearDiskCacheReader<TessellationShaderUid, u8>
 {
 public:
 	void Read(const TessellationShaderUid &key, const u8* value, u32 value_size)
@@ -863,7 +863,7 @@ const TessellationShaderUid* ShaderCache::GetActiveTessellationShaderUid()
 	return &s_last_tessellation_shader_uid;
 }
 
-static const D3D12_SHADER_BYTECODE empty = {0};
+static const D3D12_SHADER_BYTECODE empty = { 0 };
 
 D3D12_SHADER_BYTECODE ShaderCache::GetDomainShaderFromUid(const TessellationShaderUid* uid)
 {

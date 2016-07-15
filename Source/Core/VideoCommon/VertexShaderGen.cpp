@@ -18,7 +18,7 @@
 #include "VideoCommon/VideoConfig.h"
 
 static char text[VERTEXSHADERGEN_BUFFERSIZE];
-static const char *texOffsetMemberSelector[] = {"x", "y", "z", "w"};
+static const char *texOffsetMemberSelector[] = { "x", "y", "z", "w" };
 
 void GetVertexShaderUID(VertexShaderUid& out, u32 components, const XFMemory &xfr, const BPMemory &bpm)
 {

@@ -64,7 +64,7 @@ D3D::BufferDescriptor  GeometryShaderCache::GetConstantBuffer()
 }
 
 // this class will load the precompiled shaders into our cache
-class GeometryShaderCacheInserter: public LinearDiskCacheReader<GeometryShaderUid, u8>
+class GeometryShaderCacheInserter : public LinearDiskCacheReader<GeometryShaderUid, u8>
 {
 public:
 	void Read(const GeometryShaderUid &key, const u8* value, u32 value_size)

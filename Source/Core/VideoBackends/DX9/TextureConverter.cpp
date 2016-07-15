@@ -451,8 +451,8 @@ void DecodeToTexture(u32 xfbAddr, int srcWidth, int srcHeight, LPDIRECT3DTEXTURE
 		ReadBuffer.XFBTexture->GetSurfaceLevel(0, &ReadBuffer.WriteSurface);
 	}
 	D3D::ReplaceTexture2D(ReadBuffer.XFBMEMTexture, srcAddr, srcFmtWidth, srcHeight, srcFmtWidth, D3DFMT_A8R8G8B8, false);
-	RECT srcr{0, 0, srcFmtWidth, srcHeight};
-	POINT dstp{0, 0};
+	RECT srcr{ 0, 0, srcFmtWidth, srcHeight };
+	POINT dstp{ 0, 0 };
 	D3D::dev->UpdateSurface(ReadBuffer.ReadSurface, &srcr, ReadBuffer.WriteSurface, &dstp);
 	g_renderer->ResetAPIState(); // reset any game specific settings
 

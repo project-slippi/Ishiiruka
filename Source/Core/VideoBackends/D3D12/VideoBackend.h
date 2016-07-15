@@ -10,7 +10,7 @@
 namespace DX12
 {
 
-class VideoBackend: public VideoBackendBase
+class VideoBackend : public VideoBackendBase
 {
 	bool Initialize(void*) override;
 	void Shutdown() override;

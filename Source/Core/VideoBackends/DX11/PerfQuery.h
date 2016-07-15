@@ -10,7 +10,7 @@
 
 namespace DX11 {
 
-class PerfQuery: public PerfQueryBase
+class PerfQuery : public PerfQueryBase
 {
 public:
 	PerfQuery();

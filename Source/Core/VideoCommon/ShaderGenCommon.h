@@ -31,7 +31,7 @@ template<class uid_data>
 class ShaderUid
 {
 public:
-	ShaderUid(): HASH(0)
+	ShaderUid() : HASH(0)
 	{}
 
 	inline void ClearUID()
@@ -101,7 +101,7 @@ private:
 class ShaderCode
 {
 public:
-	ShaderCode(): buf(NULL), write_ptr(NULL)
+	ShaderCode() : buf(NULL), write_ptr(NULL)
 	{
 
 	}

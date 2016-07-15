@@ -51,7 +51,7 @@ void VertexLoader::CompileVertexTranslator()
 	WriteCall(BoundingBox::SetVertexBufferPosition);
 
 	// Colors
-	const u64 col[2] = {m_VtxDesc.Color0, m_VtxDesc.Color1};
+	const u64 col[2] = { m_VtxDesc.Color0, m_VtxDesc.Color1 };
 	// TextureCoord
 	const u64 tc[8] = {
 		m_VtxDesc.Tex0Coord, m_VtxDesc.Tex1Coord, m_VtxDesc.Tex2Coord, m_VtxDesc.Tex3Coord,

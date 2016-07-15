@@ -448,7 +448,7 @@ D3D::BufferDescriptor PixelShaderCache::GetConstantBuffer()
 }
 
 // this class will load the precompiled shaders into our cache
-class PixelShaderCacheInserter: public LinearDiskCacheReader<PixelShaderUid, u8>
+class PixelShaderCacheInserter : public LinearDiskCacheReader<PixelShaderUid, u8>
 {
 public:
 	void Read(const PixelShaderUid &key, const u8 *value, u32 value_size)

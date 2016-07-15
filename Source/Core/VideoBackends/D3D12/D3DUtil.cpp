@@ -104,7 +104,7 @@ FONT2DVERTEX InitFont2DVertex(float x, float y, u32 color, float tu, float tv)
 	return v;
 }
 
-CD3DFont::CD3DFont(): m_tex_width(512), m_tex_height(512)
+CD3DFont::CD3DFont() : m_tex_width(512), m_tex_height(512)
 {}
 
 constexpr const char fontpixshader[] = {
@@ -340,7 +340,7 @@ int CD3DFont::Init()
 	blenddesc.RenderTarget[0].LogicOpEnable = FALSE;
 	m_blendstate12 = blenddesc;
 
-	D3D12_RASTERIZER_DESC rastdesc = {D3D12_FILL_MODE_SOLID, D3D12_CULL_MODE_NONE, false, 0, 0.f, 0.f, false, false, false, false};
+	D3D12_RASTERIZER_DESC rastdesc = { D3D12_FILL_MODE_SOLID, D3D12_CULL_MODE_NONE, false, 0, 0.f, 0.f, false, false, false, false };
 	m_raststate12 = rastdesc;
 	const unsigned int text_vb_size = s_max_num_vertices * sizeof(FONT2DVERTEX);
 	m_vertex_buffer = std::make_unique<D3DStreamBuffer>(text_vb_size * 2, text_vb_size * 16, nullptr);
@@ -454,7 +454,7 @@ int CD3DFont::DrawTextScaled(float x, float y, float size, float spacing, u32 dw
 		u32 written_size = num_triangles * 3 * sizeof(FONT2DVERTEX);
 		m_vertex_buffer->OverrideSizeOfPreviousAllocation(written_size);
 
-		D3D12_VERTEX_BUFFER_VIEW vb_view = {m_vertex_buffer->GetGPUAddressOfCurrentAllocation(), written_size, sizeof(FONT2DVERTEX)};
+		D3D12_VERTEX_BUFFER_VIEW vb_view = { m_vertex_buffer->GetGPUAddressOfCurrentAllocation(), written_size, sizeof(FONT2DVERTEX) };
 		D3D::current_command_list->IASetVertexBuffers(0, 1, &vb_view);
 		D3D::current_command_list->DrawInstanced(3 * num_triangles, 1, 0, 0);
 	}
@@ -738,7 +738,7 @@ void DrawClearQuad(u32 Color, float z, D3D12_BLEND_DESC* blend_desc, D3D12_DEPTH
 
 inline void InitColVertex(ColVertex* vert, float x, float y, float z, u32 col)
 {
-	*vert = {x, y, z, col};
+	*vert = { x, y, z, col };
 }
 
 void DrawEFBPokeQuads(EFBAccessType type,

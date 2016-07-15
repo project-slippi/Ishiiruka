@@ -61,7 +61,7 @@ enum StereoMode
 	STEREO_3DVISION,
 };
 
-enum BBoxMode: s32
+enum BBoxMode : s32
 {
 	BBoxNone = 0,
 	BBoxCPU = 1,

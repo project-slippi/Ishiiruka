@@ -26,7 +26,7 @@ private:
 		LPDIRECT3DPIXELSHADER9 shader;
 		bool compiled;
 		std::atomic_flag initialized;
-		PSCacheEntry(): shader(NULL), compiled(false)
+		PSCacheEntry() : shader(NULL), compiled(false)
 		{
 			initialized.clear();
 		}

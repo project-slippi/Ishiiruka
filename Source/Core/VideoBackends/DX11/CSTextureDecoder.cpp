@@ -575,7 +575,7 @@ void CSTextureDecoder::LoadLut(u32 lutFmt, void* addr, u32 size)
 	}
 	m_last_addr = addr;
 	m_last_size = size;
-	D3D11_BOX box{0,0,0,size,1,1};
+	D3D11_BOX box{ 0,0,0,size,1,1 };
 	D3D::context->UpdateSubresource(m_lutRsc.get(), 0, &box, addr, 0, 0);
 	m_lutFmt = lutFmt;
 }
@@ -610,12 +610,12 @@ bool CSTextureDecoder::Decode(const u8* src, u32 srcsize, u32 srcFmt, u32 w, u32
 			m_pool_idx = m_pool_idx % m_pool.size();
 		}
 	}
-	D3D11_BOX box{0, 0, 0, srcsize, 1, 1};
+	D3D11_BOX box{ 0, 0, 0, srcsize, 1, 1 };
 	D3D::context->UpdateSubresource(m_rawDataRsc.get(), 0, &box, src, 0, 0);
 	ID3D11UnorderedAccessView* uav = m_pool[m_pool_idx].m_uav.get();
 	D3D::context->CSSetUnorderedAccessViews(0, 1, &uav, nullptr);
 
-	ID3D11ShaderResourceView* srvs[] = {m_rawDataSrv.get(), m_lutSrv.get()};
+	ID3D11ShaderResourceView* srvs[] = { m_rawDataSrv.get(), m_lutSrv.get() };
 	D3D::context->CSSetShaderResources(0, 2, srvs);
 	D3D11_MAPPED_SUBRESOURCE map;
 	D3D::context->Map(m_params.get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &map);
@@ -675,16 +675,16 @@ bool CSTextureDecoder::DecodeRGBAFromTMEM(u8 const * ar_src, u8 const * bg_src, 
 	u32 aw = (w + 4)&~4;
 	u32 ah = (h + 4)&~4;
 
-	D3D11_BOX box{0, 0, 0, (aw*ah) << 1, 1, 1};
+	D3D11_BOX box{ 0, 0, 0, (aw*ah) << 1, 1, 1 };
 	D3D::context->UpdateSubresource(m_rawDataRsc.get(), 0, &box, ar_src, 0, 0);
 
-	D3D11_BOX box2{(aw*ah) << 1, 0, 0, 2 * ((aw*ah) << 1), 1, 1};
+	D3D11_BOX box2{ (aw*ah) << 1, 0, 0, 2 * ((aw*ah) << 1), 1, 1 };
 	D3D::context->UpdateSubresource(m_rawDataRsc.get(), 0, &box2, bg_src, 0, 0);
 
 	ID3D11UnorderedAccessView* uav = m_pool[m_pool_idx].m_uav.get();
 	D3D::context->CSSetUnorderedAccessViews(0, 1, &uav, nullptr);
 
-	ID3D11ShaderResourceView* srvs[] = {m_rawDataSrv.get()};
+	ID3D11ShaderResourceView* srvs[] = { m_rawDataSrv.get() };
 	D3D::context->CSSetShaderResources(0, 1, srvs);
 	D3D11_MAPPED_SUBRESOURCE map;
 	D3D::context->Map(m_params.get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &map);
@@ -723,7 +723,7 @@ bool CSTextureDecoder::Depalettize(D3DTexture2D& dstTexture, D3DTexture2D& srcTe
 	D3D::context->RSSetViewports(1, &vp);
 
 	D3D::stateman->SetTexture(1, m_lutSrv.get());
-	D3D11_RECT rsource = {0, 0, LONG(width), LONG(height)};
+	D3D11_RECT rsource = { 0, 0, LONG(width), LONG(height) };
 
 	D3D::context->OMSetRenderTargets(1, &dstTexture.GetRTV(), nullptr);
 

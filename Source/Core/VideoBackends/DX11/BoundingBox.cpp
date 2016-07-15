@@ -73,7 +73,7 @@ void BBox::Update()
 	{
 		if (s_cpu_dirty)
 		{
-			D3D11_BOX box{0, 0, 0, 4 * sizeof(s32), 1, 1};
+			D3D11_BOX box{ 0, 0, 0, 4 * sizeof(s32), 1, 1 };
 			D3D::context->UpdateSubresource(s_bbox_buffer.get(), 0, &box, &s_values, 0, 0);
 			s_cpu_dirty = false;
 		}

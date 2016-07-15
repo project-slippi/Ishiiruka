@@ -62,7 +62,7 @@ struct VideoConfig
 };
 extern VideoConfig g_ogl_config;
 
-class Renderer: public ::Renderer
+class Renderer : public ::Renderer
 {
 public:
 	Renderer();

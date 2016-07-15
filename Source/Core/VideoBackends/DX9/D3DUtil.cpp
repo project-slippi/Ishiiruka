@@ -498,12 +498,12 @@ void DrawEFBPokeQuads(EFBAccessType type, const EfbPokeData* points, size_t num_
 
 		// quad -> triangles
 		Q2DVertex* vertex = &PokeData[i * 6];
-		vertex[0] = {x1, y1, z, 1.0, col};
-		vertex[1] = {x2, y1, z, 1.0, col};
-		vertex[2] = {x1, y2, z, 1.0, col};
-		vertex[3] = {x1, y2, z, 1.0, col};
-		vertex[4] = {x2, y1, z, 1.0, col};
-		vertex[5] = {x2, y2, z, 1.0, col};
+		vertex[0] = { x1, y1, z, 1.0, col };
+		vertex[1] = { x2, y1, z, 1.0, col };
+		vertex[2] = { x1, y2, z, 1.0, col };
+		vertex[3] = { x1, y2, z, 1.0, col };
+		vertex[4] = { x2, y1, z, 1.0, col };
+		vertex[5] = { x2, y2, z, 1.0, col };
 		if (type == POKE_COLOR)
 			FramebufferManager::SetEFBCachedColor(point.x, point.y, col);
 		else

@@ -33,7 +33,7 @@ public:
 	void Release();
 };
 
-class HLSLAsyncCompiler final: Common::IWorker
+class HLSLAsyncCompiler final : Common::IWorker
 {
 	friend class HLSLCompiler;
 	pD3DCompile PD3DCompile;

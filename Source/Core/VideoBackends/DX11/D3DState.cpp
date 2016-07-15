@@ -20,7 +20,7 @@ namespace D3D
 
 StateManager* stateman;
 
-template<typename T> AutoState<T>::AutoState(const T* object): state(object)
+template<typename T> AutoState<T>::AutoState(const T* object) : state(object)
 {
 	((IUnknown*)state)->AddRef();
 }
