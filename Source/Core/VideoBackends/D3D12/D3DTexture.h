@@ -10,7 +10,7 @@
 namespace DX12
 {
 
-enum TEXTURE_BIND_FLAG: u32
+enum TEXTURE_BIND_FLAG : u32
 {
 	TEXTURE_BIND_FLAG_SHADER_RESOURCE = (1 << 0),
 	TEXTURE_BIND_FLAG_RENDER_TARGET = (1 << 1),
@@ -31,7 +31,7 @@ public:
 	//     either create an ID3D12Resource object, pass it to the constructor and specify what views to create
 	//     or let the texture automatically be created by D3DTexture2D::Create
 
-	D3DTexture2D(ID3D12Resource* texptr, u32 bind, DXGI_FORMAT srv_format = DXGI_FORMAT_UNKNOWN, DXGI_FORMAT dsv_format = DXGI_FORMAT_UNKNOWN, DXGI_FORMAT rtv_format = DXGI_FORMAT_UNKNOWN, bool multisampled = false, D3D12_RESOURCE_STATES resource_state = D3D12_RESOURCE_STATE_COMMON);
+	D3DTexture2D(ID3D12Resource* texptr, u32 bind, DXGI_FORMAT fmt, DXGI_FORMAT srv_format = DXGI_FORMAT_UNKNOWN, DXGI_FORMAT dsv_format = DXGI_FORMAT_UNKNOWN, DXGI_FORMAT rtv_format = DXGI_FORMAT_UNKNOWN, bool multisampled = false, D3D12_RESOURCE_STATES resource_state = D3D12_RESOURCE_STATE_COMMON);
 	static D3DTexture2D* Create(unsigned int width, unsigned int height, u32 bind, DXGI_FORMAT fmt, unsigned int levels = 1, unsigned int slices = 1, D3D12_SUBRESOURCE_DATA* data = nullptr);
 	inline void TransitionToResourceState(ID3D12GraphicsCommandList* command_list, D3D12_RESOURCE_STATES state_after)
 	{
@@ -86,9 +86,14 @@ public:
 		return m_rtv;
 	}
 
+	inline DXGI_FORMAT D3DTexture2D::GetFormat() const
+	{
+		return m_format;
+	}
+
 private:
 	~D3DTexture2D();
-
+	DXGI_FORMAT m_format = {};
 	ComPtr<ID3D12Resource> m_tex;
 	DXGI_FORMAT m_srv_format = {};
 	D3D12_CPU_DESCRIPTOR_HANDLE m_srv_cpu = {};

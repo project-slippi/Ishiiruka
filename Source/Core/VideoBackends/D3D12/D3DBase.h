@@ -40,7 +40,7 @@ class D3DCommandListManager;
 class D3DDescriptorHeapManager;
 class D3DTexture2D;
 
-enum GRAPHICS_ROOT_PARAMETER: u32
+enum GRAPHICS_ROOT_PARAMETER : u32
 {
 	DESCRIPTOR_TABLE_PS_SRV,
 	DESCRIPTOR_TABLE_VS_CBV,

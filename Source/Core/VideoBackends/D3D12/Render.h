@@ -10,7 +10,7 @@
 namespace DX12
 {
 
-class Renderer final: public ::Renderer
+class Renderer final : public ::Renderer
 {
 public:
 	Renderer(void *&window_handle);

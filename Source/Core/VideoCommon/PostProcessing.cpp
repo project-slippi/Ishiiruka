@@ -19,6 +19,7 @@
 #include "Core/Core.h"
 
 #include "VideoCommon/BPMemory.h"
+#include "VideoCommon/FramebufferManagerBase.h"
 #include "VideoCommon/OnScreenDisplay.h"
 #include "VideoCommon/PostProcessing.h"
 #include "VideoCommon/RenderBase.h"
@@ -71,8 +72,8 @@ static const LangDescriptor language_ids[LANGUAGE_ID_COUNT] =
 
 std::vector<std::string> PostProcessingShaderConfiguration::GetAvailableShaderNames(const std::string& sub_dir)
 {
-	const std::vector<std::string> search_dirs = {File::GetUserPath(D_SHADERS_IDX) + sub_dir, File::GetSysDirectory() + SHADERS_DIR DIR_SEP + sub_dir};
-	const std::vector<std::string> search_extensions = {".glsl"};
+	const std::vector<std::string> search_dirs = { File::GetUserPath(D_SHADERS_IDX) + sub_dir, File::GetSysDirectory() + SHADERS_DIR DIR_SEP + sub_dir };
+	const std::vector<std::string> search_extensions = { ".glsl" };
 	std::vector<std::string> result;
 	std::vector<std::string> paths;
 
@@ -97,7 +98,7 @@ std::vector<std::string> PostProcessingShaderConfiguration::GetAvailableShaderNa
 		if (pos != std::string::npos && (pos != dirname.length() - 1))
 		{
 			std::string shader_dirname = dirname.substr(pos + 1);
-			std::vector<std::string> sub_paths = DoFileSearch(search_extensions, {dirname}, false);
+			std::vector<std::string> sub_paths = DoFileSearch(search_extensions, { dirname }, false);
 			for (const std::string& sub_path : sub_paths)
 			{
 				std::string filename;
@@ -732,6 +733,7 @@ void PostProcessingShaderConfiguration::LoadOptionsConfigurationFromSection(IniF
 		}
 	}
 }
+
 void PostProcessingShaderConfiguration::LoadOptionsConfiguration()
 {
 	IniFile ini;
@@ -872,6 +874,204 @@ void PostProcessingShaderConfiguration::SetOptionb(const std::string& option, bo
 		m_compile_time_constants_dirty = true;
 }
 
+PostProcessingShader::~PostProcessingShader()
+{
+	for (RenderPassData& pass : m_passes)
+	{
+		for (InputBinding& input : pass.inputs)
+		{
+			// External textures
+			if (input.texture)
+			{
+				delete input.texture;
+			}
+		}
+		if (pass.output_texture)
+		{
+			delete pass.output_texture;
+		}
+	}
+}
+
+TextureCacheBase::TCacheEntryBase* PostProcessingShader::GetLastPassOutputTexture() const
+{
+	return m_passes[m_last_pass_index].output_texture;
+}
+
+bool PostProcessingShader::IsLastPassScaled() const
+{
+	return (m_passes[m_last_pass_index].output_size != m_internal_size);
+}
+
+bool PostProcessingShader::Initialize(PostProcessingShaderConfiguration* config, int target_layers)
+{
+	m_internal_layers = target_layers;
+	m_config = config;
+	m_ready = false;
+
+	if (!CreatePasses())
+		return false;
+
+	// Set size to zero, that way it'll always be reconfigured on first use
+	m_internal_size.Set(0, 0);
+	m_ready = RecompileShaders();
+	return m_ready;
+}
+
+bool PostProcessingShader::Reconfigure(const TargetSize& new_size)
+{
+	m_ready = true;
+
+	const bool size_changed = (m_internal_size != new_size);
+	if (size_changed)
+		m_ready = ResizeOutputTextures(new_size);
+
+	// Re-link on size change due to the input pointer changes
+	if (m_ready && (m_config->IsDirty() || size_changed))
+		LinkPassOutputs();
+
+	// Recompile shaders if compile-time constants have changed
+	if (m_ready && m_config->IsCompileTimeConstantsDirty())
+		m_ready = RecompileShaders();
+
+	return m_ready;
+}
+
+bool PostProcessingShader::CreatePasses()
+{
+	m_passes.reserve(m_config->GetPasses().size());
+	for (const auto& pass_config : m_config->GetPasses())
+	{
+		RenderPassData pass;
+		pass.output_texture = nullptr;
+		pass.output_scale = pass_config.output_scale;
+		pass.enabled = true;
+		pass.inputs.reserve(pass_config.inputs.size());
+
+		for (const PostProcessingShaderConfiguration::RenderPass::Input& input_config : pass_config.inputs)
+		{
+			InputBinding input;
+			input.type = input_config.type;
+			input.texture_unit = input_config.texture_unit;
+			input.texture = nullptr;
+			input.texture_sampler = 0;
+
+			if (input.type == POST_PROCESSING_INPUT_TYPE_IMAGE)
+			{
+				TextureCacheBase::TCacheEntryConfig config;
+				config.width = input_config.external_image_size.width;
+				config.height = input_config.external_image_size.height;
+				config.pcformat = PC_TexFormat::PC_TEX_FMT_RGBA32;
+				config.rendertarget = false;
+
+				input.texture = g_texture_cache->CreateTexture(config);
+				input.texture->Load(input_config.external_image_data.get(), config.width, config.height, config.width, 0);
+				input.size = input_config.external_image_size;
+			}
+
+			// If set to previous pass, but we are the first pass, use the color buffer instead.
+			if (input.type == POST_PROCESSING_INPUT_TYPE_PREVIOUS_PASS_OUTPUT && m_passes.empty())
+				input.type = POST_PROCESSING_INPUT_TYPE_COLOR_BUFFER;
+
+			input.texture_sampler = CreateBindingSampler(input_config);
+
+			if (!input.texture_sampler)
+			{
+				ERROR_LOG(VIDEO, "Failed to create post-processing sampler for shader %s (pass %s)", m_config->GetShaderName().c_str(), pass_config.entry_point.c_str());
+				return false;
+			}
+
+			pass.inputs.push_back(std::move(input));
+		}
+		m_passes.push_back(std::move(pass));
+	}
+	return true;
+}
+
+void PostProcessingShader::LinkPassOutputs()
+{
+	m_last_pass_index = 0;
+	m_last_pass_uses_color_buffer = false;
+
+	// Update dependant options (enable/disable passes)
+	for (size_t pass_index = 0; pass_index < m_passes.size(); pass_index++)
+	{
+		const PostProcessingShaderConfiguration::RenderPass& pass_config = m_config->GetPass(pass_index);
+		RenderPassData& pass = m_passes[pass_index];
+		pass.enabled = pass_config.CheckEnabled();
+		if (!pass.enabled)
+			continue;
+		size_t previous_pass_index = m_last_pass_index;
+		m_last_pass_index = pass_index;
+		m_last_pass_uses_color_buffer = false;
+		for (size_t input_index = 0; input_index < pass_config.inputs.size(); input_index++)
+		{
+			InputBinding& input_binding = pass.inputs[input_index];
+			switch (input_binding.type)
+			{
+			case POST_PROCESSING_INPUT_TYPE_PASS_OUTPUT:
+			case POST_PROCESSING_INPUT_TYPE_PREVIOUS_PASS_OUTPUT:
+			{
+				s32 pass_output_index = (input_binding.type == POST_PROCESSING_INPUT_TYPE_PASS_OUTPUT) ?
+					static_cast<s32>(pass_config.inputs[input_index].pass_output_index)
+					: static_cast<s32>(previous_pass_index);
+				while (pass_output_index >= 0)
+				{
+					if (m_passes[pass_output_index].enabled)
+					{
+						break;
+					}
+					pass_output_index--;
+				}
+				if (pass_output_index < 0)
+				{
+					input_binding.prev_texture = nullptr;
+					m_last_pass_uses_color_buffer = true;
+				}
+				else
+				{
+					input_binding.prev_texture = m_passes[pass_output_index].output_texture;
+					input_binding.size = m_passes[pass_output_index].output_size;
+				}
+			}
+			break;
+			case POST_PROCESSING_INPUT_TYPE_COLOR_BUFFER:
+				m_last_pass_uses_color_buffer = true;
+				break;
+
+			default:
+				break;
+			}
+		}
+	}
+}
+
+bool PostProcessingShader::ResizeOutputTextures(const TargetSize& new_size)
+{
+	for (size_t pass_index = 0; pass_index < m_passes.size(); pass_index++)
+	{
+		RenderPassData& pass = m_passes[pass_index];
+		const PostProcessingShaderConfiguration::RenderPass& pass_config = m_config->GetPass(pass_index);
+		pass.output_size = PostProcessor::ScaleTargetSize(new_size, pass_config.output_scale);
+
+		if (pass.output_texture != nullptr)
+		{
+			delete pass.output_texture;
+			pass.output_texture = nullptr;
+		}
+
+		TextureCacheBase::TCacheEntryConfig config;
+		config.width = pass.output_size.width;
+		config.height = pass.output_size.height;
+		config.pcformat = PC_TexFormat::PC_TEX_FMT_RGBA32;
+		config.rendertarget = true;
+		config.layers = m_internal_layers;
+		pass.output_texture = g_texture_cache->CreateTexture(config);
+	}
+	m_internal_size = new_size;
+	return true;
+}
+
 PostProcessor::PostProcessor()
 {
 	m_timer.Start();
@@ -880,6 +1080,52 @@ PostProcessor::PostProcessor()
 PostProcessor::~PostProcessor()
 {
 	m_timer.Stop();
+	if (m_color_copy_texture)
+	{
+		delete m_color_copy_texture;
+		m_color_copy_texture = nullptr;
+	}
+	if (m_depth_copy_texture)
+	{
+		delete m_depth_copy_texture;
+		m_depth_copy_texture = nullptr;
+	}
+	if (m_stereo_buffer_texture)
+	{
+		delete m_stereo_buffer_texture;
+		m_stereo_buffer_texture = nullptr;
+	}
+}
+
+void PostProcessor::DisablePostProcessor()
+{
+	m_post_processing_shaders.clear();
+	m_active = false;
+}
+
+void PostProcessor::ReloadShaders()
+{
+	m_reload_flag.Clear();
+	m_post_processing_shaders.clear();
+	m_scaling_shader.reset();
+	m_stereo_shader.reset();
+	m_active = false;
+
+	ReloadShaderConfigs();
+
+	if (g_ActiveConfig.bPostProcessingEnable)
+		CreatePostProcessingShaders();
+
+	CreateScalingShader();
+
+	if (m_stereo_config)
+		CreateStereoShader();
+
+	// Set initial sizes to 0,0 to force texture creation on next draw
+	m_copy_size.Set(0, 0);
+	m_stereo_buffer_size.Set(0, 0);
+	Constant empty = {};
+	m_current_constants.fill(empty);
 }
 
 bool PostProcessor::ShouldTriggerOnSwap() const
@@ -1060,7 +1306,6 @@ TargetSize PostProcessor::ScaleTargetSize(const TargetSize& orig_size, float sca
 	return size;
 }
 
-
 TargetRectangle PostProcessor::ScaleTargetRectangle(API_TYPE api, const TargetRectangle& src, float scale)
 {
 	TargetRectangle dst;
@@ -1094,6 +1339,381 @@ TargetRectangle PostProcessor::ScaleTargetRectangle(API_TYPE api, const TargetRe
 	}
 
 	return dst;
+}
+
+void PostProcessor::CreatePostProcessingShaders()
+{
+	for (const std::string& shader_name : m_shader_names)
+	{
+		const auto& it = m_shader_configs.find(shader_name);
+		if (it == m_shader_configs.end())
+			continue;
+
+		std::unique_ptr<PostProcessingShader> shader = CreateShader(it->second.get());
+		if (!shader)
+		{
+			ERROR_LOG(VIDEO, "Failed to initialize postprocessing shader ('%s'). This shader will be ignored.", shader_name.c_str());
+			OSD::AddMessage(StringFromFormat("Failed to initialize postprocessing shader ('%s'). This shader will be ignored.", shader_name.c_str()));
+			continue;
+		}
+
+		m_post_processing_shaders.push_back(std::move(shader));
+	}
+
+	// If no shaders initialized successfully, disable post processing
+	m_active = !m_post_processing_shaders.empty();
+	if (m_active)
+	{
+		DEBUG_LOG(VIDEO, "Postprocessing is enabled with %u shaders in sequence.", (u32)m_post_processing_shaders.size());
+		OSD::AddMessage(StringFromFormat("Postprocessing is enabled with %u shaders in sequence.", (u32)m_post_processing_shaders.size()));
+	}
+}
+
+void PostProcessor::CreateScalingShader()
+{
+	if (!m_scaling_config)
+		return;
+
+	m_scaling_shader = CreateShader(m_scaling_config.get());
+	if (!m_scaling_shader)
+	{
+		ERROR_LOG(VIDEO, "Failed to initialize scaling shader ('%s'). Falling back to copy shader.", m_scaling_config->GetShaderName().c_str());
+		OSD::AddMessage(StringFromFormat("Failed to initialize scaling shader ('%s'). Falling back to copy shader.", m_scaling_config->GetShaderName().c_str()));
+		m_scaling_shader.reset();
+	}
+}
+
+void PostProcessor::CreateStereoShader()
+{
+	if (!m_stereo_config)
+		return;
+
+	m_stereo_shader = CreateShader(m_stereo_config.get());
+	if (!m_stereo_shader)
+	{
+		ERROR_LOG(VIDEO, "Failed to initialize stereoscopy shader ('%s'). Falling back to blit.", m_scaling_config->GetShaderName().c_str());
+		OSD::AddMessage(StringFromFormat("Failed to initialize stereoscopy shader ('%s'). Falling back to blit.", m_scaling_config->GetShaderName().c_str()));
+		m_stereo_shader.reset();
+	}
+}
+
+bool PostProcessor::ResizeCopyBuffers(const TargetSize& size, int layers)
+{
+	if (m_copy_size == size && m_copy_layers == layers)
+		return true;
+
+	// reset before creating, in case it fails
+	if (m_color_copy_texture)
+	{
+		delete m_color_copy_texture;
+		m_color_copy_texture = nullptr;
+	}
+	if (m_depth_copy_texture)
+	{
+		delete m_depth_copy_texture;
+		m_depth_copy_texture = nullptr;
+	}
+	m_copy_size.Set(0, 0);
+	m_copy_layers = 0;
+
+	TextureCacheBase::TCacheEntryConfig config;
+	config.width = size.width;
+	config.height = size.height;
+	config.pcformat = PC_TexFormat::PC_TEX_FMT_RGBA32;
+	config.rendertarget = true;
+	config.layers = layers;
+	m_color_copy_texture = g_texture_cache->CreateTexture(config);
+	config.pcformat = PC_TexFormat::PC_TEX_FMT_R32;
+	m_depth_copy_texture = g_texture_cache->CreateTexture(config);
+	if (m_color_copy_texture && m_depth_copy_texture)
+	{
+		m_copy_size = size;
+		m_copy_layers = layers;
+	}
+	return true;
+}
+
+bool PostProcessor::ResizeStereoBuffer(const TargetSize& size)
+{
+	if (m_stereo_buffer_size == size)
+		return true;
+
+	if (m_stereo_buffer_texture)
+	{
+		delete m_stereo_buffer_texture;
+		m_stereo_buffer_texture = nullptr;
+	}
+	m_stereo_buffer_size.Set(0, 0);
+	TextureCacheBase::TCacheEntryConfig config;
+	config.width = size.width;
+	config.height = size.height;
+	config.pcformat = PC_TexFormat::PC_TEX_FMT_RGBA32;
+	config.rendertarget = true;
+	config.layers = 2;
+	m_stereo_buffer_texture = g_texture_cache->CreateTexture(config);
+	if (m_stereo_buffer_texture)
+	{
+		m_stereo_buffer_size = size;
+	}
+	return true;
+}
+
+bool PostProcessor::ReconfigurePostProcessingShaders(const TargetSize& size)
+{
+	for (const auto& shader : m_post_processing_shaders)
+	{
+		if (!shader->IsReady() || !shader->Reconfigure(size))
+			return false;
+	}
+
+	// Remove dirty flags afterwards. This is because we can have the same shader twice.
+	for (auto& it : m_shader_configs)
+		it.second->ClearDirty();
+
+	return true;
+}
+
+bool PostProcessor::ReconfigureScalingShader(const TargetSize& size)
+{
+	if (m_scaling_shader)
+	{
+		if (!m_scaling_shader->IsReady() ||
+			!m_scaling_shader->Reconfigure(size))
+		{
+			m_scaling_shader.reset();
+			return false;
+		}
+
+		m_scaling_config->ClearDirty();
+	}
+
+	return true;
+}
+
+bool PostProcessor::ReconfigureStereoShader(const TargetSize& size)
+{
+	if (m_stereo_shader)
+	{
+		if (!m_stereo_shader->IsReady() ||
+			!m_stereo_shader->Reconfigure(size) ||
+			!ResizeStereoBuffer(size))
+		{
+			m_stereo_shader.reset();
+			return false;
+		}
+
+		m_stereo_config->ClearDirty();
+	}
+
+	return true;
+}
+
+void PostProcessor::BlitScreen(const TargetRectangle& dst_rect, const TargetSize& dst_size, uintptr_t dst_texture,
+	const TargetRectangle& src_rect, const TargetSize& src_size, uintptr_t src_texture, uintptr_t src_depth_texture,
+	int src_layer, float gamma)
+{
+	const bool triguer_after_blit = ShouldTriggerAfterBlit();
+	_dbg_assert_msg_(VIDEO, src_layer >= 0, "BlitToFramebuffer should always be called with a single source layer");
+
+	ReconfigureScalingShader(src_size);
+	ReconfigureStereoShader(dst_size);
+	if (triguer_after_blit)
+	{
+		TargetSize buffer_size(dst_rect.GetWidth(), dst_rect.GetHeight());
+		if (!ResizeCopyBuffers(buffer_size, FramebufferManagerBase::GetEFBLayers()) ||
+			!ReconfigurePostProcessingShaders(buffer_size))
+		{
+			ERROR_LOG(VIDEO, "Failed to update post-processor state. Disabling post processor.");
+			DisablePostProcessor();
+			return;
+		}
+	}
+
+	// Use stereo shader if enabled, otherwise invoke scaling shader, if that is invalid, fall back to blit.
+	if (m_stereo_shader)
+		DrawStereoBuffers(dst_rect, dst_size, dst_texture, src_rect, src_size, src_texture, src_depth_texture, gamma);
+	else if (triguer_after_blit)
+	{
+		TargetSize buffer_size(dst_rect.GetWidth(), dst_rect.GetHeight());
+		TargetRectangle buffer_rect(0, 0, buffer_size.width, 0);
+		if (m_APIType == API_OPENGL)
+		{
+			buffer_rect.top = buffer_size.height;
+		}
+		else
+		{
+			buffer_rect.bottom = buffer_size.height;
+		}
+		if (m_scaling_shader)
+		{
+			m_scaling_shader->Draw(this, buffer_rect, buffer_size, m_color_copy_texture->GetInternalObject(), src_rect, src_size, src_texture, src_depth_texture, src_layer, gamma);
+		}
+		else
+		{
+			CopyTexture(buffer_rect, m_color_copy_texture->GetInternalObject(), src_rect, src_texture, src_size, -1);
+		}
+		PostProcess(nullptr, nullptr, nullptr, buffer_rect, buffer_size, m_color_copy_texture->GetInternalObject(), src_rect, src_size, src_depth_texture, dst_texture, &dst_rect, &dst_size);
+	}
+	else if (m_scaling_shader)
+		m_scaling_shader->Draw(this, dst_rect, dst_size, dst_texture, src_rect, src_size, src_texture, src_depth_texture, src_layer, gamma);
+	else
+		CopyTexture(dst_rect, dst_texture, src_rect, src_texture, src_size, src_layer);
+}
+
+void PostProcessor::PostProcess(TargetRectangle* output_rect, TargetSize* output_size, uintptr_t* output_texture,
+	const TargetRectangle& src_rect, const TargetSize& src_size, uintptr_t src_texture,
+	const TargetRectangle& src_depth_rect, const TargetSize& src_depth_size, uintptr_t src_depth_texture,
+	uintptr_t dst_texture, const TargetRectangle* dst_rect, const TargetSize* dst_size)
+{
+	if (!m_active)
+		return;
+	uintptr_t real_dst_texture = dst_texture == 0 && dst_rect == nullptr ? src_texture : dst_texture;
+	// Setup copy buffers first, and update compile-time constants.
+	TargetSize buffer_size(src_rect.GetWidth(), src_rect.GetHeight());
+	if (!ResizeCopyBuffers(buffer_size, FramebufferManagerBase::GetEFBLayers()) ||
+		!ReconfigurePostProcessingShaders(buffer_size))
+	{
+		ERROR_LOG(VIDEO, "Failed to update post-processor state. Disabling post processor.");
+
+		// We need to fill in an output texture if we're bailing out, so set it to the source.
+		if (output_texture)
+		{
+			*output_rect = src_rect;
+			*output_size = src_size;
+			*output_texture = src_texture;
+		}
+
+		DisablePostProcessor();
+		return;
+	}
+
+	// Copy only the visible region to our buffers.
+	TargetRectangle buffer_rect(0, 0, buffer_size.width, 0);
+	if (m_APIType == API_OPENGL)
+	{
+		buffer_rect.top = buffer_size.height;
+	}
+	else
+	{
+		buffer_rect.bottom = buffer_size.height;
+	}
+	uintptr_t input_color_texture = m_color_copy_texture->GetInternalObject();
+	uintptr_t input_depth_texture = m_depth_copy_texture->GetInternalObject();
+	// Only copy if the size is different
+	if (src_size != buffer_size)
+	{
+		CopyTexture(buffer_rect, m_color_copy_texture->GetInternalObject(), src_rect, src_texture, src_size, -1);
+	}
+	else
+	{
+		input_color_texture = src_texture;
+	}
+	if (src_depth_texture != 0 && src_depth_size != buffer_size)
+	{
+		CopyTexture(buffer_rect, m_depth_copy_texture->GetInternalObject(), src_depth_rect, src_depth_texture, src_depth_size, -1, true, true);
+	}
+	else
+	{
+		input_depth_texture = src_depth_texture;
+	}
+
+	// Loop through the shader list, applying each of them in sequence.
+	for (size_t shader_index = 0; shader_index < m_post_processing_shaders.size(); shader_index++)
+	{
+		PostProcessingShader* shader = m_post_processing_shaders[shader_index].get();
+
+		// To save a copy, we use the output of one shader as the input to the next.
+		// This works except when the last pass is scaled, as the next shader expects a full-size input, so re-use the copy buffer for this case.
+		uintptr_t output_color_texture = (shader->IsLastPassScaled()) ? m_color_copy_texture->GetInternalObject() : shader->GetLastPassOutputTexture()->GetInternalObject();
+
+		// Last shader in the sequence? If so, write to the output texture.
+		if (shader_index == (m_post_processing_shaders.size() - 1))
+		{
+			// Are we returning our temporary texture, or storing back to the original buffer?
+			if (output_texture && !dst_texture)
+			{
+				// Use the same texture as if it was a previous pass, and return it.
+				shader->Draw(this, buffer_rect, buffer_size, output_color_texture, buffer_rect, buffer_size, input_color_texture, input_depth_texture, -1, 1.0f);
+				*output_rect = buffer_rect;
+				*output_size = buffer_size;
+				*output_texture = output_color_texture;
+			}
+			else
+			{
+				// Write to The output texturre directly.
+				shader->Draw(this, dst_rect != nullptr ? *dst_rect : src_rect, dst_size != nullptr ? *dst_size : src_size, real_dst_texture, buffer_rect, buffer_size, input_color_texture, input_depth_texture, -1, 1.0f);
+				if (output_texture)
+				{
+					*output_rect = buffer_rect;
+					*output_size = buffer_size;
+					*output_texture = real_dst_texture;
+				}
+			}
+		}
+		else
+		{
+			shader->Draw(this, buffer_rect, buffer_size, output_color_texture, buffer_rect, buffer_size, input_color_texture, input_depth_texture, -1, 1.0f);
+			input_color_texture = output_color_texture;
+		}
+	}
+}
+
+void PostProcessor::DrawStereoBuffers(const TargetRectangle& dst_rect, const TargetSize& dst_size, uintptr_t dst_texture,
+	const TargetRectangle& src_rect, const TargetSize& src_size, uintptr_t src_texture, uintptr_t src_depth_texture, float gamma)
+{
+	const bool triguer_after_blit = ShouldTriggerAfterBlit();
+	uintptr_t stereo_buffer = (m_scaling_shader || triguer_after_blit) ? m_stereo_buffer_texture->GetInternalObject() : src_texture;
+	TargetRectangle stereo_buffer_rect(src_rect);
+	TargetSize stereo_buffer_size(src_size);
+
+	// Apply scaling shader if enabled, otherwise just use the source buffers
+	if (triguer_after_blit)
+	{
+		stereo_buffer_rect = TargetRectangle(0, 0, dst_size.width, 0);
+		if (m_APIType == API_OPENGL)
+		{
+			stereo_buffer_rect.top = dst_size.height;
+		}
+		else
+		{
+			stereo_buffer_rect.bottom = dst_size.height;
+		}
+		stereo_buffer_size = dst_size;
+		TargetSize buffer_size(dst_rect.GetWidth(), dst_rect.GetHeight());
+		TargetRectangle buffer_rect(0, 0, buffer_size.width, 0);
+		if (m_APIType == API_OPENGL)
+		{
+			buffer_rect.top = buffer_size.height;
+		}
+		else
+		{
+			buffer_rect.bottom = buffer_size.height;
+		}
+		if (m_scaling_shader)
+		{
+			m_scaling_shader->Draw(this, buffer_rect, buffer_size, m_color_copy_texture->GetInternalObject(), src_rect, src_size, src_texture, src_depth_texture, -1, gamma);
+		}
+		else
+		{
+			CopyTexture(buffer_rect, m_color_copy_texture->GetInternalObject(), src_rect, src_texture, src_size, -1);
+		}
+		PostProcess(nullptr, nullptr, nullptr, buffer_rect, buffer_size, m_color_copy_texture->GetInternalObject(), src_rect, src_size, src_depth_texture, stereo_buffer, &stereo_buffer_rect, &stereo_buffer_size);
+	}
+	else if (m_scaling_shader)
+	{
+		stereo_buffer_rect = TargetRectangle(0, 0, dst_size.width, 0);
+		if (m_APIType == API_OPENGL)
+		{
+			stereo_buffer_rect.top = dst_size.height;
+		}
+		else
+		{
+			stereo_buffer_rect.bottom = dst_size.height;
+		}
+		stereo_buffer_size = dst_size;
+		m_scaling_shader->Draw(this, stereo_buffer_rect, stereo_buffer_size, stereo_buffer, src_rect, src_size, src_texture, src_depth_texture, -1, gamma);
+	}
+	m_stereo_shader->Draw(this, dst_rect, dst_size, dst_texture, stereo_buffer_rect, stereo_buffer_size, stereo_buffer, 0, 0, 1.0f);
 }
 
 const std::string PostProcessor::s_post_fragment_header_ogl = R"(

@@ -229,6 +229,12 @@ void TextureCache::TCacheEntry::SetFormat()
 		gl_type = 0;
 		compressed = true;
 		break;
+	case PC_TEX_FMT_R32:
+		gl_format = GL_DEPTH_COMPONENT32F;
+		gl_iformat = GL_DEPTH_COMPONENT;
+		gl_type = GL_UNSIGNED_BYTE;
+		compressed = true;
+		break;
 	}
 }
 
@@ -242,13 +248,10 @@ TextureCache::TCacheEntryBase* TextureCache::CreateTexture(const TCacheEntryConf
 
 	if (config.rendertarget)
 	{
-		entry->gl_format = GL_RGBA;
-		entry->gl_iformat = GL_RGBA;
-		entry->gl_type = GL_UNSIGNED_BYTE;
-
-		for (u32 level = 0; level <= config.levels; level++)
+		entry->SetFormat();
+		for (u32 level = 0; level < config.levels; level++)
 		{
-			glTexImage3D(GL_TEXTURE_2D_ARRAY, level, GL_RGBA, config.width, config.height, config.layers, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+			glTexImage3D(GL_TEXTURE_2D_ARRAY, level, entry->gl_format, config.width, config.height, config.layers, 0, entry->gl_iformat, entry->gl_type, nullptr);
 		}
 		glGenFramebuffers(1, &entry->framebuffer);
 		FramebufferManager::SetFramebuffer(entry->framebuffer);

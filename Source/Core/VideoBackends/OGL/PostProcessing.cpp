@@ -85,159 +85,74 @@ for (int i = 0; i < %d; i++)
 
 )";
 
-PostProcessingShader::PostProcessingShader()
+OGLPostProcessingShader::OGLPostProcessingShader()
 {
-	m_uniform_buffer = StreamBuffer::Create(GL_UNIFORM_BUFFER, static_cast<u32>(PostProcessor::UNIFORM_BUFFER_SIZE * 1024));
+	OGLBufferWrapper* wrapper = new	 OGLBufferWrapper();
+	wrapper->m_uniform_buffer = StreamBuffer::Create(GL_UNIFORM_BUFFER, static_cast<u32>(PostProcessor::UNIFORM_BUFFER_SIZE * 1024));
+	m_uniform_buffer = reinterpret_cast<uintptr_t>(wrapper);
 }
 
-PostProcessingShader::~PostProcessingShader()
+OGLPostProcessingShader::~OGLPostProcessingShader()
 {
-	m_uniform_buffer.reset();
 	for (RenderPassData& pass : m_passes)
 	{
 		for (InputBinding& input : pass.inputs)
 		{
-			// External textures
-			if (input.texture_id != 0 && input.owned)
-			{
-				glDeleteTextures(1, &input.texture_id);
-				input.texture_id = 0;
-			}
+			ReleaseBindingSampler(input.texture_sampler);
 		}
-
-		if (pass.program != nullptr)
-		{
-			pass.program->Destroy();
-			pass.program.reset();
-		}
-
-		if (pass.gs_program != nullptr)
-		{
-			pass.gs_program->Destroy();
-			pass.gs_program.reset();
-		}
-
-		if (pass.output_texture_id != 0)
-		{
-			glDeleteTextures(1, &pass.output_texture_id);
-			pass.output_texture_id = 0;
-		}
+		ReleasePassNativeResources(pass);
 	}
+	OGLBufferWrapper* buffer = reinterpret_cast<OGLBufferWrapper*>(m_uniform_buffer);
+	buffer->m_uniform_buffer.release();
+	delete buffer;
+	m_uniform_buffer = 0;
 }
 
-GLuint PostProcessingShader::GetLastPassOutputTexture() const
+void OGLPostProcessingShader::ReleasePassNativeResources(RenderPassData& pass)
 {
-	return m_passes[m_last_pass_index].output_texture_id;
-}
-
-bool PostProcessingShader::IsLastPassScaled() const
-{
-	return m_passes[m_last_pass_index].output_size != m_internal_size;
-}
-
-bool PostProcessingShader::Initialize(PostProcessingShaderConfiguration* config, int target_layers)
-{
-	m_config = config;
-	m_internal_layers = target_layers;
-	m_ready = false;
-
-	if (!CreatePasses())
-		return false;
-
-	// Set size to zero, that way it'll always be reconfigured on first use
-	m_internal_size.Set(0, 0);
-	m_ready = RecompileShaders();
-	return m_ready;
-}
-
-bool PostProcessingShader::Reconfigure(const TargetSize& new_size)
-{
-	m_ready = true;
-
-	const bool size_changed = (m_internal_size != new_size);
-	if (size_changed)
-		m_ready = ResizeOutputTextures(new_size);
-
-	// Re-link on size change due to the input pointer changes
-	if (m_ready && (m_config->IsDirty() || size_changed))
-		LinkPassOutputs();
-
-	// Recompile shaders if compile-time constants have changed
-	if (m_ready && m_config->IsCompileTimeConstantsDirty())
-		m_ready = RecompileShaders();
-
-	return m_ready;
-}
-
-bool PostProcessingShader::CreatePasses()
-{
-	// In case we need to allocate texture objects
-	glActiveTexture(GL_TEXTURE0 + FIRST_INPUT_TEXTURE_UNIT);
-
-	m_passes.reserve(m_config->GetPasses().size());
-	for (const auto& pass_config : m_config->GetPasses())
+	if (pass.shader)
 	{
-		RenderPassData pass;
-		pass.output_texture_id = 0;
-		pass.output_scale = pass_config.output_scale;
-		pass.enabled = true;
-
-		pass.inputs.reserve(pass_config.inputs.size());
-		for (const auto& input_config : pass_config.inputs)
+		OGLRenderPassData* shader = reinterpret_cast<OGLRenderPassData*>(pass.shader);
+		if (shader->program != nullptr)
 		{
-			// Non-external textures will be bound at run-time.
-			InputBinding input;
-			input.type = input_config.type;
-			input.texture_unit = input_config.texture_unit;
-			input.texture_id = 0;
-			input.sampler_id = 0;
-			input.owned = false;
-
-			// Only external images have to be set up here
-			if (input.type == POST_PROCESSING_INPUT_TYPE_IMAGE)
-			{
-				input.size = input_config.external_image_size;
-				input.owned = true;
-
-				// Copy the image across all layers
-				glGenTextures(1, &input.texture_id);
-				glActiveTexture(GL_TEXTURE0 + FIRST_INPUT_TEXTURE_UNIT);
-				glBindTexture(GL_TEXTURE_2D_ARRAY, input.texture_id);
-				glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_RGBA, input.size.width, input.size.height, m_internal_layers, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
-				glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAX_LEVEL, 0);
-				for (int layer = 0; layer < m_internal_layers; layer++)
-					glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, layer, input.size.width, input.size.height, 1, GL_RGBA, GL_UNSIGNED_BYTE, input_config.external_image_data.get());
-			}
-
-			// If set to previous pass, but we are the first pass, use the color buffer instead.
-			if (input.type == POST_PROCESSING_INPUT_TYPE_PREVIOUS_PASS_OUTPUT && m_passes.empty())
-				input.type = POST_PROCESSING_INPUT_TYPE_COLOR_BUFFER;
-
-			// Lookup tables for samplers, simple due to no mipmaps
-			static const GLenum gl_sampler_filters[] = {GL_NEAREST, GL_LINEAR};
-			static const GLenum gl_sampler_modes[] = {GL_CLAMP_TO_EDGE, GL_REPEAT,  GL_CLAMP_TO_BORDER};
-			static const float gl_border_color[4] = {0.0f, 0.0f, 0.0f, 0.0f};
-
-			// Create sampler object matching the values from config
-			glGenSamplers(1, &input.sampler_id);
-			glSamplerParameteri(input.sampler_id, GL_TEXTURE_MIN_FILTER, gl_sampler_filters[input_config.filter]);
-			glSamplerParameteri(input.sampler_id, GL_TEXTURE_MAG_FILTER, gl_sampler_filters[input_config.filter]);
-			glSamplerParameteri(input.sampler_id, GL_TEXTURE_WRAP_S, gl_sampler_modes[input_config.address_mode]);
-			glSamplerParameteri(input.sampler_id, GL_TEXTURE_WRAP_T, gl_sampler_modes[input_config.address_mode]);
-			glSamplerParameterfv(input.sampler_id, GL_TEXTURE_BORDER_COLOR, gl_border_color);
-
-			pass.inputs.push_back(std::move(input));
+			shader->program->Destroy();
+			shader->program.reset();
 		}
 
-		m_passes.push_back(std::move(pass));
+		if (shader->gs_program != nullptr)
+		{
+			shader->gs_program->Destroy();
+			shader->gs_program.reset();
+		}
+		delete shader;
+		pass.shader = 0;
 	}
-
-	// Restore active texture unit
-	TextureCache::SetStage();
-	return true;
 }
 
-bool PostProcessingShader::RecompileShaders()
+void OGLPostProcessingShader::ReleaseBindingSampler(uintptr_t sampler)
+{
+	GLuint samp = static_cast<GLuint>(sampler);
+	glDeleteSamplers(1, &samp);
+}
+
+uintptr_t OGLPostProcessingShader::CreateBindingSampler(const PostProcessingShaderConfiguration::RenderPass::Input& input_config)
+{
+	// Lookup tables for samplers, simple due to no mipmaps
+	static const GLenum gl_sampler_filters[] = { GL_NEAREST, GL_LINEAR };
+	static const GLenum gl_sampler_modes[] = { GL_CLAMP_TO_EDGE, GL_REPEAT,  GL_CLAMP_TO_BORDER };
+	static const float gl_border_color[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+	GLuint sampler = 0;
+	// Create sampler object matching the values from config
+	glGenSamplers(1, &sampler);
+	glSamplerParameteri(sampler, GL_TEXTURE_MIN_FILTER, gl_sampler_filters[input_config.filter]);
+	glSamplerParameteri(sampler, GL_TEXTURE_MAG_FILTER, gl_sampler_filters[input_config.filter]);
+	glSamplerParameteri(sampler, GL_TEXTURE_WRAP_S, gl_sampler_modes[input_config.address_mode]);
+	glSamplerParameteri(sampler, GL_TEXTURE_WRAP_T, gl_sampler_modes[input_config.address_mode]);
+	glSamplerParameterfv(sampler, GL_TEXTURE_BORDER_COLOR, gl_border_color);
+	return static_cast<uintptr_t>(sampler);
+}
+
+bool OGLPostProcessingShader::RecompileShaders()
 {
 	std::string common_source = PostProcessor::GetCommonFragmentShaderSource(API_OPENGL, m_config);
 	for (size_t i = 0; i < m_passes.size(); i++)
@@ -256,167 +171,77 @@ bool PostProcessingShader::RecompileShaders()
 		header_shader_source += StringFromFormat("#define PREV_OUTPUT_INPUT_INDEX %d\n", prev_output_index);
 		header_shader_source += "#define API_OPENGL 1\n";
 		header_shader_source += "#define GLSL 1\n";
-
-		// Manually destroy old programs (no cleanup in destructor)
-		if (pass.program)
-		{
-			pass.program->Destroy();
-			pass.program.reset();
-		}
-		if (pass.gs_program)
-		{
-			pass.gs_program->Destroy();
-			pass.gs_program.reset();
-		}
-
+		ReleasePassNativeResources(pass);
+		OGLRenderPassData* shader = new OGLRenderPassData();
+		pass.shader = reinterpret_cast<uintptr_t>(shader);
 		// Compile shader for this pass
-		pass.program = std::make_unique<SHADER>();
+		shader->program = std::make_unique<SHADER>();
 		std::string vertex_shader_source;
 		PostProcessor::GetUniformBufferShaderSource(API_OPENGL, m_config, vertex_shader_source);
 		vertex_shader_source += s_vertex_shader;
 		std::string fragment_shader_source = header_shader_source + common_source;
 		fragment_shader_source += PostProcessor::GetPassFragmentShaderSource(API_OPENGL, m_config, &pass_config);
-		if (!ProgramShaderCache::CompileShader(*pass.program, vertex_shader_source.c_str(), fragment_shader_source.c_str()))
+		if (!ProgramShaderCache::CompileShader(*shader->program, vertex_shader_source.c_str(), fragment_shader_source.c_str()))
 		{
+			ReleasePassNativeResources(pass);
 			ERROR_LOG(VIDEO, "Failed to compile post-processing shader %s (pass %s)", m_config->GetShaderName().c_str(), pass_config.entry_point.c_str());
 			m_ready = false;
 			return false;
 		}
 
 		// Bind our uniform block
-		GLuint block_index = glGetUniformBlockIndex(pass.program->glprogid, "PostProcessingConstants");
+		GLuint block_index = glGetUniformBlockIndex(shader->program->glprogid, "PostProcessingConstants");
 		if (block_index != GL_INVALID_INDEX)
-			glUniformBlockBinding(pass.program->glprogid, block_index, UNIFORM_BUFFER_BIND_POINT);
+			glUniformBlockBinding(shader->program->glprogid, block_index, UNIFORM_BUFFER_BIND_POINT);
 
-		block_index = glGetUniformBlockIndex(pass.program->glprogid, "ConfigurationConstants");
+		block_index = glGetUniformBlockIndex(shader->program->glprogid, "ConfigurationConstants");
 		if (block_index != GL_INVALID_INDEX)
-			glUniformBlockBinding(pass.program->glprogid, block_index, UNIFORM_BUFFER_BIND_POINT + 1);
+			glUniformBlockBinding(shader->program->glprogid, block_index, UNIFORM_BUFFER_BIND_POINT + 1);
 
 		// Only generate a GS-expanding program if needed
 		std::unique_ptr<SHADER> gs_program;
 		if (m_internal_layers > 1)
 		{
-			pass.gs_program = std::make_unique<SHADER>();
+			shader->gs_program = std::make_unique<SHADER>();
 			vertex_shader_source.clear();
 			PostProcessor::GetUniformBufferShaderSource(API_OPENGL, m_config, vertex_shader_source);
 			vertex_shader_source += s_layered_vertex_shader;
 			std::string geometry_shader_source = StringFromFormat(s_geometry_shader, m_internal_layers * 3, m_internal_layers).c_str();
 
-			if (!ProgramShaderCache::CompileShader(*pass.gs_program, vertex_shader_source.c_str(), fragment_shader_source.c_str(), geometry_shader_source.c_str()))
+			if (!ProgramShaderCache::CompileShader(*shader->gs_program, vertex_shader_source.c_str(), fragment_shader_source.c_str(), geometry_shader_source.c_str()))
 			{
+				ReleasePassNativeResources(pass);
 				ERROR_LOG(VIDEO, "Failed to compile GS post-processing shader %s (pass %s)", m_config->GetShaderName().c_str(), pass_config.entry_point.c_str());
 				m_ready = false;
 				return false;
 			}
 
-			block_index = glGetUniformBlockIndex(pass.gs_program->glprogid, "PostProcessingConstants");
+			block_index = glGetUniformBlockIndex(shader->gs_program->glprogid, "PostProcessingConstants");
 			if (block_index != GL_INVALID_INDEX)
-				glUniformBlockBinding(pass.gs_program->glprogid, block_index, UNIFORM_BUFFER_BIND_POINT);
+				glUniformBlockBinding(shader->gs_program->glprogid, block_index, UNIFORM_BUFFER_BIND_POINT);
 		}
 	}
 
 	return true;
 }
 
-bool PostProcessingShader::ResizeOutputTextures(const TargetSize& new_size)
-{
-	// Recreate buffers
-	glActiveTexture(GL_TEXTURE0 + FIRST_INPUT_TEXTURE_UNIT);
-	for (size_t pass_index = 0; pass_index < m_passes.size(); pass_index++)
-	{
-		RenderPassData& pass = m_passes[pass_index];
-		const PostProcessingShaderConfiguration::RenderPass& pass_config = m_config->GetPass(pass_index);
-		pass.output_size = PostProcessor::ScaleTargetSize(new_size, pass_config.output_scale);
-
-		// Re-use existing texture object if one already exists
-		if (pass.output_texture_id == 0)
-			glGenTextures(1, &pass.output_texture_id);
-
-		glBindTexture(GL_TEXTURE_2D_ARRAY, pass.output_texture_id);
-		glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_RGBA, pass.output_size.width, pass.output_size.height, m_internal_layers, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
-		glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAX_LEVEL, 0);
-	}
-
-	m_internal_size = new_size;
-	TextureCache::SetStage();
-	return true;
-}
-
-void PostProcessingShader::LinkPassOutputs()
-{
-	m_last_pass_index = 0;
-	m_last_pass_uses_color_buffer = false;
-
-	// Update dependant options (enable/disable passes)
-	for (size_t pass_index = 0; pass_index < m_passes.size(); pass_index++)
-	{
-		const PostProcessingShaderConfiguration::RenderPass& pass_config = m_config->GetPass(pass_index);
-		RenderPassData& pass = m_passes[pass_index];
-		pass.enabled = pass_config.CheckEnabled();
-		if (!pass.enabled)
-			continue;
-		size_t previous_pass_index = m_last_pass_index;
-		m_last_pass_index = pass_index;
-		m_last_pass_uses_color_buffer = false;
-		for (size_t input_index = 0; input_index < pass_config.inputs.size(); input_index++)
-		{
-			InputBinding& input_binding = pass.inputs[input_index];
-			switch (input_binding.type)
-			{
-			case POST_PROCESSING_INPUT_TYPE_PASS_OUTPUT:
-			case POST_PROCESSING_INPUT_TYPE_PREVIOUS_PASS_OUTPUT:
-			{
-				s32 pass_output_index = (input_binding.type == POST_PROCESSING_INPUT_TYPE_PASS_OUTPUT) ?
-					static_cast<s32>(pass_config.inputs[input_index].pass_output_index)
-					: static_cast<s32>(previous_pass_index);
-				while (pass_output_index >= 0)
-				{
-					if (m_passes[pass_output_index].enabled)
-					{
-						break;
-					}
-					pass_output_index--;
-				}
-				if (pass_output_index < 0)
-				{
-					input_binding.texture_id = 0;
-					m_last_pass_uses_color_buffer = true;
-				}
-				else
-				{
-					input_binding.texture_id = m_passes[pass_output_index].output_texture_id;
-					input_binding.size = m_passes[pass_output_index].output_size;
-				}
-			}
-			break;
-			case POST_PROCESSING_INPUT_TYPE_COLOR_BUFFER:
-				m_last_pass_uses_color_buffer = true;
-				break;
-
-			default:
-				break;
-			}
-		}
-	}
-}
-
-
-void PostProcessingShader::MapAndUpdateConfigurationBuffer()
+void OGLPostProcessingShader::MapAndUpdateConfigurationBuffer()
 {
 	// Skip writing to buffer if there were no changes
 	u32 buffer_size;
+	OGLBufferWrapper* buffer = reinterpret_cast<OGLBufferWrapper*>(m_uniform_buffer);
 	void* buffer_data = m_config->UpdateConfigurationBuffer(&buffer_size);
 	if (buffer_data)
 	{
 		// Annoyingly, due to latched state, we have to bind our private uniform buffer here, then restore the
 		// ProgramShaderCache uniform buffer afterwards, otherwise we'll end up flushing the wrong buffer.
-		glBindBuffer(GL_UNIFORM_BUFFER, m_uniform_buffer->m_buffer);
+		glBindBuffer(GL_UNIFORM_BUFFER, buffer->m_uniform_buffer->m_buffer);
 
-		auto mapped_buffer = m_uniform_buffer->Map(buffer_size, ProgramShaderCache::GetUniformBufferAlignment());
+		auto mapped_buffer = buffer->m_uniform_buffer->Map(buffer_size, ProgramShaderCache::GetUniformBufferAlignment());
 		memcpy(mapped_buffer.first, buffer_data, buffer_size);
-		m_uniform_buffer->Unmap(buffer_size);
+		buffer->m_uniform_buffer->Unmap(buffer_size);
 
-		glBindBufferRange(GL_UNIFORM_BUFFER, UNIFORM_BUFFER_BIND_POINT + 1, m_uniform_buffer->m_buffer, mapped_buffer.second, buffer_size);
+		glBindBufferRange(GL_UNIFORM_BUFFER, UNIFORM_BUFFER_BIND_POINT + 1, buffer->m_uniform_buffer->m_buffer, mapped_buffer.second, buffer_size);
 
 		ProgramShaderCache::BindUniformBuffer();
 
@@ -424,11 +249,16 @@ void PostProcessingShader::MapAndUpdateConfigurationBuffer()
 	}
 }
 
-void PostProcessingShader::Draw(OGLPostProcessor* parent,
-	const TargetRectangle& dst_rect, const TargetSize& dst_size, GLuint dst_texture,
-	const TargetRectangle& src_rect, const TargetSize& src_size, GLuint src_texture,
-	GLuint src_depth_texture, int src_layer, float gamma)
+void OGLPostProcessingShader::Draw(PostProcessor* p,
+	const TargetRectangle& dst_rect, const TargetSize& dst_size, uintptr_t dst_tex,
+	const TargetRectangle& src_rect, const TargetSize& src_size, uintptr_t src_tex,
+	uintptr_t src_depth_tex, int src_layer, float gamma)
 {
+	OGLPostProcessor* parent = reinterpret_cast<OGLPostProcessor*>(p);
+	GLuint dst_texture = static_cast<GLuint>(dst_tex);
+	GLuint src_texture = static_cast<GLuint>(src_tex);
+	GLuint src_depth_texture = static_cast<GLuint>(src_depth_tex);
+
 	_dbg_assert_(VIDEO, m_ready && m_internal_size == src_size);
 	OpenGL_BindAttributelessVAO();
 
@@ -463,7 +293,7 @@ void PostProcessingShader::Draw(OGLPostProcessor* parent,
 		{
 			output_rect = PostProcessor::ScaleTargetRectangle(API_OPENGL, src_rect, pass.output_scale);
 			output_size = pass.output_size;
-			output_texture = pass.output_texture_id;
+			output_texture = static_cast<GLuint>(pass.output_texture->GetInternalObject());
 		}
 
 		// Setup framebuffer
@@ -482,11 +312,12 @@ void PostProcessingShader::Draw(OGLPostProcessor* parent,
 			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 		}
 
+		OGLRenderPassData* shader = reinterpret_cast<OGLRenderPassData*>(pass.shader);
 		// Bind program and texture units here
 		if (src_layer < 0 && m_internal_layers > 1)
-			pass.gs_program->Bind();
+			shader->gs_program->Bind();
 		else
-			pass.program->Bind();
+			shader->program->Bind();
 
 		for (size_t i = 0; i < pass.inputs.size(); i++)
 		{
@@ -506,9 +337,10 @@ void PostProcessingShader::Draw(OGLPostProcessor* parent,
 				break;
 
 			default:
-				if (input.texture_id != 0)
+				TextureCacheBase::TCacheEntryBase* input_texture = input.texture != nullptr ? input.texture : input.prev_texture;
+				if (input_texture != nullptr)
 				{
-					glBindTexture(GL_TEXTURE_2D_ARRAY, input.texture_id);
+					glBindTexture(GL_TEXTURE_2D_ARRAY, static_cast<GLuint>(input_texture->GetInternalObject()));
 					input_sizes[i] = input.size;
 				}
 				else
@@ -519,7 +351,7 @@ void PostProcessingShader::Draw(OGLPostProcessor* parent,
 				break;
 			}
 
-			glBindSampler(FIRST_INPUT_TEXTURE_UNIT + input.texture_unit, input.sampler_id);
+			glBindSampler(FIRST_INPUT_TEXTURE_UNIT + input.texture_unit, static_cast<GLuint>(input.texture_sampler));
 		}
 
 		parent->MapAndUpdateUniformBuffer(input_sizes, output_rect, output_size, src_rect, src_size, src_layer, gamma);
@@ -536,7 +368,10 @@ void PostProcessingShader::Draw(OGLPostProcessor* parent,
 
 	// Copy the last pass output to the target if not done already
 	if (!skip_final_copy)
-		parent->CopyTexture(dst_rect, dst_texture, output_rect, m_passes[m_last_pass_index].output_texture_id, src_layer, false);
+	{
+		RenderPassData& final_pass = m_passes[m_last_pass_index];
+		parent->CopyTexture(dst_rect, dst_texture, output_rect, final_pass.output_texture->GetInternalObject(), final_pass.output_size, src_layer);
+	}
 }
 
 OGLPostProcessor::~OGLPostProcessor()
@@ -545,12 +380,6 @@ OGLPostProcessor::~OGLPostProcessor()
 		glDeleteFramebuffers(1, &m_read_framebuffer);
 	if (m_draw_framebuffer != 0)
 		glDeleteFramebuffers(1, &m_draw_framebuffer);
-	if (m_color_copy_texture != 0)
-		glDeleteTextures(1, &m_color_copy_texture);
-	if (m_depth_copy_texture != 0)
-		glDeleteTextures(1, &m_depth_copy_texture);
-	if (m_stereo_buffer_texture != 0)
-		glDeleteTextures(1, &m_stereo_buffer_texture);
 
 	// Need to change latched buffer before freeing uniform buffer, see MapAndUpdateUniformBuffer for why.
 	if (m_uniform_buffer)
@@ -579,110 +408,19 @@ bool OGLPostProcessor::Initialize()
 		return false;
 	}
 
-	// Allocate copy texture names, the actual storage is done in ResizeCopyBuffers
-	glGenTextures(1, &m_color_copy_texture);
-	glGenTextures(1, &m_depth_copy_texture);
-	glGenTextures(1, &m_stereo_buffer_texture);
-	if (m_color_copy_texture == 0 || m_depth_copy_texture == 0 || m_stereo_buffer_texture == 0)
-	{
-		ERROR_LOG(VIDEO, "Failed to create copy textures.");
-		return false;
-	}
-
 	// Load the currently-configured shader (this may fail, and that's okay)
 	ReloadShaders();
 	return true;
 }
 
-void OGLPostProcessor::ReloadShaders()
-{
-	// Delete current shaders
-	m_reload_flag.Clear();
-	m_post_processing_shaders.clear();
-	m_scaling_shader.reset();
-	m_stereo_shader.reset();
-	m_active = false;
-
-	ReloadShaderConfigs();
-
-	if (g_ActiveConfig.bPostProcessingEnable)
-		CreatePostProcessingShaders();
-
-	CreateScalingShader();
-
-	if (m_stereo_config)
-		CreateStereoShader();
-
-	// Set initial sizes to 0,0 to force texture creation on next draw
-	m_copy_size.Set(0, 0);
-	m_stereo_buffer_size.Set(0, 0);
-	Constant empty = {};
-	m_current_constants.fill(empty);
-}
-
 std::unique_ptr<PostProcessingShader> OGLPostProcessor::CreateShader(PostProcessingShaderConfiguration* config)
 {
-	std::unique_ptr<PostProcessingShader> shader = std::make_unique<PostProcessingShader>();
+	std::unique_ptr<PostProcessingShader> shader;
+	shader.reset(new OGLPostProcessingShader());
 	if (!shader->Initialize(config, FramebufferManager::GetEFBLayers()))
 		shader.reset();
 
 	return shader;
-}
-
-void OGLPostProcessor::CreatePostProcessingShaders()
-{
-	for (const std::string& shader_name : m_shader_names)
-	{
-		const auto& it = m_shader_configs.find(shader_name);
-		if (it == m_shader_configs.end())
-			continue;
-
-		std::unique_ptr<PostProcessingShader> shader = CreateShader(it->second.get());
-		if (!shader)
-		{
-			ERROR_LOG(VIDEO, "Failed to initialize postprocessing shader ('%s'). This shader will be ignored.", shader_name.c_str());
-			OSD::AddMessage(StringFromFormat("Failed to initialize postprocessing shader ('%s'). This shader will be ignored.", shader_name.c_str()));
-			continue;
-		}
-
-		m_post_processing_shaders.push_back(std::move(shader));
-	}
-
-	// If no shaders initialized successfully, disable post processing
-	m_active = !m_post_processing_shaders.empty();
-	if (m_active)
-	{
-		DEBUG_LOG(VIDEO, "Postprocessing is enabled with %u shaders in sequence.", (u32)m_post_processing_shaders.size());
-		OSD::AddMessage(StringFromFormat("Postprocessing is enabled with %u shaders in sequence.", (u32)m_post_processing_shaders.size()));
-	}
-}
-
-void OGLPostProcessor::CreateScalingShader()
-{
-	if (!m_scaling_config)
-		return;
-
-	m_scaling_shader = std::make_unique<PostProcessingShader>();
-	if (!m_scaling_shader->Initialize(m_scaling_config.get(), FramebufferManager::GetEFBLayers()))
-	{
-		ERROR_LOG(VIDEO, "Failed to initialize scaling shader ('%s'). Falling back to blit.", m_scaling_config->GetShaderName().c_str());
-		OSD::AddMessage(StringFromFormat("Failed to initialize scaling shader ('%s'). Falling back to blit.", m_scaling_config->GetShaderName().c_str()));
-		m_scaling_shader.reset();
-	}
-}
-
-void OGLPostProcessor::CreateStereoShader()
-{
-	if (!m_stereo_config)
-		return;
-
-	m_stereo_shader = std::make_unique<PostProcessingShader>();
-	if (!m_stereo_shader->Initialize(m_stereo_config.get(), FramebufferManager::GetEFBLayers()))
-	{
-		ERROR_LOG(VIDEO, "Failed to initialize stereoscopy shader ('%s'). Falling back to blit.", m_scaling_config->GetShaderName().c_str());
-		OSD::AddMessage(StringFromFormat("Failed to initialize stereoscopy shader ('%s'). Falling back to blit.", m_scaling_config->GetShaderName().c_str()));
-		m_stereo_shader.reset();
-	}
 }
 
 void OGLPostProcessor::PostProcessEFBToTexture(uintptr_t dst_texture)
@@ -692,7 +430,7 @@ void OGLPostProcessor::PostProcessEFBToTexture(uintptr_t dst_texture)
 	g_renderer->ResetAPIState();
 
 	EFBRectangle efb_rect(0, EFB_HEIGHT, EFB_WIDTH, 0);
-	TargetRectangle target_rect = {0, g_renderer->GetTargetHeight(), g_renderer->GetTargetWidth(), 0};
+	TargetRectangle target_rect = { 0, g_renderer->GetTargetHeight(), g_renderer->GetTargetWidth(), 0 };
 	TargetSize target_size(g_renderer->GetTargetWidth(), g_renderer->GetTargetHeight());
 
 	// Source and target textures, if MSAA is enabled, this needs to be resolved
@@ -773,283 +511,13 @@ void OGLPostProcessor::PostProcessEFB(const TargetRectangle* src_rect)
 	g_renderer->RestoreAPIState();
 }
 
-void OGLPostProcessor::BlitScreen(const TargetRectangle& dst_rect, const TargetSize& dst_size, uintptr_t dst_texture,
-	const TargetRectangle& src_rect, const TargetSize& src_size, uintptr_t src_texture, uintptr_t src_depth_texture,
-	int src_layer, float gamma)
+void OGLPostProcessor::CopyTexture(const TargetRectangle& dst_rect, uintptr_t dst_tex,
+	const TargetRectangle& src_rect, uintptr_t src_tex,
+	const TargetSize& src_size, int src_layer, bool is_depth_texture,
+	bool force_shader_copy)
 {
-	const bool triguer_after_blit = ShouldTriggerAfterBlit();
-	GLuint real_dst_texture = static_cast<GLuint>(dst_texture);
-	GLuint real_src_texture = static_cast<GLuint>(src_texture);
-	GLuint real_src_depth_texture = static_cast<GLuint>(src_depth_texture);
-	_dbg_assert_msg_(VIDEO, src_layer >= 0, "BlitToFramebuffer should always be called with a single source layer");
-
-	ReconfigureScalingShader(src_size);
-	ReconfigureStereoShader(dst_size);
-	if (triguer_after_blit)
-	{
-		TargetSize buffer_size(dst_rect.GetWidth(), dst_rect.GetHeight());
-		if (!ResizeCopyBuffers(buffer_size, FramebufferManager::GetEFBLayers()) ||
-			!ReconfigurePostProcessingShaders(buffer_size))
-		{
-			ERROR_LOG(VIDEO, "Failed to update post-processor state. Disabling post processor.");
-			DisablePostProcessor();
-			return;
-		}
-	}
-	// Use stereo shader if enabled, otherwise invoke scaling shader, if that is invalid, fall back to blit.
-	if (m_stereo_shader)
-		DrawStereoBuffers(dst_rect, dst_size, real_dst_texture, src_rect, src_size, real_src_texture, real_src_depth_texture, gamma);
-	else if (triguer_after_blit)
-	{
-		TargetSize buffer_size(dst_rect.GetWidth(), dst_rect.GetHeight());
-		TargetRectangle buffer_rect(0, buffer_size.height, buffer_size.width, 0);
-		if (m_scaling_shader)
-		{
-			m_scaling_shader->Draw(this, buffer_rect, buffer_size, m_color_copy_texture, src_rect, src_size, real_src_texture, real_src_depth_texture, src_layer, gamma);
-		}
-		else
-		{
-			CopyTexture(buffer_rect, m_color_copy_texture, src_rect, real_src_texture, -1, false);
-		}
-		PostProcess(nullptr, nullptr, nullptr, buffer_rect, buffer_size, m_color_copy_texture, src_rect, src_size, real_src_depth_texture, dst_texture, &dst_rect, &dst_size);
-	}
-	else if (m_scaling_shader)
-		m_scaling_shader->Draw(this, dst_rect, dst_size, real_dst_texture, src_rect, src_size, real_src_texture, real_src_depth_texture, 0, gamma);
-	else
-		CopyTexture(dst_rect, real_dst_texture, src_rect, real_src_texture, src_layer, false);
-}
-
-void OGLPostProcessor::PostProcess(TargetRectangle* output_rect, TargetSize* output_size, uintptr_t* output_texture,
-	const TargetRectangle& src_rect, const TargetSize& src_size, uintptr_t src_texture,
-	const TargetRectangle& src_depth_rect, const TargetSize& src_depth_size, uintptr_t src_depth_texture,
-	uintptr_t dst_texture, const TargetRectangle* dst_rect, const TargetSize* dst_size)
-{
-	if (!m_active)
-		return;
-	GLuint real_src_texture = static_cast<GLuint>(src_texture);
-	GLuint real_src_depth_texture = static_cast<GLuint>(src_depth_texture);
-	GLuint real_dst_texture = static_cast<GLuint>(dst_texture);
-	real_dst_texture = real_dst_texture == 0 && dst_rect == nullptr ? real_src_texture : real_dst_texture;
-	// Setup copy buffers first, and update compile-time constants.
-	TargetSize buffer_size(src_rect.GetWidth(), src_rect.GetHeight());
-	if (!ResizeCopyBuffers(buffer_size, FramebufferManager::GetEFBLayers()) ||
-		!ReconfigurePostProcessingShaders(buffer_size))
-	{
-		ERROR_LOG(VIDEO, "Failed to update post-processor state. Disabling post processor.");
-
-		// We need to fill in an output texture if we're bailing out, so set it to the source.
-		if (output_texture)
-		{
-			*output_rect = src_rect;
-			*output_size = src_size;
-			*output_texture = src_texture;
-		}
-
-		DisablePostProcessor();
-		return;
-	}
-
-	// Copy the visible region to our buffers.
-	TargetRectangle buffer_rect(0, buffer_size.height, buffer_size.width, 0);
-	GLuint input_color_texture = m_color_copy_texture;
-	GLuint input_depth_texture = m_depth_copy_texture;
-	if (src_size != buffer_size)
-	{
-		CopyTexture(buffer_rect, m_color_copy_texture, src_rect, real_src_texture, -1, false);
-	}
-	else
-	{
-		input_color_texture = real_src_texture;
-	}
-
-	if (real_src_depth_texture != 0 && src_depth_size != buffer_size)
-	{
-		CopyTexture(buffer_rect, m_depth_copy_texture, src_depth_rect, real_src_depth_texture, -1, true);
-	}
-	else
-	{
-		input_depth_texture = real_src_depth_texture;
-	}
-
-	// Loop through the shader list, applying each of them in sequence.
-	for (size_t shader_index = 0; shader_index < m_post_processing_shaders.size(); shader_index++)
-	{
-		PostProcessingShader* shader = m_post_processing_shaders[shader_index].get();
-
-		// To save a copy, we use the output of one shader as the input to the next.
-		// This works except when the last pass is scaled, as the next shader expects a full-size input, so re-use the copy buffer for this case.
-		GLuint output_color_texture = (shader->IsLastPassScaled()) ? m_color_copy_texture : shader->GetLastPassOutputTexture();
-
-		// Last shader in the sequence? If so, write to the output texture.
-		if (shader_index == (m_post_processing_shaders.size() - 1))
-		{
-			// Are we returning our temporary texture, or storing back to the original buffer?
-			if (output_texture && !dst_texture)
-			{
-				// Use the same texture as if it was a previous pass, and return it.
-				shader->Draw(this, buffer_rect, buffer_size, output_color_texture, buffer_rect, buffer_size, input_color_texture, input_depth_texture, -1, 1.0f);
-				*output_rect = buffer_rect;
-				*output_size = buffer_size;
-				*output_texture = static_cast<uintptr_t>(output_color_texture);
-			}
-			else
-			{
-				// Write to original texture.
-				shader->Draw(this, dst_rect != nullptr ? *dst_rect : src_rect, dst_size != nullptr ? *dst_size : src_size, real_dst_texture, buffer_rect, buffer_size, input_color_texture, input_depth_texture, -1, 1.0f);
-				if (output_texture)
-				{
-					*output_rect = buffer_rect;
-					*output_size = buffer_size;
-					*output_texture = real_dst_texture;
-				}
-			}
-		}
-		else
-		{
-			shader->Draw(this, buffer_rect, buffer_size, output_color_texture, buffer_rect, buffer_size, input_color_texture, input_depth_texture, -1, 1.0f);
-			input_color_texture = output_color_texture;
-		}
-	}
-}
-
-bool OGLPostProcessor::ResizeCopyBuffers(const TargetSize& size, int layers)
-{
-	if (m_copy_size == size && m_copy_layers == layers)
-		return true;
-
-	m_copy_size = size;
-	m_copy_layers = layers;
-
-	glActiveTexture(GL_TEXTURE0 + FIRST_INPUT_TEXTURE_UNIT);
-	glBindTexture(GL_TEXTURE_2D_ARRAY, m_color_copy_texture);
-	glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_RGBA, size.width, size.height, FramebufferManager::GetEFBLayers(), 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
-	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAX_LEVEL, 0);
-	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glBindTexture(GL_TEXTURE_2D_ARRAY, m_depth_copy_texture);
-	glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_DEPTH_COMPONENT32F, size.width, size.height, FramebufferManager::GetEFBLayers(), 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_BYTE, nullptr);
-	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAX_LEVEL, 0);
-	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-
-	TextureCache::SetStage();
-	return true;
-}
-
-bool OGLPostProcessor::ResizeStereoBuffer(const TargetSize& size)
-{
-	if (m_stereo_buffer_size == size)
-		return true;
-
-	m_stereo_buffer_size = size;
-
-	glActiveTexture(GL_TEXTURE0 + FIRST_INPUT_TEXTURE_UNIT);
-	glBindTexture(GL_TEXTURE_2D_ARRAY, m_stereo_buffer_texture);
-	glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_RGBA, size.width, size.height, 2, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
-	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAX_LEVEL, 0);
-	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-
-	TextureCache::SetStage();
-	return true;
-}
-
-bool OGLPostProcessor::ReconfigurePostProcessingShaders(const TargetSize& size)
-{
-	for (const auto& shader : m_post_processing_shaders)
-	{
-		if (!shader->IsReady() || !shader->Reconfigure(size))
-			return false;
-	}
-
-	// Remove dirty flags afterwards. This is because we can have the same shader twice.
-	for (auto& it : m_shader_configs)
-		it.second->ClearDirty();
-
-	return true;
-}
-
-bool OGLPostProcessor::ReconfigureScalingShader(const TargetSize& size)
-{
-	if (m_scaling_shader)
-	{
-		if (!m_scaling_shader->IsReady() ||
-			!m_scaling_shader->Reconfigure(size))
-		{
-			m_scaling_shader.reset();
-			return false;
-		}
-
-		m_scaling_config->ClearDirty();
-	}
-
-	return true;
-}
-
-bool OGLPostProcessor::ReconfigureStereoShader(const TargetSize& size)
-{
-	if (m_stereo_shader)
-	{
-		if (!m_stereo_shader->IsReady() ||
-			!m_stereo_shader->Reconfigure(size) ||
-			!ResizeStereoBuffer(size))
-		{
-			m_stereo_shader.reset();
-			return false;
-		}
-
-		m_stereo_config->ClearDirty();
-	}
-
-	return true;
-}
-
-void OGLPostProcessor::DrawStereoBuffers(const TargetRectangle& dst_rect, const TargetSize& dst_size, GLuint dst_texture,
-	const TargetRectangle& src_rect, const TargetSize& src_size, GLuint src_texture, GLuint src_depth_texture, float gamma)
-{
-	const bool triguer_after_blit = ShouldTriggerAfterBlit();
-	GLuint stereo_buffer = (m_scaling_shader || triguer_after_blit) ? m_stereo_buffer_texture : src_texture;
-	TargetRectangle stereo_buffer_rect(src_rect);
-	TargetSize stereo_buffer_size(src_size);
-
-	// Apply scaling shader if enabled, otherwise just use the source buffers
-	if (triguer_after_blit)
-	{
-		stereo_buffer_rect = TargetRectangle(0, dst_size.height, dst_size.width, 0);
-		stereo_buffer_size = dst_size;
-		TargetSize buffer_size(dst_rect.GetWidth(), dst_rect.GetHeight());
-		TargetRectangle buffer_rect(0, buffer_size.height, buffer_size.width, 0);
-		if (m_scaling_shader)
-		{
-			m_scaling_shader->Draw(this, buffer_rect, buffer_size, m_color_copy_texture, src_rect, src_size, src_texture, src_depth_texture, -1, gamma);
-		}
-		else
-		{
-			CopyTexture(buffer_rect, m_color_copy_texture, src_rect, src_texture, -1, false);
-		}
-		PostProcess(nullptr, nullptr, nullptr, buffer_rect, buffer_size, m_color_copy_texture, src_rect, src_size, src_depth_texture, stereo_buffer, &stereo_buffer_rect, &stereo_buffer_size);
-	}
-	else if (m_scaling_shader)
-	{
-		stereo_buffer_rect = TargetRectangle(0, dst_size.height, dst_size.width, 0);
-		stereo_buffer_size = dst_size;
-		m_scaling_shader->Draw(this, stereo_buffer_rect, stereo_buffer_size, stereo_buffer, src_rect, src_size, src_texture, src_depth_texture, -1, gamma);
-	}
-
-	m_stereo_shader->Draw(this, dst_rect, dst_size, dst_texture, stereo_buffer_rect, stereo_buffer_size, stereo_buffer, 0, 0, 1.0f);
-}
-
-void OGLPostProcessor::DisablePostProcessor()
-{
-	m_post_processing_shaders.clear();
-	m_active = false;
-}
-
-void OGLPostProcessor::CopyTexture(const TargetRectangle& dst_rect, GLuint dst_texture,
-	const TargetRectangle& src_rect, GLuint src_texture,
-	int src_layer, bool is_depth_texture,
-	bool force_blit)
-{
+	GLuint dst_texture = static_cast<GLuint>(dst_tex);
+	GLuint src_texture = static_cast<GLuint>(src_tex);
 	// Can we copy the image?
 	bool scaling = (dst_rect.GetWidth() != src_rect.GetWidth() || dst_rect.GetHeight() != src_rect.GetHeight());
 	int layers_to_copy = (src_layer < 0) ? FramebufferManager::GetEFBLayers() : 1;
@@ -1058,7 +526,7 @@ void OGLPostProcessor::CopyTexture(const TargetRectangle& dst_rect, GLuint dst_t
 	for (int i = 0; i < layers_to_copy; i++)
 	{
 		int layer = (src_layer < 0) ? i : src_layer;
-		if (g_ogl_config.bSupportsCopySubImage && dst_texture != 0 && !(force_blit || scaling))
+		if (g_ogl_config.bSupportsCopySubImage && dst_texture != 0 && !(force_shader_copy || scaling))
 		{
 			// use (ARB|NV)_copy_image, but only for non-window-framebuffer cases
 			glCopyImageSubData(src_texture, GL_TEXTURE_2D_ARRAY, 0, src_rect.left, src_rect.bottom, layer,

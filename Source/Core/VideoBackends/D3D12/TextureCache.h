@@ -12,24 +12,23 @@ namespace DX12
 
 class D3DStreamBuffer;
 
-class TextureCache: public TextureCacheBase
+class TextureCache : public TextureCacheBase
 {
 public:
 	TextureCache();
 	~TextureCache();
 	static D3D12_GPU_DESCRIPTOR_HANDLE GetTextureGroupHandle();
 private:
-	struct TCacheEntry: TCacheEntryBase
+	struct TCacheEntry : TCacheEntryBase
 	{
 		D3DTexture2D* m_texture;
 		D3DTexture2D* m_nrm_texture;
 		DXGI_FORMAT DXGI_format;
 		bool compressed;
 
-		TCacheEntry(const TCacheEntryConfig& config, D3DTexture2D *_tex): TCacheEntryBase(config), m_texture(_tex), m_nrm_texture(nullptr), compressed(false)
+		TCacheEntry(const TCacheEntryConfig& config, D3DTexture2D *_tex) : TCacheEntryBase(config), m_texture(_tex), m_nrm_texture(nullptr), compressed(false)
 		{}
 		~TCacheEntry();
-
 		void CopyRectangleFromTexture(
 			const TCacheEntryBase* source,
 			const MathUtil::Rectangle<int> &src_rect,
@@ -50,6 +49,10 @@ private:
 		};
 		void Bind(u32 stage, u32 last_Texture) override;
 		bool Save(const std::string& filename, u32 level) override;
+		inline uintptr_t GetInternalObject() override
+		{
+			return reinterpret_cast<uintptr_t>(m_texture);
+		}
 	};
 
 	PC_TexFormat GetNativeTextureFormat(const s32 texformat, const TlutFormat tlutfmt, u32 width, u32 height);

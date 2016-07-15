@@ -41,12 +41,12 @@ TextureCache::TCacheEntry::~TCacheEntry()
 	SAFE_RELEASE(m_nrm_texture);
 }
 
-static D3D12_GPU_DESCRIPTOR_HANDLE s_group_base_texture_gpu_handle = {0};
+static D3D12_GPU_DESCRIPTOR_HANDLE s_group_base_texture_gpu_handle = { 0 };
 static bool s_handle_changed = false;
 
 D3D12_GPU_DESCRIPTOR_HANDLE TextureCache::GetTextureGroupHandle()
 {
-	D3D12_GPU_DESCRIPTOR_HANDLE Handle = {0};
+	D3D12_GPU_DESCRIPTOR_HANDLE Handle = { 0 };
 	if (s_handle_changed)
 	{
 		s_handle_changed = false;
@@ -179,7 +179,7 @@ bool TextureCache::TCacheEntry::Save(const std::string& filename, unsigned int l
 
 	// Map readback buffer and save to file.
 	void* readback_texture_map;
-	D3D12_RANGE read_range = {0, required_readback_buffer_size};
+	D3D12_RANGE read_range = { 0, required_readback_buffer_size };
 	CheckHR(s_texture_cache_entry_readback_buffer->Map(0, &read_range, &readback_texture_map));
 
 	bool saved = false;
@@ -328,31 +328,32 @@ PC_TexFormat TextureCache::GetNativeTextureFormat(const s32 texformat, const Tlu
 
 TextureCacheBase::TCacheEntryBase* TextureCache::CreateTexture(const TCacheEntryConfig& config)
 {
+	static const DXGI_FORMAT PC_TexFormat_To_DXGIFORMAT[12]
+	{
+		DXGI_FORMAT_UNKNOWN,//PC_TEX_FMT_NONE
+		DXGI_FORMAT_R8G8B8A8_UNORM,//PC_TEX_FMT_BGRA32
+		DXGI_FORMAT_R8G8B8A8_UNORM,//PC_TEX_FMT_RGBA32
+		DXGI_FORMAT_R8G8B8A8_UNORM,//PC_TEX_FMT_I4_AS_I8
+		DXGI_FORMAT_R8G8B8A8_UNORM,//PC_TEX_FMT_IA4_AS_IA8
+		DXGI_FORMAT_R8G8B8A8_UNORM,//PC_TEX_FMT_I8
+		DXGI_FORMAT_R8G8B8A8_UNORM,//PC_TEX_FMT_IA8
+		DXGI_FORMAT_R8G8B8A8_UNORM,//PC_TEX_FMT_RGB565
+		DXGI_FORMAT_BC1_UNORM,//PC_TEX_FMT_DXT1
+		DXGI_FORMAT_BC2_UNORM,//PC_TEX_FMT_DXT3
+		DXGI_FORMAT_BC3_UNORM,//PC_TEX_FMT_DXT5
+		DXGI_FORMAT_R32_FLOAT,//PC_TEX_FMT_R32
+	};
 	if (config.rendertarget)
 	{
 		D3DTexture2D* texture = D3DTexture2D::Create(config.width, config.height,
 			TEXTURE_BIND_FLAG_SHADER_RESOURCE | TEXTURE_BIND_FLAG_RENDER_TARGET,
-			DXGI_FORMAT_R8G8B8A8_UNORM, 1, config.layers);
+			PC_TexFormat_To_DXGIFORMAT[config.pcformat], 1, config.layers);
 
 		TCacheEntry* entry = new TCacheEntry(config, texture);
 		return entry;
 	}
 	else
 	{
-		static const DXGI_FORMAT PC_TexFormat_To_DXGIFORMAT[11]
-		{
-			DXGI_FORMAT_UNKNOWN,//PC_TEX_FMT_NONE
-			DXGI_FORMAT_R8G8B8A8_UNORM,//PC_TEX_FMT_BGRA32
-			DXGI_FORMAT_R8G8B8A8_UNORM,//PC_TEX_FMT_RGBA32
-			DXGI_FORMAT_R8G8B8A8_UNORM,//PC_TEX_FMT_I4_AS_I8
-			DXGI_FORMAT_R8G8B8A8_UNORM,//PC_TEX_FMT_IA4_AS_IA8
-			DXGI_FORMAT_R8G8B8A8_UNORM,//PC_TEX_FMT_I8
-			DXGI_FORMAT_R8G8B8A8_UNORM,//PC_TEX_FMT_IA8
-			DXGI_FORMAT_R8G8B8A8_UNORM,//PC_TEX_FMT_RGB565
-			DXGI_FORMAT_BC1_UNORM,//PC_TEX_FMT_DXT1
-			DXGI_FORMAT_BC2_UNORM,//PC_TEX_FMT_DXT3
-			DXGI_FORMAT_BC3_UNORM,//PC_TEX_FMT_DXT5
-		};
 		DXGI_FORMAT format = PC_TexFormat_To_DXGIFORMAT[config.pcformat];
 		ComPtr<ID3D12Resource> pTexture;
 
@@ -373,6 +374,7 @@ TextureCacheBase::TCacheEntryBase* TextureCache::CreateTexture(const TCacheEntry
 		D3DTexture2D* texture = new D3DTexture2D(
 			pTexture.Get(),
 			TEXTURE_BIND_FLAG_SHADER_RESOURCE,
+			format,
 			DXGI_FORMAT_UNKNOWN,
 			DXGI_FORMAT_UNKNOWN,
 			DXGI_FORMAT_UNKNOWN,
@@ -407,6 +409,7 @@ TextureCacheBase::TCacheEntryBase* TextureCache::CreateTexture(const TCacheEntry
 			entry->m_nrm_texture = new D3DTexture2D(
 				pTexture.Get(),
 				TEXTURE_BIND_FLAG_SHADER_RESOURCE,
+				format,
 				DXGI_FORMAT_UNKNOWN,
 				DXGI_FORMAT_UNKNOWN,
 				DXGI_FORMAT_UNKNOWN,
@@ -695,7 +698,7 @@ D3D12_SHADER_BYTECODE GetConvertShader(const std::string& type)
 	D3DBlob* Blob = nullptr;
 	D3D::CompilePixelShader(shader, &Blob);
 
-	return{Blob->Data(), Blob->Size()};
+	return{ Blob->Data(), Blob->Size() };
 }
 
 TextureCache::TextureCache()
@@ -735,8 +738,8 @@ TextureCache::TextureCache()
 	u8* upload_heap_data_location = reinterpret_cast<u8*>(m_palette_stream_buffer->GetCPUAddressOfCurrentAllocation());
 	memset(upload_heap_data_location, 0, 256 * 2);
 
-	float paramsFormatZero[4] = {15.f};
-	float paramsFormatNonzero[4] = {255.f};
+	float paramsFormatZero[4] = { 15.f };
+	float paramsFormatNonzero[4] = { 255.f };
 
 	memcpy(upload_heap_data_location, paramsFormatZero, sizeof(paramsFormatZero));
 	memcpy(upload_heap_data_location + 256, paramsFormatNonzero, sizeof(paramsFormatNonzero));

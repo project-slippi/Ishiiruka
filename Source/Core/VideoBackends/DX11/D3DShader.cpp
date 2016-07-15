@@ -77,6 +77,17 @@ PixelShaderPtr CreatePixelShaderFromByteCode(const void* bytecode, size_t len)
 	return p_shader;
 }
 
+ID3D11PixelShader* CreatePixelShaderFromByteCodePtr(const void* bytecode, size_t len)
+{
+	ID3D11PixelShader* p_shader;
+	HRESULT hr = D3D::device->CreatePixelShader(bytecode, len, nullptr, &p_shader);
+	if (FAILED(hr))
+	{
+		PanicAlert("CreatePixelShaderFromByteCode failed at %s %d\n", __FILE__, __LINE__);
+	}
+	return p_shader;
+}
+
 ComputeShaderPtr CreateComputeShaderFromByteCode(const void* bytecode, size_t len)
 {
 	ComputeShaderPtr c_shader;
@@ -230,6 +241,16 @@ PixelShaderPtr CompileAndCreatePixelShader(const std::string& code, const D3D_SH
 	if (CompileShader(DX11::D3D::ShaderType::Pixel, code, blob, pDefines, pEntry))
 	{
 		return CreatePixelShaderFromByteCode(blob);
+	}
+	return nullptr;
+}
+
+ID3D11PixelShader* CompileAndCreatePixelShaderPtr(const std::string& code, const D3D_SHADER_MACRO* pDefines, const char* pEntry)
+{
+	D3DBlob blob;
+	if (CompileShader(DX11::D3D::ShaderType::Pixel, code, blob, pDefines, pEntry))
+	{
+		return CreatePixelShaderFromByteCodePtr(blob.Data(), blob.Size());
 	}
 	return nullptr;
 }

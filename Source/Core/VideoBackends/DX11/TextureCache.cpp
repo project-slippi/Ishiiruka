@@ -304,20 +304,7 @@ PC_TexFormat TextureCache::GetNativeTextureFormat(const s32 texformat, const Tlu
 
 TextureCache::TCacheEntryBase* TextureCache::CreateTexture(const TCacheEntryConfig& config)
 {
-	if (config.rendertarget)
-	{
-		int flags = ((int)D3D11_BIND_RENDER_TARGET | (int)D3D11_BIND_SHADER_RESOURCE);
-		if (D3D::GetFeatureLevel() >= D3D_FEATURE_LEVEL_11_0)
-		{
-			flags |= D3D11_BIND_UNORDERED_ACCESS;
-		}
-		return new TCacheEntry(config, D3DTexture2D::Create(config.width, config.height,
-			(D3D11_BIND_FLAG)flags,
-			D3D11_USAGE_DEFAULT, DXGI_FORMAT_R8G8B8A8_UNORM, 1, config.layers));
-	}
-	bool swaprg = false;
-	bool convertrgb565 = false;
-	static const DXGI_FORMAT PC_TexFormat_To_DXGIFORMAT[11]
+	static const DXGI_FORMAT PC_TexFormat_To_DXGIFORMAT[12]
 	{
 		DXGI_FORMAT_UNKNOWN,//PC_TEX_FMT_NONE
 		DXGI_FORMAT_B8G8R8A8_UNORM,//PC_TEX_FMT_BGRA32
@@ -330,7 +317,22 @@ TextureCache::TCacheEntryBase* TextureCache::CreateTexture(const TCacheEntryConf
 		DXGI_FORMAT_BC1_UNORM,//PC_TEX_FMT_DXT1
 		DXGI_FORMAT_BC2_UNORM,//PC_TEX_FMT_DXT3
 		DXGI_FORMAT_BC3_UNORM,//PC_TEX_FMT_DXT5
+		DXGI_FORMAT_R32_FLOAT,//PC_TEX_FMT_R32
 	};
+	if (config.rendertarget)
+	{
+		int flags = ((int)D3D11_BIND_RENDER_TARGET | (int)D3D11_BIND_SHADER_RESOURCE);
+		if (D3D::GetFeatureLevel() >= D3D_FEATURE_LEVEL_11_0)
+		{
+			flags |= D3D11_BIND_UNORDERED_ACCESS;
+		}
+		return new TCacheEntry(config, D3DTexture2D::Create(config.width, config.height,
+			(D3D11_BIND_FLAG)flags,
+			D3D11_USAGE_DEFAULT, PC_TexFormat_To_DXGIFORMAT[config.pcformat], 1, config.layers));
+	}
+	bool swaprg = false;
+	bool convertrgb565 = false;
+
 	DXGI_FORMAT format = PC_TexFormat_To_DXGIFORMAT[config.pcformat];
 	bool bgrasupported = D3D::BGRATexturesSupported();
 	if (format == DXGI_FORMAT_B8G8R8A8_UNORM && !bgrasupported)

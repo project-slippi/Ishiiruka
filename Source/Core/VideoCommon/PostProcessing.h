@@ -17,8 +17,9 @@
 #include "Common/Timer.h"
 
 #include "VideoCommon/VideoCommon.h"
+#include "VideoCommon/TextureCacheBase.h"
 
-enum PostProcessingTrigger: u32
+enum PostProcessingTrigger : u32
 {
 	POST_PROCESSING_TRIGGER_ON_SWAP,
 	POST_PROCESSING_TRIGGER_ON_PROJECTION,
@@ -26,14 +27,14 @@ enum PostProcessingTrigger: u32
 	POST_PROCESSING_TRIGGER_AFTER_BLIT
 };
 
-enum PostProcessingOptionType: u32
+enum PostProcessingOptionType : u32
 {
 	POST_PROCESSING_OPTION_TYPE_BOOL,
 	POST_PROCESSING_OPTION_TYPE_FLOAT,
 	POST_PROCESSING_OPTION_TYPE_INTEGER
 };
 
-enum PostProcessingInputType: u32
+enum PostProcessingInputType : u32
 {
 	POST_PROCESSING_INPUT_TYPE_IMAGE,                   // external image loaded from file
 	POST_PROCESSING_INPUT_TYPE_COLOR_BUFFER,            // colorbuffer at internal resolution
@@ -42,13 +43,13 @@ enum PostProcessingInputType: u32
 	POST_PROCESSING_INPUT_TYPE_PASS_OUTPUT              // output of a previous pass
 };
 
-enum PostProcessingInputFilter: u32
+enum PostProcessingInputFilter : u32
 {
 	POST_PROCESSING_INPUT_FILTER_NEAREST,               // nearest/point sampling
 	POST_PROCESSING_INPUT_FILTER_LINEAR                 // linear sampling
 };
 
-enum PostProcessingAddressMode: u32
+enum PostProcessingAddressMode : u32
 {
 	POST_PROCESSING_ADDRESS_MODE_CLAMP,                 // clamp to edge
 	POST_PROCESSING_ADDRESS_MODE_WRAP,                  // wrap around at edge
@@ -286,6 +287,79 @@ private:
 	static bool ValidatePassInputs(const RenderPass& pass);
 };
 
+class PostProcessor;
+
+class PostProcessingShader
+{
+public:
+	PostProcessingShader()
+	{};
+	virtual ~PostProcessingShader();
+
+	TextureCacheBase::TCacheEntryBase* GetLastPassOutputTexture() const;
+	bool IsLastPassScaled() const;
+
+	bool IsReady() const
+	{
+		return m_ready;
+	}
+
+	bool Initialize(PostProcessingShaderConfiguration* config, int target_layers);
+	bool Reconfigure(const TargetSize& new_size);
+	virtual void MapAndUpdateConfigurationBuffer() = 0;
+	virtual void Draw(PostProcessor* parent,
+		const TargetRectangle& dst_rect, const TargetSize& dst_size, uintptr_t dst_texture,
+		const TargetRectangle& src_rect, const TargetSize& src_size, uintptr_t src_texture,
+		uintptr_t src_depth_texture, int src_layer, float gamma) = 0;
+
+protected:
+	struct InputBinding final
+	{
+		PostProcessingInputType type{};
+		u32 texture_unit{};
+		TargetSize size{};
+
+		TextureCacheBase::TCacheEntryBase* texture{};	// only set for external images
+		TextureCacheBase::TCacheEntryBase* prev_texture{};
+		uintptr_t texture_sampler{};
+	};
+
+	virtual void ReleaseBindingSampler(uintptr_t sampler) = 0;
+	virtual uintptr_t CreateBindingSampler(const PostProcessingShaderConfiguration::RenderPass::Input& input_config) = 0;
+
+	struct RenderPassData final
+	{
+		uintptr_t shader{};
+
+		std::vector<InputBinding> inputs;
+
+		TextureCacheBase::TCacheEntryBase* output_texture{};
+		TargetSize output_size{};
+		float output_scale{};
+
+		bool enabled{};
+	};
+
+	virtual void ReleasePassNativeResources(RenderPassData& pass) = 0;
+
+
+	bool CreatePasses();
+	virtual bool RecompileShaders() = 0;
+	bool ResizeOutputTextures(const TargetSize& new_size);
+	void LinkPassOutputs();
+
+	PostProcessingShaderConfiguration* m_config;
+	uintptr_t m_uniform_buffer;
+
+	TargetSize m_internal_size;
+	int m_internal_layers = 0;
+
+	std::vector<RenderPassData> m_passes;
+	size_t m_last_pass_index = 0;
+	bool m_last_pass_uses_color_buffer = false;
+	bool m_ready = false;
+};
+
 class PostProcessor
 {
 public:
@@ -340,7 +414,7 @@ public:
 
 	// Should be implemented by the backends for backend specific code
 	virtual bool Initialize() = 0;
-	virtual void ReloadShaders() = 0;
+	void ReloadShaders();
 
 	// Used when post-processing on perspective->ortho switch.
 	virtual void PostProcessEFB(const TargetRectangle* src_rect) = 0;
@@ -349,16 +423,16 @@ public:
 	virtual void PostProcessEFBToTexture(uintptr_t dst_texture) = 0;
 
 	// Copy/resize src_texture to dst_texture (0 means backbuffer), using the resize/blit shader.
-	virtual void BlitScreen(const TargetRectangle& dst_rect, const TargetSize& dst_size, uintptr_t dst_texture,
+	void BlitScreen(const TargetRectangle& dst_rect, const TargetSize& dst_size, uintptr_t dst_texture,
 		const TargetRectangle& src_rect, const TargetSize& src_size, uintptr_t src_texture, uintptr_t src_depth_texture,
-		int src_layer, float gamma = 1.0f) = 0;
+		int src_layer, float gamma = 1.0f);
 
 	// Post-process the source image, if output_texture is null, it will be written back to src_texture,
 	// otherwise a temporary texture will be returned that is valid until the next call to PostProcess.
-	virtual void PostProcess(TargetRectangle* output_rect, TargetSize* output_size, uintptr_t* output_texture,
+	void PostProcess(TargetRectangle* output_rect, TargetSize* output_size, uintptr_t* output_texture,
 		const TargetRectangle& src_rect, const TargetSize& src_size, uintptr_t src_texture,
 		const TargetRectangle& src_depth_rect, const TargetSize& src_depth_size, uintptr_t src_depth_texture,
-		uintptr_t dst_texture = 0, const TargetRectangle* dst_rect = 0, const TargetSize* dst_size = 0) = 0;
+		uintptr_t dst_texture = 0, const TargetRectangle* dst_rect = 0, const TargetSize* dst_size = 0);
 
 	// Construct the options uniform buffer source for the specified config.
 	static void GetUniformBufferShaderSource(API_TYPE api, const PostProcessingShaderConfiguration* config, std::string& shader_source);
@@ -375,9 +449,28 @@ public:
 	// Scale a target rectangle to an output's scale
 	static TargetRectangle ScaleTargetRectangle(API_TYPE api, const TargetRectangle& src, float scale);
 
-
 protected:
-	enum PROJECTION_STATE: u32
+	virtual std::unique_ptr<PostProcessingShader> CreateShader(PostProcessingShaderConfiguration* config) = 0;
+	// NOTE: Can change current render target and viewport.
+	// If src_layer <0, copy all layers, otherwise, copy src_layer to layer 0.
+	virtual void CopyTexture(const TargetRectangle& dst_rect, uintptr_t dst_texture,
+		const TargetRectangle& src_rect, uintptr_t src_texture,
+		const TargetSize& src_size, int src_layer, bool is_depth_texture = false,
+		bool force_shader_copy = false) = 0;
+
+	void DrawStereoBuffers(const TargetRectangle& dst_rect, const TargetSize& dst_size, uintptr_t dst_texture,
+		const TargetRectangle& src_rect, const TargetSize& src_size, uintptr_t src_texture, uintptr_t src_depth_texture, float gamma);
+
+	void CreatePostProcessingShaders();
+	void CreateScalingShader();
+	void CreateStereoShader();
+	bool ReconfigurePostProcessingShaders(const TargetSize& size);
+	bool ReconfigureScalingShader(const TargetSize& size);
+	bool ReconfigureStereoShader(const TargetSize& size);
+	bool ResizeCopyBuffers(const TargetSize& size, int layers);
+	bool ResizeStereoBuffer(const TargetSize& size);
+
+	enum PROJECTION_STATE : u32
 	{
 		PROJECTION_STATE_INITIAL,
 		PROJECTION_STATE_PERSPECTIVE,
@@ -397,6 +490,7 @@ protected:
 	void ReloadPostProcessingShaderConfigs();
 	void ReloadScalingShaderConfig();
 	void ReloadStereoShaderConfig();
+	void DisablePostProcessor();
 
 	// Timer for determining our time value
 	Common::Timer m_timer;
@@ -416,13 +510,27 @@ protected:
 	// Stereo shader config
 	std::unique_ptr<PostProcessingShaderConfiguration> m_stereo_config;
 
+	// shaders
+	std::vector<std::unique_ptr<PostProcessingShader>> m_post_processing_shaders;
+	std::unique_ptr<PostProcessingShader> m_scaling_shader;
+	std::unique_ptr<PostProcessingShader> m_stereo_shader;
+
+	// buffers
+	TargetSize m_copy_size;
+	int m_copy_layers = 0;
+	TextureCacheBase::TCacheEntryBase* m_color_copy_texture = nullptr;
+	TextureCacheBase::TCacheEntryBase* m_depth_copy_texture = nullptr;
+
+	TargetSize m_stereo_buffer_size;
+	TextureCacheBase::TCacheEntryBase* m_stereo_buffer_texture = nullptr;
+
 	// Projection state for detecting when to apply post
 	PROJECTION_STATE m_projection_state = PROJECTION_STATE_INITIAL;
 
 	// Global post-processing enable state
 	bool m_active = false;
 	bool m_requires_depth_buffer = false;
-
+	API_TYPE m_APIType = API_TYPE::API_NONE;
 	// Uniform buffer data, double-buffered so we don't update if unnecessary
 	std::array<Constant, POST_PROCESSING_CONTANTS> m_current_constants;
 	std::array<Constant, POST_PROCESSING_CONTANTS> m_new_constants;

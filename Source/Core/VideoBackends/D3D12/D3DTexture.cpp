@@ -104,7 +104,7 @@ void ReplaceTexture2D(ID3D12Resource* texture12, const u8* buffer, DXGI_FORMAT f
 	{
 		D3D::command_list_mgr->ExecuteQueuedWork(true);
 		g_renderer->RestoreAPIState();
-		D3D12_RANGE write_range = {0, upload_size};
+		D3D12_RANGE write_range = { 0, upload_size };
 		upload_buffer->Unmap(0, &write_range);
 		upload_buffer->Release();
 
@@ -162,7 +162,7 @@ D3DTexture2D* D3DTexture2D::Create(unsigned int width, unsigned int height, u32 
 	);
 
 	D3D::SetDebugObjectName12(texture.Get(), "Texture created via D3DTexture2D::Create");
-	D3DTexture2D* ret = new D3DTexture2D(texture.Get(), bind, DXGI_FORMAT_UNKNOWN, DXGI_FORMAT_UNKNOWN, DXGI_FORMAT_UNKNOWN, false, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+	D3DTexture2D* ret = new D3DTexture2D(texture.Get(), bind, fmt, DXGI_FORMAT_UNKNOWN, DXGI_FORMAT_UNKNOWN, DXGI_FORMAT_UNKNOWN, false, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 
 	if (data)
 	{
@@ -265,9 +265,9 @@ void D3DTexture2D::RTVHeapRestartCallback(void* owner)
 	static_cast<D3DTexture2D*>(owner)->InitalizeRTV();
 }
 
-D3DTexture2D::D3DTexture2D(ID3D12Resource* texptr, u32 bind,
+D3DTexture2D::D3DTexture2D(ID3D12Resource* texptr, u32 bind, DXGI_FORMAT fmt,
 	DXGI_FORMAT srv_format, DXGI_FORMAT dsv_format, DXGI_FORMAT rtv_format, bool multisampled, D3D12_RESOURCE_STATES resource_state)
-	: m_tex(texptr), m_srv_format(srv_format), m_dsv_format(dsv_format), m_rtv_format(rtv_format), m_resource_state(resource_state), m_multisampled(multisampled), m_bind_falgs(bind)
+	: m_format(fmt), m_tex(texptr), m_srv_format(srv_format), m_dsv_format(dsv_format), m_rtv_format(rtv_format), m_resource_state(resource_state), m_multisampled(multisampled), m_bind_falgs(bind)
 {
 	if (m_bind_falgs & TEXTURE_BIND_FLAG_SHADER_RESOURCE)
 	{

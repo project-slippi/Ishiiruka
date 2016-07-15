@@ -43,9 +43,9 @@ namespace DX12
 // There may be multiple XFBs in GameCube RAM. This is the maximum number to
 // virtualize.
 
-struct XFBSource final: public XFBSourceBase
+struct XFBSource final : public XFBSourceBase
 {
-	XFBSource(D3DTexture2D* tex, int slices): m_tex(tex), m_depthtex(nullptr), m_slices(slices)
+	XFBSource(D3DTexture2D* tex, int slices) : m_tex(tex), m_depthtex(nullptr), m_slices(slices)
 	{}
 	~XFBSource()
 	{
@@ -60,7 +60,7 @@ struct XFBSource final: public XFBSourceBase
 	const int m_slices;
 };
 
-class FramebufferManager final: public FramebufferManagerBase
+class FramebufferManager final : public FramebufferManagerBase
 {
 public:
 	FramebufferManager();

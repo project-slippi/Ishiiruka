@@ -14,7 +14,7 @@
 namespace OGL
 {
 
-class TextureCache: public ::TextureCacheBase
+class TextureCache : public ::TextureCacheBase
 {
 public:
 	TextureCache();
@@ -24,7 +24,7 @@ public:
 	static void SetStage();
 
 private:
-	struct TCacheEntry: TextureCacheBase::TCacheEntryBase
+	struct TCacheEntry : TextureCacheBase::TCacheEntryBase
 	{
 		GLuint texture;
 		GLuint nrm_texture;
@@ -62,6 +62,10 @@ private:
 		};
 		void Bind(u32 stage, u32 last_texture) override;
 		bool Save(const std::string& filename, u32 level) override;
+		inline uintptr_t GetInternalObject() override
+		{
+			return static_cast<uintptr_t>(texture);
+		}
 	};
 
 	PC_TexFormat GetNativeTextureFormat(const s32 texformat, const TlutFormat tlutfmt, u32 width, u32 height);
