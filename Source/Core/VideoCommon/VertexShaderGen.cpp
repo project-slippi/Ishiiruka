@@ -224,7 +224,7 @@ inline void GenerateVertexShader(ShaderCode& out, const vertex_shader_uid_data& 
 	}
 	else if (api_type == API_D3D11)
 	{
-		out.Write("int posmtx = blend_indices.x * 255.0;\n");
+		out.Write("int posmtx = int(round(blend_indices.x * 255.0));\n");
 	}
 	else
 	{

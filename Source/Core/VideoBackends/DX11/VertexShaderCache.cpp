@@ -265,7 +265,11 @@ void VertexShaderCache::CompileVShader(const VertexShaderUid& uid, bool ongputhr
 	};
 
 	wunit->entrypoint = "main";
+#if defined(_DEBUG) || defined(DEBUGFAST)
+	wunit->flags = D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
+#else
 	wunit->flags = D3DCOMPILE_SKIP_VALIDATION | D3DCOMPILE_OPTIMIZATION_LEVEL3 | D3DCOMPILE_ENABLE_BACKWARDS_COMPATIBILITY;
+#endif
 	wunit->target = D3D::VertexShaderVersionString();
 	wunit->ResultHandler = [uid, entry](ShaderCompilerWorkUnit* wunit)
 	{

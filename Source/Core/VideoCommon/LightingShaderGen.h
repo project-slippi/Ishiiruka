@@ -47,14 +47,10 @@ inline void GenerateLightShader(ShaderCode& object,
 	int index,
 	int litchan_index,
 	const char* lightsName,
-	int coloralpha,
+	bool alpha,
 	bool forcephong = false)
 {
-	const char* swizzle = "xyzw";
-	if (coloralpha == 1)
-		swizzle = "xyz";
-	else if (coloralpha == 2)
-		swizzle = "w";
+	const char* swizzle = alpha ? "a" : "rgb";
 
 	object.Write("ldir = " LIGHT_POS".xyz - pos.xyz;\n",
 		LIGHT_POS_PARAMS(lightsName, index));
@@ -204,13 +200,13 @@ inline void GenerateLightingShaderCode(ShaderCode& object, u32 numColorChans, co
 		{
 			for (int i = 0; i < 8; ++i)
 				if (uid_data.light_mask & (1 << (i + 8 * j)))
-					GenerateLightShader(object, uid_data, i, j, lightsName, 1, forcephong);
+					GenerateLightShader(object, uid_data, i, j, lightsName, false, forcephong);
 		}
 		if (uid_data.enablelighting & (1 << (j + 2)))
 		{
 			for (int i = 0; i < 8; ++i)
 				if (uid_data.light_mask & (1 << (i + 8 * (j + 2))))
-					GenerateLightShader(object, uid_data, i, j + 2, lightsName, 2, forcephong);
+					GenerateLightShader(object, uid_data, i, j + 2, lightsName, true, forcephong);
 		}
 		if (use_integer_math && !forcephong)
 		{

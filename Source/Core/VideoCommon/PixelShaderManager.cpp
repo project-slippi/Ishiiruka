@@ -409,7 +409,7 @@ void PixelShaderManager::SetConstants()
 			{
 				if (s_materials_changed & (1 << i))
 				{
-					u32 data = *(xfmem.ambColor + i);
+					u32 data = xfmem.ambColor[i];
 					m_buffer.SetConstant4<float>(C_PMATERIALS + i,
 						float((data >> 24) & 0xFF),
 						float((data >> 16) & 0xFF),
@@ -422,7 +422,7 @@ void PixelShaderManager::SetConstants()
 			{
 				if (s_materials_changed & (1 << (i + 2)))
 				{
-					u32 data = *(xfmem.matColor + i);
+					u32 data = xfmem.matColor[i];
 					m_buffer.SetConstant4<float>(C_PMATERIALS + i + 2,
 						float((data >> 24) & 0xFF),
 						float((data >> 16) & 0xFF),

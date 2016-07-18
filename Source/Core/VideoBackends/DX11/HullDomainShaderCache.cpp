@@ -189,12 +189,20 @@ void HullDomainShaderCache::CompileHDShader(const TessellationShaderUid& uid, bo
 
 	wunit->codesize = (u32)code.BufferSize();
 	wunit->entrypoint = "HS_TFO";
+#if defined(_DEBUG) || defined(DEBUGFAST)
+	wunit->flags = D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
+#else
 	wunit->flags = D3DCOMPILE_SKIP_VALIDATION | D3DCOMPILE_SKIP_OPTIMIZATION;
+#endif
 	wunit->target = D3D::HullShaderVersionString();
 
 	wunitd->codesize = (u32)code.BufferSize();
 	wunitd->entrypoint = "DS_TFO";
+#if defined(_DEBUG) || defined(DEBUGFAST)
+	wunit->flags = D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
+#else
 	wunitd->flags = D3DCOMPILE_SKIP_VALIDATION | D3DCOMPILE_OPTIMIZATION_LEVEL3;
+#endif
 	wunitd->target = D3D::DomainShaderVersionString();
 	wunit->ResultHandler = [uid, entry](ShaderCompilerWorkUnit* wunit)
 	{

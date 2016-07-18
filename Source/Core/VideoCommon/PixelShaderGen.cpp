@@ -1404,7 +1404,7 @@ inline void WriteStage(ShaderCode& out, const pixel_shader_uid_data& uid_data, i
 		"rgba"[stage.tevksel_swap2d],
 		'\0' };
 
-	out.Write("tex_t = tex_ta[%i].%s;", n, texswap);
+	out.Write("tex_t = tex_ta[%i].%s;\n", n, texswap);
 
 	if (cc.UsedAsInput(TEVCOLORARG_KONST) || ac.UsedAsInput(TEVALPHAARG_KONST))
 	{
