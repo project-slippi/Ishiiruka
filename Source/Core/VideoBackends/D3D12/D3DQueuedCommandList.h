@@ -175,7 +175,7 @@ struct CopyTextureRegionArguments
 
 struct SetDescriptorHeapsArguments
 {
-	ID3D12DescriptorHeap** ppDescriptorHeap;
+	ID3D12DescriptorHeap*const* ppDescriptorHeap;
 	UINT NumDescriptorHeaps;
 };
 
@@ -472,7 +472,7 @@ public:
 
 	void STDMETHODCALLTYPE SetDescriptorHeaps(
 		_In_  UINT NumDescriptorHeaps,
-		_In_reads_(NumDescriptorHeaps)  ID3D12DescriptorHeap** pDescriptorHeaps
+		_In_reads_(NumDescriptorHeaps)  ID3D12DescriptorHeap*const* pDescriptorHeaps
 	);
 
 	void STDMETHODCALLTYPE SetComputeRootSignature(
