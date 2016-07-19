@@ -215,7 +215,6 @@ void VideoBackend::Shutdown()
 		return;
 	// VideoCommon
 	Fifo::Shutdown();
-	CommandProcessor::Shutdown();
 	GeometryShaderManager::Shutdown();
 	TessellationShaderManager::Shutdown();
 	VertexLoaderManager::Shutdown();

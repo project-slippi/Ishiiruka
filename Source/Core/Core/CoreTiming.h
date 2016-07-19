@@ -59,6 +59,7 @@ void RemoveEvent(int event_type);
 void RemoveAllEvents(int event_type);
 void Advance();
 void MoveEvents();
+void ProcessFifoWaitEvents();
 
 // Pretend that the main CPU has executed enough cycles to reach the next event.
 void Idle();

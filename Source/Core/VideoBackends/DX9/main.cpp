@@ -176,7 +176,6 @@ void VideoBackend::Shutdown()
 	// TODO: should be in Video_Cleanup
 	// VideoCommon
 	Fifo::Shutdown();
-	CommandProcessor::Shutdown();
 	VertexLoaderManager::Shutdown();
 
 	// internal interfaces
