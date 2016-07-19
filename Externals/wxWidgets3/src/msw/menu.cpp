@@ -556,6 +556,12 @@ bool wxMenu::DoInsertOrAppend(wxMenuItem *pItem, size_t pos)
                     mii.wID = id;
                 }
 
+                if ( flags & MF_GRAYED )
+                {
+                    mii.fMask |= MIIM_STATE;
+                    mii.fState = MFS_GRAYED;
+                }
+
                 if ( flags & MF_CHECKED )
                 {
                     mii.fMask |= MIIM_STATE;
@@ -626,7 +632,11 @@ bool wxMenu::DoInsertOrAppend(wxMenuItem *pItem, size_t pos)
                 {
                     wxMenuItem* item = node->GetData();
 
-                    if ( !item->IsOwnerDrawn())
+                    // Current item is already added to the list of items
+                    // but is not yet physically attached to the menu
+                    // so we have to skip setting it as an owner drawn.
+                    // It will be done later on when the item will be created.
+                    if ( !item->IsOwnerDrawn() && item != pItem )
                     {
                         item->SetOwnerDrawn(true);
                         SetOwnerDrawnMenuItem(GetHmenu(), position,
@@ -636,7 +646,12 @@ bool wxMenu::DoInsertOrAppend(wxMenuItem *pItem, size_t pos)
                     item->SetMarginWidth(m_maxBitmapWidth);
 
                     node = node->GetNext();
-                    position++;
+                    // Current item is already added to the list of items
+                    // but is not yet physically attached to the menu
+                    // so it cannot be counted while determining position
+                    // in the menu.
+                    if ( item != pItem )
+                        position++;
                 }
 
                 // set menu as ownerdrawn
@@ -738,10 +753,12 @@ wxMenuItem *wxMenu::DoRemove(wxMenuItem *item)
     // Update indices of radio groups.
     if ( m_radioData )
     {
-        bool inExistingGroup = m_radioData->UpdateOnRemoveItem(pos);
-
-        wxASSERT_MSG( !inExistingGroup || item->GetKind() == wxITEM_RADIO,
-                      wxT("Removing non radio button from radio group?") );
+        if ( m_radioData->UpdateOnRemoveItem(pos) )
+        {
+            wxASSERT_MSG( item->GetKind() == wxITEM_RADIO,
+                          wxT("Removing non radio button from radio group?") );
+        }
+        //else: item being removed is not in a radio group
     }
 
     // remove the item from the menu

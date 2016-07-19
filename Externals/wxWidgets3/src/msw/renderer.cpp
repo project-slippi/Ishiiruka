@@ -327,6 +327,8 @@ public:
                                     wxTitleBarButton button,
                                     int flags = 0);
 
+    virtual wxSize GetCheckBoxSize(wxWindow *win);
+
     virtual void DrawGauge(wxWindow* win,
                            wxDC& dc,
                            const wxRect& rect,
@@ -589,11 +591,11 @@ wxSize wxRendererMSW::GetCheckBoxSize(wxWindow * WXUNUSED(win))
                   ::GetSystemMetrics(SM_CYMENUCHECK));
 }
 
-int wxRendererMSW::GetHeaderButtonHeight(wxWindow * WXUNUSED(win))
+int wxRendererMSW::GetHeaderButtonHeight(wxWindow * win)
 {
     // some "reasonable" value returned in case of error, it doesn't really
     // correspond to anything but it's better than returning 0
-    static const int DEFAULT_HEIGHT = 20;
+    static const int DEFAULT_HEIGHT = wxWindow::FromDIP(20, win);
 
 
     // create a temporary header window just to get its geometry
@@ -603,6 +605,14 @@ int wxRendererMSW::GetHeaderButtonHeight(wxWindow * WXUNUSED(win))
         return DEFAULT_HEIGHT;
 
     wxON_BLOCK_EXIT1( ::DestroyWindow, hwndHeader );
+
+    // Set the font, even if it's the default one, before measuring the window.
+    wxFont font;
+    if ( win )
+        font = win->GetFont();
+    if ( !font.IsOk() )
+        wxSystemSettings::GetFont(wxSYS_DEFAULT_GUI_FONT);
+    ::SendMessage(hwndHeader, WM_SETFONT, (WPARAM)GetHfontOf(font), 0);
 
     // initialize the struct filled with the values by Header_Layout()
     RECT parentRect = { 0, 0, 100, 100 };
@@ -894,6 +904,23 @@ wxRendererXP::DrawTitleBarBitmap(wxWindow *win,
     DoDrawButtonLike(hTheme, part, dc, rect, flags);
 }
 
+wxSize wxRendererXP::GetCheckBoxSize(wxWindow* win)
+{
+    wxUxThemeHandle hTheme(win, L"BUTTON");
+    if (hTheme)
+    {
+        wxUxThemeEngine* const te = wxUxThemeEngine::Get();
+
+        if (te && te->IsThemePartDefined(hTheme, BP_CHECKBOX, 0))
+        {
+            SIZE checkSize;
+            if (te->GetThemePartSize(hTheme, NULL, BP_CHECKBOX, CBS_UNCHECKEDNORMAL, NULL, TS_DRAW, &checkSize) == S_OK)
+                return wxSize(checkSize.cx, checkSize.cy);
+        }
+    }
+    return m_rendererNative.GetCheckBoxSize(win);
+}
+
 void
 wxRendererXP::DrawCollapseButton(wxWindow *win,
                                  wxDC& dc,
@@ -914,7 +941,7 @@ wxRendererXP::DrawCollapseButton(wxWindow *win,
     if ( flags & wxCONTROL_EXPANDED )
         state += 3;
 
-    if ( te->IsThemePartDefined(hTheme, TDLG_EXPANDOBUTTON, state) )
+    if ( te->IsThemePartDefined(hTheme, TDLG_EXPANDOBUTTON, 0) )
     {
         if (flags & wxCONTROL_EXPANDED)
             flags |= wxCONTROL_CHECKED;
@@ -945,7 +972,7 @@ wxSize wxRendererXP::GetCollapseButtonSize(wxWindow *win, wxDC& dc)
 
     // EXPANDOBUTTON scales ugly if not using the correct size, get size from theme
 
-    if ( te->IsThemePartDefined(hTheme, TDLG_EXPANDOBUTTON, TDLGEBS_NORMAL) )
+    if ( te->IsThemePartDefined(hTheme, TDLG_EXPANDOBUTTON, 0) )
     {
         SIZE s;
         te->GetThemePartSize(hTheme,
@@ -973,7 +1000,7 @@ wxRendererXP::DrawItemSelectionRect(wxWindow *win,
     const int itemState = GetListItemState(flags);
 
     wxUxThemeEngine* const te = wxUxThemeEngine::Get();
-    if ( te->IsThemePartDefined(hTheme, LVP_LISTITEM, itemState) )
+    if ( te->IsThemePartDefined(hTheme, LVP_LISTITEM, 0) )
     {
         RECT rc;
         wxCopyRectToRECT(rect, rc);
@@ -1002,7 +1029,7 @@ void wxRendererXP::DrawItemText(wxWindow* win,
 
     wxUxThemeEngine* te = wxUxThemeEngine::Get();
     if ( te->DrawThemeTextEx && // Might be not available if we're under XP
-            te->IsThemePartDefined(hTheme, LVP_LISTITEM, itemState) )
+            te->IsThemePartDefined(hTheme, LVP_LISTITEM, 0) )
     {
         RECT rc;
         wxCopyRectToRECT(rect, rc);
@@ -1011,10 +1038,20 @@ void wxRendererXP::DrawItemText(wxWindow* win,
         textOpts.dwSize = sizeof(textOpts);
         textOpts.dwFlags = DTT_STATEID;
         textOpts.iStateId = itemState;
-        if (flags & wxCONTROL_DISABLED)
+
+        wxColour textColour = dc.GetTextForeground();
+        if (flags & wxCONTROL_SELECTED)
         {
+            textColour = wxSystemSettings::GetColour(wxSYS_COLOUR_LISTBOXTEXT);
+        }
+        else if (flags & wxCONTROL_DISABLED)
+        {
+            textColour = wxSystemSettings::GetColour(wxSYS_COLOUR_GRAYTEXT);
+        }
+
+        if (textColour.IsOk()) {
             textOpts.dwFlags |= DTT_TEXTCOLOR;
-            textOpts.crText = wxSystemSettings::GetColour(wxSYS_COLOUR_GRAYTEXT).GetPixel();
+            textOpts.crText = textColour.GetPixel();
         }
 
         DWORD textFlags = DT_NOPREFIX;

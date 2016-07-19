@@ -49,7 +49,6 @@ u32 Timer::GetTimeMs()
 }
 
 
-
 u64 Timer::GetTimeUs()
 {
 #ifdef _WIN32
@@ -73,8 +72,7 @@ u64 Timer::GetTimeUs()
 // --------------------------------------------
 
 // Set initial values for the class
-Timer::Timer()
-	: m_LastTime(0), m_StartTime(0), m_Running(false)
+Timer::Timer() : m_LastTime(0), m_StartTime(0), m_Running(false)
 {
 	Update();
 }
@@ -98,7 +96,7 @@ void Timer::Stop()
 void Timer::Update()
 {
 	m_LastTime = GetTimeMs();
-	//TODO(ector) - QPF
+	// TODO(ector) - QPF
 }
 
 // -------------------------------------
@@ -123,10 +121,12 @@ u64 Timer::GetTimeElapsed()
 {
 	// If we have not started yet, return 1 (because then I don't
 	// have to change the FPS calculation in CoreRerecording.cpp .
-	if (m_StartTime == 0) return 1;
+	if (m_StartTime == 0)
+		return 1;
 
 	// Return the final timer time if the timer is stopped
-	if (!m_Running) return (m_LastTime - m_StartTime);
+	if (!m_Running)
+		return (m_LastTime - m_StartTime);
 
 	return (GetTimeMs() - m_StartTime);
 }
@@ -152,8 +152,8 @@ std::string Timer::GetTimeElapsedFormatted() const
 	// Hours
 	u32 Hours = Minutes / 60;
 
-	std::string TmpStr = StringFromFormat("%02i:%02i:%02i:%03" PRIu64,
-		Hours, Minutes % 60, Seconds % 60, Milliseconds % 1000);
+	std::string TmpStr = StringFromFormat("%02i:%02i:%02i:%03" PRIu64, Hours, Minutes % 60,
+		Seconds % 60, Milliseconds % 1000);
 	return TmpStr;
 }
 
@@ -177,18 +177,16 @@ u64 Timer::GetTimeSinceJan1970()
 {
 	time_t ltime;
 	time(&ltime);
-	return((u64)ltime);
+	return ((u64)ltime);
 }
 
 u64 Timer::GetLocalTimeSinceJan1970()
 {
 	time_t sysTime, tzDiff, tzDST;
-	struct tm * gmTime;
-
 	time(&sysTime);
+	tm* gmTime = localtime(&sysTime);
 
 	// Account for DST where needed
-	gmTime = localtime(&sysTime);
 	if (gmTime->tm_isdst == 1)
 		tzDST = 3600;
 	else
@@ -198,7 +196,7 @@ u64 Timer::GetLocalTimeSinceJan1970()
 	gmTime = gmtime(&sysTime);
 	tzDiff = sysTime - mktime(gmTime);
 
-	return (u64)(sysTime + tzDiff + tzDST);
+	return static_cast<u64>(sysTime + tzDiff + tzDST);
 }
 
 // Return the current time formatted as Minutes:Seconds:Milliseconds
@@ -208,7 +206,7 @@ std::string Timer::GetTimeFormatted()
 	time_t sysTime;
 	time(&sysTime);
 
-	struct tm * gmTime = localtime(&sysTime);
+	struct tm* gmTime = localtime(&sysTime);
 
 	char tmp[13];
 	strftime(tmp, 6, "%M:%S", gmTime);
@@ -277,4 +275,4 @@ std::string Timer::GetDateTimeFormatted(double time)
 	return tmp;
 }
 
-} // Namespace Common
+}  // Namespace Common

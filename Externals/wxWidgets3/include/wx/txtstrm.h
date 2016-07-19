@@ -87,7 +87,16 @@ protected:
 
 #if wxUSE_UNICODE
     wxMBConv *m_conv;
-#endif
+
+    // The second half of a surrogate character when using UTF-16 for wchar_t:
+    // we can't return it immediately from GetChar() when we read a Unicode
+    // code point outside of the BMP, but we can't keep it in m_lastBytes
+    // neither because it can't separately decoded, so we have a separate 1
+    // wchar_t buffer just for this case.
+#if SIZEOF_WCHAR_T == 2
+    wchar_t m_lastWChar;
+#endif // SIZEOF_WCHAR_T == 2
+#endif // wxUSE_UNICODE
 
     bool   EatEOL(const wxChar &c);
     void   UngetLast(); // should be used instead of wxInputStream::Ungetch() because of Unicode issues
@@ -98,13 +107,13 @@ protected:
     wxDECLARE_NO_COPY_CLASS(wxTextInputStream);
 };
 
-typedef enum
+enum wxEOL
 {
   wxEOL_NATIVE,
   wxEOL_UNIX,
   wxEOL_MAC,
   wxEOL_DOS
-} wxEOL;
+};
 
 class WXDLLIMPEXP_BASE wxTextOutputStream
 {
@@ -165,7 +174,13 @@ protected:
 
 #if wxUSE_UNICODE
     wxMBConv *m_conv;
-#endif
+
+#if SIZEOF_WCHAR_T == 2
+    // The first half of a surrogate character if one was passed to PutChar()
+    // and couldn't be output when it was called the last time.
+    wchar_t m_lastWChar;
+#endif // SIZEOF_WCHAR_T == 2
+#endif // wxUSE_UNICODE
 
     wxDECLARE_NO_COPY_CLASS(wxTextOutputStream);
 };

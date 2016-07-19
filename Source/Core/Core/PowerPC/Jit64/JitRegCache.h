@@ -53,15 +53,11 @@ protected:
 
 public:
 	RegCache();
-	virtual ~RegCache()
-	{}
+	virtual ~RegCache() {}
 	void Start();
 
 	void DiscardRegContentsIfCached(size_t preg);
-	void SetEmitter(Gen::XEmitter* emitter)
-	{
-		emit = emitter;
-	}
+	void SetEmitter(Gen::XEmitter* emitter) { emit = emitter; }
 	void FlushR(Gen::X64Reg reg);
 	void FlushR(Gen::X64Reg reg, Gen::X64Reg reg2)
 	{
@@ -83,10 +79,7 @@ public:
 	}
 
 	void Flush(FlushMode mode = FLUSH_ALL, BitSet32 regsToFlush = BitSet32::AllTrue(32));
-	void Flush(PPCAnalyst::CodeOp* op)
-	{
-		Flush();
-	}
+	void Flush(PPCAnalyst::CodeOp* op) { Flush(); }
 	int SanityCheck() const;
 	void KillImmediate(size_t preg, bool doLoad, bool makeDirty);
 
@@ -97,10 +90,7 @@ public:
 	virtual void StoreRegister(size_t preg, const Gen::OpArg& newLoc) = 0;
 	virtual void LoadRegister(size_t preg, Gen::X64Reg newLoc) = 0;
 
-	const Gen::OpArg& R(size_t preg) const
-	{
-		return regs[preg].location;
-	}
+	const Gen::OpArg& R(size_t preg) const { return regs[preg].location; }
 	Gen::X64Reg RX(size_t preg) const
 	{
 		if (IsBound(preg))
@@ -158,14 +148,8 @@ public:
 	void UnlockAll();
 	void UnlockAllX();
 
-	bool IsFreeX(size_t xreg) const
-	{
-		return xregs[xreg].free && !xregs[xreg].locked;
-	}
-	bool IsBound(size_t preg) const
-	{
-		return regs[preg].away && regs[preg].location.IsSimpleReg();
-	}
+	bool IsFreeX(size_t xreg) const { return xregs[xreg].free && !xregs[xreg].locked; }
+	bool IsBound(size_t preg) const { return regs[preg].away && regs[preg].location.IsSimpleReg(); }
 	Gen::X64Reg GetFreeXReg();
 	int NumFreeRegisters();
 };

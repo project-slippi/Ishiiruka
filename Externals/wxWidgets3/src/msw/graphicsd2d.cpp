@@ -1028,10 +1028,14 @@ private :
 
 wxD2DPathData::wxD2DPathData(wxGraphicsRenderer* renderer, ID2D1Factory* d2dFactory) :
     wxGraphicsPathData(renderer), m_direct2dfactory(d2dFactory),
+    m_currentPoint(D2D1::Point2F(0.0f, 0.0f)),
     m_transformMatrix(D2D1::Matrix3x2F::Identity()),
-    m_figureOpened(false), m_geometryWritable(false)
+    m_figureOpened(false), m_geometryWritable(true)
 {
     m_direct2dfactory->CreatePathGeometry(&m_pathGeometry);
+    // To properly initialize path geometry there is also
+    // necessary to open at least once its geometry sink.
+    m_pathGeometry->Open(&m_geometrySink);
 }
 
 wxD2DPathData::~wxD2DPathData()
@@ -1206,25 +1210,34 @@ void wxD2DPathData::AddCircle(wxDouble x, wxDouble y, wxDouble r)
 // appends an ellipse
 void wxD2DPathData::AddEllipse(wxDouble x, wxDouble y, wxDouble w, wxDouble h)
 {
-    Flush();
+    if ( w <= 0.0 || h <= 0.0 )
+      return;
 
-    wxCOMPtr<ID2D1EllipseGeometry> ellipseGeometry;
-    wxCOMPtr<ID2D1PathGeometry> newPathGeometry;
+    // Calculate radii
+    const wxDouble rx = w / 2.0;
+    const wxDouble ry = h / 2.0;
 
-    D2D1_ELLIPSE ellipse = { { (FLOAT)(x + w / 2), (FLOAT)(y + h / 2) }, (FLOAT)(w / 2), (FLOAT)(h / 2) };
+    MoveToPoint(x, y + ry);
 
-    m_direct2dfactory->CreateEllipseGeometry(ellipse, &ellipseGeometry);
+    D2D1_ARC_SEGMENT arcSegmentUpper =
+    {
+        D2D1::Point2((FLOAT)(x + w), (FLOAT)(y + ry)), // end point
+        D2D1::SizeF((FLOAT)(rx), (FLOAT)(ry)),         // size
+        0.0f,
+        D2D1_SWEEP_DIRECTION_CLOCKWISE,
+        D2D1_ARC_SIZE_SMALL
+    };
+    m_geometrySink->AddArc(arcSegmentUpper);
 
-    m_direct2dfactory->CreatePathGeometry(&newPathGeometry);
-
-    m_geometrySink = NULL;
-    newPathGeometry->Open(&m_geometrySink);
-
-    m_geometryWritable = true;
-
-    ellipseGeometry->CombineWithGeometry(m_pathGeometry, D2D1_COMBINE_MODE_UNION, NULL, m_geometrySink);
-
-    m_pathGeometry = newPathGeometry;
+    D2D1_ARC_SEGMENT arcSegmentLower =
+    {
+        D2D1::Point2((FLOAT)(x), (FLOAT)(y + ry)),     // end point
+        D2D1::SizeF((FLOAT)(rx), (FLOAT)(ry)),         // size
+        0.0f,
+        D2D1_SWEEP_DIRECTION_CLOCKWISE,
+        D2D1_ARC_SIZE_SMALL
+    };
+    m_geometrySink->AddArc(arcSegmentLower);
 }
 
 // gets the last point of the current path, (0,0) if not yet set
@@ -2078,6 +2091,7 @@ wxD2DFontData::wxD2DFontData(wxGraphicsRenderer* renderer, ID2D1Factory* d2dFact
 
     wxCOMPtr<IDWriteGdiInterop> gdiInterop;
     hr = wxDWriteFactory()->GetGdiInterop(&gdiInterop);
+    wxCHECK_HRESULT_RET(hr);
 
     LOGFONTW logfont;
     GetObjectW(font.GetHFONT(), sizeof(logfont), &logfont);
@@ -2092,6 +2106,7 @@ wxD2DFontData::wxD2DFontData(wxGraphicsRenderer* renderer, ID2D1Factory* d2dFact
     }
 
     hr = gdiInterop->CreateFontFromLOGFONT(&logfont, &m_font);
+    wxCHECK_HRESULT_RET(hr);
 
     wxCOMPtr<IDWriteFontFamily> fontFamily;
     m_font->GetFontFamily(&fontFamily);
@@ -2119,6 +2134,8 @@ wxD2DFontData::wxD2DFontData(wxGraphicsRenderer* renderer, ID2D1Factory* d2dFact
         &m_textFormat);
 
     delete[] name;
+
+    wxCHECK_HRESULT_RET(hr);
 }
 
 wxCOMPtr<IDWriteTextLayout> wxD2DFontData::CreateTextLayout(const wxString& text) const
@@ -2137,6 +2154,7 @@ wxCOMPtr<IDWriteTextLayout> wxD2DFontData::CreateTextLayout(const wxString& text
         MAX_WIDTH,
         MAX_HEIGHT,
         &textLayout);
+    wxCHECK2_HRESULT_RET(hr, wxCOMPtr<IDWriteTextLayout>(NULL));
 
     DWRITE_TEXT_RANGE textRange = { 0, (UINT32) text.length() };
 
@@ -2221,6 +2239,7 @@ public:
     }
 };
 
+#if wxUSE_IMAGE
 class wxD2DImageRenderTargetResourceHolder : public wxD2DRenderTargetResourceHolder
 {
 public:
@@ -2255,6 +2274,56 @@ protected:
             &m_wicBitmap);
         wxCHECK_HRESULT_RET(hr);
 
+        // Copy contents of source image to the WIC bitmap.
+        const int width = m_resultImage->GetWidth();
+        const int height = m_resultImage->GetHeight();
+        WICRect rcLock = { 0, 0, width, height };
+        IWICBitmapLock *pLock = NULL;
+        hr = m_wicBitmap->Lock(&rcLock, WICBitmapLockWrite, &pLock);
+        wxCHECK_HRESULT_RET(hr);
+
+        UINT rowStride = 0;
+        hr = pLock->GetStride(&rowStride);
+        if ( FAILED(hr) )
+        {
+            pLock->Release();
+            wxFAILED_HRESULT_MSG(hr);
+            return;
+        }
+
+        UINT bufferSize = 0;
+        BYTE *pBmpBuffer = NULL;
+        hr = pLock->GetDataPointer(&bufferSize, &pBmpBuffer);
+        if ( FAILED(hr) )
+        {
+            pLock->Release();
+            wxFAILED_HRESULT_MSG(hr);
+            return;
+        }
+
+        const unsigned char *imgRGB = m_resultImage->GetData();    // source RGB buffer
+        const unsigned char *imgAlpha = m_resultImage->GetAlpha(); // source alpha buffer
+        for( int y = 0; y < height; y++ )
+        {
+            BYTE *pPixByte = pBmpBuffer;
+            for ( int x = 0; x < width; x++ )
+            {
+                unsigned char r = *imgRGB++;
+                unsigned char g = *imgRGB++;
+                unsigned char b = *imgRGB++;
+                unsigned char a = imgAlpha ? *imgAlpha++ : 255;
+                // Premultiply RGB values
+                *pPixByte++ = (b * a + 127) / 255;
+                *pPixByte++ = (g * a + 127) / 255;
+                *pPixByte++ = (r * a + 127) / 255;
+                *pPixByte++ = a;
+            }
+
+            pBmpBuffer += rowStride;
+        }
+
+        pLock->Release();
+
         // Create the render target
         hr = m_factory->CreateWicBitmapRenderTarget(
             m_wicBitmap,
@@ -2268,26 +2337,72 @@ protected:
 private:
     void FlushRenderTargetToImage()
     {
-        int width = m_resultImage->GetWidth();
-        int height = m_resultImage->GetHeight();
-        int bufferSize = 4 * width * height;
+        const int width = m_resultImage->GetWidth();
+        const int height = m_resultImage->GetHeight();
 
-        BYTE* buffer = new BYTE[bufferSize];
-        m_wicBitmap->CopyPixels(NULL, 4 * width, bufferSize, buffer);
-        unsigned char* dest = m_resultImage->GetData();
+        WICRect rcLock = { 0, 0, width, height };
+        IWICBitmapLock *pLock = NULL;
+        HRESULT hr = m_wicBitmap->Lock(&rcLock, WICBitmapLockRead, &pLock);
+        wxCHECK_HRESULT_RET(hr);
 
-        int k = 0;
-        while (k < width * height)
+        UINT rowStride = 0;
+        hr = pLock->GetStride(&rowStride);
+        if ( FAILED(hr) )
         {
-            wxPBGRAColor color = wxPBGRAColor(buffer + k * 4);
-            dest[k * 3 + 0] = color.r;
-            dest[k * 3 + 1] = color.g;
-            dest[k * 3 + 2] = color.b;
-            ++k;
+            pLock->Release();
+            wxFAILED_HRESULT_MSG(hr);
+            return;
         }
 
-        delete[] buffer;
-    }
+        UINT bufferSize = 0;
+        BYTE *pBmpBuffer = NULL;
+        hr = pLock->GetDataPointer(&bufferSize, &pBmpBuffer);
+        if ( FAILED(hr) )
+        {
+            pLock->Release();
+            wxFAILED_HRESULT_MSG(hr);
+            return;
+        }
+
+        WICPixelFormatGUID pixelFormat;
+        hr = pLock->GetPixelFormat(&pixelFormat);
+        if ( FAILED(hr) )
+        {
+            pLock->Release();
+            wxFAILED_HRESULT_MSG(hr);
+            return;
+        }
+        wxASSERT_MSG( pixelFormat == GUID_WICPixelFormat32bppPBGRA ||
+                  pixelFormat == GUID_WICPixelFormat32bppBGR,
+                  wxS("Unsupported pixel format") );
+
+        // Only premultiplied ARGB bitmaps are supported.
+        const bool hasAlpha = pixelFormat == GUID_WICPixelFormat32bppPBGRA;
+
+        unsigned char* destRGB = m_resultImage->GetData();
+        unsigned char* destAlpha = m_resultImage->GetAlpha();
+        for( int y = 0; y < height; y++ )
+        {
+            BYTE *pPixByte = pBmpBuffer;
+            for ( int x = 0; x < width; x++ )
+            {
+                wxPBGRAColor color = wxPBGRAColor(pPixByte);
+                unsigned char a =  hasAlpha ? color.a : 255;
+                // Undo premultiplication for ARGB bitmap
+                *destRGB++ = (a > 0 && a < 255) ? ( color.r * 255 ) / a : color.r;
+                *destRGB++ = (a > 0 && a < 255) ? ( color.g * 255 ) / a : color.g;
+                *destRGB++ = (a > 0 && a < 255) ? ( color.b * 255 ) / a : color.b;
+                if ( destAlpha )
+                    *destAlpha++ = a;
+
+                pPixByte += 4;
+            }
+
+            pBmpBuffer += rowStride;
+        }
+
+        pLock->Release();
+   }
 
 private:
     wxImage* m_resultImage;
@@ -2295,6 +2410,7 @@ private:
 
     ID2D1Factory* m_factory;
 };
+#endif // wxUSE_IMAGE
 
 class wxD2DHwndRenderTargetResourceHolder : public wxD2DRenderTargetResourceHolder
 {
@@ -2688,7 +2804,9 @@ public:
 
     wxD2DContext(wxGraphicsRenderer* renderer, ID2D1Factory* direct2dFactory, HDC hdc, const wxSize& dcSize);
 
+#if wxUSE_IMAGE
     wxD2DContext(wxGraphicsRenderer* renderer, ID2D1Factory* direct2dFactory, wxImage& image);
+#endif // wxUSE_IMAGE
 
     wxD2DContext(wxGraphicsRenderer* renderer, ID2D1Factory* direct2dFactory, void* nativeContext);
 
@@ -2837,12 +2955,14 @@ wxD2DContext::wxD2DContext(wxGraphicsRenderer* renderer, ID2D1Factory* direct2dF
     Init();
 }
 
+#if wxUSE_IMAGE
 wxD2DContext::wxD2DContext(wxGraphicsRenderer* renderer, ID2D1Factory* direct2dFactory, wxImage& image) :
     wxGraphicsContext(renderer), m_direct2dFactory(direct2dFactory),
     m_renderTargetHolder(new wxD2DImageRenderTargetResourceHolder(&image, direct2dFactory))
 {
     Init();
 }
+#endif // wxUSE_IMAGE
 
 wxD2DContext::wxD2DContext(wxGraphicsRenderer* renderer, ID2D1Factory* direct2dFactory, void* nativeContext) :
     wxGraphicsContext(renderer), m_direct2dFactory(direct2dFactory)
@@ -3235,9 +3355,16 @@ void wxD2DContext::SetPen(const wxGraphicsPen& pen)
 void wxD2DContext::AdjustRenderTargetSize()
 {
     m_renderTargetHolder->Resize();
+
+    // Currently GetSize() can only be called when using MSVC because gcc
+    // doesn't handle returning aggregates by value as done by D2D libraries,
+    // see https://gcc.gnu.org/bugzilla/show_bug.cgi?id=64384. Not updating the
+    // size is not great, but it's better than crashing.
+#ifdef __VISUALC__
     D2D1_SIZE_F renderTargetSize = m_renderTargetHolder->GetD2DResource()->GetSize();
     m_width = renderTargetSize.width;
     m_height =  renderTargetSize.height;
+#endif // __VISUALC__
 }
 
 void wxD2DContext::ReleaseDeviceDependentResources()
@@ -3340,7 +3467,7 @@ void wxD2DContext::Flush()
 {
     HRESULT result = m_renderTargetHolder->Flush();
 
-    if (result == D2DERR_RECREATE_TARGET)
+    if (result == (HRESULT)D2DERR_RECREATE_TARGET)
     {
         ReleaseDeviceDependentResources();
     }
@@ -3471,7 +3598,9 @@ wxD2DRenderer::wxD2DRenderer()
     result = D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, &m_direct2dFactory);
 
     if (FAILED(result))
+    {
         wxFAIL_MSG("Could not create Direct2D Factory.");
+    }
 }
 
 wxD2DRenderer::~wxD2DRenderer()
@@ -3739,7 +3868,10 @@ public:
 
     virtual bool OnInit() wxOVERRIDE
     {
-        return true;
+        HRESULT hr = ::CoInitializeEx(NULL, COINIT_APARTMENTTHREADED);
+        // RPC_E_CHANGED_MODE is not considered as an error
+        // - see remarks for wxOleInitialize().
+        return SUCCEEDED(hr) || hr == RPC_E_CHANGED_MODE;
     }
 
     virtual void OnExit() wxOVERRIDE
@@ -3761,6 +3893,8 @@ public:
             delete gs_D2DRenderer;
             gs_D2DRenderer = NULL;
         }
+
+        ::CoUninitialize();
     }
 
 private:

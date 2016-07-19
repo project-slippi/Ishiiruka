@@ -98,9 +98,6 @@ OSStatus wxMacDrawCGImage(
                   const CGRect *  inBounds,
                   CGImageRef      inImage)
 {
-#if wxOSX_USE_CARBON
-    return HIViewDrawCGImage( inContext, inBounds, inImage );
-#else
     CGContextSaveGState(inContext);
     CGContextTranslateCTM(inContext, inBounds->origin.x, inBounds->origin.y + inBounds->size.height);
     CGRect r = *inBounds;
@@ -109,7 +106,6 @@ OSStatus wxMacDrawCGImage(
     CGContextDrawImage(inContext, r, inImage );
     CGContextRestoreGState(inContext);
     return noErr;
-#endif
 }
 
 CGColorRef wxMacCreateCGColor( const wxColour& col )
@@ -1330,10 +1326,6 @@ class WXDLLEXPORT wxMacCoreGraphicsContext : public wxGraphicsContext
 public:
     wxMacCoreGraphicsContext( wxGraphicsRenderer* renderer, CGContextRef cgcontext, wxDouble width = 0, wxDouble height = 0 );
 
-#if wxOSX_USE_CARBON
-    wxMacCoreGraphicsContext( wxGraphicsRenderer* renderer, WindowRef window );
-#endif
-
     wxMacCoreGraphicsContext( wxGraphicsRenderer* renderer, wxWindow* window );
 
     wxMacCoreGraphicsContext( wxGraphicsRenderer* renderer);
@@ -1459,11 +1451,7 @@ private:
     virtual void DoDrawRotatedText( const wxString &str, wxDouble x, wxDouble y, wxDouble angle ) wxOVERRIDE;
 
     CGContextRef m_cgContext;
-#if wxOSX_USE_CARBON
-    WindowRef m_windowRef;
-#else
     WXWidget m_view;
-#endif
     bool m_contextSynthesized;
     CGAffineTransform m_windowTransform;
     bool m_invisible;
@@ -1524,9 +1512,6 @@ void wxMacCoreGraphicsContext::Init()
     m_contextSynthesized = false;
     m_width = 0;
     m_height = 0;
-#if wxOSX_USE_CARBON
-    m_windowRef = NULL;
-#endif
 #if wxOSX_USE_COCOA_OR_IPHONE
     m_view = NULL;
 #endif
@@ -1543,20 +1528,11 @@ wxMacCoreGraphicsContext::wxMacCoreGraphicsContext( wxGraphicsRenderer* renderer
     m_height = height;
 }
 
-#if wxOSX_USE_CARBON
-wxMacCoreGraphicsContext::wxMacCoreGraphicsContext( wxGraphicsRenderer* renderer, WindowRef window ): wxGraphicsContext(renderer)
-{
-    Init();
-    m_windowRef = window;
-    m_enableOffset = true;
-}
-#endif
-
 wxMacCoreGraphicsContext::wxMacCoreGraphicsContext( wxGraphicsRenderer* renderer, wxWindow* window ): wxGraphicsContext(renderer)
 {
     Init();
 
-    m_enableOffset = true;
+    m_enableOffset = window->GetContentScaleFactor() <= 1;
     wxSize sz = window->GetSize();
     m_width = sz.x;
     m_height = sz.y;
@@ -1654,13 +1630,6 @@ bool wxMacCoreGraphicsContext::EnsureIsValid()
         if ( m_cgContext == NULL )
         {
             m_invisible = true;
-        }
-#endif
-#if wxOSX_USE_CARBON
-        OSStatus status = QDBeginCGContext( GetWindowPort( m_windowRef ) , &m_cgContext );
-        if ( status != noErr )
-        {
-            wxFAIL_MSG("Cannot nest wxDCs on the same window");
         }
 #endif
         if ( m_cgContext )
@@ -2114,9 +2083,6 @@ void wxMacCoreGraphicsContext::SetNativeContext( CGContextRef cg )
         CGContextRestoreGState( m_cgContext );
         if ( m_contextSynthesized )
         {
-#if wxOSX_USE_CARBON
-            QDEndCGContext( GetWindowPort( m_windowRef ) , &m_cgContext);
-#endif
 #if wxOSX_USE_COCOA
             wxOSXUnlockFocus(m_view);
 #endif
@@ -2226,23 +2192,11 @@ void wxMacCoreGraphicsContext::DrawIcon( const wxIcon &icon, wxDouble x, wxDoubl
     if (m_composition == wxCOMPOSITION_DEST)
         return;
 
-#if wxOSX_USE_CARBON
-    {
-        CGContextSaveGState( m_cgContext );
-        CGContextTranslateCTM( m_cgContext,(CGFloat) x ,(CGFloat) (y + h) );
-        CGContextScaleCTM( m_cgContext, 1, -1 );
-        CGRect r = CGRectMake( (CGFloat) 0.0 , (CGFloat) 0.0 , (CGFloat) w , (CGFloat) h );
-        PlotIconRefInContext( m_cgContext , &r , kAlignNone , kTransformNone ,
-                             NULL , kPlotIconRefNormalFlags , icon.GetHICON() );
-        CGContextRestoreGState( m_cgContext );
-    }
-#endif
-    
 #if wxOSX_USE_COCOA
     {
         CGRect r = CGRectMake( (CGFloat) x , (CGFloat) y , (CGFloat) w , (CGFloat) h );
         const WX_NSImage nsImage = icon.GetNSImage();
-    
+
         CGImageRef cgImage = wxOSXGetCGImageFromNSImage( nsImage , &r, m_cgContext );
         wxMacDrawCGImage( m_cgContext, &r, cgImage);
     }
@@ -2321,8 +2275,8 @@ void wxMacCoreGraphicsContext::DoDrawText( const wxString &str, wxDouble x, wxDo
     if ( fref->GetStrikethrough() )
     {
         CGFloat width = CTLineGetTypographicBounds(line, NULL, NULL, NULL);
-        CGFloat height = CTFontGetSize( font );
-        CGPoint points[] = { {0.0, height / 2},  {width, height / 2} };
+        CGFloat height = CTFontGetXHeight( font );
+        CGPoint points[] = { {0.0, height * 0.6f},  {width, height * 0.6f} };
         CGContextSetStrokeColorWithColor(m_cgContext, col);
         CGContextSetShouldAntialias(m_cgContext, false);
         CGContextSetLineWidth(m_cgContext, 1.0);
@@ -2668,7 +2622,7 @@ wxGraphicsContext * wxMacCoreGraphicsRenderer::CreateContext( const wxWindowDC& 
         // this is the case for all wxWindowDCs except wxPaintDC
         wxMacCoreGraphicsContext *context = 
             new wxMacCoreGraphicsContext( this, cgctx, (wxDouble) w, (wxDouble) h );
-        context->EnableOffset(true);
+        context->EnableOffset(dc.GetContentScaleFactor() < 2);
         return context;
     }
     return NULL;
@@ -2685,7 +2639,7 @@ wxGraphicsContext * wxMacCoreGraphicsRenderer::CreateContext( const wxMemoryDC& 
         mem_impl->GetSize( &w, &h );
         wxMacCoreGraphicsContext* context = new wxMacCoreGraphicsContext( this,
             (CGContextRef)(mem_impl->GetGraphicsContext()->GetNativeContext()), (wxDouble) w, (wxDouble) h );
-        context->EnableOffset(true);
+        context->EnableOffset(dc.GetContentScaleFactor() < 2);
         return context;
     }
 #endif
@@ -2717,14 +2671,8 @@ wxGraphicsContext * wxMacCoreGraphicsRenderer::CreateContextFromNativeContext( v
 
 wxGraphicsContext * wxMacCoreGraphicsRenderer::CreateContextFromNativeWindow( void * window )
 {
-#if wxOSX_USE_CARBON
-    wxMacCoreGraphicsContext* context = new wxMacCoreGraphicsContext(this,(WindowRef)window);
-    context->EnableOffset(true);
-    return context;
-#else
     wxUnusedVar(window);
     return NULL;
-#endif
 }
 
 wxGraphicsContext * wxMacCoreGraphicsRenderer::CreateContext( wxWindow* window )
@@ -2926,6 +2874,9 @@ wxMacCoreGraphicsRenderer::CreateFont(double sizeInPixels,
                                         : wxFONTWEIGHT_NORMAL,
                 (flags & wxFONTFLAG_UNDERLINED) != 0,
                 facename);
+
+    if ( flags & wxFONTFLAG_STRIKETHROUGH )
+        font.MakeStrikethrough();
 
     wxGraphicsFont f;
     f.SetRefData(new wxMacCoreGraphicsFontData(this, font, col));

@@ -136,6 +136,33 @@ static wxString GetFullName(const wxRegKey *pKey, const wxString& szValue);
 // to NULL
 static inline const wxChar *RegValueStr(const wxString& szValue);
 
+// Return the user-readable name of the given REG_XXX type constant.
+static wxString GetTypeString(DWORD dwType)
+{
+#define REG_TYPE_TO_STR(type) case REG_ ## type: return wxS(#type)
+
+    switch ( dwType )
+    {
+        REG_TYPE_TO_STR(NONE);
+        REG_TYPE_TO_STR(SZ);
+        REG_TYPE_TO_STR(EXPAND_SZ);
+        REG_TYPE_TO_STR(BINARY);
+        REG_TYPE_TO_STR(DWORD);
+        // REG_TYPE_TO_STR(DWORD_LITTLE_ENDIAN); -- same as REG_DWORD
+        REG_TYPE_TO_STR(DWORD_BIG_ENDIAN);
+        REG_TYPE_TO_STR(LINK);
+        REG_TYPE_TO_STR(MULTI_SZ);
+        REG_TYPE_TO_STR(RESOURCE_LIST);
+        REG_TYPE_TO_STR(FULL_RESOURCE_DESCRIPTOR);
+        REG_TYPE_TO_STR(RESOURCE_REQUIREMENTS_LIST);
+        REG_TYPE_TO_STR(QWORD);
+        // REG_TYPE_TO_STR(QWORD_LITTLE_ENDIAN); -- same as REG_QWORD
+
+        default:
+            return wxString::Format(_("unknown (%lu)"), dwType);
+    }
+}
+
 // ============================================================================
 // implementation of wxRegKey class
 // ============================================================================
@@ -533,9 +560,10 @@ bool wxRegKey::CopyValue(const wxString& szValue,
 
     switch ( GetValueType(szValue) ) {
         case Type_String:
+        case Type_Expand_String:
             {
                 wxString strVal;
-                return QueryValue(szValue, strVal) &&
+                return QueryRawValue(szValue, strVal) &&
                        keyDst.SetValue(valueNew, strVal);
             }
 
@@ -559,7 +587,6 @@ bool wxRegKey::CopyValue(const wxString& szValue,
         // occur among the application keys (supposedly created with
         // this class)
         case Type_None:
-        case Type_Expand_String:
         case Type_Dword_big_endian:
         case Type_Link:
         case Type_Multi_String:
@@ -897,13 +924,15 @@ bool wxRegKey::QueryValue(const wxString& szValue, long *plValue) const
                     GetName().c_str());
       return false;
     }
-    else {
-      // check that we read the value of right type
-      wxASSERT_MSG( IsNumericValue(szValue),
-                    wxT("Type mismatch in wxRegKey::QueryValue().")  );
 
-      return true;
+    // check that we read the value of right type
+    if ( dwType != REG_DWORD_LITTLE_ENDIAN && dwType != REG_DWORD_BIG_ENDIAN ) {
+      wxLogError(_("Registry value \"%s\" is not numeric (but of type %s)"),
+                 GetFullName(this, szValue), GetTypeString(dwType));
+      return false;
     }
+
+    return true;
   }
   else
     return false;
@@ -939,6 +968,12 @@ bool wxRegKey::QueryValue(const wxString& szValue, wxMemoryBuffer& buffer) const
                                     &dwType, NULL, &dwSize);
 
     if ( m_dwLastError == ERROR_SUCCESS ) {
+        if ( dwType != REG_BINARY ) {
+          wxLogError(_("Registry value \"%s\" is not binary (but of type %s)"),
+                     GetFullName(this, szValue), GetTypeString(dwType));
+          return false;
+        }
+
         if ( dwSize ) {
             const RegBinary pBuf = (RegBinary)buffer.GetWriteBuf(dwSize);
             m_dwLastError = RegQueryValueEx((HKEY) m_hKey,
@@ -981,7 +1016,16 @@ bool wxRegKey::QueryValue(const wxString& szValue,
                                         &dwType, NULL, &dwSize);
         if ( m_dwLastError == ERROR_SUCCESS )
         {
-            if ( !dwSize )
+            if ( dwType != REG_SZ && dwType != REG_EXPAND_SZ )
+            {
+                wxLogError(_("Registry value \"%s\" is not text (but of type %s)"),
+                             GetFullName(this, szValue), GetTypeString(dwType));
+                return false;
+            }
+
+            // We need length in characters, not bytes.
+            DWORD chars = dwSize / sizeof(wxChar);
+            if ( !chars )
             {
                 // must treat this case specially as GetWriteBuf() doesn't like
                 // being called with 0 size
@@ -991,9 +1035,6 @@ bool wxRegKey::QueryValue(const wxString& szValue,
             {
                 // extra scope for wxStringBufferLength
                 {
-                    // We need length in characters, not bytes.
-                    DWORD chars = dwSize / sizeof(wxChar);
-
                     wxStringBufferLength strBuf(strValue, chars);
                     m_dwLastError = RegQueryValueEx((HKEY) m_hKey,
                                                     RegValueStr(szValue),
@@ -1034,13 +1075,7 @@ bool wxRegKey::QueryValue(const wxString& szValue,
             }
 
             if ( m_dwLastError == ERROR_SUCCESS )
-            {
-                // check that it was the right type
-                wxASSERT_MSG( !IsNumericValue(szValue),
-                              wxT("Type mismatch in wxRegKey::QueryValue().") );
-
               return true;
-            }
         }
     }
 
@@ -1289,9 +1324,10 @@ wxString wxRegKey::FormatValue(const wxString& name) const
     switch ( type )
     {
         case Type_String:
+        case Type_Expand_String:
             {
                 wxString value;
-                if ( !QueryValue(name, value) )
+                if ( !QueryRawValue(name, value) )
                     break;
 
                 // quotes and backslashes must be quoted, linefeeds are not
@@ -1340,7 +1376,6 @@ wxString wxRegKey::FormatValue(const wxString& name) const
             }
             break;
 
-        case Type_Expand_String:
         case Type_Multi_String:
             {
                 wxString value;

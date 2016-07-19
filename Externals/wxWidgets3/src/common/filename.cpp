@@ -634,7 +634,7 @@ void RemoveTrailingSeparatorsFromPath(wxString& strPath)
     }
 }
 
-#endif // __WINDOWS_ 
+#endif // __WINDOWS_
 
 bool
 wxFileSystemObjectExists(const wxString& path, int flags)
@@ -1227,8 +1227,6 @@ wxString wxFileName::GetTempDir()
         {
             wxLogLastError(wxT("GetTempPath"));
         }
-#elif defined(__WXMAC__) && wxOSX_USE_CARBON
-        dir = wxMacFindFolderNoSeparator(short(kOnSystemDisk), kTemporaryFolderType, kCreateFolder);
 #endif // systems with native way
     }
 
@@ -2152,60 +2150,21 @@ wxString wxFileName::GetLongPath() const
 
 #if defined(__WIN32__)
 
-#if wxUSE_DYNLIB_CLASS
-    typedef DWORD (WINAPI *GET_LONG_PATH_NAME)(const wxChar *, wxChar *, DWORD);
-
-    // this is MT-safe as in the worst case we're going to resolve the function
-    // twice -- but as the result is the same in both threads, it's ok
-    static GET_LONG_PATH_NAME s_pfnGetLongPathName = NULL;
-    if ( !s_pfnGetLongPathName )
+    DWORD dwSize = ::GetLongPathName(path.t_str(), NULL, 0);
+    if ( dwSize > 0 )
     {
-        static bool s_triedToLoad = false;
-
-        if ( !s_triedToLoad )
+        if ( ::GetLongPathName
+                (
+                path.t_str(),
+                wxStringBuffer(pathOut, dwSize),
+                dwSize
+                ) != 0 )
         {
-            s_triedToLoad = true;
-
-            wxDynamicLibrary dllKernel(wxT("kernel32"));
-
-            const wxChar* GetLongPathName = wxT("GetLongPathName")
-#if wxUSE_UNICODE
-                              wxT("W");
-#else // ANSI
-                              wxT("A");
-#endif // Unicode/ANSI
-
-            if ( dllKernel.HasSymbol(GetLongPathName) )
-            {
-                s_pfnGetLongPathName = (GET_LONG_PATH_NAME)
-                    dllKernel.GetSymbol(GetLongPathName);
-            }
-
-            // note that kernel32.dll can be unloaded, it stays in memory
-            // anyhow as all Win32 programs link to it and so it's safe to call
-            // GetLongPathName() even after unloading it
+            return pathOut;
         }
     }
 
-    if ( s_pfnGetLongPathName )
-    {
-        DWORD dwSize = (*s_pfnGetLongPathName)(path.t_str(), NULL, 0);
-        if ( dwSize > 0 )
-        {
-            if ( (*s_pfnGetLongPathName)
-                 (
-                  path.t_str(),
-                  wxStringBuffer(pathOut, dwSize),
-                  dwSize
-                 ) != 0 )
-            {
-                return pathOut;
-            }
-        }
-    }
-#endif // wxUSE_DYNLIB_CLASS
-
-    // The OS didn't support GetLongPathName, or some other error.
+    // Some other error occured.
     // We need to call FindFirstFile on each component in turn.
 
     WIN32_FIND_DATA findFileData;
@@ -2816,142 +2775,3 @@ wxString wxFileName::GetHumanReadableSize(const wxString& failmsg,
 
 #endif // wxUSE_LONGLONG
 
-// ----------------------------------------------------------------------------
-// Mac-specific functions
-// ----------------------------------------------------------------------------
-
-#if defined( __WXOSX_MAC__ ) && wxOSX_USE_CARBON
-
-namespace
-{
-
-class MacDefaultExtensionRecord
-{
-public:
-    MacDefaultExtensionRecord()
-    {
-        m_type =
-        m_creator = 0 ;
-    }
-
-    // default copy ctor, assignment operator and dtor are ok
-
-    MacDefaultExtensionRecord(const wxString& ext, OSType type, OSType creator)
-        : m_ext(ext)
-    {
-        m_type = type;
-        m_creator = creator;
-    }
-
-    wxString m_ext;
-    OSType m_type;
-    OSType m_creator;
-};
-
-WX_DECLARE_OBJARRAY(MacDefaultExtensionRecord, MacDefaultExtensionArray);
-
-bool gMacDefaultExtensionsInited = false;
-
-#include "wx/arrimpl.cpp"
-
-WX_DEFINE_EXPORTED_OBJARRAY(MacDefaultExtensionArray);
-
-MacDefaultExtensionArray gMacDefaultExtensions;
-
-// load the default extensions
-const MacDefaultExtensionRecord gDefaults[] =
-{
-    MacDefaultExtensionRecord( "txt", 'TEXT', 'ttxt' ),
-    MacDefaultExtensionRecord( "tif", 'TIFF', '****' ),
-    MacDefaultExtensionRecord( "jpg", 'JPEG', '****' ),
-};
-
-void MacEnsureDefaultExtensionsLoaded()
-{
-    if ( !gMacDefaultExtensionsInited )
-    {
-        // we could load the pc exchange prefs here too
-        for ( size_t i = 0 ; i < WXSIZEOF( gDefaults ) ; ++i )
-        {
-            gMacDefaultExtensions.Add( gDefaults[i] ) ;
-        }
-        gMacDefaultExtensionsInited = true;
-    }
-}
-
-} // anonymous namespace
-
-bool wxFileName::MacSetTypeAndCreator( wxUint32 type , wxUint32 creator )
-{
-    FSRef fsRef ;
-    FSCatalogInfo catInfo;
-    FileInfo *finfo ;
-
-    if ( wxMacPathToFSRef( GetFullPath() , &fsRef ) == noErr )
-    {
-        if ( FSGetCatalogInfo (&fsRef, kFSCatInfoFinderInfo, &catInfo, NULL, NULL, NULL) == noErr )
-        {
-            finfo = (FileInfo*)&catInfo.finderInfo;
-            finfo->fileType = type ;
-            finfo->fileCreator = creator ;
-            FSSetCatalogInfo( &fsRef, kFSCatInfoFinderInfo, &catInfo ) ;
-            return true ;
-        }
-    }
-    return false ;
-}
-
-bool wxFileName::MacGetTypeAndCreator( wxUint32 *type , wxUint32 *creator ) const
-{
-    FSRef fsRef ;
-    FSCatalogInfo catInfo;
-    FileInfo *finfo ;
-
-    if ( wxMacPathToFSRef( GetFullPath() , &fsRef ) == noErr )
-    {
-        if ( FSGetCatalogInfo (&fsRef, kFSCatInfoFinderInfo, &catInfo, NULL, NULL, NULL) == noErr )
-        {
-            finfo = (FileInfo*)&catInfo.finderInfo;
-            *type = finfo->fileType ;
-            *creator = finfo->fileCreator ;
-            return true ;
-        }
-    }
-    return false ;
-}
-
-bool wxFileName::MacSetDefaultTypeAndCreator()
-{
-    wxUint32 type , creator ;
-    if ( wxFileName::MacFindDefaultTypeAndCreator(GetExt() , &type ,
-      &creator ) )
-    {
-        return MacSetTypeAndCreator( type , creator ) ;
-    }
-    return false;
-}
-
-bool wxFileName::MacFindDefaultTypeAndCreator( const wxString& ext , wxUint32 *type , wxUint32 *creator )
-{
-  MacEnsureDefaultExtensionsLoaded() ;
-  wxString extl = ext.Lower() ;
-  for( int i = gMacDefaultExtensions.Count() - 1 ; i >= 0 ; --i )
-  {
-    if ( gMacDefaultExtensions.Item(i).m_ext == extl )
-    {
-      *type = gMacDefaultExtensions.Item(i).m_type ;
-      *creator = gMacDefaultExtensions.Item(i).m_creator ;
-      return true ;
-    }
-  }
-  return false ;
-}
-
-void wxFileName::MacRegisterDefaultTypeAndCreator( const wxString& ext , wxUint32 type , wxUint32 creator )
-{
-  MacEnsureDefaultExtensionsLoaded();
-  MacDefaultExtensionRecord rec(ext.Lower(), type, creator);
-  gMacDefaultExtensions.Add( rec );
-}
-
-#endif // defined( __WXOSX_MAC__ ) && wxOSX_USE_CARBON

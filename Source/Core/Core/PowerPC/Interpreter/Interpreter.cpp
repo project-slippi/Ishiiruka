@@ -68,7 +68,8 @@ void Interpreter::Init()
 }
 
 void Interpreter::Shutdown()
-{}
+{
+}
 
 static int startTrace = 0;
 

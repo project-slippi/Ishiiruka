@@ -18,6 +18,7 @@
 #endif
 
 #include "wx/osx/core/private.h"
+#include "wx/osx/cocoa/private.h"
 
 #import <AppKit/NSColor.h>
 
@@ -45,7 +46,6 @@ wxColour wxSystemSettingsNative::GetColour(wxSystemColour index)
         // fall through, window background is reasonable
     case wxSYS_COLOUR_MENU:
     case wxSYS_COLOUR_MENUBAR:
-    case wxSYS_COLOUR_WINDOW:
     case wxSYS_COLOUR_WINDOWFRAME:
     case wxSYS_COLOUR_ACTIVEBORDER:
     case wxSYS_COLOUR_INACTIVEBORDER:
@@ -53,9 +53,10 @@ wxColour wxSystemSettingsNative::GetColour(wxSystemColour index)
     case wxSYS_COLOUR_GRADIENTINACTIVECAPTION:
         sysColor = [NSColor windowFrameColor];
         break;
+    case wxSYS_COLOUR_WINDOW:
+        return wxColour(wxMacCreateCGColorFromHITheme( 15 /* kThemeBrushDocumentWindowBackground */ )) ;
     case wxSYS_COLOUR_BTNFACE:
-        sysColor = [NSColor controlColor];
-        break;
+        return wxColour(wxMacCreateCGColorFromHITheme( 3 /* kThemeBrushDialogBackgroundActive */));
     case wxSYS_COLOUR_LISTBOX:
         sysColor = [NSColor controlBackgroundColor];
         break;
@@ -72,7 +73,7 @@ wxColour wxSystemSettingsNative::GetColour(wxSystemColour index)
         sysColor = [NSColor controlTextColor];
         break;
     case wxSYS_COLOUR_HIGHLIGHT:
-        sysColor = [NSColor selectedControlColor];
+        sysColor = [NSColor selectedTextBackgroundColor];
         break;
     case wxSYS_COLOUR_BTNHIGHLIGHT:
         sysColor = [NSColor controlHighlightColor];
@@ -87,12 +88,14 @@ wxColour wxSystemSettingsNative::GetColour(wxSystemColour index)
         sysColor = [NSColor controlHighlightColor];
         break;
     case wxSYS_COLOUR_HIGHLIGHTTEXT:
+        sysColor = [NSColor selectedTextColor];
+        break;
     case wxSYS_COLOUR_LISTBOXHIGHLIGHTTEXT:
         sysColor = [NSColor alternateSelectedControlTextColor];
         break;
     case wxSYS_COLOUR_INFOBK:
         // tooltip (bogus)
-        sysColor = [NSColor windowFrameColor];
+        sysColor = [NSColor windowBackgroundColor];
         break;
     case wxSYS_COLOUR_APPWORKSPACE:
         // MDI window color (bogus)
@@ -114,18 +117,9 @@ wxColour wxSystemSettingsNative::GetColour(wxSystemColour index)
         }
     }
 
-    if ( sysColor )
-    {
-        CGColorRef cgCol = sysColor.CGColor;
-        // wxColour takes ownership of CF reference
-        CFRetain(cgCol);
-        return wxColour(cgCol);
-    }
-    else
-    {
-        wxFAIL_MSG(wxT("Unimplemented system colour index"));
-        return wxColour();
-    }
+    wxCHECK_MSG( sysColor, wxColour(), wxS("Unimplemented system colour") );
+
+    return wxColour(sysColor);
 }
 
 // ----------------------------------------------------------------------------
@@ -164,6 +158,8 @@ wxFont wxSystemSettingsNative::GetFont(wxSystemFont index)
 // Get a system metric, e.g. scrollbar size
 int wxSystemSettingsNative::GetMetric(wxSystemMetric index, wxWindow *WXUNUSED(win))
 {
+    int value;
+
     switch ( index )
     {
         case wxSYS_MOUSE_BUTTONS:
@@ -193,8 +189,15 @@ int wxSystemSettingsNative::GetMetric(wxSystemMetric index, wxWindow *WXUNUSED(w
         // TODO case wxSYS_ICONSPACING_Y:
         // TODO case wxSYS_WINDOWMIN_X:
         // TODO case wxSYS_WINDOWMIN_Y:
-        // TODO case wxSYS_SCREEN_X:
-        // TODO case wxSYS_SCREEN_Y:
+
+        case wxSYS_SCREEN_X:
+            wxDisplaySize(&value, NULL);
+            return value;
+
+        case wxSYS_SCREEN_Y:
+            wxDisplaySize(NULL, &value);
+            return value;
+
         // TODO case wxSYS_FRAMESIZE_X:
         // TODO case wxSYS_FRAMESIZE_Y:
         // TODO case wxSYS_SMALLICON_X:
@@ -222,6 +225,11 @@ int wxSystemSettingsNative::GetMetric(wxSystemMetric index, wxWindow *WXUNUSED(w
 
         case wxSYS_SWAP_BUTTONS:
             return 0;
+
+        case wxSYS_DCLICK_MSEC:
+            // default on mac is 30 ticks, we shouldn't really use wxSYS_DCLICK_MSEC anyway
+            // but rather rely on the 'click-count' by the system delivered in a mouse event
+            return 500;
 
         default:
             return -1;  // unsupported metric

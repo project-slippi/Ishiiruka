@@ -164,7 +164,7 @@ public:
     virtual void CancelEditing();
     virtual bool FinishEditing();
 
-    wxWindow *GetEditorCtrl() { return m_editorCtrl; }
+    wxWindow *GetEditorCtrl() const { return m_editorCtrl; }
 
     virtual bool IsCustomRenderer() const { return false; }
 
@@ -179,6 +179,9 @@ public:
     // wxALIGN_XXX flags (although possibly wxALIGN_NOT) and never returns
     // wxDVR_DEFAULT_ALIGNMENT.
     int GetEffectiveAlignment() const;
+
+    // Send wxEVT_DATAVIEW_ITEM_EDITING_STARTED event.
+    void NotifyEditingStarted(const wxDataViewItem& item);
 
 protected:
     // These methods are called from PrepareForItem() and should do whatever is
@@ -199,7 +202,7 @@ protected:
     wxString                m_variantType;
     wxDataViewColumn       *m_owner;
     wxWeakRef<wxWindow>     m_editorCtrl;
-    wxDataViewItem          m_item; // for m_editorCtrl
+    wxDataViewItem          m_item; // Item being currently edited, if valid.
 
     // internal utility, may be used anywhere the window associated with the
     // renderer is required
@@ -358,6 +361,8 @@ private:
     #error "unknown native wxDataViewCtrl implementation"
 #endif
 
+#if wxUSE_SPINCTRL
+
 // ----------------------------------------------------------------------------
 // wxDataViewSpinRenderer
 // ----------------------------------------------------------------------------
@@ -381,7 +386,9 @@ private:
     long    m_min,m_max;
 };
 
-#if defined(wxHAS_GENERIC_DATAVIEWCTRL) || defined(__WXOSX_CARBON__)
+#endif // wxUSE_SPINCTRL
+
+#if defined(wxHAS_GENERIC_DATAVIEWCTRL)
 
 // ----------------------------------------------------------------------------
 // wxDataViewChoiceRenderer
@@ -428,7 +435,7 @@ public:
 };
 
 
-#endif // generic or Carbon versions
+#endif // generic version
 
 #if defined(wxHAS_GENERIC_DATAVIEWCTRL) || defined(__WXGTK__)
 

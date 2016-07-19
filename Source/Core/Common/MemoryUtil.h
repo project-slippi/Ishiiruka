@@ -30,10 +30,10 @@ template <typename T>
 class SimpleBuf
 {
 public:
-	SimpleBuf(): m_buf(0), m_size(0)
+	SimpleBuf() : m_buf(0), m_size(0)
 	{}
 
-	SimpleBuf(size_t s): m_buf(0)
+	SimpleBuf(size_t s) : m_buf(0)
 	{
 		resize(s);
 	}

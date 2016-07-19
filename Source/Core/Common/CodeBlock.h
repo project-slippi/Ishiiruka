@@ -13,7 +13,7 @@
 // having to prefix them with gen-> or something similar.
 // Example implementation:
 // class JIT : public CodeBlock<ARMXEmitter> {}
-template<class T> class CodeBlock: public T, NonCopyable
+template<class T> class CodeBlock : public T, NonCopyable
 {
 private:
 	// A privately used function to set the executable RAM space to something invalid.

@@ -155,8 +155,7 @@ double ApproximateReciprocalSquareRoot(double val)
 		{
 			exponent -= 1LL << 52;
 			mantissa <<= 1;
-		}
-		while (!(mantissa & (1LL << 52)));
+		} while (!(mantissa & (1LL << 52)));
 		mantissa &= (1LL << 52) - 1;
 		exponent += 1LL << 52;
 	}

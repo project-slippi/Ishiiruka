@@ -184,6 +184,10 @@
     #define LVS_EX_SUBITEMIMAGES 0x00000002
 #endif
 
+#ifndef LVS_EX_DOUBLEBUFFER
+    #define LVS_EX_DOUBLEBUFFER 0x00010000
+#endif
+
 #ifndef HDN_GETDISPINFOW
     #define HDN_GETDISPINFOW (HDN_FIRST-29)
 #endif
@@ -266,7 +270,7 @@ typedef struct
 
 #endif
 
-// Various defines used by the webview library that are needed by mingw 
+// Various defines used by the webview library that are needed by mingw
 
 #ifndef DISPID_COMMANDSTATECHANGE
 #define DISPID_COMMANDSTATECHANGE 105

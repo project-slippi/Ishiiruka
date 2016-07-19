@@ -1215,6 +1215,10 @@
 // progress dialog class for lengthy operations
 #define wxUSE_PROGRESSDLG 1
 
+// Set to 0 to disable the use of the native progress dialog (currently only
+// available under MSW and suffering from some bugs there, hence this option).
+#define wxUSE_NATIVE_PROGRESSDLG 1
+
 // support for startup tips (wxShowTip &c)
 #define wxUSE_STARTUP_TIPS 1
 
@@ -1548,6 +1552,19 @@
 //
 // Recommended setting: 1, required by wxMediaCtrl
 #define wxUSE_ACTIVEX 1
+
+// Enable WinRT support
+//
+// Default is 1 for compilers which support it, i.e. VS2012+ currently. If you
+// use an earlier MSVC version or another compiler and installed the necessary
+// SDK components manually, you need to change this setting.
+//
+// Recommended setting: 1
+#if defined(_MSC_VER) && _MSC_VER >= 1700
+    #define wxUSE_WINRT 1
+#else
+    #define wxUSE_WINRT 0
+#endif
 
 // wxDC caching implementation
 #define wxUSE_DC_CACHEING 1

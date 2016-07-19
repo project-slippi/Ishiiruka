@@ -605,7 +605,7 @@ void wxUITextFieldControl::SetEditable(bool editable)
         if ( !editable ) {
             [m_textField resignFirstResponder];
         }
-        
+
         [m_textField setEnabled: editable];
     }
 }
@@ -744,7 +744,7 @@ wxWidgetImplType* wxWidgetImpl::CreateTextControl( wxTextCtrl* wxpeer,
         [tv setAutocapitalizationType:UITextAutocapitalizationTypeWords];
     else
         [tv setAutocapitalizationType:UITextAutocapitalizationTypeSentences];
-    
+
     if ( !(style & wxTE_MULTILINE) )
     {
         [tv setAutocorrectionType:UITextAutocorrectionTypeNo];

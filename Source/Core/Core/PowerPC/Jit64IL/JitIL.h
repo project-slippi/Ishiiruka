@@ -31,10 +31,8 @@ class JitIL : public JitILBase
 public:
 	Jit64AsmRoutineManager asm_routines;
 
-	JitIL()
-	{}
-	~JitIL()
-	{}
+	JitIL() {}
+	~JitIL() {}
 	// Initialization, etc
 
 	void Init() override;
@@ -50,20 +48,11 @@ public:
 
 	void Trace();
 
-	JitBlockCache* GetBlockCache() override
-	{
-		return &blocks;
-	}
+	JitBlockCache* GetBlockCache() override { return &blocks; }
 	void ClearCache() override;
 
-	const CommonAsmRoutines* GetAsmRoutines() override
-	{
-		return &asm_routines;
-	}
-	const char* GetName() override
-	{
-		return "JIT64IL";
-	}
+	const CommonAsmRoutines* GetAsmRoutines() override { return &asm_routines; }
+	const char* GetName() override { return "JIT64IL"; }
 	// Run!
 	void Run() override;
 	void SingleStep() override;

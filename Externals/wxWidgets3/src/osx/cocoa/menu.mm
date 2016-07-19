@@ -237,20 +237,9 @@ public :
     {
         win->ScreenToClient( &x , &y ) ;
         NSView *view = win->GetPeer()->GetWXWidget();
-        NSRect frame = [view frame];
-        frame.origin.x = x;
-        frame.origin.y = y;
-        frame.size.width = 1;
-        frame.size.height = 1;
-        NSPopUpButtonCell *popUpButtonCell = [[NSPopUpButtonCell alloc] initTextCell:@"" pullsDown:NO];
-        [popUpButtonCell setAutoenablesItems:NO];
-        [popUpButtonCell setAltersStateOfSelectedItem:NO];
-        [popUpButtonCell setMenu:m_osxMenu];
-        [popUpButtonCell selectItem:nil];
-        [popUpButtonCell performClickWithFrame:frame inView:view];
-        [popUpButtonCell release];
+        [m_osxMenu popUpMenuPositioningItem:nil atLocation:NSMakePoint(x, y) inView:view];
     }
-    
+
     virtual void GetMenuBarDimensions(int &x, int &y, int &width, int &height) const wxOVERRIDE
     {
         NSRect r = [(NSScreen*)[[NSScreen screens] objectAtIndex:0] frame];
@@ -259,7 +248,7 @@ public :
         y = r.origin.y;
         width = r.size.width;
     }
-    
+
     WXHMENU GetHMenu() wxOVERRIDE { return m_osxMenu; }
 
     static wxMenuImpl* Create( wxMenu* peer, const wxString& title );

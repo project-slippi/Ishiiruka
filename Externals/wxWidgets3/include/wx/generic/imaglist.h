@@ -10,7 +10,7 @@
 #ifndef _WX_IMAGLISTG_H_
 #define _WX_IMAGLISTG_H_
 
-#include "wx/list.h"
+#include "wx/gdicmn.h"
 
 class WXDLLIMPEXP_FWD_CORE wxDC;
 class WXDLLIMPEXP_FWD_CORE wxBitmap;
@@ -29,6 +29,7 @@ public:
 
     virtual int GetImageCount() const;
     virtual bool GetSize( int index, int &width, int &height ) const;
+    virtual wxSize GetSize() const { return wxSize(m_width, m_height); }
 
     int Add( const wxBitmap& bitmap );
     int Add( const wxBitmap& bitmap, const wxBitmap& mask );

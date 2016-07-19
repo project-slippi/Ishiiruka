@@ -60,7 +60,7 @@ bool cInterfaceWGL::Create(void *window_handle, bool core)
 		return false;
 
 	HWND window_handle_reified = reinterpret_cast<HWND>(window_handle);
-	RECT window_rect = {0};
+	RECT window_rect = { 0 };
 
 	if (!GetClientRect(window_handle_reified, &window_rect))
 		return false;
@@ -153,7 +153,7 @@ void cInterfaceWGL::Update()
 	s_backbuffer_height = (rcWindow.bottom - rcWindow.top);
 
 	// Get the top-left corner of the client area in screen coordinates
-	POINT originPoint = {0, 0};
+	POINT originPoint = { 0, 0 };
 	ClientToScreen(m_window_handle, &originPoint);
 	s_window_xpos = originPoint.x;
 	s_window_ypos = originPoint.y;

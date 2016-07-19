@@ -331,7 +331,7 @@ bool EnsureTraversalClient(const std::string& server, u16 server_port, u16 liste
 		g_OldServerPort = server_port;
 		g_OldListenPort = listen_port;
 
-		ENetAddress addr = {ENET_HOST_ANY, listen_port};
+		ENetAddress addr = { ENET_HOST_ANY, listen_port };
 		ENetHost* host = enet_host_create(
 			&addr, // address
 			50, // peerCount

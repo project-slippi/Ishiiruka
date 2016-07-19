@@ -23,7 +23,7 @@ enum
 	(1 << 7),  // Specifies that the instruction can be used as an exit point for a JIT block.
 	FL_IN_A = (1 << 8),   // Uses rA as an input.
 	FL_IN_A0 = (1 << 9),  // Uses rA as an input. Indicates that if rA is zero, the value zero is
-								 // used, not the contents of r0.
+												// used, not the contents of r0.
 	FL_IN_B = (1 << 10),  // Uses rB as an input.
 	FL_IN_C = (1 << 11),  // Uses rC as an input.
 	FL_IN_S = (1 << 12),  // Uses rS as an input.

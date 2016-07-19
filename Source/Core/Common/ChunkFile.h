@@ -45,7 +45,7 @@
 
 
 template <class T>
-struct LinkedListItem: public T
+struct LinkedListItem : public T
 {
 	LinkedListItem<T> *next;
 };
@@ -66,7 +66,7 @@ public:
 	Mode mode;
 
 public:
-	PointerWrap(u8 **ptr_, Mode mode_): ptr(ptr_), mode(mode_)
+	PointerWrap(u8 **ptr_, Mode mode_) : ptr(ptr_), mode(mode_)
 	{}
 
 	void SetMode(Mode mode_)
@@ -296,8 +296,7 @@ public:
 							LinkedListItem<T>* next = list_cur->next;
 							TFree(list_cur);
 							list_cur = next;
-						}
-						while (list_cur);
+						} while (list_cur);
 					}
 				}
 				break;

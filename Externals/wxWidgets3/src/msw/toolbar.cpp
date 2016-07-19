@@ -377,6 +377,15 @@ bool wxToolBar::Create(wxWindow *parent,
     return true;
 }
 
+void wxToolBar::MSWSetPadding(WXWORD padding)
+{
+    DWORD curPadding = ::SendMessage(GetHwnd(), TB_GETPADDING, 0, 0);
+    // Preserve orthogonal padding
+    DWORD newPadding = IsVertical() ? MAKELPARAM(LOWORD(curPadding), padding)
+                                    : MAKELPARAM(padding, HIWORD(curPadding));
+    ::SendMessage(GetHwnd(), TB_SETPADDING, 0, newPadding);
+}
+
 bool wxToolBar::MSWCreateToolbar(const wxPoint& pos, const wxSize& size)
 {
     if ( !MSWCreateControl(TOOLBARCLASSNAME, wxEmptyString, pos, size) )
@@ -388,6 +397,19 @@ bool wxToolBar::MSWCreateToolbar(const wxPoint& pos, const wxSize& size)
 #ifdef TB_SETEXTENDEDSTYLE
     ::SendMessage(GetHwnd(), TB_SETEXTENDEDSTYLE, 0, TBSTYLE_EX_DRAWDDARROWS);
 #endif
+
+    // Retrieve or apply/restore tool packing value.
+    if ( m_toolPacking <= 0 )
+    {
+        // Retrieve packing value if it hasn't been yet set with SetToolPacking.
+        DWORD padding = ::SendMessage(GetHwnd(), TB_GETPADDING, 0, 0);
+        m_toolPacking = IsVertical() ? HIWORD(padding) : LOWORD(padding);
+    }
+    else
+    {
+        // Apply packing value if it has been already set with SetToolPacking.
+        MSWSetPadding(m_toolPacking);
+    }
 
     return true;
 }
@@ -469,9 +491,7 @@ wxSize wxToolBar::DoGetBestSize() const
         // reverse horz and vertical components if necessary
         if ( IsVertical() )
         {
-            int t = sizeBest.x;
-            sizeBest.x = sizeBest.y;
-            sizeBest.y = t;
+            wxSwap(sizeBest.x, sizeBest.y);
         }
     }
     else // TB_GETMAXSIZE succeeded
@@ -496,6 +516,20 @@ wxSize wxToolBar::DoGetBestSize() const
 
     if ( !IsVertical() )
     {
+        wxToolBarToolsList::compatibility_iterator node;
+        for ( node = m_tools.GetFirst(); node; node = node->GetNext() )
+        {
+            wxToolBarTool * const
+                tool = static_cast<wxToolBarTool *>(node->GetData());
+            if (tool->IsControl())
+            {
+                int y = tool->GetControl()->GetSize().y;
+                // Approximate border size
+                if (y > (sizeBest.y - 4))
+                    sizeBest.y = y + 4;
+            }
+        }
+
         // Without the extra height, DoGetBestSize can report a size that's
         // smaller than the actual window, causing windows to overlap slightly
         // in some circumstances, leading to missing borders (especially noticeable
@@ -593,7 +627,23 @@ bool wxToolBar::DoDeleteTool(size_t pos, wxToolBarToolBase *tool)
 
     static_cast<wxToolBarTool*>(tool)->ToBeDeleted();
 
-    // and finally rearrange the tools
+    // and finally rearrange the tools:
+
+    // by shifting left all controls on the right hand side
+    wxToolBarToolsList::compatibility_iterator node;
+    for ( node = m_tools.Find(tool); node; node = node->GetNext() )
+    {
+        wxToolBarTool * const ctool = static_cast<wxToolBarTool*>(node->GetData());
+
+        if ( ctool->IsToBeDeleted() )
+            continue;
+
+        if ( ctool->IsControl() )
+        {
+            ctool->MoveBy(-delta);
+        }
+    }
+
     // by recalculating stretchable spacers, if there are any
     UpdateStretchableSpacersSize();
 
@@ -901,13 +951,14 @@ bool wxToolBar::Realize()
                 }
 
                 // Set separator width/height to fit the control width/height
+                // taking into account tool padding value.
                 // (height is not used but it is set for the sake of consistency).
                 {
                     const wxSize sizeControl = tool->GetControl()->GetSize();
-                    button.iBitmap = IsVertical() ? sizeControl.y : sizeControl.x;
+                    button.iBitmap = m_toolPacking + (IsVertical() ? sizeControl.y : sizeControl.x);
                 }
 
-                // Fall through
+                wxFALLTHROUGH;
 
             case wxTOOL_STYLE_SEPARATOR:
                 if ( tool->IsStretchableSpace() )
@@ -1006,13 +1057,15 @@ bool wxToolBar::Realize()
                         break;
                 }
 
-                // Instead of using fixed widths for all buttons, size them
+                // When toolbar has wxTB_HORZ_LAYOUT style then
+                // instead of using fixed widths for all buttons, size them
                 // automatically according to the size of their bitmap and text
-                // label, if present. This particularly matters for toolbars
-                // with the wxTB_HORZ_LAYOUT style: they look hideously ugly
-                // without autosizing when the labels have even slightly
-                // different lengths.
-                button.fsStyle |= TBSTYLE_AUTOSIZE;
+                // label, if present. They look hideously ugly without autosizing
+                // when the labels have even slightly different lengths.
+                if ( !IsVertical() )
+                {
+                    button.fsStyle |= TBSTYLE_AUTOSIZE;
+                }
 
                 bitmapId++;
                 break;
@@ -1090,7 +1143,9 @@ bool wxToolBar::Realize()
             if ( diff < 0 )
             {
                 // the control is too high, resize to fit
-                control->SetSize(wxDefaultCoord, height - 2);
+                // Actually don't set the size, otherwise we can never fit
+                // the toolbar around the controls.
+                // control->SetSize(wxDefaultCoord, height - 2);
 
                 diff = 2;
             }
@@ -1101,14 +1156,15 @@ bool wxToolBar::Realize()
                 staticText->Show();
         }
 
-        control->Move(r.left, r.top + (diff + 1) / 2);
+        // Take also into account tool padding value.
+        control->Move(r.left + m_toolPacking/2, r.top + (diff + 1) / 2);
         if ( staticText )
         {
-            staticText->Move(r.left + (size.x - staticTextSize.x)/2,
+            staticText->Move(r.left + m_toolPacking/2 + (size.x - staticTextSize.x)/2,
                              r.bottom - staticTextSize.y);
         }
 
-        m_totalFixedSize += size.x;
+        m_totalFixedSize += r.right - r.left;
     }
 
     // the max index is the "real" number of buttons - i.e. counting even the
@@ -1541,12 +1597,24 @@ void wxToolBar::SetWindowStyleFlag(long style)
 
 void wxToolBar::DoEnableTool(wxToolBarToolBase *tool, bool enable)
 {
-    ::SendMessage(GetHwnd(), TB_ENABLEBUTTON,
-                  (WPARAM)tool->GetId(), (LPARAM)MAKELONG(enable, 0));
+    if ( tool->IsButton() )
+    {
+        ::SendMessage(GetHwnd(), TB_ENABLEBUTTON,
+                      (WPARAM)tool->GetId(), (LPARAM)MAKELONG(enable, 0));
 
-    // Adjust displayed checked state -- it could have changed if the tool is
-    // disabled and has a custom "disabled state" bitmap.
-    DoToggleTool(tool, tool->IsToggled());
+        // Adjust displayed checked state -- it could have changed if the tool is
+        // disabled and has a custom "disabled state" bitmap.
+        DoToggleTool(tool, tool->IsToggled());
+    }
+    else if ( tool->IsControl() )
+    {
+        wxToolBarTool* tbTool = static_cast<wxToolBarTool*>(tool);
+
+        tbTool->GetControl()->Enable(enable);
+        wxStaticText* text = tbTool->GetStaticText();
+        if ( text )
+            text->Enable(enable);
+    }
 }
 
 void wxToolBar::DoToggleTool(wxToolBarToolBase *tool,
@@ -1587,6 +1655,19 @@ void wxToolBar::SetToolDisabledBitmap( int id, const wxBitmap& bitmap )
 
         tool->SetDisabledBitmap(bitmap);
         Realize();
+    }
+}
+
+void wxToolBar::SetToolPacking(int packing)
+{
+    if ( packing > 0 && packing != m_toolPacking )
+    {
+        m_toolPacking = packing;
+        if ( GetHwnd() )
+        {
+            MSWSetPadding(packing);
+            Realize();
+        }
     }
 }
 
@@ -1733,6 +1814,20 @@ bool wxToolBar::HandleSize(WXWPARAM WXUNUSED(wParam), WXLPARAM lParam)
             h = r.bottom - r.top - 3;
         else
             h = r.bottom - r.top;
+
+        // Take control height into account
+        for ( node = m_tools.GetFirst(); node; node = node->GetNext() )
+        {
+            wxToolBarTool * const
+                tool = static_cast<wxToolBarTool *>(node->GetData());
+            if (tool->IsControl())
+            {
+                int y = (tool->GetControl()->GetSize().y - 2); // -2 since otherwise control height + 4 (below) is too much
+                if (y > h)
+                    h = y;
+            }
+        }
+
         if ( m_maxRows )
         {
             // FIXME: hardcoded separator line height...
@@ -1947,11 +2042,7 @@ WXLRESULT wxToolBar::MSWWindowProc(WXUINT nMsg, WXWPARAM wParam, WXLPARAM lParam
 
 #ifdef wxHAS_MSW_BACKGROUND_ERASE_HOOK
         case WM_PAINT:
-            // refreshing the controls in the toolbar inside a composite window
-            // results in an endless stream of WM_PAINT messages -- and seems
-            // to be unnecessary anyhow as everything works just fine without
-            // any special workarounds in this case
-            if ( !IsDoubleBuffered() && HandlePaint(wParam, lParam) )
+            if ( HandlePaint(wParam, lParam) )
                 return 0;
             break;
 #endif // wxHAS_MSW_BACKGROUND_ERASE_HOOK

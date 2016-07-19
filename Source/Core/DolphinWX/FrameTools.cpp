@@ -270,9 +270,10 @@ wxMenuBar* CFrame::CreateMenu()
 
 		static const wxString menu_text[] =
 		{
-			_("&Registers"), _("&Watch"), _("&Breakpoints"),
-			_("&Memory"),    _("&JIT"),   _("&Sound"),
-			_("&Video") };
+		_("&Registers"), _("&Watch"), _("&Breakpoints"),
+		_("&Memory"),    _("&JIT"),   _("&Sound"),
+		_("&Video")
+		};
 
 		for (int i = IDM_REGISTER_WINDOW; i <= IDM_VIDEO_WINDOW; i++)
 		{
@@ -556,7 +557,7 @@ void CFrame::PopulateToolbar(wxToolBar* ToolBar)
 // Delete and recreate the toolbar
 void CFrame::RecreateToolbar()
 {
-	static const long TOOLBAR_STYLE = wxTB_DEFAULT_STYLE | wxTB_TEXT;
+	static const long TOOLBAR_STYLE = wxTB_DEFAULT_STYLE | wxTB_TEXT | wxTB_FLAT;
 
 	if (m_ToolBar != nullptr)
 	{
@@ -1780,13 +1781,15 @@ void CFrame::UpdateGUI()
 			{
 				m_ToolBar->DeleteTool(IDM_PLAY);
 				m_ToolBar->InsertTool(position, IDM_PLAY, _("Pause"), m_Bitmaps[Toolbar_Pause],
-					wxNullBitmap, wxITEM_NORMAL, _("Pause"));
+					WxUtils::CreateDisabledButtonBitmap(m_Bitmaps[Toolbar_Pause]),
+					wxITEM_NORMAL, _("Pause"));
 			}
 			else
 			{
 				m_ToolBar->DeleteTool(IDM_PLAY);
 				m_ToolBar->InsertTool(position, IDM_PLAY, _("Play"), m_Bitmaps[Toolbar_Play],
-					wxNullBitmap, wxITEM_NORMAL, _("Play"));
+					WxUtils::CreateDisabledButtonBitmap(m_Bitmaps[Toolbar_Play]),
+					wxITEM_NORMAL, _("Play"));
 			}
 			m_ToolBar->Realize();
 		}

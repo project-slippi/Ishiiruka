@@ -410,12 +410,11 @@ void wxMDIParentFrame::DoMenuUpdates(wxMenu* menu)
     wxMDIChildFrame *child = GetActiveChild();
     if ( child )
     {
-        wxEvtHandler* source = child->GetEventHandler();
         wxMenuBar* bar = child->GetMenuBar();
 
         if (menu)
         {
-            menu->UpdateUI(source);
+            menu->UpdateUI();
         }
         else
         {
@@ -423,7 +422,7 @@ void wxMDIParentFrame::DoMenuUpdates(wxMenu* menu)
             {
                 int nCount = bar->GetMenuCount();
                 for (int n = 0; n < nCount; n++)
-                    bar->GetMenu(n)->UpdateUI(source);
+                    bar->GetMenu(n)->UpdateUI();
             }
         }
     }
@@ -911,7 +910,9 @@ wxMDIChildFrame::~wxMDIChildFrame()
     if ( !m_hWnd )
         return;
 
-    GetMDIParent()->RemoveMDIChild(this);
+    wxMDIParentFrame * const parent = GetMDIParent();
+
+    parent->RemoveMDIChild(this);
 
     // will be destroyed by DestroyChildren() but reset them before calling it
     // to avoid using dangling pointers if a callback comes in the meanwhile
@@ -925,6 +926,12 @@ wxMDIChildFrame::~wxMDIChildFrame()
     DestroyChildren();
 
     MDIRemoveWindowMenu(NULL, m_hMenu);
+
+    // MDIRemoveWindowMenu() doesn't update the MDI menu when called with NULL
+    // window, so do it ourselves.
+    MDISetMenu(parent->GetClientWindow(),
+               (HMENU)parent->MSWGetActiveMenu(),
+               GetMDIWindowMenu(parent));
 
     MSWDestroyWindow();
 }

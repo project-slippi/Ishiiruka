@@ -116,9 +116,9 @@ public:
     virtual void DrawCollapseButton(wxWindow *win,
         wxDC& dc,
         const wxRect& rect,
-        int flags = 0);
+        int flags = 0) wxOVERRIDE;
 
-    virtual wxSize GetCollapseButtonSize(wxWindow *win, wxDC& dc);
+    virtual wxSize GetCollapseButtonSize(wxWindow *win, wxDC& dc) wxOVERRIDE;
 
     virtual void DrawItemSelectionRect(wxWindow *win,
                                        wxDC& dc,
@@ -358,8 +358,7 @@ wxRendererGeneric::DrawHeaderButtonContents(wxWindow *win,
         wxRect ar = rect;
 
         // make a rect for the arrow
-        ar.height = 4;
-        ar.width = 8;
+        ar.SetSize(wxWindow::FromDIP(wxSize(8, 4), win));
         ar.y += (rect.height - ar.height)/2;
         ar.x = ar.x + rect.width - 3*ar.width/2;
         arrowSpace = 3*ar.width/2; // space to preserve when drawing the label
@@ -713,9 +712,9 @@ wxRendererGeneric::DrawCheckBox(wxWindow *WXUNUSED(win),
     }
 }
 
-wxSize wxRendererGeneric::GetCheckBoxSize(wxWindow *WXUNUSED(win))
+wxSize wxRendererGeneric::GetCheckBoxSize(wxWindow *win)
 {
-    return wxSize(16, 16);
+    return win->FromDIP(wxSize(16, 16));
 }
 
 void
@@ -771,7 +770,7 @@ wxSize wxRendererGeneric::GetCollapseButtonSize(wxWindow *WXUNUSED(win), wxDC& W
 }
 
 void
-wxRendererGeneric::DrawItemSelectionRect(wxWindow * win,
+wxRendererGeneric::DrawItemSelectionRect(wxWindow * WXUNUSED(win),
                                          wxDC& dc,
                                          const wxRect& rect,
                                          int flags)
@@ -794,11 +793,7 @@ wxRendererGeneric::DrawItemSelectionRect(wxWindow * win,
     }
 
     dc.SetBrush(brush);
-    bool drawFocusRect = (flags & wxCONTROL_CURRENT) && (flags & wxCONTROL_FOCUSED)
-#if defined( __WXMAC__ ) && !defined(__WXUNIVERSAL__) && wxOSX_USE_CARBON
-                && IsControlActive( (ControlRef)win->GetHandle() )
-#endif
-        ;
+    bool drawFocusRect = (flags & wxCONTROL_CURRENT) && (flags & wxCONTROL_FOCUSED);
 
     if ( drawFocusRect && !(flags & wxCONTROL_CELL) )
         dc.SetPen( *wxBLACK_PEN );
@@ -814,9 +809,6 @@ wxRendererGeneric::DrawItemSelectionRect(wxWindow * win,
 
         DrawSelectedCellFocusRect(dc, focusRect);
     }
-
-    // it's unused everywhere except in wxOSX/Carbon
-    wxUnusedVar(win);
 }
 
 void
@@ -960,9 +952,12 @@ wxRendererGeneric::DrawItemText(wxWindow* WXUNUSED(win),
         textColour = wxSystemSettings::GetColour(wxSYS_COLOUR_GRAYTEXT);
     }
 
+    // Be careful to avoid using the default flags here as otherwise any
+    // ampersands in the text would be consumed (and tabs expanded).
     const wxString paintText = wxControl::Ellipsize(text, dc,
                                                     ellipsizeMode,
-                                                    rect.GetWidth());
+                                                    rect.GetWidth(),
+                                                    wxELLIPSIZE_FLAGS_NONE);
 
     // Draw text taking care not to change its colour if it had been set by the
     // caller for a normal item to allow having items in non-default colours.

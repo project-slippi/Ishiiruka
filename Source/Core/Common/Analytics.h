@@ -181,7 +181,7 @@ protected:
 
 // Analytics backend to be used for debugging purpose, which dumps reports to
 // stdout.
-class StdoutAnalyticsBackend: public AnalyticsReportingBackend
+class StdoutAnalyticsBackend : public AnalyticsReportingBackend
 {
 public:
 	void Send(std::string report) override;
@@ -189,7 +189,7 @@ public:
 
 // Analytics backend that POSTs data to a remote HTTP(s) endpoint. WARNING:
 // remember to get explicit user consent before using.
-class HttpAnalyticsBackend: public AnalyticsReportingBackend
+class HttpAnalyticsBackend : public AnalyticsReportingBackend
 {
 public:
 	HttpAnalyticsBackend(const std::string& endpoint);

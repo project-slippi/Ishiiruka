@@ -116,7 +116,7 @@ public:
 	class Ref
 	{
 	public:
-		constexpr Ref(Ref&& other): m_bs(other.m_bs), m_mask(other.m_mask)
+		constexpr Ref(Ref&& other) : m_bs(other.m_bs), m_mask(other.m_mask)
 		{}
 		constexpr Ref(BitSet* bs, IntTy mask) : m_bs(bs), m_mask(mask)
 		{}
@@ -139,7 +139,7 @@ public:
 	class Iterator
 	{
 	public:
-		constexpr Iterator(const Iterator& other): m_val(other.m_val), m_bit(other.m_bit)
+		constexpr Iterator(const Iterator& other) : m_val(other.m_val), m_bit(other.m_bit)
 		{}
 		constexpr Iterator(IntTy val, int bit) : m_val(val), m_bit(bit)
 		{}
@@ -185,9 +185,9 @@ public:
 		int m_bit;
 	};
 
-	constexpr BitSet(): m_val(0)
+	constexpr BitSet() : m_val(0)
 	{}
-	constexpr explicit BitSet(IntTy val): m_val(val)
+	constexpr explicit BitSet(IntTy val) : m_val(val)
 	{}
 	BitSet(std::initializer_list<int> init)
 	{

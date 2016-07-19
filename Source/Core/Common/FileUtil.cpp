@@ -9,8 +9,8 @@
 #include <fcntl.h>
 #include <limits.h>
 #include <string>
-#include <vector>
 #include <sys/stat.h>
+#include <vector>
 
 #include "Common/Common.h"
 #include "Common/CommonFuncs.h"
@@ -20,10 +20,10 @@
 #include "Common/Logging/Log.h"
 
 #ifdef _WIN32
-#include <commdlg.h>   // for GetSaveFileName
-#include <direct.h>    // getcwd
+#include <commdlg.h>  // for GetSaveFileName
+#include <direct.h>   // getcwd
 #include <io.h>
-#include <objbase.h>   // guid stuff
+#include <objbase.h>  // guid stuff
 #include <shellapi.h>
 #include <windows.h>
 #else
@@ -42,12 +42,7 @@
 #endif
 
 #ifndef S_ISDIR
-#define S_ISDIR(m)  (((m)&S_IFMT) == S_IFDIR)
-#endif
-
-#if defined BSD4_4 || defined __FreeBSD__
-#define stat64 stat
-#define fstat64 fstat
+#define S_ISDIR(m) (((m)&S_IFMT) == S_IFDIR)
 #endif
 
 // This namespace has various generic functions related to files and paths.
@@ -55,7 +50,6 @@
 // REMEMBER: strdup considered harmful!
 namespace File
 {
-
 // Remove any ending forward slashes from directory paths
 // Modifies argument.
 static void StripTailDirSlashes(std::string& fname)
@@ -70,7 +64,7 @@ static void StripTailDirSlashes(std::string& fname)
 // Returns true if file filename exists
 bool Exists(const std::string& filename)
 {
-	struct stat64 file_info;
+	struct stat file_info;
 
 	std::string copy(filename);
 	StripTailDirSlashes(copy);
@@ -78,7 +72,7 @@ bool Exists(const std::string& filename)
 #ifdef _WIN32
 	int result = _tstat64(UTF8ToTStr(copy).c_str(), &file_info);
 #else
-	int result = stat64(copy.c_str(), &file_info);
+	int result = stat(copy.c_str(), &file_info);
 #endif
 
 	return (result == 0);
@@ -87,7 +81,7 @@ bool Exists(const std::string& filename)
 // Returns true if filename is a directory
 bool IsDirectory(const std::string& filename)
 {
-	struct stat64 file_info;
+	struct stat file_info;
 
 	std::string copy(filename);
 	StripTailDirSlashes(copy);
@@ -95,13 +89,13 @@ bool IsDirectory(const std::string& filename)
 #ifdef _WIN32
 	int result = _tstat64(UTF8ToTStr(copy).c_str(), &file_info);
 #else
-	int result = stat64(copy.c_str(), &file_info);
+	int result = stat(copy.c_str(), &file_info);
 #endif
 
 	if (result < 0)
 	{
-		WARN_LOG(COMMON, "IsDirectory: stat failed on %s: %s",
-			filename.c_str(), GetLastErrorMsg().c_str());
+		WARN_LOG(COMMON, "IsDirectory: stat failed on %s: %s", filename.c_str(),
+			GetLastErrorMsg().c_str());
 		return false;
 	}
 
@@ -132,15 +126,15 @@ bool Delete(const std::string& filename)
 #ifdef _WIN32
 	if (!DeleteFile(UTF8ToTStr(filename).c_str()))
 	{
-		WARN_LOG(COMMON, "Delete: DeleteFile failed on %s: %s",
-			filename.c_str(), GetLastErrorMsg().c_str());
+		WARN_LOG(COMMON, "Delete: DeleteFile failed on %s: %s", filename.c_str(),
+			GetLastErrorMsg().c_str());
 		return false;
 	}
 #else
 	if (unlink(filename.c_str()) == -1)
 	{
-		WARN_LOG(COMMON, "Delete: unlink failed on %s: %s",
-			filename.c_str(), GetLastErrorMsg().c_str());
+		WARN_LOG(COMMON, "Delete: unlink failed on %s: %s", filename.c_str(),
+			GetLastErrorMsg().c_str());
 		return false;
 	}
 #endif
@@ -218,7 +212,6 @@ bool CreateFullPath(const std::string& fullPath)
 	}
 }
 
-
 // Deletes a directory filename, returns true on success
 bool DeleteDir(const std::string& filename)
 {
@@ -246,14 +239,14 @@ bool DeleteDir(const std::string& filename)
 // renames file srcFilename to destFilename, returns true on success
 bool Rename(const std::string& srcFilename, const std::string& destFilename)
 {
-	INFO_LOG(COMMON, "Rename: %s --> %s",
-		srcFilename.c_str(), destFilename.c_str());
+	INFO_LOG(COMMON, "Rename: %s --> %s", srcFilename.c_str(), destFilename.c_str());
 #ifdef _WIN32
 	auto sf = UTF8ToTStr(srcFilename);
 	auto df = UTF8ToTStr(destFilename);
 	// The Internet seems torn about whether ReplaceFile is atomic or not.
 	// Hopefully it's atomic enough...
-	if (ReplaceFile(df.c_str(), sf.c_str(), nullptr, REPLACEFILE_IGNORE_MERGE_ERRORS, nullptr, nullptr))
+	if (ReplaceFile(df.c_str(), sf.c_str(), nullptr, REPLACEFILE_IGNORE_MERGE_ERRORS, nullptr,
+		nullptr))
 		return true;
 	// Might have failed because the destination doesn't exist.
 	if (GetLastError() == ERROR_FILE_NOT_FOUND)
@@ -265,8 +258,8 @@ bool Rename(const std::string& srcFilename, const std::string& destFilename)
 	if (rename(srcFilename.c_str(), destFilename.c_str()) == 0)
 		return true;
 #endif
-	ERROR_LOG(COMMON, "Rename: failed %s --> %s: %s",
-		srcFilename.c_str(), destFilename.c_str(), GetLastErrorMsg().c_str());
+	ERROR_LOG(COMMON, "Rename: failed %s --> %s: %s", srcFilename.c_str(), destFilename.c_str(),
+		GetLastErrorMsg().c_str());
 	return false;
 }
 
@@ -308,14 +301,13 @@ bool RenameSync(const std::string& srcFilename, const std::string& destFilename)
 // copies file srcFilename to destFilename, returns true on success
 bool Copy(const std::string& srcFilename, const std::string& destFilename)
 {
-	INFO_LOG(COMMON, "Copy: %s --> %s",
-		srcFilename.c_str(), destFilename.c_str());
+	INFO_LOG(COMMON, "Copy: %s --> %s", srcFilename.c_str(), destFilename.c_str());
 #ifdef _WIN32
 	if (CopyFile(UTF8ToTStr(srcFilename).c_str(), UTF8ToTStr(destFilename).c_str(), FALSE))
 		return true;
 
-	ERROR_LOG(COMMON, "Copy: failed %s --> %s: %s",
-		srcFilename.c_str(), destFilename.c_str(), GetLastErrorMsg().c_str());
+	ERROR_LOG(COMMON, "Copy: failed %s --> %s: %s", srcFilename.c_str(), destFilename.c_str(),
+		GetLastErrorMsg().c_str());
 	return false;
 #else
 
@@ -329,8 +321,8 @@ bool Copy(const std::string& srcFilename, const std::string& destFilename)
 	OpenFStream(input, srcFilename, std::ifstream::in | std::ifstream::binary);
 	if (!input.is_open())
 	{
-		ERROR_LOG(COMMON, "Copy: input failed %s --> %s: %s",
-			srcFilename.c_str(), destFilename.c_str(), GetLastErrorMsg().c_str());
+		ERROR_LOG(COMMON, "Copy: input failed %s --> %s: %s", srcFilename.c_str(), destFilename.c_str(),
+			GetLastErrorMsg().c_str());
 		return false;
 	}
 
@@ -339,8 +331,8 @@ bool Copy(const std::string& srcFilename, const std::string& destFilename)
 
 	if (!output.IsOpen())
 	{
-		ERROR_LOG(COMMON, "Copy: output failed %s --> %s: %s",
-			srcFilename.c_str(), destFilename.c_str(), GetLastErrorMsg().c_str());
+		ERROR_LOG(COMMON, "Copy: output failed %s --> %s: %s", srcFilename.c_str(),
+			destFilename.c_str(), GetLastErrorMsg().c_str());
 		return false;
 	}
 
@@ -351,18 +343,16 @@ bool Copy(const std::string& srcFilename, const std::string& destFilename)
 		input.read(buffer, BSIZE);
 		if (!input)
 		{
-			ERROR_LOG(COMMON,
-				"Copy: failed reading from source, %s --> %s: %s",
-				srcFilename.c_str(), destFilename.c_str(), GetLastErrorMsg().c_str());
+			ERROR_LOG(COMMON, "Copy: failed reading from source, %s --> %s: %s", srcFilename.c_str(),
+				destFilename.c_str(), GetLastErrorMsg().c_str());
 			return false;
 		}
 
 		// write output
 		if (!output.WriteBytes(buffer, BSIZE))
 		{
-			ERROR_LOG(COMMON,
-				"Copy: failed writing to output, %s --> %s: %s",
-				srcFilename.c_str(), destFilename.c_str(), GetLastErrorMsg().c_str());
+			ERROR_LOG(COMMON, "Copy: failed writing to output, %s --> %s: %s", srcFilename.c_str(),
+				destFilename.c_str(), GetLastErrorMsg().c_str());
 			return false;
 		}
 	}
@@ -386,31 +376,28 @@ u64 GetSize(const std::string& filename)
 		return 0;
 	}
 
-	struct stat64 buf;
+	struct stat buf;
 #ifdef _WIN32
 	if (_tstat64(UTF8ToTStr(filename).c_str(), &buf) == 0)
 #else
-	if (stat64(filename.c_str(), &buf) == 0)
+	if (stat(filename.c_str(), &buf) == 0)
 #endif
 	{
-		DEBUG_LOG(COMMON, "GetSize: %s: %lld",
-			filename.c_str(), (long long)buf.st_size);
+		DEBUG_LOG(COMMON, "GetSize: %s: %lld", filename.c_str(), (long long)buf.st_size);
 		return buf.st_size;
 	}
 
-	ERROR_LOG(COMMON, "GetSize: Stat failed %s: %s",
-		filename.c_str(), GetLastErrorMsg().c_str());
+	ERROR_LOG(COMMON, "GetSize: Stat failed %s: %s", filename.c_str(), GetLastErrorMsg().c_str());
 	return 0;
 }
 
 // Overloaded GetSize, accepts file descriptor
 u64 GetSize(const int fd)
 {
-	struct stat64 buf;
-	if (fstat64(fd, &buf) != 0)
+	struct stat buf;
+	if (fstat(fd, &buf) != 0)
 	{
-		ERROR_LOG(COMMON, "GetSize: stat failed %i: %s",
-			fd, GetLastErrorMsg().c_str());
+		ERROR_LOG(COMMON, "GetSize: stat failed %i: %s", fd, GetLastErrorMsg().c_str());
 		return 0;
 	}
 	return buf.st_size;
@@ -423,16 +410,14 @@ u64 GetSize(FILE* f)
 	u64 pos = ftello(f);
 	if (fseeko(f, 0, SEEK_END) != 0)
 	{
-		ERROR_LOG(COMMON, "GetSize: seek failed %p: %s",
-			f, GetLastErrorMsg().c_str());
+		ERROR_LOG(COMMON, "GetSize: seek failed %p: %s", f, GetLastErrorMsg().c_str());
 		return 0;
 	}
 
 	u64 size = ftello(f);
 	if ((size != pos) && (fseeko(f, pos, SEEK_SET) != 0))
 	{
-		ERROR_LOG(COMMON, "GetSize: seek failed %p: %s",
-			f, GetLastErrorMsg().c_str());
+		ERROR_LOG(COMMON, "GetSize: seek failed %p: %s", f, GetLastErrorMsg().c_str());
 		return 0;
 	}
 
@@ -446,14 +431,13 @@ bool CreateEmptyFile(const std::string& filename)
 
 	if (!File::IOFile(filename, "wb"))
 	{
-		ERROR_LOG(COMMON, "CreateEmptyFile: failed %s: %s",
-			filename.c_str(), GetLastErrorMsg().c_str());
+		ERROR_LOG(COMMON, "CreateEmptyFile: failed %s: %s", filename.c_str(),
+			GetLastErrorMsg().c_str());
 		return false;
 	}
 
 	return true;
 }
-
 
 // Scans the directory tree gets, starting from _Directory and adds the
 // results into parentEntry. Returns the number of files+directories found
@@ -525,7 +509,6 @@ FSTEntry ScanDirectoryTree(const std::string& directory, bool recursive)
 	return parent_entry;
 }
 
-
 // Deletes the given directory and anything under it. Returns true on success.
 bool DeleteDirRecursively(const std::string& directory)
 {
@@ -561,8 +544,7 @@ bool DeleteDirRecursively(const std::string& directory)
 
 		// check for "." and ".."
 		if (((virtualName[0] == '.') && (virtualName[1] == '\0')) ||
-			((virtualName[0] == '.') && (virtualName[1] == '.') &&
-			(virtualName[2] == '\0')))
+			((virtualName[0] == '.') && (virtualName[1] == '.') && (virtualName[2] == '\0')))
 			continue;
 
 		std::string newPath = directory + DIR_SEP_CHR + virtualName;
@@ -599,9 +581,12 @@ bool DeleteDirRecursively(const std::string& directory)
 // Create directory and copy contents (does not overwrite existing files)
 void CopyDir(const std::string& source_path, const std::string& dest_path)
 {
-	if (source_path == dest_path) return;
-	if (!File::Exists(source_path)) return;
-	if (!File::Exists(dest_path)) File::CreateFullPath(dest_path);
+	if (source_path == dest_path)
+		return;
+	if (!File::Exists(source_path))
+		return;
+	if (!File::Exists(dest_path))
+		File::CreateFullPath(dest_path);
 
 #ifdef _WIN32
 	WIN32_FIND_DATA ffd;
@@ -619,7 +604,8 @@ void CopyDir(const std::string& source_path, const std::string& dest_path)
 #else
 	struct dirent dirent, *result = nullptr;
 	DIR* dirp = opendir(source_path.c_str());
-	if (!dirp) return;
+	if (!dirp)
+		return;
 
 	while (!readdir_r(dirp, &dirent, &result) && result)
 	{
@@ -633,10 +619,12 @@ void CopyDir(const std::string& source_path, const std::string& dest_path)
 		std::string dest = dest_path + DIR_SEP + virtualName;
 		if (IsDirectory(source))
 		{
-			if (!File::Exists(dest)) File::CreateFullPath(dest + DIR_SEP);
+			if (!File::Exists(dest))
+				File::CreateFullPath(dest + DIR_SEP);
 			CopyDir(source, dest);
 		}
-		else if (!File::Exists(dest)) File::Copy(source, dest);
+		else if (!File::Exists(dest))
+			File::Copy(source, dest);
 #ifdef _WIN32
 	} while (FindNextFile(hFind, &ffd) != 0);
 	FindClose(hFind);
@@ -653,8 +641,7 @@ std::string GetCurrentDir()
 	// Get the current working directory (getcwd uses malloc)
 	if (!(dir = __getcwd(nullptr, 0)))
 	{
-		ERROR_LOG(COMMON, "GetCurrentDirectory failed: %s",
-			GetLastErrorMsg().c_str());
+		ERROR_LOG(COMMON, "GetCurrentDirectory failed: %s", GetLastErrorMsg().c_str());
 		return nullptr;
 	}
 	std::string strDir = dir;
@@ -758,9 +745,9 @@ std::string GetSysDirectory()
 {
 	std::string sysDir;
 
-#if defined (__APPLE__)
+#if defined(__APPLE__)
 	sysDir = GetBundleDirectory() + DIR_SEP + SYSDATA_DIR;
-#elif defined (_WIN32) || defined (LINUX_LOCAL_DEV)
+#elif defined(_WIN32) || defined(LINUX_LOCAL_DEV)
 	sysDir = GetExeDirectory() + DIR_SEP + SYSDATA_DIR;
 #else
 	sysDir = SYSDATA_DIR;
@@ -808,10 +795,13 @@ static void RebuildUserDirectories(unsigned int dir_index)
 		s_user_paths[F_ARAMDUMP_IDX] = s_user_paths[D_DUMP_IDX] + ARAM_DUMP;
 		s_user_paths[F_FAKEVMEMDUMP_IDX] = s_user_paths[D_DUMP_IDX] + FAKEVMEM_DUMP;
 		s_user_paths[F_GCSRAM_IDX] = s_user_paths[D_GCUSER_IDX] + GC_SRAM;
+		s_user_paths[F_WIISDCARD_IDX] = s_user_paths[D_WIIROOT_IDX] + DIR_SEP WII_SDCARD;
 
 		s_user_paths[D_MEMORYWATCHER_IDX] = s_user_paths[D_USER_IDX] + MEMORYWATCHER_DIR DIR_SEP;
-		s_user_paths[F_MEMORYWATCHERLOCATIONS_IDX] = s_user_paths[D_MEMORYWATCHER_IDX] + MEMORYWATCHER_LOCATIONS;
-		s_user_paths[F_MEMORYWATCHERSOCKET_IDX] = s_user_paths[D_MEMORYWATCHER_IDX] + MEMORYWATCHER_SOCKET;
+		s_user_paths[F_MEMORYWATCHERLOCATIONS_IDX] =
+			s_user_paths[D_MEMORYWATCHER_IDX] + MEMORYWATCHER_LOCATIONS;
+		s_user_paths[F_MEMORYWATCHERSOCKET_IDX] =
+			s_user_paths[D_MEMORYWATCHER_IDX] + MEMORYWATCHER_SOCKET;
 
 		// The shader cache has moved to the cache directory, so remove the old one.
 		// TODO: remove that someday.
@@ -908,16 +898,15 @@ bool ReadFileToString(const std::string& filename, std::string& str)
 	return retval;
 }
 
-IOFile::IOFile()
-	: m_file(nullptr), m_good(true)
-{}
+IOFile::IOFile() : m_file(nullptr), m_good(true)
+{
+}
 
-IOFile::IOFile(std::FILE* file)
-	: m_file(file), m_good(true)
-{}
+IOFile::IOFile(std::FILE* file) : m_file(file), m_good(true)
+{
+}
 
-IOFile::IOFile(const std::string& filename, const char openmode[])
-	: m_file(nullptr), m_good(true)
+IOFile::IOFile(const std::string& filename, const char openmode[]) : m_file(nullptr), m_good(true)
 {
 	Open(filename, openmode);
 }
@@ -927,8 +916,7 @@ IOFile::~IOFile()
 	Close();
 }
 
-IOFile::IOFile(IOFile&& other)
-	: m_file(nullptr), m_good(true)
+IOFile::IOFile(IOFile&& other) : m_file(nullptr), m_good(true)
 {
 	Swap(other);
 }
@@ -1015,7 +1003,8 @@ bool IOFile::Flush()
 
 bool IOFile::Resize(u64 size)
 {
-	if (!IsOpen() || 0 !=
+	if (!IsOpen() ||
+		0 !=
 #ifdef _WIN32
 		// ector: _chsize sucks, not 64-bit safe
 		// F|RES: changed to _chsize_s. i think it is 64-bit safe
@@ -1030,4 +1019,4 @@ bool IOFile::Resize(u64 size)
 	return m_good;
 }
 
-} // namespace
+}  // namespace

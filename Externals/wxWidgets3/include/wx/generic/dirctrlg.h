@@ -80,7 +80,7 @@ class WXDLLIMPEXP_CORE wxGenericDirCtrl: public wxControl
 {
 public:
     wxGenericDirCtrl();
-    wxGenericDirCtrl(wxWindow *parent, const wxWindowID id = wxID_ANY,
+    wxGenericDirCtrl(wxWindow *parent, wxWindowID id = wxID_ANY,
               const wxString &dir = wxDirDialogDefaultFolderStr,
               const wxPoint& pos = wxDefaultPosition,
               const wxSize& size = wxDefaultSize,
@@ -93,7 +93,7 @@ public:
         Create(parent, id, dir, pos, size, style, filter, defaultFilter, name);
     }
 
-    bool Create(wxWindow *parent, const wxWindowID id = wxID_ANY,
+    bool Create(wxWindow *parent, wxWindowID id = wxID_ANY,
               const wxString &dir = wxDirDialogDefaultFolderStr,
               const wxPoint& pos = wxDefaultPosition,
               const wxSize& size = wxDefaultSize,
@@ -228,7 +228,7 @@ class WXDLLIMPEXP_CORE wxDirFilterListCtrl: public wxChoice
 {
 public:
     wxDirFilterListCtrl() { Init(); }
-    wxDirFilterListCtrl(wxGenericDirCtrl* parent, const wxWindowID id = wxID_ANY,
+    wxDirFilterListCtrl(wxGenericDirCtrl* parent, wxWindowID id = wxID_ANY,
               const wxPoint& pos = wxDefaultPosition,
               const wxSize& size = wxDefaultSize,
               long style = 0)
@@ -237,7 +237,7 @@ public:
         Create(parent, id, pos, size, style);
     }
 
-    bool Create(wxGenericDirCtrl* parent, const wxWindowID id = wxID_ANY,
+    bool Create(wxGenericDirCtrl* parent, wxWindowID id = wxID_ANY,
               const wxPoint& pos = wxDefaultPosition,
               const wxSize& size = wxDefaultSize,
               long style = 0);
@@ -300,11 +300,17 @@ public:
     int GetIconID(const wxString& extension, const wxString& mime = wxEmptyString);
     wxImageList *GetSmallImageList();
 
+    const wxSize& GetSize() const { return m_size; }
+    void SetSize(const wxSize& sz) { m_size = sz; }
+
+    bool IsOk() const { return m_smallImageList != NULL; }
+
 protected:
-    void Create();  // create on first use
+    void Create(const wxSize& sz);  // create on first use
 
     wxImageList *m_smallImageList;
     wxHashTable *m_HashTable;
+    wxSize  m_size;
 };
 
 // The global fileicons table

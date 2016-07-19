@@ -18,7 +18,6 @@
 #if wxUSE_GRAPHICS_CONTEXT
 
 #include "wx/dcgraph.h"
-#include "wx/rawbmp.h"
 
 #ifndef WX_PRECOMP
     #include "wx/icon.h"
@@ -121,20 +120,6 @@ wxGCDC::~wxGCDC()
 {
 }
 
-wxGraphicsContext* wxGCDC::GetGraphicsContext() const
-{
-    if (!m_pimpl) return NULL;
-    wxGCDCImpl *gc_impl = (wxGCDCImpl*) m_pimpl;
-    return gc_impl->GetGraphicsContext();
-}
-
-void wxGCDC::SetGraphicsContext( wxGraphicsContext* ctx )
-{
-    if (!m_pimpl) return;
-    wxGCDCImpl *gc_impl = (wxGCDCImpl*) m_pimpl;
-    gc_impl->SetGraphicsContext( ctx );
-}
-
 wxIMPLEMENT_ABSTRACT_CLASS(wxGCDCImpl, wxDCImpl);
 
 wxGCDCImpl::wxGCDCImpl( wxDC *owner ) :
@@ -169,61 +154,6 @@ wxGCDCImpl::wxGCDCImpl( wxDC *owner, const wxWindowDC& dc ) :
 wxGCDCImpl::wxGCDCImpl( wxDC *owner, const wxMemoryDC& dc ) :
    wxDCImpl( owner )
 {
-#if defined(__WXMSW__) && wxUSE_WXDIB
-    // It seems that GDI+ sets invalid values for alpha channel when used with
-    // a compatible bitmap (DDB). So we need to convert the currently selected
-    // bitmap to a DIB before using it with any GDI+ functions to ensure that
-    // we get the correct alpha channel values in it at the end.
-
-    wxBitmap bmp = dc.GetSelectedBitmap();
-    wxASSERT_MSG( bmp.IsOk(), "Should select a bitmap before creating wxGCDC" );
-
-    // We don't need to convert it if it can't have alpha at all (any depth but
-    // 32) or is already a DIB with alpha.
-    if ( bmp.GetDepth() == 32 && (!bmp.IsDIB() || !bmp.HasAlpha()) )
-    {
-        // We need to temporarily deselect this bitmap from the memory DC
-        // before modifying it.
-        const_cast<wxMemoryDC&>(dc).SelectObject(wxNullBitmap);
-
-        bmp.ConvertToDIB(); // Does nothing if already a DIB.
-
-        if( !bmp.HasAlpha() )
-        {
-            // Initialize alpha channel, even if we don't have any alpha yet,
-            // we should have correct (opaque) alpha values in it for GDI+
-            // functions to work correctly.
-            {
-                wxAlphaPixelData data(bmp);
-                if ( data )
-                {
-                    wxAlphaPixelData::Iterator p(data);
-                    for ( int y = 0; y < data.GetHeight(); y++ )
-                    {
-                        wxAlphaPixelData::Iterator rowStart = p;
-
-                        for ( int x = 0; x < data.GetWidth(); x++ )
-                        {
-                            p.Alpha() = wxALPHA_OPAQUE;
-                            ++p;
-                        }
-
-                        p = rowStart;
-                        p.OffsetY(data, 1);
-                    }
-                }
-            } // End of block modifying the bitmap.
-
-            // Using wxAlphaPixelData sets the internal "has alpha" flag but we
-            // don't really have any alpha yet, so reset it back for now.
-            bmp.ResetAlpha();
-        }
-
-        // Undo SelectObject() at the beginning of this block.
-        const_cast<wxMemoryDC&>(dc).SelectObjectAsSource(bmp);
-    }
-#endif // wxUSE_WXDIB
-
     Init(wxGraphicsContext::Create(dc));
 }
 
@@ -1053,20 +983,20 @@ void wxGCDCImpl::DoDrawRotatedText(const wxString& text, wxCoord x, wxCoord y,
     if ( (angle == 0.0) && m_font.IsOk() )
     {
         DoDrawText(text, x, y);
-        
+
         // Bounding box already updated by DoDrawText(), no need to do it again.
         return;
     }
-            
+
     // Get extent of whole text.
     wxCoord w, h, heightLine;
     GetOwner()->GetMultiLineTextExtent(text, &w, &h, &heightLine);
-    
+
     // Compute the shift for the origin of the next line.
     const double rad = wxDegToRad(angle);
     const double dx = heightLine * sin(rad);
     const double dy = heightLine * cos(rad);
-    
+
     // Draw all text line by line
     const wxArrayString lines = wxSplit(text, '\n', '\0');
     for ( size_t lineNum = 0; lineNum < lines.size(); lineNum++ )
@@ -1078,15 +1008,15 @@ void wxGCDCImpl::DoDrawRotatedText(const wxString& text, wxCoord x, wxCoord y,
         else
             m_graphicContext->DrawText( lines[lineNum], x + wxRound(lineNum*dx), y + wxRound(lineNum*dy), wxDegToRad(angle ), m_graphicContext->CreateBrush(m_textBackgroundColour) );
    }
-            
+
     // call the bounding box by adding all four vertices of the rectangle
     // containing the text to it (simpler and probably not slower than
     // determining which of them is really topmost/leftmost/...)
-    
+
     // "upper left" and "upper right"
     CalcBoundingBox(x, y);
     CalcBoundingBox(x + wxCoord(w*cos(rad)), y - wxCoord(w*sin(rad)));
-    
+
     // "bottom left" and "bottom right"
     x += (wxCoord)(h*sin(rad));
     y += (wxCoord)(h*cos(rad));

@@ -29,8 +29,7 @@ u32 HashFletcher(const u8* data_u8, size_t length)
 		{
 			sum1 += *data++;
 			sum2 += sum1;
-		}
-		while (--tlen);
+		} while (--tlen);
 
 		sum1 = (sum1 & 0xffff) + (sum1 >> 16);
 		sum2 = (sum2 & 0xffff) + (sum2 >> 16);
@@ -60,8 +59,7 @@ u32 HashAdler32(const u8* data, size_t len)
 		{
 			a += *data++;
 			b += a;
-		}
-		while (--tlen);
+		} while (--tlen);
 
 		a = (a & 0xffff) + (a >> 16) * (65536 - MOD_ADLER);
 		b = (b & 0xffff) + (b >> 16) * (65536 - MOD_ADLER);
@@ -232,7 +230,7 @@ u64 GetMurmurHash3(const u8* src, u32 len, u32 samples)
 u64 GetCRC32(const u8* src, u32 len, u32 samples)
 {
 #if _M_SSE >= 0x402 || defined(_M_ARM_64)
-	u64 h[4] = {len, 0, 0, 0};
+	u64 h[4] = { len, 0, 0, 0 };
 	u32 Step = (len / 8);
 	const u64* data = (const u64*)src;
 	const u64* end = data + Step;

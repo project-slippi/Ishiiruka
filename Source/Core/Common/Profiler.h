@@ -50,7 +50,7 @@ private:
 class ProfilerExecuter
 {
 public:
-	ProfilerExecuter(Profiler* _p): m_p(_p)
+	ProfilerExecuter(Profiler* _p) : m_p(_p)
 	{
 		m_p->Start();
 	}

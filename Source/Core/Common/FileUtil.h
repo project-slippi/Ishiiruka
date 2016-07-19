@@ -22,9 +22,9 @@ enum
 {
 	D_USER_IDX,
 	D_GCUSER_IDX,
-	D_WIIROOT_IDX, // always points to User/Wii or global user-configured directory
-	D_SESSION_WIIROOT_IDX, // may point to minimal temporary directory for determinism
-	D_CONFIG_IDX, // global settings
+	D_WIIROOT_IDX,          // always points to User/Wii or global user-configured directory
+	D_SESSION_WIIROOT_IDX,  // may point to minimal temporary directory for determinism
+	D_CONFIG_IDX,           // global settings
 	D_GAMESETTINGS_IDX, // user-specified settings which override both the global and the default settings (per game)
 	D_MAPS_IDX,
 	D_CACHE_IDX,
@@ -57,19 +57,19 @@ enum
 	F_GCSRAM_IDX,
 	F_MEMORYWATCHERLOCATIONS_IDX,
 	F_MEMORYWATCHERSOCKET_IDX,
+	F_WIISDCARD_IDX,
 	NUM_PATH_INDICES
 };
 
 namespace File
 {
-
 // FileSystem tree node/
 struct FSTEntry
 {
 	bool isDirectory;
-	u64 size;                 // File length, or for directories, recursive count of children
-	std::string physicalName; // Name on disk
-	std::string virtualName;  // Name in FST names table
+	u64 size;                  // File length, or for directories, recursive count of children
+	std::string physicalName;  // Name on disk
+	std::string virtualName;   // Name in FST names table
 	std::vector<FSTEntry> children;
 };
 
@@ -160,7 +160,7 @@ bool ReadFileToString(const std::string& filename, std::string& str);
 // simple wrapper for cstdlib file functions to
 // hopefully will make error checking easier
 // and make forgetting an fclose() harder
-class IOFile: public NonCopyable
+class IOFile : public NonCopyable
 {
 public:
 	IOFile();
@@ -209,28 +209,13 @@ public:
 		return WriteArray(reinterpret_cast<const char*>(data), length);
 	}
 
-	bool IsOpen() const
-	{
-		return nullptr != m_file;
-	}
-
+	bool IsOpen() const { return nullptr != m_file; }
 	// m_good is set to false when a read, write or other function fails
-	bool IsGood() const
-	{
-		return m_good;
-	}
-	operator void*()
-	{
-		return m_good ? m_file : nullptr;
-	}
-
+	bool IsGood() const { return m_good; }
+	operator void*() { return m_good ? m_file : nullptr; }
 	std::FILE* ReleaseHandle();
 
-	std::FILE* GetHandle()
-	{
-		return m_file;
-	}
-
+	std::FILE* GetHandle() { return m_file; }
 	void SetHandle(std::FILE* file);
 
 	bool Seek(s64 off, int origin);
@@ -242,11 +227,13 @@ public:
 	// clear error state
 	void Clear()
 	{
-		m_good = true; std::clearerr(m_file);
+		m_good = true;
+		std::clearerr(m_file);
 	}
 
 	std::FILE* m_file;
 	bool m_good;
+
 private:
 	IOFile(IOFile&);
 	IOFile& operator=(IOFile& other);

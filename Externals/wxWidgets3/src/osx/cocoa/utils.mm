@@ -35,8 +35,6 @@
 #endif
 #endif // wxUSE_GUI
 
-#if wxOSX_USE_COCOA
-
 #if wxUSE_GUI
 
 // Emit a beeeeeep
@@ -588,7 +586,9 @@ wxBitmap wxWindowDCImpl::DoGetAsBitmap(const wxRect *subrect) const
     if (!m_window)
         return wxNullBitmap;
 
-    wxBitmap bitmap(subrect ? subrect->GetSize() : m_window->GetSize());
+    const wxSize bitmapSize(subrect ? subrect->GetSize() : m_window->GetSize());
+    wxBitmap bitmap;
+    bitmap.CreateScaled(bitmapSize.x, bitmapSize.y, -1, m_contentScaleFactor);
 
     NSView* view = (NSView*) m_window->GetHandle();
     if ( [view isHiddenOrHasHiddenAncestor] == NO )
@@ -603,6 +603,12 @@ wxBitmap wxWindowDCImpl::DoGetAsBitmap(const wxRect *subrect) const
             CGImageRef cgImageRef = (CGImageRef)[rep CGImage];
 
             CGRect r = CGRectMake( 0 , 0 , CGImageGetWidth(cgImageRef)  , CGImageGetHeight(cgImageRef) );
+
+            // The bitmap created by wxBitmap::CreateScaled() above is scaled,
+            // so we need to adjust the coordinates for it.
+            r.size.width /= m_contentScaleFactor;
+            r.size.height /= m_contentScaleFactor;
+
             // since our context is upside down we dont use CGContextDrawImage
             wxMacDrawCGImage( (CGContextRef) bitmap.GetHBITMAP() , &r, cgImageRef ) ;
         }
@@ -618,107 +624,3 @@ wxBitmap wxWindowDCImpl::DoGetAsBitmap(const wxRect *subrect) const
 
 #endif // wxUSE_GUI
 
-// our OS version is the same in non GUI and GUI cases
-wxOperatingSystemId wxGetOsVersion(int *majorVsn, int *minorVsn)
-{
-#if MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_10
-    if ([NSProcessInfo instancesRespondToSelector:@selector(operatingSystemVersion)])
-    {
-        NSOperatingSystemVersion osVer = [NSProcessInfo processInfo].operatingSystemVersion;
-
-        if ( majorVsn != NULL )
-            *majorVsn = osVer.majorVersion;
-
-        if ( minorVsn != NULL )
-            *minorVsn = osVer.minorVersion;
-    }
-    else
-#endif
-    {
-        // On OS X versions prior to 10.10 NSProcessInfo does not provide the OS version
-        // Deprecated Gestalt calls are required instead
-wxGCC_WARNING_SUPPRESS(deprecated-declarations)
-        SInt32 maj, min;
-        Gestalt(gestaltSystemVersionMajor, &maj);
-        Gestalt(gestaltSystemVersionMinor, &min);
-wxGCC_WARNING_RESTORE()
-
-        if ( majorVsn != NULL )
-            *majorVsn = maj;
-
-        if ( minorVsn != NULL )
-            *minorVsn = min;
-    }
-
-    return wxOS_MAC_OSX_DARWIN;
-}
-
-bool wxCheckOsVersion(int majorVsn, int minorVsn)
-{
-#if MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_10
-    if ([NSProcessInfo instancesRespondToSelector:@selector(isOperatingSystemAtLeastVersion:)])
-    {
-        NSOperatingSystemVersion osVer;
-        osVer.majorVersion = majorVsn;
-        osVer.minorVersion = minorVsn;
-        osVer.patchVersion = 0;
-
-        return [[NSProcessInfo processInfo] isOperatingSystemAtLeastVersion:osVer] != NO;
-    }
-    else
-#endif
-    {
-        int majorCur, minorCur;
-        wxGetOsVersion(&majorCur, &minorCur);
-
-        return majorCur > majorVsn || (majorCur == majorVsn && minorCur >= minorVsn);
-    }
-}
-
-wxString wxGetOsDescription()
-{
-
-    int majorVer, minorVer;
-    wxGetOsVersion(&majorVer, &minorVer);
-
-    // Notice that neither the OS name itself nor the code names seem to be
-    // ever translated, OS X itself uses the English words even for the
-    // languages not using Roman alphabet.
-    wxString osBrand = "OS X";
-    wxString osName;
-    if (majorVer == 10)
-    {
-        switch (minorVer)
-        {
-            case 7:
-                osName = "Lion";
-                // 10.7 was the last version where the "Mac" prefix was used
-                osBrand = "Mac OS X";
-                break;
-            case 8:
-                osName = "Mountain Lion";
-                break;
-            case 9:
-                osName = "Mavericks";
-                break;
-            case 10:
-                osName = "Yosemite";
-                break;
-            case 11:
-                osName = "El Capitan";
-                break;
-        };
-    }
-
-    wxString osDesc = osBrand;
-    if (!osName.empty())
-        osDesc += " " + osName;
-
-    NSString* osVersionString = [NSProcessInfo processInfo].operatingSystemVersionString;
-    if (osVersionString)
-        osDesc += " " + wxCFStringRef::AsString(osVersionString);
-
-    return osDesc;
-}
-
-#endif // wxOSX_USE_COCOA

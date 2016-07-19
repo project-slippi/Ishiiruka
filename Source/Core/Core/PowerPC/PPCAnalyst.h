@@ -80,19 +80,13 @@ struct BlockRegStats
 	bool any;
 	bool anyTimer;
 
-	int GetTotalNumAccesses(int reg) const
-	{
-		return numReads[reg] + numWrites[reg];
-	}
+	int GetTotalNumAccesses(int reg) const { return numReads[reg] + numWrites[reg]; }
 	int GetUseRange(int reg) const
 	{
 		return std::max(lastRead[reg], lastWrite[reg]) - std::min(firstRead[reg], firstWrite[reg]);
 	}
 
-	bool IsUsed(int reg) const
-	{
-		return (numReads[reg] + numWrites[reg]) > 0;
-	}
+	bool IsUsed(int reg) const { return (numReads[reg] + numWrites[reg]) > 0; }
 	void SetInputRegister(int reg, short opindex)
 	{
 		if (firstRead[reg] == -1)
@@ -127,10 +121,7 @@ public:
 	CodeBuffer(int size);
 	~CodeBuffer();
 
-	int GetSize() const
-	{
-		return size_;
-	}
+	int GetSize() const { return size_; }
 	PPCAnalyst::CodeOp* codebuffer;
 
 private:
@@ -221,21 +212,11 @@ public:
 		OPTION_CROR_MERGE = (1 << 6),
 	};
 
-	PPCAnalyzer() : m_options(0)
-	{}
+	PPCAnalyzer() : m_options(0) {}
 	// Option setting/getting
-	void SetOption(AnalystOption option)
-	{
-		m_options |= option;
-	}
-	void ClearOption(AnalystOption option)
-	{
-		m_options &= ~(option);
-	}
-	bool HasOption(AnalystOption option) const
-	{
-		return !!(m_options & option);
-	}
+	void SetOption(AnalystOption option) { m_options |= option; }
+	void ClearOption(AnalystOption option) { m_options &= ~(option); }
+	bool HasOption(AnalystOption option) const { return !!(m_options & option); }
 	u32 Analyze(u32 address, CodeBlock* block, CodeBuffer* buffer, u32 blockSize);
 };
 

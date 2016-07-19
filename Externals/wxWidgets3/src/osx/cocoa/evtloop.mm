@@ -470,11 +470,11 @@ void wxGUIEventLoop::BeginModalSession( wxWindow* modalWindow )
         wxModalSessionStackElement element;
         element.dummyWindow = m_dummyWindow;
         element.modalSession = m_modalSession;
-        
+
         stack->push_back(element);
-        
+
         // shortcut if nothing changed in this level
-        
+
         if ( m_modalWindow == modalWindow )
             return;
     }
@@ -530,19 +530,19 @@ void wxGUIEventLoop::EndModalSession()
         wxModalSessionStack* stack = gs_modalSessionStackMap[this];
         wxModalSessionStackElement element = stack->back();
         stack->pop_back();
-        
+
         if( m_modalNestedLevel == 1 )
         {
             gs_modalSessionStackMap.erase(this);
             delete stack;
         }
-        
+
         if ( m_modalSession != element.modalSession )
         {
             [NSApp endModalSession:(NSModalSession)m_modalSession];
             m_modalSession = element.modalSession;
         }
-        
+
         if ( m_dummyWindow != element.dummyWindow )
         {
             if ( element.dummyWindow )

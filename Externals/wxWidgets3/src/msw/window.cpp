@@ -232,9 +232,21 @@ bool gs_insideCaptureChanged = false;
 LRESULT WXDLLEXPORT APIENTRY
 wxWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 
-
 #if wxDEBUG_LEVEL >= 2
-    const wxChar *wxGetMessageName(int message);
+const wxChar *wxGetMessageName(int message);
+
+inline
+void wxTraceMSWMessage(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+{
+    // The casts to size_t allow to avoid having different code for Win32 and
+    // Win64 as size_t is of the right size in both cases, unlike int or long.
+    wxLogTrace("winmsg",
+               wxT("Processing %s(hWnd=%p, wParam=%zx, lParam=%zx)"),
+               wxGetMessageName(message),
+               hWnd,
+               static_cast<size_t>(wParam),
+               static_cast<size_t>(lParam));
+}
 #endif  // wxDEBUG_LEVEL >= 2
 
 void wxRemoveHandleAssociation(wxWindowMSW *win);
@@ -512,8 +524,14 @@ void wxWindowMSW::SetId(wxWindowID winid)
     // changing its ID because Windows still uses the old one.
     if ( GetHwnd() )
     {
+        ::SetLastError(0);
+
         if ( !::SetWindowLong(GetHwnd(), GWL_ID, winid) )
-            wxLogLastError(wxT("SetWindowLong(GWL_ID)"));
+        {
+            const DWORD err = ::GetLastError();
+            if ( err )
+                wxLogApiError(wxT("SetWindowLong(GWL_ID)"), err);
+        }
     }
 }
 
@@ -1522,8 +1540,6 @@ void wxWindowMSW::Update()
 // drag and drop
 // ---------------------------------------------------------------------------
 
-#if wxUSE_DRAG_AND_DROP
-
 #if wxUSE_STATBOX
 
 // we need to lower the sibling static boxes so controls contained within can be
@@ -1555,9 +1571,8 @@ static inline void AdjustStaticBoxZOrder(wxWindow * WXUNUSED(parent))
 
 #endif // wxUSE_STATBOX/!wxUSE_STATBOX
 
-#endif // drag and drop is used
-
 #if wxUSE_DRAG_AND_DROP
+
 void wxWindowMSW::SetDropTarget(wxDropTarget *pDropTarget)
 {
     if ( m_dropTarget != 0 ) {
@@ -1572,6 +1587,7 @@ void wxWindowMSW::SetDropTarget(wxDropTarget *pDropTarget)
         m_dropTarget->Register(m_hWnd);
     }
 }
+
 #endif // wxUSE_DRAG_AND_DROP
 
 // old-style file manager drag&drop support: we retain the old-style
@@ -2083,8 +2099,6 @@ static void wxYieldForCommandsOnly()
 
 bool wxWindowMSW::DoPopupMenu(wxMenu *menu, int x, int y)
 {
-    menu->UpdateUI();
-
     wxPoint pt;
     if ( x == wxDefaultCoord && y == wxDefaultCoord )
     {
@@ -2302,7 +2316,7 @@ bool wxWindowMSW::MSWProcessMessage(WXMSG* pMsg)
                         // currently active button should get enter press even
                         // if there is a default button elsewhere so check if
                         // this window is a button first
-                        wxWindow *btn = NULL;
+                        wxButton *btn = NULL;
                         if ( lDlgCode & DLGC_DEFPUSHBUTTON )
                         {
                             // let IsDialogMessage() handle this for all
@@ -2311,8 +2325,11 @@ bool wxWindowMSW::MSWProcessMessage(WXMSG* pMsg)
                             long style = ::GetWindowLong(msg->hwnd, GWL_STYLE);
                             if ( (style & BS_OWNERDRAW) == BS_OWNERDRAW )
                             {
-                                // emulate the button click
-                                btn = wxFindWinFromHandle(msg->hwnd);
+                                btn = wxDynamicCast
+                                      (
+                                        wxFindWinFromHandle(msg->hwnd),
+                                        wxButton
+                                      );
                             }
                         }
                         else // not a button itself, do we have default button?
@@ -2353,25 +2370,12 @@ bool wxWindowMSW::MSWProcessMessage(WXMSG* pMsg)
                                                   );
                                 }
                             }
-                            else // bCtrlDown
-                            {
-                                win = wxGetTopLevelParent(win);
-                            }
 
-                            wxTopLevelWindow * const
-                                tlw = wxDynamicCast(win, wxTopLevelWindow);
-                            if ( tlw )
-                            {
-                                btn = wxDynamicCast(tlw->GetDefaultItem(),
-                                                    wxButton);
-                            }
+                            btn = MSWGetDefaultButtonFor(win);
                         }
 
-                        if ( btn && btn->IsEnabled() && btn->IsShownOnScreen() )
-                        {
-                            btn->MSWCommand(BN_CLICKED, 0 /* unused */);
+                        if ( MSWClickButtonIfPossible(btn) )
                             return true;
-                        }
 
                         // This "Return" key press won't be actually used for
                         // navigation so don't generate wxNavigationKeyEvent
@@ -2530,6 +2534,36 @@ bool wxWindowMSW::MSWSafeIsDialogMessage(WXMSG* msg)
 
 #endif // __WXUNIVERSAL__
 
+/* static */
+wxButton* wxWindowMSW::MSWGetDefaultButtonFor(wxWindow* win)
+{
+#if wxUSE_BUTTON
+    win = wxGetTopLevelParent(win);
+
+    wxTopLevelWindow *const tlw = wxDynamicCast(win, wxTopLevelWindow);
+    if ( tlw )
+        return wxDynamicCast(tlw->GetDefaultItem(), wxButton);
+#endif // wxUSE_BUTTON
+
+    return NULL;
+}
+
+/* static */
+bool wxWindowMSW::MSWClickButtonIfPossible(wxButton* btn)
+{
+#if wxUSE_BUTTON
+    if ( btn && btn->IsEnabled() && btn->IsShownOnScreen() )
+    {
+        btn->MSWCommand(BN_CLICKED, 0 /* unused */);
+        return true;
+    }
+#endif // wxUSE_BUTTON
+
+    wxUnusedVar(btn);
+
+    return false;
+}
+
 // ---------------------------------------------------------------------------
 // message params unpackers
 // ---------------------------------------------------------------------------
@@ -2600,14 +2634,10 @@ wxWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     // trace all messages: useful for the debugging but noticeably slows down
     // the code so don't do it by default
 #if wxDEBUG_LEVEL >= 2
-    // notice that we cast wParam and lParam to long to avoid mismatch with
-    // format specifiers in 64 bit builds where they are both int64 quantities
-    //
-    // casting like this loses information, of course, but it shouldn't matter
-    // much for this diagnostic code and it keeps the code simple
-    wxLogTrace("winmsg",
-               wxT("Processing %s(hWnd=%p, wParam=%08lx, lParam=%08lx)"),
-               wxGetMessageName(message), hWnd, (long)wParam, (long)lParam);
+    // We have to do this inside a helper function as wxLogTrace() constructs
+    // an object internally, but objects can't be used in functions using __try
+    // (expanded from wxSEH_TRY below) with MSVC.
+    wxTraceMSWMessage(hWnd, message, wParam, lParam);
 #endif // wxDEBUG_LEVEL >= 2
 
     wxWindowMSW *wnd = wxFindWinFromHandle(hWnd);
@@ -2991,6 +3021,7 @@ wxWindowMSW::MSWHandleMessage(WXLRESULT *result,
                     case VK_OEM_5:
                     case VK_OEM_6:
                     case VK_OEM_7:
+                    case VK_OEM_8:
                     case VK_OEM_102:
                     case VK_OEM_PLUS:
                     case VK_OEM_COMMA:
@@ -3263,21 +3294,24 @@ wxWindowMSW::MSWHandleMessage(WXLRESULT *result,
 
         case WM_CONTEXTMENU:
             {
-                // Ignore the events that are propagated from a child window by
-                // DefWindowProc(): as wxContextMenuEvent is already propagated
-                // upwards the window hierarchy by us, not doing this would
-                // result in duplicate events being sent.
-                WXHWND hWnd = (WXHWND)wParam;
-                if ( hWnd != m_hWnd )
+                // As with WM_HELP above, we need to avoid duplicate events due
+                // to wxContextMenuEvent being a (propagatable) wxCommandEvent
+                // at wx level but WM_CONTEXTMENU also being propagated upwards
+                // by DefWindowProc(). Unlike WM_HELP, we still need to pass
+                // this one to DefWindowProc() as it sometimes does useful
+                // things with it, e.g. displays the default context menu in
+                // EDIT controls. So we do let the default processing to take
+                // place but set this flag before calling into DefWindowProc()
+                // and don't do anything if we're called from inside it.
+                static bool s_propagatedByDefWndProc = false;
+                if ( s_propagatedByDefWndProc )
                 {
-                    wxWindowMSW *win = FindItemByHWND(hWnd);
-                    if ( win && IsDescendant(win) )
-                    {
-                        // We had already generated wxContextMenuEvent when we
-                        // got WM_CONTEXTMENU for that window.
-                        processed = true;
-                        break;
-                    }
+                    // We could also return false from here, it shouldn't
+                    // matter, the important thing is to not send any events.
+                    // But returning true prevents the message from bubbling up
+                    // even further upwards and so seems to be better.
+                    processed = true;
+                    break;
                 }
 
                 // we don't convert from screen to client coordinates as
@@ -3285,9 +3319,40 @@ wxWindowMSW::MSWHandleMessage(WXLRESULT *result,
                 wxPoint pt(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
 
                 wxContextMenuEvent evtCtx(wxEVT_CONTEXT_MENU, GetId(), pt);
-                evtCtx.SetEventObject(this);
 
-                processed = HandleWindowEvent(evtCtx);
+                // we could have got an event from our child, reflect it back
+                // to it if this is the case
+                wxWindowMSW *win = NULL;
+                WXHWND hWnd = (WXHWND)wParam;
+                if ( hWnd != m_hWnd )
+                {
+                    win = FindItemByHWND(hWnd);
+                }
+
+                if ( !win )
+                    win = this;
+
+                evtCtx.SetEventObject(win);
+                processed = win->HandleWindowEvent(evtCtx);
+
+                if ( !processed )
+                {
+                    // Temporarily set the flag before calling out.
+                    s_propagatedByDefWndProc = true;
+                    wxON_BLOCK_EXIT_SET(s_propagatedByDefWndProc, false);
+
+                    // Now do whatever the default handling does, which could
+                    // be nothing at all -- but we can't know this, so we still
+                    // need to call it.
+                    win->MSWDefWindowProc(message, wParam, lParam);
+
+                    // And finally pretend that we processed the message in any
+                    // case because otherwise DefWindowProc() that we're called
+                    // from would pass the message to our parent resulting in
+                    // duplicate events. As it is, we ensure that only one
+                    // wxWindow ever gets this message for any given click.
+                    processed = true;
+                }
             }
             break;
 
@@ -5994,6 +6059,24 @@ const struct wxKeyMapping
     { VK_RWIN,          WXK_WINDOWS_RIGHT },
     { VK_APPS,          WXK_WINDOWS_MENU },
 #endif // VK_APPS defined
+
+    { VK_BROWSER_BACK,        WXK_BROWSER_BACK },
+    { VK_BROWSER_FORWARD,     WXK_BROWSER_FORWARD },
+    { VK_BROWSER_REFRESH,     WXK_BROWSER_REFRESH },
+    { VK_BROWSER_STOP,        WXK_BROWSER_STOP },
+    { VK_BROWSER_SEARCH,      WXK_BROWSER_SEARCH },
+    { VK_BROWSER_FAVORITES,   WXK_BROWSER_FAVORITES },
+    { VK_BROWSER_HOME,        WXK_BROWSER_HOME },
+    { VK_VOLUME_MUTE,         WXK_VOLUME_MUTE },
+    { VK_VOLUME_DOWN,         WXK_VOLUME_DOWN },
+    { VK_VOLUME_UP,           WXK_VOLUME_UP },
+    { VK_MEDIA_NEXT_TRACK,    WXK_MEDIA_NEXT_TRACK },
+    { VK_MEDIA_PREV_TRACK,    WXK_MEDIA_PREV_TRACK },
+    { VK_MEDIA_STOP,          WXK_MEDIA_STOP },
+    { VK_MEDIA_PLAY_PAUSE,    WXK_MEDIA_PLAY_PAUSE },
+    { VK_LAUNCH_MAIL,         WXK_LAUNCH_MAIL },
+    { VK_LAUNCH_APP1,         WXK_LAUNCH_APP1 },
+    { VK_LAUNCH_APP2,         WXK_LAUNCH_APP2 },
 };
 
 } // anonymous namespace
@@ -6033,6 +6116,7 @@ int VKToWX(WXWORD vk, WXLPARAM lParam, wchar_t *uc)
         case VK_OEM_5:
         case VK_OEM_6:
         case VK_OEM_7:
+        case VK_OEM_8:
         case VK_OEM_102:
             // MapVirtualKey() returns 0 if it fails to convert the virtual
             // key which nicely corresponds to our WXK_NONE.

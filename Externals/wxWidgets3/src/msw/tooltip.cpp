@@ -30,6 +30,7 @@
     #include "wx/msw/wrapcctl.h" // include <commctrl.h> "properly"
     #include "wx/app.h"
     #include "wx/control.h"
+    #include "wx/module.h"
     #include "wx/toplevel.h"
 #endif
 
@@ -133,6 +134,30 @@ public:
         uFlags |= TTF_TRANSPARENT;
     }
 };
+
+// Takes care of deleting ToolTip control window when shutting down the library.
+class wxToolTipModule : public wxModule
+{
+public:
+    wxToolTipModule()
+    {
+    }
+
+    virtual bool OnInit() wxOVERRIDE
+    {
+        return true;
+    }
+
+    virtual void OnExit() wxOVERRIDE
+    {
+        wxToolTip::DeleteToolTipCtrl();
+    }
+
+private:
+    wxDECLARE_DYNAMIC_CLASS(wxToolTipModule);
+};
+
+wxIMPLEMENT_DYNAMIC_CLASS(wxToolTipModule, wxModule);
 
 #ifdef __VISUALC__
     #pragma warning( default : 4097 )
@@ -251,6 +276,15 @@ void wxToolTip::SetMaxWidth(int width)
     wxASSERT_MSG( width == -1 || width >= 0, wxT("invalid width value") );
 
     ms_maxWidth = width;
+}
+
+void wxToolTip::DeleteToolTipCtrl()
+{
+    if ( ms_hwndTT )
+    {
+        ::DestroyWindow((HWND)ms_hwndTT);
+        ms_hwndTT = (WXHWND)NULL;
+    }
 }
 
 // ---------------------------------------------------------------------------

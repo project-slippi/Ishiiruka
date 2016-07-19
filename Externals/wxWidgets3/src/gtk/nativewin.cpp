@@ -54,11 +54,9 @@ wxNativeWindow::Create(wxWindow* parent,
     if ( !CreateBase(parent, winid) )
         return false;
 
-    // Add a reference to the widget to match g_object_unref() in wxWindow dtor
-    // (and by using the "_sink" version we avoid memory leaks when we're
-    // passed a newly allocated widget, as is typically the case).
+    // Add a reference to the widget to match g_object_unref() in wxWindow dtor.
     m_widget = widget;
-    g_object_ref_sink(m_widget);
+    g_object_ref(m_widget);
 
     parent->DoAddChild(this);
 
@@ -67,10 +65,15 @@ wxNativeWindow::Create(wxWindow* parent,
     // Ensure that the best (and minimal) size is set to fully display the
     // widget.
     GtkRequisition req;
-    gtk_widget_size_request(widget, &req);
+    gtk_widget_get_preferred_size(widget, NULL, &req);
     SetInitialSize(wxSize(req.width, req.height));
 
     return true;
+}
+
+void wxNativeWindow::DoDisown()
+{
+    g_object_unref(m_widget);
 }
 
 // ----------------------------------------------------------------------------

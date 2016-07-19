@@ -63,7 +63,7 @@ void CommonAsmRoutines::GenFrsqrte()
 	MOV(32, R(RSCRATCH2), Imm32(0x3FF));
 	SUB(32, R(RSCRATCH2), R(RSCRATCH_EXTRA));
 	SHL(64, R(RSCRATCH2), Imm8(52));  // exponent = ((0x3FFLL << 52) - ((exponent - (0x3FELL << 52)) /
-												 // 2)) & (0x7FFLL << 52);
+																		// 2)) & (0x7FFLL << 52);
 
 	MOV(64, R(RSCRATCH_EXTRA), R(RSCRATCH));
 	SHR(64, R(RSCRATCH_EXTRA), Imm8(48));
@@ -78,7 +78,7 @@ void CommonAsmRoutines::GenFrsqrte()
 	SUB(32, R(RSCRATCH_EXTRA), R(RSCRATCH));
 	SHL(64, R(RSCRATCH_EXTRA), Imm8(26));
 	OR(64, R(RSCRATCH2), R(RSCRATCH_EXTRA));  // vali |= (s64)(frsqrte_expected_base[index] -
-															// frsqrte_expected_dec[index] * (i % 2048)) << 26;
+																						// frsqrte_expected_dec[index] * (i % 2048)) << 26;
 	MOVQ_xmm(XMM0, R(RSCRATCH2));
 	RET();
 
@@ -149,8 +149,8 @@ void CommonAsmRoutines::GenFres()
 	SUB(32, R(RSCRATCH2), R(RSCRATCH));
 	SHL(64, R(RSCRATCH2), Imm8(29));
 	OR(64, R(RSCRATCH2), R(RSCRATCH_EXTRA));  // vali |= (s64)(fres_expected_base[i / 1024] -
-															// (fres_expected_dec[i / 1024] * (i % 1024) + 1) / 2)
-															// << 29
+																						// (fres_expected_dec[i / 1024] * (i % 1024) + 1) / 2)
+																						// << 29
 	MOVQ_xmm(XMM0, R(RSCRATCH2));
 	RET();
 

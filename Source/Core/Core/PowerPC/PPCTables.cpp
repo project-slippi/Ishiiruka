@@ -27,10 +27,10 @@ GekkoOPInfo* m_allInstructions[512];
 int m_numInstructions;
 
 const u64 m_crTable[16] = {
-	 PPCCRToInternal(0x0), PPCCRToInternal(0x1), PPCCRToInternal(0x2), PPCCRToInternal(0x3),
-	 PPCCRToInternal(0x4), PPCCRToInternal(0x5), PPCCRToInternal(0x6), PPCCRToInternal(0x7),
-	 PPCCRToInternal(0x8), PPCCRToInternal(0x9), PPCCRToInternal(0xA), PPCCRToInternal(0xB),
-	 PPCCRToInternal(0xC), PPCCRToInternal(0xD), PPCCRToInternal(0xE), PPCCRToInternal(0xF),
+		PPCCRToInternal(0x0), PPCCRToInternal(0x1), PPCCRToInternal(0x2), PPCCRToInternal(0x3),
+		PPCCRToInternal(0x4), PPCCRToInternal(0x5), PPCCRToInternal(0x6), PPCCRToInternal(0x7),
+		PPCCRToInternal(0x8), PPCCRToInternal(0x9), PPCCRToInternal(0xA), PPCCRToInternal(0xB),
+		PPCCRToInternal(0xC), PPCCRToInternal(0xD), PPCCRToInternal(0xE), PPCCRToInternal(0xF),
 };
 
 GekkoOPInfo* GetOpInfo(UGeckoInstruction _inst)
@@ -158,10 +158,7 @@ void PrintInstructionRunCounts()
 		temp.emplace_back(pInst->opname, pInst->runCount);
 	}
 	std::sort(temp.begin(), temp.end(),
-		[](const OpInfo& a, const OpInfo& b)
-	{
-		return a.second > b.second;
-	});
+		[](const OpInfo& a, const OpInfo& b) { return a.second > b.second; });
 
 	for (auto& inst : temp)
 	{

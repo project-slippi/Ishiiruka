@@ -18,10 +18,8 @@ protected:
 	PPCAnalyst::CodeBuffer code_buffer;
 
 public:
-	JitILBase() : code_buffer(32000)
-	{}
-	~JitILBase()
-	{}
+	JitILBase() : code_buffer(32000) {}
+	~JitILBase() {}
 	IREmitter::IRBuilder ibuild;
 
 	virtual void Jit(u32 em_address) = 0;

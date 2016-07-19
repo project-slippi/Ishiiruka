@@ -88,7 +88,7 @@ void wxIconRefData::Free()
         ReleaseIconRef( m_iconRef ) ;
         m_iconRef = NULL ;
     }
-    
+
 #if wxOSX_USE_COCOA
     if ( m_nsImage )
     {
@@ -101,13 +101,13 @@ void wxIconRefData::Free()
 WX_NSImage wxIconRefData::GetNSImage() const
 {
     wxASSERT( IsOk() );
-    
+
     if ( m_nsImage == 0 )
     {
         m_nsImage = wxOSXGetNSImageFromIconRef(m_iconRef);
         CFRetain(m_nsImage);
     }
-    
+
     return m_nsImage;
 }
 #endif
@@ -196,7 +196,7 @@ int wxIcon::GetDepth() const
 WX_NSImage wxIcon::GetNSImage() const
 {
     wxCHECK_MSG( IsOk(), NULL, wxT("invalid icon") );
-    
+
     return M_ICONDATA->GetNSImage() ;
 }
 #endif
@@ -315,6 +315,14 @@ bool wxIcon::LoadIconFromSystemResource(const wxString& resourceName, int desire
     else if ( resourceName == wxT("wxICON_HELP_PAGE") )
     {
         theId = kGenericDocumentIcon ;
+    }
+    else if ( resourceName == wxT( "wxICON_PRINT" ) )
+    {
+        theId = kPrintMonitorFolderIcon;
+    }
+    else if ( resourceName == wxT( "wxICON_HELP_FOLDER" ) )
+    {
+        theId = kHelpFolderIcon;
     }
 
     if ( theId != 0 )

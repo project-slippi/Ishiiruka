@@ -15,8 +15,8 @@ void GenerateMacAddress(const MACConsumer type, u8* mac)
 {
 	memset(mac, 0, MAC_ADDRESS_SIZE);
 
-	u8 const oui_bba[] = {0x00, 0x09, 0xbf};
-	u8 const oui_ios[] = {0x00, 0x17, 0xab};
+	u8 const oui_bba[] = { 0x00, 0x09, 0xbf };
+	u8 const oui_ios[] = { 0x00, 0x17, 0xab };
 
 	switch (type)
 	{

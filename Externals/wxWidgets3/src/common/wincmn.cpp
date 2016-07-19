@@ -422,14 +422,6 @@ bool wxWindowBase::CreateBase(wxWindowBase *parent,
     SetValidator(validator);
 #endif // wxUSE_VALIDATORS
 
-    // if the parent window has wxWS_EX_VALIDATE_RECURSIVELY set, we want to
-    // have it too - like this it's possible to set it only in the top level
-    // dialog/frame and all children will inherit it by defult
-    if ( parent && (parent->GetExtraStyle() & wxWS_EX_VALIDATE_RECURSIVELY) )
-    {
-        SetExtraStyle(GetExtraStyle() | wxWS_EX_VALIDATE_RECURSIVELY);
-    }
-
     return true;
 }
 
@@ -2036,12 +2028,9 @@ public:
     }
 
     // Traverse all the direct children calling OnDo() on them and also all
-    // grandchildren if wxWS_EX_VALIDATE_RECURSIVELY is used, calling
-    // OnRecurse() for them.
+    // grandchildren, calling OnRecurse() for them.
     bool DoForAllChildren()
     {
-        const bool recurse = m_win->HasExtraStyle(wxWS_EX_VALIDATE_RECURSIVELY);
-
         wxWindowList& children = m_win->GetChildren();
         for ( wxWindowList::iterator i = children.begin();
               i != children.end();
@@ -2057,7 +2046,7 @@ public:
             // Notice that validation should never recurse into top level
             // children, e.g. some other dialog which might happen to be
             // currently shown.
-            if ( recurse && !child->IsTopLevel() && !OnRecurse(child) )
+            if ( !child->IsTopLevel() && !OnRecurse(child) )
             {
                 return false;
             }
@@ -2876,6 +2865,18 @@ wxWindowBase::FromDIP(const wxSize& sz, const wxWindowBase* WXUNUSED(w))
     // "unspecified" which should be preserved.
     return wxSize(sz.x == -1 ? -1 : wxMulDivInt32(sz.x, dpi.x, BASELINE_DPI),
                   sz.y == -1 ? -1 : wxMulDivInt32(sz.y, dpi.y, BASELINE_DPI));
+}
+
+/* static */
+wxSize
+wxWindowBase::ToDIP(const wxSize& sz, const wxWindowBase* WXUNUSED(w))
+{
+    const wxSize dpi = wxScreenDC().GetPPI();
+
+    // Take care to not scale -1 because it has a special meaning of
+    // "unspecified" which should be preserved.
+    return wxSize(sz.x == -1 ? -1 : wxMulDivInt32(sz.x, BASELINE_DPI, dpi.x),
+                  sz.y == -1 ? -1 : wxMulDivInt32(sz.y, BASELINE_DPI, dpi.y));
 }
 
 #endif // !wxHAVE_DPI_INDEPENDENT_PIXELS

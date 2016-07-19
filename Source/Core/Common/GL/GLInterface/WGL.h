@@ -7,7 +7,7 @@
 #include <string>
 #include "Common/GL/GLInterfaceBase.h"
 
-class cInterfaceWGL: public cInterfaceBase
+class cInterfaceWGL : public cInterfaceBase
 {
 public:
 	void SwapInterval(int interval) override;

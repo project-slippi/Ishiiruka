@@ -35,10 +35,7 @@ private:
 	bool m_enabled = false;
 
 public:
-	bool Enabled() const
-	{
-		return m_enabled;
-	}
+	bool Enabled() const { return m_enabled; }
 	void Init(int size)
 	{
 		AllocCodeSpace(size);

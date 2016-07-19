@@ -19,12 +19,12 @@ constexpr size_t ArraySize(T(&arr)[N])
 	return N;
 }
 
-#define b2(x)   (   (x) | (   (x) >> 1) )
-#define b4(x)   ( b2(x) | ( b2(x) >> 2) )
-#define b8(x)   ( b4(x) | ( b4(x) >> 4) )
-#define b16(x)  ( b8(x) | ( b8(x) >> 8) )
-#define b32(x)  (b16(x) | (b16(x) >>16) )
-#define ROUND_UP_POW2(x)  (b32(x - 1) + 1)
+#define b2(x) ((x) | ((x) >> 1))
+#define b4(x) (b2(x) | (b2(x) >> 2))
+#define b8(x) (b4(x) | (b4(x) >> 4))
+#define b16(x) (b8(x) | (b8(x) >> 8))
+#define b32(x) (b16(x) | (b16(x) >> 16))
+#define ROUND_UP_POW2(x) (b32(x - 1) + 1)
 
 #ifndef _WIN32
 
@@ -36,7 +36,10 @@ constexpr size_t ArraySize(T(&arr)[N])
 #endif
 
 // go to debugger mode
-#define Crash() { __builtin_trap(); }
+#define Crash()                                                                                    \
+  {                                                                                                \
+    __builtin_trap();                                                                              \
+  }
 
 // GCC 4.8 defines all the rotate functions now
 // Small issue with GCC's lrotl/lrotr intrinsics is they are still 32bit while we require 64bit
@@ -44,14 +47,16 @@ constexpr size_t ArraySize(T(&arr)[N])
 inline u32 _rotl(u32 x, int shift)
 {
 	shift &= 31;
-	if (!shift) return x;
+	if (!shift)
+		return x;
 	return (x << shift) | (x >> (32 - shift));
 }
 
 inline u32 _rotr(u32 x, int shift)
 {
 	shift &= 31;
-	if (!shift) return x;
+	if (!shift)
+		return x;
 	return (x >> shift) | (x << (32 - shift));
 }
 #endif
@@ -68,7 +73,7 @@ inline u64 _rotr64(u64 x, unsigned int shift)
 	return (x >> n) | (x << (64 - n));
 }
 
-#else // WIN32
+#else  // WIN32
 // Function Cross-Compatibility
 #define strcasecmp _stricmp
 #define strncasecmp _strnicmp
@@ -79,16 +84,18 @@ inline u64 _rotr64(u64 x, unsigned int shift)
 #define fseeko _fseeki64
 #define ftello _ftelli64
 #define atoll _atoi64
-#define stat64 _stat64
-#define fstat64 _fstat64
+#define stat _stat64
+#define fstat _fstat64
 #define fileno _fileno
 
-extern "C"
-{
+extern "C" {
 	__declspec(dllimport) void __stdcall DebugBreak(void);
 }
-#define Crash() {DebugBreak();}
-#endif // WIN32 ndef
+#define Crash()                                                                                    \
+  {                                                                                                \
+    DebugBreak();                                                                                  \
+  }
+#endif  // WIN32 ndef
 
 // Generic function to get last error message.
 // Call directly after the command or use the error num.
@@ -107,7 +114,7 @@ inline u32 swap24(const u8* _data)
 	return (_data[0] << 16) | (_data[1] << 8) | _data[2];
 }
 
-#ifdef ANDROID
+#if defined(ANDROID) || defined(__OpenBSD__)
 #undef swap16
 #undef swap32
 #undef swap64
@@ -201,7 +208,8 @@ void swap(u8*);
 
 template <>
 inline void swap<1>(u8* data)
-{}
+{
+}
 
 template <>
 inline void swap<2>(u8* data)

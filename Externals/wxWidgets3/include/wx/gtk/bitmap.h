@@ -79,7 +79,7 @@ public:
 #endif
     wxBitmap( const wxString &filename, wxBitmapType type = wxBITMAP_DEFAULT_TYPE );
 #if wxUSE_IMAGE
-    wxBitmap(const wxImage& image, int depth = wxBITMAP_SCREEN_DEPTH);
+    wxBitmap(const wxImage& image, int depth = wxBITMAP_SCREEN_DEPTH, double scale = 1.0);
 #endif // wxUSE_IMAGE
     wxBitmap(GdkPixbuf* pixbuf, int depth = 0);
     wxEXPLICIT wxBitmap(const wxCursor& cursor);
@@ -90,7 +90,10 @@ public:
         { return Create(sz.GetWidth(), sz.GetHeight(), depth); }
     bool Create(int width, int height, const wxDC& WXUNUSED(dc))
         { return Create(width,height); }
-    
+#ifdef __WXGTK3__
+    virtual bool CreateScaled(int w, int h, int depth, double scale) wxOVERRIDE;
+    virtual double GetScaleFactor() const wxOVERRIDE;
+#endif
 
     virtual int GetHeight() const wxOVERRIDE;
     virtual int GetWidth() const wxOVERRIDE;

@@ -93,6 +93,12 @@ wxBitmap LoadResourceBitmap(const std::string& name, const wxSize& padded_size)
 #endif
 }
 
+wxBitmap CreateDisabledButtonBitmap(const wxBitmap& original)
+{
+	wxImage image = original.ConvertToImage();
+	return wxBitmap(image.ConvertToDisabled(240));
+}
+
 void AddToolbarButton(wxToolBar* toolbar, int toolID, const wxString& label, const wxBitmap& bitmap, const wxString& shortHelp)
 {
 	// Must explicitly set the disabled button bitmap because wxWidgets

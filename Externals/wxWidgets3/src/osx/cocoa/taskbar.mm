@@ -365,12 +365,12 @@ bool wxTaskBarIconCustomStatusItemImpl::SetIcon(const wxIcon& icon, const wxStri
         int factor = (dimension+(target_dimension-1))/target_dimension;
         m_icon = img.ShrinkBy(factor, factor);
     }
-    
+
     NSImage* nsimage = m_icon.GetNSImage();
     NSSize size = [nsimage size];
-    
+
     // then scale to optimal point resolution
-    
+
     dimension = wxMax(size.width,size.height);
     if ( dimension > 16 )
     {
@@ -380,7 +380,7 @@ bool wxTaskBarIconCustomStatusItemImpl::SetIcon(const wxIcon& icon, const wxStri
         [nsimage setSize:size];
     }
     [m_statusItem setImage:nsimage];
-    
+
     wxCFStringRef cfTooltip(tooltip);
     [m_statusItem setToolTip:cfTooltip.AsNSString()];
     return true;

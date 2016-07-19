@@ -56,26 +56,29 @@ bool wxTextFile::OnExists() const
 }
 
 
-bool wxTextFile::OnOpen(const wxString &strBufferName, wxTextBufferOpenMode OpenMode)
+bool wxTextFile::OnOpen(const wxString &strBufferName, wxTextBufferOpenMode openMode)
 {
-    wxFile::OpenMode FileOpenMode;
+    wxFile::OpenMode fileOpenMode = wxFile::read_write;
 
-    switch ( OpenMode )
+    switch ( openMode )
     {
-        default:
-            wxFAIL_MSG( wxT("unknown open mode in wxTextFile::Open") );
-            wxFALLTHROUGH;
-
-        case ReadAccess :
-            FileOpenMode = wxFile::read;
+        case ReadAccess:
+            fileOpenMode = wxFile::read;
             break;
 
-        case WriteAccess :
-            FileOpenMode = wxFile::write;
+        case WriteAccess:
+            fileOpenMode = wxFile::write;
             break;
     }
 
-    return m_file.Open(strBufferName.c_str(), FileOpenMode);
+    if ( fileOpenMode == wxFile::read_write )
+    {
+        // This must mean it hasn't been initialized in the switch above.
+        wxFAIL_MSG( wxT("unknown open mode in wxTextFile::Open") );
+        return false;
+    }
+
+    return m_file.Open(strBufferName, fileOpenMode);
 }
 
 
@@ -267,7 +270,7 @@ bool wxTextFile::OnWrite(wxTextFileType typeNew, const wxMBConv& conv)
     wxTempFile fileTmp(fn.GetFullPath());
 
     if ( !fileTmp.IsOpened() ) {
-        wxLogError(_("can't write buffer '%s' to disk."), m_strBufferName.c_str());
+        wxLogError(_("can't write buffer '%s' to disk."), m_strBufferName);
         return false;
     }
 

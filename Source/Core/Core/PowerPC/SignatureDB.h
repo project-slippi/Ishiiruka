@@ -19,8 +19,7 @@ class SignatureDB
 	{
 		std::string name;
 		u32 size;
-		DBFunc() : size(0)
-		{}
+		DBFunc() : size(0) {}
 	};
 
 	// Map from signature to function. We store the DB in this map because it optimizes the

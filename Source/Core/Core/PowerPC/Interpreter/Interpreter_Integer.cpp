@@ -132,9 +132,9 @@ void Interpreter::subfic(UGeckoInstruction _inst)
 
 	//	#define CALC_XER_CA(X,Y) (((X) + (Y) < X) ? SET_XER_CA : CLEAR_XER_CA)
 		if ((rra + immediate) < rra)
-		 SetCarry(1);
+			SetCarry(1);
 		else
-		 SetCarry(0);
+			SetCarry(0);
 
 		rGPR[_inst.RD] = rra - immediate;
 	*/

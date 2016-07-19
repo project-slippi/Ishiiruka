@@ -128,11 +128,7 @@ class wxSearchCtrl;
 
 WXDLLIMPEXP_CORE wxWindowMac * wxFindWindowFromWXWidget(WXWidget inControl );
 
-#if wxOSX_USE_CARBON
-typedef wxMacControl wxWidgetImplType;
-#else
 typedef wxWidgetImpl wxWidgetImplType;
-#endif
 
 #if wxUSE_MENUS
 class wxMenuItemImpl : public wxObject
@@ -189,7 +185,7 @@ public :
     wxMenu* GetWXPeer() { return m_peer ; }
 
     virtual void PopUp( wxWindow *win, int x, int y ) = 0;
-    
+
     virtual void GetMenuBarDimensions(int &x, int &y, int &width, int &height) const
     {
         x = y = width = height = -1;
@@ -613,6 +609,7 @@ public:
     // display
 
     virtual void            ListScrollTo( unsigned int n ) = 0;
+    virtual int             ListGetTopItem() const = 0;
     virtual void            UpdateLine( unsigned int n, wxListWidgetColumn* col = NULL ) = 0;
     virtual void            UpdateLineToEnd( unsigned int n) = 0;
 
@@ -655,7 +652,10 @@ public :
 
     virtual bool CanClipMaxLength() const { return false; }
     virtual void SetMaxLength(unsigned long WXUNUSED(len)) {}
-    
+
+    virtual bool CanForceUpper() { return false; }
+    virtual void ForceUpper() {}
+
     virtual bool GetStyle( long position, wxTextAttr& style);
     virtual void SetStyle( long start, long end, const wxTextAttr& style ) ;
     virtual void Copy() ;

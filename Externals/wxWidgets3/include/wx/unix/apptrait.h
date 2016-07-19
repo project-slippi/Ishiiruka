@@ -58,10 +58,9 @@ public:
     virtual void MutexGuiLeave() wxOVERRIDE;
 #endif
 
-#if defined(__WXMAC__) && wxUSE_STDPATHS
-    virtual wxStandardPaths& GetStandardPaths();
-#endif
-    virtual wxPortId GetToolkitVersion(int *majVer = NULL, int *minVer = NULL) const wxOVERRIDE;
+    wxPortId GetToolkitVersion(int *majVer = NULL,
+                               int *minVer = NULL,
+                               int *microVer = NULL) const wxOVERRIDE;
 
 #ifdef __WXGTK20__
     virtual wxString GetDesktopEnvironment() const wxOVERRIDE;
@@ -76,7 +75,7 @@ public:
 #if wxUSE_SOCKETS
 
 #ifdef wxHAS_GUI_SOCKET_MANAGER
-    virtual wxSocketManager *GetSocketManager();
+    virtual wxSocketManager *GetSocketManager() wxOVERRIDE;
 #endif
 
 #ifdef wxHAS_GUI_FDIOMANAGER

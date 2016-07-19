@@ -19,15 +19,15 @@ enum class Language;
 }
 
 // DSP Backend Types
-#define BACKEND_NULLSOUND   _trans("No audio output")
-#define BACKEND_ALSA        "ALSA"
-#define BACKEND_AOSOUND     "AOSound"
-#define BACKEND_COREAUDIO   "CoreAudio"
+#define BACKEND_NULLSOUND _trans("No audio output")
+#define BACKEND_ALSA "ALSA"
+#define BACKEND_AOSOUND "AOSound"
+#define BACKEND_COREAUDIO "CoreAudio"
 #define BACKEND_DIRECTSOUND "DSound"
-#define BACKEND_OPENAL      "OpenAL"
-#define BACKEND_PULSEAUDIO  "Pulse"
-#define BACKEND_XAUDIO2     "XAudio2"
-#define BACKEND_OPENSLES    "OpenSLES"
+#define BACKEND_OPENAL "OpenAL"
+#define BACKEND_PULSEAUDIO "Pulse"
+#define BACKEND_XAUDIO2 "XAudio2"
+#define BACKEND_OPENSLES "OpenSLES"
 
 enum GPUDeterminismMode
 {
@@ -143,6 +143,10 @@ struct SConfig : NonCopyable
 
 	// Fifo Player related settings
 	bool bLoopFifoReplay;
+
+	// Custom RTC
+	bool bEnableCustomRTC;
+	u32 m_customRTCValue;
 
 	enum EBootBS2
 	{

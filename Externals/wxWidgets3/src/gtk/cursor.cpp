@@ -180,14 +180,14 @@ wxPoint wxCursor::GetHotSpot() const
             GdkPixbuf *pixbuf = gdk_cursor_get_image(GetCursor());
             if (pixbuf)
             {
-		wxPoint hotSpot = wxDefaultPosition;
+                wxPoint hotSpot = wxDefaultPosition;
                 const gchar* opt_xhot = gdk_pixbuf_get_option(pixbuf, "x_hot");
                 const gchar* opt_yhot = gdk_pixbuf_get_option(pixbuf, "y_hot");
                 if (opt_xhot && opt_yhot)
                 {
-		    const int xhot = atoi(opt_xhot);
-		    const int yhot = atoi(opt_yhot);
-		    hotSpot = wxPoint(xhot, yhot);
+                    const int xhot = atoi(opt_xhot);
+                    const int yhot = atoi(opt_yhot);
+                    hotSpot = wxPoint(xhot, yhot);
                 }
                 g_object_unref(pixbuf);
                 return hotSpot;
@@ -265,7 +265,8 @@ void wxCursor::InitFromStock( wxStockCursor cursorId )
             break;
     }
 
-    M_CURSORDATA->m_cursor = gdk_cursor_new( gdk_cur );
+    GdkDisplay* display = gdk_window_get_display(wxGetTopLevelGDK());
+    M_CURSORDATA->m_cursor = gdk_cursor_new_for_display(display, gdk_cur);
 }
 
 #if wxUSE_IMAGE
@@ -359,7 +360,7 @@ const wxCursor wxBusyCursor::GetBusyCursor()
 static void UpdateCursors(wxWindow* win, bool isBusyOrGlobalCursor)
 {
     win->GTKUpdateCursor(isBusyOrGlobalCursor);
-    const wxWindowList& children = win->GetChildren(); 
+    const wxWindowList& children = win->GetChildren();
     wxWindowList::const_iterator i = children.begin();
     for (size_t n = children.size(); n--; ++i)
         UpdateCursors(*i, isBusyOrGlobalCursor);

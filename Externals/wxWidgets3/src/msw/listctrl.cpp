@@ -294,13 +294,10 @@ void wxListCtrl::MSWSetExListStyles()
     ::SendMessage
     (
         GetHwnd(), LVM_SETEXTENDEDLISTVIEWSTYLE, 0,
-        // LVS_EX_LABELTIP shouldn't be used under Windows CE where it's
-        // not defined in the SDK headers
-#ifdef LVS_EX_LABELTIP
         LVS_EX_LABELTIP |
-#endif
         LVS_EX_FULLROWSELECT |
         LVS_EX_SUBITEMIMAGES |
+        LVS_EX_DOUBLEBUFFER |
         // normally this should be governed by a style as it's probably not
         // always appropriate, but we don't have any free styles left and
         // it seems better to enable it by default than disable
@@ -1214,6 +1211,30 @@ wxFont wxListCtrl::GetItemFont( long item ) const
     return f;
 }
 
+bool wxListCtrl::HasCheckboxes() const
+{
+    const DWORD currStyle = ListView_GetExtendedListViewStyle(GetHwnd());
+    return (currStyle & LVS_EX_CHECKBOXES) != 0;
+}
+
+bool wxListCtrl::EnableCheckboxes(bool enable)
+{
+    (void)ListView_SetExtendedListViewStyleEx(GetHwnd(), LVS_EX_CHECKBOXES,
+                                              enable ? LVS_EX_CHECKBOXES : 0);
+
+    return true;
+}
+
+void wxListCtrl::CheckItem(long item, bool state)
+{
+    ListView_SetCheckState(GetHwnd(), (UINT)item, (BOOL)state);
+}
+
+bool wxListCtrl::IsItemChecked(long item) const
+{
+    return ListView_GetCheckState(GetHwnd(), (UINT)item) != 0;
+}
+
 // Gets the number of selected items in the list control
 int wxListCtrl::GetSelectedItemCount() const
 {
@@ -1320,6 +1341,18 @@ void wxListCtrl::SetImageList(wxImageList *imageList, int which)
         m_ownsImageListState = false;
     }
     (void) ListView_SetImageList(GetHwnd(), (HIMAGELIST) imageList ? imageList->GetHIMAGELIST() : 0, flags);
+
+    // For ComCtl32 prior 6.0 we need to re-assign all existing
+    // text labels in order to position them correctly.
+    if ( wxApp::GetComCtl32Version() < 600 )
+    {
+        const int n = GetItemCount();
+        for( int i = 0; i < n; i++ )
+        {
+            wxString text = GetItemText(i);
+            SetItemText(i, text);
+        }
+    }
 }
 
 void wxListCtrl::AssignImageList(wxImageList *imageList, int which)
@@ -1353,7 +1386,10 @@ wxSize wxListCtrl::MSWGetBestViewRect(int x, int y) const
     if ( mswStyle & WS_VSCROLL )
         size.x += wxSystemSettings::GetMetric(wxSYS_VSCROLL_X);
 
-    return size;
+    // OTOH we have to subtract the size of our borders because the base class
+    // public method already adds them, but ListView_ApproximateViewRect()
+    // already takes the borders into account, so this would be superfluous.
+    return size - DoGetBorderSize();
 }
 
 // ----------------------------------------------------------------------------
@@ -1415,7 +1451,18 @@ bool wxListCtrl::DeleteAllItems()
 {
     // Calling ListView_DeleteAllItems() will always generate an event but we
     // shouldn't do it if the control is empty
-    return !GetItemCount() || ListView_DeleteAllItems(GetHwnd()) != 0;
+    if ( !GetItemCount() )
+        return true;
+
+    if ( !ListView_DeleteAllItems(GetHwnd()) )
+        return false;
+
+    // Virtual controls don't refresh their scrollbar position automatically,
+    // do it for them when clearing them.
+    if ( IsVirtual() )
+        Refresh();
+
+    return true;
 }
 
 // Deletes all items
@@ -2204,6 +2251,31 @@ bool wxListCtrl::MSWOnNotify(int idCtrl, WXLPARAM lParam, WXLPARAM *result)
                         eventType = stNew & LVIS_SELECTED
                                         ? wxEVT_LIST_ITEM_SELECTED
                                         : wxEVT_LIST_ITEM_DESELECTED;
+                    }
+
+                    if ( (stNew & LVIS_STATEIMAGEMASK) != (stOld & LVIS_STATEIMAGEMASK) )
+                    {
+                        if ( stOld == INDEXTOSTATEIMAGEMASK(0) )
+                        {
+                            // item does not yet have a state
+                            // occurs when checkboxes are enabled and when a new item is added
+                            eventType = wxEVT_NULL;
+                        }
+                        else if ( stNew == INDEXTOSTATEIMAGEMASK(1) )
+                        {
+                            eventType = wxEVT_LIST_ITEM_UNCHECKED;
+                        }
+                        else if ( stNew == INDEXTOSTATEIMAGEMASK(2) )
+                        {
+                            eventType = wxEVT_LIST_ITEM_CHECKED;
+                        }
+                        else
+                        {
+                            eventType = wxEVT_NULL;
+                            wxLogDebug(wxS("Unknown LVIS_STATEIMAGE state: %u"), stNew);
+                        }
+
+                        event.m_itemIndex = iItem;
                     }
                 }
 

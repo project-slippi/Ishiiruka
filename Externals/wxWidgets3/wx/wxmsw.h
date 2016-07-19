@@ -44,7 +44,7 @@
 // in the version after it completely.
 //
 // Recommended setting: 0 (please update your code)
-#define WXWIN_COMPATIBILITY_3_0 0
+#define WXWIN_COMPATIBILITY_3_0 1
 
 // MSW-only: Set to 0 for accurate dialog units, else 1 for old behaviour when
 // default system font is used for wxWindow::GetCharWidth/Height() instead of
@@ -283,7 +283,7 @@
 //
 // Recommended setting: 2 if you want to have maximal performance and don't
 // care about the scenario described above.
-#define wxUSE_COMPILER_TLS 1
+#define wxUSE_COMPILER_TLS 2
 
 // ----------------------------------------------------------------------------
 // Interoperability with the standard library.
@@ -555,7 +555,7 @@
 // Default is 1.
 //
 // Recommended setting: 1 if you need IPv6 support
-#define wxUSE_IPV6          0
+#define wxUSE_IPV6          1
 
 // Set to 1 to enable virtual file systems (required by wxHTML)
 #define wxUSE_FILESYSTEM    1
@@ -667,7 +667,7 @@
 // Default is 1.
 //
 // Recommended setting: 1
-#define wxUSE_MEDIACTRL     1
+#define wxUSE_MEDIACTRL     0
 
 // Use wxWidget's XRC XML-based resource system.  Recommended.
 //
@@ -724,22 +724,14 @@
 // Default is 1 on MSW
 //
 // Recommended setting: 1
-#ifdef __WXMSW__
 #define wxUSE_WEBVIEW_IE 0
-#else
-#define wxUSE_WEBVIEW_IE 0
-#endif
 
 // Use the WebKit wxWebView backend
 //
 // Default is 1 on GTK and OSX
 //
 // Recommended setting: 1
-#if defined(__WXGTK__) || defined(__WXOSX__)
 #define wxUSE_WEBVIEW_WEBKIT 0
-#else
-#define wxUSE_WEBVIEW_WEBKIT 0
-#endif
 
 // Enable wxGraphicsContext and related classes for a modern 2D drawing API.
 //
@@ -1215,6 +1207,10 @@
 // progress dialog class for lengthy operations
 #define wxUSE_PROGRESSDLG 1
 
+// Set to 0 to disable the use of the native progress dialog (currently only
+// available under MSW and suffering from some bugs there, hence this option).
+#define wxUSE_NATIVE_PROGRESSDLG 1
+
 // support for startup tips (wxShowTip &c)
 #define wxUSE_STARTUP_TIPS 1
 
@@ -1288,7 +1284,7 @@
 #define wxUSE_MDI_ARCHITECTURE    1
 
 // Set to 0 to disable print/preview architecture code
-#define wxUSE_PRINTING_ARCHITECTURE  1
+#define wxUSE_PRINTING_ARCHITECTURE  0
 
 // wxHTML sublibrary allows to display HTML in wxWindow programs and much,
 // much more.
@@ -1309,7 +1305,7 @@
 //
 // Recommended setting: 1 if you intend to use OpenGL, can be safely set to 0
 // otherwise.
-#define wxUSE_GLCANVAS       1
+#define wxUSE_GLCANVAS       0
 
 // wxRichTextCtrl allows editing of styled text.
 //
@@ -1382,7 +1378,7 @@
 //
 // Recommended setting: 1, only set to 0 if you have trouble compiling
 // wxCHMHelpController (could be a problem with really ancient compilers)
-#define wxUSE_MS_HTML_HELP 1
+#define wxUSE_MS_HTML_HELP 0
 
 
 // Use wxHTML-based help controller?
@@ -1514,7 +1510,7 @@
 // Recommended setting: 1 for faster and better quality graphics under Windows
 // 7 and later systems (if wxUSE_GRAPHICS_GDIPLUS is also enabled, earlier
 // systems will fall back on using GDI+).
-#if defined(_MSC_VER) && _MSC_VER >= 1600
+#if defined(_MSC_VER) && _MSC_VER >= 1600 && 0
     #define wxUSE_GRAPHICS_DIRECT2D wxUSE_GRAPHICS_CONTEXT
 #else
     #define wxUSE_GRAPHICS_DIRECT2D 0
@@ -1547,7 +1543,16 @@
 // Default is 1.
 //
 // Recommended setting: 1, required by wxMediaCtrl
-#define wxUSE_ACTIVEX 1
+#define wxUSE_ACTIVEX 0
+
+// Enable WinRT support
+//
+// Default is 1 for compilers which support it, i.e. VS2012+ currently. If you
+// use an earlier MSVC version or another compiler and installed the necessary
+// SDK components manually, you need to change this setting.
+//
+// Recommended setting: 1
+#define wxUSE_WINRT 0
 
 // wxDC caching implementation
 #define wxUSE_DC_CACHEING 1
@@ -1562,7 +1567,7 @@
 
 // Set to 0 to disable PostScript print/preview architecture code under Windows
 // (just use Windows printing).
-#define wxUSE_POSTSCRIPT_ARCHITECTURE_IN_MSW 1
+#define wxUSE_POSTSCRIPT_ARCHITECTURE_IN_MSW 0
 
 // Set this to 1 to compile in wxRegKey class.
 //
@@ -1657,7 +1662,7 @@
 // Default is 1 if supported by the compiler (VC++ and recent BC++ only).
 //
 // Recommended setting: 1, set to 0 if your programs never crash
-#define wxUSE_CRASHREPORT 1
+#define wxUSE_CRASHREPORT 0
 /* --- end MSW options --- */
 
 #endif // _WX_SETUP_H_

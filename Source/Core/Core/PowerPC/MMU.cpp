@@ -76,7 +76,19 @@ enum XCheckTLBFlag
 	FLAG_READ,
 	FLAG_WRITE,
 	FLAG_OPCODE,
+	FLAG_OPCODE_NO_EXCEPTION
 };
+
+static bool IsOpcodeFlag(XCheckTLBFlag flag)
+{
+	return flag == FLAG_OPCODE || flag == FLAG_OPCODE_NO_EXCEPTION;
+}
+
+static bool IsNoExceptionFlag(XCheckTLBFlag flag)
+{
+	return flag == FLAG_NO_EXCEPTION || flag == FLAG_OPCODE_NO_EXCEPTION;
+}
+
 template <const XCheckTLBFlag flag>
 static u32 TranslateAddress(const u32 address);
 
@@ -411,8 +423,8 @@ __forceinline static void WriteToHardware(u32 em_address, const T data)
 
 // =================================
 /* These functions are primarily called by the Interpreter functions and are routed to the correct
-	location through ReadFromHardware and WriteToHardware */
-	// ----------------
+	 location through ReadFromHardware and WriteToHardware */
+	 // ----------------
 
 static void GenerateISIException(u32 effective_address);
 
@@ -543,8 +555,7 @@ u64 Read_U64(const u32 address)
 
 double Read_F64(const u32 address)
 {
-	union
-	{
+	union {
 		u64 i;
 		double d;
 	} cvt;
@@ -555,8 +566,7 @@ double Read_F64(const u32 address)
 
 float Read_F32(const u32 address)
 {
-	union
-	{
+	union {
 		u32 i;
 		float d;
 	} cvt;
@@ -616,8 +626,7 @@ void Write_U64_Swap(const u64 var, const u32 address)
 
 void Write_F64(const double var, const u32 address)
 {
-	union
-	{
+	union {
 		u64 i;
 		double d;
 	} cvt;
@@ -839,6 +848,43 @@ bool IsOptimizableGatherPipeWrite(u32 address)
 	return address == 0xCC008000;
 }
 
+TranslateResult JitCache_TranslateAddress(u32 address)
+{
+	if (!UReg_MSR(MSR).IR)
+		return TranslateResult{ true, true, address };
+
+	bool from_bat = true;
+
+	int segment = address >> 28;
+
+	if (SConfig::GetInstance().bMMU && (address & Memory::ADDR_MASK_MEM1))
+	{
+		u32 tlb_addr = TranslateAddress<FLAG_OPCODE>(address);
+		if (tlb_addr == 0)
+		{
+			return TranslateResult{ false, false, 0 };
+		}
+		else
+		{
+			address = tlb_addr;
+			from_bat = false;
+		}
+	}
+	else
+	{
+		if ((segment == 0x8 || segment == 0x0) && (address & 0x0FFFFFFF) < Memory::REALRAM_SIZE)
+			address = address & 0x3FFFFFFF;
+		else if (Memory::m_pEXRAM && segment == 0x9 && (address & 0x0FFFFFFF) < Memory::EXRAM_SIZE)
+			address = address & 0x3FFFFFFF;
+		else if (Memory::bFakeVMEM && (segment == 0x7 || segment == 0x4))
+			address = 0x7E000000 | (address & Memory::FAKEVMEM_MASK);
+		else
+			return TranslateResult{ false, false, 0 };
+	}
+
+	return TranslateResult{ true, from_bat, address };
+}
+
 // *********************************************************************************
 // Warning: Test Area
 //
@@ -904,8 +950,7 @@ bool IsOptimizableGatherPipeWrite(u32 address)
 #define PTE2_PP(v) ((v)&3)
 
 // Hey! these duplicate a structure in Gekko.h
-union UPTE1
-{
+union UPTE1 {
 	struct
 	{
 		u32 API : 6;
@@ -916,8 +961,7 @@ union UPTE1
 	u32 Hex;
 };
 
-union UPTE2
-{
+union UPTE2 {
 	struct
 	{
 		u32 PP : 2;
@@ -957,6 +1001,7 @@ static void GenerateISIException(u32 _EffectiveAddress)
 	NPC = _EffectiveAddress;
 
 	PowerPC::ppcState.Exceptions |= EXCEPTION_ISI;
+	WARN_LOG(POWERPC, "ISI exception at 0x%08x", PC);
 }
 
 void SDRUpdated()
@@ -995,7 +1040,7 @@ static __forceinline TLBLookupResult LookupTLBPageAddress(const XCheckTLBFlag fl
 	u32* paddr)
 {
 	u32 tag = vpa >> HW_PAGE_INDEX_SHIFT;
-	PowerPC::tlb_entry* tlbe = &PowerPC::ppcState.tlb[flag == FLAG_OPCODE][tag & HW_PAGE_INDEX_MASK];
+	PowerPC::tlb_entry* tlbe = &PowerPC::ppcState.tlb[IsOpcodeFlag(flag)][tag & HW_PAGE_INDEX_MASK];
 	if (tlbe->tag[0] == tag)
 	{
 		// Check if C bit requires updating
@@ -1011,7 +1056,7 @@ static __forceinline TLBLookupResult LookupTLBPageAddress(const XCheckTLBFlag fl
 			}
 		}
 
-		if (flag != FLAG_NO_EXCEPTION)
+		if (!IsNoExceptionFlag(flag))
 			tlbe->recent = 0;
 
 		*paddr = tlbe->paddr[0] | (vpa & 0xfff);
@@ -1033,7 +1078,7 @@ static __forceinline TLBLookupResult LookupTLBPageAddress(const XCheckTLBFlag fl
 			}
 		}
 
-		if (flag != FLAG_NO_EXCEPTION)
+		if (!IsNoExceptionFlag(flag))
 			tlbe->recent = 1;
 
 		*paddr = tlbe->paddr[1] | (vpa & 0xfff);
@@ -1045,11 +1090,11 @@ static __forceinline TLBLookupResult LookupTLBPageAddress(const XCheckTLBFlag fl
 
 static __forceinline void UpdateTLBEntry(const XCheckTLBFlag flag, UPTE2 PTE2, const u32 address)
 {
-	if (flag == FLAG_NO_EXCEPTION)
+	if (IsNoExceptionFlag(flag))
 		return;
 
 	int tag = address >> HW_PAGE_INDEX_SHIFT;
-	PowerPC::tlb_entry* tlbe = &PowerPC::ppcState.tlb[flag == FLAG_OPCODE][tag & HW_PAGE_INDEX_MASK];
+	PowerPC::tlb_entry* tlbe = &PowerPC::ppcState.tlb[IsOpcodeFlag(flag)][tag & HW_PAGE_INDEX_MASK];
 	int index = tlbe->recent == 0 && tlbe->tag[0] != TLB_TAG_INVALID;
 	tlbe->recent = index;
 	tlbe->paddr[index] = PTE2.RPN << HW_PAGE_INDEX_SHIFT;
@@ -1115,6 +1160,7 @@ static __forceinline u32 TranslatePageAddress(const u32 address, const XCheckTLB
 				switch (flag)
 				{
 				case FLAG_NO_EXCEPTION:
+				case FLAG_OPCODE_NO_EXCEPTION:
 					break;
 				case FLAG_READ:
 					PTE2.R = 1;
@@ -1128,7 +1174,7 @@ static __forceinline u32 TranslatePageAddress(const u32 address, const XCheckTLB
 					break;
 				}
 
-				if (flag != FLAG_NO_EXCEPTION)
+				if (!IsNoExceptionFlag(flag))
 					*(u32*)&Memory::physical_base[pteg_addr + 4] = bswap(PTE2.Hex);
 
 				// We already updated the TLB entry if this was caused by a C bit.

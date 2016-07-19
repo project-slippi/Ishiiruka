@@ -21,7 +21,7 @@ constexpr u8 WIRE_FORMAT_VERSION = 0;
 
 // Identifiers for the value types supported by the analytics reporting wire
 // format.
-enum class TypeId: u8
+enum class TypeId : u8
 {
 	STRING = 0,
 	BOOL = 1,
@@ -43,8 +43,7 @@ void AppendVarInt(std::string* out, u64 v)
 		v >>= 7;
 		current_byte |= (!!v) << 7;
 		out->push_back(current_byte);
-	}
-	while (v);
+	} while (v);
 }
 
 void AppendBytes(std::string* out, const u8* bytes, u32 length,

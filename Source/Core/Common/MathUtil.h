@@ -67,9 +67,9 @@ union IntDouble
 	double d;
 	u64 i;
 
-	explicit IntDouble(u64 _i): i(_i)
+	explicit IntDouble(u64 _i) : i(_i)
 	{}
-	explicit IntDouble(double _d): d(_d)
+	explicit IntDouble(double _d) : d(_d)
 	{}
 };
 union IntFloat
@@ -77,9 +77,9 @@ union IntFloat
 	float f;
 	u32 i;
 
-	explicit IntFloat(u32 _i): i(_i)
+	explicit IntFloat(u32 _i) : i(_i)
 	{}
-	explicit IntFloat(float _f): f(_f)
+	explicit IntFloat(float _f) : f(_f)
 	{}
 };
 

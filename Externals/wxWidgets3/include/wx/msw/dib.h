@@ -79,10 +79,10 @@ public:
     // the DIB after this (but the caller should do it)
     HBITMAP Detach() { HBITMAP hbmp = m_handle; m_handle = 0; return hbmp; }
 
-#if wxUSE_PALETTE
+#if defined(__WXMSW__) && wxUSE_PALETTE
     // create a palette for this DIB (always a trivial/default one for 24bpp)
     wxPalette *CreatePalette() const;
-#endif // wxUSE_PALETTE
+#endif // defined(__WXMSW__) && wxUSE_PALETTE
 
     // save the DIB as a .BMP file to the file with the given name
     bool Save(const wxString& filename);
@@ -164,7 +164,18 @@ public:
     bool Create(const wxImage& image, PixelFormat pf = PixelFormat_PreMultiplied);
 
     // create wxImage having the same data as this DIB
-    wxImage ConvertToImage() const;
+
+    // Possible options of conversion to wxImage
+    enum ConversionFlags
+    {
+        // Determine whether 32bpp DIB contains real alpha channel
+        // and return wxImage with or without alpha channel values.
+        Convert_AlphaAuto,
+        // Assume that 32bpp DIB contains valid alpha channel and always
+        // return wxImage with alpha channel values in this case.
+        Convert_AlphaAlwaysIf32bpp
+    };
+    wxImage ConvertToImage(ConversionFlags flags = Convert_AlphaAuto) const;
 #endif // wxUSE_IMAGE
 
 

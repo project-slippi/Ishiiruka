@@ -684,12 +684,16 @@ void wxMenuItem::Check( bool check )
     if (check == m_isChecked)
         return;
 
-    wxMenuItemBase::Check( check );
-
     switch ( GetKind() )
     {
-        case wxITEM_CHECK:
         case wxITEM_RADIO:
+            // It doesn't make sense to uncheck a radio item.
+            if ( !check )
+                return;
+
+            wxFALLTHROUGH;
+        case wxITEM_CHECK:
+            wxMenuItemBase::Check( check );
             gtk_check_menu_item_set_active( (GtkCheckMenuItem*)m_menuItem, (gint)check );
             break;
 
@@ -806,7 +810,7 @@ wxMenu::~wxMenu()
     g_object_unref(m_accel);
 }
 
-void wxMenu::SetLayoutDirection(const wxLayoutDirection dir)
+void wxMenu::SetLayoutDirection(wxLayoutDirection dir)
 {
     if ( m_owner )
         wxWindow::GTKSetLayout(m_owner, dir);

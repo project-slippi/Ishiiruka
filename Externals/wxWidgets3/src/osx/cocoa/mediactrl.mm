@@ -476,7 +476,7 @@ static void *AVSPPlayerItemStatusContext = &AVSPPlayerItemStatusContext;
 static void *AVSPPlayerRateContext = &AVSPPlayerRateContext;
 
 @interface wxAVPlayer : AVPlayer {
-    
+
     AVPlayerLayer *playerLayer;
 
     wxAVMediaBackend* m_backend;
@@ -491,10 +491,10 @@ static void *AVSPPlayerRateContext = &AVSPPlayerRateContext;
 class WXDLLIMPEXP_MEDIA wxAVMediaBackend : public wxMediaBackendCommonBase
 {
 public:
-    
+
     wxAVMediaBackend();
     ~wxAVMediaBackend();
-    
+
     virtual bool CreateControl(wxControl* ctrl, wxWindow* parent,
                                wxWindowID id,
                                const wxPoint& pos,
@@ -502,41 +502,41 @@ public:
                                long style,
                                const wxValidator& validator,
                                const wxString& name) wxOVERRIDE;
-    
+
     virtual bool Play() wxOVERRIDE;
     virtual bool Pause() wxOVERRIDE;
     virtual bool Stop() wxOVERRIDE;
-    
+
     virtual bool Load(const wxString& fileName) wxOVERRIDE;
     virtual bool Load(const wxURI& location) wxOVERRIDE;
-    
+
     virtual wxMediaState GetState() wxOVERRIDE;
-    
+
     virtual bool SetPosition(wxLongLong where) wxOVERRIDE;
     virtual wxLongLong GetPosition() wxOVERRIDE;
     virtual wxLongLong GetDuration() wxOVERRIDE;
-    
+
     virtual void Move(int x, int y, int w, int h) wxOVERRIDE;
     wxSize GetVideoSize() const wxOVERRIDE;
-    
+
     virtual double GetPlaybackRate() wxOVERRIDE;
     virtual bool SetPlaybackRate(double dRate) wxOVERRIDE;
-    
+
     virtual double GetVolume() wxOVERRIDE;
     virtual bool SetVolume(double dVolume) wxOVERRIDE;
-    
+
     void Cleanup();
     void FinishLoad();
-    
+
     virtual bool   ShowPlayerControls(wxMediaCtrlPlayerControls flags) wxOVERRIDE;
 private:
     void DoShowPlayerControls(wxMediaCtrlPlayerControls flags);
-    
+
     wxSize m_bestSize;              //Original movie size
     wxAVPlayer* m_player;               //AVPlayer handle/instance
-    
+
     wxMediaCtrlPlayerControls m_interfaceflags; // Saved interface flags
-    
+
     wxDECLARE_DYNAMIC_CLASS(wxAVMediaBackend);
 };
 
@@ -551,7 +551,7 @@ private:
 - (id) init
 {
     self = [super init];
-    
+
     [self addObserver:self forKeyPath:@"currentItem.status"
                   options:NSKeyValueObservingOptionNew context:AVSPPlayerItemStatusContext];
     [self addObserver:self forKeyPath:@"rate"
@@ -564,10 +564,10 @@ private:
 {
 	[playerLayer release];
     [[NSNotificationCenter defaultCenter] removeObserver:self];
-    
+
     [self removeObserver:self forKeyPath:@"rate" context:AVSPPlayerRateContext];
 	[self removeObserver:self forKeyPath:@"currentItem.status" context:AVSPPlayerItemStatusContext];
-	
+
 	[super dealloc];
 }
 
@@ -640,7 +640,7 @@ private:
 	{
 		return NO;
 	}
-	
+
 	return YES;
 }
 
@@ -715,9 +715,9 @@ private:
 {
     if ( !(self=[super initWithFrame:rect]) )
         return nil;
-    
+
     self.player = player;
-    
+
     return self;
 }
 
@@ -752,7 +752,7 @@ private:
 {
     if ( !(self=[super initWithFrame:rect]) )
         return nil;
-    
+
     [self setWantsLayer:YES];
     AVPlayerLayer* playerlayer = [[AVPlayerLayer playerLayerWithPlayer: player] retain];
     [player setPlayerLayer:playerlayer];
@@ -795,9 +795,9 @@ bool wxAVMediaBackend::CreateControl(wxControl* inctrl, wxWindow* parent,
                                      const wxString& name)
 {
     wxMediaCtrl* mediactrl = (wxMediaCtrl*) inctrl;
-    
+
     mediactrl->DontCreatePeer();
-    
+
     if ( !mediactrl->wxControl::Create(
                                        parent, wid, pos, size,
                                        wxWindow::MacRemoveBordersFromStyle(style),
@@ -810,7 +810,7 @@ bool wxAVMediaBackend::CreateControl(wxControl* inctrl, wxWindow* parent,
     [m_player setBackend:this];
 
     WXRect r = wxOSXGetFrameForControl( mediactrl, pos , size ) ;
-    
+
     WXWidget view = NULL;
 #if wxOSX_USE_AVKIT
     if ( NSClassFromString(@"AVPlayerView") )
@@ -819,12 +819,12 @@ bool wxAVMediaBackend::CreateControl(wxControl* inctrl, wxWindow* parent,
         [(wxAVPlayerView*) view setControlsStyle:AVPlayerViewControlsStyleNone];
     }
 #endif
-    
+
     if ( view == NULL )
     {
         view = [[wxAVView alloc] initWithFrame: r player:m_player];
     }
-    
+
 #if wxOSX_USE_IPHONE
     wxWidgetIPhoneImpl* impl = new wxWidgetIPhoneImpl(mediactrl,view);
 #else
@@ -849,16 +849,16 @@ bool wxAVMediaBackend::Load(const wxURI& location)
 {
     wxCFStringRef uri(location.BuildURI());
     NSURL *url = [NSURL URLWithString: uri.AsNSString()];
-    
+
     AVAsset* asset = [AVAsset assetWithURL:url];
     if (! asset )
         return false;
-    
+
     if ( [asset isPlayable] )
     {
         AVPlayerItem *playerItem = [AVPlayerItem playerItemWithAsset:asset];
         [m_player replaceCurrentItemWithPlayerItem:playerItem];
-    
+
         return playerItem != nil;
     }
     return false;
@@ -867,12 +867,12 @@ bool wxAVMediaBackend::Load(const wxURI& location)
 void wxAVMediaBackend::FinishLoad()
 {
     DoShowPlayerControls(m_interfaceflags);
-    
+
     AVPlayerItem *playerItem = [m_player currentItem];
-	
+
     CGSize s = [playerItem presentationSize];
     m_bestSize = wxSize(s.width, s.height);
-    
+
     NotifyMovieLoaded();
 }
 
@@ -932,7 +932,7 @@ wxLongLong wxAVMediaBackend::GetPosition()
 wxLongLong wxAVMediaBackend::GetDuration()
 {
     AVPlayerItem *playerItem = [m_player currentItem];
-	
+
 	if ([playerItem status] == AVPlayerItemStatusReadyToPlay)
 		return CMTimeGetSeconds([[playerItem asset] duration])*1000.0;
 	else
@@ -973,7 +973,7 @@ bool wxAVMediaBackend::ShowPlayerControls(wxMediaCtrlPlayerControls flags)
 {
     if ( m_interfaceflags != flags )
         DoShowPlayerControls(flags);
-    
+
     m_interfaceflags = flags;
     return true;
 }

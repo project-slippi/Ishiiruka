@@ -222,8 +222,11 @@ void wxArtProvider::RescaleBitmap(wxBitmap& bmp, const wxSize& sizeNeeded)
     bmp = wxBitmap(img);
 #else // !wxUSE_IMAGE
     // Fallback method of scaling the bitmap
-    wxBitmap newBmp(sizeNeeded);
+    wxBitmap newBmp(sizeNeeded, bmp.GetDepth());
+#if defined(__WXMSW__) || defined(__WXOSX__)
+    // wxBitmap::UseAlpha() is used only on wxMSW and wxOSX.
     newBmp.UseAlpha(bmp.HasAlpha());
+#endif // __WXMSW__ || __WXOSX__
     {
         wxMemoryDC dc(newBmp);
         double scX = (double)sizeNeeded.GetWidth() / bmp.GetWidth();

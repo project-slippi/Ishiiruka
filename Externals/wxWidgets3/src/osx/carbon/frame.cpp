@@ -215,9 +215,7 @@ void wxFrame::DetachMenuBar()
 
 void wxFrame::AttachMenuBar( wxMenuBar *menuBar )
 {
-#if wxOSX_USE_CARBON
-    wxFrame* tlf = wxDynamicCast( wxNonOwnedWindow::GetFromWXWindow( (WXWindow) FrontNonFloatingWindow() ) , wxFrame );
-#elif wxOSX_USE_COCOA
+#if wxOSX_USE_COCOA
     wxFrame* tlf = wxDynamicCast( wxNonOwnedWindow::GetFromWXWindow( wxOSXGetMainWindow() ) , wxFrame );
 #else
     wxFrame* tlf = wxDynamicCast( wxTheApp->GetTopWindow(), wxFrame );
@@ -414,4 +412,17 @@ void wxFrame::PositionBars()
 #endif
 }
 
+bool wxFrame::Show(bool show)
+{
+    if ( !show )
+    {
+#if wxUSE_MENUS
+        if (m_frameMenuBar != NULL)
+        {
+          m_frameMenuBar->MacUninstallMenuBar();
+        }
+#endif
+    }
+    return wxFrameBase::Show(show);
+}
 

@@ -6,8 +6,8 @@
 Here is a nice ascii overview of audio flow affected by this file:
 
 (RAM)---->[AI FIFO]---->[SRC]---->[Mixer]---->[DAC]---->(Speakers)
-								  ^
-								  |
+									^
+									|
 							 [L/R Volume]
 									\
 (DVD)---->[Drive I/F]---->[SRC]---->[Counter]

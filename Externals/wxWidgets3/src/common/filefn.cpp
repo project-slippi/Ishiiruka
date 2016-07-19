@@ -1388,33 +1388,9 @@ bool wxSetWorkingDirectory(const wxString& d)
 {
     bool success = false;
 #if defined(__UNIX__) || defined(__WXMAC__)
-    success = (chdir(wxFNSTRINGCAST d.fn_str()) == 0);
+    success = (chdir(d.fn_str()) == 0);
 #elif defined(__WINDOWS__)
-
-#ifdef __WIN32__
     success = (SetCurrentDirectory(d.t_str()) != 0);
-#else
-    // Must change drive, too.
-    bool isDriveSpec = ((strlen(d) > 1) && (d[1] == ':'));
-    if (isDriveSpec)
-    {
-        wxChar firstChar = d[0];
-
-        // To upper case
-        if (firstChar > 90)
-            firstChar = firstChar - 32;
-
-        // To a drive number
-        unsigned int driveNo = firstChar - 64;
-        if (driveNo > 0)
-        {
-            unsigned int noDrives;
-            _dos_setdrive(driveNo, &noDrives);
-        }
-    }
-    success = (chdir(WXSTRINGCAST d) == 0);
-#endif
-
 #endif
     if ( !success )
     {
@@ -1435,8 +1411,6 @@ wxString wxGetOSDirectory()
     }
 
     return wxString(buf);
-#elif defined(__WXMAC__) && wxOSX_USE_CARBON
-    return wxMacFindFolderNoSeparator(kOnSystemDisk, 'macs', false);
 #else
     return wxEmptyString;
 #endif

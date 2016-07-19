@@ -34,6 +34,14 @@ wxGTKCairoDCImpl::wxGTKCairoDCImpl(wxDC* owner, int)
     m_height = 0;
 }
 
+wxGTKCairoDCImpl::wxGTKCairoDCImpl(wxDC* owner, double scaleFactor)
+    : base_type(owner, 0)
+{
+    m_width = 0;
+    m_height = 0;
+    m_contentScaleFactor = scaleFactor;
+}
+
 wxGTKCairoDCImpl::wxGTKCairoDCImpl(wxDC* owner, wxWindow* window)
     : base_type(owner, 0)
 {
@@ -43,6 +51,7 @@ wxGTKCairoDCImpl::wxGTKCairoDCImpl(wxDC* owner, wxWindow* window)
     m_textBackgroundColour = window->GetBackgroundColour();
     m_width = 0;
     m_height = 0;
+    m_contentScaleFactor = window->GetContentScaleFactor();
 }
 
 void wxGTKCairoDCImpl::DoDrawBitmap(const wxBitmap& bitmap, int x, int y, bool useMask)
@@ -201,7 +210,7 @@ wxWindowDCImpl::wxWindowDCImpl(wxWindowDC* owner, wxWindow* window)
     {
         cairo_t* cr = gdk_cairo_create(gdkWindow);
         wxGraphicsContext* gc = wxGraphicsContext::CreateFromNative(cr);
-        gc->EnableOffset(true);
+        gc->EnableOffset(m_contentScaleFactor <= 1);
         SetGraphicsContext(gc);
         GtkAllocation a;
         gtk_widget_get_allocation(widget, &a);
@@ -246,7 +255,7 @@ wxClientDCImpl::wxClientDCImpl(wxClientDC* owner, wxWindow* window)
     {
         cairo_t* cr = gdk_cairo_create(gdkWindow);
         wxGraphicsContext* gc = wxGraphicsContext::CreateFromNative(cr);
-        gc->EnableOffset(true);
+        gc->EnableOffset(m_contentScaleFactor <= 1);
         SetGraphicsContext(gc);
         if (gtk_widget_get_has_window(widget))
         {
@@ -279,7 +288,7 @@ wxPaintDCImpl::wxPaintDCImpl(wxPaintDC* owner, wxWindow* window)
     m_height = gdk_window_get_height(gdkWindow);
     cairo_reference(cr);
     wxGraphicsContext* gc = wxGraphicsContext::CreateFromNative(cr);
-    gc->EnableOffset(true);
+    gc->EnableOffset(m_contentScaleFactor <= 1);
     SetGraphicsContext(gc);
 }
 //-----------------------------------------------------------------------------
@@ -292,7 +301,7 @@ wxScreenDCImpl::wxScreenDCImpl(wxScreenDC* owner)
     m_height = gdk_window_get_height(window);
     cairo_t* cr = gdk_cairo_create(window);
     wxGraphicsContext* gc = wxGraphicsContext::CreateFromNative(cr);
-    gc->EnableOffset(true);
+    gc->EnableOffset(m_contentScaleFactor <= 1);
     SetGraphicsContext(gc);
 }
 //-----------------------------------------------------------------------------
@@ -343,22 +352,23 @@ void wxMemoryDCImpl::Setup()
     m_ok = m_bitmap.IsOk();
     if (m_ok)
     {
-        m_width = m_bitmap.GetWidth();
-        m_height = m_bitmap.GetHeight();
+        m_width = int(m_bitmap.GetScaledWidth());
+        m_height = int(m_bitmap.GetScaledHeight());
+        m_contentScaleFactor = m_bitmap.GetScaleFactor();
         cairo_t* cr = m_bitmap.CairoCreate();
         gc = wxGraphicsContext::CreateFromNative(cr);
-        gc->EnableOffset(true);
+        gc->EnableOffset(m_contentScaleFactor <= 1);
     }
     SetGraphicsContext(gc);
 }
 //-----------------------------------------------------------------------------
 
-wxGTKCairoDC::wxGTKCairoDC(cairo_t* cr)
-    : base_type(new wxGTKCairoDCImpl(this, 0))
+wxGTKCairoDC::wxGTKCairoDC(cairo_t* cr, wxWindow* window)
+    : base_type(new wxGTKCairoDCImpl(this, window->GetContentScaleFactor()))
 {
     cairo_reference(cr);
     wxGraphicsContext* gc = wxGraphicsContext::CreateFromNative(cr);
-    gc->EnableOffset(true);
+    gc->EnableOffset(window->GetContentScaleFactor() <= 1);
     SetGraphicsContext(gc);
 }
 

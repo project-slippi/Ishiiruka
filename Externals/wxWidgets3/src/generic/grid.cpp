@@ -1055,7 +1055,8 @@ void wxGridTableBase::SetRowAttr(wxGridCellAttr *attr, int row)
 {
     if ( m_attrProvider )
     {
-        attr->SetKind(wxGridCellAttr::Row);
+        if ( attr )
+            attr->SetKind(wxGridCellAttr::Row);
         m_attrProvider->SetRowAttr(attr, row);
     }
     else
@@ -1070,7 +1071,8 @@ void wxGridTableBase::SetColAttr(wxGridCellAttr *attr, int col)
 {
     if ( m_attrProvider )
     {
-        attr->SetKind(wxGridCellAttr::Col);
+        if ( attr )
+            attr->SetKind(wxGridCellAttr::Col);
         m_attrProvider->SetColAttr(attr, col);
     }
     else
@@ -4536,12 +4538,6 @@ bool wxGrid::ProcessTableMessage( wxGridTableMessage& msg )
 {
     switch ( msg.GetId() )
     {
-        case wxGRIDTABLE_REQUEST_VIEW_GET_VALUES:
-            return GetModelValues();
-
-        case wxGRIDTABLE_REQUEST_VIEW_SEND_VALUES:
-            return SetModelValues();
-
         case wxGRIDTABLE_NOTIFY_ROWS_INSERTED:
         case wxGRIDTABLE_NOTIFY_ROWS_APPENDED:
         case wxGRIDTABLE_NOTIFY_ROWS_DELETED:
@@ -4630,7 +4626,7 @@ wxGrid::SendGridSizeEvent(wxEventType type,
 //  +1 if the event was processed (but not vetoed)
 //   0 if the event wasn't handled
 int
-wxGrid::SendEvent(const wxEventType type,
+wxGrid::SendEvent(wxEventType type,
                   int row, int col,
                   const wxMouseEvent& mouseEv)
 {
@@ -4705,7 +4701,7 @@ wxGrid::SendEvent(const wxEventType type,
 // Generate a grid event of specified type, return value same as above
 //
 int
-wxGrid::SendEvent(const wxEventType type, int row, int col, const wxString& s)
+wxGrid::SendEvent(wxEventType type, int row, int col, const wxString& s)
 {
     wxGridEvent gridEvt( GetId(), type, this, row, col );
     gridEvt.SetString(s);
@@ -5304,51 +5300,6 @@ wxGrid::UpdateBlockBeingSelected(int topRow, int leftCol,
     // change selection
     m_selectedBlockTopLeft = updateTopLeft;
     m_selectedBlockBottomRight = updateBottomRight;
-}
-
-//
-// ------ functions to get/send data (see also public functions)
-//
-
-bool wxGrid::GetModelValues()
-{
-    // Hide the editor, so it won't hide a changed value.
-    HideCellEditControl();
-
-    if ( m_table )
-    {
-        // all we need to do is repaint the grid
-        //
-        m_gridWin->Refresh();
-        return true;
-    }
-
-    return false;
-}
-
-bool wxGrid::SetModelValues()
-{
-    int row, col;
-
-    // Disable the editor, so it won't hide a changed value.
-    // Do we also want to save the current value of the editor first?
-    // I think so ...
-    DisableCellEditControl();
-
-    if ( m_table )
-    {
-        for ( row = 0; row < m_numRows; row++ )
-        {
-            for ( col = 0; col < m_numCols; col++ )
-            {
-                m_table->SetValue( row, col, GetCellValue(row, col) );
-            }
-        }
-
-        return true;
-    }
-
-    return false;
 }
 
 // Note - this function only draws cells that are in the list of

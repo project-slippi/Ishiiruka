@@ -76,7 +76,7 @@
                 [m_textColor release];
                 m_textColor = [[self textColor] retain];
             }
-            [self setTextColor: [NSColor disabledControlTextColor]]; 
+            [self setTextColor: [NSColor disabledControlTextColor]];
         } 
     } 
 } 

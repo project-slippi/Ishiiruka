@@ -76,7 +76,7 @@ wxWindowDCImpl::wxWindowDCImpl( wxDC *owner, wxWindow *window )
             CGContextTranslateCTM( cg , -window->MacGetLeftBorderSize() , -window->MacGetTopBorderSize() );
 
         wxGraphicsContext* context = wxGraphicsContext::CreateFromNative( cg );
-        context->EnableOffset(true);
+        context->EnableOffset(m_contentScaleFactor <= 1);
         SetGraphicsContext( context );
     }
     DoSetClippingRegion( 0 , 0 , m_width , m_height ) ;
@@ -104,46 +104,6 @@ void wxWindowDCImpl::DoGetSize( int* width, int* height ) const
     if ( height )
         *height = m_height;
 }
-
-#if wxOSX_USE_CARBON
-wxBitmap wxWindowDCImpl::DoGetAsBitmap(const wxRect *subrect) const
-{
-    // wxScreenDC is derived from wxWindowDC, so a screen dc will
-    // call this method when a Blit is performed with it as a source.
-    if (!m_window)
-        return wxNullBitmap;
-
-    ControlRef handle = (ControlRef) m_window->GetHandle();
-    if ( !handle )
-        return wxNullBitmap;
-
-    HIRect rect;
-    CGImageRef image;
-    CGContextRef context;
-
-    HIViewCreateOffscreenImage( handle, 0, &rect, &image);
-
-
-    int width = subrect != NULL ? subrect->width : (int)rect.size.width;
-    int height = subrect !=  NULL ? subrect->height : (int)rect.size.height ;
-
-    wxBitmap bmp = wxBitmap(width, height, 32);
-
-    context = (CGContextRef)bmp.GetHBITMAP();
-
-    CGContextSaveGState(context);
-
-    CGContextTranslateCTM( context, 0,  height );
-    CGContextScaleCTM( context, 1, -1 );
-
-    if ( subrect )
-        rect = CGRectOffset( rect, -subrect->x, -subrect->y ) ;
-    CGContextDrawImage( context, rect, image );
-
-    CGContextRestoreGState(context);
-    return bmp;
-}
-#endif
 
 /*
  * wxClientDCImpl

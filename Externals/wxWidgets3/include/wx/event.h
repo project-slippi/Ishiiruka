@@ -27,6 +27,7 @@
 #include "wx/tracker.h"
 #include "wx/typeinfo.h"
 #include "wx/any.h"
+#include "wx/vector.h"
 
 #include "wx/meta/convertible.h"
 
@@ -1502,8 +1503,10 @@ public:
     {
         m_clientData = NULL;
         m_clientObject = NULL;
+        m_isCommandEvent = true;
 
-        Init();
+        // the command events are propagated upwards by default
+        m_propagationLevel = wxEVENT_PROPAGATE_MAX;
     }
 
     wxCommandEvent(const wxCommandEvent& event)
@@ -1516,8 +1519,6 @@ public:
         // need to copy it explicitly.
         if ( m_cmdString.empty() )
             m_cmdString = event.GetString();
-
-        Init();
     }
 
     // Set/Get client data from controls
@@ -1549,13 +1550,6 @@ protected:
     wxClientData*     m_clientObject;  // Arbitrary client object
 
 private:
-    void Init()
-    {
-        m_isCommandEvent = true;
-
-        // the command events are propagated upwards by default
-        m_propagationLevel = wxEVENT_PROPAGATE_MAX;
-    }
 
     wxDECLARE_DYNAMIC_CLASS_NO_ASSIGN(wxCommandEvent);
 };
@@ -3587,8 +3581,6 @@ public:
                             userData);
     }
 
-    wxList* GetDynamicEventTable() const { return m_dynamicEvents ; }
-
     // User data can be associated with each wxEvtHandler
     void SetClientObject( wxClientData *data ) { DoSetClientObject(data); }
     wxClientData *GetClientObject() const { return DoGetClientObject(); }
@@ -3609,6 +3601,14 @@ public:
     static bool ProcessEventIfMatchesId(const wxEventTableEntryBase& tableEntry,
                                         wxEvtHandler *handler,
                                         wxEvent& event);
+
+    // Allow iterating over all connected dynamic event handlers: you must pass
+    // the same "cookie" to GetFirst() and GetNext() and call them until null
+    // is returned.
+    //
+    // These functions are for internal use only.
+    wxDynamicEventTableEntry* GetFirstDynamicEntry(size_t& cookie) const;
+    wxDynamicEventTableEntry* GetNextDynamicEntry(size_t& cookie) const;
 
     virtual bool SearchEventTable(wxEventTable& table, wxEvent& event);
     bool SearchDynamicEventTable( wxEvent& event );
@@ -3671,6 +3671,15 @@ protected:
         virtual bool TryParent(wxEvent& event), return DoTryApp(event); )
 #endif // WXWIN_COMPATIBILITY_2_8
 
+    // Overriding this method allows filtering the event handlers dynamically
+    // connected to this object. If this method returns false, the handler is
+    // not connected at all. If it returns true, it is connected using the
+    // possibly modified fields of the given entry.
+    virtual bool OnDynamicBind(wxDynamicEventTableEntry& WXUNUSED(entry))
+    {
+        return true;
+    }
+
 
     static const wxEventTable sm_eventTable;
     virtual const wxEventTable *GetEventTable() const;
@@ -3680,7 +3689,10 @@ protected:
 
     wxEvtHandler*       m_nextHandler;
     wxEvtHandler*       m_previousHandler;
-    wxList*             m_dynamicEvents;
+
+    typedef wxVector<wxDynamicEventTableEntry*> DynamicEvents;
+    DynamicEvents* m_dynamicEvents;
+
     wxList*             m_pendingEvents;
 
 #if wxUSE_THREADS
@@ -3970,10 +3982,12 @@ typedef void (wxEvtHandler::*wxClipboardTextEventFunction)(wxClipboardTextEvent&
     private:                                                            \
         static const wxEventTableEntry sm_eventTableEntries[];          \
     protected:                                                          \
+        wxCLANG_WARNING_SUPPRESS(inconsistent-missing-override)         \
+        const wxEventTable* GetEventTable() const;                      \
+        wxEventHashTable& GetEventHashTable() const;                    \
+        wxCLANG_WARNING_RESTORE(inconsistent-missing-override)          \
         static const wxEventTable        sm_eventTable;                 \
-        const wxEventTable* GetEventTable() const wxOVERRIDE;           \
-        static wxEventHashTable          sm_eventHashTable;             \
-        wxEventHashTable& GetEventHashTable() const wxOVERRIDE
+        static wxEventHashTable          sm_eventHashTable
 
 // N.B.: when building DLL with Borland C++ 5.5 compiler, you must initialize
 //       sm_eventTable before using it in GetEventTable() or the compiler gives

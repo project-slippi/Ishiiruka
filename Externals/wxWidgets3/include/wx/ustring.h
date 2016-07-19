@@ -134,9 +134,9 @@ public:
        return utf16_str();
     }
 #else
-    wchar_t *wc_str() const
+    const wchar_t *wc_str() const
     {
-        return (wchar_t*) c_str();
+        return c_str();
     }
 #endif
 
@@ -154,18 +154,18 @@ public:
     }
 
 #if wxUSE_UNICODE_UTF8
-    wxScopedCharBuffer wx_str()
+    wxScopedCharBuffer wx_str() const
     {
         return utf8_str();
     }
 #else
 #if SIZEOF_WCHAR_T == 2
-    wxScopedWCharBuffer wx_str()
+    wxScopedWCharBuffer wx_str() const
     {
         return utf16_str();
     }
 #else
-    const wchar_t* wx_str()
+    const wchar_t* wx_str() const
     {
         return c_str();
     }
@@ -549,13 +549,13 @@ public:
         { return assign( s ); }
     wxUString& operator=(const wxScopedU32CharBuffer &s)
         { return assign( s ); }
-    wxUString& operator=(const char ch)
+    wxUString& operator=(char ch)
         { return assign( ch ); }
-    wxUString& operator=(const wxChar16 ch)
+    wxUString& operator=(wxChar16 ch)
         { return assign( ch ); }
-    wxUString& operator=(const wxChar32 ch)
+    wxUString& operator=(wxChar32 ch)
         { return assign( ch ); }
-    wxUString& operator=(const wxUniChar ch)
+    wxUString& operator=(wxUniChar ch)
         { return assign( ch ); }
     wxUString& operator=(const wxUniCharRef ch)
         { return assign( ch ); }
@@ -579,13 +579,13 @@ public:
         { return append( s ); }
     wxUString& operator+=(const wxScopedU32CharBuffer &s)
         { return append( s ); }
-    wxUString& operator+=(const char ch)
+    wxUString& operator+=(char ch)
         { return append( ch ); }
-    wxUString& operator+=(const wxChar16 ch)
+    wxUString& operator+=(wxChar16 ch)
         { return append( ch ); }
-    wxUString& operator+=(const wxChar32 ch)
+    wxUString& operator+=(wxChar32 ch)
         { return append( ch ); }
-    wxUString& operator+=(const wxUniChar ch)
+    wxUString& operator+=(wxUniChar ch)
         { return append( ch ); }
     wxUString& operator+=(const wxUniCharRef ch)
         { return append( ch ); }

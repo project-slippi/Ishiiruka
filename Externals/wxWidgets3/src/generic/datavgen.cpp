@@ -120,8 +120,8 @@ wxDataViewColumn* GetExpanderColumnOrFirstOne(wxDataViewCtrl* dataview)
 wxTextCtrl *CreateEditorTextCtrl(wxWindow *parent, const wxRect& labelRect, const wxString& value)
 {
     wxTextCtrl* ctrl = new wxTextCtrl(parent, wxID_ANY, value,
-                                      wxPoint(labelRect.x,labelRect.y),
-                                      wxSize(labelRect.width,labelRect.height),
+                                      labelRect.GetPosition(),
+                                      labelRect.GetSize(),
                                       wxTE_PROCESS_ENTER);
 
     // Adjust size of wxTextCtrl editor to fit text, even if it means being
@@ -212,7 +212,7 @@ void wxDataViewColumn::SetSortOrder(bool ascending)
         m_owner->UseColumnForSorting(idx);
         m_sort = true;
     }
-    
+
    m_sortAscending = ascending;
 
     // Call this directly instead of using UpdateDisplay() as we already have
@@ -741,7 +741,18 @@ public:
     const wxSelectionStore& GetSelections() const { return m_selection; }
     void ClearSelection() { m_selection.SelectRange(0, GetRowCount() - 1, false); }
     void Select( const wxArrayInt& aSelections );
-    void SelectAllRows( bool on );
+
+    void SelectAllRows()
+    {
+        m_selection.SelectRange(0, GetRowCount() - 1);
+        Refresh();
+    }
+
+    // If a valid row is specified and it was previously selected, it is left
+    // selected and the function returns false. Otherwise, i.e. if there is
+    // really no selection left in the control, it returns true.
+    bool UnselectAllRows(unsigned int except = (unsigned int)-1);
+
     void SelectRow( unsigned int row, bool on );
     void SelectRows( unsigned int from, unsigned int to );
     void ReverseRowSelection( unsigned int row );
@@ -1152,9 +1163,7 @@ bool wxDataViewToggleRenderer::WXActivateCell(const wxRect& WXUNUSED(cellRect),
 
 wxSize wxDataViewToggleRenderer::GetSize() const
 {
-    // the window parameter is not used by GetCheckBoxSize() so it's
-    // safe to pass NULL
-    return wxRendererNative::Get().GetCheckBoxSize(NULL);
+    return wxRendererNative::Get().GetCheckBoxSize(GetView());
 }
 
 // ---------------------------------------------------------
@@ -2242,6 +2251,8 @@ wxDataViewMainWindow::StartEditing(const wxDataViewItem& item,
     const wxRect itemRect = GetItemRect(item, col);
     if ( renderer->StartEditing(item, itemRect) )
     {
+        renderer->NotifyEditingStarted(item);
+
         // Save the renderer to be able to finish/cancel editing it later and
         // save the control to be able to detect if we're still editing it.
         m_editorRenderer = renderer;
@@ -2728,25 +2739,36 @@ void wxDataViewMainWindow::ChangeCurrentRow( unsigned int row )
     // send event
 }
 
-void wxDataViewMainWindow::SelectAllRows( bool on )
+bool wxDataViewMainWindow::UnselectAllRows(unsigned int except)
 {
-    if (IsEmpty())
-        return;
-
-    if (on)
-    {
-        m_selection.SelectRange(0, GetRowCount() - 1);
-        Refresh();
-    }
-    else if (!m_selection.IsEmpty())
+    if (!m_selection.IsEmpty())
     {
         for (unsigned i = GetFirstVisibleRow(); i <= GetLastVisibleRow(); i++)
         {
-            if (m_selection.IsSelected(i))
+            if (m_selection.IsSelected(i) && i != except)
                 RefreshRow(i);
         }
-        ClearSelection();
+
+        if (except != (unsigned int)-1)
+        {
+            const bool wasSelected = m_selection.IsSelected(except);
+            ClearSelection();
+            if (wasSelected)
+            {
+                m_selection.SelectItem(except);
+
+                // The special item is still selected.
+                return false;
+            }
+        }
+        else
+        {
+            ClearSelection();
+        }
     }
+
+    // There are no selected items left.
+    return true;
 }
 
 void wxDataViewMainWindow::SelectRow( unsigned int row, bool on )
@@ -3612,7 +3634,17 @@ void wxDataViewMainWindow::OnCharHook(wxKeyEvent& event)
                 return;
 
             case WXK_RETURN:
+                // Shift-Enter is not special neither.
+                if ( event.ShiftDown() )
+                    break;
+                wxFALLTHROUGH;
+
             case WXK_TAB:
+                // Ctrl/Alt-Tab or Enter could be used for something else, so
+                // don't handle them here.
+                if ( event.HasModifiers() )
+                    break;
+
                 m_editorRenderer->FinishEditing();
                 return;
         }
@@ -3808,6 +3840,9 @@ void wxDataViewMainWindow::OnVerticalNavigation(const wxKeyEvent& event, int del
     unsigned int oldCurrent = m_currentRow;
     unsigned int newCurrent = (unsigned int)newRow;
 
+    if ( newCurrent == oldCurrent )
+        return;
+
     // in single selection we just ignore Shift as we can't select several
     // items anyhow
     if ( event.ShiftDown() && !IsSingleSel() )
@@ -3824,13 +3859,11 @@ void wxDataViewMainWindow::OnVerticalNavigation(const wxKeyEvent& event, int del
         }
 
         SelectRows(oldCurrent, newCurrent);
-        if (oldCurrent!=newCurrent)
-        {
-            wxSelectionStore::IterationState cookie;
-            const unsigned firstSel = m_selection.GetFirstSelectedItem(cookie);
-            if ( firstSel != wxSelectionStore::NO_SELECTION )
-                SendSelectionChangedEvent(GetItemByRow(firstSel));
-        }
+
+        wxSelectionStore::IterationState cookie;
+        const unsigned firstSel = m_selection.GetFirstSelectedItem(cookie);
+        if ( firstSel != wxSelectionStore::NO_SELECTION )
+            SendSelectionChangedEvent(GetItemByRow(firstSel));
     }
     else // !shift
     {
@@ -3838,7 +3871,7 @@ void wxDataViewMainWindow::OnVerticalNavigation(const wxKeyEvent& event, int del
 
         // all previously selected items are unselected unless ctrl is held
         if ( !event.ControlDown() )
-            SelectAllRows(false);
+            UnselectAllRows();
 
         ChangeCurrentRow( newCurrent );
 
@@ -4235,12 +4268,7 @@ void wxDataViewMainWindow::OnMouse( wxMouseEvent &event )
 
     if (event.LeftDClick())
     {
-        if(hoverOverExpander)
-        {
-            // a double click on the expander will be converted into a "simulated" normal click
-            simulateClick = true;
-        }
-        else if ( current == m_lineLastClicked )
+        if ( !hoverOverExpander && (current == m_lineLastClicked) )
         {
             wxWindow *parent = GetParent();
             wxDataViewEvent le(wxEVT_DATAVIEW_ITEM_ACTIVATED, parent->GetId());
@@ -4250,15 +4278,19 @@ void wxDataViewMainWindow::OnMouse( wxMouseEvent &event )
             le.SetEventObject(parent);
             le.SetModel(GetModel());
 
-            parent->ProcessWindowEvent(le);
-            return;
+            if ( parent->ProcessWindowEvent(le) )
+            {
+                // Item activation was handled from the user code.
+                return;
+            }
         }
-        else
-        {
-            // The first click was on another item, so don't interpret this as
-            // a double click, but as a simple click instead
-            simulateClick = true;
-        }
+
+        // Either it was a double click over the expander, or the second click
+        // happened on another item than the first one or it was a bona fide
+        // double click which was unhandled. In all these cases we continue
+        // processing this event as a simple click, e.g. to select the item or
+        // activate the renderer.
+        simulateClick = true;
     }
 
     if (event.LeftUp() && !hoverOverExpander)
@@ -4266,9 +4298,12 @@ void wxDataViewMainWindow::OnMouse( wxMouseEvent &event )
         if (m_lineSelectSingleOnUp != (unsigned int)-1)
         {
             // select single line
-            SelectAllRows( false );
-            SelectRow( m_lineSelectSingleOnUp, true );
-            SendSelectionChangedEvent( GetItemByRow(m_lineSelectSingleOnUp) );
+            if ( UnselectAllRows(m_lineSelectSingleOnUp) )
+            {
+                SelectRow( m_lineSelectSingleOnUp, true );
+                SendSelectionChangedEvent( GetItemByRow(m_lineSelectSingleOnUp) );
+            }
+            //else: it was already selected, nothing to do
         }
 
         // If the user click the expander, we do not do editing even if the column
@@ -4303,7 +4338,8 @@ void wxDataViewMainWindow::OnMouse( wxMouseEvent &event )
         // Multi-selections should not be cleared if a selected item is clicked.
         if (!IsRowSelected(current))
         {
-            SelectAllRows(false);
+            UnselectAllRows();
+
             const unsigned oldCurrent = m_currentRow;
             ChangeCurrentRow(current);
             SelectRow(m_currentRow,true);
@@ -4340,10 +4376,12 @@ void wxDataViewMainWindow::OnMouse( wxMouseEvent &event )
         {
             if ( IsSingleSel() || !IsRowSelected(current) )
             {
-                SelectAllRows( false );
                 ChangeCurrentRow(current);
-                SelectRow(m_currentRow,true);
-                SendSelectionChangedEvent(GetItemByRow( m_currentRow ) );
+                if ( UnselectAllRows(current) )
+                {
+                    SelectRow(m_currentRow,true);
+                    SendSelectionChangedEvent(GetItemByRow( m_currentRow ) );
+                }
             }
             else // multi sel & current is highlighted & no mod keys
             {
@@ -5084,14 +5122,14 @@ wxDataViewColumn *wxDataViewCtrl::GetSortingColumn() const
 {
     if ( m_sortingColumnIdxs.empty() )
         return NULL;
-    
+
     return GetColumn(m_sortingColumnIdxs.front());
 }
 
 wxVector<wxDataViewColumn *> wxDataViewCtrl::GetSortingColumns() const
 {
     wxVector<wxDataViewColumn *> out;
-    
+
     for ( wxVector<int>::const_iterator it = m_sortingColumnIdxs.begin(),
                                        end = m_sortingColumnIdxs.end();
           it != end;
@@ -5187,7 +5225,7 @@ void wxDataViewCtrl::Select( const wxDataViewItem & item )
     {
         // Unselect all rows before select another in the single select mode
         if (m_clientArea->IsSingleSel())
-            m_clientArea->SelectAllRows(false);
+            m_clientArea->UnselectAllRows();
 
         m_clientArea->SelectRow(row, true);
 
@@ -5220,12 +5258,12 @@ void wxDataViewCtrl::SetAlternateRowColour(const wxColour& colour)
 
 void wxDataViewCtrl::SelectAll()
 {
-    m_clientArea->SelectAllRows(true);
+    m_clientArea->SelectAllRows();
 }
 
 void wxDataViewCtrl::UnselectAll()
 {
-    m_clientArea->SelectAllRows(false);
+    m_clientArea->UnselectAllRows();
 }
 
 void wxDataViewCtrl::EnsureVisible( int row, int column )

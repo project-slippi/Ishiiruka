@@ -8,8 +8,8 @@
 
 // meh.
 #if defined(_M_GENERIC)
-	// JitBase uses SContext; it should have no concrete implementations in a
-	// generic build.
+// JitBase uses SContext; it should have no concrete implementations in a
+// generic build.
 struct FakeGenericContext;
 typedef FakeGenericContext SContext;
 #elif defined(_WIN32)
@@ -24,8 +24,8 @@ typedef CONTEXT SContext;
 #define CTX_RSI Rsi
 #define CTX_RBP Rbp
 #define CTX_RSP Rsp
-#define CTX_R8  R8
-#define CTX_R9  R9
+#define CTX_R8 R8
+#define CTX_R9 R9
 #define CTX_R10 R10
 #define CTX_R11 R11
 #define CTX_R12 R12
@@ -34,10 +34,10 @@ typedef CONTEXT SContext;
 #define CTX_R15 R15
 #define CTX_RIP Rip
 #else
-#error No context definition for OS
+#error No context definition for architecture
 #endif
 #elif defined(__APPLE__) && !defined(USE_SIGACTION_ON_APPLE)
-	// for modules:
+// for modules:
 #define _XOPEN_SOURCE
 #include <ucontext.h>
 
@@ -53,8 +53,8 @@ typedef x86_thread_state64_t SContext;
 #define CTX_RSI __rsi
 #define CTX_RBP __rbp
 #define CTX_RSP __rsp
-#define CTX_R8  __r8
-#define CTX_R9  __r9
+#define CTX_R8 __r8
+#define CTX_R9 __r9
 #define CTX_R10 __r10
 #define CTX_R11 __r11
 #define CTX_R12 __r12
@@ -63,7 +63,7 @@ typedef x86_thread_state64_t SContext;
 #define CTX_R15 __r15
 #define CTX_RIP __rip
 #else
-#error No context definition for OS
+#error No context definition for architecture
 #endif
 #elif defined(__APPLE__)
 #include <signal.h>
@@ -76,8 +76,8 @@ typedef _STRUCT_MCONTEXT64 SContext;
 #define CTX_RSI __ss.__rsi
 #define CTX_RBP __ss.__rbp
 #define CTX_RSP __ss.__rsp
-#define CTX_R8  __ss.__r8
-#define CTX_R9  __ss.__r9
+#define CTX_R8 __ss.__r8
+#define CTX_R9 __ss.__r9
 #define CTX_R10 __ss.__r10
 #define CTX_R11 __ss.__r11
 #define CTX_R12 __ss.__r12
@@ -100,8 +100,8 @@ typedef mcontext_t SContext;
 #define CTX_RSI gregs[REG_RSI]
 #define CTX_RBP gregs[REG_RBP]
 #define CTX_RSP gregs[REG_RSP]
-#define CTX_R8  gregs[REG_R8]
-#define CTX_R9  gregs[REG_R9]
+#define CTX_R8 gregs[REG_R8]
+#define CTX_R9 gregs[REG_R9]
 #define CTX_R10 gregs[REG_R10]
 #define CTX_R11 gregs[REG_R11]
 #define CTX_R12 gregs[REG_R12]
@@ -114,7 +114,31 @@ typedef mcontext_t SContext;
 #define CTX_SP sp
 #define CTX_PC pc
 #else
-#warning No context definition for OS
+#error No context definition for architecture
+#endif
+#elif defined(__OpenBSD__)
+#include <signal.h>
+typedef ucontext_t SContext;
+#if _M_X86_64
+#define CTX_RAX sc_rax
+#define CTX_RBX sc_rbx
+#define CTX_RCX sc_rcx
+#define CTX_RDX sc_rdx
+#define CTX_RDI sc_rdi
+#define CTX_RSI sc_rsi
+#define CTX_RBP sc_rbp
+#define CTX_RSP sc_rsp
+#define CTX_R8 sc_r8
+#define CTX_R9 sc_r9
+#define CTX_R10 sc_r10
+#define CTX_R11 sc_r11
+#define CTX_R12 sc_r12
+#define CTX_R13 sc_r13
+#define CTX_R14 sc_r14
+#define CTX_R15 sc_r15
+#define CTX_RIP sc_rip
+#else
+#error No context definition for architecture
 #endif
 #elif defined(__NetBSD__)
 #include <ucontext.h>
@@ -128,8 +152,8 @@ typedef mcontext_t SContext;
 #define CTX_RSI __gregs[_REG_RSI]
 #define CTX_RBP __gregs[_REG_RBP]
 #define CTX_RSP __gregs[_REG_RSP]
-#define CTX_R8  __gregs[_REG_R8]
-#define CTX_R9  __gregs[_REG_R9]
+#define CTX_R8 __gregs[_REG_R8]
+#define CTX_R9 __gregs[_REG_R9]
 #define CTX_R10 __gregs[_REG_R10]
 #define CTX_R11 __gregs[_REG_R11]
 #define CTX_R12 __gregs[_REG_R12]
@@ -138,7 +162,7 @@ typedef mcontext_t SContext;
 #define CTX_R15 __gregs[_REG_R15]
 #define CTX_RIP __gregs[_REG_RIP]
 #else
-#error No context definition for OS
+#error No context definition for architecture
 #endif
 #elif defined(__FreeBSD__)
 #include <ucontext.h>
@@ -152,8 +176,8 @@ typedef mcontext_t SContext;
 #define CTX_RSI mc_rsi
 #define CTX_RBP mc_rbp
 #define CTX_RSP mc_rsp
-#define CTX_R8  mc_r8
-#define CTX_R9  mc_r9
+#define CTX_R8 mc_r8
+#define CTX_R9 mc_r9
 #define CTX_R10 mc_r10
 #define CTX_R11 mc_r11
 #define CTX_R12 mc_r12
@@ -162,34 +186,24 @@ typedef mcontext_t SContext;
 #define CTX_R15 mc_r15
 #define CTX_RIP mc_rip
 #else
-#error No context definition for OS
+#error No context definition for architecture
 #endif
+#else
+#error No context definition for OS
 #endif
 
 #if _M_X86_64
 #include <stddef.h>
 #define CTX_PC CTX_RIP
-static inline u64 *ContextRN(SContext* ctx, int n)
+static inline u64* ContextRN(SContext* ctx, int n)
 {
-	static const u8 offsets[] =
-	{
-		offsetof(SContext, CTX_RAX),
-		offsetof(SContext, CTX_RCX),
-		offsetof(SContext, CTX_RDX),
-		offsetof(SContext, CTX_RBX),
-		offsetof(SContext, CTX_RSP),
-		offsetof(SContext, CTX_RBP),
-		offsetof(SContext, CTX_RSI),
-		offsetof(SContext, CTX_RDI),
-		offsetof(SContext, CTX_R8),
-		offsetof(SContext, CTX_R9),
-		offsetof(SContext, CTX_R10),
-		offsetof(SContext, CTX_R11),
-		offsetof(SContext, CTX_R12),
-		offsetof(SContext, CTX_R13),
-		offsetof(SContext, CTX_R14),
-		offsetof(SContext, CTX_R15)
-	};
-	return (u64 *)((char *)ctx + offsets[n]);
+	static const u8 offsets[] = {
+			offsetof(SContext, CTX_RAX), offsetof(SContext, CTX_RCX), offsetof(SContext, CTX_RDX),
+			offsetof(SContext, CTX_RBX), offsetof(SContext, CTX_RSP), offsetof(SContext, CTX_RBP),
+			offsetof(SContext, CTX_RSI), offsetof(SContext, CTX_RDI), offsetof(SContext, CTX_R8),
+			offsetof(SContext, CTX_R9),  offsetof(SContext, CTX_R10), offsetof(SContext, CTX_R11),
+			offsetof(SContext, CTX_R12), offsetof(SContext, CTX_R13), offsetof(SContext, CTX_R14),
+			offsetof(SContext, CTX_R15) };
+	return (u64*)((char*)ctx + offsets[n]);
 }
 #endif

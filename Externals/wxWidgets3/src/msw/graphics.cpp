@@ -46,6 +46,7 @@
     #include "wx/msw/enhmeta.h"
 #endif
 #include "wx/dcgraph.h"
+#include "wx/rawbmp.h"
 
 #include "wx/msw/private.h" // needs to be before #include <commdlg.h>
 
@@ -451,6 +452,11 @@ public:
     }
 
     virtual ~wxGDIPlusImageContext()
+    {
+        Flush();
+    }
+
+    virtual void Flush() wxOVERRIDE
     {
         m_image = m_bitmap.ConvertToImage();
     }
@@ -956,6 +962,8 @@ wxGDIPlusFontData::wxGDIPlusFontData( wxGraphicsRenderer* renderer,
         style |= FontStyleItalic;
     if ( font.GetUnderlined() )
         style |= FontStyleUnderline;
+    if ( font.GetStrikethrough() )
+        style |= FontStyleStrikeout;
     if ( font.GetWeight() == wxFONTWEIGHT_BOLD )
         style |= FontStyleBold;
 
@@ -1099,20 +1107,45 @@ wxGDIPlusBitmapData::wxGDIPlusBitmapData( wxGraphicsRenderer* renderer,
 
 wxImage wxGDIPlusBitmapData::ConvertToImage() const
 {
-    // We could use Bitmap::LockBits() and convert to wxImage directly but
-    // passing by wxBitmap is easier. It would be nice to measure performance
-    // of the two methods but for this the second one would need to be written
-    // first...
-    HBITMAP hbmp;
-    if ( m_bitmap->GetHBITMAP(Color(0xffffffff), &hbmp) != Gdiplus::Ok )
-        return wxNullImage;
+    // We need to use Bitmap::LockBits() to convert bitmap to wxImage
+    // because this way we can retrieve also alpha channel data.
+    // Alternative way by retrieving bitmap handle with Bitmap::GetHBITMAP
+    // (to pass it to wxBitmap) doesn't preserve real alpha channel data.
+    const UINT w = m_bitmap->GetWidth();
+    const UINT h = m_bitmap->GetHeight();
 
-    wxBitmap bmp;
-    bmp.SetWidth(m_bitmap->GetWidth());
-    bmp.SetHeight(m_bitmap->GetHeight());
-    bmp.SetHBITMAP(hbmp);
-    bmp.SetDepth(IsAlphaPixelFormat(m_bitmap->GetPixelFormat()) ? 32 : 24);
-    return bmp.ConvertToImage();
+    wxImage img(w, h);
+    // Set up wxImage buffer for alpha channel values
+    // only if bitmap contains alpha channel.
+    if ( IsAlphaPixelFormat(m_bitmap->GetPixelFormat()) )
+    {
+        img.InitAlpha();
+    }
+
+    BitmapData bitmapData;
+    Rect rect(0, 0, w, h);
+    m_bitmap->LockBits(&rect, ImageLockModeRead, PixelFormat32bppARGB, &bitmapData);
+
+    unsigned char *imgRGB = img.GetData();    // destination RGB buffer
+    unsigned char *imgAlpha = img.GetAlpha(); // destination alpha buffer
+    const BYTE* pixels = static_cast<const BYTE*>(bitmapData.Scan0);
+    for( UINT y = 0; y < h; y++ )
+    {
+        for( UINT x = 0; x < w; x++ )
+        {
+            ARGB c = reinterpret_cast<const ARGB*>(pixels)[x];
+            *imgRGB++ = (c >> 16) & 0xFF;  // R
+            *imgRGB++ = (c >> 8) & 0xFF;   // G
+            *imgRGB++ = (c >> 0) & 0xFF;   // B
+            if ( imgAlpha )
+                *imgAlpha++ = (c >> 24) & 0xFF;
+        }
+
+        pixels += bitmapData.Stride;
+    }
+    m_bitmap->UnlockBits(&bitmapData);
+
+    return img;
 }
 
 #endif // wxUSE_IMAGE
@@ -2077,6 +2110,61 @@ wxGraphicsContext * wxGDIPlusRenderer::CreateContext( const wxEnhMetaFileDC& dc)
 wxGraphicsContext * wxGDIPlusRenderer::CreateContext( const wxMemoryDC& dc)
 {
     ENSURE_LOADED_OR_RETURN(NULL);
+#if wxUSE_WXDIB
+    // It seems that GDI+ sets invalid values for alpha channel when used with
+    // a compatible bitmap (DDB). So we need to convert the currently selected
+    // bitmap to a DIB before using it with any GDI+ functions to ensure that
+    // we get the correct alpha channel values in it at the end.
+
+    wxBitmap bmp = dc.GetSelectedBitmap();
+    wxASSERT_MSG( bmp.IsOk(), "Should select a bitmap before creating wxGCDC" );
+
+    // We don't need to convert it if it can't have alpha at all (any depth but
+    // 32) or is already a DIB with alpha.
+    if ( bmp.GetDepth() == 32 && (!bmp.IsDIB() || !bmp.HasAlpha()) )
+    {
+        // We need to temporarily deselect this bitmap from the memory DC
+        // before modifying it.
+        const_cast<wxMemoryDC&>(dc).SelectObject(wxNullBitmap);
+
+        bmp.ConvertToDIB(); // Does nothing if already a DIB.
+
+        if( !bmp.HasAlpha() )
+        {
+            // Initialize alpha channel, even if we don't have any alpha yet,
+            // we should have correct (opaque) alpha values in it for GDI+
+            // functions to work correctly.
+            {
+                wxAlphaPixelData data(bmp);
+                if ( data )
+                {
+                    wxAlphaPixelData::Iterator p(data);
+                    for ( int y = 0; y < data.GetHeight(); y++ )
+                    {
+                        wxAlphaPixelData::Iterator rowStart = p;
+
+                        for ( int x = 0; x < data.GetWidth(); x++ )
+                        {
+                            p.Alpha() = wxALPHA_OPAQUE;
+                            ++p;
+                        }
+
+                        p = rowStart;
+                        p.OffsetY(data, 1);
+                    }
+                }
+            } // End of block modifying the bitmap.
+
+            // Using wxAlphaPixelData sets the internal "has alpha" flag but we
+            // don't really have any alpha yet, so reset it back for now.
+            bmp.ResetAlpha();
+        }
+
+        // Undo SelectObject() at the beginning of this block.
+        const_cast<wxMemoryDC&>(dc).SelectObjectAsSource(bmp);
+    }
+#endif // wxUSE_WXDIB
+
     wxGDIPlusContext* context = new wxGDIPlusContext(this, dc);
     context->EnableOffset(true);
     return context;

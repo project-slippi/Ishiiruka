@@ -217,7 +217,7 @@ void SysConf::GenerateSysConf()
 	items[0].data[0] = 4;
 	for (u8 i = 0; i < 4; ++i)
 	{
-		const u8 bt_addr[6] = {i, 0x00, 0x79, 0x19, 0x02, 0x11};
+		const u8 bt_addr[6] = { i, 0x00, 0x79, 0x19, 0x02, 0x11 };
 		memcpy(&items[0].data[1 + 70 * i], bt_addr, sizeof(bt_addr));
 		memcpy(&items[0].data[7 + 70 * i], "Nintendo RVL-CNT-01", 19);
 	}
@@ -228,7 +228,7 @@ void SysConf::GenerateSysConf()
 
 	// IPL.NIK
 	current_offset += create_item(items[2], Type_SmallArray, "IPL.NIK", 0x15, current_offset);
-	const u8 console_nick[14] = {0, 'd', 0, 'o', 0, 'l', 0, 'p', 0, 'h', 0, 'i', 0, 'n'};
+	const u8 console_nick[14] = { 0, 'd', 0, 'o', 0, 'l', 0, 'p', 0, 'h', 0, 'i', 0, 'n' };
 	memcpy(items[2].data, console_nick, 14);
 
 	// IPL.AR

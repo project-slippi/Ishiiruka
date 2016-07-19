@@ -86,7 +86,7 @@ void RegisterV(const void* base_address, u32 code_size,
 #endif
 
 #ifdef USE_VTUNE
-	iJIT_Method_Load jmethod = {0};
+	iJIT_Method_Load jmethod = { 0 };
 	jmethod.method_id = iJIT_GetNewMethodID();
 	jmethod.method_load_address = const_cast<void*>(base_address);
 	jmethod.method_size = code_size;

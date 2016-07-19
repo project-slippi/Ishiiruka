@@ -129,8 +129,7 @@ std::vector<std::string> cdio_get_devices()
 			}
 			CFRelease(str_bsd_path);
 			IOObjectRelease(next_media);
-		}
-		while ((next_media = IOIteratorNext(media_iterator)) != 0);
+		} while ((next_media = IOIteratorNext(media_iterator)) != 0);
 	}
 	IOObjectRelease(media_iterator);
 	return drives;

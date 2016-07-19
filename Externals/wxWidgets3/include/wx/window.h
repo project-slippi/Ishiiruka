@@ -58,12 +58,8 @@
     // must do everything ourselves
     #undef wxHAS_NATIVE_ENABLED_MANAGEMENT
 #elif defined(__WXOSX__)
-    #if wxOSX_USE_CARBON
-        #define wxHAS_NATIVE_ENABLED_MANAGEMENT
-    #else
-        // must do everything ourselves
-        #undef wxHAS_NATIVE_ENABLED_MANAGEMENT
-    #endif
+    // must do everything ourselves
+    #undef wxHAS_NATIVE_ENABLED_MANAGEMENT
 #else
     #define wxHAS_NATIVE_ENABLED_MANAGEMENT
 #endif
@@ -979,6 +975,21 @@ public:
     wxPoint FromDIP(const wxPoint& pt) const { return FromDIP(pt, this); }
     int FromDIP(int d) const { return FromDIP(d, this); }
 
+    static wxSize ToDIP(const wxSize& sz, const wxWindowBase* w);
+    static wxPoint ToDIP(const wxPoint& pt, const wxWindowBase* w)
+    {
+        const wxSize sz = ToDIP(wxSize(pt.x, pt.y), w);
+        return wxPoint(sz.x, sz.y);
+    }
+    static int ToDIP(int d, const wxWindowBase* w)
+    {
+        return ToDIP(wxSize(d, 0), w).x;
+    }
+
+    wxSize ToDIP(const wxSize& sz) const { return ToDIP(sz, this); }
+    wxPoint ToDIP(const wxPoint& pt) const { return ToDIP(pt, this); }
+    int ToDIP(int d) const { return ToDIP(d, this); }
+
 
         // Dialog units are based on the size of the current font.
 
@@ -1526,13 +1537,23 @@ public:
     virtual wxWindow *GetMainWindowOfCompositeControl()
         { return (wxWindow*)this; }
 
-    // If this function returns true, keyboard navigation events shouldn't
+    enum NavigationKind
+    {
+        Navigation_Tab,
+        Navigation_Accel
+    };
+
+    // If this function returns true, keyboard events of the given kind can't
     // escape from it. A typical example of such "navigation domain" is a top
     // level window because pressing TAB in one of them must not transfer focus
     // to a different top level window. But it's not limited to them, e.g. MDI
     // children frames are not top level windows (and their IsTopLevel()
-    // returns false) but still are self-contained navigation domains as well.
-    virtual bool IsTopNavigationDomain() const { return false; }
+    // returns false) but still are self-contained navigation domains for the
+    // purposes of TAB navigation -- but not for the accelerators.
+    virtual bool IsTopNavigationDomain(NavigationKind WXUNUSED(kind)) const
+    {
+        return false;
+    }
 
 
 protected:
@@ -1979,10 +2000,19 @@ inline wxWindow *wxWindowBase::GetGrandParent() const
 
 #ifdef wxHAVE_DPI_INDEPENDENT_PIXELS
 
-// FromDIP() becomes trivial in this case, so make it inline to avoid overhead.
+// FromDIP() and ToDIP() become trivial in this case, so make them inline to
+// avoid any overhead.
+
 /* static */
 inline wxSize
 wxWindowBase::FromDIP(const wxSize& sz, const wxWindowBase* WXUNUSED(w))
+{
+    return sz;
+}
+
+/* static */
+inline wxSize
+wxWindowBase::ToDIP(const wxSize& sz, const wxWindowBase* WXUNUSED(w))
 {
     return sz;
 }

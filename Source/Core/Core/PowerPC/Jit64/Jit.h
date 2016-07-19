@@ -46,10 +46,8 @@ private:
 	u8* m_stack;
 
 public:
-	Jit64() : code_buffer(32000)
-	{}
-	~Jit64()
-	{}
+	Jit64() : code_buffer(32000) {}
+	~Jit64() {}
 	void Init() override;
 
 	void EnableOptimization();
@@ -70,22 +68,13 @@ public:
 	BitSet32 CallerSavedRegistersInUse() const;
 	BitSet8 ComputeStaticGQRs(const PPCAnalyst::CodeBlock&) const;
 
-	JitBlockCache* GetBlockCache() override
-	{
-		return &blocks;
-	}
+	JitBlockCache* GetBlockCache() override { return &blocks; }
 	void Trace();
 
 	void ClearCache() override;
 
-	const CommonAsmRoutines* GetAsmRoutines() override
-	{
-		return &asm_routines;
-	}
-	const char* GetName() override
-	{
-		return "JIT64";
-	}
+	const CommonAsmRoutines* GetAsmRoutines() override { return &asm_routines; }
+	const char* GetName() override { return "JIT64"; }
 	// Run!
 	void Run() override;
 	void SingleStep() override;

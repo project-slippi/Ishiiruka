@@ -16,7 +16,7 @@
 
 struct SCall
 {
-	SCall(u32 a, u32 b):
+	SCall(u32 a, u32 b) :
 		function(a),
 		callAddress(b)
 	{}
@@ -32,7 +32,7 @@ struct Symbol
 		SYMBOL_DATA = 1,
 	};
 
-	Symbol():
+	Symbol() :
 		hash(0),
 		address(0),
 		flags(0),

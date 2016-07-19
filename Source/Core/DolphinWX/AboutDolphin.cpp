@@ -4,13 +4,13 @@
 
 #include <wx/bitmap.h>
 #include <wx/dialog.h>
+#include <wx/generic/statbmpg.h>
 #include <wx/hyperlink.h>
 #include <wx/image.h>
 #include <wx/mstream.h>
 #include <wx/sizer.h>
 #include <wx/stattext.h>
 #include <wx/textctrl.h>
-#include <wx/generic/statbmpg.h>
 
 #ifdef __APPLE__
 #import <AppKit/AppKit.h>
@@ -20,24 +20,26 @@
 #include "DolphinWX/AboutDolphin.h"
 #include "DolphinWX/WxUtils.h"
 
-AboutDolphin::AboutDolphin(wxWindow *parent, wxWindowID id,
-	const wxString &title, const wxPoint &position,
-	const wxSize& size, long style)
+AboutDolphin::AboutDolphin(wxWindow* parent, wxWindowID id, const wxString& title,
+	const wxPoint& position, const wxSize& size, long style)
 	: wxDialog(parent, id, title, position, size, style)
 {
-	wxGenericStaticBitmap* const sbDolphinLogo = new wxGenericStaticBitmap(this, wxID_ANY,
-		WxUtils::LoadResourceBitmap("dolphin_logo"));
+	wxGenericStaticBitmap* const sbDolphinLogo =
+		new wxGenericStaticBitmap(this, wxID_ANY, WxUtils::LoadResourceBitmap("dolphin_logo"));
 
 	const wxString DolphinText = _("Ishiiruka - Dolphin");
 	const wxString RevisionText = scm_desc_str;
-	const wxString CopyrightText = _("(c) 2003-2015+ Dolphin Team. \"GameCube\" and \"Wii\" are trademarks of Nintendo. Dolphin is not affiliated with Nintendo in any way.");
+	const wxString CopyrightText =
+		_("(c) 2003-2015+ Dolphin Team. \"GameCube\" and \"Wii\" are trademarks of Nintendo. Dolphin "
+			"is not affiliated with Nintendo in any way.");
 	const wxString BranchText = wxString::Format(_("Branch: %s"), scm_branch_str.c_str());
 	const wxString BranchRevText = wxString::Format(_("Revision: %s"), scm_rev_git_str.c_str());
 	const wxString CheckUpdateText = _("Check for updates: ");
-	const wxString Text = _("\n"
-		"Dolphin is a free and open-source GameCube and Wii emulator.\n"
-		"\n"
-		"This software should not be used to play games you do not legally own.\n");
+	const wxString Text =
+		_("\n"
+			"Dolphin is a free and open-source GameCube and Wii emulator.\n"
+			"\n"
+			"This software should not be used to play games you do not legally own.\n");
 	const wxString LicenseText = _("License");
 	const wxString AuthorsText = _("Authors");
 	const wxString SupportText = _("Support");
@@ -46,15 +48,21 @@ AboutDolphin::AboutDolphin(wxWindow *parent, wxWindowID id,
 	wxStaticText* const Revision = new wxStaticText(this, wxID_ANY, RevisionText);
 
 	wxStaticText* const Copyright = new wxStaticText(this, wxID_ANY, CopyrightText);
-	wxStaticText* const Branch = new wxStaticText(this, wxID_ANY, BranchText + "\n" + BranchRevText + "\n");
+	wxStaticText* const Branch =
+		new wxStaticText(this, wxID_ANY, BranchText + "\n" + BranchRevText + "\n");
 	wxStaticText* const Message = new wxStaticText(this, wxID_ANY, Text);
 	wxStaticText* const UpdateText = new wxStaticText(this, wxID_ANY, CheckUpdateText);
 	wxStaticText* const FirstSpacer = new wxStaticText(this, wxID_ANY, "  |  ");
 	wxStaticText* const SecondSpacer = new wxStaticText(this, wxID_ANY, "  |  ");
-	wxHyperlinkCtrl* const Download = new wxHyperlinkCtrl(this, wxID_ANY, "dolphin-emu.org/download", "https://dolphin-emu.org/download/");
-	wxHyperlinkCtrl* const License = new wxHyperlinkCtrl(this, wxID_ANY, LicenseText, "https://github.com/dolphin-emu/dolphin/blob/master/license.txt");
-	wxHyperlinkCtrl* const Authors = new wxHyperlinkCtrl(this, wxID_ANY, AuthorsText, "https://github.com/dolphin-emu/dolphin/graphs/contributors");
-	wxHyperlinkCtrl* const Support = new wxHyperlinkCtrl(this, wxID_ANY, SupportText, "https://forums.dolphin-emu.org/");
+	wxHyperlinkCtrl* const Download = new wxHyperlinkCtrl(this, wxID_ANY, "dolphin-emu.org/download",
+		"https://dolphin-emu.org/download/");
+	wxHyperlinkCtrl* const License =
+		new wxHyperlinkCtrl(this, wxID_ANY, LicenseText,
+			"https://github.com/dolphin-emu/dolphin/blob/master/license.txt");
+	wxHyperlinkCtrl* const Authors = new wxHyperlinkCtrl(
+		this, wxID_ANY, AuthorsText, "https://github.com/dolphin-emu/dolphin/graphs/contributors");
+	wxHyperlinkCtrl* const Support =
+		new wxHyperlinkCtrl(this, wxID_ANY, SupportText, "https://forums.dolphin-emu.org/");
 
 	wxFont DolphinFont = Dolphin->GetFont();
 	wxFont RevisionFont = Revision->GetFont();
@@ -74,16 +82,19 @@ AboutDolphin::AboutDolphin(wxWindow *parent, wxWindowID id,
 	Copyright->SetFont(CopyrightFont);
 	Copyright->SetFocus();
 
+	wxSizerFlags center_flag;
+	center_flag.Center();
+
 	wxBoxSizer* const sCheckUpdates = new wxBoxSizer(wxHORIZONTAL);
-	sCheckUpdates->Add(UpdateText);
-	sCheckUpdates->Add(Download);
+	sCheckUpdates->Add(UpdateText, center_flag);
+	sCheckUpdates->Add(Download, center_flag);
 
 	wxBoxSizer* const sLinks = new wxBoxSizer(wxHORIZONTAL);
-	sLinks->Add(License);
-	sLinks->Add(FirstSpacer);
-	sLinks->Add(Authors);
-	sLinks->Add(SecondSpacer);
-	sLinks->Add(Support);
+	sLinks->Add(License, center_flag);
+	sLinks->Add(FirstSpacer, center_flag);
+	sLinks->Add(Authors, center_flag);
+	sLinks->Add(SecondSpacer, center_flag);
+	sLinks->Add(Support, center_flag);
 
 	wxBoxSizer* const sInfo = new wxBoxSizer(wxVERTICAL);
 	sInfo->Add(Dolphin);

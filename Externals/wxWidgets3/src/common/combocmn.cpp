@@ -1100,9 +1100,12 @@ wxComboCtrlBase::CreateTextCtrl(int style)
         m_text->Connect(id, wxEVT_TEXT,
                         wxCommandEventHandler(wxComboCtrlBase::OnTextCtrlEvent),
                         NULL, this);
-        m_text->Connect(id, wxEVT_TEXT_ENTER,
-                        wxCommandEventHandler(wxComboCtrlBase::OnTextCtrlEvent),
-                        NULL, this);
+        if ( style & wxTE_PROCESS_ENTER )
+        {
+            m_text->Connect(id, wxEVT_TEXT_ENTER,
+                            wxCommandEventHandler(wxComboCtrlBase::OnTextCtrlEvent),
+                            NULL, this);
+        }
 
         m_text->SetHint(m_hintText);
     }
@@ -1223,7 +1226,7 @@ void wxComboCtrlBase::CalculateAreas( int btnWidth )
             // Make very small buttons square, as it makes
             // them accommodate arrow image better and still
             // looks decent.
-            if ( height > 18 )
+            if ( height > FromDIP(18) )
                 butWidth = (height*butWidth)/bestHeight;
             else
                 butWidth = butHeight;
@@ -1279,9 +1282,9 @@ void wxComboCtrlBase::CalculateAreas( int btnWidth )
     m_btnArea.width = butAreaWid;
     m_btnArea.height = sz.y - ((btnBorder+FOCUS_RING)*2);
 
-    m_tcArea.x = ( m_btnSide==wxRIGHT ? 0 : butAreaWid ) + customBorder + FOCUS_RING;
+    m_tcArea.x = ( m_btnSide==wxRIGHT ? 0 : butAreaWid ) + customBorder;
     m_tcArea.y = customBorder + FOCUS_RING;
-    m_tcArea.width = sz.x - butAreaWid - (customBorder*2) - (FOCUS_RING*2);
+    m_tcArea.width = sz.x - butAreaWid - (customBorder*2) - FOCUS_RING;
     m_tcArea.height = sz.y - ((customBorder+FOCUS_RING)*2);
 
 /*

@@ -37,7 +37,7 @@ public:
 	};
 };
 
-class FileLogListener: public LogListener
+class FileLogListener : public LogListener
 {
 public:
 	FileLogListener(const std::string& filename);
@@ -137,7 +137,7 @@ private:
 
 class ConsoleListener;
 
-class LogManager: NonCopyable
+class LogManager : NonCopyable
 {
 private:
 	LogContainer* m_Log[LogTypes::NUMBER_OF_LOGS];

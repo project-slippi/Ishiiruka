@@ -290,7 +290,7 @@ void Jit64::mfspr(UGeckoInstruction inst)
 		CVTSS2SI(RDX, R(XMM0));  // RDX is downcount scaled by the overclocking factor
 		MOV(32, R(RAX), M(&CoreTiming::g_slicelength));
 		SUB(64, R(RAX), R(RDX));  // cycles since the last CoreTiming::Advance() event is (slicelength -
-											// Scaled_downcount)
+															// Scaled_downcount)
 		ADD(64, R(RAX), M(&CoreTiming::g_globalTimer));
 		SUB(64, R(RAX), M(&CoreTiming::g_fakeTBStartTicks));
 		// It might seem convenient to correct the timer for the block position here for even more
@@ -390,6 +390,10 @@ void Jit64::mtmsr(UGeckoInstruction inst)
 	gpr.UnlockAll();
 	gpr.Flush();
 	fpr.Flush();
+
+	// Our jit cache also stores some MSR bits, as they have changed, we either
+	// have to validate them in the BLR/RET check, or just flush the stack here.
+	asm_routines.ResetStack(*this);
 
 	// If some exceptions are pending and EE are now enabled, force checking
 	// external exceptions when going out of mtmsr in order to execute delayed
@@ -651,7 +655,7 @@ void Jit64::mffsx(UGeckoInstruction inst)
 
 // MXCSR = s_fpscr_to_mxcsr[FPSCR & 7]
 static const u32 s_fpscr_to_mxcsr[] = {
-	 0x1F80, 0x7F80, 0x5F80, 0x3F80, 0x9F80, 0xFF80, 0xDF80, 0xBF80,
+		0x1F80, 0x7F80, 0x5F80, 0x3F80, 0x9F80, 0xFF80, 0xDF80, 0xBF80,
 };
 
 // Needs value of FPSCR in RSCRATCH.

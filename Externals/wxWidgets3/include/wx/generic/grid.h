@@ -789,9 +789,12 @@ private:
 //
 enum wxGridTableRequest
 {
+    // The first two requests never did anything, simply don't use them.
+#if WXWIN_COMPATIBILITY_3_0
     wxGRIDTABLE_REQUEST_VIEW_GET_VALUES = 2000,
     wxGRIDTABLE_REQUEST_VIEW_SEND_VALUES,
-    wxGRIDTABLE_NOTIFY_ROWS_INSERTED,
+#endif // WXWIN_COMPATIBILITY_3_0
+    wxGRIDTABLE_NOTIFY_ROWS_INSERTED = 2002,
     wxGRIDTABLE_NOTIFY_ROWS_APPENDED,
     wxGRIDTABLE_NOTIFY_ROWS_DELETED,
     wxGRIDTABLE_NOTIFY_COLS_INSERTED,
@@ -2117,21 +2120,21 @@ protected:
 
     // generate the appropriate grid event and return -1 if it was vetoed, 1 if
     // it was processed (but not vetoed) and 0 if it wasn't processed
-    int SendEvent(const wxEventType evtType,
+    int SendEvent(wxEventType evtType,
                   int row, int col,
                   const wxMouseEvent& e);
-    int SendEvent(const wxEventType evtType,
+    int SendEvent(wxEventType evtType,
                   const wxGridCellCoords& coords,
                   const wxMouseEvent& e)
         { return SendEvent(evtType, coords.GetRow(), coords.GetCol(), e); }
-    int SendEvent(const wxEventType evtType,
+    int SendEvent(wxEventType evtType,
                   int row, int col,
                   const wxString& s = wxString());
-    int SendEvent(const wxEventType evtType,
+    int SendEvent(wxEventType evtType,
                   const wxGridCellCoords& coords,
                   const wxString& s = wxString())
         { return SendEvent(evtType, coords.GetRow(), coords.GetCol(), s); }
-    int SendEvent(const wxEventType evtType, const wxString& s = wxString())
+    int SendEvent(wxEventType evtType, const wxString& s = wxString())
         { return SendEvent(evtType, m_currentCellCoords, s); }
 
     // send wxEVT_GRID_{ROW,COL}_SIZE or wxEVT_GRID_COL_AUTO_SIZE, return true
@@ -2163,11 +2166,6 @@ protected:
                         const wxGridCellCoords& bottomRight)
         { UpdateBlockBeingSelected(topLeft.GetRow(), topLeft.GetCol(),
                          bottomRight.GetRow(), bottomRight.GetCol()); }
-
-    // ------ functions to get/send data (see also public functions)
-    //
-    bool GetModelValues();
-    bool SetModelValues();
 
     friend class WXDLLIMPEXP_FWD_ADV wxGridSelection;
     friend class wxGridRowOperations;

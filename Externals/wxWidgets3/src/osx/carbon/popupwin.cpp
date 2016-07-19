@@ -61,12 +61,12 @@ bool wxPopupWindow::Show(bool show)
 {
     if ( !wxWindow::Show(show) )
         return false;
-    
+
     if ( m_nowpeer && show)
         m_nowpeer->ShowWithoutActivating();
     else if ( m_nowpeer )
         m_nowpeer->Show(false);
-    
+
     if ( show )
     {
         // because apps expect a size event to occur at this moment
@@ -74,7 +74,7 @@ bool wxPopupWindow::Show(bool show)
         event.SetEventObject(this);
         HandleWindowEvent(event);
     }
-    
+
     return true;
 }
 

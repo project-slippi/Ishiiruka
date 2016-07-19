@@ -1624,7 +1624,7 @@ outlineView:(NSOutlineView*)outlineView
     dvc->GetEventHandler()->ProcessEvent(event);
 }
 
-// Default enter key behaviour is to begin cell editing. Subclass keyDown to 
+// Default enter key behaviour is to begin cell editing. Subclass keyDown to
 // provide a keyboard wxEVT_DATAVIEW_ITEM_ACTIVATED event and allow the NSEvent
 // to pass if the wxEvent is not processed.
 - (void)keyDown:(NSEvent *)event
@@ -1633,12 +1633,12 @@ outlineView:(NSOutlineView*)outlineView
          characterAtIndex: 0] == NSCarriageReturnCharacter )
     {
         wxDataViewCtrl* const dvc = implementation->GetDataViewCtrl();
-        
+
         wxDataViewEvent eventDV( wxEVT_DATAVIEW_ITEM_ACTIVATED, dvc->GetId() );
         eventDV.SetEventObject(dvc);
         eventDV.SetItem( wxDataViewItem( [[self itemAtRow:[self selectedRow]] pointer]) );
         eventDV.SetModel( dvc->GetModel() );
-        
+
         if ( !dvc->GetEventHandler()->ProcessEvent(eventDV) )
             [super keyDown:event];
     }
@@ -1893,15 +1893,16 @@ outlineView:(NSOutlineView*)outlineView
     dvc->FinishCustomItemEditing();
 
     // now, send the event:
-    wxDataViewEvent
-        event(wxEVT_DATAVIEW_ITEM_EDITING_STARTED,dvc->GetId());
-
-    event.SetEventObject(dvc);
-    event.SetItem(
-            wxDataViewItemFromItem([self itemAtRow:currentlyEditedRow]));
-    event.SetColumn(dvc->GetColumnPosition(col));
-    event.SetDataViewColumn(col);
-    dvc->GetEventHandler()->ProcessEvent(event);
+    wxDataViewRenderer* const renderer = col->GetRenderer();
+    if ( renderer )
+    {
+        renderer->NotifyEditingStarted
+                  (
+                    wxDataViewItemFromItem([self itemAtRow:currentlyEditedRow])
+                  );
+    }
+    //else: we should always have a renderer but don't crash if for some
+    //      unfathomable reason we don't have it
 }
 
 -(void) textDidEndEditing:(NSNotification*)notification
@@ -2729,11 +2730,7 @@ void wxDataViewRenderer::SetAttr(const wxDataViewItemAttr& attr)
                 data->SaveOriginalTextColour([(id)cell textColor]);
             }
 
-            const wxColour& c = attr.GetColour();
-            colText = [NSColor colorWithCalibratedRed:c.Red() / 255.
-                green:c.Green() / 255.
-                blue:c.Blue() / 255.
-                alpha:c.Alpha() / 255.];
+            colText = attr.GetColour().OSXGetNSColor();
         }
     }
 

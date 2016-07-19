@@ -152,6 +152,7 @@ public:
     static void SetAutoWindowMenu( bool enable ) { s_macAutoWindowMenu = enable ; }
     static bool GetAutoWindowMenu() { return s_macAutoWindowMenu ; }
 
+    void MacUninstallMenuBar() ;
     void MacInstallMenuBar() ;
     static wxMenuBar* MacGetInstalledMenuBar() { return s_macInstalledMenuBar ; }
     static void MacSetCommonMenuBar(wxMenuBar* menubar) { s_macCommonMenuBar=menubar; }
@@ -159,7 +160,7 @@ public:
 
 
     static WXHMENU MacGetWindowMenuHMenu() { return s_macWindowMenuHandle ; }
-    
+
     virtual void DoGetPosition(int *x, int *y) const;
     virtual void DoGetSize(int *width, int *height) const;
     virtual void DoGetClientSize(int *width, int *height) const;

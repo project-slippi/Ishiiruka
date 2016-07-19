@@ -932,7 +932,14 @@ wxImage wxBitmap::ConvertToImage() const
     }
 
     // and then DIB to our wxImage
-    wxImage image = dib.ConvertToImage();
+    // By default, we autodetect the presence of alpha and consider unnecessary
+    // to create the alpha channel in wxImage if we don't have any effective
+    // alpha in the bitmap because its depth, on its own, is not an indicator
+    // that it uses alpha as it could be just the default screen depth. However
+    // if the user had explicitly called UseAlpha(), then we consider
+    // that the resulting image should really have the alpha channel too.
+    wxImage image = dib.ConvertToImage(HasAlpha() ?
+               wxDIB::Convert_AlphaAlwaysIf32bpp : wxDIB::Convert_AlphaAuto);
     if ( !image.IsOk() )
     {
         return wxNullImage;
@@ -1204,7 +1211,13 @@ wxDC *wxBitmap::GetSelectedInto() const
 void wxBitmap::UseAlpha(bool use)
 {
     if ( GetBitmapData() )
+    {
+        // Only 32bpp bitmaps can contain alpha channel.
+        if ( use && GetBitmapData()->m_depth < 32 )
+            use = false;
+
         GetBitmapData()->m_hasAlpha = use;
+    }
 }
 
 bool wxBitmap::HasAlpha() const
@@ -1561,8 +1574,41 @@ bool wxMask::Create(const wxBitmap& bitmap, const wxColour& colour)
 
 wxBitmap wxMask::GetBitmap() const
 {
+    // We have to do a deep copy of the mask bitmap
+    // and assign it to the resulting wxBitmap.
+
+    // Create new bitmap with the same parameters as a mask bitmap.
+    BITMAP bm;
+    ::GetObject(m_maskBitmap, sizeof(bm), (LPVOID)&bm);
+
+    HBITMAP hNewBitmap = ::CreateBitmapIndirect(&bm);
+    if ( !hNewBitmap )
+    {
+        wxLogLastError(wxS("CreateBitmapIndirect"));
+        return wxNullBitmap;
+    }
+
+    // Copy the bitmap.
+    HDC hdcSrc = ::CreateCompatibleDC((HDC)NULL);
+    HBITMAP hSrcOldBmp = (HBITMAP)::SelectObject(hdcSrc, m_maskBitmap);
+
+    HDC hdcMem = ::CreateCompatibleDC((HDC)NULL);
+    HBITMAP hMemOldBmp = (HBITMAP)::SelectObject(hdcMem, hNewBitmap);
+
+    ::BitBlt(hdcMem, 0, 0, bm.bmWidth, bm.bmHeight, hdcSrc, 0, 0, SRCCOPY);
+    ::SelectObject(hdcMem, hMemOldBmp);
+
+    // Clean up.
+    ::SelectObject(hdcSrc, hSrcOldBmp);
+    ::DeleteDC(hdcSrc);
+    ::DeleteDC(hdcMem);
+
+    // Create and return a new wxBitmap.
     wxBitmap bmp;
-    bmp.SetHBITMAP(m_maskBitmap);
+    bmp.SetHBITMAP((WXHBITMAP)hNewBitmap);
+    bmp.SetSize(bm.bmWidth, bm.bmHeight);
+    bmp.SetDepth(bm.bmPlanes);
+
     return bmp;
 }
 

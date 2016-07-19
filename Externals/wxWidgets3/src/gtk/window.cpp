@@ -372,9 +372,11 @@ draw_border(GtkWidget* widget, GdkEventExpose* gdk_event, wxWindow* win)
     {
 #ifdef __WXGTK3__
         GtkStyleContext* sc = gtk_widget_get_style_context(win->m_wxwindow);
-        GdkRGBA c;
-        gtk_style_context_get_border_color(sc, GTK_STATE_FLAG_NORMAL, &c);
-        gdk_cairo_set_source_rgba(cr, &c);
+        GdkRGBA* c;
+        gtk_style_context_set_state(sc, GTK_STATE_FLAG_NORMAL);
+        gtk_style_context_get(sc, GTK_STATE_FLAG_NORMAL, "border-color", &c, NULL);
+        gdk_cairo_set_source_rgba(cr, c);
+        gdk_rgba_free(c);
         cairo_set_line_width(cr, 1);
         cairo_rectangle(cr, x + 0.5, y + 0.5, w - 1, h - 1);
         cairo_stroke(cr);
@@ -726,6 +728,59 @@ static long wxTranslateKeySymToWXKey(KeySym keysym, bool isChar)
         case GDK_F12:
             key_code = WXK_F1 + keysym - GDK_F1;
             break;
+#if GTK_CHECK_VERSION(2,18,0)
+        case GDK_Back:
+            key_code = WXK_BROWSER_BACK;
+            break;
+        case GDK_Forward:
+            key_code = WXK_BROWSER_FORWARD;
+            break;
+        case GDK_Refresh:
+            key_code = WXK_BROWSER_REFRESH;
+            break;
+        case GDK_Stop:
+            key_code = WXK_BROWSER_STOP;
+            break;
+        case GDK_Search:
+            key_code = WXK_BROWSER_SEARCH;
+            break;
+        case GDK_Favorites:
+            key_code = WXK_BROWSER_FAVORITES;
+            break;
+        case GDK_HomePage:
+            key_code = WXK_BROWSER_HOME;
+            break;
+        case GDK_AudioMute:
+            key_code = WXK_VOLUME_MUTE;
+            break;
+        case GDK_AudioLowerVolume:
+            key_code = WXK_VOLUME_DOWN;
+            break;
+        case GDK_AudioRaiseVolume:
+            key_code = WXK_VOLUME_UP;
+            break;
+        case GDK_AudioNext:
+            key_code = WXK_MEDIA_NEXT_TRACK;
+            break;
+        case GDK_AudioPrev:
+            key_code = WXK_MEDIA_PREV_TRACK;
+            break;
+        case GDK_AudioStop:
+            key_code = WXK_MEDIA_STOP;
+            break;
+        case GDK_AudioPlay:
+            key_code = WXK_MEDIA_PLAY_PAUSE;
+            break;
+        case GDK_Mail:
+            key_code = WXK_LAUNCH_MAIL;
+            break;
+        case GDK_LaunchA:
+            key_code = WXK_LAUNCH_APP1;
+            break;
+        case GDK_LaunchB:
+            key_code = WXK_LAUNCH_APP2;
+            break;
+#endif // GTK_CHECK_VERSION(2,18,0)
 
         default:
             key_code = 0;
@@ -1054,7 +1109,7 @@ gtk_window_key_press_callback( GtkWidget *WXUNUSED(widget),
 
                 break;
             }
-            if (ancestor->IsTopLevel())
+            if (ancestor->IsTopNavigationDomain(wxWindow::Navigation_Accel))
                 break;
             ancestor = ancestor->GetParent();
         }
@@ -3017,7 +3072,9 @@ void wxWindowGTK::DoSetClientSize( int width, int height )
 
     const wxSize size = GetSize();
     const wxSize clientSize = GetClientSize();
-    SetSize(width + (size.x - clientSize.x), height + (size.y - clientSize.y));
+    // XXX: Dolphin: This is an internal call, it should never trigger the SetSize path in derived classes.
+    //      This fixes wxAuiToolbar setting itself to 21 pixels wide regardless of content.
+    wxWindowGTK::DoSetSize(wxDefaultCoord, wxDefaultCoord, width + (size.x - clientSize.x), height + (size.y - clientSize.y), wxSIZE_USE_EXISTING);
 }
 
 void wxWindowGTK::DoGetClientSize( int *width, int *height ) const
@@ -3417,6 +3474,20 @@ void wxWindowGTK::DoGetTextExtent( const wxString& string,
     txm.GetTextExtent(string, x, y, descent, externalLeading);
 }
 
+double wxWindowGTK::GetContentScaleFactor() const
+{
+    double scaleFactor = 1;
+#if GTK_CHECK_VERSION(3,10,0)
+    if (m_widget && gtk_check_version(3,10,0) == NULL)
+    {
+        GdkWindow* window = gtk_widget_get_window(m_widget);
+        if (window)
+            scaleFactor = gdk_window_get_scale_factor(window);
+    }
+#endif
+    return scaleFactor;
+}
+
 void wxWindowGTK::GTKDisableFocusOutEvent()
 {
     g_signal_handlers_block_by_func( m_focusWidget,
@@ -3767,26 +3838,17 @@ void wxWindowGTK::DoMoveInTabOrder(wxWindow *win, WindowOrder move)
 
 bool wxWindowGTK::DoNavigateIn(int flags)
 {
-    if ( flags & wxNavigationKeyEvent::WinChange )
-    {
-        wxFAIL_MSG( wxT("not implemented") );
+    wxWindow *parent = wxGetTopLevelParent((wxWindow *)this);
+    wxCHECK_MSG( parent, false, wxT("every window must have a TLW parent") );
 
-        return false;
-    }
-    else // navigate inside the container
-    {
-        wxWindow *parent = wxGetTopLevelParent((wxWindow *)this);
-        wxCHECK_MSG( parent, false, wxT("every window must have a TLW parent") );
+    GtkDirectionType dir;
+    dir = flags & wxNavigationKeyEvent::IsForward ? GTK_DIR_TAB_FORWARD
+                                                  : GTK_DIR_TAB_BACKWARD;
 
-        GtkDirectionType dir;
-        dir = flags & wxNavigationKeyEvent::IsForward ? GTK_DIR_TAB_FORWARD
-                                                      : GTK_DIR_TAB_BACKWARD;
+    gboolean rc;
+    g_signal_emit_by_name(parent->m_widget, "focus", dir, &rc);
 
-        gboolean rc;
-        g_signal_emit_by_name(parent->m_widget, "focus", dir, &rc);
-
-        return rc != 0;
-    }
+    return rc != 0;
 }
 
 bool wxWindowGTK::GTKWidgetNeedsMnemonic() const
@@ -4163,7 +4225,7 @@ void wxWindowGTK::GTKSendPaintEvents(const GdkRegion* region)
         case wxBG_STYLE_ERASE:
             {
 #ifdef __WXGTK3__
-                wxGTKCairoDC dc(cr);
+                wxGTKCairoDC dc(cr, static_cast<wxWindow*>(this));
 #else
                 wxWindowDC dc( (wxWindow*)this );
                 dc.SetDeviceClippingRegion( m_updateRegion );
@@ -4366,7 +4428,21 @@ PangoContext *wxWindowGTK::GTKGetPangoDefaultContext()
     return gtk_widget_get_pango_context( m_widget );
 }
 
-#ifndef __WXGTK3__
+#ifdef __WXGTK3__
+void wxWindowGTK::ApplyCssStyle(GtkCssProvider* provider, const char* style)
+{
+    wxCHECK_RET(m_widget, "invalid window");
+
+    gtk_style_context_remove_provider(gtk_widget_get_style_context(m_widget),
+                                      GTK_STYLE_PROVIDER(provider));
+
+    gtk_css_provider_load_from_data(provider, style, -1, NULL);
+
+    gtk_style_context_add_provider(gtk_widget_get_style_context(m_widget),
+                                   GTK_STYLE_PROVIDER(provider),
+                                   GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+}
+#else // GTK+ < 3
 GtkRcStyle* wxWindowGTK::GTKCreateWidgetStyle()
 {
     GtkRcStyle *style = gtk_rc_style_new();
@@ -4502,6 +4578,7 @@ void wxWindowGTK::GTKApplyStyle(GtkWidget* widget, GtkRcStyle* WXUNUSED_IN_GTK3(
     cairo_pattern_t* pattern = NULL;
     if (m_backgroundColour.IsOk())
     {
+        gtk_style_context_set_state(context, GTK_STATE_FLAG_NORMAL);
         gtk_style_context_get(context,
             GTK_STATE_FLAG_NORMAL, "background-image", &pattern, NULL);
     }
@@ -4642,8 +4719,6 @@ void wxPopupMenuPositionCallback( GtkMenu *menu,
 bool wxWindowGTK::DoPopupMenu( wxMenu *menu, int x, int y )
 {
     wxCHECK_MSG( m_widget != NULL, false, wxT("invalid window") );
-
-    menu->UpdateUI();
 
     wxPoint pos;
     gpointer userdata;

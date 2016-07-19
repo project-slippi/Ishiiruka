@@ -726,12 +726,12 @@ void wxWidgetCocoaImpl::SetupMouseEvent( wxMouseEvent &wxevent , NSEvent * nsEve
         case NSMouseMoved :
             wxevent.SetEventType( wxEVT_MOTION ) ;
             break;
-        
+
         case NSEventTypeMagnify:
             wxevent.SetEventType( wxEVT_MAGNIFY );
             wxevent.m_magnification = [nsEvent magnification];
             break;
-            
+
         default :
             break ;
     }
@@ -1330,7 +1330,7 @@ void wxWidgetCocoaImpl::mouseEvent(WX_NSEvent event, WXWidget slf, void *_cmd)
             // only trigger if at this moment the mouse is already up, and the control is still existing after the event has
             // been handled (we do this by looking up the native NSView's peer from the hash map, that way we are sure the info
             // is current - even when the instance memory of ourselves may have been freed ...
-            
+
             wxWidgetCocoaImpl* impl = (wxWidgetCocoaImpl* ) wxWidgetImpl::FindFromWXWidget( slf );
             if ( [ event type]  == NSLeftMouseDown && !wxGetMouseState().LeftIsDown() && impl != NULL )
             {
@@ -1754,7 +1754,7 @@ void wxOSXCocoaClassAddWXMethods(Class c)
     wxOSX_CLASS_ADD_METHOD(c, @selector(scrollWheel:), (IMP) wxOSX_mouseEvent, "v@:@" )
     wxOSX_CLASS_ADD_METHOD(c, @selector(mouseEntered:), (IMP) wxOSX_mouseEvent, "v@:@" )
     wxOSX_CLASS_ADD_METHOD(c, @selector(mouseExited:), (IMP) wxOSX_mouseEvent, "v@:@" )
-        
+
     wxOSX_CLASS_ADD_METHOD(c, @selector(magnifyWithEvent:), (IMP)wxOSX_mouseEvent, "v@:@")
 
     wxOSX_CLASS_ADD_METHOD(c, @selector(cursorUpdate:), (IMP) wxOSX_cursorUpdate, "v@:@" )
@@ -1842,7 +1842,7 @@ wxWidgetCocoaImpl::~wxWidgetCocoaImpl()
 {
     if ( GetWXPeer() && GetWXPeer()->IsFrozen() )
         [[m_osxView window] enableFlushWindow];
-    
+
     RemoveAssociations( this );
 
     if ( !IsRootControl() )
@@ -2402,10 +2402,7 @@ void wxWidgetCocoaImpl::SetBackgroundColour( const wxColour &col )
 
     if ( [targetView respondsToSelector:@selector(setBackgroundColor:) ] )
     {
-        [targetView setBackgroundColor:[NSColor colorWithCalibratedRed:(CGFloat) (col.Red() / 255.0)
-                                                                green:(CGFloat) (col.Green() / 255.0)
-                                                                 blue:(CGFloat) (col.Blue() / 255.0)
-                                                                alpha:(CGFloat) (col.Alpha() / 255.0)]];
+        [targetView setBackgroundColor: col.OSXGetNSColor()];
     }
 }
 
@@ -2423,6 +2420,46 @@ bool wxWidgetCocoaImpl::SetBackgroundStyle( wxBackgroundStyle style )
 
 void wxWidgetCocoaImpl::SetLabel( const wxString& title, wxFontEncoding encoding )
 {
+    if ( [m_osxView respondsToSelector:@selector(setAttributedTitle:) ] )
+    {
+        wxFont f = GetWXPeer()->GetFont();
+        if ( f.GetStrikethrough() || f.GetUnderlined() )
+        {
+            wxCFStringRef cf(title, encoding );
+
+            NSMutableAttributedString *attrString = [[NSMutableAttributedString alloc]
+                                                     initWithString:cf.AsNSString()];
+
+            [attrString beginEditing];
+            [attrString setAlignment:NSCenterTextAlignment
+                               range:NSMakeRange(0, [attrString length])];
+
+            [attrString addAttribute:NSFontAttributeName
+                               value:f.OSXGetNSFont()
+                               range:NSMakeRange(0, [attrString length])];
+            if ( f.GetStrikethrough() )
+            {
+                [attrString addAttribute:NSStrikethroughStyleAttributeName
+                                   value:@(NSUnderlineStyleSingle)
+                                   range:NSMakeRange(0, [attrString length])];
+            }
+
+            if ( f.GetUnderlined() )
+            {
+                [attrString addAttribute:NSUnderlineStyleAttributeName
+                                   value:@(NSUnderlineStyleSingle)
+                                   range:NSMakeRange(0, [attrString length])];
+
+            }
+
+            [attrString endEditing];
+
+            [(id)m_osxView setAttributedTitle:attrString];
+
+            return;
+        }
+    }
+
     if ( [m_osxView respondsToSelector:@selector(setTitle:) ] )
     {
         wxCFStringRef cf( title , encoding );
@@ -2668,10 +2705,7 @@ void wxWidgetCocoaImpl::SetFont(wxFont const& font, wxColour const&col, long, bo
     if ([targetView respondsToSelector:@selector(setFont:)])
         [targetView setFont: font.OSXGetNSFont()];
     if ([targetView respondsToSelector:@selector(setTextColor:)])
-        [targetView setTextColor:[NSColor colorWithCalibratedRed:(CGFloat) (col.Red() / 255.0)
-                                                                 green:(CGFloat) (col.Green() / 255.0)
-                                                                  blue:(CGFloat) (col.Blue() / 255.0)
-                                                                 alpha:(CGFloat) (col.Alpha() / 255.0)]];
+        [targetView setTextColor: col.OSXGetNSColor()];
 }
 
 void wxWidgetCocoaImpl::SetToolTip(wxToolTip* tooltip)
@@ -2726,12 +2760,12 @@ bool wxWidgetCocoaImpl::DoHandleCharEvent(NSEvent *event, NSString *text)
               ++it )
         {
             wxKeyEvent wxevent(wxEVT_CHAR);
-            
+
             // if we have exactly one character resulting from the event, then
             // set the corresponding modifiers and raw data from the nsevent
             // otherwise leave these at defaults, as they probably would be incorrect
             // anyway (IME input)
-            
+
             if ( event != nil && length == 1)
             {
                 SetupKeyEvent(wxevent,event,text);
@@ -2747,14 +2781,14 @@ bool wxWidgetCocoaImpl::DoHandleCharEvent(NSEvent *event, NSString *text)
                 wxevent.m_uniChar = aunichar;
 #endif
                 wxevent.m_keyCode = aunichar < 0x80 ? aunichar : WXK_NONE;
-                
+
                 wxevent.SetEventObject(peer);
                 wxevent.SetId(peer->GetId());
 
                 if ( event )
                     wxevent.SetTimestamp( (int)([event timestamp] * 1000) ) ;
             }
-            
+
             result = peer->OSXHandleKeyEvent(wxevent) || result;
         }
     }
@@ -2812,7 +2846,7 @@ void wxWidgetCocoaImpl::DoNotifyFocusSet()
     NSResponder* responder = wxNonOwnedWindowCocoaImpl::GetFormerFirstResponder();
     NSView* otherView = wxOSXGetViewFromResponder(responder);
     wxWidgetImpl* otherWindow = FindFromWXWidget(otherView);
-    
+
     // It doesn't make sense to notify about the focus set if it's the same
     // control in the end, and just a different subview
     if ( otherWindow != this )
@@ -2824,7 +2858,7 @@ void wxWidgetCocoaImpl::DoNotifyFocusLost()
     NSResponder * responder = wxNonOwnedWindowCocoaImpl::GetNextFirstResponder();
     NSView* otherView = wxOSXGetViewFromResponder(responder);
     wxWidgetImpl* otherWindow = FindBestFromWXWidget(otherView);
-    
+
     // It doesn't make sense to notify about the loss of focus if it's the same
     // control in the end, and just a different subview
     if ( otherWindow != this )

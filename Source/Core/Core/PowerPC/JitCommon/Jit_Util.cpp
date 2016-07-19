@@ -112,12 +112,10 @@ public:
 		u32 address, bool sign_extend)
 		: m_code(code), m_registers_in_use(registers_in_use), m_dst_reg(dst_reg), m_address(address),
 		m_sign_extend(sign_extend)
-	{}
-
-	void VisitConstant(T value) override
 	{
-		LoadConstantToReg(8 * sizeof(T), value);
 	}
+
+	void VisitConstant(T value) override { LoadConstantToReg(8 * sizeof(T), value); }
 	void VisitDirect(const T* addr, u32 mask) override
 	{
 		LoadAddrMaskToReg(8 * sizeof(T), addr, mask);

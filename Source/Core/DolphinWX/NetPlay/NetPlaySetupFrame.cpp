@@ -142,9 +142,9 @@ NetPlaySetupFrame::NetPlaySetupFrame(wxWindow* const parent, const CGameListCtrl
 
 		wxBoxSizer* const top_szr = new wxBoxSizer(wxHORIZONTAL);
 
-		top_szr->Add(m_ip_lbl, 0, wxCENTER | wxRIGHT, 5);
+		top_szr->Add(m_ip_lbl, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 5);
 		top_szr->Add(m_connect_ip_text, 3);
-		top_szr->Add(m_client_port_lbl, 0, wxCENTER | wxRIGHT | wxLEFT, 5);
+		top_szr->Add(m_client_port_lbl, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT | wxLEFT, 5);
 		top_szr->Add(m_connect_port_text, 1);
 
 		wxBoxSizer* const con_szr = new wxBoxSizer(wxVERTICAL);
@@ -201,7 +201,7 @@ NetPlaySetupFrame::NetPlaySetupFrame(wxWindow* const parent, const CGameListCtrl
 		bottom_szr->Add(m_traversal_listen_port_enabled, 0, wxCENTER | wxLEFT, 5);
 		bottom_szr->Add(m_traversal_listen_port, 0, wxCENTER, 0);
 		wxBoxSizer* const host_btn_szr = new wxBoxSizer(wxVERTICAL);
-		host_btn_szr->Add(host_btn, 0, wxCENTER, 0);
+		host_btn_szr->Add(host_btn, 0, wxCENTER | wxALIGN_RIGHT, 0);
 		bottom_szr->Add(host_btn_szr, 1, wxALL, 5);
 
 		wxBoxSizer* const host_szr = new wxBoxSizer(wxVERTICAL);
