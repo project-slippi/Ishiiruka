@@ -652,6 +652,7 @@ void SConfig::LoadDefaults()
 	bDCBZOFF = false;
 	iBBDumpPort = -1;
 	iVideoRate = 1;
+	bHalfAudioRate = false;
 	bSyncGPU = false;
 	bFastDiscSpeed = false;
 	bEnableMemcardSdWriting = true;

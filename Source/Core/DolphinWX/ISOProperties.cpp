@@ -371,7 +371,8 @@ void CISOProperties::CreateGUIControls()
 	sGPUDeterminism->Add(GPUDeterminism);
 
 	// Video Rate Hack
-
+	HalfAudioRate = new wxCheckBox(m_GameConfig, ID_HALFAUDIORATE, _("Half Audio Rate"), wxDefaultPosition, wxDefaultSize,
+		GetElementStyle("Core", "VideoRateAudioFix"));
 	wxBoxSizer* const svideorate = new wxBoxSizer(wxHORIZONTAL);
 	wxStaticText* const videorateText =
 		new wxStaticText(m_GameConfig, wxID_ANY, _("Video Rate Hack: "));
@@ -439,6 +440,8 @@ void CISOProperties::CreateGUIControls()
 	sbCoreOverrides->Add(DSPHLE, 0, wxLEFT, 5);
 	sbCoreOverrides->Add(sGPUDeterminism, 0, wxEXPAND | wxALL, 5);
 	sbCoreOverrides->Add(svideorate, 0, wxLEFT, 5);
+	sbCoreOverrides->Add(HalfAudioRate, 0, wxLEFT, 5);
+
 
 	wxStaticBoxSizer* const sbWiiOverrides =
 		new wxStaticBoxSizer(wxVERTICAL, m_GameConfig, _("Wii Console"));
@@ -1098,6 +1101,7 @@ void CISOProperties::LoadGameConfig()
 		const wxString dv_choices[] = { wxT("1x"), wxT("2x"), wxT("3x"), wxT("4x") };
 		label_DVideo->SetLabel(dv_choices[iTemp - 1]);
 	}
+	SetCheckboxValueFromGameini("Core", "HalfAudioRate", HalfAudioRate);
 
 	IniFile::Section* default_video = GameIniDefault.GetOrCreateSection("Video");
 
@@ -1194,7 +1198,7 @@ bool CISOProperties::SaveGameConfig()
 	SaveGameIniValueFrom3StateCheckbox("Core", "DSPHLE", DSPHLE);
 	SaveGameIniValueFrom3StateCheckbox("Wii", "Widescreen", EnableWideScreen);
 	SaveGameIniValueFrom3StateCheckbox("Video_Stereoscopy", "StereoEFBMonoDepth", MonoDepth);
-
+	SaveGameIniValueFrom3StateCheckbox("Core", "HalfAudioRate", HalfAudioRate);
 #define SAVE_IF_NOT_DEFAULT(section, key, val, def)                                                \
   do                                                                                               \
   {                                                                                                \

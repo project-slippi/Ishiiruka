@@ -109,6 +109,7 @@ struct SConfig : NonCopyable
 	bool bDCBZOFF;
 	int iBBDumpPort;
 	int iVideoRate;
+	bool bHalfAudioRate;
 	bool bFastDiscSpeed;
 
 	bool bSyncGPU;
