@@ -83,8 +83,9 @@ private:
 
 	// Core
 	wxCheckBox *CPUThread, *SkipIdle, *MMU, *DCBZOFF, *FPRF;
-	wxCheckBox *DVideo, *SyncGPU, *FastDiscSpeed, *DSPHLE;
-
+	wxCheckBox *SyncGPU, *FastDiscSpeed, *DSPHLE;
+	wxSlider* DVideo;
+	wxStaticText* label_DVideo;
 	wxArrayString arrayStringFor_GPUDeterminism;
 	wxChoice* GPUDeterminism;
 	// Wii
@@ -215,7 +216,7 @@ private:
 	void CheckPartitionIntegrity(wxCommandEvent& event);
 	void OnEmustateChanged(wxCommandEvent& event);
 	void OnChangeBannerLang(wxCommandEvent& event);
-
+	void OnDVideoChanged(wxCommandEvent& event);
 	const GameListItem OpenGameListItem;
 
 	typedef std::vector<const DiscIO::SFileInfo*>::iterator fileIter;

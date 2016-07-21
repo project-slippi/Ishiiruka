@@ -358,9 +358,6 @@ void CISOProperties::CreateGUIControls()
 	DSPHLE = new wxCheckBox(m_GameConfig, ID_AUDIO_DSP_HLE, _("DSP HLE emulation (fast)"),
 		wxDefaultPosition, wxDefaultSize, GetElementStyle("Core", "DSPHLE"));
 
-	DVideo = new wxCheckBox(m_GameConfig, ID_DVIDEO, _("Double Video Rate Hack"), wxDefaultPosition, wxDefaultSize, GetElementStyle("Core", "DoubleVideoRate"));
-	DVideo->SetToolTip(_("Double the rate of video interruptions (ON = Fast, OFF = Compatible)"));
-
 	wxBoxSizer* const sGPUDeterminism = new wxBoxSizer(wxHORIZONTAL);
 	wxStaticText* const GPUDeterminismText =
 		new wxStaticText(m_GameConfig, wxID_ANY, _("Deterministic dual core: "));
@@ -372,6 +369,19 @@ void CISOProperties::CreateGUIControls()
 		arrayStringFor_GPUDeterminism);
 	sGPUDeterminism->Add(GPUDeterminismText);
 	sGPUDeterminism->Add(GPUDeterminism);
+
+	// Video Rate Hack
+
+	wxBoxSizer* const svideorate = new wxBoxSizer(wxHORIZONTAL);
+	wxStaticText* const videorateText =
+		new wxStaticText(m_GameConfig, wxID_ANY, _("Video Rate Hack: "));
+
+	DVideo = new wxSlider(m_GameConfig, ID_DVIDEO, 1, 1, 4);
+	DVideo->SetToolTip(_("Multiply the rate of video interruptions to allow High framerate hacks"));
+	DVideo->Bind(wxEVT_SLIDER, &CISOProperties::OnDVideoChanged, this);
+	svideorate->Add(videorateText);
+	svideorate->Add(DVideo);
+	svideorate->Add(label_DVideo = new wxStaticText(m_GameConfig, wxID_ANY, wxT("1x")));
 
 	// Wii Console
 	EnableWideScreen =
@@ -424,11 +434,11 @@ void CISOProperties::CreateGUIControls()
 	sbCoreOverrides->Add(MMU, 0, wxLEFT, 5);
 	sbCoreOverrides->Add(DCBZOFF, 0, wxLEFT, 5);
 	sbCoreOverrides->Add(FPRF, 0, wxLEFT, 5);
-	sbCoreOverrides->Add(DVideo, 0, wxLEFT, 5);
 	sbCoreOverrides->Add(SyncGPU, 0, wxLEFT, 5);
 	sbCoreOverrides->Add(FastDiscSpeed, 0, wxLEFT, 5);
 	sbCoreOverrides->Add(DSPHLE, 0, wxLEFT, 5);
 	sbCoreOverrides->Add(sGPUDeterminism, 0, wxEXPAND | wxALL, 5);
+	sbCoreOverrides->Add(svideorate, 0, wxLEFT, 5);
 
 	wxStaticBoxSizer* const sbWiiOverrides =
 		new wxStaticBoxSizer(wxVERTICAL, m_GameConfig, _("Wii Console"));
@@ -1074,16 +1084,23 @@ void CISOProperties::LoadGameConfig()
 	SetCheckboxValueFromGameini("Core", "MMU", MMU);
 	SetCheckboxValueFromGameini("Core", "DCBZ", DCBZOFF);
 	SetCheckboxValueFromGameini("Core", "FPRF", FPRF);
-	SetCheckboxValueFromGameini("Core", "DoubleVideoRate", DVideo);
 	SetCheckboxValueFromGameini("Core", "SyncGPU", SyncGPU);
 	SetCheckboxValueFromGameini("Core", "FastDiscSpeed", FastDiscSpeed);
 	SetCheckboxValueFromGameini("Core", "DSPHLE", DSPHLE);
 	SetCheckboxValueFromGameini("Wii", "Widescreen", EnableWideScreen);
 	SetCheckboxValueFromGameini("Video_Stereoscopy", "StereoEFBMonoDepth", MonoDepth);
 
+	int iTemp;
+	if (GameIniLocal.GetIfExists("Core", "VideoRate", &iTemp))
+	{
+		iTemp = std::min(std::max(iTemp, 1), 4);
+		DVideo->SetValue(iTemp);
+		const wxString dv_choices[] = { wxT("1x"), wxT("2x"), wxT("3x"), wxT("4x") };
+		label_DVideo->SetLabel(dv_choices[iTemp - 1]);
+	}
+
 	IniFile::Section* default_video = GameIniDefault.GetOrCreateSection("Video");
 
-	int iTemp;
 	default_video->Get("ProjectionHack", &iTemp);
 	default_video->Get("PH_SZNear", &m_PHack_Data.PHackSZNear);
 	if (GameIniLocal.GetIfExists("Video", "PH_SZNear", &iTemp))
@@ -1172,7 +1189,6 @@ bool CISOProperties::SaveGameConfig()
 	SaveGameIniValueFrom3StateCheckbox("Core", "MMU", MMU);
 	SaveGameIniValueFrom3StateCheckbox("Core", "DCBZ", DCBZOFF);
 	SaveGameIniValueFrom3StateCheckbox("Core", "FPRF", FPRF);
-	SaveGameIniValueFrom3StateCheckbox("Core", "DoubleVideoRate", DVideo);
 	SaveGameIniValueFrom3StateCheckbox("Core", "SyncGPU", SyncGPU);
 	SaveGameIniValueFrom3StateCheckbox("Core", "FastDiscSpeed", FastDiscSpeed);
 	SaveGameIniValueFrom3StateCheckbox("Core", "DSPHLE", DSPHLE);
@@ -1196,6 +1212,8 @@ bool CISOProperties::SaveGameConfig()
     else                                                                                           \
       GameIniLocal.DeleteKey((section), (key));                                                    \
   } while (0)
+
+	SAVE_IF_NOT_DEFAULT("Core", "VideoRate", DVideo->GetValue(), 1);
 
 	SAVE_IF_NOT_DEFAULT("Video", "PH_SZNear", (m_PHack_Data.PHackSZNear ? 1 : 0), 0);
 	SAVE_IF_NOT_DEFAULT("Video", "PH_SZFar", (m_PHack_Data.PHackSZFar ? 1 : 0), 0);
@@ -1544,4 +1562,12 @@ void CISOProperties::ChangeBannerDetails(DiscIO::Language language)
 	SetTitle(StrToWxStr(StringFromFormat("%s%s: %s - ", filename.c_str(), extension.c_str(),
 		OpenGameListItem.GetUniqueID().c_str())) +
 		name);
+}
+
+
+void CISOProperties::OnDVideoChanged(wxCommandEvent& ev)
+{
+	const wxString dv_choices[] = { wxT("1x"), wxT("2x"), wxT("3x"), wxT("4x") };
+	label_DVideo->SetLabel(dv_choices[ev.GetInt() - 1]);
+	ev.Skip();
 }

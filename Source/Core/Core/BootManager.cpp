@@ -79,7 +79,7 @@ private:
 	bool bHLE_BS2;
 	bool bProgressive;
 	bool bPAL60;
-	bool bDoubleVideoRate;
+	int iVideoRate;
 	int iSelectedLanguage;
 	int iCPUCore;
 	int Volume;
@@ -120,7 +120,7 @@ void ConfigCache::SaveConfig(const SConfig& config)
 	strBackend = config.m_strVideoBackend;
 	sBackend = config.sBackend;
 	m_strGPUDeterminismMode = config.m_strGPUDeterminismMode;
-	bDoubleVideoRate = config.bDoubleVideoRate;
+	iVideoRate = config.iVideoRate;
 
 	std::copy(std::begin(g_wiimote_sources), std::end(g_wiimote_sources), std::begin(iWiimoteSource));
 	std::copy(std::begin(config.m_SIDevice), std::end(config.m_SIDevice), std::begin(Pads));
@@ -158,7 +158,7 @@ void ConfigCache::RestoreConfig(SConfig* config)
 	config->bPAL60 = bPAL60;
 	config->SelectedLanguage = iSelectedLanguage;
 	config->iCPUCore = iCPUCore;
-	config->bDoubleVideoRate = bDoubleVideoRate;
+	config->iVideoRate = iVideoRate;
 
 	config->m_SYSCONF->SetData("IPL.PGS", bProgressive);
 	config->m_SYSCONF->SetData("IPL.E60", bPAL60);
@@ -259,7 +259,7 @@ bool BootCore(const std::string& _rFilename)
 		core_section->Get("AccurateNaNs", &StartUp.bAccurateNaNs, StartUp.bAccurateNaNs);
 		core_section->Get("MMU", &StartUp.bMMU, StartUp.bMMU);
 		core_section->Get("DCBZ", &StartUp.bDCBZOFF, StartUp.bDCBZOFF);
-		core_section->Get("DoubleVideoRate", &StartUp.bDoubleVideoRate, StartUp.bDoubleVideoRate);
+		core_section->Get("VideoRate", &StartUp.iVideoRate, StartUp.iVideoRate);
 		core_section->Get("SyncGPU", &StartUp.bSyncGPU, StartUp.bSyncGPU);
 		core_section->Get("FastDiscSpeed", &StartUp.bFastDiscSpeed, StartUp.bFastDiscSpeed);
 		core_section->Get("DSPHLE", &StartUp.bDSPHLE, StartUp.bDSPHLE);

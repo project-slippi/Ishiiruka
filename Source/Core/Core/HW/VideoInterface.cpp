@@ -625,8 +625,7 @@ u32 GetTargetRefreshRate()
 
 u32 GetTicksPerSample()
 {
-	const u32 multiplier = SConfig::GetInstance().bDoubleVideoRate ? 1 : 2;
-	return multiplier * SystemTimers::GetTicksPerSecond() / s_clock_freqs[m_Clock];
+	return 2 * SystemTimers::GetTicksPerSecond() / (s_clock_freqs[m_Clock] * SConfig::GetInstance().iVideoRate);
 }
 
 u32 GetTicksPerHalfLine()
