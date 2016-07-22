@@ -421,15 +421,13 @@ void BPWritten(const BPCmd& bp)
 			u8 offset = bp.address & 2;
 			BoundingBox::active = true;
 
+			BoundingBox::coords[offset] = bp.newvalue & 0x3ff;
+			BoundingBox::coords[offset + 1] = bp.newvalue >> 10;
+
 			if (g_ActiveConfig.backend_info.bSupportsBBox && g_ActiveConfig.iBBoxMode == BBoxGPU)
 			{
 				g_renderer->BBoxWrite(offset, bp.newvalue & 0x3ff);
 				g_renderer->BBoxWrite(offset + 1, bp.newvalue >> 10);
-			}
-			else
-			{
-				BoundingBox::coords[offset] = bp.newvalue & 0x3ff;
-				BoundingBox::coords[offset + 1] = bp.newvalue >> 10;
 			}
 		}
 		return;

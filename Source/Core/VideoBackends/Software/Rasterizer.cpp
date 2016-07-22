@@ -106,7 +106,7 @@ static void Draw(s32 x, s32 y, s32 xi, s32 yi)
 
 	s32 z = (s32)MathUtil::Clamp<float>(ZSlope.GetValue(dx, dy), 0.0f, 16777215.0f);
 
-	if (bpmem.UseEarlyDepthTest() && g_ActiveConfig.bZComploc)
+	if (!BoundingBox::active && bpmem.UseEarlyDepthTest() && g_ActiveConfig.bZComploc)
 	{
 		// TODO: Test if perf regs are incremented even if test is disabled
 		EfbInterface::IncPerfCounterQuadCount(PQ_ZCOMP_INPUT_ZCOMPLOC);
@@ -126,7 +126,7 @@ static void Draw(s32 x, s32 y, s32 xi, s32 yi)
 	tev.Position[2] = z;
 
 	//  colors
-	for (unsigned int i = 0; i < bpmem.genMode.numcolchans; i++)
+	for (unsigned int i = 0; i < bpmem.genMode.numcolchans.Value(); i++)
 	{
 		for (int comp = 0; comp < 4; comp++)
 		{
@@ -140,20 +140,20 @@ static void Draw(s32 x, s32 y, s32 xi, s32 yi)
 	}
 
 	// tex coords
-	for (unsigned int i = 0; i < bpmem.genMode.numtexgens; i++)
+	for (unsigned int i = 0; i < bpmem.genMode.numtexgens.Value(); i++)
 	{
 		// multiply by 128 because TEV stores UVs as s17.7
 		tev.Uv[i].s = (s32)(pixel.Uv[i][0] * 128);
 		tev.Uv[i].t = (s32)(pixel.Uv[i][1] * 128);
 	}
 
-	for (unsigned int i = 0; i < bpmem.genMode.numindstages; i++)
+	for (unsigned int i = 0; i < bpmem.genMode.numindstages.Value(); i++)
 	{
 		tev.IndirectLod[i] = rasterBlock.IndirectLod[i];
 		tev.IndirectLinear[i] = rasterBlock.IndirectLinear[i];
 	}
 
-	for (unsigned int i = 0; i <= bpmem.genMode.numtevstages; i++)
+	for (unsigned int i = 0; i <= bpmem.genMode.numtevstages.Value(); i++)
 	{
 		tev.TextureLod[i] = rasterBlock.TextureLod[i];
 		tev.TextureLinear[i] = rasterBlock.TextureLinear[i];
@@ -290,6 +290,22 @@ static void BuildBlock(s32 blockX, s32 blockY)
 	}
 }
 
+static inline void PrepareBlock(s32 blockX, s32 blockY)
+{
+	static s32 x = -1;
+	static s32 y = -1;
+
+	blockX &= ~(BLOCK_SIZE - 1);
+	blockY &= ~(BLOCK_SIZE - 1);
+
+	if (x != blockX || y != blockY)
+	{
+		x = blockX;
+		y = blockY;
+		BuildBlock(x, y);
+	}
+}
+
 void DrawTriangleFrontFace(OutputVertexData *v0, OutputVertexData *v1, OutputVertexData *v2)
 {
 	INCSTAT(stats.thisFrame.numTrianglesDrawn);
@@ -381,11 +397,11 @@ void DrawTriangleFrontFace(OutputVertexData *v0, OutputVertexData *v1, OutputVer
 	if (DY23 < 0 || (DY23 == 0 && DX23 > 0)) C2++;
 	if (DY31 < 0 || (DY31 == 0 && DX31 > 0)) C3++;
 
-	// Start in corner of 8x8 block
-	minx &= ~(BLOCK_SIZE - 1);
-	miny &= ~(BLOCK_SIZE - 1);
 	if (!BoundingBox::active)
 	{
+		// Start in corner of 8x8 block
+		minx &= ~(BLOCK_SIZE - 1);
+		miny &= ~(BLOCK_SIZE - 1);
 		// Loop through blocks
 		for (s32 y = miny; y < maxy; y += BLOCK_SIZE)
 		{
@@ -516,7 +532,7 @@ void DrawTriangleFrontFace(OutputVertexData *v0, OutputVertexData *v1, OutputVer
 				if (CX1 > 0 && CX2 > 0 && CX3 > 0)
 				{
 					// Build the new raster block every other pixel
-					BuildBlock(x, y);
+					PrepareBlock(x, y);
 					Draw(x, y, x & (BLOCK_SIZE - 1), y & (BLOCK_SIZE - 1));
 
 					if (y >= BoundingBox::coords[BoundingBox::TOP])
@@ -556,7 +572,7 @@ void DrawTriangleFrontFace(OutputVertexData *v0, OutputVertexData *v1, OutputVer
 			{
 				if (CY1 > 0 && CY2 > 0 && CY3 > 0)
 				{
-					BuildBlock(x, y);
+					PrepareBlock(x, y);
 					Draw(x, y, x & (BLOCK_SIZE - 1), y & (BLOCK_SIZE - 1));
 
 					if (x >= BoundingBox::coords[BoundingBox::LEFT])
@@ -596,7 +612,7 @@ void DrawTriangleFrontFace(OutputVertexData *v0, OutputVertexData *v1, OutputVer
 				if (CX1 > 0 && CX2 > 0 && CX3 > 0)
 				{
 					// Build the new raster block every other pixel
-					BuildBlock(x, y);
+					PrepareBlock(x, y);
 					Draw(x, y, x & (BLOCK_SIZE - 1), y & (BLOCK_SIZE - 1));
 
 					if (y <= BoundingBox::coords[BoundingBox::BOTTOM])
@@ -637,7 +653,7 @@ void DrawTriangleFrontFace(OutputVertexData *v0, OutputVertexData *v1, OutputVer
 				if (CY1 > 0 && CY2 > 0 && CY3 > 0)
 				{
 					// Build the new raster block every other pixel
-					BuildBlock(x, y);
+					PrepareBlock(x, y);
 					Draw(x, y, x & (BLOCK_SIZE - 1), y & (BLOCK_SIZE - 1));
 
 					if (x <= BoundingBox::coords[BoundingBox::RIGHT])

@@ -143,7 +143,7 @@ void AsyncRequests::HandleEvent(const AsyncRequests::Event& e)
 		break;
 
 	case Event::BBOX_READ:
-		if (g_ActiveConfig.iBBoxMode == BBoxGPU)
+		if (g_ActiveConfig.backend_info.bSupportsBBox && g_ActiveConfig.iBBoxMode == BBoxGPU)
 		{
 			*e.bbox.data = g_renderer->BBoxRead(e.bbox.index);
 		}
