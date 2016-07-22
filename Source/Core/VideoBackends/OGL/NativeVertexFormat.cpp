@@ -55,36 +55,40 @@ GLVertexFormat::GLVertexFormat(const PortableVertexDeclaration &_vtx_decl)
 	// We will not allow vertex components causing uneven strides.
 	if (vtx_decl.stride & 3)
 		PanicAlert("Uneven vertex stride: %i", vtx_decl.stride);
-
-	VertexManager* const vm = static_cast<VertexManager*>(g_vertex_manager.get());
-
-	glGenVertexArrays(1, &VAO);
-	glBindVertexArray(VAO);
-
-	// the element buffer is bound directly to the vao, so we must it set for every vao
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vm->m_index_buffers);
-	glBindBuffer(GL_ARRAY_BUFFER, vm->m_vertex_buffers);
-
-	SetPointer(SHADER_POSITION_ATTRIB, vtx_decl.stride, vtx_decl.position);
-
-	for (int i = 0; i < 3; i++)
-		SetPointer(SHADER_NORM0_ATTRIB + i, vtx_decl.stride, vtx_decl.normals[i]);
-
-	for (int i = 0; i < 2; i++)
-		SetPointer(SHADER_COLOR0_ATTRIB + i, vtx_decl.stride, vtx_decl.colors[i]);
-
-	for (int i = 0; i < 8; i++)
-		SetPointer(SHADER_TEXTURE0_ATTRIB + i, vtx_decl.stride, vtx_decl.texcoords[i]);
-
-	if (vtx_decl.posmtx.enable)
-	{
-		glEnableVertexAttribArray(SHADER_POSMTX_ATTRIB);
-		glVertexAttribPointer(SHADER_POSMTX_ATTRIB, 4, GL_UNSIGNED_BYTE, GL_FALSE, vtx_decl.stride, (u8*)NULL + vtx_decl.posmtx.offset);
-	}
-	vm->m_last_vao = VAO;
+	VAO = 0;
 }
 
 void GLVertexFormat::SetupVertexPointers()
-{}
+{
+	if (!VAO)
+	{
+		VertexManager* const vm = static_cast<VertexManager*>(g_vertex_manager.get());
+
+		glGenVertexArrays(1, &VAO);
+		glBindVertexArray(VAO);
+
+		// the element buffer is bound directly to the vao, so we must it set for every vao
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vm->m_index_buffers);
+		glBindBuffer(GL_ARRAY_BUFFER, vm->m_vertex_buffers);
+
+		SetPointer(SHADER_POSITION_ATTRIB, vtx_decl.stride, vtx_decl.position);
+
+		for (int i = 0; i < 3; i++)
+			SetPointer(SHADER_NORM0_ATTRIB + i, vtx_decl.stride, vtx_decl.normals[i]);
+
+		for (int i = 0; i < 2; i++)
+			SetPointer(SHADER_COLOR0_ATTRIB + i, vtx_decl.stride, vtx_decl.colors[i]);
+
+		for (int i = 0; i < 8; i++)
+			SetPointer(SHADER_TEXTURE0_ATTRIB + i, vtx_decl.stride, vtx_decl.texcoords[i]);
+
+		if (vtx_decl.posmtx.enable)
+		{
+			glEnableVertexAttribArray(SHADER_POSMTX_ATTRIB);
+			glVertexAttribPointer(SHADER_POSMTX_ATTRIB, 4, GL_UNSIGNED_BYTE, GL_FALSE, vtx_decl.stride, (u8*)NULL + vtx_decl.posmtx.offset);
+		}
+		vm->m_last_vao = VAO;
+	}
+}
 
 }
