@@ -68,8 +68,6 @@ const XFBSourceBase* const* FramebufferManagerBase::GetRealXFBSource(u32 xfbAddr
 	m_realXFBSource->texWidth = fbWidth;
 	m_realXFBSource->texHeight = fbHeight;
 
-	// OpenGL texture coordinates originate at the lower left, which is why
-	// sourceRc.top = fbHeight and sourceRc.bottom = 0.
 	m_realXFBSource->sourceRc.left = 0;
 	m_realXFBSource->sourceRc.top = 0;
 	m_realXFBSource->sourceRc.right = fbWidth;

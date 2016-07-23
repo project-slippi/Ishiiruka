@@ -74,7 +74,7 @@ s32 BBox::Get(s32 index)
 			// Using glMapBufferRange to read back the contents of the SSBO is extremely slow
 			// on nVidia drivers. This is more noticeable at higher internal resolutions.
 			// Using glGetBufferSubData instead does not seem to exhibit this slowdown.
-			glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, 4 * sizeof(s32), &s_values);
+			glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, 4 * sizeof(s32), s_values);
 		}
 		else
 		{
