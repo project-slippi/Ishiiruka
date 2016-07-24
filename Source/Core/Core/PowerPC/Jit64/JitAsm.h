@@ -25,6 +25,7 @@ class Jit64AsmRoutineManager : public CommonAsmRoutines
 {
 private:
 	void Generate();
+	void ResetStack();
 	void GenerateCommon();
 	u8* m_stack_top;
 
@@ -39,6 +40,8 @@ public:
 		WriteProtect();
 	}
 
-	void Shutdown() { FreeCodeSpace(); }
-	void ResetStack(X64CodeBlock& emitter);
+	void Shutdown()
+	{
+		FreeCodeSpace();
+	}
 };

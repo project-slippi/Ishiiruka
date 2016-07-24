@@ -2,6 +2,7 @@
 // Licensed under GPLv2+
 // Refer to the license.txt file included.
 
+
 // Gekko related unions, structs, ...
 
 #pragma once
@@ -11,11 +12,14 @@
 
 // --- Gekko Instruction ---
 
-union UGeckoInstruction {
+
+union UGeckoInstruction
+{
 	u32 hex;
 
 	UGeckoInstruction(u32 _hex) : hex(_hex) {}
 	UGeckoInstruction() : hex(0) {}
+
 	struct
 	{
 		// Record bit
@@ -61,8 +65,7 @@ union UGeckoInstruction {
 	struct
 	{
 		// Link bit
-		// 1, if branch instructions should put the address of the next instruction into the link
-		// register
+		// 1, if branch instructions should put the address of the next instruction into the link register
 		u32 LK : 1;
 		// Absolute address bit
 		// 1, if the immediate field represents an absolute address
@@ -106,7 +109,7 @@ union UGeckoInstruction {
 	};
 	struct
 	{
-		signed SIMM_16_2 : 16;
+		signed  SIMM_16_2 : 16;
 		u32 RA_3 : 5;
 		u32 L_2 : 1;
 		u32 : 1;
@@ -293,6 +296,7 @@ union UGeckoInstruction {
 	};
 };
 
+
 //
 // --- Gekko Special Registers ---
 //
@@ -311,20 +315,22 @@ enum EQuantizeType : u32
 };
 
 // GQR Register
-union UGQR {
-	BitField<0, 3, EQuantizeType> st_type;
-	BitField<8, 6, u32> st_scale;
+union UGQR
+{
+	BitField< 0, 3, EQuantizeType> st_type;
+	BitField< 8, 6, u32> st_scale;
 	BitField<16, 3, EQuantizeType> ld_type;
 	BitField<24, 6, u32> ld_scale;
 
 	u32 Hex;
 
 	UGQR(u32 _hex) { Hex = _hex; }
-	UGQR() { Hex = 0; }
+	UGQR()         { Hex = 0; }
 };
 
 // FPU Register
-union UFPR {
+union UFPR
+{
 	u64 as_u64;
 	s64 as_s64;
 	double d;
@@ -339,7 +345,8 @@ union UFPR {
 #define XER_OV_MASK 1
 #define XER_SO_MASK 2
 // XER
-union UReg_XER {
+union UReg_XER
+{
 	struct
 	{
 		u32 BYTE_COUNT : 7;
@@ -353,21 +360,22 @@ union UReg_XER {
 	u32 Hex;
 
 	UReg_XER(u32 _hex) { Hex = _hex; }
-	UReg_XER() { Hex = 0; }
+	UReg_XER()         { Hex = 0; }
 };
 
 // Machine State Register
-union UReg_MSR {
+union UReg_MSR
+{
 	struct
 	{
 		u32 LE : 1;
 		u32 RI : 1;
 		u32 PM : 1;
-		u32 : 1;  // res28
+		u32 : 1; // res28
 					u32 DR : 1;
 					u32 IR : 1;
 					u32 IP : 1;
-					u32 : 1;  // res24
+					u32 : 1; // res24
 								u32 FE1 : 1;
 								u32 BE : 1;
 								u32 SE : 1;
@@ -377,14 +385,14 @@ union UReg_MSR {
 								u32 PR : 1;
 								u32 EE : 1;
 								u32 ILE : 1;
-								u32 : 1;  // res14
+								u32 : 1; // res14
 											u32 POW : 1;
 											u32 res : 13;
 	};
 	u32 Hex;
 
 	UReg_MSR(u32 _hex) { Hex = _hex; }
-	UReg_MSR() { Hex = 0; }
+	UReg_MSR()         { Hex = 0; }
 };
 
 #define FPRF_SHIFT 12
@@ -411,14 +419,15 @@ enum FPSCRExceptionFlag : u32
 	FPSCR_VXCVI = 1U << (31 - 23),
 	FPSCR_VE = 1U << (31 - 24),
 
-	FPSCR_VX_ANY = FPSCR_VXSNAN | FPSCR_VXISI | FPSCR_VXIDI | FPSCR_VXZDZ | FPSCR_VXIMZ | FPSCR_VXVC |
-	FPSCR_VXSOFT | FPSCR_VXSQRT | FPSCR_VXCVI,
+	FPSCR_VX_ANY = FPSCR_VXSNAN | FPSCR_VXISI | FPSCR_VXIDI | FPSCR_VXZDZ | FPSCR_VXIMZ |
+	FPSCR_VXVC | FPSCR_VXSOFT | FPSCR_VXSQRT | FPSCR_VXCVI,
 
 	FPSCR_ANY_X = FPSCR_OX | FPSCR_UX | FPSCR_ZX | FPSCR_XX | FPSCR_VX_ANY,
 };
 
 // Floating Point Status and Control Register
-union UReg_FPSCR {
+union UReg_FPSCR
+{
 	struct
 	{
 		// Rounding mode (towards: nearest, zero, +inf, -inf)
@@ -480,11 +489,12 @@ union UReg_FPSCR {
 	u32 Hex;
 
 	UReg_FPSCR(u32 _hex) { Hex = _hex; }
-	UReg_FPSCR() { Hex = 0; }
+	UReg_FPSCR()         { Hex = 0; }
 };
 
 // Hardware Implementation-Dependent Register 0
-union UReg_HID0 {
+union UReg_HID0
+{
 	struct
 	{
 		u32 NOOPTI : 1;
@@ -522,7 +532,8 @@ union UReg_HID0 {
 };
 
 // Hardware Implementation-Dependent Register 2
-union UReg_HID2 {
+union UReg_HID2
+{
 	struct
 	{
 		u32 : 16;
@@ -543,11 +554,12 @@ union UReg_HID2 {
 	u32 Hex;
 
 	UReg_HID2(u32 _hex) { Hex = _hex; }
-	UReg_HID2() { Hex = 0; }
+	UReg_HID2()         { Hex = 0; }
 };
 
 // Hardware Implementation-Dependent Register 4
-union UReg_HID4 {
+union UReg_HID4
+{
 	struct
 	{
 		u32 : 20;
@@ -565,11 +577,12 @@ union UReg_HID4 {
 	u32 Hex;
 
 	UReg_HID4(u32 _hex) { Hex = _hex; }
-	UReg_HID4() { Hex = 0; }
+	UReg_HID4()         { Hex = 0; }
 };
 
 // SPR1 - Page Table format
-union UReg_SPR1 {
+union UReg_SPR1
+{
 	u32 Hex;
 	struct
 	{
@@ -580,7 +593,8 @@ union UReg_SPR1 {
 };
 
 // MMCR0 - Monitor Mode Control Register 0 format
-union UReg_MMCR0 {
+union UReg_MMCR0
+{
 	u32 Hex;
 	struct
 	{
@@ -603,7 +617,8 @@ union UReg_MMCR0 {
 };
 
 // MMCR1 - Monitor Mode Control Register 1 format
-union UReg_MMCR1 {
+union UReg_MMCR1
+{
 	u32 Hex;
 	struct
 	{
@@ -614,7 +629,8 @@ union UReg_MMCR1 {
 };
 
 // Write Pipe Address Register
-union UReg_WPAR {
+union UReg_WPAR
+{
 	struct
 	{
 		u32 BNE : 1;
@@ -624,11 +640,12 @@ union UReg_WPAR {
 	u32 Hex;
 
 	UReg_WPAR(u32 _hex) { Hex = _hex; }
-	UReg_WPAR() { Hex = 0; }
+	UReg_WPAR()         { Hex = 0; }
 };
 
 // Direct Memory Access Upper register
-union UReg_DMAU {
+union UReg_DMAU
+{
 	struct
 	{
 		u32 DMA_LEN_U : 5;
@@ -637,11 +654,12 @@ union UReg_DMAU {
 	u32 Hex;
 
 	UReg_DMAU(u32 _hex) { Hex = _hex; }
-	UReg_DMAU() { Hex = 0; }
+	UReg_DMAU()         { Hex = 0; }
 };
 
 // Direct Memory Access Lower (DMAL) register
-union UReg_DMAL {
+union UReg_DMAL
+{
 	struct
 	{
 		u32 DMA_F : 1;
@@ -653,40 +671,43 @@ union UReg_DMAL {
 	u32 Hex;
 
 	UReg_DMAL(u32 _hex) { Hex = _hex; }
-	UReg_DMAL() { Hex = 0; }
+	UReg_DMAL()         { Hex = 0; }
 };
 
-union UReg_BAT_Up {
+union UReg_BAT_Up
+{
 	struct
 	{
 		u32 VP : 1;
 		u32 VS : 1;
-		u32 BL : 11;  // Block length (aka block size mask)
+		u32 BL : 11; // Block length (aka block size mask)
 		u32 : 4;
 					u32 BEPI : 15;
 	};
 	u32 Hex;
 
 	UReg_BAT_Up(u32 _hex) { Hex = _hex; }
-	UReg_BAT_Up() { Hex = 0; }
+	UReg_BAT_Up()         { Hex = 0; }
 };
 
-union UReg_BAT_Lo {
+union UReg_BAT_Lo
+{
 	struct
 	{
 		u32 PP : 2;
 		u32 : 1;
 					u32 WIMG : 4;
 					u32 : 10;
-								u32 BRPN : 15;  // Physical Block Number
+								u32 BRPN : 15; // Physical Block Number
 	};
 	u32 Hex;
 
 	UReg_BAT_Lo(u32 _hex) { Hex = _hex; }
-	UReg_BAT_Lo() { Hex = 0; }
+	UReg_BAT_Lo()         { Hex = 0; }
 };
 
-union UReg_PTE {
+union UReg_PTE
+{
 	struct
 	{
 		u64 API : 6;
@@ -700,11 +721,13 @@ union UReg_PTE {
 					u64 R : 1;
 					u64 : 3;
 								u64 RPN : 20;
+
 	};
 
 	u64 Hex;
 	u32 Hex32[2];
 };
+
 
 //
 // --- Gekko Types and Defs ---
@@ -713,10 +736,10 @@ union UReg_PTE {
 // branches
 enum
 {
-	BO_BRANCH_IF_CTR_0 = 2,        // 3
-	BO_DONT_DECREMENT_FLAG = 4,    // 2
-	BO_BRANCH_IF_TRUE = 8,         // 1
-	BO_DONT_CHECK_CONDITION = 16,  // 0
+	BO_BRANCH_IF_CTR_0 = 2, // 3
+	BO_DONT_DECREMENT_FLAG = 4, // 2
+	BO_BRANCH_IF_TRUE = 8, // 1
+	BO_DONT_CHECK_CONDITION = 16, // 0
 };
 
 // Special purpose register indices
@@ -813,11 +836,5 @@ enum
 	EXCEPTION_FAKE_MEMCHECK_HIT = 0x00000200,
 };
 
-constexpr s32 SignExt16(s16 x)
-{
-	return (s32)x;
-}
-constexpr s32 SignExt26(u32 x)
-{
-	return x & 0x2000000 ? (s32)(x | 0xFC000000) : (s32)(x);
-}
+constexpr s32 SignExt16(s16 x) { return (s32)x; }
+constexpr s32 SignExt26(u32 x) { return x & 0x2000000 ? (s32)(x | 0xFC000000) : (s32)(x); }

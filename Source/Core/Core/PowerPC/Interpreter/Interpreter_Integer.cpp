@@ -2,12 +2,12 @@
 // Licensed under GPLv2+
 // Refer to the license.txt file included.
 
-#include "Core/PowerPC/Interpreter/Interpreter.h"
 #include "Common/CommonFuncs.h"
 #include "Common/CommonTypes.h"
-#include "Common/Logging/Log.h"
 #include "Common/MsgHandler.h"
+#include "Common/Logging/Log.h"
 #include "Core/PowerPC/PowerPC.h"
+#include "Core/PowerPC/Interpreter/Interpreter.h"
 
 void Interpreter::Helper_UpdateCR0(u32 value)
 {
@@ -30,13 +30,13 @@ u32 Interpreter::Helper_Carry(u32 _uValue1, u32 _uValue2)
 
 u32 Interpreter::Helper_Mask(int mb, int me)
 {
-	// first make 001111111111111 part
+	//first make 001111111111111 part
 	u32 begin = 0xFFFFFFFF >> mb;
-	// then make 000000000001111 part, which is used to flip the bits of the first one
+	//then make 000000000001111 part, which is used to flip the bits of the first one
 	u32 end = 0x7FFFFFFF >> me;
-	// do the bitflip
+	//do the bitflip
 	u32 mask = begin ^ end;
-	// and invert if backwards
+	//and invert if backwards
 	if (me < mb)
 		return ~mask;
 	else
@@ -102,7 +102,7 @@ void Interpreter::cmpli(UGeckoInstruction _inst)
 	else if (a > b)
 		f = 0x4;
 	else
-		f = 0x2;  // equals
+		f = 0x2; //equals
 
 	if (GetXER_SO())
 		f |= 0x1;
@@ -152,12 +152,15 @@ void Interpreter::twi(UGeckoInstruction _inst)
 
 	DEBUG_LOG(POWERPC, "twi rA %x SIMM %x TO %0x", a, b, TO);
 
-	if (((a < b) && (TO & 0x10)) || ((a > b) && (TO & 0x08)) || ((a == b) && (TO & 0x04)) ||
-		(((u32)a < (u32)b) && (TO & 0x02)) || (((u32)a > (u32)b) && (TO & 0x01)))
+	if (((a < b) && (TO & 0x10)) ||
+		((a > b) && (TO & 0x08)) ||
+		((a == b) && (TO & 0x04)) ||
+		(((u32)a < (u32)b) && (TO & 0x02)) ||
+		(((u32)a > (u32)b) && (TO & 0x01)))
 	{
 		PowerPC::ppcState.Exceptions |= EXCEPTION_PROGRAM;
 		PowerPC::CheckExceptions();
-		m_EndBlock = true;  // Dunno about this
+		m_EndBlock = true; // Dunno about this
 	}
 }
 
@@ -224,7 +227,7 @@ void Interpreter::cmp(UGeckoInstruction _inst)
 		fTemp = 0x8;
 	else if (a > b)
 		fTemp = 0x4;
-	else  // Equals
+	else // Equals
 		fTemp = 0x2;
 
 	if (GetXER_SO())
@@ -243,7 +246,7 @@ void Interpreter::cmpl(UGeckoInstruction _inst)
 		fTemp = 0x8;
 	else if (a > b)
 		fTemp = 0x4;
-	else  // Equals
+	else // Equals
 		fTemp = 0x2;
 
 	if (GetXER_SO())
@@ -417,12 +420,15 @@ void Interpreter::tw(UGeckoInstruction _inst)
 
 	DEBUG_LOG(POWERPC, "tw rA %0x rB %0x TO %0x", a, b, TO);
 
-	if (((a < b) && (TO & 0x10)) || ((a > b) && (TO & 0x08)) || ((a == b) && (TO & 0x04)) ||
-		(((u32)a < (u32)b) && (TO & 0x02)) || (((u32)a > (u32)b) && (TO & 0x01)))
+	if (((a < b) && (TO & 0x10)) ||
+		((a > b) && (TO & 0x08)) ||
+		((a == b) && (TO & 0x04)) ||
+		(((u32)a < (u32)b) && (TO & 0x02)) ||
+		(((u32)a > (u32)b) && (TO & 0x01)))
 	{
 		PowerPC::ppcState.Exceptions |= EXCEPTION_PROGRAM;
 		PowerPC::CheckExceptions();
-		m_EndBlock = true;  // Dunno about this
+		m_EndBlock = true; // Dunno about this
 	}
 }
 
@@ -529,6 +535,7 @@ void Interpreter::divwx(UGeckoInstruction _inst)
 		Helper_UpdateCR0(rGPR[_inst.RD]);
 }
 
+
 void Interpreter::divwux(UGeckoInstruction _inst)
 {
 	u32 a = rGPR[_inst.RA];
@@ -557,8 +564,7 @@ void Interpreter::mulhwx(UGeckoInstruction _inst)
 {
 	u32 a = rGPR[_inst.RA];
 	u32 b = rGPR[_inst.RB];
-	u32 d = (u32)((u64)(((s64)(s32)a * (s64)(s32)b)) >>
-		32);  // This can be done better. Not in plain C/C++ though.
+	u32 d = (u32)((u64)(((s64)(s32)a * (s64)(s32)b)) >> 32);  // This can be done better. Not in plain C/C++ though.
 	rGPR[_inst.RD] = d;
 
 	if (_inst.Rc)

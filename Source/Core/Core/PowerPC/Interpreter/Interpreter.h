@@ -18,7 +18,7 @@ public:
 
 	void Run() override;
 	void ClearCache() override;
-	const char* GetName() override;
+	const char *GetName() override;
 
 	static bool m_EndBlock;
 
@@ -306,5 +306,5 @@ private:
 	// TODO: These should really be in the save state, although it's unlikely to matter much.
 	// They are for lwarx and its friend stwcxd.
 	static bool g_bReserve;
-	static u32 g_reserveAddr;
+	static u32  g_reserveAddr;
 };

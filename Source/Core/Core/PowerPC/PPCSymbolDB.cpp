@@ -8,13 +8,14 @@
 
 #include "Common/CommonTypes.h"
 #include "Common/FileUtil.h"
-#include "Common/Logging/Log.h"
 #include "Common/StringUtil.h"
+#include "Common/Logging/Log.h"
 #include "Core/ConfigManager.h"
+#include "Core/PowerPC/PowerPC.h"
 #include "Core/PowerPC/PPCAnalyst.h"
 #include "Core/PowerPC/PPCSymbolDB.h"
-#include "Core/PowerPC/PowerPC.h"
 #include "Core/PowerPC/SignatureDB.h"
+
 
 PPCSymbolDB g_symbolDB;
 
@@ -29,7 +30,7 @@ PPCSymbolDB::~PPCSymbolDB()
 }
 
 // Adds the function to the list, unless it's already there
-Symbol* PPCSymbolDB::AddFunction(u32 startAddr)
+Symbol *PPCSymbolDB::AddFunction(u32 startAddr)
 {
 	if (startAddr < 0x80000010)
 		return nullptr;
@@ -41,11 +42,11 @@ Symbol* PPCSymbolDB::AddFunction(u32 startAddr)
 	}
 	else
 	{
-		Symbol tempFunc;  // the current one we're working on
+		Symbol tempFunc; //the current one we're working on
 		u32 targetEnd = PPCAnalyst::AnalyzeFunction(startAddr, tempFunc);
 		if (targetEnd == 0)
-			return nullptr;  // found a dud :(
-		// LOG(OSHLE, "Symbol found at %08x", startAddr);
+			return nullptr;  //found a dud :(
+		//LOG(OSHLE, "Symbol found at %08x", startAddr);
 		functions[startAddr] = tempFunc;
 		tempFunc.type = Symbol::SYMBOL_FUNCTION;
 		checksumToFunction[tempFunc.hash] = &(functions[startAddr]);
@@ -59,7 +60,7 @@ void PPCSymbolDB::AddKnownSymbol(u32 startAddr, u32 size, const std::string& nam
 	if (iter != functions.end())
 	{
 		// already got it, let's just update name, checksum & size to be sure.
-		Symbol* tempfunc = &iter->second;
+		Symbol *tempfunc = &iter->second;
 		tempfunc->name = name;
 		tempfunc->hash = SignatureDB::ComputeCodeChecksum(startAddr, startAddr + size - 4);
 		tempfunc->type = type;
@@ -82,7 +83,7 @@ void PPCSymbolDB::AddKnownSymbol(u32 startAddr, u32 size, const std::string& nam
 	}
 }
 
-Symbol* PPCSymbolDB::GetSymbolFromAddr(u32 addr)
+Symbol *PPCSymbolDB::GetSymbolFromAddr(u32 addr)
 {
 	if (!PowerPC::HostIsRAMAddress(addr))
 		return nullptr;
@@ -105,7 +106,7 @@ Symbol* PPCSymbolDB::GetSymbolFromAddr(u32 addr)
 
 const std::string PPCSymbolDB::GetDescription(u32 addr)
 {
-	Symbol* symbol = GetSymbolFromAddr(addr);
+	Symbol *symbol = GetSymbolFromAddr(addr);
 	if (symbol)
 		return symbol->name;
 	else
@@ -121,7 +122,7 @@ void PPCSymbolDB::FillInCallers()
 
 	for (auto& entry : functions)
 	{
-		Symbol& f = entry.second;
+		Symbol &f = entry.second;
 		for (const SCall& call : f.calls)
 		{
 			SCall NewCall(entry.first, call.callAddress);
@@ -135,8 +136,7 @@ void PPCSymbolDB::FillInCallers()
 			}
 			else
 			{
-				// LOG(OSHLE, "FillInCallers tries to fill data in an unknown function 0x%08x.",
-				// FunctionAddress);
+				//LOG(OSHLE, "FillInCallers tries to fill data in an unknown function 0x%08x.", FunctionAddress);
 				// TODO - analyze the function instead.
 			}
 		}
@@ -148,7 +148,7 @@ void PPCSymbolDB::PrintCalls(u32 funcAddr) const
 	XFuncMap::const_iterator iter = functions.find(funcAddr);
 	if (iter != functions.end())
 	{
-		const Symbol& f = iter->second;
+		const Symbol &f = iter->second;
 		INFO_LOG(OSHLE, "The function %s at %08x calls:", f.name.c_str(), f.address);
 		for (const SCall& call : f.calls)
 		{
@@ -170,7 +170,7 @@ void PPCSymbolDB::PrintCallers(u32 funcAddr) const
 	XFuncMap::const_iterator iter = functions.find(funcAddr);
 	if (iter != functions.end())
 	{
-		const Symbol& f = iter->second;
+		const Symbol &f = iter->second;
 		INFO_LOG(CONSOLE, "The function %s at %08x is called by:", f.name.c_str(), f.address);
 		for (const SCall& caller : f.callers)
 		{
@@ -185,11 +185,11 @@ void PPCSymbolDB::PrintCallers(u32 funcAddr) const
 
 void PPCSymbolDB::LogFunctionCall(u32 addr)
 {
-	// u32 from = PC;
+	//u32 from = PC;
 	XFuncMap::iterator iter = functions.find(addr);
 	if (iter != functions.end())
 	{
-		Symbol& f = iter->second;
+		Symbol &f = iter->second;
 		f.numCalls++;
 	}
 }
@@ -200,20 +200,15 @@ void PPCSymbolDB::LogFunctionCall(u32 addr)
 // map file are still at the correct locations. Which are both common situations. It will load any
 // function names and addresses that have a BLR before the start and at the end, but ignore any that
 // don't, and then tell you how many were good and how many it ignored. That way you either find out
-// it is all good and use it, find out it is partly good and use the good part, or find out that
-// only
-// a handful of functions lined up by coincidence and then you can clear the symbols. In the future
-// I
+// it is all good and use it, find out it is partly good and use the good part, or find out that only
+// a handful of functions lined up by coincidence and then you can clear the symbols. In the future I
 // want to make it smarter, so it checks that there are no BLRs in the middle of the function
 // (by checking the code length), and also make it cope with added functions in the middle or work
-// based on the order of the functions and their approximate length. Currently that process has to
-// be
+// based on the order of the functions and their approximate length. Currently that process has to be
 // done manually and is very tedious.
 // The use case for separate handling of map files that aren't bad is that you usually want to also
-// load names that aren't functions(if included in the map file) without them being rejected as
-// invalid.
-// You can see discussion about these kinds of issues here :
-// https://forums.oculus.com/viewtopic.php?f=42&t=11241&start=580
+// load names that aren't functions(if included in the map file) without them being rejected as invalid.
+// You can see discussion about these kinds of issues here : https://forums.oculus.com/viewtopic.php?f=42&t=11241&start=580
 // https://m2k2.taigaforum.com/post/metroid_prime_hacking_help_25.html#metroid_prime_hacking_help_25
 
 // This one can load both leftover map files on game discs (like Zelda), and mapfiles
@@ -245,63 +240,39 @@ bool PPCSymbolDB::LoadMap(const std::string& filename, bool bad)
 		char temp[256];
 		sscanf(line, "%255s", temp);
 
-		if (strcmp(temp, "UNUSED") == 0)
-			continue;
-		if (strcmp(temp, ".text") == 0)
-		{
-			started = true;
-			continue;
-		};
-		if (strcmp(temp, ".init") == 0)
-		{
-			started = true;
-			continue;
-		};
-		if (strcmp(temp, "Starting") == 0)
-			continue;
-		if (strcmp(temp, "extab") == 0)
-			continue;
-		if (strcmp(temp, ".ctors") == 0)
-			break;  // uh?
-		if (strcmp(temp, ".dtors") == 0)
-			break;
-		if (strcmp(temp, ".rodata") == 0)
-			continue;
-		if (strcmp(temp, ".data") == 0)
-			continue;
-		if (strcmp(temp, ".sbss") == 0)
-			continue;
-		if (strcmp(temp, ".sdata") == 0)
-			continue;
-		if (strcmp(temp, ".sdata2") == 0)
-			continue;
-		if (strcmp(temp, "address") == 0)
-			continue;
-		if (strcmp(temp, "-----------------------") == 0)
-			continue;
-		if (strcmp(temp, ".sbss2") == 0)
-			break;
-		if (temp[1] == ']')
-			continue;
+		if (strcmp(temp, "UNUSED") == 0) continue;
+		if (strcmp(temp, ".text") == 0)  { started = true; continue; };
+		if (strcmp(temp, ".init") == 0)  { started = true; continue; };
+		if (strcmp(temp, "Starting") == 0) continue;
+		if (strcmp(temp, "extab") == 0) continue;
+		if (strcmp(temp, ".ctors") == 0) break; //uh?
+		if (strcmp(temp, ".dtors") == 0) break;
+		if (strcmp(temp, ".rodata") == 0) continue;
+		if (strcmp(temp, ".data") == 0) continue;
+		if (strcmp(temp, ".sbss") == 0) continue;
+		if (strcmp(temp, ".sdata") == 0) continue;
+		if (strcmp(temp, ".sdata2") == 0) continue;
+		if (strcmp(temp, "address") == 0)  continue;
+		if (strcmp(temp, "-----------------------") == 0)  continue;
+		if (strcmp(temp, ".sbss2") == 0) break;
+		if (temp[1] == ']') continue;
 
-		if (!started)
-			continue;
+		if (!started) continue;
 
 		u32 address, vaddress, size, offset, unknown;
 		char name[512], container[512];
 		if (four_columns)
 		{
-			// sometimes there is no unknown number, and sometimes it is because it is an entry of
-			// something else
+			// sometimes there is no unknown number, and sometimes it is because it is an entry of something else
 			if (length > 37 && line[37] == ' ')
 			{
 				unknown = 0;
 				sscanf(line, "%08x %08x %08x %08x %511s", &address, &size, &vaddress, &offset, name);
-				char* s = strstr(line, "(entry of ");
+				char *s = strstr(line, "(entry of ");
 				if (s)
 				{
 					sscanf(s + 10, "%511s", container);
-					char* s2 = (strchr(container, ')'));
+					char *s2 = (strchr(container, ')'));
 					if (s2 && container[0] != '.')
 					{
 						s2[0] = '\0';
@@ -313,22 +284,20 @@ bool PPCSymbolDB::LoadMap(const std::string& filename, bool bad)
 			}
 			else
 			{
-				sscanf(line, "%08x %08x %08x %08x %i %511s", &address, &size, &vaddress, &offset, &unknown,
-					name);
+				sscanf(line, "%08x %08x %08x %08x %i %511s", &address, &size, &vaddress, &offset, &unknown, name);
 			}
 		}
-		// some entries in the table have a function name followed by " (entry of " followed by a
-		// container name, followed by ")"
+		// some entries in the table have a function name followed by " (entry of " followed by a container name, followed by ")"
 		// instead of a space followed by a number followed by a space followed by a name
 		else if (length > 27 && line[27] != ' ' && strstr(line, "(entry of "))
 		{
 			unknown = 0;
 			sscanf(line, "%08x %08x %08x %511s", &address, &size, &vaddress, name);
-			char* s = strstr(line, "(entry of ");
+			char *s = strstr(line, "(entry of ");
 			if (s)
 			{
 				sscanf(s + 10, "%511s", container);
-				char* s2 = (strchr(container, ')'));
+				char *s2 = (strchr(container, ')'));
 				if (s2 && container[0] != '.')
 				{
 					s2[0] = '\0';
@@ -343,19 +312,16 @@ bool PPCSymbolDB::LoadMap(const std::string& filename, bool bad)
 			sscanf(line, "%08x %08x %08x %i %511s", &address, &size, &vaddress, &unknown, name);
 		}
 
-		const char* namepos = strstr(line, name);
-		if (namepos != nullptr)  // would be odd if not :P
+		const char *namepos = strstr(line, name);
+		if (namepos != nullptr) //would be odd if not :P
 			strcpy(name, namepos);
 		name[strlen(name) - 1] = 0;
 
-		// we want the function names only .... TODO: or do we really? aren't we wasting information
-		// here?
+		// we want the function names only .... TODO: or do we really? aren't we wasting information here?
 		for (size_t i = 0; i < strlen(name); i++)
 		{
-			if (name[i] == ' ')
-				name[i] = 0x00;
-			if (name[i] == '(')
-				name[i] = 0x00;
+			if (name[i] == ' ') name[i] = 0x00;
+			if (name[i] == '(') name[i] = 0x00;
 		}
 
 		// Check if this is a valid entry.
@@ -378,7 +344,7 @@ bool PPCSymbolDB::LoadMap(const std::string& filename, bool bad)
 			if (good)
 			{
 				++good_count;
-				AddKnownSymbol(vaddress | 0x80000000, size, name);  // ST_FUNCTION
+				AddKnownSymbol(vaddress | 0x80000000, size, name); // ST_FUNCTION
 			}
 			else
 			{
@@ -392,6 +358,7 @@ bool PPCSymbolDB::LoadMap(const std::string& filename, bool bad)
 		SuccessAlertT("Loaded %d good functions, ignored %d bad functions.", good_count, bad_count);
 	return true;
 }
+
 
 // ===================================================
 /* Save the map file and save a code file */
@@ -407,13 +374,9 @@ bool PPCSymbolDB::SaveMap(const std::string& filename, bool WithCodes) const
 	const int wxYES_NO = 0x00000002 | 0x00000008;
 	if (functions.size() == 0)
 	{
-		if (!AskYesNo(
-			StringFromFormat(
-				"No symbol names are generated. Do you want to replace '%s' with a blank file?",
-				mapFile.c_str())
-			.c_str(),
-			"Confirm", wxYES_NO))
-			return false;
+		if (!AskYesNo(StringFromFormat(
+			"No symbol names are generated. Do you want to replace '%s' with a blank file?",
+			mapFile.c_str()).c_str(), "Confirm", wxYES_NO)) return false;
 	}
 
 	// Make a file
@@ -424,18 +387,18 @@ bool PPCSymbolDB::SaveMap(const std::string& filename, bool WithCodes) const
 	// --------------------------------------------------------------------
 	// Walk through every code row
 	// -------------------------
-	fprintf(f.GetHandle(), ".text\n");  // Write ".text" at the top
+	fprintf(f.GetHandle(), ".text\n"); // Write ".text" at the top
 	XFuncMap::const_iterator itr = functions.begin();
 	u32 LastAddress = 0x80004000;
 	std::string LastSymbolName;
 	while (itr != functions.end())
 	{
 		// Save a map file
-		const Symbol& rSymbol = itr->second;
+		const Symbol &rSymbol = itr->second;
 		if (!WithCodes)
 		{
-			fprintf(f.GetHandle(), "%08x %08x %08x %i %s\n", rSymbol.address, rSymbol.size,
-				rSymbol.address, 0, rSymbol.name.c_str());
+			fprintf(f.GetHandle(), "%08x %08x %08x %i %s\n", rSymbol.address, rSymbol.size, rSymbol.address,
+				0, rSymbol.name.c_str());
 			++itr;
 		}
 

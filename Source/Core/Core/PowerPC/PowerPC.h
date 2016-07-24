@@ -19,6 +19,7 @@ class PointerWrap;
 
 namespace PowerPC
 {
+
 enum
 {
 	CORE_INTERPRETER,
@@ -57,9 +58,9 @@ struct tlb_entry
 // This contains the entire state of the emulated PowerPC "Gekko" CPU.
 struct PowerPCState
 {
-	u32 gpr[32];  // General purpose registers. r1 = stack pointer.
+	u32 gpr[32];    // General purpose registers. r1 = stack pointer.
 
-	u32 pc;  // program counter
+	u32 pc;     // program counter
 	u32 npc;
 
 	// Optimized CR implementation. Instead of storing CR in its PowerPC format
@@ -90,9 +91,8 @@ struct PowerPCState
 
 	// XER, reformatted into byte fields for easier access.
 	u8 xer_ca;
-	u8 xer_so_ov;  // format: (SO << 1) | OV
-	// The Broadway CPU implements bits 16-23 of the XER register... even though it doesn't support
-	// lscbx
+	u8 xer_so_ov; // format: (SO << 1) | OV
+	// The Broadway CPU implements bits 16-23 of the XER register... even though it doesn't support lscbx
 	u16 xer_stringctrl;
 
 #if _M_X86_64
@@ -124,8 +124,7 @@ struct PowerPCState
 };
 
 #if _M_X86_64
-static_assert(offsetof(PowerPC::PowerPCState, above_fits_in_first_0x100) <= 0x100,
-	"top of PowerPCState too big");
+static_assert(offsetof(PowerPC::PowerPCState, above_fits_in_first_0x100) <= 0x100, "top of PowerPCState too big");
 #endif
 
 extern PowerPCState ppcState;
@@ -137,7 +136,7 @@ extern PPCDebugInterface debug_interface;
 
 void Init(int cpu_core);
 void Shutdown();
-void DoState(PointerWrap& p);
+void DoState(PointerWrap &p);
 
 CoreMode GetMode();
 // [NOT THREADSAFE] CPU Thread or CPU::PauseAndLock or CORE_UNINITIALIZED
@@ -170,30 +169,30 @@ void UpdatePerformanceMonitor(u32 cycles, u32 num_load_stores, u32 num_fp_inst);
 #define HID0 ((UReg_HID0&)PowerPC::ppcState.spr[SPR_HID0])
 #define HID2 ((UReg_HID2&)PowerPC::ppcState.spr[SPR_HID2])
 #define HID4 ((UReg_HID4&)PowerPC::ppcState.spr[SPR_HID4])
-#define DMAU (*(UReg_DMAU*)&PowerPC::ppcState.spr[SPR_DMAU])
-#define DMAL (*(UReg_DMAL*)&PowerPC::ppcState.spr[SPR_DMAL])
+#define DMAU  (*(UReg_DMAU*)&PowerPC::ppcState.spr[SPR_DMAU])
+#define DMAL  (*(UReg_DMAL*)&PowerPC::ppcState.spr[SPR_DMAL])
 #define MMCR0 ((UReg_MMCR0&)PowerPC::ppcState.spr[SPR_MMCR0])
 #define MMCR1 ((UReg_MMCR1&)PowerPC::ppcState.spr[SPR_MMCR1])
-#define PC PowerPC::ppcState.pc
-#define NPC PowerPC::ppcState.npc
-#define FPSCR ((UReg_FPSCR&)PowerPC::ppcState.fpscr)
-#define MSR PowerPC::ppcState.msr
+#define PC     PowerPC::ppcState.pc
+#define NPC    PowerPC::ppcState.npc
+#define FPSCR  ((UReg_FPSCR&)PowerPC::ppcState.fpscr)
+#define MSR    PowerPC::ppcState.msr
 #define GPR(n) PowerPC::ppcState.gpr[n]
 
 #define rGPR PowerPC::ppcState.gpr
 #define rSPR(i) PowerPC::ppcState.spr[i]
-#define LR PowerPC::ppcState.spr[SPR_LR]
-#define CTR PowerPC::ppcState.spr[SPR_CTR]
-#define rDEC PowerPC::ppcState.spr[SPR_DEC]
-#define SRR0 PowerPC::ppcState.spr[SPR_SRR0]
-#define SRR1 PowerPC::ppcState.spr[SPR_SRR1]
-#define SPRG0 PowerPC::ppcState.spr[SPR_SPRG0]
-#define SPRG1 PowerPC::ppcState.spr[SPR_SPRG1]
-#define SPRG2 PowerPC::ppcState.spr[SPR_SPRG2]
-#define SPRG3 PowerPC::ppcState.spr[SPR_SPRG3]
-#define GQR(x) PowerPC::ppcState.spr[SPR_GQR0 + x]
-#define TL PowerPC::ppcState.spr[SPR_TL]
-#define TU PowerPC::ppcState.spr[SPR_TU]
+#define LR     PowerPC::ppcState.spr[SPR_LR]
+#define CTR    PowerPC::ppcState.spr[SPR_CTR]
+#define rDEC   PowerPC::ppcState.spr[SPR_DEC]
+#define SRR0   PowerPC::ppcState.spr[SPR_SRR0]
+#define SRR1   PowerPC::ppcState.spr[SPR_SRR1]
+#define SPRG0  PowerPC::ppcState.spr[SPR_SPRG0]
+#define SPRG1  PowerPC::ppcState.spr[SPR_SPRG1]
+#define SPRG2  PowerPC::ppcState.spr[SPR_SPRG2]
+#define SPRG3  PowerPC::ppcState.spr[SPR_SPRG3]
+#define GQR(x) PowerPC::ppcState.spr[SPR_GQR0+x]
+#define TL     PowerPC::ppcState.spr[SPR_TL]
+#define TU     PowerPC::ppcState.spr[SPR_TU]
 
 #define rPS0(i) (*(double*)(&PowerPC::ppcState.ps[i][0]))
 #define rPS1(i) (*(double*)(&PowerPC::ppcState.ps[i][1]))
@@ -232,7 +231,7 @@ struct TryReadInstResult
 };
 TryReadInstResult TryReadInstruction(const u32 address);
 
-u8 Read_U8(const u32 address);
+u8  Read_U8(const u32 address);
 u16 Read_U16(const u32 address);
 u32 Read_U32(const u32 address);
 u64 Read_U64(const u32 address);
@@ -259,7 +258,7 @@ void Write_F64(const double var, const u32 address);
 
 void DMA_LCToMemory(const u32 memAddr, const u32 cacheAddr, const u32 numBlocks);
 void DMA_MemoryToLC(const u32 cacheAddr, const u32 memAddr, const u32 numBlocks);
-void ClearCacheLine(const u32 address);  // Zeroes 32 bytes; address should be 32-byte-aligned
+void ClearCacheLine(const u32 address); // Zeroes 32 bytes; address should be 32-byte-aligned
 
 // TLB functions
 void SDRUpdated();
@@ -272,13 +271,6 @@ bool IsOptimizableRAMAddress(const u32 address);
 u32 IsOptimizableMMIOAccess(u32 address, u32 accessSize);
 bool IsOptimizableGatherPipeWrite(u32 address);
 
-struct TranslateResult
-{
-	bool valid;
-	bool from_bat;
-	u32 address;
-};
-TranslateResult JitCache_TranslateAddress(u32 address);
 }  // namespace
 
 enum CRBits

@@ -3,7 +3,7 @@
 // Refer to the license.txt file included.
 
 #include <cinttypes>
-#include <ctime>  // For profiling
+#include <ctime> // For profiling
 #include <map>
 #include <memory>
 #include <string>
@@ -12,16 +12,16 @@
 #include "Common/CommonTypes.h"
 #include "Common/FileUtil.h"
 #include "Common/Intrinsics.h"
-#include "Common/Logging/Log.h"
 #include "Common/StringUtil.h"
 #include "Common/x64ABI.h"
+#include "Common/Logging/Log.h"
+#include "Core/PatchEngine.h"
 #include "Core/HLE/HLE.h"
 #include "Core/HW/CPU.h"
-#include "Core/PatchEngine.h"
-#include "Core/PowerPC/Jit64IL/JitIL.h"
-#include "Core/PowerPC/Jit64IL/JitIL_Tables.h"
 #include "Core/PowerPC/PowerPC.h"
 #include "Core/PowerPC/Profiler.h"
+#include "Core/PowerPC/Jit64IL/JitIL.h"
+#include "Core/PowerPC/Jit64IL/JitIL_Tables.h"
 
 using namespace Gen;
 using namespace PowerPC;
@@ -34,8 +34,7 @@ using namespace PowerPC;
 // * Fast dispatcher
 
 // Unfeatures:
-// * Does not recompile all instructions - sometimes falls back to inserting a CALL to the
-// corresponding Interpreter function.
+// * Does not recompile all instructions - sometimes falls back to inserting a CALL to the corresponding Interpreter function.
 
 // Various notes below
 
@@ -43,56 +42,47 @@ using namespace PowerPC;
 //   RAX - Generic quicktemp register
 //   RBX - point to base of memory map
 //   RSI RDI R12 R13 R14 R15 - free for allocation
-//   RCX RDX R8 R9 R10 R11 - allocate in emergencies. These need to be flushed before functions are
-//   called.
+//   RCX RDX R8 R9 R10 R11 - allocate in emergencies. These need to be flushed before functions are called.
 //   RSP - stack pointer, do not generally use, very dangerous
 //   RBP - ?
 
 // IMPORTANT:
 // Make sure that all generated code and all emulator state sits under the 2GB boundary so that
-// RIP addressing can be used easily. Windows will always allocate static code under the 2GB
-// boundary.
+// RIP addressing can be used easily. Windows will always allocate static code under the 2GB boundary.
 // Also make sure to use VirtualAlloc and specify EXECUTE permission.
 
 // Open questions
 // * Should there be any statically allocated registers? r3, r4, r5, r8, r0 come to mind.. maybe sp
-// * Does it make sense to finish off the remaining non-jitted instructions? Seems we are hitting
-// diminishing returns.
+// * Does it make sense to finish off the remaining non-jitted instructions? Seems we are hitting diminishing returns.
 
 // Other considerations
 //
 // Many instructions have shorter forms for EAX. However, I believe their performance boost
-// will be as small to be negligible, so I haven't dirtied up the code with that. AMD recommends it
-// in their
+// will be as small to be negligible, so I haven't dirtied up the code with that. AMD recommends it in their
 // optimization manuals, though.
 //
-// We support block linking. Reserve space at the exits of every block for a full 5-byte jmp. Save
-// 16-bit offsets
+// We support block linking. Reserve space at the exits of every block for a full 5-byte jmp. Save 16-bit offsets
 // from the starts of each block, marking the exits so that they can be nicely patched at any time.
 //
 // Blocks do NOT use call/ret, they only jmp to each other and to the dispatcher when necessary.
 //
-// All blocks that can be precompiled will be precompiled. Code will be memory protected - any write
-// will mark
-// the region as non-compilable, and all links to the page will be torn out and replaced with
-// dispatcher jmps.
+// All blocks that can be precompiled will be precompiled. Code will be memory protected - any write will mark
+// the region as non-compilable, and all links to the page will be torn out and replaced with dispatcher jmps.
 //
 // Alternatively, icbi instruction SHOULD mark where we can't compile
 //
-// Seldom-happening events is handled by adding a decrement of a counter to all blr instructions
-// (which are
+// Seldom-happening events is handled by adding a decrement of a counter to all blr instructions (which are
 // expensive anyway since we need to return to dispatcher, except when they can be predicted).
 
-// TODO: SERIOUS synchronization problem with the video backend setting tokens and breakpoints in
-// dual core mode!!!
+// TODO: SERIOUS synchronization problem with the video backend setting tokens and breakpoints in dual core mode!!!
 //       Somewhat fixed by disabling idle skipping when certain interrupts are enabled
 //       This is no permanent reliable fix
 // TODO: Zeldas go whacko when you hang the gfx thread
 
 // Idea - Accurate exception handling
-// Compute register state at a certain instruction by running the JIT in "dry mode", and stopping at
-// the right place.
+// Compute register state at a certain instruction by running the JIT in "dry mode", and stopping at the right place.
 // Not likely to be done :P
+
 
 // Optimization Ideas -
 /*
@@ -161,16 +151,18 @@ static inline uint64_t __rdtsc()
 {
 	uint32_t lo, hi;
 #ifdef _LP64
-	__asm__ __volatile__("xorl %%eax,%%eax \n cpuid" ::: "%rax", "%rbx", "%rcx", "%rdx");
-	__asm__ __volatile__("rdtsc" : "=a"(lo), "=d"(hi));
+	__asm__ __volatile__("xorl %%eax,%%eax \n cpuid"
+		::: "%rax", "%rbx", "%rcx", "%rdx");
+	__asm__ __volatile__("rdtsc" : "=a" (lo), "=d" (hi));
 	return (uint64_t)hi << 32 | lo;
 #else
-	__asm__ __volatile__("xor    %%eax,%%eax;"
+	__asm__ __volatile__(
+		"xor    %%eax,%%eax;"
 		"push   %%ebx;"
 		"cpuid;"
-		"pop    %%ebx;" ::
-		: "%eax", "%ecx", "%edx");
-	__asm__ __volatile__("rdtsc" : "=a"(lo), "=d"(hi));
+		"pop    %%ebx;"
+		::: "%eax", "%ecx", "%edx");
+	__asm__ __volatile__("rdtsc" : "=a" (lo), "=d" (hi));
 #endif
 	return (uint64_t)hi << 32 | lo;
 }
@@ -187,7 +179,9 @@ struct Block
 	u64 totalElapsed;
 	u64 numberOfCalls;
 
-	Block() : index(0), codeHash(0), totalElapsed(0), numberOfCalls(0) {}
+	Block() : index(0), codeHash(0), totalElapsed(0), numberOfCalls(0)
+	{
+	}
 };
 
 static std::vector<Block> blocks;
@@ -234,8 +228,7 @@ struct JitILProfilerFinalizer
 			const u64 totalElapsed = block.totalElapsed;
 			const u64 numberOfCalls = block.numberOfCalls;
 			const double elapsedPerCall = totalElapsed / (double)numberOfCalls;
-			fprintf(file.GetHandle(), "%016" PRIx64 ",%" PRId64 ",%" PRId64 ",%f\n", codeHash,
-				totalElapsed, numberOfCalls, elapsedPerCall);
+			fprintf(file.GetHandle(), "%016" PRIx64 ",%" PRId64 ",%" PRId64 ",%f\n", codeHash, totalElapsed, numberOfCalls, elapsedPerCall);
 		}
 	}
 };
@@ -304,7 +297,8 @@ void JitIL::Shutdown()
 
 void JitIL::FallBackToInterpreter(UGeckoInstruction _inst)
 {
-	ibuild.EmitFallBackToInterpreter(ibuild.EmitIntConst(_inst.hex),
+	ibuild.EmitFallBackToInterpreter(
+		ibuild.EmitIntConst(_inst.hex),
 		ibuild.EmitIntConst(js.compilerPC));
 }
 
@@ -353,8 +347,7 @@ void JitIL::Cleanup()
 {
 	// SPEED HACK: MMCR0/MMCR1 should be checked at run-time, not at compile time.
 	if (MMCR0.Hex || MMCR1.Hex)
-		ABI_CallFunctionCCC((void*)&PowerPC::UpdatePerformanceMonitor, js.downcountAmount,
-			jit->js.numLoadStoreInst, jit->js.numFloatingPointInst);
+		ABI_CallFunctionCCC((void *)&PowerPC::UpdatePerformanceMonitor, js.downcountAmount, jit->js.numLoadStoreInst, jit->js.numFloatingPointInst);
 }
 
 void JitIL::WriteExit(u32 destination)
@@ -362,20 +355,30 @@ void JitIL::WriteExit(u32 destination)
 	Cleanup();
 	if (SConfig::GetInstance().bJITILTimeProfiling)
 	{
-		ABI_CallFunction((void*)JitILProfiler::End);
+		ABI_CallFunction((void *)JitILProfiler::End);
 	}
 	SUB(32, PPCSTATE(downcount), Imm32(js.downcountAmount));
 
-	// If nobody has taken care of this yet (this can be removed when all branches are done)
-	JitBlock* b = js.curBlock;
+	//If nobody has taken care of this yet (this can be removed when all branches are done)
+	JitBlock *b = js.curBlock;
 	JitBlock::LinkData linkData;
 	linkData.exitAddress = destination;
 	linkData.exitPtrs = GetWritableCodePtr();
 	linkData.linkStatus = false;
 
-	MOV(32, PPCSTATE(pc), Imm32(destination));
-	JMP(asm_routines.dispatcher, true);
-
+	// Link opportunity!
+	int block;
+	if (jo.enableBlocklink && (block = blocks.GetBlockNumberFromStartAddress(destination)) >= 0)
+	{
+		// It exists! Joy of joy!
+		JMP(blocks.GetBlock(block)->checkedEntry, true);
+		linkData.linkStatus = true;
+	}
+	else
+	{
+		MOV(32, PPCSTATE(pc), Imm32(destination));
+		JMP(asm_routines.dispatcher, true);
+	}
 	b->linkData.push_back(linkData);
 }
 
@@ -385,7 +388,7 @@ void JitIL::WriteExitDestInOpArg(const OpArg& arg)
 	Cleanup();
 	if (SConfig::GetInstance().bJITILTimeProfiling)
 	{
-		ABI_CallFunction((void*)JitILProfiler::End);
+		ABI_CallFunction((void *)JitILProfiler::End);
 	}
 	SUB(32, PPCSTATE(downcount), Imm32(js.downcountAmount));
 	JMP(asm_routines.dispatcher, true);
@@ -398,9 +401,9 @@ void JitIL::WriteRfiExitDestInOpArg(const OpArg& arg)
 	Cleanup();
 	if (SConfig::GetInstance().bJITILTimeProfiling)
 	{
-		ABI_CallFunction((void*)JitILProfiler::End);
+		ABI_CallFunction((void *)JitILProfiler::End);
 	}
-	ABI_CallFunction(reinterpret_cast<void*>(&PowerPC::CheckExceptions));
+	ABI_CallFunction(reinterpret_cast<void *>(&PowerPC::CheckExceptions));
 	SUB(32, PPCSTATE(downcount), Imm32(js.downcountAmount));
 	JMP(asm_routines.dispatcher, true);
 }
@@ -410,11 +413,11 @@ void JitIL::WriteExceptionExit()
 	Cleanup();
 	if (SConfig::GetInstance().bJITILTimeProfiling)
 	{
-		ABI_CallFunction((void*)JitILProfiler::End);
+		ABI_CallFunction((void *)JitILProfiler::End);
 	}
 	MOV(32, R(EAX), PPCSTATE(pc));
 	MOV(32, PPCSTATE(npc), R(EAX));
-	ABI_CallFunction(reinterpret_cast<void*>(&PowerPC::CheckExceptions));
+	ABI_CallFunction(reinterpret_cast<void *>(&PowerPC::CheckExceptions));
 	SUB(32, PPCSTATE(downcount), Imm32(js.downcountAmount));
 	JMP(asm_routines.dispatcher, true);
 }
@@ -423,7 +426,7 @@ void JitIL::Run()
 {
 	CompiledCode pExecAddr = (CompiledCode)asm_routines.enterCode;
 	pExecAddr();
-	// Will return when PowerPC::state changes
+	//Will return when PowerPC::state changes
 }
 
 void JitIL::SingleStep()
@@ -451,15 +454,11 @@ void JitIL::Trace()
 	}
 #endif
 
-	DEBUG_LOG(DYNA_REC, "JITIL PC: %08x SRR0: %08x SRR1: %08x CRval: "
-		"%016lx%016lx%016lx%016lx%016lx%016lx%016lx%016lx FPSCR: %08x MSR: %08x LR: "
-		"%08x %s %s",
-		PC, SRR0, SRR1, (unsigned long)PowerPC::ppcState.cr_val[0],
-		(unsigned long)PowerPC::ppcState.cr_val[1], (unsigned long)PowerPC::ppcState.cr_val[2],
-		(unsigned long)PowerPC::ppcState.cr_val[3], (unsigned long)PowerPC::ppcState.cr_val[4],
-		(unsigned long)PowerPC::ppcState.cr_val[5], (unsigned long)PowerPC::ppcState.cr_val[6],
-		(unsigned long)PowerPC::ppcState.cr_val[7], PowerPC::ppcState.fpscr,
-		PowerPC::ppcState.msr, PowerPC::ppcState.spr[8], regs.c_str(), fregs.c_str());
+	DEBUG_LOG(DYNA_REC, "JITIL PC: %08x SRR0: %08x SRR1: %08x CRval: %016lx%016lx%016lx%016lx%016lx%016lx%016lx%016lx FPSCR: %08x MSR: %08x LR: %08x %s %s",
+		PC, SRR0, SRR1, (unsigned long)PowerPC::ppcState.cr_val[0], (unsigned long)PowerPC::ppcState.cr_val[1], (unsigned long)PowerPC::ppcState.cr_val[2],
+		(unsigned long)PowerPC::ppcState.cr_val[3], (unsigned long)PowerPC::ppcState.cr_val[4], (unsigned long)PowerPC::ppcState.cr_val[5],
+		(unsigned long)PowerPC::ppcState.cr_val[6], (unsigned long)PowerPC::ppcState.cr_val[7], PowerPC::ppcState.fpscr, PowerPC::ppcState.msr,
+		PowerPC::ppcState.spr[8], regs.c_str(), fregs.c_str());
 }
 
 void JitIL::Jit(u32 em_address)
@@ -492,8 +491,7 @@ void JitIL::Jit(u32 em_address)
 	}
 
 	// Analyze the block, collect all instructions it is made of (including inlining,
-	// if that is enabled), reorder instructions for optimal performance, and join joinable
-	// instructions.
+	// if that is enabled), reorder instructions for optimal performance, and join joinable instructions.
 	u32 nextPC = analyzer.Analyze(em_address, &code_block, &code_buffer, blockSize);
 
 	if (code_block.m_memory_exception)
@@ -507,11 +505,11 @@ void JitIL::Jit(u32 em_address)
 	}
 
 	int block_num = blocks.AllocateBlock(em_address);
-	JitBlock* b = blocks.GetBlock(block_num);
+	JitBlock *b = blocks.GetBlock(block_num);
 	blocks.FinalizeBlock(block_num, jo.enableBlocklink, DoJit(em_address, &code_buffer, b, nextPC));
 }
 
-const u8* JitIL::DoJit(u32 em_address, PPCAnalyst::CodeBuffer* code_buf, JitBlock* b, u32 nextPC)
+const u8* JitIL::DoJit(u32 em_address, PPCAnalyst::CodeBuffer *code_buf, JitBlock *b, u32 nextPC)
 {
 	js.isLastInstruction = false;
 	js.blockStart = em_address;
@@ -520,31 +518,28 @@ const u8* JitIL::DoJit(u32 em_address, PPCAnalyst::CodeBuffer* code_buf, JitBloc
 	jit->js.numLoadStoreInst = 0;
 	jit->js.numFloatingPointInst = 0;
 
-	PPCAnalyst::CodeOp* ops = code_buf->codebuffer;
+	PPCAnalyst::CodeOp *ops = code_buf->codebuffer;
 
-	const u8* start =
-		AlignCode4();  // TODO: Test if this or AlignCode16 make a difference from GetCodePtr
+	const u8 *start = AlignCode4(); // TODO: Test if this or AlignCode16 make a difference from GetCodePtr
 	b->checkedEntry = start;
 	b->runCount = 0;
 
-	// Downcount flag check. The last block decremented downcounter, and the flag should still be
-	// available.
+	// Downcount flag check. The last block decremented downcounter, and the flag should still be available.
 	FixupBranch skip = J_CC(CC_NBE);
 	MOV(32, PPCSTATE(pc), Imm32(js.blockStart));
 	JMP(asm_routines.doTiming, true);  // downcount hit zero - go doTiming.
 	SetJumpTarget(skip);
 
-	const u8* normalEntry = GetCodePtr();
+	const u8 *normalEntry = GetCodePtr();
 	b->normalEntry = normalEntry;
 
 	if (ImHereDebug)
-		ABI_CallFunction((void*)&ImHere);  // Used to get a trace of the last few blocks before a crash,
-																			 // sometimes VERY useful
+		ABI_CallFunction((void *)&ImHere); // Used to get a trace of the last few blocks before a crash, sometimes VERY useful
 
 	if (js.fpa.any)
 	{
 		// This block uses FPU - needs to add FP exception bailout
-		TEST(32, PPCSTATE(msr), Imm32(1 << 13));  // Test FP enabled bit
+		TEST(32, PPCSTATE(msr), Imm32(1 << 13)); //Test FP enabled bit
 		FixupBranch b1 = J_CC(CC_NZ);
 
 		// If a FPU exception occurs, the exception handler will read
@@ -559,7 +554,8 @@ const u8* JitIL::DoJit(u32 em_address, PPCAnalyst::CodeBuffer* code_buf, JitBloc
 	js.rewriteStart = (u8*)GetCodePtr();
 
 	u64 codeHash = -1;
-	if (SConfig::GetInstance().bJITILTimeProfiling || SConfig::GetInstance().bJITILOutputIR)
+	if (SConfig::GetInstance().bJITILTimeProfiling ||
+		SConfig::GetInstance().bJITILOutputIR)
 	{
 		// For profiling and IR Writer
 		for (u32 i = 0; i < code_block.m_num_instructions; i++)
@@ -573,7 +569,7 @@ const u8* JitIL::DoJit(u32 em_address, PPCAnalyst::CodeBuffer* code_buf, JitBloc
 	if (SConfig::GetInstance().bJITILTimeProfiling)
 	{
 		JitILProfiler::Block& block = JitILProfiler::Add(codeHash);
-		ABI_CallFunctionC((void*)JitILProfiler::Begin, block.index);
+		ABI_CallFunctionC((void *)JitILProfiler::Begin, block.index);
 	}
 
 	// Start up IR builder (structure that collects the
@@ -590,7 +586,7 @@ const u8* JitIL::DoJit(u32 em_address, PPCAnalyst::CodeBuffer* code_buf, JitBloc
 		js.compilerPC = ops[i].address;
 		js.op = &ops[i];
 		js.instructionNumber = i;
-		const GekkoOPInfo* opinfo = GetOpInfo(ops[i].inst);
+		const GekkoOPInfo *opinfo = GetOpInfo(ops[i].inst);
 		js.downcountAmount += opinfo->numCycles;
 
 		if (i == (code_block.m_num_instructions - 1))
@@ -630,10 +626,10 @@ const u8* JitIL::DoJit(u32 em_address, PPCAnalyst::CodeBuffer* code_buf, JitBloc
 			}
 
 			if (SConfig::GetInstance().bEnableDebugging &&
-				breakpoints.IsAddressBreakPoint(ops[i].address) && CPU::GetState() != CPU::CPU_STEPPING)
+				breakpoints.IsAddressBreakPoint(ops[i].address) &&
+				CPU::GetState() != CPU::CPU_STEPPING)
 			{
-				// Turn off block linking if there are breakpoints so that the Step Over command does not
-				// link this block.
+				// Turn off block linking if there are breakpoints so that the Step Over command does not link this block.
 				jo.enableBlocklink = false;
 
 				ibuild.EmitBreakPointCheck(ibuild.EmitIntConst(ops[i].address));

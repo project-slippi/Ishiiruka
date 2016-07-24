@@ -19,13 +19,14 @@ struct Symbol;
 
 namespace PPCAnalyst
 {
-struct CodeOp  // 16B
+
+struct CodeOp //16B
 {
 	UGeckoInstruction inst;
-	GekkoOPInfo* opinfo;
+	GekkoOPInfo * opinfo;
 	u32 address;
-	u32 branchTo;       // if 0, not a branch
-	int branchToIndex;  // index of target block
+	u32 branchTo; //if 0, not a branch
+	int branchToIndex; //index of target block
 	BitSet32 regsOut;
 	BitSet32 regsIn;
 	BitSet32 fregsIn;
@@ -52,11 +53,9 @@ struct CodeOp  // 16B
 	BitSet32 fprInXmm;
 	// whether an fpr is known to be an actual single-precision value at this point in the block.
 	BitSet32 fprIsSingle;
-	// whether an fpr is known to have identical top and bottom halves (e.g. due to a single
-	// instruction)
+	// whether an fpr is known to have identical top and bottom halves (e.g. due to a single instruction)
 	BitSet32 fprIsDuplicated;
-	// whether an fpr is the output of a single-precision arithmetic instruction, i.e. whether we can
-	// safely
+	// whether an fpr is the output of a single-precision arithmetic instruction, i.e. whether we can safely
 	// skip PPC_FP.
 	BitSet32 fprIsStoreSafe;
 };
@@ -80,13 +79,22 @@ struct BlockRegStats
 	bool any;
 	bool anyTimer;
 
-	int GetTotalNumAccesses(int reg) const { return numReads[reg] + numWrites[reg]; }
-	int GetUseRange(int reg) const
+	int GetTotalNumAccesses(int reg) const
 	{
-		return std::max(lastRead[reg], lastWrite[reg]) - std::min(firstRead[reg], firstWrite[reg]);
+		return numReads[reg] + numWrites[reg];
 	}
 
-	bool IsUsed(int reg) const { return (numReads[reg] + numWrites[reg]) > 0; }
+	int GetUseRange(int reg) const
+	{
+		return std::max(lastRead[reg], lastWrite[reg]) -
+			std::min(firstRead[reg], firstWrite[reg]);
+	}
+
+	bool IsUsed(int reg) const
+	{
+		return (numReads[reg] + numWrites[reg]) > 0;
+	}
+
 	void SetInputRegister(int reg, short opindex)
 	{
 		if (firstRead[reg] == -1)
@@ -115,6 +123,7 @@ struct BlockRegStats
 	}
 };
 
+
 class CodeBuffer
 {
 public:
@@ -122,7 +131,8 @@ public:
 	~CodeBuffer();
 
 	int GetSize() const { return size_; }
-	PPCAnalyst::CodeOp* codebuffer;
+
+	PPCAnalyst::CodeOp *codebuffer;
 
 private:
 	int size_;
@@ -138,7 +148,7 @@ struct CodeBlock
 	u32 m_num_instructions;
 
 	// Some basic statistics about the block.
-	BlockStats* m_stats;
+	BlockStats *m_stats;
 
 	// Register statistics about the block.
 	BlockRegStats *m_gpa, *m_fpa;
@@ -159,6 +169,7 @@ struct CodeBlock
 class PPCAnalyzer
 {
 private:
+
 	enum ReorderType
 	{
 		REORDER_CARRY,
@@ -167,13 +178,13 @@ private:
 	};
 
 	void ReorderInstructionsCore(u32 instructions, CodeOp* code, bool reverse, ReorderType type);
-	void ReorderInstructions(u32 instructions, CodeOp* code);
-	void SetInstructionStats(CodeBlock* block, CodeOp* code, GekkoOPInfo* opinfo, u32 index);
+	void ReorderInstructions(u32 instructions, CodeOp *code);
+	void SetInstructionStats(CodeBlock *block, CodeOp *code, GekkoOPInfo *opinfo, u32 index);
 
 	// Options
 	u32 m_options;
-
 public:
+
 	enum AnalystOption
 	{
 		// Conditional branch continuing
@@ -212,16 +223,19 @@ public:
 		OPTION_CROR_MERGE = (1 << 6),
 	};
 
+
 	PPCAnalyzer() : m_options(0) {}
+
 	// Option setting/getting
 	void SetOption(AnalystOption option) { m_options |= option; }
 	void ClearOption(AnalystOption option) { m_options &= ~(option); }
 	bool HasOption(AnalystOption option) const { return !!(m_options & option); }
-	u32 Analyze(u32 address, CodeBlock* block, CodeBuffer* buffer, u32 blockSize);
+
+	u32 Analyze(u32 address, CodeBlock *block, CodeBuffer *buffer, u32 blockSize);
 };
 
 void LogFunctionCall(u32 addr);
-void FindFunctions(u32 startAddr, u32 endAddr, PPCSymbolDB* func_db);
-bool AnalyzeFunction(u32 startAddr, Symbol& func, int max_size = 0);
+void FindFunctions(u32 startAddr, u32 endAddr, PPCSymbolDB *func_db);
+bool AnalyzeFunction(u32 startAddr, Symbol &func, int max_size = 0);
 
 }  // namespace

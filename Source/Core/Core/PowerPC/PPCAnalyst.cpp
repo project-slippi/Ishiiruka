@@ -9,12 +9,12 @@
 #include "Common/CommonTypes.h"
 #include "Common/StringUtil.h"
 #include "Core/ConfigManager.h"
-#include "Core/PowerPC/JitCommon/JitCache.h"
+#include "Core/PowerPC/PowerPC.h"
 #include "Core/PowerPC/PPCAnalyst.h"
 #include "Core/PowerPC/PPCSymbolDB.h"
 #include "Core/PowerPC/PPCTables.h"
-#include "Core/PowerPC/PowerPC.h"
 #include "Core/PowerPC/SignatureDB.h"
+#include "Core/PowerPC/JitCommon/JitCache.h"
 
 // Analyzes PowerPC code in memory to find functions
 // After running, for each function we will know what functions it calls
@@ -24,8 +24,7 @@
 // The results of this analysis is displayed in the code browsing sections at the bottom left
 // of the disassembly window (debugger).
 
-// It is also useful for finding function boundaries so that we can find, fingerprint and detect
-// library functions.
+// It is also useful for finding function boundaries so that we can find, fingerprint and detect library functions.
 // We don't do this much currently. Only for the special case Super Monkey Ball.
 
 namespace PPCAnalyst
@@ -51,7 +50,7 @@ static u32 EvaluateBranchTarget(UGeckoInstruction instr, u32 pc)
 {
 	switch (instr.OPCD)
 	{
-	case 18:  // branch instruction
+	case 18://branch instruction
 	{
 		u32 target = SignExt26(instr.LI << 2);
 		if (!instr.AA)
@@ -64,14 +63,14 @@ static u32 EvaluateBranchTarget(UGeckoInstruction instr, u32 pc)
 	}
 }
 
-// To find the size of each found function, scan
-// forward until we hit blr. In the meantime, collect information
-// about which functions this function calls.
-// Also collect which internal branch goes the farthest
-// If any one goes farther than the blr, assume that there is more than
-// one blr, and keep scanning.
+//To find the size of each found function, scan
+//forward until we hit blr. In the meantime, collect information
+//about which functions this function calls.
+//Also collect which internal branch goes the farthest
+//If any one goes farther than the blr, assume that there is more than
+//one blr, and keep scanning.
 
-bool AnalyzeFunction(u32 startAddr, Symbol& func, int max_size)
+bool AnalyzeFunction(u32 startAddr, Symbol &func, int max_size)
 {
 	if (!func.name.size())
 		func.name = StringFromFormat("zz_%07x_", startAddr & 0x0FFFFFF);
@@ -89,7 +88,7 @@ bool AnalyzeFunction(u32 startAddr, Symbol& func, int max_size)
 	while (true)
 	{
 		func.size += 4;
-		if (func.size >= CODEBUFFER_SIZE * 4)  // weird
+		if (func.size >= CODEBUFFER_SIZE * 4) //weird
 			return false;
 
 		UGeckoInstruction instr = (UGeckoInstruction)PowerPC::HostRead_U32(addr);
@@ -104,18 +103,18 @@ bool AnalyzeFunction(u32 startAddr, Symbol& func, int max_size)
 		}
 		if (PPCTables::IsValidInstruction(instr))
 		{
-			if (instr.hex == 0x4e800020)  // 4e800021 is blrl, not the end of a function
+			if (instr.hex == 0x4e800020) //4e800021 is blrl, not the end of a function
 			{
-				// BLR
+				//BLR
 				if (farthestInternalBranchTarget > addr)
 				{
-					// bah, not this one, continue..
+					//bah, not this one, continue..
 				}
 				else
 				{
-					// a final blr!
-					// We're done! Looks like we have a neat valid function. Perfect.
-					// Let's calc the checksum and get outta here
+					//a final blr!
+					//We're done! Looks like we have a neat valid function. Perfect.
+					//Let's calc the checksum and get outta here
 					func.address = startAddr;
 					func.analyzed = 1;
 					func.hash = SignatureDB::ComputeCodeChecksum(startAddr, addr);
@@ -170,7 +169,7 @@ bool AnalyzeFunction(u32 startAddr, Symbol& func, int max_size)
 					u32 target = EvaluateBranchTarget(instr, addr);
 					if (target != INVALID_TARGET && instr.LK)
 					{
-						// we found a branch-n-link!
+						//we found a branch-n-link!
 						func.calls.emplace_back(target, addr);
 						func.flags &= ~FFLAG_LEAF;
 					}
@@ -185,16 +184,17 @@ bool AnalyzeFunction(u32 startAddr, Symbol& func, int max_size)
 	}
 }
 
+
 // Second pass analysis, done after the first pass is done for all functions
 // so we have more information to work with
-static void AnalyzeFunction2(Symbol* func)
+static void AnalyzeFunction2(Symbol *func)
 {
 	u32 flags = func->flags;
 
 	bool nonleafcall = false;
 	for (const SCall& c : func->calls)
 	{
-		Symbol* called_func = g_symbolDB.GetSymbolFromAddr(c.function);
+		Symbol *called_func = g_symbolDB.GetSymbolFromAddr(c.function);
 		if (called_func && (called_func->flags & FFLAG_LEAF) == 0)
 		{
 			nonleafcall = true;
@@ -208,17 +208,16 @@ static void AnalyzeFunction2(Symbol* func)
 	func->flags = flags;
 }
 
-static bool CanSwapAdjacentOps(const CodeOp& a, const CodeOp& b)
+static bool CanSwapAdjacentOps(const CodeOp &a, const CodeOp &b)
 {
-	const GekkoOPInfo* a_info = a.opinfo;
-	const GekkoOPInfo* b_info = b.opinfo;
+	const GekkoOPInfo *a_info = a.opinfo;
+	const GekkoOPInfo *b_info = b.opinfo;
 	int a_flags = a_info->flags;
 	int b_flags = b_info->flags;
 
 	// can't reorder around breakpoints
 	if (SConfig::GetInstance().bEnableDebugging &&
-		(PowerPC::breakpoints.IsAddressBreakPoint(a.address) ||
-			PowerPC::breakpoints.IsAddressBreakPoint(b.address)))
+		(PowerPC::breakpoints.IsAddressBreakPoint(a.address) || PowerPC::breakpoints.IsAddressBreakPoint(b.address)))
 		return false;
 	if (b_flags & (FL_SET_CRx | FL_ENDBLOCK | FL_TIMER | FL_EVIL | FL_SET_OE))
 		return false;
@@ -231,10 +230,10 @@ static bool CanSwapAdjacentOps(const CodeOp& a, const CodeOp& b)
 	{
 	case 16:
 	case 18:
-		// branches. Do not swap.
-	case 17:  // sc
-	case 46:  // lmw
-	case 19:  // table19 - lots of tricky stuff
+		//branches. Do not swap.
+	case 17: //sc
+	case 46: //lmw
+	case 19: //table19 - lots of tricky stuff
 		return false;
 	}
 
@@ -271,7 +270,7 @@ static bool CanSwapAdjacentOps(const CodeOp& a, const CodeOp& b)
 // called by another function. Therefore, let's scan the
 // entire space for bl operations and find what functions
 // get called.
-static void FindFunctionsFromBranches(u32 startAddr, u32 endAddr, SymbolDB* func_db)
+static void FindFunctionsFromBranches(u32 startAddr, u32 endAddr, SymbolDB *func_db)
 {
 	for (u32 addr = startAddr; addr < endAddr; addr += 4)
 	{
@@ -281,9 +280,9 @@ static void FindFunctionsFromBranches(u32 startAddr, u32 endAddr, SymbolDB* func
 		{
 			switch (instr.OPCD)
 			{
-			case 18:  // branch instruction
+			case 18://branch instruction
 			{
-				if (instr.LK)  // bl
+				if (instr.LK) //bl
 				{
 					u32 target = SignExt26(instr.LI << 2);
 					if (!instr.AA)
@@ -302,7 +301,7 @@ static void FindFunctionsFromBranches(u32 startAddr, u32 endAddr, SymbolDB* func
 	}
 }
 
-static void FindFunctionsAfterBLR(PPCSymbolDB* func_db)
+static void FindFunctionsAfterBLR(PPCSymbolDB *func_db)
 {
 	std::vector<u32> funcAddrs;
 
@@ -313,14 +312,13 @@ static void FindFunctionsAfterBLR(PPCSymbolDB* func_db)
 	{
 		while (true)
 		{
-			// skip zeroes that sometimes pad function to 16 byte boundary (e.g. Donkey Kong Country
-			// Returns)
+			// skip zeroes that sometimes pad function to 16 byte boundary (e.g. Donkey Kong Country Returns)
 			while (PowerPC::HostRead_Instruction(location) == 0 && ((location & 0xf) != 0))
 				location += 4;
 			if (PPCTables::IsValidInstruction(PowerPC::HostRead_Instruction(location)))
 			{
-				// check if this function is already mapped
-				Symbol* f = func_db->AddFunction(location);
+				//check if this function is already mapped
+				Symbol *f = func_db->AddFunction(location);
 				if (!f)
 					break;
 				else
@@ -332,13 +330,13 @@ static void FindFunctionsAfterBLR(PPCSymbolDB* func_db)
 	}
 }
 
-void FindFunctions(u32 startAddr, u32 endAddr, PPCSymbolDB* func_db)
+void FindFunctions(u32 startAddr, u32 endAddr, PPCSymbolDB *func_db)
 {
-	// Step 1: Find all functions
+	//Step 1: Find all functions
 	FindFunctionsFromBranches(startAddr, endAddr, func_db);
 	FindFunctionsAfterBLR(func_db);
 
-	// Step 2:
+	//Step 2:
 	func_db->FillInCallers();
 
 	int numLeafs = 0, numNice = 0, numUnNice = 0;
@@ -352,7 +350,7 @@ void FindFunctions(u32 startAddr, u32 endAddr, PPCSymbolDB* func_db)
 			continue;
 		}
 		AnalyzeFunction2(&(func.second));
-		Symbol& f = func.second;
+		Symbol &f = func.second;
 		if (f.name.substr(0, 3) == "zzz")
 		{
 			if (f.flags & FFLAG_LEAF)
@@ -399,21 +397,20 @@ void FindFunctions(u32 startAddr, u32 endAddr, PPCSymbolDB* func_db)
 		unniceSize /= numUnNice;
 
 	INFO_LOG(OSHLE, "Functions analyzed. %i leafs, %i nice, %i unnice."
-		"%i timer, %i rfi. %i are branchless leafs.",
-		numLeafs, numNice, numUnNice, numTimer, numRFI, numStraightLeaf);
-	INFO_LOG(OSHLE, "Average size: %i (leaf), %i (nice), %i(unnice)", leafSize, niceSize, unniceSize);
+		"%i timer, %i rfi. %i are branchless leafs.", numLeafs,
+		numNice, numUnNice, numTimer, numRFI, numStraightLeaf);
+	INFO_LOG(OSHLE, "Average size: %i (leaf), %i (nice), %i(unnice)",
+		leafSize, niceSize, unniceSize);
 }
 
 static bool isCmp(const CodeOp& a)
 {
-	return (a.inst.OPCD == 10 || a.inst.OPCD == 11) ||
-		(a.inst.OPCD == 31 && (a.inst.SUBOP10 == 0 || a.inst.SUBOP10 == 32));
+	return (a.inst.OPCD == 10 || a.inst.OPCD == 11) || (a.inst.OPCD == 31 && (a.inst.SUBOP10 == 0 || a.inst.SUBOP10 == 32));
 }
 
 static bool isCarryOp(const CodeOp& a)
 {
-	return (a.opinfo->flags & FL_SET_CA) && !(a.opinfo->flags & FL_SET_OE) &&
-		a.opinfo->type == OPTYPE_INTEGER;
+	return (a.opinfo->flags & FL_SET_CA) && !(a.opinfo->flags & FL_SET_OE) && a.opinfo->type == OPTYPE_INTEGER;
 }
 
 static bool isCror(const CodeOp& a)
@@ -421,16 +418,14 @@ static bool isCror(const CodeOp& a)
 	return a.inst.OPCD == 19 && a.inst.SUBOP10 == 449;
 }
 
-void PPCAnalyzer::ReorderInstructionsCore(u32 instructions, CodeOp* code, bool reverse,
-	ReorderType type)
+void PPCAnalyzer::ReorderInstructionsCore(u32 instructions, CodeOp* code, bool reverse, ReorderType type)
 {
 	// Bubbling an instruction sometimes reveals another opportunity to bubble an instruction, so do
 	// multiple passes.
 	while (true)
 	{
 		// Instruction Reordering Pass
-		// Carry pass: bubble carry-using instructions as close to each other as possible, so we can
-		// avoid
+		// Carry pass: bubble carry-using instructions as close to each other as possible, so we can avoid
 		// storing the carry flag.
 		// Compare pass: bubble compare instructions next to branches, so they can be merged.
 		bool swapped = false;
@@ -439,23 +434,20 @@ void PPCAnalyzer::ReorderInstructionsCore(u32 instructions, CodeOp* code, bool r
 		int end = reverse ? 0 : instructions - 1;
 		for (int i = start; i != end; i += increment)
 		{
-			CodeOp& a = code[i];
-			CodeOp& b = code[i + increment];
+			CodeOp &a = code[i];
+			CodeOp &b = code[i + increment];
 			// Reorder integer compares, rlwinm., and carry-affecting ops
 			// (if we add more merged branch instructions, add them here!)
-			if ((type == REORDER_CROR && isCror(a)) || (type == REORDER_CARRY && isCarryOp(a)) ||
-				(type == REORDER_CMP && (isCmp(a) || a.outputCR0)))
+			if ((type == REORDER_CROR && isCror(a)) || (type == REORDER_CARRY && isCarryOp(a)) || (type == REORDER_CMP && (isCmp(a) || a.outputCR0)))
 			{
 				// once we're next to a carry instruction, don't move away!
 				if (type == REORDER_CARRY && i != start)
 				{
 					// if we read the CA flag, and the previous instruction sets it, don't move away.
-					if (!reverse && (a.opinfo->flags & FL_READ_CA) &&
-						(code[i - increment].opinfo->flags & FL_SET_CA))
+					if (!reverse && (a.opinfo->flags & FL_READ_CA) && (code[i - increment].opinfo->flags & FL_SET_CA))
 						continue;
 					// if we set the CA flag, and the next instruction reads it, don't move away.
-					if (reverse && (a.opinfo->flags & FL_SET_CA) &&
-						(code[i - increment].opinfo->flags & FL_READ_CA))
+					if (reverse && (a.opinfo->flags & FL_SET_CA) && (code[i - increment].opinfo->flags & FL_READ_CA))
 						continue;
 				}
 
@@ -472,7 +464,7 @@ void PPCAnalyzer::ReorderInstructionsCore(u32 instructions, CodeOp* code, bool r
 	}
 }
 
-void PPCAnalyzer::ReorderInstructions(u32 instructions, CodeOp* code)
+void PPCAnalyzer::ReorderInstructions(u32 instructions, CodeOp *code)
 {
 	// Reorder cror instructions upwards (e.g. towards an fcmp). Technically we should be more
 	// picky about this, but cror seems to almost solely be used for this purpose in real code.
@@ -490,8 +482,7 @@ void PPCAnalyzer::ReorderInstructions(u32 instructions, CodeOp* code)
 		ReorderInstructionsCore(instructions, code, false, REORDER_CMP);
 }
 
-void PPCAnalyzer::SetInstructionStats(CodeBlock* block, CodeOp* code, GekkoOPInfo* opinfo,
-	u32 index)
+void PPCAnalyzer::SetInstructionStats(CodeBlock *block, CodeOp *code, GekkoOPInfo *opinfo, u32 index)
 {
 	code->wantsCR0 = false;
 	code->wantsCR1 = false;
@@ -504,7 +495,7 @@ void PPCAnalyzer::SetInstructionStats(CodeBlock* block, CodeOp* code, GekkoOPInf
 
 	// Does the instruction output CR0?
 	if (opinfo->flags & FL_RC_BIT)
-		code->outputCR0 = code->inst.hex & 1;  // todo fix
+		code->outputCR0 = code->inst.hex & 1; //todo fix
 	else if ((opinfo->flags & FL_SET_CRn) && code->inst.CRFD == 0)
 		code->outputCR0 = true;
 	else
@@ -512,7 +503,7 @@ void PPCAnalyzer::SetInstructionStats(CodeBlock* block, CodeOp* code, GekkoOPInf
 
 	// Does the instruction output CR1?
 	if (opinfo->flags & FL_RC_BIT_F)
-		code->outputCR1 = code->inst.hex & 1;  // todo fix
+		code->outputCR1 = code->inst.hex & 1; //todo fix
 	else if ((opinfo->flags & FL_SET_CRn) && code->inst.CRFD == 1)
 		code->outputCR1 = true;
 	else
@@ -525,8 +516,7 @@ void PPCAnalyzer::SetInstructionStats(CodeBlock* block, CodeOp* code, GekkoOPInf
 	code->wantsCA = (opinfo->flags & FL_READ_CA) ? true : false;
 	code->outputCA = (opinfo->flags & FL_SET_CA) ? true : false;
 
-	// We're going to try to avoid storing carry in XER if we can avoid it -- keep it in the x86 carry
-	// flag!
+	// We're going to try to avoid storing carry in XER if we can avoid it -- keep it in the x86 carry flag!
 	// If the instruction reads CA but doesn't write it, we still need to store CA in XER; we can't
 	// leave it in flags.
 	if (HasOption(OPTION_CARRY_MERGE))
@@ -536,9 +526,9 @@ void PPCAnalyzer::SetInstructionStats(CodeBlock* block, CodeOp* code, GekkoOPInf
 
 	// mfspr/mtspr can affect/use XER, so be super careful here
 	// we need to note specifically that mfspr needs CA in XER, not in the x86 carry flag
-	if (code->inst.OPCD == 31 && code->inst.SUBOP10 == 339)  // mfspr
+	if (code->inst.OPCD == 31 && code->inst.SUBOP10 == 339) // mfspr
 		code->wantsCA = ((code->inst.SPRU << 5) | (code->inst.SPRL & 0x1F)) == SPR_XER;
-	if (code->inst.OPCD == 31 && code->inst.SUBOP10 == 467)  // mtspr
+	if (code->inst.OPCD == 31 && code->inst.SUBOP10 == 467) // mtspr
 		code->outputCA = ((code->inst.SPRU << 5) | (code->inst.SPRL & 0x1F)) == SPR_XER;
 
 	code->regsIn = BitSet32(0);
@@ -573,7 +563,7 @@ void PPCAnalyzer::SetInstructionStats(CodeBlock* block, CodeOp* code, GekkoOPInf
 		code->regsIn[code->inst.RS] = true;
 		block->m_gpa->SetInputRegister(code->inst.RS, index);
 	}
-	if (code->inst.OPCD == 46)  // lmw
+	if (code->inst.OPCD == 46) // lmw
 	{
 		for (int iReg = code->inst.RD; iReg < 32; ++iReg)
 		{
@@ -581,7 +571,7 @@ void PPCAnalyzer::SetInstructionStats(CodeBlock* block, CodeOp* code, GekkoOPInf
 			block->m_gpa->SetOutputRegister(iReg, index);
 		}
 	}
-	else if (code->inst.OPCD == 47)  // stmw
+	else if (code->inst.OPCD == 47) //stmw
 	{
 		for (int iReg = code->inst.RS; iReg < 32; ++iReg)
 		{
@@ -631,7 +621,7 @@ void PPCAnalyzer::SetInstructionStats(CodeBlock* block, CodeOp* code, GekkoOPInf
 	}
 }
 
-u32 PPCAnalyzer::Analyze(u32 address, CodeBlock* block, CodeBuffer* buffer, u32 blockSize)
+u32 PPCAnalyzer::Analyze(u32 address, CodeBlock *block, CodeBuffer *buffer, u32 blockSize)
 {
 	// Clear block stats
 	memset(block->m_stats, 0, sizeof(BlockStats));
@@ -652,7 +642,7 @@ u32 PPCAnalyzer::Analyze(u32 address, CodeBlock* block, CodeBuffer* buffer, u32 
 	block->m_num_instructions = 0;
 	block->m_gqr_used = BitSet8(0);
 
-	CodeOp* code = buffer->codebuffer;
+	CodeOp *code = buffer->codebuffer;
 
 	bool found_exit = false;
 	u32 return_address = 0;
@@ -683,7 +673,7 @@ u32 PPCAnalyzer::Analyze(u32 address, CodeBlock* block, CodeBuffer* buffer, u32 
 
 		num_inst++;
 		memset(&code[i], 0, sizeof(CodeOp));
-		GekkoOPInfo* opinfo = GetOpInfo(inst);
+		GekkoOPInfo *opinfo = GetOpInfo(inst);
 
 		code[i].opinfo = opinfo;
 		code[i].address = address;
@@ -705,7 +695,7 @@ u32 PPCAnalyzer::Analyze(u32 address, CodeBlock* block, CodeBuffer* buffer, u32 
 		{
 			if (inst.OPCD == 18 && blockSize > 1)
 			{
-				// Is bx - should we inline? yes!
+				//Is bx - should we inline? yes!
 				if (inst.AA)
 					destination = SignExt26(inst.LI << 2);
 				else
@@ -713,8 +703,9 @@ u32 PPCAnalyzer::Analyze(u32 address, CodeBlock* block, CodeBuffer* buffer, u32 
 				if (destination != block->m_address)
 					follow = true;
 			}
-			else if (inst.OPCD == 19 && inst.SUBOP10 == 16 && (inst.BO & (1 << 4)) &&
-				(inst.BO & (1 << 2)) && return_address != 0)
+			else if (inst.OPCD == 19 && inst.SUBOP10 == 16 &&
+				(inst.BO & (1 << 4)) && (inst.BO & (1 << 2)) &&
+				return_address != 0)
 			{
 				// bclrx with unconditional branch = return
 				follow = true;
@@ -754,18 +745,20 @@ u32 PPCAnalyzer::Analyze(u32 address, CodeBlock* block, CodeBuffer* buffer, u32 
 				// bcx with conditional branch
 				conditional_continue = true;
 			}
-			else if (inst.OPCD == 19 && inst.SUBOP10 == 16 && ((inst.BO & BO_DONT_DECREMENT_FLAG) == 0 ||
-				(inst.BO & BO_DONT_CHECK_CONDITION) == 0))
+			else if (inst.OPCD == 19 && inst.SUBOP10 == 16 &&
+				((inst.BO & BO_DONT_DECREMENT_FLAG) == 0 || (inst.BO & BO_DONT_CHECK_CONDITION) == 0))
 			{
 				// bclrx with conditional branch
 				conditional_continue = true;
 			}
-			else if (inst.OPCD == 3 || (inst.OPCD == 31 && inst.SUBOP10 == 4))
+			else if (inst.OPCD == 3 ||
+				(inst.OPCD == 31 && inst.SUBOP10 == 4))
 			{
 				// tw/twi tests and raises an exception
 				conditional_continue = true;
 			}
-			else if (inst.OPCD == 19 && inst.SUBOP10 == 528 && (inst.BO_2 & BO_DONT_CHECK_CONDITION) == 0)
+			else if (inst.OPCD == 19 && inst.SUBOP10 == 528 &&
+				(inst.BO_2 & BO_DONT_CHECK_CONDITION) == 0)
 			{
 				// Rare bcctrx with conditional branch
 				// Seen in NES games
@@ -776,7 +769,7 @@ u32 PPCAnalyzer::Analyze(u32 address, CodeBlock* block, CodeBuffer* buffer, u32 
 		if (!follow)
 		{
 			address += 4;
-			if (!conditional_continue && opinfo->flags & FL_ENDBLOCK)  // right now we stop early
+			if (!conditional_continue && opinfo->flags & FL_ENDBLOCK) //right now we stop early
 			{
 				found_exit = true;
 				break;
@@ -896,7 +889,7 @@ u32 PPCAnalyzer::Analyze(u32 address, CodeBlock* block, CodeBuffer* buffer, u32 
 			gqrUsed[gqr] = true;
 		}
 
-		if (code[i].inst.OPCD == 31 && code[i].inst.SUBOP10 == 467)  // mtspr
+		if (code[i].inst.OPCD == 31 && code[i].inst.SUBOP10 == 467) // mtspr
 		{
 			int gqr = ((code[i].inst.SPRU << 5) | code[i].inst.SPRL) - SPR_GQR0;
 			if (gqr >= 0 && gqr <= 7)
@@ -907,5 +900,6 @@ u32 PPCAnalyzer::Analyze(u32 address, CodeBlock* block, CodeBuffer* buffer, u32 
 	block->m_gqr_modified = gqrModified;
 	return address;
 }
+
 
 }  // namespace

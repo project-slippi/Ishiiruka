@@ -2,12 +2,12 @@
 // Licensed under GPLv2+
 // Refer to the license.txt file included.
 
-#include "Core/PowerPC/Jit64/Jit.h"
-#include "Common/CPUDetect.h"
 #include "Common/CommonTypes.h"
+#include "Common/CPUDetect.h"
 #include "Common/MsgHandler.h"
 #include "Common/x64Emitter.h"
 #include "Core/ConfigManager.h"
+#include "Core/PowerPC/Jit64/Jit.h"
 #include "Core/PowerPC/Jit64/JitRegCache.h"
 
 using namespace Gen;
@@ -41,14 +41,14 @@ void Jit64::ps_sum(UGeckoInstruction inst)
 	OpArg op_a = fpr.R(a);
 	fpr.BindToRegister(d, d == b || d == c);
 	X64Reg tmp = XMM1;
-	MOVDDUP(tmp, op_a);    // {a.ps0, a.ps0}
-	ADDPD(tmp, fpr.R(b));  // {a.ps0 + b.ps0, a.ps0 + b.ps1}
+	MOVDDUP(tmp, op_a);   // {a.ps0, a.ps0}
+	ADDPD(tmp, fpr.R(b)); // {a.ps0 + b.ps0, a.ps0 + b.ps1}
 	switch (inst.SUBOP5)
 	{
-	case 10:  // ps_sum0: {a.ps0 + b.ps1, c.ps1}
+	case 10: // ps_sum0: {a.ps0 + b.ps1, c.ps1}
 		UNPCKHPD(tmp, fpr.R(c));
 		break;
-	case 11:  // ps_sum1: {c.ps0, a.ps0 + b.ps1}
+	case 11: // ps_sum1: {c.ps0, a.ps0 + b.ps1}
 		if (fpr.R(c).IsSimpleReg())
 		{
 			if (cpu_info.bSSE4_1)
@@ -76,6 +76,7 @@ void Jit64::ps_sum(UGeckoInstruction inst)
 	fpr.UnlockAll();
 }
 
+
 void Jit64::ps_muls(UGeckoInstruction inst)
 {
 	INSTRUCTION_START
@@ -89,10 +90,10 @@ void Jit64::ps_muls(UGeckoInstruction inst)
 	fpr.Lock(a, c, d);
 	switch (inst.SUBOP5)
 	{
-	case 12:  // ps_muls0
+	case 12: // ps_muls0
 		MOVDDUP(XMM1, fpr.R(c));
 		break;
-	case 13:  // ps_muls1
+	case 13: // ps_muls1
 		avx_op(&XEmitter::VSHUFPD, &XEmitter::SHUFPD, XMM1, fpr.R(c), fpr.R(c), 3);
 		break;
 	default:
@@ -107,6 +108,7 @@ void Jit64::ps_muls(UGeckoInstruction inst)
 	SetFPRFIfNeeded(fpr.RX(d));
 	fpr.UnlockAll();
 }
+
 
 void Jit64::ps_mergeXX(UGeckoInstruction inst)
 {
@@ -124,16 +126,16 @@ void Jit64::ps_mergeXX(UGeckoInstruction inst)
 	{
 	case 528:
 		avx_op(&XEmitter::VUNPCKLPD, &XEmitter::UNPCKLPD, fpr.RX(d), fpr.R(a), fpr.R(b));
-		break;  // 00
+		break; //00
 	case 560:
 		avx_op(&XEmitter::VSHUFPD, &XEmitter::SHUFPD, fpr.RX(d), fpr.R(a), fpr.R(b), 2);
-		break;  // 01
+		break; //01
 	case 592:
 		avx_op(&XEmitter::VSHUFPD, &XEmitter::SHUFPD, fpr.RX(d), fpr.R(a), fpr.R(b), 1);
-		break;  // 10
+		break; //10
 	case 624:
 		avx_op(&XEmitter::VUNPCKHPD, &XEmitter::UNPCKHPD, fpr.RX(d), fpr.R(a), fpr.R(b));
-		break;  // 11
+		break; //11
 	default:
 		_assert_msg_(DYNA_REC, 0, "ps_merge - invalid op");
 	}

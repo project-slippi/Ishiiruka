@@ -8,6 +8,7 @@
 
 namespace PowerPC
 {
+
 const u32 ICACHE_SETS = 128;
 const u32 ICACHE_WAYS = 8;
 // size of an instruction cache block in words
@@ -36,4 +37,5 @@ struct InstructionCache
 	void Init();
 	void Reset();
 };
+
 }

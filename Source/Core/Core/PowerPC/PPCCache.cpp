@@ -7,8 +7,8 @@
 #include "Common/CommonFuncs.h"
 #include "Core/HW/Memmap.h"
 #include "Core/PowerPC/JitInterface.h"
-#include "Core/PowerPC/PPCCache.h"
 #include "Core/PowerPC/PowerPC.h"
+#include "Core/PowerPC/PPCCache.h"
 
 namespace PowerPC
 {
@@ -37,19 +37,22 @@ InstructionCache::InstructionCache()
 					w = 7;
 				else
 					w = 6;
-			else if (b[5])
-				w = 5;
 			else
-				w = 4;
-		else if (b[1])
-			if (b[4])
-				w = 3;
-			else
-				w = 2;
-		else if (b[3])
-			w = 1;
+				if (b[5])
+					w = 5;
+				else
+					w = 4;
 		else
-			w = 0;
+			if (b[1])
+				if (b[4])
+					w = 3;
+				else
+					w = 2;
+			else
+				if (b[3])
+					w = 1;
+				else
+					w = 0;
 		way_from_plru[m] = w;
 	}
 }
@@ -94,7 +97,7 @@ void InstructionCache::Invalidate(u32 addr)
 
 u32 InstructionCache::ReadInstruction(u32 addr)
 {
-	if (!HID0.ICE)  // instruction cache is disabled
+	if (!HID0.ICE) // instruction cache is disabled
 		return Memory::Read_U32(addr);
 	u32 set = (addr >> 5) & 0x7f;
 	u32 tag = addr >> 12;
@@ -113,9 +116,9 @@ u32 InstructionCache::ReadInstruction(u32 addr)
 		t = lookup_table[(addr >> 5) & 0xfffff];
 	}
 
-	if (t == 0xff)  // load to the cache
+	if (t == 0xff) // load to the cache
 	{
-		if (HID0.ILOCK)  // instruction cache is locked
+		if (HID0.ILOCK) // instruction cache is locked
 			return Memory::Read_U32(addr);
 		// select a way
 		if (valid[set] != 0xff)
@@ -148,4 +151,5 @@ u32 InstructionCache::ReadInstruction(u32 addr)
 	u32 res = Common::swap32(data[set][t][(addr >> 2) & 7]);
 	return res;
 }
+
 }

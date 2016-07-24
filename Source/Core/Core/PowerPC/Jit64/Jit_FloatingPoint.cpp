@@ -6,15 +6,15 @@
 #include <vector>
 
 #include "Common/Assert.h"
-#include "Common/CPUDetect.h"
 #include "Common/CommonTypes.h"
+#include "Common/CPUDetect.h"
 #include "Common/x64Emitter.h"
 #include "Core/ConfigManager.h"
 #include "Core/Core.h"
+#include "Core/PowerPC/PowerPC.h"
+#include "Core/PowerPC/PPCAnalyst.h"
 #include "Core/PowerPC/Jit64/Jit.h"
 #include "Core/PowerPC/Jit64/JitRegCache.h"
-#include "Core/PowerPC/PPCAnalyst.h"
-#include "Core/PowerPC/PowerPC.h"
 
 using namespace Gen;
 
@@ -25,10 +25,8 @@ alignas(16) static const u64 psAbsMask2[2] = { 0x7FFFFFFFFFFFFFFFULL, 0x7FFFFFFF
 alignas(16) static const u64 psGeneratedQNaN[2] = { 0x7FF8000000000000ULL, 0x7FF8000000000000ULL };
 alignas(16) static const double half_qnan_and_s32_max[2] = { 0x7FFFFFFF, -0x80000 };
 
-X64Reg Jit64::fp_tri_op(int d, int a, int b, bool reversible, bool single,
-	void (XEmitter::*avxOp)(X64Reg, X64Reg, const OpArg&),
-	void (XEmitter::*sseOp)(X64Reg, const OpArg&), bool packed,
-	bool preserve_inputs, bool roundRHS)
+X64Reg Jit64::fp_tri_op(int d, int a, int b, bool reversible, bool single, void (XEmitter::*avxOp)(X64Reg, X64Reg, const OpArg&),
+	void (XEmitter::*sseOp)(X64Reg, const OpArg&), bool packed, bool preserve_inputs, bool roundRHS)
 {
 	fpr.Lock(d, a, b);
 	fpr.BindToRegister(d, d == a || d == b || !single);
@@ -185,13 +183,12 @@ void Jit64::fp_arith(UGeckoInstruction inst)
 	int arg2 = inst.SUBOP5 == 25 ? c : b;
 
 	bool single = inst.OPCD == 4 || inst.OPCD == 59;
-	// If both the inputs are known to have identical top and bottom halves, we can skip the MOVDDUP
-	// at the end by
+	// If both the inputs are known to have identical top and bottom halves, we can skip the MOVDDUP at the end by
 	// using packed arithmetic instead.
-	bool packed = inst.OPCD == 4 || (inst.OPCD == 59 && jit->js.op->fprIsDuplicated[a] &&
+	bool packed = inst.OPCD == 4 || (inst.OPCD == 59 &&
+		jit->js.op->fprIsDuplicated[a] &&
 		jit->js.op->fprIsDuplicated[arg2]);
-	// Packed divides are slower than scalar divides on basically all x86, so this optimization isn't
-	// worth it in that case.
+	// Packed divides are slower than scalar divides on basically all x86, so this optimization isn't worth it in that case.
 	// Atoms (and a few really old CPUs) are also slower on packed operations than scalar ones.
 	if (inst.OPCD == 59 && (inst.SUBOP5 == 18 || cpu_info.bAtom))
 		packed = false;
@@ -202,23 +199,14 @@ void Jit64::fp_arith(UGeckoInstruction inst)
 	X64Reg dest = INVALID_REG;
 	switch (inst.SUBOP5)
 	{
-	case 18:
-		dest = fp_tri_op(d, a, b, false, single, packed ? &XEmitter::VDIVPD : &XEmitter::VDIVSD,
-			packed ? &XEmitter::DIVPD : &XEmitter::DIVSD, packed, preserve_inputs);
-		break;
-	case 20:
-		dest = fp_tri_op(d, a, b, false, single, packed ? &XEmitter::VSUBPD : &XEmitter::VSUBSD,
-			packed ? &XEmitter::SUBPD : &XEmitter::SUBSD, packed, preserve_inputs);
-		break;
-	case 21:
-		dest = fp_tri_op(d, a, b, true, single, packed ? &XEmitter::VADDPD : &XEmitter::VADDSD,
-			packed ? &XEmitter::ADDPD : &XEmitter::ADDSD, packed, preserve_inputs);
-		break;
-	case 25:
-		dest = fp_tri_op(d, a, c, true, single, packed ? &XEmitter::VMULPD : &XEmitter::VMULSD,
-			packed ? &XEmitter::MULPD : &XEmitter::MULSD, packed, preserve_inputs,
-			round_input);
-		break;
+	case 18: dest = fp_tri_op(d, a, b, false, single, packed ? &XEmitter::VDIVPD : &XEmitter::VDIVSD,
+		packed ? &XEmitter::DIVPD : &XEmitter::DIVSD, packed, preserve_inputs); break;
+	case 20: dest = fp_tri_op(d, a, b, false, single, packed ? &XEmitter::VSUBPD : &XEmitter::VSUBSD,
+		packed ? &XEmitter::SUBPD : &XEmitter::SUBSD, packed, preserve_inputs); break;
+	case 21: dest = fp_tri_op(d, a, b, true, single, packed ? &XEmitter::VADDPD : &XEmitter::VADDSD,
+		packed ? &XEmitter::ADDPD : &XEmitter::ADDSD, packed, preserve_inputs); break;
+	case 25: dest = fp_tri_op(d, a, c, true, single, packed ? &XEmitter::VMULPD : &XEmitter::VMULSD,
+		packed ? &XEmitter::MULPD : &XEmitter::MULSD, packed, preserve_inputs, round_input); break;
 	default:
 		_assert_msg_(DYNA_REC, 0, "fp_arith WTF!!!");
 	}
@@ -241,9 +229,11 @@ void Jit64::fmaddXX(UGeckoInstruction inst)
 	int d = inst.FD;
 	bool single = inst.OPCD == 4 || inst.OPCD == 59;
 	bool round_input = single && !jit->js.op->fprIsSingle[c];
-	bool packed =
-		inst.OPCD == 4 || (!cpu_info.bAtom && single && jit->js.op->fprIsDuplicated[a] &&
-			jit->js.op->fprIsDuplicated[b] && jit->js.op->fprIsDuplicated[c]);
+	bool packed = inst.OPCD == 4 ||
+		(!cpu_info.bAtom && single &&
+			jit->js.op->fprIsDuplicated[a] &&
+			jit->js.op->fprIsDuplicated[b] &&
+			jit->js.op->fprIsDuplicated[c]);
 
 	fpr.Lock(a, b, c, d);
 
@@ -283,15 +273,15 @@ void Jit64::fmaddXX(UGeckoInstruction inst)
 		fpr.BindToRegister(b, true, false);
 		switch (inst.SUBOP5)
 		{
-		case 28:  // msub
+		case 28: //msub
 			if (packed)
 				VFMSUB132PD(XMM1, fpr.RX(b), fpr.R(a));
 			else
 				VFMSUB132SD(XMM1, fpr.RX(b), fpr.R(a));
 			break;
-		case 14:  // madds0
-		case 15:  // madds1
-		case 29:  // madd
+		case 14: //madds0
+		case 15: //madds1
+		case 29: //madd
 			if (packed)
 				VFMADD132PD(XMM1, fpr.RX(b), fpr.R(a));
 			else
@@ -301,13 +291,13 @@ void Jit64::fmaddXX(UGeckoInstruction inst)
 			// x86: D = -A*C (+/-) B
 			// PPC: D = -(A*C (+/-) B)
 			// so we have to swap them; the ADD/SUB here isn't a typo.
-		case 30:  // nmsub
+		case 30: //nmsub
 			if (packed)
 				VFNMADD132PD(XMM1, fpr.RX(b), fpr.R(a));
 			else
 				VFNMADD132SD(XMM1, fpr.RX(b), fpr.R(a));
 			break;
-		case 31:  // nmadd
+		case 31: //nmadd
 			if (packed)
 				VFNMSUB132PD(XMM1, fpr.RX(b), fpr.R(a));
 			else
@@ -315,10 +305,9 @@ void Jit64::fmaddXX(UGeckoInstruction inst)
 			break;
 		}
 	}
-	else if (inst.SUBOP5 == 30)  // nmsub
+	else if (inst.SUBOP5 == 30) //nmsub
 	{
-		// We implement nmsub a little differently ((b - a*c) instead of -(a*c - b)), so handle it
-		// separately.
+		// We implement nmsub a little differently ((b - a*c) instead of -(a*c - b)), so handle it separately.
 		MOVAPD(XMM1, fpr.R(b));
 		if (packed)
 		{
@@ -336,9 +325,9 @@ void Jit64::fmaddXX(UGeckoInstruction inst)
 		if (packed)
 		{
 			MULPD(XMM1, fpr.R(a));
-			if (inst.SUBOP5 == 28)  // msub
+			if (inst.SUBOP5 == 28) //msub
 				SUBPD(XMM1, fpr.R(b));
-			else  //(n)madd(s[01])
+			else                   //(n)madd(s[01])
 				ADDPD(XMM1, fpr.R(b));
 		}
 		else
@@ -349,7 +338,7 @@ void Jit64::fmaddXX(UGeckoInstruction inst)
 			else
 				ADDSD(XMM1, fpr.R(b));
 		}
-		if (inst.SUBOP5 == 31)  // nmadd
+		if (inst.SUBOP5 == 31) //nmadd
 			PXOR(XMM1, M(packed ? psSignBits2 : psSignBits));
 	}
 	fpr.BindToRegister(d, !single);
@@ -383,17 +372,14 @@ void Jit64::fsign(UGeckoInstruction inst)
 
 	switch (inst.SUBOP10)
 	{
-	case 40:  // neg
-		avx_op(&XEmitter::VPXOR, &XEmitter::PXOR, fpr.RX(d), src, M(packed ? psSignBits2 : psSignBits),
-			packed);
+	case 40: // neg
+		avx_op(&XEmitter::VPXOR, &XEmitter::PXOR, fpr.RX(d), src, M(packed ? psSignBits2 : psSignBits), packed);
 		break;
-	case 136:  // nabs
-		avx_op(&XEmitter::VPOR, &XEmitter::POR, fpr.RX(d), src, M(packed ? psSignBits2 : psSignBits),
-			packed);
+	case 136: // nabs
+		avx_op(&XEmitter::VPOR, &XEmitter::POR, fpr.RX(d), src, M(packed ? psSignBits2 : psSignBits), packed);
 		break;
-	case 264:  // abs
-		avx_op(&XEmitter::VPAND, &XEmitter::PAND, fpr.RX(d), src, M(packed ? psAbsMask2 : psAbsMask),
-			packed);
+	case 264: // abs
+		avx_op(&XEmitter::VPAND, &XEmitter::PAND, fpr.RX(d), src, M(packed ? psAbsMask2 : psAbsMask), packed);
 		break;
 	default:
 		PanicAlert("fsign bleh");
@@ -413,7 +399,7 @@ void Jit64::fselx(UGeckoInstruction inst)
 	int b = inst.FB;
 	int c = inst.FC;
 
-	bool packed = inst.OPCD == 4;  // ps_sel
+	bool packed = inst.OPCD == 4; // ps_sel
 
 	fpr.Lock(a, b, c, d);
 	PXOR(XMM0, R(XMM0));
@@ -483,7 +469,7 @@ void Jit64::fmrx(UGeckoInstruction inst)
 void Jit64::FloatCompare(UGeckoInstruction inst, bool upper)
 {
 	bool fprf = SConfig::GetInstance().bFPRF && js.op->wantsFPRF;
-	// bool ordered = !!(inst.SUBOP10 & 32);
+	//bool ordered = !!(inst.SUBOP10 & 32);
 	int a = inst.FA;
 	int b = inst.FB;
 	int crf = inst.CRFD;

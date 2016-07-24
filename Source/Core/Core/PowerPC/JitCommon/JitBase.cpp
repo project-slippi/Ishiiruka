@@ -9,15 +9,15 @@
 
 #include "Common/CommonTypes.h"
 #include "Common/GekkoDisassembler.h"
-#include "Common/Logging/Log.h"
 #include "Common/StringUtil.h"
+#include "Common/Logging/Log.h"
 #include "Core/ConfigManager.h"
 #include "Core/HW/CPU.h"
-#include "Core/PowerPC/JitCommon/JitBase.h"
-#include "Core/PowerPC/PPCAnalyst.h"
 #include "Core/PowerPC/PowerPC.h"
+#include "Core/PowerPC/PPCAnalyst.h"
+#include "Core/PowerPC/JitCommon/JitBase.h"
 
-JitBase* jit;
+JitBase *jit;
 
 void Jit(u32 em_address)
 {
@@ -30,14 +30,12 @@ u32 Helper_Mask(u8 mb, u8 me)
 	return mb > me ? ~mask : mask;
 }
 
-void LogGeneratedX86(int size, PPCAnalyst::CodeBuffer* code_buffer, const u8* normalEntry,
-	JitBlock* b)
+void LogGeneratedX86(int size, PPCAnalyst::CodeBuffer *code_buffer, const u8 *normalEntry, JitBlock *b)
 {
 	for (int i = 0; i < size; i++)
 	{
-		const PPCAnalyst::CodeOp& op = code_buffer->codebuffer[i];
-		std::string temp = StringFromFormat(
-			"%08x %s", op.address, GekkoDisassembler::Disassemble(op.inst.hex, op.address).c_str());
+		const PPCAnalyst::CodeOp &op = code_buffer->codebuffer[i];
+		std::string temp = StringFromFormat("%08x %s", op.address, GekkoDisassembler::Disassemble(op.inst.hex, op.address).c_str());
 		DEBUG_LOG(DYNA_REC, "IR_X86 PPC: %s\n", temp.c_str());
 	}
 
@@ -45,7 +43,7 @@ void LogGeneratedX86(int size, PPCAnalyst::CodeBuffer* code_buffer, const u8* no
 	x64disasm.set_syntax_intel();
 
 	u64 disasmPtr = (u64)normalEntry;
-	const u8* end = normalEntry + b->codeSize;
+	const u8 *end = normalEntry + b->codeSize;
 
 	while ((u8*)disasmPtr < end)
 	{
@@ -62,7 +60,7 @@ void LogGeneratedX86(int size, PPCAnalyst::CodeBuffer* code_buffer, const u8* no
 		{
 			ss.width(2);
 			ss.fill('0');
-			ss << (u32) * (normalEntry + i);
+			ss << (u32)*(normalEntry + i);
 		}
 		DEBUG_LOG(DYNA_REC, "IR_X86 bin: %s\n\n\n", ss.str().c_str());
 	}
@@ -87,7 +85,10 @@ bool JitBase::MergeAllowedNextInstructions(int count)
 void JitBase::UpdateMemoryOptions()
 {
 	bool any_watchpoints = PowerPC::memchecks.HasAny();
-	jo.fastmem = SConfig::GetInstance().bFastmem && !any_watchpoints;
-	jo.memcheck = SConfig::GetInstance().bMMU || any_watchpoints;
+	jo.fastmem = SConfig::GetInstance().bFastmem &&
+		!any_watchpoints;
+	jo.memcheck = SConfig::GetInstance().bMMU ||
+		any_watchpoints;
 	jo.alwaysUseMemFuncs = any_watchpoints;
+
 }

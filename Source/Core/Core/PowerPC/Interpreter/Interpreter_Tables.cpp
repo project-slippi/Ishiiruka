@@ -2,11 +2,11 @@
 // Licensed under GPLv2+
 // Refer to the license.txt file included.
 
-#include "Core/PowerPC/Interpreter/Interpreter.h"
 #include "Common/MsgHandler.h"
 #include "Core/PowerPC/Gekko.h"
-#include "Core/PowerPC/Interpreter/Interpreter_Tables.h"
 #include "Core/PowerPC/PPCTables.h"
+#include "Core/PowerPC/Interpreter/Interpreter.h"
+#include "Core/PowerPC/Interpreter/Interpreter_Tables.h"
 
 struct GekkoOPTemplate
 {
@@ -15,7 +15,6 @@ struct GekkoOPTemplate
 	GekkoOPInfo opinfo;
 };
 
-// clang-format off
 static GekkoOPInfo unknownopinfo = { "unknown_instruction", OPTYPE_UNKNOWN, FL_ENDBLOCK, 0, 0, 0, 0 };
 
 static GekkoOPTemplate primarytable[] =
@@ -353,10 +352,9 @@ static GekkoOPTemplate table63_2[] =
 	{30, Interpreter::fnmsubx,      {"fnmsubx",  OPTYPE_DOUBLEFP, FL_INOUT_FLOAT_D | FL_IN_FLOAT_ABC | FL_RC_BIT_F | FL_USE_FPU | FL_SET_FPRF, 1, 0, 0, 0}},
 	{31, Interpreter::fnmaddx,      {"fnmaddx",  OPTYPE_DOUBLEFP, FL_INOUT_FLOAT_D | FL_IN_FLOAT_ABC | FL_RC_BIT_F | FL_USE_FPU | FL_SET_FPRF, 1, 0, 0, 0}},
 };
-// clang-format on
-
 namespace InterpreterTables
 {
+
 void InitTables()
 {
 	// once initialized, tables are read-only
@@ -364,7 +362,7 @@ void InitTables()
 	if (initialized)
 		return;
 
-	// clear
+	//clear
 	for (int i = 0; i < 64; i++)
 	{
 		Interpreter::m_opTable[i] = Interpreter::unknown_instruction;
@@ -490,5 +488,6 @@ void InitTables()
 
 	initialized = true;
 }
+
 }
-// remove
+//remove

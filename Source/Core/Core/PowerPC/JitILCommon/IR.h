@@ -10,6 +10,7 @@
 
 namespace IREmitter
 {
+
 enum Opcode
 {
 	Nop = 0,
@@ -30,7 +31,7 @@ enum Opcode
 	SExt16,
 	BSwap32,
 	BSwap16,
-	Cntlzw,  // Count leading zeros
+	Cntlzw, // Count leading zeros
 	Not,
 	Load8,  // These loads zext
 	Load16,
@@ -72,18 +73,18 @@ enum Opcode
 	Shrl,
 	Sarl,
 	Rol,
-	ICmpCRSigned,    // CR for signed int compare
-	ICmpCRUnsigned,  // CR for unsigned int compare
-	ICmpEq,          // One if equal, zero otherwise
+	ICmpCRSigned,   // CR for signed int compare
+	ICmpCRUnsigned, // CR for unsigned int compare
+	ICmpEq,         // One if equal, zero otherwise
 	ICmpNe,
-	ICmpUgt,  // One if op1 > op2, zero otherwise
+	ICmpUgt, // One if op1 > op2, zero otherwise
 	ICmpUlt,
 	ICmpUge,
 	ICmpUle,
-	ICmpSgt,  // One if op1 > op2, zero otherwise
+	ICmpSgt, // One if op1 > op2, zero otherwise
 	ICmpSlt,
 	ICmpSge,
-	ICmpSle,  // Opposite of sgt
+	ICmpSle, // Opposite of sgt
 
 	// Memory store operators
 	Store8,
@@ -111,7 +112,7 @@ enum Opcode
 	FResult_Start,
 	LoadSingle,
 	LoadDouble,
-	LoadPaired,  // This handles quantizers itself
+	LoadPaired, // This handles quantizers itself
 	DoubleToSingle,
 	DupSingleToMReg,
 	DupSingleToPacked,
@@ -147,7 +148,7 @@ enum Opcode
 
 	// "Trinary" operators
 	// FIXME: Need to change representation!
-	// Select,       // Equivalent to C "Op1 ? Op2 : Op3"
+	//Select,       // Equivalent to C "Op1 ? Op2 : Op3"
 
 	// Integer constants
 	CInt16,
@@ -158,22 +159,19 @@ enum Opcode
 	RFIExit,
 	InterpreterBranch,
 
-	IdleBranch,     // branch operation belonging to idle loop
-	ShortIdleLoop,  // Idle loop seen in homebrew like Wii mahjong,
-									// just a branch
+	IdleBranch,    // branch operation belonging to idle loop
+	ShortIdleLoop, // Idle loop seen in homebrew like Wii mahjong,
+								 // just a branch
 
 	// used for exception checking, at least until someone
 	// has a better idea of integrating it
-	FPExceptionCheck,
-	DSIExceptionCheck,
-	ExtExceptionCheck,
-	BreakPointCheck,
+	FPExceptionCheck, DSIExceptionCheck,
+	ExtExceptionCheck, BreakPointCheck,
 	// "Opcode" representing a register too far away to
 	// reference directly; this is a size optimization
 	Tramp,
 	// "Opcode"s representing the start and end
-	BlockStart,
-	BlockEnd,
+	BlockStart, BlockEnd,
 
 	// used for debugging
 	Int3
@@ -199,7 +197,8 @@ unsigned inline isICmp(Inst i)
 
 unsigned inline isFResult(Inst i)
 {
-	return getOpcode(i) > FResult_Start && getOpcode(i) < FResult_End;
+	return getOpcode(i) > FResult_Start &&
+		getOpcode(i) < FResult_End;
 }
 
 InstLoc inline getOp1(InstLoc i)
@@ -262,82 +261,326 @@ public:
 	InstLoc EmitIntConst(unsigned value) { return EmitIntConst64(value); }
 	InstLoc EmitIntConst64(u64 value);
 
-	InstLoc EmitStoreLink(InstLoc val) { return FoldUOp(StoreLink, val); }
-	InstLoc EmitBranchUncond(InstLoc val) { return FoldUOp(BranchUncond, val); }
-	InstLoc EmitBranchCond(InstLoc check, InstLoc dest) { return FoldBiOp(BranchCond, check, dest); }
-	InstLoc EmitIdleBranch(InstLoc check, InstLoc dest) { return FoldBiOp(IdleBranch, check, dest); }
-	InstLoc EmitLoadCR(unsigned crreg) { return FoldZeroOp(LoadCR, crreg); }
-	InstLoc EmitStoreCR(InstLoc value, unsigned crreg) { return FoldUOp(StoreCR, value, crreg); }
-	InstLoc EmitLoadLink() { return FoldZeroOp(LoadLink, 0); }
-	InstLoc EmitLoadMSR() { return FoldZeroOp(LoadMSR, 0); }
-	InstLoc EmitStoreMSR(InstLoc val, InstLoc pc) { return FoldBiOp(StoreMSR, val, pc); }
-	InstLoc EmitStoreFPRF(InstLoc value) { return FoldUOp(StoreFPRF, value); }
-	InstLoc EmitLoadGReg(unsigned reg) { return FoldZeroOp(LoadGReg, reg); }
-	InstLoc EmitStoreGReg(InstLoc value, unsigned reg) { return FoldUOp(StoreGReg, value, reg); }
-	InstLoc EmitNot(InstLoc op1) { return FoldUOp(Not, op1); }
-	InstLoc EmitAnd(InstLoc op1, InstLoc op2) { return FoldBiOp(And, op1, op2); }
-	InstLoc EmitXor(InstLoc op1, InstLoc op2) { return FoldBiOp(Xor, op1, op2); }
-	InstLoc EmitSub(InstLoc op1, InstLoc op2) { return FoldBiOp(Sub, op1, op2); }
-	InstLoc EmitOr(InstLoc op1, InstLoc op2) { return FoldBiOp(Or, op1, op2); }
-	InstLoc EmitAdd(InstLoc op1, InstLoc op2) { return FoldBiOp(Add, op1, op2); }
-	InstLoc EmitMul(InstLoc op1, InstLoc op2) { return FoldBiOp(Mul, op1, op2); }
+	InstLoc EmitStoreLink(InstLoc val)
+	{
+		return FoldUOp(StoreLink, val);
+	}
+
+	InstLoc EmitBranchUncond(InstLoc val)
+	{
+		return FoldUOp(BranchUncond, val);
+	}
+
+	InstLoc EmitBranchCond(InstLoc check, InstLoc dest)
+	{
+		return FoldBiOp(BranchCond, check, dest);
+	}
+
+	InstLoc EmitIdleBranch(InstLoc check, InstLoc dest)
+	{
+		return FoldBiOp(IdleBranch, check, dest);
+	}
+
+	InstLoc EmitLoadCR(unsigned crreg)
+	{
+		return FoldZeroOp(LoadCR, crreg);
+	}
+
+	InstLoc EmitStoreCR(InstLoc value, unsigned crreg)
+	{
+		return FoldUOp(StoreCR, value, crreg);
+	}
+
+	InstLoc EmitLoadLink()
+	{
+		return FoldZeroOp(LoadLink, 0);
+	}
+
+	InstLoc EmitLoadMSR()
+	{
+		return FoldZeroOp(LoadMSR, 0);
+	}
+
+	InstLoc EmitStoreMSR(InstLoc val, InstLoc pc)
+	{
+		return FoldBiOp(StoreMSR, val, pc);
+	}
+
+	InstLoc EmitStoreFPRF(InstLoc value)
+	{
+		return FoldUOp(StoreFPRF, value);
+	}
+
+	InstLoc EmitLoadGReg(unsigned reg)
+	{
+		return FoldZeroOp(LoadGReg, reg);
+	}
+
+	InstLoc EmitStoreGReg(InstLoc value, unsigned reg)
+	{
+		return FoldUOp(StoreGReg, value, reg);
+	}
+
+	InstLoc EmitNot(InstLoc op1)
+	{
+		return FoldUOp(Not, op1);
+	}
+
+	InstLoc EmitAnd(InstLoc op1, InstLoc op2)
+	{
+		return FoldBiOp(And, op1, op2);
+	}
+
+	InstLoc EmitXor(InstLoc op1, InstLoc op2)
+	{
+		return FoldBiOp(Xor, op1, op2);
+	}
+
+	InstLoc EmitSub(InstLoc op1, InstLoc op2)
+	{
+		return FoldBiOp(Sub, op1, op2);
+	}
+
+	InstLoc EmitOr(InstLoc op1, InstLoc op2)
+	{
+		return FoldBiOp(Or, op1, op2);
+	}
+
+	InstLoc EmitAdd(InstLoc op1, InstLoc op2)
+	{
+		return FoldBiOp(Add, op1, op2);
+	}
+
+	InstLoc EmitMul(InstLoc op1, InstLoc op2)
+	{
+		return FoldBiOp(Mul, op1, op2);
+	}
+
 	InstLoc EmitMulHighUnsigned(InstLoc op1, InstLoc op2)
 	{
 		return FoldBiOp(MulHighUnsigned, op1, op2);
 	}
 
-	InstLoc EmitRol(InstLoc op1, InstLoc op2) { return FoldBiOp(Rol, op1, op2); }
-	InstLoc EmitShl(InstLoc op1, InstLoc op2) { return FoldBiOp(Shl, op1, op2); }
-	InstLoc EmitShrl(InstLoc op1, InstLoc op2) { return FoldBiOp(Shrl, op1, op2); }
-	InstLoc EmitSarl(InstLoc op1, InstLoc op2) { return FoldBiOp(Sarl, op1, op2); }
-	InstLoc EmitLoadCTR() { return FoldZeroOp(LoadCTR, 0); }
-	InstLoc EmitStoreCTR(InstLoc op1) { return FoldUOp(StoreCTR, op1); }
-	InstLoc EmitICmpEq(InstLoc op1, InstLoc op2) { return FoldBiOp(ICmpEq, op1, op2); }
-	InstLoc EmitICmpNe(InstLoc op1, InstLoc op2) { return FoldBiOp(ICmpNe, op1, op2); }
-	InstLoc EmitICmpUgt(InstLoc op1, InstLoc op2) { return FoldBiOp(ICmpUgt, op1, op2); }
-	InstLoc EmitICmpUlt(InstLoc op1, InstLoc op2) { return FoldBiOp(ICmpUlt, op1, op2); }
-	InstLoc EmitICmpSgt(InstLoc op1, InstLoc op2) { return FoldBiOp(ICmpSgt, op1, op2); }
-	InstLoc EmitICmpSlt(InstLoc op1, InstLoc op2) { return FoldBiOp(ICmpSlt, op1, op2); }
-	InstLoc EmitICmpSge(InstLoc op1, InstLoc op2) { return FoldBiOp(ICmpSge, op1, op2); }
-	InstLoc EmitICmpSle(InstLoc op1, InstLoc op2) { return FoldBiOp(ICmpSle, op1, op2); }
-	InstLoc EmitLoad8(InstLoc op1) { return FoldUOp(Load8, op1); }
-	InstLoc EmitLoad16(InstLoc op1) { return FoldUOp(Load16, op1); }
-	InstLoc EmitLoad32(InstLoc op1) { return FoldUOp(Load32, op1); }
-	InstLoc EmitStore8(InstLoc op1, InstLoc op2) { return FoldBiOp(Store8, op1, op2); }
-	InstLoc EmitStore16(InstLoc op1, InstLoc op2) { return FoldBiOp(Store16, op1, op2); }
-	InstLoc EmitStore32(InstLoc op1, InstLoc op2) { return FoldBiOp(Store32, op1, op2); }
-	InstLoc EmitSExt16(InstLoc op1) { return FoldUOp(SExt16, op1); }
-	InstLoc EmitSExt8(InstLoc op1) { return FoldUOp(SExt8, op1); }
-	InstLoc EmitCntlzw(InstLoc op1) { return FoldUOp(Cntlzw, op1); }
-	InstLoc EmitICmpCRSigned(InstLoc op1, InstLoc op2) { return FoldBiOp(ICmpCRSigned, op1, op2); }
+	InstLoc EmitRol(InstLoc op1, InstLoc op2)
+	{
+		return FoldBiOp(Rol, op1, op2);
+	}
+
+	InstLoc EmitShl(InstLoc op1, InstLoc op2)
+	{
+		return FoldBiOp(Shl, op1, op2);
+	}
+
+	InstLoc EmitShrl(InstLoc op1, InstLoc op2)
+	{
+		return FoldBiOp(Shrl, op1, op2);
+	}
+
+	InstLoc EmitSarl(InstLoc op1, InstLoc op2)
+	{
+		return FoldBiOp(Sarl, op1, op2);
+	}
+
+	InstLoc EmitLoadCTR()
+	{
+		return FoldZeroOp(LoadCTR, 0);
+	}
+
+	InstLoc EmitStoreCTR(InstLoc op1)
+	{
+		return FoldUOp(StoreCTR, op1);
+	}
+
+	InstLoc EmitICmpEq(InstLoc op1, InstLoc op2)
+	{
+		return FoldBiOp(ICmpEq, op1, op2);
+	}
+
+	InstLoc EmitICmpNe(InstLoc op1, InstLoc op2)
+	{
+		return FoldBiOp(ICmpNe, op1, op2);
+	}
+
+	InstLoc EmitICmpUgt(InstLoc op1, InstLoc op2)
+	{
+		return FoldBiOp(ICmpUgt, op1, op2);
+	}
+
+	InstLoc EmitICmpUlt(InstLoc op1, InstLoc op2)
+	{
+		return FoldBiOp(ICmpUlt, op1, op2);
+	}
+
+	InstLoc EmitICmpSgt(InstLoc op1, InstLoc op2)
+	{
+		return FoldBiOp(ICmpSgt, op1, op2);
+	}
+
+	InstLoc EmitICmpSlt(InstLoc op1, InstLoc op2)
+	{
+		return FoldBiOp(ICmpSlt, op1, op2);
+	}
+
+	InstLoc EmitICmpSge(InstLoc op1, InstLoc op2)
+	{
+		return FoldBiOp(ICmpSge, op1, op2);
+	}
+
+	InstLoc EmitICmpSle(InstLoc op1, InstLoc op2)
+	{
+		return FoldBiOp(ICmpSle, op1, op2);
+	}
+
+	InstLoc EmitLoad8(InstLoc op1)
+	{
+		return FoldUOp(Load8, op1);
+	}
+
+	InstLoc EmitLoad16(InstLoc op1)
+	{
+		return FoldUOp(Load16, op1);
+	}
+
+	InstLoc EmitLoad32(InstLoc op1)
+	{
+		return FoldUOp(Load32, op1);
+	}
+
+	InstLoc EmitStore8(InstLoc op1, InstLoc op2)
+	{
+		return FoldBiOp(Store8, op1, op2);
+	}
+
+	InstLoc EmitStore16(InstLoc op1, InstLoc op2)
+	{
+		return FoldBiOp(Store16, op1, op2);
+	}
+
+	InstLoc EmitStore32(InstLoc op1, InstLoc op2)
+	{
+		return FoldBiOp(Store32, op1, op2);
+	}
+
+	InstLoc EmitSExt16(InstLoc op1)
+	{
+		return FoldUOp(SExt16, op1);
+	}
+
+	InstLoc EmitSExt8(InstLoc op1)
+	{
+		return FoldUOp(SExt8, op1);
+	}
+
+	InstLoc EmitCntlzw(InstLoc op1)
+	{
+		return FoldUOp(Cntlzw, op1);
+	}
+
+	InstLoc EmitICmpCRSigned(InstLoc op1, InstLoc op2)
+	{
+		return FoldBiOp(ICmpCRSigned, op1, op2);
+	}
+
 	InstLoc EmitICmpCRUnsigned(InstLoc op1, InstLoc op2)
 	{
 		return FoldBiOp(ICmpCRUnsigned, op1, op2);
 	}
 
-	InstLoc EmitConvertFromFastCR(InstLoc op1) { return FoldUOp(ConvertFromFastCR, op1); }
-	InstLoc EmitConvertToFastCR(InstLoc op1) { return FoldUOp(ConvertToFastCR, op1); }
-	InstLoc EmitFastCRSOSet(InstLoc op1) { return FoldUOp(FastCRSOSet, op1); }
-	InstLoc EmitFastCREQSet(InstLoc op1) { return FoldUOp(FastCREQSet, op1); }
-	InstLoc EmitFastCRLTSet(InstLoc op1) { return FoldUOp(FastCRLTSet, op1); }
-	InstLoc EmitFastCRGTSet(InstLoc op1) { return FoldUOp(FastCRGTSet, op1); }
+	InstLoc EmitConvertFromFastCR(InstLoc op1)
+	{
+		return FoldUOp(ConvertFromFastCR, op1);
+	}
+
+	InstLoc EmitConvertToFastCR(InstLoc op1)
+	{
+		return FoldUOp(ConvertToFastCR, op1);
+	}
+
+	InstLoc EmitFastCRSOSet(InstLoc op1)
+	{
+		return FoldUOp(FastCRSOSet, op1);
+	}
+
+	InstLoc EmitFastCREQSet(InstLoc op1)
+	{
+		return FoldUOp(FastCREQSet, op1);
+	}
+
+	InstLoc EmitFastCRLTSet(InstLoc op1)
+	{
+		return FoldUOp(FastCRLTSet, op1);
+	}
+
+	InstLoc EmitFastCRGTSet(InstLoc op1)
+	{
+		return FoldUOp(FastCRGTSet, op1);
+	}
+
 	InstLoc EmitFallBackToInterpreter(InstLoc op1, InstLoc op2)
 	{
 		return FoldBiOp(FallBackToInterpreter, op1, op2);
 	}
 
-	InstLoc EmitInterpreterBranch() { return FoldZeroOp(InterpreterBranch, 0); }
-	InstLoc EmitLoadCarry() { return FoldZeroOp(LoadCarry, 0); }
-	InstLoc EmitStoreCarry(InstLoc op1) { return FoldUOp(StoreCarry, op1); }
-	InstLoc EmitSystemCall(InstLoc pc) { return FoldUOp(SystemCall, pc); }
-	InstLoc EmitFPExceptionCheck(InstLoc pc) { return EmitUOp(FPExceptionCheck, pc); }
-	InstLoc EmitDSIExceptionCheck(InstLoc pc) { return EmitUOp(DSIExceptionCheck, pc); }
-	InstLoc EmitExtExceptionCheck(InstLoc pc) { return EmitUOp(ExtExceptionCheck, pc); }
-	InstLoc EmitBreakPointCheck(InstLoc pc) { return EmitUOp(BreakPointCheck, pc); }
-	InstLoc EmitRFIExit() { return FoldZeroOp(RFIExit, 0); }
-	InstLoc EmitShortIdleLoop(InstLoc pc) { return FoldUOp(ShortIdleLoop, pc); }
-	InstLoc EmitLoadSingle(InstLoc addr) { return FoldUOp(LoadSingle, addr); }
-	InstLoc EmitLoadDouble(InstLoc addr) { return FoldUOp(LoadDouble, addr); }
+	InstLoc EmitInterpreterBranch()
+	{
+		return FoldZeroOp(InterpreterBranch, 0);
+	}
+
+	InstLoc EmitLoadCarry()
+	{
+		return FoldZeroOp(LoadCarry, 0);
+	}
+
+	InstLoc EmitStoreCarry(InstLoc op1)
+	{
+		return FoldUOp(StoreCarry, op1);
+	}
+
+	InstLoc EmitSystemCall(InstLoc pc)
+	{
+		return FoldUOp(SystemCall, pc);
+	}
+
+	InstLoc EmitFPExceptionCheck(InstLoc pc)
+	{
+		return EmitUOp(FPExceptionCheck, pc);
+	}
+
+	InstLoc EmitDSIExceptionCheck(InstLoc pc)
+	{
+		return EmitUOp(DSIExceptionCheck, pc);
+	}
+
+	InstLoc EmitExtExceptionCheck(InstLoc pc)
+	{
+		return EmitUOp(ExtExceptionCheck, pc);
+	}
+
+	InstLoc EmitBreakPointCheck(InstLoc pc)
+	{
+		return EmitUOp(BreakPointCheck, pc);
+	}
+
+	InstLoc EmitRFIExit()
+	{
+		return FoldZeroOp(RFIExit, 0);
+	}
+
+	InstLoc EmitShortIdleLoop(InstLoc pc)
+	{
+		return FoldUOp(ShortIdleLoop, pc);
+	}
+
+	InstLoc EmitLoadSingle(InstLoc addr)
+	{
+		return FoldUOp(LoadSingle, addr);
+	}
+
+	InstLoc EmitLoadDouble(InstLoc addr)
+	{
+		return FoldUOp(LoadDouble, addr);
+	}
+
 	InstLoc EmitLoadPaired(InstLoc addr, unsigned quantReg)
 	{
 		return FoldUOp(LoadPaired, addr, quantReg);
@@ -358,46 +601,166 @@ public:
 		return FoldBiOp(StorePaired, value, addr, quantReg);
 	}
 
-	InstLoc EmitLoadFReg(unsigned freg) { return FoldZeroOp(LoadFReg, freg); }
-	InstLoc EmitLoadFRegDENToZero(unsigned freg) { return FoldZeroOp(LoadFRegDENToZero, freg); }
-	InstLoc EmitStoreFReg(InstLoc val, unsigned freg) { return FoldUOp(StoreFReg, val, freg); }
-	InstLoc EmitDupSingleToMReg(InstLoc val) { return FoldUOp(DupSingleToMReg, val); }
-	InstLoc EmitDupSingleToPacked(InstLoc val) { return FoldUOp(DupSingleToPacked, val); }
+	InstLoc EmitLoadFReg(unsigned freg)
+	{
+		return FoldZeroOp(LoadFReg, freg);
+	}
+
+	InstLoc EmitLoadFRegDENToZero(unsigned freg)
+	{
+		return FoldZeroOp(LoadFRegDENToZero, freg);
+	}
+
+	InstLoc EmitStoreFReg(InstLoc val, unsigned freg)
+	{
+		return FoldUOp(StoreFReg, val, freg);
+	}
+
+	InstLoc EmitDupSingleToMReg(InstLoc val)
+	{
+		return FoldUOp(DupSingleToMReg, val);
+	}
+
+	InstLoc EmitDupSingleToPacked(InstLoc val)
+	{
+		return FoldUOp(DupSingleToPacked, val);
+	}
+
 	InstLoc EmitInsertDoubleInMReg(InstLoc val, InstLoc reg)
 	{
 		return FoldBiOp(InsertDoubleInMReg, val, reg);
 	}
 
-	InstLoc EmitExpandPackedToMReg(InstLoc val) { return FoldUOp(ExpandPackedToMReg, val); }
-	InstLoc EmitCompactMRegToPacked(InstLoc val) { return FoldUOp(CompactMRegToPacked, val); }
-	InstLoc EmitFSMul(InstLoc op1, InstLoc op2) { return FoldBiOp(FSMul, op1, op2); }
-	InstLoc EmitFSAdd(InstLoc op1, InstLoc op2) { return FoldBiOp(FSAdd, op1, op2); }
-	InstLoc EmitFSSub(InstLoc op1, InstLoc op2) { return FoldBiOp(FSSub, op1, op2); }
-	InstLoc EmitFSNeg(InstLoc op1) { return FoldUOp(FSNeg, op1); }
-	InstLoc EmitFDMul(InstLoc op1, InstLoc op2) { return FoldBiOp(FDMul, op1, op2); }
-	InstLoc EmitFDAdd(InstLoc op1, InstLoc op2) { return FoldBiOp(FDAdd, op1, op2); }
-	InstLoc EmitFDSub(InstLoc op1, InstLoc op2) { return FoldBiOp(FDSub, op1, op2); }
-	InstLoc EmitFDNeg(InstLoc op1) { return FoldUOp(FDNeg, op1); }
-	InstLoc EmitFPAdd(InstLoc op1, InstLoc op2) { return FoldBiOp(FPAdd, op1, op2); }
-	InstLoc EmitFPMul(InstLoc op1, InstLoc op2) { return FoldBiOp(FPMul, op1, op2); }
-	InstLoc EmitFPSub(InstLoc op1, InstLoc op2) { return FoldBiOp(FPSub, op1, op2); }
-	InstLoc EmitFPMerge00(InstLoc op1, InstLoc op2) { return FoldBiOp(FPMerge00, op1, op2); }
-	InstLoc EmitFPMerge01(InstLoc op1, InstLoc op2) { return FoldBiOp(FPMerge01, op1, op2); }
-	InstLoc EmitFPMerge10(InstLoc op1, InstLoc op2) { return FoldBiOp(FPMerge10, op1, op2); }
-	InstLoc EmitFPMerge11(InstLoc op1, InstLoc op2) { return FoldBiOp(FPMerge11, op1, op2); }
-	InstLoc EmitFPDup0(InstLoc op1) { return FoldUOp(FPDup0, op1); }
-	InstLoc EmitFPDup1(InstLoc op1) { return FoldUOp(FPDup1, op1); }
-	InstLoc EmitFPNeg(InstLoc op1) { return FoldUOp(FPNeg, op1); }
-	InstLoc EmitDoubleToSingle(InstLoc op1) { return FoldUOp(DoubleToSingle, op1); }
+	InstLoc EmitExpandPackedToMReg(InstLoc val)
+	{
+		return FoldUOp(ExpandPackedToMReg, val);
+	}
+
+	InstLoc EmitCompactMRegToPacked(InstLoc val)
+	{
+		return FoldUOp(CompactMRegToPacked, val);
+	}
+
+	InstLoc EmitFSMul(InstLoc op1, InstLoc op2)
+	{
+		return FoldBiOp(FSMul, op1, op2);
+	}
+
+	InstLoc EmitFSAdd(InstLoc op1, InstLoc op2)
+	{
+		return FoldBiOp(FSAdd, op1, op2);
+	}
+
+	InstLoc EmitFSSub(InstLoc op1, InstLoc op2)
+	{
+		return FoldBiOp(FSSub, op1, op2);
+	}
+
+	InstLoc EmitFSNeg(InstLoc op1)
+	{
+		return FoldUOp(FSNeg, op1);
+	}
+
+	InstLoc EmitFDMul(InstLoc op1, InstLoc op2)
+	{
+		return FoldBiOp(FDMul, op1, op2);
+	}
+
+	InstLoc EmitFDAdd(InstLoc op1, InstLoc op2)
+	{
+		return FoldBiOp(FDAdd, op1, op2);
+	}
+
+	InstLoc EmitFDSub(InstLoc op1, InstLoc op2)
+	{
+		return FoldBiOp(FDSub, op1, op2);
+	}
+
+	InstLoc EmitFDNeg(InstLoc op1)
+	{
+		return FoldUOp(FDNeg, op1);
+	}
+
+	InstLoc EmitFPAdd(InstLoc op1, InstLoc op2)
+	{
+		return FoldBiOp(FPAdd, op1, op2);
+	}
+
+	InstLoc EmitFPMul(InstLoc op1, InstLoc op2)
+	{
+		return FoldBiOp(FPMul, op1, op2);
+	}
+
+	InstLoc EmitFPSub(InstLoc op1, InstLoc op2)
+	{
+		return FoldBiOp(FPSub, op1, op2);
+	}
+
+	InstLoc EmitFPMerge00(InstLoc op1, InstLoc op2)
+	{
+		return FoldBiOp(FPMerge00, op1, op2);
+	}
+
+	InstLoc EmitFPMerge01(InstLoc op1, InstLoc op2)
+	{
+		return FoldBiOp(FPMerge01, op1, op2);
+	}
+
+	InstLoc EmitFPMerge10(InstLoc op1, InstLoc op2)
+	{
+		return FoldBiOp(FPMerge10, op1, op2);
+	}
+
+	InstLoc EmitFPMerge11(InstLoc op1, InstLoc op2)
+	{
+		return FoldBiOp(FPMerge11, op1, op2);
+	}
+
+	InstLoc EmitFPDup0(InstLoc op1)
+	{
+		return FoldUOp(FPDup0, op1);
+	}
+
+	InstLoc EmitFPDup1(InstLoc op1)
+	{
+		return FoldUOp(FPDup1, op1);
+	}
+
+	InstLoc EmitFPNeg(InstLoc op1)
+	{
+		return FoldUOp(FPNeg, op1);
+	}
+
+	InstLoc EmitDoubleToSingle(InstLoc op1)
+	{
+		return FoldUOp(DoubleToSingle, op1);
+	}
+
 	InstLoc EmitFDCmpCR(InstLoc op1, InstLoc op2, int ordered)
 	{
 		return FoldBiOp(FDCmpCR, op1, op2, ordered);
 	}
 
-	InstLoc EmitLoadGQR(unsigned gqr) { return FoldZeroOp(LoadGQR, gqr); }
-	InstLoc EmitStoreGQR(InstLoc op1, unsigned gqr) { return FoldUOp(StoreGQR, op1, gqr); }
-	InstLoc EmitStoreSRR(InstLoc op1, unsigned srr) { return FoldUOp(StoreSRR, op1, srr); }
-	InstLoc EmitINT3() { return FoldZeroOp(Int3, 0); }
+	InstLoc EmitLoadGQR(unsigned gqr)
+	{
+		return FoldZeroOp(LoadGQR, gqr);
+	}
+
+	InstLoc EmitStoreGQR(InstLoc op1, unsigned gqr)
+	{
+		return FoldUOp(StoreGQR, op1, gqr);
+	}
+
+	InstLoc EmitStoreSRR(InstLoc op1, unsigned srr)
+	{
+		return FoldUOp(StoreSRR, op1, srr);
+	}
+
+	InstLoc EmitINT3()
+	{
+		return FoldZeroOp(Int3, 0);
+	}
+
 	void StartBackPass() { curReadPtr = InstList.data() + InstList.size(); }
 	void StartForwardPass() { curReadPtr = InstList.data(); }
 	InstLoc ReadForward() { return curReadPtr++; }
@@ -439,9 +802,13 @@ public:
 		CTRCacheStore = nullptr;
 	}
 
-	IRBuilder() { Reset(); }
+	IRBuilder()
+	{
+		Reset();
+	}
+
 private:
-	IRBuilder(IRBuilder&);  // DO NOT IMPLEMENT
+	IRBuilder(IRBuilder&); // DO NOT IMPLEMENT
 	bool isSameValue(InstLoc Op1, InstLoc Op2) const;
 	unsigned getComplexity(InstLoc I) const;
 	unsigned getNumberOfOperands(InstLoc I) const;
@@ -449,8 +816,8 @@ private:
 	bool maskedValueIsZero(InstLoc Op1, InstLoc Op2) const;
 	InstLoc isNeg(InstLoc I) const;
 
-	std::vector<Inst> InstList;  // FIXME: We must ensure this is continuous!
-	std::vector<bool> MarkUsed;  // Used for IRWriter
+	std::vector<Inst> InstList; // FIXME: We must ensure this is continuous!
+	std::vector<bool> MarkUsed; // Used for IRWriter
 	std::vector<u64> ConstList;
 	InstLoc curReadPtr;
 	InstLoc GRegCache[32];
@@ -464,4 +831,5 @@ private:
 	InstLoc CRCache[8];
 	InstLoc CRCacheStore[8];
 };
+
 };

@@ -18,11 +18,11 @@ enum class ExceptionType
 	EXCEPTIONS_PAIRED_QUANTIZE
 };
 
-void DoState(PointerWrap& p);
+void DoState(PointerWrap &p);
 
-CPUCoreBase* InitJitCore(int core);
+CPUCoreBase *InitJitCore(int core);
 void InitTables(int core);
-CPUCoreBase* GetCore();
+CPUCoreBase *GetCore();
 
 // Debugging
 void WriteProfileResults(const std::string& filename);

@@ -4,10 +4,7 @@
 
 #pragma once
 
-namespace PPCAnalyst
-{
-struct CodeOp;
-}
+namespace PPCAnalyst { struct CodeOp; }
 
 namespace JitILTables
 {

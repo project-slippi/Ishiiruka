@@ -15,11 +15,11 @@
 #include "Core/ConfigManager.h"
 #include "Core/Core.h"
 #include "Core/PowerPC/CachedInterpreter.h"
-#include "Core/PowerPC/JitCommon/JitBase.h"
 #include "Core/PowerPC/JitInterface.h"
-#include "Core/PowerPC/PPCSymbolDB.h"
 #include "Core/PowerPC/PowerPC.h"
+#include "Core/PowerPC/PPCSymbolDB.h"
 #include "Core/PowerPC/Profiler.h"
+#include "Core/PowerPC/JitCommon/JitBase.h"
 
 #if _M_X86
 #include "Core/PowerPC/Jit64/Jit.h"
@@ -33,16 +33,20 @@
 #include "Core/PowerPC/JitArm64/JitArm64_Tables.h"
 #endif
 
+static bool bFakeVMEM = false;
+
 namespace JitInterface
 {
-void DoState(PointerWrap& p)
+void DoState(PointerWrap &p)
 {
 	if (jit && p.GetMode() == PointerWrap::MODE_READ)
 		jit->ClearCache();
 }
-CPUCoreBase* InitJitCore(int core)
+CPUCoreBase *InitJitCore(int core)
 {
-	CPUCoreBase* ptr = nullptr;
+	bFakeVMEM = !SConfig::GetInstance().bMMU;
+
+	CPUCoreBase *ptr = nullptr;
 	switch (core)
 	{
 #if _M_X86
@@ -96,7 +100,7 @@ void InitTables(int core)
 		break;
 	}
 }
-CPUCoreBase* GetCore()
+CPUCoreBase *GetCore()
 {
 	return jit;
 }
@@ -112,17 +116,16 @@ void WriteProfileResults(const std::string& filename)
 		PanicAlert("Failed to open %s", filename.c_str());
 		return;
 	}
-	fprintf(f.GetHandle(), "origAddr\tblkName\trunCount\tcost\ttimeCost\tpercent\ttimePercent\tOvAlli"
-		"nBlkTime(ms)\tblkCodeSize\n");
+	fprintf(f.GetHandle(), "origAddr\tblkName\trunCount\tcost\ttimeCost\tpercent\ttimePercent\tOvAllinBlkTime(ms)\tblkCodeSize\n");
 	for (auto& stat : prof_stats.block_stats)
 	{
 		std::string name = g_symbolDB.GetDescription(stat.addr);
 		double percent = 100.0 * (double)stat.cost / (double)prof_stats.cost_sum;
 		double timePercent = 100.0 * (double)stat.tick_counter / (double)prof_stats.timecost_sum;
-		fprintf(f.GetHandle(),
-			"%08x\t%s\t%" PRIu64 "\t%" PRIu64 "\t%" PRIu64 "\t%.2f\t%.2f\t%.2f\t%i\n", stat.addr,
-			name.c_str(), stat.run_count, stat.cost, stat.tick_counter, percent, timePercent,
-			(double)stat.tick_counter * 1000.0 / (double)prof_stats.countsPerSec, stat.block_size);
+		fprintf(f.GetHandle(), "%08x\t%s\t%" PRIu64 "\t%" PRIu64 "\t%" PRIu64 "\t%.2f\t%.2f\t%.2f\t%i\n",
+			stat.addr, name.c_str(), stat.run_count, stat.cost,
+			stat.tick_counter, percent, timePercent,
+			(double)stat.tick_counter*1000.0 / (double)prof_stats.countsPerSec, stat.block_size);
 	}
 }
 
@@ -144,13 +147,14 @@ void GetProfileResults(ProfileStats* prof_stats)
 	QueryPerformanceFrequency((LARGE_INTEGER*)&prof_stats->countsPerSec);
 	for (int i = 0; i < jit->GetBlockCache()->GetNumBlocks(); i++)
 	{
-		const JitBlock* block = jit->GetBlockCache()->GetBlock(i);
+		const JitBlock *block = jit->GetBlockCache()->GetBlock(i);
 		// Rough heuristic.  Mem instructions should cost more.
 		u64 cost = block->originalSize * (block->runCount / 4);
 		u64 timecost = block->ticCounter;
 		// Todo: tweak.
 		if (block->runCount >= 1)
-			prof_stats->block_stats.emplace_back(i, block->effectiveAddress, cost, timecost,
+			prof_stats->block_stats.emplace_back(i, block->originalAddress,
+				cost, timecost,
 				block->runCount, block->codeSize);
 		prof_stats->cost_sum += cost;
 		prof_stats->timecost_sum += timecost;
@@ -169,12 +173,12 @@ int GetHostCode(u32* address, const u8** code, u32* code_size)
 		return 1;
 	}
 
-	int block_num = jit->GetBlockCache()->GetBlockNumberFromStartAddress(*address, MSR);
+	int block_num = jit->GetBlockCache()->GetBlockNumberFromStartAddress(*address);
 	if (block_num < 0)
 	{
 		for (int i = 0; i < 500; i++)
 		{
-			block_num = jit->GetBlockCache()->GetBlockNumberFromStartAddress(*address - 4 * i, MSR);
+			block_num = jit->GetBlockCache()->GetBlockNumberFromStartAddress(*address - 4 * i);
 			if (block_num >= 0)
 				break;
 		}
@@ -182,8 +186,8 @@ int GetHostCode(u32* address, const u8** code, u32* code_size)
 		if (block_num >= 0)
 		{
 			JitBlock* block = jit->GetBlockCache()->GetBlock(block_num);
-			if (!(block->effectiveAddress <= *address &&
-				block->originalSize + block->effectiveAddress >= *address))
+			if (!(block->originalAddress <= *address &&
+				block->originalSize + block->originalAddress >= *address))
 				block_num = -1;
 		}
 
@@ -199,7 +203,7 @@ int GetHostCode(u32* address, const u8** code, u32* code_size)
 
 	*code = block->checkedEntry;
 	*code_size = block->codeSize;
-	*address = block->effectiveAddress;
+	*address = block->originalAddress;
 	return 0;
 }
 
@@ -273,8 +277,7 @@ void CompileExceptionCheck(ExceptionType type)
 		}
 		exception_addresses->insert(PC);
 
-		// Invalidate the JIT block so that it gets recompiled with the external exception check
-		// included.
+		// Invalidate the JIT block so that it gets recompiled with the external exception check included.
 		jit->GetBlockCache()->InvalidateICache(PC, 4, true);
 	}
 }

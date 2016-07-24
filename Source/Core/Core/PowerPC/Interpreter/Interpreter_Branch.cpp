@@ -2,13 +2,13 @@
 // Licensed under GPLv2+
 // Refer to the license.txt file included.
 
-#include "Core/PowerPC/Interpreter/Interpreter.h"
 #include "Common/Assert.h"
 #include "Common/CommonTypes.h"
 #include "Core/ConfigManager.h"
 #include "Core/CoreTiming.h"
 #include "Core/HLE/HLE.h"
 #include "Core/PowerPC/PowerPC.h"
+#include "Core/PowerPC/Interpreter/Interpreter.h"
 
 void Interpreter::bx(UGeckoInstruction _inst)
 {
@@ -64,8 +64,7 @@ void Interpreter::bcx(UGeckoInstruction _inst)
 		{
 			u32 last_inst = PowerPC::HostRead_U32(PC - 4);
 
-			if (last_inst == 0x28000000 /* cmplwi */ ||
-				(last_inst == 0x2C000000 /* cmpwi */ && SConfig::GetInstance().bWii))
+			if (last_inst == 0x28000000 /* cmplwi */ || (last_inst == 0x2C000000 /* cmpwi */ && SConfig::GetInstance().bWii))
 			{
 				CoreTiming::Idle();
 			}
@@ -75,8 +74,7 @@ void Interpreter::bcx(UGeckoInstruction _inst)
 
 void Interpreter::bcctrx(UGeckoInstruction _inst)
 {
-	_dbg_assert_msg_(POWERPC, _inst.BO_2 & BO_DONT_DECREMENT_FLAG,
-		"bcctrx with decrement and test CTR option is invalid!");
+	_dbg_assert_msg_(POWERPC, _inst.BO_2 & BO_DONT_DECREMENT_FLAG, "bcctrx with decrement and test CTR option is invalid!");
 
 	int condition = ((_inst.BO_2 >> 4) | (GetCRBit(_inst.BI_2) == ((_inst.BO_2 >> 3) & 1))) & 1;
 
@@ -120,20 +118,18 @@ void Interpreter::rfi(UGeckoInstruction _inst)
 	// Gecko/Broadway can save more bits than explicitly defined in ppc spec
 	const int mask = 0x87C0FFFF;
 	MSR = (MSR & ~mask) | (SRR1 & mask);
-	// MSR[13] is set to 0.
+	//MSR[13] is set to 0.
 	MSR &= 0xFFFBFFFF;
-	// Here we should check if there are pending exceptions, and if their corresponding enable bits
-	// are set
+	// Here we should check if there are pending exceptions, and if their corresponding enable bits are set
 	// if above is true, we'd do:
-	// PowerPC::CheckExceptions();
-	// else
+	//PowerPC::CheckExceptions();
+	//else
 	// set NPC to saved offset and resume
 	NPC = SRR0;
 	m_EndBlock = true;
 }
 
-// sc isn't really used for anything important in GameCube games (just for a write barrier) so we
-// really don't have to emulate it.
+// sc isn't really used for anything important in GameCube games (just for a write barrier) so we really don't have to emulate it.
 // We do it anyway, though :P
 void Interpreter::sc(UGeckoInstruction _inst)
 {

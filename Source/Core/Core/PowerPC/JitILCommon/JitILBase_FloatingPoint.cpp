@@ -2,11 +2,11 @@
 // Licensed under GPLv2+
 // Refer to the license.txt file included.
 
-#include "Core/PowerPC/JitILCommon/JitILBase.h"
 #include "Common/Assert.h"
 #include "Common/CommonTypes.h"
 #include "Common/MsgHandler.h"
 #include "Core/ConfigManager.h"
+#include "Core/PowerPC/JitILCommon/JitILBase.h"
 
 void JitILBase::fp_arith_s(UGeckoInstruction inst)
 {
@@ -20,13 +20,13 @@ void JitILBase::fp_arith_s(UGeckoInstruction inst)
 	IREmitter::InstLoc val = ibuild.EmitLoadFReg(inst.FA);
 	switch (inst.SUBOP5)
 	{
-	case 20:  // sub
+	case 20: //sub
 		val = ibuild.EmitFDSub(val, ibuild.EmitLoadFReg(inst.FB));
 		break;
-	case 21:  // add
+	case 21: //add
 		val = ibuild.EmitFDAdd(val, ibuild.EmitLoadFReg(inst.FB));
 		break;
-	case 25:  // mul
+	case 25: //mul
 		val = ibuild.EmitFDMul(val, ibuild.EmitLoadFReg(inst.FC));
 		break;
 	default:
@@ -114,9 +114,9 @@ void JitILBase::fsign(UGeckoInstruction inst)
 	{
 	case 40:  // fnegx
 		break;
-	case 264:  // fabsx
+	case 264: // fabsx
 		break;
-	case 136:  // fnabs
+	case 136: // fnabs
 		break;
 	default:
 		PanicAlert("fsign bleh");

@@ -3,17 +3,17 @@
 // Refer to the license.txt file included.
 
 #ifdef _MSC_VER
-#pragma warning(                                                                                   \
-    disable : 4146)  // unary minus operator applied to unsigned type, result still unsigned
+#pragma warning(disable:4146)  // unary minus operator applied to unsigned type, result still unsigned
 #endif
 
-#include "Core/PowerPC/JitILCommon/JitILBase.h"
 #include "Common/CommonTypes.h"
 #include "Core/ConfigManager.h"
+#include "Core/PowerPC/JitILCommon/JitILBase.h"
 
 static void ComputeRC(IREmitter::IRBuilder& ibuild, IREmitter::InstLoc val)
 {
-	IREmitter::InstLoc res = ibuild.EmitICmpCRSigned(val, ibuild.EmitIntConst(0));
+	IREmitter::InstLoc res =
+		ibuild.EmitICmpCRSigned(val, ibuild.EmitIntConst(0));
 	ibuild.EmitStoreCR(res, 0);
 }
 
@@ -25,52 +25,52 @@ void JitILBase::reg_imm(UGeckoInstruction inst)
 	IREmitter::InstLoc val, test, c;
 	switch (inst.OPCD)
 	{
-	case 14:  // addi
+	case 14: //addi
 		val = ibuild.EmitIntConst(inst.SIMM_16);
 		if (a)
 			val = ibuild.EmitAdd(ibuild.EmitLoadGReg(a), val);
 		ibuild.EmitStoreGReg(val, d);
 		break;
-	case 15:  // addis
+	case 15: //addis
 		val = ibuild.EmitIntConst(inst.SIMM_16 << 16);
 		if (a)
 			val = ibuild.EmitAdd(ibuild.EmitLoadGReg(a), val);
 		ibuild.EmitStoreGReg(val, d);
 		break;
-	case 24:  // ori
+	case 24: //ori
 		val = ibuild.EmitIntConst(inst.UIMM);
 		val = ibuild.EmitOr(ibuild.EmitLoadGReg(s), val);
 		ibuild.EmitStoreGReg(val, a);
 		break;
-	case 25:  // oris
+	case 25: //oris
 		val = ibuild.EmitIntConst(inst.UIMM << 16);
 		val = ibuild.EmitOr(ibuild.EmitLoadGReg(s), val);
 		ibuild.EmitStoreGReg(val, a);
 		break;
-	case 28:  // andi
+	case 28: //andi
 		val = ibuild.EmitIntConst(inst.UIMM);
 		val = ibuild.EmitAnd(ibuild.EmitLoadGReg(s), val);
 		ibuild.EmitStoreGReg(val, a);
 		ComputeRC(ibuild, val);
 		break;
-	case 29:  // andis
+	case 29: //andis
 		val = ibuild.EmitIntConst(inst.UIMM << 16);
 		val = ibuild.EmitAnd(ibuild.EmitLoadGReg(s), val);
 		ibuild.EmitStoreGReg(val, a);
 		ComputeRC(ibuild, val);
 		break;
-	case 26:  // xori
+	case 26: //xori
 		val = ibuild.EmitIntConst(inst.UIMM);
 		val = ibuild.EmitXor(ibuild.EmitLoadGReg(s), val);
 		ibuild.EmitStoreGReg(val, a);
 		break;
-	case 27:  // xoris
+	case 27: //xoris
 		val = ibuild.EmitIntConst(inst.UIMM << 16);
 		val = ibuild.EmitXor(ibuild.EmitLoadGReg(s), val);
 		ibuild.EmitStoreGReg(val, a);
 		break;
-	case 12:  // addic
-	case 13:  // addic_rc
+	case 12: //addic
+	case 13: //addic_rc
 		c = ibuild.EmitIntConst(inst.SIMM_16);
 		val = ibuild.EmitAdd(ibuild.EmitLoadGReg(a), c);
 		ibuild.EmitStoreGReg(val, d);
@@ -108,13 +108,13 @@ void JitILBase::cmpXX(UGeckoInstruction inst)
 		rhs = ibuild.EmitIntConst(inst.UIMM);
 		res = ibuild.EmitICmpCRUnsigned(lhs, rhs);
 	}
-	else  // inst.OPCD == 11
+	else // inst.OPCD == 11
 	{
 		rhs = ibuild.EmitIntConst(inst.SIMM_16);
 		res = ibuild.EmitICmpCRSigned(lhs, rhs);
 	}
 
-	js.downcountAmount++;  // TODO: should this be somewhere else?
+	js.downcountAmount++; //TODO: should this be somewhere else?
 
 	ibuild.EmitStoreCR(res, inst.CRFD);
 }
@@ -199,7 +199,8 @@ void JitILBase::subfic(UGeckoInstruction inst)
 	INSTRUCTION_START
 		JITDISABLE(bJITIntegerOff);
 	IREmitter::InstLoc nota, lhs, val, test;
-	nota = ibuild.EmitXor(ibuild.EmitLoadGReg(inst.RA), ibuild.EmitIntConst(-1));
+	nota = ibuild.EmitXor(ibuild.EmitLoadGReg(inst.RA),
+		ibuild.EmitIntConst(-1));
 
 	if (inst.SIMM_16 == -1)
 	{
@@ -314,8 +315,7 @@ void JitILBase::mulhwux(UGeckoInstruction inst)
 		ComputeRC(ibuild, d);
 }
 
-// skipped some of the special handling in here - if we get crashes, let the interpreter handle this
-// op
+// skipped some of the special handling in here - if we get crashes, let the interpreter handle this op
 void JitILBase::divwux(UGeckoInstruction inst)
 {
 	// FIXME
@@ -414,6 +414,7 @@ void JitILBase::rlwinmx(UGeckoInstruction inst)
 	if (inst.Rc)
 		ComputeRC(ibuild, val);
 }
+
 
 void JitILBase::rlwimix(UGeckoInstruction inst)
 {
