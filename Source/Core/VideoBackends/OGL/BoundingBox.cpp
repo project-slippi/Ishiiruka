@@ -82,7 +82,7 @@ s32 BBox::Get(s32 index)
 			void* ptr = glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, 4 * sizeof(s32), GL_MAP_READ_BIT);
 			if (ptr)
 			{
-				memcpy(&s_values, ptr, 4 * sizeof(s32));
+				memcpy(s_values, ptr, 4 * sizeof(s32));
 				glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
 			}
 		}
