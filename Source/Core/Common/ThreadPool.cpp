@@ -75,6 +75,7 @@ void ThreadPool::UnregisterWorker(IWorker* worker)
 
 void ThreadPool::Workloop(ThreadPool &state, size_t ID)
 {
+	u32 rest_time = 1;
 	while (state.m_working.load())
 	{
 		if (state.m_workflag.load() > ID)
@@ -102,8 +103,14 @@ void ThreadPool::Workloop(ThreadPool &state, size_t ID)
 			{
 				state.m_workflag.fetch_sub(1);
 			}
+			rest_time = 1;
 		}
-		SleepCurrentThread(1);
+		else
+		{
+			rest_time++;
+			rest_time = rest_time > 5 ? 5 : rest_time;
+		}
+		SleepCurrentThread(rest_time);
 	}
 }
 
