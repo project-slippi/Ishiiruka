@@ -59,7 +59,7 @@ private:
 		};
 	};
 
-	PC_TexFormat GetNativeTextureFormat(const s32 texformat, const TlutFormat tlutfmt, u32 width, u32 height);
+	PC_TexFormat GetNativeTextureFormat(const s32 texformat, const TlutFormat tlutfmt, u32 width, u32 height) override;
 
 	TextureCache::TCacheEntryBase* CreateTexture(const TCacheEntryConfig& config);
 
@@ -68,8 +68,10 @@ private:
 		bool isIntensity, bool scaleByHalf) override;
 	bool Palettize(TCacheEntryBase* entry, const TCacheEntryBase* base_entry) override;
 	void LoadLut(u32 lutFmt, void* addr, u32 size) override;
-	void CompileShaders() override
-	{}
+	bool CompileShaders() override
+	{
+		return true;
+	}
 	void DeleteShaders() override
 	{}
 };

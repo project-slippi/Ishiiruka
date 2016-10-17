@@ -69,57 +69,54 @@ inline u32 GetRemainingSize()
 	return (u32)(VertexManagerBase::s_pEndBufferPointer - VertexManagerBase::s_pCurBufferPointer);
 }
 
-inline u32 GetRemainingIndices(int primitive)
+inline u32 GetRemainingIndices(int prim)
 {
+	GxDrawMode primitive = static_cast<GxDrawMode>(prim);
 	u32 index_len = VertexManagerBase::MAXIBUFFERSIZE - IndexGenerator::GetIndexLen();
-
-	switch (primitive)
+	if (primitive == GX_DRAW_TRIANGLE_STRIP || primitive == GX_DRAW_TRIANGLE_FAN)
 	{
-	case GX_DRAW_QUADS:
-	case GX_DRAW_QUADS_2:
-		return index_len / 6 * 4;
-	case GX_DRAW_TRIANGLES:
-		return index_len;
-	case GX_DRAW_TRIANGLE_STRIP:
 		return index_len / 3 + 2;
-	case GX_DRAW_TRIANGLE_FAN:
-		return index_len / 3 + 2;
-	case GX_DRAW_LINES:
-		return index_len;
-	case GX_DRAW_LINE_STRIP:
-		return index_len / 2 + 1;
-	case GX_DRAW_POINTS:
-		return index_len;
-	default:
-		return 0;
 	}
+	if (primitive < GX_DRAW_TRIANGLES)
+	{
+		return index_len / 6 * 4;
+	}
+	else if (primitive == GX_DRAW_LINE_STRIP)
+	{
+		return index_len / 2 + 1;
+	}
+	else if (primitive <= GX_DRAW_POINTS)
+	{
+		return index_len;
+	}
+	return 0;
 }
 
 void VertexManagerBase::PrepareForAdditionalData(int primitive, u32 count, u32 stride)
 {
 	// The SSE vertex loader can write up to 4 bytes past the end
 	u32 const needed_vertex_bytes = count * stride + 4;
+	u32 max_index_size = std::min(IndexGenerator::GetRemainingIndices(), GetRemainingIndices(primitive));
 
 	// We can't merge different kinds of primitives, so we have to flush here
-	if (current_primitive_type != primitive_from_gx[primitive])
-		Flush();
-	current_primitive_type = primitive_from_gx[primitive];
 	// Check for size in buffer, if the buffer gets full, call Flush()
-	if (!IsFlushed && (count > IndexGenerator::GetRemainingIndices() ||
-		count > GetRemainingIndices(primitive) || needed_vertex_bytes > GetRemainingSize()))
-	{
-		Flush();
+	if (count > max_index_size
+		|| needed_vertex_bytes > GetRemainingSize()
+		|| current_primitive_type != primitive_from_gx[primitive])
+	{		
 #if defined(_DEBUG) || defined(DEBUGFAST)
 		if (count > IndexGenerator::GetRemainingIndices())
 			ERROR_LOG(VIDEO, "Too little remaining index values. Use 32-bit or reset them on flush.");
 		if (count > GetRemainingIndices(primitive))
 			ERROR_LOG(VIDEO, "VertexManagerBase: Buffer not large enough for all indices! "
 				"Increase MAXIBUFFERSIZE or we need primitive breaking after all.");
-		if (needed_vertex_bytes > GetRemainingSize())
+		if (s_pCurBufferPointer && needed_vertex_bytes > GetRemainingSize())
 			ERROR_LOG(VIDEO, "VertexManagerBase: Buffer not large enough for all vertices! "
 				"Increase MAXVBUFFERSIZE or we need primitive breaking after all.");
 #endif
+		Flush();
 	}
+	current_primitive_type = primitive_from_gx[primitive];
 	s_cull_all = bpmem.genMode.cullmode == GenMode::CULL_ALL && primitive < 5;
 	// need to alloc new buffer
 	if (IsFlushed)
@@ -175,7 +172,8 @@ void VertexManagerBase::DoFlush()
 					usedtextures |= 1 << bpmem.tevindref.getTexMap(bpmem.tevind[i].bt);
 
 		TextureCacheBase::UnbindTextures();
-		s32 mask = 0;
+		s32 material_mask = 0;
+		s32 emissive_mask = 0;
 		for (unsigned int i = 0; i < 8; i++)
 		{
 			if (usedtextures & (1 << i))
@@ -183,9 +181,10 @@ void VertexManagerBase::DoFlush()
 				const TextureCacheBase::TCacheEntryBase* tentry = TextureCacheBase::Load(i);
 				if (tentry)
 				{
-					if (g_ActiveConfig.HiresMaterialMapsEnabled() && tentry->SupportsMaterialMap())
+					if (g_ActiveConfig.HiresMaterialMapsEnabled())
 					{
-						mask |= 1 << i;
+						material_mask |= ((int)tentry->SupportsMaterialMap()) << i;
+						emissive_mask |= ((int)tentry->emissive_in_alpha) << i;
 					}
 					PixelShaderManager::SetTexDims(i, tentry->native_width, tentry->native_height);
 					g_renderer->SetSamplerState(i & 3, i >> 2, tentry->is_custom_tex);
@@ -196,7 +195,8 @@ void VertexManagerBase::DoFlush()
 		}
 		if (g_ActiveConfig.HiresMaterialMapsEnabled())
 		{
-			PixelShaderManager::SetFlags(0, ~0, mask);
+			PixelShaderManager::SetFlags(0, ~0, material_mask);
+			PixelShaderManager::SetFlags(1, ~0, emissive_mask);
 		}
 		TextureCacheBase::BindTextures();
 	}

@@ -60,6 +60,10 @@ public:
 		NUMBER_OF_COLUMN
 	};
 
+#ifdef __WXMSW__
+	bool MSWOnNotify(int id, WXLPARAM lparam, WXLPARAM* result) override;
+#endif
+
 private:
 
 	std::vector<int> m_FlagImageIndex;

@@ -49,7 +49,7 @@ std::vector<DXGI_SAMPLE_DESC> aa_modes; // supported AA modes of the current ada
 
 bool bgra_textures_supported;
 bool bgra565_textures_supported;
-
+bool s_logic_op_supported = false;
 #define NUM_SUPPORTED_FEATURE_LEVELS 4
 const D3D_FEATURE_LEVEL supported_feature_levels[NUM_SUPPORTED_FEATURE_LEVELS] = {
 	D3D_FEATURE_LEVEL_11_1,
@@ -65,6 +65,11 @@ bool bFrameInProgress = false;
 D3D_FEATURE_LEVEL GetFeatureLevel()
 {
 	return featlevel;
+}
+
+bool GetLogicOpSupported()
+{
+	return s_logic_op_supported;
 }
 
 bool SupportPartialContantBufferUpdate()
@@ -419,6 +424,12 @@ HRESULT Create(HWND wnd)
 			&& options.MapNoOverwriteOnDynamicConstantBuffer
 			&& options.ConstantBufferOffsetting
 			&& options.ConstantBufferPartialUpdate;
+		D3D11_FEATURE_DATA_FORMAT_SUPPORT2 format_support = { DXGI_FORMAT_R8G8B8A8_UNORM, 0};
+		hr = device1->CheckFeatureSupport(D3D11_FEATURE_FORMAT_SUPPORT2, &format_support, sizeof(format_support));
+		s_logic_op_supported = options.OutputMergerLogicOp
+			&&  SUCCEEDED(hr)
+			&& format_support.OutFormatSupport2 & D3D11_FORMAT_SUPPORT2_OUTPUT_MERGER_LOGIC_OP;
+
 	}
 	backbuf = new D3DTexture2D(buf, D3D11_BIND_RENDER_TARGET);
 	SAFE_RELEASE(buf);

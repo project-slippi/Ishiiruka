@@ -44,22 +44,26 @@ public:
 		}
 		return Map(size);
 	}
-
+	bool NeedCPUBuffer()
+	{
+		return m_need_cpu_buffer;
+	}
 	const u32 m_buffer;
 
 protected:
-	StreamBuffer(u32 type, u32 size, u32 align_size = 16);
+	StreamBuffer(u32 type, u32 size, u32 align_size = 16, bool need_cpu_buffer = false);
 	void CreateFences();
 	void DeleteFences();
 	void AllocMemory(u32 size);
 
 	const u32 m_buffertype;
 	const u32 m_size;
+	const bool m_need_cpu_buffer;
 
 	u32 m_iterator;
 	u32 m_used_iterator;
 	u32 m_free_iterator;
-
+	
 private:
 	static constexpr int SYNC_POINTS = 4;
 	int Slot(u32 x) const

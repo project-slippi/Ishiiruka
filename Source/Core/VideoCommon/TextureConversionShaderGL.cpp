@@ -5,14 +5,15 @@
 #include <cmath>
 #include <cstdio>
 
+#include "Common/CommonTypes.h"
 #include "Common/MathUtil.h"
-#include "VideoCommon/BPMemory.h"
+#include "Common/MsgHandler.h"
 #include "VideoCommon/RenderBase.h"
 #include "VideoCommon/TextureConversionShader.h"
 #include "VideoCommon/TextureDecoder.h"
-#include "VideoCommon/VideoConfig.h"
+#include "VideoCommon/VideoCommon.h"
 
-#define WRITE p+=sprintf
+#define WRITE p += sprintf
 
 static char text[16384];
 static bool IntensityConstantAdded = false;
@@ -26,7 +27,10 @@ static void WriteSwizzler(char*& p, u32 format, API_TYPE ApiType)
 {
 	// left, top, of source rectangle within source texture
 	// width of the destination rectangle, scale_factor (1 or 2)
-	WRITE(p, "uniform int4 position;\n");
+	if (ApiType == API_VULKAN)
+		WRITE(p, "layout(std140, push_constant) uniform PCBlock { int4 position; } PC;\n");
+	else
+		WRITE(p, "uniform int4 position;\n");
 
 	int blkW = TexDecoder_GetBlockWidthInTexels(format);
 	int blkH = TexDecoder_GetBlockHeightInTexels(format);
@@ -37,14 +41,24 @@ static void WriteSwizzler(char*& p, u32 format, API_TYPE ApiType)
 		WRITE(p, "#define samp0 samp9\n");
 		WRITE(p, "SAMPLER_BINDING(9) uniform sampler2DArray samp0;\n");
 
-		WRITE(p, "  out vec4 ocol0;\n");
+		WRITE(p, "FRAGMENT_OUTPUT_LOCATION(0) out vec4 ocol0;\n");
+		WRITE(p, "void main()\n");
+		WRITE(p, "{\n"
+			"  int2 sampleUv;\n"
+			"  int2 uv1 = int2(gl_FragCoord.xy);\n");
+	}
+	else if (ApiType == API_VULKAN)
+	{
+		WRITE(p, "SAMPLER_BINDING(0) uniform sampler2DArray samp0;\n");
+		WRITE(p, "FRAGMENT_OUTPUT_LOCATION(0) out vec4 ocol0;\n");
+
 		WRITE(p, "void main()\n");
 		WRITE(p, "{\n"
 			"  int2 sampleUv;\n"
 			"  int2 uv1 = int2(gl_FragCoord.xy);\n"
-		);
+			"  int4 position = PC.position;\n");
 	}
-	else // D3D
+	else  // D3D
 	{
 		WRITE(p, "sampler samp0 : register(s0);\n");
 		WRITE(p, "Texture2DArray Tex0 : register(t0);\n");
@@ -53,11 +67,11 @@ static void WriteSwizzler(char*& p, u32 format, API_TYPE ApiType)
 		WRITE(p, "  out float4 ocol0 : SV_Target, in float4 rawpos : SV_Position)\n");
 		WRITE(p, "{\n"
 			"  int2 sampleUv;\n"
-			"  int2 uv1 = int2(rawpos.xy);\n"
-		);
+			"  int2 uv1 = int2(rawpos.xy);\n");
 	}
 
-	WRITE(p, "  int x_block_position = (uv1.x >> %d) << %d;\n", IntLog2(blkH * blkW / samples), IntLog2(blkW));
+	WRITE(p, "  int x_block_position = (uv1.x >> %d) << %d;\n", IntLog2(blkH * blkW / samples),
+		IntLog2(blkW));
 	WRITE(p, "  int y_block_position = uv1.y << %d;\n", IntLog2(blkH));
 	if (samples == 1)
 	{
@@ -67,17 +81,21 @@ static void WriteSwizzler(char*& p, u32 format, API_TYPE ApiType)
 	}
 	WRITE(p, "  int offset_in_block = uv1.x & %d;\n", (blkH * blkW / samples) - 1);
 	WRITE(p, "  int y_offset_in_block = offset_in_block >> %d;\n", IntLog2(blkW / samples));
-	WRITE(p, "  int x_offset_in_block = (offset_in_block & %d) << %d;\n", (blkW / samples) - 1, IntLog2(samples));
+	WRITE(p, "  int x_offset_in_block = (offset_in_block & %d) << %d;\n", (blkW / samples) - 1,
+		IntLog2(samples));
 
 	WRITE(p, "  sampleUv.x = x_block_position + x_offset_in_block;\n");
 	WRITE(p, "  sampleUv.y = y_block_position + y_offset_in_block;\n");
 
-	WRITE(p, "  float2 uv0 = float2(sampleUv);\n");                // sampleUv is the sample position in (int)gx_coords
-	WRITE(p, "  uv0 += float2(0.5, 0.5);\n");                      // move to center of pixel
-	WRITE(p, "  uv0 *= float(position.w);\n");                     // scale by two if needed (also move to pixel borders so that linear filtering will average adjacent pixel)
-	WRITE(p, "  uv0 += float2(position.xy);\n");                   // move to copied rect
-	WRITE(p, "  uv0 /= float2(%d, %d);\n", EFB_WIDTH, EFB_HEIGHT); // normalize to [0:1]
-	if (ApiType == API_OPENGL)                                     // ogl has to flip up and down
+	WRITE(p,
+		"  float2 uv0 = float2(sampleUv);\n");  // sampleUv is the sample position in (int)gx_coords
+	WRITE(p, "  uv0 += float2(0.5, 0.5);\n");     // move to center of pixel
+	WRITE(p, "  uv0 *= float(position.w);\n");  // scale by two if needed (also move to pixel borders
+																							// so that linear filtering will average adjacent
+																							// pixel)
+	WRITE(p, "  uv0 += float2(position.xy);\n");                    // move to copied rect
+	WRITE(p, "  uv0 /= float2(%d, %d);\n", EFB_WIDTH, EFB_HEIGHT);  // normalize to [0:1]
+	if (ApiType == API_OPENGL)                                 // ogl has to flip up and down
 	{
 		WRITE(p, "  uv0.y = 1.0-uv0.y;\n");
 	}
@@ -85,23 +103,25 @@ static void WriteSwizzler(char*& p, u32 format, API_TYPE ApiType)
 	WRITE(p, "  float sample_offset = float(position.w) / float(%d);\n", EFB_WIDTH);
 }
 
-static void WriteSampleColor(char*& p, const char* colorComp, const char* dest, int xoffset, API_TYPE ApiType, bool depth = false)
+static void WriteSampleColor(char*& p, const char* colorComp, const char* dest, int xoffset,
+	API_TYPE ApiType, bool depth = false)
 {
-	if (ApiType == API_OPENGL)
+	if (ApiType == API_OPENGL || ApiType == API_VULKAN)
 	{
-		WRITE(p, "  %s = texture(samp0, float3(uv0 + float2(%d, 0) * sample_offset, 0.0)).%s;\n",
-			dest, xoffset, colorComp
-		);
+		WRITE(p, "  %s = texture(samp0, float3(uv0 + float2(%d, 0) * sample_offset, 0.0)).%s;\n", dest,
+			xoffset, colorComp);
 	}
 	else
 	{
 		WRITE(p, "  %s = Tex0.Sample(samp0, float3(uv0 + float2(%d, 0) * sample_offset, 0.0)).%s;\n",
-			dest, xoffset, colorComp
-		);
+			dest, xoffset, colorComp);
+	}
 
+	if (ApiType == API_D3D11 || ApiType == API_VULKAN)
+	{
 		// Handle D3D depth inversion.
 		if (depth)
-			WRITE(p, "  %s = 1.0f - %s;\n", dest, dest);
+			WRITE(p, "  %s = 1.0 - %s;\n", dest, dest);
 	}
 }
 
@@ -113,7 +133,8 @@ static void WriteColorToIntensity(char*& p, const char* src, const char* dest)
 		IntensityConstantAdded = true;
 	}
 	WRITE(p, "  %s = dot(IntensityConst.rgb, %s.rgb);\n", dest, src);
-	// don't add IntensityConst.a yet, because doing it later is faster and uses less instructions, due to vectorization
+	// don't add IntensityConst.a yet, because doing it later is faster and uses less instructions,
+	// due to vectorization
 }
 
 static void WriteToBitDepth(char*& p, u8 depth, const char* src, const char* dest)
@@ -144,7 +165,7 @@ static void WriteI8Encoder(char*& p, API_TYPE ApiType)
 	WriteSampleColor(p, "rgb", "texSample", 3, ApiType);
 	WriteColorToIntensity(p, "texSample", "ocol0.a");
 
-	WRITE(p, "  ocol0.rgba += IntensityConst.aaaa;\n"); // see WriteColorToIntensity
+	WRITE(p, "  ocol0.rgba += IntensityConst.aaaa;\n");  // see WriteColorToIntensity
 
 	WriteEncoderEnd(p);
 }
@@ -297,8 +318,6 @@ static void WriteRGB5A3Encoder(char*& p, API_TYPE ApiType)
 	WRITE(p, "ocol0.g = ocol0.g + color0 * 16.0;\n");
 
 	WRITE(p, "}\n");
-
-
 
 	WriteSampleColor(p, "rgba", "texSample", 1, ApiType);
 
@@ -557,11 +576,11 @@ static void WriteZ24Encoder(char*& p, API_TYPE ApiType)
 	WriteEncoderEnd(p);
 }
 
-const char *GenerateEncodingShader(u32 format, API_TYPE ApiType)
+const char* GenerateEncodingShader(u32 format, API_TYPE ApiType)
 {
 	text[sizeof(text) - 1] = 0x7C;  // canary
 
-	char *p = text;
+	char* p = text;
 
 	switch (format)
 	{

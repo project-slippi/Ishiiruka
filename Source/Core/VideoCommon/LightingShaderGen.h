@@ -88,11 +88,11 @@ inline void GenerateLightShader(ShaderCode& object,
 	switch (diffusefunc)
 	{
 	case LIGHTDIF_NONE:
-		object.Write("lacc.%s += attn * " LIGHT_COL";\n", swizzle, LIGHT_COL_PARAMS(lightsName, index, swizzle));
+		object.Write("lacc.%s += round(attn * " LIGHT_COL");\n", swizzle, LIGHT_COL_PARAMS(lightsName, index, swizzle));
 		break;
 	case LIGHTDIF_SIGN:
 	case LIGHTDIF_CLAMP:
-		object.Write("lacc.%s += attn * %sdot(ldir, _norm0)) * " LIGHT_COL";\n",
+		object.Write("lacc.%s += round(attn * %sdot(ldir, _norm0)) * " LIGHT_COL");\n",
 			swizzle,
 			diffusefunc != LIGHTDIF_SIGN ? "max(0.0," : "(",
 			LIGHT_COL_PARAMS(lightsName, index, swizzle));
@@ -210,7 +210,7 @@ inline void GenerateLightingShaderCode(ShaderCode& object, u32 numColorChans, co
 		}
 		if (use_integer_math && !forcephong)
 		{
-			object.Write("ilacc = int4(round(lacc));\n");
+			object.Write("ilacc = int4(lacc);\n");
 			object.Write("ilacc = clamp(ilacc, 0, 255);\n");
 			object.Write("ilacc += ilacc >> 7;\n");
 			object.Write("%s%d = float4((int4(mat) * ilacc) >> 8) / 255.0;\n", dest, j);

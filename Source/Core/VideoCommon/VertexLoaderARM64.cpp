@@ -3,29 +3,29 @@
 // Refer to the license.txt file included.
 
 #include "VideoCommon/VertexLoaderARM64.h"
+#include "Common/CommonTypes.h"
+#include "VideoCommon/DataReader.h"
 #include "VideoCommon/VertexLoaderManager.h"
 
 using namespace Arm64Gen;
 
-ARM64Reg src_reg = X0;
-ARM64Reg dst_reg = X1;
-ARM64Reg count_reg = W2;
-ARM64Reg skipped_reg = W17;
-ARM64Reg scratch1_reg = W16;
-ARM64Reg scratch2_reg = W15;
-ARM64Reg scratch3_reg = W14;
-ARM64Reg scratch4_reg = W13;
-ARM64Reg saved_count = W12;
+constexpr ARM64Reg src_reg = X0;
+constexpr ARM64Reg dst_reg = X1;
+constexpr ARM64Reg count_reg = W2;
+constexpr ARM64Reg skipped_reg = W17;
+constexpr ARM64Reg scratch1_reg = W16;
+constexpr ARM64Reg scratch2_reg = W15;
+constexpr ARM64Reg scratch3_reg = W14;
+constexpr ARM64Reg saved_count = W12;
 
-ARM64Reg stride_reg = X11;
-ARM64Reg arraybase_reg = X10;
-ARM64Reg scale_reg = X9;
+constexpr ARM64Reg stride_reg = X11;
+constexpr ARM64Reg arraybase_reg = X10;
+constexpr ARM64Reg scale_reg = X9;
 
-alignas(16) static const float scale_factors[] =
-{
-	1.0 / (1ULL <<  0), 1.0 / (1ULL <<  1), 1.0 / (1ULL <<  2), 1.0 / (1ULL <<  3),
-	1.0 / (1ULL <<  4), 1.0 / (1ULL <<  5), 1.0 / (1ULL <<  6), 1.0 / (1ULL <<  7),
-	1.0 / (1ULL <<  8), 1.0 / (1ULL <<  9), 1.0 / (1ULL << 10), 1.0 / (1ULL << 11),
+alignas(16) static const float scale_factors[] = {
+	1.0 / (1ULL << 0),  1.0 / (1ULL << 1),  1.0 / (1ULL << 2),  1.0 / (1ULL << 3),
+	1.0 / (1ULL << 4),  1.0 / (1ULL << 5),  1.0 / (1ULL << 6),  1.0 / (1ULL << 7),
+	1.0 / (1ULL << 8),  1.0 / (1ULL << 9),  1.0 / (1ULL << 10), 1.0 / (1ULL << 11),
 	1.0 / (1ULL << 12), 1.0 / (1ULL << 13), 1.0 / (1ULL << 14), 1.0 / (1ULL << 15),
 	1.0 / (1ULL << 16), 1.0 / (1ULL << 17), 1.0 / (1ULL << 18), 1.0 / (1ULL << 19),
 	1.0 / (1ULL << 20), 1.0 / (1ULL << 21), 1.0 / (1ULL << 22), 1.0 / (1ULL << 23),
@@ -83,7 +83,7 @@ void VertexLoaderARM64::GetVertexAddr(int array, u64 attribute, ARM64Reg reg)
 
 		if (array == ARRAY_POSITION)
 		{
-			EOR(scratch2_reg, scratch1_reg, 0, attribute == INDEX8 ? 7 : 15); // 0xFF : 0xFFFF
+			EOR(scratch2_reg, scratch1_reg, 0, attribute == INDEX8 ? 7 : 15);  // 0xFF : 0xFFFF
 			m_skip_vertex = CBZ(scratch2_reg);
 		}
 
@@ -99,22 +99,24 @@ void VertexLoaderARM64::GetVertexAddr(int array, u64 attribute, ARM64Reg reg)
 
 s32 VertexLoaderARM64::GetAddressImm(int array, u64 attribute, Arm64Gen::ARM64Reg reg, u32 align)
 {
-	if (attribute & MASK_INDEXED ||
-	    (m_src_ofs > 255 && (m_src_ofs & (align - 1))))
+	if (attribute & MASK_INDEXED || (m_src_ofs > 255 && (m_src_ofs & (align - 1))))
 		GetVertexAddr(array, attribute, reg);
 	else
 		return m_src_ofs;
 	return -1;
 }
 
-int VertexLoaderARM64::ReadVertex(u64 attribute, int format, int count_in, int count_out, bool dequantize, u8 scaling_exponent, AttributeFormat* native_format, s32 offset)
+int VertexLoaderARM64::ReadVertex(u64 attribute, int format, int count_in, int count_out,
+	bool dequantize, u8 scaling_exponent,
+	AttributeFormat* native_format, s32 offset)
 {
 	ARM64Reg coords = count_in == 3 ? Q31 : D31;
 	ARM64Reg scale = count_in == 3 ? Q30 : D30;
 
 	int elem_size = 1 << (format / 2);
 	int load_bytes = elem_size * count_in;
-	int load_size = load_bytes == 1 ? 1 : load_bytes <= 2 ? 2 : load_bytes <= 4 ? 4 : load_bytes <= 8 ? 8 : 16;
+	int load_size =
+		load_bytes == 1 ? 1 : load_bytes <= 2 ? 2 : load_bytes <= 4 ? 4 : load_bytes <= 8 ? 8 : 16;
 	load_size <<= 3;
 	elem_size <<= 3;
 
@@ -125,7 +127,7 @@ int VertexLoaderARM64::ReadVertex(u64 attribute, int format, int count_in, int c
 		else
 			m_float_emit.LD1(elem_size, 1, coords, EncodeRegTo64(scratch1_reg));
 	}
-	else if (offset & (load_size - 1)) // Not aligned - unscaled
+	else if (offset & (load_size - 1))  // Not aligned - unscaled
 	{
 		m_float_emit.LDUR(load_size, coords, src_reg, offset);
 	}
@@ -142,19 +144,19 @@ int VertexLoaderARM64::ReadVertex(u64 attribute, int format, int count_in, int c
 		case FORMAT_UBYTE:
 			m_float_emit.UXTL(8, EncodeRegToDouble(coords), EncodeRegToDouble(coords));
 			m_float_emit.UXTL(16, EncodeRegToDouble(coords), EncodeRegToDouble(coords));
-		break;
+			break;
 		case FORMAT_BYTE:
 			m_float_emit.SXTL(8, EncodeRegToDouble(coords), EncodeRegToDouble(coords));
 			m_float_emit.SXTL(16, EncodeRegToDouble(coords), EncodeRegToDouble(coords));
-		break;
+			break;
 		case FORMAT_USHORT:
 			m_float_emit.REV16(8, EncodeRegToDouble(coords), EncodeRegToDouble(coords));
 			m_float_emit.UXTL(16, EncodeRegToDouble(coords), EncodeRegToDouble(coords));
-		break;
+			break;
 		case FORMAT_SHORT:
 			m_float_emit.REV16(8, EncodeRegToDouble(coords), EncodeRegToDouble(coords));
 			m_float_emit.SXTL(16, EncodeRegToDouble(coords), EncodeRegToDouble(coords));
-		break;
+			break;
 		}
 
 		m_float_emit.SCVTF(32, coords, coords);
@@ -191,8 +193,9 @@ int VertexLoaderARM64::ReadVertex(u64 attribute, int format, int count_in, int c
 	{
 		CMP(count_reg, 3);
 		FixupBranch dont_store = B(CC_GT);
-		MOVI2R(EncodeRegTo64(scratch2_reg), (u64)VertexLoaderManager::position_cache);
-		ADD(EncodeRegTo64(scratch1_reg), EncodeRegTo64(scratch2_reg), EncodeRegTo64(count_reg), ArithOption(EncodeRegTo64(count_reg), ST_LSL, 4));
+		MOVP2R(EncodeRegTo64(scratch2_reg), VertexLoaderManager::position_cache);
+		ADD(EncodeRegTo64(scratch1_reg), EncodeRegTo64(scratch2_reg), EncodeRegTo64(count_reg),
+			ArithOption(EncodeRegTo64(count_reg), ST_LSL, 4));
 		m_float_emit.STUR(write_size, coords, EncodeRegTo64(scratch1_reg), -16);
 		SetJumpTarget(dont_store);
 	}
@@ -215,136 +218,136 @@ void VertexLoaderARM64::ReadColor(u64 attribute, int format, s32 offset)
 	int load_bytes = 0;
 	switch (format)
 	{
-		case FORMAT_24B_888:
-		case FORMAT_32B_888x:
-		case FORMAT_32B_8888:
-			if (offset == -1)
-				LDR(INDEX_UNSIGNED, scratch2_reg, EncodeRegTo64(scratch1_reg), 0);
-			else if (offset & 3) // Not aligned - unscaled
-				LDUR(scratch2_reg, src_reg, offset);
+	case FORMAT_24B_888:
+	case FORMAT_32B_888x:
+	case FORMAT_32B_8888:
+		if (offset == -1)
+			LDR(INDEX_UNSIGNED, scratch2_reg, EncodeRegTo64(scratch1_reg), 0);
+		else if (offset & 3)  // Not aligned - unscaled
+			LDUR(scratch2_reg, src_reg, offset);
+		else
+			LDR(INDEX_UNSIGNED, scratch2_reg, src_reg, offset);
+
+		if (format != FORMAT_32B_8888)
+			ORR(scratch2_reg, scratch2_reg, 8, 7);  // 0xFF000000
+		STR(INDEX_UNSIGNED, scratch2_reg, dst_reg, m_dst_ofs);
+		load_bytes = 3 + (format != FORMAT_24B_888);
+		break;
+
+	case FORMAT_16B_565:
+		//                   RRRRRGGG GGGBBBBB
+		// AAAAAAAA BBBBBBBB GGGGGGGG RRRRRRRR
+		if (offset == -1)
+			LDRH(INDEX_UNSIGNED, scratch3_reg, EncodeRegTo64(scratch1_reg), 0);
+		else if (offset & 1)  // Not aligned - unscaled
+			LDURH(scratch3_reg, src_reg, offset);
+		else
+			LDRH(INDEX_UNSIGNED, scratch3_reg, src_reg, offset);
+
+		REV16(scratch3_reg, scratch3_reg);
+
+		// B
+		AND(scratch2_reg, scratch3_reg, 32, 4);
+		ORR(scratch2_reg, WSP, scratch2_reg, ArithOption(scratch2_reg, ST_LSL, 3));
+		ORR(scratch2_reg, scratch2_reg, scratch2_reg, ArithOption(scratch2_reg, ST_LSR, 5));
+		ORR(scratch1_reg, WSP, scratch2_reg, ArithOption(scratch2_reg, ST_LSL, 16));
+
+		// G
+		UBFM(scratch2_reg, scratch3_reg, 5, 10);
+		ORR(scratch2_reg, WSP, scratch2_reg, ArithOption(scratch2_reg, ST_LSL, 2));
+		ORR(scratch2_reg, scratch2_reg, scratch2_reg, ArithOption(scratch2_reg, ST_LSR, 6));
+		ORR(scratch1_reg, scratch1_reg, scratch2_reg, ArithOption(scratch2_reg, ST_LSL, 8));
+
+		// R
+		UBFM(scratch2_reg, scratch3_reg, 11, 15);
+		ORR(scratch1_reg, scratch1_reg, scratch2_reg, ArithOption(scratch2_reg, ST_LSL, 3));
+		ORR(scratch1_reg, scratch1_reg, scratch2_reg, ArithOption(scratch2_reg, ST_LSR, 2));
+
+		// A
+		ORR(scratch2_reg, scratch2_reg, 8, 7);  // 0xFF000000
+
+		STR(INDEX_UNSIGNED, scratch1_reg, dst_reg, m_dst_ofs);
+		load_bytes = 2;
+		break;
+
+	case FORMAT_16B_4444:
+		//                   BBBBAAAA RRRRGGGG
+		//           REV16 - RRRRGGGG BBBBAAAA
+		// AAAAAAAA BBBBBBBB GGGGGGGG RRRRRRRR
+		if (offset == -1)
+			LDRH(INDEX_UNSIGNED, scratch3_reg, EncodeRegTo64(scratch1_reg), 0);
+		else if (offset & 1)  // Not aligned - unscaled
+			LDURH(scratch3_reg, src_reg, offset);
+		else
+			LDRH(INDEX_UNSIGNED, scratch3_reg, src_reg, offset);
+
+		// R
+		UBFM(scratch1_reg, scratch3_reg, 4, 7);
+
+		// G
+		AND(scratch2_reg, scratch3_reg, 32, 3);
+		ORR(scratch1_reg, scratch1_reg, scratch2_reg, ArithOption(scratch2_reg, ST_LSL, 8));
+
+		// B
+		UBFM(scratch2_reg, scratch3_reg, 12, 15);
+		ORR(scratch1_reg, scratch1_reg, scratch2_reg, ArithOption(scratch2_reg, ST_LSL, 16));
+
+		// A
+		UBFM(scratch2_reg, scratch3_reg, 8, 11);
+		ORR(scratch1_reg, scratch1_reg, scratch2_reg, ArithOption(scratch2_reg, ST_LSL, 24));
+
+		// Final duplication
+		ORR(scratch1_reg, scratch1_reg, scratch1_reg, ArithOption(scratch1_reg, ST_LSL, 4));
+
+		STR(INDEX_UNSIGNED, scratch1_reg, dst_reg, m_dst_ofs);
+		load_bytes = 2;
+		break;
+
+	case FORMAT_24B_6666:
+		//          RRRRRRGG GGGGBBBB BBAAAAAA
+		// AAAAAAAA BBBBBBBB GGGGGGGG RRRRRRRR
+		if (offset == -1)
+		{
+			LDUR(scratch3_reg, EncodeRegTo64(scratch1_reg), -1);
+		}
+		else
+		{
+			offset -= 1;
+			if (offset & 3)  // Not aligned - unscaled
+				LDUR(scratch3_reg, src_reg, offset);
 			else
-				LDR(INDEX_UNSIGNED, scratch2_reg, src_reg, offset);
+				LDR(INDEX_UNSIGNED, scratch3_reg, src_reg, offset);
+		}
 
-			if (format != FORMAT_32B_8888)
-				ORR(scratch2_reg, scratch2_reg, 8, 7); // 0xFF000000
-			STR(INDEX_UNSIGNED, scratch2_reg, dst_reg, m_dst_ofs);
-			load_bytes = 3 + (format != FORMAT_24B_888);
-			break;
+		REV32(scratch3_reg, scratch3_reg);
 
-		case FORMAT_16B_565:
-			//                   RRRRRGGG GGGBBBBB
-			// AAAAAAAA BBBBBBBB GGGGGGGG RRRRRRRR
-			if (offset == -1)
-				LDRH(INDEX_UNSIGNED, scratch3_reg, EncodeRegTo64(scratch1_reg), 0);
-			else if (offset & 1) // Not aligned - unscaled
-				LDURH(scratch3_reg, src_reg, offset);
-			else
-				LDRH(INDEX_UNSIGNED, scratch3_reg, src_reg, offset);
+		// A
+		UBFM(scratch2_reg, scratch3_reg, 0, 5);
+		ORR(scratch2_reg, WSP, scratch2_reg, ArithOption(scratch2_reg, ST_LSL, 2));
+		ORR(scratch2_reg, scratch2_reg, scratch2_reg, ArithOption(scratch2_reg, ST_LSR, 6));
+		ORR(scratch1_reg, WSP, scratch2_reg, ArithOption(scratch2_reg, ST_LSL, 24));
 
-			REV16(scratch3_reg, scratch3_reg);
+		// B
+		UBFM(scratch2_reg, scratch3_reg, 6, 11);
+		ORR(scratch2_reg, WSP, scratch2_reg, ArithOption(scratch2_reg, ST_LSL, 2));
+		ORR(scratch2_reg, scratch2_reg, scratch2_reg, ArithOption(scratch2_reg, ST_LSR, 6));
+		ORR(scratch1_reg, scratch1_reg, scratch2_reg, ArithOption(scratch2_reg, ST_LSL, 16));
 
-			// B
-			AND(scratch2_reg, scratch3_reg, 32, 4);
-			ORR(scratch2_reg, WSP, scratch2_reg, ArithOption(scratch2_reg, ST_LSL, 3));
-			ORR(scratch2_reg, scratch2_reg, scratch2_reg, ArithOption(scratch2_reg, ST_LSR, 5));
-			ORR(scratch1_reg, WSP, scratch2_reg, ArithOption(scratch2_reg, ST_LSL, 16));
+		// G
+		UBFM(scratch2_reg, scratch3_reg, 12, 17);
+		ORR(scratch2_reg, WSP, scratch2_reg, ArithOption(scratch2_reg, ST_LSL, 2));
+		ORR(scratch2_reg, scratch2_reg, scratch2_reg, ArithOption(scratch2_reg, ST_LSR, 6));
+		ORR(scratch1_reg, scratch1_reg, scratch2_reg, ArithOption(scratch2_reg, ST_LSL, 8));
 
-			// G
-			UBFM(scratch2_reg, scratch3_reg, 5, 10);
-			ORR(scratch2_reg, WSP, scratch2_reg, ArithOption(scratch2_reg, ST_LSL, 2));
-			ORR(scratch2_reg, scratch2_reg, scratch2_reg, ArithOption(scratch2_reg, ST_LSR, 6));
-			ORR(scratch1_reg, scratch1_reg, scratch2_reg, ArithOption(scratch2_reg, ST_LSL, 8));
+		// R
+		UBFM(scratch2_reg, scratch3_reg, 18, 23);
+		ORR(scratch1_reg, scratch1_reg, scratch2_reg, ArithOption(scratch2_reg, ST_LSL, 2));
+		ORR(scratch1_reg, scratch1_reg, scratch2_reg, ArithOption(scratch2_reg, ST_LSR, 4));
 
-			// R
-			UBFM(scratch2_reg, scratch3_reg, 11, 15);
-			ORR(scratch1_reg, scratch1_reg, scratch2_reg, ArithOption(scratch2_reg, ST_LSL, 3));
-			ORR(scratch1_reg, scratch1_reg, scratch2_reg, ArithOption(scratch2_reg, ST_LSR, 2));
+		STR(INDEX_UNSIGNED, scratch1_reg, dst_reg, m_dst_ofs);
 
-			// A
-			ORR(scratch2_reg, scratch2_reg, 8, 7); // 0xFF000000
-
-			STR(INDEX_UNSIGNED, scratch1_reg, dst_reg, m_dst_ofs);
-			load_bytes = 2;
-			break;
-
-		case FORMAT_16B_4444:
-			//                   BBBBAAAA RRRRGGGG
-			//           REV16 - RRRRGGGG BBBBAAAA
-			// AAAAAAAA BBBBBBBB GGGGGGGG RRRRRRRR
-			if (offset == -1)
-				LDRH(INDEX_UNSIGNED, scratch3_reg, EncodeRegTo64(scratch1_reg), 0);
-			else if (offset & 1) // Not aligned - unscaled
-				LDURH(scratch3_reg, src_reg, offset);
-			else
-				LDRH(INDEX_UNSIGNED, scratch3_reg, src_reg, offset);
-
-			// R
-			UBFM(scratch1_reg, scratch3_reg, 4, 7);
-
-			// G
-			AND(scratch2_reg, scratch3_reg, 32, 3);
-			ORR(scratch1_reg, scratch1_reg, scratch2_reg, ArithOption(scratch2_reg, ST_LSL, 8));
-
-			// B
-			UBFM(scratch2_reg, scratch3_reg, 12, 15);
-			ORR(scratch1_reg, scratch1_reg, scratch2_reg, ArithOption(scratch2_reg, ST_LSL, 16));
-
-			// A
-			UBFM(scratch2_reg, scratch3_reg, 8, 11);
-			ORR(scratch1_reg, scratch1_reg, scratch2_reg, ArithOption(scratch2_reg, ST_LSL, 24));
-
-			// Final duplication
-			ORR(scratch1_reg, scratch1_reg, scratch1_reg, ArithOption(scratch1_reg, ST_LSL, 4));
-
-			STR(INDEX_UNSIGNED, scratch1_reg, dst_reg, m_dst_ofs);
-			load_bytes = 2;
-			break;
-
-		case FORMAT_24B_6666:
-			//          RRRRRRGG GGGGBBBB BBAAAAAA
-			// AAAAAAAA BBBBBBBB GGGGGGGG RRRRRRRR
-			if (offset == -1)
-			{
-				LDUR(scratch3_reg, EncodeRegTo64(scratch1_reg), -1);
-			}
-			else
-			{
-				offset -= 1;
-				if (offset & 3) // Not aligned - unscaled
-					LDUR(scratch3_reg, src_reg, offset);
-				else
-					LDR(INDEX_UNSIGNED, scratch3_reg, src_reg, offset);
-			}
-
-			REV32(scratch3_reg, scratch3_reg);
-
-			// A
-			UBFM(scratch2_reg, scratch3_reg, 0, 5);
-			ORR(scratch2_reg, WSP, scratch2_reg, ArithOption(scratch2_reg, ST_LSL, 2));
-			ORR(scratch2_reg, scratch2_reg, scratch2_reg, ArithOption(scratch2_reg, ST_LSR, 6));
-			ORR(scratch1_reg, WSP, scratch2_reg, ArithOption(scratch2_reg, ST_LSL, 24));
-
-			// B
-			UBFM(scratch2_reg, scratch3_reg, 6, 11);
-			ORR(scratch2_reg, WSP, scratch2_reg, ArithOption(scratch2_reg, ST_LSL, 2));
-			ORR(scratch2_reg, scratch2_reg, scratch2_reg, ArithOption(scratch2_reg, ST_LSR, 6));
-			ORR(scratch1_reg, scratch1_reg, scratch2_reg, ArithOption(scratch2_reg, ST_LSL, 16));
-
-			// G
-			UBFM(scratch2_reg, scratch3_reg, 12, 17);
-			ORR(scratch2_reg, WSP, scratch2_reg, ArithOption(scratch2_reg, ST_LSL, 2));
-			ORR(scratch2_reg, scratch2_reg, scratch2_reg, ArithOption(scratch2_reg, ST_LSR, 6));
-			ORR(scratch1_reg, scratch1_reg, scratch2_reg, ArithOption(scratch2_reg, ST_LSL, 8));
-
-			// R
-			UBFM(scratch2_reg, scratch3_reg, 18, 23);
-			ORR(scratch1_reg, scratch1_reg, scratch2_reg, ArithOption(scratch2_reg, ST_LSL, 2));
-			ORR(scratch1_reg, scratch1_reg, scratch2_reg, ArithOption(scratch2_reg, ST_LSR, 4));
-
-			STR(INDEX_UNSIGNED, scratch1_reg, dst_reg, m_dst_ofs);
-
-			load_bytes = 3;
-			break;
+		load_bytes = 3;
+		break;
 	}
 	if (attribute == DIRECT)
 		m_src_ofs += load_bytes;
@@ -380,20 +383,19 @@ void VertexLoaderARM64::GenerateVertexLoader()
 		has_tc_scale |= !!m_VtxAttr.texCoord[i].Frac;
 	}
 
-	bool need_scale = (m_VtxAttr.ByteDequant && m_VtxAttr.PosFrac) ||
-	                  (has_tc && has_tc_scale) ||
-	                  m_VtxDesc.Normal;
+	bool need_scale =
+		(m_VtxAttr.ByteDequant && m_VtxAttr.PosFrac) || (has_tc && has_tc_scale) || m_VtxDesc.Normal;
 
 	AlignCode16();
 	if (m_VtxDesc.Position & MASK_INDEXED)
 		MOV(skipped_reg, WZR);
 	MOV(saved_count, count_reg);
 
-	MOVI2R(stride_reg, (u64)&g_main_cp_state.array_strides);
-	MOVI2R(arraybase_reg, (u64)&VertexLoaderManager::cached_arraybases);
+	MOVP2R(stride_reg, g_main_cp_state.array_strides);
+	MOVP2R(arraybase_reg, VertexLoaderManager::cached_arraybases);
 
 	if (need_scale)
-		MOVI2R(scale_reg, (u64)&scale_factors);
+		MOVP2R(scale_reg, scale_factors);
 
 	const u8* loop_start = GetCodePtr();
 
@@ -406,7 +408,7 @@ void VertexLoaderARM64::GenerateVertexLoader()
 		// Z-Freeze
 		CMP(count_reg, 3);
 		FixupBranch dont_store = B(CC_GT);
-		MOVI2R(EncodeRegTo64(scratch2_reg), (u64)VertexLoaderManager::position_matrix_index - sizeof(u32));
+		MOVP2R(EncodeRegTo64(scratch2_reg), VertexLoaderManager::position_matrix_index);
 		STR(INDEX_UNSIGNED, scratch1_reg, EncodeRegTo64(scratch2_reg), 0);
 		SetJumpTarget(dont_store);
 
@@ -435,18 +437,20 @@ void VertexLoaderARM64::GenerateVertexLoader()
 	{
 		int elem_size = 1 << (m_VtxAttr.PosFormat / 2);
 		int load_bytes = elem_size * (m_VtxAttr.PosElements + 2);
-		int load_size = load_bytes == 1 ? 1 : load_bytes <= 2 ? 2 : load_bytes <= 4 ? 4 : load_bytes <= 8 ? 8 : 16;
+		int load_size =
+			load_bytes == 1 ? 1 : load_bytes <= 2 ? 2 : load_bytes <= 4 ? 4 : load_bytes <= 8 ? 8 : 16;
 		load_size <<= 3;
 
-		s32 offset = GetAddressImm(ARRAY_POSITION, m_VtxDesc.Position, EncodeRegTo64(scratch1_reg), load_size);
+		s32 offset =
+			GetAddressImm(ARRAY_POSITION, m_VtxDesc.Position, EncodeRegTo64(scratch1_reg), load_size);
 		int pos_elements = m_VtxAttr.PosElements + 2;
 		ReadVertex(m_VtxDesc.Position, m_VtxAttr.PosFormat, pos_elements, pos_elements,
-		           m_VtxAttr.ByteDequant, m_VtxAttr.PosFrac, &m_native_vtx_decl.position, offset);
+			m_VtxAttr.ByteDequant, m_VtxAttr.PosFrac, &m_native_vtx_decl.position, offset);
 	}
 
 	if (m_VtxDesc.Normal)
 	{
-		static const u8 map[8] = {7, 6, 15, 14};
+		static const u8 map[8] = { 7, 6, 15, 14 };
 		u8 scaling_exponent = map[m_VtxAttr.NormalFormat];
 
 		s32 offset = -1;
@@ -457,17 +461,20 @@ void VertexLoaderARM64::GenerateVertexLoader()
 				int elem_size = 1 << (m_VtxAttr.NormalFormat / 2);
 
 				int load_bytes = elem_size * 3;
-				int load_size = load_bytes == 1 ? 1 : load_bytes <= 2 ? 2 : load_bytes <= 4 ? 4 : load_bytes <= 8 ? 8 : 16;
+				int load_size = load_bytes == 1 ? 1 : load_bytes <= 2 ? 2 : load_bytes <= 4 ?
+					4 :
+					load_bytes <= 8 ? 8 : 16;
 
-				offset = GetAddressImm(ARRAY_NORMAL, m_VtxDesc.Normal, EncodeRegTo64(scratch1_reg), load_size << 3);
+				offset = GetAddressImm(ARRAY_NORMAL, m_VtxDesc.Normal, EncodeRegTo64(scratch1_reg),
+					load_size << 3);
 
 				if (offset == -1)
 					ADD(EncodeRegTo64(scratch1_reg), EncodeRegTo64(scratch1_reg), i * elem_size * 3);
 				else
 					offset += i * elem_size * 3;
 			}
-			int bytes_read = ReadVertex(m_VtxDesc.Normal, m_VtxAttr.NormalFormat, 3, 3,
-			                            true, scaling_exponent, &m_native_vtx_decl.normals[i], offset);
+			int bytes_read = ReadVertex(m_VtxDesc.Normal, m_VtxAttr.NormalFormat, 3, 3, true,
+				scaling_exponent, &m_native_vtx_decl.normals[i], offset);
 
 			if (offset == -1)
 				ADD(EncodeRegTo64(scratch1_reg), EncodeRegTo64(scratch1_reg), bytes_read);
@@ -480,7 +487,7 @@ void VertexLoaderARM64::GenerateVertexLoader()
 			m_native_components |= VB_HAS_NRM1 | VB_HAS_NRM2;
 	}
 
-	const u64 col[2] = {m_VtxDesc.Color0, m_VtxDesc.Color1};
+	const u64 col[2] = { m_VtxDesc.Color0, m_VtxDesc.Color1 };
 	for (int i = 0; i < 2; i++)
 	{
 		m_native_vtx_decl.colors[i].components = 4;
@@ -490,8 +497,7 @@ void VertexLoaderARM64::GenerateVertexLoader()
 		if (col[i])
 		{
 			u32 align = 4;
-			if (m_VtxAttr.color[i].Comp == FORMAT_16B_565 ||
-			    m_VtxAttr.color[i].Comp == FORMAT_16B_4444)
+			if (m_VtxAttr.color[i].Comp == FORMAT_16B_565 || m_VtxAttr.color[i].Comp == FORMAT_16B_4444)
 				align = 2;
 
 			s32 offset = GetAddressImm(ARRAY_COLOR + i, col[i], EncodeRegTo64(scratch1_reg), align);
@@ -506,8 +512,6 @@ void VertexLoaderARM64::GenerateVertexLoader()
 		}
 	}
 
-
-
 	for (int i = 0; i < 8; i++)
 	{
 		m_native_vtx_decl.texcoords[i].offset = m_dst_ofs;
@@ -521,13 +525,16 @@ void VertexLoaderARM64::GenerateVertexLoader()
 
 			int elem_size = 1 << (m_VtxAttr.texCoord[i].Format / 2);
 			int load_bytes = elem_size * (elements + 2);
-			int load_size = load_bytes == 1 ? 1 : load_bytes <= 2 ? 2 : load_bytes <= 4 ? 4 : load_bytes <= 8 ? 8 : 16;
+			int load_size = load_bytes == 1 ? 1 : load_bytes <= 2 ? 2 : load_bytes <= 4 ?
+				4 :
+				load_bytes <= 8 ? 8 : 16;
 			load_size <<= 3;
 
-			s32 offset = GetAddressImm(ARRAY_TEXCOORD0 + i, tc[i], EncodeRegTo64(scratch1_reg), load_size);
+			s32 offset =
+				GetAddressImm(ARRAY_TEXCOORD0 + i, tc[i], EncodeRegTo64(scratch1_reg), load_size);
 			u8 scaling_exponent = m_VtxAttr.texCoord[i].Frac;
 			ReadVertex(tc[i], m_VtxAttr.texCoord[i].Format, elements, tm[i] ? 2 : elements,
-			           m_VtxAttr.ByteDequant, scaling_exponent, &m_native_vtx_decl.texcoords[i], offset);
+				m_VtxAttr.ByteDequant, scaling_exponent, &m_native_vtx_decl.texcoords[i], offset);
 		}
 		if (tm[i])
 		{
@@ -604,5 +611,6 @@ void VertexLoaderARM64::GenerateVertexLoader()
 int VertexLoaderARM64::RunVertices(DataReader src, DataReader dst, int count)
 {
 	m_numLoadedVertices += count;
-	return ((int (*)(u8* src, u8* dst, int count))region)(src.GetPointer(), dst.GetPointer(), count);
+	return ((int(*)(u8 * src, u8 * dst, int count))region)(src.GetPointer(), dst.GetPointer(),
+		count);
 }

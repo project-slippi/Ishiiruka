@@ -94,6 +94,8 @@ inline void LoadDataResource(ID3D11Texture2D* pTexture, const u8* buffer, const 
 	case DXGI_FORMAT_BC3_UNORM:
 		pitch = (pitch + 3) >> 2;
 		pixelsize = (fmt == DXGI_FORMAT_BC1_UNORM ? 8 : 16);
+		dest_region.right = width < 4 ? 4 : width;
+		dest_region.bottom = height < 4 ? 4 : height;
 		height = 0;
 		break;
 	default:

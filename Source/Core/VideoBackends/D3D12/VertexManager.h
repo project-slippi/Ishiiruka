@@ -3,7 +3,7 @@
 // Refer to the license.txt file included.
 
 #pragma once
-
+#include "Common/MemoryUtil.h"
 #include "VideoCommon/VertexManagerBase.h"
 
 namespace DX12
@@ -44,8 +44,8 @@ private:
 
 	bool m_stream_buffer_reallocated = true;
 
-	std::vector<u8> m_index_cpu_buffer;
-	std::vector<u8> m_vertex_cpu_buffer;
+	std::vector<u8, aligned_allocator<u8, 256>> m_index_cpu_buffer;
+	std::vector<u8, aligned_allocator<u16, 256>> m_vertex_cpu_buffer;
 
 };
 

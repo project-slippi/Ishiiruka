@@ -53,12 +53,9 @@ public:
 	void ClearScreen(const EFBRectangle& rc, bool colorEnable, bool alphaEnable, bool zEnable, u32 color, u32 z) override;
 
 	void ReinterpretPixelData(unsigned int convtype) override;
-
-	bool SaveScreenshot(const std::string &filename, const TargetRectangle &rc) override;
-
 	static bool CheckForResize();
 
-	int GetMaxTextureSize() override;
+	u32 GetMaxTextureSize() override;
 };
 
 }

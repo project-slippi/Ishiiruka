@@ -308,7 +308,7 @@ DDSCompression ImageLoader::ReadDDS(ImageLoaderParams& loader_params)
 	return Result;
 }
 
-bool TextureToDDS(u8* data, int row_stride, const std::string& filename, int width, int height, DDSCompression format)
+bool TextureToDDS(const u8* data, int row_stride, const std::string& filename, int width, int height, DDSCompression format)
 {
 	DDSHeader header = { 0 };
 	header.dwSignature = DDS_SIGNARURE;

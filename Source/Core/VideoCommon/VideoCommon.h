@@ -118,12 +118,13 @@ struct TargetSize final
 
 typedef enum
 {
+	API_NONE = 0,
 	API_OPENGL = 1,
 	API_D3D9_SM30 = 2,
 	API_D3D9_SM20 = 4,
 	API_D3D9 = 6,
 	API_D3D11 = 8,
-	API_NONE = 16
+	API_VULKAN = 16
 } API_TYPE;
 
 // Can be used for RGBA->BGRA or BGRA->RGBA

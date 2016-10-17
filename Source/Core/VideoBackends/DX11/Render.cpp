@@ -37,7 +37,6 @@
 #include "VideoCommon/AVIDump.h"
 #include "VideoCommon/BPFunctions.h"
 #include "VideoCommon/Fifo.h"
-#include "VideoCommon/ImageWrite.h"
 #include "VideoCommon/OnScreenDisplay.h"
 #include "VideoCommon/PixelEngine.h"
 #include "VideoCommon/PixelShaderManager.h"
@@ -79,7 +78,7 @@ struct
 {
 	SamplerState sampler[8];
 	BlendState blend;
-	ZMode zmode;
+	DepthState zmode;
 	RasterizerState raster;
 
 } gx_state;
@@ -266,6 +265,7 @@ Renderer::Renderer(void *&window_handle)
 	gx_state.zmode.testenable = false;
 	gx_state.zmode.updateenable = false;
 	gx_state.zmode.func = ZMode::NEVER;
+	gx_state.zmode.reversed_depth = false;
 
 	gx_state.raster.cull_mode = D3D11_CULL_NONE;
 
@@ -491,19 +491,12 @@ void Renderer::SetViewport()
 	Wd = (X + Wd <= GetTargetWidth()) ? Wd : (GetTargetWidth() - X);
 	Ht = (Y + Ht <= GetTargetHeight()) ? Ht : (GetTargetHeight() - Y);
 
-	D3D11_VIEWPORT vp = CD3D11_VIEWPORT(X, Y, Wd, Ht,
-		0.0f,
-		1.0f);
-	float nearz = xfmem.viewport.farZ - MathUtil::Clamp<float>(xfmem.viewport.zRange, 0.0f, 16777216.0f);
-	float farz = xfmem.viewport.farZ;
-
-	const bool nonStandartViewport = g_ActiveConfig.bViewportCorrection && (nearz < 0.f || farz > 16777216.0f || nearz >= 16777216.0f || farz <= 0.f);
-	if (!nonStandartViewport)
-	{
-		vp.MaxDepth = 1.0f - (MathUtil::Clamp<float>(nearz, 0.0f, 16777215.0f) / 16777216.0f);
-		vp.MinDepth = 1.0f - (MathUtil::Clamp<float>(farz, 0.0f, 16777215.0f) / 16777216.0f);
-	}
+	// We do depth clipping and depth range in the vertex shader instead of relying
+	// on the graphics API. However we still need to ensure depth values don't exceed
+	// the maximum value supported by the console GPU.
+	D3D11_VIEWPORT vp = CD3D11_VIEWPORT(X, Y, Wd, Ht, 1.0f - GX_MAX_DEPTH, D3D11_MAX_DEPTH);
 	D3D::context->RSSetViewports(1, &vp);
+	gx_state.zmode.reversed_depth = xfmem.viewport.zRange < 0;
 }
 
 void Renderer::ClearScreen(const EFBRectangle& rc, bool colorEnable, bool alphaEnable, bool zEnable, u32 color, u32 z)
@@ -527,7 +520,14 @@ void Renderer::ClearScreen(const EFBRectangle& rc, bool colorEnable, bool alphaE
 
 	// Color is passed in bgra mode so we need to convert it to rgba
 	u32 rgbaColor = (color & 0xFF00FF00) | ((color >> 16) & 0xFF) | ((color << 16) & 0xFF0000);
-	D3D::drawClearQuad(rgbaColor, 1.0f - ((z & 0xFFFFFF) / 16777216.0f));
+	if (xfmem.viewport.zRange < 0)
+	{
+		D3D::drawClearQuad(rgbaColor, (z & 0xFFFFFF) / 16777216.0f);
+	}
+	else
+	{
+		D3D::drawClearQuad(rgbaColor, 1.0f - ((z & 0xFFFFFF) / 16777216.0f));
+	}
 
 	D3D::stateman->PopDepthState();
 	D3D::stateman->PopBlendState();
@@ -540,7 +540,7 @@ void Renderer::ClearScreen(const EFBRectangle& rc, bool colorEnable, bool alphaE
 void Renderer::ReinterpretPixelData(unsigned int convtype)
 {
 	// TODO: MSAA support..
-	D3D11_RECT source = CD3D11_RECT(0, 0, g_renderer->GetTargetWidth(), g_renderer->GetTargetHeight());
+	D3D11_RECT source = CD3D11_RECT(0, 0, GetTargetWidth(), GetTargetHeight());
 
 	ID3D11PixelShader* pixel_shader;
 	if (convtype == 0) pixel_shader = PixelShaderCache::ReinterpRGB8ToRGBA6(true);
@@ -552,17 +552,17 @@ void Renderer::ReinterpretPixelData(unsigned int convtype)
 	}
 
 	// convert data and set the target texture as our new EFB
-	g_renderer->ResetAPIState();
+	ResetAPIState();
 	D3D::context->OMSetRenderTargets(1, &FramebufferManager::GetEFBColorTempTexture()->GetRTV(), nullptr);
-	D3D11_VIEWPORT vp = CD3D11_VIEWPORT(0.f, 0.f, (float)g_renderer->GetTargetWidth(), (float)g_renderer->GetTargetHeight());
+	D3D11_VIEWPORT vp = CD3D11_VIEWPORT(0.f, 0.f, (float)GetTargetWidth(), (float)GetTargetHeight());
 	D3D::context->RSSetViewports(1, &vp);
 
 	D3D::SetPointCopySampler();
 	D3D::drawShadedTexQuad(
 		FramebufferManager::GetEFBColorTexture()->GetSRV(),
 		&source,
-		g_renderer->GetTargetWidth(),
-		g_renderer->GetTargetHeight(),
+		GetTargetWidth(),
+		GetTargetHeight(),
 		pixel_shader,
 		VertexShaderCache::GetSimpleVertexShader(),
 		VertexShaderCache::GetSimpleInputLayout());
@@ -625,60 +625,11 @@ void Renderer::SetBlendMode(bool forceUpdate)
 	}
 }
 
-bool Renderer::SaveScreenshot(const std::string &filename, const TargetRectangle& rc)
-{
-	if (!s_screenshot_texture)
-		CreateScreenshotTexture();
-
-	// copy back buffer to system memory
-	D3D11_BOX source_box = GetScreenshotSourceBox(rc);
-	D3D::context->CopySubresourceRegion(s_screenshot_texture.get(), 0, 0, 0, 0, (ID3D11Resource*)D3D::GetBackBuffer()->GetTex(), 0, &source_box);
-
-	D3D11_MAPPED_SUBRESOURCE map;
-	D3D::context->Map(s_screenshot_texture.get(), 0, D3D11_MAP_READ_WRITE, 0, &map);
-
-	bool saved_png = TextureToPng((u8*)map.pData, map.RowPitch, filename, source_box.right - source_box.left, source_box.bottom - source_box.top, false);
-
-	D3D::context->Unmap(s_screenshot_texture.get(), 0);
-
-
-	if (saved_png)
-	{
-		OSD::AddMessage(StringFromFormat("Saved %i x %i %s", rc.GetWidth(),
-			rc.GetHeight(), filename.c_str()));
-	}
-	else
-	{
-		OSD::AddMessage(StringFromFormat("Error saving %s", filename.c_str()));
-	}
-
-	return saved_png;
-}
-
-void formatBufferDump(const u8* in, u8* out, int w, int h, int p)
-{
-	for (int y = 0; y < h; ++y)
-	{
-		auto line = (in + (h - y - 1) * p);
-		for (int x = 0; x < w; ++x)
-		{
-			out[0] = line[2];
-			out[1] = line[1];
-			out[2] = line[0];
-			out += 3;
-			line += 4;
-		}
-	}
-}
-
 // This function has the final picture. We adjust the aspect ratio here.
 void Renderer::SwapImpl(u32 xfbAddr, u32 fbWidth, u32 fbStride, u32 fbHeight, const EFBRectangle& rc, float Gamma)
 {
-	if (Fifo::WillSkipCurrentFrame() || (!XFBWrited && !g_ActiveConfig.RealXFBEnabled()) || !fbWidth || !fbHeight)
+	if ((!XFBWrited && !g_ActiveConfig.RealXFBEnabled()) || !fbWidth || !fbHeight)
 	{
-		if (SConfig::GetInstance().m_DumpFrames && !frame_data.empty())
-			AVIDump::AddFrame(&frame_data[0], fbWidth, fbHeight);
-
 		Core::Callback_VideoCopiedToXFB(false);
 		return;
 	}
@@ -687,9 +638,6 @@ void Renderer::SwapImpl(u32 xfbAddr, u32 fbWidth, u32 fbStride, u32 fbHeight, co
 	const XFBSourceBase* const* xfbSourceList = FramebufferManager::GetXFBSource(xfbAddr, fbStride, fbHeight, &xfbCount);
 	if ((!xfbSourceList || xfbCount == 0) && g_ActiveConfig.bUseXFB && !g_ActiveConfig.bUseRealXFB)
 	{
-		if (SConfig::GetInstance().m_DumpFrames && !frame_data.empty())
-			AVIDump::AddFrame(&frame_data[0], fbWidth, fbHeight);
-
 		Core::Callback_VideoCopiedToXFB(false);
 		return;
 	}
@@ -794,18 +742,9 @@ void Renderer::SwapImpl(u32 xfbAddr, u32 fbWidth, u32 fbStride, u32 fbHeight, co
 		D3D11_VIEWPORT vp = CD3D11_VIEWPORT((float)targetRc.left, (float)targetRc.top, (float)targetRc.GetWidth(), (float)targetRc.GetHeight());
 		D3D::context->RSSetViewports(1, &vp);
 	}
-	// done with drawing the game stuff, good moment to save a screenshot
-	if (s_bScreenshot)
-	{
-		std::lock_guard<std::mutex> guard(s_criticalScreenshot);
-		SaveScreenshot(s_sScreenshotName, GetTargetRectangle());
-		s_sScreenshotName.clear();
-		s_bScreenshot = false;
-		s_screenshotCompleted.Set();
-	}
 
 	// Dump frames
-	if (SConfig::GetInstance().m_DumpFrames)
+	if (IsFrameDumping())
 	{
 		if (!s_screenshot_texture)
 			CreateScreenshotTexture();
@@ -814,47 +753,13 @@ void Renderer::SwapImpl(u32 xfbAddr, u32 fbWidth, u32 fbStride, u32 fbHeight, co
 		unsigned int source_width = source_box.right - source_box.left;
 		unsigned int source_height = source_box.bottom - source_box.top;
 		D3D::context->CopySubresourceRegion(s_screenshot_texture.get(), 0, 0, 0, 0, (ID3D11Resource*)D3D::GetBackBuffer()->GetTex(), 0, &source_box);
-		if (!bLastFrameDumped)
-		{
-			bAVIDumping = AVIDump::Start(source_width, source_height, AVIDump::DumpFormat::FORMAT_BGR);
-			if (!bAVIDumping)
-			{
-				PanicAlert("Error dumping frames to AVI.");
-			}
-			else
-			{
-				std::string msg = StringFromFormat("Dumping Frames to \"%sframedump0.avi\" (%dx%d RGB24)",
-					File::GetUserPath(D_DUMPFRAMES_IDX).c_str(),
-					source_width, source_height);
-				OSD::AddMessage(msg, 2000);
-			}
-		}
-		if (bAVIDumping)
-		{
-			D3D11_MAPPED_SUBRESOURCE map;
-			D3D::context->Map(s_screenshot_texture.get(), 0, D3D11_MAP_READ, 0, &map);
+		D3D11_MAPPED_SUBRESOURCE map;
+		D3D::context->Map(s_screenshot_texture.get(), 0, D3D11_MAP_READ, 0, &map);
 
-			if (frame_data.capacity() != 3 * source_width * source_height)
-				frame_data.resize(3 * source_width * source_height);
-
-			formatBufferDump((u8*)map.pData, &frame_data[0], source_width, source_height, map.RowPitch);
-			FlipImageData(&frame_data[0], source_width, source_height);
-			AVIDump::AddFrame(&frame_data[0], source_width, source_height);
-			D3D::context->Unmap(s_screenshot_texture.get(), 0);
-		}
-		bLastFrameDumped = true;
-	}
-	else
-	{
-		if (bLastFrameDumped && bAVIDumping)
-		{
-			std::vector<u8>().swap(frame_data);
-
-			AVIDump::Stop();
-			bAVIDumping = false;
-			OSD::AddMessage("Stop dumping frames to AVI", 2000);
-		}
-		bLastFrameDumped = false;
+		DumpFrameData(reinterpret_cast<const u8*>(map.pData), source_width, source_height,
+			map.RowPitch);
+		FinishFrameData();
+		D3D::context->Unmap(s_screenshot_texture.get(), 0);
 	}
 
 	Renderer::DrawDebugText();
@@ -1011,22 +916,30 @@ void Renderer::ApplyState(bool bUseDstAlpha)
 	if (bUseDstAlpha)
 	{
 		// restore actual state
-		SetBlendMode(false);
 		SetLogicOpMode();
 	}
 	D3D::BufferDescriptor vbuffer = VertexShaderCache::GetConstantBuffer();
 	D3D::BufferDescriptor pbuffer = PixelShaderCache::GetConstantBuffer();
+	ID3D11GeometryShader* geometry_shader = GeometryShaderCache::GetActiveShader();
+	ID3D11HullShader* hull_shader = HullDomainShaderCache::GetActiveHullShader();
+
 	D3D::stateman->SetVertexConstants(vbuffer);
-	D3D::stateman->SetGeometryConstants(GeometryShaderCache::GetConstantBuffer());
-	D3D::stateman->SetHullDomainConstants(0, HullDomainShaderCache::GetConstantBuffer());
-	D3D::stateman->SetHullDomainConstants(1, vbuffer);
-	D3D::stateman->SetHullDomainConstants(2, pbuffer);
+	if (geometry_shader)
+	{
+		D3D::stateman->SetGeometryConstants(GeometryShaderCache::GetConstantBuffer());
+	}
+	if (hull_shader)
+	{
+		D3D::stateman->SetHullDomainConstants(0, HullDomainShaderCache::GetConstantBuffer());
+		D3D::stateman->SetHullDomainConstants(1, vbuffer);
+		D3D::stateman->SetHullDomainConstants(2, pbuffer);
+	}
 	D3D::stateman->SetPixelConstants(0, pbuffer);
 	D3D::stateman->SetPixelConstants(1, vbuffer);
 
 	D3D::stateman->SetVertexShader(VertexShaderCache::GetActiveShader());
-	D3D::stateman->SetGeometryShader(GeometryShaderCache::GetActiveShader());
-	D3D::stateman->SetHullShader(HullDomainShaderCache::GetActiveHullShader());
+	D3D::stateman->SetGeometryShader(geometry_shader);
+	D3D::stateman->SetHullShader(hull_shader);
 	D3D::stateman->SetDomainShader(HullDomainShaderCache::GetActiveDomainShader());
 	D3D::stateman->SetPixelShader(PixelShaderCache::GetActiveShader());
 
@@ -1071,14 +984,13 @@ void Renderer::SetGenerationMode()
 
 void Renderer::SetDepthMode()
 {
-	gx_state.zmode.hex = bpmem.zmode.hex;
+	gx_state.zmode.testenable = (u32)bpmem.zmode.testenable;
+	gx_state.zmode.func = bpmem.zmode.func;
+	gx_state.zmode.updateenable = (u32)bpmem.zmode.updateenable;
 }
 
 void Renderer::SetLogicOpMode()
 {
-	// D3D11 doesn't support logic blending, so this is a huge hack
-	// TODO: Make use of D3D11.1's logic blending support
-
 	// 0   0x00
 	// 1   Source & destination
 	// 2   Source & ~destination
@@ -1095,73 +1007,103 @@ void Renderer::SetLogicOpMode()
 	// 13  ~Source | destination
 	// 14  ~(Source & destination)
 	// 15  0xff
+
+	const D3D11_LOGIC_OP  d3d_111_logic_op[16] =
+	{
+		D3D11_LOGIC_OP_CLEAR,
+		D3D11_LOGIC_OP_AND,
+		D3D11_LOGIC_OP_AND_REVERSE,
+		D3D11_LOGIC_OP_COPY,
+		D3D11_LOGIC_OP_AND_INVERTED,
+		D3D11_LOGIC_OP_NOOP,
+		D3D11_LOGIC_OP_XOR,
+		D3D11_LOGIC_OP_OR,
+		D3D11_LOGIC_OP_NOR,
+		D3D11_LOGIC_OP_EQUIV,
+		D3D11_LOGIC_OP_INVERT,
+		D3D11_LOGIC_OP_OR_REVERSE,
+		D3D11_LOGIC_OP_COPY_INVERTED,
+		D3D11_LOGIC_OP_OR_INVERTED,
+		D3D11_LOGIC_OP_NAND,
+		D3D11_LOGIC_OP_SET
+	};
+	// fallbacks for devices that does not support logic blending
 	const D3D11_BLEND_OP d3dLogicOps[16] =
 	{
-		D3D11_BLEND_OP_ADD,//0
-		D3D11_BLEND_OP_ADD,//1
-		D3D11_BLEND_OP_SUBTRACT,//2
-		D3D11_BLEND_OP_ADD,//3
-		D3D11_BLEND_OP_REV_SUBTRACT,//4
-		D3D11_BLEND_OP_ADD,//5
-		D3D11_BLEND_OP_MAX,//6
-		D3D11_BLEND_OP_ADD,//7
-		D3D11_BLEND_OP_MAX,//8
-		D3D11_BLEND_OP_MAX,//9
-		D3D11_BLEND_OP_ADD,//10
-		D3D11_BLEND_OP_ADD,//11
-		D3D11_BLEND_OP_ADD,//12
-		D3D11_BLEND_OP_ADD,//13
-		D3D11_BLEND_OP_ADD,//14
-		D3D11_BLEND_OP_ADD//15
+		D3D11_BLEND_OP_ADD,
+		D3D11_BLEND_OP_ADD,
+		D3D11_BLEND_OP_SUBTRACT,
+		D3D11_BLEND_OP_ADD,
+		D3D11_BLEND_OP_REV_SUBTRACT,
+		D3D11_BLEND_OP_ADD,
+		D3D11_BLEND_OP_MAX,
+		D3D11_BLEND_OP_ADD,
+		D3D11_BLEND_OP_MAX,
+		D3D11_BLEND_OP_MAX,
+		D3D11_BLEND_OP_ADD,
+		D3D11_BLEND_OP_ADD,
+		D3D11_BLEND_OP_ADD,
+		D3D11_BLEND_OP_ADD,
+		D3D11_BLEND_OP_ADD,
+		D3D11_BLEND_OP_ADD
 	};
 	const D3D11_BLEND d3dLogicOpSrcFactors[16] =
 	{
-		D3D11_BLEND_ZERO,//0
-		D3D11_BLEND_DEST_COLOR,//1
-		D3D11_BLEND_ONE,//2
-		D3D11_BLEND_ONE,//3
-		D3D11_BLEND_DEST_COLOR,//4
-		D3D11_BLEND_ZERO,//5
-		D3D11_BLEND_INV_DEST_COLOR,//6
-		D3D11_BLEND_INV_DEST_COLOR,//7
-		D3D11_BLEND_INV_SRC_COLOR,//8
-		D3D11_BLEND_INV_SRC_COLOR,//9
-		D3D11_BLEND_INV_DEST_COLOR,//10
-		D3D11_BLEND_ONE,//11
-		D3D11_BLEND_INV_SRC_COLOR,//12
-		D3D11_BLEND_INV_SRC_COLOR,//13
-		D3D11_BLEND_INV_DEST_COLOR,//14
-		D3D11_BLEND_ONE//15
+		D3D11_BLEND_ZERO,
+		D3D11_BLEND_DEST_COLOR,
+		D3D11_BLEND_ONE,
+		D3D11_BLEND_ONE,
+		D3D11_BLEND_DEST_COLOR,
+		D3D11_BLEND_ZERO,
+		D3D11_BLEND_INV_DEST_COLOR,
+		D3D11_BLEND_INV_DEST_COLOR,
+		D3D11_BLEND_INV_SRC_COLOR,
+		D3D11_BLEND_INV_SRC_COLOR,
+		D3D11_BLEND_INV_DEST_COLOR,
+		D3D11_BLEND_ONE,
+		D3D11_BLEND_INV_SRC_COLOR,
+		D3D11_BLEND_INV_SRC_COLOR,
+		D3D11_BLEND_INV_DEST_COLOR,
+		D3D11_BLEND_ONE
 	};
 	const D3D11_BLEND d3dLogicOpDestFactors[16] =
 	{
-		D3D11_BLEND_ZERO,//0
-		D3D11_BLEND_ZERO,//1
-		D3D11_BLEND_INV_SRC_COLOR,//2
-		D3D11_BLEND_ZERO,//3
-		D3D11_BLEND_ONE,//4
-		D3D11_BLEND_ONE,//5
-		D3D11_BLEND_INV_SRC_COLOR,//6
-		D3D11_BLEND_ONE,//7
-		D3D11_BLEND_INV_DEST_COLOR,//8
-		D3D11_BLEND_SRC_COLOR,//9
-		D3D11_BLEND_INV_DEST_COLOR,//10
-		D3D11_BLEND_INV_DEST_COLOR,//11
-		D3D11_BLEND_INV_SRC_COLOR,//12
-		D3D11_BLEND_ONE,//13
-		D3D11_BLEND_INV_SRC_COLOR,//14
-		D3D11_BLEND_ONE//15
+		D3D11_BLEND_ZERO,
+		D3D11_BLEND_ZERO,
+		D3D11_BLEND_INV_SRC_COLOR,
+		D3D11_BLEND_ZERO,
+		D3D11_BLEND_ONE,
+		D3D11_BLEND_ONE,
+		D3D11_BLEND_INV_SRC_COLOR,
+		D3D11_BLEND_ONE,
+		D3D11_BLEND_INV_DEST_COLOR,
+		D3D11_BLEND_SRC_COLOR,
+		D3D11_BLEND_INV_DEST_COLOR,
+		D3D11_BLEND_INV_DEST_COLOR,
+		D3D11_BLEND_INV_SRC_COLOR,
+		D3D11_BLEND_ONE,
+		D3D11_BLEND_INV_SRC_COLOR,
+		D3D11_BLEND_ONE
 	};
 
-	if (bpmem.blendmode.logicopenable && !bpmem.blendmode.blendenable)
+	if (bpmem.blendmode.logicopenable
+		&& !bpmem.blendmode.blendenable)
 	{
-		gx_state.blend.blend_enable = true;
-		gx_state.blend.blend_op = d3dLogicOps[bpmem.blendmode.logicmode];
-		gx_state.blend.src_blend = d3dLogicOpSrcFactors[bpmem.blendmode.logicmode];
-		gx_state.blend.dst_blend = d3dLogicOpDestFactors[bpmem.blendmode.logicmode];
+		bool logicopenabled = bpmem.blendmode.logicmode != BlendMode::LogicOp::COPY;
+		gx_state.blend.blend_enable = logicopenabled;
+		gx_state.blend.logic_op_enabled = logicopenabled && (D3D::GetLogicOpSupported() || g_ActiveConfig.bForceLogicOpBlend);
+		if (logicopenabled)
+		{
+			gx_state.blend.logic_op = d3d_111_logic_op[bpmem.blendmode.logicmode];
+			// Set blending fallbacks in case device does not support logic blending
+			gx_state.blend.blend_op = d3dLogicOps[bpmem.blendmode.logicmode];
+			gx_state.blend.src_blend = d3dLogicOpSrcFactors[bpmem.blendmode.logicmode];
+			gx_state.blend.dst_blend = d3dLogicOpDestFactors[bpmem.blendmode.logicmode];
+		}
 	}
 	else
 	{
+		gx_state.blend.logic_op_enabled = false;
 		SetBlendMode(true);
 	}
 }
@@ -1214,7 +1156,7 @@ void Renderer::SetInterlacingMode()
 	// TODO
 }
 
-int Renderer::GetMaxTextureSize()
+u32 Renderer::GetMaxTextureSize()
 {
 	return DX11::D3D::GetMaxTextureSize();
 }

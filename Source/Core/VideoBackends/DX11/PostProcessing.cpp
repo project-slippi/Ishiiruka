@@ -216,7 +216,7 @@ void D3DPostProcessingShader::Draw(PostProcessor* p,
 	_dbg_assert_(VIDEO, m_ready && m_internal_size == src_size);
 
 	// Determine whether we can skip the final copy by writing directly to the output texture, if the last pass is not scaled.
-	bool skip_final_copy = !IsLastPassScaled() && (dst_texture != src_texture || !m_last_pass_uses_color_buffer);
+	bool skip_final_copy = !IsLastPassScaled() && (dst_texture != src_texture || !m_last_pass_uses_color_buffer) && !m_prev_frame_enabled;
 
 	MapAndUpdateConfigurationBuffer();
 
@@ -250,7 +250,7 @@ void D3DPostProcessingShader::Draw(PostProcessor* p,
 		for (size_t i = 0; i < pass.inputs.size(); i++)
 		{
 			const InputBinding& input = pass.inputs[i];
-			ID3D11ShaderResourceView* input_srv;
+			ID3D11ShaderResourceView* input_srv = nullptr;
 
 			switch (input.type)
 			{
@@ -263,7 +263,20 @@ void D3DPostProcessingShader::Draw(PostProcessor* p,
 				input_srv = (src_depth_texture != nullptr) ? src_depth_texture->GetSRV() : nullptr;
 				input_sizes[i] = src_size;
 				break;
-
+			case POST_PROCESSING_INPUT_TYPE_PASS_FRAME_OUTPUT:
+				if (m_prev_frame_enabled)
+				{
+					input_srv = reinterpret_cast<D3DTexture2D*>(GetPrevColorFrame(input.frame_index)->GetInternalObject())->GetSRV();
+					input_sizes[i] = m_prev_frame_size;
+				}
+				break;
+			case POST_PROCESSING_INPUT_TYPE_PASS_DEPTH_FRAME_OUTPUT:
+				if (m_prev_depth_enabled)
+				{
+					input_srv = reinterpret_cast<D3DTexture2D*>(GetPrevDepthFrame(input.frame_index)->GetInternalObject())->GetSRV();
+					input_sizes[i] = m_prev_depth_frame_size;
+				}
+				break;
 			default:
 				TextureCacheBase::TCacheEntryBase* input_texture = input.texture != nullptr ? input.texture : input.prev_texture;
 				if (input_texture != nullptr)
@@ -307,9 +320,28 @@ void D3DPostProcessingShader::Draw(PostProcessor* p,
 	D3D::stateman->Apply();
 
 	// Copy the last pass output to the target if not done already
+	IncrementFrame();
+	if (m_prev_depth_enabled && src_depth_tex)
+	{
+		TargetRectangle dst;
+		dst.left = 0;
+		dst.right = m_prev_depth_frame_size.width;
+		dst.top = 0;
+		dst.bottom = m_prev_depth_frame_size.height;
+		parent->CopyTexture(dst, GetPrevDepthFrame(0)->GetInternalObject(), output_rect, src_depth_tex, src_size, src_layer, true, true);
+	}
 	if (!skip_final_copy)
 	{
 		RenderPassData& final_pass = m_passes[m_last_pass_index];
+		if (m_prev_frame_enabled)
+		{
+			TargetRectangle dst;
+			dst.left = 0;
+			dst.right = m_prev_frame_size.width;
+			dst.top = 0;
+			dst.bottom = m_prev_frame_size.height;
+			parent->CopyTexture(dst, GetPrevColorFrame(0)->GetInternalObject(), output_rect, final_pass.output_texture->GetInternalObject(), final_pass.output_size, src_layer, false, true);
+		}
 		parent->CopyTexture(dst_rect, dst_tex, output_rect, final_pass.output_texture->GetInternalObject(), final_pass.output_size, src_layer);
 	}
 }
@@ -441,7 +473,7 @@ void D3DPostProcessor::PostProcessEFB(const TargetRectangle* src_rect)
 
 	// Copy back to EFB buffer when multisampling is enabled
 	if (g_ActiveConfig.iMultisamples > 1)
-		CopyTexture(target_rect, reinterpret_cast<uintptr_t>(FramebufferManager::GetEFBColorTexture()), target_rect, reinterpret_cast<uintptr_t>(color_texture), target_size, -1, true);
+		CopyTexture(target_rect, reinterpret_cast<uintptr_t>(FramebufferManager::GetEFBColorTexture()), target_rect, reinterpret_cast<uintptr_t>(color_texture), target_size, -1, false, true);
 
 	g_renderer->RestoreAPIState();
 
@@ -476,7 +508,7 @@ void D3DPostProcessor::CopyTexture(const TargetRectangle& dst_rect, uintptr_t ds
 
 	// If the dimensions are the same, we can copy instead of using a shader.
 	bool scaling = (dst_rect.GetWidth() != src_rect.GetWidth() || dst_rect.GetHeight() != src_rect.GetHeight());
-	if (!scaling && !force_shader_copy)
+	if (!scaling && !force_shader_copy && !is_depth_texture)
 	{
 		CD3D11_BOX copy_box(src_rect.left, src_rect.top, 0, src_rect.right, src_rect.bottom, 1);
 		if (src_layer < 0)

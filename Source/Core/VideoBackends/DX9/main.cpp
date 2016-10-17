@@ -89,11 +89,14 @@ void VideoBackend::InitBackendInfo()
 	g_Config.backend_info.bSupportsGeometryShaders = false;
 	g_Config.backend_info.bSupports3DVision = false;
 	g_Config.backend_info.bSupportsPostProcessing = false;
-	g_Config.backend_info.bSupportsClipControl = false;
+	g_Config.backend_info.bSupportsClipControl = true;
 	g_Config.backend_info.bSupportsSSAA = false;
 	g_Config.backend_info.bSupportsTessellation = false;
 	g_Config.backend_info.bSupportsComputeTextureDecoding = false;
 	g_Config.backend_info.bSupportsComputeTextureEncoding = false;
+	g_Config.backend_info.bSupportsDepthClamp = true;
+	g_Config.backend_info.bSupportsMultithreading = false;
+	g_Config.backend_info.bSupportsReversedDepthRange = false;
 	// adapters
 	g_Config.backend_info.Adapters.clear();
 	for (int i = 0; i < DX9::D3D::GetNumAdapters(); ++i)
@@ -114,36 +117,21 @@ void VideoBackend::InitBackendInfo()
 
 bool VideoBackend::Initialize(void *window_handle)
 {
+	if (window_handle == nullptr)
+		return false;
+
 	InitializeShared();
 	InitBackendInfo();
-
-	frameCount = 0;
-	if (File::Exists(File::GetUserPath(D_CONFIG_IDX) + "GFX.ini"))
-		g_Config.Load(File::GetUserPath(D_CONFIG_IDX) + "GFX.ini");
-	else
-		g_Config.Load(File::GetUserPath(D_CONFIG_IDX) + "gfx_dx9.ini");
-
-	g_Config.GameIniLoad();
-	g_Config.UpdateProjectionHack();
-	g_Config.VerifyValidity();
 	// as only some driver/hardware configurations support dual source blending only enable it if is 
 	// configured by user
 	g_Config.backend_info.bSupportsDualSourceBlend = g_Config.bForceDualSourceBlend;
 	UpdateActiveConfig();
-
 	m_window_handle = window_handle;
-	if (window_handle == NULL)
-	{
-		ERROR_LOG(VIDEO, "An error has occurred while trying to create the window.");
-		return false;
-	}
-	else if (FAILED(DX9::D3D::Init()))
+	if (FAILED(DX9::D3D::Init()))
 	{
 		MessageBox(GetActiveWindow(), _T("Unable to initialize Direct3D. Please make sure that you have the latest version of DirectX 9.0c correctly installed."), _T("Fatal Error"), MB_ICONERROR | MB_OK);
 		return false;
 	}
-	m_initialized = true;
-
 	return true;
 }
 
@@ -154,30 +142,10 @@ void VideoBackend::Video_Prepare()
 	g_vertex_manager = std::make_unique<VertexManager>();
 	g_perf_query = std::make_unique<PerfQuery>();
 	g_renderer = std::make_unique<Renderer>(m_window_handle);
-	// VideoCommon
-	BPInit();
-	Fifo::Init();
-	IndexGenerator::Init();
-	VertexLoaderManager::Init();
-	OpcodeDecoder::Init();
-	VertexShaderManager::Init();
-	PixelShaderManager::Init(false);
-	CommandProcessor::Init();
-	PixelEngine::Init();
-	// Notify the core that the video backend is ready
-	Host_Message(WM_USER_CREATE);
 }
 
 void VideoBackend::Shutdown()
 {
-	m_initialized = false;
-	if (!g_renderer)
-		return;
-	// TODO: should be in Video_Cleanup
-	// VideoCommon
-	Fifo::Shutdown();
-	VertexLoaderManager::Shutdown();
-
 	// internal interfaces
 	PixelShaderCache::Shutdown();
 	VertexShaderCache::Shutdown();
@@ -186,9 +154,12 @@ void VideoBackend::Shutdown()
 	g_vertex_manager.reset();
 	g_texture_cache.reset();
 	D3D::Shutdown();
+	ShutdownShared();
 }
 
 void VideoBackend::Video_Cleanup()
-{}
+{
+	CleanupShared();
+}
 
 }

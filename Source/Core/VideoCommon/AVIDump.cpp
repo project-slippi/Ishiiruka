@@ -37,17 +37,20 @@ static AVStream* s_stream = nullptr;
 static AVFrame* s_src_frame = nullptr;
 static AVFrame* s_scaled_frame = nullptr;
 static AVPixelFormat s_pix_fmt = AV_PIX_FMT_BGR24;
-static int s_bytes_per_pixel;
 static SwsContext* s_sws_context = nullptr;
 static int s_width;
 static int s_height;
 static u64 s_last_frame;
 static bool s_start_dumping = false;
+static bool s_stop_dumping = false;
 static u64 s_last_pts;
 static int s_current_width;
 static int s_current_height;
 static int s_file_index = 0;
-static AVIDump::DumpFormat s_current_format;
+static const u8* s_stored_frame_data;
+static int s_stored_frame_width;
+static int s_stored_frame_height;
+static int s_stored_frame_stride;
 
 static void InitAVCodec()
 {
@@ -59,20 +62,9 @@ static void InitAVCodec()
 	}
 }
 
-bool AVIDump::Start(int w, int h, DumpFormat format)
+bool AVIDump::Start(int w, int h)
 {
-	if (format == DumpFormat::FORMAT_BGR)
-	{
-		s_pix_fmt = AV_PIX_FMT_BGR24;
-		s_bytes_per_pixel = 3;
-	}
-	else
-	{
-		s_pix_fmt = AV_PIX_FMT_RGBA;
-		s_bytes_per_pixel = 4;
-	}
-
-	s_current_format = format;
+	s_pix_fmt = AV_PIX_FMT_RGBA;
 
 	s_width = w;
 	s_height = h;
@@ -81,6 +73,8 @@ bool AVIDump::Start(int w, int h, DumpFormat format)
 
 	s_last_frame = CoreTiming::GetTicks();
 	s_last_pts = 0;
+
+	s_stop_dumping = false;
 
 	InitAVCodec();
 	bool success = CreateFile();
@@ -175,11 +169,18 @@ static void PreparePacket(AVPacket* pkt)
 	pkt->size = 0;
 }
 
-void AVIDump::AddFrame(const u8* data, int width, int height)
+void AVIDump::AddFrame(const u8* data, int width, int height, int stride)
 {
-	CheckResolution(width, height);
+	// Store current frame data in case frame dumping stops before next frame update,
+	// but make sure that you don't store the last stored frame and check the resolution upon
+	// closing the file or else you store recursion, and dolphins don't like recursion.
+	if (!s_stop_dumping)
+	{
+		StoreFrameData(data, width, height, stride);
+		CheckResolution(width, height);
+	}
 	s_src_frame->data[0] = const_cast<u8*>(data);
-	s_src_frame->linesize[0] = width * s_bytes_per_pixel;
+	s_src_frame->linesize[0] = stride;
 	s_src_frame->format = s_pix_fmt;
 	s_src_frame->width = s_width;
 	s_src_frame->height = s_height;
@@ -252,6 +253,9 @@ void AVIDump::AddFrame(const u8* data, int width, int height)
 
 void AVIDump::Stop()
 {
+	s_stop_dumping = true;
+	// Write the last stored frame just in case frame dumping stops before the next frame update
+	AddFrame(s_stored_frame_data, s_stored_frame_width, s_stored_frame_height, s_stored_frame_stride);
 	av_write_trailer(s_format_context);
 	CloseFile();
 	s_file_index = 0;
@@ -296,13 +300,26 @@ void AVIDump::DoState()
 
 void AVIDump::CheckResolution(int width, int height)
 {
-	if (width != s_current_width || height != s_current_height)
+	// We check here to see if the requested width and height have changed since the last frame which
+	// was dumped, then create a new file accordingly. However, is it possible for the height
+	// (possibly width as well, but no examples known) to have a value of zero. This can occur as the
+	// VI is able to be set to a zero value for height/width to disable output. If this is the case,
+	// simply keep the last known resolution of the video for the added frame.
+	if ((width != s_current_width || height != s_current_height) && (width > 0 && height > 0))
 	{
 		int temp_file_index = s_file_index;
 		Stop();
 		s_file_index = temp_file_index + 1;
-		Start(width, height, s_current_format);
+		Start(width, height);
 		s_current_width = width;
 		s_current_height = height;
 	}
+}
+
+void AVIDump::StoreFrameData(const u8* data, int width, int height, int stride)
+{
+	s_stored_frame_data = data;
+	s_stored_frame_width = width;
+	s_stored_frame_height = height;
+	s_stored_frame_stride = stride;
 }

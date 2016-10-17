@@ -105,8 +105,8 @@ inline void GenerateVertexShader(ShaderCode& out, const vertex_shader_uid_data& 
 	}
 	buffer[VERTEXSHADERGEN_BUFFERSIZE - 1] = 0x7C;  // canary
 																	// uniforms
-	if (api_type == API_OPENGL)
-		out.Write("layout(std140%s) uniform VSBlock {\n", g_ActiveConfig.backend_info.bSupportsBindingLayout ? ", binding = 2" : "");
+	if (api_type == API_OPENGL || api_type == API_VULKAN)
+		out.Write("UBO_BINDING(std140, 2) uniform VSBlock {\n", g_ActiveConfig.backend_info.bSupportsBindingLayout ? ", binding = 2" : "");
 	else if (api_type == API_D3D11)
 		out.Write("cbuffer VSBlock : register(b0) {\n");
 
@@ -121,39 +121,39 @@ inline void GenerateVertexShader(ShaderCode& out, const vertex_shader_uid_data& 
 	DeclareUniform<api_type>(out, C_POSTTRANSFORMMATRICES, "float4", I_POSTTRANSFORMMATRICES"[64]");
 	DeclareUniform<api_type>(out, C_PLOFFSETPARAMS, "float4", I_PLOFFSETPARAMS"[13]");
 
-	if (api_type == API_OPENGL || api_type == API_D3D11)
+	if (!(api_type == API_D3D9))
 		out.Write("};\n");
 
 	out.Write("struct VS_OUTPUT {\n");
 	GenerateVSOutputMembers<api_type>(out, uid_data.pixel_lighting, uid_data.numTexGens);
 	out.Write("};\n");
 
-	if (api_type == API_OPENGL)
+	if (api_type == API_OPENGL || api_type == API_VULKAN)
 	{
-		out.Write("in float4 rawpos; // ATTR%d,\n", SHADER_POSITION_ATTRIB);
-		out.Write("in float fposmtx; // ATTR%d,\n", SHADER_POSMTX_ATTRIB);
+		out.Write("ATTRIBUTE_LOCATION(%d) in float4 rawpos;\n", SHADER_POSITION_ATTRIB);
+		out.Write("ATTRIBUTE_LOCATION(%d) in uint4 vposmtx;\n", SHADER_POSMTX_ATTRIB);
 		if (components & VB_HAS_NRM0)
-			out.Write("in float3 rawnorm0; // ATTR%d,\n", SHADER_NORM0_ATTRIB);
+			out.Write("ATTRIBUTE_LOCATION(%d) in float3 rawnorm0;\n", SHADER_NORM0_ATTRIB);
 		if (components & VB_HAS_NRM1)
-			out.Write("in float3 rawnorm1; // ATTR%d,\n", SHADER_NORM1_ATTRIB);
+			out.Write("ATTRIBUTE_LOCATION(%d) in float3 rawnorm1;\n", SHADER_NORM1_ATTRIB);
 		if (components & VB_HAS_NRM2)
-			out.Write("in float3 rawnorm2; // ATTR%d,\n", SHADER_NORM2_ATTRIB);
+			out.Write("ATTRIBUTE_LOCATION(%d) in float3 rawnorm2;\n", SHADER_NORM2_ATTRIB);
 
 		if (components & VB_HAS_COL0)
-			out.Write("in float4 color0; // ATTR%d,\n", SHADER_COLOR0_ATTRIB);
+			out.Write("ATTRIBUTE_LOCATION(%d) in float4 color0;\n", SHADER_COLOR0_ATTRIB);
 		if (components & VB_HAS_COL1)
-			out.Write("in float4 color1; // ATTR%d,\n", SHADER_COLOR1_ATTRIB);
+			out.Write("ATTRIBUTE_LOCATION(%d) in float4 color1;\n", SHADER_COLOR1_ATTRIB);
 
 		for (int i = 0; i < 8; ++i)
 		{
 			u32 hastexmtx = (components & (VB_HAS_TEXMTXIDX0 << i));
 			if ((components & (VB_HAS_UV0 << i)) || hastexmtx)
-				out.Write("in float%d tex%d; // ATTR%d,\n", hastexmtx ? 3 : 2, i, SHADER_TEXTURE0_ATTRIB + i);
+				out.Write("ATTRIBUTE_LOCATION(%d) in float%d tex%d;\n", SHADER_TEXTURE0_ATTRIB + i, hastexmtx ? 3 : 2, i);
 		}
 
-		if (g_ActiveConfig.backend_info.bSupportsGeometryShaders)
+		if (g_ActiveConfig.backend_info.bSupportsGeometryShaders || api_type == API_VULKAN)
 		{
-			out.Write("out VertexData {\n");
+			out.Write("VARYING_LOCATION(0) out VertexData {\n");
 			GenerateVSOutputMembers<api_type>(out, uid_data.pixel_lighting, uid_data.numTexGens, GetInterpolationQualifier(api_type, uid_data.msaa, uid_data.ssaa, false, true));
 			out.Write("} vs;\n");
 		}
@@ -228,7 +228,7 @@ inline void GenerateVertexShader(ShaderCode& out, const vertex_shader_uid_data& 
 	}
 	else
 	{
-		out.Write("int posmtx = int(fposmtx);\n");
+		out.Write("int posmtx = int(vposmtx.x);\n");
 	}
 
 	out.Write("float4 pos = float4(dot(" I_TRANSFORMMATRICES"[posmtx], rawpos), dot(" I_TRANSFORMMATRICES"[posmtx+1], rawpos), dot(" I_TRANSFORMMATRICES"[posmtx+2], rawpos), 1);\n");
@@ -385,6 +385,15 @@ inline void GenerateVertexShader(ShaderCode& out, const vertex_shader_uid_data& 
 
 		if (texinfo.texgentype == XF_TEXGEN_REGULAR)
 		{
+			// When q is 0, the GameCube appears to have a special case
+			// This can be seen in devkitPro's neheGX Lesson08 example for Wii
+			// Makes differences in Rogue Squadron 3 (Hoth sky) and The Last Story (shadow culling)
+			if (((uid_data.texMtxInfo_n_projection >> i) & 1) == XF_TEXPROJ_STQ)
+			{
+				out.Write("if(o.tex%d.z == 0.0f)\n", i);
+				out.Write("\to.tex%d.xy = clamp(o.tex%d.xy, float2(-2.0f, -2.0f), float2(2.0f, 2.0f));\n", i, i);
+			}
+
 			// CHECKME: does this only work for regular tex gen types?
 			if (uid_data.dualTexTrans_enabled)
 			{
@@ -402,16 +411,13 @@ inline void GenerateVertexShader(ShaderCode& out, const vertex_shader_uid_data& 
 				// multiply by postmatrix
 				out.Write("o.tex%d.xyz = float3(dot(P0.xyz, o.tex%d.xyz) + P0.w, dot(P1.xyz, o.tex%d.xyz) + P1.w, dot(P2.xyz, o.tex%d.xyz) + P2.w);\n", i, i, i, i);
 			}
-
-			out.Write("if(o.tex%d.z == 0.0f)\n", i);
-			out.Write("\to.tex%d.xy = clamp(o.tex%d.xy / 2.0f, float2(-1.0f, -1.0f), float2(1.0f, 1.0f));\n", i, i);
 		}
 		out.Write("}\n");
 	}
 	// clipPos/w needs to be done in pixel shader, not here
 	if (uid_data.numTexGens < 7)
 	{
-		out.Write("o.clipPos%s = float4(pos.x,pos.y,o.pos.z,o.pos.w);\n", (api_type == API_OPENGL) ? "_2" : "");
+		out.Write("o.clipPos%s = float4(pos.x,pos.y,o.pos.z,o.pos.w);\n", (api_type == API_OPENGL || api_type == API_VULKAN) ? "_2" : "");
 	}
 	else
 	{
@@ -425,7 +431,7 @@ inline void GenerateVertexShader(ShaderCode& out, const vertex_shader_uid_data& 
 	{
 		if (uid_data.numTexGens < 7)
 		{
-			out.Write("o.Normal%s = float4(_norm0.x,_norm0.y,_norm0.z,pos.z);\n", (api_type == API_OPENGL) ? "_2" : "");
+			out.Write("o.Normal%s = float4(_norm0.x,_norm0.y,_norm0.z,pos.z);\n", (api_type == API_OPENGL || api_type == API_VULKAN) ? "_2" : "");
 		}
 		else
 		{
@@ -451,29 +457,45 @@ inline void GenerateVertexShader(ShaderCode& out, const vertex_shader_uid_data& 
 
 	//write the true depth value, if the game uses depth textures pixel shaders will override with the correct values
 	//if not early z culling will improve speed
-	if (g_ActiveConfig.backend_info.bSupportsClipControl)
+	if (g_ActiveConfig.backend_info.bSupportsDepthClamp)
 	{
-		out.Write("o.pos.z = -o.pos.z;\n");
-	}
-	else if (api_type & API_D3D9 || api_type == API_D3D11)
-	{
-		out.Write("o.pos.z = -((" I_DEPTHPARAMS".x - 1.0) * o.pos.w + o.pos.z * " I_DEPTHPARAMS".y);\n");
+		if (!(api_type & API_D3D9))
+		{
+			// If we can disable the incorrect depth clipping planes using depth clamping, then we can do
+			// our own depth clipping and calculate the depth range before the perspective divide.
+
+			// Since we're adjusting z for the depth range before the perspective divide, we have to do our
+			// own clipping. We want to clip so that -w <= z <= 0, which matches the console -1..0 range.
+			// We adjust our depth value for clipping purposes to match the perspective projection in the
+			// software backend, which is a hack to fix Sonic Adventure and Unleashed games.
+			out.Write("float clipDepth = o.pos.z * (1.0 - 1e-7);\n");
+			out.Write("o.clipDist.x = clipDepth + o.pos.w;\n");  // Near: z < -w
+			out.Write("o.clipDist.y = -clipDepth;\n");           // Far: z > 0
+		}
+		// Adjust z for the depth range. We're using an equation which incorperates a depth inversion,
+		// so we can map the console -1..0 range to the 0..1 range used in the depth buffer.
+		// We have to handle the depth range in the vertex shader instead of after the perspective
+		// divide, because some games will use a depth range larger than what is allowed by the
+		// graphics API. These large depth ranges will still be clipped to the 0..1 range, so these
+		// games effectively add a depth bias to the values written to the depth buffer.
+		out.Write("o.pos.z = o.pos.w * " I_DEPTHPARAMS ".x - o.pos.z * " I_DEPTHPARAMS ".y;\n");
 	}
 	else
 	{
-		// this results in a scale from -1..0 to -1..1 after perspective
-		// divide
+		// If we can't disable the incorrect depth clipping planes, then we need to rely on the
+		// graphics API to handle the depth range after the perspective divide. This can result in
+		// inaccurate depth values due to the missing depth bias, but that can be least corrected by
+		// overriding depth values in the pixel shader. We still need to take care of the reversed depth
+		// though, so we do that here.
+		out.Write("o.pos.z = -o.pos.z;\n");
+	}
+
+	if (!g_ActiveConfig.backend_info.bSupportsClipControl)
+	{
+		// If the graphics API doesn't support a depth range of 0..1, then we need to map z to
+		// the -1..1 range. Unfortunately we have to use a substraction, which is a lossy floating-point
+		// operation that can introduce a round-trip error.
 		out.Write("o.pos.z = o.pos.z * -2.0 - o.pos.w;\n");
-
-		// the next steps of the OGL pipeline are:
-		// (x_c,y_c,z_c,w_c) = o.pos  //switch to OGL spec terminology
-		// clipping to -w_c <= (x_c,y_c,z_c) <= w_c
-		// (x_d,y_d,z_d) = (x_c,y_c,z_c)/w_c//perspective divide
-		// z_w = (f-n)/2*z_d + (n+f)/2
-		// z_w now contains the value to go to the 0..1 depth buffer
-
-		//trying to get the correct semantic while not using glDepthRange
-		//seems to get rather complicated
 	}
 
 	// The console GPU places the pixel center at 7/12 in screen space unless
@@ -493,9 +515,9 @@ inline void GenerateVertexShader(ShaderCode& out, const vertex_shader_uid_data& 
 		}
 	}
 
-	if (api_type == API_OPENGL)
+	if (api_type == API_OPENGL || api_type == API_VULKAN)
 	{
-		if (g_ActiveConfig.backend_info.bSupportsGeometryShaders)
+		if (g_ActiveConfig.backend_info.bSupportsGeometryShaders || api_type == API_VULKAN)
 		{
 			AssignVSOutputMembers<api_type>(out, "vs", "o", uid_data.pixel_lighting, uid_data.numTexGens);
 		}
@@ -512,7 +534,7 @@ inline void GenerateVertexShader(ShaderCode& out, const vertex_shader_uid_data& 
 				}
 				out.Write("  clipPos_2 = o.clipPos_2;\n");
 				if (uid_data.pixel_lighting)
-					out.Write("  Normal_2 = o.Normal;\n");
+					out.Write("  Normal_2 = o.Normal_2;\n");
 			}
 			else
 			{
@@ -531,7 +553,16 @@ inline void GenerateVertexShader(ShaderCode& out, const vertex_shader_uid_data& 
 			out.Write("colors_0 = o.colors_0;\n");
 			out.Write("colors_1 = o.colors_1;\n");
 		}
-		out.Write("gl_Position = o.pos;\n");
+		if (g_ActiveConfig.backend_info.bSupportsDepthClamp)
+		{
+			out.Write("gl_ClipDistance[0] = o.clipDist.x;\n");
+			out.Write("gl_ClipDistance[1] = o.clipDist.y;\n");
+		}
+		// Vulkan NDC space has Y pointing down (right-handed NDC space).
+		if (api_type == API_VULKAN)
+			out.Write("gl_Position = float4(o.pos.x, -o.pos.y, o.pos.z, o.pos.w);\n");
+		else
+			out.Write("gl_Position = o.pos;\n");
 		out.Write("}\n");
 	}
 	else
@@ -556,4 +587,9 @@ void GenerateVertexShaderCodeD3D11(ShaderCode& object, const vertex_shader_uid_d
 void GenerateVertexShaderCodeGL(ShaderCode& object, const vertex_shader_uid_data& uid_data)
 {
 	GenerateVertexShader<API_OPENGL>(object, uid_data, true);
+}
+
+void GenerateVertexShaderCodeVulkan(ShaderCode& object, const vertex_shader_uid_data& uid_data)
+{
+	GenerateVertexShader<API_VULKAN>(object, uid_data, true);
 }

@@ -86,9 +86,8 @@ public:
 
 	static void SetEfbScaleChanged();
 	static void SetZSlope(float dfdx, float dfdy, float f0);
-	static void SetTevKSelChanged(int id);
 	static void SetColorMatrix(const float* pmatrix);
-	static void InvalidateXFRange(int start, int end);
+	static void InvalidateXFRange(u32 start, u32 end);
 	static void SetFlags(int index, int mask, int value);
 private:
 	static int s_nIndTexMtxChanged;
@@ -103,6 +102,6 @@ private:
 	static u8 s_nIndTexScaleChanged;
 	static int s_materials_changed;
 	static void SetPSTextureDims(int texid);
-	alignas(16) static float psconstants[ConstantBufferSize];
+	alignas(256) static float psconstants[ConstantBufferSize];
 	static ConstatBuffer m_buffer;
 };

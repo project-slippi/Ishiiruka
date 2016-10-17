@@ -9,10 +9,9 @@
 
 namespace OGL
 {
-
 class VideoBackend : public VideoBackendBase
 {
-	bool Initialize(void *) override;
+	bool Initialize(void*) override;
 	void Shutdown() override;
 
 	std::string GetName() const override;
@@ -25,5 +24,4 @@ class VideoBackend : public VideoBackendBase
 
 	unsigned int PeekMessages() override;
 };
-
 }

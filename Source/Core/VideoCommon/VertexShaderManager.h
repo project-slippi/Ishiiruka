@@ -34,7 +34,7 @@ public:
 	// constant management
 	static void SetConstants();
 
-	static void InvalidateXFRange(int start, int end);
+	static void InvalidateXFRange(u32 start, u32 end);
 	static void SetTexMatrixChangedA(u32 value);
 	static void SetTexMatrixChangedB(u32 value);
 
@@ -66,6 +66,6 @@ private:
 	static bool bProjectionChanged;
 	static bool bViewportChanged;
 	static int s_materials_changed;
-	alignas(16) static float vsconstants[ConstantBufferSize];
+	alignas(256) static float vsconstants[ConstantBufferSize];
 	static ConstatBuffer m_buffer;
 };

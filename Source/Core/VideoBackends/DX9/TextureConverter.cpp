@@ -305,7 +305,7 @@ void EncodeToRamUsingShader(LPDIRECT3DPIXELSHADER9 shader, LPDIRECT3DTEXTURE9 sr
 	hr = D3D::dev->SetDepthStencilSurface(nullptr);
 	hr = D3D::dev->SetRenderTarget(0, Rendersurf);
 
-	if (linearFilter)
+	if (linearFilter || g_ActiveConfig.iEFBScale != SCALE_1X)
 	{
 		D3D::ChangeSamplerState(0, D3DSAMP_MINFILTER, D3DTEXF_LINEAR);
 	}

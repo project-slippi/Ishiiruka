@@ -86,6 +86,7 @@ private:
 	int Volume;
 	unsigned int frameSkip;
 	float m_EmulationSpeed;
+	bool bTimeStretching;
 	std::string strBackend;
 	std::string sBackend;
 	std::string m_strGPUDeterminismMode;
@@ -123,6 +124,7 @@ void ConfigCache::SaveConfig(const SConfig& config)
 	m_strGPUDeterminismMode = config.m_strGPUDeterminismMode;
 	iVideoRate = config.iVideoRate;
 	bHalfAudioRate = config.bHalfAudioRate;
+	bTimeStretching = config.bTimeStretching;
 
 	std::copy(std::begin(g_wiimote_sources), std::end(g_wiimote_sources), std::begin(iWiimoteSource));
 	std::copy(std::begin(config.m_SIDevice), std::end(config.m_SIDevice), std::begin(Pads));
@@ -162,6 +164,7 @@ void ConfigCache::RestoreConfig(SConfig* config)
 	config->iCPUCore = iCPUCore;
 	config->iVideoRate = iVideoRate;
 	config->bHalfAudioRate = bHalfAudioRate;
+	config->bTimeStretching = bTimeStretching;
 
 	config->m_SYSCONF->SetData("IPL.PGS", bProgressive);
 	config->m_SYSCONF->SetData("IPL.E60", bPAL60);
@@ -264,6 +267,7 @@ bool BootCore(const std::string& _rFilename)
 		core_section->Get("DCBZ", &StartUp.bDCBZOFF, StartUp.bDCBZOFF);
 		core_section->Get("VideoRate", &StartUp.iVideoRate, StartUp.iVideoRate);
 		core_section->Get("HalfAudioRate", &StartUp.bHalfAudioRate, StartUp.bHalfAudioRate);
+		core_section->Get("TimeStretching", &StartUp.bTimeStretching, StartUp.bTimeStretching);
 		core_section->Get("SyncGPU", &StartUp.bSyncGPU, StartUp.bSyncGPU);
 		core_section->Get("FastDiscSpeed", &StartUp.bFastDiscSpeed, StartUp.bFastDiscSpeed);
 		core_section->Get("DSPHLE", &StartUp.bDSPHLE, StartUp.bDSPHLE);
@@ -338,6 +342,8 @@ bool BootCore(const std::string& _rFilename)
 		StartUp.bFastDiscSpeed = Movie::IsFastDiscSpeed();
 		StartUp.iCPUCore = Movie::GetCPUMode();
 		StartUp.bSyncGPU = Movie::IsSyncGPU();
+		if (!StartUp.bWii)
+			StartUp.SelectedLanguage = Movie::GetLanguage();
 		for (int i = 0; i < 2; ++i)
 		{
 			if (Movie::IsUsingMemcard(i) && Movie::IsStartingFromClearSave() && !StartUp.bWii)

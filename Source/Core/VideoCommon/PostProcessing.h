@@ -40,7 +40,9 @@ enum PostProcessingInputType : u32
 	POST_PROCESSING_INPUT_TYPE_COLOR_BUFFER,            // colorbuffer at internal resolution
 	POST_PROCESSING_INPUT_TYPE_DEPTH_BUFFER,            // depthbuffer at internal resolution
 	POST_PROCESSING_INPUT_TYPE_PREVIOUS_PASS_OUTPUT,    // output of the previous pass
-	POST_PROCESSING_INPUT_TYPE_PASS_OUTPUT              // output of a previous pass
+	POST_PROCESSING_INPUT_TYPE_PASS_OUTPUT,             // output of a previous pass
+	POST_PROCESSING_INPUT_TYPE_PASS_FRAME_OUTPUT,       // output of a previous pass
+	POST_PROCESSING_INPUT_TYPE_PASS_DEPTH_FRAME_OUTPUT  // output of a previous pass
 };
 
 enum PostProcessingInputFilter : u32
@@ -167,6 +169,14 @@ public:
 		}
 	};
 
+	struct FrameOutput final
+	{
+		float color_output_scale;
+		float depth_scale;
+		int color_count;
+		int depth_count;
+	};
+
 	using ConfigMap = std::map<std::string, ConfigurationOption>;
 	using RenderPassList = std::vector<RenderPass>;
 
@@ -228,6 +238,12 @@ public:
 	{
 		return m_options;
 	}
+
+	const FrameOutput& GetFrameOutput() const
+	{
+		return m_frame_output;
+	}
+
 	const ConfigurationOption& GetOption(const std::string& option)
 	{
 		return m_options[option];
@@ -268,6 +284,7 @@ private:
 	std::string m_shader_source;
 	ConfigMap m_options;
 	RenderPassList m_render_passes;
+	FrameOutput  m_frame_output;
 	std::vector<Constant> m_constants;
 
 	bool ParseShader(const std::string& dirname, const std::string& path);
@@ -278,6 +295,7 @@ private:
 
 	bool ParseOptionBlock(const std::string& dirname, const ConfigBlock& block);
 	bool ParsePassBlock(const std::string& dirname, const ConfigBlock& block);
+	bool ParseFrameBlock(const ConfigBlock& block);
 	bool LoadExternalImage(const std::string& path, RenderPass::Input* input);
 
 	void CreateDefaultPass();
@@ -318,7 +336,7 @@ protected:
 		PostProcessingInputType type{};
 		u32 texture_unit{};
 		TargetSize size{};
-
+		u32 frame_index{};
 		TextureCacheBase::TCacheEntryBase* texture{};	// only set for external images
 		TextureCacheBase::TCacheEntryBase* prev_texture{};
 		uintptr_t texture_sampler{};
@@ -358,6 +376,47 @@ protected:
 	size_t m_last_pass_index = 0;
 	bool m_last_pass_uses_color_buffer = false;
 	bool m_ready = false;
+	bool m_prev_frame_enabled = false;
+	bool m_prev_depth_enabled = false;
+	struct past_frame_data
+	{
+		std::unique_ptr<TextureCacheBase::TCacheEntryBase> color_frame;
+		std::unique_ptr<TextureCacheBase::TCacheEntryBase> depth_frame;
+	};
+	std::vector<past_frame_data> m_prev_frame_texture;
+	TargetSize m_prev_frame_size{};
+	TargetSize m_prev_depth_frame_size{};
+	int m_prev_frame_index = -1;
+	int m_prev_depth_frame_index = -1;
+	inline TextureCacheBase::TCacheEntryBase* GetPrevColorFrame(int frame_index)
+	{
+		if (!m_prev_frame_enabled)
+		{
+			return nullptr;
+		}
+		int index = static_cast<int>(m_config->GetFrameOutput().color_count);
+		index = (m_prev_frame_index - frame_index + index) % index;
+		return m_prev_frame_texture[index].color_frame.get();
+	}
+
+	inline TextureCacheBase::TCacheEntryBase* GetPrevDepthFrame(int frame_index)
+	{
+		if (!m_prev_depth_enabled)
+		{
+			return nullptr;
+		}
+		int index = static_cast<int>(m_config->GetFrameOutput().depth_count);
+		index = (m_prev_depth_frame_index - frame_index + index) % index;
+		return m_prev_frame_texture[index].depth_frame.get();
+	}
+	inline void IncrementFrame()
+	{
+		if(m_prev_frame_enabled)
+			m_prev_frame_index = (m_prev_frame_index + 1) % m_config->GetFrameOutput().color_count;
+		if(m_prev_depth_enabled)
+			m_prev_depth_frame_index = (m_prev_depth_frame_index + 1) % m_config->GetFrameOutput().depth_count;
+	}
+
 };
 
 class PostProcessor

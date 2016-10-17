@@ -15,7 +15,7 @@ static const int LINE_PT_TEX_OFFSETS[8] = {
 	0, 16, 8, 4, 2, 1, 1, 1
 };
 
-GeometryShaderConstants GeometryShaderManager::constants;
+alignas(256) GeometryShaderConstants GeometryShaderManager::constants;
 bool GeometryShaderManager::dirty;
 
 bool GeometryShaderManager::s_projection_changed;

@@ -68,7 +68,7 @@ private:
 		}
 	};
 
-	PC_TexFormat GetNativeTextureFormat(const s32 texformat, const TlutFormat tlutfmt, u32 width, u32 height);
+	PC_TexFormat GetNativeTextureFormat(const s32 texformat, const TlutFormat tlutfmt, u32 width, u32 height) override;
 
 	TCacheEntryBase* CreateTexture(const TCacheEntryConfig& config) override;
 
@@ -76,8 +76,8 @@ private:
 		PEControl::PixelFormat srcFormat, const EFBRectangle& srcRect,
 		bool isIntensity, bool scaleByHalf) override;
 	bool Palettize(TCacheEntryBase* entry, const TCacheEntryBase* base_entry) override;
-	void LoadLut(u32 lutFmt, void* addr, u32 size);
-	void CompileShaders() override;
+	void LoadLut(u32 lutFmt, void* addr, u32 size) override;
+	bool CompileShaders() override;
 	void DeleteShaders() override;
 	void* m_last_addr = {};
 	u32 m_last_size = {};
@@ -85,6 +85,6 @@ private:
 	u32 m_last_lutFmt = {};
 };
 
-bool SaveTexture(const std::string& filename, u32 textarget, u32 tex, int virtual_width, int virtual_height, u32 level);
+bool SaveTexture(const std::string& filename, u32 textarget, u32 tex, int virtual_width, int virtual_height, u32 level, bool compressed = false);
 
 }

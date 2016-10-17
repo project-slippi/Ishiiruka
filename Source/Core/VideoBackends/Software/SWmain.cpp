@@ -77,8 +77,10 @@ public:
 	{
 		return PC_TexFormat::PC_TEX_FMT_RGBA32;
 	};
-	void CompileShaders() override
-	{};
+	bool CompileShaders() override
+	{
+		return true;
+	};
 	void DeleteShaders() override
 	{};
 	bool Palettize(TCacheEntryBase* entry, const TCacheEntryBase* base_entry) override

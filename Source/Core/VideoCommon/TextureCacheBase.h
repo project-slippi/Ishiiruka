@@ -26,7 +26,6 @@ enum TextureCacheParams
 	TEXTURE_KILL_MULTIPLIER = 2,
 	TEXTURE_KILL_THRESHOLD = 120,
 	TEXTURE_POOL_KILL_THRESHOLD = 3,
-	HIRES_POOL_KILL_THRESHOLD = 600,
 	TEXTURE_POOL_MEMORY_LIMIT = 64 * 1024 * 1024
 };
 
@@ -107,6 +106,7 @@ public:
 		bool is_efb_copy = false;
 		bool is_custom_tex = false;
 		bool is_scaled = false;
+		bool emissive_in_alpha = false;
 		u32 addr = {};
 		u32 size_in_bytes = {};
 		u32 native_size_in_bytes = {};
@@ -144,11 +144,12 @@ public:
 			memory_stride = _native_width;
 		}
 
-		void SetHiresParams(bool _is_custom_tex, const std::string & _basename, bool _is_scaled)
+		void SetHiresParams(bool _is_custom_tex, const std::string & _basename, bool _is_scaled, bool _emissive_in_alpha)
 		{
 			is_custom_tex = _is_custom_tex;
 			basename = _basename;
 			is_scaled = _is_scaled;
+			emissive_in_alpha = _emissive_in_alpha;
 		}
 
 		void SetHashes(u64 _hash, u64 _base_hash)
@@ -204,7 +205,7 @@ public:
 
 		TextureCacheBase::TCacheEntryBase* ApplyPalette(u32 tlutaddr, u32 tlutfmt, u32 palette_size);
 
-		bool IsEfbCopy()
+		bool IsEfbCopy() const
 		{
 			return is_efb_copy;
 		}
@@ -221,7 +222,6 @@ public:
 	// Removes textures which aren't used for more than TEXTURE_KILL_THRESHOLD frames,
 	// frameCount is the current frame number.
 	static void Cleanup(int frameCount);
-
 	static void Invalidate();
 
 	virtual PC_TexFormat GetNativeTextureFormat(const s32 texformat,
@@ -232,7 +232,7 @@ public:
 		PEControl::PixelFormat srcFormat, const EFBRectangle& srcRect,
 		bool isIntensity, bool scaleByHalf) = 0;
 
-	virtual void CompileShaders() = 0; // currently only implemented by OGL
+	virtual bool CompileShaders() = 0; // currently only implemented by OGL
 	virtual void DeleteShaders() = 0; // currently only implemented by OGL
 
 	virtual void LoadLut(u32 lutFmt, void* addr, u32 size) = 0;
@@ -255,8 +255,8 @@ private:
 	static void CheckTempSize(size_t required_size);
 	static TCacheEntryBase* DoPartialTextureUpdates(TexCache::iterator iter, u32 tlutaddr, u32 tlutfmt, u32 palette_size);
 	static void DumpTexture(TCacheEntryBase* entry, std::string basename, u32 level);
-	static void InvalidateHiresCache();
 	static TCacheEntryBase* AllocateTexture(const TCacheEntryConfig& config);
+	static TexPool::iterator FindMatchingTextureFromPool(const TCacheEntryConfig& config);
 	static TexCache::iterator GetTexCacheIter(TCacheEntryBase* entry);
 	static TexCache::iterator InvalidateTexture(TexCache::iterator t_iter);
 	static TCacheEntryBase* ReturnEntry(u32 stage, TCacheEntryBase* entry);
@@ -267,7 +267,6 @@ private:
 	static TexCache textures_by_hash;
 	static TexPool texture_pool;
 	static size_t texture_pool_memory_usage;
-	static HiresTexPool hires_texture_pool;
 	static TCacheEntryBase* bound_textures[8];
 	static u32 s_last_texture;
 

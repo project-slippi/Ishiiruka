@@ -27,6 +27,8 @@ struct geometry_shader_uid_data
 		return primitive_type == PRIMITIVE_TRIANGLES && !stereo && !wireframe;
 	}
 
+	void ClearUnused(){}
+
 	u32 stereo : 1;
 	u32 numTexGens : 4;
 	u32 pixel_lighting : 1;

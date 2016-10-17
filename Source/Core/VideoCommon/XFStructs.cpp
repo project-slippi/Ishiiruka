@@ -203,7 +203,7 @@ void LoadXFReg(u32 transferSize, u32 baseAddress)
 	// do not allow writes past registers
 	if (baseAddress + transferSize > 0x1058)
 	{
-		INFO_LOG(VIDEO, "XF load exceeds address space: %x %d bytes", baseAddress, transferSize);
+		WARN_LOG(VIDEO, "XF load exceeds address space: %x %d bytes", baseAddress, transferSize);
 
 		if (baseAddress >= 0x1058)
 			transferSize = 0;

@@ -22,8 +22,12 @@ static u32 GenBuffer()
 	return id;
 }
 
-StreamBuffer::StreamBuffer(u32 type, u32 size, u32 align_size)
-	: m_buffer(GenBuffer()), m_buffertype(type), m_size(ROUND_UP(ROUND_UP_POW2(size), align_size)), m_bit_per_slot(IntLog2(ROUND_UP(ROUND_UP_POW2(size), align_size) / SYNC_POINTS))
+StreamBuffer::StreamBuffer(u32 type, u32 size, u32 align_size, bool need_cpu_buffer)
+	: m_buffer(GenBuffer()),
+	m_buffertype(type),
+	m_size(ROUND_UP(ROUND_UP_POW2(size), align_size)),
+	m_need_cpu_buffer(need_cpu_buffer),
+	m_bit_per_slot(IntLog2(ROUND_UP(ROUND_UP_POW2(size), align_size) / SYNC_POINTS))
 {
 	m_iterator = 0;
 	m_used_iterator = 0;
@@ -124,7 +128,7 @@ void StreamBuffer::AllocMemory(u32 size)
 class MapAndOrphan : public StreamBuffer
 {
 public:
-	MapAndOrphan(u32 type, u32 size) : StreamBuffer(type, size)
+	MapAndOrphan(u32 type, u32 size) : StreamBuffer(type, size, 16, true)
 	{
 		glBindBuffer(m_buffertype, m_buffer);
 		glBufferData(m_buffertype, m_size, nullptr, GL_STREAM_DRAW);
@@ -216,7 +220,7 @@ public:
 		// COHERENT_BIT is set so we don't have to use a MemoryBarrier on write
 		// CLIENT_STORAGE_BIT is set since we access the buffer more frequently on the client side then server side
 		glBufferStorage(m_buffertype, m_size, nullptr,
-			GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | (coherent ? GL_MAP_COHERENT_BIT : 0));
+			GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | (coherent ? (GL_MAP_COHERENT_BIT | GL_CLIENT_STORAGE_BIT) : 0));
 		m_pointer = (u8*)glMapBufferRange(m_buffertype, 0, m_size,
 			GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | (coherent ? GL_MAP_COHERENT_BIT : GL_MAP_FLUSH_EXPLICIT_BIT));
 	}
@@ -258,7 +262,7 @@ public:
 	PinnedMemory(u32 type, u32 size) : StreamBuffer(type, size, ALIGN_PINNED_MEMORY)
 	{
 		CreateFences();
-		m_pointer = (u8*)AllocateAlignedMemory(m_size, ALIGN_PINNED_MEMORY);
+		m_pointer = static_cast<u8*>(AllocateAlignedMemory(m_size, ALIGN_PINNED_MEMORY));
 		glBindBuffer(GL_EXTERNAL_VIRTUAL_MEMORY_BUFFER_AMD, m_buffer);
 		glBufferData(GL_EXTERNAL_VIRTUAL_MEMORY_BUFFER_AMD, m_size, m_pointer, GL_STREAM_COPY);
 		glBindBuffer(GL_EXTERNAL_VIRTUAL_MEMORY_BUFFER_AMD, 0);

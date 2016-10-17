@@ -3,6 +3,7 @@
 // Refer to the license.txt file included.
 
 #pragma once
+#include "Common/MemoryUtil.h"
 
 #include "VideoCommon/CPMemory.h"
 #include "VideoCommon/VertexLoader.h"
@@ -58,8 +59,8 @@ private:
 	LPDIRECT3DVERTEXBUFFER9 *m_vertex_buffers;
 	LPDIRECT3DINDEXBUFFER9 *m_index_buffers;
 
-	std::vector<u8> LocalVBuffer;
-	std::vector<u16> LocalIBuffer;
+	std::vector<u8, aligned_allocator<u8, 256>> LocalVBuffer;
+	std::vector<u16, aligned_allocator<u16, 256>> LocalIBuffer;
 };
 
 }

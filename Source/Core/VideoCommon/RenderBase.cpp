@@ -20,6 +20,7 @@
 
 #include "Common/CommonTypes.h"
 #include "Common/Event.h"
+#include "Common/FileUtil.h"
 #include "Common/Flag.h"
 #include "Common/Profiler.h"
 #include "Common/StringUtil.h"
@@ -32,6 +33,7 @@
 #include "Core/FifoPlayer/FifoRecorder.h"
 #include "Core/HW/VideoInterface.h"
 
+#include "OnScreenDisplay.h"
 #include "VideoCommon/AVIDump.h"
 #include "VideoCommon/BPMemory.h"
 #include "VideoCommon/CommandProcessor.h"
@@ -40,6 +42,7 @@
 #include "VideoCommon/FPSCounter.h"
 #include "VideoCommon/FramebufferManagerBase.h"
 #include "VideoCommon/GeometryShaderManager.h"
+#include "VideoCommon/ImageWrite.h"
 #include "VideoCommon/PixelShaderManager.h"
 #include "VideoCommon/PostProcessing.h"
 #include "VideoCommon/RenderBase.h"
@@ -63,10 +66,6 @@ Common::Event Renderer::s_screenshotCompleted;
 
 volatile bool Renderer::s_bScreenshot;
 
-// Final surface changing
-Common::Flag  Renderer::s_SurfaceNeedsChanged;
-Common::Event Renderer::s_ChangedSurface;
-
 // The framebuffer size
 int Renderer::s_target_width;
 int Renderer::s_target_height;
@@ -76,6 +75,11 @@ int Renderer::s_backbuffer_width;
 int Renderer::s_backbuffer_height;
 
 std::unique_ptr<PostProcessor> Renderer::m_post_processor;
+
+// Final surface changing
+Common::Flag Renderer::s_surface_needs_change;
+Common::Event Renderer::s_surface_changed;
+void* Renderer::s_new_surface_handle;
 
 TargetRectangle Renderer::target_rc;
 TargetRectangle Renderer::window_rc;
@@ -91,21 +95,21 @@ unsigned int Renderer::efb_scale_denominatorX = 1;
 unsigned int Renderer::efb_scale_denominatorY = 1;
 unsigned int Renderer::ssaa_multiplier = 1;
 
+// The maximum depth that is written to the depth buffer should never exceed this value.
+// This is necessary because we use a 2^24 divisor for all our depth values to prevent
+// floating-point round-trip errors. However the console GPU doesn't ever write a value
+// to the depth buffer that exceeds 2^24 - 1.
+const float Renderer::GX_MAX_DEPTH = 16777215.0f / 16777216.0f;
+
 static float AspectToWidescreen(float aspect)
 {
 	return aspect * ((16.0f / 9.0f) / (4.0f / 3.0f));
 }
 
 Renderer::Renderer()
-	: frame_data()
-	, bLastFrameDumped(false)
 {
 	UpdateActiveConfig();
 	TextureCacheBase::OnConfigChanged(g_ActiveConfig);
-
-#if defined _WIN32 || defined HAVE_LIBAV
-	bAVIDumping = false;
-#endif
 
 	OSDChoice = 0;
 	OSDTime = 0;
@@ -117,9 +121,13 @@ Renderer::~Renderer()
 	prev_efb_format = PEControl::INVALID_FMT;
 
 	efb_scale_numeratorX = efb_scale_numeratorY = efb_scale_denominatorX = efb_scale_denominatorY = 1;
-#if defined _WIN32 || defined HAVE_LIBAV
-	if (SConfig::GetInstance().m_DumpFrames && bLastFrameDumped && bAVIDumping)
+#if defined(HAVE_LIBAV) || defined(_WIN32)
+	// Stop frame dumping if it was left enabled at shutdown time.
+	if (m_AVI_dumping)
+	{
 		AVIDump::Stop();
+		m_AVI_dumping = false;
+	}
 #endif
 }
 
@@ -234,11 +242,10 @@ bool Renderer::CalculateTargetSize(unsigned int framebuffer_width, unsigned int 
 		efb_scale_denominatorX = efb_scale_denominatorY = 1;
 		break;
 	}
-	int maxSize;
-	maxSize = GetMaxTextureSize();
-	if ((unsigned)maxSize < EFB_WIDTH * multiplier * efb_scale_numeratorX / efb_scale_denominatorX)
+	const u32 max_size = GetMaxTextureSize();
+	if (max_size < EFB_WIDTH * multiplier * efb_scale_numeratorX / efb_scale_denominatorX)
 	{
-		efb_scale_numeratorX = efb_scale_numeratorY = (maxSize / (EFB_WIDTH * multiplier));
+		efb_scale_numeratorX = efb_scale_numeratorY = (max_size / (EFB_WIDTH * multiplier));
 		efb_scale_denominatorX = efb_scale_denominatorY = 1;
 	}
 
@@ -632,6 +639,95 @@ void Renderer::Swap(u32 xfbAddr, u32 fbWidth, u32 fbStride, u32 fbHeight, const 
 	XFBWrited = false;
 }
 
+bool Renderer::IsFrameDumping()
+{
+	if (s_bScreenshot)
+		return true;
+
+#if defined(HAVE_LIBAV) || defined(_WIN32)
+	if (SConfig::GetInstance().m_DumpFrames)
+		return true;
+
+	if (m_last_frame_dumped && m_AVI_dumping)
+	{
+		AVIDump::Stop();
+		std::vector<u8>().swap(m_frame_data);
+		m_AVI_dumping = false;
+		OSD::AddMessage("Stop dumping frames", 2000);
+	}
+	m_last_frame_dumped = false;
+#endif
+	return false;
+}
+
+void Renderer::DumpFrameData(const u8* data, int w, int h, int stride, bool swap_upside_down, bool bgra)
+{
+	if (w == 0 || h == 0)
+		return;
+
+	// TODO: Refactor this. Right now it's needed for the implace flipping of the image.
+	m_frame_data.assign(data, data + stride * h);
+	if (swap_upside_down)
+	{
+		if (bgra)
+		{
+			FlipImageDataFromBGRA(m_frame_data.data(), w, h);
+		}
+		else
+		{
+			FlipImageData(m_frame_data.data(), w, h, 4);
+		}
+	}
+	else if (bgra)
+	{
+		ImageDataFromBGRA(m_frame_data.data(), w, h);
+	}
+
+	// Save screenshot
+	if (s_bScreenshot)
+	{
+		std::lock_guard<std::mutex> lk(s_criticalScreenshot);
+
+		if (TextureToPng(m_frame_data.data(), stride, s_sScreenshotName, w, h, false))
+			OSD::AddMessage("Screenshot saved to " + s_sScreenshotName);
+
+		// Reset settings
+		s_sScreenshotName.clear();
+		s_bScreenshot = false;
+		s_screenshotCompleted.Set();
+	}
+
+#if defined(HAVE_LIBAV) || defined(_WIN32)
+	if (SConfig::GetInstance().m_DumpFrames)
+	{
+		if (!m_last_frame_dumped)
+		{
+			m_AVI_dumping = AVIDump::Start(w, h);
+			if (!m_AVI_dumping)
+			{
+				OSD::AddMessage("AVIDump Start failed", 2000);
+			}
+			else
+			{
+				OSD::AddMessage(StringFromFormat("Dumping Frames to \"%sframedump0.avi\" (%dx%d RGB24)",
+					File::GetUserPath(D_DUMPFRAMES_IDX).c_str(), w, h),
+					2000);
+			}
+		}
+		if (m_AVI_dumping)
+		{
+			AVIDump::AddFrame(m_frame_data.data(), w, h, stride);
+		}
+
+		m_last_frame_dumped = true;
+	}
+#endif
+}
+
+void Renderer::FinishFrameData()
+{
+}
+
 void Renderer::FlipImageData(u8* data, int w, int h, int pixel_width)
 {
 	for (int y = 0; y < h / 2; ++y)
@@ -640,6 +736,31 @@ void Renderer::FlipImageData(u8* data, int w, int h, int pixel_width)
 		{
 			for (int delta = 0; delta < pixel_width; ++delta)
 				std::swap(data[(y * w + x) * pixel_width + delta], data[((h - 1 - y) * w + x) * pixel_width + delta]);
+		}
+	}
+}
+
+void Renderer::FlipImageDataFromBGRA(u8* data, int w, int h)
+{
+	for (int y = 0; y < h / 2; ++y)
+	{
+		for (int x = 0; x < w; ++x)
+		{
+			std::swap(data[(y * w + x) * 4 + 0], data[((h - 1 - y) * w + x) * 4 + 2]);
+			std::swap(data[(y * w + x) * 4 + 1], data[((h - 1 - y) * w + x) * 4 + 1]);
+			std::swap(data[(y * w + x) * 4 + 2], data[((h - 1 - y) * w + x) * 4 + 0]);
+			std::swap(data[(y * w + x) * 4 + 3], data[((h - 1 - y) * w + x) * 4 + 3]);
+		}
+	}
+}
+
+void Renderer::ImageDataFromBGRA(u8* data, int w, int h)
+{
+	for (int y = 0; y < h; ++y)
+	{
+		for (int x = 0; x < w; ++x)
+		{
+			std::swap(data[(y * w + x) * 4 + 0], data[(y * w + x) * 4 + 2]);
 		}
 	}
 }

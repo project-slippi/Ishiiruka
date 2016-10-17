@@ -9,6 +9,7 @@
 #include "Common/StringUtil.h"
 
 #include "Core/ConfigManager.h"
+#include "Core/Host.h"
 
 #include "VideoBackends/DX11/D3DBase.h"
 #include "VideoBackends/DX11/D3DPtr.h"
@@ -186,10 +187,14 @@ void GeometryShaderCache::Init()
 	{
 		size_t shader_count = 0;
 		s_geometry_shaders->ForEachMostUsedByCategory(gameid,
-			[&](const GeometryShaderUid& item)
+			[&](const GeometryShaderUid& it, size_t total)
 		{
+			GeometryShaderUid item = it;
+			item.ClearHASH();
+			item.CalculateUIDHash();
 			CompileGShader(item, true);
 			shader_count++;
+			//Host_UpdateTitle(StringFromFormat("Compiling Geometry Shaders %i %% (%i/%i)", (shader_count * 100) / total, shader_count, total));
 			if ((shader_count & 31) == 0)
 			{
 				s_compiler->WaitForFinish();

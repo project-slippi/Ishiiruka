@@ -108,7 +108,7 @@ bool CompileShader(
 	const char* pEntry, bool throwerror)
 {
 #if defined(_DEBUG) || defined(DEBUGFAST)
-	UINT flags = D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
+	UINT flags = D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION | D3D10_SHADER_ENABLE_BACKWARDS_COMPATIBILITY;
 #else
 	UINT flags = D3DCOMPILE_SKIP_VALIDATION;
 	if (type != DX11::D3D::ShaderType::Hull)

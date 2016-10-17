@@ -45,8 +45,6 @@ const unsigned int s_shader_constant_buffer_padded_sizes[SHADER_STAGE_COUNT] = {
 
 void ShaderConstantsManager::Init()
 {
-	PixelShaderManager::DisableDirtyRegions();
-	VertexShaderManager::DisableDirtyRegions();
 	// Allow a large maximum size, as we want to minimize stalls here
 	std::generate(std::begin(s_shader_constant_stream_buffers), std::end(s_shader_constant_stream_buffers), []()
 	{
@@ -151,7 +149,7 @@ bool ShaderConstantsManager::LoadAndSetPixelShaderConstants()
 
 		PixelShaderManager::Clear();
 
-		ADDSTAT(stats.thisFrame.bytesUniformStreamed, sizeof(PixelShaderConstants));
+		ADDSTAT(stats.thisFrame.bytesUniformStreamed, shader_constant_buffer_sizes[SHADER_STAGE_PIXEL_SHADER]);
 
 		D3D::command_list_mgr->SetCommandListDirtyState(COMMAND_LIST_STATE_PS_CBV, true);
 	}

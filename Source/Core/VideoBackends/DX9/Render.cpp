@@ -344,20 +344,19 @@ void Renderer::PokeEFB(EFBAccessType type, const EfbPokeData* points, size_t num
 	vp.Y = 0;
 	vp.Width = GetTargetWidth();
 	vp.Height = GetTargetHeight();
-	float nearz = xfmem.viewport.farZ - MathUtil::Clamp<float>(xfmem.viewport.zRange, 0.0f, 16777215.0f);
-	float farz = xfmem.viewport.farZ;
+	
 
-	const bool nonStandartViewport = g_ActiveConfig.bViewportCorrection && (nearz < 0.f || farz > 16777216.0f || nearz >= 16777216.0f || farz <= 0.f);
-	if (nonStandartViewport)
+	if (xfmem.viewport.zRange < 0.0f)
 	{
-		vp.MinZ = 0.0f;
+		vp.MinZ = 1.0f - GX_MAX_DEPTH;
 		vp.MaxZ = 1.0f;
 	}
 	else
 	{
+		float nearz = xfmem.viewport.farZ - MathUtil::Clamp<float>(xfmem.viewport.zRange, 0.0f, 16777215.0f);
 		// Some games set invalids values for z min and z max so fix them to the max an min alowed and let the shaders do this work
 		vp.MaxZ = 1.0f - (MathUtil::Clamp<float>(nearz, 0.0f, 16777215.0f) / 16777216.0f);
-		vp.MinZ = 1.0f - (MathUtil::Clamp<float>(farz, 0.0f, 16777215.0f) / 16777216.0f);
+		vp.MinZ = 1.0f - (MathUtil::Clamp<float>(xfmem.viewport.farZ, 0.0f, 16777215.0f) / 16777216.0f);
 	}
 	D3D::dev->SetRenderTarget(0, FramebufferManager::GetEFBColorRTSurface());
 	D3D::dev->SetDepthStencilSurface(FramebufferManager::GetEFBDepthRTSurface());
@@ -407,7 +406,7 @@ void Renderer::ClearScreen(const EFBRectangle& rc, bool colorEnable, bool alphaE
 	vp.Y = targetRc.top;
 	vp.Width = targetRc.GetWidth();
 	vp.Height = targetRc.GetHeight();
-	vp.MinZ = 0.0;
+	vp.MinZ = 1.0f - GX_MAX_DEPTH;
 	vp.MaxZ = 1.0;
 	D3D::dev->SetViewport(&vp);
 	D3D::drawClearQuad(color, (0xFFFFFF - (z & 0xFFFFFF)) / 16777216.0f, PixelShaderCache::GetClearProgram(), VertexShaderCache::GetClearVertexShader());
@@ -419,7 +418,7 @@ void Renderer::ClearScreen(const EFBRectangle& rc, bool colorEnable, bool alphaE
 void Renderer::ReinterpretPixelData(unsigned int convtype)
 {
 	RECT source;
-	SetRect(&source, 0, 0, g_renderer->GetTargetWidth(), g_renderer->GetTargetHeight());
+	SetRect(&source, 0, 0, GetTargetWidth(), GetTargetHeight());
 
 	LPDIRECT3DPIXELSHADER9 pixel_shader;
 	if (convtype == 0) pixel_shader = PixelShaderCache::ReinterpRGB8ToRGBA6();
@@ -431,54 +430,32 @@ void Renderer::ReinterpretPixelData(unsigned int convtype)
 	}
 
 	// convert data and set the target texture as our new EFB
-	g_renderer->ResetAPIState();
+	ResetAPIState();
 	D3D::dev->SetRenderTarget(0, FramebufferManager::GetEFBColorReinterpretSurface());
 	D3DVIEWPORT9 vp;
 	vp.X = 0;
 	vp.Y = 0;
-	vp.Width = g_renderer->GetTargetWidth();
-	vp.Height = g_renderer->GetTargetHeight();
+	vp.Width = GetTargetWidth();
+	vp.Height = GetTargetHeight();
 	vp.MinZ = 0.0;
 	vp.MaxZ = 1.0;
 	D3D::dev->SetViewport(&vp);
 	D3D::ChangeSamplerState(0, D3DSAMP_MINFILTER, D3DTEXF_POINT);
 	D3D::drawShadedTexQuad(FramebufferManager::GetEFBColorTexture(), &source,
-		g_renderer->GetTargetWidth(), g_renderer->GetTargetHeight(),
-		g_renderer->GetTargetWidth(), g_renderer->GetTargetHeight(),
+		GetTargetWidth(), GetTargetHeight(),
+		GetTargetWidth(), GetTargetHeight(),
 		pixel_shader, VertexShaderCache::GetSimpleVertexShader(0));
 	FramebufferManager::SwapReinterpretTexture();
 	D3D::RefreshSamplerState(0, D3DSAMP_MINFILTER);
-	g_renderer->RestoreAPIState();
+	RestoreAPIState();
 	FramebufferManager::InvalidateEFBCache();
-}
-
-bool Renderer::SaveScreenshot(const std::string &filename, const TargetRectangle &dst_rect)
-{
-	HRESULT hr = D3D::dev->GetRenderTargetData(D3D::GetBackBufferSurface(), ScreenShootMEMSurface);
-	if (FAILED(hr))
-	{
-		PanicAlert("Error dumping surface data.");
-		return false;
-	}
-	hr = PD3DXSaveSurfaceToFileA(filename.c_str(), D3DXIFF_PNG, ScreenShootMEMSurface, NULL, dst_rect.AsRECT());
-	if (FAILED(hr))
-	{
-		PanicAlert("Error saving screen.");
-		return false;
-	}
-	OSD::AddMessage(StringFromFormat("Saved %i x %i %s", dst_rect.GetWidth(), dst_rect.GetHeight(), filename.c_str()));
-
-	return true;
 }
 
 // This function has the final picture. We adjust the aspect ratio here.
 void Renderer::SwapImpl(u32 xfbAddr, u32 fbWidth, u32 fbStride, u32 fbHeight, const EFBRectangle& rc, float Gamma)
 {
-	if (Fifo::WillSkipCurrentFrame() || (!XFBWrited && !g_ActiveConfig.RealXFBEnabled()) || !fbWidth || !fbHeight)
+	if ((!XFBWrited && !g_ActiveConfig.RealXFBEnabled()) || !fbWidth || !fbHeight)
 	{
-		if (SConfig::GetInstance().m_DumpFrames && !frame_data.empty())
-			AVIDump::AddFrame(&frame_data[0], fbWidth, fbHeight);
-
 		Core::Callback_VideoCopiedToXFB(false);
 		return;
 	}
@@ -487,9 +464,6 @@ void Renderer::SwapImpl(u32 xfbAddr, u32 fbWidth, u32 fbStride, u32 fbHeight, co
 	const XFBSourceBase* const* xfbSourceList = FramebufferManager::GetXFBSource(xfbAddr, fbStride, fbHeight, &xfbCount);
 	if ((!xfbSourceList || xfbCount == 0) && g_ActiveConfig.bUseXFB && !g_ActiveConfig.bUseRealXFB)
 	{
-		if (SConfig::GetInstance().m_DumpFrames && !frame_data.empty())
-			AVIDump::AddFrame(&frame_data[0], fbWidth, fbHeight);
-
 		Core::Callback_VideoCopiedToXFB(false);
 		return;
 	}
@@ -670,61 +644,21 @@ void Renderer::SwapImpl(u32 xfbAddr, u32 fbWidth, u32 fbStride, u32 fbHeight, co
 	vp.MaxZ = 1.0f;
 	D3D::dev->SetViewport(&vp);
 
-	// Save screenshot
-	if (s_bScreenshot)
-	{
-		std::lock_guard<std::mutex> lk(s_criticalScreenshot);
-		SaveScreenshot(s_sScreenshotName, GetTargetRectangle());
-		s_bScreenshot = false;
-	}
-
 	// Dump frames
-	if (SConfig::GetInstance().m_DumpFrames)
+	if (IsFrameDumping())
 	{
 		int source_width = GetTargetRectangle().GetWidth();
 		int source_height = GetTargetRectangle().GetHeight();
 		HRESULT hr = D3D::dev->GetRenderTargetData(D3D::GetBackBufferSurface(), ScreenShootMEMSurface);
-		if (!bLastFrameDumped)
+		D3DLOCKED_RECT rect;
+		if (SUCCEEDED(ScreenShootMEMSurface->LockRect(&rect, GetTargetRectangle().AsRECT(), D3DLOCK_NO_DIRTY_UPDATE | D3DLOCK_NOSYSLOCK | D3DLOCK_READONLY)))
 		{
-			bAVIDumping = AVIDump::Start(source_width, source_height, AVIDump::DumpFormat::FORMAT_BGR);
-			if (!bAVIDumping)
-			{
-				PanicAlert("Error dumping frames to AVI.");
-			}
-			else
-			{
-				std::string msg = StringFromFormat("Dumping Frames to \"%sframedump0.avi\" (%dx%d RGB24)",
-					File::GetUserPath(D_DUMPFRAMES_IDX).c_str(),
-					source_width, source_height);
-				OSD::AddMessage(msg, 2000);
-			}
-		}
-		if (bAVIDumping)
-		{
-			D3DLOCKED_RECT rect;
-			if (SUCCEEDED(ScreenShootMEMSurface->LockRect(&rect, GetTargetRectangle().AsRECT(), D3DLOCK_NO_DIRTY_UPDATE | D3DLOCK_NOSYSLOCK | D3DLOCK_READONLY)))
-			{
-				if (frame_data.capacity() != 3 * source_width * source_height)
-					frame_data.resize(3 * source_width * source_height);
+			DumpFrameData(reinterpret_cast<const u8*>(rect.pBits), source_width, source_height,
+				rect.Pitch, false, true);
+			FinishFrameData();
 
-				formatBufferDump((const u8*)rect.pBits, &frame_data[0], source_width, source_height, rect.Pitch);
-				FlipImageData(&frame_data[0], source_width, source_height);
-				AVIDump::AddFrame(&frame_data[0], GetTargetRectangle().GetWidth(), GetTargetRectangle().GetHeight());
-				ScreenShootMEMSurface->UnlockRect();
-			}
+			ScreenShootMEMSurface->UnlockRect();
 		}
-		bLastFrameDumped = true;
-	}
-	else
-	{
-		if (bLastFrameDumped && bAVIDumping)
-		{
-			std::vector<u8>().swap(frame_data);
-			AVIDump::Stop();
-			bAVIDumping = false;
-			OSD::AddMessage("Stop dumping frames to AVI", 2000);
-		}
-		bLastFrameDumped = false;
 	}
 
 	Renderer::DrawDebugText();
@@ -887,20 +821,17 @@ void Renderer::SetViewport()
 	s_vp.Width = Wd;
 	s_vp.Height = Ht;
 
-	float nearz = xfmem.viewport.farZ - MathUtil::Clamp<float>(xfmem.viewport.zRange, 0.0f, 16777215.0f);
-	float farz = xfmem.viewport.farZ;
-
-	const bool nonStandartViewport = g_ActiveConfig.bViewportCorrection && (nearz < 0.f || farz > 16777216.0f || nearz >= 16777216.0f || farz <= 0.f);
-	if (nonStandartViewport)
+	if (xfmem.viewport.zRange < 0.0f)
 	{
-		s_vp.MinZ = 0.0f;
+		s_vp.MinZ = 1.0f - GX_MAX_DEPTH;
 		s_vp.MaxZ = 1.0f;
 	}
 	else
 	{
+		float nearz = xfmem.viewport.farZ - MathUtil::Clamp<float>(xfmem.viewport.zRange, 0.0f, 16777215.0f);
 		// Some games set invalids values for z min and z max so fix them to the max an min alowed and let the shaders do this work
 		s_vp.MaxZ = 1.0f - (MathUtil::Clamp<float>(nearz, 0.0f, 16777215.0f) / 16777216.0f);
-		s_vp.MinZ = 1.0f - (MathUtil::Clamp<float>(farz, 0.0f, 16777215.0f) / 16777216.0f);
+		s_vp.MinZ = 1.0f - (MathUtil::Clamp<float>(xfmem.viewport.farZ, 0.0f, 16777215.0f) / 16777216.0f);
 	}
 	m_bViewPortChanged = true;
 }
@@ -912,7 +843,7 @@ void Renderer::ApplyState(bool bUseDstAlpha)
 		_SetGenerationMode();
 	}
 
-	if (m_bDepthModeChanged)
+	if (m_bDepthModeChanged || m_bViewPortChanged)
 	{
 		_SetDepthMode();
 	}
@@ -1233,10 +1164,14 @@ void Renderer::_SetLogicOpMode()
 
 	if (bpmem.blendmode.logicopenable && !bpmem.blendmode.blendenable)
 	{
-		D3D::SetRenderState(D3DRS_ALPHABLENDENABLE, true);
-		D3D::SetRenderState(D3DRS_BLENDOP, d3dLogicOpop[bpmem.blendmode.logicmode]);
-		D3D::SetRenderState(D3DRS_SRCBLEND, d3dLogicOpSrcFactors[bpmem.blendmode.logicmode]);
-		D3D::SetRenderState(D3DRS_DESTBLEND, d3dLogicOpDestFactors[bpmem.blendmode.logicmode]);
+		bool logicopenabled = bpmem.blendmode.logicmode != BlendMode::LogicOp::COPY;
+		D3D::SetRenderState(D3DRS_ALPHABLENDENABLE, logicopenabled);
+		if (logicopenabled)
+		{
+			D3D::SetRenderState(D3DRS_BLENDOP, d3dLogicOpop[bpmem.blendmode.logicmode]);
+			D3D::SetRenderState(D3DRS_SRCBLEND, d3dLogicOpSrcFactors[bpmem.blendmode.logicmode]);
+			D3D::SetRenderState(D3DRS_DESTBLEND, d3dLogicOpDestFactors[bpmem.blendmode.logicmode]);
+		}
 	}
 	else
 	{
@@ -1316,9 +1251,9 @@ void Renderer::SetSamplerState(int stage, int texindex, bool custom_tex)
 	D3D::SetSamplerState(stage, D3DSAMP_MAXMIPLEVEL, tm1.min_lod >> 4);
 }
 
-int Renderer::GetMaxTextureSize()
+u32 Renderer::GetMaxTextureSize()
 {
-	return D3D::GetCaps().MaxTextureWidth;
+	return static_cast<u32>(D3D::GetCaps().MaxTextureWidth); ;
 }
 
 }  // namespace DX9

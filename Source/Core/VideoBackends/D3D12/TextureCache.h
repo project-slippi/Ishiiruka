@@ -55,7 +55,7 @@ private:
 		}
 	};
 
-	PC_TexFormat GetNativeTextureFormat(const s32 texformat, const TlutFormat tlutfmt, u32 width, u32 height);
+	PC_TexFormat GetNativeTextureFormat(const s32 texformat, const TlutFormat tlutfmt, u32 width, u32 height) override;
 
 	TCacheEntryBase* CreateTexture(const TCacheEntryConfig& config) override;
 	bool Palettize(TCacheEntryBase* entry, const TCacheEntryBase* base_entry) override;
@@ -63,8 +63,10 @@ private:
 		PEControl::PixelFormat src_format, const EFBRectangle& src_rect,
 		bool is_intensity, bool scale_by_half) override;
 	void LoadLut(u32 lutFmt, void* addr, u32 size) override;
-	void CompileShaders() override
-	{}
+	bool CompileShaders() override
+	{
+		return true;
+	}
 	void DeleteShaders() override
 	{}
 

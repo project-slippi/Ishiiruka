@@ -243,8 +243,6 @@ void OGLPostProcessingShader::MapAndUpdateConfigurationBuffer()
 
 		glBindBufferRange(GL_UNIFORM_BUFFER, UNIFORM_BUFFER_BIND_POINT + 1, buffer->m_uniform_buffer->m_buffer, mapped_buffer.second, buffer_size);
 
-		ProgramShaderCache::BindUniformBuffer();
-
 		ADDSTAT(stats.thisFrame.bytesUniformStreamed, buffer_size);
 	}
 }
@@ -263,7 +261,7 @@ void OGLPostProcessingShader::Draw(PostProcessor* p,
 	OpenGL_BindAttributelessVAO();
 
 	// Determine whether we can skip the final copy by writing directly to the output texture, if the last pass is not scaled.
-	bool skip_final_copy = !IsLastPassScaled() && (dst_texture != src_texture || !m_last_pass_uses_color_buffer);
+	bool skip_final_copy = !IsLastPassScaled() && (dst_texture != src_texture || !m_last_pass_uses_color_buffer) && !m_prev_frame_enabled;
 
 	// If the last pass is not at full scale, we can't skip the copy.
 	if (m_passes[m_last_pass_index].output_size != src_size)
@@ -335,7 +333,20 @@ void OGLPostProcessingShader::Draw(PostProcessor* p,
 				glBindTexture(GL_TEXTURE_2D_ARRAY, src_depth_texture);
 				input_sizes[i] = src_size;
 				break;
-
+			case POST_PROCESSING_INPUT_TYPE_PASS_FRAME_OUTPUT:
+				if (m_prev_frame_enabled)
+				{
+					glBindTexture(GL_TEXTURE_2D_ARRAY, static_cast<GLuint>(GetPrevColorFrame(input.frame_index)->GetInternalObject()));
+					input_sizes[i] = m_prev_frame_size;
+				}
+				break;
+			case POST_PROCESSING_INPUT_TYPE_PASS_DEPTH_FRAME_OUTPUT:
+				if (m_prev_depth_enabled)
+				{
+					glBindTexture(GL_TEXTURE_2D_ARRAY, static_cast<GLuint>(GetPrevDepthFrame(input.frame_index)->GetInternalObject()));
+					input_sizes[i] = m_prev_depth_frame_size;
+				}
+				break;
 			default:
 				TextureCacheBase::TCacheEntryBase* input_texture = input.texture != nullptr ? input.texture : input.prev_texture;
 				if (input_texture != nullptr)
@@ -367,9 +378,28 @@ void OGLPostProcessingShader::Draw(PostProcessor* p,
 	}
 
 	// Copy the last pass output to the target if not done already
+	IncrementFrame();
+	if (m_prev_depth_enabled && src_depth_tex)
+	{
+		TargetRectangle dst;
+		dst.left = 0;
+		dst.right = m_prev_depth_frame_size.width;
+		dst.top = m_prev_depth_frame_size.height;
+		dst.bottom = 0;
+		parent->CopyTexture(dst, GetPrevDepthFrame(0)->GetInternalObject(), output_rect, src_depth_tex, src_size, src_layer, true, true);
+	}
 	if (!skip_final_copy)
 	{
 		RenderPassData& final_pass = m_passes[m_last_pass_index];
+		if (m_prev_frame_enabled)
+		{
+			TargetRectangle dst;
+			dst.left = 0;
+			dst.right = m_prev_frame_size.width;
+			dst.top = m_prev_frame_size.height;
+			dst.bottom = 0;
+			parent->CopyTexture(dst, GetPrevColorFrame(0)->GetInternalObject(), output_rect, final_pass.output_texture->GetInternalObject(), final_pass.output_size, src_layer, false, true);
+		}
 		parent->CopyTexture(dst_rect, dst_texture, output_rect, final_pass.output_texture->GetInternalObject(), final_pass.output_size, src_layer);
 	}
 }
@@ -387,7 +417,6 @@ OGLPostProcessor::~OGLPostProcessor()
 		glBindBuffer(GL_UNIFORM_BUFFER, m_uniform_buffer->m_buffer);
 		m_uniform_buffer.reset();
 	}
-	ProgramShaderCache::BindUniformBuffer();
 }
 
 bool OGLPostProcessor::Initialize()
@@ -526,7 +555,7 @@ void OGLPostProcessor::CopyTexture(const TargetRectangle& dst_rect, uintptr_t ds
 	for (int i = 0; i < layers_to_copy; i++)
 	{
 		int layer = (src_layer < 0) ? i : src_layer;
-		if (g_ogl_config.bSupportsCopySubImage && dst_texture != 0 && !(force_shader_copy || scaling))
+		if (g_ogl_config.bSupportsCopySubImage && dst_texture != 0 && !(force_shader_copy || scaling || is_depth_texture))
 		{
 			// use (ARB|NV)_copy_image, but only for non-window-framebuffer cases
 			glCopyImageSubData(src_texture, GL_TEXTURE_2D_ARRAY, 0, src_rect.left, src_rect.bottom, layer,
@@ -582,8 +611,6 @@ void OGLPostProcessor::MapAndUpdateUniformBuffer(
 		m_uniform_buffer->Unmap(POST_PROCESSING_CONTANTS_BUFFER_SIZE);
 
 		glBindBufferRange(GL_UNIFORM_BUFFER, UNIFORM_BUFFER_BIND_POINT, m_uniform_buffer->m_buffer, mapped_buffer.second, POST_PROCESSING_CONTANTS_BUFFER_SIZE);
-
-		ProgramShaderCache::BindUniformBuffer();
 
 		ADDSTAT(stats.thisFrame.bytesUniformStreamed, POST_PROCESSING_CONTANTS_BUFFER_SIZE);
 	}

@@ -83,7 +83,7 @@ private:
 
 	// Core
 	wxCheckBox *CPUThread, *SkipIdle, *MMU, *DCBZOFF, *FPRF;
-	wxCheckBox *SyncGPU, *FastDiscSpeed, *DSPHLE, *HalfAudioRate;
+	wxCheckBox *SyncGPU, *FastDiscSpeed, *DSPHLE, *HalfAudioRate, *TimeStretching;
 	wxSlider* DVideo;
 	wxStaticText* label_DVideo;
 	wxArrayString arrayStringFor_GPUDeterminism;
@@ -150,6 +150,7 @@ private:
 		ID_DVIDEO,
 		ID_HALFAUDIORATE,
 		ID_DISCSPEED,
+		ID_TIMESTRETCHING,
 		ID_AUDIO_DSP_HLE,
 		ID_USE_BBOX,
 		ID_ENABLEPROGRESSIVESCAN,

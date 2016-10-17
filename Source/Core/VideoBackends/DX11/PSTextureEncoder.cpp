@@ -125,7 +125,7 @@ void PSTextureEncoder::Encode(u8* dest_ptr, u32 format, u32 native_width, u32 by
 		D3D::stateman->SetPixelConstants(m_encodeParams.get());
 
 		// Use linear filtering if (bScaleByHalf), use point filtering otherwise
-		if (scaleByHalf)
+		if (scaleByHalf || g_ActiveConfig.iEFBScale != SCALE_1X)
 			D3D::SetLinearCopySampler();
 		else
 			D3D::SetPointCopySampler();

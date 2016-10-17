@@ -85,7 +85,7 @@ void GLVertexFormat::SetupVertexPointers()
 		if (vtx_decl.posmtx.enable)
 		{
 			glEnableVertexAttribArray(SHADER_POSMTX_ATTRIB);
-			glVertexAttribPointer(SHADER_POSMTX_ATTRIB, 4, GL_UNSIGNED_BYTE, GL_FALSE, vtx_decl.stride, (u8*)NULL + vtx_decl.posmtx.offset);
+			glVertexAttribIPointer(SHADER_POSMTX_ATTRIB, 4, GL_UNSIGNED_BYTE, vtx_decl.stride, (u8*)NULL + vtx_decl.posmtx.offset);
 		}
 		vm->m_last_vao = VAO;
 	}

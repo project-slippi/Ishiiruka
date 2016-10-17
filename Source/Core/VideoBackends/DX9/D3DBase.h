@@ -10,6 +10,7 @@
 #include <d3dx9.h>
 
 #include "Common/Common.h"
+#include "Common/MsgHandler.h"
 
 namespace DX9
 {

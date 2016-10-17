@@ -9,6 +9,7 @@
 #include "Common/StringUtil.h"
 
 #include "Core/ConfigManager.h"
+#include "Core/Host.h"
 
 #include "VideoBackends/DX11/D3DBase.h"
 #include "VideoBackends/DX11/D3DPtr.h"
@@ -111,10 +112,14 @@ void HullDomainShaderCache::Init()
 	{
 		size_t shader_count = 0;
 		s_hulldomain_shaders->ForEachMostUsedByCategory(gameid,
-			[&](const TessellationShaderUid& item)
+			[&](const TessellationShaderUid& it, size_t total)
 		{
+			TessellationShaderUid item = it;
+			item.ClearHASH();
+			item.CalculateUIDHash();
 			CompileHDShader(item, true);
 			shader_count++;
+			//Host_UpdateTitle(StringFromFormat("Compiling Tessellation Shaders %i %% (%i/%i)", (shader_count * 100) / total, shader_count, total));
 			if ((shader_count & 31) == 0)
 			{
 				s_compiler->WaitForFinish();

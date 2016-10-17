@@ -15,8 +15,6 @@ u16 *IndexGenerator::index_buffer_current;
 u16 *IndexGenerator::BASEIptr;
 u32 IndexGenerator::base_index;
 
-static const u16 s_primitive_restart = -1;
-
 static void(*primitive_table[8])(u32);
 
 void IndexGenerator::Init()
@@ -74,17 +72,21 @@ void IndexGenerator::AddStrip(u32 const numVerts)
 {
 	u16* ptr = index_buffer_current;
 	u32 top = (base_index + numVerts);
-	u32 i = base_index + 2;
-	bool wind = false;
+	u32 a = base_index;
+	u32 i = a + 2;
+	u32 wind = 1;
 	while (i < top)
 	{
+		u32 b = i - wind;
+		wind ^= 1;
+		u32 c = i - wind;
 		ptr = WriteTriangle(
 			ptr,
-			i - 2,
-			i - !wind,
-			i - wind);
-		wind ^= true;
+			a,
+			b,
+			c);
 		++i;
+		++a;
 	}
 	index_buffer_current = ptr;
 }

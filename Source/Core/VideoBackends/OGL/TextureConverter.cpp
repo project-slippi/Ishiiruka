@@ -230,7 +230,7 @@ static void EncodeToRamUsingShader(GLuint srcTexture,
 	glActiveTexture(GL_TEXTURE9);
 	glBindTexture(GL_TEXTURE_2D_ARRAY, srcTexture);
 
-	if (linearFilter)
+	if (linearFilter || g_ActiveConfig.iEFBScale != SCALE_1X)
 		g_sampler_cache->BindLinearSampler(9);
 	else
 		g_sampler_cache->BindNearestSampler(9);

@@ -1,5 +1,6 @@
-if(NOT USE_GLES OR USE_GLES3)
-	add_subdirectory(OGL)
-endif()
+add_subdirectory(OGL)
 add_subdirectory(Software)
+if(NOT APPLE)
+add_subdirectory(Vulkan)
+endif()
 # TODO: Add other backends here!

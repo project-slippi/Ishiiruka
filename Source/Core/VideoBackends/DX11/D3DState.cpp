@@ -451,6 +451,24 @@ ID3D11BlendState* StateCache::Get(BlendState state)
 	if (it != m_blend.end())
 		return it->second.get();
 
+	if (state.logic_op_enabled && !state.use_dst_alpha)
+	{
+		D3D11_BLEND_DESC1 blenddc = CD3D11_BLEND_DESC1(CD3D11_DEFAULT());
+		blenddc.RenderTarget[0].LogicOpEnable = true;
+		blenddc.RenderTarget[0].LogicOp = state.logic_op;
+		ID3D11BlendState1* res = nullptr;
+
+		HRESULT hr = D3D::device1->CreateBlendState1(&blenddc, &res);
+		if (SUCCEEDED(hr))
+			D3D::SetDebugObjectName((ID3D11DeviceChild*)res, "blend state used to emulate the GX pipeline");
+		else
+			PanicAlert("Failed to create blend state at %s %d\n", __FILE__, __LINE__);
+
+		m_blend.emplace(state.packed, std::move(D3D::BlendStatePtr(res)));
+
+		return res;
+	}
+
 	D3D11_BLEND_DESC blenddc = CD3D11_BLEND_DESC(CD3D11_DEFAULT());
 
 	blenddc.AlphaToCoverageEnable = FALSE;
@@ -527,7 +545,7 @@ ID3D11RasterizerState* StateCache::Get(RasterizerState state)
 
 	D3D11_RASTERIZER_DESC rastdc = CD3D11_RASTERIZER_DESC(D3D11_FILL_SOLID,
 		state.cull_mode,
-		false, 0, 0.f, 0, true, true, false, false);
+		false, 0, 0.f, 0, false, true, false, false);
 
 	ID3D11RasterizerState* res = nullptr;
 
@@ -542,9 +560,9 @@ ID3D11RasterizerState* StateCache::Get(RasterizerState state)
 	return res;
 }
 
-ID3D11DepthStencilState* StateCache::Get(ZMode state)
+ID3D11DepthStencilState* StateCache::Get(DepthState state)
 {
-	auto it = m_depth.find(state.hex);
+	auto it = m_depth.find(state.packed);
 
 	if (it != m_depth.end())
 		return it->second.get();
@@ -560,21 +578,23 @@ ID3D11DepthStencilState* StateCache::Get(ZMode state)
 
 	const D3D11_COMPARISON_FUNC d3dCmpFuncs[8] =
 	{
-		D3D11_COMPARISON_NEVER,
-		D3D11_COMPARISON_GREATER,
-		D3D11_COMPARISON_EQUAL,
-		D3D11_COMPARISON_GREATER_EQUAL,
-		D3D11_COMPARISON_LESS,
-		D3D11_COMPARISON_NOT_EQUAL,
-		D3D11_COMPARISON_LESS_EQUAL,
-		D3D11_COMPARISON_ALWAYS
+		D3D11_COMPARISON_NEVER,					D3D11_COMPARISON_GREATER, D3D11_COMPARISON_EQUAL,
+		D3D11_COMPARISON_GREATER_EQUAL, D3D11_COMPARISON_LESS,		D3D11_COMPARISON_NOT_EQUAL,
+		D3D11_COMPARISON_LESS_EQUAL,		D3D11_COMPARISON_ALWAYS
+	};
+
+	const D3D11_COMPARISON_FUNC d3dInvFuncs[9] =
+	{
+		D3D11_COMPARISON_NEVER,		D3D11_COMPARISON_LESS_EQUAL,		D3D11_COMPARISON_EQUAL,
+		D3D11_COMPARISON_LESS,		D3D11_COMPARISON_GREATER_EQUAL, D3D11_COMPARISON_NOT_EQUAL,
+		D3D11_COMPARISON_GREATER, D3D11_COMPARISON_ALWAYS
 	};
 
 	if (state.testenable)
 	{
 		depthdc.DepthEnable = TRUE;
 		depthdc.DepthWriteMask = state.updateenable ? D3D11_DEPTH_WRITE_MASK_ALL : D3D11_DEPTH_WRITE_MASK_ZERO;
-		depthdc.DepthFunc = d3dCmpFuncs[state.func];
+		depthdc.DepthFunc = state.reversed_depth ? d3dInvFuncs[state.func] : d3dCmpFuncs[state.func];
 	}
 	else
 	{
@@ -590,7 +610,7 @@ ID3D11DepthStencilState* StateCache::Get(ZMode state)
 		D3D::SetDebugObjectName((ID3D11DeviceChild*)res, "depth-stencil state used to emulate the GX pipeline");
 	else
 		PanicAlert("Failed to create depth state at %s %d\n", __FILE__, __LINE__);
-	m_depth.emplace(state.hex, std::move(D3D::DepthStencilStatePtr(res)));
+	m_depth.emplace(state.packed, std::move(D3D::DepthStencilStatePtr(res)));
 
 	return res;
 }

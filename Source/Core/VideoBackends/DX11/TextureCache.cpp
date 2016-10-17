@@ -411,10 +411,10 @@ void TextureCache::TCacheEntry::FromRenderTarget(u8* dst, PEControl::PixelFormat
 			FramebufferManager::GetEFBDepthTexture()->GetSRV() :
 			FramebufferManager::GetEFBColorTexture()->GetSRV();
 	}
-
+	const TargetRectangle targetSource = g_renderer->ConvertEFBRectangle(srcRect);
 	g_renderer->ResetAPIState();
 	// stretch picture with increased internal resolution
-	const D3D11_VIEWPORT vp = CD3D11_VIEWPORT(0.f, 0.f, (float)config.width, (float)config.height);
+	const D3D11_VIEWPORT vp = CD3D11_VIEWPORT(0.f, 0.f, (float)targetSource.GetWidth() * (scaleByHalf ? 0.5f : 1.0f), (float)targetSource.GetHeight() * (scaleByHalf ? 0.5f : 1.0f));
 	D3D::context->RSSetViewports(1, &vp);
 
 	// set transformation
@@ -429,7 +429,7 @@ void TextureCache::TCacheEntry::FromRenderTarget(u8* dst, PEControl::PixelFormat
 	}
 	D3D::stateman->SetPixelConstants(efbcopycbuf[cbufid].get());
 
-	const TargetRectangle targetSource = g_renderer->ConvertEFBRectangle(srcRect);
+	
 	// TODO: try targetSource.asRECT();
 	const D3D11_RECT sourcerect = CD3D11_RECT(targetSource.left, targetSource.top, targetSource.right, targetSource.bottom);
 

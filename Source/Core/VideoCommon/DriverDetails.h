@@ -8,6 +8,15 @@
 
 namespace DriverDetails
 {
+// API types supported by driver details
+// This is separate to APIType in VideoConfig.h due to the fact that a bug
+// can affect multiple APIs.
+enum API
+{
+	API_OPENGL = (1 << 0),
+	API_VULKAN = (1 << 1)
+};
+
 // Enum of supported operating systems
 enum OS
 {
@@ -40,19 +49,19 @@ enum Vendor
 enum Driver
 {
 	DRIVER_ALL = 0,
-	DRIVER_NVIDIA,       // Official Nvidia, including mobile GPU
-	DRIVER_NOUVEAU,      // OSS nouveau
-	DRIVER_ATI,          // Official ATI
-	DRIVER_R600,         // OSS Radeon
-	DRIVER_INTEL,        // Official Intel
-	DRIVER_I965,         // OSS Intel
-	DRIVER_ARM,          // Official Mali driver
-	DRIVER_LIMA,         // OSS Mali driver
-	DRIVER_QUALCOMM,     // Official Adreno driver
-	DRIVER_FREEDRENO,    // OSS Adreno driver
-	DRIVER_IMGTEC,       // Official PowerVR driver
-	DRIVER_VIVANTE,      // Official Vivante driver
-	DRIVER_UNKNOWN       // Unknown driver, default to official hardware driver
+	DRIVER_NVIDIA,     // Official Nvidia, including mobile GPU
+	DRIVER_NOUVEAU,    // OSS nouveau
+	DRIVER_ATI,        // Official ATI
+	DRIVER_R600,       // OSS Radeon
+	DRIVER_INTEL,      // Official Intel
+	DRIVER_I965,       // OSS Intel
+	DRIVER_ARM,        // Official Mali driver
+	DRIVER_LIMA,       // OSS Mali driver
+	DRIVER_QUALCOMM,   // Official Adreno driver
+	DRIVER_FREEDRENO,  // OSS Adreno driver
+	DRIVER_IMGTEC,     // Official PowerVR driver
+	DRIVER_VIVANTE,    // Official Vivante driver
+	DRIVER_UNKNOWN     // Unknown driver, default to official hardware driver
 };
 
 enum class Family
@@ -81,8 +90,10 @@ enum Bug
 	// Started Version: ?
 	// Ended Version: 13.9 working for me (neobrain).
 	// Affected OS: Linux
-	// Pinned memory is disabled for index buffer as the AMD driver (the only one with pinned memory support) seems
-	// to be broken. We just get flickering/black rendering when using pinned memory here -- degasus - 2013/08/20
+	// Pinned memory is disabled for index buffer as the AMD driver (the only one with pinned memory
+	// support) seems
+	// to be broken. We just get flickering/black rendering when using pinned memory here -- degasus -
+	// 2013/08/20
 	// This bug only happens when paired with base_vertex.
 	// Please see issue #6105. Let's hope buffer storage solves this issue.
 	// TODO: Detect broken drivers.
@@ -165,10 +176,12 @@ enum Bug
 	// Affected Devices: Mali
 	// Started Version: r5p0-rev2
 	// Ended Version: -1
-	// If we disable vsync with eglSwapInterval(dpy, 0) then the screen will stop showing new updates after a handful of swaps.
+	// If we disable vsync with eglSwapInterval(dpy, 0) then the screen will stop showing new updates
+	// after a handful of swaps.
 	// This was noticed on a Samsung Galaxy S6 with its Android 5.1.1 update.
 	// The default Android 5.0 image didn't encounter this issue.
-	// We can't actually detect what the driver version is on Android, so until the driver version lands that displays the version in
+	// We can't actually detect what the driver version is on Android, so until the driver version
+	// lands that displays the version in
 	// the GL_VERSION string, we will have to force vsync to be enabled at all times.
 	BUG_BROKENVSYNC,
 
@@ -176,7 +189,8 @@ enum Bug
 	// Affected Devices: Mesa r600/radeonsi, Mesa Sandy Bridge
 	// Started Version: -1
 	// Ended Version: 11.1.2 for radeon, -1 for Sandy
-	// Mesa introduced geometry shader support for radeon and sandy bridge devices and failed to test it with us.
+	// Mesa introduced geometry shader support for radeon and sandy bridge devices and failed to test
+	// it with us.
 	// Causes misrenderings on a large amount of things that draw lines.
 	BUG_BROKENGEOMETRYSHADERS,
 
@@ -184,22 +198,47 @@ enum Bug
 	// Started Version: -1
 	// Ended Version: -1
 	// Our ARB_buffer_storage code uses explicit flush to avoid coherent mapping.
-	// Qualcomm seems to have lots of overhead on exlicit flushing, but the coherent mapping path is fine.
+	// Qualcomm seems to have lots of overhead on exlicit flushing, but the coherent mapping path is
+	// fine.
 	// So let's use coherent mapping there.
 	BUG_BROKENEXPLICITFLUSH,
 
 	// Bug: glGetBufferSubData for bounding box reads is slow on AMD drivers
 	// Started Version: -1
 	// Ended Version: -1
-	// Bounding box reads use glGetBufferSubData to read back the contents of the SSBO, but this is slow on AMD drivers, compared to
-	// using glMapBufferRange. glMapBufferRange is slower on Nvidia drivers, we suspect due to the first call moving the buffer from
-	// GPU memory to system memory. Use glMapBufferRange for BBox reads on AMD, and glGetBufferSubData everywhere else.
+	// Bounding box reads use glGetBufferSubData to read back the contents of the SSBO, but this is
+	// slow on AMD drivers, compared to
+	// using glMapBufferRange. glMapBufferRange is slower on Nvidia drivers, we suspect due to the
+	// first call moving the buffer from
+	// GPU memory to system memory. Use glMapBufferRange for BBox reads on AMD, and glGetBufferSubData
+	// everywhere else.
 	BUG_SLOWGETBUFFERSUBDATA,
+
+	// Bug: Broken lines in geometry shaders when writing to gl_ClipDistance in the vertex shader
+	// Affected Devices: Mesa i965
+	// Started Version: -1
+	// Ended Version: -1
+	// Writing to gl_ClipDistance in both the vertex shader and the geometry shader will break
+	// the geometry shader. Current workaround is to make sure the geometry shader always consumes
+	// the gl_ClipDistance inputs from the vertex shader.
+	BUG_BROKENCLIPDISTANCE,
+
+	// Bug: Dual-source outputs from fragment shaders are broken on AMD Vulkan drivers
+	// Started Version: -1
+	// Ended Version: -1
+	// Fragment shaders that specify dual-source outputs, via layout(location = 0, index = ...) cause
+	// the driver to fail to create graphics pipelines. The workaround for this is to specify the
+	// index as a MRT location instead, or omit the binding completely.
+	BUG_BROKEN_FRAGMENT_SHADER_INDEX_DECORATION,
 };
 
 // Initializes our internal vendor, device family, and driver version
-void Init(Vendor vendor, Driver driver, const double version, const Family family);
+void Init(API api, Vendor vendor, Driver driver, const double version, const Family family);
 
-// Once Vendor and driver version is set, this will return if it has the applicable bug passed to it.
+// Once Vendor and driver version is set, this will return if it has the applicable bug passed to
+// it.
 bool HasBug(Bug bug);
+
+// Attempts to map a PCI vendor ID to our Vendor enumeration
+Vendor TranslatePCIVendorID(u32 vendor_id);
 }

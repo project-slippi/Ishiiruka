@@ -9,16 +9,25 @@
 #include "Common/Event.h"
 #include "Common/Flag.h"
 #include "Common/Logging/Log.h"
-
+#include "Core/ConfigManager.h"
 #include "Core/Host.h"
-
 #include "VideoCommon/AsyncRequests.h"
 #include "VideoCommon/BPStructs.h"
 #include "VideoCommon/BoundingBox.h"
+#include "VideoCommon/CPMemory.h"
+#include "VideoCommon/CommandProcessor.h"
 #include "VideoCommon/Fifo.h"
+#include "VideoCommon/GeometryShaderManager.h"
+#include "VideoCommon/TessellationShaderManager.h"
+#include "VideoCommon/IndexGenerator.h"
+#include "VideoCommon/OnScreenDisplay.h"
+#include "VideoCommon/OpcodeDecoding.h"
+#include "VideoCommon/PixelEngine.h"
+#include "VideoCommon/PixelShaderManager.h"
 #include "VideoCommon/RenderBase.h"
 #include "VideoCommon/TextureCacheBase.h"
 #include "VideoCommon/VertexLoaderManager.h"
+#include "VideoCommon/VertexShaderManager.h"
 #include "VideoCommon/VideoBackendBase.h"
 #include "VideoCommon/VideoConfig.h"
 #include "VideoCommon/VideoState.h"
@@ -189,6 +198,54 @@ void VideoBackendBase::InitializeShared()
 	m_invalid = false;
 	memset(m_EFB_PCache, 0, m_EFB_PCache_Size * sizeof(EFBPeekCacheElement));
 	s_EFB_PCache_Frame = 1;
+	frameCount = 0;
+	// Do our OSD callbacks
+	OSD::DoCallbacks(OSD::CallbackType::Initialization);
+
+	// do not initialize again for the config window
+	m_initialized = true;
+	g_Config.Load(File::GetUserPath(D_CONFIG_IDX) + "GFX.ini");
+	g_Config.GameIniLoad();
+	g_Config.UpdateProjectionHack();
+	g_Config.VerifyValidity();
+	UpdateActiveConfig();
+
+	CommandProcessor::Init();
+	Fifo::Init();
+	OpcodeDecoder::Init();
+	PixelEngine::Init();
+	BPInit();
+	VertexLoaderManager::Init();
+	IndexGenerator::Init();
+	VertexShaderManager::Init();
+	GeometryShaderManager::Init();
+	PixelShaderManager::Init(!(g_ActiveConfig.backend_info.APIType & API_D3D9));
+	if (!(g_ActiveConfig.backend_info.APIType & API_D3D9))
+	{
+		PixelShaderManager::DisableDirtyRegions();
+		VertexShaderManager::DisableDirtyRegions();
+	}
+	TessellationShaderManager::Init();
+
+	// Notify the core that the video backend is ready
+	Host_Message(WM_USER_CREATE);
+}
+
+void VideoBackendBase::ShutdownShared()
+{
+	// Do our OSD callbacks
+	OSD::DoCallbacks(OSD::CallbackType::Shutdown);
+
+	m_initialized = false;
+
+	Fifo::Shutdown();
+	GeometryShaderManager::Shutdown();
+	TessellationShaderManager::Shutdown();
+}
+
+void VideoBackendBase::CleanupShared()
+{
+	VertexLoaderManager::Shutdown();
 }
 
 // Run from the CPU thread

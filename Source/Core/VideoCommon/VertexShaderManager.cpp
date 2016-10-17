@@ -22,10 +22,10 @@
 #include "VideoCommon/RenderBase.h"
 #include "VideoCommon/Statistics.h"
 
-alignas(16) float VertexShaderManager::vsconstants[VertexShaderManager::ConstantBufferSize];
+alignas(256) float VertexShaderManager::vsconstants[VertexShaderManager::ConstantBufferSize];
 ConstatBuffer VertexShaderManager::m_buffer(VertexShaderManager::vsconstants, VertexShaderManager::ConstantBufferSize);
 
-alignas(16) float g_fProjectionMatrix[16];
+alignas(256) float g_fProjectionMatrix[16];
 
 // track changes
 bool VertexShaderManager::bProjectionChanged;
@@ -421,20 +421,36 @@ void VertexShaderManager::SetConstants()
 		const float pixel_center_correction = ((g_ActiveConfig.backend_info.APIType & API_D3D9) ? 0.0f : 0.5f) - 7.0f / 12.0f;
 		const float pixel_size_x = 2.f / Renderer::EFBToScaledXf(2.f * xfmem.viewport.wd);
 		const float pixel_size_y = 2.f / Renderer::EFBToScaledXf(2.f * xfmem.viewport.ht);
-		float nearz = xfmem.viewport.farZ - xfmem.viewport.zRange;
+		float rangez = xfmem.viewport.zRange;
 		float farz = xfmem.viewport.farZ;
-		const bool nonStandartViewport = (g_ActiveConfig.backend_info.APIType != API_OPENGL && g_ActiveConfig.bViewportCorrection)
-			&& (nearz < 0.f || farz > 16777216.0f || nearz >= 16777216.0f || farz <= 0.f);
-		float rangez = 1.0f;
-		if (nonStandartViewport)
+		if (g_ActiveConfig.backend_info.APIType & API_D3D9)
 		{
-			farz *= U24_NORM_COEF;
-			rangez = xfmem.viewport.zRange * U24_NORM_COEF;
+			if (rangez >= 0.0f)
+			{
+				rangez = 16777215.0f;
+				farz = 16777215.0f;
+			}
+			rangez = rangez / 16777215.0f;
+			farz = 1.0f - (farz / 16777215.0f);
+		}
+		else if (g_ActiveConfig.backend_info.bSupportsReversedDepthRange)
+		{
+			rangez = fabs(rangez) / 16777215.0f;
+			if (xfmem.viewport.zRange < 0.0f)
+			{
+				farz = farz / 16777215.0f;
+			}
+			else
+			{
+				farz = 1.0f - (farz / 16777215.0f);
+			}
 		}
 		else
 		{
-			farz = 1.0f;
+			rangez = rangez / 16777215.0f;
+			farz = 1.0f - (farz / 16777215.0f);
 		}
+
 		m_buffer.SetConstant4(C_DEPTHPARAMS,
 			farz,
 			rangez,
@@ -484,7 +500,7 @@ void VertexShaderManager::SetConstants()
 			g_fProjectionMatrix[12] = 0.0f;
 			g_fProjectionMatrix[13] = 0.0f;
 			// Hack to fix depth clipping precision issues (such as Sonic Adventure UI)
-			g_fProjectionMatrix[14] = -(1.0f + FLT_EPSILON);
+			g_fProjectionMatrix[14] = g_ActiveConfig.backend_info.APIType & API_D3D9 ? (-(1.0f + FLT_EPSILON)) : -1.0f;
 			g_fProjectionMatrix[15] = 0.0f;
 
 			// Heuristic to detect if a GameCube game is in 16:9 anamorphic widescreen mode.
@@ -538,8 +554,7 @@ void VertexShaderManager::SetConstants()
 			g_fProjectionMatrix[14] = 0.0f;
 
 			// Hack to fix depth clipping precision issues (such as Sonic Unleashed UI)
-			// Turn it off for Nvidia 3D Vision, because it can't handle such a projection matrix
-			g_fProjectionMatrix[15] = (g_ActiveConfig.iStereoMode == STEREO_3DVISION) ? 1.0f : 1.0f + FLT_EPSILON;
+			g_fProjectionMatrix[15] = (g_ActiveConfig.backend_info.APIType & API_D3D9) ? 1.0f + FLT_EPSILON : 1.0f;
 
 			SETSTAT_FT(stats.g2proj_0, g_fProjectionMatrix[0]);
 			SETSTAT_FT(stats.g2proj_1, g_fProjectionMatrix[1]);
@@ -571,6 +586,10 @@ void VertexShaderManager::SetConstants()
 
 		PRIM_LOG("Projection: %f %f %f %f %f %f\n", rawProjection[0], rawProjection[1], rawProjection[2], rawProjection[3], rawProjection[4], rawProjection[5]);
 
+		Matrix44 projMtx;
+		Matrix44 correctedMtx;
+		Matrix44::Set(projMtx, g_fProjectionMatrix);
+
 		if ((g_ActiveConfig.bFreeLook || g_ActiveConfig.iStereoMode) && xfmem.projection.type == GX_PERSPECTIVE)
 		{
 			Matrix44 mtxA;
@@ -580,38 +599,48 @@ void VertexShaderManager::SetConstants()
 			Matrix44::Translate(mtxA, s_fViewTranslationVector);
 			Matrix44::LoadMatrix33(mtxB, s_viewRotationMatrix);
 			Matrix44::Multiply(mtxB, mtxA, viewMtx); // view = rotation x translation
-			Matrix44::Set(mtxB, g_fProjectionMatrix);
-			Matrix44::Multiply(mtxB, viewMtx, mtxA); // mtxA = projection x view
-			Matrix44::Multiply(s_viewportCorrection, mtxA, mtxB); // mtxB = viewportCorrection x mtxA
-
-			m_buffer.SetMultiConstant4v(C_PROJECTION, 4, mtxB.data);
+			Matrix44::Multiply(projMtx, viewMtx, mtxA); // mtxA = projection x view
+			Matrix44::Multiply(s_viewportCorrection, mtxA, correctedMtx); // correctedMtx = viewportCorrection x mtxA			
 		}
 		else
 		{
-			Matrix44 projMtx;
-			Matrix44::Set(projMtx, g_fProjectionMatrix);
-
-			Matrix44 correctedMtx;
-			Matrix44::Multiply(s_viewportCorrection, projMtx, correctedMtx);
-			m_buffer.SetMultiConstant4v(C_PROJECTION, 4, correctedMtx.data);
+			Matrix44::Multiply(s_viewportCorrection, projMtx, correctedMtx);  // correctedMtx = viewportCorrection x projMtx			
 		}
+		if (xfmem.viewport.wd < 0.0f)
+		{
+			correctedMtx.data[0] *= -1.0f;
+			correctedMtx.data[1] *= -1.0f;
+			correctedMtx.data[2] *= -1.0f;
+			correctedMtx.data[3] *= -1.0f;
+		}
+		if (xfmem.viewport.ht > 0.0f)
+		{
+			correctedMtx.data[4] *= -1.0f;
+			correctedMtx.data[5] *= -1.0f;
+			correctedMtx.data[6] *= -1.0f;
+			correctedMtx.data[7] *= -1.0f;
+		}
+		m_buffer.SetMultiConstant4v(C_PROJECTION, 4, correctedMtx.data);
 	}
 }
 
-void VertexShaderManager::InvalidateXFRange(int start, int end)
+void VertexShaderManager::InvalidateXFRange(u32 start, u32 end)
 {
-	if (((u32)start >= (u32)g_main_cp_state.matrix_index_a.Tex0MtxIdx * 4 && (u32)start < (u32)g_main_cp_state.matrix_index_a.Tex0MtxIdx * 4 + 12) ||
-		((u32)start >= (u32)g_main_cp_state.matrix_index_a.Tex1MtxIdx * 4 && (u32)start < (u32)g_main_cp_state.matrix_index_a.Tex1MtxIdx * 4 + 12) ||
-		((u32)start >= (u32)g_main_cp_state.matrix_index_a.Tex2MtxIdx * 4 && (u32)start < (u32)g_main_cp_state.matrix_index_a.Tex2MtxIdx * 4 + 12) ||
-		((u32)start >= (u32)g_main_cp_state.matrix_index_a.Tex3MtxIdx * 4 && (u32)start < (u32)g_main_cp_state.matrix_index_a.Tex3MtxIdx * 4 + 12))
+	const TMatrixIndexA& ma = g_main_cp_state.matrix_index_a;
+	const TMatrixIndexB& mb = g_main_cp_state.matrix_index_b;
+
+	if ((start >= ma.Tex0MtxIdx * 4u && start < ma.Tex0MtxIdx * 4u + 12u) ||
+		(start >= ma.Tex1MtxIdx * 4u && start < ma.Tex1MtxIdx * 4u + 12u) ||
+		(start >= ma.Tex2MtxIdx * 4u && start < ma.Tex2MtxIdx * 4u + 12u) ||
+		(start >= ma.Tex3MtxIdx * 4u && start < ma.Tex3MtxIdx * 4u + 12u))
 	{
 		s_tex_matrices_changed[0] = true;
 	}
 
-	if (((u32)start >= (u32)g_main_cp_state.matrix_index_b.Tex4MtxIdx * 4 && (u32)start < (u32)g_main_cp_state.matrix_index_b.Tex4MtxIdx * 4 + 12) ||
-		((u32)start >= (u32)g_main_cp_state.matrix_index_b.Tex5MtxIdx * 4 && (u32)start < (u32)g_main_cp_state.matrix_index_b.Tex5MtxIdx * 4 + 12) ||
-		((u32)start >= (u32)g_main_cp_state.matrix_index_b.Tex6MtxIdx * 4 && (u32)start < (u32)g_main_cp_state.matrix_index_b.Tex6MtxIdx * 4 + 12) ||
-		((u32)start >= (u32)g_main_cp_state.matrix_index_b.Tex7MtxIdx * 4 && (u32)start < (u32)g_main_cp_state.matrix_index_b.Tex7MtxIdx * 4 + 12))
+	if ((start >= mb.Tex4MtxIdx * 4u && start < mb.Tex4MtxIdx * 4u + 12u) ||
+		(start >= mb.Tex5MtxIdx * 4u && start < mb.Tex5MtxIdx * 4u + 12u) ||
+		(start >= mb.Tex6MtxIdx * 4u && start < mb.Tex6MtxIdx * 4u + 12u) ||
+		(start >= mb.Tex7MtxIdx * 4u && start < mb.Tex7MtxIdx * 4u + 12u))
 	{
 		s_tex_matrices_changed[1] = true;
 	}
@@ -625,8 +654,8 @@ void VertexShaderManager::InvalidateXFRange(int start, int end)
 		}
 		else
 		{
-			if (s_transform_matrices_changed[0] > start) s_transform_matrices_changed[0] = start;
-			if (s_transform_matrices_changed[1] < end) s_transform_matrices_changed[1] = end > XFMEM_POSMATRICES_END ? XFMEM_POSMATRICES_END : end;
+			if (s_transform_matrices_changed[0] > static_cast<int>(start)) s_transform_matrices_changed[0] = start;
+			if (s_transform_matrices_changed[1] < static_cast<int>(end)) s_transform_matrices_changed[1] = end > XFMEM_POSMATRICES_END ? XFMEM_POSMATRICES_END : end;
 		}
 	}
 

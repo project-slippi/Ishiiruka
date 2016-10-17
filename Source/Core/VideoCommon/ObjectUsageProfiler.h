@@ -39,6 +39,7 @@
 #include <vector>
 
 #include "Common/FileUtil.h"
+#include "Common/StringUtil.h"
 
 typedef uint64_t pKey_t;
 
@@ -177,7 +178,7 @@ public:
 		}
 	}
 
-	void ForEachMostUsedByCategory(const TCaterogry& category, const std::function<void(const Tobj&)>& outfunc, const std::function<bool(TInfo&)>& filter = {}, bool include_globals = false, size_t global_limit = 3, size_t max_count = LLONG_MAX)
+	void ForEachMostUsedByCategory(const TCaterogry& category, const std::function<void(const Tobj&, size_t total)>& outfunc, const std::function<bool(TInfo&)>& filter = {}, bool include_globals = false, size_t global_limit = 3, size_t max_count = LLONG_MAX)
 	{
 		if (m_categories.find(category) == m_categories.end() && !include_globals)
 		{
@@ -212,7 +213,7 @@ public:
 		max_count = std::min(elements.size(), max_count);
 		for (size_t i = 0; i < max_count; i++)
 		{
-			outfunc(elements[i]->first);
+			outfunc(elements[i]->first, max_count);
 		}
 	}
 

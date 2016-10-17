@@ -8,6 +8,7 @@
 #include "Common/LinearDiskCache.h"
 
 #include "Core/ConfigManager.h"
+#include "Core/Host.h"
 
 #include "VideoBackends/DX9/D3DBase.h"
 #include "VideoBackends/DX9/D3DShader.h"
@@ -308,7 +309,7 @@ void PixelShaderCache::Init()
 		std::vector<PixelShaderUid> shaders;
 		size_t shader_count = 0;
 		s_pshaders->ForEachMostUsedByCategory(gameid,
-			[&](const PixelShaderUid& item)
+			[&](const PixelShaderUid& item, size_t total)
 		{
 			PixelShaderUid newitem = item;
 			pixel_shader_uid_data& uid_data = newitem.GetUidData<pixel_shader_uid_data>();
@@ -328,9 +329,12 @@ void PixelShaderCache::Init()
 			}
 			else
 			{
+				newitem.ClearHASH();
+				newitem.CalculateUIDHash();
 				CompilePShader(newitem, PIXEL_SHADER_RENDER_MODE::PSRM_DEFAULT, true);
 			}
 			shader_count++;
+			//Host_UpdateTitle(StringFromFormat("Compiling Pixel Shaders %i %% (%i/%i)", (shader_count * 100) / total, shader_count, total));
 			if ((shader_count & 31) == 0)
 			{
 				s_compiler->WaitForFinish();

@@ -17,6 +17,7 @@
 #include "Common/Logging/Log.h"
 
 #include "VideoCommon/BoundingBox.h"
+#include "VideoCommon/DriverDetails.h"
 #include "VideoCommon/PixelShaderGen.h"
 #include "VideoCommon/VertexShaderGen.h"
 #include "VideoCommon/XFMemory.h"  // for texture projection mode
@@ -253,6 +254,7 @@ float4 CHK_O_U8(float4 x)
 { 
 	return frac(((x) + 1024.0) * (1.0/256.0)) * 256.0;
 }
+#define CAST_TO_U6(x) (floor((x) * 0.25) * 4.0)
 #define BOR(x, n) ((x) + (n))
 #define BSHR(x, n) floor((x) * exp2(-(n)))
 float2 BSH(float2 x, float n)
@@ -286,6 +288,7 @@ int4 CHK_O_U8(int4 x)
 {
 	return x & 255;
 }
+#define CAST_TO_U6(x) ((x) & 252)
 #define BOR(x, n) ((x) | (n))
 #define BSHR(x, n) ((x) >> (n))
 int2 BSH(int2 x, int n)
@@ -489,6 +492,11 @@ void GetPixelShaderUID(PixelShaderUid& out, PIXEL_SHADER_RENDER_MODE render_mode
 	}
 	uid_data.stereo = g_ActiveConfig.iStereoMode > 0;
 	uid_data.bounding_box = g_ActiveConfig.backend_info.bSupportsBBox && BoundingBox::active && g_ActiveConfig.iBBoxMode == BBoxGPU;
+	if (!g_ActiveConfig.bForceTrueColor)
+	{
+		uid_data.rgba6_format = bpmem.zcontrol.pixel_format != PEControl::RGB8_Z24;
+		uid_data.dither = bpmem.blendmode.dither;
+	}
 	if ((g_ActiveConfig.backend_info.APIType & API_D3D9) == 0)
 	{
 		uid_data.msaa = g_ActiveConfig.iMultisamples > 1;
@@ -529,11 +537,6 @@ void GetPixelShaderUID(PixelShaderUid& out, PIXEL_SHADER_RENDER_MODE render_mode
 		{
 			uid_data.pixel_lighting = 3;
 		}
-	}
-	for (u32 i = 0; i < numTexgen; ++i)
-	{
-		// optional perspective divides
-		uid_data.texMtxInfo_n_projection |= xfr.texMtxInfo[i].projection << i;
 	}
 
 	uid_data.genMode_numtevstages = bpm.genMode.numtevstages;
@@ -654,6 +657,11 @@ void SampleTexture(ShaderCode& out, const char *texcoords, const char *texswap, 
 	{
 		out.Write("wuround((Tex[%d].Sample(samp[%d], float3(%s.xy * " I_TEXDIMS"[%d].xy, %s))).%s * 255.0);\n", texmap, texmap, texcoords, texmap, stereo ? "layer" : "0.0", texswap);
 	}
+	else if (ApiType == API_VULKAN)
+	{
+		out.Write("wuround(255.0 * texture(samp%d, float3(%s.xy * " I_TEXDIMS "[%d].xy, %s))).%s;\n",
+			texmap, texcoords, texmap, stereo ? "layer" : "0.0", texswap);
+	}
 	else if (ApiType == API_OPENGL)
 	{
 		out.Write("wuround(texture(samp[%d],float3(%s.xy * " I_TEXDIMS"[%d].xy, %s)).%s * 255.0);\n", texmap, texcoords, texmap, stereo ? "layer" : "0.0", texswap);
@@ -670,6 +678,11 @@ void SampleTextureRAW(ShaderCode& out, const char *texcoords, const char *texswa
 	if (ApiType == API_D3D11)
 	{
 		out.Write("Tex[%d].Sample(samp[%d], float3(%s.xy * " I_TEXDIMS"[%d].xy, %s)).%s;\n", 8 + texmap, texmap, texcoords, texmap, layer, texswap);
+	}
+	else if (ApiType == API_VULKAN)
+	{
+		out.Write("texture(samp%d, float3(%s.xy * " I_TEXDIMS "[%d].xy, %s)).%s;\n",
+			8 + texmap, texcoords, texmap, "0.0", texswap);
 	}
 	else
 	{
@@ -719,7 +732,10 @@ inline void WriteAlphaTest(ShaderCode& out, const pixel_shader_uid_data& uid_dat
 		I_ALPHA".g"
 	};
 	// using discard then return works the same in cg and dx9 but not in dx11
-	out.Write("if(!( ");
+	if (DriverDetails::HasBug(DriverDetails::BUG_BROKENNEGATEDBOOLEAN))
+		out.Write("\tif(( ");
+	else
+		out.Write("\tif(!( ");
 
 	// Lookup the first component from the alpha function table
 	int compindex = uid_data.alpha_test_comp0;
@@ -736,7 +752,11 @@ inline void WriteAlphaTest(ShaderCode& out, const pixel_shader_uid_data& uid_dat
 		out.Write(tevAlphaFuncsTableI[compindex], alphaRef[1]);
 	else
 		out.Write(tevAlphaFuncsTable[compindex], alphaRef[1]);
-	out.Write(")) {\n");
+
+	if (DriverDetails::HasBug(DriverDetails::BUG_BROKENNEGATEDBOOLEAN))
+		out.Write(") == false) {\n");
+	else
+		out.Write(")) {\n");
 
 	out.Write("ocol0 = float4(0.0,0.0,0.0,0.0);\n");
 	if (uid_data.render_mode == PSRM_DUAL_SOURCE_BLEND)
@@ -923,7 +943,7 @@ inline void WriteTevRegularI(T& out, const char* components, int bias, int op, i
 	}
 	else
 	{
-		out.Write("((((tin_a%s*256 + (tin_b%s - tin_a%s) * tin_c%s)%s)%s) >> 8)",
+		out.Write("(((((tin_a%s<<8) + (tin_b%s - tin_a%s) * tin_c%s)%s)%s) >> 8)",
 			components, components, components, components,
 			tevScaleTableLeft[shift], tevLerpBias[2 * op + (shift != 3)]);
 	}
@@ -1265,7 +1285,7 @@ inline void WriteFetchStageTexture(ShaderCode& out, const pixel_shader_uid_data&
 		// ---------
 		// Wrapping
 		// ---------
-		static const char *tevIndWrapStart[] = { "wu(0)", "wu(256*128)", "wu(128*128)", "wu(64*128)", "wu(32*128)", "wu(16*128)", "wu(1)" };
+		static const char *tevIndWrapStart[] = { "wu(0)", "wu(256*128)", "wu(128*128)", "wu(64*128)", "wu(32*128)", "wu(16*128)", "wu(1)" , "wu(1)" };
 		// wrap S
 		if (tevind.sw == ITW_OFF)
 			out.Write("wrappedcoord.x = wu(uv%d.x);\n", texcoord);
@@ -1317,14 +1337,16 @@ inline void WriteFetchStageTexture(ShaderCode& out, const pixel_shader_uid_data&
 		SampleTexture<ApiType>(out, "stagecoord", "rgba", texmap, uid_data.stereo);
 		if (LoadMaterial)
 		{
+			out.Write("if((" I_FLAGS ".y & %i) != 0)\n{\n", 1 << texmap);
+			out.Write("emmisive_mask += tex_ta[%i].rgb * ((tex_ta[%i].a - 10) / 255.0);\n", n, n);
+			out.Write("tex_ta[%i].a = wu(255.0);\n}\n", n);
 			out.Write("if((" I_FLAGS ".x & %i) != 0)\n{\n", 1 << texmap);
 			out.Write("mapcoord = stagecoord;");
 			out.Write("float4 nrmap = ");
 			SampleTextureRAW<ApiType>(out, "(stagecoord)", "agbr", "0.0", texmap);
-			out.Write("nrmap.xy = nrmap.xy * 255.0/127.0 - 128.0/127.0;\n");
+			out.Write("nrmap.xy = nrmap.xy * (255.0/127.0) - (128.0/127.0);\n");			
 			// Extact z value from x and y
-			out.Write("nrmap.z = sqrt(1.0 - dot(nrmap.xy, nrmap.xy));\n");
-			out.Write("nrmap.xyz = normalize(nrmap.xyz);\n");
+			out.Write("nrmap.z = sqrt(1.0 - dot(nrmap.xy, nrmap.xy));\n");			
 			// Combine Normals
 			out.Write("normalmap.xyz = normalize(float3(nrmap.xy + normalmap.xy, nrmap.z * normalmap.z));\n");
 			// Combine Specular intensity
@@ -1422,7 +1444,7 @@ inline void WriteStage(ShaderCode& out, const pixel_shader_uid_data& uid_data, i
 	if (normalize_c_rgb || normalize_c_a)
 	{
 		const char* cswisle = normalize_c_rgb && normalize_c_a ? "" : (normalize_c_rgb ? ".rgb" : ".a");
-		out.Write("tin_c%s = BOR(tin_c%s, BSHR(tin_c%s, 7));\n", cswisle, cswisle, cswisle);
+		out.Write("tin_c%s = tin_c%s + BSHR(tin_c%s, 7);\n", cswisle, cswisle, cswisle);
 	}
 	out.Write("tin_d = wu4(%s,%s);\n", tevCInputTable[cc.d], tevAInputTable[ac.d]);
 
@@ -1569,6 +1591,13 @@ inline void GeneratePixelShader(ShaderCode& out, const pixel_shader_uid_data& ui
 		// Declare samplers
 		out.Write("SAMPLER_BINDING(0) uniform sampler2DArray samp[%d];\n", samplercount);
 	}
+	else if (ApiType == API_VULKAN)
+	{
+		for (u32 i = 0; i < samplercount; i++)
+		{
+			out.Write("SAMPLER_BINDING(%i) uniform sampler2DArray samp%i;\n", i , i);
+		}
+	}
 	else
 	{
 		// Declare samplers
@@ -1590,8 +1619,8 @@ inline void GeneratePixelShader(ShaderCode& out, const pixel_shader_uid_data& ui
 	}
 	out.Write("\n");
 
-	if (ApiType == API_OPENGL)
-		out.Write("layout(std140%s) uniform PSBlock {\n", g_ActiveConfig.backend_info.bSupportsBindingLayout ? ", binding = 1" : "");
+	if (ApiType == API_OPENGL || ApiType == API_VULKAN)
+		out.Write("UBO_BINDING(std140, 1) uniform PSBlock {\n");
 	else if (ApiType == API_D3D11)
 		out.Write("cbuffer PSBlock : register(b0) {\n");
 
@@ -1609,17 +1638,17 @@ inline void GeneratePixelShader(ShaderCode& out, const pixel_shader_uid_data& ui
 	DeclareUniform<ApiType>(out, C_FLAGS, "wu4", I_FLAGS);
 	DeclareUniform<ApiType>(out, C_EFBSCALE, "float4", I_EFBSCALE);
 
-	if (ApiType == API_OPENGL || ApiType == API_D3D11)
+	if (!(ApiType & API_D3D9))
 		out.Write("};\n");
 
 	if (enable_pl && render_mode != PSRM_DEPTH_ONLY)
 	{
-		if (ApiType == API_OPENGL)
-			out.Write("layout(std140%s) uniform VSBlock {\n", g_ActiveConfig.backend_info.bSupportsBindingLayout ? ", binding = 2" : "");
+		if (ApiType == API_OPENGL || ApiType == API_VULKAN)
+			out.Write("UBO_BINDING(std140, 2) uniform VSBlock {\n");
 		else if (ApiType == API_D3D11)
 			out.Write("cbuffer VSBlock : register(b1) {\n");
 
-		if (ApiType == API_OPENGL || ApiType == API_D3D11)
+		if (!(ApiType & API_D3D9))
 		{
 			DeclareUniform<ApiType>(out, C_PROJECTION, "float4", I_PROJECTION"[4]");
 			DeclareUniform<ApiType>(out, C_DEPTHPARAMS, "float4", I_DEPTHPARAMS);
@@ -1629,7 +1658,7 @@ inline void GeneratePixelShader(ShaderCode& out, const pixel_shader_uid_data& ui
 		DeclareUniform<ApiType>(out, C_PLIGHTS, "float4", I_LIGHTS "[40]");
 		DeclareUniform<ApiType>(out, C_PPHONG, "float4", I_PPHONG "[2]");
 
-		if (ApiType == API_OPENGL || ApiType == API_D3D11)
+		if (!(ApiType & API_D3D9))
 		{
 			DeclareUniform<ApiType>(out, C_TEXMATRICES, "float4", I_TEXMATRICES"[24]");
 			DeclareUniform<ApiType>(out, C_TRANSFORMMATRICES, "float4", I_TRANSFORMMATRICES"[64]");
@@ -1640,26 +1669,50 @@ inline void GeneratePixelShader(ShaderCode& out, const pixel_shader_uid_data& ui
 		}
 	}
 
-	if (ApiType == API_OPENGL)
+	out.Write("wu GetDitherValue(wu2 ditherindex)\n{\n");
+	if (ApiType & API_D3D9)
+	{
+		out.Write("\tfloat bayer[16] = {-7.0,1.0,-5.0,3.0,5.0,-3.0,7.0,-1.0,-4.0,4.0,-6.0,2.0,8.0,0.0,6.0,-2.0};\n");
+	}
+	else
+	{
+		out.Write("\tint bayer[16] = {-7,1,-5,3,5,-3,7,-1,-4,4,-6,2,8,0,6,-2};\n");
+	}
+	out.Write("\treturn bayer[ditherindex.y * 4 + ditherindex.x];\n}\n");
+
+	if (ApiType == API_OPENGL || ApiType == API_VULKAN)
 	{
 		if (uid_data.bounding_box)
 		{
-			out.Write(
-				"layout(std140, binding = 3) buffer BBox {\n"
+			out.Write("SSBO_BINDING(0) buffer BBox {\n"
 				"\tint4 bbox_data;\n"
 				"};\n"
 			);
 		}
-		out.Write("out vec4 ocol0;\n");
 		if (render_mode == PSRM_DUAL_SOURCE_BLEND)
-			out.Write("out vec4 ocol1;\n");
+		{
+			if (DriverDetails::HasBug(DriverDetails::BUG_BROKEN_FRAGMENT_SHADER_INDEX_DECORATION))
+			{
+				out.Write("FRAGMENT_OUTPUT_LOCATION(0) out vec4 ocol0;\n");
+				out.Write("FRAGMENT_OUTPUT_LOCATION(1) out vec4 ocol1;\n");
+			}
+			else
+			{
+				out.Write("FRAGMENT_OUTPUT_LOCATION_INDEXED(0, 0) out vec4 ocol0;\n");
+				out.Write("FRAGMENT_OUTPUT_LOCATION_INDEXED(0, 1) out vec4 ocol1;\n");
+			}
+		}
+		else
+		{
+			out.Write("FRAGMENT_OUTPUT_LOCATION(0) out vec4 ocol0;\n");
+		}
 
 		if (per_pixel_depth)
 			out.Write("#define depth gl_FragDepth\n");
-
-		if (g_ActiveConfig.backend_info.bSupportsGeometryShaders)
+		// We need to always use output blocks for Vulkan, but geometry shaders are also optional.
+		if (g_ActiveConfig.backend_info.bSupportsGeometryShaders || ApiType == API_VULKAN)
 		{
-			out.Write("in VertexData {\n");
+			out.Write("VARYING_LOCATION(0) in VertexData {\n");
 			GenerateVSOutputMembers<ApiType>(out, enable_pl, uid_data.genMode_numtexgens, GetInterpolationQualifier(ApiType, uid_data.msaa, uid_data.ssaa, true, true));
 
 			if (uid_data.stereo)
@@ -1730,7 +1783,7 @@ inline void GeneratePixelShader(ShaderCode& out, const pixel_shader_uid_data& ui
 			// ARB_image_load_store extension yet.
 
 			// This is a #define which signals whatever early-z method the driver supports.
-			out.Write("FORCE_EARLY_Z; \n");
+			out.Write("FORCE_EARLY_Z;\n");
 		}
 		out.Write("void main()\n{\n");
 		if (numTexgen >= 7)
@@ -1818,7 +1871,14 @@ inline void GeneratePixelShader(ShaderCode& out, const pixel_shader_uid_data& ui
 			PanicAlert("PixelShader generator - buffer too small, canary has been eaten!");
 		return;
 	}
-
+	if (ApiType & API_D3D9)
+	{
+		out.Write("\tfloat2 ditherindex = round(rawpos.xy) % 4;\n");		
+	}
+	else
+	{
+		out.Write("\tint2 ditherindex = int2(rawpos.xy) & 3;\n");
+	}
 	out.Write("wu4 c0 = " I_COLORS "[1], c1 = " I_COLORS "[2], c2 = " I_COLORS "[3], prev = " I_COLORS "[0];\n"
 		"wu4 tex_ta[%i], tex_t = wu4(0,0,0,0), ras_t = wu4(0,0,0,0), konst_t = wu4(0,0,0,0);\n"
 		"wu3 c16 = wu3(1,256,0), c24 = wu3(1,256,256*256);\n"
@@ -1827,7 +1887,7 @@ inline void GeneratePixelShader(ShaderCode& out, const pixel_shader_uid_data& ui
 		"wu2 wrappedcoord=wu2(0,0), t_coord=wu2(0,0),ittmpexp=wu2(0,0);\n"
 		"wu4 tin_a = wu4(0,0,0,0), tin_b = wu4(0,0,0,0), tin_c = wu4(0,0,0,0), tin_d = wu4(0,0,0,0);\n\n", numStages);
 
-	if (ApiType == API_OPENGL)
+	if (ApiType == API_OPENGL || ApiType == API_VULKAN)
 	{
 		// compute window position if needed because binding semantic WPOS is not widely supported
 		// Let's set up attributes
@@ -1837,7 +1897,7 @@ inline void GeneratePixelShader(ShaderCode& out, const pixel_shader_uid_data& ui
 			{
 				for (u32 i = 0; i < numTexgen; ++i)
 				{
-					if (g_ActiveConfig.backend_info.bSupportsGeometryShaders)
+					if (g_ActiveConfig.backend_info.bSupportsGeometryShaders || ApiType == API_VULKAN)
 					{
 						out.Write("float3 uv%d = tex%d;\n", i, i);
 					}
@@ -1860,7 +1920,7 @@ inline void GeneratePixelShader(ShaderCode& out, const pixel_shader_uid_data& ui
 			{
 				for (u32 i = 0; i < 8; ++i)
 				{
-					if (g_ActiveConfig.backend_info.bSupportsGeometryShaders)
+					if (g_ActiveConfig.backend_info.bSupportsGeometryShaders || ApiType == API_VULKAN)
 					{
 						out.Write("float4 uv%d = tex%d;\n", i, i);
 					}
@@ -1874,7 +1934,7 @@ inline void GeneratePixelShader(ShaderCode& out, const pixel_shader_uid_data& ui
 			{
 				for (u32 i = 0; i < numTexgen; ++i)
 				{
-					if (g_ActiveConfig.backend_info.bSupportsGeometryShaders)
+					if (g_ActiveConfig.backend_info.bSupportsGeometryShaders || ApiType == API_VULKAN)
 					{
 						out.Write("float%d uv%d = tex%d;\n", i < 4 ? 4 : 3, i, i);
 					}
@@ -1896,11 +1956,7 @@ inline void GeneratePixelShader(ShaderCode& out, const pixel_shader_uid_data& ui
 	{
 		for (u32 i = 0; i < numTexgen; ++i)
 		{
-			if (((uid_data.texMtxInfo_n_projection >> i) & 1) == XF_TEXPROJ_STQ)
-			{
-				out.Write("if (uv%d.z != 0.0)", i);
-				out.Write("\tuv%d.xy = uv%d.xy / uv%d.z;\n", i, i, i);
-			}
+			out.Write("\tuv%d.xy = uv%d.xy / ((uv%d.z == 0.0) ? 2.0 : uv%d.z);\n", i, i, i, i);
 			out.Write("uv%d.xy = trunc(uv%d.xy * " I_TEXDIMS"[%d].zw);\n", i, i, i);
 		}
 	}
@@ -1929,6 +1985,7 @@ inline void GeneratePixelShader(ShaderCode& out, const pixel_shader_uid_data& ui
 	}
 	if (enablenormalmaps || forcePhong)
 	{
+		out.Write("\tfloat3 emmisive_mask = float3(0.0,0.0,0.0);\n", numStages);
 		out.Write("\tfloat4 normalmap = float4(0.0,0.0,1.0,0.3);\n");
 		out.Write("\tfloat height_map = 0.0, height_map_count = 0.0;\n");
 		out.Write("\tfloat2 mapcoord = float2(0.0,0.0);\n");
@@ -2058,7 +2115,7 @@ inline void GeneratePixelShader(ShaderCode& out, const pixel_shader_uid_data& ui
 			out.Write("wu zCoord = (" I_ZSLOPE".z + " I_ZSLOPE".x * screenpos.x + " I_ZSLOPE".y * screenpos.y) / 16777216.0;\n");
 		}
 	}
-	else if ((ApiType == API_OPENGL || ApiType == API_D3D11) && g_ActiveConfig.bFastDepthCalc)
+	else if (!(ApiType & API_D3D9) && g_ActiveConfig.bFastDepthCalc)
 	{
 		if (Use_integer_math)
 		{
@@ -2121,6 +2178,26 @@ inline void GeneratePixelShader(ShaderCode& out, const pixel_shader_uid_data& ui
 		else
 			out.Write("\tdepth = %s zCoord;\n", ApiType == API_OPENGL ? "" : "1.0 - ");
 	}
+
+	if (render_mode == PSRM_ALPHA_PASS)
+	{
+		out.Write("prev.a = " I_ALPHA ".a;\n");
+	}
+	else
+	{
+		WriteFog<Use_integer_math>(out, uid_data);		
+	}
+
+	if (uid_data.dither && uid_data.rgba6_format)
+	{
+		out.Write("\tprev.rgb = prev.rgb + GetDitherValue(ditherindex);\n");
+	}
+
+	if (uid_data.rgba6_format)
+	{
+		out.Write("\tprev = CAST_TO_U6(clamp(prev, 0, 255));\n");
+	}
+
 	if (forcePhong)
 	{
 		out.Write(
@@ -2128,14 +2205,12 @@ inline void GeneratePixelShader(ShaderCode& out, const pixel_shader_uid_data& ui
 			"prev.rgb += wu3(spec.rgb * normalmap.w * " I_PPHONG "[0].w);\n"
 		);
 	}
-	if (render_mode == PSRM_ALPHA_PASS)
+
+	if (enablenormalmaps)
 	{
-		out.Write("ocol0 = float4(prev.rgb," I_ALPHA ".a) * (1.0/255.0);\n");
-	}
-	else
-	{
-		WriteFog<Use_integer_math>(out, uid_data);
-		out.Write("ocol0 = float4(prev) * (1.0/255.0);\n");
+		out.Write("if(" I_FLAGS ".y != 0)\n{\n");
+		out.Write("prev.rgb += wu3(emmisive_mask);\n");
+		out.Write("}\n");
 	}
 	// Use dual-source color blending to perform dst alpha in a single pass
 	if (render_mode == PSRM_DUAL_SOURCE_BLEND)
@@ -2152,11 +2227,18 @@ inline void GeneratePixelShader(ShaderCode& out, const pixel_shader_uid_data& ui
 			out.Write("ocol1 = float4(prev) * (1.0/255.0);\n");
 		}
 		// ...and the alpha from ocol0 will be written to the framebuffer.
-		out.Write("ocol0.a = " I_ALPHA ".a*(1.0/255.0);\n");
+		out.Write("prev.a = " I_ALPHA ".a;\n");
+		if (uid_data.rgba6_format)
+		{
+			out.Write("\tprev.a = CAST_TO_U6(prev.a);\n");
+		}
 	}
+
+	out.Write("ocol0 = float4(prev) * (1.0/255.0);\n");
+
 	if (uid_data.bounding_box)
 	{
-		const char* atomic_op = ApiType == API_OPENGL ? "atomic" : "Interlocked";
+		const char* atomic_op = (ApiType == API_OPENGL || ApiType == API_VULKAN) ? "atomic" : "Interlocked";
 		out.Write(
 			"\tif(bbox_data[0] > int(rawpos.x)) %sMin(bbox_data[0], int(rawpos.x));\n"
 			"\tif(bbox_data[1] < int(rawpos.x)) %sMax(bbox_data[1], int(rawpos.x));\n"
@@ -2187,5 +2269,10 @@ void GeneratePixelShaderCodeD3D11(ShaderCode& object, const pixel_shader_uid_dat
 void GeneratePixelShaderCodeGL(ShaderCode& object, const pixel_shader_uid_data& uid_data)
 {
 	GeneratePixelShader<API_OPENGL, true>(object, uid_data);
+}
+
+void GeneratePixelShaderCodeVulkan(ShaderCode& object, const pixel_shader_uid_data& uid_data)
+{
+	GeneratePixelShader<API_VULKAN, true>(object, uid_data);
 }
 

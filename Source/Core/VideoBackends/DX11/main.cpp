@@ -100,8 +100,11 @@ void VideoBackend::InitBackendInfo()
 	g_Config.backend_info.bSupportsGeometryShaders = true;
 	g_Config.backend_info.bSupports3DVision = true;
 	g_Config.backend_info.bSupportsPostProcessing = true;
-	g_Config.backend_info.bSupportsClipControl = false;
+	g_Config.backend_info.bSupportsClipControl = true;
 	g_Config.backend_info.bSupportsNormalMaps = true;
+	g_Config.backend_info.bSupportsDepthClamp = true;
+	g_Config.backend_info.bSupportsMultithreading = false;
+	g_Config.backend_info.bSupportsReversedDepthRange = true;
 	IDXGIFactory* factory;
 	IDXGIAdapter* ad;
 	hr = DX11::PCreateDXGIFactory(__uuidof(IDXGIFactory), (void**)&factory);
@@ -154,27 +157,11 @@ void VideoBackend::InitBackendInfo()
 
 bool VideoBackend::Initialize(void *window_handle)
 {
-	InitializeShared();
+	if (window_handle == nullptr)
+		return false;
 	InitBackendInfo();
-
-	frameCount = 0;
-
-	const SConfig& core_params = SConfig::GetInstance();
-
-	if (File::Exists(File::GetUserPath(D_CONFIG_IDX) + "GFX.ini"))
-		g_Config.Load(File::GetUserPath(D_CONFIG_IDX) + "GFX.ini");
-	else
-		g_Config.Load(File::GetUserPath(D_CONFIG_IDX) + "gfx_dx11.ini");
-
-	g_Config.GameIniLoad();
-	g_Config.UpdateProjectionHack();
-	g_Config.VerifyValidity();
-	UpdateActiveConfig();
-
+	InitializeShared();
 	m_window_handle = window_handle;
-
-	m_initialized = true;
-
 	return true;
 }
 
@@ -187,38 +174,14 @@ void VideoBackend::Video_Prepare()
 	g_perf_query = std::make_unique<PerfQuery>();
 	VertexShaderCache::Init();
 	PixelShaderCache::Init();
-	D3D::InitUtils();
-
-	// VideoCommon
-	BPInit();
-	Fifo::Init();
-	IndexGenerator::Init();
-	VertexLoaderManager::Init();
-	OpcodeDecoder::Init();
-	VertexShaderManager::Init();
-	GeometryShaderManager::Init();
-	TessellationShaderManager::Init();
-	HullDomainShaderCache::Init();
 	GeometryShaderCache::Init();
-	PixelShaderManager::Init(true);
-	CommandProcessor::Init();
-	PixelEngine::Init();
+	HullDomainShaderCache::Init();
+	D3D::InitUtils();
 	BBox::Init();
-	// Tell the host that the window is ready
-	Host_Message(WM_USER_CREATE);
 }
 
 void VideoBackend::Shutdown()
 {
-	m_initialized = false;
-	if (!g_renderer)
-		return;
-	// VideoCommon
-	Fifo::Shutdown();
-	GeometryShaderManager::Shutdown();
-	TessellationShaderManager::Shutdown();
-	VertexLoaderManager::Shutdown();
-
 	// internal interfaces
 	D3D::ShutdownUtils();
 	PixelShaderCache::Shutdown();
@@ -226,13 +189,18 @@ void VideoBackend::Shutdown()
 	HullDomainShaderCache::Shutdown();
 	VertexShaderCache::Shutdown();
 	BBox::Shutdown();
+
 	g_perf_query.reset();
 	g_vertex_manager.reset();
 	g_texture_cache.reset();
 	g_renderer.reset();
+
+	ShutdownShared();
 }
 
 void VideoBackend::Video_Cleanup()
-{}
+{
+	CleanupShared();
+}
 
 }

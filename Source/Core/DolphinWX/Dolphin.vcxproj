@@ -249,6 +249,9 @@
     <ProjectReference Include="..\VideoBackends\Software\Software.vcxproj">
       <Project>{9e9da440-e9ad-413c-b648-91030e792211}</Project>
     </ProjectReference>
+    <ProjectReference Include="..\VideoBackends\Vulkan\Vulkan.vcxproj">
+      <Project>{29f29a19-f141-45ad-9679-5a2923b49da3}</Project>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

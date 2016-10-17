@@ -94,6 +94,8 @@ extern std::unique_ptr<D3DCommandListManager> command_list_mgr;
 extern ID3D12GraphicsCommandList* current_command_list;
 bool TessellationEnabled();
 bool GeormetryShadersenabled();
+D3D_FEATURE_LEVEL GetFeatureLevel();
+bool GetLogicOpSupported();
 ID3D12RootSignature* GetRootSignature();
 ID3D12RootSignature* GetBasicRootSignature();
 void SetRootSignature(bool geometryenabled, bool tesselationenabled, bool applychange = true);

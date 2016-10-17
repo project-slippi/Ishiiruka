@@ -43,11 +43,6 @@
 #define 	GL_COMPRESSED_RGBA_S3TC_DXT3_EXT   0x83F2
 #define 	GL_COMPRESSED_RGBA_S3TC_DXT5_EXT   0x83F3
 
-#define GL_UNPACK_COMPRESSED_BLOCK_WIDTH  0x9127
-#define GL_UNPACK_COMPRESSED_BLOCK_HEIGHT 0x9128
-#define GL_UNPACK_COMPRESSED_BLOCK_DEPTH  0x9129
-#define GL_UNPACK_COMPRESSED_BLOCK_SIZE 0x912A
-
 namespace OGL
 {
 static SHADER s_ColorCopyProgram;
@@ -74,7 +69,7 @@ static std::unique_ptr<Depalettizer> s_depaletizer;
 static std::unique_ptr<TextureScaler> s_scaler;
 static std::pair<u8*, u32> s_last_pallet_Buffer;
 static TlutFormat s_last_TlutFormat = TlutFormat::GX_TL_IA8;
-bool SaveTexture(const std::string& filename, u32 textarget, u32 tex, int virtual_width, int virtual_height, u32 level, bool compressed = false)
+bool SaveTexture(const std::string& filename, u32 textarget, u32 tex, int virtual_width, int virtual_height, u32 level, bool compressed)
 {
 	if (GLInterface->GetMode() != GLInterfaceMode::MODE_OPENGL)
 		return false;
@@ -133,6 +128,12 @@ TextureCache::TCacheEntry::TCacheEntry(const TCacheEntryConfig& _config)
 
 void TextureCache::TCacheEntry::Bind(u32 stage, u32 last_texture)
 {
+	if (nrm_texture && g_ActiveConfig.HiresMaterialMapsEnabled())
+	{
+		s_ActiveTexture = 8;
+		glActiveTexture(GL_TEXTURE8 + stage);
+		glBindTexture(GL_TEXTURE_2D_ARRAY, nrm_texture);
+	}
 	if (s_Textures[stage] != texture)
 	{
 		if (s_ActiveTexture != stage)
@@ -143,12 +144,6 @@ void TextureCache::TCacheEntry::Bind(u32 stage, u32 last_texture)
 
 		glBindTexture(GL_TEXTURE_2D_ARRAY, texture);
 		s_Textures[stage] = texture;
-	}
-	if (nrm_texture && g_ActiveConfig.HiresMaterialMapsEnabled())
-	{
-		glActiveTexture(GL_TEXTURE8 + stage);
-		s_ActiveTexture = 8 + stage;
-		glBindTexture(GL_TEXTURE_2D_ARRAY, nrm_texture);
 	}
 }
 
@@ -167,6 +162,7 @@ PC_TexFormat TextureCache::GetNativeTextureFormat(const s32 texformat, const Tlu
 
 void TextureCache::TCacheEntry::SetFormat()
 {
+	compressed = false;
 	switch (config.pcformat)
 	{
 	default:
@@ -245,11 +241,10 @@ TextureCache::TCacheEntryBase* TextureCache::CreateTexture(const TCacheEntryConf
 	glActiveTexture(GL_TEXTURE9);
 	glBindTexture(GL_TEXTURE_2D_ARRAY, entry->texture);
 	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAX_LEVEL, config.levels - 1);
-
+	entry->SetFormat();
 	if (config.rendertarget)
 	{
-		entry->SetFormat();
-		for (u32 level = 0; level < config.levels; level++)
+		for (u32 level = 0; level <= config.levels; level++)
 		{
 			glTexImage3D(GL_TEXTURE_2D_ARRAY, level, entry->gl_format, config.width, config.height, config.layers, 0, entry->gl_iformat, entry->gl_type, nullptr);
 		}
@@ -261,14 +256,11 @@ TextureCache::TCacheEntryBase* TextureCache::CreateTexture(const TCacheEntryConf
 	{
 		if (config.materialmap)
 		{
-			glGenTextures(1, &entry->nrm_texture);
-			glActiveTexture(GL_TEXTURE9);
+			glGenTextures(1, &entry->nrm_texture);			
 			glBindTexture(GL_TEXTURE_2D_ARRAY, entry->nrm_texture);
 			glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAX_LEVEL, config.levels - 1);
 		}
-		entry->SetFormat();
 	}
-
 	TextureCache::SetStage();
 	return entry;
 }
@@ -361,12 +353,14 @@ void TextureCache::TCacheEntry::Load(const u8* src, u32 width, u32 height,
 	}
 	break;
 	default:
+	{
 		if (expanded_width != width)
 			glPixelStorei(GL_UNPACK_ROW_LENGTH, expanded_width);
 		glTexImage3D(GL_TEXTURE_2D_ARRAY, level, gl_iformat, width, height, 1, 0, gl_format, gl_type, src);
 		if (expanded_width != width)
 			glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
-		break;
+	}
+	break;
 	}
 	TextureCache::SetStage();
 }
@@ -436,14 +430,14 @@ void TextureCache::TCacheEntry::FromRenderTarget(u8* dst, PEControl::PixelFormat
 	FramebufferManager::SetFramebuffer(framebuffer);
 
 	OpenGL_BindAttributelessVAO();
-
+	TargetRectangle R = g_renderer->ConvertEFBRectangle(srcRect);
 	glActiveTexture(GL_TEXTURE9);
 	glBindTexture(GL_TEXTURE_2D_ARRAY, read_texture);
 	if (scaleByHalf)
 		g_sampler_cache->BindLinearSampler(9);
 	else
 		g_sampler_cache->BindNearestSampler(9);
-	glViewport(0, 0, config.width, config.height);
+	glViewport(0, 0, R.GetWidth() / (scaleByHalf ? 2 : 1), R.GetHeight() / (scaleByHalf ? 2 : 1));
 
 	GLuint uniform_location;
 	if (srcFormat == PEControl::Z24)
@@ -463,7 +457,7 @@ void TextureCache::TCacheEntry::FromRenderTarget(u8* dst, PEControl::PixelFormat
 		uniform_location = s_ColorMatrixPositionUniform;
 	}
 
-	TargetRectangle R = g_renderer->ConvertEFBRectangle(srcRect);
+	
 	glUniform4f(uniform_location, static_cast<float>(R.left), static_cast<float>(R.top),
 		static_cast<float>(R.right), static_cast<float>(R.bottom));
 
@@ -564,7 +558,7 @@ TextureCache::TextureCache()
 	s_scaler = std::make_unique<TextureScaler>();
 }
 
-void TextureCache::CompileShaders()
+bool TextureCache::CompileShaders()
 {
 	const char *pColorCopyProg =
 		"SAMPLER_BINDING(9) uniform sampler2DArray samp9;\n"
@@ -643,10 +637,10 @@ void TextureCache::CompileShaders()
 
 	const char* prefix = (GProgram == nullptr) ? "f" : "v";
 	const char* depth_layer = (g_ActiveConfig.bStereoEFBMonoDepth) ? "0.0" : "f_uv0.z";
-
-	ProgramShaderCache::CompileShader(s_ColorCopyProgram, StringFromFormat(VProgram, prefix, prefix).c_str(), pColorCopyProg, GProgram);
-	ProgramShaderCache::CompileShader(s_ColorMatrixProgram, StringFromFormat(VProgram, prefix, prefix).c_str(), pColorMatrixProg, GProgram);
-	ProgramShaderCache::CompileShader(s_DepthMatrixProgram, StringFromFormat(VProgram, prefix, prefix).c_str(), StringFromFormat(pDepthMatrixProg, depth_layer).c_str(), GProgram);
+	bool compiled = true;
+	compiled = compiled && ProgramShaderCache::CompileShader(s_ColorCopyProgram, StringFromFormat(VProgram, prefix, prefix).c_str(), pColorCopyProg, GProgram);
+	compiled = compiled && ProgramShaderCache::CompileShader(s_ColorMatrixProgram, StringFromFormat(VProgram, prefix, prefix).c_str(), pColorMatrixProg, GProgram);
+	compiled = compiled && ProgramShaderCache::CompileShader(s_DepthMatrixProgram, StringFromFormat(VProgram, prefix, prefix).c_str(), StringFromFormat(pDepthMatrixProg, depth_layer).c_str(), GProgram);
 
 	s_ColorMatrixUniform = glGetUniformLocation(s_ColorMatrixProgram.glprogid, "colmat");
 	s_DepthMatrixUniform = glGetUniformLocation(s_DepthMatrixProgram.glprogid, "colmat");
@@ -739,7 +733,7 @@ void TextureCache::CompileShaders()
 
 	if (g_ActiveConfig.backend_info.bSupportsPaletteConversion)
 	{
-		ProgramShaderCache::CompileShader(
+		compiled = compiled && ProgramShaderCache::CompileShader(
 			s_palette_pixel_shader[GX_TL_IA8],
 			StringFromFormat(VProgram, prefix, prefix).c_str(),
 			("#define DECODE DecodePixel_IA8" + palette_shader).c_str(),
@@ -748,7 +742,7 @@ void TextureCache::CompileShaders()
 		s_palette_multiplier_uniform[GX_TL_IA8] = glGetUniformLocation(s_palette_pixel_shader[GX_TL_IA8].glprogid, "multiplier");
 		s_palette_copy_position_uniform[GX_TL_IA8] = glGetUniformLocation(s_palette_pixel_shader[GX_TL_IA8].glprogid, "copy_position");
 
-		ProgramShaderCache::CompileShader(
+		compiled = compiled && ProgramShaderCache::CompileShader(
 			s_palette_pixel_shader[GX_TL_RGB565],
 			StringFromFormat(VProgram, prefix, prefix).c_str(),
 			("#define DECODE DecodePixel_RGB565" + palette_shader).c_str(),
@@ -757,7 +751,7 @@ void TextureCache::CompileShaders()
 		s_palette_multiplier_uniform[GX_TL_RGB565] = glGetUniformLocation(s_palette_pixel_shader[GX_TL_RGB565].glprogid, "multiplier");
 		s_palette_copy_position_uniform[GX_TL_RGB565] = glGetUniformLocation(s_palette_pixel_shader[GX_TL_RGB565].glprogid, "copy_position");
 
-		ProgramShaderCache::CompileShader(
+		compiled = compiled && ProgramShaderCache::CompileShader(
 			s_palette_pixel_shader[GX_TL_RGB5A3],
 			StringFromFormat(VProgram, prefix, prefix).c_str(),
 			("#define DECODE DecodePixel_RGB5A3" + palette_shader).c_str(),
@@ -766,6 +760,7 @@ void TextureCache::CompileShaders()
 		s_palette_multiplier_uniform[GX_TL_RGB5A3] = glGetUniformLocation(s_palette_pixel_shader[GX_TL_RGB5A3].glprogid, "multiplier");
 		s_palette_copy_position_uniform[GX_TL_RGB5A3] = glGetUniformLocation(s_palette_pixel_shader[GX_TL_RGB5A3].glprogid, "copy_position");
 	}
+	return compiled;
 }
 
 void TextureCache::DeleteShaders()

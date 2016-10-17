@@ -1,4 +1,4 @@
-// Copyright 2013 Dolphin Emulator Project
+// Copyright 2008 Dolphin Emulator Project
 // Licensed under GPLv2+
 // Refer to the license.txt file included.
 
@@ -9,8 +9,8 @@
 
 #include "Common/CommonTypes.h"
 #include "Common/FileUtil.h"
-#include "Common/StringUtil.h"
 #include "Common/GL/GLExtensions/GLExtensions.h"
+#include "Common/StringUtil.h"
 
 #include "VideoBackends/OGL/BoundingBox.h"
 #include "VideoBackends/OGL/ProgramShaderCache.h"
@@ -26,7 +26,7 @@
 
 namespace OGL
 {
-//This are the initially requested size for the buffers expressed in bytes
+// This are the initially requested size for the buffers expressed in bytes
 const u32 MAX_IBUFFER_SIZE = 2 * 1024 * 1024;
 const u32 MAX_VBUFFER_SIZE = 32 * 1024 * 1024;
 
@@ -35,7 +35,7 @@ static std::unique_ptr<StreamBuffer> s_indexBuffer;
 static size_t s_baseVertex;
 static size_t s_index_offset;
 static u16* s_index_buffer_base;
-VertexManager::VertexManager()
+VertexManager::VertexManager() : m_cpu_v_buffer(MAXVBUFFERSIZE), m_cpu_i_buffer(MAXIBUFFERSIZE)
 {
 	CreateDeviceObjects();
 }
@@ -66,7 +66,18 @@ void VertexManager::PrepareDrawBuffers(u32 stride)
 {
 	u32 vertex_data_size = IndexGenerator::GetNumVerts() * stride;
 	u32 index_data_size = IndexGenerator::GetIndexLen() * sizeof(u16);
-
+	if (s_vertexBuffer->NeedCPUBuffer())
+	{
+		auto buffer = s_vertexBuffer->Map(vertex_data_size, stride);
+		s_baseVertex = buffer.second / stride;
+		memcpy(buffer.first, m_cpu_v_buffer.data(), vertex_data_size);
+	}
+	if (s_indexBuffer->NeedCPUBuffer())
+	{
+		auto buffer = s_indexBuffer->Map(index_data_size);
+		s_index_offset = buffer.second;
+		memcpy(buffer.first, m_cpu_i_buffer.data(), index_data_size);
+	}
 	s_vertexBuffer->Unmap(vertex_data_size);
 	s_indexBuffer->Unmap(index_data_size);
 
@@ -76,15 +87,31 @@ void VertexManager::PrepareDrawBuffers(u32 stride)
 
 void VertexManager::ResetBuffer(u32 stride)
 {
-	auto buffer = s_vertexBuffer->Map(MAXVBUFFERSIZE, stride);
-	s_pCurBufferPointer = s_pBaseBufferPointer = buffer.first;
-	s_pEndBufferPointer = buffer.first + MAXVBUFFERSIZE;
-	s_baseVertex = buffer.second / stride;
+	if (s_cull_all || s_vertexBuffer->NeedCPUBuffer())
+	{
+		s_pCurBufferPointer = s_pBaseBufferPointer = m_cpu_v_buffer.data();
+		s_pEndBufferPointer = s_pBaseBufferPointer + m_cpu_v_buffer.size();
+	}
+	else
+	{
+		auto buffer = s_vertexBuffer->Map(MAXVBUFFERSIZE, stride);
+		s_pCurBufferPointer = s_pBaseBufferPointer = buffer.first;
+		s_pEndBufferPointer = buffer.first + MAXVBUFFERSIZE;
+		s_baseVertex = buffer.second / stride;
+	}
 
-	buffer = s_indexBuffer->Map(MAXIBUFFERSIZE * sizeof(u16));
-	s_index_buffer_base = (u16*)buffer.first;
-	IndexGenerator::Start(s_index_buffer_base);
-	s_index_offset = buffer.second;
+	if (s_cull_all || s_indexBuffer->NeedCPUBuffer())
+	{
+		s_index_buffer_base = m_cpu_i_buffer.data();
+		IndexGenerator::Start(m_cpu_i_buffer.data());
+	}
+	else
+	{
+		auto buffer = s_indexBuffer->Map(MAXIBUFFERSIZE * sizeof(u16));
+		s_index_buffer_base = (u16*)buffer.first;
+		IndexGenerator::Start(s_index_buffer_base);
+		s_index_offset = buffer.second;
+	}
 }
 
 void VertexManager::Draw(u32 stride)
@@ -134,17 +161,9 @@ u16* VertexManager::GetIndexBuffer()
 }
 void VertexManager::vFlush(bool useDstAlpha)
 {
-	GLVertexFormat *nativeVertexFmt = (GLVertexFormat*)VertexLoaderManager::GetCurrentVertexFormat();
+	GLVertexFormat* nativeVertexFmt = (GLVertexFormat*)VertexLoaderManager::GetCurrentVertexFormat();
 	u32 stride = nativeVertexFmt->GetVertexStride();
-
-	if (m_last_vao != nativeVertexFmt->VAO)
-	{
-		glBindVertexArray(nativeVertexFmt->VAO);
-		m_last_vao = nativeVertexFmt->VAO;
-	}
 	BBox::Update();
-	PrepareDrawBuffers(stride);
-
 	// Makes sure we can actually do Dual source blending
 	bool dualSourcePossible = g_ActiveConfig.backend_info.bSupportsDualSourceBlend;
 
@@ -164,11 +183,24 @@ void VertexManager::vFlush(bool useDstAlpha)
 
 	// setup the pointers
 	nativeVertexFmt->SetupVertexPointers();
+	if (m_last_vao != nativeVertexFmt->VAO)
+	{
+		glBindVertexArray(nativeVertexFmt->VAO);
+		m_last_vao = nativeVertexFmt->VAO;
+	}
+
+	PrepareDrawBuffers(stride);
 
 	Draw(stride);
-
+	// If the GPU does not support dual-source blending, we can approximate the effect by drawing
+	// the object a second time, with the write mask set to alpha only using a shader that outputs
+	// the destination/constant alpha value (which would normally be SRC_COLOR.a).
+	//
+	// This is also used when logic ops and destination alpha is enabled, since we can't enable
+	// blending and logic ops concurrently.
+	const bool logic_op_enabled = bpmem.blendmode.logicopenable && bpmem.blendmode.logicmode != BlendMode::LogicOp::COPY && !bpmem.blendmode.blendenable;
 	// run through vertex groups again to set alpha
-	if (useDstAlpha && !dualSourcePossible)
+	if (useDstAlpha && (!dualSourcePossible || logic_op_enabled))
 	{
 		ProgramShaderCache::SetShader(PSRM_ALPHA_PASS, VertexLoaderManager::g_current_components, current_primitive_type);
 
@@ -176,6 +208,8 @@ void VertexManager::vFlush(bool useDstAlpha)
 		glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_TRUE);
 
 		glDisable(GL_BLEND);
+		if (logic_op_enabled)
+			glDisable(GL_COLOR_LOGIC_OP);
 
 		Draw(stride);
 
@@ -184,11 +218,12 @@ void VertexManager::vFlush(bool useDstAlpha)
 
 		if (bpmem.blendmode.blendenable || bpmem.blendmode.subtract)
 			glEnable(GL_BLEND);
+		if (logic_op_enabled)
+			glEnable(GL_COLOR_LOGIC_OP);
 	}
 	g_Config.iSaveTargetId++;
 
 	ClearEFBCache();
 }
-
 
 }  // namespace

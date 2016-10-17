@@ -38,6 +38,11 @@ struct Tessellation_shader_uid_data
 		return 0;
 	}
 
+	void ClearUnused()
+	{
+		texMtxInfo_n_projection = 0;
+	}
+
 	u32 numTexGens : 4;
 	u32 normal : 1;
 	u32 genMode_numtevstages : 4;

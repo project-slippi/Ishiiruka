@@ -57,6 +57,7 @@ struct HSOutput
 	float4 pos: BEZIERPOS;
 	float4 colors_0: COLOR0;
 	float4 colors_1: COLOR1;
+	float2 clipDist: TANGENT;
 };
 
 [domain("tri")]
@@ -91,6 +92,11 @@ static const char* s_hlsl_ds_str = R"hlsl(
 float3 PrjToPlane(float3 planeNormal, float3 planePoint, float3 pointToProject)
 {
 return pointToProject - dot(pointToProject-planePoint, planeNormal) * planeNormal;
+}
+
+float BInterpolate(float v0, float v1, float v2, float3 barycentric)
+{
+return barycentric.z * v0 + barycentric.x * v1 + barycentric.y * v2;
 }
 
 float2 BInterpolate(float2 v0, float2 v1, float2 v2, float3 barycentric)
@@ -229,11 +235,6 @@ void GetTessellationShaderUID(TessellationShaderUid& out, const XFMemory& xfr, c
 	uid_data.pixel_normals = enablenormalmaps ? 1 : 0;
 	if (enablenormalmaps)
 	{
-		for (u32 i = 0; i < numTexgen; ++i)
-		{
-			// optional perspective divides
-			uid_data.texMtxInfo_n_projection |= xfr.texMtxInfo[i].projection << i;
-		}
 		for (u32 i = 0; i < numindStages; ++i)
 		{
 			if (nIndirectStagesUsed & (1 << i))
@@ -320,7 +321,7 @@ inline void WriteFetchDisplacement(ShaderCode& out, int n, const Tessellation_sh
 		// ---------
 		// Wrapping
 		// ---------
-		static const char *tevIndWrapStart[] = { "int(0)", "int(256*128)", "int(128*128)", "int(64*128)", "int(32*128)", "int(16*128)", "int(1)" };
+		static const char *tevIndWrapStart[] = { "int(0)", "int(256*128)", "int(128*128)", "int(64*128)", "int(32*128)", "int(16*128)", "int(1)", "int(1)" };
 		// wrap S
 		if (tevind.sw == ITW_OFF)
 			out.Write("wrappedcoord.x = int(uv[%d].x);\n", texcoord);
@@ -480,6 +481,7 @@ inline void GenerateTessellationShader(ShaderCode& out, const Tessellation_shade
 		}
 		out.Write("result.colors_0 = patch[id].colors_0;\n"
 			"result.colors_1 = patch[id].colors_1;\n"
+			"result.clipDist = patch[id].clipDist;\n"
 			"return result;\n}\n");
 		out.Write(s_hlsl_constant_header_str);
 		out.Write(
@@ -512,26 +514,14 @@ inline void GenerateTessellationShader(ShaderCode& out, const Tessellation_shade
 		}
 		for (u32 i = 0; i < texcount; ++i)
 		{
-
 			out.Write("result.tex%d[i].xyz = patch[i].tex%d.xyz;\n", i, i);
-			if (((uid_data.texMtxInfo_n_projection >> i) & 1) == XF_TEXPROJ_STQ)
-			{
-				out.Write("{\n");
-				out.Write("float2 t0 = patch[i].tex%d.xy;", i);
-				out.Write("if (patch[i].tex%d.z != 0.0) t0 = t0 /patch[i].tex%d.z;", i, i);
-				out.Write("float2 t1 = patch[(i + 1) %% 3].tex%d.xy;", i);
-				out.Write("if (patch[(i + 1) %% 3].tex%d.z != 0.0) t0 = t0 /patch[(i + 1) %% 3].tex%d.z;", i, i);
-				out.Write("result.tex%d[i].w = distance(t0, t1);\n", i);
-				out.Write("}\n");
-			}
-			else
-			{
-				out.Write("{\n");
-				out.Write("float2 t0 = patch[i].tex%d.xy;", i);
-				out.Write("float2 t1 = patch[(i + 1) %% 3].tex%d.xy;", i);
-				out.Write("result.tex%d[i].w = distance(t0, t1);\n", i);
-				out.Write("}\n");
-			}
+			out.Write("{\n");
+			out.Write("float2 t0 = patch[i].tex%d.xy;", i);
+			out.Write("t0 = t0 / ((patch[i].tex%d.z == 0.0) ? 2.0 : patch[i].tex%d.z);", i, i);
+			out.Write("float2 t1 = patch[(i + 1) %% 3].tex%d.xy;", i);
+			out.Write("if (patch[(i + 1) %% 3].tex%d.z != 0.0) t0 = t0 /patch[(i + 1) %% 3].tex%d.z;", i, i);
+			out.Write("result.tex%d[i].w = distance(t0, t1);\n", i);
+			out.Write("}\n");
 		}
 		if (normalpresent)
 		{
@@ -594,8 +584,7 @@ inline void GenerateTessellationShader(ShaderCode& out, const Tessellation_shade
 			{
 				if (((uid_data.texMtxInfo_n_projection >> i) & 1) == XF_TEXPROJ_STQ)
 				{
-					out.Write("if (result.tex%d.z != 0.0)", i);
-					out.Write("\tuv[%d].xy = result.tex%d.xy / result.tex%d.z;\n", i, i, i);
+					out.Write("\tuv[%d].xy = result.tex%d.xy / ((result.tex%d.z == 0.0) ? 2.0 : result.tex%d.z);\n", i, i, i, i);
 				}
 				else
 				{
@@ -653,7 +642,8 @@ inline void GenerateTessellationShader(ShaderCode& out, const Tessellation_shade
 			"result.pos = float4(dot(" I_PROJECTION "[0], pos), dot(" I_PROJECTION "[1], pos), dot(" I_PROJECTION "[2], pos), dot(" I_PROJECTION "[3], pos));\n"
 			"result.pos.xy = result.pos.xy + result.pos.w * " I_DEPTHPARAMS".zw;\n"
 			"result.colors_0 = BInterpolate(patch[0].colors_0, patch[1].colors_0, patch[2].colors_0, bCoords);\n"
-			"result.colors_1 = BInterpolate(patch[0].colors_1, patch[1].colors_1, patch[2].colors_1, bCoords);\n");
+			"result.colors_1 = BInterpolate(patch[0].colors_1, patch[1].colors_1, patch[2].colors_1, bCoords);\n"
+			"result.clipDist = BInterpolate(patch[0].clipDist, patch[1].clipDist, patch[2].clipDist, bCoords);\n");
 		if (uid_data.numTexGens < 7)
 		{
 			out.Write("result.clipPos = float4(position.xy, result.pos.zw);\n");
@@ -676,7 +666,7 @@ inline void GenerateTessellationShader(ShaderCode& out, const Tessellation_shade
 			else
 				out.Write("result.tex7.w = position.z;\n");
 		}
-		out.Write("result.pos.z = -((" I_DEPTHPARAMS".x - 1.0) * result.pos.w + result.pos.z * " I_DEPTHPARAMS".y);\n");
+		out.Write("result.pos.z = result.pos.w * " I_DEPTHPARAMS ".x - result.pos.z * " I_DEPTHPARAMS ".y;\n");
 		out.Write("return result;\n}");
 	}
 

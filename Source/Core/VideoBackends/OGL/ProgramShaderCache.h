@@ -114,7 +114,6 @@ public:
 	static void CreateHeader();
 
 	static u32 GetUniformBufferAlignment();
-	static void BindUniformBuffer();
 
 private:
 	class ProgramShaderCacheInserter : public LinearDiskCacheReader<SHADERUID, u8>
@@ -127,9 +126,7 @@ private:
 	static PCacheEntry* last_entry;
 	static SHADERUID last_uid;
 
-	static u32 s_v_ubo_buffer_size;
-	static u32 s_p_ubo_buffer_size;
-	static u32 s_g_ubo_buffer_size;
+	static u32 s_ubo_buffer_size;
 	static s32 s_ubo_align;
 };
 

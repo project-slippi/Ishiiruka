@@ -165,15 +165,14 @@ protected:
 	SettingCheckBox* Async_Shader_compilation;
 	SettingCheckBox* Compute_Shader_decoding;
 	SettingCheckBox* Compute_Shader_encoding;
+	SettingCheckBox* Forced_LogicOp;
 	SettingCheckBox* Predictive_FIFO;
 	SettingCheckBox* Wait_For_Shaders;
-	SettingCheckBox* vieport_correction;
 	SettingRadioButton* virtual_xfb;
 	SettingRadioButton* real_xfb;
 
 	SettingCheckBox* hires_texturemaps;
 	SettingCheckBox* cache_hires_textures;
-	SettingCheckBox* cache_hires_texturesGPU;
 	SettingCheckBox* shaderprecompile;
 
 	wxButton* button_config_scalingshader;

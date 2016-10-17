@@ -67,6 +67,7 @@ static LARGE_INTEGER s_qpc_frequency;
 static ComPtr<ID3D12DebugDevice> s_debug_device;
 
 static D3D_FEATURE_LEVEL s_feat_level;
+static bool s_logic_op_supported = false;
 static D3DTexture2D* s_backbuf[SWAP_CHAIN_BUFFER_COUNT];
 static unsigned int s_current_back_buf = 0;
 static unsigned int s_xres = 0;
@@ -74,6 +75,16 @@ static unsigned int s_yres = 0;
 static bool s_frame_in_progress = false;
 
 static std::vector<DXGI_SAMPLE_DESC> s_aa_modes; // supported AA modes of the current adapter
+
+D3D_FEATURE_LEVEL GetFeatureLevel()
+{
+	return s_feat_level;
+}
+
+bool GetLogicOpSupported()
+{
+	return s_logic_op_supported;
+}
 
 HRESULT LoadDXGI()
 {
@@ -265,6 +276,7 @@ HRESULT Create(HWND wnd)
 	if (SUCCEEDED(hr))
 	{
 		s_feat_level = D3D_FEATURE_LEVEL_11_0;
+		s_logic_op_supported = false;
 		hr = d3d12_create_device(adapter.Get(), s_feat_level, IID_PPV_ARGS(&device));
 		if (SUCCEEDED(hr))
 		{
@@ -282,6 +294,16 @@ HRESULT Create(HWND wnd)
 			if (SUCCEEDED(hres))
 			{
 				s_feat_level = featLevels.MaxSupportedFeatureLevel;
+				D3D12_FEATURE_DATA_FORMAT_SUPPORT Support =
+				{
+					DXGI_FORMAT_R8G8B8A8_UNORM, D3D12_FORMAT_SUPPORT1_NONE, D3D12_FORMAT_SUPPORT2_NONE
+				};
+
+				if (SUCCEEDED(device->CheckFeatureSupport(D3D12_FEATURE_FORMAT_SUPPORT, &Support, sizeof(Support))) &&
+					(Support.Support2 & D3D12_FORMAT_SUPPORT2_OUTPUT_MERGER_LOGIC_OP) != 0)
+				{
+					s_logic_op_supported = true;
+				}
 			}
 		}
 		if (FAILED(hr))
@@ -407,7 +429,7 @@ HRESULT Create(HWND wnd)
 
 		s_backbuf[i] = new D3DTexture2D(buf.Get(),
 			TEXTURE_BIND_FLAG_RENDER_TARGET,
-			DXGI_FORMAT_UNKNOWN,
+			DXGI_FORMAT_R8G8B8A8_UNORM,
 			DXGI_FORMAT_UNKNOWN,
 			DXGI_FORMAT_UNKNOWN,
 			DXGI_FORMAT_UNKNOWN,
@@ -817,7 +839,7 @@ void Reset()
 
 		s_backbuf[i] = new D3DTexture2D(buf.Get(),
 			TEXTURE_BIND_FLAG_RENDER_TARGET,
-			DXGI_FORMAT_UNKNOWN,
+			DXGI_FORMAT_R8G8B8A8_UNORM,
 			DXGI_FORMAT_UNKNOWN,
 			DXGI_FORMAT_UNKNOWN,
 			DXGI_FORMAT_UNKNOWN,

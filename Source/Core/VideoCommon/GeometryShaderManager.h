@@ -52,5 +52,5 @@ public:
 		s_texcoord_changed |= 1u << texmapid;
 	}
 
-	static GeometryShaderConstants constants;
+	alignas(256) static GeometryShaderConstants constants;
 };

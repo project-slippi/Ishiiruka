@@ -34,6 +34,7 @@ public:
 	{};
 	PC_TexFormat m_format;
 	u32 m_width, m_height, m_levels, m_nrm_levels;
+	bool emissive_in_color;
 	std::unique_ptr<u8> m_cached_data;
 	size_t m_cached_data_size;
 private:

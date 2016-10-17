@@ -1047,8 +1047,8 @@ float4 SSAO()
 	{
 		float sample_range = GetOption(C_SAMPLE_RANGE) * fCurrDepth;
 		float3 vViewNormal = GetNormalFromDepth(fCurrDepth);
-		uint2 fragcoord = uint2(GetFragmentCoord()) & 3;
-		uint rndidx = fragcoord.y * 4 + fragcoord.x;
+		int2 fragcoord = int2(GetFragmentCoord()) & int2(3, 3);
+		int rndidx = fragcoord.y * 4 + fragcoord.x;
 		float3 vRandom = float3(rndNorm[rndidx], 0);
 		float fAO = 0;
 		const int NUMSAMPLES = B_SSAO_SAMPLES;

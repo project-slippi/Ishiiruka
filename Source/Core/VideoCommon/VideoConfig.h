@@ -121,8 +121,12 @@ struct VideoConfig final
 	int iTessellationMax;
 	int iTessellationRoundingIntensity;
 	int iTessellationDisplacementIntensity;
+	bool bForceTrueColor;
+
 	// Information
 	bool bShowFPS;
+	bool bShowNetPlayPing;
+	bool bShowNetPlayMessages;
 	bool bShowInputDisplay;
 	bool bOverlayStats;
 	bool bOverlayProjStats;
@@ -140,9 +144,9 @@ struct VideoConfig final
 	bool bDumpVertexLoaders;
 	bool bHiresTextures;
 	bool bHiresMaterialMaps;
+	bool bHiresMaterialMapsBuild;
 	bool bConvertHiresTextures;
 	bool bCacheHiresTextures;
-	bool bCacheHiresTexturesGPU;
 	bool bDumpEFBTarget;
 	bool bUseFFV1;
 	bool bFreeLook;
@@ -174,6 +178,7 @@ struct VideoConfig final
 	int iRimBase;
 	int iSpecularMultiplier;
 	bool bLastStoryEFBToRam;
+	bool bForceLogicOpBlend;
 
 	bool bSimBumpEnabled;
 	int iSimBumpDetailBlend;
@@ -183,7 +188,6 @@ struct VideoConfig final
 
 	bool bFastDepthCalc;
 	int iBBoxMode;
-	bool bViewportCorrection;
 	//for dx9-backend
 	bool bForceDualSourceBlend;
 	int iLog; // CONF_ bits
@@ -209,6 +213,16 @@ struct VideoConfig final
 	bool bDumpObjects;
 	bool bDumpTevStages;
 	bool bDumpTevTextureFetches;
+
+	// Enable API validation layers, currently only supported with Vulkan.
+	bool bEnableValidationLayer;
+
+	// Multithreaded submission, currently only supported with Vulkan.
+	bool bBackendMultithreading;
+
+	// Early command buffer execution interval in number of draws.
+	// Currently only supported with Vulkan.
+	int iCommandBufferExecuteInterval;
 
 	// Static config per API
 	// TODO: Move this out of VideoConfig
@@ -242,8 +256,11 @@ struct VideoConfig final
 		bool bSupportsSSAA;
 		bool bSupportsTessellation;
 		bool bSupportsScaling;
+		bool bSupportsDepthClamp;  // Needed by VertexShaderGen, so must stay in VideoCommon
 		bool bSupportsComputeTextureDecoding;
 		bool bSupportsComputeTextureEncoding;
+		bool bSupportsMultithreading;
+		bool bSupportsReversedDepthRange;
 	} backend_info;
 
 	// Utility

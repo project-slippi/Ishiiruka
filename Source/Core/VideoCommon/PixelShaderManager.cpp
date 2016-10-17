@@ -14,7 +14,7 @@
 #include "VideoCommon/VideoConfig.h"
 #include "VideoCommon/XFMemory.h"
 
-alignas(16) float PixelShaderManager::psconstants[PixelShaderManager::ConstantBufferSize];
+alignas(256) float PixelShaderManager::psconstants[PixelShaderManager::ConstantBufferSize];
 ConstatBuffer PixelShaderManager::m_buffer(PixelShaderManager::psconstants, PixelShaderManager::ConstantBufferSize);
 static int s_nColorsChanged[2]; // 0 - regular colors, 1 - k colors
 int PixelShaderManager::s_nIndTexMtxChanged;
@@ -193,8 +193,8 @@ void PixelShaderManager::SetConstants()
 		if (s_use_integer_constants)
 		{
 			m_buffer.SetConstant4<int>(C_ZBIAS + 1,
-				(u32)xfmem.viewport.farZ,
-				(u32)xfmem.viewport.zRange,
+				(int)xfmem.viewport.farZ,
+				(int)xfmem.viewport.zRange,
 				0,
 				lastZBias);
 		}
@@ -546,7 +546,7 @@ void PixelShaderManager::SetColorMatrix(const float* pmatrix)
 	s_nColorsChanged[0] = s_nColorsChanged[1] = 15;
 }
 
-void PixelShaderManager::InvalidateXFRange(int start, int end)
+void PixelShaderManager::InvalidateXFRange(u32 start, u32 end)
 {
 	if (start < XFMEM_LIGHTS_END && end > XFMEM_LIGHTS)
 	{

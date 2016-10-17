@@ -28,7 +28,7 @@ void BBox::Init()
 		glGenBuffers(1, &s_bbox_buffer_id);
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, s_bbox_buffer_id);
 		glBufferData(GL_SHADER_STORAGE_BUFFER, 4 * sizeof(s32), s_values, GL_DYNAMIC_DRAW);
-		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, s_bbox_buffer_id);
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, s_bbox_buffer_id);
 		s_cpu_dirty = true;
 		s_gpu_dirty = true;
 	}

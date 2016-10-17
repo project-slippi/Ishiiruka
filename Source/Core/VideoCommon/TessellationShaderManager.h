@@ -29,5 +29,5 @@ public:
 	static void DoState(PointerWrap &p);
 
 	static void SetConstants();
-	static TessellationShaderConstants constants;
+	alignas(256) static TessellationShaderConstants constants;
 };

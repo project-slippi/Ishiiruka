@@ -67,11 +67,9 @@ public:
 
 	void ReinterpretPixelData(unsigned int convtype);
 
-	bool SaveScreenshot(const std::string &filename, const TargetRectangle &rc);
-
 	static void CheckForResize(bool &resized, bool &fullscreen, bool &fullscreencahnged);
 
-	int GetMaxTextureSize() override;
+	u32 GetMaxTextureSize() override;
 };
 
 }  // namespace DX9

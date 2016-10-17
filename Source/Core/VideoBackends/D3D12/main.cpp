@@ -98,7 +98,7 @@ void VideoBackend::InitBackendInfo()
 	g_Config.backend_info.bSupportsGeometryShaders = true;
 	g_Config.backend_info.bSupports3DVision = true;
 	g_Config.backend_info.bSupportsPostProcessing = true;
-	g_Config.backend_info.bSupportsClipControl = false;
+	g_Config.backend_info.bSupportsClipControl = true;
 	g_Config.backend_info.bSupportsNormalMaps = true;
 	g_Config.backend_info.bSupportsEarlyZ = true;
 	g_Config.backend_info.bSupportsBBox = true;
@@ -108,6 +108,9 @@ void VideoBackend::InitBackendInfo()
 	g_Config.backend_info.bSupportsSSAA = true;
 	g_Config.backend_info.bSupportsComputeTextureDecoding = false;
 	g_Config.backend_info.bSupportsComputeTextureEncoding = false;
+	g_Config.backend_info.bSupportsDepthClamp = true;
+	g_Config.backend_info.bSupportsMultithreading = false;
+	g_Config.backend_info.bSupportsReversedDepthRange = true;
 	IDXGIFactory* factory;
 	IDXGIAdapter* ad;
 	hr = create_dxgi_factory(__uuidof(IDXGIFactory), (void**)&factory);
@@ -165,21 +168,6 @@ bool VideoBackend::Initialize(void *window_handle)
 	InitializeShared();
 	InitBackendInfo();
 
-	frameCount = 0;
-	if (File::Exists(File::GetUserPath(D_CONFIG_IDX) + "GFX.ini"))
-		g_Config.Load(File::GetUserPath(D_CONFIG_IDX) + "GFX.ini");
-	else
-		g_Config.Load(File::GetUserPath(D_CONFIG_IDX) + "gfx_dx12.ini");
-
-	g_Config.GameIniLoad();
-	g_Config.UpdateProjectionHack();
-	g_Config.VerifyValidity();
-	UpdateActiveConfig();
-
-	m_window_handle = window_handle;
-
-	m_initialized = true;
-
 	return true;
 }
 
@@ -196,39 +184,13 @@ void VideoBackend::Video_Prepare()
 	StaticShaderCache::Init();
 	StateCache::Init(); // PSO cache is populated here, after constituent shaders are loaded.
 	D3D::InitUtils();
-
-	// VideoCommon
-	BPInit();
-	Fifo::Init();
-	IndexGenerator::Init();
-	VertexLoaderManager::Init();
-	OpcodeDecoder::Init();
-	VertexShaderManager::Init();
-	PixelShaderManager::Init(true);
-	GeometryShaderManager::Init();
-	CommandProcessor::Init();
-	PixelEngine::Init();
 	BBox::Init();
-
-	// Tell the host that the window is ready
-	Host_Message(WM_USER_CREATE);
 }
 
 void VideoBackend::Shutdown()
 {
-	m_initialized = false;
-
-	// TODO: should be in Video_Cleanup
-	if (!g_renderer)
-		return;
-
 	// Immediately stop app from submitting work to GPU, and wait for all submitted work to complete. D3D12TODO: Check this.
 	D3D::WaitForOutstandingRenderingToComplete();
-
-	// VideoCommon
-	Fifo::Shutdown();
-	GeometryShaderManager::Shutdown();
-	VertexLoaderManager::Shutdown();
 
 	// internal interfaces
 	D3D::ShutdownUtils();
@@ -245,9 +207,12 @@ void VideoBackend::Shutdown()
 	g_renderer.reset();
 
 	D3D::Close();
+	ShutdownShared();
 }
 
 void VideoBackend::Video_Cleanup()
-{}
+{
+	CleanupShared();
+}
 
 }

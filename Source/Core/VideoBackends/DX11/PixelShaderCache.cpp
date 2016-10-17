@@ -6,7 +6,7 @@
 #include "Common/LinearDiskCache.h"
 
 #include "Core/ConfigManager.h"
-
+#include "Core/Host.h"
 #include "VideoBackends/DX11/D3DBase.h"
 #include "VideoBackends/DX11/D3DShader.h"
 #include "VideoBackends/DX11/D3DUtil.h"
@@ -517,10 +517,14 @@ void PixelShaderCache::Init()
 	{
 		size_t shader_count = 0;
 		s_pixel_shaders->ForEachMostUsedByCategory(gameid,
-			[&](const PixelShaderUid& item)
+			[&](const PixelShaderUid& it, size_t total)
 		{
+			PixelShaderUid item = it;
+			item.ClearHASH();
+			item.CalculateUIDHash();
 			CompilePShader(item, true);
 			shader_count++;
+			//Host_UpdateTitle(StringFromFormat("Compiling Pixel Shaders %i %% (%i/%i)", (shader_count * 100) / total, shader_count, total));
 			if ((shader_count & 31) == 0)
 			{
 				s_compiler->WaitForFinish();
@@ -534,7 +538,6 @@ void PixelShaderCache::Init()
 		s_compiler->WaitForFinish();
 	}
 	s_last_entry = nullptr;
-	PixelShaderManager::DisableDirtyRegions();
 }
 
 // ONLY to be used during shutdown.

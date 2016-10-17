@@ -65,8 +65,8 @@ public:
 		blend_state.hex = key.blend_state_hex;
 		desc.BlendState = StateCache::GetDesc(blend_state);
 
-		ZMode depth_stencil_state = {};
-		depth_stencil_state.hex = key.depth_stencil_state_hex;
+		DepthState depth_stencil_state = {};
+		depth_stencil_state.packed = key.depth_stencil_state_hex;
 		desc.DepthStencilState = StateCache::GetDesc(depth_stencil_state);
 
 		RasterizerState rasterizer_state = {};
@@ -102,7 +102,7 @@ public:
 
 		SmallPsoDesc small_desc = {};
 		small_desc.blend_state.hex = key.blend_state_hex;
-		small_desc.depth_stencil_state.hex = key.depth_stencil_state_hex;
+		small_desc.depth_stencil_state.packed = key.depth_stencil_state_hex;
 		small_desc.rasterizer_state.hex = key.rasterizer_state_hex;
 		small_desc.gs_bytecode = desc.GS;
 		small_desc.vs_bytecode = desc.VS;
@@ -278,41 +278,42 @@ D3D12_BLEND_DESC StateCache::GetDesc(BlendState state)
 		FALSE, // BOOL AlphaToCoverageEnable;
 		FALSE, // BOOL IndependentBlendEnable;
 		{
-			state.blend_enable,   // BOOL BlendEnable;
-			FALSE,                // BOOL LogicOpEnable;
+			state.blend_enable && !(state.logic_op_enabled && !state.use_dst_alpha),	// BOOL BlendEnable;
+			state.logic_op_enabled && !state.use_dst_alpha,	// BOOL LogicOpEnable;
 			state.src_blend,      // D3D12_BLEND SrcBlend;
 			state.dst_blend,      // D3D12_BLEND DestBlend;
 			state.blend_op,       // D3D12_BLEND_OP BlendOp;
 			state.src_blend,      // D3D12_BLEND SrcBlendAlpha;
 			state.dst_blend,      // D3D12_BLEND DestBlendAlpha;
 			state.blend_op,       // D3D12_BLEND_OP BlendOpAlpha;
-			D3D12_LOGIC_OP_NOOP,  // D3D12_LOGIC_OP LogicOp
+			state.logic_op,       // D3D12_LOGIC_OP LogicOp
 			state.write_mask      // UINT8 RenderTargetWriteMask;
 		}
 	};
-
-	blenddc.RenderTarget[0].SrcBlendAlpha = GetBlendingAlpha(blenddc.RenderTarget[0].SrcBlend);
-	blenddc.RenderTarget[0].DestBlendAlpha = GetBlendingAlpha(blenddc.RenderTarget[0].DestBlend);
-
-	if (state.use_dst_alpha)
+	if (blenddc.RenderTarget[0].BlendEnable)
 	{
-		// Colors should blend against SRC1_ALPHA
-		if (blenddc.RenderTarget[0].SrcBlend == D3D12_BLEND_SRC_ALPHA)
-			blenddc.RenderTarget[0].SrcBlend = D3D12_BLEND_SRC1_ALPHA;
-		else if (blenddc.RenderTarget[0].SrcBlend == D3D12_BLEND_INV_SRC_ALPHA)
-			blenddc.RenderTarget[0].SrcBlend = D3D12_BLEND_INV_SRC1_ALPHA;
+		blenddc.RenderTarget[0].SrcBlendAlpha = GetBlendingAlpha(blenddc.RenderTarget[0].SrcBlend);
+		blenddc.RenderTarget[0].DestBlendAlpha = GetBlendingAlpha(blenddc.RenderTarget[0].DestBlend);
 
-		// Colors should blend against SRC1_ALPHA
-		if (blenddc.RenderTarget[0].DestBlend == D3D12_BLEND_SRC_ALPHA)
-			blenddc.RenderTarget[0].DestBlend = D3D12_BLEND_SRC1_ALPHA;
-		else if (blenddc.RenderTarget[0].DestBlend == D3D12_BLEND_INV_SRC_ALPHA)
-			blenddc.RenderTarget[0].DestBlend = D3D12_BLEND_INV_SRC1_ALPHA;
+		if (state.use_dst_alpha)
+		{
+			// Colors should blend against SRC1_ALPHA
+			if (blenddc.RenderTarget[0].SrcBlend == D3D12_BLEND_SRC_ALPHA)
+				blenddc.RenderTarget[0].SrcBlend = D3D12_BLEND_SRC1_ALPHA;
+			else if (blenddc.RenderTarget[0].SrcBlend == D3D12_BLEND_INV_SRC_ALPHA)
+				blenddc.RenderTarget[0].SrcBlend = D3D12_BLEND_INV_SRC1_ALPHA;
 
-		blenddc.RenderTarget[0].SrcBlendAlpha = D3D12_BLEND_ONE;
-		blenddc.RenderTarget[0].DestBlendAlpha = D3D12_BLEND_ZERO;
-		blenddc.RenderTarget[0].BlendOpAlpha = D3D12_BLEND_OP_ADD;
+			// Colors should blend against SRC1_ALPHA
+			if (blenddc.RenderTarget[0].DestBlend == D3D12_BLEND_SRC_ALPHA)
+				blenddc.RenderTarget[0].DestBlend = D3D12_BLEND_SRC1_ALPHA;
+			else if (blenddc.RenderTarget[0].DestBlend == D3D12_BLEND_INV_SRC_ALPHA)
+				blenddc.RenderTarget[0].DestBlend = D3D12_BLEND_INV_SRC1_ALPHA;
+
+			blenddc.RenderTarget[0].SrcBlendAlpha = D3D12_BLEND_ONE;
+			blenddc.RenderTarget[0].DestBlendAlpha = D3D12_BLEND_ZERO;
+			blenddc.RenderTarget[0].BlendOpAlpha = D3D12_BLEND_OP_ADD;
+		}
 	}
-
 	return blenddc;
 }
 
@@ -325,7 +326,7 @@ D3D12_RASTERIZER_DESC StateCache::GetDesc(RasterizerState state)
 		0,
 		0.f,
 		0,
-		true,
+		false,
 		true,
 		false,
 		0,
@@ -333,7 +334,7 @@ D3D12_RASTERIZER_DESC StateCache::GetDesc(RasterizerState state)
 	};
 }
 
-inline D3D12_DEPTH_STENCIL_DESC StateCache::GetDesc(ZMode state)
+inline D3D12_DEPTH_STENCIL_DESC StateCache::GetDesc(DepthState state)
 {
 	D3D12_DEPTH_STENCIL_DESC depthdc;
 
@@ -357,11 +358,23 @@ inline D3D12_DEPTH_STENCIL_DESC StateCache::GetDesc(ZMode state)
 		D3D12_COMPARISON_FUNC_ALWAYS
 	};
 
+	const D3D12_COMPARISON_FUNC d3dInvCmpFuncs[8] =
+	{
+		D3D12_COMPARISON_FUNC_NEVER,
+		D3D12_COMPARISON_FUNC_LESS_EQUAL,
+		D3D12_COMPARISON_FUNC_EQUAL,
+		D3D12_COMPARISON_FUNC_LESS,
+		D3D12_COMPARISON_FUNC_GREATER_EQUAL,
+		D3D12_COMPARISON_FUNC_NOT_EQUAL,
+		D3D12_COMPARISON_FUNC_GREATER,
+		D3D12_COMPARISON_FUNC_ALWAYS
+	};
+
 	if (state.testenable)
 	{
 		depthdc.DepthEnable = TRUE;
 		depthdc.DepthWriteMask = state.updateenable ? D3D12_DEPTH_WRITE_MASK_ALL : D3D12_DEPTH_WRITE_MASK_ZERO;
-		depthdc.DepthFunc = d3dCmpFuncs[state.func];
+		depthdc.DepthFunc = state.reversed_depth ? d3dInvCmpFuncs[state.func] : d3dCmpFuncs[state.func];
 	}
 	else
 	{
@@ -440,7 +453,7 @@ HRESULT StateCache::GetPipelineStateObjectFromCache(const SmallPsoDesc& pso_desc
 		// This contains all of the information needed to reconstruct a PSO at startup.
 		SmallPsoDiskDesc disk_desc = {};
 		disk_desc.blend_state_hex = pso_desc.blend_state.hex;
-		disk_desc.depth_stencil_state_hex = pso_desc.depth_stencil_state.hex;
+		disk_desc.depth_stencil_state_hex = pso_desc.depth_stencil_state.packed;
 		disk_desc.rasterizer_state_hex = pso_desc.rasterizer_state.hex;
 		disk_desc.gs_uid = *gs_uid;
 		disk_desc.ps_uid = *ps_uid;

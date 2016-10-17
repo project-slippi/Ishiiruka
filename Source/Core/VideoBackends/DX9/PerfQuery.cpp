@@ -103,7 +103,7 @@ u32 PerfQuery::GetQueryResult(PerfQueryType type)
 		result = m_results[PQG_EFB_COPY_CLOCKS];
 	}
 
-	return result / 4;
+	return result;
 }
 
 void PerfQuery::FlushOne()
@@ -121,6 +121,8 @@ void PerfQuery::FlushOne()
 	}
 
 	// NOTE: Reported pixel metrics should be referenced to native resolution
+	// TODO: Dropping the lower 2 bits from this count should be closer to actual
+	// hardware behavior when drawing triangles.
 	m_results[entry.query_type] += (u32)((u64)result * EFB_WIDTH / g_renderer->GetTargetWidth() * EFB_HEIGHT / g_renderer->GetTargetHeight());
 
 	m_query_read_pos = (m_query_read_pos + 1) % ArraySize(m_query_buffer);

@@ -15,7 +15,7 @@
 #include "VideoCommon/VertexShaderManager.h"
 
 
-TessellationShaderConstants TessellationShaderManager::constants;
+alignas(256) TessellationShaderConstants TessellationShaderManager::constants;
 bool TessellationShaderManager::dirty;
 
 void TessellationShaderManager::Init()
@@ -66,8 +66,6 @@ void TessellationShaderManager::SetConstants()
 
 void TessellationShaderManager::DoState(PointerWrap &p)
 {
-	p.Do(constants);
-
 	if (p.GetMode() == PointerWrap::MODE_READ)
 	{
 		// Fixup the current state from global GPU state

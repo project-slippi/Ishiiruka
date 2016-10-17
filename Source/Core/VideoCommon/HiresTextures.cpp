@@ -43,12 +43,35 @@ struct hires_mip_level
 	hires_mip_level(const std::string &p, const std::string &e, bool compressed) : is_compressed(compressed), path(p), extension(e)
 	{}
 };
+
+enum MapType
+{
+	color = 0,
+	material = 1,
+	normal = 2,
+	bump = 3,
+	specular = 4,
+	emissive = 5
+};
+
+static const std::string s_maps_tags[] = {
+	std::string(""),
+	std::string(".mat"),
+	std::string(".nrm"),
+	std::string(".bump"),
+	std::string(".spec"),
+	std::string(".lum")
+};
+
 struct HiresTextureCacheItem
 {
-	std::vector<hires_mip_level> color_map;
-	std::vector<hires_mip_level> normal_map;
-	HiresTextureCacheItem(size_t minsize) : color_map(minsize), normal_map()
-	{}
+	bool emissive_in_color;
+	std::array<std::vector<hires_mip_level>, MapType::emissive + 1> maps;
+	
+	HiresTextureCacheItem(size_t minsize) : emissive_in_color(false)
+	{
+		maps[MapType::color].resize(minsize);
+	}
 };
 
 typedef std::unordered_map<std::string, HiresTextureCacheItem> HiresTextureCache;
@@ -111,7 +134,7 @@ void HiresTexture::Update()
 {
 	s_check_native_format = false;
 	s_check_new_format = false;
-
+	bool BuildMaterialMaps = g_ActiveConfig.bHiresMaterialMapsBuild;
 	if (s_prefetcher.joinable())
 	{
 		s_textureCacheAbortLoading.Set();
@@ -138,21 +161,23 @@ void HiresTexture::Update()
 
 	std::string ddscode(".dds");
 	std::string cddscode(".DDS");
-	std::vector<std::string> Extensions = {
-		".png",
-		".dds"
-	};
+	std::vector<std::string> Extensions;
+	Extensions.push_back(".png");
+	if (!BuildMaterialMaps)
+	{
+		Extensions.push_back(".dds");
+	}
 
 	std::vector<std::string> filenames = DoFileSearch(Extensions, { texture_directory }, /*recursive*/ true);
 
 	const std::string code = game_id + "_";
 	const std::string miptag = "mip";
-	const std::string normaltag = ".nrm";
-	for (u32 i = 0; i < filenames.size(); i++)
+
+	for (const std::string& fileitem : filenames)
 	{
 		std::string FileName;
 		std::string Extension;
-		SplitPath(filenames[i], nullptr, &FileName, &Extension);
+		SplitPath(fileitem, nullptr, &FileName, &Extension);
 		if (FileName.substr(0, code.length()) == code)
 		{
 			s_check_native_format = true;
@@ -166,13 +191,32 @@ void HiresTexture::Update()
 			// Discard wrong files
 			continue;
 		}
-		const bool is_compressed = Extension.compare(ddscode) == 0 || Extension.compare(cddscode) == 0;
-		const bool is_normal_map = EndsWith(FileName, normaltag);
-		if (is_normal_map)
+		size_t map_index = 0;
+		size_t max_type = BuildMaterialMaps ? MapType::emissive : MapType::normal;
+		bool luma_encoded = false;
+		for (size_t tag = 1; tag <= max_type; tag++)
 		{
-			FileName = FileName.substr(0, FileName.size() - normaltag.size());
+			if (EndsWith(FileName, s_maps_tags[tag]))
+			{
+				map_index = BuildMaterialMaps ? tag : MapType::material;
+				FileName = FileName.substr(0, FileName.size() - s_maps_tags[tag].size());
+				break;
+			}
 		}
-		hires_mip_level mip_level_detail(filenames[i], Extension, is_compressed);
+		if (BuildMaterialMaps && map_index == MapType::material)
+		{
+			continue;
+		}
+		else if(!BuildMaterialMaps && map_index == MapType::color)
+		{
+			if (EndsWith(FileName, "_lum"))
+			{
+				FileName = FileName.substr(0, FileName.size() - 4);
+				luma_encoded = true;
+			}
+		}
+		const bool is_compressed = Extension.compare(ddscode) == 0 || Extension.compare(cddscode) == 0;
+		hires_mip_level mip_level_detail(fileitem, Extension, is_compressed);
 		u32 level = 0;
 		size_t idx = FileName.find_last_of('_');
 		std::string miplevel = FileName.substr(idx + 1, std::string::npos);
@@ -186,17 +230,22 @@ void HiresTexture::Update()
 		if (iter == s_textureMap.end())
 		{
 			HiresTextureCacheItem item(min_item_size);
-			if (is_normal_map)
+			if (luma_encoded)
 			{
-				item.normal_map.resize(min_item_size);
+				item.emissive_in_color = true;
 			}
-			std::vector<hires_mip_level> &dst = is_normal_map ? item.normal_map : item.color_map;
+			item.maps[map_index].resize(min_item_size);			
+			std::vector<hires_mip_level> &dst = item.maps[map_index];
 			dst[level] = mip_level_detail;
 			s_textureMap.emplace(FileName, item);
 		}
 		else
 		{
-			std::vector<hires_mip_level> &dst = is_normal_map ? iter->second.normal_map : iter->second.color_map;
+			std::vector<hires_mip_level> &dst = iter->second.maps[map_index];
+			if (luma_encoded)
+			{
+				iter->second.emissive_in_color = true;
+			}
 			if (dst.size() < min_item_size)
 			{
 				dst.resize(min_item_size);
@@ -348,14 +397,14 @@ std::string HiresTexture::GenBaseName(
 			// new texture
 			if (s_textureMap.find(fullname) == s_textureMap.end())
 			{
-				HiresTextureCacheItem newitem(convert_iter->second.color_map.size());
-				for (size_t level = 0; level < convert_iter->second.color_map.size(); level++)
+				HiresTextureCacheItem newitem(convert_iter->second.maps[MapType::color].size());
+				for (size_t level = 0; level < convert_iter->second.maps[MapType::color].size(); level++)
 				{
 					std::string newname = fullname;
 					if (level)
 						newname += StringFromFormat("_mip%d", (int)level);
-					newname += convert_iter->second.color_map[level].extension;
-					std::string &src = convert_iter->second.color_map[level].path;
+					newname += convert_iter->second.maps[MapType::color][level].extension;
+					std::string &src = convert_iter->second.maps[MapType::color][level].path;
 					size_t postfix = src.find(name);
 					std::string dst = src.substr(0, postfix) + newname;
 					if (File::Rename(src, dst))
@@ -367,17 +416,17 @@ std::string HiresTexture::GenBaseName(
 					{
 						ERROR_LOG(VIDEO, "rename failed");
 					}
-					newitem.color_map[level] = hires_mip_level(dst, convert_iter->second.color_map[level].extension, convert_iter->second.color_map[level].is_compressed);
+					newitem.maps[MapType::color][level] = hires_mip_level(dst, convert_iter->second.maps[MapType::color][level].extension, convert_iter->second.maps[MapType::color][level].is_compressed);
 				}
 				s_textureMap.emplace(fullname, newitem);
 			}
 			else
 			{
-				for (size_t level = 0; level < convert_iter->second.color_map.size(); level++)
+				for (size_t level = 0; level < convert_iter->second.maps[MapType::color].size(); level++)
 				{
-					if (File::Delete(convert_iter->second.color_map[level].path))
+					if (File::Delete(convert_iter->second.maps[MapType::color][level].path))
 					{
-						OSD::AddMessage(StringFromFormat("Delete double old custom texture %s", convert_iter->second.color_map[level].path.c_str()), 5000);
+						OSD::AddMessage(StringFromFormat("Delete double old custom texture %s", convert_iter->second.maps[MapType::color][level].path.c_str()), 5000);
 					}
 					else
 					{
@@ -392,25 +441,30 @@ std::string HiresTexture::GenBaseName(
 	return name;
 }
 
+inline u8* LoadPNG(const char* path, int& width, int& height)
+{
+	File::IOFile file(path, "rb");
+	std::vector<u8> buffer(file.GetSize());
+	if (!file.IsOpen() || !file.ReadBytes(buffer.data(), file.GetSize()))
+	{
+		return nullptr;
+	}
+	int image_channels;
+	return SOIL_load_image_from_memory(buffer.data(), (int)buffer.size(), &width, &height, &image_channels, SOIL_LOAD_RGBA);
+}
+
 inline void ReadPNG(ImageLoaderParams &ImgInfo)
 {
 	// libpng path seems to fail with some png files using soil meanwhile
 	/*if (ImageLoader::ReadPNG(ImgInfo))
 	{
-		ImgInfo.resultTex = PC_TEX_FMT_RGBA32;
+	ImgInfo.resultTex = PC_TEX_FMT_RGBA32;
 	}
 	*/
-	File::IOFile file(ImgInfo.Path, "rb");
-	std::vector<u8> buffer(file.GetSize());
-	ImgInfo.resultTex = PC_TEX_FMT_NONE;
-	if (!file.IsOpen() || !file.ReadBytes(buffer.data(), file.GetSize()))
-	{
-		return;
-	}
 	int image_width;
 	int image_height;
-	int image_channels;
-	u8* decoded = SOIL_load_image_from_memory(buffer.data(), (int)buffer.size(), &image_width, &image_height, &image_channels, SOIL_LOAD_RGBA);
+	ImgInfo.resultTex = PC_TEX_FMT_NONE;
+	u8* decoded = LoadPNG(ImgInfo.Path, image_width, image_height);
 	if (decoded == nullptr)
 	{
 		return;
@@ -450,6 +504,115 @@ inline void ReadDDS(ImageLoaderParams &ImgInfo)
 		}
 	}
 }
+
+
+inline bool BuildColor(const HiresTextureCacheItem& item, ImageLoaderParams &ImgInfo, size_t level)
+{
+	ReadPNG(ImgInfo);
+	if (ImgInfo.resultTex != PC_TEX_FMT_RGBA32 || item.maps[MapType::emissive].size() <= level)
+	{
+		return false;
+	}
+	bool emissive_present = false;
+	auto& leveldata = item.maps[MapType::emissive][level];
+	if (ImgInfo.dst != nullptr &&  leveldata.path.size() > 0)
+	{
+		int image_width, image_height;
+		u8* lumadata = LoadPNG(leveldata.path.c_str(), image_width, image_height);
+		if (lumadata != nullptr)
+		{
+			if (static_cast<u32>(image_width) == ImgInfo.Width
+				&& static_cast<u32>(image_height) == ImgInfo.Height)
+			{
+				for (int i = 0; i < image_height; i++)
+				{
+					int idx = i * image_width * 4;
+					for (int j = 0; j < image_width; j++)
+					{
+						int lr = lumadata[idx];
+						int lg = lumadata[idx + 1];
+						int lb = lumadata[idx + 2];
+						int la = std::max(lr, std::max(lg, lb));
+						int t = ImgInfo.dst[idx];
+						t = ((t << 8) + (lr - t) * la) >> 8;
+						ImgInfo.dst[idx] = (u8)t;
+						t = ImgInfo.dst[idx + 1];
+						t = ((t << 8) + (lg - t) * la) >> 8;
+						ImgInfo.dst[idx + 1] = (u8)t;
+						t = ImgInfo.dst[idx + 2];
+						t = ((t << 8) + (lb - t) * la) >> 8;						
+						ImgInfo.dst[idx + 2] = (u8)t;
+						la = la < 10 ? 10 : la;
+						ImgInfo.dst[idx + 3] = (u8)la;
+						idx += 4;
+					}
+				}
+				emissive_present = true;
+			}
+			SOIL_free_image_data(lumadata);
+		}
+	}
+	return emissive_present;
+}
+
+inline void BuildMaterial(const HiresTextureCacheItem& item, ImageLoaderParams &ImgInfo, size_t level)
+{
+	ReadPNG(ImgInfo);
+	if (ImgInfo.resultTex != PC_TEX_FMT_RGBA32)
+	{
+		return;
+	}
+	bool bump = false;
+	u8* bumpdata = ImgInfo.dst;
+	if (item.maps[MapType::bump].size() > level)
+	{
+		auto& leveldata = item.maps[MapType::bump][level];
+		int image_width;
+		int image_height;
+		bumpdata = LoadPNG(leveldata.path.c_str(), image_width, image_height);
+		if (bumpdata != nullptr 
+			&& static_cast<u32>(image_width) == ImgInfo.Width 
+			&& static_cast<u32>(image_height) == ImgInfo.Height)
+		{
+			bump = true;
+		}
+	}
+	bool specular = false;
+	u8* speculardata = ImgInfo.dst;
+	if (item.maps[MapType::specular].size() > level)
+	{
+		auto& leveldata = item.maps[MapType::specular][level];
+		int image_width;
+		int image_height;
+		speculardata = LoadPNG(leveldata.path.c_str(), image_width, image_height);
+		if (speculardata != nullptr
+			&& static_cast<u32>(image_width) == ImgInfo.Width
+			&& static_cast<u32>(image_height) == ImgInfo.Height)
+		{
+			specular = true;
+		}
+	}	
+	for (size_t i = 0; i < ImgInfo.Height; i++)
+	{
+		size_t idx = i * ImgInfo.Width * 4;
+		for (size_t j = 0; j < ImgInfo.Width; j++)
+		{
+			ImgInfo.dst[idx + 3] = ImgInfo.dst[idx];
+			ImgInfo.dst[idx] = bump ? bumpdata[idx] : 127;
+			ImgInfo.dst[idx] = specular ? speculardata[idx] : 51;
+			idx += 4;
+		}
+	}
+	if (bumpdata != nullptr && bumpdata != ImgInfo.dst)
+	{
+		SOIL_free_image_data(bumpdata);
+	}
+	if (speculardata != nullptr && speculardata != ImgInfo.dst)
+	{
+		SOIL_free_image_data(speculardata);
+	}
+}
+
 
 std::shared_ptr<HiresTexture> HiresTexture::Search(
 	const std::string& basename,
@@ -502,12 +665,12 @@ HiresTexture* HiresTexture::Load(const std::string& basename,
 		return nullptr;
 	}
 	HiresTextureCacheItem& current = iter->second;
-	if (current.color_map.size() == 0)
+	if (current.maps[MapType::color].size() == 0)
 	{
 		return nullptr;
 	}
 	// First level is mandatory
-	if (current.color_map[0].path.size() == 0)
+	if (current.maps[MapType::color][0].path.size() == 0)
 	{
 		return nullptr;
 	}
@@ -518,49 +681,51 @@ HiresTexture* HiresTexture::Load(const std::string& basename,
 	bool last_level_is_dds = false;
 	bool allocated_data = false;
 	bool mipmapsize_included = false;
-	bool nrm_posible = current.normal_map.size() == current.color_map.size() && g_ActiveConfig.HiresMaterialMapsEnabled();
+	size_t material_mat_index = g_ActiveConfig.bHiresMaterialMapsBuild ? MapType::normal : MapType::material;
+	bool nrm_posible = current.maps[MapType::color].size() == current.maps[material_mat_index].size() && g_ActiveConfig.HiresMaterialMapsEnabled();
 	size_t remaining_buffer_size = 0;
 	size_t total_buffer_size = 0;
-	for (size_t level = 0; level < current.color_map.size(); level++)
+	std::function<u8*(size_t, bool)> first_level_function = [&](size_t requiredsize, bool mipmapsincluded)
+	{
+		// Allocate double side buffer if we are going to load normal maps
+		allocated_data = true;
+		mipmapsize_included = mipmapsincluded;
+		// Pre allocate space for the textures and potetially all the posible mip levels 
+		if (current.maps[MapType::color].size() > 1 && !mipmapsincluded)
+		{
+			requiredsize = (requiredsize * 4) / 3;
+		}
+		requiredsize *= (nrm_posible ? 2 : 1);
+		total_buffer_size = requiredsize;
+		remaining_buffer_size = total_buffer_size;
+		return request_buffer_delegate(requiredsize);
+	};
+	std::function<u8*(size_t, bool)> allocation_function = [&](size_t requiredsize, bool mipmapsincluded)
+	{
+		// is required size is biguer that the remaining size on the packed buffer just reject
+		if (requiredsize > remaining_buffer_size)
+		{
+			return static_cast<u8*>(nullptr);
+		}
+		// just return the pointer to pack the textures in a single buffer.
+		return buffer_pointer;
+	};
+	for (size_t level = 0; level < current.maps[MapType::color].size(); level++)
 	{
 		ImageLoaderParams imgInfo;
-		hires_mip_level &item = current.color_map[level];
+		hires_mip_level &item = current.maps[MapType::color][level];
+		bool emissive_present = current.emissive_in_color;
 		imgInfo.dst = nullptr;
 		imgInfo.Path = item.path.c_str();
-		if (nrm_posible)
-		{
-			nrm_posible = current.normal_map[level].path.size() > 0;
-		}
+		nrm_posible = nrm_posible			
+			&& current.maps[material_mat_index][level].path.size() > 0;
 		if (level == 0)
 		{
-			imgInfo.request_buffer_delegate = [&](size_t requiredsize, bool mipmapsincluded)
-			{
-				// Allocate double side buffer if we are going to load normal maps
-				allocated_data = true;
-				mipmapsize_included = mipmapsincluded;
-				// Pre allocate space for the textures and potetially all the posible mip levels 
-				if (current.color_map.size() > 1 && !mipmapsincluded)
-				{
-					requiredsize = (requiredsize * 4) / 3;
-				}
-				requiredsize *= (nrm_posible ? 2 : 1);
-				total_buffer_size = requiredsize;
-				remaining_buffer_size = total_buffer_size;
-				return request_buffer_delegate(requiredsize);
-			};
+			imgInfo.request_buffer_delegate = first_level_function;
 		}
 		else
 		{
-			imgInfo.request_buffer_delegate = [&](size_t requiredsize, bool mipmapsincluded)
-			{
-				// is required size is biguer that the remaining size on the packed buffer just reject
-				if (requiredsize > remaining_buffer_size)
-				{
-					return static_cast<u8*>(nullptr);
-				}
-				// just return the pointer to pack the textures in a single buffer.
-				return buffer_pointer;
-			};
+			imgInfo.request_buffer_delegate = allocation_function;
 		}
 		bool ddsfile = false;
 		if (item.is_compressed)
@@ -582,7 +747,14 @@ HiresTexture* HiresTexture::Load(const std::string& basename,
 				break;
 			}
 			last_level_is_dds = false;
-			ReadPNG(imgInfo);
+			if (g_ActiveConfig.bHiresMaterialMapsBuild)
+			{
+				emissive_present = BuildColor(current, imgInfo, level);
+			}
+			else
+			{
+				ReadPNG(imgInfo);
+			}
 		}
 		if (imgInfo.dst == nullptr || imgInfo.resultTex == PC_TEX_FMT_NONE)
 		{
@@ -596,6 +768,7 @@ HiresTexture* HiresTexture::Load(const std::string& basename,
 		if (level == 0)
 		{
 			ret = new HiresTexture();
+			ret->emissive_in_color = emissive_present;
 			ret->m_format = imgInfo.resultTex;
 			ret->m_width = maxwidth = imgInfo.Width;
 			ret->m_height = maxheight = imgInfo.Height;
@@ -666,22 +839,13 @@ HiresTexture* HiresTexture::Load(const std::string& basename,
 	}
 	if (nrm_posible)
 	{
-		for (size_t level = 0; level < current.normal_map.size(); level++)
+		for (size_t level = 0; level < current.maps[material_mat_index].size(); level++)
 		{
 			ImageLoaderParams imgInfo;
-			hires_mip_level &item = current.normal_map[level];
+			hires_mip_level &item = current.maps[material_mat_index][level];
 			imgInfo.dst = nullptr;
 			imgInfo.Path = item.path.c_str();
-			imgInfo.request_buffer_delegate = [&](size_t requiredsize, bool mipmapsincluded)
-			{
-				// is required size is biguer that the remaining size on the packed buffer just reject
-				if (requiredsize > remaining_buffer_size)
-				{
-					return static_cast<u8*>(nullptr);
-				}
-				// just return the pointer to pack the textures in a single buffer.
-				return buffer_pointer;
-			};
+			imgInfo.request_buffer_delegate = allocation_function;
 			bool ddsfile = false;
 			if (item.is_compressed)
 			{
@@ -702,7 +866,14 @@ HiresTexture* HiresTexture::Load(const std::string& basename,
 					break;
 				}
 				last_level_is_dds = false;
-				ReadPNG(imgInfo);
+				if (g_ActiveConfig.bHiresMaterialMapsBuild)
+				{
+					BuildMaterial(current, imgInfo, level);
+				}
+				else
+				{
+					ReadPNG(imgInfo);
+				}
 			}
 			if (imgInfo.dst == nullptr || imgInfo.resultTex == PC_TEX_FMT_NONE)
 			{

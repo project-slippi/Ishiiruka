@@ -357,6 +357,11 @@ void CISOProperties::CreateGUIControls()
 		"in some games. (ON = Fast, OFF = Compatible)"));
 	DSPHLE = new wxCheckBox(m_GameConfig, ID_AUDIO_DSP_HLE, _("DSP HLE emulation (fast)"),
 		wxDefaultPosition, wxDefaultSize, GetElementStyle("Core", "DSPHLE"));
+	// TimeStretching
+	TimeStretching =
+		new wxCheckBox(m_GameConfig, ID_TIMESTRETCHING, _("Time Stretching"),
+			wxDefaultPosition, wxDefaultSize, GetElementStyle("Core", "TimeStretching"));
+	FastDiscSpeed->SetToolTip(_("Enable Audio Time Stretching. Can Cause Audio Issues in some games."));
 
 	wxBoxSizer* const sGPUDeterminism = new wxBoxSizer(wxHORIZONTAL);
 	wxStaticText* const GPUDeterminismText =
@@ -369,7 +374,7 @@ void CISOProperties::CreateGUIControls()
 		arrayStringFor_GPUDeterminism);
 	sGPUDeterminism->Add(GPUDeterminismText);
 	sGPUDeterminism->Add(GPUDeterminism);
-
+	
 	// Video Rate Hack
 	HalfAudioRate = new wxCheckBox(m_GameConfig, ID_HALFAUDIORATE, _("Half Audio Rate"), wxDefaultPosition, wxDefaultSize,
 		GetElementStyle("Core", "VideoRateAudioFix"));
@@ -438,6 +443,7 @@ void CISOProperties::CreateGUIControls()
 	sbCoreOverrides->Add(SyncGPU, 0, wxLEFT, 5);
 	sbCoreOverrides->Add(FastDiscSpeed, 0, wxLEFT, 5);
 	sbCoreOverrides->Add(DSPHLE, 0, wxLEFT, 5);
+	sbCoreOverrides->Add(TimeStretching, 0, wxLEFT, 5);
 	sbCoreOverrides->Add(sGPUDeterminism, 0, wxEXPAND | wxALL, 5);
 	sbCoreOverrides->Add(svideorate, 0, wxLEFT, 5);
 	sbCoreOverrides->Add(HalfAudioRate, 0, wxLEFT, 5);
@@ -1090,6 +1096,7 @@ void CISOProperties::LoadGameConfig()
 	SetCheckboxValueFromGameini("Core", "SyncGPU", SyncGPU);
 	SetCheckboxValueFromGameini("Core", "FastDiscSpeed", FastDiscSpeed);
 	SetCheckboxValueFromGameini("Core", "DSPHLE", DSPHLE);
+	SetCheckboxValueFromGameini("Core", "TimeStretching", TimeStretching);
 	SetCheckboxValueFromGameini("Wii", "Widescreen", EnableWideScreen);
 	SetCheckboxValueFromGameini("Video_Stereoscopy", "StereoEFBMonoDepth", MonoDepth);
 
@@ -1196,6 +1203,8 @@ bool CISOProperties::SaveGameConfig()
 	SaveGameIniValueFrom3StateCheckbox("Core", "SyncGPU", SyncGPU);
 	SaveGameIniValueFrom3StateCheckbox("Core", "FastDiscSpeed", FastDiscSpeed);
 	SaveGameIniValueFrom3StateCheckbox("Core", "DSPHLE", DSPHLE);
+	SaveGameIniValueFrom3StateCheckbox("Core", "TimeStretching", TimeStretching);
+	
 	SaveGameIniValueFrom3StateCheckbox("Wii", "Widescreen", EnableWideScreen);
 	SaveGameIniValueFrom3StateCheckbox("Video_Stereoscopy", "StereoEFBMonoDepth", MonoDepth);
 	SaveGameIniValueFrom3StateCheckbox("Core", "HalfAudioRate", HalfAudioRate);

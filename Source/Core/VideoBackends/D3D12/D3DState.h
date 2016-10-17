@@ -36,7 +36,8 @@ union BlendState
 	BitField<8, 5, D3D12_BLEND> src_blend;
 	BitField<13, 5, D3D12_BLEND> dst_blend;
 	BitField<18, 1, u32> use_dst_alpha;
-
+	BitField<19, 1, u32> logic_op_enabled;
+	BitField<20, 4, D3D12_LOGIC_OP> logic_op;
 	u32 hex;
 };
 
@@ -53,6 +54,16 @@ union SamplerState
 	u32 hex;
 };
 
+union DepthState
+{
+	BitField<0, 1, u32> testenable;
+	BitField<1, 4, u32> func;
+	BitField<5, 1, u32> updateenable;
+	BitField<6, 1, u32> reversed_depth;
+
+	u32 packed;
+};
+
 struct SmallPsoDesc
 {
 	D3D12_SHADER_BYTECODE ds_bytecode;
@@ -63,7 +74,7 @@ struct SmallPsoDesc
 	D3DVertexFormat* input_Layout;
 	BlendState blend_state;
 	RasterizerState rasterizer_state;
-	ZMode depth_stencil_state;
+	DepthState depth_stencil_state;
 	int sample_count;
 };
 
@@ -92,7 +103,7 @@ public:
 	static D3D12_SAMPLER_DESC GetDesc(SamplerState state);
 	static D3D12_BLEND_DESC GetDesc(BlendState state);
 	static D3D12_RASTERIZER_DESC GetDesc(RasterizerState state);
-	static D3D12_DEPTH_STENCIL_DESC GetDesc(ZMode state);
+	static D3D12_DEPTH_STENCIL_DESC GetDesc(DepthState state);
 
 	HRESULT GetPipelineStateObjectFromCache(const D3D12_GRAPHICS_PIPELINE_STATE_DESC& pso_desc, ID3D12PipelineState** pso);
 	HRESULT GetPipelineStateObjectFromCache(const SmallPsoDesc& pso_desc, ID3D12PipelineState** pso, D3D12_PRIMITIVE_TOPOLOGY_TYPE topology, const GeometryShaderUid* gs_uid, const PixelShaderUid* ps_uid, const VertexShaderUid* vs_uid, const TessellationShaderUid* hds_uid);
@@ -182,7 +193,7 @@ private:
 			h = h * 137 + (uintptr_t)pso_desc.ds_bytecode.pShaderBytecode;
 			h = h * 137 + (uintptr_t)pso_desc.input_Layout;
 			h = h * 137 + (uintptr_t)(((uintptr_t)pso_desc.blend_state.hex << 32) |
-				pso_desc.depth_stencil_state.hex | (uintptr_t(pso_desc.rasterizer_state.hex) << 17) | (((uintptr_t)pso_desc.sample_count) << 48));
+				pso_desc.depth_stencil_state.packed | (uintptr_t(pso_desc.rasterizer_state.hex) << 17) | (((uintptr_t)pso_desc.sample_count) << 48));
 			return h;
 		}
 	};
@@ -192,9 +203,9 @@ private:
 		bool operator()(const SmallPsoDesc& lhs, const SmallPsoDesc& rhs) const
 		{
 			return std::tie(lhs.ps_bytecode.pShaderBytecode, lhs.vs_bytecode.pShaderBytecode, lhs.gs_bytecode.pShaderBytecode, lhs.hs_bytecode.pShaderBytecode, lhs.ds_bytecode.pShaderBytecode,
-				lhs.input_Layout, lhs.blend_state.hex, lhs.depth_stencil_state.hex, lhs.rasterizer_state.hex, lhs.sample_count) ==
+				lhs.input_Layout, lhs.blend_state.hex, lhs.depth_stencil_state.packed, lhs.rasterizer_state.hex, lhs.sample_count) ==
 				std::tie(rhs.ps_bytecode.pShaderBytecode, rhs.vs_bytecode.pShaderBytecode, rhs.gs_bytecode.pShaderBytecode, rhs.hs_bytecode.pShaderBytecode, rhs.ds_bytecode.pShaderBytecode,
-					rhs.input_Layout, rhs.blend_state.hex, rhs.depth_stencil_state.hex, rhs.rasterizer_state.hex, rhs.sample_count);
+					rhs.input_Layout, rhs.blend_state.hex, rhs.depth_stencil_state.packed, rhs.rasterizer_state.hex, rhs.sample_count);
 		}
 	};
 

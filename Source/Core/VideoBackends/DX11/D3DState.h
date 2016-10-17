@@ -35,7 +35,8 @@ union BlendState
 	BitField<8, 5, D3D11_BLEND> src_blend;
 	BitField<13, 5, D3D11_BLEND> dst_blend;
 	BitField<18, 1, u32> use_dst_alpha;
-
+	BitField<19, 1, u32> logic_op_enabled;
+	BitField<20, 4, D3D11_LOGIC_OP> logic_op;
 	u32 packed;
 };
 
@@ -53,6 +54,16 @@ union SamplerState
 	u64 packed;
 };
 
+union DepthState 
+{
+	BitField<0, 1, u32> testenable;
+	BitField<1, 4, u32> func;
+	BitField<5, 1, u32> updateenable;
+	BitField<6, 1, u32> reversed_depth;
+
+	u32 packed;
+};
+
 class StateCache
 {
 public:
@@ -62,7 +73,7 @@ public:
 	ID3D11SamplerState* Get(SamplerState state);
 	ID3D11BlendState* Get(BlendState state);
 	ID3D11RasterizerState* Get(RasterizerState state);
-	ID3D11DepthStencilState* Get(ZMode state);
+	ID3D11DepthStencilState* Get(DepthState state);
 
 	// Release all cached states and clear hash tables.
 	void Clear();

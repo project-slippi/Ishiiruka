@@ -6,6 +6,7 @@
 #include <cstring>
 
 #include "Common/CommonTypes.h"
+#include "VideoCommon/DriverDetails.h"
 #include "VideoCommon/GeometryShaderGen.h"
 #include "VideoCommon/LightingShaderGen.h"
 #include "VideoCommon/VertexShaderGen.h"
@@ -50,6 +51,18 @@ inline void EmitVertex(ShaderCode& out, const geometry_shader_uid_data& uid_data
 	if (ApiType == API_OPENGL)
 	{
 		out.Write("\tgl_Position = %s.pos;\n", vertex);
+		if (g_ActiveConfig.backend_info.bSupportsDepthClamp)
+		{
+			out.Write("\tgl_ClipDistance[0] = %s.clipDist.x;\n", vertex);
+			out.Write("\tgl_ClipDistance[1] = %s.clipDist.y;\n", vertex);
+		}
+		AssignVSOutputMembers<ApiType>(out, "ps", vertex, uid_data.pixel_lighting, uid_data.numTexGens);
+	}
+	else if (ApiType == API_VULKAN)
+	{
+		// Vulkan NDC space has Y pointing down (right-handed NDC space).
+		out.Write("\tgl_Position = %s.pos;\n", vertex);
+		out.Write("\tgl_Position.y = -gl_Position.y;\n");
 		AssignVSOutputMembers<ApiType>(out, "ps", vertex, uid_data.pixel_lighting, uid_data.numTexGens);
 	}
 	else
@@ -57,7 +70,7 @@ inline void EmitVertex(ShaderCode& out, const geometry_shader_uid_data& uid_data
 		out.Write("\tps.o = %s;\n", vertex);
 	}
 
-	if (ApiType == API_OPENGL)
+	if (ApiType == API_OPENGL || ApiType == API_VULKAN)
 		out.Write("\tEmitVertex();\n");
 	else
 		out.Write("\toutput.Append(ps);\n");
@@ -68,7 +81,7 @@ inline void EndPrimitive(ShaderCode& out, const geometry_shader_uid_data& uid_da
 	if (uid_data.wireframe)
 		EmitVertex<ApiType>(out, uid_data, "first", false);
 
-	if (ApiType == API_OPENGL)
+	if (ApiType == API_OPENGL || ApiType == API_VULKAN)
 		out.Write("\tEndPrimitive();\n");
 	else
 		out.Write("\toutput.RestartStrip();\n");
@@ -92,7 +105,7 @@ inline void GenerateGeometryShader(ShaderCode& out, const geometry_shader_uid_da
 	}
 	codebuffer[sizeof(text) - 1] = 0x7C;  // canary
 
-	if (ApiType == API_OPENGL)
+	if (ApiType == API_OPENGL || ApiType == API_VULKAN)
 	{
 		// Insert layout parameters
 		if (g_ActiveConfig.backend_info.bSupportsGSInstancing)
@@ -108,8 +121,8 @@ inline void GenerateGeometryShader(ShaderCode& out, const geometry_shader_uid_da
 	}
 
 	// uniforms
-	if (ApiType == API_OPENGL)
-		out.Write("layout(std140%s) uniform GSBlock {\n", g_ActiveConfig.backend_info.bSupportsBindingLayout ? ", binding = 3" : "");
+	if (ApiType == API_OPENGL || ApiType == API_VULKAN)
+		out.Write("UBO_BINDING(std140, 3) uniform GSBlock {\n");
 	else
 		out.Write("cbuffer GSBlock {\n");
 	out.Write(
@@ -124,16 +137,16 @@ inline void GenerateGeometryShader(ShaderCode& out, const geometry_shader_uid_da
 	GenerateVSOutputMembers<ApiType>(out, uid_data.pixel_lighting, uid_data.numTexGens);
 	out.Write("};\n");
 
-	if (ApiType == API_OPENGL)
+	if (ApiType == API_OPENGL || ApiType == API_VULKAN)
 	{
 		if (g_ActiveConfig.backend_info.bSupportsGSInstancing)
 			out.Write("#define InstanceID gl_InvocationID\n");
 
-		out.Write("in VertexData {\n");
+		out.Write("VARYING_LOCATION(0) in VertexData {\n");
 		GenerateVSOutputMembers<ApiType>(out, uid_data.pixel_lighting, uid_data.numTexGens, GetInterpolationQualifier(ApiType, uid_data.msaa, uid_data.ssaa, true, true));
 		out.Write("} vs[%d];\n", vertex_in);
 
-		out.Write("out VertexData {\n");
+		out.Write("VARYING_LOCATION(0) out VertexData {\n");
 		GenerateVSOutputMembers<ApiType>(out, uid_data.pixel_lighting, uid_data.numTexGens, GetInterpolationQualifier(ApiType, uid_data.msaa, uid_data.ssaa, false, true));
 
 		if (uid_data.stereo)
@@ -169,7 +182,7 @@ inline void GenerateGeometryShader(ShaderCode& out, const geometry_shader_uid_da
 
 	if (uid_data.primitive_type == PRIMITIVE_LINES)
 	{
-		if (ApiType == API_OPENGL)
+		if (ApiType == API_OPENGL  || ApiType == API_VULKAN)
 		{
 			out.Write("\tVS_OUTPUT start, end;\n");
 			AssignVSOutputMembers<ApiType>(out, "start", "vs[0]", uid_data.pixel_lighting, uid_data.numTexGens);
@@ -201,7 +214,7 @@ inline void GenerateGeometryShader(ShaderCode& out, const geometry_shader_uid_da
 	}
 	else if (uid_data.primitive_type == PRIMITIVE_POINTS)
 	{
-		if (ApiType == API_OPENGL)
+		if (ApiType == API_OPENGL || ApiType == API_VULKAN)
 		{
 			out.Write("\tVS_OUTPUT center;\n");
 			AssignVSOutputMembers<ApiType>(out, "center", "vs[0]", uid_data.pixel_lighting, uid_data.numTexGens);
@@ -231,10 +244,18 @@ inline void GenerateGeometryShader(ShaderCode& out, const geometry_shader_uid_da
 
 	out.Write("\tfor (int i = 0; i < %d; ++i) {\n", vertex_in);
 
-	if (ApiType == API_OPENGL)
+	if (ApiType == API_OPENGL || ApiType == API_VULKAN)
 	{
 		out.Write("\tVS_OUTPUT f;\n");
 		AssignVSOutputMembers<ApiType>(out, "f", "vs[i]", uid_data.pixel_lighting, uid_data.numTexGens);
+		if (g_ActiveConfig.backend_info.bSupportsDepthClamp &&
+			DriverDetails::HasBug(DriverDetails::BUG_BROKENCLIPDISTANCE))
+		{
+			// On certain GPUs we have to consume the clip distance from the vertex shader
+			// or else the other vertex shader outputs will get corrupted.
+			out.Write("\tf.clipDist.x = gl_in[i].gl_ClipDistance[0];\n");
+			out.Write("\tf.clipDist.y = gl_in[i].gl_ClipDistance[1];\n");
+		}
 	}
 	else
 	{
@@ -245,7 +266,7 @@ inline void GenerateGeometryShader(ShaderCode& out, const geometry_shader_uid_da
 	{
 		// Select the output layer
 		out.Write("\tps.layer = eye;\n");
-		if (ApiType == API_OPENGL)
+		if (ApiType == API_OPENGL || ApiType == API_VULKAN)
 			out.Write("\tgl_Layer = eye;\n");
 
 		// For stereoscopy add a small horizontal offset in Normalized Device Coordinates proportional
@@ -255,7 +276,8 @@ inline void GenerateGeometryShader(ShaderCode& out, const geometry_shader_uid_da
 		// the depth value. This results in objects at a distance smaller than the convergence
 		// distance to seemingly appear in front of the screen.
 		// This formula is based on page 13 of the "Nvidia 3D Vision Automatic, Best Practices Guide"
-		out.Write("\tf.pos.x += " I_STEREOPARAMS"[eye] * (f.pos.w - " I_STEREOPARAMS"[2]);\n");
+		out.Write("\tfloat hoffset = (eye == 0) ? " I_STEREOPARAMS ".x : " I_STEREOPARAMS ".y;\n");
+		out.Write("\tf.pos.x += hoffset * (f.pos.w - " I_STEREOPARAMS ".z);\n");
 	}
 
 	if (uid_data.primitive_type == PRIMITIVE_LINES)
@@ -332,6 +354,10 @@ void GenerateGeometryShaderCode(ShaderCode& object, const geometry_shader_uid_da
 	if (ApiType == API_OPENGL)
 	{
 		GenerateGeometryShader<API_OPENGL>(object, uid_data);
+	}
+	else if (ApiType == API_VULKAN)
+	{
+		GenerateGeometryShader<API_VULKAN>(object, uid_data);
 	}
 	else
 	{

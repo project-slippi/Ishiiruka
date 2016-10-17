@@ -234,24 +234,24 @@ void TextureCache::TCacheEntry::FromRenderTarget(u8* dst, PEControl::PixelFormat
 	D3D::dev->SetRenderTarget(0, Rendersurf);
 
 	D3DVIEWPORT9 vp;
-
+	TargetRectangle targetSource = g_renderer->ConvertEFBRectangle(srcRect);
 	// Stretch picture with increased internal resolution
 	vp.X = 0;
 	vp.Y = 0;
-	vp.Width = config.width;
-	vp.Height = config.height;
+	vp.Width = targetSource.GetWidth() / (scaleByHalf ? 2 : 1);
+	vp.Height = targetSource.GetHeight() / (scaleByHalf ? 2 : 1);
 	vp.MinZ = 0.0f;
 	vp.MaxZ = 1.0f;
 	D3D::dev->SetViewport(&vp);
 	RECT destrect;
-	destrect.bottom = config.height;
+	destrect.bottom = vp.Height;
 	destrect.left = 0;
-	destrect.right = config.width;
+	destrect.right = vp.Width;
 	destrect.top = 0;
 
 	PixelShaderManager::SetColorMatrix(colmat); // set transformation
 	D3D::dev->SetPixelShaderConstantF(C_COLORMATRIX, PixelShaderManager::GetBuffer(), 7);
-	TargetRectangle targetSource = g_renderer->ConvertEFBRectangle(srcRect);
+	
 	RECT sourcerect;
 	sourcerect.bottom = targetSource.bottom;
 	sourcerect.left = targetSource.left;

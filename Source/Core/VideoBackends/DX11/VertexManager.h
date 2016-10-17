@@ -3,7 +3,7 @@
 // Refer to the license.txt file included.
 
 #pragma once
-
+#include "Common/MemoryUtil.h"
 #include "VideoCommon/VertexManagerBase.h"
 
 namespace DX11
@@ -47,8 +47,8 @@ private:
 
 	D3D::BufferPtr m_buffers[MAX_BUFFER_COUNT];
 
-	std::vector<u8> LocalVBuffer;
-	std::vector<u16> LocalIBuffer;
+	std::vector<u8, aligned_allocator<u8, 256>> LocalVBuffer;
+	std::vector<u16, aligned_allocator<u16, 256>> LocalIBuffer;
 	u16* m_index_buffer_start;
 };
 

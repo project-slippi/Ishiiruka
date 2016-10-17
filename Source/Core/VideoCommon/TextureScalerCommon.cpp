@@ -240,12 +240,12 @@ T clamp(T x, T floor, T ceil)
 	return (x < floor) ? floor : ((x > ceil) ? ceil : x);
 }
 
-
+/*
 int lerpi(int a, int b, int p)
 {
 	return ((a << 8) + (b - a)*p) >> 8;
 }
-
+*/
 
 //////////////////////////////////////////////////////////////////// Bicubic scaling
 
@@ -1572,6 +1572,7 @@ void bilinearV(int factor, u32* data, u32* out, int w, int gl, int gu, int l, in
 #undef B
 #undef A
 
+#ifdef DEBUG
 // used for debugging texture scaling (writing textures to files)
 static int g_imgCount = 0;
 void dbgPPM(int w, int h, u8* pixels, const char* prefix = "dbg")
@@ -1608,6 +1609,7 @@ void dbgPGM(int w, int h, u32* pixels, const char* prefix = "dbg")
 	}
 	fclose(fp);
 }
+#endif
 }
 
 /////////////////////////////////////// Texture Scaler
