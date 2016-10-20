@@ -121,6 +121,11 @@ void TextureCacheBase::OnConfigChanged(VideoConfig& config)
 			g_texture_cache->Invalidate();
 
 			TexDecoder_SetTexFmtOverlayOptions(g_ActiveConfig.bTexFmtOverlayEnable, g_ActiveConfig.bTexFmtOverlayCenter);
+			if (config.bHiresTextures != backup_config.s_hires_textures ||
+				config.bCacheHiresTextures != backup_config.s_cache_hires_textures)
+			{
+				HiresTexture::Update();
+			}
 		}
 
 		if ((config.iStereoMode > 0) != backup_config.s_stereo_3d ||
