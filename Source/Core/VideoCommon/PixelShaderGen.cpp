@@ -1668,18 +1668,19 @@ inline void GeneratePixelShader(ShaderCode& out, const pixel_shader_uid_data& ui
 			out.Write("};\n");
 		}
 	}
-
-	out.Write("wu GetDitherValue(wu2 ditherindex)\n{\n");
-	if (ApiType & API_D3D9)
+	if (uid_data.dither && uid_data.rgba6_format)
 	{
-		out.Write("\tfloat bayer[16] = {-7.0,1.0,-5.0,3.0,5.0,-3.0,7.0,-1.0,-4.0,4.0,-6.0,2.0,8.0,0.0,6.0,-2.0};\n");
+		out.Write("wu GetDitherValue(wu2 ditherindex)\n{\n");
+		if (ApiType & API_D3D9)
+		{
+			out.Write("\tfloat bayer[16] = {-7.0,1.0,-5.0,3.0,5.0,-3.0,7.0,-1.0,-4.0,4.0,-6.0,2.0,8.0,0.0,6.0,-2.0};\n");
+		}
+		else
+		{
+			out.Write("\tint bayer[16] = {-7,1,-5,3,5,-3,7,-1,-4,4,-6,2,8,0,6,-2};\n");
+		}
+		out.Write("\treturn bayer[ditherindex.y * 4 + ditherindex.x];\n}\n");
 	}
-	else
-	{
-		out.Write("\tint bayer[16] = {-7,1,-5,3,5,-3,7,-1,-4,4,-6,2,8,0,6,-2};\n");
-	}
-	out.Write("\treturn bayer[ditherindex.y * 4 + ditherindex.x];\n}\n");
-
 	if (ApiType == API_OPENGL || ApiType == API_VULKAN)
 	{
 		if (uid_data.bounding_box)

@@ -495,7 +495,7 @@ inline void GenerateVertexShader(ShaderCode& out, const vertex_shader_uid_data& 
 		// If the graphics API doesn't support a depth range of 0..1, then we need to map z to
 		// the -1..1 range. Unfortunately we have to use a substraction, which is a lossy floating-point
 		// operation that can introduce a round-trip error.
-		out.Write("o.pos.z = o.pos.z * -2.0 - o.pos.w;\n");
+		out.Write("o.pos.z = o.pos.z * 2.0 - o.pos.w;\n");
 	}
 
 	// The console GPU places the pixel center at 7/12 in screen space unless

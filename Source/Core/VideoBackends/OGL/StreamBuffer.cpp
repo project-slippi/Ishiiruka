@@ -167,7 +167,7 @@ public:
 class MapAndSync : public StreamBuffer
 {
 public:
-	MapAndSync(u32 type, u32 size) : StreamBuffer(type, size)
+	MapAndSync(u32 type, u32 size) : StreamBuffer(type, size, 16, true)
 	{
 		CreateFences();
 		glBindBuffer(m_buffertype, m_buffer);
