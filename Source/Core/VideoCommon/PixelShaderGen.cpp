@@ -1784,7 +1784,7 @@ inline void GeneratePixelShader(ShaderCode& out, const pixel_shader_uid_data& ui
 			// ARB_image_load_store extension yet.
 
 			// This is a #define which signals whatever early-z method the driver supports.
-			out.Write("FORCE_EARLY_Z;\n");
+			out.Write("FORCE_EARLY_Z\n");
 		}
 		out.Write("void main()\n{\n");
 		if (numTexgen >= 7)

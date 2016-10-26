@@ -569,14 +569,14 @@ void ProgramShaderCache::CreateHeader()
 	{
 		if (g_ogl_config.bSupportsEarlyFragmentTests)
 		{
-			earlyz_string = "#define FORCE_EARLY_Z layout(early_fragment_tests) in\n";
+			earlyz_string = "#define FORCE_EARLY_Z layout(early_fragment_tests) in;\n";
 			if (!is_glsles) // GLES supports this by default
 				earlyz_string += "#extension GL_ARB_shader_image_load_store : enable\n";
 		}
 		else if (g_ogl_config.bSupportsConservativeDepth)
 		{
 			// See PixelShaderGen for details about this fallback.
-			earlyz_string = "#define FORCE_EARLY_Z layout(depth_unchanged) out float gl_FragDepth\n";
+			earlyz_string = "#define FORCE_EARLY_Z layout(depth_unchanged) out float gl_FragDepth;\n";
 			earlyz_string += "#extension GL_ARB_conservative_depth : enable\n";
 		}
 	}

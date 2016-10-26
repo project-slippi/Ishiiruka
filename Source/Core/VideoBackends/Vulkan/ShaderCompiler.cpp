@@ -53,7 +53,7 @@ static const char SHADER_HEADER[] = R"(
   #define SAMPLER_BINDING(x) layout(set = 1, binding = x)
   #define SSBO_BINDING(x) layout(set = 2, binding = x)
   #define VARYING_LOCATION(x) layout(location = x)
-  #define FORCE_EARLY_Z layout(early_fragment_tests) in
+  #define FORCE_EARLY_Z layout(early_fragment_tests) in;
 
   // hlsl to glsl function translation
   #define float2 vec2
