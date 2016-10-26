@@ -166,8 +166,10 @@ void PerfQueryGL::FlushOne()
 	// Adjust for multisampling
 	if (g_ActiveConfig.iMultisamples > 1)
 		result /= g_ActiveConfig.iMultisamples;
-
 	m_results[entry.query_type] += result;
+
+	m_query_read_pos = (m_query_read_pos + 1) % m_query_buffer.size();
+	--m_query_count;
 }
 
 // TODO: could selectively flush things, but I don't think that will do much
