@@ -13,6 +13,7 @@
 #include "Common/MsgHandler.h"
 
 #include "Core/ConfigManager.h"
+#include "Core/Core.h"
 
 #include "VideoBackends/Vulkan/BoundingBox.h"
 #include "VideoBackends/Vulkan/CommandBufferManager.h"
@@ -68,10 +69,13 @@ Renderer::~Renderer()
 	DestroySemaphores();
 }
 
-bool Renderer::Initialize(FramebufferManager* framebuffer_mgr)
+Renderer* Renderer::GetInstance()
 {
-	m_framebuffer_mgr = framebuffer_mgr;
-	m_state_tracker = std::make_unique<StateTracker>();
+	return static_cast<Renderer*>(g_renderer.get());
+}
+
+bool Renderer::Initialize()
+{
 	BindEFBToStateTracker();
 
 	if (!CreateSemaphores())
@@ -103,7 +107,7 @@ bool Renderer::Initialize(FramebufferManager* framebuffer_mgr)
 	if (g_vulkan_context->SupportsBoundingBox())
 	{
 		// Bind bounding box to state tracker
-		m_state_tracker->SetBBoxBuffer(m_bounding_box->GetGPUBuffer(),
+		StateTracker::GetInstance()->SetBBoxBuffer(m_bounding_box->GetGPUBuffer(),
 			m_bounding_box->GetGPUBufferOffset(),
 			m_bounding_box->GetGPUBufferSize());
 	}
@@ -122,9 +126,9 @@ bool Renderer::CreateSemaphores()
 	// Create two semaphores, one that is triggered when the swapchain buffer is ready, another after
 	// submit and before present
 	VkSemaphoreCreateInfo semaphore_info = {
-			VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,  // VkStructureType          sType
-			nullptr,                                  // const void*              pNext
-			0                                         // VkSemaphoreCreateFlags   flags
+		VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,  // VkStructureType          sType
+		nullptr,                                  // const void*              pNext
+		0                                         // VkSemaphoreCreateFlags   flags
 	};
 
 	VkResult res;
@@ -170,7 +174,7 @@ u32 Renderer::AccessEFB(EFBAccessType type, u32 x, u32 y, u32 poke_data)
 {
 	if (type == PEEK_COLOR)
 	{
-		u32 color = m_framebuffer_mgr->PeekEFBColor(m_state_tracker.get(), x, y);
+		u32 color = FramebufferManager::GetInstance()->PeekEFBColor(x, y);
 
 		// a little-endian value is expected to be returned
 		color = ((color & 0xFF00FF00) | ((color >> 16) & 0xFF) | ((color << 16) & 0xFF0000));
@@ -207,7 +211,7 @@ u32 Renderer::AccessEFB(EFBAccessType type, u32 x, u32 y, u32 poke_data)
 	else  // if (type == PEEK_Z)
 	{
 		// Depth buffer is inverted for improved precision near far plane
-		float depth = 1.0f - m_framebuffer_mgr->PeekEFBDepth(m_state_tracker.get(), x, y);
+		float depth = 1.0f - FramebufferManager::GetInstance()->PeekEFBDepth(x, y);
 		u32 ret = 0;
 
 		if (bpmem.zcontrol.pixel_format == PEControl::RGB565_Z16)
@@ -235,7 +239,7 @@ void Renderer::PokeEFB(EFBAccessType type, const EfbPokeData* points, size_t num
 			const EfbPokeData& point = points[i];
 			u32 color = ((point.data & 0xFF00FF00) | ((point.data >> 16) & 0xFF) |
 				((point.data << 16) & 0xFF0000));
-			m_framebuffer_mgr->PokeEFBColor(m_state_tracker.get(), point.x, point.y, color);
+			FramebufferManager::GetInstance()->PokeEFBColor(point.x, point.y, color);
 		}
 	}
 	else  // if (type == POKE_Z)
@@ -245,14 +249,14 @@ void Renderer::PokeEFB(EFBAccessType type, const EfbPokeData* points, size_t num
 			// Convert to floating-point depth.
 			const EfbPokeData& point = points[i];
 			float depth = (1.0f - float(point.data & 0xFFFFFF) / 16777216.0f);
-			m_framebuffer_mgr->PokeEFBDepth(m_state_tracker.get(), point.x, point.y, depth);
+			FramebufferManager::GetInstance()->PokeEFBDepth(point.x, point.y, depth);
 		}
 	}
 }
 
 u16 Renderer::BBoxRead(int index)
 {
-	s32 value = m_bounding_box->Get(m_state_tracker.get(), static_cast<size_t>(index));
+	s32 value = m_bounding_box->Get(static_cast<size_t>(index));
 
 	// Here we get the min/max value of the truncated position of the upscaled framebuffer.
 	// So we have to correct them to the unscaled EFB sizes.
@@ -294,7 +298,7 @@ void Renderer::BBoxWrite(int index, u16 value)
 		scaled_value = scaled_value * s_target_height / EFB_HEIGHT;
 	}
 
-	m_bounding_box->Set(m_state_tracker.get(), static_cast<size_t>(index), scaled_value);
+	m_bounding_box->Set(static_cast<size_t>(index), scaled_value);
 }
 
 TargetRectangle Renderer::ConvertEFBRectangle(const EFBRectangle& rc)
@@ -314,8 +318,8 @@ void Renderer::BeginFrame()
 
 	// Ensure that the state tracker rebinds everything, and allocates a new set
 	// of descriptors out of the next pool.
-	m_state_tracker->InvalidateDescriptorSets();
-	m_state_tracker->SetPendingRebind();
+	StateTracker::GetInstance()->InvalidateDescriptorSets();
+	StateTracker::GetInstance()->SetPendingRebind();
 }
 
 void Renderer::ClearScreen(const EFBRectangle& rc, bool color_enable, bool alpha_enable,
@@ -324,17 +328,8 @@ void Renderer::ClearScreen(const EFBRectangle& rc, bool color_enable, bool alpha
 	// Native -> EFB coordinates
 	TargetRectangle target_rc = Renderer::ConvertEFBRectangle(rc);
 	VkRect2D target_vk_rc = {
-			{target_rc.left, target_rc.top},
-			{static_cast<uint32_t>(target_rc.GetWidth()), static_cast<uint32_t>(target_rc.GetHeight())} };
-
-	// Convert RGBA8 -> floating-point values.
-	VkClearValue clear_color_value = {};
-	VkClearValue clear_depth_value = {};
-	clear_color_value.color.float32[0] = static_cast<float>((color >> 16) & 0xFF) / 255.0f;
-	clear_color_value.color.float32[1] = static_cast<float>((color >> 8) & 0xFF) / 255.0f;
-	clear_color_value.color.float32[2] = static_cast<float>((color >> 0) & 0xFF) / 255.0f;
-	clear_color_value.color.float32[3] = static_cast<float>((color >> 24) & 0xFF) / 255.0f;
-	clear_depth_value.depthStencil.depth = (1.0f - (static_cast<float>(z & 0xFFFFFF) / 16777216.0f));
+		{ target_rc.left, target_rc.top },
+		{ static_cast<uint32_t>(target_rc.GetWidth()), static_cast<uint32_t>(target_rc.GetHeight()) } };
 
 	// Determine whether the EFB has an alpha channel. If it doesn't, we can clear the alpha
 	// channel to 0xFF. This hopefully allows us to use the fast path in most cases.
@@ -347,10 +342,19 @@ void Renderer::ClearScreen(const EFBRectangle& rc, bool color_enable, bool alpha
 		color |= 0xFF000000;
 	}
 
+	// Convert RGBA8 -> floating-point values.
+	VkClearValue clear_color_value = {};
+	VkClearValue clear_depth_value = {};
+	clear_color_value.color.float32[0] = static_cast<float>((color >> 16) & 0xFF) / 255.0f;
+	clear_color_value.color.float32[1] = static_cast<float>((color >> 8) & 0xFF) / 255.0f;
+	clear_color_value.color.float32[2] = static_cast<float>((color >> 0) & 0xFF) / 255.0f;
+	clear_color_value.color.float32[3] = static_cast<float>((color >> 24) & 0xFF) / 255.0f;
+	clear_depth_value.depthStencil.depth = (1.0f - (static_cast<float>(z & 0xFFFFFF) / 16777216.0f));
+
 	// If we're not in a render pass (start of the frame), we can use a clear render pass
 	// to discard the data, rather than loading and then clearing.
 	bool use_clear_render_pass = (color_enable && alpha_enable && z_enable);
-	if (m_state_tracker->InRenderPass())
+	if (StateTracker::GetInstance()->InRenderPass())
 	{
 		// Prefer not to end a render pass just to do a clear.
 		use_clear_render_pass = false;
@@ -360,7 +364,7 @@ void Renderer::ClearScreen(const EFBRectangle& rc, bool color_enable, bool alpha
 	if (use_clear_render_pass)
 	{
 		VkClearValue clear_values[2] = { clear_color_value, clear_depth_value };
-		m_state_tracker->BeginClearRenderPass(target_vk_rc, clear_values);
+		StateTracker::GetInstance()->BeginClearRenderPass(target_vk_rc, clear_values);
 		return;
 	}
 
@@ -388,17 +392,17 @@ void Renderer::ClearScreen(const EFBRectangle& rc, bool color_enable, bool alpha
 		}
 		if (num_clear_attachments > 0)
 		{
-			VkClearRect clear_rect = { target_vk_rc, 0, m_framebuffer_mgr->GetEFBLayers() };
-			if (!m_state_tracker->IsWithinRenderArea(target_vk_rc.offset.x, target_vk_rc.offset.y,
-				target_vk_rc.extent.width,
+			VkClearRect vk_rect = { target_vk_rc, 0, FramebufferManager::GetInstance()->GetEFBLayers() };
+			if (!StateTracker::GetInstance()->IsWithinRenderArea(
+				target_vk_rc.offset.x, target_vk_rc.offset.y, target_vk_rc.extent.width,
 				target_vk_rc.extent.height))
 			{
-				m_state_tracker->EndClearRenderPass();
+				StateTracker::GetInstance()->EndClearRenderPass();
 			}
-			m_state_tracker->BeginRenderPass();
+			StateTracker::GetInstance()->BeginRenderPass();
 
 			vkCmdClearAttachments(g_command_buffer_mgr->GetCurrentCommandBuffer(), num_clear_attachments,
-				clear_attachments, 1, &clear_rect);
+				clear_attachments, 1, &vk_rect);
 		}
 	}
 
@@ -407,13 +411,14 @@ void Renderer::ClearScreen(const EFBRectangle& rc, bool color_enable, bool alpha
 		return;
 
 	// Clearing must occur within a render pass.
-	if (!m_state_tracker->IsWithinRenderArea(target_vk_rc.offset.x, target_vk_rc.offset.y,
-		target_vk_rc.extent.width, target_vk_rc.extent.height))
+	if (!StateTracker::GetInstance()->IsWithinRenderArea(target_vk_rc.offset.x, target_vk_rc.offset.y,
+		target_vk_rc.extent.width,
+		target_vk_rc.extent.height))
 	{
-		m_state_tracker->EndClearRenderPass();
+		StateTracker::GetInstance()->EndClearRenderPass();
 	}
-	m_state_tracker->BeginRenderPass();
-	m_state_tracker->SetPendingRebind();
+	StateTracker::GetInstance()->BeginRenderPass();
+	StateTracker::GetInstance()->SetPendingRebind();
 
 	// Mask away the appropriate colors and use a shader
 	BlendState blend_state = Util::GetNoBlendingBlendState();
@@ -431,12 +436,13 @@ void Renderer::ClearScreen(const EFBRectangle& rc, bool color_enable, bool alpha
 
 	RasterizationState rs_state = Util::GetNoCullRasterizationState();
 	rs_state.per_sample_shading = g_ActiveConfig.bSSAA ? VK_TRUE : VK_FALSE;
-	rs_state.samples = m_framebuffer_mgr->GetEFBSamples();
+	rs_state.samples = FramebufferManager::GetInstance()->GetEFBSamples();
 
 	// No need to start a new render pass, but we do need to restore viewport state
-	UtilityShaderDraw draw(
-		g_command_buffer_mgr->GetCurrentCommandBuffer(), g_object_cache->GetStandardPipelineLayout(),
-		m_framebuffer_mgr->GetEFBLoadRenderPass(), g_object_cache->GetPassthroughVertexShader(),
+	UtilityShaderDraw draw(g_command_buffer_mgr->GetCurrentCommandBuffer(),
+		g_object_cache->GetStandardPipelineLayout(),
+		FramebufferManager::GetInstance()->GetEFBLoadRenderPass(),
+		g_object_cache->GetPassthroughVertexShader(),
 		g_object_cache->GetPassthroughGeometryShader(), m_clear_fragment_shader);
 
 	draw.SetRasterizationState(rs_state);
@@ -451,9 +457,9 @@ void Renderer::ClearScreen(const EFBRectangle& rc, bool color_enable, bool alpha
 
 void Renderer::ReinterpretPixelData(unsigned int convtype)
 {
-	m_state_tracker->EndRenderPass();
-	m_state_tracker->SetPendingRebind();
-	m_framebuffer_mgr->ReinterpretPixelData(convtype);
+	StateTracker::GetInstance()->EndRenderPass();
+	StateTracker::GetInstance()->SetPendingRebind();
+	FramebufferManager::GetInstance()->ReinterpretPixelData(convtype);
 
 	// EFB framebuffer has now changed, so update accordingly.
 	BindEFBToStateTracker();
@@ -462,26 +468,31 @@ void Renderer::ReinterpretPixelData(unsigned int convtype)
 void Renderer::SwapImpl(u32 xfb_addr, u32 fb_width, u32 fb_stride, u32 fb_height,
 	const EFBRectangle& rc, float gamma)
 {
-	// Flush any pending EFB pokes.
-	m_framebuffer_mgr->FlushEFBPokes(m_state_tracker.get());
+	// Pending/batched EFB pokes should be included in the final image.
+	FramebufferManager::GetInstance()->FlushEFBPokes();
+
+	// Check that we actually have an image to render in XFB-on modes.
+	if ((!XFBWrited && !g_ActiveConfig.RealXFBEnabled()) || !fb_width || !fb_height)
+	{
+		Core::Callback_VideoCopiedToXFB(false);
+		return;
+	}
+	u32 xfb_count = 0;
+	const XFBSourceBase* const* xfb_sources =
+		FramebufferManager::GetXFBSource(xfb_addr, fb_stride, fb_height, &xfb_count);
+	if (g_ActiveConfig.VirtualXFBEnabled() && (!xfb_sources || xfb_count == 0))
+	{
+		Core::Callback_VideoCopiedToXFB(false);
+		return;
+	}
 
 	// End the current render pass.
-	m_state_tracker->EndRenderPass();
-	m_state_tracker->OnEndFrame();
-
-	// Scale the source rectangle to the selected internal resolution.
-	TargetRectangle source_rc = Renderer::ConvertEFBRectangle(rc);
-
-	// Transition the EFB render target to a shader resource.
-	VkRect2D src_region = { {0, 0},
-												 {m_framebuffer_mgr->GetEFBWidth(), m_framebuffer_mgr->GetEFBHeight()} };
-	Texture2D* efb_color_texture =
-		m_framebuffer_mgr->ResolveEFBColorTexture(m_state_tracker.get(), src_region);
-	efb_color_texture->TransitionToLayout(g_command_buffer_mgr->GetCurrentCommandBuffer(),
-		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+	StateTracker::GetInstance()->EndRenderPass();
+	StateTracker::GetInstance()->OnEndFrame();
 
 	// Draw to the screenshot buffer if needed.
-	if (IsFrameDumping() && DrawScreenshot(source_rc, efb_color_texture))
+	if (IsFrameDumping() &&
+		DrawScreenshot(rc, xfb_addr, xfb_sources, xfb_count, fb_width, fb_stride, fb_height))
 	{
 		DumpFrameData(reinterpret_cast<const u8*>(m_screenshot_readback_texture->GetMapPointer()),
 			static_cast<int>(m_screenshot_render_texture->GetWidth()),
@@ -489,10 +500,6 @@ void Renderer::SwapImpl(u32 xfb_addr, u32 fb_width, u32 fb_stride, u32 fb_height
 			static_cast<int>(m_screenshot_readback_texture->GetRowStride()));
 		FinishFrameData();
 	}
-
-	// Restore the EFB color texture to color attachment ready for rendering the next frame.
-	m_framebuffer_mgr->GetEFBColorTexture()->TransitionToLayout(
-		g_command_buffer_mgr->GetCurrentCommandBuffer(), VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 
 	// Ensure the worker thread is not still submitting a previous command buffer.
 	// In other words, the last frame has been submitted (otherwise the next call would
@@ -502,7 +509,7 @@ void Renderer::SwapImpl(u32 xfb_addr, u32 fb_width, u32 fb_stride, u32 fb_height
 	// Draw to the screen if we have a swap chain.
 	if (m_swap_chain)
 	{
-		DrawScreen(source_rc, efb_color_texture);
+		DrawScreen(rc, xfb_addr, xfb_sources, xfb_count, fb_width, fb_stride, fb_height);
 
 		// Submit the current command buffer, signaling rendering finished semaphore when it's done
 		// Because this final command buffer is rendering to the swap chain, we need to wait for
@@ -517,6 +524,7 @@ void Renderer::SwapImpl(u32 xfb_addr, u32 fb_width, u32 fb_stride, u32 fb_height
 		// No swap chain, just execute command buffer.
 		g_command_buffer_mgr->SubmitCommandBuffer(true);
 	}
+
 	// NOTE: It is important that no rendering calls are made to the EFB between submitting the
 	// (now-previous) frame and after the below config checks are completed. If the target size
 	// changes, as the resize methods to not defer the destruction of the framebuffer, the current
@@ -536,15 +544,108 @@ void Renderer::SwapImpl(u32 xfb_addr, u32 fb_width, u32 fb_stride, u32 fb_height
 	// the changes will be delayed by one frame. For the moment it has to be done here because
 	// this can cause a target size change, which would result in a black frame if done earlier.
 	CheckForTargetResize(fb_width, fb_stride, fb_height);
-	CheckForSurfaceChange();
 
-	// Determine what has changed in the config.
-	CheckForConfigChanges();
 	// Clean up stale textures.
 	TextureCacheBase::Cleanup(frameCount);
 }
 
-void Renderer::DrawScreen(const TargetRectangle& src_rect, const Texture2D* src_tex)
+void Renderer::DrawFrame(VkRenderPass render_pass, const EFBRectangle& rc, u32 xfb_addr,
+	const XFBSourceBase* const* xfb_sources, u32 xfb_count, u32 fb_width,
+	u32 fb_stride, u32 fb_height)
+{
+	if (!g_ActiveConfig.bUseXFB)
+		DrawEFB(render_pass, rc);
+	else if (!g_ActiveConfig.bUseRealXFB)
+		DrawVirtualXFB(render_pass, xfb_addr, xfb_sources, xfb_count, fb_width, fb_stride, fb_height);
+	else
+		DrawRealXFB(render_pass, xfb_sources, xfb_count, fb_width, fb_stride, fb_height);
+}
+
+void Renderer::DrawEFB(VkRenderPass render_pass, const EFBRectangle& rc)
+{
+	// Scale the source rectangle to the selected internal resolution.
+	TargetRectangle scaled_rc = Renderer::ConvertEFBRectangle(rc);
+	scaled_rc.left = std::max(scaled_rc.left, 0);
+	scaled_rc.right = std::max(scaled_rc.right, 0);
+	scaled_rc.top = std::max(scaled_rc.top, 0);
+	scaled_rc.bottom = std::max(scaled_rc.bottom, 0);
+
+	// Transition the EFB render target to a shader resource.
+	VkRect2D src_region = {
+		{ 0, 0 },{ static_cast<u32>(scaled_rc.GetWidth()), static_cast<u32>(scaled_rc.GetHeight()) } };
+	Texture2D* efb_color_texture =
+		FramebufferManager::GetInstance()->ResolveEFBColorTexture(src_region);
+	efb_color_texture->TransitionToLayout(g_command_buffer_mgr->GetCurrentCommandBuffer(),
+		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+
+	// Copy EFB -> backbuffer
+	BlitScreen(render_pass, GetTargetRectangle(), scaled_rc, efb_color_texture, true);
+
+	// Restore the EFB color texture to color attachment ready for rendering the next frame.
+	if (efb_color_texture == FramebufferManager::GetInstance()->GetEFBColorTexture())
+	{
+		FramebufferManager::GetInstance()->GetEFBColorTexture()->TransitionToLayout(
+			g_command_buffer_mgr->GetCurrentCommandBuffer(), VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+	}
+}
+
+void Renderer::DrawVirtualXFB(VkRenderPass render_pass, u32 xfb_addr,
+	const XFBSourceBase* const* xfb_sources, u32 xfb_count, u32 fb_width,
+	u32 fb_stride, u32 fb_height)
+{
+	const TargetRectangle& target_rect = GetTargetRectangle();
+	for (u32 i = 0; i < xfb_count; ++i)
+	{
+		const XFBSource* xfb_source = static_cast<const XFBSource*>(xfb_sources[i]);
+		TargetRectangle source_rect = xfb_source->sourceRc;
+		TargetRectangle draw_rect;
+
+		// use virtual xfb with offset
+		int xfb_width = xfb_source->srcWidth;
+		int xfb_height = xfb_source->srcHeight;
+		int h_offset = ((s32)xfb_source->srcAddr - (s32)xfb_addr) / ((s32)fb_stride * 2);
+		draw_rect.top = target_rect.top + h_offset * target_rect.GetHeight() / (s32)fb_height;
+		draw_rect.bottom =
+			target_rect.top + (h_offset + xfb_height) * target_rect.GetHeight() / (s32)fb_height;
+		draw_rect.left =
+			target_rect.left +
+			(target_rect.GetWidth() - xfb_width * target_rect.GetWidth() / (s32)fb_stride) / 2;
+		draw_rect.right =
+			target_rect.left +
+			(target_rect.GetWidth() + xfb_width * target_rect.GetWidth() / (s32)fb_stride) / 2;
+
+		// The following code disables auto stretch.  Kept for reference.
+		// scale draw area for a 1 to 1 pixel mapping with the draw target
+		// float h_scale = (float)fb_width / (float)target_rect.GetWidth();
+		// float v_scale = (float)fb_height / (float)target_rect.GetHeight();
+		// drawRc.top *= v_scale;
+		// drawRc.bottom *= v_scale;
+		// drawRc.left *= h_scale;
+		// drawRc.right *= h_scale;
+
+		source_rect.right -= Renderer::EFBToScaledX(fb_stride - fb_width);
+
+		BlitScreen(render_pass, draw_rect, source_rect, xfb_source->GetTexture()->GetTexture(), true);
+	}
+}
+
+void Renderer::DrawRealXFB(VkRenderPass render_pass, const XFBSourceBase* const* xfb_sources,
+	u32 xfb_count, u32 fb_width, u32 fb_stride, u32 fb_height)
+{
+	const TargetRectangle& target_rect = GetTargetRectangle();
+	for (u32 i = 0; i < xfb_count; ++i)
+	{
+		const XFBSource* xfb_source = static_cast<const XFBSource*>(xfb_sources[i]);
+		TargetRectangle source_rect = xfb_source->sourceRc;
+		TargetRectangle draw_rect = target_rect;
+		source_rect.right -= fb_stride - fb_width;
+		BlitScreen(render_pass, draw_rect, source_rect, xfb_source->GetTexture()->GetTexture(), true);
+	}
+}
+
+void Renderer::DrawScreen(const EFBRectangle& rc, u32 xfb_addr,
+	const XFBSourceBase* const* xfb_sources, u32 xfb_count, u32 fb_width,
+	u32 fb_stride, u32 fb_height)
 {
 	// Grab the next image from the swap chain in preparation for drawing the window.
 	VkResult res = m_swap_chain->AcquireNextImage(m_image_available_semaphore);
@@ -565,32 +666,33 @@ void Renderer::DrawScreen(const TargetRectangle& src_rect, const Texture2D* src_
 	backbuffer->TransitionToLayout(g_command_buffer_mgr->GetCurrentCommandBuffer(),
 		VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 
-	// Blit the EFB to the back buffer (Swap chain)
-	UtilityShaderDraw draw(g_command_buffer_mgr->GetCurrentCommandBuffer(),
-		g_object_cache->GetStandardPipelineLayout(), m_swap_chain->GetRenderPass(),
-		g_object_cache->GetPassthroughVertexShader(), VK_NULL_HANDLE,
-		m_blit_fragment_shader);
+	// Begin render pass for rendering to the swap chain.
+	VkClearValue clear_value = { { { 0.0f, 0.0f, 0.0f, 1.0f } } };
+	VkClearRect clear_rect = { { { 0, 0 },{ backbuffer->GetWidth(), backbuffer->GetHeight() } }, 0, 1 };
+	VkClearAttachment clear_attachment = { VK_IMAGE_ASPECT_COLOR_BIT, 0, clear_value };
+	VkRenderPassBeginInfo info = { VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
+		nullptr,
+		m_swap_chain->GetRenderPass(),
+		m_swap_chain->GetCurrentFramebuffer(),
+		{ { 0, 0 },{ backbuffer->GetWidth(), backbuffer->GetHeight() } },
+		1,
+		&clear_value };
+	vkCmdBeginRenderPass(g_command_buffer_mgr->GetCurrentCommandBuffer(), &info,
+		VK_SUBPASS_CONTENTS_INLINE);
 
-	// Begin the present render pass
-	VkClearValue clear_value = { {{0.0f, 0.0f, 0.0f, 1.0f}} };
-	VkRect2D target_region = { {0, 0}, {backbuffer->GetWidth(), backbuffer->GetHeight()} };
-	draw.BeginRenderPass(m_swap_chain->GetCurrentFramebuffer(), target_region, &clear_value);
+	// Draw guest buffers (EFB or XFB)
+	DrawFrame(m_swap_chain->GetRenderPass(), rc, xfb_addr, xfb_sources, xfb_count, fb_width,
+		fb_stride, fb_height);
 
-	// Copy EFB -> backbuffer
-	const TargetRectangle& dst_rect = GetTargetRectangle();
-	BlitScreen(m_swap_chain->GetRenderPass(), dst_rect, src_rect, src_tex, true);
-
-	// OSD stuff
+	// Draw OSD
 	Util::SetViewportAndScissor(g_command_buffer_mgr->GetCurrentCommandBuffer(), 0, 0,
 		backbuffer->GetWidth(), backbuffer->GetHeight());
 	DrawDebugText();
-
-	// Do our OSD callbacks
 	OSD::DoCallbacks(OSD::CallbackType::OnFrame);
 	OSD::DrawMessages();
 
 	// End drawing to backbuffer
-	draw.EndRenderPass();
+	vkCmdEndRenderPass(g_command_buffer_mgr->GetCurrentCommandBuffer());
 
 	// Transition the backbuffer to PRESENT_SRC to ensure all commands drawing
 	// to it have finished before present.
@@ -598,7 +700,9 @@ void Renderer::DrawScreen(const TargetRectangle& src_rect, const Texture2D* src_
 		VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
 }
 
-bool Renderer::DrawScreenshot(const TargetRectangle& src_rect, const Texture2D* src_tex)
+bool Renderer::DrawScreenshot(const EFBRectangle& rc, u32 xfb_addr,
+	const XFBSourceBase* const* xfb_sources, u32 xfb_count, u32 fb_width,
+	u32 fb_stride, u32 fb_height)
 {
 	// Draw the screenshot to an image containing only the active screen area, removing any
 	// borders as a result of the game rendering in a different aspect ratio.
@@ -612,22 +716,23 @@ bool Renderer::DrawScreenshot(const TargetRectangle& src_rect, const Texture2D* 
 	if (!ResizeScreenshotBuffer(width, height))
 		return false;
 
-	VkClearValue clear_value = { {{0.0f, 0.0f, 0.0f, 1.0f}} };
-	VkClearRect clear_rect = { {{0, 0}, {width, height}}, 0, 1 };
+	VkClearValue clear_value = { { { 0.0f, 0.0f, 0.0f, 1.0f } } };
+	VkClearRect clear_rect = { { { 0, 0 },{ width, height } }, 0, 1 };
 	VkClearAttachment clear_attachment = { VK_IMAGE_ASPECT_COLOR_BIT, 0, clear_value };
-	VkRenderPassBeginInfo info = { VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
-																nullptr,
-																m_framebuffer_mgr->GetColorCopyForReadbackRenderPass(),
-																m_screenshot_framebuffer,
-																{{0, 0}, {width, height}},
-																1,
-																&clear_value };
+	VkRenderPassBeginInfo info = {
+		VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
+		nullptr,
+		FramebufferManager::GetInstance()->GetColorCopyForReadbackRenderPass(),
+		m_screenshot_framebuffer,
+		{ { 0, 0 },{ width, height } },
+		1,
+		&clear_value };
 	vkCmdBeginRenderPass(g_command_buffer_mgr->GetCurrentCommandBuffer(), &info,
 		VK_SUBPASS_CONTENTS_INLINE);
 	vkCmdClearAttachments(g_command_buffer_mgr->GetCurrentCommandBuffer(), 1, &clear_attachment, 1,
 		&clear_rect);
-	BlitScreen(m_framebuffer_mgr->GetColorCopyForReadbackRenderPass(), target_rect, src_rect, src_tex,
-		true);
+	DrawFrame(m_swap_chain->GetRenderPass(), rc, xfb_addr, xfb_sources, xfb_count, fb_width,
+		fb_stride, fb_height);
 	vkCmdEndRenderPass(g_command_buffer_mgr->GetCurrentCommandBuffer());
 
 	// Copy to the readback texture.
@@ -660,10 +765,7 @@ void Renderer::BlitScreen(VkRenderPass render_pass, const TargetRectangle& dst_r
 	{
 		TargetRectangle left_rect;
 		TargetRectangle right_rect;
-		if (g_ActiveConfig.iStereoMode == STEREO_TAB)
-			ConvertStereoRectangle(dst_rect, right_rect, left_rect);
-		else
-			ConvertStereoRectangle(dst_rect, left_rect, right_rect);
+		ConvertStereoRectangle(dst_rect, left_rect, right_rect);
 
 		draw.DrawQuad(left_rect.left, left_rect.top, left_rect.GetWidth(), left_rect.GetHeight(),
 			src_rect.left, src_rect.top, 0, src_rect.GetWidth(), src_rect.GetHeight(),
@@ -714,7 +816,7 @@ bool Renderer::ResizeScreenshotBuffer(u32 new_width, u32 new_height)
 	VkImageView attachment = m_screenshot_render_texture->GetView();
 	VkFramebufferCreateInfo info = {};
 	info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-	info.renderPass = m_framebuffer_mgr->GetColorCopyForReadbackRenderPass();
+	info.renderPass = FramebufferManager::GetInstance()->GetColorCopyForReadbackRenderPass();
 	info.attachmentCount = 1;
 	info.pAttachments = &attachment;
 	info.width = new_width;
@@ -891,8 +993,8 @@ void Renderer::CheckForConfigChanges()
 	if (msaa_changed || stereo_changed)
 	{
 		g_command_buffer_mgr->WaitForGPUIdle();
-		m_framebuffer_mgr->RecreateRenderPass();
-		m_framebuffer_mgr->ResizeEFBTextures();
+		FramebufferManager::GetInstance()->RecreateRenderPass();
+		FramebufferManager::GetInstance()->ResizeEFBTextures();
 		BindEFBToStateTracker();
 	}
 
@@ -902,8 +1004,9 @@ void Renderer::CheckForConfigChanges()
 	{
 		g_command_buffer_mgr->WaitForGPUIdle();
 		RecompileShaders();
-		m_framebuffer_mgr->RecompileShaders();
+		FramebufferManager::GetInstance()->RecompileShaders();
 		g_object_cache->ClearPipelineCache();
+		g_object_cache->RecompileSharedShaders();
 	}
 
 	// For vsync, we need to change the present mode, which means recreating the swap chain.
@@ -933,26 +1036,28 @@ void Renderer::OnSwapChainResized()
 void Renderer::BindEFBToStateTracker()
 {
 	// Update framebuffer in state tracker
-	VkRect2D framebuffer_size = {
-			{0, 0}, {m_framebuffer_mgr->GetEFBWidth(), m_framebuffer_mgr->GetEFBHeight()} };
-	m_state_tracker->SetRenderPass(m_framebuffer_mgr->GetEFBLoadRenderPass(),
-		m_framebuffer_mgr->GetEFBClearRenderPass());
-	m_state_tracker->SetFramebuffer(m_framebuffer_mgr->GetEFBFramebuffer(), framebuffer_size);
+	VkRect2D framebuffer_size = { { 0, 0 },
+	{ FramebufferManager::GetInstance()->GetEFBWidth(),
+		FramebufferManager::GetInstance()->GetEFBHeight() } };
+	StateTracker::GetInstance()->SetRenderPass(
+		FramebufferManager::GetInstance()->GetEFBLoadRenderPass(),
+		FramebufferManager::GetInstance()->GetEFBClearRenderPass());
+	StateTracker::GetInstance()->SetFramebuffer(
+		FramebufferManager::GetInstance()->GetEFBFramebuffer(), framebuffer_size);
 
 	// Update rasterization state with MSAA info
 	RasterizationState rs_state = {};
-	rs_state.bits = m_state_tracker->GetRasterizationState().bits;
-	rs_state.samples = m_framebuffer_mgr->GetEFBSamples();
+	rs_state.bits = StateTracker::GetInstance()->GetRasterizationState().bits;
+	rs_state.samples = FramebufferManager::GetInstance()->GetEFBSamples();
 	rs_state.per_sample_shading = g_ActiveConfig.bSSAA ? VK_TRUE : VK_FALSE;
-	m_state_tracker->SetRasterizationState(rs_state);
+	StateTracker::GetInstance()->SetRasterizationState(rs_state);
 }
 
 void Renderer::ResizeEFBTextures()
 {
 	// Ensure the GPU is finished with the current EFB textures.
 	g_command_buffer_mgr->WaitForGPUIdle();
-	m_framebuffer_mgr->ResizeEFBTextures();
-
+	FramebufferManager::GetInstance()->ResizeEFBTextures();
 	BindEFBToStateTracker();
 
 	// Viewport and scissor rect have to be reset since they will be scaled differently.
@@ -979,19 +1084,19 @@ void Renderer::ApplyState(bool bUseDstAlpha)
 void Renderer::ResetAPIState()
 {
 	// End the EFB render pass if active
-	m_state_tracker->EndRenderPass();
+	StateTracker::GetInstance()->EndRenderPass();
 }
 
 void Renderer::RestoreAPIState()
 {
 	// Instruct the state tracker to re-bind everything before the next draw
-	m_state_tracker->SetPendingRebind();
+	StateTracker::GetInstance()->SetPendingRebind();
 }
 
 void Renderer::SetGenerationMode()
 {
 	RasterizationState new_rs_state = {};
-	new_rs_state.bits = m_state_tracker->GetRasterizationState().bits;
+	new_rs_state.bits = StateTracker::GetInstance()->GetRasterizationState().bits;
 
 	switch (bpmem.genMode.cullmode)
 	{
@@ -1012,7 +1117,7 @@ void Renderer::SetGenerationMode()
 		break;
 	}
 
-	m_state_tracker->SetRasterizationState(new_rs_state);
+	StateTracker::GetInstance()->SetRasterizationState(new_rs_state);
 }
 
 void Renderer::SetDepthMode()
@@ -1053,7 +1158,7 @@ void Renderer::SetDepthMode()
 		break;
 	}
 
-	m_state_tracker->SetDepthStencilState(new_ds_state);
+	StateTracker::GetInstance()->SetDepthStencilState(new_ds_state);
 }
 
 void Renderer::SetColorMask()
@@ -1069,16 +1174,16 @@ void Renderer::SetColorMask()
 	}
 
 	BlendState new_blend_state = {};
-	new_blend_state.bits = m_state_tracker->GetBlendState().bits;
+	new_blend_state.bits = StateTracker::GetInstance()->GetBlendState().bits;
 	new_blend_state.write_mask = color_mask;
 
-	m_state_tracker->SetBlendState(new_blend_state);
+	StateTracker::GetInstance()->SetBlendState(new_blend_state);
 }
 
 void Renderer::SetBlendMode(bool force_update)
 {
 	BlendState new_blend_state = {};
-	new_blend_state.bits = m_state_tracker->GetBlendState().bits;
+	new_blend_state.bits = StateTracker::GetInstance()->GetBlendState().bits;
 
 	// Fast path for blending disabled
 	if (!bpmem.blendmode.blendenable)
@@ -1090,7 +1195,7 @@ void Renderer::SetBlendMode(bool force_update)
 		new_blend_state.alpha_blend_op = VK_BLEND_OP_ADD;
 		new_blend_state.src_alpha_blend = VK_BLEND_FACTOR_ONE;
 		new_blend_state.dst_alpha_blend = VK_BLEND_FACTOR_ZERO;
-		m_state_tracker->SetBlendState(new_blend_state);
+		StateTracker::GetInstance()->SetBlendState(new_blend_state);
 		return;
 	}
 	// Fast path for subtract blending
@@ -1103,7 +1208,7 @@ void Renderer::SetBlendMode(bool force_update)
 		new_blend_state.alpha_blend_op = VK_BLEND_OP_REVERSE_SUBTRACT;
 		new_blend_state.src_alpha_blend = VK_BLEND_FACTOR_ONE;
 		new_blend_state.dst_alpha_blend = VK_BLEND_FACTOR_ONE;
-		m_state_tracker->SetBlendState(new_blend_state);
+		StateTracker::GetInstance()->SetBlendState(new_blend_state);
 		return;
 	}
 
@@ -1198,13 +1303,13 @@ void Renderer::SetBlendMode(bool force_update)
 		new_blend_state.dst_alpha_blend = Util::GetAlphaBlendFactor(new_blend_state.dst_blend);
 	}
 
-	m_state_tracker->SetBlendState(new_blend_state);
+	StateTracker::GetInstance()->SetBlendState(new_blend_state);
 }
 
 void Renderer::SetLogicOpMode()
 {
 	BlendState new_blend_state = {};
-	new_blend_state.bits = m_state_tracker->GetBlendState().bits;
+	new_blend_state.bits = StateTracker::GetInstance()->GetBlendState().bits;
 
 	// Does our device support logic ops?
 	bool logic_op_enable = bpmem.blendmode.logicopenable && !bpmem.blendmode.blendenable;
@@ -1213,10 +1318,10 @@ void Renderer::SetLogicOpMode()
 		if (logic_op_enable)
 		{
 			static const std::array<VkLogicOp, 16> logic_ops = {
-					{VK_LOGIC_OP_CLEAR, VK_LOGIC_OP_AND, VK_LOGIC_OP_AND_REVERSE, VK_LOGIC_OP_COPY,
-					 VK_LOGIC_OP_AND_INVERTED, VK_LOGIC_OP_NO_OP, VK_LOGIC_OP_XOR, VK_LOGIC_OP_OR,
-					 VK_LOGIC_OP_NOR, VK_LOGIC_OP_EQUIVALENT, VK_LOGIC_OP_INVERT, VK_LOGIC_OP_OR_REVERSE,
-					 VK_LOGIC_OP_COPY_INVERTED, VK_LOGIC_OP_OR_INVERTED, VK_LOGIC_OP_NAND, VK_LOGIC_OP_SET} };
+				{ VK_LOGIC_OP_CLEAR, VK_LOGIC_OP_AND, VK_LOGIC_OP_AND_REVERSE, VK_LOGIC_OP_COPY,
+				VK_LOGIC_OP_AND_INVERTED, VK_LOGIC_OP_NO_OP, VK_LOGIC_OP_XOR, VK_LOGIC_OP_OR,
+				VK_LOGIC_OP_NOR, VK_LOGIC_OP_EQUIVALENT, VK_LOGIC_OP_INVERT, VK_LOGIC_OP_OR_REVERSE,
+				VK_LOGIC_OP_COPY_INVERTED, VK_LOGIC_OP_OR_INVERTED, VK_LOGIC_OP_NAND, VK_LOGIC_OP_SET } };
 
 			new_blend_state.logic_op_enable = VK_TRUE;
 			new_blend_state.logic_op = logic_ops[bpmem.blendmode.logicmode];
@@ -1227,7 +1332,7 @@ void Renderer::SetLogicOpMode()
 			new_blend_state.logic_op = VK_LOGIC_OP_CLEAR;
 		}
 
-		m_state_tracker->SetBlendState(new_blend_state);
+		StateTracker::GetInstance()->SetBlendState(new_blend_state);
 	}
 	else
 	{
@@ -1242,27 +1347,27 @@ void Renderer::SetLogicOpMode()
 				VkBlendFactor dst_factor;
 			};
 			static const std::array<LogicOpBlend, 16> logic_ops = {
-					{{VK_BLEND_FACTOR_ZERO, VK_BLEND_OP_ADD, VK_BLEND_FACTOR_ZERO},
-					 {VK_BLEND_FACTOR_DST_COLOR, VK_BLEND_OP_ADD, VK_BLEND_FACTOR_ZERO},
-					 {VK_BLEND_FACTOR_ONE, VK_BLEND_OP_SUBTRACT, VK_BLEND_FACTOR_ONE_MINUS_SRC_COLOR},
-					 {VK_BLEND_FACTOR_ONE, VK_BLEND_OP_ADD, VK_BLEND_FACTOR_ZERO},
-					 {VK_BLEND_FACTOR_DST_COLOR, VK_BLEND_OP_REVERSE_SUBTRACT, VK_BLEND_FACTOR_ONE},
-					 {VK_BLEND_FACTOR_ZERO, VK_BLEND_OP_ADD, VK_BLEND_FACTOR_ONE},
-					 {VK_BLEND_FACTOR_ONE_MINUS_DST_COLOR, VK_BLEND_OP_MAX,
-						VK_BLEND_FACTOR_ONE_MINUS_SRC_COLOR},
-					 {VK_BLEND_FACTOR_ONE_MINUS_DST_COLOR, VK_BLEND_OP_ADD, VK_BLEND_FACTOR_ONE},
-					 {VK_BLEND_FACTOR_ONE_MINUS_SRC_COLOR, VK_BLEND_OP_MAX,
-						VK_BLEND_FACTOR_ONE_MINUS_DST_COLOR},
-					 {VK_BLEND_FACTOR_ONE_MINUS_SRC_COLOR, VK_BLEND_OP_MAX, VK_BLEND_FACTOR_SRC_COLOR},
-					 {VK_BLEND_FACTOR_ONE_MINUS_DST_COLOR, VK_BLEND_OP_ADD,
-						VK_BLEND_FACTOR_ONE_MINUS_DST_COLOR},
-					 {VK_BLEND_FACTOR_ONE, VK_BLEND_OP_ADD, VK_BLEND_FACTOR_ONE_MINUS_DST_COLOR},
-					 {VK_BLEND_FACTOR_ONE_MINUS_SRC_COLOR, VK_BLEND_OP_ADD,
-						VK_BLEND_FACTOR_ONE_MINUS_SRC_COLOR},
-					 {VK_BLEND_FACTOR_ONE_MINUS_SRC_COLOR, VK_BLEND_OP_ADD, VK_BLEND_FACTOR_ONE},
-					 {VK_BLEND_FACTOR_ONE_MINUS_DST_COLOR, VK_BLEND_OP_ADD,
-						VK_BLEND_FACTOR_ONE_MINUS_SRC_COLOR},
-					 {VK_BLEND_FACTOR_ONE, VK_BLEND_OP_ADD, VK_BLEND_FACTOR_ONE}} };
+				{ { VK_BLEND_FACTOR_ZERO, VK_BLEND_OP_ADD, VK_BLEND_FACTOR_ZERO },
+				{ VK_BLEND_FACTOR_DST_COLOR, VK_BLEND_OP_ADD, VK_BLEND_FACTOR_ZERO },
+				{ VK_BLEND_FACTOR_ONE, VK_BLEND_OP_SUBTRACT, VK_BLEND_FACTOR_ONE_MINUS_SRC_COLOR },
+				{ VK_BLEND_FACTOR_ONE, VK_BLEND_OP_ADD, VK_BLEND_FACTOR_ZERO },
+				{ VK_BLEND_FACTOR_DST_COLOR, VK_BLEND_OP_REVERSE_SUBTRACT, VK_BLEND_FACTOR_ONE },
+				{ VK_BLEND_FACTOR_ZERO, VK_BLEND_OP_ADD, VK_BLEND_FACTOR_ONE },
+				{ VK_BLEND_FACTOR_ONE_MINUS_DST_COLOR, VK_BLEND_OP_MAX,
+				VK_BLEND_FACTOR_ONE_MINUS_SRC_COLOR },
+				{ VK_BLEND_FACTOR_ONE_MINUS_DST_COLOR, VK_BLEND_OP_ADD, VK_BLEND_FACTOR_ONE },
+				{ VK_BLEND_FACTOR_ONE_MINUS_SRC_COLOR, VK_BLEND_OP_MAX,
+				VK_BLEND_FACTOR_ONE_MINUS_DST_COLOR },
+				{ VK_BLEND_FACTOR_ONE_MINUS_SRC_COLOR, VK_BLEND_OP_MAX, VK_BLEND_FACTOR_SRC_COLOR },
+				{ VK_BLEND_FACTOR_ONE_MINUS_DST_COLOR, VK_BLEND_OP_ADD,
+				VK_BLEND_FACTOR_ONE_MINUS_DST_COLOR },
+				{ VK_BLEND_FACTOR_ONE, VK_BLEND_OP_ADD, VK_BLEND_FACTOR_ONE_MINUS_DST_COLOR },
+				{ VK_BLEND_FACTOR_ONE_MINUS_SRC_COLOR, VK_BLEND_OP_ADD,
+				VK_BLEND_FACTOR_ONE_MINUS_SRC_COLOR },
+				{ VK_BLEND_FACTOR_ONE_MINUS_SRC_COLOR, VK_BLEND_OP_ADD, VK_BLEND_FACTOR_ONE },
+				{ VK_BLEND_FACTOR_ONE_MINUS_DST_COLOR, VK_BLEND_OP_ADD,
+				VK_BLEND_FACTOR_ONE_MINUS_SRC_COLOR },
+				{ VK_BLEND_FACTOR_ONE, VK_BLEND_OP_ADD, VK_BLEND_FACTOR_ONE } } };
 
 			new_blend_state.blend_enable = VK_TRUE;
 			new_blend_state.blend_op = logic_ops[bpmem.blendmode.logicmode].op;
@@ -1272,7 +1377,7 @@ void Renderer::SetLogicOpMode()
 			new_blend_state.src_alpha_blend = Util::GetAlphaBlendFactor(new_blend_state.src_blend);
 			new_blend_state.dst_alpha_blend = Util::GetAlphaBlendFactor(new_blend_state.dst_blend);
 
-			m_state_tracker->SetBlendState(new_blend_state);
+			StateTracker::GetInstance()->SetBlendState(new_blend_state);
 		}
 		else
 		{
@@ -1320,8 +1425,8 @@ void Renderer::SetSamplerState(int stage, int texindex, bool custom_tex)
 
 	// Address modes
 	static const VkSamplerAddressMode address_modes[] = {
-			VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, VK_SAMPLER_ADDRESS_MODE_REPEAT,
-			VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT };
+		VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, VK_SAMPLER_ADDRESS_MODE_REPEAT,
+		VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT };
 	new_state.wrap_u = address_modes[tm0.wrap_s];
 	new_state.wrap_v = address_modes[tm0.wrap_t];
 
@@ -1341,7 +1446,7 @@ void Renderer::SetSamplerState(int stage, int texindex, bool custom_tex)
 		sampler = g_object_cache->GetPointSampler();
 	}
 
-	m_state_tracker->SetSampler(bind_index, sampler);
+	StateTracker::GetInstance()->SetSampler(bind_index, sampler);
 	m_sampler_states[bind_index].bits = new_state.bits;
 }
 
@@ -1355,7 +1460,7 @@ void Renderer::ResetSamplerStates()
 	for (size_t i = 0; i < m_sampler_states.size(); i++)
 	{
 		m_sampler_states[i].bits = std::numeric_limits<decltype(m_sampler_states[i].bits)>::max();
-		m_state_tracker->SetSampler(i, g_object_cache->GetPointSampler());
+		StateTracker::GetInstance()->SetSampler(i, g_object_cache->GetPointSampler());
 	}
 
 	// Invalidate all sampler objects (some will be unused now).
@@ -1370,13 +1475,13 @@ void Renderer::SetInterlacingMode()
 {
 }
 
-void Renderer::SetScissorRect(const TargetRectangle& rc)
+void Renderer::SetScissorRect(const TargetRectangle& target_rc)
 {
 	VkRect2D scissor = {
-			{ rc.left, rc.top},
-			{static_cast<uint32_t>(rc.GetWidth()), static_cast<uint32_t>(rc.GetHeight())} };
+		{ target_rc.left, target_rc.top },
+		{ static_cast<uint32_t>(target_rc.GetWidth()), static_cast<uint32_t>(target_rc.GetHeight()) } };
 
-	m_state_tracker->SetScissor(scissor);
+	StateTracker::GetInstance()->SetScissor(scissor);
 }
 
 void Renderer::SetViewport()
@@ -1421,7 +1526,7 @@ void Renderer::SetViewport()
 	}
 
 	VkViewport viewport = { x, y, width, height, min_depth, max_depth };
-	m_state_tracker->SetViewport(viewport);
+	StateTracker::GetInstance()->SetViewport(viewport);
 }
 
 void Renderer::ChangeSurface(void* new_surface_handle)

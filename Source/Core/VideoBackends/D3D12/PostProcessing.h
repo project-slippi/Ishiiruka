@@ -47,12 +47,12 @@ private:
 class D3DPostProcessor final : public PostProcessor
 {
 public:
-	D3DPostProcessor() = default;
+	D3DPostProcessor() : PostProcessor(API_D3D11){};
 	~D3DPostProcessor();
 
 	bool Initialize() override;
 
-	void PostProcessEFB(const TargetRectangle* src_rect) override;
+	void PostProcessEFB(const TargetRectangle& target_rect, const TargetSize& target_size) override;
 
 	void PostProcessEFBToTexture(uintptr_t dst_texture) override;
 

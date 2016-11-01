@@ -429,7 +429,7 @@ public:
 	// List of texture sizes for shader inputs, used to update uniforms.
 	using InputTextureSizeArray = std::array<TargetSize, POST_PROCESSING_MAX_TEXTURE_INPUTS>;
 	// Constructor needed for timer object
-	PostProcessor();
+	PostProcessor(API_TYPE apitype);
 	virtual ~PostProcessor();
 
 	// Get a list of post-processing shaders.
@@ -475,8 +475,9 @@ public:
 	virtual bool Initialize() = 0;
 	void ReloadShaders();
 
+	void DoEFB(const TargetRectangle* src_rect);
 	// Used when post-processing on perspective->ortho switch.
-	virtual void PostProcessEFB(const TargetRectangle* src_rect) = 0;
+	virtual void PostProcessEFB(const TargetRectangle& target_rect, const TargetSize& target_size) = 0;
 
 	// Used when virtual xfb is enabled
 	virtual void PostProcessEFBToTexture(uintptr_t dst_texture) = 0;
@@ -538,7 +539,7 @@ protected:
 
 	// Update constant buffer with the current values from the config.
 	// Returns true if the buffer contents has changed.
-	bool UpdateConstantUniformBuffer(API_TYPE api,
+	bool UpdateConstantUniformBuffer(
 		const InputTextureSizeArray& input_sizes,
 		const TargetRectangle& dst_rect, const TargetSize& dst_size,
 		const TargetRectangle& src_rect, const TargetSize& src_size,
@@ -589,7 +590,7 @@ protected:
 	// Global post-processing enable state
 	bool m_active = false;
 	bool m_requires_depth_buffer = false;
-	API_TYPE m_APIType = API_TYPE::API_NONE;
+	const API_TYPE m_APIType;
 	// Uniform buffer data, double-buffered so we don't update if unnecessary
 	std::array<Constant, POST_PROCESSING_CONTANTS> m_current_constants;
 	std::array<Constant, POST_PROCESSING_CONTANTS> m_new_constants;

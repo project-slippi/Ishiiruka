@@ -26,12 +26,15 @@ StreamBuffer::StreamBuffer(u32 type, u32 size, u32 align_size, bool need_cpu_buf
 	: m_buffer(GenBuffer()),
 	m_buffertype(type),
 	m_size(ROUND_UP(ROUND_UP_POW2(size), align_size)),
-	m_need_cpu_buffer(need_cpu_buffer),
 	m_bit_per_slot(IntLog2(ROUND_UP(ROUND_UP_POW2(size), align_size) / SYNC_POINTS))
 {
 	m_iterator = 0;
 	m_used_iterator = 0;
 	m_free_iterator = 0;
+	for (int i = 0; i < SYNC_POINTS; i++)
+	{
+		m_fences[i] = 0;
+	}
 }
 
 
@@ -72,13 +75,13 @@ void StreamBuffer::CreateFences()
 }
 void StreamBuffer::DeleteFences()
 {
-	for (int i = Slot(m_free_iterator) + 1; i < SYNC_POINTS; i++)
+	for (int i = 0; i < SYNC_POINTS; i++)
 	{
-		glDeleteSync(m_fences[i]);
-	}
-	for (int i = 0; i < Slot(m_iterator); i++)
-	{
-		glDeleteSync(m_fences[i]);
+		if (m_fences[i])
+		{
+			glDeleteSync(m_fences[i]);
+		}
+		m_fences[i] = 0;
 	}
 }
 void StreamBuffer::AllocMemory(u32 size)
@@ -86,22 +89,23 @@ void StreamBuffer::AllocMemory(u32 size)
 	// insert waiting slots for used memory
 	for (int i = Slot(m_used_iterator); i < Slot(m_iterator); i++)
 	{
-		m_fences[i] = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+		if (!m_fences[i])
+		{
+			m_fences[i] = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+		}
 	}
 	m_used_iterator = m_iterator;
-
-	// wait for new slots to end of buffer
-	for (int i = Slot(m_free_iterator) + 1; i <= Slot(m_iterator + size) && i < SYNC_POINTS; i++)
-	{
-		glClientWaitSync(m_fences[i], GL_SYNC_FLUSH_COMMANDS_BIT, GL_TIMEOUT_IGNORED);
-		glDeleteSync(m_fences[i]);
-	}
+	u32 start_fence = Slot(m_free_iterator) + 1;
 	// if buffer is full
 	if (m_iterator + size >= m_size)
 	{
 		// insert waiting slots in unused space at the end of the buffer
 		for (int i = Slot(m_used_iterator); i < SYNC_POINTS; i++)
 		{
+			if (!m_fences[i])
+			{
+				glDeleteSync(m_fences[i]);
+			}
 			m_fences[i] = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
 		}
 
@@ -109,10 +113,16 @@ void StreamBuffer::AllocMemory(u32 size)
 		m_used_iterator = m_iterator = 0; // offset 0 is always aligned
 
 		// wait for space at the start
-		for (int i = 0; i <= Slot(m_iterator + size); i++)
+		start_fence = 0;
+	}
+	u32 end_fence = std::min(Slot(m_iterator + size), SYNC_POINTS - 1);
+	for (u32 i = start_fence; i <= end_fence; i++)
+	{
+		if (m_fences[i])
 		{
 			glClientWaitSync(m_fences[i], GL_SYNC_FLUSH_COMMANDS_BIT, GL_TIMEOUT_IGNORED);
 			glDeleteSync(m_fences[i]);
+			m_fences[i] = 0;
 		}
 	}
 	m_free_iterator = m_iterator + size;
@@ -137,23 +147,21 @@ public:
 	~MapAndOrphan()
 	{}
 
-	std::pair<u8*, u32> Map(u32 size) override
+	u32 Stream(u32 size, const void* src) override
 	{
 		if (m_iterator + size >= m_size)
 		{
 			glBufferData(m_buffertype, m_size, nullptr, GL_STREAM_DRAW);
 			m_iterator = 0;
 		}
-		u8* pointer = (u8*)glMapBufferRange(m_buffertype, m_iterator, size,
+		u32 iter = m_iterator;
+		m_iterator += size;
+		u8* pointer = (u8*)glMapBufferRange(m_buffertype, iter, size,
 			GL_MAP_WRITE_BIT | GL_MAP_FLUSH_EXPLICIT_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
-		return std::make_pair(pointer, m_iterator);
-	}
-
-	void Unmap(u32 used_size) override
-	{
-		glFlushMappedBufferRange(m_buffertype, 0, used_size);
+		std::memcpy(pointer, src, size);
+		glFlushMappedBufferRange(m_buffertype, 0, size);
 		glUnmapBuffer(m_buffertype);
-		m_iterator += used_size;
+		return iter;
 	}
 };
 
@@ -179,19 +187,17 @@ public:
 		DeleteFences();
 	}
 
-	std::pair<u8*, u32> Map(u32 size) override
+	u32 Stream(u32 size, const void* src) override
 	{
 		AllocMemory(size);
-		u8* pointer = (u8*)glMapBufferRange(m_buffertype, m_iterator, size,
+		u32 iter = m_iterator;
+		m_iterator += size;
+		u8* pointer = (u8*)glMapBufferRange(m_buffertype, iter, size,
 			GL_MAP_WRITE_BIT | GL_MAP_FLUSH_EXPLICIT_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
-		return std::make_pair(pointer, m_iterator);
-	}
-
-	void Unmap(u32 used_size) override
-	{
-		glFlushMappedBufferRange(m_buffertype, 0, used_size);
+		std::memcpy(pointer, src, size);
+		glFlushMappedBufferRange(m_buffertype, 0, size);
 		glUnmapBuffer(m_buffertype);
-		m_iterator += used_size;
+		return iter;
 	}
 };
 
@@ -228,21 +234,20 @@ public:
 	~BufferStorage()
 	{
 		DeleteFences();
+		glBindBuffer(m_buffertype, m_buffer);
 		glUnmapBuffer(m_buffertype);
 		glBindBuffer(m_buffertype, 0);
 	}
 
-	std::pair<u8*, u32> Map(u32 size) override
+	u32 Stream(u32 size, const void* src) override
 	{
 		AllocMemory(size);
-		return std::make_pair(m_pointer + m_iterator, m_iterator);
-	}
-
-	void Unmap(u32 used_size) override
-	{
+		u32 iter = m_iterator;
+		m_iterator += size;
+		std::memcpy(m_pointer + iter, src, size);
 		if (!coherent)
-			glFlushMappedBufferRange(m_buffertype, m_iterator, used_size);
-		m_iterator += used_size;
+			glFlushMappedBufferRange(m_buffertype, iter, size);
+		return iter;
 	}
 
 	u8* m_pointer;
@@ -278,15 +283,13 @@ public:
 		m_pointer = nullptr;
 	}
 
-	std::pair<u8*, u32> Map(u32 size) override
+	u32 Stream(u32 size, const void* src) override
 	{
 		AllocMemory(size);
-		return std::make_pair(m_pointer + m_iterator, m_iterator);
-	}
-
-	void Unmap(u32 used_size) override
-	{
-		m_iterator += used_size;
+		std::memcpy(m_pointer + m_iterator, src, size);
+		u32 iter = m_iterator;
+		m_iterator += size;
+		return iter;
 	}
 
 	u8* m_pointer;
@@ -304,26 +307,21 @@ public:
 	BufferSubData(u32 type, u32 size) : StreamBuffer(type, size)
 	{
 		glBindBuffer(m_buffertype, m_buffer);
-		glBufferData(m_buffertype, size, nullptr, GL_STATIC_DRAW);
-		m_pointer = new u8[m_size];
+		glBufferData(m_buffertype, size, nullptr, GL_STREAM_DRAW);
 	}
 
 	~BufferSubData()
 	{
-		delete[] m_pointer;
+
 	}
 
-	std::pair<u8*, u32> Map(u32 size) override
+	u32 Stream(u32 size, const void* src) override
 	{
-		return std::make_pair(m_pointer, 0);
+		u32 iter = m_iterator;
+		m_iterator += size;
+		glBufferSubData(m_buffertype, iter, size, src);
+		return iter;
 	}
-
-	void Unmap(u32 used_size) override
-	{
-		glBufferSubData(m_buffertype, 0, used_size, m_pointer);
-	}
-
-	u8* m_pointer;
 };
 
 /* Fifo based on the glBufferData call.
@@ -337,25 +335,17 @@ public:
 	BufferData(u32 type, u32 size) : StreamBuffer(type, size)
 	{
 		glBindBuffer(m_buffertype, m_buffer);
-		m_pointer = new u8[m_size];
 	}
 
 	~BufferData()
 	{
-		delete[] m_pointer;
 	}
 
-	std::pair<u8*, u32> Map(u32 size) override
+	u32 Stream(u32 size, const void* src) override
 	{
-		return std::make_pair(m_pointer, 0);
+		glBufferData(m_buffertype, size, src, GL_STREAM_DRAW);
+		return 0;
 	}
-
-	void Unmap(u32 used_size) override
-	{
-		glBufferData(m_buffertype, used_size, m_pointer, GL_STREAM_DRAW);
-	}
-
-	u8* m_pointer;
 };
 
 // Chooses the best streaming method based on the supported extensions and known issues
@@ -380,7 +370,8 @@ std::unique_ptr<StreamBuffer> StreamBuffer::Create(u32 type, u32 size)
 			return std::make_unique<PinnedMemory>(type, size);
 
 		// buffer storage works well in most situations
-		bool coherent = DriverDetails::HasBug(DriverDetails::BUG_BROKENEXPLICITFLUSH);
+		// coherent enabled hits the fast path on latest nvidia drivers
+		bool coherent = true; // DriverDetails::HasBug(DriverDetails::BUG_BROKENEXPLICITFLUSH);
 		if (g_ogl_config.bSupportsGLBufferStorage &&
 			!(DriverDetails::HasBug(DriverDetails::BUG_BROKENBUFFERSTORAGE) && type == GL_ARRAY_BUFFER) &&
 			!(DriverDetails::HasBug(DriverDetails::BUG_INTELBROKENBUFFERSTORAGE) && type == GL_ELEMENT_ARRAY_BUFFER))

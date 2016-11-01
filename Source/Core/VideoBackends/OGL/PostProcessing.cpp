@@ -237,11 +237,9 @@ void OGLPostProcessingShader::MapAndUpdateConfigurationBuffer()
 		// ProgramShaderCache uniform buffer afterwards, otherwise we'll end up flushing the wrong buffer.
 		glBindBuffer(GL_UNIFORM_BUFFER, buffer->m_uniform_buffer->m_buffer);
 
-		auto mapped_buffer = buffer->m_uniform_buffer->Map(buffer_size, ProgramShaderCache::GetUniformBufferAlignment());
-		memcpy(mapped_buffer.first, buffer_data, buffer_size);
-		buffer->m_uniform_buffer->Unmap(buffer_size);
+		auto mapped_buffer = buffer->m_uniform_buffer->Stream(buffer_size, ProgramShaderCache::GetUniformBufferAlignment(), buffer_data);
 
-		glBindBufferRange(GL_UNIFORM_BUFFER, UNIFORM_BUFFER_BIND_POINT + 1, buffer->m_uniform_buffer->m_buffer, mapped_buffer.second, buffer_size);
+		glBindBufferRange(GL_UNIFORM_BUFFER, UNIFORM_BUFFER_BIND_POINT + 1, buffer->m_uniform_buffer->m_buffer, mapped_buffer, buffer_size);
 
 		ADDSTAT(stats.thisFrame.bytesUniformStreamed, buffer_size);
 	}
@@ -381,11 +379,7 @@ void OGLPostProcessingShader::Draw(PostProcessor* p,
 	IncrementFrame();
 	if (m_prev_depth_enabled && src_depth_tex)
 	{
-		TargetRectangle dst;
-		dst.left = 0;
-		dst.right = m_prev_depth_frame_size.width;
-		dst.top = m_prev_depth_frame_size.height;
-		dst.bottom = 0;
+		TargetRectangle dst = {0, m_prev_depth_frame_size.height, m_prev_depth_frame_size.width, 0};
 		parent->CopyTexture(dst, GetPrevDepthFrame(0)->GetInternalObject(), output_rect, src_depth_tex, src_size, src_layer, true, true);
 	}
 	if (!skip_final_copy)
@@ -393,11 +387,7 @@ void OGLPostProcessingShader::Draw(PostProcessor* p,
 		RenderPassData& final_pass = m_passes[m_last_pass_index];
 		if (m_prev_frame_enabled)
 		{
-			TargetRectangle dst;
-			dst.left = 0;
-			dst.right = m_prev_frame_size.width;
-			dst.top = m_prev_frame_size.height;
-			dst.bottom = 0;
+			TargetRectangle dst = {0, m_prev_frame_size.height, m_prev_frame_size.width, 0 };
 			parent->CopyTexture(dst, GetPrevColorFrame(0)->GetInternalObject(), output_rect, final_pass.output_texture->GetInternalObject(), final_pass.output_size, src_layer, false, true);
 		}
 		parent->CopyTexture(dst_rect, dst_texture, output_rect, final_pass.output_texture->GetInternalObject(), final_pass.output_size, src_layer);
@@ -459,8 +449,9 @@ void OGLPostProcessor::PostProcessEFBToTexture(uintptr_t dst_texture)
 	g_renderer->ResetAPIState();
 
 	EFBRectangle efb_rect(0, EFB_HEIGHT, EFB_WIDTH, 0);
-	TargetRectangle target_rect = { 0, g_renderer->GetTargetHeight(), g_renderer->GetTargetWidth(), 0 };
 	TargetSize target_size(g_renderer->GetTargetWidth(), g_renderer->GetTargetHeight());
+	TargetRectangle target_rect = { 0, target_size.height, target_size.width,  0};
+	
 
 	// Source and target textures, if MSAA is enabled, this needs to be resolved
 	GLuint efb_color_texture = FramebufferManager::GetEFBColorTexture(efb_rect);
@@ -477,39 +468,14 @@ void OGLPostProcessor::PostProcessEFBToTexture(uintptr_t dst_texture)
 	g_renderer->RestoreAPIState();
 }
 
-void OGLPostProcessor::PostProcessEFB(const TargetRectangle* src_rect)
+void OGLPostProcessor::PostProcessEFB(const TargetRectangle& target_rect, const TargetSize& target_size)
 {
 	// Apply normal post-process process, but to the EFB buffers.
 	// Uses the current viewport as the "visible" region to post-process.
 	g_renderer->ResetAPIState();
 
-	// Copied from Renderer::SetViewport
-	int scissorXOff = bpmem.scissorOffset.x * 2;
-	int scissorYOff = bpmem.scissorOffset.y * 2;
-	float X = Renderer::EFBToScaledXf(xfmem.viewport.xOrig - xfmem.viewport.wd - (float)scissorXOff);
-	float Y = Renderer::EFBToScaledYf((float)EFB_HEIGHT - xfmem.viewport.yOrig + xfmem.viewport.ht + (float)scissorYOff);
-	float Width = Renderer::EFBToScaledXf(2.0f * xfmem.viewport.wd);
-	float Height = Renderer::EFBToScaledYf(-2.0f * xfmem.viewport.ht);
-	if (Width < 0)
-	{
-		X += Width;
-		Width *= -1;
-	}
-	if (Height < 0)
-	{
-		Y += Height;
-		Height *= -1;
-	}
-
 	EFBRectangle efb_rect(0, EFB_HEIGHT, EFB_WIDTH, 0);
-	TargetSize target_size(g_renderer->GetTargetWidth(), g_renderer->GetTargetHeight());
-	TargetRectangle target_rect(static_cast<int>(X), static_cast<int>(Y + Height),
-		static_cast<int>(X + Width), static_cast<int>(Y));
-	// If efb copy target is larger than the active vieport enlarge the post proccesing area
-	if (src_rect != nullptr)
-	{
-		target_rect.Merge(*src_rect);
-	}
+	
 	// Source and target textures, if MSAA is enabled, this needs to be resolved
 	GLuint efb_color_texture = FramebufferManager::GetEFBColorTexture(efb_rect);
 	GLuint efb_depth_texture = 0;
@@ -565,10 +531,7 @@ void OGLPostProcessor::CopyTexture(const TargetRectangle& dst_rect, uintptr_t ds
 		else
 		{
 			glBindFramebuffer(GL_READ_FRAMEBUFFER, m_read_framebuffer);
-			if (is_depth_texture)
-				glFramebufferTextureLayer(GL_READ_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, src_texture, 0, layer);
-			else
-				glFramebufferTextureLayer(GL_READ_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, src_texture, 0, layer);
+			glFramebufferTextureLayer(GL_READ_FRAMEBUFFER, is_depth_texture ? GL_DEPTH_ATTACHMENT : GL_COLOR_ATTACHMENT0, src_texture, 0, layer);
 
 			// fallback to glBlitFramebuffer path
 			GLenum filter = (scaling && !is_depth_texture) ? GL_LINEAR : GL_NEAREST;
@@ -576,10 +539,7 @@ void OGLPostProcessor::CopyTexture(const TargetRectangle& dst_rect, uintptr_t ds
 			if (dst_texture != 0)
 			{
 				glBindFramebuffer(GL_DRAW_FRAMEBUFFER, m_draw_framebuffer);
-				if (is_depth_texture)
-					glFramebufferTextureLayer(GL_DRAW_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, dst_texture, 0, layer);
-				else
-					glFramebufferTextureLayer(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, dst_texture, 0, layer);
+				glFramebufferTextureLayer(GL_DRAW_FRAMEBUFFER, is_depth_texture ? GL_DEPTH_ATTACHMENT : GL_COLOR_ATTACHMENT0, dst_texture, 0, layer);
 			}
 			else
 			{
@@ -600,18 +560,20 @@ void OGLPostProcessor::MapAndUpdateUniformBuffer(
 	int src_layer, float gamma)
 {
 	// Skip writing to buffer if there were no changes
-	if (UpdateConstantUniformBuffer(API_OPENGL, input_sizes, dst_rect, dst_size, src_rect, src_size, src_layer, gamma))
+	if (UpdateConstantUniformBuffer(input_sizes, dst_rect, dst_size, src_rect, src_size, src_layer, gamma))
 	{
 		// Annoyingly, due to latched state, we have to bind our private uniform buffer here, then restore the
 		// ProgramShaderCache uniform buffer afterwards, otherwise we'll end up flushing the wrong buffer.
 		glBindBuffer(GL_UNIFORM_BUFFER, m_uniform_buffer->m_buffer);
-
-		auto mapped_buffer = m_uniform_buffer->Map(POST_PROCESSING_CONTANTS_BUFFER_SIZE, ProgramShaderCache::GetUniformBufferAlignment());
-		memcpy(mapped_buffer.first, m_current_constants.data(), POST_PROCESSING_CONTANTS_BUFFER_SIZE);
-		m_uniform_buffer->Unmap(POST_PROCESSING_CONTANTS_BUFFER_SIZE);
-
-		glBindBufferRange(GL_UNIFORM_BUFFER, UNIFORM_BUFFER_BIND_POINT, m_uniform_buffer->m_buffer, mapped_buffer.second, POST_PROCESSING_CONTANTS_BUFFER_SIZE);
-
+		glBindBufferRange(
+			GL_UNIFORM_BUFFER,
+			UNIFORM_BUFFER_BIND_POINT,
+			m_uniform_buffer->m_buffer,
+			m_uniform_buffer->Stream(
+				POST_PROCESSING_CONTANTS_BUFFER_SIZE,
+				ProgramShaderCache::GetUniformBufferAlignment(),
+				m_current_constants.data()),
+			POST_PROCESSING_CONTANTS_BUFFER_SIZE);
 		ADDSTAT(stats.thisFrame.bytesUniformStreamed, POST_PROCESSING_CONTANTS_BUFFER_SIZE);
 	}
 }

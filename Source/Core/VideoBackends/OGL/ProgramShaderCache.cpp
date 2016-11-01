@@ -149,29 +149,17 @@ void ProgramShaderCache::UploadConstants()
 	if (VertexShaderManager::IsDirty() || PixelShaderManager::IsDirty() || GeometryShaderManager::IsDirty())
 	{
 		glBindBuffer(GL_UNIFORM_BUFFER, s_buffer->m_buffer);
-		auto buffer = s_buffer->Map(s_ubo_buffer_size, s_ubo_align);
-		u8* dst = buffer.first;
-		size_t pixel_buffer_size = C_PCONST_END * 4 * sizeof(float);
-		memcpy(dst, PixelShaderManager::GetBuffer(), pixel_buffer_size);
-		size_t vertex_buffer_size = VertexShaderManager::ConstantBufferSize * sizeof(float);
-		dst += ROUND_UP(pixel_buffer_size, s_ubo_align);
-		memcpy(dst, VertexShaderManager::GetBuffer(), vertex_buffer_size);
-		dst += ROUND_UP(vertex_buffer_size, s_ubo_align);
-		memcpy(dst, &GeometryShaderManager::constants, sizeof(GeometryShaderConstants));
+		u32 pixel_buffer_size = C_PCONST_END * 4 * sizeof(float);
+		u32 vertex_buffer_size = VertexShaderManager::ConstantBufferSize * sizeof(float);
 
-		s_buffer->Unmap(s_ubo_buffer_size);
-
-		u32 ubo_base = buffer.second;
 		glBindBufferRange(GL_UNIFORM_BUFFER, 1, s_buffer->m_buffer,
-			ubo_base,
+			s_buffer->Stream(pixel_buffer_size, s_ubo_align, PixelShaderManager::GetBuffer()),
 			pixel_buffer_size);
-		ubo_base += ROUND_UP(pixel_buffer_size, s_ubo_align);
 		glBindBufferRange(GL_UNIFORM_BUFFER, 2, s_buffer->m_buffer,
-			ubo_base,
+			s_buffer->Stream(vertex_buffer_size, s_ubo_align, VertexShaderManager::GetBuffer()),
 			vertex_buffer_size);
-		ubo_base += ROUND_UP(vertex_buffer_size, s_ubo_align);
 		glBindBufferRange(GL_UNIFORM_BUFFER, 3, s_buffer->m_buffer,
-			ubo_base,
+			s_buffer->Stream(sizeof(GeometryShaderConstants), s_ubo_align, &GeometryShaderManager::constants),
 			sizeof(GeometryShaderConstants));
 		PixelShaderManager::Clear();
 		VertexShaderManager::Clear();

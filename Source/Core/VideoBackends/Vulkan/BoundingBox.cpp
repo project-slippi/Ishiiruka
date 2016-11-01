@@ -10,6 +10,7 @@
 #include "VideoBackends/Vulkan/BoundingBox.h"
 #include "VideoBackends/Vulkan/CommandBufferManager.h"
 #include "VideoBackends/Vulkan/ObjectCache.h"
+#include "VideoBackends/Vulkan/Renderer.h"
 #include "VideoBackends/Vulkan/StagingBuffer.h"
 #include "VideoBackends/Vulkan/StateTracker.h"
 #include "VideoBackends/Vulkan/Util.h"
@@ -47,7 +48,7 @@ bool BoundingBox::Initialize()
 	return true;
 }
 
-void BoundingBox::Flush(StateTracker* state_tracker)
+void BoundingBox::Flush()
 {
 	if (m_gpu_buffer == VK_NULL_HANDLE)
 		return;
@@ -75,7 +76,7 @@ void BoundingBox::Flush(StateTracker* state_tracker)
 		// However, the writes must be serialized, so we can't put it in the init buffer.
 		if (!updated_buffer)
 		{
-			state_tracker->EndRenderPass();
+			StateTracker::GetInstance()->EndRenderPass();
 
 			// Ensure GPU buffer is in a state where it can be transferred to.
 			Util::BufferMemoryBarrier(
@@ -104,7 +105,7 @@ void BoundingBox::Flush(StateTracker* state_tracker)
 	m_valid = true;
 }
 
-void BoundingBox::Invalidate(StateTracker* state_tracker)
+void BoundingBox::Invalidate()
 {
 	if (m_gpu_buffer == VK_NULL_HANDLE)
 		return;
@@ -112,19 +113,19 @@ void BoundingBox::Invalidate(StateTracker* state_tracker)
 	m_valid = false;
 }
 
-s32 BoundingBox::Get(StateTracker* state_tracker, size_t index)
+s32 BoundingBox::Get(size_t index)
 {
 	_assert_(index < NUM_VALUES);
 
 	if (!m_valid)
-		Readback(state_tracker);
+		Readback();
 
 	s32 value;
 	m_readback_buffer->Read(index * sizeof(s32), &value, sizeof(value), false);
 	return value;
 }
 
-void BoundingBox::Set(StateTracker* state_tracker, size_t index, s32 value)
+void BoundingBox::Set(size_t index, s32 value)
 {
 	_assert_(index < NUM_VALUES);
 
@@ -149,14 +150,14 @@ bool BoundingBox::CreateGPUBuffer()
 		VK_BUFFER_USAGE_TRANSFER_SRC_BIT |
 		VK_BUFFER_USAGE_TRANSFER_DST_BIT;
 	VkBufferCreateInfo info = {
-			VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,  // VkStructureType        sType
-			nullptr,                               // const void*            pNext
-			0,                                     // VkBufferCreateFlags    flags
-			BUFFER_SIZE,                           // VkDeviceSize           size
-			buffer_usage,                          // VkBufferUsageFlags     usage
-			VK_SHARING_MODE_EXCLUSIVE,             // VkSharingMode          sharingMode
-			0,                                     // uint32_t               queueFamilyIndexCount
-			nullptr                                // const uint32_t*        pQueueFamilyIndices
+		VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,  // VkStructureType        sType
+		nullptr,                               // const void*            pNext
+		0,                                     // VkBufferCreateFlags    flags
+		BUFFER_SIZE,                           // VkDeviceSize           size
+		buffer_usage,                          // VkBufferUsageFlags     usage
+		VK_SHARING_MODE_EXCLUSIVE,             // VkSharingMode          sharingMode
+		0,                                     // uint32_t               queueFamilyIndexCount
+		nullptr                                // const uint32_t*        pQueueFamilyIndices
 	};
 
 	VkBuffer buffer;
@@ -173,10 +174,10 @@ bool BoundingBox::CreateGPUBuffer()
 	uint32_t memory_type_index = g_vulkan_context->GetMemoryType(memory_requirements.memoryTypeBits,
 		VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 	VkMemoryAllocateInfo memory_allocate_info = {
-			VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,  // VkStructureType    sType
-			nullptr,                                 // const void*        pNext
-			memory_requirements.size,                // VkDeviceSize       allocationSize
-			memory_type_index                        // uint32_t           memoryTypeIndex
+		VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,  // VkStructureType    sType
+		nullptr,                                 // const void*        pNext
+		memory_requirements.size,                // VkDeviceSize       allocationSize
+		memory_type_index                        // uint32_t           memoryTypeIndex
 	};
 	VkDeviceMemory memory;
 	res = vkAllocateMemory(g_vulkan_context->GetDevice(), &memory_allocate_info, nullptr, &memory);
@@ -212,10 +213,10 @@ bool BoundingBox::CreateReadbackBuffer()
 	return true;
 }
 
-void BoundingBox::Readback(StateTracker* state_tracker)
+void BoundingBox::Readback()
 {
 	// Can't be done within a render pass.
-	state_tracker->EndRenderPass();
+	StateTracker::GetInstance()->EndRenderPass();
 
 	// Ensure all writes are completed to the GPU buffer prior to the transfer.
 	Util::BufferMemoryBarrier(
@@ -240,7 +241,7 @@ void BoundingBox::Readback(StateTracker* state_tracker)
 		VK_ACCESS_TRANSFER_WRITE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT);
 
 	// Wait until these commands complete.
-	Util::ExecuteCurrentCommandsAndRestoreState(state_tracker, false, true);
+	Util::ExecuteCurrentCommandsAndRestoreState(false, true);
 
 	// Cache is now valid.
 	m_readback_buffer->InvalidateCPUCache();

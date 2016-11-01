@@ -83,19 +83,19 @@ static VkPipelineRasterizationStateCreateInfo
 GetVulkanRasterizationState(const RasterizationState& state)
 {
 	return{
-			VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,  // VkStructureType sType
-			nullptr,                  // const void*                               pNext
-			0,                        // VkPipelineRasterizationStateCreateFlags   flags
-			state.depth_clamp,        // VkBool32                                  depthClampEnable
-			VK_FALSE,                 // VkBool32                                  rasterizerDiscardEnable
-			VK_POLYGON_MODE_FILL,     // VkPolygonMode                             polygonMode
-			state.cull_mode,          // VkCullModeFlags                           cullMode
-			VK_FRONT_FACE_CLOCKWISE,  // VkFrontFace                               frontFace
-			VK_FALSE,                 // VkBool32                                  depthBiasEnable
-			0.0f,                     // float                                     depthBiasConstantFactor
-			0.0f,                     // float                                     depthBiasClamp
-			0.0f,                     // float                                     depthBiasSlopeFactor
-			1.0f                      // float                                     lineWidth
+		VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,  // VkStructureType sType
+		nullptr,                  // const void*                               pNext
+		0,                        // VkPipelineRasterizationStateCreateFlags   flags
+		state.depth_clamp,        // VkBool32                                  depthClampEnable
+		VK_FALSE,                 // VkBool32                                  rasterizerDiscardEnable
+		VK_POLYGON_MODE_FILL,     // VkPolygonMode                             polygonMode
+		state.cull_mode,          // VkCullModeFlags                           cullMode
+		VK_FRONT_FACE_CLOCKWISE,  // VkFrontFace                               frontFace
+		VK_FALSE,                 // VkBool32                                  depthBiasEnable
+		0.0f,                     // float                                     depthBiasConstantFactor
+		0.0f,                     // float                                     depthBiasClamp
+		0.0f,                     // float                                     depthBiasSlopeFactor
+		1.0f                      // float                                     lineWidth
 	};
 }
 
@@ -103,15 +103,15 @@ static VkPipelineMultisampleStateCreateInfo
 GetVulkanMultisampleState(const RasterizationState& rs_state)
 {
 	return{
-			VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,  // VkStructureType sType
-			nullptr,                      // const void*                              pNext
-			0,                            // VkPipelineMultisampleStateCreateFlags    flags
-			rs_state.samples,             // VkSampleCountFlagBits                    rasterizationSamples
-			rs_state.per_sample_shading,  // VkBool32                                 sampleShadingEnable
-			1.0f,                         // float                                    minSampleShading
-			nullptr,                      // const VkSampleMask*                      pSampleMask;
-			VK_FALSE,  // VkBool32                                 alphaToCoverageEnable
-			VK_FALSE   // VkBool32                                 alphaToOneEnable
+		VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,  // VkStructureType sType
+		nullptr,                      // const void*                              pNext
+		0,                            // VkPipelineMultisampleStateCreateFlags    flags
+		rs_state.samples,             // VkSampleCountFlagBits                    rasterizationSamples
+		rs_state.per_sample_shading,  // VkBool32                                 sampleShadingEnable
+		1.0f,                         // float                                    minSampleShading
+		nullptr,                      // const VkSampleMask*                      pSampleMask;
+		VK_FALSE,  // VkBool32                                 alphaToCoverageEnable
+		VK_FALSE   // VkBool32                                 alphaToOneEnable
 	};
 }
 
@@ -119,32 +119,32 @@ static VkPipelineDepthStencilStateCreateInfo
 GetVulkanDepthStencilState(const DepthStencilState& state)
 {
 	return{
-			VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,  // VkStructureType sType
-			nullptr,             // const void*                               pNext
-			0,                   // VkPipelineDepthStencilStateCreateFlags    flags
-			state.test_enable,   // VkBool32                                  depthTestEnable
-			state.write_enable,  // VkBool32                                  depthWriteEnable
-			state.compare_op,    // VkCompareOp                               depthCompareOp
-			VK_FALSE,            // VkBool32                                  depthBoundsTestEnable
-			VK_FALSE,            // VkBool32                                  stencilTestEnable
-			{},                  // VkStencilOpState                          front
-			{},                  // VkStencilOpState                          back
-			0.0f,                // float                                     minDepthBounds
-			1.0f                 // float                                     maxDepthBounds
+		VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,  // VkStructureType sType
+		nullptr,             // const void*                               pNext
+		0,                   // VkPipelineDepthStencilStateCreateFlags    flags
+		state.test_enable,   // VkBool32                                  depthTestEnable
+		state.write_enable,  // VkBool32                                  depthWriteEnable
+		state.compare_op,    // VkCompareOp                               depthCompareOp
+		VK_FALSE,            // VkBool32                                  depthBoundsTestEnable
+		VK_FALSE,            // VkBool32                                  stencilTestEnable
+		{},                  // VkStencilOpState                          front
+		{},                  // VkStencilOpState                          back
+		0.0f,                // float                                     minDepthBounds
+		1.0f                 // float                                     maxDepthBounds
 	};
 }
 
 static VkPipelineColorBlendAttachmentState GetVulkanAttachmentBlendState(const BlendState& state)
 {
 	VkPipelineColorBlendAttachmentState vk_state = {
-			state.blend_enable,     // VkBool32                                  blendEnable
-			state.src_blend,        // VkBlendFactor                             srcColorBlendFactor
-			state.dst_blend,        // VkBlendFactor                             dstColorBlendFactor
-			state.blend_op,         // VkBlendOp                                 colorBlendOp
-			state.src_alpha_blend,  // VkBlendFactor                             srcAlphaBlendFactor
-			state.dst_alpha_blend,  // VkBlendFactor                             dstAlphaBlendFactor
-			state.alpha_blend_op,   // VkBlendOp                                 alphaBlendOp
-			state.write_mask        // VkColorComponentFlags                     colorWriteMask
+		state.blend_enable,     // VkBool32                                  blendEnable
+		state.src_blend,        // VkBlendFactor                             srcColorBlendFactor
+		state.dst_blend,        // VkBlendFactor                             dstColorBlendFactor
+		state.blend_op,         // VkBlendOp                                 colorBlendOp
+		state.src_alpha_blend,  // VkBlendFactor                             srcAlphaBlendFactor
+		state.dst_alpha_blend,  // VkBlendFactor                             dstAlphaBlendFactor
+		state.alpha_blend_op,   // VkBlendOp                                 alphaBlendOp
+		state.write_mask        // VkColorComponentFlags                     colorWriteMask
 	};
 
 	return vk_state;
@@ -156,14 +156,14 @@ GetVulkanColorBlendState(const BlendState& state,
 	uint32_t num_attachments)
 {
 	VkPipelineColorBlendStateCreateInfo vk_state = {
-			VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,  // VkStructureType sType
-			nullptr,                  // const void*                                   pNext
-			0,                        // VkPipelineColorBlendStateCreateFlags          flags
-			state.logic_op_enable,    // VkBool32                                      logicOpEnable
-			state.logic_op,           // VkLogicOp                                     logicOp
-			num_attachments,          // uint32_t                                      attachmentCount
-			attachments,              // const VkPipelineColorBlendAttachmentState*    pAttachments
-			{1.0f, 1.0f, 1.0f, 1.0f}  // float                                         blendConstants[4]
+		VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,  // VkStructureType sType
+		nullptr,                  // const void*                                   pNext
+		0,                        // VkPipelineColorBlendStateCreateFlags          flags
+		state.logic_op_enable,    // VkBool32                                      logicOpEnable
+		state.logic_op,           // VkLogicOp                                     logicOp
+		num_attachments,          // uint32_t                                      attachmentCount
+		attachments,              // const VkPipelineColorBlendAttachmentState*    pAttachments
+		{ 1.0f, 1.0f, 1.0f, 1.0f }  // float                                         blendConstants[4]
 	};
 
 	return vk_state;
@@ -177,13 +177,13 @@ VkPipeline ObjectCache::GetPipeline(const PipelineInfo& info)
 
 	// Declare descriptors for empty vertex buffers/attributes
 	static const VkPipelineVertexInputStateCreateInfo empty_vertex_input_state = {
-			VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,  // VkStructureType sType
-			nullptr,  // const void*                                pNext
-			0,        // VkPipelineVertexInputStateCreateFlags       flags
-			0,        // uint32_t                                    vertexBindingDescriptionCount
-			nullptr,  // const VkVertexInputBindingDescription*      pVertexBindingDescriptions
-			0,        // uint32_t                                    vertexAttributeDescriptionCount
-			nullptr   // const VkVertexInputAttributeDescription*    pVertexAttributeDescriptions
+		VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,  // VkStructureType sType
+		nullptr,  // const void*                                pNext
+		0,        // VkPipelineVertexInputStateCreateFlags       flags
+		0,        // uint32_t                                    vertexBindingDescriptionCount
+		nullptr,  // const VkVertexInputBindingDescription*      pVertexBindingDescriptions
+		0,        // uint32_t                                    vertexAttributeDescriptionCount
+		nullptr   // const VkVertexInputAttributeDescription*    pVertexAttributeDescriptions
 	};
 
 	// Vertex inputs
@@ -192,11 +192,11 @@ VkPipeline ObjectCache::GetPipeline(const PipelineInfo& info)
 
 	// Input assembly
 	VkPipelineInputAssemblyStateCreateInfo input_assembly_state = {
-			VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,  // VkStructureType sType
-			nullptr,                  // const void*                                pNext
-			0,                        // VkPipelineInputAssemblyStateCreateFlags    flags
-			info.primitive_topology,  // VkPrimitiveTopology                        topology
-			VK_TRUE                   // VkBool32                                   primitiveRestartEnable
+		VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,  // VkStructureType sType
+		nullptr,                  // const void*                                pNext
+		0,                        // VkPipelineInputAssemblyStateCreateFlags    flags
+		info.primitive_topology,  // VkPrimitiveTopology                        topology
+		VK_TRUE                   // VkBool32                                   primitiveRestartEnable
 	};
 
 	// Shaders to stages
@@ -205,29 +205,29 @@ VkPipeline ObjectCache::GetPipeline(const PipelineInfo& info)
 	if (info.vs != VK_NULL_HANDLE)
 	{
 		shader_stages[num_shader_stages++] = { VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
-																					nullptr,
-																					0,
-																					VK_SHADER_STAGE_VERTEX_BIT,
-																					info.vs,
-																					"main" };
+			nullptr,
+			0,
+			VK_SHADER_STAGE_VERTEX_BIT,
+			info.vs,
+			"main" };
 	}
 	if (info.gs != VK_NULL_HANDLE)
 	{
 		shader_stages[num_shader_stages++] = { VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
-																					nullptr,
-																					0,
-																					VK_SHADER_STAGE_GEOMETRY_BIT,
-																					info.gs,
-																					"main" };
+			nullptr,
+			0,
+			VK_SHADER_STAGE_GEOMETRY_BIT,
+			info.gs,
+			"main" };
 	}
 	if (info.ps != VK_NULL_HANDLE)
 	{
 		shader_stages[num_shader_stages++] = { VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
-																					nullptr,
-																					0,
-																					VK_SHADER_STAGE_FRAGMENT_BIT,
-																					info.ps,
-																					"main" };
+			nullptr,
+			0,
+			VK_SHADER_STAGE_FRAGMENT_BIT,
+			info.ps,
+			"main" };
 	}
 
 	// Fill in Vulkan descriptor structs from our state structures.
@@ -244,48 +244,48 @@ VkPipeline ObjectCache::GetPipeline(const PipelineInfo& info)
 
 	// This viewport isn't used, but needs to be specified anyway.
 	static const VkViewport viewport = { 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f };
-	static const VkRect2D scissor = { {0, 0}, {1, 1} };
+	static const VkRect2D scissor = { { 0, 0 },{ 1, 1 } };
 	static const VkPipelineViewportStateCreateInfo viewport_state = {
-			VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
-			nullptr,
-			0,          // VkPipelineViewportStateCreateFlags    flags;
-			1,          // uint32_t                              viewportCount
-			&viewport,  // const VkViewport*                     pViewports
-			1,          // uint32_t                              scissorCount
-			&scissor    // const VkRect2D*                       pScissors
+		VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
+		nullptr,
+		0,          // VkPipelineViewportStateCreateFlags    flags;
+		1,          // uint32_t                              viewportCount
+		&viewport,  // const VkViewport*                     pViewports
+		1,          // uint32_t                              scissorCount
+		&scissor    // const VkRect2D*                       pScissors
 	};
 
 	// Set viewport and scissor dynamic state so we can change it elsewhere.
 	static const VkDynamicState dynamic_states[] = { VK_DYNAMIC_STATE_VIEWPORT,
-																									VK_DYNAMIC_STATE_SCISSOR };
+		VK_DYNAMIC_STATE_SCISSOR };
 	static const VkPipelineDynamicStateCreateInfo dynamic_state = {
-			VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO, nullptr,
-			0,                                            // VkPipelineDynamicStateCreateFlags    flags
-			static_cast<u32>(ArraySize(dynamic_states)),  // uint32_t dynamicStateCount
-			dynamic_states  // const VkDynamicState*                pDynamicStates
+		VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO, nullptr,
+		0,                                            // VkPipelineDynamicStateCreateFlags    flags
+		static_cast<u32>(ArraySize(dynamic_states)),  // uint32_t dynamicStateCount
+		dynamic_states  // const VkDynamicState*                pDynamicStates
 	};
 
 	// Combine to full pipeline info structure.
 	VkGraphicsPipelineCreateInfo pipeline_info = {
-			VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
-			nullptr,                // VkStructureType sType
-			0,                      // VkPipelineCreateFlags                            flags
-			num_shader_stages,      // uint32_t                                         stageCount
-			shader_stages,          // const VkPipelineShaderStageCreateInfo*           pStages
-			&vertex_input_state,    // const VkPipelineVertexInputStateCreateInfo*      pVertexInputState
-			&input_assembly_state,  // const VkPipelineInputAssemblyStateCreateInfo* pInputAssemblyState
-			nullptr,                // const VkPipelineTessellationStateCreateInfo*     pTessellationState
-			&viewport_state,        // const VkPipelineViewportStateCreateInfo*         pViewportState
-			&rasterization_state,  // const VkPipelineRasterizationStateCreateInfo*    pRasterizationState
-			&multisample_state,    // const VkPipelineMultisampleStateCreateInfo*      pMultisampleState
-			&depth_stencil_state,  // const VkPipelineDepthStencilStateCreateInfo*     pDepthStencilState
-			&blend_state,          // const VkPipelineColorBlendStateCreateInfo*       pColorBlendState
-			&dynamic_state,        // const VkPipelineDynamicStateCreateInfo*          pDynamicState
-			info.pipeline_layout,  // VkPipelineLayout                                 layout
-			info.render_pass,      // VkRenderPass                                     renderPass
-			0,                     // uint32_t                                         subpass
-			VK_NULL_HANDLE,        // VkPipeline                                       basePipelineHandle
-			-1                     // int32_t                                          basePipelineIndex
+		VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
+		nullptr,                // VkStructureType sType
+		0,                      // VkPipelineCreateFlags                            flags
+		num_shader_stages,      // uint32_t                                         stageCount
+		shader_stages,          // const VkPipelineShaderStageCreateInfo*           pStages
+		&vertex_input_state,    // const VkPipelineVertexInputStateCreateInfo*      pVertexInputState
+		&input_assembly_state,  // const VkPipelineInputAssemblyStateCreateInfo* pInputAssemblyState
+		nullptr,                // const VkPipelineTessellationStateCreateInfo*     pTessellationState
+		&viewport_state,        // const VkPipelineViewportStateCreateInfo*         pViewportState
+		&rasterization_state,  // const VkPipelineRasterizationStateCreateInfo*    pRasterizationState
+		&multisample_state,    // const VkPipelineMultisampleStateCreateInfo*      pMultisampleState
+		&depth_stencil_state,  // const VkPipelineDepthStencilStateCreateInfo*     pDepthStencilState
+		&blend_state,          // const VkPipelineColorBlendStateCreateInfo*       pColorBlendState
+		&dynamic_state,        // const VkPipelineDynamicStateCreateInfo*          pDynamicState
+		info.pipeline_layout,  // VkPipelineLayout                                 layout
+		info.render_pass,      // VkRenderPass                                     renderPass
+		0,                     // uint32_t                                         subpass
+		VK_NULL_HANDLE,        // VkPipeline                                       basePipelineHandle
+		-1                     // int32_t                                          basePipelineIndex
 	};
 
 	VkPipeline pipeline = VK_NULL_HANDLE;
@@ -341,11 +341,11 @@ bool ObjectCache::CreatePipelineCache(bool load_from_disk)
 	}
 
 	VkPipelineCacheCreateInfo info = {
-			VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO,  // VkStructureType            sType
-			nullptr,                                       // const void*                pNext
-			0,                                             // VkPipelineCacheCreateFlags flags
-			disk_data.size(),                              // size_t                     initialDataSize
-			!disk_data.empty() ? disk_data.data() : nullptr,  // const void*                pInitialData
+		VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO,  // VkStructureType            sType
+		nullptr,                                       // const void*                pNext
+		0,                                             // VkPipelineCacheCreateFlags flags
+		disk_data.size(),                              // size_t                     initialDataSize
+		!disk_data.empty() ? disk_data.data() : nullptr,  // const void*                pInitialData
 	};
 
 	VkResult res =
@@ -701,35 +701,35 @@ void ObjectCache::RecompileSharedShaders()
 bool ObjectCache::CreateDescriptorSetLayouts()
 {
 	static const VkDescriptorSetLayoutBinding ubo_set_bindings[] = {
-			{UBO_DESCRIPTOR_SET_BINDING_PS, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1,
-			 VK_SHADER_STAGE_FRAGMENT_BIT},
-			{UBO_DESCRIPTOR_SET_BINDING_VS, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1,
-			 VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT},
-			{UBO_DESCRIPTOR_SET_BINDING_GS, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1,
-			 VK_SHADER_STAGE_GEOMETRY_BIT} };
+		{ UBO_DESCRIPTOR_SET_BINDING_PS, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1,
+		VK_SHADER_STAGE_FRAGMENT_BIT },
+		{ UBO_DESCRIPTOR_SET_BINDING_VS, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1,
+		VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT },
+		{ UBO_DESCRIPTOR_SET_BINDING_GS, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1,
+		VK_SHADER_STAGE_GEOMETRY_BIT } };
 
 	// Annoying these have to be split, apparently we can't partially update an array without the
 	// validation layers throwing a warning.
 	static const VkDescriptorSetLayoutBinding sampler_set_bindings[] = {
-			{0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
-			{1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
-			{2, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
-			{3, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
-			{4, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
-			{5, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
-			{6, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
-			{7, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT} };
+		{ 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT },
+		{ 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT },
+		{ 2, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT },
+		{ 3, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT },
+		{ 4, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT },
+		{ 5, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT },
+		{ 6, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT },
+		{ 7, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT } };
 
 	static const VkDescriptorSetLayoutBinding ssbo_set_bindings[] = {
-			{0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT} };
+		{ 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT } };
 
 	static const VkDescriptorSetLayoutCreateInfo create_infos[NUM_DESCRIPTOR_SETS] = {
-			{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO, nullptr, 0,
-			 static_cast<u32>(ArraySize(ubo_set_bindings)), ubo_set_bindings},
-			{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO, nullptr, 0,
-			 static_cast<u32>(ArraySize(sampler_set_bindings)), sampler_set_bindings},
-			{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO, nullptr, 0,
-			 static_cast<u32>(ArraySize(ssbo_set_bindings)), ssbo_set_bindings} };
+		{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO, nullptr, 0,
+		static_cast<u32>(ArraySize(ubo_set_bindings)), ubo_set_bindings },
+		{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO, nullptr, 0,
+		static_cast<u32>(ArraySize(sampler_set_bindings)), sampler_set_bindings },
+		{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO, nullptr, 0,
+		static_cast<u32>(ArraySize(ssbo_set_bindings)), ssbo_set_bindings } };
 
 	for (size_t i = 0; i < NUM_DESCRIPTOR_SETS; i++)
 	{
@@ -760,37 +760,37 @@ bool ObjectCache::CreatePipelineLayouts()
 
 	// Descriptor sets for each pipeline layout
 	VkDescriptorSetLayout standard_sets[] = {
-			m_descriptor_set_layouts[DESCRIPTOR_SET_UNIFORM_BUFFERS],
-			m_descriptor_set_layouts[DESCRIPTOR_SET_PIXEL_SHADER_SAMPLERS] };
+		m_descriptor_set_layouts[DESCRIPTOR_SET_UNIFORM_BUFFERS],
+		m_descriptor_set_layouts[DESCRIPTOR_SET_PIXEL_SHADER_SAMPLERS] };
 	VkDescriptorSetLayout bbox_sets[] = {
-			m_descriptor_set_layouts[DESCRIPTOR_SET_UNIFORM_BUFFERS],
-			m_descriptor_set_layouts[DESCRIPTOR_SET_PIXEL_SHADER_SAMPLERS],
-			m_descriptor_set_layouts[DESCRIPTOR_SET_SHADER_STORAGE_BUFFERS] };
+		m_descriptor_set_layouts[DESCRIPTOR_SET_UNIFORM_BUFFERS],
+		m_descriptor_set_layouts[DESCRIPTOR_SET_PIXEL_SHADER_SAMPLERS],
+		m_descriptor_set_layouts[DESCRIPTOR_SET_SHADER_STORAGE_BUFFERS] };
 	VkPushConstantRange push_constant_range = {
-			VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, PUSH_CONSTANT_BUFFER_SIZE };
+		VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, PUSH_CONSTANT_BUFFER_SIZE };
 
 	// Info for each pipeline layout
 	VkPipelineLayoutCreateInfo standard_info = { VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
-																							nullptr,
-																							0,
-																							static_cast<u32>(ArraySize(standard_sets)),
-																							standard_sets,
-																							0,
-																							nullptr };
+		nullptr,
+		0,
+		static_cast<u32>(ArraySize(standard_sets)),
+		standard_sets,
+		0,
+		nullptr };
 	VkPipelineLayoutCreateInfo bbox_info = { VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
-																					nullptr,
-																					0,
-																					static_cast<u32>(ArraySize(bbox_sets)),
-																					bbox_sets,
-																					0,
-																					nullptr };
+		nullptr,
+		0,
+		static_cast<u32>(ArraySize(bbox_sets)),
+		bbox_sets,
+		0,
+		nullptr };
 	VkPipelineLayoutCreateInfo push_constant_info = { VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
-																									 nullptr,
-																									 0,
-																									 static_cast<u32>(ArraySize(standard_sets)),
-																									 standard_sets,
-																									 1,
-																									 &push_constant_range };
+		nullptr,
+		0,
+		static_cast<u32>(ArraySize(standard_sets)),
+		standard_sets,
+		1,
+		&push_constant_range };
 
 	if ((res = vkCreatePipelineLayout(g_vulkan_context->GetDevice(), &standard_info, nullptr,
 		&m_standard_pipeline_layout)) != VK_SUCCESS ||
@@ -841,24 +841,24 @@ bool ObjectCache::CreateUtilityShaderVertexFormat()
 bool ObjectCache::CreateStaticSamplers()
 {
 	VkSamplerCreateInfo create_info = {
-			VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,    // VkStructureType         sType
-			nullptr,                                  // const void*             pNext
-			0,                                        // VkSamplerCreateFlags    flags
-			VK_FILTER_NEAREST,                        // VkFilter                magFilter
-			VK_FILTER_NEAREST,                        // VkFilter                minFilter
-			VK_SAMPLER_MIPMAP_MODE_NEAREST,           // VkSamplerMipmapMode     mipmapMode
-			VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER,  // VkSamplerAddressMode    addressModeU
-			VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER,  // VkSamplerAddressMode    addressModeV
-			VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,    // VkSamplerAddressMode    addressModeW
-			0.0f,                                     // float                   mipLodBias
-			VK_FALSE,                                 // VkBool32                anisotropyEnable
-			1.0f,                                     // float                   maxAnisotropy
-			VK_FALSE,                                 // VkBool32                compareEnable
-			VK_COMPARE_OP_ALWAYS,                     // VkCompareOp             compareOp
-			std::numeric_limits<float>::min(),        // float                   minLod
-			std::numeric_limits<float>::max(),        // float                   maxLod
-			VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK,  // VkBorderColor           borderColor
-			VK_FALSE                                  // VkBool32                unnormalizedCoordinates
+		VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,    // VkStructureType         sType
+		nullptr,                                  // const void*             pNext
+		0,                                        // VkSamplerCreateFlags    flags
+		VK_FILTER_NEAREST,                        // VkFilter                magFilter
+		VK_FILTER_NEAREST,                        // VkFilter                minFilter
+		VK_SAMPLER_MIPMAP_MODE_NEAREST,           // VkSamplerMipmapMode     mipmapMode
+		VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER,  // VkSamplerAddressMode    addressModeU
+		VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER,  // VkSamplerAddressMode    addressModeV
+		VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,    // VkSamplerAddressMode    addressModeW
+		0.0f,                                     // float                   mipLodBias
+		VK_FALSE,                                 // VkBool32                anisotropyEnable
+		1.0f,                                     // float                   maxAnisotropy
+		VK_FALSE,                                 // VkBool32                compareEnable
+		VK_COMPARE_OP_ALWAYS,                     // VkCompareOp             compareOp
+		std::numeric_limits<float>::min(),        // float                   minLod
+		std::numeric_limits<float>::max(),        // float                   maxLod
+		VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK,  // VkBorderColor           borderColor
+		VK_FALSE                                  // VkBool32                unnormalizedCoordinates
 	};
 
 	VkResult res =
@@ -919,7 +919,6 @@ VkSampler ObjectCache::GetSampler(const SamplerState& info)
 			g_vulkan_context->GetMaxSamplerAnisotropy());
 	}
 
-
 	VkSampler sampler = VK_NULL_HANDLE;
 	VkResult res = vkCreateSampler(g_vulkan_context->GetDevice(), &create_info, nullptr, &sampler);
 	if (res != VK_SUCCESS)
@@ -952,12 +951,12 @@ std::string ObjectCache::GetUtilityShaderHeader() const
 bool ObjectCache::CompileSharedShaders()
 {
 	static const char PASSTHROUGH_VERTEX_SHADER_SOURCE[] = R"(
-    layout(location = 0) in float4 ipos;
-    layout(location = 5) in float4 icol0;
-    layout(location = 8) in float3 itex0;
+    layout(location = 0) in vec4 ipos;
+    layout(location = 5) in vec4 icol0;
+    layout(location = 8) in vec3 itex0;
 
-    layout(location = 0) out float3 uv0;
-    layout(location = 1) out float4 col0;
+    layout(location = 0) out vec3 uv0;
+    layout(location = 1) out vec4 col0;
 
     void main()
     {
@@ -971,17 +970,11 @@ bool ObjectCache::CompileSharedShaders()
     layout(triangles) in;
     layout(triangle_strip, max_vertices = EFB_LAYERS * 3) out;
 
-    in VertexData
-    {
-      float3 uv0;
-      float4 col0;
-    } in_data[];
+    layout(location = 0) in vec3 in_uv0[];
+    layout(location = 1) in vec4 in_col0[];
 
-    out VertexData
-    {
-      float3 uv0;
-      float4 col0;
-    } out_data;
+    layout(location = 0) out vec3 out_uv0;
+    layout(location = 1) out vec4 out_col0;
 
     void main()
     {
@@ -991,8 +984,8 @@ bool ObjectCache::CompileSharedShaders()
         {
           gl_Layer = j;
           gl_Position = gl_in[i].gl_Position;
-          out_data.uv0 = float3(in_data[i].uv0.xy, float(j));
-          out_data.col0 = in_data[i].col0;
+          out_uv0 = vec3(in_uv0[i].xy, float(j));
+          out_col0 = in_col0[i];
           EmitVertex();
         }
         EndPrimitive();
@@ -1001,7 +994,7 @@ bool ObjectCache::CompileSharedShaders()
   )";
 
 	static const char SCREEN_QUAD_VERTEX_SHADER_SOURCE[] = R"(
-    layout(location = 0) out float3 uv0;
+    layout(location = 0) out vec3 uv0;
 
     void main()
     {
@@ -1012,9 +1005,9 @@ bool ObjectCache::CompileSharedShaders()
          * 2    0,2   0,1  -1,1       BL
          * 3    1,2   1,1  1,1        BR
          */
-        vec2 rawpos = float2(float(gl_VertexID & 1), clamp(float(gl_VertexID & 2), 0.0f, 1.0f));
-        gl_Position = float4(rawpos * 2.0f - 1.0f, 0.0f, 1.0f);
-        uv0 = float3(rawpos, 0.0f);
+        vec2 rawpos = vec2(float(gl_VertexID & 1), clamp(float(gl_VertexID & 2), 0.0f, 1.0f));
+        gl_Position = vec4(rawpos * 2.0f - 1.0f, 0.0f, 1.0f);
+        uv0 = vec3(rawpos, 0.0f);
     }
   )";
 
@@ -1022,15 +1015,9 @@ bool ObjectCache::CompileSharedShaders()
     layout(triangles) in;
     layout(triangle_strip, max_vertices = EFB_LAYERS * 3) out;
 
-    in VertexData
-    {
-      float3 uv0;
-    } in_data[];
+    layout(location = 0) in vec3 in_uv0[];
 
-    out VertexData
-    {
-      float3 uv0;
-    } out_data;
+    layout(location = 0) out vec3 out_uv0;
 
     void main()
     {
@@ -1040,7 +1027,7 @@ bool ObjectCache::CompileSharedShaders()
         {
           gl_Layer = j;
           gl_Position = gl_in[i].gl_Position;
-          out_data.uv0 = float3(in_data[i].uv0.xy, float(j));
+          out_uv0 = vec3(in_uv0[i].xy, float(j));
           EmitVertex();
         }
         EndPrimitive();

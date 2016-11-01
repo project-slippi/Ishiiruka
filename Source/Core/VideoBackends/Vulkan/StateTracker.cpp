@@ -24,10 +24,33 @@
 
 namespace Vulkan
 {
-StateTracker::StateTracker()
+static std::unique_ptr<StateTracker> s_state_tracker;
+
+StateTracker* StateTracker::GetInstance()
+{
+	return s_state_tracker.get();
+}
+
+bool StateTracker::CreateInstance()
+{
+	_assert_(!s_state_tracker);
+	s_state_tracker = std::make_unique<StateTracker>();
+	if (!s_state_tracker->Initialize())
+	{
+		s_state_tracker.reset();
+		return false;
+	}
+	return true;
+}
+
+void StateTracker::DestroyInstance()
+{
+	s_state_tracker.reset();
+}
+
+bool StateTracker::Initialize()
 {
 	// Set some sensible defaults
-	m_pipeline_state.pipeline_layout = g_object_cache->GetStandardPipelineLayout();
 	m_pipeline_state.rasterization_state.cull_mode = VK_CULL_MODE_NONE;
 	m_pipeline_state.rasterization_state.per_sample_shading = VK_FALSE;
 	m_pipeline_state.rasterization_state.depth_clamp = VK_FALSE;
@@ -68,15 +91,18 @@ StateTracker::StateTracker()
 		StreamBuffer::Create(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, INITIAL_UNIFORM_STREAM_BUFFER_SIZE,
 			MAXIMUM_UNIFORM_STREAM_BUFFER_SIZE);
 	if (!m_uniform_stream_buffer)
+	{
 		PanicAlert("Failed to create uniform stream buffer");
+		return false;
+	}
 
 	// The validation layer complains if max(offsets) + max(ubo_ranges) >= ubo_size.
 	// To work around this we reserve the maximum buffer size at all times, but only commit
 	// as many bytes as we use.
-	m_uniform_buffer_reserve_size = PixelShaderManager::ConstantBufferSize * sizeof(float);
+	m_uniform_buffer_reserve_size = sizeof(PixelShaderConstants);
 	m_uniform_buffer_reserve_size = Util::AlignValue(m_uniform_buffer_reserve_size,
 		g_vulkan_context->GetUniformBufferAlignment()) +
-		VertexShaderManager::ConstantBufferSize * sizeof(float);
+		sizeof(VertexShaderConstants);
 	m_uniform_buffer_reserve_size = Util::AlignValue(m_uniform_buffer_reserve_size,
 		g_vulkan_context->GetUniformBufferAlignment()) +
 		sizeof(GeometryShaderConstants);
@@ -87,10 +113,7 @@ StateTracker::StateTracker()
 
 	// Set default constants
 	UploadAllConstants();
-}
-
-StateTracker::~StateTracker()
-{
+	return true;
 }
 
 void StateTracker::SetVertexBuffer(VkBuffer buffer, VkDeviceSize offset)
@@ -375,7 +398,7 @@ void StateTracker::UploadAllConstants()
 		// If this fails, wait until the GPU has caught up.
 		// The only places that call constant updates are safe to have state restored.
 		WARN_LOG(VIDEO, "Executing command list while waiting for space in uniform buffer");
-		Util::ExecuteCurrentCommandsAndRestoreState(this, false);
+		Util::ExecuteCurrentCommandsAndRestoreState(false);
 		if (!m_uniform_stream_buffer->ReserveMemory(total_allocation_size,
 			g_vulkan_context->GetUniformBufferAlignment(), true,
 			true, false))
@@ -525,12 +548,12 @@ void StateTracker::BeginRenderPass()
 	m_framebuffer_render_area = m_framebuffer_size;
 
 	VkRenderPassBeginInfo begin_info = { VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
-																			nullptr,
-																			m_current_render_pass,
-																			m_framebuffer,
-																			m_framebuffer_render_area,
-																			0,
-																			nullptr };
+		nullptr,
+		m_current_render_pass,
+		m_framebuffer,
+		m_framebuffer_render_area,
+		0,
+		nullptr };
 
 	vkCmdBeginRenderPass(g_command_buffer_mgr->GetCurrentCommandBuffer(), &begin_info,
 		VK_SUBPASS_CONTENTS_INLINE);
@@ -542,7 +565,7 @@ void StateTracker::EndRenderPass()
 		return;
 
 	vkCmdEndRenderPass(g_command_buffer_mgr->GetCurrentCommandBuffer());
-	m_current_render_pass = nullptr;
+	m_current_render_pass = VK_NULL_HANDLE;
 }
 
 void StateTracker::BeginClearRenderPass(const VkRect2D& area, const VkClearValue clear_values[2])
@@ -553,12 +576,12 @@ void StateTracker::BeginClearRenderPass(const VkRect2D& area, const VkClearValue
 	m_framebuffer_render_area = area;
 
 	VkRenderPassBeginInfo begin_info = { VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
-																			nullptr,
-																			m_current_render_pass,
-																			m_framebuffer,
-																			m_framebuffer_render_area,
-																			2,
-																			clear_values };
+		nullptr,
+		m_current_render_pass,
+		m_framebuffer,
+		m_framebuffer_render_area,
+		2,
+		clear_values };
 
 	vkCmdBeginRenderPass(g_command_buffer_mgr->GetCurrentCommandBuffer(), &begin_info,
 		VK_SUBPASS_CONTENTS_INLINE);
@@ -830,15 +853,15 @@ bool StateTracker::UpdateDescriptorSet()
 		for (size_t i = 0; i < NUM_UBO_DESCRIPTOR_SET_BINDINGS; i++)
 		{
 			writes[num_writes++] = { VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-															nullptr,
-															set,
-															static_cast<uint32_t>(i),
-															0,
-															1,
-															VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
-															nullptr,
-															&m_bindings.uniform_buffer_bindings[i],
-															nullptr };
+				nullptr,
+				set,
+				static_cast<uint32_t>(i),
+				0,
+				1,
+				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
+				nullptr,
+				&m_bindings.uniform_buffer_bindings[i],
+				nullptr };
 		}
 
 		m_descriptor_sets[DESCRIPTOR_SET_UNIFORM_BUFFERS] = set;
@@ -860,15 +883,15 @@ bool StateTracker::UpdateDescriptorSet()
 			if (info.imageView != VK_NULL_HANDLE && info.sampler != VK_NULL_HANDLE)
 			{
 				writes[num_writes++] = { VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-																nullptr,
-																set,
-																static_cast<uint32_t>(i),
-																0,
-																1,
-																VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-																&info,
-																nullptr,
-																nullptr };
+					nullptr,
+					set,
+					static_cast<uint32_t>(i),
+					0,
+					1,
+					VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+					&info,
+					nullptr,
+					nullptr };
 			}
 		}
 
@@ -887,15 +910,15 @@ bool StateTracker::UpdateDescriptorSet()
 			return false;
 
 		writes[num_writes++] = { VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-														nullptr,
-														set,
-														0,
-														0,
-														1,
-														VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-														nullptr,
-														&m_bindings.ps_ssbo,
-														nullptr };
+			nullptr,
+			set,
+			0,
+			0,
+			1,
+			VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+			nullptr,
+			&m_bindings.ps_ssbo,
+			nullptr };
 
 		m_descriptor_sets[DESCRIPTOR_SET_SHADER_STORAGE_BUFFERS] = set;
 		m_dirty_flags |= DIRTY_FLAG_DESCRIPTOR_SET_BINDING;

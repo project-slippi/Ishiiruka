@@ -62,9 +62,10 @@ bool PaletteTextureConverter::Initialize()
 	return true;
 }
 
-void PaletteTextureConverter::ConvertTexture(StateTracker* state_tracker, VkCommandBuffer command_buffer,
-	VkRenderPass render_pass, VkFramebuffer dst_framebuffer,
-	Texture2D* src_texture, u32 width, u32 height, void* palette,
+void PaletteTextureConverter::ConvertTexture(VkCommandBuffer command_buffer,
+	VkRenderPass render_pass,
+	VkFramebuffer dst_framebuffer, Texture2D* src_texture,
+	u32 width, u32 height, void* palette,
 	TlutFormat format, u32 palette_size, u32 src_format)
 {
 	struct PSUniformBlock
@@ -86,7 +87,7 @@ void PaletteTextureConverter::ConvertTexture(StateTracker* state_tracker, VkComm
 			g_command_buffer_mgr->AllocateDescriptorSet(m_palette_set_layout)) == VK_NULL_HANDLE)
 	{
 		WARN_LOG(VIDEO, "Executing command list while waiting for space in palette buffer");
-		Util::ExecuteCurrentCommandsAndRestoreState(state_tracker, false);
+		Util::ExecuteCurrentCommandsAndRestoreState(false);
 
 		if (!m_palette_stream_buffer->ReserveMemory(palette_size,
 			g_vulkan_context->GetTexelBufferAlignment()) ||
@@ -101,15 +102,15 @@ void PaletteTextureConverter::ConvertTexture(StateTracker* state_tracker, VkComm
 	// Fill descriptor set #2 (texel buffer)
 	u32 palette_offset = static_cast<u32>(m_palette_stream_buffer->GetCurrentOffset());
 	VkWriteDescriptorSet texel_set_write = { VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-																					nullptr,
-																					texel_buffer_descriptor_set,
-																					0,
-																					0,
-																					1,
-																					VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER,
-																					nullptr,
-																					nullptr,
-																					&m_palette_buffer_view };
+		nullptr,
+		texel_buffer_descriptor_set,
+		0,
+		0,
+		1,
+		VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER,
+		nullptr,
+		nullptr,
+		&m_palette_buffer_view };
 	vkUpdateDescriptorSets(g_vulkan_context->GetDevice(), 1, &texel_set_write, 0, nullptr);
 
 	Util::BufferMemoryBarrier(command_buffer, m_palette_stream_buffer->GetBuffer(),
@@ -118,11 +119,11 @@ void PaletteTextureConverter::ConvertTexture(StateTracker* state_tracker, VkComm
 		VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
 
 	// Set up draw
-	UtilityShaderDraw draw(g_command_buffer_mgr->GetCurrentInitCommandBuffer(), m_pipeline_layout,
-		render_pass, g_object_cache->GetScreenQuadVertexShader(), VK_NULL_HANDLE,
+	UtilityShaderDraw draw(command_buffer, m_pipeline_layout, render_pass,
+		g_object_cache->GetScreenQuadVertexShader(), VK_NULL_HANDLE,
 		m_shaders[format]);
 
-	VkRect2D region = { {0, 0}, {width, height} };
+	VkRect2D region = { { 0, 0 },{ width, height } };
 	draw.BeginRenderPass(dst_framebuffer, region);
 
 	// Copy in palette
@@ -158,13 +159,13 @@ bool PaletteTextureConverter::CreateBuffers()
 
 	// Create a view of the whole buffer, we'll offset our texel load into it
 	VkBufferViewCreateInfo view_info = {
-			VK_STRUCTURE_TYPE_BUFFER_VIEW_CREATE_INFO,  // VkStructureType            sType
-			nullptr,                                    // const void*                pNext
-			0,                                          // VkBufferViewCreateFlags    flags
-			m_palette_stream_buffer->GetBuffer(),       // VkBuffer                   buffer
-			VK_FORMAT_R16_UINT,                         // VkFormat                   format
-			0,                                          // VkDeviceSize               offset
-			BUFFER_SIZE                                 // VkDeviceSize               range
+		VK_STRUCTURE_TYPE_BUFFER_VIEW_CREATE_INFO,  // VkStructureType            sType
+		nullptr,                                    // const void*                pNext
+		0,                                          // VkBufferViewCreateFlags    flags
+		m_palette_stream_buffer->GetBuffer(),       // VkBuffer                   buffer
+		VK_FORMAT_R16_UINT,                         // VkFormat                   format
+		0,                                          // VkDeviceSize               offset
+		BUFFER_SIZE                                 // VkDeviceSize               range
 	};
 
 	VkResult res = vkCreateBufferView(g_vulkan_context->GetDevice(), &view_info, nullptr,
@@ -275,11 +276,11 @@ bool PaletteTextureConverter::CompileShaders()
 bool PaletteTextureConverter::CreateDescriptorLayout()
 {
 	static const VkDescriptorSetLayoutBinding set_bindings[] = {
-			{0, VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+		{ 0, VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT },
 	};
 	static const VkDescriptorSetLayoutCreateInfo set_info = {
-			VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO, nullptr, 0,
-			static_cast<u32>(ArraySize(set_bindings)), set_bindings };
+		VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO, nullptr, 0,
+		static_cast<u32>(ArraySize(set_bindings)), set_bindings };
 
 	VkResult res = vkCreateDescriptorSetLayout(g_vulkan_context->GetDevice(), &set_info, nullptr,
 		&m_palette_set_layout);
@@ -290,18 +291,18 @@ bool PaletteTextureConverter::CreateDescriptorLayout()
 	}
 
 	VkDescriptorSetLayout sets[] = { m_palette_set_layout, g_object_cache->GetDescriptorSetLayout(
-																														DESCRIPTOR_SET_PIXEL_SHADER_SAMPLERS) };
+		DESCRIPTOR_SET_PIXEL_SHADER_SAMPLERS) };
 
 	VkPushConstantRange push_constant_range = {
-			VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, PUSH_CONSTANT_BUFFER_SIZE };
+		VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, PUSH_CONSTANT_BUFFER_SIZE };
 
 	VkPipelineLayoutCreateInfo pipeline_layout_info = { VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
-																										 nullptr,
-																										 0,
-																										 static_cast<u32>(ArraySize(sets)),
-																										 sets,
-																										 1,
-																										 &push_constant_range };
+		nullptr,
+		0,
+		static_cast<u32>(ArraySize(sets)),
+		sets,
+		1,
+		&push_constant_range };
 
 	res = vkCreatePipelineLayout(g_vulkan_context->GetDevice(), &pipeline_layout_info, nullptr,
 		&m_pipeline_layout);

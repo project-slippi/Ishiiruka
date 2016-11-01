@@ -1338,8 +1338,8 @@ inline void WriteFetchStageTexture(ShaderCode& out, const pixel_shader_uid_data&
 		if (LoadMaterial)
 		{
 			out.Write("if((" I_FLAGS ".y & %i) != 0)\n{\n", 1 << texmap);
-			out.Write("emmisive_mask += tex_ta[%i].rgb * ((tex_ta[%i].a - 10) / 255.0);\n", n, n);
-			out.Write("tex_ta[%i].a = wu(255.0);\n}\n", n);
+			out.Write("emmisive_mask += tex_ta[%i].rgb * ((tex_ta[%i].a & 128) != 0 ? 1.0 : 0.0);\n", n, n);
+			out.Write("tex_ta[%i].a = ((tex_ta[%i].a << 1) | 1);\n}\n", n, n);
 			out.Write("if((" I_FLAGS ".x & %i) != 0)\n{\n", 1 << texmap);
 			out.Write("mapcoord = stagecoord;");
 			out.Write("float4 nrmap = ");

@@ -1140,7 +1140,7 @@ bool PostProcessingShader::ResizeOutputTextures(const TargetSize& new_size)
 	TextureCacheBase::TCacheEntryConfig config;
 	config.width = m_prev_frame_size.width;
 	config.height = m_prev_frame_size.height;
-	
+
 	config.rendertarget = true;
 	config.layers = m_internal_layers;
 
@@ -1167,14 +1167,14 @@ bool PostProcessingShader::ResizeOutputTextures(const TargetSize& new_size)
 		}
 
 		config.width = pass.output_size.width;
-		config.height = pass.output_size.height;		
+		config.height = pass.output_size.height;
 		pass.output_texture = g_texture_cache->CreateTexture(config);
 	}
 	m_internal_size = new_size;
 	return true;
 }
 
-PostProcessor::PostProcessor()
+PostProcessor::PostProcessor(API_TYPE apitype) : m_APIType(apitype)
 {
 	m_timer.Start();
 }
@@ -1253,6 +1253,60 @@ bool PostProcessor::XFBDepthDataRequired() const
 			(g_ActiveConfig.iPostProcessingTrigger == POST_PROCESSING_TRIGGER_ON_SWAP && !g_ActiveConfig.bUseXFB)));
 }
 
+void  PostProcessor::DoEFB(const TargetRectangle* src_rect)
+{
+	TargetSize target_size(g_renderer->GetTargetWidth(), g_renderer->GetTargetHeight());
+	TargetRectangle target_rect;
+	if (src_rect)
+	{
+		target_rect = { src_rect->left, src_rect->top, src_rect->right, src_rect->bottom };
+		if (m_APIType == API_OPENGL)
+		{
+			// hack to avoid vieport erro in pp shaders, it works well on amd but fails in everything else
+			// TODO: investigate the reazon
+			target_rect.bottom = 0;
+			target_rect.top = target_size.height;
+		}
+	}
+	else
+	{
+		// Copied from Renderer::SetViewport
+		int scissorXOff = bpmem.scissorOffset.x * 2;
+		int scissorYOff = bpmem.scissorOffset.y * 2;
+		float X = Renderer::EFBToScaledXf(xfmem.viewport.xOrig - xfmem.viewport.wd - (float)scissorXOff);
+		float Y;
+		if (m_APIType == API_OPENGL)
+		{
+			Y = Renderer::EFBToScaledYf((float)EFB_HEIGHT - xfmem.viewport.yOrig + xfmem.viewport.ht +
+				(float)scissorYOff);
+		}
+		else
+		{
+			Y = Renderer::EFBToScaledYf(xfmem.viewport.yOrig + xfmem.viewport.ht - (float)scissorYOff);
+		}
+		
+		float Width = Renderer::EFBToScaledXf(2.0f * xfmem.viewport.wd);
+		float Height = Renderer::EFBToScaledYf(-2.0f * xfmem.viewport.ht);
+		if (Width < 0)
+		{
+			X += Width;
+			Width *= -1;
+		}
+		if (Height < 0)
+		{
+			Y += Height;
+			Height *= -1;
+		}
+		target_rect = { static_cast<int>(X), static_cast<int>(Y),
+			static_cast<int>(X + Width), static_cast<int>(Y + Height) };
+		if (m_APIType == API_OPENGL)
+		{
+			std::swap(target_rect.top, target_rect.bottom);
+		}
+	}
+	PostProcessEFB(target_rect, target_size);
+}
+
 void PostProcessor::OnProjectionLoaded(u32 type)
 {
 	if (!m_active || !g_ActiveConfig.bPostProcessingEnable ||
@@ -1275,7 +1329,7 @@ void PostProcessor::OnProjectionLoaded(u32 type)
 			m_projection_state == PROJECTION_STATE_PERSPECTIVE)
 		{
 			m_projection_state = PROJECTION_STATE_FINAL;
-			PostProcessEFB(nullptr);
+			DoEFB(nullptr);
 		}
 	}
 }
@@ -1292,7 +1346,7 @@ void PostProcessor::OnEFBCopy(const TargetRectangle* src_rect)
 	if (m_projection_state == PROJECTION_STATE_PERSPECTIVE
 		&& (src_rect == nullptr || (src_rect->GetWidth() > ((Renderer::GetTargetWidth() * 2) / 3))))
 	{
-		PostProcessEFB(src_rect);
+		DoEFB(src_rect);
 		m_projection_state = PROJECTION_STATE_FINAL;
 	}
 }
@@ -1308,7 +1362,7 @@ void PostProcessor::OnEndFrame()
 
 	// If we didn't switch to orthographic after perspective, post-process now (e.g. if no HUD was drawn)
 	if (m_projection_state == PROJECTION_STATE_PERSPECTIVE)
-		PostProcessEFB(nullptr);
+		DoEFB(nullptr);
 
 	m_projection_state = PROJECTION_STATE_INITIAL;
 }
@@ -2372,7 +2426,7 @@ std::string PostProcessor::GetPassFragmentShaderSource(
 	return shader_source;
 }
 
-bool  PostProcessor::UpdateConstantUniformBuffer(API_TYPE api,
+bool  PostProcessor::UpdateConstantUniformBuffer(
 	const InputTextureSizeArray& input_sizes,
 	const TargetRectangle& dst_rect, const TargetSize& dst_size,
 	const TargetRectangle& src_rect, const TargetSize& src_size,
@@ -2401,7 +2455,7 @@ bool  PostProcessor::UpdateConstantUniformBuffer(API_TYPE api,
 
 	// float4 src_rect
 	temp.float_constant[0] = (float)src_rect.left / (float)src_size.width;
-	temp.float_constant[1] = (float)((api == API_OPENGL) ? src_rect.bottom : src_rect.top) / (float)src_size.height;
+	temp.float_constant[1] = (float)((m_APIType == API_OPENGL) ? src_rect.bottom : src_rect.top) / (float)src_size.height;
 	temp.float_constant[2] = (float)src_rect.GetWidth() / (float)src_size.width;
 	temp.float_constant[3] = (float)src_rect.GetHeight() / (float)src_size.height;
 	m_new_constants[constant_idx] = temp;
@@ -2409,7 +2463,7 @@ bool  PostProcessor::UpdateConstantUniformBuffer(API_TYPE api,
 
 	// float4 target_rect
 	temp.float_constant[0] = (float)dst_rect.left / (float)dst_size.width;
-	temp.float_constant[1] = (float)((api == API_OPENGL) ? dst_rect.bottom : dst_rect.top) / (float)dst_size.height;
+	temp.float_constant[1] = (float)((m_APIType == API_OPENGL) ? dst_rect.bottom : dst_rect.top) / (float)dst_size.height;
 	temp.float_constant[2] = (float)dst_rect.GetWidth() / (float)dst_size.width;
 	temp.float_constant[3] = (float)dst_rect.GetHeight() / (float)dst_size.height;
 	m_new_constants[constant_idx] = temp;

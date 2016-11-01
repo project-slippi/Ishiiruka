@@ -73,11 +73,11 @@ bool TextureEncoder::Initialize()
 	return true;
 }
 
-void TextureEncoder::EncodeTextureToRam(StateTracker* state_tracker, VkImageView src_texture,
-	u8* dest_ptr, u32 format, u32 native_width,
-	u32 bytes_per_row, u32 num_blocks_y, u32 memory_stride,
-	PEControl::PixelFormat src_format, bool is_intensity,
-	int scale_by_half, const EFBRectangle& src_rect)
+void TextureEncoder::EncodeTextureToRam(VkImageView src_texture, u8* dest_ptr, u32 format,
+	u32 native_width, u32 bytes_per_row, u32 num_blocks_y,
+	u32 memory_stride, PEControl::PixelFormat src_format,
+	bool is_intensity, int scale_by_half,
+	const EFBRectangle& src_rect)
 {
 	if (m_texture_encoding_shaders[format] == VK_NULL_HANDLE)
 	{
@@ -86,7 +86,7 @@ void TextureEncoder::EncodeTextureToRam(StateTracker* state_tracker, VkImageView
 	}
 
 	// Can't do our own draw within a render pass.
-	state_tracker->EndRenderPass();
+	StateTracker::GetInstance()->EndRenderPass();
 
 	UtilityShaderDraw draw(g_command_buffer_mgr->GetCurrentCommandBuffer(),
 		g_object_cache->GetPushConstantPipelineLayout(), m_encoding_render_pass,
@@ -95,7 +95,7 @@ void TextureEncoder::EncodeTextureToRam(StateTracker* state_tracker, VkImageView
 
 	// Uniform - int4 of left,top,native_width,scale
 	s32 position_uniform[4] = { src_rect.left, src_rect.top, static_cast<s32>(native_width),
-														 scale_by_half ? 2 : 1 };
+		scale_by_half ? 2 : 1 };
 	draw.SetPushConstants(position_uniform, sizeof(position_uniform));
 
 	// Doesn't make sense to linear filter depth values
@@ -109,7 +109,7 @@ void TextureEncoder::EncodeTextureToRam(StateTracker* state_tracker, VkImageView
 		render_height);
 
 	// TODO: We could use compute shaders here.
-	VkRect2D render_region = { {0, 0}, {render_width, render_height} };
+	VkRect2D render_region = { { 0, 0 },{ render_width, render_height } };
 	draw.BeginRenderPass(m_encoding_texture_framebuffer, render_region);
 	draw.DrawWithoutVertexBuffer(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP, 4);
 	draw.EndRenderPass();
@@ -122,8 +122,8 @@ void TextureEncoder::EncodeTextureToRam(StateTracker* state_tracker, VkImageView
 
 	// Block until the GPU has finished copying to the staging texture.
 	g_command_buffer_mgr->ExecuteCommandBuffer(false, true);
-	state_tracker->InvalidateDescriptorSets();
-	state_tracker->SetPendingRebind();
+	StateTracker::GetInstance()->InvalidateDescriptorSets();
+	StateTracker::GetInstance()->SetPendingRebind();
 
 	// Copy from staging texture to the final destination, adjusting pitch if necessary.
 	m_download_texture->ReadTexels(0, 0, render_width, render_height, dest_ptr, memory_stride);
@@ -133,10 +133,10 @@ bool TextureEncoder::CompileShaders()
 {
 	// Texture encoding shaders
 	static const u32 texture_encoding_shader_formats[] = {
-			GX_TF_I4,   GX_TF_I8,   GX_TF_IA4,  GX_TF_IA8,  GX_TF_RGB565, GX_TF_RGB5A3, GX_TF_RGBA8,
-			GX_CTF_R4,  GX_CTF_RA4, GX_CTF_RA8, GX_CTF_A8,  GX_CTF_R8,    GX_CTF_G8,    GX_CTF_B8,
-			GX_CTF_RG8, GX_CTF_GB8, GX_CTF_Z8H, GX_TF_Z8,   GX_CTF_Z16R,  GX_TF_Z16,    GX_TF_Z24X8,
-			GX_CTF_Z4,  GX_CTF_Z8M, GX_CTF_Z8L, GX_CTF_Z16L };
+		GX_TF_I4,   GX_TF_I8,   GX_TF_IA4,  GX_TF_IA8,  GX_TF_RGB565, GX_TF_RGB5A3, GX_TF_RGBA8,
+		GX_CTF_R4,  GX_CTF_RA4, GX_CTF_RA8, GX_CTF_A8,  GX_CTF_R8,    GX_CTF_G8,    GX_CTF_B8,
+		GX_CTF_RG8, GX_CTF_GB8, GX_CTF_Z8H, GX_TF_Z8,   GX_CTF_Z16R,  GX_TF_Z16,    GX_TF_Z24X8,
+		GX_CTF_Z4,  GX_CTF_Z8M, GX_CTF_Z8L, GX_CTF_Z16L };
 	for (u32 format : texture_encoding_shader_formats)
 	{
 		const char* shader_source =
@@ -152,33 +152,33 @@ bool TextureEncoder::CompileShaders()
 bool TextureEncoder::CreateEncodingRenderPass()
 {
 	VkAttachmentDescription attachments[] = {
-			{0, ENCODING_TEXTURE_FORMAT, VK_SAMPLE_COUNT_1_BIT, VK_ATTACHMENT_LOAD_OP_DONT_CARE,
-			 VK_ATTACHMENT_STORE_OP_STORE, VK_ATTACHMENT_LOAD_OP_DONT_CARE,
-			 VK_ATTACHMENT_STORE_OP_DONT_CARE, VK_IMAGE_LAYOUT_UNDEFINED,
-			 VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL} };
+		{ 0, ENCODING_TEXTURE_FORMAT, VK_SAMPLE_COUNT_1_BIT, VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+		VK_ATTACHMENT_STORE_OP_STORE, VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+		VK_ATTACHMENT_STORE_OP_DONT_CARE, VK_IMAGE_LAYOUT_UNDEFINED,
+		VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL } };
 
 	VkAttachmentReference color_attachment_references[] = {
-			{0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL} };
+		{ 0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL } };
 
-	VkSubpassDescription subpass_descriptions[] = { {0, VK_PIPELINE_BIND_POINT_GRAPHICS, 0, nullptr, 1,
-																									color_attachment_references, nullptr, nullptr, 0,
-																									nullptr} };
+	VkSubpassDescription subpass_descriptions[] = { { 0, VK_PIPELINE_BIND_POINT_GRAPHICS, 0, nullptr, 1,
+		color_attachment_references, nullptr, nullptr, 0,
+		nullptr } };
 
 	VkSubpassDependency dependancies[] = {
-			{0, VK_SUBPASS_EXTERNAL, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-			 VK_PIPELINE_STAGE_TRANSFER_BIT,
-			 VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-			 VK_ACCESS_TRANSFER_READ_BIT, VK_DEPENDENCY_BY_REGION_BIT} };
+		{ 0, VK_SUBPASS_EXTERNAL, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+		VK_PIPELINE_STAGE_TRANSFER_BIT,
+		VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+		VK_ACCESS_TRANSFER_READ_BIT, VK_DEPENDENCY_BY_REGION_BIT } };
 
 	VkRenderPassCreateInfo pass_info = { VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
-																			nullptr,
-																			0,
-																			static_cast<u32>(ArraySize(attachments)),
-																			attachments,
-																			static_cast<u32>(ArraySize(subpass_descriptions)),
-																			subpass_descriptions,
-																			static_cast<u32>(ArraySize(dependancies)),
-																			dependancies };
+		nullptr,
+		0,
+		static_cast<u32>(ArraySize(attachments)),
+		attachments,
+		static_cast<u32>(ArraySize(subpass_descriptions)),
+		subpass_descriptions,
+		static_cast<u32>(ArraySize(dependancies)),
+		dependancies };
 
 	VkResult res = vkCreateRenderPass(g_vulkan_context->GetDevice(), &pass_info, nullptr,
 		&m_encoding_render_pass);
@@ -197,20 +197,21 @@ bool TextureEncoder::CreateEncodingTexture()
 	m_encoding_texture = Texture2D::Create(
 		ENCODING_TEXTURE_WIDTH, ENCODING_TEXTURE_HEIGHT, 1, 1, ENCODING_TEXTURE_FORMAT,
 		VK_SAMPLE_COUNT_1_BIT, VK_IMAGE_VIEW_TYPE_2D, VK_IMAGE_TILING_OPTIMAL,
-		VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
+		VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT |
+		VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
 	if (!m_encoding_texture)
 		return false;
 
 	VkImageView framebuffer_attachments[] = { m_encoding_texture->GetView() };
 	VkFramebufferCreateInfo framebuffer_info = { VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
-																							nullptr,
-																							0,
-																							m_encoding_render_pass,
-																							static_cast<u32>(ArraySize(framebuffer_attachments)),
-																							framebuffer_attachments,
-																							m_encoding_texture->GetWidth(),
-																							m_encoding_texture->GetHeight(),
-																							m_encoding_texture->GetLayers() };
+		nullptr,
+		0,
+		m_encoding_render_pass,
+		static_cast<u32>(ArraySize(framebuffer_attachments)),
+		framebuffer_attachments,
+		m_encoding_texture->GetWidth(),
+		m_encoding_texture->GetHeight(),
+		m_encoding_texture->GetLayers() };
 
 	VkResult res = vkCreateFramebuffer(g_vulkan_context->GetDevice(), &framebuffer_info, nullptr,
 		&m_encoding_texture_framebuffer);

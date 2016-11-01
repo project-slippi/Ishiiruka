@@ -54,15 +54,12 @@ private:
 class OGLPostProcessor final : public PostProcessor
 {
 public:
-	OGLPostProcessor()
-	{
-		m_APIType = API_OPENGL;
-	}
+	OGLPostProcessor() : PostProcessor(API_OPENGL){}
 	~OGLPostProcessor();
 
 	bool Initialize() override;
 
-	void PostProcessEFB(const TargetRectangle* src_rect) override;
+	void PostProcessEFB(const TargetRectangle& target_rect, const TargetSize& target_size) override;
 
 	void PostProcessEFBToTexture(uintptr_t dst_texture) override;
 

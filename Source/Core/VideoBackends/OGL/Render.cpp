@@ -1175,10 +1175,9 @@ void Renderer::ClearScreen(const EFBRectangle& rc, bool colorEnable, bool alphaE
 	ClearEFBCache();
 }
 
-void Renderer::BlitScreen(TargetRectangle dst_rect, TargetRectangle src_rect, TargetSize src_size, GLuint src_texture, GLuint src_depth_texture, float gamma)
+void Renderer::BlitScreen(const TargetRectangle& dst_rect, const TargetRectangle& src_rect, const TargetSize& src_size, GLuint src_texture, GLuint src_depth_texture, float gamma)
 {
 	TargetSize dst_size(s_backbuffer_width, s_backbuffer_height);
-
 	if (g_ActiveConfig.iStereoMode == STEREO_SBS || g_ActiveConfig.iStereoMode == STEREO_TAB)
 	{
 		TargetRectangle leftRc, rightRc;

@@ -67,7 +67,7 @@ static GLuint s_palette_multiplier_uniform[3];
 static GLuint s_palette_copy_position_uniform[3];
 static std::unique_ptr<Depalettizer> s_depaletizer;
 static std::unique_ptr<TextureScaler> s_scaler;
-static std::pair<u8*, u32> s_last_pallet_Buffer;
+static u32 s_last_pallet_Buffer;
 static TlutFormat s_last_TlutFormat = TlutFormat::GX_TL_IA8;
 bool SaveTexture(const std::string& filename, u32 textarget, u32 tex, int virtual_width, int virtual_height, u32 level, bool compressed)
 {
@@ -130,7 +130,7 @@ void TextureCache::TCacheEntry::Bind(u32 stage, u32 last_texture)
 {
 	if (nrm_texture && g_ActiveConfig.HiresMaterialMapsEnabled())
 	{
-		s_ActiveTexture = 8;
+		s_ActiveTexture = 8 + stage;
 		glActiveTexture(GL_TEXTURE8 + stage);
 		glBindTexture(GL_TEXTURE_2D_ARRAY, nrm_texture);
 	}
@@ -512,7 +512,7 @@ bool TextureCache::Palettize(TCacheEntryBase* src_entry, const TCacheEntryBase* 
 	s_palette_pixel_shader[s_last_TlutFormat].Bind();
 
 
-	glUniform1i(s_palette_buffer_offset_uniform[s_last_TlutFormat], s_last_pallet_Buffer.second / 2);
+	glUniform1i(s_palette_buffer_offset_uniform[s_last_TlutFormat], s_last_pallet_Buffer / 2);
 	glUniform1f(s_palette_multiplier_uniform[s_last_TlutFormat], texformat == GX_TF_C4 || texformat == GX_TF_I4 ? 15.0f : 255.0f);
 	glUniform4f(s_palette_copy_position_uniform[s_last_TlutFormat], 0.0f, 0.0f, (float)entry->config.width, (float)entry->config.height);
 
@@ -810,9 +810,7 @@ void TextureCache::LoadLut(u32 lutFmt, void* addr, u32 size)
 	if (g_ActiveConfig.backend_info.bSupportsPaletteConversion)
 	{
 		s_last_TlutFormat = (TlutFormat)lutFmt;
-		s_last_pallet_Buffer = s_palette_stream_buffer->Map(size);
-		memcpy(s_last_pallet_Buffer.first, addr, size);
-		s_palette_stream_buffer->Unmap(size);
+		s_last_pallet_Buffer = s_palette_stream_buffer->Stream(size, addr);
 	}
 	else
 	{

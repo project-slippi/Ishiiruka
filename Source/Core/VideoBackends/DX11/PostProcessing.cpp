@@ -423,43 +423,20 @@ void D3DPostProcessor::PostProcessEFBToTexture(uintptr_t dst_texture)
 		FramebufferManager::GetEFBDepthTexture()->GetDSV());
 }
 
-void D3DPostProcessor::PostProcessEFB(const TargetRectangle* src_rect)
+void D3DPostProcessor::PostProcessEFB(const TargetRectangle& src_rect, const TargetSize& src_size)
 {
 	// Apply normal post-process process, but to the EFB buffers.
 	// Uses the current viewport as the "visible" region to post-process.
 	g_renderer->ResetAPIState();
 
-	// Copied from Renderer::SetViewport
-	int scissorXOff = bpmem.scissorOffset.x * 2;
-	int scissorYOff = bpmem.scissorOffset.y * 2;
-
-	float X = Renderer::EFBToScaledXf(xfmem.viewport.xOrig - xfmem.viewport.wd - scissorXOff);
-	float Y = Renderer::EFBToScaledYf(xfmem.viewport.yOrig + xfmem.viewport.ht - scissorYOff);
-	float Wd = Renderer::EFBToScaledXf(2.0f * xfmem.viewport.wd);
-	float Ht = Renderer::EFBToScaledYf(-2.0f * xfmem.viewport.ht);
-	if (Wd < 0.0f)
-	{
-		X += Wd;
-		Wd = -Wd;
-	}
-	if (Ht < 0.0f)
-	{
-		Y += Ht;
-		Ht = -Ht;
-	}
-
 	// In D3D, the viewport rectangle must fit within the render target.
 	TargetRectangle target_rect;
-	TargetSize target_size(g_renderer->GetTargetWidth(), g_renderer->GetTargetHeight());
-	target_rect.left = static_cast<int>((X >= 0.f) ? X : 0.f);
-	target_rect.top = static_cast<int>((Y >= 0.f) ? Y : 0.f);
-	target_rect.right = target_rect.left + static_cast<int>((X + Wd <= g_renderer->GetTargetWidth()) ? Wd : (g_renderer->GetTargetWidth() - X));
-	target_rect.bottom = target_rect.bottom + static_cast<int>((Y + Ht <= g_renderer->GetTargetHeight()) ? Ht : (g_renderer->GetTargetHeight() - Y));
-	// If efb copy target is larger than the active vieport enlarge the post proccesing area
-	if (src_rect != nullptr)
-	{
-		target_rect.Merge(*src_rect);
-	}
+	TargetSize target_size(src_size.width, src_size.height);
+	target_rect.left = src_rect.left >= 0 ? src_rect.left : 0;
+	target_rect.top = src_rect.top >= 0 ? src_rect.top : 0;
+	target_rect.right = src_rect.right <= src_size.width ? src_rect.right : src_size.width;
+	target_rect.bottom = src_rect.bottom <= src_size.height ? src_rect.bottom : src_size.height;
+	
 	// Source and target textures, if MSAA is enabled, this needs to be resolved
 	D3DTexture2D* color_texture = FramebufferManager::GetResolvedEFBColorTexture();
 	D3DTexture2D* depth_texture = nullptr;
@@ -489,7 +466,7 @@ void D3DPostProcessor::MapAndUpdateUniformBuffer(
 	int src_layer, float gamma)
 {
 	// Skip writing to buffer if there were no changes
-	if (UpdateConstantUniformBuffer(API_D3D11, input_sizes, dst_rect, dst_size, src_rect, src_size, src_layer, gamma))
+	if (UpdateConstantUniformBuffer(input_sizes, dst_rect, dst_size, src_rect, src_size, src_layer, gamma))
 	{
 		m_uniform_buffer->AppendData(m_current_constants.data(), POST_PROCESSING_CONTANTS_BUFFER_SIZE);
 		ADDSTAT(stats.thisFrame.bytesUniformStreamed, POST_PROCESSING_CONTANTS_BUFFER_SIZE);
