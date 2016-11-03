@@ -1159,13 +1159,28 @@ void TextureCacheBase::CopyRenderTargetToTexture(u32 dstAddr, u32 dstFormat, u32
 		return;
 	}
 
-	const u32 tex_w = scaleByHalf ? srcRect.GetWidth() / 2 : srcRect.GetWidth();
-	const u32 tex_h = scaleByHalf ? srcRect.GetHeight() / 2 : srcRect.GetHeight();
+	EFBRectangle clampedRect;
+	clampedRect.left = std::min(srcRect.left, (int)EFB_WIDTH);
+	clampedRect.right = std::min(srcRect.right, (int)EFB_WIDTH);
+	clampedRect.top = std::min(srcRect.top, (int)EFB_HEIGHT);
+	clampedRect.bottom = std::min(srcRect.bottom, (int)EFB_HEIGHT);
 
-	u32 scaled_tex_w = g_ActiveConfig.bCopyEFBScaled ? Renderer::EFBToScaledX(tex_w) : tex_w;
-	u32 scaled_tex_h = g_ActiveConfig.bCopyEFBScaled ? Renderer::EFBToScaledY(tex_h) : tex_h;
+	const u32 tex_w = srcRect.GetWidth() / (scaleByHalf ? 2 : 1);
+	const u32 tex_h = srcRect.GetHeight() / (scaleByHalf ? 2 : 1);
 
-	// TODO: Implement EFB to Multitexture
+	u32 c_tex_w = clampedRect.GetWidth() / (scaleByHalf ? 2 : 1);
+	u32 c_tex_h = clampedRect.GetHeight() / (scaleByHalf ? 2 : 1);
+
+	u32 scaled_tex_w = tex_w;
+	u32 scaled_tex_h = tex_h;
+
+	if (g_ActiveConfig.bCopyEFBScaled)
+	{
+		scaled_tex_w = Renderer::EFBToScaledX(tex_w);
+		scaled_tex_h = Renderer::EFBToScaledY(tex_h);
+		c_tex_w = Renderer::EFBToScaledX(c_tex_w);
+		c_tex_h = Renderer::EFBToScaledY(c_tex_h);
+	}
 
 	// remove all texture cache entries at dstAddr
 	{
@@ -1201,12 +1216,6 @@ void TextureCacheBase::CopyRenderTargetToTexture(u32 dstAddr, u32 dstFormat, u32
 		// mimimi085181: Ugly speedhack for the Last Story 
 		copy_to_ram = copy_to_ram || ((tex_w == 64 || tex_w == 128 || tex_w == 256) && !isIntensity && tex_h != 1 && (dstFormat == 6 || dstFormat == 32));
 	}
-	
-	EFBRectangle rectifiedRect;
-	rectifiedRect.left = std::min(srcRect.left, (int)EFB_WIDTH);
-	rectifiedRect.right = std::min(srcRect.right, (int)EFB_WIDTH);
-	rectifiedRect.top = std::min(srcRect.top, (int)EFB_HEIGHT);
-	rectifiedRect.bottom = std::min(srcRect.bottom, (int)EFB_HEIGHT);
 
 	bool copy_to_vram = true;
 	// Only apply triggered post-processing on specific formats, to avoid false positives.
@@ -1215,7 +1224,7 @@ void TextureCacheBase::CopyRenderTargetToTexture(u32 dstAddr, u32 dstFormat, u32
 	{
 		if (srcFormat != PEControl::Z24 && !isIntensity && dstFormat >= 4 && dstFormat <= 6)
 		{
-			const TargetRectangle targetSource = g_renderer->ConvertEFBRectangle(rectifiedRect);
+			const TargetRectangle targetSource = g_renderer->ConvertEFBRectangle(clampedRect);
 			g_renderer->GetPostProcessor()->OnEFBCopy(&targetSource);
 		}
 	}
@@ -1308,7 +1317,7 @@ void TextureCacheBase::CopyRenderTargetToTexture(u32 dstAddr, u32 dstFormat, u32
 			entry->SetEfbCopy(dstStride);
 			entry->is_custom_tex = false;
 
-			entry->FromRenderTarget(dst, srcFormat, rectifiedRect, scaleByHalf, cbufid, colmat);
+			entry->FromRenderTarget(dst, srcFormat, clampedRect, scaleByHalf, cbufid, colmat, c_tex_w, c_tex_h);
 
 			u64 hash = entry->CalculateHash();
 			entry->SetHashes(hash, hash);

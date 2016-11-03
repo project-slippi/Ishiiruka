@@ -16,12 +16,15 @@ private:
 	bool m_bBlendModeChanged;
 	bool m_bScissorRectChanged;
 	bool m_bViewPortChanged;
+	bool m_bViewPortChangedRequested;
 	TargetRectangle m_ScissorRect;
+	D3DVIEWPORT9 m_vp;
 	bool m_bGenerationModeChanged;
 	bool m_bDepthModeChanged;
 	bool m_bLogicOpModeChanged;
 
 	void _SetColorMask();
+	void _SetViewport();
 	void _SetBlendMode(bool forceUpdate);
 	void _SetScissorRect();
 	void _SetGenerationMode();

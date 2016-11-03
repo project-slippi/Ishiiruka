@@ -20,7 +20,6 @@
 
 #include "Core/HW/Memmap.h"
 
-#include "VideoBackends/OGL/Depalettizer.h"
 #include "VideoBackends/OGL/FramebufferManager.h"
 #include "Common/GL/GLInterfaceBase.h"
 #include "VideoBackends/OGL/ProgramShaderCache.h"
@@ -65,7 +64,6 @@ static GLuint s_palette_resolv_texture;
 static GLuint s_palette_buffer_offset_uniform[3];
 static GLuint s_palette_multiplier_uniform[3];
 static GLuint s_palette_copy_position_uniform[3];
-static std::unique_ptr<Depalettizer> s_depaletizer;
 static std::unique_ptr<TextureScaler> s_scaler;
 static u32 s_last_pallet_Buffer;
 static TlutFormat s_last_TlutFormat = TlutFormat::GX_TL_IA8;
@@ -418,7 +416,7 @@ void TextureCache::TCacheEntry::LoadFromTmem(const u8* ar_src, const u8* gb_src,
 }
 
 void TextureCache::TCacheEntry::FromRenderTarget(u8* dst, PEControl::PixelFormat srcFormat, const EFBRectangle& srcRect,
-	bool scaleByHalf, unsigned int cbufid, const float *colmat)
+	bool scaleByHalf, unsigned int cbufid, const float *colmat, u32 width, u32 height)
 {
 	g_renderer->ResetAPIState(); // reset any game specific settings
 
@@ -437,7 +435,7 @@ void TextureCache::TCacheEntry::FromRenderTarget(u8* dst, PEControl::PixelFormat
 		g_sampler_cache->BindLinearSampler(9);
 	else
 		g_sampler_cache->BindNearestSampler(9);
-	glViewport(0, 0, R.GetWidth() / (scaleByHalf ? 2 : 1), R.GetHeight() / (scaleByHalf ? 2 : 1));
+	glViewport(0, 0, width, height);
 
 	GLuint uniform_location;
 	if (srcFormat == PEControl::Z24)
@@ -491,15 +489,7 @@ bool TextureCache::Palettize(TCacheEntryBase* src_entry, const TCacheEntryBase* 
 	u32 texformat = entry->format & 0xf;
 	if (!g_ActiveConfig.backend_info.bSupportsPaletteConversion)
 	{
-
-		Depalettizer::BaseType baseType = Depalettizer::Unorm8;
-		if (texformat == GX_TF_C4 || texformat == GX_TF_I4)
-			baseType = Depalettizer::Unorm4;
-		else if (texformat == GX_TF_C8 || texformat == GX_TF_I8)
-			baseType = Depalettizer::Unorm8;
-		else
-			return false;
-		return s_depaletizer->Depalettize(baseType, entry->texture, ((TextureCache::TCacheEntry*)base_entry)->texture, entry->config.width, entry->config.height);
+		return false;
 	}
 	g_renderer->ResetAPIState();
 
@@ -550,10 +540,6 @@ TextureCache::TextureCache()
 		glGenTextures(1, &s_palette_resolv_texture);
 		glBindTexture(GL_TEXTURE_BUFFER, s_palette_resolv_texture);
 		glTexBuffer(GL_TEXTURE_BUFFER, GL_R16UI, s_palette_stream_buffer->m_buffer);
-	}
-	else
-	{
-		s_depaletizer = std::make_unique<Depalettizer>();
 	}
 	s_scaler = std::make_unique<TextureScaler>();
 }
@@ -782,10 +768,6 @@ TextureCache::~TextureCache()
 		s_palette_stream_buffer.reset();
 		glDeleteTextures(1, &s_palette_resolv_texture);
 	}
-	else
-	{
-		s_depaletizer.reset();
-	}
 	s_scaler.reset();
 }
 
@@ -811,10 +793,6 @@ void TextureCache::LoadLut(u32 lutFmt, void* addr, u32 size)
 	{
 		s_last_TlutFormat = (TlutFormat)lutFmt;
 		s_last_pallet_Buffer = s_palette_stream_buffer->Stream(size, addr);
-	}
-	else
-	{
-		s_depaletizer->UploadPalette(lutFmt, addr, size);
 	}
 }
 

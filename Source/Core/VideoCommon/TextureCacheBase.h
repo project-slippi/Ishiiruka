@@ -199,7 +199,7 @@ public:
 		virtual void LoadFromTmem(const u8* ar_src, const u8* gb_src, u32 width, u32 height,
 			u32 expanded_width, u32 expanded_Height, u32 level) = 0;
 		virtual void FromRenderTarget(u8* dst, PEControl::PixelFormat srcFormat, const EFBRectangle& srcRect,
-			bool scaleByHalf, unsigned int cbufid, const float *colmat) = 0;
+			bool scaleByHalf, unsigned int cbufid, const float *colmat, u32 width, u32 height) = 0;
 		bool OverlapsMemoryRange(u32 range_address, u32 range_size) const;
 		virtual bool SupportsMaterialMap() const = 0;
 

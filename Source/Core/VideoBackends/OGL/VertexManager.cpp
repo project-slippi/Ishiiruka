@@ -150,9 +150,8 @@ void VertexManager::vFlush(bool useDstAlpha)
 		glBindVertexArray(nativeVertexFmt->VAO);
 		m_last_vao = nativeVertexFmt->VAO;
 	}
-
 	PrepareDrawBuffers(stride);
-
+	g_renderer->ApplyState(false);
 	Draw(stride);
 	// If the GPU does not support dual-source blending, we can approximate the effect by drawing
 	// the object a second time, with the write mask set to alpha only using a shader that outputs

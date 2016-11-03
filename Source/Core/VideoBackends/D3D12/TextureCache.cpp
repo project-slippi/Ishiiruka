@@ -422,7 +422,7 @@ TextureCacheBase::TCacheEntryBase* TextureCache::CreateTexture(const TCacheEntry
 }
 
 void TextureCache::TCacheEntry::FromRenderTarget(u8* dst, PEControl::PixelFormat src_format, const EFBRectangle& src_rect,
-	bool scale_by_half, u32 cbuf_id, const float* colmat)
+	bool scale_by_half, u32 cbuf_id, const float* colmat, u32 width, u32 height)
 {
 	// When copying at half size, in multisampled mode, resolve the color/depth buffer first.
 	// This is because multisampled texture reads go through Load, not Sample, and the linear
@@ -447,7 +447,7 @@ void TextureCache::TCacheEntry::FromRenderTarget(u8* dst, PEControl::PixelFormat
 		s_efb_copy_last_cbuf_id = cbuf_id;
 	}
 	// stretch picture with increased internal resolution
-	D3D::SetViewportAndScissor(0, 0, targetSource.GetWidth() / (scale_by_half ? 2 : 1), targetSource.GetHeight() / (scale_by_half ? 2 : 1));
+	D3D::SetViewportAndScissor(0, 0, width, height);
 	D3D::current_command_list->SetGraphicsRootConstantBufferView(DESCRIPTOR_TABLE_PS_CBVONE, s_efb_copy_stream_buffer->GetGPUAddressOfCurrentAllocation());
 	D3D::command_list_mgr->SetCommandListDirtyState(COMMAND_LIST_STATE_PS_CBV, true);
 

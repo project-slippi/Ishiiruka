@@ -121,7 +121,7 @@ private:
 		}
 
 		void FromRenderTarget(u8* dst, PEControl::PixelFormat srcFormat, const EFBRectangle& srcRect,
-			bool scaleByHalf, unsigned int cbufid, const float *colmat) override
+			bool scaleByHalf, unsigned int cbufid, const float *colmat, u32 width, u32 height) override
 		{
 			EfbCopy::CopyEfb();
 		}

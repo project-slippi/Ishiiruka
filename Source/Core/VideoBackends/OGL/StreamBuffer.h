@@ -43,6 +43,10 @@ public:
 		}
 		return Stream(size, src);
 	}
+	bool CanStreamWithoutRestart(u32 size, u32 stride = 0)
+	{
+		return (m_iterator + size + stride) <= m_size;
+	}
 	const u32 m_buffer;
 
 protected:

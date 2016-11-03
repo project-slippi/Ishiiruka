@@ -36,7 +36,6 @@
   <PropertyGroup Label="UserMacros" />
   <ItemGroup>
     <ClCompile Include="BoundingBox.cpp" />
-    <ClCompile Include="Depalettizer.cpp" />
     <ClCompile Include="FramebufferManager.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="NativeVertexFormat.cpp" />
@@ -53,7 +52,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="BoundingBox.h" />
-    <ClInclude Include="Depalettizer.h" />
     <ClInclude Include="FramebufferManager.h" />
     <ClInclude Include="PerfQuery.h" />
     <ClInclude Include="PostProcessing.h" />

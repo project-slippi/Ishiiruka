@@ -739,6 +739,15 @@ Renderer::Renderer()
 	glClearDepthf(1.0f);
 	UpdateActiveConfig();
 	ClearEFBCache();
+	m_bColorMaskChanged = true;
+	m_bBlendModeChanged = true;
+	m_bBlendModeForce = true;
+	m_bScissorRectChanged = true;
+	m_bViewPortChanged = true;
+	m_bGenerationModeChanged = true;
+	m_bDepthModeChanged = true;
+	m_bLogicOpModeChanged = true;
+	m_bViewPortChangedRequested = true;
 }
 
 Renderer::~Renderer()
@@ -803,13 +812,23 @@ TargetRectangle Renderer::ConvertEFBRectangle(const EFBRectangle& rc)
 // Renderer::GetTargetHeight() = the fixed ini file setting
 // donkopunchstania - it appears scissorBR is the bottom right pixel inside the scissor box
 // therefore the width and height are (scissorBR + 1) - scissorTL
-void Renderer::SetScissorRect(const TargetRectangle& trc)
+
+void Renderer::_SetScissorRect()
 {
-	glScissor(trc.left, trc.bottom, trc.GetWidth(), trc.GetHeight());
+	m_bScissorRectChanged = false;
+	glScissor(m_ScissorRect.left, m_ScissorRect.bottom, m_ScissorRect.GetWidth(), m_ScissorRect.GetHeight());
 }
 
-void Renderer::SetColorMask()
+void Renderer::SetScissorRect(const TargetRectangle& trc)
 {
+	m_bScissorRectChanged = true;
+	m_ScissorRect = trc;
+	
+}
+
+void Renderer::_SetColorMask()
+{
+	m_bColorMaskChanged = false;
 	// Only enable alpha channel if it's supported by the current EFB format
 	GLenum ColorMask = GL_FALSE, AlphaMask = GL_FALSE;
 	if (bpmem.alpha_test.TestResult() != AlphaTest::FAIL)
@@ -820,6 +839,11 @@ void Renderer::SetColorMask()
 			AlphaMask = GL_TRUE;
 	}
 	glColorMask(ColorMask, ColorMask, ColorMask, AlphaMask);
+}
+
+void Renderer::SetColorMask()
+{
+	m_bColorMaskChanged = true;
 }
 
 void ClearEFBCache()
@@ -1079,68 +1103,83 @@ void Renderer::BBoxWrite(int index, u16 _value)
 	BBox::Set(index, value);
 }
 
+void Renderer::_SetViewport()
+{
+	if (m_bViewPortChangedRequested)
+	{
+		m_bViewPortChangedRequested = false;
+		// reversed gxsetviewport(xorig, yorig, width, height, nearz, farz)
+		// [0] = width/2
+		// [1] = height/2
+		// [2] = 16777215 * (farz - nearz)
+		// [3] = xorig + width/2 + 342
+		// [4] = yorig + height/2 + 342
+		// [5] = 16777215 * farz
+
+		int scissorXOff = bpmem.scissorOffset.x * 2;
+		int scissorYOff = bpmem.scissorOffset.y * 2;
+
+		// TODO: ceil, floor or just cast to int?
+		m_viewport.X = EFBToScaledXf(xfmem.viewport.xOrig - xfmem.viewport.wd - (float)scissorXOff);
+		m_viewport.Y = EFBToScaledYf((float)EFB_HEIGHT - xfmem.viewport.yOrig + xfmem.viewport.ht +
+			(float)scissorYOff);
+		m_viewport.Width = EFBToScaledXf(2.0f * xfmem.viewport.wd);
+		m_viewport.Height = EFBToScaledYf(-2.0f * xfmem.viewport.ht);
+		m_viewport.NearZ = MathUtil::Clamp<float>(
+			xfmem.viewport.farZ -
+			MathUtil::Clamp<float>(xfmem.viewport.zRange, -16777216.0f, 16777216.0f),
+			0.0f, 16777215.0f) /
+			16777216.0f;
+		m_viewport.FarZ = MathUtil::Clamp<float>(xfmem.viewport.farZ, 0.0f, 16777215.0f) / 16777216.0f;
+		if (m_viewport.Width < 0)
+		{
+			m_viewport.X += m_viewport.Width;
+			m_viewport.Width *= -1;
+		}
+		if (m_viewport.Height < 0)
+		{
+			m_viewport.Y += m_viewport.Height;
+			m_viewport.Height *= -1;
+		}
+
+		
+	}
+	if (m_bViewPortChanged)
+	{
+		// Update the view port
+		if (g_ogl_config.bSupportViewportFloat)
+		{
+			glViewportIndexedf(0, m_viewport.X, m_viewport.Y, m_viewport.Width, m_viewport.Height);
+		}
+		else
+		{
+			auto iceilf = [](float f) { return static_cast<GLint>(ceilf(f)); };
+			glViewport(iceilf(m_viewport.X), iceilf(m_viewport.Y), iceilf(m_viewport.Width), iceilf(m_viewport.Height));
+		}
+
+		// Set the reversed depth range. If we do depth clipping and depth range in the
+		// vertex shader we only need to ensure depth values don't exceed the maximum
+		// value supported by the console GPU. If not, we simply clamp the near/far values
+		// themselves to the maximum value as done above.
+		if (g_ActiveConfig.backend_info.bSupportsDepthClamp)
+		{
+			if (xfmem.viewport.zRange < 0.0f)
+				glDepthRangef(0.0f, GX_MAX_DEPTH);
+			else
+				glDepthRangef(GX_MAX_DEPTH, 0.0f);
+		}
+		else
+		{
+			glDepthRangef(m_viewport.FarZ, m_viewport.NearZ);
+		}
+		m_bViewPortChanged = false;
+	}
+}
+
 void Renderer::SetViewport()
 {
-	// reversed gxsetviewport(xorig, yorig, width, height, nearz, farz)
-	// [0] = width/2
-	// [1] = height/2
-	// [2] = 16777215 * (farz - nearz)
-	// [3] = xorig + width/2 + 342
-	// [4] = yorig + height/2 + 342
-	// [5] = 16777215 * farz
-
-	int scissorXOff = bpmem.scissorOffset.x * 2;
-	int scissorYOff = bpmem.scissorOffset.y * 2;
-
-	// TODO: ceil, floor or just cast to int?
-	float X = EFBToScaledXf(xfmem.viewport.xOrig - xfmem.viewport.wd - (float)scissorXOff);
-	float Y = EFBToScaledYf((float)EFB_HEIGHT - xfmem.viewport.yOrig + xfmem.viewport.ht +
-		(float)scissorYOff);
-	float Width = EFBToScaledXf(2.0f * xfmem.viewport.wd);
-	float Height = EFBToScaledYf(-2.0f * xfmem.viewport.ht);
-	float GLNear = MathUtil::Clamp<float>(
-		xfmem.viewport.farZ -
-		MathUtil::Clamp<float>(xfmem.viewport.zRange, -16777216.0f, 16777216.0f),
-		0.0f, 16777215.0f) /
-		16777216.0f;
-	float GLFar = MathUtil::Clamp<float>(xfmem.viewport.farZ, 0.0f, 16777215.0f) / 16777216.0f;
-	if (Width < 0)
-	{
-		X += Width;
-		Width *= -1;
-	}
-	if (Height < 0)
-	{
-		Y += Height;
-		Height *= -1;
-	}
-
-	// Update the view port
-	if (g_ogl_config.bSupportViewportFloat)
-	{
-		glViewportIndexedf(0, X, Y, Width, Height);
-	}
-	else
-	{
-		auto iceilf = [](float f) { return static_cast<GLint>(ceilf(f)); };
-		glViewport(iceilf(X), iceilf(Y), iceilf(Width), iceilf(Height));
-	}
-
-	// Set the reversed depth range. If we do depth clipping and depth range in the
-	// vertex shader we only need to ensure depth values don't exceed the maximum
-	// value supported by the console GPU. If not, we simply clamp the near/far values
-	// themselves to the maximum value as done above.
-	if (g_ActiveConfig.backend_info.bSupportsDepthClamp)
-	{
-		if (xfmem.viewport.zRange < 0.0f)
-			glDepthRangef(0.0f, GX_MAX_DEPTH);
-		else
-			glDepthRangef(GX_MAX_DEPTH, 0.0f);
-	}
-	else
-	{
-		glDepthRangef(GLFar, GLNear);
-	}
+	m_bViewPortChanged = true;
+	m_bViewPortChangedRequested = true;
 }
 
 void Renderer::ClearScreen(const EFBRectangle& rc, bool colorEnable, bool alphaEnable, bool zEnable,
@@ -1210,8 +1249,9 @@ void Renderer::ReinterpretPixelData(unsigned int convtype)
 	}
 }
 
-void Renderer::SetBlendMode(bool forceUpdate)
+void Renderer::_SetBlendMode(bool forceUpdate)
 {
+	m_bBlendModeChanged = false;
 	if (bpmem.blendmode.logicopenable && !bpmem.blendmode.blendenable && !forceUpdate)
 	{
 		return;
@@ -1319,6 +1359,18 @@ void Renderer::SetBlendMode(bool forceUpdate)
 		glBlendFuncSeparate(srcFactor, dstFactor, srcFactorAlpha, dstFactorAlpha);
 	}
 	s_blendMode = newval;
+}
+
+void Renderer::SetBlendMode(bool forceUpdate)
+{
+	if (forceUpdate)
+	{
+		_SetBlendMode(forceUpdate);
+	}
+	else
+	{
+		m_bBlendModeChanged = true;
+	}
 }
 
 // This function has the final picture. We adjust the aspect ratio here.
@@ -1621,6 +1673,48 @@ void Renderer::ResetAPIState()
 	glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 }
 
+void Renderer::ApplyState(bool bUseDstAlpha)
+{
+	if (m_bGenerationModeChanged)
+	{
+		_SetGenerationMode();
+	}
+
+	if (m_bDepthModeChanged || m_bViewPortChanged)
+	{
+		_SetDepthMode();
+	}
+
+	if (m_bColorMaskChanged)
+	{
+		_SetColorMask();
+	}
+
+	if (m_bLogicOpModeChanged)
+	{
+		_SetLogicOpMode();
+	}
+
+	if (m_bBlendModeChanged)
+	{
+		_SetBlendMode(m_bBlendModeForce);
+		m_bBlendModeForce = false;
+	}
+
+	if (m_bScissorRectChanged)
+	{
+		_SetScissorRect();
+	}
+
+	if (m_bViewPortChanged)
+	{
+		_SetViewport();
+	}
+
+	const VertexManager* const vm = static_cast<VertexManager*>(g_vertex_manager.get());
+	glBindBuffer(GL_ARRAY_BUFFER, vm->m_vertex_buffers);
+}
+
 void Renderer::RestoreAPIState()
 {
 	// Gets us back into a more game-like state.
@@ -1630,14 +1724,14 @@ void Renderer::RestoreAPIState()
 		glEnable(GL_CLIP_DISTANCE0);
 		glEnable(GL_CLIP_DISTANCE1);
 	}
-	SetGenerationMode();
-	BPFunctions::SetScissor();
-	SetColorMask();
-	SetDepthMode();
-	SetLogicOpMode();
-	SetBlendMode(true);
-	SetViewport();
-
+	m_bColorMaskChanged = true;
+	m_bGenerationModeChanged = true;
+	m_bScissorRectChanged = true;
+	m_bDepthModeChanged = true;
+	m_bLogicOpModeChanged = true;
+	m_bViewPortChanged = true;
+	m_bBlendModeForce = true;
+	m_bBlendModeChanged = true;
 	const VertexManager* const vm = static_cast<VertexManager*>(g_vertex_manager.get());
 	glBindBuffer(GL_ARRAY_BUFFER, vm->m_vertex_buffers);
 	if (vm->m_last_vao)
@@ -1646,8 +1740,9 @@ void Renderer::RestoreAPIState()
 	TextureCache::SetStage();
 }
 
-void Renderer::SetGenerationMode()
+void Renderer::_SetGenerationMode()
 {
+	m_bGenerationModeChanged = false;
 	// none, ccw, cw, ccw
 	if (bpmem.genMode.cullmode > 0)
 	{
@@ -1661,8 +1756,14 @@ void Renderer::SetGenerationMode()
 	}
 }
 
-void Renderer::SetDepthMode()
+void Renderer::SetGenerationMode()
 {
+	m_bGenerationModeChanged = true;
+}
+
+void Renderer::_SetDepthMode()
+{
+	m_bDepthModeChanged = false;
 	const GLenum glCmpFuncs[8] =
 	{
 		GL_NEVER,
@@ -1691,7 +1792,12 @@ void Renderer::SetDepthMode()
 	}
 }
 
-void Renderer::SetLogicOpMode()
+void Renderer::SetDepthMode()
+{
+	m_bDepthModeChanged = true;
+}
+
+void Renderer::_SetLogicOpMode()
 {
 	if (bpmem.blendmode.logicopenable && !bpmem.blendmode.blendenable)
 	{
@@ -1830,12 +1936,14 @@ void Renderer::SetLogicOpMode()
 	}
 }
 
+void Renderer::SetLogicOpMode()
+{
+	m_bLogicOpModeChanged = true;
+}
+
 void Renderer::SetDitherMode()
 {
-	if (bpmem.blendmode.dither)
-		glEnable(GL_DITHER);
-	else
-		glDisable(GL_DITHER);
+
 }
 
 void Renderer::SetSamplerState(int stage, int texindex, bool custom_tex)

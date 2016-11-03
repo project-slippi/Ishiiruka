@@ -42,7 +42,7 @@ private:
 	u32 m_bufferCursor;
 	enum
 	{
-		MAX_BUFFER_COUNT = 2
+		MAX_BUFFER_COUNT = 3
 	};
 
 	D3D::BufferPtr m_buffers[MAX_BUFFER_COUNT];

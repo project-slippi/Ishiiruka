@@ -656,7 +656,7 @@ void TextureCache::TCacheEntry::LoadFromTmem(const u8* ar_src, const u8* gb_src,
 
 void TextureCache::TCacheEntry::FromRenderTarget(u8* dst, PEControl::PixelFormat src_format,
 	const EFBRectangle& src_rect, bool scale_by_half,
-	unsigned int cbufid, const float* colmat)
+	unsigned int cbufid, const float* colmat, u32 width, u32 height)
 {
 	// A better way of doing this would be nice.
 	FramebufferManager* framebuffer_mgr =
@@ -699,7 +699,7 @@ void TextureCache::TCacheEntry::FromRenderTarget(u8* dst, PEControl::PixelFormat
 	draw.SetPushConstants(colmat, (is_depth_copy ? sizeof(float) * 20 : sizeof(float) * 28));
 	draw.SetPSSampler(0, src_texture->GetView(), src_sampler);
 
-	VkRect2D dest_region = { { 0, 0 },{ m_texture->GetWidth(), m_texture->GetHeight() } };
+	VkRect2D dest_region = { { 0, 0 },{ width, height } };
 
 	draw.BeginRenderPass(m_framebuffer, dest_region);
 

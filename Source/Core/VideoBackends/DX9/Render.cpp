@@ -58,7 +58,7 @@ static bool s_vsync;
 static bool s_b3D_RightFrame = false;
 static LPDIRECT3DSURFACE9 ScreenShootMEMSurface = NULL;
 static bool s_last_fullscreen_mode;
-static D3DVIEWPORT9 s_vp{};
+
 void SetupDeviceObjects()
 {
 	D3D::font.Init();
@@ -187,8 +187,8 @@ Renderer::Renderer(void *&window_handle)
 	m_bColorMaskChanged = true;
 	m_bBlendModeChanged = true;
 	m_bScissorRectChanged = true;
-	m_bViewPortChanged = true,
-		m_bGenerationModeChanged = true;
+	m_bViewPortChanged = true;
+	m_bGenerationModeChanged = true;
 	m_bDepthModeChanged = true;
 	m_bLogicOpModeChanged = true;
 }
@@ -344,7 +344,7 @@ void Renderer::PokeEFB(EFBAccessType type, const EfbPokeData* points, size_t num
 	vp.Y = 0;
 	vp.Width = GetTargetWidth();
 	vp.Height = GetTargetHeight();
-	
+
 
 	if (xfmem.viewport.zRange < 0.0f)
 	{
@@ -776,63 +776,77 @@ void Renderer::RestoreAPIState()
 	m_bViewPortChanged = true;
 }
 
+void Renderer::_SetViewport()
+{
+	if (m_bViewPortChangedRequested)
+	{
+		m_bViewPortChangedRequested = false;
+		// reversed gxsetviewport(xorig, yorig, width, height, nearz, farz)
+		// [0] = width/2
+		// [1] = height/2
+		// [2] = 16777215 * (farz - nearz)
+		// [3] = xorig + width/2 + 342
+		// [4] = yorig + height/2 + 342
+		// [5] = 16777215 * farz
+
+		// D3D crashes for zero viewports
+		if (xfmem.viewport.wd == 0 || xfmem.viewport.ht == 0)
+			return;
+
+		int scissorXOff = bpmem.scissorOffset.x * 2;
+		int scissorYOff = bpmem.scissorOffset.y * 2;
+
+		// TODO: ceil, floor or just cast to int?
+		int X = EFBToScaledX((int)ceil(xfmem.viewport.xOrig - xfmem.viewport.wd - scissorXOff));
+		int Y = EFBToScaledY((int)ceil(xfmem.viewport.yOrig + xfmem.viewport.ht - scissorYOff));
+		int Wd = EFBToScaledX((int)ceil(2.0f * xfmem.viewport.wd));
+		int Ht = EFBToScaledY((int)ceil(-2.0f * xfmem.viewport.ht));
+		if (Wd < 0)
+		{
+			X += Wd;
+			Wd = -Wd;
+		}
+		if (Ht < 0)
+		{
+			Y += Ht;
+			Ht = -Ht;
+		}
+
+		// In D3D, the viewport rectangle must fit within the render target.
+		X = (X >= 0) ? X : 0;
+		Y = (Y >= 0) ? Y : 0;
+		Wd = (X + Wd <= GetTargetWidth()) ? Wd : (GetTargetWidth() - X);
+		Ht = (Y + Ht <= GetTargetHeight()) ? Ht : (GetTargetHeight() - Y);
+
+		m_vp.X = X;
+		m_vp.Y = Y;
+		m_vp.Width = Wd;
+		m_vp.Height = Ht;
+
+		if (xfmem.viewport.zRange < 0.0f)
+		{
+			m_vp.MinZ = 1.0f - GX_MAX_DEPTH;
+			m_vp.MaxZ = 1.0f;
+		}
+		else
+		{
+			float nearz = xfmem.viewport.farZ - MathUtil::Clamp<float>(xfmem.viewport.zRange, 0.0f, 16777215.0f);
+			// Some games set invalids values for z min and z max so fix them to the max an min alowed and let the shaders do this work
+			m_vp.MaxZ = 1.0f - (MathUtil::Clamp<float>(nearz, 0.0f, 16777215.0f) / 16777216.0f);
+			m_vp.MinZ = 1.0f - (MathUtil::Clamp<float>(xfmem.viewport.farZ, 0.0f, 16777215.0f) / 16777216.0f);
+		}
+	}
+	if (m_bViewPortChanged)
+	{
+		D3D::dev->SetViewport(&m_vp);
+		m_bViewPortChanged = false;
+	}
+}
+
 // Called from VertexShaderManager
 void Renderer::SetViewport()
 {
-	// reversed gxsetviewport(xorig, yorig, width, height, nearz, farz)
-	// [0] = width/2
-	// [1] = height/2
-	// [2] = 16777215 * (farz - nearz)
-	// [3] = xorig + width/2 + 342
-	// [4] = yorig + height/2 + 342
-	// [5] = 16777215 * farz
-
-	// D3D crashes for zero viewports
-	if (xfmem.viewport.wd == 0 || xfmem.viewport.ht == 0)
-		return;
-
-	int scissorXOff = bpmem.scissorOffset.x * 2;
-	int scissorYOff = bpmem.scissorOffset.y * 2;
-
-	// TODO: ceil, floor or just cast to int?
-	int X = EFBToScaledX((int)ceil(xfmem.viewport.xOrig - xfmem.viewport.wd - scissorXOff));
-	int Y = EFBToScaledY((int)ceil(xfmem.viewport.yOrig + xfmem.viewport.ht - scissorYOff));
-	int Wd = EFBToScaledX((int)ceil(2.0f * xfmem.viewport.wd));
-	int Ht = EFBToScaledY((int)ceil(-2.0f * xfmem.viewport.ht));
-	if (Wd < 0)
-	{
-		X += Wd;
-		Wd = -Wd;
-	}
-	if (Ht < 0)
-	{
-		Y += Ht;
-		Ht = -Ht;
-	}
-
-	// In D3D, the viewport rectangle must fit within the render target.
-	X = (X >= 0) ? X : 0;
-	Y = (Y >= 0) ? Y : 0;
-	Wd = (X + Wd <= GetTargetWidth()) ? Wd : (GetTargetWidth() - X);
-	Ht = (Y + Ht <= GetTargetHeight()) ? Ht : (GetTargetHeight() - Y);
-
-	s_vp.X = X;
-	s_vp.Y = Y;
-	s_vp.Width = Wd;
-	s_vp.Height = Ht;
-
-	if (xfmem.viewport.zRange < 0.0f)
-	{
-		s_vp.MinZ = 1.0f - GX_MAX_DEPTH;
-		s_vp.MaxZ = 1.0f;
-	}
-	else
-	{
-		float nearz = xfmem.viewport.farZ - MathUtil::Clamp<float>(xfmem.viewport.zRange, 0.0f, 16777215.0f);
-		// Some games set invalids values for z min and z max so fix them to the max an min alowed and let the shaders do this work
-		s_vp.MaxZ = 1.0f - (MathUtil::Clamp<float>(nearz, 0.0f, 16777215.0f) / 16777216.0f);
-		s_vp.MinZ = 1.0f - (MathUtil::Clamp<float>(xfmem.viewport.farZ, 0.0f, 16777215.0f) / 16777216.0f);
-	}
+	m_bViewPortChangedRequested = true;
 	m_bViewPortChanged = true;
 }
 
@@ -870,8 +884,7 @@ void Renderer::ApplyState(bool bUseDstAlpha)
 
 	if (m_bViewPortChanged)
 	{
-		D3D::dev->SetViewport(&s_vp);
-		m_bViewPortChanged = false;
+		_SetViewport();
 	}
 
 	if (bUseDstAlpha)
@@ -956,7 +969,7 @@ void Renderer::_SetBlendMode(bool forceUpdate)
 	//really useful for debugging shader and blending errors
 	bool use_DstAlpha = bpmem.dstalpha.enable && bpmem.blendmode.alphaupdate && target_has_alpha;
 	bool use_DualSource = use_DstAlpha && g_ActiveConfig.backend_info.bSupportsDualSourceBlend;
-	const D3DBLEND d3dSrcFactors[8] =
+	static const D3DBLEND d3dSrcFactors[8] =
 	{
 		D3DBLEND_ZERO,
 		D3DBLEND_ONE,
@@ -967,7 +980,7 @@ void Renderer::_SetBlendMode(bool forceUpdate)
 		(target_has_alpha) ? D3DBLEND_DESTALPHA : D3DBLEND_ONE,
 		(target_has_alpha) ? D3DBLEND_INVDESTALPHA : D3DBLEND_ZERO
 	};
-	const D3DBLEND d3dDestFactors[8] =
+	static const D3DBLEND d3dDestFactors[8] =
 	{
 		D3DBLEND_ZERO,
 		D3DBLEND_ONE,
@@ -1034,7 +1047,7 @@ void Renderer::SetGenerationMode()
 void Renderer::_SetGenerationMode()
 {
 	m_bGenerationModeChanged = false;
-	const D3DCULL d3dCullModes[4] =
+	static const D3DCULL d3dCullModes[4] =
 	{
 		D3DCULL_NONE,
 		D3DCULL_CCW,
@@ -1052,7 +1065,7 @@ void Renderer::SetDepthMode()
 void Renderer::_SetDepthMode()
 {
 	m_bDepthModeChanged = false;
-	const D3DCMPFUNC d3dCmpFuncs[8] =
+	static const D3DCMPFUNC d3dCmpFuncs[8] =
 	{
 		D3DCMP_NEVER,
 		D3DCMP_GREATER,

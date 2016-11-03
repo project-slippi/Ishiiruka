@@ -127,6 +127,9 @@ private:
 	static SHADERUID last_uid;
 
 	static u32 s_ubo_buffer_size;
+	static u32 s_p_ubo_buffer_size;
+	static u32 s_v_ubo_buffer_size;
+	static u32 s_g_ubo_buffer_size;
 	static s32 s_ubo_align;
 };
 

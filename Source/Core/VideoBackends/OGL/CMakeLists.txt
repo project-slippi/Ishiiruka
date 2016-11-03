@@ -1,6 +1,5 @@
 set(SRCS BoundingBox.cpp
-           Depalettizer.cpp
-	   FramebufferManager.cpp
+           FramebufferManager.cpp
 	   main.cpp
 	   NativeVertexFormat.cpp
 	   PerfQuery.cpp

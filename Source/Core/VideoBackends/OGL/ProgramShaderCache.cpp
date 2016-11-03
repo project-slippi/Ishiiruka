@@ -25,6 +25,9 @@
 namespace OGL
 {
 u32 ProgramShaderCache::s_ubo_buffer_size;
+u32 ProgramShaderCache::s_v_ubo_buffer_size;
+u32 ProgramShaderCache::s_p_ubo_buffer_size;
+u32 ProgramShaderCache::s_g_ubo_buffer_size;
 s32 ProgramShaderCache::s_ubo_align;
 
 static std::unique_ptr<StreamBuffer> s_buffer;
@@ -146,25 +149,55 @@ void SHADER::Bind()
 
 void ProgramShaderCache::UploadConstants()
 {
-	if (VertexShaderManager::IsDirty() || PixelShaderManager::IsDirty() || GeometryShaderManager::IsDirty())
+	s32 required_size = 0;
+	u32 mask = 0;
+	if (PixelShaderManager::IsDirty())
+	{
+		required_size += s_p_ubo_buffer_size;
+		mask |= 1;
+	}
+	if (VertexShaderManager::IsDirty())
+	{
+		required_size += s_v_ubo_buffer_size;
+		mask |= 2;
+	}
+	if (GeometryShaderManager::IsDirty())
+	{
+		required_size += s_g_ubo_buffer_size;
+		mask |= 4;
+	}
+	if (!s_buffer->CanStreamWithoutRestart(required_size))
+	{
+		required_size = s_ubo_buffer_size;
+		mask = 7;
+	}
+	if (mask)
 	{
 		glBindBuffer(GL_UNIFORM_BUFFER, s_buffer->m_buffer);
-		u32 pixel_buffer_size = C_PCONST_END * 4 * sizeof(float);
-		u32 vertex_buffer_size = VertexShaderManager::ConstantBufferSize * sizeof(float);
-
-		glBindBufferRange(GL_UNIFORM_BUFFER, 1, s_buffer->m_buffer,
-			s_buffer->Stream(pixel_buffer_size, s_ubo_align, PixelShaderManager::GetBuffer()),
-			pixel_buffer_size);
-		glBindBufferRange(GL_UNIFORM_BUFFER, 2, s_buffer->m_buffer,
-			s_buffer->Stream(vertex_buffer_size, s_ubo_align, VertexShaderManager::GetBuffer()),
-			vertex_buffer_size);
-		glBindBufferRange(GL_UNIFORM_BUFFER, 3, s_buffer->m_buffer,
-			s_buffer->Stream(sizeof(GeometryShaderConstants), s_ubo_align, &GeometryShaderManager::constants),
-			sizeof(GeometryShaderConstants));
-		PixelShaderManager::Clear();
-		VertexShaderManager::Clear();
-		GeometryShaderManager::Clear();
-		ADDSTAT(stats.thisFrame.bytesUniformStreamed, s_ubo_buffer_size);
+		if (mask & 1)
+		{
+			const u32 pixel_buffer_size = C_PCONST_END * 4 * sizeof(float);
+			glBindBufferRange(GL_UNIFORM_BUFFER, 1, s_buffer->m_buffer,
+				s_buffer->Stream(pixel_buffer_size, s_ubo_align, PixelShaderManager::GetBuffer()),
+				pixel_buffer_size);
+			PixelShaderManager::Clear();
+		}
+		if (mask & 2)
+		{
+			const u32 vertex_buffer_size = VertexShaderManager::ConstantBufferSize * sizeof(float);
+			glBindBufferRange(GL_UNIFORM_BUFFER, 2, s_buffer->m_buffer,
+				s_buffer->Stream(vertex_buffer_size, s_ubo_align, VertexShaderManager::GetBuffer()),
+				vertex_buffer_size);
+			VertexShaderManager::Clear();
+		}
+		if (mask & 4)
+		{
+			glBindBufferRange(GL_UNIFORM_BUFFER, 3, s_buffer->m_buffer,
+				s_buffer->Stream(sizeof(GeometryShaderConstants), s_ubo_align, &GeometryShaderManager::constants),
+				sizeof(GeometryShaderConstants));
+			GeometryShaderManager::Clear();
+		}
+		ADDSTAT(stats.thisFrame.bytesUniformStreamed, required_size);
 	}
 }
 
@@ -406,10 +439,12 @@ void ProgramShaderCache::Init()
 	// if we generate a buffer that isn't aligned
 	// then the UBO will fail.
 	glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &s_ubo_align);
-
-	s_ubo_buffer_size = ROUND_UP(C_PCONST_END * 4 * sizeof(float), s_ubo_align)
-		+ ROUND_UP(VertexShaderManager::ConstantBufferSize * sizeof(float), s_ubo_align)
-		+ ROUND_UP(sizeof(GeometryShaderConstants), s_ubo_align);
+	s_p_ubo_buffer_size = ROUND_UP(C_PCONST_END * 4 * sizeof(float), s_ubo_align);
+	s_v_ubo_buffer_size = ROUND_UP(VertexShaderManager::ConstantBufferSize * sizeof(float), s_ubo_align);
+	s_g_ubo_buffer_size = ROUND_UP(sizeof(GeometryShaderConstants), s_ubo_align);
+	s_ubo_buffer_size = s_p_ubo_buffer_size
+		+ s_v_ubo_buffer_size
+		+ s_g_ubo_buffer_size;
 
 	// We multiply by *4*4 because we need to get down to basic machine units.
 	// So multiply by four to get how many floats we have from vec4s

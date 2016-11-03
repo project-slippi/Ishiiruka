@@ -53,9 +53,6 @@
     <ClCompile Include="BoundingBox.cpp">
       <Filter>Render</Filter>
     </ClCompile>
-    <ClCompile Include="Depalettizer.cpp">
-      <Filter>Render</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="VertexManager.h">
@@ -91,9 +88,6 @@
     <ClInclude Include="SamplerCache.h" />
     <ClInclude Include="VideoBackend.h" />
     <ClInclude Include="BoundingBox.h">
-      <Filter>Render</Filter>
-    </ClInclude>
-    <ClInclude Include="Depalettizer.h">
       <Filter>Render</Filter>
     </ClInclude>
   </ItemGroup>

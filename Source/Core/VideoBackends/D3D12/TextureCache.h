@@ -42,7 +42,7 @@ private:
 			u32 expanded_width, u32 expanded_Height, u32 level) override;
 
 		void FromRenderTarget(u8* dst, PEControl::PixelFormat src_format, const EFBRectangle& src_rect,
-			bool scale_by_half, u32 cbuf_id, const float* colmat) override;
+			bool scale_by_half, u32 cbuf_id, const float* colmat, u32 width, u32 height) override;
 		bool SupportsMaterialMap() const override
 		{
 			return m_nrm_texture != nullptr;

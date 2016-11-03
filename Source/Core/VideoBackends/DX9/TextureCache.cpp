@@ -220,7 +220,7 @@ void TextureCache::TCacheEntry::LoadFromTmem(const u8* ar_src, const u8* gb_src,
 }
 
 void TextureCache::TCacheEntry::FromRenderTarget(u8* dst, PEControl::PixelFormat srcFormat, const EFBRectangle& srcRect,
-	bool scaleByHalf, unsigned int cbufid, const float *colmat)
+	bool scaleByHalf, unsigned int cbufid, const float *colmat, u32 width, u32 height)
 {
 	g_renderer->ResetAPIState(); // reset any game specific settings
 
@@ -238,8 +238,8 @@ void TextureCache::TCacheEntry::FromRenderTarget(u8* dst, PEControl::PixelFormat
 	// Stretch picture with increased internal resolution
 	vp.X = 0;
 	vp.Y = 0;
-	vp.Width = targetSource.GetWidth() / (scaleByHalf ? 2 : 1);
-	vp.Height = targetSource.GetHeight() / (scaleByHalf ? 2 : 1);
+	vp.Width = width;
+	vp.Height = height;
 	vp.MinZ = 0.0f;
 	vp.MaxZ = 1.0f;
 	D3D::dev->SetViewport(&vp);

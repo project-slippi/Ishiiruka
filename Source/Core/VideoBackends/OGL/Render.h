@@ -81,10 +81,8 @@ public:
 	void SetViewport() override;
 
 	// TODO: Implement and use these
-	void ApplyState(bool bUseDstAlpha) override
-	{}
-	void RestoreState() override
-	{}
+	void ApplyState(bool bUseDstAlpha) override;
+	void RestoreState() override {}
 
 	void RenderText(const std::string& text, int left, int top, u32 color) override;
 
@@ -112,6 +110,33 @@ public:
 	void ChangeSurface(void* new_surface_handle) override;
 
 private:
+	struct ViewPort {
+		float       X;
+		float       Y;
+		float       Width;
+		float       Height;
+		float       NearZ;
+		float       FarZ;
+	};
+	bool m_bColorMaskChanged;
+	bool m_bBlendModeChanged;
+	bool m_bBlendModeForce;
+	bool m_bScissorRectChanged;
+	bool m_bViewPortChanged;
+	TargetRectangle m_ScissorRect;
+	ViewPort m_viewport;
+	bool m_bGenerationModeChanged;
+	bool m_bDepthModeChanged;
+	bool m_bLogicOpModeChanged;
+	bool m_bViewPortChangedRequested;
+
+	void _SetColorMask();
+	void _SetBlendMode(bool forceUpdate);
+	void _SetScissorRect();
+	void _SetGenerationMode();
+	void _SetDepthMode();
+	void _SetLogicOpMode();
+	void _SetViewport();
 	void UpdateEFBCache(EFBAccessType type, u32 cacheRectIdx, const EFBRectangle& efbPixelRc, const TargetRectangle& targetPixelRc, const void* data);
 	void BlitScreen(const TargetRectangle& dst_rect, const TargetRectangle& src_rect, const  TargetSize& src_size, GLuint src_texture, GLuint src_depth_texture, float gamma);
 };
