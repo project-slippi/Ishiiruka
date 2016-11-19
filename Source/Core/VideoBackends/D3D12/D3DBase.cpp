@@ -6,14 +6,15 @@
 #include <memory>
 
 #include "Common/CommonTypes.h"
+#include "Common/Logging/Log.h"
 #include "Common/MsgHandler.h"
 #include "Common/StringUtil.h"
-#include "Common/Logging/Log.h"
 #include "VideoBackends/D3D12/D3DBase.h"
 #include "VideoBackends/D3D12/D3DCommandListManager.h"
 #include "VideoBackends/D3D12/D3DDescriptorHeapManager.h"
 #include "VideoBackends/D3D12/D3DState.h"
 #include "VideoBackends/D3D12/D3DTexture.h"
+#include "VideoCommon/OnScreenDisplay.h"
 #include "VideoCommon/VideoConfig.h"
 
 static const unsigned int SWAP_CHAIN_BUFFER_COUNT = 4;
@@ -51,7 +52,7 @@ D3D12_CPU_DESCRIPTOR_HANDLE null_srv_cpu_shadow = {};
 unsigned int resource_descriptor_size = 0;
 unsigned int sampler_descriptor_size = 0;
 std::unique_ptr<D3DDescriptorHeapManager> gpu_descriptor_heap_mgr;
-std::unique_ptr<D3DDescriptorHeapManager> sampler_descriptor_heap_mgr;
+std::unique_ptr<D3DSamplerHeapManager> sampler_descriptor_heap_mgr;
 std::unique_ptr<D3DDescriptorHeapManager> dsv_descriptor_heap_mgr;
 std::unique_ptr<D3DDescriptorHeapManager> rtv_descriptor_heap_mgr;
 std::array<ID3D12DescriptorHeap*, 2> gpu_descriptor_heaps;
@@ -254,9 +255,9 @@ HRESULT Create(HWND wnd)
 	swap_chain_desc.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
 	swap_chain_desc.BufferDesc.Scaling = DXGI_MODE_SCALING_UNSPECIFIED;
 
-#if defined(_DEBUG) || defined(DEBUGFAST) || defined(USE_D3D12_DEBUG_LAYER)
+
 	// Enabling the debug layer will fail if the Graphics Tools feature is not installed.
-	if (SUCCEEDED(hr))
+	if (SUCCEEDED(hr) && g_ActiveConfig.bEnableValidationLayer)
 	{
 		ID3D12Debug* debug_controller;
 		hr = d3d12_get_debug_interface(IID_PPV_ARGS(&debug_controller));
@@ -271,7 +272,7 @@ HRESULT Create(HWND wnd)
 		}
 	}
 
-#endif
+
 
 	if (SUCCEEDED(hr))
 	{
@@ -378,9 +379,10 @@ HRESULT Create(HWND wnd)
 	if (SUCCEEDED(device->QueryInterface(info_queue.ReleaseAndGetAddressOf())))
 	{
 		CheckHR(info_queue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_ERROR, TRUE));
-#if defined(_DEBUG) || defined(DEBUGFAST) || defined(USE_D3D12_DEBUG_LAYER)
-		CheckHR(info_queue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_WARNING, TRUE));
-#endif
+		if (g_ActiveConfig.bEnableValidationLayer)
+		{
+			CheckHR(info_queue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_WARNING, TRUE));
+		}
 		D3D12_INFO_QUEUE_FILTER filter = {};
 		D3D12_MESSAGE_ID id_list[] = {
 			D3D12_MESSAGE_ID_CREATEGRAPHICSPIPELINESTATE_DEPTHSTENCILVIEW_NOT_SET, // Benign.
@@ -405,10 +407,6 @@ HRESULT Create(HWND wnd)
 	if (FAILED(hr))
 		MessageBox(wnd, _T("Failed to associate the window"), _T("Dolphin Direct3D 12 backend"), MB_OK | MB_ICONERROR);
 
-	factory.Reset();
-	adapter.Reset();
-
-	CreateDescriptorHeaps();
 	CreateRootSignatures();
 
 	command_list_mgr = std::make_unique<D3DCommandListManager>(
@@ -416,6 +414,8 @@ HRESULT Create(HWND wnd)
 		device,
 		command_queue.Get()
 		);
+
+	CreateDescriptorHeaps();
 
 	command_list_mgr->GetCommandList(&current_command_list);
 	command_list_mgr->SetInitialCommandListState();
@@ -445,7 +445,26 @@ HRESULT Create(HWND wnd)
 
 	QueryPerformanceFrequency(&s_qpc_frequency);
 
+	// Render the device name.
+	DXGI_ADAPTER_DESC adapter_desc;
+	CheckHR(adapter->GetDesc(&adapter_desc));
+	OSD::AddMessage(
+		StringFromFormat("Using D3D Adapter: %s.", UTF16ToUTF8(adapter_desc.Description).c_str()));
+
+	StateCache::CheckDiskCacheState(adapter.Get());
+	factory.Reset();
+	adapter.Reset();
+
 	return S_OK;
+}
+
+static void HandleSamplerHeapRestart(void* obj)
+{
+	if (obj)
+	{
+		gpu_descriptor_heaps[1] = sampler_descriptor_heap_mgr->GetDescriptorHeap();
+		command_list_mgr->ExecuteQueuedWork();
+	}
 }
 
 void CreateDescriptorHeaps()
@@ -453,70 +472,50 @@ void CreateDescriptorHeaps()
 	// Create D3D12 GPU and CPU descriptor heaps.
 
 	{
-		D3D12_DESCRIPTOR_HEAP_DESC gpu_descriptor_heap_desc = {};
-		gpu_descriptor_heap_desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-		gpu_descriptor_heap_desc.NumDescriptors = 512 * 1024;
-		gpu_descriptor_heap_desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+		// We bind 8 textures per draw, let's assume a maximum of 8192 draws per frame, with
+		// a maximum of 8192 textures created at once. Should be sufficient?
+		static constexpr size_t MAX_ACTIVE_TEXTURES = 8192;
+		static constexpr size_t MAX_DRAWS_PER_FRAME = 8192;
+		static constexpr size_t TEMPORARY_SLOTS = MAX_DRAWS_PER_FRAME * 8;
+		gpu_descriptor_heap_mgr = D3DDescriptorHeapManager::Create(
+			device, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE,
+			TEMPORARY_SLOTS + MAX_ACTIVE_TEXTURES, TEMPORARY_SLOTS);
+		if (!gpu_descriptor_heap_mgr)
+			PanicAlert("Failed to create descriptor heap");
 
-		gpu_descriptor_heap_mgr = std::make_unique<D3DDescriptorHeapManager>(&gpu_descriptor_heap_desc, device, 64 * 1024);
-
+		// Allocate null descriptor for use when filling tables
+		gpu_descriptor_heap_mgr->Allocate(nullptr, &null_srv_cpu, &null_srv_cpu_shadow, nullptr);
 		gpu_descriptor_heaps[0] = gpu_descriptor_heap_mgr->GetDescriptorHeap();
-
-		D3D12_CPU_DESCRIPTOR_HANDLE descriptor_heap_cpu_base = gpu_descriptor_heap_mgr->GetDescriptorHeap()->GetCPUDescriptorHandleForHeapStart();
-
 		resource_descriptor_size = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-		sampler_descriptor_size = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
-
-		D3D12_GPU_DESCRIPTOR_HANDLE null_srv_gpu = {};
-		gpu_descriptor_heap_mgr->Allocate(&null_srv_cpu, &null_srv_gpu, &null_srv_cpu_shadow);
-
-		D3D12_SHADER_RESOURCE_VIEW_DESC null_srv_desc = {};
-		null_srv_desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-		null_srv_desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-		null_srv_desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-
-		device->CreateShaderResourceView(NULL, &null_srv_desc, null_srv_cpu);
-		device->CreateShaderResourceView(NULL, &null_srv_desc, null_srv_cpu_shadow);
-
-		for (UINT i = 0; i < gpu_descriptor_heap_desc.NumDescriptors; i++)
-		{
-			// D3D12TODO: Make paving of descriptor heap optional.
-
-			D3D12_CPU_DESCRIPTOR_HANDLE destination_descriptor = {};
-			destination_descriptor.ptr = descriptor_heap_cpu_base.ptr + i * resource_descriptor_size;
-
-			device->CopyDescriptorsSimple(1, destination_descriptor, null_srv_cpu_shadow, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-		}
 	}
 
 	{
-		D3D12_DESCRIPTOR_HEAP_DESC sampler_descriptor_heap_desc = {};
-		sampler_descriptor_heap_desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-		sampler_descriptor_heap_desc.NumDescriptors = 2048;
-		sampler_descriptor_heap_desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER;
+		// Should be more than sufficient. This also includes rendertarget textures.
+		static constexpr size_t MAX_RTVS = 8192;
+		rtv_descriptor_heap_mgr = D3DDescriptorHeapManager::Create(
+			device, D3D12_DESCRIPTOR_HEAP_TYPE_RTV, D3D12_DESCRIPTOR_HEAP_FLAG_NONE, MAX_RTVS, 0);
+		if (!rtv_descriptor_heap_mgr)
+			PanicAlert("Failed to create descriptor heap");
+	}
 
-		sampler_descriptor_heap_mgr = std::make_unique<D3DDescriptorHeapManager>(&sampler_descriptor_heap_desc, device, 256);
+	{
+		// Should be more than sufficient.
+		static constexpr size_t MAX_DSVS = 1024;
+		dsv_descriptor_heap_mgr = D3DDescriptorHeapManager::Create(
+			device, D3D12_DESCRIPTOR_HEAP_TYPE_DSV, D3D12_DESCRIPTOR_HEAP_FLAG_NONE, MAX_DSVS, 0);
+		if (!dsv_descriptor_heap_mgr)
+			PanicAlert("Failed to create descriptor heap");
+	}
 
+	{
+		static constexpr size_t MAX_SAMPLERS = 2048;
+
+		sampler_descriptor_heap_mgr = D3DSamplerHeapManager::Create(device, MAX_SAMPLERS);
+		if (!sampler_descriptor_heap_mgr)
+			PanicAlert("Failed to create descriptor heap");
+		sampler_descriptor_heap_mgr->RegisterHeapRestartCallback(sampler_descriptor_heap_mgr.get(), HandleSamplerHeapRestart);
 		gpu_descriptor_heaps[1] = sampler_descriptor_heap_mgr->GetDescriptorHeap();
-	}
-
-	{
-		D3D12_DESCRIPTOR_HEAP_DESC dsv_descriptor_heap_desc = {};
-		dsv_descriptor_heap_desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
-		dsv_descriptor_heap_desc.NumDescriptors = 1024;
-		dsv_descriptor_heap_desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
-
-		dsv_descriptor_heap_mgr = std::make_unique<D3DDescriptorHeapManager>(&dsv_descriptor_heap_desc, device);
-	}
-
-	{
-		// D3D12TODO: Temporary workaround.. really need to properly suballocate out of render target heap.
-		D3D12_DESCRIPTOR_HEAP_DESC rtv_descriptor_heap_desc = {};
-		rtv_descriptor_heap_desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
-		rtv_descriptor_heap_desc.NumDescriptors = 1024 * 1024;
-		rtv_descriptor_heap_desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
-
-		rtv_descriptor_heap_mgr = std::make_unique<D3DDescriptorHeapManager>(&rtv_descriptor_heap_desc, device);
+		sampler_descriptor_size = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
 	}
 }
 
@@ -709,15 +708,14 @@ void Close()
 
 	s_swap_chain.Reset();
 
-	command_list_mgr.reset();
-	command_queue.Reset();
-
-
-
 	gpu_descriptor_heap_mgr.reset();
 	sampler_descriptor_heap_mgr.reset();
 	rtv_descriptor_heap_mgr.reset();
 	dsv_descriptor_heap_mgr.reset();
+
+	command_list_mgr.reset();
+	command_queue.Reset();
+
 	for (size_t i = 0; i < root_signatures.size(); i++)
 	{
 		root_signatures[i].Reset();
@@ -734,19 +732,20 @@ void Close()
 		NOTICE_LOG(VIDEO, "Successfully released all D3D12 device references!");
 	}
 
-#if defined(_DEBUG) || defined(DEBUGFAST) || defined(USE_D3D12_DEBUG_LAYER)
-	if (s_debug_device)
+	if (g_ActiveConfig.bEnableValidationLayer)
 	{
-		--remaining_references; // the debug interface increases the refcount of the device, subtract that.
-		if (remaining_references)
+		if (s_debug_device)
 		{
-			// print out alive objects, but only if we actually have pending references
-			// note this will also print out internal live objects to the debug console
-			s_debug_device->ReportLiveDeviceObjects(D3D12_RLDO_DETAIL);
+			--remaining_references; // the debug interface increases the refcount of the device, subtract that.
+			if (remaining_references)
+			{
+				// print out alive objects, but only if we actually have pending references
+				// note this will also print out internal live objects to the debug console
+				s_debug_device->ReportLiveDeviceObjects(D3D12_RLDO_DETAIL);
+			}
+			s_debug_device.Reset();
 		}
-		s_debug_device.Reset();
 	}
-#endif
 
 	device = nullptr;
 	current_command_list = nullptr;
@@ -925,12 +924,11 @@ HRESULT SetFullscreenState(bool enable_fullscreen)
 	return S_OK;
 }
 
-HRESULT GetFullscreenState(bool* fullscreen_state)
+bool GetFullscreenState()
 {
 	// Fullscreen exclusive intentionally not supported in DX12 backend. No performance
 	// difference between it and windowed full-screen due to usage of a FLIP swap chain.
-	*fullscreen_state = false;
-	return S_OK;
+	return false;
 }
 
 }  // namespace D3D

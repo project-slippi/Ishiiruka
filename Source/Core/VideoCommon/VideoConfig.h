@@ -86,8 +86,6 @@ struct VideoConfig final
 
 	// General
 	bool bVSync;
-	bool bExclusiveMode;
-	bool bFullscreen;
 	bool bRunning;
 	bool bWidescreenHack;
 	int iAspectRatio;
@@ -145,7 +143,6 @@ struct VideoConfig final
 	bool bHiresTextures;
 	bool bHiresMaterialMaps;
 	bool bHiresMaterialMapsBuild;
-	bool bConvertHiresTextures;
 	bool bCacheHiresTextures;
 	bool bDumpEFBTarget;
 	bool bUseFFV1;
@@ -214,7 +211,6 @@ struct VideoConfig final
 	bool bDumpTevStages;
 	bool bDumpTevTextureFetches;
 
-	// Enable API validation layers, currently only supported with Vulkan.
 	bool bEnableValidationLayer;
 
 	// Multithreaded submission, currently only supported with Vulkan.

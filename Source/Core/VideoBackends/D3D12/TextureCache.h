@@ -18,6 +18,7 @@ public:
 	TextureCache();
 	~TextureCache();
 	static D3D12_GPU_DESCRIPTOR_HANDLE GetTextureGroupHandle();
+	virtual void BindTextures();
 private:
 	struct TCacheEntry : TCacheEntryBase
 	{
@@ -47,7 +48,7 @@ private:
 		{
 			return m_nrm_texture != nullptr;
 		};
-		void Bind(u32 stage, u32 last_Texture) override;
+		void Bind(u32 stage) override;
 		bool Save(const std::string& filename, u32 level) override;
 		inline uintptr_t GetInternalObject() override
 		{

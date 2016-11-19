@@ -17,7 +17,7 @@ namespace Vulkan
 StagingTexture2D::StagingTexture2D(STAGING_BUFFER_TYPE type, u32 width, u32 height, VkFormat format,
 	u32 stride)
 	: m_type(type), m_width(width), m_height(height), m_format(format),
-	m_texel_size(Util::GetTexelSize(format)), m_row_stride(stride)
+	m_texel_size(Util::GetBlockSize(format)), m_row_stride(stride)
 {
 }
 
@@ -29,7 +29,12 @@ StagingTexture2D::~StagingTexture2D()
 void StagingTexture2D::ReadTexel(u32 x, u32 y, void* data, size_t data_size) const
 {
 	_assert_(data_size >= m_texel_size);
-
+	u32 block_width = Util::GetBlockWidth(m_format);
+	if (block_width > 1)
+	{
+		x = std::max(1u, (x + block_width - 1) / block_width);
+		y = std::max(1u, (y + block_width - 1) / block_width);
+	}
 	VkDeviceSize offset = y * m_row_stride + x * m_texel_size;
 	VkDeviceSize map_offset = offset - m_map_offset;
 	_assert_(offset >= m_map_offset && (map_offset + m_texel_size) <= (m_map_offset + m_map_size));
@@ -41,7 +46,12 @@ void StagingTexture2D::ReadTexel(u32 x, u32 y, void* data, size_t data_size) con
 void StagingTexture2D::WriteTexel(u32 x, u32 y, const void* data, size_t data_size)
 {
 	_assert_(data_size >= m_texel_size);
-
+	u32 block_width = Util::GetBlockWidth(m_format);
+	if (block_width > 1)
+	{
+		x = std::max(1u, (x + block_width - 1) / block_width);
+		y = std::max(1u, (y + block_width - 1) / block_width);
+	}
 	VkDeviceSize offset = y * m_row_stride + x * m_texel_size;
 	VkDeviceSize map_offset = offset - m_map_offset;
 	_assert_(offset >= m_map_offset && (map_offset + m_texel_size) <= (m_map_offset + m_map_size));
@@ -53,11 +63,19 @@ void StagingTexture2D::WriteTexel(u32 x, u32 y, const void* data, size_t data_si
 void StagingTexture2D::ReadTexels(u32 x, u32 y, u32 width, u32 height, void* data,
 	u32 data_stride) const
 {
-	const char* src_ptr = GetRowPointer(y);
-
-	// Optimal path: same dimensions, same stride.
 	_assert_((x + width) <= m_width && (y + height) <= m_height);
-	if (x == 0 && width == m_width && m_row_stride == data_stride)
+	const char* src_ptr = GetRowPointer(y);
+	bool use_optimal_path = x == 0 && width == m_width && m_row_stride == data_stride;
+	u32 block_width = Util::GetBlockWidth(m_format);
+	if (block_width > 1)
+	{
+		x = std::max(1u, (x + block_width - 1) / block_width);
+		y = std::max(1u, (y + block_width - 1) / block_width);
+		width = std::max(1u, (width + block_width - 1) / block_width);
+		height = std::max(1u, (height + block_width - 1) / block_width);
+	}
+	// Optimal path: same dimensions, same stride.	
+	if (use_optimal_path)
 	{
 		memcpy(data, src_ptr, m_row_stride * height);
 		return;
@@ -77,10 +95,18 @@ void StagingTexture2D::WriteTexels(u32 x, u32 y, u32 width, u32 height, const vo
 	u32 data_stride)
 {
 	char* dst_ptr = GetRowPointer(y);
-
 	// Optimal path: same dimensions, same stride.
 	_assert_((x + width) <= m_width && (y + height) <= m_height);
-	if (x == 0 && width == m_width && m_row_stride == data_stride)
+	bool use_optimal_path = x == 0 && width == m_width && m_row_stride == data_stride;
+	u32 block_width = Util::GetBlockWidth(m_format);
+	if (block_width > 1)
+	{
+		x = std::max(1u, (x + block_width - 1) / block_width);
+		y = std::max(1u, (y + block_width - 1) / block_width);
+		width = std::max(1u, (width + block_width - 1) / block_width);
+		height = std::max(1u, (height + block_width - 1) / block_width);
+	}
+	if (use_optimal_path)
 	{
 		memcpy(dst_ptr, data, m_row_stride * height);
 		return;
@@ -343,7 +369,8 @@ StagingTexture2DLinear::Create(STAGING_BUFFER_TYPE type, u32 width, u32 height, 
 	}
 
 	// Assume tight packing. Is this correct?
-	u32 stride = width * Util::GetTexelSize(format);
+	u32 block_width = Util::GetBlockWidth(format);
+	u32 stride = Util::GetBlockSize(format) * std::max(1u, (width + block_width - 1) / block_width);
 	return std::make_unique<StagingTexture2DLinear>(type, width, height, format, stride, image,
 		memory, memory_requirements.size, is_coherent);
 }
@@ -467,8 +494,9 @@ std::unique_ptr<StagingTexture2D>
 StagingTexture2DBuffer::Create(STAGING_BUFFER_TYPE type, u32 width, u32 height, VkFormat format)
 {
 	// Assume tight packing.
-	u32 row_stride = Util::GetTexelSize(format) * width;
-	u32 buffer_size = row_stride * height;
+	u32 block_width = Util::GetBlockWidth(format);
+	u32 row_stride = Util::GetBlockSize(format) * std::max(1u, (width + block_width - 1) / block_width);
+	u32 buffer_size = row_stride * std::max(1u, (height + block_width - 1) / block_width);
 	VkImageUsageFlags usage = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 	VkBufferCreateInfo buffer_create_info = {
 			VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,  // VkStructureType        sType

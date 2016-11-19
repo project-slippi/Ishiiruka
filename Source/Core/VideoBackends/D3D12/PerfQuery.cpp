@@ -50,36 +50,52 @@ void PerfQuery::EnableQuery(PerfQueryGroup type)
 		FlushOne();
 		ERROR_LOG(VIDEO, "Flushed query buffer early!");
 	}
+	// Query start need to be delayed until beforre the draw command to grant
+	// that the query will be executed in the same list
+	m_query_enabled = type == PQG_ZCOMP_ZCOMPLOC || type == PQG_ZCOMP;
+	m_type = type;
+}
 
-	if (type == PQG_ZCOMP_ZCOMPLOC || type == PQG_ZCOMP)
+void PerfQuery::StartQuery()
+{
+	if (!m_query_enabled)
 	{
-		size_t index = (m_query_read_pos + m_query_count) % m_query_buffer.size();
-		auto& entry = m_query_buffer[index];
-
-		D3D::current_command_list->BeginQuery(m_query_heap.Get(), D3D12_QUERY_TYPE_OCCLUSION, static_cast<UINT>(index));
-		entry.query_type = type;
-		entry.fence_value = -1;
-
-		++m_query_count;
+		return;
 	}
+	size_t index = (m_query_read_pos + m_query_count) % m_query_buffer.size();
+	auto& entry = m_query_buffer[index];
+
+	D3D::current_command_list->BeginQuery(m_query_heap.Get(), D3D12_QUERY_TYPE_OCCLUSION, static_cast<UINT>(index));
+	entry.query_type = m_type;
+	entry.fence_value = -1;
+
+	++m_query_count;
 }
 
 void PerfQuery::DisableQuery(PerfQueryGroup type)
 {
-	if (type == PQG_ZCOMP_ZCOMPLOC || type == PQG_ZCOMP)
+	m_query_enabled = false;
+}
+
+void PerfQuery::EndQuery()
+{
+	if (m_query_enabled)
 	{
+		// Query ends needs to be called rigth after the draw call
+		// to grand execution on the same command list
 		size_t index = (m_query_read_pos + m_query_count + m_query_buffer.size() - 1) % m_query_buffer.size();
 		auto& entry = m_query_buffer[index];
 
 		D3D::current_command_list->EndQuery(m_query_heap.Get(), D3D12_QUERY_TYPE_OCCLUSION, static_cast<UINT>(index));
 		D3D::current_command_list->ResolveQueryData(m_query_heap.Get(), D3D12_QUERY_TYPE_OCCLUSION, static_cast<UINT>(index), 1, m_query_readback_buffer.Get(), index * sizeof(UINT64));
-		entry.fence_value = m_next_fence_value;
-		D3D::command_list_mgr->EnsureDrawLimit();
+		entry.fence_value = m_next_fence_value;		
 	}
+	m_query_enabled = false;
 }
 
 void PerfQuery::ResetQuery()
 {
+	m_query_enabled = false;
 	m_query_count = 0;
 	std::fill_n(m_results, ArraySize(m_results), 0);
 }
@@ -107,7 +123,7 @@ void PerfQuery::FlushOne()
 
 	// Has the command list been executed yet?
 	if (entry.fence_value == m_next_fence_value)
-		D3D::command_list_mgr->ExecuteQueuedWork(false);
+		D3D::command_list_mgr->ExecuteQueuedWork();
 
 	// Block until the fence is reached
 	D3D::command_list_mgr->WaitOnCPUForFence(m_tracking_fence, entry.fence_value);

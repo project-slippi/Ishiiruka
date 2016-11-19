@@ -12,6 +12,7 @@
 #include "Common/CommonFuncs.h"
 #include "Common/LinearDiskCache.h"
 #include "Core/ConfigManager.h"
+#include "Core/Host.h"
 
 #include "VideoBackends/Vulkan/ShaderCompiler.h"
 #include "VideoBackends/Vulkan/StreamBuffer.h"
@@ -478,6 +479,7 @@ void ObjectCache::LoadShaderCaches()
 
 	if (g_ActiveConfig.bCompileShaderOnStartup)
 	{
+		int shader_count = 0;
 		m_vs_cache.shader_map->ForEachMostUsedByCategory(gameid,
 			[&](const VertexShaderUid& uid, size_t total)
 		{
@@ -487,6 +489,7 @@ void ObjectCache::LoadShaderCaches()
 			vkShaderItem& it = m_vs_cache.shader_map->GetOrAdd(item);
 			if (!it.initialized.test_and_set())
 			{
+				Host_UpdateTitle(StringFromFormat("Compiling Vertex Shaders %i %% (%i/%i)", (shader_count * 100) / total, shader_count, total));
 				CompileVertexShaderForUid(item, it);
 			}
 		},
@@ -495,7 +498,7 @@ void ObjectCache::LoadShaderCaches()
 			return !entry.compiled;
 		}
 		, true);
-
+		shader_count = 0;
 		m_ps_cache.shader_map->ForEachMostUsedByCategory(gameid,
 			[&](const PixelShaderUid& uid, size_t total)
 		{
@@ -505,6 +508,7 @@ void ObjectCache::LoadShaderCaches()
 			vkShaderItem& it = m_ps_cache.shader_map->GetOrAdd(item);
 			if (!it.initialized.test_and_set())
 			{
+				Host_UpdateTitle(StringFromFormat("Compiling Pixel Shaders %i %% (%i/%i)", (shader_count * 100) / total, shader_count, total));
 				CompilePixelShaderForUid(item, it);
 			}
 		},
@@ -516,6 +520,7 @@ void ObjectCache::LoadShaderCaches()
 
 		if (g_vulkan_context->SupportsGeometryShaders())
 		{
+			shader_count = 0;
 			m_gs_cache.shader_map->ForEachMostUsedByCategory(gameid,
 				[&](const GeometryShaderUid& uid, size_t total)
 			{
@@ -525,6 +530,7 @@ void ObjectCache::LoadShaderCaches()
 				vkShaderItem& it = m_gs_cache.shader_map->GetOrAdd(item);
 				if (!it.initialized.test_and_set())
 				{
+					Host_UpdateTitle(StringFromFormat("Compiling Geometry Shaders %i %% (%i/%i)", (shader_count * 100) / total, shader_count, total));
 					CompileGeometryShaderForUid(item, it);
 				}
 			},
@@ -718,7 +724,15 @@ bool ObjectCache::CreateDescriptorSetLayouts()
 		{ 4, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT },
 		{ 5, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT },
 		{ 6, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT },
-		{ 7, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT } };
+		{ 7, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT },
+		{ 8, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT },
+		{ 9, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT },
+		{ 10, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT },
+		{ 11, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT },
+		{ 12, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT },
+		{ 13, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT }, 
+		{ 14, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT }, 
+		{ 15, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT } };
 
 	static const VkDescriptorSetLayoutBinding ssbo_set_bindings[] = {
 		{ 0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT } };

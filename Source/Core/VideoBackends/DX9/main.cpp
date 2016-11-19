@@ -113,15 +113,15 @@ void VideoBackend::InitBackendInfo()
 	}
 
 	DX9::D3D::Shutdown();
+	UpdateActiveConfig();
 }
 
 bool VideoBackend::Initialize(void *window_handle)
 {
 	if (window_handle == nullptr)
 		return false;
-
-	InitializeShared();
 	InitBackendInfo();
+	InitializeShared();
 	// as only some driver/hardware configurations support dual source blending only enable it if is 
 	// configured by user
 	g_Config.backend_info.bSupportsDualSourceBlend = g_Config.bForceDualSourceBlend;
@@ -142,6 +142,7 @@ void VideoBackend::Video_Prepare()
 	g_vertex_manager = std::make_unique<VertexManager>();
 	g_perf_query = std::make_unique<PerfQuery>();
 	g_renderer = std::make_unique<Renderer>(m_window_handle);
+	UpdateActiveConfig();
 }
 
 void VideoBackend::Shutdown()

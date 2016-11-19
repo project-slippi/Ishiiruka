@@ -334,9 +334,9 @@ void PixelShaderCache::Init()
 				CompilePShader(newitem, PIXEL_SHADER_RENDER_MODE::PSRM_DEFAULT, true);
 			}
 			shader_count++;
-			//Host_UpdateTitle(StringFromFormat("Compiling Pixel Shaders %i %% (%i/%i)", (shader_count * 100) / total, shader_count, total));
-			if ((shader_count & 31) == 0)
+			if ((shader_count & 7) == 0)
 			{
+				Host_UpdateTitle(StringFromFormat("Compiling Pixel Shaders %i %% (%i/%i)", (shader_count * 100) / total, shader_count, total));
 				s_compiler->WaitForFinish();
 			}
 		},
@@ -354,6 +354,8 @@ void PixelShaderCache::Clear()
 	if (s_pshaders)
 	{
 		s_pixel_shaders_lock.lock();
+		if (s_compiler)
+			s_compiler->WaitForFinish();
 		s_pshaders->Persist();
 		s_pshaders->Clear([](auto& item)
 		{

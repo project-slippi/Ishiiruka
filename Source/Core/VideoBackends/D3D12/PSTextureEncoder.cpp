@@ -44,13 +44,8 @@ void PSTextureEncoder::InitializeRTV()
 
 	tex_rtv_desc.Texture2D.MipSlice = 0;
 
-	D3D::rtv_descriptor_heap_mgr->Allocate(&m_out_rtv_cpu);
+	D3D::rtv_descriptor_heap_mgr->Allocate(nullptr, &m_out_rtv_cpu, nullptr, nullptr);
 	D3D::device->CreateRenderTargetView(m_out.Get(), &tex_rtv_desc, m_out_rtv_cpu);
-}
-
-void PSTextureEncoder::RTVHeapRestartCallback(void* owner)
-{
-	static_cast<PSTextureEncoder*>(owner)->InitializeRTV();
 }
 
 void PSTextureEncoder::Init()
@@ -83,7 +78,6 @@ void PSTextureEncoder::Init()
 	D3D::SetDebugObjectName12(m_out.Get(), "efb encoder output texture");
 
 	InitializeRTV();
-	D3D::rtv_descriptor_heap_mgr->RegisterHeapRestartCallback(this, &PSTextureEncoder::RTVHeapRestartCallback);
 
 	// Create output staging buffer
 	CheckHR(
@@ -127,7 +121,6 @@ void PSTextureEncoder::Init()
 void PSTextureEncoder::Shutdown()
 {
 	m_ready = false;
-	D3D::rtv_descriptor_heap_mgr->RemoveHeapRestartCallback(this);
 	D3D::command_list_mgr->DestroyResourceAfterCurrentCommandListExecuted(m_out.Detach());
 	D3D::command_list_mgr->DestroyResourceAfterCurrentCommandListExecuted(m_out_readback_buffer.Detach());
 	D3D::command_list_mgr->DestroyResourceAfterCurrentCommandListExecuted(m_encode_params_buffer.Detach());

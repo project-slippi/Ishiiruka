@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include <array>
 #include <string>
 #include "VideoCommon/RenderBase.h"
 
@@ -97,7 +98,7 @@ public:
 
 	TargetRectangle ConvertEFBRectangle(const EFBRectangle& rc) override;
 
-	void SwapImpl(u32 xfbAddr, u32 fbWidth, u32 fbStride, u32 fbHeight, const EFBRectangle& rc,
+	void SwapImpl(u32 xfbAddr, u32 fbWidth, u32 fbStride, u32 fbHeight, const EFBRectangle& rc, u64 ticks,
 		float Gamma) override;
 
 	void ClearScreen(const EFBRectangle& rc, bool colorEnable, bool alphaEnable, bool zEnable,
@@ -139,5 +140,16 @@ private:
 	void _SetViewport();
 	void UpdateEFBCache(EFBAccessType type, u32 cacheRectIdx, const EFBRectangle& efbPixelRc, const TargetRectangle& targetPixelRc, const void* data);
 	void BlitScreen(const TargetRectangle& dst_rect, const TargetRectangle& src_rect, const  TargetSize& src_size, GLuint src_texture, GLuint src_depth_texture, float gamma);
+
+	void FlushFrameDump();
+	void DumpFrame(const TargetRectangle& flipped_trc, u64 ticks);
+
+	// avi dumping state to delay one frame
+	std::array<u32, 2> m_frame_dumping_pbo = {};
+	std::array<bool, 2> m_frame_pbo_is_mapped = {};
+	std::array<int, 2> m_last_frame_width = {};
+	std::array<int, 2> m_last_frame_height = {};
+	bool m_last_frame_exported = false;
+	AVIDump::Frame m_last_frame_state;
 };
 }

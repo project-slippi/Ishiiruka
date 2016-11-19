@@ -198,7 +198,7 @@ void VertexManagerBase::DoFlush()
 			PixelShaderManager::SetFlags(0, ~0, material_mask);
 			PixelShaderManager::SetFlags(1, ~0, emissive_mask);
 		}
-		TextureCacheBase::BindTextures();
+		g_texture_cache->BindTextures();
 	}
 	// set global constants
 	VertexShaderManager::SetConstants();

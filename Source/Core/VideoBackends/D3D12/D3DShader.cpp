@@ -31,7 +31,7 @@ bool CompileShader(
 	const D3D_SHADER_MACRO* pDefines,
 	const char* pEntry, bool throwerror)
 {
-#if defined(_DEBUG) || defined(DEBUGFAST) || defined(USE_D3D12_DEBUG_LAYER)
+#if defined(_DEBUG) || defined(DEBUGFAST)
 	UINT flags = D3DCOMPILE_ENABLE_BACKWARDS_COMPATIBILITY | D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
 #else
 	UINT flags = D3DCOMPILE_SKIP_VALIDATION;

@@ -237,7 +237,7 @@ void InitPP(int adapter, int f, int aa_mode, D3DPRESENT_PARAMETERS *pp)
 	yres = pp->BackBufferHeight = client.bottom - client.top;
 	pp->SwapEffect = D3DSWAPEFFECT_DISCARD;
 	pp->PresentationInterval = g_Config.IsVSync() ? D3DPRESENT_INTERVAL_DEFAULT : D3DPRESENT_INTERVAL_IMMEDIATE;
-	pp->Windowed = !(g_ActiveConfig.ExclusiveFullscreenEnabled() && g_ActiveConfig.bFullscreen);
+	pp->Windowed = !g_ActiveConfig.ExclusiveFullscreenEnabled();
 }
 
 void Enumerate()
@@ -1024,6 +1024,18 @@ void RefreshIndices()
 		dev->SetIndices(m_index_buffer);
 		m_index_buffer_Changed = false;
 	}
+}
+
+HRESULT SetFullscreenState(bool enable_fullscreen)
+{
+	return S_OK;
+}
+
+bool GetFullscreenState()
+{
+	// Fullscreen exclusive intentionally not supported in DX12 backend. No performance
+	// difference between it and windowed full-screen due to usage of a FLIP swap chain.
+	return false;
 }
 
 

@@ -88,7 +88,7 @@ public:
 	// We have four shared pipeline layouts:
 	//   - Standard
 	//       - Per-stage UBO (VS/GS/PS, VS constants accessible from PS)
-	//       - 8 combined image samplers (accessible from PS)
+	//       - 16 combined image samplers (accessible from PS)
 	//   - BBox Enabled
 	//       - Same as standard, plus a single SSBO accessible from PS
 	//   - Push Constant

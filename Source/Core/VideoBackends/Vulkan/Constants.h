@@ -45,7 +45,7 @@ enum UNIFORM_BUFFER_DESCRIPTOR_SET_BINDING
 constexpr size_t MAX_VERTEX_ATTRIBUTES = 16;
 
 // Number of pixel shader texture slots
-constexpr size_t NUM_PIXEL_SHADER_SAMPLERS = 8;
+constexpr size_t NUM_PIXEL_SHADER_SAMPLERS = 16;
 
 // Total number of binding points in the pipeline layout
 constexpr size_t TOTAL_PIPELINE_BINDING_POINTS =

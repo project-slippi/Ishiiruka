@@ -49,7 +49,6 @@ private:
 	std::vector<D3DBlob*> m_static_shaders_blobs;
 
 	void InitializeRTV();
-	static void RTVHeapRestartCallback(void* owner);
 
 };
 

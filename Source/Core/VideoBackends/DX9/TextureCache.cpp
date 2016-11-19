@@ -83,7 +83,7 @@ TextureCache::TCacheEntry::~TCacheEntry()
 	texture->Release();
 }
 
-void TextureCache::TCacheEntry::Bind(u32 stage, u32 last_texture)
+void TextureCache::TCacheEntry::Bind(u32 stage)
 {
 	D3D::SetTexture(stage, texture);
 }

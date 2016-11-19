@@ -413,7 +413,7 @@ Renderer::Renderer()
 				"GPU: Does your video card support OpenGL 3.1?");
 			bSuccess = false;
 		}
-		else if (DriverDetails::HasBug(DriverDetails::BUG_BROKENUBO))
+		else if (DriverDetails::HasBug(DriverDetails::BUG_BROKEN_UBO))
 		{
 			PanicAlert(
 				"Buggy GPU driver detected.\n"
@@ -433,7 +433,7 @@ Renderer::Renderer()
 		// OpenGL 3 doesn't provide GLES like float functions for depth.
 		// They are in core in OpenGL 4.1, so almost every driver should support them.
 		// But for the oldest ones, we provide fallbacks to the old double functions.
-		if (!GLExtensions::Supports("GL_ARB_ES2_compatibility") && GLInterface->GetMode() == GLInterfaceMode::MODE_OPENGL)
+		if (!GLExtensions::Supports("GL_ARB_ES2_compatibility"))
 		{
 			glDepthRangef = DepthRangef;
 			glClearDepthf = ClearDepthf;
@@ -453,7 +453,7 @@ Renderer::Renderer()
 		GLExtensions::Supports("GL_ARB_sample_shading");
 	g_Config.backend_info.bSupportsGeometryShaders =
 		GLExtensions::Version() >= 320 &&
-		!DriverDetails::HasBug(DriverDetails::BUG_BROKENGEOMETRYSHADERS);
+		!DriverDetails::HasBug(DriverDetails::BUG_BROKEN_GEOMETRY_SHADERS);
 	g_Config.backend_info.bSupportsPaletteConversion =
 		GLExtensions::Supports("GL_ARB_texture_buffer_object") ||
 		GLExtensions::Supports("GL_OES_texture_buffer") ||
@@ -463,7 +463,7 @@ Renderer::Renderer()
 		(GLExtensions::Supports("GL_ARB_copy_image") || GLExtensions::Supports("GL_NV_copy_image") ||
 			GLExtensions::Supports("GL_EXT_copy_image") ||
 			GLExtensions::Supports("GL_OES_copy_image")) &&
-		!DriverDetails::HasBug(DriverDetails::BUG_BROKENCOPYIMAGE);
+		!DriverDetails::HasBug(DriverDetails::BUG_BROKEN_COPYIMAGE);
 
 	// Desktop OpenGL supports the binding layout if it supports 420pack
 	// OpenGL ES 3.1 supports it implicitly without an extension
@@ -693,7 +693,7 @@ Renderer::Renderer()
 
 	// Handle VSync on/off
 	s_vsync = g_ActiveConfig.IsVSync();
-	if (!DriverDetails::HasBug(DriverDetails::BUG_BROKENVSYNC))
+	if (!DriverDetails::HasBug(DriverDetails::BUG_BROKEN_VSYNC))
 		GLInterface->SwapInterval(s_vsync);
 
 	// TODO: Move these somewhere else?
@@ -752,6 +752,10 @@ Renderer::Renderer()
 
 Renderer::~Renderer()
 {
+	FlushFrameDump();
+	FinishFrameData();
+	if (m_frame_dumping_pbo[0])
+		glDeleteBuffers(2, m_frame_dumping_pbo.data());
 }
 
 void Renderer::Shutdown()
@@ -1263,6 +1267,10 @@ void Renderer::_SetBlendMode(bool forceUpdate)
 	bool useDstAlpha = bpmem.dstalpha.enable && bpmem.blendmode.alphaupdate && target_has_alpha;
 	bool useDualSource = useDstAlpha && g_ActiveConfig.backend_info.bSupportsDualSourceBlend;
 
+	// Only use dual-source blending when required on drivers that don't support it very well.
+	if (DriverDetails::HasBug(DriverDetails::BUG_BROKEN_DUAL_SOURCE_BLENDING) && !useDstAlpha)
+		useDualSource = false;
+
 	const GLenum glSrcFactors[8] =
 	{
 		GL_ZERO,
@@ -1375,7 +1383,7 @@ void Renderer::SetBlendMode(bool forceUpdate)
 
 // This function has the final picture. We adjust the aspect ratio here.
 void Renderer::SwapImpl(u32 xfbAddr, u32 fbWidth, u32 fbStride, u32 fbHeight,
-	const EFBRectangle& rc, float Gamma)
+	const EFBRectangle& rc, u64 ticks, float Gamma)
 {
 	if (g_ogl_config.bSupportsDebug)
 	{
@@ -1503,17 +1511,8 @@ void Renderer::SwapImpl(u32 xfbAddr, u32 fbWidth, u32 fbStride, u32 fbHeight,
 
 	glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
 
-	if (IsFrameDumping())
-	{
-		std::vector<u8> image(flipped_trc.GetWidth() * flipped_trc.GetHeight() * 4);
+	DumpFrame(flipped_trc, ticks);
 
-		glPixelStorei(GL_PACK_ALIGNMENT, 1);
-		glReadPixels(flipped_trc.left, flipped_trc.bottom, flipped_trc.GetWidth(),
-			flipped_trc.GetHeight(), GL_RGBA, GL_UNSIGNED_BYTE, image.data());
-		DumpFrameData(image.data(), flipped_trc.GetWidth(), flipped_trc.GetHeight(),
-			flipped_trc.GetWidth() * 4, true);
-		FinishFrameData();
-	}
 	// Finish up the current frame, print some stats
 
 	SetWindowSize(fbStride, fbHeight);
@@ -1623,7 +1622,7 @@ void Renderer::SwapImpl(u32 xfbAddr, u32 fbWidth, u32 fbStride, u32 fbHeight,
 	if (s_vsync != g_ActiveConfig.IsVSync())
 	{
 		s_vsync = g_ActiveConfig.IsVSync();
-		if (!DriverDetails::HasBug(DriverDetails::BUG_BROKENVSYNC))
+		if (!DriverDetails::HasBug(DriverDetails::BUG_BROKEN_VSYNC))
 			GLInterface->SwapInterval(s_vsync);
 	}
 
@@ -1651,6 +1650,63 @@ void Renderer::SwapImpl(u32 xfbAddr, u32 fbWidth, u32 fbStride, u32 fbHeight,
 	// if the configuration has changed, reload post processor (can fail, which will deactivate it)
 	if (m_post_processor->RequiresReload())
 		m_post_processor->ReloadShaders();
+}
+
+void Renderer::FlushFrameDump()
+{
+	if (!m_last_frame_exported)
+		return;
+
+	FinishFrameData();
+	glBindBuffer(GL_PIXEL_PACK_BUFFER, m_frame_dumping_pbo[0]);
+	m_frame_pbo_is_mapped[0] = true;
+	void* data = glMapBufferRange(
+		GL_PIXEL_PACK_BUFFER, 0, m_last_frame_width[0] * m_last_frame_height[0] * 4, GL_MAP_READ_BIT);
+	DumpFrameData(reinterpret_cast<u8*>(data), m_last_frame_width[0], m_last_frame_height[0],
+		m_last_frame_width[0] * 4, m_last_frame_state, true);
+	glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
+	m_last_frame_exported = false;
+}
+
+void Renderer::DumpFrame(const TargetRectangle& flipped_trc, u64 ticks)
+{
+	if (!IsFrameDumping())
+		return;
+
+	if (!m_frame_dumping_pbo[0])
+	{
+		glGenBuffers(2, m_frame_dumping_pbo.data());
+		glBindBuffer(GL_PIXEL_PACK_BUFFER, m_frame_dumping_pbo[0]);
+	}
+	else
+	{
+		FlushFrameDump();
+		std::swap(m_frame_dumping_pbo[0], m_frame_dumping_pbo[1]);
+		std::swap(m_frame_pbo_is_mapped[0], m_frame_pbo_is_mapped[1]);
+		std::swap(m_last_frame_width[0], m_last_frame_width[1]);
+		std::swap(m_last_frame_height[0], m_last_frame_height[1]);
+		glBindBuffer(GL_PIXEL_PACK_BUFFER, m_frame_dumping_pbo[0]);
+		if (m_frame_pbo_is_mapped[0])
+			glUnmapBuffer(GL_PIXEL_PACK_BUFFER);
+		m_frame_pbo_is_mapped[0] = false;
+	}
+
+	if (flipped_trc.GetWidth() != m_last_frame_width[0] ||
+		flipped_trc.GetHeight() != m_last_frame_height[0])
+	{
+		m_last_frame_width[0] = flipped_trc.GetWidth();
+		m_last_frame_height[0] = flipped_trc.GetHeight();
+		glBufferData(GL_PIXEL_PACK_BUFFER, m_last_frame_width[0] * m_last_frame_height[0] * 4, nullptr,
+			GL_STREAM_READ);
+	}
+
+	m_last_frame_state = AVIDump::FetchState(ticks);
+	m_last_frame_exported = true;
+
+	glPixelStorei(GL_PACK_ALIGNMENT, 1);
+	glReadPixels(flipped_trc.left, flipped_trc.bottom, m_last_frame_width[0], m_last_frame_height[0],
+		GL_RGBA, GL_UNSIGNED_BYTE, 0);
+	glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
 }
 
 // ALWAYS call RestoreAPIState for each ResetAPIState call you're doing
@@ -1984,5 +2040,4 @@ void Renderer::ChangeSurface(void* new_surface_handle)
 	s_surface_changed.Wait();
 #endif
 }
-
 }

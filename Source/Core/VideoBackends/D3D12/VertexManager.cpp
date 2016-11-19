@@ -9,6 +9,7 @@
 #include "VideoBackends/D3D12/D3DState.h"
 #include "VideoBackends/D3D12/D3DStreamBuffer.h"
 #include "VideoBackends/D3D12/FramebufferManager.h"
+#include "VideoBackends/D3D12/PerfQuery.h"
 #include "VideoBackends/D3D12/Render.h"
 #include "VideoBackends/D3D12/ShaderCache.h"
 #include "VideoBackends/D3D12/VertexManager.h"
@@ -71,7 +72,7 @@ void VertexManager::PrepareDrawBuffers(u32 stride)
 	u32 vertex_data_size = IndexGenerator::GetNumVerts() * stride;
 	u32 index_data_size = IndexGenerator::GetIndexLen() * sizeof(u16);
 	size_t total_size = vertex_data_size + index_data_size;
-	bool current_command_list_executed = m_stream_buffer->AllocateSpaceInBuffer(total_size, stride, !PerfQueryBase::ShouldEmulate());
+	bool current_command_list_executed = m_stream_buffer->AllocateSpaceInBuffer(total_size, stride);
 
 	if (m_stream_buffer_reallocated)
 	{
@@ -135,9 +136,11 @@ void VertexManager::Draw(u32 stride)
 
 	u32 base_vertex = m_vertex_draw_offset / stride;
 	u32 start_index = m_index_draw_offset / sizeof(u16);
-
+	if (PerfQueryBase::ShouldEmulate())
+		static_cast<PerfQuery*>(g_perf_query.get())->StartQuery();
 	D3D::current_command_list->DrawIndexedInstanced(indices, 1, start_index, base_vertex, 0);
-
+	if (PerfQueryBase::ShouldEmulate())
+		static_cast<PerfQuery*>(g_perf_query.get())->EndQuery();
 	INCSTAT(stats.thisFrame.numDrawCalls);
 }
 
@@ -171,11 +174,7 @@ void VertexManager::vFlush(bool use_dst_alpha)
 
 	// D3D12TODO: Decide right threshold for drawCountSinceAsyncFlush at runtime depending on 
 	// amount of stall measured in AccessEFB.
-
-	if (!PerfQueryBase::ShouldEmulate())
-	{
-		D3D::command_list_mgr->EnsureDrawLimit();
-	}
+	D3D::command_list_mgr->EnsureDrawLimit();
 }
 
 u16* VertexManager::GetIndexBuffer()

@@ -69,7 +69,7 @@ s32 BBox::Get(s32 index)
 	if (s_gpu_dirty && g_ActiveConfig.iBBoxMode == BBoxGPU)
 	{
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, s_bbox_buffer_id);
-		if (!DriverDetails::HasBug(DriverDetails::BUG_SLOWGETBUFFERSUBDATA))
+		if (!DriverDetails::HasBug(DriverDetails::BUG_SLOW_GETBUFFERSUBDATA))
 		{
 			// Using glMapBufferRange to read back the contents of the SSBO is extremely slow
 			// on nVidia drivers. This is more noticeable at higher internal resolutions.

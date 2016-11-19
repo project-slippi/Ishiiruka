@@ -626,7 +626,7 @@ void Renderer::SetBlendMode(bool forceUpdate)
 }
 
 // This function has the final picture. We adjust the aspect ratio here.
-void Renderer::SwapImpl(u32 xfbAddr, u32 fbWidth, u32 fbStride, u32 fbHeight, const EFBRectangle& rc, float Gamma)
+void Renderer::SwapImpl(u32 xfbAddr, u32 fbWidth, u32 fbStride, u32 fbHeight, const EFBRectangle& rc, u64 ticks, float Gamma)
 {
 	if ((!XFBWrited && !g_ActiveConfig.RealXFBEnabled()) || !fbWidth || !fbHeight)
 	{
@@ -755,9 +755,9 @@ void Renderer::SwapImpl(u32 xfbAddr, u32 fbWidth, u32 fbStride, u32 fbHeight, co
 		D3D::context->CopySubresourceRegion(s_screenshot_texture.get(), 0, 0, 0, 0, (ID3D11Resource*)D3D::GetBackBuffer()->GetTex(), 0, &source_box);
 		D3D11_MAPPED_SUBRESOURCE map;
 		D3D::context->Map(s_screenshot_texture.get(), 0, D3D11_MAP_READ, 0, &map);
-
+		AVIDump::Frame state = AVIDump::FetchState(ticks);
 		DumpFrameData(reinterpret_cast<const u8*>(map.pData), source_width, source_height,
-			map.RowPitch);
+			map.RowPitch, state);
 		FinishFrameData();
 		D3D::context->Unmap(s_screenshot_texture.get(), 0);
 	}
@@ -774,9 +774,7 @@ void Renderer::SwapImpl(u32 xfbAddr, u32 fbWidth, u32 fbStride, u32 fbHeight, co
 
 	SetWindowSize(fbStride, fbHeight);
 
-	const bool windowResized = CheckForResize();
-	const bool fullscreen = g_ActiveConfig.bFullscreen && !g_ActiveConfig.bBorderlessFullscreen &&
-		!SConfig::GetInstance().bRenderToMain;
+	const bool windowResized = CheckForResize();	
 
 	bool xfbchanged = s_last_xfb_mode != g_ActiveConfig.bUseRealXFB;
 
@@ -792,35 +790,10 @@ void Renderer::SwapImpl(u32 xfbAddr, u32 fbWidth, u32 fbStride, u32 fbHeight, co
 	// Flip/present backbuffer to frontbuffer here
 	D3D::Present();
 
-	// Check exclusive fullscreen state
-	bool exclusive_mode, fullscreen_changed = false;
-	if (SUCCEEDED(D3D::GetFullscreenState(&exclusive_mode)))
-	{
-		if (fullscreen && !exclusive_mode)
-		{
-			if (g_Config.bExclusiveMode)
-				OSD::AddMessage("Lost exclusive fullscreen.");
-
-			// Exclusive fullscreen is enabled in the configuration, but we're
-			// not in exclusive mode. Either exclusive fullscreen was turned on
-			// or the render frame lost focus. When the render frame is in focus
-			// we can apply exclusive mode.
-			fullscreen_changed = Host_RendererHasFocus();
-
-			g_Config.bExclusiveMode = false;
-		}
-		else if (!fullscreen && exclusive_mode)
-		{
-			// Exclusive fullscreen is disabled, but we're still in exclusive mode.
-			fullscreen_changed = true;
-		}
-	}
-
 	// Resize the back buffers NOW to avoid flickering
 	if (CalculateTargetSize(s_backbuffer_width, s_backbuffer_height)
 		|| xfbchanged
 		|| windowResized
-		|| fullscreen_changed
 		|| s_last_efb_scale != g_ActiveConfig.iEFBScale
 		|| s_last_multisamples != g_ActiveConfig.iMultisamples
 		|| s_last_stereo_mode != g_ActiveConfig.iStereoMode)
@@ -830,22 +803,8 @@ void Renderer::SwapImpl(u32 xfbAddr, u32 fbWidth, u32 fbStride, u32 fbHeight, co
 		s_last_multisamples = g_ActiveConfig.iMultisamples;
 		PixelShaderCache::InvalidateMSAAShaders();
 
-		if (windowResized || fullscreen_changed)
+		if (windowResized)
 		{
-			// Apply fullscreen state
-			if (fullscreen_changed)
-			{
-				g_Config.bExclusiveMode = fullscreen;
-
-				if (fullscreen)
-					OSD::AddMessage("Entered exclusive fullscreen.");
-
-				D3D::SetFullscreenState(fullscreen);
-
-				// If fullscreen is disabled we can safely notify the UI to exit fullscreen.
-				if (!g_ActiveConfig.bFullscreen)
-					Host_RequestFullscreen(false);
-			}
 			// TODO: Aren't we still holding a reference to the back buffer right now?
 			D3D::Reset();
 			s_screenshot_texture.reset();
@@ -1250,6 +1209,16 @@ void Renderer::BlitScreen(TargetRectangle dst_rect, TargetRectangle src_rect, Ta
 		m_post_processor->BlitScreen(dst_rect, dst_size, reinterpret_cast<uintptr_t>(D3D::GetBackBuffer()),
 			src_rect, src_size, reinterpret_cast<uintptr_t>(src_texture), reinterpret_cast<uintptr_t>(depth_texture), 0, Gamma);
 	}
+}
+
+void Renderer::SetFullscreen(bool enable_fullscreen)
+{
+	D3D::SetFullscreenState(enable_fullscreen);
+}
+
+bool Renderer::IsFullscreen() const
+{
+	return D3D::GetFullscreenState();
 }
 
 }  // namespace DX11

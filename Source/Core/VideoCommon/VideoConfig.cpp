@@ -31,10 +31,6 @@ VideoConfig::VideoConfig()
 {
 	bRunning = false;
 
-	// Exclusive fullscreen flags
-	bFullscreen = false;
-	bExclusiveMode = false;
-
 	// Needed for the first frame, I think
 	fAspectRatioHackW = 1;
 	fAspectRatioHackH = 1;
@@ -89,7 +85,6 @@ void VideoConfig::Load(const std::string& ini_file)
 	settings->Get("HiresTextures", &bHiresTextures, 0);
 	settings->Get("HiresMaterialMaps", &bHiresMaterialMaps, 0);
 	settings->Get("HiresMaterialMapsBuild", &bHiresMaterialMapsBuild, false);
-	settings->Get("ConvertHiresTextures", &bConvertHiresTextures, 0);
 	settings->Get("CacheHiresTextures", &bCacheHiresTextures, 0);
 	settings->Get("DumpEFBTarget", &bDumpEFBTarget, 0);
 	settings->Get("FreeLook", &bFreeLook, 0);
@@ -230,7 +225,6 @@ void VideoConfig::GameIniLoad()
 	CHECK_SETTING("Video_Settings", "HiresTextures", bHiresTextures);
 	CHECK_SETTING("Video_Settings", "HiresMaterialMaps", bHiresMaterialMaps);
 
-	CHECK_SETTING("Video_Settings", "ConvertHiresTextures", bConvertHiresTextures);
 	CHECK_SETTING("Video_Settings", "CacheHiresTextures", bCacheHiresTextures);
 	CHECK_SETTING("Video_Settings", "EnablePixelLighting", bEnablePixelLighting);
 	CHECK_SETTING("Video_Settings", "ForcedLighting", bForcedLighting);
@@ -400,7 +394,7 @@ void VideoConfig::VerifyValidity()
 		iTexScalingType = 10;
 	}
 	bHiresMaterialMaps = bHiresMaterialMaps && bHiresTextures && bEnablePixelLighting;
-	bLastStoryEFBToRam = bLastStoryEFBToRam && StartsWith(SConfig::GetInstance().GetUniqueID(), "SLS");
+	bLastStoryEFBToRam = bLastStoryEFBToRam && StartsWith(SConfig::GetInstance().m_strUniqueID, "SLS");
 }
 
 void VideoConfig::Save(const std::string& ini_file)
@@ -432,7 +426,6 @@ void VideoConfig::Save(const std::string& ini_file)
 	settings->Set("HiresMaterialMaps", bHiresMaterialMaps);
 	settings->Set("HiresMaterialMapsBuild", bHiresMaterialMapsBuild);
 	
-	settings->Set("ConvertHiresTextures", bConvertHiresTextures);
 	settings->Set("CacheHiresTextures", bCacheHiresTextures);
 	settings->Set("DumpEFBTarget", bDumpEFBTarget);
 	settings->Set("FreeLook", bFreeLook);

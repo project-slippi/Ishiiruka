@@ -209,15 +209,10 @@ void D3DTexture2D::InitalizeSRV()
 
 	srv_desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 
-	D3D::gpu_descriptor_heap_mgr->Allocate(&m_srv_cpu, &m_srv_gpu, &m_srv_gpu_cpu_shadow);
+	D3D::gpu_descriptor_heap_mgr->Allocate(&m_srv_index, &m_srv_cpu, & m_srv_cpu_shadow, &m_srv_gpu);
 
 	D3D::device->CreateShaderResourceView(m_tex.Get(), &srv_desc, m_srv_cpu);
-	D3D::device->CreateShaderResourceView(m_tex.Get(), &srv_desc, m_srv_gpu_cpu_shadow);
-}
-
-void D3DTexture2D::SRVHeapRestartCallback(void* owner)
-{
-	static_cast<D3DTexture2D*>(owner)->InitalizeSRV();
+	D3D::device->CreateShaderResourceView(m_tex.Get(), &srv_desc, m_srv_cpu_shadow);
 }
 
 void D3DTexture2D::InitalizeDSV()
@@ -234,13 +229,8 @@ void D3DTexture2D::InitalizeDSV()
 	else
 		dsv_desc.Texture2DMSArray.ArraySize = -1;
 
-	D3D::dsv_descriptor_heap_mgr->Allocate(&m_dsv);
+	D3D::dsv_descriptor_heap_mgr->Allocate(&m_dsv_index, &m_dsv, nullptr, nullptr);
 	D3D::device->CreateDepthStencilView(m_tex.Get(), &dsv_desc, m_dsv);
-}
-
-void D3DTexture2D::DSVHeapRestartCallback(void* owner)
-{
-	static_cast<D3DTexture2D*>(owner)->InitalizeDSV();
 }
 
 void D3DTexture2D::InitalizeRTV()
@@ -256,13 +246,8 @@ void D3DTexture2D::InitalizeRTV()
 	else
 		rtv_desc.Texture2DMSArray.ArraySize = -1;
 
-	D3D::rtv_descriptor_heap_mgr->Allocate(&m_rtv);
+	D3D::rtv_descriptor_heap_mgr->Allocate(&m_rtv_index, &m_rtv, nullptr, nullptr);
 	D3D::device->CreateRenderTargetView(m_tex.Get(), &rtv_desc, m_rtv);
-}
-
-void D3DTexture2D::RTVHeapRestartCallback(void* owner)
-{
-	static_cast<D3DTexture2D*>(owner)->InitalizeRTV();
 }
 
 D3DTexture2D::D3DTexture2D(ID3D12Resource* texptr, u32 bind, DXGI_FORMAT fmt,
@@ -272,39 +257,34 @@ D3DTexture2D::D3DTexture2D(ID3D12Resource* texptr, u32 bind, DXGI_FORMAT fmt,
 	if (m_bind_falgs & TEXTURE_BIND_FLAG_SHADER_RESOURCE)
 	{
 		InitalizeSRV();
-		D3D::gpu_descriptor_heap_mgr->RegisterHeapRestartCallback(this, &D3DTexture2D::SRVHeapRestartCallback);
 	}
 
 	if (m_bind_falgs & TEXTURE_BIND_FLAG_DEPTH_STENCIL)
 	{
 		InitalizeDSV();
-		D3D::dsv_descriptor_heap_mgr->RegisterHeapRestartCallback(this, &D3DTexture2D::DSVHeapRestartCallback);
 	}
 
 	if (m_bind_falgs & TEXTURE_BIND_FLAG_RENDER_TARGET)
 	{
 		InitalizeRTV();
-		D3D::rtv_descriptor_heap_mgr->RegisterHeapRestartCallback(this, &D3DTexture2D::RTVHeapRestartCallback);
 	}
 }
 
 D3DTexture2D::~D3DTexture2D()
 {
+	DX12::D3D::command_list_mgr->DestroyResourceAfterCurrentCommandListExecuted(m_tex.Detach());
 	if (m_bind_falgs & TEXTURE_BIND_FLAG_SHADER_RESOURCE)
 	{
-		D3D::gpu_descriptor_heap_mgr->RemoveHeapRestartCallback(this);
+		D3D::command_list_mgr->FreeDescriptorAfterCurrentCommandListExecuted(D3D::gpu_descriptor_heap_mgr.get(), m_srv_index);
 	}
-
 	if (m_bind_falgs & TEXTURE_BIND_FLAG_DEPTH_STENCIL)
 	{
-		D3D::dsv_descriptor_heap_mgr->RemoveHeapRestartCallback(this);
+		D3D::command_list_mgr->FreeDescriptorAfterCurrentCommandListExecuted(D3D::rtv_descriptor_heap_mgr.get(), m_rtv_index);
 	}
-
 	if (m_bind_falgs & TEXTURE_BIND_FLAG_RENDER_TARGET)
 	{
-		D3D::rtv_descriptor_heap_mgr->RemoveHeapRestartCallback(this);
+		D3D::command_list_mgr->FreeDescriptorAfterCurrentCommandListExecuted(D3D::dsv_descriptor_heap_mgr.get(), m_dsv_index);
 	}
-	DX12::D3D::command_list_mgr->DestroyResourceAfterCurrentCommandListExecuted(m_tex.Detach());
 }
 
 }  // namespace DX12

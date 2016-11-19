@@ -470,7 +470,7 @@ void TextureCacheBase::BindTextures()
 	for (u32 i = 0; i <= s_last_texture; ++i)
 	{
 		if (bound_textures[i])
-			bound_textures[i]->Bind(i, s_last_texture);
+			bound_textures[i]->Bind(i);
 	}
 }
 void TextureCacheBase::UnbindTextures()

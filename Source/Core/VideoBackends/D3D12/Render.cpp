@@ -665,7 +665,7 @@ void Renderer::SetBlendMode(bool force_update)
 }
 
 // This function has the final picture. We adjust the aspect ratio here.
-void Renderer::SwapImpl(u32 xfb_addr, u32 fb_width, u32 fb_stride, u32 fb_height, const EFBRectangle& rc, float gamma)
+void Renderer::SwapImpl(u32 xfb_addr, u32 fb_width, u32 fb_stride, u32 fb_height, const EFBRectangle& rc, u64 ticks, float gamma)
 {
 	if ( (!XFBWrited && !g_ActiveConfig.RealXFBEnabled()) || !fb_width || !fb_height)
 	{
@@ -814,9 +814,10 @@ void Renderer::SwapImpl(u32 xfb_addr, u32 fb_width, u32 fb_stride, u32 fb_height
 		void* screenshot_texture_map;
 		D3D12_RANGE read_range = { 0, dst_location.PlacedFootprint.Footprint.RowPitch * source_height };
 		CheckHR(s_screenshot_texture->Map(0, &read_range, &screenshot_texture_map));
-
+		
+		AVIDump::Frame state = AVIDump::FetchState(ticks);
 		DumpFrameData(reinterpret_cast<const u8*>(screenshot_texture_map), source_width, source_height,
-			dst_location.PlacedFootprint.Footprint.RowPitch);
+			dst_location.PlacedFootprint.Footprint.RowPitch, state);
 		FinishFrameData();
 
 		D3D12_RANGE write_range = {};
@@ -839,9 +840,7 @@ void Renderer::SwapImpl(u32 xfb_addr, u32 fb_width, u32 fb_stride, u32 fb_height
 
 	SetWindowSize(fb_stride, fb_height);
 
-	const bool window_resized = CheckForResize();
-	const bool fullscreen = g_ActiveConfig.bFullscreen && !g_ActiveConfig.bBorderlessFullscreen &&
-		!SConfig::GetInstance().bRenderToMain;
+	const bool window_resized = CheckForResize();	
 
 	bool xfb_changed = s_last_xfb_mode != g_ActiveConfig.bUseRealXFB;
 
@@ -978,7 +977,7 @@ void Renderer::ApplyState(bool use_dst_alpha)
 	if (D3D::command_list_mgr->GetCommandListDirtyState(COMMAND_LIST_STATE_SAMPLERS))
 	{
 		D3D12_GPU_DESCRIPTOR_HANDLE sample_group_gpu_handle;
-		sample_group_gpu_handle = gx_state_cache.GetHandleForSamplerGroup(gx_state.sampler, 8);
+		sample_group_gpu_handle = D3D::sampler_descriptor_heap_mgr->GetHandleForSamplerGroup(gx_state.sampler, 8);
 
 		D3D::current_command_list->SetGraphicsRootDescriptorTable(DESCRIPTOR_TABLE_PS_SAMPLER, sample_group_gpu_handle);
 		if (g_ActiveConfig.TessellationEnabled() && D3D::TessellationEnabled())

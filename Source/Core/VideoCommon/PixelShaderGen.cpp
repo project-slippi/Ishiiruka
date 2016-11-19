@@ -732,7 +732,7 @@ inline void WriteAlphaTest(ShaderCode& out, const pixel_shader_uid_data& uid_dat
 		I_ALPHA".g"
 	};
 	// using discard then return works the same in cg and dx9 but not in dx11
-	if (DriverDetails::HasBug(DriverDetails::BUG_BROKENNEGATEDBOOLEAN))
+	if (DriverDetails::HasBug(DriverDetails::BUG_BROKEN_NEGATED_BOOLEAN))
 		out.Write("\tif(( ");
 	else
 		out.Write("\tif(!( ");
@@ -753,7 +753,7 @@ inline void WriteAlphaTest(ShaderCode& out, const pixel_shader_uid_data& uid_dat
 	else
 		out.Write(tevAlphaFuncsTable[compindex], alphaRef[1]);
 
-	if (DriverDetails::HasBug(DriverDetails::BUG_BROKENNEGATEDBOOLEAN))
+	if (DriverDetails::HasBug(DriverDetails::BUG_BROKEN_NEGATED_BOOLEAN))
 		out.Write(") == false) {\n");
 	else
 		out.Write(")) {\n");
@@ -1545,7 +1545,7 @@ inline void GeneratePixelShader(ShaderCode& out, const pixel_shader_uid_data& ui
 	if (Use_integer_math)
 	{
 		out.Write("#define wu int\n");
-		if (ApiType == API_OPENGL)
+		if (ApiType == API_OPENGL || ApiType == API_VULKAN)
 		{
 			out.Write("#define wu2 ivec2\n");
 			out.Write("#define wu3 ivec3\n");
@@ -1563,7 +1563,7 @@ inline void GeneratePixelShader(ShaderCode& out, const pixel_shader_uid_data& ui
 	{
 
 		out.Write("#define wu float\n");
-		if (ApiType == API_OPENGL)
+		if (ApiType == API_OPENGL || ApiType == API_VULKAN)
 		{
 			out.Write("#define wu2 vec2\n");
 			out.Write("#define wu3 vec3\n");

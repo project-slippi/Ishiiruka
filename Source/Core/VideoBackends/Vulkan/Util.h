@@ -26,7 +26,8 @@ u32 MakeRGBA8Color(float r, float g, float b, float a);
 
 bool IsDepthFormat(VkFormat format);
 VkFormat GetLinearFormat(VkFormat format);
-u32 GetTexelSize(VkFormat format);
+u32 GetBlockSize(VkFormat format);
+u32 GetBlockWidth(VkFormat format);
 
 // Map {SRC,DST}_COLOR to {SRC,DST}_ALPHA
 VkBlendFactor GetAlphaBlendFactor(VkBlendFactor factor);

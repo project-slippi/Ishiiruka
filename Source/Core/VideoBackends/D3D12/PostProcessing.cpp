@@ -206,45 +206,42 @@ void D3DPostProcessingShader::Draw(PostProcessor* p,
 	// Determine whether we can skip the final copy by writing directly to the output texture, if the last pass is not scaled.
 	bool skip_final_copy = !IsLastPassScaled() && (dst_texture != src_texture || !m_last_pass_uses_color_buffer) && !m_prev_frame_enabled;
 
-	MapAndUpdateConfigurationBuffer();
-
 	// Draw each pass.
 	PostProcessor::InputTextureSizeArray input_sizes;
 	TargetRectangle output_rect = {};
 	TargetSize output_size;
+
+	D3D12_CPU_DESCRIPTOR_HANDLE base_sampler_cpu;
+	D3D12_GPU_DESCRIPTOR_HANDLE base_sampler_gpu;
+	int required_handles = (int)(POST_PROCESSING_MAX_TEXTURE_INPUTS * m_passes.size());
+	DX12::D3D::sampler_descriptor_heap_mgr->AllocateGroup(required_handles, &base_sampler_cpu, &base_sampler_gpu);
+
+	D3D12_CPU_DESCRIPTOR_HANDLE base_texture_cpu;
+	D3D12_GPU_DESCRIPTOR_HANDLE base_texture_gpu;
+	// On the first texture in the group, we need to allocate the space in the descriptor heap.
+	if (!DX12::D3D::gpu_descriptor_heap_mgr->AllocateTemporary(required_handles, &base_texture_cpu, &base_texture_gpu))
+	{
+		// Kick command buffer before attempting to allocate again. This is slow.
+		D3D::command_list_mgr->ExecuteQueuedWork();
+		if (!D3D::gpu_descriptor_heap_mgr->AllocateTemporary(required_handles, &base_texture_cpu, &base_texture_gpu))
+		{
+			PanicAlert("Failed to allocate temporary descriptors.");
+			return;
+		}
+	}
+	MapAndUpdateConfigurationBuffer();
 	for (size_t pass_index = 0; pass_index < m_passes.size(); pass_index++)
 	{
 		const RenderPassData& pass = m_passes[pass_index];
 		bool is_last_pass = (pass_index == m_last_pass_index);
 		if (!pass.enabled)
-			continue;
+			continue;		
 
-		// If this is the last pass and we can skip the final copy, write directly to output texture.
-		if (is_last_pass && skip_final_copy)
-		{
-			// The target rect may differ from the source.
-			output_rect = dst_rect;
-			output_size = dst_size;
-			dst_texture->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_RENDER_TARGET);
-			D3D::current_command_list->OMSetRenderTargets(1, &dst_texture->GetRTV(), FALSE, nullptr);
-		}
-		else
-		{
-			output_rect = PostProcessor::ScaleTargetRectangle(API_D3D11, src_rect, pass.output_scale);
-			output_size = pass.output_size;
-			reinterpret_cast<D3DTexture2D*>(pass.output_texture->GetInternalObject())->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_RENDER_TARGET);
-			D3D::current_command_list->OMSetRenderTargets(1, &reinterpret_cast<D3DTexture2D*>(pass.output_texture->GetInternalObject())->GetRTV(), FALSE, nullptr);
-		}
+		D3D12_CPU_DESCRIPTOR_HANDLE sampler_cpu = { base_sampler_cpu.ptr + pass_index * POST_PROCESSING_MAX_TEXTURE_INPUTS * D3D::sampler_descriptor_size};
+		D3D12_GPU_DESCRIPTOR_HANDLE sampler_gpu = { base_sampler_gpu.ptr + pass_index * POST_PROCESSING_MAX_TEXTURE_INPUTS * D3D::sampler_descriptor_size };
 
-		D3D12_CPU_DESCRIPTOR_HANDLE base_sampler_cpu_handle;
-		D3D12_GPU_DESCRIPTOR_HANDLE base_sampler_gpu_handle;
-
-		DX12::D3D::sampler_descriptor_heap_mgr->AllocateGroup(&base_sampler_cpu_handle, POST_PROCESSING_MAX_TEXTURE_INPUTS, &base_sampler_gpu_handle, nullptr, true);
-
-		D3D12_CPU_DESCRIPTOR_HANDLE group_base_texture_cpu_handle;
-		D3D12_GPU_DESCRIPTOR_HANDLE group_base_texture_gpu_handle;
-		// On the first texture in the group, we need to allocate the space in the descriptor heap.
-		DX12::D3D::gpu_descriptor_heap_mgr->AllocateGroup(&group_base_texture_cpu_handle, POST_PROCESSING_MAX_TEXTURE_INPUTS, &group_base_texture_gpu_handle, nullptr, true);
+		D3D12_CPU_DESCRIPTOR_HANDLE texture_cpu = { base_texture_cpu.ptr + pass_index * POST_PROCESSING_MAX_TEXTURE_INPUTS * D3D::resource_descriptor_size };
+		D3D12_GPU_DESCRIPTOR_HANDLE texture_gpu = { base_texture_gpu.ptr + pass_index * POST_PROCESSING_MAX_TEXTURE_INPUTS * D3D::resource_descriptor_size };
 
 		// Bind inputs to pipeline
 		for (size_t i = 0; i < pass.inputs.size(); i++)
@@ -252,8 +249,8 @@ void D3DPostProcessingShader::Draw(PostProcessor* p,
 			const InputBinding& input = pass.inputs[i];
 
 			D3D12_CPU_DESCRIPTOR_HANDLE textureDestDescriptor;
-			D3DTexture2D* input_texture = nullptr;;
-			textureDestDescriptor.ptr = group_base_texture_cpu_handle.ptr + i * D3D::resource_descriptor_size;
+			D3DTexture2D* input_texture = nullptr;
+			textureDestDescriptor.ptr = texture_cpu.ptr + i * D3D::resource_descriptor_size;
 
 			switch (input.type)
 			{
@@ -301,12 +298,12 @@ void D3DPostProcessingShader::Draw(PostProcessor* p,
 			DX12::D3D::device->CopyDescriptorsSimple(
 				1,
 				textureDestDescriptor,
-				input_texture != nullptr ? input_texture->GetSRVGPUCPUShadow() : DX12::D3D::null_srv_cpu_shadow,
+				input_texture != nullptr ? input_texture->GetSRVCPUShadow() : DX12::D3D::null_srv_cpu_shadow,
 				D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV
 			);
 
 			D3D12_CPU_DESCRIPTOR_HANDLE destinationDescriptor;
-			destinationDescriptor.ptr = base_sampler_cpu_handle.ptr + i * D3D::sampler_descriptor_size;
+			destinationDescriptor.ptr = sampler_cpu.ptr + i * D3D::sampler_descriptor_size;
 
 			DX12::D3D::device->CopyDescriptorsSimple(
 				1,
@@ -315,9 +312,27 @@ void D3DPostProcessingShader::Draw(PostProcessor* p,
 				D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER
 			);
 		}
-		D3D::current_command_list->SetGraphicsRootDescriptorTable(DESCRIPTOR_TABLE_PS_SRV, group_base_texture_gpu_handle);
-		D3D::current_command_list->SetGraphicsRootDescriptorTable(DESCRIPTOR_TABLE_PS_SAMPLER, base_sampler_gpu_handle);
+		D3D::current_command_list->SetGraphicsRootDescriptorTable(DESCRIPTOR_TABLE_PS_SRV, texture_gpu);
+		D3D::current_command_list->SetGraphicsRootDescriptorTable(DESCRIPTOR_TABLE_PS_SAMPLER, sampler_gpu);
 		D3D::command_list_mgr->SetCommandListDirtyState(COMMAND_LIST_STATE_SAMPLERS, true);
+
+		// If this is the last pass and we can skip the final copy, write directly to output texture.
+		if (is_last_pass && skip_final_copy)
+		{
+			// The target rect may differ from the source.
+			output_rect = dst_rect;
+			output_size = dst_size;
+			dst_texture->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_RENDER_TARGET);
+			D3D::current_command_list->OMSetRenderTargets(1, &dst_texture->GetRTV(), FALSE, nullptr);
+		}
+		else
+		{
+			output_rect = PostProcessor::ScaleTargetRectangle(API_D3D11, src_rect, pass.output_scale);
+			output_size = pass.output_size;
+			reinterpret_cast<D3DTexture2D*>(pass.output_texture->GetInternalObject())->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_RENDER_TARGET);
+			D3D::current_command_list->OMSetRenderTargets(1, &reinterpret_cast<D3DTexture2D*>(pass.output_texture->GetInternalObject())->GetRTV(), FALSE, nullptr);
+		}
+
 		// Set viewport based on target rect
 		D3D::SetViewportAndScissor(output_rect.left, output_rect.top,
 			output_rect.GetWidth(), output_rect.GetHeight());
@@ -487,8 +502,6 @@ void D3DPostProcessor::PostProcessEFB(const TargetRectangle& src_rect, const Tar
 {
 	// Apply normal post-process process, but to the EFB buffers.
 	// Uses the current viewport as the "visible" region to post-process.
-	g_renderer->ResetAPIState();
-
 	// In D3D, the viewport rectangle must fit within the render target.
 	TargetRectangle target_rect;
 	TargetSize target_size(src_size.width, src_size.height);

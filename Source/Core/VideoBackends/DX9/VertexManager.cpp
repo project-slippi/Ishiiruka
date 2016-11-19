@@ -153,7 +153,6 @@ void VertexManager::CreateDeviceObjects()
 	m_index_buffer_cursor = m_index_buffer_size;
 	m_vertex_buffer_cursor = m_vertex_buffer_size;
 	m_last_stride = 0;
-	g_Config.backend_info.bSupportsEarlyZ = !g_ActiveConfig.bFastDepthCalc;
 	VertexShaderManager::EnableDirtyRegions();
 	PixelShaderManager::EnableDirtyRegions();
 }
@@ -466,7 +465,7 @@ void DX9::VertexManager::PrepareShaders(PrimitiveType primitive, u32 components,
 		bpm.zcontrol.pixel_format == PEControl::RGBA6_Z24;
 	const bool useDualSource = useDstAlpha && g_ActiveConfig.backend_info.bSupportsDualSourceBlend;
 	const bool forced_early_z = bpm.UseEarlyDepthTest() && bpm.zmode.updateenable && bpm.alpha_test.TestResult() == AlphaTest::UNDETERMINED && !g_ActiveConfig.bFastDepthCalc;
-	g_Config.backend_info.bSupportsEarlyZ = !g_ActiveConfig.bFastDepthCalc;
+	g_ActiveConfig.backend_info.bSupportsEarlyZ = !g_ActiveConfig.bFastDepthCalc;
 	PIXEL_SHADER_RENDER_MODE render_mode = forced_early_z ? PSRM_DEPTH_ONLY : (useDualSource ? PSRM_DUAL_SOURCE_BLEND : PSRM_DEFAULT);
 	VertexShaderCache::PrepareShader(components, xfr, bpm, ongputhread);
 	PixelShaderCache::PrepareShader(render_mode, components, xfr, bpm, ongputhread);

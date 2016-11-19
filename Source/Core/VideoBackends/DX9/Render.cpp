@@ -239,7 +239,7 @@ namespace DX9
 
 // With D3D, we have to resize the backbuffer if the window changed
 // size.
-void Renderer::CheckForResize(bool &resized, bool &fullscreen, bool &fullscreencahnged)
+void Renderer::CheckForResize(bool &resized)
 {
 	RECT rcWindow;
 	GetClientRect(D3D::hWnd, &rcWindow);
@@ -251,12 +251,7 @@ void Renderer::CheckForResize(bool &resized, bool &fullscreen, bool &fullscreenc
 		|| s_vsync != g_ActiveConfig.IsVSync()) &&
 		client_width >= 4 && client_height >= 4;
 
-	fullscreen = g_ActiveConfig.bFullscreen &&
-		!SConfig::GetInstance().bRenderToMain;
-
-	fullscreencahnged = s_last_fullscreen_mode != fullscreen;
-
-	if (resized || fullscreencahnged)
+	if (resized)
 	{
 		// Handle vsync changes during execution
 		s_vsync = g_ActiveConfig.IsVSync();
@@ -452,7 +447,7 @@ void Renderer::ReinterpretPixelData(unsigned int convtype)
 }
 
 // This function has the final picture. We adjust the aspect ratio here.
-void Renderer::SwapImpl(u32 xfbAddr, u32 fbWidth, u32 fbStride, u32 fbHeight, const EFBRectangle& rc, float Gamma)
+void Renderer::SwapImpl(u32 xfbAddr, u32 fbWidth, u32 fbStride, u32 fbHeight, const EFBRectangle& rc, u64 ticks, float Gamma)
 {
 	if ((!XFBWrited && !g_ActiveConfig.RealXFBEnabled()) || !fbWidth || !fbHeight)
 	{
@@ -653,8 +648,9 @@ void Renderer::SwapImpl(u32 xfbAddr, u32 fbWidth, u32 fbStride, u32 fbHeight, co
 		D3DLOCKED_RECT rect;
 		if (SUCCEEDED(ScreenShootMEMSurface->LockRect(&rect, GetTargetRectangle().AsRECT(), D3DLOCK_NO_DIRTY_UPDATE | D3DLOCK_NOSYSLOCK | D3DLOCK_READONLY)))
 		{
+			AVIDump::Frame state = AVIDump::FetchState(ticks);
 			DumpFrameData(reinterpret_cast<const u8*>(rect.pBits), source_width, source_height,
-				rect.Pitch, false, true);
+				rect.Pitch, state, false, true);
 			FinishFrameData();
 
 			ScreenShootMEMSurface->UnlockRect();
@@ -677,9 +673,7 @@ void Renderer::SwapImpl(u32 xfbAddr, u32 fbWidth, u32 fbStride, u32 fbHeight, co
 	SetWindowSize(fbStride, fbHeight);
 
 	bool windowResized;
-	bool fullscreen;
-	bool fullscreen_changed;
-	CheckForResize(windowResized, fullscreen, fullscreen_changed);;
+	CheckForResize(windowResized);
 
 	bool xfbchanged = false;
 
@@ -697,7 +691,6 @@ void Renderer::SwapImpl(u32 xfbAddr, u32 fbWidth, u32 fbStride, u32 fbHeight, co
 	if (CalculateTargetSize(s_backbuffer_width, s_backbuffer_height, (newAA % 3) + 1)
 		|| xfbchanged
 		|| windowResized
-		|| fullscreen_changed
 		|| s_last_efb_scale != g_ActiveConfig.iEFBScale
 		|| s_LastAA != newAA)
 	{
@@ -712,18 +705,8 @@ void Renderer::SwapImpl(u32 xfbAddr, u32 fbWidth, u32 fbStride, u32 fbHeight, co
 		D3D::dev->SetRenderTarget(0, D3D::GetBackBufferSurface());
 		D3D::dev->SetDepthStencilSurface(D3D::GetBackBufferDepthSurface());
 
-		if (windowResized || fullscreen_changed)
+		if (windowResized)
 		{
-			// Apply fullscreen state
-			if (fullscreen_changed)
-			{
-				s_last_fullscreen_mode = fullscreen;
-				// Notify the host that it is safe to exit fullscreen
-				if (!fullscreen)
-				{
-					Host_RequestFullscreen(false);
-				}
-			}
 			if (!D3D::GetEXSupported())
 			{
 				// device objects lost, so recreate all of them
@@ -969,7 +952,7 @@ void Renderer::_SetBlendMode(bool forceUpdate)
 	//really useful for debugging shader and blending errors
 	bool use_DstAlpha = bpmem.dstalpha.enable && bpmem.blendmode.alphaupdate && target_has_alpha;
 	bool use_DualSource = use_DstAlpha && g_ActiveConfig.backend_info.bSupportsDualSourceBlend;
-	static const D3DBLEND d3dSrcFactors[8] =
+	const D3DBLEND d3dSrcFactors[8] =
 	{
 		D3DBLEND_ZERO,
 		D3DBLEND_ONE,
@@ -980,7 +963,7 @@ void Renderer::_SetBlendMode(bool forceUpdate)
 		(target_has_alpha) ? D3DBLEND_DESTALPHA : D3DBLEND_ONE,
 		(target_has_alpha) ? D3DBLEND_INVDESTALPHA : D3DBLEND_ZERO
 	};
-	static const D3DBLEND d3dDestFactors[8] =
+	const D3DBLEND d3dDestFactors[8] =
 	{
 		D3DBLEND_ZERO,
 		D3DBLEND_ONE,

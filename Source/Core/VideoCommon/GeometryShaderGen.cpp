@@ -249,7 +249,7 @@ inline void GenerateGeometryShader(ShaderCode& out, const geometry_shader_uid_da
 		out.Write("\tVS_OUTPUT f;\n");
 		AssignVSOutputMembers<ApiType>(out, "f", "vs[i]", uid_data.pixel_lighting, uid_data.numTexGens);
 		if (g_ActiveConfig.backend_info.bSupportsDepthClamp &&
-			DriverDetails::HasBug(DriverDetails::BUG_BROKENCLIPDISTANCE))
+			DriverDetails::HasBug(DriverDetails::BUG_BROKEN_CLIP_DISTANCE))
 		{
 			// On certain GPUs we have to consume the clip distance from the vertex shader
 			// or else the other vertex shader outputs will get corrupted.

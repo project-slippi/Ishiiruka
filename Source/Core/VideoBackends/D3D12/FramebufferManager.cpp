@@ -183,6 +183,7 @@ FramebufferManager::~FramebufferManager()
 	D3D::command_list_mgr->DestroyResourceAfterCurrentCommandListExecuted(m_efb.depth_cache_buf.Detach());
 
 	SAFE_RELEASE(m_efb.resolved_depth_tex);
+	D3D::command_list_mgr->ExecuteQueuedWork(true);
 }
 
 void FramebufferManager::CopyToRealXFB(u32 xfbAddr, u32 fbStride, u32 fbHeight, const EFBRectangle& sourceRc, float gamma)

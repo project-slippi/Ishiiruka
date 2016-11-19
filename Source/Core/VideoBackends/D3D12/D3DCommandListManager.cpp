@@ -199,6 +199,13 @@ void D3DCommandListManager::DestroyAllPendingResources()
 
 		destruction_list.clear();
 	}
+	for (auto& free_list : m_deferred_descriptor_free_lists)
+	{
+		for (auto& iter : free_list)
+			iter.first->Free(iter.second);
+
+		free_list.clear();
+	}
 }
 
 void D3DCommandListManager::ResetAllCommandAllocators()
@@ -261,6 +268,10 @@ void D3DCommandListManager::PerformGPURolloverChecks()
 
 	m_deferred_destruction_lists[safe_to_delete_deferred_destruction_list].clear();
 
+	for (auto& iter : m_deferred_descriptor_free_lists[safe_to_delete_deferred_destruction_list])
+		iter.first->Free(iter.second);
+	m_deferred_descriptor_free_lists[safe_to_delete_deferred_destruction_list].clear();
+
 	m_deferred_destruction_list_fences[m_current_deferred_destruction_list] = m_queue_frame_fence_value;
 	m_current_deferred_destruction_list = (m_current_deferred_destruction_list + 1) % m_deferred_destruction_lists.size();
 	// End Deferred Resource Destruction
@@ -309,6 +320,12 @@ void D3DCommandListManager::DestroyResourceAfterCurrentCommandListExecuted(ID3D1
 	m_deferred_destruction_lists[m_current_deferred_destruction_list].push_back(resource);
 }
 
+void D3DCommandListManager::FreeDescriptorAfterCurrentCommandListExecuted(D3DDescriptorHeapManager* descriptor_heap,
+	size_t index)
+{
+	m_deferred_descriptor_free_lists[m_current_deferred_destruction_list].emplace_back(descriptor_heap, index);
+}
+
 D3DCommandListManager::~D3DCommandListManager()
 {
 #ifdef USE_D3D12_QUEUED_COMMAND_LISTS
@@ -318,6 +335,11 @@ D3DCommandListManager::~D3DCommandListManager()
 
 	// The command list will still be open, close it before destroying.
 	m_backing_command_list->Close();
+
+	// Descriptor heaps are already freed at this point, as they depend on us.
+	// Just throw away the descriptors.
+	for (auto& free_list : m_deferred_descriptor_free_lists)
+		free_list.clear();
 
 	DestroyAllPendingResources();
 

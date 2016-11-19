@@ -60,7 +60,7 @@ private:
 		{
 			return nrm_texture != 0;
 		};
-		void Bind(u32 stage, u32 last_texture) override;
+		void Bind(u32 stage) override;
 		bool Save(const std::string& filename, u32 level) override;
 		inline uintptr_t GetInternalObject() override
 		{

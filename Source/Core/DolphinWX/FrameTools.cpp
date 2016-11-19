@@ -1127,14 +1127,6 @@ void CFrame::DoStop()
 			// Pause the state during confirmation and restore it afterwards
 			Core::EState state = Core::GetState();
 
-			// If exclusive fullscreen is not enabled then we can pause the emulation
-			// before we've exited fullscreen. If not then we need to exit fullscreen first.
-			if (!RendererIsFullscreen() || !g_Config.ExclusiveFullscreenEnabled() ||
-				SConfig::GetInstance().bRenderToMain)
-			{
-				Core::SetState(Core::CORE_PAUSE);
-			}
-
 			wxMessageDialog m_StopDlg(this, _("Do you want to stop the current emulation?"),
 				_("Please confirm..."),
 				wxYES_NO | wxSTAY_ON_TOP | wxICON_EXCLAMATION, wxDefaultPosition);

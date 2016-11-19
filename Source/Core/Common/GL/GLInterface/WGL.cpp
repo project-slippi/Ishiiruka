@@ -2,19 +2,22 @@
 // Licensed under GPLv2+
 // Refer to the license.txt file included.
 
-#include <string>
+#include <array>
+#include <cstdlib>
+#include <sstream>
+#include <vector>
 #include <windows.h>
 
-#include "Common/MsgHandler.h"
 #include "Common/GL/GLInterface/WGL.h"
 #include "Common/Logging/Log.h"
+#include "Common/MsgHandler.h"
 
-static HDC hDC = nullptr;       // Private GDI Device Context
-static HGLRC hRC = nullptr;     // Permanent Rendering Context
-static HINSTANCE dllHandle = nullptr; // Handle to OpenGL32.dll
+static HDC hDC = nullptr;              // Private GDI Device Context
+static HGLRC hRC = nullptr;            // Permanent Rendering Context
+static HINSTANCE dllHandle = nullptr;  // Handle to OpenGL32.dll
 
 // typedef from wglext.h
-typedef BOOL(WINAPI * PFNWGLSWAPINTERVALEXTPROC) (int interval);
+typedef BOOL(WINAPI* PFNWGLSWAPINTERVALEXTPROC)(int interval);
 static PFNWGLSWAPINTERVALEXTPROC wglSwapIntervalEXT = nullptr;
 
 void cInterfaceWGL::SwapInterval(int Interval)
@@ -52,9 +55,47 @@ bool cInterfaceWGL::PeekMessages()
 	return TRUE;
 }
 
+#define WGL_CONTEXT_MAJOR_VERSION_ARB           0x2091
+#define WGL_CONTEXT_MINOR_VERSION_ARB           0x2092
+#define WGL_CONTEXT_LAYER_PLANE_ARB             0x2093
+#define WGL_CONTEXT_FLAGS_ARB                   0x2094
+#define WGL_CONTEXT_PROFILE_MASK_ARB            0x9126
+
+#define WGL_CONTEXT_DEBUG_BIT_ARB               0x0001
+#define WGL_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB  0x0002
+
+#define WGL_CONTEXT_CORE_PROFILE_BIT_ARB        0x00000001
+#define WGL_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB 0x00000002
+
+static HGLRC wglCreateContextAttribsARB(HDC hDC, HGLRC hShareContext, const int *attribList)
+{
+typedef HGLRC(APIENTRY * PFNWGLCREATECONTEXTATTRIBSARBPROC)(HDC hDC, HGLRC hShareContext, const int *attribList);
+	static PFNWGLCREATECONTEXTATTRIBSARBPROC pfnCreateContextAttribsARB = 0;
+
+	HGLRC hContext = 0;
+	HGLRC hCurrentContext = 0;
+	
+	if (!(hCurrentContext = wglCreateContext(hDC)))
+		return 0;
+
+	if (wglMakeCurrent(hDC, hCurrentContext))
+	{
+		if (!pfnCreateContextAttribsARB)
+			pfnCreateContextAttribsARB = reinterpret_cast<PFNWGLCREATECONTEXTATTRIBSARBPROC>(wglGetProcAddress("wglCreateContextAttribsARB"));
+
+		if (pfnCreateContextAttribsARB)
+		{
+			hContext = pfnCreateContextAttribsARB(hDC, hShareContext, attribList);
+		}
+	}
+	wglDeleteContext(hCurrentContext);
+	
+	return hContext;
+}
+
 // Create rendering window.
 // Call browser: Core.cpp:EmuThread() > main.cpp:Video_Initialize()
-bool cInterfaceWGL::Create(void *window_handle, bool core)
+bool cInterfaceWGL::Create(void* window_handle, bool core)
 {
 	if (window_handle == nullptr)
 		return false;
@@ -75,29 +116,30 @@ bool cInterfaceWGL::Create(void *window_handle, bool core)
 
 	dllHandle = LoadLibrary(TEXT("OpenGL32.dll"));
 
-	PIXELFORMATDESCRIPTOR pfd =         // pfd Tells Windows How We Want Things To Be
+	PIXELFORMATDESCRIPTOR pfd =  // pfd Tells Windows How We Want Things To Be
 	{
-		sizeof(PIXELFORMATDESCRIPTOR),  // Size Of This Pixel Format Descriptor
-		1,                              // Version Number
-		PFD_DRAW_TO_WINDOW |            // Format Must Support Window
-			PFD_SUPPORT_OPENGL |        // Format Must Support OpenGL
-			PFD_DOUBLEBUFFER,           // Must Support Double Buffering
-		PFD_TYPE_RGBA,                  // Request An RGBA Format
-		32,                             // Select Our Color Depth
-		0, 0, 0, 0, 0, 0,               // Color Bits Ignored
-		0,                              // 8bit Alpha Buffer
-		0,                              // Shift Bit Ignored
-		0,                              // No Accumulation Buffer
-		0, 0, 0, 0,                     // Accumulation Bits Ignored
-		0,                              // 0Bit Z-Buffer (Depth Buffer)
-		0,                              // 0bit Stencil Buffer
-		0,                              // No Auxiliary Buffer
-		PFD_MAIN_PLANE,                 // Main Drawing Layer
-		0,                              // Reserved
-		0, 0, 0                         // Layer Masks Ignored
+			sizeof(PIXELFORMATDESCRIPTOR),  // Size Of This Pixel Format Descriptor
+			1,                              // Version Number
+			PFD_DRAW_TO_WINDOW |            // Format Must Support Window
+					PFD_SUPPORT_OPENGL |        // Format Must Support OpenGL
+					PFD_DOUBLEBUFFER,           // Must Support Double Buffering
+			PFD_TYPE_RGBA,                  // Request An RGBA Format
+			32,                             // Select Our Color Depth
+			0,
+			0, 0, 0, 0, 0,   // Color Bits Ignored
+			0,               // 8bit Alpha Buffer
+			0,               // Shift Bit Ignored
+			0,               // No Accumulation Buffer
+			0, 0, 0, 0,      // Accumulation Bits Ignored
+			0,               // 0Bit Z-Buffer (Depth Buffer)
+			0,               // 0bit Stencil Buffer
+			0,               // No Auxiliary Buffer
+			PFD_MAIN_PLANE,  // Main Drawing Layer
+			0,               // Reserved
+			0, 0, 0          // Layer Masks Ignored
 	};
 
-	int      PixelFormat;               // Holds The Results After Searching For A Match
+	int PixelFormat;  // Holds The Results After Searching For A Match
 
 	if (!(hDC = GetDC(window_handle_reified)))
 	{
@@ -117,11 +159,32 @@ bool cInterfaceWGL::Create(void *window_handle, bool core)
 		return false;
 	}
 
-	if (!(hRC = wglCreateContext(hDC)))
+	std::array<std::pair<int, int>, 7> versions_to_try = { {
+		{ 4, 5 },{ 4, 4 },{ 4, 3 },{ 4, 2 },{ 4, 1 },{ 4, 0 },{ 3, 3 },
+		} };
+
+	for (const auto& version : versions_to_try)
 	{
-		PanicAlert("(4) Can't create an OpenGL rendering context.");
-		return false;
+		int attriblist[] = {
+			WGL_CONTEXT_MAJOR_VERSION_ARB, version.first,
+			WGL_CONTEXT_MINOR_VERSION_ARB, version.second,
+			WGL_CONTEXT_FLAGS_ARB, 0,
+			WGL_CONTEXT_PROFILE_MASK_ARB, WGL_CONTEXT_CORE_PROFILE_BIT_ARB,
+			0, 0 };
+
+		hRC = wglCreateContextAttribsARB(hDC, 0, attriblist);
+		if (hRC)
+			break;
 	}
+	if (!hRC)
+	{
+		if (!(hRC = wglCreateContext(hDC)))
+		{
+			PanicAlert("(4) Can't create an OpenGL rendering context.");
+			return false;
+		}
+	}
+	
 
 	return true;
 }
@@ -132,7 +195,8 @@ bool cInterfaceWGL::MakeCurrent()
 	if (success)
 	{
 		// Grab the swap interval function pointer
-		wglSwapIntervalEXT = (PFNWGLSWAPINTERVALEXTPROC)GLInterface->GetFuncAddress("wglSwapIntervalEXT");
+		wglSwapIntervalEXT =
+			(PFNWGLSWAPINTERVALEXTPROC)GLInterface->GetFuncAddress("wglSwapIntervalEXT");
 	}
 	return success;
 }
@@ -180,5 +244,3 @@ void cInterfaceWGL::Shutdown()
 	}
 	FreeLibrary(dllHandle);
 }
-
-

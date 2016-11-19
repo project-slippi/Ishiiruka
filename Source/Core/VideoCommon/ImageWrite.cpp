@@ -28,7 +28,8 @@ Inputs:
 data      : This is an array of RGBA with 8 bits per channel. 4 bytes for each pixel.
 row_stride: Determines the amount of bytes per row of pixels.
 */
-bool TextureToPng(const u8* data, int row_stride, const std::string& filename, int width, int height, bool saveAlpha)
+bool TextureToPng(const u8* data, int row_stride, const std::string& filename, int width,
+	int height, bool saveAlpha, bool frombgra)
 {
 	bool success = false;
 
@@ -39,12 +40,17 @@ bool TextureToPng(const u8* data, int row_stride, const std::string& filename, i
 	char title_key[] = "Title";
 	png_structp png_ptr = nullptr;
 	png_infop info_ptr = nullptr;
+	std::vector<u8> buffer;
+
+	if (!saveAlpha)
+		buffer.resize(width * 4);
 
 	// Open file for writing (binary mode)
 	File::IOFile fp(filename, "wb");
 	if (!fp.IsOpen())
 	{
-		PanicAlertT("Screenshot failed: Could not open file %s %d", filename.c_str(), errno);
+		PanicAlertT("Screenshot failed: Could not open file \"%s\" (error %d)", filename.c_str(),
+			errno);
 		goto finalise;
 	}
 
@@ -52,31 +58,29 @@ bool TextureToPng(const u8* data, int row_stride, const std::string& filename, i
 	png_ptr = png_create_write_struct(PNG_LIBPNG_VER_STRING, nullptr, nullptr, nullptr);
 	if (png_ptr == nullptr)
 	{
-		PanicAlertT("Screenshot failed: Could not allocate write struct");
+		PanicAlert("Screenshot failed: Could not allocate write struct");
 		goto finalise;
-
 	}
 
 	// Initialize info structure
 	info_ptr = png_create_info_struct(png_ptr);
 	if (info_ptr == nullptr)
 	{
-		PanicAlertT("Screenshot failed: Could not allocate info struct");
+		PanicAlert("Screenshot failed: Could not allocate info struct");
 		goto finalise;
 	}
 
 	// Setup Exception handling
 	if (setjmp(png_jmpbuf(png_ptr)))
 	{
-		PanicAlertT("Screenshot failed: Error during png creation");
+		PanicAlert("Screenshot failed: Error during PNG creation");
 		goto finalise;
 	}
 
 	png_init_io(png_ptr, fp.GetHandle());
 
 	// Write header (8 bit color depth)
-	png_set_IHDR(png_ptr, info_ptr, width, height,
-		8, PNG_COLOR_TYPE_RGB_ALPHA, PNG_INTERLACE_NONE,
+	png_set_IHDR(png_ptr, info_ptr, width, height, 8, PNG_COLOR_TYPE_RGB_ALPHA, PNG_INTERLACE_NONE,
 		PNG_COMPRESSION_TYPE_BASE, PNG_FILTER_TYPE_BASE);
 
 	png_text title_text;
@@ -90,15 +94,23 @@ bool TextureToPng(const u8* data, int row_stride, const std::string& filename, i
 	// Write image data
 	for (auto y = 0; y < height; ++y)
 	{
-		u8* row_ptr = (u8*)data + y * row_stride;
-		u8* ptr = row_ptr;
-		for (auto x = 0; x < row_stride / 4; ++x)
+		const u8* row_ptr = data + y * row_stride;
+		if (!saveAlpha || frombgra)
 		{
-			if (!saveAlpha)
-				ptr[3] = 0xff;
-			ptr += 4;
+			int src_r = frombgra ? 2 : 0;
+			int src_b = frombgra ? 0 : 2;
+			for (int x = 0; x < width; x++)
+			{
+				buffer[4 * x + 0] = row_ptr[4 * x + src_r];
+				buffer[4 * x + 1] = row_ptr[4 * x + 1];
+				buffer[4 * x + 2] = row_ptr[4 * x + src_b];
+				buffer[4 * x + 3] = saveAlpha ? row_ptr[4 * x + 3] : 0xff;
+			}
+			row_ptr = buffer.data();
 		}
-		png_write_row(png_ptr, row_ptr);
+		// The old API uses u8* instead of const u8*. It doesn't write
+		// to this pointer, but to fit the API, we have to drop the const qualifier.
+		png_write_row(png_ptr, const_cast<u8*>(row_ptr));
 	}
 
 	// End write
@@ -107,8 +119,10 @@ bool TextureToPng(const u8* data, int row_stride, const std::string& filename, i
 	success = true;
 
 finalise:
-	if (info_ptr != nullptr) png_free_data(png_ptr, info_ptr, PNG_FREE_ALL, -1);
-	if (png_ptr != nullptr) png_destroy_write_struct(&png_ptr, (png_infopp)nullptr);
+	if (info_ptr != nullptr)
+		png_free_data(png_ptr, info_ptr, PNG_FREE_ALL, -1);
+	if (png_ptr != nullptr)
+		png_destroy_write_struct(&png_ptr, (png_infopp) nullptr);
 
 	return success;
 }

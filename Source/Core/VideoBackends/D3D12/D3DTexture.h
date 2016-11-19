@@ -66,14 +66,14 @@ public:
 		return m_srv_cpu;
 	}
 
+	inline D3D12_CPU_DESCRIPTOR_HANDLE D3DTexture2D::GetSRVCPUShadow() const
+	{
+		return m_srv_cpu_shadow;
+	}
+
 	inline D3D12_GPU_DESCRIPTOR_HANDLE D3DTexture2D::GetSRVGPU() const
 	{
 		return m_srv_gpu;
-	}
-
-	inline D3D12_CPU_DESCRIPTOR_HANDLE D3DTexture2D::GetSRVGPUCPUShadow() const
-	{
-		return m_srv_gpu_cpu_shadow;
 	}
 
 	inline D3D12_CPU_DESCRIPTOR_HANDLE D3DTexture2D::GetDSV() const
@@ -97,13 +97,17 @@ private:
 	ComPtr<ID3D12Resource> m_tex;
 	DXGI_FORMAT m_srv_format = {};
 	D3D12_CPU_DESCRIPTOR_HANDLE m_srv_cpu = {};
+	D3D12_CPU_DESCRIPTOR_HANDLE m_srv_cpu_shadow = {};
 	D3D12_GPU_DESCRIPTOR_HANDLE m_srv_gpu = {};
-	D3D12_CPU_DESCRIPTOR_HANDLE m_srv_gpu_cpu_shadow = {};
+	size_t m_srv_index = 0;
 
 	DXGI_FORMAT m_dsv_format = {};
 	D3D12_CPU_DESCRIPTOR_HANDLE m_dsv = {};
+	size_t m_dsv_index = 0;
+
 	DXGI_FORMAT m_rtv_format = {};
 	D3D12_CPU_DESCRIPTOR_HANDLE m_rtv = {};
+	size_t m_rtv_index = 0;
 
 	D3D12_RESOURCE_STATES m_resource_state = D3D12_RESOURCE_STATE_COMMON;
 
@@ -111,9 +115,6 @@ private:
 
 	std::atomic<unsigned long> m_ref = 1;
 	u32 m_bind_falgs = {};
-	static void SRVHeapRestartCallback(void* owner);
-	static void RTVHeapRestartCallback(void* owner);
-	static void DSVHeapRestartCallback(void* owner);
 	void InitalizeSRV();
 	void InitalizeRTV();
 	void InitalizeDSV();

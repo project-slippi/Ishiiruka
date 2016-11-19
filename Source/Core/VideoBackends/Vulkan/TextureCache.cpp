@@ -33,6 +33,7 @@ namespace Vulkan
 {
 TextureCache::TextureCache()
 {
+	m_scaler = std::make_unique<TextureScaler>();
 }
 
 TextureCache::~TextureCache()
@@ -42,6 +43,7 @@ TextureCache::~TextureCache()
 	if (m_update_render_pass != VK_NULL_HANDLE)
 		vkDestroyRenderPass(g_vulkan_context->GetDevice(), m_update_render_pass, nullptr);
 	TextureCache::DeleteShaders();
+	m_scaler.reset();
 }
 
 TextureCache* TextureCache::GetInstance()
@@ -327,7 +329,14 @@ TextureCacheBase::TCacheEntryBase* TextureCache::CreateTexture(const TCacheEntry
 		vkCmdClearColorImage(g_command_buffer_mgr->GetCurrentInitCommandBuffer(), texture->GetImage(),
 			texture->GetLayout(), &clear_value, 1, &clear_range);
 	}
-	TCacheEntry* entry = new TCacheEntry(config, std::move(texture), framebuffer);
+	std::unique_ptr<Texture2D> nrmtexture;
+	if (config.materialmap)
+	{
+		nrmtexture = Texture2D::Create(
+			config.width, config.height, config.levels, config.layers, PC_TexFormat_To_VkFormat[config.pcformat],
+			VK_SAMPLE_COUNT_1_BIT, VK_IMAGE_VIEW_TYPE_2D_ARRAY, VK_IMAGE_TILING_OPTIMAL, usage);
+	}
+	TCacheEntry* entry = new TCacheEntry(config, std::move(texture), std::move(nrmtexture), framebuffer);
 	entry->compressed = config.pcformat >= PC_TEX_FMT_DXT1 && config.pcformat < PC_TEX_FMT_R32;
 	return entry;
 }
@@ -555,7 +564,7 @@ void TextureCache::LoadData(Texture2D* dst, const u8* src, u32 width, u32 height
 		// Slow path. The data for the image is too large to fit in the streaming buffer, so we need
 		// to allocate a temporary texture to store the data in, then copy to the real texture.
 		std::unique_ptr<StagingTexture2D> staging_texture = StagingTexture2D::Create(
-			STAGING_BUFFER_TYPE_UPLOAD, width, height, TEXTURECACHE_TEXTURE_FORMAT);
+			STAGING_BUFFER_TYPE_UPLOAD, width, height, dst->GetFormat());
 
 		if (!staging_texture || !staging_texture->Map())
 		{
@@ -584,8 +593,9 @@ void TextureCache::LoadData(Texture2D* dst, const u8* src, u32 width, u32 height
 
 TextureCache::TCacheEntry::TCacheEntry(const TCacheEntryConfig& config_,
 	std::unique_ptr<Texture2D> texture,
+	std::unique_ptr<Texture2D> nrmtexture,
 	VkFramebuffer framebuffer)
-	: TCacheEntryBase(config_), m_texture(std::move(texture)),
+	: TCacheEntryBase(config_), m_texture(std::move(texture)), m_nrmtexture(std::move(nrmtexture)),
 	m_framebuffer(framebuffer)
 {
 }
@@ -595,7 +605,10 @@ TextureCache::TCacheEntry::~TCacheEntry()
 	// Texture is automatically cleaned up, however, we don't want to leave it bound to the state
 	// tracker.
 	StateTracker::GetInstance()->UnbindTexture(m_texture->GetView());
-
+	if (m_nrmtexture != nullptr)
+	{
+		StateTracker::GetInstance()->UnbindTexture(m_nrmtexture->GetView());
+	}
 	if (m_framebuffer != VK_NULL_HANDLE)
 		g_command_buffer_mgr->DeferFramebufferDestruction(m_framebuffer);
 }
@@ -734,9 +747,13 @@ void TextureCache::TCacheEntry::CopyRectangleFromTexture(const TCacheEntryBase* 
 		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 }
 
-void TextureCache::TCacheEntry::Bind(u32 stage, u32 last_texture)
+void TextureCache::TCacheEntry::Bind(u32 stage)
 {
 	StateTracker::GetInstance()->SetTexture(stage, m_texture->GetView());
+	if (m_nrmtexture)
+	{
+		StateTracker::GetInstance()->SetTexture(8 + stage, m_nrmtexture->GetView());
+	}
 }
 
 bool TextureCache::TCacheEntry::Save(const std::string& filename, u32 level)

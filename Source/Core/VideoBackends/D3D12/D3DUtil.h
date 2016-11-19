@@ -42,25 +42,24 @@ public:
 		const std::string& text);
 
 private:
-	ID3D12Resource* m_texture12 = nullptr;
-	D3D12_CPU_DESCRIPTOR_HANDLE m_texture12_cpu = {};
-	D3D12_GPU_DESCRIPTOR_HANDLE m_texture12_gpu = {};
+	ID3D12Resource* m_texture = nullptr;
+	D3D12_CPU_DESCRIPTOR_HANDLE m_texture_cpu = {};
+	D3D12_GPU_DESCRIPTOR_HANDLE m_texture_gpu = {};
 
 	std::unique_ptr<D3DStreamBuffer> m_vertex_buffer;
 
-	D3D12_INPUT_LAYOUT_DESC m_input_layout12 = {};
-	D3D12_SHADER_BYTECODE m_pshader12 = {};
-	D3D12_SHADER_BYTECODE m_vshader12 = {};
-	D3D12_BLEND_DESC m_blendstate12 = {};
-	D3D12_RASTERIZER_DESC m_raststate12 = {};
+	D3D12_INPUT_LAYOUT_DESC m_input_layout = {};
+	D3D12_SHADER_BYTECODE m_pshader = {};
+	D3D12_SHADER_BYTECODE m_vshader = {};
+	D3D12_BLEND_DESC m_blendstate = {};
+	D3D12_RASTERIZER_DESC m_raststate = {};
 	ID3D12PipelineState* m_pso = nullptr;
 
 	unsigned int m_line_height = 0;
 	float m_tex_coords[128 - 32][4] = {};
 
 	const int m_tex_width;
-	const int m_tex_height;
-	static void SRVHeapRestartCallback(void* owner);
+	const int m_tex_height;	
 	void InitalizeSRV();
 };
 

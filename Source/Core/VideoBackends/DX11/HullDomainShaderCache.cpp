@@ -119,9 +119,9 @@ void HullDomainShaderCache::Init()
 			item.CalculateUIDHash();
 			CompileHDShader(item, true);
 			shader_count++;
-			//Host_UpdateTitle(StringFromFormat("Compiling Tessellation Shaders %i %% (%i/%i)", (shader_count * 100) / total, shader_count, total));
-			if ((shader_count & 31) == 0)
+			if ((shader_count & 7) == 0)
 			{
+				Host_UpdateTitle(StringFromFormat("Compiling Tessellation Shaders %i %% (%i/%i)", (shader_count * 100) / total, shader_count, total));
 				s_compiler->WaitForFinish();
 			}
 		},

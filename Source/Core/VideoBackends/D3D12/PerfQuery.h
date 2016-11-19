@@ -19,7 +19,9 @@ public:
 	~PerfQuery();
 
 	void EnableQuery(PerfQueryGroup type) override;
+	void StartQuery();
 	void DisableQuery(PerfQueryGroup type) override;
+	void EndQuery();
 	void ResetQuery() override;
 	u32 GetQueryResult(PerfQueryType type) override;
 	void FlushResults() override;
@@ -52,6 +54,8 @@ private:
 
 	ID3D12Fence* m_tracking_fence = nullptr;
 	UINT64 m_next_fence_value = 0;
+	bool m_query_enabled{};
+	PerfQueryGroup  m_type{};
 };
 
 } // namespace

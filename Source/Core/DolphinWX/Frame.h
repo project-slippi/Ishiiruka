@@ -103,7 +103,8 @@ public:
 	bool RendererHasFocus();
 	bool UIHasFocus();
 	bool RendererIsFullscreen();
-	void DoFullscreen(bool bF);
+	void DoFullscreen(bool enable_fullscreen);
+	void DoExclusiveFullscreen(bool enable_fullscreen);
 	void ToggleDisplayMode(bool bFullscreen);
 	void UpdateWiiMenuChoice(wxMenuItem* WiiMenuItem = nullptr);
 	void PopulateSavedPerspectives();

@@ -38,7 +38,7 @@ TextureCache::TCacheEntry::~TCacheEntry()
 	}
 }
 
-void TextureCache::TCacheEntry::Bind(u32 stage, u32 last_texture)
+void TextureCache::TCacheEntry::Bind(u32 stage)
 {
 	D3D::stateman->SetTexture(stage, texture->GetSRV());
 	if (nrm_texture && g_ActiveConfig.HiresMaterialMapsEnabled())

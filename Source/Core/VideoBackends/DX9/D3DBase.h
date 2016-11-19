@@ -50,18 +50,18 @@ void Reset();
 bool BeginFrame();
 void EndFrame();
 void Present();
-bool CanUseINTZ();
 
 int GetBackBufferWidth();
 int GetBackBufferHeight();
 LPDIRECT3DSURFACE9 GetBackBufferSurface();
 LPDIRECT3DSURFACE9 GetBackBufferDepthSurface();
-LPDIRECT3DVERTEXBUFFER9  GetquadVB();
-LPDIRECT3DVERTEXDECLARATION9 GetBasicvertexDecl();
 const D3DCAPS9 &GetCaps();
 const char *PixelShaderVersionString();
 const char *VertexShaderVersionString();
 void ShowD3DError(HRESULT err);
+
+HRESULT SetFullscreenState(bool enable_fullscreen);
+bool GetFullscreenState();
 
 // returns true if size was changed
 bool FixTextureSize(int& width, int& height);
@@ -74,7 +74,7 @@ D3DFORMAT GetSupportedDepthTextureFormat();
 D3DFORMAT GetSupportedDepthSurfaceFormat(D3DFORMAT target_format);
 
 // The following are "filtered" versions of the corresponding D3Ddev-> functions.
-void SetTexture(DWORD Stage, IDirect3DBaseTexture9 *pTexture);
+void SetTexture(DWORD Stage, LPDIRECT3DBASETEXTURE9 pTexture);
 void SetRenderState(D3DRENDERSTATETYPE State, DWORD Value);
 void RefreshRenderState(D3DRENDERSTATETYPE State);
 void ChangeRenderState(D3DRENDERSTATETYPE State, DWORD Value);

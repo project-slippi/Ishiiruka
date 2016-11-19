@@ -124,7 +124,7 @@ TextureCache::TCacheEntry::TCacheEntry(const TCacheEntryConfig& _config)
 	framebuffer = 0;
 }
 
-void TextureCache::TCacheEntry::Bind(u32 stage, u32 last_texture)
+void TextureCache::TCacheEntry::Bind(u32 stage)
 {
 	if (nrm_texture && g_ActiveConfig.HiresMaterialMapsEnabled())
 	{

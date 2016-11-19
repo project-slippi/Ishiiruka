@@ -126,10 +126,16 @@ StateCache::StateCache()
 	m_current_pso_desc.SampleMask = UINT_MAX;
 	m_current_pso_desc.SampleDesc.Count = g_ActiveConfig.iMultisamples;
 	m_current_pso_desc.SampleDesc.Quality = 0;
+	m_enable_disk_cache = true;
 }
 
 void StateCache::Init()
 {
+	if (!gx_state_cache.m_enable_disk_cache)
+	{
+		return;
+	}
+
 	if (!File::Exists(File::GetUserPath(D_SHADERCACHE_IDX)))
 		File::CreateDir(File::GetUserPath(D_SHADERCACHE_IDX));
 
@@ -156,6 +162,20 @@ void StateCache::Init()
 		s_pso_disk_cache.OpenAndRead(cache_filename, inserter);
 
 		s_cache_is_corrupted = false;
+	}
+}
+
+void StateCache::CheckDiskCacheState(IDXGIAdapter* adapter)
+{
+	DXGI_ADAPTER_DESC adapter_desc = {};
+	adapter->GetDesc(&adapter_desc);
+	gx_state_cache.m_enable_disk_cache = true;
+
+	// Disable disk cache for drivers that have issues when recreating
+	// identical PSOs from the cache blob.
+	if (adapter_desc.VendorId == 0x1002)        // Microsoft WARP
+	{
+		gx_state_cache.m_enable_disk_cache = false;
 	}
 }
 
@@ -450,25 +470,27 @@ HRESULT StateCache::GetPipelineStateObjectFromCache(const SmallPsoDesc& pso_desc
 		m_small_pso_map[pso_desc] = new_pso;
 		*pso = new_pso.Get();
 
-		// This contains all of the information needed to reconstruct a PSO at startup.
-		SmallPsoDiskDesc disk_desc = {};
-		disk_desc.blend_state_hex = pso_desc.blend_state.hex;
-		disk_desc.depth_stencil_state_hex = pso_desc.depth_stencil_state.packed;
-		disk_desc.rasterizer_state_hex = pso_desc.rasterizer_state.hex;
-		disk_desc.gs_uid = *gs_uid;
-		disk_desc.ps_uid = *ps_uid;
-		disk_desc.vs_uid = *vs_uid;
-		disk_desc.hds_uid = *hds_uid;
-		disk_desc.vertex_declaration = pso_desc.input_Layout->GetVertexDeclaration();
-		disk_desc.topology = topology;
-		disk_desc.sample_desc.Count = g_ActiveConfig.iMultisamples;
-
-		// This shouldn't fail.. but if it does, don't cache to disk.
-		ComPtr<ID3DBlob> psoBlob;
-		hr = new_pso->GetCachedBlob(psoBlob.ReleaseAndGetAddressOf());
-		if (SUCCEEDED(hr))
+		if (m_enable_disk_cache)
 		{
-			s_pso_disk_cache.Append(disk_desc, reinterpret_cast<const u8*>(psoBlob->GetBufferPointer()), static_cast<u32>(psoBlob->GetBufferSize()));
+			// This contains all of the information needed to reconstruct a PSO at startup.
+			SmallPsoDiskDesc disk_desc = {};
+			disk_desc.blend_state_hex = pso_desc.blend_state.hex;
+			disk_desc.depth_stencil_state_hex = pso_desc.depth_stencil_state.packed;
+			disk_desc.rasterizer_state_hex = pso_desc.rasterizer_state.hex;
+			disk_desc.gs_uid = *gs_uid;
+			disk_desc.ps_uid = *ps_uid;
+			disk_desc.vs_uid = *vs_uid;
+			disk_desc.hds_uid = *hds_uid;
+			disk_desc.vertex_declaration = pso_desc.input_Layout->GetVertexDeclaration();
+			disk_desc.topology = topology;
+			disk_desc.sample_desc.Count = g_ActiveConfig.iMultisamples;
+			// This shouldn't fail.. but if it does, don't cache to disk.
+			ComPtr<ID3DBlob> psoBlob;
+			hr = new_pso->GetCachedBlob(psoBlob.ReleaseAndGetAddressOf());
+			if (SUCCEEDED(hr))
+			{
+				s_pso_disk_cache.Append(disk_desc, reinterpret_cast<const u8*>(psoBlob->GetBufferPointer()), static_cast<u32>(psoBlob->GetBufferSize()));
+			}
 		}
 	}
 	else
@@ -481,54 +503,10 @@ HRESULT StateCache::GetPipelineStateObjectFromCache(const SmallPsoDesc& pso_desc
 
 void StateCache::Clear()
 {
-	m_sampler_map.clear();
 	m_pso_map.clear();
 	m_small_pso_map.clear();
 
 	s_pso_disk_cache.Sync();
 	s_pso_disk_cache.Close();
 }
-
-bool operator==(const StateCache::SamplerStateSet& lhs, const StateCache::SamplerStateSet& rhs)
-{
-	// D3D12TODO: Do something more efficient than this.
-	return (!memcmp(&lhs, &rhs, sizeof(StateCache::SamplerStateSet)));
-}
-
-D3D12_GPU_DESCRIPTOR_HANDLE StateCache::GetHandleForSamplerGroup(SamplerState* sampler_state, unsigned int num_sampler_samples)
-{
-	auto it = m_sampler_map.find(*reinterpret_cast<SamplerStateSet*>(sampler_state));
-
-	if (it == m_sampler_map.end())
-	{
-		D3D12_CPU_DESCRIPTOR_HANDLE base_sampler_cpu_handle;
-		D3D12_GPU_DESCRIPTOR_HANDLE base_sampler_gpu_handle;
-
-		bool allocatedFromExistingHeap = D3D::sampler_descriptor_heap_mgr->AllocateGroup(&base_sampler_cpu_handle, num_sampler_samples, &base_sampler_gpu_handle);
-
-		if (!allocatedFromExistingHeap)
-		{
-			m_sampler_map.clear();
-		}
-
-		for (unsigned int i = 0; i < num_sampler_samples; i++)
-		{
-			D3D12_CPU_DESCRIPTOR_HANDLE destinationDescriptor;
-			destinationDescriptor.ptr = base_sampler_cpu_handle.ptr + i * D3D::sampler_descriptor_size;
-
-			D3D::device->CreateSampler(&StateCache::GetDesc(sampler_state[i]), destinationDescriptor);
-		}
-
-		m_sampler_map[*reinterpret_cast<SamplerStateSet*>(sampler_state)] = base_sampler_gpu_handle;
-
-		return base_sampler_gpu_handle;
-	}
-	else
-	{
-		return it->second;
-	}
-}
-
-
-
 }  // namespace DX12

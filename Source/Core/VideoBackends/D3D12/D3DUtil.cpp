@@ -151,13 +151,9 @@ constexpr const char fontvertshader[] = {
 	"};\n"
 };
 
-void CD3DFont::SRVHeapRestartCallback(void* owner)
-{
-	static_cast<CD3DFont*>(owner)->InitalizeSRV();
-}
 void CD3DFont::InitalizeSRV()
 {
-	D3D::gpu_descriptor_heap_mgr->Allocate(&m_texture12_cpu, &m_texture12_gpu);
+	D3D::gpu_descriptor_heap_mgr->Allocate(nullptr, &m_texture_cpu, nullptr, &m_texture_gpu);
 
 	D3D12_SHADER_RESOURCE_VIEW_DESC srv_desc = {};
 	srv_desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
@@ -165,7 +161,7 @@ void CD3DFont::InitalizeSRV()
 	srv_desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
 	srv_desc.Texture2D.MipLevels = -1;
 
-	D3D::device->CreateShaderResourceView(m_texture12, &srv_desc, m_texture12_cpu);
+	D3D::device->CreateShaderResourceView(m_texture, &srv_desc, m_texture_cpu);
 }
 
 int CD3DFont::Init()
@@ -256,11 +252,11 @@ int CD3DFont::Init()
 			&CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_R8G8B8A8_UNORM, m_tex_width, m_tex_height, 1, 1),
 			D3D12_RESOURCE_STATE_COMMON,
 			nullptr,
-			IID_PPV_ARGS(&m_texture12)
+			IID_PPV_ARGS(&m_texture)
 		)
 	);
 
-	D3D::SetDebugObjectName12(m_texture12, "texture of a CD3DFont object");
+	D3D::SetDebugObjectName12(m_texture, "texture of a CD3DFont object");
 
 	ID3D12Resource* temporaryFontTextureUploadBuffer;
 	CheckHR(
@@ -280,17 +276,15 @@ int CD3DFont::Init()
 		0                       // LONG_PTR SlicePitch;
 	};
 
-	D3D::ResourceBarrier(D3D::current_command_list, m_texture12, D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES);
+	D3D::ResourceBarrier(D3D::current_command_list, m_texture, D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES);
 
-	CHECK(0 != UpdateSubresources(D3D::current_command_list, m_texture12, temporaryFontTextureUploadBuffer, 0, 0, 1, &subresource_data_dest), "UpdateSubresources call failed.");
+	CHECK(0 != UpdateSubresources(D3D::current_command_list, m_texture, temporaryFontTextureUploadBuffer, 0, 0, 1, &subresource_data_dest), "UpdateSubresources call failed.");
 
 	command_list_mgr->DestroyResourceAfterCurrentCommandListExecuted(temporaryFontTextureUploadBuffer);
 
 	InitalizeSRV();
 
-	D3D::gpu_descriptor_heap_mgr->RegisterHeapRestartCallback(this, &CD3DFont::SRVHeapRestartCallback);
-
-	D3D::ResourceBarrier(D3D::current_command_list, m_texture12, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES);
+	D3D::ResourceBarrier(D3D::current_command_list, m_texture, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES);
 
 	SelectObject(hDC, hOldbmBitmap);
 	DeleteObject(hbmBitmap);
@@ -304,16 +298,16 @@ int CD3DFont::Init()
 	if (psbytecode == nullptr)
 		PanicAlert("Failed to compile pixel shader, %s %d\n", __FILE__, __LINE__);
 
-	m_pshader12.pShaderBytecode = psbytecode->Data();
-	m_pshader12.BytecodeLength = psbytecode->Size();
+	m_pshader.pShaderBytecode = psbytecode->Data();
+	m_pshader.BytecodeLength = psbytecode->Size();
 
 	D3DBlob* vsbytecode = nullptr;
 	D3D::CompileVertexShader(fontvertshader, &vsbytecode);
 	if (vsbytecode == nullptr)
 		PanicAlert("Failed to compile vertex shader, %s %d\n", __FILE__, __LINE__);
 
-	m_vshader12.pShaderBytecode = vsbytecode->Data();
-	m_vshader12.BytecodeLength = vsbytecode->Size();
+	m_vshader.pShaderBytecode = vsbytecode->Data();
+	m_vshader.BytecodeLength = vsbytecode->Size();
 
 	const D3D12_INPUT_ELEMENT_DESC desc[] =
 	{
@@ -322,8 +316,8 @@ int CD3DFont::Init()
 		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 28, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
 	};
 
-	m_input_layout12.NumElements = ARRAYSIZE(desc);
-	m_input_layout12.pInputElementDescs = desc;
+	m_input_layout.NumElements = ARRAYSIZE(desc);
+	m_input_layout.pInputElementDescs = desc;
 
 	D3D12_BLEND_DESC blenddesc = {};
 	blenddesc.AlphaToCoverageEnable = FALSE;
@@ -338,10 +332,10 @@ int CD3DFont::Init()
 	blenddesc.RenderTarget[0].BlendOpAlpha = D3D12_BLEND_OP_ADD;
 	blenddesc.RenderTarget[0].LogicOp = D3D12_LOGIC_OP_NOOP;
 	blenddesc.RenderTarget[0].LogicOpEnable = FALSE;
-	m_blendstate12 = blenddesc;
+	m_blendstate = blenddesc;
 
 	D3D12_RASTERIZER_DESC rastdesc = { D3D12_FILL_MODE_SOLID, D3D12_CULL_MODE_NONE, false, 0, 0.f, 0.f, false, false, false, false };
-	m_raststate12 = rastdesc;
+	m_raststate = rastdesc;
 	const unsigned int text_vb_size = s_max_num_vertices * sizeof(FONT2DVERTEX);
 	m_vertex_buffer = std::make_unique<D3DStreamBuffer>(text_vb_size * 2, text_vb_size * 16, nullptr);
 
@@ -357,7 +351,7 @@ int CD3DFont::Init()
 		UINT_MAX,                                         // UINT SampleMask;
 		rastdesc,                                         // D3D12_RASTERIZER_DESC RasterizerState
 		CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT),        // D3D12_DEPTH_STENCIL_DESC DepthStencilState
-		m_input_layout12,                                 // D3D12_INPUT_LAYOUT_DESC InputLayout
+		m_input_layout,                                 // D3D12_INPUT_LAYOUT_DESC InputLayout
 		D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_0xFFFF,        // D3D12_INDEX_BUFFER_STRIP_CUT_VALUE IndexBufferProperties
 		D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE,           // D3D12_PRIMITIVE_TOPOLOGY_TYPE PrimitiveTopologyType
 		1,                                                // UINT NumRenderTargets
@@ -376,9 +370,8 @@ int CD3DFont::Init()
 
 int CD3DFont::Shutdown()
 {
-	D3D::gpu_descriptor_heap_mgr->RemoveHeapRestartCallback(this);
 	m_vertex_buffer.reset();
-	D3D::command_list_mgr->DestroyResourceAfterCurrentCommandListExecuted(m_texture12);
+	D3D::command_list_mgr->DestroyResourceAfterCurrentCommandListExecuted(m_texture);
 
 	return S_OK;
 }
@@ -404,7 +397,7 @@ int CD3DFont::DrawTextScaled(float x, float y, float size, float spacing, u32 dw
 	D3D::current_command_list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	D3D::command_list_mgr->SetCommandListPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-	D3D::current_command_list->SetGraphicsRootDescriptorTable(DESCRIPTOR_TABLE_PS_SRV, m_texture12_gpu);
+	D3D::current_command_list->SetGraphicsRootDescriptorTable(DESCRIPTOR_TABLE_PS_SRV, m_texture_gpu);
 
 	// upper bound is nchars * 6, assuming no spaces
 	m_vertex_buffer->AllocateSpaceInBuffer(static_cast<u32>(text.length()) * 6 * sizeof(FONT2DVERTEX), sizeof(FONT2DVERTEX), false);
@@ -538,11 +531,9 @@ void InitUtils()
 	util_vbuf_clearq = std::make_unique<UtilVertexBuffer>(vb_buff_size);
 	util_vbuf_efbpokequads = std::make_unique<UtilVertexBuffer>(vb_buff_size);
 
-	D3D::sampler_descriptor_heap_mgr->RegisterHeapRestartCallback(nullptr, InitBasicSamplers);
-
 	// Init default samplers
 	InitBasicSamplers(nullptr);
-
+	D3D::sampler_descriptor_heap_mgr->RegisterHeapRestartCallback(nullptr, InitBasicSamplers);
 	// cached data used to avoid unnecessarily reloading the vertex buffers
 	memset(&tex_quad_data, 0, sizeof(tex_quad_data));
 	memset(&clear_quad_data, 0, sizeof(clear_quad_data));

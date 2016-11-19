@@ -55,73 +55,9 @@ D3D12_GPU_DESCRIPTOR_HANDLE TextureCache::GetTextureGroupHandle()
 	return Handle;
 }
 
-void TextureCache::TCacheEntry::Bind(unsigned int stage, unsigned int last_Texture)
+void TextureCache::TCacheEntry::Bind(unsigned int stage)
 {
-	static bool s_first_texture_in_group = true;
-	static D3D12_CPU_DESCRIPTOR_HANDLE s_group_base_texture_cpu_handle;
-	s_handle_changed = true;
-	const bool use_materials = g_ActiveConfig.HiresMaterialMapsEnabled();
-	m_texture->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-	if (m_nrm_texture != nullptr && use_materials)
-	{
-		m_nrm_texture->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-	}
-	if (last_Texture == 0 && !use_materials)
-	{
-		s_group_base_texture_gpu_handle = this->m_texture->GetSRVGPU();
-		return;
-	}
 
-	if (s_first_texture_in_group)
-	{
-		const unsigned int num_handles = use_materials ? 16 : 8;
-		// On the first texture in the group, we need to allocate the space in the descriptor heap.
-		DX12::D3D::gpu_descriptor_heap_mgr->AllocateGroup(&s_group_base_texture_cpu_handle, num_handles, &s_group_base_texture_gpu_handle, nullptr, true);
-
-		// Pave over space with null textures.
-		for (unsigned int i = 0; i < num_handles; i++)
-		{
-			D3D12_CPU_DESCRIPTOR_HANDLE nullDestDescriptor;
-			nullDestDescriptor.ptr = s_group_base_texture_cpu_handle.ptr + i * D3D::resource_descriptor_size;
-
-			DX12::D3D::device->CopyDescriptorsSimple(
-				1,
-				nullDestDescriptor,
-				DX12::D3D::null_srv_cpu_shadow,
-				D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV
-			);
-		}
-
-		// Future binding calls will not be the first texture in the group.. until stage == count, below.
-		s_first_texture_in_group = false;
-	}
-
-	D3D12_CPU_DESCRIPTOR_HANDLE textureDestDescriptor;
-	textureDestDescriptor.ptr = s_group_base_texture_cpu_handle.ptr + stage * D3D::resource_descriptor_size;
-	DX12::D3D::device->CopyDescriptorsSimple(
-		1,
-		textureDestDescriptor,
-		this->m_texture->GetSRVGPUCPUShadow(),
-		D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV
-	);
-
-	if (m_nrm_texture && use_materials)
-	{
-		textureDestDescriptor.ptr = s_group_base_texture_cpu_handle.ptr + ((8 + stage) * D3D::resource_descriptor_size);
-		DX12::D3D::device->CopyDescriptorsSimple(
-			1,
-			textureDestDescriptor,
-			this->m_nrm_texture->GetSRVGPUCPUShadow(),
-			D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV
-		);
-	}
-
-	// Stage is zero-based, count is one-based
-	if (stage == last_Texture)
-	{
-		// Then mark that the next binding call will be the first texture in a group.
-		s_first_texture_in_group = true;
-	}
 }
 
 bool TextureCache::TCacheEntry::Save(const std::string& filename, unsigned int level)
@@ -451,7 +387,7 @@ void TextureCache::TCacheEntry::FromRenderTarget(u8* dst, PEControl::PixelFormat
 	D3D::current_command_list->SetGraphicsRootConstantBufferView(DESCRIPTOR_TABLE_PS_CBVONE, s_efb_copy_stream_buffer->GetGPUAddressOfCurrentAllocation());
 	D3D::command_list_mgr->SetCommandListDirtyState(COMMAND_LIST_STATE_PS_CBV, true);
 
-	
+
 	// TODO: try targetSource.asRECT();
 	const D3D12_RECT sourcerect = CD3DX12_RECT(targetSource.left, targetSource.top, targetSource.right, targetSource.bottom);
 
@@ -607,9 +543,6 @@ bool TextureCache::Palettize(TCacheEntryBase* entry, const TCacheEntryBase* unco
 		return false;
 	}
 	const TCacheEntry* base_entry = static_cast<const TCacheEntry*>(unconverted);
-	// stretch picture with increased internal resolution
-	// stretch picture with increased internal resolution
-	D3D::SetViewportAndScissor(0, 0, unconverted->config.width, unconverted->config.height);
 
 	// D3D12: Because the second SRV slot is occupied by this buffer, and an arbitrary texture occupies the first SRV slot,
 	// we need to allocate temporary space out of our descriptor heap, place the palette SRV in the second slot, then copy the
@@ -618,7 +551,15 @@ bool TextureCache::Palettize(TCacheEntryBase* entry, const TCacheEntryBase* unco
 	// First, allocate the (temporary) space in the descriptor heap.
 	D3D12_CPU_DESCRIPTOR_HANDLE srv_group_cpu_handle[2] = {};
 	D3D12_GPU_DESCRIPTOR_HANDLE srv_group_gpu_handle[2] = {};
-	D3D::gpu_descriptor_heap_mgr->AllocateGroup(srv_group_cpu_handle, 2, srv_group_gpu_handle, nullptr, true);
+	if (!D3D::gpu_descriptor_heap_mgr->AllocateTemporary(2, srv_group_cpu_handle, srv_group_gpu_handle))
+	{
+		D3D::command_list_mgr->ExecuteQueuedWork();
+		if (!D3D::gpu_descriptor_heap_mgr->AllocateTemporary(2, srv_group_cpu_handle, srv_group_gpu_handle))
+		{
+			PanicAlert("Failed to allocate temporary descriptors.");
+			return false;
+		}
+	}
 
 	srv_group_cpu_handle[1].ptr = srv_group_cpu_handle[0].ptr + D3D::resource_descriptor_size;
 
@@ -639,7 +580,7 @@ bool TextureCache::Palettize(TCacheEntryBase* entry, const TCacheEntryBase* unco
 	D3D::device->CopyDescriptorsSimple(
 		1,
 		srv_group_cpu_handle[0],
-		base_entry->m_texture->GetSRVGPUCPUShadow(),
+		base_entry->m_texture->GetSRVCPUShadow(),
 		D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV
 	);
 
@@ -670,7 +611,9 @@ bool TextureCache::Palettize(TCacheEntryBase* entry, const TCacheEntryBase* unco
 
 	static_cast<TCacheEntry*>(entry)->m_texture->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_RENDER_TARGET);
 	D3D::current_command_list->OMSetRenderTargets(1, &static_cast<TCacheEntry*>(entry)->m_texture->GetRTV(), FALSE, nullptr);
-
+	// stretch picture with increased internal resolution
+	// stretch picture with increased internal resolution
+	D3D::SetViewportAndScissor(0, 0, unconverted->config.width, unconverted->config.height);
 	// Create texture copy
 	D3D::DrawShadedTexQuad(
 		base_entry->m_texture,
@@ -767,6 +710,91 @@ TextureCache::~TextureCache()
 	}
 
 	D3D::command_list_mgr->DestroyResourceAfterCurrentCommandListExecuted(m_palette_uniform_buffer);
+}
+
+void TextureCache::BindTextures()
+{
+	const bool use_materials = g_ActiveConfig.HiresMaterialMapsEnabled();
+	unsigned int last_texture = 0;
+	for (unsigned int i = 0; i < 8; ++i)
+	{
+		if (bound_textures[i] != nullptr)
+		{
+			last_texture = i;
+		}
+	}
+
+	if (last_texture == 0 && bound_textures[0] != nullptr && reinterpret_cast<TCacheEntry*>(bound_textures[0])->m_nrm_texture == nullptr)
+	{
+		DX12::D3D::current_command_list->SetGraphicsRootDescriptorTable(
+			DESCRIPTOR_TABLE_PS_SRV,
+			reinterpret_cast<TCacheEntry*>(bound_textures[0])->m_texture->GetSRVGPU());
+		return;
+	}
+
+	// If more than one texture, allocate space for group.
+	D3D12_CPU_DESCRIPTOR_HANDLE s_group_base_texture_cpu_handle;
+	D3D12_GPU_DESCRIPTOR_HANDLE s_group_base_texture_gpu_handle;
+	const unsigned int num_handles = use_materials ? 16 : 8;
+	if (!D3D::gpu_descriptor_heap_mgr->AllocateTemporary(num_handles, &s_group_base_texture_cpu_handle, &s_group_base_texture_gpu_handle))
+	{
+		// Kick command buffer before attempting to allocate again. This is slow.
+		D3D::command_list_mgr->ExecuteQueuedWork();
+		if (!D3D::gpu_descriptor_heap_mgr->AllocateTemporary(num_handles, &s_group_base_texture_cpu_handle, &s_group_base_texture_gpu_handle))
+		{
+			PanicAlert("Failed to allocate temporary descriptors.");
+			return;
+		}
+	}
+
+	for (unsigned int stage = 0; stage < 8; stage++)
+	{
+		if (bound_textures[stage] != nullptr)
+		{
+			D3D12_CPU_DESCRIPTOR_HANDLE textureDestDescriptor;
+			textureDestDescriptor.ptr =
+				s_group_base_texture_cpu_handle.ptr + stage * D3D::resource_descriptor_size;
+
+			DX12::D3D::device->CopyDescriptorsSimple(
+				1, textureDestDescriptor, reinterpret_cast<TCacheEntry*>(bound_textures[stage])
+				->m_texture->GetSRVCPUShadow(),
+				D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+			if (reinterpret_cast<TCacheEntry*>(bound_textures[stage])->m_nrm_texture && use_materials)
+			{
+				textureDestDescriptor.ptr = s_group_base_texture_cpu_handle.ptr + ((8 + stage) * D3D::resource_descriptor_size);
+				DX12::D3D::device->CopyDescriptorsSimple(
+					1,
+					textureDestDescriptor,
+					reinterpret_cast<TCacheEntry*>(bound_textures[stage])->m_nrm_texture->GetSRVCPUShadow(),
+					D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV
+				);
+			}
+		}
+		else
+		{
+			D3D12_CPU_DESCRIPTOR_HANDLE nullDestDescriptor;
+			nullDestDescriptor.ptr =
+				s_group_base_texture_cpu_handle.ptr + stage * D3D::resource_descriptor_size;
+
+			DX12::D3D::device->CopyDescriptorsSimple(1, nullDestDescriptor,
+				DX12::D3D::null_srv_cpu_shadow,
+				D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+			if (use_materials)
+			{
+				nullDestDescriptor.ptr = s_group_base_texture_cpu_handle.ptr + ((8 + stage) * D3D::resource_descriptor_size);
+				DX12::D3D::device->CopyDescriptorsSimple(
+					1,
+					nullDestDescriptor,
+					DX12::D3D::null_srv_cpu_shadow,
+					D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV
+				);
+			}
+		}
+	}
+
+	// Actually bind the textures.
+	DX12::D3D::current_command_list->SetGraphicsRootDescriptorTable(DESCRIPTOR_TABLE_PS_SRV,
+		s_group_base_texture_gpu_handle);
 }
 
 }

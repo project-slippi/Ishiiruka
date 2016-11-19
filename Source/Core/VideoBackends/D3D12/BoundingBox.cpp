@@ -26,6 +26,7 @@ static ComPtr<ID3D12Resource> s_bbox_buffer;
 static ComPtr<ID3D12Resource> s_bbox_staging_buffer;
 static std::unique_ptr<D3DStreamBuffer> s_bbox_stream_buffer;
 static D3D12_GPU_DESCRIPTOR_HANDLE s_bbox_descriptor_handle{};
+static size_t s_bbox_index;
 static D3D12_RESOURCE_STATES s_current_bbox_state = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
 static int s_bbox_shadow_copy[4];
 static bool s_bbox_cpu_dirty = false;
@@ -56,10 +57,10 @@ void BBox::Init()
 
 	s_bbox_stream_buffer = std::make_unique<D3DStreamBuffer>(BBOX_STREAM_BUFFER_SIZE, BBOX_STREAM_BUFFER_SIZE, nullptr);
 
-	// D3D12 root signature UAV must be raw or structured buffers, not typed. Since we used a typed buffer,
-	// we have to use a descriptor table. Luckily, we only have to allocate this once, and it never changes.
+	// buffer, we have to use a descriptor table. Luckily, we only have to allocate this once, and
+	// it never changes.
 	D3D12_CPU_DESCRIPTOR_HANDLE cpu_descriptor_handle;
-	if (!D3D::gpu_descriptor_heap_mgr->Allocate(&cpu_descriptor_handle, &s_bbox_descriptor_handle, nullptr, false))
+	if (!D3D::gpu_descriptor_heap_mgr->Allocate(&s_bbox_index, &cpu_descriptor_handle, nullptr, &s_bbox_descriptor_handle))
 		PanicAlert("Failed to create bounding box UAV descriptor");
 
 	D3D12_UNORDERED_ACCESS_VIEW_DESC view_desc = { DXGI_FORMAT_R32_SINT, D3D12_UAV_DIMENSION_BUFFER };

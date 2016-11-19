@@ -500,10 +500,10 @@ void ProgramShaderCache::Init()
 			item.puid.CalculateUIDHash();
 			const pixel_shader_uid_data& uid_data = item.puid.GetUidData();
 			shader_count++;
-			//Host_UpdateTitle(StringFromFormat("Compiling Shaders %zu %% (%zu/%zu)", (shader_count * 100) / total, shader_count, total));
 			if ((!uid_data.stereo || g_ActiveConfig.backend_info.bSupportsGeometryShaders)
 				&& (!uid_data.bounding_box || g_ActiveConfig.backend_info.bSupportsBBox))
 			{
+				Host_UpdateTitle(StringFromFormat("Compiling Shaders %zu %% (%zu/%zu)", (shader_count * 100) / total, shader_count, total));
 				CompileShader(item);
 			}
 		},
