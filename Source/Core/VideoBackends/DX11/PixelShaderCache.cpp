@@ -122,7 +122,7 @@ void main(
 	in float4 uv3 : TEXCOORD3)
 {
 	float4 texcol = Tex0.Sample(samp0,uv0);
-	texcol = round(texcol * cColMatrix[5])*cColMatrix[6];
+	texcol = floor(texcol * cColMatrix[5])*cColMatrix[6];
 	ocol0 = float4(dot(texcol,cColMatrix[0]),dot(texcol,cColMatrix[1]),dot(texcol,cColMatrix[2]),dot(texcol,cColMatrix[3])) + cColMatrix[4];
 }
 )hlsl";
@@ -145,7 +145,7 @@ void main(
 	for(int i = 0; i < samples; ++i)
 		texcol += Tex0.Load(int3(uv0.x*(width), uv0.y*(height), uv0.z), i);
 	texcol /= samples;
-	texcol = round(texcol * cColMatrix[5])*cColMatrix[6];
+	texcol = floor(texcol * cColMatrix[5])*cColMatrix[6];
 	ocol0 = float4(dot(texcol,cColMatrix[0]),dot(texcol,cColMatrix[1]),dot(texcol,cColMatrix[2]),dot(texcol,cColMatrix[3])) + cColMatrix[4];
 }
 )hlsl";

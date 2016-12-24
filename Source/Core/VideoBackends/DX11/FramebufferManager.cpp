@@ -202,7 +202,9 @@ FramebufferManager::~FramebufferManager()
 void FramebufferManager::CopyToRealXFB(u32 xfbAddr, u32 fbStride, u32 fbHeight, const EFBRectangle& sourceRc, float Gamma)
 {
 	u8* dst = Memory::GetPointer(xfbAddr);
-	s_xfbEncoder.Encode(dst, fbStride / 2, fbHeight, sourceRc, Gamma);
+	// The destination stride can differ from the copy region width, in which case the pixels
+	// outside the copy region should not be written to.
+	s_xfbEncoder.Encode(dst, static_cast<u32>(sourceRc.GetWidth()), fbHeight, sourceRc, Gamma);
 }
 
 std::unique_ptr<XFBSourceBase> FramebufferManager::CreateXFBSource(u32 target_width, u32 target_height, u32 layers)

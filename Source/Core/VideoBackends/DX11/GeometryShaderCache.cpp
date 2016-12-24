@@ -4,6 +4,7 @@
 
 #include <string>
 
+#include "Common/Align.h"
 #include "Common/FileUtil.h"
 #include "Common/LinearDiskCache.h"
 #include "Common/StringUtil.h"
@@ -149,7 +150,7 @@ void GeometryShaderCache::Init()
 	s_compiler = &HLSLAsyncCompiler::getInstance();
 	s_geometry_shaders_lock.unlock();
 	bool use_partial_buffer_update = D3D::SupportPartialContantBufferUpdate();
-	u32 gbsize = ROUND_UP(sizeof(GeometryShaderConstants), 16) * (use_partial_buffer_update ? 1024 : 1); // must be a multiple of 16
+	u32 gbsize = static_cast<u32>(Common::AlignUpSizePow2(sizeof(GeometryShaderConstants), 16) * (use_partial_buffer_update ? 1024 : 1)); // must be a multiple of 16
 	gscbuf = new D3D::ConstantStreamBuffer(gbsize);
 	ID3D11Buffer* buf = gscbuf->GetBuffer();
 	CHECK(buf != nullptr, "Create geometry shader constant buffer (size=%u)", gbsize);

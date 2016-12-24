@@ -2464,6 +2464,11 @@ void TexDecoder_DecodeTexel(u8 *dst, const u8 *src, u32 s, u32 t, u32 imageWidth
 		u32 red1 = Convert5To8((c1 >> 11) & 0x1F);
 		u32 red2 = Convert5To8((c2 >> 11) & 0x1F);
 
+		// Approximation of x/3: 3/8 (1/2 - 1/8)
+		u32 blue3 = ((blue2 - blue1) >> 1) - ((blue2 - blue1) >> 3);
+		u32 green3 = ((green2 - green1) >> 1) - ((green2 - green1) >> 3);
+		u32 red3 = ((red2 - red1) >> 1) - ((red2 - red1) >> 3);
+
 		u16 ss = s & 3;
 		u16 tt = t & 3;
 
@@ -2485,16 +2490,19 @@ void TexDecoder_DecodeTexel(u8 *dst, const u8 *src, u32 s, u32 t, u32 imageWidth
 			color = makeRGBA(red2, green2, blue2, 255);
 			break;
 		case 2:
-			color = makeRGBA(red1 + (red2 - red1) / 3, green1 + (green2 - green1) / 3, blue1 + (blue2 - blue1) / 3, 255);
+			color = makeRGBA(red1 + red3, green1 + green3, blue1 + blue3, 255);
 			break;
 		case 3:
-			color = makeRGBA(red2 + (red1 - red2) / 3, green2 + (green1 - green2) / 3, blue2 + (blue1 - blue2) / 3, 255);
+			color = makeRGBA(red2 - red3, green2 - green3, blue2 - blue3, 255);
 			break;
 		case 6:
-			color = makeRGBA((u32)ceil((float)(red1 + red2) / 2), (u32)ceil((float)(green1 + green2) / 2), (u32)ceil((float)(blue1 + blue2) / 2), 255);
+			color = makeRGBA((red1 + red2 + 1) / 2, (green1 + green2 + 1) / 2, (blue1 + blue2 + 1) / 2, 255);
 			break;
 		case 7:
-			color = makeRGBA(red2, green2, blue2, 0);
+			// color[3] is the same as color[2] (average of both colors), but transparent.
+			// This differs from DXT1 where color[3] is transparent black.
+			color =
+				makeRGBA((red1 + red2 + 1) / 2, (green1 + green2 + 1) / 2, (blue1 + blue2 + 1) / 2, 0);
 			break;
 		}
 

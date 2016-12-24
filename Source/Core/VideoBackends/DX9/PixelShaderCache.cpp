@@ -222,7 +222,7 @@ static LPDIRECT3DPIXELSHADER9 CreateCopyShader(int copyMatrixType, int depthConv
 	if (copyMatrixType == COPY_TYPE_MATRIXCOLOR)
 	{
 		if (depthConversionType == DEPTH_CONVERSION_TYPE_NONE)
-			WRITE(p, "texcol = round(texcol * cColMatrix[5])*cColMatrix[6];\n");
+			WRITE(p, "texcol = floor(texcol * cColMatrix[5])*cColMatrix[6];\n");
 
 		WRITE(p, "ocol0 = float4(dot(texcol,cColMatrix[0]),dot(texcol,cColMatrix[1]),dot(texcol,cColMatrix[2]),dot(texcol,cColMatrix[3])) + cColMatrix[4];\n");
 	}

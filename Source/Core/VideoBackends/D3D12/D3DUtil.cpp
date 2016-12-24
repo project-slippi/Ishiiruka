@@ -6,6 +6,8 @@
 #include <list>
 #include <string>
 
+#include "Common/Align.h"
+
 #include "VideoBackends/D3D12/D3DBlob.h"
 #include "VideoBackends/D3D12/D3DCommandListManager.h"
 #include "VideoBackends/D3D12/D3DDescriptorHeapManager.h"
@@ -263,7 +265,7 @@ int CD3DFont::Init()
 		D3D::device->CreateCommittedResource(
 			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
 			D3D12_HEAP_FLAG_NONE,
-			&CD3DX12_RESOURCE_DESC::Buffer(ROUND_UP(m_tex_width * 4, D3D12_TEXTURE_DATA_PITCH_ALIGNMENT) * m_tex_height),
+			&CD3DX12_RESOURCE_DESC::Buffer(Common::AlignUpSizePow2(static_cast<u32>(m_tex_width * 4), D3D12_TEXTURE_DATA_PITCH_ALIGNMENT) * m_tex_height),
 			D3D12_RESOURCE_STATE_GENERIC_READ,
 			nullptr,
 			IID_PPV_ARGS(&temporaryFontTextureUploadBuffer)

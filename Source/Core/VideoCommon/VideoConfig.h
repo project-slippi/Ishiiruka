@@ -143,9 +143,12 @@ struct VideoConfig final
 	bool bHiresTextures;
 	bool bHiresMaterialMaps;
 	bool bHiresMaterialMapsBuild;
+	bool bConvertHiresTextures;
 	bool bCacheHiresTextures;
 	bool bDumpEFBTarget;
+	bool bDumpFramesAsImages;
 	bool bUseFFV1;
+	bool bInternalResolutionFrameDumps;
 	bool bFreeLook;
 	bool bBorderlessFullscreen;
 	bool bCompileShaderOnStartup;
@@ -257,6 +260,7 @@ struct VideoConfig final
 		bool bSupportsComputeTextureEncoding;
 		bool bSupportsMultithreading;
 		bool bSupportsReversedDepthRange;
+		bool bSupportsInternalResolutionFrameDumps;
 	} backend_info;
 
 	// Utility

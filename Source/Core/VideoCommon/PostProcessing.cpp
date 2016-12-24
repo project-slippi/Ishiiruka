@@ -428,24 +428,24 @@ bool PostProcessingShaderConfiguration::ParseOptionBlock(const std::string& dirn
 
 	for (const auto& string_option : block.m_options)
 	{
-		if (StartsWith(string_option.first, "GUIName"))
+		if (StringStartsWith(string_option.first, "GUIName"))
 		{
 			if (string_option.first == "GUIName")
 			{
 				option.m_gui_name = string_option.second;
 			}
-			else if (LangCode != nullptr && EndsWith(string_option.first, LangCode))
+			else if (LangCode != nullptr && StringEndsWith(string_option.first, LangCode))
 			{
 				option.m_gui_name = string_option.second;
 			}
 		}
-		else if (StartsWith(string_option.first, "GUIDescription"))
+		else if (StringStartsWith(string_option.first, "GUIDescription"))
 		{
 			if (string_option.first == "GUIDescription")
 			{
 				option.m_gui_description = string_option.second;
 			}
-			else if (LangCode != nullptr && EndsWith(string_option.first, LangCode))
+			else if (LangCode != nullptr && StringEndsWith(string_option.first, LangCode))
 			{
 				option.m_gui_description = string_option.second;
 			}
@@ -1876,7 +1876,7 @@ const std::string PostProcessor::s_post_fragment_header_ogl = R"(
 // Depth value is not inverted for GL
 #define DEPTH_VALUE(val) (val)
 // Shader inputs/outputs
-SAMPLER_BINDING(9) uniform sampler2DArray pp_inputs[4];
+SAMPLER_BINDING(9) uniform sampler2DArray pp_inputs[8];
 in float2 v_source_uv;
 in float2 v_target_uv;
 flat in float v_layer;
@@ -2013,8 +2013,8 @@ const std::string PostProcessor::s_post_fragment_header_d3d = R"(
 #define DEPTH_VALUE(val) (1.0f - (val))
 
 // Shader inputs
-Texture2DArray pp_inputs[4] : register(t%i);
-SamplerState pp_input_samplers[4] : register(s%i);
+Texture2DArray pp_inputs[8] : register(t%i);
+SamplerState pp_input_samplers[8] : register(s%i);
 // Shadows of those read/written in main
 static float v_layer;
 static float2 v_source_uv, v_target_uv, v_fragcoord;
@@ -2232,7 +2232,7 @@ void PostProcessor::GetUniformBufferShaderSource(API_TYPE api, const PostProcess
 		shader_source += "cbuffer PostProcessingConstants : register(b0) {\n";
 
 	// Common constants
-	shader_source += "\tfloat4 u_input_resolutions[4];\n"
+	shader_source += "\tfloat4 u_input_resolutions[8];\n"
 		"\tfloat4 u_target_resolution;\n"
 		"\tfloat4 u_source_rect;\n"
 		"\tfloat4 u_target_rect;\n"

@@ -6,6 +6,9 @@
 
 #include <string>
 #include "VideoCommon/RenderBase.h"
+#include "D3DTexture.h"
+
+struct XFBSourceBase;
 
 namespace DX12
 {
@@ -59,7 +62,31 @@ public:
 	static D3D12_DEPTH_STENCIL_DESC GetResetDepthStencilDesc();
 	static D3D12_RASTERIZER_DESC GetResetRasterizerDesc();
 private:
-	void BlitScreen(TargetRectangle dst_rect, TargetRectangle src_rect, TargetSize src_size, D3DTexture2D* src_texture, D3DTexture2D* depth_texture, float Gamma);
+	// Draw either the EFB, or specified XFB sources to the currently-bound framebuffer.
+	void DrawFrame(const TargetRectangle& target_rc, const EFBRectangle& source_rc, u32 xfb_addr,
+		const XFBSourceBase* const* xfb_sources, u32 xfb_count, D3DTexture2D* dst_texture, const TargetSize& dst_size, u32 fb_width,
+		u32 fb_stride, u32 fb_height, float Gamma);
+	void DrawEFB(const TargetRectangle& target_rc, const EFBRectangle& source_rc, D3DTexture2D* dst_texture, const TargetSize& dst_size, float Gamma);
+	void DrawVirtualXFB(const TargetRectangle& target_rc, u32 xfb_addr,
+		const XFBSourceBase* const* xfb_sources, u32 xfb_count, D3DTexture2D* dst_texture, const TargetSize& dst_size, u32 fb_width,
+		u32 fb_stride, u32 fb_height, float Gamma);
+	void DrawRealXFB(const TargetRectangle& target_rc, const XFBSourceBase* const* xfb_sources,
+		u32 xfb_count, D3DTexture2D* dst_texture, const TargetSize& dst_size, u32 fb_width, u32 fb_stride, u32 fb_height);
+	void BlitScreen(TargetRectangle dst_rect, TargetRectangle src_rect, TargetSize src_size, D3DTexture2D* src_texture, D3DTexture2D* depth_texture, 
+		const TargetSize& dst_size, D3DTexture2D* dst_texture, float Gamma);
+
+	void DumpFrame(const EFBRectangle& source_rc, u32 xfb_addr,
+		const XFBSourceBase* const* xfb_sources, u32 xfb_count, u32 fb_width,
+		u32 fb_stride, u32 fb_height, u64 ticks);
+
+	void PrepareFrameDumpRenderTexture(u32 width, u32 height);
+	void PrepareFrameDumpBuffer(u32 width, u32 height);
+
+	D3DTexture2D* m_frame_dump_render_texture = nullptr;
+	ID3D12Resource* m_frame_dump_buffer = nullptr;
+	u32 m_frame_dump_buffer_size = 0;
+	u32 m_frame_dump_render_texture_width = 0;
+	u32 m_frame_dump_render_texture_height = 0;
 };
 
 }

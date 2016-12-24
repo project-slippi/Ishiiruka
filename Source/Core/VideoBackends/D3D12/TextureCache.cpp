@@ -4,6 +4,8 @@
 
 #include <memory>
 
+#include "Common/Align.h"
+
 #include "VideoBackends/D3D12/D3DBase.h"
 #include "VideoBackends/D3D12/D3DBlob.h"
 #include "VideoBackends/D3D12/D3DCommandListManager.h"
@@ -76,7 +78,7 @@ bool TextureCache::TCacheEntry::Save(const std::string& filename, unsigned int l
 	{
 		level_pitch *= sizeof(u32);
 	}
-	level_pitch = ROUND_UP(level_pitch, D3D12_TEXTURE_DATA_PITCH_ALIGNMENT);
+	level_pitch = Common::AlignUpSizePow2(level_pitch, D3D12_TEXTURE_DATA_PITCH_ALIGNMENT);
 	size_t required_readback_buffer_size = level_pitch * num_lines;
 
 	// Check if the current readback buffer is large enough

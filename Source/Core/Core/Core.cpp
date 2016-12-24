@@ -852,9 +852,9 @@ void VideoThrottle()
 
 	s_drawn_video++;
 	bool update_ss_speed = true;
-	if (SConfig::GetInstance().iVideoRate > 1)
+	if (SConfig::GetInstance().iVideoRate > 8)
 	{
-		update_ss_speed = (s_drawn_video % SConfig::GetInstance().iVideoRate) == 0;
+		update_ss_speed = (s_drawn_video % (SConfig::GetInstance().iVideoRate >> 3)) == 0;
 	}
 	// Update the audio timestretcher with the current speed
 	if (g_sound_stream && update_ss_speed)

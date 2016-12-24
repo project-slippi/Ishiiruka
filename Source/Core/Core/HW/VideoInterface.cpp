@@ -625,7 +625,7 @@ u32 GetTargetRefreshRate()
 
 u32 GetTicksPerSample()
 {
-	return 2 * SystemTimers::GetTicksPerSecond() / (s_clock_freqs[m_Clock] * SConfig::GetInstance().iVideoRate);
+	return 2 * SystemTimers::GetTicksPerSecond() / ((s_clock_freqs[m_Clock] * SConfig::GetInstance().iVideoRate) >> 3);
 }
 
 u32 GetTicksPerHalfLine()
@@ -638,7 +638,7 @@ u32 GetTicksPerField()
 	return GetTicksPerEvenField();
 }
 
-static void BeginField(FieldType field)
+static void BeginField(FieldType field, u64 ticks)
 {
 	// Could we fit a second line of data in the stride?
 	bool potentially_interlaced_xfb =
@@ -705,7 +705,7 @@ static void BeginField(FieldType field)
 	// To correctly handle that case we would need to collate all changes
 	// to VI during scanout and delay outputting the frame till then.
 	if (xfbAddr)
-		g_video_backend->Video_BeginField(xfbAddr, fbWidth, fbStride, fbHeight);
+		g_video_backend->Video_BeginField(xfbAddr, fbWidth, fbStride, fbHeight, ticks);
 }
 
 static void EndField()
@@ -715,7 +715,7 @@ static void EndField()
 
 // Purpose: Send VI interrupt when triggered
 // Run when: When a frame is scanned (progressive/interlace)
-void Update()
+void Update(u64 ticks)
 {
 	if (s_half_line_of_next_si_poll == s_half_line_count)
 	{
@@ -724,11 +724,11 @@ void Update()
 	}
 	if (s_half_line_count == s_even_field_first_hl)
 	{
-		BeginField(FIELD_EVEN);
+		BeginField(FIELD_EVEN, ticks);
 	}
 	else if (s_half_line_count == s_odd_field_first_hl)
 	{
-		BeginField(FIELD_ODD);
+		BeginField(FIELD_ODD, ticks);
 	}
 	else if (s_half_line_count == s_even_field_last_hl)
 	{

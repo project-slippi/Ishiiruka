@@ -4,11 +4,13 @@
 
 #include <string>
 
+#include "Common/Align.h"
 #include "Common/Common.h"
 #include "Common/MathUtil.h"
 #include "Common/StringUtil.h"
 
 #include "Core/Host.h"
+#include "Core/ConfigManager.h"
 
 #include "VideoBackends/OGL/ProgramShaderCache.h"
 #include "VideoBackends/OGL/Render.h"
@@ -439,9 +441,9 @@ void ProgramShaderCache::Init()
 	// if we generate a buffer that isn't aligned
 	// then the UBO will fail.
 	glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &s_ubo_align);
-	s_p_ubo_buffer_size = ROUND_UP(C_PCONST_END * 4 * sizeof(float), s_ubo_align);
-	s_v_ubo_buffer_size = ROUND_UP(VertexShaderManager::ConstantBufferSize * sizeof(float), s_ubo_align);
-	s_g_ubo_buffer_size = ROUND_UP(sizeof(GeometryShaderConstants), s_ubo_align);
+	s_p_ubo_buffer_size = static_cast<u32>(Common::AlignUpSizePow2(C_PCONST_END * 4 * sizeof(float), static_cast<u32>(s_ubo_align)));
+	s_v_ubo_buffer_size = static_cast<u32>(Common::AlignUpSizePow2(VertexShaderManager::ConstantBufferSize * sizeof(float), static_cast<u32>(s_ubo_align)));
+	s_g_ubo_buffer_size = static_cast<u32>(Common::AlignUpSizePow2(sizeof(GeometryShaderConstants), static_cast<u32>(s_ubo_align)));
 	s_ubo_buffer_size = s_p_ubo_buffer_size
 		+ s_v_ubo_buffer_size
 		+ s_g_ubo_buffer_size;

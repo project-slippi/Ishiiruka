@@ -22,7 +22,7 @@ public:
 	XFBEncoder();
 	~XFBEncoder();
 
-	void EncodeTextureToRam(u8* dst, u32 dst_pitch, u32 dst_height,
+	void EncodeTextureToRam(u8* dst, u32 dst_width, u32 dst_pitch, u32 dst_height,
 		D3DTexture2D* src_texture, const TargetRectangle& src_rect,
 		u32 src_width, u32 src_height, float gamma);
 

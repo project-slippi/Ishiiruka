@@ -7,6 +7,8 @@
 #include <list>
 #include <string>
 
+#include "Common/Align.h"
+
 #include "VideoBackends/DX11/D3DBase.h"
 #include "VideoBackends/DX11/D3DShader.h"
 #include "VideoBackends/DX11/D3DState.h"
@@ -24,7 +26,7 @@ namespace DX11
 namespace D3D
 {
 
-UtilVertexBuffer::UtilVertexBuffer(int size) : m_buf(nullptr), m_offset(0), m_max_size(size)
+UtilVertexBuffer::UtilVertexBuffer(u32 size) : m_buf(nullptr), m_offset(0), m_max_size(size)
 {
 	D3D11_BUFFER_DESC desc = CD3D11_BUFFER_DESC(m_max_size, D3D11_BIND_VERTEX_BUFFER, D3D11_USAGE_DYNAMIC, D3D11_CPU_ACCESS_WRITE);
 	device->CreateBuffer(&desc, nullptr, &m_buf);
@@ -35,12 +37,12 @@ UtilVertexBuffer::~UtilVertexBuffer()
 	m_buf->Release();
 }
 // returns vertex offset to the new data
-int UtilVertexBuffer::AppendData(void* data, int size, int vertex_size)
+int UtilVertexBuffer::AppendData(void* data, u32 size, u32 vertex_size)
 {
 	_dbg_assert_(VIDEO, size < m_max_size);
 
 	D3D11_MAPPED_SUBRESOURCE map;
-	int aligned_offset = ((m_offset + vertex_size - 1) / vertex_size) * vertex_size; // align offset to vertex_size bytes
+	u32 aligned_offset = Common::AlignUp(m_offset, vertex_size); // align offset to vertex_size bytes
 	if (aligned_offset + size > m_max_size)
 	{
 		// wrap buffer around and notify observers
@@ -61,12 +63,12 @@ int UtilVertexBuffer::AppendData(void* data, int size, int vertex_size)
 	return aligned_offset / vertex_size;
 }
 
-int UtilVertexBuffer::BeginAppendData(void** write_ptr, int size, int vertex_size)
+int UtilVertexBuffer::BeginAppendData(void** write_ptr, u32 size, u32 vertex_size)
 {
 	_dbg_assert_(VIDEO, size < m_max_size);
 
 	D3D11_MAPPED_SUBRESOURCE map;
-	int aligned_offset = ((m_offset + vertex_size - 1) / vertex_size) * vertex_size; // align offset to vertex_size bytes
+	u32 aligned_offset = Common::AlignUp(m_offset, vertex_size); // align offset to vertex_size bytes
 	if (aligned_offset + size > m_max_size)
 	{
 		// wrap buffer around and notify observers
@@ -97,7 +99,7 @@ void UtilVertexBuffer::AddWrapObserver(bool* observer)
 }
 
 
-ConstantStreamBuffer::ConstantStreamBuffer(int size) : m_max_size(ROUND_UP(size, 256)), m_need_init(true)
+ConstantStreamBuffer::ConstantStreamBuffer(u32 size) : m_max_size(Common::AlignUpSizePow2(size, 256)), m_need_init(true)
 {
 	m_use_partial_buffer_update = D3D::SupportPartialContantBufferUpdate();
 	D3D11_BUFFER_DESC desc = CD3D11_BUFFER_DESC(m_max_size, D3D11_BIND_CONSTANT_BUFFER, D3D11_USAGE_DYNAMIC, D3D11_CPU_ACCESS_WRITE);
@@ -110,10 +112,10 @@ ConstantStreamBuffer::~ConstantStreamBuffer()
 }
 
 // returns vertex offset to the new data
-void ConstantStreamBuffer::AppendData(void* data, int size)
+void ConstantStreamBuffer::AppendData(void* data, u32 size)
 {
 	D3D11_MAPPED_SUBRESOURCE map;
-	m_offset = ROUND_UP(m_offset, 256); // align offset to 256 bytes (16 units) as requested by microsoft documentation
+	m_offset = Common::AlignUpSizePow2(m_offset, 256); // align offset to 256 bytes (16 units) as requested by microsoft documentation
 	if (m_offset + size >= m_max_size || m_need_init)
 	{
 		// wrap buffer around

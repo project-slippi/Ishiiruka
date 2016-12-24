@@ -4,8 +4,6 @@
 
 #pragma once
 
-#include "Core/ConfigManager.h"
-
 #include "Common/GL/GLUtil.h"
 #include "Common/LinearDiskCache.h"
 

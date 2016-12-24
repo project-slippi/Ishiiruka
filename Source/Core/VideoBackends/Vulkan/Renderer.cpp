@@ -12,7 +12,6 @@
 #include "Common/Logging/Log.h"
 #include "Common/MsgHandler.h"
 
-#include "Core/ConfigManager.h"
 #include "Core/Core.h"
 
 #include "VideoBackends/Vulkan/BoundingBox.h"
@@ -55,8 +54,8 @@ Renderer::Renderer(std::unique_ptr<SwapChain> swap_chain) : m_swap_chain(std::mo
 	s_backbuffer_width = m_swap_chain ? m_swap_chain->GetWidth() : MAX_XFB_WIDTH;
 	s_backbuffer_height = m_swap_chain ? m_swap_chain->GetHeight() : MAX_XFB_HEIGHT;
 	s_last_efb_scale = g_ActiveConfig.iEFBScale;
-	UpdateDrawRectangle(s_backbuffer_width, s_backbuffer_height);
-	CalculateTargetSize(s_backbuffer_width, s_backbuffer_height);
+	UpdateDrawRectangle();
+	CalculateTargetSize();
 	PixelShaderManager::SetEfbScaleChanged();
 }
 
@@ -116,6 +115,8 @@ bool Renderer::Initialize()
 			m_bounding_box->GetGPUBufferOffset(),
 			m_bounding_box->GetGPUBufferSize());
 	}
+	// Ensure all pipelines previously used by the game have been created.
+	StateTracker::GetInstance()->LoadPipelineUIDCache();
 
 	// Various initialization routines will have executed commands on the command buffer.
 	// Execute what we have done before beginning the first frame.
@@ -324,6 +325,7 @@ void Renderer::BeginFrame()
 	// Ensure that the state tracker rebinds everything, and allocates a new set
 	// of descriptors out of the next pool.
 	StateTracker::GetInstance()->InvalidateDescriptorSets();
+	StateTracker::GetInstance()->InvalidateConstants();
 	StateTracker::GetInstance()->SetPendingRebind();
 }
 
@@ -445,7 +447,7 @@ void Renderer::ClearScreen(const EFBRectangle& rc, bool color_enable, bool alpha
 
 	// No need to start a new render pass, but we do need to restore viewport state
 	UtilityShaderDraw draw(g_command_buffer_mgr->GetCurrentCommandBuffer(),
-		g_object_cache->GetStandardPipelineLayout(),
+		g_object_cache->GetPipelineLayout(PIPELINE_LAYOUT_STANDARD),
 		FramebufferManager::GetInstance()->GetEFBLoadRenderPass(),
 		g_object_cache->GetPassthroughVertexShader(),
 		g_object_cache->GetPassthroughGeometryShader(), m_clear_fragment_shader);
@@ -610,6 +612,9 @@ void Renderer::DrawVirtualXFB(VkRenderPass render_pass, const TargetRectangle& t
 	for (u32 i = 0; i < xfb_count; ++i)
 	{
 		const XFBSource* xfb_source = static_cast<const XFBSource*>(xfb_sources[i]);
+		xfb_source->GetTexture()->GetTexture()->TransitionToLayout(
+			g_command_buffer_mgr->GetCurrentCommandBuffer(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+
 		TargetRectangle source_rect = xfb_source->sourceRc;
 		TargetRectangle draw_rect;
 
@@ -643,6 +648,9 @@ void Renderer::DrawRealXFB(VkRenderPass render_pass, const TargetRectangle& targ
 	for (u32 i = 0; i < xfb_count; ++i)
 	{
 		const XFBSource* xfb_source = static_cast<const XFBSource*>(xfb_sources[i]);
+		xfb_source->GetTexture()->GetTexture()->TransitionToLayout(
+			g_command_buffer_mgr->GetCurrentCommandBuffer(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+
 		TargetRectangle source_rect = xfb_source->sourceRc;
 		TargetRectangle draw_rect = target_rect;
 		source_rect.right -= fb_stride - fb_width;
@@ -658,8 +666,15 @@ void Renderer::DrawScreen(const EFBRectangle& source_rect, u32 xfb_addr,
 	VkResult res = m_swap_chain->AcquireNextImage(m_image_available_semaphore);
 	if (res == VK_SUBOPTIMAL_KHR || res == VK_ERROR_OUT_OF_DATE_KHR)
 	{
-		// Window has been resized. Update the swap chain and try again.
+		// There's an issue here. We can't resize the swap chain while the GPU is still busy with it,
+		// but calling WaitForGPUIdle would create a deadlock as PrepareToSubmitCommandBuffer has been
+		// called by SwapImpl. WaitForGPUIdle waits on the semaphore, which PrepareToSubmitCommandBuffer
+		// has already done, so it blocks indefinitely. To work around this, we submit the current
+		// command buffer, resize the swap chain (which calls WaitForGPUIdle), and then finally call
+		// PrepareToSubmitCommandBuffer to return to the state that the caller expects.
+		g_command_buffer_mgr->SubmitCommandBuffer(false);
 		ResizeSwapChain();
+		g_command_buffer_mgr->PrepareToSubmitCommandBuffer();
 		res = m_swap_chain->AcquireNextImage(m_image_available_semaphore);
 	}
 	if (res != VK_SUCCESS)
@@ -709,13 +724,7 @@ bool Renderer::DrawFrameDump(const EFBRectangle& source_rect, u32 xfb_addr,
 	const XFBSourceBase* const* xfb_sources, u32 xfb_count, u32 fb_width,
 	u32 fb_stride, u32 fb_height, u64 ticks)
 {
-	// Draw the screenshot to an image containing only the active screen area, removing any
-	// borders as a result of the game rendering in a different aspect ratio.
-	TargetRectangle target_rect = GetTargetRectangle();
-	target_rect.right = target_rect.GetWidth();
-	target_rect.bottom = target_rect.GetHeight();
-	target_rect.left = 0;
-	target_rect.top = 0;
+	TargetRectangle target_rect = CalculateFrameDumpDrawRectangle();
 	u32 width = std::max(1u, static_cast<u32>(target_rect.GetWidth()));
 	u32 height = std::max(1u, static_cast<u32>(target_rect.GetHeight()));
 	if (!ResizeFrameDumpBuffer(width, height))
@@ -882,7 +891,7 @@ void Renderer::BlitScreen(VkRenderPass render_pass, const TargetRectangle& dst_r
 
 	// Set up common data
 	UtilityShaderDraw draw(g_command_buffer_mgr->GetCurrentCommandBuffer(),
-		g_object_cache->GetStandardPipelineLayout(), render_pass,
+		g_object_cache->GetPipelineLayout(PIPELINE_LAYOUT_STANDARD), render_pass,
 		g_object_cache->GetPassthroughVertexShader(), VK_NULL_HANDLE,
 		m_blit_fragment_shader);
 
@@ -996,8 +1005,8 @@ void Renderer::CheckForTargetResize(u32 fb_width, u32 fb_stride, u32 fb_height)
 	FramebufferManagerBase::SetLastXfbHeight(new_height);
 
 	// Changing the XFB source area will likely change the final drawing rectangle.
-	UpdateDrawRectangle(s_backbuffer_width, s_backbuffer_height);
-	if (CalculateTargetSize(s_backbuffer_width, s_backbuffer_height))
+	UpdateDrawRectangle();
+	if (CalculateTargetSize())
 	{
 		PixelShaderManager::SetEfbScaleChanged();
 		ResizeEFBTextures();
@@ -1110,11 +1119,11 @@ void Renderer::CheckForConfigChanges()
 
 	// If the aspect ratio is changed, this changes the area that the game is drawn to.
 	if (aspect_changed)
-		UpdateDrawRectangle(s_backbuffer_width, s_backbuffer_height);
+		UpdateDrawRectangle();
 
 	if (efb_scale_changed || aspect_changed)
 	{
-		if (CalculateTargetSize(s_backbuffer_width, s_backbuffer_height))
+		if (CalculateTargetSize())
 			ResizeEFBTextures();
 	}
 
@@ -1134,9 +1143,9 @@ void Renderer::CheckForConfigChanges()
 	{
 		g_command_buffer_mgr->WaitForGPUIdle();
 		RecompileShaders();
-		FramebufferManager::GetInstance()->RecompileShaders();
-		g_object_cache->ClearPipelineCache();
+		FramebufferManager::GetInstance()->RecompileShaders();		
 		g_object_cache->RecompileSharedShaders();
+		StateTracker::GetInstance()->LoadPipelineUIDCache();
 	}
 
 	// For vsync, we need to change the present mode, which means recreating the swap chain.
@@ -1155,8 +1164,8 @@ void Renderer::OnSwapChainResized()
 {
 	s_backbuffer_width = m_swap_chain->GetWidth();
 	s_backbuffer_height = m_swap_chain->GetHeight();
-	UpdateDrawRectangle(s_backbuffer_width, s_backbuffer_height);
-	if (CalculateTargetSize(s_backbuffer_width, s_backbuffer_height))
+	UpdateDrawRectangle();
+	if (CalculateTargetSize())
 	{
 		PixelShaderManager::SetEfbScaleChanged();
 		ResizeEFBTextures();
@@ -1659,8 +1668,8 @@ void Renderer::SetViewport()
 			0.0f, 16777215.0f) /
 			16777216.0f;
 		float far_val = MathUtil::Clamp<float>(xfmem.viewport.farZ, 0.0f, 16777215.0f) / 16777216.0f;
-		min_depth = 1.0f - near_val;
-		max_depth = 1.0f - far_val;
+		min_depth = near_val;
+		max_depth = far_val;
 	}
 
 	VkViewport viewport = { x, y, width, height, min_depth, max_depth };

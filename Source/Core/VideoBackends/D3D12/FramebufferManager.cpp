@@ -191,7 +191,9 @@ void FramebufferManager::CopyToRealXFB(u32 xfbAddr, u32 fbStride, u32 fbHeight, 
 	u8* dst = Memory::GetPointer(xfbAddr);
 	D3DTexture2D* src_texture = GetResolvedEFBColorTexture();
 	TargetRectangle scaled_rect = g_renderer->ConvertEFBRectangle(sourceRc);
-	g_xfb_encoder->EncodeTextureToRam(dst, fbStride, fbHeight, src_texture, scaled_rect, m_target_width, m_target_height, gamma);
+	// The destination stride can differ from the copy region width, in which case the pixels
+	// outside the copy region should not be written to.
+	g_xfb_encoder->EncodeTextureToRam(dst, static_cast<u32>(sourceRc.GetWidth()), fbStride, fbHeight, src_texture, scaled_rect, m_target_width, m_target_height, gamma);
 }
 
 std::unique_ptr<XFBSourceBase> FramebufferManager::CreateXFBSource(unsigned int target_width, unsigned int target_height, unsigned int layers)

@@ -30,7 +30,7 @@ static const u8* memory_base_ptr = (u8*)&g_main_cp_state.array_strides;
 
 static OpArg MPIC(const void* ptr)
 {
-	return MDisp(base_reg, (s32)((u8*)ptr - memory_base_ptr));
+	return MDisp(base_reg, PtrOffset(ptr, memory_base_ptr));
 }
 
 static __m128 scale_factors[13] = {

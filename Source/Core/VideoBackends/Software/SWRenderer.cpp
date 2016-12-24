@@ -12,7 +12,6 @@
 #include "Common/StringUtil.h"
 #include "Common/Logging/Log.h"
 
-#include "Core/ConfigManager.h"
 #include "Core/HW/Memmap.h"
 
 #include "VideoBackends/Software/EfbCopy.h"

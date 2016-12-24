@@ -7,6 +7,7 @@
 #include <string>
 #include <utility>
 
+#include "Common/Align.h"
 #include "Common/FileUtil.h"
 #include "Common/MemoryUtil.h"
 #include "Common/StringUtil.h"
@@ -497,8 +498,8 @@ TextureCacheBase::TCacheEntryBase* TextureCacheBase::Load(const u32 stage)
 	const u32 bsw = TexDecoder_GetBlockWidthInTexels(texformat);
 	const u32 bsh = TexDecoder_GetBlockHeightInTexels(texformat);
 
-	u32 expandedWidth = ROUND_UP(width, bsw);
-	u32 expandedHeight = ROUND_UP(height, bsh);
+	u32 expandedWidth = Common::AlignUpSizePow2(width, bsw);
+	u32 expandedHeight = Common::AlignUpSizePow2(height, bsh);
 	const u32 nativeW = width;
 	const u32 nativeH = height;
 
@@ -532,8 +533,8 @@ TextureCacheBase::TCacheEntryBase* TextureCacheBase::Load(const u32 stage)
 	for (u32 level = 1; level != tex_levels; ++level)
 	{
 		// We still need to calculate the original size of the mips
-		const u32 expanded_mip_width = ROUND_UP(TextureUtil::CalculateLevelSize(width, level), bsw);
-		const u32 expanded_mip_height = ROUND_UP(TextureUtil::CalculateLevelSize(height, level), bsh);
+		const u32 expanded_mip_width = Common::AlignUpSizePow2(TextureUtil::CalculateLevelSize(width, level), bsw);
+		const u32 expanded_mip_height = Common::AlignUpSizePow2(TextureUtil::CalculateLevelSize(height, level), bsh);
 
 		additional_mips_size += TexDecoder_GetTextureSizeInBytes(expanded_mip_width, expanded_mip_height, texformat);
 	}
@@ -829,8 +830,8 @@ TextureCacheBase::TCacheEntryBase* TextureCacheBase::Load(const u32 stage)
 		{
 			const u32 mip_width = TextureUtil::CalculateLevelSize(width, level);
 			const u32 mip_height = TextureUtil::CalculateLevelSize(height, level);
-			const u32 expanded_mip_width = ROUND_UP(mip_width, bsw);
-			const u32 expanded_mip_height = ROUND_UP(mip_height, bsh);
+			const u32 expanded_mip_width = Common::AlignUpSizePow2(mip_width, bsw);
+			const u32 expanded_mip_height = Common::AlignUpSizePow2(mip_height, bsh);
 
 			const u8*& mip_src_data = from_tmem
 				? ((level % 2) ? ptr_odd : ptr_even)
@@ -984,7 +985,7 @@ void TextureCacheBase::CopyRenderTargetToTexture(u32 dstAddr, u32 dstFormat, u32
 				fConstAdd[3] = 16.0f / 255.0f;
 				if (dstFormat == 0)
 				{
-					ColorMask[0] = ColorMask[1] = ColorMask[2] = 15.0f;
+					ColorMask[0] = ColorMask[1] = ColorMask[2] = 255.0f / 16.0f;
 					ColorMask[4] = ColorMask[5] = ColorMask[6] = 1.0f / 15.0f;
 					cbufid = 9;
 				}
@@ -998,7 +999,7 @@ void TextureCacheBase::CopyRenderTargetToTexture(u32 dstAddr, u32 dstFormat, u32
 				colmat[15] = 1;
 				if (dstFormat == 2)
 				{
-					ColorMask[0] = ColorMask[1] = ColorMask[2] = ColorMask[3] = 15.0f;
+					ColorMask[0] = ColorMask[1] = ColorMask[2] = ColorMask[3] = 255.0f / 16.0f;
 					ColorMask[4] = ColorMask[5] = ColorMask[6] = ColorMask[7] = 1.0f / 15.0f;
 					cbufid = 11;
 					if (!efbHasAlpha)
@@ -1035,7 +1036,7 @@ void TextureCacheBase::CopyRenderTargetToTexture(u32 dstAddr, u32 dstFormat, u32
 		{
 		case 0: // R4
 			colmat[0] = colmat[4] = colmat[8] = colmat[12] = 1;
-			ColorMask[0] = 15.0f;
+			ColorMask[0] = 255.0f / 16.0f;
 			ColorMask[4] = 1.0f / 15.0f;
 			cbufid = 15;
 			dstFormat |= _GX_TF_CTF;
@@ -1049,7 +1050,7 @@ void TextureCacheBase::CopyRenderTargetToTexture(u32 dstAddr, u32 dstFormat, u32
 
 		case 2: // RA4
 			colmat[0] = colmat[4] = colmat[8] = colmat[15] = 1.0f;
-			ColorMask[0] = ColorMask[3] = 15.0f;
+			ColorMask[0] = ColorMask[3] = 255.0f / 16.0f;
 			ColorMask[4] = ColorMask[7] = 1.0f / 15.0f;
 			cbufid = 17;
 			if (!efbHasAlpha)
@@ -1112,9 +1113,9 @@ void TextureCacheBase::CopyRenderTargetToTexture(u32 dstAddr, u32 dstFormat, u32
 
 		case 4: // RGB565
 			colmat[0] = colmat[5] = colmat[10] = 1.0f;
-			ColorMask[0] = ColorMask[2] = 31.0f;
+			ColorMask[0] = ColorMask[2] = 255.0f / 8.0f;
 			ColorMask[4] = ColorMask[6] = 1.0f / 31.0f;
-			ColorMask[1] = 63.0f;
+			ColorMask[1] = 255.0f / 4.0f;
 			ColorMask[5] = 1.0f / 63.0f;
 			fConstAdd[3] = 1.0f; // set alpha to 1
 			cbufid = 27;
@@ -1122,9 +1123,9 @@ void TextureCacheBase::CopyRenderTargetToTexture(u32 dstAddr, u32 dstFormat, u32
 
 		case 5: // RGB5A3
 			colmat[0] = colmat[5] = colmat[10] = colmat[15] = 1.0f;
-			ColorMask[0] = ColorMask[1] = ColorMask[2] = 31.0f;
+			ColorMask[0] = ColorMask[1] = ColorMask[2] = 255.0f / 8.0f;
 			ColorMask[4] = ColorMask[5] = ColorMask[6] = 1.0f / 31.0f;
-			ColorMask[3] = 7.0f;
+			ColorMask[3] = 255.0f / 32.0f;
 			ColorMask[7] = 1.0f / 7.0f;
 			cbufid = 28;
 			if (!efbHasAlpha)
@@ -1199,8 +1200,8 @@ void TextureCacheBase::CopyRenderTargetToTexture(u32 dstAddr, u32 dstFormat, u32
 	const u32 blockW = TexDecoder_GetBlockWidthInTexels(baseFormat);
 
 	// Round up source height to multiple of block size
-	u32 actualHeight = ROUND_UP(tex_h, blockH);
-	const u32 actualWidth = ROUND_UP(tex_w, blockW);
+	u32 actualHeight = Common::AlignUpSizePow2(tex_h, blockH);
+	const u32 actualWidth = Common::AlignUpSizePow2(tex_w, blockW);
 
 	u32 num_blocks_y = actualHeight / blockH;
 	const u32 num_blocks_x = actualWidth / blockW;
@@ -1407,7 +1408,7 @@ u32 TextureCacheBase::TCacheEntryBase::BytesPerRow() const
 	const u32 blockW = TexDecoder_GetBlockWidthInTexels(format);
 
 	// Round up source height to multiple of block size
-	const u32 actualWidth = ROUND_UP(native_width, blockW);
+	const u32 actualWidth = Common::AlignUpSizePow2(native_width, blockW);
 
 	const u32 numBlocksX = actualWidth / blockW;
 
@@ -1421,7 +1422,7 @@ u32 TextureCacheBase::TCacheEntryBase::NumBlocksY() const
 {
 	u32 blockH = TexDecoder_GetBlockHeightInTexels(format);
 	// Round up source height to multiple of block size
-	u32 actualHeight = ROUND_UP(native_height, blockH);
+	u32 actualHeight = Common::AlignUpSizePow2(native_height, blockH);
 
 	return actualHeight / blockH;
 }

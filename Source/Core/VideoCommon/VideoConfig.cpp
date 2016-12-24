@@ -52,7 +52,7 @@ VideoConfig::VideoConfig()
 	iTexScalingType = 0;
 	iTexScalingFactor = 2;
 	backend_info.bSupportsMultithreading = false;
-
+	backend_info.bSupportsInternalResolutionFrameDumps = false;
 	bEnableValidationLayer = false;
 	bBackendMultithreading = true;
 }
@@ -85,15 +85,16 @@ void VideoConfig::Load(const std::string& ini_file)
 	settings->Get("HiresTextures", &bHiresTextures, 0);
 	settings->Get("HiresMaterialMaps", &bHiresMaterialMaps, 0);
 	settings->Get("HiresMaterialMapsBuild", &bHiresMaterialMapsBuild, false);
+	settings->Get("ConvertHiresTextures", &bConvertHiresTextures, 0);
 	settings->Get("CacheHiresTextures", &bCacheHiresTextures, 0);
 	settings->Get("DumpEFBTarget", &bDumpEFBTarget, 0);
+	settings->Get("DumpFramesAsImages", &bDumpFramesAsImages, 0);
 	settings->Get("FreeLook", &bFreeLook, 0);
 	settings->Get("CompileShaderOnStartup", &bCompileShaderOnStartup, 1);
-
 	settings->Get("UseFFV1", &bUseFFV1, 0);
+	settings->Get("InternalResolutionFrameDumps", &bInternalResolutionFrameDumps, 0);
 	settings->Get("EnablePixelLighting", &bEnablePixelLighting, 0);
 	settings->Get("ForcedLighting", &bForcedLighting, 0);
-
 	settings->Get("ForcePhongShading", &bForcePhongShading, 0);
 	settings->Get("RimPower", &iRimPower, 80);
 	settings->Get("RimIntesity", &iRimIntesity, 0);
@@ -394,7 +395,7 @@ void VideoConfig::VerifyValidity()
 		iTexScalingType = 10;
 	}
 	bHiresMaterialMaps = bHiresMaterialMaps && bHiresTextures && bEnablePixelLighting;
-	bLastStoryEFBToRam = bLastStoryEFBToRam && StartsWith(SConfig::GetInstance().m_strUniqueID, "SLS");
+	bLastStoryEFBToRam = bLastStoryEFBToRam && StringStartsWith(SConfig::GetInstance().GetUniqueID(), "SLS");
 }
 
 void VideoConfig::Save(const std::string& ini_file)
@@ -425,12 +426,13 @@ void VideoConfig::Save(const std::string& ini_file)
 	settings->Set("HiresTextures", bHiresTextures);
 	settings->Set("HiresMaterialMaps", bHiresMaterialMaps);
 	settings->Set("HiresMaterialMapsBuild", bHiresMaterialMapsBuild);
-	
+	settings->Set("ConvertHiresTextures", bConvertHiresTextures);
 	settings->Set("CacheHiresTextures", bCacheHiresTextures);
 	settings->Set("DumpEFBTarget", bDumpEFBTarget);
+	settings->Set("DumpFramesAsImages", bDumpFramesAsImages);
 	settings->Set("FreeLook", bFreeLook);
+	settings->Set("InternalResolutionFrameDumps", bInternalResolutionFrameDumps);
 	settings->Set("CompileShaderOnStartup", bCompileShaderOnStartup);
-
 	settings->Set("UseFFV1", bUseFFV1);
 	settings->Set("EnablePixelLighting", bEnablePixelLighting);
 	settings->Set("ForcedLighting", bForcedLighting);

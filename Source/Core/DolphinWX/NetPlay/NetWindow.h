@@ -35,7 +35,7 @@ enum
 
 enum
 {
-	INITIAL_PAD_BUFFER_SIZE = 5
+	INITIAL_PAD_BUFFER_SIZE = 8
 };
 
 // IDs are UI-dependent here

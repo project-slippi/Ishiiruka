@@ -5,8 +5,12 @@
 #pragma	once
 #include <string>
 #include <d3d11_2.h>
-#include "Common/MathUtil.h"
+
+#include "Common/Align.h"
+
 #include "VideoBackends/DX11/D3DPtr.h"
+
+#include "Common/CommonTypes.h"
 
 #include "VideoCommon/RenderBase.h"
 #include "VideoCommon/VideoBackendBase.h"
@@ -53,12 +57,12 @@ public:
 class UtilVertexBuffer
 {
 public:
-	UtilVertexBuffer(int size);
+	UtilVertexBuffer(u32 size);
 	~UtilVertexBuffer();
 
 	// returns vertex offset to the new data
-	int AppendData(void* data, int size, int vertex_size);
-	int BeginAppendData(void** write_ptr, int size, int vertex_size);
+	int AppendData(void* data, u32 size, u32 vertex_size);
+	int BeginAppendData(void** write_ptr, u32 size, u32 vertex_size);
 	void EndAppendData();
 	void AddWrapObserver(bool* observer);
 
@@ -66,14 +70,14 @@ public:
 	{
 		return m_buf;
 	}
-	inline int GetSize() const
+	inline u32 GetSize() const
 	{
 		return m_max_size;
 	}
 private:
 	ID3D11Buffer* m_buf;
-	int m_offset;
-	int m_max_size;
+	u32 m_offset;
+	u32 m_max_size;
 
 	std::list<bool*> m_observers;
 };
@@ -83,11 +87,11 @@ private:
 class ConstantStreamBuffer
 {
 public:
-	ConstantStreamBuffer(int size);
+	ConstantStreamBuffer(u32 size);
 	~ConstantStreamBuffer();
 
 	// returns vertex offset to the new data
-	void AppendData(void* data, int size);
+	void AppendData(void* data, u32 size);
 
 	inline ID3D11Buffer* &GetBuffer()
 	{
@@ -95,13 +99,13 @@ public:
 	}
 	inline D3D::BufferDescriptor GetDescriptor()
 	{
-		return D3D::BufferDescriptor(m_buf, (m_offset - m_current_size) >> 4, ROUND_UP(m_current_size, 256) >> 4);
+		return D3D::BufferDescriptor(m_buf, (m_offset - m_current_size) >> 4, Common::AlignUpSizePow2(m_current_size, 256) >> 4);
 	};
 private:
 	ID3D11Buffer* m_buf = nullptr;
-	int m_offset = 0;
-	int m_max_size = 0;
-	int m_current_size = 0;
+	u32 m_offset = 0;
+	u32 m_max_size = 0;
+	u32 m_current_size = 0;
 	bool m_use_partial_buffer_update = false;
 	bool m_need_init = true;
 };

@@ -382,12 +382,12 @@ void CISOProperties::CreateGUIControls()
 	wxStaticText* const videorateText =
 		new wxStaticText(m_GameConfig, wxID_ANY, _("Video Rate Hack: "));
 
-	DVideo = new wxSlider(m_GameConfig, ID_DVIDEO, 1, 1, 4);
+	DVideo = new wxSlider(m_GameConfig, ID_DVIDEO, 8, 4, 36);
 	DVideo->SetToolTip(_("Multiply the rate of video interruptions to allow High framerate hacks"));
 	DVideo->Bind(wxEVT_SLIDER, &CISOProperties::OnDVideoChanged, this);
 	svideorate->Add(videorateText);
 	svideorate->Add(DVideo);
-	svideorate->Add(label_DVideo = new wxStaticText(m_GameConfig, wxID_ANY, wxT("1x")));
+	svideorate->Add(label_DVideo = new wxStaticText(m_GameConfig, wxID_ANY, wxT("1.0x")));
 
 	// Wii Console
 	EnableWideScreen =
@@ -1103,10 +1103,10 @@ void CISOProperties::LoadGameConfig()
 	int iTemp;
 	if (GameIniLocal.GetIfExists("Core", "VideoRate", &iTemp))
 	{
-		iTemp = std::min(std::max(iTemp, 1), 4);
+		iTemp = std::min(std::max(iTemp, 4), 36);
 		DVideo->SetValue(iTemp);
-		const wxString dv_choices[] = { wxT("1x"), wxT("2x"), wxT("3x"), wxT("4x") };
-		label_DVideo->SetLabel(dv_choices[iTemp - 1]);
+		std::string lbl_text = StringFromFormat("%.2fx", iTemp * 0.125f);
+		label_DVideo->SetLabel(StrToWxStr(lbl_text));
 	}
 	SetCheckboxValueFromGameini("Core", "HalfAudioRate", HalfAudioRate);
 
@@ -1226,7 +1226,7 @@ bool CISOProperties::SaveGameConfig()
       GameIniLocal.DeleteKey((section), (key));                                                    \
   } while (0)
 
-	SAVE_IF_NOT_DEFAULT("Core", "VideoRate", DVideo->GetValue(), 1);
+	SAVE_IF_NOT_DEFAULT("Core", "VideoRate", DVideo->GetValue(), 8);
 
 	SAVE_IF_NOT_DEFAULT("Video", "PH_SZNear", (m_PHack_Data.PHackSZNear ? 1 : 0), 0);
 	SAVE_IF_NOT_DEFAULT("Video", "PH_SZFar", (m_PHack_Data.PHackSZFar ? 1 : 0), 0);
@@ -1580,7 +1580,7 @@ void CISOProperties::ChangeBannerDetails(DiscIO::Language language)
 
 void CISOProperties::OnDVideoChanged(wxCommandEvent& ev)
 {
-	const wxString dv_choices[] = { wxT("1x"), wxT("2x"), wxT("3x"), wxT("4x") };
-	label_DVideo->SetLabel(dv_choices[ev.GetInt() - 1]);
+	std::string lbl_text = StringFromFormat("%.2fx", ev.GetInt() * 0.125f);
+	label_DVideo->SetLabel(StrToWxStr(lbl_text));
 	ev.Skip();
 }

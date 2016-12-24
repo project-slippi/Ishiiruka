@@ -190,7 +190,9 @@ void Init()
 	FramebufferManager::SetFramebuffer(0);
 
 	glGenBuffers(1, &s_PBO);
-
+	glBindBuffer(GL_PIXEL_PACK_BUFFER, s_PBO);
+	glBufferData(GL_PIXEL_PACK_BUFFER, 1024*1024*4, nullptr, GL_STREAM_READ);
+	glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
 	CreatePrograms();
 }
 
@@ -242,32 +244,27 @@ static void EncodeToRamUsingShader(GLuint srcTexture,
 	// .. and then read back the results.
 	int dstSize = dst_line_size * dstHeight;
 
-	if ((writeStride != dst_line_size) && (dstHeight > 1))
+	// When the dst_line_size and writeStride are the same, we could use glReadPixels directly to RAM.
+	// But instead we always copy the data via a PBO, because macOS inexplicably prefers this for some
+	// reason.
+	glBindBuffer(GL_PIXEL_PACK_BUFFER, s_PBO);
+	glReadPixels(0, 0, (GLsizei)dstWidth, (GLsizei)dstHeight, GL_BGRA, GL_UNSIGNED_BYTE, nullptr);
+	u8* pbo = (u8*)glMapBufferRange(GL_PIXEL_PACK_BUFFER, 0, dstSize, GL_MAP_READ_BIT);
+	if (dst_line_size == writeStride)
 	{
-		// writing to a texture of a different size
-		// also copy more then one block line, so the different strides matters
-		// copy into one pbo first, map this buffer, and then memcpy into GC memory
-		// in this way, we only have one vram->ram transfer, but maybe a bigger
-		// CPU overhead because of the pbo
-		glBindBuffer(GL_PIXEL_PACK_BUFFER, s_PBO);
-		glBufferData(GL_PIXEL_PACK_BUFFER, dstSize, nullptr, GL_STREAM_READ);
-		glReadPixels(0, 0, (GLsizei)dstWidth, (GLsizei)dstHeight, GL_BGRA, GL_UNSIGNED_BYTE, nullptr);
-		u8* pbo = (u8*)glMapBufferRange(GL_PIXEL_PACK_BUFFER, 0, dstSize, GL_MAP_READ_BIT);
-
+		memcpy(destAddr, pbo, dstSize);
+	}
+	else
+	{
 		for (u32 i = 0; i < dstHeight; i++)
 		{
 			memcpy(destAddr, pbo, dst_line_size);
 			pbo += dst_line_size;
 			destAddr += writeStride;
 		}
-
-		glUnmapBuffer(GL_PIXEL_PACK_BUFFER);
-		glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
 	}
-	else
-	{
-		glReadPixels(0, 0, (GLsizei)dstWidth, (GLsizei)dstHeight, GL_BGRA, GL_UNSIGNED_BYTE, destAddr);
-	}
+	glUnmapBuffer(GL_PIXEL_PACK_BUFFER);
+	glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
 }
 
 void EncodeToRamFromTexture(u8* dest_ptr, u32 format, u32 native_width, u32 bytes_per_row, u32 num_blocks_y, u32 memory_stride,

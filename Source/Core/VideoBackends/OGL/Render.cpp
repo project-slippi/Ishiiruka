@@ -19,7 +19,6 @@
 #include "Common/MathUtil.h"
 #include "Common/StringUtil.h"
 
-#include "Core/ConfigManager.h"
 #include "Core/Core.h"
 
 #include "VideoBackends/OGL/BoundingBox.h"
@@ -688,8 +687,8 @@ Renderer::Renderer()
 	s_last_xfb_mode = g_ActiveConfig.bUseRealXFB;
 
 	// Decide framebuffer size
-	s_backbuffer_width = (int)GLInterface->GetBackBufferWidth();
-	s_backbuffer_height = (int)GLInterface->GetBackBufferHeight();
+	s_backbuffer_width = static_cast<int>(std::max(GLInterface->GetBackBufferWidth(), 16u));
+	s_backbuffer_height = static_cast<int>(std::max(GLInterface->GetBackBufferHeight(), 16u));
 
 	// Handle VSync on/off
 	s_vsync = g_ActiveConfig.IsVSync();
@@ -700,10 +699,10 @@ Renderer::Renderer()
 	FramebufferManagerBase::SetLastXfbWidth(MAX_XFB_WIDTH);
 	FramebufferManagerBase::SetLastXfbHeight(MAX_XFB_HEIGHT);
 
-	UpdateDrawRectangle(s_backbuffer_width, s_backbuffer_height);
+	UpdateDrawRectangle();
 
 	s_last_efb_scale = g_ActiveConfig.iEFBScale;
-	CalculateTargetSize(s_backbuffer_width, s_backbuffer_height);
+	CalculateTargetSize();
 
 	PixelShaderManager::SetEfbScaleChanged();
 
@@ -754,8 +753,7 @@ Renderer::~Renderer()
 {
 	FlushFrameDump();
 	FinishFrameData();
-	if (m_frame_dumping_pbo[0])
-		glDeleteBuffers(2, m_frame_dumping_pbo.data());
+	DestroyFrameDumpResources();
 }
 
 void Renderer::Shutdown()
@@ -788,12 +786,12 @@ void Renderer::Init()
 
 void Renderer::RenderText(const std::string& text, int left, int top, u32 color)
 {
-	const int nBackbufferWidth = (int)GLInterface->GetBackBufferWidth();
-	const int nBackbufferHeight = (int)GLInterface->GetBackBufferHeight();
+	u32 backbuffer_width = std::max(GLInterface->GetBackBufferWidth(), 16u);
+	u32 backbuffer_height = std::max(GLInterface->GetBackBufferHeight(), 16u);
 
-	s_raster_font->printMultilineText(text, left * 2.0f / (float)nBackbufferWidth - 1,
-		1 - top * 2.0f / (float)nBackbufferHeight, 0, nBackbufferWidth,
-		nBackbufferHeight, color);
+	s_raster_font->printMultilineText(text, left * 2.0f / static_cast<float>(backbuffer_width) - 1.0f,
+		1.0f - top * 2.0f / static_cast<float>(backbuffer_height), 0,
+		backbuffer_width, backbuffer_height, color);
 }
 
 TargetRectangle Renderer::ConvertEFBRectangle(const EFBRectangle& rc)
@@ -1218,9 +1216,8 @@ void Renderer::ClearScreen(const EFBRectangle& rc, bool colorEnable, bool alphaE
 	ClearEFBCache();
 }
 
-void Renderer::BlitScreen(const TargetRectangle& dst_rect, const TargetRectangle& src_rect, const TargetSize& src_size, GLuint src_texture, GLuint src_depth_texture, float gamma)
+void Renderer::BlitScreen(const TargetRectangle& dst_rect, const TargetRectangle& src_rect, const TargetSize& src_size, GLuint src_texture, GLuint src_depth_texture, const TargetSize& dst_size, GLuint dst_texture, float gamma)
 {
-	TargetSize dst_size(s_backbuffer_width, s_backbuffer_height);
 	if (g_ActiveConfig.iStereoMode == STEREO_SBS || g_ActiveConfig.iStereoMode == STEREO_TAB)
 	{
 		TargetRectangle leftRc, rightRc;
@@ -1231,12 +1228,12 @@ void Renderer::BlitScreen(const TargetRectangle& dst_rect, const TargetRectangle
 		else
 			ConvertStereoRectangle(dst_rect, leftRc, rightRc);
 
-		m_post_processor->BlitScreen(leftRc, dst_size, 0, src_rect, src_size, src_texture, src_depth_texture, 0, gamma);
-		m_post_processor->BlitScreen(rightRc, dst_size, 0, src_rect, src_size, src_texture, src_depth_texture, 1, gamma);
+		m_post_processor->BlitScreen(leftRc, dst_size, dst_texture, src_rect, src_size, src_texture, src_depth_texture, 0, gamma);
+		m_post_processor->BlitScreen(rightRc, dst_size, dst_texture, src_rect, src_size, src_texture, src_depth_texture, 1, gamma);
 	}
 	else
 	{
-		m_post_processor->BlitScreen(dst_rect, dst_size, 0, src_rect, src_size, src_texture, src_depth_texture, 0, gamma);
+		m_post_processor->BlitScreen(dst_rect, dst_size, dst_texture, src_rect, src_size, src_texture, src_depth_texture, 0, gamma);
 	}
 }
 
@@ -1407,112 +1404,40 @@ void Renderer::SwapImpl(u32 xfbAddr, u32 fbWidth, u32 fbStride, u32 fbHeight,
 		Core::Callback_VideoCopiedToXFB(false);
 		return;
 	}
-
+	if (!g_ActiveConfig.bUseXFB)
+		m_post_processor->OnEndFrame();
 	ResetAPIState();
-
-	UpdateDrawRectangle(s_backbuffer_width, s_backbuffer_height);
+	UpdateDrawRectangle();
 	TargetRectangle flipped_trc = GetTargetRectangle();
 
 	// Flip top and bottom for some reason; TODO: Fix the code to suck less?
 	std::swap(flipped_trc.top, flipped_trc.bottom);
 
-	// Copy the framebuffer to screen.
-	const XFBSource* xfbSource = nullptr;
+	// Copy the framebuffer to screen.	
+	const TargetSize dst_size = {s_target_width, s_target_height};
+	DrawFrame(flipped_trc, rc, xfbAddr, xfbSourceList, xfbCount, 0, dst_size, fbWidth, fbStride, fbHeight, Gamma);
 
-	if (g_ActiveConfig.bUseXFB)
+	// The FlushFrameDump call here is necessary even after frame dumping is stopped.
+	// If left out, screenshots are "one frame" behind, as an extra frame is dumped and buffered.
+	FlushFrameDump();
+	if (IsFrameDumping())
 	{
-		// draw each xfb source
-		for (u32 i = 0; i < xfbCount; ++i)
+		// Currently, we only use the off-screen buffer as a frame dump source if full-resolution
+		// frame dumping is enabled, saving the need for an extra copy. In the future, this could
+		// be extended to be used for surfaceless contexts as well.
+		bool use_offscreen_buffer = g_ActiveConfig.bInternalResolutionFrameDumps;
+		if (use_offscreen_buffer)
 		{
-			xfbSource = (const XFBSource*)xfbSourceList[i];
-
-			TargetRectangle drawRc;
-			TargetRectangle sourceRc;
-			sourceRc.left = xfbSource->sourceRc.left;
-			sourceRc.right = xfbSource->sourceRc.right;
-			sourceRc.top = xfbSource->sourceRc.top;
-			sourceRc.bottom = xfbSource->sourceRc.bottom;
-
-			if (g_ActiveConfig.bUseRealXFB)
-			{
-				drawRc = flipped_trc;
-				sourceRc.right -= fbStride - fbWidth;
-
-				// RealXFB doesn't call ConvertEFBRectangle for sourceRc, therefore it is still assuming a
-				// top-left origin.
-				// The top offset is always zero (see FramebufferManagerBase::GetRealXFBSource).
-				sourceRc.top = sourceRc.bottom;
-				sourceRc.bottom = 0;
-			}
-			else
-			{
-				// use virtual xfb with offset
-				int xfbHeight = xfbSource->srcHeight;
-				int xfbWidth = xfbSource->srcWidth;
-				int hOffset = ((s32)xfbSource->srcAddr - (s32)xfbAddr) / ((s32)fbStride * 2);
-
-				drawRc.top = flipped_trc.top - hOffset * flipped_trc.GetHeight() / (s32)fbHeight;
-				drawRc.bottom =
-					flipped_trc.top - (hOffset + xfbHeight) * flipped_trc.GetHeight() / (s32)fbHeight;
-				drawRc.left =
-					flipped_trc.left +
-					(flipped_trc.GetWidth() - xfbWidth * flipped_trc.GetWidth() / (s32)fbStride) / 2;
-				drawRc.right =
-					flipped_trc.left +
-					(flipped_trc.GetWidth() + xfbWidth * flipped_trc.GetWidth() / (s32)fbStride) / 2;
-
-				// The following code disables auto stretch.  Kept for reference.
-				// scale draw area for a 1 to 1 pixel mapping with the draw target
-				// float vScale = (float)fbHeight / (float)flipped_trc.GetHeight();
-				// float hScale = (float)fbWidth / (float)flipped_trc.GetWidth();
-				// drawRc.top *= vScale;
-				// drawRc.bottom *= vScale;
-				// drawRc.left *= hScale;
-				// drawRc.right *= hScale;
-
-				sourceRc.right -= Renderer::EFBToScaledX(fbStride - fbWidth);
-			}
-			TargetSize blit_size(xfbSource->texWidth, xfbSource->texHeight);
-
-			BlitScreen(drawRc, sourceRc, blit_size, xfbSource->texture, xfbSource->depthtexture, Gamma);
+			// DumpFrameUsingFBO resets GL_FRAMEBUFFER, so change back to the window for drawing OSD.
+			DumpFrameUsingFBO(rc, xfbAddr, xfbSourceList, xfbCount, fbWidth, fbStride, fbHeight, ticks);
+		}
+		else
+		{
+			glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+			DumpFrame(flipped_trc, ticks);
 		}
 	}
-	else
-	{
-		m_post_processor->OnEndFrame();
-		TargetRectangle target_rc = ConvertEFBRectangle(rc);
-
-		// for msaa mode, we must resolve the efb content to non-msaa
-		GLuint tex = FramebufferManager::ResolveAndGetRenderTarget(rc);
-		TargetSize tex_size(s_target_width, s_target_height);
-
-		// Apply post-processing.
-		// If enabled, blit_tex will be replaced with an internal texture from the post-processor,
-		// leaving the original texture unmodified, should it be required next frame.
-		GLuint depth_tex = 0;
-		if (m_post_processor->ShouldTriggerOnSwap())
-		{
-			TargetRectangle src_rect(target_rc);
-			TargetSize src_size(tex_size);
-
-			if (m_post_processor->RequiresDepthBuffer())
-				depth_tex = FramebufferManager::ResolveAndGetDepthTarget(rc);
-
-			uintptr_t new_blit_tex;
-			m_post_processor->PostProcess(&target_rc, &tex_size, &new_blit_tex, src_rect, src_size, tex, src_rect, src_size, depth_tex);
-			tex = static_cast<GLuint>(new_blit_tex);
-		}
-
-		if (!depth_tex && (m_post_processor->GetScalingShaderConfig()->RequiresDepthBuffer() || (m_post_processor->ShouldTriggerAfterBlit() && m_post_processor->RequiresDepthBuffer())))
-			depth_tex = FramebufferManager::ResolveAndGetDepthTarget(rc);
-
-		BlitScreen(flipped_trc, target_rc, tex_size, tex, depth_tex, Gamma);
-	}
-
-	glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
-
-	DumpFrame(flipped_trc, ticks);
-
+	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 	// Finish up the current frame, print some stats
 
 	SetWindowSize(fbStride, fbHeight);
@@ -1533,31 +1458,27 @@ void Renderer::SwapImpl(u32 xfbAddr, u32 fbWidth, u32 fbStride, u32 fbHeight,
 		FramebufferManagerBase::SetLastXfbHeight(last_h);
 	}
 
-	bool WindowResized = false;
-	int W = (int)GLInterface->GetBackBufferWidth();
-	int H = (int)GLInterface->GetBackBufferHeight();
-	if (W != s_backbuffer_width || H != s_backbuffer_height ||
+	bool window_resized = false;
+	int window_width = static_cast<int>(std::max(GLInterface->GetBackBufferWidth(), 16u));
+	int window_height = static_cast<int>(std::max(GLInterface->GetBackBufferHeight(), 16u));
+	if (window_width != s_backbuffer_width || window_height != s_backbuffer_height ||
 		s_last_efb_scale != g_ActiveConfig.iEFBScale)
 	{
-		WindowResized = true;
-		s_backbuffer_width = W;
-		s_backbuffer_height = H;
+		window_resized = true;
+		s_backbuffer_width = window_width;
+		s_backbuffer_height = window_height;
 		s_last_efb_scale = g_ActiveConfig.iEFBScale;
 	}
-	bool TargetSizeChanged = false;
-	if (CalculateTargetSize(s_backbuffer_width, s_backbuffer_height))
-	{
-		TargetSizeChanged = true;
-	}
-	if (TargetSizeChanged || xfbchanged || WindowResized ||
+	bool target_size_changed = CalculateTargetSize();
+	if (target_size_changed || xfbchanged || window_resized ||
 		(s_last_multisamples != g_ActiveConfig.iMultisamples) ||
 		(s_last_stereo_mode != (g_ActiveConfig.iStereoMode > 0)))
 	{
 		s_last_xfb_mode = g_ActiveConfig.bUseRealXFB;
 
-		UpdateDrawRectangle(s_backbuffer_width, s_backbuffer_height);
+		UpdateDrawRectangle();
 
-		if (TargetSizeChanged ||
+		if (target_size_changed ||
 			s_last_multisamples != g_ActiveConfig.iMultisamples ||
 			s_last_stereo_mode != g_ActiveConfig.iStereoMode)
 		{
@@ -1652,6 +1573,126 @@ void Renderer::SwapImpl(u32 xfbAddr, u32 fbWidth, u32 fbStride, u32 fbHeight,
 		m_post_processor->ReloadShaders();
 }
 
+void Renderer::DrawFrame(const TargetRectangle& target_rc, const EFBRectangle& source_rc, u32 xfb_addr,
+	const XFBSourceBase* const* xfb_sources, u32 xfb_count, GLuint dst_texture, const TargetSize& dst_size, u32 fb_width,
+	u32 fb_stride, u32 fb_height, float Gamma)
+{
+	if (g_ActiveConfig.bUseXFB)
+	{
+		if (g_ActiveConfig.bUseRealXFB)
+			DrawRealXFB(target_rc, xfb_sources, xfb_count, dst_texture, dst_size, fb_width, fb_stride, fb_height);
+		else
+			DrawVirtualXFB(target_rc, xfb_addr, xfb_sources, xfb_count, dst_texture, dst_size, fb_width, fb_stride, fb_height, Gamma);
+	}
+	else
+	{
+		DrawEFB(target_rc, source_rc, dst_texture, dst_size, Gamma);
+	}
+}
+
+void Renderer::DrawEFB(const TargetRectangle& t_rc, const EFBRectangle& source_rc, GLuint dst_texture, const TargetSize& dst_size, float Gamma)
+{
+	TargetRectangle scaled_source_rc = ConvertEFBRectangle(source_rc);
+	TargetRectangle target_rc = { t_rc.left, t_rc.top, t_rc.right, t_rc.bottom };
+	// for msaa mode, we must resolve the efb content to non-msaa
+	GLuint tex = FramebufferManager::ResolveAndGetRenderTarget(source_rc);
+	TargetSize tex_size(s_target_width, s_target_height);
+	// Apply post-processing.
+	// If enabled, blit_tex will be replaced with an internal texture from the post-processor,
+	// leaving the original texture unmodified, should it be required next frame.
+	GLuint depth_tex = 0;
+	if (m_post_processor->ShouldTriggerOnSwap())
+	{
+		TargetRectangle src_rect(scaled_source_rc);
+		TargetSize src_size(tex_size);
+
+		if (m_post_processor->RequiresDepthBuffer())
+			depth_tex = FramebufferManager::ResolveAndGetDepthTarget(source_rc);
+
+		uintptr_t new_blit_tex;
+		m_post_processor->PostProcess(&scaled_source_rc, &tex_size, &new_blit_tex, src_rect, src_size, tex, src_rect, src_size, depth_tex);
+		tex = static_cast<GLuint>(new_blit_tex);
+	}
+
+	if (!depth_tex && (m_post_processor->GetScalingShaderConfig()->RequiresDepthBuffer() || (m_post_processor->ShouldTriggerAfterBlit() && m_post_processor->RequiresDepthBuffer())))
+		depth_tex = FramebufferManager::ResolveAndGetDepthTarget(source_rc);
+	BlitScreen(target_rc, scaled_source_rc, tex_size, tex, depth_tex, dst_size, dst_texture, Gamma);
+}
+
+void Renderer::DrawVirtualXFB(const TargetRectangle& target_rc, u32 xfb_addr,
+	const XFBSourceBase* const* xfb_sources, u32 xfb_count, GLuint dst_texture, const TargetSize& dst_size, u32 fb_width,
+	u32 fb_stride, u32 fb_height, float Gamma)
+{
+	for (u32 i = 0; i < xfb_count; ++i)
+	{
+		const XFBSource* xfbSource = static_cast<const XFBSource*>(xfb_sources[i]);
+
+		TargetRectangle draw_rc;
+		TargetRectangle source_rc;
+		source_rc.left = xfbSource->sourceRc.left;
+		source_rc.right = xfbSource->sourceRc.right;
+		source_rc.top = xfbSource->sourceRc.top;
+		source_rc.bottom = xfbSource->sourceRc.bottom;
+
+		// use virtual xfb with offset
+		int xfbHeight = xfbSource->srcHeight;
+		int xfbWidth = xfbSource->srcWidth;
+		int hOffset = (static_cast<s32>(xfbSource->srcAddr) - static_cast<s32>(xfb_addr)) /
+			(static_cast<s32>(fb_stride) * 2);
+
+		draw_rc.top = target_rc.top - hOffset * target_rc.GetHeight() / static_cast<s32>(fb_height);
+		draw_rc.bottom =
+			target_rc.top - (hOffset + xfbHeight) * target_rc.GetHeight() / static_cast<s32>(fb_height);
+		draw_rc.left =
+			target_rc.left +
+			(target_rc.GetWidth() - xfbWidth * target_rc.GetWidth() / static_cast<s32>(fb_stride)) / 2;
+		draw_rc.right =
+			target_rc.left +
+			(target_rc.GetWidth() + xfbWidth * target_rc.GetWidth() / static_cast<s32>(fb_stride)) / 2;
+
+		// The following code disables auto stretch.  Kept for reference.
+		// scale draw area for a 1 to 1 pixel mapping with the draw target
+		// float h_scale = static_cast<float>(fb_width) / static_cast<float>(target_rc.GetWidth());
+		// float v_scale = static_cast<float>(fb_height) / static_cast<float>(target_rc.GetHeight());
+		// draw_rc.top *= v_scale;
+		// draw_rc.bottom *= v_scale;
+		// draw_rc.left *= h_scale;
+		// draw_rc.right *= h_scale;
+
+		source_rc.right -= Renderer::EFBToScaledX(fb_stride - fb_width);
+		TargetSize blit_size(xfbSource->texWidth, xfbSource->texHeight);
+
+		BlitScreen(draw_rc, source_rc, blit_size, xfbSource->texture, xfbSource->depthtexture, dst_size, dst_texture, Gamma);
+	}
+}
+
+void Renderer::DrawRealXFB(const TargetRectangle& target_rc, const XFBSourceBase* const* xfb_sources,
+	u32 xfb_count, GLuint dst_texture, const TargetSize& dst_size, u32 fb_width, u32 fb_stride, u32 fb_height)
+{
+	for (u32 i = 0; i < xfb_count; ++i)
+	{
+		const XFBSource* xfbSource = static_cast<const XFBSource*>(xfb_sources[i]);
+
+		TargetRectangle source_rc;
+		source_rc.left = xfbSource->sourceRc.left;
+		source_rc.right = xfbSource->sourceRc.right;
+		source_rc.top = xfbSource->sourceRc.top;
+		source_rc.bottom = xfbSource->sourceRc.bottom;
+
+		source_rc.right -= fb_stride - fb_width;
+
+		// RealXFB doesn't call ConvertEFBRectangle for sourceRc, therefore it is still assuming a top-
+		// left origin. The top offset is always zero (see FramebufferManagerBase::GetRealXFBSource).
+		source_rc.top = source_rc.bottom;
+		source_rc.bottom = 0;
+
+		TargetRectangle draw_rc = target_rc;
+		TargetSize blit_size(xfbSource->texWidth, xfbSource->texHeight);
+
+		BlitScreen(draw_rc, source_rc, blit_size, xfbSource->texture, xfbSource->depthtexture, dst_size, dst_texture, 1.0);
+	}
+}
+
 void Renderer::FlushFrameDump()
 {
 	if (!m_last_frame_exported)
@@ -1670,9 +1711,6 @@ void Renderer::FlushFrameDump()
 
 void Renderer::DumpFrame(const TargetRectangle& flipped_trc, u64 ticks)
 {
-	if (!IsFrameDumping())
-		return;
-
 	if (!m_frame_dumping_pbo[0])
 	{
 		glGenBuffers(2, m_frame_dumping_pbo.data());
@@ -1707,6 +1745,81 @@ void Renderer::DumpFrame(const TargetRectangle& flipped_trc, u64 ticks)
 	glReadPixels(flipped_trc.left, flipped_trc.bottom, m_last_frame_width[0], m_last_frame_height[0],
 		GL_RGBA, GL_UNSIGNED_BYTE, 0);
 	glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
+}
+
+void Renderer::DumpFrameUsingFBO(const EFBRectangle& source_rc, u32 xfb_addr,
+	const XFBSourceBase* const* xfb_sources, u32 xfb_count,
+	u32 fb_width, u32 fb_stride, u32 fb_height, u64 ticks)
+{
+	// This needs to be converted to the GL bottom-up window coordinate system.
+	TargetRectangle render_rc = CalculateFrameDumpDrawRectangle();
+	std::swap(render_rc.top, render_rc.bottom);
+
+	// Ensure the render texture meets the size requirements of the draw area.
+	u32 render_width = static_cast<u32>(render_rc.GetWidth());
+	u32 render_height = static_cast<u32>(render_rc.GetHeight());
+	PrepareFrameDumpRenderTexture(render_width, render_height);
+
+	// Ensure the alpha channel of the render texture is blank. The frame dump backend expects
+	// that the alpha is set to 1.0 for all pixels.	
+	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+	glClear(GL_COLOR_BUFFER_BIT);
+
+	// Render the frame into the frame dump render texture. Disable alpha writes in case the
+	// post-processing shader writes a non-1.0 value.
+	TargetSize dst_size = { (int)render_width ,(int)render_height };
+	DrawFrame(render_rc, source_rc, xfb_addr, xfb_sources, xfb_count, m_frame_dump_render_texture, dst_size, fb_width, fb_stride, fb_height, 1.0);
+	glBindFramebuffer(GL_READ_FRAMEBUFFER, m_frame_dump_render_framebuffer);
+	// Copy frame to output buffer. This assumes that GL_FRAMEBUFFER has been set.
+	DumpFrame(render_rc, ticks);
+
+	// Restore state after drawing. This isn't the game state, it's the state set by ResetAPIState.
+	FramebufferManager::SetFramebuffer(0);
+}
+
+void Renderer::PrepareFrameDumpRenderTexture(u32 width, u32 height)
+{
+	// Ensure framebuffer exists (we lazily allocate it in case frame dumping isn't used).
+	// Or, resize texture if it isn't large enough to accommodate the current frame.
+	if (m_frame_dump_render_texture != 0 && m_frame_dump_render_framebuffer != 0 &&
+		m_frame_dump_render_texture_width >= width && m_frame_dump_render_texture_height >= height)
+	{
+		FramebufferManager::SetFramebuffer(m_frame_dump_render_framebuffer);
+		return;
+	}
+
+	// Recreate texture objects.
+	if (m_frame_dump_render_texture != 0)
+		glDeleteTextures(1, &m_frame_dump_render_texture);
+	if (m_frame_dump_render_framebuffer != 0)
+		glDeleteFramebuffers(1, &m_frame_dump_render_framebuffer);
+
+	glGenTextures(1, &m_frame_dump_render_texture);
+	glActiveTexture(GL_TEXTURE9);
+	glBindTexture(GL_TEXTURE_2D_ARRAY, m_frame_dump_render_texture);
+	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAX_LEVEL, 0);
+	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_RGBA, width, height, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+
+	glGenFramebuffers(1, &m_frame_dump_render_framebuffer);
+	FramebufferManager::SetFramebuffer(m_frame_dump_render_framebuffer);
+	FramebufferManager::FramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D_ARRAY,
+		m_frame_dump_render_texture, 0);
+
+	m_frame_dump_render_texture_width = width;
+	m_frame_dump_render_texture_height = height;
+	TextureCache::SetStage();
+}
+
+void Renderer::DestroyFrameDumpResources()
+{
+	if (m_frame_dump_render_framebuffer)
+		glDeleteFramebuffers(1, &m_frame_dump_render_framebuffer);
+	if (m_frame_dump_render_texture)
+		glDeleteTextures(1, &m_frame_dump_render_texture);
+	if (m_frame_dumping_pbo[0])
+		glDeleteBuffers(2, m_frame_dumping_pbo.data());
 }
 
 // ALWAYS call RestoreAPIState for each ResetAPIState call you're doing

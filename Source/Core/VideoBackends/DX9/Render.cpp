@@ -130,13 +130,13 @@ Renderer::Renderer(void *&window_handle)
 	FramebufferManagerBase::SetLastXfbWidth(MAX_XFB_WIDTH);
 	FramebufferManagerBase::SetLastXfbHeight(MAX_XFB_HEIGHT);
 
-	UpdateDrawRectangle(s_backbuffer_width, s_backbuffer_height);
+	UpdateDrawRectangle();
 
 	s_LastAA = g_ActiveConfig.iMultisamples - 1;
 	int SupersampleCoeficient = (s_LastAA % 3) + 1;
 
 	s_last_efb_scale = g_ActiveConfig.iEFBScale;
-	CalculateTargetSize(s_backbuffer_width, s_backbuffer_height, SupersampleCoeficient);
+	CalculateTargetSize(SupersampleCoeficient);
 	PixelShaderManager::SetEfbScaleChanged();
 
 	// Make sure to use valid texture sizes
@@ -469,7 +469,7 @@ void Renderer::SwapImpl(u32 xfbAddr, u32 fbWidth, u32 fbStride, u32 fbHeight, co
 	D3D::dev->SetDepthStencilSurface(NULL);
 	D3D::dev->SetRenderTarget(0, D3D::GetBackBufferSurface());
 	D3D::dev->Clear(0, NULL, D3DCLEAR_TARGET, 0x0, 0, 0);
-	UpdateDrawRectangle(s_backbuffer_width, s_backbuffer_height);
+	UpdateDrawRectangle();
 	D3DVIEWPORT9 vp;
 	const TargetRectangle Tr = GetTargetRectangle();
 	int X = Tr.left;
@@ -688,7 +688,7 @@ void Renderer::SwapImpl(u32 xfbAddr, u32 fbWidth, u32 fbStride, u32 fbHeight, co
 
 	u32 newAA = g_ActiveConfig.iMultisamples - 1;
 
-	if (CalculateTargetSize(s_backbuffer_width, s_backbuffer_height, (newAA % 3) + 1)
+	if (CalculateTargetSize((newAA % 3) + 1)
 		|| xfbchanged
 		|| windowResized
 		|| s_last_efb_scale != g_ActiveConfig.iEFBScale
@@ -696,7 +696,7 @@ void Renderer::SwapImpl(u32 xfbAddr, u32 fbWidth, u32 fbStride, u32 fbHeight, co
 	{
 		s_LastAA = newAA;
 
-		UpdateDrawRectangle(s_backbuffer_width, s_backbuffer_height);
+		UpdateDrawRectangle();
 
 		int SupersampleCoeficient = (s_LastAA % 3) + 1;
 

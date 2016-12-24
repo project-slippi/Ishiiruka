@@ -22,10 +22,10 @@ enum
 // The VI can do horizontal scaling (TODO: emulate).
 const u32 MAX_XFB_WIDTH = 720;
 
-// Although EFB height is 528, 574-line XFB's can be created either with
+// Although EFB height is 528, 576-line XFB's can be created either with
 // vertical scaling by the EFB copy operation or copying to multiple XFB's
 // that are next to each other in memory (TODO: handle that situation).
-const u32 MAX_XFB_HEIGHT = 574;
+const u32 MAX_XFB_HEIGHT = 576;
 
 // Logging
 // ----------

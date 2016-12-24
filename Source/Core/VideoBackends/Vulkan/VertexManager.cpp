@@ -6,6 +6,7 @@
 #include "VideoBackends/Vulkan/BoundingBox.h"
 #include "VideoBackends/Vulkan/CommandBufferManager.h"
 #include "VideoBackends/Vulkan/FramebufferManager.h"
+#include "VideoBackends/Vulkan/PerfQuery.h"
 #include "VideoBackends/Vulkan/Renderer.h"
 #include "VideoBackends/Vulkan/StateTracker.h"
 #include "VideoBackends/Vulkan/StreamBuffer.h"
@@ -22,9 +23,9 @@
 namespace Vulkan
 {
 // TODO: Clean up this mess
-constexpr size_t INITIAL_VERTEX_BUFFER_SIZE = VertexManager::MAXVBUFFERSIZE;
-constexpr size_t MAX_VERTEX_BUFFER_SIZE = VertexManager::MAXVBUFFERSIZE * 2;
-constexpr size_t INITIAL_INDEX_BUFFER_SIZE = VertexManager::MAXIBUFFERSIZE * sizeof(u16);
+constexpr size_t INITIAL_VERTEX_BUFFER_SIZE = VertexManager::MAXVBUFFERSIZE * 2;
+constexpr size_t MAX_VERTEX_BUFFER_SIZE = VertexManager::MAXVBUFFERSIZE * 4;
+constexpr size_t INITIAL_INDEX_BUFFER_SIZE = VertexManager::MAXIBUFFERSIZE * sizeof(u16) * 2;
 constexpr size_t MAX_INDEX_BUFFER_SIZE = VertexManager::MAXIBUFFERSIZE * sizeof(u16) * 16;
 
 VertexManager::VertexManager()
@@ -126,9 +127,6 @@ void VertexManager::vFlush(bool use_dst_alpha)
 		static_cast<VertexFormat*>(VertexLoaderManager::GetCurrentVertexFormat());
 	u32 vertex_stride = vertex_format->GetVertexStride();
 
-	// Commit memory to device
-	PrepareDrawBuffers(vertex_stride);
-
 	// Figure out the number of indices to draw
 	u32 index_count = IndexGenerator::GetIndexLen();
 
@@ -164,6 +162,12 @@ void VertexManager::vFlush(bool use_dst_alpha)
 	StateTracker::GetInstance()->UpdateVertexShaderConstants();
 	StateTracker::GetInstance()->UpdateGeometryShaderConstants();
 	StateTracker::GetInstance()->UpdatePixelShaderConstants();
+	
+	// Commit memory to device.
+	// NOTE: This must be done after constant upload, as a constant buffer overrun can cause
+	// the current command buffer to be executed, and we want the buffer space to be associated
+	// with the command buffer that has the corresponding draw.
+	PrepareDrawBuffers(vertex_stride);
 
 	// Flush all EFB pokes and invalidate the peek cache.
 	FramebufferManager::GetInstance()->InvalidatePeekCache();
@@ -190,10 +194,13 @@ void VertexManager::vFlush(bool use_dst_alpha)
 		WARN_LOG(VIDEO, "Skipped draw of %u indices", index_count);
 		return;
 	}
-
+	if (PerfQueryBase::ShouldEmulate())
+		static_cast<PerfQuery*>(g_perf_query.get())->StartQuery();
 	// Execute the draw
 	vkCmdDrawIndexed(g_command_buffer_mgr->GetCurrentCommandBuffer(), index_count, 1,
 		m_current_draw_base_index, m_current_draw_base_vertex, 0);
+	if (PerfQueryBase::ShouldEmulate())
+		static_cast<PerfQuery*>(g_perf_query.get())->EndQuery();
 
 	// If the GPU does not support dual-source blending, we can approximate the effect by drawing
 	// the object a second time, with the write mask set to alpha only using a shader that outputs

@@ -72,41 +72,50 @@ void PerfQuery::EnableQuery(PerfQueryGroup type)
 		BlockingPartialFlush();
 	}
 
-	if (type == PQG_ZCOMP_ZCOMPLOC || type == PQG_ZCOMP)
+	m_query_enabled = type == PQG_ZCOMP_ZCOMPLOC || type == PQG_ZCOMP;
+	m_type = type;
+}
+
+void PerfQuery::StartQuery()
+{
+	if (!m_query_enabled)
 	{
-		u32 index = (m_query_read_pos + m_query_count) % PERF_QUERY_BUFFER_SIZE;
-		ActiveQuery& entry = m_query_buffer[index];
-		_assert_(!entry.active && !entry.available);
-		entry.active = true;
-		m_query_count++;
-
-		DEBUG_LOG(VIDEO, "start query %u", index);
-
-		// Use precise queries if supported, otherwise boolean (which will be incorrect).
-		VkQueryControlFlags flags = 0;
-		if (g_vulkan_context->SupportsPreciseOcclusionQueries())
-			flags = VK_QUERY_CONTROL_PRECISE_BIT;
-
-		// Ensure the query starts within a render pass.
-		// TODO: Is this needed?
-		StateTracker::GetInstance()->BeginRenderPass();
-		vkCmdBeginQuery(g_command_buffer_mgr->GetCurrentCommandBuffer(), m_query_pool, index, flags);
-
-		// Prevent background command buffer submission while the query is active.
-		StateTracker::GetInstance()->SetBackgroundCommandBufferExecution(false);
+		return;
 	}
+	u32 index = (m_query_read_pos + m_query_count) % PERF_QUERY_BUFFER_SIZE;
+	ActiveQuery& entry = m_query_buffer[index];
+	_assert_(!entry.active && !entry.available);
+	entry.active = true;
+	m_query_count++;
+
+	DEBUG_LOG(VIDEO, "start query %u", index);
+
+	// Use precise queries if supported, otherwise boolean (which will be incorrect).
+	VkQueryControlFlags flags = 0;
+	if (g_vulkan_context->SupportsPreciseOcclusionQueries())
+		flags = VK_QUERY_CONTROL_PRECISE_BIT;
+
+	// Ensure the query starts within a render pass.
+	// TODO: Is this needed?
+	StateTracker::GetInstance()->BeginRenderPass();
+	vkCmdBeginQuery(g_command_buffer_mgr->GetCurrentCommandBuffer(), m_query_pool, index, flags);
 }
 
 void PerfQuery::DisableQuery(PerfQueryGroup type)
 {
-	if (type == PQG_ZCOMP_ZCOMPLOC || type == PQG_ZCOMP)
+	m_query_enabled = false;
+}
+
+void PerfQuery::EndQuery()
+{
+	if (m_query_enabled)
 	{
 		// DisableQuery should be called for each EnableQuery, so subtract one to get the previous one.
 		u32 index = (m_query_read_pos + m_query_count - 1) % PERF_QUERY_BUFFER_SIZE;
 		vkCmdEndQuery(g_command_buffer_mgr->GetCurrentCommandBuffer(), m_query_pool, index);
-		StateTracker::GetInstance()->SetBackgroundCommandBufferExecution(true);
 		DEBUG_LOG(VIDEO, "end query %u", index);
 	}
+	m_query_enabled = false;
 }
 
 void PerfQuery::ResetQuery()

@@ -43,7 +43,7 @@ void ReplaceTexture2D(ID3D12Resource* texture12, const u8* buffer, DXGI_FORMAT f
 		src_pitch *= (fmt == DXGI_FORMAT_BC1_UNORM ? 8 : 16);
 		height = std::max(1u, (height + 3) >> 2);
 	}
-	const unsigned int upload_size = ROUND_UP(src_pitch, D3D12_TEXTURE_DATA_PITCH_ALIGNMENT) * height;
+	const unsigned int upload_size = Common::AlignUpSizePow2(src_pitch, D3D12_TEXTURE_DATA_PITCH_ALIGNMENT) * height;
 
 	ID3D12Resource* upload_buffer = nullptr;
 	size_t upload_buffer_offset = 0;

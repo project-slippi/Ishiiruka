@@ -26,7 +26,9 @@ public:
 	bool Initialize();
 
 	void EnableQuery(PerfQueryGroup type) override;
+	void StartQuery();
 	void DisableQuery(PerfQueryGroup type) override;
+	void EndQuery();
 	void ResetQuery() override;
 	u32 GetQueryResult(PerfQueryType type) override;
 	void FlushResults() override;
@@ -65,6 +67,8 @@ private:
 
 	// Buffer containing query results. Each query is a u32.
 	std::unique_ptr<StagingBuffer> m_readback_buffer;
+	bool m_query_enabled{};
+	PerfQueryGroup  m_type{};
 };
 
 }  // namespace Vulkan

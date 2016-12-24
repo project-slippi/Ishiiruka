@@ -67,7 +67,7 @@ struct HiresTextureCacheItem
 {
 	bool emissive_in_color;
 	std::array<std::vector<hires_mip_level>, MapType::emissive + 1> maps;
-	
+
 	HiresTextureCacheItem(size_t minsize) : emissive_in_color(false)
 	{
 		maps[MapType::color].resize(minsize);
@@ -81,6 +81,7 @@ static std::unordered_map<std::string, std::shared_ptr<HiresTexture>> s_textureC
 static std::mutex s_textureCacheMutex;
 static Common::Flag s_textureCacheAbortLoading;
 
+static bool s_check_native_format;
 static bool s_check_new_format;
 static std::atomic<size_t> size_sum;
 static size_t max_mem = 0;
@@ -131,6 +132,7 @@ std::string HiresTexture::GetTextureDirectory(const std::string& game_id)
 
 void HiresTexture::Update()
 {
+	s_check_native_format = false;
 	s_check_new_format = false;
 	bool BuildMaterialMaps = g_ActiveConfig.bHiresMaterialMapsBuild;
 	if (s_prefetcher.joinable())
@@ -176,7 +178,11 @@ void HiresTexture::Update()
 		std::string FileName;
 		std::string Extension;
 		SplitPath(fileitem, nullptr, &FileName, &Extension);
-		if (FileName.substr(0, s_format_prefix.length()) == s_format_prefix)
+		if (FileName.substr(0, code.length()) == code)
+		{
+			s_check_native_format = true;
+		}
+		else if (FileName.substr(0, s_format_prefix.length()) == s_format_prefix)
 		{
 			s_check_new_format = true;
 		}
@@ -190,7 +196,7 @@ void HiresTexture::Update()
 		bool luma_encoded = false;
 		for (size_t tag = 1; tag <= max_type; tag++)
 		{
-			if (EndsWith(FileName, s_maps_tags[tag]))
+			if (StringEndsWith(FileName, s_maps_tags[tag]))
 			{
 				map_index = BuildMaterialMaps ? tag : MapType::material;
 				FileName = FileName.substr(0, FileName.size() - s_maps_tags[tag].size());
@@ -201,9 +207,9 @@ void HiresTexture::Update()
 		{
 			continue;
 		}
-		else if(!BuildMaterialMaps && map_index == MapType::color)
+		else if (!BuildMaterialMaps && map_index == MapType::color)
 		{
-			if (EndsWith(FileName, "_lum"))
+			if (StringEndsWith(FileName, "_lum"))
 			{
 				FileName = FileName.substr(0, FileName.size() - 4);
 				luma_encoded = true;
@@ -228,7 +234,7 @@ void HiresTexture::Update()
 			{
 				item.emissive_in_color = true;
 			}
-			item.maps[map_index].resize(min_item_size);			
+			item.maps[map_index].resize(min_item_size);
 			std::vector<hires_mip_level> &dst = item.maps[map_index];
 			dst[level] = mip_level_detail;
 			s_textureMap.emplace(FileName, item);
@@ -321,64 +327,118 @@ std::string HiresTexture::GenBaseName(
 	bool has_mipmaps,
 	bool dump)
 {
-	if (!dump && !s_check_new_format)
-		return "";
-
-	// checking for min/max on paletted textures
-	u32 min = 0xffff;
-	u32 max = 0;
-	switch (tlut_size)
+	std::string name = "";
+	bool convert = false;
+	HiresTextureCache::iterator convert_iter;
+	if ((!dump || convert) && s_check_native_format)
 	{
-	case 0:
-		break;
-	case 16 * 2:
-		for (size_t i = 0; i < texture_size; i++)
+		// try to load the old format first
+		u64 tex_hash = GetHashHiresTexture(texture, (int)texture_size, g_ActiveConfig.iSafeTextureCache_ColorSamples);
+		u64 tlut_hash = 0;
+		if (tlut_size)
+			tlut_hash = GetHashHiresTexture(tlut, (int)tlut_size, g_ActiveConfig.iSafeTextureCache_ColorSamples);
+		name = StringFromFormat("%s_%08x_%i", SConfig::GetInstance().m_strUniqueID.c_str(), (u32)(tex_hash ^ tlut_hash), (u16)format);
+		convert_iter = s_textureMap.find(name);
+		if (convert_iter != s_textureMap.end())
 		{
-			min = std::min<u32>(min, texture[i] & 0xf);
-			min = std::min<u32>(min, texture[i] >> 4);
-			max = std::max<u32>(max, texture[i] & 0xf);
-			max = std::max<u32>(max, texture[i] >> 4);
+			if (g_ActiveConfig.bConvertHiresTextures)
+				convert = true;
+			else
+				return name;
 		}
-		break;
-	case 256 * 2:
-		for (size_t i = 0; i < texture_size; i++)
-		{
-			min = std::min<u32>(min, texture[i]);
-			max = std::max<u32>(max, texture[i]);
-		}
-		break;
-	case 16384 * 2:
-		for (size_t i = 0; i < texture_size / 2; i++)
-		{
-			min = std::min<u32>(min, Common::swap16(((u16*)texture)[i]) & 0x3fff);
-			max = std::max<u32>(max, Common::swap16(((u16*)texture)[i]) & 0x3fff);
-		}
-		break;
 	}
-	if (tlut_size > 0)
+	if (dump || s_check_new_format || convert)
 	{
-		tlut_size = 2 * (max + 1 - min);
-		tlut += 2 * min;
-	}
-
-	u64 tex_hash = XXH64(texture, texture_size, 0);
-	u64 tlut_hash = tlut_size ? XXH64(tlut, tlut_size, 0) : 0;
-
-	std::string basename = s_format_prefix + StringFromFormat("%dx%d%s_%016" PRIx64, width, height,
-		has_mipmaps ? "_m" : "", tex_hash);
-	std::string tlutname = tlut_size ? StringFromFormat("_%016" PRIx64, tlut_hash) : "";
-	std::string formatname = StringFromFormat("_%d", format);
-	std::string fullname = basename + tlutname + formatname;
-
-	// try to match a wildcard template
-	if (!dump && s_textureMap.find(basename + "_*" + formatname) != s_textureMap.end())
-		return basename + "_*" + formatname;
-
-	// else generate the complete texture
-	if (dump || s_textureMap.find(fullname) != s_textureMap.end())
+		// checking for min/max on paletted textures
+		u32 min = 0xffff;
+		u32 max = 0;
+		switch (tlut_size)
+		{
+		case 0: break;
+		case 16 * 2:
+			for (size_t i = 0; i < texture_size; i++)
+			{
+				min = std::min<u32>(min, texture[i] & 0xf);
+				min = std::min<u32>(min, texture[i] >> 4);
+				max = std::max<u32>(max, texture[i] & 0xf);
+				max = std::max<u32>(max, texture[i] >> 4);
+			}
+			break;
+		case 256 * 2:
+			for (size_t i = 0; i < texture_size; i++)
+			{
+				min = std::min<u32>(min, texture[i]);
+				max = std::max<u32>(max, texture[i]);
+			}
+			break;
+		case 16384 * 2:
+			for (size_t i = 0; i < texture_size / 2; i++)
+			{
+				min = std::min<u32>(min, Common::swap16(((u16*)texture)[i]) & 0x3fff);
+				max = std::max<u32>(max, Common::swap16(((u16*)texture)[i]) & 0x3fff);
+			}
+			break;
+		}
+		if (tlut_size > 0)
+		{
+			tlut_size = 2 * (max + 1 - min);
+			tlut += 2 * min;
+		}
+		u64 tex_hash = XXH64(texture, texture_size);
+		u64 tlut_hash = 0;
+		if (tlut_size)
+			tlut_hash = XXH64(tlut, tlut_size);
+		std::string basename = s_format_prefix + StringFromFormat("%dx%d%s_%016" PRIx64, width, height, has_mipmaps ? "_m" : "", tex_hash);
+		std::string tlutname = tlut_size ? StringFromFormat("_%016" PRIx64, tlut_hash) : "";
+		std::string formatname = StringFromFormat("_%d", format);
+		std::string fullname = basename + tlutname + formatname;
+		if (convert)
+		{
+			// new texture
+			if (s_textureMap.find(fullname) == s_textureMap.end())
+			{
+				HiresTextureCacheItem newitem(convert_iter->second.maps[MapType::color].size());
+				for (size_t level = 0; level < convert_iter->second.maps[MapType::color].size(); level++)
+				{
+					std::string newname = fullname;
+					if (level)
+						newname += StringFromFormat("_mip%d", (int)level);
+					newname += convert_iter->second.maps[MapType::color][level].extension;
+					std::string &src = convert_iter->second.maps[MapType::color][level].path;
+					size_t postfix = src.find(name);
+					std::string dst = src.substr(0, postfix) + newname;
+					if (File::Rename(src, dst))
+					{
+						s_check_new_format = true;
+						OSD::AddMessage(StringFromFormat("Rename custom texture %s to %s", src.c_str(), dst.c_str()), 5000);
+					}
+					else
+					{
+						ERROR_LOG(VIDEO, "rename failed");
+					}
+					newitem.maps[MapType::color][level] = hires_mip_level(dst, convert_iter->second.maps[MapType::color][level].extension, convert_iter->second.maps[MapType::color][level].is_compressed);
+				}
+				s_textureMap.emplace(fullname, newitem);
+			}
+			else
+			{
+				for (size_t level = 0; level < convert_iter->second.maps[MapType::color].size(); level++)
+				{
+					if (File::Delete(convert_iter->second.maps[MapType::color][level].path))
+					{
+						OSD::AddMessage(StringFromFormat("Delete double old custom texture %s", convert_iter->second.maps[MapType::color][level].path.c_str()), 5000);
+					}
+					else
+					{
+						ERROR_LOG(VIDEO, "delete failed");
+					}
+				}
+			}
+			s_textureMap.erase(name);
+		}
 		return fullname;
-
-	return "";
+	}
+	return name;
 }
 
 inline u8* LoadPNG(const char* path, int& width, int& height)
@@ -480,7 +540,7 @@ inline bool BuildColor(const HiresTextureCacheItem& item, ImageLoaderParams &Img
 						t = ((t << 8) + (lg - t) * la) >> 8;
 						ImgInfo.dst[idx + 1] = (u8)t;
 						t = ImgInfo.dst[idx + 2];
-						t = ((t << 8) + (lb - t) * la) >> 8;						
+						t = ((t << 8) + (lb - t) * la) >> 8;
 						ImgInfo.dst[idx + 2] = (u8)t;
 						la = la < 10 ? 10 : la;
 						ImgInfo.dst[idx + 3] = (u8)la;
@@ -510,8 +570,8 @@ inline void BuildMaterial(const HiresTextureCacheItem& item, ImageLoaderParams &
 		int image_width;
 		int image_height;
 		bumpdata = LoadPNG(leveldata.path.c_str(), image_width, image_height);
-		if (bumpdata != nullptr 
-			&& static_cast<u32>(image_width) == ImgInfo.Width 
+		if (bumpdata != nullptr
+			&& static_cast<u32>(image_width) == ImgInfo.Width
 			&& static_cast<u32>(image_height) == ImgInfo.Height)
 		{
 			bump = true;
@@ -531,7 +591,7 @@ inline void BuildMaterial(const HiresTextureCacheItem& item, ImageLoaderParams &
 		{
 			specular = true;
 		}
-	}	
+	}
 	for (size_t i = 0; i < ImgInfo.Height; i++)
 	{
 		size_t idx = i * ImgInfo.Width * 4;
@@ -657,7 +717,7 @@ HiresTexture* HiresTexture::Load(const std::string& basename,
 		bool emissive_present = current.emissive_in_color;
 		imgInfo.dst = nullptr;
 		imgInfo.Path = item.path.c_str();
-		nrm_posible = nrm_posible			
+		nrm_posible = nrm_posible
 			&& current.maps[material_mat_index][level].path.size() > 0;
 		if (level == 0)
 		{

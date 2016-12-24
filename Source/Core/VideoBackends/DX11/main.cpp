@@ -105,6 +105,7 @@ void VideoBackend::InitBackendInfo()
 	g_Config.backend_info.bSupportsDepthClamp = true;
 	g_Config.backend_info.bSupportsMultithreading = false;
 	g_Config.backend_info.bSupportsReversedDepthRange = true;
+	g_Config.backend_info.bSupportsInternalResolutionFrameDumps = true;
 	IDXGIFactory* factory;
 	IDXGIAdapter* ad;
 	hr = DX11::PCreateDXGIFactory(__uuidof(IDXGIFactory), (void**)&factory);

@@ -4,6 +4,7 @@
 
 #include <string>
 
+#include "Common/Align.h"
 #include "Common/FileUtil.h"
 #include "Common/LinearDiskCache.h"
 #include "Common/StringUtil.h"
@@ -77,7 +78,7 @@ void HullDomainShaderCache::Init()
 	s_hulldomain_shaders_lock.unlock();
 
 	bool use_partial_buffer_update = D3D::SupportPartialContantBufferUpdate();
-	u32 gbsize = ROUND_UP(sizeof(TessellationShaderConstants), 16) * (use_partial_buffer_update ? 1024 : 1); // must be a multiple of 16
+	u32 gbsize = static_cast<u32>(Common::AlignUpSizePow2(sizeof(TessellationShaderConstants), 16) * (use_partial_buffer_update ? 1024 : 1)); // must be a multiple of 16
 	hdscbuf.reset(new D3D::ConstantStreamBuffer(gbsize));
 	ID3D11Buffer* buf = hdscbuf->GetBuffer();
 	CHECK(buf != nullptr, "Create Hull Domain shader constant buffer (size=%u)", gbsize);

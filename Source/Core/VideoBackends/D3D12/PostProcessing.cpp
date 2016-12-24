@@ -2,6 +2,7 @@
 // Licensed under GPLv2+
 // Refer to the license.txt file included.
 
+#include "Common/Align.h"
 #include "Common/Common.h"
 #include "Common/CommonPaths.h"
 #include "Common/FileUtil.h"
@@ -128,7 +129,7 @@ uintptr_t D3DPostProcessingShader::CreateBindingSampler(const PostProcessingShad
 
 bool D3DPostProcessingShader::RecompileShaders()
 {
-	static const char *inputs[] = { "0", "1", "2", "3", "4" };
+	static const char *inputs[] = { "0", "1", "2", "3", "4", "5", "6", "7", "8" };
 	static D3D_SHADER_MACRO macros[] = {
 		{ "API_D3D", "1" },
 		{ "HLSL", "1" },
@@ -459,7 +460,7 @@ bool D3DPostProcessor::CreateCommonShaders()
 bool D3DPostProcessor::CreateUniformBuffer()
 {
 	m_uniform_buffer.reset();
-	size_t basesize = ROUND_UP(POST_PROCESSING_CONTANTS_BUFFER_SIZE, 256);
+	size_t basesize = Common::AlignUpSizePow2(POST_PROCESSING_CONTANTS_BUFFER_SIZE, 256);
 	m_uniform_buffer = std::make_unique<D3DStreamBuffer>(basesize * 128, basesize * 1024, nullptr);
 	return true;
 }

@@ -63,12 +63,20 @@ bool D3DDescriptorHeapManager::Allocate(size_t* out_index,
 	}
 	size_t bit = m_current_descriptor_index % BITSET_SIZE;
 	// Start past the temporary slots, no point in searching those.
+	bool restarted = false;
 	for (size_t group = m_current_descriptor_index / BITSET_SIZE; group < m_free_slots.size(); group++)
 	{
 		BitSetType& bs = m_free_slots[group];
 		if (bs.none())
 		{
 			bit = 0;
+			if (group + 1 >= m_free_slots.size() && !restarted)
+			{
+				restarted = true;
+				m_current_descriptor_index = m_temporary_slots;
+				bit = m_current_descriptor_index % BITSET_SIZE;
+				group = (m_current_descriptor_index / BITSET_SIZE) - 1;
+			}
 			continue;
 		}
 

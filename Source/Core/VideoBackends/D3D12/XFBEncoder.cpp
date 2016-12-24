@@ -2,9 +2,11 @@
 // Licensed under GPLv2+
 // Refer to the license.txt file included.
 
+#include "Common/Align.h"
 #include "Common/CommonTypes.h"
 #include "Common/MsgHandler.h"
 #include "Common/Logging/Log.h"
+
 #include "VideoBackends/D3D12/D3DBase.h"
 #include "VideoBackends/D3D12/D3DCommandListManager.h"
 #include "VideoBackends/D3D12/D3DShader.h"
@@ -23,7 +25,7 @@ constexpr size_t XFB_TEXTURE_WIDTH = MAX_XFB_WIDTH / 2;
 constexpr size_t XFB_TEXTURE_HEIGHT = MAX_XFB_HEIGHT;
 
 // Buffer enough space for 2 XFB buffers (our frame latency)
-constexpr size_t XFB_UPLOAD_BUFFER_SIZE = ROUND_UP(XFB_TEXTURE_WIDTH * sizeof(u32), D3D12_TEXTURE_DATA_PITCH_ALIGNMENT) * XFB_TEXTURE_HEIGHT * 2;
+constexpr size_t XFB_UPLOAD_BUFFER_SIZE = Common::AlignUpSizePow2(XFB_TEXTURE_WIDTH * sizeof(u32), D3D12_TEXTURE_DATA_PITCH_ALIGNMENT) * XFB_TEXTURE_HEIGHT * 2;
 constexpr size_t XFB_ENCODER_PARAMS_BUFFER_SIZE = 64 * 1024;
 
 std::unique_ptr<XFBEncoder> g_xfb_encoder;
@@ -48,7 +50,7 @@ XFBEncoder::XFBEncoder()
 	CheckHR(D3D::device->CreateCommittedResource(
 		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_READBACK),
 		D3D12_HEAP_FLAG_NONE,
-		&CD3DX12_RESOURCE_DESC::Buffer(ROUND_UP(XFB_TEXTURE_WIDTH * sizeof(u32), D3D12_TEXTURE_DATA_PITCH_ALIGNMENT) * MAX_XFB_HEIGHT),
+		&CD3DX12_RESOURCE_DESC::Buffer(Common::AlignUpSizePow2(XFB_TEXTURE_WIDTH * sizeof(u32), D3D12_TEXTURE_DATA_PITCH_ALIGNMENT) * MAX_XFB_HEIGHT),
 		D3D12_RESOURCE_STATE_COPY_DEST,
 		nullptr,
 		IID_PPV_ARGS(&m_readback_buffer)));
@@ -63,13 +65,12 @@ XFBEncoder::~XFBEncoder()
 	SAFE_RELEASE(m_readback_buffer);
 }
 
-void XFBEncoder::EncodeTextureToRam(u8* dst, u32 dst_pitch, u32 dst_height,
+void XFBEncoder::EncodeTextureToRam(u8* dst, u32 dst_width, u32 dst_pitch, u32 dst_height,
 	D3DTexture2D* src_texture, const TargetRectangle& src_rect,
 	u32 src_width, u32 src_height, float gamma)
 {
 	// src_rect is in native coordinates
 	// dst_pitch is in words
-	u32 dst_width = dst_pitch / 2;
 	u32 dst_texture_width = dst_width / 2;
 	_assert_msg_(VIDEO, dst_width <= MAX_XFB_WIDTH && dst_height <= MAX_XFB_HEIGHT, "XFB destination does not exceed maximum size");
 
@@ -112,7 +113,7 @@ void XFBEncoder::EncodeTextureToRam(u8* dst, u32 dst_pitch, u32 dst_height,
 		{}, 0, DXGI_FORMAT_R8G8B8A8_UNORM, false, false);
 
 	// Copy from YUYV intermediate texture to readback buffer. It's likely the pitch here is going to be different to dst_pitch.
-	u32 readback_pitch = ROUND_UP(dst_width * sizeof(u16), D3D12_TEXTURE_DATA_PITCH_ALIGNMENT);
+	u32 readback_pitch = static_cast<u32>(Common::AlignUpSizePow2(dst_width * sizeof(u16), D3D12_TEXTURE_DATA_PITCH_ALIGNMENT));
 	D3D12_PLACED_SUBRESOURCE_FOOTPRINT dst_footprint = { 0,{ DXGI_FORMAT_R8G8B8A8_UNORM, dst_texture_width, dst_height, 1, readback_pitch } };
 	CD3DX12_TEXTURE_COPY_LOCATION dst_location(m_readback_buffer, dst_footprint);
 	CD3DX12_TEXTURE_COPY_LOCATION src_location(m_yuyv_texture->GetTex(), 0);
@@ -144,7 +145,7 @@ void XFBEncoder::DecodeToTexture(D3DTexture2D* dst_texture, const u8* src, u32 s
 	_assert_msg_(VIDEO, src_width <= MAX_XFB_WIDTH && src_height <= MAX_XFB_HEIGHT, "XFB source does not exceed maximum size");
 
 	// Copy to XFB upload buffer. Each row has to be done separately due to pitch differences.
-	u32 buffer_pitch = ROUND_UP(src_width / 2 * sizeof(u32), D3D12_TEXTURE_DATA_PITCH_ALIGNMENT);
+	u32 buffer_pitch = static_cast<u32>(Common::AlignUpSizePow2(src_width / 2 * sizeof(u32), D3D12_TEXTURE_DATA_PITCH_ALIGNMENT));
 	m_upload_buffer->AllocateSpaceInBuffer(buffer_pitch * src_height, D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT);
 	for (u32 row = 0; row < src_height; row++)
 	{

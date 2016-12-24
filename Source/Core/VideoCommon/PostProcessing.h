@@ -65,7 +65,7 @@ union Constant
 };
 
 // Maximum number of texture inputs to a post-processing shader.
-static const size_t POST_PROCESSING_MAX_TEXTURE_INPUTS = 4;
+static const size_t POST_PROCESSING_MAX_TEXTURE_INPUTS = 8;
 static const size_t POST_PROCESSING_CONTANTS = POST_PROCESSING_MAX_TEXTURE_INPUTS + 6;
 static const size_t POST_PROCESSING_CONTANTS_BUFFER_SIZE = POST_PROCESSING_CONTANTS * sizeof(Constant);
 

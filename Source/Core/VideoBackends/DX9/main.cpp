@@ -97,6 +97,7 @@ void VideoBackend::InitBackendInfo()
 	g_Config.backend_info.bSupportsDepthClamp = true;
 	g_Config.backend_info.bSupportsMultithreading = false;
 	g_Config.backend_info.bSupportsReversedDepthRange = false;
+	g_Config.backend_info.bSupportsInternalResolutionFrameDumps = false;
 	// adapters
 	g_Config.backend_info.Adapters.clear();
 	for (int i = 0; i < DX9::D3D::GetNumAdapters(); ++i)

@@ -120,6 +120,7 @@ void VideoBackend::InitBackendInfo()
 	g_Config.backend_info.bSupportsDepthClamp = true;
 	g_Config.backend_info.bSupportsMultithreading = false;
 	g_Config.backend_info.bSupportsReversedDepthRange = true;
+	g_Config.backend_info.bSupportsInternalResolutionFrameDumps = true;
 	g_Config.backend_info.Adapters.clear();
 
 	// aamodes - 1 is to stay consistent with D3D (means no AA)

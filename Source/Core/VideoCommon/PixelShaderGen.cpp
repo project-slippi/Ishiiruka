@@ -873,7 +873,7 @@ inline void WritePerPixelDepth(ShaderCode& out, bool zfreeze)
 }
 
 template<int TEVARG_ZERO, int TEVARG_ONE, class T>
-inline void WriteTevRegularI(T& out, const char* components, int bias, int op, int clamp, int shift, int a, int b, int c, int d)
+inline void WriteTevRegularI(T& out, const char* components, int bias, int op, int clamp, int shift, int a, int b, int c, int d, bool alpha)
 {
 	const char *tevScaleTableLeft[] =
 	{
@@ -922,36 +922,36 @@ inline void WriteTevRegularI(T& out, const char* components, int bias, int op, i
 	if (a == b || c == TEVARG_ZERO)
 	{
 		out.Write("((((tin_a%s << 8)%s)%s) >> 8)",
-			components, tevScaleTableLeft[shift], tevLerpBias[2 * op + (shift != 3)]);
+			components, tevScaleTableLeft[shift], tevLerpBias[2 * op + ((shift == 3) == alpha)]);
 	}
 	else if (c == TEVARG_ONE)
 	{
 		out.Write("((((tin_b%s << 8)%s)%s) >> 8)",
-			components, tevScaleTableLeft[shift], tevLerpBias[2 * op + (shift != 3)]);
+			components, tevScaleTableLeft[shift], tevLerpBias[2 * op + ((shift == 3) == alpha)]);
 	}
 	else if (a == TEVARG_ZERO)
 	{
 		out.Write("((((tin_b%s*tin_c%s)%s)%s) >> 8)",
 			components, components,
-			tevScaleTableLeft[shift], tevLerpBias[2 * op + (shift != 3)]);
+			tevScaleTableLeft[shift], tevLerpBias[2 * op + ((shift == 3) == alpha)]);
 	}
 	else if (b == TEVARG_ZERO)
 	{
 		out.Write("((((tin_a%s*(256 - tin_c%s))%s)%s) >> 8)",
 			components, components,
-			tevScaleTableLeft[shift], tevLerpBias[2 * op + (shift != 3)]);
+			tevScaleTableLeft[shift], tevLerpBias[2 * op + ((shift == 3) == alpha)]);
 	}
 	else
 	{
 		out.Write("(((((tin_a%s<<8) + (tin_b%s - tin_a%s) * tin_c%s)%s)%s) >> 8)",
 			components, components, components, components,
-			tevScaleTableLeft[shift], tevLerpBias[2 * op + (shift != 3)]);
+			tevScaleTableLeft[shift], tevLerpBias[2 * op + ((shift == 3) == alpha)]);
 	}
 	out.Write(")%s)", tevScaleTableRight[shift]);
 }
 
 template<int TEVARG_ZERO, int TEVARG_ONE, class T>
-inline void WriteTevRegular(T& out, const char* components, int bias, int op, int clamp, int shift, int a, int b, int c, int d)
+inline void WriteTevRegular(T& out, const char* components, int bias, int op, int clamp, int shift, int a, int b, int c, int d, bool alpha)
 {
 	const char *tevScaleTableLeft[] =
 	{
@@ -1001,30 +1001,30 @@ inline void WriteTevRegular(T& out, const char* components, int bias, int op, in
 	if (a == b || c == TEVARG_ZERO)
 	{
 		out.Write("trunc((((tin_a%s*256.0)%s)%s)*(1.0/256.0))",
-			components, tevScaleTableLeft[shift], tevLerpBias[2 * op + (shift != 3)]);
+			components, tevScaleTableLeft[shift], tevLerpBias[2 * op + ((shift == 3) == alpha)]);
 	}
 	else if (c == TEVARG_ONE)
 	{
 		out.Write("trunc((((tin_b%s*256.0)%s)%s)*(1.0/256.0))",
-			components, tevScaleTableLeft[shift], tevLerpBias[2 * op + (shift != 3)]);
+			components, tevScaleTableLeft[shift], tevLerpBias[2 * op + ((shift == 3) == alpha)]);
 	}
 	else if (a == TEVARG_ZERO)
 	{
 		out.Write("trunc((((tin_b%s*tin_c%s)%s)%s)*(1.0/256.0))",
 			components, components,
-			tevScaleTableLeft[shift], tevLerpBias[2 * op + (shift != 3)]);
+			tevScaleTableLeft[shift], tevLerpBias[2 * op + ((shift == 3) == alpha)]);
 	}
 	else if (b == TEVARG_ZERO)
 	{
 		out.Write("trunc((((tin_a%s*(256.0 - tin_c%s))%s)%s)*(1.0/256.0))",
 			components, components,
-			tevScaleTableLeft[shift], tevLerpBias[2 * op + (shift != 3)]);
+			tevScaleTableLeft[shift], tevLerpBias[2 * op + ((shift == 3) == alpha)]);
 	}
 	else
 	{
 		out.Write("trunc((((tin_a%s*256.0 + (tin_b%s-tin_a%s)*tin_c%s)%s)%s)*(1.0/256.0))",
 			components, components, components, components,
-			tevScaleTableLeft[shift], tevLerpBias[2 * op + (shift != 3)]);
+			tevScaleTableLeft[shift], tevLerpBias[2 * op + ((shift == 3) == alpha)]);
 	}
 	out.Write(")%s)", tevScaleTableRight[shift]);
 }
@@ -1458,9 +1458,9 @@ inline void WriteStage(ShaderCode& out, const pixel_shader_uid_data& uid_data, i
 	{
 		//normal color combiner goes here
 		if (use_integer_math)
-			WriteTevRegularI<TEVCOLORARG_ZERO, TEVCOLORARG_ONE>(out, ".rgb", cc.bias, cc.op, cc.clamp, cc.shift, cc.a, cc.b, cc.c, cc.d);
+			WriteTevRegularI<TEVCOLORARG_ZERO, TEVCOLORARG_ONE>(out, ".rgb", cc.bias, cc.op, cc.clamp, cc.shift, cc.a, cc.b, cc.c, cc.d, false);
 		else
-			WriteTevRegular<TEVCOLORARG_ZERO, TEVCOLORARG_ONE>(out, ".rgb", cc.bias, cc.op, cc.clamp, cc.shift, cc.a, cc.b, cc.c, cc.d);
+			WriteTevRegular<TEVCOLORARG_ZERO, TEVCOLORARG_ONE>(out, ".rgb", cc.bias, cc.op, cc.clamp, cc.shift, cc.a, cc.b, cc.c, cc.d, false);
 	}
 	else
 	{
@@ -1486,9 +1486,9 @@ inline void WriteStage(ShaderCode& out, const pixel_shader_uid_data& uid_data, i
 	{
 		// 8 is used because alpha stage don't have ONE input so a number outside range is used
 		if (use_integer_math)
-			WriteTevRegularI<TEVALPHAARG_ZERO, 8>(out, ".a", ac.bias, ac.op, ac.clamp, ac.shift, ac.a, ac.b, ac.c, ac.d);
+			WriteTevRegularI<TEVALPHAARG_ZERO, 8>(out, ".a", ac.bias, ac.op, ac.clamp, ac.shift, ac.a, ac.b, ac.c, ac.d, true);
 		else
-			WriteTevRegular<TEVALPHAARG_ZERO, 8>(out, ".a", ac.bias, ac.op, ac.clamp, ac.shift, ac.a, ac.b, ac.c, ac.d);
+			WriteTevRegular<TEVALPHAARG_ZERO, 8>(out, ".a", ac.bias, ac.op, ac.clamp, ac.shift, ac.a, ac.b, ac.c, ac.d, true);
 	}
 	else
 	{

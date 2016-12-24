@@ -9,6 +9,7 @@
 #include <strsafe.h>
 #include <unordered_map>
 
+#include "Common/Align.h"
 #include "Common/CommonTypes.h"
 #include "Common/FileUtil.h"
 #include "Common/MathUtil.h"
@@ -72,7 +73,7 @@ D3D12_BLEND_DESC g_reset_blend_desc = {};
 D3D12_DEPTH_STENCIL_DESC g_reset_depth_desc = {};
 D3D12_RASTERIZER_DESC g_reset_rast_desc = {};
 
-static ID3D12Resource* s_screenshot_texture = nullptr;
+
 
 // Nvidia stereo blitting struct defined in "nvstereo.h" from the Nvidia SDK
 typedef struct _Nv_Stereo_Image_Header
@@ -160,7 +161,6 @@ static void SetupDeviceObjects()
 	D3D12_RASTERIZER_DESC rast_desc = CD3DX12_RASTERIZER_DESC(D3D12_FILL_MODE_SOLID, D3D12_CULL_MODE_NONE, false, 0, 0.f, 0.f, false, false, false, 0, D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF);
 	g_reset_rast_desc = rast_desc;
 
-	s_screenshot_texture = nullptr;
 	s_viewport_dirty = true;
 	s_target_dirty = true;
 	s_scissor_dirty = true;
@@ -170,38 +170,10 @@ static void SetupDeviceObjects()
 static void TeardownDeviceObjects()
 {
 	g_framebuffer_manager.reset();
-
-	if (s_screenshot_texture)
-	{
-		D3D::command_list_mgr->DestroyResourceAfterCurrentCommandListExecuted(s_screenshot_texture);
-		s_screenshot_texture = nullptr;
-	}
-
 	gx_state_cache.Clear();
 }
 
-void CreateScreenshotTexture()
-{
-	// We can't render anything outside of the backbuffer anyway, so use the backbuffer size as the screenshot buffer size.
-	// This texture is released to be recreated when the window is resized in Renderer::SwapImpl.
-
-	const unsigned int screenshot_buffer_size =
-		ROUND_UP(D3D::GetBackBufferWidth() * 4, D3D12_TEXTURE_DATA_PITCH_ALIGNMENT) *
-		D3D::GetBackBufferHeight();
-
-	CheckHR(
-		D3D::device->CreateCommittedResource(
-			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_READBACK),
-			D3D12_HEAP_FLAG_NONE,
-			&CD3DX12_RESOURCE_DESC::Buffer(screenshot_buffer_size),
-			D3D12_RESOURCE_STATE_COPY_DEST,
-			nullptr,
-			IID_PPV_ARGS(&s_screenshot_texture)
-		)
-	);
-}
-
-static D3D12_BOX GetScreenshotSourceBox(const TargetRectangle& target_rc)
+static D3D12_BOX GetScreenshotSourceBox(const TargetRectangle& target_rc, u32 width, u32 height)
 {
 	// Since the screenshot buffer is copied back to the CPU, we can't access pixels that
 	// fall outside the backbuffer bounds. Therefore, when crop is enabled and the target rect is
@@ -213,8 +185,8 @@ static D3D12_BOX GetScreenshotSourceBox(const TargetRectangle& target_rc)
 		std::max(target_rc.left, 0),
 		std::max(target_rc.top, 0),
 		0,
-		std::min(D3D::GetBackBufferWidth(), static_cast<unsigned int>(target_rc.right)),
-		std::min(D3D::GetBackBufferHeight(), static_cast<unsigned int>(target_rc.bottom)),
+		std::min(width, static_cast<unsigned int>(target_rc.right)),
+		std::min(height, static_cast<unsigned int>(target_rc.bottom)),
 		1);
 }
 
@@ -237,13 +209,13 @@ Renderer::Renderer(void*& window_handle)
 	FramebufferManagerBase::SetLastXfbWidth(MAX_XFB_WIDTH);
 	FramebufferManagerBase::SetLastXfbHeight(MAX_XFB_HEIGHT);
 
-	UpdateDrawRectangle(s_backbuffer_width, s_backbuffer_height);
+	UpdateDrawRectangle();
 
 	s_last_multisamples = g_ActiveConfig.iMultisamples;
 	s_last_efb_scale = g_ActiveConfig.iEFBScale;
 	s_last_stereo_mode = g_ActiveConfig.iStereoMode;
 	s_last_xfb_mode = g_ActiveConfig.bUseRealXFB;
-	CalculateTargetSize(s_backbuffer_width, s_backbuffer_height);
+	CalculateTargetSize();
 	PixelShaderManager::SetEfbScaleChanged();
 
 	SetupDeviceObjects();
@@ -292,6 +264,19 @@ Renderer::~Renderer()
 {
 	D3D::EndFrame();
 	D3D::WaitForOutstandingRenderingToComplete();
+	if (m_frame_dump_buffer)
+	{
+		D3D::command_list_mgr->DestroyResourceAfterCurrentCommandListExecuted(m_frame_dump_buffer);
+		m_frame_dump_buffer = nullptr;
+	}
+	if (m_frame_dump_render_texture)
+	{
+		m_frame_dump_render_texture->Release();
+		m_frame_dump_render_texture = nullptr;
+	}
+	m_frame_dump_render_texture_width = 0;
+	m_frame_dump_render_texture_height = 0;
+	m_frame_dump_buffer_size = 0;
 	TeardownDeviceObjects();
 	m_post_processor.reset();
 }
@@ -683,9 +668,11 @@ void Renderer::SwapImpl(u32 xfb_addr, u32 fb_width, u32 fb_stride, u32 fb_height
 
 	// Invalidate EFB access copies. Not strictly necessary, but this avoids having the buffers mapped when calling Present().
 	FramebufferManager::InvalidateEFBCache();
+	if (!g_ActiveConfig.bUseXFB)
+		m_post_processor->OnEndFrame();
 
 	// Prepare to copy the XFBs to our backbuffer
-	UpdateDrawRectangle(s_backbuffer_width, s_backbuffer_height);
+	UpdateDrawRectangle();
 	TargetRectangle target_rc = GetTargetRectangle();
 
 	D3D::GetBackBuffer()->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_RENDER_TARGET);
@@ -693,135 +680,14 @@ void Renderer::SwapImpl(u32 xfb_addr, u32 fb_width, u32 fb_stride, u32 fb_height
 
 	float clear_color[4] = { 0.f, 0.f, 0.f, 1.f };
 	D3D::current_command_list->ClearRenderTargetView(D3D::GetBackBuffer()->GetRTV(), clear_color, 0, nullptr);
-
-	// activate linear filtering for the buffer copies
-	D3D::SetLinearCopySampler();
-
-	if (g_ActiveConfig.bUseXFB)
-	{
-		const XFBSource* xfb_source;
-
-		// draw each xfb source
-		for (u32 i = 0; i < xfb_count; ++i)
-		{
-			xfb_source = static_cast<const XFBSource*>(xfb_source_list[i]);
-
-			TargetRectangle drawRc;
-
-			TargetRectangle source_rc;
-			source_rc.left = xfb_source->sourceRc.left;
-			source_rc.top = xfb_source->sourceRc.top;
-			source_rc.right = xfb_source->sourceRc.right;
-			source_rc.bottom = xfb_source->sourceRc.bottom;
-
-			// use virtual xfb with offset
-			int xfb_height = xfb_source->srcHeight;
-			int xfb_width = xfb_source->srcWidth;
-			int hOffset = (static_cast<s32>(xfb_source->srcAddr) - static_cast<s32>(xfb_addr)) / (static_cast<s32>(fb_stride) * 2);
-
-			if (g_ActiveConfig.bUseRealXFB)
-			{
-				drawRc = target_rc;
-				source_rc.right -= fb_stride - fb_width;
-			}
-			else
-			{
-				drawRc.top = target_rc.top + hOffset * target_rc.GetHeight() / static_cast<s32>(fb_height);
-				drawRc.bottom = target_rc.top + (hOffset + xfb_height) * target_rc.GetHeight() / static_cast<s32>(fb_height);
-				drawRc.left = target_rc.left + (target_rc.GetWidth() - xfb_width * target_rc.GetWidth() / static_cast<s32>(fb_stride)) / 2;
-				drawRc.right = target_rc.left + (target_rc.GetWidth() + xfb_width * target_rc.GetWidth() / static_cast<s32>(fb_stride)) / 2;
-
-				// The following code disables auto stretch.  Kept for reference.
-				// scale draw area for a 1 to 1 pixel mapping with the draw target
-				//float vScale = static_cast<float>(fbHeight) / static_cast<float>(s_backbuffer_height);
-				//float hScale = static_cast<float>(fbWidth) / static_cast<float>(s_backbuffer_width);
-				//drawRc.top *= vScale;
-				//drawRc.bottom *= vScale;CalculateTargetSize
-				//drawRc.left *= hScale;
-				//drawRc.right *= hScale;
-
-				source_rc.right -= Renderer::EFBToScaledX(fb_stride - fb_width);
-			}
-			TargetSize blit_size(xfb_source->texWidth, xfb_source->texHeight);
-			BlitScreen(drawRc, source_rc, blit_size, xfb_source->m_tex, xfb_source->m_depthtex, gamma);
-		}
-	}
-	else
-	{
-		m_post_processor->OnEndFrame();
-		TargetRectangle blit_rect = Renderer::ConvertEFBRectangle(rc);
-		TargetSize blit_size(s_target_width, s_target_height);
-
-		// TODO: Improve sampling algorithm for the pixel shader so that we can use the multisampled EFB texture as source
-		D3DTexture2D* blit_tex = FramebufferManager::GetResolvedEFBColorTexture();
-		D3DTexture2D* blit_depth_tex = nullptr;
-		// Post processing active?
-		if (m_post_processor->ShouldTriggerOnSwap())
-		{
-			TargetRectangle src_rect(blit_rect);
-			TargetSize src_size(blit_size);
-			if (m_post_processor->RequiresDepthBuffer())
-				blit_depth_tex = FramebufferManager::GetResolvedEFBDepthTexture();
-
-			uintptr_t new_blit_tex;
-			m_post_processor->PostProcess(&blit_rect, &blit_size, &new_blit_tex,
-				src_rect, src_size, reinterpret_cast<uintptr_t>(blit_tex),
-				src_rect, src_size, reinterpret_cast<uintptr_t>(blit_depth_tex));
-			blit_tex = reinterpret_cast<D3DTexture2D*>(new_blit_tex);
-
-			// Restore render target to backbuffer
-			D3D::current_command_list->OMSetRenderTargets(1, &D3D::GetBackBuffer()->GetRTV(), FALSE, nullptr);
-			D3D::SetLinearCopySampler();
-		}
-		if (blit_depth_tex == nullptr && (m_post_processor->GetScalingShaderConfig()->RequiresDepthBuffer() || (m_post_processor->ShouldTriggerAfterBlit() && m_post_processor->RequiresDepthBuffer())))
-		{
-			blit_depth_tex = FramebufferManager::GetResolvedEFBDepthTexture();
-		}
-		BlitScreen(target_rc, blit_rect, blit_size, blit_tex, blit_depth_tex, gamma);
-	}
-
+	// Copy the framebuffer to screen.	
+	const TargetSize dst_size = { s_target_width, s_target_height };
+	DrawFrame(target_rc, rc, xfb_addr, xfb_source_list, xfb_count, D3D::GetBackBuffer(), dst_size, fb_width, fb_stride, fb_height, gamma);
+	
 	// Dump frames
 	if (IsFrameDumping())
 	{
-		if (!s_screenshot_texture)
-			CreateScreenshotTexture();
-
-		D3D12_BOX source_box = GetScreenshotSourceBox(target_rc);
-
-		unsigned int source_width = source_box.right - source_box.left;
-		unsigned int source_height = source_box.bottom - source_box.top;
-
-		D3D12_TEXTURE_COPY_LOCATION dst_location = {};
-		dst_location.pResource = s_screenshot_texture;
-		dst_location.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
-		dst_location.PlacedFootprint.Offset = 0;
-		dst_location.PlacedFootprint.Footprint.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-		dst_location.PlacedFootprint.Footprint.Width = GetTargetRectangle().GetWidth();
-		dst_location.PlacedFootprint.Footprint.Height = GetTargetRectangle().GetHeight();
-		dst_location.PlacedFootprint.Footprint.Depth = 1;
-		dst_location.PlacedFootprint.Footprint.RowPitch = ROUND_UP(dst_location.PlacedFootprint.Footprint.Width * 4, D3D12_TEXTURE_DATA_PITCH_ALIGNMENT);
-
-		D3D12_TEXTURE_COPY_LOCATION src_location = {};
-		src_location.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
-		src_location.SubresourceIndex = 0;
-		src_location.pResource = D3D::GetBackBuffer()->GetTex();
-
-		D3D::GetBackBuffer()->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_COPY_SOURCE);
-		D3D::current_command_list->CopyTextureRegion(&dst_location, 0, 0, 0, &src_location, &source_box);
-
-		D3D::command_list_mgr->ExecuteQueuedWork(true);
-
-		void* screenshot_texture_map;
-		D3D12_RANGE read_range = { 0, dst_location.PlacedFootprint.Footprint.RowPitch * source_height };
-		CheckHR(s_screenshot_texture->Map(0, &read_range, &screenshot_texture_map));
-		
-		AVIDump::Frame state = AVIDump::FetchState(ticks);
-		DumpFrameData(reinterpret_cast<const u8*>(screenshot_texture_map), source_width, source_height,
-			dst_location.PlacedFootprint.Footprint.RowPitch, state);
-		FinishFrameData();
-
-		D3D12_RANGE write_range = {};
-		s_screenshot_texture->Unmap(0, &write_range);
+		DumpFrame(rc, xfb_addr, xfb_source_list, xfb_count, fb_width, fb_stride, fb_height, ticks);
 	}
 
 	// Reset viewport for drawing text
@@ -857,7 +723,7 @@ void Renderer::SwapImpl(u32 xfb_addr, u32 fb_width, u32 fb_stride, u32 fb_height
 	D3D::Present();
 
 	// Resize the back buffers NOW to avoid flickering
-	if (CalculateTargetSize(s_backbuffer_width, s_backbuffer_height) ||
+	if (CalculateTargetSize() ||
 		xfb_changed ||
 		window_resized ||
 		s_last_efb_scale != g_ActiveConfig.iEFBScale ||
@@ -878,18 +744,11 @@ void Renderer::SwapImpl(u32 xfb_addr, u32 fb_width, u32 fb_stride, u32 fb_height
 		{
 			// TODO: Aren't we still holding a reference to the back buffer right now?
 			D3D::Reset();
-
-			if (s_screenshot_texture)
-			{
-				D3D::command_list_mgr->DestroyResourceAfterCurrentCommandListExecuted(s_screenshot_texture);
-				s_screenshot_texture = nullptr;
-			}
-
 			s_backbuffer_width = D3D::GetBackBufferWidth();
 			s_backbuffer_height = D3D::GetBackBufferHeight();
 		}
 
-		UpdateDrawRectangle(s_backbuffer_width, s_backbuffer_height);
+		UpdateDrawRectangle();
 
 		s_last_efb_scale = g_ActiveConfig.iEFBScale;
 
@@ -925,6 +784,128 @@ void Renderer::SwapImpl(u32 xfb_addr, u32 fb_width, u32 fb_stride, u32 fb_height
 		m_post_processor->ReloadShaders();
 	}
 }
+
+void Renderer::DrawFrame(const TargetRectangle& target_rc, const EFBRectangle& source_rc, u32 xfb_addr,
+	const XFBSourceBase* const* xfb_sources, u32 xfb_count, D3DTexture2D* dst_texture, const TargetSize& dst_size, u32 fb_width,
+	u32 fb_stride, u32 fb_height, float Gamma)
+{
+	if (g_ActiveConfig.bUseXFB)
+	{
+		if (g_ActiveConfig.bUseRealXFB)
+			DrawRealXFB(target_rc, xfb_sources, xfb_count, dst_texture, dst_size, fb_width, fb_stride, fb_height);
+		else
+			DrawVirtualXFB(target_rc, xfb_addr, xfb_sources, xfb_count, dst_texture, dst_size, fb_width, fb_stride, fb_height, Gamma);
+	}
+	else
+	{
+		DrawEFB(target_rc, source_rc, dst_texture, dst_size, Gamma);
+	}
+}
+void Renderer::DrawEFB(const TargetRectangle& t_rc, const EFBRectangle& source_rc, D3DTexture2D* dst_texture, const TargetSize& dst_size, float Gamma)
+{
+	TargetRectangle scaled_source_rc = Renderer::ConvertEFBRectangle(source_rc);
+	TargetRectangle target_rc = { t_rc.left, t_rc.top, t_rc.right, t_rc.bottom };
+	D3DTexture2D* tex = FramebufferManager::GetResolvedEFBColorTexture();
+	TargetSize tex_size(s_target_width, s_target_height);
+	D3DTexture2D* blit_depth_tex = nullptr;
+	// Post processing active?
+	if (m_post_processor->ShouldTriggerOnSwap())
+	{
+		TargetRectangle src_rect(scaled_source_rc);
+		TargetSize src_size(tex_size);
+		if (m_post_processor->RequiresDepthBuffer())
+			blit_depth_tex = FramebufferManager::GetResolvedEFBDepthTexture();
+
+		uintptr_t new_blit_tex;
+		m_post_processor->PostProcess(&scaled_source_rc, &tex_size, &new_blit_tex,
+			src_rect, src_size, reinterpret_cast<uintptr_t>(tex),
+			src_rect, src_size, reinterpret_cast<uintptr_t>(blit_depth_tex));
+		tex = reinterpret_cast<D3DTexture2D*>(new_blit_tex);
+
+		// Restore render target to backbuffer
+		D3D::current_command_list->OMSetRenderTargets(1, &D3D::GetBackBuffer()->GetRTV(), FALSE, nullptr);
+		D3D::SetLinearCopySampler();
+	}
+	if (blit_depth_tex == nullptr 
+		&& (m_post_processor->GetScalingShaderConfig()->RequiresDepthBuffer() 
+			|| (m_post_processor->ShouldTriggerAfterBlit() && m_post_processor->RequiresDepthBuffer())))
+	{
+		blit_depth_tex = FramebufferManager::GetResolvedEFBDepthTexture();
+	}
+	BlitScreen(target_rc, scaled_source_rc, tex_size, tex, blit_depth_tex, dst_size, dst_texture, Gamma);
+}
+
+void Renderer::DrawVirtualXFB(const TargetRectangle& target_rc, u32 xfb_addr,
+	const XFBSourceBase* const* xfb_sources, u32 xfb_count, D3DTexture2D* dst_texture, const TargetSize& dst_size, u32 fb_width,
+	u32 fb_stride, u32 fb_height, float Gamma)
+{
+	// draw each xfb source
+	for (u32 i = 0; i < xfb_count; ++i)
+	{
+		const XFBSource* xfb_source = static_cast<const XFBSource*>(xfb_sources[i]);
+
+		TargetRectangle drawRc;
+
+		TargetRectangle source_rc;
+		source_rc.left = xfb_source->sourceRc.left;
+		source_rc.top = xfb_source->sourceRc.top;
+		source_rc.right = xfb_source->sourceRc.right;
+		source_rc.bottom = xfb_source->sourceRc.bottom;
+
+		// use virtual xfb with offset
+		int xfb_height = xfb_source->srcHeight;
+		int xfb_width = xfb_source->srcWidth;
+		int hOffset = (static_cast<s32>(xfb_source->srcAddr) - static_cast<s32>(xfb_addr)) / (static_cast<s32>(fb_stride) * 2);
+
+		drawRc.top = target_rc.top + hOffset * target_rc.GetHeight() / static_cast<s32>(fb_height);
+		drawRc.bottom = target_rc.top + (hOffset + xfb_height) * target_rc.GetHeight() / static_cast<s32>(fb_height);
+		drawRc.left = target_rc.left + (target_rc.GetWidth() - xfb_width * target_rc.GetWidth() / static_cast<s32>(fb_stride)) / 2;
+		drawRc.right = target_rc.left + (target_rc.GetWidth() + xfb_width * target_rc.GetWidth() / static_cast<s32>(fb_stride)) / 2;
+
+		// The following code disables auto stretch.  Kept for reference.
+		// scale draw area for a 1 to 1 pixel mapping with the draw target
+		//float vScale = static_cast<float>(fbHeight) / static_cast<float>(s_backbuffer_height);
+		//float hScale = static_cast<float>(fbWidth) / static_cast<float>(s_backbuffer_width);
+		//drawRc.top *= vScale;
+		//drawRc.bottom *= vScale;CalculateTargetSize
+		//drawRc.left *= hScale;
+		//drawRc.right *= hScale;
+
+		source_rc.right -= Renderer::EFBToScaledX(fb_stride - fb_width);
+
+		TargetSize blit_size(xfb_source->texWidth, xfb_source->texHeight);
+		BlitScreen(drawRc, source_rc, blit_size, xfb_source->m_tex, xfb_source->m_depthtex, dst_size, dst_texture, Gamma);
+	}
+}
+
+void Renderer::DrawRealXFB(const TargetRectangle& target_rc, const XFBSourceBase* const* xfb_sources,
+	u32 xfb_count, D3DTexture2D* dst_texture, const TargetSize& dst_size, u32 fb_width, u32 fb_stride, u32 fb_height)
+{
+	// draw each xfb source
+	for (u32 i = 0; i < xfb_count; ++i)
+	{
+		const XFBSource* xfb_source = static_cast<const XFBSource*>(xfb_sources[i]);
+
+		TargetRectangle drawRc;
+
+		TargetRectangle source_rc;
+		source_rc.left = xfb_source->sourceRc.left;
+		source_rc.top = xfb_source->sourceRc.top;
+		source_rc.right = xfb_source->sourceRc.right;
+		source_rc.bottom = xfb_source->sourceRc.bottom;
+
+		// use virtual xfb with offset
+		int xfb_height = xfb_source->srcHeight;
+		int xfb_width = xfb_source->srcWidth;
+
+		drawRc = target_rc;
+		source_rc.right -= fb_stride - fb_width;
+
+		TargetSize blit_size(xfb_source->texWidth, xfb_source->texHeight);
+		BlitScreen(drawRc, source_rc, blit_size, xfb_source->m_tex, xfb_source->m_depthtex, dst_size, dst_texture, 1.0);
+	}
+}
+
 
 void Renderer::ResetAPIState()
 {
@@ -1339,18 +1320,18 @@ void Renderer::BBoxWrite(int index, u16 value)
 	BBox::Set(index, local_value);
 }
 
-void Renderer::BlitScreen(TargetRectangle dst_rect, TargetRectangle src_rect, TargetSize src_size, D3DTexture2D* src_texture, D3DTexture2D* depth_texture, float Gamma)
+void Renderer::BlitScreen(TargetRectangle dst_rect, TargetRectangle src_rect, TargetSize src_size, D3DTexture2D* src_texture, D3DTexture2D* depth_texture,
+	const TargetSize& dst_size, D3DTexture2D* dst_texture, float Gamma)
 {
-	TargetSize dst_size(s_backbuffer_width, s_backbuffer_height);
 	if (g_ActiveConfig.iStereoMode == STEREO_SBS || g_ActiveConfig.iStereoMode == STEREO_TAB)
 	{
 		TargetRectangle leftRc, rightRc;
 		ConvertStereoRectangle(dst_rect, leftRc, rightRc);
 
-		m_post_processor->BlitScreen(leftRc, dst_size, reinterpret_cast<uintptr_t>(D3D::GetBackBuffer()),
+		m_post_processor->BlitScreen(leftRc, dst_size, reinterpret_cast<uintptr_t>(dst_texture),
 			src_rect, src_size, reinterpret_cast<uintptr_t>(src_texture), reinterpret_cast<uintptr_t>(depth_texture), 0, Gamma);
 
-		m_post_processor->BlitScreen(rightRc, dst_size, reinterpret_cast<uintptr_t>(D3D::GetBackBuffer()),
+		m_post_processor->BlitScreen(rightRc, dst_size, reinterpret_cast<uintptr_t>(dst_texture),
 			src_rect, src_size, reinterpret_cast<uintptr_t>(src_texture), reinterpret_cast<uintptr_t>(depth_texture), 1, Gamma);
 	}
 	else if (g_ActiveConfig.iStereoMode == STEREO_3DVISION)
@@ -1392,9 +1373,113 @@ void Renderer::BlitScreen(TargetRectangle dst_rect, TargetRectangle src_rect, Ta
 	}
 	else
 	{
-		m_post_processor->BlitScreen(dst_rect, dst_size, reinterpret_cast<uintptr_t>(D3D::GetBackBuffer()),
+		m_post_processor->BlitScreen(dst_rect, dst_size, reinterpret_cast<uintptr_t>(dst_texture),
 			src_rect, src_size, reinterpret_cast<uintptr_t>(src_texture), reinterpret_cast<uintptr_t>(depth_texture), 0, Gamma);
 	}
+}
+
+void Renderer::PrepareFrameDumpRenderTexture(u32 width, u32 height)
+{
+	if (width == m_frame_dump_render_texture_width 
+		&& height == m_frame_dump_render_texture_height)
+	{
+		return;
+	}
+	if (m_frame_dump_render_texture)
+	{
+		m_frame_dump_render_texture->Release();
+		m_frame_dump_render_texture = nullptr;
+	}
+	m_frame_dump_render_texture_width = width;
+	m_frame_dump_render_texture_height = height;
+	m_frame_dump_render_texture = D3DTexture2D::Create(width, height, TEXTURE_BIND_FLAG_SHADER_RESOURCE | TEXTURE_BIND_FLAG_RENDER_TARGET,
+		DXGI_FORMAT_R8G8B8A8_UNORM, 1, 1);
+}
+
+void Renderer::PrepareFrameDumpBuffer(u32 width, u32 height)
+{
+	const unsigned int screenshot_buffer_size =
+		Common::AlignUpSizePow2(width * 4, D3D12_TEXTURE_DATA_PITCH_ALIGNMENT) *
+		height;
+	if (screenshot_buffer_size < m_frame_dump_buffer_size)
+	{
+		return;
+	}
+	m_frame_dump_buffer_size = screenshot_buffer_size;
+	CheckHR(
+		D3D::device->CreateCommittedResource(
+			&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_READBACK),
+			D3D12_HEAP_FLAG_NONE,
+			&CD3DX12_RESOURCE_DESC::Buffer(m_frame_dump_buffer_size),
+			D3D12_RESOURCE_STATE_COPY_DEST,
+			nullptr,
+			IID_PPV_ARGS(&m_frame_dump_buffer)
+		)
+	);
+}
+
+void  Renderer::DumpFrame(const EFBRectangle& source_rc, u32 xfb_addr,
+	const XFBSourceBase* const* xfb_sources, u32 xfb_count, u32 fb_width,
+	u32 fb_stride, u32 fb_height, u64 ticks)
+{
+	D3D12_BOX source_box;
+	D3DTexture2D* src = nullptr;
+	u32 src_width;
+	u32 src_height;
+	if (g_ActiveConfig.bInternalResolutionFrameDumps)
+	{
+		TargetRectangle render_rc = CalculateFrameDumpDrawRectangle();
+		src_width = static_cast<u32>(render_rc.GetWidth());
+		src_height = static_cast<u32>(render_rc.GetHeight());
+		source_box = GetScreenshotSourceBox(render_rc, src_width, src_height);
+		PrepareFrameDumpRenderTexture(src_width, src_height);
+		src = m_frame_dump_render_texture;
+		TargetSize dst_size = { (int)src_width ,(int)src_height };
+		DrawFrame(render_rc, source_rc, xfb_addr, xfb_sources, xfb_count, m_frame_dump_render_texture, dst_size, fb_width, fb_stride, fb_height, 1.0);
+	}
+	else
+	{
+		src = D3D::GetBackBuffer();
+		src_width = GetTargetRectangle().GetWidth();
+		src_height = GetTargetRectangle().GetHeight();
+		source_box = GetScreenshotSourceBox(target_rc, src_width, src_height);
+	}
+	PrepareFrameDumpBuffer(src_width, src_height);
+
+	unsigned int box_width = source_box.right - source_box.left;
+	unsigned int box_height = source_box.bottom - source_box.top;
+
+	D3D12_TEXTURE_COPY_LOCATION dst_location = {};
+	dst_location.pResource = m_frame_dump_buffer;
+	dst_location.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
+	dst_location.PlacedFootprint.Offset = 0;
+	dst_location.PlacedFootprint.Footprint.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	dst_location.PlacedFootprint.Footprint.Width = src_width;
+	dst_location.PlacedFootprint.Footprint.Height = src_height;
+	dst_location.PlacedFootprint.Footprint.Depth = 1;
+	dst_location.PlacedFootprint.Footprint.RowPitch = Common::AlignUpSizePow2(dst_location.PlacedFootprint.Footprint.Width * 4, D3D12_TEXTURE_DATA_PITCH_ALIGNMENT);
+
+	D3D12_TEXTURE_COPY_LOCATION src_location = {};
+	src_location.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+	src_location.SubresourceIndex = 0;
+	src_location.pResource = src->GetTex();
+
+	src->TransitionToResourceState(D3D::current_command_list, D3D12_RESOURCE_STATE_COPY_SOURCE);
+	D3D::current_command_list->CopyTextureRegion(&dst_location, 0, 0, 0, &src_location, &source_box);
+
+	D3D::command_list_mgr->ExecuteQueuedWork(true);
+
+	void* screenshot_texture_map;
+	D3D12_RANGE read_range = { 0, dst_location.PlacedFootprint.Footprint.RowPitch * box_height };
+	CheckHR(m_frame_dump_buffer->Map(0, &read_range, &screenshot_texture_map));
+
+	AVIDump::Frame state = AVIDump::FetchState(ticks);
+	DumpFrameData(reinterpret_cast<const u8*>(screenshot_texture_map), box_width, box_height,
+		dst_location.PlacedFootprint.Footprint.RowPitch, state);
+	FinishFrameData();
+
+	D3D12_RANGE write_range = {};
+	m_frame_dump_buffer->Unmap(0, &write_range);
 }
 
 D3D12_BLEND_DESC Renderer::GetResetBlendDesc()

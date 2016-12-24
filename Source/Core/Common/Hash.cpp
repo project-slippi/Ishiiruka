@@ -327,12 +327,12 @@ u64 GetCRC32(const u8* src, u32 len, u32 samples)
 
 
 /*
- * NOTE: This hash function is used for custom texture loading/dumping, so
- * it should not be changed, which would require all custom textures to be
- * recalculated for their new hash values. If the hashing function is
- * changed, make sure this one is still used when the legacy parameter is
- * true.
- */
+* NOTE: This hash function is used for custom texture loading/dumping, so
+* it should not be changed, which would require all custom textures to be
+* recalculated for their new hash values. If the hashing function is
+* changed, make sure this one is still used when the legacy parameter is
+* true.
+*/
 u64 GetHashHiresTexture(const u8* src, u32 len, u32 samples)
 {
 	const u64 m = 0xc6a4a7935bd1e995;
@@ -526,10 +526,10 @@ u64 GetMurmurHash3(const u8* src, u32 len, u32 samples)
 }
 
 /*
- * FIXME: The old 32-bit version of this hash made different hashes than the
- * 64-bit version. Until someone can make a new version of the 32-bit one that
- * makes identical hashes, this is just a c/p of the 64-bit one.
- */
+* FIXME: The old 32-bit version of this hash made different hashes than the
+* 64-bit version. Until someone can make a new version of the 32-bit one that
+* makes identical hashes, this is just a c/p of the 64-bit one.
+*/
 u64 GetHashHiresTexture(const u8* src, u32 len, u32 samples)
 {
 	const u64 m = 0xc6a4a7935bd1e995ULL;

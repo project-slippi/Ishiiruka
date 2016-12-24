@@ -6,6 +6,7 @@
 // This kind of stuff would be a LOT nicer with OpenCL opr DirectCompute.
 #include "Math.h"
 
+#include "Common/Align.h"
 #include "Common/FileUtil.h"
 
 #include "Core/HW/Memmap.h"
@@ -381,7 +382,7 @@ void EncodeToRamFromTexture(u8* dest_ptr, u32 format, u32 native_width, u32 byte
 
 	// only copy on cache line boundaries
 	// extra pixels are copied but not displayed in the resulting texture
-	s32 expandedWidth = ROUND_UP(native_width, blkW);
+	s32 expandedWidth = static_cast<s32>(Common::AlignUpSizePow2(native_width, blkW));
 	s32 expandedHeight = num_blocks_y * blkH;
 
 	float sampleStride = bScaleByHalf ? 2.f : 1.f;

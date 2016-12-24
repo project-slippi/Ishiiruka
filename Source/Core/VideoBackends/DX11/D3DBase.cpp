@@ -289,7 +289,7 @@ HRESULT Create(HWND wnd)
 	swap_chain_desc.OutputWindow = wnd;
 	swap_chain_desc.SampleDesc.Count = 1;
 	swap_chain_desc.SampleDesc.Quality = 0;
-	swap_chain_desc.Windowed = !SConfig::GetInstance().bFullscreen || g_ActiveConfig.bBorderlessFullscreen;
+	swap_chain_desc.Windowed = !(SConfig::GetInstance().bFullscreen && g_ActiveConfig.backend_info.bSupportsExclusiveFullscreen) || g_ActiveConfig.bBorderlessFullscreen;
 
 	DXGI_OUTPUT_DESC out_desc;
 	memset(&out_desc, 0, sizeof(out_desc));
