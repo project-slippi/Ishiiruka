@@ -2,17 +2,17 @@
 // Licensed under GPLv2+
 // Refer to the license.txt file included.
 
-#include "Common/Thread.h"
-#include "Common/GL/GLInterfaceBase.h"
 #include "Common/GL/GLInterface/X11_Util.h"
+#include "Common/GL/GLInterfaceBase.h"
 #include "Common/Logging/Log.h"
+#include "Common/Thread.h"
 
-void cX11Window::Initialize(Display *_dpy)
+void cX11Window::Initialize(Display* _dpy)
 {
 	dpy = _dpy;
 }
 
-Window cX11Window::CreateXWindow(Window parent, XVisualInfo *vi)
+Window cX11Window::CreateXWindow(Window parent, XVisualInfo* vi)
 {
 	XSetWindowAttributes attr;
 
@@ -29,10 +29,8 @@ Window cX11Window::CreateXWindow(Window parent, XVisualInfo *vi)
 	}
 
 	// Create the window
-	win = XCreateWindow(dpy, parent,
-			    0, 0, attribs.width, attribs.height, 0,
-			    vi->depth, InputOutput, vi->visual,
-			    CWColormap, &attr);
+	win = XCreateWindow(dpy, parent, 0, 0, attribs.width, attribs.height, 0, vi->depth, InputOutput,
+		vi->visual, CWColormap, &attr);
 	XSelectInput(dpy, parent, StructureNotifyMask);
 	XMapWindow(dpy, win);
 	XSync(dpy, True);

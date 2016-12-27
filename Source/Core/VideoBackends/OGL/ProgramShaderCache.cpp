@@ -455,12 +455,12 @@ void ProgramShaderCache::Init()
 
 	s_buffer = StreamBuffer::Create(GL_UNIFORM_BUFFER, s_ubo_buffer_size * 2048);
 
-	pKey_t gameid = (pKey_t)GetMurmurHash3(reinterpret_cast<const u8*>(SConfig::GetInstance().m_strUniqueID.data()), (u32)SConfig::GetInstance().m_strUniqueID.size(), 0);
+	pKey_t gameid = (pKey_t)GetMurmurHash3(reinterpret_cast<const u8*>(SConfig::GetInstance().m_strGameID.data()), (u32)SConfig::GetInstance().m_strGameID.size(), 0);
 	pshaders = PCache::Create(
 		gameid,
 		PIXELSHADERGEN_UID_VERSION * VERTEXSHADERGEN_UID_VERSION * GEOMETRYSHADERGEN_UID_VERSION,
 		"Ishiiruka.ps.OGL",
-		StringFromFormat("%s.ps.OGL", SConfig::GetInstance().m_strUniqueID.c_str())
+		StringFromFormat("%s.ps.OGL", SConfig::GetInstance().m_strGameID.c_str())
 	);
 
 	// Read our shader cache, only if supported
@@ -479,7 +479,7 @@ void ProgramShaderCache::Init()
 				File::CreateDir(File::GetUserPath(D_SHADERCACHE_IDX));
 
 			std::string cache_filename = StringFromFormat("%sIOGL-%s-shaders.cache", File::GetUserPath(D_SHADERCACHE_IDX).c_str(),
-				SConfig::GetInstance().m_strUniqueID.c_str());
+				SConfig::GetInstance().m_strGameID.c_str());
 
 			ProgramShaderCacheInserter inserter;
 			g_program_disk_cache.OpenAndRead(cache_filename, inserter);

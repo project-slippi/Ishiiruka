@@ -9,7 +9,8 @@ EGLDisplay cInterfaceEGLAndroid::OpenDisplay()
 	return eglGetDisplay(EGL_DEFAULT_DISPLAY);
 }
 
-EGLNativeWindowType cInterfaceEGLAndroid::InitializePlatform(EGLNativeWindowType host_window, EGLConfig config)
+EGLNativeWindowType cInterfaceEGLAndroid::InitializePlatform(EGLNativeWindowType host_window,
+	EGLConfig config)
 {
 	EGLint format;
 	eglGetConfigAttrib(egl_dpy, config, EGL_NATIVE_VISUAL_ID, &format);
@@ -25,4 +26,3 @@ EGLNativeWindowType cInterfaceEGLAndroid::InitializePlatform(EGLNativeWindowType
 void cInterfaceEGLAndroid::ShutdownPlatform()
 {
 }
-

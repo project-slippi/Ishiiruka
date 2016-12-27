@@ -28,15 +28,11 @@
 #include "Core/Movie.h"
 #include "Core/NetPlayProto.h"
 
-DSPLLE::DSPLLE()
-	: m_hDSPThread(), m_csDSPThreadActive(), m_bWii(false), m_bDSPThread(false),
-	m_bIsRunning(false), m_cycle_count(0)
-{
-}
-
 static Common::Event dspEvent;
 static Common::Event ppcEvent;
 static bool requestDisableThread;
+
+DSPLLE::DSPLLE() = default;
 
 void DSPLLE::DoState(PointerWrap& p)
 {
@@ -68,9 +64,9 @@ void DSPLLE::DoState(PointerWrap& p)
 	p.DoArray(g_dsp.ifx_regs);
 	p.Do(g_dsp.mbox[0]);
 	p.Do(g_dsp.mbox[1]);
-	UnWriteProtectMemory(g_dsp.iram, DSP_IRAM_BYTE_SIZE, false);
+	Common::UnWriteProtectMemory(g_dsp.iram, DSP_IRAM_BYTE_SIZE, false);
 	p.DoArray(g_dsp.iram, DSP_IRAM_SIZE);
-	WriteProtectMemory(g_dsp.iram, DSP_IRAM_BYTE_SIZE, false);
+	Common::WriteProtectMemory(g_dsp.iram, DSP_IRAM_BYTE_SIZE, false);
 	if (p.GetMode() == PointerWrap::MODE_READ)
 		DSPHost::CodeLoaded((const u8*)g_dsp.iram, DSP_IRAM_BYTE_SIZE);
 	p.DoArray(g_dsp.dram, DSP_DRAM_SIZE);
@@ -155,7 +151,7 @@ static bool FillDSPInitOptions(DSPInitOptions* opts)
 	return true;
 }
 
-bool DSPLLE::Initialize(bool bWii, bool bDSPThread)
+bool DSPLLE::Initialize(bool wii, bool dsp_thread)
 {
 	requestDisableThread = false;
 
@@ -167,10 +163,10 @@ bool DSPLLE::Initialize(bool bWii, bool bDSPThread)
 
 	// needs to be after DSPCore_Init for the dspjit ptr
 	if (Core::g_want_determinism || !g_dsp_jit)
-		bDSPThread = false;
+		dsp_thread = false;
 
-	m_bWii = bWii;
-	m_bDSPThread = bDSPThread;
+	m_wii = wii;
+	m_bDSPThread = dsp_thread;
 
 	// DSPLLE directly accesses the fastmem arena.
 	// TODO: The fastmem arena is only supposed to be used by the JIT:
@@ -180,7 +176,7 @@ bool DSPLLE::Initialize(bool bWii, bool bDSPThread)
 
 	InitInstructionTable();
 
-	if (bDSPThread)
+	if (dsp_thread)
 	{
 		m_bIsRunning.Set(true);
 		m_hDSPThread = std::thread(DSPThread, this);
@@ -289,22 +285,22 @@ void DSPLLE::DSP_Update(int cycles)
 		return;
 	// Sound stream update job has been handled by AudioDMA routine, which is more efficient
 	/*
-		// This gets called VERY OFTEN. The soundstream update might be expensive so only do it 200
-		times per second or something.
-		int cycles_between_ss_update;
+	// This gets called VERY OFTEN. The soundstream update might be expensive so only do it 200
+	times per second or something.
+	int cycles_between_ss_update;
 
-		if (g_dspInitialize.bWii)
-			cycles_between_ss_update = 121500000 / 200;
-		else
-			cycles_between_ss_update = 81000000 / 200;
+	if (g_dspInitialize.bWii)
+	cycles_between_ss_update = 121500000 / 200;
+	else
+	cycles_between_ss_update = 81000000 / 200;
 
-		m_cycle_count += cycles;
-		if (m_cycle_count > cycles_between_ss_update)
-		{
-			while (m_cycle_count > cycles_between_ss_update)
-				m_cycle_count -= cycles_between_ss_update;
-			soundStream->Update();
-		}
+	m_cycle_count += cycles;
+	if (m_cycle_count > cycles_between_ss_update)
+	{
+	while (m_cycle_count > cycles_between_ss_update)
+	m_cycle_count -= cycles_between_ss_update;
+	soundStream->Update();
+	}
 	*/
 	if (m_bDSPThread)
 	{

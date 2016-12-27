@@ -468,7 +468,7 @@ inline void GenerateVertexShader(ShaderCode& out, const vertex_shader_uid_data& 
 			// own clipping. We want to clip so that -w <= z <= 0, which matches the console -1..0 range.
 			// We adjust our depth value for clipping purposes to match the perspective projection in the
 			// software backend, which is a hack to fix Sonic Adventure and Unleashed games.
-			out.Write("float clipDepth = o.pos.z * (1.0 - 1e-7);\n");
+			out.Write("float clipDepth = o.pos.z * 0.9999999;\n"); // (1.0 - 1e-7)
 			out.Write("o.clipDist.x = clipDepth + o.pos.w;\n");  // Near: z < -w
 			out.Write("o.clipDist.y = -clipDepth;\n");           // Far: z > 0
 		}

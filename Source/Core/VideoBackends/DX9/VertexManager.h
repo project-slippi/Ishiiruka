@@ -59,8 +59,8 @@ private:
 	LPDIRECT3DVERTEXBUFFER9 *m_vertex_buffers;
 	LPDIRECT3DINDEXBUFFER9 *m_index_buffers;
 
-	std::vector<u8, aligned_allocator<u8, 256>> LocalVBuffer;
-	std::vector<u16, aligned_allocator<u16, 256>> LocalIBuffer;
+	std::vector<u8, Common::aligned_allocator<u8, 256>> LocalVBuffer;
+	std::vector<u16, Common::aligned_allocator<u16, 256>> LocalIBuffer;
 };
 
 }

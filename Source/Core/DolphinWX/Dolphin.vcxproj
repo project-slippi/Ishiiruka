@@ -55,13 +55,16 @@
     <ResourceCompile>
       <AdditionalIncludeDirectories>$(ExternalsDir)wxWidgets3\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ResourceCompile>
+    <ClCompile />
+    <ClCompile />
     <Manifest>
       <EnableDpiAwareness>true</EnableDpiAwareness>
     </Manifest>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="AboutDolphin.cpp" />
-    <ClCompile Include="ARCodeAddEdit.cpp" />
+    <ClCompile Include="Cheats\ActionReplayCodesPanel.cpp" />
+    <ClCompile Include="Cheats\ARCodeAddEdit.cpp" />
     <ClCompile Include="Cheats\CheatSearchTab.cpp" />
     <ClCompile Include="Cheats\CheatsWindow.cpp" />
     <ClCompile Include="Cheats\CreateCodeDialog.cpp" />
@@ -93,8 +96,25 @@
     <ClCompile Include="Debugger\RegisterWindow.cpp" />
     <ClCompile Include="Debugger\WatchView.cpp" />
     <ClCompile Include="Debugger\WatchWindow.cpp" />
+    <ClCompile Include="DolphinSlider.cpp" />
+    <ClCompile Include="Input\ClassicInputConfigDiag.cpp" />
+    <ClCompile Include="Input\DrumsInputConfigDiag.cpp" />
+    <ClCompile Include="Input\GCKeyboardInputConfigDiag.cpp" />
+    <ClCompile Include="Input\GCPadInputConfigDiag.cpp" />
+    <ClCompile Include="Input\GuitarInputConfigDiag.cpp" />
+    <ClCompile Include="Input\HotkeyInputConfigDiag.cpp" />
+    <ClCompile Include="Input\InputConfigDiag.cpp" />
+    <ClCompile Include="Input\InputConfigDiagBitmaps.cpp" />
+    <ClCompile Include="Input\MicButtonConfigDiag.cpp" />
+    <ClCompile Include="Input\NunchukInputConfigDiag.cpp" />
+    <ClCompile Include="Input\TurntableInputConfigDiag.cpp" />
+    <ClCompile Include="Input\WiimoteInputConfigDiag.cpp" />
+    <ClCompile Include="ISOProperties\FileSystemPanel.cpp" />
+    <ClCompile Include="ISOProperties\InfoPanel.cpp" />
+    <ClCompile Include="ISOProperties\ISOProperties.cpp" />
     <ClCompile Include="NetPlay\ChangeGameDialog.cpp" />
     <ClCompile Include="NetPlay\MD5Dialog.cpp" />
+    <ClCompile Include="NetPlay\NetPlayLauncher.cpp" />
     <ClCompile Include="NetPlay\NetPlaySetupFrame.cpp" />
     <ClCompile Include="NetPlay\NetWindow.cpp" />
     <ClCompile Include="FifoPlayerDlg.cpp" />
@@ -102,16 +122,15 @@
     <ClCompile Include="FrameAui.cpp" />
     <ClCompile Include="FrameTools.cpp" />
     <ClCompile Include="GameListCtrl.cpp" />
-    <ClCompile Include="InputConfigDiag.cpp" />
-    <ClCompile Include="InputConfigDiagBitmaps.cpp" />
     <ClCompile Include="ISOFile.cpp" />
-    <ClCompile Include="ISOProperties.cpp" />
     <ClCompile Include="LogConfigWindow.cpp" />
     <ClCompile Include="LogWindow.cpp" />
     <ClCompile Include="Main.cpp" />
+    <ClCompile Include="MainMenuBar.cpp" />
     <ClCompile Include="MainNoGUI.cpp">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="MainToolBar.cpp" />
     <ClCompile Include="MemcardManager.cpp" />
     <ClCompile Include="NetPlay\PadMapDialog.cpp" />
     <ClCompile Include="PatchAddEdit.cpp" />
@@ -120,10 +139,13 @@
     <ClCompile Include="VideoConfigDiag.cpp" />
     <ClCompile Include="PostProcessingConfigDiag.cpp" />
     <ClCompile Include="ControllerConfigDiag.cpp" />
+    <ClCompile Include="WxEventUtils.cpp" />
     <ClCompile Include="WXInputBase.cpp" />
     <ClCompile Include="WxUtils.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Cheats\ActionReplayCodesPanel.h" />
+    <ClInclude Include="Cheats\ARCodeAddEdit.h" />
     <ClInclude Include="Config\AdvancedConfigPane.h" />
     <ClInclude Include="Config\AudioConfigPane.h" />
     <ClInclude Include="Config\GameCubeConfigPane.h" />
@@ -132,13 +154,28 @@
     <ClInclude Include="Config\InterfaceConfigPane.h" />
     <ClInclude Include="Config\PathConfigPane.h" />
     <ClInclude Include="Config\WiiConfigPane.h" />
+    <ClInclude Include="DolphinSlider.h" />
+    <ClInclude Include="Input\ClassicInputConfigDiag.h" />
+    <ClInclude Include="Input\DrumsInputConfigDiag.h" />
+    <ClInclude Include="Input\GCKeyboardInputConfigDiag.h" />
+    <ClInclude Include="Input\GCPadInputConfigDiag.h" />
+    <ClInclude Include="Input\GuitarInputConfigDiag.h" />
+    <ClInclude Include="Input\HotkeyInputConfigDiag.h" />
+    <ClInclude Include="Input\InputConfigDiag.h" />
+    <ClInclude Include="Input\MicButtonConfigDiag.h" />
+    <ClInclude Include="Input\NunchukInputConfigDiag.h" />
+    <ClInclude Include="Input\TurntableInputConfigDiag.h" />
+    <ClInclude Include="Input\WiimoteInputConfigDiag.h" />
+    <ClInclude Include="ISOProperties\FileSystemPanel.h" />
+    <ClInclude Include="ISOProperties\InfoPanel.h" />
+    <ClInclude Include="ISOProperties\ISOProperties.h" />
     <ClInclude Include="NetPlay\ChangeGameDialog.h" />
     <ClInclude Include="NetPlay\MD5Dialog.h" />
+    <ClInclude Include="NetPlay\NetPlayLauncher.h" />
     <ClInclude Include="NetPlay\NetPlaySetupFrame.h" />
     <ClInclude Include="NetPlay\PadMapDialog.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="AboutDolphin.h" />
-    <ClInclude Include="ARCodeAddEdit.h" />
     <ClInclude Include="Cheats\CheatSearchTab.h" />
     <ClInclude Include="Cheats\CheatsWindow.h" />
     <ClInclude Include="Cheats\CreateCodeDialog.h" />
@@ -166,12 +203,12 @@
     <ClInclude Include="Frame.h" />
     <ClInclude Include="GameListCtrl.h" />
     <ClInclude Include="Globals.h" />
-    <ClInclude Include="InputConfigDiag.h" />
     <ClInclude Include="ISOFile.h" />
-    <ClInclude Include="ISOProperties.h" />
     <ClInclude Include="LogConfigWindow.h" />
     <ClInclude Include="LogWindow.h" />
     <ClInclude Include="Main.h" />
+    <ClInclude Include="MainMenuBar.h" />
+    <ClInclude Include="MainToolBar.h" />
     <ClInclude Include="MemcardManager.h" />
     <ClInclude Include="PatchAddEdit.h" />
     <ClInclude Include="SoftwareVideoConfigDialog.h" />
@@ -179,6 +216,7 @@
     <ClInclude Include="VideoConfigDiag.h" />
     <ClInclude Include="PostProcessingConfigDiag.h" />
     <ClInclude Include="ControllerConfigDiag.h" />
+    <ClInclude Include="WxEventUtils.h" />
     <ClInclude Include="WXInputBase.h" />
     <ClInclude Include="WxUtils.h" />
   </ItemGroup>
@@ -237,6 +275,9 @@
     <ProjectReference Include="$(CoreDir)InputCommon\InputCommon.vcxproj">
       <Project>{B39AC394-5DB5-4DA9-9D98-09D46CA3701F}</Project>
     </ProjectReference>
+    <ProjectReference Include="$(CoreDir)VideoBackends\Vulkan\Vulkan.vcxproj">
+      <Project>{29F29A19-F141-45AD-9679-5A2923B49DA3}</Project>
+    </ProjectReference>
     <ProjectReference Include="$(CoreDir)VideoCommon\VideoCommon.vcxproj">
       <Project>{3E5C4E02-1BA9-4776-BDBE-E3F91FFA34CF}</Project>
     </ProjectReference>
@@ -249,9 +290,6 @@
     <ProjectReference Include="..\VideoBackends\Software\Software.vcxproj">
       <Project>{9e9da440-e9ad-413c-b648-91030e792211}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\VideoBackends\Vulkan\Vulkan.vcxproj">
-      <Project>{29f29a19-f141-45ad-9679-5a2923b49da3}</Project>
-    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
@@ -262,7 +300,7 @@
     <DataTxtFiles Include="$(DolphinRootDir)Data\license.txt" />
     <ExternalDlls Include="$(ExternalsDir)OpenAL\$(PlatformName)\*.dll" />
     <BinaryFiles Include="$(TargetPath)" />
-    <AllInputFiles Include="@(DataDirFiles);@(ExternalDlls);@(BinaryFiles)" />
+    <AllInputFiles Include="@(DataSysFiles);@(DataTxtFiles);@(ExternalDlls);@(BinaryFiles)" />
   </ItemGroup>
   <Target Name="AfterBuild" Inputs="@(AllInputFiles)" Outputs="@(AllInputFiles -> '$(BinaryOutputDir)%(RecursiveDir)%(Filename)%(Extension)')">
     <Message Text="Copying Data directory..." Importance="High" />

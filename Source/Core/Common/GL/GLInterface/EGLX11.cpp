@@ -12,7 +12,8 @@ EGLDisplay cInterfaceEGLX11::OpenDisplay()
 	return eglGetDisplay(dpy);
 }
 
-EGLNativeWindowType cInterfaceEGLX11::InitializePlatform(EGLNativeWindowType host_window, EGLConfig config)
+EGLNativeWindowType cInterfaceEGLX11::InitializePlatform(EGLNativeWindowType host_window,
+	EGLConfig config)
 {
 	EGLint vid;
 	eglGetConfigAttrib(egl_dpy, config, EGL_NATIVE_VISUAL_ID, &vid);
@@ -20,7 +21,7 @@ EGLNativeWindowType cInterfaceEGLX11::InitializePlatform(EGLNativeWindowType hos
 	XVisualInfo visTemplate;
 	visTemplate.visualid = vid;
 
-	XVisualInfo *vi;
+	XVisualInfo* vi;
 	int nVisuals;
 	vi = XGetVisualInfo(dpy, VisualIDMask, &visTemplate, &nVisuals);
 
@@ -31,10 +32,10 @@ EGLNativeWindowType cInterfaceEGLX11::InitializePlatform(EGLNativeWindowType hos
 		return 0;
 	}
 
-	s_backbuffer_width  = attribs.width;
+	s_backbuffer_width = attribs.width;
 	s_backbuffer_height = attribs.height;
 
-	return (EGLNativeWindowType) XWindow.CreateXWindow((Window) host_window, vi);
+	return (EGLNativeWindowType)XWindow.CreateXWindow((Window)host_window, vi);
 }
 
 void cInterfaceEGLX11::ShutdownPlatform()
@@ -42,4 +43,3 @@ void cInterfaceEGLX11::ShutdownPlatform()
 	XWindow.DestroyXWindow();
 	XCloseDisplay(dpy);
 }
-

@@ -120,8 +120,7 @@ void Jit64::lXXx(UGeckoInstruction inst)
 	// ... maybe the throttle one already do that :p
 	// TODO: We shouldn't use a debug read here.  It should be possible to get
 	// the following instructions out of the JIT state.
-	if (SConfig::GetInstance().bSkipIdle &&
-		CPU::GetState() != CPU::CPU_STEPPING &&
+	if (CPU::GetState() != CPU::CPU_STEPPING &&
 		inst.OPCD == 32 &&
 		MergeAllowedNextInstructions(2) &&
 		(inst.hex & 0xFFFF0000) == 0x800D0000 &&
@@ -343,23 +342,6 @@ void Jit64::dcbx(UGeckoInstruction inst)
 	c = J(true);
 	SwitchToNearCode();
 	SetJumpTarget(c);
-
-	// dcbi
-	if (inst.SUBOP10 == 470)
-	{
-		// Flush DSP DMA if DMAState bit is set
-		TEST(16, M(&DSP::g_dspState), Imm16(1 << 9));
-		c = J_CC(CC_NZ, true);
-		SwitchToFarCode();
-		SetJumpTarget(c);
-		ABI_PushRegistersAndAdjustStack(registersInUse, 0);
-		SHL(32, R(addr), Imm8(5));
-		ABI_CallFunctionR((void*)DSP::FlushInstantDMA, addr);
-		ABI_PopRegistersAndAdjustStack(registersInUse, 0);
-		c = J(true);
-		SwitchToNearCode();
-		SetJumpTarget(c);
-	}
 
 	gpr.UnlockAllX();
 }

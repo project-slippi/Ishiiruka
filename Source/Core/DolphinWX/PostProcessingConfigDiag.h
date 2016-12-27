@@ -9,7 +9,7 @@
 #include <vector>
 
 #include <wx/dialog.h>
-#include <wx/slider.h>
+#include "DolphinSlider.h"
 #include <wx/textctrl.h>
 
 #include "VideoCommon/PostProcessing.h"
@@ -128,7 +128,7 @@ private:
 
 		// For TYPE_SLIDER
 		// Can have up to 4
-		std::vector<wxSlider*> m_option_sliders;
+		std::vector<DolphinSlider*> m_option_sliders;
 		std::vector<wxTextCtrl*> m_option_text_ctrls;
 
 		std::vector<ConfigGrouping*> m_children;

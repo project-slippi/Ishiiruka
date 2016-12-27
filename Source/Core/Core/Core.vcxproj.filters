@@ -384,9 +384,6 @@
     <ClCompile Include="HW\EXI_DeviceAGP.cpp">
       <Filter>HW %28Flipper/Hollywood%29\EXI - Expansion Interface</Filter>
     </ClCompile>
-    <ClCompile Include="HW\EXI_DeviceAMBaseboard.cpp">
-      <Filter>HW %28Flipper/Hollywood%29\EXI - Expansion Interface</Filter>
-    </ClCompile>
     <ClCompile Include="HW\EXI_DeviceEthernet.cpp">
       <Filter>HW %28Flipper/Hollywood%29\EXI - Expansion Interface</Filter>
     </ClCompile>
@@ -436,9 +433,6 @@
       <Filter>HW %28Flipper/Hollywood%29\SI - Serial Interface</Filter>
     </ClCompile>
     <ClCompile Include="HW\SI_Device.cpp">
-      <Filter>HW %28Flipper/Hollywood%29\SI - Serial Interface</Filter>
-    </ClCompile>
-    <ClCompile Include="HW\SI_DeviceAMBaseboard.cpp">
       <Filter>HW %28Flipper/Hollywood%29\SI - Serial Interface</Filter>
     </ClCompile>
     <ClCompile Include="HW\SI_DeviceDanceMat.cpp">
@@ -591,10 +585,22 @@
     <ClCompile Include="IPC_HLE\WII_IPC_HLE_Device_sdio_slot0.cpp">
       <Filter>IPC HLE %28IOS/Starlet%29\SDIO - SD Card</Filter>
     </ClCompile>
+    <ClCompile Include="IPC_HLE\WII_IPC_HLE_Device_stm.cpp">
+      <Filter>IPC HLE %28IOS/Starlet%29</Filter>
+    </ClCompile>
     <ClCompile Include="IPC_HLE\WII_IPC_HLE_Device_hid.cpp">
       <Filter>IPC HLE %28IOS/Starlet%29\USB</Filter>
     </ClCompile>
-    <ClCompile Include="IPC_HLE\WII_IPC_HLE_Device_usb.cpp">
+    <ClCompile Include="IPC_HLE\WII_IPC_HLE_Device_usb_bt_base.cpp">
+      <Filter>IPC HLE %28IOS/Starlet%29\USB/BT/Wiimote</Filter>
+    </ClCompile>
+    <ClCompile Include="IPC_HLE\WII_IPC_HLE_Device_usb_bt_emu.cpp">
+      <Filter>IPC HLE %28IOS/Starlet%29\USB/BT/Wiimote</Filter>
+    </ClCompile>
+    <ClCompile Include="IPC_HLE\WII_IPC_HLE_Device_usb_bt_real.cpp">
+      <Filter>IPC HLE %28IOS/Starlet%29\USB/BT/Wiimote</Filter>
+    </ClCompile>
+    <ClCompile Include="IPC_HLE\WII_IPC_HLE_Device_usb_bt_stub.cpp">
       <Filter>IPC HLE %28IOS/Starlet%29\USB/BT/Wiimote</Filter>
     </ClCompile>
     <ClCompile Include="IPC_HLE\WII_IPC_HLE_WiiMote.cpp">
@@ -714,9 +720,6 @@
     <ClCompile Include="PowerPC\JitILCommon\IR.cpp">
       <Filter>PowerPC\JitILCommon</Filter>
     </ClCompile>
-    <ClCompile Include="IPC_HLE\WII_IPC_HLE_WiiSpeak.cpp">
-      <Filter>IPC HLE %28IOS/Starlet%29</Filter>
-    </ClCompile>
     <ClCompile Include="HW\GCKeyboardEmu.cpp">
       <Filter>HW %28Flipper/Hollywood%29\GCKeyboard</Filter>
     </ClCompile>
@@ -733,6 +736,21 @@
       <Filter>PowerPC\Jit64Common</Filter>
     </ClCompile>
     <ClCompile Include="Analytics.cpp" />
+    <ClCompile Include="IPC_HLE\WII_IPC_HLE_Device_usb_ven.cpp">
+      <Filter>IPC HLE %28IOS/Starlet%29\USB</Filter>
+    </ClCompile>
+    <ClCompile Include="IPC_HLE\WiiNetConfig.cpp">
+      <Filter>IPC HLE %28IOS/Starlet%29\Net</Filter>
+    </ClCompile>
+    <ClCompile Include="IPC_HLE\NWC24Config.cpp">
+      <Filter>IPC HLE %28IOS/Starlet%29\Net</Filter>
+    </ClCompile>
+    <ClCompile Include="IPC_HLE\WII_IPC_HLE_Device.cpp">
+      <Filter>IPC HLE %28IOS/Starlet%29</Filter>
+    </ClCompile>
+    <ClCompile Include="IPC_HLE\WII_IPC_HLE_Device_stub.cpp">
+      <Filter>IPC HLE %28IOS/Starlet%29</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="BootManager.h" />
@@ -932,9 +950,6 @@
     <ClInclude Include="HW\EXI_DeviceAGP.h">
       <Filter>HW %28Flipper/Hollywood%29\EXI - Expansion Interface</Filter>
     </ClInclude>
-    <ClInclude Include="HW\EXI_DeviceAMBaseboard.h">
-      <Filter>HW %28Flipper/Hollywood%29\EXI - Expansion Interface</Filter>
-    </ClInclude>
     <ClInclude Include="HW\EXI_DeviceEthernet.h">
       <Filter>HW %28Flipper/Hollywood%29\EXI - Expansion Interface</Filter>
     </ClInclude>
@@ -984,9 +999,6 @@
       <Filter>HW %28Flipper/Hollywood%29\SI - Serial Interface</Filter>
     </ClInclude>
     <ClInclude Include="HW\SI_Device.h">
-      <Filter>HW %28Flipper/Hollywood%29\SI - Serial Interface</Filter>
-    </ClInclude>
-    <ClInclude Include="HW\SI_DeviceAMBaseboard.h">
       <Filter>HW %28Flipper/Hollywood%29\SI - Serial Interface</Filter>
     </ClInclude>
     <ClInclude Include="HW\SI_DeviceDanceMat.h">
@@ -1157,7 +1169,16 @@
     <ClInclude Include="IPC_HLE\WII_IPC_HLE_Device_hid.h">
       <Filter>IPC HLE %28IOS/Starlet%29\USB</Filter>
     </ClInclude>
-    <ClInclude Include="IPC_HLE\WII_IPC_HLE_Device_usb.h">
+    <ClInclude Include="IPC_HLE\WII_IPC_HLE_Device_usb_bt_base.h">
+      <Filter>IPC HLE %28IOS/Starlet%29\USB/BT/Wiimote</Filter>
+    </ClInclude>
+    <ClInclude Include="IPC_HLE\WII_IPC_HLE_Device_usb_bt_emu.h">
+      <Filter>IPC HLE %28IOS/Starlet%29\USB/BT/Wiimote</Filter>
+    </ClInclude>
+    <ClInclude Include="IPC_HLE\WII_IPC_HLE_Device_usb_bt_real.h">
+      <Filter>IPC HLE %28IOS/Starlet%29\USB/BT/Wiimote</Filter>
+    </ClInclude>
+    <ClInclude Include="IPC_HLE\WII_IPC_HLE_Device_usb_bt_stub.h">
       <Filter>IPC HLE %28IOS/Starlet%29\USB/BT/Wiimote</Filter>
     </ClInclude>
     <ClInclude Include="IPC_HLE\WII_IPC_HLE_WiiMote.h">
@@ -1252,6 +1273,18 @@
       <Filter>PowerPC\Jit64Common</Filter>
     </ClInclude>
     <ClInclude Include="Analytics.h" />
+    <ClInclude Include="IPC_HLE\WII_IPC_HLE_Device_usb_ven.h">
+      <Filter>IPC HLE %28IOS/Starlet%29\USB</Filter>
+    </ClInclude>
+    <ClInclude Include="IPC_HLE\WiiNetConfig.h">
+      <Filter>IPC HLE %28IOS/Starlet%29\Net</Filter>
+    </ClInclude>
+    <ClInclude Include="IPC_HLE\NWC24Config.h">
+      <Filter>IPC HLE %28IOS/Starlet%29\Net</Filter>
+    </ClInclude>
+    <ClInclude Include="IPC_HLE\WII_IPC_HLE_Device_stub.h">
+      <Filter>IPC HLE %28IOS/Starlet%29</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Text Include="CMakeLists.txt" />

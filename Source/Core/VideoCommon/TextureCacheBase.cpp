@@ -56,15 +56,15 @@ void TextureCacheBase::CheckTempSize(size_t required_size)
 		return;
 
 	temp_size = required_size;
-	FreeAlignedMemory(temp);
-	temp = static_cast<u8*>(AllocateAlignedMemory(temp_size, 16));
+	Common::FreeAlignedMemory(temp);
+	temp = static_cast<u8*>(Common::AllocateAlignedMemory(temp_size, 16));
 }
 
 TextureCacheBase::TextureCacheBase()
 {
 	temp_size = 2048 * 2048 * 4;
 	if (!TextureCacheBase::temp)
-		TextureCacheBase::temp = static_cast<u8*>(AllocateAlignedMemory(temp_size, 16));
+		TextureCacheBase::temp = static_cast<u8*>(Common::AllocateAlignedMemory(temp_size, 16));
 
 	TexDecoder_SetTexFmtOverlayOptions(g_ActiveConfig.bTexFmtOverlayEnable, g_ActiveConfig.bTexFmtOverlayCenter);
 
@@ -101,7 +101,7 @@ TextureCacheBase::~TextureCacheBase()
 	texture_pool_memory_usage = 0;
 	if (TextureCacheBase::temp)
 	{
-		FreeAlignedMemory(TextureCacheBase::temp);
+		Common::FreeAlignedMemory(TextureCacheBase::temp);
 		TextureCacheBase::temp = nullptr;
 	}
 }
@@ -441,7 +441,7 @@ TextureCacheBase::TCacheEntryBase* TextureCacheBase::DoPartialTextureUpdates(Tex
 void TextureCacheBase::DumpTexture(TCacheEntryBase* entry, std::string basename, u32 level)
 {
 	std::string szDir = File::GetUserPath(D_DUMPTEXTURES_IDX) +
-		SConfig::GetInstance().m_strUniqueID;
+		SConfig::GetInstance().m_strGameID;
 
 	// make sure that the directory exists
 	if (!File::Exists(szDir) || !File::IsDirectory(szDir))

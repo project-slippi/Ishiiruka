@@ -188,7 +188,7 @@ void Init()
 	MarkAllDirty();
 	for (VertexLoaderBase*& vertexLoader : g_main_cp_state.vertex_loaders)
 		vertexLoader = nullptr;
-	last_game_code = SConfig::GetInstance().m_strUniqueID;
+	last_game_code = SConfig::GetInstance().m_strGameID;
 }
 
 void Shutdown()

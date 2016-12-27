@@ -8,11 +8,15 @@
 #include <string>
 #include <vector>
 
+#include "InputCommon/ControllerInterface/ControllerInterface.h"
+
 namespace ciface
 {
 namespace evdev
 {
 void Init();
+void PopulateDevices();
+void Shutdown();
 
 class evdevDevice : public Core::Device
 {
@@ -62,6 +66,7 @@ private:
 
 public:
   void UpdateInput() override;
+  bool IsValid() const override;
 
   evdevDevice(const std::string& devnode);
   ~evdevDevice();

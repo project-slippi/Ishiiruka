@@ -6,48 +6,54 @@
 // File description
 // -------------
 /*  Here we handle /dev/es requests. We have cases for these functions, the exact
-	DevKitPro/libogc name is in parenthesis:
+DevKitPro/libogc name is in parenthesis:
 
-	0x20 GetTitleID (ES_GetTitleID) (Input: none, Output: 8 bytes)
-	0x1d GetDataDir (ES_GetDataDir) (Input: 8 bytes, Output: 30 bytes)
+0x20 GetTitleID (ES_GetTitleID) (Input: none, Output: 8 bytes)
+0x1d GetDataDir (ES_GetDataDir) (Input: 8 bytes, Output: 30 bytes)
 
-	0x1b DiGetTicketView (Input: none, Output: 216 bytes)
-	0x16 GetConsumption (Input: 8 bytes, Output: 0 bytes, 4 bytes) // there are two output buffers
+0x1b DiGetTicketView (Input: none, Output: 216 bytes)
+0x16 GetConsumption (Input: 8 bytes, Output: 0 bytes, 4 bytes) // there are two output buffers
 
-	0x12 GetNumTicketViews (ES_GetNumTicketViews) (Input: 8 bytes, Output: 4 bytes)
-	0x14 GetTMDViewSize (ES_GetTMDViewSize) (Input: ?, Output: ?) // I don't get this anymore,
-		it used to come after 0x12
+0x12 GetNumTicketViews (ES_GetNumTicketViews) (Input: 8 bytes, Output: 4 bytes)
+0x14 GetTMDViewSize (ES_GetTMDViewSize) (Input: ?, Output: ?) // I don't get this anymore,
+it used to come after 0x12
 
-	but only the first two are correctly supported. For the other four we ignore any potential
-	input and only write zero to the out buffer. However, most games only use first two,
-	but some Nintendo developed games use the other ones to:
+but only the first two are correctly supported. For the other four we ignore any potential
+input and only write zero to the out buffer. However, most games only use first two,
+but some Nintendo developed games use the other ones to:
 
-	0x1b: Mario Galaxy, Mario Kart, SSBB
-	0x16: Mario Galaxy, Mario Kart, SSBB
-	0x12: Mario Kart
-	0x14: Mario Kart: But only if we don't return a zeroed out buffer for the 0x12 question,
-		and instead answer for example 1 will this question appear.
+0x1b: Mario Galaxy, Mario Kart, SSBB
+0x16: Mario Galaxy, Mario Kart, SSBB
+0x12: Mario Kart
+0x14: Mario Kart: But only if we don't return a zeroed out buffer for the 0x12 question,
+and instead answer for example 1 will this question appear.
 
 */
 // =============
 
-// need to include this before mbedtls/aes.h,
-// otherwise we may not get __STDC_FORMAT_MACROS
 #include <cinttypes>
-#include <mbedtls/aes.h>
+#include <cstdio>
+#include <cstring>
 #include <memory>
+#include <utility>
 #include <vector>
 
+#include <mbedtls/aes.h>
+
+#include "Common/Assert.h"
 #include "Common/ChunkFile.h"
-#include "Common/CommonPaths.h"
+#include "Common/CommonFuncs.h"
 #include "Common/FileUtil.h"
+#include "Common/Logging/Log.h"
+#include "Common/MsgHandler.h"
 #include "Common/NandPaths.h"
-#include "Common/StringUtil.h"
 #include "Core/Boot/Boot_DOL.h"
 #include "Core/ConfigManager.h"
 #include "Core/HW/DVDInterface.h"
+#include "Core/HW/Memmap.h"
+#include "Core/HW/Wiimote.h"
 #include "Core/IPC_HLE/WII_IPC_HLE_Device_es.h"
-#include "Core/IPC_HLE/WII_IPC_HLE_Device_usb.h"
+#include "Core/IPC_HLE/WII_IPC_HLE_Device_usb_bt_emu.h"
 #include "Core/IPC_HLE/WII_IPC_HLE_WiiMote.h"
 #include "Core/Movie.h"
 #include "Core/PowerPC/PowerPC.h"
@@ -61,32 +67,32 @@
 
 std::string CWII_IPC_HLE_Device_es::m_ContentFile;
 
-CWII_IPC_HLE_Device_es::CWII_IPC_HLE_Device_es(u32 _DeviceID, const std::string& _rDeviceName)
-	: IWII_IPC_HLE_Device(_DeviceID, _rDeviceName), m_TitleID(-1), m_AccessIdentID(0x6000000)
+CWII_IPC_HLE_Device_es::CWII_IPC_HLE_Device_es(u32 device_id, const std::string& device_name)
+	: IWII_IPC_HLE_Device(device_id, device_name)
 {
 }
 
 static u8 key_sd[0x10] = { 0xab, 0x01, 0xb9, 0xd8, 0xe1, 0x62, 0x2b, 0x08,
-													0xaf, 0xba, 0xd8, 0x4d, 0xbf, 0xc2, 0xa5, 0x5d };
+0xaf, 0xba, 0xd8, 0x4d, 0xbf, 0xc2, 0xa5, 0x5d };
 static u8 key_ecc[0x1e] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-													 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-													 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01 };
+0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01 };
 static u8 key_empty[0x10] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-														 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
+0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
 
 // default key table
 u8* CWII_IPC_HLE_Device_es::keyTable[11] = {
-		key_ecc,    // ECC Private Key
-		key_empty,  // Console ID
-		key_empty,  // NAND AES Key
-		key_empty,  // NAND HMAC
-		key_empty,  // Common Key
-		key_empty,  // PRNG seed
-		key_sd,     // SD Key
-		key_empty,  // Unknown
-		key_empty,  // Unknown
-		key_empty,  // Unknown
-		key_empty,  // Unknown
+	key_ecc,    // ECC Private Key
+	key_empty,  // Console ID
+	key_empty,  // NAND AES Key
+	key_empty,  // NAND HMAC
+	key_empty,  // Common Key
+	key_empty,  // PRNG seed
+	key_sd,     // SD Key
+	key_empty,  // Unknown
+	key_empty,  // Unknown
+	key_empty,  // Unknown
+	key_empty,  // Unknown
 };
 
 CWII_IPC_HLE_Device_es::~CWII_IPC_HLE_Device_es()
@@ -326,7 +332,7 @@ IPCCommandResult CWII_IPC_HLE_Device_es::IOCtlV(u32 _CommandAddress)
 		else
 		{
 			Memory::Write_U32((u32)rNANDContent.GetContentSize(), _CommandAddress + 0x4);
-			INFO_LOG(WII_IPC_ES, "IOCTL_ES_GETTITLECONTENTS: Unable to open content %zu",
+			ERROR_LOG(WII_IPC_ES, "IOCTL_ES_GETTITLECONTENTS: Unable to open content %zu",
 				rNANDContent.GetContentSize());
 		}
 
@@ -412,9 +418,9 @@ IPCCommandResult CWII_IPC_HLE_Device_es::IOCtlV(u32 _CommandAddress)
 			}
 		}
 
-		INFO_LOG(WII_IPC_ES,
-			"IOCTL_ES_READCONTENT: CFD %x, Address 0x%x, Size %i -> stream pos %i (Index %i)", CFD,
-			Addr, Size, rContent.m_Position, rContent.m_Index);
+		DEBUG_LOG(WII_IPC_ES,
+			"IOCTL_ES_READCONTENT: CFD %x, Address 0x%x, Size %i -> stream pos %i (Index %i)",
+			CFD, Addr, Size, rContent.m_Position, rContent.m_Index);
 
 		Memory::Write_U32(Size, _CommandAddress + 0x4);
 		return GetDefaultReply();
@@ -484,8 +490,8 @@ IPCCommandResult CWII_IPC_HLE_Device_es::IOCtlV(u32 _CommandAddress)
 			break;
 		}
 
-		INFO_LOG(WII_IPC_ES, "IOCTL_ES_SEEKCONTENT: CFD %x, Address 0x%x, Mode %i -> Pos %i", CFD, Addr,
-			Mode, rContent.m_Position);
+		DEBUG_LOG(WII_IPC_ES, "IOCTL_ES_SEEKCONTENT: CFD %x, Address 0x%x, Mode %i -> Pos %i", CFD,
+			Addr, Mode, rContent.m_Position);
 
 		Memory::Write_U32(rContent.m_Position, _CommandAddress + 0x4);
 		return GetDefaultReply();
@@ -779,7 +785,7 @@ IPCCommandResult CWII_IPC_HLE_Device_es::IOCtlV(u32 _CommandAddress)
 	case IOCTL_ES_GETCONSUMPTION:  // This is at least what crediar's ES module does
 		Memory::Write_U32(0, Buffer.PayloadBuffer[1].m_Address);
 		Memory::Write_U32(0, _CommandAddress + 0x4);
-		WARN_LOG(WII_IPC_ES, "IOCTL_ES_GETCONSUMPTION:%d", Memory::Read_U32(_CommandAddress + 4));
+		INFO_LOG(WII_IPC_ES, "IOCTL_ES_GETCONSUMPTION:%d", Memory::Read_U32(_CommandAddress + 4));
 		return GetDefaultReply();
 
 	case IOCTL_ES_DELETETICKET:
@@ -931,6 +937,7 @@ IPCCommandResult CWII_IPC_HLE_Device_es::IOCtlV(u32 _CommandAddress)
 	{
 		_dbg_assert_(WII_IPC_ES, Buffer.NumberInBuffer == 2);
 		bool bSuccess = false;
+		bool bReset = false;
 		u16 IOSv = 0xffff;
 
 		u64 TitleID = Memory::Read_U64(Buffer.InBuffer[0].m_Address);
@@ -962,8 +969,14 @@ IPCCommandResult CWII_IPC_HLE_Device_es::IOCtlV(u32 _CommandAddress)
 					if (pDolLoader->IsValid())
 					{
 						pDolLoader->Load();  // TODO: Check why sysmenu does not load the DOL correctly
-						PC = pDolLoader->GetEntryPoint();
+											 // NAND titles start with address translation off at 0x3400 (via the PPC bootstub)
+											 //
+											 // The state of other CPU registers (like the BAT registers) doesn't matter much
+											 // because the realmode code at 0x3400 initializes everything itself anyway.
+						MSR = 0;
+						PC = 0x3400;
 						bSuccess = true;
+						bReset = true;
 					}
 					else
 					{
@@ -993,28 +1006,33 @@ IPCCommandResult CWII_IPC_HLE_Device_es::IOCtlV(u32 _CommandAddress)
 		}
 		else
 		{
-			CWII_IPC_HLE_Device_usb_oh1_57e_305* s_Usb = GetUsbPointer();
-			size_t size = s_Usb->m_WiiMotes.size();
-			bool* wiiMoteConnected = new bool[size];
-			for (unsigned int i = 0; i < size; i++)
-				wiiMoteConnected[i] = s_Usb->m_WiiMotes[i].IsConnected();
-
-			WII_IPC_HLE_Interface::Reset(true);
-			WII_IPC_HLE_Interface::Init();
-			s_Usb = GetUsbPointer();
-			for (unsigned int i = 0; i < s_Usb->m_WiiMotes.size(); i++)
+			bool* wiiMoteConnected = new bool[MAX_BBMOTES];
+			if (!SConfig::GetInstance().m_bt_passthrough_enabled)
 			{
-				if (wiiMoteConnected[i])
-				{
-					s_Usb->m_WiiMotes[i].Activate(false);
-					s_Usb->m_WiiMotes[i].Activate(true);
-				}
-				else
-				{
-					s_Usb->m_WiiMotes[i].Activate(false);
-				}
+				CWII_IPC_HLE_Device_usb_oh1_57e_305_emu* s_Usb = GetUsbPointer();
+				for (unsigned int i = 0; i < MAX_BBMOTES; i++)
+					wiiMoteConnected[i] = s_Usb->m_WiiMotes[i].IsConnected();
 			}
 
+			WII_IPC_HLE_Interface::Reset(true);
+			WII_IPC_HLE_Interface::Reinit();
+
+			if (!SConfig::GetInstance().m_bt_passthrough_enabled)
+			{
+				CWII_IPC_HLE_Device_usb_oh1_57e_305_emu* s_Usb = GetUsbPointer();
+				for (unsigned int i = 0; i < MAX_BBMOTES; i++)
+				{
+					if (wiiMoteConnected[i])
+					{
+						s_Usb->m_WiiMotes[i].Activate(false);
+						s_Usb->m_WiiMotes[i].Activate(true);
+					}
+					else
+					{
+						s_Usb->m_WiiMotes[i].Activate(false);
+					}
+				}
+			}
 			delete[] wiiMoteConnected;
 			WII_IPC_HLE_Interface::SetDefaultContentFile(tContentFile);
 		}
@@ -1029,7 +1047,12 @@ IPCCommandResult CWII_IPC_HLE_Device_es::IOCtlV(u32 _CommandAddress)
 		Memory::Write_U32(Memory::Read_U32(0x00003140), 0x00003188);
 
 		// TODO: provide correct return code when bSuccess= false
-		Memory::Write_U32(0, _CommandAddress + 0x4);
+		// Note: If we just reset the PPC, don't write anything to the command buffer. This
+		// could clobber the DOL we just loaded.
+		if (!bReset)
+		{
+			Memory::Write_U32(0, _CommandAddress + 0x4);
+		}
 
 		ERROR_LOG(WII_IPC_ES,
 			"IOCTL_ES_LAUNCH %016" PRIx64 " %08x %016" PRIx64 " %08x %016" PRIx64 " %04x",
@@ -1039,10 +1062,13 @@ IPCCommandResult CWII_IPC_HLE_Device_es::IOCtlV(u32 _CommandAddress)
 
 		// This is necessary because Reset(true) above deleted this object.  Ew.
 
-		// The original hardware overwrites the command type with the async reply type.
-		Memory::Write_U32(IPC_REP_ASYNC, _CommandAddress);
-		// IOS also seems to write back the command that was responded to in the FD field.
-		Memory::Write_U32(IPC_CMD_IOCTLV, _CommandAddress + 8);
+		if (!bReset)
+		{
+			// The original hardware overwrites the command type with the async reply type.
+			Memory::Write_U32(IPC_REP_ASYNC, _CommandAddress);
+			// IOS also seems to write back the command that was responded to in the FD field.
+			Memory::Write_U32(IPC_CMD_IOCTLV, _CommandAddress + 8);
+		}
 
 		// Generate a "reply" to the IPC command.  ES_LAUNCH is unique because it
 		// involves restarting IOS; IOS generates two acknowledgements in a row.
@@ -1053,16 +1079,16 @@ IPCCommandResult CWII_IPC_HLE_Device_es::IOCtlV(u32 _CommandAddress)
 
 	case IOCTL_ES_CHECKKOREAREGION:  // note by DacoTaco : name is unknown, i just tried to name it
 																	 // SOMETHING
-		// IOS70 has this to let system menu 4.2 check if the console is region changed. it returns
-		// -1017
-		// if the IOS didn't find the Korean keys and 0 if it does. 0 leads to a error 003
-		WARN_LOG(WII_IPC_ES, "IOCTL_ES_CHECKKOREAREGION: Title checked for Korean keys.");
+																	 // IOS70 has this to let system menu 4.2 check if the console is region changed. it returns
+																	 // -1017
+																	 // if the IOS didn't find the Korean keys and 0 if it does. 0 leads to a error 003
+		INFO_LOG(WII_IPC_ES, "IOCTL_ES_CHECKKOREAREGION: Title checked for Korean keys.");
 		Memory::Write_U32(ES_PARAMTER_SIZE_OR_ALIGNMENT, _CommandAddress + 0x4);
 		return GetDefaultReply();
 
 	case IOCTL_ES_GETDEVICECERT:  // (Input: none, Output: 384 bytes)
 	{
-		WARN_LOG(WII_IPC_ES, "IOCTL_ES_GETDEVICECERT");
+		INFO_LOG(WII_IPC_ES, "IOCTL_ES_GETDEVICECERT");
 		_dbg_assert_(WII_IPC_ES, Buffer.NumberPayloadBuffer == 1);
 		u8* destination = Memory::GetPointer(Buffer.PayloadBuffer[0].m_Address);
 
@@ -1073,7 +1099,7 @@ IPCCommandResult CWII_IPC_HLE_Device_es::IOCtlV(u32 _CommandAddress)
 
 	case IOCTL_ES_SIGN:
 	{
-		WARN_LOG(WII_IPC_ES, "IOCTL_ES_SIGN");
+		INFO_LOG(WII_IPC_ES, "IOCTL_ES_SIGN");
 		u8* ap_cert_out = Memory::GetPointer(Buffer.PayloadBuffer[1].m_Address);
 		u8* data = Memory::GetPointer(Buffer.InBuffer[0].m_Address);
 		u32 data_size = Buffer.InBuffer[0].m_Size;
@@ -1087,7 +1113,7 @@ IPCCommandResult CWII_IPC_HLE_Device_es::IOCtlV(u32 _CommandAddress)
 
 	case IOCTL_ES_GETBOOT2VERSION:
 	{
-		WARN_LOG(WII_IPC_ES, "IOCTL_ES_GETBOOT2VERSION");
+		INFO_LOG(WII_IPC_ES, "IOCTL_ES_GETBOOT2VERSION");
 
 		Memory::Write_U32(
 			4, Buffer.PayloadBuffer[0].m_Address);  // as of 26/02/2012, this was latest bootmii version
@@ -1102,12 +1128,12 @@ IPCCommandResult CWII_IPC_HLE_Device_es::IOCtlV(u32 _CommandAddress)
 		break;
 
 	case IOCTL_ES_GETOWNEDTITLECNT:
-		WARN_LOG(WII_IPC_ES, "IOCTL_ES_GETOWNEDTITLECNT");
+		INFO_LOG(WII_IPC_ES, "IOCTL_ES_GETOWNEDTITLECNT");
 		Memory::Write_U32(0, Buffer.PayloadBuffer[0].m_Address);
 		break;
 
 	default:
-		WARN_LOG(WII_IPC_ES, "CWII_IPC_HLE_Device_es: 0x%x", Buffer.Parameter);
+		INFO_LOG(WII_IPC_ES, "CWII_IPC_HLE_Device_es: 0x%x", Buffer.Parameter);
 		DumpCommands(_CommandAddress, 8, LogTypes::WII_IPC_ES);
 		INFO_LOG(WII_IPC_ES, "command.Parameter: 0x%08x", Buffer.Parameter);
 		break;
@@ -1147,15 +1173,15 @@ u32 CWII_IPC_HLE_Device_es::ES_DIVerify(const std::vector<u8>& tmd)
 	File::CreateFullPath(tmd_path);
 	File::CreateFullPath(Common::GetTitleDataPath(tmd_title_id, Common::FROM_SESSION_ROOT));
 
-	Movie::g_titleID = tmd_title_id;
+	Movie::SetTitleId(tmd_title_id);
 	std::string save_path = Common::GetTitleDataPath(tmd_title_id, Common::FROM_SESSION_ROOT);
 	if (Movie::IsRecordingInput())
 	{
 		// TODO: Check for the actual save data
 		if (File::Exists(save_path + "banner.bin"))
-			Movie::g_bClearSave = false;
+			Movie::SetClearSave(false);
 		else
-			Movie::g_bClearSave = true;
+			Movie::SetClearSave(true);
 	}
 
 	// TODO: Force the game to save to another location, instead of moving the user's save.

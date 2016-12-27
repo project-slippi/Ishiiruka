@@ -100,7 +100,7 @@ HiresTexture::HiresTexture() :
 void HiresTexture::Init()
 {
 	size_sum.store(0);
-	size_t sys_mem = MemPhysical();
+	size_t sys_mem = Common::MemPhysical();
 	size_t recommended_min_mem = 2 * size_t(1024 * 1024 * 1024);
 	// keep 2GB memory for system stability if system RAM is 4GB+ - use half of memory in other cases
 	max_mem = (sys_mem / 2 < recommended_min_mem) ? (sys_mem / 2) : (sys_mem - recommended_min_mem);
@@ -156,7 +156,7 @@ void HiresTexture::Update()
 	}
 
 	s_textureMap.clear();
-	const std::string& game_id = SConfig::GetInstance().m_strUniqueID;
+	const std::string& game_id = SConfig::GetInstance().m_strGameID;
 	const std::string texture_directory = GetTextureDirectory(game_id);
 
 	std::string ddscode(".dds");
@@ -337,7 +337,7 @@ std::string HiresTexture::GenBaseName(
 		u64 tlut_hash = 0;
 		if (tlut_size)
 			tlut_hash = GetHashHiresTexture(tlut, (int)tlut_size, g_ActiveConfig.iSafeTextureCache_ColorSamples);
-		name = StringFromFormat("%s_%08x_%i", SConfig::GetInstance().m_strUniqueID.c_str(), (u32)(tex_hash ^ tlut_hash), (u16)format);
+		name = StringFromFormat("%s_%08x_%i", SConfig::GetInstance().m_strGameID.c_str(), (u32)(tex_hash ^ tlut_hash), (u16)format);
 		convert_iter = s_textureMap.find(name);
 		if (convert_iter != s_textureMap.end())
 		{

@@ -22,9 +22,6 @@
 #endif
 #if defined(HAVE_X11) && HAVE_X11
 #define CIFACE_USE_XLIB
-#if defined(HAVE_X11_XINPUT2) && HAVE_X11_XINPUT2
-#define CIFACE_USE_X11_XINPUT2
-#endif
 #endif
 #if defined(__APPLE__)
 #define CIFACE_USE_OSX
@@ -119,15 +116,20 @@ public:
 
 	ControllerInterface() : m_is_init(false), m_hwnd(nullptr) {}
 	void Initialize(void* const hwnd);
-	void Reinitialize();
+	void RefreshDevices();
 	void Shutdown();
 	void AddDevice(std::shared_ptr<ciface::Core::Device> device);
+	void RemoveDevice(std::function<bool(const ciface::Core::Device*)> callback);
 	bool IsInit() const { return m_is_init; }
 	void UpdateReference(ControlReference* control,
 		const ciface::Core::DeviceQualifier& default_device) const;
 	void UpdateInput();
 
+	void RegisterHotplugCallback(std::function<void(void)> callback);
+	void InvokeHotplugCallbacks() const;
+
 private:
+	std::vector<std::function<void()>> m_hotplug_callbacks;
 	bool m_is_init;
 	void* m_hwnd;
 };

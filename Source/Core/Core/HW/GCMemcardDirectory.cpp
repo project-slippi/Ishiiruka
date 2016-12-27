@@ -205,17 +205,15 @@ void GCMemcardDirectory::FlushThread()
 		// no-op until signalled
 		m_flush_trigger.Wait();
 
-		if (m_exiting)
+		if (m_exiting.TestAndClear())
 		{
-			m_exiting = false;
 			return;
 		}
 		// no-op as long as signalled within flush_interval
 		while (m_flush_trigger.WaitFor(flush_interval))
 		{
-			if (m_exiting)
+			if (m_exiting.TestAndClear())
 			{
-				m_exiting = false;
 				return;
 			}
 		}
@@ -226,7 +224,7 @@ void GCMemcardDirectory::FlushThread()
 
 GCMemcardDirectory::~GCMemcardDirectory()
 {
-	m_exiting = true;
+	m_exiting.Set();
 	m_flush_trigger.Set();
 	m_flush_thread.join();
 

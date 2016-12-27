@@ -7,6 +7,7 @@
 #include <queue>
 #include <utility>
 #include <vector>
+#include <wx/aui/framemanager.h>
 #include <wx/button.h>
 #include <wx/checkbox.h>
 #include <wx/choice.h>
@@ -17,31 +18,27 @@
 #include <wx/textctrl.h>
 #include <wx/timer.h>
 #include <wx/validate.h>
-#include <wx/aui/framemanager.h>
 
 #include "Common/CommonTypes.h"
 #include "Common/FileUtil.h"
 #include "Common/IniFile.h"
 #include "Common/Logging/ConsoleListener.h"
 #include "Common/Logging/LogManager.h"
+#include "DolphinWX/Debugger/DebuggerUIUtil.h"
 #include "DolphinWX/Frame.h"
 #include "DolphinWX/LogWindow.h"
 #include "DolphinWX/WxUtils.h"
-#include "DolphinWX/Debugger/DebuggerUIUtil.h"
 
 // Milliseconds between msgQueue flushes to wxTextCtrl
-#define UPDATETIME 200
+constexpr int UPDATE_TIME_MS = 200;
 // Max size of msgQueue, old messages will be discarded when there are too many.
-#define MSGQUEUE_MAX_SIZE 100
+constexpr size_t MSGQUEUE_MAX_SIZE = 100;
 
-CLogWindow::CLogWindow(CFrame *parent, wxWindowID id, const wxPoint& pos,
-	const wxSize& size, long style, const wxString& name)
-	: wxPanel(parent, id, pos, size, style, name)
-	, x(0), y(0), winpos(0)
-	, Parent(parent), m_LogAccess(true)
-	, m_Log(nullptr), m_cmdline(nullptr), m_FontChoice(nullptr)
+CLogWindow::CLogWindow(CFrame* parent, wxWindowID id, const wxPoint& pos, const wxSize& size,
+	long style, const wxString& name)
+	: wxPanel(parent, id, pos, size, style, name), x(0), y(0), winpos(0), Parent(parent),
+	m_LogAccess(true), m_Log(nullptr), m_cmdline(nullptr), m_FontChoice(nullptr)
 {
-	Bind(wxEVT_CLOSE_WINDOW, &CLogWindow::OnClose, this);
 	Bind(wxEVT_TIMER, &CLogWindow::OnLogTimer, this);
 
 	m_LogManager = LogManager::GetInstance();
@@ -50,7 +47,7 @@ CLogWindow::CLogWindow(CFrame *parent, wxWindowID id, const wxPoint& pos,
 	CreateGUIControls();
 
 	m_LogTimer.SetOwner(this);
-	m_LogTimer.Start(UPDATETIME);
+	m_LogTimer.Start(UPDATE_TIME_MS);
 }
 
 void CLogWindow::CreateGUIControls()
@@ -96,6 +93,7 @@ void CLogWindow::CreateGUIControls()
 
 		m_LogManager->SetLogLevel((LogTypes::LOG_TYPE)i, (LogTypes::LOG_LEVELS)(verbosity));
 	}
+	m_has_listeners = true;
 
 	// Font
 	m_FontChoice = new wxChoice(this, wxID_ANY);
@@ -130,14 +128,17 @@ void CLogWindow::CreateGUIControls()
 		wxTE_PROCESS_ENTER | wxTE_PROCESS_TAB);
 
 	// Clear log button
-	m_clear_log_btn = new wxButton(this, wxID_ANY, _("Clear"), wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT);
+	m_clear_log_btn =
+		new wxButton(this, wxID_ANY, _("Clear"), wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT);
 	m_clear_log_btn->Bind(wxEVT_BUTTON, &CLogWindow::OnClear, this);
+
+	const int space3 = FromDIP(3);
 
 	// Sizers
 	wxBoxSizer* sTop = new wxBoxSizer(wxHORIZONTAL);
-	sTop->Add(m_clear_log_btn);
-	sTop->Add(m_FontChoice, 0, wxALIGN_CENTER_VERTICAL | wxLEFT | wxRIGHT, 3);
-	sTop->Add(m_WrapLine, 0, wxALIGN_CENTER_VERTICAL);
+	sTop->Add(m_clear_log_btn, 0, wxALIGN_CENTER_VERTICAL);
+	sTop->Add(m_FontChoice, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, space3);
+	sTop->Add(m_WrapLine, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, space3);
 
 	sBottom = new wxBoxSizer(wxVERTICAL);
 	PopulateBottom();
@@ -152,16 +153,20 @@ void CLogWindow::CreateGUIControls()
 
 CLogWindow::~CLogWindow()
 {
-	for (int i = 0; i < LogTypes::NUMBER_OF_LOGS; ++i)
-	{
-		m_LogManager->RemoveListener((LogTypes::LOG_TYPE)i, LogListener::LOG_WINDOW_LISTENER);
-	}
+	RemoveAllListeners();
 }
 
-void CLogWindow::OnClose(wxCloseEvent& event)
+void CLogWindow::RemoveAllListeners()
 {
-	SaveSettings();
-	event.Skip();
+	if (!m_has_listeners)
+		return;
+	m_has_listeners = false;
+
+	for (int i = 0; i < LogTypes::NUMBER_OF_LOGS; ++i)
+	{
+		m_LogManager->RemoveListener(static_cast<LogTypes::LOG_TYPE>(i),
+			LogListener::LOG_WINDOW_LISTENER);
+	}
 }
 
 void CLogWindow::SaveSettings()
@@ -210,14 +215,17 @@ void CLogWindow::PopulateBottom()
 
 wxTextCtrl* CLogWindow::CreateTextCtrl(wxPanel* parent, wxWindowID id, long Style)
 {
-	wxTextCtrl* TC = new wxTextCtrl(parent, id, wxEmptyString, wxDefaultPosition, wxDefaultSize, Style);
+	wxTextCtrl* TC =
+		new wxTextCtrl(parent, id, wxEmptyString, wxDefaultPosition, wxDefaultSize, Style);
 #ifdef __APPLE__
 	TC->SetBackgroundColour(*wxLIGHT_GREY);
 #else
 	TC->SetBackgroundColour(*wxBLACK);
 #endif
-	if (m_FontChoice && m_FontChoice->GetSelection() < (int)LogFont.size() && m_FontChoice->GetSelection() >= 0)
-		TC->SetDefaultStyle(wxTextAttr(wxNullColour, wxNullColour, LogFont[m_FontChoice->GetSelection()]));
+	if (m_FontChoice && m_FontChoice->GetSelection() < (int)LogFont.size() &&
+		m_FontChoice->GetSelection() >= 0)
+		TC->SetDefaultStyle(
+			wxTextAttr(wxNullColour, wxNullColour, LogFont[m_FontChoice->GetSelection()]));
 
 	return TC;
 }
@@ -249,9 +257,11 @@ void CLogWindow::OnWrapLineCheck(wxCommandEvent& event)
 	Text = m_Log->GetValue();
 	m_Log->Destroy();
 	if (event.IsChecked())
-		m_Log = CreateTextCtrl(this, wxID_ANY, wxTE_RICH | wxTE_MULTILINE | wxTE_READONLY | wxTE_WORDWRAP);
+		m_Log =
+		CreateTextCtrl(this, wxID_ANY, wxTE_RICH | wxTE_MULTILINE | wxTE_READONLY | wxTE_WORDWRAP);
 	else
-		m_Log = CreateTextCtrl(this, wxID_ANY, wxTE_RICH | wxTE_MULTILINE | wxTE_READONLY | wxTE_DONTWRAP);
+		m_Log =
+		CreateTextCtrl(this, wxID_ANY, wxTE_RICH | wxTE_MULTILINE | wxTE_READONLY | wxTE_DONTWRAP);
 	m_Log->SetDefaultStyle(wxTextAttr(*wxWHITE));
 	m_Log->AppendText(Text);
 	PopulateBottom();
@@ -286,7 +296,7 @@ void CLogWindow::UpdateLog()
 	// the GUI will lock up, which could be an issue if new messages are flooding in faster than
 	// this function can render them to the screen.
 	// So we limit this function to processing MSGQUEUE_MAX_SIZE messages each time it's called.
-	for (int num = 0; num < MSGQUEUE_MAX_SIZE; num++)
+	for (size_t num = 0; num < MSGQUEUE_MAX_SIZE; num++)
 	{
 		u8 log_level;
 		wxString log_msg;
@@ -342,12 +352,12 @@ void CLogWindow::UpdateLog()
 	m_LogTimer.Start();
 }
 
-void CLogWindow::Log(LogTypes::LOG_LEVELS level, const char *text)
+void CLogWindow::Log(LogTypes::LOG_LEVELS level, const char* text)
 {
 	std::lock_guard<std::mutex> lk(m_LogSection);
 
 	if (msgQueue.size() >= MSGQUEUE_MAX_SIZE)
 		msgQueue.pop();
 
-	msgQueue.push(std::make_pair(u8(level), StrToWxStr(text)));
+	msgQueue.emplace(static_cast<u8>(level), StrToWxStr(text));
 }

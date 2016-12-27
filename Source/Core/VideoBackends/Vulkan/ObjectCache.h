@@ -154,6 +154,7 @@ public:
 	VkShaderModule GetPassthroughGeometryShader() const { return m_passthrough_geometry_shader; }
 	// Gets the filename of the specified type of cache object (e.g. vertex shader, pipeline).
 	std::string GetDiskCacheFileName(const char* type);
+	std::string GetDiskUIDCacheFileName();
 	class vkShaderItem
 	{
 	public:

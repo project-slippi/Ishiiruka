@@ -46,7 +46,7 @@ GLuint OpenGL_CompileProgram(const std::string& vertexShader, const std::string&
 	}
 	else
 	{
-		DEBUG_LOG(VIDEO, "GLSL vertex shader compiled:\n%s", vertexShader.c_str());
+		INFO_LOG(VIDEO, "GLSL vertex shader compiled:\n%s", vertexShader.c_str());
 	}
 
 	bool shader_errors = !Result;
@@ -70,7 +70,7 @@ GLuint OpenGL_CompileProgram(const std::string& vertexShader, const std::string&
 	}
 	else
 	{
-		DEBUG_LOG(VIDEO, "GLSL fragment shader compiled:\n%s", fragmentShader.c_str());
+		INFO_LOG(VIDEO, "GLSL fragment shader compiled:\n%s", fragmentShader.c_str());
 	}
 
 	shader_errors |= !Result;
@@ -86,11 +86,13 @@ GLuint OpenGL_CompileProgram(const std::string& vertexShader, const std::string&
 
 	if (Result && stringBufferUsage)
 	{
-		ERROR_LOG(VIDEO, "GLSL linker warnings:\n%s%s%s", stringBuffer, vertexShader.c_str(), fragmentShader.c_str());
+		ERROR_LOG(VIDEO, "GLSL linker warnings:\n%s%s%s", stringBuffer, vertexShader.c_str(),
+			fragmentShader.c_str());
 	}
 	else if (!Result && !shader_errors)
 	{
-		ERROR_LOG(VIDEO, "GLSL linker error:\n%s%s%s", stringBuffer, vertexShader.c_str(), fragmentShader.c_str());
+		ERROR_LOG(VIDEO, "GLSL linker error:\n%s%s%s", stringBuffer, vertexShader.c_str(),
+			fragmentShader.c_str());
 	}
 #endif
 
@@ -104,13 +106,16 @@ GLuint OpenGL_CompileProgram(const std::string& vertexShader, const std::string&
 void OpenGL_CreateAttributelessVAO()
 {
 	glGenVertexArrays(1, &attributelessVAO);
-	_dbg_assert_msg_(VIDEO, attributelessVAO != 0, "Attributeless VAO should have been created successfully.")
+	_dbg_assert_msg_(VIDEO, attributelessVAO != 0,
+		"Attributeless VAO should have been created successfully.")
 
 		// In a compatibility context, we require a valid, bound array buffer.
 		glGenBuffers(1, &attributelessVBO);
-	_dbg_assert_msg_(VIDEO, attributelessVBO != 0, "Attributeless VBO should have been created successfully.")
+	_dbg_assert_msg_(VIDEO, attributelessVBO != 0,
+		"Attributeless VBO should have been created successfully.")
 
-		// Initialize the buffer with nothing.  16 floats is an arbitrary size that may work around driver issues.
+		// Initialize the buffer with nothing.  16 floats is an arbitrary size that may work around
+		// driver issues.
 		glBindBuffer(GL_ARRAY_BUFFER, attributelessVBO);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * 16, nullptr, GL_STATIC_DRAW);
 
@@ -122,19 +127,20 @@ void OpenGL_CreateAttributelessVAO()
 
 void OpenGL_BindAttributelessVAO()
 {
-	_dbg_assert_msg_(VIDEO, attributelessVAO != 0, "Attributeless VAO should have already been created.")
+	_dbg_assert_msg_(VIDEO, attributelessVAO != 0,
+		"Attributeless VAO should have already been created.")
 		glBindVertexArray(attributelessVAO);
 }
 
 void OpenGL_DeleteAttributelessVAO()
 {
-	_dbg_assert_msg_(VIDEO, attributelessVAO != 0, "Attributeless VAO should have already been created.")
-		if (attributelessVAO != 0)
-		{
-			glDeleteVertexArrays(1, &attributelessVAO);
-			glDeleteBuffers(1, &attributelessVBO);
+	_dbg_assert_msg_(VIDEO, attributelessVAO != 0,
+		"Attributeless VAO should have already been created.") if (attributelessVAO != 0)
+	{
+		glDeleteVertexArrays(1, &attributelessVAO);
+		glDeleteBuffers(1, &attributelessVBO);
 
-			attributelessVAO = 0;
-			attributelessVBO = 0;
-		}
+		attributelessVAO = 0;
+		attributelessVBO = 0;
+	}
 }

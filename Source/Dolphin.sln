@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 2013
-VisualStudioVersion = 12.0.40629.0
+# Visual Studio 14
+VisualStudioVersion = 14.0.25420.1
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Dolphin", "Core\DolphinWX\Dolphin.vcxproj", "{1B099EF8-6F87-47A2-A3E7-898A24584F49}"
 	ProjectSection(ProjectDependencies) = postProject
@@ -147,9 +147,9 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SOIL", "..\Externals\SOIL\S
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Software", "Core\VideoBackends\Software\Software.vcxproj", "{9E9DA440-E9AD-413C-B648-91030E792211}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Vulkan", "Core\VideoBackends\Vulkan\Vulkan.vcxproj", "{29F29A19-F141-45AD-9679-5A2923B49DA3}"
-EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "glslang", "..\Externals\glslang\glslang.vcxproj", "{D178061B-84D3-44F9-BEED-EFD18D9033F0}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Vulkan", "Core\VideoBackends\Vulkan\Vulkan.vcxproj", "{29F29A19-F141-45AD-9679-5A2923B49DA3}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -293,14 +293,14 @@ Global
 		{9E9DA440-E9AD-413C-B648-91030E792211}.Debug|x64.Build.0 = Debug|x64
 		{9E9DA440-E9AD-413C-B648-91030E792211}.Release|x64.ActiveCfg = Release|x64
 		{9E9DA440-E9AD-413C-B648-91030E792211}.Release|x64.Build.0 = Release|x64
-		{29F29A19-F141-45AD-9679-5A2923B49DA3}.Debug|x64.ActiveCfg = Debug|x64
-		{29F29A19-F141-45AD-9679-5A2923B49DA3}.Debug|x64.Build.0 = Debug|x64
-		{29F29A19-F141-45AD-9679-5A2923B49DA3}.Release|x64.ActiveCfg = Release|x64
-		{29F29A19-F141-45AD-9679-5A2923B49DA3}.Release|x64.Build.0 = Release|x64
 		{D178061B-84D3-44F9-BEED-EFD18D9033F0}.Debug|x64.ActiveCfg = Debug|x64
 		{D178061B-84D3-44F9-BEED-EFD18D9033F0}.Debug|x64.Build.0 = Debug|x64
 		{D178061B-84D3-44F9-BEED-EFD18D9033F0}.Release|x64.ActiveCfg = Release|x64
 		{D178061B-84D3-44F9-BEED-EFD18D9033F0}.Release|x64.Build.0 = Release|x64
+		{29F29A19-F141-45AD-9679-5A2923B49DA3}.Debug|x64.ActiveCfg = Debug|x64
+		{29F29A19-F141-45AD-9679-5A2923B49DA3}.Debug|x64.Build.0 = Debug|x64
+		{29F29A19-F141-45AD-9679-5A2923B49DA3}.Release|x64.ActiveCfg = Release|x64
+		{29F29A19-F141-45AD-9679-5A2923B49DA3}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -336,7 +336,7 @@ Global
 		{570215B7-E32F-4438-95AE-C8D955F9FCA3} = {3ECEBBE7-1A0B-4056-99F4-0C0848DA8494}
 		{B441CC62-877E-4B3F-93E0-0DE80544F705} = {39DB5AF5-003D-412B-8FF1-FB195541DB7A}
 		{9E9DA440-E9AD-413C-B648-91030E792211} = {3ECEBBE7-1A0B-4056-99F4-0C0848DA8494}
-		{29F29A19-F141-45AD-9679-5A2923B49DA3} = {3ECEBBE7-1A0B-4056-99F4-0C0848DA8494}
 		{D178061B-84D3-44F9-BEED-EFD18D9033F0} = {39DB5AF5-003D-412B-8FF1-FB195541DB7A}
+		{29F29A19-F141-45AD-9679-5A2923B49DA3} = {3ECEBBE7-1A0B-4056-99F4-0C0848DA8494}
 	EndGlobalSection
 EndGlobal

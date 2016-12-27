@@ -34,8 +34,8 @@ protected:
 private:
 	void vFlush(bool use_dst_alpha) override;
 
-	std::vector<u8, aligned_allocator<u8, 256>> m_cpu_vertex_buffer;
-	std::vector<u16, aligned_allocator<u16, 256>> m_cpu_index_buffer;
+	std::vector<u8, Common::aligned_allocator<u8, 256>> m_cpu_vertex_buffer;
+	std::vector<u16, Common::aligned_allocator<u16, 256>> m_cpu_index_buffer;
 
 	std::unique_ptr<StreamBuffer> m_vertex_stream_buffer;
 	std::unique_ptr<StreamBuffer> m_index_stream_buffer;

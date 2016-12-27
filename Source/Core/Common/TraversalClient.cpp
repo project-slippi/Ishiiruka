@@ -1,9 +1,9 @@
 // This file is public domain, in case it's useful to anyone. -comex
 
-#include "Common/MsgHandler.h"
-#include "Common/Timer.h"
 #include "Common/TraversalClient.h"
 #include "Common/Logging/Log.h"
+#include "Common/MsgHandler.h"
+#include "Common/Timer.h"
 
 static void GetRandomishBytes(u8* buf, size_t size)
 {
@@ -16,14 +16,8 @@ static void GetRandomishBytes(u8* buf, size_t size)
 }
 
 TraversalClient::TraversalClient(ENetHost* netHost, const std::string& server, const u16 port)
-	: m_NetHost(netHost)
-	, m_Client(nullptr)
-	, m_FailureReason(0)
-	, m_ConnectRequestId(0)
-	, m_PendingConnect(false)
-	, m_Server(server)
-	, m_port(port)
-	, m_PingTime(0)
+	: m_NetHost(netHost), m_Client(nullptr), m_FailureReason(0), m_ConnectRequestId(0),
+	m_PendingConnect(false), m_Server(server), m_port(port), m_PingTime(0)
 {
 	netHost->intercept = TraversalClient::InterceptCallback;
 
@@ -33,7 +27,8 @@ TraversalClient::TraversalClient(ENetHost* netHost, const std::string& server, c
 }
 
 TraversalClient::~TraversalClient()
-{}
+{
+}
 
 void TraversalClient::ReconnectToServer()
 {
@@ -59,7 +54,7 @@ static ENetAddress MakeENetAddress(TraversalInetAddress* address)
 	ENetAddress eaddr;
 	if (address->isIPV6)
 	{
-		eaddr.port = 0; // no support yet :(
+		eaddr.port = 0;  // no support yet :(
 	}
 	else
 	{
@@ -85,8 +80,7 @@ void TraversalClient::ConnectToClient(const std::string& host)
 
 bool TraversalClient::TestPacket(u8* data, size_t size, ENetAddress* from)
 {
-	if (from->host == m_ServerAddress.host &&
-		from->port == m_ServerAddress.port)
+	if (from->host == m_ServerAddress.host && from->port == m_ServerAddress.port)
 	{
 		if (size < sizeof(TraversalPacket))
 		{
@@ -214,25 +208,6 @@ void TraversalClient::OnFailure(FailureReason reason)
 	m_State = Failure;
 	m_FailureReason = reason;
 
-	switch (reason)
-	{
-	case TraversalClient::BadHost:
-		PanicAlertT("Couldn't look up central server %s", m_Server.c_str());
-		break;
-	case TraversalClient::VersionTooOld:
-		PanicAlertT("Dolphin too old for traversal server");
-		break;
-	case TraversalClient::ServerForgotAboutUs:
-		PanicAlertT("Disconnected from traversal server");
-		break;
-	case TraversalClient::SocketSendError:
-		PanicAlertT("Socket error sending to traversal server");
-		break;
-	case TraversalClient::ResendTimeout:
-		PanicAlertT("Timeout connecting to traversal server");
-		break;
-	}
-
 	if (m_Client)
 		m_Client->OnTraversalStateChanged();
 }
@@ -303,8 +278,9 @@ void TraversalClient::Reset()
 int ENET_CALLBACK TraversalClient::InterceptCallback(ENetHost* host, ENetEvent* event)
 {
 	auto traversalClient = g_TraversalClient.get();
-	if (traversalClient->TestPacket(host->receivedData, host->receivedDataLength, &host->receivedAddress)
-		|| (host->receivedDataLength == 1 && host->receivedData[0] == 0))
+	if (traversalClient->TestPacket(host->receivedData, host->receivedDataLength,
+		&host->receivedAddress) ||
+		(host->receivedDataLength == 1 && host->receivedData[0] == 0))
 	{
 		event->type = (ENetEventType)42;
 		return 1;
@@ -324,20 +300,19 @@ static u16 g_OldListenPort;
 
 bool EnsureTraversalClient(const std::string& server, u16 server_port, u16 listen_port)
 {
-
-	if (!g_MainNetHost || !g_TraversalClient || server != g_OldServer || server_port != g_OldServerPort || listen_port != g_OldListenPort)
+	if (!g_MainNetHost || !g_TraversalClient || server != g_OldServer ||
+		server_port != g_OldServerPort || listen_port != g_OldListenPort)
 	{
 		g_OldServer = server;
 		g_OldServerPort = server_port;
 		g_OldListenPort = listen_port;
 
 		ENetAddress addr = { ENET_HOST_ANY, listen_port };
-		ENetHost* host = enet_host_create(
-			&addr, // address
-			50, // peerCount
-			1, // channelLimit
-			0, // incomingBandwidth
-			0); // outgoingBandwidth
+		ENetHost* host = enet_host_create(&addr,  // address
+			50,     // peerCount
+			1,      // channelLimit
+			0,      // incomingBandwidth
+			0);     // outgoingBandwidth
 		if (!host)
 		{
 			g_MainNetHost.reset();

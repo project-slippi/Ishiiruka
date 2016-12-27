@@ -18,7 +18,6 @@ import org.dolphinemu.dolphinemu.R;
 import org.dolphinemu.dolphinemu.overlay.InputOverlay;
 import org.dolphinemu.dolphinemu.utils.Log;
 
-
 public final class EmulationFragment extends Fragment implements SurfaceHolder.Callback
 {
 	public static final String FRAGMENT_TAG = BuildConfig.APPLICATION_ID + ".emulation_fragment";
@@ -35,7 +34,6 @@ public final class EmulationFragment extends Fragment implements SurfaceHolder.C
 
 	private boolean mEmulationStarted;
 	private boolean mEmulationRunning;
-
 
 	public static EmulationFragment newInstance(String path)
 	{
@@ -105,14 +103,17 @@ public final class EmulationFragment extends Fragment implements SurfaceHolder.C
 	public void onViewCreated(View view, Bundle savedInstanceState)
 	{
 		Button doneButton = (Button) view.findViewById(R.id.done_control_config);
-		doneButton.setOnClickListener(new View.OnClickListener()
+		if (doneButton != null)
 		{
-			@Override
-			public void onClick(View v)
+			doneButton.setOnClickListener(new View.OnClickListener()
 			{
-				stopConfiguringControls();
-			}
-		});
+				@Override
+				public void onClick(View v)
+				{
+					stopConfiguringControls();
+				}
+			});
+		}
 	}
 
 	@Override
@@ -157,6 +158,11 @@ public final class EmulationFragment extends Fragment implements SurfaceHolder.C
 		}
 
 		editor.apply();
+	}
+
+	public void refreshInputOverlay()
+	{
+		mInputOverlay.refreshControls();
 	}
 
 	@Override

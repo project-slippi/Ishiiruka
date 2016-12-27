@@ -142,7 +142,7 @@ void ShaderCache::Init()
 	if (!File::Exists(shader_cache_path))
 		File::CreateDir(File::GetUserPath(D_SHADERCACHE_IDX));
 
-	std::string title_unique_id = SConfig::GetInstance().m_strUniqueID;
+	std::string title_unique_id = SConfig::GetInstance().m_strGameID;
 
 	std::string ds_cache_filename = StringFromFormat("%sIDX11-%s-ds.cache", shader_cache_path.c_str(), title_unique_id.c_str());
 	std::string hs_cache_filename = StringFromFormat("%sIDX11-%s-hs.cache", shader_cache_path.c_str(), title_unique_id.c_str());
@@ -150,7 +150,7 @@ void ShaderCache::Init()
 	std::string ps_cache_filename = StringFromFormat("%sIDX11-%s-ps.cache", shader_cache_path.c_str(), title_unique_id.c_str());
 	std::string vs_cache_filename = StringFromFormat("%sIDX11-%s-vs.cache", shader_cache_path.c_str(), title_unique_id.c_str());
 
-	pKey_t gameid = (pKey_t)GetMurmurHash3(reinterpret_cast<const u8*>(SConfig::GetInstance().m_strUniqueID.data()), (u32)SConfig::GetInstance().m_strUniqueID.size(), 0);
+	pKey_t gameid = (pKey_t)GetMurmurHash3(reinterpret_cast<const u8*>(SConfig::GetInstance().m_strGameID.data()), (u32)SConfig::GetInstance().m_strGameID.size(), 0);
 
 	vs_bytecode_cache = VsBytecodeCache::Create(
 		gameid,

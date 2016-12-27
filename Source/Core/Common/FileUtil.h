@@ -25,7 +25,7 @@ enum
 	D_WIIROOT_IDX,          // always points to User/Wii or global user-configured directory
 	D_SESSION_WIIROOT_IDX,  // may point to minimal temporary directory for determinism
 	D_CONFIG_IDX,           // global settings
-	D_GAMESETTINGS_IDX, // user-specified settings which override both the global and the default settings (per game)
+	D_GAMESETTINGS_IDX,     // user-specified settings which override both the global and the default settings (per game)
 	D_MAPS_IDX,
 	D_CACHE_IDX,
 	D_SHADERCACHE_IDX,
@@ -41,6 +41,7 @@ enum
 	D_DUMPAUDIO_IDX,
 	D_DUMPTEXTURES_IDX,
 	D_DUMPDSP_IDX,
+	D_DUMPSSL_IDX,
 	D_LOAD_IDX,
 	D_LOGS_IDX,
 	D_MAILLOGS_IDX,

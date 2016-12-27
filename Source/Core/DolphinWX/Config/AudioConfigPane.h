@@ -8,11 +8,10 @@
 #include <wx/arrstr.h>
 #include <wx/panel.h>
 
+class DolphinSlider;
 class wxCheckBox;
 class wxChoice;
-class wxCommandEvent;
 class wxRadioBox;
-class wxSlider;
 class wxSpinCtrl;
 class wxStaticText;
 
@@ -24,10 +23,10 @@ public:
 private:
 	void InitializeGUI();
 	void LoadGUIValues();
-	void RefreshGUI();
+	void BindEvents();
 
 	void PopulateBackendChoiceBox();
-	static bool SupportsVolumeChanges(const std::string&);
+	void ToggleBackendSpecificControls(const std::string& backend);
 
 	void OnDSPEngineRadioBoxChanged(wxCommandEvent&);
 	void OnDPL2DecoderCheckBoxChanged(wxCommandEvent&);
@@ -42,10 +41,11 @@ private:
 
 	wxRadioBox* m_dsp_engine_radiobox;
 	wxCheckBox* m_dpl2_decoder_checkbox;
-	wxSlider* m_volume_slider;
+	DolphinSlider* m_volume_slider;
 	wxStaticText* m_volume_text;
 	wxChoice* m_audio_backend_choice;
 	wxSpinCtrl* m_audio_latency_spinctrl;
 	wxCheckBox* m_time_stretching_checkbox;
 	wxCheckBox* m_RS_Hack_checkbox;
+	wxStaticText* m_audio_latency_label;
 };

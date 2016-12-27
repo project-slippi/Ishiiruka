@@ -43,7 +43,7 @@ struct ConstatBuffer
 private:
 	void* m_buffer;
 	regionvector m_dirtyRegions;
-	size_t m_size;
+	//size_t m_size;
 	bool m_dirty;
 	bool m_dirtyregiondisabled;
 	__forceinline void AddDirtyRegion(u32 const_number, u32 size)
@@ -78,7 +78,7 @@ public:
 	ConstatBuffer(void* buffer, size_t size) :
 		m_buffer(buffer),
 		m_dirtyRegions(),
-		m_size(size),
+		//m_size(size),
 		m_dirty(false),
 		m_dirtyregiondisabled(false)
 	{

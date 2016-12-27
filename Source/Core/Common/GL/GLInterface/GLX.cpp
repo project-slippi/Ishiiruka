@@ -7,17 +7,18 @@
 #include "Common/GL/GLInterface/GLX.h"
 #include "Common/Logging/Log.h"
 
-#define GLX_CONTEXT_MAJOR_VERSION_ARB       0x2091
-#define GLX_CONTEXT_MINOR_VERSION_ARB       0x2092
+#define GLX_CONTEXT_MAJOR_VERSION_ARB 0x2091
+#define GLX_CONTEXT_MINOR_VERSION_ARB 0x2092
 
-typedef GLXContext (*PFNGLXCREATECONTEXTATTRIBSPROC)(Display*, GLXFBConfig, GLXContext, Bool, const int*);
-typedef int ( * PFNGLXSWAPINTERVALSGIPROC) (int interval);
+typedef GLXContext(*PFNGLXCREATECONTEXTATTRIBSPROC)(Display*, GLXFBConfig, GLXContext, Bool,
+	const int*);
+typedef int(*PFNGLXSWAPINTERVALSGIPROC)(int interval);
 
 static PFNGLXCREATECONTEXTATTRIBSPROC glXCreateContextAttribs = nullptr;
 static PFNGLXSWAPINTERVALSGIPROC glXSwapIntervalSGI = nullptr;
 
 static bool s_glxError;
-static int ctxErrorHandler(Display *dpy, XErrorEvent *ev)
+static int ctxErrorHandler(Display* dpy, XErrorEvent* ev)
 {
 	s_glxError = true;
 	return 0;
@@ -42,7 +43,7 @@ void cInterfaceGLX::Swap()
 
 // Create rendering window.
 // Call browser: Core.cpp:EmuThread() > main.cpp:Video_Initialize()
-bool cInterfaceGLX::Create(void *window_handle, bool core)
+bool cInterfaceGLX::Create(void* window_handle, bool core)
 {
 	dpy = XOpenDisplay(nullptr);
 	int screen = DefaultScreen(dpy);
@@ -52,33 +53,41 @@ bool cInterfaceGLX::Create(void *window_handle, bool core)
 	glXQueryVersion(dpy, &glxMajorVersion, &glxMinorVersion);
 	if (glxMajorVersion < 1 || (glxMajorVersion == 1 && glxMinorVersion < 4))
 	{
-		ERROR_LOG(VIDEO, "glX-Version %d.%d detected, but need at least 1.4",
-		          glxMajorVersion, glxMinorVersion);
+		ERROR_LOG(VIDEO, "glX-Version %d.%d detected, but need at least 1.4", glxMajorVersion,
+			glxMinorVersion);
 		return false;
 	}
 
 	// loading core context creation function
-	glXCreateContextAttribs = (PFNGLXCREATECONTEXTATTRIBSPROC)GetFuncAddress("glXCreateContextAttribsARB");
+	glXCreateContextAttribs =
+		(PFNGLXCREATECONTEXTATTRIBSPROC)GetFuncAddress("glXCreateContextAttribsARB");
 	if (!glXCreateContextAttribs)
 	{
-		ERROR_LOG(VIDEO, "glXCreateContextAttribsARB not found, do you support GLX_ARB_create_context?");
+		ERROR_LOG(VIDEO,
+			"glXCreateContextAttribsARB not found, do you support GLX_ARB_create_context?");
 		return false;
 	}
 
 	// choosing framebuffer
-	int visual_attribs[] =
-	{
-		GLX_X_RENDERABLE    , True,
-		GLX_DRAWABLE_TYPE   , GLX_WINDOW_BIT,
-		GLX_X_VISUAL_TYPE   , GLX_TRUE_COLOR,
-		GLX_RED_SIZE        , 8,
-		GLX_GREEN_SIZE      , 8,
-		GLX_BLUE_SIZE       , 8,
-		GLX_DEPTH_SIZE      , 0,
-		GLX_STENCIL_SIZE    , 0,
-		GLX_DOUBLEBUFFER    , True,
-		None
-	};
+	int visual_attribs[] = { GLX_X_RENDERABLE,
+													True,
+													GLX_DRAWABLE_TYPE,
+													GLX_WINDOW_BIT,
+													GLX_X_VISUAL_TYPE,
+													GLX_TRUE_COLOR,
+													GLX_RED_SIZE,
+													8,
+													GLX_GREEN_SIZE,
+													8,
+													GLX_BLUE_SIZE,
+													8,
+													GLX_DEPTH_SIZE,
+													0,
+													GLX_STENCIL_SIZE,
+													0,
+													GLX_DOUBLEBUFFER,
+													True,
+													None };
 	int fbcount = 0;
 	GLXFBConfig* fbc = glXChooseFBConfig(dpy, screen, visual_attribs, &fbcount);
 	if (!fbc || !fbcount)
@@ -97,14 +106,15 @@ bool cInterfaceGLX::Create(void *window_handle, bool core)
 
 	// Create a GLX context.
 	// We try to get a 4.0 core profile, else we try 3.3, else try it with anything we get.
-	int context_attribs[] =
-	{
-		GLX_CONTEXT_MAJOR_VERSION_ARB, 4,
-		GLX_CONTEXT_MINOR_VERSION_ARB, 0,
-		GLX_CONTEXT_PROFILE_MASK_ARB,  GLX_CONTEXT_CORE_PROFILE_BIT_ARB,
-		GLX_CONTEXT_FLAGS_ARB,         GLX_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB,
-		None
-	};
+	int context_attribs[] = { GLX_CONTEXT_MAJOR_VERSION_ARB,
+													 4,
+													 GLX_CONTEXT_MINOR_VERSION_ARB,
+													 0,
+													 GLX_CONTEXT_PROFILE_MASK_ARB,
+													 GLX_CONTEXT_CORE_PROFILE_BIT_ARB,
+													 GLX_CONTEXT_FLAGS_ARB,
+													 GLX_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB,
+													 None };
 	ctx = nullptr;
 	if (core)
 	{
@@ -113,18 +123,18 @@ bool cInterfaceGLX::Create(void *window_handle, bool core)
 	}
 	if (core && (!ctx || s_glxError))
 	{
-		int context_attribs_33[] =
-		{
-			GLX_CONTEXT_MAJOR_VERSION_ARB, 3,
-			GLX_CONTEXT_MINOR_VERSION_ARB, 3,
-			GLX_CONTEXT_PROFILE_MASK_ARB,  GLX_CONTEXT_CORE_PROFILE_BIT_ARB,
-			GLX_CONTEXT_FLAGS_ARB,         GLX_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB,
-			None
-		};
+		int context_attribs_33[] = { GLX_CONTEXT_MAJOR_VERSION_ARB,
+																3,
+																GLX_CONTEXT_MINOR_VERSION_ARB,
+																3,
+																GLX_CONTEXT_PROFILE_MASK_ARB,
+																GLX_CONTEXT_CORE_PROFILE_BIT_ARB,
+																GLX_CONTEXT_FLAGS_ARB,
+																GLX_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB,
+																None };
 		s_glxError = false;
 		ctx = glXCreateContextAttribs(dpy, fbconfig, 0, True, context_attribs_33);
 		XSync(dpy, False);
-
 	}
 	if (!ctx || s_glxError)
 	{
@@ -137,7 +147,6 @@ bool cInterfaceGLX::Create(void *window_handle, bool core)
 		s_glxError = false;
 		ctx = glXCreateContextAttribs(dpy, fbconfig, 0, True, context_attribs_legacy);
 		XSync(dpy, False);
-
 	}
 	if (!ctx || s_glxError)
 	{
@@ -157,7 +166,7 @@ bool cInterfaceGLX::Create(void *window_handle, bool core)
 		return false;
 	}
 
-	s_backbuffer_width  = attribs.width;
+	s_backbuffer_width = attribs.width;
 	s_backbuffer_height = attribs.height;
 
 	win = XWindow.CreateXWindow(parent, vi);
@@ -172,7 +181,8 @@ bool cInterfaceGLX::MakeCurrent()
 	if (success)
 	{
 		// load this function based on the current bound context
-		glXSwapIntervalSGI = (PFNGLXSWAPINTERVALSGIPROC)GLInterface->GetFuncAddress("glXSwapIntervalSGI");
+		glXSwapIntervalSGI =
+			(PFNGLXSWAPINTERVALSGIPROC)GLInterface->GetFuncAddress("glXSwapIntervalSGI");
 	}
 	return success;
 }
@@ -181,7 +191,6 @@ bool cInterfaceGLX::ClearCurrent()
 {
 	return glXMakeCurrent(dpy, None, nullptr);
 }
-
 
 // Close backend
 void cInterfaceGLX::Shutdown()
@@ -194,4 +203,3 @@ void cInterfaceGLX::Shutdown()
 		ctx = nullptr;
 	}
 }
-

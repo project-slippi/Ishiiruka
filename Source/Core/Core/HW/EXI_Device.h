@@ -17,12 +17,15 @@ enum TEXIDevices : int
 	EXIDEVICE_AD16,
 	EXIDEVICE_MIC,
 	EXIDEVICE_ETH,
+	// Was used for Triforce in the past, but the implementation is no longer in Dolphin.
+	// It's kept here so that values below will stay constant.
 	EXIDEVICE_AM_BASEBOARD,
 	EXIDEVICE_GECKO,
-	EXIDEVICE_MEMORYCARDFOLDER,  // Only used when creating a device by EXIDevice_Create
-															 // Converted to EXIDEVICE_MEMORYCARD internally
-															 EXIDEVICE_AGP,
-															 EXIDEVICE_NONE = (u8)-1
+	// Only used when creating a device by EXIDevice_Create
+	// Converted to EXIDEVICE_MEMORYCARD internally
+	EXIDEVICE_MEMORYCARDFOLDER,
+	EXIDEVICE_AGP,
+	EXIDEVICE_NONE = (u8)-1
 };
 
 class IEXIDevice

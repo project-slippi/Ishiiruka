@@ -133,7 +133,7 @@ void StateTracker::LoadPipelineUIDCache()
 		StateTracker* this_ptr;
 	};
 
-	std::string filename = g_object_cache->GetDiskCacheFileName("pipeline-uid");
+	std::string filename = g_object_cache->GetDiskUIDCacheFileName();
 	PipelineInserter inserter(this);
 
 	// OpenAndRead calls Close() first, which will flush all data to disk when reloading.

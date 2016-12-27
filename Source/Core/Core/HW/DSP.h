@@ -30,7 +30,7 @@ enum
 };
 
 // UDSPControl
-#define DSP_CONTROL_MASK 0x0C07
+constexpr u16 DSP_CONTROL_MASK = 0x0C07;
 union UDSPControl {
 	u16 Hex;
 	struct
@@ -80,8 +80,5 @@ u8* GetARAMPtr();
 
 void UpdateAudioDMA();
 void UpdateDSPSlice(int cycles);
-u64 DMAInProgress();
-void EnableInstantDMA();
-void FlushInstantDMA(u32 address);
 
 }  // end of namespace DSP

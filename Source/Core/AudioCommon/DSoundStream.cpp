@@ -6,6 +6,8 @@
 #include <functional>
 #include <windows.h>
 
+#include "Common/MsgHandler.h"
+
 #include "Core/Core.h"
 #include "Core/ConfigManager.h"
 #include "AudioCommon/DSoundStream.h"

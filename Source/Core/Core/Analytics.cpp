@@ -1,9 +1,9 @@
 #include <cinttypes>
+#include <mbedtls/sha1.h>
 #include <memory>
 #include <mutex>
 #include <random>
 #include <string>
-#include <mbedtls/sha1.h>
 
 #if defined(_WIN32)
 #include <windows.h>
@@ -12,15 +12,15 @@
 #endif
 
 #include "Common/Analytics.h"
+#include "Common/CPUDetect.h"
 #include "Common/Common.h"
 #include "Common/CommonTypes.h"
-#include "Common/CPUDetect.h"
 #include "Common/StringUtil.h"
 #include "Core/Analytics.h"
 #include "Core/ConfigManager.h"
+#include "Core/HW/GCPad.h"
 #include "Core/Movie.h"
 #include "Core/NetPlayProto.h"
-#include "Core/HW/GCPad.h"
 #include "InputCommon/ControllerEmu.h"
 #include "InputCommon/GCAdapter.h"
 #include "InputCommon/InputConfig.h"
@@ -87,8 +87,7 @@ std::string DolphinAnalytics::MakeUniqueId(const std::string& data)
 {
 	u8 digest[20];
 	std::string input = m_unique_id + data;
-	mbedtls_sha1(reinterpret_cast<const u8*>(input.c_str()), input.size(),
-		digest);
+	mbedtls_sha1(reinterpret_cast<const u8*>(input.c_str()), input.size(), digest);
 
 	// Convert to hex string and truncate to 64 bits.
 	std::string out;
@@ -135,7 +134,7 @@ void DolphinAnalytics::MakeBaseBuilder()
 	builder.AddData("os-type", "windows");
 
 	// Windows 8 removes support for GetVersionEx and such. Stupid.
-	DWORD(WINAPI *RtlGetVersion)(LPOSVERSIONINFOEXW);
+	DWORD(WINAPI * RtlGetVersion)(LPOSVERSIONINFOEXW);
 	*(FARPROC*)&RtlGetVersion = GetProcAddress(GetModuleHandle(TEXT("ntdll")), "RtlGetVersion");
 
 	OSVERSIONINFOEXW winver;
@@ -155,9 +154,15 @@ void DolphinAnalytics::MakeBaseBuilder()
 	builder.AddData("os-type", "osx");
 
 	SInt32 osxmajor, osxminor, osxbugfix;
+	// Gestalt is deprecated, but the replacement (NSProcessInfo
+	// operatingSystemVersion) is only available on OS X 10.10, so we need to use
+	// it anyway.  Change this someday when Dolphin depends on 10.10+.
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 	Gestalt(gestaltSystemVersionMajor, &osxmajor);
 	Gestalt(gestaltSystemVersionMinor, &osxminor);
 	Gestalt(gestaltSystemVersionBugFix, &osxbugfix);
+#pragma GCC diagnostic pop
 
 	builder.AddData("osx-ver-major", osxmajor);
 	builder.AddData("osx-ver-minor", osxminor);
@@ -178,17 +183,16 @@ void DolphinAnalytics::MakePerGameBuilder()
 	Common::AnalyticsReportBuilder builder(m_base_builder);
 
 	// Gameid.
-	builder.AddData("gameid", SConfig::GetInstance().GetUniqueID());
+	builder.AddData("gameid", SConfig::GetInstance().GetGameID());
 
 	// Unique id bound to the gameid.
-	builder.AddData("id", MakeUniqueId(SConfig::GetInstance().GetUniqueID()));
+	builder.AddData("id", MakeUniqueId(SConfig::GetInstance().GetGameID()));
 
 	// Configuration.
 	builder.AddData("cfg-dsp-hle", SConfig::GetInstance().bDSPHLE);
 	builder.AddData("cfg-dsp-jit", SConfig::GetInstance().m_DSPEnableJIT);
 	builder.AddData("cfg-dsp-thread", SConfig::GetInstance().bDSPThread);
 	builder.AddData("cfg-cpu-thread", SConfig::GetInstance().bCPUThread);
-	builder.AddData("cfg-idle-skip", SConfig::GetInstance().bSkipIdle);
 	builder.AddData("cfg-fastmem", SConfig::GetInstance().bFastmem);
 	builder.AddData("cfg-syncgpu", SConfig::GetInstance().bSyncGPU);
 	builder.AddData("cfg-audio-backend", SConfig::GetInstance().sBackend);
@@ -225,7 +229,8 @@ void DolphinAnalytics::MakePerGameBuilder()
 	{
 		builder.AddData("gpu-adapter", g_Config.backend_info.AdapterName);
 	}
-	builder.AddData("gpu-has-exclusive-fullscreen", g_Config.backend_info.bSupportsExclusiveFullscreen);
+	builder.AddData("gpu-has-exclusive-fullscreen",
+		g_Config.backend_info.bSupportsExclusiveFullscreen);
 	builder.AddData("gpu-has-dual-source-blend", g_Config.backend_info.bSupportsDualSourceBlend);
 	builder.AddData("gpu-has-oversized-viewports", g_Config.backend_info.bSupportsOversizedViewports);
 	builder.AddData("gpu-has-geometry-shaders", g_Config.backend_info.bSupportsGeometryShaders);
@@ -244,10 +249,12 @@ void DolphinAnalytics::MakePerGameBuilder()
 	builder.AddData("movie", Movie::IsMovieActive());
 
 	// Controller information
-	// We grab enough to tell what percentage of our users are playing with keyboard/mouse, some kind of gamepad
+	// We grab enough to tell what percentage of our users are playing with keyboard/mouse, some kind
+	// of gamepad
 	// or the official gamecube adapter.
 	builder.AddData("gcadapter-detected", GCAdapter::IsDetected());
-	builder.AddData("has-controller", Pad::GetConfig()->IsControllerControlledByGamepadDevice(0) || GCAdapter::IsDetected());
+	builder.AddData("has-controller", Pad::GetConfig()->IsControllerControlledByGamepadDevice(0) ||
+		GCAdapter::IsDetected());
 
 	m_per_game_builder = builder;
 }

@@ -4,9 +4,9 @@
 
 #pragma once
 
-#include <string>
 #include <EGL/egl.h>
 #include <EGL/eglext.h>
+#include <string>
 
 #include "Common/GL/GLInterfaceBase.h"
 
@@ -28,9 +28,11 @@ protected:
 	EGLDisplay egl_dpy;
 
 	virtual EGLDisplay OpenDisplay() { return eglGetDisplay(EGL_DEFAULT_DISPLAY); }
-	virtual EGLNativeWindowType InitializePlatform(EGLNativeWindowType host_window, EGLConfig config) { return (EGLNativeWindowType)EGL_DEFAULT_DISPLAY; }
+	virtual EGLNativeWindowType InitializePlatform(EGLNativeWindowType host_window, EGLConfig config)
+	{
+		return (EGLNativeWindowType)EGL_DEFAULT_DISPLAY;
+	}
 	virtual void ShutdownPlatform() {}
-
 public:
 	void Swap() override;
 	void SwapInterval(int interval) override;

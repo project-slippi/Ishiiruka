@@ -29,6 +29,7 @@ set(SRCS Analytics.cpp
          TraversalClient.cpp
          Version.cpp
          x64ABI.cpp
+         x64Analyzer.cpp
          x64Emitter.cpp
          MD5.cpp
          Crypto/bn.cpp
@@ -82,7 +83,7 @@ endif()
 if(WIN32)
     set(SRCS ${SRCS} GL/GLInterface/WGL.cpp)
 elseif(APPLE)
-    set(SRCS ${SRCS} GL/GLInterface/AGL.cpp)
+    set(SRCS ${SRCS} GL/GLInterface/AGL.mm)
 elseif(USE_X11)
     if (NOT USE_EGL)
         set(SRCS ${SRCS} GL/GLInterface/GLX.cpp)

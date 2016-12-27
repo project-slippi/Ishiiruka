@@ -32,8 +32,16 @@
 #include "Common/Logging/Log.h"
 
 // ewww
-#if _LIBCPP_VERSION || __GNUC__ >= 5
-#define IsTriviallyCopyable(T) std::is_trivially_copyable<typename std::remove_volatile<T>::type>::value
+
+#ifndef __has_feature
+#define __has_feature(x) (0)
+#endif
+
+#if (__has_feature(is_trivially_copyable) &&                                                       \
+     (defined(_LIBCPP_VERSION) || defined(__GLIBCXX__))) ||                                        \
+    (defined(__GNUC__) && __GNUC__ >= 5)
+#define IsTriviallyCopyable(T)                                                                     \
+  std::is_trivially_copyable<typename std::remove_volatile<T>::type>::value
 #elif __GNUC__
 #define IsTriviallyCopyable(T) std::has_trivial_copy_constructor<T>::value
 #elif _MSC_VER
@@ -43,41 +51,25 @@
 #error No version of is_trivially_copyable
 #endif
 
-
-template <class T>
-struct LinkedListItem : public T
-{
-	LinkedListItem<T> *next;
-};
-
 // Wrapper class
 class PointerWrap
 {
 public:
 	enum Mode
 	{
-		MODE_READ = 1, // load
-		MODE_WRITE, // save
-		MODE_MEASURE, // calculate size
-		MODE_VERIFY, // compare
+		MODE_READ = 1,  // load
+		MODE_WRITE,     // save
+		MODE_MEASURE,   // calculate size
+		MODE_VERIFY,    // compare
 	};
 
-	u8 **ptr;
+	u8** ptr;
 	Mode mode;
 
 public:
-	PointerWrap(u8 **ptr_, Mode mode_) : ptr(ptr_), mode(mode_)
-	{}
-
-	void SetMode(Mode mode_)
-	{
-		mode = mode_;
-	}
-	Mode GetMode() const
-	{
-		return mode;
-	}
-
+	PointerWrap(u8** ptr_, Mode mode_) : ptr(ptr_), mode(mode_) {}
+	void SetMode(Mode mode_) { mode = mode_; }
+	Mode GetMode() const { return mode; }
 	template <typename K, class V>
 	void Do(std::map<K, V>& x)
 	{
@@ -194,7 +186,7 @@ public:
 			flag.Set(s);
 	}
 
-	template<typename T>
+	template <typename T>
 	void Do(std::atomic<T>& atomic)
 	{
 		T temp = atomic.load();
@@ -220,7 +212,6 @@ public:
 		DoVoid((void*)&x, sizeof(x));
 	}
 
-
 	void Do(bool& x)
 	{
 		// bool's size can vary depending on platform, which can
@@ -237,72 +228,13 @@ public:
 	template <typename T>
 	void DoPointer(T*& x, T* const base)
 	{
-		// pointers can be more than 2^31 apart, but you're using this function wrong if you need that much range
+		// pointers can be more than 2^31 apart, but you're using this function wrong if you need that
+		// much range
 		ptrdiff_t offset = x - base;
 		Do(offset);
 		if (mode == MODE_READ)
 		{
 			x = base + offset;
-		}
-	}
-
-	// Let's pretend std::list doesn't exist!
-	template <class T, LinkedListItem<T>* (*TNew)(), void(*TFree)(LinkedListItem<T>*), void(*TDo)(PointerWrap&, T*)>
-	void DoLinkedList(LinkedListItem<T>*& list_start, LinkedListItem<T>** list_end = 0)
-	{
-		LinkedListItem<T>* list_cur = list_start;
-		LinkedListItem<T>* prev = nullptr;
-
-		while (true)
-		{
-			u8 shouldExist = !!list_cur;
-			Do(shouldExist);
-			if (shouldExist == 1)
-			{
-				LinkedListItem<T>* cur = list_cur ? list_cur : TNew();
-				TDo(*this, (T*)cur);
-				if (!list_cur)
-				{
-					if (mode == MODE_READ)
-					{
-						cur->next = nullptr;
-						list_cur = cur;
-						if (prev)
-							prev->next = cur;
-						else
-							list_start = cur;
-					}
-					else
-					{
-						TFree(cur);
-						continue;
-					}
-				}
-			}
-			else
-			{
-				if (mode == MODE_READ)
-				{
-					if (prev)
-						prev->next = nullptr;
-					if (list_end)
-						*list_end = prev;
-					if (list_cur)
-					{
-						if (list_start == list_cur)
-							list_start = nullptr;
-						do
-						{
-							LinkedListItem<T>* next = list_cur->next;
-							TFree(list_cur);
-							list_cur = next;
-						} while (list_cur);
-					}
-				}
-				break;
-			}
-			prev = list_cur;
-			list_cur = list_cur->next;
 		}
 	}
 
@@ -313,26 +245,32 @@ public:
 
 		if (mode == PointerWrap::MODE_READ && cookie != arbitraryNumber)
 		{
-			PanicAlertT("Error: After \"%s\", found %d (0x%X) instead of save marker %d (0x%X). Aborting savestate load...",
+			PanicAlertT("Error: After \"%s\", found %d (0x%X) instead of save marker %d (0x%X). Aborting "
+				"savestate load...",
 				prevName.c_str(), cookie, cookie, arbitraryNumber, arbitraryNumber);
 			mode = PointerWrap::MODE_MEASURE;
 		}
+	}
+
+	template <typename T, typename Functor>
+	void DoEachElement(T& container, Functor member)
+	{
+		u32 size = static_cast<u32>(container.size());
+		Do(size);
+		container.resize(size);
+
+		for (auto& elem : container)
+			member(*this, elem);
 	}
 
 private:
 	template <typename T>
 	void DoContainer(T& x)
 	{
-		u32 size = (u32)x.size();
-		Do(size);
-		x.resize(size);
-
-		for (auto& elem : x)
-			Do(elem);
+		DoEachElement(x, [](PointerWrap& p, typename T::value_type& elem) { p.Do(elem); });
 	}
 
-	__forceinline
-		void DoVoid(void* data, u32 size)
+	__forceinline void DoVoid(void* data, u32 size)
 	{
 		switch (mode)
 		{
@@ -349,8 +287,8 @@ private:
 
 		case MODE_VERIFY:
 			_dbg_assert_msg_(COMMON, !memcmp(data, *ptr, size),
-				"Savestate verification failure: buf %p != %p (size %u).\n",
-				data, *ptr, size);
+				"Savestate verification failure: buf %p != %p (size %u).\n", data, *ptr,
+				size);
 			break;
 		}
 
@@ -364,7 +302,7 @@ class CChunkFileReader
 {
 public:
 	// Load file template
-	template<class T>
+	template <class T>
 	static bool Load(const std::string& _rFilename, u32 _Revision, T& _class)
 	{
 		INFO_LOG(COMMON, "ChunkReader: Loading %s", _rFilename.c_str());
@@ -399,8 +337,8 @@ public:
 		// Check revision
 		if (header.Revision != _Revision)
 		{
-			ERROR_LOG(COMMON, "ChunkReader: Wrong file revision, got %d expected %d",
-				header.Revision, _Revision);
+			ERROR_LOG(COMMON, "ChunkReader: Wrong file revision, got %d expected %d", header.Revision,
+				_Revision);
 			return false;
 		}
 
@@ -408,8 +346,7 @@ public:
 		const u32 sz = (u32)(fileSize - headerSize);
 		if (header.ExpectedSize != sz)
 		{
-			ERROR_LOG(COMMON, "ChunkReader: Bad file size, got %d expected %d",
-				sz, header.ExpectedSize);
+			ERROR_LOG(COMMON, "ChunkReader: Bad file size, got %d expected %d", sz, header.ExpectedSize);
 			return false;
 		}
 
@@ -430,7 +367,7 @@ public:
 	}
 
 	// Save file template
-	template<class T>
+	template <class T>
 	static bool Save(const std::string& _rFilename, u32 _Revision, T& _class)
 	{
 		INFO_LOG(COMMON, "ChunkReader: Writing %s", _rFilename.c_str());

@@ -72,9 +72,9 @@ void BreakPoints::Add(const TBreakPoint& bp)
 
 void BreakPoints::Add(u32 em_address, bool temp)
 {
-	if (!IsAddressBreakPoint(em_address)) // only add new addresses
+	if (!IsAddressBreakPoint(em_address))  // only add new addresses
 	{
-		TBreakPoint pt; // breakpoint settings
+		TBreakPoint pt;  // breakpoint settings
 		pt.bOn = true;
 		pt.bTemporary = temp;
 		pt.iAddress = em_address;
@@ -115,13 +115,18 @@ void BreakPoints::Clear()
 
 void BreakPoints::ClearAllTemporary()
 {
-	for (const TBreakPoint& bp : m_BreakPoints)
+	auto bp = m_BreakPoints.begin();
+	while (bp != m_BreakPoints.end())
 	{
-		if (bp.bTemporary)
+		if (bp->bTemporary)
 		{
 			if (jit)
-				jit->GetBlockCache()->InvalidateICache(bp.iAddress, 4, true);
-			Remove(bp.iAddress);
+				jit->GetBlockCache()->InvalidateICache(bp->iAddress, 4, true);
+			bp = m_BreakPoints.erase(bp);
+		}
+		else
+		{
+			++bp;
 		}
 	}
 }
@@ -133,9 +138,9 @@ MemChecks::TMemChecksStr MemChecks::GetStrings() const
 	{
 		std::stringstream mc;
 		mc << std::hex << bp.StartAddress;
-		mc << " " << (bp.bRange ? bp.EndAddress : bp.StartAddress) << " " <<
-			(bp.bRange ? "n" : "") << (bp.OnRead ? "r" : "") <<
-			(bp.OnWrite ? "w" : "") << (bp.Log ? "l" : "") << (bp.Break ? "p" : "");
+		mc << " " << (bp.bRange ? bp.EndAddress : bp.StartAddress) << " " << (bp.bRange ? "n" : "")
+			<< (bp.OnRead ? "r" : "") << (bp.OnWrite ? "w" : "") << (bp.Log ? "l" : "")
+			<< (bp.Break ? "p" : "");
 		mcs.push_back(mc.str());
 	}
 
@@ -207,24 +212,22 @@ TMemCheck* MemChecks::GetMemCheck(u32 address)
 	return nullptr;
 }
 
-bool TMemCheck::Action(DebugInterface* debug_interface, u32 iValue, u32 addr, bool write, int size, u32 pc)
+bool TMemCheck::Action(DebugInterface* debug_interface, u32 iValue, u32 addr, bool write, int size,
+	u32 pc)
 {
 	if ((write && OnWrite) || (!write && OnRead))
 	{
 		if (Log)
 		{
-			INFO_LOG(MEMMAP, "CHK %08x (%s) %s%i %0*x at %08x (%s)",
-				pc, debug_interface->GetDescription(pc).c_str(),
-				write ? "Write" : "Read", size * 8, size * 2, iValue, addr,
-				debug_interface->GetDescription(addr).c_str()
-			);
+			NOTICE_LOG(MEMMAP, "MBP %08x (%s) %s%i %0*x at %08x (%s)", pc,
+				debug_interface->GetDescription(pc).c_str(), write ? "Write" : "Read", size * 8,
+				size * 2, iValue, addr, debug_interface->GetDescription(addr).c_str());
 		}
-
-		return true;
+		if (Break)
+			return true;
 	}
 	return false;
 }
-
 
 bool Watches::IsAddressWatch(u32 _iAddress) const
 {
@@ -272,9 +275,9 @@ void Watches::Add(const TWatch& bp)
 
 void Watches::Add(u32 em_address)
 {
-	if (!IsAddressWatch(em_address)) // only add new addresses
+	if (!IsAddressWatch(em_address))  // only add new addresses
 	{
-		TWatch pt; // breakpoint settings
+		TWatch pt;  // breakpoint settings
 		pt.bOn = true;
 		pt.iAddress = em_address;
 

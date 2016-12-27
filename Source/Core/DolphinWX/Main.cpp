@@ -10,6 +10,7 @@
 #include <wx/app.h>
 #include <wx/buffer.h>
 #include <wx/cmdline.h>
+#include <wx/evtloop.h>
 #include <wx/image.h>
 #include <wx/imagpng.h>
 #include <wx/intl.h>
@@ -67,27 +68,7 @@ __declspec(dllexport) DWORD NvOptimusEnablement = 1;
 //
 __declspec(dllexport) int AmdPowerXpressRequestHighPerformance = 1;
 
-#ifndef SM_XVIRTUALSCREEN
-#define SM_XVIRTUALSCREEN 76
 #endif
-#ifndef SM_YVIRTUALSCREEN
-#define SM_YVIRTUALSCREEN 77
-#endif
-#ifndef SM_CXVIRTUALSCREEN
-#define SM_CXVIRTUALSCREEN 78
-#endif
-#ifndef SM_CYVIRTUALSCREEN
-#define SM_CYVIRTUALSCREEN 79
-#endif
-
-#endif
-
-#ifdef __APPLE__
-#import <AppKit/AppKit.h>
-#endif
-
-class wxFrame;
-
 // ------------
 //  Main window
 
@@ -98,227 +79,231 @@ std::string wxStringTranslator(const char*);
 
 CFrame* main_frame = nullptr;
 
+static std::mutex s_init_mutex;
+
 bool DolphinApp::Initialize(int& c, wxChar** v)
 {
 #if defined HAVE_X11 && HAVE_X11
-  XInitThreads();
+	XInitThreads();
 #endif
-  return wxApp::Initialize(c, v);
+	return wxApp::Initialize(c, v);
 }
 
 // The 'main program' equivalent that creates the main window and return the main frame
 
 bool DolphinApp::OnInit()
 {
-  if (!wxApp::OnInit())
-    return false;
+	std::lock_guard<std::mutex> lk(s_init_mutex);
+	if (!wxApp::OnInit())
+		return false;
 	wxLog::SetLogLevel(0);
-  Bind(wxEVT_QUERY_END_SESSION, &DolphinApp::OnEndSession, this);
-  Bind(wxEVT_END_SESSION, &DolphinApp::OnEndSession, this);
-  Bind(wxEVT_IDLE, &DolphinApp::OnIdle, this);
+	Bind(wxEVT_QUERY_END_SESSION, &DolphinApp::OnEndSession, this);
+	Bind(wxEVT_END_SESSION, &DolphinApp::OnEndSession, this);
+	Bind(wxEVT_IDLE, &DolphinApp::OnIdle, this);
+	Bind(wxEVT_ACTIVATE_APP, &DolphinApp::OnActivate, this);
 
-  // Register message box and translation handlers
-  RegisterMsgAlertHandler(&wxMsgAlert);
-  RegisterStringTranslator(&wxStringTranslator);
+	// Register message box and translation handlers
+	RegisterMsgAlertHandler(&wxMsgAlert);
+	RegisterStringTranslator(&wxStringTranslator);
 
 #if wxUSE_ON_FATAL_EXCEPTION
-  wxHandleFatalExceptions(true);
+	wxHandleFatalExceptions(true);
 #endif
 
-  UICommon::SetUserDirectory(m_user_path.ToStdString());
-  UICommon::CreateDirectories();
-  InitLanguageSupport();  // The language setting is loaded from the user directory
-  UICommon::Init();
+	UICommon::SetUserDirectory(m_user_path.ToStdString());
+	UICommon::CreateDirectories();
+	InitLanguageSupport();  // The language setting is loaded from the user directory
+	UICommon::Init();
 
-  if (m_select_video_backend && !m_video_backend_name.empty())
-    SConfig::GetInstance().m_strVideoBackend = WxStrToStr(m_video_backend_name);
+	if (m_select_video_backend && !m_video_backend_name.empty())
+		SConfig::GetInstance().m_strVideoBackend = WxStrToStr(m_video_backend_name);
 
-  if (m_select_audio_emulation)
-    SConfig::GetInstance().bDSPHLE = (m_audio_emulation_name.Upper() == "HLE");
+	if (m_select_audio_emulation)
+		SConfig::GetInstance().bDSPHLE = (m_audio_emulation_name.Upper() == "HLE");
 
-  VideoBackendBase::ActivateBackend(SConfig::GetInstance().m_strVideoBackend);
+	VideoBackendBase::ActivateBackend(SConfig::GetInstance().m_strVideoBackend);
 
-  DolphinAnalytics::Instance()->ReportDolphinStart("wx");
+	DolphinAnalytics::Instance()->ReportDolphinStart("wx");
 
-  // Enable the PNG image handler for screenshots
-  wxImage::AddHandler(new wxPNGHandler);
+	// Enable the PNG image handler for screenshots
+	wxImage::AddHandler(new wxPNGHandler);
 
-  int x = SConfig::GetInstance().iPosX;
-  int y = SConfig::GetInstance().iPosY;
-  int w = SConfig::GetInstance().iWidth;
-  int h = SConfig::GetInstance().iHeight;
+	// We have to copy the size and position out of SConfig now because CFrame's OnMove
+	// handler will corrupt them during window creation (various APIs like SetMenuBar cause
+	// event dispatch including WM_MOVE/WM_SIZE)
+	wxRect window_geometry(SConfig::GetInstance().iPosX, SConfig::GetInstance().iPosY,
+		SConfig::GetInstance().iWidth, SConfig::GetInstance().iHeight);
+	main_frame = new CFrame(nullptr, wxID_ANY, StrToWxStr(scm_rev_str), window_geometry,
+		m_use_debugger, m_batch_mode, m_use_logger);
+	SetTopWindow(main_frame);
 
-// The following is not needed with X11, where window managers
-// do not allow windows to be created off the desktop.
-#ifdef _WIN32
-  // Out of desktop check
-  int leftPos = GetSystemMetrics(SM_XVIRTUALSCREEN);
-  int topPos = GetSystemMetrics(SM_YVIRTUALSCREEN);
-  int width = GetSystemMetrics(SM_CXVIRTUALSCREEN);
-  int height = GetSystemMetrics(SM_CYVIRTUALSCREEN);
-  if ((leftPos + width) < (x + w) || leftPos > x || (topPos + height) < (y + h) || topPos > y)
-    x = y = wxDefaultCoord;
-#elif defined __APPLE__
-  if (y < 1)
-    y = wxDefaultCoord;
-#endif
+	AfterInit();
 
-  main_frame = new CFrame(nullptr, wxID_ANY, StrToWxStr(scm_rev_str), wxPoint(x, y), wxSize(w, h),
-                          m_use_debugger, m_batch_mode, m_use_logger);
-
-  SetTopWindow(main_frame);
-  main_frame->SetMinSize(wxSize(400, 300));
-
-  AfterInit();
-
-  return true;
+	return true;
 }
 
 void DolphinApp::OnInitCmdLine(wxCmdLineParser& parser)
 {
-  static const wxCmdLineEntryDesc desc[] = {
-      {wxCMD_LINE_SWITCH, "h", "help", "Show this help message", wxCMD_LINE_VAL_NONE,
-       wxCMD_LINE_OPTION_HELP},
-      {wxCMD_LINE_SWITCH, "d", "debugger", "Opens the debugger", wxCMD_LINE_VAL_NONE,
-       wxCMD_LINE_PARAM_OPTIONAL},
-      {wxCMD_LINE_SWITCH, "l", "logger", "Opens the logger", wxCMD_LINE_VAL_NONE,
-       wxCMD_LINE_PARAM_OPTIONAL},
-      {wxCMD_LINE_OPTION, "e", "exec",
-       "Loads the specified file (ELF, DOL, GCM, ISO, WBFS, CISO, GCZ, WAD)", wxCMD_LINE_VAL_STRING,
-       wxCMD_LINE_PARAM_OPTIONAL},
-      {wxCMD_LINE_SWITCH, "b", "batch", "Exit Dolphin with emulator", wxCMD_LINE_VAL_NONE,
-       wxCMD_LINE_PARAM_OPTIONAL},
-      {wxCMD_LINE_OPTION, "c", "confirm", "Set Confirm on Stop", wxCMD_LINE_VAL_STRING,
-       wxCMD_LINE_PARAM_OPTIONAL},
-      {wxCMD_LINE_OPTION, "v", "video_backend", "Specify a video backend", wxCMD_LINE_VAL_STRING,
-       wxCMD_LINE_PARAM_OPTIONAL},
-      {wxCMD_LINE_OPTION, "a", "audio_emulation", "Low level (LLE) or high level (HLE) audio",
-       wxCMD_LINE_VAL_STRING, wxCMD_LINE_PARAM_OPTIONAL},
-      {wxCMD_LINE_OPTION, "m", "movie", "Play a movie file", wxCMD_LINE_VAL_STRING,
-       wxCMD_LINE_PARAM_OPTIONAL},
-      {wxCMD_LINE_OPTION, "u", "user", "User folder path", wxCMD_LINE_VAL_STRING,
-       wxCMD_LINE_PARAM_OPTIONAL},
-      {wxCMD_LINE_NONE, nullptr, nullptr, nullptr, wxCMD_LINE_VAL_NONE, 0}};
+	static const wxCmdLineEntryDesc desc[] = {
+			{wxCMD_LINE_SWITCH, "h", "help", "Show this help message", wxCMD_LINE_VAL_NONE,
+			 wxCMD_LINE_OPTION_HELP},
+			{wxCMD_LINE_SWITCH, "d", "debugger", "Opens the debugger", wxCMD_LINE_VAL_NONE,
+			 wxCMD_LINE_PARAM_OPTIONAL},
+			{wxCMD_LINE_SWITCH, "l", "logger", "Opens the logger", wxCMD_LINE_VAL_NONE,
+			 wxCMD_LINE_PARAM_OPTIONAL},
+			{wxCMD_LINE_OPTION, "e", "exec",
+			 "Loads the specified file (ELF, DOL, GCM, ISO, WBFS, CISO, GCZ, WAD)", wxCMD_LINE_VAL_STRING,
+			 wxCMD_LINE_PARAM_OPTIONAL},
+			{wxCMD_LINE_SWITCH, "b", "batch", "Exit Dolphin with emulator", wxCMD_LINE_VAL_NONE,
+			 wxCMD_LINE_PARAM_OPTIONAL},
+			{wxCMD_LINE_OPTION, "c", "confirm", "Set Confirm on Stop", wxCMD_LINE_VAL_STRING,
+			 wxCMD_LINE_PARAM_OPTIONAL},
+			{wxCMD_LINE_OPTION, "v", "video_backend", "Specify a video backend", wxCMD_LINE_VAL_STRING,
+			 wxCMD_LINE_PARAM_OPTIONAL},
+			{wxCMD_LINE_OPTION, "a", "audio_emulation", "Low level (LLE) or high level (HLE) audio",
+			 wxCMD_LINE_VAL_STRING, wxCMD_LINE_PARAM_OPTIONAL},
+			{wxCMD_LINE_OPTION, "m", "movie", "Play a movie file", wxCMD_LINE_VAL_STRING,
+			 wxCMD_LINE_PARAM_OPTIONAL},
+			{wxCMD_LINE_OPTION, "u", "user", "User folder path", wxCMD_LINE_VAL_STRING,
+			 wxCMD_LINE_PARAM_OPTIONAL},
+			{wxCMD_LINE_NONE, nullptr, nullptr, nullptr, wxCMD_LINE_VAL_NONE, 0} };
 
-  parser.SetDesc(desc);
+	parser.SetDesc(desc);
 }
 
 bool DolphinApp::OnCmdLineParsed(wxCmdLineParser& parser)
 {
-  if (argc == 2 && File::Exists(argv[1].ToUTF8().data()))
-  {
-    m_load_file = true;
-    m_file_to_load = argv[1];
-  }
-  else if (parser.Parse() != 0)
-  {
-    return false;
-  }
+	if (argc == 2 && File::Exists(argv[1].ToUTF8().data()))
+	{
+		m_load_file = true;
+		m_file_to_load = argv[1];
+	}
+	else if (parser.Parse() != 0)
+	{
+		return false;
+	}
 
-  if (!m_load_file)
-    m_load_file = parser.Found("exec", &m_file_to_load);
+	if (!m_load_file)
+		m_load_file = parser.Found("exec", &m_file_to_load);
 
-  m_use_debugger = parser.Found("debugger");
-  m_use_logger = parser.Found("logger");
-  m_batch_mode = parser.Found("batch");
-  m_confirm_stop = parser.Found("confirm", &m_confirm_setting);
-  m_select_video_backend = parser.Found("video_backend", &m_video_backend_name);
-  m_select_audio_emulation = parser.Found("audio_emulation", &m_audio_emulation_name);
-  m_play_movie = parser.Found("movie", &m_movie_file);
-  parser.Found("user", &m_user_path);
+	m_use_debugger = parser.Found("debugger");
+	m_use_logger = parser.Found("logger");
+	m_batch_mode = parser.Found("batch");
+	m_confirm_stop = parser.Found("confirm", &m_confirm_setting);
+	m_select_video_backend = parser.Found("video_backend", &m_video_backend_name);
+	m_select_audio_emulation = parser.Found("audio_emulation", &m_audio_emulation_name);
+	m_play_movie = parser.Found("movie", &m_movie_file);
+	parser.Found("user", &m_user_path);
 
-  return true;
+	return true;
 }
 
 #ifdef __APPLE__
 void DolphinApp::MacOpenFile(const wxString& fileName)
 {
-  m_file_to_load = fileName;
-  m_load_file = true;
-  main_frame->BootGame(WxStrToStr(m_file_to_load));
+	m_file_to_load = fileName;
+	m_load_file = true;
+	main_frame->BootGame(WxStrToStr(m_file_to_load));
 }
 #endif
 
 void DolphinApp::AfterInit()
 {
-  if (!m_batch_mode)
-    main_frame->UpdateGameList();
+	if (!m_batch_mode)
+		main_frame->UpdateGameList();
 
-  if (!SConfig::GetInstance().m_analytics_permission_asked)
-  {
-    int answer =
-        wxMessageBox(_("If authorized, Dolphin can collect data on its performance, "
-                       "feature usage, and configuration, as well as data on your system's "
-                       "hardware and operating system.\n\n"
-                       "No private data is ever collected. This data helps us understand "
-                       "how people and emulated games use Dolphin and prioritize our "
-                       "efforts. It also helps us identify rare configurations that are "
-                       "causing bugs, performance and stability issues.\n"
-                       "This authorization can be revoked at any time through Dolphin's "
-                       "settings.\n\n"
-                       "Do you authorize Dolphin to report this information to Dolphin's "
-                       "developers?"),
-                     _("Usage statistics reporting"), wxYES_NO, main_frame);
+	if (!SConfig::GetInstance().m_analytics_permission_asked)
+	{
+		int answer =
+			wxMessageBox(_("If authorized, Dolphin can collect data on its performance, "
+				"feature usage, and configuration, as well as data on your system's "
+				"hardware and operating system.\n\n"
+				"No private data is ever collected. This data helps us understand "
+				"how people and emulated games use Dolphin and prioritize our "
+				"efforts. It also helps us identify rare configurations that are "
+				"causing bugs, performance and stability issues.\n"
+				"This authorization can be revoked at any time through Dolphin's "
+				"settings.\n\n"
+				"Do you authorize Dolphin to report this information to Dolphin's "
+				"developers?"),
+				_("Usage statistics reporting"), wxYES_NO, main_frame);
 
-    SConfig::GetInstance().m_analytics_permission_asked = true;
-    SConfig::GetInstance().m_analytics_enabled = (answer == wxYES);
-    SConfig::GetInstance().SaveSettings();
+		SConfig::GetInstance().m_analytics_permission_asked = true;
+		SConfig::GetInstance().m_analytics_enabled = (answer == wxYES);
+		SConfig::GetInstance().SaveSettings();
 
-    DolphinAnalytics::Instance()->ReloadConfig();
-  }
+		DolphinAnalytics::Instance()->ReloadConfig();
+	}
 
-  if (m_confirm_stop)
-  {
-    if (m_confirm_setting.Upper() == "TRUE")
-      SConfig::GetInstance().bConfirmStop = true;
-    else if (m_confirm_setting.Upper() == "FALSE")
-      SConfig::GetInstance().bConfirmStop = false;
-  }
+	if (m_confirm_stop)
+	{
+		if (m_confirm_setting.Upper() == "TRUE")
+			SConfig::GetInstance().bConfirmStop = true;
+		else if (m_confirm_setting.Upper() == "FALSE")
+			SConfig::GetInstance().bConfirmStop = false;
+	}
 
-  if (m_play_movie && !m_movie_file.empty())
-  {
-    if (Movie::PlayInput(WxStrToStr(m_movie_file)))
-    {
-      if (m_load_file && !m_file_to_load.empty())
-      {
-        main_frame->BootGame(WxStrToStr(m_file_to_load));
-      }
-      else
-      {
-        main_frame->BootGame("");
-      }
-    }
-  }
-  // First check if we have an exec command line.
-  else if (m_load_file && !m_file_to_load.empty())
-  {
-    main_frame->BootGame(WxStrToStr(m_file_to_load));
-  }
-  // If we have selected Automatic Start, start the default ISO,
-  // or if no default ISO exists, start the last loaded ISO
-  else if (main_frame->g_pCodeWindow)
-  {
-    if (main_frame->g_pCodeWindow->AutomaticStart())
-    {
-      main_frame->BootGame("");
-    }
-  }
+	if (m_play_movie && !m_movie_file.empty())
+	{
+		if (Movie::PlayInput(WxStrToStr(m_movie_file)))
+		{
+			if (m_load_file && !m_file_to_load.empty())
+			{
+				main_frame->BootGame(WxStrToStr(m_file_to_load));
+			}
+			else
+			{
+				main_frame->BootGame("");
+			}
+		}
+	}
+	// First check if we have an exec command line.
+	else if (m_load_file && !m_file_to_load.empty())
+	{
+		main_frame->BootGame(WxStrToStr(m_file_to_load));
+	}
+	// If we have selected Automatic Start, start the default ISO,
+	// or if no default ISO exists, start the last loaded ISO
+	else if (main_frame->g_pCodeWindow)
+	{
+		if (main_frame->g_pCodeWindow->AutomaticStart())
+		{
+			main_frame->BootGame("");
+		}
+	}
+}
+
+void DolphinApp::OnActivate(wxActivateEvent& ev)
+{
+	m_is_active = ev.GetActive();
 }
 
 void DolphinApp::InitLanguageSupport()
 {
-  unsigned int language = 0;
+	std::string language_code;
+	{
+		IniFile ini;
+		ini.Load(File::GetUserPath(F_DOLPHINCONFIG_IDX));
+		ini.GetOrCreateSection("Interface")->Get("LanguageCode", &language_code, "");
+	}
+	int language = wxLANGUAGE_UNKNOWN;
+	if (language_code.empty())
+	{
+		language = wxLANGUAGE_DEFAULT;
+	}
+	else
+	{
+		const wxLanguageInfo* language_info = wxLocale::FindLanguageInfo(StrToWxStr(language_code));
+		if (language_info)
+			language = language_info->Language;
+	}
 
-  IniFile ini;
-  ini.Load(File::GetUserPath(F_DOLPHINCONFIG_IDX));
-  ini.GetOrCreateSection("Interface")->Get("Language", &language, wxLANGUAGE_DEFAULT);
+	// Load language if possible, fall back to system default otherwise
+	if (wxLocale::IsAvailable(language))
+	{
+		m_locale.reset(new wxLocale(language));
 
-  // Load language if possible, fall back to system default otherwise
-  if (wxLocale::IsAvailable(language))
-  {
-    m_locale.reset(new wxLocale(language));
-
-// Specify where dolphins *.gmo files are located on each operating system
+		// Specify where dolphins *.gmo files are located on each operating system
 #ifdef __WXMSW__
 		m_locale->AddCatalogLookupPathPrefix(StrToWxStr(File::GetExeDirectory() + DIR_SEP "Languages"));
 #elif defined(__WXGTK__)
@@ -328,50 +313,50 @@ void DolphinApp::InitLanguageSupport()
 			StrToWxStr(File::GetBundleDirectory() + "Contents/Resources"));
 #endif
 
-    m_locale->AddCatalog("dolphin-emu");
+		m_locale->AddCatalog("dolphin-emu");
 
-    if (!m_locale->IsOk())
-    {
-      wxMessageBox(_("Error loading selected language. Falling back to system default."),
-                   _("Error"));
-      m_locale.reset(new wxLocale(wxLANGUAGE_DEFAULT));
-    }
-  }
-  else
-  {
-    wxMessageBox(
-        _("The selected language is not supported by your system. Falling back to system default."),
-        _("Error"));
-    m_locale.reset(new wxLocale(wxLANGUAGE_DEFAULT));
-  }
+		if (!m_locale->IsOk())
+		{
+			wxMessageBox(_("Error loading selected language. Falling back to system default."),
+				_("Error"));
+			m_locale.reset(new wxLocale(wxLANGUAGE_DEFAULT));
+		}
+	}
+	else
+	{
+		wxMessageBox(
+			_("The selected language is not supported by your system. Falling back to system default."),
+			_("Error"));
+		m_locale.reset(new wxLocale(wxLANGUAGE_DEFAULT));
+	}
 }
 
 void DolphinApp::OnEndSession(wxCloseEvent& event)
 {
-  // Close if we've received wxEVT_END_SESSION (ignore wxEVT_QUERY_END_SESSION)
-  if (!event.CanVeto())
-  {
-    main_frame->Close(true);
-  }
+	// Close if we've received wxEVT_END_SESSION (ignore wxEVT_QUERY_END_SESSION)
+	if (!event.CanVeto())
+	{
+		main_frame->Close(true);
+	}
 }
 
 int DolphinApp::OnExit()
 {
-  Core::Shutdown();
-  UICommon::Shutdown();
+	Core::Shutdown();
+	UICommon::Shutdown();
 
-  return wxApp::OnExit();
+	return wxApp::OnExit();
 }
 
 void DolphinApp::OnFatalException()
 {
-  WiimoteReal::Shutdown();
+	WiimoteReal::Shutdown();
 }
 
 void DolphinApp::OnIdle(wxIdleEvent& ev)
 {
-  ev.Skip();
-  Core::HostDispatchJobs();
+	ev.Skip();
+	Core::HostDispatchJobs();
 }
 
 // ------------
@@ -380,193 +365,199 @@ void DolphinApp::OnIdle(wxIdleEvent& ev)
 bool wxMsgAlert(const char* caption, const char* text, bool yes_no, int /*Style*/)
 {
 #ifdef __WXGTK__
-  if (wxIsMainThread())
-  {
+	if (wxIsMainThread())
+	{
 #endif
-    NetPlayDialog*& npd = NetPlayDialog::GetInstance();
-    if (npd != nullptr && npd->IsShown())
-    {
-      npd->AppendChat("/!\\ " + std::string{text});
-      return true;
-    }
-    return wxYES == wxMessageBox(StrToWxStr(text), StrToWxStr(caption), (yes_no) ? wxYES_NO : wxOK,
-                                 wxWindow::FindFocus());
+		NetPlayDialog*& npd = NetPlayDialog::GetInstance();
+		if (npd != nullptr && npd->IsShown())
+		{
+			npd->AppendChat("/!\\ " + std::string{ text });
+			return true;
+		}
+		return wxYES == wxMessageBox(StrToWxStr(text), StrToWxStr(caption), (yes_no) ? wxYES_NO : wxOK,
+			wxWindow::FindFocus());
 #ifdef __WXGTK__
-  }
-  else
-  {
-    wxCommandEvent event(wxEVT_HOST_COMMAND, IDM_PANIC);
-    event.SetString(StrToWxStr(caption) + ":" + StrToWxStr(text));
-    event.SetInt(yes_no);
-    main_frame->GetEventHandler()->AddPendingEvent(event);
-    main_frame->panic_event.Wait();
-    return main_frame->bPanicResult;
-  }
+	}
+	else
+	{
+		wxCommandEvent event(wxEVT_HOST_COMMAND, IDM_PANIC);
+		event.SetString(StrToWxStr(caption) + ":" + StrToWxStr(text));
+		event.SetInt(yes_no);
+		main_frame->GetEventHandler()->AddPendingEvent(event);
+		main_frame->panic_event.Wait();
+		return main_frame->bPanicResult;
+	}
 #endif
 }
 
 std::string wxStringTranslator(const char* text)
 {
-  return WxStrToStr(wxGetTranslation(wxString::FromUTF8(text)));
+	return WxStrToStr(wxGetTranslation(wxString::FromUTF8(text)));
 }
 
 // Accessor for the main window class
 CFrame* DolphinApp::GetCFrame()
 {
-  return main_frame;
+	return main_frame;
 }
 
 void Host_Message(int Id)
 {
-  if (Id == WM_USER_JOB_DISPATCH)
-  {
-    // Trigger a wxEVT_IDLE
-    wxWakeUpIdle();
-    return;
-  }
-  wxCommandEvent event(wxEVT_HOST_COMMAND, Id);
-  main_frame->GetEventHandler()->AddPendingEvent(event);
+	if (Id == WM_USER_JOB_DISPATCH)
+	{
+		// Trigger a wxEVT_IDLE
+		wxWakeUpIdle();
+		return;
+	}
+	wxCommandEvent event(wxEVT_HOST_COMMAND, Id);
+	main_frame->GetEventHandler()->AddPendingEvent(event);
 }
 
 void* Host_GetRenderHandle()
 {
-  return main_frame->GetRenderHandle();
+	return main_frame->GetRenderHandle();
 }
 
 // OK, this thread boundary is DANGEROUS on Linux
 // wxPostEvent / wxAddPendingEvent is the solution.
 void Host_NotifyMapLoaded()
 {
-  wxCommandEvent event(wxEVT_HOST_COMMAND, IDM_NOTIFY_MAP_LOADED);
-  main_frame->GetEventHandler()->AddPendingEvent(event);
+	wxCommandEvent event(wxEVT_HOST_COMMAND, IDM_NOTIFY_MAP_LOADED);
+	main_frame->GetEventHandler()->AddPendingEvent(event);
 
-  if (main_frame->g_pCodeWindow)
-  {
-    main_frame->g_pCodeWindow->GetEventHandler()->AddPendingEvent(event);
-  }
+	if (main_frame->g_pCodeWindow)
+	{
+		main_frame->g_pCodeWindow->GetEventHandler()->AddPendingEvent(event);
+	}
 }
 
 void Host_UpdateDisasmDialog()
 {
-  wxCommandEvent event(wxEVT_HOST_COMMAND, IDM_UPDATE_DISASM_DIALOG);
-  main_frame->GetEventHandler()->AddPendingEvent(event);
+	wxCommandEvent event(wxEVT_HOST_COMMAND, IDM_UPDATE_DISASM_DIALOG);
+	main_frame->GetEventHandler()->AddPendingEvent(event);
 
-  if (main_frame->g_pCodeWindow)
-  {
-    main_frame->g_pCodeWindow->GetEventHandler()->AddPendingEvent(event);
-  }
+	if (main_frame->g_pCodeWindow)
+	{
+		main_frame->g_pCodeWindow->GetEventHandler()->AddPendingEvent(event);
+	}
 }
 
 void Host_UpdateMainFrame()
 {
-  wxCommandEvent event(wxEVT_HOST_COMMAND, IDM_UPDATE_GUI);
-  main_frame->GetEventHandler()->AddPendingEvent(event);
+	wxCommandEvent event(wxEVT_HOST_COMMAND, IDM_UPDATE_GUI);
+	main_frame->GetEventHandler()->AddPendingEvent(event);
 
-  if (main_frame->g_pCodeWindow)
-  {
-    main_frame->g_pCodeWindow->GetEventHandler()->AddPendingEvent(event);
-  }
+	if (main_frame->g_pCodeWindow)
+	{
+		main_frame->g_pCodeWindow->GetEventHandler()->AddPendingEvent(event);
+	}
 }
 
 void Host_UpdateTitle(const std::string& title)
 {
-  wxCommandEvent event(wxEVT_HOST_COMMAND, IDM_UPDATE_TITLE);
-  event.SetString(StrToWxStr(title));
-  main_frame->GetEventHandler()->AddPendingEvent(event);
+	wxCommandEvent event(wxEVT_HOST_COMMAND, IDM_UPDATE_TITLE);
+	event.SetString(StrToWxStr(title));
+	main_frame->GetEventHandler()->AddPendingEvent(event);
 }
 
 void Host_RequestRenderWindowSize(int width, int height)
 {
-  wxCommandEvent event(wxEVT_HOST_COMMAND, IDM_WINDOW_SIZE_REQUEST);
-  event.SetClientData(new std::pair<int, int>(width, height));
-  main_frame->GetEventHandler()->AddPendingEvent(event);
+	wxCommandEvent event(wxEVT_HOST_COMMAND, IDM_WINDOW_SIZE_REQUEST);
+	event.SetClientData(new std::pair<int, int>(width, height));
+	main_frame->GetEventHandler()->AddPendingEvent(event);
 }
 
 void Host_SetStartupDebuggingParameters()
 {
-  SConfig& StartUp = SConfig::GetInstance();
-  if (main_frame->g_pCodeWindow)
-  {
-    StartUp.bBootToPause = main_frame->g_pCodeWindow->BootToPause();
-    StartUp.bAutomaticStart = main_frame->g_pCodeWindow->AutomaticStart();
-    StartUp.bJITNoBlockCache = main_frame->g_pCodeWindow->JITNoBlockCache();
-    StartUp.bJITNoBlockLinking = main_frame->g_pCodeWindow->JITNoBlockLinking();
-  }
-  else
-  {
-    StartUp.bBootToPause = false;
-  }
-  StartUp.bEnableDebugging = main_frame->g_pCodeWindow ? true : false;  // RUNNING_DEBUG
+	SConfig& StartUp = SConfig::GetInstance();
+	if (main_frame->g_pCodeWindow)
+	{
+		StartUp.bBootToPause = main_frame->g_pCodeWindow->BootToPause();
+		StartUp.bAutomaticStart = main_frame->g_pCodeWindow->AutomaticStart();
+		StartUp.bJITNoBlockCache = main_frame->g_pCodeWindow->JITNoBlockCache();
+		StartUp.bJITNoBlockLinking = main_frame->g_pCodeWindow->JITNoBlockLinking();
+	}
+	else
+	{
+		StartUp.bBootToPause = false;
+	}
+	StartUp.bEnableDebugging = main_frame->g_pCodeWindow ? true : false;  // RUNNING_DEBUG
 }
 
 void Host_SetWiiMoteConnectionState(int _State)
 {
-  static int currentState = -1;
-  if (_State == currentState)
-    return;
-  currentState = _State;
+	static int currentState = -1;
+	if (_State == currentState)
+		return;
+	currentState = _State;
 
-  wxCommandEvent event(wxEVT_HOST_COMMAND, IDM_UPDATE_STATUS_BAR);
+	wxCommandEvent event(wxEVT_HOST_COMMAND, IDM_UPDATE_STATUS_BAR);
 
-  switch (_State)
-  {
-  case 0:
-    event.SetString(_("Not connected"));
-    break;
-  case 1:
-    event.SetString(_("Connecting..."));
-    break;
-  case 2:
-    event.SetString(_("Wiimote Connected"));
-    break;
-  }
-  // Update field 1 or 2
-  event.SetInt(1);
+	switch (_State)
+	{
+	case 0:
+		event.SetString(_("Not connected"));
+		break;
+	case 1:
+		event.SetString(_("Connecting..."));
+		break;
+	case 2:
+		event.SetString(_("Wii Remote Connected"));
+		break;
+	}
+	// Update field 1 or 2
+	event.SetInt(1);
 
-  NOTICE_LOG(WIIMOTE, "%s", static_cast<const char*>(event.GetString().c_str()));
+	NOTICE_LOG(WIIMOTE, "%s", static_cast<const char*>(event.GetString().c_str()));
 
-  main_frame->GetEventHandler()->AddPendingEvent(event);
+	main_frame->GetEventHandler()->AddPendingEvent(event);
 }
 
 bool Host_UIHasFocus()
 {
-  return main_frame->UIHasFocus();
+	return wxGetApp().IsActiveThreadsafe();
 }
 
 bool Host_RendererHasFocus()
 {
-  return main_frame->RendererHasFocus();
+	return main_frame->RendererHasFocus();
 }
 
 bool Host_RendererIsFullscreen()
 {
-  return main_frame->RendererIsFullscreen();
+	return main_frame->RendererIsFullscreen();
 }
 
 void Host_ConnectWiimote(int wm_idx, bool connect)
 {
-  if (connect)
-  {
-    wxCommandEvent event(wxEVT_HOST_COMMAND, IDM_FORCE_CONNECT_WIIMOTE1 + wm_idx);
-    main_frame->GetEventHandler()->AddPendingEvent(event);
-  }
-  else
-  {
-    wxCommandEvent event(wxEVT_HOST_COMMAND, IDM_FORCE_DISCONNECT_WIIMOTE1 + wm_idx);
-    main_frame->GetEventHandler()->AddPendingEvent(event);
-  }
+	std::lock_guard<std::mutex> lk(s_init_mutex);
+	if (connect)
+	{
+		wxCommandEvent event(wxEVT_HOST_COMMAND, IDM_FORCE_CONNECT_WIIMOTE1 + wm_idx);
+		main_frame->GetEventHandler()->AddPendingEvent(event);
+	}
+	else
+	{
+		wxCommandEvent event(wxEVT_HOST_COMMAND, IDM_FORCE_DISCONNECT_WIIMOTE1 + wm_idx);
+		main_frame->GetEventHandler()->AddPendingEvent(event);
+	}
 }
 
 void Host_ShowVideoConfig(void* parent, const std::string& backend_name)
 {
-  if (backend_name == "Software Renderer")
-  {
-    SoftwareVideoConfigDialog diag((wxWindow*)parent, backend_name);
-    diag.ShowModal();
-  }
-  else
-  {
-    VideoConfigDiag diag((wxWindow*)parent, backend_name);
-    diag.ShowModal();
-  }
+	if (backend_name == "Software Renderer")
+	{
+		SoftwareVideoConfigDialog diag((wxWindow*)parent, backend_name);
+		diag.ShowModal();
+	}
+	else
+	{
+		VideoConfigDiag diag((wxWindow*)parent, backend_name);
+		diag.ShowModal();
+	}
+}
+
+void Host_YieldToUI()
+{
+	wxGetApp().GetMainLoop()->YieldFor(wxEVT_CATEGORY_UI);
 }

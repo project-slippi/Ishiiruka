@@ -11,6 +11,7 @@ class cInterfaceEGLAndroid : public cInterfaceEGL
 {
 protected:
 	EGLDisplay OpenDisplay() override;
-	EGLNativeWindowType InitializePlatform(EGLNativeWindowType host_window, EGLConfig config) override;
+	EGLNativeWindowType InitializePlatform(EGLNativeWindowType host_window,
+		EGLConfig config) override;
 	void ShutdownPlatform() override;
 };

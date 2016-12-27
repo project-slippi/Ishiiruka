@@ -1,7 +1,8 @@
 set(GUI_SRCS
-	ARCodeAddEdit.cpp
 	AboutDolphin.cpp
 	ControllerConfigDiag.cpp
+	Cheats/ActionReplayCodesPanel.cpp
+	Cheats/ARCodeAddEdit.cpp
 	Cheats/CheatSearchTab.cpp
 	Cheats/CheatsWindow.cpp
 	Cheats/CreateCodeDialog.cpp
@@ -33,29 +34,46 @@ set(GUI_SRCS
 	Debugger/RegisterWindow.cpp
 	Debugger/WatchView.cpp
 	Debugger/WatchWindow.cpp
+	ISOProperties/FilesystemPanel.cpp
+	ISOProperties/InfoPanel.cpp
+	ISOProperties/ISOProperties.cpp
 	NetPlay/ChangeGameDialog.cpp
 	NetPlay/MD5Dialog.cpp
+	NetPlay/NetPlayLauncher.cpp
 	NetPlay/NetPlaySetupFrame.cpp
 	NetPlay/NetWindow.cpp
 	NetPlay/PadMapDialog.cpp
+	Input/InputConfigDiag.cpp
+	Input/InputConfigDiagBitmaps.cpp
+	Input/HotkeyInputConfigDiag.cpp
+	Input/GCPadInputConfigDiag.cpp
+	Input/MicButtonConfigDiag.cpp
+	Input/GCKeyboardInputConfigDiag.cpp
+	Input/WiimoteInputConfigDiag.cpp
+	Input/NunchukInputConfigDiag.cpp
+	Input/ClassicInputConfigDiag.cpp
+	Input/GuitarInputConfigDiag.cpp
+	Input/DrumsInputConfigDiag.cpp
+	Input/TurntableInputConfigDiag.cpp
+	DolphinSlider.cpp
 	FifoPlayerDlg.cpp
 	Frame.cpp
 	FrameAui.cpp
 	FrameTools.cpp
 	GameListCtrl.cpp
 	ISOFile.cpp
-	ISOProperties.cpp
-	InputConfigDiag.cpp
-	InputConfigDiagBitmaps.cpp
 	LogConfigWindow.cpp
 	LogWindow.cpp
 	Main.cpp
+	MainMenuBar.cpp
+	MainToolBar.cpp
 	MemcardManager.cpp
 	PatchAddEdit.cpp
 	PostProcessingConfigDiag.cpp
 	SoftwareVideoConfigDialog.cpp
 	TASInputDlg.cpp
 	VideoConfigDiag.cpp
+	WxEventUtils.cpp
 	WXInputBase.cpp
 	WxUtils.cpp)
 
@@ -128,7 +146,13 @@ if(wxWidgets_FOUND)
 				message(\"(Note: This is only necessary to produce a redistributable binary.\")
 				message(\"To skip, pass -DSKIP_POSTPROCESS_BUNDLE=1 to cmake.)\")
 				set(BU_CHMOD_BUNDLE_ITEMS ON)
-				execute_process(COMMAND ${CMAKE_SOURCE_DIR}/Tools/deploy-mac.py \"${BUNDLE_PATH}\")
+				execute_process(
+					COMMAND ${CMAKE_SOURCE_DIR}/Tools/deploy-mac.py \"${BUNDLE_PATH}\"
+					RESULT_VARIABLE retcode
+				)
+				if(NOT \${retcode} EQUAL 0)
+					message(FATAL_ERROR \"Error when postprocessing bundle (return code: \${retcode}).\")
+				endif()
 				file(INSTALL \"${CMAKE_SOURCE_DIR}/Data/Sys\"
 					DESTINATION \"${BUNDLE_PATH}/Contents/Resources\"
 					)

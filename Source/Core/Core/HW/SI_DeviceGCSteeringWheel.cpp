@@ -52,9 +52,9 @@ bool CSIDevice_GCSteeringWheel::GetData(u32& _Hi, u32& _Low)
 		_Low = (u8)PadStatus.triggerRight;              // All 8 bits
 		_Low |= (u32)((u8)PadStatus.triggerLeft << 8);  // All 8 bits
 
-		// The GC Steering Wheel appears to have combined pedals
-		// (both the Accelerate and Brake pedals are mapped to a single axis)
-		// We use the stickY axis for the pedals.
+																										// The GC Steering Wheel appears to have combined pedals
+																										// (both the Accelerate and Brake pedals are mapped to a single axis)
+																										// We use the stickY axis for the pedals.
 		if (PadStatus.stickY < 128)
 			_Low |= (u32)((u8)(255 - ((PadStatus.stickY & 0x7f) * 2)) << 16);  // All 8 bits (Brake)
 		if (PadStatus.stickY >= 128)
@@ -81,8 +81,8 @@ void CSIDevice_GCSteeringWheel::SendCommand(u32 _Cmd, u8 _Poll)
 			.Parameter1;  // 0 = left strong, 127 = left weak, 128 = right weak, 255 = right strong
 		unsigned int uType = command.Parameter2;  // 06 = motor on, 04 = motor off
 
-		// get the correct pad number that should rumble locally when using netplay
-		const u8 numPAD = NetPlay_InGamePadToLocalPad(ISIDevice::m_iDeviceNumber);
+																							// get the correct pad number that should rumble locally when using netplay
+		const int numPAD = NetPlay_InGamePadToLocalPad(ISIDevice::m_iDeviceNumber);
 
 		if (numPAD < 4)
 		{

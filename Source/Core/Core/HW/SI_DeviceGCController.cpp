@@ -140,18 +140,17 @@ void CSIDevice_GCController::HandleMoviePadStatus(GCPadStatus* PadStatus)
 
 GCPadStatus CSIDevice_GCController::GetPadStatus()
 {
-	GCPadStatus PadStatus;
-	memset(&PadStatus, 0, sizeof(PadStatus));
+	GCPadStatus pad_status = {};
 
 	// For netplay, the local controllers are polled in GetNetPads(), and
 	// the remote controllers receive their status there as well
 	if (!NetPlay::IsNetPlayRunning())
 	{
-		Pad::GetStatus(ISIDevice::m_iDeviceNumber, &PadStatus);
+		pad_status = Pad::GetStatus(m_iDeviceNumber);
 	}
 
-	HandleMoviePadStatus(&PadStatus);
-	return PadStatus;
+	HandleMoviePadStatus(&pad_status);
+	return pad_status;
 }
 
 // GetData
@@ -208,7 +207,7 @@ bool CSIDevice_GCController::GetData(u32& _Hi, u32& _Low)
 	{
 		_Low = (u8)(PadStatus.analogB);               // All 8 bits
 		_Low |= (u32)((u8)(PadStatus.analogA) << 8);  // All 8 bits
-		// triggerLeft/Right are always 0
+																									// triggerLeft/Right are always 0
 		_Low |= (u32)((u8)PadStatus.substickY << 16);  // All 8 bits
 		_Low |= (u32)((u8)PadStatus.substickX << 24);  // All 8 bits
 	}
@@ -290,7 +289,7 @@ void CSIDevice_GCController::SendCommand(u32 _Cmd, u8 _Poll)
 		unsigned int uStrength = command.Parameter2;
 
 		// get the correct pad number that should rumble locally when using netplay
-		const u8 numPAD = NetPlay_InGamePadToLocalPad(ISIDevice::m_iDeviceNumber);
+		const int numPAD = NetPlay_InGamePadToLocalPad(ISIDevice::m_iDeviceNumber);
 
 		if (numPAD < 4)
 		{

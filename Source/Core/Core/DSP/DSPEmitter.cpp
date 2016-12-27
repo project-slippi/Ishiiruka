@@ -33,7 +33,7 @@ DSPEmitter::DSPEmitter() : gpr(*this), storeIndex(-1), storeIndex2(-1)
 	CompileDispatcher();
 	stubEntryPoint = CompileStub();
 
-	//clear all of the block references
+	// clear all of the block references
 	for (int i = 0x0000; i < MAX_BLOCKS; i++)
 	{
 		blocks[i] = (DSPCompiledCode)stubEntryPoint;
@@ -78,7 +78,6 @@ void DSPEmitter::ClearIRAMandDSPJITCodespaceReset()
 	g_dsp.reset_dspjit_codespace = false;
 }
 
-
 // Must go out of block if exception is detected
 void DSPEmitter::checkExceptions(u32 retval)
 {
@@ -90,7 +89,7 @@ void DSPEmitter::checkExceptions(u32 retval)
 
 	DSPJitRegCache c(gpr);
 	gpr.SaveRegs();
-	ABI_CallFunction((void *)&DSPCore_CheckExceptions);
+	ABI_CallFunction(DSPCore_CheckExceptions);
 	MOV(32, R(EAX), Imm32(retval));
 	JMP(returnDispatcher, true);
 	gpr.LoadRegs(false);
@@ -112,7 +111,8 @@ void DSPEmitter::FallBackToInterpreter(UDSPInstruction inst)
 {
 	if (opTable[inst]->reads_pc)
 	{
-		// Increment PC - we shouldn't need to do this for every instruction. only for branches and end of block.
+		// Increment PC - we shouldn't need to do this for every instruction. only for branches and end
+		// of block.
 		// Fallbacks to interpreter need this for fetching immediate values
 
 		MOV(16, M(&(g_dsp.pc)), Imm16(compilePC + 1));
@@ -121,13 +121,13 @@ void DSPEmitter::FallBackToInterpreter(UDSPInstruction inst)
 	// Fall back to interpreter
 	gpr.PushRegs();
 	_assert_msg_(DSPLLE, opTable[inst]->intFunc, "No function for %04x", inst);
-	ABI_CallFunctionC16((void*)opTable[inst]->intFunc, inst);
+	ABI_CallFunctionC16(opTable[inst]->intFunc, inst);
 	gpr.PopRegs();
 }
 
 void DSPEmitter::EmitInstruction(UDSPInstruction inst)
 {
-	const DSPOPCTemplate *tinst = GetOpTemplate(inst);
+	const DSPOPCTemplate* tinst = GetOpTemplate(inst);
 	bool ext_is_jit = false;
 
 	// Call extended
@@ -139,9 +139,9 @@ void DSPEmitter::EmitInstruction(UDSPInstruction inst)
 			{
 				// Fall back to interpreter
 				gpr.PushRegs();
-				ABI_CallFunctionC16((void*)extOpTable[inst & 0x7F]->intFunc, inst);
+				ABI_CallFunctionC16(extOpTable[inst & 0x7F]->intFunc, inst);
 				gpr.PopRegs();
-				INFO_LOG(DSPLLE, "Instruction not JITed(ext part): %04x\n", inst);
+				INFO_LOG(DSPLLE, "Instruction not JITed(ext part): %04x", inst);
 				ext_is_jit = false;
 			}
 			else
@@ -156,9 +156,9 @@ void DSPEmitter::EmitInstruction(UDSPInstruction inst)
 			{
 				// Fall back to interpreter
 				gpr.PushRegs();
-				ABI_CallFunctionC16((void*)extOpTable[inst & 0xFF]->intFunc, inst);
+				ABI_CallFunctionC16(extOpTable[inst & 0xFF]->intFunc, inst);
 				gpr.PopRegs();
-				INFO_LOG(DSPLLE, "Instruction not JITed(ext part): %04x\n", inst);
+				INFO_LOG(DSPLLE, "Instruction not JITed(ext part): %04x", inst);
 				ext_is_jit = false;
 			}
 			else
@@ -173,7 +173,7 @@ void DSPEmitter::EmitInstruction(UDSPInstruction inst)
 	if (!opTable[inst]->jitFunc)
 	{
 		FallBackToInterpreter(inst);
-		INFO_LOG(DSPLLE, "Instruction not JITed(main part): %04x\n", inst);
+		INFO_LOG(DSPLLE, "Instruction not JITed(main part): %04x", inst);
 	}
 	else
 	{
@@ -185,10 +185,10 @@ void DSPEmitter::EmitInstruction(UDSPInstruction inst)
 	{
 		if (!ext_is_jit)
 		{
-			//need to call the online cleanup function because
-			//the writeBackLog gets populated at runtime
+			// need to call the online cleanup function because
+			// the writeBackLog gets populated at runtime
 			gpr.PushRegs();
-			ABI_CallFunction((void*)::applyWriteBackLog);
+			ABI_CallFunction(::applyWriteBackLog);
 			gpr.PopRegs();
 		}
 		else
@@ -204,7 +204,7 @@ void DSPEmitter::Compile(u16 start_addr)
 	startAddr = start_addr;
 	unresolvedJumps[start_addr].clear();
 
-	const u8 *entryPoint = AlignCode16();
+	const u8* entryPoint = AlignCode16();
 
 	/*
 	// Check for other exceptions
@@ -229,7 +229,7 @@ void DSPEmitter::Compile(u16 start_addr)
 			checkExceptions(blockSize[start_addr]);
 
 		UDSPInstruction inst = dsp_imem_read(compilePC);
-		const DSPOPCTemplate *opcode = GetOpTemplate(inst);
+		const DSPOPCTemplate* opcode = GetOpTemplate(inst);
 
 		EmitInstruction(inst);
 
@@ -255,7 +255,7 @@ void DSPEmitter::Compile(u16 start_addr)
 
 			if (!opcode->branch)
 			{
-				//branch insns update the g_dsp.pc
+				// branch insns update the g_dsp.pc
 				MOV(16, M(&(g_dsp.pc)), Imm16(compilePC));
 			}
 
@@ -282,7 +282,7 @@ void DSPEmitter::Compile(u16 start_addr)
 
 		if (opcode->branch)
 		{
-			//don't update g_dsp.pc -- the branch insn already did
+			// don't update g_dsp.pc -- the branch insn already did
 			fixup_pc = false;
 			if (opcode->uncond_branch)
 			{
@@ -290,15 +290,16 @@ void DSPEmitter::Compile(u16 start_addr)
 			}
 			else if (!opcode->jitFunc)
 			{
-				//look at g_dsp.pc if we actually branched
+				// look at g_dsp.pc if we actually branched
 				MOV(16, R(AX), M(&g_dsp.pc));
 				CMP(16, R(AX), Imm16(compilePC));
 				FixupBranch rNoBranch = J_CC(CC_Z, true);
 
 				DSPJitRegCache c(gpr);
-				//don't update g_dsp.pc -- the branch insn already did
+				// don't update g_dsp.pc -- the branch insn already did
 				gpr.SaveRegs();
-				if (!DSPHost::OnThread() && DSPAnalyzer::code_flags[start_addr] & DSPAnalyzer::CODE_IDLE_SKIP)
+				if (!DSPHost::OnThread() &&
+					DSPAnalyzer::code_flags[start_addr] & DSPAnalyzer::CODE_IDLE_SKIP)
 				{
 					MOV(16, R(EAX), Imm16(DSP_IDLE_SKIP_CYCLES));
 				}
@@ -372,11 +373,11 @@ void DSPEmitter::Compile(u16 start_addr)
 	JMP(returnDispatcher, true);
 }
 
-const u8 *DSPEmitter::CompileStub()
+const u8* DSPEmitter::CompileStub()
 {
-	const u8 *entryPoint = AlignCode16();
-	ABI_CallFunction((void *)&CompileCurrent);
-	XOR(32, R(EAX), R(EAX)); // Return 0 cycles executed
+	const u8* entryPoint = AlignCode16();
+	ABI_CallFunction(CompileCurrent);
+	XOR(32, R(EAX), R(EAX));  // Return 0 cycles executed
 	JMP(returnDispatcher);
 	return entryPoint;
 }
@@ -388,7 +389,7 @@ void DSPEmitter::CompileDispatcher()
 	BitSet32 registers_used = ABI_ALL_CALLEE_SAVED & BitSet32(0xffff);
 	ABI_PushRegistersAndAdjustStack(registers_used, 8);
 
-	const u8 *dispatcherLoop = GetCodePtr();
+	const u8* dispatcherLoop = GetCodePtr();
 
 	FixupBranch exceptionExit;
 	if (DSPHost::OnThread())
@@ -400,7 +401,6 @@ void DSPEmitter::CompileDispatcher()
 	// Check for DSP halt
 	TEST(8, M(&g_dsp.cr), Imm8(CR_HALT));
 	FixupBranch _halt = J_CC(CC_NE);
-
 
 	// Execute block. Cycles executed returned in EAX.
 	MOVZX(64, 16, ECX, M(&g_dsp.pc));
@@ -420,7 +420,7 @@ void DSPEmitter::CompileDispatcher()
 	{
 		SetJumpTarget(exceptionExit);
 	}
-	//MOV(32, M(&cyclesLeft), Imm32(0));
+	// MOV(32, M(&cyclesLeft), Imm32(0));
 	ABI_PopRegistersAndAdjustStack(registers_used, 8);
 	RET();
 }

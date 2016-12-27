@@ -23,11 +23,9 @@ InputConfig* GetConfig()
 void Shutdown()
 {
 	s_config.ClearControllers();
-
-	g_controller_interface.Shutdown();
 }
 
-void Initialize(void* const hwnd)
+void Initialize()
 {
 	if (s_config.ControllersNeedToBeCreated())
 	{
@@ -35,7 +33,7 @@ void Initialize(void* const hwnd)
 			s_config.CreateController<GCKeyboard>(i);
 	}
 
-	g_controller_interface.Initialize(hwnd);
+	g_controller_interface.RegisterHotplugCallback(LoadConfig);
 
 	// Load the saved controller config
 	s_config.LoadConfig(true);
@@ -46,12 +44,13 @@ void LoadConfig()
 	s_config.LoadConfig(true);
 }
 
-void GetStatus(u8 port, KeyboardStatus* keyboard_status)
+ControllerEmu::ControlGroup* GetGroup(int port, KeyboardGroup group)
 {
-	memset(keyboard_status, 0, sizeof(*keyboard_status));
-	keyboard_status->err = PAD_ERR_NONE;
+	return static_cast<GCKeyboard*>(s_config.GetController(port))->GetGroup(group);
+}
 
-	// Get input
-	static_cast<GCKeyboard*>(s_config.GetController(port))->GetInput(keyboard_status);
+KeyboardStatus GetStatus(int port)
+{
+	return static_cast<GCKeyboard*>(s_config.GetController(port))->GetInput();
 }
 }

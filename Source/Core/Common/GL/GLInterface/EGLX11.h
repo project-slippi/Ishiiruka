@@ -13,9 +13,11 @@ class cInterfaceEGLX11 : public cInterfaceEGL
 {
 private:
 	cX11Window XWindow;
-	Display *dpy;
+	Display* dpy;
+
 protected:
 	EGLDisplay OpenDisplay() override;
-	EGLNativeWindowType InitializePlatform(EGLNativeWindowType host_window, EGLConfig config) override;
+	EGLNativeWindowType InitializePlatform(EGLNativeWindowType host_window,
+		EGLConfig config) override;
 	void ShutdownPlatform() override;
 };

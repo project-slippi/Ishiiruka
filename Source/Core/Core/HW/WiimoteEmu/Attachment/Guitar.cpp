@@ -2,6 +2,7 @@
 // Licensed under GPLv2+
 // Refer to the license.txt file included.
 
+#include <cassert>
 #include <cstring>
 
 #include "Common/Common.h"
@@ -14,20 +15,20 @@ namespace WiimoteEmu
 static const u8 guitar_id[] = { 0x00, 0x00, 0xa4, 0x20, 0x01, 0x03 };
 
 static const u16 guitar_fret_bitmasks[] = {
-		Guitar::FRET_GREEN, Guitar::FRET_RED,    Guitar::FRET_YELLOW,
-		Guitar::FRET_BLUE,  Guitar::FRET_ORANGE,
+	Guitar::FRET_GREEN, Guitar::FRET_RED,    Guitar::FRET_YELLOW,
+	Guitar::FRET_BLUE,  Guitar::FRET_ORANGE,
 };
 
 static const char* const guitar_fret_names[] = {
-		"Green", "Red", "Yellow", "Blue", "Orange",
+	"Green", "Red", "Yellow", "Blue", "Orange",
 };
 
 static const u16 guitar_button_bitmasks[] = {
-		Guitar::BUTTON_MINUS, Guitar::BUTTON_PLUS,
+	Guitar::BUTTON_MINUS, Guitar::BUTTON_PLUS,
 };
 
 static const u16 guitar_strum_bitmasks[] = {
-		Guitar::BAR_UP, Guitar::BAR_DOWN,
+	Guitar::BAR_UP, Guitar::BAR_DOWN,
 };
 
 Guitar::Guitar(WiimoteEmu::ExtensionReg& _reg) : Attachment(_trans("Guitar"), _reg)
@@ -78,7 +79,7 @@ void Guitar::GetState(u8* const data)
 	// TODO: touch bar, probably not
 	gdata->tb = 0x0F;  // not touched
 
-	// whammy bar
+										 // whammy bar
 	ControlState whammy;
 	m_whammy->GetState(&whammy);
 	gdata->whammy = static_cast<u8>(whammy * 0x1F);
@@ -101,5 +102,25 @@ bool Guitar::IsButtonPressed() const
 	m_frets->GetState(&buttons, guitar_fret_bitmasks);
 	m_strum->GetState(&buttons, guitar_strum_bitmasks);
 	return buttons != 0;
+}
+
+ControllerEmu::ControlGroup* Guitar::GetGroup(GuitarGroup group)
+{
+	switch (group)
+	{
+	case GuitarGroup::Buttons:
+		return m_buttons;
+	case GuitarGroup::Frets:
+		return m_frets;
+	case GuitarGroup::Strum:
+		return m_strum;
+	case GuitarGroup::Whammy:
+		return m_whammy;
+	case GuitarGroup::Stick:
+		return m_stick;
+	default:
+		assert(false);
+		return nullptr;
+	}
 }
 }

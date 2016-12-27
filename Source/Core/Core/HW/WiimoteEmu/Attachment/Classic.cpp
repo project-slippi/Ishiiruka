@@ -2,6 +2,7 @@
 // Licensed under GPLv2+
 // Refer to the license.txt file included.
 
+#include <cassert>
 #include <cstring>
 
 #include "Common/Common.h"
@@ -14,30 +15,30 @@ namespace WiimoteEmu
 static const u8 classic_id[] = { 0x00, 0x00, 0xa4, 0x20, 0x01, 0x01 };
 /* Classic Controller calibration */
 static const u8 classic_calibration[] = { 0xff, 0x00, 0x80, 0xff, 0x00, 0x80, 0xff, 0x00,
-																				 0x80, 0xff, 0x00, 0x80, 0x00, 0x00, 0x51, 0xa6 };
+0x80, 0xff, 0x00, 0x80, 0x00, 0x00, 0x51, 0xa6 };
 
 static const u16 classic_button_bitmasks[] = {
-		Classic::BUTTON_A,     Classic::BUTTON_B,    Classic::BUTTON_X, Classic::BUTTON_Y,
+	Classic::BUTTON_A,     Classic::BUTTON_B,    Classic::BUTTON_X, Classic::BUTTON_Y,
 
-		Classic::BUTTON_ZL,    Classic::BUTTON_ZR,
+	Classic::BUTTON_ZL,    Classic::BUTTON_ZR,
 
-		Classic::BUTTON_MINUS, Classic::BUTTON_PLUS,
+	Classic::BUTTON_MINUS, Classic::BUTTON_PLUS,
 
-		Classic::BUTTON_HOME,
+	Classic::BUTTON_HOME,
 };
 
 static const char* const classic_button_names[] = {
-		"A", "B", "X", "Y", "ZL", "ZR", "-", "+", "Home",
+	"A", "B", "X", "Y", "ZL", "ZR", "-", "+", "Home",
 };
 
 static const u16 classic_trigger_bitmasks[] = {
-		Classic::TRIGGER_L, Classic::TRIGGER_R,
+	Classic::TRIGGER_L, Classic::TRIGGER_R,
 };
 
 static const char* const classic_trigger_names[] = { "L", "R", "L-Analog", "R-Analog" };
 
 static const u16 classic_dpad_bitmasks[] = { Classic::PAD_UP, Classic::PAD_DOWN, Classic::PAD_LEFT,
-																						Classic::PAD_RIGHT };
+Classic::PAD_RIGHT };
 
 Classic::Classic(WiimoteEmu::ExtensionReg& _reg) : Attachment(_trans("Classic"), _reg)
 {
@@ -133,5 +134,25 @@ bool Classic::IsButtonPressed() const
 	m_dpad->GetState(&buttons, classic_dpad_bitmasks);
 	m_triggers->GetState(&buttons, classic_trigger_bitmasks, trigs);
 	return buttons != 0;
+}
+
+ControllerEmu::ControlGroup* Classic::GetGroup(ClassicGroup group)
+{
+	switch (group)
+	{
+	case ClassicGroup::Buttons:
+		return m_buttons;
+	case ClassicGroup::Triggers:
+		return m_triggers;
+	case ClassicGroup::DPad:
+		return m_dpad;
+	case ClassicGroup::LeftStick:
+		return m_left_stick;
+	case ClassicGroup::RightStick:
+		return m_right_stick;
+	default:
+		assert(false);
+		return nullptr;
+	}
 }
 }

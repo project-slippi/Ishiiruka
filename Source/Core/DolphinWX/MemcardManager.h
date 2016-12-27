@@ -41,13 +41,13 @@ private:
 	wxButton* m_NextPage[2];
 	wxButton* m_PrevPage[2];
 	wxButton* m_ConvertToGci;
-	wxFilePickerCtrl *m_MemcardPath[2];
-	wxStaticText *t_Status[2];
+	wxFilePickerCtrl* m_MemcardPath[2];
+	wxStaticText* t_Status[2];
 
 	enum
 	{
-		ID_COPYFROM_A = 1000, // Do not rearrange these items,
-		ID_COPYFROM_B,        // ID_..._B must be 1 more than ID_..._A
+		ID_COPYFROM_A = 1000,  // Do not rearrange these items,
+		ID_COPYFROM_B,         // ID_..._B must be 1 more than ID_..._A
 		ID_FIXCHECKSUM_A,
 		ID_FIXCHECKSUM_B,
 		ID_DELETE_A,
@@ -68,7 +68,7 @@ private:
 		ID_MEMCARDPATH_A,
 		ID_MEMCARDPATH_B,
 		ID_USEPAGES,
-		ID_DUMMY_VALUE_ //don't remove this value unless you have other enum values
+		ID_DUMMY_VALUE_  // don't remove this value unless you have other enum values
 	};
 
 	enum
@@ -93,7 +93,7 @@ private:
 		NUMBER_OF_COLUMN
 	};
 
-	GCMemcard *memoryCard[2];
+	GCMemcard* memoryCard[2];
 
 	void CreateGUIControls();
 	void CopyDeleteClick(wxCommandEvent& event);
@@ -116,24 +116,21 @@ private:
 	class CMemcardListCtrl : public wxListCtrl
 	{
 	public:
-		CMemcardListCtrl(wxWindow* parent, const wxWindowID id,
-			const wxPoint& pos, const wxSize& size,
+		CMemcardListCtrl(wxWindow* parent, const wxWindowID id, const wxPoint& pos, const wxSize& size,
 			long style, _mcmSettings& _mcmSetngs)
-			: wxListCtrl(parent, id, pos, size, style)
-			, __mcmSettings(_mcmSetngs)
+			: wxListCtrl(parent, id, pos, size, style), __mcmSettings(_mcmSetngs)
 		{
 			Bind(wxEVT_RIGHT_DOWN, &CMemcardListCtrl::OnRightClick, this);
 		}
-		~CMemcardListCtrl()
-		{
-			Unbind(wxEVT_RIGHT_DOWN, &CMemcardListCtrl::OnRightClick, this);
-		}
-		_mcmSettings & __mcmSettings;
+		~CMemcardListCtrl() { Unbind(wxEVT_RIGHT_DOWN, &CMemcardListCtrl::OnRightClick, this); }
+		_mcmSettings& __mcmSettings;
 		bool prevPage;
 		bool nextPage;
+
 	private:
 		void OnRightClick(wxMouseEvent& event);
 	};
 
-	CMemcardListCtrl *m_MemcardList[2];
+	wxSize m_image_list_size;
+	CMemcardListCtrl* m_MemcardList[2];
 };

@@ -22,15 +22,15 @@ void UpdateWantDeterminism(bool want);
 bool UseDeterministicGPUThread();
 
 // Used for diagnostics.
-enum SyncGPUReason
+enum class SyncGPUReason
 {
-	SYNC_GPU_OTHER,
-	SYNC_GPU_WRAPAROUND,
-	SYNC_GPU_EFB_POKE,
-	SYNC_GPU_PERFQUERY,
-	SYNC_GPU_BBOX,
-	SYNC_GPU_SWAP,
-	SYNC_GPU_AUX_SPACE,
+	Other,
+	Wraparound,
+	EFBPoke,
+	PerfQuery,
+	BBox,
+	Swap,
+	AuxSpace,
 };
 
 // In deterministic GPU thread mode this waits for the GPU to be done with pending work.
@@ -47,7 +47,5 @@ void ExitGpuLoop();
 void EmulatorState(bool running);
 bool AtBreakpoint();
 void ResetVideoBuffer();
-void SetRendering(bool bEnabled);
-bool WillSkipCurrentFrame();
 
 } // namespace Fifo

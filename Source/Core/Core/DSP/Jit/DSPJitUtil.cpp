@@ -8,48 +8,51 @@
 
 using namespace Gen;
 
-//clobbers:
-//EAX = (s8)g_dsp.reg_stack_ptr[stack_reg]
-//expects:
+// clobbers:
+// EAX = (s8)g_dsp.reg_stack_ptr[stack_reg]
+// expects:
 void DSPEmitter::dsp_reg_stack_push(int stack_reg)
 {
-	//g_dsp.reg_stack_ptr[stack_reg]++;
-	//g_dsp.reg_stack_ptr[stack_reg] &= DSP_STACK_MASK;
+	// g_dsp.reg_stack_ptr[stack_reg]++;
+	// g_dsp.reg_stack_ptr[stack_reg] &= DSP_STACK_MASK;
 	MOV(8, R(AL), M(&g_dsp.reg_stack_ptr[stack_reg]));
 	ADD(8, R(AL), Imm8(1));
 	AND(8, R(AL), Imm8(DSP_STACK_MASK));
 	MOV(8, M(&g_dsp.reg_stack_ptr[stack_reg]), R(AL));
 
 	X64Reg tmp1 = gpr.GetFreeXReg();
-	//g_dsp.reg_stack[stack_reg][g_dsp.reg_stack_ptr[stack_reg]] = g_dsp.r[DSP_REG_ST0 + stack_reg];
+	X64Reg tmp2 = gpr.GetFreeXReg();
+	// g_dsp.reg_stack[stack_reg][g_dsp.reg_stack_ptr[stack_reg]] = g_dsp.r[DSP_REG_ST0 + stack_reg];
 	MOV(16, R(tmp1), M(&g_dsp.r.st[stack_reg]));
 	MOVZX(64, 8, RAX, R(AL));
-	MOV(16, MComplex(EAX, EAX, SCALE_1,
-		PtrOffset(&g_dsp.reg_stack[stack_reg][0], nullptr)), R(tmp1));
+	MOV(64, R(tmp2), ImmPtr(g_dsp.reg_stack[stack_reg]));
+	MOV(16, MComplex(tmp2, EAX, SCALE_2, 0), R(tmp1));
 	gpr.PutXReg(tmp1);
+	gpr.PutXReg(tmp2);
 }
 
-//clobbers:
-//EAX = (s8)g_dsp.reg_stack_ptr[stack_reg]
-//expects:
+// clobbers:
+// EAX = (s8)g_dsp.reg_stack_ptr[stack_reg]
+// expects:
 void DSPEmitter::dsp_reg_stack_pop(int stack_reg)
 {
-	//g_dsp.r[DSP_REG_ST0 + stack_reg] = g_dsp.reg_stack[stack_reg][g_dsp.reg_stack_ptr[stack_reg]];
+	// g_dsp.r[DSP_REG_ST0 + stack_reg] = g_dsp.reg_stack[stack_reg][g_dsp.reg_stack_ptr[stack_reg]];
 	MOV(8, R(AL), M(&g_dsp.reg_stack_ptr[stack_reg]));
 	X64Reg tmp1 = gpr.GetFreeXReg();
+	X64Reg tmp2 = gpr.GetFreeXReg();
 	MOVZX(64, 8, RAX, R(AL));
-	MOV(16, R(tmp1), MComplex(EAX, EAX, SCALE_1,
-		PtrOffset(&g_dsp.reg_stack[stack_reg][0], nullptr)));
+	MOV(64, R(tmp2), ImmPtr(g_dsp.reg_stack[stack_reg]));
+	MOV(16, R(tmp1), MComplex(tmp2, EAX, SCALE_2, 0));
 	MOV(16, M(&g_dsp.r.st[stack_reg]), R(tmp1));
 	gpr.PutXReg(tmp1);
+	gpr.PutXReg(tmp2);
 
-	//g_dsp.reg_stack_ptr[stack_reg]--;
-	//g_dsp.reg_stack_ptr[stack_reg] &= DSP_STACK_MASK;
+	// g_dsp.reg_stack_ptr[stack_reg]--;
+	// g_dsp.reg_stack_ptr[stack_reg] &= DSP_STACK_MASK;
 	SUB(8, R(AL), Imm8(1));
 	AND(8, R(AL), Imm8(DSP_STACK_MASK));
 	MOV(8, M(&g_dsp.reg_stack_ptr[stack_reg]), R(AL));
 }
-
 
 void DSPEmitter::dsp_reg_store_stack(int stack_reg, Gen::X64Reg host_sreg)
 {
@@ -58,13 +61,13 @@ void DSPEmitter::dsp_reg_store_stack(int stack_reg, Gen::X64Reg host_sreg)
 		MOV(16, R(EDX), R(host_sreg));
 	}
 	dsp_reg_stack_push(stack_reg);
-	//g_dsp.r[DSP_REG_ST0 + stack_reg] = val;
+	// g_dsp.r[DSP_REG_ST0 + stack_reg] = val;
 	MOV(16, M(&g_dsp.r.st[stack_reg]), R(EDX));
 }
 
 void DSPEmitter::dsp_reg_load_stack(int stack_reg, Gen::X64Reg host_dreg)
 {
-	//u16 val = g_dsp.r[DSP_REG_ST0 + stack_reg];
+	// u16 val = g_dsp.r[DSP_REG_ST0 + stack_reg];
 	MOV(16, R(EDX), M(&g_dsp.r.st[stack_reg]));
 	dsp_reg_stack_pop(stack_reg);
 	if (host_dreg != EDX)
@@ -76,7 +79,7 @@ void DSPEmitter::dsp_reg_load_stack(int stack_reg, Gen::X64Reg host_dreg)
 void DSPEmitter::dsp_reg_store_stack_imm(int stack_reg, u16 val)
 {
 	dsp_reg_stack_push(stack_reg);
-	//g_dsp.r[DSP_REG_ST0 + stack_reg] = val;
+	// g_dsp.r[DSP_REG_ST0 + stack_reg] = val;
 	MOV(16, M(&g_dsp.r.st[stack_reg]), Imm16(val));
 }
 
@@ -139,14 +142,14 @@ void DSPEmitter::dsp_conditional_extend_accum(int reg)
 		DSPJitRegCache c(gpr);
 		TEST(16, sr_reg, Imm16(SR_40_MODE_BIT));
 		FixupBranch not_40bit = J_CC(CC_Z, true);
-		//if (g_dsp.r[DSP_REG_SR] & SR_40_MODE_BIT)
+		// if (g_dsp.r[DSP_REG_SR] & SR_40_MODE_BIT)
 		//{
 		// Sign extend into whole accum.
-		//u16 val = g_dsp.r[reg];
+		// u16 val = g_dsp.r[reg];
 		get_acc_m(reg - DSP_REG_ACM0, EAX);
 		SHR(32, R(EAX), Imm8(16));
-		//g_dsp.r[reg - DSP_REG_ACM0 + DSP_REG_ACH0] = (val & 0x8000) ? 0xFFFF : 0x0000;
-		//g_dsp.r[reg - DSP_REG_ACM0 + DSP_REG_ACL0] = 0;
+		// g_dsp.r[reg - DSP_REG_ACM0 + DSP_REG_ACH0] = (val & 0x8000) ? 0xFFFF : 0x0000;
+		// g_dsp.r[reg - DSP_REG_ACM0 + DSP_REG_ACL0] = 0;
 		set_acc_h(reg - DSP_REG_ACM0, R(RAX));
 		set_acc_l(reg - DSP_REG_ACM0, Imm16(0));
 		//}
@@ -169,11 +172,11 @@ void DSPEmitter::dsp_conditional_extend_accum_imm(int reg, u16 val)
 		DSPJitRegCache c(gpr);
 		TEST(16, sr_reg, Imm16(SR_40_MODE_BIT));
 		FixupBranch not_40bit = J_CC(CC_Z, true);
-		//if (g_dsp.r[DSP_REG_SR] & SR_40_MODE_BIT)
+		// if (g_dsp.r[DSP_REG_SR] & SR_40_MODE_BIT)
 		//{
 		// Sign extend into whole accum.
-		//g_dsp.r[reg - DSP_REG_ACM0 + DSP_REG_ACH0] = (val & 0x8000) ? 0xFFFF : 0x0000;
-		//g_dsp.r[reg - DSP_REG_ACM0 + DSP_REG_ACL0] = 0;
+		// g_dsp.r[reg - DSP_REG_ACM0 + DSP_REG_ACH0] = (val & 0x8000) ? 0xFFFF : 0x0000;
+		// g_dsp.r[reg - DSP_REG_ACM0 + DSP_REG_ACL0] = 0;
 		set_acc_h(reg - DSP_REG_ACM0, Imm16((val & 0x8000) ? 0xffff : 0x0000));
 		set_acc_l(reg - DSP_REG_ACM0, Imm16(0));
 		//}
@@ -184,7 +187,8 @@ void DSPEmitter::dsp_conditional_extend_accum_imm(int reg, u16 val)
 	}
 }
 
-void DSPEmitter::dsp_op_read_reg_dont_saturate(int reg, Gen::X64Reg host_dreg, DSPJitSignExtend extend)
+void DSPEmitter::dsp_op_read_reg_dont_saturate(int reg, Gen::X64Reg host_dreg,
+	DSPJitSignExtend extend)
 {
 	switch (reg & 0x1f)
 	{
@@ -237,7 +241,7 @@ void DSPEmitter::dsp_op_read_reg(int reg, Gen::X64Reg host_dreg, DSPJitSignExten
 	case DSP_REG_ACM0:
 	case DSP_REG_ACM1:
 	{
-		//we already know this is ACCM0 or ACCM1
+		// we already know this is ACCM0 or ACCM1
 		OpArg acc_reg;
 		gpr.GetReg(reg - DSP_REG_ACM0 + DSP_REG_ACC0_64, acc_reg);
 		OpArg sr_reg;
@@ -254,7 +258,7 @@ void DSPEmitter::dsp_op_read_reg(int reg, Gen::X64Reg host_dreg, DSPJitSignExten
 		CMP(64, acc_reg, Imm32(0));
 		FixupBranch negative = J_CC(CC_LE);
 
-		MOV(64, R(host_dreg), Imm32(0x7fff));//this works for all extend modes
+		MOV(64, R(host_dreg), Imm32(0x7fff));  // this works for all extend modes
 		FixupBranch done_positive = J();
 
 		SetJumpTarget(negative);
@@ -295,7 +299,6 @@ void DSPEmitter::dsp_op_read_reg(int reg, Gen::X64Reg host_dreg, DSPJitSignExten
 // Both are done while ignoring changes due to values/holes in IX
 // above the mask.
 
-
 // EAX = g_dsp.r.ar[reg]
 // EDX = g_dsp.r.wr[reg]
 void DSPEmitter::increment_addr_reg(int reg)
@@ -308,7 +311,7 @@ void DSPEmitter::increment_addr_reg(int reg)
 	gpr.GetReg(DSP_REG_AR0 + reg, ar_reg);
 	MOVZX(32, 16, EAX, ar_reg);
 	X64Reg tmp1 = gpr.GetFreeXReg();
-	//u32 nar = ar + 1;
+	// u32 nar = ar + 1;
 	MOV(32, R(tmp1), R(EAX));
 	ADD(32, R(EAX), Imm8(1));
 
@@ -383,43 +386,43 @@ void DSPEmitter::increase_addr_reg(int reg, int _ix_reg)
 	MOVZX(32, 16, EAX, ar_reg);
 
 	X64Reg tmp1 = gpr.GetFreeXReg();
-	//u32 nar = ar + ix;
-	//edi = nar
+	// u32 nar = ar + ix;
+	// edi = nar
 	LEA(32, tmp1, MRegSum(EAX, ECX));
 
-	//u32 dar = (nar ^ ar ^ ix) & ((wr | 1) << 1);
-	//eax = dar
+	// u32 dar = (nar ^ ar ^ ix) & ((wr | 1) << 1);
+	// eax = dar
 	XOR(32, R(EAX), R(ECX));
 	XOR(32, R(EAX), R(tmp1));
 
-	//if (ix >= 0)
+	// if (ix >= 0)
 	TEST(32, R(ECX), R(ECX));
 	FixupBranch negative = J_CC(CC_S);
 	LEA(32, ECX, MRegSum(EDX, EDX));
 	OR(32, R(ECX), Imm8(2));
 	AND(32, R(EAX), R(ECX));
 
-	//if (dar > wr)
+	// if (dar > wr)
 	CMP(32, R(EAX), R(EDX));
 	FixupBranch done = J_CC(CC_BE);
-	//nar -= wr + 1;
+	// nar -= wr + 1;
 	SUB(16, R(tmp1), R(DX));
 	SUB(16, R(tmp1), Imm8(1));
 	FixupBranch done2 = J();
 
-	//else
+	// else
 	SetJumpTarget(negative);
 	LEA(32, ECX, MRegSum(EDX, EDX));
 	OR(32, R(ECX), Imm8(2));
 	AND(32, R(EAX), R(ECX));
 
-	//if ((((nar + wr + 1) ^ nar) & dar) <= wr)
+	// if ((((nar + wr + 1) ^ nar) & dar) <= wr)
 	LEA(32, ECX, MComplex(tmp1, EDX, SCALE_1, 1));
 	XOR(32, R(ECX), R(tmp1));
 	AND(32, R(ECX), R(EAX));
 	CMP(32, R(ECX), R(EDX));
 	FixupBranch done3 = J_CC(CC_A);
-	//nar += wr + 1;
+	// nar += wr + 1;
 	LEA(32, tmp1, MComplex(tmp1, EDX, SCALE_1, 1));
 
 	SetJumpTarget(done);
@@ -450,57 +453,56 @@ void DSPEmitter::decrease_addr_reg(int reg)
 	gpr.GetReg(DSP_REG_AR0 + reg, ar_reg);
 	MOVZX(32, 16, EAX, ar_reg);
 
-	NOT(32, R(ECX)); //esi = ~ix
+	NOT(32, R(ECX));  // esi = ~ix
 
 	X64Reg tmp1 = gpr.GetFreeXReg();
-	//u32 nar = ar - ix; (ar + ~ix + 1)
+	// u32 nar = ar - ix; (ar + ~ix + 1)
 	LEA(32, tmp1, MComplex(EAX, ECX, SCALE_1, 1));
 
-	//u32 dar = (nar ^ ar ^ ~ix) & ((wr | 1) << 1);
-	//eax = dar
+	// u32 dar = (nar ^ ar ^ ~ix) & ((wr | 1) << 1);
+	// eax = dar
 	XOR(32, R(EAX), R(ECX));
 	XOR(32, R(EAX), R(tmp1));
 
-	//if ((u32)ix > 0xFFFF8000)  ==> (~ix < 0x00007FFF)
+	// if ((u32)ix > 0xFFFF8000)  ==> (~ix < 0x00007FFF)
 	CMP(32, R(ECX), Imm32(0x00007FFF));
 	FixupBranch positive = J_CC(CC_AE);
 	LEA(32, ECX, MRegSum(EDX, EDX));
 	OR(32, R(ECX), Imm8(2));
 	AND(32, R(EAX), R(ECX));
 
-	//if (dar > wr)
+	// if (dar > wr)
 	CMP(32, R(EAX), R(EDX));
 	FixupBranch done = J_CC(CC_BE);
-	//nar -= wr + 1;
+	// nar -= wr + 1;
 	SUB(16, R(tmp1), R(DX));
 	SUB(16, R(tmp1), Imm8(1));
 	FixupBranch done2 = J();
 
-	//else
+	// else
 	SetJumpTarget(positive);
 	LEA(32, ECX, MRegSum(EDX, EDX));
 	OR(32, R(ECX), Imm8(2));
 	AND(32, R(EAX), R(ECX));
 
-	//if ((((nar + wr + 1) ^ nar) & dar) <= wr)
+	// if ((((nar + wr + 1) ^ nar) & dar) <= wr)
 	LEA(32, ECX, MComplex(tmp1, EDX, SCALE_1, 1));
 	XOR(32, R(ECX), R(tmp1));
 	AND(32, R(ECX), R(EAX));
 	CMP(32, R(ECX), R(EDX));
 	FixupBranch done3 = J_CC(CC_A);
-	//nar += wr + 1;
+	// nar += wr + 1;
 	LEA(32, tmp1, MComplex(tmp1, EDX, SCALE_1, 1));
 
 	SetJumpTarget(done);
 	SetJumpTarget(done2);
 	SetJumpTarget(done3);
-	//return nar
+	// return nar
 
 	MOV(16, ar_reg, R(tmp1));
 	gpr.PutReg(DSP_REG_AR0 + reg);
 	gpr.PutXReg(tmp1);
 }
-
 
 // EAX - destination address
 // ECX - Base of DRAM
@@ -522,7 +524,7 @@ void DSPEmitter::dmem_write(X64Reg value)
 	DSPJitRegCache c(gpr);
 	X64Reg abisafereg = gpr.MakeABICallSafe(value);
 	gpr.PushRegs();
-	ABI_CallFunctionRR((void *)gdsp_ifx_write, EAX, abisafereg);
+	ABI_CallFunctionRR(gdsp_ifx_write, EAX, abisafereg);
 	gpr.PopRegs();
 	gpr.FlushRegs(c);
 	SetJumpTarget(end);
@@ -532,23 +534,22 @@ void DSPEmitter::dmem_write_imm(u16 address, X64Reg value)
 {
 	switch (address >> 12)
 	{
-	case 0x0: // 0xxx DRAM
+	case 0x0:  // 0xxx DRAM
 		MOV(64, R(RDX), ImmPtr(g_dsp.dram));
 		MOV(16, MDisp(RDX, (address & DSP_DRAM_MASK) * 2), R(value));
 		break;
 
-	case 0xf: // Fxxx HW regs
+	case 0xf:  // Fxxx HW regs
 	{
 		MOV(16, R(EAX), Imm16(address));
 		X64Reg abisafereg = gpr.MakeABICallSafe(value);
 		gpr.PushRegs();
-		ABI_CallFunctionRR((void *)gdsp_ifx_write, EAX, abisafereg);
+		ABI_CallFunctionRR(gdsp_ifx_write, EAX, abisafereg);
 		gpr.PopRegs();
 		break;
 	}
 	default:  // Unmapped/non-existing memory
-		ERROR_LOG(DSPLLE, "%04x DSP ERROR: Write to UNKNOWN (%04x) memory",
-			g_dsp.pc, address);
+		ERROR_LOG(DSPLLE, "%04x DSP ERROR: Write to UNKNOWN (%04x) memory", g_dsp.pc, address);
 		break;
 	}
 }
@@ -609,7 +610,7 @@ void DSPEmitter::dmem_read(X64Reg address)
 	DSPJitRegCache c(gpr);
 	X64Reg abisafereg = gpr.MakeABICallSafe(address);
 	gpr.PushRegs();
-	ABI_CallFunctionR((void *)gdsp_ifx_read, abisafereg);
+	ABI_CallFunctionR(gdsp_ifx_read, abisafereg);
 	gpr.PopRegs();
 	gpr.FlushRegs(c);
 	SetJumpTarget(end);
@@ -633,28 +634,27 @@ void DSPEmitter::dmem_read_imm(u16 address)
 	case 0xf:  // Fxxx HW regs
 	{
 		gpr.PushRegs();
-		ABI_CallFunctionC16((void *)gdsp_ifx_read, address);
+		ABI_CallFunctionC16(gdsp_ifx_read, address);
 		gpr.PopRegs();
 		break;
 	}
-	default:   // Unmapped/non-existing memory
-		ERROR_LOG(DSPLLE, "%04x DSP ERROR: Read from UNKNOWN (%04x) memory",
-			g_dsp.pc, address);
+	default:  // Unmapped/non-existing memory
+		ERROR_LOG(DSPLLE, "%04x DSP ERROR: Read from UNKNOWN (%04x) memory", g_dsp.pc, address);
 	}
 }
 
 // Returns s64 in RAX
 void DSPEmitter::get_long_prod(X64Reg long_prod)
 {
-	//s64 val   = (s8)(u8)g_dsp.r[DSP_REG_PRODH];
+	// s64 val   = (s8)(u8)g_dsp.r[DSP_REG_PRODH];
 	OpArg prod_reg;
 	gpr.GetReg(DSP_REG_PROD_64, prod_reg);
 	MOV(64, R(long_prod), prod_reg);
 	gpr.PutReg(DSP_REG_PROD_64, false);
-	//no use in keeping prod_reg any longer.
+	// no use in keeping prod_reg any longer.
 	X64Reg tmp = gpr.GetFreeXReg();
 	MOV(64, R(tmp), R(long_prod));
-	SHL(64, R(long_prod), Imm8(64 - 40));//sign extend
+	SHL(64, R(long_prod), Imm8(64 - 40));  // sign extend
 	SAR(64, R(long_prod), Imm8(64 - 40));
 	SHR(64, R(tmp), Imm8(48));
 	SHL(64, R(tmp), Imm8(16));
@@ -666,24 +666,24 @@ void DSPEmitter::get_long_prod(X64Reg long_prod)
 // Clobbers RCX
 void DSPEmitter::get_long_prod_round_prodl(X64Reg long_prod)
 {
-	//s64 prod = dsp_get_long_prod();
+	// s64 prod = dsp_get_long_prod();
 	get_long_prod(long_prod);
 
 	X64Reg tmp = gpr.GetFreeXReg();
-	//if (prod & 0x10000) prod = (prod + 0x8000) & ~0xffff;
+	// if (prod & 0x10000) prod = (prod + 0x8000) & ~0xffff;
 	TEST(32, R(long_prod), Imm32(0x10000));
 	FixupBranch jump = J_CC(CC_Z);
 	ADD(64, R(long_prod), Imm32(0x8000));
 	MOV(64, R(tmp), Imm64(~0xffff));
 	AND(64, R(long_prod), R(tmp));
 	FixupBranch _ret = J();
-	//else prod = (prod + 0x7fff) & ~0xffff;
+	// else prod = (prod + 0x7fff) & ~0xffff;
 	SetJumpTarget(jump);
 	ADD(64, R(long_prod), Imm32(0x7fff));
 	MOV(64, R(tmp), Imm64(~0xffff));
 	AND(64, R(long_prod), R(tmp));
 	SetJumpTarget(_ret);
-	//return prod;
+	// return prod;
 	gpr.PutXReg(tmp);
 }
 
@@ -709,20 +709,20 @@ void DSPEmitter::set_long_prod()
 // Clobbers RCX
 void DSPEmitter::round_long_acc(X64Reg long_acc)
 {
-	//if (prod & 0x10000) prod = (prod + 0x8000) & ~0xffff;
+	// if (prod & 0x10000) prod = (prod + 0x8000) & ~0xffff;
 	TEST(32, R(long_acc), Imm32(0x10000));
 	FixupBranch jump = J_CC(CC_Z);
 	ADD(64, R(long_acc), Imm32(0x8000));
 	MOV(64, R(ECX), Imm64(~0xffff));
 	AND(64, R(long_acc), R(RCX));
 	FixupBranch _ret = J();
-	//else prod = (prod + 0x7fff) & ~0xffff;
+	// else prod = (prod + 0x7fff) & ~0xffff;
 	SetJumpTarget(jump);
 	ADD(64, R(long_acc), Imm32(0x7fff));
 	MOV(64, R(RCX), Imm64(~0xffff));
 	AND(64, R(long_acc), R(RCX));
 	SetJumpTarget(_ret);
-	//return prod;
+	// return prod;
 }
 
 // Returns s64 in acc
@@ -804,6 +804,3 @@ void DSPEmitter::get_ax_h(int _reg, X64Reg axh)
 	//	return (s16)g_dsp.r[DSP_REG_AXH0 + _reg];
 	gpr.ReadReg(_reg + DSP_REG_AXH0, axh, SIGN);
 }
-
-
-

@@ -47,8 +47,8 @@ private:
 
 	D3D::BufferPtr m_buffers[MAX_BUFFER_COUNT];
 
-	std::vector<u8, aligned_allocator<u8, 256>> LocalVBuffer;
-	std::vector<u16, aligned_allocator<u16, 256>> LocalIBuffer;
+	std::vector<u8, Common::aligned_allocator<u8, 256>> LocalVBuffer;
+	std::vector<u16, Common::aligned_allocator<u16, 256>> LocalIBuffer;
 	u16* m_index_buffer_start;
 };
 

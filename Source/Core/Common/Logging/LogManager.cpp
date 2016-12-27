@@ -9,26 +9,35 @@
 #include <set>
 #include <string>
 
+#include "Common/CommonPaths.h"
 #include "Common/FileUtil.h"
 #include "Common/IniFile.h"
-#include "Common/StringUtil.h"
-#include "Common/Timer.h"
 #include "Common/Logging/ConsoleListener.h"
 #include "Common/Logging/Log.h"
 #include "Common/Logging/LogManager.h"
+#include "Common/StringUtil.h"
+#include "Common/Timer.h"
 
-void GenericLog(LogTypes::LOG_LEVELS level, LogTypes::LOG_TYPE type,
-	const char* file, int line, const char* fmt, ...)
+void GenericLog(LogTypes::LOG_LEVELS level, LogTypes::LOG_TYPE type, const char* file, int line,
+	const char* fmt, ...)
 {
 	va_list args;
 	va_start(args, fmt);
-	if (LogManager::GetInstance()
-		&& LogManager::GetInstance()->IsEnabled(type, level))
+	if (LogManager::GetInstance())
 		LogManager::GetInstance()->Log(level, type, file, line, fmt, args);
 	va_end(args);
 }
 
 LogManager* LogManager::m_logManager = nullptr;
+
+static size_t DeterminePathCutOffPoint()
+{
+	constexpr const char* pattern = DIR_SEP "Source" DIR_SEP "Core" DIR_SEP;
+	size_t pos = std::string(__FILE__).find(pattern);
+	if (pos != std::string::npos)
+		return pos + strlen(pattern);
+	return 0;
+}
 
 LogManager::LogManager()
 {
@@ -80,7 +89,8 @@ LogManager::LogManager()
 	m_Log[LogTypes::WII_IPC_WC24] = new LogContainer("WII_IPC_WC24", "WII IPC WC24");
 	m_Log[LogTypes::WII_IPC_WIIMOTE] = new LogContainer("WII_IPC_WIIMOTE", "WII IPC WIIMOTE");
 
-	RegisterListener(LogListener::FILE_LISTENER, new FileLogListener(File::GetUserPath(F_MAINLOG_IDX)));
+	RegisterListener(LogListener::FILE_LISTENER,
+		new FileLogListener(File::GetUserPath(F_MAINLOG_IDX)));
 	RegisterListener(LogListener::CONSOLE_LISTENER, new ConsoleListener());
 
 	IniFile ini;
@@ -102,6 +112,8 @@ LogManager::LogManager()
 		if (enable && write_console)
 			container->AddListener(LogListener::CONSOLE_LISTENER);
 	}
+
+	m_path_cutoff_point = DeterminePathCutOffPoint();
 }
 
 LogManager::~LogManager()
@@ -114,22 +126,22 @@ LogManager::~LogManager()
 	delete m_listeners[LogListener::FILE_LISTENER];
 }
 
-void LogManager::Log(LogTypes::LOG_LEVELS level, LogTypes::LOG_TYPE type,
-	const char* file, int line, const char* format, va_list args)
+void LogManager::Log(LogTypes::LOG_LEVELS level, LogTypes::LOG_TYPE type, const char* file,
+	int line, const char* format, va_list args)
 {
 	char temp[MAX_MSGLEN];
 	LogContainer* log = m_Log[type];
 
-	if (!(log->IsEnabled() && level <= log->GetLevel() && log->HasListeners()))
+	if (!log->IsEnabled() || level > log->GetLevel() || !log->HasListeners())
 		return;
 
 	CharArrayFromFormatV(temp, MAX_MSGLEN, format, args);
 
-	std::string msg = StringFromFormat("%s %s:%u %c[%s]: %s\n",
-		Common::Timer::GetTimeFormatted().c_str(),
-		file, line,
-		LogTypes::LOG_LEVEL_TO_CHAR[(int)level],
-		log->GetShortName().c_str(), temp);
+	const char* path_to_print = file + m_path_cutoff_point;
+
+	std::string msg = StringFromFormat(
+		"%s %s:%u %c[%s]: %s\n", Common::Timer::GetTimeFormatted().c_str(), path_to_print, line,
+		LogTypes::LOG_LEVEL_TO_CHAR[(int)level], log->GetShortName().c_str(), temp);
 
 	for (auto listener_id : *log)
 		m_listeners[listener_id]->Log(level, msg.c_str());
@@ -147,11 +159,9 @@ void LogManager::Shutdown()
 }
 
 LogContainer::LogContainer(const std::string& shortName, const std::string& fullName, bool enable)
-	: m_fullName(fullName),
-	m_shortName(shortName),
-	m_enable(enable),
-	m_level(LogTypes::LWARNING)
-{}
+	: m_fullName(fullName), m_shortName(shortName), m_enable(enable), m_level(LogTypes::LWARNING)
+{
+}
 
 FileLogListener::FileLogListener(const std::string& filename)
 {

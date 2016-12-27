@@ -7,10 +7,12 @@
 #include <algorithm>
 #include <cmath>
 #include <memory>
+#include <mutex>
 #include <string>
 #include <vector>
 
 #include "Common/IniFile.h"
+#include "Common/MathUtil.h"
 #include "Core/ConfigManager.h"
 #include "InputCommon/ControllerInterface/ControllerInterface.h"
 #include "InputCommon/GCPadStatus.h"
@@ -202,6 +204,7 @@ public:
 	{
 	public:
 		Buttons(const std::string& _name);
+		Buttons(const std::string& ini_name, const std::string& group_name);
 
 		template <typename C>
 		void GetState(C* const buttons, const C* bitmasks)
@@ -214,6 +217,22 @@ public:
 				bitmasks++;
 			}
 		}
+	};
+
+	class ModifySettingsButton : public Buttons
+	{
+	public:
+		ModifySettingsButton(std::string button_name);
+		void AddInput(std::string button_name, bool toggle = false);
+
+		void GetState();
+
+		const std::vector<bool>& isSettingToggled() const { return associated_settings_toggle; }
+		const std::vector<bool>& getSettingsModifier() const { return associated_settings; }
+	private:
+		std::vector<bool> threshold_exceeded;  // internal calculation (if "state" was above threshold)
+		std::vector<bool> associated_settings_toggle;  // is setting toggled or hold?
+		std::vector<bool> associated_settings;         // result
 	};
 
 	class MixedTriggers : public ControlGroup
@@ -407,12 +426,43 @@ public:
 					yy += (numeric_settings[0]->GetValue() - 0.5);
 				}
 
-				*x = xx;
-				*y = yy;
+				// relative input
+				if (boolean_settings[0]->GetValue())
+				{
+					const ControlState deadzone = numeric_settings[3]->GetValue();
+					// deadzone to avoid the cursor slowly drifting
+					if (std::abs(xx) > deadzone)
+						m_x = MathUtil::Clamp(m_x + xx * SPEED_MULTIPLIER, -1.0, 1.0);
+					if (std::abs(yy) > deadzone)
+						m_y = MathUtil::Clamp(m_y + yy * SPEED_MULTIPLIER, -1.0, 1.0);
+
+					// recenter
+					if (controls[7]->control_ref->State() > 0.5)
+					{
+						m_x = 0.0;
+						m_y = 0.0;
+					}
+				}
+				else
+				{
+					m_x = xx;
+					m_y = yy;
+				}
+
+				*x = m_x;
+				*y = m_y;
 			}
 		}
 
 		ControlState m_z;
+
+	private:
+		// This is used to reduce the cursor speed for relative input
+		// to something that makes sense with the default range.
+		static constexpr double SPEED_MULTIPLIER = 0.04;
+
+		ControlState m_x = 0.0;
+		ControlState m_y = 0.0;
 	};
 
 	class Extension : public ControlGroup
@@ -443,6 +493,12 @@ public:
 	void UpdateDefaultDevice();
 
 	void UpdateReferences(ControllerInterface& devi);
+
+	// This returns a lock that should be held before calling State() on any control
+	// references and GetState(), by extension. This prevents a race condition
+	// which happens while handling a hotplug event because a control reference's State()
+	// could be called before we have finished updating the reference.
+	static std::unique_lock<std::recursive_mutex> GetStateLock();
 
 	std::vector<std::unique_ptr<ControlGroup>> groups;
 

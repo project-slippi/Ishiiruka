@@ -2,7 +2,6 @@
 // Licensed under GPLv2+
 // Refer to the license.txt file included.
 
-
 // Core
 
 // The external interface to the emulator core. Plus some extras.
@@ -19,7 +18,6 @@
 
 namespace Core
 {
-
 // TODO: ugly, remove
 extern bool g_aspect_wide;
 
@@ -48,9 +46,9 @@ void UndeclareAsCPUThread();
 std::string StopMessage(bool, const std::string&);
 
 bool IsRunning();
-bool IsRunningAndStarted(); // is running and the CPU loop has been entered
-bool IsRunningInCurrentThread(); // this tells us whether we are running in the CPU thread.
-bool IsCPUThread(); // this tells us whether we are the CPU thread.
+bool IsRunningAndStarted();       // is running and the CPU loop has been entered
+bool IsRunningInCurrentThread();  // this tells us whether we are running in the CPU thread.
+bool IsCPUThread();               // this tells us whether we are the CPU thread.
 bool IsGPUThread();
 
 // [NOT THREADSAFE] For use by Host only

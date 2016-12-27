@@ -2,6 +2,7 @@
 // Licensed under GPLv2+
 // Refer to the license.txt file included.
 
+#include <cassert>
 #include <cstring>
 
 #include "Common/Common.h"
@@ -14,15 +15,15 @@ namespace WiimoteEmu
 static const u8 drums_id[] = { 0x01, 0x00, 0xa4, 0x20, 0x01, 0x03 };
 
 static const u16 drum_pad_bitmasks[] = {
-		Drums::PAD_RED,   Drums::PAD_YELLOW, Drums::PAD_BLUE,
-		Drums::PAD_GREEN, Drums::PAD_ORANGE, Drums::PAD_BASS,
+	Drums::PAD_RED,   Drums::PAD_YELLOW, Drums::PAD_BLUE,
+	Drums::PAD_GREEN, Drums::PAD_ORANGE, Drums::PAD_BASS,
 };
 
 static const char* const drum_pad_names[] = { _trans("Red"),   _trans("Yellow"), _trans("Blue"),
-																						 _trans("Green"), _trans("Orange"), _trans("Bass") };
+_trans("Green"), _trans("Orange"), _trans("Bass") };
 
 static const u16 drum_button_bitmasks[] = {
-		Drums::BUTTON_MINUS, Drums::BUTTON_PLUS,
+	Drums::BUTTON_MINUS, Drums::BUTTON_PLUS,
 };
 
 Drums::Drums(WiimoteEmu::ExtensionReg& _reg) : Attachment(_trans("Drums"), _reg)
@@ -80,5 +81,21 @@ bool Drums::IsButtonPressed() const
 	m_buttons->GetState(&buttons, drum_button_bitmasks);
 	m_pads->GetState(&buttons, drum_pad_bitmasks);
 	return buttons != 0;
+}
+
+ControllerEmu::ControlGroup* Drums::GetGroup(DrumsGroup group)
+{
+	switch (group)
+	{
+	case DrumsGroup::Buttons:
+		return m_buttons;
+	case DrumsGroup::Pads:
+		return m_pads;
+	case DrumsGroup::Stick:
+		return m_stick;
+	default:
+		assert(false);
+		return nullptr;
+	}
 }
 }

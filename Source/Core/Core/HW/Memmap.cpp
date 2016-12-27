@@ -50,7 +50,7 @@ static MemArena g_arena;
 
 // STATE_TO_SAVE
 static bool m_IsInitialized = false;  // Save the Init(), Shutdown() state
-// END STATE_TO_SAVE
+																			// END STATE_TO_SAVE
 
 u8* m_pRAM;
 u8* m_pL1Cache;
@@ -153,15 +153,15 @@ bool IsInitialized()
 // TODO: The actual size of RAM is REALRAM_SIZE (24MB); the other 8MB shouldn't
 // be backed by actual memory.
 static MemoryView views[] = {
-		{&m_pRAM, 0x00000000, RAM_SIZE, 0},
-		{nullptr, 0x200000000, RAM_SIZE, MV_MIRROR_PREVIOUS},
-		{nullptr, 0x280000000, RAM_SIZE, MV_MIRROR_PREVIOUS},
-		{nullptr, 0x2C0000000, RAM_SIZE, MV_MIRROR_PREVIOUS},
-		{&m_pL1Cache, 0x2E0000000, L1_CACHE_SIZE, 0},
-		{&m_pFakeVMEM, 0x27E000000, FAKEVMEM_SIZE, MV_FAKE_VMEM},
-		{&m_pEXRAM, 0x10000000, EXRAM_SIZE, MV_WII_ONLY},
-		{nullptr, 0x290000000, EXRAM_SIZE, MV_WII_ONLY | MV_MIRROR_PREVIOUS},
-		{nullptr, 0x2D0000000, EXRAM_SIZE, MV_WII_ONLY | MV_MIRROR_PREVIOUS},
+	{ &m_pRAM, 0x00000000, RAM_SIZE, 0 },
+	{ nullptr, 0x200000000, RAM_SIZE, MV_MIRROR_PREVIOUS },
+	{ nullptr, 0x280000000, RAM_SIZE, MV_MIRROR_PREVIOUS },
+	{ nullptr, 0x2C0000000, RAM_SIZE, MV_MIRROR_PREVIOUS },
+	{ &m_pL1Cache, 0x2E0000000, L1_CACHE_SIZE, 0 },
+	{ &m_pFakeVMEM, 0x27E000000, FAKEVMEM_SIZE, MV_FAKE_VMEM },
+	{ &m_pEXRAM, 0x10000000, EXRAM_SIZE, MV_WII_ONLY },
+	{ nullptr, 0x290000000, EXRAM_SIZE, MV_WII_ONLY | MV_MIRROR_PREVIOUS },
+	{ nullptr, 0x2D0000000, EXRAM_SIZE, MV_WII_ONLY | MV_MIRROR_PREVIOUS },
 };
 static const int num_views = sizeof(views) / sizeof(MemoryView);
 

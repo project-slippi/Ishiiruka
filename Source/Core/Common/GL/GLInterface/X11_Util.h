@@ -4,11 +4,11 @@
 
 #pragma once
 
-#include <string>
-#include <thread>
-#include <X11/keysym.h>
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
+#include <X11/keysym.h>
+#include <string>
+#include <thread>
 
 class cX11Window
 {
@@ -16,11 +16,12 @@ private:
 	void XEventThread();
 	std::thread xEventThread;
 	Colormap colormap;
+
 public:
-	void Initialize(Display *dpy);
-	Window CreateXWindow(Window parent, XVisualInfo *vi);
+	void Initialize(Display* dpy);
+	Window CreateXWindow(Window parent, XVisualInfo* vi);
 	void DestroyXWindow();
 
-	Display *dpy;
+	Display* dpy;
 	Window win;
 };

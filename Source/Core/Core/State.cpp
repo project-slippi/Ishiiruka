@@ -2,13 +2,13 @@
 // Licensed under GPLv2+
 // Refer to the license.txt file included.
 
+#include <lzo/lzo1x.h>
 #include <map>
 #include <mutex>
 #include <string>
 #include <thread>
 #include <utility>
 #include <vector>
-#include <lzo/lzo1x.h>
 
 #include "Common/ChunkFile.h"
 #include "Common/CommonTypes.h"
@@ -23,13 +23,14 @@
 #include "Core/ConfigManager.h"
 #include "Core/Core.h"
 #include "Core/CoreTiming.h"
+#include "Core/GeckoCode.h"
+#include "Core/HW/HW.h"
+#include "Core/HW/Wiimote.h"
 #include "Core/Host.h"
 #include "Core/Movie.h"
 #include "Core/NetPlayClient.h"
-#include "Core/State.h"
-#include "Core/HW/HW.h"
-#include "Core/HW/Wiimote.h"
 #include "Core/PowerPC/PowerPC.h"
+#include "Core/State.h"
 
 #include "VideoCommon/AVIDump.h"
 #include "VideoCommon/OnScreenDisplay.h"
@@ -37,7 +38,6 @@
 
 namespace State
 {
-
 #if defined(__LZO_STRICT_16BIT)
 static const u32 IN_LEN = 8 * 1024u;
 #elif defined(LZO_ARCH_I086) && !defined(LZO_HAVE_MM_HUGE_ARRAY)
@@ -50,8 +50,8 @@ static const u32 OUT_LEN = IN_LEN + (IN_LEN / 16) + 64 + 3;
 
 static unsigned char __LZO_MMODEL out[OUT_LEN];
 
-#define HEAP_ALLOC(var, size) \
-	lzo_align_t __LZO_MMODEL var[((size) + (sizeof(lzo_align_t) - 1)) / sizeof(lzo_align_t)]
+#define HEAP_ALLOC(var, size)                                                                      \
+  lzo_align_t __LZO_MMODEL var[((size) + (sizeof(lzo_align_t) - 1)) / sizeof(lzo_align_t)]
 
 static HEAP_ALLOC(wrkmem, LZO1X_1_MEM_COMPRESS);
 
@@ -71,42 +71,23 @@ static Common::Event g_compressAndDumpStateSyncEvent;
 static std::thread g_save_thread;
 
 // Don't forget to increase this after doing changes on the savestate system
-static const u32 STATE_VERSION = 54; // Last changed in PR 3782
+static const u32 STATE_VERSION = 65;  // Last changed in PR 4120
 
-// Maps savestate versions to Dolphin versions.
-// Versions after 42 don't need to be added to this list,
-// beacuse they save the exact Dolphin version to savestates.
-static const std::map<u32, std::pair<std::string, std::string>> s_old_versions =
-{
+																			// Maps savestate versions to Dolphin versions.
+																			// Versions after 42 don't need to be added to this list,
+																			// because they save the exact Dolphin version to savestates.
+static const std::map<u32, std::pair<std::string, std::string>> s_old_versions = {
 	// The 16 -> 17 change modified the size of StateHeader,
-	// so version older than that can't even be decompressed anymore
-	{ 17, { "3.5-1311", "3.5-1364" } },
-	{ 18, { "3.5-1366", "3.5-1371" } },
-	{ 19, { "3.5-1372", "3.5-1408" } },
-	{ 20, { "3.5-1409", "4.0-704" } },
-	{ 21, { "4.0-705", "4.0-889" } },
-	{ 22, { "4.0-905", "4.0-1871" } },
-	{ 23, { "4.0-1873", "4.0-1900" } },
-	{ 24, { "4.0-1902", "4.0-1919" } },
-	{ 25, { "4.0-1921", "4.0-1936" } },
-	{ 26, { "4.0-1939", "4.0-1959" } },
-	{ 27, { "4.0-1961", "4.0-2018" } },
-	{ 28, { "4.0-2020", "4.0-2291" } },
-	{ 29, { "4.0-2293", "4.0-2360" } },
-	{ 30, { "4.0-2362", "4.0-2628" } },
-	{ 31, { "4.0-2632", "4.0-3331" } },
-	{ 32, { "4.0-3334", "4.0-3340" } },
-	{ 33, { "4.0-3342", "4.0-3373" } },
-	{ 34, { "4.0-3376", "4.0-3402" } },
-	{ 35, { "4.0-3409", "4.0-3603" } },
-	{ 36, { "4.0-3610", "4.0-4480" } },
-	{ 37, { "4.0-4484", "4.0-4943" } },
-	{ 38, { "4.0-4963", "4.0-5267" } },
-	{ 39, { "4.0-5279", "4.0-5525" } },
-	{ 40, { "4.0-5531", "4.0-5809" } },
-	{ 41, { "4.0-5811", "4.0-5923" } },
-	{ 42, { "4.0-5925", "4.0-5946" } }
-};
+	// so versions older than that can't even be decompressed anymore
+	{ 17,{ "3.5-1311", "3.5-1364" } },{ 18,{ "3.5-1366", "3.5-1371" } },{ 19,{ "3.5-1372", "3.5-1408" } },
+	{ 20,{ "3.5-1409", "4.0-704" } },{ 21,{ "4.0-705", "4.0-889" } },{ 22,{ "4.0-905", "4.0-1871" } },
+	{ 23,{ "4.0-1873", "4.0-1900" } },{ 24,{ "4.0-1902", "4.0-1919" } },{ 25,{ "4.0-1921", "4.0-1936" } },
+	{ 26,{ "4.0-1939", "4.0-1959" } },{ 27,{ "4.0-1961", "4.0-2018" } },{ 28,{ "4.0-2020", "4.0-2291" } },
+	{ 29,{ "4.0-2293", "4.0-2360" } },{ 30,{ "4.0-2362", "4.0-2628" } },{ 31,{ "4.0-2632", "4.0-3331" } },
+	{ 32,{ "4.0-3334", "4.0-3340" } },{ 33,{ "4.0-3342", "4.0-3373" } },{ 34,{ "4.0-3376", "4.0-3402" } },
+	{ 35,{ "4.0-3409", "4.0-3603" } },{ 36,{ "4.0-3610", "4.0-4480" } },{ 37,{ "4.0-4484", "4.0-4943" } },
+	{ 38,{ "4.0-4963", "4.0-5267" } },{ 39,{ "4.0-5279", "4.0-5525" } },{ 40,{ "4.0-5531", "4.0-5809" } },
+	{ 41,{ "4.0-5811", "4.0-5923" } },{ 42,{ "4.0-5925", "4.0-5946" } } };
 
 enum
 {
@@ -169,12 +150,14 @@ static std::string DoState(PointerWrap& p)
 	{
 		// because the version doesn't match, fail.
 		// this will trigger an OSD message like "Can't load state from other revisions"
-		// we could use the version numbers to maintain some level of backward compatibility, but currently don't.
+		// we could use the version numbers to maintain some level of backward compatibility, but
+		// currently don't.
 		p.SetMode(PointerWrap::MODE_MEASURE);
 		return version_created_by;
 	}
 
-	// Begin with video backend, so that it gets a chance to clear its caches and writeback modified things to RAM
+	// Begin with video backend, so that it gets a chance to clear its caches and writeback modified
+	// things to RAM
 	g_video_backend->DoState(p);
 	p.DoMarker("video_backend");
 
@@ -193,7 +176,7 @@ static std::string DoState(PointerWrap& p)
 	Movie::DoState(p);
 	p.DoMarker("Movie");
 
-#if defined(HAVE_LIBAV) || defined (_WIN32)
+#if defined(HAVE_LIBAV) || defined(_WIN32)
 	AVIDump::DoState();
 #endif
 
@@ -308,14 +291,13 @@ static void CompressAndDumpState(CompressAndDumpState_args save_args)
 	// ScopeGuard is used here to ensure that g_compressAndDumpStateSyncEvent.Set()
 	// will be called and that it will happen after the IOFile is closed.
 	// Both ScopeGuard's and IOFile's finalization occur at respective object destruction time.
-	// As Local (stack) objects are destructed in the reverse order of construction and "ScopeGuard on_exit"
+	// As Local (stack) objects are destructed in the reverse order of construction and "ScopeGuard
+	// on_exit"
 	// is created before the "IOFile f", it is guaranteed that the file will be finalized before
 	// the ScopeGuard's finalization (i.e. "g_compressAndDumpStateSyncEvent.Set()" call).
-	Common::ScopeGuard on_exit([]()
-	{
-		g_compressAndDumpStateSyncEvent.Set();
-	});
-	// If it is not required to wait, we call finalizer early (and it won't be called again at destruction).
+	Common::ScopeGuard on_exit([]() { g_compressAndDumpStateSyncEvent.Set(); });
+	// If it is not required to wait, we call finalizer early (and it won't be called again at
+	// destruction).
 	if (!save_args.wait)
 		on_exit.Exit();
 
@@ -354,13 +336,13 @@ static void CompressAndDumpState(CompressAndDumpState_args save_args)
 
 	// Setting up the header
 	StateHeader header;
-	strncpy(header.gameID, SConfig::GetInstance().GetUniqueID().c_str(), 6);
+	strncpy(header.gameID, SConfig::GetInstance().GetGameID().c_str(), 6);
 	header.size = g_use_compression ? (u32)buffer_size : 0;
 	header.time = Common::Timer::GetDoubleTime();
 
 	f.WriteArray(&header, 1);
 
-	if (header.size != 0) // non-zero header size means the state is compressed
+	if (header.size != 0)  // non-zero header size means the state is compressed
 	{
 		lzo_uint i = 0;
 		while (true)
@@ -390,7 +372,7 @@ static void CompressAndDumpState(CompressAndDumpState_args save_args)
 			i += cur_len;
 		}
 	}
-	else // uncompressed
+	else  // uncompressed
 	{
 		f.WriteBytes(buffer_data, buffer_size);
 	}
@@ -405,7 +387,7 @@ void SaveAs(const std::string& filename, bool wait)
 	bool wasUnpaused = Core::PauseAndLock(true);
 
 	// Measure the size of the buffer.
-	u8 *ptr = nullptr;
+	u8* ptr = nullptr;
 	PointerWrap p(&ptr, PointerWrap::MODE_MEASURE);
 	DoState(p);
 	const size_t buffer_size = reinterpret_cast<size_t>(ptr);
@@ -459,15 +441,15 @@ bool ReadHeader(const std::string& filename, StateHeader& header)
 	return true;
 }
 
-std::string GetInfoStringOfSlot(int slot)
+std::string GetInfoStringOfSlot(int slot, bool translate)
 {
 	std::string filename = MakeStateFilename(slot);
 	if (!File::Exists(filename))
-		return GetStringT("Empty");
+		return translate ? GetStringT("Empty") : "Empty";
 
 	State::StateHeader header;
 	if (!ReadHeader(filename, header))
-		return GetStringT("Unknown");
+		return translate ? GetStringT("Unknown") : "Unknown";
 
 	return Common::Timer::GetDateTimeFormatted(header.time);
 }
@@ -485,16 +467,16 @@ static void LoadFileStateData(const std::string& filename, std::vector<u8>& ret_
 	StateHeader header;
 	f.ReadArray(&header, 1);
 
-	if (strncmp(SConfig::GetInstance().GetUniqueID().c_str(), header.gameID, 6))
+	if (strncmp(SConfig::GetInstance().GetGameID().c_str(), header.gameID, 6))
 	{
-		Core::DisplayMessage(StringFromFormat("State belongs to a different game (ID %.*s)",
-			6, header.gameID), 2000);
+		Core::DisplayMessage(
+			StringFromFormat("State belongs to a different game (ID %.*s)", 6, header.gameID), 2000);
 		return;
 	}
 
 	std::vector<u8> buffer;
 
-	if (header.size != 0) // non-zero size means the state is compressed
+	if (header.size != 0)  // non-zero size means the state is compressed
 	{
 		Core::DisplayMessage("Decompressing State...", 500);
 
@@ -504,7 +486,7 @@ static void LoadFileStateData(const std::string& filename, std::vector<u8>& ret_
 		while (true)
 		{
 			lzo_uint32 cur_len = 0;  // number of bytes to read
-			lzo_uint new_len = 0;  // number of bytes to write
+			lzo_uint new_len = 0;    // number of bytes to write
 
 			if (!f.ReadArray(&cur_len, 1))
 				break;
@@ -515,14 +497,15 @@ static void LoadFileStateData(const std::string& filename, std::vector<u8>& ret_
 			{
 				// This doesn't seem to happen anymore.
 				PanicAlertT("Internal LZO Error - decompression failed (%d) (%li, %li) \n"
-					"Try loading the state again", res, i, new_len);
+					"Try loading the state again",
+					res, i, new_len);
 				return;
 			}
 
 			i += new_len;
 		}
 	}
-	else // uncompressed
+	else  // uncompressed
 	{
 		const size_t size = (size_t)(f.GetSize() - sizeof(StateHeader));
 		buffer.resize(size);
@@ -577,7 +560,7 @@ void LoadAs(const std::string& filename)
 
 		if (!buffer.empty())
 		{
-			u8 *ptr = &buffer[0];
+			u8* ptr = &buffer[0];
 			PointerWrap p(&ptr, PointerWrap::MODE_READ);
 			version_created_by = DoState(p);
 			loaded = true;
@@ -592,7 +575,8 @@ void LoadAs(const std::string& filename)
 			Core::DisplayMessage(StringFromFormat("Loaded state from %s", filename.c_str()), 2000);
 			if (File::Exists(filename + ".dtm"))
 				Movie::LoadInput(filename + ".dtm");
-			else if (!Movie::IsJustStartingRecordingInputFromSaveState() && !Movie::IsJustStartingPlayingInputFromSaveState())
+			else if (!Movie::IsJustStartingRecordingInputFromSaveState() &&
+				!Movie::IsJustStartingPlayingInputFromSaveState())
 				Movie::EndPlayInput(false);
 		}
 		else
@@ -631,7 +615,7 @@ void VerifyAt(const std::string& filename)
 
 	if (!buffer.empty())
 	{
-		u8 *ptr = &buffer[0];
+		u8* ptr = &buffer[0];
 		PointerWrap p(&ptr, PointerWrap::MODE_VERIFY);
 		DoState(p);
 
@@ -644,7 +628,6 @@ void VerifyAt(const std::string& filename)
 	Core::PauseAndLock(false, wasUnpaused);
 }
 
-
 void Init()
 {
 	if (lzo_init() != LZO_E_OK)
@@ -656,7 +639,8 @@ void Shutdown()
 	Flush();
 
 	// swapping with an empty vector, rather than clear()ing
-	// this gives a better guarantee to free the allocated memory right NOW (as opposed to, actually, never)
+	// this gives a better guarantee to free the allocated memory right NOW (as opposed to, actually,
+	// never)
 	{
 		std::lock_guard<std::mutex> lk(g_cs_current_buffer);
 		std::vector<u8>().swap(g_current_buffer);
@@ -671,7 +655,7 @@ void Shutdown()
 static std::string MakeStateFilename(int number)
 {
 	return StringFromFormat("%s%s.s%02i", File::GetUserPath(D_STATESAVES_IDX).c_str(),
-		SConfig::GetInstance().GetUniqueID().c_str(), number);
+		SConfig::GetInstance().GetGameID().c_str(), number);
 }
 
 void Save(int slot, bool wait)
@@ -756,4 +740,4 @@ void UndoSaveState()
 	LoadAs(File::GetUserPath(D_STATESAVES_IDX) + "lastState.sav");
 }
 
-} // namespace State
+}  // namespace State

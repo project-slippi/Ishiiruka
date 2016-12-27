@@ -174,6 +174,11 @@ static wxString load_hires_material_maps_desc = _("Load custom material maps fro
 static wxString cache_hires_textures_desc = _("Cache custom textures to system RAM on startup.\nThis can require exponentially more RAM but fixes possible stuttering.\n\nIf unsure, leave this unchecked.");
 static wxString cache_hires_textures_gpu_desc = _("Cache custom textures to GPU RAM after loading.\nThis can require exponentially more RAM but fixes stuttering the second time the texture is required.\n\nIf unsure, leave this unchecked.");
 static wxString dump_efb_desc = _("Dump the contents of EFB copies to User/Dump/Textures/\n\nIf unsure, leave this unchecked.");
+static wxString internal_resolution_frame_dumping_desc = _(
+	"Create frame dumps and screenshots at the internal resolution of the renderer, rather than "
+	"the size of the window it is displayed within. If the aspect ratio is widescreen, the output "
+	"image will be scaled horizontally to preserve the vertical resolution.\n\nIf unsure, leave "
+	"this unchecked.");
 static wxString dump_frames_desc = _("Dump all rendered frames to an AVI file in User/Dump/Frames/\n\nIf unsure, leave this unchecked.");
 #if !defined WIN32 && defined HAVE_LIBAV
 static wxString use_ffv1_desc = _("Encode frame dumps using the FFV1 codec.\n\nIf unsure, leave this unchecked.");
@@ -835,7 +840,7 @@ VideoConfigDiag::VideoConfigDiag(wxWindow* parent, const std::string &title)
 			szr_hacks->Add(group_xfb, 0, wxEXPAND | wxALL, 5);
 		}	// xfb
 
-			// Bounding Box
+		// Bounding Box
 		{
 			wxStaticBoxSizer* const group_bbox = new wxStaticBoxSizer(wxHORIZONTAL, page_hacks, _("Bounding Box"));
 
@@ -908,6 +913,12 @@ VideoConfigDiag::VideoConfigDiag(wxWindow* parent, const std::string &title)
 			cache_hires_textures = CreateCheckBox(page_advanced, _("Prefetch Custom Textures"), cache_hires_textures_desc, vconfig.bCacheHiresTextures);
 			hires_texturemaps = CreateCheckBox(page_advanced, _("Load Custom Material Maps"), load_hires_material_maps_desc, vconfig.bHiresMaterialMaps);
 			szr_utility->Add(cache_hires_textures);
+			if (vconfig.backend_info.bSupportsInternalResolutionFrameDumps)
+			{
+				szr_utility->Add(CreateCheckBox(page_advanced, _("Full Resolution Frame Dumps"),
+					wxGetTranslation(internal_resolution_frame_dumping_desc),
+					vconfig.bInternalResolutionFrameDumps));
+			}
 			szr_utility->Add(hires_texturemaps);
 			szr_utility->Add(CreateCheckBox(page_advanced, _("Dump EFB Target"), (dump_efb_desc), vconfig.bDumpEFBTarget));
 			szr_utility->Add(CreateCheckBox(page_advanced, _("Free Look"), (free_look_desc), vconfig.bFreeLook));
@@ -1238,7 +1249,7 @@ void VideoConfigDiag::Event_PPShaderListRemove(wxCommandEvent& ev)
 	listbox_selected_ppshaders->Delete(sel);
 	if (!listbox_selected_ppshaders->IsEmpty())
 	{
-		if (sel >(int)listbox_selected_ppshaders->GetCount() - 1)
+		if (sel > (int)listbox_selected_ppshaders->GetCount() - 1)
 			listbox_selected_ppshaders->SetSelection(sel - 1);
 		else
 			listbox_selected_ppshaders->SetSelection(sel);

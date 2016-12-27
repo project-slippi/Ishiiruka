@@ -2,6 +2,7 @@
 // Licensed under GPLv2+
 // Refer to the license.txt file included.
 
+#include <cassert>
 #include <cstring>
 
 #include "Common/Common.h"
@@ -15,7 +16,7 @@ namespace WiimoteEmu
 static const u8 nunchuk_id[] = { 0x00, 0x00, 0xa4, 0x20, 0x00, 0x00 };
 
 static const u8 nunchuk_button_bitmasks[] = {
-		Nunchuk::BUTTON_C, Nunchuk::BUTTON_Z,
+	Nunchuk::BUTTON_C, Nunchuk::BUTTON_Z,
 };
 
 Nunchuk::Nunchuk(WiimoteEmu::ExtensionReg& _reg) : Attachment(_trans("Nunchuk"), _reg)
@@ -114,6 +115,26 @@ bool Nunchuk::IsButtonPressed() const
 	return buttons != 0;
 }
 
+ControllerEmu::ControlGroup* Nunchuk::GetGroup(NunchukGroup group)
+{
+	switch (group)
+	{
+	case NunchukGroup::Buttons:
+		return m_buttons;
+	case NunchukGroup::Stick:
+		return m_stick;
+	case NunchukGroup::Tilt:
+		return m_tilt;
+	case NunchukGroup::Swing:
+		return m_swing;
+	case NunchukGroup::Shake:
+		return m_shake;
+	default:
+		assert(false);
+		return nullptr;
+	}
+}
+
 void Nunchuk::LoadDefaults(const ControllerInterface& ciface)
 {
 	// Stick
@@ -122,7 +143,7 @@ void Nunchuk::LoadDefaults(const ControllerInterface& ciface)
 	m_stick->SetControlExpression(2, "A");  // left
 	m_stick->SetControlExpression(3, "D");  // right
 
-// Buttons
+																					// Buttons
 #ifdef _WIN32
 	m_buttons->SetControlExpression(0, "LCONTROL");  // C
 	m_buttons->SetControlExpression(1, "LSHIFT");    // Z

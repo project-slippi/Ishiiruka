@@ -11,12 +11,12 @@
 #include <utility>
 #include <vector>
 
+#include <curl/curl.h>
+
 #include "Common/CommonTypes.h"
 #include "Common/Event.h"
 #include "Common/FifoQueue.h"
 #include "Common/Flag.h"
-
-typedef void CURL;
 
 // Utilities for analytics reporting in Dolphin. This reporting is designed to
 // provide anonymous data about how well Dolphin performs in the wild. It also
@@ -41,15 +41,12 @@ typedef void CURL;
 
 namespace Common
 {
-
 // Generic interface for an analytics reporting backends. The main
 // implementation used in Dolphin can be found in Core/Analytics.h.
 class AnalyticsReportingBackend
 {
 public:
-	virtual ~AnalyticsReportingBackend()
-	{}
-
+	virtual ~AnalyticsReportingBackend() {}
 	// Called from the AnalyticsReporter backend thread.
 	virtual void Send(std::string report) = 0;
 };
@@ -61,11 +58,7 @@ public:
 	AnalyticsReportBuilder();
 	~AnalyticsReportBuilder() = default;
 
-	AnalyticsReportBuilder(const AnalyticsReportBuilder& other)
-	{
-		*this = other;
-	}
-
+	AnalyticsReportBuilder(const AnalyticsReportBuilder& other) { *this = other; }
 	AnalyticsReportBuilder(AnalyticsReportBuilder&& other)
 	{
 		std::lock_guard<std::mutex> lk(other.m_lock);
@@ -147,26 +140,14 @@ public:
 	// Gets the base report builder which is closed for each subsequent report
 	// being sent. DO NOT use this builder to send a report. Only use it to add
 	// new fields that should be globally available.
-	AnalyticsReportBuilder& BaseBuilder()
-	{
-		return m_base_builder;
-	}
-
+	AnalyticsReportBuilder& BaseBuilder() { return m_base_builder; }
 	// Gets a cloned builder that can be used to send a report.
-	AnalyticsReportBuilder Builder() const
-	{
-		return m_base_builder;
-	}
-
+	AnalyticsReportBuilder Builder() const { return m_base_builder; }
 	// Enqueues a report for sending. Consumes the report builder.
 	void Send(AnalyticsReportBuilder&& report);
 
 	// For convenience.
-	void Send(AnalyticsReportBuilder& report)
-	{
-		Send(std::move(report));
-	}
-
+	void Send(AnalyticsReportBuilder& report) { Send(std::move(report)); }
 protected:
 	void ThreadProc();
 

@@ -5,7 +5,7 @@
 GUIName = Motion Intesity
 OptionName = A_MOTIONINTENSTY
 MinValue = 0.0
-MaxValue = 1.0
+MaxValue = 2.0
 StepAmount = 0.01
 DefaultValue = 0.5
 

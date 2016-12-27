@@ -5,15 +5,20 @@
 #pragma once
 
 #include <string>
+
+#include "Common/ChunkFile.h"
+#include "Common/CommonTypes.h"
+#include "Core/IPC_HLE/WII_IPC_HLE.h"
 #include "Core/IPC_HLE/WII_IPC_HLE_Device.h"
 
 class PointerWrap;
+
 namespace File
 {
 class IOFile;
 }
 
-std::string HLE_IPC_BuildFilename(std::string _pFilename);
+std::string HLE_IPC_BuildFilename(const std::string& wii_path);
 void HLE_IPC_CreateVirtualFATFilesystem();
 
 class CWII_IPC_HLE_Device_FileIO : public IWII_IPC_HLE_Device
@@ -75,8 +80,8 @@ private:
 		ISFS_IOCTL_SHUTDOWN = 13
 	};
 
-	u32 m_Mode;
-	u32 m_SeekPos;
+	u32 m_Mode = 0;
+	u32 m_SeekPos = 0;
 
 	std::string m_filepath;
 	std::shared_ptr<File::IOFile> m_file;

@@ -13,7 +13,7 @@ rather than time, so if a game can't keep up with the normal framerate all anima
 actions slows down and the game runs to slow. This is different from PC games that are
 often controlled by time instead and may not have maximum framerates.
 
-However, I'm not sure if the Bluetooth communication for the Wiimote is entirely frame
+However, I'm not sure if the Bluetooth communication for the Wii Remote is entirely frame
 dependent, the timing problems with the ack command in Zelda - TP may be related to
 time rather than frames? For now the IPC_HLE_PERIOD is frame dependent, but because of
 different conditions on the way to PluginWiimote::Wiimote_Update() the updates may actually
@@ -25,7 +25,7 @@ would mean one update per frame and [GetTicksPerSecond() / 250] would mean four 
 frame.
 
 
-IPC_HLE_PERIOD: For the Wiimote this is the call schedule:
+IPC_HLE_PERIOD: For the Wii Remote this is the call schedule:
 	IPC_HLE_UpdateCallback() // In this file
 
 		// This function seems to call all devices' Update() function four times per frame
@@ -64,13 +64,14 @@ IPC_HLE_PERIOD: For the Wiimote this is the call schedule:
 
 namespace SystemTimers
 {
-static int et_Dec;
-static int et_VI;
-static int et_AudioDMA;
-static int et_DSP;
-static int et_IPC_HLE;
-static int et_PatchEngine;  // PatchEngine updates every 1/60th of a second by default
-static int et_Throttle;
+static CoreTiming::EventType* et_Dec;
+static CoreTiming::EventType* et_VI;
+static CoreTiming::EventType* et_AudioDMA;
+static CoreTiming::EventType* et_DSP;
+static CoreTiming::EventType* et_IPC_HLE;
+// PatchEngine updates every 1/60th of a second by default
+static CoreTiming::EventType* et_PatchEngine;
+static CoreTiming::EventType* et_Throttle;
 
 static u32 s_cpu_core_clock = 486000000u;  // 486 mhz (its not 485, stop bugging me!)
 
@@ -165,11 +166,11 @@ s64 GetLocalTimeRTCOffset()
 	return s_localtime_rtc_offset;
 }
 
-static void PatchEngineCallback(u64 userdata, s64 cyclesLate)
+static void PatchEngineCallback(u64 userdata, s64 cycles_late)
 {
 	// Patch mem and run the Action Replay
 	PatchEngine::ApplyFramePatches();
-	CoreTiming::ScheduleEvent(VideoInterface::GetTicksPerField() - cyclesLate, et_PatchEngine);
+	CoreTiming::ScheduleEvent(VideoInterface::GetTicksPerField() - cycles_late, et_PatchEngine);
 }
 
 static void ThrottleCallback(u64 last_time, s64 cyclesLate)
@@ -234,7 +235,7 @@ void Init()
 			Common::Timer::GetLocalTimeSinceJan1970() - SConfig::GetInstance().m_customRTCValue;
 	}
 	CoreTiming::SetFakeTBStartValue((u64)(s_cpu_core_clock / TIMER_RATIO) *
-		(u64)CEXIIPL::GetGCTime());
+		(u64)CEXIIPL::GetEmulatedTime(CEXIIPL::GC_EPOCH));
 	CoreTiming::SetFakeTBStartTicks(CoreTiming::GetTicks());
 
 	CoreTiming::SetFakeDecStartValue(0xFFFFFFFF);

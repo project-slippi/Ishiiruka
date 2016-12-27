@@ -17,16 +17,15 @@
 #include <wx/listbase.h>
 #include <wx/menu.h>
 #include <wx/msgdlg.h>
-#include <wx/mstream.h>
 #include <wx/sizer.h>
 #include <wx/stattext.h>
 
 #include "Common/CommonTypes.h"
 #include "Common/FileUtil.h"
 #include "Common/IniFile.h"
+#include "Common/Logging/Log.h"
 #include "Common/MsgHandler.h"
 #include "Common/StringUtil.h"
-#include "Common/Logging/Log.h"
 #include "Core/HW/GCMemcard.h"
 #include "DolphinWX/MemcardManager.h"
 #include "DolphinWX/WxUtils.h"
@@ -34,47 +33,24 @@
 #define FIRSTPAGE 0
 #define ARROWS slot ? "" : ARROW[slot], slot ? ARROW[slot] : ""
 
-static wxBitmap wxBitmapFromMemoryRGBA(const unsigned char* data, u32 width, u32 height)
+static wxImage wxImageFromMemoryRGBA(const u32* data, u32 width, u32 height)
 {
-	static const std::array<u8, 54> header = { {
-		0x42, 0x4D,
-		0x38, 0x30, 0x00, 0x00,
-		0x00, 0x00, 0x00, 0x00,
-		0x36, 0x00, 0x00, 0x00,
-		0x28, 0x00, 0x00, 0x00,
-		0x20, 0x00, 0x00, 0x00, // Width
-		0x20, 0x00, 0x00, 0x00, // Height
-		0x01, 0x00,
-		0x20, 0x00,
-		0x00, 0x00, 0x00, 0x00,
-		0x02, 0x30, 0x00, 0x00, // Data size
-		0x12, 0x0B, 0x00, 0x00,
-		0x12, 0x0B, 0x00, 0x00,
-		0x00, 0x00, 0x00, 0x00,
-		0x00, 0x00, 0x00, 0x00
-	} };
-
-	u32 stride = (4 * width);
-
-	u32 bytes = (stride * height) + header.size();
-	bytes = (bytes + 3) & ~3;
-
-	u32 data_length = bytes - header.size();
-
-	std::vector<u8> pdata(bytes);
-	std::copy(header.begin(), header.end(), pdata.begin());
-
-	u8* const pixelData = &pdata[header.size()];
-
-	for (u32 y = 0; y < height; y++)
-		std::memcpy(&pixelData[y * stride], &data[(height - y - 1) * stride], stride);
-
-	std::memcpy(&pdata[18], &width, sizeof(u32));
-	std::memcpy(&pdata[22], &height, sizeof(u32));
-	std::memcpy(&pdata[34], &data_length, sizeof(u32));
-
-	wxMemoryInputStream is(pdata.data(), bytes);
-	return wxBitmap(wxImage(is, wxBITMAP_TYPE_BMP));
+	wxImage image(width, height, false);
+	image.InitAlpha();
+	u8* rgb = image.GetData();
+	u8* alpha = image.GetAlpha();
+	for (u32 y = 0; y < height; ++y)
+	{
+		for (u32 x = 0; x < width; ++x)
+		{
+			u32 pixel = data[y * width + x];
+			*rgb++ = (pixel & 0x00FF0000) >> 16;  // Red
+			*rgb++ = (pixel & 0x0000FF00) >> 8;   // Green
+			*rgb++ = (pixel & 0x000000FF) >> 0;   // Blue
+			*alpha++ = (pixel & 0xFF000000) >> 24;
+		}
+	}
+	return image;
 }
 
 BEGIN_EVENT_TABLE(CMemcardManager, wxDialog)
@@ -103,7 +79,9 @@ END_EVENT_TABLE()
 
 CMemcardManager::CMemcardManager(wxWindow* parent)
 	: wxDialog(parent, wxID_ANY, _("Memory Card Manager"), wxDefaultPosition, wxDefaultSize,
-		wxCAPTION | wxSYSTEM_MENU | wxDIALOG_NO_PARENT | wxCLOSE_BOX | wxRESIZE_BORDER | wxMAXIMIZE_BOX)
+		wxCAPTION | wxSYSTEM_MENU | wxDIALOG_NO_PARENT | wxCLOSE_BOX | wxRESIZE_BORDER |
+		wxMAXIMIZE_BOX),
+	m_image_list_size(FromDIP(wxSize(96, 32)))
 {
 	memoryCard[SLOT_A] = nullptr;
 	memoryCard[SLOT_B] = nullptr;
@@ -188,74 +166,89 @@ bool CMemcardManager::SaveSettings()
 void CMemcardManager::CreateGUIControls()
 {
 	// Create the controls for both memcards
+	const int space5 = FromDIP(5);
 
 	const char* ARROW[2] = { "<-", "->" };
 
 	m_ConvertToGci = new wxButton(this, ID_CONVERTTOGCI, _("Convert to GCI"));
 
-	wxStaticBoxSizer *sMemcard[2];
+	wxStaticBoxSizer* sMemcard[2];
 
 	for (int slot = SLOT_A; slot <= SLOT_B; slot++)
 	{
 		m_CopyFrom[slot] = new wxButton(this, ID_COPYFROM_A + slot,
 			wxString::Format(_("%1$sCopy%1$s"), ARROW[slot ? 0 : 1]));
-		m_SaveImport[slot] = new wxButton(this, ID_SAVEIMPORT_A + slot,
-			wxString::Format(_("%sImport GCI%s"), ARROWS));
-		m_SaveExport[slot] = new wxButton(this, ID_SAVEEXPORT_A + slot,
-			wxString::Format(_("%sExport GCI%s"), ARROWS));
-		m_Delete[slot] = new wxButton(this, ID_DELETE_A + slot,
-			wxString::Format(_("%sDelete%s"), ARROWS));
-
+		m_SaveImport[slot] =
+			new wxButton(this, ID_SAVEIMPORT_A + slot, wxString::Format(_("%sImport GCI%s"), ARROWS));
+		m_SaveExport[slot] =
+			new wxButton(this, ID_SAVEEXPORT_A + slot, wxString::Format(_("%sExport GCI%s"), ARROWS));
+		m_Delete[slot] =
+			new wxButton(this, ID_DELETE_A + slot, wxString::Format(_("%sDelete%s"), ARROWS));
 
 		m_PrevPage[slot] = new wxButton(this, ID_PREVPAGE_A + slot, _("Prev Page"));
 		m_NextPage[slot] = new wxButton(this, ID_NEXTPAGE_A + slot, _("Next Page"));
 
-		t_Status[slot] = new wxStaticText(this, 0, wxEmptyString, wxDefaultPosition, wxDefaultSize, 0, wxEmptyString);
+		t_Status[slot] = new wxStaticText(this, 0, wxEmptyString, wxDefaultPosition, wxDefaultSize, 0,
+			wxEmptyString);
 
-		wxBoxSizer * const sPages = new wxBoxSizer(wxHORIZONTAL);
-		sPages->Add(m_PrevPage[slot], 0, wxEXPAND | wxALL, 1);
-		sPages->Add(t_Status[slot], 0, wxEXPAND | wxALL, 5);
-		sPages->Add(0, 0, 1, wxEXPAND | wxALL, 0);
-		sPages->Add(m_NextPage[slot], 0, wxEXPAND | wxALL, 1);
+		wxFlexGridSizer* const paging_sizer = new wxFlexGridSizer(3, wxSize(space5, space5));
+		paging_sizer->AddGrowableCol(1);
+		paging_sizer->Add(m_PrevPage[slot], 0, wxEXPAND);
+		paging_sizer->Add(t_Status[slot], 0, wxALIGN_CENTER);
+		paging_sizer->Add(m_NextPage[slot], 0, wxEXPAND);
 
-		m_MemcardPath[slot] = new wxFilePickerCtrl(this, ID_MEMCARDPATH_A + slot,
-			StrToWxStr(File::GetUserPath(D_GCUSER_IDX)), _("Choose a memory card:"),
-			_("GameCube Memory Cards (*.raw,*.gcp)") + wxString("|*.raw;*.gcp"), wxDefaultPosition, wxDefaultSize, wxFLP_USE_TEXTCTRL | wxFLP_OPEN);
+		m_MemcardPath[slot] = new wxFilePickerCtrl(
+			this, ID_MEMCARDPATH_A + slot, StrToWxStr(File::GetUserPath(D_GCUSER_IDX)),
+			_("Choose a memory card:"),
+			_("GameCube Memory Cards (*.raw,*.gcp)") + wxString("|*.raw;*.gcp"), wxDefaultPosition,
+			wxDefaultSize, wxFLP_USE_TEXTCTRL | wxFLP_OPEN);
 
-		m_MemcardList[slot] = new CMemcardListCtrl(this, ID_MEMCARDLIST_A + slot, wxDefaultPosition, wxSize(350, 400),
+		m_MemcardList[slot] = new CMemcardListCtrl(
+			this, ID_MEMCARDLIST_A + slot, wxDefaultPosition, FromDIP(wxSize(350, 400)),
 			wxLC_REPORT | wxSUNKEN_BORDER | wxLC_ALIGN_LEFT | wxLC_SINGLE_SEL, mcmSettings);
 
-		m_MemcardList[slot]->AssignImageList(new wxImageList(96, 32), wxIMAGE_LIST_SMALL);
+		m_MemcardList[slot]->AssignImageList(
+			new wxImageList(m_image_list_size.GetWidth(), m_image_list_size.GetHeight()),
+			wxIMAGE_LIST_SMALL);
 
-		sMemcard[slot] = new wxStaticBoxSizer(wxVERTICAL, this, _("Memory Card") + wxString::Format(" %c", 'A' + slot));
-		sMemcard[slot]->Add(m_MemcardPath[slot], 0, wxEXPAND | wxALL, 5);
-		sMemcard[slot]->Add(m_MemcardList[slot], 1, wxEXPAND | wxALL, 5);
-		sMemcard[slot]->Add(sPages, 0, wxEXPAND | wxALL, 1);
+		sMemcard[slot] = new wxStaticBoxSizer(wxVERTICAL, this,
+			_("Memory Card") + wxString::Format(" %c", 'A' + slot));
+		sMemcard[slot]->AddSpacer(space5);
+		sMemcard[slot]->Add(m_MemcardPath[slot], 0, wxEXPAND | wxLEFT | wxRIGHT, space5);
+		sMemcard[slot]->AddSpacer(space5);
+		sMemcard[slot]->Add(m_MemcardList[slot], 1, wxEXPAND | wxLEFT | wxRIGHT, space5);
+		sMemcard[slot]->AddSpacer(space5);
+		sMemcard[slot]->Add(paging_sizer, 0, wxEXPAND | wxLEFT | wxRIGHT, space5);
+		sMemcard[slot]->AddSpacer(space5);
 	}
 
-	wxBoxSizer * const sButtons = new wxBoxSizer(wxVERTICAL);
+	wxBoxSizer* const sButtons = new wxBoxSizer(wxVERTICAL);
 	sButtons->AddStretchSpacer(2);
-	sButtons->Add(m_CopyFrom[SLOT_B], 0, wxEXPAND, 5);
-	sButtons->Add(m_CopyFrom[SLOT_A], 0, wxEXPAND, 5);
-	sButtons->AddStretchSpacer(1);
-	sButtons->Add(m_SaveImport[SLOT_A], 0, wxEXPAND, 5);
-	sButtons->Add(m_SaveExport[SLOT_A], 0, wxEXPAND, 5);
-	sButtons->AddStretchSpacer(1);
-	sButtons->Add(m_ConvertToGci, 0, wxEXPAND, 5);
-	sButtons->AddStretchSpacer(1);
-	sButtons->Add(m_SaveImport[SLOT_B], 0, wxEXPAND, 5);
-	sButtons->Add(m_SaveExport[SLOT_B], 0, wxEXPAND, 5);
-	sButtons->AddStretchSpacer(1);
-	sButtons->Add(m_Delete[SLOT_A], 0, wxEXPAND, 5);
-	sButtons->Add(m_Delete[SLOT_B], 0, wxEXPAND, 5);
+	sButtons->Add(m_CopyFrom[SLOT_B], 0, wxEXPAND);
+	sButtons->Add(m_CopyFrom[SLOT_A], 0, wxEXPAND);
 	sButtons->AddStretchSpacer();
-	sButtons->Add(new wxButton(this, wxID_OK, _("Close")), 0, wxEXPAND, 5);
+	sButtons->Add(m_SaveImport[SLOT_A], 0, wxEXPAND);
+	sButtons->Add(m_SaveExport[SLOT_A], 0, wxEXPAND);
+	sButtons->AddStretchSpacer();
+	sButtons->Add(m_ConvertToGci, 0, wxEXPAND);
+	sButtons->AddStretchSpacer();
+	sButtons->Add(m_SaveImport[SLOT_B], 0, wxEXPAND);
+	sButtons->Add(m_SaveExport[SLOT_B], 0, wxEXPAND);
+	sButtons->AddStretchSpacer();
+	sButtons->Add(m_Delete[SLOT_A], 0, wxEXPAND);
+	sButtons->Add(m_Delete[SLOT_B], 0, wxEXPAND);
+	sButtons->AddStretchSpacer();
+	sButtons->Add(new wxButton(this, wxID_OK, _("Close")), 0, wxEXPAND);
 	sButtons->AddStretchSpacer();
 
-	wxBoxSizer * const sMain = new wxBoxSizer(wxHORIZONTAL);
-	sMain->Add(sMemcard[SLOT_A], 1, wxEXPAND | wxALL, 5);
-	sMain->Add(sButtons, 0, wxEXPAND, 0);
-	sMain->Add(sMemcard[SLOT_B], 1, wxEXPAND | wxALL, 5);
+	wxBoxSizer* const sMain = new wxBoxSizer(wxHORIZONTAL);
+	sMain->AddSpacer(space5);
+	sMain->Add(sMemcard[SLOT_A], 1, wxEXPAND | wxTOP | wxBOTTOM, space5);
+	sMain->AddSpacer(space5);
+	sMain->Add(sButtons, 0, wxEXPAND | wxTOP | wxBOTTOM, space5);
+	sMain->AddSpacer(space5);
+	sMain->Add(sMemcard[SLOT_B], 1, wxEXPAND | wxTOP | wxBOTTOM, space5);
+	sMain->AddSpacer(space5);
 
 	SetSizerAndFit(sMain);
 	Center();
@@ -297,7 +290,8 @@ void CMemcardManager::ChangePath(int slot)
 	}
 	else
 	{
-		if (m_MemcardPath[slot]->GetPath().length() && ReloadMemcard(WxStrToStr(m_MemcardPath[slot]->GetPath()), slot))
+		if (m_MemcardPath[slot]->GetPath().length() &&
+			ReloadMemcard(WxStrToStr(m_MemcardPath[slot]->GetPath()), slot))
 		{
 			if (memoryCard[slot2])
 			{
@@ -380,7 +374,8 @@ void CMemcardManager::OnMenuChange(wxCommandEvent& event)
 	{
 	case ID_MEMCARDPATH_A:
 	case ID_MEMCARDPATH_B:
-		DefaultMemcard[_id - ID_MEMCARDPATH_A] = WxStrToStr(m_MemcardPath[_id - ID_MEMCARDPATH_A]->GetPath());
+		DefaultMemcard[_id - ID_MEMCARDPATH_A] =
+			WxStrToStr(m_MemcardPath[_id - ID_MEMCARDPATH_A]->GetPath());
 		return;
 	case ID_USEPAGES:
 		mcmSettings.usePages = !mcmSettings.usePages;
@@ -390,10 +385,8 @@ void CMemcardManager::OnMenuChange(wxCommandEvent& event)
 			m_PrevPage[SLOT_B]->Disable();
 			m_NextPage[SLOT_A]->Disable();
 			m_NextPage[SLOT_B]->Disable();
-			m_MemcardList[SLOT_A]->prevPage =
-				m_MemcardList[SLOT_B]->prevPage = false;
-			page[SLOT_A] =
-				page[SLOT_B] = FIRSTPAGE;
+			m_MemcardList[SLOT_A]->prevPage = m_MemcardList[SLOT_B]->prevPage = false;
+			page[SLOT_A] = page[SLOT_B] = FIRSTPAGE;
 		}
 		break;
 	case NUMBER_OF_COLUMN:
@@ -407,8 +400,10 @@ void CMemcardManager::OnMenuChange(wxCommandEvent& event)
 		break;
 	}
 
-	if (memoryCard[SLOT_A]) ReloadMemcard(WxStrToStr(m_MemcardPath[SLOT_A]->GetPath()), SLOT_A);
-	if (memoryCard[SLOT_B]) ReloadMemcard(WxStrToStr(m_MemcardPath[SLOT_B]->GetPath()), SLOT_B);
+	if (memoryCard[SLOT_A])
+		ReloadMemcard(WxStrToStr(m_MemcardPath[SLOT_A]->GetPath()), SLOT_A);
+	if (memoryCard[SLOT_B])
+		ReloadMemcard(WxStrToStr(m_MemcardPath[SLOT_B]->GetPath()), SLOT_B);
 }
 bool CMemcardManager::CopyDeleteSwitch(u32 error, int slot)
 {
@@ -421,7 +416,8 @@ bool CMemcardManager::CopyDeleteSwitch(u32 error, int slot)
 		if (slot != -1)
 		{
 			memoryCard[slot]->FixChecksums();
-			if (!memoryCard[slot]->Save()) PanicAlertT("File write failed");
+			if (!memoryCard[slot]->Save())
+				PanicAlertT("File write failed");
 			page[slot] = FIRSTPAGE;
 			ReloadMemcard(WxStrToStr(m_MemcardPath[slot]->GetPath()), slot);
 		}
@@ -438,7 +434,8 @@ bool CMemcardManager::CopyDeleteSwitch(u32 error, int slot)
 			WxUtils::ShowErrorDialog(_("Unknown memory card error"));
 			break;
 		}
-		wxMessageBox(wxString::Format(_("Only %d blocks available"), memoryCard[slot]->GetFreeBlocks()));
+		wxMessageBox(
+			wxString::Format(_("Only %d blocks available"), memoryCard[slot]->GetFreeBlocks()));
 		break;
 	case OUTOFDIRENTRIES:
 		WxUtils::ShowErrorDialog(_("No free directory index entries."));
@@ -453,10 +450,12 @@ bool CMemcardManager::CopyDeleteSwitch(u32 error, int slot)
 		WxUtils::ShowErrorDialog(_("Memcard already has a save for this title."));
 		break;
 	case SAVFAIL:
-		WxUtils::ShowErrorDialog(_("Imported file has sav extension\nbut does not have a correct header."));
+		WxUtils::ShowErrorDialog(
+			_("Imported file has sav extension\nbut does not have a correct header."));
 		break;
 	case GCSFAIL:
-		WxUtils::ShowErrorDialog(_("Imported file has gsc extension\nbut does not have a correct header."));
+		WxUtils::ShowErrorDialog(
+			_("Imported file has gsc extension\nbut does not have a correct header."));
 		break;
 	case FAIL:
 		if (slot == -1)
@@ -470,8 +469,9 @@ bool CMemcardManager::CopyDeleteSwitch(u32 error, int slot)
 		WxUtils::ShowErrorDialog(_("File write failed"));
 		break;
 	case DELETE_FAIL:
-		WxUtils::ShowErrorDialog(_("Order of files in the File Directory do not match the block order\n"
-			"Right click and export all of the saves,\nand import the saves to a new memcard\n"));
+		WxUtils::ShowErrorDialog(
+			_("Order of files in the File Directory do not match the block order\n"
+				"Right click and export all of the saves,\nand import the saves to a new memcard\n"));
 		break;
 	default:
 		WxUtils::ShowErrorDialog(_("Unknown memory card error"));
@@ -489,8 +489,10 @@ void CMemcardManager::CopyDeleteClick(wxCommandEvent& event)
 	int slot2 = SLOT_A;
 	std::string fileName2("");
 
-	if (index_A != wxNOT_FOUND && page[SLOT_A]) index_A += itemsPerPage * page[SLOT_A];
-	if (index_B != wxNOT_FOUND && page[SLOT_B]) index_B += itemsPerPage * page[SLOT_B];
+	if (index_A != wxNOT_FOUND && page[SLOT_A])
+		index_A += itemsPerPage * page[SLOT_A];
+	if (index_B != wxNOT_FOUND && page[SLOT_B])
+		index_B += itemsPerPage * page[SLOT_B];
 
 	int index = index_B;
 	switch (event.GetId())
@@ -526,9 +528,8 @@ void CMemcardManager::CopyDeleteClick(wxCommandEvent& event)
 	{
 		wxString fileName = wxFileSelector(
 			_("Select a save file to import"),
-			(strcmp(DefaultIOPath.c_str(), "/Users/GC") == 0)
-			? StrToWxStr("")
-			: StrToWxStr(DefaultIOPath),
+			(strcmp(DefaultIOPath.c_str(), "/Users/GC") == 0) ? StrToWxStr("") :
+			StrToWxStr(DefaultIOPath),
 			wxEmptyString, wxEmptyString,
 			_("GameCube Savegame files(*.gci;*.gcs;*.sav)") + wxString("|*.gci;*.gcs;*.sav|") +
 			_("Native GCI files(*.gci)") + wxString("|*.gci|") +
@@ -537,8 +538,7 @@ void CMemcardManager::CopyDeleteClick(wxCommandEvent& event)
 			wxFD_OPEN | wxFD_FILE_MUST_EXIST, this);
 		if (!fileName.empty() && !fileName2.empty())
 		{
-			wxString temp2 = wxFileSelector(_("Save GCI as..."),
-				wxEmptyString, wxEmptyString, ".gci",
+			wxString temp2 = wxFileSelector(_("Save GCI as..."), wxEmptyString, wxEmptyString, ".gci",
 				_("GCI File(*.gci)") + wxString("|*.gci"),
 				wxFD_OVERWRITE_PROMPT | wxFD_SAVE, this);
 
@@ -567,12 +567,9 @@ void CMemcardManager::CopyDeleteClick(wxCommandEvent& event)
 				return;
 			}
 			wxString fileName = wxFileSelector(
-				_("Export save as..."),
-				StrToWxStr(DefaultIOPath),
-				StrToWxStr(gciFilename), ".gci",
-				_("Native GCI files(*.gci)") + wxString("|*.gci|") +
-				_("MadCatz Gameshark files(*.gcs)") + wxString("|*.gcs|") +
-				_("Datel MaxDrive/Pro files(*.sav)") + wxString("|*.sav"),
+				_("Export save as..."), StrToWxStr(DefaultIOPath), StrToWxStr(gciFilename), ".gci",
+				_("Native GCI files(*.gci)") + wxString("|*.gci|") + _("MadCatz Gameshark files(*.gcs)") +
+				wxString("|*.gcs|") + _("Datel MaxDrive/Pro files(*.sav)") + wxString("|*.sav"),
 				wxFD_OVERWRITE_PROMPT | wxFD_SAVE, this);
 
 			if (fileName.length() > 0)
@@ -594,8 +591,12 @@ void CMemcardManager::CopyDeleteClick(wxCommandEvent& event)
 		path1 += path2;
 		File::CreateDir(path1);
 
-		int answer = wxMessageBox(wxString::Format(_("Warning: This will overwrite any existing saves that are in the folder:\n"
-			"%s\nand have the same name as a file on your memcard\nContinue?"), path1.c_str()), _("Warning"), wxYES_NO);
+		int answer = wxMessageBox(
+			wxString::Format(
+				_("Warning: This will overwrite any existing saves that are in the folder:\n"
+					"%s\nand have the same name as a file on your memcard\nContinue?"),
+				path1.c_str()),
+			_("Warning"), wxYES_NO);
 		if (answer == wxYES)
 		{
 			for (int i = 0; i < DIRLEN; i++)
@@ -621,7 +622,8 @@ void CMemcardManager::CopyDeleteClick(wxCommandEvent& event)
 
 bool CMemcardManager::ReloadMemcard(const std::string& fileName, int card)
 {
-	if (memoryCard[card]) delete memoryCard[card];
+	if (memoryCard[card])
+		delete memoryCard[card];
 
 	// TODO: add error checking and animate icons
 	memoryCard[card] = new GCMemcard(fileName);
@@ -631,12 +633,7 @@ bool CMemcardManager::ReloadMemcard(const std::string& fileName, int card)
 
 	int j;
 
-	wxString wxTitle,
-		wxComment,
-		wxBlock,
-		wxFirstBlock,
-		wxLabel;
-
+	wxString wxTitle, wxComment, wxBlock, wxFirstBlock, wxLabel;
 
 	m_MemcardList[card]->Hide();
 	m_MemcardList[card]->ClearAll();
@@ -648,74 +645,88 @@ bool CMemcardManager::ReloadMemcard(const std::string& fileName, int card)
 	m_MemcardList[card]->InsertColumn(COLUMN_BLOCKS, _("Blocks"));
 	m_MemcardList[card]->InsertColumn(COLUMN_FIRSTBLOCK, _("First Block"));
 
-	wxImageList *list = m_MemcardList[card]->GetImageList(wxIMAGE_LIST_SMALL);
+	wxImageList* list = m_MemcardList[card]->GetImageList(wxIMAGE_LIST_SMALL);
 	list->RemoveAll();
 
 	u8 nFiles = memoryCard[card]->GetNumFiles();
 	std::vector<int> images(nFiles * 2);
 
+	static constexpr unsigned int BANNER_WIDTH = 96;
+	static constexpr unsigned int ANIM_FRAME_WIDTH = 32;
+	static constexpr unsigned int IMAGE_HEIGHT = 32;
+	static constexpr unsigned int ANIM_MAX_FRAMES = 8;
+
+	std::vector<u32> pxdata(BANNER_WIDTH * IMAGE_HEIGHT);
+	std::vector<u8> anim_delay(ANIM_MAX_FRAMES);
+	std::vector<u32> anim_data(ANIM_FRAME_WIDTH * IMAGE_HEIGHT * ANIM_MAX_FRAMES);
 	for (u8 i = 0; i < nFiles; i++)
 	{
-		static u32 pxdata[96 * 32];
-		static u8  animDelay[8];
-		static u32 animData[32 * 32 * 8];
+		u8 file_index = memoryCard[card]->GetFileIndex(i);
+		u32 num_frames =
+			memoryCard[card]->ReadAnimRGBA8(file_index, anim_data.data(), anim_delay.data());
 
-		u8 fileIndex = memoryCard[card]->GetFileIndex(i);
-		int numFrames = memoryCard[card]->ReadAnimRGBA8(fileIndex, animData, animDelay);
-
-		if (!memoryCard[card]->ReadBannerRGBA8(fileIndex, pxdata))
+		// Decode Save File Animation
+		wxImage anim_img_strip;
+		if (num_frames > 0)
 		{
-			memset(pxdata, 0, 96 * 32 * 4);
+			unsigned int frames = BANNER_WIDTH / ANIM_FRAME_WIDTH;
 
-			if (numFrames > 0) // Just use the first one
+			if (num_frames < frames)
 			{
-				u32 *icdata = animData;
+				frames = num_frames;
 
-				for (int y = 0; y < 32; y++)
+				// Clear unused frame's pixels from the buffer.
+				std::fill(pxdata.begin(), pxdata.end(), 0);
+			}
+
+			for (unsigned int f = 0; f < frames; ++f)
+			{
+				for (unsigned int y = 0; y < IMAGE_HEIGHT; ++y)
 				{
-					for (int x = 0; x < 32; x++)
+					for (unsigned int x = 0; x < ANIM_FRAME_WIDTH; ++x)
 					{
-						pxdata[y * 96 + x + 32] = icdata[y * 32 + x];//  | 0xFF000000
+						// NOTE: pxdata is stacked horizontal, anim_data is stacked vertical
+						pxdata[y * BANNER_WIDTH + f * ANIM_FRAME_WIDTH + x] =
+							anim_data[f * ANIM_FRAME_WIDTH * IMAGE_HEIGHT + y * IMAGE_HEIGHT + x];
 					}
 				}
 			}
+			anim_img_strip = wxImageFromMemoryRGBA(pxdata.data(), BANNER_WIDTH, IMAGE_HEIGHT);
 		}
-
-		wxBitmap map = wxBitmapFromMemoryRGBA((u8*)pxdata, 96, 32);
-		images[i * 2] = list->Add(map);
-
-		if (numFrames > 0)
+		else
 		{
-			memset(pxdata, 0, 96 * 32 * 4);
-			int frames = 3;
-
-			if (numFrames < frames)
-				frames = numFrames;
-
-			for (int f = 0; f < frames; f++)
-			{
-				for (int y = 0; y < 32; y++)
-				{
-					for (int x = 0; x < 32; x++)
-					{
-						pxdata[y * 96 + x + 32 * f] = animData[f * 32 * 32 + y * 32 + x];
-					}
-				}
-			}
-			wxBitmap icon = wxBitmapFromMemoryRGBA((u8*)pxdata, 96, 32);
-			images[i * 2 + 1] = list->Add(icon);
+			// No Animation found, use an empty placeholder instead.
+			anim_img_strip.Create(BANNER_WIDTH, IMAGE_HEIGHT, false);
+			anim_img_strip.Clear(0xFF);
+			anim_img_strip.SetMaskColour(0xFF, 0xFF, 0xFF);
 		}
+
+		// Decode Banner if it exists
+		{
+			wxImage image;
+			if (memoryCard[card]->ReadBannerRGBA8(file_index, pxdata.data()))
+			{
+				image = wxImageFromMemoryRGBA(pxdata.data(), BANNER_WIDTH, IMAGE_HEIGHT);
+			}
+			else
+			{
+				// Use first frame of animation instead.
+				image = anim_img_strip.Size(wxSize(ANIM_FRAME_WIDTH, IMAGE_HEIGHT), wxPoint(0, 0));
+			}
+			images[i * 2] = list->Add(WxUtils::ScaleImageToBitmap(image, this, m_image_list_size));
+		}
+
+		images[i * 2 + 1] =
+			list->Add(WxUtils::ScaleImageToBitmap(anim_img_strip, this, m_image_list_size));
 	}
 
-	int pagesMax = (mcmSettings.usePages) ?
-		(page[card] + 1) * itemsPerPage : 128;
+	int pagesMax = (mcmSettings.usePages) ? (page[card] + 1) * itemsPerPage : 128;
 
 	for (j = page[card] * itemsPerPage; (j < nFiles) && (j < pagesMax); j++)
 	{
 		u16 blocks;
 		u16 firstblock;
 		u8 fileIndex = memoryCard[card]->GetFileIndex(j);
-
 
 		int index = m_MemcardList[card]->InsertItem(j, wxEmptyString);
 
@@ -724,8 +735,7 @@ bool CMemcardManager::ReloadMemcard(const std::string& fileName, int card)
 		std::string title = memoryCard[card]->GetSaveComment1(fileIndex);
 		std::string comment = memoryCard[card]->GetSaveComment2(fileIndex);
 
-		auto const string_decoder = memoryCard[card]->IsAsciiEncoding() ?
-			CP1252ToUTF8 : SHIFTJISToUTF8;
+		auto const string_decoder = memoryCard[card]->IsAsciiEncoding() ? CP1252ToUTF8 : SHIFTJISToUTF8;
 
 		wxTitle = StrToWxStr(string_decoder(title));
 		wxComment = StrToWxStr(string_decoder(comment));
@@ -741,7 +751,7 @@ bool CMemcardManager::ReloadMemcard(const std::string& fileName, int card)
 		wxBlock.Printf("%10d", blocks);
 		m_MemcardList[card]->SetItem(index, COLUMN_BLOCKS, wxBlock);
 		firstblock = memoryCard[card]->DEntry_FirstBlock(fileIndex);
-		//if (firstblock == 0xFFFF) firstblock = 3; // to make firstblock -1
+		// if (firstblock == 0xFFFF) firstblock = 3; // to make firstblock -1
 		wxFirstBlock.Printf("%15d", firstblock);
 		m_MemcardList[card]->SetItem(index, COLUMN_FIRSTBLOCK, wxFirstBlock);
 		m_MemcardList[card]->SetItem(index, COLUMN_ICON, wxEmptyString);
@@ -782,8 +792,8 @@ bool CMemcardManager::ReloadMemcard(const std::string& fileName, int card)
 	}
 
 	m_MemcardList[card]->Show();
-	wxLabel.Printf(_("%u Free Blocks; %u Free Dir Entries"),
-		memoryCard[card]->GetFreeBlocks(), DIRLEN - nFiles);
+	wxLabel.Printf(_("%u Free Blocks; %u Free Dir Entries"), memoryCard[card]->GetFreeBlocks(),
+		DIRLEN - nFiles);
 	t_Status[card]->SetLabel(wxLabel);
 
 	// Done so text doesn't overlap the UI.
@@ -820,7 +830,8 @@ void CMemcardManager::CMemcardListCtrl::OnRightClick(wxMouseEvent& event)
 		popupMenu.Append(ID_FIXCHECKSUM_A + slot, _("Fix Checksums"));
 		popupMenu.Append(ID_PREVPAGE_A + slot, _("Previous Page"));
 		popupMenu.Append(ID_NEXTPAGE_A + slot, _("Next Page"));
-		popupMenu.Append(ID_MEMCARDPATH_A + slot, wxString::Format(_("Set as default Memcard %c"), 'A' + slot));
+		popupMenu.Append(ID_MEMCARDPATH_A + slot,
+			wxString::Format(_("Set as default Memcard %c"), 'A' + slot));
 		popupMenu.AppendCheckItem(ID_USEPAGES, _("Enable pages"));
 
 		popupMenu.FindItem(ID_PREVPAGE_A + slot)->Enable(prevPage && __mcmSettings.usePages);
@@ -844,4 +855,3 @@ void CMemcardManager::CMemcardListCtrl::OnRightClick(wxMouseEvent& event)
 	}
 	PopupMenu(&popupMenu);
 }
-

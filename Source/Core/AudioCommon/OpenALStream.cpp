@@ -3,12 +3,13 @@
 // Refer to the license.txt file included.
 
 #include <cstring>
-
+#include "Common/Common.h"
 #include "AudioCommon/aldlist.h"
 #include "AudioCommon/DPL2Decoder.h"
 #include "AudioCommon/OpenALStream.h"
 #include "Core/Core.h"
 #include "Common/Logging/Log.h"
+#include "Common/MsgHandler.h"
 #include "Core/ConfigManager.h"
 
 #if defined HAVE_OPENAL && HAVE_OPENAL
@@ -102,8 +103,13 @@ void OpenALStream::Clear(bool mute)
 
 void OpenALStream::InitializeSoundLoop()
 {
+#ifdef AL_FORMAT_51CHN16
 	bool surroundsupported = SupportSurroundOutput();
 	format = surroundsupported ? AL_FORMAT_51CHN16 : AL_FORMAT_STEREO16;
+#else
+	bool surroundsupported = false;
+	format = AL_FORMAT_STEREO16;
+#endif
 	samplesize = surroundsupported ? SOUND_SAMPLES_SURROUND : SOUND_SAMPLES_STEREO;
 	ulFrequency = m_mixer->GetSampleRate();
 	numBuffers = SConfig::GetInstance().iLatency + SOUND_BUFFER_COUNT; // OpenAL requires a minimum of two buffers

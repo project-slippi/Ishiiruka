@@ -2,6 +2,7 @@
 // Licensed under GPLv2+
 // Refer to the license.txt file included.
 
+#include "Common/Assert.h"
 #include "Common/CommonPaths.h"
 #include "Common/CommonTypes.h"
 #include "Common/FileUtil.h"
@@ -84,7 +85,7 @@ bool CBoot::EmulatedBS2_GC(bool skipAppLoader)
 	PowerPC::HostWrite_U32(0x4c000064, 0x80000800);  // Write default FPU Handler:     rfi
 	PowerPC::HostWrite_U32(0x4c000064, 0x80000C00);  // Write default Syscall Handler: rfi
 
-	PowerPC::HostWrite_U64((u64)CEXIIPL::GetGCTime() * (u64)40500000,
+	PowerPC::HostWrite_U64((u64)CEXIIPL::GetEmulatedTime(CEXIIPL::GC_EPOCH) * (u64)40500000,
 		0x800030D8);  // Preset time base ticks
 // HIO checks this
 // PowerPC::HostWrite_U16(0x8200,     0x000030e6); // Console type

@@ -11,8 +11,8 @@
 #include <vector>
 
 #include "Common/CommonTypes.h"
-#include "Common/MsgHandler.h"
 #include "Common/Logging/Log.h"
+#include "Common/MsgHandler.h"
 
 // This class is meant to edit the values in a given Wii SYSCONF file
 // It currently does not add/remove/rearrange sections,
@@ -27,7 +27,7 @@ enum SysconfType
 	Type_Byte,
 	Type_Short,
 	Type_Long,
-	Type_Unknown,
+	Type_LongLong,
 	Type_Bool
 };
 
@@ -46,7 +46,7 @@ struct SSysConfEntry
 	u16 dataLength;
 	u8* data;
 
-	template<class T>
+	template <class T>
 	T GetData()
 	{
 		return *(T*)data;
@@ -77,12 +77,8 @@ public:
 	SysConf();
 	~SysConf();
 
-	bool IsValid()
-	{
-		return m_IsValid;
-	}
-
-	template<class T>
+	bool IsValid() { return m_IsValid; }
+	template <class T>
 	T GetData(const char* sectionName)
 	{
 		if (!m_IsValid)
@@ -149,7 +145,7 @@ public:
 		return index->SetArrayData(buffer, bufferSize);
 	}
 
-	template<class T>
+	template <class T>
 	bool SetData(const char* sectionName, T newValue)
 	{
 		if (!m_IsValid)
@@ -186,5 +182,5 @@ private:
 	std::string m_Filename;
 	std::string m_FilenameDefault;
 	std::vector<SSysConfEntry> m_Entries;
-	bool m_IsValid;
+	bool m_IsValid = false;
 };

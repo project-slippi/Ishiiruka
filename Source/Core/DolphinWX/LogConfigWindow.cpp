@@ -21,10 +21,10 @@
 #include "DolphinWX/WxUtils.h"
 
 LogConfigWindow::LogConfigWindow(wxWindow* parent, wxWindowID id)
-	: wxPanel(parent, id, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL, _("Log Configuration"))
-	, enableAll(true)
+	: wxPanel(parent, id, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL,
+		_("Log Configuration")),
+	enableAll(true)
 {
-	SetMinSize(wxSize(100, 100));
 	m_LogManager = LogManager::GetInstance();
 	CreateGUIControls();
 	LoadSettings();
@@ -46,8 +46,8 @@ void LogConfigWindow::CreateGUIControls()
 	wxLevels.Add(_("Debug"));
 	for (int i = 0; i < MAX_LOGLEVEL; ++i)
 		wxLevelsUse.Add(wxLevels[i]);
-	m_verbosity = new wxRadioBox(this, wxID_ANY, _("Verbosity"),
-		wxDefaultPosition, wxDefaultSize, wxLevelsUse, 0, wxRA_SPECIFY_ROWS);
+	m_verbosity = new wxRadioBox(this, wxID_ANY, _("Verbosity"), wxDefaultPosition, wxDefaultSize,
+		wxLevelsUse, 0, wxRA_SPECIFY_ROWS);
 	m_verbosity->Bind(wxEVT_RADIOBOX, &LogConfigWindow::OnVerbosityChange, this);
 
 	// Options
@@ -58,7 +58,7 @@ void LogConfigWindow::CreateGUIControls()
 	m_writeWindowCB = new wxCheckBox(this, wxID_ANY, _("Write to Window"));
 	m_writeWindowCB->Bind(wxEVT_CHECKBOX, &LogConfigWindow::OnWriteWindowChecked, this);
 
-	wxButton *btn_toggle_all = new wxButton(this, wxID_ANY, _("Toggle All Log Types"),
+	wxButton* btn_toggle_all = new wxButton(this, wxID_ANY, _("Toggle All Log Types"),
 		wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT);
 	btn_toggle_all->Bind(wxEVT_BUTTON, &LogConfigWindow::OnToggleAll, this);
 	m_checks = new wxCheckListBox(this, wxID_ANY);
@@ -66,23 +66,26 @@ void LogConfigWindow::CreateGUIControls()
 	for (int i = 0; i < LogTypes::NUMBER_OF_LOGS; i++)
 		m_checks->Append(StrToWxStr(m_LogManager->GetFullName((LogTypes::LOG_TYPE)i)));
 
+	const int space1 = FromDIP(1);
+	const int space5 = FromDIP(5);
+
 	// Sizers
 	wxStaticBoxSizer* sbOutputs = new wxStaticBoxSizer(wxVERTICAL, this, _("Logger Outputs"));
-	sbOutputs->Add(m_writeFileCB, 0, wxDOWN, 1);
-	sbOutputs->Add(m_writeConsoleCB, 0, wxDOWN, 1);
-	sbOutputs->Add(m_writeWindowCB, 0);
+	sbOutputs->Add(m_writeFileCB, 0);
+	sbOutputs->Add(m_writeConsoleCB, 0, wxTOP, space1);
+	sbOutputs->Add(m_writeWindowCB, 0, wxTOP, space1);
 
 	wxStaticBoxSizer* sbLogTypes = new wxStaticBoxSizer(wxVERTICAL, this, _("Log Types"));
 	sbLogTypes->Add(m_checks, 1, wxEXPAND);
 
-	wxBoxSizer *sMain = new wxBoxSizer(wxVERTICAL);
-	sMain->Add(m_verbosity, 0, wxEXPAND | wxLEFT | wxRIGHT, 5);
-	sMain->Add(sbOutputs, 0, wxEXPAND | wxLEFT | wxRIGHT, 5);
-	sMain->Add(btn_toggle_all, 0, wxEXPAND | wxLEFT | wxRIGHT, 5);
-	sMain->Add(sbLogTypes, 1, wxEXPAND | wxLEFT | wxRIGHT, 5);
+	wxBoxSizer* sMain = new wxBoxSizer(wxVERTICAL);
+	sMain->Add(m_verbosity, 0, wxEXPAND | wxLEFT | wxRIGHT, space5);
+	sMain->Add(sbOutputs, 0, wxEXPAND | wxLEFT | wxRIGHT, space5);
+	sMain->Add(btn_toggle_all, 0, wxEXPAND | wxLEFT | wxRIGHT, space5);
+	sMain->Add(sbLogTypes, 1, wxEXPAND | wxLEFT | wxRIGHT, space5);
 
-	SetSizer(sMain);
-	Layout();
+	sMain->SetMinSize(FromDIP(wxSize(100, 100)));
+	SetSizerAndFit(sMain);
 }
 
 void LogConfigWindow::LoadSettings()
@@ -118,7 +121,8 @@ void LogConfigWindow::LoadSettings()
 	for (int i = 0; i < LogTypes::NUMBER_OF_LOGS; ++i)
 	{
 		bool log_enabled;
-		ini.GetOrCreateSection("Logs")->Get(m_LogManager->GetShortName((LogTypes::LOG_TYPE)i), &log_enabled, false);
+		ini.GetOrCreateSection("Logs")->Get(m_LogManager->GetShortName((LogTypes::LOG_TYPE)i),
+			&log_enabled, false);
 
 		if (log_enabled)
 			enableAll = false;
@@ -141,7 +145,8 @@ void LogConfigWindow::SaveSettings()
 	// Save all enabled/disabled states of the log types to the config ini.
 	for (int i = 0; i < LogTypes::NUMBER_OF_LOGS; ++i)
 	{
-		ini.GetOrCreateSection("Logs")->Set(m_LogManager->GetShortName((LogTypes::LOG_TYPE)i), m_checks->IsChecked(i));
+		ini.GetOrCreateSection("Logs")->Set(m_LogManager->GetShortName((LogTypes::LOG_TYPE)i),
+			m_checks->IsChecked(i));
 	}
 
 	ini.Save(File::GetUserPath(F_LOGGERCONFIG_IDX));
@@ -245,4 +250,3 @@ void LogConfigWindow::OnLogCheck(wxCommandEvent& event)
 	int i = event.GetInt();
 	ToggleLog(i, m_checks->IsChecked(i));
 }
-

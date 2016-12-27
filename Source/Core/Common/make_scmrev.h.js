@@ -107,7 +107,7 @@ describe = describe.replace(/(-0)?-[^-]+(-dirty)?$/, '$2');
 
 var out_contents =
 	"#define SCM_REV_STR \"" + revision + "\"\n" +
-	"#define SCM_DESC_STR \"" + revcount + "(" + describe + ")\"\n" +
+	"#define SCM_DESC_STR \" " + revcount + " (" + describe + ")\"\n" +
 	"#define SCM_BRANCH_STR \"" + branch + "\"\n" +
 	"#define SCM_CACHE_STR \"" + cacheversion + "\"\n" +
 	"#define SCM_IS_MASTER " + isStable + "\n" +

@@ -319,7 +319,7 @@ AVIDump::Frame AVIDump::FetchState(u64 ticks)
 {
 	Frame state;
 	state.ticks = ticks;
-	state.first_frame = Movie::g_currentFrame < 1;
+	state.first_frame = Movie::GetCurrentFrame() < 1;
 	state.ticks_per_second = SystemTimers::GetTicksPerSecond();
 	state.savestate_index = s_savestate_index;
 	return state;

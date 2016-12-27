@@ -171,16 +171,16 @@ void GeometryShaderCache::Init()
 	if (!File::Exists(File::GetUserPath(D_SHADERCACHE_IDX)))
 		File::CreateDir(File::GetUserPath(D_SHADERCACHE_IDX));
 
-	pKey_t gameid = (pKey_t)GetMurmurHash3(reinterpret_cast<const u8*>(SConfig::GetInstance().m_strUniqueID.data()), (u32)SConfig::GetInstance().m_strUniqueID.size(), 0);
+	pKey_t gameid = (pKey_t)GetMurmurHash3(reinterpret_cast<const u8*>(SConfig::GetInstance().m_strGameID.data()), (u32)SConfig::GetInstance().m_strGameID.size(), 0);
 	s_geometry_shaders = GSCache::Create(
 		gameid,
 		GEOMETRYSHADERGEN_UID_VERSION,
 		"Ishiiruka.gs",
-		StringFromFormat("%s.gs", SConfig::GetInstance().m_strUniqueID.c_str())
+		StringFromFormat("%s.gs", SConfig::GetInstance().m_strGameID.c_str())
 	);
 
 	std::string cache_filename = StringFromFormat("%sIDX11-%s-gs.cache", File::GetUserPath(D_SHADERCACHE_IDX).c_str(),
-		SConfig::GetInstance().m_strUniqueID.c_str());
+		SConfig::GetInstance().m_strGameID.c_str());
 	GeometryShaderCacheInserter inserter;
 	g_gs_disk_cache.OpenAndRead(cache_filename, inserter);
 

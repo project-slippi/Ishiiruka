@@ -12,19 +12,19 @@
 
 #ifndef EGL_KHR_create_context
 #define EGL_KHR_create_context 1
-#define EGL_CONTEXT_MAJOR_VERSION_KHR     0x3098
-#define EGL_CONTEXT_MINOR_VERSION_KHR     0x30FB
-#define EGL_CONTEXT_FLAGS_KHR             0x30FC
+#define EGL_CONTEXT_MAJOR_VERSION_KHR 0x3098
+#define EGL_CONTEXT_MINOR_VERSION_KHR 0x30FB
+#define EGL_CONTEXT_FLAGS_KHR 0x30FC
 #define EGL_CONTEXT_OPENGL_PROFILE_MASK_KHR 0x30FD
 #define EGL_CONTEXT_OPENGL_RESET_NOTIFICATION_STRATEGY_KHR 0x31BD
-#define EGL_NO_RESET_NOTIFICATION_KHR     0x31BE
-#define EGL_LOSE_CONTEXT_ON_RESET_KHR     0x31BF
-#define EGL_CONTEXT_OPENGL_DEBUG_BIT_KHR  0x00000001
+#define EGL_NO_RESET_NOTIFICATION_KHR 0x31BE
+#define EGL_LOSE_CONTEXT_ON_RESET_KHR 0x31BF
+#define EGL_CONTEXT_OPENGL_DEBUG_BIT_KHR 0x00000001
 #define EGL_CONTEXT_OPENGL_FORWARD_COMPATIBLE_BIT_KHR 0x00000002
 #define EGL_CONTEXT_OPENGL_ROBUST_ACCESS_BIT_KHR 0x00000004
 #define EGL_CONTEXT_OPENGL_CORE_PROFILE_BIT_KHR 0x00000001
 #define EGL_CONTEXT_OPENGL_COMPATIBILITY_PROFILE_BIT_KHR 0x00000002
-#define EGL_OPENGL_ES3_BIT_KHR            0x00000040
+#define EGL_OPENGL_ES3_BIT_KHR 0x00000040
 #endif /* EGL_KHR_create_context */
 
 // Show the current FPS
@@ -51,9 +51,8 @@ void cInterfaceEGL::DetectMode()
 	EGLint num_configs;
 	bool supportsGL = false, supportsGLES2 = false, supportsGLES3 = false;
 	std::array<int, 3> renderable_types = {
-		EGL_OPENGL_BIT,
-		(1 << 6), /* EGL_OPENGL_ES3_BIT_KHR */
-		EGL_OPENGL_ES2_BIT,
+			EGL_OPENGL_BIT, (1 << 6), /* EGL_OPENGL_ES3_BIT_KHR */
+			EGL_OPENGL_ES2_BIT,
 	};
 
 	for (auto renderable_type : renderable_types)
@@ -69,9 +68,9 @@ void cInterfaceEGL::DetectMode()
 		};
 
 		// Get how many configs there are
-		if (!eglChooseConfig( egl_dpy, attribs, nullptr, 0, &num_configs))
+		if (!eglChooseConfig(egl_dpy, attribs, nullptr, 0, &num_configs))
 		{
-			INFO_LOG(VIDEO, "Error: couldn't get an EGL visual config\n");
+			INFO_LOG(VIDEO, "Error: couldn't get an EGL visual config");
 			continue;
 		}
 
@@ -80,7 +79,7 @@ void cInterfaceEGL::DetectMode()
 		// Get all the configurations
 		if (!eglChooseConfig(egl_dpy, attribs, config, num_configs, &num_configs))
 		{
-			INFO_LOG(VIDEO, "Error: couldn't get an EGL visual config\n");
+			INFO_LOG(VIDEO, "Error: couldn't get an EGL visual config");
 			delete[] config;
 			continue;
 		}
@@ -110,31 +109,31 @@ void cInterfaceEGL::DetectMode()
 	else if (supportsGLES2)
 		s_opengl_mode = GLInterfaceMode::MODE_OPENGLES2;
 
-	if (s_opengl_mode == GLInterfaceMode::MODE_DETECT) // Errored before we found a mode
-		s_opengl_mode = GLInterfaceMode::MODE_OPENGL; // Fall back to OpenGL
+	if (s_opengl_mode == GLInterfaceMode::MODE_DETECT)  // Errored before we found a mode
+		s_opengl_mode = GLInterfaceMode::MODE_OPENGL;     // Fall back to OpenGL
 }
 
 // Create rendering window.
 // Call browser: Core.cpp:EmuThread() > main.cpp:Video_Initialize()
-bool cInterfaceEGL::Create(void *window_handle, bool core)
+bool cInterfaceEGL::Create(void* window_handle, bool core)
 {
 	EGLint egl_major, egl_minor;
 	bool supports_core_profile = false;
 
 	egl_dpy = OpenDisplay();
-	m_host_window = (EGLNativeWindowType) window_handle;
+	m_host_window = (EGLNativeWindowType)window_handle;
 	m_has_handle = !!window_handle;
 	m_core = core;
 
 	if (!egl_dpy)
 	{
-		INFO_LOG(VIDEO, "Error: eglGetDisplay() failed\n");
+		INFO_LOG(VIDEO, "Error: eglGetDisplay() failed");
 		return false;
 	}
 
 	if (!eglInitialize(egl_dpy, &egl_major, &egl_minor))
 	{
-		INFO_LOG(VIDEO, "Error: eglInitialize() failed\n");
+		INFO_LOG(VIDEO, "Error: eglInitialize() failed");
 		return false;
 	}
 
@@ -158,24 +157,24 @@ bool cInterfaceEGL::Create(void *window_handle, bool core)
 	case GLInterfaceMode::MODE_OPENGL:
 		attribs[1] = EGL_OPENGL_BIT;
 		ctx_attribs = { EGL_NONE };
-	break;
+		break;
 	case GLInterfaceMode::MODE_OPENGLES2:
 		attribs[1] = EGL_OPENGL_ES2_BIT;
 		ctx_attribs = { EGL_CONTEXT_CLIENT_VERSION, 2, EGL_NONE };
-	break;
+		break;
 	case GLInterfaceMode::MODE_OPENGLES3:
 		attribs[1] = (1 << 6); /* EGL_OPENGL_ES3_BIT_KHR */
 		ctx_attribs = { EGL_CONTEXT_CLIENT_VERSION, 3, EGL_NONE };
-	break;
+		break;
 	default:
-		ERROR_LOG(VIDEO, "Unknown opengl mode set\n");
+		ERROR_LOG(VIDEO, "Unknown opengl mode set");
 		return false;
-	break;
+		break;
 	}
 
-	if (!eglChooseConfig( egl_dpy, attribs, &m_config, 1, &num_configs))
+	if (!eglChooseConfig(egl_dpy, attribs, &m_config, 1, &num_configs))
 	{
-		INFO_LOG(VIDEO, "Error: couldn't get an EGL visual config\n");
+		INFO_LOG(VIDEO, "Error: couldn't get an EGL visual config");
 		return false;
 	}
 
@@ -196,25 +195,20 @@ bool cInterfaceEGL::Create(void *window_handle, bool core)
 
 	if (supports_core_profile && core && s_opengl_mode == GLInterfaceMode::MODE_OPENGL)
 	{
-		std::array<std::pair<int, int>, 7> versions_to_try =
-		{{
-			{ 4, 5 },
-			{ 4, 4 },
-			{ 4, 3 },
-			{ 4, 2 },
-			{ 4, 1 },
-			{ 4, 0 },
-			{ 3, 3 },
-		}};
+		std::array<std::pair<int, int>, 7> versions_to_try = { {
+				{4, 5}, {4, 4}, {4, 3}, {4, 2}, {4, 1}, {4, 0}, {3, 3},
+		} };
 
 		for (const auto& version : versions_to_try)
 		{
 			std::vector<EGLint> core_attribs =
-			{
+			{ 
 				EGL_CONTEXT_MAJOR_VERSION_KHR, version.first,
 				EGL_CONTEXT_MINOR_VERSION_KHR, version.second,
-				EGL_CONTEXT_OPENGL_PROFILE_MASK_KHR, EGL_CONTEXT_OPENGL_CORE_PROFILE_BIT_KHR,
-				EGL_CONTEXT_FLAGS_KHR, EGL_CONTEXT_OPENGL_FORWARD_COMPATIBLE_BIT_KHR,
+				EGL_CONTEXT_OPENGL_PROFILE_MASK_KHR,
+				EGL_CONTEXT_OPENGL_CORE_PROFILE_BIT_KHR,
+				EGL_CONTEXT_FLAGS_KHR,
+				EGL_CONTEXT_OPENGL_FORWARD_COMPATIBLE_BIT_KHR,
 				EGL_NONE
 			};
 
@@ -232,13 +226,13 @@ bool cInterfaceEGL::Create(void *window_handle, bool core)
 
 	if (!egl_ctx)
 	{
-		INFO_LOG(VIDEO, "Error: eglCreateContext failed\n");
+		INFO_LOG(VIDEO, "Error: eglCreateContext failed");
 		return false;
 	}
 
 	if (!CreateWindowSurface())
 	{
-		ERROR_LOG(VIDEO, "Error: CreateWindowSurface failed 0x%04x\n", eglGetError());
+		ERROR_LOG(VIDEO, "Error: CreateWindowSurface failed 0x%04x", eglGetError());
 		return false;
 	}
 	return true;
@@ -263,26 +257,23 @@ bool cInterfaceEGL::Create(cInterfaceBase* main_context)
 	m_is_shared = true;
 	m_has_handle = false;
 
-	EGLint ctx_attribs[] = {
-		EGL_CONTEXT_CLIENT_VERSION, 2,
-		EGL_NONE
-	};
+	EGLint ctx_attribs[] = { EGL_CONTEXT_CLIENT_VERSION, 2, EGL_NONE };
 
 	switch (egl_context->GetMode())
 	{
 	case GLInterfaceMode::MODE_OPENGL:
 		ctx_attribs[0] = EGL_NONE;
-	break;
+		break;
 	case GLInterfaceMode::MODE_OPENGLES2:
 		ctx_attribs[1] = 2;
-	break;
+		break;
 	case GLInterfaceMode::MODE_OPENGLES3:
 		ctx_attribs[1] = 3;
-	break;
+		break;
 	default:
-		INFO_LOG(VIDEO, "Unknown opengl mode set\n");
+		INFO_LOG(VIDEO, "Unknown opengl mode set");
 		return false;
-	break;
+		break;
 	}
 
 	if (egl_context->GetMode() == GLInterfaceMode::MODE_OPENGL)
@@ -290,16 +281,16 @@ bool cInterfaceEGL::Create(cInterfaceBase* main_context)
 	else
 		eglBindAPI(EGL_OPENGL_ES_API);
 
-	egl_ctx = eglCreateContext(egl_dpy, m_config, egl_context->egl_ctx, ctx_attribs );
+	egl_ctx = eglCreateContext(egl_dpy, m_config, egl_context->egl_ctx, ctx_attribs);
 	if (!egl_ctx)
 	{
-		INFO_LOG(VIDEO, "Error: eglCreateContext failed 0x%04x\n", eglGetError());
+		INFO_LOG(VIDEO, "Error: eglCreateContext failed 0x%04x", eglGetError());
 		return false;
 	}
 
 	if (!CreateWindowSurface())
 	{
-		ERROR_LOG(VIDEO, "Error: CreateWindowSurface failed 0x%04x\n", eglGetError());
+		ERROR_LOG(VIDEO, "Error: CreateWindowSurface failed 0x%04x", eglGetError());
 		return false;
 	}
 	return true;
@@ -313,15 +304,14 @@ bool cInterfaceEGL::CreateWindowSurface()
 		egl_surf = eglCreateWindowSurface(egl_dpy, m_config, native_window, nullptr);
 		if (!egl_surf)
 		{
-			INFO_LOG(VIDEO, "Error: eglCreateWindowSurface failed\n");
+			INFO_LOG(VIDEO, "Error: eglCreateWindowSurface failed");
 			return false;
 		}
 	}
 	else if (!m_supports_surfaceless)
 	{
-		EGLint attrib_list[] =
-		{
-			EGL_NONE,
+		EGLint attrib_list[] = {
+				EGL_NONE,
 		};
 		egl_surf = eglCreatePbufferSurface(egl_dpy, m_config, attrib_list);
 		if (!egl_surf)

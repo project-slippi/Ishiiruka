@@ -200,7 +200,7 @@ void PostProcessingConfigDiag::ConfigGrouping::GenerateUI(PostProcessingConfigDi
 				string_value = std::to_string(m_config_option->m_float_values[i]);
 			}
 
-			wxSlider* slider = new wxSlider(parent, wxID_ANY, current_value, 0, steps,
+			DolphinSlider* slider = new DolphinSlider(parent, wxID_ANY, current_value, 0, steps,
 				wxDefaultPosition, wxSize(200, -1), wxSL_HORIZONTAL | wxSL_BOTTOM);
 			wxTextCtrl* text_ctrl = new wxTextCtrl(parent, wxID_ANY, string_value);
 

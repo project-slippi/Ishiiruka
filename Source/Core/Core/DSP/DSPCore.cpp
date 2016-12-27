@@ -17,10 +17,10 @@
 #include "Core/DSP/DSPAnalyzer.h"
 #include "Core/DSP/DSPCore.h"
 #include "Core/DSP/DSPEmitter.h"
-#include "Core/DSP/DSPHost.h"
 #include "Core/DSP/DSPHWInterface.h"
-#include "Core/DSP/DSPInterpreter.h"
+#include "Core/DSP/DSPHost.h"
 #include "Core/DSP/DSPIntUtil.h"
+#include "Core/DSP/DSPInterpreter.h"
 
 SDSP g_dsp;
 DSPBreakpoints g_dsp_breakpoints;
@@ -36,24 +36,23 @@ static bool VerifyRoms()
 {
 	struct DspRomHashes
 	{
-		u32 hash_irom; // dsp_rom.bin
-		u32 hash_drom; // dsp_coef.bin
+		u32 hash_irom;  // dsp_rom.bin
+		u32 hash_drom;  // dsp_coef.bin
 	};
 
-	static const std::array<DspRomHashes, 4> known_roms = { {
-			// Official Nintendo ROM
-			{ 0x66f334fe, 0xf3b93527 },
+	static const std::array<DspRomHashes, 4> known_roms = {
+			{// Official Nintendo ROM
+			 {0x66f334fe, 0xf3b93527},
 
-			// LM1234 replacement ROM (Zelda UCode only)
-			{ 0x9c8f593c, 0x10000001 },
+			 // LM1234 replacement ROM (Zelda UCode only)
+			 {0x9c8f593c, 0x10000001},
 
-			// delroth's improvement on LM1234 replacement ROM (Zelda and AX only,
-			// IPL/Card/GBA still broken)
-			{ 0xd9907f71, 0xb019c2fb },
+			 // delroth's improvement on LM1234 replacement ROM (Zelda and AX only,
+			 // IPL/Card/GBA still broken)
+			 {0xd9907f71, 0xb019c2fb},
 
-			// above with improved resampling coefficients
-			{ 0xd9907f71, 0xdb6880c1 }
-		} };
+			 // above with improved resampling coefficients
+			 {0xd9907f71, 0xdb6880c1}} };
 
 	u32 hash_irom = HashAdler32((u8*)g_dsp.irom, DSP_IROM_BYTE_SIZE);
 	u32 hash_drom = HashAdler32((u8*)g_dsp.coef, DSP_COEF_BYTE_SIZE);
@@ -83,7 +82,7 @@ static bool VerifyRoms()
 	{
 		DSPHost::OSD_AddMessage("You are using a free DSP ROM made by the Dolphin Team.", 8000);
 		DSPHost::OSD_AddMessage("All Wii games will work correctly, and most GC games should ", 8000);
-		DSPHost::OSD_AddMessage("also work fine, but the GBA/IPL/CARD UCodes will not work.\n", 8000);
+		DSPHost::OSD_AddMessage("also work fine, but the GBA/IPL/CARD UCodes will not work.", 8000);
 	}
 
 	return true;
@@ -91,10 +90,10 @@ static bool VerifyRoms()
 
 static void DSPCore_FreeMemoryPages()
 {
-	FreeMemoryPages(g_dsp.irom, DSP_IROM_BYTE_SIZE);
-	FreeMemoryPages(g_dsp.iram, DSP_IRAM_BYTE_SIZE);
-	FreeMemoryPages(g_dsp.dram, DSP_DRAM_BYTE_SIZE);
-	FreeMemoryPages(g_dsp.coef, DSP_COEF_BYTE_SIZE);
+	Common::FreeMemoryPages(g_dsp.irom, DSP_IROM_BYTE_SIZE);
+	Common::FreeMemoryPages(g_dsp.iram, DSP_IRAM_BYTE_SIZE);
+	Common::FreeMemoryPages(g_dsp.dram, DSP_DRAM_BYTE_SIZE);
+	Common::FreeMemoryPages(g_dsp.coef, DSP_COEF_BYTE_SIZE);
 	g_dsp.irom = g_dsp.iram = g_dsp.dram = g_dsp.coef = nullptr;
 }
 
@@ -104,10 +103,10 @@ bool DSPCore_Init(const DSPInitOptions& opts)
 	g_cycles_left = 0;
 	g_init_hax = false;
 
-	g_dsp.irom = (u16*)AllocateMemoryPages(DSP_IROM_BYTE_SIZE);
-	g_dsp.iram = (u16*)AllocateMemoryPages(DSP_IRAM_BYTE_SIZE);
-	g_dsp.dram = (u16*)AllocateMemoryPages(DSP_DRAM_BYTE_SIZE);
-	g_dsp.coef = (u16*)AllocateMemoryPages(DSP_COEF_BYTE_SIZE);
+	g_dsp.irom = static_cast<u16*>(Common::AllocateMemoryPages(DSP_IROM_BYTE_SIZE));
+	g_dsp.iram = static_cast<u16*>(Common::AllocateMemoryPages(DSP_IRAM_BYTE_SIZE));
+	g_dsp.dram = static_cast<u16*>(Common::AllocateMemoryPages(DSP_DRAM_BYTE_SIZE));
+	g_dsp.coef = static_cast<u16*>(Common::AllocateMemoryPages(DSP_COEF_BYTE_SIZE));
 
 	memcpy(g_dsp.irom, opts.irom_contents.data(), DSP_IROM_BYTE_SIZE);
 	memcpy(g_dsp.coef, opts.coef_contents.data(), DSP_COEF_BYTE_SIZE);
@@ -143,7 +142,7 @@ bool DSPCore_Init(const DSPInitOptions& opts)
 	gdsp_ifx_init();
 	// Mostly keep IRAM write protected. We unprotect only when DMA-ing
 	// in new ucodes.
-	WriteProtectMemory(g_dsp.iram, DSP_IRAM_BYTE_SIZE, false);
+	Common::WriteProtectMemory(g_dsp.iram, DSP_IRAM_BYTE_SIZE, false);
 
 	// Initialize JIT, if necessary
 	if (opts.core_type == DSPInitOptions::CORE_JIT)
@@ -200,7 +199,6 @@ void DSPCore_CheckExternalInterrupt()
 
 	g_dsp.cr &= ~CR_EXTERNAL_INT;
 }
-
 
 void DSPCore_CheckExceptions()
 {
@@ -333,7 +331,7 @@ void CompileCurrent()
 	}
 }
 
-u16 DSPCore_ReadRegister(int reg)
+u16 DSPCore_ReadRegister(size_t reg)
 {
 	switch (reg)
 	{
@@ -360,12 +358,18 @@ u16 DSPCore_ReadRegister(int reg)
 	case DSP_REG_ACH0:
 	case DSP_REG_ACH1:
 		return g_dsp.r.ac[reg - DSP_REG_ACH0].h;
-	case DSP_REG_CR:     return g_dsp.r.cr;
-	case DSP_REG_SR:     return g_dsp.r.sr;
-	case DSP_REG_PRODL:  return g_dsp.r.prod.l;
-	case DSP_REG_PRODM:  return g_dsp.r.prod.m;
-	case DSP_REG_PRODH:  return g_dsp.r.prod.h;
-	case DSP_REG_PRODM2: return g_dsp.r.prod.m2;
+	case DSP_REG_CR:
+		return g_dsp.r.cr;
+	case DSP_REG_SR:
+		return g_dsp.r.sr;
+	case DSP_REG_PRODL:
+		return g_dsp.r.prod.l;
+	case DSP_REG_PRODM:
+		return g_dsp.r.prod.m;
+	case DSP_REG_PRODH:
+		return g_dsp.r.prod.h;
+	case DSP_REG_PRODM2:
+		return g_dsp.r.prod.m2;
 	case DSP_REG_AXL0:
 	case DSP_REG_AXL1:
 		return g_dsp.r.ax[reg - DSP_REG_AXL0].l;
@@ -384,7 +388,7 @@ u16 DSPCore_ReadRegister(int reg)
 	}
 }
 
-void DSPCore_WriteRegister(int reg, u16 val)
+void DSPCore_WriteRegister(size_t reg, u16 val)
 {
 	switch (reg)
 	{
@@ -416,12 +420,24 @@ void DSPCore_WriteRegister(int reg, u16 val)
 	case DSP_REG_ACH1:
 		g_dsp.r.ac[reg - DSP_REG_ACH0].h = val;
 		break;
-	case DSP_REG_CR:     g_dsp.r.cr = val; break;
-	case DSP_REG_SR:     g_dsp.r.sr = val; break;
-	case DSP_REG_PRODL:  g_dsp.r.prod.l = val; break;
-	case DSP_REG_PRODM:  g_dsp.r.prod.m = val; break;
-	case DSP_REG_PRODH:  g_dsp.r.prod.h = val; break;
-	case DSP_REG_PRODM2: g_dsp.r.prod.m2 = val; break;
+	case DSP_REG_CR:
+		g_dsp.r.cr = val;
+		break;
+	case DSP_REG_SR:
+		g_dsp.r.sr = val;
+		break;
+	case DSP_REG_PRODL:
+		g_dsp.r.prod.l = val;
+		break;
+	case DSP_REG_PRODM:
+		g_dsp.r.prod.m = val;
+		break;
+	case DSP_REG_PRODH:
+		g_dsp.r.prod.h = val;
+		break;
+	case DSP_REG_PRODM2:
+		g_dsp.r.prod.m2 = val;
+		break;
 	case DSP_REG_AXL0:
 	case DSP_REG_AXL1:
 		g_dsp.r.ax[reg - DSP_REG_AXL0].l = val;

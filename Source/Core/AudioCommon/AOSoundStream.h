@@ -4,13 +4,13 @@
 
 #pragma once
 
-#include <atomic>
 #include <mutex>
 #include <thread>
 
 #include "AudioCommon/SoundStream.h"
 #include "Common/Event.h"
 #include "Common/Thread.h"
+#include "Common/Flag.h"
 
 #if defined(HAVE_AO) && HAVE_AO
 #include <ao/ao.h>
@@ -20,7 +20,7 @@ class AOSound final: public SoundStream
 {
 #if defined(HAVE_AO) && HAVE_AO
 	std::thread thread;
-	std::atomic<bool> m_run_thread;
+	Common::Flag m_run_thread;
 	std::mutex soundCriticalSection;
 	Common::Event soundSyncEvent;
 

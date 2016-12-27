@@ -17,7 +17,7 @@ public:
 
 	virtual bool IsLLE() = 0;
 
-	virtual bool Initialize(bool bWii, bool bDSPThread) = 0;
+	virtual bool Initialize(bool wii, bool dsp_thread) = 0;
 	virtual void Shutdown() = 0;
 
 	virtual void DoState(PointerWrap &p) = 0;
@@ -32,6 +32,9 @@ public:
 	virtual void DSP_Update(int cycles) = 0;
 	virtual void DSP_StopSoundStream() = 0;
 	virtual u32 DSP_UpdateRate() = 0;
+
+protected:
+	bool m_wii = false;
 };
 
 std::unique_ptr<DSPEmulator> CreateDSPEmulator(bool hle);

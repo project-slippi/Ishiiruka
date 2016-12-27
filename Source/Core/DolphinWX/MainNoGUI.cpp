@@ -6,67 +6,86 @@
 #include <cstdio>
 #include <cstring>
 #include <getopt.h>
+#include <signal.h>
 #include <string>
 #include <thread>
 #include <unistd.h>
 
 #include "Common/CommonTypes.h"
 #include "Common/Event.h"
-#include "Common/MsgHandler.h"
+#include "Common/Flag.h"
 #include "Common/Logging/LogManager.h"
+#include "Common/MsgHandler.h"
 
 #include "Core/Analytics.h"
 #include "Core/BootManager.h"
 #include "Core/ConfigManager.h"
 #include "Core/Core.h"
-#include "Core/Host.h"
-#include "Core/State.h"
 #include "Core/HW/Wiimote.h"
-#include "Core/IPC_HLE/WII_IPC_HLE_Device_usb.h"
+#include "Core/Host.h"
+#include "Core/IPC_HLE/WII_IPC_HLE.h"
+#include "Core/IPC_HLE/WII_IPC_HLE_Device_stm.h"
+#include "Core/IPC_HLE/WII_IPC_HLE_Device_usb_bt_emu.h"
 #include "Core/IPC_HLE/WII_IPC_HLE_WiiMote.h"
+#include "Core/State.h"
 
 #include "UICommon/UICommon.h"
 
+#include "VideoCommon/RenderBase.h"
 #include "VideoCommon/VideoBackendBase.h"
 
 static bool rendererHasFocus = true;
 static bool rendererIsFullscreen = false;
-static bool running = true;
+static Common::Flag s_running{ true };
+static Common::Flag s_shutdown_requested{ false };
+static Common::Flag s_tried_graceful_shutdown{ false };
+
+static void signal_handler(int)
+{
+	const char message[] = "A signal was received. A second signal will force Dolphin to stop.\n";
+	if (write(STDERR_FILENO, message, sizeof(message)) < 0)
+	{
+	}
+	s_shutdown_requested.Set();
+}
+
+namespace ProcessorInterface
+{
+void PowerButton_Tap();
+}
 
 class Platform
 {
 public:
-	virtual void Init()
-	{}
-	virtual void SetTitle(const std::string &title)
-	{}
+	virtual void Init() {}
+	virtual void SetTitle(const std::string& title) {}
 	virtual void MainLoop()
 	{
-		while (running)
+		while (s_running.IsSet())
 		{
 			Core::HostDispatchJobs();
 			std::this_thread::sleep_for(std::chrono::milliseconds(100));
 		}
 	}
-	virtual void Shutdown()
-	{}
-	virtual ~Platform()
-	{}
+	virtual void Shutdown() {}
+	virtual ~Platform() {}
 };
 
 static Platform* platform;
 
 void Host_NotifyMapLoaded()
-{}
+{
+}
 void Host_RefreshDSPDebuggerWindow()
-{}
+{
+}
 
 static Common::Event updateMainFrameEvent;
 void Host_Message(int Id)
 {
 	if (Id == WM_USER_STOP)
 	{
-		running = false;
+		s_running.Clear();
 		updateMainFrameEvent.Set();
 	}
 }
@@ -83,7 +102,8 @@ void Host_UpdateTitle(const std::string& title)
 }
 
 void Host_UpdateDisasmDialog()
-{}
+{
+}
 
 void Host_UpdateMainFrame()
 {
@@ -91,7 +111,8 @@ void Host_UpdateMainFrame()
 }
 
 void Host_RequestRenderWindowSize(int width, int height)
-{}
+{
+}
 
 void Host_SetStartupDebuggingParameters()
 {
@@ -117,10 +138,10 @@ bool Host_RendererIsFullscreen()
 
 void Host_ConnectWiimote(int wm_idx, bool connect)
 {
-	if (Core::IsRunning() && SConfig::GetInstance().bWii)
+	if (Core::IsRunning() && SConfig::GetInstance().bWii &&
+		!SConfig::GetInstance().m_bt_passthrough_enabled)
 	{
-		Core::QueueHostJob([=]
-		{
+		Core::QueueHostJob([=] {
 			bool was_unpaused = Core::PauseAndLock(true);
 			GetUsbPointer()->AccessWiiMote(wm_idx | 0x100)->Activate(connect);
 			Host_UpdateMainFrame();
@@ -130,10 +151,16 @@ void Host_ConnectWiimote(int wm_idx, bool connect)
 }
 
 void Host_SetWiiMoteConnectionState(int _State)
-{}
+{
+}
 
 void Host_ShowVideoConfig(void*, const std::string&)
-{}
+{
+}
+
+void Host_YieldToUI()
+{
+}
 
 #if HAVE_X11
 #include <X11/keysym.h>
@@ -141,11 +168,11 @@ void Host_ShowVideoConfig(void*, const std::string&)
 
 class PlatformX11 : public Platform
 {
-	Display *dpy;
+	Display* dpy;
 	Window win;
 	Cursor blankCursor = None;
 #if defined(HAVE_XRANDR) && HAVE_XRANDR
-	X11Utils::XRRConfiguration *XRRConfig;
+	X11Utils::XRRConfiguration* XRRConfig;
 #endif
 
 	void Init() override
@@ -158,13 +185,11 @@ class PlatformX11 : public Platform
 			exit(1);
 		}
 
-		win = XCreateSimpleWindow(dpy, DefaultRootWindow(dpy),
-			SConfig::GetInstance().iRenderWindowXPos,
+		win = XCreateSimpleWindow(dpy, DefaultRootWindow(dpy), SConfig::GetInstance().iRenderWindowXPos,
 			SConfig::GetInstance().iRenderWindowYPos,
 			SConfig::GetInstance().iRenderWindowWidth,
-			SConfig::GetInstance().iRenderWindowHeight,
-			0, 0, BlackPixel(dpy, 0));
-		XSelectInput(dpy, win, KeyPressMask | FocusChangeMask);
+			SConfig::GetInstance().iRenderWindowHeight, 0, 0, BlackPixel(dpy, 0));
+		XSelectInput(dpy, win, StructureNotifyMask | KeyPressMask | FocusChangeMask);
 		Atom wmProtocols[1];
 		wmProtocols[0] = XInternAtom(dpy, "WM_DELETE_WINDOW", True);
 		XSetWMProtocols(dpy, win, wmProtocols, 1);
@@ -192,15 +217,12 @@ class PlatformX11 : public Platform
 		}
 	}
 
-	void SetTitle(const std::string &string) override
-	{
-		XStoreName(dpy, win, string.c_str());
-	}
-
+	void SetTitle(const std::string& string) override { XStoreName(dpy, win, string.c_str()); }
 	void MainLoop() override
 	{
 		bool fullscreen = SConfig::GetInstance().bFullscreen;
-
+		int last_window_width = SConfig::GetInstance().iRenderWindowWidth;
+		int last_window_height = SConfig::GetInstance().iRenderWindowHeight;
 		if (fullscreen)
 		{
 			rendererIsFullscreen = X11Utils::ToggleFullscreen(dpy, win);
@@ -210,8 +232,23 @@ class PlatformX11 : public Platform
 		}
 
 		// The actual loop
-		while (running)
+		while (s_running.IsSet())
 		{
+			if (s_shutdown_requested.TestAndClear())
+			{
+				const auto& stm = WII_IPC_HLE_Interface::GetDeviceByName("/dev/stm/eventhook");
+				if (!s_tried_graceful_shutdown.IsSet() && stm &&
+					std::static_pointer_cast<CWII_IPC_HLE_Device_stm_eventhook>(stm)->HasHookInstalled())
+				{
+					ProcessorInterface::PowerButton_Tap();
+					s_tried_graceful_shutdown.Set();
+				}
+				else
+				{
+					s_running.Clear();
+				}
+			}
+
 			XEvent event;
 			KeySym key;
 			for (int num_events = XPending(dpy); num_events > 0; num_events--)
@@ -266,8 +303,7 @@ class PlatformX11 : public Platform
 					break;
 				case FocusIn:
 					rendererHasFocus = true;
-					if (SConfig::GetInstance().bHideCursor &&
-						Core::GetState() != Core::CORE_PAUSE)
+					if (SConfig::GetInstance().bHideCursor && Core::GetState() != Core::CORE_PAUSE)
 						XDefineCursor(dpy, win, blankCursor);
 					break;
 				case FocusOut:
@@ -277,20 +313,35 @@ class PlatformX11 : public Platform
 					break;
 				case ClientMessage:
 					if ((unsigned long)event.xclient.data.l[0] == XInternAtom(dpy, "WM_DELETE_WINDOW", False))
-						running = false;
+						s_shutdown_requested.Set();
 					break;
+				case ConfigureNotify:
+				{
+					if (last_window_width != event.xconfigure.width ||
+						last_window_height != event.xconfigure.height)
+					{
+						last_window_width = event.xconfigure.width;
+						last_window_height = event.xconfigure.height;
+
+						// We call Renderer::ChangeSurface here to indicate the size has changed,
+						// but pass the same window handle. This is needed for the Vulkan backend,
+						// otherwise it cannot tell that the window has been resized on some drivers.
+						if (g_renderer)
+							g_renderer->ChangeSurface(s_window_handle);
+					}
+				}
+				break;
 				}
 			}
 			if (!fullscreen)
 			{
 				Window winDummy;
 				unsigned int borderDummy, depthDummy;
-				XGetGeometry(dpy, win, &winDummy,
-					&SConfig::GetInstance().iRenderWindowXPos,
+				XGetGeometry(dpy, win, &winDummy, &SConfig::GetInstance().iRenderWindowXPos,
 					&SConfig::GetInstance().iRenderWindowYPos,
-					(unsigned int *)&SConfig::GetInstance().iRenderWindowWidth,
-					(unsigned int *)&SConfig::GetInstance().iRenderWindowHeight,
-					&borderDummy, &depthDummy);
+					(unsigned int*)&SConfig::GetInstance().iRenderWindowWidth,
+					(unsigned int*)&SConfig::GetInstance().iRenderWindowHeight, &borderDummy,
+					&depthDummy);
 				rendererIsFullscreen = false;
 			}
 			Core::HostDispatchJobs();
@@ -325,12 +376,10 @@ static Platform* GetPlatform()
 int main(int argc, char* argv[])
 {
 	int ch, help = 0;
-	struct option longopts[] = {
-		{ "exec",    no_argument, nullptr, 'e' },
-		{ "help",    no_argument, nullptr, 'h' },
-		{ "version", no_argument, nullptr, 'v' },
-		{ nullptr,      0,           nullptr,  0  }
-	};
+	struct option longopts[] = { { "exec", no_argument, nullptr, 'e' },
+	{ "help", no_argument, nullptr, 'h' },
+	{ "version", no_argument, nullptr, 'v' },
+	{ nullptr, 0, nullptr, 0 } };
 
 	while ((ch = getopt_long(argc, argv, "eh?v", longopts, 0)) != -1)
 	{
@@ -366,10 +415,19 @@ int main(int argc, char* argv[])
 		return 1;
 	}
 
-	UICommon::SetUserDirectory(""); // Auto-detect user folder
+	UICommon::SetUserDirectory("");  // Auto-detect user folder
 	UICommon::Init();
 
+	Core::SetOnStoppedCallback([]() { s_running.Clear(); });
 	platform->Init();
+
+	// Shut down cleanly on SIGINT and SIGTERM
+	struct sigaction sa;
+	sa.sa_handler = signal_handler;
+	sigemptyset(&sa.sa_mask);
+	sa.sa_flags = SA_RESETHAND;
+	sigaction(SIGINT, &sa, nullptr);
+	sigaction(SIGTERM, &sa, nullptr);
 
 	DolphinAnalytics::Instance()->ReportDolphinStart("nogui");
 
@@ -379,13 +437,13 @@ int main(int argc, char* argv[])
 		return 1;
 	}
 
-	while (!Core::IsRunning() && running)
+	while (!Core::IsRunning() && s_running.IsSet())
 	{
 		Core::HostDispatchJobs();
 		updateMainFrameEvent.Wait();
 	}
 
-	if (running)
+	if (s_running.IsSet())
 		platform->MainLoop();
 	Core::Stop();
 

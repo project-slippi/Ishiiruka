@@ -9,6 +9,7 @@
 #endif
 
 #include <cstddef>
+#include <cstring>
 #include <string>
 #include "Common/CommonTypes.h"
 

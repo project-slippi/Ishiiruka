@@ -5,6 +5,7 @@
 #pragma once
 
 #include <cstddef>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -25,18 +26,19 @@ public:
 	// wxTipWindow doesn't correctly handle KeyEvents and crashes... we must overload that.
 	void OnKeyDown(wxKeyEvent& event)
 	{
-		event.StopPropagation(); Close();
+		event.StopPropagation();
+		Close();
 	}
 };
+
+wxDECLARE_EVENT(DOLPHIN_EVT_RELOAD_GAMELIST, wxCommandEvent);
 
 class CGameListCtrl : public wxListCtrl
 {
 public:
-
-	CGameListCtrl(wxWindow* parent, const wxWindowID id, const wxPoint& pos, const wxSize& size, long style);
+	CGameListCtrl(wxWindow* parent, const wxWindowID id, const wxPoint& pos, const wxSize& size,
+		long style);
 	~CGameListCtrl();
-
-	void Update() override;
 
 	void BrowseForDirectory();
 	const GameListItem* GetISO(size_t index) const;
@@ -65,25 +67,9 @@ public:
 #endif
 
 private:
+	void ReloadList();
 
-	std::vector<int> m_FlagImageIndex;
-	std::vector<int> m_PlatformImageIndex;
-	std::vector<int> m_EmuStateImageIndex;
-	std::vector<GameListItem*> m_ISOFiles;
-
-	void ClearIsoFiles()
-	{
-		while (!m_ISOFiles.empty()) // so lazy
-		{
-			delete m_ISOFiles.back();
-			m_ISOFiles.pop_back();
-		}
-	}
-
-	int last_column;
-	int last_sort;
-	wxSize lastpos;
-	wxEmuStateTip *toolTip;
+	void ClearIsoFiles() { m_ISOFiles.clear(); }
 	void InitBitmaps();
 	void UpdateItemAtColumn(long _Index, int column);
 	void InsertItemInReportView(long _Index);
@@ -91,6 +77,7 @@ private:
 	void ScanForISOs();
 
 	// events
+	void OnReloadGameList(wxCommandEvent& event);
 	void OnLeftClick(wxMouseEvent& event);
 	void OnRightClick(wxMouseEvent& event);
 	void OnMouseMotion(wxMouseEvent& event);
@@ -100,6 +87,7 @@ private:
 	void OnSize(wxSizeEvent& event);
 	void OnProperties(wxCommandEvent& event);
 	void OnWiki(wxCommandEvent& event);
+	void OnNetPlayHost(wxCommandEvent& event);
 	void OnOpenContainingFolder(wxCommandEvent& event);
 	void OnOpenSaveFolder(wxCommandEvent& event);
 	void OnExportSave(wxCommandEvent& event);
@@ -118,4 +106,15 @@ private:
 	static bool CompressCB(const std::string& text, float percent, void* arg);
 	static bool MultiCompressCB(const std::string& text, float percent, void* arg);
 	static bool WiiCompressWarning();
+
+	std::vector<int> m_FlagImageIndex;
+	std::vector<int> m_PlatformImageIndex;
+	std::vector<int> m_EmuStateImageIndex;
+	std::vector<int> m_utility_game_banners;
+	std::vector<std::unique_ptr<GameListItem>> m_ISOFiles;
+
+	int last_column;
+	int last_sort;
+	wxSize lastpos;
+	wxEmuStateTip* toolTip;
 };

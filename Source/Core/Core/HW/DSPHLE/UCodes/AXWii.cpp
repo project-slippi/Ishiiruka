@@ -20,7 +20,7 @@ AXWiiUCode::AXWiiUCode(DSPHLE* dsphle, u32 crc) : AXUCode(dsphle, crc), m_last_m
 	for (u16& volume : m_last_aux_volumes)
 		volume = 0x8000;
 
-	WARN_LOG(DSPHLE, "Instantiating AXWiiUCode");
+	INFO_LOG(DSPHLE, "Instantiating AXWiiUCode");
 
 	m_old_axwii = (crc == 0xfa450138);
 }
@@ -437,7 +437,7 @@ void AXWiiUCode::ProcessPBList(u32 pb_addr)
 
 	while (pb_addr)
 	{
-		AXBuffers buffers =
+		AXBuffers buffers = 
 		{
 			{
 				m_samples_left,      m_samples_right,      m_samples_surround,

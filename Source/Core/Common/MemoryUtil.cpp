@@ -30,8 +30,10 @@
 // Valgrind doesn't support MAP_32BIT.
 // Uncomment the following line to be able to run Dolphin in Valgrind.
 //#undef MAP_32BIT
+namespace Common
+{
 
-#if !defined(_WIN32)
+#if !defined(_WIN32) && defined(_M_X86_64) && !defined(MAP_32BIT)
 #include <unistd.h>
 static uintptr_t RoundPage(uintptr_t addr)
 {
@@ -273,3 +275,5 @@ size_t MemPhysical()
 	return (size_t)memInfo.totalram * memInfo.mem_unit;
 #endif
 }
+
+}  // namespace Common

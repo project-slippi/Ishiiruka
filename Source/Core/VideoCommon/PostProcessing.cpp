@@ -32,42 +32,44 @@
 static const char s_default_shader[] = "void main() { SetOutput(ApplyGCGamma(Sample())); }\n";
 struct LangDescriptor
 {
-	wxLanguage Lang;
+	const char* Lang;
 	const char* Code;
 };
 
-#define LANGUAGE_ID_COUNT 26
+#define LANGUAGE_ID_COUNT 29
 
 static const LangDescriptor language_ids[LANGUAGE_ID_COUNT] =
 {
-	{ wxLANGUAGE_DEFAULT, ""},
+	{ "", "" },
+	{ "ms", ".MAL" },
+	{ "ca", ".CAT" },
+	{ "cs", ".CZE" },
+	{ "da", ".DAN" },
+	{ "de", ".GER" },
+	{ "en", ".ENG" },
+	{ "es", ".SPA" },
+	{ "fr", ".FRE" },
+	{ "hr", ".CRO" },
+	{ "it", ".ITA" },
+	{ "hu", ".HUN" },
+	{ "nl", ".DUT" },
+	{ "nb", ".NOR" },
+	{ "pl", ".POL" },
+	{ "pt", ".POR" },
+	{ "pt_BR", ".BRA" },
+	{ "ro", ".ROM" },
+	{ "sr", ".SER" },
+	{ "sv", ".SWE" },
+	{ "tr", ".TUR" },
 
-	{ wxLANGUAGE_CATALAN, ".CAT" },
-	{ wxLANGUAGE_CZECH, ".CZE" },
-	{ wxLANGUAGE_GERMAN, ".GER" },
-	{ wxLANGUAGE_ENGLISH, ".ENG" },
-	{ wxLANGUAGE_SPANISH, ".SPA" },
-	{ wxLANGUAGE_FRENCH, ".FRE" },
-	{ wxLANGUAGE_ITALIAN, ".ITA" },
-	{ wxLANGUAGE_HUNGARIAN, ".HUN" },
-	{ wxLANGUAGE_DUTCH, ".DUT" },
-	{ wxLANGUAGE_NORWEGIAN_BOKMAL, ".NOR" },
-	{ wxLANGUAGE_POLISH, ".POL" },
-	{ wxLANGUAGE_PORTUGUESE, ".POR" },
-	{ wxLANGUAGE_PORTUGUESE_BRAZILIAN, ".BRA" },
-	{ wxLANGUAGE_SERBIAN, ".SER" },
-	{ wxLANGUAGE_SWEDISH, ".SWE" },
-	{ wxLANGUAGE_TURKISH, ".TUR" },
-
-	{ wxLANGUAGE_GREEK, ".GRE" },
-	{ wxLANGUAGE_RUSSIAN, ".RUS" },
-	{ wxLANGUAGE_HEBREW, ".HEB" },
-	{ wxLANGUAGE_ARABIC, ".ARA" },
-	{ wxLANGUAGE_FARSI, ".FAR" },
-	{ wxLANGUAGE_KOREAN, ".KOR" },
-	{ wxLANGUAGE_JAPANESE, ".JAP" },
-	{ wxLANGUAGE_CHINESE_SIMPLIFIED, ".CHS" },
-	{ wxLANGUAGE_CHINESE_TRADITIONAL, ".CHT" }
+	{ "el", ".GRE" },
+	{ "ru", ".RUS" },
+	{ "ar", ".ARA" },
+	{ "fa", ".FAR" },
+	{ "ko", ".KOR" },
+	{ "ja", ".JAP" },
+	{ "zh_CN", ".CHS" },
+	{ "zh_TW", ".CHT" }
 };
 
 std::vector<std::string> PostProcessingShaderConfiguration::GetAvailableShaderNames(const std::string& sub_dir)
@@ -816,7 +818,7 @@ void PostProcessingShaderConfiguration::LoadOptionsConfiguration()
 	if (Core::IsRunning())
 	{
 		std::string PresetPath = File::GetUserPath(D_PPSHADERSPRESETS_IDX);
-		PresetPath += SConfig::GetInstance().m_strUniqueID + DIR_SEP;
+		PresetPath += SConfig::GetInstance().m_strGameID + DIR_SEP;
 		PresetPath += m_shader_name + ".ini";
 		if (File::Exists(PresetPath))
 		{
@@ -841,7 +843,7 @@ void PostProcessingShaderConfiguration::SaveOptionsConfiguration()
 		{
 			File::CreateDir(file_path);
 		}
-		file_path += SConfig::GetInstance().m_strUniqueID + DIR_SEP;
+		file_path += SConfig::GetInstance().m_strGameID + DIR_SEP;
 		if (!File::Exists(file_path))
 		{
 			File::CreateDir(file_path);

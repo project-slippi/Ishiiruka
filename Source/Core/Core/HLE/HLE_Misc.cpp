@@ -6,6 +6,7 @@
 #include <string>
 
 #include "Common/CommonTypes.h"
+#include "Common/MsgHandler.h"
 #include "Core/ConfigManager.h"
 #include "Core/Host.h"
 #include "Core/HLE/HLE_Misc.h"
@@ -29,7 +30,7 @@ void UnimplementedFunction()
 // Don't know if this is worth keeping.
 void HLEPanicAlert()
 {
-	::PanicAlert("HLE: PanicAlert %08x", LR);
+	PanicAlert("HLE: PanicAlert %08x", LR);
 	NPC = LR;
 }
 

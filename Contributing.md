@@ -24,12 +24,38 @@ This guide is for developers who wish to contribute to the Dolphin codebase. It 
 
 Following this guide and formatting your code as detailed will likely get your pull request merged much faster than if you don't (assuming the written code has no mistakes in itself).
 
+This project uses clang-format (stable branch) to check for common style issues. In case of conflicts between this guide and clang-format rules, the latter should be followed instead of this guide.
+
+
+### Checking and fixing formatting issues
+
+In most cases, clang-format can and **should** be used to automatically reformat code and solve most formatting issues.
+
+- To run clang-format on all staged files:
+  ```
+  git diff --cached --name-only | egrep '[.](cpp|h|mm)$' | xargs clang-format -i
+  ```
+
+- Formatting issues can be checked for before committing with a lint script that is included with the codebase. To enable it as a pre-commit hook (assuming you are in the repository root):
+  ```
+  ln -s ../../Tools/lint.sh .git/hooks/pre-commit
+  ```
+
+- Alternatively, a custom git filter driver can be used to automatically and transparently reformat any changes:
+  ```
+  git config filter.clang_format.smudge 'cat'
+  git config filter.clang_format.clean 'clang-format %f'
+  echo '/Source/Core/**/*.cpp filter=clang_format' >> .git/info/attributes
+  echo '/Source/Core/**/*.h filter=clang_format' >> .git/info/attributes
+  echo '/Source/Core/**/*.mm filter=clang_format' >> .git/info/attributes
+  ```
+
 ## Styling and formatting
 
 ### General
 - Try to limit lines of code to a maximum of 100 characters.
     - Note that this does not mean you should try and use all 100 characters every time you have the chance. Typically with well formatted code, you normally shouldn't hit a line count of anything over 80 or 90 characters.
-- The indentation style we use is tabs for initial indentation and then, if vertical alignment is needed, spaces are to be used.
+- The indentation style we use is 1 tab per level.
 - The opening brace for namespaces, classes, functions, enums, structs, unions, conditionals, and loops go on the next line.
   - With array initializer lists and lambda expressions it is OK to keep the brace on the same line.
 - References and pointers have the ampersand or asterisk against the type name, not the variable name. Example: `int* var`, not `int *var`.
@@ -39,10 +65,10 @@ Following this guide and formatting your code as detailed will likely get your p
 
     ```c++
     if (condition)
-        return 0;
+      return 0;
 
     while (var != 0)
-        var--;
+      var--;
     ```
   - No:
 
@@ -73,30 +99,30 @@ Following this guide and formatting your code as detailed will likely get your p
     ```c++
     if (condition)
     {
-        // code
+      // code
     }
     else
     {
-        // code
+      // code
     }
     ```
   - Acceptable:
 
     ```c++
     if (condition)
-        // code line
+      // code line
     else
-        // code line
+      // code line
     ```
   - No:
 
     ```c++
     if (condition)
     {
-        // code
+      // code
     }
     else
-        // code line
+      // code line
     ```
 
 
@@ -111,18 +137,18 @@ Following this guide and formatting your code as detailed will likely get your p
 class ExampleClass : public SomeParent
 {
 public:
-    ExampleClass(int x, int y);
+  ExampleClass(int x, int y);
 
-    int GetX() const;
-    int GetY() const;
+  int GetX() const;
+  int GetY() const;
 
 protected:
-    virtual void SomeProtectedFunction() = 0;
-    static float s_some_variable;
+  virtual void SomeProtectedFunction() = 0;
+  static float s_some_variable;
 
 private:
-    int m_x;
-    int m_y;
+  int m_x;
+  int m_y;
 };
 ```
 
@@ -143,9 +169,10 @@ private:
 - If a header is not necessary in a certain source file, remove them.
 - If you find duplicate includes of a certain header, remove it.
 - When declaring includes in a source file, make sure they follow the given pattern:
+  - The header for the source file
   - Standard library headers
   - System-specific headers (these should also likely be in an `#ifdef` block unless the source file itself is system-specific).
-  - Dolphin source file headers
+  - Other Dolphin source file headers
 - Each of the above header sections should also be in alphabetical order
 - Project source file headers should be included in a way that is relative to the `[Dolphin Root]/Source/Core` directory.
 - This project uses `#pragma once` as header guards.
@@ -172,10 +199,10 @@ private:
     template<class T>
     inline void Clamp(T& val, const T& min, const T& max)
     {
-        if (val < min)
-            val = min;
-        else if (val > max)
-            val = max;
+      if (val < min)
+        val = min;
+      else if (val > max)
+        val = max;
     }
     ```
 
@@ -187,10 +214,10 @@ private:
     template<class T>
     inline void Clamp(T* val, const T& min, const T& max)
     {
-        if (*val < min)
-            *val = min;
-        else if (*val > max)
-            *val = max;
+      if (*val < min)
+        *val = min;
+      else if (*val > max)
+        *val = max;
     }
     ```
 
@@ -202,7 +229,7 @@ private:
   class ClassName : ParentClass
   {
   public:
-      void Update() final;
+    void Update() final;
   };
   ```
 
@@ -212,7 +239,7 @@ private:
   class ClassName : ParentClass
   {
   public:
-      void Update() override;
+    void Update() override;
   };
   ```
 
@@ -222,7 +249,7 @@ private:
   ```c++
   class ClassName final : ParentClass
   {
-      // Class definitions
+    // Class definitions
   };
   ```
 
