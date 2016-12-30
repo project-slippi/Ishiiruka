@@ -2,14 +2,21 @@
 // Licensed under GPLv2+
 // Refer to the license.txt file included.
 
-#include <array>
-
 #include "Core/DSP/DSPAnalyzer.h"
-#include "Core/DSP/DSPInterpreter.h"
+
+#include <array>
+#include <cstddef>
+
+#include "Common/Logging/Log.h"
+
 #include "Core/DSP/DSPMemoryMap.h"
 #include "Core/DSP/DSPTables.h"
 
-namespace DSPAnalyzer {
+namespace DSPAnalyzer
+{
+namespace
+{
+constexpr size_t ISPACE = 65536;
 
 // Holds data about all instructions in RAM.
 std::array<u8, ISPACE> code_flags;
@@ -19,55 +26,53 @@ std::array<u8, ISPACE> code_flags;
 // as well give up its time slice immediately, after executing once.
 
 // Max signature length is 6. A 0 in a signature is ignored.
-#define NUM_IDLE_SIGS 8
-#define MAX_IDLE_SIG_SIZE 6
+constexpr size_t NUM_IDLE_SIGS = 8;
+constexpr size_t MAX_IDLE_SIG_SIZE = 6;
 
 // 0xFFFF means ignore.
-const u16 idle_skip_sigs[NUM_IDLE_SIGS][MAX_IDLE_SIG_SIZE + 1] =
-{
+constexpr u16 idle_skip_sigs[NUM_IDLE_SIGS][MAX_IDLE_SIG_SIZE + 1] = {
 	// From AX:
-	{ 0x26fc,         // LRS   $30, @DMBH
-		0x02c0, 0x8000, // ANDCF $30, #0x8000
-		0x029d, 0xFFFF, // JLZ 0x027a
-		0, 0 },     // RET
-	{ 0x27fc,         // LRS   $31, @DMBH
-		0x03c0, 0x8000, // ANDCF $31, #0x8000
-		0x029d, 0xFFFF, // JLZ 0x027a
-		0, 0 },     // RET
-	{ 0x26fe,         // LRS   $30, @CMBH
-		0x02c0, 0x8000, // ANDCF $30, #0x8000
-		0x029c, 0xFFFF, // JLNZ 0x0280
-		0, 0 },     // RET
-	{ 0x27fe,         // LRS   $31, @CMBH
-		0x03c0, 0x8000, // ANDCF $31, #0x8000
-		0x029c, 0xFFFF, // JLNZ 0x0280
-		0, 0 },     // RET
-	{ 0x26fc,         // LRS  $AC0.M, @DMBH
-		0x02a0, 0x8000, // ANDF $AC0.M, #0x8000
-		0x029c, 0xFFFF, // JLNZ 0x????
-		0, 0 },
-	{ 0x27fc,         // LRS  $AC1.M, @DMBH
-		0x03a0, 0x8000, // ANDF $AC1.M, #0x8000
-		0x029c, 0xFFFF, // JLNZ 0x????
-		0, 0 },
-		// From Zelda:
-		{ 0x00de, 0xFFFE, // LR    $AC0.M, @CMBH
-		 0x02c0, 0x8000, // ANDCF $AC0.M, #0x8000
-		 0x029c, 0xFFFF, // JLNZ 0x05cf
-		 0 },
-		 // From Zelda - experimental
-		 { 0x00da, 0x0352, // LR     $AX0.H, @0x0352
-			0x8600,         // TSTAXH $AX0.H
-			0x0295, 0xFFFF, // JZ    0x????
-			0, 0 }
-};
+	{0x26fc,          // LRS   $30, @DMBH
+	 0x02c0, 0x8000,  // ANDCF $30, #0x8000
+	 0x029d, 0xFFFF,  // JLZ 0x027a
+	 0, 0},           // RET
+	{0x27fc,          // LRS   $31, @DMBH
+	 0x03c0, 0x8000,  // ANDCF $31, #0x8000
+	 0x029d, 0xFFFF,  // JLZ 0x027a
+	 0, 0},           // RET
+	{0x26fe,          // LRS   $30, @CMBH
+	 0x02c0, 0x8000,  // ANDCF $30, #0x8000
+	 0x029c, 0xFFFF,  // JLNZ 0x0280
+	 0, 0},           // RET
+	{0x27fe,          // LRS   $31, @CMBH
+	 0x03c0, 0x8000,  // ANDCF $31, #0x8000
+	 0x029c, 0xFFFF,  // JLNZ 0x0280
+	 0, 0},           // RET
+	{0x26fc,          // LRS  $AC0.M, @DMBH
+	 0x02a0, 0x8000,  // ANDF $AC0.M, #0x8000
+	 0x029c, 0xFFFF,  // JLNZ 0x????
+	 0, 0},
+	{0x27fc,          // LRS  $AC1.M, @DMBH
+	 0x03a0, 0x8000,  // ANDF $AC1.M, #0x8000
+	 0x029c, 0xFFFF,  // JLNZ 0x????
+	 0, 0},
+	 // From Zelda:
+	 {0x00de, 0xFFFE,  // LR    $AC0.M, @CMBH
+		0x02c0, 0x8000,  // ANDCF $AC0.M, #0x8000
+		0x029c, 0xFFFF,  // JLNZ 0x05cf
+		0},
+		// From Zelda - experimental
+		{0x00da, 0x0352,  // LR     $AX0.H, @0x0352
+		 0x8600,          // TSTAXH $AX0.H
+		 0x0295, 0xFFFF,  // JZ    0x????
+		 0, 0} };
 
-static void Reset()
+void Reset()
 {
 	code_flags.fill(0);
 }
 
-static void AnalyzeRange(u16 start_addr, u16 end_addr)
+void AnalyzeRange(u16 start_addr, u16 end_addr)
 {
 	// First we run an extremely simplified version of a disassembler to find
 	// where all instructions start.
@@ -78,7 +83,7 @@ static void AnalyzeRange(u16 start_addr, u16 end_addr)
 	for (u16 addr = start_addr; addr < end_addr;)
 	{
 		UDSPInstruction inst = dsp_imem_read(addr);
-		const DSPOPCTemplate *opcode = GetOpTemplate(inst);
+		const DSPOPCTemplate* opcode = GetOpTemplate(inst);
 		if (!opcode)
 		{
 			addr++;
@@ -114,14 +119,9 @@ static void AnalyzeRange(u16 start_addr, u16 end_addr)
 
 		// If an instruction potentially raises exceptions, mark the following
 		// instruction as needing to check for exceptions
-		if (opcode->opcode == 0x00c0 ||
-			opcode->opcode == 0x1800 ||
-			opcode->opcode == 0x1880 ||
-			opcode->opcode == 0x1900 ||
-			opcode->opcode == 0x1980 ||
-			opcode->opcode == 0x2000 ||
-			opcode->extended
-			)
+		if (opcode->opcode == 0x00c0 || opcode->opcode == 0x1800 || opcode->opcode == 0x1880 ||
+			opcode->opcode == 0x1900 || opcode->opcode == 0x1980 || opcode->opcode == 0x2000 ||
+			opcode->extended)
 			code_flags[static_cast<u16>(addr + opcode->size)] |= CODE_CHECK_INT;
 
 		addr += opcode->size;
@@ -151,6 +151,7 @@ static void AnalyzeRange(u16 start_addr, u16 end_addr)
 	}
 	INFO_LOG(DSPLLE, "Finished analysis.");
 }
+}  // Anonymous namespace
 
 void Analyze()
 {
@@ -159,4 +160,9 @@ void Analyze()
 	AnalyzeRange(0x8000, 0x9000);  // IROM
 }
 
-}  // namespace
+u8 GetCodeFlags(u16 address)
+{
+	return code_flags[address];
+}
+
+}  // namespace DSPAnalyzer

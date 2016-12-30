@@ -15,7 +15,7 @@
 #include "Core/DSP/DSPCodeUtil.h"
 #include "Core/DSP/DSPDisassembler.h"
 
-bool Assemble(const std::string& text, std::vector<u16> &code, bool force)
+bool Assemble(const std::string& text, std::vector<u16>& code, bool force)
 {
 	AssemblerSettings settings;
 	// settings.pc = 0;
@@ -36,7 +36,7 @@ bool Assemble(const std::string& text, std::vector<u16> &code, bool force)
 	return true;
 }
 
-bool Disassemble(const std::vector<u16> &code, bool line_numbers, std::string &text)
+bool Disassemble(const std::vector<u16>& code, bool line_numbers, std::string& text)
 {
 	if (code.empty())
 		return false;
@@ -55,7 +55,7 @@ bool Disassemble(const std::vector<u16> &code, bool line_numbers, std::string &t
 	return success;
 }
 
-bool Compare(const std::vector<u16> &code1, const std::vector<u16> &code2)
+bool Compare(const std::vector<u16>& code1, const std::vector<u16>& code2)
 {
 	if (code1.size() != code2.size())
 		printf("Size difference! 1=%zu 2=%zu\n", code1.size(), code2.size());
@@ -77,13 +77,14 @@ bool Compare(const std::vector<u16> &code1, const std::vector<u16> &code2)
 			disassembler.DisassembleOpcode(&code1[0], 0x0000, 2, &pc, line1);
 			pc = i;
 			disassembler.DisassembleOpcode(&code2[0], 0x0000, 2, &pc, line2);
-			printf("!! %04x : %04x vs %04x - %s  vs  %s\n", i, code1[i], code2[i], line1.c_str(), line2.c_str());
+			printf("!! %04x : %04x vs %04x - %s  vs  %s\n", i, code1[i], code2[i], line1.c_str(),
+				line2.c_str());
 		}
 	}
 	if (code2.size() != code1.size())
 	{
 		printf("Extra code words:\n");
-		const std::vector<u16> &longest = code1.size() > code2.size() ? code1 : code2;
+		const std::vector<u16>& longest = code1.size() > code2.size() ? code1 : code2;
 		for (int i = min_size; i < (int)longest.size(); i++)
 		{
 			u16 pc = i;
@@ -96,7 +97,7 @@ bool Compare(const std::vector<u16> &code1, const std::vector<u16> &code2)
 	return code1.size() == code2.size() && code1.size() == count_equal;
 }
 
-void GenRandomCode(u32 size, std::vector<u16> &code)
+void GenRandomCode(u32 size, std::vector<u16>& code)
 {
 	code.resize(size);
 	for (u32 i = 0; i < size; i++)
@@ -105,8 +106,8 @@ void GenRandomCode(u32 size, std::vector<u16> &code)
 	}
 }
 
-void CodeToHeader(const std::vector<u16> &code, std::string _filename,
-	const char *name, std::string &header)
+void CodeToHeader(const std::vector<u16>& code, std::string _filename, const char* name,
+	std::string& header)
 {
 	std::vector<u16> code_padded = code;
 	// Pad with nops to 32byte boundary
@@ -117,7 +118,8 @@ void CodeToHeader(const std::vector<u16> &code, std::string _filename,
 	header.append("#define NUM_UCODES 1\n\n");
 	std::string filename;
 	SplitPath(_filename, nullptr, &filename, nullptr);
-	header.append(StringFromFormat("const char* UCODE_NAMES[NUM_UCODES] = {\"%s\"};\n\n", filename.c_str()));
+	header.append(
+		StringFromFormat("const char* UCODE_NAMES[NUM_UCODES] = {\"%s\"};\n\n", filename.c_str()));
 	header.append("const unsigned short dsp_code[NUM_UCODES][0x1000] = {\n");
 
 	header.append("\t{\n\t\t");
@@ -132,10 +134,10 @@ void CodeToHeader(const std::vector<u16> &code, std::string _filename,
 	header.append("};\n");
 }
 
-void CodesToHeader(const std::vector<u16> *codes, const std::vector<std::string>* filenames,
-	u32 numCodes, const char *name, std::string &header)
+void CodesToHeader(const std::vector<u16>* codes, const std::vector<std::string>* filenames,
+	u32 numCodes, const char* name, std::string& header)
 {
-	std::vector<std::vector<u16> > codes_padded;
+	std::vector<std::vector<u16>> codes_padded;
 	u32 reserveSize = 0;
 	for (u32 i = 0; i < numCodes; i++)
 	{
@@ -177,7 +179,7 @@ void CodesToHeader(const std::vector<u16> *codes, const std::vector<std::string>
 	header.append("};\n");
 }
 
-void CodeToBinaryStringBE(const std::vector<u16> &code, std::string &str)
+void CodeToBinaryStringBE(const std::vector<u16>& code, std::string& str)
 {
 	str.resize(code.size() * 2);
 	for (size_t i = 0; i < code.size(); i++)
@@ -187,7 +189,7 @@ void CodeToBinaryStringBE(const std::vector<u16> &code, std::string &str)
 	}
 }
 
-void BinaryStringBEToCode(const std::string &str, std::vector<u16> &code)
+void BinaryStringBEToCode(const std::string& str, std::vector<u16>& code)
 {
 	code.resize(str.size() / 2);
 	for (size_t i = 0; i < code.size(); i++)
@@ -196,7 +198,7 @@ void BinaryStringBEToCode(const std::string &str, std::vector<u16> &code)
 	}
 }
 
-bool LoadBinary(const std::string& filename, std::vector<u16> &code)
+bool LoadBinary(const std::string& filename, std::vector<u16>& code)
 {
 	std::string buffer;
 	if (!File::ReadFileToString(filename, buffer))
@@ -206,7 +208,7 @@ bool LoadBinary(const std::string& filename, std::vector<u16> &code)
 	return true;
 }
 
-bool SaveBinary(const std::vector<u16> &code, const std::string& filename)
+bool SaveBinary(const std::vector<u16>& code, const std::string& filename)
 {
 	std::string buffer;
 	CodeToBinaryStringBE(code, buffer);

@@ -216,8 +216,9 @@ void TextureCache::TCacheEntry::LoadMaterialMap(const u8* src, u32 width, u32 he
 void TextureCache::TCacheEntry::Load(const u8* src, u32 width, u32 height, u32 expandedWidth,
 	u32 expandedHeight, const s32 texformat, const u32 tlutaddr, const TlutFormat tlutfmt, u32 level)
 {
+	u8* data = g_texture_cache->GetTemporalBuffer();
 	TexDecoder_Decode(
-		TextureCache::temp,
+		data,
 		src,
 		expandedWidth,
 		expandedHeight,
@@ -226,7 +227,7 @@ void TextureCache::TCacheEntry::Load(const u8* src, u32 width, u32 height, u32 e
 		tlutfmt,
 		DXGI_format == DXGI_FORMAT_R8G8B8A8_UNORM,
 		compressed);
-	u8* data = TextureCache::temp;
+	
 	if (is_scaled)
 	{
 		data = reinterpret_cast<u8*>(s_scaler->Scale(reinterpret_cast<u32*>(data), expandedWidth, height));
@@ -239,13 +240,13 @@ void TextureCache::TCacheEntry::Load(const u8* src, u32 width, u32 height, u32 e
 void TextureCache::TCacheEntry::LoadFromTmem(const u8* ar_src, const u8* gb_src, u32 width, u32 height,
 	u32 expanded_width, u32 expanded_Height, u32 level)
 {
+	u8* data = g_texture_cache->GetTemporalBuffer();
 	TexDecoder_DecodeRGBA8FromTmem(
-		reinterpret_cast<u32*>(TextureCache::temp),
+		reinterpret_cast<u32*>(data),
 		ar_src,
 		gb_src,
 		expanded_width,
 		expanded_Height);
-	u8* data = TextureCache::temp;
 	if (is_scaled)
 	{
 		data = reinterpret_cast<u8*>(s_scaler->Scale(reinterpret_cast<u32*>(data), expanded_width, height));
@@ -359,21 +360,21 @@ TextureCacheBase::TCacheEntryBase* TextureCache::CreateTexture(const TCacheEntry
 	}
 }
 
-void TextureCache::TCacheEntry::FromRenderTarget(u8* dst, PEControl::PixelFormat src_format, const EFBRectangle& src_rect,
+void TextureCache::TCacheEntry::FromRenderTarget(bool is_depth_copy, const EFBRectangle& src_rect,
 	bool scale_by_half, u32 cbuf_id, const float* colmat, u32 width, u32 height)
 {
 	// When copying at half size, in multisampled mode, resolve the color/depth buffer first.
 	// This is because multisampled texture reads go through Load, not Sample, and the linear
 	// filter is ignored.
 	bool multisampled = (g_ActiveConfig.iMultisamples > 1);
-	D3DTexture2D* efb_tex = (src_format == PEControl::Z24) ?
+	D3DTexture2D* efb_tex = is_depth_copy ?
 		FramebufferManager::GetEFBDepthTexture() :
 		FramebufferManager::GetEFBColorTexture();
 	const TargetRectangle targetSource = g_renderer->ConvertEFBRectangle(src_rect);
 	if (multisampled && scale_by_half)
 	{
 		multisampled = false;
-		efb_tex = (src_format == PEControl::Z24) ?
+		efb_tex = is_depth_copy ?
 			FramebufferManager::GetResolvedEFBDepthTexture() :
 			FramebufferManager::GetResolvedEFBColorTexture();
 	}
@@ -411,7 +412,8 @@ void TextureCache::TCacheEntry::FromRenderTarget(u8* dst, PEControl::PixelFormat
 		&sourcerect,
 		Renderer::GetTargetWidth(),
 		Renderer::GetTargetHeight(),
-		(src_format == PEControl::Z24) ? StaticShaderCache::GetDepthMatrixPixelShader(multisampled) : StaticShaderCache::GetColorMatrixPixelShader(multisampled),
+		is_depth_copy ? StaticShaderCache::GetDepthMatrixPixelShader(multisampled) 
+		: StaticShaderCache::GetColorMatrixPixelShader(multisampled),
 		StaticShaderCache::GetSimpleVertexShader(),
 		StaticShaderCache::GetSimpleVertexShaderInputLayout(),
 		StaticShaderCache::GetCopyGeometryShader(),
@@ -421,11 +423,21 @@ void TextureCache::TCacheEntry::FromRenderTarget(u8* dst, PEControl::PixelFormat
 	g_renderer->RestoreAPIState();
 }
 
-void TextureCache::CopyEFB(u8* dst, u32 format, u32 native_width, u32 bytes_per_row, u32 num_blocks_y, u32 memory_stride,
-	PEControl::PixelFormat src_format, const EFBRectangle& src_rect,
+void TextureCache::CopyEFB(u8* dst, u32 format, u32 native_width,
+	u32 bytes_per_row, u32 num_blocks_y, u32 memory_stride,
+	bool is_depth_copy, const EFBRectangle& src_rect,
 	bool is_intensity, bool scale_by_half)
 {
-	s_encoder->Encode(dst, format, native_width, bytes_per_row, num_blocks_y, memory_stride, src_format, src_rect, is_intensity, scale_by_half);
+	s_encoder->Encode(dst,
+		format,
+		native_width,
+		bytes_per_row,
+		num_blocks_y,
+		memory_stride,
+		is_depth_copy,
+		src_rect,
+		is_intensity,
+		scale_by_half);
 }
 
 static const constexpr char s_palette_shader_hlsl[] =

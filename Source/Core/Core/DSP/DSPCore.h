@@ -13,7 +13,8 @@
 
 #include "Core/DSP/DSPBreakpoints.h"
 #include "Core/DSP/DSPCaptureLogger.h"
-#include "Core/DSP/DSPEmitter.h"
+
+class DSPEmitter;
 
 enum : u32
 {
@@ -108,12 +109,12 @@ enum : int
 	DSP_REG_ACC0 = 0x1c,
 	DSP_REG_ACC1 = 0x1d,
 
-	DSP_REG_ACL0 = 0x1c, // Low accumulator
+	DSP_REG_ACL0 = 0x1c,  // Low accumulator
 	DSP_REG_ACL1 = 0x1d,
-	DSP_REG_ACM0 = 0x1e, // Mid accumulator
+	DSP_REG_ACM0 = 0x1e,  // Mid accumulator
 	DSP_REG_ACM1 = 0x1f,
-	DSP_REG_ACH0 = 0x10, // Sign extended 8 bit register 0
-	DSP_REG_ACH1 = 0x11  // Sign extended 8 bit register 1
+	DSP_REG_ACH0 = 0x10,  // Sign extended 8 bit register 0
+	DSP_REG_ACH1 = 0x11   // Sign extended 8 bit register 1
 };
 
 // Hardware registers address
@@ -121,35 +122,35 @@ enum : u32
 {
 	DSP_COEF_A1_0 = 0xa0,
 
-	DSP_DSCR = 0xc9, // DSP DMA Control Reg
-	DSP_DSPA = 0xcd, // DSP DMA Address (DSP)
-	DSP_DSBL = 0xcb, // DSP DMA Block Length
-	DSP_DSMAH = 0xce, // DSP DMA Address High (External)
-	DSP_DSMAL = 0xcf, // DSP DMA Address Low (External)
+	DSP_DSCR = 0xc9,   // DSP DMA Control Reg
+	DSP_DSPA = 0xcd,   // DSP DMA Address (DSP)
+	DSP_DSBL = 0xcb,   // DSP DMA Block Length
+	DSP_DSMAH = 0xce,  // DSP DMA Address High (External)
+	DSP_DSMAL = 0xcf,  // DSP DMA Address Low (External)
 
-	DSP_FORMAT = 0xd1, // Sample format
-	DSP_ACUNK = 0xd2, // Set to 3 on my dumps
-	DSP_ACDATA1 = 0xd3, // Used only by Zelda ucodes
-	DSP_ACSAH = 0xd4, // Start of loop
+	DSP_FORMAT = 0xd1,   // Sample format
+	DSP_ACUNK = 0xd2,    // Set to 3 on my dumps
+	DSP_ACDATA1 = 0xd3,  // Used only by Zelda ucodes
+	DSP_ACSAH = 0xd4,    // Start of loop
 	DSP_ACSAL = 0xd5,
-	DSP_ACEAH = 0xd6, // End of sample (and loop)
+	DSP_ACEAH = 0xd6,  // End of sample (and loop)
 	DSP_ACEAL = 0xd7,
-	DSP_ACCAH = 0xd8, // Current playback position
+	DSP_ACCAH = 0xd8,  // Current playback position
 	DSP_ACCAL = 0xd9,
-	DSP_PRED_SCALE = 0xda, // ADPCM predictor and scale
+	DSP_PRED_SCALE = 0xda,  // ADPCM predictor and scale
 	DSP_YN1 = 0xdb,
 	DSP_YN2 = 0xdc,
-	DSP_ACCELERATOR = 0xdd, // ADPCM accelerator read. Used by AX.
+	DSP_ACCELERATOR = 0xdd,  // ADPCM accelerator read. Used by AX.
 	DSP_GAIN = 0xde,
-	DSP_ACUNK2 = 0xdf, // Set to 0xc on my dumps
+	DSP_ACUNK2 = 0xdf,  // Set to 0xc on my dumps
 
-	DSP_AMDM = 0xef, // ARAM DMA Request Mask 0: DMA with ARAM unmasked 1: masked
+	DSP_AMDM = 0xef,  // ARAM DMA Request Mask 0: DMA with ARAM unmasked 1: masked
 
-	DSP_DIRQ = 0xfb, // DSP Irq Rest
-	DSP_DMBH = 0xfc, // DSP Mailbox H
-	DSP_DMBL = 0xfd, // DSP Mailbox L
-	DSP_CMBH = 0xfe, // CPU Mailbox H
-	DSP_CMBL = 0xff  // CPU Mailbox L
+	DSP_DIRQ = 0xfb,  // DSP Irq Rest
+	DSP_DMBH = 0xfc,  // DSP Mailbox H
+	DSP_DMBL = 0xfd,  // DSP Mailbox L
+	DSP_CMBH = 0xfe,  // CPU Mailbox H
+	DSP_CMBL = 0xff   // CPU Mailbox L
 };
 
 // Stacks
@@ -175,18 +176,21 @@ enum : u16
 	SR_OVERFLOW = 0x0002,
 	SR_ARITH_ZERO = 0x0004,
 	SR_SIGN = 0x0008,
-	SR_OVER_S32 = 0x0010, // Set when there was mod/tst/cmp on accu and result is over s32
-	SR_TOP2BITS = 0x0020, // If the upper (ac?.m/ax?.h) 2 bits are equal
+	SR_OVER_S32 = 0x0010,  // Set when there was mod/tst/cmp on accu and result is over s32
+	SR_TOP2BITS = 0x0020,  // If the upper (ac?.m/ax?.h) 2 bits are equal
 	SR_LOGIC_ZERO = 0x0040,
-	SR_OVERFLOW_STICKY = 0x0080, // Set at the same time as 0x2 (under same conditions) - but not cleared the same
-	SR_100 = 0x0100, // Unknown
-	SR_INT_ENABLE = 0x0200, // Not 100% sure but duddie says so. This should replace the hack, if so.
-	SR_400 = 0x0400, // Unknown
-	SR_EXT_INT_ENABLE = 0x0800, // Appears in zelda - seems to disable external interrupts
-	SR_1000 = 0x1000, // Unknown
-	SR_MUL_MODIFY = 0x2000, // 1 = normal. 0 = x2   (M0, M2) (Free mul by 2)
-	SR_40_MODE_BIT = 0x4000, // 0 = "16", 1 = "40"  (SET16, SET40)  Controls sign extension when loading mid accums and data saturation for stores from mid accums.
-	SR_MUL_UNSIGNED = 0x8000, // 0 = normal. 1 = unsigned  (CLR15, SET15) If set, treats ax?.l as unsigned (MULX family only).
+	SR_OVERFLOW_STICKY =
+	0x0080,  // Set at the same time as 0x2 (under same conditions) - but not cleared the same
+	SR_100 = 0x0100,         // Unknown
+	SR_INT_ENABLE = 0x0200,  // Not 100% sure but duddie says so. This should replace the hack, if so.
+	SR_400 = 0x0400,         // Unknown
+	SR_EXT_INT_ENABLE = 0x0800,  // Appears in zelda - seems to disable external interrupts
+	SR_1000 = 0x1000,            // Unknown
+	SR_MUL_MODIFY = 0x2000,      // 1 = normal. 0 = x2   (M0, M2) (Free mul by 2)
+	SR_40_MODE_BIT = 0x4000,     // 0 = "16", 1 = "40"  (SET16, SET40)  Controls sign extension when
+															 // loading mid accums and data saturation for stores from mid accums.
+	SR_MUL_UNSIGNED = 0x8000,    // 0 = normal. 1 = unsigned  (CLR15, SET15) If set, treats ax?.l as
+															 // unsigned (MULX family only).
 
 	// This should be the bits affected by CMP. Does not include logic zero.
 	SR_CMP_MASK = 0x3f
@@ -195,13 +199,13 @@ enum : u16
 // Exception vectors
 enum : int
 {
-	EXP_STOVF = 1, // 0x0002 stack under/over flow
-	EXP_2 = 2, // 0x0004
-	EXP_3 = 3, // 0x0006
-	EXP_4 = 4, // 0x0008
-	EXP_ACCOV = 5, // 0x000a accelerator address overflow
-	EXP_6 = 6, // 0x000c
-	EXP_INT = 7  // 0x000e external int (message from CPU)
+	EXP_STOVF = 1,  // 0x0002 stack under/over flow
+	EXP_2 = 2,      // 0x0004
+	EXP_3 = 3,      // 0x0006
+	EXP_4 = 4,      // 0x0008
+	EXP_ACCOV = 5,  // 0x000a accelerator address overflow
+	EXP_6 = 6,      // 0x000c
+	EXP_INT = 7     // 0x000e external int (message from CPU)
 };
 
 struct DSP_Regs
@@ -213,20 +217,18 @@ struct DSP_Regs
 	u16 cr;
 	u16 sr;
 
-	union
-	{
+	union {
 		u64 val;
 		struct
 		{
 			u16 l;
 			u16 m;
 			u16 h;
-			u16 m2;//if this gets in the way, drop it.
+			u16 m2;  // if this gets in the way, drop it.
 		};
 	} prod;
 
-	union
-	{
+	union {
 		u32 val;
 		struct
 		{
@@ -235,8 +237,7 @@ struct DSP_Regs
 		};
 	} ax[2];
 
-	union
-	{
+	union {
 		u64 val;
 		struct
 		{
@@ -264,7 +265,7 @@ struct SDSP
 	u16 cr;
 
 	u8 reg_stack_ptr[4];
-	u8 exceptions;   // pending exceptions
+	u8 exceptions;  // pending exceptions
 	volatile bool external_interrupt_waiting;
 	bool reset_dspjit_codespace;
 
@@ -288,13 +289,13 @@ struct SDSP
 
 	// When state saving, all of the above can just be memcpy'd into the save state.
 	// The below needs special handling.
-	u16 *iram;
-	u16 *dram;
-	u16 *irom;
-	u16 *coef;
+	u16* iram;
+	u16* dram;
+	u16* irom;
+	u16* coef;
 
 	// This one doesn't really belong here.
-	u8  *cpu_ram;
+	u8* cpu_ram;
 };
 
 extern SDSP g_dsp;
@@ -325,10 +326,7 @@ struct DSPInitOptions
 	// Default: dummy implementation, does nothing.
 	DSPCaptureLogger* capture_logger;
 
-	DSPInitOptions()
-		: core_type(CORE_JIT),
-		capture_logger(new DefaultDSPCaptureLogger())
-	{}
+	DSPInitOptions() : core_type(CORE_JIT), capture_logger(new DefaultDSPCaptureLogger()) {}
 };
 
 // Initializes the DSP emulator using the provided options. Takes ownership of
@@ -336,7 +334,7 @@ struct DSPInitOptions
 bool DSPCore_Init(const DSPInitOptions& opts);
 
 void DSPCore_Reset();
-void DSPCore_Shutdown(); // Frees all allocated memory.
+void DSPCore_Shutdown();  // Frees all allocated memory.
 
 void DSPCore_CheckExternalInterrupt();
 void DSPCore_CheckExceptions();

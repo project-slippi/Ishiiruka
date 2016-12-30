@@ -21,7 +21,7 @@ public:
 	void Init();
 	void Shutdown();
 	void Encode(u8* dest_ptr, u32 format, u32 native_width, u32 bytes_per_row, u32 num_blocks_y, u32 memory_stride,
-		PEControl::PixelFormat srcFormat, bool bIsIntensityFmt, bool bScaleByHalf, const EFBRectangle& source) override;
+		bool is_depth_copy, bool bIsIntensityFmt, bool bScaleByHalf, const EFBRectangle& source) override;
 private:
 
 	bool m_ready{};
@@ -37,16 +37,16 @@ private:
 
 	bool InitStaticMode();
 	bool SetStaticShader(u32 dstFormat,
-		u32 srcFormat, bool isIntensity, bool scaleByHalf);
+		bool is_depth_copy, bool isIntensity, bool scaleByHalf);
 
 	typedef u32 ComboKey; // Key for a shader combination
 
 	ID3D11ComputeShader* InsertShader(ComboKey const &key, u8 const *data, u32 sz);
 
 	ComboKey MakeComboKey(u32 dstFormat,
-		u32 srcFormat, bool isIntensity, bool scaleByHalf, bool model5)
+		bool is_depth_copy, bool isIntensity, bool scaleByHalf, bool model5)
 	{
-		return (model5 ? (1 << 24) : 0) | (dstFormat << 4) | (srcFormat << 2) | (isIntensity ? (1 << 1) : 0)
+		return (model5 ? (1 << 24) : 0) | (dstFormat << 4) | (is_depth_copy << 2) | (isIntensity ? (1 << 1) : 0)
 			| (scaleByHalf ? (1 << 0) : 0);
 	}
 
@@ -75,7 +75,7 @@ private:
 
 	bool InitDynamicMode();
 	bool SetDynamicShader(u32 dstFormat,
-		u32 srcFormat, bool isIntensity, bool scaleByHalf);
+		bool is_depth_copy, bool isIntensity, bool scaleByHalf);
 
 	D3D::ComputeShaderPtr m_dynamicShader;
 	D3D::ClkPtr m_classLinkage;
@@ -87,8 +87,8 @@ private:
 	UINT m_generatorSlot;
 
 	// Class instances
-	// Fetch: 0 is RGB, 1 is RGBA, 2 is RGB565, 3 is Z
-	D3D::CiPtr m_fetchClass[4];
+	// Fetch: 0 is RGB, 1 is Z
+	D3D::CiPtr m_fetchClass[2];
 	// ScaledFetch: 0 is off, 1 is on
 	D3D::CiPtr m_scaledFetchClass[2];
 	// Intensity: 0 is off, 1 is on

@@ -2,18 +2,19 @@
 // Licensed under GPLv2+
 // Refer to the license.txt file included.
 
+#include "Core/DSP/DSPAccelerator.h"
+
 #include "Common/CommonTypes.h"
+#include "Common/Logging/Log.h"
 #include "Common/MathUtil.h"
 
-#include "Core/DSP/DSPAccelerator.h"
 #include "Core/DSP/DSPCore.h"
 #include "Core/DSP/DSPHost.h"
-#include "Core/DSP/DSPHWInterface.h"
-#include "Core/DSP/DSPInterpreter.h"
+
 // The hardware adpcm decoder :)
 static s16 ADPCM_Step(u32& _rSamplePos)
 {
-	const s16 *pCoefTable = (const s16 *)&g_dsp.ifx_regs[DSP_COEF_A1_0];
+	const s16* pCoefTable = (const s16*)&g_dsp.ifx_regs[DSP_COEF_A1_0];
 
 	if ((_rSamplePos & 15) == 0)
 	{
@@ -27,15 +28,16 @@ static s16 ADPCM_Step(u32& _rSamplePos)
 	s32 coef1 = pCoefTable[coef_idx * 2 + 0];
 	s32 coef2 = pCoefTable[coef_idx * 2 + 1];
 
-	int temp = (_rSamplePos & 1) ?
-		(DSPHost::ReadHostMemory(_rSamplePos >> 1) & 0xF) :
+	int temp = (_rSamplePos & 1) ? (DSPHost::ReadHostMemory(_rSamplePos >> 1) & 0xF) :
 		(DSPHost::ReadHostMemory(_rSamplePos >> 1) >> 4);
 
 	if (temp >= 8)
 		temp -= 16;
 
 	// 0x400 = 0.5  in 11-bit fixed point
-	int val = (scale * temp) + ((0x400 + coef1 * (s16)g_dsp.ifx_regs[DSP_YN1] + coef2 * (s16)g_dsp.ifx_regs[DSP_YN2]) >> 11);
+	int val =
+		(scale * temp) +
+		((0x400 + coef1 * (s16)g_dsp.ifx_regs[DSP_YN1] + coef2 * (s16)g_dsp.ifx_regs[DSP_YN2]) >> 11);
 	val = MathUtil::Clamp(val, -0x7FFF, 0x7FFF);
 
 	g_dsp.ifx_regs[DSP_YN2] = g_dsp.ifx_regs[DSP_YN1];
@@ -57,11 +59,11 @@ u16 dsp_read_aram_d3()
 
 	switch (g_dsp.ifx_regs[DSP_FORMAT])
 	{
-	case 0x5:   // u8 reads
+	case 0x5:  // u8 reads
 		val = DSPHost::ReadHostMemory(Address);
 		Address++;
 		break;
-	case 0x6:   // u16 reads
+	case 0x6:  // u16 reads
 		val = (DSPHost::ReadHostMemory(Address * 2) << 8) | DSPHost::ReadHostMemory(Address * 2 + 1);
 		Address++;
 		break;
@@ -91,7 +93,7 @@ void dsp_write_aram_d3(u16 value)
 
 	switch (g_dsp.ifx_regs[DSP_FORMAT])
 	{
-	case 0xA:   // u16 writes
+	case 0xA:  // u16 writes
 		DSPHost::WriteHostMemory(value >> 8, Address * 2);
 		DSPHost::WriteHostMemory(value & 0xFF, Address * 2 + 1);
 		Address++;
@@ -123,10 +125,10 @@ u16 dsp_read_accelerator()
 	case 0x00:  // ADPCM audio
 		switch (EndAddress & 15)
 		{
-		case 0: // Tom and Jerry
+		case 0:  // Tom and Jerry
 			step_size_bytes = 1;
 			break;
-		case 1: // Blazing Angels
+		case 1:  // Blazing Angels
 			step_size_bytes = 0;
 			break;
 		default:

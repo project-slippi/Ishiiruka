@@ -7,18 +7,7 @@ var cmd_count = " rev-list --count HEAD ^e1656af8191700f32c18b06d18b9a099d281b95
 var cmd_describe = " describe --always --long --dirty";
 var cmd_branch = " rev-parse --abbrev-ref HEAD";
 var cmd_lastmodified = " log --pretty=oneline  -n 1 -- ";
-var cache_modifier_files = new Array(
-	"../VideoCommon/PixelShaderGen.cpp",
-	"../VideoCommon/VertexShaderGen.cpp",
-	"../VideoCommon/LightingShaderGen.h",
-	"../VideoCommon/PixelShaderGen.h",
-	"../VideoCommon/ShaderGenCommon.h",
-	"../VideoCommon/VertexShaderGen.h",
-	"../VideoCommon/GeometryShaderGen.cpp",
-	"../VideoCommon/GeometryShaderGen.h",
-	"../VideoCommon/TessellationShaderGen.cpp",
-	"../VideoCommon/TessellationShaderGen.h"
-	);
+
 function GetGitExe()
 {
 	try {
@@ -66,36 +55,12 @@ function GetFileContents(f)
 	}
 }
 
-function GetCacheVersion(gitexe)
-{
-	var cacheversion = "";
-	try {
-		var fragmentlen = 40 / cache_modifier_files.length;
-		if (fragmentlen < 1) {
-			fragmentlen = 1;
-		}
-		while ((fragmentlen * cache_modifier_files.length) < 40) {
-			fragmentlen++;
-		}
-		for (var i = 0; i < cache_modifier_files.length; i++) {
-			var cmd = gitexe + cmd_lastmodified + cache_modifier_files[i];
-			var fileversion = wshShell.Exec(cmd).StdOut.ReadLine();
-			cacheversion += fileversion.substr(0, fragmentlen);
-		}
-	}
-	catch (e) {
-		cacheversion = e.toString();
-	}
-	return cacheversion.substr(0, 40);
-}
-
 // get info from git
 var gitexe = GetGitExe();
 var revision = GetFirstStdOutLine(gitexe + cmd_revision);
 var revcount = GetFirstStdOutLine(gitexe + cmd_count);
 var describe = GetFirstStdOutLine(gitexe + cmd_describe);
 var branch = GetFirstStdOutLine(gitexe + cmd_branch);
-var cacheversion = GetCacheVersion(gitexe);
 var isStable	= +("master" == branch || "stable" == branch);
 
 // Get environment information.
@@ -107,9 +72,8 @@ describe = describe.replace(/(-0)?-[^-]+(-dirty)?$/, '$2');
 
 var out_contents =
 	"#define SCM_REV_STR \"" + revision + "\"\n" +
-	"#define SCM_DESC_STR \" " + revcount + " (" + describe + ")\"\n" +
+	"#define SCM_DESC_STR \"" + revcount + " (" + describe + ")\"\n" +
 	"#define SCM_BRANCH_STR \"" + branch + "\"\n" +
-	"#define SCM_CACHE_STR \"" + cacheversion + "\"\n" +
 	"#define SCM_IS_MASTER " + isStable + "\n" +
 	"#define SCM_DISTRIBUTOR_STR \"" + distributor + "\"\n";
 // check if file needs updating

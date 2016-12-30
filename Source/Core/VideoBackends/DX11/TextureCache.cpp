@@ -221,8 +221,9 @@ void TextureCache::TCacheEntry::Load(const u8* src, u32 width, u32 height, u32 e
 	}
 	if (need_cpu_decode)
 	{
+		u8* data = g_texture_cache->GetTemporalBuffer();
 		TexDecoder_Decode(
-			TextureCache::temp,
+			data,
 			src,
 			expandedWidth,
 			expandedHeight,
@@ -231,7 +232,6 @@ void TextureCache::TCacheEntry::Load(const u8* src, u32 width, u32 height, u32 e
 			tlutfmt,
 			PC_TEX_FMT_RGBA32 == config.pcformat,
 			compressed);
-		u8* data = TextureCache::temp;
 		if (is_scaled)
 		{
 			data = (u8*)s_scaler->Scale((u32*)data, expandedWidth, height);
@@ -262,13 +262,14 @@ void TextureCache::TCacheEntry::LoadFromTmem(const u8* ar_src, const u8* gb_src,
 	}
 	if (need_cpu_decode)
 	{
+		u8* data = g_texture_cache->GetTemporalBuffer();
 		TexDecoder_DecodeRGBA8FromTmem(
-			(u32*)TextureCache::temp,
+			(u32*)data,
 			ar_src,
 			gb_src,
 			expanded_width,
 			expanded_Height);
-		u8* data = TextureCache::temp;
+		
 		if (is_scaled)
 		{
 			data = (u8*)s_scaler->Scale((u32*)data, expanded_width, height);
@@ -389,7 +390,7 @@ TextureCache::TCacheEntryBase* TextureCache::CreateTexture(const TCacheEntryConf
 	return entry;
 }
 
-void TextureCache::TCacheEntry::FromRenderTarget(u8* dst, PEControl::PixelFormat srcFormat, const EFBRectangle& srcRect,
+void TextureCache::TCacheEntry::FromRenderTarget(bool is_depth_copy, const EFBRectangle& srcRect,
 	bool scaleByHalf, unsigned int cbufid, const float *colmat, u32 width, u32 height)
 {
 	// When copying at half size, in multisampled mode, resolve the color/depth buffer first.
@@ -401,13 +402,13 @@ void TextureCache::TCacheEntry::FromRenderTarget(u8* dst, PEControl::PixelFormat
 	if (multisampled && scaleByHalf)
 	{
 		multisampled = false;
-		efb_texture_srv = (srcFormat == PEControl::Z24) ?
+		efb_texture_srv = is_depth_copy ?
 			FramebufferManager::GetResolvedEFBDepthTexture()->GetSRV() :
 			FramebufferManager::GetResolvedEFBColorTexture()->GetSRV();
 	}
 	else
 	{
-		efb_texture_srv = (srcFormat == PEControl::Z24) ?
+		efb_texture_srv = is_depth_copy ?
 			FramebufferManager::GetEFBDepthTexture()->GetSRV() :
 			FramebufferManager::GetEFBColorTexture()->GetSRV();
 	}
@@ -447,7 +448,7 @@ void TextureCache::TCacheEntry::FromRenderTarget(u8* dst, PEControl::PixelFormat
 	D3D::drawShadedTexQuad(
 		efb_texture_srv,
 		&sourcerect, Renderer::GetTargetWidth(), Renderer::GetTargetHeight(),
-		(srcFormat == PEControl::Z24) ? PixelShaderCache::GetDepthMatrixProgram(multisampled) : PixelShaderCache::GetColorMatrixProgram(multisampled),
+		is_depth_copy ? PixelShaderCache::GetDepthMatrixProgram(multisampled) : PixelShaderCache::GetColorMatrixProgram(multisampled),
 		VertexShaderCache::GetSimpleVertexShader(),
 		VertexShaderCache::GetSimpleInputLayout(),
 		(g_Config.iStereoMode > 0) ? GeometryShaderCache::GetCopyGeometryShader() : nullptr);
@@ -459,7 +460,7 @@ void TextureCache::TCacheEntry::FromRenderTarget(u8* dst, PEControl::PixelFormat
 }
 
 void TextureCache::CopyEFB(u8* dst, u32 format, u32 native_width, u32 bytes_per_row, u32 num_blocks_y, u32 memory_stride,
-	PEControl::PixelFormat srcFormat, const EFBRectangle& srcRect,
+	bool is_depth_copy, const EFBRectangle& srcRect,
 	bool isIntensity, bool scaleByHalf)
 {
 	s_encoder->Encode(
@@ -469,7 +470,7 @@ void TextureCache::CopyEFB(u8* dst, u32 format, u32 native_width, u32 bytes_per_
 		bytes_per_row,
 		num_blocks_y,
 		memory_stride,
-		srcFormat,
+		is_depth_copy,
 		isIntensity,
 		scaleByHalf,
 		srcRect);

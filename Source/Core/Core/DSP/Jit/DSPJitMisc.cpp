@@ -2,10 +2,12 @@
 // Licensed under GPLv2+
 // Refer to the license.txt file included.
 
-#include "Core/DSP/DSPEmitter.h"
-#include "Core/DSP/DSPInterpreter.h"
-#include "Core/DSP/DSPIntUtil.h"
+#include "Common/CommonTypes.h"
+
+#include "Core/DSP/DSPCore.h"
 #include "Core/DSP/DSPMemoryMap.h"
+#include "Core/DSP/Interpreter/DSPInterpreter.h"
+#include "Core/DSP/Jit/DSPEmitter.h"
 
 using namespace Gen;
 
@@ -58,7 +60,8 @@ void DSPEmitter::lris(const UDSPInstruction opc)
 // This opcode is supposed to do nothing - it's used if you want to use
 // an opcode extension but not do anything. At least according to duddie.
 void DSPEmitter::nx(const UDSPInstruction opc)
-{}
+{
+}
 
 //----
 
@@ -69,7 +72,6 @@ void DSPEmitter::dar(const UDSPInstruction opc)
 {
 	//	g_dsp.r[opc & 0x3] = dsp_decrement_addr_reg(opc & 0x3);
 	decrement_addr_reg(opc & 0x3);
-
 }
 
 // IAR $arD
@@ -108,10 +110,8 @@ void DSPEmitter::addarn(const UDSPInstruction opc)
 
 //----
 
-
 void DSPEmitter::setCompileSR(u16 bit)
 {
-
 	//	g_dsp.r[DSP_REG_SR] |= bit
 	OpArg sr_reg;
 	gpr.GetReg(DSP_REG_SR, sr_reg);
@@ -123,7 +123,6 @@ void DSPEmitter::setCompileSR(u16 bit)
 
 void DSPEmitter::clrCompileSR(u16 bit)
 {
-
 	//	g_dsp.r[DSP_REG_SR] &= bit
 	OpArg sr_reg;
 	gpr.GetReg(DSP_REG_SR, sr_reg);
@@ -192,4 +191,3 @@ void DSPEmitter::srbith(const UDSPInstruction opc)
 		break;
 	}
 }
-

@@ -171,14 +171,14 @@ void VertexManagerBase::DoFlush()
 				if (bpmem.tevind[i].IsActive() && bpmem.tevind[i].bt < bpmem.genMode.numindstages.Value())
 					usedtextures |= 1 << bpmem.tevindref.getTexMap(bpmem.tevind[i].bt);
 
-		TextureCacheBase::UnbindTextures();
+		g_texture_cache->UnbindTextures();
 		s32 material_mask = 0;
 		s32 emissive_mask = 0;
 		for (unsigned int i = 0; i < 8; i++)
 		{
 			if (usedtextures & (1 << i))
 			{
-				const TextureCacheBase::TCacheEntryBase* tentry = TextureCacheBase::Load(i);
+				const TextureCacheBase::TCacheEntryBase* tentry = g_texture_cache->Load(i);
 				if (tentry)
 				{
 					if (g_ActiveConfig.HiresMaterialMapsEnabled())

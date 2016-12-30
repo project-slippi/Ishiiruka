@@ -4,27 +4,20 @@
 
 // Additional copyrights go to Duddie (c) 2005 (duddie@walla.com)
 
-#include "Common/CommonTypes.h"
-
-#include "Core/DSP/DSPEmitter.h"
-#include "Core/DSP/DSPInterpreter.h"
-#include "Core/DSP/DSPIntExtOps.h"
 #include "Core/DSP/DSPTables.h"
 
-void nop(const UDSPInstruction opc)
-{
-	// The real nop is 0. Anything else is bad.
-	if (opc)
-	{
-		ERROR_LOG(DSPLLE, "LLE: Unrecognized opcode 0x%04x", opc);
-	}
-}
+#include "Common/CommonTypes.h"
 
+#include "Core/DSP/Interpreter/DSPIntExtOps.h"
+#include "Core/DSP/Interpreter/DSPInterpreter.h"
+#include "Core/DSP/Jit/DSPEmitter.h"
+
+// clang-format off
 const DSPOPCTemplate opcodes[] =
 {
 	//                                                         # of parameters----+   {type, size, loc, lshift, mask}                                                               branch        reads PC       // instruction approximation
 	// name      opcode  mask    interpreter function     JIT function    size-V  V   param 1                       param 2                       param 3                    extendable    uncond.       updates SR
-	{"NOP",      0x0000, 0xfffc, nop,                     &DSPEmitter::nop,    1, 0, {},                                                                                     false, false, false, false, false}, // no operation
+	{"NOP",      0x0000, 0xfffc, DSPInterpreter::nop,     &DSPEmitter::nop,    1, 0, {},                                                                                     false, false, false, false, false}, // no operation
 
 	{"DAR",      0x0004, 0xfffc, DSPInterpreter::dar,     &DSPEmitter::dar,    1, 1, {{P_REG, 1, 0, 0, 0x0003}},                                                             false, false, false, false, false}, // $arD--
 	{"IAR",      0x0008, 0xfffc, DSPInterpreter::iar,     &DSPEmitter::iar,    1, 1, {{P_REG, 1, 0, 0, 0x0003}},                                                             false, false, false, false, false}, // $arD++
@@ -196,7 +189,7 @@ const DSPOPCTemplate opcodes[] =
 	{"LRS",      0x2000, 0xf800, DSPInterpreter::lrs,     &DSPEmitter::lrs,    1, 2, {{P_REG18, 1, 0, 8, 0x0700},   {P_MEM, 1, 0, 0, 0x00ff}},                               false, false, false, false, false}, // $(D+24) = MEM[($cr[0-7] << 8) | I]
 	{"SRS",      0x2800, 0xf800, DSPInterpreter::srs,     &DSPEmitter::srs,    1, 2, {{P_MEM,   1, 0, 0, 0x00ff},   {P_REG18, 1, 0, 8, 0x0700}},                             false, false, false, false, false}, // MEM[($cr[0-7] << 8) | I] = $(S+24)
 
-// opcodes that can be extended
+	// opcodes that can be extended
 
 	//3 - main opcode defined by 9 bits, extension defined by last 7 bits!!
 	{"XORR",     0x3000, 0xfc80, DSPInterpreter::xorr,    &DSPEmitter::xorr,   1, 2, {{P_ACCM, 1, 0, 8, 0x0100},    {P_REG1A,  1, 0, 9, 0x0200}},                            true, false, false, false, true}, // $acD.m ^= $axS.h
@@ -292,7 +285,7 @@ const DSPOPCTemplate opcodes[] =
 };
 
 const DSPOPCTemplate cw =
-{ "CW",     0x0000, 0x0000, nop, nullptr, 1, 1, {{P_VAL, 2, 0, 0, 0xffff}}, false, false, false, false, false };
+{ "CW",     0x0000, 0x0000, DSPInterpreter::nop, nullptr, 1, 1, {{P_VAL, 2, 0, 0, 0xffff}}, false, false, false, false, false };
 
 // extended opcodes
 
@@ -482,15 +475,16 @@ const pdlabel_t regnames[] =
 	{0x22, "AX0",       "Extra Accu 0",},
 	{0x23, "AX1",       "Extra Accu 1",},
 };
+// clang-format on
 
-const DSPOPCTemplate *opTable[OPTABLE_SIZE];
-const DSPOPCTemplate *extOpTable[EXT_OPTABLE_SIZE];
+const DSPOPCTemplate* opTable[OPTABLE_SIZE];
+const DSPOPCTemplate* extOpTable[EXT_OPTABLE_SIZE];
 u16 writeBackLog[WRITEBACKLOGSIZE];
 int writeBackLogIdx[WRITEBACKLOGSIZE];
 
 const char* pdname(u16 val)
 {
-	static char tmpstr[12]; // nasty
+	static char tmpstr[12];  // nasty
 
 	for (const pdlabel_t& pdlabel : pdlabels)
 	{
@@ -502,21 +496,20 @@ const char* pdname(u16 val)
 	return tmpstr;
 }
 
-const char *pdregname(int val)
+const char* pdregname(int val)
 {
 	return regnames[val].name;
 }
 
-const char *pdregnamelong(int val)
+const char* pdregnamelong(int val)
 {
 	return regnames[val].description;
 }
 
-const DSPOPCTemplate *GetOpTemplate(const UDSPInstruction &inst)
+const DSPOPCTemplate* GetOpTemplate(const UDSPInstruction& inst)
 {
 	return opTable[inst];
 }
-
 
 // This function could use the above GetOpTemplate, but then we'd lose the
 // nice property that it catches colliding op masks.
@@ -538,11 +531,12 @@ void InitInstructionTable()
 				}
 				else
 				{
-					//if the entry already in the table
-					//is a strict subset, allow it
+					// if the entry already in the table
+					// is a strict subset, allow it
 					if ((extOpTable[i]->opcode_mask | ext.opcode_mask) != extOpTable[i]->opcode_mask)
 					{
-						ERROR_LOG(DSPLLE, "opcode ext table place %d already in use by %s when inserting %s", i, extOpTable[i]->name, ext.name);
+						ERROR_LOG(DSPLLE, "opcode ext table place %d already in use by %s when inserting %s", i,
+							extOpTable[i]->name, ext.name);
 					}
 				}
 			}

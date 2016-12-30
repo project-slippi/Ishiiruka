@@ -152,26 +152,10 @@ return lerp(float2(Params.TexLeft,Params.TexTop), float2(Params.TexRight,Params.
 float4 Fetch_0(float2 coord)
 {
 float3 texCoord = float3(CalcTexCoord(coord), 0.0);
-float4 result = EFBTexture.SampleLevel(EFBSampler, texCoord, 0);
-result.a = 1.0;
-return result;
-}
-
-float4 Fetch_1(float2 coord)
-{
-float3 texCoord = float3(CalcTexCoord(coord), 0.0);
 return EFBTexture.SampleLevel(EFBSampler, texCoord, 0);
 }
 
-float4 Fetch_2(float2 coord)
-{
-float3 texCoord = float3(CalcTexCoord(coord), 0.0);
-float4 result = EFBTexture.SampleLevel(EFBSampler, texCoord, 0);
-result.a = 1.0;
-return result;
-}
-
-float4 Fetch_3(float2 coord)
+float4 Fetch_1(float2 coord)
 {
 float3 texCoord = float3(CalcTexCoord(coord), 0.0);
 uint depth24 = 0xFFFFFF - (0xFFFFFF * EFBTexture.SampleLevel(EFBSampler, texCoord, 0).r);
@@ -201,20 +185,6 @@ class cFetch_1 : iFetch
 {
 float4 Fetch(float2 coord)
 { return Fetch_1(coord); }
-};
-
-// Source format 2
-class cFetch_2 : iFetch
-{
-float4 Fetch(float2 coord)
-{ return Fetch_2(coord); }
-};
-
-// Source format 3
-class cFetch_3 : iFetch
-{
-float4 Fetch(float2 coord)
-{ return Fetch_3(coord); }
 };
 
 // Declare fetch interface; must be set by application
@@ -937,7 +907,7 @@ void CSTextureEncoder::Shutdown()
 }
 
 void CSTextureEncoder::Encode(u8* dest_ptr, u32 format, u32 native_width, u32 bytes_per_row, u32 num_blocks_y, u32 memory_stride,
-	PEControl::PixelFormat srcFormat, bool bIsIntensityFmt, bool bScaleByHalf, const EFBRectangle& source)
+	bool is_depth_copy, bool bIsIntensityFmt, bool bScaleByHalf, const EFBRectangle& source)
 {
 	if (!m_ready) // Make sure we initialized OK
 		return;
@@ -951,9 +921,9 @@ void CSTextureEncoder::Encode(u8* dest_ptr, u32 format, u32 native_width, u32 by
 	// Set up all the state for EFB encoding
 
 #ifdef USE_DYNAMIC_MODE
-	if (SetDynamicShader(format, (u32)srcFormat, bIsIntensityFmt, bScaleByHalf))
+	if (SetDynamicShader(format, is_depth_copy, bIsIntensityFmt, bScaleByHalf))
 #else
-	if (SetStaticShader(format, (u32)srcFormat, bIsIntensityFmt, bScaleByHalf))
+	if (SetStaticShader(format, is_depth_copy, bIsIntensityFmt, bScaleByHalf))
 #endif
 	{
 		D3D::context->OMSetRenderTargets(0, nullptr, nullptr);
@@ -980,7 +950,7 @@ void CSTextureEncoder::Encode(u8* dest_ptr, u32 format, u32 native_width, u32 by
 
 		D3D::context->CSSetUnorderedAccessViews(0, 1, D3D::ToAddr(m_outUav), nullptr);
 
-		ID3D11ShaderResourceView* pEFB = (srcFormat == PEControl::Z24) ?
+		ID3D11ShaderResourceView* pEFB = is_depth_copy ?
 			FramebufferManager::GetResolvedEFBDepthTexture()->GetSRV() :
 			// FIXME: Instead of resolving EFB, it would be better to pick out a
 			// single sample from each pixel. The game may break if it isn't
@@ -1043,7 +1013,7 @@ bool CSTextureEncoder::InitStaticMode()
 }
 
 static const char* FETCH_FUNC_NAMES[4] = {
-	"Fetch_0", "Fetch_1", "Fetch_2", "Fetch_3"
+	"Fetch_0", "Fetch_1"
 };
 
 static const char* SCALEDFETCH_FUNC_NAMES[2] = {
@@ -1054,15 +1024,14 @@ static const char* INTENSITY_FUNC_NAMES[2] = {
 	"Intensity_0", "Intensity_1"
 };
 
-bool CSTextureEncoder::SetStaticShader(u32 dstFormat, u32 srcFormat,
+bool CSTextureEncoder::SetStaticShader(u32 dstFormat, bool is_depth_copy,
 	bool isIntensity, bool scaleByHalf)
 {
-	size_t fetchNum = static_cast<size_t>(srcFormat);
 	size_t scaledFetchNum = scaleByHalf ? 1 : 0;
 	size_t intensityNum = isIntensity ? 1 : 0;
 	size_t generatorNum = dstFormat & 0xF;
 
-	ComboKey key = MakeComboKey(dstFormat, srcFormat, isIntensity, scaleByHalf, DX11::D3D::GetFeatureLevel() >= D3D_FEATURE_LEVEL_11_0);
+	ComboKey key = MakeComboKey(dstFormat, is_depth_copy, isIntensity, scaleByHalf, DX11::D3D::GetFeatureLevel() >= D3D_FEATURE_LEVEL_11_0);
 
 	ComboMap::iterator it = m_staticShaders.find(key);
 
@@ -1095,13 +1064,13 @@ bool CSTextureEncoder::SetStaticShader(u32 dstFormat, u32 srcFormat,
 			return false;
 		}
 
-		INFO_LOG(VIDEO, "Compiling efb encoding shader for dstFormat 0x%X, srcFormat %d, isIntensity %d, scaleByHalf %d",
-			dstFormat, static_cast<int>(srcFormat), isIntensity ? 1 : 0, scaleByHalf ? 1 : 0);
+		INFO_LOG(VIDEO, "Compiling efb encoding shader for dstFormat 0x%X, is_depth_copy %d, isIntensity %d, scaleByHalf %d",
+			dstFormat, is_depth_copy, isIntensity ? 1 : 0, scaleByHalf ? 1 : 0);
 
 		// Shader permutation not found, so compile it
 		D3DBlob bytecode;
 		D3D_SHADER_MACRO macros[] = {
-				{ "IMP_FETCH", FETCH_FUNC_NAMES[fetchNum] },
+				{ "IMP_FETCH", FETCH_FUNC_NAMES[is_depth_copy] },
 				{ "IMP_SCALEDFETCH", SCALEDFETCH_FUNC_NAMES[scaledFetchNum] },
 				{ "IMP_INTENSITY", INTENSITY_FUNC_NAMES[intensityNum] },
 				{ "IMP_GENERATOR", generatorFuncName },
@@ -1110,8 +1079,8 @@ bool CSTextureEncoder::SetStaticShader(u32 dstFormat, u32 srcFormat,
 		};
 		if (!D3D::CompileShader(D3D::ShaderType::Compute, EFB_ENCODE_CS, bytecode, macros))
 		{
-			WARN_LOG(VIDEO, "EFB encoder shader for dstFormat 0x%X, srcFormat %d, isIntensity %d, scaleByHalf %d failed to compile",
-				dstFormat, static_cast<int>(srcFormat), isIntensity ? 1 : 0, scaleByHalf ? 1 : 0);
+			WARN_LOG(VIDEO, "EFB encoder shader for dstFormat 0x%X, is_depth_copy %d, isIntensity %d, scaleByHalf %d failed to compile",
+				dstFormat, is_depth_copy, isIntensity ? 1 : 0, scaleByHalf ? 1 : 0);
 			// Add dummy shader to map to prevent trying to compile over and
 			// over again
 			m_staticShaders[key] = nullptr;
@@ -1207,8 +1176,8 @@ bool CSTextureEncoder::InitDynamicMode()
 	return true;
 }
 
-static const char* FETCH_CLASS_NAMES[4] = {
-	"cFetch_0", "cFetch_1", "cFetch_2", "cFetch_3"
+static const char* FETCH_CLASS_NAMES[2] = {
+	"cFetch_0", "cFetch_1"
 };
 
 static const char* SCALEDFETCH_CLASS_NAMES[2] = {
@@ -1220,10 +1189,9 @@ static const char* INTENSITY_CLASS_NAMES[2] = {
 };
 
 bool CSTextureEncoder::SetDynamicShader(u32 dstFormat,
-	u32 srcFormat, bool isIntensity, bool scaleByHalf)
+	bool is_depth_copy, bool isIntensity, bool scaleByHalf)
 {
 
-	size_t fetchNum = static_cast<size_t>(srcFormat);
 	size_t scaledFetchNum = scaleByHalf ? 1 : 0;
 	size_t intensityNum = isIntensity ? 1 : 0;
 	size_t generatorNum = dstFormat & 0xF;
@@ -1244,12 +1212,12 @@ bool CSTextureEncoder::SetDynamicShader(u32 dstFormat,
 	}
 
 	// Make sure class instances are available
-	if (!m_fetchClass[fetchNum])
+	if (!m_fetchClass[is_depth_copy])
 	{
 		INFO_LOG(VIDEO, "Creating %s class instance for encoder 0x%X",
-			FETCH_CLASS_NAMES[fetchNum], dstFormat);
+			FETCH_CLASS_NAMES[is_depth_copy], dstFormat);
 		HRESULT hr = m_classLinkage->CreateClassInstance(
-			FETCH_CLASS_NAMES[fetchNum], 0, 0, 0, 0, ToAddr(m_fetchClass[fetchNum]));
+			FETCH_CLASS_NAMES[is_depth_copy], 0, 0, 0, 0, ToAddr(m_fetchClass[is_depth_copy]));
 		CHECK(SUCCEEDED(hr), "create fetch class instance");
 	}
 	if (!m_scaledFetchClass[scaledFetchNum])
@@ -1281,7 +1249,7 @@ bool CSTextureEncoder::SetDynamicShader(u32 dstFormat,
 
 	// Assemble dynamic linkage array
 	if (m_fetchSlot != UINT(-1))
-		m_linkageArray[m_fetchSlot] = m_fetchClass[fetchNum].get();
+		m_linkageArray[m_fetchSlot] = m_fetchClass[is_depth_copy].get();
 	if (m_scaledFetchSlot != UINT(-1))
 		m_linkageArray[m_scaledFetchSlot] = m_scaledFetchClass[scaledFetchNum].get();
 	if (m_intensitySlot != UINT(-1))

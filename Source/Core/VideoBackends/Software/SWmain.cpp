@@ -88,7 +88,7 @@ public:
 		return false;
 	}
 	void CopyEFB(u8* dst, u32 format, u32 native_width, u32 bytes_per_row, u32 num_blocks_y, u32 memory_stride,
-		PEControl::PixelFormat srcFormat, const EFBRectangle& srcRect,
+		bool is_depth_copy, const EFBRectangle& srcRect,
 		bool isIntensity, bool scaleByHalf) override
 	{
 		EfbCopy::CopyEfb();
@@ -120,7 +120,7 @@ private:
 			return false;
 		}
 
-		void FromRenderTarget(u8* dst, PEControl::PixelFormat srcFormat, const EFBRectangle& srcRect,
+		void FromRenderTarget(bool is_depth_copy, const EFBRectangle& srcRect,
 			bool scaleByHalf, unsigned int cbufid, const float *colmat, u32 width, u32 height) override
 		{
 			EfbCopy::CopyEfb();

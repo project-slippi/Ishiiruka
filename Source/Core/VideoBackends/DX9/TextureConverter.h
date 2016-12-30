@@ -29,7 +29,7 @@ void DecodeToTexture(u32 xfbAddr, int srcWidth, int srcHeight, LPDIRECT3DTEXTURE
 
 // returns size of the encoded data (in bytes)
 void EncodeToRamFromTexture(u8* dest_ptr, u32 format, u32 native_width, u32 bytes_per_row, u32 num_blocks_y, u32 memory_stride,
-	PEControl::PixelFormat srcFormat, bool bIsIntensityFmt, bool bScaleByHalf, const EFBRectangle& source);
+	bool is_depth_copy, bool bIsIntensityFmt, bool bScaleByHalf, const EFBRectangle& source);
 
 
 }

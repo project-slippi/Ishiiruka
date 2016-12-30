@@ -36,7 +36,7 @@ public:
 		void LoadFromTmem(const u8* ar_src, const u8* gb_src, u32 width, u32 height,
 			u32 expanded_width, u32 expanded_Height, u32 level) override;
 
-		void FromRenderTarget(u8* dst, PEControl::PixelFormat srcFormat, const EFBRectangle& srcRect,
+		void FromRenderTarget(bool is_depth_copy, const EFBRectangle& srcRect,
 			bool scaleByHalf, unsigned int cbufid, const float *colmat, u32 width, u32 height) override;
 		void CopyRectangleFromTexture(const TCacheEntryBase* source,
 			const MathUtil::Rectangle<int>& src_rect,
@@ -77,7 +77,7 @@ public:
 	TCacheEntryBase* CreateTexture(const TCacheEntryConfig& config) override;
 
 	void CopyEFB(u8* dst, u32 format, u32 native_width, u32 bytes_per_row, u32 num_blocks_y,
-		u32 memory_stride, PEControl::PixelFormat src_format, const EFBRectangle& src_rect,
+		u32 memory_stride, bool is_depth_copy, const EFBRectangle& src_rect,
 		bool is_intensity, bool scale_by_half) override;
 
 	void CopyRectangleFromTexture(TCacheEntry* dst_texture, const MathUtil::Rectangle<int>& dst_rect,

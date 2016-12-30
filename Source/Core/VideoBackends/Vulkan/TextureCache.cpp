@@ -99,7 +99,7 @@ void TextureCache::LoadLut(u32 lutFmt, void* addr, u32 size)
 }
 
 void TextureCache::CopyEFB(u8* dst, u32 format, u32 native_width, u32 bytes_per_row,
-	u32 num_blocks_y, u32 memory_stride, PEControl::PixelFormat src_format,
+	u32 num_blocks_y, u32 memory_stride, bool is_depth_copy,
 	const EFBRectangle& src_rect, bool is_intensity, bool scale_by_half)
 {
 	// Flush EFB pokes first, as they're expected to be included.
@@ -112,7 +112,7 @@ void TextureCache::CopyEFB(u8* dst, u32 format, u32 native_width, u32 bytes_per_
 	{ static_cast<u32>(scaled_src_rect.GetWidth()),
 		static_cast<u32>(scaled_src_rect.GetHeight()) } };
 	Texture2D* src_texture;
-	if (src_format == PEControl::Z24)
+	if (is_depth_copy)
 		src_texture = FramebufferManager::GetInstance()->ResolveEFBDepthTexture(region);
 	else
 		src_texture = FramebufferManager::GetInstance()->ResolveEFBColorTexture(region);
@@ -129,7 +129,7 @@ void TextureCache::CopyEFB(u8* dst, u32 format, u32 native_width, u32 bytes_per_
 		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
 	m_texture_converter->EncodeTextureToMemory(src_texture->GetView(), dst, format, native_width,
-		bytes_per_row, num_blocks_y, memory_stride, src_format,
+		bytes_per_row, num_blocks_y, memory_stride, is_depth_copy,
 		is_intensity, scale_by_half, src_rect);
 
 	// Transition back to original state
@@ -515,8 +515,9 @@ void TextureCache::TCacheEntry::LoadMaterialMap(const u8* src, u32 width, u32 he
 void TextureCache::TCacheEntry::Load(const u8* src, u32 width, u32 height, u32 expandedWidth,
 	u32 expandedHeight, const s32 texformat, const u32 tlutaddr, const TlutFormat tlutfmt, u32 level)
 {
+	u8* data = g_texture_cache->GetTemporalBuffer();
 	TexDecoder_Decode(
-		TextureCache::temp,
+		data,
 		src,
 		expandedWidth,
 		expandedHeight,
@@ -525,7 +526,6 @@ void TextureCache::TCacheEntry::Load(const u8* src, u32 width, u32 height, u32 e
 		tlutfmt,
 		PC_TEX_FMT_RGBA32 == config.pcformat,
 		compressed);
-	u8* data = TextureCache::temp;
 	if (is_scaled)
 	{
 		data = (u8*)TextureCache::GetInstance()->m_scaler->Scale((u32*)data, expandedWidth, height);
@@ -539,13 +539,14 @@ void TextureCache::TCacheEntry::Load(const u8* src, u32 width, u32 height, u32 e
 void TextureCache::TCacheEntry::LoadFromTmem(const u8* ar_src, const u8* gb_src, u32 width, u32 height,
 	u32 expanded_width, u32 expanded_Height, u32 level)
 {
+	u8* data = g_texture_cache->GetTemporalBuffer();
 	TexDecoder_DecodeRGBA8FromTmem(
-		(u32*)TextureCache::temp,
+		(u32*)data,
 		ar_src,
 		gb_src,
 		expanded_width,
 		expanded_Height);
-	u8* data = TextureCache::temp;
+	
 	if (is_scaled)
 	{
 		data = (u8*)TextureCache::GetInstance()->m_scaler->Scale((u32*)data, expanded_width, height);
@@ -556,7 +557,7 @@ void TextureCache::TCacheEntry::LoadFromTmem(const u8* ar_src, const u8* gb_src,
 	TextureCache::GetInstance()->LoadData(m_texture.get(), data, width, height, expanded_width, level);
 }
 
-void TextureCache::TCacheEntry::FromRenderTarget(u8* dst, PEControl::PixelFormat src_format,
+void TextureCache::TCacheEntry::FromRenderTarget(bool is_depth_copy,
 	const EFBRectangle& src_rect, bool scale_by_half,
 	unsigned int cbufid, const float* colmat, u32 width, u32 height)
 {
@@ -564,7 +565,6 @@ void TextureCache::TCacheEntry::FromRenderTarget(u8* dst, PEControl::PixelFormat
 	FramebufferManager* framebuffer_mgr =
 		static_cast<FramebufferManager*>(g_framebuffer_manager.get());
 	TargetRectangle scaled_src_rect = g_renderer->ConvertEFBRectangle(src_rect);
-	bool is_depth_copy = (src_format == PEControl::Z24);
 
 	// Flush EFB pokes first, as they're expected to be included.
 	framebuffer_mgr->FlushEFBPokes();

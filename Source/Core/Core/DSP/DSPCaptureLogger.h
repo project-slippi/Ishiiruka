@@ -20,9 +20,7 @@ class PCAP;
 class DSPCaptureLogger
 {
 public:
-	virtual ~DSPCaptureLogger()
-	{}
-
+	virtual ~DSPCaptureLogger() {}
 	// Accesses (reads or writes) to memory mapped registers (external
 	// interface, also known as IFX). These are always 16 bits accesses.
 	virtual void LogIFXRead(u16 address, u16 read_value) = 0;
@@ -34,8 +32,7 @@ public:
 	// is used for DRAM/IRAM in any direction (to/from DSP).
 	//
 	// Length is expressed in bytes, not DSP words.
-	virtual void LogDMA(u16 control, u32 gc_address, u16 dsp_address,
-		u16 length, const u8* data) = 0;
+	virtual void LogDMA(u16 control, u32 gc_address, u16 dsp_address, u16 length, const u8* data) = 0;
 };
 
 // A dummy implementation of a capture logger that does nothing. This is the
@@ -45,13 +42,9 @@ public:
 class DefaultDSPCaptureLogger : public DSPCaptureLogger
 {
 public:
-	void LogIFXRead(u16 address, u16 read_value) override
-	{}
-	void LogIFXWrite(u16 address, u16 written_value) override
-	{}
-	void LogDMA(u16 control, u32 gc_address, u16 dsp_address,
-		u16 length, const u8* data) override
-	{}
+	void LogIFXRead(u16 address, u16 read_value) override {}
+	void LogIFXWrite(u16 address, u16 written_value) override {}
+	void LogDMA(u16 control, u32 gc_address, u16 dsp_address, u16 length, const u8* data) override {}
 };
 
 // A capture logger implementation that logs to PCAP files in a custom
@@ -65,16 +58,12 @@ public:
 	PCAPDSPCaptureLogger(PCAP* pcap);
 	PCAPDSPCaptureLogger(std::unique_ptr<PCAP>&& pcap);
 
-	void LogIFXRead(u16 address, u16 read_value) override
-	{
-		LogIFXAccess(true, address, read_value);
-	}
+	void LogIFXRead(u16 address, u16 read_value) override { LogIFXAccess(true, address, read_value); }
 	void LogIFXWrite(u16 address, u16 written_value) override
 	{
 		LogIFXAccess(false, address, written_value);
 	}
-	void LogDMA(u16 control, u32 gc_address, u16 dsp_address,
-		u16 length, const u8* data) override;
+	void LogDMA(u16 control, u32 gc_address, u16 dsp_address, u16 length, const u8* data) override;
 
 private:
 	void LogIFXAccess(bool read, u16 address, u16 value);

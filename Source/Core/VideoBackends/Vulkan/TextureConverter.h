@@ -35,7 +35,7 @@ public:
 	// NOTE: Executes the current command buffer.
 	void EncodeTextureToMemory(VkImageView src_texture, u8* dest_ptr, u32 format, u32 native_width,
 		u32 bytes_per_row, u32 num_blocks_y, u32 memory_stride,
-		PEControl::PixelFormat src_format, bool is_intensity,
+		bool is_depth_copy, bool is_intensity,
 		int scale_by_half, const EFBRectangle& source);
 
 	// Encodes texture to guest memory in XFB (YUYV) format.

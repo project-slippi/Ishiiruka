@@ -114,7 +114,6 @@ static float AspectToWidescreen(float aspect)
 Renderer::Renderer()
 {
 	UpdateActiveConfig();
-	TextureCacheBase::OnConfigChanged(g_ActiveConfig);
 	OSDChoice = 0;
 	OSDTime = 0;
 }

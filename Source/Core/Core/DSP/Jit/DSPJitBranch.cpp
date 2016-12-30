@@ -2,10 +2,13 @@
 // Licensed under GPLv2+
 // Refer to the license.txt file included.
 
+#include "Common/CommonTypes.h"
+
 #include "Core/DSP/DSPAnalyzer.h"
-#include "Core/DSP/DSPEmitter.h"
+#include "Core/DSP/DSPCore.h"
 #include "Core/DSP/DSPMemoryMap.h"
-#include "Core/DSP/DSPStacks.h"
+#include "Core/DSP/DSPTables.h"
+#include "Core/DSP/Jit/DSPEmitter.h"
 
 using namespace Gen;
 
@@ -13,7 +16,7 @@ template <void(*jitCode)(const UDSPInstruction, DSPEmitter&)>
 static void ReJitConditional(const UDSPInstruction opc, DSPEmitter& emitter)
 {
 	u8 cond = opc & 0xf;
-	if (cond == 0xf) // Always true.
+	if (cond == 0xf)  // Always true.
 	{
 		jitCode(opc, emitter);
 		return;
@@ -23,34 +26,34 @@ static void ReJitConditional(const UDSPInstruction opc, DSPEmitter& emitter)
 
 	switch (cond)
 	{
-	case 0x0: // GE - Greater Equal
-	case 0x1: // L - Less
+	case 0x0:  // GE - Greater Equal
+	case 0x1:  // L - Less
 		emitter.LEA(16, EDX, MScaled(EAX, SCALE_4, 0));
 		emitter.XOR(16, R(EAX), R(EDX));
 		emitter.TEST(16, R(EAX), Imm16(8));
 		break;
-	case 0x2: // G - Greater
-	case 0x3: // LE - Less Equal
+	case 0x2:  // G - Greater
+	case 0x3:  // LE - Less Equal
 		emitter.LEA(16, EDX, MScaled(EAX, SCALE_4, 0));
 		emitter.XOR(16, R(EAX), R(EDX));
 		emitter.LEA(16, EAX, MScaled(EAX, SCALE_2, 0));
 		emitter.OR(16, R(EAX), R(EDX));
 		emitter.TEST(16, R(EAX), Imm16(0x10));
 		break;
-	case 0x4: // NZ - Not Zero
-	case 0x5: // Z - Zero
+	case 0x4:  // NZ - Not Zero
+	case 0x5:  // Z - Zero
 		emitter.TEST(16, R(EAX), Imm16(SR_ARITH_ZERO));
 		break;
-	case 0x6: // NC - Not carry
-	case 0x7: // C - Carry
+	case 0x6:  // NC - Not carry
+	case 0x7:  // C - Carry
 		emitter.TEST(16, R(EAX), Imm16(SR_CARRY));
 		break;
-	case 0x8: // ? - Not over s32
-	case 0x9: // ? - Over s32
+	case 0x8:  // ? - Not over s32
+	case 0x9:  // ? - Over s32
 		emitter.TEST(16, R(EAX), Imm16(SR_OVER_S32));
 		break;
-	case 0xa: // ?
-	case 0xb: // ?
+	case 0xa:  // ?
+	case 0xb:  // ?
 		emitter.LEA(16, EDX, MScaled(EAX, SCALE_2, 0));
 		emitter.OR(16, R(EAX), R(EDX));
 		emitter.LEA(16, EDX, MScaled(EDX, SCALE_8, 0));
@@ -58,16 +61,17 @@ static void ReJitConditional(const UDSPInstruction opc, DSPEmitter& emitter)
 		emitter.OR(16, R(EAX), R(EDX));
 		emitter.TEST(16, R(EAX), Imm16(0x20));
 		break;
-	case 0xc: // LNZ  - Logic Not Zero
-	case 0xd: // LZ - Logic Zero
+	case 0xc:  // LNZ  - Logic Not Zero
+	case 0xd:  // LZ - Logic Zero
 		emitter.TEST(16, R(EAX), Imm16(SR_LOGIC_ZERO));
 		break;
-	case 0xe: // 0 - Overflow
+	case 0xe:  // 0 - Overflow
 		emitter.TEST(16, R(EAX), Imm16(SR_OVERFLOW));
 		break;
 	}
 	DSPJitRegCache c1(emitter.gpr);
-	FixupBranch skipCode = cond == 0xe ? emitter.J_CC(CC_E, true) : emitter.J_CC((CCFlags)(CC_NE - (cond & 1)), true);
+	FixupBranch skipCode =
+		cond == 0xe ? emitter.J_CC(CC_E, true) : emitter.J_CC((CCFlags)(CC_NE - (cond & 1)), true);
 	jitCode(opc, emitter);
 	emitter.gpr.FlushRegs(c1);
 	emitter.SetJumpTarget(skipCode);
@@ -77,7 +81,7 @@ static void WriteBranchExit(DSPEmitter& emitter)
 {
 	DSPJitRegCache c(emitter.gpr);
 	emitter.gpr.SaveRegs();
-	if (DSPAnalyzer::code_flags[emitter.startAddr] & DSPAnalyzer::CODE_IDLE_SKIP)
+	if (DSPAnalyzer::GetCodeFlags(emitter.startAddr) & DSPAnalyzer::CODE_IDLE_SKIP)
 	{
 		emitter.MOV(16, R(EAX), Imm16(0x1000));
 	}
@@ -100,7 +104,8 @@ static void WriteBlockLink(DSPEmitter& emitter, u16 dest)
 			emitter.gpr.FlushRegs();
 			// Check if we have enough cycles to execute the next block
 			emitter.MOV(16, R(ECX), M(&g_cycles_left));
-			emitter.CMP(16, R(ECX), Imm16(emitter.blockSize[emitter.startAddr] + emitter.blockSize[dest]));
+			emitter.CMP(16, R(ECX),
+				Imm16(emitter.blockSize[emitter.startAddr] + emitter.blockSize[dest]));
 			FixupBranch notEnoughCycles = emitter.J_CC(CC_BE);
 
 			emitter.SUB(16, R(ECX), Imm16(emitter.blockSize[emitter.startAddr]));
@@ -120,7 +125,7 @@ static void WriteBlockLink(DSPEmitter& emitter, u16 dest)
 static void r_jcc(const UDSPInstruction opc, DSPEmitter& emitter)
 {
 	u16 dest = dsp_imem_read(emitter.compilePC + 1);
-	const DSPOPCTemplate *opcode = GetOpTemplate(opc);
+	const DSPOPCTemplate* opcode = GetOpTemplate(opc);
 
 	// If the block is unconditional, attempt to link block
 	if (opcode->uncond_branch)
@@ -144,8 +149,8 @@ void DSPEmitter::jcc(const UDSPInstruction opc)
 static void r_jmprcc(const UDSPInstruction opc, DSPEmitter& emitter)
 {
 	u8 reg = (opc >> 5) & 0x7;
-	//reg can only be DSP_REG_ARx and DSP_REG_IXx now,
-	//no need to handle DSP_REG_STx.
+	// reg can only be DSP_REG_ARx and DSP_REG_IXx now,
+	// no need to handle DSP_REG_STx.
 	emitter.dsp_op_read_reg(reg, RAX, NONE);
 	emitter.MOV(16, M(&g_dsp.pc), R(EAX));
 	WriteBranchExit(emitter);
@@ -166,7 +171,7 @@ static void r_call(const UDSPInstruction opc, DSPEmitter& emitter)
 	emitter.MOV(16, R(DX), Imm16(emitter.compilePC + 2));
 	emitter.dsp_reg_store_stack(DSP_STACK_C);
 	u16 dest = dsp_imem_read(emitter.compilePC + 1);
-	const DSPOPCTemplate *opcode = GetOpTemplate(opc);
+	const DSPOPCTemplate* opcode = GetOpTemplate(opc);
 
 	// If the block is unconditional, attempt to link block
 	if (opcode->uncond_branch)
@@ -319,7 +324,7 @@ void DSPEmitter::loop(const UDSPInstruction opc)
 {
 	u16 reg = opc & 0x1f;
 	//	u16 cnt = g_dsp.r[reg];
-	//todo: check if we can use normal variant here
+	// todo: check if we can use normal variant here
 	dsp_op_read_reg_dont_saturate(reg, RDX, ZERO);
 	u16 loop_pc = compilePC + 1;
 
@@ -375,7 +380,6 @@ void DSPEmitter::loopi(const UDSPInstruction opc)
 	}
 }
 
-
 // BLOOP $R, addrA
 // 0000 0000 011r rrrr
 // aaaa aaaa aaaa aaaa
@@ -389,7 +393,7 @@ void DSPEmitter::bloop(const UDSPInstruction opc)
 {
 	u16 reg = opc & 0x1f;
 	//	u16 cnt = g_dsp.r[reg];
-	//todo: check if we can use normal variant here
+	// todo: check if we can use normal variant here
 	dsp_op_read_reg_dont_saturate(reg, RDX, ZERO);
 	u16 loop_pc = dsp_imem_read(compilePC + 1);
 

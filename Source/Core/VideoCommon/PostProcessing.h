@@ -380,8 +380,8 @@ protected:
 	bool m_prev_depth_enabled = false;
 	struct past_frame_data
 	{
-		std::unique_ptr<TextureCacheBase::TCacheEntryBase> color_frame;
-		std::unique_ptr<TextureCacheBase::TCacheEntryBase> depth_frame;
+		TextureCacheBase::TCacheEntryBase* color_frame;
+		TextureCacheBase::TCacheEntryBase* depth_frame;
 	};
 	std::vector<past_frame_data> m_prev_frame_texture;
 	TargetSize m_prev_frame_size{};
@@ -396,7 +396,7 @@ protected:
 		}
 		int index = static_cast<int>(m_config->GetFrameOutput().color_count);
 		index = (m_prev_frame_index - frame_index + index) % index;
-		return m_prev_frame_texture[index].color_frame.get();
+		return m_prev_frame_texture[index].color_frame;
 	}
 
 	inline TextureCacheBase::TCacheEntryBase* GetPrevDepthFrame(int frame_index)
@@ -407,13 +407,13 @@ protected:
 		}
 		int index = static_cast<int>(m_config->GetFrameOutput().depth_count);
 		index = (m_prev_depth_frame_index - frame_index + index) % index;
-		return m_prev_frame_texture[index].depth_frame.get();
+		return m_prev_frame_texture[index].depth_frame;
 	}
 	inline void IncrementFrame()
 	{
-		if(m_prev_frame_enabled)
+		if (m_prev_frame_enabled)
 			m_prev_frame_index = (m_prev_frame_index + 1) % m_config->GetFrameOutput().color_count;
-		if(m_prev_depth_enabled)
+		if (m_prev_depth_enabled)
 			m_prev_depth_frame_index = (m_prev_depth_frame_index + 1) % m_config->GetFrameOutput().depth_count;
 	}
 

@@ -950,8 +950,8 @@ PostProcessingShader::~PostProcessingShader()
 {
 	for (size_t i = 0; i < m_prev_frame_texture.size(); i++)
 	{
-		m_prev_frame_texture[i].color_frame.release();
-		m_prev_frame_texture[i].depth_frame.release();
+		m_prev_frame_texture[i].color_frame;
+		m_prev_frame_texture[i].depth_frame;
 	}
 	for (RenderPassData& pass : m_passes)
 	{
@@ -1041,7 +1041,7 @@ bool PostProcessingShader::CreatePasses()
 				config.pcformat = PC_TexFormat::PC_TEX_FMT_RGBA32;
 				config.rendertarget = false;
 
-				input.texture = g_texture_cache->CreateTexture(config);
+				input.texture = g_texture_cache->AllocateTexture(config);
 				input.texture->Load(input_config.external_image_data.get(), config.width, config.height, config.width, 0);
 				input.size = input_config.external_image_size;
 			}
@@ -1135,8 +1135,8 @@ bool PostProcessingShader::ResizeOutputTextures(const TargetSize& new_size)
 	m_prev_depth_enabled = frameoutput.depth_count > 0;
 	for (size_t i = 0; i < m_prev_frame_texture.size(); i++)
 	{
-		m_prev_frame_texture[i].color_frame.release();
-		m_prev_frame_texture[i].depth_frame.release();
+		g_texture_cache->DisposeTexture(m_prev_frame_texture[i].color_frame);
+		g_texture_cache->DisposeTexture(m_prev_frame_texture[i].depth_frame);
 	}
 	m_prev_frame_texture.resize(std::max(frameoutput.color_count, frameoutput.depth_count));
 	TextureCacheBase::TCacheEntryConfig config;
@@ -1150,10 +1150,10 @@ bool PostProcessingShader::ResizeOutputTextures(const TargetSize& new_size)
 	{
 		config.pcformat = PC_TexFormat::PC_TEX_FMT_RGBA32;
 		if (i < static_cast<size_t>(frameoutput.color_count))
-			m_prev_frame_texture[i].color_frame.reset(g_texture_cache->CreateTexture(config));
+			m_prev_frame_texture[i].color_frame = g_texture_cache->AllocateTexture(config);
 		config.pcformat = PC_TexFormat::PC_TEX_FMT_R32;
 		if (i < static_cast<size_t>(frameoutput.depth_count))
-			m_prev_frame_texture[i].depth_frame.reset(g_texture_cache->CreateTexture(config));
+			m_prev_frame_texture[i].depth_frame = g_texture_cache->AllocateTexture(config);
 	}
 	config.pcformat = PC_TexFormat::PC_TEX_FMT_RGBA32;
 	for (size_t pass_index = 0; pass_index < m_passes.size(); pass_index++)
@@ -1164,13 +1164,13 @@ bool PostProcessingShader::ResizeOutputTextures(const TargetSize& new_size)
 
 		if (pass.output_texture != nullptr)
 		{
-			delete pass.output_texture;
+			g_texture_cache->DisposeTexture(pass.output_texture);
 			pass.output_texture = nullptr;
 		}
 
 		config.width = pass.output_size.width;
 		config.height = pass.output_size.height;
-		pass.output_texture = g_texture_cache->CreateTexture(config);
+		pass.output_texture = g_texture_cache->AllocateTexture(config);
 	}
 	m_internal_size = new_size;
 	return true;
@@ -1286,7 +1286,7 @@ void  PostProcessor::DoEFB(const TargetRectangle* src_rect)
 		{
 			Y = Renderer::EFBToScaledYf(xfmem.viewport.yOrig + xfmem.viewport.ht - (float)scissorYOff);
 		}
-		
+
 		float Width = Renderer::EFBToScaledXf(2.0f * xfmem.viewport.wd);
 		float Height = Renderer::EFBToScaledYf(-2.0f * xfmem.viewport.ht);
 		if (Width < 0)
@@ -1563,12 +1563,12 @@ bool PostProcessor::ResizeCopyBuffers(const TargetSize& size, int layers)
 	// reset before creating, in case it fails
 	if (m_color_copy_texture)
 	{
-		delete m_color_copy_texture;
+		g_texture_cache->DisposeTexture(m_color_copy_texture);
 		m_color_copy_texture = nullptr;
 	}
 	if (m_depth_copy_texture)
 	{
-		delete m_depth_copy_texture;
+		g_texture_cache->DisposeTexture(m_depth_copy_texture);
 		m_depth_copy_texture = nullptr;
 	}
 	m_copy_size.Set(0, 0);
@@ -1580,9 +1580,9 @@ bool PostProcessor::ResizeCopyBuffers(const TargetSize& size, int layers)
 	config.pcformat = PC_TexFormat::PC_TEX_FMT_RGBA32;
 	config.rendertarget = true;
 	config.layers = layers;
-	m_color_copy_texture = g_texture_cache->CreateTexture(config);
+	m_color_copy_texture = g_texture_cache->AllocateTexture(config);
 	config.pcformat = PC_TexFormat::PC_TEX_FMT_R32;
-	m_depth_copy_texture = g_texture_cache->CreateTexture(config);
+	m_depth_copy_texture = g_texture_cache->AllocateTexture(config);
 	if (m_color_copy_texture && m_depth_copy_texture)
 	{
 		m_copy_size = size;
@@ -1598,7 +1598,7 @@ bool PostProcessor::ResizeStereoBuffer(const TargetSize& size)
 
 	if (m_stereo_buffer_texture)
 	{
-		delete m_stereo_buffer_texture;
+		g_texture_cache->DisposeTexture(m_stereo_buffer_texture);
 		m_stereo_buffer_texture = nullptr;
 	}
 	m_stereo_buffer_size.Set(0, 0);
@@ -1608,7 +1608,7 @@ bool PostProcessor::ResizeStereoBuffer(const TargetSize& size)
 	config.pcformat = PC_TexFormat::PC_TEX_FMT_RGBA32;
 	config.rendertarget = true;
 	config.layers = 2;
-	m_stereo_buffer_texture = g_texture_cache->CreateTexture(config);
+	m_stereo_buffer_texture = g_texture_cache->AllocateTexture(config);
 	if (m_stereo_buffer_texture)
 	{
 		m_stereo_buffer_size = size;

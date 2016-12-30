@@ -3,6 +3,8 @@
 // Licensed under GPLv2+
 // Refer to the license.txt file included.
 
+#include "Core/DSP/DSPDisassembler.h"
+
 #include <algorithm>
 #include <cstdlib>
 #include <fstream>
@@ -12,12 +14,12 @@
 #include "Common/FileUtil.h"
 #include "Common/StringUtil.h"
 
-#include "Core/DSP/DSPDisassembler.h"
 #include "Core/DSP/DSPTables.h"
+#include "Core/DSP/Interpreter/DSPInterpreter.h"
 
-DSPDisassembler::DSPDisassembler(const AssemblerSettings &settings)
-	: settings_(settings)
-{}
+DSPDisassembler::DSPDisassembler(const AssemblerSettings& settings) : settings_(settings)
+{
+}
 
 DSPDisassembler::~DSPDisassembler()
 {
@@ -49,9 +51,10 @@ DSPDisassembler::~DSPDisassembler()
 	uo << StringFromFormat("Unknown opcodes count: %d\n", count);
 }
 
-bool DSPDisassembler::Disassemble(int start_pc, const std::vector<u16> &code, int base_addr, std::string &text)
+bool DSPDisassembler::Disassemble(int start_pc, const std::vector<u16>& code, int base_addr,
+	std::string& text)
 {
-	const char *tmp1 = "tmp1.bin";
+	const char* tmp1 = "tmp1.bin";
 
 	// First we have to dump the code to a bin file.
 	{
@@ -125,8 +128,9 @@ std::string DSPDisassembler::DisassembleParameters(const DSPOPCTemplate& opc, u1
 		case P_IMM:
 			if (opc.params[j].size != 2)
 			{
-				if (opc.params[j].mask == 0x003f) // LSL, LSR, ASL, ASR
-					buf += StringFromFormat("#%d", (val & 0x20) ? (val | 0xFFFFFFC0) : val);  // 6-bit sign extension
+				if (opc.params[j].mask == 0x003f)  // LSL, LSR, ASL, ASR
+					buf += StringFromFormat("#%d",
+					(val & 0x20) ? (val | 0xFFFFFFC0) : val);  // 6-bit sign extension
 				else
 					buf += StringFromFormat("#0x%02x", val);
 			}
@@ -162,7 +166,8 @@ static std::string MakeLowerCase(std::string in)
 	return in;
 }
 
-bool DSPDisassembler::DisassembleOpcode(const u16 *binbuf, int base_addr, int pass, u16 *pc, std::string &dest)
+bool DSPDisassembler::DisassembleOpcode(const u16* binbuf, int base_addr, int pass, u16* pc,
+	std::string& dest)
 {
 	std::string buf(" ");
 
@@ -175,8 +180,8 @@ bool DSPDisassembler::DisassembleOpcode(const u16 *binbuf, int base_addr, int pa
 
 	const u32 op1 = binbuf[*pc & 0x0fff];
 
-	const DSPOPCTemplate *opc = nullptr;
-	const DSPOPCTemplate *opc_ext = nullptr;
+	const DSPOPCTemplate* opc = nullptr;
+	const DSPOPCTemplate* opc_ext = nullptr;
 
 	// find opcode
 	for (int j = 0; j < opcodes_size; j++)
@@ -189,7 +194,10 @@ bool DSPDisassembler::DisassembleOpcode(const u16 *binbuf, int base_addr, int pa
 			break;
 		}
 	}
-	const DSPOPCTemplate fake_op = { "CW", 0x0000, 0x0000, nop, nullptr, 1, 1, {{P_VAL, 2, 0, 0, 0xffff}}, false, false, false, false, false };
+	const DSPOPCTemplate fake_op = { "CW",    0x0000, 0x0000, DSPInterpreter::nop,
+																	nullptr, 1,      1,      {{P_VAL, 2, 0, 0, 0xffff}},
+																	false,   false,  false,  false,
+																	false };
 	if (!opc)
 		opc = &fake_op;
 
@@ -302,7 +310,8 @@ bool DSPDisassembler::DisassembleOpcode(const u16 *binbuf, int base_addr, int pa
 	return true;
 }
 
-bool DSPDisassembler::DisassembleFile(const std::string& name, int base_addr, int pass, std::string &output)
+bool DSPDisassembler::DisassembleFile(const std::string& name, int base_addr, int pass,
+	std::string& output)
 {
 	File::IOFile in(name, "rb");
 	if (!in)

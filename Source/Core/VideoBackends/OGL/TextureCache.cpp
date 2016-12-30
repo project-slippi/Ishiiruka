@@ -389,8 +389,8 @@ void TextureCache::TCacheEntry::LoadMaterialMap(const u8* src, u32 width, u32 he
 void TextureCache::TCacheEntry::Load(const u8* src, u32 width, u32 height, u32 expandedWidth,
 	u32 expandedHeight, const s32 texformat, const u32 tlutaddr, const TlutFormat tlutfmt, u32 level)
 {
-	TexDecoder_Decode(TextureCache::temp, src, expandedWidth, expandedHeight, texformat, tlutaddr, tlutfmt, PC_TEX_FMT_RGBA32 == config.pcformat, compressed);
-	u8* data = TextureCache::temp;
+	u8* data = g_texture_cache->GetTemporalBuffer();
+	TexDecoder_Decode(data, src, expandedWidth, expandedHeight, texformat, tlutaddr, tlutfmt, PC_TEX_FMT_RGBA32 == config.pcformat, compressed);
 	if (is_scaled)
 	{
 		data = (u8*)s_scaler->Scale((u32*)data, expandedWidth, height);
@@ -403,8 +403,8 @@ void TextureCache::TCacheEntry::Load(const u8* src, u32 width, u32 height, u32 e
 void TextureCache::TCacheEntry::LoadFromTmem(const u8* ar_src, const u8* gb_src, u32 width, u32 height,
 	u32 expanded_width, u32 expanded_Height, u32 level)
 {
-	TexDecoder_DecodeRGBA8FromTmem((u32*)TextureCache::temp, ar_src, gb_src, expanded_width, expanded_Height);
-	u8* data = TextureCache::temp;
+	u8* data = g_texture_cache->GetTemporalBuffer();
+	TexDecoder_DecodeRGBA8FromTmem((u32*)data, ar_src, gb_src, expanded_width, expanded_Height);	
 	if (is_scaled)
 	{
 		data = (u8*)s_scaler->Scale((u32*)data, expanded_width, height);
@@ -415,13 +415,13 @@ void TextureCache::TCacheEntry::LoadFromTmem(const u8* ar_src, const u8* gb_src,
 	Load(data, width, height, expanded_width, level);
 }
 
-void TextureCache::TCacheEntry::FromRenderTarget(u8* dst, PEControl::PixelFormat srcFormat, const EFBRectangle& srcRect,
+void TextureCache::TCacheEntry::FromRenderTarget(bool is_depth_copy, const EFBRectangle& srcRect,
 	bool scaleByHalf, unsigned int cbufid, const float *colmat, u32 width, u32 height)
 {
 	g_renderer->ResetAPIState(); // reset any game specific settings
 
 	// Make sure to resolve anything we need to read from.
-	const GLuint read_texture = (srcFormat == PEControl::Z24) ?
+	const GLuint read_texture = is_depth_copy ?
 		FramebufferManager::ResolveAndGetDepthTarget(srcRect) :
 		FramebufferManager::ResolveAndGetRenderTarget(srcRect);
 
@@ -438,7 +438,7 @@ void TextureCache::TCacheEntry::FromRenderTarget(u8* dst, PEControl::PixelFormat
 	glViewport(0, 0, width, height);
 
 	GLuint uniform_location;
-	if (srcFormat == PEControl::Z24)
+	if (is_depth_copy)
 	{
 		s_DepthMatrixProgram.Bind();
 		if (s_DepthCbufid != cbufid)
@@ -467,7 +467,7 @@ void TextureCache::TCacheEntry::FromRenderTarget(u8* dst, PEControl::PixelFormat
 }
 
 void TextureCache::CopyEFB(u8* dst, u32 format, u32 native_width, u32 bytes_per_row, u32 num_blocks_y, u32 memory_stride,
-	PEControl::PixelFormat srcFormat, const EFBRectangle& srcRect,
+	bool is_depth_copy, const EFBRectangle& srcRect,
 	bool isIntensity, bool scaleByHalf)
 {
 	TextureConverter::EncodeToRamFromTexture(
@@ -477,7 +477,7 @@ void TextureCache::CopyEFB(u8* dst, u32 format, u32 native_width, u32 bytes_per_
 		bytes_per_row,
 		num_blocks_y,
 		memory_stride,
-		srcFormat,
+		is_depth_copy,
 		isIntensity,
 		scaleByHalf,
 		srcRect);

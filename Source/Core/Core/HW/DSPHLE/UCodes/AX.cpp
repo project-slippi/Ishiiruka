@@ -18,10 +18,6 @@
 AXUCode::AXUCode(DSPHLE* dsphle, u32 crc) : UCodeInterface(dsphle, crc), m_cmdlist_size(0)
 {
 	INFO_LOG(DSPHLE, "Instantiating AXUCode: crc=%08x", crc);
-	m_mail_handler.PushMail(DSP_INIT);
-	DSP::GenerateDSPInterruptFromDSPEmu(DSP::INT_DSP);
-
-	LoadResamplingCoefficients();
 }
 
 AXUCode::~AXUCode()
@@ -29,14 +25,20 @@ AXUCode::~AXUCode()
 	m_mail_handler.Clear();
 }
 
+void AXUCode::Initialize()
+{
+	m_mail_handler.PushMail(DSP_INIT);
+	DSP::GenerateDSPInterruptFromDSPEmu(DSP::INT_DSP);
+
+	LoadResamplingCoefficients();
+}
+
 void AXUCode::LoadResamplingCoefficients()
 {
 	m_coeffs_available = false;
 
-	std::string filenames[] = {
-		File::GetUserPath(D_GCUSER_IDX) + "dsp_coef.bin",
-		File::GetSysDirectory() + "/GC/dsp_coef.bin"
-	};
+	std::string filenames[] = { File::GetUserPath(D_GCUSER_IDX) + "dsp_coef.bin",
+		File::GetSysDirectory() + "/GC/dsp_coef.bin" };
 
 	size_t fidx;
 	std::string filename;
@@ -349,11 +351,9 @@ void AXUCode::SetupProcessing(u32 init_addr)
 		init_data[i] = HLEMemory_Read_U16(init_addr + 2 * i);
 
 	// List of all buffers we have to initialize
-	int* buffers[] = {
-		m_samples_left,      m_samples_right,      m_samples_surround,
+	int* buffers[] = { m_samples_left,      m_samples_right,      m_samples_surround,
 		m_samples_auxA_left, m_samples_auxA_right, m_samples_auxA_surround,
-		m_samples_auxB_left, m_samples_auxB_right, m_samples_auxB_surround
-	};
+		m_samples_auxB_left, m_samples_auxB_right, m_samples_auxB_surround };
 
 	u32 init_idx = 0;
 	for (auto& buffer : buffers)
@@ -413,12 +413,9 @@ void AXUCode::ProcessPBList(u32 pb_addr)
 
 	while (pb_addr)
 	{
-		AXBuffers buffers = { 
-		{
-			m_samples_left, m_samples_right, m_samples_surround, m_samples_auxA_left,
+		AXBuffers buffers = { { m_samples_left, m_samples_right, m_samples_surround, m_samples_auxA_left,
 			m_samples_auxA_right, m_samples_auxA_surround, m_samples_auxB_left,
-			m_samples_auxB_right, m_samples_auxB_surround
-		} };
+			m_samples_auxB_right, m_samples_auxB_surround } };
 
 		ReadPB(pb_addr, pb);
 

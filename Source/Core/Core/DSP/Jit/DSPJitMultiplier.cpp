@@ -4,12 +4,12 @@
 
 // Additional copyrights go to Duddie and Tratax (c) 2004
 
-
 // Multiplier and product register control
 
-#include "Core/DSP/DSPAnalyzer.h"
-#include "Core/DSP/DSPEmitter.h"
-#include "Core/DSP/DSPIntUtil.h"
+#include "Common/CommonTypes.h"
+
+#include "Core/DSP/DSPCore.h"
+#include "Core/DSP/Jit/DSPEmitter.h"
 
 using namespace Gen;
 
@@ -74,7 +74,6 @@ void DSPEmitter::multiply_mulx(u8 axh0, u8 axh1)
 	//	else
 	//		result = dsp_multiply(val1, val2, 0); // unsigned support OFF if both ax?.h regs are used
 
-
 	//	if ((sign == 1) && (g_dsp.r.sr & SR_MUL_UNSIGNED)) //unsigned
 	OpArg sr_reg;
 	gpr.GetReg(DSP_REG_SR, sr_reg);
@@ -91,7 +90,7 @@ void DSPEmitter::multiply_mulx(u8 axh0, u8 axh1)
 	if ((axh0 == 0) && (axh1 == 0))
 	{
 		// unsigned support ON if both ax?.l regs are used
-//		prod = (u32)(a * b);
+		//		prod = (u32)(a * b);
 		MOVZX(64, 16, RCX, R(RCX));
 		MOVZX(64, 16, RAX, R(RAX));
 		MUL(64, R(RCX));
@@ -99,7 +98,7 @@ void DSPEmitter::multiply_mulx(u8 axh0, u8 axh1)
 	else if ((axh0 == 0) && (axh1 == 1))
 	{
 		// mixed support ON (u16)axl.0  * (s16)axh.1
-//		prod = a * (s16)b;
+		//		prod = a * (s16)b;
 		X64Reg tmp = gpr.GetFreeXReg();
 		MOV(64, R(tmp), R(RAX));
 		MOVZX(64, 16, RAX, R(RCX));
@@ -109,14 +108,14 @@ void DSPEmitter::multiply_mulx(u8 axh0, u8 axh1)
 	else if ((axh0 == 1) && (axh1 == 0))
 	{
 		// mixed support ON (u16)axl.1  * (s16)axh.0
-//		prod = (s16)a * b;
+		//		prod = (s16)a * b;
 		MOVZX(64, 16, RAX, R(RAX));
 		IMUL(64, R(RCX));
 	}
 	else
 	{
 		// unsigned support OFF if both ax?.h regs are used
-//		prod = (s16)a * (s16)b; //signed
+		//		prod = (s16)a * (s16)b; //signed
 		MOVSX(64, 16, RAX, R(RAX));
 		IMUL(64, R(RCX));
 	}
@@ -125,7 +124,7 @@ void DSPEmitter::multiply_mulx(u8 axh0, u8 axh1)
 	SetJumpTarget(signedMul);
 
 	//	Conditionally multiply by 2.
-//	if ((g_dsp.r.sr & SR_MUL_MODIFY) == 0)
+	//	if ((g_dsp.r.sr & SR_MUL_MODIFY) == 0)
 	TEST(16, sr_reg, Imm16(SR_MUL_MODIFY));
 	FixupBranch noMult2 = J_CC(CC_NZ);
 	//		prod <<= 1;
@@ -148,7 +147,7 @@ void DSPEmitter::multiply_mulx(u8 axh0, u8 axh1)
 // direct use of prod regs by AX/AXWII (look @that part of ucode).
 void DSPEmitter::clrp(const UDSPInstruction opc)
 {
-	//64bit move to memory does not work. use 2 32bits
+	// 64bit move to memory does not work. use 2 32bits
 	MOV(32, M(((u32*)&g_dsp.r.prod.val) + 0), Imm32(0xfff00000U));
 	MOV(32, M(((u32*)&g_dsp.r.prod.val) + 1), Imm32(0x001000ffU));
 }

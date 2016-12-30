@@ -4,8 +4,8 @@
 
 // Additional copyrights go to Duddie and Tratax (c) 2004
 
-#include "Core/DSP/DSPEmitter.h"
-#include "Core/DSP/DSPIntUtil.h" // Helper functions
+#include "Core/DSP/DSPCore.h"
+#include "Core/DSP/Jit/DSPEmitter.h"
 
 using namespace Gen;
 
@@ -161,6 +161,6 @@ void DSPEmitter::Update_SR_Register16_OverS32(Gen::X64Reg val)
 	gpr.PutReg(DSP_REG_SR);
 	//	// 0x20 - Checks if top bits of m are equal
 	//	if ((((u16)_Value >> 14) == 0) || (((u16)_Value >> 14) == 3))
-	//AND(32, R(val), Imm32(0xc0000000));
+	// AND(32, R(val), Imm32(0xc0000000));
 	Update_SR_Register16(val);
 }

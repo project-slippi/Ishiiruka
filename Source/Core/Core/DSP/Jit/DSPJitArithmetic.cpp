@@ -4,11 +4,11 @@
 
 // Additional copyrights go to Duddie and Tratax (c) 2004
 
-#include "Core/DSP/DSPAnalyzer.h"
-#include "Core/DSP/DSPEmitter.h"
-#include "Core/DSP/DSPIntCCUtil.h"
-#include "Core/DSP/DSPIntUtil.h"
+#include "Common/CommonTypes.h"
+
+#include "Core/DSP/DSPCore.h"
 #include "Core/DSP/DSPMemoryMap.h"
+#include "Core/DSP/Jit/DSPEmitter.h"
 
 using namespace Gen;
 
@@ -177,7 +177,8 @@ void DSPEmitter::cmp(const UDSPInstruction opc)
 		get_long_acc(1, RDX);
 		//		s64 res = dsp_convert_long_acc(acc0 - acc1);
 		SUB(64, R(RAX), R(RDX));
-		//		Update_SR_Register64(res, isCarry2(acc0, res), isOverflow(acc0, -acc1, res)); // CF -> influence on ABS/0xa100
+		//		Update_SR_Register64(res, isCarry2(acc0, res), isOverflow(acc0, -acc1, res)); // CF ->
+		// influence on ABS/0xa100
 		NEG(64, R(RDX));
 		Update_SR_Register64_Carry(EAX, tmp1, true);
 		gpr.PutXReg(tmp1);
@@ -230,7 +231,8 @@ void DSPEmitter::cmpi(const UDSPInstruction opc)
 		//		s64 val = dsp_get_long_acc(reg);
 		get_long_acc(reg, tmp1);
 		MOV(64, R(RAX), R(tmp1));
-		//		s64 imm = (s64)(s16)dsp_fetch_code() << 16; // Immediate is considered to be at M level in the 40-bit accumulator.
+		//		s64 imm = (s64)(s16)dsp_fetch_code() << 16; // Immediate is considered to be at M level in
+		// the 40-bit accumulator.
 		u16 imm = dsp_imem_read(compilePC + 1);
 		MOV(64, R(RDX), Imm64((s64)(s16)imm << 16));
 		//		s64 res = dsp_convert_long_acc(val - imm);
@@ -698,7 +700,7 @@ void DSPEmitter::addi(const UDSPInstruction opc)
 	MOV(64, R(RAX), R(tmp1));
 	//	s64 imm = (s16)dsp_fetch_code();
 	s16 imm = dsp_imem_read(compilePC + 1);
-	//imm <<= 16;
+	// imm <<= 16;
 	MOV(16, R(RDX), Imm16(imm));
 	MOVSX(64, 16, RDX, R(RDX));
 	SHL(64, R(RDX), Imm8(16));
@@ -1169,7 +1171,8 @@ void DSPEmitter::lsr16(const UDSPInstruction opc)
 
 	//	u64 acc = dsp_get_long_acc(areg);
 	get_long_acc(areg);
-	//	acc &= 0x000000FFFFFFFFFFULL; 	// Lop off the extraneous sign extension our 64-bit fake accum causes
+	//	acc &= 0x000000FFFFFFFFFFULL; 	// Lop off the extraneous sign extension our 64-bit fake accum
+	// causes
 	//	acc >>= 16;
 	SHR(64, R(RAX), Imm8(16));
 	AND(64, R(RAX), Imm32(0xffffff));
@@ -1248,7 +1251,8 @@ void DSPEmitter::lsr(const UDSPInstruction opc)
 
 	if (shift)
 	{
-		//	acc &= 0x000000FFFFFFFFFFULL; 	// Lop off the extraneous sign extension our 64-bit fake accum causes
+		//	acc &= 0x000000FFFFFFFFFFULL; 	// Lop off the extraneous sign extension our 64-bit fake
+		// accum causes
 		SHL(64, R(RAX), Imm8(24));
 		//	acc >>= shift;
 		SHR(64, R(RAX), Imm8(shift + 24));
@@ -1302,7 +1306,7 @@ void DSPEmitter::asr(const UDSPInstruction opc)
 		shift = 0x40 - (opc & 0x3f);
 
 	// arithmetic shift
-//	s64 acc = dsp_get_long_acc(dreg);
+	//	s64 acc = dsp_get_long_acc(dreg);
 	get_long_acc(dreg);
 	//	acc >>= shift;
 	SAR(64, R(RAX), Imm8((u8)shift));
@@ -1349,18 +1353,18 @@ void DSPEmitter::lsrn(const UDSPInstruction opc)
 	//		acc <<= -shift;
 	//	}
 
-	TEST(64, R(RDX), R(RDX));//is this actually worth the branch cost?
+	TEST(64, R(RDX), R(RDX));  // is this actually worth the branch cost?
 	FixupBranch zero = J_CC(CC_E);
-	TEST(16, R(RAX), Imm16(0x3f));//is this actually worth the branch cost?
+	TEST(16, R(RAX), Imm16(0x3f));  // is this actually worth the branch cost?
 	FixupBranch noShift = J_CC(CC_Z);
-	//CL gets automatically masked with 0x3f on IA32/AMD64
-		//MOVZX(64, 16, RCX, R(RAX));
+	// CL gets automatically masked with 0x3f on IA32/AMD64
+	// MOVZX(64, 16, RCX, R(RAX));
 	MOV(64, R(RCX), R(RAX));
-	//AND(16, R(RCX), Imm16(0x3f));
+	// AND(16, R(RCX), Imm16(0x3f));
 	TEST(16, R(RAX), Imm16(0x40));
 	FixupBranch shiftLeft = J_CC(CC_Z);
 	NEG(16, R(RCX));
-	//ADD(16, R(RCX), Imm16(0x40));
+	// ADD(16, R(RCX), Imm16(0x40));
 	SHL(64, R(RDX), R(RCX));
 	FixupBranch exit = J();
 	SetJumpTarget(shiftLeft);
@@ -1667,7 +1671,6 @@ void DSPEmitter::asrnr(const UDSPInstruction opc)
 		Update_SR_Register64(RDX);
 	}
 }
-
 
 //}  // namespace
 

@@ -52,7 +52,7 @@ HotkeyInputConfigDialog::HotkeyInputConfigDialog(wxWindow* const parent, InputCo
 	auto* const tab_tas = new wxPanel(notebook);
 
 	auto* const group_box_frame_advance =
-		new ControlGroupBox(HotkeyManagerEmu::GetHotkeyGroup(HKGP_FRANE_ADVANCE), tab_tas, this);
+		new ControlGroupBox(HotkeyManagerEmu::GetHotkeyGroup(HKGP_FRAME_ADVANCE), tab_tas, this);
 	auto* const group_box_movie =
 		new ControlGroupBox(HotkeyManagerEmu::GetHotkeyGroup(HKGP_MOVIE), tab_tas, this);
 
@@ -64,7 +64,9 @@ HotkeyInputConfigDialog::HotkeyInputConfigDialog(wxWindow* const parent, InputCo
 
 	tab_tas->SetSizerAndFit(szr_tas);
 
-	notebook->AddPage(tab_tas, "TAS Tools");
+	// i18n: TAS is short for tool-assisted speedrun. Read http://tasvideos.org/ for details.
+	// Frame advance is an example of a typical TAS tool.
+	notebook->AddPage(tab_tas, _("TAS Tools"));
 
 	// WII and Wii Remote
 	auto* const tab_wii = new wxPanel(notebook);

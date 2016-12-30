@@ -12,17 +12,9 @@
 class DSPBreakpoints
 {
 public:
-	DSPBreakpoints()
-	{
-		Clear();
-	}
-
+	DSPBreakpoints() { Clear(); }
 	// is address breakpoint
-	bool IsAddressBreakPoint(u32 addr)
-	{
-		return b[addr] != 0;
-	}
-
+	bool IsAddressBreakPoint(u32 addr) { return b[addr] != 0; }
 	// AddBreakPoint
 	bool Add(u32 addr, bool temp = false)
 	{
@@ -47,16 +39,8 @@ public:
 		return was_one;
 	}
 
-	void Clear()
-	{
-		memset(b, 0, sizeof(b));
-	}
-
-	void DeleteByAddress(u32 addr)
-	{
-		b[addr] = 0;
-	}
-
+	void Clear() { memset(b, 0, sizeof(b)); }
+	void DeleteByAddress(u32 addr) { b[addr] = 0; }
 private:
 	u8 b[65536];
 };

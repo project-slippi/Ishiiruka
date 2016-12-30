@@ -67,40 +67,40 @@ enum ZeldaUCodeFlag
 
 static const std::map<u32, u32> UCODE_FLAGS = {
 	// GameCube IPL/BIOS, NTSC.
-	{0x24B22038, LIGHT_PROTOCOL | FOUR_MIXING_DESTS | TINY_VPB | VOLUME_EXPLICIT_STEP | NO_CMD_0D |
-									 WEIRD_CMD_0C},
+	{ 0x24B22038, LIGHT_PROTOCOL | FOUR_MIXING_DESTS | TINY_VPB | VOLUME_EXPLICIT_STEP | NO_CMD_0D |
+	WEIRD_CMD_0C },
 	// GameCube IPL/BIOS, PAL.
-	{0x6BA3B3EA, LIGHT_PROTOCOL | FOUR_MIXING_DESTS | NO_CMD_0D | WEIRD_CMD_0C},
+	{ 0x6BA3B3EA, LIGHT_PROTOCOL | FOUR_MIXING_DESTS | NO_CMD_0D | WEIRD_CMD_0C },
 	// Pikmin 1 GC NTSC.
 	// Animal Crossing.
-	{0x4BE6A5CB, LIGHT_PROTOCOL | NO_CMD_0D | SUPPORTS_GBA_CRYPTO},
+	{ 0x4BE6A5CB, LIGHT_PROTOCOL | NO_CMD_0D | SUPPORTS_GBA_CRYPTO },
 	// Luigi's Mansion.
-	{0x42F64AC4, LIGHT_PROTOCOL | NO_CMD_0D | WEIRD_CMD_0C},
+	{ 0x42F64AC4, LIGHT_PROTOCOL | NO_CMD_0D | WEIRD_CMD_0C },
 	// Pikmin 1 GC PAL.
-	{0x267FD05A, SYNC_PER_FRAME | NO_CMD_0D},
+	{ 0x267FD05A, SYNC_PER_FRAME | NO_CMD_0D },
 	// Super Mario Sunshine.
-	{0x56D36052, SYNC_PER_FRAME | NO_CMD_0D},
+	{ 0x56D36052, SYNC_PER_FRAME | NO_CMD_0D },
 	// The Legend of Zelda: The Wind Waker.
-	{0x86840740, 0},
+	{ 0x86840740, 0 },
 	// The Legend of Zelda: Four Swords Adventures.
 	// Mario Kart: Double Dash.
 	// Pikmin 2 GC NTSC.
-	{0x2FCDF1EC, MAKE_DOLBY_LOUDER},
+	{ 0x2FCDF1EC, MAKE_DOLBY_LOUDER },
 	// The Legend of Zelda: Twilight Princess / GC.
 	// Donkey Kong Jungle Beat.
 	//
 	// TODO: These do additional filtering at frame rendering time. We don't
 	// implement this yet.
-	{0x6CA33A6D, MAKE_DOLBY_LOUDER},
+	{ 0x6CA33A6D, MAKE_DOLBY_LOUDER },
 	// The Legend of Zelda: Twilight Princess / Wii.
-	{0x6C3F6F94, NO_ARAM | MAKE_DOLBY_LOUDER},
+	{ 0x6C3F6F94, NO_ARAM | MAKE_DOLBY_LOUDER },
 	// Super Mario Galaxy.
 	// Super Mario Galaxy 2.
-	{0xD643001F, NO_ARAM | MAKE_DOLBY_LOUDER},
+	{ 0xD643001F, NO_ARAM | MAKE_DOLBY_LOUDER },
 	// Pikmin 1 New Play Control.
-	{0xB7EB9A9C, NO_ARAM | MAKE_DOLBY_LOUDER | COMBINED_CMD_0D},
+	{ 0xB7EB9A9C, NO_ARAM | MAKE_DOLBY_LOUDER | COMBINED_CMD_0D },
 	// Pikmin 2 New Play Control.
-	{0xEAEB38CC, NO_ARAM | MAKE_DOLBY_LOUDER},
+	{ 0xEAEB38CC, NO_ARAM | MAKE_DOLBY_LOUDER },
 
 	// TODO: Other games that use this UCode (exhaustive list):
 	// * Link's Crossbow Training
@@ -118,7 +118,15 @@ ZeldaUCode::ZeldaUCode(DSPHLE* dsphle, u32 crc) : UCodeInterface(dsphle, crc)
 	m_renderer.SetFlags(m_flags);
 
 	INFO_LOG(DSPHLE, "Zelda UCode loaded, crc=%08x, flags=%08x", crc, m_flags);
+}
 
+ZeldaUCode::~ZeldaUCode()
+{
+	m_mail_handler.Clear();
+}
+
+void ZeldaUCode::Initialize()
+{
 	if (m_flags & LIGHT_PROTOCOL)
 	{
 		m_mail_handler.PushMail(0x88881111);
@@ -128,11 +136,6 @@ ZeldaUCode::ZeldaUCode(DSPHLE* dsphle, u32 crc) : UCodeInterface(dsphle, crc)
 		m_mail_handler.PushMail(DSP_INIT, true);
 		m_mail_handler.PushMail(0xF3551111);  // handshake
 	}
-}
-
-ZeldaUCode::~ZeldaUCode()
-{
-	m_mail_handler.Clear();
 }
 
 void ZeldaUCode::Update()
@@ -990,11 +993,11 @@ void ZeldaAudioRenderer::ApplyReverb(bool post_rendering)
 
 	// Each of the 4 RPBs maps to one of these buffers.
 	MixingBuffer* reverb_buffers[4] = {
-			&m_buf_unk0_reverb, &m_buf_unk1_reverb, &m_buf_front_left_reverb, &m_buf_front_right_reverb,
+		&m_buf_unk0_reverb, &m_buf_unk1_reverb, &m_buf_front_left_reverb, &m_buf_front_right_reverb,
 	};
 	std::array<s16, 8>* last8_samples_buffers[4] = {
-			&m_buf_unk0_reverb_last8, &m_buf_unk1_reverb_last8, &m_buf_front_left_reverb_last8,
-			&m_buf_front_right_reverb_last8,
+		&m_buf_unk0_reverb_last8, &m_buf_unk1_reverb_last8, &m_buf_front_left_reverb_last8,
+		&m_buf_front_right_reverb_last8,
 	};
 
 	u16* rpb_base_ptr = (u16*)HLEMemory_Get_Pointer(m_reverb_pb_base_addr);
@@ -1149,10 +1152,10 @@ void ZeldaAudioRenderer::AddVoice(u16 voice_id)
 		// Compute volume for each quadrant.
 		u16 shift_factor = (m_flags & MAKE_DOLBY_LOUDER) ? 15 : 16;
 		s16 quadrant_volumes[4] = {
-				(s16)((left_volume * front_volume) >> shift_factor),
-				(s16)((left_volume * back_volume) >> shift_factor),
-				(s16)((right_volume * front_volume) >> shift_factor),
-				(s16)((right_volume * back_volume) >> shift_factor),
+			(s16)((left_volume * front_volume) >> shift_factor),
+			(s16)((left_volume * back_volume) >> shift_factor),
+			(s16)((right_volume * front_volume) >> shift_factor),
+			(s16)((right_volume * back_volume) >> shift_factor),
 		};
 
 		// Compute the volume delta for each sample to match the difference
@@ -1182,15 +1185,15 @@ void ZeldaAudioRenderer::AddVoice(u16 voice_id)
 			s16 volume;
 			s16 volume_delta;
 		} buffers[8] = {
-				{&m_buf_front_left, quadrant_volumes[0], volume_deltas[0]},
-				{&m_buf_back_left, quadrant_volumes[1], volume_deltas[1]},
-				{&m_buf_front_right, quadrant_volumes[2], volume_deltas[2]},
-				{&m_buf_back_right, quadrant_volumes[3], volume_deltas[3]},
+			{ &m_buf_front_left, quadrant_volumes[0], volume_deltas[0] },
+			{ &m_buf_back_left, quadrant_volumes[1], volume_deltas[1] },
+			{ &m_buf_front_right, quadrant_volumes[2], volume_deltas[2] },
+			{ &m_buf_back_right, quadrant_volumes[3], volume_deltas[3] },
 
-				{&m_buf_front_left_reverb, reverb_volumes[0], reverb_volume_deltas[0]},
-				{&m_buf_back_left_reverb, reverb_volumes[1], reverb_volume_deltas[1]},
-				{&m_buf_front_right_reverb, reverb_volumes[2], reverb_volume_deltas[2]},
-				{&m_buf_back_right_reverb, reverb_volumes[3], reverb_volume_deltas[3]},
+			{ &m_buf_front_left_reverb, reverb_volumes[0], reverb_volume_deltas[0] },
+			{ &m_buf_back_left_reverb, reverb_volumes[1], reverb_volume_deltas[1] },
+			{ &m_buf_front_right_reverb, reverb_volumes[2], reverb_volume_deltas[2] },
+			{ &m_buf_back_right_reverb, reverb_volumes[3], reverb_volume_deltas[3] },
 		};
 		for (const auto& buffer : buffers)
 		{
@@ -1232,9 +1235,9 @@ void ZeldaAudioRenderer::AddVoice(u16 voice_id)
 
 			s32 volume_step = (volume_delta << 16) / (s32)input_samples.size();  // In 1.31 format.
 
-			// TODO: The last value of each channel structure is used to
-			// determine whether a channel should be skipped or not. Not
-			// implemented yet.
+																																					 // TODO: The last value of each channel structure is used to
+																																					 // determine whether a channel should be skipped or not. Not
+																																					 // implemented yet.
 
 			if (!vpb.channels[i].current_volume && !volume_step)
 				continue;
@@ -1386,9 +1389,9 @@ void ZeldaAudioRenderer::LoadInputSamples(MixingBuffer* buffer, VPB* vpb)
 			bool variable_step;
 		};
 		std::map<u16, PatternInfo> samples_source_to_pattern = {
-				{VPB::SRC_CONST_PATTERN_0, {0, false}}, {VPB::SRC_CONST_PATTERN_0_VARIABLE_STEP, {0, true}},
-				{VPB::SRC_CONST_PATTERN_1, {1, false}}, {VPB::SRC_CONST_PATTERN_2, {2, false}},
-				{VPB::SRC_CONST_PATTERN_3, {3, false}},
+			{ VPB::SRC_CONST_PATTERN_0,{ 0, false } },{ VPB::SRC_CONST_PATTERN_0_VARIABLE_STEP,{ 0, true } },
+			{ VPB::SRC_CONST_PATTERN_1,{ 1, false } },{ VPB::SRC_CONST_PATTERN_2,{ 2, false } },
+			{ VPB::SRC_CONST_PATTERN_3,{ 3, false } },
 		};
 		auto& pattern_info = samples_source_to_pattern[vpb->samples_source_type];
 		u16 pattern_offset = pattern_info.idx * PATTERN_SIZE;

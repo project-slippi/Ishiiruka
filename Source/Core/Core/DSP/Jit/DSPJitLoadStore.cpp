@@ -4,11 +4,12 @@
 
 // Additional copyrights go to Duddie and Tratax (c) 2004
 
-#include "Core/DSP/DSPEmitter.h"
-#include "Core/DSP/DSPIntCCUtil.h"
-#include "Core/DSP/DSPInterpreter.h"
-#include "Core/DSP/DSPIntUtil.h"
+#include "Common/CommonTypes.h"
+
+#include "Core/DSP/DSPCore.h"
 #include "Core/DSP/DSPMemoryMap.h"
+#include "Core/DSP/Interpreter/DSPInterpreter.h"
+#include "Core/DSP/Jit/DSPEmitter.h"
 
 using namespace Gen;
 
@@ -21,7 +22,7 @@ using namespace Gen;
 void DSPEmitter::srs(const UDSPInstruction opc)
 {
 	u8 reg = ((opc >> 8) & 0x7) + 0x18;
-	//u16 addr = (g_dsp.r.cr << 8) | (opc & 0xFF);
+	// u16 addr = (g_dsp.r.cr << 8) | (opc & 0xFF);
 
 	X64Reg tmp1 = gpr.GetFreeXReg();
 
@@ -45,7 +46,7 @@ void DSPEmitter::lrs(const UDSPInstruction opc)
 
 	X64Reg tmp1 = gpr.GetFreeXReg();
 
-	//u16 addr = (g_dsp.r[DSP_REG_CR] << 8) | (opc & 0xFF);
+	// u16 addr = (g_dsp.r[DSP_REG_CR] << 8) | (opc & 0xFF);
 	dsp_op_read_reg(DSP_REG_CR, tmp1, ZERO);
 	SHL(16, R(tmp1), Imm8(8));
 	OR(16, R(tmp1), Imm16(opc & 0xFF));
@@ -348,4 +349,3 @@ void DSPEmitter::ilrrn(const UDSPInstruction opc)
 	dsp_conditional_extend_accum(dreg + DSP_REG_ACM0);
 	increase_addr_reg(reg, reg);
 }
-
