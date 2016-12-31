@@ -688,9 +688,9 @@ bool GeormetryShadersEnabled()
 	return root_signature_index > 0;
 }
 
-void WaitForOutstandingRenderingToComplete()
+void WaitForOutstandingRenderingToComplete(bool terminate)
 {
-	command_list_mgr->ExecuteQueuedWork(true);
+	command_list_mgr->ExecuteQueuedWork(true, terminate);
 }
 
 void Close()

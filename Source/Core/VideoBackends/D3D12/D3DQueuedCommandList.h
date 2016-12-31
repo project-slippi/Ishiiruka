@@ -654,6 +654,7 @@ private:
 	ID3D12CommandQueue* m_command_queue;
 
 	std::atomic<unsigned long> m_ref = 1;
+	bool m_termnated = false;
 };
 
 }  // namespace

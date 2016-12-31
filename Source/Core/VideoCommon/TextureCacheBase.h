@@ -204,7 +204,7 @@ public:
 		bool OverlapsMemoryRange(u32 range_address, u32 range_size) const;
 		virtual bool SupportsMaterialMap() const = 0;
 
-
+		
 
 		bool IsEfbCopy() const
 		{
@@ -230,7 +230,7 @@ public:
 	TCacheEntryBase* AllocateTexture(const TCacheEntryConfig& config);
 	void DisposeTexture(TCacheEntryBase* texture);
 
-
+	
 	virtual bool Palettize(TCacheEntryBase* entry, const TCacheEntryBase* base_entry) = 0;
 	virtual void CopyEFB(u8* dst, u32 format, u32 native_width, u32 bytes_per_row, u32 num_blocks_y, u32 memory_stride,
 		bool is_depth_copy, const EFBRectangle& srcRect,
@@ -243,7 +243,7 @@ public:
 
 	TCacheEntryBase* Load(const u32 stage);
 	void UnbindTextures();
-	void BindTextures();
+	virtual void BindTextures();
 	void CopyRenderTargetToTexture(u32 dstAddr, u32 dstFormat, u32 dstStride,
 		bool is_depth_copy, const EFBRectangle& srcRect, bool isIntensity, bool scaleByHalf);
 	u8* GetTemporalBuffer()
@@ -283,7 +283,7 @@ private:
 	TexHashCache textures_by_hash;
 	TexPool texture_pool;
 	size_t texture_pool_memory_usage = {};
-
+	
 	u32 s_last_texture = {};
 
 	// Backup configuration values

@@ -124,7 +124,7 @@ void D3DCommandListManager::EnsureDrawLimit()
 	}
 }
 
-void D3DCommandListManager::ExecuteQueuedWork(bool wait_for_gpu_completion)
+void D3DCommandListManager::ExecuteQueuedWork(bool wait_for_gpu_completion, bool terminate_worker_tread)
 {
 	m_queue_fence_value++;
 
@@ -146,12 +146,15 @@ void D3DCommandListManager::ExecuteQueuedWork(bool wait_for_gpu_completion)
 	for (auto it : m_queue_fence_callbacks)
 		it.second(it.first, m_queue_fence_value);
 
-	if (wait_for_gpu_completion)
-		WaitForGPUCompletion();
-
-	// Re-open the command list, using the current allocator.
-	ResetCommandList();
-	SetInitialCommandListState();
+	if (wait_for_gpu_completion || terminate_worker_tread)
+		WaitForGPUCompletion(terminate_worker_tread);
+	
+	if (!terminate_worker_tread)
+	{
+		// Re-open the command list, using the current allocator.
+		ResetCommandList();
+		SetInitialCommandListState();
+	}
 	m_draws_since_last_execution = 0;
 }
 
@@ -222,7 +225,7 @@ void D3DCommandListManager::ResetAllCommandAllocators()
 	m_current_deferred_destruction_list = 0;
 }
 
-void D3DCommandListManager::WaitForGPUCompletion()
+void D3DCommandListManager::WaitForGPUCompletion(bool terminate_worker_tread)
 {
 	// Wait for GPU to finish all outstanding work.
 	// This method assumes that no command lists are open.
@@ -230,7 +233,7 @@ void D3DCommandListManager::WaitForGPUCompletion()
 
 #ifdef USE_D3D12_QUEUED_COMMAND_LISTS
 	m_queued_command_list->QueueFenceGpuSignal(m_queue_frame_fence, m_queue_frame_fence_value);
-	m_queued_command_list->ProcessQueuedItems(true);
+	m_queued_command_list->ProcessQueuedItems(true, terminate_worker_tread, terminate_worker_tread);
 #else
 	CheckHR(m_command_queue->Signal(m_queue_frame_fence, m_queue_frame_fence_value));
 #endif

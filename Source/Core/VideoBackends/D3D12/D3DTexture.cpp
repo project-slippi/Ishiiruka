@@ -88,14 +88,22 @@ void ReplaceTexture2D(ID3D12Resource* texture12, const u8* buffer, DXGI_FORMAT f
 	D3D::device->GetCopyableFootprints(&texture12->GetDesc(), level, 1, upload_buffer_offset, &upload_footprint, &upload_rows, &upload_row_size_in_bytes, &upload_total_bytes);
 
 	const u8* src_data = reinterpret_cast<const u8*>(buffer);
-	for (u32 y = 0; y < upload_rows; ++y)
+	if (src_pitch == upload_footprint.Footprint.RowPitch && src_pitch == upload_row_size_in_bytes)
 	{
-		memcpy(
-			dest_data + upload_footprint.Footprint.RowPitch * y,
-			src_data + src_pitch * y,
-			upload_row_size_in_bytes
-		);
+		memcpy(dest_data, src_data, upload_row_size_in_bytes * upload_rows);
 	}
+	else
+	{
+		for (u32 y = 0; y < upload_rows; ++y)
+		{
+			memcpy(
+				dest_data + upload_footprint.Footprint.RowPitch * y,
+				src_data + src_pitch * y,
+				upload_row_size_in_bytes
+			);
+		}
+	}
+	
 	D3D::current_command_list->CopyTextureRegion(&CD3DX12_TEXTURE_COPY_LOCATION(texture12, level), 0, 0, 0, &CD3DX12_TEXTURE_COPY_LOCATION(upload_buffer, upload_footprint), nullptr);
 
 	// Release temporary buffer after commands complete.

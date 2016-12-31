@@ -199,13 +199,14 @@ void VideoBackend::Shutdown()
 	ShaderConstantsManager::Shutdown();
 	StaticShaderCache::Shutdown();
 	BBox::Shutdown();
-	D3D::WaitForOutstandingRenderingToComplete();
 
 	g_xfb_encoder.reset();
 	g_perf_query.reset();
 	g_vertex_manager.reset();
 	g_texture_cache.reset();
 	g_renderer.reset();
+	
+	D3D::WaitForOutstandingRenderingToComplete(true);
 
 	D3D::Close();
 	ShutdownShared();

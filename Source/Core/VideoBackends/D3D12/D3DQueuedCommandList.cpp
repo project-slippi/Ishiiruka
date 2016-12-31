@@ -423,9 +423,11 @@ ID3D12QueuedCommandList::ID3D12QueuedCommandList(ID3D12GraphicsCommandList* back
 
 ID3D12QueuedCommandList::~ID3D12QueuedCommandList()
 {
-	// Kick worker thread, and tell it to exit.
-	ProcessQueuedItems(true, true, true);
-	m_background_thread.join();
+	if (!m_termnated)
+	{
+		// Kick worker thread, and tell it to exit.
+		ProcessQueuedItems(true, true, true);
+	}
 
 	CloseHandle(m_begin_execution_event);
 	CloseHandle(m_stop_execution_event);
@@ -533,6 +535,12 @@ void ID3D12QueuedCommandList::ProcessQueuedItems(bool eligible_to_move_to_front_
 		WaitForSingleObject(m_stop_execution_event, INFINITE);
 		ResetEvent(m_stop_execution_event);
 	}
+	if (terminate_worker_thread)
+	{
+		m_background_thread.join();
+		m_termnated = true;
+	}
+	
 }
 
 ULONG ID3D12QueuedCommandList::AddRef()

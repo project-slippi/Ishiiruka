@@ -2,7 +2,7 @@
 // Licensed under GPLv2+
 // Refer to the license.txt file included.
 
-//#define USE_D3D12_QUEUED_COMMAND_LISTS
+#define USE_D3D12_QUEUED_COMMAND_LISTS
 
 #pragma once
 
@@ -74,7 +74,7 @@ HRESULT Create(HWND wnd);
 void CreateDescriptorHeaps();
 void CreateRootSignatures();
 
-void WaitForOutstandingRenderingToComplete();
+void WaitForOutstandingRenderingToComplete(bool terminate = false);
 void Close();
 
 extern ID3D12Device* device;

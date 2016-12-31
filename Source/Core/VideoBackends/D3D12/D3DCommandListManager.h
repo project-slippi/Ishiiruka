@@ -37,7 +37,7 @@ public:
 
 	void GetCommandList(ID3D12GraphicsCommandList** command_list) const;
 	void EnsureDrawLimit();
-	void ExecuteQueuedWork(bool wait_for_gpu_completion = false);
+	void ExecuteQueuedWork(bool wait_for_gpu_completion = false, bool terminate_worker_tread = false);
 	void ExecuteQueuedWorkAndPresent(IDXGISwapChain* swap_chain, UINT sync_interval, UINT flags);
 
 	void DestroyResourceAfterCurrentCommandListExecuted(ID3D12Resource* resource);
@@ -65,7 +65,7 @@ private:
 
 	void DestroyAllPendingResources();
 	void ResetAllCommandAllocators();
-	void WaitForGPUCompletion();
+	void WaitForGPUCompletion(bool terminate_worker_tread = false);
 
 	void PerformGPURolloverChecks();
 	void MoveToNextCommandAllocator();
