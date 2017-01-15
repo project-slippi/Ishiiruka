@@ -259,6 +259,7 @@ struct VideoConfig final
 		bool bSupportsComputeTextureDecoding;
 		bool bSupportsComputeTextureEncoding;
 		bool bSupportsMultithreading;
+		bool bSupportsValidationLayer;
 		bool bSupportsReversedDepthRange;
 		bool bSupportsInternalResolutionFrameDumps;
 	} backend_info;

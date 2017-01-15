@@ -210,6 +210,13 @@ static wxString scaling_factor_desc = _("Multiplier applied to the texture size.
 static wxString texture_deposterize_desc = _("Decrease some gradient's artifacts caused by scaling.");
 static wxString stereoshader_desc = _("Selects which shader will be used to transform the two images when stereoscopy is enabled.");
 static wxString forcedLogivOp_desc = _("Force Logic blending support.\nBy default dx11/12 supports logic op blending only on UINT formats, but in some drivers UNORM is also supported but is not detectable.\nThis option will allow you to test if your driver really supports logic blending, but it will crash the emulator if enabled in a platform that does not support it.\n\nIf unsure, leave this unchecked.");
+static wxString backend_multithreading_desc =
+_("Enables multi-threading in the video backend, which may result in performance "
+	"gains in some scenarios.\n\nIf unsure, leave this unchecked.");
+static wxString validation_layer_desc =
+wxTRANSLATE("Enables validation of API calls made by the video backend, which may assist in "
+	"debugging graphical issues.\n\nIf unsure, leave this unchecked.");
+
 // Search for available resolutions - TODO: Move to Common?
 static  wxArrayString GetListOfResolutions()
 {
@@ -385,6 +392,12 @@ VideoConfigDiag::VideoConfigDiag(wxWindow* parent, const std::string &title)
 				szr_other->Add(CreateCheckBox(page_general, _("Keep window on top"), (keep_window_on_top_desc), SConfig::GetInstance().bKeepWindowOnTop));
 				szr_other->Add(CreateCheckBox(page_general, _("Hide Mouse Cursor"), (hide_mouse_cursor_desc), SConfig::GetInstance().bHideCursor));
 				szr_other->Add(render_to_main_checkbox = CreateCheckBox(page_general, _("Render to Main Window"), (render_to_main_win_desc), SConfig::GetInstance().bRenderToMain));
+				if (vconfig.backend_info.bSupportsMultithreading)
+				{
+					szr_other->Add(backend_multithreading = CreateCheckBox(page_general, _("Enable Multi-threading"),
+						wxGetTranslation(backend_multithreading_desc),
+						vconfig.bBackendMultithreading));
+				}
 			}
 
 
@@ -897,6 +910,13 @@ VideoConfigDiag::VideoConfigDiag(wxWindow* parent, const std::string &title)
 			szr_debug->Add(CreateCheckBox(page_advanced, _("Enable Wireframe"), (wireframe_desc), vconfig.bWireFrame));
 			szr_debug->Add(CreateCheckBox(page_advanced, _("Show Statistics"), (show_stats_desc), vconfig.bOverlayStats));
 			szr_debug->Add(CreateCheckBox(page_advanced, _("Texture Format Overlay"), (texfmt_desc), vconfig.bTexFmtOverlayEnable));
+			if (vconfig.backend_info.bSupportsValidationLayer)
+			{
+				szr_debug->Add(validation_layer = CreateCheckBox(page_advanced, _("Enable API Validation Layers"),
+					wxGetTranslation(validation_layer_desc),
+					vconfig.bEnableValidationLayer));
+			}
+			
 
 			wxStaticBoxSizer* const group_debug = new wxStaticBoxSizer(wxVERTICAL, page_advanced, _("Debugging"));
 			szr_advanced->Add(group_debug, 0, wxEXPAND | wxALL, 5);
@@ -1499,6 +1519,14 @@ void VideoConfigDiag::OnUpdateUI(wxUpdateUIEvent& ev)
 
 		progressive_scan_checkbox->Disable();
 		render_to_main_checkbox->Disable();
+		if (vconfig.backend_info.bSupportsMultithreading)
+		{
+			backend_multithreading->Disable();
+		}
+		if (vconfig.backend_info.bSupportsValidationLayer)
+		{
+			validation_layer->Disable();
+		}
 		//Predictive_FIFO->Disable();
 	}
 	else

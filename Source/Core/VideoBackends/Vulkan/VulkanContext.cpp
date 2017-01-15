@@ -234,6 +234,7 @@ void VulkanContext::PopulateBackendInfo(VideoConfig* config)
 	config->backend_info.bSupportsPaletteConversion = true;     // Assumed support.
 	config->backend_info.bSupportsClipControl = true;           // Assumed support.
 	config->backend_info.bSupportsMultithreading = true;        // Assumed support.
+	config->backend_info.bSupportsValidationLayer = true;       // Assumed support.
 	config->backend_info.bSupportsPostProcessing = false;       // No support yet.
 	config->backend_info.bSupportsDualSourceBlend = false;      // Dependent on features.
 	config->backend_info.bSupportsGeometryShaders = false;      // Dependent on features.

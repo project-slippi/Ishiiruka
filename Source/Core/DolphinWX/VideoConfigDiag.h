@@ -159,7 +159,7 @@ protected:
 	wxStaticText* label_TextureScale;
 	SettingCheckBox* borderless_fullscreen;
 	SettingCheckBox* render_to_main_checkbox;
-
+	
 	SettingCheckBox* Fast_efb_cache;
 	SettingCheckBox* emulate_efb_format_changes;
 	SettingCheckBox* Async_Shader_compilation;
@@ -196,6 +196,9 @@ protected:
 	wxSlider* bump_threshold_slider;
 	wxSlider* bump_blend_slider;
 	wxSlider* bump_frequency_slider;
+
+	SettingCheckBox* validation_layer;
+	SettingCheckBox* backend_multithreading;
 
 	std::map<wxWindow*, wxString> ctrl_descs; // maps setting controls to their descriptions
 	std::map<wxWindow*, wxStaticText*> desc_texts; // maps dialog tabs (which are the parents of the setting controls) to their description text objects

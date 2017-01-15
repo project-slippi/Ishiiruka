@@ -4,7 +4,10 @@
 
 #pragma once
 
+#include <cstddef>
+
 #include "Common/Assert.h"
+#include "Common/CommonTypes.h"
 #include "Common/MemoryUtil.h"
 #include "Common/NonCopyable.h"
 
@@ -13,11 +16,13 @@
 // having to prefix them with gen-> or something similar.
 // Example implementation:
 // class JIT : public CodeBlock<ARMXEmitter> {}
-template<class T> class CodeBlock : public T, NonCopyable
+template <class T>
+class CodeBlock : public T, NonCopyable
 {
 private:
 	// A privately used function to set the executable RAM space to something invalid.
-	// For debugging usefulness it should be used to set the RAM to a host specific breakpoint instruction
+	// For debugging usefulness it should be used to set the RAM to a host specific breakpoint
+	// instruction
 	virtual void PoisonMemory() = 0;
 
 protected:
@@ -32,11 +37,12 @@ protected:
 public:
 	virtual ~CodeBlock()
 	{
-		if (region) FreeCodeSpace();
+		if (region)
+			FreeCodeSpace();
 	}
 
 	// Call this before you generate any code.
-	void AllocCodeSpace(int size, bool need_low = true)
+	void AllocCodeSpace(size_t size, bool need_low = true)
 	{
 		region_size = size;
 		region = static_cast<u8*>(Common::AllocateExecutableMemory(region_size, need_low));
@@ -65,23 +71,11 @@ public:
 		}
 	}
 
-	bool IsInSpace(u8* ptr) const
-	{
-		return (ptr >= region) && (ptr < (region + region_size));
-	}
-
+	bool IsInSpace(const u8* ptr) const { return ptr >= region && ptr < (region + region_size); }
 	// Cannot currently be undone. Will write protect the entire code region.
 	// Start over if you need to change the code (call FreeCodeSpace(), AllocCodeSpace()).
-	void WriteProtect()
-	{
-		Common::WriteProtectMemory(region, region_size, true);
-	}
-
-	void ResetCodePtr()
-	{
-		T::SetCodePtr(region);
-	}
-
+	void WriteProtect() { Common::WriteProtectMemory(region, region_size, true); }
+	void ResetCodePtr() { T::SetCodePtr(region); }
 	size_t GetSpaceLeft() const
 	{
 		return (m_has_child ? parent_region_size : region_size) - (T::GetCodePtr() - region);

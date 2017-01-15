@@ -84,6 +84,8 @@ private:
 	int Volume;
 	float m_EmulationSpeed;
 	bool bTimeStretching;
+	bool m_OCEnable;
+	float m_OCFactor;
 	std::string strBackend;
 	std::string sBackend;
 	std::string m_strGPUDeterminismMode;
@@ -121,6 +123,8 @@ void ConfigCache::SaveConfig(const SConfig& config)
 	bHalfAudioRate = config.bHalfAudioRate;
 	bTimeStretching = config.bTimeStretching;
 	bRSHACK = config.bRSHACK;
+	m_OCEnable = config.m_OCEnable;
+	m_OCFactor = config.m_OCFactor;
 	std::copy(std::begin(g_wiimote_sources), std::end(g_wiimote_sources), std::begin(iWiimoteSource));
 	std::copy(std::begin(config.m_SIDevice), std::end(config.m_SIDevice), std::begin(Pads));
 	std::copy(std::begin(config.m_EXIDevice), std::end(config.m_EXIDevice), std::begin(m_EXIDevice));
@@ -159,6 +163,8 @@ void ConfigCache::RestoreConfig(SConfig* config)
 	config->bHalfAudioRate = bHalfAudioRate;
 	config->bTimeStretching = bTimeStretching;
 	config->bRSHACK = bRSHACK;
+	config->m_OCEnable = m_OCEnable;
+	config->m_OCFactor = m_OCFactor;
 	// Only change these back if they were actually set by game ini, since they can be changed while a
 	// game is running.
 	if (bSetVolume)
@@ -262,6 +268,9 @@ bool BootCore(const std::string& _rFilename)
 		core_section->Get("HLE_BS2", &StartUp.bHLE_BS2, StartUp.bHLE_BS2);
 		core_section->Get("ProgressiveScan", &StartUp.bProgressive, StartUp.bProgressive);
 		core_section->Get("PAL60", &StartUp.bPAL60, StartUp.bPAL60);
+		core_section->Get("Overclock", &StartUp.m_OCFactor, StartUp.m_OCFactor);
+		core_section->Get("OverclockEnable", &StartUp.m_OCEnable, StartUp.m_OCEnable);
+
 		if (core_section->Get("EmulationSpeed", &SConfig::GetInstance().m_EmulationSpeed,
 			SConfig::GetInstance().m_EmulationSpeed))
 			config_cache.bSetEmulationSpeed = true;

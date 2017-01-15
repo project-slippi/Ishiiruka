@@ -18,26 +18,16 @@ D3DDescriptorHeapManager::D3DDescriptorHeapManager(ID3D12DescriptorHeap* descrip
 	m_num_descriptors(num_descriptors), m_descriptor_increment_size(descriptor_increment_size),
 	m_temporary_slots(temporary_slots),
 	m_heap_base_cpu(descriptor_heap->GetCPUDescriptorHandleForHeapStart()),
-	m_heap_base_gpu(descriptor_heap->GetGPUDescriptorHandleForHeapStart())
+	m_heap_base_gpu(descriptor_heap->GetGPUDescriptorHandleForHeapStart()),
+	m_slots(num_descriptors - temporary_slots)
 {
 	if (shadow_descriptor_heap)
 		m_shadow_heap_base = shadow_descriptor_heap->GetCPUDescriptorHandleForHeapStart();
-
-	// Set all slots to unallocated (1)
-	size_t bitset_count = num_descriptors / BITSET_SIZE + (((num_descriptors % BITSET_SIZE) != 0) ? 1 : 0);
-	m_free_slots.resize(bitset_count);
-	for (BitSetType& bs : m_free_slots)
-		bs.flip();
 
 	// Uses temporary slots?
 	if (temporary_slots > 0)
 	{
 		_assert_(temporary_slots <= num_descriptors);
-
-		// Set all temporary slots to allocated so we don't allocate them as a fixed handle.
-		for (size_t i = 0; i < temporary_slots; i++)
-			m_free_slots[i / BITSET_SIZE][i % BITSET_SIZE] = false;
-
 		// Set up fence tracking callback.
 		m_fence = D3D::command_list_mgr->RegisterQueueFenceCallback(this, &D3DDescriptorHeapManager::QueueFenceCallback);
 	}
@@ -56,39 +46,10 @@ bool D3DDescriptorHeapManager::Allocate(size_t* out_index,
 	D3D12_CPU_DESCRIPTOR_HANDLE* out_cpu_handle_shadow,
 	D3D12_GPU_DESCRIPTOR_HANDLE* out_gpu_handle)
 {
-	m_current_descriptor_index++;
-	if (m_current_descriptor_index >= m_num_descriptors)
+	int index = m_slots.AllocateSlot();
+	if (index > -1)
 	{
-		m_current_descriptor_index = m_temporary_slots;
-	}
-	size_t bit = m_current_descriptor_index % BITSET_SIZE;
-	// Start past the temporary slots, no point in searching those.
-	bool restarted = false;
-	for (size_t group = m_current_descriptor_index / BITSET_SIZE; group < m_free_slots.size(); group++)
-	{
-		BitSetType& bs = m_free_slots[group];
-		if (bs.none())
-		{
-			bit = 0;
-			if (group + 1 >= m_free_slots.size() && !restarted)
-			{
-				restarted = true;
-				m_current_descriptor_index = m_temporary_slots;
-				bit = m_current_descriptor_index % BITSET_SIZE;
-				group = (m_current_descriptor_index / BITSET_SIZE) - 1;
-			}
-			continue;
-		}
-
-		for (; bit < BITSET_SIZE; bit++)
-		{
-			if (bs[bit])
-				break;
-		}
-
-		size_t index = group * BITSET_SIZE + bit;
-		bs[bit] = false;
-
+		index += static_cast<int>(m_temporary_slots);
 		if (out_index)
 			*out_index = index;
 		if (out_cpu_handle)
@@ -97,7 +58,6 @@ bool D3DDescriptorHeapManager::Allocate(size_t* out_index,
 			out_cpu_handle_shadow->ptr = m_shadow_heap_base.ptr + index * m_descriptor_increment_size;
 		if (out_gpu_handle)
 			out_gpu_handle->ptr = m_heap_base_gpu.ptr + index * m_descriptor_increment_size;
-		m_current_descriptor_index = index;
 		return true;
 	}
 
@@ -107,11 +67,8 @@ bool D3DDescriptorHeapManager::Allocate(size_t* out_index,
 
 void D3DDescriptorHeapManager::Free(size_t index)
 {
-	_assert_(index < m_num_descriptors);
-
-	size_t group = index / BITSET_SIZE;
-	size_t bit = index % BITSET_SIZE;
-	m_free_slots[group][bit] = true;
+	_assert_(index < m_num_descriptors && index >= m_temporary_slots);
+	m_slots.ReleaseSlot(static_cast<int>(index - m_temporary_slots));
 }
 
 bool D3DDescriptorHeapManager::AllocateTemporary(size_t num_handles,

@@ -701,7 +701,7 @@ void Renderer::RecordVideoMemory()
 	memset(cpmem, 0, 256 * 4);
 	FillCPMemoryArray(cpmem);
 
-	FifoRecorder::GetInstance().SetVideoMemory(bpmem_ptr, cpmem, xfmem_ptr, xfregs_ptr, xfregs_size);
+	FifoRecorder::GetInstance().SetVideoMemory(bpmem_ptr, cpmem, xfmem_ptr, xfregs_ptr, xfregs_size, texMem);
 }
 
 

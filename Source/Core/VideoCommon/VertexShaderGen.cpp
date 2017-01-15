@@ -37,6 +37,7 @@ void GetVertexShaderUID(VertexShaderUid& out, u32 components, const XFMemory &xf
 	}
 	uid_data.pixel_lighting = enable_pl;
 	uid_data.numColorChans = xfr.numChan.numColorChans;
+
 	if ((g_ActiveConfig.backend_info.APIType & API_D3D9) == 0)
 	{
 		uid_data.msaa = g_ActiveConfig.iMultisamples > 1;
@@ -455,40 +456,28 @@ inline void GenerateVertexShader(ShaderCode& out, const vertex_shader_uid_data& 
 			out.Write("o.colors_1 = o.colors_0;\n");
 	}
 
-	//write the true depth value, if the game uses depth textures pixel shaders will override with the correct values
-	//if not early z culling will improve speed
+	// If we can disable the incorrect depth clipping planes using depth clamping, then we can do
+	// our own depth clipping and calculate the depth range before the perspective divide if
+	// necessary.
 	if (g_ActiveConfig.backend_info.bSupportsDepthClamp)
 	{
-		if (!(api_type & API_D3D9))
-		{
-			// If we can disable the incorrect depth clipping planes using depth clamping, then we can do
-			// our own depth clipping and calculate the depth range before the perspective divide.
+		// If we can disable the incorrect depth clipping planes using depth clamping, then we can do
+		// our own depth clipping and calculate the depth range before the perspective divide.
 
-			// Since we're adjusting z for the depth range before the perspective divide, we have to do our
-			// own clipping. We want to clip so that -w <= z <= 0, which matches the console -1..0 range.
-			// We adjust our depth value for clipping purposes to match the perspective projection in the
-			// software backend, which is a hack to fix Sonic Adventure and Unleashed games.
-			out.Write("float clipDepth = o.pos.z * 0.9999999;\n"); // (1.0 - 1e-7)
-			out.Write("o.clipDist.x = clipDepth + o.pos.w;\n");  // Near: z < -w
-			out.Write("o.clipDist.y = -clipDepth;\n");           // Far: z > 0
-		}
-		// Adjust z for the depth range. We're using an equation which incorperates a depth inversion,
-		// so we can map the console -1..0 range to the 0..1 range used in the depth buffer.
-		// We have to handle the depth range in the vertex shader instead of after the perspective
-		// divide, because some games will use a depth range larger than what is allowed by the
-		// graphics API. These large depth ranges will still be clipped to the 0..1 range, so these
-		// games effectively add a depth bias to the values written to the depth buffer.
-		out.Write("o.pos.z = o.pos.w * " I_DEPTHPARAMS ".x - o.pos.z * " I_DEPTHPARAMS ".y;\n");
+		// Since we're adjusting z for the depth range before the perspective divide, we have to do our
+		// own clipping. We want to clip so that -w <= z <= 0, which matches the console -1..0 range.
+		// We adjust our depth value for clipping purposes to match the perspective projection in the
+		// software backend, which is a hack to fix Sonic Adventure and Unleashed games.
+		out.Write("float clipDepth = o.pos.z * 0.9999999;\n"); // (1.0 - 1e-7)
+		out.Write("o.clipDist.x = clipDepth + o.pos.w;\n");  // Near: z < -w
+		out.Write("o.clipDist.y = -clipDepth;\n");           // Far: z > 0
 	}
-	else
-	{
-		// If we can't disable the incorrect depth clipping planes, then we need to rely on the
-		// graphics API to handle the depth range after the perspective divide. This can result in
-		// inaccurate depth values due to the missing depth bias, but that can be least corrected by
-		// overriding depth values in the pixel shader. We still need to take care of the reversed depth
-		// though, so we do that here.
-		out.Write("o.pos.z = -o.pos.z;\n");
-	}
+	// Write the true depth value. If the game uses depth textures, then the pixel shader will
+	// override it with the correct values if not then early z culling will improve speed.
+	// There are two different ways to do this, when the depth range is oversized, we process
+	// the depth range in the vertex shader, if not we let the host driver handle it.
+	// This methods are handled by the values of the depthparams
+	out.Write("o.pos.z = o.pos.w * " I_DEPTHPARAMS ".x - o.pos.z * " I_DEPTHPARAMS ".y;\n");
 
 	if (!g_ActiveConfig.backend_info.bSupportsClipControl)
 	{

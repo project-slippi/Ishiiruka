@@ -2,8 +2,6 @@
 // Licensed under GPLv2+
 // Refer to the license.txt file included.
 
-#define USE_D3D12_QUEUED_COMMAND_LISTS
-
 #pragma once
 
 #include <d3d12.h>

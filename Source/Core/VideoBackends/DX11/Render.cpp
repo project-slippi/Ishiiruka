@@ -514,6 +514,11 @@ void Renderer::SetViewport()
 	float Y = Renderer::EFBToScaledYf(xfmem.viewport.yOrig + xfmem.viewport.ht - scissorYOff);
 	float Wd = Renderer::EFBToScaledXf(2.0f * xfmem.viewport.wd);
 	float Ht = Renderer::EFBToScaledYf(-2.0f * xfmem.viewport.ht);
+	float range = MathUtil::Clamp<float>(xfmem.viewport.zRange, 0.0f, 16777215.0f);
+	float min_depth =
+		MathUtil::Clamp<float>(xfmem.viewport.farZ - range, 0.0f, 16777215.0f) / 16777216.0f;
+	float max_depth = MathUtil::Clamp<float>(xfmem.viewport.farZ, 0.0f, 16777215.0f) / 16777216.0f;
+
 	if (Wd < 0.0f)
 	{
 		X += Wd;
@@ -524,6 +529,14 @@ void Renderer::SetViewport()
 		Y += Ht;
 		Ht = -Ht;
 	}
+	
+	// If an inverted depth range is used, which D3D doesn't support,
+	// we need to calculate the depth range in the vertex shader.
+	if (xfmem.viewport.zRange < 0.0f)
+	{
+		min_depth = 0.0f;
+		max_depth = GX_MAX_DEPTH;
+	}
 
 	// In D3D, the viewport rectangle must fit within the render target.
 	X = (X >= 0.f) ? X : 0.f;
@@ -531,10 +544,10 @@ void Renderer::SetViewport()
 	Wd = (X + Wd <= GetTargetWidth()) ? Wd : (GetTargetWidth() - X);
 	Ht = (Y + Ht <= GetTargetHeight()) ? Ht : (GetTargetHeight() - Y);
 
-	// We do depth clipping and depth range in the vertex shader instead of relying
-	// on the graphics API. However we still need to ensure depth values don't exceed
-	// the maximum value supported by the console GPU.
-	D3D11_VIEWPORT vp = CD3D11_VIEWPORT(X, Y, Wd, Ht, 1.0f - GX_MAX_DEPTH, D3D11_MAX_DEPTH);
+	// We use an inverted depth range here to apply the Reverse Z trick.
+	// This trick makes sure we match the precision provided by the 1:0
+	// clipping depth range on the hardware.
+	D3D11_VIEWPORT vp = CD3D11_VIEWPORT(X, Y, Wd, Ht, 1.0f - max_depth, 1.0f - min_depth);
 	D3D::context->RSSetViewports(1, &vp);
 	gx_state.zmode.reversed_depth = xfmem.viewport.zRange < 0;
 }

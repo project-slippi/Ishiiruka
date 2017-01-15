@@ -36,12 +36,14 @@
   <PropertyGroup Label="UserMacros" />
   <ItemGroup>
     <ClInclude Include="Align.h" />
+    <ClInclude Include="AllocationMap.h" />
     <ClInclude Include="Analytics.h" />
     <ClInclude Include="Assert.h" />
     <ClInclude Include="Atomic.h" />
     <ClInclude Include="Atomic_GCC.h" />
     <ClInclude Include="Atomic_Win32.h" />
     <ClInclude Include="BitField.h" />
+    <ClInclude Include="BitHelpers.h" />
     <ClInclude Include="BitSet.h" />
     <ClInclude Include="BlockingLoop.h" />
     <ClInclude Include="BreakPoints.h" />
@@ -139,6 +141,7 @@
     <ClInclude Include="x64ABI.h" />
     <ClInclude Include="x64Analyzer.h" />
     <ClInclude Include="x64Emitter.h" />
+    <ClInclude Include="x64Reg.h" />
     <ClInclude Include="Crypto\bn.h" />
     <ClInclude Include="Crypto\ec.h" />
     <ClInclude Include="Logging\ConsoleListener.h" />

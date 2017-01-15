@@ -31,9 +31,9 @@
 #include "Core/HW/WiiSaveCrypted.h"
 
 const u8 CWiiSaveCrypted::s_sd_key[16] = { 0xAB, 0x01, 0xB9, 0xD8, 0xE1, 0x62, 0x2B, 0x08,
-0xAF, 0xBA, 0xD8, 0x4D, 0xBF, 0xC2, 0xA5, 0x5D };
+																					0xAF, 0xBA, 0xD8, 0x4D, 0xBF, 0xC2, 0xA5, 0x5D };
 const u8 CWiiSaveCrypted::s_md5_blanker[16] = { 0x0E, 0x65, 0x37, 0x81, 0x99, 0xBE, 0x45, 0x17,
-0xAB, 0x06, 0xEC, 0x22, 0x45, 0x1A, 0x57, 0x93 };
+																							 0xAB, 0x06, 0xEC, 0x22, 0x45, 0x1A, 0x57, 0x93 };
 const u32 CWiiSaveCrypted::s_ng_id = 0x0403AC68;
 
 bool CWiiSaveCrypted::ImportWiiSave(const std::string& filename)
@@ -337,19 +337,20 @@ void CWiiSaveCrypted::ImportWiiSaveFiles()
 		}
 		else
 		{
-			std::string filename =
-				Common::EscapeFileName(reinterpret_cast<const char*>(file_hdr_tmp.name));
+			// Allows files in subfolders to be escaped properly (ex: "nocopy/data00")
+			// Special characters in path components will be escaped such as /../
+			std::string file_path = Common::EscapePath(reinterpret_cast<const char*>(file_hdr_tmp.name));
 
-			std::string file_path_full = m_wii_title_path + filename;
+			std::string file_path_full = m_wii_title_path + file_path;
 			File::CreateFullPath(file_path_full);
 			if (file_hdr_tmp.type == 1)
 			{
 				file_size = Common::swap32(file_hdr_tmp.size);
-				u32 file_size_rounded = Common::AlignUpSizePow2(file_size, BLOCK_SZ);
+				u32 file_size_rounded = Common::AlignUp(file_size, BLOCK_SZ);
 				std::vector<u8> file_data(file_size_rounded);
 				std::vector<u8> file_data_enc(file_size_rounded);
 
-				if (!data_file.ReadBytes(&file_data_enc[0], file_size_rounded))
+				if (!data_file.ReadBytes(file_data_enc.data(), file_size_rounded))
 				{
 					ERROR_LOG(CONSOLE, "Failed to read data from file %d", i);
 					m_valid = false;
@@ -358,7 +359,7 @@ void CWiiSaveCrypted::ImportWiiSaveFiles()
 
 				memcpy(m_iv, file_hdr_tmp.IV, 0x10);
 				mbedtls_aes_crypt_cbc(&m_aes_ctx, MBEDTLS_AES_DECRYPT, file_size_rounded, m_iv,
-					(const u8*)&file_data_enc[0], &file_data[0]);
+					static_cast<const u8*>(file_data_enc.data()), file_data.data());
 
 				if (!File::Exists(file_path_full) ||
 					AskYesNoT("%s already exists, overwrite?", file_path_full.c_str()))
@@ -366,7 +367,21 @@ void CWiiSaveCrypted::ImportWiiSaveFiles()
 					INFO_LOG(CONSOLE, "Creating file %s", file_path_full.c_str());
 
 					File::IOFile raw_save_file(file_path_full, "wb");
-					raw_save_file.WriteBytes(&file_data[0], file_size);
+					raw_save_file.WriteBytes(file_data.data(), file_size);
+				}
+			}
+			else if (file_hdr_tmp.type == 2)
+			{
+				if (!File::Exists(file_path_full))
+				{
+					if (!File::CreateDir(file_path_full))
+						ERROR_LOG(CONSOLE, "Failed to create directory %s", file_path_full.c_str());
+				}
+				else if (!File::IsDirectory(file_path_full))
+				{
+					ERROR_LOG(CONSOLE,
+						"Failed to create directory %s because a file with the same name exists",
+						file_path_full.c_str());
 				}
 			}
 		}
@@ -394,7 +409,7 @@ void CWiiSaveCrypted::ExportWiiSaveFiles()
 			file_hdr_tmp.type = 1;
 		}
 
-		u32 file_size_rounded = Common::AlignUpSizePow2(file_size, BLOCK_SZ);
+		u32 file_size_rounded = Common::AlignUp(file_size, BLOCK_SZ);
 		file_hdr_tmp.magic = Common::swap32(FILE_HDR_MAGIC);
 		file_hdr_tmp.size = Common::swap32(file_size);
 		file_hdr_tmp.Permissions = 0x3c;
@@ -434,17 +449,17 @@ void CWiiSaveCrypted::ExportWiiSaveFiles()
 			std::vector<u8> file_data(file_size_rounded);
 			std::vector<u8> file_data_enc(file_size_rounded);
 
-			if (!raw_save_file.ReadBytes(&file_data[0], file_size))
+			if (!raw_save_file.ReadBytes(file_data.data(), file_size))
 			{
 				ERROR_LOG(CONSOLE, "Failed to read data from file: %s", m_files_list[i].c_str());
 				m_valid = false;
 			}
 
 			mbedtls_aes_crypt_cbc(&m_aes_ctx, MBEDTLS_AES_ENCRYPT, file_size_rounded, file_hdr_tmp.IV,
-				(const u8*)&file_data[0], &file_data_enc[0]);
+				static_cast<const u8*>(file_data.data()), file_data_enc.data());
 
 			File::IOFile fpData_bin(m_encrypted_save_path, "ab");
-			if (!fpData_bin.WriteBytes(&file_data_enc[0], file_size_rounded))
+			if (!fpData_bin.WriteBytes(file_data_enc.data(), file_size_rounded))
 			{
 				ERROR_LOG(CONSOLE, "Failed to write data to file: %s", m_encrypted_save_path.c_str());
 			}
@@ -469,14 +484,14 @@ void CWiiSaveCrypted::do_sig()
 	const u32 ng_key_id = 0x6AAB8C59;
 
 	const u8 ng_priv[30] = { 0,    0xAB, 0xEE, 0xC1, 0xDD, 0xB4, 0xA6, 0x16, 0x6B, 0x70,
-		0xFD, 0x7E, 0x56, 0x67, 0x70, 0x57, 0x55, 0x27, 0x38, 0xA3,
-		0x26, 0xC5, 0x46, 0x16, 0xF7, 0x62, 0xC9, 0xED, 0x73, 0xF2 };
+													0xFD, 0x7E, 0x56, 0x67, 0x70, 0x57, 0x55, 0x27, 0x38, 0xA3,
+													0x26, 0xC5, 0x46, 0x16, 0xF7, 0x62, 0xC9, 0xED, 0x73, 0xF2 };
 
 	const u8 ng_sig[0x3C] = { 0,    0xD8, 0x81, 0x63, 0xB2, 0x00, 0x6B, 0x0B, 0x54, 0x82, 0x88, 0x63,
-		0x81, 0x1C, 0x00, 0x71, 0x12, 0xED, 0xB7, 0xFD, 0x21, 0xAB, 0x0E, 0x50,
-		0x0E, 0x1F, 0xBF, 0x78, 0xAD, 0x37, 0x00, 0x71, 0x8D, 0x82, 0x41, 0xEE,
-		0x45, 0x11, 0xC7, 0x3B, 0xAC, 0x08, 0xB6, 0x83, 0xDC, 0x05, 0xB8, 0xA8,
-		0x90, 0x1F, 0xA8, 0x2A, 0x0E, 0x4E, 0x76, 0xEF, 0x44, 0x72, 0x99, 0xF8 };
+													 0x81, 0x1C, 0x00, 0x71, 0x12, 0xED, 0xB7, 0xFD, 0x21, 0xAB, 0x0E, 0x50,
+													 0x0E, 0x1F, 0xBF, 0x78, 0xAD, 0x37, 0x00, 0x71, 0x8D, 0x82, 0x41, 0xEE,
+													 0x45, 0x11, 0xC7, 0x3B, 0xAC, 0x08, 0xB6, 0x83, 0xDC, 0x05, 0xB8, 0xA8,
+													 0x90, 0x1F, 0xA8, 0x2A, 0x0E, 0x4E, 0x76, 0xEF, 0x44, 0x72, 0x99, 0xF8 };
 
 	sprintf(signer, "Root-CA00000001-MS00000002");
 	sprintf(name, "NG%08x", s_ng_id);
@@ -630,7 +645,7 @@ void CWiiSaveCrypted::ScanForFiles(const std::string& save_directory,
 				else
 				{
 					file_list.push_back(elem.physicalName);
-					size += static_cast<u32>(Common::AlignUpSizePow2(elem.size, BLOCK_SZ));
+					size += static_cast<u32>(Common::AlignUp(elem.size, BLOCK_SZ));
 				}
 			}
 		}

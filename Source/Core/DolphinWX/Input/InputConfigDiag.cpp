@@ -104,6 +104,11 @@ void InputConfigDialog::ConfigExtension(wxCommandEvent& event)
 	}
 }
 
+PadSetting::PadSetting(wxControl* const _control) : wxcontrol(_control)
+{
+	wxcontrol->SetClientData(this);
+}
+
 PadSettingExtension::PadSettingExtension(wxWindow* const parent,
 	ControllerEmu::Extension* const ext)
 	: PadSetting(new wxChoice(parent, wxID_ANY)), extension(ext)
@@ -208,6 +213,11 @@ ControlDialog::ControlDialog(InputConfigDialog* const parent, InputConfig& confi
 
 	UpdateGUI();
 	SetFocus();
+}
+
+ExtensionButton::ExtensionButton(wxWindow* const parent, ControllerEmu::Extension* const ext)
+	: wxButton(parent, wxID_ANY, _("Configure"), wxDefaultPosition), extension(ext)
+{
 }
 
 ControlButton::ControlButton(wxWindow* const parent,
@@ -918,14 +928,20 @@ ControlGroupBox::~ControlGroupBox()
 		delete padSetting;
 }
 
+bool ControlGroupBox::HasBitmapHeading() const
+{
+	return control_group->type == GROUP_TYPE_STICK || control_group->type == GROUP_TYPE_TILT ||
+		control_group->type == GROUP_TYPE_CURSOR || control_group->type == GROUP_TYPE_FORCE;
+}
+
 ControlGroupBox::ControlGroupBox(ControllerEmu::ControlGroup* const group, wxWindow* const parent,
 	InputConfigDialog* eventsink)
 	: wxStaticBoxSizer(wxVERTICAL, parent, wxGetTranslation(StrToWxStr(group->ui_name))),
 	control_group(group), static_bitmap(nullptr), m_scale(1)
 {
-	static constexpr std::array<const char* const, 2> exclude_buttons{ {"Mic", "Modifier"} };
+	static constexpr std::array<const char* const, 2> exclude_buttons{ { "Mic", "Modifier" } };
 	static constexpr std::array<const char* const, 7> exclude_groups{
-			{"IR", "Swing", "Tilt", "Shake", "UDP Wiimote", "Extension", "Rumble"} };
+		{ "IR", "Swing", "Tilt", "Shake", "UDP Wiimote", "Extension", "Rumble" } };
 
 	wxFont small_font(7, wxFONTFAMILY_DEFAULT, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL);
 	const int space3 = parent->FromDIP(3);
@@ -1238,6 +1254,16 @@ InputConfigDialog::InputConfigDialog(wxWindow* const parent, InputConfig& config
 	m_update_timer.Start(PREVIEW_UPDATE_TIME, wxTIMER_CONTINUOUS);
 }
 
+InputEventFilter::InputEventFilter()
+{
+	wxEvtHandler::AddFilter(this);
+}
+
+InputEventFilter::~InputEventFilter()
+{
+	wxEvtHandler::RemoveFilter(this);
+}
+
 int InputEventFilter::FilterEvent(wxEvent& event)
 {
 	if (m_block && ShouldCatchEventType(event.GetEventType()))
@@ -1247,4 +1273,17 @@ int InputEventFilter::FilterEvent(wxEvent& event)
 	}
 
 	return Event_Skip;
+}
+
+void InputEventFilter::BlockEvents(bool block)
+{
+	m_block = block;
+}
+
+bool InputEventFilter::ShouldCatchEventType(wxEventType type)
+{
+	return type == wxEVT_KEY_DOWN || type == wxEVT_KEY_UP || type == wxEVT_CHAR ||
+		type == wxEVT_CHAR_HOOK || type == wxEVT_LEFT_DOWN || type == wxEVT_LEFT_UP ||
+		type == wxEVT_MIDDLE_DOWN || type == wxEVT_MIDDLE_UP || type == wxEVT_RIGHT_DOWN ||
+		type == wxEVT_RIGHT_UP;
 }

@@ -279,10 +279,18 @@ void CMixer::StartLogDTKAudio(const std::string& filename)
 {
 	if (!m_log_dtk_audio)
 	{
-		m_log_dtk_audio = true;
-		g_wave_writer_dtk.Start(filename, m_streaming_mixer.GetInputSampleRate());
-		g_wave_writer_dtk.SetSkipSilence(false);
-		NOTICE_LOG(AUDIO, "Starting DTK Audio logging");
+		bool success = g_wave_writer_dtk.Start(filename, m_streaming_mixer.GetInputSampleRate());
+		if (success)
+		{
+			m_log_dtk_audio = true;
+			g_wave_writer_dtk.SetSkipSilence(false);
+			NOTICE_LOG(AUDIO, "Starting DTK Audio logging");
+		}
+		else
+		{
+			g_wave_writer_dtk.Stop();
+			NOTICE_LOG(AUDIO, "Unable to start DTK Audio logging");
+		}
 	}
 	else
 	{
@@ -308,10 +316,18 @@ void CMixer::StartLogDSPAudio(const std::string& filename)
 {
 	if (!m_log_dsp_audio)
 	{
-		m_log_dsp_audio = true;
-		g_wave_writer_dsp.Start(filename, m_dma_mixer.GetInputSampleRate());
-		g_wave_writer_dsp.SetSkipSilence(false);
-		NOTICE_LOG(AUDIO, "Starting DSP Audio logging");
+		bool success = g_wave_writer_dsp.Start(filename, m_dma_mixer.GetInputSampleRate());
+		if (success)
+		{
+			m_log_dsp_audio = true;
+			g_wave_writer_dsp.SetSkipSilence(false);
+			NOTICE_LOG(AUDIO, "Starting DSP Audio logging");
+		}
+		else
+		{
+			g_wave_writer_dsp.Stop();
+			NOTICE_LOG(AUDIO, "Unable to start DSP Audio logging");
+		}
 	}
 	else
 	{

@@ -303,6 +303,7 @@ struct SConfig : NonCopyable
 	bool m_DSPEnableJIT;
 	bool m_DSPCaptureLog;
 	bool m_DumpAudio;
+	bool m_DumpAudioSilent;
 	bool m_IsMuted;
 	bool m_DumpUCode;
 	int m_Volume;

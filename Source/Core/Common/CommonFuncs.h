@@ -134,7 +134,7 @@ inline u64 swap64(u64 _data)
 {
 	return _byteswap_uint64(_data);
 }
-#elif __linux__ && !(ANDROID && _M_ARM_64)
+#elif __linux__
 // Android NDK r10c has broken builtin byte swap routines
 // Disabled for now.
 inline u16 swap16(u16 _data)

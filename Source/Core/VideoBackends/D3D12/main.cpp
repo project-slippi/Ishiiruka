@@ -109,7 +109,8 @@ void VideoBackend::InitBackendInfo()
 	g_Config.backend_info.bSupportsComputeTextureDecoding = false;
 	g_Config.backend_info.bSupportsComputeTextureEncoding = false;
 	g_Config.backend_info.bSupportsDepthClamp = true;
-	g_Config.backend_info.bSupportsMultithreading = false;
+	g_Config.backend_info.bSupportsMultithreading = true;
+	g_Config.backend_info.bSupportsValidationLayer = true;
 	g_Config.backend_info.bSupportsReversedDepthRange = true;
 	g_Config.backend_info.bSupportsInternalResolutionFrameDumps = true;
 	IDXGIFactory* factory;
@@ -163,11 +164,11 @@ bool VideoBackend::Initialize(void *window_handle)
 	if (window_handle == nullptr)
 		return false;
 
-	if (FAILED(D3D::Create((HWND)window_handle)))
-		return false;
-
 	InitializeShared();
 	InitBackendInfo();
+
+	if (FAILED(D3D::Create((HWND)window_handle)))
+		return false;
 
 	return true;
 }

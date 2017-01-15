@@ -65,6 +65,7 @@
     <ClInclude Include="x64ABI.h" />
     <ClInclude Include="x64Analyzer.h" />
     <ClInclude Include="x64Emitter.h" />
+    <ClInclude Include="x64Reg.h" />
     <ClInclude Include="Logging\ConsoleListener.h">
       <Filter>Logging</Filter>
     </ClInclude>
@@ -229,6 +230,8 @@
     <ClInclude Include="MD5.h" />
     <ClInclude Include="ConstantBuffer.h" />
     <ClInclude Include="Align.h" />
+    <ClInclude Include="BitHelpers.h" />
+    <ClInclude Include="AllocationMap.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="BreakPoints.cpp" />

@@ -52,17 +52,7 @@ IPCCommandResult CWII_IPC_HLE_Device_fs::Open(u32 _CommandAddress, u32 _Mode)
 		File::CreateDir(Path);
 	}
 
-	Memory::Write_U32(GetDeviceID(), _CommandAddress + 4);
-	m_Active = true;
-	return GetFSReply();
-}
-
-IPCCommandResult CWII_IPC_HLE_Device_fs::Close(u32 _CommandAddress, bool _bForce)
-{
-	INFO_LOG(WII_IPC_FILEIO, "Close");
-	if (!_bForce)
-		Memory::Write_U32(0, _CommandAddress + 4);
-	m_Active = false;
+	m_is_active = true;
 	return GetFSReply();
 }
 
@@ -83,16 +73,13 @@ static u64 ComputeTotalFileSize(const File::FSTEntry& parentEntry)
 
 IPCCommandResult CWII_IPC_HLE_Device_fs::IOCtlV(u32 _CommandAddress)
 {
-	u32 ReturnValue = FS_RESULT_OK;
+	u32 ReturnValue = IPC_SUCCESS;
 	SIOCtlVBuffer CommandBuffer(_CommandAddress);
 
 	// Prepare the out buffer(s) with zeros as a safety precaution
 	// to avoid returning bad values
-	for (u32 i = 0; i < CommandBuffer.NumberPayloadBuffer; i++)
-	{
-		Memory::Memset(CommandBuffer.PayloadBuffer[i].m_Address, 0,
-			CommandBuffer.PayloadBuffer[i].m_Size);
-	}
+	for (const auto& buffer : CommandBuffer.PayloadBuffer)
+		Memory::Memset(buffer.m_Address, 0, buffer.m_Size);
 
 	switch (CommandBuffer.Parameter)
 	{
@@ -104,7 +91,7 @@ IPCCommandResult CWII_IPC_HLE_Device_fs::IOCtlV(u32 _CommandAddress)
 		if (!IsValidWiiPath(relative_path))
 		{
 			WARN_LOG(WII_IPC_FILEIO, "Not a valid path: %s", relative_path.c_str());
-			ReturnValue = FS_RESULT_FATAL;
+			ReturnValue = FS_EINVAL;
 			break;
 		}
 
@@ -116,7 +103,7 @@ IPCCommandResult CWII_IPC_HLE_Device_fs::IOCtlV(u32 _CommandAddress)
 		if (!File::Exists(DirName))
 		{
 			WARN_LOG(WII_IPC_FILEIO, "FS: Search not found: %s", DirName.c_str());
-			ReturnValue = FS_FILE_NOT_EXIST;
+			ReturnValue = FS_ENOENT;
 			break;
 		}
 		else if (!File::IsDirectory(DirName))
@@ -124,8 +111,8 @@ IPCCommandResult CWII_IPC_HLE_Device_fs::IOCtlV(u32 _CommandAddress)
 			// It's not a directory, so error.
 			// Games don't usually seem to care WHICH error they get, as long as it's <
 			// Well the system menu CARES!
-			WARN_LOG(WII_IPC_FILEIO, "\tNot a directory - return FS_RESULT_FATAL");
-			ReturnValue = FS_RESULT_FATAL;
+			WARN_LOG(WII_IPC_FILEIO, "\tNot a directory - return FS_EINVAL");
+			ReturnValue = FS_EINVAL;
 			break;
 		}
 
@@ -176,7 +163,7 @@ IPCCommandResult CWII_IPC_HLE_Device_fs::IOCtlV(u32 _CommandAddress)
 			Memory::Write_U32((u32)numFiles, CommandBuffer.PayloadBuffer[1].m_Address);
 		}
 
-		ReturnValue = FS_RESULT_OK;
+		ReturnValue = IPC_SUCCESS;
 	}
 	break;
 
@@ -195,7 +182,7 @@ IPCCommandResult CWII_IPC_HLE_Device_fs::IOCtlV(u32 _CommandAddress)
 		if (!IsValidWiiPath(relativepath))
 		{
 			WARN_LOG(WII_IPC_FILEIO, "Not a valid path: %s", relativepath.c_str());
-			ReturnValue = FS_RESULT_FATAL;
+			ReturnValue = FS_EINVAL;
 			break;
 		}
 
@@ -227,7 +214,7 @@ IPCCommandResult CWII_IPC_HLE_Device_fs::IOCtlV(u32 _CommandAddress)
 
 				fsBlocks = (u32)(totalSize / (16 * 1024));  // one bock is 16kb
 			}
-			ReturnValue = FS_RESULT_OK;
+			ReturnValue = IPC_SUCCESS;
 
 			INFO_LOG(WII_IPC_FILEIO, "FS: fsBlock: %i, iNodes: %i", fsBlocks, iNodes);
 		}
@@ -235,7 +222,7 @@ IPCCommandResult CWII_IPC_HLE_Device_fs::IOCtlV(u32 _CommandAddress)
 		{
 			fsBlocks = 0;
 			iNodes = 0;
-			ReturnValue = FS_RESULT_OK;
+			ReturnValue = IPC_SUCCESS;
 			WARN_LOG(WII_IPC_FILEIO, "FS: fsBlock failed, cannot find directory: %s", path.c_str());
 		}
 
@@ -265,8 +252,8 @@ IPCCommandResult CWII_IPC_HLE_Device_fs::IOCtl(u32 _CommandAddress)
 	u32 BufferOutSize = Memory::Read_U32(_CommandAddress + 0x1C);
 
 	/* Prepare the out buffer(s) with zeroes as a safety precaution
-	to avoid returning bad values. */
-	// LOG(WII_IPC_FILEIO, "Cleared %u bytes of the out buffer", _BufferOutSize);
+		 to avoid returning bad values. */
+		 // LOG(WII_IPC_FILEIO, "Cleared %u bytes of the out buffer", _BufferOutSize);
 	Memory::Memset(BufferOut, 0, BufferOutSize);
 
 	u32 ReturnValue = ExecuteCommand(Parameter, BufferIn, BufferInSize, BufferOut, BufferOutSize);
@@ -300,7 +287,7 @@ s32 CWII_IPC_HLE_Device_fs::ExecuteCommand(u32 _Parameter, u32 _BufferIn, u32 _B
 
 		std::memcpy(Memory::GetPointer(_BufferOut), &fs, sizeof(NANDStat));
 
-		return FS_RESULT_OK;
+		return IPC_SUCCESS;
 	}
 	break;
 
@@ -317,7 +304,7 @@ s32 CWII_IPC_HLE_Device_fs::ExecuteCommand(u32 _Parameter, u32 _BufferIn, u32 _B
 		if (!IsValidWiiPath(wii_path))
 		{
 			WARN_LOG(WII_IPC_FILEIO, "Not a valid path: %s", wii_path.c_str());
-			return FS_RESULT_FATAL;
+			return FS_EINVAL;
 		}
 		std::string DirName(HLE_IPC_BuildFilename(wii_path));
 		Addr += 64;
@@ -332,7 +319,7 @@ s32 CWII_IPC_HLE_Device_fs::ExecuteCommand(u32 _Parameter, u32 _BufferIn, u32 _B
 		_dbg_assert_msg_(WII_IPC_FILEIO, File::IsDirectory(DirName), "FS: CREATE_DIR %s failed",
 			DirName.c_str());
 
-		return FS_RESULT_OK;
+		return IPC_SUCCESS;
 	}
 	break;
 
@@ -348,7 +335,7 @@ s32 CWII_IPC_HLE_Device_fs::ExecuteCommand(u32 _Parameter, u32 _BufferIn, u32 _B
 		if (!IsValidWiiPath(wii_path))
 		{
 			WARN_LOG(WII_IPC_FILEIO, "Not a valid path: %s", wii_path.c_str());
-			return FS_RESULT_FATAL;
+			return FS_EINVAL;
 		}
 		std::string Filename = HLE_IPC_BuildFilename(wii_path);
 		Addr += 64;
@@ -369,7 +356,7 @@ s32 CWII_IPC_HLE_Device_fs::ExecuteCommand(u32 _Parameter, u32 _BufferIn, u32 _B
 		DEBUG_LOG(WII_IPC_FILEIO, "    OtherPerm: 0x%02x", OtherPerm);
 		DEBUG_LOG(WII_IPC_FILEIO, "    Attributes: 0x%02x", Attributes);
 
-		return FS_RESULT_OK;
+		return IPC_SUCCESS;
 	}
 	break;
 
@@ -386,7 +373,7 @@ s32 CWII_IPC_HLE_Device_fs::ExecuteCommand(u32 _Parameter, u32 _BufferIn, u32 _B
 		if (!IsValidWiiPath(wii_path))
 		{
 			WARN_LOG(WII_IPC_FILEIO, "Not a valid path: %s", wii_path.c_str());
-			return FS_RESULT_FATAL;
+			return FS_EINVAL;
 		}
 		std::string Filename = HLE_IPC_BuildFilename(wii_path);
 		u8 OwnerPerm = 0x3;    // read/write
@@ -408,7 +395,7 @@ s32 CWII_IPC_HLE_Device_fs::ExecuteCommand(u32 _Parameter, u32 _BufferIn, u32 _B
 			else
 			{
 				INFO_LOG(WII_IPC_FILEIO, "FS: GET_ATTR unknown %s", Filename.c_str());
-				return FS_FILE_NOT_EXIST;
+				return FS_ENOENT;
 			}
 		}
 
@@ -432,7 +419,7 @@ s32 CWII_IPC_HLE_Device_fs::ExecuteCommand(u32 _Parameter, u32 _BufferIn, u32 _B
 			Addr += 1;
 		}
 
-		return FS_RESULT_OK;
+		return IPC_SUCCESS;
 	}
 	break;
 
@@ -445,7 +432,7 @@ s32 CWII_IPC_HLE_Device_fs::ExecuteCommand(u32 _Parameter, u32 _BufferIn, u32 _B
 		if (!IsValidWiiPath(wii_path))
 		{
 			WARN_LOG(WII_IPC_FILEIO, "Not a valid path: %s", wii_path.c_str());
-			return FS_RESULT_FATAL;
+			return FS_EINVAL;
 		}
 		std::string Filename = HLE_IPC_BuildFilename(wii_path);
 		Offset += 64;
@@ -462,7 +449,7 @@ s32 CWII_IPC_HLE_Device_fs::ExecuteCommand(u32 _Parameter, u32 _BufferIn, u32 _B
 			WARN_LOG(WII_IPC_FILEIO, "FS: DeleteFile %s - failed!!!", Filename.c_str());
 		}
 
-		return FS_RESULT_OK;
+		return IPC_SUCCESS;
 	}
 	break;
 
@@ -475,7 +462,7 @@ s32 CWII_IPC_HLE_Device_fs::ExecuteCommand(u32 _Parameter, u32 _BufferIn, u32 _B
 		if (!IsValidWiiPath(wii_path))
 		{
 			WARN_LOG(WII_IPC_FILEIO, "Not a valid path: %s", wii_path.c_str());
-			return FS_RESULT_FATAL;
+			return FS_EINVAL;
 		}
 		std::string Filename = HLE_IPC_BuildFilename(wii_path);
 		Offset += 64;
@@ -484,7 +471,7 @@ s32 CWII_IPC_HLE_Device_fs::ExecuteCommand(u32 _Parameter, u32 _BufferIn, u32 _B
 		if (!IsValidWiiPath(wii_path_rename))
 		{
 			WARN_LOG(WII_IPC_FILEIO, "Not a valid path: %s", wii_path_rename.c_str());
-			return FS_RESULT_FATAL;
+			return FS_EINVAL;
 		}
 		std::string FilenameRename = HLE_IPC_BuildFilename(wii_path_rename);
 		Offset += 64;
@@ -507,10 +494,10 @@ s32 CWII_IPC_HLE_Device_fs::ExecuteCommand(u32 _Parameter, u32 _BufferIn, u32 _B
 		{
 			ERROR_LOG(WII_IPC_FILEIO, "FS: Rename %s to %s - failed", Filename.c_str(),
 				FilenameRename.c_str());
-			return FS_FILE_NOT_EXIST;
+			return FS_ENOENT;
 		}
 
-		return FS_RESULT_OK;
+		return IPC_SUCCESS;
 	}
 	break;
 
@@ -527,7 +514,7 @@ s32 CWII_IPC_HLE_Device_fs::ExecuteCommand(u32 _Parameter, u32 _BufferIn, u32 _B
 		if (!IsValidWiiPath(wii_path))
 		{
 			WARN_LOG(WII_IPC_FILEIO, "Not a valid path: %s", wii_path.c_str());
-			return FS_RESULT_FATAL;
+			return FS_EINVAL;
 		}
 		std::string Filename(HLE_IPC_BuildFilename(wii_path));
 		Addr += 64;
@@ -551,8 +538,8 @@ s32 CWII_IPC_HLE_Device_fs::ExecuteCommand(u32 _Parameter, u32 _BufferIn, u32 _B
 		// check if the file already exist
 		if (File::Exists(Filename))
 		{
-			INFO_LOG(WII_IPC_FILEIO, "\tresult = FS_RESULT_EXISTS");
-			return FS_FILE_EXIST;
+			INFO_LOG(WII_IPC_FILEIO, "\tresult = FS_EEXIST");
+			return FS_EEXIST;
 		}
 
 		// create the file
@@ -562,11 +549,11 @@ s32 CWII_IPC_HLE_Device_fs::ExecuteCommand(u32 _Parameter, u32 _BufferIn, u32 _B
 		{
 			ERROR_LOG(WII_IPC_FILEIO, "CWII_IPC_HLE_Device_fs: couldn't create new file");
 			PanicAlert("CWII_IPC_HLE_Device_fs: couldn't create new file");
-			return FS_RESULT_FATAL;
+			return FS_EINVAL;
 		}
 
-		INFO_LOG(WII_IPC_FILEIO, "\tresult = FS_RESULT_OK");
-		return FS_RESULT_OK;
+		INFO_LOG(WII_IPC_FILEIO, "\tresult = IPC_SUCCESS");
+		return IPC_SUCCESS;
 	}
 	break;
 	case IOCTL_SHUTDOWN:
@@ -581,7 +568,7 @@ s32 CWII_IPC_HLE_Device_fs::ExecuteCommand(u32 _Parameter, u32 _BufferIn, u32 _B
 		break;
 	}
 
-	return FS_RESULT_FATAL;
+	return FS_EINVAL;
 }
 
 void CWII_IPC_HLE_Device_fs::DoState(PointerWrap& p)

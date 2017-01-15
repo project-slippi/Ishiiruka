@@ -4,11 +4,11 @@
 
 #pragma once
 
-#include <bitset>
 #include <d3d12.h>
 #include <memory>
 #include <unordered_map>
 
+#include "Common/AllocationMap.h"
 #include "VideoBackends/D3D12/D3DState.h"
 
 namespace DX12
@@ -56,7 +56,6 @@ private:
 	ID3D12DescriptorHeap* m_descriptor_heap;
 	ID3D12DescriptorHeap* m_shadow_descriptor_heap;
 	size_t m_num_descriptors;
-	size_t m_current_descriptor_index = SIZE_MAX;
 	size_t m_descriptor_increment_size;
 	size_t m_temporary_slots;
 
@@ -64,9 +63,7 @@ private:
 	D3D12_CPU_DESCRIPTOR_HANDLE m_shadow_heap_base = {};
 	D3D12_GPU_DESCRIPTOR_HANDLE m_heap_base_gpu = {};
 
-	static constexpr size_t BITSET_SIZE = 1024;
-	using BitSetType = std::bitset<BITSET_SIZE>;
-	std::vector<BitSetType> m_free_slots;
+	Common::AllocationMap m_slots;
 
 	size_t m_current_temporary_descriptor_index = 0;
 	size_t m_gpu_temporary_descriptor_index = 0;

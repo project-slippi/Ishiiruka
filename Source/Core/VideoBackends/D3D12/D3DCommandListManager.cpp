@@ -17,6 +17,8 @@
 #include "VideoBackends/D3D12/ShaderConstantsManager.h"
 #include "VideoBackends/D3D12/VertexManager.h"
 
+#include "VideoCommon/VideoConfig.h"
+
 static constexpr unsigned int COMMAND_ALLOCATORS_PER_LIST = 2;
 
 namespace DX12
@@ -48,9 +50,10 @@ D3DCommandListManager::D3DCommandListManager(
 	// Create backing command list.
 	CheckHR(m_device->CreateCommandList(0, command_list_type, m_command_allocator_lists[m_current_command_allocator_list][0], nullptr, IID_PPV_ARGS(&m_backing_command_list)));
 
-#ifdef USE_D3D12_QUEUED_COMMAND_LISTS
-	m_queued_command_list = new ID3D12QueuedCommandList(m_backing_command_list, m_command_queue);
-#endif
+	if (g_ActiveConfig.bBackendMultithreading)
+	{
+		m_queued_command_list = new ID3D12QueuedCommandList(m_backing_command_list, m_command_queue);
+	}
 
 	// Create fence that will be used to measure GPU progress of app rendering requests (e.g. CPU readback of GPU data).
 	m_queue_fence_value = 0;
@@ -106,11 +109,7 @@ void D3DCommandListManager::SetInitialCommandListState()
 
 void D3DCommandListManager::GetCommandList(ID3D12GraphicsCommandList** command_list) const
 {
-#ifdef USE_D3D12_QUEUED_COMMAND_LISTS
-	*command_list = this->m_queued_command_list;
-#else
-	*command_list = this->m_backing_command_list;
-#endif
+	*command_list = g_ActiveConfig.bBackendMultithreading ? this->m_queued_command_list : this->m_backing_command_list;
 }
 void D3DCommandListManager::EnsureDrawLimit()
 {
@@ -128,19 +127,22 @@ void D3DCommandListManager::ExecuteQueuedWork(bool wait_for_gpu_completion, bool
 {
 	m_queue_fence_value++;
 
-#ifdef USE_D3D12_QUEUED_COMMAND_LISTS
-	m_queued_command_list->Close();
-	m_queued_command_list->QueueExecute();
-	m_queued_command_list->QueueFenceGpuSignal(m_queue_fence, m_queue_fence_value);
-	m_queued_command_list->ProcessQueuedItems(wait_for_gpu_completion, wait_for_gpu_completion);
-#else
-	CheckHR(m_backing_command_list->Close());
+	if (g_ActiveConfig.bBackendMultithreading)
+	{
+		m_queued_command_list->Close();
+		m_queued_command_list->QueueExecute();
+		m_queued_command_list->QueueFenceGpuSignal(m_queue_fence, m_queue_fence_value);
+		m_queued_command_list->ProcessQueuedItems(wait_for_gpu_completion, wait_for_gpu_completion);
+	}
+	else
+	{
+		CheckHR(m_backing_command_list->Close());
 
-	ID3D12CommandList* const execute_list[1] = { m_backing_command_list };
-	m_command_queue->ExecuteCommandLists(1, execute_list);
+		ID3D12CommandList* const execute_list[1] = { m_backing_command_list };
+		m_command_queue->ExecuteCommandLists(1, execute_list);
 
-	CheckHR(m_command_queue->Signal(m_queue_fence, m_queue_fence_value));
-#endif
+		CheckHR(m_command_queue->Signal(m_queue_fence, m_queue_fence_value));
+	}
 
 	// Notify observers of the fence value for the current work to finish.
 	for (auto it : m_queue_fence_callbacks)
@@ -162,21 +164,24 @@ void D3DCommandListManager::ExecuteQueuedWorkAndPresent(IDXGISwapChain* swap_cha
 {
 	m_queue_fence_value++;
 
-#ifdef USE_D3D12_QUEUED_COMMAND_LISTS
-	m_queued_command_list->Close();
-	m_queued_command_list->QueueExecute();
-	m_queued_command_list->QueuePresent(swap_chain, sync_interval, flags);
-	m_queued_command_list->QueueFenceGpuSignal(m_queue_fence, m_queue_fence_value);
-	m_queued_command_list->ProcessQueuedItems(true);
-#else
-	CheckHR(m_backing_command_list->Close());
+	if (g_ActiveConfig.bBackendMultithreading)
+	{
+		m_queued_command_list->Close();
+		m_queued_command_list->QueueExecute();
+		m_queued_command_list->QueuePresent(swap_chain, sync_interval, flags);
+		m_queued_command_list->QueueFenceGpuSignal(m_queue_fence, m_queue_fence_value);
+		m_queued_command_list->ProcessQueuedItems(true);
+	}
+	else
+	{
+		CheckHR(m_backing_command_list->Close());
 
-	ID3D12CommandList* const execute_list[1] = { m_backing_command_list };
-	m_command_queue->ExecuteCommandLists(1, execute_list);
+		ID3D12CommandList* const execute_list[1] = { m_backing_command_list };
+		m_command_queue->ExecuteCommandLists(1, execute_list);
 
-	CheckHR(swap_chain->Present(sync_interval, flags));
-	CheckHR(m_command_queue->Signal(m_queue_fence, m_queue_fence_value));
-#endif
+		CheckHR(swap_chain->Present(sync_interval, flags));
+		CheckHR(m_command_queue->Signal(m_queue_fence, m_queue_fence_value));
+	}
 
 	// Notify observers of the fence value for the current work to finish.
 	for (auto it : m_queue_fence_callbacks)
@@ -231,12 +236,15 @@ void D3DCommandListManager::WaitForGPUCompletion(bool terminate_worker_tread)
 	// This method assumes that no command lists are open.
 	m_queue_frame_fence_value++;
 
-#ifdef USE_D3D12_QUEUED_COMMAND_LISTS
-	m_queued_command_list->QueueFenceGpuSignal(m_queue_frame_fence, m_queue_frame_fence_value);
-	m_queued_command_list->ProcessQueuedItems(true, terminate_worker_tread, terminate_worker_tread);
-#else
-	CheckHR(m_command_queue->Signal(m_queue_frame_fence, m_queue_frame_fence_value));
-#endif
+	if (g_ActiveConfig.bBackendMultithreading)
+	{
+		m_queued_command_list->QueueFenceGpuSignal(m_queue_frame_fence, m_queue_frame_fence_value);
+		m_queued_command_list->ProcessQueuedItems(true, terminate_worker_tread, terminate_worker_tread);
+	}
+	else
+	{
+		CheckHR(m_command_queue->Signal(m_queue_frame_fence, m_queue_frame_fence_value));
+	}
 
 	WaitOnCPUForFence(m_queue_frame_fence, m_queue_frame_fence_value);
 
@@ -251,12 +259,14 @@ void D3DCommandListManager::PerformGPURolloverChecks()
 {
 	m_queue_frame_fence_value++;
 
-#ifdef USE_D3D12_QUEUED_COMMAND_LISTS
-	m_queued_command_list->QueueFenceGpuSignal(m_queue_frame_fence, m_queue_frame_fence_value);
-#else
-	CheckHR(m_command_queue->Signal(m_queue_frame_fence, m_queue_frame_fence_value));
-#endif
-
+	if (g_ActiveConfig.bBackendMultithreading)
+	{
+		m_queued_command_list->QueueFenceGpuSignal(m_queue_frame_fence, m_queue_frame_fence_value);
+	}
+	else
+	{
+		CheckHR(m_command_queue->Signal(m_queue_frame_fence, m_queue_frame_fence_value));
+	}
 	// We now know that the previous 'set' of command lists has completed on GPU, and it is safe to
 	// release resources / start back at beginning of command allocator list.
 
@@ -307,13 +317,14 @@ void D3DCommandListManager::MoveToNextCommandAllocator()
 
 void D3DCommandListManager::ResetCommandList()
 {
-#ifdef USE_D3D12_QUEUED_COMMAND_LISTS
-	ID3D12QueuedCommandList* command_list = m_queued_command_list;
-#else
-	ID3D12GraphicsCommandList* command_list = m_backing_command_list;
-#endif
-
-	CheckHR(command_list->Reset(m_command_allocator_lists[m_current_command_allocator_list][m_current_command_allocator], nullptr));
+	if(g_ActiveConfig.bBackendMultithreading)
+	{
+		CheckHR(m_queued_command_list->Reset(m_command_allocator_lists[m_current_command_allocator_list][m_current_command_allocator], nullptr));
+	}
+	else
+	{
+		CheckHR(m_backing_command_list->Reset(m_command_allocator_lists[m_current_command_allocator_list][m_current_command_allocator], nullptr));
+	}
 }
 
 void D3DCommandListManager::DestroyResourceAfterCurrentCommandListExecuted(ID3D12Resource* resource)
@@ -331,11 +342,11 @@ void D3DCommandListManager::FreeDescriptorAfterCurrentCommandListExecuted(D3DDes
 
 D3DCommandListManager::~D3DCommandListManager()
 {
-#ifdef USE_D3D12_QUEUED_COMMAND_LISTS
-	// Wait for background thread to exit.
-	m_queued_command_list->Release();
-#endif
-
+	if (g_ActiveConfig.bBackendMultithreading)
+	{
+		// Wait for background thread to exit.
+		m_queued_command_list->Release();
+	}
 	// The command list will still be open, close it before destroying.
 	m_backing_command_list->Close();
 

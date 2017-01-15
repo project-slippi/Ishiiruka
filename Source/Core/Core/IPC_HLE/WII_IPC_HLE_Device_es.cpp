@@ -6,31 +6,32 @@
 // File description
 // -------------
 /*  Here we handle /dev/es requests. We have cases for these functions, the exact
-DevKitPro/libogc name is in parenthesis:
+	DevKitPro/libogc name is in parenthesis:
 
-0x20 GetTitleID (ES_GetTitleID) (Input: none, Output: 8 bytes)
-0x1d GetDataDir (ES_GetDataDir) (Input: 8 bytes, Output: 30 bytes)
+	0x20 GetTitleID (ES_GetTitleID) (Input: none, Output: 8 bytes)
+	0x1d GetDataDir (ES_GetDataDir) (Input: 8 bytes, Output: 30 bytes)
 
-0x1b DiGetTicketView (Input: none, Output: 216 bytes)
-0x16 GetConsumption (Input: 8 bytes, Output: 0 bytes, 4 bytes) // there are two output buffers
+	0x1b DiGetTicketView (Input: none, Output: 216 bytes)
+	0x16 GetConsumption (Input: 8 bytes, Output: 0 bytes, 4 bytes) // there are two output buffers
 
-0x12 GetNumTicketViews (ES_GetNumTicketViews) (Input: 8 bytes, Output: 4 bytes)
-0x14 GetTMDViewSize (ES_GetTMDViewSize) (Input: ?, Output: ?) // I don't get this anymore,
-it used to come after 0x12
+	0x12 GetNumTicketViews (ES_GetNumTicketViews) (Input: 8 bytes, Output: 4 bytes)
+	0x14 GetTMDViewSize (ES_GetTMDViewSize) (Input: ?, Output: ?) // I don't get this anymore,
+		it used to come after 0x12
 
-but only the first two are correctly supported. For the other four we ignore any potential
-input and only write zero to the out buffer. However, most games only use first two,
-but some Nintendo developed games use the other ones to:
+	but only the first two are correctly supported. For the other four we ignore any potential
+	input and only write zero to the out buffer. However, most games only use first two,
+	but some Nintendo developed games use the other ones to:
 
-0x1b: Mario Galaxy, Mario Kart, SSBB
-0x16: Mario Galaxy, Mario Kart, SSBB
-0x12: Mario Kart
-0x14: Mario Kart: But only if we don't return a zeroed out buffer for the 0x12 question,
-and instead answer for example 1 will this question appear.
+	0x1b: Mario Galaxy, Mario Kart, SSBB
+	0x16: Mario Galaxy, Mario Kart, SSBB
+	0x12: Mario Kart
+	0x14: Mario Kart: But only if we don't return a zeroed out buffer for the 0x12 question,
+		and instead answer for example 1 will this question appear.
 
 */
 // =============
 
+#include <algorithm>
 #include <cinttypes>
 #include <cstdio>
 #include <cstring>
@@ -73,26 +74,26 @@ CWII_IPC_HLE_Device_es::CWII_IPC_HLE_Device_es(u32 device_id, const std::string&
 }
 
 static u8 key_sd[0x10] = { 0xab, 0x01, 0xb9, 0xd8, 0xe1, 0x62, 0x2b, 0x08,
-0xaf, 0xba, 0xd8, 0x4d, 0xbf, 0xc2, 0xa5, 0x5d };
+													0xaf, 0xba, 0xd8, 0x4d, 0xbf, 0xc2, 0xa5, 0x5d };
 static u8 key_ecc[0x1e] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01 };
+													 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+													 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01 };
 static u8 key_empty[0x10] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
+														 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
 
 // default key table
 u8* CWII_IPC_HLE_Device_es::keyTable[11] = {
-	key_ecc,    // ECC Private Key
-	key_empty,  // Console ID
-	key_empty,  // NAND AES Key
-	key_empty,  // NAND HMAC
-	key_empty,  // Common Key
-	key_empty,  // PRNG seed
-	key_sd,     // SD Key
-	key_empty,  // Unknown
-	key_empty,  // Unknown
-	key_empty,  // Unknown
-	key_empty,  // Unknown
+		key_ecc,    // ECC Private Key
+		key_empty,  // Console ID
+		key_empty,  // NAND AES Key
+		key_empty,  // NAND HMAC
+		key_empty,  // Common Key
+		key_empty,  // PRNG seed
+		key_sd,     // SD Key
+		key_empty,  // Unknown
+		key_empty,  // Unknown
+		key_empty,  // Unknown
+		key_empty,  // Unknown
 };
 
 CWII_IPC_HLE_Device_es::~CWII_IPC_HLE_Device_es()
@@ -184,10 +185,9 @@ IPCCommandResult CWII_IPC_HLE_Device_es::Open(u32 _CommandAddress, u32 _Mode)
 {
 	OpenInternal();
 
-	Memory::Write_U32(GetDeviceID(), _CommandAddress + 4);
-	if (m_Active)
+	if (m_is_active)
 		INFO_LOG(WII_IPC_ES, "Device was re-opened.");
-	m_Active = true;
+	m_is_active = true;
 	return GetDefaultReply();
 }
 
@@ -199,9 +199,7 @@ IPCCommandResult CWII_IPC_HLE_Device_es::Close(u32 _CommandAddress, bool _bForce
 	m_AccessIdentID = 0x6000000;
 
 	INFO_LOG(WII_IPC_ES, "ES: Close");
-	if (!_bForce)
-		Memory::Write_U32(0, _CommandAddress + 4);
-	m_Active = false;
+	m_is_active = false;
 	// clear the NAND content cache to make sure nothing remains open.
 	DiscIO::CNANDContentManager::Access().ClearCache();
 	return GetDefaultReply();
@@ -244,22 +242,15 @@ IPCCommandResult CWII_IPC_HLE_Device_es::IOCtlV(u32 _CommandAddress)
 
 	// Prepare the out buffer(s) with zeroes as a safety precaution
 	// to avoid returning bad values
-	// XXX: is this still necessary?
-	for (u32 i = 0; i < Buffer.NumberPayloadBuffer; i++)
+	for (const auto& buffer : Buffer.PayloadBuffer)
 	{
-		u32 j;
-		for (j = 0; j < Buffer.NumberInBuffer; j++)
+		// Don't zero an out buffer which is also one of the in buffers.
+		if (std::any_of(Buffer.InBuffer.begin(), Buffer.InBuffer.end(),
+			[&](const auto& in_buffer) { return in_buffer.m_Address == buffer.m_Address; }))
 		{
-			if (Buffer.InBuffer[j].m_Address == Buffer.PayloadBuffer[i].m_Address)
-			{
-				// The out buffer is the same as one of the in buffers.  Don't zero it.
-				break;
-			}
+			continue;
 		}
-		if (j == Buffer.NumberInBuffer)
-		{
-			Memory::Memset(Buffer.PayloadBuffer[i].m_Address, 0, Buffer.PayloadBuffer[i].m_Size);
-		}
+		Memory::Memset(buffer.m_Address, 0, buffer.m_Size);
 	}
 
 	switch (Buffer.Parameter)
@@ -969,10 +960,10 @@ IPCCommandResult CWII_IPC_HLE_Device_es::IOCtlV(u32 _CommandAddress)
 					if (pDolLoader->IsValid())
 					{
 						pDolLoader->Load();  // TODO: Check why sysmenu does not load the DOL correctly
-											 // NAND titles start with address translation off at 0x3400 (via the PPC bootstub)
-											 //
-											 // The state of other CPU registers (like the BAT registers) doesn't matter much
-											 // because the realmode code at 0x3400 initializes everything itself anyway.
+						// NAND titles start with address translation off at 0x3400 (via the PPC bootstub)
+						//
+						// The state of other CPU registers (like the BAT registers) doesn't matter much
+						// because the realmode code at 0x3400 initializes everything itself anyway.
 						MSR = 0;
 						PC = 0x3400;
 						bSuccess = true;
@@ -1064,9 +1055,9 @@ IPCCommandResult CWII_IPC_HLE_Device_es::IOCtlV(u32 _CommandAddress)
 
 		if (!bReset)
 		{
-			// The original hardware overwrites the command type with the async reply type.
-			Memory::Write_U32(IPC_REP_ASYNC, _CommandAddress);
-			// IOS also seems to write back the command that was responded to in the FD field.
+			// The command type is overwritten with the reply type.
+			Memory::Write_U32(IPC_REPLY, _CommandAddress);
+			// IOS also writes back the command that was responded to in the FD field.
 			Memory::Write_U32(IPC_CMD_IOCTLV, _CommandAddress + 8);
 		}
 
@@ -1079,9 +1070,9 @@ IPCCommandResult CWII_IPC_HLE_Device_es::IOCtlV(u32 _CommandAddress)
 
 	case IOCTL_ES_CHECKKOREAREGION:  // note by DacoTaco : name is unknown, i just tried to name it
 																	 // SOMETHING
-																	 // IOS70 has this to let system menu 4.2 check if the console is region changed. it returns
-																	 // -1017
-																	 // if the IOS didn't find the Korean keys and 0 if it does. 0 leads to a error 003
+		// IOS70 has this to let system menu 4.2 check if the console is region changed. it returns
+		// -1017
+		// if the IOS didn't find the Korean keys and 0 if it does. 0 leads to a error 003
 		INFO_LOG(WII_IPC_ES, "IOCTL_ES_CHECKKOREAREGION: Title checked for Korean keys.");
 		Memory::Write_U32(ES_PARAMTER_SIZE_OR_ALIGNMENT, _CommandAddress + 0x4);
 		return GetDefaultReply();
