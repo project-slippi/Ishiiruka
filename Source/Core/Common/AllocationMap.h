@@ -14,10 +14,10 @@ namespace Common
 // while controling resource usage in a circular buffer
 class AllocationMap
 {
-	const size_t bit_count = sizeof(size_t) * 8;
-	const size_t bit_mask = bit_count - 1;
+	static const size_t bit_count = sizeof(size_t) * 8;
+	static const size_t bit_mask = bit_count - 1;
 	std::vector<size_t> m_slot_groups;
-	size_t m_current_slot = -1;
+	size_t m_current_slot = size_t(-1LL);
 	size_t m_slot_count = 0;
 	size_t m_group_count = 0;
 public:
@@ -41,7 +41,7 @@ public:
 			m_current_slot = 0;
 			restarted = true;
 		}
-		
+
 		size_t group = m_current_slot / bit_count;
 		int bit = static_cast<int>(m_current_slot & bit_mask);
 		while (group < m_group_count)

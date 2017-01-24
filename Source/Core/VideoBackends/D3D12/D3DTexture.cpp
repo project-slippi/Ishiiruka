@@ -266,15 +266,13 @@ D3DTexture2D::D3DTexture2D(ID3D12Resource* texptr, u32 bind, DXGI_FORMAT fmt,
 	{
 		InitalizeSRV();
 	}
-
-	if (m_bind_falgs & TEXTURE_BIND_FLAG_DEPTH_STENCIL)
-	{
-		InitalizeDSV();
-	}
-
 	if (m_bind_falgs & TEXTURE_BIND_FLAG_RENDER_TARGET)
 	{
 		InitalizeRTV();
+	}
+	if (m_bind_falgs & TEXTURE_BIND_FLAG_DEPTH_STENCIL)
+	{
+		InitalizeDSV();
 	}
 }
 
@@ -285,11 +283,11 @@ D3DTexture2D::~D3DTexture2D()
 	{
 		D3D::command_list_mgr->FreeDescriptorAfterCurrentCommandListExecuted(D3D::gpu_descriptor_heap_mgr.get(), m_srv_index);
 	}
-	if (m_bind_falgs & TEXTURE_BIND_FLAG_DEPTH_STENCIL)
+	if (m_bind_falgs & TEXTURE_BIND_FLAG_RENDER_TARGET)
 	{
 		D3D::command_list_mgr->FreeDescriptorAfterCurrentCommandListExecuted(D3D::rtv_descriptor_heap_mgr.get(), m_rtv_index);
 	}
-	if (m_bind_falgs & TEXTURE_BIND_FLAG_RENDER_TARGET)
+	if (m_bind_falgs & TEXTURE_BIND_FLAG_DEPTH_STENCIL)
 	{
 		D3D::command_list_mgr->FreeDescriptorAfterCurrentCommandListExecuted(D3D::dsv_descriptor_heap_mgr.get(), m_dsv_index);
 	}

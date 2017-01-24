@@ -472,10 +472,10 @@ void CreateDescriptorHeaps()
 	// Create D3D12 GPU and CPU descriptor heaps.
 
 	{
-		// We bind 8 textures per draw, let's assume a maximum of 8192 draws per frame, with
-		// a maximum of 8192 textures created at once. Should be sufficient?
-		static constexpr size_t MAX_ACTIVE_TEXTURES = 16384;
-		static constexpr size_t MAX_DRAWS_PER_FRAME = 8192;
+		// We bind 8 textures per draw, let's assume a maximum of 4096 draws per frame, with
+		// a maximum of 4096 textures created at once. Should be sufficient?
+		static constexpr size_t MAX_ACTIVE_TEXTURES = 4096;
+		static constexpr size_t MAX_DRAWS_PER_FRAME = 4096;
 		static constexpr size_t TEMPORARY_SLOTS = MAX_DRAWS_PER_FRAME * 8;
 		gpu_descriptor_heap_mgr = D3DDescriptorHeapManager::Create(
 			device, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE,
@@ -491,7 +491,7 @@ void CreateDescriptorHeaps()
 
 	{
 		// Should be more than sufficient. This also includes rendertarget textures.
-		static constexpr size_t MAX_RTVS = 16384;
+		static constexpr size_t MAX_RTVS = 4096;
 		rtv_descriptor_heap_mgr = D3DDescriptorHeapManager::Create(
 			device, D3D12_DESCRIPTOR_HEAP_TYPE_RTV, D3D12_DESCRIPTOR_HEAP_FLAG_NONE, MAX_RTVS, 0);
 		if (!rtv_descriptor_heap_mgr)
@@ -500,7 +500,7 @@ void CreateDescriptorHeaps()
 
 	{
 		// Should be more than sufficient.
-		static constexpr size_t MAX_DSVS = 8192;
+		static constexpr size_t MAX_DSVS = 2048;
 		dsv_descriptor_heap_mgr = D3DDescriptorHeapManager::Create(
 			device, D3D12_DESCRIPTOR_HEAP_TYPE_DSV, D3D12_DESCRIPTOR_HEAP_FLAG_NONE, MAX_DSVS, 0);
 		if (!dsv_descriptor_heap_mgr)
