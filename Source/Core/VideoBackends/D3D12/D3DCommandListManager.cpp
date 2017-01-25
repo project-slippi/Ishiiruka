@@ -347,9 +347,11 @@ D3DCommandListManager::~D3DCommandListManager()
 		// Wait for background thread to exit.
 		m_queued_command_list->Release();
 	}
-	// The command list will still be open, close it before destroying.
-	m_backing_command_list->Close();
-
+	else
+	{
+		// The command list will still be open, close it before destroying.
+		m_backing_command_list->Close();
+	}
 	// Descriptor heaps are already freed at this point, as they depend on us.
 	// Just throw away the descriptors.
 	for (auto& free_list : m_deferred_descriptor_free_lists)

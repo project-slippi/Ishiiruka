@@ -170,7 +170,7 @@ void ID3D12QueuedCommandList::BackgroundThreadFunction(ID3D12QueuedCommandList* 
 			{
 				command_list->SetDescriptorHeaps(
 					qitem->SetDescriptorHeaps.NumDescriptorHeaps,
-					qitem->SetDescriptorHeaps.ppDescriptorHeap
+					qitem->SetDescriptorHeaps.DescriptorHeaps
 				);
 
 				item += BufferOffsetForQueueItemType<SetDescriptorHeapsArguments>();
@@ -1034,7 +1034,7 @@ void STDMETHODCALLTYPE ID3D12QueuedCommandList::SetDescriptorHeaps(
 	D3DQueueItem* item = reinterpret_cast<D3DQueueItem*>(m_queue_array_back);
 
 	item->Type = D3DQueueItemType::SetDescriptorHeaps;
-	item->SetDescriptorHeaps.ppDescriptorHeap = pDescriptorHeaps;
+	std::memcpy(item->SetDescriptorHeaps.DescriptorHeaps, pDescriptorHeaps, NumDescriptorHeaps * sizeof(ID3D12DescriptorHeap*));
 	item->SetDescriptorHeaps.NumDescriptorHeaps = NumDescriptorHeaps;
 
 	m_queue_array_back += BufferOffsetForQueueItemType<SetDescriptorHeapsArguments>();

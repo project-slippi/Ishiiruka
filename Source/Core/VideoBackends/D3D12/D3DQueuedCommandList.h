@@ -175,7 +175,7 @@ struct CopyTextureRegionArguments
 
 struct SetDescriptorHeapsArguments
 {
-	ID3D12DescriptorHeap*const* ppDescriptorHeap;
+	ID3D12DescriptorHeap* DescriptorHeaps[2];
 	UINT NumDescriptorHeaps;
 };
 
