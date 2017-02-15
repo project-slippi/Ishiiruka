@@ -18,6 +18,7 @@
 #include <mutex>
 #include <string>
 #include <thread>
+#include <tuple>
 #include <vector>
 
 #include "Common/CommonTypes.h"
@@ -128,6 +129,7 @@ public:
 		return target_rc;
 	}
 	static float CalculateDrawAspectRatio(int target_width, int target_height);
+	static std::tuple<float, float> ScaleToDisplayAspectRatio(int width, int height);
 	static TargetRectangle CalculateFrameDumpDrawRectangle();
 	static void UpdateDrawRectangle();
 

@@ -372,16 +372,27 @@ static u32 AdvanceDTK(u32 maximum_samples, u32* samples_to_process)
 
 static void DTKStreamingCallback(const std::vector<u8>& audio_data, s64 cycles_late)
 {
+	const bool bStreaming = s_stream && AudioInterface::IsPlaying();
+	const bool bTimeStretching = SConfig::GetInstance().bTimeStretching;
+	u32 samples_processed = s_pending_samples;
 	// Send audio to the mixer.
-	std::vector<s16> temp_pcm(s_pending_samples * 2, 0);
-	ProcessDTKSamples(&temp_pcm, audio_data);
-	g_sound_stream->GetMixer()->PushStreamingSamples(temp_pcm.data(), s_pending_samples);
+	std::vector<s16> temp_pcm(samples_processed * 2, 0);
+	if (bStreaming)
+	{
+		samples_processed = static_cast<u32>(ProcessDTKSamples(&temp_pcm, audio_data));
+	}
+	else if (!bTimeStretching)
+	{
+		std::memset(temp_pcm.data(), 0, samples_processed * 2 * sizeof(s16));
+	}
+	if (bStreaming || !bTimeStretching)
+		g_sound_stream->GetMixer()->PushStreamingSamples(temp_pcm.data(), samples_processed);
 
 	// Determine which audio data to read next.
 	static const int MAXIMUM_SAMPLES = 48000 / 2000 * 7;  // 3.5ms of 48kHz samples
 	u64 read_offset;
 	u32 read_length;
-	if (s_stream && AudioInterface::IsPlaying())
+	if (bStreaming)
 	{
 		read_offset = s_audio_position;
 		read_length = AdvanceDTK(MAXIMUM_SAMPLES, &s_pending_samples);

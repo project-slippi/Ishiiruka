@@ -14,10 +14,9 @@ class wxTextCtrl;
 class MemoryCheckDlg : public wxDialog
 {
 public:
-	MemoryCheckDlg(CBreakPointWindow* parent);
+	MemoryCheckDlg(wxWindow* parent);
 
 private:
-	CBreakPointWindow* m_parent;
 	wxStaticText* m_textAddress;
 	wxStaticText* m_textStartAddress;
 	wxStaticText* m_textEndAddress;
