@@ -4,6 +4,7 @@
 // Modified for Ishiiruka by Tino
 
 #pragma once
+#include <limits>
 #include "VideoCommon/CPMemory.h"
 #include "VideoCommon/DataReader.h"
 #include "Common/NonCopyable.h"

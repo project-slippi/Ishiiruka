@@ -180,7 +180,7 @@ void Preset(bool _bNTSC)
 	s_ticks_last_line_start = 0;
 	s_half_line_count = 1;
 	s_half_line_of_next_si_poll = num_half_lines_for_si_poll;  // first sampling starts at vsync
-	s_current_field = FIELD_ODD;
+	s_current_field = FieldType::Odd;
 
 	UpdateParameters();
 }
@@ -652,7 +652,7 @@ static void BeginField(FieldType field, u64 ticks)
 
 	u32 xfbAddr;
 
-	if (field == FieldType::FIELD_EVEN)
+	if (field == FieldType::Even)
 	{
 		xfbAddr = GetXFBAddressBottom();
 	}
@@ -678,11 +678,11 @@ static void BeginField(FieldType field, u64 ticks)
 		// has the first line. For the field with the second line, we
 		// offset the xfb by (-stride_of_one_line) to get the start
 		// address of the full xfb.
-		if (field == FieldType::FIELD_ODD && m_VBlankTimingOdd.PRB == m_VBlankTimingEven.PRB + 1 &&
+		if (field == FieldType::Odd && m_VBlankTimingOdd.PRB == m_VBlankTimingEven.PRB + 1 &&
 			xfbAddr)
 			xfbAddr -= fbStride * 2;
 
-		if (field == FieldType::FIELD_EVEN && m_VBlankTimingOdd.PRB == m_VBlankTimingEven.PRB - 1 &&
+		if (field == FieldType::Even && m_VBlankTimingOdd.PRB == m_VBlankTimingEven.PRB - 1 &&
 			xfbAddr)
 			xfbAddr -= fbStride * 2;
 	}
@@ -726,11 +726,11 @@ void Update(u64 ticks)
 	}
 	if (s_half_line_count == s_even_field_first_hl)
 	{
-		BeginField(FIELD_EVEN, ticks);
+		BeginField(FieldType::Even, ticks);
 	}
 	else if (s_half_line_count == s_odd_field_first_hl)
 	{
-		BeginField(FIELD_ODD, ticks);
+		BeginField(FieldType::Odd, ticks);
 	}
 	else if (s_half_line_count == s_even_field_last_hl)
 	{

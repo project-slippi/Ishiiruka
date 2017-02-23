@@ -289,11 +289,11 @@ void Renderer::CheckForResize(bool &resized)
 u32 Renderer::AccessEFB(EFBAccessType type, u32 x, u32 y, u32 poke_data)
 {
 	// if depth textures aren't supported by the hardware, just return
-	if (type == PEEK_Z)
+	if (type == EFBAccessType::PeekZ)
 		if (FramebufferManager::GetEFBDepthTexture() == NULL)
 			return 0;
 
-	if (type == PEEK_Z)
+	if (type == EFBAccessType::PeekZ)
 	{
 		u32 z = FramebufferManager::GetEFBCachedDepth(x, y);
 
@@ -304,7 +304,7 @@ u32 Renderer::AccessEFB(EFBAccessType type, u32 x, u32 y, u32 poke_data)
 		}
 		return z;
 	}
-	else if (type == PEEK_COLOR)
+	else if (type == EFBAccessType::PeekColor)
 	{
 		u32 ret = FramebufferManager::GetEFBCachedColor(x, y);
 
@@ -356,7 +356,7 @@ void Renderer::PokeEFB(EFBAccessType type, const EfbPokeData* points, size_t num
 	D3D::dev->SetRenderTarget(0, FramebufferManager::GetEFBColorRTSurface());
 	D3D::dev->SetDepthStencilSurface(FramebufferManager::GetEFBDepthRTSurface());
 	D3D::dev->SetViewport(&vp);
-	if (type == POKE_Z)
+	if (type == EFBAccessType::PokeZ)
 	{
 		D3D::ChangeRenderState(D3DRS_COLORWRITEENABLE, 0);
 		D3D::ChangeRenderState(D3DRS_ZENABLE, TRUE);

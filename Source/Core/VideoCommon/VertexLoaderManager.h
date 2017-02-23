@@ -4,6 +4,7 @@
 // Modified for Ishiiruka by Tino
 #pragma once
 #include <string>
+#include <map>
 #include "Common/Common.h"
 #include "VideoCommon/NativeVertexFormat.h"
 #include "VideoCommon/VertexLoaderBase.h"

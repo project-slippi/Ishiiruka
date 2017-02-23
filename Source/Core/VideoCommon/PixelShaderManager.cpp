@@ -443,7 +443,7 @@ void PixelShaderManager::SetConstants()
 			s_LightsPhong[3] = g_ActiveConfig.iSpecularMultiplier;
 			m_buffer.SetConstant4(C_PPHONG
 				, float(g_ActiveConfig.iRimBase)
-				, 1.0f + U8_NORM_COEF * g_ActiveConfig.iRimPower * 7.0f
+				, 1.0f + U8_NORM_COEF * g_ActiveConfig.iRimPower * 2.0f
 				, U8_NORM_COEF * g_ActiveConfig.iRimIntesity
 				, U8_NORM_COEF * g_ActiveConfig.iSpecularMultiplier);
 		}

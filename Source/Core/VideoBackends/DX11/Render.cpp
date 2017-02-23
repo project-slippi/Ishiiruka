@@ -415,7 +415,7 @@ void Renderer::SetColorMask()
 //	- GX_PokeZMode (TODO)
 u32 Renderer::AccessEFB(EFBAccessType type, u32 x, u32 y, u32 poke_data)
 {
-	if (type == PEEK_Z)
+	if (type == EFBAccessType::PeekZ)
 	{
 		float val = FramebufferManager::GetEFBCachedDepth(x, y);
 		// depth buffer is inverted in the d3d backend
@@ -432,7 +432,7 @@ u32 Renderer::AccessEFB(EFBAccessType type, u32 x, u32 y, u32 poke_data)
 		}
 		return ret;
 	}
-	else if (type == PEEK_COLOR)
+	else if (type == EFBAccessType::PeekColor)
 	{
 		u32 ret = FramebufferManager::GetEFBCachedColor(x, y);
 		// our internal buffers are RGBA, yet a BGRA value is expected
@@ -468,7 +468,7 @@ void Renderer::PokeEFB(EFBAccessType type, const EfbPokeData* data, size_t num_p
 	D3D11_VIEWPORT vp = CD3D11_VIEWPORT(0.0f, 0.0f, (float)GetTargetWidth(), (float)GetTargetHeight());
 	D3D::context->RSSetViewports(1, &vp);
 
-	if (type == POKE_COLOR)
+	if (type == EFBAccessType::PokeColor)
 	{
 		D3D::context->OMSetRenderTargets(1, &FramebufferManager::GetEFBColorTexture()->GetRTV(), nullptr);
 	}
@@ -483,7 +483,7 @@ void Renderer::PokeEFB(EFBAccessType type, const EfbPokeData* data, size_t num_p
 
 	D3D::DrawEFBPokeQuads(type, data, num_points);
 
-	if (type == POKE_Z)
+	if (type == EFBAccessType::PokeZ)
 	{
 		D3D::stateman->PopDepthState();
 		D3D::stateman->PopBlendState();

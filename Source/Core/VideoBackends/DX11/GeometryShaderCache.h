@@ -27,8 +27,8 @@ public:
 	static bool TestShader();
 	static void InsertByteCode(const GeometryShaderUid &uid, const void* bytecode, unsigned int bytecodelen);
 
-	static ID3D11GeometryShader* GeometryShaderCache::GetClearGeometryShader();
-	static ID3D11GeometryShader* GeometryShaderCache::GetCopyGeometryShader();
+	static ID3D11GeometryShader* GetClearGeometryShader();
+	static ID3D11GeometryShader* GetCopyGeometryShader();
 
 	static ID3D11GeometryShader* GetActiveShader()
 	{

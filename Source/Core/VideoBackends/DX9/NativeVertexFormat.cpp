@@ -31,9 +31,9 @@ private:
 	LPDIRECT3DVERTEXDECLARATION9 d3d_decl{};
 };
 
-NativeVertexFormat* VertexManager::CreateNativeVertexFormat(const PortableVertexDeclaration &_vtx_decl)
+std::unique_ptr<NativeVertexFormat> VertexManager::CreateNativeVertexFormat(const PortableVertexDeclaration &_vtx_decl)
 {
-	return new D3DVertexFormat(_vtx_decl);
+	return std::make_unique<D3DVertexFormat>(_vtx_decl);
 }
 
 void DX9::VertexManager::GetElements(NativeVertexFormat* format, D3DVERTEXELEMENT9** elems, int* num)

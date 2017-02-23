@@ -1369,12 +1369,12 @@ inline void WriteFetchStageTexture(ShaderCode& out, const pixel_shader_uid_data&
 				"mapcoord = stagecoord;\n"
 				"mapsize = " I_TEXDIMS"[%d].xy;\n"
 				"}\n"
-				"float color_bump = dot((tex_ta[%i].rgb * (1.0 / 255.0)), float3(0.333, 0.333, 0.333));\n"
+				"float color_bump = max(tex_ta[%i].r,max(tex_ta[%i].g,tex_ta[%i].b)) * (1.0 / 255.0);\n"
 				"color_bump = color_bump * 2.0 - 1.0;\n"
 				"height_map = height_map * height_map_count + color_bump;\n"
 				"height_map_count+=1.0;\n"
 				"height_map/=height_map_count;\n"
-				"}\n", texmap, n);
+				"}\n", texmap, n, n, n);
 		}
 	}
 	else
@@ -2053,7 +2053,11 @@ inline void GeneratePixelShader(ShaderCode& out, const pixel_shader_uid_data& ui
 		GenerateLightingShaderCode(out, uid_data.numColorChans, uid_data.lighting, uid_data.components << VB_COL_SHIFT, I_MATERIALS, I_LIGHTS, "colors_", "col", Use_integer_math, forcePhong);
 		if (forcePhong)
 		{
+			// Calculate Rim angle
 			out.Write("spec.w = 1.0 - saturate(dot(View, _norm0));\n");
+			// Surfaces are more reflective depending on the view angle
+			// Aproximate this with a small math trick
+			out.Write("normalmap.w = lerp(normalmap.w, max(normalmap.w, 0.7), spec.w);\n");
 		}
 	}
 	else
@@ -2202,13 +2206,16 @@ inline void GeneratePixelShader(ShaderCode& out, const pixel_shader_uid_data& ui
 	if (forcePhong)
 	{
 		out.Write(
-			"prev.rgb += wu3(clamp(prev.rgb + " I_PPHONG "[0].xxx, 0.0,255.0)*pow(spec.w, " I_PPHONG "[0].y)*" I_PPHONG "[0].z * normalmap.w);\n"
+			// Rim Component
+			"prev.rgb += wu3(clamp(prev.rgb * 2.0 + " I_PPHONG "[0].xxx, 127.0,255.0)*pow(spec.w, " I_PPHONG "[0].y)*" I_PPHONG "[0].z * normalmap.w);\n"
+			// Specular component
 			"prev.rgb += wu3(spec.rgb * normalmap.w * " I_PPHONG "[0].w);\n"
 		);
 	}
 
 	if (enablenormalmaps)
 	{
+		// Add emmisive color
 		out.Write("if(" I_FLAGS ".y != 0)\n{\n");
 		out.Write("prev.rgb += wu3(emmisive_mask);\n");
 		out.Write("}\n");

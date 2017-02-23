@@ -21,9 +21,9 @@
 namespace OGL
 {
 
-NativeVertexFormat* VertexManager::CreateNativeVertexFormat(const PortableVertexDeclaration &_vtx_decl)
+std::unique_ptr<NativeVertexFormat> VertexManager::CreateNativeVertexFormat(const PortableVertexDeclaration &_vtx_decl)
 {
-	return new GLVertexFormat(_vtx_decl);
+	return std::make_unique<GLVertexFormat>(_vtx_decl);
 }
 
 GLVertexFormat::~GLVertexFormat()

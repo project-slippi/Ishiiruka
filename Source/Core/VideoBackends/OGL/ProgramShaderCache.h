@@ -66,15 +66,19 @@ public:
 
 struct SHADER
 {
-	SHADER() : glprogid(0)
+	SHADER() : glprogid(0), initialized(false)
 	{}
 	void Destroy()
 	{
-		glDeleteProgram(glprogid);
+		if (glprogid != 0)
+		{
+			glDeleteProgram(glprogid);
+		}
 		glprogid = 0;
+		initialized = false;
 	}
 	GLuint glprogid; // OpenGL program id
-
+	bool initialized;
 	void SetProgramVariables();
 	void SetProgramBindings();
 	void Bind();
@@ -97,7 +101,6 @@ public:
 
 	typedef ObjectUsageProfiler<SHADERUID, pKey_t, PCacheEntry, SHADERUID::ShaderUidHasher> PCache;
 
-	static PCacheEntry GetShaderProgram();
 	static GLuint GetCurrentProgram();
 	static SHADER* SetShader(PIXEL_SHADER_RENDER_MODE render_mode, u32 components, u32 primitive_type);
 	static SHADER* CompileShader(const SHADERUID& uid);
@@ -121,8 +124,8 @@ private:
 	};
 
 	static PCache* pshaders;
-	static PCacheEntry* last_entry;
-	static SHADERUID last_uid;
+	static std::array<PCacheEntry*, PIXEL_SHADER_RENDER_MODE::PSRM_DEPTH_ONLY + 1> last_entry;
+	static std::array<SHADERUID, PIXEL_SHADER_RENDER_MODE::PSRM_DEPTH_ONLY + 1>  last_uid;
 
 	static u32 s_ubo_buffer_size;
 	static u32 s_p_ubo_buffer_size;

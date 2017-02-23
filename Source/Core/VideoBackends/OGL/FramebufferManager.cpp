@@ -683,7 +683,7 @@ void FramebufferManager::PokeEFB(EFBAccessType type, const EfbPokeData* data, si
 {
 	g_renderer->ResetAPIState();
 
-	if (type == POKE_Z)
+	if (type == EFBAccessType::PokeZ)
 	{
 		glDepthMask(GL_TRUE);
 		glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);

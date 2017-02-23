@@ -131,9 +131,9 @@ protected:
 class DataWriter
 {
 public:
-	inline DataWriter(u8 *destination) : Wbuffer(destination)
+	__forceinline DataWriter(u8 *destination) : Wbuffer(destination)
 	{}
-	inline DataWriter() : Wbuffer(nullptr)
+	__forceinline DataWriter() : Wbuffer(nullptr)
 	{}
 	__forceinline void WriteSkip(u32 skip)
 	{

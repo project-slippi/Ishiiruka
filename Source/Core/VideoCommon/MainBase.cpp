@@ -105,10 +105,10 @@ u32 VideoBackendBase::Video_AccessEFB(EFBAccessType type, u32 x, u32 y, u32 Inpu
 	}
 	u32 result = InputData;
 	u32 efb_p_cache_stride = (y >> m_EFB_PCache_Divisor) * m_EFB_PCache_Width + (x >> m_EFB_PCache_Divisor);
-	if (type == POKE_COLOR || type == POKE_Z)
+	if (type == EFBAccessType::PokeColor || type == EFBAccessType::PokeZ)
 	{
 		AsyncRequests::Event e;
-		e.type = type == POKE_COLOR ? AsyncRequests::Event::EFB_POKE_COLOR : AsyncRequests::Event::EFB_POKE_Z;
+		e.type = type == EFBAccessType::PokeColor ? AsyncRequests::Event::EFB_POKE_COLOR : AsyncRequests::Event::EFB_POKE_Z;
 		e.time = 0;
 		e.efb_poke.data = InputData;
 		e.efb_poke.x = x;
@@ -119,18 +119,18 @@ u32 VideoBackendBase::Video_AccessEFB(EFBAccessType type, u32 x, u32 y, u32 Inpu
 	{
 		if (g_ActiveConfig.bEFBFastAccess)
 		{
-			if (type == PEEK_COLOR && m_EFB_PCache[efb_p_cache_stride].ColorFrame > s_EFB_PCache_Frame)
+			if (type == EFBAccessType::PeekColor && m_EFB_PCache[efb_p_cache_stride].ColorFrame > s_EFB_PCache_Frame)
 			{
 				return m_EFB_PCache[efb_p_cache_stride].ColorValue;
 			}
-			else if (type == PEEK_Z && m_EFB_PCache[efb_p_cache_stride].DepthFrame > s_EFB_PCache_Frame)
+			else if (type == EFBAccessType::PeekZ && m_EFB_PCache[efb_p_cache_stride].DepthFrame > s_EFB_PCache_Frame)
 			{
 				return m_EFB_PCache[efb_p_cache_stride].DepthValue;
 			}
 		}
 		AsyncRequests::Event e;
 
-		e.type = type == PEEK_COLOR ? AsyncRequests::Event::EFB_PEEK_COLOR : AsyncRequests::Event::EFB_PEEK_Z;
+		e.type = type == EFBAccessType::PeekColor ? AsyncRequests::Event::EFB_PEEK_COLOR : AsyncRequests::Event::EFB_PEEK_Z;
 		e.time = 0;
 		e.efb_peek.x = x;
 		e.efb_peek.y = y;
@@ -139,7 +139,7 @@ u32 VideoBackendBase::Video_AccessEFB(EFBAccessType type, u32 x, u32 y, u32 Inpu
 	}
 	if (g_ActiveConfig.bEFBFastAccess)
 	{
-		if (type == PEEK_COLOR || type == POKE_COLOR)
+		if (type == EFBAccessType::PeekColor || type == EFBAccessType::PokeColor)
 		{
 			m_EFB_PCache[efb_p_cache_stride].ColorValue = result;
 			m_EFB_PCache[efb_p_cache_stride].ColorFrame = s_EFB_PCache_Frame + m_EFB_PCache_Life;

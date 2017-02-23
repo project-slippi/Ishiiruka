@@ -25,9 +25,9 @@ private:
 	D3D::InputLayoutPtr m_layout;
 };
 
-NativeVertexFormat* VertexManager::CreateNativeVertexFormat(const PortableVertexDeclaration &_vtx_decl)
+std::unique_ptr<NativeVertexFormat> VertexManager::CreateNativeVertexFormat(const PortableVertexDeclaration &_vtx_decl)
 {
-	return new D3DVertexFormat(_vtx_decl);
+	return std::make_unique<D3DVertexFormat>(_vtx_decl);
 }
 
 DXGI_FORMAT VarToD3D(EVTXComponentFormat t, int size)

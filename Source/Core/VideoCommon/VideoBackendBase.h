@@ -26,16 +26,16 @@ typedef struct _EFBPeekCacheElement
 
 enum FieldType
 {
-	FIELD_ODD = 0,
-	FIELD_EVEN = 1,
+	Odd = 0,
+	Even = 1,
 };
 
 enum EFBAccessType
 {
-	PEEK_Z = 0,
-	POKE_Z,
-	PEEK_COLOR,
-	POKE_COLOR
+	PeekZ = 0,
+	PokeZ,
+	PeekColor,
+	PokeColor
 };
 
 struct SCPFifoStruct

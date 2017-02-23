@@ -14,9 +14,9 @@
 namespace DX12
 {
 
-NativeVertexFormat* VertexManager::CreateNativeVertexFormat(const PortableVertexDeclaration &vtx_decl)
+std::unique_ptr<NativeVertexFormat> VertexManager::CreateNativeVertexFormat(const PortableVertexDeclaration &vtx_decl)
 {
-	return new D3DVertexFormat(vtx_decl);
+	return std::make_unique<D3DVertexFormat>(vtx_decl);
 }
 
 DXGI_FORMAT VarToD3D(EVTXComponentFormat t, int size)

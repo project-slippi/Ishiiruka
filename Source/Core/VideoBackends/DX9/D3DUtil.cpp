@@ -492,8 +492,8 @@ void DrawEFBPokeQuads(EFBAccessType type, const EfbPokeData* points, size_t num_
 		float y1 = -float(point.y) * 2.0f / EFB_HEIGHT + 1.0f;
 		float x2 = float(point.x + 1) * 2.0f / EFB_WIDTH - 1.0f;
 		float y2 = -float(point.y + 1) * 2.0f / EFB_HEIGHT + 1.0f;
-		float z = (type == POKE_Z) ? (1.0f - float(point.data & 0xFFFFFF) / 16777216.0f) : 0.0f;
-		u32 col = (type == POKE_Z) ? 0 : RGBA8ToBGRA8(point.data);
+		float z = (type == EFBAccessType::PokeZ) ? (1.0f - float(point.data & 0xFFFFFF) / 16777216.0f) : 0.0f;
+		u32 col = (type == EFBAccessType::PokeZ) ? 0 : RGBA8ToBGRA8(point.data);
 
 
 		// quad -> triangles
@@ -504,7 +504,7 @@ void DrawEFBPokeQuads(EFBAccessType type, const EfbPokeData* points, size_t num_
 		vertex[3] = { x1, y2, z, 1.0, col };
 		vertex[4] = { x2, y1, z, 1.0, col };
 		vertex[5] = { x2, y2, z, 1.0, col };
-		if (type == POKE_COLOR)
+		if (type == EFBAccessType::PokeColor)
 			FramebufferManager::SetEFBCachedColor(point.x, point.y, col);
 		else
 			FramebufferManager::SetEFBCachedDepth(point.x, point.y, u32(z * 0xFFFFFF));

@@ -225,8 +225,7 @@ inline NativeVertexFormat* GetNativeVertexFormat(const PortableVertexDeclaration
 	auto& native = s_native_vertex_map[format];
 	if (!native)
 	{
-		auto raw_pointer = g_vertex_manager->CreateNativeVertexFormat(format);
-		native = std::unique_ptr<NativeVertexFormat>(raw_pointer);
+		native = g_vertex_manager->CreateNativeVertexFormat(format);
 	}
 	return native.get();
 }

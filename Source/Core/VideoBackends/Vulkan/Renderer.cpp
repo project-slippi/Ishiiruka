@@ -178,7 +178,7 @@ void Renderer::RenderText(const std::string& text, int left, int top, u32 color)
 
 u32 Renderer::AccessEFB(EFBAccessType type, u32 x, u32 y, u32 poke_data)
 {
-	if (type == PEEK_COLOR)
+	if (type == EFBAccessType::PeekColor)
 	{
 		u32 color = FramebufferManager::GetInstance()->PeekEFBColor(x, y);
 
@@ -236,7 +236,7 @@ u32 Renderer::AccessEFB(EFBAccessType type, u32 x, u32 y, u32 poke_data)
 
 void Renderer::PokeEFB(EFBAccessType type, const EfbPokeData* points, size_t num_points)
 {
-	if (type == POKE_COLOR)
+	if (type == EFBAccessType::PokeColor)
 	{
 		for (size_t i = 0; i < num_points; i++)
 		{

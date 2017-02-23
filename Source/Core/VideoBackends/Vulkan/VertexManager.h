@@ -25,7 +25,8 @@ public:
 
 	bool Initialize();
 
-	NativeVertexFormat* CreateNativeVertexFormat(const PortableVertexDeclaration& vtx_decl) override;
+	std::unique_ptr<NativeVertexFormat>
+		CreateNativeVertexFormat(const PortableVertexDeclaration& vtx_decl) override;
 	void PrepareShaders(PrimitiveType primitive, u32 components, const XFMemory &xfr, const BPMemory &bpm, bool ongputhread = true){}
 protected:
 	void PrepareDrawBuffers(u32 stride);

@@ -24,7 +24,7 @@ public:
 	~SWVertexLoader();
 	void PrepareShaders(PrimitiveType primitive, u32 components, const XFMemory &xfr, const BPMemory &bpm, bool ongputhread) override
 	{}
-	NativeVertexFormat* CreateNativeVertexFormat(const PortableVertexDeclaration& vdec) override;
+	std::unique_ptr<NativeVertexFormat> CreateNativeVertexFormat(const PortableVertexDeclaration& vdec) override;
 
 protected:
 	void ResetBuffer(u32 stride) override;

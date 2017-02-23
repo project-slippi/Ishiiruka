@@ -860,7 +860,7 @@ void ClearEFBCache()
 void Renderer::UpdateEFBCache(EFBAccessType type, u32 cacheRectIdx, const EFBRectangle& efbPixelRc,
 	const TargetRectangle& targetPixelRc, const void* data)
 {
-	u32 cacheType = (type == PEEK_Z ? 0 : 1);
+	u32 cacheType = (type == EFBAccessType::PeekZ ? 0 : 1);
 
 	if (!s_efbCache[cacheType][cacheRectIdx].size())
 		s_efbCache[cacheType][cacheRectIdx].resize(EFB_CACHE_RECT_SIZE * EFB_CACHE_RECT_SIZE);
@@ -881,7 +881,7 @@ void Renderer::UpdateEFBCache(EFBAccessType type, u32 cacheRectIdx, const EFBRec
 			u32 xPixel = (EFBToScaledX(xEFB) + EFBToScaledX(xEFB + 1)) / 2;
 			u32 xData = xPixel - targetPixelRc.left;
 			u32 value;
-			if (type == PEEK_Z)
+			if (type == EFBAccessType::PeekZ)
 			{
 				float* ptr = (float*)data;
 				value = MathUtil::Clamp<u32>((u32)(ptr[yData * targetPixelRcWidth + xData] * 16777216.0f),
@@ -920,7 +920,7 @@ u32 Renderer::AccessEFB(EFBAccessType type, u32 x, u32 y, u32 poke_data)
 
 	EFBRectangle efbPixelRc;
 
-	if (type == PEEK_COLOR || type == PEEK_Z)
+	if (type == EFBAccessType::PeekColor || type == EFBAccessType::PeekZ)
 	{
 		// Get the rectangular target region containing the EFB pixel
 		efbPixelRc.left = (x / EFB_CACHE_RECT_SIZE) * EFB_CACHE_RECT_SIZE;
@@ -943,7 +943,7 @@ u32 Renderer::AccessEFB(EFBAccessType type, u32 x, u32 y, u32 poke_data)
 	// TODO (FIX) : currently, AA path is broken/offset and doesn't return the correct pixel
 	switch (type)
 	{
-	case PEEK_Z:
+	case EFBAccessType::PeekZ:
 	{
 		if (!s_efbCacheValid[0][cacheRectIdx])
 		{
@@ -977,7 +977,7 @@ u32 Renderer::AccessEFB(EFBAccessType type, u32 x, u32 y, u32 poke_data)
 		return z;
 	}
 
-	case PEEK_COLOR:  // GXPeekARGB
+	case EFBAccessType::PeekColor:  // GXPeekARGB
 	{
 		// Although it may sound strange, this really is A8R8G8B8 and not RGBA or 24-bit...
 

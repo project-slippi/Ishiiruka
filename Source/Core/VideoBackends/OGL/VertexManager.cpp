@@ -114,7 +114,24 @@ void VertexManager::Draw(u32 stride)
 
 void VertexManager::PrepareShaders(PrimitiveType primitive, u32 components, const XFMemory &xfr, const BPMemory &bpm, bool ongputhread)
 {
-
+	const bool useDstAlpha = bpm.dstalpha.enable && bpm.blendmode.alphaupdate &&
+		bpm.zcontrol.pixel_format == PEControl::RGBA6_Z24;
+	// Makes sure we can actually do Dual source blending
+	bool dualSourcePossible = g_ActiveConfig.backend_info.bSupportsDualSourceBlend;
+	// If host supports GL_ARB_blend_func_extended, we can do dst alpha in
+	// the same pass as regular rendering.
+	if (useDstAlpha && dualSourcePossible)
+	{
+		ProgramShaderCache::SetShader(PSRM_DUAL_SOURCE_BLEND, VertexLoaderManager::g_current_components, current_primitive_type);
+	}
+	else
+	{
+		if (useDstAlpha)
+		{
+			ProgramShaderCache::SetShader(PSRM_ALPHA_PASS, VertexLoaderManager::g_current_components, current_primitive_type);
+		}
+		ProgramShaderCache::SetShader(PSRM_DEFAULT, VertexLoaderManager::g_current_components, current_primitive_type);
+	}
 }
 
 u16* VertexManager::GetIndexBuffer()
@@ -129,17 +146,6 @@ void VertexManager::vFlush(bool useDstAlpha)
 	// Makes sure we can actually do Dual source blending
 	bool dualSourcePossible = g_ActiveConfig.backend_info.bSupportsDualSourceBlend;
 
-	// If host supports GL_ARB_blend_func_extended, we can do dst alpha in
-	// the same pass as regular rendering.
-	if (useDstAlpha && dualSourcePossible)
-	{
-		ProgramShaderCache::SetShader(PSRM_DUAL_SOURCE_BLEND, VertexLoaderManager::g_current_components, current_primitive_type);
-	}
-	else
-	{
-		ProgramShaderCache::SetShader(PSRM_DEFAULT, VertexLoaderManager::g_current_components, current_primitive_type);
-	}
-
 	// upload global constants
 	ProgramShaderCache::UploadConstants();
 
@@ -151,6 +157,18 @@ void VertexManager::vFlush(bool useDstAlpha)
 		m_last_vao = nativeVertexFmt->VAO;
 	}
 	PrepareDrawBuffers(stride);
+	// If host supports GL_ARB_blend_func_extended, we can do dst alpha in
+	// the same pass as regular rendering.
+	OGL::SHADER* active_shader = nullptr;
+	if (useDstAlpha && dualSourcePossible)
+	{
+		 active_shader = ProgramShaderCache::SetShader(PSRM_DUAL_SOURCE_BLEND, VertexLoaderManager::g_current_components, current_primitive_type);
+	}
+	else
+	{
+		active_shader = ProgramShaderCache::SetShader(PSRM_DEFAULT, VertexLoaderManager::g_current_components, current_primitive_type);
+	}
+	active_shader->Bind();
 	g_renderer->ApplyState(false);
 	Draw(stride);
 	// If the GPU does not support dual-source blending, we can approximate the effect by drawing
@@ -163,7 +181,7 @@ void VertexManager::vFlush(bool useDstAlpha)
 	// run through vertex groups again to set alpha
 	if (useDstAlpha && (!dualSourcePossible || logic_op_enabled))
 	{
-		ProgramShaderCache::SetShader(PSRM_ALPHA_PASS, VertexLoaderManager::g_current_components, current_primitive_type);
+		active_shader = ProgramShaderCache::SetShader(PSRM_ALPHA_PASS, VertexLoaderManager::g_current_components, current_primitive_type);
 
 		// only update alpha
 		glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_TRUE);
@@ -171,7 +189,8 @@ void VertexManager::vFlush(bool useDstAlpha)
 		glDisable(GL_BLEND);
 		if (logic_op_enabled)
 			glDisable(GL_COLOR_LOGIC_OP);
-
+		
+		active_shader->Bind();
 		Draw(stride);
 
 		// restore color mask

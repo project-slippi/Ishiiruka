@@ -133,12 +133,12 @@ u32 SWRenderer::AccessEFB(EFBAccessType type, u32 x, u32 y, u32 InputData)
 
 	switch (type)
 	{
-	case PEEK_Z:
+	case EFBAccessType::PeekZ:
 	{
 		value = EfbInterface::GetDepth(x, y);
 		break;
 	}
-	case PEEK_COLOR:
+	case EFBAccessType::PeekColor:
 	{
 		u32 color = 0;
 		EfbInterface::GetColor(x, y, (u8*)&color);

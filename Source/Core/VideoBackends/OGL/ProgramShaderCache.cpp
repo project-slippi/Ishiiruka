@@ -38,8 +38,8 @@ static int num_failures = 0;
 static LinearDiskCache<SHADERUID, u8> g_program_disk_cache;
 static GLuint CurrentProgram = 0;
 ProgramShaderCache::PCache* ProgramShaderCache::pshaders;
-ProgramShaderCache::PCacheEntry* ProgramShaderCache::last_entry;
-SHADERUID ProgramShaderCache::last_uid;
+std::array<ProgramShaderCache::PCacheEntry*, PIXEL_SHADER_RENDER_MODE::PSRM_DEPTH_ONLY + 1> ProgramShaderCache::last_entry;
+std::array<SHADERUID, PIXEL_SHADER_RENDER_MODE::PSRM_DEPTH_ONLY + 1> ProgramShaderCache::last_uid;
 
 static char s_glsl_header[2048] = "";
 
@@ -75,9 +75,6 @@ void SHADER::SetProgramVariables()
 	// Bind UBO and texture samplers
 	if (!g_ActiveConfig.backend_info.bSupportsBindingLayout)
 	{
-		// glsl shader must be bind to set samplers if we don't support binding layout
-		Bind();
-
 		GLint PSBlock_id = glGetUniformBlockIndex(glprogid, "PSBlock");
 		GLint VSBlock_id = glGetUniformBlockIndex(glprogid, "VSBlock");
 		GLint GSBlock_id = glGetUniformBlockIndex(glprogid, "GSBlock");
@@ -146,6 +143,11 @@ void SHADER::Bind()
 		INCSTAT(stats.thisFrame.numShaderChanges);
 		glUseProgram(glprogid);
 		CurrentProgram = glprogid;
+		if (!initialized)
+		{
+			initialized = true;
+			SetProgramVariables();
+		}
 	}
 }
 
@@ -210,17 +212,17 @@ GLuint ProgramShaderCache::GetCurrentProgram()
 
 SHADER* ProgramShaderCache::CompileShader(const SHADERUID& uid)
 {
+	PIXEL_SHADER_RENDER_MODE render_mode = (PIXEL_SHADER_RENDER_MODE)uid.puid.GetUidData().render_mode;
 	// Check if shader is already in cache
 	PCacheEntry& newentry = pshaders->GetOrAdd(uid);
 	if (newentry.shader.glprogid)
 	{
-		last_entry = &newentry;
+		last_entry[render_mode] = &newentry;
 		GFX_DEBUGGER_PAUSE_AT(NEXT_PIXEL_SHADER_CHANGE, true);
-		last_entry->shader.Bind();
-		return &last_entry->shader;
+		return &last_entry[render_mode]->shader;
 	}
 	// Make an entry in the table
-	last_entry = &newentry;
+	last_entry[render_mode] = &newentry;
 	newentry.in_cache = 0;
 
 	ShaderCode vcode;
@@ -259,8 +261,7 @@ SHADER* ProgramShaderCache::CompileShader(const SHADERUID& uid)
 	SETSTAT(stats.numPixelShadersAlive, static_cast<int>(pshaders->size()));
 	GFX_DEBUGGER_PAUSE_AT(NEXT_PIXEL_SHADER_CHANGE, true);
 
-	last_entry->shader.Bind();
-	return &last_entry->shader;
+	return &last_entry[render_mode]->shader;
 }
 
 SHADER* ProgramShaderCache::SetShader(PIXEL_SHADER_RENDER_MODE render_mode, u32 components, u32 primitive_type)
@@ -269,17 +270,16 @@ SHADER* ProgramShaderCache::SetShader(PIXEL_SHADER_RENDER_MODE render_mode, u32 
 	GetShaderId(&uid, render_mode, components, primitive_type);
 	uid.CalculateHash();
 	// Check if the shader is already set
-	if (last_entry)
+	if (last_entry[render_mode])
 	{
-		if (uid == last_uid)
+		if (uid == last_uid[render_mode])
 		{
 			GFX_DEBUGGER_PAUSE_AT(NEXT_PIXEL_SHADER_CHANGE, true);
-			last_entry->shader.Bind();
-			return &last_entry->shader;
+			return &last_entry[render_mode]->shader;
 		}
 	}
 
-	last_uid = uid;
+	last_uid[render_mode] = uid;
 	return CompileShader(uid);
 }
 
@@ -430,11 +430,6 @@ void ProgramShaderCache::GetShaderId(SHADERUID* uid, PIXEL_SHADER_RENDER_MODE re
 	GetGeometryShaderUid(uid->guid, primitive_type, xfmem, components);
 }
 
-ProgramShaderCache::PCacheEntry ProgramShaderCache::GetShaderProgram()
-{
-	return *last_entry;
-}
-
 void ProgramShaderCache::Init()
 {
 	// We have to get the UBO alignment here because
@@ -490,7 +485,7 @@ void ProgramShaderCache::Init()
 	CreateHeader();
 
 	CurrentProgram = 0;
-	last_entry = nullptr;
+	last_entry.fill(nullptr);
 	if (g_ActiveConfig.bCompileShaderOnStartup)
 	{
 		size_t shader_count = 0;

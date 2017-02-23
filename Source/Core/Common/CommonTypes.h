@@ -14,6 +14,7 @@
 #ifdef _WIN32
 #include <tchar.h>
 #else
+#define __forceinline inline __attribute__((always_inline))
 // For using Windows lock code
 #define TCHAR char
 #define LONG int

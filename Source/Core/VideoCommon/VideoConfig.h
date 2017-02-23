@@ -262,6 +262,7 @@ struct VideoConfig final
 		bool bSupportsValidationLayer;
 		bool bSupportsReversedDepthRange;
 		bool bSupportsInternalResolutionFrameDumps;
+		bool bSupportsAsyncShaderCompilation;
 	} backend_info;
 
 	// Utility

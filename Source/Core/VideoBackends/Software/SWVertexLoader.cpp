@@ -36,9 +36,9 @@ public:
 	{}
 };
 
-NativeVertexFormat* SWVertexLoader::CreateNativeVertexFormat(const PortableVertexDeclaration& vtx_decl)
+std::unique_ptr<NativeVertexFormat> SWVertexLoader::CreateNativeVertexFormat(const PortableVertexDeclaration& vtx_decl)
 {
-	return new NullNativeVertexFormat(vtx_decl);
+	return std::make_unique<NullNativeVertexFormat>(vtx_decl);
 }
 
 SWVertexLoader::SWVertexLoader()

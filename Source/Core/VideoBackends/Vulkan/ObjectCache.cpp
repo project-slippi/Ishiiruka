@@ -193,7 +193,7 @@ VkPipeline ObjectCache::CreatePipeline(const PipelineInfo& info)
 		nullptr,                  // const void*                                pNext
 		0,                        // VkPipelineInputAssemblyStateCreateFlags    flags
 		info.primitive_topology,  // VkPrimitiveTopology                        topology
-		VK_TRUE                   // VkBool32                                   primitiveRestartEnable
+		VK_FALSE                  // VkBool32                                   primitiveRestartEnable
 	};
 
 	// Shaders to stages

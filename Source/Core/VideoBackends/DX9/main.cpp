@@ -99,6 +99,7 @@ void VideoBackend::InitBackendInfo()
 	g_Config.backend_info.bSupportsValidationLayer = false;
 	g_Config.backend_info.bSupportsReversedDepthRange = false;
 	g_Config.backend_info.bSupportsInternalResolutionFrameDumps = false;
+	g_Config.backend_info.bSupportsAsyncShaderCompilation = true;
 	// adapters
 	g_Config.backend_info.Adapters.clear();
 	for (int i = 0; i < DX9::D3D::GetNumAdapters(); ++i)

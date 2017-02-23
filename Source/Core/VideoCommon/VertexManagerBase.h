@@ -63,7 +63,7 @@ public:
 		DoFlush();
 	}
 
-	virtual ::NativeVertexFormat* CreateNativeVertexFormat(const PortableVertexDeclaration& vtx_decl) = 0;
+	virtual std::unique_ptr<NativeVertexFormat> CreateNativeVertexFormat(const PortableVertexDeclaration& vtx_decl) = 0;
 
 	static void DoState(PointerWrap& p);
 	virtual void CreateDeviceObjects()

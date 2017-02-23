@@ -1286,7 +1286,7 @@ void  PostProcessor::DoEFB(const TargetRectangle* src_rect)
 		{
 			Y = Renderer::EFBToScaledYf(xfmem.viewport.yOrig + xfmem.viewport.ht - (float)scissorYOff);
 		}
-
+		
 		float Width = Renderer::EFBToScaledXf(2.0f * xfmem.viewport.wd);
 		float Height = Renderer::EFBToScaledYf(-2.0f * xfmem.viewport.ht);
 		if (Width < 0)

@@ -613,7 +613,12 @@ void Renderer::UpdateDrawRectangle()
 	if (g_ActiveConfig.iAspectRatio != ASPECT_STRETCH)
 	{
 		// Check if height or width is the limiting factor. If ratio > 1 the picture is too wide and have to limit the width.
-		if (Ratio > 1.0f)
+		if (Ratio >= 0.995f && Ratio <= 1.005f)
+		{
+			// If we're very close already, don't scale.
+			Ratio = 1.0f;
+		}
+		else if (Ratio > 1.0f)
 		{
 			// Scale down and center in the X direction.
 			FloatGLWidth /= Ratio;

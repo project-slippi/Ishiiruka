@@ -112,7 +112,7 @@ void TextureCacheBase::OnConfigChanged(VideoConfig& config)
 		g_texture_cache->Invalidate();
 
 		TexDecoder_SetTexFmtOverlayOptions(g_ActiveConfig.bTexFmtOverlayEnable, g_ActiveConfig.bTexFmtOverlayCenter);
-
+		
 	}
 
 	if ((config.iStereoMode > 0) != backup_config.stereo_3d ||
@@ -521,8 +521,8 @@ TextureCacheBase::TCacheEntryBase* TextureCacheBase::Load(const u32 stage)
 
 	u32 additional_mips_size = 0; // not including level 0, which is texture_size
 
-																// GPUs don't like when the specified mipmap count would require more than one 1x1-sized LOD in the mipmap chain
-																// e.g. 64x64 with 7 LODs would have the mipmap chain 64x64,32x32,16x16,8x8,4x4,2x2,1x1,0x0, so we limit the mipmap count to 6 there
+											// GPUs don't like when the specified mipmap count would require more than one 1x1-sized LOD in the mipmap chain
+											// e.g. 64x64 with 7 LODs would have the mipmap chain 64x64,32x32,16x16,8x8,4x4,2x2,1x1,0x0, so we limit the mipmap count to 6 there
 	tex_levels = std::min<u32>(IntLog2(std::max(width, height)) + 1, tex_levels);
 
 	for (u32 level = 1; level != tex_levels; ++level)
@@ -944,8 +944,8 @@ void TextureCacheBase::CopyRenderTargetToTexture(u32 dstAddr, u32 dstFormat, u32
 			break;
 
 		case 12: // Z16L - copy lower 16 depth bits
-						 // expected to be used as an IA8 texture (upper 8 bits stored as intensity, lower 8 bits stored as alpha)
-						 // Used e.g. in Zelda: Skyward Sword
+			// expected to be used as an IA8 texture (upper 8 bits stored as intensity, lower 8 bits stored as alpha)
+			// Used e.g. in Zelda: Skyward Sword
 			colmat[1] = colmat[5] = colmat[9] = colmat[14] = 1.0f;
 			cbufid = 7;
 			dstFormat |= _GX_TF_CTF;
@@ -969,7 +969,7 @@ void TextureCacheBase::CopyRenderTargetToTexture(u32 dstAddr, u32 dstFormat, u32
 		case 2: // IA4
 		case 3: // IA8
 		case 8: // I8
-						// TODO - verify these coefficients
+			// TODO - verify these coefficients
 			colmat[0] = 0.257f; colmat[1] = 0.504f; colmat[2] = 0.098f;
 			colmat[4] = 0.257f; colmat[5] = 0.504f; colmat[6] = 0.098f;
 			colmat[8] = 0.257f; colmat[9] = 0.504f; colmat[10] = 0.098f;

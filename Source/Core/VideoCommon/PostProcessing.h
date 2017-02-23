@@ -411,9 +411,9 @@ protected:
 	}
 	inline void IncrementFrame()
 	{
-		if (m_prev_frame_enabled)
+		if(m_prev_frame_enabled)
 			m_prev_frame_index = (m_prev_frame_index + 1) % m_config->GetFrameOutput().color_count;
-		if (m_prev_depth_enabled)
+		if(m_prev_depth_enabled)
 			m_prev_depth_frame_index = (m_prev_depth_frame_index + 1) % m_config->GetFrameOutput().depth_count;
 	}
 

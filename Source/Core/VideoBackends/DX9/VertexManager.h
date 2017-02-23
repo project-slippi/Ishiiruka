@@ -21,7 +21,7 @@ public:
 	VertexManager();
 	~VertexManager();
 
-	NativeVertexFormat* CreateNativeVertexFormat(const PortableVertexDeclaration &_vtx_decl) override;
+	std::unique_ptr<NativeVertexFormat> CreateNativeVertexFormat(const PortableVertexDeclaration &_vtx_decl) override;
 
 	void GetElements(NativeVertexFormat* format, D3DVERTEXELEMENT9** elems, int* num);
 
