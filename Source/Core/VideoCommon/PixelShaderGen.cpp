@@ -2054,10 +2054,10 @@ inline void GeneratePixelShader(ShaderCode& out, const pixel_shader_uid_data& ui
 		if (forcePhong)
 		{
 			// Calculate Rim angle
-			out.Write("spec.w = 1.0 - saturate(dot(View, _norm0));\n");
+			out.Write("spec.w = pow(1.0 - saturate(dot(View, _norm0))," I_PPHONG "[0].y);\n");
 			// Surfaces are more reflective depending on the view angle
 			// Aproximate this with a small math trick
-			out.Write("normalmap.w = lerp(normalmap.w, max(normalmap.w, 0.7), spec.w);\n");
+			out.Write("normalmap.w = lerp(normalmap.w, max(normalmap.w, 0.6), spec.w);\n");
 		}
 	}
 	else
@@ -2207,7 +2207,7 @@ inline void GeneratePixelShader(ShaderCode& out, const pixel_shader_uid_data& ui
 	{
 		out.Write(
 			// Rim Component
-			"prev.rgb += wu3(clamp(prev.rgb * 2.0 + " I_PPHONG "[0].xxx, 127.0,255.0)*pow(spec.w, " I_PPHONG "[0].y)*" I_PPHONG "[0].z * normalmap.w);\n"
+			"prev.rgb += wu3(clamp(prev.rgb * 2.0 + " I_PPHONG "[0].xxx, 127.0,255.0)*spec.w*" I_PPHONG "[0].z * normalmap.w);\n"
 			// Specular component
 			"prev.rgb += wu3(spec.rgb * normalmap.w * " I_PPHONG "[0].w);\n"
 		);

@@ -33,7 +33,7 @@ const std::string netplay_dolphin_ver = SCM_DESC_STR " Lin";
 #endif
 
 const std::string scm_rev_git_str = SCM_REV_STR;
-const std::string scm_rev_cache_str = "201702310104";
+const std::string scm_rev_cache_str = "201703012135";
 const std::string scm_desc_str = SCM_DESC_STR;
 const std::string scm_branch_str = SCM_BRANCH_STR;
 const std::string scm_distributor_str = SCM_DISTRIBUTOR_STR;
