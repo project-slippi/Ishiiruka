@@ -48,14 +48,17 @@ enum PostProcessingInputType : u32
 enum PostProcessingInputFilter : u32
 {
 	POST_PROCESSING_INPUT_FILTER_NEAREST,               // nearest/point sampling
-	POST_PROCESSING_INPUT_FILTER_LINEAR                 // linear sampling
+	POST_PROCESSING_INPUT_FILTER_LINEAR,                 // linear sampling
+	POST_PROCESSING_INPUT_FILTER_COUNT
 };
 
 enum PostProcessingAddressMode : u32
 {
 	POST_PROCESSING_ADDRESS_MODE_CLAMP,                 // clamp to edge
 	POST_PROCESSING_ADDRESS_MODE_WRAP,                  // wrap around at edge
-	POST_PROCESSING_ADDRESS_MODE_BORDER                 // fixed color (0) at edge
+	POST_PROCESSING_ADDRESS_MODE_BORDER,                // fixed color (0) at edge
+	POST_PROCESSING_ADDRESS_MODE_MIRROR,                // Mirror the texture
+	POST_PROCESSING_ADDRESS_MODE_COUNT
 };
 // Each option is aligned to a float4
 union Constant
@@ -120,6 +123,7 @@ public:
 		std::vector<Input> inputs;
 		std::string entry_point;
 		float output_scale;
+		PC_TexFormat output_format;
 		std::vector<const ConfigurationOption*> dependent_options;
 
 		void GetInputLocations(
@@ -354,6 +358,7 @@ protected:
 		TextureCacheBase::TCacheEntryBase* output_texture{};
 		TargetSize output_size{};
 		float output_scale{};
+		PC_TexFormat output_format = PC_TexFormat::PC_TEX_FMT_RGBA32;
 
 		bool enabled{};
 	};

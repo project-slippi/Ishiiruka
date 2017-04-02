@@ -52,7 +52,7 @@
 #include "DolphinWX/Frame.h"
 #include "DolphinWX/Globals.h"
 #include "DolphinWX/ISOFile.h"
-#include "DolphinWX/ISOProperties/FilesystemPanel.h"
+#include "DolphinWX/ISOProperties/FileSystemPanel.h"
 #include "DolphinWX/ISOProperties/InfoPanel.h"
 #include "DolphinWX/ISOProperties/ISOProperties.h"
 #include "DolphinWX/Main.h"

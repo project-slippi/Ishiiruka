@@ -75,6 +75,7 @@ void VideoBackend::InitBackendInfo()
 	const int shaderModel = ((device_caps.PixelShaderVersion >> 8) & 0xFF);
 	const int maxConstants = (shaderModel < 3) ? 32 : ((shaderModel < 4) ? 224 : 65536);
 	g_Config.backend_info.APIType = shaderModel < 3 ? API_D3D9_SM20 : API_D3D9_SM30;
+	g_Config.backend_info.MaxTextureSize = static_cast<u32>(device_caps.MaxTextureWidth);
 	g_Config.backend_info.bSupportsExclusiveFullscreen = false;
 	g_Config.backend_info.bSupportsSeparateAlphaFunction = (device_caps.PrimitiveMiscCaps & D3DPMISCCAPS_SEPARATEALPHABLEND) == D3DPMISCCAPS_SEPARATEALPHABLEND;
 	// Dual source blend disabled by default until a proper method to test for support is found	

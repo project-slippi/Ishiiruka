@@ -533,24 +533,24 @@ struct ShaderCacheReader : public LinearDiskCacheReader<Uid, u32>
 
 void ObjectCache::LoadShaderCaches()
 {
-	pKey_t gameid = (pKey_t)GetMurmurHash3(reinterpret_cast<const u8*>(SConfig::GetInstance().m_strGameID.data()), (u32)SConfig::GetInstance().m_strGameID.size(), 0);
+	pKey_t gameid = (pKey_t)GetMurmurHash3(reinterpret_cast<const u8*>(SConfig::GetInstance().GetGameID().data()), (u32)SConfig::GetInstance().GetGameID().size(), 0);
 	m_vs_cache.shader_map.reset(VShaderCache::cache_type::Create(
 		gameid,
 		VERTEXSHADERGEN_UID_VERSION,
 		"Ishiiruka.vs",
-		StringFromFormat("%s.vs", SConfig::GetInstance().m_strGameID.c_str())
+		StringFromFormat("%s.vs", SConfig::GetInstance().GetGameID().c_str())
 	));
 	m_ps_cache.shader_map.reset(PShaderCache::cache_type::Create(
 		gameid,
 		PIXELSHADERGEN_UID_VERSION,
 		"Ishiiruka.ps",
-		StringFromFormat("%s.ps", SConfig::GetInstance().m_strGameID.c_str())
+		StringFromFormat("%s.ps", SConfig::GetInstance().GetGameID().c_str())
 	));
 	m_gs_cache.shader_map.reset(GShaderCache::cache_type::Create(
 		gameid,
 		GEOMETRYSHADERGEN_UID_VERSION,
 		"Ishiiruka.gs",
-		StringFromFormat("%s.gs", SConfig::GetInstance().m_strGameID.c_str())
+		StringFromFormat("%s.gs", SConfig::GetInstance().GetGameID().c_str())
 	));
 	ShaderCacheReader<VertexShaderUid, VertexShaderUid::ShaderUidHasher> vs_reader(m_vs_cache.shader_map.get());
 	m_vs_cache.disk_cache.OpenAndRead(GetDiskCacheFileName("vs"), vs_reader);

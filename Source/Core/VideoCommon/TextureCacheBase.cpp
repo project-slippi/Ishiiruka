@@ -249,7 +249,7 @@ void TextureCacheBase::ScaleTextureCacheEntryTo(TextureCacheBase::TCacheEntryBas
 		return;
 	}
 
-	u32 max = g_renderer->GetMaxTextureSize();
+	u32 max = g_ActiveConfig.backend_info.MaxTextureSize;
 	if (max < new_width || max < new_height)
 	{
 		ERROR_LOG(VIDEO, "Texture too big, width = %d, height = %d", new_width, new_height);
@@ -472,7 +472,7 @@ void TextureCacheBase::BindTextures()
 void TextureCacheBase::UnbindTextures()
 {
 	s_last_texture = 0;
-	std::fill(std::begin(bound_textures), std::end(bound_textures), nullptr);
+	bound_textures.fill(nullptr);
 }
 
 TextureCacheBase::TCacheEntryBase* TextureCacheBase::Load(const u32 stage)
@@ -1379,9 +1379,11 @@ TextureCacheBase::FindMatchingTextureFromPool(const TCacheEntryConfig& config)
 	// Find a texture from the pool that does not have a frameCount of FRAMECOUNT_INVALID.
 	// This prevents a texture from being used twice in a single frame with different data,
 	// which potentially means that a driver has to maintain two copies of the texture anyway.
+	// Render-target textures are fine through, as they have to be generated in a seperated pass.
+	// As non-render-target textures are usually static, this should not matter much.
 	auto range = texture_pool.equal_range(config);
 	auto matching_iter = std::find_if(range.first, range.second, [](const auto& iter) {
-		return iter.second->frameCount != FRAMECOUNT_INVALID;
+		return iter.first.rendertarget || iter.second->frameCount != FRAMECOUNT_INVALID;
 	});
 	return matching_iter != range.second ? matching_iter : texture_pool.end();
 }
@@ -1407,7 +1409,6 @@ TextureCacheBase::TexAddrCache::iterator TextureCacheBase::InvalidateTexture(Tex
 	if (iter == textures_by_address.end())
 		return textures_by_address.end();
 
-	TCacheEntryBase* entry = iter->second;
 	DisposeTexture(iter->second);
 	return textures_by_address.erase(iter);
 }

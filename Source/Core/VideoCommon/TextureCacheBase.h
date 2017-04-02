@@ -3,6 +3,8 @@
 // Refer to the license.txt file included.
 
 #pragma once
+
+#include <array>
 #include <map>
 #include <memory>
 #include <tuple>
@@ -41,6 +43,15 @@ public:
 			u32 result = 0;
 			switch (pcformat)
 			{
+			case PC_TEX_FMT_RGBA16_FLOAT:
+				result = ((width + 3) & (~3)) * ((height + 3) & (~3)) * 8;
+				break;
+			case PC_TEX_FMT_RGBA_FLOAT:
+				result = ((width + 3) & (~3)) * ((height + 3) & (~3)) * 16;
+				break;
+				break;
+			case PC_TEX_FMT_DEPTH_FLOAT:
+			case PC_TEX_FMT_R_FLOAT:
 			case PC_TEX_FMT_BGRA32:
 			case PC_TEX_FMT_RGBA32:
 				result = ((width + 3) & (~3)) * ((height + 3) & (~3)) * 4;
@@ -253,7 +264,7 @@ public:
 protected:
 	alignas(16) u8 *temp = {};
 	size_t temp_size = {};
-	TCacheEntryBase* bound_textures[8] = {};
+	std::array<TCacheEntryBase*, 8> bound_textures{};
 	TextureCacheBase();
 	virtual TCacheEntryBase* CreateTexture(const TCacheEntryConfig& config) = 0;
 private:

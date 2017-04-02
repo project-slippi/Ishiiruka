@@ -546,9 +546,9 @@ DXGI_FORMAT GetBaseBufferFormat()
 }
 
 // Returns the maximum width/height of a texture. This value only depends upon the feature level in DX11
-unsigned int GetMaxTextureSize()
+u32 GetMaxTextureSize(D3D_FEATURE_LEVEL feature_level)
 {
-	switch (featlevel)
+	switch (feature_level)
 	{
 	case D3D_FEATURE_LEVEL_11_1:
 	case D3D_FEATURE_LEVEL_11_0:

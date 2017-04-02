@@ -2,7 +2,7 @@
 // Licensed under GPLv2+
 // Refer to the license.txt file included.
 
-#include "DolphinWX/ISOProperties/FilesystemPanel.h"
+#include "DolphinWX/ISOProperties/FileSystemPanel.h"
 
 #include <array>
 #include <vector>

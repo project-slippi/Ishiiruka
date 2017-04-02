@@ -226,6 +226,7 @@ VulkanContext::GPUList VulkanContext::EnumerateGPUs(VkInstance instance)
 void VulkanContext::PopulateBackendInfo(VideoConfig* config)
 {
 	config->backend_info.APIType = API_VULKAN;
+	config->backend_info.MaxTextureSize = 16 * 1024;
 	config->backend_info.bSupportsExclusiveFullscreen = false;  // Currently WSI does not allow this.
 	config->backend_info.bSupports3DVision = false;             // D3D-exclusive.
 	config->backend_info.bSupportsOversizedViewports = true;    // Assumed support.

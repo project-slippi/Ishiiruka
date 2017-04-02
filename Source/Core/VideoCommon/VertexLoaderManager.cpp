@@ -12,6 +12,7 @@
 #include "Core/HW/Memmap.h"
 
 #include "Common/ThreadPool.h"
+#include "Common/StringUtil.h"
 
 #include "VideoCommon/IndexGenerator.h"
 #include "VideoCommon/Statistics.h"

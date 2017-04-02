@@ -78,6 +78,7 @@ void VideoBackend::InitBackendInfo()
 	}
 
 	g_Config.backend_info.APIType = API_D3D11;
+	g_Config.backend_info.MaxTextureSize = D3D12_REQ_TEXTURE2D_U_OR_V_DIMENSION;
 	g_Config.backend_info.bSupportedFormats[PC_TEX_FMT_BGRA32] = false;
 	g_Config.backend_info.bSupportedFormats[PC_TEX_FMT_RGBA32] = true;
 	g_Config.backend_info.bSupportedFormats[PC_TEX_FMT_I4_AS_I8] = false;

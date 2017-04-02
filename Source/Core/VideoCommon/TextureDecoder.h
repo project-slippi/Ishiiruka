@@ -85,7 +85,10 @@ enum PC_TexFormat
 	PC_TEX_FMT_DXT1,
 	PC_TEX_FMT_DXT3,
 	PC_TEX_FMT_DXT5,
-	PC_TEX_FMT_R32,
+	PC_TEX_FMT_DEPTH_FLOAT,
+	PC_TEX_FMT_R_FLOAT,
+	PC_TEX_FMT_RGBA16_FLOAT,
+	PC_TEX_FMT_RGBA_FLOAT
 };
 PC_TexFormat TexDecoder_Decode(u8 *dst, const u8 *src, u32 width, u32 height, u32 texformat, u32 tlutaddr, TlutFormat tlutfmt, bool rgbaOnly = false, bool compressed_supported = false);
 PC_TexFormat GetPC_TexFormat(u32 texformat, TlutFormat tlutfmt, bool compressed_supported = false);

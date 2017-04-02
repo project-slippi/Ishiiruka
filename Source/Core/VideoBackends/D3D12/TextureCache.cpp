@@ -267,7 +267,7 @@ PC_TexFormat TextureCache::GetNativeTextureFormat(const s32 texformat, const Tlu
 
 TextureCacheBase::TCacheEntryBase* TextureCache::CreateTexture(const TCacheEntryConfig& config)
 {
-	static const DXGI_FORMAT PC_TexFormat_To_DXGIFORMAT[12]
+	static const DXGI_FORMAT PC_TexFormat_To_DXGIFORMAT[]
 	{
 		DXGI_FORMAT_UNKNOWN,//PC_TEX_FMT_NONE
 		DXGI_FORMAT_R8G8B8A8_UNORM,//PC_TEX_FMT_BGRA32
@@ -280,7 +280,10 @@ TextureCacheBase::TCacheEntryBase* TextureCache::CreateTexture(const TCacheEntry
 		DXGI_FORMAT_BC1_UNORM,//PC_TEX_FMT_DXT1
 		DXGI_FORMAT_BC2_UNORM,//PC_TEX_FMT_DXT3
 		DXGI_FORMAT_BC3_UNORM,//PC_TEX_FMT_DXT5
-		DXGI_FORMAT_R32_FLOAT,//PC_TEX_FMT_R32
+		DXGI_FORMAT_R32_FLOAT,//PC_TEX_FMT_DEPTH_FLOAT
+		DXGI_FORMAT_R32_FLOAT,//PC_TEX_FMT_R_FLOAT
+		DXGI_FORMAT_R16G16B16A16_FLOAT,//PC_TEX_FMT_RGBA16_FLOAT
+		DXGI_FORMAT_R32G32B32A32_FLOAT,//PC_TEX_FMT_RGBA_FLOAT
 	};
 	if (config.rendertarget)
 	{

@@ -2,6 +2,11 @@
 // Licensed under GPLv2+
 // Refer to the license.txt file included.
 // Added for Ishiiruka by Tino
+#if defined(_M_X86_64)
+#include <xmmintrin.h>
+#include <emmintrin.h>
+#endif
+
 #include "VideoCommon/VertexLoader_Mtx.h"
 
 void LOADERDECL Vertexloader_Mtx::PosMtx_ReadDirect_UByte()

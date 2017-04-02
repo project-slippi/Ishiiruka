@@ -140,7 +140,7 @@ uintptr_t OGLPostProcessingShader::CreateBindingSampler(const PostProcessingShad
 {
 	// Lookup tables for samplers, simple due to no mipmaps
 	static const GLenum gl_sampler_filters[] = { GL_NEAREST, GL_LINEAR };
-	static const GLenum gl_sampler_modes[] = { GL_CLAMP_TO_EDGE, GL_REPEAT,  GL_CLAMP_TO_BORDER };
+	static const GLenum gl_sampler_modes[] = { GL_CLAMP_TO_EDGE, GL_REPEAT,  GL_CLAMP_TO_BORDER, GL_MIRRORED_REPEAT };
 	static const float gl_border_color[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
 	GLuint sampler = 0;
 	// Create sampler object matching the values from config

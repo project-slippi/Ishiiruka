@@ -522,6 +522,7 @@ bool PostProcessingShaderConfiguration::ParsePassBlock(const std::string& dirnam
 {
 	RenderPass pass;
 	pass.output_scale = 1.0f;
+	pass.output_format = PC_TexFormat::PC_TEX_FMT_RGBA32;
 
 	for (const auto& option : block.m_options)
 	{
@@ -536,6 +537,26 @@ bool PostProcessingShaderConfiguration::ParsePassBlock(const std::string& dirnam
 			TryParse(value, &pass.output_scale);
 			if (pass.output_scale <= 0.0f)
 				return false;
+		}
+		else if (key == "OutputFormat")
+		{
+			if (value == "R32_FLOAT")
+			{
+				pass.output_format = PC_TexFormat::PC_TEX_FMT_R_FLOAT;
+			}
+			else if (value == "RGBA16_FLOAT")
+			{
+				pass.output_format = PC_TexFormat::PC_TEX_FMT_RGBA16_FLOAT;
+			}
+			else if (value == "RGBA32_FLOAT")
+			{
+				pass.output_format = PC_TexFormat::PC_TEX_FMT_RGBA_FLOAT;
+			}
+			else
+			{
+				return false;
+			}
+				
 		}
 		else if (key == "OutputScaleNative")
 		{
@@ -675,6 +696,10 @@ bool PostProcessingShaderConfiguration::ParsePassBlock(const std::string& dirnam
 				else if (value == "Border")
 				{
 					input->address_mode = POST_PROCESSING_ADDRESS_MODE_BORDER;
+				}
+				else if (value == "Mirror")
+				{
+					input->address_mode = POST_PROCESSING_ADDRESS_MODE_MIRROR;
 				}
 				else
 				{
@@ -1151,7 +1176,7 @@ bool PostProcessingShader::ResizeOutputTextures(const TargetSize& new_size)
 		config.pcformat = PC_TexFormat::PC_TEX_FMT_RGBA32;
 		if (i < static_cast<size_t>(frameoutput.color_count))
 			m_prev_frame_texture[i].color_frame = g_texture_cache->AllocateTexture(config);
-		config.pcformat = PC_TexFormat::PC_TEX_FMT_R32;
+		config.pcformat = PC_TexFormat::PC_TEX_FMT_DEPTH_FLOAT;
 		if (i < static_cast<size_t>(frameoutput.depth_count))
 			m_prev_frame_texture[i].depth_frame = g_texture_cache->AllocateTexture(config);
 	}
@@ -1170,6 +1195,8 @@ bool PostProcessingShader::ResizeOutputTextures(const TargetSize& new_size)
 
 		config.width = pass.output_size.width;
 		config.height = pass.output_size.height;
+		// Last pass output is always RGBA32
+		config.pcformat = pass_index < m_passes.size() - 1 ? pass.output_format : PC_TexFormat::PC_TEX_FMT_RGBA32;
 		pass.output_texture = g_texture_cache->AllocateTexture(config);
 	}
 	m_internal_size = new_size;
@@ -1581,7 +1608,7 @@ bool PostProcessor::ResizeCopyBuffers(const TargetSize& size, int layers)
 	config.rendertarget = true;
 	config.layers = layers;
 	m_color_copy_texture = g_texture_cache->AllocateTexture(config);
-	config.pcformat = PC_TexFormat::PC_TEX_FMT_R32;
+	config.pcformat = PC_TexFormat::PC_TEX_FMT_DEPTH_FLOAT;
 	m_depth_copy_texture = g_texture_cache->AllocateTexture(config);
 	if (m_color_copy_texture && m_depth_copy_texture)
 	{

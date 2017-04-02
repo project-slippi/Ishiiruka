@@ -243,7 +243,7 @@ bool Renderer::CalculateTargetSize(int multiplier)
 		efb_scale_denominatorX = efb_scale_denominatorY = 1;
 		break;
 	}
-	const u32 max_size = GetMaxTextureSize();
+	const u32 max_size = g_ActiveConfig.backend_info.MaxTextureSize;
 	if (max_size < EFB_WIDTH * multiplier * efb_scale_numeratorX / efb_scale_denominatorX)
 	{
 		efb_scale_numeratorX = efb_scale_numeratorY = (max_size / (EFB_WIDTH * multiplier));

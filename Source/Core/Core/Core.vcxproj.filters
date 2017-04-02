@@ -809,9 +809,6 @@
     <ClInclude Include="DSP\Interpreter\DSPIntUtil.h">
       <Filter>DSPCore\Interpreter</Filter>
     </ClInclude>
-    <ClInclude Include="DSP\DSPEmitter.h">
-      <Filter>DSPCore\Jit</Filter>
-    </ClInclude>
     <ClInclude Include="DSP\Jit\DSPJitRegCache.h">
       <Filter>DSPCore\Jit</Filter>
     </ClInclude>
@@ -1285,6 +1282,7 @@
     <ClInclude Include="IPC_HLE\WII_IPC_HLE_Device_usb_ven.h">
       <Filter>IPC HLE %28IOS/Starlet%29\USB</Filter>
     </ClInclude>
+    <ClInclude Include="DSP\Jit\DSPEmitter.h" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="CMakeLists.txt" />

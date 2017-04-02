@@ -223,11 +223,29 @@ void TextureCache::TCacheEntry::SetFormat()
 		gl_type = 0;
 		compressed = true;
 		break;
-	case PC_TEX_FMT_R32:
+	case PC_TEX_FMT_DEPTH_FLOAT:
 		gl_format = GL_DEPTH_COMPONENT32F;
 		gl_iformat = GL_DEPTH_COMPONENT;
-		gl_type = GL_UNSIGNED_BYTE;
-		compressed = true;
+		gl_type = GL_FLOAT;
+		compressed = false;
+		break;
+	case PC_TEX_FMT_R_FLOAT:
+		gl_format = GL_R32F;
+		gl_iformat = GL_R;
+		gl_type = GL_FLOAT;
+		compressed = false;
+		break;
+	case PC_TEX_FMT_RGBA16_FLOAT:
+		gl_format = GL_RGBA16F;
+		gl_iformat = GL_RGBA;
+		gl_type = GL_FLOAT;
+		compressed = false;
+		break;
+	case PC_TEX_FMT_RGBA_FLOAT:
+		gl_format = GL_RGBA32F;
+		gl_iformat = GL_RGBA;
+		gl_type = GL_FLOAT;
+		compressed = false;
 		break;
 	}
 }
@@ -242,13 +260,13 @@ TextureCache::TCacheEntryBase* TextureCache::CreateTexture(const TCacheEntryConf
 	entry->SetFormat();
 	if (config.rendertarget)
 	{
-		for (u32 level = 0; level <= config.levels; level++)
+		for (u32 level = 0; level < config.levels; level++)
 		{
 			glTexImage3D(GL_TEXTURE_2D_ARRAY, level, entry->gl_format, config.width, config.height, config.layers, 0, entry->gl_iformat, entry->gl_type, nullptr);
 		}
 		glGenFramebuffers(1, &entry->framebuffer);
 		FramebufferManager::SetFramebuffer(entry->framebuffer);
-		FramebufferManager::FramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D_ARRAY, entry->texture, 0);
+		FramebufferManager::FramebufferTexture(GL_FRAMEBUFFER, (entry->gl_iformat == GL_DEPTH_COMPONENT) ? GL_DEPTH_ATTACHMENT : GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D_ARRAY, entry->texture, 0);
 	}
 	else
 	{

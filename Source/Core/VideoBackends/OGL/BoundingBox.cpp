@@ -2,6 +2,8 @@
 // Licensed under GPLv2++
 // Refer to the license.txt file included.
 
+#include <algorithm>
+#include <array>
 #include <cstring>
 
 #include "Common/GL/GLUtil.h"

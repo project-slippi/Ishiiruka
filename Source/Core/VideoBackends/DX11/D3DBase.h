@@ -64,7 +64,7 @@ DXGI_FORMAT GetBaseBufferFormat();
 bool BGRATexturesSupported();
 bool BGRA565TexturesSupported();
 
-unsigned int GetMaxTextureSize();
+u32 GetMaxTextureSize(D3D_FEATURE_LEVEL feature_level);
 bool SupportPartialContantBufferUpdate();
 
 HRESULT SetFullscreenState(bool enable_fullscreen);

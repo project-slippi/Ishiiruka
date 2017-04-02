@@ -116,8 +116,6 @@ const char* HullShaderVersionString();
 const char* DomainShaderVersionString();
 const char* ComputeShaderVersionString();
 
-unsigned int GetMaxTextureSize();
-
 HRESULT SetFullscreenState(bool enable_fullscreen);
 bool GetFullscreenState();
 

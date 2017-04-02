@@ -131,7 +131,7 @@ uintptr_t D3DPostProcessingShader::CreateBindingSampler(const PostProcessingShad
 {
 	// Lookup tables for samplers
 	static const D3D11_FILTER d3d_sampler_filters[] = { D3D11_FILTER_MIN_MAG_MIP_POINT, D3D11_FILTER_MIN_MAG_LINEAR_MIP_POINT };
-	static const D3D11_TEXTURE_ADDRESS_MODE d3d_address_modes[] = { D3D11_TEXTURE_ADDRESS_CLAMP, D3D11_TEXTURE_ADDRESS_WRAP, D3D11_TEXTURE_ADDRESS_BORDER };
+	static const D3D11_TEXTURE_ADDRESS_MODE d3d_address_modes[] = { D3D11_TEXTURE_ADDRESS_CLAMP, D3D11_TEXTURE_ADDRESS_WRAP, D3D11_TEXTURE_ADDRESS_BORDER, D3D11_TEXTURE_ADDRESS_MIRROR };
 	static const float d3d_border_color[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
 
 	// Create sampler object matching the values from config

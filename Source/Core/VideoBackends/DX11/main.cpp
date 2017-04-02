@@ -146,6 +146,7 @@ void VideoBackend::InitBackendInfo()
 			g_Config.backend_info.bSupportsSSAA = shader_model_5_supported;
 			g_Config.backend_info.bSupportsComputeTextureDecoding = shader_model_5_supported;
 			g_Config.backend_info.bSupportsComputeTextureEncoding = shader_model_5_supported;
+			g_Config.backend_info.MaxTextureSize = DX11::D3D::GetMaxTextureSize(DX11::D3D::GetFeatureLevel(ad));
 		}
 
 		g_Config.backend_info.Adapters.push_back(UTF16ToUTF8(desc.Description));

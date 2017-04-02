@@ -71,8 +71,6 @@ public:
 	void ReinterpretPixelData(unsigned int convtype);
 
 	static void CheckForResize(bool &resized);
-
-	u32 GetMaxTextureSize() override;
 };
 
 }  // namespace DX9

@@ -93,6 +93,7 @@ std::string VideoBackend::GetDisplayName() const
 void VideoBackend::InitBackendInfo()
 {
 	g_Config.backend_info.APIType = API_OPENGL;
+	g_Config.backend_info.MaxTextureSize = 1024;
 #ifdef _WIN32
 	g_Config.backend_info.bSupportedFormats[PC_TEX_FMT_BGRA32] = true;
 	g_Config.backend_info.bSupportedFormats[PC_TEX_FMT_RGBA32] = true;

@@ -231,7 +231,7 @@ void TextureCache::ScaleTextureRectangle(TCacheEntry* dst_texture,
 
 TextureCacheBase::TCacheEntryBase* TextureCache::CreateTexture(const TCacheEntryConfig& config)
 {
-	static const VkFormat PC_TexFormat_To_VkFormat[12]
+	static const VkFormat PC_TexFormat_To_VkFormat[]
 	{
 		VK_FORMAT_R8G8B8A8_UNORM,//PC_TEX_FMT_NONE
 		VK_FORMAT_R8G8B8A8_UNORM,//PC_TEX_FMT_BGRA32
@@ -244,7 +244,10 @@ TextureCacheBase::TCacheEntryBase* TextureCache::CreateTexture(const TCacheEntry
 		VK_FORMAT_BC1_RGBA_UNORM_BLOCK,//PC_TEX_FMT_DXT1
 		VK_FORMAT_BC2_UNORM_BLOCK,//PC_TEX_FMT_DXT3
 		VK_FORMAT_BC3_UNORM_BLOCK,//PC_TEX_FMT_DXT5
-		VK_FORMAT_R32_SFLOAT,//PC_TEX_FMT_R32
+		VK_FORMAT_R32_SFLOAT,//PC_TEX_FMT_DEPTH_FLOAT
+		VK_FORMAT_R32_SFLOAT,//PC_TEX_FMT_R_FLOAT
+		VK_FORMAT_R16G16B16A16_SFLOAT,//PC_TEX_FMT_RGBA16_FLOAT
+		VK_FORMAT_R32G32B32A32_SFLOAT,//PC_TEX_FMT_RGBA_FLOAT
 	};
 	// Determine image usage, we need to flag as an attachment if it can be used as a rendertarget.
 	VkImageUsageFlags usage = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT |
@@ -301,7 +304,7 @@ TextureCacheBase::TCacheEntryBase* TextureCache::CreateTexture(const TCacheEntry
 			VK_SAMPLE_COUNT_1_BIT, VK_IMAGE_VIEW_TYPE_2D_ARRAY, VK_IMAGE_TILING_OPTIMAL, usage);
 	}
 	TCacheEntry* entry = new TCacheEntry(config, std::move(texture), std::move(nrmtexture), framebuffer);
-	entry->compressed = config.pcformat >= PC_TEX_FMT_DXT1 && config.pcformat < PC_TEX_FMT_R32;
+	entry->compressed = config.pcformat >= PC_TEX_FMT_DXT1 && config.pcformat < PC_TEX_FMT_DEPTH_FLOAT;
 	return entry;
 }
 

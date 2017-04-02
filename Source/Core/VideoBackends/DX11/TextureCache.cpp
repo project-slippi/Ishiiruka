@@ -305,7 +305,7 @@ PC_TexFormat TextureCache::GetNativeTextureFormat(const s32 texformat, const Tlu
 
 TextureCache::TCacheEntryBase* TextureCache::CreateTexture(const TCacheEntryConfig& config)
 {
-	static const DXGI_FORMAT PC_TexFormat_To_DXGIFORMAT[12]
+	static const DXGI_FORMAT PC_TexFormat_To_DXGIFORMAT[]
 	{
 		DXGI_FORMAT_UNKNOWN,//PC_TEX_FMT_NONE
 		DXGI_FORMAT_B8G8R8A8_UNORM,//PC_TEX_FMT_BGRA32
@@ -318,7 +318,10 @@ TextureCache::TCacheEntryBase* TextureCache::CreateTexture(const TCacheEntryConf
 		DXGI_FORMAT_BC1_UNORM,//PC_TEX_FMT_DXT1
 		DXGI_FORMAT_BC2_UNORM,//PC_TEX_FMT_DXT3
 		DXGI_FORMAT_BC3_UNORM,//PC_TEX_FMT_DXT5
-		DXGI_FORMAT_R32_FLOAT,//PC_TEX_FMT_R32
+		DXGI_FORMAT_R32_FLOAT,//PC_TEX_FMT_DEPTH_FLOAT
+		DXGI_FORMAT_R32_FLOAT,//PC_TEX_FMT_R_FLOAT
+		DXGI_FORMAT_R16G16B16A16_FLOAT,//PC_TEX_FMT_RGBA16_FLOAT
+		DXGI_FORMAT_R32G32B32A32_FLOAT,//PC_TEX_FMT_RGBA_FLOAT
 	};
 	if (config.rendertarget)
 	{
@@ -352,7 +355,7 @@ TextureCache::TCacheEntryBase* TextureCache::CreateTexture(const TCacheEntryConf
 	D3D11_USAGE usage = D3D11_USAGE_DEFAULT;
 	D3D11_CPU_ACCESS_FLAG cpu_access = (D3D11_CPU_ACCESS_FLAG)0;
 
-	if ((config.levels == 1 || format == DXGI_FORMAT_B5G6R5_UNORM) && !compressed)
+	if (format == DXGI_FORMAT_B5G6R5_UNORM)
 	{
 		usage = D3D11_USAGE_DYNAMIC;
 		cpu_access = D3D11_CPU_ACCESS_WRITE;

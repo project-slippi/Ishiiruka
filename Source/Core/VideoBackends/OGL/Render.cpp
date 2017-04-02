@@ -47,8 +47,6 @@ void VideoConfig::UpdateProjectionHack()
 	::UpdateProjectionHack(g_Config.iPhackvalue, g_Config.sPhackvalue);
 }
 
-static int s_max_texture_size = 0;
-
 namespace OGL
 {
 VideoConfig g_ogl_config;
@@ -369,6 +367,7 @@ Renderer::Renderer()
 	// check the max texture width and height
 	GLint max_texture_size;
 	glGetIntegerv(GL_MAX_TEXTURE_SIZE, (GLint*)&max_texture_size);
+	g_Config.backend_info.MaxTextureSize = static_cast<u32>(max_texture_size);
 	if (max_texture_size < 1024)
 	{
 		PanicAlert("GL_MAX_TEXTURE_SIZE too small at %i - must be at least 1024.", max_texture_size);
@@ -615,6 +614,10 @@ Renderer::Renderer()
 	// Either method can do early-z tests. See PixelShaderGen for details.
 	g_Config.backend_info.bSupportsEarlyZ =
 		g_ogl_config.bSupportsEarlyFragmentTests || g_ogl_config.bSupportsConservativeDepth;
+
+	glGetIntegerv(GL_MAX_SAMPLES, &g_ogl_config.max_samples);
+	if (g_ogl_config.max_samples < 1 || !g_ogl_config.bSupportsMSAA)
+		g_ogl_config.max_samples = 1;
 
 	if (g_ogl_config.bSupportsDebug)
 	{
@@ -2121,16 +2124,6 @@ void Renderer::SetInterlacingMode()
 
 namespace OGL
 {
-u32 Renderer::GetMaxTextureSize()
-{
-	// Right now nvidia seems to do something very weird if we try to cache GL_MAX_TEXTURE_SIZE in
-	// init. This is a workaround that lets
-	// us keep the perf improvement that caching it gives us.
-	if (s_max_texture_size == 0)
-		glGetIntegerv(GL_MAX_TEXTURE_SIZE, &s_max_texture_size);
-	return static_cast<u32>(s_max_texture_size);
-}
-
 void Renderer::ChangeSurface(void* new_surface_handle)
 {
 	// Win32 polls the window size when redrawing, X11 runs an event loop in another thread.

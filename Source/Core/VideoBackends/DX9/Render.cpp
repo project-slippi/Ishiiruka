@@ -1247,9 +1247,4 @@ void Renderer::SetSamplerState(int stage, int texindex, bool custom_tex)
 	D3D::SetSamplerState(stage, D3DSAMP_MAXMIPLEVEL, tm1.min_lod >> 4);
 }
 
-u32 Renderer::GetMaxTextureSize()
-{
-	return static_cast<u32>(D3D::GetCaps().MaxTextureWidth); ;
-}
-
 }  // namespace DX9

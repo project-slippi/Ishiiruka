@@ -148,10 +148,15 @@ struct VideoConfig final
 	bool bDumpEFBTarget;
 	bool bDumpFramesAsImages;
 	bool bUseFFV1;
+	std::string sDumpCodec;
+	std::string sDumpFormat;
+	std::string sDumpPath;
 	bool bInternalResolutionFrameDumps;
 	bool bFreeLook;
 	bool bBorderlessFullscreen;
+	int iBitrateKbps;
 	bool bCompileShaderOnStartup;
+	
 
 	// Hacks
 	bool bEFBAccessEnable;
@@ -234,6 +239,8 @@ struct VideoConfig final
 
 		// TODO: merge AdapterName and Adapters array
 		std::string AdapterName; // for OpenGL
+
+		u32 MaxTextureSize;
 
 		bool bSupportedFormats[16]; // used for D3D9 in TextureCache		
 		bool bSupportsDualSourceBlend; // only supported by D3D11 and OpenGL

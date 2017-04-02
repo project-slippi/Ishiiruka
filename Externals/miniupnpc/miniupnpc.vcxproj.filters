@@ -15,16 +15,10 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\bsdqueue.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="src\codelength.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\connecthostport.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\declspec.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\igd_desc_parse.h">
@@ -66,6 +60,12 @@
     <ClInclude Include="src\upnpreplyparse.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\miniupnpc_declspec.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\upnpdev.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\igd_desc_parse.c">
@@ -101,13 +101,16 @@
     <ClCompile Include="src\connecthostport.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\minissdpc.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\upnpdev.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="LICENSE" />
     <None Include="README" />
-    <None Include="src\miniupnpc.def">
-      <Filter>Source Files</Filter>
-    </None>
     <None Include="VERSION" />
   </ItemGroup>
   <ItemGroup>

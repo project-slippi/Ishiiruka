@@ -25,6 +25,7 @@
 #include "Common/Timer.h"
 #include "Common/Logging/Log.h"
 
+
 #include "Core/ConfigManager.h"
 
 #include "VideoCommon/ImageLoader.h"

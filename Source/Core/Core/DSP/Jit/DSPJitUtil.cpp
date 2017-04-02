@@ -526,7 +526,7 @@ void DSPEmitter::dmem_write(X64Reg value)
 	DSPJitRegCache c(gpr);
 	X64Reg abisafereg = gpr.MakeABICallSafe(value);
 	gpr.PushRegs();
-	ABI_CallFunctionRR(gdsp_ifx_write, EAX, abisafereg);
+	ABI_CallFunctionRR((const void *)gdsp_ifx_write, EAX, abisafereg);
 	gpr.PopRegs();
 	gpr.FlushRegs(c);
 	SetJumpTarget(end);
@@ -546,7 +546,7 @@ void DSPEmitter::dmem_write_imm(u16 address, X64Reg value)
 		MOV(16, R(EAX), Imm16(address));
 		X64Reg abisafereg = gpr.MakeABICallSafe(value);
 		gpr.PushRegs();
-		ABI_CallFunctionRR(gdsp_ifx_write, EAX, abisafereg);
+		ABI_CallFunctionRR((const void *)gdsp_ifx_write, EAX, abisafereg);
 		gpr.PopRegs();
 		break;
 	}
@@ -612,7 +612,7 @@ void DSPEmitter::dmem_read(X64Reg address)
 	DSPJitRegCache c(gpr);
 	X64Reg abisafereg = gpr.MakeABICallSafe(address);
 	gpr.PushRegs();
-	ABI_CallFunctionR(gdsp_ifx_read, abisafereg);
+	ABI_CallFunctionR((const void *)gdsp_ifx_read, abisafereg);
 	gpr.PopRegs();
 	gpr.FlushRegs(c);
 	SetJumpTarget(end);
@@ -636,7 +636,7 @@ void DSPEmitter::dmem_read_imm(u16 address)
 	case 0xf:  // Fxxx HW regs
 	{
 		gpr.PushRegs();
-		ABI_CallFunctionC16(gdsp_ifx_read, address);
+		ABI_CallFunctionC16((const void *)gdsp_ifx_read, address);
 		gpr.PopRegs();
 		break;
 	}

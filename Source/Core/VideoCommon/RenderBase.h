@@ -189,9 +189,7 @@ public:
 	{
 		return m_post_processor.get();
 	}
-	// Max height/width
-	virtual u32 GetMaxTextureSize() = 0;
-
+	
 	static Common::Event s_screenshotCompleted;
 	// Final surface changing
 	// This is called when the surface is resized (WX) or the window changes (Android).

@@ -124,7 +124,7 @@ void D3DPostProcessingShader::ReleaseBindingSampler(uintptr_t sampler)
 
 uintptr_t D3DPostProcessingShader::CreateBindingSampler(const PostProcessingShaderConfiguration::RenderPass::Input& input_config)
 {
-	return static_cast<uintptr_t>(input_config.filter * 3 + input_config.address_mode + 1);
+	return static_cast<uintptr_t>(input_config.filter * POST_PROCESSING_ADDRESS_MODE_COUNT + input_config.address_mode + 1);
 }
 
 bool D3DPostProcessingShader::RecompileShaders()
@@ -389,7 +389,7 @@ bool D3DPostProcessor::Initialize()
 {
 	D3D12_DESCRIPTOR_HEAP_DESC sampler_descriptor_heap_desc = {};
 	sampler_descriptor_heap_desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
-	sampler_descriptor_heap_desc.NumDescriptors = 8;
+	sampler_descriptor_heap_desc.NumDescriptors = POST_PROCESSING_INPUT_FILTER_COUNT * POST_PROCESSING_ADDRESS_MODE_COUNT;
 	sampler_descriptor_heap_desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER;
 	HRESULT hr = D3D::device->CreateDescriptorHeap(&sampler_descriptor_heap_desc, IID_PPV_ARGS(m_texture_samplers_descriptor_heap.ReleaseAndGetAddressOf()));
 
@@ -402,7 +402,7 @@ bool D3DPostProcessor::Initialize()
 
 	// Lookup tables for samplers
 	static const D3D12_FILTER d3d_sampler_filters[] = { D3D12_FILTER_MIN_MAG_MIP_POINT, D3D12_FILTER_MIN_MAG_LINEAR_MIP_POINT };
-	static const D3D12_TEXTURE_ADDRESS_MODE d3d_address_modes[] = { D3D12_TEXTURE_ADDRESS_MODE_CLAMP, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_BORDER };
+	static const D3D12_TEXTURE_ADDRESS_MODE d3d_address_modes[] = { D3D12_TEXTURE_ADDRESS_MODE_CLAMP, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_BORDER, D3D12_TEXTURE_ADDRESS_MODE_MIRROR };
 	// Create sampler objects to match posible configuration values
 	D3D12_SAMPLER_DESC sampler_desc =
 	{
@@ -413,14 +413,14 @@ bool D3DPostProcessor::Initialize()
 		0.0f, 1, D3D12_COMPARISON_FUNC_ALWAYS,
 		{ 0.0f, 0.0f, 0.0f, 0.0f }, 0.0f, 0.0f
 	};
-	for (size_t i = 0; i < 2; i++)
+	for (size_t i = 0; i < POST_PROCESSING_INPUT_FILTER_COUNT; i++)
 	{
-		for (size_t j = 0; j < 3; j++)
+		for (size_t j = 0; j < POST_PROCESSING_ADDRESS_MODE_COUNT; j++)
 		{
 			sampler_desc.Filter = d3d_sampler_filters[i];
 			sampler_desc.AddressU = d3d_address_modes[j];
 			sampler_desc.AddressV = d3d_address_modes[j];
-			D3D12_CPU_DESCRIPTOR_HANDLE cpu_handle{ texture_sampler_cpu_handle.ptr + (i * 3 + j) * D3D::sampler_descriptor_size };
+			D3D12_CPU_DESCRIPTOR_HANDLE cpu_handle{ texture_sampler_cpu_handle.ptr + (i * POST_PROCESSING_ADDRESS_MODE_COUNT + j) * D3D::sampler_descriptor_size };
 			D3D::device->CreateSampler(&sampler_desc, cpu_handle);
 		}
 	}
