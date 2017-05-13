@@ -93,7 +93,7 @@ void VideoBackend::InitBackendInfo()
 	g_Config.backend_info.bSupportsClipControl = true;
 	g_Config.backend_info.bSupportsSSAA = false;
 	g_Config.backend_info.bSupportsTessellation = false;
-	g_Config.backend_info.bSupportsComputeTextureDecoding = false;
+	g_Config.backend_info.bSupportsGPUTextureDecoding = false;
 	g_Config.backend_info.bSupportsComputeTextureEncoding = false;
 	g_Config.backend_info.bSupportsDepthClamp = false;
 	g_Config.backend_info.bSupportsMultithreading = false;
@@ -146,6 +146,7 @@ void VideoBackend::Video_Prepare()
 	g_vertex_manager = std::make_unique<VertexManager>();
 	g_perf_query = std::make_unique<PerfQuery>();
 	g_renderer = std::make_unique<Renderer>(m_window_handle);
+	g_renderer->Init();
 	UpdateActiveConfig();
 }
 

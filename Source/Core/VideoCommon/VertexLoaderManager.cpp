@@ -299,12 +299,12 @@ bool ConvertVertices(VertexLoaderParameters &parameters, u32 &readsize, u32 &wri
 	// Flush if our vertex format is different from the currently set.
 	if (s_current_vtx_fmt != nullptr && s_current_vtx_fmt != nativefmt)
 	{
-		VertexManagerBase::Flush();
+		g_vertex_manager->Flush();
 	}
 	s_current_vtx_fmt = nativefmt;
 	g_current_components = loader->m_native_components;
-	VertexManagerBase::PrepareForAdditionalData(parameters.primitive, parameters.count, loader->m_native_stride);
-	parameters.destination = VertexManagerBase::s_pCurBufferPointer;
+	g_vertex_manager->PrepareForAdditionalData(parameters.primitive, parameters.count, loader->m_native_stride);
+	parameters.destination = g_vertex_manager->GetCurrentBufferPointer();
 	s32 finalcount = loader->RunVertices(parameters);
 	writesize = loader->m_native_stride * finalcount;
 	IndexGenerator::AddIndices(parameters.primitive, finalcount);

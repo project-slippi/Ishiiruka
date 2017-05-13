@@ -60,7 +60,7 @@ struct XFBSource : public XFBSourceBase
 class FramebufferManager : public FramebufferManagerBase
 {
 public:
-	FramebufferManager();
+	FramebufferManager(u32 target_width, u32 target_height);
 	~FramebufferManager();
 
 	static LPDIRECT3DTEXTURE9 GetEFBColorTexture()

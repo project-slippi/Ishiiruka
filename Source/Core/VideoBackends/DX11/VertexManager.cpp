@@ -60,8 +60,8 @@ VertexManager::VertexManager()
 {
 	LocalVBuffer.resize(MAXVBUFFERSIZE);
 
-	s_pCurBufferPointer = s_pBaseBufferPointer = &LocalVBuffer[0];
-	s_pEndBufferPointer = s_pBaseBufferPointer + LocalVBuffer.size();
+	m_pCurBufferPointer = m_pBaseBufferPointer = &LocalVBuffer[0];
+	m_pEndBufferPointer = m_pBaseBufferPointer + LocalVBuffer.size();
 
 	LocalIBuffer.resize(MAXIBUFFERSIZE);
 	m_index_buffer_start = &LocalIBuffer[0];
@@ -76,7 +76,7 @@ VertexManager::~VertexManager()
 void VertexManager::PrepareDrawBuffers(u32 stride)
 {
 	D3D11_MAPPED_SUBRESOURCE map;
-	u32 vertexBufferSize = u32(s_pCurBufferPointer - s_pBaseBufferPointer);
+	u32 vertexBufferSize = u32(m_pCurBufferPointer - m_pBaseBufferPointer);
 	u32 indexBufferSize = IndexGenerator::GetIndexLen() * sizeof(u16);
 	u32 totalBufferSize = vertexBufferSize + indexBufferSize;
 
@@ -99,7 +99,7 @@ void VertexManager::PrepareDrawBuffers(u32 stride)
 
 	D3D::context->Map(m_buffers[m_currentBuffer].get(), 0, MapType, 0, &map);
 	u8* mappedData = reinterpret_cast<u8*>(map.pData);
-	memcpy(mappedData + m_vertexDrawOffset, s_pBaseBufferPointer, vertexBufferSize);
+	memcpy(mappedData + m_vertexDrawOffset, m_pBaseBufferPointer, vertexBufferSize);
 	memcpy(mappedData + m_indexDrawOffset, m_index_buffer_start, indexBufferSize);
 	D3D::context->Unmap(m_buffers[m_currentBuffer].get(), 0);
 
@@ -119,7 +119,7 @@ void VertexManager::Draw(UINT stride)
 	u32 baseVertex = m_vertexDrawOffset / stride;
 	u32 startIndex = m_indexDrawOffset / sizeof(u16);
 
-	if (current_primitive_type == PRIMITIVE_TRIANGLES)
+	if (m_current_primitive_type == PRIMITIVE_TRIANGLES)
 	{
 		auto pt = HullDomainShaderCache::GetActiveHullShader() != nullptr ?
 			D3D11_PRIMITIVE_TOPOLOGY_3_CONTROL_POINT_PATCHLIST :
@@ -129,7 +129,7 @@ void VertexManager::Draw(UINT stride)
 	}
 	else
 	{
-		D3D::stateman->SetPrimitiveTopology(current_primitive_type == PRIMITIVE_LINES ? D3D11_PRIMITIVE_TOPOLOGY_LINELIST : D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
+		D3D::stateman->SetPrimitiveTopology(m_current_primitive_type == PRIMITIVE_LINES ? D3D11_PRIMITIVE_TOPOLOGY_LINELIST : D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
 		static_cast<Renderer*>(g_renderer.get())->ApplyCullDisable();
 	}
 
@@ -137,7 +137,7 @@ void VertexManager::Draw(UINT stride)
 	D3D::context->DrawIndexed(indices, startIndex, baseVertex);
 	INCSTAT(stats.thisFrame.numDrawCalls);
 
-	if (current_primitive_type != PRIMITIVE_TRIANGLES)
+	if (m_current_primitive_type != PRIMITIVE_TRIANGLES)
 	{
 		static_cast<Renderer*>(g_renderer.get())->RestoreCull();
 	}
@@ -162,7 +162,7 @@ void VertexManager::vFlush(bool useDstAlpha)
 	{
 		return;
 	}
-	if (g_ActiveConfig.iStereoMode > 0 || current_primitive_type != PrimitiveType::PRIMITIVE_TRIANGLES)
+	if (g_ActiveConfig.iStereoMode > 0 || m_current_primitive_type != PrimitiveType::PRIMITIVE_TRIANGLES)
 	{
 		if (!GeometryShaderCache::TestShader())
 		{
@@ -194,7 +194,7 @@ void VertexManager::vFlush(bool useDstAlpha)
 
 void VertexManager::ResetBuffer(u32 stride)
 {
-	s_pCurBufferPointer = s_pBaseBufferPointer;
+	m_pCurBufferPointer = m_pBaseBufferPointer;
 	IndexGenerator::Start(m_index_buffer_start);
 }
 

@@ -205,7 +205,7 @@ inline void GenerateVSOutputMembers(ShaderCode& object, bool enable_pl, u32 numt
 		for (int i = 0; i < num_texcoords; ++i)
 			DefineVSOutputStructMember<api_type>(object, qualifier, (enable_pl || i < 4) ? "float4" : "float3", "tex", "", i, "TEXCOORD", i);
 	}
-	if (!(api_type & API_D3D9))
+	if (g_ActiveConfig.backend_info.bSupportsDepthClamp)
 	{
 		DefineVSOutputStructMember<api_type>(object, qualifier, "float2", "clipDist", "", -1, "SV_ClipDistance", 0);
 	}
@@ -235,7 +235,7 @@ inline void AssignVSOutputMembers(ShaderCode& object, const char* a, const char*
 		for (int i = 0; i < num_texcoords; ++i)
 			object.Write("\t%s.tex%d = %s.tex%d;\n", a, i, b, i);
 	}
-	if (!(api_type & API_D3D9))
+	if (g_ActiveConfig.backend_info.bSupportsDepthClamp)
 	{
 		object.Write("\t%s.clipDist.x = %s.clipDist.x;\n", a, b);
 		object.Write("\t%s.clipDist.y = %s.clipDist.y;\n", a, b);

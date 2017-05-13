@@ -98,19 +98,23 @@ void TextureCache::LoadLut(u32 lutFmt, void* addr, u32 size)
 	m_pallette_size = size;
 }
 
-void TextureCache::CopyEFB(u8* dst, u32 format, u32 native_width, u32 bytes_per_row,
-	u32 num_blocks_y, u32 memory_stride, bool is_depth_copy,
-	const EFBRectangle& src_rect, bool is_intensity, bool scale_by_half)
+void TextureCache::CopyEFB(u8* dst, const EFBCopyFormat& format, u32 native_width, u32 bytes_per_row,
+	u32 num_blocks_y, u32 memory_stride,
+	bool is_depth_copy, const EFBRectangle& src_rect, bool scale_by_half)
 {
 	// Flush EFB pokes first, as they're expected to be included.
 	FramebufferManager::GetInstance()->FlushEFBPokes();
 
 	// MSAA case where we need to resolve first.
-	// TODO: Do in one pass.
+	// An out-of-bounds source region is valid here, and fine for the draw (since it is converted
+	// to texture coordinates), but it's not valid to resolve an out-of-range rectangle.
 	TargetRectangle scaled_src_rect = g_renderer->ConvertEFBRectangle(src_rect);
 	VkRect2D region = { { scaled_src_rect.left, scaled_src_rect.top },
 	{ static_cast<u32>(scaled_src_rect.GetWidth()),
 		static_cast<u32>(scaled_src_rect.GetHeight()) } };
+	
+	region = Util::ClampRect2D(region, FramebufferManager::GetInstance()->GetEFBWidth(),
+		FramebufferManager::GetInstance()->GetEFBHeight());
 	Texture2D* src_texture;
 	if (is_depth_copy)
 		src_texture = FramebufferManager::GetInstance()->ResolveEFBDepthTexture(region);
@@ -129,8 +133,8 @@ void TextureCache::CopyEFB(u8* dst, u32 format, u32 native_width, u32 bytes_per_
 		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
 	m_texture_converter->EncodeTextureToMemory(src_texture->GetView(), dst, format, native_width,
-		bytes_per_row, num_blocks_y, memory_stride, is_depth_copy,
-		is_intensity, scale_by_half, src_rect);
+		bytes_per_row, num_blocks_y, memory_stride,
+		is_depth_copy, src_rect, scale_by_half);
 
 	// Transition back to original state
 	src_texture->TransitionToLayout(g_command_buffer_mgr->GetCurrentCommandBuffer(), original_layout);
@@ -154,6 +158,11 @@ void TextureCache::CopyRectangleFromTexture(TCacheEntry* dst_texture,
 		CopyTextureRectangle(dst_texture, dst_rect, src_texture, src_rect);
 	else
 		ScaleTextureRectangle(dst_texture, dst_rect, src_texture, src_rect);
+}
+
+bool TextureCache::SupportsGPUTextureDecode(TextureFormat format, TlutFormat palette_format)
+{
+	return m_texture_converter->SupportsTextureDecoding(format, palette_format);
 }
 
 void TextureCache::CopyTextureRectangle(TCacheEntry* dst_texture,
@@ -258,7 +267,7 @@ TextureCacheBase::TCacheEntryBase* TextureCache::CreateTexture(const TCacheEntry
 	// Allocate texture object
 	std::unique_ptr<Texture2D> texture = Texture2D::Create(
 		config.width, config.height, config.levels, config.layers, PC_TexFormat_To_VkFormat[config.pcformat],
-		VK_SAMPLE_COUNT_1_BIT, VK_IMAGE_VIEW_TYPE_2D_ARRAY, VK_IMAGE_TILING_OPTIMAL, usage);
+		VK_SAMPLE_COUNT_1_BIT, VK_IMAGE_VIEW_TYPE_2D_ARRAY, VK_IMAGE_TILING_OPTIMAL, usage, m_render_pass);
 
 	if (!texture)
 		return nullptr;
@@ -301,7 +310,7 @@ TextureCacheBase::TCacheEntryBase* TextureCache::CreateTexture(const TCacheEntry
 	{
 		nrmtexture = Texture2D::Create(
 			config.width, config.height, config.levels, config.layers, PC_TexFormat_To_VkFormat[config.pcformat],
-			VK_SAMPLE_COUNT_1_BIT, VK_IMAGE_VIEW_TYPE_2D_ARRAY, VK_IMAGE_TILING_OPTIMAL, usage);
+			VK_SAMPLE_COUNT_1_BIT, VK_IMAGE_VIEW_TYPE_2D_ARRAY, VK_IMAGE_TILING_OPTIMAL, usage, m_render_pass);
 	}
 	TCacheEntry* entry = new TCacheEntry(config, std::move(texture), std::move(nrmtexture), framebuffer);
 	entry->compressed = config.pcformat >= PC_TEX_FMT_DXT1 && config.pcformat < PC_TEX_FMT_DEPTH_FLOAT;
@@ -487,8 +496,7 @@ TextureCache::TCacheEntry::TCacheEntry(const TCacheEntryConfig& config_,
 	std::unique_ptr<Texture2D> texture,
 	std::unique_ptr<Texture2D> nrmtexture,
 	VkFramebuffer framebuffer)
-	: TCacheEntryBase(config_), m_texture(std::move(texture)), m_nrmtexture(std::move(nrmtexture)),
-	m_framebuffer(framebuffer)
+	: TCacheEntryBase(config_), m_texture(std::move(texture)), m_nrmtexture(std::move(nrmtexture))	
 {
 }
 
@@ -501,8 +509,20 @@ TextureCache::TCacheEntry::~TCacheEntry()
 	{
 		StateTracker::GetInstance()->UnbindTexture(m_nrmtexture->GetView());
 	}
-	if (m_framebuffer != VK_NULL_HANDLE)
-		g_command_buffer_mgr->DeferFramebufferDestruction(m_framebuffer);
+}
+VkFramebuffer TextureCache::TCacheEntry::GetFramebuffer() const
+{ 
+	return m_texture->GetFrameBuffer();
+}
+
+bool TextureCache::TCacheEntry::DecodeTextureOnGPU(u32 dst_level, const u8* data,
+	u32 data_size, TextureFormat format, u32 width, u32 height,
+	u32 aligned_width, u32 aligned_height, u32 row_stride,
+	const u8* palette, TlutFormat palette_format)
+{
+	return static_cast<TextureCache*>(g_texture_cache.get())->GetTextureConverter()->DecodeTexture(this, dst_level, data, data_size,
+		format, width, height, aligned_width, aligned_height,
+		row_stride, palette, palette_format);
 }
 
 void TextureCache::TCacheEntry::Load(const u8* src, u32 width, u32 height,
@@ -514,50 +534,6 @@ void TextureCache::TCacheEntry::Load(const u8* src, u32 width, u32 height,
 void TextureCache::TCacheEntry::LoadMaterialMap(const u8* src, u32 width, u32 height, u32 level)
 {
 	TextureCache::GetInstance()->LoadData(m_nrmtexture.get(), src, width, height, width, level);
-}
-void TextureCache::TCacheEntry::Load(const u8* src, u32 width, u32 height, u32 expandedWidth,
-	u32 expandedHeight, const s32 texformat, const u32 tlutaddr, const TlutFormat tlutfmt, u32 level)
-{
-	u8* data = g_texture_cache->GetTemporalBuffer();
-	TexDecoder_Decode(
-		data,
-		src,
-		expandedWidth,
-		expandedHeight,
-		texformat,
-		tlutaddr,
-		tlutfmt,
-		PC_TEX_FMT_RGBA32 == config.pcformat,
-		compressed);
-	if (is_scaled)
-	{
-		data = (u8*)TextureCache::GetInstance()->m_scaler->Scale((u32*)data, expandedWidth, height);
-		width *= g_ActiveConfig.iTexScalingFactor;
-		height *= g_ActiveConfig.iTexScalingFactor;
-		expandedWidth *= g_ActiveConfig.iTexScalingFactor;
-	}
-	TextureCache::GetInstance()->LoadData(m_texture.get(), data, width, height, expandedWidth, level);
-
-}
-void TextureCache::TCacheEntry::LoadFromTmem(const u8* ar_src, const u8* gb_src, u32 width, u32 height,
-	u32 expanded_width, u32 expanded_Height, u32 level)
-{
-	u8* data = g_texture_cache->GetTemporalBuffer();
-	TexDecoder_DecodeRGBA8FromTmem(
-		(u32*)data,
-		ar_src,
-		gb_src,
-		expanded_width,
-		expanded_Height);
-	
-	if (is_scaled)
-	{
-		data = (u8*)TextureCache::GetInstance()->m_scaler->Scale((u32*)data, expanded_width, height);
-		width *= g_ActiveConfig.iTexScalingFactor;
-		height *= g_ActiveConfig.iTexScalingFactor;
-		expanded_width *= g_ActiveConfig.iTexScalingFactor;
-	}
-	TextureCache::GetInstance()->LoadData(m_texture.get(), data, width, height, expanded_width, level);
 }
 
 void TextureCache::TCacheEntry::FromRenderTarget(bool is_depth_copy,
@@ -572,19 +548,21 @@ void TextureCache::TCacheEntry::FromRenderTarget(bool is_depth_copy,
 	// Flush EFB pokes first, as they're expected to be included.
 	framebuffer_mgr->FlushEFBPokes();
 
-	// Has to be flagged as a render target.
-	_assert_(m_framebuffer != VK_NULL_HANDLE);
-
 	// Can't be done in a render pass, since we're doing our own render pass!
 	VkCommandBuffer command_buffer = g_command_buffer_mgr->GetCurrentCommandBuffer();
 	StateTracker::GetInstance()->EndRenderPass();
 
-	// Transition EFB to shader resource before binding
+	// Transition EFB to shader resource before binding.
+	// An out-of-bounds source region is valid here, and fine for the draw (since it is converted
+	// to texture coordinates), but it's not valid to resolve an out-of-range rectangle.
 	VkRect2D region = 
 	{ 
 		{ scaled_src_rect.left, scaled_src_rect.top },
 		{ static_cast<u32>(scaled_src_rect.GetWidth()), static_cast<u32>(scaled_src_rect.GetHeight()) }
 	};
+	region = Util::ClampRect2D(region, FramebufferManager::GetInstance()->GetEFBWidth(),
+		FramebufferManager::GetInstance()->GetEFBHeight());
+
 	Texture2D* src_texture;
 	if (is_depth_copy)
 		src_texture = FramebufferManager::GetInstance()->ResolveEFBDepthTexture(region);
@@ -609,7 +587,7 @@ void TextureCache::TCacheEntry::FromRenderTarget(bool is_depth_copy,
 
 	VkRect2D dest_region = { { 0, 0 },{ width, height } };
 
-	draw.BeginRenderPass(m_framebuffer, dest_region);
+	draw.BeginRenderPass(m_texture->GetFrameBuffer(), dest_region);
 
 	draw.DrawQuad(0, 0, config.width, config.height, scaled_src_rect.left, scaled_src_rect.top, 0,
 		scaled_src_rect.GetWidth(), scaled_src_rect.GetHeight(),

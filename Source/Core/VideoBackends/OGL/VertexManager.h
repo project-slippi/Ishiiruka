@@ -7,6 +7,8 @@
 #include "VideoCommon/NativeVertexFormat.h"
 #include "VideoCommon/VertexManagerBase.h"
 
+class StreamBuffer;
+
 namespace OGL
 {
 class GLVertexFormat : public NativeVertexFormat
@@ -47,5 +49,10 @@ private:
 	// Alternative buffers in CPU memory for primatives we are going to discard.
 	std::vector<u8, Common::aligned_allocator<u8, 16>> m_cpu_v_buffer;
 	std::vector<u16, Common::aligned_allocator<u16, 16>> m_cpu_i_buffer;
+	std::unique_ptr<StreamBuffer> m_vertexBuffer;
+	std::unique_ptr<StreamBuffer> m_indexBuffer;
+	size_t m_baseVertex;
+	size_t m_index_offset;
+	u16* m_index_buffer_base;
 };
 }

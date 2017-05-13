@@ -248,7 +248,7 @@ HRESULT Create(HWND wnd)
 	swap_chain_desc.SampleDesc.Quality = 0;
 	swap_chain_desc.Windowed = true;
 	swap_chain_desc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL;
-	swap_chain_desc.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
+	swap_chain_desc.Flags = 0;
 
 	swap_chain_desc.BufferDesc.Width = s_xres;
 	swap_chain_desc.BufferDesc.Height = s_yres;
@@ -822,7 +822,7 @@ void Reset()
 		s_xres,
 		s_yres,
 		DXGI_FORMAT_R8G8B8A8_UNORM,
-		DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING));
+		0));
 
 	// recreate back buffer textures
 
@@ -897,7 +897,7 @@ void Present()
 
 	const double time_elapsed_since_last_present = static_cast<double>(current_qpc.QuadPart - s_last_present_qpc.QuadPart) / s_qpc_frequency.QuadPart;
 
-	unsigned int present_flags = g_ActiveConfig.IsVSync() ? 0 : DXGI_PRESENT_ALLOW_TEARING;
+	unsigned int present_flags = 0;
 
 	if (g_ActiveConfig.IsVSync() == false &&
 		time_elapsed_since_last_present < (1.0 / static_cast<double>(s_monitor_refresh_rate)) / 2.0

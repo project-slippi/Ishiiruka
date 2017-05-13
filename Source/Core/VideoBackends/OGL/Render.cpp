@@ -8,6 +8,7 @@
 #include <cstdio>
 #include <memory>
 #include <string>
+#include <tuple>
 #include <vector>
 
 #include "Common/Atomic.h"
@@ -80,6 +81,11 @@ static void APIENTRY ErrorCallback(GLenum source, GLenum type, GLuint id, GLenum
 {
 	const char* s_source;
 	const char* s_type;
+
+	// Performance - DualCore driver performance warning:
+	// DualCore application thread syncing with server thread
+	if (id == 0x200b0)
+		return;
 
 	switch (source)
 	{
@@ -483,15 +489,16 @@ Renderer::Renderer()
 	g_ogl_config.bSupportViewportFloat = GLExtensions::Supports("GL_ARB_viewport_array");
 	g_ogl_config.bSupportsDebug =
 		GLExtensions::Supports("GL_KHR_debug") || GLExtensions::Supports("GL_ARB_debug_output");
-	g_ogl_config.bSupports3DTextureStorage =
+	g_ogl_config.bSupportsTextureStorage = GLExtensions::Supports("GL_ARB_texture_storage");
+	g_ogl_config.bSupports3DTextureStorageMultisample =
 		GLExtensions::Supports("GL_ARB_texture_storage_multisample") ||
 		GLExtensions::Supports("GL_OES_texture_storage_multisample_2d_array");
-	g_ogl_config.bSupports2DTextureStorage =
+	g_ogl_config.bSupports2DTextureStorageMultisample =
 		GLExtensions::Supports("GL_ARB_texture_storage_multisample");
-	g_ogl_config.bSupportsEarlyFragmentTests =
-		GLExtensions::Supports("GL_ARB_shader_image_load_store");
+	g_ogl_config.bSupportsImageLoadStore = GLExtensions::Supports("GL_ARB_shader_image_load_store");
 	g_ogl_config.bSupportsConservativeDepth = GLExtensions::Supports("GL_ARB_conservative_depth");
 	g_ogl_config.bSupportsAniso = GLExtensions::Supports("GL_EXT_texture_filter_anisotropic");
+	g_Config.backend_info.bSupportsComputeShaders = GLExtensions::Supports("GL_ARB_compute_shader");
 
 	if (GLInterface->GetMode() == GLInterfaceMode::MODE_OPENGLES3)
 	{
@@ -518,6 +525,7 @@ Renderer::Renderer()
 		{
 			g_ogl_config.eSupportedGLSLVersion = GLSLES_300;
 			g_ogl_config.bSupportsAEP = false;
+			g_ogl_config.bSupportsTextureStorage = true;
 			g_Config.backend_info.bSupportsGeometryShaders = false;
 		}
 		else if (GLExtensions::Version() == 310)
@@ -525,16 +533,18 @@ Renderer::Renderer()
 			g_ogl_config.eSupportedGLSLVersion = GLSLES_310;
 			g_ogl_config.bSupportsAEP = GLExtensions::Supports("GL_ANDROID_extension_pack_es31a");
 			g_Config.backend_info.bSupportsBindingLayout = true;
-			g_ogl_config.bSupportsEarlyFragmentTests = true;
+			g_ogl_config.bSupportsImageLoadStore = true;
 			g_Config.backend_info.bSupportsGeometryShaders = g_ogl_config.bSupportsAEP;
+			g_Config.backend_info.bSupportsComputeShaders = true;
 			g_Config.backend_info.bSupportsGSInstancing =
 				g_Config.backend_info.bSupportsGeometryShaders && g_ogl_config.SupportedESPointSize > 0;
 			g_Config.backend_info.bSupportsSSAA = g_ogl_config.bSupportsAEP;
 			g_Config.backend_info.bSupportsBBox = true;
 			g_ogl_config.bSupportsMSAA = true;
-			g_ogl_config.bSupports2DTextureStorage = true;
+			g_ogl_config.bSupportsTextureStorage = true;
+			g_ogl_config.bSupports2DTextureStorageMultisample = true;
 			if (g_ActiveConfig.iStereoMode > 0 && g_ActiveConfig.iMultisamples > 1 &&
-				!g_ogl_config.bSupports3DTextureStorage)
+				!g_ogl_config.bSupports3DTextureStorageMultisample)
 			{
 				// GLES 3.1 can't support stereo rendering and MSAA
 				OSD::AddMessage("MSAA Stereo rendering isn't supported by your GPU.", 10000);
@@ -546,8 +556,9 @@ Renderer::Renderer()
 			g_ogl_config.eSupportedGLSLVersion = GLSLES_320;
 			g_ogl_config.bSupportsAEP = GLExtensions::Supports("GL_ANDROID_extension_pack_es31a");
 			g_Config.backend_info.bSupportsBindingLayout = true;
-			g_ogl_config.bSupportsEarlyFragmentTests = true;
+			g_ogl_config.bSupportsImageLoadStore = true;
 			g_Config.backend_info.bSupportsGeometryShaders = true;
+			g_Config.backend_info.bSupportsComputeShaders = true;
 			g_Config.backend_info.bSupportsGSInstancing = g_ogl_config.SupportedESPointSize > 0;
 			g_Config.backend_info.bSupportsPaletteConversion = true;
 			g_Config.backend_info.bSupportsSSAA = true;
@@ -556,8 +567,9 @@ Renderer::Renderer()
 			g_ogl_config.bSupportsGLBaseVertex = true;
 			g_ogl_config.bSupportsDebug = true;
 			g_ogl_config.bSupportsMSAA = true;
-			g_ogl_config.bSupports2DTextureStorage = true;
-			g_ogl_config.bSupports3DTextureStorage = true;
+			g_ogl_config.bSupportsTextureStorage = true;
+			g_ogl_config.bSupports2DTextureStorageMultisample = true;
+			g_ogl_config.bSupports3DTextureStorageMultisample = true;
 		}
 	}
 	else
@@ -573,8 +585,7 @@ Renderer::Renderer()
 		else if (GLExtensions::Version() == 300)
 		{
 			g_ogl_config.eSupportedGLSLVersion = GLSL_130;
-			g_ogl_config.bSupportsEarlyFragmentTests =
-				false;  // layout keyword is only supported on glsl150+
+			g_ogl_config.bSupportsImageLoadStore = false;  // layout keyword is only supported on glsl150+
 			g_ogl_config.bSupportsConservativeDepth =
 				false;  // layout keyword is only supported on glsl150+
 			g_Config.backend_info.bSupportsGeometryShaders =
@@ -583,8 +594,7 @@ Renderer::Renderer()
 		else if (GLExtensions::Version() == 310)
 		{
 			g_ogl_config.eSupportedGLSLVersion = GLSL_140;
-			g_ogl_config.bSupportsEarlyFragmentTests =
-				false;  // layout keyword is only supported on glsl150+
+			g_ogl_config.bSupportsImageLoadStore = false;  // layout keyword is only supported on glsl150+
 			g_ogl_config.bSupportsConservativeDepth =
 				false;  // layout keyword is only supported on glsl150+
 			g_Config.backend_info.bSupportsGeometryShaders =
@@ -598,10 +608,27 @@ Renderer::Renderer()
 		{
 			g_ogl_config.eSupportedGLSLVersion = GLSL_330;
 		}
+		else if (GLExtensions::Version() >= 430)
+		{
+			// TODO: We should really parse the GL_SHADING_LANGUAGE_VERSION token.
+			g_ogl_config.eSupportedGLSLVersion = GLSL_430;
+			g_ogl_config.bSupportsTextureStorage = true;
+			g_ogl_config.bSupportsImageLoadStore = true;
+			g_Config.backend_info.bSupportsSSAA = true;
+
+			// Compute shaders are core in GL4.3.
+			g_Config.backend_info.bSupportsComputeShaders = true;
+		}
 		else
 		{
 			g_ogl_config.eSupportedGLSLVersion = GLSL_400;
 			g_Config.backend_info.bSupportsSSAA = true;
+			if (GLExtensions::Version() == 420)
+			{
+				// Texture storage and shader image load/store are core in GL4.2.
+				g_ogl_config.bSupportsTextureStorage = true;
+				g_ogl_config.bSupportsImageLoadStore = true;
+			}
 		}
 		g_Config.backend_info.bSupportedFormats[PC_TEX_FMT_DXT1] = GLExtensions::Supports("GL_EXT_texture_compression_s3tc");
 		g_Config.backend_info.bSupportedFormats[PC_TEX_FMT_DXT3] = g_Config.backend_info.bSupportedFormats[PC_TEX_FMT_DXT1];
@@ -613,11 +640,18 @@ Renderer::Renderer()
 
 	// Either method can do early-z tests. See PixelShaderGen for details.
 	g_Config.backend_info.bSupportsEarlyZ =
-		g_ogl_config.bSupportsEarlyFragmentTests || g_ogl_config.bSupportsConservativeDepth;
+		g_ogl_config.bSupportsImageLoadStore || g_ogl_config.bSupportsConservativeDepth;
 
 	glGetIntegerv(GL_MAX_SAMPLES, &g_ogl_config.max_samples);
 	if (g_ogl_config.max_samples < 1 || !g_ogl_config.bSupportsMSAA)
 		g_ogl_config.max_samples = 1;
+
+	// We require texel buffers, image load store, and compute shaders to enable GPU texture decoding.
+	// If the driver doesn't expose the extensions, but supports GL4.3/GLES3.1, it will still be
+	// enabled in the version check below.
+	g_Config.backend_info.bSupportsGPUTextureDecoding =
+		g_Config.backend_info.bSupportsPaletteConversion &&
+		g_Config.backend_info.bSupportsComputeShaders && g_ogl_config.bSupportsImageLoadStore;
 
 	if (g_ogl_config.bSupportsDebug)
 	{
@@ -690,28 +724,65 @@ Renderer::Renderer()
 	s_last_xfb_mode = g_ActiveConfig.bUseRealXFB;
 
 	// Decide framebuffer size
-	s_backbuffer_width = static_cast<int>(std::max(GLInterface->GetBackBufferWidth(), 16u));
-	s_backbuffer_height = static_cast<int>(std::max(GLInterface->GetBackBufferHeight(), 16u));
+	m_backbuffer_width = static_cast<int>(std::max(GLInterface->GetBackBufferWidth(), 16u));
+	m_backbuffer_height = static_cast<int>(std::max(GLInterface->GetBackBufferHeight(), 16u));
 
 	// Handle VSync on/off
 	s_vsync = g_ActiveConfig.IsVSync();
 	if (!DriverDetails::HasBug(DriverDetails::BUG_BROKEN_VSYNC))
 		GLInterface->SwapInterval(s_vsync);
 
+	// Because of the fixed framebuffer size we need to disable the resolution
+	// options while running
+	g_Config.bRunning = true;	
+	UpdateActiveConfig();
+	ClearEFBCache();
+}
+
+Renderer::~Renderer()
+{
+	FlushFrameDump();
+	FinishFrameData();
+	DestroyFrameDumpResources();
+}
+
+void Renderer::Shutdown()
+{
+	g_framebuffer_manager.reset();
+
+	g_Config.bRunning = false;
+	UpdateActiveConfig();
+
+	s_raster_font.reset();
+	m_post_processor.reset();
+
+	OpenGL_DeleteAttributelessVAO();
+}
+
+void Renderer::Init()
+{
 	// TODO: Move these somewhere else?
 	FramebufferManagerBase::SetLastXfbWidth(MAX_XFB_WIDTH);
 	FramebufferManagerBase::SetLastXfbHeight(MAX_XFB_HEIGHT);
 
 	UpdateDrawRectangle();
 
-	s_last_efb_scale = g_ActiveConfig.iEFBScale;
+	m_last_efb_scale = g_ActiveConfig.iEFBScale;
 	CalculateTargetSize();
 
 	PixelShaderManager::SetEfbScaleChanged();
 
-	// Because of the fixed framebuffer size we need to disable the resolution
-	// options while running
-	g_Config.bRunning = true;
+	// Initialize the FramebufferManager
+	g_framebuffer_manager =
+		std::make_unique<FramebufferManager>(m_target_width, m_target_height, s_MSAASamples);
+
+	s_raster_font = std::make_unique<RasterFont>();
+
+	OpenGL_CreateAttributelessVAO();
+
+	m_post_processor = std::make_unique<OGLPostProcessor>();
+	if (!m_post_processor->Initialize())
+		PanicAlert("OGL: Failed to initialize post processor.");
 
 	glStencilFunc(GL_ALWAYS, 0, 0);
 	glBlendFunc(GL_ONE, GL_ONE);
@@ -739,52 +810,6 @@ Renderer::Renderer()
 	glScissor(0, 0, GetTargetWidth(), GetTargetHeight());
 	glBlendColor(0, 0, 0, 0.5f);
 	glClearDepthf(1.0f);
-	UpdateActiveConfig();
-	ClearEFBCache();
-	m_bColorMaskChanged = true;
-	m_bBlendModeChanged = true;
-	m_bBlendModeForce = true;
-	m_bScissorRectChanged = true;
-	m_bViewPortChanged = true;
-	m_bGenerationModeChanged = true;
-	m_bDepthModeChanged = true;
-	m_bLogicOpModeChanged = true;
-	m_bViewPortChangedRequested = true;
-}
-
-Renderer::~Renderer()
-{
-	FlushFrameDump();
-	FinishFrameData();
-	DestroyFrameDumpResources();
-}
-
-void Renderer::Shutdown()
-{
-	g_framebuffer_manager.reset();
-
-	g_Config.bRunning = false;
-	UpdateActiveConfig();
-
-	s_raster_font.reset();
-	m_post_processor.reset();
-
-	OpenGL_DeleteAttributelessVAO();
-}
-
-void Renderer::Init()
-{
-	// Initialize the FramebufferManager
-	g_framebuffer_manager =
-		std::make_unique<FramebufferManager>(s_target_width, s_target_height, s_MSAASamples);
-
-	s_raster_font = std::make_unique<RasterFont>();
-
-	OpenGL_CreateAttributelessVAO();
-
-	m_post_processor = std::make_unique<OGLPostProcessor>();
-	if (!m_post_processor->Initialize())
-		PanicAlert("OGL: Failed to initialize post processor.");
 }
 
 void Renderer::RenderText(const std::string& text, int left, int top, u32 color)
@@ -821,14 +846,14 @@ TargetRectangle Renderer::ConvertEFBRectangle(const EFBRectangle& rc)
 void Renderer::_SetScissorRect()
 {
 	m_bScissorRectChanged = false;
-	glScissor(m_ScissorRect.left, m_ScissorRect.bottom, m_ScissorRect.GetWidth(), m_ScissorRect.GetHeight());
+	TargetRectangle targetrc = ConvertEFBRectangle(m_ScissorRect);
+	glScissor(targetrc.left, targetrc.bottom, targetrc.GetWidth(), targetrc.GetHeight());
 }
 
-void Renderer::SetScissorRect(const TargetRectangle& trc)
+void Renderer::SetScissorRect(const EFBRectangle& trc)
 {
 	m_bScissorRectChanged = true;
 	m_ScissorRect = trc;
-	
 }
 
 void Renderer::_SetColorMask()
@@ -1075,12 +1100,12 @@ u16 Renderer::BBoxRead(int index)
 	if (index < 2)
 	{
 		// left/right
-		value = value * EFB_WIDTH / s_target_width;
+		value = value * EFB_WIDTH / m_target_width;
 	}
 	else
 	{
 		// up/down -- we have to swap up and down
-		value = value * EFB_HEIGHT / s_target_height;
+		value = value * EFB_HEIGHT / m_target_height;
 		value = EFB_HEIGHT - value - 1;
 	}
 	if (index & 1)
@@ -1096,13 +1121,13 @@ void Renderer::BBoxWrite(int index, u16 _value)
 		value--;
 	if (index < 2)
 	{
-		value = value * s_target_width / EFB_WIDTH;
+		value = value * m_target_width / EFB_WIDTH;
 	}
 	else
 	{
 		index ^= 1;  // swap 2 and 3 for top/bottom
 		value = EFB_HEIGHT - value - 1;
-		value = value * s_target_height / EFB_HEIGHT;
+		value = value * m_target_height / EFB_HEIGHT;
 	}
 
 	BBox::Set(index, value);
@@ -1146,7 +1171,7 @@ void Renderer::_SetViewport()
 			m_viewport.Height *= -1;
 		}
 
-		
+
 	}
 	if (m_bViewPortChanged)
 	{
@@ -1216,9 +1241,9 @@ void Renderer::BlitScreen(const TargetRectangle& dst_rect, const TargetRectangle
 
 		// Top-and-Bottom mode needs to compensate for inverted vertical screen coordinates.
 		if (g_ActiveConfig.iStereoMode == STEREO_TAB)
-			ConvertStereoRectangle(dst_rect, rightRc, leftRc);
+			std::tie(rightRc, leftRc) = ConvertStereoRectangle(dst_rect);
 		else
-			ConvertStereoRectangle(dst_rect, leftRc, rightRc);
+			std::tie(leftRc, rightRc) = ConvertStereoRectangle(dst_rect);
 
 		m_post_processor->BlitScreen(leftRc, dst_size, dst_texture, src_rect, src_size, src_texture, src_depth_texture, 0, gamma);
 		m_post_processor->BlitScreen(rightRc, dst_size, dst_texture, src_rect, src_size, src_texture, src_depth_texture, 1, gamma);
@@ -1382,7 +1407,7 @@ void Renderer::SwapImpl(u32 xfbAddr, u32 fbWidth, u32 fbStride, u32 fbHeight,
 			glDisable(GL_DEBUG_OUTPUT);
 	}
 
-	if ((!XFBWrited && !g_ActiveConfig.RealXFBEnabled()) || !fbWidth || !fbHeight)
+	if ((!m_xfb_written && !g_ActiveConfig.RealXFBEnabled()) || !fbWidth || !fbHeight)
 	{
 		Core::Callback_VideoCopiedToXFB(false);
 		return;
@@ -1406,7 +1431,7 @@ void Renderer::SwapImpl(u32 xfbAddr, u32 fbWidth, u32 fbStride, u32 fbHeight,
 	std::swap(flipped_trc.top, flipped_trc.bottom);
 
 	// Copy the framebuffer to screen.	
-	const TargetSize dst_size = {s_target_width, s_target_height};
+	const TargetSize dst_size = {m_target_width, m_target_height};
 	DrawFrame(flipped_trc, rc, xfbAddr, xfbSourceList, xfbCount, 0, dst_size, fbWidth, fbStride, fbHeight, Gamma);
 
 	// The FlushFrameDump call here is necessary even after frame dumping is stopped.
@@ -1453,13 +1478,13 @@ void Renderer::SwapImpl(u32 xfbAddr, u32 fbWidth, u32 fbStride, u32 fbHeight,
 	bool window_resized = false;
 	int window_width = static_cast<int>(std::max(GLInterface->GetBackBufferWidth(), 16u));
 	int window_height = static_cast<int>(std::max(GLInterface->GetBackBufferHeight(), 16u));
-	if (window_width != s_backbuffer_width || window_height != s_backbuffer_height ||
-		s_last_efb_scale != g_ActiveConfig.iEFBScale)
+	if (window_width != m_backbuffer_width || window_height != m_backbuffer_height ||
+		m_last_efb_scale != g_ActiveConfig.iEFBScale)
 	{
 		window_resized = true;
-		s_backbuffer_width = window_width;
-		s_backbuffer_height = window_height;
-		s_last_efb_scale = g_ActiveConfig.iEFBScale;
+		m_backbuffer_width = window_width;
+		m_backbuffer_height = window_height;
+		m_last_efb_scale = g_ActiveConfig.iEFBScale;
 	}
 	bool target_size_changed = CalculateTargetSize();
 	if (target_size_changed || xfbchanged || window_resized ||
@@ -1489,7 +1514,7 @@ void Renderer::SwapImpl(u32 xfbAddr, u32 fbWidth, u32 fbStride, u32 fbHeight,
 
 			g_framebuffer_manager.reset();
 			g_framebuffer_manager =
-				std::make_unique<FramebufferManager>(s_target_width, s_target_height, s_MSAASamples);
+				std::make_unique<FramebufferManager>(m_target_width, m_target_height, s_MSAASamples);
 
 			PixelShaderManager::SetEfbScaleChanged();
 
@@ -1588,7 +1613,7 @@ void Renderer::DrawEFB(const TargetRectangle& t_rc, const EFBRectangle& source_r
 	TargetRectangle target_rc = { t_rc.left, t_rc.top, t_rc.right, t_rc.bottom };
 	// for msaa mode, we must resolve the efb content to non-msaa
 	GLuint tex = FramebufferManager::ResolveAndGetRenderTarget(source_rc);
-	TargetSize tex_size(s_target_width, s_target_height);
+	TargetSize tex_size(m_target_width, m_target_height);
 	// Apply post-processing.
 	// If enabled, blit_tex will be replaced with an internal texture from the post-processor,
 	// leaving the original texture unmodified, should it be required next frame.
@@ -2100,11 +2125,6 @@ void Renderer::_SetLogicOpMode()
 void Renderer::SetLogicOpMode()
 {
 	m_bLogicOpModeChanged = true;
-}
-
-void Renderer::SetDitherMode()
-{
-
 }
 
 void Renderer::SetSamplerState(int stage, int texindex, bool custom_tex)

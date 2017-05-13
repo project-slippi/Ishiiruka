@@ -25,6 +25,8 @@ bool PixelShaderManager::s_bFogColorChanged;
 bool PixelShaderManager::s_bFogParamChanged;
 bool PixelShaderManager::s_bFogRangeAdjustChanged;
 bool PixelShaderManager::s_bViewPortChanged;
+bool PixelShaderManager::s_EfbScaleChanged;
+
 static int nLightsChanged[2]; // min,max
 static int lastRGBAfull[2][4][4];
 u8 PixelShaderManager::s_nTexDimsChanged;
@@ -67,6 +69,7 @@ void PixelShaderManager::Dirty()
 	nLightsChanged[0] = 0; nLightsChanged[1] = 0x80;
 	s_materials_changed = 15;
 	sbflagschanged = true;
+	s_EfbScaleChanged = true;
 }
 
 const float* PixelShaderManager::GetBuffer()
@@ -95,6 +98,15 @@ void PixelShaderManager::DisableDirtyRegions()
 
 void PixelShaderManager::SetConstants()
 {
+	if (s_EfbScaleChanged)
+	{
+		m_buffer.SetConstant4<float>(C_EFBSCALE,
+			1.0f / float(g_renderer->EFBToScaledXf(1)),
+			1.0f / float(g_renderer->EFBToScaledYf(1)), 0.0f, 0.0f);
+		s_EfbScaleChanged = true;
+		s_bViewPortChanged = true;
+	}
+	
 	for (int i = 0; i < 2; ++i)
 	{
 		if (s_nColorsChanged[i])
@@ -351,7 +363,7 @@ void PixelShaderManager::SetConstants()
 			// so to simplify I use the hi coefficient as K in the shader taking 256 as the scale
 			m_buffer.SetConstant4<float>(C_FOGF
 				, ScreenSpaceCenter
-				, (float)Renderer::EFBToScaledX((int)(2.0f * xfmem.viewport.wd))
+				, (float)g_renderer->EFBToScaledX((int)(2.0f * xfmem.viewport.wd))
 				, bpmem.fogRange.K[4].HI / 256.0f
 				, 0.0f);
 		}
@@ -564,14 +576,6 @@ void PixelShaderManager::InvalidateXFRange(u32 start, u32 end)
 			if (nLightsChanged[1] < _end)   nLightsChanged[1] = _end;
 		}
 	}
-}
-
-void PixelShaderManager::SetEfbScaleChanged()
-{
-	m_buffer.SetConstant4<float>(C_EFBSCALE,
-		1.0f / float(Renderer::EFBToScaledXf(1)),
-		1.0f / float(Renderer::EFBToScaledYf(1)), 0.0f, 0.0f);
-	s_bViewPortChanged = true;
 }
 
 void PixelShaderManager::SetZSlope(float dfdx, float dfdy, float f0)

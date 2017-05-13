@@ -113,6 +113,7 @@ inline void GenerateVertexShader(ShaderCode& out, const vertex_shader_uid_data& 
 
 	DeclareUniform<api_type>(out, C_PROJECTION, "float4", I_PROJECTION"[4]");
 	DeclareUniform<api_type>(out, C_DEPTHPARAMS, "float4", I_DEPTHPARAMS);
+	DeclareUniform<api_type>(out, C_VIEWPARAMS, "float4", I_VIEWPARAMS);
 	DeclareUniform<api_type>(out, C_MATERIALS, "float4", I_MATERIALS"[4]");
 	DeclareUniform<api_type>(out, C_LIGHTS, "float4", I_LIGHTS"[40]");
 	DeclareUniform<api_type>(out, C_PHONG, "float4", I_PHONG"[2]");
@@ -498,6 +499,19 @@ inline void GenerateVertexShader(ShaderCode& out, const vertex_shader_uid_data& 
 	// Hence, we compensate for this pixel center difference so that primitives
 	// get rasterized correctly.
 	out.Write("o.pos.xy = o.pos.xy + o.pos.w * " I_DEPTHPARAMS".zw;\n");
+	{
+		// By now our position is in clip space
+		// however, higher resolutions than the Wii outputs
+		// cause an additional pixel offset
+		// due to a higher pixel density
+		// we need to correct this by converting our
+		// clip-space position into the Wii's screen-space
+		// acquire the right pixel and then convert it back
+		out.Write("if (o.pos.w == 1.0)\n");
+		out.Write("{\n");
+		out.Write("\to.pos.xy = round(o.pos.xy * " I_VIEWPARAMS ".xy) * " I_VIEWPARAMS ".zw;\n");
+		out.Write("}\n");
+	}
 
 	if (api_type & API_D3D9)
 	{

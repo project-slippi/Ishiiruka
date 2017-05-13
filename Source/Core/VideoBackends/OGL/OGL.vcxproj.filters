@@ -90,6 +90,9 @@
     <ClInclude Include="BoundingBox.h">
       <Filter>Render</Filter>
     </ClInclude>
+    <ClInclude Include="GPUTimer.h">
+      <Filter>GLUtil</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Text Include="CMakeLists.txt" />

@@ -22,7 +22,6 @@ void SetScissor();
 void SetLineWidth();
 void SetDepthMode();
 void SetBlendMode();
-void SetDitherMode();
 void SetLogicOpMode();
 void SetColorMask();
 void ClearScreen(const EFBRectangle &rc);

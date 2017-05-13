@@ -19,6 +19,7 @@
 #include "VideoCommon/VideoCommon.h"
 
 struct VideoConfig;
+class TextureScaler;
 
 enum TextureCacheParams
 {
@@ -205,16 +206,23 @@ public:
 
 		virtual void Load(const u8* src, u32 width, u32 height,
 			u32 expanded_width, u32 level) = 0;
-		virtual void LoadMaterialMap(const u8* src, u32 width, u32 height, u32 level) = 0;
-		virtual void Load(const u8* src, u32 width, u32 height, u32 expandedWidth,
-			u32 expandedHeight, const s32 texformat, const u32 tlutaddr, const TlutFormat tlutfmt, u32 level) = 0;
-		virtual void LoadFromTmem(const u8* ar_src, const u8* gb_src, u32 width, u32 height,
-			u32 expanded_width, u32 expanded_Height, u32 level) = 0;
+		virtual void LoadMaterialMap(const u8* src, u32 width, u32 height, u32 level)
+		{}
 		virtual void FromRenderTarget(bool is_depth_copy, const EFBRectangle& srcRect,
 			bool scaleByHalf, u32 cbufid, const float *colmat, u32 width, u32 height) = 0;
 		bool OverlapsMemoryRange(u32 range_address, u32 range_size) const;
 		virtual bool SupportsMaterialMap() const = 0;
-
+		// Decodes the specified data to the GPU texture specified by entry.
+		// width, height are the size of the image in pixels.
+		// aligned_width, aligned_height are the size of the image in pixels, aligned to the block size.
+		// row_stride is the number of bytes for a row of blocks, not pixels.
+		virtual bool DecodeTextureOnGPU(u32 dst_level, const u8* data,
+			u32 data_size, TextureFormat format, u32 width, u32 height,
+			u32 aligned_width, u32 aligned_height, u32 row_stride,
+			const u8* palette, TlutFormat palette_format)
+		{
+			return false;
+		}
 		
 
 		bool IsEfbCopy() const
@@ -243,9 +251,9 @@ public:
 
 	
 	virtual bool Palettize(TCacheEntryBase* entry, const TCacheEntryBase* base_entry) = 0;
-	virtual void CopyEFB(u8* dst, u32 format, u32 native_width, u32 bytes_per_row, u32 num_blocks_y, u32 memory_stride,
-		bool is_depth_copy, const EFBRectangle& srcRect,
-		bool isIntensity, bool scaleByHalf) = 0;
+	virtual void CopyEFB(u8* dst, const EFBCopyFormat& format, u32 native_width, u32 bytes_per_row,
+		u32 num_blocks_y, u32 memory_stride,
+		bool is_depth_copy, const EFBRectangle& src_rect, bool scale_by_half) = 0;
 
 	virtual bool CompileShaders() = 0; // currently only implemented by OGL
 	virtual void DeleteShaders() = 0; // currently only implemented by OGL
@@ -260,6 +268,11 @@ public:
 	u8* GetTemporalBuffer()
 	{
 		return temp;
+	}
+	// Returns true if the texture data and palette formats are supported by the GPU decoder.
+	virtual bool SupportsGPUTextureDecode(TextureFormat format, TlutFormat palette_format)
+	{
+		return false;
 	}
 protected:
 	alignas(16) u8 *temp = {};
@@ -310,8 +323,10 @@ private:
 		s32 scaling_mode;
 		s32 scaling_factor;
 		bool scaling_deposterize;
+		bool gpu_texture_decoding;
 	};
 	BackupConfig backup_config = {};
+	std::unique_ptr<TextureScaler> m_scaler;
 };
 
 extern std::unique_ptr<TextureCacheBase> g_texture_cache;

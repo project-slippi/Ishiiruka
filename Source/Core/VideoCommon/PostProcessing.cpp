@@ -26,8 +26,6 @@
 #include "VideoCommon/VideoConfig.h"
 #include "VideoCommon/XFMemory.h"
 
-#include <wx/language.h>
-
 
 static const char s_default_shader[] = "void main() { SetOutput(ApplyGCGamma(Sample())); }\n";
 struct LangDescriptor
@@ -1299,23 +1297,23 @@ void  PostProcessor::DoEFB(const TargetRectangle* src_rect)
 	}
 	else
 	{
-		// Copied from Renderer::SetViewport
+		// Copied fromg_renderer->SetViewport
 		int scissorXOff = bpmem.scissorOffset.x * 2;
 		int scissorYOff = bpmem.scissorOffset.y * 2;
-		float X = Renderer::EFBToScaledXf(xfmem.viewport.xOrig - xfmem.viewport.wd - (float)scissorXOff);
+		float X =g_renderer->EFBToScaledXf(xfmem.viewport.xOrig - xfmem.viewport.wd - (float)scissorXOff);
 		float Y;
 		if (m_APIType == API_OPENGL)
 		{
-			Y = Renderer::EFBToScaledYf((float)EFB_HEIGHT - xfmem.viewport.yOrig + xfmem.viewport.ht +
+			Y =g_renderer->EFBToScaledYf((float)EFB_HEIGHT - xfmem.viewport.yOrig + xfmem.viewport.ht +
 				(float)scissorYOff);
 		}
 		else
 		{
-			Y = Renderer::EFBToScaledYf(xfmem.viewport.yOrig + xfmem.viewport.ht - (float)scissorYOff);
+			Y =g_renderer->EFBToScaledYf(xfmem.viewport.yOrig + xfmem.viewport.ht - (float)scissorYOff);
 		}
 		
-		float Width = Renderer::EFBToScaledXf(2.0f * xfmem.viewport.wd);
-		float Height = Renderer::EFBToScaledYf(-2.0f * xfmem.viewport.ht);
+		float Width =g_renderer->EFBToScaledXf(2.0f * xfmem.viewport.wd);
+		float Height =g_renderer->EFBToScaledYf(-2.0f * xfmem.viewport.ht);
 		if (Width < 0)
 		{
 			X += Width;
@@ -1373,7 +1371,7 @@ void PostProcessor::OnEFBCopy(const TargetRectangle* src_rect)
 
 	// Fire off postprocessing on the current efb if a perspective scene has been drawn.
 	if (m_projection_state == PROJECTION_STATE_PERSPECTIVE
-		&& (src_rect == nullptr || (src_rect->GetWidth() > ((Renderer::GetTargetWidth() * 2) / 3))))
+		&& (src_rect == nullptr || (src_rect->GetWidth() > ((g_renderer->GetTargetWidth() * 2) / 3))))
 	{
 		DoEFB(src_rect);
 		m_projection_state = PROJECTION_STATE_FINAL;
@@ -2507,7 +2505,7 @@ bool  PostProcessor::UpdateConstantUniformBuffer(
 	constant_idx++;
 
 	// float4 window_rect
-	const TargetRectangle& window_rect = Renderer::GetWindowRectangle();
+	const TargetRectangle& window_rect =g_renderer->GetWindowRectangle();
 	temp.float_constant[0] = (float)window_rect.left;
 	temp.float_constant[1] = (float)window_rect.top;
 	temp.float_constant[2] = (float)window_rect.right;
@@ -2532,6 +2530,11 @@ bool  PostProcessor::UpdateConstantUniformBuffer(
 	return true;
 }
 
+void* PostProcessingShaderConfiguration::GetConfigurationBuffer(u32* buffer_size)
+{
+	*buffer_size = static_cast<u32>(m_constants.size() * sizeof(Constant));
+	return m_constants.data();
+}
 
 void* PostProcessingShaderConfiguration::UpdateConfigurationBuffer(u32* buffer_size, bool packbuffer)
 {
@@ -2612,6 +2615,7 @@ void* PostProcessingShaderConfiguration::UpdateConfigurationBuffer(u32* buffer_s
 		m_constants[constant_idx] = temp;
 		constant_idx++;
 	}
-	*buffer_size = constant_idx * sizeof(Constant);
+	m_constants.resize(constant_idx);
+	*buffer_size = static_cast<u32>(constant_idx * sizeof(Constant));
 	return m_constants.data();
 }

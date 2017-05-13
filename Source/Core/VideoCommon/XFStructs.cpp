@@ -17,7 +17,7 @@
 
 inline void XFMemWritten(u32 transferSize, u32 baseAddress)
 {
-	VertexManagerBase::Flush();
+	g_vertex_manager->Flush();
 	VertexShaderManager::InvalidateXFRange(baseAddress, baseAddress + transferSize);
 	PixelShaderManager::InvalidateXFRange(baseAddress, baseAddress + transferSize);
 }
@@ -54,7 +54,7 @@ inline void XFRegWritten(int transferSize, u32 baseAddress)
 
 		case XFMEM_SETNUMCHAN:
 			if (xfmem.numChan.numColorChans != (newValue & 3))
-				VertexManagerBase::Flush();
+				g_vertex_manager->Flush();
 			break;
 
 		case XFMEM_SETCHAN0_AMBCOLOR: // Channel Ambient Color
@@ -63,7 +63,7 @@ inline void XFRegWritten(int transferSize, u32 baseAddress)
 			u8 chan = address - XFMEM_SETCHAN0_AMBCOLOR;
 			if (xfmem.ambColor[chan] != newValue)
 			{
-				VertexManagerBase::Flush();
+				g_vertex_manager->Flush();
 				VertexShaderManager::SetMaterialColorChanged(chan);
 				PixelShaderManager::SetMaterialColorChanged(chan);
 			}
@@ -76,7 +76,7 @@ inline void XFRegWritten(int transferSize, u32 baseAddress)
 			u8 chan = address - XFMEM_SETCHAN0_MATCOLOR;
 			if (xfmem.matColor[chan] != newValue)
 			{
-				VertexManagerBase::Flush();
+				g_vertex_manager->Flush();
 				VertexShaderManager::SetMaterialColorChanged(chan + 2);
 				PixelShaderManager::SetMaterialColorChanged(chan + 2);
 			}
@@ -88,12 +88,12 @@ inline void XFRegWritten(int transferSize, u32 baseAddress)
 		case XFMEM_SETCHAN0_ALPHA: // Channel Alpha
 		case XFMEM_SETCHAN1_ALPHA:
 			if (((u32*)&xfmem)[address - 0x1000] != (newValue & 0x7fff))
-				VertexManagerBase::Flush();
+				g_vertex_manager->Flush();
 			break;
 
 		case XFMEM_DUALTEX:
 			if (xfmem.dualTexTrans.enabled != (newValue & 1))
-				VertexManagerBase::Flush();
+				g_vertex_manager->Flush();
 			break;
 
 
@@ -112,7 +112,7 @@ inline void XFRegWritten(int transferSize, u32 baseAddress)
 		case XFMEM_SETVIEWPORT + 3:
 		case XFMEM_SETVIEWPORT + 4:
 		case XFMEM_SETVIEWPORT + 5:
-			VertexManagerBase::Flush();
+			g_vertex_manager->Flush();
 			VertexShaderManager::SetViewportChanged();
 			GeometryShaderManager::SetViewportChanged();
 			PixelShaderManager::SetViewportChanged();
@@ -126,7 +126,7 @@ inline void XFRegWritten(int transferSize, u32 baseAddress)
 		case XFMEM_SETPROJECTION + 4:
 		case XFMEM_SETPROJECTION + 5:
 		case XFMEM_SETPROJECTION + 6:
-			VertexManagerBase::Flush();
+			g_vertex_manager->Flush();
 			VertexShaderManager::SetProjectionChanged();
 			GeometryShaderManager::SetProjectionChanged();
 			nextAddress = XFMEM_SETPROJECTION + 7;
@@ -134,7 +134,7 @@ inline void XFRegWritten(int transferSize, u32 baseAddress)
 
 		case XFMEM_SETNUMTEXGENS: // GXSetNumTexGens
 			if (xfmem.numTexGen.numTexGens != (newValue & 15))
-				VertexManagerBase::Flush();
+				g_vertex_manager->Flush();
 			break;
 
 		case XFMEM_SETTEXMTXINFO:
@@ -145,7 +145,7 @@ inline void XFRegWritten(int transferSize, u32 baseAddress)
 		case XFMEM_SETTEXMTXINFO + 5:
 		case XFMEM_SETTEXMTXINFO + 6:
 		case XFMEM_SETTEXMTXINFO + 7:
-			VertexManagerBase::Flush();
+			g_vertex_manager->Flush();
 
 			nextAddress = XFMEM_SETTEXMTXINFO + 8;
 			break;
@@ -158,7 +158,7 @@ inline void XFRegWritten(int transferSize, u32 baseAddress)
 		case XFMEM_SETPOSMTXINFO + 5:
 		case XFMEM_SETPOSMTXINFO + 6:
 		case XFMEM_SETPOSMTXINFO + 7:
-			VertexManagerBase::Flush();
+			g_vertex_manager->Flush();
 
 			nextAddress = XFMEM_SETPOSMTXINFO + 8;
 			break;

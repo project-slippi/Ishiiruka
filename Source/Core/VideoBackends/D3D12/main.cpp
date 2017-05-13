@@ -107,12 +107,12 @@ void VideoBackend::InitBackendInfo()
 	g_Config.backend_info.bSupportsGSInstancing = true;
 	g_Config.backend_info.bSupportsTessellation = true;
 	g_Config.backend_info.bSupportsSSAA = true;
-	g_Config.backend_info.bSupportsComputeTextureDecoding = false;
+	g_Config.backend_info.bSupportsGPUTextureDecoding = false;
 	g_Config.backend_info.bSupportsComputeTextureEncoding = false;
 	g_Config.backend_info.bSupportsDepthClamp = true;
 	g_Config.backend_info.bSupportsMultithreading = true;
 	g_Config.backend_info.bSupportsValidationLayer = true;
-	g_Config.backend_info.bSupportsReversedDepthRange = true;
+	g_Config.backend_info.bSupportsReversedDepthRange = false;
 	g_Config.backend_info.bSupportsInternalResolutionFrameDumps = true;
 	g_Config.backend_info.bSupportsAsyncShaderCompilation = true;
 	IDXGIFactory* factory;
@@ -165,9 +165,9 @@ bool VideoBackend::Initialize(void *window_handle)
 {
 	if (window_handle == nullptr)
 		return false;
-
-	InitializeShared();
+	
 	InitBackendInfo();
+	InitializeShared();
 
 	if (FAILED(D3D::Create((HWND)window_handle)))
 		return false;
@@ -179,6 +179,7 @@ void VideoBackend::Video_Prepare()
 {
 	// internal interfaces
 	g_renderer = std::make_unique<Renderer>(m_window_handle);
+	g_renderer->Init();
 	g_texture_cache = std::make_unique<TextureCache>();
 	g_vertex_manager = std::make_unique<VertexManager>();
 	g_perf_query = std::make_unique<PerfQuery>();

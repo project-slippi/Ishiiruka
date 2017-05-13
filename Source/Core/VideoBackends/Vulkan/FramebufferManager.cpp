@@ -225,8 +225,8 @@ void FramebufferManager::DestroyEFBRenderPass()
 
 bool FramebufferManager::CreateEFBFramebuffer()
 {
-	m_efb_width = static_cast<u32>(std::max(Renderer::GetTargetWidth(), 1));
-	m_efb_height = static_cast<u32>(std::max(Renderer::GetTargetHeight(), 1));
+	m_efb_width = static_cast<u32>(std::max(g_renderer->GetTargetWidth(), 1));
+	m_efb_height = static_cast<u32>(std::max(g_renderer->GetTargetHeight(), 1));
 	m_efb_layers = (g_ActiveConfig.iStereoMode != STEREO_OFF) ? 2 : 1;
 	INFO_LOG(VIDEO, "EFB size: %ux%ux%u", m_efb_width, m_efb_height, m_efb_layers);
 
@@ -460,6 +460,12 @@ Texture2D* FramebufferManager::ResolveEFBColorTexture(const VkRect2D& region)
 
 	// Can't resolve within a render pass.
 	StateTracker::GetInstance()->EndRenderPass();
+
+	// It's not valid to resolve out-of-bounds coordinates.
+	// Ensuring the region is within the image is the caller's responsibility.
+	_assert_(region.offset.x >= 0 && region.offset.y >= 0 &&
+		(static_cast<u32>(region.offset.x) + region.extent.width) <= m_efb_width &&
+		(static_cast<u32>(region.offset.y) + region.extent.height) <= m_efb_height);
 
 	// Resolving is considered to be a transfer operation.
 	m_efb_color_texture->TransitionToLayout(g_command_buffer_mgr->GetCurrentCommandBuffer(),

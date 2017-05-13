@@ -187,10 +187,6 @@ void BPWritten(const BPCmd& bp)
 			if (bp.changes & 0xF002) // logicopenable | logicmode
 				SetLogicOpMode();
 
-			// Set Dithering Mode
-			if (bp.changes & 4) // dither
-				SetDitherMode();
-
 			// Set Blending Mode
 			if (bp.changes & 0xFF1) // blendenable | alphaupdate | dstfactor | srcfactor | subtract
 				SetBlendMode();
@@ -292,7 +288,7 @@ void BPWritten(const BPCmd& bp)
 
 			DEBUG_LOG(VIDEO, "RenderToXFB: destAddr: %08x | srcRect {%d %d %d %d} | fbWidth: %u | fbStride: %u | fbHeight: %u",
 				destAddr, srcRect.left, srcRect.top, srcRect.right, srcRect.bottom, bpmem.copyTexSrcWH.x + 1, destStride, height);
-			Renderer::RenderToXFB(destAddr, srcRect, destStride, height, s_gammaLUT[PE_copy.gamma]);
+			g_renderer->RenderToXFB(destAddr, srcRect, destStride, height, s_gammaLUT[PE_copy.gamma]);
 		}
 
 		// Clear the rectangular region after copying it.
@@ -674,7 +670,6 @@ void BPReload()
 	SetLineWidth();
 	SetDepthMode();
 	SetLogicOpMode();
-	SetDitherMode();
 	SetBlendMode();
 	SetColorMask();
 	OnPixelFormatChange();

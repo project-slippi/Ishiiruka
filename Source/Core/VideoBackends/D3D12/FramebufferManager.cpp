@@ -95,7 +95,7 @@ void FramebufferManager::InitializeEFBCache(const D3D12_CLEAR_VALUE& color_clear
 	hr = D3D::device->CreateCommittedResource(&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT), D3D12_HEAP_FLAG_NONE, &tex_desc, D3D12_RESOURCE_STATE_COMMON, &depth_clear_value, IID_PPV_ARGS(buff.ReleaseAndGetAddressOf()));
 	CHECK(hr == S_OK, "create EFB depth cache texture (hr=%#x)", hr);
 	m_efb.depth_cache_tex = new D3DTexture2D(buff.Get(), TEXTURE_BIND_FLAG_RENDER_TARGET, depth_clear_value.Format, DXGI_FORMAT_UNKNOWN, DXGI_FORMAT_UNKNOWN, depth_clear_value.Format, false, D3D12_RESOURCE_STATE_COMMON);
-	D3D::SetDebugObjectName12(m_efb.depth_cache_tex->GetTex(), "EFB depth cache texture (used in Renderer::AccessEFB)");
+	D3D::SetDebugObjectName12(m_efb.depth_cache_tex->GetTex(), "EFB depth cache texture (used in g_renderer->AccessEFB)");
 
 	// AccessEFB - Sysmem buffer used to retrieve the pixel data from depth_read_texture
 	tex_desc = CD3DX12_RESOURCE_DESC::Buffer(EFB_CACHE_PITCH * EFB_HEIGHT);
@@ -105,10 +105,10 @@ void FramebufferManager::InitializeEFBCache(const D3D12_CLEAR_VALUE& color_clear
 
 }
 
-FramebufferManager::FramebufferManager()
+FramebufferManager::FramebufferManager(u32 target_width, u32 target_height)
 {
-	m_target_width = std::max(Renderer::GetTargetWidth(), 1);
-	m_target_height = std::max(Renderer::GetTargetHeight(), 1);
+	m_target_width = std::max(target_width, 16u);
+	m_target_height = std::max(target_height, 16u);
 
 	DXGI_SAMPLE_DESC sample_desc;
 	sample_desc.Count = g_ActiveConfig.iMultisamples;
@@ -314,8 +314,8 @@ void XFBSource::CopyEFB(float gamma)
 				D3D::DrawShadedTexQuad(
 					FramebufferManager::GetEFBDepthTexture(),
 					&rect,
-					Renderer::GetTargetWidth(),
-					Renderer::GetTargetHeight(),
+					g_renderer->GetTargetWidth(),
+					g_renderer->GetTargetHeight(),
 					StaticShaderCache::GetDepthCopyPixelShader(true),
 					StaticShaderCache::GetSimpleVertexShader(),
 					StaticShaderCache::GetSimpleVertexShaderInputLayout(),

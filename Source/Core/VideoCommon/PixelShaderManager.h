@@ -84,7 +84,11 @@ public:
 		s_materials_changed |= (1 << index);
 	}
 
-	static void SetEfbScaleChanged();
+	static inline void SetEfbScaleChanged()
+	{
+		s_EfbScaleChanged = true;
+	}
+
 	static void SetZSlope(float dfdx, float dfdy, float f0);
 	static void SetColorMatrix(const float* pmatrix);
 	static void InvalidateXFRange(u32 start, u32 end);
@@ -98,6 +102,7 @@ private:
 	static bool s_bFogParamChanged;
 	static bool s_bFogRangeAdjustChanged;
 	static bool s_bViewPortChanged;
+	static bool s_EfbScaleChanged;
 	static u8 s_nTexDimsChanged;
 	static u8 s_nIndTexScaleChanged;
 	static int s_materials_changed;

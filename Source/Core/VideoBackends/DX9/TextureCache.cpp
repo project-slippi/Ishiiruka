@@ -82,7 +82,6 @@ static u32 s_memPoolTextureW[MEM_TEXTURE_POOL_SIZE];
 static u32 s_memPoolTextureH[MEM_TEXTURE_POOL_SIZE];
 
 static std::unique_ptr<Depalettizer> s_depaletizer;
-static std::unique_ptr<TextureScaler> s_scaler;
 
 TextureCache::TCacheEntry::~TCacheEntry()
 {
@@ -194,38 +193,6 @@ void TextureCache::TCacheEntry::Load(const u8* src, u32 width, u32 height,
 	ReplaceTexture(src, width, height, expanded_width, level, swap_r_b);
 }
 
-void TextureCache::TCacheEntry::Load(const u8* src, u32 width, u32 height, u32 expandedWidth,
-	u32 expandedHeight, const s32 texformat, const u32 tlutaddr, const TlutFormat tlutfmt, u32 level)
-{
-	bool swap_r_b = PC_TEX_FMT_RGBA32 == config.pcformat;
-	u8* data = g_texture_cache->GetTemporalBuffer();
-	TexDecoder_Decode(data, src, expandedWidth, expandedHeight, texformat, tlutaddr, tlutfmt, swap_r_b, compressed);
-	
-	if (is_scaled)
-	{
-		swap_r_b = true;
-		data = (u8*)s_scaler->Scale((u32*)data, expandedWidth, height);
-		width *= g_ActiveConfig.iTexScalingFactor;
-		height *= g_ActiveConfig.iTexScalingFactor;
-		expandedWidth *= g_ActiveConfig.iTexScalingFactor;
-	}
-	ReplaceTexture(data, width, height, expandedWidth, level, swap_r_b);
-}
-void TextureCache::TCacheEntry::LoadFromTmem(const u8* ar_src, const u8* gb_src, u32 width, u32 height,
-	u32 expanded_width, u32 expanded_Height, u32 level)
-{
-	u8* data = g_texture_cache->GetTemporalBuffer();
-	TexDecoder_DecodeBGRA8FromTmem((u32*)data, ar_src, gb_src, expanded_width, expanded_Height);
-	if (is_scaled)
-	{
-		data = (u8*)s_scaler->Scale((u32*)data, expanded_width, height);
-		width *= g_ActiveConfig.iTexScalingFactor;
-		height *= g_ActiveConfig.iTexScalingFactor;
-		expanded_width *= g_ActiveConfig.iTexScalingFactor;
-	}
-	ReplaceTexture(data, width, height, expanded_width, level, false);
-}
-
 void TextureCache::TCacheEntry::FromRenderTarget(bool is_depth_copy, const EFBRectangle& srcRect,
 	bool scaleByHalf, unsigned int cbufid, const float *colmat, u32 width, u32 height)
 {
@@ -288,7 +255,7 @@ void TextureCache::TCacheEntry::FromRenderTarget(bool is_depth_copy, const EFBRe
 	s32 SSAAMode = g_ActiveConfig.iMultisamples - 1;
 
 	D3D::drawShadedTexQuad(read_texture, &sourcerect,
-		Renderer::GetTargetWidth(), Renderer::GetTargetHeight(),
+		g_renderer->GetTargetWidth(), g_renderer->GetTargetHeight(),
 		config.width, config.height,
 		PixelShaderCache::GetDepthMatrixProgram(SSAAMode, is_depth_copy && bformat != FOURCC_RAWZ),
 		VertexShaderCache::GetSimpleVertexShader(SSAAMode));
@@ -304,21 +271,12 @@ void TextureCache::TCacheEntry::FromRenderTarget(bool is_depth_copy, const EFBRe
 	g_renderer->RestoreAPIState();
 }
 
-void TextureCache::CopyEFB(u8* dst, u32 format, u32 native_width, u32 bytes_per_row, u32 num_blocks_y, u32 memory_stride,
-	bool is_depth_copy, const EFBRectangle& srcRect,
-	bool isIntensity, bool scaleByHalf)
+void TextureCache::CopyEFB(u8* dst, const EFBCopyFormat& format, u32 native_width, u32 bytes_per_row,
+	u32 num_blocks_y, u32 memory_stride, bool is_depth_copy,
+	const EFBRectangle& src_rect, bool scale_by_half)
 {
-	TextureConverter::EncodeToRamFromTexture(
-		dst,
-		format,
-		native_width,
-		bytes_per_row,
-		num_blocks_y,
-		memory_stride,
-		is_depth_copy,
-		isIntensity,
-		scaleByHalf,
-		srcRect);
+	TextureConverter::EncodeToRamFromTexture(dst, format, native_width, bytes_per_row, num_blocks_y,
+		memory_stride, is_depth_copy, src_rect, scale_by_half);
 }
 
 bool TextureCache::Palettize(TCacheEntryBase* entry, const TCacheEntryBase* base_entry)
@@ -378,7 +336,6 @@ TextureCache::TextureCache()
 		s_memPoolTextureH[i] = 1024u;
 	}
 	s_depaletizer = std::make_unique<Depalettizer>();
-	s_scaler = std::make_unique<TextureScaler>();
 }
 
 TextureCache::~TextureCache()
@@ -392,7 +349,6 @@ TextureCache::~TextureCache()
 		}
 	}
 	s_depaletizer.reset();
-	s_scaler.reset();
 }
 
 }

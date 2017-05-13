@@ -64,7 +64,7 @@ struct XFBSource final : public XFBSourceBase
 class FramebufferManager final : public FramebufferManagerBase
 {
 public:
-	FramebufferManager();
+	FramebufferManager(u32 target_width, u32 target_height);
 	~FramebufferManager();
 
 	static D3DTexture2D*& GetEFBColorTexture();

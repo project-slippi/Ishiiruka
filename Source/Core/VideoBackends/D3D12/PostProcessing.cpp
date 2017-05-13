@@ -95,10 +95,6 @@ D3DPostProcessingShader::~D3DPostProcessingShader()
 {
 	for (RenderPassData& pass : m_passes)
 	{
-		for (InputBinding& input : pass.inputs)
-		{
-			ReleaseBindingSampler(input.texture_sampler);
-		}
 		ReleasePassNativeResources(pass);
 	}
 	D3DStreamBuffer* buffer = reinterpret_cast<D3DStreamBuffer*>(m_uniform_buffer);

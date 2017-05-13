@@ -18,14 +18,13 @@ class Renderer : public ::Renderer
 public:
 	Renderer(void *&window_handle);
 	~Renderer();
-
+	void Init() override;
 	void SetColorMask() override;
 	void SetBlendMode(bool forceUpdate) override;
-	void SetScissorRect(const TargetRectangle& rc) override;
+	void SetScissorRect(const EFBRectangle& rc) override;
 	void SetGenerationMode() override;
 	void SetDepthMode() override;
 	void SetLogicOpMode() override;
-	void SetDitherMode() override;
 	void SetSamplerState(int stage, int texindex, bool custom_tex) override;
 	void SetInterlacingMode() override;
 	void SetViewport() override;
@@ -55,7 +54,7 @@ public:
 	void ClearScreen(const EFBRectangle& rc, bool colorEnable, bool alphaEnable, bool zEnable, u32 color, u32 z) override;
 
 	void ReinterpretPixelData(unsigned int convtype) override;
-	static bool CheckForResize();
+	bool CheckForResize();
 
 private:
 	// Draw either the EFB, or specified XFB sources to the currently-bound framebuffer.
@@ -77,6 +76,8 @@ private:
 	void PrepareFrameDumpRenderTexture(u32 width, u32 height);
 	void PrepareFrameDumpBuffer(u32 width, u32 height);
 	void Create3DVisionTexture(u32 width, u32 height);
+	void SetupDeviceObjects();
+	
 	D3DTexture2D* m_frame_dump_render_texture = nullptr;	
 	D3D::Texture2dPtr m_frame_dump_staging_texture;
 	D3DTexture2D* m_3d_vision_texture = nullptr;
@@ -86,6 +87,9 @@ private:
 	u32 m_frame_dump_staging_texture_height = 0;
 	u32 m_3d_vision_texture_width = 0;
 	u32 m_3d_vision_texture_height = 0;
+	u32 m_last_multisamples = 0;
+	int m_last_stereo_mode = 0;
+	bool m_last_xfb_mode = false;
 };
 
 }

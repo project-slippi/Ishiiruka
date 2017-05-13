@@ -21,6 +21,7 @@ enum GLSL_VERSION
 	GLSL_150,
 	GLSL_330,
 	GLSL_400,    // and above
+	GLSL_430,
 	GLSLES_300,  // GLES 3.0
 	GLSLES_310,  // GLES 3.1
 	GLSLES_320,  // GLES 3.2
@@ -49,10 +50,11 @@ struct VideoConfig
 	bool bSupportsCopySubImage;
 	u8 SupportedESPointSize;
 	ES_TEXBUF_TYPE SupportedESTextureBuffer;
-	bool bSupports2DTextureStorage;
-	bool bSupports3DTextureStorage;
-	bool bSupportsEarlyFragmentTests;
+	bool bSupportsTextureStorage;
+	bool bSupports2DTextureStorageMultisample;
+	bool bSupports3DTextureStorageMultisample;
 	bool bSupportsConservativeDepth;
+	bool bSupportsImageLoadStore;
 	bool bSupportsAniso;
 
 	const char* gl_vendor;
@@ -69,16 +71,15 @@ public:
 	Renderer();
 	~Renderer();
 
-	static void Init();
-	static void Shutdown();
+	void Init() override;
+	void Shutdown() override;
 
 	void SetColorMask() override;
 	void SetBlendMode(bool forceUpdate) override;
-	void SetScissorRect(const TargetRectangle& rc) override;
+	void SetScissorRect(const EFBRectangle& rc) override;
 	void SetGenerationMode() override;
 	void SetDepthMode() override;
 	void SetLogicOpMode() override;
-	void SetDitherMode() override;
 	void SetSamplerState(int stage, int texindex, bool custom_tex) override;
 	void SetInterlacingMode() override;
 	void SetViewport() override;
@@ -119,17 +120,17 @@ private:
 		float       NearZ;
 		float       FarZ;
 	};
-	bool m_bColorMaskChanged;
-	bool m_bBlendModeChanged;
-	bool m_bBlendModeForce;
-	bool m_bScissorRectChanged;
-	bool m_bViewPortChanged;
-	TargetRectangle m_ScissorRect;
-	ViewPort m_viewport;
-	bool m_bGenerationModeChanged;
-	bool m_bDepthModeChanged;
-	bool m_bLogicOpModeChanged;
-	bool m_bViewPortChangedRequested;
+	bool m_bColorMaskChanged = true;
+	bool m_bBlendModeChanged = true;
+	bool m_bBlendModeForce = true;
+	bool m_bScissorRectChanged = true;
+	bool m_bViewPortChanged = true;
+	EFBRectangle m_ScissorRect{};
+	ViewPort m_viewport{};
+	bool m_bGenerationModeChanged = true;
+	bool m_bDepthModeChanged = true;
+	bool m_bLogicOpModeChanged = true;
+	bool m_bViewPortChangedRequested = true;
 
 	void _SetColorMask();
 	void _SetBlendMode(bool forceUpdate);

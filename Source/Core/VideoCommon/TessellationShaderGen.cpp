@@ -427,6 +427,7 @@ inline void GenerateTessellationShader(ShaderCode& out, const Tessellation_shade
 	out.Write(
 		"\tfloat4 " I_PROJECTION "[4];\n"
 		"\tfloat4 " I_DEPTHPARAMS ";\n"
+		"\tfloat4 " I_VIEWPARAMS ";\n"
 		"};\n");
 
 	if (ApiType == API_OPENGL)
@@ -480,9 +481,10 @@ inline void GenerateTessellationShader(ShaderCode& out, const Tessellation_shade
 			out.Write("result.pos = float4(patch[id].tex0.w, patch[id].tex1.w, patch[id].tex7.w, 1.0);\n");
 		}
 		out.Write("result.colors_0 = patch[id].colors_0;\n"
-			"result.colors_1 = patch[id].colors_1;\n"
-			"result.clipDist = patch[id].clipDist;\n"
-			"return result;\n}\n");
+			"result.colors_1 = patch[id].colors_1;\n");
+		if (g_ActiveConfig.backend_info.bSupportsDepthClamp)
+			out.Write("result.clipDist = patch[id].clipDist;\n");
+		out.Write("return result;\n}\n");
 		out.Write(s_hlsl_constant_header_str);
 		out.Write(
 			"if (" I_CULLPARAMS ".y != 0) {\n"
@@ -642,8 +644,11 @@ inline void GenerateTessellationShader(ShaderCode& out, const Tessellation_shade
 			"result.pos = float4(dot(" I_PROJECTION "[0], pos), dot(" I_PROJECTION "[1], pos), dot(" I_PROJECTION "[2], pos), dot(" I_PROJECTION "[3], pos));\n"
 			"result.pos.xy = result.pos.xy + result.pos.w * " I_DEPTHPARAMS".zw;\n"
 			"result.colors_0 = BInterpolate(patch[0].colors_0, patch[1].colors_0, patch[2].colors_0, bCoords);\n"
-			"result.colors_1 = BInterpolate(patch[0].colors_1, patch[1].colors_1, patch[2].colors_1, bCoords);\n"
-			"result.clipDist = BInterpolate(patch[0].clipDist, patch[1].clipDist, patch[2].clipDist, bCoords);\n");
+			"result.colors_1 = BInterpolate(patch[0].colors_1, patch[1].colors_1, patch[2].colors_1, bCoords);\n");
+		
+			if (g_ActiveConfig.backend_info.bSupportsDepthClamp)
+			out.Write("result.clipDist = BInterpolate(patch[0].clipDist, patch[1].clipDist, patch[2].clipDist, bCoords);\n");
+
 		if (uid_data.numTexGens < 7)
 		{
 			out.Write("result.clipPos = float4(position.xy, result.pos.zw);\n");

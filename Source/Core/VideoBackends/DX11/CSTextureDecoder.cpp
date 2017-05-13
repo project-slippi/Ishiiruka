@@ -377,8 +377,7 @@ void CSTextureDecoder::Init()
 	CHECKANDEXIT(SUCCEEDED(hr), "create texture decoder lut srv");
 	D3D::SetDebugObjectName(m_lutSrv.get(), "texture decoder lut srv");
 
-	if (!(g_ActiveConfig.backend_info.bSupportsComputeTextureDecoding
-		&& g_ActiveConfig.bEnableComputeTextureDecoding))
+	if (!g_ActiveConfig.backend_info.bSupportsGPUTextureDecoding)
 	{
 		return;
 	}
@@ -439,7 +438,7 @@ const bool DecFuncSupported[] = {
 	false,//
 	false,//
 	false,//GX_TF_CMPR   = 0xE,
-	true,//
+	false,//
 };
 
 bool CSTextureDecoder::FormatSupported(u32 srcFmt)
@@ -579,7 +578,7 @@ void CSTextureDecoder::LoadLut(u32 lutFmt, void* addr, u32 size)
 	D3D::context->UpdateSubresource(m_lutRsc.get(), 0, &box, addr, 0, 0);
 	m_lutFmt = lutFmt;
 }
-bool CSTextureDecoder::Decode(const u8* src, u32 srcsize, u32 srcFmt, u32 w, u32 h, u32 level, D3DTexture2D& dstTexture)
+bool CSTextureDecoder::Decode(const u8* src, u32 srcsize, u32 srcFmt, u32 w, u32 h, u32 expandedw, u32 expandedh, u32 level, D3DTexture2D& dstTexture)
 {
 	if (!m_ready || w < 32 || h < 32) // Make sure we initialized OK and texture size is big enough
 		return false;
@@ -624,7 +623,7 @@ bool CSTextureDecoder::Decode(const u8* src, u32 srcsize, u32 srcFmt, u32 w, u32
 	D3D::context->Unmap(m_params.get(), 0);
 	D3D::context->CSSetConstantBuffers(0, 1, D3D::ToAddr(m_params));
 
-	D3D::context->Dispatch((w + 7) / 8, (h + 7) / 8, 1);
+	D3D::context->Dispatch((expandedw + 7) / 8, (expandedh + 7) / 8, 1);
 
 	uav = nullptr;
 	D3D::context->CSSetUnorderedAccessViews(0, 1, &uav, nullptr);
@@ -636,75 +635,6 @@ bool CSTextureDecoder::Decode(const u8* src, u32 srcsize, u32 srcFmt, u32 w, u32
 	pSrcBox.bottom = h;
 	pSrcBox.back = 1;
 	D3D::context->CopySubresourceRegion(dstTexture.GetTex(), level, 0, 0, 0, m_pool[m_pool_idx].m_rsc.get(), 0, &pSrcBox);
-	m_pool_idx++;
-	return true;
-}
-
-bool CSTextureDecoder::DecodeRGBAFromTMEM(u8 const * ar_src, u8 const * bg_src, u32 w, u32 h, D3DTexture2D& dstTexture)
-{
-	if (!m_ready) // Make sure we initialized OK
-		return false;
-
-	if (!SetStaticShader(0xf, 0))
-	{
-		return false;
-	}
-
-	if (m_pool_idx == m_pool.size())
-	{
-		if (m_pool.size() < MAX_POOL_SIZE)
-		{
-			// create the pool texture here
-			auto desc = CD3D11_TEXTURE2D_DESC(DXGI_FORMAT_R8G8B8A8_UINT, 1024, 1024, 1, 1, D3D11_BIND_UNORDERED_ACCESS);
-
-			HRESULT hr;
-			PoolValue val;
-			hr = D3D::device->CreateTexture2D(&desc, nullptr, ToAddr(val.m_rsc));
-			CHECK(SUCCEEDED(hr), "create pool texture for texture decoder");
-
-			hr = D3D::device->CreateUnorderedAccessView(val.m_rsc.get(), nullptr, ToAddr(val.m_uav));
-			CHECK(SUCCEEDED(hr), "create pool UAV for texture decoder");
-			m_pool.push_back(std::move(val));
-		}
-		else
-		{
-			m_pool_idx = m_pool_idx % m_pool.size();
-		}
-	}
-
-	u32 aw = (w + 4)&~4;
-	u32 ah = (h + 4)&~4;
-
-	D3D11_BOX box{ 0, 0, 0, (aw*ah) << 1, 1, 1 };
-	D3D::context->UpdateSubresource(m_rawDataRsc.get(), 0, &box, ar_src, 0, 0);
-
-	D3D11_BOX box2{ (aw*ah) << 1, 0, 0, 2 * ((aw*ah) << 1), 1, 1 };
-	D3D::context->UpdateSubresource(m_rawDataRsc.get(), 0, &box2, bg_src, 0, 0);
-
-	ID3D11UnorderedAccessView* uav = m_pool[m_pool_idx].m_uav.get();
-	D3D::context->CSSetUnorderedAccessViews(0, 1, &uav, nullptr);
-
-	ID3D11ShaderResourceView* srvs[] = { m_rawDataSrv.get() };
-	D3D::context->CSSetShaderResources(0, 1, srvs);
-	D3D11_MAPPED_SUBRESOURCE map;
-	D3D::context->Map(m_params.get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &map);
-	((u32*)map.pData)[0] = w;
-	((u32*)map.pData)[1] = h;
-	D3D::context->Unmap(m_params.get(), 0);
-	D3D::context->CSSetConstantBuffers(0, 1, D3D::ToAddr(m_params));
-
-	D3D::context->Dispatch((w + 7) / 8, (h + 7) / 8, 1);
-
-	uav = nullptr;
-	D3D::context->CSSetUnorderedAccessViews(0, 1, &uav, nullptr);
-	D3D11_BOX pSrcBox;
-	pSrcBox.left = 0;
-	pSrcBox.top = 0;
-	pSrcBox.front = 0;
-	pSrcBox.right = w;
-	pSrcBox.bottom = h;
-	pSrcBox.back = 1;
-	D3D::context->CopySubresourceRegion(dstTexture.GetTex(), 0, 0, 0, 0, m_pool[m_pool_idx].m_rsc.get(), 0, &pSrcBox);
 	m_pool_idx++;
 	return true;
 }

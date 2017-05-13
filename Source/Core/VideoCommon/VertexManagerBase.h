@@ -48,46 +48,58 @@ public:
 	// needs to be virtual for DX11's dtor
 	virtual ~VertexManagerBase();
 
-	static u8 *s_pCurBufferPointer;
-	static u8 *s_pBaseBufferPointer;
-	static u8 *s_pEndBufferPointer;
-
-	static PrimitiveType GetPrimitiveType(int primitive);
-	static void PrepareForAdditionalData(int primitive, u32 count, u32 stride);
+	PrimitiveType GetPrimitiveType(int primitive);
+	void PrepareForAdditionalData(int primitive, u32 count, u32 stride);
 
 	virtual void PrepareShaders(PrimitiveType primitive, u32 components, const XFMemory &xfr, const BPMemory &bpm, bool ongputhread) = 0;
-	static inline void Flush()
+	void Flush()
 	{
-		if (IsFlushed)
+		if (m_is_flushed)
 			return;
 		DoFlush();
 	}
 
 	virtual std::unique_ptr<NativeVertexFormat> CreateNativeVertexFormat(const PortableVertexDeclaration& vtx_decl) = 0;
 
-	static void DoState(PointerWrap& p);
-	virtual void CreateDeviceObjects()
-	{};
-	virtual void DestroyDeviceObjects()
-	{};
+	void DoState(PointerWrap& p);
+	virtual void CreateDeviceObjects() {};
+	virtual void DestroyDeviceObjects() {};
+	std::pair<size_t, size_t> ResetFlushAspectRatioCount();
+	inline void IncCurrentBufferPointer(size_t size)
+	{
+		m_pCurBufferPointer += size;
+	}
+	inline u8* GetCurrentBufferPointer() const
+	{
+		return m_pCurBufferPointer;
+	}
 
+	inline size_t GetRemainingSize()
+	{
+		return m_pEndBufferPointer - m_pCurBufferPointer;
+	}
 protected:
-	static bool s_shader_refresh_required;
-	static bool s_zslope_refresh_required;
-	static Slope s_zslope;
+	bool m_is_flushed = true;
+	bool m_shader_refresh_required = true;
+	bool m_zslope_refresh_required = true;
+	Slope m_zslope = { 0.0f, 0.0f, float(0xFFFFFF) };
+	PrimitiveType m_current_primitive_type{};
+	u8 *m_pCurBufferPointer = nullptr;
+	u8 *m_pBaseBufferPointer = nullptr;
+	u8 *m_pEndBufferPointer = nullptr;
 
-	static void CalculateZSlope(const PortableVertexDeclaration &vert_decl, const u16* indices);
-	static bool s_cull_all;
-	virtual void vDoState(PointerWrap& p)
-	{}
+	bool m_cull_all = false;
 
-	static PrimitiveType current_primitive_type;
-
+	void CalculateZSlope(const PortableVertexDeclaration &vert_decl, const u16* indices);
+	virtual void vDoState(PointerWrap& p) {}
 	virtual void ResetBuffer(u32 stride) = 0;
 
 private:
-	static bool IsFlushed;
-	static void DoFlush();
+	size_t m_flush_count_4_3 = 0;
+	size_t m_flush_count_anamorphic = 0;
+
+	void DoFlush();
+
 	virtual void vFlush(bool useDstAlpha) = 0;
 	virtual u16* GetIndexBuffer() = 0;
 };

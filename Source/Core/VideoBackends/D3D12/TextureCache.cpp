@@ -29,7 +29,6 @@ namespace DX12
 {
 
 static std::unique_ptr<TextureEncoder> s_encoder;
-static std::unique_ptr<TextureScaler> s_scaler;
 
 static std::unique_ptr<D3DStreamBuffer> s_efb_copy_stream_buffer = nullptr;
 static u32 s_efb_copy_last_cbuf_id = UINT_MAX;
@@ -213,50 +212,6 @@ void TextureCache::TCacheEntry::LoadMaterialMap(const u8* src, u32 width, u32 he
 	D3D::ReplaceTexture2D(m_nrm_texture->GetTex(), src, DXGI_format, width, height, width, level, m_nrm_texture->GetResourceUsageState());
 }
 
-void TextureCache::TCacheEntry::Load(const u8* src, u32 width, u32 height, u32 expandedWidth,
-	u32 expandedHeight, const s32 texformat, const u32 tlutaddr, const TlutFormat tlutfmt, u32 level)
-{
-	u8* data = g_texture_cache->GetTemporalBuffer();
-	TexDecoder_Decode(
-		data,
-		src,
-		expandedWidth,
-		expandedHeight,
-		texformat,
-		tlutaddr,
-		tlutfmt,
-		DXGI_format == DXGI_FORMAT_R8G8B8A8_UNORM,
-		compressed);
-	
-	if (is_scaled)
-	{
-		data = reinterpret_cast<u8*>(s_scaler->Scale(reinterpret_cast<u32*>(data), expandedWidth, height));
-		width *= g_ActiveConfig.iTexScalingFactor;
-		height *= g_ActiveConfig.iTexScalingFactor;
-		expandedWidth *= g_ActiveConfig.iTexScalingFactor;
-	}
-	D3D::ReplaceTexture2D(m_texture->GetTex(), data, DXGI_format, width, height, expandedWidth, level, m_texture->GetResourceUsageState());
-}
-void TextureCache::TCacheEntry::LoadFromTmem(const u8* ar_src, const u8* gb_src, u32 width, u32 height,
-	u32 expanded_width, u32 expanded_Height, u32 level)
-{
-	u8* data = g_texture_cache->GetTemporalBuffer();
-	TexDecoder_DecodeRGBA8FromTmem(
-		reinterpret_cast<u32*>(data),
-		ar_src,
-		gb_src,
-		expanded_width,
-		expanded_Height);
-	if (is_scaled)
-	{
-		data = reinterpret_cast<u8*>(s_scaler->Scale(reinterpret_cast<u32*>(data), expanded_width, height));
-		width *= g_ActiveConfig.iTexScalingFactor;
-		height *= g_ActiveConfig.iTexScalingFactor;
-		expanded_width *= g_ActiveConfig.iTexScalingFactor;
-	}
-	D3D::ReplaceTexture2D(m_texture->GetTex(), data, DXGI_format, width, height, expanded_width, level, m_texture->GetResourceUsageState());
-}
-
 PC_TexFormat TextureCache::GetNativeTextureFormat(const s32 texformat, const TlutFormat tlutfmt, u32 width, u32 height)
 {
 	const bool compressed_supported = ((width & 3) == 0) && ((height & 3) == 0);
@@ -413,8 +368,8 @@ void TextureCache::TCacheEntry::FromRenderTarget(bool is_depth_copy, const EFBRe
 	D3D::DrawShadedTexQuad(
 		efb_tex,
 		&sourcerect,
-		Renderer::GetTargetWidth(),
-		Renderer::GetTargetHeight(),
+		g_renderer->GetTargetWidth(),
+		g_renderer->GetTargetHeight(),
 		is_depth_copy ? StaticShaderCache::GetDepthMatrixPixelShader(multisampled) 
 		: StaticShaderCache::GetColorMatrixPixelShader(multisampled),
 		StaticShaderCache::GetSimpleVertexShader(),
@@ -426,10 +381,9 @@ void TextureCache::TCacheEntry::FromRenderTarget(bool is_depth_copy, const EFBRe
 	g_renderer->RestoreAPIState();
 }
 
-void TextureCache::CopyEFB(u8* dst, u32 format, u32 native_width,
+void TextureCache::CopyEFB(u8* dst, const EFBCopyFormat& format, u32 native_width,
 	u32 bytes_per_row, u32 num_blocks_y, u32 memory_stride,
-	bool is_depth_copy, const EFBRectangle& src_rect,
-	bool is_intensity, bool scale_by_half)
+	bool is_depth_copy, const EFBRectangle& src_rect, bool scale_by_half)
 {
 	s_encoder->Encode(dst,
 		format,
@@ -439,7 +393,6 @@ void TextureCache::CopyEFB(u8* dst, u32 format, u32 native_width,
 		memory_stride,
 		is_depth_copy,
 		src_rect,
-		is_intensity,
 		scale_by_half);
 }
 
@@ -668,7 +621,6 @@ TextureCache::TextureCache()
 	// FIXME: Is it safe here?
 	s_encoder = std::make_unique<PSTextureEncoder>();
 	s_encoder->Init();
-	s_scaler = std::make_unique<TextureScaler>();
 	s_texture_cache_entry_readback_buffer = nullptr;
 	s_texture_cache_entry_readback_buffer_size = 0;
 
@@ -713,7 +665,6 @@ TextureCache::~TextureCache()
 {
 	s_encoder->Shutdown();
 	s_encoder.reset();
-	s_scaler.reset();
 
 	s_efb_copy_stream_buffer.reset();
 	m_palette_stream_buffer.reset();

@@ -88,21 +88,21 @@ void HullDomainShaderCache::Init()
 	if (!File::Exists(File::GetUserPath(D_SHADERCACHE_IDX)))
 		File::CreateDir(File::GetUserPath(D_SHADERCACHE_IDX));
 
-	pKey_t gameid = (pKey_t)GetMurmurHash3(reinterpret_cast<const u8*>(SConfig::GetInstance().m_strGameID.data()), (u32)SConfig::GetInstance().m_strGameID.size(), 0);
+	pKey_t gameid = (pKey_t)GetMurmurHash3(reinterpret_cast<const u8*>(SConfig::GetInstance().GetGameID().data()), (u32)SConfig::GetInstance().GetGameID().size(), 0);
 	s_hulldomain_shaders = HDCache::Create(
 		gameid,
 		TESSELLATIONSHADERGEN_UID_VERSION,
 		"Ishiiruka.ts",
-		StringFromFormat("%s.ts", SConfig::GetInstance().m_strGameID.c_str())
+		StringFromFormat("%s.ts", SConfig::GetInstance().GetGameID().c_str())
 	);
 
 	std::string h_cache_filename = StringFromFormat("%sIDX11-%s-hs.cache", File::GetUserPath(D_SHADERCACHE_IDX).c_str(),
-		SConfig::GetInstance().m_strGameID.c_str());
+		SConfig::GetInstance().GetGameID().c_str());
 	HullShaderCacheInserter hinserter;
 	g_hs_disk_cache.OpenAndRead(h_cache_filename, hinserter);
 
 	std::string d_cache_filename = StringFromFormat("%sIDX11-%s-ds.cache", File::GetUserPath(D_SHADERCACHE_IDX).c_str(),
-		SConfig::GetInstance().m_strGameID.c_str());
+		SConfig::GetInstance().GetGameID().c_str());
 	DomainShaderCacheInserter dinserter;
 	g_ds_disk_cache.OpenAndRead(d_cache_filename, dinserter);
 	SETSTAT(stats.numDomainShadersCreated, 0);

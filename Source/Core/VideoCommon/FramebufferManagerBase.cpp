@@ -240,7 +240,7 @@ int FramebufferManagerBase::ScaleToVirtualXfbWidth(int x)
 	if (g_ActiveConfig.RealXFBEnabled())
 		return x;
 
-	return x * (int)Renderer::GetTargetRectangle().GetWidth() / (int)FramebufferManagerBase::LastXfbWidth();
+	return x * (int)g_renderer->GetTargetRectangle().GetWidth() / (int)FramebufferManagerBase::LastXfbWidth();
 }
 
 int FramebufferManagerBase::ScaleToVirtualXfbHeight(int y)
@@ -248,5 +248,5 @@ int FramebufferManagerBase::ScaleToVirtualXfbHeight(int y)
 	if (g_ActiveConfig.RealXFBEnabled())
 		return y;
 
-	return y * (int)Renderer::GetTargetRectangle().GetHeight() / (int)FramebufferManagerBase::LastXfbHeight();
+	return y * (int)g_renderer->GetTargetRectangle().GetHeight() / (int)FramebufferManagerBase::LastXfbHeight();
 }

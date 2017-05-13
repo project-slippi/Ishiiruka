@@ -5,6 +5,7 @@
 #pragma once
 
 #include "Common/LinearDiskCache.h"
+#include "VideoCommon/TextureConversionShader.h"
 #include "VideoBackends/DX11/D3DPtr.h"
 #include "VideoBackends/DX11/TextureEncoder.h"
 
@@ -18,10 +19,13 @@ public:
 
 	void Init();
 	void Shutdown();
-	void Encode(u8* dest_ptr, u32 format, u32 native_width, u32 bytes_per_row, u32 num_blocks_y, u32 memory_stride,
-		bool is_depth_copy, bool isIntensity, bool scaleByHalf, const EFBRectangle& srcRect);
+	void Encode(u8* dst, const EFBCopyFormat& format, u32 native_width,
+		u32 bytes_per_row, u32 num_blocks_y, u32 memory_stride,
+		bool is_depth_copy, const EFBRectangle& src_rect, bool scale_by_half);
 
 private:
+	ID3D11PixelShader* GetEncodingPixelShader(const EFBCopyFormat& format);
+	ID3D11PixelShader* InsertShader(const EFBCopyFormat &key, u8 const *data, u32 sz);
 	bool m_ready;
 
 	D3D::Texture2dPtr m_out;
@@ -29,21 +33,24 @@ private:
 	D3D::Texture2dPtr m_outStage;
 	D3D::BufferPtr m_encodeParams;
 
-	ID3D11PixelShader* SetStaticShader(unsigned int dstFormat,
-		bool is_depth_copy, bool isIntensity, bool scaleByHalf);
+	std::map<EFBCopyFormat, D3D::PixelShaderPtr> m_encoding_shaders;
 
-	typedef unsigned int ComboKey; // Key for a shader combination
-
-	ComboKey MakeComboKey(unsigned int dstFormat,
-		bool is_depth_copy, bool isIntensity, bool scaleByHalf)
+	class ShaderCacheInserter : public LinearDiskCacheReader<EFBCopyFormat, u8>
 	{
-		return (dstFormat << 4) | (is_depth_copy << 2) | (isIntensity ? (1 << 1) : 0)
-			| (scaleByHalf ? (1 << 0) : 0);
-	}
+	public:
+		void Read(const EFBCopyFormat &key, const u8 *value, u32 value_size)
+		{
+			encoder_.InsertShader(key, value, value_size);
+		}
+		ShaderCacheInserter(PSTextureEncoder &encoder) : encoder_(encoder)
+		{}
+	private:
+		PSTextureEncoder& encoder_;
+	};
+	friend ShaderCacheInserter;
 
-	typedef std::map<ComboKey, D3D::PixelShaderPtr> ComboMap;
+	LinearDiskCache<EFBCopyFormat, u8> m_shaderCache;
 
-	ComboMap m_staticShaders;
 };
 
 }

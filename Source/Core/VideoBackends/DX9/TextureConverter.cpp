@@ -101,10 +101,12 @@ static u32 xfreadBuffers = 0;
 static LPDIRECT3DPIXELSHADER9 s_rgbToYuyvProgram = nullptr;
 static LPDIRECT3DPIXELSHADER9 s_yuyvToRgbProgram = nullptr;
 
-// Not all slots are taken - but who cares.
-const u32 NUM_ENCODING_PROGRAMS = 64;
-static LPDIRECT3DPIXELSHADER9 s_encodingPrograms[NUM_ENCODING_PROGRAMS];
-static bool s_encodingProgramsFailed[NUM_ENCODING_PROGRAMS];
+struct EncodingProgram
+{
+	LPDIRECT3DPIXELSHADER9 program;
+	bool failed;
+};
+static std::map<EFBCopyFormat, EncodingProgram> s_encoding_programs;
 
 void CreateRgbToYuyvProgram()
 {
@@ -169,43 +171,38 @@ void CreateYuyvToRgbProgram()
 	delete[] FProgram;
 }
 
-LPDIRECT3DPIXELSHADER9 GetOrCreateEncodingShader(u32 format)
+LPDIRECT3DPIXELSHADER9 GetOrCreateEncodingShader(const EFBCopyFormat& format)
 {
-	if (format > NUM_ENCODING_PROGRAMS)
+	auto iter = s_encoding_programs.find(format);
+	if (iter != s_encoding_programs.end() && !iter->second.failed)
+		return iter->second.program;
+
+	if (iter->second.failed)
 	{
-		PanicAlert("Unknown texture copy format: 0x%x\n", format);
-		return s_encodingPrograms[0];
+		return nullptr;
 	}
 
-	if (!s_encodingPrograms[format])
-	{
-		if (s_encodingProgramsFailed[format])
-		{
-			// we already failed to create a shader for this format,
-			// so instead of re-trying and showing the same error message every frame, just return.
-			return nullptr;
-		}
-
-		const char* shader = TextureConversionShaderLegacy::GenerateEncodingShader(format);
+	const char* shader = TextureConversionShaderLegacy::GenerateEncodingShader(format);
 
 #if defined(_DEBUG) || defined(DEBUGFAST)
-		if (g_ActiveConfig.iLog & CONF_SAVESHADERS && shader)
-		{
-			static int counter = 0;
-			char szTemp[MAX_PATH];
-			sprintf(szTemp, "%senc_%04i.txt", File::GetUserPath(D_DUMP_IDX).c_str(), counter++);
+	if (g_ActiveConfig.iLog & CONF_SAVESHADERS && shader)
+	{
+		static int counter = 0;
+		char szTemp[MAX_PATH];
+		sprintf(szTemp, "%senc_%04i.txt", File::GetUserPath(D_DUMP_IDX).c_str(), counter++);
 
-			SaveData(szTemp, shader);
-		}
-#endif
-		s_encodingPrograms[format] = D3D::CompileAndCreatePixelShader(shader, (int)strlen(shader));
-		if (!s_encodingPrograms[format])
-		{
-			ERROR_LOG(VIDEO, "Failed to create encoding fragment program");
-			s_encodingProgramsFailed[format] = true;
-		}
+		SaveData(szTemp, shader);
 	}
-	return s_encodingPrograms[format];
+#endif
+	EncodingProgram program;
+	program.program = D3D::CompileAndCreatePixelShader(shader, (int)strlen(shader));
+	program.failed = !program.program;
+	if (program.failed)
+	{
+		ERROR_LOG(VIDEO, "Failed to create encoding fragment program");
+	}
+
+	return s_encoding_programs.emplace(format, program).first->second.program;
 }
 
 void Init()
@@ -214,11 +211,6 @@ void Init()
 	CreateYuyvToRgbProgram();
 	xfreadBuffers = 0;
 	WorkingBuffers = 0;
-	for (unsigned int i = 0; i < NUM_ENCODING_PROGRAMS; i++)
-	{
-		s_encodingPrograms[i] = nullptr;
-		s_encodingProgramsFailed[i] = false;
-	}
 	for (unsigned int i = 0; i < NUM_TRANSFORM_BUFFERS; i++)
 	{
 		TrnBuffers[i].Clear();
@@ -238,12 +230,13 @@ void Shutdown()
 		s_yuyvToRgbProgram->Release();
 	s_yuyvToRgbProgram = nullptr;
 
-	for (unsigned int i = 0; i < NUM_ENCODING_PROGRAMS; i++)
+	for (auto& program : s_encoding_programs)
 	{
-		if (s_encodingPrograms[i])
-			s_encodingPrograms[i]->Release();
-		s_encodingPrograms[i] = nullptr;
+		if(program.second.program)
+			program.second.program->Release();
 	}
+	s_encoding_programs.clear();
+
 	for (unsigned int i = 0; i < NUM_TRANSFORM_BUFFERS; i++)
 	{
 		TrnBuffers[i].Release();
@@ -366,8 +359,9 @@ void EncodeToRamUsingShader(LPDIRECT3DPIXELSHADER9 shader, LPDIRECT3DTEXTURE9 sr
 	hr = s_texConvReadSurface->UnlockRect();
 }
 // returns size of the encoded data (in bytes)
-void EncodeToRamFromTexture(u8* dest_ptr, u32 format, u32 native_width, u32 bytes_per_row, u32 num_blocks_y, u32 memory_stride,
-	bool is_depth_copy, bool bIsIntensityFmt, bool bScaleByHalf, const EFBRectangle& source)
+void EncodeToRamFromTexture(u8* dest_ptr, const EFBCopyFormat& format, u32 native_width,
+	u32 bytes_per_row, u32 num_blocks_y, u32 memory_stride,
+	bool is_depth_copy, const EFBRectangle& src_rect, bool scale_by_half)
 {
 	LPDIRECT3DPIXELSHADER9 texconv_shader = GetOrCreateEncodingShader(format);
 	if (!texconv_shader)
@@ -376,25 +370,25 @@ void EncodeToRamFromTexture(u8* dest_ptr, u32 format, u32 native_width, u32 byte
 		FramebufferManager::GetEFBDepthTexture() :
 		FramebufferManager::GetEFBColorTexture();
 
-	const u16 blkW = TexDecoder_GetBlockWidthInTexels(format);
-	const u16 blkH = TexDecoder_GetBlockHeightInTexels(format);
-	const u16 samples = TextureConversionShader::GetEncodedSampleCount(format);
+	const u16 blkW = TexDecoder_GetBlockWidthInTexels(format.copy_format);
+	const u16 blkH = TexDecoder_GetBlockHeightInTexels(format.copy_format);
+	const u16 samples = TextureConversionShader::GetEncodedSampleCount(format.copy_format);
 
 	// only copy on cache line boundaries
 	// extra pixels are copied but not displayed in the resulting texture
 	s32 expandedWidth = static_cast<s32>(Common::AlignUpSizePow2(native_width, blkW));
 	s32 expandedHeight = num_blocks_y * blkH;
 
-	float sampleStride = bScaleByHalf ? 2.f : 1.f;
+	float sampleStride = scale_by_half ? 2.f : 1.f;
 	TextureConversionShaderLegacy::SetShaderParameters(
 		(float)expandedWidth,
-		(float)Renderer::EFBToScaledY(expandedHeight), // TODO: Why do we scale this?
-		(float)Renderer::EFBToScaledX(source.left),
-		(float)Renderer::EFBToScaledY(source.top),
-		Renderer::EFBToScaledXf(sampleStride),
-		Renderer::EFBToScaledYf(sampleStride),
-		(float)Renderer::GetTargetWidth(),
-		(float)Renderer::GetTargetHeight());
+		(float)g_renderer->EFBToScaledY(expandedHeight), // TODO: Why do we scale this?
+		(float)g_renderer->EFBToScaledX(src_rect.left),
+		(float)g_renderer->EFBToScaledY(src_rect.top),
+		g_renderer->EFBToScaledXf(sampleStride),
+		g_renderer->EFBToScaledYf(sampleStride),
+		(float)g_renderer->GetTargetWidth(),
+		(float)g_renderer->GetTargetHeight());
 	D3D::dev->SetPixelShaderConstantF(C_COLORMATRIX, PixelShaderManager::GetBuffer(), 2);
 	TargetRectangle scaledSource;
 	scaledSource.top = 0;
@@ -405,7 +399,7 @@ void EncodeToRamFromTexture(u8* dest_ptr, u32 format, u32 native_width, u32 byte
 		texconv_shader,
 		read_texture,
 		scaledSource,
-		dest_ptr, scaledSource.right * 4, expandedHeight, memory_stride, bytes_per_row, bScaleByHalf, 1.0f);
+		dest_ptr, scaledSource.right * 4, expandedHeight, memory_stride, bytes_per_row, scale_by_half, 1.0f);
 }
 
 void EncodeToRamYUYV(LPDIRECT3DTEXTURE9 srcTexture, const TargetRectangle& sourceRc, u8* destAddr, u32 dstwidth, u32 dstStride, u32 dstHeight, float Gamma)
@@ -417,8 +411,8 @@ void EncodeToRamYUYV(LPDIRECT3DTEXTURE9 srcTexture, const TargetRectangle& sourc
 		0.0f,
 		1.0f,
 		1.0f,
-		(float)Renderer::GetTargetWidth(),
-		(float)Renderer::GetTargetHeight());
+		(float)g_renderer->GetTargetWidth(),
+		(float)g_renderer->GetTargetHeight());
 	D3D::dev->SetPixelShaderConstantF(C_COLORMATRIX, PixelShaderManager::GetBuffer(), 2);
 	g_renderer->ResetAPIState();
 	EncodeToRamUsingShader(s_rgbToYuyvProgram, srcTexture, sourceRc, destAddr,

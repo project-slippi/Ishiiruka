@@ -217,6 +217,11 @@ static wxString validation_layer_desc =
 wxTRANSLATE("Enables validation of API calls made by the video backend, which may assist in "
 	"debugging graphical issues.\n\nIf unsure, leave this unchecked.");
 
+static wxString vertex_rounding_desc =
+wxTRANSLATE("Round 2D vertices to whole pixels.  Fixes some "
+	"games at higher internal resolutions.  This setting is disabled and turned off "
+	"at 1x IR.\n\nIf unsure, leave this unchecked.");
+
 // Search for available resolutions - TODO: Move to Common?
 static  wxArrayString GetListOfResolutions()
 {
@@ -853,7 +858,7 @@ VideoConfigDiag::VideoConfigDiag(wxWindow* parent, const std::string &title)
 			szr_hacks->Add(group_xfb, 0, wxEXPAND | wxALL, 5);
 		}	// xfb
 
-		// Bounding Box
+			// Bounding Box
 		{
 			wxStaticBoxSizer* const group_bbox = new wxStaticBoxSizer(wxHORIZONTAL, page_hacks, _("Bounding Box"));
 
@@ -881,12 +886,17 @@ VideoConfigDiag::VideoConfigDiag(wxWindow* parent, const std::string &title)
 			// Disable while i fix opencl
 			//szr_other->Add(CreateCheckBox(page_hacks, _("OpenCL Texture Decoder"), (opencl_desc), vconfig.bEnableOpenCL));	
 			szr_other->Add(CreateCheckBox(page_hacks, _("Fast Depth Calculation"), (fast_depth_calc_desc), vconfig.bFastDepthCalc));
+			vertex_rounding_checkbox =
+				CreateCheckBox(page_hacks, _("Vertex Rounding"), wxGetTranslation(vertex_rounding_desc),
+					vconfig.bVertexRounding);
+			szr_other->Add(vertex_rounding_checkbox);
 			szr_other->Add(Forced_LogicOp = CreateCheckBox(page_hacks, _("Force Logic Blending"), (forcedLogivOp_desc), vconfig.bForceLogicOpBlend));
 			//szr_other->Add(Predictive_FIFO = CreateCheckBox(page_hacks, _("Predictive FIFO"), (predictiveFifo_desc), vconfig.bPredictiveFifo));
 			//szr_other->Add(Wait_For_Shaders = CreateCheckBox(page_hacks, _("Wait for Shader Compilation"), (waitforshadercompilation_desc), vconfig.bWaitForShaderCompilation));
 			szr_other->Add(Async_Shader_compilation = CreateCheckBox(page_hacks, _("Full Async Shader Compilation"), (fullAsyncShaderCompilation_desc), vconfig.bFullAsyncShaderCompilation));
-			szr_other->Add(Compute_Shader_decoding = CreateCheckBox(page_hacks, _("Compute Texture Decoding"), (compute_texture_decoding_desc), vconfig.bEnableComputeTextureDecoding));
+			szr_other->Add(GPU_Texture_decoding = CreateCheckBox(page_hacks, _("GPU Texture Decoding"), (compute_texture_decoding_desc), vconfig.bEnableGPUTextureDecoding));
 			szr_other->Add(Compute_Shader_encoding = CreateCheckBox(page_hacks, _("Compute Texture Encoding"), (Compute_texture_encoding_desc), vconfig.bEnableComputeTextureEncoding));
+
 			wxStaticBoxSizer* const group_other = new wxStaticBoxSizer(wxVERTICAL, page_hacks, _("Other"));
 			group_other->Add(szr_other, 1, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 5);
 			szr_hacks->Add(group_other, 0, wxEXPAND | wxALL, 5);
@@ -916,7 +926,7 @@ VideoConfigDiag::VideoConfigDiag(wxWindow* parent, const std::string &title)
 					wxGetTranslation(validation_layer_desc),
 					vconfig.bEnableValidationLayer));
 			}
-			
+
 
 			wxStaticBoxSizer* const group_debug = new wxStaticBoxSizer(wxVERTICAL, page_advanced, _("Debugging"));
 			szr_advanced->Add(group_debug, 0, wxEXPAND | wxALL, 5);
@@ -1269,7 +1279,7 @@ void VideoConfigDiag::Event_PPShaderListRemove(wxCommandEvent& ev)
 	listbox_selected_ppshaders->Delete(sel);
 	if (!listbox_selected_ppshaders->IsEmpty())
 	{
-		if (sel > (int)listbox_selected_ppshaders->GetCount() - 1)
+		if (sel >(int)listbox_selected_ppshaders->GetCount() - 1)
 			listbox_selected_ppshaders->SetSelection(sel - 1);
 		else
 			listbox_selected_ppshaders->SetSelection(sel);
@@ -1477,8 +1487,8 @@ void VideoConfigDiag::OnUpdateUI(wxUpdateUIEvent& ev)
 	hires_texturemaps->Show(vconfig.backend_info.bSupportsNormalMaps);
 
 
-	Async_Shader_compilation->Show(vconfig.backend_info.APIType != API_OPENGL);
-	Compute_Shader_decoding->Show(vconfig.backend_info.bSupportsComputeTextureDecoding);
+	Async_Shader_compilation->Show(vconfig.backend_info.bSupportsAsyncShaderCompilation);
+	GPU_Texture_decoding->Show(vconfig.backend_info.bSupportsGPUTextureDecoding);
 	Compute_Shader_encoding->Show(vconfig.backend_info.bSupportsComputeTextureEncoding);
 	Forced_LogicOp->Show(vconfig.backend_info.APIType == API_D3D11);
 
@@ -1491,10 +1501,6 @@ void VideoConfigDiag::OnUpdateUI(wxUpdateUIEvent& ev)
 	// Things which shouldn't be changed during emulation
 	if (Core::IsRunning())
 	{
-		if (vconfig.backend_info.bSupportsComputeTextureDecoding)
-		{
-			Compute_Shader_decoding->Disable();
-		}
 		if (vconfig.backend_info.bSupportsComputeTextureEncoding)
 		{
 			Compute_Shader_encoding->Disable();
@@ -1532,6 +1538,15 @@ void VideoConfigDiag::OnUpdateUI(wxUpdateUIEvent& ev)
 	else
 	{
 		//Predictive_FIFO->Enable(!vconfig.bWaitForShaderCompilation);
+	}
+	// Don't enable 'vertex rounding' at native
+	if (vconfig.iEFBScale == SCALE_1X)
+	{
+		vertex_rounding_checkbox->Enable(false);
+	}
+	else
+	{
+		vertex_rounding_checkbox->Enable(true);
 	}
 
 	ev.Skip();

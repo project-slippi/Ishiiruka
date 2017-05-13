@@ -25,11 +25,6 @@
 // See <http://www.gamedev.net/topic/587232-dx11-dynamic-linking-compilation-warnings/>.
 // Dynamic mode is disabled for now. To enable it, uncomment the line below.
 
-//#define USE_DYNAMIC_MODE
-
-// FIXME: When Microsoft fixes their HLSL compiler, make Dolphin enable dynamic
-// mode on Shader Model 5-compatible cards.
-
 namespace DX11
 {
 
@@ -151,8 +146,12 @@ return lerp(float2(Params.TexLeft,Params.TexTop), float2(Params.TexRight,Params.
 
 float4 Fetch_0(float2 coord)
 {
-float3 texCoord = float3(CalcTexCoord(coord), 0.0);
-return EFBTexture.SampleLevel(EFBSampler, texCoord, 0);
+	float3 texCoord = float3(CalcTexCoord(coord), 0.0);
+	float4 color = EFBTexture.SampleLevel(EFBSampler, texCoord, 0);
+#if DISCARD_ALPHA == 1
+	color.a = 1.0;
+#endif
+	return color;
 }
 
 float4 Fetch_1(float2 coord)
@@ -166,32 +165,6 @@ uint4 bytes = uint4(
 	255);                   // a
 return bytes / 255.0;
 }
-
-#ifdef DYNAMIC_MODE
-interface iFetch
-{
-float4 Fetch(float2 coord);
-};
-
-// Source format 0
-class cFetch_0 : iFetch
-{
-float4 Fetch(float2 coord)
-{ return Fetch_0(coord); }
-};
-
-// Source format 1
-class cFetch_1 : iFetch
-{
-float4 Fetch(float2 coord)
-{ return Fetch_1(coord); }
-};
-
-// Declare fetch interface; must be set by application
-iFetch g_fetch;
-#define IMP_FETCH g_fetch.Fetch
-
-#endif // #ifdef DYNAMIC_MODE
 
 #ifndef IMP_FETCH
 #error No Fetch specified
@@ -212,32 +185,6 @@ sample.r = dot(INTENSITY_COEFFS, sample.rgb) + INTENSITY_ADD;
 sample = sample.rrrr;
 return sample;
 }
-
-#ifdef DYNAMIC_MODE
-interface iIntensity
-{
-float4 Intensity(float4 sample);
-};
-
-// Intensity off
-class cIntensity_0 : iIntensity
-{
-float4 Intensity(float4 sample)
-{ return Intensity_0(sample); }
-};
-
-// Intensity on
-class cIntensity_1 : iIntensity
-{
-float4 Intensity(float4 sample)
-{ return Intensity_1(sample); }
-};
-
-// Declare intensity interface; must be set by application
-iIntensity g_intensity;
-#define IMP_INTENSITY g_intensity.Intensity
-
-#endif // #ifdef DYNAMIC_MODE
 
 #ifndef IMP_INTENSITY
 #error No Intensity specified
@@ -261,32 +208,6 @@ float4 sample3 = IMP_FETCH(ul+float2(1,1));
 // FIXME: Is this correct?
 return 0.25 * (sample0+sample1+sample2+sample3);
 }
-
-#ifdef DYNAMIC_MODE
-interface iScaledFetch
-{
-float4 ScaledFetch(float2 coord);
-};
-
-// Scale off
-class cScaledFetch_0 : iScaledFetch
-{
-float4 ScaledFetch(float2 coord)
-{ return ScaledFetch_0(coord); }
-};
-
-// Scale on
-class cScaledFetch_1 : iScaledFetch
-{
-float4 ScaledFetch(float2 coord)
-{ return ScaledFetch_1(coord); }
-};
-
-// Declare scaled fetch interface; must be set by application code
-iScaledFetch g_scaledFetch;
-#define IMP_SCALEDFETCH g_scaledFetch.ScaledFetch
-
-#endif // #ifdef DYNAMIC_MODE
 
 #ifndef IMP_SCALEDFETCH
 #error No ScaledFetch specified
@@ -732,48 +653,6 @@ uint4 dw4 = UINT4_8888_BE(
 return dw4;
 }
 
-#ifdef DYNAMIC_MODE
-interface iGenerator
-{
-uint4 Generate(float2 cacheCoord);
-};
-
-class cGenerator_4 : iGenerator
-{
-uint4 Generate(float2 cacheCoord)
-{ return Generate_4(cacheCoord); }
-};
-
-class cGenerator_5 : iGenerator
-{
-uint4 Generate(float2 cacheCoord)
-{ return Generate_5(cacheCoord); }
-};
-
-class cGenerator_6 : iGenerator
-{
-uint4 Generate(float2 cacheCoord)
-{ return Generate_6(cacheCoord); }
-};
-
-class cGenerator_8 : iGenerator
-{
-uint4 Generate(float2 cacheCoord)
-{ return Generate_8(cacheCoord); }
-};
-
-class cGenerator_B : iGenerator
-{
-uint4 Generate(float2 cacheCoord)
-{ return Generate_B(cacheCoord); }
-};
-
-// Declare generator interface; must be set by application
-iGenerator g_generator;
-#define IMP_GENERATOR g_generator.Generate
-
-#endif
-
 #ifndef IMP_GENERATOR
 #error No generator specified
 #endif
@@ -854,15 +733,6 @@ void CSTextureEncoder::Init()
 	CHECK(SUCCEEDED(hr), "create efb encode params buffer");
 	D3D::SetDebugObjectName(m_encodeParams.get(), "efb encoder params buffer");
 
-	// Create compute shader
-
-#ifdef USE_DYNAMIC_MODE
-	if (!InitDynamicMode())
-#else
-	if (!InitStaticMode())
-#endif
-		return;
-
 	// Create efb texture sampler
 
 	D3D11_SAMPLER_DESC sd = CD3D11_SAMPLER_DESC(CD3D11_DEFAULT());
@@ -874,30 +744,13 @@ void CSTextureEncoder::Init()
 	m_ready = true;
 
 	// Warm up with shader cache
-	char cache_filename[MAX_PATH];
-	sprintf(cache_filename, "%sdx11-ENCODER-cs.cache", File::GetUserPath(D_SHADERCACHE_IDX).c_str());
+	std::string cache_filename = StringFromFormat("%sdx11-ENCODER-cs.cache", File::GetUserPath(D_SHADERCACHE_IDX).c_str());
 	m_shaderCache.OpenAndRead(cache_filename, ShaderCacheInserter(*this));
 }
 
 void CSTextureEncoder::Shutdown()
 {
 	m_ready = false;
-
-	for (auto &e : m_fetchClass)
-		e.reset();
-	for (auto &e : m_scaledFetchClass)
-		e.reset();
-	for (auto &e : m_intensityClass)
-		e.reset();
-	for (auto &e : m_generatorClass)
-		e.reset();
-
-	m_linkageArray.clear();
-
-	m_classLinkage.reset();
-	m_dynamicShader.reset();
-
-	m_staticShaders.clear();
 
 	m_efbSampler.reset();
 	m_out.reset();
@@ -906,97 +759,95 @@ void CSTextureEncoder::Shutdown()
 	m_shaderCache.Close();
 }
 
-void CSTextureEncoder::Encode(u8* dest_ptr, u32 format, u32 native_width, u32 bytes_per_row, u32 num_blocks_y, u32 memory_stride,
-	bool is_depth_copy, bool bIsIntensityFmt, bool bScaleByHalf, const EFBRectangle& source)
+void CSTextureEncoder::Encode(u8* dst, const EFBCopyFormat& format, u32 native_width,
+	u32 bytes_per_row, u32 num_blocks_y, u32 memory_stride,
+	bool is_depth_copy, const EFBRectangle& src_rect, bool scale_by_half)
 {
 	if (!m_ready) // Make sure we initialized OK
 		return;
-
+	ComboKey key;
+	key.format = format;
+	key.scaled = scale_by_half;
+	auto shader = GetEncodingComputeShader(key);
+	if (shader == nullptr)
+	{
+		return;
+	}
 	HRESULT hr;
 	u32 cacheLinesPerRow = bytes_per_row / 32;
 	// Reset API
 
 	g_renderer->ResetAPIState();
 
-	// Set up all the state for EFB encoding
+	D3D::context->OMSetRenderTargets(0, nullptr, nullptr);
 
-#ifdef USE_DYNAMIC_MODE
-	if (SetDynamicShader(format, is_depth_copy, bIsIntensityFmt, bScaleByHalf))
-#else
-	if (SetStaticShader(format, is_depth_copy, bIsIntensityFmt, bScaleByHalf))
-#endif
+	EFBRectangle fullSrcRect;
+	fullSrcRect.left = 0;
+	fullSrcRect.top = 0;
+	fullSrcRect.right = EFB_WIDTH;
+	fullSrcRect.bottom = EFB_HEIGHT;
+	TargetRectangle targetRect = g_renderer->ConvertEFBRectangle(fullSrcRect);
+
+	EFBEncodeParams params = { 0 };
+	params.NumHalfCacheLinesX = FLOAT(cacheLinesPerRow * 2);
+	params.NumBlocksY = FLOAT(num_blocks_y);
+	params.PosX = FLOAT(src_rect.left);
+	params.PosY = FLOAT(src_rect.top);
+	params.TexLeft = float(targetRect.left) / g_renderer->GetTargetWidth();
+	params.TexTop = float(targetRect.top) / g_renderer->GetTargetHeight();
+	params.TexRight = float(targetRect.right) / g_renderer->GetTargetWidth();
+	params.TexBottom = float(targetRect.bottom) / g_renderer->GetTargetHeight();
+	D3D::context->UpdateSubresource(m_encodeParams.get(), 0, nullptr, &params, 0, 0);
+
+	D3D::context->CSSetConstantBuffers(0, 1, D3D::ToAddr(m_encodeParams));
+
+	D3D::context->CSSetUnorderedAccessViews(0, 1, D3D::ToAddr(m_outUav), nullptr);
+
+	ID3D11ShaderResourceView* pEFB = is_depth_copy ?
+		FramebufferManager::GetResolvedEFBDepthTexture()->GetSRV() :
+		// FIXME: Instead of resolving EFB, it would be better to pick out a
+		// single sample from each pixel. The game may break if it isn't
+		// expecting the blurred edges around multisampled shapes.
+		FramebufferManager::GetResolvedEFBColorTexture()->GetSRV();
+	D3D::context->CSSetShader(shader, nullptr, 0);
+	D3D::context->CSSetShaderResources(0, 1, &pEFB);
+	D3D::context->CSSetSamplers(0, 1, D3D::ToAddr(m_efbSampler));
+
+	// Encode!
+
+	D3D::context->Dispatch((cacheLinesPerRow * 2 + 7) / 8, (num_blocks_y + 7) / 8, 1);
+
+	D3D11_BOX srcBox = CD3D11_BOX(0, 0, 0, (4 * 4)*cacheLinesPerRow * 2 * num_blocks_y, 1, 1);
+	D3D::context->CopySubresourceRegion(m_outStage.get(), 0, 0, 0, 0, m_out.get(), 0, &srcBox);
+
+	//
+	// Clean up state
+	IUnknown* nullDummy = nullptr;
+	D3D::context->CSSetUnorderedAccessViews(0, 1, (ID3D11UnorderedAccessView**)&nullDummy, nullptr);
+	D3D::context->CSSetShaderResources(0, 1, (ID3D11ShaderResourceView**)&nullDummy);
+
+	// Transfer staging buffer to GameCube/Wii RAM
+	// nVidia is unable to sync properly with a blocking Map
+	// That workaround works and NES games do not flick as hell anymore
+	D3D::context->Flush();
+	D3D11_MAPPED_SUBRESOURCE map = { 0 };
+	while ((hr = D3D::context->Map(m_outStage.get(), 0, D3D11_MAP_READ, D3D11_MAP_FLAG_DO_NOT_WAIT, &map)) != S_OK && hr == DXGI_ERROR_WAS_STILL_DRAWING)
 	{
-		D3D::context->OMSetRenderTargets(0, nullptr, nullptr);
+		Common::YieldCPU();
+	}
 
-		EFBRectangle fullSrcRect;
-		fullSrcRect.left = 0;
-		fullSrcRect.top = 0;
-		fullSrcRect.right = EFB_WIDTH;
-		fullSrcRect.bottom = EFB_HEIGHT;
-		TargetRectangle targetRect = g_renderer->ConvertEFBRectangle(fullSrcRect);
-
-		EFBEncodeParams params = { 0 };
-		params.NumHalfCacheLinesX = FLOAT(cacheLinesPerRow * 2);
-		params.NumBlocksY = FLOAT(num_blocks_y);
-		params.PosX = FLOAT(source.left);
-		params.PosY = FLOAT(source.top);
-		params.TexLeft = float(targetRect.left) / g_renderer->GetTargetWidth();
-		params.TexTop = float(targetRect.top) / g_renderer->GetTargetHeight();
-		params.TexRight = float(targetRect.right) / g_renderer->GetTargetWidth();
-		params.TexBottom = float(targetRect.bottom) / g_renderer->GetTargetHeight();
-		D3D::context->UpdateSubresource(m_encodeParams.get(), 0, nullptr, &params, 0, 0);
-
-		D3D::context->CSSetConstantBuffers(0, 1, D3D::ToAddr(m_encodeParams));
-
-		D3D::context->CSSetUnorderedAccessViews(0, 1, D3D::ToAddr(m_outUav), nullptr);
-
-		ID3D11ShaderResourceView* pEFB = is_depth_copy ?
-			FramebufferManager::GetResolvedEFBDepthTexture()->GetSRV() :
-			// FIXME: Instead of resolving EFB, it would be better to pick out a
-			// single sample from each pixel. The game may break if it isn't
-			// expecting the blurred edges around multisampled shapes.
-			FramebufferManager::GetResolvedEFBColorTexture()->GetSRV();
-
-		D3D::context->CSSetShaderResources(0, 1, &pEFB);
-
-		D3D::context->CSSetSamplers(0, 1, D3D::ToAddr(m_efbSampler));
-
-		// Encode!
-
-		D3D::context->Dispatch((cacheLinesPerRow * 2 + 7) / 8, (num_blocks_y + 7) / 8, 1);
-
-		D3D11_BOX srcBox = CD3D11_BOX(0, 0, 0, (4 * 4)*cacheLinesPerRow * 2 * num_blocks_y, 1, 1);
-		D3D::context->CopySubresourceRegion(m_outStage.get(), 0, 0, 0, 0, m_out.get(), 0, &srcBox);
-
-		//
-		// Clean up state
-		IUnknown* nullDummy = nullptr;
-		D3D::context->CSSetUnorderedAccessViews(0, 1, (ID3D11UnorderedAccessView**)&nullDummy, nullptr);
-		D3D::context->CSSetShaderResources(0, 1, (ID3D11ShaderResourceView**)&nullDummy);
-
-		// Transfer staging buffer to GameCube/Wii RAM
-		// nVidia is unable to sync properly with a blocking Map
-		// That workaround works and NES games do not flick as hell anymore
-		D3D::context->Flush();
-		D3D11_MAPPED_SUBRESOURCE map = { 0 };
-		while ((hr = D3D::context->Map(m_outStage.get(), 0, D3D11_MAP_READ, D3D11_MAP_FLAG_DO_NOT_WAIT, &map)) != S_OK && hr == DXGI_ERROR_WAS_STILL_DRAWING)
+	CHECK(SUCCEEDED(hr), "map staging buffer (0x%x)", hr);
+	if (hr == S_OK)
+	{
+		u8* src = (u8*)map.pData;
+		u32 readStride = std::min(bytes_per_row, map.RowPitch);
+		for (u32 y = 0; y < num_blocks_y; ++y)
 		{
-			Common::YieldCPU();
+			memcpy(dst, src, readStride);
+			dst += memory_stride;
+			src += readStride;
 		}
-
-		CHECK(SUCCEEDED(hr), "map staging buffer (0x%x)", hr);
-		if (hr == S_OK)
-		{
-			u8* src = (u8*)map.pData;
-			u32 readStride = std::min(bytes_per_row, map.RowPitch);
-			for (u32 y = 0; y < num_blocks_y; ++y)
-			{
-				memcpy(dest_ptr, src, readStride);
-				dest_ptr += memory_stride;
-				src += readStride;
-			}
-			D3D::context->Unmap(m_outStage.get(), 0);
-		}
+		D3D::context->Unmap(m_outStage.get(), 0);
 	}
 
 	// Restore API
@@ -1004,12 +855,6 @@ void CSTextureEncoder::Encode(u8* dest_ptr, u32 format, u32 native_width, u32 by
 	D3D::context->OMSetRenderTargets(1,
 		&FramebufferManager::GetEFBColorTexture()->GetRTV(),
 		FramebufferManager::GetEFBDepthTexture()->GetDSV());
-}
-
-bool CSTextureEncoder::InitStaticMode()
-{
-	// Nothing to really do.
-	return true;
 }
 
 static const char* FETCH_FUNC_NAMES[4] = {
@@ -1024,244 +869,66 @@ static const char* INTENSITY_FUNC_NAMES[2] = {
 	"Intensity_0", "Intensity_1"
 };
 
-bool CSTextureEncoder::SetStaticShader(u32 dstFormat, bool is_depth_copy,
-	bool isIntensity, bool scaleByHalf)
+ID3D11ComputeShader* CSTextureEncoder::GetEncodingComputeShader(const ComboKey& key)
 {
-	size_t scaledFetchNum = scaleByHalf ? 1 : 0;
-	size_t intensityNum = isIntensity ? 1 : 0;
-	size_t generatorNum = dstFormat & 0xF;
+	size_t generatorNum = static_cast<size_t>(key.format.copy_format) & 0xF;
+	auto iter = m_encoding_shaders.find(key);
+	if (iter != m_encoding_shaders.end())
+		return iter->second.get();
 
-	ComboKey key = MakeComboKey(dstFormat, is_depth_copy, isIntensity, scaleByHalf, DX11::D3D::GetFeatureLevel() >= D3D_FEATURE_LEVEL_11_0);
-
-	ComboMap::iterator it = m_staticShaders.find(key);
-
-	ID3D11ComputeShader* shader{};
-	if (it != m_staticShaders.end())
+	const char* generatorFuncName = nullptr;
+	switch (generatorNum)
 	{
-		shader = it->second.get();
-	}
-	else
-	{
-		const char* generatorFuncName = nullptr;
-		switch (generatorNum)
-		{
-		case 0x0: generatorFuncName = "Generate_0"; break;
-		case 0x1: generatorFuncName = "Generate_1"; break;
-		case 0x2: generatorFuncName = "Generate_2"; break;
-		case 0x3: generatorFuncName = "Generate_3"; break;
-		case 0x4: generatorFuncName = "Generate_4"; break;
-		case 0x5: generatorFuncName = "Generate_5"; break;
-		case 0x6: generatorFuncName = "Generate_6"; break;
-		case 0x7: generatorFuncName = "Generate_7"; break;
-		case 0x8: generatorFuncName = "Generate_8"; break;
-		case 0x9: generatorFuncName = "Generate_9"; break;
-		case 0xA: generatorFuncName = "Generate_A"; break;
-		case 0xB: generatorFuncName = "Generate_B"; break;
-		case 0xC: generatorFuncName = "Generate_C"; break;
-		default:
-			WARN_LOG(VIDEO, "No generator available for dst format 0x%X; aborting", generatorNum);
-			m_staticShaders[key] = nullptr;
-			return false;
-		}
-
-		INFO_LOG(VIDEO, "Compiling efb encoding shader for dstFormat 0x%X, is_depth_copy %d, isIntensity %d, scaleByHalf %d",
-			dstFormat, is_depth_copy, isIntensity ? 1 : 0, scaleByHalf ? 1 : 0);
-
-		// Shader permutation not found, so compile it
-		D3DBlob bytecode;
-		D3D_SHADER_MACRO macros[] = {
-				{ "IMP_FETCH", FETCH_FUNC_NAMES[is_depth_copy] },
-				{ "IMP_SCALEDFETCH", SCALEDFETCH_FUNC_NAMES[scaledFetchNum] },
-				{ "IMP_INTENSITY", INTENSITY_FUNC_NAMES[intensityNum] },
-				{ "IMP_GENERATOR", generatorFuncName },
-				{ "SHADER_MODEL", DX11::D3D::GetFeatureLevel() >= D3D_FEATURE_LEVEL_11_0 ? "5" : "4" },
-				{ nullptr, nullptr }
-		};
-		if (!D3D::CompileShader(D3D::ShaderType::Compute, EFB_ENCODE_CS, bytecode, macros))
-		{
-			WARN_LOG(VIDEO, "EFB encoder shader for dstFormat 0x%X, is_depth_copy %d, isIntensity %d, scaleByHalf %d failed to compile",
-				dstFormat, is_depth_copy, isIntensity ? 1 : 0, scaleByHalf ? 1 : 0);
-			// Add dummy shader to map to prevent trying to compile over and
-			// over again
-			m_staticShaders[key] = nullptr;
-			return false;
-		}
-
-		m_shaderCache.Append(key, bytecode.Data(), (u32)bytecode.Size());
-		shader = InsertShader(key, bytecode.Data(), (u32)bytecode.Size());
+	case 0x0: generatorFuncName = "Generate_0"; break;
+	case 0x1: generatorFuncName = "Generate_1"; break;
+	case 0x2: generatorFuncName = "Generate_2"; break;
+	case 0x3: generatorFuncName = "Generate_3"; break;
+	case 0x4: generatorFuncName = "Generate_4"; break;
+	case 0x5: generatorFuncName = "Generate_5"; break;
+	case 0x6: generatorFuncName = "Generate_6"; break;
+	case 0x7: generatorFuncName = "Generate_7"; break;
+	case 0x8: generatorFuncName = "Generate_8"; break;
+	case 0x9: generatorFuncName = "Generate_9"; break;
+	case 0xA: generatorFuncName = "Generate_A"; break;
+	case 0xB: generatorFuncName = "Generate_B"; break;
+	case 0xC: generatorFuncName = "Generate_C"; break;
+	default:
+		WARN_LOG(VIDEO, "No generator available for dst format 0x%X; aborting", generatorNum);
+		m_encoding_shaders[key] = nullptr;
+		return false;
 	}
 
-	if (shader)
+	// Shader permutation not found, so compile it
+	D3DBlob bytecode;
+	D3D_SHADER_MACRO macros[] = {
+		{ "IMP_FETCH", FETCH_FUNC_NAMES[(key.format.copy_format & _GX_TF_ZTF) != 0 ? 1 : 0] },
+		{ "IMP_SCALEDFETCH", SCALEDFETCH_FUNC_NAMES[key.scaled] },
+		{ "IMP_INTENSITY", INTENSITY_FUNC_NAMES[key.format.copy_format < GX_TF_RGB565] },
+		{ "IMP_GENERATOR", generatorFuncName },
+		{ "SHADER_MODEL", DX11::D3D::GetFeatureLevel() >= D3D_FEATURE_LEVEL_11_0 ? "5" : "4" },
+		{ "DISCARD_ALPHA", key.format.efb_format == PEControl::RGBA6_Z24 ? "0" : "1" },
+		{ nullptr, nullptr }
+	};
+	if (!D3D::CompileShader(D3D::ShaderType::Compute, EFB_ENCODE_CS, bytecode, macros))
 	{
-		D3D::context->CSSetShader(shader, nullptr, 0);
-		return true;
+		WARN_LOG(VIDEO, "EFB encoder shader for dstFormat 0x%X, srcformat 0x%X, scaled : %d failed to compile",
+			key.format.copy_format, key.format.efb_format, key.scaled ? 1 : 0);
+		// Add dummy shader to map to prevent trying to compile over and
+		// over again
+		m_encoding_shaders[key] = nullptr;
+		return false;
 	}
-	return false;
+	m_shaderCache.Append(key, bytecode.Data(), (u32)bytecode.Size());
+	return InsertShader(key, bytecode.Data(), (u32)bytecode.Size());
 }
 
-ID3D11ComputeShader* CSTextureEncoder::InsertShader(ComboKey const &key, u8 const *data, u32 sz)
+ID3D11ComputeShader* CSTextureEncoder::InsertShader(const ComboKey &key, u8 const *data, u32 sz)
 {
 	ID3D11ComputeShader* newShader;
 	HRESULT hr = D3D::device->CreateComputeShader(data, sz, nullptr, &newShader);
 	CHECK(SUCCEEDED(hr), "create efb encoder pixel shader");
 
-	m_staticShaders.emplace(key, D3D::UniquePtr<ID3D11ComputeShader>(newShader));
+	m_encoding_shaders.emplace(key, D3D::UniquePtr<ID3D11ComputeShader>(newShader));
 	return newShader;
 }
-
-bool CSTextureEncoder::InitDynamicMode()
-{
-
-	HRESULT hr;
-
-	D3D_SHADER_MACRO macros[] = {
-			{ "DYNAMIC_MODE", nullptr },
-			{ nullptr, nullptr }
-	};
-
-	D3DBlob bytecode;
-	if (!D3D::CompileShader(D3D::ShaderType::Compute, EFB_ENCODE_CS, bytecode, macros))
-	{
-		ERROR_LOG(VIDEO, "EFB encode pixel shader failed to compile");
-		return false;
-	}
-
-	hr = D3D::device->CreateClassLinkage(ToAddr(m_classLinkage));
-	CHECK(SUCCEEDED(hr), "create efb encode class linkage");
-	D3D::SetDebugObjectName(m_classLinkage.get(), "efb encoder class linkage");
-
-	hr = D3D::device->CreateComputeShader(bytecode.Data(), bytecode.Size(), m_classLinkage.get(), ToAddr(m_dynamicShader));
-	CHECK(SUCCEEDED(hr), "create efb encode pixel shader");
-	D3D::SetDebugObjectName(m_dynamicShader.get(), "efb encoder pixel shader");
-
-	// Use D3DReflect
-
-	D3D::UniquePtr<ID3D11ShaderReflection> reflect;
-	hr = HLSLCompiler::getInstance().Reflect(bytecode.Data(), bytecode.Size(), IID_ID3D11ShaderReflection, ToAddr(reflect));
-	CHECK(SUCCEEDED(hr), "reflect on efb encoder shader");
-
-	// Get number of slots and create dynamic linkage array
-
-	UINT numSlots = reflect->GetNumInterfaceSlots();
-	m_linkageArray.resize(numSlots);
-
-	// Get interface slots
-
-	ID3D11ShaderReflectionVariable* var = reflect->GetVariableByName("g_fetch");
-	m_fetchSlot = var->GetInterfaceSlot(0);
-
-	var = reflect->GetVariableByName("g_scaledFetch");
-	m_scaledFetchSlot = var->GetInterfaceSlot(0);
-
-	var = reflect->GetVariableByName("g_intensity");
-	m_intensitySlot = var->GetInterfaceSlot(0);
-
-	var = reflect->GetVariableByName("g_generator");
-	m_generatorSlot = var->GetInterfaceSlot(0);
-
-	INFO_LOG(VIDEO, "Fetch slot %d, scaledFetch slot %d, intensity slot %d, generator slot %d",
-		m_fetchSlot, m_scaledFetchSlot, m_intensitySlot, m_generatorSlot);
-
-	// Class instances will be created at the time they are used
-
-	for (auto &e : m_fetchClass)
-		e.reset();
-	for (auto &e : m_scaledFetchClass)
-		e.reset();
-	for (auto &e : m_intensityClass)
-		e.reset();
-	for (auto &e : m_generatorClass)
-		e.reset();
-
-	return true;
-}
-
-static const char* FETCH_CLASS_NAMES[2] = {
-	"cFetch_0", "cFetch_1"
-};
-
-static const char* SCALEDFETCH_CLASS_NAMES[2] = {
-	"cScaledFetch_0", "cScaledFetch_1"
-};
-
-static const char* INTENSITY_CLASS_NAMES[2] = {
-	"cIntensity_0", "cIntensity_1"
-};
-
-bool CSTextureEncoder::SetDynamicShader(u32 dstFormat,
-	bool is_depth_copy, bool isIntensity, bool scaleByHalf)
-{
-
-	size_t scaledFetchNum = scaleByHalf ? 1 : 0;
-	size_t intensityNum = isIntensity ? 1 : 0;
-	size_t generatorNum = dstFormat & 0xF;
-
-	// FIXME: Not all the possible generators are available as classes yet.
-	// When dynamic mode is usable, implement them.
-	const char* generatorName = nullptr;
-	switch (generatorNum)
-	{
-	case 0x4: generatorName = "cGenerator_4"; break;
-	case 0x5: generatorName = "cGenerator_5"; break;
-	case 0x6: generatorName = "cGenerator_6"; break;
-	case 0x8: generatorName = "cGenerator_8"; break;
-	case 0xB: generatorName = "cGenerator_B"; break;
-	default:
-		WARN_LOG(VIDEO, "No generator available for dst format 0x%X; aborting", generatorNum);
-		return false;
-	}
-
-	// Make sure class instances are available
-	if (!m_fetchClass[is_depth_copy])
-	{
-		INFO_LOG(VIDEO, "Creating %s class instance for encoder 0x%X",
-			FETCH_CLASS_NAMES[is_depth_copy], dstFormat);
-		HRESULT hr = m_classLinkage->CreateClassInstance(
-			FETCH_CLASS_NAMES[is_depth_copy], 0, 0, 0, 0, ToAddr(m_fetchClass[is_depth_copy]));
-		CHECK(SUCCEEDED(hr), "create fetch class instance");
-	}
-	if (!m_scaledFetchClass[scaledFetchNum])
-	{
-		INFO_LOG(VIDEO, "Creating %s class instance for encoder 0x%X",
-			SCALEDFETCH_CLASS_NAMES[scaledFetchNum], dstFormat);
-		HRESULT hr = m_classLinkage->CreateClassInstance(
-			SCALEDFETCH_CLASS_NAMES[scaledFetchNum], 0, 0, 0, 0,
-			ToAddr(m_scaledFetchClass[scaledFetchNum]));
-		CHECK(SUCCEEDED(hr), "create scaled fetch class instance");
-	}
-	if (!m_intensityClass[intensityNum])
-	{
-		INFO_LOG(VIDEO, "Creating %s class instance for encoder 0x%X",
-			INTENSITY_CLASS_NAMES[intensityNum], dstFormat);
-		HRESULT hr = m_classLinkage->CreateClassInstance(
-			INTENSITY_CLASS_NAMES[intensityNum], 0, 0, 0, 0,
-			ToAddr(m_intensityClass[intensityNum]));
-		CHECK(SUCCEEDED(hr), "create intensity class instance");
-	}
-	if (!m_generatorClass[generatorNum])
-	{
-		INFO_LOG(VIDEO, "Creating %s class instance for encoder 0x%X",
-			generatorName, dstFormat);
-		HRESULT hr = m_classLinkage->CreateClassInstance(
-			generatorName, 0, 0, 0, 0, ToAddr(m_generatorClass[generatorNum]));
-		CHECK(SUCCEEDED(hr), "create generator class instance");
-	}
-
-	// Assemble dynamic linkage array
-	if (m_fetchSlot != UINT(-1))
-		m_linkageArray[m_fetchSlot] = m_fetchClass[is_depth_copy].get();
-	if (m_scaledFetchSlot != UINT(-1))
-		m_linkageArray[m_scaledFetchSlot] = m_scaledFetchClass[scaledFetchNum].get();
-	if (m_intensitySlot != UINT(-1))
-		m_linkageArray[m_intensitySlot] = m_intensityClass[intensityNum].get();
-	if (m_generatorSlot != UINT(-1))
-		m_linkageArray[m_generatorSlot] = m_generatorClass[generatorNum].get();
-
-	D3D::context->CSSetShader(m_dynamicShader.get(),
-		m_linkageArray.empty() ? nullptr : m_linkageArray.data(),
-		(UINT)m_linkageArray.size());
-
-	return true;
-}
-
 }

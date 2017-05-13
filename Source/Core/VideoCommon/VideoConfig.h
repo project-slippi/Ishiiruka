@@ -166,7 +166,7 @@ struct VideoConfig final
 	bool bFullAsyncShaderCompilation;
 	bool bPredictiveFifo;
 	bool bWaitForShaderCompilation;
-	bool bEnableComputeTextureDecoding;
+	bool bEnableGPUTextureDecoding;
 	bool bEnableComputeTextureEncoding;
 	bool bEFBEmulateFormatChanges;
 	bool bSkipEFBCopyToRam;
@@ -192,6 +192,7 @@ struct VideoConfig final
 	int iSimBumpStrength;
 
 	bool bFastDepthCalc;
+	bool bVertexRounding;
 	int iBBoxMode;
 	//for dx9-backend
 	bool bForceDualSourceBlend;
@@ -253,6 +254,7 @@ struct VideoConfig final
 		bool bSupportsOversizedViewports;
 		bool bSupportsPostProcessing;
 		bool bSupportsGeometryShaders;
+		bool bSupportsComputeShaders;
 		bool bSupports3DVision;
 		bool bSupportsExclusiveFullscreen;
 		bool bSupportsBBox;
@@ -263,7 +265,7 @@ struct VideoConfig final
 		bool bSupportsTessellation;
 		bool bSupportsScaling;
 		bool bSupportsDepthClamp;  // Needed by VertexShaderGen, so must stay in VideoCommon
-		bool bSupportsComputeTextureDecoding;
+		bool bSupportsGPUTextureDecoding;
 		bool bSupportsComputeTextureEncoding;
 		bool bSupportsMultithreading;
 		bool bSupportsValidationLayer;
@@ -292,6 +294,10 @@ struct VideoConfig final
 	inline bool TessellationEnabled() const
 	{
 		return backend_info.bSupportsTessellation && bTessellation && bEnablePixelLighting;
+	}
+	inline bool UseGPUTextureDecoding() const
+	{
+		return backend_info.bSupportsGPUTextureDecoding && bEnableGPUTextureDecoding;
 	}
 };
 

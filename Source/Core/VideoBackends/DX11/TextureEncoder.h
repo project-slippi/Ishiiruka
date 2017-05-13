@@ -83,8 +83,9 @@ public:
 
 	virtual void Init() = 0;
 	virtual void Shutdown() = 0;
-	virtual void Encode(u8* dest_ptr, u32 format, u32 native_width, u32 bytes_per_row, u32 num_blocks_y, u32 memory_stride,
-		bool is_depth_copy, bool bIsIntensityFmt, bool bScaleByHalf, const EFBRectangle& source) = 0;
+	virtual void Encode(u8* dst, const EFBCopyFormat& format, u32 native_width,
+		u32 bytes_per_row, u32 num_blocks_y, u32 memory_stride,
+		bool is_depth_copy, const EFBRectangle& src_rect, bool scale_by_half) = 0;
 
 };
 
@@ -99,8 +100,7 @@ public:
 	virtual void Init() = 0;
 	virtual void Shutdown() = 0;
 	virtual bool FormatSupported(u32 srcFmt) = 0;
-	virtual bool Decode(const u8* src, u32 srcsize, u32 srcFmt, u32 w, u32 h, u32 levels, D3DTexture2D& dstTexture) = 0;
-	virtual bool DecodeRGBAFromTMEM(u8 const * ar_src, u8 const * bg_src, u32 width, u32 height, D3DTexture2D& dstTexture) = 0;
+	virtual bool Decode(const u8* src, u32 srcsize, u32 srcFmt, u32 w, u32 h, u32 expandedw, u32 expandedh, u32 levels, D3DTexture2D& dstTexture) = 0;
 	virtual bool Depalettize(D3DTexture2D& dstTexture, D3DTexture2D& srcTexture, BaseType baseType, u32 width, u32 height) = 0;
 	virtual void LoadLut(u32 lutFmt, void* addr, u32 size) = 0;
 

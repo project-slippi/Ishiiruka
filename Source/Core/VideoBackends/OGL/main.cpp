@@ -95,7 +95,7 @@ void VideoBackend::InitBackendInfo()
 	g_Config.backend_info.APIType = API_OPENGL;
 	g_Config.backend_info.MaxTextureSize = 1024;
 #ifdef _WIN32
-	g_Config.backend_info.bSupportedFormats[PC_TEX_FMT_BGRA32] = true;
+	g_Config.backend_info.bSupportedFormats[PC_TEX_FMT_BGRA32] = false;
 	g_Config.backend_info.bSupportedFormats[PC_TEX_FMT_RGBA32] = true;
 	g_Config.backend_info.bSupportedFormats[PC_TEX_FMT_I4_AS_I8] = false;
 	g_Config.backend_info.bSupportedFormats[PC_TEX_FMT_IA4_AS_IA8] = false;
@@ -116,7 +116,8 @@ void VideoBackend::InitBackendInfo()
 	g_Config.backend_info.bSupportsPixelLighting = true;
 	g_Config.backend_info.bSupportsNormalMaps = true;
 	g_Config.backend_info.bSupportsTessellation = false;
-	g_Config.backend_info.bSupportsComputeTextureDecoding = false;
+	g_Config.backend_info.bSupportsComputeShaders = false;
+	g_Config.backend_info.bSupportsGPUTextureDecoding = true;
 	g_Config.backend_info.bSupportsComputeTextureEncoding = false;
 	g_Config.backend_info.bSupportsDepthClamp = true;
 	g_Config.backend_info.bSupportsMultithreading = false;
@@ -159,7 +160,7 @@ void VideoBackend::Video_Prepare()
 	ProgramShaderCache::Init();
 	g_texture_cache = std::make_unique<TextureCache>();
 	g_sampler_cache = std::make_unique<SamplerCache>();
-	Renderer::Init();
+	g_renderer->Init();
 	TextureConverter::Init();
 	BBox::Init();
 }
@@ -176,7 +177,7 @@ void VideoBackend::Video_Cleanup()
 	// The following calls are NOT Thread Safe
 	// And need to be called from the video thread
 	CleanupShared();
-	Renderer::Shutdown();
+	static_cast<Renderer*>(g_renderer.get())->Shutdown();
 	BBox::Shutdown();
 	TextureConverter::Shutdown();
 	g_sampler_cache.reset();

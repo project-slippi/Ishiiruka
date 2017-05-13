@@ -58,7 +58,7 @@ void VideoCommon_DoState(PointerWrap &p)
 	TessellationShaderManager::DoState(p);
 	p.DoMarker("HullDomainShaderManager");
 
-	VertexManagerBase::DoState(p);
+	g_vertex_manager->DoState(p);
 	p.DoMarker("VertexManager");
 
 	BoundingBox::DoState(p);

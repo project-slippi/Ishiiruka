@@ -271,6 +271,7 @@ public:
 	static std::vector<std::string> GetAvailableShaderNames(const std::string& sub_dir);
 
 	void* UpdateConfigurationBuffer(u32* buffer_size, bool packbuffer = false);
+	void* GetConfigurationBuffer(u32* buffer_size);
 
 private:
 	struct ConfigBlock final
@@ -513,6 +514,11 @@ public:
 
 	// Scale a target rectangle to an output's scale
 	static TargetRectangle ScaleTargetRectangle(API_TYPE api, const TargetRectangle& src, float scale);
+	
+	void*  GetConstatsData()
+	{
+		return m_current_constants.data();
+	}
 
 protected:
 	virtual std::unique_ptr<PostProcessingShader> CreateShader(PostProcessingShaderConfiguration* config) = 0;

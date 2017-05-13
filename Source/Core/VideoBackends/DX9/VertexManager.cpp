@@ -192,8 +192,8 @@ VertexManager::VertexManager()
 {
 	LocalVBuffer.resize(MAXVBUFFERSIZE);
 
-	s_pCurBufferPointer = s_pBaseBufferPointer = &LocalVBuffer[0];
-	s_pEndBufferPointer = s_pBaseBufferPointer + LocalVBuffer.size();
+	m_pCurBufferPointer = m_pBaseBufferPointer = &LocalVBuffer[0];
+	m_pEndBufferPointer = m_pBaseBufferPointer + LocalVBuffer.size();
 
 	LocalIBuffer.resize(MAXIBUFFERSIZE);
 }
@@ -240,13 +240,13 @@ void VertexManager::PrepareDrawBuffers(u32 stride)
 			DestroyDeviceObjects();
 			return;
 		}
-		memcpy(p_vertices_base, s_pBaseBufferPointer, data_size);
+		memcpy(p_vertices_base, m_pBaseBufferPointer, data_size);
 		p_vertices = p_vertices_base + data_size;
-		if (current_primitive_type == PRIMITIVE_TRIANGLES)
+		if (m_current_primitive_type == PRIMITIVE_TRIANGLES)
 		{
 			memcpy(p_indices, indices, m_index_len * sizeof(u16));
 		}
-		else if (current_primitive_type == PRIMITIVE_LINES)
+		else if (m_current_primitive_type == PRIMITIVE_LINES)
 		{
 			for (u32 i = 0; i < (m_index_len - 1); i += 2)
 			{
@@ -256,12 +256,12 @@ void VertexManager::PrepareDrawBuffers(u32 stride)
 				// Get the position in the stream o f the first vertex
 				u32 currentstride = first_index * stride;
 				// Get The first vertex Position data
-				Float_2* base_vertex_0 = (Float_2*)(s_pBaseBufferPointer + currentstride);
+				Float_2* base_vertex_0 = (Float_2*)(m_pBaseBufferPointer + currentstride);
 				// Get The blendindices data
 				U8_4* blendindices_vertex_0 = (U8_4*)(p_vertices_base + currentstride + stride - sizeof(U8_4));
 				// Get The first vertex Position data
 				currentstride = second_index * stride;
-				Float_2* base_vertex_1 = (Float_2*)(s_pBaseBufferPointer + currentstride);
+				Float_2* base_vertex_1 = (Float_2*)(m_pBaseBufferPointer + currentstride);
 				U8_4* blendindices_vertex_1 = (U8_4*)(p_vertices_base + currentstride + stride - sizeof(U8_4));
 
 				// Calculate line orientation
@@ -327,7 +327,7 @@ void VertexManager::PrepareDrawBuffers(u32 stride)
 				p_indices++;
 			}
 		}
-		else if (current_primitive_type == PRIMITIVE_POINTS)
+		else if (m_current_primitive_type == PRIMITIVE_POINTS)
 		{
 			for (u32 i = 0; i < m_index_len; i++)
 			{
@@ -336,7 +336,7 @@ void VertexManager::PrepareDrawBuffers(u32 stride)
 				// Calculate stream Position
 				int currentstride = pointindex * stride;
 				// Get data Pointer for vertex replication
-				u8* base_vertex = s_pBaseBufferPointer + currentstride;
+				u8* base_vertex = m_pBaseBufferPointer + currentstride;
 				U8_4* blendindices_vertex_0 = (U8_4*)(p_vertices_base + currentstride + stride - sizeof(U8_4));
 
 				// Generate Extra vertices
@@ -488,7 +488,7 @@ void VertexManager::vFlush(bool useDstAlpha)
 	m_total_index_len = m_index_len;
 	NativeVertexFormat* current_vertex_format = VertexLoaderManager::GetCurrentVertexFormat();
 	const u32 stride = current_vertex_format->GetVertexStride();
-	switch (current_primitive_type)
+	switch (m_current_primitive_type)
 	{
 	case PRIMITIVE_POINTS:
 		// We need point emulation so setup values to allow point to triangle translation
@@ -522,7 +522,7 @@ void VertexManager::vFlush(bool useDstAlpha)
 		goto shader_fail;
 	}
 	g_renderer->ApplyState(false);
-	if (current_primitive_type != PRIMITIVE_TRIANGLES)
+	if (m_current_primitive_type != PRIMITIVE_TRIANGLES)
 	{
 		// if we use emulation setup the offsets for the vertex shaders
 		SetPLRasterOffsets();
@@ -584,7 +584,7 @@ void VertexManager::vFlush(bool useDstAlpha)
 		Draw(stride);
 		g_renderer->RestoreState();
 	}
-	if (current_primitive_type != PRIMITIVE_TRIANGLES)
+	if (m_current_primitive_type != PRIMITIVE_TRIANGLES)
 	{
 		D3D::RefreshRenderState(D3DRS_CULLMODE);
 	}
@@ -595,7 +595,7 @@ shader_fail:
 
 void VertexManager::ResetBuffer(u32 stride)
 {
-	s_pCurBufferPointer = s_pBaseBufferPointer;
+	m_pCurBufferPointer = m_pBaseBufferPointer;
 	IndexGenerator::Start(GetIndexBuffer());
 }
 

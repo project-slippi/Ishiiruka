@@ -111,8 +111,8 @@ void VertexManager::PrepareDrawBuffers(u32 stride)
 
 void VertexManager::ResetBuffer(u32 stride)
 {
-	s_pCurBufferPointer = s_pBaseBufferPointer = m_cpu_vertex_buffer.data();
-	s_pEndBufferPointer = s_pBaseBufferPointer + m_cpu_vertex_buffer.size();
+	m_pCurBufferPointer = m_pBaseBufferPointer = m_cpu_vertex_buffer.data();
+	m_pEndBufferPointer = m_pBaseBufferPointer + m_cpu_vertex_buffer.size();
 	IndexGenerator::Start(m_cpu_index_buffer.data());
 }
 
@@ -132,7 +132,7 @@ void VertexManager::vFlush(bool use_dst_alpha)
 
 	// Update assembly state
 	StateTracker::GetInstance()->SetVertexFormat(vertex_format);
-	switch (current_primitive_type)
+	switch (m_current_primitive_type)
 	{
 	case PRIMITIVE_POINTS:
 		StateTracker::GetInstance()->SetPrimitiveTopology(VK_PRIMITIVE_TOPOLOGY_POINT_LIST);
@@ -156,7 +156,7 @@ void VertexManager::vFlush(bool use_dst_alpha)
 		dstalpha_mode = PIXEL_SHADER_RENDER_MODE::PSRM_DUAL_SOURCE_BLEND;
 
 	// Check for any shader stage changes
-	StateTracker::GetInstance()->CheckForShaderChanges(current_primitive_type, VertexLoaderManager::g_current_components, dstalpha_mode);
+	StateTracker::GetInstance()->CheckForShaderChanges(m_current_primitive_type, VertexLoaderManager::g_current_components, dstalpha_mode);
 
 	// Update any changed constants
 	StateTracker::GetInstance()->UpdateVertexShaderConstants();
@@ -211,7 +211,7 @@ void VertexManager::vFlush(bool use_dst_alpha)
 	bool logic_op_enabled = bpmem.blendmode.logicopenable && !bpmem.blendmode.blendenable;
 	if (use_dst_alpha && (!g_vulkan_context->SupportsDualSourceBlend() || logic_op_enabled))
 	{
-		StateTracker::GetInstance()->CheckForShaderChanges(current_primitive_type, VertexLoaderManager::g_current_components, PIXEL_SHADER_RENDER_MODE::PSRM_ALPHA_PASS);
+		StateTracker::GetInstance()->CheckForShaderChanges(m_current_primitive_type, VertexLoaderManager::g_current_components, PIXEL_SHADER_RENDER_MODE::PSRM_ALPHA_PASS);
 		if (!StateTracker::GetInstance()->Bind())
 		{
 			WARN_LOG(VIDEO, "Skipped draw of %u indices (alpha pass)", index_count);

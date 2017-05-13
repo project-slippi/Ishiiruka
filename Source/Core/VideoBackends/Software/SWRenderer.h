@@ -16,8 +16,8 @@ class SWRenderer: public Renderer
 public:
 	~SWRenderer() override;
 
-	static void Init();
-	static void Shutdown();
+	void Init() override;
+	void Shutdown() override;
 
 	static u8* GetNextColorTexture();
 	static u8* GetCurrentColorTexture();

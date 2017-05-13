@@ -118,7 +118,7 @@ void VertexManager::Draw(u32 stride)
 
 	D3D_PRIMITIVE_TOPOLOGY d3d_primitive_topology = ShaderCache::GetActiveDomainShaderBytecode().pShaderBytecode != nullptr ? D3D_PRIMITIVE_TOPOLOGY_3_CONTROL_POINT_PATCHLIST : D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 
-	switch (current_primitive_type)
+	switch (m_current_primitive_type)
 	{
 	case PRIMITIVE_POINTS:
 		d3d_primitive_topology = D3D_PRIMITIVE_TOPOLOGY_POINTLIST;
@@ -184,9 +184,9 @@ u16* VertexManager::GetIndexBuffer()
 
 void VertexManager::ResetBuffer(u32 stride)
 {
-	s_pCurBufferPointer = m_vertex_cpu_buffer.data();
-	s_pBaseBufferPointer = m_vertex_cpu_buffer.data();
-	s_pEndBufferPointer = s_pCurBufferPointer + MAXVBUFFERSIZE;
+	m_pCurBufferPointer = m_vertex_cpu_buffer.data();
+	m_pBaseBufferPointer = m_vertex_cpu_buffer.data();
+	m_pEndBufferPointer = m_pCurBufferPointer + MAXVBUFFERSIZE;
 
 	IndexGenerator::Start(reinterpret_cast<u16*>(m_index_cpu_buffer.data()));
 }

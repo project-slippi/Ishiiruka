@@ -29,7 +29,7 @@ class Renderer : public ::Renderer
 public:
 	Renderer(std::unique_ptr<SwapChain> swap_chain);
 	~Renderer();
-
+	void Init() override;
 	static Renderer* GetInstance();
 
 	SwapChain* GetSwapChain() const { return m_swap_chain.get(); }
@@ -58,11 +58,10 @@ public:
 
 	void SetColorMask() override;
 	void SetBlendMode(bool force_update) override;
-	void SetScissorRect(const TargetRectangle& rc) override;
+	void SetScissorRect(const EFBRectangle& rc) override;
 	void SetGenerationMode() override;
 	void SetDepthMode() override;
 	void SetLogicOpMode() override;
-	void SetDitherMode() override;
 	void SetSamplerState(int stage, int texindex, bool custom_tex) override;
 	void SetInterlacingMode() override;
 	void SetViewport() override;
@@ -90,13 +89,15 @@ private:
 	bool CompileShaders();
 	void DestroyShaders();
 
+	void ResolveEFBForSwap(const TargetRectangle& scaled_rect);
+
 	// Draw either the EFB, or specified XFB sources to the currently-bound framebuffer.
 	void DrawFrame(VkRenderPass render_pass, const TargetRectangle& target_rect,
-		const EFBRectangle& source_rect, u32 xfb_addr,
+		const TargetRectangle& scaled_efb_rect, u32 xfb_addr,
 		const XFBSourceBase* const* xfb_sources, u32 xfb_count, u32 fb_width,
 		u32 fb_stride, u32 fb_height);
 	void DrawEFB(VkRenderPass render_pass, const TargetRectangle& target_rect,
-		const EFBRectangle& source_rect);
+		const TargetRectangle& scaled_efb_rect);
 	void DrawVirtualXFB(VkRenderPass render_pass, const TargetRectangle& target_rect, u32 xfb_addr,
 		const XFBSourceBase* const* xfb_sources, u32 xfb_count, u32 fb_width,
 		u32 fb_stride, u32 fb_height);
@@ -105,11 +106,11 @@ private:
 		u32 fb_stride, u32 fb_height);
 
 	// Draw the frame, as well as the OSD to the swap chain.
-	void DrawScreen(const EFBRectangle& rc, u32 xfb_addr, const XFBSourceBase* const* xfb_sources,
+	void DrawScreen(const TargetRectangle& scaled_efb_rect, u32 xfb_addr, const XFBSourceBase* const* xfb_sources,
 		u32 xfb_count, u32 fb_width, u32 fb_stride, u32 fb_height);
 
 	// Draw the frame only to the screenshot buffer.
-	bool DrawFrameDump(const EFBRectangle& rc, u32 xfb_addr, const XFBSourceBase* const* xfb_sources,
+	bool DrawFrameDump(const TargetRectangle& scaled_efb_rect, u32 xfb_addr, const XFBSourceBase* const* xfb_sources,
 		u32 xfb_count, u32 fb_width, u32 fb_stride, u32 fb_height, u64 ticks);
 
 	// Sets up renderer state to permit framedumping.

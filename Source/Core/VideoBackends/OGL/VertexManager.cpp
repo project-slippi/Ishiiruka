@@ -30,11 +30,7 @@ namespace OGL
 const u32 MAX_IBUFFER_SIZE = 2 * 1024 * 1024;
 const u32 MAX_VBUFFER_SIZE = 32 * 1024 * 1024;
 
-static std::unique_ptr<StreamBuffer> s_vertexBuffer;
-static std::unique_ptr<StreamBuffer> s_indexBuffer;
-static size_t s_baseVertex;
-static size_t s_index_offset;
-static u16* s_index_buffer_base;
+
 VertexManager::VertexManager() : m_cpu_v_buffer(MAXVBUFFERSIZE), m_cpu_i_buffer(MAXIBUFFERSIZE)
 {
 	CreateDeviceObjects();
@@ -47,36 +43,36 @@ VertexManager::~VertexManager()
 
 void VertexManager::CreateDeviceObjects()
 {
-	s_vertexBuffer = StreamBuffer::Create(GL_ARRAY_BUFFER, MAX_VBUFFER_SIZE);
-	m_vertex_buffers = s_vertexBuffer->m_buffer;
+	m_vertexBuffer = StreamBuffer::Create(GL_ARRAY_BUFFER, MAX_VBUFFER_SIZE);
+	m_vertex_buffers = m_vertexBuffer->m_buffer;
 
-	s_indexBuffer = StreamBuffer::Create(GL_ELEMENT_ARRAY_BUFFER, MAX_IBUFFER_SIZE);
-	m_index_buffers = s_indexBuffer->m_buffer;
+	m_indexBuffer = StreamBuffer::Create(GL_ELEMENT_ARRAY_BUFFER, MAX_IBUFFER_SIZE);
+	m_index_buffers = m_indexBuffer->m_buffer;
 
 	m_last_vao = 0;
 }
 
 void VertexManager::DestroyDeviceObjects()
 {
-	s_vertexBuffer.reset();
-	s_indexBuffer.reset();
+	m_vertexBuffer.reset();
+	m_indexBuffer.reset();
 }
 
 void VertexManager::PrepareDrawBuffers(u32 stride)
 {
 	u32 vertex_data_size = IndexGenerator::GetNumVerts() * stride;
 	u32 index_data_size = IndexGenerator::GetIndexLen() * sizeof(u16);
-	s_baseVertex = s_vertexBuffer->Stream(vertex_data_size, stride, m_cpu_v_buffer.data()) / stride;
-	s_index_offset = s_indexBuffer->Stream(index_data_size, m_cpu_i_buffer.data());
+	m_baseVertex = m_vertexBuffer->Stream(vertex_data_size, stride, m_cpu_v_buffer.data()) / stride;
+	m_index_offset = m_indexBuffer->Stream(index_data_size, m_cpu_i_buffer.data());
 	ADDSTAT(stats.thisFrame.bytesVertexStreamed, vertex_data_size);
 	ADDSTAT(stats.thisFrame.bytesIndexStreamed, index_data_size);
 }
 
 void VertexManager::ResetBuffer(u32 stride)
 {
-	s_pCurBufferPointer = s_pBaseBufferPointer = m_cpu_v_buffer.data();
-	s_pEndBufferPointer = s_pBaseBufferPointer + m_cpu_v_buffer.size();
-	s_index_buffer_base = m_cpu_i_buffer.data();
+	m_pCurBufferPointer = m_pBaseBufferPointer = m_cpu_v_buffer.data();
+	m_pEndBufferPointer = m_pBaseBufferPointer + m_cpu_v_buffer.size();
+	m_index_buffer_base = m_cpu_i_buffer.data();
 	IndexGenerator::Start(m_cpu_i_buffer.data());
 }
 
@@ -86,24 +82,24 @@ void VertexManager::Draw(u32 stride)
 	u32 max_index = IndexGenerator::GetNumVerts();
 	GLenum primitive_mode = 0;
 	static const GLenum modes[3] = {
-		GL_POINTS, 
+		GL_POINTS,
 		GL_LINES,
 		GL_TRIANGLES
 	};
-	primitive_mode = modes[current_primitive_type];
+	primitive_mode = modes[m_current_primitive_type];
 	bool cull_changed = primitive_mode != GL_TRIANGLES && bpmem.genMode.cullmode > 0;
-	if(cull_changed)
+	if (cull_changed)
 	{
 		glDisable(GL_CULL_FACE);
 	}
 
 	if (g_ogl_config.bSupportsGLBaseVertex)
 	{
-		glDrawRangeElementsBaseVertex(primitive_mode, 0, max_index, index_size, GL_UNSIGNED_SHORT, (u8*)nullptr + s_index_offset, (GLint)s_baseVertex);
+		glDrawRangeElementsBaseVertex(primitive_mode, 0, max_index, index_size, GL_UNSIGNED_SHORT, (u8*)nullptr + m_index_offset, (GLint)m_baseVertex);
 	}
 	else
 	{
-		glDrawRangeElements(primitive_mode, 0, max_index, index_size, GL_UNSIGNED_SHORT, (u8*)nullptr + s_index_offset);
+		glDrawRangeElements(primitive_mode, 0, max_index, index_size, GL_UNSIGNED_SHORT, (u8*)nullptr + m_index_offset);
 	}
 
 	INCSTAT(stats.thisFrame.numDrawCalls);
@@ -122,21 +118,21 @@ void VertexManager::PrepareShaders(PrimitiveType primitive, u32 components, cons
 	// the same pass as regular rendering.
 	if (useDstAlpha && dualSourcePossible)
 	{
-		ProgramShaderCache::SetShader(PSRM_DUAL_SOURCE_BLEND, VertexLoaderManager::g_current_components, current_primitive_type);
+		ProgramShaderCache::SetShader(PSRM_DUAL_SOURCE_BLEND, VertexLoaderManager::g_current_components, m_current_primitive_type);
 	}
 	else
 	{
 		if (useDstAlpha)
 		{
-			ProgramShaderCache::SetShader(PSRM_ALPHA_PASS, VertexLoaderManager::g_current_components, current_primitive_type);
+			ProgramShaderCache::SetShader(PSRM_ALPHA_PASS, VertexLoaderManager::g_current_components, m_current_primitive_type);
 		}
-		ProgramShaderCache::SetShader(PSRM_DEFAULT, VertexLoaderManager::g_current_components, current_primitive_type);
+		ProgramShaderCache::SetShader(PSRM_DEFAULT, VertexLoaderManager::g_current_components, m_current_primitive_type);
 	}
 }
 
 u16* VertexManager::GetIndexBuffer()
 {
-	return s_index_buffer_base;
+	return m_index_buffer_base;
 }
 void VertexManager::vFlush(bool useDstAlpha)
 {
@@ -162,11 +158,11 @@ void VertexManager::vFlush(bool useDstAlpha)
 	OGL::SHADER* active_shader = nullptr;
 	if (useDstAlpha && dualSourcePossible)
 	{
-		 active_shader = ProgramShaderCache::SetShader(PSRM_DUAL_SOURCE_BLEND, VertexLoaderManager::g_current_components, current_primitive_type);
+		active_shader = ProgramShaderCache::SetShader(PSRM_DUAL_SOURCE_BLEND, VertexLoaderManager::g_current_components, m_current_primitive_type);
 	}
 	else
 	{
-		active_shader = ProgramShaderCache::SetShader(PSRM_DEFAULT, VertexLoaderManager::g_current_components, current_primitive_type);
+		active_shader = ProgramShaderCache::SetShader(PSRM_DEFAULT, VertexLoaderManager::g_current_components, m_current_primitive_type);
 	}
 	active_shader->Bind();
 	g_renderer->ApplyState(false);
@@ -181,7 +177,7 @@ void VertexManager::vFlush(bool useDstAlpha)
 	// run through vertex groups again to set alpha
 	if (useDstAlpha && (!dualSourcePossible || logic_op_enabled))
 	{
-		active_shader = ProgramShaderCache::SetShader(PSRM_ALPHA_PASS, VertexLoaderManager::g_current_components, current_primitive_type);
+		active_shader = ProgramShaderCache::SetShader(PSRM_ALPHA_PASS, VertexLoaderManager::g_current_components, m_current_primitive_type);
 
 		// only update alpha
 		glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_TRUE);
@@ -189,7 +185,7 @@ void VertexManager::vFlush(bool useDstAlpha)
 		glDisable(GL_BLEND);
 		if (logic_op_enabled)
 			glDisable(GL_COLOR_LOGIC_OP);
-		
+
 		active_shader->Bind();
 		Draw(stride);
 

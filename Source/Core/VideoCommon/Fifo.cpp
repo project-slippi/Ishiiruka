@@ -19,7 +19,6 @@
 #include "Core/HW/Memmap.h"
 #include "Core/HW/SystemTimers.h"
 #include "Core/Host.h"
-#include "Core/NetPlayProto.h"
 
 #include "VideoCommon/AsyncRequests.h"
 #include "VideoCommon/CPMemory.h"
@@ -388,7 +387,7 @@ void RunGpuLoop()
 
 			// The fifo is empty and it's unlikely we will get any more work in the near future.
 			// Make sure VertexManager finishes drawing any primitives it has stored in it's buffer.
-			VertexManagerBase::Flush();
+			g_vertex_manager->Flush();
 		}
 	},
 		100);
@@ -504,14 +503,6 @@ void UpdateWantDeterminism(bool want)
 	{
 	case GPU_DETERMINISM_AUTO:
 		gpu_thread = want;
-
-		// Hack: For now movies are an exception to this being on (but not
-		// to wanting determinism in general).  Once vertex arrays are
-		// fixed, there should be no reason to want this off for movies by
-		// default, so this can be removed.
-		if (!NetPlay::IsNetPlayRunning())
-			gpu_thread = false;
-
 		break;
 	case GPU_DETERMINISM_NONE:
 		gpu_thread = false;

@@ -172,12 +172,13 @@ void VideoConfig::Load(const std::string& ini_file)
 	hacks->Get("ForceDualSourceBlend", &bForceDualSourceBlend, false);
 	hacks->Get("FullAsyncShaderCompilation", &bFullAsyncShaderCompilation, true);
 	hacks->Get("WaitForShaderCompilation", &bWaitForShaderCompilation, false);
-	hacks->Get("EnableComputeTextureDecoding", &bEnableComputeTextureDecoding, false);
+	hacks->Get("EnableGPUTextureDecoding", &bEnableGPUTextureDecoding, false);
 	hacks->Get("EnableComputeTextureEncoding", &bEnableComputeTextureEncoding, false);
 	hacks->Get("PredictiveFifo", &bPredictiveFifo, false);
 	hacks->Get("BoundingBoxMode", &iBBoxMode, (int)BBoxMode::BBoxNone);
 	hacks->Get("LastStoryEFBToRam", &bLastStoryEFBToRam, false);
 	hacks->Get("ForceLogicOpBlend", &bForceLogicOpBlend, false);
+	hacks->Get("VertexRounding", &bVertexRounding, false);
 	
 
 	// hacks which are disabled by default
@@ -318,7 +319,7 @@ void VideoConfig::GameIniLoad()
 	CHECK_SETTING("Video_Hacks", "EFBEmulateFormatChanges", bEFBEmulateFormatChanges);
 	CHECK_SETTING("Video_Hacks", "BoundingBoxMode", iBBoxMode);
 	CHECK_SETTING("Video_Hacks", "LastStoryEFBToRam", bLastStoryEFBToRam);
-
+	CHECK_SETTING("Video_Hacks", "VertexRounding", bVertexRounding);
 
 	CHECK_SETTING("Video", "ProjectionHack", iPhackvalue[0]);
 	CHECK_SETTING("Video", "PH_SZNear", iPhackvalue[1]);
@@ -329,7 +330,7 @@ void VideoConfig::GameIniLoad()
 	CHECK_SETTING("Video", "PerfQueriesEnable", bPerfQueriesEnable);
 	CHECK_SETTING("Video", "FullAsyncShaderCompilation", bFullAsyncShaderCompilation);
 	CHECK_SETTING("Video", "WaitForShaderCompilation", bWaitForShaderCompilation);
-	CHECK_SETTING("Video", "EnableComputeTextureDecoding", bEnableComputeTextureDecoding);
+	CHECK_SETTING("Video", "EnableGPUTextureDecoding", bEnableGPUTextureDecoding);
 	CHECK_SETTING("Video", "EnableComputeTextureEncoding", bEnableComputeTextureEncoding);
 	CHECK_SETTING("Video", "PredictiveFifo", bPredictiveFifo);
 	if (gfx_override_exists)
@@ -518,12 +519,13 @@ void VideoConfig::Save(const std::string& ini_file)
 	hacks->Set("ForceDualSourceBlend", bForceDualSourceBlend);
 	hacks->Set("FullAsyncShaderCompilation", bFullAsyncShaderCompilation);
 	hacks->Set("WaitForShaderCompilation", bWaitForShaderCompilation);
-	hacks->Set("EnableComputeTextureDecoding", bEnableComputeTextureDecoding);
+	hacks->Set("EnableGPUTextureDecoding", bEnableGPUTextureDecoding);
 	hacks->Set("EnableComputeTextureEncoding", bEnableComputeTextureEncoding);
 	hacks->Set("PredictiveFifo", bPredictiveFifo);
 	hacks->Set("BoundingBoxMode", iBBoxMode);
 	hacks->Set("LastStoryEFBToRam", bLastStoryEFBToRam);
 	hacks->Set("ForceLogicOpBlend", bForceLogicOpBlend);
+	hacks->Set("VertexRounding", bVertexRounding);
 
 
 	iniFile.Save(ini_file);

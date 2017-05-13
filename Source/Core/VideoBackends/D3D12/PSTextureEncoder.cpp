@@ -125,17 +125,17 @@ void PSTextureEncoder::Shutdown()
 	D3D::command_list_mgr->DestroyResourceAfterCurrentCommandListExecuted(m_out.Detach());
 	D3D::command_list_mgr->DestroyResourceAfterCurrentCommandListExecuted(m_out_readback_buffer.Detach());
 	D3D::command_list_mgr->DestroyResourceAfterCurrentCommandListExecuted(m_encode_params_buffer.Detach());
-	for (auto& it : m_static_shaders_blobs)
+	for (auto& it : m_shader_blobs)
 	{
 		SAFE_RELEASE(it);
 	}
-	m_static_shaders_blobs.clear();
-	m_static_shaders_map.clear();
+	m_shader_blobs.clear();
+	m_encoding_shaders.clear();
 }
 
-void PSTextureEncoder::Encode(u8* dst, u32 format, u32 native_width, u32 bytes_per_row, u32 num_blocks_y, u32 memory_stride,
-	bool is_depth_copy, const EFBRectangle& src_rect,
-	bool is_intensity, bool scale_by_half)
+void PSTextureEncoder::Encode(u8* dst, const EFBCopyFormat& format, u32 native_width,
+	u32 bytes_per_row, u32 num_blocks_y, u32 memory_stride,
+	bool is_depth_copy, const EFBRectangle& src_rect, bool scale_by_half)
 {
 	if (!m_ready) // Make sure we initialized OK
 		return;
@@ -187,9 +187,9 @@ void PSTextureEncoder::Encode(u8* dst, u32 format, u32 native_width, u32 bytes_p
 
 	D3D::DrawShadedTexQuad(efb_source,
 		target_rect.AsRECT(),
-		Renderer::GetTargetWidth(),
-		Renderer::GetTargetHeight(),
-		SetStaticShader(format, is_depth_copy, is_intensity, scale_by_half),
+		g_renderer->GetTargetWidth(),
+		g_renderer->GetTargetHeight(),
+		GetEncodingPixelShader(format),
 		StaticShaderCache::GetSimpleVertexShader(),
 		StaticShaderCache::GetSimpleVertexShaderInputLayout(),
 		D3D12_SHADER_BYTECODE(),
@@ -241,55 +241,31 @@ void PSTextureEncoder::Encode(u8* dst, u32 format, u32 native_width, u32 bytes_p
 	m_out_readback_buffer->Unmap(0, &write_range);
 }
 
-D3D12_SHADER_BYTECODE PSTextureEncoder::SetStaticShader(unsigned int dst_format, bool is_depth_copy,
-	bool is_intensity, bool scale_by_half)
+D3D12_SHADER_BYTECODE PSTextureEncoder::GetEncodingPixelShader(const EFBCopyFormat& format)
 {
-	ComboKey key = MakeComboKey(dst_format, is_depth_copy, is_intensity, scale_by_half);
+	auto iter = m_encoding_shaders.find(format);
+	if (iter != m_encoding_shaders.end())
+		return iter->second;
 
-	ComboMap::iterator it = m_static_shaders_map.find(key);
-	if (it == m_static_shaders_map.end())
+	D3DBlob* bytecode = nullptr;
+	const char* shader = TextureConversionShader::GenerateEncodingShader(format, API_TYPE::API_D3D11);
+	if (!D3D::CompilePixelShader(shader, &bytecode))
 	{
-		INFO_LOG(VIDEO, "Compiling efb encoding shader for dst_format 0x%X, is_depth_copy %d, is_intensity %d, scale_by_half %d",
-			dst_format, is_depth_copy, is_intensity ? 1 : 0, scale_by_half ? 1 : 0);
-
-		u32 format = dst_format;
-
-		if (is_depth_copy)
-		{
-			format |= _GX_TF_ZTF;
-			if (dst_format == 11)
-				format = GX_TF_Z16;
-			else if (format < GX_TF_Z8 || format > GX_TF_Z24X8)
-				format |= _GX_TF_CTF;
-		}
-		else
-		{
-			if (dst_format > GX_TF_RGBA8 || (dst_format < GX_TF_RGB565 && !is_intensity))
-				format |= _GX_TF_CTF;
-		}
-
-		D3DBlob* bytecode = nullptr;
-		const char* shader = TextureConversionShader::GenerateEncodingShader(format, API_D3D11);
-		if (!D3D::CompilePixelShader(shader, &bytecode))
-		{
-			WARN_LOG(VIDEO, "EFB encoder shader for dst_format 0x%X, is_depth_copy %d, is_intensity %d, scale_by_half %d failed to compile",
-				dst_format, is_depth_copy, is_intensity ? 1 : 0, scale_by_half ? 1 : 0);
-			m_static_shaders_blobs[key] = {};
-			return{};
-		}
-
-		D3D12_SHADER_BYTECODE new_shader = {
-			bytecode->Data(),
-			bytecode->Size()
-		};
-
-		it = m_static_shaders_map.insert(std::make_pair(key, new_shader)).first;
-
-		// Keep track of the D3DBlobs, so we can free them upon shutdown.
-		m_static_shaders_blobs.push_back(bytecode);
+		PanicAlert("Failed to compile texture encoding shader.");
+		m_encoding_shaders[format] = {};
+		return {};
 	}
 
-	return it->second;
+	D3D12_SHADER_BYTECODE new_shader = {
+		bytecode->Data(),
+		bytecode->Size()
+	};
+	m_encoding_shaders.emplace(format, new_shader);
+
+	// Keep track of the ID3DBlobs, so we can free them upon shutdown.
+	m_shader_blobs.push_back(bytecode);
+
+	return new_shader;
 }
 
 }

@@ -48,22 +48,13 @@
 namespace DX9
 {
 
-static int s_fps = 0;
+static LPDIRECT3DSURFACE9 m_screen_shoot_mem_surface = nullptr;
 
-static u32 s_blendMode;
-static u32 s_LastAA;
-static bool IS_AMD;
-static float m_fMaxPointSize;
-static bool s_vsync;
-static bool s_b3D_RightFrame = false;
-static LPDIRECT3DSURFACE9 ScreenShootMEMSurface = NULL;
-static bool s_last_fullscreen_mode;
-
-void SetupDeviceObjects()
+void Renderer::SetupDeviceObjects()
 {
 	D3D::font.Init();
 	VertexLoaderManager::Init();
-	g_framebuffer_manager = std::make_unique<FramebufferManager>();
+	g_framebuffer_manager = std::make_unique<FramebufferManager>(m_target_width, m_target_height);
 
 	VertexShaderManager::Dirty();
 	PixelShaderManager::Dirty();
@@ -78,11 +69,11 @@ void SetupDeviceObjects()
 }
 
 // Kill off all POOL_DEFAULT device objects.
-void TeardownDeviceObjects()
+void Renderer::TeardownDeviceObjects()
 {
-	if (ScreenShootMEMSurface)
-		ScreenShootMEMSurface->Release();
-	ScreenShootMEMSurface = NULL;
+	if (m_screen_shoot_mem_surface != nullptr)
+		m_screen_shoot_mem_surface->Release();
+	m_screen_shoot_mem_surface = nullptr;
 	D3D::dev->SetRenderTarget(0, D3D::GetBackBufferSurface());
 	D3D::dev->SetDepthStencilSurface(D3D::GetBackBufferDepthSurface());
 	g_framebuffer_manager.reset();
@@ -100,9 +91,8 @@ void TeardownDeviceObjects()
 Renderer::Renderer(void *&window_handle)
 {
 	int fullScreenRes, w_temp, h_temp;
-	s_blendMode = 0;
 	// Multisample Anti-aliasing hasn't been implemented yet use supersamling instead
-	int backbuffer_ms_mode = 0;
+	int backbuffer_mm_mode = 0;
 
 	RECT client;
 	GetClientRect((HWND)window_handle, &client);
@@ -119,28 +109,44 @@ Renderer::Renderer(void *&window_handle)
 		fullScreenRes = 0;
 
 	D3D::Create(g_ActiveConfig.iAdapter, (HWND)window_handle,
-		fullScreenRes, backbuffer_ms_mode, false);
-
-	IS_AMD = D3D::IsATIDevice();
-
+		fullScreenRes, backbuffer_mm_mode, false);
+	
 	// Decide framebuffer size
-	s_backbuffer_width = D3D::GetBackBufferWidth();
-	s_backbuffer_height = D3D::GetBackBufferHeight();
+	m_backbuffer_width = D3D::GetBackBufferWidth();
+	m_backbuffer_height = D3D::GetBackBufferHeight();
+
+	m_LastAA = g_ActiveConfig.iMultisamples - 1;
+	int SupersampleCoeficient = (m_LastAA % 3) + 1;
+
+	m_last_efb_scale = g_ActiveConfig.iEFBScale;
+	m_vsync = g_ActiveConfig.IsVSync();
+	m_bColorMaskChanged = true;
+	m_bBlendModeChanged = true;
+	m_bScissorRectChanged = true;
+	m_bViewPortChanged = true;
+	m_bGenerationModeChanged = true;
+	m_bDepthModeChanged = true;
+	m_bLogicOpModeChanged = true;
+}
+
+void Renderer::Init()
+{
+	m_IS_AMD = D3D::IsATIDevice();
 
 	FramebufferManagerBase::SetLastXfbWidth(MAX_XFB_WIDTH);
 	FramebufferManagerBase::SetLastXfbHeight(MAX_XFB_HEIGHT);
 
 	UpdateDrawRectangle();
 
-	s_LastAA = g_ActiveConfig.iMultisamples - 1;
-	int SupersampleCoeficient = (s_LastAA % 3) + 1;
+	m_LastAA = g_ActiveConfig.iMultisamples - 1;
+	int SupersampleCoeficient = (m_LastAA % 3) + 1;
 
-	s_last_efb_scale = g_ActiveConfig.iEFBScale;
+	m_last_efb_scale = g_ActiveConfig.iEFBScale;
 	CalculateTargetSize(SupersampleCoeficient);
 	PixelShaderManager::SetEfbScaleChanged();
 
 	// Make sure to use valid texture sizes
-	D3D::FixTextureSize(s_target_width, s_target_height);
+	D3D::FixTextureSize(m_target_width, m_target_height);
 
 	// We're not using fixed function.
 	// Let's just set the matrices to identity to be sure.
@@ -154,8 +160,8 @@ Renderer::Renderer(void *&window_handle)
 	D3DVIEWPORT9 vp;
 	vp.X = 0;
 	vp.Y = 0;
-	vp.Width = s_backbuffer_width;
-	vp.Height = s_backbuffer_height;
+	vp.Width = m_backbuffer_width;
+	vp.Height = m_backbuffer_height;
 	vp.MinZ = 0.0f;
 	vp.MaxZ = 1.0f;
 	D3D::dev->SetViewport(&vp);
@@ -165,11 +171,11 @@ Renderer::Renderer(void *&window_handle)
 	D3D::dev->SetDepthStencilSurface(FramebufferManager::GetEFBDepthRTSurface());
 	vp.X = 0;
 	vp.Y = 0;
-	vp.Width = s_target_width;
-	vp.Height = s_target_height;
+	vp.Width = m_target_width;
+	vp.Height = m_target_height;
 	D3D::dev->SetViewport(&vp);
 	D3D::dev->Clear(0, NULL, D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER, D3DCOLOR_XRGB(0, 0, 0), 1.0f, 0);
-	D3D::dev->CreateOffscreenPlainSurface(s_backbuffer_width, s_backbuffer_height, D3DFMT_X8R8G8B8, D3DPOOL_SYSTEMMEM, &ScreenShootMEMSurface, NULL);
+	D3D::dev->CreateOffscreenPlainSurface(m_backbuffer_width, m_backbuffer_height, D3DFMT_X8R8G8B8, D3DPOOL_SYSTEMMEM, &m_screen_shoot_mem_surface, NULL);
 	D3D::BeginFrame();
 	// Initial state setup
 	D3D::SetRenderState(D3DRS_SCISSORTESTENABLE, TRUE);
@@ -181,9 +187,9 @@ Renderer::Renderer(void *&window_handle)
 	D3D::SetRenderState(D3DRS_ZFUNC, D3DCMP_ALWAYS);
 	D3D::SetRenderState(D3DRS_COLORWRITEENABLE, D3DCOLORWRITEENABLE_ALPHA | D3DCOLORWRITEENABLE_RED | D3DCOLORWRITEENABLE_GREEN | D3DCOLORWRITEENABLE_BLUE);
 	D3D::SetRenderState(D3DRS_POINTSCALEENABLE, FALSE);
-	m_fMaxPointSize = D3D::GetCaps().MaxPointSize;
+	m_fMax_Point_Size = D3D::GetCaps().MaxPointSize;
 	// Handle VSync on/off 
-	s_vsync = g_ActiveConfig.IsVSync();
+	m_vsync = g_ActiveConfig.IsVSync();
 	m_bColorMaskChanged = true;
 	m_bBlendModeChanged = true;
 	m_bScissorRectChanged = true;
@@ -239,37 +245,23 @@ namespace DX9
 
 // With D3D, we have to resize the backbuffer if the window changed
 // size.
-void Renderer::CheckForResize(bool &resized)
+bool Renderer::CheckForResize()
 {
 	RECT rcWindow;
 	GetClientRect(D3D::hWnd, &rcWindow);
 	int client_width = rcWindow.right - rcWindow.left;
 	int client_height = rcWindow.bottom - rcWindow.top;
+
+	POINT originPoint = { 0, 0 };
+	ClientToScreen(D3D::hWnd, &originPoint);
+	g_renderer->SetWindowRectangle(originPoint.x, originPoint.x + client_width, originPoint.y, originPoint.y + client_height);
+
 	// Sanity check
-	resized = (client_width != Renderer::GetBackbufferWidth()
-		|| client_height != Renderer::GetBackbufferHeight()
-		|| s_vsync != g_ActiveConfig.IsVSync()) &&
+	bool resized = (client_width != g_renderer->GetBackbufferWidth ()
+		|| client_height != g_renderer->GetBackbufferHeight()
+		|| m_vsync != g_ActiveConfig.IsVSync()) &&
 		client_width >= 4 && client_height >= 4;
-
-	if (resized)
-	{
-		// Handle vsync changes during execution
-		s_vsync = g_ActiveConfig.IsVSync();
-		if (!D3D::GetEXSupported())
-		{
-			TeardownDeviceObjects();
-		}
-
-
-		D3D::Reset();
-		s_backbuffer_width = D3D::GetBackBufferWidth();
-		s_backbuffer_height = D3D::GetBackBufferHeight();
-		if (ScreenShootMEMSurface)
-			ScreenShootMEMSurface->Release();
-		D3D::dev->CreateOffscreenPlainSurface(Renderer::GetBackbufferWidth(), Renderer::GetBackbufferHeight(),
-			D3DFMT_X8R8G8B8, D3DPOOL_SYSTEMMEM, &ScreenShootMEMSurface, NULL);
-
-	}
+	return resized;
 }
 
 // This function allows the CPU to directly access the EFB.
@@ -449,7 +441,7 @@ void Renderer::ReinterpretPixelData(unsigned int convtype)
 // This function has the final picture. We adjust the aspect ratio here.
 void Renderer::SwapImpl(u32 xfbAddr, u32 fbWidth, u32 fbStride, u32 fbHeight, const EFBRectangle& rc, u64 ticks, float Gamma)
 {
-	if ((!XFBWrited && !g_ActiveConfig.RealXFBEnabled()) || !fbWidth || !fbHeight)
+	if ((!m_xfb_written && !g_ActiveConfig.RealXFBEnabled()) || !fbWidth || !fbHeight)
 	{
 		Core::Callback_VideoCopiedToXFB(false);
 		return;
@@ -478,27 +470,27 @@ void Renderer::SwapImpl(u32 xfbAddr, u32 fbWidth, u32 fbStride, u32 fbHeight, co
 	int Height = Tr.bottom - Tr.top;
 	if (X < 0)
 	{
-		Width = std::min(Width - X, s_backbuffer_width);
+		Width = std::min(Width - X, m_backbuffer_width);
 		X = 0;
 	}
 	if (Y < 0)
 	{
-		Height = std::min(Height - Y, s_backbuffer_height);
+		Height = std::min(Height - Y, m_backbuffer_height);
 		Y = 0;
 	}
-	if (Width > s_backbuffer_width)
+	if (Width > m_backbuffer_width)
 	{
-		Width = s_backbuffer_width;
+		Width = m_backbuffer_width;
 	}
 
-	if (Height > s_backbuffer_height)
+	if (Height > m_backbuffer_height)
 	{
-		Height = s_backbuffer_height;
+		Height = m_backbuffer_height;
 	}
 	if (g_ActiveConfig.iStereoMode)
 	{
 		VertexShaderManager::ResetView();
-		if (s_b3D_RightFrame)
+		if (m_b3D_RightFrame)
 		{
 			if (g_ActiveConfig.iStereoMode == STEREO_SHADER)
 			{
@@ -506,12 +498,12 @@ void Renderer::SwapImpl(u32 xfbAddr, u32 fbWidth, u32 fbStride, u32 fbHeight, co
 			}
 			else if (g_ActiveConfig.iStereoMode == STEREO_TAB)
 			{
-				Y = (Y / 2) + (s_backbuffer_height / 2);
+				Y = (Y / 2) + (m_backbuffer_height / 2);
 				Height = Height / 2;
 			}
 			else
 			{
-				X = X / 2 + (s_backbuffer_width / 2);
+				X = X / 2 + (m_backbuffer_width / 2);
 				Width = Width / 2;
 			}
 			VertexShaderManager::TranslateView(-0.001f * g_ActiveConfig.iStereoDepth, 0.0f);
@@ -536,7 +528,7 @@ void Renderer::SwapImpl(u32 xfbAddr, u32 fbWidth, u32 fbStride, u32 fbHeight, co
 			VertexShaderManager::TranslateView(0.001f *g_ActiveConfig.iStereoDepth, 0.0f);
 			VertexShaderManager::RotateView(0.0001f * g_ActiveConfig.iStereoConvergence, 0.0f);
 		}
-		s_b3D_RightFrame = !s_b3D_RightFrame;
+		m_b3D_RightFrame = !m_b3D_RightFrame;
 	}
 
 	vp.X = X;
@@ -644,16 +636,16 @@ void Renderer::SwapImpl(u32 xfbAddr, u32 fbWidth, u32 fbStride, u32 fbHeight, co
 	{
 		int source_width = GetTargetRectangle().GetWidth();
 		int source_height = GetTargetRectangle().GetHeight();
-		HRESULT hr = D3D::dev->GetRenderTargetData(D3D::GetBackBufferSurface(), ScreenShootMEMSurface);
+		HRESULT hr = D3D::dev->GetRenderTargetData(D3D::GetBackBufferSurface(), m_screen_shoot_mem_surface);
 		D3DLOCKED_RECT rect;
-		if (SUCCEEDED(ScreenShootMEMSurface->LockRect(&rect, GetTargetRectangle().AsRECT(), D3DLOCK_NO_DIRTY_UPDATE | D3DLOCK_NOSYSLOCK | D3DLOCK_READONLY)))
+		if (SUCCEEDED(m_screen_shoot_mem_surface->LockRect(&rect, GetTargetRectangle().AsRECT(), D3DLOCK_NO_DIRTY_UPDATE | D3DLOCK_NOSYSLOCK | D3DLOCK_READONLY)))
 		{
 			AVIDump::Frame state = AVIDump::FetchState(ticks);
 			DumpFrameData(reinterpret_cast<const u8*>(rect.pBits), source_width, source_height,
 				rect.Pitch, state, false, true);
 			FinishFrameData();
 
-			ScreenShootMEMSurface->UnlockRect();
+			m_screen_shoot_mem_surface->UnlockRect();
 		}
 	}
 
@@ -672,8 +664,23 @@ void Renderer::SwapImpl(u32 xfbAddr, u32 fbWidth, u32 fbStride, u32 fbHeight, co
 
 	SetWindowSize(fbStride, fbHeight);
 
-	bool windowResized;
-	CheckForResize(windowResized);
+	bool windowResized = CheckForResize();
+	if (windowResized)
+	{
+		// Handle vsync changes during execution
+		m_vsync = g_ActiveConfig.IsVSync();
+		if (!D3D::GetEXSupported())
+		{
+			TeardownDeviceObjects();
+		}
+		D3D::Reset();
+		m_backbuffer_width = D3D::GetBackBufferWidth();
+		m_backbuffer_height = D3D::GetBackBufferHeight();
+		if (m_screen_shoot_mem_surface)
+			m_screen_shoot_mem_surface->Release();
+		D3D::dev->CreateOffscreenPlainSurface(m_backbuffer_width, m_backbuffer_height,
+			D3DFMT_X8R8G8B8, D3DPOOL_SYSTEMMEM, &m_screen_shoot_mem_surface, NULL);
+	}
 
 	bool xfbchanged = false;
 
@@ -691,16 +698,16 @@ void Renderer::SwapImpl(u32 xfbAddr, u32 fbWidth, u32 fbStride, u32 fbHeight, co
 	if (CalculateTargetSize((newAA % 3) + 1)
 		|| xfbchanged
 		|| windowResized
-		|| s_last_efb_scale != g_ActiveConfig.iEFBScale
-		|| s_LastAA != newAA)
+		|| m_last_efb_scale != g_ActiveConfig.iEFBScale
+		|| m_LastAA != newAA)
 	{
-		s_LastAA = newAA;
+		m_LastAA = newAA;
 
 		UpdateDrawRectangle();
 
-		int SupersampleCoeficient = (s_LastAA % 3) + 1;
+		int SupersampleCoeficient = (m_LastAA % 3) + 1;
 
-		s_last_efb_scale = g_ActiveConfig.iEFBScale;
+		m_last_efb_scale = g_ActiveConfig.iEFBScale;
 		PixelShaderManager::SetEfbScaleChanged();
 		D3D::dev->SetRenderTarget(0, D3D::GetBackBufferSurface());
 		D3D::dev->SetDepthStencilSurface(D3D::GetBackBufferDepthSurface());
@@ -718,7 +725,7 @@ void Renderer::SwapImpl(u32 xfbAddr, u32 fbWidth, u32 fbStride, u32 fbHeight, co
 		{
 			// just resize the frame buffer
 			g_framebuffer_manager.reset();
-			g_framebuffer_manager = std::make_unique<FramebufferManager>();
+			g_framebuffer_manager = std::make_unique<FramebufferManager>(m_target_width, m_target_height);
 		}
 		D3D::dev->SetRenderTarget(0, FramebufferManager::GetEFBColorRTSurface());
 		D3D::dev->SetDepthStencilSurface(FramebufferManager::GetEFBDepthRTSurface());
@@ -903,10 +910,10 @@ void Renderer::RestoreState()
 void Renderer::_SetScissorRect()
 {
 	m_bScissorRectChanged = false;
-	D3D::dev->SetScissorRect(m_ScissorRect.AsRECT());
+	D3D::dev->SetScissorRect(ConvertEFBRectangle(m_ScissorRect).AsRECT());
 }
 
-void Renderer::SetScissorRect(const TargetRectangle& rc)
+void Renderer::SetScissorRect(const EFBRectangle& rc)
 {
 	m_ScissorRect = rc;
 	m_bScissorRectChanged = true;
@@ -948,9 +955,9 @@ void Renderer::_SetBlendMode(bool forceUpdate)
 	m_bBlendModeChanged = false;
 	// Our render target always uses an alpha channel, so we need to override the blend functions to assume a destination alpha of 1 if the render target isn't supposed to have an alpha channel
 	// Example: D3DBLEND_DESTALPHA needs to be D3DBLEND_ONE since the result without an alpha channel is assumed to always be 1.
-	bool target_has_alpha = bpmem.zcontrol.pixel_format == PEControl::RGBA6_Z24;
+	bool target_ham_alpha = bpmem.zcontrol.pixel_format == PEControl::RGBA6_Z24;
 	//really useful for debugging shader and blending errors
-	bool use_DstAlpha = bpmem.dstalpha.enable && bpmem.blendmode.alphaupdate && target_has_alpha;
+	bool use_DstAlpha = bpmem.dstalpha.enable && bpmem.blendmode.alphaupdate && target_ham_alpha;
 	bool use_DualSource = use_DstAlpha && g_ActiveConfig.backend_info.bSupportsDualSourceBlend;
 	const D3DBLEND d3dSrcFactors[8] =
 	{
@@ -960,8 +967,8 @@ void Renderer::_SetBlendMode(bool forceUpdate)
 		D3DBLEND_INVDESTCOLOR,
 		(use_DualSource) ? D3DBLEND_SRCCOLOR2 : D3DBLEND_SRCALPHA,
 		(use_DualSource) ? D3DBLEND_INVSRCCOLOR2 : D3DBLEND_INVSRCALPHA,
-		(target_has_alpha) ? D3DBLEND_DESTALPHA : D3DBLEND_ONE,
-		(target_has_alpha) ? D3DBLEND_INVDESTALPHA : D3DBLEND_ZERO
+		(target_ham_alpha) ? D3DBLEND_DESTALPHA : D3DBLEND_ONE,
+		(target_ham_alpha) ? D3DBLEND_INVDESTALPHA : D3DBLEND_ZERO
 	};
 	const D3DBLEND d3dDestFactors[8] =
 	{
@@ -971,8 +978,8 @@ void Renderer::_SetBlendMode(bool forceUpdate)
 		D3DBLEND_INVSRCCOLOR,
 		(use_DualSource) ? D3DBLEND_SRCCOLOR2 : D3DBLEND_SRCALPHA,
 		(use_DualSource) ? D3DBLEND_INVSRCCOLOR2 : D3DBLEND_INVSRCALPHA,
-		(target_has_alpha) ? D3DBLEND_DESTALPHA : D3DBLEND_ONE,
-		(target_has_alpha) ? D3DBLEND_INVDESTALPHA : D3DBLEND_ZERO
+		(target_ham_alpha) ? D3DBLEND_DESTALPHA : D3DBLEND_ONE,
+		(target_ham_alpha) ? D3DBLEND_INVDESTALPHA : D3DBLEND_ZERO
 	};
 
 	if (bpmem.blendmode.logicopenable && !bpmem.blendmode.blendenable && !forceUpdate)
@@ -1173,16 +1180,6 @@ void Renderer::_SetLogicOpMode()
 	{
 		_SetBlendMode(false);
 	}
-}
-
-void Renderer::SetDitherMode()
-{
-	// No way to emulate this properly with the defaul pipeline
-	// and teorically we don't need it because we alway use full color precision.
-	// To Allow a correct emulation  the output of the pixel shaders
-	// should be reduced to the decired precision and then
-	// a postproccesing shader should be used to emulate the correct
-	// dithering matrix and the aproximation equation	
 }
 
 void Renderer::SetInterlacingMode()

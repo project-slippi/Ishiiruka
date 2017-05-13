@@ -28,6 +28,9 @@ VkFormat GetLinearFormat(VkFormat format);
 u32 GetBlockSize(VkFormat format);
 u32 GetBlockWidth(VkFormat format);
 
+// Clamps a VkRect2D to the specified dimensions.
+VkRect2D ClampRect2D(const VkRect2D& rect, u32 width, u32 height);
+
 // Map {SRC,DST}_COLOR to {SRC,DST}_ALPHA
 VkBlendFactor GetAlphaBlendFactor(VkBlendFactor factor);
 
@@ -63,6 +66,9 @@ VkShaderModule CompileAndCreateGeometryShader(const std::string& source_code,
 
 // Compile a fragment shader and create a shader module, discarding the intermediate SPIR-V.
 VkShaderModule CompileAndCreateFragmentShader(const std::string& source_code,
+	bool prepend_header = true);
+// Compile a compute shader and create a shader module, discarding the intermediate SPIR-V.
+VkShaderModule CompileAndCreateComputeShader(const std::string& source_code,
 	bool prepend_header = true);
 }
 
@@ -185,6 +191,43 @@ private:
 	std::array<VkDescriptorImageInfo, NUM_PIXEL_SHADER_SAMPLERS> m_ps_samplers = {};
 	VkBufferView m_ps_texel_buffer = VK_NULL_HANDLE;
 	PipelineInfo m_pipeline_info = {};
+};
+
+class ComputeShaderDispatcher
+{
+public:
+	ComputeShaderDispatcher(VkCommandBuffer command_buffer, VkPipelineLayout pipeline_layout,
+		VkShaderModule compute_shader);
+
+	u8* AllocateUniformBuffer(size_t size);
+	void CommitUniformBuffer(size_t size);
+
+	void SetPushConstants(const void* data, size_t data_size);
+
+	void SetSampler(size_t index, VkImageView view, VkSampler sampler);
+
+	void SetTexelBuffer(size_t index, VkBufferView view);
+
+	void SetStorageImage(VkImageView view, VkImageLayout image_layout);
+
+	void Dispatch(u32 groups_x, u32 groups_y, u32 groups_z);
+
+private:
+	void BindDescriptors();
+	bool BindPipeline();
+
+	VkCommandBuffer m_command_buffer = VK_NULL_HANDLE;
+
+	VkDescriptorBufferInfo m_uniform_buffer = {};
+	u32 m_uniform_buffer_offset = 0;
+
+	std::array<VkDescriptorImageInfo, 4> m_samplers = {};
+
+	std::array<VkBufferView, 2> m_texel_buffers = {};
+
+	VkDescriptorImageInfo m_storage_image = {};
+
+	ComputePipelineInfo m_pipeline_info = {};
 };
 
 }  // namespace Vulkan

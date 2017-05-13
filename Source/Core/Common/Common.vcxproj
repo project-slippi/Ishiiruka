@@ -71,6 +71,7 @@
     <ClInclude Include="GL\GLExtensions\ARB_blend_func_extended.h" />
     <ClInclude Include="GL\GLExtensions\ARB_buffer_storage.h" />
     <ClInclude Include="GL\GLExtensions\ARB_clip_control.h" />
+    <ClInclude Include="GL\GLExtensions\ARB_compute_shader.h" />
     <ClInclude Include="GL\GLExtensions\ARB_copy_image.h" />
     <ClInclude Include="GL\GLExtensions\ARB_debug_output.h" />
     <ClInclude Include="GL\GLExtensions\ARB_draw_elements_base_vertex.h" />
@@ -85,10 +86,12 @@
     <ClInclude Include="GL\GLExtensions\ARB_shader_storage_buffer_object.h" />
     <ClInclude Include="GL\GLExtensions\ARB_sync.h" />
     <ClInclude Include="GL\GLExtensions\ARB_texture_multisample.h" />
+    <ClInclude Include="GL\GLExtensions\ARB_texture_storage.h" />
     <ClInclude Include="GL\GLExtensions\ARB_texture_storage_multisample.h" />
     <ClInclude Include="GL\GLExtensions\ARB_uniform_buffer_object.h" />
     <ClInclude Include="GL\GLExtensions\ARB_vertex_array_object.h" />
     <ClInclude Include="GL\GLExtensions\ARB_viewport_array.h" />
+    <ClInclude Include="GL\GLExtensions\EXT_texture_compression_s3tc.h" />
     <ClInclude Include="GL\GLExtensions\EXT_texture_filter_anisotropic.h" />
     <ClInclude Include="GL\GLExtensions\GLExtensions.h" />
     <ClInclude Include="GL\GLExtensions\gl_1_1.h" />
@@ -108,6 +111,7 @@
     <ClInclude Include="GL\GLExtensions\gl_common.h" />
     <ClInclude Include="GL\GLExtensions\HP_occlusion_test.h" />
     <ClInclude Include="GL\GLExtensions\KHR_debug.h" />
+    <ClInclude Include="GL\GLExtensions\NV_depth_buffer_float.h" />
     <ClInclude Include="GL\GLExtensions\NV_occlusion_query_samples.h" />
     <ClInclude Include="GL\GLExtensions\NV_primitive_restart.h" />
     <ClInclude Include="GL\GLInterfaceBase.h" />

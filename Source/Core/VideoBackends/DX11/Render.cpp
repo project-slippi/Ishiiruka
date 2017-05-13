@@ -8,6 +8,7 @@
 #include <string>
 #include <strsafe.h>
 #include <array>
+#include <tuple>
 
 #include "Common/CommonTypes.h"
 #include "Common/FileUtil.h"
@@ -46,10 +47,6 @@
 namespace DX11
 {
 
-static u32 s_last_multisamples = 0;
-static int s_last_stereo_mode = STEREO_OFF;
-static bool s_last_xfb_mode = false;
-
 static Television s_television;
 
 D3D::BlendStatePtr clearblendstates[4];
@@ -82,11 +79,11 @@ struct
 
 StateCache gx_state_cache;
 
-static void SetupDeviceObjects()
+void Renderer::SetupDeviceObjects()
 {
 	s_television.Init();
 
-	g_framebuffer_manager = std::make_unique<FramebufferManager>();
+	g_framebuffer_manager = std::make_unique<FramebufferManager>(m_target_width, m_target_height);
 	HRESULT hr;
 
 	D3D11_DEPTH_STENCIL_DESC ddesc;
@@ -254,26 +251,15 @@ void Renderer::PrepareFrameDumpBuffer(u32 width, u32 height)
 Renderer::Renderer(void *&window_handle)
 {
 	D3D::Create((HWND)window_handle);
+	
+	m_backbuffer_width = D3D::GetBackBufferWidth();
+	m_backbuffer_height = D3D::GetBackBufferHeight();
 
-	s_backbuffer_width = D3D::GetBackBufferWidth();
-	s_backbuffer_height = D3D::GetBackBufferHeight();
-
-	FramebufferManagerBase::SetLastXfbWidth(MAX_XFB_WIDTH);
-	FramebufferManagerBase::SetLastXfbHeight(MAX_XFB_HEIGHT);
-
-	UpdateDrawRectangle();
-
-	s_last_multisamples = g_ActiveConfig.iMultisamples;
-	s_last_efb_scale = g_ActiveConfig.iEFBScale;
-	s_last_stereo_mode = g_ActiveConfig.iStereoMode;
-	s_last_xfb_mode = g_ActiveConfig.bUseRealXFB;
-	CalculateTargetSize();
-	PixelShaderManager::SetEfbScaleChanged();
-	SetupDeviceObjects();
-
-	m_post_processor = std::make_unique<D3DPostProcessor>();
-	if (!m_post_processor->Initialize())
-		PanicAlert("D3D: Failed to initialize post processor.");
+	m_last_multisamples = g_ActiveConfig.iMultisamples;
+	m_last_efb_scale = g_ActiveConfig.iEFBScale;
+	m_last_stereo_mode = g_ActiveConfig.iStereoMode;
+	m_last_xfb_mode = g_ActiveConfig.bUseRealXFB;
+	
 
 	// Setup GX pipeline state
 	gx_state.blend.blend_enable = false;
@@ -295,18 +281,33 @@ Renderer::Renderer(void *&window_handle)
 
 	gx_state.raster.cull_mode = D3D11_CULL_NONE;
 
+	m_3d_vision_texture = nullptr;
+	m_frame_dump_render_texture = nullptr;
+	m_frame_dump_staging_texture.reset();
+}
+
+void Renderer::Init()
+{
+	UpdateDrawRectangle();
+	FramebufferManagerBase::SetLastXfbWidth(MAX_XFB_WIDTH);
+	FramebufferManagerBase::SetLastXfbHeight(MAX_XFB_HEIGHT);
+	CalculateTargetSize();
+	PixelShaderManager::SetEfbScaleChanged();
+	SetupDeviceObjects();
+
+	m_post_processor = std::make_unique<D3DPostProcessor>();
+	if (!m_post_processor->Initialize())
+		PanicAlert("D3D: Failed to initialize post processor.");
+	
 	// Clear EFB textures
 	float ClearColor[4] = { 0.f, 0.f, 0.f, 1.f };
 	D3D::context->ClearRenderTargetView(FramebufferManager::GetEFBColorTexture()->GetRTV(), ClearColor);
 	D3D::context->ClearDepthStencilView(FramebufferManager::GetEFBDepthTexture()->GetDSV(), D3D11_CLEAR_DEPTH, 1.f, 0);
 
-	D3D11_VIEWPORT vp = CD3D11_VIEWPORT(0.f, 0.f, (float)s_target_width, (float)s_target_height);
+	D3D11_VIEWPORT vp = CD3D11_VIEWPORT(0.f, 0.f, (float)m_target_width, (float)m_target_height);
 	D3D::context->RSSetViewports(1, &vp);
 	D3D::context->OMSetRenderTargets(1, &FramebufferManager::GetEFBColorTexture()->GetRTV(), FramebufferManager::GetEFBDepthTexture()->GetDSV());
 	D3D::BeginFrame();
-	m_3d_vision_texture = nullptr;
-	m_frame_dump_render_texture = nullptr;
-	m_frame_dump_staging_texture.reset();
 }
 
 Renderer::~Renderer()
@@ -364,14 +365,11 @@ bool Renderer::CheckForResize()
 	// Get the top-left corner of the client area in screen coordinates
 	POINT originPoint = { 0, 0 };
 	ClientToScreen(D3D::hWnd, &originPoint);
-	window_rc.left = originPoint.x;
-	window_rc.right = originPoint.x + client_width;
-	window_rc.top = originPoint.y;
-	window_rc.bottom = originPoint.y + client_height;
+	g_renderer->SetWindowRectangle(originPoint.x, originPoint.x + client_width, originPoint.y, originPoint.y + client_height);
 
 	// Sanity check
-	if ((client_width != Renderer::GetBackbufferWidth() ||
-		client_height != Renderer::GetBackbufferHeight()) &&
+	if ((client_width != g_renderer->GetBackbufferWidth() ||
+		client_height != g_renderer->GetBackbufferHeight()) &&
 		client_width >= 4 && client_height >= 4)
 	{
 		return true;
@@ -380,9 +378,9 @@ bool Renderer::CheckForResize()
 	return false;
 }
 
-void Renderer::SetScissorRect(const TargetRectangle& rc)
+void Renderer::SetScissorRect(const EFBRectangle& rc)
 {
-	D3D::context->RSSetScissorRects(1, rc.AsRECT());
+	D3D::context->RSSetScissorRects(1, ConvertEFBRectangle(rc).AsRECT());
 }
 
 void Renderer::SetColorMask()
@@ -681,7 +679,7 @@ void Renderer::SetBlendMode(bool forceUpdate)
 // This function has the final picture. We adjust the aspect ratio here.
 void Renderer::SwapImpl(u32 xfbAddr, u32 fbWidth, u32 fbStride, u32 fbHeight, const EFBRectangle& rc, u64 ticks, float Gamma)
 {
-	if ((!XFBWrited && !g_ActiveConfig.RealXFBEnabled()) || !fbWidth || !fbHeight)
+	if ((!m_xfb_written && !g_ActiveConfig.RealXFBEnabled()) || !fbWidth || !fbHeight)
 	{
 		Core::Callback_VideoCopiedToXFB(false);
 		return;
@@ -706,8 +704,8 @@ void Renderer::SwapImpl(u32 xfbAddr, u32 fbWidth, u32 fbStride, u32 fbHeight, co
 	D3D::context->ClearRenderTargetView(D3D::GetBackBuffer()->GetRTV(), ClearColor);
 
 	// Copy the framebuffer to screen.	
-	const TargetSize dst_size = { s_target_width, s_target_height };
-	DrawFrame(target_rc, rc, xfbAddr, xfbSourceList, xfbCount, D3D::GetBackBuffer(), dst_size, fbWidth, fbStride, fbHeight, Gamma);
+	const TargetSize dst_size = { m_target_width, m_target_height };
+	DrawFrame(targetRc, rc, xfbAddr, xfbSourceList, xfbCount, D3D::GetBackBuffer(), dst_size, fbWidth, fbStride, fbHeight, Gamma);
 
 	// Dump frames
 	if (IsFrameDumping())
@@ -729,7 +727,7 @@ void Renderer::SwapImpl(u32 xfbAddr, u32 fbWidth, u32 fbStride, u32 fbHeight, co
 
 	const bool windowResized = CheckForResize();	
 
-	bool xfbchanged = s_last_xfb_mode != g_ActiveConfig.bUseRealXFB;
+	bool xfbchanged = m_last_xfb_mode != g_ActiveConfig.bUseRealXFB;
 
 	if (FramebufferManagerBase::LastXfbWidth() != fbStride || FramebufferManagerBase::LastXfbHeight() != fbHeight)
 	{
@@ -747,38 +745,38 @@ void Renderer::SwapImpl(u32 xfbAddr, u32 fbWidth, u32 fbStride, u32 fbHeight, co
 	if (CalculateTargetSize()
 		|| xfbchanged
 		|| windowResized
-		|| s_last_efb_scale != g_ActiveConfig.iEFBScale
-		|| s_last_multisamples != g_ActiveConfig.iMultisamples
-		|| s_last_stereo_mode != g_ActiveConfig.iStereoMode)
+		|| m_last_efb_scale != g_ActiveConfig.iEFBScale
+		|| m_last_multisamples != g_ActiveConfig.iMultisamples
+		|| m_last_stereo_mode != g_ActiveConfig.iStereoMode)
 	{
 
-		s_last_xfb_mode = g_ActiveConfig.bUseRealXFB;
-		s_last_multisamples = g_ActiveConfig.iMultisamples;
+		m_last_xfb_mode = g_ActiveConfig.bUseRealXFB;
+		m_last_multisamples = g_ActiveConfig.iMultisamples;
 		PixelShaderCache::InvalidateMSAAShaders();
 
 		if (windowResized)
 		{
 			// TODO: Aren't we still holding a reference to the back buffer right now?
 			D3D::Reset();
-			s_backbuffer_width = D3D::GetBackBufferWidth();
-			s_backbuffer_height = D3D::GetBackBufferHeight();
+			m_backbuffer_width = D3D::GetBackBufferWidth();
+			m_backbuffer_height = D3D::GetBackBufferHeight();
 		}
 
 		UpdateDrawRectangle();
 
-		s_last_efb_scale = g_ActiveConfig.iEFBScale;
+		m_last_efb_scale = g_ActiveConfig.iEFBScale;
 
 		PixelShaderManager::SetEfbScaleChanged();
 		D3D::context->OMSetRenderTargets(1, &D3D::GetBackBuffer()->GetRTV(), nullptr);
 
 		g_framebuffer_manager.reset();
-		g_framebuffer_manager = std::make_unique<FramebufferManager>();
+		g_framebuffer_manager = std::make_unique<FramebufferManager>(m_target_width, m_target_height);
 		float clear_col[4] = { 0.f, 0.f, 0.f, 1.f };
 		D3D::context->ClearRenderTargetView(FramebufferManager::GetEFBColorTexture()->GetRTV(), clear_col);
 		D3D::context->ClearDepthStencilView(FramebufferManager::GetEFBDepthTexture()->GetDSV(), D3D11_CLEAR_DEPTH, 1.f, 0);
-		if (s_last_stereo_mode != g_ActiveConfig.iStereoMode)
+		if (m_last_stereo_mode != g_ActiveConfig.iStereoMode)
 		{
-			s_last_stereo_mode = g_ActiveConfig.iStereoMode;
+			m_last_stereo_mode = g_ActiveConfig.iStereoMode;
 			m_post_processor->SetReloadFlag();
 		}
 	}
@@ -1018,11 +1016,6 @@ void Renderer::SetLogicOpMode()
 	}
 }
 
-void Renderer::SetDitherMode()
-{
-	// TODO: Set dither mode to bpmem.blendmode.dither
-}
-
 void Renderer::SetSamplerState(int stage, int texindex, bool custom_tex)
 {
 	const FourTexUnits &tex = bpmem.tex[texindex];
@@ -1075,12 +1068,12 @@ u16 Renderer::BBoxRead(int index)
 	if (index < 2)
 	{
 		// left/right
-		value = value * EFB_WIDTH / s_target_width;
+		value = value * EFB_WIDTH / m_target_width;
 	}
 	else
 	{
 		// up/down
-		value = value * EFB_HEIGHT / s_target_height;
+		value = value * EFB_HEIGHT / m_target_height;
 	}
 	if (index & 1)
 		value++; // fix max values to describe the outer border
@@ -1095,11 +1088,11 @@ void Renderer::BBoxWrite(int index, u16 _value)
 		value--;
 	if (index < 2)
 	{
-		value = value * s_target_width / EFB_WIDTH;
+		value = value * m_target_width / EFB_WIDTH;
 	}
 	else
 	{
-		value = value * s_target_height / EFB_HEIGHT;
+		value = value * m_target_height / EFB_HEIGHT;
 	}
 	BBox::Set(index, value);
 }
@@ -1129,7 +1122,7 @@ void Renderer::DrawEFB(const TargetRectangle& t_rc, const EFBRectangle& source_r
 	TargetRectangle scaled_source_rc = Renderer::ConvertEFBRectangle(source_rc);
 	TargetRectangle target_rc = { t_rc.left, t_rc.top, t_rc.right, t_rc.bottom };
 	D3DTexture2D* tex = FramebufferManager::GetResolvedEFBColorTexture();
-	TargetSize tex_size(s_target_width, s_target_height);
+	TargetSize tex_size(m_target_width, m_target_height);
 	D3DTexture2D* blit_depth_tex = nullptr;
 	// Post processing active?
 	if (m_post_processor->ShouldTriggerOnSwap())
@@ -1220,7 +1213,7 @@ void Renderer::BlitScreen(TargetRectangle dst_rect, TargetRectangle src_rect, Ta
 	if (g_ActiveConfig.iStereoMode == STEREO_SBS || g_ActiveConfig.iStereoMode == STEREO_TAB)
 	{
 		TargetRectangle leftRc, rightRc;
-		ConvertStereoRectangle(dst_rect, leftRc, rightRc);
+		std::tie(leftRc, rightRc) = ConvertStereoRectangle(dst_rect);
 
 		m_post_processor->BlitScreen(leftRc, dst_size, reinterpret_cast<uintptr_t>(dst_texture),
 			src_rect, src_size, reinterpret_cast<uintptr_t>(src_texture), reinterpret_cast<uintptr_t>(depth_texture), 0, Gamma);
@@ -1239,8 +1232,8 @@ void Renderer::BlitScreen(TargetRectangle dst_rect, TargetRectangle src_rect, Ta
 		leftRc.bottom = dst_rect.bottom;
 
 		TargetRectangle rightRc;
-		rightRc.left = dst_rect.left + s_backbuffer_width;
-		rightRc.right = dst_rect.right + s_backbuffer_width;
+		rightRc.left = dst_rect.left + m_backbuffer_width;
+		rightRc.right = dst_rect.right + m_backbuffer_width;
 		rightRc.top = dst_rect.top;
 		rightRc.bottom = dst_rect.bottom;
 		TargetSize side_size = { dst_size.width * 2, dst_size .height};		
@@ -1290,7 +1283,7 @@ void  Renderer::DumpFrame(const EFBRectangle& source_rc, u32 xfb_addr,
 		src = D3D::GetBackBuffer();
 		src_width = GetTargetRectangle().GetWidth();
 		src_height = GetTargetRectangle().GetHeight();
-		source_box = GetScreenshotSourceBox(target_rc, src_width, src_height);
+		source_box = GetScreenshotSourceBox(m_target_rectangle, src_width, src_height);
 	}
 	PrepareFrameDumpBuffer(src_width, src_height);
 

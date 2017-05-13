@@ -86,14 +86,14 @@ void FramebufferManager::InitializeEFBCache()
 	CHECK(hr == S_OK, "create EFB color cache texture (hr=%#x)", hr);
 	m_efb.color_cache_tex = new D3DTexture2D(buf, D3D11_BIND_RENDER_TARGET);
 	SAFE_RELEASE(buf);
-	D3D::SetDebugObjectName((ID3D11DeviceChild*)m_efb.color_cache_tex->GetTex(), "EFB color read texture (used in Renderer::AccessEFB)");
-	D3D::SetDebugObjectName((ID3D11DeviceChild*)m_efb.color_cache_tex->GetRTV(), "EFB color read texture render target view (used in Renderer::AccessEFB)");
+	D3D::SetDebugObjectName((ID3D11DeviceChild*)m_efb.color_cache_tex->GetTex(), "EFB color read texture (used in g_renderer->AccessEFB)");
+	D3D::SetDebugObjectName((ID3D11DeviceChild*)m_efb.color_cache_tex->GetRTV(), "EFB color read texture render target view (used in g_renderer->AccessEFB)");
 
 	// AccessEFB - Sysmem buffer used to retrieve the pixel data from color_tex
 	tex_desc = CD3D11_TEXTURE2D_DESC(DXGI_FORMAT_R8G8B8A8_UNORM, EFB_WIDTH, EFB_HEIGHT, 1, 1, 0, D3D11_USAGE_STAGING, D3D11_CPU_ACCESS_READ | D3D11_CPU_ACCESS_WRITE);
 	hr = D3D::device->CreateTexture2D(&tex_desc, nullptr, &m_efb.color_cache_buf);
 	CHECK(hr == S_OK, "create EFB color cache buffer (hr=%#x)", hr);
-	D3D::SetDebugObjectName((ID3D11DeviceChild*)m_efb.color_cache_buf, "EFB color staging texture (used for Renderer::AccessEFB)");
+	D3D::SetDebugObjectName((ID3D11DeviceChild*)m_efb.color_cache_buf, "EFB color staging texture (used for g_renderer->AccessEFB)");
 
 	// Render buffer for AccessEFB (depth data)
 	tex_desc = CD3D11_TEXTURE2D_DESC(DXGI_FORMAT_R32_FLOAT, EFB_WIDTH, EFB_HEIGHT, 1, 1, D3D11_BIND_RENDER_TARGET);
@@ -101,20 +101,20 @@ void FramebufferManager::InitializeEFBCache()
 	CHECK(hr == S_OK, "create EFB depth cache read texture (hr=%#x)", hr);
 	m_efb.depth_cache_tex = new D3DTexture2D(buf, D3D11_BIND_RENDER_TARGET);
 	SAFE_RELEASE(buf);
-	D3D::SetDebugObjectName((ID3D11DeviceChild*)m_efb.depth_cache_tex->GetTex(), "EFB depth read texture (used in Renderer::AccessEFB)");
-	D3D::SetDebugObjectName((ID3D11DeviceChild*)m_efb.depth_cache_tex->GetRTV(), "EFB depth read texture render target view (used in Renderer::AccessEFB)");
+	D3D::SetDebugObjectName((ID3D11DeviceChild*)m_efb.depth_cache_tex->GetTex(), "EFB depth read texture (used in g_renderer->AccessEFB)");
+	D3D::SetDebugObjectName((ID3D11DeviceChild*)m_efb.depth_cache_tex->GetRTV(), "EFB depth read texture render target view (used in g_renderer->AccessEFB)");
 
 	// AccessEFB - Sysmem buffer used to retrieve the pixel data from depth_read_texture
 	tex_desc = CD3D11_TEXTURE2D_DESC(DXGI_FORMAT_R32_FLOAT, EFB_WIDTH, EFB_HEIGHT, 1, 1, 0, D3D11_USAGE_STAGING, D3D11_CPU_ACCESS_READ | D3D11_CPU_ACCESS_WRITE);
 	hr = D3D::device->CreateTexture2D(&tex_desc, nullptr, &m_efb.depth_cache_buf);
 	CHECK(hr == S_OK, "create EFB depth staging buffer (hr=%#x)", hr);
-	D3D::SetDebugObjectName((ID3D11DeviceChild*)m_efb.depth_cache_buf, "EFB depth cache buffer (used for Renderer::AccessEFB)");
+	D3D::SetDebugObjectName((ID3D11DeviceChild*)m_efb.depth_cache_buf, "EFB depth cache buffer (used for g_renderer->AccessEFB)");
 }
 
-FramebufferManager::FramebufferManager()
+FramebufferManager::FramebufferManager(u32 target_width, u32 target_height)
 {
-	m_target_width = std::max(Renderer::GetTargetWidth(), 1);
-	m_target_height = std::max(Renderer::GetTargetHeight(), 1);
+	m_target_width = std::max(target_width, 16u);
+	m_target_height = std::max(target_height, 16u);
 
 	DXGI_SAMPLE_DESC sample_desc;
 	sample_desc.Count = g_ActiveConfig.iMultisamples;
@@ -265,7 +265,7 @@ void XFBSource::CopyEFB(float Gamma)
 				D3D::context->RSSetViewports(1, &vp);
 				D3D::SetPointCopySampler();
 				D3D::drawShadedTexQuad(FramebufferManager::GetEFBDepthTexture()->GetSRV(), nullptr,
-					Renderer::GetTargetWidth(), Renderer::GetTargetHeight(),
+					g_renderer->GetTargetWidth(), g_renderer->GetTargetHeight(),
 					PixelShaderCache::GetColorCopyProgram(true), VertexShaderCache::GetSimpleVertexShader(),
 					VertexShaderCache::GetSimpleInputLayout(), GeometryShaderCache::GetCopyGeometryShader(), 1.0, 0, texWidth, texHeight);
 				D3D::context->OMSetRenderTargets(1,

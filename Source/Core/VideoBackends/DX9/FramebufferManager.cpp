@@ -58,11 +58,11 @@ void FramebufferManager::InitializeEFBCache()
 
 }
 
-FramebufferManager::FramebufferManager()
+FramebufferManager::FramebufferManager(u32 target_width, u32 target_height)
 {
+	m_target_width = std::max(target_width, 16u);
+	m_target_height = std::max(target_height, 16u);
 	s_efb.depth_textures_supported = true;
-	m_target_width = std::max(Renderer::GetTargetWidth(), 1);
-	m_target_height = std::max(Renderer::GetTargetHeight(), 1);
 	s_efb.color_surface_Format = D3DFMT_A8R8G8B8;
 
 	// EFB color texture - primary render target
@@ -212,8 +212,8 @@ void XFBSource::CopyEFB(float Gamma)
 	D3D::drawShadedTexQuad(
 		FramebufferManager::GetEFBColorTexture(),
 		nullptr,
-		Renderer::GetTargetWidth(),
-		Renderer::GetTargetHeight(),
+		g_renderer->GetTargetWidth(),
+		g_renderer->GetTargetHeight(),
 		texWidth,
 		texHeight,
 		PixelShaderCache::GetColorCopyProgram(0),
@@ -316,8 +316,8 @@ void FramebufferManager::PopulateEFBDepthCache()
 	D3D::drawShadedTexQuad(
 		read_texture,
 		nullptr,
-		Renderer::GetTargetWidth(),
-		Renderer::GetTargetHeight(),
+		g_renderer->GetTargetWidth(),
+		g_renderer->GetTargetHeight(),
 		EFB_WIDTH, EFB_HEIGHT,
 		PixelShaderCache::GetDepthMatrixProgram(0, bformat != FOURCC_RAWZ),
 		VertexShaderCache::GetSimpleVertexShader(0));

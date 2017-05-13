@@ -326,7 +326,7 @@ u8* Run(DataReader& reader, u32* cycles)
 						{
 							totalCycles += GX_NOP_CYCLES + GX_DRAW_PRIMITIVES_CYCLES * parameters.count;
 							reader.ReadSkip(readsize);
-							VertexManagerBase::s_pCurBufferPointer += writesize;
+							g_vertex_manager->IncCurrentBufferPointer(writesize);
 						}
 						else
 						{

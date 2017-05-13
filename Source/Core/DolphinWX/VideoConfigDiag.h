@@ -159,11 +159,11 @@ protected:
 	wxStaticText* label_TextureScale;
 	SettingCheckBox* borderless_fullscreen;
 	SettingCheckBox* render_to_main_checkbox;
-	
+
 	SettingCheckBox* Fast_efb_cache;
 	SettingCheckBox* emulate_efb_format_changes;
 	SettingCheckBox* Async_Shader_compilation;
-	SettingCheckBox* Compute_Shader_decoding;
+	SettingCheckBox* GPU_Texture_decoding;
 	SettingCheckBox* Compute_Shader_encoding;
 	SettingCheckBox* Forced_LogicOp;
 	SettingCheckBox* Predictive_FIFO;
@@ -178,6 +178,7 @@ protected:
 	wxButton* button_config_scalingshader;
 
 	wxCheckBox* progressive_scan_checkbox;
+	wxCheckBox* vertex_rounding_checkbox;
 
 	wxListBox* listbox_selected_ppshaders;
 	wxButton* button_move_ppshader_up;

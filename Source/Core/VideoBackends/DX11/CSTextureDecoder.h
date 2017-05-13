@@ -23,8 +23,7 @@ public:
 	void Init() override;
 	void Shutdown() override;
 	bool FormatSupported(u32 srcFmt);
-	bool Decode(const u8* src, u32 srcsize, u32 srcFmt, u32 w, u32 h, u32 levels, D3DTexture2D& dstTexture) override;
-	bool DecodeRGBAFromTMEM(u8 const * ar_src, u8 const * bg_src, u32 width, u32 height, D3DTexture2D& dstTexture) override;
+	bool Decode(const u8* src, u32 srcsize, u32 srcFmt, u32 w, u32 h, u32 expandedw, u32 expandedh, u32 levels, D3DTexture2D& dstTexture) override;
 	bool Depalettize(D3DTexture2D& dstTexture, D3DTexture2D& srcTexture, BaseType baseType, u32 width, u32 height) override;
 	void LoadLut(u32 lutFmt, void* addr, u32 size) override;
 private:

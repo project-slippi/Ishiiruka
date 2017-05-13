@@ -175,6 +175,11 @@ RasterFont::~RasterFont()
 		vkDestroyShaderModule(g_vulkan_context->GetDevice(), m_fragment_shader, nullptr);
 }
 
+const Texture2D* RasterFont::GetTexture() const
+{
+	return m_texture.get();
+}
+
 bool RasterFont::Initialize()
 {
 	// Create shaders and texture
@@ -205,7 +210,7 @@ bool RasterFont::CreateTexture()
 	m_texture = Texture2D::Create(CHARACTER_WIDTH * CHARACTER_COUNT, CHARACTER_HEIGHT, 1, 1,
 		VK_FORMAT_R8G8B8A8_UNORM, VK_SAMPLE_COUNT_1_BIT,
 		VK_IMAGE_VIEW_TYPE_2D, VK_IMAGE_TILING_OPTIMAL,
-		VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT);
+		VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_NULL_HANDLE);
 	if (!m_texture)
 		return false;
 

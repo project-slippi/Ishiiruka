@@ -8,6 +8,7 @@
 #include <cstdio>
 #include <limits>
 #include <string>
+#include <tuple>
 
 #include "Common/Logging/Log.h"
 #include "Common/MsgHandler.h"
@@ -38,7 +39,8 @@
 
 namespace Vulkan
 {
-Renderer::Renderer(std::unique_ptr<SwapChain> swap_chain) : m_swap_chain(std::move(swap_chain))
+Renderer::Renderer(std::unique_ptr<SwapChain> swap_chain)
+	: m_swap_chain(std::move(swap_chain))
 {
 	g_Config.bRunning = true;
 	UpdateActiveConfig();
@@ -47,16 +49,15 @@ Renderer::Renderer(std::unique_ptr<SwapChain> swap_chain) : m_swap_chain(std::mo
 	for (size_t i = 0; i < m_sampler_states.size(); i++)
 		m_sampler_states[i].bits = std::numeric_limits<decltype(m_sampler_states[i].bits)>::max();
 
+	m_backbuffer_width = m_swap_chain ? m_swap_chain->GetWidth() : MAX_XFB_WIDTH;
+	m_backbuffer_height = m_swap_chain ? m_swap_chain->GetHeight() : MAX_XFB_HEIGHT;
+
 	// These have to be initialized before FramebufferManager is created.
 	// If running surfaceless, assume a window size of MAX_XFB_{WIDTH,HEIGHT}.
 	FramebufferManagerBase::SetLastXfbWidth(MAX_XFB_WIDTH);
 	FramebufferManagerBase::SetLastXfbHeight(MAX_XFB_HEIGHT);
-	s_backbuffer_width = m_swap_chain ? m_swap_chain->GetWidth() : MAX_XFB_WIDTH;
-	s_backbuffer_height = m_swap_chain ? m_swap_chain->GetHeight() : MAX_XFB_HEIGHT;
-	s_last_efb_scale = g_ActiveConfig.iEFBScale;
-	UpdateDrawRectangle();
-	CalculateTargetSize();
-	PixelShaderManager::SetEfbScaleChanged();
+
+	m_last_efb_scale = g_ActiveConfig.iEFBScale;
 }
 
 Renderer::~Renderer()
@@ -78,8 +79,17 @@ Renderer* Renderer::GetInstance()
 	return static_cast<Renderer*>(g_renderer.get());
 }
 
+void Renderer::Init()
+{
+	UpdateDrawRectangle();
+	CalculateTargetSize();
+	PixelShaderManager::SetEfbScaleChanged();
+}
+
 bool Renderer::Initialize()
 {
+	
+
 	BindEFBToStateTracker();
 
 	if (!CreateSemaphores())
@@ -269,12 +279,12 @@ u16 Renderer::BBoxRead(int index)
 	if (index < 2)
 	{
 		// left/right
-		value = value * EFB_WIDTH / s_target_width;
+		value = value * EFB_WIDTH / m_target_width;
 	}
 	else
 	{
 		// up/down
-		value = value * EFB_HEIGHT / s_target_height;
+		value = value * EFB_HEIGHT / m_target_height;
 	}
 
 	// fix max values to describe the outer border
@@ -296,12 +306,12 @@ void Renderer::BBoxWrite(int index, u16 value)
 	if (index < 2)
 	{
 		// left/right
-		scaled_value = scaled_value * s_target_width / EFB_WIDTH;
+		scaled_value = scaled_value * m_target_width / EFB_WIDTH;
 	}
 	else
 	{
 		// up/down
-		scaled_value = scaled_value * s_target_height / EFB_HEIGHT;
+		scaled_value = scaled_value * m_target_height / EFB_HEIGHT;
 	}
 
 	m_bounding_box->Set(static_cast<size_t>(index), scaled_value);
@@ -334,6 +344,11 @@ void Renderer::ClearScreen(const EFBRectangle& rc, bool color_enable, bool alpha
 {
 	// Native -> EFB coordinates
 	TargetRectangle target_rc = Renderer::ConvertEFBRectangle(rc);
+
+	// Size we pass this size to vkBeginRenderPass, it has to be clamped to the framebuffer
+	// dimensions. The other backends just silently ignore this case.
+	target_rc.ClampUL(0, 0, m_target_width, m_target_height);
+
 	VkRect2D target_vk_rc = {
 		{ target_rc.left, target_rc.top },
 		{ static_cast<uint32_t>(target_rc.GetWidth()), static_cast<uint32_t>(target_rc.GetHeight()) } };
@@ -480,7 +495,7 @@ void Renderer::SwapImpl(u32 xfb_addr, u32 fb_width, u32 fb_stride, u32 fb_height
 	FramebufferManager::GetInstance()->FlushEFBPokes();
 
 	// Check that we actually have an image to render in XFB-on modes.
-	if ((!XFBWrited && !g_ActiveConfig.RealXFBEnabled()) || !fb_width || !fb_height)
+	if ((!m_xfb_written && !g_ActiveConfig.RealXFBEnabled()) || !fb_width || !fb_height)
 	{
 		Core::Callback_VideoCopiedToXFB(false);
 		return;
@@ -502,6 +517,15 @@ void Renderer::SwapImpl(u32 xfb_addr, u32 fb_width, u32 fb_stride, u32 fb_height
 	// are determined by guest state. Currently, the only way to catch these is to update every frame.
 	UpdateDrawRectangle();
 
+	// Scale the source rectangle to the internal resolution when XFB is disabled.
+	TargetRectangle scaled_efb_rect = Renderer::ConvertEFBRectangle(rc);
+
+	// If MSAA is enabled, and we're not using XFB, we need to resolve the EFB framebuffer before
+	// rendering the final image to the screen, or dumping the frame. This is because we can't resolve
+	// an image within a render pass, which will have already started by the time it is used.
+	if (g_ActiveConfig.iMultisamples > 1 && !g_ActiveConfig.bUseXFB)
+		ResolveEFBForSwap(scaled_efb_rect);
+
 	// Render the frame dump image if enabled.
 	if (IsFrameDumping())
 	{
@@ -509,7 +533,8 @@ void Renderer::SwapImpl(u32 xfb_addr, u32 fb_width, u32 fb_stride, u32 fb_height
 		if (!m_frame_dumping_active)
 			StartFrameDumping();
 
-		DrawFrameDump(rc, xfb_addr, xfb_sources, xfb_count, fb_width, fb_stride, fb_height, ticks);
+		DrawFrameDump(scaled_efb_rect, xfb_addr, xfb_sources, xfb_count, fb_width, fb_stride, fb_height,
+			ticks);
 	}
 	else
 	{
@@ -526,7 +551,7 @@ void Renderer::SwapImpl(u32 xfb_addr, u32 fb_width, u32 fb_stride, u32 fb_height
 	// Draw to the screen if we have a swap chain.
 	if (m_swap_chain)
 	{
-		DrawScreen(rc, xfb_addr, xfb_sources, xfb_count, fb_width, fb_stride, fb_height);
+		DrawScreen(scaled_efb_rect, xfb_addr, xfb_sources, xfb_count, fb_width, fb_stride, fb_height);
 
 		// Submit the current command buffer, signaling rendering finished semaphore when it's done
 		// Because this final command buffer is rendering to the swap chain, we need to wait for
@@ -570,13 +595,25 @@ void Renderer::SwapImpl(u32 xfb_addr, u32 fb_width, u32 fb_stride, u32 fb_height
 	TextureCache::GetInstance()->Cleanup(frameCount);
 }
 
+void Renderer::ResolveEFBForSwap(const TargetRectangle& scaled_rect)
+{
+	// While the source rect can be out-of-range when drawing, the resolve rectangle must be within
+		// the bounds of the texture.
+	VkRect2D region = {
+	{scaled_rect.left, scaled_rect.top},
+	{static_cast<u32>(scaled_rect.GetWidth()), static_cast<u32>(scaled_rect.GetHeight())} };
+	region = Util::ClampRect2D(region, FramebufferManager::GetInstance()->GetEFBWidth(),
+		FramebufferManager::GetInstance()->GetEFBHeight());
+	FramebufferManager::GetInstance()->ResolveEFBColorTexture(region);
+}
+
 void Renderer::DrawFrame(VkRenderPass render_pass, const TargetRectangle& target_rect,
-	const EFBRectangle& source_rect, u32 xfb_addr,
+	const TargetRectangle& scaled_efb_rect, u32 xfb_addr,
 	const XFBSourceBase* const* xfb_sources, u32 xfb_count, u32 fb_width,
 	u32 fb_stride, u32 fb_height)
 {
 	if (!g_ActiveConfig.bUseXFB)
-		DrawEFB(render_pass, target_rect, source_rect);
+		DrawEFB(render_pass, target_rect, scaled_efb_rect);
 	else if (!g_ActiveConfig.bUseRealXFB)
 		DrawVirtualXFB(render_pass, target_rect, xfb_addr, xfb_sources, xfb_count, fb_width, fb_stride,
 			fb_height);
@@ -585,26 +622,18 @@ void Renderer::DrawFrame(VkRenderPass render_pass, const TargetRectangle& target
 }
 
 void Renderer::DrawEFB(VkRenderPass render_pass, const TargetRectangle& target_rect,
-	const EFBRectangle& source_rect)
+	const TargetRectangle& scaled_efb_rect)
 {
-	// Scale the source rectangle to the selected internal resolution.
-	TargetRectangle scaled_source_rect = Renderer::ConvertEFBRectangle(source_rect);
-	scaled_source_rect.left = std::max(scaled_source_rect.left, 0);
-	scaled_source_rect.right = std::max(scaled_source_rect.right, 0);
-	scaled_source_rect.top = std::max(scaled_source_rect.top, 0);
-	scaled_source_rect.bottom = std::max(scaled_source_rect.bottom, 0);
-
-	// Transition the EFB render target to a shader resource.
-	VkRect2D src_region = { { 0, 0 },
-	{ static_cast<u32>(scaled_source_rect.GetWidth()),
-		static_cast<u32>(scaled_source_rect.GetHeight()) } };
 	Texture2D* efb_color_texture =
-		FramebufferManager::GetInstance()->ResolveEFBColorTexture(src_region);
+		g_ActiveConfig.iMultisamples > 1 ?
+		FramebufferManager::GetInstance()->GetResolvedEFBColorTexture() :
+		FramebufferManager::GetInstance()->GetEFBColorTexture();
+
 	efb_color_texture->TransitionToLayout(g_command_buffer_mgr->GetCurrentCommandBuffer(),
 		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
 	// Copy EFB -> backbuffer
-	BlitScreen(render_pass, target_rect, scaled_source_rect, efb_color_texture, true);
+	BlitScreen(render_pass, target_rect, scaled_efb_rect, efb_color_texture, true);
 
 	// Restore the EFB color texture to color attachment ready for rendering the next frame.
 	if (efb_color_texture == FramebufferManager::GetInstance()->GetEFBColorTexture())
@@ -667,7 +696,7 @@ void Renderer::DrawRealXFB(VkRenderPass render_pass, const TargetRectangle& targ
 	}
 }
 
-void Renderer::DrawScreen(const EFBRectangle& source_rect, u32 xfb_addr,
+void Renderer::DrawScreen(const TargetRectangle& scaled_efb_rect, u32 xfb_addr,
 	const XFBSourceBase* const* xfb_sources, u32 xfb_count, u32 fb_width,
 	u32 fb_stride, u32 fb_height)
 {
@@ -710,8 +739,8 @@ void Renderer::DrawScreen(const EFBRectangle& source_rect, u32 xfb_addr,
 		VK_SUBPASS_CONTENTS_INLINE);
 
 	// Draw guest buffers (EFB or XFB)
-	DrawFrame(m_swap_chain->GetRenderPass(), GetTargetRectangle(), source_rect, xfb_addr, xfb_sources,
-		xfb_count, fb_width, fb_stride, fb_height);
+	DrawFrame(m_swap_chain->GetRenderPass(), GetTargetRectangle(), scaled_efb_rect, xfb_addr,
+		xfb_sources, xfb_count, fb_width, fb_stride, fb_height);
 
 	// Draw OSD
 	Util::SetViewportAndScissor(g_command_buffer_mgr->GetCurrentCommandBuffer(), 0, 0,
@@ -729,7 +758,7 @@ void Renderer::DrawScreen(const EFBRectangle& source_rect, u32 xfb_addr,
 		VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
 }
 
-bool Renderer::DrawFrameDump(const EFBRectangle& source_rect, u32 xfb_addr,
+bool Renderer::DrawFrameDump(const TargetRectangle& scaled_efb_rect, u32 xfb_addr,
 	const XFBSourceBase* const* xfb_sources, u32 xfb_count, u32 fb_width,
 	u32 fb_stride, u32 fb_height, u64 ticks)
 {
@@ -738,6 +767,10 @@ bool Renderer::DrawFrameDump(const EFBRectangle& source_rect, u32 xfb_addr,
 	u32 height = std::max(1u, static_cast<u32>(target_rect.GetHeight()));
 	if (!ResizeFrameDumpBuffer(width, height))
 		return false;
+
+	// If there was a previous frame dumped, we'll still be in TRANSFER_SRC layout.
+	m_frame_dump_render_texture->TransitionToLayout(g_command_buffer_mgr->GetCurrentCommandBuffer(),
+		VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 
 	VkClearValue clear_value = { { { 0.0f, 0.0f, 0.0f, 1.0f } } };
 	VkClearRect clear_rect = { { { 0, 0 },{ width, height } }, 0, 1 };
@@ -755,7 +788,7 @@ bool Renderer::DrawFrameDump(const EFBRectangle& source_rect, u32 xfb_addr,
 	vkCmdClearAttachments(g_command_buffer_mgr->GetCurrentCommandBuffer(), 1, &clear_attachment, 1,
 		&clear_rect);
 	DrawFrame(FramebufferManager::GetInstance()->GetColorCopyForReadbackRenderPass(), target_rect,
-		source_rect, xfb_addr, xfb_sources, xfb_count, fb_width, fb_stride, fb_height);
+		scaled_efb_rect, xfb_addr, xfb_sources, xfb_count, fb_width, fb_stride, fb_height);
 	vkCmdEndRenderPass(g_command_buffer_mgr->GetCurrentCommandBuffer());
 
 	// Prepare the readback texture for copying.
@@ -910,7 +943,7 @@ void Renderer::BlitScreen(VkRenderPass render_pass, const TargetRectangle& dst_r
 	{
 		TargetRectangle left_rect;
 		TargetRectangle right_rect;
-		ConvertStereoRectangle(dst_rect, left_rect, right_rect);
+		std::tie(left_rect, right_rect) = ConvertStereoRectangle(dst_rect);
 
 		draw.DrawQuad(left_rect.left, left_rect.top, left_rect.GetWidth(), left_rect.GetHeight(),
 			src_rect.left, src_rect.top, 0, src_rect.GetWidth(), src_rect.GetHeight(),
@@ -935,6 +968,10 @@ bool Renderer::ResizeFrameDumpBuffer(u32 new_width, u32 new_height)
 	{
 		return true;
 	}
+
+	// Ensure all previous frames have been dumped, since we are destroying a framebuffer
+	// that may still be in use.
+	FlushFrameDump();
 
 	if (m_frame_dump_framebuffer != VK_NULL_HANDLE)
 	{
@@ -1023,22 +1060,22 @@ void Renderer::CheckForTargetResize(u32 fb_width, u32 fb_stride, u32 fb_height)
 
 void Renderer::CheckForSurfaceChange()
 {
-	if (!s_surface_needs_change.IsSet())
+	if (!m_surface_needs_change.IsSet())
 		return;
 
 	u32 old_width = m_swap_chain ? m_swap_chain->GetWidth() : 0;
 	u32 old_height = m_swap_chain ? m_swap_chain->GetHeight() : 0;
 
 	// Fast path, if the surface handle is the same, the window has just been resized.
-	if (m_swap_chain && s_new_surface_handle == m_swap_chain->GetNativeHandle())
+	if (m_swap_chain && m_new_surface_handle == m_swap_chain->GetNativeHandle())
 	{
 		INFO_LOG(VIDEO, "Detected window resize.");
 		ResizeSwapChain();
 
 		// Notify the main thread we are done.
-		s_surface_needs_change.Clear();
-		s_new_surface_handle = nullptr;
-		s_surface_changed.Set();
+		m_surface_needs_change.Clear();
+		m_new_surface_handle = nullptr;
+		m_surface_changed.Set();
 	}
 	else
 	{
@@ -1048,7 +1085,7 @@ void Renderer::CheckForSurfaceChange()
 		// Did we previously have a swap chain?
 		if (m_swap_chain)
 		{
-			if (!s_new_surface_handle)
+			if (!m_new_surface_handle)
 			{
 				// If there is no surface now, destroy the swap chain.
 				m_swap_chain.reset();
@@ -1056,7 +1093,7 @@ void Renderer::CheckForSurfaceChange()
 			else
 			{
 				// Recreate the surface. If this fails we're in trouble.
-				if (!m_swap_chain->RecreateSurface(s_new_surface_handle))
+				if (!m_swap_chain->RecreateSurface(m_new_surface_handle))
 					PanicAlert("Failed to recreate Vulkan surface. Cannot continue.");
 			}
 		}
@@ -1064,10 +1101,10 @@ void Renderer::CheckForSurfaceChange()
 		{
 			// Previously had no swap chain. So create one.
 			VkSurfaceKHR surface = SwapChain::CreateVulkanSurface(g_vulkan_context->GetVulkanInstance(),
-				s_new_surface_handle);
+				m_new_surface_handle);
 			if (surface != VK_NULL_HANDLE)
 			{
-				m_swap_chain = SwapChain::Create(s_new_surface_handle, surface, g_ActiveConfig.IsVSync());
+				m_swap_chain = SwapChain::Create(m_new_surface_handle, surface, g_ActiveConfig.IsVSync());
 				if (!m_swap_chain)
 					PanicAlert("Failed to create swap chain.");
 			}
@@ -1078,9 +1115,9 @@ void Renderer::CheckForSurfaceChange()
 		}
 
 		// Notify calling thread.
-		s_surface_needs_change.Clear();
-		s_new_surface_handle = nullptr;
-		s_surface_changed.Set();
+		m_surface_needs_change.Clear();
+		m_new_surface_handle = nullptr;
+		m_surface_changed.Set();
 	}
 
 	if (m_swap_chain)
@@ -1114,7 +1151,7 @@ void Renderer::CheckForConfigChanges()
 	bool anisotropy_changed = old_anisotropy != g_ActiveConfig.iMaxAnisotropy;
 	bool force_texture_filtering_changed = old_force_filtering != g_ActiveConfig.bForceFiltering;
 	bool stereo_changed = old_stereo_mode != g_ActiveConfig.iStereoMode;
-	bool efb_scale_changed = s_last_efb_scale != g_ActiveConfig.iEFBScale;
+	bool efb_scale_changed = m_last_efb_scale != g_ActiveConfig.iEFBScale;
 	bool aspect_changed = old_aspect_ratio != g_ActiveConfig.iAspectRatio;
 	bool use_xfb_changed = old_use_xfb != g_ActiveConfig.bUseXFB;
 	bool use_realxfb_changed = old_use_realxfb != g_ActiveConfig.bUseRealXFB;
@@ -1125,7 +1162,7 @@ void Renderer::CheckForConfigChanges()
 	// Handle settings that can cause the target rectangle to change.
 	if (efb_scale_changed || aspect_changed || use_xfb_changed || use_realxfb_changed)
 	{
-		s_last_efb_scale = g_ActiveConfig.iEFBScale;
+		m_last_efb_scale = g_ActiveConfig.iEFBScale;
 		if (CalculateTargetSize())
 			ResizeEFBTextures();
 	}
@@ -1146,7 +1183,7 @@ void Renderer::CheckForConfigChanges()
 	{
 		g_command_buffer_mgr->WaitForGPUIdle();
 		RecompileShaders();
-		FramebufferManager::GetInstance()->RecompileShaders();		
+		FramebufferManager::GetInstance()->RecompileShaders();
 		g_object_cache->RecompileSharedShaders();
 		StateTracker::GetInstance()->LoadPipelineUIDCache();
 	}
@@ -1165,8 +1202,8 @@ void Renderer::CheckForConfigChanges()
 
 void Renderer::OnSwapChainResized()
 {
-	s_backbuffer_width = m_swap_chain->GetWidth();
-	s_backbuffer_height = m_swap_chain->GetHeight();
+	m_backbuffer_width = m_swap_chain->GetWidth();
+	m_backbuffer_height = m_swap_chain->GetHeight();
 	UpdateDrawRectangle();
 	if (CalculateTargetSize())
 	{
@@ -1617,16 +1654,14 @@ void Renderer::ResetSamplerStates()
 	g_object_cache->ClearSamplerCache();
 }
 
-void Renderer::SetDitherMode()
-{
-}
-
 void Renderer::SetInterlacingMode()
 {
 }
 
-void Renderer::SetScissorRect(const TargetRectangle& target_rc)
+void Renderer::SetScissorRect(const EFBRectangle& rc)
 {
+	TargetRectangle target_rc = ConvertEFBRectangle(rc);
+
 	VkRect2D scissor = {
 		{ target_rc.left, target_rc.top },
 		{ static_cast<uint32_t>(target_rc.GetWidth()), static_cast<uint32_t>(target_rc.GetHeight()) } };
@@ -1639,10 +1674,10 @@ void Renderer::SetViewport()
 	int scissor_x_offset = bpmem.scissorOffset.x * 2;
 	int scissor_y_offset = bpmem.scissorOffset.y * 2;
 
-	float x = Renderer::EFBToScaledXf(xfmem.viewport.xOrig - xfmem.viewport.wd - scissor_x_offset);
-	float y = Renderer::EFBToScaledYf(xfmem.viewport.yOrig + xfmem.viewport.ht - scissor_y_offset);
-	float width = Renderer::EFBToScaledXf(2.0f * xfmem.viewport.wd);
-	float height = Renderer::EFBToScaledYf(-2.0f * xfmem.viewport.ht);
+	float x = g_renderer->EFBToScaledXf(xfmem.viewport.xOrig - xfmem.viewport.wd - scissor_x_offset);
+	float y = g_renderer->EFBToScaledYf(xfmem.viewport.yOrig + xfmem.viewport.ht - scissor_y_offset);
+	float width = g_renderer->EFBToScaledXf(2.0f * xfmem.viewport.wd);
+	float height = g_renderer->EFBToScaledYf(-2.0f * xfmem.viewport.ht);
 
 	float range = MathUtil::Clamp<float>(xfmem.viewport.zRange, -16777215.0f, 16777215.0f);
 	float min_depth =
@@ -1679,9 +1714,9 @@ void Renderer::SetViewport()
 void Renderer::ChangeSurface(void* new_surface_handle)
 {
 	// Called by the main thread when the window is resized.
-	s_new_surface_handle = new_surface_handle;
-	s_surface_needs_change.Set();
-	s_surface_changed.Set();
+	m_new_surface_handle = new_surface_handle;
+	m_surface_needs_change.Set();
+	m_surface_changed.Set();
 }
 
 void Renderer::RecompileShaders()

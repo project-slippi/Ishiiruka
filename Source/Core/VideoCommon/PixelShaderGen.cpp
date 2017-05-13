@@ -299,7 +299,8 @@ int2 BSH(int2 x, int n)
 	}
 	else
 	{
-		return x << (-n);
+		n = -n;
+		return x << n;
 	}
 }
 int remainder(int x, int y)
@@ -1652,6 +1653,7 @@ inline void GeneratePixelShader(ShaderCode& out, const pixel_shader_uid_data& ui
 		{
 			DeclareUniform<ApiType>(out, C_PROJECTION, "float4", I_PROJECTION"[4]");
 			DeclareUniform<ApiType>(out, C_DEPTHPARAMS, "float4", I_DEPTHPARAMS);
+			DeclareUniform<ApiType>(out, C_VIEWPARAMS, "float4", I_VIEWPARAMS);
 		}
 
 		DeclareUniform<ApiType>(out, C_PMATERIALS, "float4", I_MATERIALS "[4]");
@@ -2057,7 +2059,7 @@ inline void GeneratePixelShader(ShaderCode& out, const pixel_shader_uid_data& ui
 			out.Write("spec.w = pow(1.0 - saturate(dot(View, _norm0))," I_PPHONG "[0].y);\n");
 			// Surfaces are more reflective depending on the view angle
 			// Aproximate this with a small math trick
-			out.Write("normalmap.w = lerp(normalmap.w, max(normalmap.w, 0.6), spec.w);\n");
+			out.Write("normalmap.w = lerp(normalmap.w, sqrt(normalmap.w), spec.w);\n");
 		}
 	}
 	else

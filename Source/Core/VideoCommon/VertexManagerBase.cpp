@@ -2,9 +2,11 @@
 // Licensed under GPLv2+
 // Refer to the license.txt file included.
 
+#include <cmath>
 #include <memory>
 
 #include "Common/CommonTypes.h"
+#include "Core/ConfigManager.h"
 
 #include "VideoCommon/BPStructs.h"
 #include "VideoCommon/Debugger.h"
@@ -26,19 +28,6 @@
 
 std::unique_ptr<VertexManagerBase> g_vertex_manager;
 
-u8 *VertexManagerBase::s_pCurBufferPointer;
-u8 *VertexManagerBase::s_pBaseBufferPointer;
-u8 *VertexManagerBase::s_pEndBufferPointer;
-
-bool VertexManagerBase::s_shader_refresh_required = true;
-bool VertexManagerBase::s_zslope_refresh_required = true;
-Slope VertexManagerBase::s_zslope = { 0.0f, 0.0f, float(0xFFFFFF) };
-
-PrimitiveType VertexManagerBase::current_primitive_type;
-
-bool VertexManagerBase::IsFlushed;
-bool VertexManagerBase::s_cull_all;
-
 static const PrimitiveType primitive_from_gx[8] = {
 	PRIMITIVE_TRIANGLES, // GX_DRAW_QUADS
 	PRIMITIVE_TRIANGLES, // GX_DRAW_QUADS_2
@@ -50,24 +39,33 @@ static const PrimitiveType primitive_from_gx[8] = {
 	PRIMITIVE_POINTS,    // GX_DRAW_POINTS
 };
 
+// Due to the BT.601 standard which the GameCube is based on being a compromise
+// between PAL and NTSC, neither standard gets square pixels. They are each off
+// by ~9% in opposite directions.
+// Just in case any game decides to take this into account, we do both these
+// tests with a large amount of slop.
+static bool AspectIs4_3(float width, float height)
+{
+	float aspect = fabsf(width / height);
+	return fabsf(aspect - 4.0f / 3.0f) < 4.0f / 3.0f * 0.11;  // within 11% of 4:3
+}
+
+static bool AspectIs16_9(float width, float height)
+{
+	float aspect = fabsf(width / height);
+	return fabsf(aspect - 16.0f / 9.0f) < 16.0f / 9.0f * 0.11;  // within 11% of 16:9
+}
+
 PrimitiveType VertexManagerBase::GetPrimitiveType(int primitive)
 {
 	return primitive_from_gx[primitive & 7];
 }
 
-VertexManagerBase::VertexManagerBase()
-{
-	IsFlushed = true;
-	s_cull_all = false;
-}
+VertexManagerBase::VertexManagerBase() {}
 
-VertexManagerBase::~VertexManagerBase()
-{}
+VertexManagerBase::~VertexManagerBase() {}
 
-inline u32 GetRemainingSize()
-{
-	return (u32)(VertexManagerBase::s_pEndBufferPointer - VertexManagerBase::s_pCurBufferPointer);
-}
+
 
 inline u32 GetRemainingIndices(int prim)
 {
@@ -102,8 +100,8 @@ void VertexManagerBase::PrepareForAdditionalData(int primitive, u32 count, u32 s
 	// Check for size in buffer, if the buffer gets full, call Flush()
 	if (count > max_index_size
 		|| needed_vertex_bytes > GetRemainingSize()
-		|| current_primitive_type != primitive_from_gx[primitive])
-	{		
+		|| m_current_primitive_type != primitive_from_gx[primitive])
+	{
 #if defined(_DEBUG) || defined(DEBUGFAST)
 		if (count > IndexGenerator::GetRemainingIndices())
 			ERROR_LOG(VIDEO, "Too little remaining index values. Use 32-bit or reset them on flush.");
@@ -116,14 +114,22 @@ void VertexManagerBase::PrepareForAdditionalData(int primitive, u32 count, u32 s
 #endif
 		Flush();
 	}
-	current_primitive_type = primitive_from_gx[primitive];
-	s_cull_all = bpmem.genMode.cullmode == GenMode::CULL_ALL && primitive < 5;
+	m_current_primitive_type = primitive_from_gx[primitive];
+	m_cull_all = bpmem.genMode.cullmode == GenMode::CULL_ALL && primitive < 5;
 	// need to alloc new buffer
-	if (IsFlushed)
+	if (m_is_flushed)
 	{
 		g_vertex_manager->ResetBuffer(stride);
-		IsFlushed = false;
+		m_is_flushed = false;
 	}
+}
+
+std::pair<size_t, size_t> VertexManagerBase::ResetFlushAspectRatioCount()
+{
+	std::pair<size_t, size_t> val = std::make_pair(m_flush_count_4_3, m_flush_count_anamorphic);
+	m_flush_count_4_3 = 0;
+	m_flush_count_anamorphic = 0;
+	return val;
 }
 
 void VertexManagerBase::DoFlush()
@@ -131,7 +137,7 @@ void VertexManagerBase::DoFlush()
 	// loading a state will invalidate BP, so check for it
 	NativeVertexFormat* current_vertex_format = VertexLoaderManager::GetCurrentVertexFormat();
 	g_video_backend->CheckInvalidState();
-	g_vertex_manager->PrepareShaders(current_primitive_type, VertexLoaderManager::g_current_components, xfmem, bpmem, true);
+	g_vertex_manager->PrepareShaders(m_current_primitive_type, VertexLoaderManager::g_current_components, xfmem, bpmem, true);
 #if defined(_DEBUG) || defined(DEBUGFAST)
 	PRIM_LOG("frame%d:\n texgen=%d, numchan=%d, dualtex=%d, ztex=%d, cole=%d, alpe=%d, ze=%d", g_ActiveConfig.iSaveTargetId, xfmem.numTexGen.numTexGens,
 		xfmem.numChan.numColorChans, xfmem.dualTexTrans.enabled, bpmem.ztex2.op,
@@ -159,7 +165,7 @@ void VertexManagerBase::DoFlush()
 	PRIM_LOG("pixel: tev=%d, ind=%d, texgen=%d, dstalpha=%d, alphatest=0x%x", (int)bpmem.genMode.numtevstages + 1, (int)bpmem.genMode.numindstages.Value(),
 		(int)bpmem.genMode.numtexgens, (u32)bpmem.dstalpha.enable, (bpmem.alpha_test.hex >> 16) & 0xff);
 #endif
-	if (!s_cull_all)
+	if (!m_cull_all)
 	{
 		u32 usedtextures = 0;
 		for (u32 i = 0; i < bpmem.genMode.numtevstages + 1u; ++i)
@@ -202,15 +208,34 @@ void VertexManagerBase::DoFlush()
 	}
 	// set global constants
 	VertexShaderManager::SetConstants();
-	if (current_primitive_type == PRIMITIVE_TRIANGLES)
+
+	// Track some stats used elsewhere by the anamorphic widescreen heuristic.
+	if (!SConfig::GetInstance().bWii)
+	{
+		float* rawProjection = xfmem.projection.rawProjection;
+		bool viewport_is_4_3 = AspectIs4_3(xfmem.viewport.wd, xfmem.viewport.ht);
+		if (AspectIs16_9(rawProjection[2], rawProjection[0]) && viewport_is_4_3)
+		{
+			// Projection is 16:9 and viewport is 4:3, we are rendering an anamorphic
+			// widescreen picture.
+			m_flush_count_anamorphic++;
+		}
+		else if (AspectIs4_3(rawProjection[2], rawProjection[0]) && viewport_is_4_3)
+		{
+			// Projection and viewports are both 4:3, we are rendering a normal image.
+			m_flush_count_4_3++;
+		}
+	}
+
+	if (m_current_primitive_type == PRIMITIVE_TRIANGLES)
 	{
 		const PortableVertexDeclaration &vtx_dcl = current_vertex_format->GetVertexDeclaration();
 		if (bpmem.genMode.zfreeze)
 		{
-			if (s_zslope_refresh_required)
+			if (m_zslope_refresh_required)
 			{
-				PixelShaderManager::SetZSlope(s_zslope.dfdx, s_zslope.dfdy, s_zslope.f0);
-				s_zslope_refresh_required = false;
+				PixelShaderManager::SetZSlope(m_zslope.dfdx, m_zslope.dfdy, m_zslope.f0);
+				m_zslope_refresh_required = false;
 			}
 		}
 		else if (IndexGenerator::GetIndexLen() >= 3)
@@ -219,10 +244,10 @@ void VertexManagerBase::DoFlush()
 		}
 
 		// if cull mode is CULL_ALL, ignore triangles and quads
-		if (s_cull_all)
+		if (m_cull_all)
 		{
-			IsFlushed = true;
-			s_cull_all = false;
+			m_is_flushed = true;
+			m_cull_all = false;
 			return;
 		}
 	}
@@ -244,8 +269,8 @@ void VertexManagerBase::DoFlush()
 	if (xfmem.numTexGen.numTexGens != bpmem.genMode.numtexgens)
 		ERROR_LOG(VIDEO, "xf.numtexgens (%d) does not match bp.numtexgens (%d). Error in command stream.", xfmem.numTexGen.numTexGens, bpmem.genMode.numtexgens.Value());
 
-	IsFlushed = true;
-	s_cull_all = false;
+	m_is_flushed = true;
+	m_cull_all = false;
 }
 
 void VertexManagerBase::DoState(PointerWrap& p)
@@ -267,7 +292,7 @@ void VertexManagerBase::CalculateZSlope(const PortableVertexDeclaration &vert_de
 	float *vout = out;
 	for (u32 i = 0; i < 3; ++i, vout += 4)
 	{
-		u8* vtx_ptr = s_pBaseBufferPointer + vert_decl.stride * indices[i];
+		u8* vtx_ptr = m_pBaseBufferPointer + vert_decl.stride * indices[i];
 		VertexShaderManager::TransformToClipSpace(vtx_ptr, vert_decl, vout);
 		float w = 1.0f / vout[3];
 		// Transform to Screenspace
@@ -289,8 +314,8 @@ void VertexManagerBase::CalculateZSlope(const PortableVertexDeclaration &vert_de
 	float DF21 = out[6] - out[2];
 	float a = DF31 * -dy12 - DF21 * dy31;
 	float b = dx31 * DF21 + dx12 * DF31;
-	s_zslope.dfdx = -a * c;
-	s_zslope.dfdy = -b * c;
-	s_zslope.f0 = out[2] - (out[0] * s_zslope.dfdx + out[1] * s_zslope.dfdy);
-	s_zslope_refresh_required = true;
+	m_zslope.dfdx = -a * c;
+	m_zslope.dfdy = -b * c;
+	m_zslope.f0 = out[2] - (out[0] * m_zslope.dfdx + out[1] * m_zslope.dfdy);
+	m_zslope_refresh_required = true;
 }

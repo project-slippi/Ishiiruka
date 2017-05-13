@@ -244,6 +244,8 @@ void VulkanContext::PopulateBackendInfo(VideoConfig* config)
 	config->backend_info.bSupportsSSAA = false;                 // Dependent on features.
 	config->backend_info.bSupportsDepthClamp = false;           // Dependent on features.
 	config->backend_info.bSupportsReversedDepthRange = false;   // No support yet due to driver bugs.
+	config->backend_info.bSupportsComputeShaders = true;        // Assumed support.
+	config->backend_info.bSupportsGPUTextureDecoding = true;    // Assumed support.
 	config->backend_info.bSupportedFormats[PC_TEX_FMT_BGRA32] = false;
 	config->backend_info.bSupportedFormats[PC_TEX_FMT_RGBA32] = true;
 	config->backend_info.bSupportedFormats[PC_TEX_FMT_I4_AS_I8] = false;
