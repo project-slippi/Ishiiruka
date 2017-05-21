@@ -128,29 +128,32 @@ void Write32BitSwizzler(char*& p, u32 format)
 	WRITE(p, "  sampleUv = sampleUv / " I_COLORS"[0].zw;\n");
 }
 
-void WriteSampleColor(char*& p, const char* colorComp, const char* dest, int xoffset, const EFBCopyFormat& format)
+void WriteSampleColor(char*& p, const char* colorComp, const char* dest, int xoffset, const EFBCopyFormat& format, bool depth = false)
 {
 	WRITE(p, "  %s = tex2D(samp0, sampleUv + float2(%d.0f * (" I_COLORS "[0].x / " I_COLORS "[0].z), 0.0f)).%s;\n",
 		dest, xoffset, colorComp);
-
-	// Truncate 8-bits to 5/6-bits per channel.
-	switch (format.efb_format)
+	if (!depth)
 	{
-	case PEControl::RGBA6_Z24:
-		WRITE(p, "  %s = floor(%s * 63.0) / 63.0;\n", dest, dest);
-		break;
+		// Truncate 8-bits to 5/6-bits per channel.
+		switch (format.efb_format)
+		{
+		case PEControl::RGBA6_Z24:
+			WRITE(p, "  %s = floor(%s * 63.0) / 63.0;\n", dest, dest);
+			break;
 
-	case PEControl::RGB565_Z16:
-		WRITE(
-			p,
-			"  %s = floor(%s * float4(31.0, 63.0, 31.0, 1.0).%s) / float4(31.0, 63.0, 31.0, 1.0).%s;\n",
-			dest, dest, colorComp, colorComp);
-		break;
+		case PEControl::RGB565_Z16:
+			WRITE(
+				p,
+				"  %s = floor(%s * float4(31.0, 63.0, 31.0, 1.0).%s) / float4(31.0, 63.0, 31.0, 1.0).%s;\n",
+				dest, dest, colorComp, colorComp);
+			break;
+		}
+
+		// Alpha channel is set to 1 in the copy if the EFB does not have an alpha channel.
+		if (std::strchr(colorComp, 'a') && !EFBFormatHasAlpha(format.efb_format))
+			WRITE(p, "  %s.a = 1.0;\n", dest);
 	}
-
-	// Alpha channel is set to 1 in the copy if the EFB does not have an alpha channel.
-	if (std::strchr(colorComp, 'a') && !EFBFormatHasAlpha(format.efb_format))
-		WRITE(p, "  %s.a = 1.0;\n", dest);
+	
 }
 
 void WriteColorToIntensity(char*& p, const char* src, const char* dest)
@@ -485,19 +488,19 @@ void WriteZ8Encoder(char* p, const char* multiplier,const EFBCopyFormat& format)
 
 	WRITE(p, " float depth;\n");
 
-	WriteSampleColor(p, "b", "depth", 0, format);
+	WriteSampleColor(p, "b", "depth", 0, format, true);
 	WRITE(p, " depth = 1.0f - depth;\n");
 	WRITE(p, "ocol0.b = frac(depth * %s);\n", multiplier);
 
-	WriteSampleColor(p, "b", "depth", 1, format);
+	WriteSampleColor(p, "b", "depth", 1, format, true);
 	WRITE(p, " depth = 1.0f - depth;\n");
 	WRITE(p, "ocol0.g = frac(depth * %s);\n", multiplier);
 
-	WriteSampleColor(p, "b", "depth", 2, format);
+	WriteSampleColor(p, "b", "depth", 2, format, true);
 	WRITE(p, " depth = 1.0f - depth;\n");
 	WRITE(p, "ocol0.r = frac(depth * %s);\n", multiplier);
 
-	WriteSampleColor(p, "b", "depth", 3, format);
+	WriteSampleColor(p, "b", "depth", 3, format, true);
 	WRITE(p, " depth = 1.0f - depth;\n");
 	WRITE(p, "ocol0.a = frac(depth * %s);\n", multiplier);
 
@@ -513,7 +516,7 @@ void WriteZ16Encoder(char* p, const EFBCopyFormat& format)
 
 	// byte order is reversed
 
-	WriteSampleColor(p, "b", "depth", 0, format);
+	WriteSampleColor(p, "b", "depth", 0, format, true);
 	WRITE(p, " depth = 1.0f - depth;\n");
 	WRITE(p, "  depth *= 16777215.0f;\n");
 	WRITE(p, "  expanded.r = floor(depth / (256.0f * 256.0f));\n");
@@ -523,7 +526,7 @@ void WriteZ16Encoder(char* p, const EFBCopyFormat& format)
 	WRITE(p, "  ocol0.b = expanded.g / 255.0f;\n");
 	WRITE(p, "  ocol0.g = expanded.r / 255.0f;\n");
 
-	WriteSampleColor(p, "b", "depth", 1, format);
+	WriteSampleColor(p, "b", "depth", 1, format, true);
 	WRITE(p, " depth = 1.0f - depth;\n");
 	WRITE(p, "  depth *= 16777215.0f;\n");
 	WRITE(p, "  expanded.r = floor(depth / (256.0f * 256.0f));\n");
@@ -545,7 +548,7 @@ void WriteZ16LEncoder(char* p, const EFBCopyFormat& format)
 
 	// byte order is reversed
 
-	WriteSampleColor(p, "b", "depth", 0, format);
+	WriteSampleColor(p, "b", "depth", 0, format, true);
 	WRITE(p, " depth = 1.0f - depth;\n");
 	WRITE(p, "  depth *= 16777215.0f;\n");
 	WRITE(p, "  expanded.r = floor(depth / (256.0f * 256.0f));\n");
@@ -557,7 +560,7 @@ void WriteZ16LEncoder(char* p, const EFBCopyFormat& format)
 	WRITE(p, "  ocol0.b = expanded.b / 255.0f;\n");
 	WRITE(p, "  ocol0.g = expanded.g / 255.0f;\n");
 
-	WriteSampleColor(p, "b", "depth", 1, format);
+	WriteSampleColor(p, "b", "depth", 1, format, true);
 	WRITE(p, " depth = 1.0f - depth;\n");
 	WRITE(p, "  depth *= 16777215.0f;\n");
 	WRITE(p, "  expanded.r = floor(depth / (256.0f * 256.0f));\n");
@@ -583,9 +586,9 @@ void WriteZ24Encoder(char* p, const EFBCopyFormat& format)
 	WRITE(p, "  float3 expanded0;\n");
 	WRITE(p, "  float3 expanded1;\n");
 
-	WriteSampleColor(p, "b", "depth0", 0, format);
+	WriteSampleColor(p, "b", "depth0", 0, format, true);
 	WRITE(p, " depth0 = 1.0f - depth0;\n");
-	WriteSampleColor(p, "b", "depth1", 1, format);
+	WriteSampleColor(p, "b", "depth1", 1, format, true);
 	WRITE(p, " depth1 = 1.0f - depth1;\n");
 
 	for (int i = 0; i < 2; i++)
