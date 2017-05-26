@@ -66,7 +66,7 @@ std::string VideoBackend::GetName() const
 
 std::string VideoBackend::GetDisplayName() const
 {
-	return "Direct3D11";
+	return "Direct3D 11";
 }
 
 void VideoBackend::InitBackendInfo()
