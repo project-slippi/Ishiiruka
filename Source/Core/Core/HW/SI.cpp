@@ -18,13 +18,19 @@
 #include "Core/HW/SystemTimers.h"
 #include "Core/Movie.h"
 #include "Core/NetPlayProto.h"
+#include "Core/NetPlayClient.h"
+
+#include <iostream>
 
 #include "InputCommon/ControllerInterface/ControllerInterface.h"
+#include "InputCommon/GCAdapter.h"
+#include "InputCommon/GCPadStatus.h"
 
 namespace SerialInterface
 {
 static CoreTiming::EventType* changeDevice;
 static CoreTiming::EventType* et_transfer_pending;
+static CoreTiming::EventType* et_send_netplay_inputs;
 
 static void RunSIBuffer(u64 userdata, s64 cyclesLate);
 static void UpdateInterrupts();
@@ -245,6 +251,7 @@ void DoState(PointerWrap& p)
 
 static void ChangeDeviceCallback(u64 userdata, s64 cyclesLate);
 static void RunSIBuffer(u64 userdata, s64 cyclesLate);
+static void SendNetplayInputs(u64 userdata, s64 cyclesLate);
 
 void Init()
 {
@@ -290,6 +297,7 @@ void Init()
 
 	changeDevice = CoreTiming::RegisterEvent("ChangeSIDevice", ChangeDeviceCallback);
 	et_transfer_pending = CoreTiming::RegisterEvent("SITransferPending", RunSIBuffer);
+	et_send_netplay_inputs = CoreTiming::RegisterEvent("SendNetplayInputs", SendNetplayInputs);
 }
 
 void Shutdown()
@@ -321,8 +329,41 @@ void RegisterMMIO(MMIO::Mapping* mmio, u32 base)
 			MMIO::DirectWrite<u32>(&g_Channel[i].m_Out.Hex));
 		mmio->Register(base | (SI_CHANNEL_0_IN_HI + 0xC * i),
 			MMIO::ComplexRead<u32>([i, rdst_bit](u32) {
+
+			for(int c = 0; c < MAX_SI_CHANNELS; c++)
+			{
+				// If this port has a controller of any sort
+				if(g_Channel[c].m_device->GetDeviceType() != SIDEVICE_NONE)
+				{
+					if(i == c)
+					{
+						static u32 last_tick = 0;
+						u32 tick = CoreTiming::GetTicks();
+
+						if(last_tick > tick)
+							last_tick = 0;
+
+						u32 diff = tick - last_tick;
+						last_tick = tick;
+
+						// double msec = (diff / (double)SystemTimers::GetTicksPerSecond()) * 1000.0;
+
+						if(NetPlay::IsNetPlayRunning() && netplay_client && (netplay_client->BufferSize() % NetPlayClient::buffer_accuracy) != 0)
+							// Schedule an event to poll and send inputs earlier in the next frame
+							CoreTiming::ScheduleEvent(diff - (diff / NetPlayClient::buffer_accuracy) * (netplay_client->BufferSize() % NetPlayClient::buffer_accuracy), et_send_netplay_inputs);
+					}
+
+					// Stop if we are not the first plugged in controller
+					break;
+				}
+			}
+
+			// the HI register is read before the LO register (at least by Melee)
+			g_Channel[i].m_device->GetData(g_Channel[i].m_InHi.Hex, g_Channel[i].m_InLo.Hex);
+
 			g_StatusReg.Hex &= ~(1 << rdst_bit);
 			UpdateInterrupts();
+
 			return g_Channel[i].m_InHi.Hex;
 		}),
 			MMIO::DirectWrite<u32>(&g_Channel[i].m_InHi.Hex));
@@ -552,21 +593,19 @@ void ChangeDeviceDeterministic(SIDevices device, int channel)
 
 void UpdateDevices()
 {
-	// Update inputs at the rate of SI
-	// Typically 120hz but is variable
+	// Update inputs at 240 hz
 	g_controller_interface.UpdateInput();
 
-	// Update channels and set the status bit if there's new data
-	g_StatusReg.RDST0 =
-		!!g_Channel[0].m_device->GetData(g_Channel[0].m_InHi.Hex, g_Channel[0].m_InLo.Hex);
-	g_StatusReg.RDST1 =
-		!!g_Channel[1].m_device->GetData(g_Channel[1].m_InHi.Hex, g_Channel[1].m_InLo.Hex);
-	g_StatusReg.RDST2 =
-		!!g_Channel[2].m_device->GetData(g_Channel[2].m_InHi.Hex, g_Channel[2].m_InLo.Hex);
-	g_StatusReg.RDST3 =
-		!!g_Channel[3].m_device->GetData(g_Channel[3].m_InHi.Hex, g_Channel[3].m_InLo.Hex);
+	// We need to always update the GC adapter, so that it can know what ports are plugged in
+	if(!NetPlay::IsNetPlayRunning())
+	{
+		for(int i = 0; i < 4; i++)
+			GCAdapter::Input(0);
+	}
 
-	UpdateInterrupts();
+	// Pretend that there's always new data
+	// TODO: might break some games
+	g_StatusReg.RDST0 = g_StatusReg.RDST1 = g_StatusReg.RDST2 = g_StatusReg.RDST3 = true;
 }
 
 SIDevices GetDeviceType(int channel)
@@ -613,9 +652,16 @@ static void RunSIBuffer(u64 userdata, s64 cyclesLate)
 	}
 }
 
+static void SendNetplayInputs(u64 userdata, s64 cyclesLate)
+{
+	if(netplay_client)
+		netplay_client->SendNetPads();
+}
+
 u32 GetPollXLines()
 {
-	return g_Poll.X;
+	return (492 / 8) * (SConfig::GetInstance().iVideoRate >> 3);
+	// return g_Poll.X;
 }
 
 }  // end of namespace SerialInterface

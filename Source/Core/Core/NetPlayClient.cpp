@@ -29,7 +29,7 @@
 #include "VideoCommon/VideoConfig.h"
 
 static std::mutex crit_netplay_client;
-static NetPlayClient* netplay_client = nullptr;
+NetPlayClient* netplay_client = nullptr;
 NetSettings g_NetPlaySettings;
 
 // called from ---GUI--- thread
@@ -942,57 +942,8 @@ void NetPlayClient::OnConnectFailed(u8 reason)
 // called from ---CPU--- thread
 bool NetPlayClient::GetNetPads(const int pad_nb, GCPadStatus* pad_status)
 {
-	// The interface for this is extremely silly.
-	//
-	// Imagine a physical device that links three GameCubes together
-	// and emulates NetPlay that way. Which GameCube controls which
-	// in-game controllers can be configured on the device (m_pad_map)
-	// but which sockets on each individual GameCube should be used
-	// to control which players? The solution that Dolphin uses is
-	// that we hardcode the knowledge that they go in order, so if
-	// you have a 3P game with three GameCubes, then every single
-	// controller should be plugged into slot 1.
-	//
-	// If you have a 4P game, then one of the GameCubes will have
-	// a controller plugged into slot 1, and another in slot 2.
-	//
-	// The slot number is the "local" pad number, and what player
-	// it actually means is the "in-game" pad number.
-
-	// When the 1st in-game pad is polled, we assume the others will
-	// will be polled as well. To reduce latency, we poll all local
-	// controllers at once and then send the status to the other
-	// clients.
-	if (IsFirstInGamePad(pad_nb))
-	{
-		const int num_local_pads = NumLocalPads();
-		for (int local_pad = 0; local_pad < num_local_pads; local_pad++)
-		{
-			switch (SConfig::GetInstance().m_SIDevice[local_pad])
-			{
-			case SIDEVICE_WIIU_ADAPTER:
-				*pad_status = GCAdapter::Input(local_pad);
-				break;
-			case SIDEVICE_GC_CONTROLLER:
-			default:
-				*pad_status = Pad::GetStatus(local_pad);
-				break;
-			}
-
-			int ingame_pad = LocalPadToInGamePad(local_pad);
-
-			// adjust the buffer either up or down
-			// inserting multiple padstates or dropping states
-			while (m_pad_buffer[ingame_pad].Size() <= m_target_buffer_size)
-			{
-				// add to buffer
-				m_pad_buffer[ingame_pad].Push(*pad_status);
-
-				// send
-				SendPadState(ingame_pad, *pad_status);
-			}
-		}
-	}
+	if(IsFirstInGamePad(pad_nb))
+		SendNetPads();
 
 	// Now, we either use the data pushed earlier, or wait for the
 	// other clients to send it to us
@@ -1019,6 +970,40 @@ bool NetPlayClient::GetNetPads(const int pad_nb, GCPadStatus* pad_status)
 	}
 
 	return true;
+}
+
+// called from ---CPU--- thread
+void NetPlayClient::SendNetPads()
+{
+	GCPadStatus status = {0};
+
+	const int num_local_pads = NumLocalPads();
+	for (int local_pad = 0; local_pad < num_local_pads; local_pad++)
+	{
+		switch (SConfig::GetInstance().m_SIDevice[local_pad])
+		{
+		case SIDEVICE_WIIU_ADAPTER:
+			status = GCAdapter::Input(local_pad);
+			break;
+		case SIDEVICE_GC_CONTROLLER:
+		default:
+			status = Pad::GetStatus(local_pad);
+			break;
+		}
+
+		int ingame_pad = LocalPadToInGamePad(local_pad);
+
+		// adjust the buffer either up or down
+		// inserting multiple padstates or dropping states
+		while (m_pad_buffer[ingame_pad].Size() <= m_target_buffer_size / buffer_accuracy)
+		{
+			// add to buffer
+			m_pad_buffer[ingame_pad].Push(status);
+
+			// send
+			SendPadState(ingame_pad, status);
+		}
+	}
 }
 
 // called from ---CPU--- thread

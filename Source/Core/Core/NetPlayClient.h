@@ -61,6 +61,7 @@ public:
 	PlayerGameStatus game_status;
 };
 
+
 class NetPlayClient : public TraversalClientClient
 {
 public:
@@ -86,6 +87,7 @@ public:
 	// Send and receive pads values
 	bool WiimoteUpdate(int _number, u8* data, const u8 size, u8 reporting_mode);
 	bool GetNetPads(int pad_nb, GCPadStatus* pad_status);
+	void SendNetPads();
 
 	void OnTraversalStateChanged() override;
 	void OnConnectReady(ENetAddress addr) override;
@@ -99,6 +101,14 @@ public:
 
 	static void SendTimeBase();
 	bool DoAllPlayersHaveGame();
+
+	// the number of ticks in-between frames
+	constexpr static int buffer_accuracy = 4;
+
+	int BufferSize() const
+	{
+		return m_target_buffer_size;
+	}
 
 protected:
 	void ClearBuffers();
@@ -183,3 +193,5 @@ private:
 
 void NetPlay_Enable(NetPlayClient* const np);
 void NetPlay_Disable();
+
+extern NetPlayClient* netplay_client;
