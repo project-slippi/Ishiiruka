@@ -337,13 +337,13 @@ void RegisterMMIO(MMIO::Mapping* mmio, u32 base)
 				{
 					if(i == c)
 					{
-						static u32 last_tick = 0;
-						u32 tick = CoreTiming::GetTicks();
+						static u64 last_tick = 0;
+						u64 tick = CoreTiming::GetTicks();
 
 						if(last_tick > tick)
 							last_tick = 0;
 
-						u32 diff = tick - last_tick;
+						u64 diff = tick - last_tick;
 						last_tick = tick;
 
 						// double msec = (diff / (double)SystemTimers::GetTicksPerSecond()) * 1000.0;
