@@ -663,7 +663,7 @@ static void SendNetplayInputs(u64 userdata, s64 cyclesLate)
 
 u32 GetPollXLines()
 {
-	return (492 / 8) * (SConfig::GetInstance().iVideoRate >> 3);
+	return (492 / 4) * (SConfig::GetInstance().iVideoRate >> 3);
 	// return g_Poll.X;
 }
 
