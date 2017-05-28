@@ -976,29 +976,54 @@ void NetPlayClient::SendNetPad(int pad_nb)
 {
 	GCPadStatus status = {0};
 
-	int local_pad = InGamePadToLocalPad(pad_nb);
-	if(local_pad != 4)
+	// this is the old behavior
+	// just a small lag decrease
+	if(IsFirstInGamePad(pad_nb))
 	{
-		switch (SConfig::GetInstance().m_SIDevice[local_pad])
+		for(int i = 0; i < NumLocalPads(); i++)
 		{
-		case SIDEVICE_WIIU_ADAPTER:
-			status = GCAdapter::Input(local_pad);
-			break;
-		case SIDEVICE_GC_CONTROLLER:
-		default:
-			status = Pad::GetStatus(local_pad);
-			break;
+			switch (SConfig::GetInstance().m_SIDevice[i])
+			{
+			case SIDEVICE_WIIU_ADAPTER:
+				status = GCAdapter::Input(i);
+				break;
+			case SIDEVICE_GC_CONTROLLER:
+			default:
+				status = Pad::GetStatus(i);
+				break;
+			}
+			
+			int ingame_pad = LocalPadToInGamePad(i);
+
+			while (m_pad_buffer[ingame_pad].Size() <= m_target_buffer_size / buffer_accuracy)
+			{
+				m_pad_buffer[ingame_pad].Push(status);
+				SendPadState(ingame_pad, status);
+			}
 		}
-
-		// adjust the buffer either up or down
-		// inserting multiple padstates or dropping states
-		while (m_pad_buffer[pad_nb].Size() <= m_target_buffer_size / buffer_accuracy)
+	}
+	// this is only to make sure that the buffer won't be empty
+	else
+	{
+		int local_pad = InGamePadToLocalPad(pad_nb);
+		if(local_pad != 4)
 		{
-			// add to buffer
-			m_pad_buffer[pad_nb].Push(status);
+			switch (SConfig::GetInstance().m_SIDevice[local_pad])
+			{
+			case SIDEVICE_WIIU_ADAPTER:
+				status = GCAdapter::Input(local_pad);
+				break;
+			case SIDEVICE_GC_CONTROLLER:
+			default:
+				status = Pad::GetStatus(local_pad);
+				break;
+			}
 
-			// send
-			SendPadState(pad_nb, status);
+			while (m_pad_buffer[pad_nb].Size() <= m_target_buffer_size / buffer_accuracy)
+			{
+				m_pad_buffer[pad_nb].Push(status);
+				SendPadState(pad_nb, status);
+			}
 		}
 	}
 }
