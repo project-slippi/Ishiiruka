@@ -600,7 +600,7 @@ void UpdateDevices()
 	if(!NetPlay::IsNetPlayRunning())
 	{
 		for(int i = 0; i < 4; i++)
-			GCAdapter::Input(0);
+			GCAdapter::Input(i);
 	}
 
 	// Pretend that there's always new data
