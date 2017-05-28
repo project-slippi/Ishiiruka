@@ -982,23 +982,26 @@ void NetPlayClient::SendNetPad(int pad_nb)
 	{
 		for(int i = 0; i < NumLocalPads(); i++)
 		{
-			switch (SConfig::GetInstance().m_SIDevice[i])
-			{
-			case SIDEVICE_WIIU_ADAPTER:
-				status = GCAdapter::Input(i);
-				break;
-			case SIDEVICE_GC_CONTROLLER:
-			default:
-				status = Pad::GetStatus(i);
-				break;
-			}
-			
 			int ingame_pad = LocalPadToInGamePad(i);
 
-			while (m_pad_buffer[ingame_pad].Size() <= m_target_buffer_size / buffer_accuracy)
+			if(m_pad_buffer[ingame_pad].Size() <= m_target_buffer_size / buffer_accuracy)
 			{
-				m_pad_buffer[ingame_pad].Push(status);
-				SendPadState(ingame_pad, status);
+				switch (SConfig::GetInstance().m_SIDevice[i])
+				{
+				case SIDEVICE_WIIU_ADAPTER:
+					status = GCAdapter::Input(i);
+					break;
+				case SIDEVICE_GC_CONTROLLER:
+				default:
+					status = Pad::GetStatus(i);
+					break;
+				}
+
+				while (m_pad_buffer[ingame_pad].Size() <= m_target_buffer_size / buffer_accuracy)
+				{
+					m_pad_buffer[ingame_pad].Push(status);
+					SendPadState(ingame_pad, status);
+				}
 			}
 		}
 	}
@@ -1008,21 +1011,24 @@ void NetPlayClient::SendNetPad(int pad_nb)
 		int local_pad = InGamePadToLocalPad(pad_nb);
 		if(local_pad != 4)
 		{
-			switch (SConfig::GetInstance().m_SIDevice[local_pad])
+			if(m_pad_buffer[pad_nb].Size() <= m_target_buffer_size / buffer_accuracy)
 			{
-			case SIDEVICE_WIIU_ADAPTER:
-				status = GCAdapter::Input(local_pad);
-				break;
-			case SIDEVICE_GC_CONTROLLER:
-			default:
-				status = Pad::GetStatus(local_pad);
-				break;
-			}
-
-			while (m_pad_buffer[pad_nb].Size() <= m_target_buffer_size / buffer_accuracy)
-			{
-				m_pad_buffer[pad_nb].Push(status);
-				SendPadState(pad_nb, status);
+				switch (SConfig::GetInstance().m_SIDevice[local_pad])
+				{
+				case SIDEVICE_WIIU_ADAPTER:
+					status = GCAdapter::Input(local_pad);
+					break;
+				case SIDEVICE_GC_CONTROLLER:
+				default:
+					status = Pad::GetStatus(local_pad);
+					break;
+				}
+				
+				while (m_pad_buffer[pad_nb].Size() <= m_target_buffer_size / buffer_accuracy)
+				{
+					m_pad_buffer[pad_nb].Push(status);
+					SendPadState(pad_nb, status);
+				}
 			}
 		}
 	}
