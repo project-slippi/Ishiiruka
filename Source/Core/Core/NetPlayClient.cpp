@@ -942,8 +942,7 @@ void NetPlayClient::OnConnectFailed(u8 reason)
 // called from ---CPU--- thread
 bool NetPlayClient::GetNetPads(const int pad_nb, GCPadStatus* pad_status)
 {
-	if(IsFirstInGamePad(pad_nb))
-		SendNetPads();
+	SendNetPad(pad_nb);
 
 	// Now, we either use the data pushed earlier, or wait for the
 	// other clients to send it to us
@@ -973,12 +972,12 @@ bool NetPlayClient::GetNetPads(const int pad_nb, GCPadStatus* pad_status)
 }
 
 // called from ---CPU--- thread
-void NetPlayClient::SendNetPads()
+void NetPlayClient::SendNetPad(int pad_nb)
 {
 	GCPadStatus status = {0};
 
-	const int num_local_pads = NumLocalPads();
-	for (int local_pad = 0; local_pad < num_local_pads; local_pad++)
+	int local_pad = InGamePadToLocalPad(pad_nb);
+	if(local_pad != 4)
 	{
 		switch (SConfig::GetInstance().m_SIDevice[local_pad])
 		{
@@ -991,17 +990,15 @@ void NetPlayClient::SendNetPads()
 			break;
 		}
 
-		int ingame_pad = LocalPadToInGamePad(local_pad);
-
 		// adjust the buffer either up or down
 		// inserting multiple padstates or dropping states
-		while (m_pad_buffer[ingame_pad].Size() <= m_target_buffer_size / buffer_accuracy)
+		while (m_pad_buffer[pad_nb].Size() <= m_target_buffer_size / buffer_accuracy)
 		{
 			// add to buffer
-			m_pad_buffer[ingame_pad].Push(status);
+			m_pad_buffer[pad_nb].Push(status);
 
 			// send
-			SendPadState(ingame_pad, status);
+			SendPadState(pad_nb, status);
 		}
 	}
 }

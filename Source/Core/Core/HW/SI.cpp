@@ -655,7 +655,10 @@ static void RunSIBuffer(u64 userdata, s64 cyclesLate)
 static void SendNetplayInputs(u64 userdata, s64 cyclesLate)
 {
 	if(netplay_client)
-		netplay_client->SendNetPads();
+	{
+		for(int i = 0; i < 4; i++)
+			netplay_client->SendNetPad(i);
+	}
 }
 
 u32 GetPollXLines()

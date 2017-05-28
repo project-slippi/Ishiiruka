@@ -87,7 +87,7 @@ public:
 	// Send and receive pads values
 	bool WiimoteUpdate(int _number, u8* data, const u8 size, u8 reporting_mode);
 	bool GetNetPads(int pad_nb, GCPadStatus* pad_status);
-	void SendNetPads();
+	void SendNetPad(int pad_nb);
 
 	void OnTraversalStateChanged() override;
 	void OnConnectReady(ENetAddress addr) override;
