@@ -124,6 +124,11 @@ private:
 	TraversalClient* m_traversal_client = nullptr;
 	NetPlayUI* m_dialog = nullptr;
 
+#ifdef _WIN32
+	HANDLE m_qos_handle;
+	QOS_FLOWID m_qos_flow_id;
+#endif
+
 #ifdef USE_UPNP
 	static void mapPortThread(const u16 port);
 	static void unmapPortThread();
