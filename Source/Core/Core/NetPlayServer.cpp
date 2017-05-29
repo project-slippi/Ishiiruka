@@ -115,7 +115,9 @@ void NetPlayServer::ThreadFunc()
 		QOSAddSocketToFlow(m_qos_handle, m_server->socket, nullptr,
 			// why voice? well... it is the voice of fox.. and falco.. and all the other characters in melee
 			// they want to be waveshined without any lag
-			QOSTrafficTypeVoice,
+			// QOSTrafficTypeVoice,
+			// actually control is higher but they are actually the same?
+			QOSTrafficTypeControl,
 			QOS_NON_ADAPTIVE_FLOW,
 			&m_qos_flow_id);
 	}

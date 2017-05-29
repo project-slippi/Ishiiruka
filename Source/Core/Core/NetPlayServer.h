@@ -17,6 +17,8 @@
 #include "Common/TraversalClient.h"
 #include "Core/NetPlayProto.h"
 
+#include <Qos2.h>
+
 enum class PlayerGameStatus;
 
 class NetPlayUI;
