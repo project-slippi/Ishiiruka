@@ -107,31 +107,6 @@ NetPlayServer::NetPlayServer(const u16 port, bool traversal, const std::string& 
 // called from ---NETPLAY--- thread
 void NetPlayServer::ThreadFunc()
 {
-#ifdef _WIN32
-	QOS_VERSION ver = { 1, 0 };
-
-	if(QOSCreateHandle(&ver, &m_qos_handle))
-	{
-		QOSAddSocketToFlow(m_qos_handle, m_server->socket, nullptr,
-			// why voice? well... it is the voice of fox.. and falco.. and all the other characters in melee
-			// they want to be waveshined without any lag
-			// QOSTrafficTypeVoice,
-			// actually control is higher but they are actually the same?
-			QOSTrafficTypeControl,
-			QOS_NON_ADAPTIVE_FLOW,
-			&m_qos_flow_id);
-	}
-#else
-	// highest priority
-	int priority = 7;
-	setsockopt(m_server->socket, SOL_SOCKET, SO_PRIORITY, &priority, sizeof(priority));
-
-	// Expedited Forwarding, low loss, low latency, low jitter
-	// http://www.cisco.com/c/en/us/support/docs/quality-of-service-qos/qos-packet-marking/10103-dscpvalues.html
-	int tos_val = 46;
-	setsockopt(m_server->socket, IPPROTO_IP, IP_TOS, &tos_val, sizeof(tos_val));
-#endif
-
 	while (m_do_loop)
 	{
 		// update pings every so many seconds
@@ -236,18 +211,18 @@ void NetPlayServer::ThreadFunc()
 		}
 	}
 
-#ifdef _WIN32
-	if(m_qos_handle != 0)
-	{
-		if(m_qos_flow_id != 0)
-			QOSRemoveSocketFromFlow(m_qos_handle, m_server->socket, m_qos_flow_id, 0);
-		QOSCloseHandle(m_qos_handle);
-	}
-#endif
-
 	// close listening socket and client sockets
 	for (auto& player_entry : m_players)
 	{
+#ifdef _WIN32
+		if(m_qos_handle != 0)
+		{
+			if(player_entry.second.qos_flow_id != 0)
+				QOSRemoveSocketFromFlow(player_entry.second.qos_handle, player_entry.second.socket->host->socket, player_entry.second.qos_flow_id, 0);
+			QOSCloseHandle(player_entry.second.qos_handle);
+		}
+#endif
+
 		delete (PlayerId*)player_entry.second.socket->data;
 		player_entry.second.socket->data = nullptr;
 		enet_peer_disconnect(player_entry.second.socket, 0);
@@ -374,6 +349,31 @@ unsigned int NetPlayServer::OnConnect(ENetPeer* socket)
 		UpdatePadMapping();  // sync pad mappings with everyone
 		UpdateWiimoteMapping();
 	}
+
+#ifdef _WIN32
+	QOS_VERSION ver = { 1, 0 };
+
+	if(QOSCreateHandle(&ver, &player.qos_handle))
+	{
+		QOSAddSocketToFlow(player.qos_handle, player.socket->host->socket, nullptr,
+			// why voice? well... it is the voice of fox.. and falco.. and all the other characters in melee
+			// they want to be waveshined without any lag
+			// QOSTrafficTypeVoice,
+			// actually control is higher but they are actually the same?
+			QOSTrafficTypeControl,
+			QOS_NON_ADAPTIVE_FLOW,
+			&player.qos_flow_id);
+	}
+#else
+	// highest priority
+	int priority = 7;
+	setsockopt(player.socket->host->socket, SOL_SOCKET, SO_PRIORITY, &priority, sizeof(priority));
+
+	// Expedited Forwarding, low loss, low latency, low jitter
+	// http://www.cisco.com/c/en/us/support/docs/quality-of-service-qos/qos-packet-marking/10103-dscpvalues.html
+	int tos_val = 46;
+	setsockopt(player.socket->host->socket, IPPROTO_IP, IP_TOS, &tos_val, sizeof(tos_val));
+#endif
 
 	return 0;
 }
