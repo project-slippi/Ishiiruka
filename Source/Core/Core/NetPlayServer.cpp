@@ -361,7 +361,7 @@ unsigned int NetPlayServer::OnConnect(ENetPeer* socket)
 			// QOSTrafficTypeVoice,
 			// actually control is higher but they are actually the same?
 			QOSTrafficTypeControl,
-			QOS_NON_ADAPTIVE_FLOW,
+			0,
 			&player.qos_flow_id);
 	}
 #else
