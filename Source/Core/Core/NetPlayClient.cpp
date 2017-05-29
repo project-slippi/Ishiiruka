@@ -627,30 +627,41 @@ void NetPlayClient::SendAsync(std::unique_ptr<sf::Packet> packet)
 // called from ---NETPLAY--- thread
 void NetPlayClient::ThreadFunc()
 {
+    bool qos_success = false;
 #ifdef _WIN32
 	QOS_VERSION ver = { 1, 0 };
 
 	if(QOSCreateHandle(&ver, &m_qos_handle))
 	{
-		QOSAddSocketToFlow(m_qos_handle, m_server->host->socket, nullptr,
+		std::cout << "QoS handle created" << std::endl;
+		
+		if(QOSAddSocketToFlow(m_qos_handle, m_server->host->socket, nullptr,
 			// why voice? well... it is the voice of fox.. and falco.. and all the other characters in melee
 			// they want to be waveshined without any lag
 			// QOSTrafficTypeVoice,
 			// actually control is higher but they are actually the same?
 			QOSTrafficTypeControl,
 			QOS_NON_ADAPTIVE_FLOW,
-			&m_qos_flow_id);
+			&m_qos_flow_id))
+		{
+			qos_success = true;
+		}
 	}
 #else
 	// highest priority
 	int priority = 7;
 	setsockopt(m_server->host->socket, SOL_SOCKET, SO_PRIORITY, &priority, sizeof(priority));
 
-	// Expedited Forwarding, low loss, low latency, low jitter
-	// http://www.cisco.com/c/en/us/support/docs/quality-of-service-qos/qos-packet-marking/10103-dscpvalues.html
-	int tos_val = 46;
-	setsockopt(m_server->host->socket, IPPROTO_IP, IP_TOS, &tos_val, sizeof(tos_val));
+	// QOSTrafficTypeControl
+	// https://msdn.microsoft.com/en-us/library/windows/desktop/aa374027(v=vs.85).aspx
+	int tos_val = 0x38;
+	qos_success = setsockopt(m_server->host->socket, IPPROTO_IP, IP_TOS, &tos_val, sizeof(tos_val)) == 0;
 #endif
+
+	if(qos_success)
+		OSD::AddMessage("QoS was successfully enabled and netplay packets should be prioritized over normal packets");
+	else
+		OSD::AddMessage("QoS couldn't be enabled");
 
 	while (m_do_loop.IsSet())
 	{

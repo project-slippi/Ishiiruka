@@ -369,9 +369,9 @@ unsigned int NetPlayServer::OnConnect(ENetPeer* socket)
 	int priority = 7;
 	setsockopt(player.socket->host->socket, SOL_SOCKET, SO_PRIORITY, &priority, sizeof(priority));
 
-	// Expedited Forwarding, low loss, low latency, low jitter
-	// http://www.cisco.com/c/en/us/support/docs/quality-of-service-qos/qos-packet-marking/10103-dscpvalues.html
-	int tos_val = 46;
+	// QOSTrafficTypeControl
+	// https://msdn.microsoft.com/en-us/library/windows/desktop/aa374027(v=vs.85).aspx
+	int tos_val = 0x38;
 	setsockopt(player.socket->host->socket, IPPROTO_IP, IP_TOS, &tos_val, sizeof(tos_val));
 #endif
 
