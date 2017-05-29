@@ -188,6 +188,11 @@ private:
 	Common::Event m_gc_pad_event;
 	Common::Event m_wii_pad_event;
 
+#ifdef _WIN32
+	HANDLE m_qos_handle;
+	QOS_FLOWID m_qos_flow_id;
+#endif
+
 	u32 m_timebase_frame = 0;
 };
 

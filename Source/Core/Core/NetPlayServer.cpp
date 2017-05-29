@@ -60,6 +60,9 @@ NetPlayServer::~NetPlayServer()
 // called from ---GUI--- thread
 NetPlayServer::NetPlayServer(const u16 port, bool traversal, const std::string& centralServer,
 	u16 centralPort)
+#ifdef _WIN32
+	: m_qos_handle(nullptr), m_qos_flow_id(0)
+#endif
 {
 	//--use server time
 	if (enet_initialize() != 0)
@@ -104,6 +107,29 @@ NetPlayServer::NetPlayServer(const u16 port, bool traversal, const std::string& 
 // called from ---NETPLAY--- thread
 void NetPlayServer::ThreadFunc()
 {
+#ifdef _WIN32
+	QOS_VERSION ver = { 1, 0 };
+
+	if(QOSCreateHandle(&ver, &m_qos_handle))
+	{
+		QOSAddSocketToFlow(m_qos_handle, m_server->socket, nullptr,
+			// why voice? well... it is the voice of fox.. and falco.. and all the other characters in melee
+			// they want to be waveshined without any lag
+			QOSTrafficTypeVoice,
+			QOS_NON_ADAPTIVE_FLOW,
+			&m_qos_flow_id);
+	}
+#else
+	// highest priority
+	int priority = 7;
+	setsockopt(m_server->socket, SOL_SOCKET, SO_PRIORITY, &priority, sizeof(priority));
+
+	// Expedited Forwarding, low loss, low latency, low jitter
+	// http://www.cisco.com/c/en/us/support/docs/quality-of-service-qos/qos-packet-marking/10103-dscpvalues.html
+	int tos_val = 46;
+	setsockopt(m_server->socket, IPPROTO_IP, IP_TOS, &tos_val, sizeof(tos_val));
+#endif
+
 	while (m_do_loop)
 	{
 		// update pings every so many seconds
@@ -207,6 +233,15 @@ void NetPlayServer::ThreadFunc()
 			}
 		}
 	}
+
+#ifdef _WIN32
+	if(m_qos_handle != 0)
+	{
+		if(m_qos_flow_id != 0)
+			QOSRemoveSocketFromFlow(m_qos_handle, m_server->socket, m_qos_flow_id, 0);
+		QOSCloseHandle(m_qos_handle);
+	}
+#endif
 
 	// close listening socket and client sockets
 	for (auto& player_entry : m_players)
