@@ -362,7 +362,7 @@ unsigned int NetPlayServer::OnConnect(ENetPeer* socket)
 
 	if(QOSCreateHandle(&ver, &player.qos_handle))
 	{
-		QOSAddSocketToFlow(player.qos_handle, player.socket->host->socket, nullptr,
+		QOSAddSocketToFlow(player.qos_handle, player.socket->host->socket, reinterpret_cast<PSOCKADDR>(&sin),
 			// why voice? well... it is the voice of fox.. and falco.. and all the other characters in melee
 			// they want to be waveshined without any lag
 			// QOSTrafficTypeVoice,
