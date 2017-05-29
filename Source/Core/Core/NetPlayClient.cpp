@@ -634,14 +634,14 @@ void NetPlayClient::ThreadFunc()
 	if(QOSCreateHandle(&ver, &m_qos_handle))
 	{
 		std::cout << "QoS handle created" << std::endl;
-		
+
 		if(QOSAddSocketToFlow(m_qos_handle, m_server->host->socket, nullptr,
 			// why voice? well... it is the voice of fox.. and falco.. and all the other characters in melee
 			// they want to be waveshined without any lag
 			// QOSTrafficTypeVoice,
 			// actually control is higher but they are actually the same?
 			QOSTrafficTypeControl,
-			QOS_NON_ADAPTIVE_FLOW,
+			0,
 			&m_qos_flow_id))
 		{
 			qos_success = true;
