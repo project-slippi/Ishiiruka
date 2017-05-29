@@ -79,6 +79,11 @@ private:
 		u32 ping;
 		u32 current_game;
 
+		#ifdef _WIN32
+		HANDLE qos_handle;
+		QOS_FLOWID qos_flow_id;
+		#endif
+
 		bool operator==(const Client& other) const { return this == &other; }
 	};
 
@@ -127,11 +132,6 @@ private:
 	ENetHost* m_server = nullptr;
 	TraversalClient* m_traversal_client = nullptr;
 	NetPlayUI* m_dialog = nullptr;
-
-#ifdef _WIN32
-	HANDLE m_qos_handle;
-	QOS_FLOWID m_qos_flow_id;
-#endif
 
 #ifdef USE_UPNP
 	static void mapPortThread(const u16 port);
