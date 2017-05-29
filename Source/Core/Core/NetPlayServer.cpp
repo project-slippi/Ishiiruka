@@ -60,9 +60,6 @@ NetPlayServer::~NetPlayServer()
 // called from ---GUI--- thread
 NetPlayServer::NetPlayServer(const u16 port, bool traversal, const std::string& centralServer,
 	u16 centralPort)
-#ifdef _WIN32
-	: m_qos_handle(nullptr), m_qos_flow_id(0)
-#endif
 {
 	//--use server time
 	if (enet_initialize() != 0)
@@ -215,7 +212,7 @@ void NetPlayServer::ThreadFunc()
 	for (auto& player_entry : m_players)
 	{
 #ifdef _WIN32
-		if(m_qos_handle != 0)
+		if(player_entry.second.qos_handle != 0)
 		{
 			if(player_entry.second.qos_flow_id != 0)
 				QOSRemoveSocketFromFlow(player_entry.second.qos_handle, player_entry.second.socket->host->socket, player_entry.second.qos_flow_id, 0);
@@ -353,6 +350,16 @@ unsigned int NetPlayServer::OnConnect(ENetPeer* socket)
 #ifdef _WIN32
 	QOS_VERSION ver = { 1, 0 };
 
+	player.qos_handle = 0;
+	player.qos_flow_id = 0;
+
+
+	struct sockaddr_in sin = { 0 };
+
+	sin.sin_family = AF_INET;
+	sin.sin_port = ENET_HOST_TO_NET_16(player.socket->host->address.port);
+	sin.sin_addr.s_addr = player.socket->host->address.host;
+
 	if(QOSCreateHandle(&ver, &player.qos_handle))
 	{
 		QOSAddSocketToFlow(player.qos_handle, player.socket->host->socket, nullptr,
@@ -361,7 +368,7 @@ unsigned int NetPlayServer::OnConnect(ENetPeer* socket)
 			// QOSTrafficTypeVoice,
 			// actually control is higher but they are actually the same?
 			QOSTrafficTypeControl,
-			0,
+			QOS_NON_ADAPTIVE_FLOW,
 			&player.qos_flow_id);
 	}
 #else

@@ -633,15 +633,20 @@ void NetPlayClient::ThreadFunc()
 
 	if(QOSCreateHandle(&ver, &m_qos_handle))
 	{
-		std::cout << "QoS handle created" << std::endl;
+		// from win32.c
+		struct sockaddr_in sin = { 0 };
 
-		if(QOSAddSocketToFlow(m_qos_handle, m_server->host->socket, nullptr,
+		sin.sin_family = AF_INET;
+		sin.sin_port = ENET_HOST_TO_NET_16(m_server->host->address.port);
+		sin.sin_addr.s_addr = m_server->host->address.host;
+
+		if (QOSAddSocketToFlow(m_qos_handle, m_server->host->socket, reinterpret_cast<PSOCKADDR>(&sin),
 			// why voice? well... it is the voice of fox.. and falco.. and all the other characters in melee
 			// they want to be waveshined without any lag
 			// QOSTrafficTypeVoice,
 			// actually control is higher but they are actually the same?
 			QOSTrafficTypeControl,
-			0,
+			QOS_NON_ADAPTIVE_FLOW,
 			&m_qos_flow_id))
 		{
 			qos_success = true;
