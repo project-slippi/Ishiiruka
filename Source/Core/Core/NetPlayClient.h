@@ -19,7 +19,9 @@
 #include "Core/NetPlayProto.h"
 #include "InputCommon/GCPadStatus.h"
 
+#ifdef _WIN32
 #include <Qos2.h>
+#endif
 
 class NetPlayUI
 {

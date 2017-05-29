@@ -17,7 +17,9 @@
 #include "Common/TraversalClient.h"
 #include "Core/NetPlayProto.h"
 
+#ifdef _WIN32
 #include <Qos2.h>
+#endif
 
 enum class PlayerGameStatus;
 
