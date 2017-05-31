@@ -664,9 +664,9 @@ void NetPlayClient::ThreadFunc()
 #endif
 
 	if(qos_success)
-		OSD::AddMessage("QoS was successfully enabled and netplay packets should be prioritized over normal packets", 7000);
+		m_dialog->AppendChat("QoS was successfully enabled, netplay packets should be prioritized over normal packets");
 	else
-		OSD::AddMessage("QoS couldn't be enabled, other programs might interfere with netplay", 7000);
+		m_dialog->AppendChat("QoS couldn't be enabled, other network activity might interfere with netplay");
 
 	while (m_do_loop.IsSet())
 	{
