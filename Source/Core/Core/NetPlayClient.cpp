@@ -659,7 +659,7 @@ void NetPlayClient::ThreadFunc()
 
 	// QOSTrafficTypeControl
 	// https://msdn.microsoft.com/en-us/library/windows/desktop/aa374027(v=vs.85).aspx
-	int tos_val = 0x38;
+	int tos_val = 0xe0;
 	qos_success = setsockopt(m_server->host->socket, IPPROTO_IP, IP_TOS, &tos_val, sizeof(tos_val)) == 0;
 #endif
 
