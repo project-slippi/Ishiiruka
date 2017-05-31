@@ -641,14 +641,23 @@ void NetPlayClient::ThreadFunc()
 		sin.sin_addr.s_addr = m_server->host->address.host;
 
 		if (QOSAddSocketToFlow(m_qos_handle, m_server->host->socket, reinterpret_cast<PSOCKADDR>(&sin),
-			// why voice? well... it is the voice of fox.. and falco.. and all the other characters in melee
-			// they want to be waveshined without any lag
-			// QOSTrafficTypeVoice,
-			// actually control is higher but they are actually the same?
+			// this is 0x38
 			QOSTrafficTypeControl,
 			QOS_NON_ADAPTIVE_FLOW,
 			&m_qos_flow_id))
 		{
+			DWORD dscp = 0x2e;
+
+			// this will fail if we're not admin
+			// sets DSCP to the same as linux (0x2e)
+			QOSSetFlow(m_qos_handle,
+				m_qos_flow_id,
+				QOSSetOutgoingDSCPValue,
+				sizeof(DWORD),
+				&dscp,
+				0,
+				nullptr);
+
 			qos_success = true;
 		}
 	}
