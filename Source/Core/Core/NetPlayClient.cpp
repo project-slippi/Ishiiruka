@@ -657,9 +657,9 @@ void NetPlayClient::ThreadFunc()
 	int priority = 7;
 	setsockopt(m_server->host->socket, SOL_SOCKET, SO_PRIORITY, &priority, sizeof(priority));
 
-	// QOSTrafficTypeControl
-	// https://msdn.microsoft.com/en-us/library/windows/desktop/aa374027(v=vs.85).aspx
-	int tos_val = 0xe0;
+	// https://www.tucny.com/Home/dscp-tos
+	// ef is better than cs7
+	int tos_val = 0xb8;
 	qos_success = setsockopt(m_server->host->socket, IPPROTO_IP, IP_TOS, &tos_val, sizeof(tos_val)) == 0;
 #endif
 
