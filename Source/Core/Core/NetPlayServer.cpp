@@ -353,7 +353,6 @@ unsigned int NetPlayServer::OnConnect(ENetPeer* socket)
 	player.qos_handle = 0;
 	player.qos_flow_id = 0;
 
-
 	struct sockaddr_in sin = { 0 };
 
 	sin.sin_family = AF_INET;
@@ -378,7 +377,7 @@ unsigned int NetPlayServer::OnConnect(ENetPeer* socket)
 
 	// QOSTrafficTypeControl
 	// https://msdn.microsoft.com/en-us/library/windows/desktop/aa374027(v=vs.85).aspx
-	int tos_val = 0x38;
+	int tos_val = 0xe0;
 	setsockopt(player.socket->host->socket, IPPROTO_IP, IP_TOS, &tos_val, sizeof(tos_val));
 #endif
 
