@@ -139,8 +139,8 @@ static SHADER s_shader;
 RasterFont::RasterFont()
 {
 	// generate the texture
+	glActiveTexture(g_ActiveConfig.backend_info.bSupportsBindingLayout ? GL_TEXTURE8 : GL_TEXTURE0);
 	glGenTextures(1, &texture);
-	glActiveTexture(GL_TEXTURE8);
 	glBindTexture(GL_TEXTURE_2D, texture);
 	std::vector<u32> texture_data(CHARACTER_WIDTH * CHARACTER_COUNT * CHARACTER_HEIGHT);
 	for (int y = 0; y < CHARACTER_HEIGHT; y++)
@@ -261,6 +261,9 @@ void RasterFont::printMultilineText(const std::string& text, double start_x, dou
 	{
 		return;
 	}
+
+	glActiveTexture(g_ActiveConfig.backend_info.bSupportsBindingLayout ? GL_TEXTURE8 : GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, texture);
 
 	glBindVertexArray(VAO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);

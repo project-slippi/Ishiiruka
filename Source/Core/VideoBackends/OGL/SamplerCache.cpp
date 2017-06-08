@@ -34,17 +34,28 @@ SamplerCache::~SamplerCache()
 	glDeleteSamplers(2, m_sampler_id);
 }
 
-void SamplerCache::BindNearestSampler(int stage)
+void SamplerCache::BindNearestSampler(u32 stage)
 {
 	glBindSampler(stage, m_sampler_id[0]);
 }
 
-void SamplerCache::BindLinearSampler(int stage)
+void SamplerCache::BindExternalSampler(u32 stage, GLuint sampleid)
+{
+	if (stage < 8)
+	{
+		auto& active_sampler = m_active_samplers[stage];
+		active_sampler.first = SamplerCache::Params();
+		active_sampler.second = SamplerCache::Value();
+	}
+	glBindSampler(stage, sampleid);
+}
+
+void SamplerCache::BindLinearSampler(u32 stage)
 {
 	glBindSampler(stage, m_sampler_id[1]);
 }
 
-void SamplerCache::SetSamplerState(int stage, const TexMode0& tm0, const TexMode1& tm1, bool custom_tex)
+void SamplerCache::SetSamplerState(u32 stage, const TexMode0& tm0, const TexMode1& tm1, bool custom_tex)
 {
 	// TODO: can this go somewhere else?
 	if (m_last_max_anisotropy != g_ActiveConfig.iMaxAnisotropy)

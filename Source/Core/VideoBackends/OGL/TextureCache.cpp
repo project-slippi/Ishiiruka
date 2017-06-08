@@ -154,7 +154,7 @@ void TextureCache::TCacheEntry::Bind(u32 stage)
 		glActiveTexture(GL_TEXTURE8 + stage);
 		glBindTexture(GL_TEXTURE_2D_ARRAY, nrm_texture);
 	}
-	if (s_Textures[stage] != texture)
+	if (s_Textures[stage] != texture || !g_ActiveConfig.backend_info.bSupportsBindingLayout)
 	{
 		if (s_ActiveTexture != stage)
 		{
@@ -372,9 +372,9 @@ void TextureCache::TCacheEntry::CopyRectangleFromTexture(
 	}
 	g_renderer->ResetAPIState();
 	FramebufferManager::SetFramebuffer(framebuffer);
-	glActiveTexture(GL_TEXTURE9);
+	glActiveTexture(g_ActiveConfig.backend_info.bSupportsBindingLayout ? GL_TEXTURE9 : GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D_ARRAY, srcentry->texture);
-	g_sampler_cache->BindLinearSampler(9);
+	g_sampler_cache->BindLinearSampler(g_ActiveConfig.backend_info.bSupportsBindingLayout ? 9 : 0);
 	glViewport(dstrect.left, dstrect.top, dstrect.GetWidth(), dstrect.GetHeight());
 	s_ColorCopyProgram.Bind();
 	glUniform4f(s_ColorCopyPositionUniform,
@@ -505,12 +505,12 @@ void TextureCache::TCacheEntry::FromRenderTarget(bool is_depth_copy, const EFBRe
 
 	OpenGL_BindAttributelessVAO();
 	TargetRectangle R = g_renderer->ConvertEFBRectangle(srcRect);
-	glActiveTexture(GL_TEXTURE9);
+	glActiveTexture(g_ActiveConfig.backend_info.bSupportsBindingLayout ? GL_TEXTURE9 : GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D_ARRAY, read_texture);
 	if (scaleByHalf)
-		g_sampler_cache->BindLinearSampler(9);
+		g_sampler_cache->BindLinearSampler(g_ActiveConfig.backend_info.bSupportsBindingLayout ? 9 : 0);
 	else
-		g_sampler_cache->BindNearestSampler(9);
+		g_sampler_cache->BindNearestSampler(g_ActiveConfig.backend_info.bSupportsBindingLayout ? 9 : 0);
 	glViewport(0, 0, width, height);
 
 	GLuint uniform_location;
@@ -560,9 +560,9 @@ bool TextureCache::Palettize(TCacheEntryBase* src_entry, const TCacheEntryBase* 
 	}
 	g_renderer->ResetAPIState();
 
-	glActiveTexture(GL_TEXTURE9);
+	glActiveTexture(g_ActiveConfig.backend_info.bSupportsBindingLayout ? GL_TEXTURE9 : GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D_ARRAY, ((TextureCache::TCacheEntry*)base_entry)->texture);
-	g_sampler_cache->BindLinearSampler(9);
+	g_sampler_cache->BindLinearSampler(g_ActiveConfig.backend_info.bSupportsBindingLayout ? 9 : 0);
 
 	FramebufferManager::SetFramebuffer(entry->framebuffer);
 	glViewport(0, 0, entry->config.width, entry->config.height);
@@ -573,9 +573,9 @@ bool TextureCache::Palettize(TCacheEntryBase* src_entry, const TCacheEntryBase* 
 	glUniform1f(s_palette_multiplier_uniform[s_last_TlutFormat], texformat == GX_TF_C4 || texformat == GX_TF_I4 ? 15.0f : 255.0f);
 	glUniform4f(s_palette_copy_position_uniform[s_last_TlutFormat], 0.0f, 0.0f, (float)entry->config.width, (float)entry->config.height);
 
-	glActiveTexture(GL_TEXTURE10);
+	glActiveTexture(g_ActiveConfig.backend_info.bSupportsBindingLayout ? GL_TEXTURE10 : GL_TEXTURE1);
 	glBindTexture(GL_TEXTURE_BUFFER, s_palette_resolv_texture);
-	g_sampler_cache->BindNearestSampler(10);
+	g_sampler_cache->BindNearestSampler(g_ActiveConfig.backend_info.bSupportsBindingLayout ? 10 : 0);
 	OpenGL_BindAttributelessVAO();
 	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
