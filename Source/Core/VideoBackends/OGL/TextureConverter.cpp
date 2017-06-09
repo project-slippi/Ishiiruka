@@ -229,7 +229,7 @@ static void EncodeToRamUsingShader(GLuint srcTexture,
 	OpenGL_BindAttributelessVAO();
 
 	// set source texture
-	glActiveTexture(g_ActiveConfig.backend_info.bSupportsBindingLayout ? GL_TEXTURE9 : GL_TEXTURE0);
+	glActiveTexture(GL_TEXTURE9);
 	glBindTexture(GL_TEXTURE_2D_ARRAY, srcTexture);
 
 	if (linearFilter || g_ActiveConfig.iEFBScale != SCALE_1X)
@@ -331,10 +331,10 @@ void DecodeToTexture(u32 xfbAddr, int srcWidth, int srcHeight, GLuint destTextur
 
 	// activate source texture
 	// set srcAddr as data for source texture
-	glActiveTexture(g_ActiveConfig.backend_info.bSupportsBindingLayout ? GL_TEXTURE9 : GL_TEXTURE0);
+	glActiveTexture(GL_TEXTURE9);
 	glBindTexture(GL_TEXTURE_2D, s_srcTexture);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, srcWidth / 2, srcHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, srcAddr);
-	g_sampler_cache->BindNearestSampler(g_ActiveConfig.backend_info.bSupportsBindingLayout ? 9 : 0);
+	g_sampler_cache->BindNearestSampler(9);
 
 	glViewport(0, 0, srcWidth, srcHeight);
 	s_yuyvToRgbProgram.Bind();
