@@ -575,9 +575,9 @@ void FramebufferManager::ReinterpretPixelData(unsigned int convtype)
 	FramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, m_textureType, m_efbColor, 0);
 
 	glViewport(0, 0, m_targetWidth, m_targetHeight);
-	glActiveTexture(GL_TEXTURE9);
+	glActiveTexture(g_ActiveConfig.backend_info.bSupportsBindingLayout ? GL_TEXTURE9 : GL_TEXTURE0);
 	glBindTexture(m_textureType, src_texture);
-	g_sampler_cache->BindNearestSampler(9);
+	g_sampler_cache->BindNearestSampler(g_ActiveConfig.backend_info.bSupportsBindingLayout ? 9 : 0);
 
 	m_pixel_format_shaders[convtype ? 1 : 0].Bind();
 	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
