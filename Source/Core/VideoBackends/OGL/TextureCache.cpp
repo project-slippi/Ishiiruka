@@ -154,7 +154,7 @@ void TextureCache::TCacheEntry::Bind(u32 stage)
 		glActiveTexture(GL_TEXTURE8 + stage);
 		glBindTexture(GL_TEXTURE_2D_ARRAY, nrm_texture);
 	}
-	if (s_Textures[stage] != texture)
+	if (s_Textures[stage] != texture || !g_ActiveConfig.backend_info.bSupportsBindingLayout)
 	{
 		if (s_ActiveTexture != stage)
 		{
@@ -372,9 +372,9 @@ void TextureCache::TCacheEntry::CopyRectangleFromTexture(
 	}
 	g_renderer->ResetAPIState();
 	FramebufferManager::SetFramebuffer(framebuffer);
-	glActiveTexture(GL_TEXTURE9);
+	glActiveTexture(g_ActiveConfig.backend_info.bSupportsBindingLayout ? GL_TEXTURE9 : GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D_ARRAY, srcentry->texture);
-	g_sampler_cache->BindLinearSampler(9);
+	g_sampler_cache->BindLinearSampler(g_ActiveConfig.backend_info.bSupportsBindingLayout ? 9 : 0);
 	glViewport(dstrect.left, dstrect.top, dstrect.GetWidth(), dstrect.GetHeight());
 	s_ColorCopyProgram.Bind();
 	glUniform4f(s_ColorCopyPositionUniform,

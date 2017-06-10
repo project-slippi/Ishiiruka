@@ -19,11 +19,11 @@ public:
 	SamplerCache();
 	~SamplerCache();
 
-	void SetSamplerState(int stage, const TexMode0& tm0, const TexMode1& tm1, bool custom_tex);
+	void SetSamplerState(u32 stage, const TexMode0& tm0, const TexMode1& tm1, bool custom_tex);
 	void Clear();
-	void BindNearestSampler(int stage);
-	void BindLinearSampler(int stage);
-
+	void BindNearestSampler(u32 stage);
+	void BindLinearSampler(u32 stage);
+	void BindExternalSampler(u32 stage, GLuint sampleid);
 private:
 	struct Params
 	{
