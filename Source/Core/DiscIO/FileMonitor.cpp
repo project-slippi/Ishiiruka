@@ -138,6 +138,33 @@ void FindFilename(u64 offset)
 	CheckFile(filename, s_filesystem->GetFileSize(filename));
 }
 
+std::string GetFilenameAt(u64 offset)
+{
+	// Don't do anything if a game is not running
+	if (Core::GetState() != Core::CORE_RUN)
+		return "";
+
+	// Or if we don't have file access
+	if (!FileAccess)
+		return "";
+
+	if (!s_filesystem || ISOFile != SConfig::GetInstance().m_LastFilename)
+	{
+		FileAccess = false;
+		ReadFileSystem(SConfig::GetInstance().m_LastFilename);
+		ISOFile = SConfig::GetInstance().m_LastFilename;
+		INFO_LOG(FILEMON, "Opening '%s'", ISOFile.c_str());
+		return "";
+	}
+
+	const std::string filename = s_filesystem->GetFileName(offset);
+
+	if (filename.empty())
+		return "";
+
+	return filename;
+}
+
 void Close()
 {
 	s_open_iso.reset();

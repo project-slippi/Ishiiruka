@@ -31,6 +31,7 @@
 #include "DiscIO/Enums.h"
 #include "DiscIO/Volume.h"
 #include "DiscIO/VolumeCreator.h"
+#include "DiscIO/FileMonitor.h"
 
 static const double PI = 3.14159265358979323846264338328;
 
@@ -713,7 +714,8 @@ bool ExecuteReadCommand(u64 DVD_offset, u32 output_address, u32 DVD_length, u32 
 	}
 
 	u64 ticks_until_completion;
-	if (SConfig::GetInstance().bFastDiscSpeed)
+	if (SConfig::GetInstance().bFastDiscSpeed &&
+		FileMon::GetFilenameAt(DVD_offset).find("audio") == std::string::npos)
 	{
 		// An optional hack to speed up loading times
 		ticks_until_completion =
