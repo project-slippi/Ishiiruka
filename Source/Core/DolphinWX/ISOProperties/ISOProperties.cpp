@@ -198,9 +198,12 @@ CISOProperties::CISOProperties(const GameListItem& game_list_item, wxWindow* par
 	m_open_iso = DiscIO::CreateVolumeFromFilename(OpenGameListItem.GetFileName());
 
 	game_id = m_open_iso->GetGameID();
+	if(game_id == "GALE01" && m_open_iso->GetLongNames()[DiscIO::Language::LANGUAGE_ENGLISH].find("20XX") != std::string::npos)
+		game_id = "GALEXX";
 
 	// Load game INIs
 	GameIniFileLocal = File::GetUserPath(D_GAMESETTINGS_IDX) + game_id + ".ini";
+
 	GameIniDefault = SConfig::LoadDefaultGameIni(game_id, m_open_iso->GetRevision());
 	GameIniLocal = SConfig::LoadLocalGameIni(game_id, m_open_iso->GetRevision());
 
@@ -639,7 +642,7 @@ bool CISOProperties::SaveGameConfig()
 	SaveGameIniValueFrom3StateCheckbox("Core", "FastDiscSpeed", FastDiscSpeed);
 	SaveGameIniValueFrom3StateCheckbox("Core", "DSPHLE", DSPHLE);
 	SaveGameIniValueFrom3StateCheckbox("Core", "TimeStretching", TimeStretching);
-	
+
 	SaveGameIniValueFrom3StateCheckbox("Wii", "Widescreen", EnableWideScreen);
 	SaveGameIniValueFrom3StateCheckbox("Video_Stereoscopy", "StereoEFBMonoDepth", MonoDepth);
 	SaveGameIniValueFrom3StateCheckbox("Core", "HalfAudioRate", HalfAudioRate);
