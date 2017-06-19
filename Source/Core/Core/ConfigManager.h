@@ -38,6 +38,13 @@ enum GPUDeterminismMode
 	GPU_DETERMINISM_FAKE_COMPLETION,
 };
 
+enum GameType
+{
+	GAMETYPE_OTHER,
+	GAMETYPE_MELEE_NTSC,
+	GAMETYPE_MELEE_20XX
+};
+
 struct SConfig : NonCopyable
 {
 	// Wii Devices
@@ -48,6 +55,8 @@ struct SConfig : NonCopyable
 
 	// name of the last used filename
 	std::string m_LastFilename;
+
+	GameType m_gameType;
 
 	// ISO folder
 	std::vector<std::string> m_ISOFolder;

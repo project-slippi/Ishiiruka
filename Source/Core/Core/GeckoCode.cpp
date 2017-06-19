@@ -110,6 +110,15 @@ static bool InstallCodeHandler()
 	u32 codelist_base_address = INSTALLER_BASE_ADDRESS + (u32)data.length() - 8;
 	u32 codelist_end_address = INSTALLER_END_ADDRESS;
 
+	if(SConfig::GetInstance().m_gameType == GAMETYPE_MELEE_NTSC)
+	{
+		// Move Gecko code handler to the tournament mode region
+		codelist_base_address = 0x801910E0;
+		codelist_end_address = 0x8019AF4C;
+		PowerPC::HostWrite_U32(0x3DE08019, 0x80001f58);
+		PowerPC::HostWrite_U32(0x61EF10E0, 0x80001f5C);
+	}
+
 	// Write a magic value to 'gameid' (codehandleronly does not actually read this).
 	PowerPC::HostWrite_U32(0xd01f1bad, INSTALLER_BASE_ADDRESS);
 

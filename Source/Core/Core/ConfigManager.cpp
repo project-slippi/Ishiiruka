@@ -875,9 +875,18 @@ bool SConfig::AutoSetup(EBootBS2 _BootBS2)
 						m_strFilename.c_str());
 				return false;
 			}
+
 			m_strName = pVolume->GetInternalName();
 			m_strGameID = pVolume->GetGameID();
 			m_revision = pVolume->GetRevision();
+
+			if(m_strGameID == "GALE01")
+			{
+				m_gameType = GAMETYPE_MELEE_NTSC;
+
+				if(pVolume->GetLongNames()[DiscIO::Language::LANGUAGE_ENGLISH].find("20XX") != std::string::npos)
+					m_gameType = GAMETYPE_MELEE_20XX;
+			}
 
 			// Check if we have a Wii disc
 			bWii = pVolume->GetVolumeType() == DiscIO::Platform::WII_DISC;
@@ -1100,17 +1109,17 @@ DiscIO::Language SConfig::GetCurrentLanguage(bool wii) const
 
 IniFile SConfig::LoadDefaultGameIni() const
 {
-	return LoadDefaultGameIni(GetGameID(), m_revision);
+	return LoadDefaultGameIni(m_gameType == GAMETYPE_MELEE_20XX ? "GALEXX" : GetGameID(), m_revision);
 }
 
 IniFile SConfig::LoadLocalGameIni() const
 {
-	return LoadLocalGameIni(GetGameID(), m_revision);
+	return LoadLocalGameIni(m_gameType == GAMETYPE_MELEE_20XX ? "GALEXX" : GetGameID(), m_revision);
 }
 
 IniFile SConfig::LoadGameIni() const
 {
-	return LoadGameIni(GetGameID(), m_revision);
+	return LoadGameIni(m_gameType == GAMETYPE_MELEE_20XX ? "GALEXX" : GetGameID(), m_revision);
 }
 
 IniFile SConfig::LoadDefaultGameIni(const std::string& id, u16 revision)

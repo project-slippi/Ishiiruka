@@ -230,6 +230,8 @@ bool BootCore(const std::string& _rFilename)
 	StartUp.m_strFilename = _rFilename;
 	SConfig::GetInstance().m_LastFilename = _rFilename;
 	SConfig::GetInstance().SaveSettings();
+
+	SConfig::GetInstance().m_gameType = GAMETYPE_OTHER;
 	StartUp.bRunCompareClient = false;
 	StartUp.bRunCompareServer = false;
 
