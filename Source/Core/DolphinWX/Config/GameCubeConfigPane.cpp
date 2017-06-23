@@ -39,6 +39,7 @@
 #define EXIDEV_BBA_STR _trans("Broadband Adapter")
 #define EXIDEV_AGP_STR _trans("Advance Game Port")
 #define EXIDEV_GECKO_STR _trans("USB Gecko")
+#define EXIDEV_SLIPPI_STR _trans("Slippi")
 
 GameCubeConfigPane::GameCubeConfigPane(wxWindow* parent, wxWindowID id) : wxPanel(parent, id)
 {
@@ -157,6 +158,7 @@ void GameCubeConfigPane::LoadGUIValues()
 	slot_devices.Add(_(EXIDEV_MEMDIR_STR));
 	slot_devices.Add(_(EXIDEV_GECKO_STR));
 	slot_devices.Add(_(EXIDEV_AGP_STR));
+	slot_devices.Add(_(EXIDEV_SLIPPI_STR));
 
 #if HAVE_PORTAUDIO
 	slot_devices.Add(_(EXIDEV_MIC_STR));
@@ -196,10 +198,13 @@ void GameCubeConfigPane::LoadGUIValues()
 			isMemcard = m_exi_devices[i]->SetStringSelection(slot_devices[5]);
 			break;
 		case EXIDEVICE_MIC:
-			isMic = m_exi_devices[i]->SetStringSelection(slot_devices[6]);
+			isMic = m_exi_devices[i]->SetStringSelection(slot_devices[7]);
 			break;
 		case EXIDEVICE_ETH:
 			m_exi_devices[i]->SetStringSelection(sp1_devices[2]);
+			break;
+		case EXIDEVICE_SLIPPI:
+			m_exi_devices[i]->SetStringSelection(slot_devices[6]);
 			break;
 		case EXIDEVICE_DUMMY:
 		default:
@@ -311,6 +316,8 @@ void GameCubeConfigPane::ChooseEXIDevice(const wxString& deviceName, int deviceN
 		tempType = EXIDEVICE_AGP;
 	else if (!deviceName.compare(_(EXIDEV_GECKO_STR)))
 		tempType = EXIDEVICE_GECKO;
+	else if (!deviceName.compare(_(EXIDEV_SLIPPI_STR)))
+		tempType = EXIDEVICE_SLIPPI;
 	else if (!deviceName.compare(_(DEV_NONE_STR)))
 		tempType = EXIDEVICE_NONE;
 	else

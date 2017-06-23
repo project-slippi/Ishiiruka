@@ -83,6 +83,7 @@
     <ClCompile Include="DSP\Jit\DSPJitUtil.cpp" />
     <ClCompile Include="DSP\LabelMap.cpp" />
     <ClCompile Include="ec_wii.cpp" />
+    <ClCompile Include="EXI_DeviceSlippi.cpp" />
     <ClCompile Include="FifoPlayer\FifoAnalyzer.cpp" />
     <ClCompile Include="FifoPlayer\FifoDataFile.cpp" />
     <ClCompile Include="FifoPlayer\FifoPlaybackAnalyzer.cpp" />
@@ -295,6 +296,7 @@
     <ClInclude Include="DSP\Jit\DSPJitRegCache.h" />
     <ClInclude Include="DSP\LabelMap.h" />
     <ClInclude Include="ec_wii.h" />
+    <ClInclude Include="EXI_DeviceSlippi.h" />
     <ClInclude Include="FifoPlayer\FifoAnalyzer.h" />
     <ClInclude Include="FifoPlayer\FifoDataFile.h" />
     <ClInclude Include="FifoPlayer\FifoFileStruct.h" />

@@ -751,6 +751,9 @@
     <ClCompile Include="IPC_HLE\WII_IPC_HLE_Device_usb_ven.cpp">
       <Filter>IPC HLE %28IOS/Starlet%29\USB</Filter>
     </ClCompile>
+    <ClCompile Include="EXI_DeviceSlippi.cpp">
+      <Filter>HW %28Flipper/Hollywood%29\EXI - Expansion Interface</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="BootManager.h" />
@@ -1283,6 +1286,9 @@
       <Filter>IPC HLE %28IOS/Starlet%29\USB</Filter>
     </ClInclude>
     <ClInclude Include="DSP\Jit\DSPEmitter.h" />
+    <ClInclude Include="EXI_DeviceSlippi.h">
+      <Filter>HW %28Flipper/Hollywood%29\EXI - Expansion Interface</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Text Include="CMakeLists.txt" />
