@@ -12,7 +12,6 @@
 #include "Common/FileUtil.h"
 #include "Common/StringUtil.h"
 #include "wx/datetime.h"
-#include "EXI_DeviceSlippi.h"
 
 void CEXISlippi::ImmWrite(u32 data, u32 size)
 {

@@ -83,7 +83,6 @@
     <ClCompile Include="DSP\Jit\DSPJitUtil.cpp" />
     <ClCompile Include="DSP\LabelMap.cpp" />
     <ClCompile Include="ec_wii.cpp" />
-    <ClCompile Include="EXI_DeviceSlippi.cpp" />
     <ClCompile Include="FifoPlayer\FifoAnalyzer.cpp" />
     <ClCompile Include="FifoPlayer\FifoDataFile.cpp" />
     <ClCompile Include="FifoPlayer\FifoPlaybackAnalyzer.cpp" />
@@ -128,6 +127,7 @@
     <ClCompile Include="HW\EXI_DeviceIPL.cpp" />
     <ClCompile Include="HW\EXI_DeviceMemoryCard.cpp" />
     <ClCompile Include="HW\EXI_DeviceMic.cpp" />
+    <ClCompile Include="HW\EXI_DeviceSlippi.cpp" />
     <ClCompile Include="HW\GCKeyboard.cpp" />
     <ClCompile Include="HW\GCKeyboardEmu.cpp" />
     <ClCompile Include="HW\GCMemcard.cpp" />
@@ -296,7 +296,6 @@
     <ClInclude Include="DSP\Jit\DSPJitRegCache.h" />
     <ClInclude Include="DSP\LabelMap.h" />
     <ClInclude Include="ec_wii.h" />
-    <ClInclude Include="EXI_DeviceSlippi.h" />
     <ClInclude Include="FifoPlayer\FifoAnalyzer.h" />
     <ClInclude Include="FifoPlayer\FifoDataFile.h" />
     <ClInclude Include="FifoPlayer\FifoFileStruct.h" />
@@ -344,6 +343,7 @@
     <ClInclude Include="HW\EXI_DeviceIPL.h" />
     <ClInclude Include="HW\EXI_DeviceMemoryCard.h" />
     <ClInclude Include="HW\EXI_DeviceMic.h" />
+    <ClInclude Include="HW\EXI_DeviceSlippi.h" />
     <ClInclude Include="HW\GCKeyboard.h" />
     <ClInclude Include="HW\GCKeyboardEmu.h" />
     <ClInclude Include="HW\GCMemcard.h" />
