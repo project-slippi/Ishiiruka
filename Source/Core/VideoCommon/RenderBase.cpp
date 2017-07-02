@@ -394,6 +394,10 @@ void Renderer::DrawDebugText()
 			break;
 		case ASPECT_ANALOG_WIDE:
 			ar_text = "Force 16:9";
+			break;
+		case ASPECT_73_60:
+			ar_text = "Force 73:60 (Melee)";
+			break;
 		}
 
 		const char* const efbcopy_text = g_ActiveConfig.bSkipEFBCopyToRam ? "to Texture" : "to RAM";
@@ -464,6 +468,10 @@ float Renderer::CalculateDrawAspectRatio(int target_width, int target_height) co
 	else if (g_ActiveConfig.iAspectRatio == ASPECT_4_3)
 	{
 		Ratio /= (4.0f / 3.0f);
+	}
+	else if (g_ActiveConfig.iAspectRatio == ASPECT_73_60)
+	{
+		Ratio /= (73.0f / 60.0f);
 	}
 	else if (g_ActiveConfig.iAspectRatio == ASPECT_16_9)
 	{

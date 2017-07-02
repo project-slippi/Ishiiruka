@@ -31,8 +31,9 @@ enum AspectMode
 	ASPECT_ANALOG = 2,
 	ASPECT_STRETCH = 3,
 	ASPECT_4_3 = 4,
-	ASPECT_16_9 = 5,
-	ASPECT_16_10 = 6,
+	ASPECT_73_60 = 5,
+	ASPECT_16_9 = 6,
+	ASPECT_16_10 = 7,
 };
 
 enum EFBScale
@@ -156,7 +157,7 @@ struct VideoConfig final
 	bool bBorderlessFullscreen;
 	int iBitrateKbps;
 	bool bCompileShaderOnStartup;
-	
+
 
 	// Hacks
 	bool bEFBAccessEnable;
@@ -243,7 +244,7 @@ struct VideoConfig final
 
 		u32 MaxTextureSize;
 
-		bool bSupportedFormats[16]; // used for D3D9 in TextureCache		
+		bool bSupportedFormats[16]; // used for D3D9 in TextureCache
 		bool bSupportsDualSourceBlend; // only supported by D3D11 and OpenGL
 		bool bSupportsPixelLighting;
 		bool bSupportsNormalMaps;
@@ -260,7 +261,7 @@ struct VideoConfig final
 		bool bSupportsBBox;
 		bool bSupportsGSInstancing; // Needed by GeometryShaderGen, so must stay in VideoCommon
 		bool bSupportsPaletteConversion;
-		bool bSupportsClipControl; // Needed by VertexShaderGen, so must stay in VideoCommon		
+		bool bSupportsClipControl; // Needed by VertexShaderGen, so must stay in VideoCommon
 		bool bSupportsSSAA;
 		bool bSupportsTessellation;
 		bool bSupportsScaling;

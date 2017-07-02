@@ -367,7 +367,7 @@ VideoConfigDiag::VideoConfigDiag(wxWindow* parent, const std::string &title)
 
 				// aspect-ratio
 				{
-					const wxString ar_choices[] = { _("Auto"), _("Force Analog 16:9"), _("Force Analog 4:3"), _("Stretch to Window"), _("Force 4:3"), _("Force 16:9"), _("Force 16:10") };
+					const wxString ar_choices[] = { _("Auto"), _("Force Analog 16:9"), _("Force Analog 4:3"), _("Stretch to Window"), _("Force 4:3"), _("Force 73:60 (Melee)"), _("Force 16:9"), _("Force 16:10") };
 
 					szr_display->Add(new wxStaticText(page_general, wxID_ANY, _("Aspect Ratio:")), 1, wxALIGN_CENTER_VERTICAL, 0);
 					wxChoice* const choice_aspect = CreateChoice(page_general, vconfig.iAspectRatio, (ar_desc),
@@ -884,7 +884,7 @@ VideoConfigDiag::VideoConfigDiag(wxWindow* parent, const std::string &title)
 		{
 			wxGridSizer* const szr_other = new wxGridSizer(2, 5, 5);
 			// Disable while i fix opencl
-			//szr_other->Add(CreateCheckBox(page_hacks, _("OpenCL Texture Decoder"), (opencl_desc), vconfig.bEnableOpenCL));	
+			//szr_other->Add(CreateCheckBox(page_hacks, _("OpenCL Texture Decoder"), (opencl_desc), vconfig.bEnableOpenCL));
 			szr_other->Add(CreateCheckBox(page_hacks, _("Fast Depth Calculation"), (fast_depth_calc_desc), vconfig.bFastDepthCalc));
 			vertex_rounding_checkbox =
 				CreateCheckBox(page_hacks, _("Vertex Rounding"), wxGetTranslation(vertex_rounding_desc),
@@ -1474,7 +1474,7 @@ void VideoConfigDiag::OnUpdateUI(wxUpdateUIEvent& ev)
 	// Borderless Fullscreen
 	borderless_fullscreen->Enable((vconfig.backend_info.APIType & API_D3D9) == 0);
 	borderless_fullscreen->Show((vconfig.backend_info.APIType & API_D3D9) == 0);
-#endif	
+#endif
 	// EFB Access Cache
 	Fast_efb_cache->Show(vconfig.bEFBAccessEnable);
 	// XFB
