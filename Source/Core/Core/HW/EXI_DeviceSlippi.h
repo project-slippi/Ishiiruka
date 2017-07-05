@@ -7,6 +7,7 @@
 #include <string>
 #include <unordered_map>
 
+#include "SlippiLib/SlippiGame.h"
 #include "Common/CommonTypes.h"
 #include "Common/FileUtil.h"
 #include "Core/HW/EXI_Device.h"
@@ -23,11 +24,6 @@ public:
 	bool IsPresent() const override;
 
 private:
-	std::string GenerateFileName();
-	void createNewFile();
-	void writeFileContents(u8* toWrite, u32 length);
-	void closeFile();
-
 	enum {
 		CMD_UNKNOWN = 0x0,
 		CMD_GAME_START = 0x37,
@@ -45,10 +41,24 @@ private:
 		{ CMD_READ_FRAME, 0x4 }
 	};
 
+	// .slp File creation stuff
+	void createNewFile();
+	void writeFileContents(u8* toWrite, u32 length);
+	void closeFile();
+	std::string generateFileName();
+
 	File::IOFile m_file;
 	u32 m_payload_loc = 0;
 	u8 m_payload_type = CMD_UNKNOWN;
 	std::vector<u8> m_payload;
+
+	// replay playback stuff
+	void loadFile(std::string path);
+	void prepareFrameData(int32_t frameIndex);
+
+	std::vector<u32> m_read_buffer;
+	u32 m_read_loc = 0;
+	Slippi::SlippiGame* m_current_game;
 
 protected:
 	void TransferByte(u8& byte) override;

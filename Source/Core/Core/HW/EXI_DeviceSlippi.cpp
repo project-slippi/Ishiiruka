@@ -7,6 +7,7 @@
 #include <unordered_map>
 #include <stdexcept>
 
+#include "SlippiLib/SlippiGame.h"
 #include "Common/CommonFuncs.h"
 #include "Common/CommonTypes.h"
 #include "Common/Logging/Log.h"
@@ -21,7 +22,7 @@ void CEXISlippi::createNewFile() {
 	}
 
 	File::CreateDir("Slippi");
-	std::string filepath = GenerateFileName();
+	std::string filepath = generateFileName();
 	m_file = File::IOFile(filepath, "wb");
 }
 
@@ -41,15 +42,56 @@ void CEXISlippi::writeFileContents(u8* toWrite, u32 length) {
 		// If no file, do nothing
 		return;
 	}
-	
+
 	bool result = m_file.WriteBytes(toWrite, length);
-	
+
 	if (!result) {
 		ERROR_LOG(EXPANSIONINTERFACE, "Failed to write data to file.");
 	}
 }
 
-#pragma optimize( "", off )
+std::string CEXISlippi::generateFileName()
+{
+	std::string str = wxDateTime::Now().Format(wxT("%Y%m%dT%H%M%S"));
+	return StringFromFormat("Slippi/Game_%s.slp", str.c_str());
+}
+
+void CEXISlippi::loadFile(std::string path) {
+	m_current_game = Slippi::SlippiGame::FromFile(path);
+}
+
+void CEXISlippi::prepareFrameData(int32_t frameIndex) {
+	// Since we are prepping new data, clear any existing data
+	m_read_buffer.clear();
+	m_read_loc = 0;
+
+	if (!m_current_game) {
+		// Do nothing if we don't have a game loaded
+		return;
+	}
+
+	// Load the data from this frame into the read buffer
+	try {
+		Slippi::FrameData* frame = m_current_game->GetFrame(frameIndex);
+
+		// Add data from each player to the read buffer
+		for (int i = 0; i < 2; i++) {
+			Slippi::PlayerFrameData data = frame->players[i];
+
+			// Add all of the inputs in order
+			m_read_buffer.push_back(*(u32*)&data.joystickX);
+			m_read_buffer.push_back(*(u32*)&data.joystickY);
+			m_read_buffer.push_back(*(u32*)&data.cstickX);
+			m_read_buffer.push_back(*(u32*)&data.cstickY);
+			m_read_buffer.push_back(*(u32*)&data.trigger);
+			m_read_buffer.push_back(data.buttons);
+		}
+	}
+	catch (std::out_of_range) {
+		return;
+	}
+}
+
 void CEXISlippi::ImmWrite(u32 data, u32 size)
 {
 	//init();
@@ -103,7 +145,16 @@ void CEXISlippi::ImmWrite(u32 data, u32 size)
 			closeFile();
 			break;
 		case CMD_PREPARE_REPLAY:
-			// To implement
+			loadFile((char*)&m_payload[1]);
+			break;
+		case CMD_READ_FRAME:
+			// TODO: Temporarily load file here until there is a file
+			// TODO: selection menu in game
+			if (!m_current_game) {
+				loadFile("Slippi/CurrentGame.slp");
+			}
+
+			prepareFrameData(*(int32_t*)&m_payload[1]);
 			break;
 		}
 
@@ -113,13 +164,16 @@ void CEXISlippi::ImmWrite(u32 data, u32 size)
 		m_payload.clear();
 	}
 }
-#pragma optimize( "", on )
 
 u32 CEXISlippi::ImmRead(u32 size)
 {
-	// Not implemented yet. Might be used in the future to play back replays
 	INFO_LOG(EXPANSIONINTERFACE, "EXI SLIPPI ImmRead");
-	return 0;
+
+	if (m_read_loc >= m_read_buffer.size) {
+		return 0;
+	}
+
+	return m_read_buffer[m_read_loc];
 }
 
 bool CEXISlippi::IsPresent() const
@@ -129,10 +183,4 @@ bool CEXISlippi::IsPresent() const
 
 void CEXISlippi::TransferByte(u8& byte)
 {
-}
-
-std::string CEXISlippi::GenerateFileName()
-{
-	std::string str = wxDateTime::Now().Format(wxT("%Y%m%dT%H%M%S"));
-	return StringFromFormat("Slippi/Game_%s.slp", str.c_str());
 }
