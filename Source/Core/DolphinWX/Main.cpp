@@ -171,11 +171,14 @@ bool DolphinApp::OnInit()
 				    std::string cppString(buffer);
 				    cppString.erase(0, std::string("file://").size());
 
-				    system(("xattr -r -d com.apple.quarantine \"" + cppString + "\"").c_str());
-				    system(("open \"" + cppString + "\"").c_str());
-
-				    exit(EXIT_SUCCESS);
+				    if(system(("xattr -r -d com.apple.quarantine \"" + cppString + "\"").c_str()) == EXIT_SUCCESS)
+					{
+				    	system(("\"" + cppString + "/Contents/MacOS/Dolphin\" &disown").c_str());
+						exit(EXIT_SUCCESS);
+					}
 				}
+
+				wxMessageBox("Translocation from the application bundle couldn't be removed.\nSome things might not work correctly.\nAsk in #support or check the subreddit for further help.", "An error occured", wxOK | wxCENTRE | wxICON_WARNING);
 			}
 		}
 
