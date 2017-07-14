@@ -169,12 +169,12 @@ bool DolphinApp::OnInit()
 				if (CFStringGetCString(CFURLGetString(translocated_original), buffer, bufferSize, kCFStringEncodingUTF8))
 				{
 				    std::string cppString(buffer);
-						cppString.erase(0, std::string("file://").size());
+				    cppString.erase(0, std::string("file://").size());
 
-						system(("xattr -r -d com.apple.quarantine \"" + cppString + "\"").c_str());
-						system(("open -a \"" + cppString + "\"").c_str());
+				    system(("xattr -r -d com.apple.quarantine \"" + cppString + "\"").c_str());
+				    system(("open \"" + cppString + "\"").c_str());
 
-						exit(EXIT_SUCCESS);
+				    exit(EXIT_SUCCESS);
 				}
 			}
 		}
@@ -372,16 +372,11 @@ void DolphinApp::InitLanguageSupport()
 
 		if (!m_locale->IsOk())
 		{
-			wxMessageBox(_("Error loading selected language. Falling back to system default."),
-				_("Error"));
 			m_locale.reset(new wxLocale(wxLANGUAGE_DEFAULT));
 		}
 	}
 	else
 	{
-		wxMessageBox(
-			_("The selected language is not supported by your system. Falling back to system default."),
-			_("Error"));
 		m_locale.reset(new wxLocale(wxLANGUAGE_DEFAULT));
 	}
 }
