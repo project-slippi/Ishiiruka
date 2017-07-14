@@ -17,6 +17,7 @@
 #include <memory>
 #include <mutex>
 #include <string>
+#include <iostream>
 
 #include "Common/Assert.h"
 #include "Common/CommonTypes.h"
@@ -37,6 +38,8 @@
 #include "Core/Movie.h"
 #include "Core/FifoPlayer/FifoRecorder.h"
 #include "Core/HW/VideoInterface.h"
+#include "Core/HW/SystemTimers.h"
+#include "Core/HW/SI.h"
 
 #include "VideoCommon/AVIDump.h"
 #include "VideoCommon/BPMemory.h"
@@ -760,6 +763,10 @@ void Renderer::Swap(u32 xfbAddr, u32 fbWidth, u32 fbStride, u32 fbHeight, const 
 		else
 			m_aspect_wide = flush_count_anamorphic > 0.75 * flush_total;
 	}
+
+	u64 between = CoreTiming::GetTicks() - SerialInterface::last_poll;
+	double msec = ((double)between / SystemTimers::GetTicksPerSecond()) * 1000.0;
+	std::cout << msec << " ms" << std::endl;
 
 	// TODO: merge more generic parts into VideoCommon
 	SwapImpl(xfbAddr, fbWidth, fbStride, fbHeight, rc, ticks, Gamma);

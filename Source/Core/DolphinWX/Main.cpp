@@ -178,7 +178,7 @@ bool DolphinApp::OnInit()
 					}
 				}
 
-				wxMessageBox("Translocation from the application bundle couldn't be removed.\nSome things might not work correctly.\nAsk in #support or check the subreddit for further help.", "An error occured", wxOK | wxCENTRE | wxICON_WARNING);
+				wxMessageBox("Translocation from the application bundle couldn't be removed.\nSome things might not work correctly.\nAsk in #support for further help.", "An error occured", wxOK | wxCENTRE | wxICON_WARNING);
 			}
 		}
 

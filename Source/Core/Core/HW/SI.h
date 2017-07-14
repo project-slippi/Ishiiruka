@@ -42,4 +42,6 @@ SIDevices GetDeviceType(int channel);
 
 u32 GetPollXLines();
 
+extern u64 last_poll;
+
 }  // end of namespace SerialInterface
