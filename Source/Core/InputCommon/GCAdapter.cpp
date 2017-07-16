@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <libusb.h>
 #include <mutex>
+#include <iostream>
 
 #include "Common/Flag.h"
 #include "Common/Logging/Log.h"
@@ -66,8 +67,21 @@ static void Read()
 	int payload_size = 0;
 	while (s_adapter_thread_running.IsSet())
 	{
+		static long polls = 0;
+		static time_t last_time = 0;
+		
 		libusb_interrupt_transfer(s_handle, s_endpoint_in, s_controller_payload_swap,
 			sizeof(s_controller_payload_swap), &payload_size, 16);
+		
+		polls++;
+		
+		if(last_time != time(nullptr))
+		{
+			std::cout << polls << std::endl;
+			
+			polls = 0;
+			last_time = time(nullptr);
+		}
 
 		{
 			std::lock_guard<std::mutex> lk(s_mutex);
