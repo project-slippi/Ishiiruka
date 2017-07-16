@@ -35,8 +35,6 @@ static CoreTiming::EventType* et_send_netplay_inputs;
 static void RunSIBuffer(u64 userdata, s64 cyclesLate);
 static void UpdateInterrupts();
 
-u64 last_poll = 0;
-
 // SI Interrupt Types
 enum SIInterruptType
 {
@@ -341,8 +339,6 @@ void RegisterMMIO(MMIO::Mapping* mmio, u32 base)
 					{
 						static u64 last_tick = 0;
 						u64 tick = CoreTiming::GetTicks();
-
-						last_poll = tick;
 
 						if(last_tick > tick)
 							last_tick = 0;
