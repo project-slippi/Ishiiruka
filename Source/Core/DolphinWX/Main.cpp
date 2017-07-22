@@ -55,6 +55,11 @@
 #include <X11/Xlib.h>
 #endif
 
+#ifdef __APPLE__
+#include <CoreFoundation/CoreFoundation.h>
+#include <dlfcn.h>
+#endif
+
 #ifdef _WIN32
 
 // Applications exporting this symbol with this value will be automatically
@@ -130,6 +135,56 @@ bool DolphinApp::OnInit()
 
 	// Enable the PNG image handler for screenshots
 	wxImage::AddHandler(new wxPNGHandler);
+
+#ifdef __APPLE__
+	typedef Boolean (*SecTranslocateIsTranslocatedURL)(CFURLRef path, bool* isTranslocated, CFErrorRef* error);
+	typedef CFURLRef (*SecTranslocateCreateOriginalPathForURL)(CFURLRef translocatedPath, CFErrorRef* error);
+
+	void* security_framework = dlopen("/System/Library/Frameworks/Security.framework/Security", RTLD_NOW);
+
+	if(security_framework)
+	{
+		SecTranslocateIsTranslocatedURL SecTranslocateIsTranslocatedURL_func =
+			(SecTranslocateIsTranslocatedURL)dlsym(security_framework, "SecTranslocateIsTranslocatedURL");
+		SecTranslocateCreateOriginalPathForURL SecTranslocateCreateOriginalPathForURL_func =
+			(SecTranslocateCreateOriginalPathForURL)dlsym(security_framework, "SecTranslocateCreateOriginalPathForURL");
+
+		if(SecTranslocateIsTranslocatedURL_func && SecTranslocateCreateOriginalPathForURL_func)
+		{
+			CFStringRef path = CFStringCreateWithCString(NULL, File::GetBundleDirectory().c_str(), kCFStringEncodingUTF8);
+			CFURLRef url = CFURLCreateWithFileSystemPath(NULL, path, kCFURLPOSIXPathStyle, 0);
+			CFURLRef translocated_original = SecTranslocateCreateOriginalPathForURL_func(url, nullptr);
+
+			bool is_translocated = false;
+			SecTranslocateIsTranslocatedURL_func(url, &is_translocated, nullptr);
+
+			if(is_translocated)
+			{
+				// https://stackoverflow.com/questions/28860033/convert-from-cfurlref-or-cfstringref-to-stdstring
+				CFIndex bufferSize = CFStringGetLength(CFURLGetString(translocated_original)) + 1; // The +1 is for having space for the string to be NUL terminated
+				char buffer[bufferSize];
+
+				// CFStringGetCString is documented to return a false if the buffer is too small
+				// (which shouldn't happen in this example) or if the conversion generally fails
+				if (CFStringGetCString(CFURLGetString(translocated_original), buffer, bufferSize, kCFStringEncodingUTF8))
+				{
+				    std::string cppString(buffer);
+				    cppString.erase(0, std::string("file://").size());
+
+				    if(system(("xattr -r -d com.apple.quarantine \"" + cppString + "\"").c_str()) == EXIT_SUCCESS)
+					{
+				    	system(("\"" + cppString + "/Contents/MacOS/Dolphin\" &disown").c_str());
+						exit(EXIT_SUCCESS);
+					}
+				}
+
+				wxMessageBox("Translocation from the application bundle couldn't be removed.\nSome things might not work correctly.\nAsk in #support for further help.", "An error occured", wxOK | wxCENTRE | wxICON_WARNING);
+			}
+		}
+
+		dlclose(security_framework);
+	}
+#endif
 
 	// We have to copy the size and position out of SConfig now because CFrame's OnMove
 	// handler will corrupt them during window creation (various APIs like SetMenuBar cause
@@ -320,16 +375,11 @@ void DolphinApp::InitLanguageSupport()
 
 		if (!m_locale->IsOk())
 		{
-			wxMessageBox(_("Error loading selected language. Falling back to system default."),
-				_("Error"));
 			m_locale.reset(new wxLocale(wxLANGUAGE_DEFAULT));
 		}
 	}
 	else
 	{
-		wxMessageBox(
-			_("The selected language is not supported by your system. Falling back to system default."),
-			_("Error"));
 		m_locale.reset(new wxLocale(wxLANGUAGE_DEFAULT));
 	}
 }
