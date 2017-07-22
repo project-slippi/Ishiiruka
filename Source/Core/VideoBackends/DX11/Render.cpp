@@ -209,7 +209,7 @@ void Renderer::Create3DVisionTexture(u32 width, u32 height)
 	LPNVSTEREOIMAGEHEADER header = (LPNVSTEREOIMAGEHEADER)((u8*)sysData.pSysMem + height * sysData.SysMemPitch);
 	header->dwSignature = NVSTEREO_IMAGE_SIGNATURE;
 	header->dwWidth = width * 2;
-	header->dwHeight = height + 1;
+	header->dwHeight = height;
 	header->dwBPP = 32;
 	header->dwFlags = 0;
 	m_3d_vision_texture = D3DTexture2D::Create(width * 2, height + 1, D3D11_BIND_RENDER_TARGET, D3D11_USAGE_DEFAULT, DXGI_FORMAT_R8G8B8A8_UNORM, 1, 1, &sysData);
@@ -704,7 +704,7 @@ void Renderer::SwapImpl(u32 xfbAddr, u32 fbWidth, u32 fbStride, u32 fbHeight, co
 	D3D::context->ClearRenderTargetView(D3D::GetBackBuffer()->GetRTV(), ClearColor);
 
 	// Copy the framebuffer to screen.	
-	const TargetSize dst_size = { m_target_width, m_target_height };
+	const TargetSize dst_size = { m_backbuffer_width, m_backbuffer_height };
 	DrawFrame(targetRc, rc, xfbAddr, xfbSourceList, xfbCount, D3D::GetBackBuffer(), dst_size, fbWidth, fbStride, fbHeight, Gamma);
 
 	// Dump frames
@@ -1232,11 +1232,11 @@ void Renderer::BlitScreen(TargetRectangle dst_rect, TargetRectangle src_rect, Ta
 		leftRc.bottom = dst_rect.bottom;
 
 		TargetRectangle rightRc;
-		rightRc.left = dst_rect.left + m_backbuffer_width;
-		rightRc.right = dst_rect.right + m_backbuffer_width;
+		rightRc.left = dst_rect.left + dst_size.width;
+		rightRc.right = dst_rect.right + dst_size.width;
 		rightRc.top = dst_rect.top;
 		rightRc.bottom = dst_rect.bottom;
-		TargetSize side_size = { dst_size.width * 2, dst_size .height};		
+		TargetSize side_size = { dst_size.width * 2, dst_size.height + 1};		
 		// Render to staging texture which is double the width of the backbuffer
 		m_post_processor->BlitScreen(leftRc, side_size, reinterpret_cast<uintptr_t>(m_3d_vision_texture),
 			src_rect, src_size, reinterpret_cast<uintptr_t>(src_texture), reinterpret_cast<uintptr_t>(depth_texture), 0, Gamma);

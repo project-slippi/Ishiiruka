@@ -210,7 +210,7 @@ void VertexManagerBase::DoFlush()
 	VertexShaderManager::SetConstants();
 
 	// Track some stats used elsewhere by the anamorphic widescreen heuristic.
-	if (!SConfig::GetInstance().bWii)
+	if (!SConfig::GetInstance().bWii && xfmem.projection.type == GX_PERSPECTIVE)
 	{
 		float* rawProjection = xfmem.projection.rawProjection;
 		bool viewport_is_4_3 = AspectIs4_3(xfmem.viewport.wd, xfmem.viewport.ht);

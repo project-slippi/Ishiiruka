@@ -695,7 +695,7 @@ void Renderer::SwapImpl(u32 xfb_addr, u32 fb_width, u32 fb_stride, u32 fb_height
 	float clear_color[4] = { 0.f, 0.f, 0.f, 1.f };
 	D3D::current_command_list->ClearRenderTargetView(D3D::GetBackBuffer()->GetRTV(), clear_color, 0, nullptr);
 	// Copy the framebuffer to screen.	
-	const TargetSize dst_size = { m_target_width, m_target_height };
+	const TargetSize dst_size = { m_backbuffer_width, m_backbuffer_height };
 	DrawFrame(target_rc, rc, xfb_addr, xfb_source_list, xfb_count, D3D::GetBackBuffer(), dst_size, fb_width, fb_stride, fb_height, gamma);
 	
 	// Dump frames

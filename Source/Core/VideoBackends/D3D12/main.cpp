@@ -112,7 +112,7 @@ void VideoBackend::InitBackendInfo()
 	g_Config.backend_info.bSupportsDepthClamp = true;
 	g_Config.backend_info.bSupportsMultithreading = true;
 	g_Config.backend_info.bSupportsValidationLayer = true;
-	g_Config.backend_info.bSupportsReversedDepthRange = false;
+	g_Config.backend_info.bSupportsReversedDepthRange = true;
 	g_Config.backend_info.bSupportsInternalResolutionFrameDumps = true;
 	g_Config.backend_info.bSupportsAsyncShaderCompilation = true;
 	IDXGIFactory* factory;
