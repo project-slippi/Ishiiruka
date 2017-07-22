@@ -60,10 +60,9 @@ void CEXISlippi::loadFile(std::string path) {
 	m_current_game = Slippi::SlippiGame::FromFile(path);
 }
 
-void CEXISlippi::prepareFrameData(int32_t frameIndex) {
+void CEXISlippi::prepareFrameData(int32_t frameIndex, uint8_t port) {
 	// Since we are prepping new data, clear any existing data
-	m_read_buffer.clear();
-	m_read_loc = 0;
+	m_read_queue.clear();
 
 	if (!m_current_game) {
 		// Do nothing if we don't have a game loaded
@@ -73,18 +72,30 @@ void CEXISlippi::prepareFrameData(int32_t frameIndex) {
 	// Load the data from this frame into the read buffer
 	try {
 		Slippi::FrameData* frame = m_current_game->GetFrame(frameIndex);
+		Slippi::GameSettings* settings = m_current_game->GetSettings();
 
-		// Add data from each player to the read buffer
-		for (int i = 0; i < 2; i++) {
+		// Add random seed to the front of the response regardless of player
+		m_read_queue.push_back(*(u32*)&frame->randomSeed);
+
+		// Check each player for this port. This could be more efficient
+		// but since there's never a lot of players it probably doesn't matter much
+		for (int i = 0; i < Slippi::PLAYER_COUNT; i++) {
+			Slippi::PlayerSettings pSettings = settings->player[i];
+			if (pSettings.controllerPort != port) {
+				// If this player index is not playing on the port requested, don't
+				// return any data
+				continue;
+			}
+
 			Slippi::PlayerFrameData data = frame->players[i];
 
 			// Add all of the inputs in order
-			m_read_buffer.push_back(*(u32*)&data.joystickX);
-			m_read_buffer.push_back(*(u32*)&data.joystickY);
-			m_read_buffer.push_back(*(u32*)&data.cstickX);
-			m_read_buffer.push_back(*(u32*)&data.cstickY);
-			m_read_buffer.push_back(*(u32*)&data.trigger);
-			m_read_buffer.push_back(data.buttons);
+			m_read_queue.push_back(*(u32*)&data.joystickX);
+			m_read_queue.push_back(*(u32*)&data.joystickY);
+			m_read_queue.push_back(*(u32*)&data.cstickX);
+			m_read_queue.push_back(*(u32*)&data.cstickY);
+			m_read_queue.push_back(*(u32*)&data.trigger);
+			m_read_queue.push_back(data.buttons);
 		}
 	}
 	catch (std::out_of_range) {
@@ -154,7 +165,7 @@ void CEXISlippi::ImmWrite(u32 data, u32 size)
 				loadFile("Slippi/CurrentGame.slp");
 			}
 
-			prepareFrameData(*(int32_t*)&m_payload[1]);
+			prepareFrameData(*(int32_t*)&m_payload[1], *(uint8_t*)&m_payload[5]);
 			break;
 		}
 
@@ -167,13 +178,17 @@ void CEXISlippi::ImmWrite(u32 data, u32 size)
 
 u32 CEXISlippi::ImmRead(u32 size)
 {
-	INFO_LOG(EXPANSIONINTERFACE, "EXI SLIPPI ImmRead");
-
-	if (m_read_loc >= m_read_buffer.size) {
+	if (m_read_queue.empty()) {
+		INFO_LOG(EXPANSIONINTERFACE, "EXI SLIPPI ImmRead: Empty");
 		return 0;
 	}
 
-	return m_read_buffer[m_read_loc];
+	u32 value = m_read_queue.front();
+	m_read_queue.pop_front();
+
+	INFO_LOG(EXPANSIONINTERFACE, "EXI SLIPPI ImmRead %08x", value);
+
+	return value;
 }
 
 bool CEXISlippi::IsPresent() const

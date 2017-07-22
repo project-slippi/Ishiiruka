@@ -34,3 +34,8 @@ CMakeLists.txt.user
 *.kdev4
 # Ignore IDEA/Clion files/dirs
 /.idea/
+# SlippiLib stuff... don't have a better solution atm
+SlippiLib.pch
+SlippiLib.pdb
+SlippiLib.log
+SlippiLib.lib

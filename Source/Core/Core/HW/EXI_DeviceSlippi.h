@@ -6,6 +6,7 @@
 
 #include <string>
 #include <unordered_map>
+#include <deque>
 
 #include "SlippiLib/SlippiGame.h"
 #include "Common/CommonTypes.h"
@@ -54,10 +55,9 @@ private:
 
 	// replay playback stuff
 	void loadFile(std::string path);
-	void prepareFrameData(int32_t frameIndex);
+	void prepareFrameData(int32_t frameIndex, uint8_t port);
 
-	std::vector<u32> m_read_buffer;
-	u32 m_read_loc = 0;
+	std::deque<u32> m_read_queue;
 	Slippi::SlippiGame* m_current_game;
 
 protected:

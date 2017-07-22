@@ -76,6 +76,7 @@ namespace Slippi {
 	public:
 		static SlippiGame* FromFile(std::string path);
 		FrameData* GetFrame(int32_t frame);
+		GameSettings* GetSettings();
 	private:
 		Game* game;
 

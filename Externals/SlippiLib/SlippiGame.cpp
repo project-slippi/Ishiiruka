@@ -171,4 +171,8 @@ namespace Slippi {
 		// Get the frame we want
 		return &game->frameData.at(frame - offset);
 	}
+
+	GameSettings* SlippiGame::GetSettings() {
+		return &game->settings;
+	}
 }
