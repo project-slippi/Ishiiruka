@@ -39,7 +39,7 @@ private:
 		{ CMD_FRAME_UPDATE, 0x7A },
 		{ CMD_GAME_END, 0x1 },
 		{ CMD_PREPARE_REPLAY, 0x0 },
-		{ CMD_READ_FRAME, 0x4 }
+		{ CMD_READ_FRAME, 0x5 }
 	};
 
 	// .slp File creation stuff
@@ -58,7 +58,7 @@ private:
 	void prepareFrameData(int32_t frameIndex, uint8_t port);
 
 	std::deque<u32> m_read_queue;
-	Slippi::SlippiGame* m_current_game;
+	Slippi::SlippiGame* m_current_game = nullptr;
 
 protected:
 	void TransferByte(u8& byte) override;

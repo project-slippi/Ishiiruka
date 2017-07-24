@@ -71,6 +71,8 @@ void CEXISlippi::prepareFrameData(int32_t frameIndex, uint8_t port) {
 
 	// Load the data from this frame into the read buffer
 	try {
+		uint8_t* a = (uint8_t*)&frameIndex;
+		frameIndex = a[0] << 24 | a[1] << 16 | a[2] << 8 | a[3];
 		Slippi::FrameData* frame = m_current_game->GetFrame(frameIndex);
 		Slippi::GameSettings* settings = m_current_game->GetSettings();
 
