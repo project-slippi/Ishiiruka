@@ -224,6 +224,7 @@ bool NetPlayClient::Connect()
 		player.name = m_player_name;
 		player.pid = m_pid;
 		player.revision = netplay_dolphin_ver;
+		player.buffer = 0 /* will be raised once we get the packet */;
 
 		// add self to player list
 		m_players[m_pid] = player;
@@ -235,6 +236,23 @@ bool NetPlayClient::Connect()
 
 		return true;
 	}
+}
+
+// called from ---GUI--- and ---NETPLAY--- thread
+void NetPlayClient::SetLocalPlayerBuffer(u32 buffer)
+{
+	std::lock_guard<std::recursive_mutex> lkp(m_crit.players);
+
+	m_local_player->buffer = buffer;
+	if(m_local_player->buffer < m_minimum_buffer_size)
+		m_local_player->buffer = m_minimum_buffer_size;
+
+	auto spac = std::make_unique<sf::Packet>();
+	*spac << static_cast<MessageId>(NP_MSG_PAD_BUFFER_PLAYER);
+	*spac << m_local_player->buffer;
+	SendAsync(std::move(spac));
+
+	m_dialog->OnPlayerPadBufferChanged(m_local_player->buffer);
 }
 
 // called from ---NETPLAY--- thread
@@ -350,13 +368,28 @@ unsigned int NetPlayClient::OnData(sf::Packet& packet)
 	}
 	break;
 
-	case NP_MSG_PAD_BUFFER:
+	case NP_MSG_PAD_BUFFER_MINIMUM:
 	{
 		u32 size = 0;
 		packet >> size;
 
-		m_target_buffer_size = size;
-		m_dialog->OnPadBufferChanged(size);
+		m_minimum_buffer_size = size;
+		m_dialog->OnMinimumPadBufferChanged(size);
+
+		if(m_local_player->buffer < m_minimum_buffer_size)
+			SetLocalPlayerBuffer(m_minimum_buffer_size);
+	}
+	break;
+
+	case NP_MSG_PAD_BUFFER_PLAYER:
+	{
+		PlayerId pid;
+		packet >> pid;
+
+		{
+			std::lock_guard<std::recursive_mutex> lkp(m_crit.players);
+			packet >> m_players[pid].buffer;
+		}
 	}
 	break;
 
@@ -755,6 +788,7 @@ void NetPlayClient::GetPlayerList(std::string& list, std::vector<int>& pid_list)
 		enumerate_player_controller_mappings(m_wiimote_map, player);
 
 		ss << " |\nPing: " << player.ping << "ms\n";
+		ss << "Buffer: " << player.buffer << "\n";
 		ss << "Status: ";
 
 		switch (player.game_status)
@@ -1048,7 +1082,7 @@ void NetPlayClient::SendNetPad(int pad_nb)
 		{
 			int ingame_pad = LocalPadToInGamePad(i);
 
-			if(m_pad_buffer[ingame_pad].Size() <= m_target_buffer_size / buffer_accuracy)
+			if(m_pad_buffer[ingame_pad].Size() <= BufferSizeForPort(ingame_pad) / buffer_accuracy)
 			{
 				switch (SConfig::GetInstance().m_SIDevice[i])
 				{
@@ -1061,7 +1095,7 @@ void NetPlayClient::SendNetPad(int pad_nb)
 					break;
 				}
 
-				while (m_pad_buffer[ingame_pad].Size() <= m_target_buffer_size / buffer_accuracy)
+				while (m_pad_buffer[ingame_pad].Size() <= BufferSizeForPort(ingame_pad) / buffer_accuracy)
 				{
 					m_pad_buffer[ingame_pad].Push(status);
 					SendPadState(ingame_pad, status);
@@ -1075,7 +1109,7 @@ void NetPlayClient::SendNetPad(int pad_nb)
 		int local_pad = InGamePadToLocalPad(pad_nb);
 		if(local_pad != 4)
 		{
-			if(m_pad_buffer[pad_nb].Size() <= m_target_buffer_size / buffer_accuracy)
+			if(m_pad_buffer[pad_nb].Size() <= BufferSizeForPort(pad_nb) / buffer_accuracy)
 			{
 				switch (SConfig::GetInstance().m_SIDevice[local_pad])
 				{
@@ -1088,7 +1122,7 @@ void NetPlayClient::SendNetPad(int pad_nb)
 					break;
 				}
 
-				while (m_pad_buffer[pad_nb].Size() <= m_target_buffer_size / buffer_accuracy)
+				while (m_pad_buffer[pad_nb].Size() <= BufferSizeForPort(pad_nb) / buffer_accuracy)
 				{
 					m_pad_buffer[pad_nb].Push(status);
 					SendPadState(pad_nb, status);
@@ -1116,7 +1150,7 @@ bool NetPlayClient::WiimoteUpdate(int _number, u8* data, const u8 size, u8 repor
 
 				SendWiimoteState(_number, nw);
 			} while (m_wiimote_buffer[_number].Size() <=
-				m_target_buffer_size * 200 /
+				m_minimum_buffer_size * 200 /
 				120);  // TODO: add a seperate setting for wiimote buffer?
 		}
 
@@ -1156,7 +1190,7 @@ bool NetPlayClient::WiimoteUpdate(int _number, u8* data, const u8 size, u8 repor
 			m_wiimote_buffer[_number].Pop(nw);
 
 			++tries;
-			if (tries > m_target_buffer_size * 200 / 120)
+			if (tries > m_minimum_buffer_size * 200 / 120)
 				break;
 		}
 

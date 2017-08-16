@@ -50,7 +50,7 @@ public:
 	PadMappingArray GetWiimoteMapping() const;
 	void SetWiimoteMapping(const PadMappingArray& mappings);
 
-	void AdjustPadBufferSize(unsigned int size);
+	void AdjustMinimumPadBufferSize(unsigned int size);
 
 	void KickPlayer(PlayerId player);
 
@@ -79,10 +79,12 @@ private:
 		u32 ping;
 		u32 current_game;
 
-		#ifdef _WIN32
+		unsigned int buffer;
+
+#ifdef _WIN32
 		HANDLE qos_handle;
 		QOS_FLOWID qos_flow_id;
-		#endif
+#endif
 
 		bool operator==(const Client& other) const { return this == &other; }
 	};
@@ -108,7 +110,7 @@ private:
 	u32 m_ping_key = 0;
 	bool m_update_pings = false;
 	u32 m_current_game = 0;
-	unsigned int m_target_buffer_size = 0;
+	unsigned int m_minimum_buffer_size = 0;
 	PadMappingArray m_pad_map;
 	PadMappingArray m_wiimote_map;
 

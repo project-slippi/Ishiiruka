@@ -36,7 +36,8 @@ public:
 	virtual void OnMsgChangeGame(const std::string& filename) = 0;
 	virtual void OnMsgStartGame() = 0;
 	virtual void OnMsgStopGame() = 0;
-	virtual void OnPadBufferChanged(u32 buffer) = 0;
+	virtual void OnMinimumPadBufferChanged(u32 buffer) = 0;
+	virtual void OnPlayerPadBufferChanged(u32 buffer) = 0;
 	virtual void OnDesync(u32 frame, const std::string& player) = 0;
 	virtual void OnConnectionLost() = 0;
 	virtual void OnTraversalError(int error) = 0;
@@ -63,6 +64,7 @@ public:
 	std::string revision;
 	u32 ping;
 	PlayerGameStatus game_status;
+	u32 buffer;
 };
 
 
@@ -106,12 +108,17 @@ public:
 	static void SendTimeBase();
 	bool DoAllPlayersHaveGame();
 
+	void SetLocalPlayerBuffer(u32 buffer);
+
 	// the number of ticks in-between frames
 	constexpr static int buffer_accuracy = 4;
 
-	int BufferSize() const
+	inline u32 BufferSizeForPort(int pad) const
 	{
-		return m_target_buffer_size;
+		if(m_pad_map[pad] <= 0)
+			return 0;
+
+		return std::max(m_minimum_buffer_size, m_players.at(m_pad_map.at(pad)).buffer);
 	}
 
 protected:
@@ -140,7 +147,7 @@ protected:
 	Common::Flag m_is_running{ false };
 	Common::Flag m_do_loop{ true };
 
-	unsigned int m_target_buffer_size = 20;
+	unsigned int m_minimum_buffer_size = 8;
 
 	Player* m_local_player = nullptr;
 
