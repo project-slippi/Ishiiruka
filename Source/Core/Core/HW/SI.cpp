@@ -348,9 +348,9 @@ void RegisterMMIO(MMIO::Mapping* mmio, u32 base)
 
 						// double msec = (diff / (double)SystemTimers::GetTicksPerSecond()) * 1000.0;
 
-						if(NetPlay::IsNetPlayRunning() && netplay_client && (netplay_client->BufferSize() % NetPlayClient::buffer_accuracy) != 0)
+						if(NetPlay::IsNetPlayRunning() && netplay_client && (netplay_client->BufferSizeForPort(c) % NetPlayClient::buffer_accuracy) != 0)
 							// Schedule an event to poll and send inputs earlier in the next frame
-							CoreTiming::ScheduleEvent(diff - (diff / NetPlayClient::buffer_accuracy) * (netplay_client->BufferSize() % NetPlayClient::buffer_accuracy), et_send_netplay_inputs);
+							CoreTiming::ScheduleEvent(diff - (diff / NetPlayClient::buffer_accuracy) * (netplay_client->BufferSizeForPort(c) % NetPlayClient::buffer_accuracy), et_send_netplay_inputs);
 					}
 
 					// Stop if we are not the first plugged in controller
