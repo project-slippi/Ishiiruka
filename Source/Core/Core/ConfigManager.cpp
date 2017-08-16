@@ -768,6 +768,7 @@ void SConfig::LoadDefaults()
 	iBBDumpPort = -1;
 	iVideoRate = 8;
 	bHalfAudioRate = false;
+	iPollingMethod = POLLING_CONSOLE;
 	bSyncGPU = false;
 	bFastDiscSpeed = false;
 	m_strWiiSDCardPath = File::GetUserPath(F_WIISDCARD_IDX);

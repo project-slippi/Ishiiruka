@@ -45,6 +45,12 @@ enum GameType
 	GAMETYPE_MELEE_20XX
 };
 
+enum PollingMethod
+{
+	POLLING_CONSOLE = 0,
+	POLLING_ONSIREAD = 1
+};
+
 struct SConfig : NonCopyable
 {
 	// Wii Devices
@@ -123,6 +129,8 @@ struct SConfig : NonCopyable
 	bool bFastDiscSpeed = false;
 	int iVideoRate = 8;
 	bool bHalfAudioRate = false;
+
+	PollingMethod iPollingMethod = POLLING_CONSOLE;
 
 	bool bSyncGPU = false;
 	int iSyncGpuMaxDistance;

@@ -71,6 +71,10 @@ private:
 	wxStaticText* label_DVideo;
 	wxArrayString arrayStringFor_GPUDeterminism;
 	wxChoice* GPUDeterminism;
+
+	wxArrayString arrayStringFor_PollingMethod;
+	wxChoice* PollingMethod;
+
 	// Wii
 	wxCheckBox* EnableWideScreen;
 
@@ -127,6 +131,7 @@ private:
 		ID_ADDPATCH,
 		ID_REMOVEPATCH,
 		ID_GPUDETERMINISM,
+		ID_POLLINGMETHOD,
 		ID_DEPTHPERCENTAGE,
 		ID_CONVERGENCE,
 		ID_MONODEPTH

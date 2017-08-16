@@ -330,36 +330,39 @@ void RegisterMMIO(MMIO::Mapping* mmio, u32 base)
 		mmio->Register(base | (SI_CHANNEL_0_IN_HI + 0xC * i),
 			MMIO::ComplexRead<u32>([i, rdst_bit](u32) {
 
-			for(int c = 0; c < MAX_SI_CHANNELS; c++)
+			if(SConfig::GetInstance().iPollingMethod == POLLING_ONSIREAD)
 			{
-				// If this port has a controller of any sort
-				if(g_Channel[c].m_device->GetDeviceType() != SIDEVICE_NONE)
+				for(int c = 0; c < MAX_SI_CHANNELS; c++)
 				{
-					if(i == c)
+					// If this port has a controller of any sort
+					if(g_Channel[c].m_device->GetDeviceType() != SIDEVICE_NONE)
 					{
-						static u64 last_tick = 0;
-						u64 tick = CoreTiming::GetTicks();
+						if(i == c)
+						{
+							static u64 last_tick = 0;
+							u64 tick = CoreTiming::GetTicks();
 
-						if(last_tick > tick)
-							last_tick = 0;
+							if(last_tick > tick)
+								last_tick = 0;
 
-						u64 diff = tick - last_tick;
-						last_tick = tick;
+							u64 diff = tick - last_tick;
+							last_tick = tick;
 
-						// double msec = (diff / (double)SystemTimers::GetTicksPerSecond()) * 1000.0;
+							// double msec = (diff / (double)SystemTimers::GetTicksPerSecond()) * 1000.0;
 
-						if(NetPlay::IsNetPlayRunning() && netplay_client && (netplay_client->BufferSizeForPort(c) % NetPlayClient::buffer_accuracy) != 0)
-							// Schedule an event to poll and send inputs earlier in the next frame
-							CoreTiming::ScheduleEvent(diff - (diff / NetPlayClient::buffer_accuracy) * (netplay_client->BufferSizeForPort(c) % NetPlayClient::buffer_accuracy), et_send_netplay_inputs);
+							if(NetPlay::IsNetPlayRunning() && netplay_client && (netplay_client->BufferSizeForPort(c) % NetPlayClient::buffer_accuracy) != 0)
+								// Schedule an event to poll and send inputs earlier in the next frame
+								CoreTiming::ScheduleEvent(diff - (diff / NetPlayClient::buffer_accuracy) * (netplay_client->BufferSizeForPort(c) % NetPlayClient::buffer_accuracy), et_send_netplay_inputs);
+						}
+
+						// Stop if we are not the first plugged in controller
+						break;
 					}
-
-					// Stop if we are not the first plugged in controller
-					break;
 				}
-			}
 
-			// the HI register is read before the LO register (at least by Melee)
-			g_Channel[i].m_device->GetData(g_Channel[i].m_InHi.Hex, g_Channel[i].m_InLo.Hex);
+				// the HI register is read before the LO register (at least by Melee)
+				g_Channel[i].m_device->GetData(g_Channel[i].m_InHi.Hex, g_Channel[i].m_InLo.Hex);
+			}
 
 			g_StatusReg.Hex &= ~(1 << rdst_bit);
 			UpdateInterrupts();
@@ -596,16 +599,29 @@ void UpdateDevices()
 	// Update inputs at 240 hz
 	g_controller_interface.UpdateInput();
 
-	// We need to always update the GC adapter, so that it can know what ports are plugged in
-	if(!NetPlay::IsNetPlayRunning())
+	if(SConfig::GetInstance().iPollingMethod == POLLING_ONSIREAD)
 	{
-		for(int i = 0; i < 4; i++)
-			GCAdapter::Input(i);
-	}
+		// We need to always update the GC adapter, so that it can know what ports are plugged in
+		if(!NetPlay::IsNetPlayRunning())
+		{
+			for(int i = 0; i < 4; i++)
+				GCAdapter::Input(i);
+		}
 
-	// Pretend that there's always new data
-	// TODO: might break some games
-	g_StatusReg.RDST0 = g_StatusReg.RDST1 = g_StatusReg.RDST2 = g_StatusReg.RDST3 = true;
+		// Pretend that there's always new data
+		g_StatusReg.RDST0 = g_StatusReg.RDST1 = g_StatusReg.RDST2 = g_StatusReg.RDST3 = true;
+	}
+	else
+	{
+		g_StatusReg.RDST0 =
+			!!g_Channel[0].m_device->GetData(g_Channel[0].m_InHi.Hex, g_Channel[0].m_InLo.Hex);
+		g_StatusReg.RDST1 =
+			!!g_Channel[1].m_device->GetData(g_Channel[1].m_InHi.Hex, g_Channel[1].m_InLo.Hex);
+		g_StatusReg.RDST2 =
+			!!g_Channel[2].m_device->GetData(g_Channel[2].m_InHi.Hex, g_Channel[2].m_InLo.Hex);
+		g_StatusReg.RDST3 =
+			!!g_Channel[3].m_device->GetData(g_Channel[3].m_InHi.Hex, g_Channel[3].m_InLo.Hex);
+	}
 }
 
 SIDevices GetDeviceType(int channel)
@@ -663,8 +679,7 @@ static void SendNetplayInputs(u64 userdata, s64 cyclesLate)
 
 u32 GetPollXLines()
 {
-	return (492 / 4) * (SConfig::GetInstance().iVideoRate >> 3);
-	// return g_Poll.X;
+	return SConfig::GetInstance().iPollingMethod == POLLING_ONSIREAD ? (492 / 4) * (SConfig::GetInstance().iVideoRate >> 3) : g_Poll.X;
 }
 
 }  // end of namespace SerialInterface

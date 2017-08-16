@@ -286,7 +286,7 @@ void CISOProperties::CreateGUIControls()
 	TimeStretching =
 		new wxCheckBox(m_GameConfig, ID_TIMESTRETCHING, _("Time Stretching"),
 			wxDefaultPosition, wxDefaultSize, GetElementStyle("Core", "TimeStretching"));
-	FastDiscSpeed->SetToolTip(_("Enable Audio Time Stretching. Can Cause Audio Issues in some games."));
+	TimeStretching->SetToolTip(_("Enable Audio Time Stretching. Can Cause Audio Issues in some games."));
 
 	wxBoxSizer* const sGPUDeterminism = new wxBoxSizer(wxHORIZONTAL);
 	wxStaticText* const GPUDeterminismText =
@@ -299,6 +299,17 @@ void CISOProperties::CreateGUIControls()
 		arrayStringFor_GPUDeterminism);
 	sGPUDeterminism->Add(GPUDeterminismText, 0, wxALIGN_CENTER_VERTICAL);
 	sGPUDeterminism->Add(GPUDeterminism, 0, wxALIGN_CENTER_VERTICAL);
+
+	wxBoxSizer* const sPollingMethod = new wxBoxSizer(wxHORIZONTAL);
+	wxStaticText* const PollingMethodText =
+		new wxStaticText(m_GameConfig, wxID_ANY, _("Polling method: "));
+	arrayStringFor_PollingMethod.Add(_("Accurate to console"));
+	arrayStringFor_PollingMethod.Add(_("On SI Read"));
+	PollingMethod = new wxChoice(m_GameConfig, ID_POLLINGMETHOD, wxDefaultPosition, wxDefaultSize,
+		arrayStringFor_PollingMethod);
+	sPollingMethod->Add(PollingMethodText, 0, wxALIGN_CENTER_VERTICAL);
+	sPollingMethod->Add(PollingMethod, 0, wxALIGN_CENTER_VERTICAL);
+
 	// Video Rate Hack
 	HalfAudioRate = new wxCheckBox(m_GameConfig, ID_HALFAUDIORATE, _("Half Audio Rate"), wxDefaultPosition, wxDefaultSize,
 		GetElementStyle("Core", "VideoRateAudioFix"));
@@ -371,6 +382,7 @@ void CISOProperties::CreateGUIControls()
 	sbCoreOverrides->AddSpacer(space5);
 	sbCoreOverrides->Add(TimeStretching, 0, wxLEFT, 5);
 	sbCoreOverrides->Add(sGPUDeterminism, 0, wxEXPAND | wxLEFT | wxRIGHT, space5);
+	sbCoreOverrides->Add(sPollingMethod, 0, wxEXPAND | wxLEFT | wxRIGHT, space5);
 	sbCoreOverrides->AddSpacer(space5);
 	sbCoreOverrides->Add(svideorate, 0, wxLEFT, 5);
 	sbCoreOverrides->Add(HalfAudioRate, 0, wxLEFT, 5);
@@ -594,6 +606,11 @@ void CISOProperties::LoadGameConfig()
 	else if (sTemp == "fake-completion")
 		GPUDeterminism->SetSelection(3);
 
+	sTemp = "";
+	if (!GameIniLocal.GetIfExists("Core", "PollingMethod", &sTemp))
+		GameIniDefault.GetIfExists("Core", "PollingMethod", &sTemp);
+	PollingMethod->SetSelection(sTemp == "OnSIRead" ? 1 : 0);
+
 	IniFile::Section* default_stereoscopy = GameIniDefault.GetOrCreateSection("Video_Stereoscopy");
 	default_stereoscopy->Get("StereoDepthPercentage", &iTemp, 100);
 	GameIniLocal.GetIfExists("Video_Stereoscopy", "StereoDepthPercentage", &iTemp);
@@ -686,6 +703,13 @@ bool CISOProperties::SaveGameConfig()
 		tmp = "fake-completion";
 
 	SAVE_IF_NOT_DEFAULT("Core", "GPUDeterminismMode", tmp, "Not Set");
+
+	if (PollingMethod->GetSelection() == 0)
+		tmp = "Console";
+	else if (PollingMethod->GetSelection() == 1)
+		tmp = "OnSIRead";
+
+	SAVE_IF_NOT_DEFAULT("Core", "PollingMethod", tmp, "Console");
 
 	int depth = DepthPercentage->GetValue() > 0 ? DepthPercentage->GetValue() : 100;
 	SAVE_IF_NOT_DEFAULT("Video_Stereoscopy", "StereoDepthPercentage", depth, 100);
