@@ -1082,7 +1082,7 @@ void NetPlayClient::SendNetPad(int pad_nb)
 		{
 			int ingame_pad = LocalPadToInGamePad(i);
 
-			if(m_pad_buffer[ingame_pad].Size() <= BufferSizeForPort(ingame_pad) / buffer_accuracy)
+			if(m_pad_buffer[ingame_pad].Size() <= BufferSizeForPort(ingame_pad) / (SConfig::GetInstance().iPollingMethod == POLLING_ONSIREAD ? buffer_accuracy : 1))
 			{
 				switch (SConfig::GetInstance().m_SIDevice[i])
 				{
@@ -1095,7 +1095,7 @@ void NetPlayClient::SendNetPad(int pad_nb)
 					break;
 				}
 
-				while (m_pad_buffer[ingame_pad].Size() <= BufferSizeForPort(ingame_pad) / buffer_accuracy)
+				while (m_pad_buffer[ingame_pad].Size() <= BufferSizeForPort(ingame_pad) / (SConfig::GetInstance().iPollingMethod == POLLING_ONSIREAD ? buffer_accuracy : 1))
 				{
 					m_pad_buffer[ingame_pad].Push(status);
 					SendPadState(ingame_pad, status);
@@ -1109,7 +1109,7 @@ void NetPlayClient::SendNetPad(int pad_nb)
 		int local_pad = InGamePadToLocalPad(pad_nb);
 		if(local_pad != 4)
 		{
-			if(m_pad_buffer[pad_nb].Size() <= BufferSizeForPort(pad_nb) / buffer_accuracy)
+			if(m_pad_buffer[pad_nb].Size() <= BufferSizeForPort(pad_nb) / (SConfig::GetInstance().iPollingMethod == POLLING_ONSIREAD ? buffer_accuracy : 1))
 			{
 				switch (SConfig::GetInstance().m_SIDevice[local_pad])
 				{
@@ -1122,7 +1122,7 @@ void NetPlayClient::SendNetPad(int pad_nb)
 					break;
 				}
 
-				while (m_pad_buffer[pad_nb].Size() <= BufferSizeForPort(pad_nb) / buffer_accuracy)
+				while (m_pad_buffer[pad_nb].Size() <= BufferSizeForPort(pad_nb) / (SConfig::GetInstance().iPollingMethod == POLLING_ONSIREAD ? buffer_accuracy : 1))
 				{
 					m_pad_buffer[pad_nb].Push(status);
 					SendPadState(pad_nb, status);

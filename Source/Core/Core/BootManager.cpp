@@ -79,6 +79,7 @@ private:
 	bool bRSHACK;
 	int iVideoRate;
 	bool bHalfAudioRate;
+	PollingMethod iPollingMethod;
 	int iSelectedLanguage;
 	int iCPUCore;
 	int Volume;
@@ -121,6 +122,7 @@ void ConfigCache::SaveConfig(const SConfig& config)
 	m_strGPUDeterminismMode = config.m_strGPUDeterminismMode;
 	iVideoRate = config.iVideoRate;
 	bHalfAudioRate = config.bHalfAudioRate;
+	iPollingMethod = config.iPollingMethod;
 	bTimeStretching = config.bTimeStretching;
 	bRSHACK = config.bRSHACK;
 	m_OCEnable = config.m_OCEnable;
@@ -161,6 +163,7 @@ void ConfigCache::RestoreConfig(SConfig* config)
 	config->iCPUCore = iCPUCore;
 	config->iVideoRate = iVideoRate;
 	config->bHalfAudioRate = bHalfAudioRate;
+	config->iPollingMethod = iPollingMethod;
 	config->bTimeStretching = bTimeStretching;
 	config->bRSHACK = bRSHACK;
 	config->m_OCEnable = m_OCEnable;
@@ -260,6 +263,12 @@ bool BootCore(const std::string& _rFilename)
 		core_section->Get("DCBZ", &StartUp.bDCBZOFF, StartUp.bDCBZOFF);
 		core_section->Get("Video_Rate", &StartUp.iVideoRate, StartUp.iVideoRate);
 		core_section->Get("HalfAudioRate", &StartUp.bHalfAudioRate, StartUp.bHalfAudioRate);
+
+		std::string polling_method = StartUp.iPollingMethod == POLLING_ONSIREAD ? "OnSIRead" : "Console";
+		core_section->Get("PollingMethod", &polling_method, polling_method);
+
+		StartUp.iPollingMethod = polling_method == "OnSIRead" ? POLLING_ONSIREAD : POLLING_CONSOLE;
+
 		core_section->Get("TimeStretching", &StartUp.bTimeStretching, StartUp.bTimeStretching);
 		core_section->Get("RSHACK", &StartUp.bRSHACK, StartUp.bRSHACK);
 		core_section->Get("SyncGPU", &StartUp.bSyncGPU, StartUp.bSyncGPU);
