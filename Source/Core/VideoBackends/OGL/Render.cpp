@@ -1431,7 +1431,7 @@ void Renderer::SwapImpl(u32 xfbAddr, u32 fbWidth, u32 fbStride, u32 fbHeight,
 	std::swap(flipped_trc.top, flipped_trc.bottom);
 
 	// Copy the framebuffer to screen.	
-	const TargetSize dst_size = {m_target_width, m_target_height};
+	const TargetSize dst_size = {m_backbuffer_width, m_backbuffer_height};
 	DrawFrame(flipped_trc, rc, xfbAddr, xfbSourceList, xfbCount, 0, dst_size, fbWidth, fbStride, fbHeight, Gamma);
 
 	// The FlushFrameDump call here is necessary even after frame dumping is stopped.
