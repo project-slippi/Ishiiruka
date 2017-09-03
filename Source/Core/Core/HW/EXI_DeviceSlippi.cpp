@@ -4,6 +4,7 @@
 
 #include "Core/HW/EXI_DeviceSlippi.h"
 
+#include <array>
 #include <unordered_map>
 #include <stdexcept>
 
@@ -60,6 +61,55 @@ void CEXISlippi::loadFile(std::string path) {
 	m_current_game = Slippi::SlippiGame::FromFile(path);
 }
 
+void CEXISlippi::prepareGameInfo() {
+	// Since we are prepping new data, clear any existing data
+	m_read_queue.clear();
+
+	if (!m_current_game) {
+		// Do nothing if we don't have a game loaded
+		return;
+	}
+
+	Slippi::GameSettings* settings = m_current_game->GetSettings();
+
+	// Build a word containing the stage and the presence of the characters
+	u32 randomSeed = settings->randomSeed;
+	m_read_queue.push_back(randomSeed);
+
+	// This is kinda dumb but we need to handle the case where a player transforms
+	// into sheik/zelda immediately. This info is not stored in the game info header
+	// and so let's overwrite those values
+	int player1Pos = 24; // This is the index of the first players character info
+	std::array<uint32_t, Slippi::GAME_INFO_HEADER_SIZE> gameInfoHeader = settings->header;
+	for (int i = 0; i < 4; i++) {
+		// check if this player is actually in the game
+		bool playerExists = m_current_game->DoesPlayerExist(i);
+		if (!playerExists) {
+			continue;
+		}
+
+		// check if the player is playing sheik or zelda
+		uint8_t externalCharId = settings->players[i].characterId;
+		if (externalCharId != 0x12 && externalCharId != 0x13) {
+			continue;
+		}
+
+		// this is the position in the array that this player's character info is stored
+		int pos = player1Pos + (9 * i);
+		
+		// here we have determined the player is playing sheik or zelda...
+		// at this point let's overwrite the player's character with the one
+		// that they are playing
+		gameInfoHeader[pos] &= 0x00FFFFFF;
+		gameInfoHeader[pos] |= externalCharId << 24;
+	}
+
+	// Write entire header to game
+	for (int i = 0; i < Slippi::GAME_INFO_HEADER_SIZE; i++) {
+		m_read_queue.push_back(gameInfoHeader[i]);
+	}
+}
+
 void CEXISlippi::prepareFrameData(int32_t frameIndex, uint8_t port) {
 	// Since we are prepping new data, clear any existing data
 	m_read_queue.clear();
@@ -79,26 +129,17 @@ void CEXISlippi::prepareFrameData(int32_t frameIndex, uint8_t port) {
 		// Add random seed to the front of the response regardless of player
 		m_read_queue.push_back(*(u32*)&frame->randomSeed);
 
-		// Check each player for this port. This could be more efficient
-		// but since there's never a lot of players it probably doesn't matter much
-		for (int i = 0; i < Slippi::PLAYER_COUNT; i++) {
-			Slippi::PlayerSettings pSettings = settings->player[i];
-			if (pSettings.controllerPort != port) {
-				// If this player index is not playing on the port requested, don't
-				// return any data
-				continue;
-			}
+		// Get data for this player
+		Slippi::PlayerSettings pSettings = settings->players.at(port);
+		Slippi::PlayerFrameData data = frame->players.at(port);
 
-			Slippi::PlayerFrameData data = frame->players[i];
-
-			// Add all of the inputs in order
-			m_read_queue.push_back(*(u32*)&data.joystickX);
-			m_read_queue.push_back(*(u32*)&data.joystickY);
-			m_read_queue.push_back(*(u32*)&data.cstickX);
-			m_read_queue.push_back(*(u32*)&data.cstickY);
-			m_read_queue.push_back(*(u32*)&data.trigger);
-			m_read_queue.push_back(data.buttons);
-		}
+		// Add all of the inputs in order
+		m_read_queue.push_back(*(u32*)&data.joystickX);
+		m_read_queue.push_back(*(u32*)&data.joystickY);
+		m_read_queue.push_back(*(u32*)&data.cstickX);
+		m_read_queue.push_back(*(u32*)&data.cstickY);
+		m_read_queue.push_back(*(u32*)&data.trigger);
+		m_read_queue.push_back(data.buttons);
 	}
 	catch (std::out_of_range) {
 		return;
@@ -145,9 +186,12 @@ void CEXISlippi::ImmWrite(u32 data, u32 size)
 	if (m_payload_loc >= payloadSize + 1) {
 		// Handle payloads
 		switch (m_payload_type) {
-		case CMD_GAME_START:
+		case CMD_GAME_INIT:
 			// Here we create a new file if one doesn't exist already
 			createNewFile();
+			writeFileContents(&m_payload[0], m_payload_loc);
+			break;
+		case CMD_GAME_START:
 			writeFileContents(&m_payload[0], m_payload_loc);
 			break;
 		case CMD_FRAME_UPDATE:
@@ -158,15 +202,10 @@ void CEXISlippi::ImmWrite(u32 data, u32 size)
 			closeFile();
 			break;
 		case CMD_PREPARE_REPLAY:
-			loadFile((char*)&m_payload[1]);
+			loadFile("Slippi/CurrentGame.slp");
+			prepareGameInfo();
 			break;
 		case CMD_READ_FRAME:
-			// TODO: Temporarily load file here until there is a file
-			// TODO: selection menu in game
-			if (!m_current_game) {
-				loadFile("Slippi/CurrentGame.slp");
-			}
-
 			prepareFrameData(*(int32_t*)&m_payload[1], *(uint8_t*)&m_payload[5]);
 			break;
 		}

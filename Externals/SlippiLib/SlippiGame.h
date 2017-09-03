@@ -1,14 +1,17 @@
 #pragma once
 
 #include <string>
+#include <array>
 #include <vector>
 #include <unordered_map>
 
 namespace Slippi {
-	const uint8_t PLAYER_COUNT = 2;
+	const uint8_t EVENT_GAME_INIT = 0x36;
 	const uint8_t EVENT_GAME_START = 0x37;
 	const uint8_t EVENT_UPDATE = 0x38;
 	const uint8_t EVENT_GAME_END = 0x39;
+
+	const uint8_t GAME_INFO_HEADER_SIZE = 78;
 
 	typedef struct {
 		uint8_t internalCharacterId;
@@ -39,7 +42,7 @@ namespace Slippi {
 	typedef struct {
 		int32_t frame;
 		uint32_t randomSeed;
-		PlayerFrameData players[PLAYER_COUNT];
+		std::unordered_map<uint8_t, PlayerFrameData> players;
 	} FrameData;
 
 	typedef struct {
@@ -52,11 +55,14 @@ namespace Slippi {
 
 	typedef struct {
 		uint16_t stage; //Stage ID
-		PlayerSettings player[PLAYER_COUNT];
+		uint32_t randomSeed;
+		std::array<uint32_t, GAME_INFO_HEADER_SIZE> header;
+		std::unordered_map<uint8_t, PlayerSettings> players;
 	} GameSettings;
 
 	typedef struct {
-		std::vector<FrameData> frameData;
+		std::array<uint8_t, 4> version;
+		std::unordered_map<int32_t, FrameData> frameData;
 		GameSettings settings;
 
 		int32_t frameCount; // Current/last frame count
@@ -66,9 +72,10 @@ namespace Slippi {
 	} Game;
 
 	static std::unordered_map<uint8_t, uint32_t> asmEvents = {
-		{ EVENT_GAME_START, 0xA },
-		{ EVENT_UPDATE, 0x7A },
-		{ EVENT_GAME_END, 0x1 }
+		{ EVENT_GAME_INIT, 0x140 },
+		{ EVENT_GAME_START, 6 },
+		{ EVENT_UPDATE, 66 },
+		{ EVENT_GAME_END, 1 }
 	};
 
 	class SlippiGame
@@ -77,6 +84,7 @@ namespace Slippi {
 		static SlippiGame* FromFile(std::string path);
 		FrameData* GetFrame(int32_t frame);
 		GameSettings* GetSettings();
+		bool DoesPlayerExist(int8_t port);
 	private:
 		Game* game;
 

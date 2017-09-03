@@ -27,6 +27,7 @@ public:
 private:
 	enum {
 		CMD_UNKNOWN = 0x0,
+		CMD_GAME_INIT = 0x36,
 		CMD_GAME_START = 0x37,
 		CMD_FRAME_UPDATE = 0x38,
 		CMD_GAME_END = 0x39,
@@ -35,11 +36,12 @@ private:
 	};
 
 	std::unordered_map<u8, u32> payloadSizes = {
-		{ CMD_GAME_START, 0xA },
-		{ CMD_FRAME_UPDATE, 0x7A },
-		{ CMD_GAME_END, 0x1 },
-		{ CMD_PREPARE_REPLAY, 0x0 },
-		{ CMD_READ_FRAME, 0x5 }
+		{ CMD_GAME_INIT, 0x140 },
+		{ CMD_GAME_START, 6 },
+		{ CMD_FRAME_UPDATE, 66 },
+		{ CMD_GAME_END, 1 },
+		{ CMD_PREPARE_REPLAY, 0 },
+		{ CMD_READ_FRAME, 5 }
 	};
 
 	// .slp File creation stuff
@@ -55,6 +57,7 @@ private:
 
 	// replay playback stuff
 	void loadFile(std::string path);
+	void prepareGameInfo();
 	void prepareFrameData(int32_t frameIndex, uint8_t port);
 
 	std::deque<u32> m_read_queue;

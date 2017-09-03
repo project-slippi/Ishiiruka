@@ -30,21 +30,39 @@ namespace Slippi {
 		return *(float*)(&bytes);
 	}
 
+	void handleGameInit(Game* game) {
+		int idx = 0;
+
+		// Read version number
+		for (int i = 0; i < 4; i++) {
+			game->version[i] = readByte(data, idx);
+		}
+
+		// Read entire game info header
+		for (int i = 0; i < GAME_INFO_HEADER_SIZE; i++) {
+			game->settings.header[i] = readWord(data, idx);
+		}
+
+		//Load stage ID
+		game->settings.randomSeed = readWord(data, idx);
+	}
+
 	void handleGameStart(Game* game) {
 		int idx = 0;
 
 		//Load stage ID
 		game->settings.stage = readHalf(data, idx);
 
-		for (int i = 0; i < PLAYER_COUNT; i++) {
-			PlayerSettings& p = game->settings.player[i];
+		PlayerSettings* p = new PlayerSettings();
 
-			//Load player data
-			p.controllerPort = readByte(data, idx);
-			p.characterId = readByte(data, idx);
-			p.playerType = readByte(data, idx);
-			p.characterColor = readByte(data, idx);
-		}
+		//Load player data
+		p->controllerPort = readByte(data, idx);
+		p->characterId = readByte(data, idx);
+		p->playerType = readByte(data, idx);
+		p->characterColor = readByte(data, idx);
+
+		//Add player settings to result
+		game->settings.players[p->controllerPort] = *p;
 	}
 
 	void handleUpdate(Game* game) {
@@ -55,42 +73,51 @@ namespace Slippi {
 		game->frameCount = frameCount;
 
 		FrameData* frame = new FrameData();
+		if (game->frameData.count(frameCount)) {
+			// If this frame already exists, this is probably another player
+			// in this frame, so let's fetch it.
+			frame = &game->frameData[frameCount];
+		}
+
 		frame->frame = frameCount;
 		frame->randomSeed = readWord(data, idx);
 
-		for (int i = 0; i < PLAYER_COUNT; i++) {
-			PlayerFrameData& p = frame->players[i];
+		PlayerFrameData* p = new PlayerFrameData();
 
-			//Load player data
-			p.internalCharacterId = readByte(data, idx);
-			p.animation = readHalf(data, idx);
-			p.locationX = readFloat(data, idx);
-			p.locationY = readFloat(data, idx);
+		uint8_t playerSlot = readByte(data, idx);
 
-			//Controller information
-			p.joystickX = readFloat(data, idx);
-			p.joystickY = readFloat(data, idx);
-			p.cstickX = readFloat(data, idx);
-			p.cstickY = readFloat(data, idx);
-			p.trigger = readFloat(data, idx);
-			p.buttons = readWord(data, idx);
+		//Load player data
+		p->internalCharacterId = readByte(data, idx);
+		p->animation = readHalf(data, idx);
+		p->locationX = readFloat(data, idx);
+		p->locationY = readFloat(data, idx);
 
-			//More data
-			p.percent = readFloat(data, idx);
-			p.shieldSize = readFloat(data, idx);
-			p.lastMoveHitId = readByte(data, idx);
-			p.comboCount = readByte(data, idx);
-			p.lastHitBy = readByte(data, idx);
-			p.stocks = readByte(data, idx);
+		//Controller information
+		p->joystickX = readFloat(data, idx);
+		p->joystickY = readFloat(data, idx);
+		p->cstickX = readFloat(data, idx);
+		p->cstickY = readFloat(data, idx);
+		p->trigger = readFloat(data, idx);
+		p->buttons = readWord(data, idx);
 
-			//Raw controller information
-			p.physicalButtons = readHalf(data, idx);
-			p.lTrigger = readFloat(data, idx);
-			p.rTrigger = readFloat(data, idx);
-		}
+		//More data
+		p->percent = readFloat(data, idx);
+		p->shieldSize = readFloat(data, idx);
+		p->lastMoveHitId = readByte(data, idx);
+		p->comboCount = readByte(data, idx);
+		p->lastHitBy = readByte(data, idx);
+		p->stocks = readByte(data, idx);
+
+		//Raw controller information
+		p->physicalButtons = readHalf(data, idx);
+		p->lTrigger = readFloat(data, idx);
+		p->rTrigger = readFloat(data, idx);
+
+		//Add player data to frame
+		frame->players[playerSlot] = *p;
 
 		// Add frame to game
-		game->frameData.push_back(*frame);
+		game->frameData[frameCount] = *frame;
 	}
 
 	void handleGameEnd(Game* game) {
@@ -131,6 +158,9 @@ namespace Slippi {
 
 			data = &fileContents[i + 1];
 			switch (code) {
+			case EVENT_GAME_INIT:
+				handleGameInit(result->game);
+				break;
 			case EVENT_GAME_START:
 				handleGameStart(result->game);
 				break;
@@ -148,8 +178,13 @@ namespace Slippi {
 	}
 
 	SlippiGame* SlippiGame::FromFile(std::string path) {
-		// Get file and file size
+		// Get file
 		FILE* inputFile = fopen(path.c_str(), "rb");
+		if (!inputFile) {
+			return nullptr;
+		}
+
+		// Get file size
 		uint64_t fileSize = getSize(inputFile);
 
 		// Write contents to a uint8_t array
@@ -164,15 +199,15 @@ namespace Slippi {
 	}
 
 	FrameData* SlippiGame::GetFrame(int32_t frame) {
-		// Get the index offset for this frame
-		FrameData firstFrame = game->frameData.at(0);
-		int32_t offset = firstFrame.frame;
-
 		// Get the frame we want
-		return &game->frameData.at(frame - offset);
+		return &game->frameData.at(frame);
 	}
 
 	GameSettings* SlippiGame::GetSettings() {
 		return &game->settings;
+	}
+
+	bool SlippiGame::DoesPlayerExist(int8_t port) {
+		return game->settings.players.find(port) != game->settings.players.end();
 	}
 }
