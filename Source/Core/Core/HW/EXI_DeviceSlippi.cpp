@@ -124,13 +124,11 @@ void CEXISlippi::prepareFrameData(int32_t frameIndex, uint8_t port) {
 		uint8_t* a = (uint8_t*)&frameIndex;
 		frameIndex = a[0] << 24 | a[1] << 16 | a[2] << 8 | a[3];
 		Slippi::FrameData* frame = m_current_game->GetFrame(frameIndex);
-		Slippi::GameSettings* settings = m_current_game->GetSettings();
 
 		// Add random seed to the front of the response regardless of player
 		m_read_queue.push_back(*(u32*)&frame->randomSeed);
 
 		// Get data for this player
-		Slippi::PlayerSettings pSettings = settings->players.at(port);
 		Slippi::PlayerFrameData data = frame->players.at(port);
 
 		// Add all of the inputs in order
@@ -140,6 +138,34 @@ void CEXISlippi::prepareFrameData(int32_t frameIndex, uint8_t port) {
 		m_read_queue.push_back(*(u32*)&data.cstickY);
 		m_read_queue.push_back(*(u32*)&data.trigger);
 		m_read_queue.push_back(data.buttons);
+	}
+	catch (std::out_of_range) {
+		return;
+	}
+}
+
+void CEXISlippi::prepareLocationData(int32_t frameIndex, uint8_t port) {
+	// Since we are prepping new data, clear any existing data
+	m_read_queue.clear();
+
+	if (!m_current_game) {
+		// Do nothing if we don't have a game loaded
+		return;
+	}
+
+	// Load the data from this frame into the read buffer
+	try {
+		uint8_t* a = (uint8_t*)&frameIndex;
+		frameIndex = a[0] << 24 | a[1] << 16 | a[2] << 8 | a[3];
+		Slippi::FrameData* frame = m_current_game->GetFrame(frameIndex);
+
+		// Get data for this player
+		Slippi::PlayerFrameData data = frame->players.at(port);
+
+		// Add all of the inputs in order
+		m_read_queue.push_back(*(u32*)&data.locationX);
+		m_read_queue.push_back(*(u32*)&data.locationY);
+		m_read_queue.push_back(*(u32*)&data.facingDirection);
 	}
 	catch (std::out_of_range) {
 		return;
@@ -207,6 +233,9 @@ void CEXISlippi::ImmWrite(u32 data, u32 size)
 			break;
 		case CMD_READ_FRAME:
 			prepareFrameData(*(int32_t*)&m_payload[1], *(uint8_t*)&m_payload[5]);
+			break;
+		case CMD_GET_LOCATION:
+			prepareLocationData(*(int32_t*)&m_payload[1], *(uint8_t*)&m_payload[5]);
 			break;
 		}
 

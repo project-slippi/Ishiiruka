@@ -91,6 +91,7 @@ namespace Slippi {
 		p->animation = readHalf(data, idx);
 		p->locationX = readFloat(data, idx);
 		p->locationY = readFloat(data, idx);
+		p->facingDirection = readFloat(data, idx);
 
 		//Controller information
 		p->joystickX = readFloat(data, idx);

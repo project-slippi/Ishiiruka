@@ -18,6 +18,7 @@ namespace Slippi {
 		uint16_t animation;
 		float locationX;
 		float locationY;
+		float facingDirection;
 		uint8_t stocks;
 		float percent;
 		float shieldSize;
@@ -74,7 +75,7 @@ namespace Slippi {
 	static std::unordered_map<uint8_t, uint32_t> asmEvents = {
 		{ EVENT_GAME_INIT, 0x140 },
 		{ EVENT_GAME_START, 6 },
-		{ EVENT_UPDATE, 66 },
+		{ EVENT_UPDATE, 70 },
 		{ EVENT_GAME_END, 1 }
 	};
 

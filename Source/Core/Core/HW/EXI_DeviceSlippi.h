@@ -32,16 +32,18 @@ private:
 		CMD_FRAME_UPDATE = 0x38,
 		CMD_GAME_END = 0x39,
 		CMD_PREPARE_REPLAY = 0x75,
-		CMD_READ_FRAME = 0x76
+		CMD_READ_FRAME = 0x76,
+		CMD_GET_LOCATION = 0x77
 	};
 
 	std::unordered_map<u8, u32> payloadSizes = {
 		{ CMD_GAME_INIT, 0x140 },
 		{ CMD_GAME_START, 6 },
-		{ CMD_FRAME_UPDATE, 66 },
+		{ CMD_FRAME_UPDATE, 70 },
 		{ CMD_GAME_END, 1 },
 		{ CMD_PREPARE_REPLAY, 0 },
-		{ CMD_READ_FRAME, 5 }
+		{ CMD_READ_FRAME, 5 },
+		{ CMD_GET_LOCATION, 5 }
 	};
 
 	// .slp File creation stuff
@@ -59,6 +61,7 @@ private:
 	void loadFile(std::string path);
 	void prepareGameInfo();
 	void prepareFrameData(int32_t frameIndex, uint8_t port);
+	void prepareLocationData(int32_t frameIndex, uint8_t port);
 
 	std::deque<u32> m_read_queue;
 	Slippi::SlippiGame* m_current_game = nullptr;
