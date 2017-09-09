@@ -377,8 +377,8 @@ unsigned int NetPlayServer::OnConnect(ENetPeer* socket)
 
 		// this will fail if we're not admin
 		// sets DSCP to the same as linux (0x2e)
-		QOSSetFlow(m_qos_handle,
-			m_qos_flow_id,
+		QOSSetFlow(player.qos_handle,
+			player.qos_flow_id,
 			QOSSetOutgoingDSCPValue,
 			sizeof(DWORD),
 			&dscp,
