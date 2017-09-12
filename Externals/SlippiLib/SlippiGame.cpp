@@ -1,4 +1,4 @@
-#include "stdafx.h"
+//#include "stdafx.h"
 #include "SlippiGame.h"
 
 namespace Slippi {
@@ -6,8 +6,6 @@ namespace Slippi {
 	//**********************************************************************
 	//*                         Event Handlers
 	//**********************************************************************
-	uint8_t* data;
-
 	//The read operators will read a value and increment the index so the next read will read in the correct location
 	uint8_t readByte(uint8_t* a, int& idx) {
 		return a[idx++];
@@ -198,6 +196,10 @@ namespace Slippi {
 		free(fileContents);
 		return result;
 	}
+
+  bool SlippiGame::DoesFrameExist(int32_t frame) {
+    return (bool)game->frameData.count(frame);
+  }
 
 	FrameData* SlippiGame::GetFrame(int32_t frame) {
 		// Get the frame we want

@@ -94,6 +94,7 @@ set(SRCS	ActionReplay.cpp
 			HW/EXI_DeviceGecko.cpp
 			HW/EXI_DeviceIPL.cpp
 			HW/EXI_DeviceMemoryCard.cpp
+			HW/EXI_DeviceSlippi.cpp
 			HW/EXI_DeviceMic.cpp
 			HW/GCKeyboard.cpp
 			HW/GCKeyboardEmu.cpp
@@ -239,6 +240,7 @@ set(LIBS
 	${LZO}
 	sfml-network
 	sfml-system
+	SlippiLib
 	videoogl
 	videosoftware
 	z

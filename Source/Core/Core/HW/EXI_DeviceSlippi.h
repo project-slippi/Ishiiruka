@@ -17,7 +17,8 @@
 class CEXISlippi : public IEXIDevice
 {
 public:
-	CEXISlippi() {}
+	CEXISlippi();
+  virtual ~CEXISlippi();
 
 	void ImmWrite(u32 data, u32 size) override;
 	u32 ImmRead(u32 size) override;
