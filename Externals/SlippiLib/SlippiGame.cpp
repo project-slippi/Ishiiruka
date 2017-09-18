@@ -1,4 +1,3 @@
-//#include "stdafx.h"
 #include "SlippiGame.h"
 
 namespace Slippi {
