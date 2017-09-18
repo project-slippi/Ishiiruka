@@ -16,6 +16,14 @@
 #include "Common/StringUtil.h"
 #include "wx/datetime.h"
 
+CEXISlippi::CEXISlippi() {
+  INFO_LOG(EXPANSIONINTERFACE, "EXI SLIPPI Constructor called.");
+}
+
+CEXISlippi::~CEXISlippi() {
+	closeFile();
+}
+
 void CEXISlippi::createNewFile() {
 	if (m_file) {
 		// If we already have a file, return
@@ -58,7 +66,7 @@ std::string CEXISlippi::generateFileName()
 }
 
 void CEXISlippi::loadFile(std::string path) {
-	m_current_game = Slippi::SlippiGame::FromFile(path);
+	m_current_game = Slippi::SlippiGame::FromFile((std::string)path);
 }
 
 void CEXISlippi::prepareGameInfo() {
@@ -120,28 +128,33 @@ void CEXISlippi::prepareFrameData(int32_t frameIndex, uint8_t port) {
 	}
 
 	// Load the data from this frame into the read buffer
-	try {
-		uint8_t* a = (uint8_t*)&frameIndex;
-		frameIndex = a[0] << 24 | a[1] << 16 | a[2] << 8 | a[3];
-		Slippi::FrameData* frame = m_current_game->GetFrame(frameIndex);
-
-		// Add random seed to the front of the response regardless of player
-		m_read_queue.push_back(*(u32*)&frame->randomSeed);
-
-		// Get data for this player
-		Slippi::PlayerFrameData data = frame->players.at(port);
-
-		// Add all of the inputs in order
-		m_read_queue.push_back(*(u32*)&data.joystickX);
-		m_read_queue.push_back(*(u32*)&data.joystickY);
-		m_read_queue.push_back(*(u32*)&data.cstickX);
-		m_read_queue.push_back(*(u32*)&data.cstickY);
-		m_read_queue.push_back(*(u32*)&data.trigger);
-		m_read_queue.push_back(data.buttons);
+	uint8_t* a = (uint8_t*)&frameIndex;
+  frameIndex = a[0] << 24 | a[1] << 16 | a[2] << 8 | a[3];
+	bool frameExists = m_current_game->DoesFrameExist(frameIndex);
+	if (!frameExists) {
+	  return;
 	}
-	catch (std::out_of_range) {
-		return;
-	}
+
+	Slippi::FrameData* frame = m_current_game->GetFrame(frameIndex);
+
+	// Add random seed to the front of the response regardless of player
+  m_read_queue.push_back(*(u32*)&frame->randomSeed);
+
+  // Check if player exists
+  if (!frame->players.count(port)) {
+    return;
+  }
+
+  // Get data for this player
+	Slippi::PlayerFrameData data = frame->players.at(port);
+
+  // Add all of the inputs in order
+  m_read_queue.push_back(*(u32*)&data.joystickX);
+  m_read_queue.push_back(*(u32*)&data.joystickY);
+  m_read_queue.push_back(*(u32*)&data.cstickX);
+  m_read_queue.push_back(*(u32*)&data.cstickY);
+  m_read_queue.push_back(*(u32*)&data.trigger);
+  m_read_queue.push_back(data.buttons);
 }
 
 void CEXISlippi::prepareLocationData(int32_t frameIndex, uint8_t port) {
@@ -154,22 +167,25 @@ void CEXISlippi::prepareLocationData(int32_t frameIndex, uint8_t port) {
 	}
 
 	// Load the data from this frame into the read buffer
-	try {
-		uint8_t* a = (uint8_t*)&frameIndex;
-		frameIndex = a[0] << 24 | a[1] << 16 | a[2] << 8 | a[3];
-		Slippi::FrameData* frame = m_current_game->GetFrame(frameIndex);
-
-		// Get data for this player
-		Slippi::PlayerFrameData data = frame->players.at(port);
-
-		// Add all of the inputs in order
-		m_read_queue.push_back(*(u32*)&data.locationX);
-		m_read_queue.push_back(*(u32*)&data.locationY);
-		m_read_queue.push_back(*(u32*)&data.facingDirection);
+	uint8_t* a = (uint8_t*)&frameIndex;
+  frameIndex = a[0] << 24 | a[1] << 16 | a[2] << 8 | a[3];
+	bool frameExists = m_current_game->DoesFrameExist(frameIndex);
+	if (!frameExists) {
+	  return;
 	}
-	catch (std::out_of_range) {
-		return;
-	}
+
+	Slippi::FrameData* frame = m_current_game->GetFrame(frameIndex);
+  if (!frame->players.count(port)) {
+    return;
+  }
+
+  // Get data for this player
+	Slippi::PlayerFrameData data = frame->players.at(port);
+
+	// Add all of the inputs in order
+  m_read_queue.push_back(*(u32*)&data.locationX);
+  m_read_queue.push_back(*(u32*)&data.locationY);
+  m_read_queue.push_back(*(u32*)&data.facingDirection);
 }
 
 void CEXISlippi::ImmWrite(u32 data, u32 size)
@@ -187,12 +203,9 @@ void CEXISlippi::ImmWrite(u32 data, u32 size)
 		m_payload_type = data >> 24;
 
 		// Attempt to get payload size for this command. If not found, don't do anything
-		try {
-			payloadSizes.at(m_payload_type);
-		}
-		catch (std::out_of_range) {
-			m_payload_type = CMD_UNKNOWN;
-			return;
+		if (!payloadSizes.count(m_payload_type)) {
+		  m_payload_type = CMD_UNKNOWN;
+    	return;
 		}
 	}
 

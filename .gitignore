@@ -40,3 +40,9 @@ SlippiLib.pdb
 SlippiLib.log
 SlippiLib.lib
 SlippiLib.idb
+Externals/SlippiLib/CMakeCache.txt
+Externals/SlippiLib/CMakeFiles/
+Externals/SlippiLib/Makefile
+Externals/SlippiLib/cmake_install.cmake
+Ishiiruka.pro
+Source/.idea/

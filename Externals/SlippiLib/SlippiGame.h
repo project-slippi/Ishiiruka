@@ -13,6 +13,8 @@ namespace Slippi {
 
 	const uint8_t GAME_INFO_HEADER_SIZE = 78;
 
+  static uint8_t* data;
+
 	typedef struct {
 		uint8_t internalCharacterId;
 		uint16_t animation;
@@ -83,6 +85,7 @@ namespace Slippi {
 	{
 	public:
 		static SlippiGame* FromFile(std::string path);
+		bool DoesFrameExist(int32_t frame);
 		FrameData* GetFrame(int32_t frame);
 		GameSettings* GetSettings();
 		bool DoesPlayerExist(int8_t port);
