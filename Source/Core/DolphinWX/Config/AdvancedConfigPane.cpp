@@ -33,6 +33,8 @@ void AdvancedConfigPane::InitializeGUI()
 		new DolphinSlider(this, wxID_ANY, 100, 0, 150, wxDefaultPosition, FromDIP(wxSize(200, -1)));
 	m_clock_override_text = new wxStaticText(this, wxID_ANY, "");
 
+	m_qos_enabled = new wxCheckBox(this, wxID_ANY, _("Enable QoS (Quality of Service) bit on packets"));
+	
 	m_custom_rtc_checkbox = new wxCheckBox(this, wxID_ANY, _("Enable Custom RTC"));
 	m_custom_rtc_date_picker = new wxDatePickerCtrl(this, wxID_ANY);
 	m_custom_rtc_time_picker = new wxTimePickerCtrl(this, wxID_ANY);
@@ -47,6 +49,14 @@ void AdvancedConfigPane::InitializeGUI()
 			"Do so at your own risk. Please do not report "
 			"bugs that occur with a non-default clock. "));
 
+	wxStaticText* const netplay_description =
+		new wxStaticText(this, wxID_ANY, _("This setting makes Dolphin tag outgoing packets with a QoS bit.\n\n"
+			"This should make your router prioritize NetPlay packets over normal packets, "
+			"which means you can download and use your Internet connection for other things "
+			"while playing without getting extra packet drops/input lag."
+			"\n\n"
+			"Try turning this setting off only if you experience problems with NetPlay."));	
+
 	wxStaticText* const custom_rtc_description = new wxStaticText(
 		this, wxID_ANY,
 		_("This setting allows you to set a custom real time clock (RTC) separate "
@@ -54,9 +64,11 @@ void AdvancedConfigPane::InitializeGUI()
 
 #ifdef __APPLE__
 	clock_override_description->Wrap(550);
+	netplay_description->Wrap(550);	
 	custom_rtc_description->Wrap(550);
 #else
 	clock_override_description->Wrap(FromDIP(400));
+	netplay_description->Wrap(FromDIP(400));	
 	custom_rtc_description->Wrap(FromDIP(400));
 #endif
 
@@ -75,6 +87,14 @@ void AdvancedConfigPane::InitializeGUI()
 	cpu_options_sizer->AddSpacer(space5);
 	cpu_options_sizer->Add(clock_override_description, 0, wxEXPAND | wxLEFT | wxRIGHT, space5);
 	cpu_options_sizer->AddSpacer(space5);
+
+	wxStaticBoxSizer* const netplay_options_sizer =
+		new wxStaticBoxSizer(wxVERTICAL, this, _("NetPlay Options"));
+	netplay_options_sizer->AddSpacer(space5);
+	netplay_options_sizer->Add(m_qos_enabled, 0, wxEXPAND | wxLEFT | wxRIGHT, space5);
+	netplay_options_sizer->AddSpacer(space5);
+	netplay_options_sizer->Add(netplay_description, 0, wxLEFT | wxRIGHT, space5);
+	netplay_options_sizer->AddSpacer(space5);
 
 	wxFlexGridSizer* const custom_rtc_date_time_sizer =
 		new wxFlexGridSizer(2, wxSize(space5, space5));
@@ -95,6 +115,8 @@ void AdvancedConfigPane::InitializeGUI()
 	main_sizer->AddSpacer(space5);
 	main_sizer->Add(cpu_options_sizer, 0, wxEXPAND | wxLEFT | wxRIGHT, space5);
 	main_sizer->AddSpacer(space5);
+	main_sizer->Add(netplay_options_sizer, 0, wxEXPAND | wxLEFT | wxRIGHT, space5);
+	main_sizer->AddSpacer(space5);
 	main_sizer->Add(custom_rtc_sizer, 0, wxEXPAND | wxLEFT | wxRIGHT, space5);
 	main_sizer->AddSpacer(space5);
 
@@ -110,6 +132,8 @@ void AdvancedConfigPane::LoadGUIValues()
 	m_clock_override_slider->Enable(oc_enabled);
 	UpdateCPUClock();
 	LoadCustomRTC();
+
+	m_qos_enabled->SetValue(SConfig::GetInstance().bQoSEnabled);
 }
 
 void AdvancedConfigPane::BindEvents()
@@ -123,6 +147,9 @@ void AdvancedConfigPane::BindEvents()
 		this);
 	m_clock_override_slider->Bind(wxEVT_UPDATE_UI, &AdvancedConfigPane::OnUpdateCPUClockControls,
 		this);
+
+	m_qos_enabled->Bind(wxEVT_CHECKBOX,
+		&AdvancedConfigPane::OnQoSCheckBoxChanged, this);	
 
 	m_custom_rtc_checkbox->Bind(wxEVT_CHECKBOX, &AdvancedConfigPane::OnCustomRTCCheckBoxChanged,
 		this);
@@ -152,6 +179,11 @@ void AdvancedConfigPane::OnClockOverrideSliderChanged(wxCommandEvent& event)
 	SConfig::GetInstance().m_OCFactor =
 		std::exp2f((m_clock_override_slider->GetValue() - 100.f) / 25.f);
 	UpdateCPUClock();
+}
+
+void AdvancedConfigPane::OnQoSCheckBoxChanged(wxCommandEvent& event)
+{
+	SConfig::GetInstance().bQoSEnabled = m_qos_enabled->IsChecked();
 }
 
 static u32 ToSeconds(wxDateTime date)

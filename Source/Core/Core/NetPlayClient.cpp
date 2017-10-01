@@ -664,7 +664,7 @@ void NetPlayClient::ThreadFunc()
 #ifdef _WIN32
 	QOS_VERSION ver = { 1, 0 };
 
-	if(QOSCreateHandle(&ver, &m_qos_handle))
+	if(SConfig::GetInstance().bQoSEnabled && QOSCreateHandle(&ver, &m_qos_handle))
 	{
 		// from win32.c
 		struct sockaddr_in sin = { 0 };
@@ -695,22 +695,26 @@ void NetPlayClient::ThreadFunc()
 		}
 	}
 #else
-	// highest priority
-	int priority = 7;
-#ifdef __linux__
-	setsockopt(m_server->host->socket, SOL_SOCKET, SO_PRIORITY, &priority, sizeof(priority));
+	if(SConfig::GetInstance().bQoSEnabled)
+	{
+		// highest priority
+		int priority = 7;
+		setsockopt(m_server->host->socket, SOL_SOCKET, SO_PRIORITY, &priority, sizeof(priority));
+
+		// https://www.tucny.com/Home/dscp-tos
+		// ef is better than cs7
+		int tos_val = 0xb8;
+		qos_success = setsockopt(m_server->host->socket, IPPROTO_IP, IP_TOS, &tos_val, sizeof(tos_val)) == 0;
+	}
 #endif
 
-	// https://www.tucny.com/Home/dscp-tos
-	// ef is better than cs7
-	int tos_val = 0xb8;
-	qos_success = setsockopt(m_server->host->socket, IPPROTO_IP, IP_TOS, &tos_val, sizeof(tos_val)) == 0;
-#endif
-
-	if(qos_success)
-		m_dialog->AppendChat("QoS was successfully enabled, netplay packets should be prioritized over normal packets");
-	else
-		m_dialog->AppendChat("QoS couldn't be enabled, other network activity might interfere with netplay");
+	if(SConfig::GetInstance().bQoSEnabled)
+	{
+		if(qos_success)
+			m_dialog->AppendChat("QoS was successfully enabled, netplay packets should be prioritized over normal packets");
+		else
+			m_dialog->AppendChat("QoS couldn't be enabled, other network activity might interfere with netplay");
+	}
 
 	while (m_do_loop.IsSet())
 	{

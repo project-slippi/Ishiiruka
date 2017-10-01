@@ -114,6 +114,7 @@ struct SConfig : NonCopyable
 	bool bEnableCheats = false;
 	bool bEnableMemcardSdWriting = true;
 	bool bAllowAllNetplayVersions = false;
+	bool bQoSEnabled = true;
 
 	bool bDPL2Decoder = false;
 	bool bTimeStretching = false;

@@ -365,7 +365,7 @@ unsigned int NetPlayServer::OnConnect(ENetPeer* socket)
 	sin.sin_port = ENET_HOST_TO_NET_16(player.socket->host->address.port);
 	sin.sin_addr.s_addr = player.socket->host->address.host;
 
-	if(QOSCreateHandle(&ver, &player.qos_handle))
+	if(SConfig::GetInstance().bQoSEnabled && QOSCreateHandle(&ver, &player.qos_handle))
 	{
 		QOSAddSocketToFlow(player.qos_handle, player.socket->host->socket, reinterpret_cast<PSOCKADDR>(&sin),
 			// this is 0x38
@@ -377,8 +377,8 @@ unsigned int NetPlayServer::OnConnect(ENetPeer* socket)
 
 		// this will fail if we're not admin
 		// sets DSCP to the same as linux (0x2e)
-		QOSSetFlow(m_qos_handle,
-			m_qos_flow_id,
+		QOSSetFlow(player.qos_handle,
+			player.qos_flow_id,
 			QOSSetOutgoingDSCPValue,
 			sizeof(DWORD),
 			&dscp,
@@ -386,16 +386,17 @@ unsigned int NetPlayServer::OnConnect(ENetPeer* socket)
 			nullptr);
 	}
 #else
-	// highest priority
-	int priority = 7;
-#ifdef __linux__
-	setsockopt(player.socket->host->socket, SOL_SOCKET, SO_PRIORITY, &priority, sizeof(priority));
-#endif
+	if(SConfig::GetInstance().bQoSEnabled)
+	{
+		// highest priority
+		int priority = 7;
+		setsockopt(player.socket->host->socket, SOL_SOCKET, SO_PRIORITY, &priority, sizeof(priority));
 
-	// https://www.tucny.com/Home/dscp-tos
-	// ef is better than cs7
-	int tos_val = 0xb8;
-	setsockopt(player.socket->host->socket, IPPROTO_IP, IP_TOS, &tos_val, sizeof(tos_val));
+		// https://www.tucny.com/Home/dscp-tos
+		// ef is better than cs7
+		int tos_val = 0xb8;
+		setsockopt(player.socket->host->socket, IPPROTO_IP, IP_TOS, &tos_val, sizeof(tos_val));
+	}
 #endif
 
 	return 0;
