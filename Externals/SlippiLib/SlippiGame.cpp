@@ -191,14 +191,14 @@ namespace Slippi {
 		fclose(inputFile);
 
 		SlippiGame* result = processFile(fileContents, fileSize);
-		
+
 		free(fileContents);
 		return result;
 	}
 
-  bool SlippiGame::DoesFrameExist(int32_t frame) {
-    return (bool)game->frameData.count(frame);
-  }
+	bool SlippiGame::DoesFrameExist(int32_t frame) {
+		return (bool)game->frameData.count(frame);
+	}
 
 	FrameData* SlippiGame::GetFrame(int32_t frame) {
 		// Get the frame we want

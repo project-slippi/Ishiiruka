@@ -17,7 +17,7 @@
 #include "wx/datetime.h"
 
 CEXISlippi::CEXISlippi() {
-  INFO_LOG(EXPANSIONINTERFACE, "EXI SLIPPI Constructor called.");
+	INFO_LOG(EXPANSIONINTERFACE, "EXI SLIPPI Constructor called.");
 }
 
 CEXISlippi::~CEXISlippi() {
@@ -46,16 +46,43 @@ void CEXISlippi::closeFile() {
 	m_file = nullptr;
 }
 
-void CEXISlippi::writeFileContents(u8* toWrite, u32 length) {
+void CEXISlippi::writeByteArr(int16_t length, u8 options, u8* byteArr) {
+	if (options == 1) {
+		// If the game sends over option 1 that means a file should be created
+		createNewFile();
+
+		// Start ubjson file and prepare the "body" element
+		u8 headerBytes[] = { '{', 'U', 4, 'e', 'v', 'e', 'n', 't', 's', '[' };
+		m_file.WriteBytes(headerBytes, 10);
+	}
+
 	if (!m_file) {
 		// If no file, do nothing
 		return;
 	}
 
-	bool result = m_file.WriteBytes(toWrite, length);
+	// Depending on length of byte array, indicate the length differently
+	if (length < 256) {
+		u8 shortArrDescription[] = { '[', '$', 'U', '#', 'U', (u8)length };
+		m_file.WriteBytes(shortArrDescription, 6);
+	}
+	else {
+		u8 upperByte = length >> 8;
+		u8 lowerByte = length & 0xFF;
+		u8 shortArrDescription[] = { '[', '$', 'U', '#', 'I', upperByte, lowerByte };
+		m_file.WriteBytes(shortArrDescription, 7);
+	}
 
+	bool result = m_file.WriteBytes(byteArr, length);
 	if (!result) {
 		ERROR_LOG(EXPANSIONINTERFACE, "Failed to write data to file.");
+	}
+
+	if (options == 2) {
+		// This option indicates we are done sending over body
+		u8 closingBytes[] = { ']', '}' };
+		m_file.WriteBytes(closingBytes, 2);
+		closeFile();
 	}
 }
 
@@ -104,7 +131,7 @@ void CEXISlippi::prepareGameInfo() {
 
 		// this is the position in the array that this player's character info is stored
 		int pos = player1Pos + (9 * i);
-		
+
 		// here we have determined the player is playing sheik or zelda...
 		// at this point let's overwrite the player's character with the one
 		// that they are playing
@@ -129,32 +156,32 @@ void CEXISlippi::prepareFrameData(int32_t frameIndex, uint8_t port) {
 
 	// Load the data from this frame into the read buffer
 	uint8_t* a = (uint8_t*)&frameIndex;
-  frameIndex = a[0] << 24 | a[1] << 16 | a[2] << 8 | a[3];
+	frameIndex = a[0] << 24 | a[1] << 16 | a[2] << 8 | a[3];
 	bool frameExists = m_current_game->DoesFrameExist(frameIndex);
 	if (!frameExists) {
-	  return;
+		return;
 	}
 
 	Slippi::FrameData* frame = m_current_game->GetFrame(frameIndex);
 
 	// Add random seed to the front of the response regardless of player
-  m_read_queue.push_back(*(u32*)&frame->randomSeed);
+	m_read_queue.push_back(*(u32*)&frame->randomSeed);
 
-  // Check if player exists
-  if (!frame->players.count(port)) {
-    return;
-  }
+	// Check if player exists
+	if (!frame->players.count(port)) {
+		return;
+	}
 
-  // Get data for this player
+	// Get data for this player
 	Slippi::PlayerFrameData data = frame->players.at(port);
 
-  // Add all of the inputs in order
-  m_read_queue.push_back(*(u32*)&data.joystickX);
-  m_read_queue.push_back(*(u32*)&data.joystickY);
-  m_read_queue.push_back(*(u32*)&data.cstickX);
-  m_read_queue.push_back(*(u32*)&data.cstickY);
-  m_read_queue.push_back(*(u32*)&data.trigger);
-  m_read_queue.push_back(data.buttons);
+	// Add all of the inputs in order
+	m_read_queue.push_back(*(u32*)&data.joystickX);
+	m_read_queue.push_back(*(u32*)&data.joystickY);
+	m_read_queue.push_back(*(u32*)&data.cstickX);
+	m_read_queue.push_back(*(u32*)&data.cstickY);
+	m_read_queue.push_back(*(u32*)&data.trigger);
+	m_read_queue.push_back(data.buttons);
 }
 
 void CEXISlippi::prepareLocationData(int32_t frameIndex, uint8_t port) {
@@ -168,24 +195,24 @@ void CEXISlippi::prepareLocationData(int32_t frameIndex, uint8_t port) {
 
 	// Load the data from this frame into the read buffer
 	uint8_t* a = (uint8_t*)&frameIndex;
-  frameIndex = a[0] << 24 | a[1] << 16 | a[2] << 8 | a[3];
+	frameIndex = a[0] << 24 | a[1] << 16 | a[2] << 8 | a[3];
 	bool frameExists = m_current_game->DoesFrameExist(frameIndex);
 	if (!frameExists) {
-	  return;
+		return;
 	}
 
 	Slippi::FrameData* frame = m_current_game->GetFrame(frameIndex);
-  if (!frame->players.count(port)) {
-    return;
-  }
+	if (!frame->players.count(port)) {
+		return;
+	}
 
-  // Get data for this player
+	// Get data for this player
 	Slippi::PlayerFrameData data = frame->players.at(port);
 
 	// Add all of the inputs in order
-  m_read_queue.push_back(*(u32*)&data.locationX);
-  m_read_queue.push_back(*(u32*)&data.locationY);
-  m_read_queue.push_back(*(u32*)&data.facingDirection);
+	m_read_queue.push_back(*(u32*)&data.locationX);
+	m_read_queue.push_back(*(u32*)&data.locationY);
+	m_read_queue.push_back(*(u32*)&data.facingDirection);
 }
 
 void CEXISlippi::ImmWrite(u32 data, u32 size)
@@ -204,8 +231,8 @@ void CEXISlippi::ImmWrite(u32 data, u32 size)
 
 		// Attempt to get payload size for this command. If not found, don't do anything
 		if (!payloadSizes.count(m_payload_type)) {
-		  m_payload_type = CMD_UNKNOWN;
-    	return;
+			m_payload_type = CMD_UNKNOWN;
+			return;
 		}
 	}
 
@@ -222,23 +249,19 @@ void CEXISlippi::ImmWrite(u32 data, u32 size)
 	// This section deals with saying we are done handling the payload
 	// add one because we count the command as part of the total size
 	u32 payloadSize = payloadSizes[m_payload_type];
+	int16_t byteArrLength;
+	if (m_payload_type == CMD_WRITE_BYTE_ARR && m_payload_loc > 3) {
+		// the write byte arr type actually has a payload of variable length
+		// the game will tell us what length that is
+		byteArrLength = m_payload[1] << 8 | m_payload[2];
+		payloadSize += byteArrLength;
+	}
+
 	if (m_payload_loc >= payloadSize + 1) {
 		// Handle payloads
 		switch (m_payload_type) {
-		case CMD_GAME_INIT:
-			// Here we create a new file if one doesn't exist already
-			createNewFile();
-			writeFileContents(&m_payload[0], m_payload_loc);
-			break;
-		case CMD_GAME_START:
-			writeFileContents(&m_payload[0], m_payload_loc);
-			break;
-		case CMD_FRAME_UPDATE:
-			writeFileContents(&m_payload[0], m_payload_loc);
-			break;
-		case CMD_GAME_END:
-			writeFileContents(&m_payload[0], m_payload_loc);
-			closeFile();
+		case CMD_WRITE_BYTE_ARR:
+			writeByteArr(byteArrLength, m_payload[3], &m_payload[4]);
 			break;
 		case CMD_PREPARE_REPLAY:
 			loadFile("Slippi/CurrentGame.slp");

@@ -28,28 +28,22 @@ public:
 private:
 	enum {
 		CMD_UNKNOWN = 0x0,
-		CMD_GAME_INIT = 0x36,
-		CMD_GAME_START = 0x37,
-		CMD_FRAME_UPDATE = 0x38,
-		CMD_GAME_END = 0x39,
+		CMD_WRITE_BYTE_ARR = 0x74,
 		CMD_PREPARE_REPLAY = 0x75,
 		CMD_READ_FRAME = 0x76,
 		CMD_GET_LOCATION = 0x77
 	};
 
 	std::unordered_map<u8, u32> payloadSizes = {
-		{ CMD_GAME_INIT, 0x140 },
-		{ CMD_GAME_START, 6 },
-		{ CMD_FRAME_UPDATE, 70 },
-		{ CMD_GAME_END, 1 },
+		{ CMD_WRITE_BYTE_ARR, 3},
 		{ CMD_PREPARE_REPLAY, 0 },
 		{ CMD_READ_FRAME, 5 },
 		{ CMD_GET_LOCATION, 5 }
 	};
 
 	// .slp File creation stuff
+	void writeByteArr(int16_t length, u8 options, u8* byteArr);
 	void createNewFile();
-	void writeFileContents(u8* toWrite, u32 length);
 	void closeFile();
 	std::string generateFileName();
 

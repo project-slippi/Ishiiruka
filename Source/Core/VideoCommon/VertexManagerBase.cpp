@@ -108,9 +108,9 @@ void VertexManagerBase::PrepareForAdditionalData(int primitive, u32 count, u32 s
 		if (count > GetRemainingIndices(primitive))
 			ERROR_LOG(VIDEO, "VertexManagerBase: Buffer not large enough for all indices! "
 				"Increase MAXIBUFFERSIZE or we need primitive breaking after all.");
-		if (s_pCurBufferPointer && needed_vertex_bytes > GetRemainingSize())
-			ERROR_LOG(VIDEO, "VertexManagerBase: Buffer not large enough for all vertices! "
-				"Increase MAXVBUFFERSIZE or we need primitive breaking after all.");
+		//if (s_pCurBufferPointer && needed_vertex_bytes > GetRemainingSize())
+		//	ERROR_LOG(VIDEO, "VertexManagerBase: Buffer not large enough for all vertices! "
+		//		"Increase MAXVBUFFERSIZE or we need primitive breaking after all.");
 #endif
 		Flush();
 	}
