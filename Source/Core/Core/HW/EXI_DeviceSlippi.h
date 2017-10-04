@@ -28,21 +28,32 @@ public:
 private:
 	enum {
 		CMD_UNKNOWN = 0x0,
-		CMD_WRITE_BYTE_ARR = 0x74,
+		CMD_RECEIVE_COMMANDS = 0x35,
+		CMD_RECEIVE_GAME_INFO = 0x36,
+		CMD_RECEIVE_FRAME_UPDATE = 0x38,
+		CMD_RECEIVE_GAME_END = 0x39,
 		CMD_PREPARE_REPLAY = 0x75,
 		CMD_READ_FRAME = 0x76,
 		CMD_GET_LOCATION = 0x77
 	};
 
 	std::unordered_map<u8, u32> payloadSizes = {
-		{ CMD_WRITE_BYTE_ARR, 3},
+		// The actual size of this command will be sent in one byte
+		// after the command is received. The other receive command IDs
+		// and sizes will be received immediately following
+		{ CMD_RECEIVE_COMMANDS, 1},
+
+		// The following are all commands used to play back a replay and
+		// have fixed sizes
 		{ CMD_PREPARE_REPLAY, 0 },
 		{ CMD_READ_FRAME, 5 },
 		{ CMD_GET_LOCATION, 5 }
 	};
 
 	// .slp File creation stuff
-	void writeByteArr(int16_t length, u8 options, u8* byteArr);
+	u32 writenByteCount = 0;
+	void configureCommands(u8* payload, u8 length);
+	void writeToFile(u8* payload, u32 length, std::string fileOption);
 	void createNewFile();
 	void closeFile();
 	std::string generateFileName();

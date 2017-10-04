@@ -24,15 +24,86 @@ CEXISlippi::~CEXISlippi() {
 	closeFile();
 }
 
+void CEXISlippi::configureCommands(u8* payload, u8 length) {
+	for (int i = 1; i < length; i += 3) {
+		// Go through the receive commands payload and set up other commands
+		u8 commandByte = payload[i];
+		u32 commandPayloadSize = payload[i + 1] << 8 | payload[i + 2];
+		payloadSizes[commandByte] = commandPayloadSize;
+	}
+}
+
+void CEXISlippi::writeToFile(u8* payload, u32 length, std::string fileOption) {
+	std::vector<u8> dataToWrite;
+	if (fileOption == "create") {
+		// If the game sends over option 1 that means a file should be created
+		createNewFile();
+
+		// Start ubjson file and prepare the "raw" element that game
+		// data output will be dumped into. The size of the raw output will
+		// be initialized to 0 until all of the data has been received
+		std::vector<u8> headerBytes(
+			{ '{', 'U', 3, 'r', 'a', 'w', '[', '$', 'U', '#', 'l', 0, 0, 0, 0 }
+		);
+		dataToWrite.insert(dataToWrite.end(), headerBytes.begin(), headerBytes.end());
+
+		// Used to keep track of how many bytes have been written to the file
+		writenByteCount = 0;
+	}
+
+	// If no file, do nothing
+	if (!m_file) {
+		return;
+	}
+
+	// Add the payload to data to write
+	dataToWrite.insert(dataToWrite.end(), payload, payload + length);
+	writenByteCount += length;
+
+	// If we are going to close the file, generate data to complete the UBJSON file
+	if (fileOption == "close") {
+		// This option indicates we are done sending over body
+		std::vector<u8> closingBytes({ '}' });
+		dataToWrite.insert(dataToWrite.end(), closingBytes.begin(), closingBytes.end());
+	}
+
+	// Write data to file
+	bool result = m_file.WriteBytes(&dataToWrite[0], dataToWrite.size());
+	if (!result) {
+		ERROR_LOG(EXPANSIONINTERFACE, "Failed to write data to file.");
+	}
+
+	// If file should be closed, close it
+	if (fileOption == "close") {
+		// Write the number of bytes for the raw output
+		u8 sizeByte0 = writenByteCount >> 24;
+		u8 sizeByte1 = (writenByteCount & 0xFF0000) >> 16;
+		u8 sizeByte2 = (writenByteCount & 0xFF00) >> 8;
+		u8 sizeByte3 = writenByteCount & 0xFF;
+		m_file.Seek(11, 0);
+		std::vector<u8> sizeBytes({ sizeByte0, sizeByte1, sizeByte2, sizeByte3 });
+		m_file.WriteBytes(&sizeBytes[0], sizeBytes.size());
+
+		// Close file
+		closeFile();
+	}
+}
+
 void CEXISlippi::createNewFile() {
 	if (m_file) {
-		// If we already have a file, return
-		return;
+		// If there's already a file open, close that one
+		closeFile();
 	}
 
 	File::CreateDir("Slippi");
 	std::string filepath = generateFileName();
 	m_file = File::IOFile(filepath, "wb");
+}
+
+std::string CEXISlippi::generateFileName()
+{
+	std::string str = wxDateTime::Now().Format(wxT("%Y%m%dT%H%M%S"));
+	return StringFromFormat("Slippi/Game_%s.slp", str.c_str());
 }
 
 void CEXISlippi::closeFile() {
@@ -44,52 +115,6 @@ void CEXISlippi::closeFile() {
 	// If this is the end of the game end payload, reset the file so that we create a new one
 	m_file.Close();
 	m_file = nullptr;
-}
-
-void CEXISlippi::writeByteArr(int16_t length, u8 options, u8* byteArr) {
-	if (options == 1) {
-		// If the game sends over option 1 that means a file should be created
-		createNewFile();
-
-		// Start ubjson file and prepare the "body" element
-		u8 headerBytes[] = { '{', 'U', 4, 'e', 'v', 'e', 'n', 't', 's', '[' };
-		m_file.WriteBytes(headerBytes, 10);
-	}
-
-	if (!m_file) {
-		// If no file, do nothing
-		return;
-	}
-
-	// Depending on length of byte array, indicate the length differently
-	if (length < 256) {
-		u8 shortArrDescription[] = { '[', '$', 'U', '#', 'U', (u8)length };
-		m_file.WriteBytes(shortArrDescription, 6);
-	}
-	else {
-		u8 upperByte = length >> 8;
-		u8 lowerByte = length & 0xFF;
-		u8 shortArrDescription[] = { '[', '$', 'U', '#', 'I', upperByte, lowerByte };
-		m_file.WriteBytes(shortArrDescription, 7);
-	}
-
-	bool result = m_file.WriteBytes(byteArr, length);
-	if (!result) {
-		ERROR_LOG(EXPANSIONINTERFACE, "Failed to write data to file.");
-	}
-
-	if (options == 2) {
-		// This option indicates we are done sending over body
-		u8 closingBytes[] = { ']', '}' };
-		m_file.WriteBytes(closingBytes, 2);
-		closeFile();
-	}
-}
-
-std::string CEXISlippi::generateFileName()
-{
-	std::string str = wxDateTime::Now().Format(wxT("%Y%m%dT%H%M%S"));
-	return StringFromFormat("Slippi/Game_%s.slp", str.c_str());
 }
 
 void CEXISlippi::loadFile(std::string path) {
@@ -249,19 +274,21 @@ void CEXISlippi::ImmWrite(u32 data, u32 size)
 	// This section deals with saying we are done handling the payload
 	// add one because we count the command as part of the total size
 	u32 payloadSize = payloadSizes[m_payload_type];
-	int16_t byteArrLength;
-	if (m_payload_type == CMD_WRITE_BYTE_ARR && m_payload_loc > 3) {
-		// the write byte arr type actually has a payload of variable length
-		// the game will tell us what length that is
-		byteArrLength = m_payload[1] << 8 | m_payload[2];
-		payloadSize += byteArrLength;
+	if (m_payload_type == CMD_RECEIVE_COMMANDS && m_payload_loc > 1) {
+		// the receive commands command tells us exactly how long it is
+		// this is to make adding new commands easier
+		payloadSize = m_payload[1];
 	}
 
 	if (m_payload_loc >= payloadSize + 1) {
 		// Handle payloads
 		switch (m_payload_type) {
-		case CMD_WRITE_BYTE_ARR:
-			writeByteArr(byteArrLength, m_payload[3], &m_payload[4]);
+		case CMD_RECEIVE_COMMANDS:
+			configureCommands(&m_payload[1], m_payload_loc - 1);
+			writeToFile(&m_payload[0], m_payload_loc, "create");
+			break;
+		case CMD_RECEIVE_GAME_END:
+			writeToFile(&m_payload[0], m_payload_loc, "close");
 			break;
 		case CMD_PREPARE_REPLAY:
 			loadFile("Slippi/CurrentGame.slp");
@@ -272,6 +299,9 @@ void CEXISlippi::ImmWrite(u32 data, u32 size)
 			break;
 		case CMD_GET_LOCATION:
 			prepareLocationData(*(int32_t*)&m_payload[1], *(uint8_t*)&m_payload[5]);
+			break;
+		default:
+			writeToFile(&m_payload[0], m_payload_loc, "");
 			break;
 		}
 
