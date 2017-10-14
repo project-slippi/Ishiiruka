@@ -4,8 +4,11 @@
 #include <array>
 #include <vector>
 #include <unordered_map>
+#include <iostream>
+#include <fstream>
 
 namespace Slippi {
+	const uint8_t EVENT_PAYLOAD_SIZES = 0x35;
 	const uint8_t EVENT_GAME_INIT = 0x36;
 	const uint8_t EVENT_GAME_START = 0x37;
 	const uint8_t EVENT_UPDATE = 0x38;
@@ -76,9 +79,9 @@ namespace Slippi {
 
 	static std::unordered_map<uint8_t, uint32_t> asmEvents = {
 		{ EVENT_GAME_INIT, 0x140 },
-		{ EVENT_GAME_START, 6 },
-		{ EVENT_UPDATE, 70 },
-		{ EVENT_GAME_END, 1 }
+		{ EVENT_GAME_START, 0x6 },
+		{ EVENT_UPDATE, 0x46 },
+		{ EVENT_GAME_END, 0x1 }
 	};
 
 	class SlippiGame
@@ -92,6 +95,6 @@ namespace Slippi {
 	private:
 		Game* game;
 
-		static SlippiGame* processFile(uint8_t* fileContents, uint64_t fileSize);
+		static SlippiGame* processFile(char* fileContents, uint64_t fileSize);
 	};
 }

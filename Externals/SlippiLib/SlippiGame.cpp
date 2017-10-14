@@ -124,37 +124,83 @@ namespace Slippi {
 		game->winCondition = readByte(data, idx);
 	}
 
-	// Taken from Dolphin source
-	uint64_t getSize(FILE* f) {
-		// can't use off_t here because it can be 32-bit
-		uint64_t pos = ftell(f);
-		if (fseek(f, 0, SEEK_END) != 0)
-		{
+	// This function gets the position where the raw data starts
+	int getRawDataPosition(std::ifstream* f) {
+		char buffer[2];
+		f->seekg(0, std::ios::beg);
+		f->read(buffer, 2);
+
+		if (buffer[0] == 0x36) {
 			return 0;
 		}
 
-		uint64_t size = ftell(f);
-		if ((size != pos) && (fseek(f, pos, SEEK_SET) != 0))
-		{
+		if (buffer[0] != '{') {
+			// TODO: Do something here to cause an error
 			return 0;
 		}
 
-		return size;
+		// TODO: Read ubjson file to find the "raw" element and return the start of it
+		// TODO: For now since raw is the first element the data will always start at 15
+		return 15;
 	}
 
-	SlippiGame* SlippiGame::processFile(uint8_t* fileContents, uint64_t fileSize) {
+	int getRawDataLength(std::ifstream* f, int position, int fileSize) {
+		if (position == 0) {
+			return fileSize;
+		}
+
+		char buffer[4];
+		f->seekg(position - 4, std::ios::beg);
+		f->read(buffer, 4);
+
+		return buffer[0] << 24 | buffer[1] << 16 | buffer[2] << 8 | buffer[3];
+	}
+
+	std::unordered_map<uint8_t, uint32_t> getMessageSizes(std::ifstream* f, int position) {
+		// Support old file format
+		if (position == 0) {
+			return {
+				{ EVENT_GAME_INIT, 0x140 },
+				{ EVENT_GAME_START, 0x6 },
+				{ EVENT_UPDATE, 0x46 },
+				{ EVENT_GAME_END, 0x1 }
+			};
+		}
+
+		char buffer[2];
+		f->seekg(position, std::ios::beg);
+		f->read(buffer, 2);
+		if (buffer[0] != EVENT_PAYLOAD_SIZES) {
+			return {};
+		}
+
+		std::unordered_map<uint8_t, uint32_t> messageSizes;
+
+		int payloadLength = buffer[1];
+		char messageSizesBuffer[payloadLength - 1];
+		f->read(messageSizesBuffer, payloadLength - 1);
+		for (int i = 0; i < payloadLength - 1; i += 3) {
+			uint8_t command = messageSizesBuffer[i];
+			uint16_t size = messageSizesBuffer[i + 1] << 8 | messageSizesBuffer[i + 2];
+			messageSizes[command] = size;
+		}
+
+		return messageSizes;
+	}
+
+	SlippiGame* SlippiGame::processFile(char* rawData, uint64_t rawDataLength) {
 		SlippiGame* result = new SlippiGame();
 		result->game = new Game();
 
 		// Iterate through the data and process frames
-		for (int i = 0; i < fileSize; i++) {
-			int code = fileContents[i];
+		for (int i = 0; i < rawDataLength; i++) {
+			int code = rawData[i];
 			int msgLength = asmEvents[code];
 			if (!msgLength) {
 				return nullptr;
 			}
 
-			data = &fileContents[i + 1];
+			data = (uint8_t*)&rawData[i + 1];
 			switch (code) {
 			case EVENT_GAME_INIT:
 				handleGameInit(result->game);
@@ -176,23 +222,22 @@ namespace Slippi {
 	}
 
 	SlippiGame* SlippiGame::FromFile(std::string path) {
-		// Get file
-		FILE* inputFile = fopen(path.c_str(), "rb");
-		if (!inputFile) {
+		std::ifstream file(path, std::ios::in|std::ios::binary|std::ios::ate);
+		if (!file.is_open()) {
 			return nullptr;
 		}
 
-		// Get file size
-		uint64_t fileSize = getSize(inputFile);
+		int fileLength = file.tellg();
+		int rawDataPos = getRawDataPosition(&file);
+		int rawDataLength = getRawDataLength(&file, rawDataPos, fileLength);
+		asmEvents = getMessageSizes(&file, rawDataPos);
 
-		// Write contents to a uint8_t array
-		uint8_t* fileContents = (uint8_t*)malloc(fileSize);
-		fread(fileContents, sizeof(uint8_t), fileSize, inputFile);
-		fclose(inputFile);
+		char rawData[rawDataLength];
+		file.seekg(rawDataPos, std::ios::beg);
+		file.read(rawData, rawDataLength);
 
-		SlippiGame* result = processFile(fileContents, fileSize);
+		SlippiGame* result = processFile(rawData, rawDataLength);
 
-		free(fileContents);
 		return result;
 	}
 

@@ -48,7 +48,7 @@ void CEXISlippi::writeToFile(u8* payload, u32 length, std::string fileOption) {
 		dataToWrite.insert(dataToWrite.end(), headerBytes.begin(), headerBytes.end());
 
 		// Used to keep track of how many bytes have been written to the file
-		writenByteCount = 0;
+		writtenByteCount = 0;
 	}
 
 	// If no file, do nothing
@@ -58,7 +58,7 @@ void CEXISlippi::writeToFile(u8* payload, u32 length, std::string fileOption) {
 
 	// Add the payload to data to write
 	dataToWrite.insert(dataToWrite.end(), payload, payload + length);
-	writenByteCount += length;
+	writtenByteCount += length;
 
 	// If we are going to close the file, generate data to complete the UBJSON file
 	if (fileOption == "close") {
@@ -76,10 +76,10 @@ void CEXISlippi::writeToFile(u8* payload, u32 length, std::string fileOption) {
 	// If file should be closed, close it
 	if (fileOption == "close") {
 		// Write the number of bytes for the raw output
-		u8 sizeByte0 = writenByteCount >> 24;
-		u8 sizeByte1 = (writenByteCount & 0xFF0000) >> 16;
-		u8 sizeByte2 = (writenByteCount & 0xFF00) >> 8;
-		u8 sizeByte3 = writenByteCount & 0xFF;
+		u8 sizeByte0 = writtenByteCount >> 24;
+		u8 sizeByte1 = (writtenByteCount & 0xFF0000) >> 16;
+		u8 sizeByte2 = (writtenByteCount & 0xFF00) >> 8;
+		u8 sizeByte3 = writtenByteCount & 0xFF;
 		m_file.Seek(11, 0);
 		std::vector<u8> sizeBytes({ sizeByte0, sizeByte1, sizeByte2, sizeByte3 });
 		m_file.WriteBytes(&sizeBytes[0], sizeBytes.size());
