@@ -4,14 +4,20 @@
 #include <array>
 #include <vector>
 #include <unordered_map>
+#include <iostream>
+#include <fstream>
 
 namespace Slippi {
+	const uint8_t EVENT_PAYLOAD_SIZES = 0x35;
 	const uint8_t EVENT_GAME_INIT = 0x36;
 	const uint8_t EVENT_GAME_START = 0x37;
 	const uint8_t EVENT_UPDATE = 0x38;
 	const uint8_t EVENT_GAME_END = 0x39;
 
 	const uint8_t GAME_INFO_HEADER_SIZE = 78;
+	const int32_t GAME_FIRST_FRAME = -123;
+	const uint8_t GAME_SHEIK_INTERNAL_ID = 0x7;
+	const uint8_t GAME_SHEIK_EXTERNAL_ID = 0x13;
 
   static uint8_t* data;
 
@@ -76,9 +82,9 @@ namespace Slippi {
 
 	static std::unordered_map<uint8_t, uint32_t> asmEvents = {
 		{ EVENT_GAME_INIT, 0x140 },
-		{ EVENT_GAME_START, 6 },
-		{ EVENT_UPDATE, 70 },
-		{ EVENT_GAME_END, 1 }
+		{ EVENT_GAME_START, 0x6 },
+		{ EVENT_UPDATE, 0x46 },
+		{ EVENT_GAME_END, 0x1 }
 	};
 
 	class SlippiGame

@@ -51,7 +51,7 @@ private:
 	};
 
 	// .slp File creation stuff
-	u32 writenByteCount = 0;
+	u32 writtenByteCount = 0;
 	void configureCommands(u8* payload, u8 length);
 	void writeToFile(u8* payload, u32 length, std::string fileOption);
 	void createNewFile();
