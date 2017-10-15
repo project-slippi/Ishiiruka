@@ -15,6 +15,9 @@ namespace Slippi {
 	const uint8_t EVENT_GAME_END = 0x39;
 
 	const uint8_t GAME_INFO_HEADER_SIZE = 78;
+	const int32_t GAME_FIRST_FRAME = -123;
+	const uint8_t GAME_SHEIK_INTERNAL_ID = 0x7;
+	const uint8_t GAME_SHEIK_EXTERNAL_ID = 0x13;
 
   static uint8_t* data;
 
@@ -95,6 +98,6 @@ namespace Slippi {
 	private:
 		Game* game;
 
-		static SlippiGame* processFile(char* fileContents, uint64_t fileSize);
+		static SlippiGame* processFile(uint8_t* fileContents, uint64_t fileSize);
 	};
 }

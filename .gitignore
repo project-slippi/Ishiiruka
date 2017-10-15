@@ -46,3 +46,4 @@ Externals/SlippiLib/Makefile
 Externals/SlippiLib/cmake_install.cmake
 Ishiiruka.pro
 Source/.idea/
+*.Build.CppClean.log

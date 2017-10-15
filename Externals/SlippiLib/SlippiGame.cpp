@@ -40,8 +40,34 @@ namespace Slippi {
 			game->settings.header[i] = readWord(data, idx);
 		}
 
-		//Load stage ID
+		// Load random seed
 		game->settings.randomSeed = readWord(data, idx);
+
+		// Pull header data into struct
+		int player1Pos = 24; // This is the index of the first players character info
+		std::array<uint32_t, Slippi::GAME_INFO_HEADER_SIZE> gameInfoHeader = game->settings.header;
+		for (int i = 0; i < 4; i++) {
+			// this is the position in the array that this player's character info is stored
+			int pos = player1Pos + (9 * i);
+
+			uint32_t playerInfo = gameInfoHeader[pos];
+			uint8_t playerType = (playerInfo & 0x00FF0000) >> 16;
+			if (playerType == 0x3) {
+				// Player type 3 is an empty slot
+				continue;
+			}
+
+			PlayerSettings* p = new PlayerSettings();
+			p->controllerPort = i;
+			p->characterId = playerInfo >> 24;
+			p->playerType = playerType;
+			p->characterColor = playerInfo & 0xFF;
+
+			//Add player settings to result
+			game->settings.players[p->controllerPort] = *p;
+		}
+
+		game->settings.stage = gameInfoHeader[3] & 0xFFFF;
 	}
 
 	void handleGameStart(Game* game) {
@@ -116,6 +142,11 @@ namespace Slippi {
 
 		// Add frame to game
 		game->frameData[frameCount] = *frame;
+
+		// Check if a player started as sheik and update
+		if (frameCount == GAME_FIRST_FRAME && p->internalCharacterId == GAME_SHEIK_INTERNAL_ID) {
+			game->settings.players[playerSlot].characterId = GAME_SHEIK_EXTERNAL_ID;
+		}
 	}
 
 	void handleGameEnd(Game* game) {
@@ -144,7 +175,7 @@ namespace Slippi {
 		return 15;
 	}
 
-	int getRawDataLength(std::ifstream* f, int position, int fileSize) {
+	uint32_t getRawDataLength(std::ifstream* f, int position, int fileSize) {
 		if (position == 0) {
 			return fileSize;
 		}
@@ -153,7 +184,9 @@ namespace Slippi {
 		f->seekg(position - 4, std::ios::beg);
 		f->read(buffer, 4);
 
-		return buffer[0] << 24 | buffer[1] << 16 | buffer[2] << 8 | buffer[3];
+		uint8_t* byteBuf = (uint8_t*)&buffer[0];
+		uint32_t length = byteBuf[0] << 24 | byteBuf[1] << 16 | byteBuf[2] << 8 | byteBuf[3];
+		return length;
 	}
 
 	std::unordered_map<uint8_t, uint32_t> getMessageSizes(std::ifstream* f, int position) {
@@ -174,11 +207,13 @@ namespace Slippi {
 			return {};
 		}
 
-		std::unordered_map<uint8_t, uint32_t> messageSizes;
-
 		int payloadLength = buffer[1];
-		char messageSizesBuffer[payloadLength - 1];
-		f->read(messageSizesBuffer, payloadLength - 1);
+		std::unordered_map<uint8_t, uint32_t> messageSizes = {
+			{ EVENT_PAYLOAD_SIZES, payloadLength }
+		};
+		
+		std::vector<char> messageSizesBuffer(payloadLength - 1);
+		f->read(&messageSizesBuffer[0], payloadLength - 1);
 		for (int i = 0; i < payloadLength - 1; i += 3) {
 			uint8_t command = messageSizesBuffer[i];
 			uint16_t size = messageSizesBuffer[i + 1] << 8 | messageSizesBuffer[i + 2];
@@ -188,7 +223,7 @@ namespace Slippi {
 		return messageSizes;
 	}
 
-	SlippiGame* SlippiGame::processFile(char* rawData, uint64_t rawDataLength) {
+	SlippiGame* SlippiGame::processFile(uint8_t* rawData, uint64_t rawDataLength) {
 		SlippiGame* result = new SlippiGame();
 		result->game = new Game();
 
@@ -200,7 +235,7 @@ namespace Slippi {
 				return nullptr;
 			}
 
-			data = (uint8_t*)&rawData[i + 1];
+			data = &rawData[i + 1];
 			switch (code) {
 			case EVENT_GAME_INIT:
 				handleGameInit(result->game);
@@ -227,16 +262,16 @@ namespace Slippi {
 			return nullptr;
 		}
 
-		int fileLength = file.tellg();
+		int fileLength = (int)file.tellg();
 		int rawDataPos = getRawDataPosition(&file);
-		int rawDataLength = getRawDataLength(&file, rawDataPos, fileLength);
+		uint32_t rawDataLength = getRawDataLength(&file, rawDataPos, fileLength);
 		asmEvents = getMessageSizes(&file, rawDataPos);
 
-		char rawData[rawDataLength];
+		std::vector<char> rawData(rawDataLength);
 		file.seekg(rawDataPos, std::ios::beg);
-		file.read(rawData, rawDataLength);
+		file.read(&rawData[0], rawDataLength);
 
-		SlippiGame* result = processFile(rawData, rawDataLength);
+		SlippiGame* result = processFile((uint8_t*)&rawData[0], rawDataLength);
 
 		return result;
 	}
