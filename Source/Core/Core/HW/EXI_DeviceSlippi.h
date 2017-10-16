@@ -7,6 +7,7 @@
 #include <string>
 #include <unordered_map>
 #include <deque>
+#include <ctime>
 
 #include "SlippiLib/SlippiGame.h"
 #include "Common/CommonTypes.h"
@@ -52,8 +53,10 @@ private:
 
 	// .slp File creation stuff
 	u32 writtenByteCount = 0;
+	time_t gameStartTime;
 	void configureCommands(u8* payload, u8 length);
 	void writeToFile(u8* payload, u32 length, std::string fileOption);
+	std::vector<u8> generateMetadata();
 	void createNewFile();
 	void closeFile();
 	std::string generateFileName();

@@ -14,7 +14,6 @@
 #include "Common/Logging/Log.h"
 #include "Common/FileUtil.h"
 #include "Common/StringUtil.h"
-#include "wx/datetime.h"
 
 CEXISlippi::CEXISlippi() {
 	INFO_LOG(EXPANSIONINTERFACE, "EXI SLIPPI Constructor called.");
@@ -31,6 +30,35 @@ void CEXISlippi::configureCommands(u8* payload, u8 length) {
 		u32 commandPayloadSize = payload[i + 1] << 8 | payload[i + 2];
 		payloadSizes[commandByte] = commandPayloadSize;
 	}
+}
+
+std::vector<u8> CEXISlippi::generateMetadata() {
+	std::vector<u8> metadata(
+		{ 'U', 8, 'm', 'e', 't', 'a', 'd', 'a', 't', 'a', '{' }
+	);
+
+	// TODO: Abstract out UBJSON functions to make this cleaner
+
+	// Add game start time
+	uint8_t dateTimeStrLength = sizeof "2011-10-08T07:07:09Z";
+	std::vector<char> dateTimeBuf(dateTimeStrLength);
+	strftime(&dateTimeBuf[0], dateTimeStrLength, "%FT%TZ", gmtime(&gameStartTime));
+	dateTimeBuf.pop_back(); // Removes the \0 from the back of string
+	metadata.insert(metadata.end(), { 
+		'U', 7, 's', 't', 'a', 'r', 't', 'A', 't', 'S', 'U', (uint8_t)dateTimeBuf.size()
+	});
+	metadata.insert(metadata.end(), dateTimeBuf.begin(), dateTimeBuf.end());
+
+	// Indicate this was played on dolphin
+	metadata.insert(metadata.end(), {
+		'U', 8, 'p', 'l', 'a', 'y', 'e', 'd', 'O', 'n', 'S', 'U',
+		7, 'd', 'o', 'l', 'p', 'h', 'i', 'n'
+	});
+
+	// TODO: Add player names
+
+	metadata.push_back('}');
+	return metadata;
 }
 
 void CEXISlippi::writeToFile(u8* payload, u32 length, std::string fileOption) {
@@ -63,7 +91,8 @@ void CEXISlippi::writeToFile(u8* payload, u32 length, std::string fileOption) {
 	// If we are going to close the file, generate data to complete the UBJSON file
 	if (fileOption == "close") {
 		// This option indicates we are done sending over body
-		std::vector<u8> closingBytes({ '}' });
+		std::vector<u8> closingBytes = generateMetadata();
+		closingBytes.push_back('}');
 		dataToWrite.insert(dataToWrite.end(), closingBytes.begin(), closingBytes.end());
 	}
 
@@ -100,9 +129,13 @@ void CEXISlippi::createNewFile() {
 	m_file = File::IOFile(filepath, "wb");
 }
 
-std::string CEXISlippi::generateFileName()
-{
-	std::string str = wxDateTime::Now().Format(wxT("%Y%m%dT%H%M%S"));
+std::string CEXISlippi::generateFileName() {
+	// Add game start time
+	uint8_t dateTimeStrLength = sizeof "20171015T095717";
+	std::vector<char> dateTimeBuf(dateTimeStrLength);
+	strftime(&dateTimeBuf[0], dateTimeStrLength, "%Y%m%dT%H%M%S", localtime(&gameStartTime));
+
+	std::string str(&dateTimeBuf[0]);
 	return StringFromFormat("Slippi/Game_%s.slp", str.c_str());
 }
 
@@ -284,6 +317,7 @@ void CEXISlippi::ImmWrite(u32 data, u32 size)
 		// Handle payloads
 		switch (m_payload_type) {
 		case CMD_RECEIVE_COMMANDS:
+			time(&gameStartTime); // Store game start time
 			configureCommands(&m_payload[1], m_payload_loc - 1);
 			writeToFile(&m_payload[0], m_payload_loc, "create");
 			break;
