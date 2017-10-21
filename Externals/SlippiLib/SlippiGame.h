@@ -52,6 +52,7 @@ namespace Slippi {
 		int32_t frame;
 		uint32_t randomSeed;
 		std::unordered_map<uint8_t, PlayerFrameData> players;
+		std::unordered_map<uint8_t, PlayerFrameData> followers;
 	} FrameData;
 
 	typedef struct {

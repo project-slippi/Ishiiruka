@@ -47,8 +47,8 @@ private:
 		// The following are all commands used to play back a replay and
 		// have fixed sizes
 		{ CMD_PREPARE_REPLAY, 0 },
-		{ CMD_READ_FRAME, 5 },
-		{ CMD_GET_LOCATION, 5 }
+		{ CMD_READ_FRAME, 6 },
+		{ CMD_GET_LOCATION, 6 }
 	};
 
 	// .slp File creation stuff
@@ -69,8 +69,8 @@ private:
 	// replay playback stuff
 	void loadFile(std::string path);
 	void prepareGameInfo();
-	void prepareFrameData(int32_t frameIndex, uint8_t port);
-	void prepareLocationData(int32_t frameIndex, uint8_t port);
+	void prepareFrameData(u8* payload);
+	void prepareLocationData(u8* payload);
 
 	std::deque<u32> m_read_queue;
 	Slippi::SlippiGame* m_current_game = nullptr;

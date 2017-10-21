@@ -108,6 +108,7 @@ namespace Slippi {
 		PlayerFrameData* p = new PlayerFrameData();
 
 		uint8_t playerSlot = readByte(data, idx);
+		uint8_t isFollower = readByte(data, idx);
 
 		//Load player data
 		p->internalCharacterId = readByte(data, idx);
@@ -138,7 +139,16 @@ namespace Slippi {
 		p->rTrigger = readFloat(data, idx);
 
 		//Add player data to frame
-		frame->players[playerSlot] = *p;
+		std::unordered_map<uint8_t, PlayerFrameData> target;
+		target = isFollower ? *&frame->followers : *&frame->players;
+
+		if (isFollower) {
+			// TODO figure out assignment using a variable
+			frame->followers[playerSlot] = *p;
+		}
+		else {
+			frame->players[playerSlot] = *p;
+		}
 
 		// Add frame to game
 		game->frameData[frameCount] = *frame;

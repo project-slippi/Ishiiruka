@@ -203,7 +203,7 @@ void CEXISlippi::prepareGameInfo() {
 	}
 }
 
-void CEXISlippi::prepareFrameData(int32_t frameIndex, uint8_t port) {
+void CEXISlippi::prepareFrameData(u8* payload) {
 	// Since we are prepping new data, clear any existing data
 	m_read_queue.clear();
 
@@ -212,9 +212,11 @@ void CEXISlippi::prepareFrameData(int32_t frameIndex, uint8_t port) {
 		return;
 	}
 
+	int32_t frameIndex = payload[0] << 24 | payload[1] << 16 | payload[2] << 8 | payload[3];
+	uint8_t port = payload[4];
+	uint8_t isFollower = payload[5];
+
 	// Load the data from this frame into the read buffer
-	uint8_t* a = (uint8_t*)&frameIndex;
-	frameIndex = a[0] << 24 | a[1] << 16 | a[2] << 8 | a[3];
 	bool frameExists = m_current_game->DoesFrameExist(frameIndex);
 	if (!frameExists) {
 		return;
@@ -225,13 +227,16 @@ void CEXISlippi::prepareFrameData(int32_t frameIndex, uint8_t port) {
 	// Add random seed to the front of the response regardless of player
 	m_read_queue.push_back(*(u32*)&frame->randomSeed);
 
+	std::unordered_map<uint8_t, Slippi::PlayerFrameData> source;
+	source = isFollower ? frame->followers : frame->players;
+
 	// Check if player exists
-	if (!frame->players.count(port)) {
+	if (!source.count(port)) {
 		return;
 	}
 
 	// Get data for this player
-	Slippi::PlayerFrameData data = frame->players.at(port);
+	Slippi::PlayerFrameData data = source[port];
 
 	// Add all of the inputs in order
 	m_read_queue.push_back(*(u32*)&data.joystickX);
@@ -240,9 +245,12 @@ void CEXISlippi::prepareFrameData(int32_t frameIndex, uint8_t port) {
 	m_read_queue.push_back(*(u32*)&data.cstickY);
 	m_read_queue.push_back(*(u32*)&data.trigger);
 	m_read_queue.push_back(data.buttons);
+	m_read_queue.push_back(*(u32*)&data.locationX);
+	m_read_queue.push_back(*(u32*)&data.locationY);
+	m_read_queue.push_back(*(u32*)&data.facingDirection);
 }
 
-void CEXISlippi::prepareLocationData(int32_t frameIndex, uint8_t port) {
+void CEXISlippi::prepareLocationData(u8* payload) {
 	// Since we are prepping new data, clear any existing data
 	m_read_queue.clear();
 
@@ -251,21 +259,27 @@ void CEXISlippi::prepareLocationData(int32_t frameIndex, uint8_t port) {
 		return;
 	}
 
+	int32_t frameIndex = payload[0] << 24 | payload[1] << 16 | payload[2] << 8 | payload[3];
+	uint8_t port = payload[4];
+	uint8_t isFollower = payload[5];
+
 	// Load the data from this frame into the read buffer
-	uint8_t* a = (uint8_t*)&frameIndex;
-	frameIndex = a[0] << 24 | a[1] << 16 | a[2] << 8 | a[3];
 	bool frameExists = m_current_game->DoesFrameExist(frameIndex);
 	if (!frameExists) {
 		return;
 	}
 
 	Slippi::FrameData* frame = m_current_game->GetFrame(frameIndex);
-	if (!frame->players.count(port)) {
+
+	std::unordered_map<uint8_t, Slippi::PlayerFrameData> source;
+	source = isFollower ? frame->followers : frame->players;
+
+	if (!source.count(port)) {
 		return;
 	}
 
 	// Get data for this player
-	Slippi::PlayerFrameData data = frame->players.at(port);
+	Slippi::PlayerFrameData data = source[port];
 
 	// Add all of the inputs in order
 	m_read_queue.push_back(*(u32*)&data.locationX);
@@ -329,10 +343,10 @@ void CEXISlippi::ImmWrite(u32 data, u32 size)
 			prepareGameInfo();
 			break;
 		case CMD_READ_FRAME:
-			prepareFrameData(*(int32_t*)&m_payload[1], *(uint8_t*)&m_payload[5]);
+			prepareFrameData(&m_payload[1]);
 			break;
 		case CMD_GET_LOCATION:
-			prepareLocationData(*(int32_t*)&m_payload[1], *(uint8_t*)&m_payload[5]);
+			prepareLocationData(&m_payload[1]);
 			break;
 		default:
 			writeToFile(&m_payload[0], m_payload_loc, "");
