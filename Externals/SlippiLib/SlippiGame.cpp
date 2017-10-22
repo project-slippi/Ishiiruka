@@ -138,17 +138,12 @@ namespace Slippi {
 		p->lTrigger = readFloat(data, idx);
 		p->rTrigger = readFloat(data, idx);
 
-		//Add player data to frame
-		std::unordered_map<uint8_t, PlayerFrameData> target;
-		target = isFollower ? *&frame->followers : *&frame->players;
+		// Add player data to frame
+		std::unordered_map<uint8_t, PlayerFrameData>* target;
+		target = isFollower ? &frame->followers : &frame->players;
 
-		if (isFollower) {
-			// TODO figure out assignment using a variable
-			frame->followers[playerSlot] = *p;
-		}
-		else {
-			frame->players[playerSlot] = *p;
-		}
+		// Set the player data for the player or follower
+		target->operator[](playerSlot) = *p;
 
 		// Add frame to game
 		game->frameData[frameCount] = *frame;
