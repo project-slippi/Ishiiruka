@@ -17,117 +17,32 @@
 #include "Core/HW/GCPad.h"
 #include "Core/HW/SystemTimers.h"
 
-#include <portaudio.h>
 
 void CEXIMic::StreamLog(const char* msg)
 {
-	INFO_LOG(EXPANSIONINTERFACE, "%s: %s", msg, Pa_GetErrorText(pa_error));
 }
 
 void CEXIMic::StreamInit()
 {
 	// Setup the wonderful c-interfaced lib...
 	pa_stream = nullptr;
-
-	if ((pa_error = Pa_Initialize()) != paNoError)
-		StreamLog("Pa_Initialize");
-
-	stream_buffer = nullptr;
-	samples_avail = stream_wpos = stream_rpos = 0;
 }
 
 void CEXIMic::StreamTerminate()
 {
-	StreamStop();
-
-	if ((pa_error = Pa_Terminate()) != paNoError)
-		StreamLog("Pa_Terminate");
-}
-
-static int Pa_Callback(const void* inputBuffer, void* outputBuffer, unsigned long framesPerBuffer,
-	const PaStreamCallbackTimeInfo* timeInfo, PaStreamCallbackFlags statusFlags,
-	void* userData)
-{
-	(void)outputBuffer;
-	(void)timeInfo;
-	(void)statusFlags;
-
-	CEXIMic* mic = (CEXIMic*)userData;
-
-	std::lock_guard<std::mutex> lk(mic->ring_lock);
-
-	if (mic->stream_wpos + mic->buff_size_samples > mic->stream_size)
-		mic->stream_wpos = 0;
-
-	const s16* buff_in = static_cast<const s16*>(inputBuffer);
-	s16* buff_out = &mic->stream_buffer[mic->stream_wpos];
-
-	if (buff_in == nullptr)
-	{
-		for (int i = 0; i < mic->buff_size_samples; i++)
-		{
-			buff_out[i] = 0;
-		}
-	}
-	else
-	{
-		for (int i = 0; i < mic->buff_size_samples; i++)
-		{
-			buff_out[i] = buff_in[i];
-		}
-	}
-
-	mic->samples_avail += mic->buff_size_samples;
-	if (mic->samples_avail > mic->stream_size)
-	{
-		mic->samples_avail = 0;
-		mic->status.buff_ovrflw = 1;
-	}
-
-	mic->stream_wpos += mic->buff_size_samples;
-	mic->stream_wpos %= mic->stream_size;
-
-	return paContinue;
 }
 
 void CEXIMic::StreamStart()
 {
-	// Open stream with current parameters
-	stream_size = buff_size_samples * 500;
-	stream_buffer = new s16[stream_size];
-
-	pa_error = Pa_OpenDefaultStream(&pa_stream, 1, 0, paInt16, sample_rate, buff_size_samples,
-		Pa_Callback, this);
-	StreamLog("Pa_OpenDefaultStream");
-	pa_error = Pa_StartStream(pa_stream);
-	StreamLog("Pa_StartStream");
 }
 
 void CEXIMic::StreamStop()
 {
-	if (pa_stream != nullptr && Pa_IsStreamActive(pa_stream) >= paNoError)
-		Pa_AbortStream(pa_stream);
-
-	samples_avail = stream_wpos = stream_rpos = 0;
-
-	delete[] stream_buffer;
-	stream_buffer = nullptr;
 }
 
 void CEXIMic::StreamReadOne()
 {
-	std::lock_guard<std::mutex> lk(ring_lock);
 
-	if (samples_avail >= buff_size_samples)
-	{
-		s16* last_buffer = &stream_buffer[stream_rpos];
-		std::memcpy(ring_buffer, last_buffer, buff_size);
-
-		samples_avail -= buff_size_samples;
-
-		stream_rpos += buff_size_samples;
-		stream_rpos %= stream_size;
-	}
 }
 
 // EXI Mic Device
