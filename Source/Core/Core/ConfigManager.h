@@ -23,6 +23,7 @@ enum class Language;
 #define BACKEND_ALSA "ALSA"
 #define BACKEND_AOSOUND "AOSound"
 #define BACKEND_COREAUDIO "CoreAudio"
+#define BACKEND_CUBEB "Cubeb"
 #define BACKEND_DIRECTSOUND "DSound"
 #define BACKEND_OPENAL "OpenAL"
 #define BACKEND_PULSEAUDIO "Pulse"

@@ -835,6 +835,9 @@ else()
 	include_directories(BEFORE Externals/curl/include)
 endif()
 
+add_subdirectory(Externals/cubeb)
+include_directories(BEFORE Externals/cubeb/include)
+
 if(NOT APPLE)
 	check_lib(SOIL "(no .pc for SOIL)" SOIL SOIL/SOIL.h QUIET)
 endif()

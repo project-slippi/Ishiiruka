@@ -459,6 +459,9 @@
     <ProjectReference Include="$(ExternalsDir)libusb\libusb_static_2013.vcxproj">
       <Project>{349ee8f9-7d25-4909-aaf5-ff3fade72187}</Project>
     </ProjectReference>
+    <ProjectReference Include="..\..\..\Externals\cubeb\msvc\cubeb.vcxproj">
+       <Project>{8ea11166-6512-44fc-b7a5-a4d1ecc81170}</Project>
+    </ProjectReference>
     <ProjectReference Include="$(ExternalsDir)LZO\LZO.vcxproj">
       <Project>{ab993f38-c31d-4897-b139-a620c42bc565}</Project>
     </ProjectReference>

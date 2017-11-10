@@ -1,4 +1,6 @@
 set(SRCS	AudioCommon.cpp
+			CubebStream.cpp
+			CubebUtils.cpp
 			DPL2Decoder.cpp
 			Mixer.cpp
 			WaveFile.cpp
@@ -7,6 +9,7 @@ set(SRCS	AudioCommon.cpp
 
 set(LIBS "")
 set(LIBS ${LIBS} SoundTouch )
+set(LIBS ${LIBS} cubeb )
 
 if(OPENSLES_FOUND)
 	set(SRCS ${SRCS} OpenSLESStream.cpp)
