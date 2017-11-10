@@ -6,6 +6,7 @@
 #include "AudioCommon/AOSoundStream.h"
 #include "AudioCommon/AlsaSoundStream.h"
 #include "AudioCommon/CoreAudioSoundStream.h"
+#include "AudioCommon/CubebStream.h"
 #include "AudioCommon/DSoundStream.h"
 #include "AudioCommon/Mixer.h"
 #include "AudioCommon/NullSoundStream.h"
@@ -34,7 +35,9 @@ static const int AUDIO_VOLUME_MAX = 100;
 void InitSoundStream(void* hWnd)
 {
   std::string backend = SConfig::GetInstance().sBackend;
-  if (backend == BACKEND_OPENAL && OpenALStream::isValid())
+  if (backend == BACKEND_CUBEB)
+    g_sound_stream = std::make_unique<CubebStream>();
+  else if (backend == BACKEND_OPENAL && OpenALStream::isValid())
     g_sound_stream = std::make_unique<OpenALStream>();
   else if (backend == BACKEND_NULLSOUND && NullSound::isValid())
     g_sound_stream = std::make_unique<NullSound>();
@@ -103,6 +106,7 @@ std::vector<std::string> GetSoundBackends()
 
   if (NullSound::isValid())
     backends.push_back(BACKEND_NULLSOUND);
+  backends.push_back(BACKEND_CUBEB);
 	if (DSound::isValid())
 		backends.push_back(BACKEND_DIRECTSOUND);
 	if (XAudio2_7::isValid()
@@ -132,6 +136,8 @@ bool SupportsDPL2Decoder(const std::string& backend)
 	if (backend == BACKEND_OPENAL)
 		return true;
 #endif
+	if (backend == BACKEND_CUBEB)
+		return true;
 	if (backend == BACKEND_PULSEAUDIO)
 		return true;
 	if (backend == BACKEND_XAUDIO2)
@@ -149,7 +155,7 @@ bool SupportsVolumeChanges(const std::string& backend)
 	// FIXME: this one should ask the backend whether it supports it.
 	//       but getting the backend from string etc. is probably
 	//       too much just to enable/disable a stupid slider...
-	return backend == BACKEND_COREAUDIO || backend == BACKEND_OPENAL || backend == BACKEND_XAUDIO2 || backend == BACKEND_DIRECTSOUND;
+	return backend == BACKEND_COREAUDIO || backend == BACKEND_OPENAL || backend == BACKEND_XAUDIO2 || backend == BACKEND_DIRECTSOUND || backend == BACKEND_CUBEB;
 }
 
 void UpdateSoundStream()
