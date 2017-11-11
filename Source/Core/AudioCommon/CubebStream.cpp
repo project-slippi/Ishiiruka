@@ -20,8 +20,7 @@ long CubebStream::DataCallback(cubeb_stream* stream, void* user_data, const void
 {
   auto* self = static_cast<CubebStream*>(user_data);
 
-  if (self->m_stereo)
-    self->m_mixer->Mix(static_cast<short*>(output_buffer), num_frames);
+  self->m_mixer->Mix(static_cast<short*>(output_buffer), num_frames);
 
   return num_frames;
 }
@@ -36,27 +35,11 @@ bool CubebStream::Start()
   if (!m_ctx)
     return false;
 
-  m_stereo = !SConfig::GetInstance().bDPL2Decoder;
-
   cubeb_stream_params params;
   params.rate = m_mixer->GetSampleRate();
-  if (m_stereo)
-  {
-    params.channels = 2;
-    params.format = CUBEB_SAMPLE_S16NE;
-    params.layout = CUBEB_LAYOUT_STEREO;
-  }
-  else
-  {
-    params.channels = 6;
-    params.format = CUBEB_SAMPLE_FLOAT32NE;
-    params.layout = CUBEB_LAYOUT_3F2_LFE;
-  }
-
-  u32 minimum_latency = 0;
-  if (cubeb_get_min_latency(m_ctx.get(), &params, &minimum_latency) != CUBEB_OK)
-    ERROR_LOG(AUDIO, "Error getting minimum latency");
-  INFO_LOG(AUDIO, "Minimum latency: %i frames", minimum_latency);
+  params.channels = 2;
+  params.format = CUBEB_SAMPLE_S16NE;
+  params.layout = CUBEB_LAYOUT_STEREO;
 
   if (cubeb_stream_init(m_ctx.get(), &m_stream, "Dolphin Audio Output", nullptr, nullptr, nullptr,
                         &params, 1, DataCallback,
@@ -68,9 +51,13 @@ bool CubebStream::Start()
 
   if (cubeb_stream_start(m_stream) != CUBEB_OK)
   {
-    ERROR_LOG(AUDIO, "Error starting cubeb stream");
-    return false;
+	ERROR_LOG(AUDIO, "Error starting cubeb stream");
+	return false;
   }
+
+  int volume = SConfig::GetInstance().m_IsMuted ? 0 : SConfig::GetInstance().m_Volume;
+  cubeb_stream_set_volume(m_stream, volume / 100.0f);
+
   return true;
 }
 
@@ -79,7 +66,8 @@ void CubebStream::Stop()
   if (cubeb_stream_stop(m_stream) != CUBEB_OK)
   {
     ERROR_LOG(AUDIO, "Error stopping cubeb stream");
-  }
+}
+
   cubeb_stream_destroy(m_stream);
   m_ctx.reset();
 }
