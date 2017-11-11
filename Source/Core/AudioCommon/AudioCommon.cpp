@@ -105,15 +105,15 @@ std::vector<std::string> GetSoundBackends()
   std::vector<std::string> backends;
 
   if (NullSound::isValid())
-    backends.push_back(BACKEND_NULLSOUND);
+	backends.push_back(BACKEND_NULLSOUND);
   backends.push_back(BACKEND_CUBEB);
-	if (DSound::isValid())
-		backends.push_back(BACKEND_DIRECTSOUND);
-	if (XAudio2_7::isValid()
+  if (DSound::isValid())
+	backends.push_back(BACKEND_DIRECTSOUND);
+  if (XAudio2_7::isValid()
 #ifndef HAVE_DXSDK
-		|| XAudio2::isValid()
+	  || XAudio2::isValid()
 #endif
-		)
+	 )
     backends.push_back(BACKEND_XAUDIO2);
   if (AOSound::isValid())
     backends.push_back(BACKEND_AOSOUND);
@@ -136,8 +136,6 @@ bool SupportsDPL2Decoder(const std::string& backend)
 	if (backend == BACKEND_OPENAL)
 		return true;
 #endif
-	if (backend == BACKEND_CUBEB)
-		return true;
 	if (backend == BACKEND_PULSEAUDIO)
 		return true;
 	if (backend == BACKEND_XAUDIO2)
