@@ -388,9 +388,11 @@ unsigned int NetPlayServer::OnConnect(ENetPeer* socket)
 #else
 	if(SConfig::GetInstance().bQoSEnabled)
 	{
+#ifdef __linux__
 		// highest priority
 		int priority = 7;
 		setsockopt(player.socket->host->socket, SOL_SOCKET, SO_PRIORITY, &priority, sizeof(priority));
+#endif
 
 		// https://www.tucny.com/Home/dscp-tos
 		// ef is better than cs7

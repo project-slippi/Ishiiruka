@@ -29,6 +29,9 @@
       <Filter>SoundStreams</Filter>
     </ClCompile>
     <ClCompile Include="SoundStream.cpp" />
+    <ClCompile Include="WASAPIStream.cpp">
+      <Filter>SoundStreams</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="aldlist.h" />
@@ -69,6 +72,9 @@
       <Filter>SoundStreams</Filter>
     </ClInclude>
     <ClInclude Include="SoundStream.h">
+      <Filter>SoundStreams</Filter>
+    </ClInclude>
+    <ClInclude Include="WASAPIStream.h">
       <Filter>SoundStreams</Filter>
     </ClInclude>
   </ItemGroup>
