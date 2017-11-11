@@ -1077,6 +1077,9 @@ bool NetPlayClient::GetNetPads(const int pad_nb, GCPadStatus* pad_status)
 void NetPlayClient::SendNetPad(int pad_nb)
 {
 	GCPadStatus status = {0};
+	status.stickX = status.stickY =
+	status.substickX = status.substickY =
+	/* these are all the same */ GCPadStatus::MAIN_STICK_CENTER_X;
 
 	// this is the old behavior
 	// just a small lag decrease
