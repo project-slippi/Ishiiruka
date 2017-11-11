@@ -71,7 +71,7 @@ bool adapter_error = false;
 
 bool AdapterError()
 {
-	return adapter_error && s_adapter_thread_running;
+	return adapter_error && s_adapter_thread_running.IsSet();
 }
 
 static void Read()
@@ -81,7 +81,7 @@ static void Read()
 	int payload_size = 0;
 	while (s_adapter_thread_running.IsSet())
 	{
-		adapter_error = libusb_interrupt_transfer(s_handle, s_endpoint_in, s_controller_payload_swap,
+		adapter_error = !libusb_interrupt_transfer(s_handle, s_endpoint_in, s_controller_payload_swap,
 			sizeof(s_controller_payload_swap), &payload_size, 16);
 
 		{
