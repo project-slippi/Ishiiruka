@@ -18,6 +18,11 @@ enum ControllerTypes
 	CONTROLLER_WIRED = 1,
 	CONTROLLER_WIRELESS = 2
 };
+
+extern bool adapter_error;
+
+bool AdapterError();
+
 void Init();
 void ResetRumble();
 void Shutdown();
