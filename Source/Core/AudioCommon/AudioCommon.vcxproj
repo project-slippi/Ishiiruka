@@ -45,6 +45,7 @@
     <ClCompile Include="NullSoundStream.cpp" />
     <ClCompile Include="OpenALStream.cpp" />
     <ClCompile Include="SoundStream.cpp" />
+    <ClCompile Include="WASAPIStream.cpp" />
     <ClCompile Include="WaveFile.cpp" />
     <ClCompile Include="XAudio2Stream.cpp" />
     <ClCompile Include="XAudio2_7Stream.cpp">
@@ -67,6 +68,7 @@
     <ClInclude Include="OpenSLESStream.h" />
     <ClInclude Include="PulseAudioStream.h" />
     <ClInclude Include="SoundStream.h" />
+    <ClInclude Include="WASAPIStream.h" />
     <ClInclude Include="WaveFile.h" />
     <ClInclude Include="XAudio2Stream.h" />
     <ClInclude Include="XAudio2_7Stream.h" />
@@ -78,7 +80,7 @@
     <ProjectReference Include="$(ExternalsDir)soundtouch\SoundTouch.vcxproj">
       <Project>{ec082900-b4d8-42e9-9663-77f02f6936ae}</Project>
     </ProjectReference>
-	<ProjectReference Include="$(ExternalsDir)cubeb\msvc\cubeb.vcxproj">
+    <ProjectReference Include="$(ExternalsDir)cubeb\msvc\cubeb.vcxproj">
       <Project>{ec082900-b4d8-42e9-9663-77f02f6936ae}</Project>
     </ProjectReference>
     <ProjectReference Include="$(CoreDir)Common\Common.vcxproj">

@@ -15,6 +15,7 @@
 #include "AudioCommon/PulseAudioStream.h"
 #include "AudioCommon/XAudio2Stream.h"
 #include "AudioCommon/XAudio2_7Stream.h"
+#include "AudioCommon/WASAPIStream.h"
 #include "Common/Common.h"
 #include "Common/FileUtil.h"
 #include "Common/Logging/Log.h"
@@ -35,14 +36,18 @@ static const int AUDIO_VOLUME_MAX = 100;
 void InitSoundStream(void* hWnd)
 {
   std::string backend = SConfig::GetInstance().sBackend;
-  if (backend == BACKEND_CUBEB)
-    g_sound_stream = std::make_unique<CubebStream>();
-  else if (backend == BACKEND_OPENAL && OpenALStream::isValid())
-    g_sound_stream = std::make_unique<OpenALStream>();
-  else if (backend == BACKEND_NULLSOUND && NullSound::isValid())
-    g_sound_stream = std::make_unique<NullSound>();
-	else if (backend == BACKEND_DIRECTSOUND && DSound::isValid())
-		g_sound_stream = std::make_unique<DSound>(hWnd);
+  if(backend == BACKEND_CUBEB)
+	  g_sound_stream = std::make_unique<CubebStream>();
+  else if(backend == BACKEND_OPENAL && OpenALStream::isValid())
+	  g_sound_stream = std::make_unique<OpenALStream>();
+  else if(backend == BACKEND_NULLSOUND && NullSound::isValid())
+	  g_sound_stream = std::make_unique<NullSound>();
+  else if(backend == BACKEND_DIRECTSOUND && DSound::isValid())
+	  g_sound_stream = std::make_unique<DSound>(hWnd);
+  else if(backend == BACKEND_SHARED_WASAPI && WASAPIStream::isValid())
+	  g_sound_stream = std::make_unique<WASAPIStream>(false);
+  else if(backend == BACKEND_EXCLUSIVE_WASAPI && WASAPIStream::isValid())
+	  g_sound_stream = std::make_unique<WASAPIStream>(true);
   else if (backend == BACKEND_XAUDIO2)
   {
     if (XAudio2::isValid())
@@ -127,6 +132,12 @@ std::vector<std::string> GetSoundBackends()
     backends.push_back(BACKEND_OPENAL);
   if (OpenSLESStream::isValid())
     backends.push_back(BACKEND_OPENSLES);
+  if(WASAPIStream::isValid())
+  {
+	  // backends.push_back(BACKEND_SHARED_WASAPI);
+	  // disable shared-mode for now, not working correctly
+	  backends.push_back(BACKEND_EXCLUSIVE_WASAPI);
+  }
   return backends;
 }
 
@@ -153,7 +164,13 @@ bool SupportsVolumeChanges(const std::string& backend)
 	// FIXME: this one should ask the backend whether it supports it.
 	//       but getting the backend from string etc. is probably
 	//       too much just to enable/disable a stupid slider...
-	return backend == BACKEND_COREAUDIO || backend == BACKEND_OPENAL || backend == BACKEND_XAUDIO2 || backend == BACKEND_DIRECTSOUND || backend == BACKEND_CUBEB;
+	return backend == BACKEND_COREAUDIO 
+		|| backend == BACKEND_OPENAL 
+		|| backend == BACKEND_XAUDIO2 
+		|| backend == BACKEND_DIRECTSOUND 
+		|| backend == BACKEND_CUBEB 
+		|| backend == BACKEND_EXCLUSIVE_WASAPI 
+		|| backend == BACKEND_SHARED_WASAPI;
 }
 
 void UpdateSoundStream()
