@@ -38,6 +38,8 @@
 #include "Core/FifoPlayer/FifoRecorder.h"
 #include "Core/HW/VideoInterface.h"
 
+#include "InputCommon/GCAdapter.h"
+
 #include "VideoCommon/AVIDump.h"
 #include "VideoCommon/BPMemory.h"
 #include "VideoCommon/CommandProcessor.h"
@@ -443,6 +445,9 @@ void Renderer::DrawDebugText()
 
 	if (g_ActiveConfig.bOverlayProjStats)
 		final_cyan += Statistics::ToStringProj();
+
+	if(GCAdapter::AdapterError())
+		final_cyan += "WARNING: The GameCube Adapter isn't sending input data right now.\n";	
 
 	// and then the text
 	RenderText(final_cyan, 20, 20, 0xFF00FFFF);
