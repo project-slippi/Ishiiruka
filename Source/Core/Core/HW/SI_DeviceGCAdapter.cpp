@@ -25,7 +25,10 @@ CSIDevice_GCAdapter::CSIDevice_GCAdapter(SIDevices device, int _iDeviceNumber)
 
 GCPadStatus CSIDevice_GCAdapter::GetPadStatus()
 {
-	GCPadStatus pad_status = {};
+	GCPadStatus pad_status = {0};
+	pad_status.stickX = pad_status.stickY =
+	pad_status.substickX = pad_status.substickY =
+	/* these are all the same */ GCPadStatus::MAIN_STICK_CENTER_X;
 
 	// For netplay, the local controllers are polled in GetNetPads(), and
 	// the remote controllers receive their status there as well
