@@ -81,8 +81,8 @@ static void Read()
 	int payload_size = 0;
 	while (s_adapter_thread_running.IsSet())
 	{
-		adapter_error = !libusb_interrupt_transfer(s_handle, s_endpoint_in, s_controller_payload_swap,
-			sizeof(s_controller_payload_swap), &payload_size, 16);
+		adapter_error = libusb_interrupt_transfer(s_handle, s_endpoint_in, s_controller_payload_swap,
+			sizeof(s_controller_payload_swap), &payload_size, 16) > 0;
 
 		{
 			std::lock_guard<std::mutex> lk(s_mutex);
