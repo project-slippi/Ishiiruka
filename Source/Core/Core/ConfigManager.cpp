@@ -883,7 +883,7 @@ bool SConfig::AutoSetup(EBootBS2 _BootBS2)
 			m_strGameID = pVolume->GetGameID();
 			m_revision = pVolume->GetRevision();
 
-			if(m_strGameID == "GALE01")
+			if(m_strGameID == "GALE01" || m_strGameID == "GALJ01")
 			{
 				m_gameType = GAMETYPE_MELEE_NTSC;
 
