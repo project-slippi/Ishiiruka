@@ -32,6 +32,7 @@ private:
 	void OnClockOverrideSliderChanged(wxCommandEvent&);
 
 	void OnQoSCheckBoxChanged(wxCommandEvent&);
+	void OnAdapterWarningCheckBoxChanged(wxCommandEvent&);
 	
 	void OnCustomRTCCheckBoxChanged(wxCommandEvent&);
 	void OnCustomRTCDateChanged(wxCommandEvent&);
@@ -49,7 +50,8 @@ private:
 	DolphinSlider* m_clock_override_slider;
 	wxStaticText* m_clock_override_text;
 
-	wxCheckBox* m_qos_enabled;	
+	wxCheckBox* m_qos_enabled;
+	wxCheckBox* m_adapter_warning;
 
 	wxCheckBox* m_custom_rtc_checkbox;
 	wxDatePickerCtrl* m_custom_rtc_date_picker;

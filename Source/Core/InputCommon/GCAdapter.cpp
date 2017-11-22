@@ -71,7 +71,8 @@ bool adapter_error = false;
 
 bool AdapterError()
 {
-	return adapter_error && s_adapter_thread_running.IsSet();
+	return true;
+	//return adapter_error && s_adapter_thread_running.IsSet();
 }
 
 static void Read()
@@ -82,7 +83,7 @@ static void Read()
 	while (s_adapter_thread_running.IsSet())
 	{
 		adapter_error = libusb_interrupt_transfer(s_handle, s_endpoint_in, s_controller_payload_swap,
-			sizeof(s_controller_payload_swap), &payload_size, 16) != LIBUSB_SUCCESS || payload_size != 37;
+			sizeof(s_controller_payload_swap), &payload_size, 16) != LIBUSB_SUCCESS && SConfig::GetInstance().bAdapterWarning;
 
 		{
 			std::lock_guard<std::mutex> lk(s_mutex);
