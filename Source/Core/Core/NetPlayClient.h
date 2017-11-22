@@ -147,7 +147,7 @@ protected:
 	Common::Flag m_is_running{ false };
 	Common::Flag m_do_loop{ true };
 
-	unsigned int m_minimum_buffer_size = 8;
+	unsigned int m_minimum_buffer_size = 6;
 
 	Player* m_local_player = nullptr;
 
