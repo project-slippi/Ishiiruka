@@ -71,8 +71,7 @@ bool adapter_error = false;
 
 bool AdapterError()
 {
-	return true;
-	//return adapter_error && s_adapter_thread_running.IsSet();
+	return adapter_error && s_adapter_thread_running.IsSet();
 }
 
 static void Read()

@@ -49,6 +49,10 @@ static std::string wasapi_hresult_to_string(HRESULT res)
 	return "UNKNOWN, " + std::to_string(res);
 }
 
+#ifndef PKEY_Device_FriendlyName
+DEFINE_PROPERTYKEY(PKEY_Device_FriendlyName, 0xa45c254e, 0xdf1c, 0x4efd, 0x80, 0x20, 0x67, 0xd1, 0x46, 0xa8, 0x50, 0xe0, 14);
+#endif
+
 // https://github.com/mvaneerde/blog/blob/master/play-exclusive/play-exclusive/play.cpp
 bool WASAPIStream::Start()
 {
@@ -97,7 +101,25 @@ bool WASAPIStream::Start()
 
 			pstore->GetValue(PKEY_Device_FriendlyName, &name_prop);
 
-			if(name_prop.pwszVal == m_selected_device)
+			char name_cstr[2048];
+			size_t ret;
+
+			ret = wcstombs(name_cstr, name_prop.pwszVal, sizeof(name_cstr));
+			if(ret == 2048) name_cstr[2047] = '\0';
+
+			std::string name_stdstr = name_cstr;
+
+			for(int i = 0; i <= 9; i++)
+			{
+				if(name_stdstr.substr(0, std::string("0 - ").size()) == std::to_string(i) + " - ")
+					name_stdstr = name_stdstr.substr(std::string("0 - ").size()) + " [" + std::to_string(i) + "]";
+			}
+
+			// if(name_stdstr.size() > 40)
+			//     name_stdstr = name_stdstr.substr(0, 40) + "...";
+			// needs to be preserved for uniqueness
+
+			if(name_stdstr == m_selected_device)
 				mm_device = device;
 
 			PropVariantClear(&name_prop);
@@ -109,7 +131,12 @@ bool WASAPIStream::Start()
 		}
 
 		devices->Release();
-		mm_device_enumerator->Release();
+	}
+
+	if(mm_device == nullptr)
+	{
+		OSD::AddMessage("Invalid audio device \"" + m_selected_device + "\" selected for WASAPI. Check your backend settings.", 6000U);
+		return false;
 	}
 
 	if(FAILED(hr))
@@ -167,7 +194,7 @@ bool WASAPIStream::Start()
 		m_exclusive_mode ? &device_period : nullptr
 	);
 
-	device_period += SConfig::GetInstance().iLatency * 10000;
+	device_period += SConfig::GetInstance().iLatency * (10000 / fmt.Format.nChannels);
 
 	if(FAILED(hr))
 	{
@@ -371,7 +398,7 @@ void WASAPIStream::Stop()
 	m_audio_client = nullptr;
 }
 
-std::vector<std::string> GetAudioDevices()
+std::vector<std::string> WASAPIStream::GetAudioDevices()
 {
 	HRESULT hr = S_OK;
 	IMMDeviceEnumerator* mm_device_enumerator;
@@ -418,7 +445,25 @@ std::vector<std::string> GetAudioDevices()
 
 		pstore->GetValue(PKEY_Device_FriendlyName, &name_prop);
 
-		results.push_back(name_prop.pwszVal);
+		char name_cstr[2048];
+		size_t ret;
+
+		ret = wcstombs(name_cstr, name_prop.pwszVal, sizeof(name_cstr));
+		if(ret == 2048) name_cstr[2047] = '\0';
+
+		std::string name_stdstr = name_cstr;
+
+		for(int i = 0; i <= 9; i++)
+		{
+			if(name_stdstr.substr(0, std::string("0 - ").size()) == std::to_string(i) + " - ")
+				name_stdstr = name_stdstr.substr(std::string("0 - ").size()) + " [" + std::to_string(i) + "]";
+		}
+
+		// if(name_stdstr.size() > 40)
+		//     name_stdstr = name_stdstr.substr(0, 40) + "...";
+		// needs to be preserved for uniqueness
+
+		results.push_back(name_stdstr);
 		PropVariantClear(&name_prop);
 
 		pstore->Release();
@@ -427,4 +472,6 @@ std::vector<std::string> GetAudioDevices()
 
 	devices->Release();
 	mm_device_enumerator->Release();
+
+	return results;
 }

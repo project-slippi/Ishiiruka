@@ -670,6 +670,10 @@ void SConfig::LoadDSPSettings(IniFile& ini)
 	dsp->Get("Volume", &m_Volume, 100);
 	dsp->Get("CaptureLog", &m_DSPCaptureLog, false);
 
+	// fix 5.8b style setting
+	if(sBackend == "Exclusive-mode WASAPI")
+		sBackend = "Exclusive WASAPI on default device";
+
 	m_IsMuted = false;
 }
 
