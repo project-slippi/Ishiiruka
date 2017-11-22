@@ -9,6 +9,8 @@
 
 #include <mmdeviceapi.h>
 
+#include <locale>
+
 static std::string wasapi_hresult_to_string(HRESULT res)
 {
 	switch(res)
@@ -67,7 +69,48 @@ bool WASAPIStream::Start()
 	}
 
 	IMMDevice* mm_device = nullptr;
-	hr = mm_device_enumerator->GetDefaultAudioEndpoint(eRender, eConsole, &mm_device);
+
+	std::string lower_device = "";
+	for(char c : m_selected_device)
+		lower_device += std::tolower(c, std::locale::classic());
+
+	if(lower_device.find("default") != std::string::npos)
+		hr = mm_device_enumerator->GetDefaultAudioEndpoint(eRender, eConsole, &mm_device);
+	else
+	{
+		IMMDeviceCollection* devices = nullptr;
+		hr = mm_device_enumerator->EnumAudioEndpoints(eRender, DEVICE_STATE_ACTIVE, &devices);
+
+		UINT device_count = 0;
+		devices->GetCount(&device_count);
+
+		for(UINT i = 0; i < device_count; i++)
+		{
+			IMMDevice* device;
+			devices->Item(i, &device);
+
+			IPropertyStore* pstore;
+			device->OpenPropertyStore(STGM_READ, &pstore);
+
+			PROPVARIANT name_prop;
+			PropVariantInit(&name_prop);
+
+			pstore->GetValue(PKEY_Device_FriendlyName, &name_prop);
+
+			if(name_prop.pwszVal == m_selected_device)
+				mm_device = device;
+
+			PropVariantClear(&name_prop);
+
+			pstore->Release();
+
+			if(mm_device != device)
+				device->Release();
+		}
+
+		devices->Release();
+		mm_device_enumerator->Release();
+	}
 
 	if(FAILED(hr))
 	{
@@ -92,11 +135,11 @@ bool WASAPIStream::Start()
 	LPWSTR id;
 	mm_device->GetId(&id);
 
-	char buffer[64];
+	char buffer[2048];
 	size_t ret;
 
 	ret = wcstombs(buffer, id, sizeof(buffer));
-	if(ret == 64) buffer[63] = '\0';
+	if(ret == 2048) buffer[2047] = '\0';
 
 	INFO_LOG(AUDIO, "WASAPIStream: Using device %s", buffer);
 
@@ -236,7 +279,7 @@ bool WASAPIStream::Start()
 	device_period = static_cast<REFERENCE_TIME>(10000.0 * 1000 * frames_in_buffer / fmt.Format.nSamplesPerSec + 0.5) + SConfig::GetInstance().iLatency * 10000;
 
 	if(m_exclusive_mode)
-		OSD::AddMessage("WASPI exclusive mode latency configured to " + std::to_string(device_period / 10000.0f) + " ms", 6000U);
+		OSD::AddMessage("WASAPI exclusive mode latency configured to " + std::to_string(device_period / 10000.0f) + " ms", 6000U);
 
 	m_need_data_event = CreateEvent(NULL, FALSE, FALSE, NULL);
 	m_audio_client->SetEventHandle(m_need_data_event);
@@ -326,4 +369,62 @@ void WASAPIStream::Stop()
 	m_need_data_event = nullptr;
 	m_renderer = nullptr;
 	m_audio_client = nullptr;
+}
+
+std::vector<std::string> GetAudioDevices()
+{
+	HRESULT hr = S_OK;
+	IMMDeviceEnumerator* mm_device_enumerator;
+
+	hr = CoCreateInstance(
+		__uuidof(MMDeviceEnumerator), NULL, CLSCTX_ALL,
+		__uuidof(IMMDeviceEnumerator),
+		(void**)&mm_device_enumerator
+	);
+
+	if(FAILED(hr))
+	{
+		ERROR_LOG(AUDIO, "WASAPIStream: HRESULT %s", wasapi_hresult_to_string(hr).c_str());
+		ERROR_LOG(AUDIO, "WASAPIStream: Error in GetAudioDevices @ CoCreateInstance of MMDeviceEnumerator");
+		return {};
+	}
+
+	IMMDeviceCollection* devices = nullptr;
+	hr = mm_device_enumerator->EnumAudioEndpoints(eRender, DEVICE_STATE_ACTIVE, &devices);
+
+	if(FAILED(hr))
+	{
+		ERROR_LOG(AUDIO, "WASAPIStream: HRESULT %s", wasapi_hresult_to_string(hr).c_str());
+		ERROR_LOG(AUDIO, "WASAPIStream: Error in GetAudioDevices @ EnumAudioEndpoints");
+
+		mm_device_enumerator->Release();
+		return {};
+	}
+
+	UINT device_count = 0;
+	devices->GetCount(&device_count);
+
+	std::vector<std::string> results;
+	for(UINT i = 0; i < device_count; i++)
+	{
+		IMMDevice* device;
+		devices->Item(i, &device);
+
+		IPropertyStore* pstore;
+		device->OpenPropertyStore(STGM_READ, &pstore);
+
+		PROPVARIANT name_prop;
+		PropVariantInit(&name_prop);
+
+		pstore->GetValue(PKEY_Device_FriendlyName, &name_prop);
+
+		results.push_back(name_prop.pwszVal);
+		PropVariantClear(&name_prop);
+
+		pstore->Release();
+		device->Release();
+	}
+
+	devices->Release();
+	mm_device_enumerator->Release();
 }

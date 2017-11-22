@@ -24,7 +24,7 @@ enum class Language;
 #define BACKEND_AOSOUND "AOSound"
 #define BACKEND_COREAUDIO "CoreAudio"
 #define BACKEND_CUBEB "Cubeb"
-#define BACKEND_EXCLUSIVE_WASAPI "Exclusive-mode WASAPI"
+#define BACKEND_EXCLUSIVE_WASAPI "Exclusive WASAPI"
 #define BACKEND_SHARED_WASAPI "Shared-mode WASAPI"
 #define BACKEND_DIRECTSOUND "DSound"
 #define BACKEND_OPENAL "OpenAL"

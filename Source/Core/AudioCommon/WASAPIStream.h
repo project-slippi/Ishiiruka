@@ -6,6 +6,9 @@
 
 #include "AudioCommon/SoundStream.h"
 
+#include <string>
+#include <vector>
+
 #ifdef _WIN32
 #include <audioclient.h>
 #endif
@@ -14,7 +17,7 @@ class WASAPIStream final : public SoundStream
 {
 #ifdef _WIN32
 public:
-	WASAPIStream(bool exclusive_mode) : m_exclusive_mode(exclusive_mode)
+	WASAPIStream(bool exclusive_mode, std::string device = "Default") : m_exclusive_mode(exclusive_mode)
 	{
 		CoInitialize(nullptr);
 	}
@@ -40,9 +43,12 @@ public:
 		return true;
 	}
 
+	std::vector<std::string> GetAudioDevices();
+
 private:
 	IAudioClient* m_audio_client = nullptr;
 	IAudioRenderClient * m_renderer = nullptr;
+	std::string selected_device;
 
 	HANDLE m_need_data_event = nullptr;
 
@@ -53,6 +59,11 @@ private:
 	bool m_exclusive_mode;
 #else
 public:
-  WASAPIStream(bool exclusive_mode) { }
+  WASAPIStream(bool exclusive_mode, std::string device = "Default") { }
+
+  inline std::vector<std::string> GetAudioDevices()
+  {
+	  return {};
+  }
 #endif
 };
