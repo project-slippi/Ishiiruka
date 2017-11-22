@@ -264,7 +264,7 @@ wxSizer* NetPlayDialog::CreateBottomGUI(wxWindow* parent)
 		minimum_padbuf_spin->Bind(wxEVT_SPINCTRL, &NetPlayDialog::OnAdjustMinimumBuffer, this);
 		minimum_padbuf_spin->SetMinSize(WxUtils::GetTextWidgetMinSize(minimum_padbuf_spin));
 
-		m_memcard_write = new wxCheckBox(parent, wxID_ANY, _("Write to memory cards/SD"));
+		m_memcard_write = new wxCheckBox(parent, wxID_ANY, _("Enable memory cards/SD"));
 
 		bottom_szr->Add(m_start_btn, 0, wxALIGN_CENTER_VERTICAL);
 		bottom_szr->Add(minimum_buffer_lbl, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, space5);
@@ -345,8 +345,8 @@ void NetPlayDialog::GetNetSettings(NetSettings& settings)
 	settings.m_WriteToMemcard = m_memcard_write->GetValue();
 	settings.m_OCEnable = instance.m_OCEnable;
 	settings.m_OCFactor = instance.m_OCFactor;
-	settings.m_EXIDevice[0] = instance.m_EXIDevice[0];
-	settings.m_EXIDevice[1] = instance.m_EXIDevice[1];
+	settings.m_EXIDevice[0] = m_memcard_write->GetValue() ? instance.m_EXIDevice[0] : EXIDEVICE_NONE;
+	settings.m_EXIDevice[1] = m_memcard_write->GetValue() ? instance.m_EXIDevice[1] : EXIDEVICE_NONE;
 }
 
 std::string NetPlayDialog::FindGame(const std::string& target_game)
