@@ -447,7 +447,9 @@ void Renderer::DrawDebugText()
 		final_cyan += Statistics::ToStringProj();
 
 	if(GCAdapter::AdapterError())
-		final_cyan += "WARNING: The GameCube Adapter isn't sending input data right now.\n";	
+		final_yellow += 
+		"There is a potential problem with your GameCube Adapter and inputs\nare being set to their default positon to prevent unintended inputs"
+		"\nIf you want, you can turn this off in [Config] > [Advanced Options]";	
 
 	// and then the text
 	RenderText(final_cyan, 20, 20, 0xFF00FFFF);
