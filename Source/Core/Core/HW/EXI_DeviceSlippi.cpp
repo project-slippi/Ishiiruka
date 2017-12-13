@@ -248,6 +248,7 @@ void CEXISlippi::prepareFrameData(u8* payload) {
 	m_read_queue.push_back(*(u32*)&data.locationX);
 	m_read_queue.push_back(*(u32*)&data.locationY);
 	m_read_queue.push_back(*(u32*)&data.facingDirection);
+	m_read_queue.push_back(data.animation);
 }
 
 void CEXISlippi::prepareLocationData(u8* payload) {

@@ -70,24 +70,6 @@ namespace Slippi {
 		game->settings.stage = gameInfoHeader[3] & 0xFFFF;
 	}
 
-	void handleGameStart(Game* game) {
-		int idx = 0;
-
-		//Load stage ID
-		game->settings.stage = readHalf(data, idx);
-
-		PlayerSettings* p = new PlayerSettings();
-
-		//Load player data
-		p->controllerPort = readByte(data, idx);
-		p->characterId = readByte(data, idx);
-		p->playerType = readByte(data, idx);
-		p->characterColor = readByte(data, idx);
-
-		//Add player settings to result
-		game->settings.players[p->controllerPort] = *p;
-	}
-
 	void handleUpdate(Game* game) {
 		int idx = 0;
 
@@ -103,15 +85,15 @@ namespace Slippi {
 		}
 
 		frame->frame = frameCount;
-		frame->randomSeed = readWord(data, idx);
 
 		PlayerFrameData* p = new PlayerFrameData();
 
 		uint8_t playerSlot = readByte(data, idx);
 		uint8_t isFollower = readByte(data, idx);
 
+		frame->randomSeed = readWord(data, idx);
+
 		//Load player data
-		p->internalCharacterId = readByte(data, idx);
 		p->animation = readHalf(data, idx);
 		p->locationX = readFloat(data, idx);
 		p->locationY = readFloat(data, idx);
@@ -124,14 +106,6 @@ namespace Slippi {
 		p->cstickY = readFloat(data, idx);
 		p->trigger = readFloat(data, idx);
 		p->buttons = readWord(data, idx);
-
-		//More data
-		p->percent = readFloat(data, idx);
-		p->shieldSize = readFloat(data, idx);
-		p->lastMoveHitId = readByte(data, idx);
-		p->comboCount = readByte(data, idx);
-		p->lastHitBy = readByte(data, idx);
-		p->stocks = readByte(data, idx);
 
 		//Raw controller information
 		p->physicalButtons = readHalf(data, idx);
@@ -195,16 +169,6 @@ namespace Slippi {
 	}
 
 	std::unordered_map<uint8_t, uint32_t> getMessageSizes(std::ifstream* f, int position) {
-		// Support old file format
-		if (position == 0) {
-			return {
-				{ EVENT_GAME_INIT, 0x140 },
-				{ EVENT_GAME_START, 0x6 },
-				{ EVENT_UPDATE, 0x46 },
-				{ EVENT_GAME_END, 0x1 }
-			};
-		}
-
 		char buffer[2];
 		f->seekg(position, std::ios::beg);
 		f->read(buffer, 2);
@@ -245,10 +209,7 @@ namespace Slippi {
 			case EVENT_GAME_INIT:
 				handleGameInit(result->game);
 				break;
-			case EVENT_GAME_START:
-				handleGameStart(result->game);
-				break;
-			case EVENT_UPDATE:
+			case EVENT_PRE_FRAME_UPDATE:
 				handleUpdate(result->game);
 				break;
 			case EVENT_GAME_END:

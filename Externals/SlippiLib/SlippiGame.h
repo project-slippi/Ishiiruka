@@ -10,8 +10,8 @@
 namespace Slippi {
 	const uint8_t EVENT_PAYLOAD_SIZES = 0x35;
 	const uint8_t EVENT_GAME_INIT = 0x36;
-	const uint8_t EVENT_GAME_START = 0x37;
-	const uint8_t EVENT_UPDATE = 0x38;
+	const uint8_t EVENT_PRE_FRAME_UPDATE = 0x37;
+	const uint8_t EVENT_POST_FRAME_UPDATE = 0x38;
 	const uint8_t EVENT_GAME_END = 0x39;
 
 	const uint8_t GAME_INFO_HEADER_SIZE = 78;
@@ -82,10 +82,10 @@ namespace Slippi {
 	} Game;
 
 	static std::unordered_map<uint8_t, uint32_t> asmEvents = {
-		{ EVENT_GAME_INIT, 0x140 },
-		{ EVENT_GAME_START, 0x6 },
-		{ EVENT_UPDATE, 0x46 },
-		{ EVENT_GAME_END, 0x1 }
+		{ EVENT_GAME_INIT, 320 },
+		{ EVENT_PRE_FRAME_UPDATE, 58 },
+		{ EVENT_POST_FRAME_UPDATE, 33 },
+		{ EVENT_GAME_END, 1 }
 	};
 
 	class SlippiGame
