@@ -70,7 +70,7 @@ namespace Slippi {
 		game->settings.stage = gameInfoHeader[3] & 0xFFFF;
 	}
 
-	void handleUpdate(Game* game) {
+	void handlePreFrameUpdate(Game* game) {
 		int idx = 0;
 
 		//Check frame count
@@ -121,6 +121,32 @@ namespace Slippi {
 
 		// Add frame to game
 		game->frameData[frameCount] = *frame;
+
+		// Check if a player started as sheik and update
+		if (frameCount == GAME_FIRST_FRAME && p->internalCharacterId == GAME_SHEIK_INTERNAL_ID) {
+			game->settings.players[playerSlot].characterId = GAME_SHEIK_EXTERNAL_ID;
+		}
+	}
+
+	void handlePostFrameUpdate(Game* game) {
+		int idx = 0;
+
+		//Check frame count
+		int32_t frameCount = readWord(data, idx);
+
+		FrameData* frame = new FrameData();
+		if (game->frameData.count(frameCount)) {
+			// If this frame already exists, this is probably another player
+			// in this frame, so let's fetch it.
+			frame = &game->frameData[frameCount];
+		}
+
+		uint8_t playerSlot = readByte(data, idx);
+		uint8_t isFollower = readByte(data, idx);
+
+		PlayerFrameData* p = isFollower ? &frame->followers[playerSlot] : &frame->players[playerSlot];
+
+		p->internalCharacterId = readByte(data, idx);
 
 		// Check if a player started as sheik and update
 		if (frameCount == GAME_FIRST_FRAME && p->internalCharacterId == GAME_SHEIK_INTERNAL_ID) {
@@ -210,7 +236,10 @@ namespace Slippi {
 				handleGameInit(result->game);
 				break;
 			case EVENT_PRE_FRAME_UPDATE:
-				handleUpdate(result->game);
+				handlePreFrameUpdate(result->game);
+				break;
+			case EVENT_POST_FRAME_UPDATE:
+				handlePostFrameUpdate(result->game);
 				break;
 			case EVENT_GAME_END:
 				handleGameEnd(result->game);
