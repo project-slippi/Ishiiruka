@@ -906,6 +906,11 @@ IOFile::IOFile(const std::string& filename, const char openmode[]) : m_file(null
 	Open(filename, openmode);
 }
 
+IOFile::IOFile(const std::string& filename, const char openmode[], int shflag) : m_file(nullptr), m_good(true)
+{
+	OpenShared(filename, openmode, shflag);
+}
+
 IOFile::~IOFile()
 {
 	Close();
@@ -933,6 +938,19 @@ bool IOFile::Open(const std::string& filename, const char openmode[])
 	Close();
 #ifdef _WIN32
 	_tfopen_s(&m_file, UTF8ToTStr(filename).c_str(), UTF8ToTStr(openmode).c_str());
+#else
+	m_file = fopen(filename.c_str(), openmode);
+#endif
+
+	m_good = IsOpen();
+	return m_good;
+}
+
+bool IOFile::OpenShared(const std::string& filename, const char openmode[], int shflag)
+{
+	Close();
+#ifdef _WIN32
+	m_file = _fsopen(filename.c_str(), openmode, shflag);
 #else
 	m_file = fopen(filename.c_str(), openmode);
 #endif

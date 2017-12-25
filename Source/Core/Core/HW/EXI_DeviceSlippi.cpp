@@ -7,6 +7,7 @@
 #include <array>
 #include <unordered_map>
 #include <stdexcept>
+#include <share.h>
 
 #include "SlippiLib/SlippiGame.h"
 #include "Common/CommonFuncs.h"
@@ -126,7 +127,7 @@ void CEXISlippi::createNewFile() {
 
 	File::CreateDir("Slippi");
 	std::string filepath = generateFileName();
-	m_file = File::IOFile(filepath, "wb");
+	m_file = File::IOFile(filepath, "wb", _SH_DENYWR);
 }
 
 std::string CEXISlippi::generateFileName() {
