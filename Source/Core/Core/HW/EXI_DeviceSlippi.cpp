@@ -8,7 +8,10 @@
 #include <unordered_map>
 #include <stdexcept>
 #include <string>
+
+#ifdef _WIN32
 #include <share.h>
+#endif
 
 #include "SlippiLib/SlippiGame.h"
 #include "Common/CommonFuncs.h"
@@ -207,7 +210,12 @@ void CEXISlippi::createNewFile() {
 
 	File::CreateDir("Slippi");
 	std::string filepath = generateFileName();
+
+	#ifdef _WIN32
 	m_file = File::IOFile(filepath, "wb", _SH_DENYWR);
+	#else
+	m_file = File::IOFile(filepath, "wb");
+	#endif
 }
 
 std::string CEXISlippi::generateFileName() {
