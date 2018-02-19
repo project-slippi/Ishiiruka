@@ -31,7 +31,7 @@ private:
 		CMD_UNKNOWN = 0x0,
 		CMD_RECEIVE_COMMANDS = 0x35,
 		CMD_RECEIVE_GAME_INFO = 0x36,
-		CMD_RECEIVE_FRAME_UPDATE = 0x38,
+		CMD_RECEIVE_POST_FRAME_UPDATE = 0x38,
 		CMD_RECEIVE_GAME_END = 0x39,
 		CMD_PREPARE_REPLAY = 0x75,
 		CMD_READ_FRAME = 0x76,
@@ -53,7 +53,13 @@ private:
 
 	// .slp File creation stuff
 	u32 writtenByteCount = 0;
+	
+	// vars for metadata generation
 	time_t gameStartTime;
+	int32_t lastFrame;
+	std::unordered_map<u8, std::unordered_map<u8, u32>> characterUsage;
+
+	void updateMetadataFields(u8* payload, u32 length);
 	void configureCommands(u8* payload, u8 length);
 	void writeToFile(u8* payload, u32 length, std::string fileOption);
 	std::vector<u8> generateMetadata();

@@ -7,6 +7,7 @@
 #include <array>
 #include <unordered_map>
 #include <stdexcept>
+#include <string>
 #include <share.h>
 
 #include "SlippiLib/SlippiGame.h"
@@ -15,6 +16,24 @@
 #include "Common/Logging/Log.h"
 #include "Common/FileUtil.h"
 #include "Common/StringUtil.h"
+
+std::vector<u8> uint32ToVector(u32 num) {
+	u8 byte0 = num >> 24;
+	u8 byte1 = (num & 0xFF0000) >> 16;
+	u8 byte2 = (num & 0xFF00) >> 8;
+	u8 byte3 = num & 0xFF;
+
+	return std::vector<u8>({ byte0, byte1, byte2, byte3 });
+}
+
+std::vector<u8> int32ToVector(int32_t num) {
+	u8 byte0 = num >> 24;
+	u8 byte1 = (num & 0xFF0000) >> 16;
+	u8 byte2 = (num & 0xFF00) >> 8;
+	u8 byte3 = num & 0xFF;
+
+	return std::vector<u8>({ byte0, byte1, byte2, byte3 });
+}
 
 CEXISlippi::CEXISlippi() {
 	INFO_LOG(EXPANSIONINTERFACE, "EXI SLIPPI Constructor called.");
@@ -33,6 +52,24 @@ void CEXISlippi::configureCommands(u8* payload, u8 length) {
 	}
 }
 
+void CEXISlippi::updateMetadataFields(u8* payload, u32 length) {
+	if (length <= 0 || payload[0] != CMD_RECEIVE_POST_FRAME_UPDATE) {
+		// Only need to update if this is a post frame update
+		return;
+	}
+
+	// Keep track of last frame
+	lastFrame = payload[1] << 24 | payload[2] << 16 | payload[3] << 8 | payload[4];
+
+	// Keep track of character usage
+	u8 playerIndex = payload[5];
+	u8 internalCharacterId = payload[7];
+	if (!characterUsage.count(playerIndex) || !characterUsage[playerIndex].count(internalCharacterId)) {
+		characterUsage[playerIndex][internalCharacterId] = 0;
+	}
+	characterUsage[playerIndex][internalCharacterId] += 1;
+}
+
 std::vector<u8> CEXISlippi::generateMetadata() {
 	std::vector<u8> metadata(
 		{ 'U', 8, 'm', 'e', 't', 'a', 'd', 'a', 't', 'a', '{' }
@@ -49,6 +86,44 @@ std::vector<u8> CEXISlippi::generateMetadata() {
 		'U', 7, 's', 't', 'a', 'r', 't', 'A', 't', 'S', 'U', (uint8_t)dateTimeBuf.size()
 	});
 	metadata.insert(metadata.end(), dateTimeBuf.begin(), dateTimeBuf.end());
+
+	// Add game duration
+	std::vector<u8> lastFrameToWrite = int32ToVector(lastFrame);
+	metadata.insert(metadata.end(), {
+		'U', 9, 'l', 'a', 's', 't', 'F', 'r', 'a', 'm', 'e', 'l'
+	});
+	metadata.insert(metadata.end(), lastFrameToWrite.begin(), lastFrameToWrite.end());
+
+	// Add players elements to metadata, one per player index
+	metadata.insert(metadata.end(), {
+		'U', 7, 'p', 'l', 'a', 'y', 'e', 'r', 's', '{'
+	});
+	for (auto it = characterUsage.begin(); it != characterUsage.end(); ++it) {
+		metadata.push_back('U');
+		std::string playerIndexStr = std::to_string(it->first);
+		metadata.push_back((u8)playerIndexStr.length());
+		metadata.insert(metadata.end(), playerIndexStr.begin(), playerIndexStr.end());
+		metadata.push_back('{');
+
+		// Add character element for this player
+		metadata.insert(metadata.end(), {
+			'U', 10, 'c', 'h', 'a', 'r', 'a', 'c', 't', 'e', 'r', 's', '{'
+		});
+		for (auto it2 = it->second.begin(); it2 != it->second.end(); ++it2) {
+			metadata.push_back('U');
+			std::string internalCharIdStr = std::to_string(it2->first);
+			metadata.push_back((u8)internalCharIdStr.length());
+			metadata.insert(metadata.end(), internalCharIdStr.begin(), internalCharIdStr.end());
+
+			metadata.push_back('l');
+			std::vector<u8> frameCount = uint32ToVector(it2->second);
+			metadata.insert(metadata.end(), frameCount.begin(), frameCount.end());
+		}
+		metadata.push_back('}'); // close characters
+
+		metadata.push_back('}'); // close player
+	}
+	metadata.push_back('}');
 
 	// Indicate this was played on dolphin
 	metadata.insert(metadata.end(), {
@@ -78,12 +153,21 @@ void CEXISlippi::writeToFile(u8* payload, u32 length, std::string fileOption) {
 
 		// Used to keep track of how many bytes have been written to the file
 		writtenByteCount = 0;
+
+		// Used to track character usage (sheik/zelda)
+		characterUsage.clear();
+
+		// Reset lastFrame
+		lastFrame = Slippi::GAME_FIRST_FRAME;
 	}
 
 	// If no file, do nothing
 	if (!m_file) {
 		return;
 	}
+
+	// Update fields relevant to generating metadata at the end
+	updateMetadataFields(payload, length);
 
 	// Add the payload to data to write
 	dataToWrite.insert(dataToWrite.end(), payload, payload + length);
@@ -106,12 +190,8 @@ void CEXISlippi::writeToFile(u8* payload, u32 length, std::string fileOption) {
 	// If file should be closed, close it
 	if (fileOption == "close") {
 		// Write the number of bytes for the raw output
-		u8 sizeByte0 = writtenByteCount >> 24;
-		u8 sizeByte1 = (writtenByteCount & 0xFF0000) >> 16;
-		u8 sizeByte2 = (writtenByteCount & 0xFF00) >> 8;
-		u8 sizeByte3 = writtenByteCount & 0xFF;
+		std::vector<u8> sizeBytes = uint32ToVector(writtenByteCount);
 		m_file.Seek(11, 0);
-		std::vector<u8> sizeBytes({ sizeByte0, sizeByte1, sizeByte2, sizeByte3 });
 		m_file.WriteBytes(&sizeBytes[0], sizeBytes.size());
 
 		// Close file
