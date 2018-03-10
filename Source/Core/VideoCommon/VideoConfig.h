@@ -126,13 +126,13 @@ struct VideoConfig final
 	bool bShowFPS;
 	bool bShowNetPlayPing;
 	bool bShowNetPlayMessages;
+    bool bShowOSDClock;
 	bool bShowInputDisplay;
 	bool bOverlayStats;
 	bool bOverlayProjStats;
 	bool bTexFmtOverlayEnable;
 	bool bTexFmtOverlayCenter;
 	bool bLogRenderTimeToFile;
-
 
 	// Render
 	bool bWireFrame;

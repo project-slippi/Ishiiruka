@@ -18,6 +18,10 @@
 #include <mutex>
 #include <string>
 
+#include <iostream>
+#include <sstream>
+#include <locale>
+
 #include "Common/Assert.h"
 #include "Common/CommonTypes.h"
 #include "Common/Event.h"
@@ -347,6 +351,18 @@ void Renderer::DrawDebugText()
 		final_cyan += Movie::GetRTCDisplay();
 		final_yellow += "\n";
 	}
+
+    if(g_ActiveConfig.bShowOSDClock)
+    {
+        std::stringstream ss;
+        // ss.imbue(std::locale("en_US.UTF8"));
+        
+        std::time_t time = std::time(nullptr);
+        ss << std::put_time(std::localtime(&time), "%X");
+
+        final_cyan += ss.str();
+		final_yellow += "\n";
+    }
 
 	// OSD Menu messages
 	if (OSDChoice > 0)
