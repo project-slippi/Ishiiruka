@@ -77,6 +77,7 @@ void VideoConfig::Load(const std::string& ini_file)
 	settings->Get("ShowFPS", &bShowFPS, false);
 	settings->Get("ShowNetPlayPing", &bShowNetPlayPing, false);
 	settings->Get("ShowNetPlayMessages", &bShowNetPlayMessages, false);
+    settings->Get("ShowOSDClock", &bShowOSDClock, false);
 	settings->Get("LogRenderTimeToFile", &bLogRenderTimeToFile, false);
 	settings->Get("ShowInputDisplay", &bShowInputDisplay, false);
 	settings->Get("OverlayStats", &bOverlayStats, false);
@@ -423,6 +424,7 @@ void VideoConfig::Save(const std::string& ini_file)
 	settings->Set("ShowFPS", bShowFPS);
 	settings->Set("ShowNetPlayPing", bShowNetPlayPing);
 	settings->Set("ShowNetPlayMessages", bShowNetPlayMessages);
+    settings->Set("ShowOSDClock", bShowOSDClock);
 	settings->Set("LogRenderTimeToFile", bLogRenderTimeToFile);
 	settings->Set("ShowInputDisplay", bShowInputDisplay);
 	settings->Set("OverlayStats", bOverlayStats);

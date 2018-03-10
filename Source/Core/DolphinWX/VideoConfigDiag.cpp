@@ -148,6 +148,9 @@ wxTRANSLATE("Show the number of frames rendered per second as a measure of "
 static wxString show_netplay_ping_desc =
 wxTRANSLATE("Show the players' maximum Ping while playing on "
 	"NetPlay.\n\nIf unsure, leave this unchecked.");
+static wxString show_osd_clock_desc =
+wxTRANSLATE("Show the current time on the on-screen display\n\nIf "
+	"unsure, leave this unchecked.");
 static wxString log_render_time_to_file_desc =
 wxTRANSLATE("Log the render time of every frame to User/Logs/render_time.txt. Use this "
 	"feature when you want to measure the performance of Dolphin.\n\nIf "
@@ -390,6 +393,9 @@ VideoConfigDiag::VideoConfigDiag(wxWindow* parent, const std::string &title)
 				szr_other->Add(CreateCheckBox(page_general, _("Show NetPlay Ping"),
 					wxGetTranslation(show_netplay_ping_desc),
 					vconfig.bShowNetPlayPing));
+                szr_other->Add(CreateCheckBox(page_general, _("Show OSD Clock"),
+					wxGetTranslation(show_osd_clock_desc),
+					vconfig.bShowOSDClock));
 				szr_other->Add(CreateCheckBox(page_general, _("Auto Adjust Window Size"), (auto_window_size_desc), SConfig::GetInstance().bRenderWindowAutoSize));
 				szr_other->Add(CreateCheckBox(page_general, _("Show NetPlay Messages"),
 					wxGetTranslation(show_netplay_messages_desc),
