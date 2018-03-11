@@ -326,7 +326,14 @@ void NetPlayDialog::OnChat(wxCommandEvent&)
 	{
 		netplay_client->SendChatMessage(text);
 		m_chat_msg_text->Clear();
-		AddChatMessage(ChatMessageType::UserOut, text);
+
+		AddChatMessage(ChatMessageType::UserOut, netplay_client->local_player->name + ": " + text);
+        
+        if (g_ActiveConfig.bShowNetPlayMessages)
+		{
+			OSD::AddMessage(
+                "[Outgoing] " + netplay_client->local_player->name + ": " + text, OSD::Duration::NORMAL, OSD::Color::GREEN);
+		}
 	}
 }
 
@@ -399,9 +406,11 @@ void NetPlayDialog::Update()
 	GetEventHandler()->AddPendingEvent(evt);
 }
 
-void NetPlayDialog::AppendChat(const std::string& msg)
+void NetPlayDialog::AppendChat(const std::string& msg, bool from_self)
 {
-	chat_msgs.Push(msg);
+    ChatMsgIncoming m = { msg, from_self };
+
+	chat_msgs.Push(m);
 	// silly
 	Update();
 }
@@ -649,13 +658,16 @@ void NetPlayDialog::OnThread(wxThreadEvent& event)
 	// chat messages
 	while (chat_msgs.Size())
 	{
-		std::string s;
+		ChatMsgIncoming s;
 		chat_msgs.Pop(s);
-		AddChatMessage(ChatMessageType::UserIn, s);
+
+		AddChatMessage(s.from_self ? ChatMessageType::UserOut : ChatMessageType::UserIn, s.from_self ? netplay_client->local_player->name + ": " + s.msg : s.msg);
 
 		if (g_ActiveConfig.bShowNetPlayMessages)
 		{
-			OSD::AddMessage(s, OSD::Duration::NORMAL, OSD::Color::GREEN);
+			OSD::AddMessage(
+                (s.from_self ? "[Outgoing] " : "[Incoming] ") +
+                (s.from_self ? netplay_client->local_player->name + ": " + s.msg : s.msg), OSD::Duration::NORMAL, OSD::Color::GREEN);
 		}
 	}
 }

@@ -7,6 +7,8 @@
 #include <mutex>
 #include <string>
 #include <utility>
+#include <locale>
+
 #include <wx/app.h>
 #include <wx/buffer.h>
 #include <wx/cmdline.h>
@@ -50,6 +52,7 @@
 #include "UICommon/UICommon.h"
 
 #include "VideoCommon/VideoBackendBase.h"
+#include "VideoCommon/OnScreenDisplay.h"
 
 #if defined HAVE_X11 && HAVE_X11
 #include <X11/Xlib.h>
@@ -191,11 +194,12 @@ bool DolphinApp::OnInit()
 	// event dispatch including WM_MOVE/WM_SIZE)
 	wxRect window_geometry(SConfig::GetInstance().iPosX, SConfig::GetInstance().iPosY,
 		SConfig::GetInstance().iWidth, SConfig::GetInstance().iHeight);
+
 	main_frame = new CFrame(nullptr, wxID_ANY, StrToWxStr(scm_rev_str), window_geometry,
 		m_use_debugger, m_batch_mode, m_use_logger);
 	SetTopWindow(main_frame);
 
-	AfterInit();
+    AfterInit();
 
 	return true;
 }
@@ -227,6 +231,38 @@ void DolphinApp::OnInitCmdLine(wxCmdLineParser& parser)
 			{wxCMD_LINE_NONE, nullptr, nullptr, nullptr, wxCMD_LINE_VAL_NONE, 0} };
 
 	parser.SetDesc(desc);
+}
+
+int DolphinApp::FilterEvent(wxEvent& event)
+{
+    wxKeyEvent& kev = reinterpret_cast<wxKeyEvent&>(event);
+
+    if(main_frame && main_frame->RendererHasFocus())
+    {
+        if(event.GetEventType() == wxEVT_CHAR)
+        {
+            if(kev.GetKeyCode() == WXK_BACK)
+            {
+                if(OSD::Chat::current_msg.size() > 0)
+                    OSD::Chat::current_msg.pop_back();
+            }
+            else
+            {
+                std::string result = wxString(kev.GetUnicodeKey()).ToStdString();
+                std::string filtered;
+
+                for(char c : result)
+                {
+                    if(std::isalnum(c, std::locale::classic()) || std::ispunct(c, std::locale::classic()) || c == ' ')
+                        filtered += c;
+                }
+
+                OSD::Chat::current_msg += filtered;
+            }
+        }
+    }
+
+    return -1;
 }
 
 bool DolphinApp::OnCmdLineParsed(wxCmdLineParser& parser)
@@ -424,7 +460,7 @@ bool wxMsgAlert(const char* caption, const char* text, bool yes_no, int /*Style*
 		NetPlayDialog*& npd = NetPlayDialog::GetInstance();
 		if (npd != nullptr && npd->IsShown())
 		{
-			npd->AppendChat("/!\\ " + std::string{ text });
+			npd->AppendChat("/!\\ " + std::string{ text }, false);
 			return true;
 		}
 		return wxYES == wxMessageBox(StrToWxStr(text), StrToWxStr(caption), (yes_no) ? wxYES_NO : wxOK,

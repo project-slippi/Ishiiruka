@@ -65,4 +65,12 @@ using Callback = std::function<void()>;
 
 void AddCallback(CallbackType type, Callback cb);
 void DoCallbacks(CallbackType type);
+
+namespace Chat
+{
+    extern bool toggled;
+    extern std::string current_msg;
+
+    void Update();
+};
 }  // namespace OSD

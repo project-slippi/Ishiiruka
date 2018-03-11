@@ -11,12 +11,62 @@
 #include "Common/Timer.h"
 
 #include "Core/ConfigManager.h"
+#include "Core/NetPlayClient.h"
 
 #include "VideoCommon/OnScreenDisplay.h"
 #include "VideoCommon/RenderBase.h"
+#include "VideoCommon/VideoConfig.h"
 
 namespace OSD
 {
+// https://stackoverflow.com/questions/216823/whats-the-best-way-to-trim-stdstring
+// trim from start (in place)
+static inline void ltrim(std::string &s) {
+    s.erase(s.begin(), std::find_if(s.begin(), s.end(), [](int ch) {
+        return !std::isspace(ch);
+    }));
+}
+
+// trim from end (in place)
+static inline void rtrim(std::string &s) {
+    s.erase(std::find_if(s.rbegin(), s.rend(), [](int ch) {
+        return !std::isspace(ch);
+    }).base(), s.end());
+}
+
+// trim from both ends (in place)
+static inline void trim(std::string &s) {
+    ltrim(s);
+    rtrim(s);
+}
+
+namespace Chat
+{
+    bool toggled = false;
+    std::string current_msg;
+
+    static bool last_toggled = false;
+
+    void Update()
+    {
+        if(NetPlay::IsNetPlayRunning())
+        {
+            if(!last_toggled && toggled)
+                current_msg = "";
+
+            if(last_toggled && !toggled && current_msg != "")
+            {
+                trim(current_msg);
+
+                netplay_client->SendChatMessage(current_msg);
+                netplay_client->dialog->AppendChat(current_msg, true);
+            }
+        }
+
+        last_toggled = toggled;
+    }
+};
+
 static std::multimap<CallbackType, Callback> s_callbacks;
 static std::multimap<MessageType, Message> s_messages;
 static std::mutex s_messages_mutex;
@@ -52,7 +102,7 @@ void DrawMessages()
 		std::lock_guard<std::mutex> lock(s_messages_mutex);
 
 		u32 now = Common::Timer::GetTimeMs();
-		int left = 20, top = 35;
+		int left = 20, top = 35 + (g_ActiveConfig.bShowOSDClock ? 15 : 0);
 
 		auto it = s_messages.begin();
 		while (it != s_messages.end())

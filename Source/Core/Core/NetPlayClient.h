@@ -31,7 +31,7 @@ public:
 	virtual void StopGame() = 0;
 
 	virtual void Update() = 0;
-	virtual void AppendChat(const std::string& msg) = 0;
+	virtual void AppendChat(const std::string& msg, bool from_self) = 0;
 
 	virtual void OnMsgChangeGame(const std::string& filename) = 0;
 	virtual void OnMsgStartGame() = 0;
@@ -121,6 +121,8 @@ public:
 		return std::max(m_minimum_buffer_size, m_players.at(m_pad_map.at(pad)).buffer);
 	}
 
+    NetPlayUI* dialog = nullptr;
+    Player* local_player = nullptr;
 protected:
 	void ClearBuffers();
 
@@ -137,8 +139,6 @@ protected:
 	std::array<Common::FifoQueue<GCPadStatus>, 4> m_pad_buffer;
 	std::array<Common::FifoQueue<NetWiimote>, 4> m_wiimote_buffer;
 
-	NetPlayUI* m_dialog = nullptr;
-
 	ENetHost* m_client = nullptr;
 	ENetPeer* m_server = nullptr;
 	std::thread m_thread;
@@ -149,15 +149,12 @@ protected:
 
 	unsigned int m_minimum_buffer_size = 6;
 
-	Player* m_local_player = nullptr;
-
 	u32 m_current_game = 0;
 
 	PadMappingArray m_pad_map;
 	PadMappingArray m_wiimote_map;
 
 	bool m_is_recording = false;
-
 private:
 	enum class ConnectionState
 	{
@@ -191,6 +188,7 @@ private:
 	PlayerId m_pid = 0;
 	std::map<PlayerId, Player> m_players;
 	std::string m_host_spec;
+
 	std::string m_player_name;
 	bool m_connecting = false;
 	TraversalClient* m_traversal_client = nullptr;
