@@ -107,7 +107,7 @@ void NetPlayServer::ThreadFunc()
 	while (m_do_loop)
 	{
 		// update pings every so many seconds
-		if ((m_ping_timer.GetTimeElapsed() > 1000) || m_update_pings)
+		if ((m_ping_timer.GetTimeElapsed() > 250) || m_update_pings)
 		{
 			m_ping_key = Common::Timer::GetTimeMs();
 
