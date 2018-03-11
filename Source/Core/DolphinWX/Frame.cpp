@@ -1510,11 +1510,12 @@ void CFrame::ParseHotkeys()
 			g_renderer->GetPostProcessor()->SetReloadFlag();
 	}
 
-    if (IsHotkey(HK_SHOW_OSD_CHAT) && RendererHasFocus())
-	{
-        if(NetPlay::IsNetPlayRunning())
-            OSD::Chat::toggled = !OSD::Chat::toggled && NetPlay::IsNetPlayRunning();
-	}
+    if (IsHotkey(HK_SHOW_OSD_CHAT) && RendererHasFocus() && NetPlay::IsNetPlayRunning())
+         OSD::Chat::toggled = true;
+
+    // un-toggling the osd chat will send the message unless it's empty
+    if (IsHotkey(HK_SEND_CHAT_MSG) && RendererHasFocus() && NetPlay::IsNetPlayRunning())
+        OSD::Chat::toggled = false;
 
 	if (IsHotkey(HK_TOGGLE_TEXTURES))
 	{
