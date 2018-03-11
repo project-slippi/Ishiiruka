@@ -39,6 +39,7 @@
 #include "Core/Movie.h"
 #include "Core/NetPlayProto.h"
 #include "VideoCommon/VideoBackendBase.h"
+#include "VideoCommon/OnScreenDisplay.h"
 
 namespace BootManager
 {
@@ -382,6 +383,8 @@ bool BootCore(const std::string& _rFilename)
 	{
 		g_SRAM_netplay_initialized = false;
 	}
+
+    OSD::Chat::toggled = false;
 
 	// Apply overrides
 	// Some NTSC GameCube games such as Baten Kaitos react strangely to language settings that would

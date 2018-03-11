@@ -17,6 +17,7 @@
 #include <memory>
 #include <mutex>
 #include <string>
+#include <chrono>
 
 #include <iostream>
 #include <sstream>
@@ -41,6 +42,7 @@
 #include "Core/Movie.h"
 #include "Core/FifoPlayer/FifoRecorder.h"
 #include "Core/HW/VideoInterface.h"
+#include "Core/NetPlayProto.h"
 
 #include "InputCommon/GCAdapter.h"
 
@@ -360,7 +362,7 @@ void Renderer::DrawDebugText()
         std::time_t time = std::time(nullptr);
         ss << std::put_time(std::localtime(&time), "%X");
 
-        final_cyan += ss.str();
+        final_cyan += ss.str() + "\n";
 		final_yellow += "\n";
     }
 
@@ -470,6 +472,19 @@ void Renderer::DrawDebugText()
 	// and then the text
 	RenderText(final_cyan, 20, 20, 0xFF00FFFF);
 	RenderText(final_yellow, 20, 20, 0xFFFFFF00);
+
+    if(NetPlay::IsNetPlayRunning())
+    {
+        OSD::Chat::Update();
+
+        if(OSD::Chat::toggled)
+        {
+           RenderText(
+               "Chat: " + OSD::Chat::current_msg + 
+                (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count() % 500 < 250 ? "_" : ""),
+                20, m_backbuffer_height - 20, 0xFF00FF00);
+        }
+    }
 }
 
 float Renderer::CalculateDrawAspectRatio(int target_width, int target_height) const

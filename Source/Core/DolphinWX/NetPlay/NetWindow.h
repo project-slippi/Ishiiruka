@@ -72,7 +72,13 @@ public:
 		const bool is_hosting = false);
 	~NetPlayDialog();
 
-	Common::FifoQueue<std::string> chat_msgs;
+    struct ChatMsgIncoming
+    {
+        std::string msg;
+        bool from_self;
+    };
+
+	Common::FifoQueue<ChatMsgIncoming> chat_msgs;
 
 	void OnStart(wxCommandEvent& event);
 
@@ -81,7 +87,7 @@ public:
 	void StopGame() override;
 
 	void Update() override;
-	void AppendChat(const std::string& msg) override;
+	void AppendChat(const std::string& msg, bool from_self) override;
 
 	void ShowMD5Dialog(const std::string& file_identifier) override;
 	void SetMD5Progress(int pid, int progress) override;

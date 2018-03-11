@@ -37,6 +37,8 @@ private:
 	void OnActivate(wxActivateEvent& ev);
 	void OnIdle(wxIdleEvent&);
 
+    int FilterEvent(wxEvent& event) override;
+
 	bool m_batch_mode = false;
 	bool m_confirm_stop = false;
 	bool m_is_active = true;
