@@ -54,6 +54,13 @@ enum PollingMethod
 	POLLING_ONSIREAD = 1
 };
 
+enum MeleeLagReductionCode
+{
+    MELEE_LAG_REDUCTION_CODE_UNSET = 0,
+    MELEE_LAG_REDUCTION_CODE_NORMAL = 1,
+    MELEE_LAG_REDUCTION_CODE_PERFORMANCE = 2
+};
+
 struct SConfig : NonCopyable
 {
 	// Wii Devices
@@ -119,6 +126,9 @@ struct SConfig : NonCopyable
 	bool bAllowAllNetplayVersions = false;
 	bool bQoSEnabled = true;
 	bool bAdapterWarning = true;
+
+    MeleeLagReductionCode iLagReductionCode = MELEE_LAG_REDUCTION_CODE_UNSET;
+    bool bHasShownLagReductionWarning = false;
 
 	bool bDPL2Decoder = false;
 	bool bTimeStretching = false;

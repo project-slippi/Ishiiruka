@@ -9,8 +9,10 @@
 #include <string>
 #include <tuple>
 #include <vector>
+#include <wx/arrstr.h>
 #include <wx/button.h>
 #include <wx/checkbox.h>
+#include <wx/combobox.h>
 #include <wx/choice.h>
 #include <wx/clipbrd.h>
 #include <wx/colour.h>
@@ -258,19 +260,37 @@ wxSizer* NetPlayDialog::CreateBottomGUI(wxWindow* parent)
 		m_start_btn->Bind(wxEVT_BUTTON, &NetPlayDialog::OnStart, this);
 
 		wxStaticText* minimum_buffer_lbl = new wxStaticText(parent, wxID_ANY, _("Minimum Buffer:"));
-		wxSpinCtrl* const minimum_padbuf_spin =
+		m_minimum_padbuf_spin =
 			new wxSpinCtrl(parent, wxID_ANY, std::to_string(INITIAL_PAD_BUFFER_SIZE), wxDefaultPosition,
 				wxDefaultSize, wxSP_ARROW_KEYS, 0, 200, INITIAL_PAD_BUFFER_SIZE);
-		minimum_padbuf_spin->Bind(wxEVT_SPINCTRL, &NetPlayDialog::OnAdjustMinimumBuffer, this);
-		minimum_padbuf_spin->SetMinSize(WxUtils::GetTextWidgetMinSize(minimum_padbuf_spin));
+		m_minimum_padbuf_spin->Bind(wxEVT_SPINCTRL, &NetPlayDialog::OnAdjustMinimumBuffer, this);
+		m_minimum_padbuf_spin->SetMinSize(WxUtils::GetTextWidgetMinSize(m_minimum_padbuf_spin));
+
+         if(IsNTSCMelee())
+        {
+            wxArrayString choices;
+            choices.Add("Normal");
+            choices.Add("Performance");
+
+            m_lag_reduction_choice = new wxChoice(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize, choices);
+            m_lag_reduction_choice->SetSelection(0);
+            m_lag_reduction_choice->Bind(wxEVT_CHOICE, &NetPlayDialog::OnAdjustLagReduction, this);
+        }
 
 		m_memcard_write = new wxCheckBox(parent, wxID_ANY, _("Enable memory cards/SD"));
 
 		bottom_szr->Add(m_start_btn, 0, wxALIGN_CENTER_VERTICAL);
 		bottom_szr->Add(minimum_buffer_lbl, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, space5);
-		bottom_szr->Add(minimum_padbuf_spin, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, space5);
+		bottom_szr->Add(m_minimum_padbuf_spin, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, space5);
 		bottom_szr->Add(buffer_lbl, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, space5);
 		bottom_szr->Add(m_player_padbuf_spin, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, space5);
+
+        if(IsNTSCMelee())
+        {
+            bottom_szr->Add(new wxStaticText(parent, wxID_ANY, "Lag Reduction:"), 0, wxALIGN_CENTER_VERTICAL | wxLEFT, space5);
+            bottom_szr->Add(m_lag_reduction_choice, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, space5);
+        }
+
 		bottom_szr->Add(m_memcard_write, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, space5);
 		bottom_szr->AddSpacer(space5);
 	}
@@ -286,6 +306,7 @@ wxSizer* NetPlayDialog::CreateBottomGUI(wxWindow* parent)
 	quit_btn->Bind(wxEVT_BUTTON, &NetPlayDialog::OnQuit, this);
 
 	bottom_szr->Add(m_record_chkbox, 0, wxALIGN_CENTER_VERTICAL);
+
 	bottom_szr->AddStretchSpacer();
 	bottom_szr->Add(quit_btn);
 	return bottom_szr;
@@ -337,6 +358,11 @@ void NetPlayDialog::OnChat(wxCommandEvent&)
 	}
 }
 
+bool NetPlayDialog::IsNTSCMelee()
+{
+    return m_selected_game.find("GALE01") != std::string::npos;
+}
+
 void NetPlayDialog::GetNetSettings(NetSettings& settings)
 {
 	SConfig& instance = SConfig::GetInstance();
@@ -354,6 +380,7 @@ void NetPlayDialog::GetNetSettings(NetSettings& settings)
 	settings.m_OCFactor = instance.m_OCFactor;
 	settings.m_EXIDevice[0] = m_memcard_write->GetValue() ? instance.m_EXIDevice[0] : EXIDEVICE_NONE;
 	settings.m_EXIDevice[1] = m_memcard_write->GetValue() ? instance.m_EXIDevice[1] : EXIDEVICE_NONE;
+    settings.m_LagReduction = IsNTSCMelee() ? (MeleeLagReductionCode)(m_lag_reduction_choice->GetSelection() + 1) : MELEE_LAG_REDUCTION_CODE_UNSET;
 }
 
 std::string NetPlayDialog::FindGame(const std::string& target_game)
@@ -432,6 +459,9 @@ void NetPlayDialog::OnMsgStartGame()
 		m_memcard_write->Disable();
 		m_game_btn->Disable();
 		m_player_config_btn->Disable();
+        
+        if(IsNTSCMelee())
+            m_lag_reduction_choice->Disable();
 	}
 
 	m_record_chkbox->Disable();
@@ -447,6 +477,9 @@ void NetPlayDialog::OnMsgStopGame()
 		m_memcard_write->Enable();
 		m_game_btn->Enable();
 		m_player_config_btn->Enable();
+
+        if(IsNTSCMelee())
+            m_lag_reduction_choice->Enable();
 	}
 	m_record_chkbox->Enable();
 }
@@ -461,6 +494,34 @@ void NetPlayDialog::OnAdjustPlayerBuffer(wxCommandEvent& event)
 {
 	const int val = ((wxSpinCtrl*)event.GetEventObject())->GetValue();
 	netplay_client->SetLocalPlayerBuffer(val);
+}
+
+void NetPlayDialog::OnAdjustLagReduction(wxCommandEvent& event)
+{
+    if(m_lag_reduction_choice->GetSelection() == 0)
+    {
+        m_minimum_padbuf_spin->SetValue(m_minimum_padbuf_spin->GetValue() + 1);
+        netplay_server->AdjustMinimumPadBufferSize(m_minimum_padbuf_spin->GetValue());
+    }
+
+	if(m_lag_reduction_choice->GetSelection() == 1)
+    {
+        if(m_minimum_padbuf_spin->GetValue() > 0)
+        {
+            m_minimum_padbuf_spin->SetValue(m_minimum_padbuf_spin->GetValue() - 1);
+            netplay_server->AdjustMinimumPadBufferSize(m_minimum_padbuf_spin->GetValue());
+        }
+
+        if(!SConfig::GetInstance().bHasShownLagReductionWarning)
+        {
+            wxMessageBox("The 'Performance' lag reduction code uses a different method for reducing input lag.\n"
+                        "This method uses less CPU but has been shown to increase input lag by about 1 buffer on average.\n"
+                        "As a result, you can only play with up to ~41ms of ping rather than ~50ms for console lag levels.",
+                        "Warning!", wxOK | wxCENTER, this);
+                        
+            SConfig::GetInstance().bHasShownLagReductionWarning = true;
+        }
+    }
 }
 
 void NetPlayDialog::OnMinimumPadBufferChanged(u32 buffer)
