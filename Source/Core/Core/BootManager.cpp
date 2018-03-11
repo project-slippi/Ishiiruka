@@ -378,6 +378,7 @@ bool BootCore(const std::string& _rFilename)
 		SConfig::GetInstance().m_EXIDevice[1] = g_NetPlaySettings.m_EXIDevice[1];
 		config_cache.bSetEXIDevice[0] = true;
 		config_cache.bSetEXIDevice[1] = true;
+        StartUp.iLagReductionCode = g_NetPlaySettings.m_LagReduction;
 	}
 	else
 	{

@@ -24,6 +24,7 @@ class wxStaticText;
 class wxString;
 class wxTextCtrl;
 class wxSpinCtrl;
+class wxComboBox;
 
 enum
 {
@@ -125,6 +126,7 @@ private:
 	void OnMD5ComputeRequested(wxCommandEvent& event);
 	void OnAdjustMinimumBuffer(wxCommandEvent& event);
 	void OnAdjustPlayerBuffer(wxCommandEvent& event);
+    void OnAdjustLagReduction(wxCommandEvent& event);
 	void OnAssignPads(wxCommandEvent& event);
 	void OnKick(wxCommandEvent& event);
 	void OnPlayerSelect(wxCommandEvent& event);
@@ -137,13 +139,17 @@ private:
 	void OnChoice(wxCommandEvent& event);
 	void UpdateHostLabel();
 
+    bool IsNTSCMelee();
+
 	wxListBox* m_player_lbox;
 	wxTextCtrl* m_chat_text;
 	wxTextCtrl* m_chat_msg_text;
 	wxCheckBox* m_memcard_write;
 	wxCheckBox* m_record_chkbox;
+    wxChoice* m_lag_reduction_choice;
 
 	wxSpinCtrl* m_player_padbuf_spin;
+    wxSpinCtrl* m_minimum_padbuf_spin;
 
 	std::string m_selected_game;
 	wxButton* m_player_config_btn;

@@ -8,6 +8,7 @@
 #include <vector>
 #include "Common/CommonTypes.h"
 #include "Core/HW/EXI_Device.h"
+#include "Core/ConfigManager.h"
 
 struct NetSettings
 {
@@ -24,6 +25,8 @@ struct NetSettings
 	bool m_OCEnable;
 	float m_OCFactor;
 	TEXIDevices m_EXIDevice[2];
+
+    MeleeLagReductionCode m_LagReduction;
 };
 
 extern NetSettings g_NetPlaySettings;
