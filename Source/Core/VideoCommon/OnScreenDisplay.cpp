@@ -102,7 +102,8 @@ void DrawMessages()
 		std::lock_guard<std::mutex> lock(s_messages_mutex);
 
 		u32 now = Common::Timer::GetTimeMs();
-		int left = 20, top = 35 + (g_ActiveConfig.bShowOSDClock ? 15 : 0);
+		int left = 20, top = 35 + (g_ActiveConfig.bShowOSDClock ? ((g_ActiveConfig.backend_info.APIType & API_D3D9) ||
+			(g_ActiveConfig.backend_info.APIType & API_D3D11) ? 35 : 15) : 0);
 
 		auto it = s_messages.begin();
 		while (it != s_messages.end())

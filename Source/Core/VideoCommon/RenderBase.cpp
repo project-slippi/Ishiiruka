@@ -324,7 +324,7 @@ void Renderer::DrawDebugText()
     if(last_report_time != std::time(nullptr))
     {
         if(NetPlay::IsNetPlayRunning() && SConfig::GetInstance().iPollingMethod == POLLING_ONSIREAD)
-            netplay_client->ReportFrameTimeToServer(frame_time);
+            netplay_client->ReportFrameTimeToServer((float)frame_time);
 
         last_report_time = std::time(nullptr);
     }
@@ -507,7 +507,9 @@ void Renderer::DrawDebugText()
            RenderText(
                "Chat: " + OSD::Chat::current_msg + 
                 (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count() % 500 < 250 ? "_" : ""),
-                20, m_backbuffer_height - 20, 0xFF00FF00);
+                20, m_backbuffer_height - (
+					(g_ActiveConfig.backend_info.APIType & API_D3D9) || 
+					(g_ActiveConfig.backend_info.APIType & API_D3D11) ? 40 : 20), 0xFF00FF00);
         }
     }
 }
@@ -736,16 +738,16 @@ void Renderer::UpdateDrawRectangle()
         if(scale == 0)
             scale = 1;
 
-        int width = floor(m_target_width * scale);
-        int height = floor(m_target_height * scale);
+        int width = (int)floor(m_target_width * scale);
+        int height = (int)floor(m_target_height * scale);
 
         if(width > 0 && height > 0)
         {
             float ratio = CalculateDrawAspectRatio(width, height);
             if(ratio > 1.01f)
-                width /= ratio;
+                width = (int)(width / ratio);
             if(ratio < 0.99f)
-                height *= ratio;
+                height = (int)(height * ratio);
         }
 
         m_target_rectangle.left = m_backbuffer_width / 2 - width / 2;
