@@ -63,8 +63,9 @@ public:
 	std::string name;
 	std::string revision;
 	u32 ping;
+    float frame_time = 0;
 	PlayerGameStatus game_status;
-	u32 buffer;
+	u32 buffer = 0;
 };
 
 
@@ -89,6 +90,8 @@ public:
 	void Stop();
 	bool ChangeGame(const std::string& game);
 	void SendChatMessage(const std::string& msg);
+
+    void ReportFrameTimeToServer(float frame_time);
 
 	// Send and receive pads values
 	bool WiimoteUpdate(int _number, u8* data, const u8 size, u8 reporting_mode);

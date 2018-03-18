@@ -43,6 +43,7 @@
 #include "Core/FifoPlayer/FifoRecorder.h"
 #include "Core/HW/VideoInterface.h"
 #include "Core/NetPlayProto.h"
+#include "Core/NetPlayClient.h"
 #include "Core/HW/SI.h"
 
 #include "InputCommon/GCAdapter.h"
@@ -315,13 +316,23 @@ void Renderer::SaveScreenshot(const std::string& filename, bool wait_for_complet
 // Create On-Screen-Messages
 void Renderer::DrawDebugText()
 {
+    double frame_time = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now().time_since_epoch() - SerialInterface::last_si_read.time_since_epoch()).count() / 1000.0;
+    frame_time = round(frame_time * 10) / 10;
+
+    static time_t last_report_time = std::time(nullptr);
+
+    if(last_report_time != std::time(nullptr))
+    {
+        if(NetPlay::IsNetPlayRunning() && SConfig::GetInstance().iPollingMethod == POLLING_ONSIREAD)
+            netplay_client->ReportFrameTimeToServer(frame_time);
+
+        last_report_time = std::time(nullptr);
+    }
+
 	std::string final_yellow, final_cyan;
 
 	if (g_ActiveConfig.bShowFPS || SConfig::GetInstance().m_ShowFrameCount)
 	{
-        double frame_time = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now().time_since_epoch() - SerialInterface::last_si_read.time_since_epoch()).count() / 1000.0;
-        frame_time = round(frame_time * 10) / 10;
-
         std::string frame_time_str = std::to_string(frame_time);
         frame_time_str = frame_time_str.substr(0, 3);
 

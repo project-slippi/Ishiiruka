@@ -561,6 +561,21 @@ unsigned int NetPlayServer::OnData(sf::Packet& packet, Client& player)
 	}
 	break;
 
+    case NP_MSG_REPORT_FRAME_TIME:
+    {
+		float frame_time;
+		packet >> frame_time;
+
+		// send msg to other clients
+		sf::Packet spac;
+		spac << (MessageId)NP_MSG_REPORT_FRAME_TIME;
+		spac << player.pid;
+		spac << frame_time;
+
+		SendToClients(spac, player.pid);
+    }
+    break;
+
 	case NP_MSG_PAD_BUFFER_PLAYER:
 	{
 		u32 buffer;
