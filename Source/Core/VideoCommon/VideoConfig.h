@@ -127,6 +127,7 @@ struct VideoConfig final
 	bool bShowNetPlayPing;
 	bool bShowNetPlayMessages;
     bool bShowOSDClock;
+    bool bShowFrameTimes;
 	bool bShowInputDisplay;
 	bool bOverlayStats;
 	bool bOverlayProjStats;

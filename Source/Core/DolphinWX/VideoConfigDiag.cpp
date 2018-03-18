@@ -149,7 +149,10 @@ static wxString show_netplay_ping_desc =
 wxTRANSLATE("Show the players' maximum Ping while playing on "
 	"NetPlay.\n\nIf unsure, leave this unchecked.");
 static wxString show_osd_clock_desc =
-wxTRANSLATE("Show the current time on the on-screen display\n\nIf "
+wxTRANSLATE("Show the current time on the on-screen display.\n\nIf "
+	"unsure, leave this unchecked.");
+static wxString show_frame_times_desc =
+wxTRANSLATE("Show frame times on the on-screen display in addition to FPS,\nThis option only works when polling method is set to \"On SI Read\".\n\nIf "
 	"unsure, leave this unchecked.");
 static wxString log_render_time_to_file_desc =
 wxTRANSLATE("Log the render time of every frame to User/Logs/render_time.txt. Use this "
@@ -396,6 +399,9 @@ VideoConfigDiag::VideoConfigDiag(wxWindow* parent, const std::string &title)
                 szr_other->Add(CreateCheckBox(page_general, _("Show OSD Clock"),
 					wxGetTranslation(show_osd_clock_desc),
 					vconfig.bShowOSDClock));
+                szr_other->Add(CreateCheckBox(page_general, _("Show frame times on FPS display"),
+					wxGetTranslation(show_frame_times_desc),
+					vconfig.bShowFrameTimes));
 				szr_other->Add(CreateCheckBox(page_general, _("Auto Adjust Window Size"), (auto_window_size_desc), SConfig::GetInstance().bRenderWindowAutoSize));
 				szr_other->Add(CreateCheckBox(page_general, _("Show NetPlay Messages"),
 					wxGetTranslation(show_netplay_messages_desc),

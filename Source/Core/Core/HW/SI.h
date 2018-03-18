@@ -6,6 +6,7 @@
 
 #include <memory>
 #include "Common/CommonTypes.h"
+#include <chrono>
 
 class PointerWrap;
 class ISIDevice;
@@ -41,5 +42,7 @@ void ChangeDeviceDeterministic(SIDevices device, int channel);
 SIDevices GetDeviceType(int channel);
 
 u32 GetPollXLines();
+
+extern std::chrono::time_point<std::chrono::high_resolution_clock> last_si_read;
 
 }  // end of namespace SerialInterface

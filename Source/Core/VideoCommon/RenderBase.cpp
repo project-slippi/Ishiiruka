@@ -43,6 +43,7 @@
 #include "Core/FifoPlayer/FifoRecorder.h"
 #include "Core/HW/VideoInterface.h"
 #include "Core/NetPlayProto.h"
+#include "Core/HW/SI.h"
 
 #include "InputCommon/GCAdapter.h"
 
@@ -318,11 +319,24 @@ void Renderer::DrawDebugText()
 
 	if (g_ActiveConfig.bShowFPS || SConfig::GetInstance().m_ShowFrameCount)
 	{
+        double frame_time = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now().time_since_epoch() - SerialInterface::last_si_read.time_since_epoch()).count() / 1000.0;
+        frame_time = round(frame_time * 10) / 10;
+
+        std::string frame_time_str = std::to_string(frame_time);
+        frame_time_str = frame_time_str.substr(0, 3);
+
+        while(frame_time_str.find(",") != std::string::npos)
+            frame_time_str[frame_time_str.find(",")] = '.';
+
 		if (g_ActiveConfig.bShowFPS)
 			final_cyan += StringFromFormat("FPS: %u", m_fps_counter.GetFPS());
 
+        if (g_ActiveConfig.bShowFPS && g_ActiveConfig.bShowFrameTimes && SConfig::GetInstance().iPollingMethod == POLLING_ONSIREAD)
+			final_cyan += " (" + frame_time_str + " ms)";
+
 		if (g_ActiveConfig.bShowFPS && SConfig::GetInstance().m_ShowFrameCount)
 			final_cyan += " - ";
+
 		if (SConfig::GetInstance().m_ShowFrameCount)
 		{
 			final_cyan += StringFromFormat("Frame: %llu", (unsigned long long)Movie::GetCurrentFrame());
