@@ -717,7 +717,7 @@ void Renderer::UpdateDrawRectangle()
 	m_target_rectangle.right = XOffset + iWhidth;
 	m_target_rectangle.bottom = YOffset + iHeight;
 
-    if(g_ActiveConfig.iAspectRatio == ASPECT_INTEGER)
+    if(g_ActiveConfig.iAspectRatio == ASPECT_INTEGER && g_ActiveConfig.iEFBScale != SCALE_AUTO && g_ActiveConfig.iEFBScale != SCALE_AUTO_INTEGRAL)
     {
         float scale = std::min((float)m_backbuffer_width / m_target_width, (float)m_backbuffer_height / m_target_height);
         if(scale > 1)
