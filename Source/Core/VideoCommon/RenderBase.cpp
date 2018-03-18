@@ -532,7 +532,7 @@ float Renderer::CalculateDrawAspectRatio(int target_width, int target_height) co
 	{
 		Ratio /= AspectToWidescreen(VideoInterface::GetAspectRatio());
 	}
-	else if (g_ActiveConfig.iAspectRatio == ASPECT_4_3)
+	else if (g_ActiveConfig.iAspectRatio == ASPECT_4_3 || g_ActiveConfig.iAspectRatio == ASPECT_INTEGER)
 	{
 		Ratio /= (4.0f / 3.0f);
 	}
@@ -636,6 +636,7 @@ void Renderer::UpdateDrawRectangle()
 			target_aspect = AspectToWidescreen(VideoInterface::GetAspectRatio());
 			break;
 		case ASPECT_4_3:
+        case ASPECT_INTEGER:
 			target_aspect = 4.0f / 3.0f;
 			break;
 		case ASPECT_16_9:
