@@ -728,11 +728,14 @@ void Renderer::UpdateDrawRectangle()
         int width = floor(m_target_width * scale);
         int height = floor(m_target_height * scale);
 
-        float ratio = CalculateDrawAspectRatio(width, height);
-        if(ratio > 1.01f)
-            width /= ratio;
-        if(ratio < 0.99f)
-            height *= ratio;
+        if(width > 0 && height > 0)
+        {
+            float ratio = CalculateDrawAspectRatio(width, height);
+            if(ratio > 1.01f)
+                width /= ratio;
+            if(ratio < 0.99f)
+                height *= ratio;
+        }
 
         m_target_rectangle.left = m_backbuffer_width / 2 - width / 2;
         m_target_rectangle.top = m_backbuffer_height / 2 - height / 2;
