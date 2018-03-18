@@ -77,9 +77,10 @@ private:
 
 		ENetPeer* socket;
 		u32 ping;
+        float frame_time = 0;
 		u32 current_game;
 
-		unsigned int buffer;
+		unsigned int buffer = 0;
 
 #ifdef _WIN32
 		HANDLE qos_handle;

@@ -15,6 +15,7 @@
 #include "Common/MD5.h"
 #include "Common/MsgHandler.h"
 #include "Common/Timer.h"
+#include "Core/Core.h"
 #include "Core/ConfigManager.h"
 #include "Core/HW/EXI_DeviceIPL.h"
 #include "Core/HW/SI.h"
@@ -308,6 +309,18 @@ unsigned int NetPlayClient::OnData(sf::Packet& packet)
 		ss << player.name << ": " << msg;
 
 		dialog->AppendChat(ss.str(), false);
+	}
+	break;
+
+    case NP_MSG_REPORT_FRAME_TIME:
+	{
+		PlayerId pid;
+		packet >> pid;
+
+		float ftime;
+		packet >> ftime;
+
+		m_players[pid].frame_time = ftime;
 	}
 	break;
 
@@ -797,6 +810,17 @@ void NetPlayClient::GetPlayerList(std::string& list, std::vector<int>& pid_list)
 		enumerate_player_controller_mappings(m_wiimote_map, player);
 
 		ss << " |\nPing: " << player.ping << "ms\n";
+
+        std::string frame_time_str = std::to_string(player.frame_time);
+        frame_time_str = frame_time_str.substr(0, 3);
+
+        while(frame_time_str.find(",") != std::string::npos)
+            frame_time_str[frame_time_str.find(",")] = '.';
+
+        int percent_of_full_frame = SConfig::GetInstance().bNTSC ? (int)(player.frame_time / (1000.0 / 60.0) * 100) : (int)(player.frame_time / (1000.0 / 50.0) * 100);
+
+        ss << "Frame time: " << (player.frame_time == 0 ? "(unknown)" : frame_time_str + " ms (" + std::to_string(percent_of_full_frame) + "% of max)") << "\n";
+
 		ss << "Buffer: " << player.buffer << "\n";
 		ss << "Status: ";
 
@@ -843,6 +867,18 @@ void NetPlayClient::SendChatMessage(const std::string& msg)
 	*spac << msg;
 
 	SendAsync(std::move(spac));
+}
+
+// called from ---CPU--- thread
+void NetPlayClient::ReportFrameTimeToServer(float frame_time)
+{
+	auto spac = std::make_unique<sf::Packet>();
+	*spac << static_cast<MessageId>(NP_MSG_REPORT_FRAME_TIME);
+	*spac << frame_time;
+
+	SendAsync(std::move(spac));
+
+    local_player->frame_time = frame_time;
 }
 
 // called from ---CPU--- thread
@@ -1237,6 +1273,9 @@ bool NetPlayClient::StopGame()
 
 	// stop game
 	dialog->StopGame();
+
+    for(auto& player : m_players)
+        player.second.frame_time = 0;
 
 	return true;
 }
