@@ -716,13 +716,35 @@ void Renderer::UpdateDrawRectangle()
 	m_target_rectangle.top = YOffset;
 	m_target_rectangle.right = XOffset + iWhidth;
 	m_target_rectangle.bottom = YOffset + iHeight;
+
+    if(g_ActiveConfig.iAspectRatio == ASPECT_INTEGER)
+    {
+        float scale = std::min((float)m_backbuffer_width / m_target_width, (float)m_backbuffer_height / m_target_height);
+        if(scale > 1)
+            scale = floor(scale);
+        if(scale == 0)
+            scale = 1;
+
+        int width = floor(m_target_width * scale);
+        int height = floor(m_target_height * scale);
+
+        float ratio = CalculateDrawAspectRatio(width, height);
+        if(ratio > 1.01f)
+            width /= ratio;
+        if(ratio < 0.99f)
+            height *= ratio;
+
+        m_target_rectangle.left = m_backbuffer_width / 2 - width / 2;
+        m_target_rectangle.top = m_backbuffer_height / 2 - height / 2;
+        m_target_rectangle.right = m_target_rectangle.left + width;
+	    m_target_rectangle.bottom = m_target_rectangle.top + height;
+    }
 }
 
 void Renderer::SetWindowSize(int width, int height)
 {
 	width = std::max(width, 16);
 	height = std::max(height, 16);
-
 
 	// Scale the window size by the EFB scale.
 	std::tie(width, height) = CalculateTargetScale(width, height);

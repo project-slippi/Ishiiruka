@@ -34,6 +34,7 @@ enum AspectMode
 	ASPECT_73_60 = 5,
 	ASPECT_16_9 = 6,
 	ASPECT_16_10 = 7,
+    ASPECT_INTEGER = 8
 };
 
 enum EFBScale
