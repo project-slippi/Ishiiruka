@@ -269,8 +269,8 @@ wxSizer* NetPlayDialog::CreateBottomGUI(wxWindow* parent)
          if(IsNTSCMelee())
         {
             wxArrayString choices;
-            choices.Add("Normal");
-            choices.Add("Performance");
+            choices.Add("Latency");
+            choices.Add("CPU");
 
             m_lag_reduction_choice = new wxChoice(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize, choices);
             m_lag_reduction_choice->SetSelection(0);
@@ -287,7 +287,7 @@ wxSizer* NetPlayDialog::CreateBottomGUI(wxWindow* parent)
 
         if(IsNTSCMelee())
         {
-            bottom_szr->Add(new wxStaticText(parent, wxID_ANY, "Lag Reduction:"), 0, wxALIGN_CENTER_VERTICAL | wxLEFT, space5);
+            bottom_szr->Add(new wxStaticText(parent, wxID_ANY, "Optimize for:"), 0, wxALIGN_CENTER_VERTICAL | wxLEFT, space5);
             bottom_szr->Add(m_lag_reduction_choice, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, space5);
         }
 
@@ -516,7 +516,7 @@ void NetPlayDialog::OnAdjustLagReduction(wxCommandEvent& event)
 
         if(!SConfig::GetInstance().bHasShownLagReductionWarning)
         {
-            wxMessageBox("The 'Performance' lag reduction code uses a different method for reducing input lag.\n"
+            wxMessageBox("The 'Optimize for CPU' lag reduction code uses a different method for reducing input lag.\n"
                         "This method uses less CPU but has been shown to increase input lag by about 1 buffer on average.\n"
                         "As a result, you can only play with up to ~41ms of ping rather than ~50ms for console lag levels.",
                         "Warning!", wxOK | wxCENTER, this);
