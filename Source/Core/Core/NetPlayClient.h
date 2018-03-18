@@ -124,6 +124,18 @@ public:
 		return std::max(m_minimum_buffer_size, m_players.at(m_pad_map.at(pad)).buffer);
 	}
 
+    // used for chat, not the best place for it
+    inline std::string FindPlayerPadName(const Player* player) const
+    {
+        for(int i = 0; i < 4; i++)
+        {
+            if(m_pad_map[i] == player->pid)
+                return " (port " + std::to_string(i + 1) + ")";
+        }
+
+        return "";
+    }
+
     NetPlayUI* dialog = nullptr;
     Player* local_player = nullptr;
 protected:

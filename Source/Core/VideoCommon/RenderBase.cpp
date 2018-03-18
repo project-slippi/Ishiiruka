@@ -507,11 +507,11 @@ void Renderer::DrawDebugText()
         if(OSD::Chat::toggled)
         {
            RenderText(
-               "Chat: " + OSD::Chat::current_msg + 
+               "[" + netplay_client->local_player->name + netplay_client->FindPlayerPadName(netplay_client->local_player) + "]: " + OSD::Chat::current_msg + 
                 (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count() % 500 < 250 ? "_" : ""),
                 20, m_backbuffer_height - (
 					(g_ActiveConfig.backend_info.APIType & API_D3D9) || 
-					(g_ActiveConfig.backend_info.APIType & API_D3D11) ? 40 : 20), 0xFF00FF00);
+					(g_ActiveConfig.backend_info.APIType & API_D3D11) ? 40 : 20), 0xFFFFFF30);
         }
     }
 }

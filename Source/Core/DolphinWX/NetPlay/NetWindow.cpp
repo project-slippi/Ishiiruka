@@ -348,12 +348,14 @@ void NetPlayDialog::OnChat(wxCommandEvent&)
 		netplay_client->SendChatMessage(text);
 		m_chat_msg_text->Clear();
 
-		AddChatMessage(ChatMessageType::UserOut, netplay_client->local_player->name + ": " + text);
+		AddChatMessage(ChatMessageType::UserOut,  "[" + netplay_client->local_player->name + netplay_client->FindPlayerPadName(netplay_client->local_player) + "]: " + text);
         
         if (g_ActiveConfig.bShowNetPlayMessages)
 		{
 			OSD::AddMessage(
-                "[Outgoing] " + netplay_client->local_player->name + ": " + text, OSD::Duration::NORMAL, OSD::Color::GREEN);
+                "[" + netplay_client->local_player->name + netplay_client->FindPlayerPadName(netplay_client->local_player) + "]: " + text, 
+                    OSD::Duration::NORMAL, 
+                    OSD::Color::YELLOW);
 		}
 	}
 }
@@ -722,13 +724,12 @@ void NetPlayDialog::OnThread(wxThreadEvent& event)
 		ChatMsgIncoming s;
 		chat_msgs.Pop(s);
 
-		AddChatMessage(s.from_self ? ChatMessageType::UserOut : ChatMessageType::UserIn, s.from_self ? netplay_client->local_player->name + ": " + s.msg : s.msg);
+		AddChatMessage(s.from_self ? ChatMessageType::UserOut : ChatMessageType::UserIn, s.from_self ?  "[" + netplay_client->local_player->name + netplay_client->FindPlayerPadName(netplay_client->local_player) + "]: " + s.msg : s.msg);
 
 		if (g_ActiveConfig.bShowNetPlayMessages)
 		{
 			OSD::AddMessage(
-                (s.from_self ? "[Outgoing] " : "[Incoming] ") +
-                (s.from_self ? netplay_client->local_player->name + ": " + s.msg : s.msg), OSD::Duration::NORMAL, OSD::Color::GREEN);
+                (s.from_self ? "[" + netplay_client->local_player->name + netplay_client->FindPlayerPadName(netplay_client->local_player) + "]: " + s.msg : s.msg), OSD::Duration::NORMAL, s.from_self ? OSD::Color::YELLOW : OSD::Color::GREEN);
 		}
 	}
 }

@@ -306,7 +306,7 @@ unsigned int NetPlayClient::OnData(sf::Packet& packet)
 
 		// add to gui
 		std::ostringstream ss;
-		ss << player.name << ": " << msg;
+		ss << "[" << player.name << FindPlayerPadName(&player) << "]: " << msg;
 
 		dialog->AppendChat(ss.str(), false);
 	}
