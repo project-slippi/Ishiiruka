@@ -373,7 +373,7 @@ VideoConfigDiag::VideoConfigDiag(wxWindow* parent, const std::string &title)
 
 				// aspect-ratio
 				{
-					const wxString ar_choices[] = { _("Auto"), _("Force Analog 16:9"), _("Force Analog 4:3"), _("Stretch to Window"), _("Force 4:3"), _("Force 73:60 (Melee)"), _("Force 16:9"), _("Force 16:10") };
+					const wxString ar_choices[] = { _("Auto"), _("Force Analog 16:9"), _("Force Analog 4:3"), _("Stretch to Window"), _("Force 4:3"), _("Force 73:60 (Melee)"), _("Force 16:9"), _("Force 16:10"), _("Integer scaling") };
 
 					szr_display->Add(new wxStaticText(page_general, wxID_ANY, _("Aspect Ratio:")), 1, wxALIGN_CENTER_VERTICAL, 0);
 					wxChoice* const choice_aspect = CreateChoice(page_general, vconfig.iAspectRatio, (ar_desc),
