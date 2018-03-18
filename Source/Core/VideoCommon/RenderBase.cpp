@@ -382,7 +382,9 @@ void Renderer::DrawDebugText()
     if(g_ActiveConfig.bShowOSDClock)
     {
         std::stringstream ss;
-        // ss.imbue(std::locale("en_US.UTF8"));
+        
+        // makes std::put_time use AM/PM depending on the system locale
+        ss.imbue(std::locale(""));
         
         std::time_t time = std::time(nullptr);
         ss << std::put_time(std::localtime(&time), "%X");
