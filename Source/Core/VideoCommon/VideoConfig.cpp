@@ -58,6 +58,13 @@ VideoConfig::VideoConfig()
 	backend_info.MaxTextureSize = 4096;
 }
 
+int VideoConfig::GetCurrentAspect()
+{
+    if(SConfig::GetInstance().bMeleeForceWidescreen)
+        return ASPECT_16_9;
+    return iAspectRatio;
+}
+
 void VideoConfig::Load(const std::string& ini_file)
 {
 	IniFile iniFile;

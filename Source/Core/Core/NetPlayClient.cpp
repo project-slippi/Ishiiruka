@@ -472,6 +472,8 @@ unsigned int NetPlayClient::OnData(sf::Packet& packet)
             packet >> tmp;
             g_NetPlaySettings.m_LagReduction = (MeleeLagReductionCode)tmp;
 
+            packet >> g_NetPlaySettings.m_MeleeForceWidescreen;
+
 			u32 time_low, time_high;
 			packet >> time_low;
 			packet >> time_high;

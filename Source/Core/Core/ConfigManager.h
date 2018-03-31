@@ -129,6 +129,7 @@ struct SConfig : NonCopyable
 
     MeleeLagReductionCode iLagReductionCode = MELEE_LAG_REDUCTION_CODE_UNSET;
     bool bHasShownLagReductionWarning = false;
+    bool bMeleeForceWidescreen = false;
 
 	bool bDPL2Decoder = false;
 	bool bTimeStretching = false;

@@ -58,8 +58,11 @@ static bool code_handler_installed = false;
 static std::vector<GeckoCode> active_codes;
 static std::mutex active_codes_lock;
 
-static bool IsEnabledLagReductionCode(const GeckoCode& code)
+static bool IsEnabledMeleeCode(const GeckoCode& code)
 {
+    if(SConfig::GetInstance().bMeleeForceWidescreen && code.name == "Widescreen 16:9")
+        return true;
+        
     if(NetPlay::IsNetPlayRunning() && SConfig::GetInstance().iLagReductionCode != MELEE_LAG_REDUCTION_CODE_UNSET)
     {
         if(SConfig::GetInstance().iLagReductionCode == MELEE_LAG_REDUCTION_CODE_NORMAL)
@@ -72,7 +75,7 @@ static bool IsEnabledLagReductionCode(const GeckoCode& code)
     return false;
 }
 
-static bool IsDisabledLagReductionCode(const GeckoCode& code)
+static bool IsDisabledMeleeCode(const GeckoCode& code)
 {
     if(NetPlay::IsNetPlayRunning() && SConfig::GetInstance().iLagReductionCode != MELEE_LAG_REDUCTION_CODE_UNSET)
     {
@@ -95,7 +98,7 @@ void SetActiveCodes(const std::vector<GeckoCode>& gcodes)
 	// add enabled codes
 	for (const GeckoCode& gecko_code : gcodes)
 	{        
-		if ((gecko_code.enabled && !IsDisabledLagReductionCode(gecko_code)) || IsEnabledLagReductionCode(gecko_code))
+		if ((gecko_code.enabled && !IsDisabledMeleeCode(gecko_code)) || IsEnabledMeleeCode(gecko_code))
 		{
 			// TODO: apply modifiers
 			// TODO: don't need description or creator string, just takin up memory
@@ -163,7 +166,7 @@ static bool InstallCodeHandler()
 
 	for (const GeckoCode& active_code : active_codes)
 	{
-		if ((active_code.enabled && !IsDisabledLagReductionCode(active_code)) || IsEnabledLagReductionCode(active_code))
+		if ((active_code.enabled && !IsDisabledMeleeCode(active_code)) || IsEnabledMeleeCode(active_code))
 		{
 			for (const GeckoCode::Code& code : active_code.codes)
 			{

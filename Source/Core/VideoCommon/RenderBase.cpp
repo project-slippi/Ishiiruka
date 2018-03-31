@@ -428,7 +428,7 @@ void Renderer::DrawDebugText()
 			break;
 		}
 		const char* ar_text = "";
-		switch (g_ActiveConfig.iAspectRatio)
+		switch (g_ActiveConfig.GetCurrentAspect())
 		{
 		case ASPECT_AUTO:
 			ar_text = "Auto";
@@ -521,30 +521,30 @@ float Renderer::CalculateDrawAspectRatio(int target_width, int target_height) co
 	// The dimensions are the sizes that are used to create the EFB/backbuffer textures, so
 	// they should always be greater than zero.
 	_assert_(target_width > 0 && target_height > 0);
-	if (g_ActiveConfig.iAspectRatio == ASPECT_STRETCH)
+	if (g_ActiveConfig.GetCurrentAspect() == ASPECT_STRETCH)
 	{
 		// If stretch is enabled, we prefer the aspect ratio of the window.
 		return (static_cast<float>(target_width) / static_cast<float>(target_height)) /
 			(static_cast<float>(m_backbuffer_width) / static_cast<float>(m_backbuffer_height));
 	}
 	float Ratio = static_cast<float>(target_width) / static_cast<float>(target_height);
-	if (g_ActiveConfig.iAspectRatio == ASPECT_ANALOG_WIDE || (g_ActiveConfig.iAspectRatio != ASPECT_ANALOG && g_ActiveConfig.iAspectRatio < ASPECT_ANALOG_WIDE  && m_aspect_wide))
+	if (g_ActiveConfig.GetCurrentAspect() == ASPECT_ANALOG_WIDE || (g_ActiveConfig.GetCurrentAspect() != ASPECT_ANALOG && g_ActiveConfig.GetCurrentAspect() < ASPECT_ANALOG_WIDE  && m_aspect_wide))
 	{
 		Ratio /= AspectToWidescreen(VideoInterface::GetAspectRatio());
 	}
-	else if (g_ActiveConfig.iAspectRatio == ASPECT_4_3 || g_ActiveConfig.iAspectRatio == ASPECT_INTEGER)
+	else if (g_ActiveConfig.GetCurrentAspect() == ASPECT_4_3 || g_ActiveConfig.GetCurrentAspect() == ASPECT_INTEGER)
 	{
 		Ratio /= (4.0f / 3.0f);
 	}
-	else if (g_ActiveConfig.iAspectRatio == ASPECT_73_60)
+	else if (g_ActiveConfig.GetCurrentAspect() == ASPECT_73_60)
 	{
 		Ratio /= (73.0f / 60.0f);
 	}
-	else if (g_ActiveConfig.iAspectRatio == ASPECT_16_9)
+	else if (g_ActiveConfig.GetCurrentAspect() == ASPECT_16_9)
 	{
 		Ratio /= (16.0f / 9.0f);
 	}
-	else if (g_ActiveConfig.iAspectRatio == ASPECT_16_10)
+	else if (g_ActiveConfig.GetCurrentAspect() == ASPECT_16_10)
 	{
 		Ratio /= (16.0f / 10.0f);
 	}
@@ -624,7 +624,7 @@ void Renderer::UpdateDrawRectangle()
 			source_aspect = AspectToWidescreen(source_aspect);
 		float target_aspect;
 
-		switch (g_ActiveConfig.iAspectRatio)
+		switch (g_ActiveConfig.GetCurrentAspect())
 		{
 		case ASPECT_STRETCH:
 			target_aspect = WinWidth / WinHeight;
@@ -676,7 +676,7 @@ void Renderer::UpdateDrawRectangle()
 	// The rendering window aspect ratio as a proportion of the 4:3 or 16:9 ratio
 	float Ratio = CalculateDrawAspectRatio(m_backbuffer_width, m_backbuffer_height);
 
-	if (g_ActiveConfig.iAspectRatio != ASPECT_STRETCH)
+	if (g_ActiveConfig.GetCurrentAspect() != ASPECT_STRETCH)
 	{
 		// Check if height or width is the limiting factor. If ratio > 1 the picture is too wide and have to limit the width.
 		if (Ratio >= 0.995f && Ratio <= 1.005f)
@@ -703,7 +703,7 @@ void Renderer::UpdateDrawRectangle()
 	// Crop the picture from Analog to 4:3 or from Analog (Wide) to 16:9.
 	//		Output: FloatGLWidth, FloatGLHeight, FloatXOffset, FloatYOffset
 	// ------------------
-	if (g_ActiveConfig.iAspectRatio != ASPECT_STRETCH && g_ActiveConfig.bCrop)
+	if (g_ActiveConfig.GetCurrentAspect() != ASPECT_STRETCH && g_ActiveConfig.bCrop)
 	{
 		Ratio = (4.0f / 3.0f) / VideoInterface::GetAspectRatio();
 		if (Ratio <= 1.0f)
@@ -733,7 +733,7 @@ void Renderer::UpdateDrawRectangle()
 	m_target_rectangle.right = XOffset + iWhidth;
 	m_target_rectangle.bottom = YOffset + iHeight;
 
-    if(g_ActiveConfig.iAspectRatio == ASPECT_INTEGER && g_ActiveConfig.iEFBScale != SCALE_AUTO && g_ActiveConfig.iEFBScale != SCALE_AUTO_INTEGRAL)
+    if(g_ActiveConfig.GetCurrentAspect() == ASPECT_INTEGER && g_ActiveConfig.iEFBScale != SCALE_AUTO && g_ActiveConfig.iEFBScale != SCALE_AUTO_INTEGRAL)
     {
         float scale = std::min((float)m_backbuffer_width / m_target_width, (float)m_backbuffer_height / m_target_height);
         if(scale > 1)
@@ -776,8 +776,8 @@ void Renderer::SetWindowSize(int width, int height)
 		// Force 4:3 or 16:9 by cropping the image.
 		float current_aspect = scaled_width / scaled_height;
 		float expected_aspect =
-			(g_ActiveConfig.iAspectRatio == ASPECT_ANALOG_WIDE ||
-			(g_ActiveConfig.iAspectRatio != ASPECT_ANALOG && m_aspect_wide)) ?
+			(g_ActiveConfig.GetCurrentAspect() == ASPECT_ANALOG_WIDE ||
+			(g_ActiveConfig.GetCurrentAspect() != ASPECT_ANALOG && m_aspect_wide)) ?
 				(16.0f / 9.0f) :
 			(4.0f / 3.0f);
 		if (current_aspect > expected_aspect)

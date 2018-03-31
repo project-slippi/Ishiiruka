@@ -147,6 +147,7 @@ private:
 	wxCheckBox* m_memcard_write;
 	wxCheckBox* m_record_chkbox;
     wxChoice* m_lag_reduction_choice;
+    wxCheckBox* m_widescreen_force_chkbox;
 
 	wxSpinCtrl* m_player_padbuf_spin;
     wxSpinCtrl* m_minimum_padbuf_spin;
