@@ -275,6 +275,8 @@ wxSizer* NetPlayDialog::CreateBottomGUI(wxWindow* parent)
             m_lag_reduction_choice = new wxChoice(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize, choices);
             m_lag_reduction_choice->SetSelection(0);
             m_lag_reduction_choice->Bind(wxEVT_CHOICE, &NetPlayDialog::OnAdjustLagReduction, this);
+
+            m_widescreen_force_chkbox = new wxCheckBox(parent, wxID_ANY, "Force Widescreen for streaming");
         }
 
 		m_memcard_write = new wxCheckBox(parent, wxID_ANY, _("Enable memory cards/SD"));
@@ -289,9 +291,16 @@ wxSizer* NetPlayDialog::CreateBottomGUI(wxWindow* parent)
         {
             bottom_szr->Add(new wxStaticText(parent, wxID_ANY, "Optimize for:"), 0, wxALIGN_CENTER_VERTICAL | wxLEFT, space5);
             bottom_szr->Add(m_lag_reduction_choice, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, space5);
-        }
 
-		bottom_szr->Add(m_memcard_write, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, space5);
+            wxBoxSizer* const chkbox_sizer = new wxBoxSizer(wxVERTICAL);
+            chkbox_sizer->Add(m_memcard_write, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, space5);
+            chkbox_sizer->Add(m_widescreen_force_chkbox, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, space5);
+
+            bottom_szr->Add(chkbox_sizer, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, space5);
+        }
+        else
+		    bottom_szr->Add(m_memcard_write, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, space5);
+
 		bottom_szr->AddSpacer(space5);
 	}
 	else
@@ -308,7 +317,7 @@ wxSizer* NetPlayDialog::CreateBottomGUI(wxWindow* parent)
 	bottom_szr->Add(m_record_chkbox, 0, wxALIGN_CENTER_VERTICAL);
 
 	bottom_szr->AddStretchSpacer();
-	bottom_szr->Add(quit_btn);
+	bottom_szr->Add(quit_btn, 0, wxALIGN_CENTER_VERTICAL);
 	return bottom_szr;
 }
 
@@ -383,6 +392,7 @@ void NetPlayDialog::GetNetSettings(NetSettings& settings)
 	settings.m_EXIDevice[0] = m_memcard_write->GetValue() ? instance.m_EXIDevice[0] : EXIDEVICE_NONE;
 	settings.m_EXIDevice[1] = m_memcard_write->GetValue() ? instance.m_EXIDevice[1] : EXIDEVICE_NONE;
     settings.m_LagReduction = IsNTSCMelee() ? (MeleeLagReductionCode)(m_lag_reduction_choice->GetSelection() + 1) : MELEE_LAG_REDUCTION_CODE_UNSET;
+    settings.m_MeleeForceWidescreen = IsNTSCMelee() ? m_widescreen_force_chkbox->GetValue() : false;
 }
 
 std::string NetPlayDialog::FindGame(const std::string& target_game)
@@ -463,7 +473,10 @@ void NetPlayDialog::OnMsgStartGame()
 		m_player_config_btn->Disable();
         
         if(IsNTSCMelee())
+        {
             m_lag_reduction_choice->Disable();
+            m_widescreen_force_chkbox->Disable();
+        }
 	}
 
 	m_record_chkbox->Disable();
@@ -481,7 +494,10 @@ void NetPlayDialog::OnMsgStopGame()
 		m_player_config_btn->Enable();
 
         if(IsNTSCMelee())
+        {
             m_lag_reduction_choice->Enable();
+            m_widescreen_force_chkbox->Enable();
+        }
 	}
 	m_record_chkbox->Enable();
 }

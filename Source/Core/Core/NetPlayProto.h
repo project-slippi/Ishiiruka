@@ -27,6 +27,7 @@ struct NetSettings
 	TEXIDevices m_EXIDevice[2];
 
     MeleeLagReductionCode m_LagReduction;
+    bool m_MeleeForceWidescreen;
 };
 
 extern NetSettings g_NetPlaySettings;
