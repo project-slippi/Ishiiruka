@@ -43,6 +43,7 @@ static inline void trim(std::string &s) {
 namespace Chat
 {
     bool toggled = false;
+    bool keep_open = false;
     std::string current_msg;
 
     static bool last_toggled = false;
@@ -60,6 +61,14 @@ namespace Chat
 
                 netplay_client->SendChatMessage(current_msg);
                 netplay_client->dialog->AppendChat(current_msg, true);
+
+                current_msg = "";
+            }
+
+            if(last_toggled && !toggled && keep_open)
+            {
+                keep_open = false;
+                toggled = true;
             }
         }
 
