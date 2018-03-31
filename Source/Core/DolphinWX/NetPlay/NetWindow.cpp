@@ -293,8 +293,8 @@ wxSizer* NetPlayDialog::CreateBottomGUI(wxWindow* parent)
             bottom_szr->Add(m_lag_reduction_choice, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, space5);
 
             wxBoxSizer* const chkbox_sizer = new wxBoxSizer(wxVERTICAL);
-            chkbox_sizer->Add(m_memcard_write, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, space5);
-            chkbox_sizer->Add(m_widescreen_force_chkbox, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, space5);
+            chkbox_sizer->Add(m_memcard_write, 0, wxLEFT, space5);
+            chkbox_sizer->Add(m_widescreen_force_chkbox, 0, wxLEFT, space5);
 
             bottom_szr->Add(chkbox_sizer, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, space5);
         }
