@@ -1515,7 +1515,12 @@ void CFrame::ParseHotkeys()
 
     // un-toggling the osd chat will send the message unless it's empty
     if (IsHotkey(HK_SEND_CHAT_MSG) && RendererHasFocus() && NetPlay::IsNetPlayRunning())
+    {
         OSD::Chat::toggled = false;
+
+        // TODO: config option?
+        OSD::Chat::keep_open = true;
+    }
 
 	if (IsHotkey(HK_TOGGLE_TEXTURES))
 	{
