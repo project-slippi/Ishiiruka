@@ -55,14 +55,19 @@ namespace Chat
             if(!last_toggled && toggled)
                 current_msg = "";
 
-            if(last_toggled && !toggled && current_msg != "")
+            if(last_toggled && !toggled)
             {
                 trim(current_msg);
 
-                netplay_client->SendChatMessage(current_msg);
-                netplay_client->dialog->AppendChat(current_msg, true);
+                if(current_msg != "")
+                {
+                    netplay_client->SendChatMessage(current_msg);
+                    netplay_client->dialog->AppendChat(current_msg, true);
 
-                current_msg = "";
+                    current_msg = "";
+                }
+                else
+                    keep_open = false;
             }
 
             if(last_toggled && !toggled && keep_open)
