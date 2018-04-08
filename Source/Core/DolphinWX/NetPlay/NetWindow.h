@@ -140,6 +140,8 @@ private:
 	void UpdateHostLabel();
 
     bool IsNTSCMelee();
+    bool Is20XX();
+    bool IsPALMelee();
 
 	wxListBox* m_player_lbox;
 	wxTextCtrl* m_chat_text;

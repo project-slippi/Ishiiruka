@@ -66,10 +66,10 @@ static bool IsEnabledMeleeCode(const GeckoCode& code)
     if(NetPlay::IsNetPlayRunning() && SConfig::GetInstance().iLagReductionCode != MELEE_LAG_REDUCTION_CODE_UNSET)
     {
         if(SConfig::GetInstance().iLagReductionCode == MELEE_LAG_REDUCTION_CODE_NORMAL)
-            return code.name == "Normal Lag Reduction";
+            return code.name.find("Normal Lag Reduction") != std::string::npos;
 
         if(SConfig::GetInstance().iLagReductionCode == MELEE_LAG_REDUCTION_CODE_PERFORMANCE)
-            return code.name == "Performance Lag Reduction";
+            return code.name.find("Performance Lag Reduction") != std::string::npos;
     }
 
     return false;
@@ -80,10 +80,10 @@ static bool IsDisabledMeleeCode(const GeckoCode& code)
     if(NetPlay::IsNetPlayRunning() && SConfig::GetInstance().iLagReductionCode != MELEE_LAG_REDUCTION_CODE_UNSET)
     {
         if(SConfig::GetInstance().iLagReductionCode == MELEE_LAG_REDUCTION_CODE_NORMAL)
-            return code.name == "Performance Lag Reduction";
+            return code.name.find("Performance Lag Reduction") != std::string::npos;
 
         if(SConfig::GetInstance().iLagReductionCode == MELEE_LAG_REDUCTION_CODE_PERFORMANCE)
-            return code.name == "Normal Lag Reduction";
+            return code.name.find("Normal Lag Reduction") != std::string::npos;
     }
 
     return false;

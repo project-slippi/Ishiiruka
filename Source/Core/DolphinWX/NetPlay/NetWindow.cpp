@@ -266,15 +266,18 @@ wxSizer* NetPlayDialog::CreateBottomGUI(wxWindow* parent)
 		m_minimum_padbuf_spin->Bind(wxEVT_SPINCTRL, &NetPlayDialog::OnAdjustMinimumBuffer, this);
 		m_minimum_padbuf_spin->SetMinSize(WxUtils::GetTextWidgetMinSize(m_minimum_padbuf_spin));
 
-         if(IsNTSCMelee())
+         if(IsNTSCMelee() || IsPALMelee())
         {
-            wxArrayString choices;
-            choices.Add("Latency");
-            choices.Add("CPU");
+            if(!Is20XX())
+            {
+                wxArrayString choices;
+                choices.Add("Latency");
+                choices.Add("CPU");
 
-            m_lag_reduction_choice = new wxChoice(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize, choices);
-            m_lag_reduction_choice->SetSelection(0);
-            m_lag_reduction_choice->Bind(wxEVT_CHOICE, &NetPlayDialog::OnAdjustLagReduction, this);
+                m_lag_reduction_choice = new wxChoice(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize, choices);
+                m_lag_reduction_choice->SetSelection(0);
+                m_lag_reduction_choice->Bind(wxEVT_CHOICE, &NetPlayDialog::OnAdjustLagReduction, this);
+            }
 
             m_widescreen_force_chkbox = new wxCheckBox(parent, wxID_ANY, "Force Widescreen for streaming");
         }
@@ -287,10 +290,13 @@ wxSizer* NetPlayDialog::CreateBottomGUI(wxWindow* parent)
 		bottom_szr->Add(buffer_lbl, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, space5);
 		bottom_szr->Add(m_player_padbuf_spin, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, space5);
 
-        if(IsNTSCMelee())
+        if(IsNTSCMelee() || IsPALMelee())
         {
-            bottom_szr->Add(new wxStaticText(parent, wxID_ANY, "Optimize for:"), 0, wxALIGN_CENTER_VERTICAL | wxLEFT, space5);
-            bottom_szr->Add(m_lag_reduction_choice, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, space5);
+            if(!Is20XX())
+            {
+                bottom_szr->Add(new wxStaticText(parent, wxID_ANY, "Optimize for:"), 0, wxALIGN_CENTER_VERTICAL | wxLEFT, space5);
+                bottom_szr->Add(m_lag_reduction_choice, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, space5);
+            }
 
             wxBoxSizer* const chkbox_sizer = new wxBoxSizer(wxVERTICAL);
             chkbox_sizer->Add(m_memcard_write, 0, wxLEFT, space5);
@@ -371,7 +377,17 @@ void NetPlayDialog::OnChat(wxCommandEvent&)
 
 bool NetPlayDialog::IsNTSCMelee()
 {
-    return m_selected_game.find("GALE01") != std::string::npos;
+    return m_selected_game.find("GALE01") != std::string::npos || m_selected_game.find("GALJ01") != std::string::npos;
+}
+
+bool NetPlayDialog::Is20XX()
+{
+    return m_selected_game.find("20XX") != std::string::npos;
+}
+
+bool NetPlayDialog::IsPALMelee()
+{
+    return m_selected_game.find("PALE02") != std::string::npos || m_selected_game.find("NMNB01") != std::string::npos; 
 }
 
 void NetPlayDialog::GetNetSettings(NetSettings& settings)
