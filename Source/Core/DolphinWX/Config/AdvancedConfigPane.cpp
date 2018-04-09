@@ -33,6 +33,9 @@ void AdvancedConfigPane::InitializeGUI()
 		new DolphinSlider(this, wxID_ANY, 100, 0, 150, wxDefaultPosition, FromDIP(wxSize(200, -1)));
 	m_clock_override_text = new wxStaticText(this, wxID_ANY, "");
 
+	m_qos_enabled = new wxCheckBox(this, wxID_ANY, _("Enable QoS (Quality of Service) bit on packets"));
+	m_adapter_warning = new wxCheckBox(this, wxID_ANY, _("Neutralize inputs when adapter problems are detected"));
+	
 	m_custom_rtc_checkbox = new wxCheckBox(this, wxID_ANY, _("Enable Custom RTC"));
 	m_custom_rtc_date_picker = new wxDatePickerCtrl(this, wxID_ANY);
 	m_custom_rtc_time_picker = new wxTimePickerCtrl(this, wxID_ANY);
@@ -47,6 +50,21 @@ void AdvancedConfigPane::InitializeGUI()
 			"Do so at your own risk. Please do not report "
 			"bugs that occur with a non-default clock. "));
 
+	/* wxStaticText* const qos_description =
+		new wxStaticText(this, wxID_ANY, _("This setting makes Dolphin tag outgoing packets with a QoS bit.\n\n"
+			"This should make your router prioritize NetPlay packets over normal packets, "
+			"which means you can download and use your Internet connection for other things "
+			"while playing without getting extra packet drops/input lag."
+			"\n\n"
+			"Try turning this setting off if you experience problems with NetPlay."));	
+
+	wxStaticText* const adapter_warning_description =
+		new wxStaticText(this, wxID_ANY, _("This setting makes Dolphin warn and neutralize (centered sticks and no buttons pressed) inputs when an adapter problem is detected.\n\n"
+			"This should only occur when your adapter returns something other than LIBUSB_SUCCESS.\n"
+			"Before turning this off, try reinstalling drivers and switching USB ports."
+			"\n\n"
+			"Try turning this setting off if a false positive error is being detected (though there's a high chance that an actual problem is happening).")); */
+
 	wxStaticText* const custom_rtc_description = new wxStaticText(
 		this, wxID_ANY,
 		_("This setting allows you to set a custom real time clock (RTC) separate "
@@ -54,9 +72,13 @@ void AdvancedConfigPane::InitializeGUI()
 
 #ifdef __APPLE__
 	clock_override_description->Wrap(550);
+	// qos_description->Wrap(550);
+	// adapter_warning_description->Wrap(550);
 	custom_rtc_description->Wrap(550);
 #else
 	clock_override_description->Wrap(FromDIP(400));
+	// qos_description->Wrap(FromDIP(400));	
+	// adapter_warning_description->Wrap(FromDIP(400));
 	custom_rtc_description->Wrap(FromDIP(400));
 #endif
 
@@ -75,6 +97,14 @@ void AdvancedConfigPane::InitializeGUI()
 	cpu_options_sizer->AddSpacer(space5);
 	cpu_options_sizer->Add(clock_override_description, 0, wxEXPAND | wxLEFT | wxRIGHT, space5);
 	cpu_options_sizer->AddSpacer(space5);
+
+	wxStaticBoxSizer* const troubleshooting_sizer =
+		new wxStaticBoxSizer(wxVERTICAL, this, _("Troubleshooting"));
+	troubleshooting_sizer->AddSpacer(space5);
+	troubleshooting_sizer->Add(m_qos_enabled, 0, wxEXPAND | wxLEFT | wxRIGHT, space5);
+	troubleshooting_sizer->AddSpacer(space5);
+	troubleshooting_sizer->Add(m_adapter_warning, 0, wxEXPAND | wxLEFT | wxRIGHT, space5);
+	troubleshooting_sizer->AddSpacer(space5);
 
 	wxFlexGridSizer* const custom_rtc_date_time_sizer =
 		new wxFlexGridSizer(2, wxSize(space5, space5));
@@ -95,6 +125,8 @@ void AdvancedConfigPane::InitializeGUI()
 	main_sizer->AddSpacer(space5);
 	main_sizer->Add(cpu_options_sizer, 0, wxEXPAND | wxLEFT | wxRIGHT, space5);
 	main_sizer->AddSpacer(space5);
+	main_sizer->Add(troubleshooting_sizer, 0, wxEXPAND | wxLEFT | wxRIGHT, space5);
+	main_sizer->AddSpacer(space5);
 	main_sizer->Add(custom_rtc_sizer, 0, wxEXPAND | wxLEFT | wxRIGHT, space5);
 	main_sizer->AddSpacer(space5);
 
@@ -110,6 +142,9 @@ void AdvancedConfigPane::LoadGUIValues()
 	m_clock_override_slider->Enable(oc_enabled);
 	UpdateCPUClock();
 	LoadCustomRTC();
+
+	m_qos_enabled->SetValue(SConfig::GetInstance().bQoSEnabled);
+	m_adapter_warning->SetValue(SConfig::GetInstance().bAdapterWarning);
 }
 
 void AdvancedConfigPane::BindEvents()
@@ -123,6 +158,11 @@ void AdvancedConfigPane::BindEvents()
 		this);
 	m_clock_override_slider->Bind(wxEVT_UPDATE_UI, &AdvancedConfigPane::OnUpdateCPUClockControls,
 		this);
+
+	m_qos_enabled->Bind(wxEVT_CHECKBOX,
+		&AdvancedConfigPane::OnQoSCheckBoxChanged, this);	
+	m_adapter_warning->Bind(wxEVT_CHECKBOX,
+		&AdvancedConfigPane::OnAdapterWarningCheckBoxChanged, this);	
 
 	m_custom_rtc_checkbox->Bind(wxEVT_CHECKBOX, &AdvancedConfigPane::OnCustomRTCCheckBoxChanged,
 		this);
@@ -152,6 +192,16 @@ void AdvancedConfigPane::OnClockOverrideSliderChanged(wxCommandEvent& event)
 	SConfig::GetInstance().m_OCFactor =
 		std::exp2f((m_clock_override_slider->GetValue() - 100.f) / 25.f);
 	UpdateCPUClock();
+}
+
+void AdvancedConfigPane::OnQoSCheckBoxChanged(wxCommandEvent& event)
+{
+	SConfig::GetInstance().bQoSEnabled = m_qos_enabled->IsChecked();
+}
+
+void AdvancedConfigPane::OnAdapterWarningCheckBoxChanged(wxCommandEvent& event)
+{
+	SConfig::GetInstance().bAdapterWarning = m_adapter_warning->IsChecked();
 }
 
 static u32 ToSeconds(wxDateTime date)

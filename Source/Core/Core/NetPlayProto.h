@@ -8,6 +8,7 @@
 #include <vector>
 #include "Common/CommonTypes.h"
 #include "Core/HW/EXI_Device.h"
+#include "Core/ConfigManager.h"
 
 struct NetSettings
 {
@@ -24,6 +25,9 @@ struct NetSettings
 	bool m_OCEnable;
 	float m_OCFactor;
 	TEXIDevices m_EXIDevice[2];
+
+    MeleeLagReductionCode m_LagReduction;
+    bool m_MeleeForceWidescreen;
 };
 
 extern NetSettings g_NetPlaySettings;
@@ -41,6 +45,8 @@ enum
 	NP_MSG_PLAYER_LEAVE = 0x11,
 
 	NP_MSG_CHAT_MESSAGE = 0x30,
+
+    NP_MSG_REPORT_FRAME_TIME = 0x40,
 
 	NP_MSG_PAD_DATA = 0x60,
 	NP_MSG_PAD_MAPPING = 0x61,

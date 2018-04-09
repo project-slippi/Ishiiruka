@@ -6,6 +6,7 @@
 #include "AudioCommon/AOSoundStream.h"
 #include "AudioCommon/AlsaSoundStream.h"
 #include "AudioCommon/CoreAudioSoundStream.h"
+#include "AudioCommon/CubebStream.h"
 #include "AudioCommon/DSoundStream.h"
 #include "AudioCommon/Mixer.h"
 #include "AudioCommon/NullSoundStream.h"
@@ -14,12 +15,15 @@
 #include "AudioCommon/PulseAudioStream.h"
 #include "AudioCommon/XAudio2Stream.h"
 #include "AudioCommon/XAudio2_7Stream.h"
+#include "AudioCommon/WASAPIStream.h"
 #include "Common/Common.h"
 #include "Common/FileUtil.h"
 #include "Common/Logging/Log.h"
 #include "Common/MsgHandler.h"
 #include "Core/ConfigManager.h"
 #include "Core/Movie.h"
+
+#include <string>
 
 // This shouldn't be a global, at least not here.
 std::unique_ptr<SoundStream> g_sound_stream;
@@ -34,12 +38,18 @@ static const int AUDIO_VOLUME_MAX = 100;
 void InitSoundStream(void* hWnd)
 {
   std::string backend = SConfig::GetInstance().sBackend;
-  if (backend == BACKEND_OPENAL && OpenALStream::isValid())
-    g_sound_stream = std::make_unique<OpenALStream>();
-  else if (backend == BACKEND_NULLSOUND && NullSound::isValid())
-    g_sound_stream = std::make_unique<NullSound>();
-	else if (backend == BACKEND_DIRECTSOUND && DSound::isValid())
-		g_sound_stream = std::make_unique<DSound>(hWnd);
+  if(backend == BACKEND_CUBEB)
+	  g_sound_stream = std::make_unique<CubebStream>();
+  else if(backend == BACKEND_OPENAL && OpenALStream::isValid())
+	  g_sound_stream = std::make_unique<OpenALStream>();
+  else if(backend == BACKEND_NULLSOUND && NullSound::isValid())
+	  g_sound_stream = std::make_unique<NullSound>();
+  else if(backend == BACKEND_DIRECTSOUND && DSound::isValid())
+	  g_sound_stream = std::make_unique<DSound>(hWnd);
+  else if(backend == BACKEND_SHARED_WASAPI && WASAPIStream::isValid())
+	  g_sound_stream = std::make_unique<WASAPIStream>(false, "");
+  else if(backend.find(BACKEND_EXCLUSIVE_WASAPI) != std::string::npos && WASAPIStream::isValid())
+	  g_sound_stream = std::make_unique<WASAPIStream>(true, backend.substr((BACKEND_EXCLUSIVE_WASAPI + std::string(" on ")).size(), std::string::npos));
   else if (backend == BACKEND_XAUDIO2)
   {
     if (XAudio2::isValid())
@@ -102,14 +112,15 @@ std::vector<std::string> GetSoundBackends()
   std::vector<std::string> backends;
 
   if (NullSound::isValid())
-    backends.push_back(BACKEND_NULLSOUND);
-	if (DSound::isValid())
-		backends.push_back(BACKEND_DIRECTSOUND);
-	if (XAudio2_7::isValid()
+	backends.push_back(BACKEND_NULLSOUND);
+  backends.push_back(BACKEND_CUBEB);
+  if (DSound::isValid())
+	backends.push_back(BACKEND_DIRECTSOUND);
+  if (XAudio2_7::isValid()
 #ifndef HAVE_DXSDK
-		|| XAudio2::isValid()
+	  || XAudio2::isValid()
 #endif
-		)
+	 )
     backends.push_back(BACKEND_XAUDIO2);
   if (AOSound::isValid())
     backends.push_back(BACKEND_AOSOUND);
@@ -123,6 +134,15 @@ std::vector<std::string> GetSoundBackends()
     backends.push_back(BACKEND_OPENAL);
   if (OpenSLESStream::isValid())
     backends.push_back(BACKEND_OPENSLES);
+  if(WASAPIStream::isValid())
+  {
+	  // backends.push_back(BACKEND_SHARED_WASAPI);
+	  // disable shared-mode for now, not working correctly
+	  backends.push_back(std::string(BACKEND_EXCLUSIVE_WASAPI) + " on default device");
+
+	  for(const std::string& device : WASAPIStream::GetAudioDevices())
+	 	 backends.push_back(std::string(BACKEND_EXCLUSIVE_WASAPI) + " on " + device);
+  }
   return backends;
 }
 
@@ -149,7 +169,13 @@ bool SupportsVolumeChanges(const std::string& backend)
 	// FIXME: this one should ask the backend whether it supports it.
 	//       but getting the backend from string etc. is probably
 	//       too much just to enable/disable a stupid slider...
-	return backend == BACKEND_COREAUDIO || backend == BACKEND_OPENAL || backend == BACKEND_XAUDIO2 || backend == BACKEND_DIRECTSOUND;
+	return backend == BACKEND_COREAUDIO 
+		|| backend == BACKEND_OPENAL 
+		|| backend == BACKEND_XAUDIO2 
+		|| backend == BACKEND_DIRECTSOUND 
+		|| backend == BACKEND_CUBEB 
+		|| backend.find(BACKEND_EXCLUSIVE_WASAPI) != std::string::npos 
+		|| backend == BACKEND_SHARED_WASAPI;
 }
 
 void UpdateSoundStream()

@@ -24,6 +24,7 @@ class wxStaticText;
 class wxString;
 class wxTextCtrl;
 class wxSpinCtrl;
+class wxComboBox;
 
 enum
 {
@@ -42,7 +43,7 @@ enum
 
 enum
 {
-	INITIAL_PAD_BUFFER_SIZE = 8
+	INITIAL_PAD_BUFFER_SIZE = 6
 };
 
 enum class ChatMessageType
@@ -72,7 +73,13 @@ public:
 		const bool is_hosting = false);
 	~NetPlayDialog();
 
-	Common::FifoQueue<std::string> chat_msgs;
+    struct ChatMsgIncoming
+    {
+        std::string msg;
+        bool from_self;
+    };
+
+	Common::FifoQueue<ChatMsgIncoming> chat_msgs;
 
 	void OnStart(wxCommandEvent& event);
 
@@ -81,7 +88,7 @@ public:
 	void StopGame() override;
 
 	void Update() override;
-	void AppendChat(const std::string& msg) override;
+	void AppendChat(const std::string& msg, bool from_self) override;
 
 	void ShowMD5Dialog(const std::string& file_identifier) override;
 	void SetMD5Progress(int pid, int progress) override;
@@ -119,6 +126,7 @@ private:
 	void OnMD5ComputeRequested(wxCommandEvent& event);
 	void OnAdjustMinimumBuffer(wxCommandEvent& event);
 	void OnAdjustPlayerBuffer(wxCommandEvent& event);
+    void OnAdjustLagReduction(wxCommandEvent& event);
 	void OnAssignPads(wxCommandEvent& event);
 	void OnKick(wxCommandEvent& event);
 	void OnPlayerSelect(wxCommandEvent& event);
@@ -131,13 +139,20 @@ private:
 	void OnChoice(wxCommandEvent& event);
 	void UpdateHostLabel();
 
+    bool IsNTSCMelee();
+    bool Is20XX();
+    bool IsPALMelee();
+
 	wxListBox* m_player_lbox;
 	wxTextCtrl* m_chat_text;
 	wxTextCtrl* m_chat_msg_text;
 	wxCheckBox* m_memcard_write;
 	wxCheckBox* m_record_chkbox;
+    wxChoice* m_lag_reduction_choice;
+    wxCheckBox* m_widescreen_force_chkbox;
 
 	wxSpinCtrl* m_player_padbuf_spin;
+    wxSpinCtrl* m_minimum_padbuf_spin;
 
 	std::string m_selected_game;
 	wxButton* m_player_config_btn;

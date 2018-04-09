@@ -67,13 +67,22 @@ static u8 s_endpoint_out = 0;
 
 static u64 s_last_init = 0;
 
+bool adapter_error = false;
+
+bool AdapterError()
+{
+	return adapter_error && s_adapter_thread_running.IsSet();
+}
+
 static void Read()
 {
+	adapter_error = false;
+
 	int payload_size = 0;
 	while (s_adapter_thread_running.IsSet())
 	{
-		libusb_interrupt_transfer(s_handle, s_endpoint_in, s_controller_payload_swap,
-			sizeof(s_controller_payload_swap), &payload_size, 16);
+		adapter_error = libusb_interrupt_transfer(s_handle, s_endpoint_in, s_controller_payload_swap,
+			sizeof(s_controller_payload_swap), &payload_size, 16) != LIBUSB_SUCCESS && SConfig::GetInstance().bAdapterWarning;
 
 		{
 			std::lock_guard<std::mutex> lk(s_mutex);
@@ -399,6 +408,16 @@ GCPadStatus Input(int chan)
 	if (s_handle == nullptr || !s_detected)
 		return{};
 
+	if(AdapterError())
+	{
+		GCPadStatus centered_status = {0};
+		centered_status.stickX = centered_status.stickY =
+		centered_status.substickX = centered_status.substickY =
+		/* these are all the same */ GCPadStatus::MAIN_STICK_CENTER_X;
+
+		return centered_status;
+	}
+
 	int payload_size = 0;
 	u8 controller_payload_copy[37];
 
@@ -473,12 +492,14 @@ GCPadStatus Input(int chan)
 			pad.triggerLeft = controller_payload_copy[1 + (9 * chan) + 7];
 			pad.triggerRight = controller_payload_copy[1 + (9 * chan) + 8];
 		}
-		else if (!Core::g_want_determinism)
+		else
 		{
-			// This is a hack to prevent a desync due to SI devices
-			// being different and returning different values.
-			// The corresponding code in DeviceGCAdapter has the same check
-			pad.button = PAD_ERR_STATUS;
+			GCPadStatus centered_status = {0};
+			centered_status.stickX = centered_status.stickY =
+			centered_status.substickX = centered_status.substickY =
+			/* these are all the same */ GCPadStatus::MAIN_STICK_CENTER_X;
+
+			return centered_status;
 		}
 	}
 

@@ -14,9 +14,11 @@ const std::string hotkey_labels[] = {
 		_trans("Change Disc"),
 		_trans("Refresh List"),
 		_trans("Toggle Pause"),
-		_trans("Stop"),
+		_trans("Stop/Hide OSD chat"),
 		_trans("Reset"),
 		_trans("Toggle Fullscreen"),
+        _trans("Toggle OSD chat"),
+        _trans("Send OSD chat message"),
 		_trans("Take Screenshot"),
 		_trans("Exit"),
 
@@ -139,7 +141,7 @@ const std::string hotkey_labels[] = {
 		_trans("Undo Save State"),
 		_trans("Save State"),
 		_trans("Load State"),
-		_trans("Reload Post-Processing Shaders"),		
+		_trans("Reload Post-Processing Shaders"),
 };
 static_assert(NUM_HOTKEYS == sizeof(hotkey_labels) / sizeof(hotkey_labels[0]),
 	"Wrong count of hotkey_labels");
@@ -233,7 +235,7 @@ void Shutdown()
 }
 
 const std::array<HotkeyGroupInfo, NUM_HOTKEY_GROUPS> groups_info = {
-		{{_trans("General"), HK_OPEN, HK_EXIT},
+		{{_trans("General"), HK_OPEN, HK_EXIT },
 		 {_trans("Volume"), HK_VOLUME_DOWN, HK_VOLUME_TOGGLE_MUTE},
 		 {_trans("Emulation speed"), HK_DECREASE_EMULATION_SPEED, HK_TOGGLE_THROTTLE},
 		 {_trans("Frame advance"), HK_FRAME_ADVANCE, HK_FRAME_ADVANCE_RESET_SPEED},
@@ -389,4 +391,12 @@ void HotkeyManager::LoadDefaults(const ControllerInterface& ciface)
 	}
 	set_key_expression(HK_UNDO_LOAD_STATE, NON + " & `F12`");
 	set_key_expression(HK_UNDO_SAVE_STATE, SHIFT + " & `F12`");
+
+    set_key_expression(HK_SHOW_OSD_CHAT, "Y");
+
+#ifdef _WIN32
+    set_key_expression(HK_SEND_CHAT_MSG, "RETURN");
+#else
+    set_key_expression(HK_SEND_CHAT_MSG, "Return");
+#endif
 }

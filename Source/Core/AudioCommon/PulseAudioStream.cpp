@@ -11,11 +11,6 @@
 #include "Common/Logging/Log.h"
 #include "Core/ConfigManager.h"
 
-namespace
-{
-const size_t BUFFER_SAMPLES = 512; // ~10 ms - needs to be at least 240 for surround
-}
-
 PulseAudio::PulseAudio()
 	: m_thread()
 	, m_run_thread()
@@ -126,7 +121,7 @@ bool PulseAudio::PulseInit()
 	m_pa_ba.maxlength = -1;          // max buffer, so also max latency
 	m_pa_ba.minreq = -1;             // don't read every byte, try to group them _a bit_
 	m_pa_ba.prebuf = -1;             // start as early as possible
-	m_pa_ba.tlength = BUFFER_SAMPLES * m_channels * m_bytespersample; // designed latency, only change this flag for low latency output
+	m_pa_ba.tlength = m_channels * m_bytespersample; // designed latency, only change this flag for low latency output
 	pa_stream_flags flags = pa_stream_flags(PA_STREAM_INTERPOLATE_TIMING | PA_STREAM_ADJUST_LATENCY | PA_STREAM_AUTO_TIMING_UPDATE);
 	m_pa_error = pa_stream_connect_playback(m_pa_s, nullptr, &m_pa_ba, flags, nullptr, nullptr);
 	if (m_pa_error < 0)
@@ -162,10 +157,10 @@ void PulseAudio::StateCallback(pa_context* c)
 		break;
 	}
 }
-// on underflow, increase pulseaudio latency in ~10ms steps
+// on underflow, increase pulseaudio latency in ~1ms steps
 void PulseAudio::UnderflowCallback(pa_stream* s)
 {
-	m_pa_ba.tlength += BUFFER_SAMPLES * m_channels * m_bytespersample;
+	m_pa_ba.tlength += 32 * m_channels * m_bytespersample;
 	pa_operation* op = pa_stream_set_buffer_attr(s, &m_pa_ba, nullptr, nullptr);
 	pa_operation_unref(op);
 

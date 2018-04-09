@@ -31,7 +31,7 @@ public:
 	virtual void StopGame() = 0;
 
 	virtual void Update() = 0;
-	virtual void AppendChat(const std::string& msg) = 0;
+	virtual void AppendChat(const std::string& msg, bool from_self) = 0;
 
 	virtual void OnMsgChangeGame(const std::string& filename) = 0;
 	virtual void OnMsgStartGame() = 0;
@@ -63,8 +63,9 @@ public:
 	std::string name;
 	std::string revision;
 	u32 ping;
+    float frame_time = 0;
 	PlayerGameStatus game_status;
-	u32 buffer;
+	u32 buffer = 0;
 };
 
 
@@ -89,6 +90,8 @@ public:
 	void Stop();
 	bool ChangeGame(const std::string& game);
 	void SendChatMessage(const std::string& msg);
+
+    void ReportFrameTimeToServer(float frame_time);
 
 	// Send and receive pads values
 	bool WiimoteUpdate(int _number, u8* data, const u8 size, u8 reporting_mode);
@@ -121,6 +124,20 @@ public:
 		return std::max(m_minimum_buffer_size, m_players.at(m_pad_map.at(pad)).buffer);
 	}
 
+    // used for chat, not the best place for it
+    inline std::string FindPlayerPadName(const Player* player) const
+    {
+        for(int i = 0; i < 4; i++)
+        {
+            if(m_pad_map[i] == player->pid)
+                return " (port " + std::to_string(i + 1) + ")";
+        }
+
+        return "";
+    }
+
+    NetPlayUI* dialog = nullptr;
+    Player* local_player = nullptr;
 protected:
 	void ClearBuffers();
 
@@ -137,8 +154,6 @@ protected:
 	std::array<Common::FifoQueue<GCPadStatus>, 4> m_pad_buffer;
 	std::array<Common::FifoQueue<NetWiimote>, 4> m_wiimote_buffer;
 
-	NetPlayUI* m_dialog = nullptr;
-
 	ENetHost* m_client = nullptr;
 	ENetPeer* m_server = nullptr;
 	std::thread m_thread;
@@ -147,9 +162,7 @@ protected:
 	Common::Flag m_is_running{ false };
 	Common::Flag m_do_loop{ true };
 
-	unsigned int m_minimum_buffer_size = 8;
-
-	Player* m_local_player = nullptr;
+	unsigned int m_minimum_buffer_size = 6;
 
 	u32 m_current_game = 0;
 
@@ -157,7 +170,6 @@ protected:
 	PadMappingArray m_wiimote_map;
 
 	bool m_is_recording = false;
-
 private:
 	enum class ConnectionState
 	{
@@ -191,6 +203,7 @@ private:
 	PlayerId m_pid = 0;
 	std::map<PlayerId, Player> m_players;
 	std::string m_host_spec;
+
 	std::string m_player_name;
 	bool m_connecting = false;
 	TraversalClient* m_traversal_client = nullptr;

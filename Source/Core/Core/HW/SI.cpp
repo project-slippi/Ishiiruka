@@ -213,6 +213,8 @@ static USIStatusReg g_StatusReg;
 static USIEXIClockCount g_EXIClockCount;
 static u8 g_SIBuffer[128];
 
+std::chrono::time_point<std::chrono::high_resolution_clock> last_si_read;
+
 void DoState(PointerWrap& p)
 {
 	for (int i = 0; i < MAX_SI_CHANNELS; i++)
@@ -353,7 +355,9 @@ void RegisterMMIO(MMIO::Mapping* mmio, u32 base)
 							if(NetPlay::IsNetPlayRunning() && netplay_client && (netplay_client->BufferSizeForPort(c) % NetPlayClient::buffer_accuracy) != 0)
 								// Schedule an event to poll and send inputs earlier in the next frame
 								CoreTiming::ScheduleEvent(diff - (diff / NetPlayClient::buffer_accuracy) * (netplay_client->BufferSizeForPort(c) % NetPlayClient::buffer_accuracy), et_send_netplay_inputs);
-						}
+						
+                            last_si_read = std::chrono::high_resolution_clock::now();
+                        }
 
 						// Stop if we are not the first plugged in controller
 						break;

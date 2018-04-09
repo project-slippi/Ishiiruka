@@ -50,6 +50,7 @@
 #include "Core/IPC_HLE/WII_IPC_HLE_Device_usb_bt_base.h"
 #include "Core/Movie.h"
 #include "Core/State.h"
+#include "Core/NetPlayProto.h"
 
 #include "DolphinWX/Config/ConfigMain.h"
 #include "DolphinWX/Debugger/BreakpointDlg.h"
@@ -1264,7 +1265,18 @@ void CFrame::ParseHotkeys()
 	HandleFrameSkipHotkeys();
 	// Stop
 	if (IsHotkey(HK_STOP))
-		DoStop();
+    {
+        if(OSD::Chat::toggled)
+        {
+            if(RendererHasFocus())
+            {
+                OSD::Chat::current_msg = "";
+                OSD::Chat::toggled = false;
+            }
+        }
+        else
+		    DoStop();
+    }
 	// Screenshot hotkey
 	if (IsHotkey(HK_SCREENSHOT))
 		Core::SaveScreenShot();
@@ -1497,6 +1509,18 @@ void CFrame::ParseHotkeys()
 		if (g_renderer && g_renderer->GetPostProcessor())
 			g_renderer->GetPostProcessor()->SetReloadFlag();
 	}
+
+    if (IsHotkey(HK_SHOW_OSD_CHAT) && RendererHasFocus() && NetPlay::IsNetPlayRunning())
+         OSD::Chat::toggled = true;
+
+    // un-toggling the osd chat will send the message unless it's empty
+    if (IsHotkey(HK_SEND_CHAT_MSG) && RendererHasFocus() && NetPlay::IsNetPlayRunning())
+    {
+        OSD::Chat::toggled = false;
+
+        // TODO: config option?
+        OSD::Chat::keep_open = true;
+    }
 
 	if (IsHotkey(HK_TOGGLE_TEXTURES))
 	{

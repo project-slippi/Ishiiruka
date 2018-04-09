@@ -39,6 +39,7 @@
 #include "Core/Movie.h"
 #include "Core/NetPlayProto.h"
 #include "VideoCommon/VideoBackendBase.h"
+#include "VideoCommon/OnScreenDisplay.h"
 
 namespace BootManager
 {
@@ -377,11 +378,15 @@ bool BootCore(const std::string& _rFilename)
 		SConfig::GetInstance().m_EXIDevice[1] = g_NetPlaySettings.m_EXIDevice[1];
 		config_cache.bSetEXIDevice[0] = true;
 		config_cache.bSetEXIDevice[1] = true;
+        StartUp.iLagReductionCode = g_NetPlaySettings.m_LagReduction;
+        StartUp.bMeleeForceWidescreen = g_NetPlaySettings.m_MeleeForceWidescreen;
 	}
 	else
 	{
 		g_SRAM_netplay_initialized = false;
 	}
+
+    OSD::Chat::toggled = false;
 
 	// Apply overrides
 	// Some NTSC GameCube games such as Baten Kaitos react strangely to language settings that would

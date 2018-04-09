@@ -58,6 +58,13 @@ VideoConfig::VideoConfig()
 	backend_info.MaxTextureSize = 4096;
 }
 
+int VideoConfig::GetCurrentAspect()
+{
+    if(SConfig::GetInstance().bMeleeForceWidescreen)
+        return ASPECT_16_9;
+    return iAspectRatio;
+}
+
 void VideoConfig::Load(const std::string& ini_file)
 {
 	IniFile iniFile;
@@ -77,6 +84,8 @@ void VideoConfig::Load(const std::string& ini_file)
 	settings->Get("ShowFPS", &bShowFPS, false);
 	settings->Get("ShowNetPlayPing", &bShowNetPlayPing, false);
 	settings->Get("ShowNetPlayMessages", &bShowNetPlayMessages, false);
+    settings->Get("ShowOSDClock", &bShowOSDClock, false);
+    settings->Get("ShowFrameTimes", &bShowFrameTimes, false);
 	settings->Get("LogRenderTimeToFile", &bLogRenderTimeToFile, false);
 	settings->Get("ShowInputDisplay", &bShowInputDisplay, false);
 	settings->Get("OverlayStats", &bOverlayStats, false);
@@ -423,6 +432,8 @@ void VideoConfig::Save(const std::string& ini_file)
 	settings->Set("ShowFPS", bShowFPS);
 	settings->Set("ShowNetPlayPing", bShowNetPlayPing);
 	settings->Set("ShowNetPlayMessages", bShowNetPlayMessages);
+    settings->Set("ShowOSDClock", bShowOSDClock);
+    settings->Set("ShowFrameTimes", bShowFrameTimes);
 	settings->Set("LogRenderTimeToFile", bLogRenderTimeToFile);
 	settings->Set("ShowInputDisplay", bShowInputDisplay);
 	settings->Set("OverlayStats", bOverlayStats);

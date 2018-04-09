@@ -13,7 +13,10 @@
 #include "Core/ConfigManager.h"
 #include "Core/GeckoCode.h"
 #include "Core/HW/Memmap.h"
+#include "Core/NetPlayProto.h"
 #include "Core/PowerPC/PowerPC.h"
+
+#include <iostream>
 
 namespace Gecko
 {
@@ -55,6 +58,37 @@ static bool code_handler_installed = false;
 static std::vector<GeckoCode> active_codes;
 static std::mutex active_codes_lock;
 
+static bool IsEnabledMeleeCode(const GeckoCode& code)
+{
+    if(SConfig::GetInstance().bMeleeForceWidescreen && code.name == "Widescreen 16:9")
+        return true;
+        
+    if(NetPlay::IsNetPlayRunning() && SConfig::GetInstance().iLagReductionCode != MELEE_LAG_REDUCTION_CODE_UNSET)
+    {
+        if(SConfig::GetInstance().iLagReductionCode == MELEE_LAG_REDUCTION_CODE_NORMAL)
+            return code.name.find("Normal Lag Reduction") != std::string::npos;
+
+        if(SConfig::GetInstance().iLagReductionCode == MELEE_LAG_REDUCTION_CODE_PERFORMANCE)
+            return code.name.find("Performance Lag Reduction") != std::string::npos;
+    }
+
+    return false;
+}
+
+static bool IsDisabledMeleeCode(const GeckoCode& code)
+{
+    if(NetPlay::IsNetPlayRunning() && SConfig::GetInstance().iLagReductionCode != MELEE_LAG_REDUCTION_CODE_UNSET)
+    {
+        if(SConfig::GetInstance().iLagReductionCode == MELEE_LAG_REDUCTION_CODE_NORMAL)
+            return code.name.find("Performance Lag Reduction") != std::string::npos;
+
+        if(SConfig::GetInstance().iLagReductionCode == MELEE_LAG_REDUCTION_CODE_PERFORMANCE)
+            return code.name.find("Normal Lag Reduction") != std::string::npos;
+    }
+
+    return false;
+}
+
 void SetActiveCodes(const std::vector<GeckoCode>& gcodes)
 {
 	std::lock_guard<std::mutex> lk(active_codes_lock);
@@ -63,8 +97,8 @@ void SetActiveCodes(const std::vector<GeckoCode>& gcodes)
 
 	// add enabled codes
 	for (const GeckoCode& gecko_code : gcodes)
-	{
-		if (gecko_code.enabled)
+	{        
+		if ((gecko_code.enabled && !IsDisabledMeleeCode(gecko_code)) || IsEnabledMeleeCode(gecko_code))
 		{
 			// TODO: apply modifiers
 			// TODO: don't need description or creator string, just takin up memory
@@ -132,7 +166,7 @@ static bool InstallCodeHandler()
 
 	for (const GeckoCode& active_code : active_codes)
 	{
-		if (active_code.enabled)
+		if ((active_code.enabled && !IsDisabledMeleeCode(active_code)) || IsEnabledMeleeCode(active_code))
 		{
 			for (const GeckoCode::Code& code : active_code.codes)
 			{

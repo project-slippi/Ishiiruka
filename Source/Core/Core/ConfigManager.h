@@ -23,6 +23,9 @@ enum class Language;
 #define BACKEND_ALSA "ALSA"
 #define BACKEND_AOSOUND "AOSound"
 #define BACKEND_COREAUDIO "CoreAudio"
+#define BACKEND_CUBEB "Cubeb"
+#define BACKEND_EXCLUSIVE_WASAPI "Exclusive WASAPI"
+#define BACKEND_SHARED_WASAPI "Shared-mode WASAPI"
 #define BACKEND_DIRECTSOUND "DSound"
 #define BACKEND_OPENAL "OpenAL"
 #define BACKEND_PULSEAUDIO "Pulse"
@@ -49,6 +52,13 @@ enum PollingMethod
 {
 	POLLING_CONSOLE = 0,
 	POLLING_ONSIREAD = 1
+};
+
+enum MeleeLagReductionCode
+{
+    MELEE_LAG_REDUCTION_CODE_UNSET = 0,
+    MELEE_LAG_REDUCTION_CODE_NORMAL = 1,
+    MELEE_LAG_REDUCTION_CODE_PERFORMANCE = 2
 };
 
 struct SConfig : NonCopyable
@@ -114,6 +124,12 @@ struct SConfig : NonCopyable
 	bool bEnableCheats = false;
 	bool bEnableMemcardSdWriting = true;
 	bool bAllowAllNetplayVersions = false;
+	bool bQoSEnabled = true;
+	bool bAdapterWarning = true;
+
+    MeleeLagReductionCode iLagReductionCode = MELEE_LAG_REDUCTION_CODE_UNSET;
+    bool bHasShownLagReductionWarning = false;
+    bool bMeleeForceWidescreen = false;
 
 	bool bDPL2Decoder = false;
 	bool bTimeStretching = false;

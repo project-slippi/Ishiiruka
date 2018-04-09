@@ -234,6 +234,7 @@ set(LIBS
 	audiocommon
 	bdisasm
 	common
+	cubeb
 	discio
 	enet
 	inputcommon

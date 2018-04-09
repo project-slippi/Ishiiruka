@@ -1134,7 +1134,7 @@ void Renderer::CheckForConfigChanges()
 	int old_multisamples = g_ActiveConfig.iMultisamples;
 	int old_anisotropy = g_ActiveConfig.iMaxAnisotropy;
 	int old_stereo_mode = g_ActiveConfig.iStereoMode;
-	int old_aspect_ratio = g_ActiveConfig.iAspectRatio;
+	int old_aspect_ratio = g_ActiveConfig.GetCurrentAspect();
 	bool old_force_filtering = g_ActiveConfig.bForceFiltering;
 	bool old_ssaa = g_ActiveConfig.bSSAA;
 	bool old_use_xfb = g_ActiveConfig.bUseXFB;
@@ -1152,7 +1152,7 @@ void Renderer::CheckForConfigChanges()
 	bool force_texture_filtering_changed = old_force_filtering != g_ActiveConfig.bForceFiltering;
 	bool stereo_changed = old_stereo_mode != g_ActiveConfig.iStereoMode;
 	bool efb_scale_changed = m_last_efb_scale != g_ActiveConfig.iEFBScale;
-	bool aspect_changed = old_aspect_ratio != g_ActiveConfig.iAspectRatio;
+	bool aspect_changed = old_aspect_ratio != g_ActiveConfig.GetCurrentAspect();
 	bool use_xfb_changed = old_use_xfb != g_ActiveConfig.bUseXFB;
 	bool use_realxfb_changed = old_use_realxfb != g_ActiveConfig.bUseRealXFB;
 

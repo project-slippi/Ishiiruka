@@ -17,6 +17,11 @@
 #include <memory>
 #include <mutex>
 #include <string>
+#include <chrono>
+
+#include <iostream>
+#include <sstream>
+#include <locale>
 
 #include "Common/Assert.h"
 #include "Common/CommonTypes.h"
@@ -37,6 +42,11 @@
 #include "Core/Movie.h"
 #include "Core/FifoPlayer/FifoRecorder.h"
 #include "Core/HW/VideoInterface.h"
+#include "Core/NetPlayProto.h"
+#include "Core/NetPlayClient.h"
+#include "Core/HW/SI.h"
+
+#include "InputCommon/GCAdapter.h"
 
 #include "VideoCommon/AVIDump.h"
 #include "VideoCommon/BPMemory.h"
@@ -306,15 +316,38 @@ void Renderer::SaveScreenshot(const std::string& filename, bool wait_for_complet
 // Create On-Screen-Messages
 void Renderer::DrawDebugText()
 {
+    double frame_time = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now().time_since_epoch() - SerialInterface::last_si_read.time_since_epoch()).count() / 1000.0;
+    frame_time = round(frame_time * 10) / 10;
+
+    static time_t last_report_time = std::time(nullptr);
+
+    if(last_report_time != std::time(nullptr))
+    {
+        if(NetPlay::IsNetPlayRunning() && SConfig::GetInstance().iPollingMethod == POLLING_ONSIREAD)
+            netplay_client->ReportFrameTimeToServer((float)frame_time);
+
+        last_report_time = std::time(nullptr);
+    }
+
 	std::string final_yellow, final_cyan;
 
 	if (g_ActiveConfig.bShowFPS || SConfig::GetInstance().m_ShowFrameCount)
 	{
+        std::string frame_time_str = std::to_string(frame_time);
+        frame_time_str = frame_time_str.substr(0, 3);
+
+        while(frame_time_str.find(",") != std::string::npos)
+            frame_time_str[frame_time_str.find(",")] = '.';
+
 		if (g_ActiveConfig.bShowFPS)
 			final_cyan += StringFromFormat("FPS: %u", m_fps_counter.GetFPS());
 
+        if (g_ActiveConfig.bShowFPS && g_ActiveConfig.bShowFrameTimes && SConfig::GetInstance().iPollingMethod == POLLING_ONSIREAD)
+			final_cyan += " (" + frame_time_str + " ms)";
+
 		if (g_ActiveConfig.bShowFPS && SConfig::GetInstance().m_ShowFrameCount)
 			final_cyan += " - ";
+
 		if (SConfig::GetInstance().m_ShowFrameCount)
 		{
 			final_cyan += StringFromFormat("Frame: %llu", (unsigned long long)Movie::GetCurrentFrame());
@@ -345,6 +378,20 @@ void Renderer::DrawDebugText()
 		final_cyan += Movie::GetRTCDisplay();
 		final_yellow += "\n";
 	}
+
+    if(g_ActiveConfig.bShowOSDClock)
+    {
+        std::stringstream ss;
+        
+        // makes std::put_time use AM/PM depending on the system locale
+        ss.imbue(std::locale(""));
+        
+        std::time_t time = std::time(nullptr);
+        ss << std::put_time(std::localtime(&time), "%X");
+
+        final_cyan += ss.str() + "\n";
+		final_yellow += "\n";
+    }
 
 	// OSD Menu messages
 	if (OSDChoice > 0)
@@ -381,7 +428,7 @@ void Renderer::DrawDebugText()
 			break;
 		}
 		const char* ar_text = "";
-		switch (g_ActiveConfig.iAspectRatio)
+		switch (g_ActiveConfig.GetCurrentAspect())
 		{
 		case ASPECT_AUTO:
 			ar_text = "Auto";
@@ -444,9 +491,29 @@ void Renderer::DrawDebugText()
 	if (g_ActiveConfig.bOverlayProjStats)
 		final_cyan += Statistics::ToStringProj();
 
+	if(GCAdapter::AdapterError())
+		final_yellow += 
+		"There is a potential problem with your GameCube Adapter and inputs\nare being set to their default positon to prevent unintended inputs"
+		"\nIf you want, you can turn this off in [Config] > [Advanced Options]";	
+
 	// and then the text
 	RenderText(final_cyan, 20, 20, 0xFF00FFFF);
 	RenderText(final_yellow, 20, 20, 0xFFFFFF00);
+
+    if(NetPlay::IsNetPlayRunning())
+    {
+        OSD::Chat::Update();
+
+        if(OSD::Chat::toggled)
+        {
+           RenderText(
+               "[" + netplay_client->local_player->name + netplay_client->FindPlayerPadName(netplay_client->local_player) + "]: " + OSD::Chat::current_msg + 
+                (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count() % 500 < 250 ? "_" : ""),
+                20, m_backbuffer_height - (
+					(g_ActiveConfig.backend_info.APIType & API_D3D9) || 
+					(g_ActiveConfig.backend_info.APIType & API_D3D11) ? 40 : 20), 0xFFFFFF30);
+        }
+    }
 }
 
 float Renderer::CalculateDrawAspectRatio(int target_width, int target_height) const
@@ -454,30 +521,30 @@ float Renderer::CalculateDrawAspectRatio(int target_width, int target_height) co
 	// The dimensions are the sizes that are used to create the EFB/backbuffer textures, so
 	// they should always be greater than zero.
 	_assert_(target_width > 0 && target_height > 0);
-	if (g_ActiveConfig.iAspectRatio == ASPECT_STRETCH)
+	if (g_ActiveConfig.GetCurrentAspect() == ASPECT_STRETCH)
 	{
 		// If stretch is enabled, we prefer the aspect ratio of the window.
 		return (static_cast<float>(target_width) / static_cast<float>(target_height)) /
 			(static_cast<float>(m_backbuffer_width) / static_cast<float>(m_backbuffer_height));
 	}
 	float Ratio = static_cast<float>(target_width) / static_cast<float>(target_height);
-	if (g_ActiveConfig.iAspectRatio == ASPECT_ANALOG_WIDE || (g_ActiveConfig.iAspectRatio != ASPECT_ANALOG && g_ActiveConfig.iAspectRatio < ASPECT_ANALOG_WIDE  && m_aspect_wide))
+	if (g_ActiveConfig.GetCurrentAspect() == ASPECT_ANALOG_WIDE || (g_ActiveConfig.GetCurrentAspect() != ASPECT_ANALOG && g_ActiveConfig.GetCurrentAspect() < ASPECT_ANALOG_WIDE  && m_aspect_wide))
 	{
 		Ratio /= AspectToWidescreen(VideoInterface::GetAspectRatio());
 	}
-	else if (g_ActiveConfig.iAspectRatio == ASPECT_4_3)
+	else if (g_ActiveConfig.GetCurrentAspect() == ASPECT_4_3 || g_ActiveConfig.GetCurrentAspect() == ASPECT_INTEGER)
 	{
 		Ratio /= (4.0f / 3.0f);
 	}
-	else if (g_ActiveConfig.iAspectRatio == ASPECT_73_60)
+	else if (g_ActiveConfig.GetCurrentAspect() == ASPECT_73_60)
 	{
 		Ratio /= (73.0f / 60.0f);
 	}
-	else if (g_ActiveConfig.iAspectRatio == ASPECT_16_9)
+	else if (g_ActiveConfig.GetCurrentAspect() == ASPECT_16_9)
 	{
 		Ratio /= (16.0f / 9.0f);
 	}
-	else if (g_ActiveConfig.iAspectRatio == ASPECT_16_10)
+	else if (g_ActiveConfig.GetCurrentAspect() == ASPECT_16_10)
 	{
 		Ratio /= (16.0f / 10.0f);
 	}
@@ -557,7 +624,7 @@ void Renderer::UpdateDrawRectangle()
 			source_aspect = AspectToWidescreen(source_aspect);
 		float target_aspect;
 
-		switch (g_ActiveConfig.iAspectRatio)
+		switch (g_ActiveConfig.GetCurrentAspect())
 		{
 		case ASPECT_STRETCH:
 			target_aspect = WinWidth / WinHeight;
@@ -569,6 +636,7 @@ void Renderer::UpdateDrawRectangle()
 			target_aspect = AspectToWidescreen(VideoInterface::GetAspectRatio());
 			break;
 		case ASPECT_4_3:
+        case ASPECT_INTEGER:
 			target_aspect = 4.0f / 3.0f;
 			break;
 		case ASPECT_16_9:
@@ -608,7 +676,7 @@ void Renderer::UpdateDrawRectangle()
 	// The rendering window aspect ratio as a proportion of the 4:3 or 16:9 ratio
 	float Ratio = CalculateDrawAspectRatio(m_backbuffer_width, m_backbuffer_height);
 
-	if (g_ActiveConfig.iAspectRatio != ASPECT_STRETCH)
+	if (g_ActiveConfig.GetCurrentAspect() != ASPECT_STRETCH)
 	{
 		// Check if height or width is the limiting factor. If ratio > 1 the picture is too wide and have to limit the width.
 		if (Ratio >= 0.995f && Ratio <= 1.005f)
@@ -635,7 +703,7 @@ void Renderer::UpdateDrawRectangle()
 	// Crop the picture from Analog to 4:3 or from Analog (Wide) to 16:9.
 	//		Output: FloatGLWidth, FloatGLHeight, FloatXOffset, FloatYOffset
 	// ------------------
-	if (g_ActiveConfig.iAspectRatio != ASPECT_STRETCH && g_ActiveConfig.bCrop)
+	if (g_ActiveConfig.GetCurrentAspect() != ASPECT_STRETCH && g_ActiveConfig.bCrop)
 	{
 		Ratio = (4.0f / 3.0f) / VideoInterface::GetAspectRatio();
 		if (Ratio <= 1.0f)
@@ -664,13 +732,38 @@ void Renderer::UpdateDrawRectangle()
 	m_target_rectangle.top = YOffset;
 	m_target_rectangle.right = XOffset + iWhidth;
 	m_target_rectangle.bottom = YOffset + iHeight;
+
+    if(g_ActiveConfig.GetCurrentAspect() == ASPECT_INTEGER && g_ActiveConfig.iEFBScale != SCALE_AUTO && g_ActiveConfig.iEFBScale != SCALE_AUTO_INTEGRAL)
+    {
+        float scale = std::min((float)m_backbuffer_width / m_target_width, (float)m_backbuffer_height / m_target_height);
+        if(scale > 1)
+            scale = floor(scale);
+        if(scale == 0)
+            scale = 1;
+
+        int width = (int)floor(m_target_width * scale);
+        int height = (int)floor(m_target_height * scale);
+
+        if(width > 0 && height > 0)
+        {
+            float ratio = CalculateDrawAspectRatio(width, height);
+            if(ratio > 1.01f)
+                width = (int)(width / ratio);
+            if(ratio < 0.99f)
+                height = (int)(height * ratio);
+        }
+
+        m_target_rectangle.left = m_backbuffer_width / 2 - width / 2;
+        m_target_rectangle.top = m_backbuffer_height / 2 - height / 2;
+        m_target_rectangle.right = m_target_rectangle.left + width;
+	    m_target_rectangle.bottom = m_target_rectangle.top + height;
+    }
 }
 
 void Renderer::SetWindowSize(int width, int height)
 {
 	width = std::max(width, 16);
 	height = std::max(height, 16);
-
 
 	// Scale the window size by the EFB scale.
 	std::tie(width, height) = CalculateTargetScale(width, height);
@@ -683,8 +776,8 @@ void Renderer::SetWindowSize(int width, int height)
 		// Force 4:3 or 16:9 by cropping the image.
 		float current_aspect = scaled_width / scaled_height;
 		float expected_aspect =
-			(g_ActiveConfig.iAspectRatio == ASPECT_ANALOG_WIDE ||
-			(g_ActiveConfig.iAspectRatio != ASPECT_ANALOG && m_aspect_wide)) ?
+			(g_ActiveConfig.GetCurrentAspect() == ASPECT_ANALOG_WIDE ||
+			(g_ActiveConfig.GetCurrentAspect() != ASPECT_ANALOG && m_aspect_wide)) ?
 				(16.0f / 9.0f) :
 			(4.0f / 3.0f);
 		if (current_aspect > expected_aspect)
