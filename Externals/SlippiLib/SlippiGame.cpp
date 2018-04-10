@@ -43,6 +43,13 @@ namespace Slippi {
 		// Load random seed
 		game->settings.randomSeed = readWord(data, idx);
 
+		// Read UCF toggle bytes
+		bool shouldRead = game->version[0] >= 1;
+		for (int i = 0; i < UCF_TOGGLE_SIZE; i++) {
+			uint32_t value = shouldRead ? readWord(data, idx) : 0;
+			game->settings.ucfToggles[i] = value;
+		}
+
 		// Pull header data into struct
 		int player1Pos = 24; // This is the index of the first players character info
 		std::array<uint32_t, Slippi::GAME_INFO_HEADER_SIZE> gameInfoHeader = game->settings.header;

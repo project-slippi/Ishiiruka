@@ -15,6 +15,7 @@ namespace Slippi {
 	const uint8_t EVENT_GAME_END = 0x39;
 
 	const uint8_t GAME_INFO_HEADER_SIZE = 78;
+	const uint8_t UCF_TOGGLE_SIZE = 8;
 	const int32_t GAME_FIRST_FRAME = -123;
 	const uint8_t GAME_SHEIK_INTERNAL_ID = 0x7;
 	const uint8_t GAME_SHEIK_EXTERNAL_ID = 0x13;
@@ -67,6 +68,7 @@ namespace Slippi {
 		uint16_t stage; //Stage ID
 		uint32_t randomSeed;
 		std::array<uint32_t, GAME_INFO_HEADER_SIZE> header;
+		std::array<uint32_t, UCF_TOGGLE_SIZE> ucfToggles;
 		std::unordered_map<uint8_t, PlayerSettings> players;
 	} GameSettings;
 

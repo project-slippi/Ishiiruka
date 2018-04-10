@@ -1,11 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-<<<<<<< HEAD
-VisualStudioVersion = 15.0.26430.14
-=======
 VisualStudioVersion = 15.0.27004.2002
->>>>>>> upstream/master
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Dolphin", "Core\DolphinWX\Dolphin.vcxproj", "{1B099EF8-6F87-47A2-A3E7-898A24584F49}"
 	ProjectSection(ProjectDependencies) = postProject
@@ -153,11 +149,9 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "glslang", "..\Externals\gls
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Vulkan", "Core\VideoBackends\Vulkan\Vulkan.vcxproj", "{29F29A19-F141-45AD-9679-5A2923B49DA3}"
 EndProject
-<<<<<<< HEAD
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SlippiLib", "..\Externals\SlippiLib\SlippiLib.vcxproj", "{FF39260B-839A-4A6C-A117-CAA73C1683F5}"
-=======
+EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "cubeb", "..\Externals\cubeb\msvc\cubeb.vcxproj", "{8EA11166-6512-44FC-B7A5-A4D1ECC81170}"
->>>>>>> upstream/master
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -316,16 +310,7 @@ Global
 		{349EE8F9-7D25-4909-AAF5-FF3FADE72187}.Debug|x86.ActiveCfg = Debug|x64
 		{349EE8F9-7D25-4909-AAF5-FF3FADE72187}.Release|x64.ActiveCfg = Release|x64
 		{349EE8F9-7D25-4909-AAF5-FF3FADE72187}.Release|x64.Build.0 = Release|x64
-<<<<<<< HEAD
 		{349EE8F9-7D25-4909-AAF5-FF3FADE72187}.Release|x86.ActiveCfg = Release|x64
-		{0A18A071-125E-442F-AFF7-A3F68ABECF99}.Debug|x64.ActiveCfg = Debug|x64
-		{0A18A071-125E-442F-AFF7-A3F68ABECF99}.Debug|x64.Build.0 = Debug|x64
-		{0A18A071-125E-442F-AFF7-A3F68ABECF99}.Debug|x86.ActiveCfg = Debug|x64
-		{0A18A071-125E-442F-AFF7-A3F68ABECF99}.Release|x64.ActiveCfg = Release|x64
-		{0A18A071-125E-442F-AFF7-A3F68ABECF99}.Release|x64.Build.0 = Release|x64
-		{0A18A071-125E-442F-AFF7-A3F68ABECF99}.Release|x86.ActiveCfg = Release|x64
-=======
->>>>>>> upstream/master
 		{76563A7F-1011-4EAD-B667-7BB18D09568E}.Debug|x64.ActiveCfg = Debug|x64
 		{76563A7F-1011-4EAD-B667-7BB18D09568E}.Debug|x64.Build.0 = Debug|x64
 		{76563A7F-1011-4EAD-B667-7BB18D09568E}.Debug|x86.ActiveCfg = Debug|x64
@@ -385,7 +370,6 @@ Global
 		{29F29A19-F141-45AD-9679-5A2923B49DA3}.Debug|x86.ActiveCfg = Debug|x64
 		{29F29A19-F141-45AD-9679-5A2923B49DA3}.Release|x64.ActiveCfg = Release|x64
 		{29F29A19-F141-45AD-9679-5A2923B49DA3}.Release|x64.Build.0 = Release|x64
-<<<<<<< HEAD
 		{29F29A19-F141-45AD-9679-5A2923B49DA3}.Release|x86.ActiveCfg = Release|x64
 		{FF39260B-839A-4A6C-A117-CAA73C1683F5}.Debug|x64.ActiveCfg = Debug|x64
 		{FF39260B-839A-4A6C-A117-CAA73C1683F5}.Debug|x64.Build.0 = Debug|x64
@@ -395,12 +379,12 @@ Global
 		{FF39260B-839A-4A6C-A117-CAA73C1683F5}.Release|x64.Build.0 = Release|x64
 		{FF39260B-839A-4A6C-A117-CAA73C1683F5}.Release|x86.ActiveCfg = Release|Win32
 		{FF39260B-839A-4A6C-A117-CAA73C1683F5}.Release|x86.Build.0 = Release|Win32
-=======
 		{8EA11166-6512-44FC-B7A5-A4D1ECC81170}.Debug|x64.ActiveCfg = Debug|x64
 		{8EA11166-6512-44FC-B7A5-A4D1ECC81170}.Debug|x64.Build.0 = Debug|x64
+		{8EA11166-6512-44FC-B7A5-A4D1ECC81170}.Debug|x86.ActiveCfg = Debug|x64
 		{8EA11166-6512-44FC-B7A5-A4D1ECC81170}.Release|x64.ActiveCfg = Release|x64
 		{8EA11166-6512-44FC-B7A5-A4D1ECC81170}.Release|x64.Build.0 = Release|x64
->>>>>>> upstream/master
+		{8EA11166-6512-44FC-B7A5-A4D1ECC81170}.Release|x86.ActiveCfg = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -437,13 +421,10 @@ Global
 		{9E9DA440-E9AD-413C-B648-91030E792211} = {3ECEBBE7-1A0B-4056-99F4-0C0848DA8494}
 		{D178061B-84D3-44F9-BEED-EFD18D9033F0} = {39DB5AF5-003D-412B-8FF1-FB195541DB7A}
 		{29F29A19-F141-45AD-9679-5A2923B49DA3} = {3ECEBBE7-1A0B-4056-99F4-0C0848DA8494}
-<<<<<<< HEAD
 		{FF39260B-839A-4A6C-A117-CAA73C1683F5} = {39DB5AF5-003D-412B-8FF1-FB195541DB7A}
-=======
 		{8EA11166-6512-44FC-B7A5-A4D1ECC81170} = {39DB5AF5-003D-412B-8FF1-FB195541DB7A}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {0ABE564D-D33A-4999-8E79-2A81739F0A18}
->>>>>>> upstream/master
 	EndGlobalSection
 EndGlobal

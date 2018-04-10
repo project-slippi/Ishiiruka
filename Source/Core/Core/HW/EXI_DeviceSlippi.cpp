@@ -290,6 +290,12 @@ void CEXISlippi::prepareGameInfo() {
 	for (int i = 0; i < Slippi::GAME_INFO_HEADER_SIZE; i++) {
 		m_read_queue.push_back(gameInfoHeader[i]);
 	}
+
+	// Write UCF toggles
+	std::array<uint32_t, Slippi::UCF_TOGGLE_SIZE> ucfToggles = settings->ucfToggles;
+	for (int i = 0; i < Slippi::UCF_TOGGLE_SIZE; i++) {
+		m_read_queue.push_back(ucfToggles[i]);
+	}
 }
 
 void CEXISlippi::prepareFrameData(u8* payload) {
