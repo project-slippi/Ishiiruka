@@ -407,8 +407,8 @@ void NetPlayDialog::GetNetSettings(NetSettings& settings)
 	settings.m_OCFactor = instance.m_OCFactor;
 	settings.m_EXIDevice[0] = m_memcard_write->GetValue() ? instance.m_EXIDevice[0] : EXIDEVICE_NONE;
 	settings.m_EXIDevice[1] = m_memcard_write->GetValue() ? instance.m_EXIDevice[1] : EXIDEVICE_NONE;
-    settings.m_LagReduction = IsNTSCMelee() ? (MeleeLagReductionCode)(m_lag_reduction_choice->GetSelection() + 1) : MELEE_LAG_REDUCTION_CODE_UNSET;
-    settings.m_MeleeForceWidescreen = IsNTSCMelee() ? m_widescreen_force_chkbox->GetValue() : false;
+    settings.m_LagReduction = (IsNTSCMelee() && !Is20XX()) || IsPALMelee()? (MeleeLagReductionCode)(m_lag_reduction_choice->GetSelection() + 1) : MELEE_LAG_REDUCTION_CODE_UNSET;
+    settings.m_MeleeForceWidescreen = IsNTSCMelee() || IsPALMelee() ? m_widescreen_force_chkbox->GetValue() : false;
 }
 
 std::string NetPlayDialog::FindGame(const std::string& target_game)
@@ -488,9 +488,10 @@ void NetPlayDialog::OnMsgStartGame()
 		m_game_btn->Disable();
 		m_player_config_btn->Disable();
         
-        if(IsNTSCMelee())
+        if(IsNTSCMelee() || IsPALMelee())
         {
-            m_lag_reduction_choice->Disable();
+        	if(!Is20XX())
+            	m_lag_reduction_choice->Disable();
             m_widescreen_force_chkbox->Disable();
         }
 	}
@@ -509,9 +510,10 @@ void NetPlayDialog::OnMsgStopGame()
 		m_game_btn->Enable();
 		m_player_config_btn->Enable();
 
-        if(IsNTSCMelee())
+        if(IsNTSCMelee() || IsPALMelee())
         {
-            m_lag_reduction_choice->Enable();
+        	if(!Is20XX())
+            	m_lag_reduction_choice->Enable();
             m_widescreen_force_chkbox->Enable();
         }
 	}
