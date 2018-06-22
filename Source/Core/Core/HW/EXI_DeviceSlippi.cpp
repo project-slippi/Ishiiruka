@@ -4,6 +4,7 @@
 
 #include "Core/HW/EXI_DeviceSlippi.h"
 
+#include <SlippiGame.h>
 #include <array>
 #include <unordered_map>
 #include <stdexcept>
@@ -13,7 +14,6 @@
 #include <share.h>
 #endif
 
-#include "SlippiLib/SlippiGame.h"
 #include "Common/CommonFuncs.h"
 #include "Common/CommonTypes.h"
 #include "Common/Logging/Log.h"
