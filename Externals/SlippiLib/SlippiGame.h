@@ -23,6 +23,9 @@ namespace Slippi {
   static uint8_t* data;
 
 	typedef struct {
+		// Every player update has its own rng seed because it might change in between players
+		uint32_t randomSeed;
+
 		uint8_t internalCharacterId;
 		uint16_t animation;
 		float locationX;
@@ -51,7 +54,6 @@ namespace Slippi {
 
 	typedef struct {
 		int32_t frame;
-		uint32_t randomSeed;
 		std::unordered_map<uint8_t, PlayerFrameData> players;
 		std::unordered_map<uint8_t, PlayerFrameData> followers;
 	} FrameData;

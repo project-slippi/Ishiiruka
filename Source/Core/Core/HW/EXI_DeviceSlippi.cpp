@@ -319,9 +319,6 @@ void CEXISlippi::prepareFrameData(u8* payload) {
 
 	Slippi::FrameData* frame = m_current_game->GetFrame(frameIndex);
 
-	// Add random seed to the front of the response regardless of player
-	m_read_queue.push_back(*(u32*)&frame->randomSeed);
-
 	std::unordered_map<uint8_t, Slippi::PlayerFrameData> source;
 	source = isFollower ? frame->followers : frame->players;
 
@@ -334,6 +331,7 @@ void CEXISlippi::prepareFrameData(u8* payload) {
 	Slippi::PlayerFrameData data = source[port];
 
 	// Add all of the inputs in order
+	m_read_queue.push_back(*(u32*)&data.randomSeed);
 	m_read_queue.push_back(*(u32*)&data.joystickX);
 	m_read_queue.push_back(*(u32*)&data.joystickY);
 	m_read_queue.push_back(*(u32*)&data.cstickX);

@@ -98,7 +98,8 @@ namespace Slippi {
 		uint8_t playerSlot = readByte(data, idx);
 		uint8_t isFollower = readByte(data, idx);
 
-		frame->randomSeed = readWord(data, idx);
+		//Load random seed for player frame update
+		p->randomSeed = readWord(data, idx);
 
 		//Load player data
 		p->animation = readHalf(data, idx);
