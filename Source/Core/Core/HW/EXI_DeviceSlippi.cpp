@@ -19,6 +19,7 @@
 #include "Common/Logging/Log.h"
 #include "Common/FileUtil.h"
 #include "Common/StringUtil.h"
+#include "Core/HW/Memmap.h"
 
 std::vector<u8> uint32ToVector(u32 num) {
 	u8 byte0 = num >> 24;
@@ -379,6 +380,36 @@ void CEXISlippi::prepareLocationData(u8* payload) {
 	m_read_queue.push_back(*(u32*)&data.locationX);
 	m_read_queue.push_back(*(u32*)&data.locationY);
 	m_read_queue.push_back(*(u32*)&data.facingDirection);
+}
+
+void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
+{
+	u8 *memPtr = Memory::GetPointer(_uAddr);
+
+	u8 byte = memPtr[0];
+	switch (byte) {
+	case CMD_RECEIVE_COMMANDS:
+		time(&gameStartTime); // Store game start time
+		configureCommands(&memPtr[1], _uSize - 1);
+		writeToFile(&memPtr[0], _uSize, "create");
+		break;
+	case CMD_RECEIVE_GAME_END:
+		writeToFile(&memPtr[0], _uSize, "close");
+		break;
+	case CMD_PREPARE_REPLAY:
+		loadFile("Slippi/CurrentGame.slp");
+		prepareGameInfo();
+		break;
+	case CMD_READ_FRAME:
+		prepareFrameData(&memPtr[1]);
+		break;
+	case CMD_GET_LOCATION:
+		prepareLocationData(&memPtr[1]);
+		break;
+	default:
+		writeToFile(&memPtr[0], _uSize, "");
+		break;
+	}
 }
 
 void CEXISlippi::ImmWrite(u32 data, u32 size)

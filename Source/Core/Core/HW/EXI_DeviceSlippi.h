@@ -21,6 +21,7 @@ public:
 	CEXISlippi();
   virtual ~CEXISlippi();
 
+	void DMAWrite(u32 _uAddr, u32 _uSize) override;
 	void ImmWrite(u32 data, u32 size) override;
 	u32 ImmRead(u32 size) override;
 
