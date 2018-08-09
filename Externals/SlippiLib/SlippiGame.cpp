@@ -120,6 +120,10 @@ namespace Slippi {
 		p->lTrigger = readFloat(data, idx);
 		p->rTrigger = readFloat(data, idx);
 
+		if (asmEvents[EVENT_PRE_FRAME_UPDATE] >= 59) {
+			p->joystickXRaw = readByte(data, idx);
+		}
+		
 		// Add player data to frame
 		std::unordered_map<uint8_t, PlayerFrameData>* target;
 		target = isFollower ? &frame->followers : &frame->players;

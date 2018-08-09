@@ -20,7 +20,7 @@ namespace Slippi {
 	const uint8_t GAME_SHEIK_INTERNAL_ID = 0x7;
 	const uint8_t GAME_SHEIK_EXTERNAL_ID = 0x13;
 
-  static uint8_t* data;
+	static uint8_t* data;
 
 	typedef struct {
 		// Every player update has its own rng seed because it might change in between players
@@ -50,6 +50,8 @@ namespace Slippi {
 		uint16_t physicalButtons; //A better representation of what a player is actually pressing
 		float lTrigger;
 		float rTrigger;
+
+		uint8_t joystickXRaw;
 	} PlayerFrameData;
 
 	typedef struct {

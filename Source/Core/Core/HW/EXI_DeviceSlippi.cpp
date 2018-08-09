@@ -343,6 +343,7 @@ void CEXISlippi::prepareFrameData(u8* payload) {
 	m_read_queue.push_back(*(u32*)&data.locationY);
 	m_read_queue.push_back(*(u32*)&data.facingDirection);
 	m_read_queue.push_back(data.animation);
+	m_read_queue.push_back((u32)data.joystickXRaw);
 }
 
 void CEXISlippi::prepareLocationData(u8* payload) {
@@ -386,29 +387,35 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 {
 	u8 *memPtr = Memory::GetPointer(_uAddr);
 
+	u32 bufLoc = 0;
+
 	u8 byte = memPtr[0];
-	switch (byte) {
-	case CMD_RECEIVE_COMMANDS:
+	if (byte == CMD_RECEIVE_COMMANDS) {
 		time(&gameStartTime); // Store game start time
-		configureCommands(&memPtr[1], _uSize - 1);
-		writeToFile(&memPtr[0], _uSize, "create");
-		break;
-	case CMD_RECEIVE_GAME_END:
-		writeToFile(&memPtr[0], _uSize, "close");
-		break;
-	case CMD_PREPARE_REPLAY:
-		loadFile("Slippi/CurrentGame.slp");
-		prepareGameInfo();
-		break;
-	case CMD_READ_FRAME:
-		prepareFrameData(&memPtr[1]);
-		break;
-	case CMD_GET_LOCATION:
-		prepareLocationData(&memPtr[1]);
-		break;
-	default:
-		writeToFile(&memPtr[0], _uSize, "");
-		break;
+		u8 receiveCommandsLen = memPtr[1];
+		configureCommands(&memPtr[1], receiveCommandsLen);
+		writeToFile(&memPtr[0], receiveCommandsLen + 1, "create");
+		bufLoc += receiveCommandsLen + 1;
+	}
+
+	while (bufLoc < _uSize) {
+		byte = memPtr[bufLoc];
+		if (!payloadSizes.count(byte)) {
+			// This should never happen. Do something else if it does?
+			return;
+		}
+
+		u32 payloadLen = payloadSizes[byte];
+		switch (byte) {
+		case CMD_RECEIVE_GAME_END:
+			writeToFile(&memPtr[bufLoc], payloadLen + 1, "close");
+			break;
+		default:
+			writeToFile(&memPtr[bufLoc], payloadLen + 1, "");
+			break;
+		}
+
+		bufLoc += payloadLen + 1;
 	}
 }
 
