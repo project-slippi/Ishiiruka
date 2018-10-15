@@ -4,12 +4,12 @@
 
 #pragma once
 
+#include <SlippiGame.h>
 #include <string>
 #include <unordered_map>
 #include <deque>
 #include <ctime>
 
-#include "SlippiLib/SlippiGame.h"
 #include "Common/CommonTypes.h"
 #include "Common/FileUtil.h"
 #include "Core/HW/EXI_Device.h"
