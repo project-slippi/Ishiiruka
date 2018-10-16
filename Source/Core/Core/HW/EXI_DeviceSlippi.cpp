@@ -4,6 +4,7 @@
 
 #include "Core/HW/EXI_DeviceSlippi.h"
 
+#include <SlippiGame.h>
 #include <array>
 #include <unordered_map>
 #include <stdexcept>
@@ -13,7 +14,6 @@
 #include <share.h>
 #endif
 
-#include "SlippiLib/SlippiGame.h"
 #include "Common/CommonFuncs.h"
 #include "Common/CommonTypes.h"
 #include "Common/Logging/Log.h"
@@ -397,6 +397,9 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 		writeToFile(&memPtr[0], receiveCommandsLen + 1, "create");
 		bufLoc += receiveCommandsLen + 1;
 	}
+
+	INFO_LOG(EXPANSIONINTERFACE, "EXI SLIPPI DMAWrite: addr: 0x%08x size: %d, bufLoc:[%02x %02x %02x %02x %02x]",
+		_uAddr, _uSize, memPtr[bufLoc], memPtr[bufLoc + 1], memPtr[bufLoc + 2], memPtr[bufLoc + 3], memPtr[bufLoc + 4]);
 
 	while (bufLoc < _uSize) {
 		byte = memPtr[bufLoc];

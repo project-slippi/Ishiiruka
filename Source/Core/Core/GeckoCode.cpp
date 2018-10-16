@@ -151,6 +151,8 @@ static bool InstallCodeHandler()
 		codelist_end_address = 0x8019AF4C;
 		PowerPC::HostWrite_U32(0x3DE08019, 0x80001f58);
 		PowerPC::HostWrite_U32(0x61EF10E0, 0x80001f5C);
+
+		PowerPC::HostWrite_U32(0x4E800020, 0x80001D6C);
 	}
 
 	// Write a magic value to 'gameid' (codehandleronly does not actually read this).
