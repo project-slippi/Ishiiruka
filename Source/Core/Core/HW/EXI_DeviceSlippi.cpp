@@ -398,6 +398,9 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 		bufLoc += receiveCommandsLen + 1;
 	}
 
+	INFO_LOG(EXPANSIONINTERFACE, "EXI SLIPPI DMAWrite: addr: 0x%08x size: %d, bufLoc:[%02x %02x %02x %02x %02x]",
+		_uAddr, _uSize, memPtr[bufLoc], memPtr[bufLoc + 1], memPtr[bufLoc + 2], memPtr[bufLoc + 3], memPtr[bufLoc + 4]);
+
 	while (bufLoc < _uSize) {
 		byte = memPtr[bufLoc];
 		if (!payloadSizes.count(byte)) {

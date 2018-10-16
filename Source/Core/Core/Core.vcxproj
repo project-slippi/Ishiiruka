@@ -34,6 +34,11 @@
     <Import Project="..\..\VSProps\PCHUse.props" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>$(ExternalsDir)SlippiLib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+  </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="ActionReplay.cpp" />
     <ClCompile Include="Analytics.cpp" />
@@ -462,7 +467,7 @@
       <Project>{349ee8f9-7d25-4909-aaf5-ff3fade72187}</Project>
     </ProjectReference>
     <ProjectReference Include="..\..\..\Externals\cubeb\msvc\cubeb.vcxproj">
-       <Project>{8ea11166-6512-44fc-b7a5-a4d1ecc81170}</Project>
+      <Project>{8ea11166-6512-44fc-b7a5-a4d1ecc81170}</Project>
     </ProjectReference>
     <ProjectReference Include="$(ExternalsDir)LZO\LZO.vcxproj">
       <Project>{ab993f38-c31d-4897-b139-a620c42bc565}</Project>
