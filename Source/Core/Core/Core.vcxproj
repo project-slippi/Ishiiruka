@@ -39,6 +39,11 @@
       <AdditionalIncludeDirectories>$(ExternalsDir)SlippiLib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
   </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>$(ExternalsDir)SlippiLib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+  </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="ActionReplay.cpp" />
     <ClCompile Include="Analytics.cpp" />
