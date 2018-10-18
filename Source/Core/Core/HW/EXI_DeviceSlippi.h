@@ -79,6 +79,8 @@ private:
 	void prepareFrameData(u8* payload);
 	void prepareLocationData(u8* payload);
 
+	std::unordered_map<u8, std::string> getNetplayNames();
+
 	std::deque<u32> m_read_queue;
 	Slippi::SlippiGame* m_current_game = nullptr;
 

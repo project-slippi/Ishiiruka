@@ -20,6 +20,7 @@
 #include "Common/FileUtil.h"
 #include "Common/StringUtil.h"
 #include "Core/HW/Memmap.h"
+#include "Core/NetPlayClient.h"
 
 std::vector<u8> uint32ToVector(u32 num) {
 	u8 byte0 = num >> 24;
@@ -74,6 +75,25 @@ void CEXISlippi::updateMetadataFields(u8* payload, u32 length) {
 	characterUsage[playerIndex][internalCharacterId] += 1;
 }
 
+std::unordered_map<u8, std::string> CEXISlippi::getNetplayNames() {
+	std::unordered_map<u8, std::string> names;
+
+	if (netplay_client && netplay_client->IsConnected()) {
+		auto netplayPlayers = netplay_client->GetPlayers();
+		for (auto it = netplayPlayers.begin(); it != netplayPlayers.end(); ++it) {
+			auto player = *it;
+			u8 portIndex = netplay_client->FindPlayerPad(player);
+			if (portIndex < 0) {
+				continue;
+			}
+
+			names[portIndex] = player->name;
+		}
+	}
+
+	return names;
+}
+
 std::vector<u8> CEXISlippi::generateMetadata() {
 	std::vector<u8> metadata(
 		{ 'U', 8, 'm', 'e', 't', 'a', 'd', 'a', 't', 'a', '{' }
@@ -102,18 +122,41 @@ std::vector<u8> CEXISlippi::generateMetadata() {
 	metadata.insert(metadata.end(), {
 		'U', 7, 'p', 'l', 'a', 'y', 'e', 'r', 's', '{'
 	});
+	
+	auto playerNames = getNetplayNames();
+
 	for (auto it = characterUsage.begin(); it != characterUsage.end(); ++it) {
+		auto playerIndex = it->first;
+		auto characterUsage = it->second;
+
 		metadata.push_back('U');
-		std::string playerIndexStr = std::to_string(it->first);
+		std::string playerIndexStr = std::to_string(playerIndex);
 		metadata.push_back((u8)playerIndexStr.length());
 		metadata.insert(metadata.end(), playerIndexStr.begin(), playerIndexStr.end());
 		metadata.push_back('{');
+
+		// Add names element for this player
+		metadata.insert(metadata.end(), {
+			'U', 5, 'n', 'a', 'm', 'e', 's', '{'
+		});
+
+		if (playerNames.count(playerIndex)) {
+			auto playerName = playerNames[playerIndex];
+			// Add netplay element for this player name
+			metadata.insert(metadata.end(), {
+				'U', 7, 'n', 'e', 't', 'p', 'l', 'a', 'y', 'S'
+			});
+			metadata.push_back((u8)playerName.length());
+			metadata.insert(metadata.end(), playerName.begin(), playerName.end());
+		}
+
+		metadata.push_back('}'); // close names
 
 		// Add character element for this player
 		metadata.insert(metadata.end(), {
 			'U', 10, 'c', 'h', 'a', 'r', 'a', 'c', 't', 'e', 'r', 's', '{'
 		});
-		for (auto it2 = it->second.begin(); it2 != it->second.end(); ++it2) {
+		for (auto it2 = characterUsage.begin(); it2 != characterUsage.end(); ++it2) {
 			metadata.push_back('U');
 			std::string internalCharIdStr = std::to_string(it2->first);
 			metadata.push_back((u8)internalCharIdStr.length());
@@ -208,7 +251,7 @@ void CEXISlippi::createNewFile() {
 		// If there's already a file open, close that one
 		closeFile();
 	}
-
+	
 	File::CreateDir("Slippi");
 	std::string filepath = generateFileName();
 

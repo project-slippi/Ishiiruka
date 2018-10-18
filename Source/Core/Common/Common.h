@@ -10,6 +10,7 @@
 #include <string>
 
 // Git version number
+extern const std::string release_string;
 extern const std::string scm_desc_str;
 extern const std::string scm_branch_str;
 extern const std::string scm_rev_str;
