@@ -152,6 +152,11 @@ static bool InstallCodeHandler()
 		PowerPC::HostWrite_U32(0x3DE08019, 0x80001f58);
 		PowerPC::HostWrite_U32(0x61EF10E0, 0x80001f5C);
 
+		// Here we are replacing a line in the codehandler with a blr.
+		// The reason for this is that this is the section of the codehandler
+		// that attempts to read/write commands for the USB Gecko. These calls
+		// were sometimes interfering with the Slippi EXI calls and causing
+		// the game to loop infinitely in EXISync.
 		PowerPC::HostWrite_U32(0x4E800020, 0x80001D6C);
 	}
 
