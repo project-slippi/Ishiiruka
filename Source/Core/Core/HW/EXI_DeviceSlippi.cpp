@@ -144,7 +144,7 @@ std::vector<u8> CEXISlippi::generateMetadata() {
 			auto playerName = playerNames[playerIndex];
 			// Add netplay element for this player name
 			metadata.insert(metadata.end(), {
-				'U', 7, 'n', 'e', 't', 'p', 'l', 'a', 'y', 'S'
+				'U', 7, 'n', 'e', 't', 'p', 'l', 'a', 'y', 'S', 'U'
 			});
 			metadata.push_back((u8)playerName.length());
 			metadata.insert(metadata.end(), playerName.begin(), playerName.end());
