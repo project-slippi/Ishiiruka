@@ -87,6 +87,8 @@ namespace Slippi {
 		uint8_t winCondition;
 	} Game;
 
+	// TODO: This shouldn't be static. Doesn't matter too much atm because we always
+	// TODO: only read one file at a time
 	static std::unordered_map<uint8_t, uint32_t> asmEvents = {
 		{ EVENT_GAME_INIT, 320 },
 		{ EVENT_PRE_FRAME_UPDATE, 58 },
@@ -104,7 +106,12 @@ namespace Slippi {
 		bool DoesPlayerExist(int8_t port);
 	private:
 		Game* game;
+		std::ifstream* file;
+		std::vector<uint8_t> rawData;
+		std::string path;
+		std::ofstream log;
 
+		void processData();
 		static SlippiGame* processFile(uint8_t* fileContents, uint64_t fileSize);
 	};
 }

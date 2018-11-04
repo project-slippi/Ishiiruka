@@ -230,60 +230,105 @@ namespace Slippi {
 		return messageSizes;
 	}
 
-	SlippiGame* SlippiGame::processFile(uint8_t* rawData, uint64_t rawDataLength) {
-		SlippiGame* result = new SlippiGame();
-		result->game = new Game();
-
-		// Iterate through the data and process frames
-		for (int i = 0; i < rawDataLength; i++) {
-			int code = rawData[i];
-			int msgLength = asmEvents[code];
-			if (!msgLength) {
-				return nullptr;
+	void SlippiGame::processData() {
+		// This function will process as much data as possible
+		int startPos = (int)file->tellg();
+		//file = new std::ifstream(path, std::ios::in | std::ios::binary);
+		file->seekg(startPos);
+		if (startPos == 0) {
+			file->seekg(0, std::ios::end);
+			int len = (int)file->tellg();
+			if (len < 2) {
+				// If we can't read message sizes payload size yet, return
+				return;
 			}
 
-			data = &rawData[i + 1];
-			switch (code) {
-			case EVENT_GAME_INIT:
-				handleGameInit(result->game);
-				break;
-			case EVENT_PRE_FRAME_UPDATE:
-				handlePreFrameUpdate(result->game);
-				break;
-			case EVENT_POST_FRAME_UPDATE:
-				handlePostFrameUpdate(result->game);
-				break;
-			case EVENT_GAME_END:
-				handleGameEnd(result->game);
-				break;
+			char buffer[2];
+			file->seekg(0);
+			file->read(buffer, 2);
+			file->seekg(0);
+			auto messageSizesSize = (int)buffer[1];
+			if (len < messageSizesSize) {
+				// If we haven't received the full payload sizes message, return
+				return;
 			}
-			i += msgLength;
+
+			asmEvents = getMessageSizes(file, 0);
 		}
 
-		return result;
+		// Read everything to the end
+		file->seekg(0, std::ios::end);
+		int endPos = (int)file->tellg();
+		int sizeToRead = endPos - startPos;
+		file->seekg(startPos);
+		log << "Size to read: " << sizeToRead << "\n";
+		log << "Start Pos: " << startPos << "\n";
+		log << "End Pos: " << endPos << "\n\n";
+		if (sizeToRead <= 0) {
+			return;
+		}
+
+		std::vector<char> newData(sizeToRead);
+		file->read(&newData[0], sizeToRead);
+
+		int newDataPos = 0;
+		while (newDataPos < sizeToRead) {
+			auto command = newData[newDataPos];
+			auto payloadSize = asmEvents[command];
+			auto remainingLen = sizeToRead - newDataPos;
+			if (remainingLen < (payloadSize + 1)) {
+				// Here we don't have enough data to read the whole payload
+				// Will be processed after getting more data (hopefully)
+				file->seekg(-remainingLen, std::ios::cur);
+				return;
+			}
+
+			data = (uint8_t*)&newData[newDataPos + 1];
+			switch (command) {
+			case EVENT_GAME_INIT:
+				handleGameInit(game);
+				break;
+			case EVENT_PRE_FRAME_UPDATE:
+				handlePreFrameUpdate(game);
+				break;
+			case EVENT_POST_FRAME_UPDATE:
+				handlePostFrameUpdate(game);
+				break;
+			case EVENT_GAME_END:
+				log.close();
+				handleGameEnd(game);
+				break;
+			}
+			newDataPos += payloadSize + 1;
+		}
 	}
 
 	SlippiGame* SlippiGame::FromFile(std::string path) {
-		std::ifstream file(path, std::ios::in|std::ios::binary|std::ios::ate);
-		if (!file.is_open()) {
+		SlippiGame* result = new SlippiGame();
+		result->game = new Game();
+		result->path = path;
+		result->file = new std::ifstream(path, std::ios::in | std::ios::binary);
+		result->log.open("log.txt");
+		while (!result->file->is_open()) {
 			return nullptr;
 		}
 
-		int fileLength = (int)file.tellg();
-		int rawDataPos = getRawDataPosition(&file);
-		uint32_t rawDataLength = getRawDataLength(&file, rawDataPos, fileLength);
-		asmEvents = getMessageSizes(&file, rawDataPos);
+		//int fileLength = (int)file.tellg();
+		//int rawDataPos = getRawDataPosition(&file);
+		//uint32_t rawDataLength = getRawDataLength(&file, rawDataPos, fileLength);
+		//asmEvents = getMessageSizes(&file, rawDataPos);
 
-		std::vector<char> rawData(rawDataLength);
-		file.seekg(rawDataPos, std::ios::beg);
-		file.read(&rawData[0], rawDataLength);
+		//std::vector<char> rawData(rawDataLength);
+		//file.seekg(rawDataPos, std::ios::beg);
+		//file.read(&rawData[0], rawDataLength);
 
-		SlippiGame* result = processFile((uint8_t*)&rawData[0], rawDataLength);
+		//SlippiGame* result = processFile((uint8_t*)&rawData[0], rawDataLength);
 
 		return result;
 	}
 
 	bool SlippiGame::DoesFrameExist(int32_t frame) {
+		processData();
 		return (bool)game->frameData.count(frame);
 	}
 
@@ -293,6 +338,7 @@ namespace Slippi {
 	}
 
 	GameSettings* SlippiGame::GetSettings() {
+		processData();
 		return &game->settings;
 	}
 

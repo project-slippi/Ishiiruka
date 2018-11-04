@@ -19,6 +19,7 @@
 #include "Common/Logging/Log.h"
 #include "Common/FileUtil.h"
 #include "Common/StringUtil.h"
+#include "Common/Thread.h"
 #include "Core/HW/Memmap.h"
 #include "Core/NetPlayClient.h"
 
@@ -296,6 +297,7 @@ void CEXISlippi::prepareGameInfo() {
 		return;
 	}
 
+	// TODO: Wait for settings to exist
 	Slippi::GameSettings* settings = m_current_game->GetSettings();
 
 	// Build a word containing the stage and the presence of the characters
@@ -355,12 +357,12 @@ void CEXISlippi::prepareFrameData(u8* payload) {
 	uint8_t port = payload[4];
 	uint8_t isFollower = payload[5];
 
-	// Load the data from this frame into the read buffer
-	bool frameExists = m_current_game->DoesFrameExist(frameIndex);
-	if (!frameExists) {
-		return;
+	// Wait until frame exists in our data before reading it
+	while (!m_current_game->DoesFrameExist(frameIndex)) {
+		Common::SleepCurrentThread(500);
 	}
 
+	// Load the data from this frame into the read buffer
 	Slippi::FrameData* frame = m_current_game->GetFrame(frameIndex);
 
 	std::unordered_map<uint8_t, Slippi::PlayerFrameData> source;
@@ -402,12 +404,12 @@ void CEXISlippi::prepareLocationData(u8* payload) {
 	uint8_t port = payload[4];
 	uint8_t isFollower = payload[5];
 
-	// Load the data from this frame into the read buffer
-	bool frameExists = m_current_game->DoesFrameExist(frameIndex);
-	if (!frameExists) {
-		return;
+	// Wait until frame exists in our data before reading it
+	while (!m_current_game->DoesFrameExist(frameIndex)) {
+		Common::SleepCurrentThread(500);
 	}
 
+	// Load the data from this frame into the read buffer
 	Slippi::FrameData* frame = m_current_game->GetFrame(frameIndex);
 
 	std::unordered_map<uint8_t, Slippi::PlayerFrameData> source;
@@ -517,7 +519,10 @@ void CEXISlippi::ImmWrite(u32 data, u32 size)
 			writeToFile(&m_payload[0], m_payload_loc, "close");
 			break;
 		case CMD_PREPARE_REPLAY:
-			loadFile("Slippi/CurrentGame.slp");
+			while (m_current_game == nullptr) {
+				loadFile("C:/Dolphin/FM-v5.9-Slippi-r10-Win/Slippi/Console/file1.bin");
+				Common::SleepCurrentThread(100);
+			}
 			prepareGameInfo();
 			break;
 		case CMD_READ_FRAME:
