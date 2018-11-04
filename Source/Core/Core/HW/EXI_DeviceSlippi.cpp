@@ -289,6 +289,15 @@ void CEXISlippi::loadFile(std::string path) {
 }
 
 void CEXISlippi::prepareGameInfo() {
+
+	/* CMD_PREPARE_REPLAY should be handled sometime when `StartMelee` is on the stack.
+	 * This function seems to take up a large chunk of time when running at normal speed.
+	 * Increasing the emulation speed here lets us make booting into replays much faster.
+	 */
+
+	SConfig::GetInstance().m_EmulationSpeed = 100.0f;
+
+
 	// Since we are prepping new data, clear any existing data
 	m_read_queue.clear();
 
@@ -360,6 +369,16 @@ void CEXISlippi::prepareFrameData(u8* payload) {
 	// Wait until frame exists in our data before reading it
 	while (!m_current_game->DoesFrameExist(frameIndex)) {
 		Common::SleepCurrentThread(500);
+	}
+
+	/* Reset our emulation speed to 1.0x when handling the first possible frame
+	 * (indicating that we've left `StartMelee`). I don't know if this clobbers
+	 * existing user settings in the General config menu or not.
+	 */
+
+	if (frameIndex == -123)
+	{
+		SConfig::GetInstance().m_EmulationSpeed = 1.0f;
 	}
 
 	// Load the data from this frame into the read buffer
