@@ -289,15 +289,6 @@ void CEXISlippi::loadFile(std::string path) {
 }
 
 void CEXISlippi::prepareGameInfo() {
-
-	/* CMD_PREPARE_REPLAY should be handled sometime when `StartMelee` is on the stack.
-	 * This function seems to take up a large chunk of time when running at normal speed.
-	 * Increasing the emulation speed here lets us make booting into replays much faster.
-	 */
-
-	SConfig::GetInstance().m_EmulationSpeed = 100.0f;
-
-
 	// Since we are prepping new data, clear any existing data
 	m_read_queue.clear();
 
@@ -308,6 +299,13 @@ void CEXISlippi::prepareGameInfo() {
 
 	// TODO: Wait for settings to exist
 	Slippi::GameSettings* settings = m_current_game->GetSettings();
+
+	/* CMD_PREPARE_REPLAY should be handled sometime when `StartMelee` is on the stack.
+	* This function seems to take up a large chunk of time when running at normal speed.
+	* Increasing the emulation speed here lets us make booting into replays much faster.
+	*/
+
+	SConfig::GetInstance().m_EmulationSpeed = 100.0f;
 
 	// Build a word containing the stage and the presence of the characters
 	u32 randomSeed = settings->randomSeed;
