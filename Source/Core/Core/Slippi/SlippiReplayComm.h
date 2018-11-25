@@ -11,5 +11,6 @@ public:
 	std::string getReplay();
 private:
 	std::string configFilePath;
+	std::string previousReplayLoaded;
 };
 
