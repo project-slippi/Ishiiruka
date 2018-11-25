@@ -265,6 +265,7 @@
     <ClCompile Include="PowerPC\PPCTables.cpp" />
     <ClCompile Include="PowerPC\Profiler.cpp" />
     <ClCompile Include="PowerPC\SignatureDB.cpp" />
+    <ClCompile Include="Slippi\SlippiReplayComm.cpp" />
     <ClCompile Include="State.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -456,6 +457,7 @@
     <ClInclude Include="PowerPC\PPCTables.h" />
     <ClInclude Include="PowerPC\Profiler.h" />
     <ClInclude Include="PowerPC\SignatureDB.h" />
+    <ClInclude Include="Slippi\SlippiReplayComm.h" />
     <ClInclude Include="State.h" />
   </ItemGroup>
   <ItemGroup>

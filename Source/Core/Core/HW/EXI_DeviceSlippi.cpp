@@ -43,10 +43,17 @@ std::vector<u8> int32ToVector(int32_t num) {
 
 CEXISlippi::CEXISlippi() {
 	INFO_LOG(EXPANSIONINTERFACE, "EXI SLIPPI Constructor called.");
+
+	replayComm = new SlippiReplayComm();
 }
 
 CEXISlippi::~CEXISlippi() {
-	closeFile();
+	u8 empty[1];
+
+	// Closes file gracefully to prevent file corruption when emulation
+	// suddenly stops. This would happen often on netplay when the opponent
+	// would close the emulation before the file successfully finished writing
+	writeToFile(&empty[0], 0, "close");
 }
 
 void CEXISlippi::configureCommands(u8* payload, u8 length) {
@@ -179,8 +186,6 @@ std::vector<u8> CEXISlippi::generateMetadata() {
 		7, 'd', 'o', 'l', 'p', 'h', 'i', 'n'
 	});
 
-	// TODO: Add player names
-
 	metadata.push_back('}');
 	return metadata;
 }
@@ -305,7 +310,7 @@ void CEXISlippi::prepareGameInfo() {
 	* Increasing the emulation speed here lets us make booting into replays much faster.
 	*/
 
-	SConfig::GetInstance().m_EmulationSpeed = 100.0f;
+	//SConfig::GetInstance().m_EmulationSpeed = 100.0f;
 
 	// Build a word containing the stage and the presence of the characters
 	u32 randomSeed = settings->randomSeed;
@@ -374,10 +379,10 @@ void CEXISlippi::prepareFrameData(u8* payload) {
 	 * existing user settings in the General config menu or not.
 	 */
 
-	if (frameIndex == -123)
-	{
-		SConfig::GetInstance().m_EmulationSpeed = 1.0f;
-	}
+	//if (frameIndex == -123)
+	//{
+	//	SConfig::GetInstance().m_EmulationSpeed = 1.0f;
+	//}
 
 	// Load the data from this frame into the read buffer
 	Slippi::FrameData* frame = m_current_game->GetFrame(frameIndex);
@@ -445,6 +450,18 @@ void CEXISlippi::prepareLocationData(u8* payload) {
 	m_read_queue.push_back(*(u32*)&data.facingDirection);
 }
 
+void CEXISlippi::prepareIsFileReady() {
+	m_read_queue.clear();
+
+	auto isNewReplayReady = replayComm->isReplayReady();
+
+	// If there is a new replay ready, tell the game we are ready
+	// to start. This will cause the game to then request the
+	// replay file to actually start the replay
+	u32 result = isNewReplayReady ? 1 : 0;
+	m_read_queue.push_back(result);
+}
+
 void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 {
 	u8 *memPtr = Memory::GetPointer(_uAddr);
@@ -486,6 +503,8 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 
 void CEXISlippi::ImmWrite(u32 data, u32 size)
 {
+	std::string replayFilePath;
+
 	//init();
 	INFO_LOG(EXPANSIONINTERFACE, "EXI SLIPPI ImmWrite: %08x, size: %d", data, size);
 
@@ -536,10 +555,8 @@ void CEXISlippi::ImmWrite(u32 data, u32 size)
 			writeToFile(&m_payload[0], m_payload_loc, "close");
 			break;
 		case CMD_PREPARE_REPLAY:
-			while (m_current_game == nullptr) {
-				loadFile("C:/Dolphin/FM-v5.9-Slippi-r10-Win/Slippi/Console/file1.bin");
-				Common::SleepCurrentThread(100);
-			}
+			replayFilePath = replayComm->getReplay();
+			loadFile(replayFilePath);
 			prepareGameInfo();
 			break;
 		case CMD_READ_FRAME:
@@ -547,6 +564,9 @@ void CEXISlippi::ImmWrite(u32 data, u32 size)
 			break;
 		case CMD_GET_LOCATION:
 			prepareLocationData(&m_payload[1]);
+			break;
+		case CMD_IS_FILE_READY:
+			prepareIsFileReady();
 			break;
 		default:
 			writeToFile(&m_payload[0], m_payload_loc, "");

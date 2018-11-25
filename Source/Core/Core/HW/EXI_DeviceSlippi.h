@@ -13,6 +13,7 @@
 #include "Common/CommonTypes.h"
 #include "Common/FileUtil.h"
 #include "Core/HW/EXI_Device.h"
+#include "Core/Slippi/SlippiReplayComm.h"
 
 // Acts
 class CEXISlippi : public IEXIDevice
@@ -36,7 +37,8 @@ private:
 		CMD_RECEIVE_GAME_END = 0x39,
 		CMD_PREPARE_REPLAY = 0x75,
 		CMD_READ_FRAME = 0x76,
-		CMD_GET_LOCATION = 0x77
+		CMD_GET_LOCATION = 0x77,
+		CMD_IS_FILE_READY = 0x88,
 	};
 
 	std::unordered_map<u8, u32> payloadSizes = {
@@ -49,8 +51,12 @@ private:
 		// have fixed sizes
 		{ CMD_PREPARE_REPLAY, 0 },
 		{ CMD_READ_FRAME, 6 },
-		{ CMD_GET_LOCATION, 6 }
+		{ CMD_GET_LOCATION, 6 },
+		{ CMD_IS_FILE_READY, 0 }
 	};
+
+	// Communication with Launcher
+	SlippiReplayComm* replayComm;
 
 	// .slp File creation stuff
 	u32 writtenByteCount = 0;
@@ -78,6 +84,7 @@ private:
 	void prepareGameInfo();
 	void prepareFrameData(u8* payload);
 	void prepareLocationData(u8* payload);
+	void prepareIsFileReady();
 
 	std::unordered_map<u8, std::string> getNetplayNames();
 

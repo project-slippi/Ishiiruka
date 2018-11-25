@@ -243,17 +243,30 @@ namespace Slippi {
 				return;
 			}
 
-			char buffer[2];
-			file->seekg(0);
-			file->read(buffer, 2);
-			file->seekg(0);
-			auto messageSizesSize = (int)buffer[1];
-			if (len < messageSizesSize) {
-				// If we haven't received the full payload sizes message, return
+			int rawDataPos = getRawDataPosition(file);
+			int rawDataLen = len - rawDataPos;
+			if (rawDataLen < 2) {
+				// If we don't have enough raw data yet to read the replay file, return
+				// Reset to begining so that the startPos condition will be hit again
+				file->seekg(0);
 				return;
 			}
 
-			asmEvents = getMessageSizes(file, 0);
+			startPos = rawDataPos;
+
+			char buffer[2];
+			file->seekg(startPos);
+			file->read(buffer, 2);
+			file->seekg(startPos);
+			auto messageSizesSize = (int)buffer[1];
+			if (rawDataLen < messageSizesSize) {
+				// If we haven't received the full payload sizes message, return
+				// Reset to begining so that the startPos condition will be hit again
+				file->seekg(0);
+				return;
+			}
+
+			asmEvents = getMessageSizes(file, rawDataPos);
 		}
 
 		// Read everything to the end
