@@ -111,7 +111,7 @@ namespace Slippi {
 		std::string path;
 		std::ofstream log;
 
+		bool processingComplete = false;
 		void processData();
-		static SlippiGame* processFile(uint8_t* fileContents, uint64_t fileSize);
 	};
 }
