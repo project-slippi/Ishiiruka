@@ -302,15 +302,15 @@ void CEXISlippi::prepareGameInfo() {
 		return;
 	}
 
-	// TODO: Wait for settings to exist
+	if (!m_current_game->AreSettingsLoaded()) {
+		m_read_queue.push_back(0);
+		return;
+	}
+
+	// Return success code
+	m_read_queue.push_back(1);
+
 	Slippi::GameSettings* settings = m_current_game->GetSettings();
-
-	/* CMD_PREPARE_REPLAY should be handled sometime when `StartMelee` is on the stack.
-	* This function seems to take up a large chunk of time when running at normal speed.
-	* Increasing the emulation speed here lets us make booting into replays much faster.
-	*/
-
-	//SConfig::GetInstance().m_EmulationSpeed = 100.0f;
 
 	// Build a word containing the stage and the presence of the characters
 	u32 randomSeed = settings->randomSeed;
@@ -365,24 +365,19 @@ void CEXISlippi::prepareFrameData(u8* payload) {
 		return;
 	}
 
+	// Parse input
 	int32_t frameIndex = payload[0] << 24 | payload[1] << 16 | payload[2] << 8 | payload[3];
 	uint8_t port = payload[4];
 	uint8_t isFollower = payload[5];
 
 	// Wait until frame exists in our data before reading it
-	while (!m_current_game->DoesFrameExist(frameIndex)) {
-		Common::SleepCurrentThread(500);
+	if (!m_current_game->DoesFrameExist(frameIndex)) {
+		m_read_queue.push_back(0);
+		return;
 	}
 
-	/* Reset our emulation speed to 1.0x when handling the first possible frame
-	 * (indicating that we've left `StartMelee`). I don't know if this clobbers
-	 * existing user settings in the General config menu or not.
-	 */
-
-	//if (frameIndex == -123)
-	//{
-	//	SConfig::GetInstance().m_EmulationSpeed = 1.0f;
-	//}
+	// Return success code
+	m_read_queue.push_back(1);
 
 	// Load the data from this frame into the read buffer
 	Slippi::FrameData* frame = m_current_game->GetFrame(frameIndex);
@@ -422,14 +417,19 @@ void CEXISlippi::prepareLocationData(u8* payload) {
 		return;
 	}
 
+	// Parse input
 	int32_t frameIndex = payload[0] << 24 | payload[1] << 16 | payload[2] << 8 | payload[3];
 	uint8_t port = payload[4];
 	uint8_t isFollower = payload[5];
 
 	// Wait until frame exists in our data before reading it
-	while (!m_current_game->DoesFrameExist(frameIndex)) {
-		Common::SleepCurrentThread(500);
+	if (!m_current_game->DoesFrameExist(frameIndex)) {
+		m_read_queue.push_back(0);
+		return;
 	}
+
+	// Return success code
+	m_read_queue.push_back(1);
 
 	// Load the data from this frame into the read buffer
 	Slippi::FrameData* frame = m_current_game->GetFrame(frameIndex);

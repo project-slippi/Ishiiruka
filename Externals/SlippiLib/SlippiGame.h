@@ -100,6 +100,7 @@ namespace Slippi {
 	{
 	public:
 		static SlippiGame* FromFile(std::string path);
+		bool AreSettingsLoaded();
 		bool DoesFrameExist(int32_t frame);
 		FrameData* GetFrame(int32_t frame);
 		GameSettings* GetSettings();
@@ -111,7 +112,8 @@ namespace Slippi {
 		std::string path;
 		std::ofstream log;
 
-		bool processingComplete = false;
+		bool areSettingsLoaded = false;
+		bool isProcessingComplete = false;
 		void processData();
 	};
 }

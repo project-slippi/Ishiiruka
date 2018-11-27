@@ -231,7 +231,7 @@ namespace Slippi {
 	}
 
 	void SlippiGame::processData() {
-		if (processingComplete) {
+		if (isProcessingComplete) {
 			// If we have finished processing this file, return
 			return;
 		}
@@ -306,6 +306,7 @@ namespace Slippi {
 			switch (command) {
 			case EVENT_GAME_INIT:
 				handleGameInit(game);
+				areSettingsLoaded = true;
 				break;
 			case EVENT_PRE_FRAME_UPDATE:
 				handlePreFrameUpdate(game);
@@ -316,7 +317,7 @@ namespace Slippi {
 			case EVENT_GAME_END:
 				handleGameEnd(game);
 				//log.close();
-				processingComplete = true;
+				isProcessingComplete = true;
 				break;
 			case 0x55:
 				// This is sort of a hack to prevent this functioning
@@ -324,7 +325,7 @@ namespace Slippi {
 				// which is the first character after the raw data in the
 				// ubjson file format
 				//log.close();
-				processingComplete = true;
+				isProcessingComplete = true;
 				file->seekg(-remainingLen, std::ios::cur);
 				return;
 			}
@@ -342,8 +343,6 @@ namespace Slippi {
 			return nullptr;
 		}
 
-		result->processingComplete = false;
-
 		//int fileLength = (int)file.tellg();
 		//int rawDataPos = getRawDataPosition(&file);
 		//uint32_t rawDataLength = getRawDataLength(&file, rawDataPos, fileLength);
@@ -356,6 +355,11 @@ namespace Slippi {
 		//SlippiGame* result = processFile((uint8_t*)&rawData[0], rawDataLength);
 
 		return result;
+	}
+
+	bool SlippiGame::AreSettingsLoaded() {
+		processData();
+		return areSettingsLoaded;
 	}
 
 	bool SlippiGame::DoesFrameExist(int32_t frame) {
