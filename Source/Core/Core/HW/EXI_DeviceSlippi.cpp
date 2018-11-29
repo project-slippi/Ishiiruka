@@ -371,13 +371,17 @@ void CEXISlippi::prepareFrameData(u8* payload) {
 	uint8_t isFollower = payload[5];
 
 	// Wait until frame exists in our data before reading it
+	u32 requestResultCode = 1;
 	if (!m_current_game->DoesFrameExist(frameIndex)) {
-		m_read_queue.push_back(0);
+		// If processing is complete, the game has terminated early. Tell our playback
+		// to end the game as well
+		requestResultCode = m_current_game->IsProcessingComplete() ? 2 : 0;
+		m_read_queue.push_back(requestResultCode);
 		return;
 	}
 
 	// Return success code
-	m_read_queue.push_back(1);
+	m_read_queue.push_back(requestResultCode);
 
 	// Load the data from this frame into the read buffer
 	Slippi::FrameData* frame = m_current_game->GetFrame(frameIndex);
@@ -423,13 +427,17 @@ void CEXISlippi::prepareLocationData(u8* payload) {
 	uint8_t isFollower = payload[5];
 
 	// Wait until frame exists in our data before reading it
+	u32 requestResultCode = 1;
 	if (!m_current_game->DoesFrameExist(frameIndex)) {
-		m_read_queue.push_back(0);
+		// If processing is complete, the game has terminated early. Tell our playback
+		// to end the game as well
+		requestResultCode = m_current_game->IsProcessingComplete() ? 2 : 0;
+		m_read_queue.push_back(requestResultCode);
 		return;
 	}
 
 	// Return success code
-	m_read_queue.push_back(1);
+	m_read_queue.push_back(requestResultCode);
 
 	// Load the data from this frame into the read buffer
 	Slippi::FrameData* frame = m_current_game->GetFrame(frameIndex);
@@ -454,12 +462,23 @@ void CEXISlippi::prepareIsFileReady() {
 	m_read_queue.clear();
 
 	auto isNewReplayReady = replayComm->isReplayReady();
+	if (!isNewReplayReady) {
+		m_read_queue.push_back(0);
+		return;
+	}
 
-	// If there is a new replay ready, tell the game we are ready
-	// to start. This will cause the game to then request the
-	// replay file to actually start the replay
-	u32 result = isNewReplayReady ? 1 : 0;
-	m_read_queue.push_back(result);
+	auto replayFilePath = replayComm->getReplay();
+	loadFile(replayFilePath);
+
+	if (!m_current_game) {
+		// Do not start if replay file doesn't exist
+		// TODO: maybe display error message?
+		m_read_queue.push_back(0);
+		return;
+	}
+
+	// Start the playback!
+	m_read_queue.push_back(1);
 }
 
 void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
@@ -503,8 +522,6 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 
 void CEXISlippi::ImmWrite(u32 data, u32 size)
 {
-	std::string replayFilePath;
-
 	//init();
 	INFO_LOG(EXPANSIONINTERFACE, "EXI SLIPPI ImmWrite: %08x, size: %d", data, size);
 
@@ -555,8 +572,6 @@ void CEXISlippi::ImmWrite(u32 data, u32 size)
 			writeToFile(&m_payload[0], m_payload_loc, "close");
 			break;
 		case CMD_PREPARE_REPLAY:
-			replayFilePath = replayComm->getReplay();
-			loadFile(replayFilePath);
 			prepareGameInfo();
 			break;
 		case CMD_READ_FRAME:

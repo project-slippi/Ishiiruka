@@ -357,6 +357,10 @@ namespace Slippi {
 		return result;
 	}
 
+	bool SlippiGame::IsProcessingComplete() {
+		return isProcessingComplete;
+	}
+
 	bool SlippiGame::AreSettingsLoaded() {
 		processData();
 		return areSettingsLoaded;

@@ -105,6 +105,7 @@ namespace Slippi {
 		FrameData* GetFrame(int32_t frame);
 		GameSettings* GetSettings();
 		bool DoesPlayerExist(int8_t port);
+		bool IsProcessingComplete();
 	private:
 		Game* game;
 		std::ifstream* file;
