@@ -74,6 +74,8 @@ private:
 	void closeFile();
 	std::string generateFileName();
 
+	//std::ofstream log;
+
 	File::IOFile m_file;
 	u32 m_payload_loc = 0;
 	u8 m_payload_type = CMD_UNKNOWN;

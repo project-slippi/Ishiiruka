@@ -397,6 +397,8 @@ void CEXISlippi::prepareFrameData(u8* payload) {
 	// Get data for this player
 	Slippi::PlayerFrameData data = source[port];
 
+	//log << frameIndex << "\t" << port << "\t" << data.locationX << "\t" << data.locationY << "\t" << data.animation << "\n";
+
 	// Add all of the inputs in order
 	m_read_queue.push_back(*(u32*)&data.randomSeed);
 	m_read_queue.push_back(*(u32*)&data.joystickX);
@@ -572,6 +574,7 @@ void CEXISlippi::ImmWrite(u32 data, u32 size)
 			writeToFile(&m_payload[0], m_payload_loc, "close");
 			break;
 		case CMD_PREPARE_REPLAY:
+			//log.open("log.txt");
 			prepareGameInfo();
 			break;
 		case CMD_READ_FRAME:
