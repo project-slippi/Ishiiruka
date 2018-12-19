@@ -51,7 +51,7 @@ private:
 		// The following are all commands used to play back a replay and
 		// have fixed sizes
 		{ CMD_PREPARE_REPLAY, 0 },
-		{ CMD_READ_FRAME, 6 },
+		{ CMD_READ_FRAME, 4 },
 		{ CMD_GET_LOCATION, 6 },
 		{ CMD_IS_FILE_READY, 0 }
 	};
