@@ -188,6 +188,7 @@ set(SRCS	ActionReplay.cpp
 			PowerPC/JitILCommon/JitILBase_Paired.cpp
 			PowerPC/JitILCommon/JitILBase_FloatingPoint.cpp
 			PowerPC/JitILCommon/JitILBase_Integer.cpp
+			Slippi/SlippiReplayComm.cpp
 			)
 
 if(_M_X86)

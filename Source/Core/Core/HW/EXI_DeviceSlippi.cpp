@@ -266,6 +266,8 @@ void CEXISlippi::createNewFile() {
 	File::CreateDir("Slippi");
 	std::string filepath = generateFileName();
 
+	INFO_LOG(EXPANSIONINTERFACE, "EXI_DeviceSlippi.cpp: Creating new replay file %s", filepath);
+
 	#ifdef _WIN32
 	m_file = File::IOFile(filepath, "wb", _SH_DENYWR);
 	#else
@@ -295,6 +297,7 @@ void CEXISlippi::closeFile() {
 }
 
 void CEXISlippi::loadFile(std::string path) {
+	// This doesn't like newline characters in the path, just FYI
 	m_current_game = Slippi::SlippiGame::FromFile((std::string)path);
 }
 
@@ -487,15 +490,18 @@ void CEXISlippi::prepareIsFileReady() {
 	}
 
 	auto replayFilePath = replayComm->getReplay();
+	INFO_LOG(EXPANSIONINTERFACE, "EXI_DeviceSlippi.cpp: Attempting to load replay file %s", replayFilePath.c_str());
 	loadFile(replayFilePath);
 
 	if (!m_current_game) {
 		// Do not start if replay file doesn't exist
 		// TODO: maybe display error message?
+		INFO_LOG(EXPANSIONINTERFACE, "EXI_DeviceSlippi.cpp: Replay file does not exist?", replayFilePath.c_str());
 		m_read_queue.push_back(0);
 		return;
 	}
 
+	INFO_LOG(EXPANSIONINTERFACE, "EXI_DeviceSlippi.cpp: Replay file loaded successfully!?", replayFilePath.c_str());
 	// Start the playback!
 	m_read_queue.push_back(1);
 }
