@@ -92,7 +92,7 @@ private:
 
 	std::unordered_map<u8, std::string> getNetplayNames();
 
-	std::deque<u8> m_read_queue;
+	std::vector<u8> m_read_queue;
 	Slippi::SlippiGame* m_current_game = nullptr;
 
 protected:

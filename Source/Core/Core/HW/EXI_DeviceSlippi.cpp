@@ -41,7 +41,7 @@ std::vector<u8> int32ToVector(int32_t num) {
 	return std::vector<u8>({ byte0, byte1, byte2, byte3 });
 }
 
-void appendWordToBuffer(std::deque<u8>* buf, u32 word) {
+void appendWordToBuffer(std::vector<u8>* buf, u32 word) {
 	auto wordVector = uint32ToVector(word);
 	buf->insert(buf->end(), wordVector.begin(), wordVector.end());
 }
@@ -643,7 +643,7 @@ u32 CEXISlippi::ImmRead(u32 size)
 	}
 
 	u32 value = m_read_queue.front();
-	m_read_queue.pop_front();
+	//m_read_queue.pop_front();
 
 	INFO_LOG(EXPANSIONINTERFACE, "EXI SLIPPI ImmRead %08x", value);
 
