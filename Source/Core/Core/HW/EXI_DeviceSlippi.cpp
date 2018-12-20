@@ -535,7 +535,10 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 			prepareGameInfo();
 			break;
 		case CMD_READ_FRAME:
-			prepareFrameData(&m_payload[1]);
+			prepareFrameData(&memPtr[1]);
+			break;
+		case CMD_IS_FILE_READY:
+			prepareIsFileReady();
 			break;
 		default:
 			writeToFile(&memPtr[bufLoc], payloadLen + 1, "");
