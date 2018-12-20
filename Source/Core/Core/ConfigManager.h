@@ -225,6 +225,7 @@ struct SConfig : NonCopyable
 	EBootType m_BootType;
 
 	std::string m_strVideoBackend;
+	std::string m_strSlippiInput;
 	std::string m_strGPUDeterminismMode;
 
 	// set based on the string version

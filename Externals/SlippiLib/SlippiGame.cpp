@@ -339,7 +339,7 @@ namespace Slippi {
 		result->path = path;
 		result->file = new std::ifstream(path, std::ios::in | std::ios::binary);
 		//result->log.open("log.txt");
-		while (!result->file->is_open()) {
+		if (!result->file->is_open()) {
 			return nullptr;
 		}
 
