@@ -50,6 +50,9 @@ CEXISlippi::CEXISlippi() {
 	INFO_LOG(EXPANSIONINTERFACE, "EXI SLIPPI Constructor called.");
 
 	replayComm = new SlippiReplayComm();
+
+	// Loggers will check 5 bytes, make sure we own that memory
+	m_read_queue.reserve(5);
 }
 
 CEXISlippi::~CEXISlippi() {
@@ -525,7 +528,8 @@ void CEXISlippi::DMARead(u32 addr, u32 size)
 		return;
 	}
 
-	INFO_LOG(EXPANSIONINTERFACE, "EXI SLIPPI DMARead: %08x %x", addr, size);
+	INFO_LOG(EXPANSIONINTERFACE, "EXI SLIPPI DMARead: addr: 0x%08x size: %d, startResp: [%02x %02x %02x %02x %02x]",
+		addr, size, m_read_queue[0], m_read_queue[1], m_read_queue[2], m_read_queue[3], m_read_queue[4]);
 
 	// Copy buffer data to memory
 	Memory::CopyToEmu(addr, &m_read_queue[0], size);
