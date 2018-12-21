@@ -24,8 +24,6 @@ public:
 
 	void DMAWrite(u32 _uAddr, u32 _uSize) override;
 	void DMARead(u32 addr, u32 size) override;
-	void ImmWrite(u32 data, u32 size) override;
-	u32 ImmRead(u32 size) override;
 
 	bool IsPresent() const override;
 
@@ -87,7 +85,6 @@ private:
 	void prepareGameInfo();
 	void prepareCharacterFrameData(int32_t frameIndex, u8 port, u8 isFollower);
 	void prepareFrameData(u8* payload);
-	void prepareLocationData(u8* payload);
 	void prepareIsFileReady();
 
 	std::unordered_map<u8, std::string> getNetplayNames();
