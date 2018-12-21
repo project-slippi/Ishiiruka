@@ -230,60 +230,148 @@ namespace Slippi {
 		return messageSizes;
 	}
 
-	SlippiGame* SlippiGame::processFile(uint8_t* rawData, uint64_t rawDataLength) {
-		SlippiGame* result = new SlippiGame();
-		result->game = new Game();
-
-		// Iterate through the data and process frames
-		for (int i = 0; i < rawDataLength; i++) {
-			int code = rawData[i];
-			int msgLength = asmEvents[code];
-			if (!msgLength) {
-				return nullptr;
-			}
-
-			data = &rawData[i + 1];
-			switch (code) {
-			case EVENT_GAME_INIT:
-				handleGameInit(result->game);
-				break;
-			case EVENT_PRE_FRAME_UPDATE:
-				handlePreFrameUpdate(result->game);
-				break;
-			case EVENT_POST_FRAME_UPDATE:
-				handlePostFrameUpdate(result->game);
-				break;
-			case EVENT_GAME_END:
-				handleGameEnd(result->game);
-				break;
-			}
-			i += msgLength;
+	void SlippiGame::processData() {
+		if (isProcessingComplete) {
+			// If we have finished processing this file, return
+			return;
 		}
 
-		return result;
+		// This function will process as much data as possible
+		int startPos = (int)file->tellg();
+		//file = new std::ifstream(path, std::ios::in | std::ios::binary);
+		file->seekg(startPos);
+		if (startPos == 0) {
+			file->seekg(0, std::ios::end);
+			int len = (int)file->tellg();
+			if (len < 2) {
+				// If we can't read message sizes payload size yet, return
+				return;
+			}
+
+			int rawDataPos = getRawDataPosition(file);
+			int rawDataLen = len - rawDataPos;
+			if (rawDataLen < 2) {
+				// If we don't have enough raw data yet to read the replay file, return
+				// Reset to begining so that the startPos condition will be hit again
+				file->seekg(0);
+				return;
+			}
+
+			startPos = rawDataPos;
+
+			char buffer[2];
+			file->seekg(startPos);
+			file->read(buffer, 2);
+			file->seekg(startPos);
+			auto messageSizesSize = (int)buffer[1];
+			if (rawDataLen < messageSizesSize) {
+				// If we haven't received the full payload sizes message, return
+				// Reset to begining so that the startPos condition will be hit again
+				file->seekg(0);
+				return;
+			}
+
+			asmEvents = getMessageSizes(file, rawDataPos);
+		}
+
+		// Read everything to the end
+		file->seekg(0, std::ios::end);
+		int endPos = (int)file->tellg();
+		int sizeToRead = endPos - startPos;
+		file->seekg(startPos);
+		//log << "Size to read: " << sizeToRead << "\n";
+		//log << "Start Pos: " << startPos << "\n";
+		//log << "End Pos: " << endPos << "\n\n";
+		if (sizeToRead <= 0) {
+			return;
+		}
+
+		std::vector<char> newData(sizeToRead);
+		file->read(&newData[0], sizeToRead);
+
+		int newDataPos = 0;
+		while (newDataPos < sizeToRead) {
+			auto command = newData[newDataPos];
+			auto payloadSize = asmEvents[command];
+			//log << "Command: " << command << " | Payload Size: " << payloadSize << "\n";
+			auto remainingLen = sizeToRead - newDataPos;
+			if (remainingLen < ((int)payloadSize + 1)) {
+				// Here we don't have enough data to read the whole payload
+				// Will be processed after getting more data (hopefully)
+				file->seekg(-remainingLen, std::ios::cur);
+				return;
+			}
+
+			data = (uint8_t*)&newData[newDataPos + 1];
+			switch (command) {
+			case EVENT_GAME_INIT:
+				handleGameInit(game);
+				areSettingsLoaded = true;
+				break;
+			case EVENT_PRE_FRAME_UPDATE:
+				handlePreFrameUpdate(game);
+				break;
+			case EVENT_POST_FRAME_UPDATE:
+				handlePostFrameUpdate(game);
+				break;
+			case EVENT_GAME_END:
+				handleGameEnd(game);
+				//log.close();
+				isProcessingComplete = true;
+				break;
+			case 0x55:
+				// This is sort of a hack to prevent this functioning
+				// from processing the metadata as raw data. 0x55 is 'U'
+				// which is the first character after the raw data in the
+				// ubjson file format
+				//log.close();
+				isProcessingComplete = true;
+				file->seekg(-remainingLen, std::ios::cur);
+				return;
+			}
+			newDataPos += payloadSize + 1;
+		}
 	}
 
 	SlippiGame* SlippiGame::FromFile(std::string path) {
-		std::ifstream file(path, std::ios::in|std::ios::binary|std::ios::ate);
-		if (!file.is_open()) {
+		SlippiGame* result = new SlippiGame();
+		result->game = new Game();
+		result->path = path;
+		result->file = new std::ifstream(path, std::ios::in | std::ios::binary);
+		//result->log.open("log.txt");
+		if (!result->file->is_open()) {
 			return nullptr;
 		}
 
-		int fileLength = (int)file.tellg();
-		int rawDataPos = getRawDataPosition(&file);
-		uint32_t rawDataLength = getRawDataLength(&file, rawDataPos, fileLength);
-		asmEvents = getMessageSizes(&file, rawDataPos);
+		//int fileLength = (int)file.tellg();
+		//int rawDataPos = getRawDataPosition(&file);
+		//uint32_t rawDataLength = getRawDataLength(&file, rawDataPos, fileLength);
+		//asmEvents = getMessageSizes(&file, rawDataPos);
 
-		std::vector<char> rawData(rawDataLength);
-		file.seekg(rawDataPos, std::ios::beg);
-		file.read(&rawData[0], rawDataLength);
+		//std::vector<char> rawData(rawDataLength);
+		//file.seekg(rawDataPos, std::ios::beg);
+		//file.read(&rawData[0], rawDataLength);
 
-		SlippiGame* result = processFile((uint8_t*)&rawData[0], rawDataLength);
+		//SlippiGame* result = processFile((uint8_t*)&rawData[0], rawDataLength);
 
 		return result;
 	}
 
+	bool SlippiGame::IsProcessingComplete() {
+		return isProcessingComplete;
+	}
+
+	bool SlippiGame::AreSettingsLoaded() {
+		processData();
+		return areSettingsLoaded;
+	}
+
 	bool SlippiGame::DoesFrameExist(int32_t frame) {
+		// TODO: This function should return multiple states, one should be
+		// TODO: GAME_END which would be returned if processing is complete
+		// TODO: and the requested frame does not exist. This can be used to
+		// TODO: tell the playback engine to terminate the current game
+		processData();
 		return (bool)game->frameData.count(frame);
 	}
 
@@ -293,6 +381,7 @@ namespace Slippi {
 	}
 
 	GameSettings* SlippiGame::GetSettings() {
+		processData();
 		return &game->settings;
 	}
 

@@ -19,6 +19,7 @@
 #include "Common/Logging/Log.h"
 #include "Common/FileUtil.h"
 #include "Common/StringUtil.h"
+#include "Common/Thread.h"
 #include "Core/HW/Memmap.h"
 #include "Core/NetPlayClient.h"
 
@@ -40,12 +41,24 @@ std::vector<u8> int32ToVector(int32_t num) {
 	return std::vector<u8>({ byte0, byte1, byte2, byte3 });
 }
 
+void appendWordToBuffer(std::vector<u8>* buf, u32 word) {
+	auto wordVector = uint32ToVector(word);
+	buf->insert(buf->end(), wordVector.begin(), wordVector.end());
+}
+
 CEXISlippi::CEXISlippi() {
 	INFO_LOG(EXPANSIONINTERFACE, "EXI SLIPPI Constructor called.");
+
+	replayComm = new SlippiReplayComm();
 }
 
 CEXISlippi::~CEXISlippi() {
-	closeFile();
+	u8 empty[1];
+
+	// Closes file gracefully to prevent file corruption when emulation
+	// suddenly stops. This would happen often on netplay when the opponent
+	// would close the emulation before the file successfully finished writing
+	writeToFile(&empty[0], 0, "close");
 }
 
 void CEXISlippi::configureCommands(u8* payload, u8 length) {
@@ -178,8 +191,6 @@ std::vector<u8> CEXISlippi::generateMetadata() {
 		7, 'd', 'o', 'l', 'p', 'h', 'i', 'n'
 	});
 
-	// TODO: Add player names
-
 	metadata.push_back('}');
 	return metadata;
 }
@@ -255,6 +266,8 @@ void CEXISlippi::createNewFile() {
 	File::CreateDir("Slippi");
 	std::string filepath = generateFileName();
 
+	INFO_LOG(EXPANSIONINTERFACE, "EXI_DeviceSlippi.cpp: Creating new replay file %s", filepath);
+
 	#ifdef _WIN32
 	m_file = File::IOFile(filepath, "wb", _SH_DENYWR);
 	#else
@@ -284,6 +297,7 @@ void CEXISlippi::closeFile() {
 }
 
 void CEXISlippi::loadFile(std::string path) {
+	// This doesn't like newline characters in the path, just FYI
 	m_current_game = Slippi::SlippiGame::FromFile((std::string)path);
 }
 
@@ -296,11 +310,19 @@ void CEXISlippi::prepareGameInfo() {
 		return;
 	}
 
+	if (!m_current_game->AreSettingsLoaded()) {
+		m_read_queue.push_back(0);
+		return;
+	}
+
+	// Return success code
+	m_read_queue.push_back(1);
+
 	Slippi::GameSettings* settings = m_current_game->GetSettings();
 
 	// Build a word containing the stage and the presence of the characters
 	u32 randomSeed = settings->randomSeed;
-	m_read_queue.push_back(randomSeed);
+	appendWordToBuffer(&m_read_queue, randomSeed);
 
 	// This is kinda dumb but we need to handle the case where a player transforms
 	// into sheik/zelda immediately. This info is not stored in the game info header
@@ -332,14 +354,51 @@ void CEXISlippi::prepareGameInfo() {
 
 	// Write entire header to game
 	for (int i = 0; i < Slippi::GAME_INFO_HEADER_SIZE; i++) {
-		m_read_queue.push_back(gameInfoHeader[i]);
+		appendWordToBuffer(&m_read_queue, gameInfoHeader[i]);
 	}
 
 	// Write UCF toggles
 	std::array<uint32_t, Slippi::UCF_TOGGLE_SIZE> ucfToggles = settings->ucfToggles;
 	for (int i = 0; i < Slippi::UCF_TOGGLE_SIZE; i++) {
-		m_read_queue.push_back(ucfToggles[i]);
+		appendWordToBuffer(&m_read_queue, ucfToggles[i]);
 	}
+}
+
+void CEXISlippi::prepareCharacterFrameData(int32_t frameIndex, u8 port, u8 isFollower) {
+	// Load the data from this frame into the read buffer
+	Slippi::FrameData* frame = m_current_game->GetFrame(frameIndex);
+
+	std::unordered_map<uint8_t, Slippi::PlayerFrameData> source;
+	source = isFollower ? frame->followers : frame->players;
+
+	// This must be updated if new data is added
+	int characterDataLen = 45;
+
+	// Check if player exists
+	if (!source.count(port)) {
+		// If player does not exist, insert blank section
+		m_read_queue.insert(m_read_queue.end(), characterDataLen, 0);
+		return;
+	}
+
+	// Get data for this player
+	Slippi::PlayerFrameData data = source[port];
+
+	//log << frameIndex << "\t" << port << "\t" << data.locationX << "\t" << data.locationY << "\t" << data.animation << "\n";
+
+	// Add all of the inputs in order
+	appendWordToBuffer(&m_read_queue, data.randomSeed);
+	appendWordToBuffer(&m_read_queue, *(u32*)&data.joystickX);
+	appendWordToBuffer(&m_read_queue, *(u32*)&data.joystickY);
+	appendWordToBuffer(&m_read_queue, *(u32*)&data.cstickX);
+	appendWordToBuffer(&m_read_queue, *(u32*)&data.cstickY);
+	appendWordToBuffer(&m_read_queue, *(u32*)&data.trigger);
+	appendWordToBuffer(&m_read_queue, data.buttons);
+	appendWordToBuffer(&m_read_queue, *(u32*)&data.locationX);
+	appendWordToBuffer(&m_read_queue, *(u32*)&data.locationY);
+	appendWordToBuffer(&m_read_queue, *(u32*)&data.facingDirection);
+	appendWordToBuffer(&m_read_queue, (u32)data.animation);
+	m_read_queue.push_back(data.joystickXRaw);
 }
 
 void CEXISlippi::prepareFrameData(u8* payload) {
@@ -351,42 +410,28 @@ void CEXISlippi::prepareFrameData(u8* payload) {
 		return;
 	}
 
+	// Parse input
 	int32_t frameIndex = payload[0] << 24 | payload[1] << 16 | payload[2] << 8 | payload[3];
-	uint8_t port = payload[4];
-	uint8_t isFollower = payload[5];
 
-	// Load the data from this frame into the read buffer
-	bool frameExists = m_current_game->DoesFrameExist(frameIndex);
-	if (!frameExists) {
+	// TODO: Ensure that the entire frame has been received
+	// Wait until frame exists in our data before reading it
+	u32 requestResultCode = 1;
+	if (!m_current_game->DoesFrameExist(frameIndex)) {
+		// If processing is complete, the game has terminated early. Tell our playback
+		// to end the game as well
+		requestResultCode = m_current_game->IsProcessingComplete() ? 2 : 0;
+		m_read_queue.push_back(requestResultCode);
 		return;
 	}
 
-	Slippi::FrameData* frame = m_current_game->GetFrame(frameIndex);
+	// Return success code
+	m_read_queue.push_back(requestResultCode);
 
-	std::unordered_map<uint8_t, Slippi::PlayerFrameData> source;
-	source = isFollower ? frame->followers : frame->players;
-
-	// Check if player exists
-	if (!source.count(port)) {
-		return;
+	// Add frame data for every character
+	for (u8 port = 0; port < 4; port++) {
+		prepareCharacterFrameData(frameIndex, port, 0);
+		prepareCharacterFrameData(frameIndex, port, 1);
 	}
-
-	// Get data for this player
-	Slippi::PlayerFrameData data = source[port];
-
-	// Add all of the inputs in order
-	m_read_queue.push_back(*(u32*)&data.randomSeed);
-	m_read_queue.push_back(*(u32*)&data.joystickX);
-	m_read_queue.push_back(*(u32*)&data.joystickY);
-	m_read_queue.push_back(*(u32*)&data.cstickX);
-	m_read_queue.push_back(*(u32*)&data.cstickY);
-	m_read_queue.push_back(*(u32*)&data.trigger);
-	m_read_queue.push_back(data.buttons);
-	m_read_queue.push_back(*(u32*)&data.locationX);
-	m_read_queue.push_back(*(u32*)&data.locationY);
-	m_read_queue.push_back(*(u32*)&data.facingDirection);
-	m_read_queue.push_back(data.animation);
-	m_read_queue.push_back((u32)data.joystickXRaw);
 }
 
 void CEXISlippi::prepareLocationData(u8* payload) {
@@ -398,16 +443,25 @@ void CEXISlippi::prepareLocationData(u8* payload) {
 		return;
 	}
 
+	// Parse input
 	int32_t frameIndex = payload[0] << 24 | payload[1] << 16 | payload[2] << 8 | payload[3];
 	uint8_t port = payload[4];
 	uint8_t isFollower = payload[5];
 
-	// Load the data from this frame into the read buffer
-	bool frameExists = m_current_game->DoesFrameExist(frameIndex);
-	if (!frameExists) {
+	// Wait until frame exists in our data before reading it
+	u32 requestResultCode = 1;
+	if (!m_current_game->DoesFrameExist(frameIndex)) {
+		// If processing is complete, the game has terminated early. Tell our playback
+		// to end the game as well
+		requestResultCode = m_current_game->IsProcessingComplete() ? 2 : 0;
+		m_read_queue.push_back(requestResultCode);
 		return;
 	}
 
+	// Return success code
+	m_read_queue.push_back(requestResultCode);
+
+	// Load the data from this frame into the read buffer
 	Slippi::FrameData* frame = m_current_game->GetFrame(frameIndex);
 
 	std::unordered_map<uint8_t, Slippi::PlayerFrameData> source;
@@ -424,6 +478,32 @@ void CEXISlippi::prepareLocationData(u8* payload) {
 	m_read_queue.push_back(*(u32*)&data.locationX);
 	m_read_queue.push_back(*(u32*)&data.locationY);
 	m_read_queue.push_back(*(u32*)&data.facingDirection);
+}
+
+void CEXISlippi::prepareIsFileReady() {
+	m_read_queue.clear();
+
+	auto isNewReplayReady = replayComm->isReplayReady();
+	if (!isNewReplayReady) {
+		m_read_queue.push_back(0);
+		return;
+	}
+
+	auto replayFilePath = replayComm->getReplay();
+	INFO_LOG(EXPANSIONINTERFACE, "EXI_DeviceSlippi.cpp: Attempting to load replay file %s", replayFilePath.c_str());
+	loadFile(replayFilePath);
+
+	if (!m_current_game) {
+		// Do not start if replay file doesn't exist
+		// TODO: maybe display error message?
+		INFO_LOG(EXPANSIONINTERFACE, "EXI_DeviceSlippi.cpp: Replay file does not exist?", replayFilePath.c_str());
+		m_read_queue.push_back(0);
+		return;
+	}
+
+	INFO_LOG(EXPANSIONINTERFACE, "EXI_DeviceSlippi.cpp: Replay file loaded successfully!?", replayFilePath.c_str());
+	// Start the playback!
+	m_read_queue.push_back(1);
 }
 
 void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
@@ -456,6 +536,16 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 		case CMD_RECEIVE_GAME_END:
 			writeToFile(&memPtr[bufLoc], payloadLen + 1, "close");
 			break;
+		case CMD_PREPARE_REPLAY:
+			//log.open("log.txt");
+			prepareGameInfo();
+			break;
+		case CMD_READ_FRAME:
+			prepareFrameData(&memPtr[1]);
+			break;
+		case CMD_IS_FILE_READY:
+			prepareIsFileReady();
+			break;
 		default:
 			writeToFile(&memPtr[bufLoc], payloadLen + 1, "");
 			break;
@@ -463,6 +553,19 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 
 		bufLoc += payloadLen + 1;
 	}
+}
+
+void CEXISlippi::DMARead(u32 addr, u32 size)
+{
+	if (m_read_queue.empty()) {
+		INFO_LOG(EXPANSIONINTERFACE, "EXI SLIPPI DMARead: Empty");
+		return;
+	}
+
+	INFO_LOG(EXPANSIONINTERFACE, "EXI SLIPPI DMARead: %08x %x", addr, size);
+
+	// Copy buffer data to memory
+	Memory::CopyToEmu(addr, &m_read_queue[0], size);
 }
 
 void CEXISlippi::ImmWrite(u32 data, u32 size)
@@ -517,7 +620,7 @@ void CEXISlippi::ImmWrite(u32 data, u32 size)
 			writeToFile(&m_payload[0], m_payload_loc, "close");
 			break;
 		case CMD_PREPARE_REPLAY:
-			loadFile("Slippi/CurrentGame.slp");
+			//log.open("log.txt");
 			prepareGameInfo();
 			break;
 		case CMD_READ_FRAME:
@@ -525,6 +628,9 @@ void CEXISlippi::ImmWrite(u32 data, u32 size)
 			break;
 		case CMD_GET_LOCATION:
 			prepareLocationData(&m_payload[1]);
+			break;
+		case CMD_IS_FILE_READY:
+			prepareIsFileReady();
 			break;
 		default:
 			writeToFile(&m_payload[0], m_payload_loc, "");
@@ -546,7 +652,7 @@ u32 CEXISlippi::ImmRead(u32 size)
 	}
 
 	u32 value = m_read_queue.front();
-	m_read_queue.pop_front();
+	//m_read_queue.pop_front();
 
 	INFO_LOG(EXPANSIONINTERFACE, "EXI SLIPPI ImmRead %08x", value);
 

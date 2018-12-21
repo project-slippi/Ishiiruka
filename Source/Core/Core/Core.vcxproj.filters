@@ -139,6 +139,9 @@
     <Filter Include="PowerPC\Jit64Common">
       <UniqueIdentifier>{81956f71-d9fe-454f-96a6-855195d611c4}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Slippi">
+      <UniqueIdentifier>{09518b35-f1cc-428f-b2f7-6210874489a9}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="BootManager.cpp" />
@@ -399,7 +402,7 @@
     <ClCompile Include="HW\EXI_DeviceMic.cpp">
       <Filter>HW %28Flipper/Hollywood%29\EXI - Expansion Interface</Filter>
     </ClCompile>
-	<ClCompile Include="HW\EXI_DeviceSlippi.cpp">
+    <ClCompile Include="HW\EXI_DeviceSlippi.cpp">
       <Filter>HW %28Flipper/Hollywood%29\EXI - Expansion Interface</Filter>
     </ClCompile>
     <ClCompile Include="HW\BBA-TAP\TAP_Win32.cpp">
@@ -754,6 +757,9 @@
     <ClCompile Include="IPC_HLE\WII_IPC_HLE_Device_usb_ven.cpp">
       <Filter>IPC HLE %28IOS/Starlet%29\USB</Filter>
     </ClCompile>
+    <ClCompile Include="Slippi\SlippiReplayComm.cpp">
+      <Filter>Slippi</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="BootManager.h" />
@@ -965,7 +971,7 @@
     <ClInclude Include="HW\EXI_DeviceMic.h">
       <Filter>HW %28Flipper/Hollywood%29\EXI - Expansion Interface</Filter>
     </ClInclude>
-	<ClInclude Include="HW\EXI_DeviceSlippi.h">
+    <ClInclude Include="HW\EXI_DeviceSlippi.h">
       <Filter>HW %28Flipper/Hollywood%29\EXI - Expansion Interface</Filter>
     </ClInclude>
     <ClInclude Include="HW\BBA-TAP\TAP_Win32.h">
@@ -1289,6 +1295,9 @@
       <Filter>IPC HLE %28IOS/Starlet%29\USB</Filter>
     </ClInclude>
     <ClInclude Include="DSP\Jit\DSPEmitter.h" />
+    <ClInclude Include="Slippi\SlippiReplayComm.h">
+      <Filter>Slippi</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Text Include="CMakeLists.txt" />

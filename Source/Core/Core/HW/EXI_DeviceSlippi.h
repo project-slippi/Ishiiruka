@@ -13,6 +13,7 @@
 #include "Common/CommonTypes.h"
 #include "Common/FileUtil.h"
 #include "Core/HW/EXI_Device.h"
+#include "Core/Slippi/SlippiReplayComm.h"
 
 // Acts
 class CEXISlippi : public IEXIDevice
@@ -22,6 +23,7 @@ public:
   virtual ~CEXISlippi();
 
 	void DMAWrite(u32 _uAddr, u32 _uSize) override;
+	void DMARead(u32 addr, u32 size) override;
 	void ImmWrite(u32 data, u32 size) override;
 	u32 ImmRead(u32 size) override;
 
@@ -36,7 +38,8 @@ private:
 		CMD_RECEIVE_GAME_END = 0x39,
 		CMD_PREPARE_REPLAY = 0x75,
 		CMD_READ_FRAME = 0x76,
-		CMD_GET_LOCATION = 0x77
+		CMD_GET_LOCATION = 0x77,
+		CMD_IS_FILE_READY = 0x88,
 	};
 
 	std::unordered_map<u8, u32> payloadSizes = {
@@ -48,9 +51,13 @@ private:
 		// The following are all commands used to play back a replay and
 		// have fixed sizes
 		{ CMD_PREPARE_REPLAY, 0 },
-		{ CMD_READ_FRAME, 6 },
-		{ CMD_GET_LOCATION, 6 }
+		{ CMD_READ_FRAME, 4 },
+		{ CMD_GET_LOCATION, 6 },
+		{ CMD_IS_FILE_READY, 0 }
 	};
+
+	// Communication with Launcher
+	SlippiReplayComm* replayComm;
 
 	// .slp File creation stuff
 	u32 writtenByteCount = 0;
@@ -68,6 +75,8 @@ private:
 	void closeFile();
 	std::string generateFileName();
 
+	//std::ofstream log;
+
 	File::IOFile m_file;
 	u32 m_payload_loc = 0;
 	u8 m_payload_type = CMD_UNKNOWN;
@@ -76,12 +85,14 @@ private:
 	// replay playback stuff
 	void loadFile(std::string path);
 	void prepareGameInfo();
+	void prepareCharacterFrameData(int32_t frameIndex, u8 port, u8 isFollower);
 	void prepareFrameData(u8* payload);
 	void prepareLocationData(u8* payload);
+	void prepareIsFileReady();
 
 	std::unordered_map<u8, std::string> getNetplayNames();
 
-	std::deque<u32> m_read_queue;
+	std::vector<u8> m_read_queue;
 	Slippi::SlippiGame* m_current_game = nullptr;
 
 protected:

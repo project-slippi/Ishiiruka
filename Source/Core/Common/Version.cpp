@@ -13,7 +13,7 @@
 #define BUILD_TYPE_STR ""
 #endif
 
-const std::string release_string = "Faster Melee - Slippi (r10)";
+const std::string release_string = "Faster Melee - Slippi (r11)";
 
 const std::string scm_rev_str = "Ishiiruka-Dolphin"
 #if !SCM_IS_MASTER
