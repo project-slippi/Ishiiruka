@@ -412,14 +412,23 @@ void CEXISlippi::prepareFrameData(u8* payload) {
 
 	// Parse input
 	int32_t frameIndex = payload[0] << 24 | payload[1] << 16 | payload[2] << 8 | payload[3];
+	
+	// If a new replay should be played, terminate the current game
+	auto isNewReplay = replayComm->isReplayReady();
+	if (isNewReplay) {
+		m_read_queue.push_back(2);
+		return;
+	}
 
 	// TODO: Ensure that the entire frame has been received
 	// Wait until frame exists in our data before reading it
-	u32 requestResultCode = 1;
-	if (!m_current_game->DoesFrameExist(frameIndex)) {
+	auto isFrameFound = m_current_game->DoesFrameExist(frameIndex);
+	u8 requestResultCode = 1;
+	if (!isFrameFound) {
 		// If processing is complete, the game has terminated early. Tell our playback
-		// to end the game as well
-		requestResultCode = m_current_game->IsProcessingComplete() ? 2 : 0;
+		// to end the game as well.
+		auto shouldTerminateGame = m_current_game->IsProcessingComplete();
+		requestResultCode = shouldTerminateGame ? 2 : 0;
 		m_read_queue.push_back(requestResultCode);
 		return;
 	}
