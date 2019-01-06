@@ -143,7 +143,7 @@ std::vector<u8> CEXISlippi::generateMetadata() {
 
 	for (auto it = characterUsage.begin(); it != characterUsage.end(); ++it) {
 		auto playerIndex = it->first;
-		auto characterUsage = it->second;
+		auto playerCharacterUsage = it->second;
 
 		metadata.push_back('U');
 		std::string playerIndexStr = std::to_string(playerIndex);
@@ -172,7 +172,7 @@ std::vector<u8> CEXISlippi::generateMetadata() {
 		metadata.insert(metadata.end(), {
 			'U', 10, 'c', 'h', 'a', 'r', 'a', 'c', 't', 'e', 'r', 's', '{'
 		});
-		for (auto it2 = characterUsage.begin(); it2 != characterUsage.end(); ++it2) {
+		for (auto it2 = playerCharacterUsage.begin(); it2 != playerCharacterUsage.end(); ++it2) {
 			metadata.push_back('U');
 			std::string internalCharIdStr = std::to_string(it2->first);
 			metadata.push_back((u8)internalCharIdStr.length());
@@ -269,7 +269,7 @@ void CEXISlippi::createNewFile() {
 	File::CreateDir("Slippi");
 	std::string filepath = generateFileName();
 
-	INFO_LOG(EXPANSIONINTERFACE, "EXI_DeviceSlippi.cpp: Creating new replay file %s", filepath);
+	INFO_LOG(EXPANSIONINTERFACE, "EXI_DeviceSlippi.cpp: Creating new replay file %s", filepath.c_str());
 
 	#ifdef _WIN32
 	m_file = File::IOFile(filepath, "wb", _SH_DENYWR);
@@ -490,12 +490,12 @@ void CEXISlippi::prepareIsFileReady() {
 	if (!m_current_game) {
 		// Do not start if replay file doesn't exist
 		// TODO: maybe display error message?
-		INFO_LOG(EXPANSIONINTERFACE, "EXI_DeviceSlippi.cpp: Replay file does not exist?", replayFilePath.c_str());
+		INFO_LOG(EXPANSIONINTERFACE, "EXI_DeviceSlippi.cpp: Replay file does not exist?");
 		m_read_queue.push_back(0);
 		return;
 	}
 
-	INFO_LOG(EXPANSIONINTERFACE, "EXI_DeviceSlippi.cpp: Replay file loaded successfully!?", replayFilePath.c_str());
+	INFO_LOG(EXPANSIONINTERFACE, "EXI_DeviceSlippi.cpp: Replay file loaded successfully!?");
 	// Start the playback!
 	m_read_queue.push_back(1);
 }
