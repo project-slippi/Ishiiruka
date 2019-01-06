@@ -389,6 +389,8 @@ void CEXISlippi::prepareCharacterFrameData(int32_t frameIndex, u8 port, u8 isFol
 
 	//log << frameIndex << "\t" << port << "\t" << data.locationX << "\t" << data.locationY << "\t" << data.animation << "\n";
 
+	WARN_LOG(EXPANSIONINTERFACE, "[Frame %d] [Player %d] Positions: %f | %f", frameIndex, port, data.locationX, data.locationY);
+
 	// Add all of the inputs in order
 	appendWordToBuffer(&m_read_queue, data.randomSeed);
 	appendWordToBuffer(&m_read_queue, *(u32*)&data.joystickX);
@@ -423,14 +425,40 @@ void CEXISlippi::prepareFrameData(u8* payload) {
 		return;
 	}
 
+	// This will only trigger if we have caught up to the data in our
+	// streaming replay and is here to prevent ugly frame rate loss
+	auto frameBuffer = m_current_game->DoesFrameExist(frameIndex + 15);
+	auto isProcessingComplete = m_current_game->IsProcessingComplete();
+	if (bufferEnabled && !isProcessingComplete && !frameBuffer) {
+		WARN_LOG(EXPANSIONINTERFACE, "Waiting for frame buffer...");
+		m_read_queue.push_back(0);
+		return;
+	}
+
+	// We have successfully waited for us to collect a decent frame buffer
+	bufferEnabled = false;
+
 	// TODO: Ensure that the entire frame has been received
 	// Wait until frame exists in our data before reading it
 	auto isFrameFound = m_current_game->DoesFrameExist(frameIndex);
+	if (isFrameFound) {
+		Slippi::FrameData* frame = m_current_game->GetFrame(frameIndex);
+
+		std::unordered_map<uint8_t, Slippi::PlayerFrameData> source;
+		source = false ? frame->followers : frame->players;
+		isFrameFound = source.count(1); // wait for data if last character's data
+	}
+
 	u8 requestResultCode = 1;
 	if (!isFrameFound) {
+		// Here we have caught up to the game, enable buffer to slow down a bit,
+		// if we don't do this the game is playing too close to the data and there
+		// is an annoying persistent frame rate drop
+		bufferEnabled = true;
+
 		// If processing is complete, the game has terminated early. Tell our playback
 		// to end the game as well.
-		auto shouldTerminateGame = m_current_game->IsProcessingComplete();
+		auto shouldTerminateGame = isProcessingComplete;
 		requestResultCode = shouldTerminateGame ? 2 : 0;
 		m_read_queue.push_back(requestResultCode);
 		return;
@@ -504,6 +532,7 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 			break;
 		case CMD_PREPARE_REPLAY:
 			//log.open("log.txt");
+			bufferEnabled = false;
 			prepareGameInfo();
 			break;
 		case CMD_READ_FRAME:

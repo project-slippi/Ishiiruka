@@ -80,6 +80,8 @@ private:
 	u8 m_payload_type = CMD_UNKNOWN;
 	std::vector<u8> m_payload;
 
+	bool bufferEnabled = false;
+
 	// replay playback stuff
 	void loadFile(std::string path);
 	void prepareGameInfo();
