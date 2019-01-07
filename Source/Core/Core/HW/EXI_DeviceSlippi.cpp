@@ -438,19 +438,17 @@ void CEXISlippi::prepareFrameData(u8* payload) {
 	// We have successfully waited for us to collect a decent frame buffer
 	bufferEnabled = false;
 
-	// TODO: Ensure that the entire frame has been received
-	// Wait until frame exists in our data before reading it
+	// Wait until frame exists in our data before reading it. We also wait until
+	// next frame has been found to ensure we have actually received all of the
+	// data from this frame. Don't wait until next frame is processing is complete
+	// (this is the last frame, in that case)
+	// TODO: Fix issue where this causes a stutter when a game ends normally while mirroring
 	auto isFrameFound = m_current_game->DoesFrameExist(frameIndex);
-	if (isFrameFound) {
-		Slippi::FrameData* frame = m_current_game->GetFrame(frameIndex);
-
-		std::unordered_map<uint8_t, Slippi::PlayerFrameData> source;
-		source = false ? frame->followers : frame->players;
-		isFrameFound = source.count(1); // wait for data if last character's data
-	}
+	auto isNextFrameFound = m_current_game->DoesFrameExist(frameIndex + 1);
+	auto isFrameReady = isFrameFound && (isProcessingComplete || isNextFrameFound);
 
 	u8 requestResultCode = 1;
-	if (!isFrameFound) {
+	if (!isFrameReady) {
 		// Here we have caught up to the game, enable buffer to slow down a bit,
 		// if we don't do this the game is playing too close to the data and there
 		// is an annoying persistent frame rate drop
