@@ -472,6 +472,35 @@ void CEXISlippi::prepareFrameData(u8* payload) {
 	}
 }
 
+void CEXISlippi::prepareIsStockSteal(u8* payload) {
+	// Since we are prepping new data, clear any existing data
+	m_read_queue.clear();
+
+	if (!m_current_game) {
+		// Do nothing if we don't have a game loaded
+		return;
+	}
+
+	// Parse args
+	int32_t frameIndex = payload[0] << 24 | payload[1] << 16 | payload[2] << 8 | payload[3];
+	u8 playerIndex = payload[4];
+
+	// I'm not sure checking for the frame should be necessary. Theoretically this
+	// should get called after the frame request so the frame should already exist
+	auto isFrameFound = m_current_game->DoesFrameExist(frameIndex);
+	if (!isFrameFound) {
+		m_read_queue.push_back(0);
+		return;
+	}
+
+	// Load the data from this frame into the read buffer
+	Slippi::FrameData* frame = m_current_game->GetFrame(frameIndex);
+	auto players = frame->players;
+
+	u8 playerIsBack = players.count(playerIndex) ? 1 : 0;
+	m_read_queue.push_back(playerIsBack);
+}
+
 void CEXISlippi::prepareIsFileReady() {
 	m_read_queue.clear();
 
@@ -536,6 +565,9 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 		case CMD_READ_FRAME:
 			prepareFrameData(&memPtr[1]);
 			break;
+		case CMD_IS_STOCK_STEAL:
+			prepareIsStockSteal(&memPtr[1]);
+			break;
 		case CMD_IS_FILE_READY:
 			prepareIsFileReady();
 			break;
@@ -555,11 +587,12 @@ void CEXISlippi::DMARead(u32 addr, u32 size)
 		return;
 	}
 
+	auto queueAddr = &m_read_queue[0];
 	INFO_LOG(EXPANSIONINTERFACE, "EXI SLIPPI DMARead: addr: 0x%08x size: %d, startResp: [%02x %02x %02x %02x %02x]",
-		addr, size, m_read_queue[0], m_read_queue[1], m_read_queue[2], m_read_queue[3], m_read_queue[4]);
+		addr, size, queueAddr[0], queueAddr[1], queueAddr[2], queueAddr[3], queueAddr[4]);
 
 	// Copy buffer data to memory
-	Memory::CopyToEmu(addr, &m_read_queue[0], size);
+	Memory::CopyToEmu(addr, queueAddr, size);
 }
 
 bool CEXISlippi::IsPresent() const

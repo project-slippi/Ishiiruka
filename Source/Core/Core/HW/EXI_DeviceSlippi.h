@@ -38,6 +38,7 @@ private:
 		CMD_READ_FRAME = 0x76,
 		CMD_GET_LOCATION = 0x77,
 		CMD_IS_FILE_READY = 0x88,
+		CMD_IS_STOCK_STEAL = 0x89,
 	};
 
 	std::unordered_map<u8, u32> payloadSizes = {
@@ -50,6 +51,7 @@ private:
 		// have fixed sizes
 		{ CMD_PREPARE_REPLAY, 0 },
 		{ CMD_READ_FRAME, 4 },
+		{ CMD_IS_STOCK_STEAL, 5 },
 		{ CMD_GET_LOCATION, 6 },
 		{ CMD_IS_FILE_READY, 0 }
 	};
@@ -85,6 +87,7 @@ private:
 	void prepareGameInfo();
 	void prepareCharacterFrameData(int32_t frameIndex, u8 port, u8 isFollower);
 	void prepareFrameData(u8* payload);
+	void prepareIsStockSteal(u8* payload);
 	void prepareIsFileReady();
 
 	std::unordered_map<u8, std::string> getNetplayNames();

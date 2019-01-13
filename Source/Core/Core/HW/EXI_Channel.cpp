@@ -98,7 +98,7 @@ void CEXIChannel::RegisterMMIO(MMIO::Mapping* mmio, u32 base)
 		MMIO::ComplexWrite<u32>([this](u32, u32 val) {
 		m_Control.Hex = val;
 
-		INFO_LOG(EXPANSIONINTERFACE, "m_Control: TSTART: %d DMA: %d LEN: %b", m_Control.TSTART, m_Control.DMA, m_Control.TLEN);
+		//INFO_LOG(EXPANSIONINTERFACE, "m_Control: TSTART: %d DMA: %d LEN: %b", m_Control.TSTART, m_Control.DMA, m_Control.TLEN);
 
 		if (m_Control.TSTART)
 		{
