@@ -153,6 +153,10 @@ namespace Slippi {
 			frame = &game->frameData[frameCount];
 		}
 
+		// As soon as a post frame update happens, we know we have received all the inputs
+		// This is used to determine if a frame is ready to be used for a replay (for mirroring)
+		frame->inputsFullyFetched = true;
+
 		uint8_t playerSlot = readByte(data, idx);
 		uint8_t isFollower = readByte(data, idx);
 

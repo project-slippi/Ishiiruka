@@ -56,6 +56,7 @@ namespace Slippi {
 
 	typedef struct {
 		int32_t frame;
+		bool inputsFullyFetched = false;
 		std::unordered_map<uint8_t, PlayerFrameData> players;
 		std::unordered_map<uint8_t, PlayerFrameData> followers;
 	} FrameData;

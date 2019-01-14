@@ -74,6 +74,7 @@ private:
 	void createNewFile();
 	void closeFile();
 	std::string generateFileName();
+	bool checkFrameFullyFetched(int32_t frameIndex);
 
 	//std::ofstream log;
 

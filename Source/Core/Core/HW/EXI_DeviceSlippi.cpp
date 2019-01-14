@@ -389,7 +389,7 @@ void CEXISlippi::prepareCharacterFrameData(int32_t frameIndex, u8 port, u8 isFol
 
 	//log << frameIndex << "\t" << port << "\t" << data.locationX << "\t" << data.locationY << "\t" << data.animation << "\n";
 
-	WARN_LOG(EXPANSIONINTERFACE, "[Frame %d] [Player %d] Positions: %f | %f", frameIndex, port, data.locationX, data.locationY);
+	//WARN_LOG(EXPANSIONINTERFACE, "[Frame %d] [Player %d] Positions: %f | %f", frameIndex, port, data.locationX, data.locationY);
 
 	// Add all of the inputs in order
 	appendWordToBuffer(&m_read_queue, data.randomSeed);
@@ -406,6 +406,18 @@ void CEXISlippi::prepareCharacterFrameData(int32_t frameIndex, u8 port, u8 isFol
 	m_read_queue.push_back(data.joystickXRaw);
 }
 
+bool CEXISlippi::checkFrameFullyFetched(int32_t frameIndex) {
+	auto doesFrameExist = m_current_game->DoesFrameExist(frameIndex);
+	if (!doesFrameExist)
+		return false;
+
+	Slippi::FrameData *frame = m_current_game->GetFrame(frameIndex);
+
+	// This flag is set to true after a post frame update has been received. At that point
+	// we know we have received all of the input data for the frame
+	return frame->inputsFullyFetched;
+}
+
 void CEXISlippi::prepareFrameData(u8* payload) {
 	// Since we are prepping new data, clear any existing data
 	m_read_queue.clear();
@@ -418,6 +430,8 @@ void CEXISlippi::prepareFrameData(u8* payload) {
 	// Parse input
 	int32_t frameIndex = payload[0] << 24 | payload[1] << 16 | payload[2] << 8 | payload[3];
 	
+	//WARN_LOG(EXPANSIONINTERFACE, "Frame %d has been requested!", frameIndex);
+
 	// If a new replay should be played, terminate the current game
 	auto isNewReplay = replayComm->isReplayReady();
 	if (isNewReplay) {
@@ -430,7 +444,7 @@ void CEXISlippi::prepareFrameData(u8* payload) {
 	auto frameBuffer = m_current_game->DoesFrameExist(frameIndex + 15);
 	auto isProcessingComplete = m_current_game->IsProcessingComplete();
 	if (bufferEnabled && !isProcessingComplete && !frameBuffer) {
-		WARN_LOG(EXPANSIONINTERFACE, "Waiting for frame buffer...");
+		//WARN_LOG(EXPANSIONINTERFACE, "Waiting for frame buffer...");
 		m_read_queue.push_back(0);
 		return;
 	}
@@ -442,10 +456,10 @@ void CEXISlippi::prepareFrameData(u8* payload) {
 	// next frame has been found to ensure we have actually received all of the
 	// data from this frame. Don't wait until next frame is processing is complete
 	// (this is the last frame, in that case)
-	// TODO: Fix issue where this causes a stutter when a game ends normally while mirroring
 	auto isFrameFound = m_current_game->DoesFrameExist(frameIndex);
 	auto isNextFrameFound = m_current_game->DoesFrameExist(frameIndex + 1);
-	auto isFrameReady = isFrameFound && (isProcessingComplete || isNextFrameFound);
+	auto isFrameComplete = checkFrameFullyFetched(frameIndex);
+	auto isFrameReady = isFrameFound && (isProcessingComplete || isNextFrameFound || isFrameComplete);
 
 	u8 requestResultCode = 1;
 	if (!isFrameReady) {
