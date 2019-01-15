@@ -6,48 +6,71 @@ namespace Slippi {
 	//*                         Event Handlers
 	//**********************************************************************
 	//The read operators will read a value and increment the index so the next read will read in the correct location
-	uint8_t readByte(uint8_t* a, int& idx) {
+	uint8_t readByte(uint8_t* a, int& idx, uint32_t maxSize) {
+		if (idx >= (int)maxSize) {
+			idx += 1;
+			return 0;
+		}
+
 		return a[idx++];
 	}
 
-	uint16_t readHalf(uint8_t* a, int& idx) {
+	uint16_t readHalf(uint8_t* a, int& idx, uint32_t maxSize) {
+		if (idx >= (int)maxSize) {
+			idx += 2;
+			return 0;
+		}
+
 		uint16_t value = a[idx] << 8 | a[idx + 1];
 		idx += 2;
 		return value;
 	}
 
-	uint32_t readWord(uint8_t* a, int& idx) {
+	uint32_t readWord(uint8_t* a, int& idx, uint32_t maxSize) {
+		if (idx >= (int)maxSize) {
+			idx += 4;
+			return 0;
+		}
+
 		uint32_t value = a[idx] << 24 | a[idx + 1] << 16 | a[idx + 2] << 8 | a[idx + 3];
 		idx += 4;
 		return value;
 	}
 
-	float readFloat(uint8_t* a, int& idx) {
-		uint32_t bytes = readWord(a, idx);
+	float readFloat(uint8_t* a, int& idx, uint32_t maxSize) {
+		uint32_t bytes = readWord(a, idx, maxSize);
 		return *(float*)(&bytes);
 	}
 
-	void handleGameInit(Game* game) {
+	void handleGameInit(Game* game, uint32_t maxSize) {
 		int idx = 0;
 
 		// Read version number
 		for (int i = 0; i < 4; i++) {
-			game->version[i] = readByte(data, idx);
+			game->version[i] = readByte(data, idx, maxSize);
 		}
 
 		// Read entire game info header
 		for (int i = 0; i < GAME_INFO_HEADER_SIZE; i++) {
-			game->settings.header[i] = readWord(data, idx);
+			game->settings.header[i] = readWord(data, idx, maxSize);
 		}
 
 		// Load random seed
-		game->settings.randomSeed = readWord(data, idx);
+		game->settings.randomSeed = readWord(data, idx, maxSize);
 
 		// Read UCF toggle bytes
 		bool shouldRead = game->version[0] >= 1;
 		for (int i = 0; i < UCF_TOGGLE_SIZE; i++) {
-			uint32_t value = shouldRead ? readWord(data, idx) : 0;
+			uint32_t value = shouldRead ? readWord(data, idx, maxSize) : 0;
 			game->settings.ucfToggles[i] = value;
+		}
+
+		// Read nametag for each player
+		std::array<std::array<uint16_t, NAMETAG_SIZE>, 4> playerNametags;
+		for (int i = 0; i < 4; i++) {
+			for (int j = 0; j < NAMETAG_SIZE; j++) {
+				playerNametags[i][j] = readHalf(data, idx, maxSize);
+			}
 		}
 
 		// Pull header data into struct
@@ -65,23 +88,26 @@ namespace Slippi {
 			}
 
 			PlayerSettings* p = new PlayerSettings();
+
+			// Get player settings
 			p->controllerPort = i;
 			p->characterId = playerInfo >> 24;
 			p->playerType = playerType;
 			p->characterColor = playerInfo & 0xFF;
+			p->nametag = playerNametags[i];
 
 			//Add player settings to result
-			game->settings.players[p->controllerPort] = *p;
+			game->settings.players[i] = *p;
 		}
 
 		game->settings.stage = gameInfoHeader[3] & 0xFFFF;
 	}
 
-	void handlePreFrameUpdate(Game* game) {
+	void handlePreFrameUpdate(Game* game, uint32_t maxSize) {
 		int idx = 0;
 
 		//Check frame count
-		int32_t frameCount = readWord(data, idx);
+		int32_t frameCount = readWord(data, idx, maxSize);
 		game->frameCount = frameCount;
 
 		FrameData* frame = new FrameData();
@@ -95,33 +121,33 @@ namespace Slippi {
 
 		PlayerFrameData* p = new PlayerFrameData();
 
-		uint8_t playerSlot = readByte(data, idx);
-		uint8_t isFollower = readByte(data, idx);
+		uint8_t playerSlot = readByte(data, idx, maxSize);
+		uint8_t isFollower = readByte(data, idx, maxSize);
 
 		//Load random seed for player frame update
-		p->randomSeed = readWord(data, idx);
+		p->randomSeed = readWord(data, idx, maxSize);
 
 		//Load player data
-		p->animation = readHalf(data, idx);
-		p->locationX = readFloat(data, idx);
-		p->locationY = readFloat(data, idx);
-		p->facingDirection = readFloat(data, idx);
+		p->animation = readHalf(data, idx, maxSize);
+		p->locationX = readFloat(data, idx, maxSize);
+		p->locationY = readFloat(data, idx, maxSize);
+		p->facingDirection = readFloat(data, idx, maxSize);
 
 		//Controller information
-		p->joystickX = readFloat(data, idx);
-		p->joystickY = readFloat(data, idx);
-		p->cstickX = readFloat(data, idx);
-		p->cstickY = readFloat(data, idx);
-		p->trigger = readFloat(data, idx);
-		p->buttons = readWord(data, idx);
+		p->joystickX = readFloat(data, idx, maxSize);
+		p->joystickY = readFloat(data, idx, maxSize);
+		p->cstickX = readFloat(data, idx, maxSize);
+		p->cstickY = readFloat(data, idx, maxSize);
+		p->trigger = readFloat(data, idx, maxSize);
+		p->buttons = readWord(data, idx, maxSize);
 
 		//Raw controller information
-		p->physicalButtons = readHalf(data, idx);
-		p->lTrigger = readFloat(data, idx);
-		p->rTrigger = readFloat(data, idx);
+		p->physicalButtons = readHalf(data, idx, maxSize);
+		p->lTrigger = readFloat(data, idx, maxSize);
+		p->rTrigger = readFloat(data, idx, maxSize);
 
 		if (asmEvents[EVENT_PRE_FRAME_UPDATE] >= 59) {
-			p->joystickXRaw = readByte(data, idx);
+			p->joystickXRaw = readByte(data, idx, maxSize);
 		}
 		
 		// Add player data to frame
@@ -140,11 +166,11 @@ namespace Slippi {
 		}
 	}
 
-	void handlePostFrameUpdate(Game* game) {
+	void handlePostFrameUpdate(Game* game, uint32_t maxSize) {
 		int idx = 0;
 
 		//Check frame count
-		int32_t frameCount = readWord(data, idx);
+		int32_t frameCount = readWord(data, idx, maxSize);
 
 		FrameData* frame = new FrameData();
 		if (game->frameData.count(frameCount)) {
@@ -157,12 +183,12 @@ namespace Slippi {
 		// This is used to determine if a frame is ready to be used for a replay (for mirroring)
 		frame->inputsFullyFetched = true;
 
-		uint8_t playerSlot = readByte(data, idx);
-		uint8_t isFollower = readByte(data, idx);
+		uint8_t playerSlot = readByte(data, idx, maxSize);
+		uint8_t isFollower = readByte(data, idx, maxSize);
 
 		PlayerFrameData* p = isFollower ? &frame->followers[playerSlot] : &frame->players[playerSlot];
 
-		p->internalCharacterId = readByte(data, idx);
+		p->internalCharacterId = readByte(data, idx, maxSize);
 
 		// Check if a player started as sheik and update
 		if (frameCount == GAME_FIRST_FRAME && p->internalCharacterId == GAME_SHEIK_INTERNAL_ID) {
@@ -170,10 +196,10 @@ namespace Slippi {
 		}
 	}
 
-	void handleGameEnd(Game* game) {
+	void handleGameEnd(Game* game, uint32_t maxSize) {
 		int idx = 0;
 
-		game->winCondition = readByte(data, idx);
+		game->winCondition = readByte(data, idx, maxSize);
 	}
 
 	// This function gets the position where the raw data starts
@@ -227,7 +253,12 @@ namespace Slippi {
 		f->read(&messageSizesBuffer[0], payloadLength - 1);
 		for (int i = 0; i < payloadLength - 1; i += 3) {
 			uint8_t command = messageSizesBuffer[i];
-			uint16_t size = messageSizesBuffer[i + 1] << 8 | messageSizesBuffer[i + 2];
+
+			// Extract the bytes in u8s. Without this the chars don't or together well
+			uint8_t byte1 = messageSizesBuffer[i + 1];
+			uint8_t byte2 = messageSizesBuffer[i + 2];
+
+			uint16_t size = byte1 << 8 | byte2;
 			messageSizes[command] = size;
 		}
 
@@ -297,7 +328,11 @@ namespace Slippi {
 		while (newDataPos < sizeToRead) {
 			auto command = newData[newDataPos];
 			auto payloadSize = asmEvents[command];
-			//log << "Command: " << command << " | Payload Size: " << payloadSize << "\n";
+
+			//char buff[100];
+			//snprintf(buff, sizeof(buff), "%x", command);
+			//log << "Command: " << buff << " | Payload Size: " << payloadSize << "\n";
+
 			auto remainingLen = sizeToRead - newDataPos;
 			if (remainingLen < ((int)payloadSize + 1)) {
 				// Here we don't have enough data to read the whole payload
@@ -309,17 +344,17 @@ namespace Slippi {
 			data = (uint8_t*)&newData[newDataPos + 1];
 			switch (command) {
 			case EVENT_GAME_INIT:
-				handleGameInit(game);
+				handleGameInit(game, payloadSize);
 				areSettingsLoaded = true;
 				break;
 			case EVENT_PRE_FRAME_UPDATE:
-				handlePreFrameUpdate(game);
+				handlePreFrameUpdate(game, payloadSize);
 				break;
 			case EVENT_POST_FRAME_UPDATE:
-				handlePostFrameUpdate(game);
+				handlePostFrameUpdate(game, payloadSize);
 				break;
 			case EVENT_GAME_END:
-				handleGameEnd(game);
+				handleGameEnd(game, payloadSize);
 				//log.close();
 				isProcessingComplete = true;
 				break;

@@ -16,6 +16,7 @@ namespace Slippi {
 
 	const uint8_t GAME_INFO_HEADER_SIZE = 78;
 	const uint8_t UCF_TOGGLE_SIZE = 8;
+	const uint8_t NAMETAG_SIZE = 8;
 	const int32_t GAME_FIRST_FRAME = -123;
 	const uint8_t GAME_SHEIK_INTERNAL_ID = 0x7;
 	const uint8_t GAME_SHEIK_EXTERNAL_ID = 0x13;
@@ -67,6 +68,7 @@ namespace Slippi {
 		uint8_t characterColor;
 		uint8_t playerType;
 		uint8_t controllerPort;
+		std::array<uint16_t, NAMETAG_SIZE> nametag;
 	} PlayerSettings;
 
 	typedef struct {

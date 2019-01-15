@@ -23,6 +23,13 @@
 #include "Core/HW/Memmap.h"
 #include "Core/NetPlayClient.h"
 
+std::vector<u8> uint16ToVector(u16 num) {
+	u8 byte0 = num >> 8;
+	u8 byte1 = num & 0xFF;
+
+	return std::vector<u8>({byte0, byte1});
+}
+
 std::vector<u8> uint32ToVector(u32 num) {
 	u8 byte0 = num >> 24;
 	u8 byte1 = (num & 0xFF0000) >> 16;
@@ -44,6 +51,11 @@ std::vector<u8> int32ToVector(int32_t num) {
 void appendWordToBuffer(std::vector<u8>* buf, u32 word) {
 	auto wordVector = uint32ToVector(word);
 	buf->insert(buf->end(), wordVector.begin(), wordVector.end());
+}
+
+void appendHalfToBuffer(std::vector<u8> *buf, u16 word) {
+	auto halfVector = uint16ToVector(word);
+	buf->insert(buf->end(), halfVector.begin(), halfVector.end());
 }
 
 CEXISlippi::CEXISlippi() {
@@ -364,6 +376,14 @@ void CEXISlippi::prepareGameInfo() {
 	std::array<uint32_t, Slippi::UCF_TOGGLE_SIZE> ucfToggles = settings->ucfToggles;
 	for (int i = 0; i < Slippi::UCF_TOGGLE_SIZE; i++) {
 		appendWordToBuffer(&m_read_queue, ucfToggles[i]);
+	}
+
+	// Write nametags
+	for (int i = 0; i < 4; i++) {
+		auto player = settings->players[i];
+		for (int j = 0; j < Slippi::NAMETAG_SIZE; j++) {
+			appendHalfToBuffer(&m_read_queue, player.nametag[j]);
+		}
 	}
 }
 
