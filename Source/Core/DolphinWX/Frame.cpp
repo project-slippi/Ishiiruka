@@ -658,7 +658,16 @@ WXLRESULT CFrame::MSWWindowProc(WXUINT nMsg, WXWPARAM wParam, WXLPARAM lParam)
 
 void CFrame::UpdateTitle(const std::string& str)
 {
-	m_RenderFrame->SetTitle(release_string);
+	if (SConfig::GetInstance().bRenderToMain && SConfig::GetInstance().m_InterfaceStatusbar)
+	{
+		GetStatusBar()->SetStatusText(str, 0);
+		m_RenderFrame->SetTitle(scm_rev_str);
+	}
+	else
+	{
+		std::string titleStr = StringFromFormat("%s | %s", scm_rev_str.c_str(), str.c_str());
+		m_RenderFrame->SetTitle(titleStr);
+	}
 }
 
 void CFrame::OnHostMessage(wxCommandEvent& event)
