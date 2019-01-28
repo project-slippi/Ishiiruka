@@ -395,7 +395,7 @@ void CEXISlippi::prepareCharacterFrameData(int32_t frameIndex, u8 port, u8 isFol
 	source = isFollower ? frame->followers : frame->players;
 
 	// This must be updated if new data is added
-	int characterDataLen = 45;
+	int characterDataLen = 49;
 
 	// Check if player exists
 	if (!source.count(port)) {
@@ -424,6 +424,8 @@ void CEXISlippi::prepareCharacterFrameData(int32_t frameIndex, u8 port, u8 isFol
 	appendWordToBuffer(&m_read_queue, *(u32*)&data.facingDirection);
 	appendWordToBuffer(&m_read_queue, (u32)data.animation);
 	m_read_queue.push_back(data.joystickXRaw);
+	appendWordToBuffer(&m_read_queue, *(u32 *)&data.percent);
+	// NOTE TO DEV: If you add data here, make sure to increase the size above
 }
 
 bool CEXISlippi::checkFrameFullyFetched(int32_t frameIndex) {
@@ -459,18 +461,7 @@ void CEXISlippi::prepareFrameData(u8* payload) {
 		return;
 	}
 
-	// This will only trigger if we have caught up to the data in our
-	// streaming replay and is here to prevent ugly frame rate loss
-	auto frameBuffer = m_current_game->DoesFrameExist(frameIndex + 15);
 	auto isProcessingComplete = m_current_game->IsProcessingComplete();
-	if (bufferEnabled && !isProcessingComplete && !frameBuffer) {
-		//WARN_LOG(EXPANSIONINTERFACE, "Waiting for frame buffer...");
-		m_read_queue.push_back(0);
-		return;
-	}
-
-	// We have successfully waited for us to collect a decent frame buffer
-	bufferEnabled = false;
 
 	// Wait until frame exists in our data before reading it. We also wait until
 	// next frame has been found to ensure we have actually received all of the
@@ -483,11 +474,6 @@ void CEXISlippi::prepareFrameData(u8* payload) {
 
 	u8 requestResultCode = 1;
 	if (!isFrameReady) {
-		// Here we have caught up to the game, enable buffer to slow down a bit,
-		// if we don't do this the game is playing too close to the data and there
-		// is an annoying persistent frame rate drop
-		bufferEnabled = true;
-
 		// If processing is complete, the game has terminated early. Tell our playback
 		// to end the game as well.
 		auto shouldTerminateGame = isProcessingComplete;
@@ -495,6 +481,11 @@ void CEXISlippi::prepareFrameData(u8* payload) {
 		m_read_queue.push_back(requestResultCode);
 		return;
 	}
+
+	//auto currentFrame = frameIndex;
+	//auto latestFrame = m_current_game->GetFrameCount();
+	//WARN_LOG(EXPANSIONINTERFACE, "[Frame %d] Playback current behind by: %d frames.", currentFrame,
+	//         latestFrame - currentFrame);
 
 	// Return success code
 	m_read_queue.push_back(requestResultCode);
@@ -533,6 +524,38 @@ void CEXISlippi::prepareIsStockSteal(u8* payload) {
 
 	u8 playerIsBack = players.count(playerIndex) ? 1 : 0;
 	m_read_queue.push_back(playerIsBack);
+}
+
+void CEXISlippi::prepareFrameCount()
+{
+	m_read_queue.clear();
+
+	if (!m_current_game)
+	{
+		// Do not start if replay file doesn't exist
+		// TODO: maybe display error message?
+		INFO_LOG(EXPANSIONINTERFACE, "EXI_DeviceSlippi.cpp: Replay file does not exist");
+		m_read_queue.push_back(0);
+		return;
+	}
+
+	if (m_current_game->IsProcessingComplete())
+	{
+		m_read_queue.push_back(0);
+		return;
+	}
+
+	int bufferCount = 15;
+
+	// Make sure we've loaded all the latest data, maybe this should be part of GetFrameCount
+	auto latestFrame = m_current_game->GetFrameCount();
+	auto frameCount = latestFrame - Slippi::GAME_FIRST_FRAME;
+	auto frameCountPlusBuffer = frameCount + bufferCount;
+
+	u8 result = frameCountPlusBuffer > 0xFF ? 0xFF : (u8)frameCountPlusBuffer;
+	WARN_LOG(EXPANSIONINTERFACE, "EXI_DeviceSlippi.cpp: Fast forwarding by %d frames. (+%d)", result, bufferCount);
+
+	m_read_queue.push_back(result);
 }
 
 void CEXISlippi::prepareIsFileReady() {
@@ -593,7 +616,6 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 			break;
 		case CMD_PREPARE_REPLAY:
 			//log.open("log.txt");
-			bufferEnabled = false;
 			prepareGameInfo();
 			break;
 		case CMD_READ_FRAME:
@@ -601,6 +623,9 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 			break;
 		case CMD_IS_STOCK_STEAL:
 			prepareIsStockSteal(&memPtr[1]);
+			break;
+		case CMD_GET_FRAME_COUNT:
+			prepareFrameCount();
 			break;
 		case CMD_IS_FILE_READY:
 			prepareIsFileReady();

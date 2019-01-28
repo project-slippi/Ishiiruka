@@ -362,10 +362,6 @@ bool BootCore(const std::string& _rFilename)
 
 	if (NetPlay::IsNetPlayRunning())
 	{
-		// When this is true, will always use Slippi locally. Otherwise it'll use whatever is configured
-		// This makes it possible for one person to use Slippi and the other to not, hoping this is fine
-		bool isSlippiInPortB = SConfig::GetInstance().m_EXIDevice[1] == TEXIDevices::EXIDEVICE_SLIPPI;
-
 		StartUp.bCPUThread = g_NetPlaySettings.m_CPUthread;
 		StartUp.bEnableCheats = g_NetPlaySettings.m_EnableCheats;
 		StartUp.bDSPHLE = g_NetPlaySettings.m_DSPHLE;
@@ -379,7 +375,29 @@ bool BootCore(const std::string& _rFilename)
 		SConfig::GetInstance().m_OCEnable = g_NetPlaySettings.m_OCEnable;
 		SConfig::GetInstance().m_OCFactor = g_NetPlaySettings.m_OCFactor;
 		SConfig::GetInstance().m_EXIDevice[0] = g_NetPlaySettings.m_EXIDevice[0];
-		SConfig::GetInstance().m_EXIDevice[1] = isSlippiInPortB ? TEXIDevices::EXIDEVICE_SLIPPI : g_NetPlaySettings.m_EXIDevice[1];
+
+		// When this is true, will always use Slippi locally. Otherwise it'll use whatever is configured
+		// This makes it possible for one person to use Slippi and the other to not, hoping this is fine
+		bool isSlippiInPortB = SConfig::GetInstance().m_EXIDevice[1] == TEXIDevices::EXIDEVICE_SLIPPI;
+		bool isNoneInPortB = SConfig::GetInstance().m_EXIDevice[1] == TEXIDevices::EXIDEVICE_NONE;
+
+		bool oppSlippiInPortB = g_NetPlaySettings.m_EXIDevice[1] == TEXIDevices::EXIDEVICE_SLIPPI;
+		bool oppNoneInPortB = g_NetPlaySettings.m_EXIDevice[1] == TEXIDevices::EXIDEVICE_NONE;
+
+		if (oppSlippiInPortB && isNoneInPortB)
+		{
+			SConfig::GetInstance().m_EXIDevice[1] = TEXIDevices::EXIDEVICE_NONE;
+		}
+		else if (oppNoneInPortB && isSlippiInPortB)
+		{
+			SConfig::GetInstance().m_EXIDevice[1] = TEXIDevices::EXIDEVICE_SLIPPI;
+		}
+		else
+		{
+			// This will just grab what opp is using
+			SConfig::GetInstance().m_EXIDevice[1] = g_NetPlaySettings.m_EXIDevice[1];
+		}
+
 		config_cache.bSetEXIDevice[0] = true;
 		config_cache.bSetEXIDevice[1] = true;
         StartUp.iLagReductionCode = g_NetPlaySettings.m_LagReduction;

@@ -39,6 +39,7 @@ private:
 		CMD_GET_LOCATION = 0x77,
 		CMD_IS_FILE_READY = 0x88,
 		CMD_IS_STOCK_STEAL = 0x89,
+		CMD_GET_FRAME_COUNT = 0x90,
 	};
 
 	std::unordered_map<u8, u32> payloadSizes = {
@@ -53,7 +54,8 @@ private:
 		{ CMD_READ_FRAME, 4 },
 		{ CMD_IS_STOCK_STEAL, 5 },
 		{ CMD_GET_LOCATION, 6 },
-		{ CMD_IS_FILE_READY, 0 }
+		{ CMD_IS_FILE_READY, 0 },
+		{ CMD_GET_FRAME_COUNT, 0 }
 	};
 
 	// Communication with Launcher
@@ -81,14 +83,13 @@ private:
 	File::IOFile m_file;
 	std::vector<u8> m_payload;
 
-	bool bufferEnabled = false;
-
 	// replay playback stuff
 	void loadFile(std::string path);
 	void prepareGameInfo();
 	void prepareCharacterFrameData(int32_t frameIndex, u8 port, u8 isFollower);
 	void prepareFrameData(u8* payload);
-	void prepareIsStockSteal(u8* payload);
+	void prepareIsStockSteal(u8 *payload);
+	void prepareFrameCount();
 	void prepareIsFileReady();
 
 	std::unordered_map<u8, std::string> getNetplayNames();
