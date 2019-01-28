@@ -306,7 +306,7 @@ if(APPLE)
 	# Target flags apply to both C and C++ compilation.
 	# CMake passes these to the compiler on the link command line as well.
 	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${TARGET_FLAGS}")
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${TARGET_FLAGS}")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${TARGET_FLAGS} -D__ASSERT_MACROS_DEFINE_VERSIONS_WITHOUT_UNDERSCORES=1")
 
 	# Linker flags.
 	# Drop unreachable code and data.
@@ -328,7 +328,6 @@ if(APPLE)
 	find_library(FOUNDATION_LIBRARY Foundation)
 	find_library(IOB_LIBRARY IOBluetooth)
 	find_library(IOK_LIBRARY IOKit)
-	find_library(QUICKTIME_LIBRARY QuickTime)
 	find_library(WEBKIT_LIBRARY WebKit)
 	find_library(FORCEFEEDBACK ForceFeedback)
 	find_library(OPENGL_LIBRARY OpenGL)
