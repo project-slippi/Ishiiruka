@@ -23,7 +23,7 @@
 //#else
 //" " BUILD_TYPE_STR " " SCM_DESC_STR;
 //#endif
-#define SLIPPI_REV_STR "r13"
+#define SLIPPI_REV_STR "r14"
 const std::string scm_rev_str = "Faster Melee - Slippi (" SLIPPI_REV_STR ")";
 
 #ifdef _WIN32
