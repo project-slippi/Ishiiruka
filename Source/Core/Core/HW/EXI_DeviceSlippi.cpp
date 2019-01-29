@@ -324,12 +324,6 @@ void CEXISlippi::closeFile()
 	m_file = nullptr;
 }
 
-void CEXISlippi::loadFile(std::string path)
-{
-	// This doesn't like newline characters in the path, just FYI
-	m_current_game = Slippi::SlippiGame::FromFile((std::string)path);
-}
-
 void CEXISlippi::prepareGameInfo()
 {
 	// Since we are prepping new data, clear any existing data
@@ -486,7 +480,7 @@ void CEXISlippi::prepareFrameData(u8 *payload)
 	WARN_LOG(EXPANSIONINTERFACE, "Frame %d has been requested!", frameIndex);
 
 	// If a new replay should be played, terminate the current game
-	auto isNewReplay = replayComm->isReplayReady();
+	auto isNewReplay = replayComm->isNewReplay();
 	if (isNewReplay)
 	{
 		m_read_queue.push_back(2);
@@ -605,17 +599,16 @@ void CEXISlippi::prepareIsFileReady()
 {
 	m_read_queue.clear();
 
-	auto isNewReplayReady = replayComm->isReplayReady();
-	if (!isNewReplayReady)
+	auto isNewReplay = replayComm->isNewReplay();
+	if (!isNewReplay)
 	{
 		m_read_queue.push_back(0);
 		return;
 	}
 
-	auto replayFilePath = replayComm->getReplay();
-	INFO_LOG(EXPANSIONINTERFACE, "EXI_DeviceSlippi.cpp: Attempting to load replay file %s", replayFilePath.c_str());
-	loadFile(replayFilePath);
-
+	// Attempt to load game if there is a new replay file
+	// this can come pack falsy if the replay file does not exist
+	m_current_game = replayComm->loadGame();
 	if (!m_current_game)
 	{
 		// Do not start if replay file doesn't exist
@@ -624,6 +617,7 @@ void CEXISlippi::prepareIsFileReady()
 		m_read_queue.push_back(0);
 		return;
 	}
+
 
 	INFO_LOG(EXPANSIONINTERFACE, "EXI_DeviceSlippi.cpp: Replay file loaded successfully!?");
 	// Start the playback!

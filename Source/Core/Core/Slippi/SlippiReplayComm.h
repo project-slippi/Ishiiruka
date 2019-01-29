@@ -1,18 +1,19 @@
 #pragma once
 
+#include <SlippiGame.h>
 #include <string>
 
 class SlippiReplayComm
 {
-public:
+  public:
 	SlippiReplayComm();
 	~SlippiReplayComm();
-	bool isReplayReady();
+	bool isNewReplay();
+	Slippi::SlippiGame *loadGame();
+
+  private:
 	std::string getReplay();
-private:
-	std::string getCommFilePath();
 
 	std::string configFilePath;
 	std::string previousReplayLoaded;
 };
-

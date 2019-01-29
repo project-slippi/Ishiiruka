@@ -84,7 +84,6 @@ private:
 	std::vector<u8> m_payload;
 
 	// replay playback stuff
-	void loadFile(std::string path);
 	void prepareGameInfo();
 	void prepareCharacterFrameData(int32_t frameIndex, u8 port, u8 isFollower);
 	void prepareFrameData(u8* payload);
