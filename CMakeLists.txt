@@ -296,6 +296,7 @@ if(APPLE)
 	# Note that the SDK determines the maximum version of which optional
 	# features can be used, not the minimum required version to run.
 	set(OSX_MIN_VERSION "10.9")
+	set(CMAKE_OSX_SYSROOT "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.11.sdk")
 	set(TARGET_FLAGS "${TARGET_FLAGS} -mmacosx-version-min=${OSX_MIN_VERSION}")
 	# Do not warn about frameworks that are not available on all architectures.
 	# This avoids a warning when linking with QuickTime.
@@ -328,6 +329,7 @@ if(APPLE)
 	find_library(FOUNDATION_LIBRARY Foundation)
 	find_library(IOB_LIBRARY IOBluetooth)
 	find_library(IOK_LIBRARY IOKit)
+	find_library(QUICKTIME_LIBRARY QuickTime)
 	find_library(WEBKIT_LIBRARY WebKit)
 	find_library(FORCEFEEDBACK ForceFeedback)
 	find_library(OPENGL_LIBRARY OpenGL)
