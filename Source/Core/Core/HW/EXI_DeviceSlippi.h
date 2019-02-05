@@ -42,6 +42,13 @@ private:
 		CMD_GET_FRAME_COUNT = 0x90,
 	};
 
+	enum {
+		FRAME_RESP_WAIT = 0,
+		FRAME_RESP_CONTINUE = 1,
+		FRAME_RESP_TERMINATE = 2,
+		FRAME_RESP_FASTFORWARD = 3,
+	};
+
 	std::unordered_map<u8, u32> payloadSizes = {
 		// The actual size of this command will be sent in one byte
 		// after the command is received. The other receive command IDs
@@ -93,6 +100,7 @@ private:
 
 	std::unordered_map<u8, std::string> getNetplayNames();
 
+	bool isFastForward = false;
 	std::vector<u8> m_read_queue;
 	Slippi::SlippiGame* m_current_game = nullptr;
 

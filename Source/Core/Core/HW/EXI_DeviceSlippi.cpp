@@ -345,6 +345,10 @@ void CEXISlippi::prepareGameInfo()
 	m_read_queue.push_back(1);
 
 	Slippi::GameSettings *settings = m_current_game->GetSettings();
+	auto isFullReplay = m_current_game->IsProcessingComplete();
+
+	// Start in Fast Forward if this is mirrored
+	isFastForward = !isFullReplay;
 
 	// Build a word containing the stage and the presence of the characters
 	u32 randomSeed = settings->randomSeed;
@@ -483,7 +487,7 @@ void CEXISlippi::prepareFrameData(u8 *payload)
 	auto isNewReplay = replayComm->isNewReplay();
 	if (isNewReplay)
 	{
-		m_read_queue.push_back(2);
+		m_read_queue.push_back(FRAME_RESP_TERMINATE);
 		return;
 	}
 
@@ -498,16 +502,22 @@ void CEXISlippi::prepareFrameData(u8 *payload)
 	auto isFrameComplete = checkFrameFullyFetched(frameIndex);
 	auto isFrameReady = isFrameFound && (isProcessingComplete || isNextFrameFound || isFrameComplete);
 
-	u8 requestResultCode = 1;
+	// TODO: Decide whether to turn on fast forwarding. Perhaps replace isNextFrameFound with count
+	// TODO: and then use count to determine whether to fast forward
+
+	u8 requestResultCode = isFastForward ? FRAME_RESP_FASTFORWARD : FRAME_RESP_CONTINUE;
 	if (!isFrameReady)
 	{
 		// If processing is complete, the game has terminated early. Tell our playback
 		// to end the game as well.
 		auto shouldTerminateGame = isProcessingComplete;
-		requestResultCode = shouldTerminateGame ? 2 : 0;
+		requestResultCode = shouldTerminateGame ? FRAME_RESP_TERMINATE : FRAME_RESP_WAIT;
 		m_read_queue.push_back(requestResultCode);
 
-		if (requestResultCode == 2)
+		// Disable fast forwarding once we have caught up to data
+		isFastForward = false;
+
+		if (requestResultCode == FRAME_RESP_TERMINATE)
 		{
 			ERROR_LOG(EXPANSIONINTERFACE, "Game should terminate on frame %d [%X]", frameIndex, frameIndex);
 		}
