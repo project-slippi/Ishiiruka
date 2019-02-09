@@ -33,9 +33,15 @@ SlippiReplayComm::SlippiReplayComm()
 
 SlippiReplayComm::~SlippiReplayComm() {}
 
+SlippiReplayComm::CommSettings SlippiReplayComm::getSettings()
+{
+	return commFileSettings;
+}
+
 bool SlippiReplayComm::isNewReplay()
 {
-	std::string replayFilePath = getReplay();
+	loadFile();
+	std::string replayFilePath = commFileSettings.replayPath;
 
 	// TODO: This logic for detecting a new replay isn't quite good enough
 	// TODO: wont work in the case where someone tries to load the same
@@ -48,7 +54,7 @@ bool SlippiReplayComm::isNewReplay()
 
 Slippi::SlippiGame *SlippiReplayComm::loadGame()
 {
-	auto replayFilePath = getReplay();
+	auto replayFilePath = commFileSettings.replayPath;
 	INFO_LOG(EXPANSIONINTERFACE, "Attempting to load replay file %s", replayFilePath.c_str());
 	auto result = Slippi::SlippiGame::FromFile(replayFilePath);
 	if (result)
@@ -64,11 +70,15 @@ Slippi::SlippiGame *SlippiReplayComm::loadGame()
 	return result;
 }
 
-std::string SlippiReplayComm::getReplay()
+void SlippiReplayComm::loadFile()
 {
-	std::string replayFilePath;
-	File::ReadFileToString(configFilePath, replayFilePath);
-	trim(replayFilePath);
+	// TODO: Maybe load file in a more intelligent way to save
+	// TODO: file operations
+	std::string commFileContents;
+	File::ReadFileToString(configFilePath, commFileContents);
+	auto res = json::parse(commFileContents);
 
-	return replayFilePath;
+	// TODO: Support file with only path string
+	commFileSettings.replayPath = res["replay"];
+	commFileSettings.isRealTimeMode = res["isRealTimeMode"];
 }
