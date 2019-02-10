@@ -48,3 +48,4 @@ Ishiiruka.pro
 Source/.idea/
 *.Build.CppClean.log
 .vscode/
+Externals/nlohmann/x64

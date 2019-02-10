@@ -499,7 +499,7 @@ void CEXISlippi::prepareFrameData(u8 *payload)
 	// (this is the last frame, in that case)
 	auto isFrameFound = m_current_game->DoesFrameExist(frameIndex);
 	auto latestFrame = m_current_game->GetFrameCount();
-	auto isNextFrameFound = latestFrame > isFrameFound;
+	auto isNextFrameFound = latestFrame > frameIndex;
 	auto isFrameComplete = checkFrameFullyFetched(frameIndex);
 	auto isFrameReady = isFrameFound && (isProcessingComplete || isNextFrameFound || isFrameComplete);
 
