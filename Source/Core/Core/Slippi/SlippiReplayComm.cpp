@@ -76,6 +76,8 @@ void SlippiReplayComm::loadFile()
 	// TODO: file operations
 	std::string commFileContents;
 	File::ReadFileToString(configFilePath, commFileContents);
+
+	// TODO: Deal with errors such as parse error
 	auto res = json::parse(commFileContents);
 
 	// TODO: Support file with only path string

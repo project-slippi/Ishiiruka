@@ -481,7 +481,7 @@ void CEXISlippi::prepareFrameData(u8 *payload)
 	// Parse input
 	int32_t frameIndex = payload[0] << 24 | payload[1] << 16 | payload[2] << 8 | payload[3];
 
-	WARN_LOG(EXPANSIONINTERFACE, "Frame %d has been requested!", frameIndex);
+	INFO_LOG(EXPANSIONINTERFACE, "Frame %d has been requested!", frameIndex);
 
 	// If a new replay should be played, terminate the current game
 	auto isNewReplay = replayComm->isNewReplay();
@@ -506,8 +506,9 @@ void CEXISlippi::prepareFrameData(u8 *payload)
 	// If RealTimeMode is enabled, let's trigger fast forwarding under certain conditions
 	auto commSettings = replayComm->getSettings();
 	auto isFarAhead = latestFrame - frameIndex > 2;
-	if (isFarAhead && commSettings.isRealTimeMode) 
+	if (isFarAhead && commSettings.isRealTimeMode && !isFastForward) 
 	{
+		WARN_LOG(EXPANSIONINTERFACE, "[Frame %d] Start FFW, behind by: %d frames.", frameIndex, latestFrame - frameIndex);
 		isFastForward = true;
 	}
 
