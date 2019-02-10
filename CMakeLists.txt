@@ -661,6 +661,7 @@ add_subdirectory(Externals/glslang)
 
 add_subdirectory(Externals/SlippiLib)
 include_directories(Externals/SlippiLib)
+include_directories(Externals/nlohmann)
 
 if(USE_SHARED_ENET)
 	check_lib(ENET libenet enet enet/enet.h QUIET)

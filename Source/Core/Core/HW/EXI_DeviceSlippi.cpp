@@ -481,7 +481,7 @@ void CEXISlippi::prepareFrameData(u8 *payload)
 	// Parse input
 	int32_t frameIndex = payload[0] << 24 | payload[1] << 16 | payload[2] << 8 | payload[3];
 
-	WARN_LOG(EXPANSIONINTERFACE, "Frame %d has been requested!", frameIndex);
+	INFO_LOG(EXPANSIONINTERFACE, "Frame %d has been requested!", frameIndex);
 
 	// If a new replay should be played, terminate the current game
 	auto isNewReplay = replayComm->isNewReplay();
@@ -498,12 +498,29 @@ void CEXISlippi::prepareFrameData(u8 *payload)
 	// data from this frame. Don't wait until next frame is processing is complete
 	// (this is the last frame, in that case)
 	auto isFrameFound = m_current_game->DoesFrameExist(frameIndex);
-	auto isNextFrameFound = m_current_game->DoesFrameExist(frameIndex + 1);
+	auto latestFrame = m_current_game->GetFrameCount();
+	auto isNextFrameFound = latestFrame > frameIndex;
 	auto isFrameComplete = checkFrameFullyFetched(frameIndex);
 	auto isFrameReady = isFrameFound && (isProcessingComplete || isNextFrameFound || isFrameComplete);
 
-	// TODO: Decide whether to turn on fast forwarding. Perhaps replace isNextFrameFound with count
-	// TODO: and then use count to determine whether to fast forward
+	// If RealTimeMode is enabled, let's trigger fast forwarding under certain conditions
+	auto commSettings = replayComm->getSettings();
+	auto isFarAhead = latestFrame - frameIndex > 2;
+	if (isFarAhead && commSettings.isRealTimeMode && !isFastForward) 
+	{
+		WARN_LOG(EXPANSIONINTERFACE, "[Frame %d] Start FFW, behind by: %d frames.", frameIndex, latestFrame - frameIndex);
+		isFastForward = true;
+	}
+
+	if (latestFrame - frameIndex == 0)
+	{
+		// The reason to disable fast forwarding here is in hopes
+		// of disabling it on the last frame that we have actually received.
+		// Doing this will allow the rendering logic to run to display the
+		// last frame instead of the frame previous to fast forwarding.
+		// Not sure if this fully works with partial frames
+		isFastForward = false;
+	}
 
 	u8 requestResultCode = isFastForward ? FRAME_RESP_FASTFORWARD : FRAME_RESP_CONTINUE;
 	if (!isFrameReady)
@@ -514,7 +531,8 @@ void CEXISlippi::prepareFrameData(u8 *payload)
 		requestResultCode = shouldTerminateGame ? FRAME_RESP_TERMINATE : FRAME_RESP_WAIT;
 		m_read_queue.push_back(requestResultCode);
 
-		// Disable fast forwarding once we have caught up to data
+		// Disable fast forward here too... this shouldn't be necessary but better
+		// safe than sorry I guess
 		isFastForward = false;
 
 		if (requestResultCode == FRAME_RESP_TERMINATE)
@@ -525,10 +543,8 @@ void CEXISlippi::prepareFrameData(u8 *payload)
 		return;
 	}
 
-	// auto currentFrame = frameIndex;
-	// auto latestFrame = m_current_game->GetFrameCount();
-	// WARN_LOG(EXPANSIONINTERFACE, "[Frame %d] Playback current behind by: %d frames.", currentFrame,
-	//         latestFrame - currentFrame);
+	// WARN_LOG(EXPANSIONINTERFACE, "[Frame %d] Playback current behind by: %d frames.", frameIndex,
+	//         latestFrame - frameIndex);
 
 	// Return success code
 	m_read_queue.push_back(requestResultCode);
