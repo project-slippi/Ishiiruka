@@ -77,10 +77,25 @@ void SlippiReplayComm::loadFile()
 	std::string commFileContents;
 	File::ReadFileToString(configFilePath, commFileContents);
 
-	// TODO: Deal with errors such as parse error
-	auto res = json::parse(commFileContents);
+	auto res = json::parse(commFileContents, nullptr, false);
+	if (res.is_discarded() || !res.is_object())
+	{
+		// Happens if there is a parse error, I think?
+		commFileSettings.replayPath = "";
+		commFileSettings.isRealTimeMode = false;
+
+		if (res.is_string())
+		{
+			// If we have a string, let's use that as the replayPath
+			// This is really only here because when developing it might be easier
+			// to just throw in a string instead of an object
+			commFileSettings.replayPath = res;
+		}	
+		
+		return;
+	}
 
 	// TODO: Support file with only path string
-	commFileSettings.replayPath = res["replay"];
-	commFileSettings.isRealTimeMode = res["isRealTimeMode"];
+	commFileSettings.replayPath = res.value("replay", "");
+	commFileSettings.isRealTimeMode = res.value("isRealTimeMode", false);
 }
