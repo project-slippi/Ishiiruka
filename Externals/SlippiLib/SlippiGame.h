@@ -77,6 +77,7 @@ namespace Slippi {
     std::array<uint32_t, GAME_INFO_HEADER_SIZE> header;
     std::array<uint32_t, UCF_TOGGLE_SIZE> ucfToggles;
     std::unordered_map<uint8_t, PlayerSettings> players;
+	uint8_t isPAL;
   } GameSettings;
 
   typedef struct {

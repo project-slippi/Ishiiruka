@@ -73,6 +73,9 @@ namespace Slippi {
       }
     }
 
+	// Read isPAL byte
+	game->settings.isPAL = readByte(data, idx, maxSize, 0);
+
     // Pull header data into struct
     int player1Pos = 24; // This is the index of the first players character info
     std::array<uint32_t, Slippi::GAME_INFO_HEADER_SIZE> gameInfoHeader = game->settings.header;

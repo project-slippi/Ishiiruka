@@ -407,6 +407,9 @@ void CEXISlippi::prepareGameInfo()
 			appendHalfToBuffer(&m_read_queue, player.nametag[j]);
 		}
 	}
+
+	// Write PAL byte
+	m_read_queue.push_back(settings->isPAL);
 }
 
 void CEXISlippi::prepareCharacterFrameData(int32_t frameIndex, u8 port, u8 isFollower)
