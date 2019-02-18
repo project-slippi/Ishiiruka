@@ -35,9 +35,11 @@ Dolphin can only be installed on devices that satisfy the above requirements. At
 
 ## Building for Windows
 Use the solution file `Source/dolphin-emu.sln` to build Dolphin on Windows.
-Visual Studio 2015 Update 2 is a hard requirement. Other compilers might be
+Visual Studio 2017 is now used. Other compilers might be
 able to build Dolphin on Windows but have not been tested and are not
-recommended to be used. Git and Windows 10 SDK 10.0.10586.0 must be installed.
+recommended to be used. Git and [Windows 10 SDK 10.0.10586.0](http://www.microsoft.com/en-us/download/details.aspx?id=6812) must be installed.
+
+You will most likely have issues installing this, look at [this comment](https://stackoverflow.com/a/9401911) for how to fix it. Not sure everything in it is a hard requirement.
 
 An installer can be created by using the `Installer.nsi` script in the
 Installer directory. This will require the Nullsoft Scriptable Install System
