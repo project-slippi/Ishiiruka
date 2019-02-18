@@ -41,6 +41,8 @@ recommended to be used. Git and [Windows 10 SDK 10.0.10586.0](http://www.microso
 
 You will most likely have issues installing this, look at [this comment](https://stackoverflow.com/a/9401911) for how to fix it. Not sure everything in it is a hard requirement.
 
+If you have trouble with some `.lib` files missing, right click the Externals directory and click rebuild.
+
 An installer can be created by using the `Installer.nsi` script in the
 Installer directory. This will require the Nullsoft Scriptable Install System
 (NSIS) to be installed. Creating an installer is not necessary to run Dolphin
