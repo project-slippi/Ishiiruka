@@ -481,10 +481,26 @@ void CEXISlippi::prepareFrameData(u8 *payload)
 		return;
 	}
 
+// # request frame number
+//   lis r4,0x8048
+//   lwz r4,-0x62A8(r4) # load scene controller frame count
+//   lis r3,0x8047
+//   lwz r3,-0x493C(r3) #load match frame count
+//   cmpwi r3, 0
+//   bne TimerHasStarted #this makes it so that if the timer hasn't started yet, we have a unique frame count still
+//   sub r3,r3,r4
+//   li r4,-0x7B
+//   sub r3,r4,r3
+
+	// Use old frame index logic for debugging
+	u32 sceneController = Memory::Read_U32(0x80479D58);
+	u32 matchFrameCount = Memory::Read_U32(0x8046B6C4);
+	s32 oldFrameIndex = matchFrameCount == 0 ? sceneController - 123 : matchFrameCount;
+
 	// Parse input
 	int32_t frameIndex = payload[0] << 24 | payload[1] << 16 | payload[2] << 8 | payload[3];
 
-	INFO_LOG(EXPANSIONINTERFACE, "Frame %d has been requested!", frameIndex);
+	INFO_LOG(EXPANSIONINTERFACE, "Frame %d has been requested! Old: %d", frameIndex, oldFrameIndex);
 
 	// If a new replay should be played, terminate the current game
 	auto isNewReplay = replayComm->isNewReplay();
