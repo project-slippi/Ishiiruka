@@ -13,6 +13,7 @@ class SlippiReplayComm
 	typedef struct {
 		std::string replayPath;
 		bool isRealTimeMode;
+		std::string commandId;
 	} CommSettings;
 	
 	SlippiReplayComm();
@@ -28,6 +29,7 @@ class SlippiReplayComm
 	std::string configFilePath;
 	json fileData;
 	std::string previousReplayLoaded;
+	std::string previousCommandId;
 
 	CommSettings commFileSettings;
 };

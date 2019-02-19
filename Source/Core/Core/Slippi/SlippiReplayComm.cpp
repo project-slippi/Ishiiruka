@@ -43,11 +43,14 @@ bool SlippiReplayComm::isNewReplay()
 	loadFile();
 	std::string replayFilePath = commFileSettings.replayPath;
 
-	// TODO: This logic for detecting a new replay isn't quite good enough
-	// TODO: wont work in the case where someone tries to load the same
-	// TODO: replay twice in a row
-	bool isNewReplay = replayFilePath != previousReplayLoaded;
+	bool hasPathChanged = replayFilePath != previousReplayLoaded;
 	bool isReplay = !!replayFilePath.length();
+
+	// The previous check is mostly good enough but it does not
+	// work if someone tries to load the same replay twice in a row
+	// the commandId was added to deal with this
+	bool hasCommandChanged = commFileSettings.commandId != previousCommandId;
+	bool isNewReplay = hasPathChanged || hasCommandChanged;
 
 	return isReplay && isNewReplay;
 }
@@ -65,6 +68,7 @@ Slippi::SlippiGame *SlippiReplayComm::loadGame()
 		// the replay considered new so that the file will attempt to be
 		// loaded again
 		previousReplayLoaded = replayFilePath;
+		previousCommandId = commFileSettings.commandId;
 	}
 
 	return result;
@@ -82,6 +86,7 @@ void SlippiReplayComm::loadFile()
 	{
 		// Happens if there is a parse error, I think?
 		commFileSettings.replayPath = "";
+		commFileSettings.commandId = "";
 		commFileSettings.isRealTimeMode = false;
 
 		if (res.is_string())
@@ -97,5 +102,6 @@ void SlippiReplayComm::loadFile()
 
 	// TODO: Support file with only path string
 	commFileSettings.replayPath = res.value("replay", "");
+	commFileSettings.commandId = res.value("commandId", "");
 	commFileSettings.isRealTimeMode = res.value("isRealTimeMode", false);
 }
