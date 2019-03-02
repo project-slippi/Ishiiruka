@@ -62,6 +62,8 @@ missing packages yourself.
 
 An application bundle will be created in `./Binaries`.
 
+If you are building on Mojave or later, you will need to install the 10.11 SDK to build because Quicktime has been removed in the latest SDKs. You should be able to do this by running a command like `./XcodeLegacy.sh install -osx1011` as provided by this repo: https://github.com/devernay/xcodelegacy
+
 ### Linux Global Build Steps:
 
 To install to your system.
