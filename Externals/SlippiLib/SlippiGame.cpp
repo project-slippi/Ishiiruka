@@ -440,6 +440,11 @@ namespace Slippi {
     return (bool)game->frameData.count(frame);
   }
 
+  std::array<uint8_t, 4> SlippiGame::GetVersion()
+  {
+	  return game->version;
+  }
+
   FrameData* SlippiGame::GetFrame(int32_t frame) {
     // Get the frame we want
     return &game->frameData.at(frame);

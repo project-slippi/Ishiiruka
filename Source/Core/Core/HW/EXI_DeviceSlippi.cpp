@@ -410,6 +410,15 @@ void CEXISlippi::prepareGameInfo()
 
 	// Write PAL byte
 	m_read_queue.push_back(settings->isPAL);
+
+	// Get replay version numbers
+	auto replayVersion = m_current_game->GetVersion();
+	auto majorVersion = replayVersion[0];
+	auto minorVersion = replayVersion[1];
+
+	// Write PS pre-load byte
+	auto shouldPreloadPs = majorVersion > 1 || (majorVersion == 1 && minorVersion > 2);
+	m_read_queue.push_back(shouldPreloadPs);
 }
 
 void CEXISlippi::prepareCharacterFrameData(int32_t frameIndex, u8 port, u8 isFollower)

@@ -107,6 +107,7 @@ namespace Slippi {
     static SlippiGame* FromFile(std::string path);
     bool AreSettingsLoaded();
     bool DoesFrameExist(int32_t frame);
+	std::array<uint8_t, 4> GetVersion();
     FrameData* GetFrame(int32_t frame);
     int32_t GetFrameCount();
     GameSettings* GetSettings();
