@@ -153,7 +153,6 @@ void SlippiReplayComm::loadFile()
 			};
 		}
 
-		INFO_LOG(EXPANSIONINTERFACE, "First file in queue %s", commFileSettings.queue.front().path.c_str());
 		isFirstLoad = false;
 	}
 }

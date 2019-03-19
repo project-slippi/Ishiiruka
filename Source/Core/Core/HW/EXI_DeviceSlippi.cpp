@@ -348,8 +348,8 @@ void CEXISlippi::prepareGameInfo()
 	auto isFullReplay = m_current_game->IsProcessingComplete();
 
 	// Start in Fast Forward if this is mirrored
-	// TODO: Fix issue where corrupt replays will ffw through the whole thing
-	isFastForward = !isFullReplay;
+	auto replayCommSettings = replayComm->getSettings();
+	isFastForward = replayCommSettings.mode == "mirror";
 
 	// Build a word containing the stage and the presence of the characters
 	u32 randomSeed = settings->randomSeed;
@@ -523,21 +523,24 @@ void CEXISlippi::prepareFrameData(u8 *payload)
 	auto isFrameComplete = checkFrameFullyFetched(frameIndex);
 	auto isFrameReady = isFrameFound && (isProcessingComplete || isNextFrameFound || isFrameComplete);
 
-	// If we haven't reached the start frame
-	if (frameIndex < watchSettings.startFrame)
+	// If there is a startFrame configured, manage the fast-forward flag
+	if (watchSettings.startFrame > Slippi::GAME_FIRST_FRAME)
 	{
-		isFastForward = true;
-	}
-	else if (frameIndex == watchSettings.startFrame)
-	{
-		// TODO: This might disable fast forward on first frame when we dont want to?
-		isFastForward = false;
+		if (frameIndex < watchSettings.startFrame)
+		{
+			isFastForward = true;
+		}
+		else if (frameIndex == watchSettings.startFrame)
+		{
+			// TODO: This might disable fast forward on first frame when we dont want to?
+			isFastForward = false;
+		}
 	}
 
 	// If RealTimeMode is enabled, let's trigger fast forwarding under certain conditions
 	auto commSettings = replayComm->getSettings();
 	auto isFarAhead = latestFrame - frameIndex > 2;
-	if (isFarAhead && commSettings.isRealTimeMode && !isFastForward) 
+	if (isFarAhead && commSettings.mode == "mirror" && commSettings.isRealTimeMode && !isFastForward) 
 	{
 		WARN_LOG(EXPANSIONINTERFACE, "[Frame %d] Start FFW, behind by: %d frames.", frameIndex, latestFrame - frameIndex);
 		isFastForward = true;
