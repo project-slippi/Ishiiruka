@@ -348,6 +348,7 @@ void CEXISlippi::prepareGameInfo()
 	auto isFullReplay = m_current_game->IsProcessingComplete();
 
 	// Start in Fast Forward if this is mirrored
+	// TODO: Fix issue where corrupt replays will ffw through the whole thing
 	isFastForward = !isFullReplay;
 
 	// Build a word containing the stage and the presence of the characters
@@ -490,26 +491,17 @@ void CEXISlippi::prepareFrameData(u8 *payload)
 		return;
 	}
 
-// # request frame number
-//   lis r4,0x8048
-//   lwz r4,-0x62A8(r4) # load scene controller frame count
-//   lis r3,0x8047
-//   lwz r3,-0x493C(r3) #load match frame count
-//   cmpwi r3, 0
-//   bne TimerHasStarted #this makes it so that if the timer hasn't started yet, we have a unique frame count still
-//   sub r3,r3,r4
-//   li r4,-0x7B
-//   sub r3,r4,r3
-
-	// Use old frame index logic for debugging
-	u32 sceneController = Memory::Read_U32(0x80479D58);
-	u32 matchFrameCount = Memory::Read_U32(0x8046B6C4);
-	s32 oldFrameIndex = matchFrameCount == 0 ? sceneController - 123 : matchFrameCount;
-
 	// Parse input
 	int32_t frameIndex = payload[0] << 24 | payload[1] << 16 | payload[2] << 8 | payload[3];
 
-	INFO_LOG(EXPANSIONINTERFACE, "Frame %d has been requested! Old: %d", frameIndex, oldFrameIndex);
+	// If loading from queue, move on to the next replay if we have past endFrame
+	auto watchSettings = replayComm->current;
+	if (frameIndex > watchSettings.endFrame)
+	{
+		INFO_LOG(EXPANSIONINTERFACE, "Killing game because we are past endFrame");
+		m_read_queue.push_back(FRAME_RESP_TERMINATE);
+		return;
+	}
 
 	// If a new replay should be played, terminate the current game
 	auto isNewReplay = replayComm->isNewReplay();
@@ -530,6 +522,17 @@ void CEXISlippi::prepareFrameData(u8 *payload)
 	auto isNextFrameFound = latestFrame > frameIndex;
 	auto isFrameComplete = checkFrameFullyFetched(frameIndex);
 	auto isFrameReady = isFrameFound && (isProcessingComplete || isNextFrameFound || isFrameComplete);
+
+	// If we haven't reached the start frame
+	if (frameIndex < watchSettings.startFrame)
+	{
+		isFastForward = true;
+	}
+	else if (frameIndex == watchSettings.startFrame)
+	{
+		// TODO: This might disable fast forward on first frame when we dont want to?
+		isFastForward = false;
+	}
 
 	// If RealTimeMode is enabled, let's trigger fast forwarding under certain conditions
 	auto commSettings = replayComm->getSettings();
@@ -656,6 +659,7 @@ void CEXISlippi::prepareIsFileReady()
 	auto isNewReplay = replayComm->isNewReplay();
 	if (!isNewReplay)
 	{
+		replayComm->nextReplay();
 		m_read_queue.push_back(0);
 		return;
 	}

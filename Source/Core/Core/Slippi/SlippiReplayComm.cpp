@@ -38,10 +38,22 @@ SlippiReplayComm::CommSettings SlippiReplayComm::getSettings()
 	return commFileSettings;
 }
 
+std::string SlippiReplayComm::getReplayPath()
+{
+	std::string replayFilePath = commFileSettings.replayPath;
+	if (commFileSettings.mode == "queue")
+	{
+		// If we are in queue mode, let's grab the replay from the queue instead
+		replayFilePath = commFileSettings.queue.empty() ? "" : commFileSettings.queue.front().path;
+	}
+
+	return replayFilePath;
+}
+
 bool SlippiReplayComm::isNewReplay()
 {
 	loadFile();
-	std::string replayFilePath = commFileSettings.replayPath;
+	std::string replayFilePath = getReplayPath();
 
 	bool hasPathChanged = replayFilePath != previousReplayLoaded;
 	bool isReplay = !!replayFilePath.length();
@@ -55,20 +67,38 @@ bool SlippiReplayComm::isNewReplay()
 	return isReplay && isNewReplay;
 }
 
+void SlippiReplayComm::nextReplay()
+{
+	if (commFileSettings.queue.empty())
+		return;
+
+	// Increment queue position
+	commFileSettings.queue.pop();
+}
+
 Slippi::SlippiGame *SlippiReplayComm::loadGame()
 {
-	auto replayFilePath = commFileSettings.replayPath;
+	auto replayFilePath = getReplayPath();
 	INFO_LOG(EXPANSIONINTERFACE, "Attempting to load replay file %s", replayFilePath.c_str());
 	auto result = Slippi::SlippiGame::FromFile(replayFilePath);
 	if (result)
 	{
-		// If we successfully loaded a SlippiGame, indicate as such so 
+		// If we successfully loaded a SlippiGame, indicate as such so
 		// that this game won't be considered new anymore. If the replay
 		// file did not exist yet, result will be falsy, which will keep
 		// the replay considered new so that the file will attempt to be
 		// loaded again
 		previousReplayLoaded = replayFilePath;
 		previousCommandId = commFileSettings.commandId;
+
+		WatchSettings ws;
+		ws.path = replayFilePath;
+		if (commFileSettings.mode == "queue")
+		{
+			ws = commFileSettings.queue.front();
+		}
+
+		current = ws;
 	}
 
 	return result;
@@ -95,13 +125,35 @@ void SlippiReplayComm::loadFile()
 			// This is really only here because when developing it might be easier
 			// to just throw in a string instead of an object
 			commFileSettings.replayPath = res;
-		}	
-		
+		}
+
 		return;
 	}
 
 	// TODO: Support file with only path string
+	commFileSettings.mode = res.value("mode", "normal");
 	commFileSettings.replayPath = res.value("replay", "");
 	commFileSettings.commandId = res.value("commandId", "");
 	commFileSettings.isRealTimeMode = res.value("isRealTimeMode", false);
+
+	if (isFirstLoad)
+	{
+		auto queue = res["queue"];
+		if (queue.is_array())
+		{
+			for (json::iterator it = queue.begin(); it != queue.end(); ++it)
+			{
+				json el = *it;
+				WatchSettings w = {};
+				w.path = el.value("path", "");
+				w.startFrame = el.value("startFrame", Slippi::GAME_FIRST_FRAME);
+				w.endFrame = el.value("endFrame", INT_MAX);
+
+				commFileSettings.queue.push(w);
+			};
+		}
+
+		INFO_LOG(EXPANSIONINTERFACE, "First file in queue %s", commFileSettings.queue.front().path.c_str());
+		isFirstLoad = false;
+	}
 }
