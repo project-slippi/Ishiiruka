@@ -20,6 +20,8 @@ class SlippiReplayComm
 	typedef struct {
 		std::string mode;
 		std::string replayPath;
+		int startFrame = Slippi::GAME_FIRST_FRAME;
+		int endFrame = INT_MAX;
 		bool isRealTimeMode;
 		std::string commandId;
 		std::queue<WatchSettings> queue;

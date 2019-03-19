@@ -93,6 +93,8 @@ Slippi::SlippiGame *SlippiReplayComm::loadGame()
 
 		WatchSettings ws;
 		ws.path = replayFilePath;
+		ws.startFrame = commFileSettings.startFrame;
+		ws.endFrame = commFileSettings.endFrame;
 		if (commFileSettings.mode == "queue")
 		{
 			ws = commFileSettings.queue.front();
@@ -118,6 +120,8 @@ void SlippiReplayComm::loadFile()
 		commFileSettings.replayPath = "";
 		commFileSettings.commandId = "";
 		commFileSettings.isRealTimeMode = false;
+		commFileSettings.startFrame = Slippi::GAME_FIRST_FRAME;
+		commFileSettings.endFrame = INT_MAX;
 
 		if (res.is_string())
 		{
@@ -133,6 +137,8 @@ void SlippiReplayComm::loadFile()
 	// TODO: Support file with only path string
 	commFileSettings.mode = res.value("mode", "normal");
 	commFileSettings.replayPath = res.value("replay", "");
+	commFileSettings.startFrame = res.value("startFrame", Slippi::GAME_FIRST_FRAME);
+	commFileSettings.endFrame = res.value("endFrame", INT_MAX);
 	commFileSettings.commandId = res.value("commandId", "");
 	commFileSettings.isRealTimeMode = res.value("isRealTimeMode", false);
 
