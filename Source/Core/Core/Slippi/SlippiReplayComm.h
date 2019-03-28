@@ -14,6 +14,8 @@ class SlippiReplayComm
 		std::string path;
 		int startFrame = Slippi::GAME_FIRST_FRAME;
 		int endFrame = INT_MAX;
+		std::string gameStartAt = "";
+		std::string gameStation = "";
 	} WatchSettings;
 
 	// Loaded file contents
@@ -22,6 +24,7 @@ class SlippiReplayComm
 		std::string replayPath;
 		int startFrame = Slippi::GAME_FIRST_FRAME;
 		int endFrame = INT_MAX;
+		bool outputOverlayFiles;
 		bool isRealTimeMode;
 		std::string commandId;
 		std::queue<WatchSettings> queue;

@@ -100,6 +100,12 @@ Slippi::SlippiGame *SlippiReplayComm::loadGame()
 			ws = commFileSettings.queue.front();
 		}
 
+		if (commFileSettings.outputOverlayFiles)
+		{
+			File::WriteStringToFile(ws.gameStation, "Slippi/out-station.txt");
+			File::WriteStringToFile(ws.gameStartAt, "Slippi/out-time.txt");
+		}
+
 		current = ws;
 	}
 
@@ -117,11 +123,13 @@ void SlippiReplayComm::loadFile()
 	if (res.is_discarded() || !res.is_object())
 	{
 		// Happens if there is a parse error, I think?
+		commFileSettings.mode = "normal";
 		commFileSettings.replayPath = "";
-		commFileSettings.commandId = "";
-		commFileSettings.isRealTimeMode = false;
 		commFileSettings.startFrame = Slippi::GAME_FIRST_FRAME;
 		commFileSettings.endFrame = INT_MAX;
+		commFileSettings.commandId = "";
+		commFileSettings.outputOverlayFiles = false;
+		commFileSettings.isRealTimeMode = false;
 
 		if (res.is_string())
 		{
@@ -129,6 +137,10 @@ void SlippiReplayComm::loadFile()
 			// This is really only here because when developing it might be easier
 			// to just throw in a string instead of an object
 			commFileSettings.replayPath = res;
+		}
+		else
+		{
+			WARN_LOG(EXPANSIONINTERFACE, "Comm file load error detected. Check file format");
 		}
 
 		return;
@@ -140,6 +152,7 @@ void SlippiReplayComm::loadFile()
 	commFileSettings.startFrame = res.value("startFrame", Slippi::GAME_FIRST_FRAME);
 	commFileSettings.endFrame = res.value("endFrame", INT_MAX);
 	commFileSettings.commandId = res.value("commandId", "");
+	commFileSettings.outputOverlayFiles = res.value("outputOverlayFiles", false);
 	commFileSettings.isRealTimeMode = res.value("isRealTimeMode", false);
 
 	if (isFirstLoad)
@@ -154,6 +167,8 @@ void SlippiReplayComm::loadFile()
 				w.path = el.value("path", "");
 				w.startFrame = el.value("startFrame", Slippi::GAME_FIRST_FRAME);
 				w.endFrame = el.value("endFrame", INT_MAX);
+				w.gameStartAt = el.value("gameStartAt", "");
+				w.gameStation = el.value("gameStation", "");
 
 				commFileSettings.queue.push(w);
 			};
