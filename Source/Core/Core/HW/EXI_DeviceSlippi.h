@@ -84,6 +84,7 @@ private:
 	void closeFile();
 	std::string generateFileName();
 	bool checkFrameFullyFetched(int32_t frameIndex);
+	bool shouldFFWFrame(int32_t frameIndex);
 
 	//std::ofstream log;
 
@@ -100,7 +101,9 @@ private:
 
 	std::unordered_map<u8, std::string> getNetplayNames();
 
-	bool isFastForward = false;
+	bool isSoftFFW = false;
+	bool isHardFFW = false;
+	int32_t lastFFWFrame = INT_MIN;
 	std::vector<u8> m_read_queue;
 	Slippi::SlippiGame* m_current_game = nullptr;
 

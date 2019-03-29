@@ -349,7 +349,8 @@ void CEXISlippi::prepareGameInfo()
 
 	// Start in Fast Forward if this is mirrored
 	auto replayCommSettings = replayComm->getSettings();
-	isFastForward = replayCommSettings.mode == "mirror";
+	isHardFFW = replayCommSettings.mode == "mirror";
+	lastFFWFrame = INT_MIN;
 
 	// Build a word containing the stage and the presence of the characters
 	u32 randomSeed = settings->randomSeed;
@@ -528,22 +529,29 @@ void CEXISlippi::prepareFrameData(u8 *payload)
 	{
 		if (frameIndex < watchSettings.startFrame)
 		{
-			isFastForward = true;
+			isHardFFW = true;
 		}
 		else if (frameIndex == watchSettings.startFrame)
 		{
 			// TODO: This might disable fast forward on first frame when we dont want to?
-			isFastForward = false;
+			isHardFFW = false;
 		}
 	}
 
 	// If RealTimeMode is enabled, let's trigger fast forwarding under certain conditions
 	auto commSettings = replayComm->getSettings();
-	auto isFarAhead = latestFrame - frameIndex > 2;
-	if (isFarAhead && commSettings.mode == "mirror" && commSettings.isRealTimeMode && !isFastForward) 
+	auto isFarBehind = latestFrame - frameIndex > 2;
+	auto isVeryFarBehind = latestFrame - frameIndex > 25;
+	if (isFarBehind && commSettings.mode == "mirror" && commSettings.isRealTimeMode)
 	{
-		WARN_LOG(EXPANSIONINTERFACE, "[Frame %d] Start FFW, behind by: %d frames.", frameIndex, latestFrame - frameIndex);
-		isFastForward = true;
+		isSoftFFW = true;
+
+		// Once isHardFFW has been turned on, do not turn it off with this condition, should
+		// hard FFW to the latest point
+		if (!isHardFFW)
+		{
+			isHardFFW = isVeryFarBehind;
+		}
 	}
 
 	if (latestFrame - frameIndex == 0)
@@ -553,10 +561,12 @@ void CEXISlippi::prepareFrameData(u8 *payload)
 		// Doing this will allow the rendering logic to run to display the
 		// last frame instead of the frame previous to fast forwarding.
 		// Not sure if this fully works with partial frames
-		isFastForward = false;
+		isSoftFFW = false;
+		isHardFFW = false;
 	}
 
-	u8 requestResultCode = isFastForward ? FRAME_RESP_FASTFORWARD : FRAME_RESP_CONTINUE;
+	bool shouldFFW = shouldFFWFrame(frameIndex);
+	u8 requestResultCode = shouldFFW ? FRAME_RESP_FASTFORWARD : FRAME_RESP_CONTINUE;
 	if (!isFrameReady)
 	{
 		// If processing is complete, the game has terminated early. Tell our playback
@@ -567,7 +577,8 @@ void CEXISlippi::prepareFrameData(u8 *payload)
 
 		// Disable fast forward here too... this shouldn't be necessary but better
 		// safe than sorry I guess
-		isFastForward = false;
+		isSoftFFW = false;
+		isHardFFW = false;
 
 		if (requestResultCode == FRAME_RESP_TERMINATE)
 		{
@@ -577,8 +588,16 @@ void CEXISlippi::prepareFrameData(u8 *payload)
 		return;
 	}
 
-	// WARN_LOG(EXPANSIONINTERFACE, "[Frame %d] Playback current behind by: %d frames.", frameIndex,
-	//         latestFrame - frameIndex);
+	 //WARN_LOG(EXPANSIONINTERFACE, "[Frame %d] Playback current behind by: %d frames.", frameIndex,
+	 //        latestFrame - frameIndex);
+
+	// Keep track of last FFW frame, used for soft FFW's
+	if (shouldFFW)
+	{
+		WARN_LOG(EXPANSIONINTERFACE, "[Frame %d] FFW frame, behind by: %d frames.", frameIndex,
+		         latestFrame - frameIndex);
+		lastFFWFrame = frameIndex;
+	}
 
 	// Return success code
 	m_read_queue.push_back(requestResultCode);
@@ -589,6 +608,24 @@ void CEXISlippi::prepareFrameData(u8 *payload)
 		prepareCharacterFrameData(frameIndex, port, 0);
 		prepareCharacterFrameData(frameIndex, port, 1);
 	}
+}
+
+bool CEXISlippi::shouldFFWFrame(int32_t frameIndex) {
+	if (!isSoftFFW && !isHardFFW)
+	{
+		// If no FFW at all, don't FFW this frame
+		return false;
+	}
+
+	if (isHardFFW)
+	{
+		// For a hard FFW, always FFW until it's turned off
+		return true;
+	}
+
+	// Here we have a soft FFW, we only want to turn on FFW for single frames once
+	// every X frames to FFW in a more smooth manner
+	return frameIndex - lastFFWFrame >= 15;
 }
 
 void CEXISlippi::prepareIsStockSteal(u8 *payload)
@@ -678,7 +715,6 @@ void CEXISlippi::prepareIsFileReady()
 		m_read_queue.push_back(0);
 		return;
 	}
-
 
 	INFO_LOG(EXPANSIONINTERFACE, "EXI_DeviceSlippi.cpp: Replay file loaded successfully!?");
 	// Start the playback!
