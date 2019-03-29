@@ -421,6 +421,9 @@ void CEXISlippi::prepareGameInfo()
 	// Write PS pre-load byte
 	auto shouldPreloadPs = majorVersion > 1 || (majorVersion == 1 && minorVersion > 2);
 	m_read_queue.push_back(shouldPreloadPs);
+
+	// Write PS Frozen byte
+	m_read_queue.push_back(settings->isFrozenPS);
 }
 
 void CEXISlippi::prepareCharacterFrameData(int32_t frameIndex, u8 port, u8 isFollower)

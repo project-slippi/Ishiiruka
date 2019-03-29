@@ -78,6 +78,7 @@ namespace Slippi {
     std::array<uint32_t, UCF_TOGGLE_SIZE> ucfToggles;
     std::unordered_map<uint8_t, PlayerSettings> players;
 	uint8_t isPAL;
+	uint8_t isFrozenPS;
   } GameSettings;
 
   typedef struct {
