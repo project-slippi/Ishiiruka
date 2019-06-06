@@ -62,7 +62,7 @@ bool SlippiReplayComm::isNewReplay()
 	// work if someone tries to load the same replay twice in a row
 	// the commandId was added to deal with this
 	bool hasCommandChanged = commFileSettings.commandId != previousCommandId;
-	bool hasQueueIdxChanged = commFileSettings.index != previousIndex;
+	bool hasQueueIdxChanged = commFileSettings.queue.front().index != previousIndex;
 	bool isNewReplay = hasPathChanged || hasCommandChanged || hasQueueIdxChanged;
 
 	return isReplay && isNewReplay;
@@ -91,7 +91,10 @@ Slippi::SlippiGame *SlippiReplayComm::loadGame()
 		// loaded again
 		previousReplayLoaded = replayFilePath;
 		previousCommandId = commFileSettings.commandId;
-		previousIndex = commFileSettings.index;
+		if (commFileSettings.mode == "queue")
+		{
+			previousIndex = commFileSettings.queue.front().index;
+		}
 
 		WatchSettings ws;
 		ws.path = replayFilePath;
@@ -162,7 +165,7 @@ void SlippiReplayComm::loadFile()
 		auto queue = res["queue"];
 		if (queue.is_array())
 		{
-			int idx = 0;
+			int index = 0;
 			for (json::iterator it = queue.begin(); it != queue.end(); ++it)
 			{
 				json el = *it;
@@ -172,7 +175,7 @@ void SlippiReplayComm::loadFile()
 				w.endFrame = el.value("endFrame", INT_MAX);
 				w.gameStartAt = el.value("gameStartAt", "");
 				w.gameStation = el.value("gameStation", "");
-				w.index = idx++;
+				w.index = index++;
 
 				commFileSettings.queue.push(w);
 			};

@@ -16,6 +16,7 @@ class SlippiReplayComm
 		int endFrame = INT_MAX;
 		std::string gameStartAt = "";
 		std::string gameStation = "";
+		int index = 0;
 	} WatchSettings;
 
 	// Loaded file contents
@@ -48,6 +49,7 @@ class SlippiReplayComm
 	json fileData;
 	std::string previousReplayLoaded;
 	std::string previousCommandId;
+	int previousIndex;
 	
 	// Queue stuff
 	bool isFirstLoad = true;
