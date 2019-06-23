@@ -62,7 +62,16 @@ bool SlippiReplayComm::isNewReplay()
 	// work if someone tries to load the same replay twice in a row
 	// the commandId was added to deal with this
 	bool hasCommandChanged = commFileSettings.commandId != previousCommandId;
-	bool hasQueueIdxChanged = commFileSettings.queue.front().index != previousIndex;
+	
+	// This checks if the queue index has changed, this is to fix the
+	// issue where the same replay showing up twice in a row in a
+	// queue would never cause this function to return true
+	bool hasQueueIdxChanged = false;
+	if (commFileSettings.mode == "queue" && !commFileSettings.queue.empty())
+	{
+		hasQueueIdxChanged = commFileSettings.queue.front().index != previousIndex;
+	}
+	
 	bool isNewReplay = hasPathChanged || hasCommandChanged || hasQueueIdxChanged;
 
 	return isReplay && isNewReplay;
@@ -91,7 +100,7 @@ Slippi::SlippiGame *SlippiReplayComm::loadGame()
 		// loaded again
 		previousReplayLoaded = replayFilePath;
 		previousCommandId = commFileSettings.commandId;
-		if (commFileSettings.mode == "queue")
+		if (commFileSettings.mode == "queue" && !commFileSettings.queue.empty())
 		{
 			previousIndex = commFileSettings.queue.front().index;
 		}
