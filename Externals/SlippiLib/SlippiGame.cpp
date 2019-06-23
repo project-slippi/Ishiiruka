@@ -1,3 +1,7 @@
+#include <string>
+#include <codecvt>
+#include <locale>
+
 #include "SlippiGame.h"
 
 namespace Slippi {
@@ -409,7 +413,9 @@ namespace Slippi {
     SlippiGame* result = new SlippiGame();
     result->game = new Game();
     result->path = path;
-    result->file = new std::ifstream(path, std::ios::in | std::ios::binary);
+
+	std::wstring convertedPath = std::wstring_convert<std::codecvt_utf8<wchar_t>>().from_bytes(path);
+	result->file = new std::ifstream(convertedPath, std::ios::in | std::ios::binary);
     //result->log.open("log.txt");
     if (!result->file->is_open()) {
       return nullptr;
