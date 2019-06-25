@@ -605,6 +605,12 @@ void CEXISlippi::prepareFrameData(u8 *payload)
 	// Return success code
 	m_read_queue.push_back(requestResultCode);
 
+	// Add frame rng seed to be restored at priority 0
+	Slippi::FrameData *frame = m_current_game->GetFrame(frameIndex);
+	u8 rngResult = frame->randomSeedExists ? 1 : 0;
+	m_read_queue.push_back(rngResult);
+	appendWordToBuffer(&m_read_queue, *(u32 *)&frame->randomSeed);
+
 	// Add frame data for every character
 	for (u8 port = 0; port < 4; port++)
 	{

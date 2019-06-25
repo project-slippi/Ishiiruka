@@ -77,11 +77,11 @@ namespace Slippi {
       }
     }
 
-	// Read isPAL byte
-	game->settings.isPAL = readByte(data, idx, maxSize, 0);
+    // Read isPAL byte
+    game->settings.isPAL = readByte(data, idx, maxSize, 0);
 
-	// Read isFrozenPS byte
-	game->settings.isFrozenPS = readByte(data, idx, maxSize, 0);
+    // Read isFrozenPS byte
+    game->settings.isFrozenPS = readByte(data, idx, maxSize, 0);
 
     // Pull header data into struct
     int player1Pos = 24; // This is the index of the first players character info
@@ -112,14 +112,36 @@ namespace Slippi {
 
     game->settings.stage = gameInfoHeader[3] & 0xFFFF;
 
-	// Indicate settings loaded immediately if after version 1.6.0
-	// Sheik game info was added in this version and so we no longer
-	// need to wait
-	auto majorVersion = game->version[0];
-	auto minorVersion = game->version[1];
-	if (majorVersion > 1 || (majorVersion == 1 && minorVersion >= 6)) {
-		game->areSettingsLoaded = true;
-	}
+    // Indicate settings loaded immediately if after version 1.6.0
+    // Sheik game info was added in this version and so we no longer
+    // need to wait
+    auto majorVersion = game->version[0];
+    auto minorVersion = game->version[1];
+    if (majorVersion > 1 || (majorVersion == 1 && minorVersion >= 6)) {
+	    game->areSettingsLoaded = true;
+    }
+  }
+
+  void handleFrameStart(Game* game, uint32_t maxSize) {
+    int idx = 0;
+
+    //Check frame count
+    int32_t frameCount = readWord(data, idx, maxSize, 0);
+    game->frameCount = frameCount;
+
+    FrameData* frame = new FrameData();
+    if (game->frameData.count(frameCount)) {
+      // If this frame already exists, this is probably another player
+      // in this frame, so let's fetch it.
+      frame = &game->frameData[frameCount];
+    }
+
+    frame->frame = frameCount;
+    frame->randomSeedExists = true;
+    frame->randomSeed = readWord(data, idx, maxSize, 0);
+
+    // Add frame to game
+    game->frameData[frameCount] = *frame;
   }
 
   void handlePreFrameUpdate(Game* game, uint32_t maxSize) {
@@ -383,6 +405,9 @@ namespace Slippi {
       switch (command) {
       case EVENT_GAME_INIT:
         handleGameInit(game, payloadSize);
+        break;
+      case EVENT_FRAME_START:
+        handleFrameStart(game, payloadSize);
         break;
       case EVENT_PRE_FRAME_UPDATE:
         handlePreFrameUpdate(game, payloadSize);

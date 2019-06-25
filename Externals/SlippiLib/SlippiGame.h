@@ -13,6 +13,7 @@ namespace Slippi {
   const uint8_t EVENT_PRE_FRAME_UPDATE = 0x37;
   const uint8_t EVENT_POST_FRAME_UPDATE = 0x38;
   const uint8_t EVENT_GAME_END = 0x39;
+  const uint8_t EVENT_FRAME_START = 0x3A;
 
   const uint8_t GAME_INFO_HEADER_SIZE = 78;
   const uint8_t UCF_TOGGLE_SIZE = 8;
@@ -57,6 +58,8 @@ namespace Slippi {
 
   typedef struct {
     int32_t frame;
+    bool randomSeedExists = false;
+    uint32_t randomSeed;
     bool inputsFullyFetched = false;
     std::unordered_map<uint8_t, PlayerFrameData> players;
     std::unordered_map<uint8_t, PlayerFrameData> followers;
@@ -77,8 +80,8 @@ namespace Slippi {
     std::array<uint32_t, GAME_INFO_HEADER_SIZE> header;
     std::array<uint32_t, UCF_TOGGLE_SIZE> ucfToggles;
     std::unordered_map<uint8_t, PlayerSettings> players;
-	uint8_t isPAL;
-	uint8_t isFrozenPS;
+    uint8_t isPAL;
+    uint8_t isFrozenPS;
   } GameSettings;
 
   typedef struct {
@@ -99,7 +102,8 @@ namespace Slippi {
     { EVENT_GAME_INIT, 320 },
     { EVENT_PRE_FRAME_UPDATE, 58 },
     { EVENT_POST_FRAME_UPDATE, 33 },
-    { EVENT_GAME_END, 1 }
+    { EVENT_GAME_END, 1 },
+    { EVENT_FRAME_START, 8 }
   };
 
   class SlippiGame
