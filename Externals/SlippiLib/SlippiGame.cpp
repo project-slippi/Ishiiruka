@@ -439,8 +439,14 @@ namespace Slippi {
     result->game = new Game();
     result->path = path;
 
-	std::wstring convertedPath = std::wstring_convert<std::codecvt_utf8<wchar_t>>().from_bytes(path);
-	result->file = new std::ifstream(convertedPath, std::ios::in | std::ios::binary);
+#ifdef _WIN32
+    // On Windows, we need to convert paths to std::wstring to deal with UTF-8
+    std::wstring convertedPath = std::wstring_convert<std::codecvt_utf8<wchar_t>>().from_bytes(path);
+    result->file = new std::ifstream(convertedPath, std::ios::in | std::ios::binary);
+#else
+    result->file = new std::ifstream(path, std::ios::in | std::ios::binary);
+#endif
+
     //result->log.open("log.txt");
     if (!result->file->is_open()) {
       return nullptr;
