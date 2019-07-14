@@ -185,9 +185,9 @@ static std::string DoState(PointerWrap& p)
 
 void LoadFromBuffer(std::vector<u8>& buffer)
 {
-	if (NetPlay::IsNetPlayRunning())
+	if ((NetPlay::IsNetPlayRunning()) && (netplay_client->GetPlayers().size() != 1))
 	{
-		OSD::AddMessage("Loading savestates is disabled in Netplay to prevent desyncs");
+		OSD::AddMessage("Loading savestates is disabled in multiplayer Netplay lobbies to prevent desyncs");
 		return;
 	}
 
@@ -527,9 +527,9 @@ void LoadAs(const std::string& filename)
 	{
 		return;
 	}
-	else if (NetPlay::IsNetPlayRunning())
+	else if ((NetPlay::IsNetPlayRunning()) && (netplay_client->GetPlayers().size() != 1))
 	{
-		OSD::AddMessage("Loading savestates is disabled in Netplay to prevent desyncs");
+		OSD::AddMessage("Loading savestates is disabled in multiplayer Netplay lobbies to prevent desyncs");
 		return;
 	}
 
