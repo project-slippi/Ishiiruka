@@ -1479,9 +1479,9 @@ bool NetPlay::IsNetPlayRunning()
 	if (netplay_client != nullptr)
 	{
 		auto netplayPlayers = netplay_client->GetPlayers();
-		auto size = netplayPlayers.size();
+		auto playerCount = netplayPlayers.size();
 
-		if (size > 1)
+		if (playerCount > 1)
 			return true;
 	}
 	return false;
