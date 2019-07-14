@@ -1476,7 +1476,15 @@ int CSIDevice_GCController::NetPlay_InGamePadToLocalPad(int numPAD)
 
 bool NetPlay::IsNetPlayRunning()
 {
-	return netplay_client != nullptr;
+	if (netplay_client != nullptr)
+	{
+		auto netplayPlayers = netplay_client->GetPlayers();
+		auto size = netplayPlayers.size();
+
+		if (size > 1)
+			return true;
+	}
+	return false;
 }
 
 void NetPlay_Enable(NetPlayClient* const np)

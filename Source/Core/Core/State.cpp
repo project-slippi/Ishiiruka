@@ -187,7 +187,7 @@ void LoadFromBuffer(std::vector<u8>& buffer)
 {
 	if (NetPlay::IsNetPlayRunning())
 	{
-		OSD::AddMessage("Loading savestates is disabled in Netplay to prevent desyncs");
+		OSD::AddMessage("Loading savestates is disabled in multiplayer Netplay lobbies to prevent desyncs");
 		return;
 	}
 
@@ -529,7 +529,7 @@ void LoadAs(const std::string& filename)
 	}
 	else if (NetPlay::IsNetPlayRunning())
 	{
-		OSD::AddMessage("Loading savestates is disabled in Netplay to prevent desyncs");
+		OSD::AddMessage("Loading savestates is disabled in multiplayer Netplay lobbies to prevent desyncs");
 		return;
 	}
 
