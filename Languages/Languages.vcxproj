@@ -12,6 +12,7 @@
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{0B8D0A82-C520-46BA-849D-3BB8F637EE0C}</ProjectGuid>
+    <WindowsTargetPlatformVersion>10.0.15063.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <ItemGroup>
     <msgfmt Include="po\ar.po" />
