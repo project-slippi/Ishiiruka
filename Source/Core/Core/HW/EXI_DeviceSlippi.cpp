@@ -9,6 +9,8 @@
 #include <stdexcept>
 #include <string>
 #include <unordered_map>
+#include <HDiff/diff.h>
+#include <HPatch/patch.h>
 
 #ifdef _WIN32
 #include <share.h>
@@ -30,7 +32,6 @@
 
 // Use open-vcdiff to generate diffs between savestates.
 // NOTE: need to patch the max window to >64MB for the decoder to work!
-// #include <google/vcdecoder.h>
 // #include <google/vcencoder.h>
 
 // A map of "diffs between the initial state and some state",

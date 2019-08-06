@@ -1,0 +1,129 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="HPatch">
+      <UniqueIdentifier>{6a6ae635-e5d6-4e02-ae49-3c71fadf7e03}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="HDiff">
+      <UniqueIdentifier>{765aa261-2c69-4acb-b308-2bf3f17c4aaf}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="HDiff\private_diff">
+      <UniqueIdentifier>{ceb13f14-3a26-4d05-a984-7da6d01b1862}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="HDiff\private_diff\libdivsufsort">
+      <UniqueIdentifier>{2f9e7ee5-f02a-4b8d-84df-efeb3a974725}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="HDiff\private_diff\limit_mem_diff">
+      <UniqueIdentifier>{f41e2aa1-9e03-44de-b613-da3ac28c4027}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="HPatch\checksum_plugin.h">
+      <Filter>HPatch</Filter>
+    </ClInclude>
+    <ClInclude Include="HPatch\patch.h">
+      <Filter>HPatch</Filter>
+    </ClInclude>
+    <ClInclude Include="HPatch\patch_private.h">
+      <Filter>HPatch</Filter>
+    </ClInclude>
+    <ClInclude Include="HPatch\patch_types.h">
+      <Filter>HPatch</Filter>
+    </ClInclude>
+    <ClInclude Include="HDiff\diff.h">
+      <Filter>HDiff</Filter>
+    </ClInclude>
+    <ClInclude Include="HDiff\diff_types.h">
+      <Filter>HDiff</Filter>
+    </ClInclude>
+    <ClInclude Include="HDiff\private_diff\bytes_rle.h">
+      <Filter>HDiff\private_diff</Filter>
+    </ClInclude>
+    <ClInclude Include="HDiff\private_diff\compress_detect.h">
+      <Filter>HDiff\private_diff</Filter>
+    </ClInclude>
+    <ClInclude Include="HDiff\private_diff\mem_buf.h">
+      <Filter>HDiff\private_diff</Filter>
+    </ClInclude>
+    <ClInclude Include="HDiff\private_diff\pack_uint.h">
+      <Filter>HDiff\private_diff</Filter>
+    </ClInclude>
+    <ClInclude Include="HDiff\private_diff\sais.hxx">
+      <Filter>HDiff\private_diff</Filter>
+    </ClInclude>
+    <ClInclude Include="HDiff\private_diff\suffix_string.h">
+      <Filter>HDiff\private_diff</Filter>
+    </ClInclude>
+    <ClInclude Include="HDiff\private_diff\limit_mem_diff\adler_roll.h">
+      <Filter>HDiff\private_diff\limit_mem_diff</Filter>
+    </ClInclude>
+    <ClInclude Include="HDiff\private_diff\limit_mem_diff\bloom_filter.h">
+      <Filter>HDiff\private_diff\limit_mem_diff</Filter>
+    </ClInclude>
+    <ClInclude Include="HDiff\private_diff\limit_mem_diff\covers.h">
+      <Filter>HDiff\private_diff\limit_mem_diff</Filter>
+    </ClInclude>
+    <ClInclude Include="HDiff\private_diff\limit_mem_diff\digest_matcher.h">
+      <Filter>HDiff\private_diff\limit_mem_diff</Filter>
+    </ClInclude>
+    <ClInclude Include="HDiff\private_diff\limit_mem_diff\stream_serialize.h">
+      <Filter>HDiff\private_diff\limit_mem_diff</Filter>
+    </ClInclude>
+    <ClInclude Include="HDiff\private_diff\libdivsufsort\config.h">
+      <Filter>HDiff\private_diff\libdivsufsort</Filter>
+    </ClInclude>
+    <ClInclude Include="HDiff\private_diff\libdivsufsort\divsufsort.c.inc.h">
+      <Filter>HDiff\private_diff\libdivsufsort</Filter>
+    </ClInclude>
+    <ClInclude Include="HDiff\private_diff\libdivsufsort\divsufsort.h">
+      <Filter>HDiff\private_diff\libdivsufsort</Filter>
+    </ClInclude>
+    <ClInclude Include="HDiff\private_diff\libdivsufsort\divsufsort_private.h">
+      <Filter>HDiff\private_diff\libdivsufsort</Filter>
+    </ClInclude>
+    <ClInclude Include="HDiff\private_diff\libdivsufsort\divsufsort64.h">
+      <Filter>HDiff\private_diff\libdivsufsort</Filter>
+    </ClInclude>
+    <ClInclude Include="HDiff\private_diff\libdivsufsort\sssort.c.inc.h">
+      <Filter>HDiff\private_diff\libdivsufsort</Filter>
+    </ClInclude>
+    <ClInclude Include="HDiff\private_diff\libdivsufsort\trsort.c.inc.h">
+      <Filter>HDiff\private_diff\libdivsufsort</Filter>
+    </ClInclude>
+    <ClInclude Include="HDiff\private_diff\libdivsufsort\utils.c.inc.h">
+      <Filter>HDiff\private_diff\libdivsufsort</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="HPatch\patch.c">
+      <Filter>HPatch</Filter>
+    </ClCompile>
+    <ClCompile Include="HDiff\diff.cpp">
+      <Filter>HDiff</Filter>
+    </ClCompile>
+    <ClCompile Include="HDiff\private_diff\bytes_rle.cpp">
+      <Filter>HDiff\private_diff</Filter>
+    </ClCompile>
+    <ClCompile Include="HDiff\private_diff\compress_detect.cpp">
+      <Filter>HDiff\private_diff</Filter>
+    </ClCompile>
+    <ClCompile Include="HDiff\private_diff\suffix_string.cpp">
+      <Filter>HDiff\private_diff</Filter>
+    </ClCompile>
+    <ClCompile Include="HDiff\private_diff\limit_mem_diff\adler_roll.c">
+      <Filter>HDiff\private_diff\limit_mem_diff</Filter>
+    </ClCompile>
+    <ClCompile Include="HDiff\private_diff\limit_mem_diff\digest_matcher.cpp">
+      <Filter>HDiff\private_diff\limit_mem_diff</Filter>
+    </ClCompile>
+    <ClCompile Include="HDiff\private_diff\limit_mem_diff\stream_serialize.cpp">
+      <Filter>HDiff\private_diff\limit_mem_diff</Filter>
+    </ClCompile>
+    <ClCompile Include="HDiff\private_diff\libdivsufsort\divsufsort.c">
+      <Filter>HDiff\private_diff\libdivsufsort</Filter>
+    </ClCompile>
+    <ClCompile Include="HDiff\private_diff\libdivsufsort\divsufsort64.c">
+      <Filter>HDiff\private_diff\libdivsufsort</Filter>
+    </ClCompile>
+  </ItemGroup>
+</Project>
