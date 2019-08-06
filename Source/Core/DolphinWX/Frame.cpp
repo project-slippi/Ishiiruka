@@ -71,6 +71,8 @@
 #include "VideoCommon/VertexShaderManager.h"
 #include "VideoCommon/VideoConfig.h"
 
+extern bool g_rewindRequested;
+
 #if defined(HAVE_X11) && HAVE_X11
 // X11Utils nastiness that's only used here
 namespace X11Utils
@@ -1563,8 +1565,10 @@ void CFrame::ParseHotkeys()
 		if (IsHotkey(HK_SAVE_STATE_SLOT_1 + i))
 			State::Save(1 + i);
 
-		if (IsHotkey(HK_LOAD_LAST_STATE_1 + i))
-			State::LoadLastSaved(1 + i);
+		if (IsHotkey(HK_LOAD_LAST_STATE_1 + i)) {
+			g_rewindRequested = true;
+			// State::LoadLastSaved(1 + i);
+		}
 
 		if (IsHotkey(HK_SELECT_STATE_SLOT_1 + i))
 		{

@@ -26,6 +26,7 @@ public:
 	void DMARead(u32 addr, u32 size) override;
 
 	bool IsPresent() const override;
+	std::thread m_savestateThread;
 
 private:
 	enum {
@@ -98,6 +99,8 @@ private:
 	void prepareIsStockSteal(u8 *payload);
 	void prepareFrameCount();
 	void prepareIsFileReady();
+
+	void processSaveStates();
 
 	std::unordered_map<u8, std::string> getNetplayNames();
 

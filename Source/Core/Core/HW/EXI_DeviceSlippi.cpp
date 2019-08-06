@@ -23,6 +23,130 @@
 #include "Core/HW/Memmap.h"
 #include "Core/NetPlayClient.h"
 
+#include "Core/State.h"
+#include "Core/HW/SystemTimers.h"
+#include "Core/CoreTiming.h"
+#include "Core/Core.h"
+
+// Use open-vcdiff to generate diffs between savestates.
+// NOTE: need to patch the max window to >64MB for the decoder to work!
+// #include <google/vcdecoder.h>
+// #include <google/vcencoder.h>
+
+// A map of "diffs between the initial state and some state",
+// keyed by the frame number corresponding to the state
+static std::map<int32_t, std::string> state_log;
+
+static bool inReplay = false;   // Are we playing back a replay?
+bool g_rewindRequested = false; // Did the user request a rewind?
+static std::vector<u8> iState;  // The initial state
+static std::vector<u8> cState;  // The current (latest) state
+
+// Interval between savestates
+#define NUM_FRAMES 123
+
+static int32_t currentPlaybackFrame = -INT_MAX;
+static int32_t latestStateFrame = -INT_MAX;
+static int32_t initialStateFrame = -NUM_FRAMES;
+
+#define SLEEP_TIME_MS 8
+
+void SavestateThread(void) {
+	// We crash if I don't sleep here?
+	Common::SetCurrentThreadName("Savestate thread");
+	Common::SleepCurrentThread(200);
+
+	bool paused;
+	bool haveInitialState = false;
+	bool hasProcessedReplay = false;
+
+	while (true)
+	{
+		paused = (Core::GetState() == Core::CORE_PAUSE);
+
+		// Handle a rewind request
+		if (!paused && g_rewindRequested && haveInitialState)
+		{
+			bool pause = Core::PauseAndLock(true);
+			INFO_LOG(SLIPPI, "Rewind started");
+
+			int numStates = 5;
+
+			int closestStateFrame = currentPlaybackFrame - (currentPlaybackFrame % NUM_FRAMES);
+			int targetStateFrame = closestStateFrame - (NUM_FRAMES * numStates);
+			INFO_LOG(SLIPPI, "[currentPlaybackFrame=%d] Rewind (targetFrame=%d)", currentPlaybackFrame,
+			         targetStateFrame);
+
+			std::string targ;
+			// decoder.Decode((char *)iState.data(), iState.size(), state_log[targetStateFrame], &targ);
+			// std::vector<u8> vec(targ.begin(), targ.end());
+			// State::LoadFromBuffer(vec);
+			g_rewindRequested = false;
+
+			Core::PauseAndLock(false, pause);
+			INFO_LOG(SLIPPI, "Rewind completed");
+			continue;
+		}
+
+		// Update the current state
+		if (!paused && inReplay)
+		{
+			// Take the initial state at frame -123
+			if ((currentPlaybackFrame == -123) && (!haveInitialState))
+			{
+				State::SaveToBuffer(iState);
+				INFO_LOG(EXPANSIONINTERFACE, "[frame=%d] Initial state size=%08x", currentPlaybackFrame, iState.size());
+				haveInitialState = true;
+				continue;
+			}
+
+			if (((currentPlaybackFrame % NUM_FRAMES) == 0) && (state_log.count(currentPlaybackFrame) == 0) &&
+			    (currentPlaybackFrame != -123))
+			{
+				latestStateFrame = currentPlaybackFrame;
+				State::SaveToBuffer(cState);
+				INFO_LOG(EXPANSIONINTERFACE, "[frame=%d] Current state size=%08x", latestStateFrame, cState.size());
+
+				// open_vcdiff::VCDiffEncoder encoder((char *)iState.data(), iState.size());
+				std::string delta = std::string();
+				// encoder.Encode((char *)cState.data(), cState.size(), &delta);
+				state_log[latestStateFrame] = delta;
+				INFO_LOG(EXPANSIONINTERFACE, "Saved diff to state_log[%d], size=%08x", latestStateFrame,
+				         state_log[latestStateFrame].size());
+			}
+		}
+
+		// Make sure our state is reset when playback is pending/finished
+		if (!inReplay)
+		{
+			if (iState.size() != 0)
+			{
+				INFO_LOG(EXPANSIONINTERFACE, "Cleared slot 0");
+				std::vector<u8>().swap(iState);
+			}
+			if (cState.size() != 0)
+			{
+				INFO_LOG(EXPANSIONINTERFACE, "Cleared slot 1");
+				std::vector<u8>().swap(cState);
+			}
+			if (state_log.size() != 0)
+			{
+				INFO_LOG(EXPANSIONINTERFACE, "Cleared state_log (%d entries)", state_log.size());
+				std::map<int32_t, std::string>().swap(state_log);
+			}
+
+			if (currentPlaybackFrame != -INT_MAX)
+				currentPlaybackFrame = -INT_MAX;
+			if (latestStateFrame != -INT_MAX)
+				latestStateFrame = -INT_MAX;
+
+			if (haveInitialState)
+				haveInitialState = false;
+		}
+		Common::SleepCurrentThread(SLEEP_TIME_MS);
+	}
+}
+
 std::vector<u8> uint16ToVector(u16 num)
 {
 	u8 byte0 = num >> 8;
@@ -65,12 +189,15 @@ void appendHalfToBuffer(std::vector<u8> *buf, u16 word)
 
 CEXISlippi::CEXISlippi()
 {
-	INFO_LOG(EXPANSIONINTERFACE, "EXI SLIPPI Constructor called.");
+	INFO_LOG(SLIPPI, "EXI SLIPPI Constructor called.");
 
 	replayComm = new SlippiReplayComm();
 
 	// Loggers will check 5 bytes, make sure we own that memory
 	m_read_queue.reserve(5);
+
+	// Spawn thread for savestates
+	m_savestateThread = std::thread(SavestateThread);
 }
 
 CEXISlippi::~CEXISlippi()
@@ -326,6 +453,7 @@ void CEXISlippi::closeFile()
 
 void CEXISlippi::prepareGameInfo()
 {
+	INFO_LOG(SLIPPI, "testing");	
 	// Since we are prepping new data, clear any existing data
 	m_read_queue.clear();
 
@@ -605,6 +733,8 @@ void CEXISlippi::prepareFrameData(u8 *payload)
 	// Return success code
 	m_read_queue.push_back(requestResultCode);
 
+	currentPlaybackFrame = frameIndex;
+
 	// Add frame rng seed to be restored at priority 0
 	Slippi::FrameData *frame = m_current_game->GetFrame(frameIndex);
 	u8 rngResult = frame->randomSeedExists ? 1 : 0;
@@ -710,6 +840,7 @@ void CEXISlippi::prepareIsFileReady()
 	{
 		replayComm->nextReplay();
 		m_read_queue.push_back(0);
+		inReplay = false;
 		return;
 	}
 
@@ -721,12 +852,14 @@ void CEXISlippi::prepareIsFileReady()
 		// Do not start if replay file doesn't exist
 		// TODO: maybe display error message?
 		INFO_LOG(EXPANSIONINTERFACE, "EXI_DeviceSlippi.cpp: Replay file does not exist?");
+		inReplay = false;
 		m_read_queue.push_back(0);
 		return;
 	}
 
 	INFO_LOG(EXPANSIONINTERFACE, "EXI_DeviceSlippi.cpp: Replay file loaded successfully!?");
 	// Start the playback!
+	inReplay = true;
 	m_read_queue.push_back(1);
 }
 
@@ -812,3 +945,7 @@ bool CEXISlippi::IsPresent() const
 }
 
 void CEXISlippi::TransferByte(u8 &byte) {}
+
+void CEXISlippi::processSaveStates() {
+	
+}

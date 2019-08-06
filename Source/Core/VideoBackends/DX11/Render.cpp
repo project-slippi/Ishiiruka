@@ -1259,7 +1259,7 @@ void Renderer::BlitScreen(TargetRectangle dst_rect, TargetRectangle src_rect, Ta
 	}
 }
 
-void  Renderer::DumpFrame(const EFBRectangle& source_rc, u32 xfb_addr,
+void Renderer::DumpFrame(const EFBRectangle& source_rc, u32 xfb_addr,
 	const XFBSourceBase* const* xfb_sources, u32 xfb_count, u32 fb_width,
 	u32 fb_stride, u32 fb_height, u64 ticks)
 {
