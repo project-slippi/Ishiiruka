@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClInclude Include="Diff.hpp" />
+    <ClInclude Include="Diff3.hpp" />
+    <ClInclude Include="dtl.hpp" />
+    <ClInclude Include="functors.hpp" />
+    <ClInclude Include="Lcs.hpp" />
+    <ClInclude Include="Sequence.hpp" />
+    <ClInclude Include="Ses.hpp" />
+    <ClInclude Include="variables.hpp" />
+  </ItemGroup>
+</Project>

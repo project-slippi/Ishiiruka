@@ -9,10 +9,12 @@
 #include <SlippiGame.h>
 #include <array>
 #include <condition_variable>
+#include <future>
 #include <mutex>
 #include <stdexcept>
 #include <string>
 #include <unordered_map>
+#include <dtl.hpp>
 // Use HDiffPatch to generate diffs between savestates.
 
 #ifdef _WIN32
@@ -33,13 +35,18 @@
 #include "Core/HW/SystemTimers.h"
 #include "Core/State.h"
 
+using dtl::Diff;
+
 // A map of "diffs between the initial state and some state",
 // keyed by the frame number corresponding to the state
-static std::map<int32_t, std::string> statesByFrame;
+static std::map<int32_t, std::future<std::vector<u8>>> futureStatesByFrame;
+static std::map<int32_t, std::vector<u8>> statesByFrame;
 static bool inReplay = false;   // Are we playing back a replay?
 bool g_rewindRequested = false; // Did the user request a rewind?
 static std::vector<u8> iState;  // The initial state
 static std::vector<u8> cState;  // The current (latest) state
+std::vector<u8> currDiff;       // A diff to store into the map of states
+std::vector<u8> currState;      // A state created from a diff that we will load
 
 // Interval between savestates
 #define FRAME_INTERVAL 120
@@ -52,6 +59,13 @@ static int32_t initialStateFrame = -120;
 
 std::mutex mtx;
 std::condition_variable cv;
+
+std::vector<u8> saveDiff()
+{
+	State::SaveToBuffer(cState);
+	create_compressed_diff(&cState.front(), &cState.back(), &iState.front(), &iState.back(), currDiff);
+	return currDiff;
+}
 
 std::vector<u8> uint16ToVector(u16 num)
 {
@@ -610,7 +624,8 @@ void CEXISlippi::prepareFrameData(u8 *payload)
 
 	// For normal replays, mark save states as done processing at end of replay
 	// Thread will then reload the game at the start of the replay using save state
-	if (commSettings.mode == "normal" && isLastFrame && !hasProcessedSaveStates) {
+	if (commSettings.mode == "normal" && isLastFrame && !hasProcessedSaveStates)
+	{
 		INFO_LOG(SLIPPI, "last frame: %d", frameIndex);
 		hasProcessedSaveStates = true;
 		cv.notify_one();
@@ -875,140 +890,176 @@ void CEXISlippi::SavestateThread()
 	bool paused;
 	bool haveInitialState = false;
 	bool haveRestartedReplay = false;
+	int mostRecentlyProcessedFrame = -INT_MAX;
+
 	INFO_LOG(SLIPPI, "turning on ffw");
 	isHardFFW = true;
-	//SConfig::GetInstance().m_EmulationSpeed = -1.0f;
+	// SConfig::GetInstance().m_EmulationSpeed = -1.0f;
 	SConfig::GetInstance().m_OCEnable = true;
 	SConfig::GetInstance().m_OCFactor = 4.0f;
 	std::unique_lock<std::mutex> lock(mtx);
 
 	while (true)
 	{
-		paused = (Core::GetState() == Core::CORE_PAUSE);
-
-		// Processing save states during initial fast forward through replay
-		if (!hasProcessedSaveStates && inReplay)
+		if (currentPlaybackFrame != mostRecentlyProcessedFrame)
 		{
-			while (currentPlaybackFrame % 120 != 0 && !hasProcessedSaveStates)
-			{
-				INFO_LOG(SLIPPI, "locking");
-				cv.wait(lock);
-				INFO_LOG(SLIPPI, "unlocking");
-			}
+			mostRecentlyProcessedFrame = currentPlaybackFrame;
 
-			if (currentPlaybackFrame == -120) {
-				INFO_LOG(SLIPPI, "saving first state");
-				State::SaveToBuffer(iState);
+			// Processing save states diffs during initial fast forward through replay
+			if (!hasProcessedSaveStates && inReplay)
+			{
+				while (currentPlaybackFrame % 120 != 0 && !hasProcessedSaveStates)
+				{
+					INFO_LOG(SLIPPI, "locking");
+					cv.wait(lock);
+					INFO_LOG(SLIPPI, "unlocking");
+				}
+
+				if (currentPlaybackFrame == -120)
+				{
+					INFO_LOG(SLIPPI, "saving first state");
+					State::SaveToBuffer(iState);
+				}
+				else
+				{
+					// Process new diff if it doesn't exist yet
+					// TODO: uncomment when I can figure out how to speed it up and do async without running out of memory
+					//if (futureStatesByFrame.find(currentPlaybackFrame) == futureStatesByFrame.end())
+					//{
+					//	std::future<std::vector<u8>> currDiff = std::async(saveDiff);
+					//	futureStatesByFrame[currentPlaybackFrame] = std::move(currDiff);
+					//}
+					if (currentPlaybackFrame == 1200)
+					{
+						std::vector<u8> currDiff = saveDiff();
+						statesByFrame[0] = std::move(currDiff);
+					}
+				}
 			}
-			// processSaveStates();
 
 			// Testing. TODO: remove this
-			if (currentPlaybackFrame > 6000 && isHardFFW)
+			//if (currentPlaybackFrame > 6000 && hasProcessedSaveStates && haveRestartedReplay)
+			//{
+			//	currDiff = statesByFrame[0];
+			//	currState = iState;
+			//	patch_decompress_mem(&currState.front(), &currState.back(), &iState.front(), &iState.back(),
+			//						 &currDiff.front(), &currDiff.back(), 0);
+			//	State::LoadFromBuffer(currState);
+			//}
+
+
+			// Done processing save states, load the replay from beginning and turn off ffw
+			// uncomment when no longer testing
+			if (hasProcessedSaveStates && !haveRestartedReplay)
 			{
-				//SConfig::GetInstance().m_EmulationSpeed = 1.0f;
+				// Wait for the async diff creations
+			/*	for (auto &currFrameAndDiff : futureStatesByFrame)
+				{
+					int currFrameNumber = currFrameAndDiff.first;
+					statesByFrame[currFrameNumber] = currFrameAndDiff.second.get();
+				}*/
+
 				SConfig::GetInstance().m_OCFactor = 1.0f;
 				SConfig::GetInstance().m_OCEnable = false;
-				INFO_LOG(SLIPPI, "stop fastforward");
+				INFO_LOG(SLIPPI, "stop fastforward real");
 				isHardFFW = false;
+				//State::LoadFromBuffer(iState);
+				currDiff = statesByFrame[1200];
+				size_t totalSize = iState.size() + currDiff.size();
+				patch_decompress_mem(&cState.front(), &cState.back(), &iState.front(), &iState.back(),
+				                     &currDiff.front(), &currDiff.back(), 0);
+				currState.shrink_to_fit();
+				State::LoadFromBuffer(currState);
+				haveRestartedReplay = true;
 			}
+
+			paused = (Core::GetState() == Core::CORE_PAUSE);
+			// Handle a rewind request
+			if (!paused && g_rewindRequested && haveInitialState)
+			{
+				bool pause = Core::PauseAndLock(true);
+				INFO_LOG(SLIPPI, "Rewind started");
+
+				int numStates = 5;
+
+				int closestStateFrame = currentPlaybackFrame - (currentPlaybackFrame % FRAME_INTERVAL);
+				int targetStateFrame = closestStateFrame - (FRAME_INTERVAL * numStates);
+				INFO_LOG(SLIPPI, "[currentPlaybackFrame=%d] Rewind (targetFrame=%d)", currentPlaybackFrame,
+						 targetStateFrame);
+
+				std::string targ;
+				// decoder.Decode((char *)iState.data(), iState.size(), statesByFrame[targetStateFrame], &targ);
+				// std::vector<u8> vec(targ.begin(), targ.end());
+				// State::LoadFromBuffer(vec);
+				g_rewindRequested = false;
+
+				Core::PauseAndLock(false, pause);
+				INFO_LOG(SLIPPI, "Rewind completed");
+				continue;
+			}
+
+			// Update the current state
+			// if (!paused && inReplay)
+			//{
+			//	// Take the initial state at frame -123
+			//	if ((currentPlaybackFrame == -123) && (!haveInitialState))
+			//	{
+			//		State::SaveToBuffer(iState);
+			//		INFO_LOG(EXPANSIONINTERFACE, "[frame=%d] Initial state size=%08x", currentPlaybackFrame, iState.size());
+			//		haveInitialState = true;
+			//		continue;
+			//	}
+
+			//	if (((currentPlaybackFrame % NUM_FRAMES) == 0) && (statesByFrame.count(currentPlaybackFrame) == 0) &&
+			//	    (currentPlaybackFrame != -123))
+			//	{
+			//		latestStateFrame = currentPlaybackFrame;
+			//		State::SaveToBuffer(cState);
+			//		INFO_LOG(EXPANSIONINTERFACE, "[frame=%d] Current state size=%08x", latestStateFrame, cState.size());
+
+			//		// open_vcdiff::VCDiffEncoder encoder((char *)iState.data(), iState.size());
+			//		std::string delta = std::string();
+			//		// encoder.Encode((char *)cState.data(), cState.size(), &delta);
+			//		statesByFrame[latestStateFrame] = delta;
+			//		INFO_LOG(EXPANSIONINTERFACE, "Saved diff to statesByFrame[%d], size=%08x", latestStateFrame,
+			//		         statesByFrame[latestStateFrame].size());
+			//	}
+			//}
+
+			// Make sure our state is reset when playback is pending/finished
+			// if (!inReplay)
+			//{
+			//	if (iState.size() != 0)
+			//	{
+			//		INFO_LOG(SLIPPI, "Cleared slot 0");
+			//		std::vector<u8>().swap(iState);
+			//	}
+			//	if (cState.size() != 0)
+			//	{
+			//		INFO_LOG(SLIPPI, "Cleared slot 1");
+			//		std::vector<u8>().swap(cState);
+			//	}
+			//	if (statesByFrame.size() != 0)
+			//	{
+			//		INFO_LOG(SLIPPI, "Cleared statesByFrame (%d entries)", statesByFrame.size());
+			//		std::map<int32_t, std::string>().swap(statesByFrame);
+			//	}
+
+			//	if (currentPlaybackFrame != -INT_MAX)
+			//		currentPlaybackFrame = -INT_MAX;
+			//	if (latestStateFrame != -INT_MAX)
+			//		latestStateFrame = -INT_MAX;
+
+			//	if (haveInitialState)
+			//		haveInitialState = false;
+
+			//	if (hasProcessedSaveStates)
+			//		hasProcessedSaveStates = false;
+
+			//	if (!isHardFFW)
+			//		isHardFFW = true;
+			//}
 		}
-
-		// Done processing save states, load the replay from beginning and turn off ffw
-		// uncomment when no longer testing
-		if (hasProcessedSaveStates && !haveRestartedReplay) {
-			haveRestartedReplay = true;
-			//SConfig::GetInstance().m_OCFactor = 1.0f;
-			//SConfig::GetInstance().m_OCEnable = false;
-			INFO_LOG(SLIPPI, "stop fastforward real");
-			//isHardFFW = false;
-			State::LoadFromBuffer(iState);
-		}
-
-		// Handle a rewind request
-		if (!paused && g_rewindRequested && haveInitialState)
-		{
-			bool pause = Core::PauseAndLock(true);
-			INFO_LOG(SLIPPI, "Rewind started");
-
-			int numStates = 5;
-
-			int closestStateFrame = currentPlaybackFrame - (currentPlaybackFrame % FRAME_INTERVAL);
-			int targetStateFrame = closestStateFrame - (FRAME_INTERVAL * numStates);
-			INFO_LOG(SLIPPI, "[currentPlaybackFrame=%d] Rewind (targetFrame=%d)", currentPlaybackFrame,
-			         targetStateFrame);
-
-			std::string targ;
-			// decoder.Decode((char *)iState.data(), iState.size(), statesByFrame[targetStateFrame], &targ);
-			// std::vector<u8> vec(targ.begin(), targ.end());
-			// State::LoadFromBuffer(vec);
-			g_rewindRequested = false;
-
-			Core::PauseAndLock(false, pause);
-			INFO_LOG(SLIPPI, "Rewind completed");
-			continue;
-		}
-
-		// Update the current state
-		// if (!paused && inReplay)
-		//{
-		//	// Take the initial state at frame -123
-		//	if ((currentPlaybackFrame == -123) && (!haveInitialState))
-		//	{
-		//		State::SaveToBuffer(iState);
-		//		INFO_LOG(EXPANSIONINTERFACE, "[frame=%d] Initial state size=%08x", currentPlaybackFrame, iState.size());
-		//		haveInitialState = true;
-		//		continue;
-		//	}
-
-		//	if (((currentPlaybackFrame % NUM_FRAMES) == 0) && (statesByFrame.count(currentPlaybackFrame) == 0) &&
-		//	    (currentPlaybackFrame != -123))
-		//	{
-		//		latestStateFrame = currentPlaybackFrame;
-		//		State::SaveToBuffer(cState);
-		//		INFO_LOG(EXPANSIONINTERFACE, "[frame=%d] Current state size=%08x", latestStateFrame, cState.size());
-
-		//		// open_vcdiff::VCDiffEncoder encoder((char *)iState.data(), iState.size());
-		//		std::string delta = std::string();
-		//		// encoder.Encode((char *)cState.data(), cState.size(), &delta);
-		//		statesByFrame[latestStateFrame] = delta;
-		//		INFO_LOG(EXPANSIONINTERFACE, "Saved diff to statesByFrame[%d], size=%08x", latestStateFrame,
-		//		         statesByFrame[latestStateFrame].size());
-		//	}
-		//}
-
-		// Make sure our state is reset when playback is pending/finished
-		// if (!inReplay)
-		//{
-		//	if (iState.size() != 0)
-		//	{
-		//		INFO_LOG(SLIPPI, "Cleared slot 0");
-		//		std::vector<u8>().swap(iState);
-		//	}
-		//	if (cState.size() != 0)
-		//	{
-		//		INFO_LOG(SLIPPI, "Cleared slot 1");
-		//		std::vector<u8>().swap(cState);
-		//	}
-		//	if (statesByFrame.size() != 0)
-		//	{
-		//		INFO_LOG(SLIPPI, "Cleared statesByFrame (%d entries)", statesByFrame.size());
-		//		std::map<int32_t, std::string>().swap(statesByFrame);
-		//	}
-
-		//	if (currentPlaybackFrame != -INT_MAX)
-		//		currentPlaybackFrame = -INT_MAX;
-		//	if (latestStateFrame != -INT_MAX)
-		//		latestStateFrame = -INT_MAX;
-
-		//	if (haveInitialState)
-		//		haveInitialState = false;
-
-		//	if (hasProcessedSaveStates)
-		//		hasProcessedSaveStates = false;
-
-		//	if (!isHardFFW)
-		//		isHardFFW = true;
-		//}
 		Common::SleepCurrentThread(SLEEP_TIME_MS);
 	}
 }
