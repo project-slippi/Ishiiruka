@@ -37,7 +37,7 @@
   <PropertyGroup Label="UserMacros" />
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
-      <AdditionalIncludeDirectories>$(ExternalsDir)nlohmann;C:\Users\R2DLiu\Documents\Ishiiruka\Externals\HDiffPatch;$(ExternalsDir)SlippiLib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ExternalsDir)nlohmann;C:\Users\R2DLiu\Documents\Ishiiruka\Externals\ThreadQueue;C:\Users\R2DLiu\Documents\Ishiiruka\Externals\HDiffPatch;$(ExternalsDir)SlippiLib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -515,6 +515,9 @@
     </ProjectReference>
     <ProjectReference Include="..\..\..\Externals\SlippiLib\SlippiLib.vcxproj">
       <Project>{ff39260b-839a-4a6c-a117-caa73c1683f5}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\..\Externals\ThreadQueue\ThreadQueue.vcxproj">
+      <Project>{8f7bf98f-8c17-42de-9e87-10cf064ab87e}</Project>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
