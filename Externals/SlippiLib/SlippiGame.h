@@ -21,7 +21,7 @@ namespace Slippi {
   const int32_t GAME_FIRST_FRAME = -123;
   const uint8_t GAME_SHEIK_INTERNAL_ID = 0x7;
   const uint8_t GAME_SHEIK_EXTERNAL_ID = 0x13;
-
+	
   static uint8_t* data;
 
   typedef struct {
