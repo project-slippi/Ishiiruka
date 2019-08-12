@@ -1298,6 +1298,9 @@
     <ClInclude Include="Slippi\SlippiReplayComm.h">
       <Filter>Slippi</Filter>
     </ClInclude>
+    <ClInclude Include="SlippiPlayback.h">
+      <Filter>HW %28Flipper/Hollywood%29\EXI - Expansion Interface</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Text Include="CMakeLists.txt" />

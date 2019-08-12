@@ -458,6 +458,7 @@
     <ClInclude Include="PowerPC\PPCTables.h" />
     <ClInclude Include="PowerPC\Profiler.h" />
     <ClInclude Include="PowerPC\SignatureDB.h" />
+    <ClInclude Include="SlippiPlayback.h" />
     <ClInclude Include="Slippi\SlippiReplayComm.h" />
     <ClInclude Include="State.h" />
   </ItemGroup>

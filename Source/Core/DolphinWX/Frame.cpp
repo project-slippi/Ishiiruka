@@ -44,7 +44,7 @@
 #include "Core/HW/DVDInterface.h"
 #include "Core/HW/GCKeyboard.h"
 #include "Core/HW/GCPad.h"
-#include "Core/HW/SlippiPlayback.h"
+#include "Core/SlippiPlayback.h"
 #include "Core/HW/Wiimote.h"
 #include "Core/HotkeyManager.h"
 #include "Core/IPC_HLE/WII_IPC_HLE.h"
