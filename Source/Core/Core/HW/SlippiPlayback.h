@@ -1,3 +1,4 @@
-extern bool g_rewindRequested;
-extern bool g_forwardRequested;
-// extern bool g_inSlippiReplay;
+extern bool g_shouldJumpBack;
+extern bool g_shouldJumpForward;
+extern bool g_inSlippiPlayback;
+extern int g_targetFrameNum;

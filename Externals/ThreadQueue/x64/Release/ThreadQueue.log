@@ -1,3 +1,0 @@
-﻿  ThreadQueue.cpp
-c:\users\r2dliu\documents\ishiiruka\externals\threadqueue\threadqueue.cpp(1): warning C4067: unexpected tokens following preprocessor directive - expected a newline
-  ThreadQueue.vcxproj -> C:\Users\R2DLiu\Documents\Ishiiruka\Source\x64\Release\ThreadQueue.lib

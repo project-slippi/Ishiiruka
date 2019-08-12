@@ -7,11 +7,13 @@
 #include <SlippiGame.h>
 #include <ctime>
 #include <deque>
+#include <mutex>
 #include <string>
 #include <unordered_map>
 
 #include "Common/CommonTypes.h"
 #include "Common/FileUtil.h"
+#include "Common/ThreadPoolQueue.h"
 #include "Core/HW/EXI_Device.h"
 #include "Core/Slippi/SlippiReplayComm.h"
 
@@ -98,7 +100,9 @@ class CEXISlippi : public IEXIDevice
 	void prepareFrameData(u8 *payload);
 	void prepareIsStockSteal(u8 *payload);
 	void prepareFrameCount();
+	void prepareSlippiPlayback(int32_t &frameIndex);
 	void prepareIsFileReady();
+	void processSaveState(bool &haveInitialState, std::unique_lock<std::mutex> &lock, ThreadPoolQueue &pool);
 
 	void SavestateThread(void);
 

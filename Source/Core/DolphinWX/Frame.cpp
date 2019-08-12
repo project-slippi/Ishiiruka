@@ -1575,16 +1575,19 @@ void CFrame::ParseHotkeys()
 
 	// Slippi replay hotkeys
 	// TODO: only trigger this when replay is running?
-	if (IsHotkey(HK_JUMP_BACK))
+	if (g_inSlippiPlayback)
 	{
-		INFO_LOG(SLIPPI, "going back 2 seconds");
-		g_rewindRequested = true;
-	}
+		if (IsHotkey(HK_JUMP_BACK))
+		{
+			INFO_LOG(SLIPPI, "going back 2 seconds");
+			g_shouldJumpBack = true;
+		}
 
-	if (IsHotkey(HK_JUMP_FORWARD))
-	{
-		INFO_LOG(SLIPPI, "going forward 2 seconds");
-		g_forwardRequested = true;
+		if (IsHotkey(HK_JUMP_FORWARD))
+		{
+			INFO_LOG(SLIPPI, "going forward 2 seconds");
+			g_shouldJumpForward = true;
+		}
 	}
 }
 
