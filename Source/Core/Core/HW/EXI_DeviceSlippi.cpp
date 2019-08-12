@@ -1004,6 +1004,7 @@ void CEXISlippi::SavestateThread()
 				Core::PauseAndLock(false, pause);
 				hasRestartedReplay = true;
 				g_inSlippiPlayback = true;
+				SConfig::GetInstance().bHideCursor = false;
 			}
 
 			// Make sure our state is reset when playback is pending/finished
