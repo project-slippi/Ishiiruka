@@ -7,8 +7,8 @@
 #include <array>
 #include <condition_variable>
 #include <future>
-#include <src/google/vcdecoder.h>
-#include <src/google/vcencoder.h>
+#include <open-vcdiff/src/google/vcdecoder.h>
+#include <open-vcdiff/src/google/vcencoder.h>
 #include <stdexcept>
 #include <string>
 #include <tuple>
@@ -108,7 +108,6 @@ void appendHalfToBuffer(std::vector<u8> *buf, u16 word)
 std::pair<int32_t, std::string> processDiff(std::vector<u8> &cState, int32_t frameNumber)
 {
 	INFO_LOG(SLIPPI, "Saving at diff at frame: %d", frameNumber);
-
 	open_vcdiff::VCDiffEncoder encoder((char *)iState.data(), iState.size());
 	std::string diff = std::string();
 	encoder.Encode((char *)cState.data(), cState.size(), &diff);
