@@ -1579,7 +1579,6 @@ void CFrame::ParseHotkeys()
 		State::UndoSaveState();
 
 	// Slippi replay hotkeys
-	// TODO: only trigger this when replay is running?
 	if (g_inSlippiPlayback)
 	{
 		if (IsHotkey(HK_JUMP_BACK))

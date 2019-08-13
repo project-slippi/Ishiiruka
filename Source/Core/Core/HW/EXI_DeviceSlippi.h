@@ -31,6 +31,7 @@ class CEXISlippi : public IEXIDevice
 
 	bool IsPresent() const override;
 	std::thread m_savestateThread;
+	std::thread m_seekThread;
 
   private:
 	enum
@@ -104,17 +105,24 @@ class CEXISlippi : public IEXIDevice
 	void prepareFrameCount();
 	void prepareSlippiPlayback(int32_t &frameIndex);
 	void prepareIsFileReady();
-	void processSaveState(bool &haveInitialState, std::vector<u8> &iState, std::vector<u8> &cState,
-						  std::vector<std::future<std::pair<int32_t, std::string>>> &futureDiffs,
-						  std::unique_lock<std::mutex> &lock, ThreadPoolQueue &pool,
-						  open_vcdiff::VCDiffEncoder *&encoder);
-	void seekTargetFrameNum(bool &isHardFFW, std::vector<u8> &iState, std::unordered_map<int32_t, std::string> &diffsByFrame, 
-		                    std::unique_lock<std::mutex> &lock, open_vcdiff::VCDiffDecoder &decoder);
-	void restartReplay(std::vector<std::future<std::pair<int32_t, std::string>>> &futureDiffs,
-					   std::unordered_map<int32_t, std::string> &diffsByFrame, std::vector<u8> &iState, 
-					   std::vector<u8> &cState, bool &isHardFFW, bool &hasRestartedReplay);
-
+	void processInitialState(std::vector<u8> &iState, open_vcdiff::VCDiffEncoder *&encoder);
+	void processSaveState(uint32_t fixedFrameNumber, std::vector<u8> &iState, std::vector<u8> &cState,
+                          std::unordered_map<int32_t, std::future<std::string>> &futureDiffs,
+						  ThreadPoolQueue &pool, open_vcdiff::VCDiffEncoder *&encoder);
 	void SavestateThread(void);
+	void SeekThread(void);
+	
+	std::unordered_map<int32_t, std::string> diffsByFrame;             // state diffs keyed by frameIndex;
+	std::unordered_map<int32_t, std::future<std::string>> futureDiffs; // diffs are processed async
+	std::vector<u8> iState;                                            // The initial state
+	std::vector<u8> cState;                                            // The current (latest) state
+
+	bool haveInitialState = false;
+	bool shouldFFWToTarget = false;
+	int mostRecentlyProcessedFrame = INT_MAX;
+
+	open_vcdiff::VCDiffDecoder decoder;
+	open_vcdiff::VCDiffEncoder *encoder = NULL;
 
 	std::unordered_map<u8, std::string> getNetplayNames();
 

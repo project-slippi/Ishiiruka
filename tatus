@@ -1,0 +1,104 @@
+[1mdiff --git a/Source/Core/Core/HW/EXI_DeviceSlippi.cpp b/Source/Core/Core/HW/EXI_DeviceSlippi.cpp[m
+[1mindex 3a7cdfd40..1e26f6606 100644[m
+[1m--- a/Source/Core/Core/HW/EXI_DeviceSlippi.cpp[m
+[1m+++ b/Source/Core/Core/HW/EXI_DeviceSlippi.cpp[m
+[36m@@ -33,20 +33,6 @@[m
+ #include "Core/HW/SystemTimers.h"[m
+ #include "Core/State.h"[m
+ [m
+[31m-// state diffs keyed by frameIndex;[m
+[31m-static std::map<int32_t, std::string> diffsByFrame;[m
+[31m-[m
+[31m-// diffs are processed async[m
+[31m-std::vector<std::future<std::pair<int32_t, std::string>>> futureDiffs;[m
+[31m-bool g_shouldJumpBack = false;[m
+[31m-bool g_shouldJumpForward = false;[m
+[31m-int g_targetFrameNum = INT_MAX;[m
+[31m-bool g_inSlippiPlayback = false;[m
+[31m-static bool inReplay = false;  // Are we playing back a replay?[m
+[31m-static std::vector<u8> iState; // The initial state[m
+[31m-std::vector<u8> cState;        // The current (latest) state[m
+[31m-std::vector<u8> currState;     // A state created from a diff that we will load[m
+[31m-[m
+ // Interval between savestates[m
+ #define FRAME_INTERVAL 900[m
+ [m
+[36m@@ -105,7 +91,7 @@[m [mvoid appendHalfToBuffer(std::vector<u8> *buf, u16 word)[m
+ 	buf->insert(buf->end(), halfVector.begin(), halfVector.end());[m
+ }[m
+ [m
+[31m-std::pair<int32_t, std::string> processDiff(std::vector<u8> &cState, int32_t frameNumber)[m
+[32m+[m[32mstd::pair<int32_t, std::string> processDiff(std::vector<u8> &iState, std::vector<u8> &cState, int32_t frameNumber)[m
+ {[m
+ 	INFO_LOG(SLIPPI, "Saving at diff at frame: %d", frameNumber);[m
+ 	open_vcdiff::VCDiffEncoder encoder((char *)iState.data(), iState.size());[m
+[36m@@ -884,6 +870,17 @@[m [mvoid CEXISlippi::TransferByte(u8 &byte) {}[m
+ [m
+ void CEXISlippi::SavestateThread()[m
+ {[m
+[32m+[m	[32m// state diffs keyed by frameIndex;[m
+[32m+[m	[32mstatic std::map<int32_t, std::string> diffsByFrame;[m
+[32m+[m
+[32m+[m	[32m// diffs are processed async[m
+[32m+[m	[32mstd::vector<std::future<std::pair<int32_t, std::string>>> futureDiffs;[m
+[32m+[m	[32mbool g_shouldJumpBack = false;[m
+[32m+[m	[32mbool g_shouldJumpForward = false;[m
+[32m+[m	[32mint g_targetFrameNum = INT_MAX;[m
+[32m+[m	[32mbool g_inSlippiPlayback = false;[m
+[32m+[m	[32mstd::vector<u8> iState; // The initial state[m
+[32m+[m	[32mstd::vector<u8> cState;        // The current (latest) state[m
+ 	Common::SetCurrentThreadName("Savestate thread");[m
+ [m
+ 	bool paused;[m
+[36m@@ -978,7 +975,7 @@[m [mvoid CEXISlippi::SavestateThread()[m
+ 				// Processing save states diffs during initial fast forward through replay[m
+ 				if (!hasProcessedSaveStates)[m
+ 				{[m
+[31m-					processSaveState(haveInitialState, lock, pool);[m
+[32m+[m					[32mprocessSaveState(haveInitialState, iState, cState, futureDiffs, lock, pool);[m
+ 				}[m
+ 			}[m
+ [m
+[36m@@ -1065,7 +1062,14 @@[m [mvoid CEXISlippi::prepareSlippiPlayback(int32_t &frameIndex)[m
+ 		condVar.notify_one();[m
+ }[m
+ [m
+[31m-void CEXISlippi::processSaveState(bool &haveInitialState, std::unique_lock<std::mutex> &lock, ThreadPoolQueue &pool)[m
+[32m+[m[32mvoid CEXISlippi::processSaveState([m
+[32m+[m	[32mbool &haveInitialState,[m[41m [m
+[32m+[m	[32mstd::vector<u8> &iState,[m[41m [m
+[32m+[m	[32mstd::vector<u8> &cState,[m
+[32m+[m	[32mstd::vector<std::future<std::pair<int32_t, std::string>>> &futureDiffs,[m
+[32m+[m	[32mstd::unique_lock<std::mutex> &lock,[m[41m [m
+[32m+[m	[32mThreadPoolQueue &pool[m
+[32m+[m[32m)[m
+ {[m
+ 	// Only save frames every so often.[m
+ 	// Block until we reach one of these points, or until we are done processing[m
+[1mdiff --git a/Source/Core/Core/HW/EXI_DeviceSlippi.h b/Source/Core/Core/HW/EXI_DeviceSlippi.h[m
+[1mindex 64bf4ad4b..04d1d05a3 100644[m
+[1m--- a/Source/Core/Core/HW/EXI_DeviceSlippi.h[m
+[1m+++ b/Source/Core/Core/HW/EXI_DeviceSlippi.h[m
+[36m@@ -102,13 +102,21 @@[m [mclass CEXISlippi : public IEXIDevice[m
+ 	void prepareFrameCount();[m
+ 	void prepareSlippiPlayback(int32_t &frameIndex);[m
+ 	void prepareIsFileReady();[m
+[31m-	void processSaveState(bool &haveInitialState, std::unique_lock<std::mutex> &lock, ThreadPoolQueue &pool);[m
+[32m+[m	[32mvoid CEXISlippi::processSaveState([m
+[32m+[m		[32mbool &haveInitialState,[m[41m [m
+[32m+[m		[32mstd::vector<u8> &iState,[m[41m [m
+[32m+[m		[32mstd::vector<u8> &cState,[m
+[32m+[m		[32mstd::vector<std::future<std::pair<int32_t, std::string>>> &futureDiffs,[m
+[32m+[m		[32mstd::unique_lock<std::mutex> &lock,[m[41m [m
+[32m+[m		[32mThreadPoolQueue &pool[m
+[32m+[m	[32m);[m
+ [m
+ 	void SavestateThread(void);[m
+ [m
+ 	std::unordered_map<u8, std::string> getNetplayNames();[m
+ [m
+ 	bool hasProcessedSaveStates = false;[m
+[32m+[m	[32mbool inReplay = false;[m
+ 	bool isSoftFFW = false;[m
+ 	bool isHardFFW = false;[m
+ 	int32_t lastFFWFrame = INT_MIN;[m
