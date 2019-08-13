@@ -11,6 +11,7 @@
 #include <string>
 #include <tuple>
 #include <unordered_map>
+#include <cmath>
 
 #ifdef _WIN32
 #include <share.h>
@@ -33,7 +34,12 @@
 
 #define FRAME_INTERVAL 900
 #define START_FRAME -123
-#define emod(a, b) (a < 0 ? (((a % b) + b) % b) : (a % b))
+int32_t emod(int32_t a, int32_t b)
+{
+	assert(b != 0);
+	int r = a % b;
+	return r >= 0 ? r : r + std::abs(b);
+}
 
 static int32_t currentPlaybackFrame = INT_MAX;
 static int32_t latestFrame = INT_MAX;
@@ -910,53 +916,60 @@ void CEXISlippi::SeekThread()
 		if (shouldSeek)
 		{
 			bool paused = (Core::GetState() == Core::CORE_PAUSE);
-			bool pause;
+			bool pause = Core::PauseAndLock(true);
 			uint32_t jumpInterval = 300; // 5 seconds;
 
 			if (g_shouldJumpForward)
+			{
 				g_targetFrameNum = currentPlaybackFrame + jumpInterval;
-			else if (g_shouldJumpBack)
+			}
+
+			if (g_shouldJumpBack)
+			{
 				g_targetFrameNum = currentPlaybackFrame - jumpInterval;
+			}
+				
 
 			int32_t closestStateFrame = g_targetFrameNum - emod(g_targetFrameNum + 123, FRAME_INTERVAL);
 
+			isHardFFW = true;
 			SConfig::GetInstance().m_OCEnable = true;
 			SConfig::GetInstance().m_OCFactor = 4.0f;
-			isHardFFW = true;
 
 			if (closestStateFrame <= START_FRAME)
 			{
-				pause = Core::PauseAndLock(true);
 				State::LoadFromBuffer(iState);
-				Core::PauseAndLock(false, pause);
 			} else {
-				// Small optimization: don't rewind if you're jumping forward and the nearest save state is behind you
-				bool shouldLoadState =
-				    currentPlaybackFrame < g_targetFrameNum && closestStateFrame < currentPlaybackFrame;
+				// TODO: Small optimization: don't rewind if you're jumping forward and the nearest save state is behind you
 
 				// If this diff has been processed, load it
-				if (futureDiffs.count(closestStateFrame) > 0 && shouldLoadState)
+				if (futureDiffs.count(closestStateFrame) > 0)
 				{
 					INFO_LOG(SLIPPI, "loading a saved diff");
-					pause = Core::PauseAndLock(true);
 
 					std::string stateString;
 					decoder.Decode((char *)iState.data(), iState.size(), futureDiffs[closestStateFrame].get(),
 					               &stateString);
 					std::vector<u8> stateToLoad(stateString.begin(), stateString.end());
 					State::LoadFromBuffer(stateToLoad);
-					Core::PauseAndLock(false, pause);
 				};
 			}
+
+			Core::PauseAndLock(false, pause);
 
 			// could possibly be some crazy edgecase here where it locks and waits forever
 			// if the target frame has passed already
 			// TODO: test
 			cv_waitingForTargetFrame.wait(seekLock);
 
-			isHardFFW = false;
+			pause = Core::PauseAndLock(true);
+
 			SConfig::GetInstance().m_OCFactor = 1.0f;
 			SConfig::GetInstance().m_OCEnable = false;
+			isHardFFW = false;
+
+			if (!paused)
+				Core::PauseAndLock(false, pause);
 
 			g_shouldJumpBack = false;
 			g_shouldJumpForward = false;
@@ -990,10 +1003,10 @@ void CEXISlippi::processInitialState(std::vector<u8> &iState, open_vcdiff::VCDif
 };
 
 void CEXISlippi::processSaveState(uint32_t fixedFrameNumber, std::vector<u8> &iState, std::vector<u8> &cState,
-                                  std::unordered_map<int32_t, std::future<std::string>> &futureDiffs,
+                                  std::unordered_map<int32_t, std::shared_future<std::string>> &futureDiffs,
                                   ThreadPoolQueue &pool, open_vcdiff::VCDiffEncoder *&encoder)
 {
 	INFO_LOG(SLIPPI, "saving diff at frame: %d", fixedFrameNumber);
 	State::SaveToBuffer(cState);
-	futureDiffs[fixedFrameNumber] = pool.enqueue(processDiff, iState, cState, encoder);
+	futureDiffs[fixedFrameNumber] = (pool.enqueue(processDiff, iState, cState, encoder)).share();
 }

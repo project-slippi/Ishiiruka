@@ -107,13 +107,13 @@ class CEXISlippi : public IEXIDevice
 	void prepareIsFileReady();
 	void processInitialState(std::vector<u8> &iState, open_vcdiff::VCDiffEncoder *&encoder);
 	void processSaveState(uint32_t fixedFrameNumber, std::vector<u8> &iState, std::vector<u8> &cState,
-                          std::unordered_map<int32_t, std::future<std::string>> &futureDiffs,
+                          std::unordered_map<int32_t, std::shared_future<std::string>> &futureDiffs,
 						  ThreadPoolQueue &pool, open_vcdiff::VCDiffEncoder *&encoder);
 	void SavestateThread(void);
 	void SeekThread(void);
 	
 	std::unordered_map<int32_t, std::string> diffsByFrame;             // state diffs keyed by frameIndex;
-	std::unordered_map<int32_t, std::future<std::string>> futureDiffs; // diffs are processed async
+	std::unordered_map<int32_t, std::shared_future<std::string>> futureDiffs; // diffs are processed async
 	std::vector<u8> iState;                                            // The initial state
 	std::vector<u8> cState;                                            // The current (latest) state
 
