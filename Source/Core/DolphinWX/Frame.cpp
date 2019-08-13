@@ -72,6 +72,11 @@
 #include "VideoCommon/VertexShaderManager.h"
 #include "VideoCommon/VideoConfig.h"
 
+bool g_shouldJumpBack = false;
+bool g_shouldJumpForward = false;
+bool g_inSlippiPlayback = false;
+int32_t g_targetFrameNum = INT_MAX;
+
 #if defined(HAVE_X11) && HAVE_X11
 // X11Utils nastiness that's only used here
 namespace X11Utils

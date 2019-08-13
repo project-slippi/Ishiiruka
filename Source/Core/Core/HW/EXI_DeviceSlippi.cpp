@@ -7,8 +7,6 @@
 #include <array>
 #include <condition_variable>
 #include <future>
-#include <open-vcdiff/src/google/vcdecoder.h>
-#include <open-vcdiff/src/google/vcencoder.h>
 #include <stdexcept>
 #include <string>
 #include <tuple>
@@ -25,27 +23,13 @@
 #include "Common/StringUtil.h"
 #include "Common/Thread.h"
 #include "Core/HW/Memmap.h"
-#include "Core/SlippiPlayback.h"
 #include "Core/NetPlayClient.h"
+#include "Core/SlippiPlayback.h"
 
 #include "Core/Core.h"
 #include "Core/CoreTiming.h"
 #include "Core/HW/SystemTimers.h"
 #include "Core/State.h"
-
-// state diffs keyed by frameIndex;
-static std::map<int32_t, std::string> diffsByFrame;
-
-// diffs are processed async
-std::vector<std::future<std::pair<int32_t, std::string>>> futureDiffs;
-bool g_shouldJumpBack = false;
-bool g_shouldJumpForward = false;
-int g_targetFrameNum = INT_MAX;
-bool g_inSlippiPlayback = false;
-static bool inReplay = false;  // Are we playing back a replay?
-static std::vector<u8> iState; // The initial state
-std::vector<u8> cState;        // The current (latest) state
-std::vector<u8> currState;     // A state created from a diff that we will load
 
 // Interval between savestates
 #define FRAME_INTERVAL 900
@@ -105,12 +89,14 @@ void appendHalfToBuffer(std::vector<u8> *buf, u16 word)
 	buf->insert(buf->end(), halfVector.begin(), halfVector.end());
 }
 
-std::pair<int32_t, std::string> processDiff(std::vector<u8> &cState, int32_t frameNumber)
+std::pair<int32_t, std::string> processDiff(std::vector<u8> &iState, std::vector<u8> &cState, int32_t frameNumber,
+                                            open_vcdiff::VCDiffEncoder *&encoder)
 {
 	INFO_LOG(SLIPPI, "Saving at diff at frame: %d", frameNumber);
-	open_vcdiff::VCDiffEncoder encoder((char *)iState.data(), iState.size());
 	std::string diff = std::string();
-	encoder.Encode((char *)cState.data(), cState.size(), &diff);
+	if (encoder != NULL)
+		encoder->Encode((char *)cState.data(), cState.size(), &diff);
+
 	std::pair<int32_t, std::string> diffPair = std::make_pair(frameNumber, diff);
 	return diffPair;
 }
@@ -816,8 +802,9 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 		bufLoc += receiveCommandsLen + 1;
 	}
 
-	INFO_LOG(EXPANSIONINTERFACE, "EXI SLIPPI DMAWrite: addr: 0x%08x size: %d, bufLoc:[%02x %02x %02x %02x %02x]", _uAddr, _uSize,
-	         memPtr[bufLoc], memPtr[bufLoc + 1], memPtr[bufLoc + 2], memPtr[bufLoc + 3], memPtr[bufLoc + 4]);
+	INFO_LOG(EXPANSIONINTERFACE, "EXI SLIPPI DMAWrite: addr: 0x%08x size: %d, bufLoc:[%02x %02x %02x %02x %02x]",
+	         _uAddr, _uSize, memPtr[bufLoc], memPtr[bufLoc + 1], memPtr[bufLoc + 2], memPtr[bufLoc + 3],
+	         memPtr[bufLoc + 4]);
 
 	while (bufLoc < _uSize)
 	{
@@ -884,9 +871,15 @@ void CEXISlippi::TransferByte(u8 &byte) {}
 
 void CEXISlippi::SavestateThread()
 {
+	// state diffs keyed by frameIndex;
+	static std::unordered_map<int32_t, std::string> diffsByFrame;
+
+	// diffs are processed async
+	std::vector<std::future<std::pair<int32_t, std::string>>> futureDiffs;
+	std::vector<u8> iState; // The initial state
+	std::vector<u8> cState; // The current (latest) state
 	Common::SetCurrentThreadName("Savestate thread");
 
-	bool paused;
 	bool haveInitialState = false;
 	bool hasRestartedReplay = false;
 	int mostRecentlyProcessedFrame = INT_MAX;
@@ -899,6 +892,7 @@ void CEXISlippi::SavestateThread()
 	ThreadPoolQueue pool(10);
 
 	open_vcdiff::VCDiffDecoder decoder;
+	open_vcdiff::VCDiffEncoder *encoder = NULL;
 	std::tuple<int, size_t, std::vector<u8>> diffTuple;
 
 	while (true)
@@ -907,70 +901,8 @@ void CEXISlippi::SavestateThread()
 		                  (g_shouldJumpBack || g_shouldJumpForward || g_targetFrameNum != INT_MAX);
 		if (shouldSeek)
 		{
-			paused = (Core::GetState() == Core::CORE_PAUSE);
-			bool pause = Core::PauseAndLock(true);
-
-			int jumpInterval = 300; // 5 seconds;
-
-			if (g_shouldJumpForward)
-			{
-				g_targetFrameNum = currentPlaybackFrame + jumpInterval;
-			}
-			else if (g_shouldJumpBack)
-			{
-				g_targetFrameNum = currentPlaybackFrame - jumpInterval;
-			}
-
-			int closestStateFrame = g_targetFrameNum - ((g_targetFrameNum + 123) % FRAME_INTERVAL);
-			while (closestStateFrame > latestFrame)
-			{
-				closestStateFrame -= FRAME_INTERVAL;
-			}
-
-			INFO_LOG(SLIPPI, "Seek started, moving to frame: %d", g_targetFrameNum);
-
-			if (g_targetFrameNum < START_FRAME || closestStateFrame == START_FRAME)
-			{
-				isHardFFW = true;
-				State::LoadFromBuffer(iState);
-			}
-			else
-			{
-				std::string stateString;
-				decoder.Decode((char *)iState.data(), iState.size(), diffsByFrame[closestStateFrame], &stateString);
-				std::vector<u8> stateToLoad(stateString.begin(), stateString.end());
-				State::LoadFromBuffer(stateToLoad);
-			}
-
-			SConfig::GetInstance().m_OCEnable = true;
-			SConfig::GetInstance().m_OCFactor = 4.0f;
-			isHardFFW = true;
-
-			Core::PauseAndLock(false, pause);
-			// ffw to our targetFrame
-			while (currentPlaybackFrame != g_targetFrameNum)
-			{
-				condVar.wait(lock);
-			}
-
-			pause = Core::PauseAndLock(true);
-
-			isHardFFW = false;
-			SConfig::GetInstance().m_OCFactor = 1.0f;
-			SConfig::GetInstance().m_OCEnable = false;
-
-			g_shouldJumpBack = false;
-			g_shouldJumpForward = false;
-			g_targetFrameNum = INT_MAX;
-
-			if (!paused)
-			{
-				Core::PauseAndLock(false, pause);
-			}
-			INFO_LOG(SLIPPI, "Rewind/ffw completed");
-		}
-		else
-		{
+			seekTargetFrameNum(isHardFFW, iState, diffsByFrame, lock, decoder);
+		} else {
 			if (inReplay && currentPlaybackFrame != mostRecentlyProcessedFrame)
 			{
 				mostRecentlyProcessedFrame = currentPlaybackFrame;
@@ -978,32 +910,14 @@ void CEXISlippi::SavestateThread()
 				// Processing save states diffs during initial fast forward through replay
 				if (!hasProcessedSaveStates)
 				{
-					processSaveState(haveInitialState, lock, pool);
+					processSaveState(haveInitialState, iState, cState, futureDiffs, lock, pool, encoder);
 				}
 			}
 
 			// When done processing save states, load the replay from beginning and turn off ffw
 			if (hasProcessedSaveStates && !hasRestartedReplay && haveInitialState)
 			{
-				bool pause = Core::PauseAndLock(true);
-
-				for (auto &&futureDiff : futureDiffs)
-				{
-					auto diffPair = futureDiff.get();
-					auto frameIndex = diffPair.first;
-					auto diff = diffPair.second;
-					diffsByFrame[frameIndex] = diff;
-				}
-
-				SConfig::GetInstance().m_OCFactor = 1.0f;
-				SConfig::GetInstance().m_OCEnable = false;
-				INFO_LOG(SLIPPI, "Finished processing. Restarting replay");
-				isHardFFW = false;
-				State::LoadFromBuffer(iState);
-				Core::PauseAndLock(false, pause);
-				hasRestartedReplay = true;
-				g_inSlippiPlayback = true;
-				SConfig::GetInstance().bHideCursor = false;
+				restartReplay(futureDiffs, diffsByFrame, iState, cState, isHardFFW, hasRestartedReplay);
 			}
 
 			// Make sure our state is reset when playback is pending/finished
@@ -1065,7 +979,10 @@ void CEXISlippi::prepareSlippiPlayback(int32_t &frameIndex)
 		condVar.notify_one();
 }
 
-void CEXISlippi::processSaveState(bool &haveInitialState, std::unique_lock<std::mutex> &lock, ThreadPoolQueue &pool)
+void CEXISlippi::processSaveState(bool &haveInitialState, std::vector<u8> &iState, std::vector<u8> &cState,
+                                  std::vector<std::future<std::pair<int32_t, std::string>>> &futureDiffs,
+                                  std::unique_lock<std::mutex> &lock, ThreadPoolQueue &pool,
+                                  open_vcdiff::VCDiffEncoder *&encoder)
 {
 	// Only save frames every so often.
 	// Block until we reach one of these points, or until we are done processing
@@ -1080,16 +997,109 @@ void CEXISlippi::processSaveState(bool &haveInitialState, std::unique_lock<std::
 	}
 
 	// Save an initial state at the beginning of the game
-	if (currentPlaybackFrame == START_FRAME)
+	if (currentPlaybackFrame == START_FRAME && !haveInitialState)
 	{
 		INFO_LOG(SLIPPI, "saving iState");
 		State::SaveToBuffer(iState);
 		haveInitialState = true;
+		encoder = new open_vcdiff::VCDiffEncoder((char *)iState.data(), iState.size());
 	}
 	else
 	{
 		// Queue up processing new diff if it doesn't exist yet
 		State::SaveToBuffer(cState);
-		futureDiffs.push_back(pool.enqueue(processDiff, cState, currentPlaybackFrame));
+		futureDiffs.push_back(pool.enqueue(processDiff, iState, cState, currentPlaybackFrame, encoder));
 	}
+}
+
+void CEXISlippi::seekTargetFrameNum(bool &isHardFFW, std::vector<u8> &iState,
+                                    std::unordered_map<int32_t, std::string> &diffsByFrame, std::unique_lock<std::mutex> &lock,
+                                    open_vcdiff::VCDiffDecoder &decoder)
+{
+	bool paused = (Core::GetState() == Core::CORE_PAUSE);
+	bool pause = Core::PauseAndLock(true);
+
+	int jumpInterval = 300; // 5 seconds;
+
+	if (g_shouldJumpForward)
+	{
+		g_targetFrameNum = currentPlaybackFrame + jumpInterval;
+	}
+	else if (g_shouldJumpBack)
+	{
+		g_targetFrameNum = currentPlaybackFrame - jumpInterval;
+	}
+
+	int closestStateFrame = g_targetFrameNum - ((g_targetFrameNum + 123) % FRAME_INTERVAL);
+	while (closestStateFrame > latestFrame)
+	{
+		closestStateFrame -= FRAME_INTERVAL;
+	}
+
+	INFO_LOG(SLIPPI, "Seek started, moving to frame: %d", g_targetFrameNum);
+
+	if (g_targetFrameNum < START_FRAME || closestStateFrame == START_FRAME)
+	{
+		isHardFFW = true;
+		State::LoadFromBuffer(iState);
+	}
+	else
+	{
+		std::string stateString;
+		decoder.Decode((char *)iState.data(), iState.size(), diffsByFrame[closestStateFrame], &stateString);
+		std::vector<u8> stateToLoad(stateString.begin(), stateString.end());
+		State::LoadFromBuffer(stateToLoad);
+	}
+
+	SConfig::GetInstance().m_OCEnable = true;
+	SConfig::GetInstance().m_OCFactor = 4.0f;
+	isHardFFW = true;
+
+	Core::PauseAndLock(false, pause);
+	// ffw to our targetFrame
+	while (currentPlaybackFrame != g_targetFrameNum)
+	{
+		condVar.wait(lock);
+	}
+
+	pause = Core::PauseAndLock(true);
+
+	isHardFFW = false;
+	SConfig::GetInstance().m_OCFactor = 1.0f;
+	SConfig::GetInstance().m_OCEnable = false;
+
+	g_shouldJumpBack = false;
+	g_shouldJumpForward = false;
+	g_targetFrameNum = INT_MAX;
+
+	if (!paused)
+	{
+		Core::PauseAndLock(false, pause);
+	}
+	INFO_LOG(SLIPPI, "Rewind/ffw completed");
+}
+
+void CEXISlippi::restartReplay(std::vector<std::future<std::pair<int32_t, std::string>>> &futureDiffs,
+                               std::unordered_map<int32_t, std::string> &diffsByFrame, std::vector<u8> &iState,
+                               std::vector<u8> &cState, bool &isHardFFW, bool &hasRestartedReplay)
+{
+	bool pause = Core::PauseAndLock(true);
+
+	for (auto &&futureDiff : futureDiffs)
+	{
+		auto diffPair = futureDiff.get();
+		auto frameIndex = diffPair.first;
+		auto diff = diffPair.second;
+		diffsByFrame[frameIndex] = diff;
+	}
+
+	SConfig::GetInstance().m_OCFactor = 1.0f;
+	SConfig::GetInstance().m_OCEnable = false;
+	INFO_LOG(SLIPPI, "Finished processing. Restarting replay");
+	isHardFFW = false;
+	State::LoadFromBuffer(iState);
+	Core::PauseAndLock(false, pause);
+	hasRestartedReplay = true;
+	g_inSlippiPlayback = true;
+	SConfig::GetInstance().bHideCursor = false;
 }

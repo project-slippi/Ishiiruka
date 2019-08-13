@@ -5,6 +5,8 @@
 #pragma once
 
 #include <SlippiGame.h>
+#include <open-vcdiff/src/google/vcdecoder.h>
+#include <open-vcdiff/src/google/vcencoder.h>
 #include <ctime>
 #include <deque>
 #include <mutex>
@@ -102,13 +104,22 @@ class CEXISlippi : public IEXIDevice
 	void prepareFrameCount();
 	void prepareSlippiPlayback(int32_t &frameIndex);
 	void prepareIsFileReady();
-	void processSaveState(bool &haveInitialState, std::unique_lock<std::mutex> &lock, ThreadPoolQueue &pool);
+	void processSaveState(bool &haveInitialState, std::vector<u8> &iState, std::vector<u8> &cState,
+						  std::vector<std::future<std::pair<int32_t, std::string>>> &futureDiffs,
+						  std::unique_lock<std::mutex> &lock, ThreadPoolQueue &pool,
+						  open_vcdiff::VCDiffEncoder *&encoder);
+	void seekTargetFrameNum(bool &isHardFFW, std::vector<u8> &iState, std::unordered_map<int32_t, std::string> &diffsByFrame, 
+		                    std::unique_lock<std::mutex> &lock, open_vcdiff::VCDiffDecoder &decoder);
+	void restartReplay(std::vector<std::future<std::pair<int32_t, std::string>>> &futureDiffs,
+					   std::unordered_map<int32_t, std::string> &diffsByFrame, std::vector<u8> &iState, 
+					   std::vector<u8> &cState, bool &isHardFFW, bool &hasRestartedReplay);
 
 	void SavestateThread(void);
 
 	std::unordered_map<u8, std::string> getNetplayNames();
 
 	bool hasProcessedSaveStates = false;
+	bool inReplay = false;
 	bool isSoftFFW = false;
 	bool isHardFFW = false;
 	int32_t lastFFWFrame = INT_MIN;
