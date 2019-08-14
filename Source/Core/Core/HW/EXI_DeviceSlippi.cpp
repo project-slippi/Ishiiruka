@@ -5,13 +5,13 @@
 #include "Core/HW/EXI_DeviceSlippi.h"
 #include <SlippiGame.h>
 #include <array>
+#include <cmath>
 #include <condition_variable>
 #include <future>
 #include <stdexcept>
 #include <string>
 #include <tuple>
 #include <unordered_map>
-#include <cmath>
 
 #ifdef _WIN32
 #include <share.h>
@@ -916,60 +916,69 @@ void CEXISlippi::SeekThread()
 		if (shouldSeek)
 		{
 			bool paused = (Core::GetState() == Core::CORE_PAUSE);
-			bool pause = Core::PauseAndLock(true);
+			Core::SetState(Core::CORE_PAUSE);
+
 			uint32_t jumpInterval = 300; // 5 seconds;
 
 			if (g_shouldJumpForward)
-			{
 				g_targetFrameNum = currentPlaybackFrame + jumpInterval;
-			}
 
 			if (g_shouldJumpBack)
-			{
 				g_targetFrameNum = currentPlaybackFrame - jumpInterval;
-			}
-				
+
+			if (g_targetFrameNum < START_FRAME)
+				g_targetFrameNum = START_FRAME;
 
 			int32_t closestStateFrame = g_targetFrameNum - emod(g_targetFrameNum + 123, FRAME_INTERVAL);
 
-			isHardFFW = true;
-			SConfig::GetInstance().m_OCEnable = true;
-			SConfig::GetInstance().m_OCFactor = 4.0f;
+			bool isLoadingStateOptimal =
+			    g_targetFrameNum < currentPlaybackFrame || closestStateFrame > currentPlaybackFrame;
 
-			if (closestStateFrame <= START_FRAME)
+			if (isLoadingStateOptimal)
 			{
-				State::LoadFromBuffer(iState);
-			} else {
-				// TODO: Small optimization: don't rewind if you're jumping forward and the nearest save state is behind you
-
-				// If this diff has been processed, load it
-				if (futureDiffs.count(closestStateFrame) > 0)
+				INFO_LOG(SLIPPI, "loading is optimal");
+				if (closestStateFrame <= START_FRAME)
 				{
-					INFO_LOG(SLIPPI, "loading a saved diff");
+					State::LoadFromBuffer(iState);
+				}
+				else
+				{
+					// If this diff has been processed, load it
+					if (futureDiffs.count(closestStateFrame) > 0)
+					{
+						INFO_LOG(SLIPPI, "loading a saved diff");
 
-					std::string stateString;
-					decoder.Decode((char *)iState.data(), iState.size(), futureDiffs[closestStateFrame].get(),
-					               &stateString);
-					std::vector<u8> stateToLoad(stateString.begin(), stateString.end());
-					State::LoadFromBuffer(stateToLoad);
-				};
+						std::string stateString;
+						decoder.Decode((char *)iState.data(), iState.size(), futureDiffs[closestStateFrame].get(),
+						               &stateString);
+						std::vector<u8> stateToLoad(stateString.begin(), stateString.end());
+						State::LoadFromBuffer(stateToLoad);
+					};
+				}
 			}
 
-			Core::PauseAndLock(false, pause);
+			if (g_targetFrameNum != closestStateFrame) {
+				isHardFFW = true;
+				SConfig::GetInstance().m_OCEnable = true;
+				SConfig::GetInstance().m_OCFactor = 4.0f;
 
-			// could possibly be some crazy edgecase here where it locks and waits forever
-			// if the target frame has passed already
-			// TODO: test
-			cv_waitingForTargetFrame.wait(seekLock);
+				Core::SetState(Core::CORE_RUN);
 
-			pause = Core::PauseAndLock(true);
+				cv_waitingForTargetFrame.wait(seekLock);
 
-			SConfig::GetInstance().m_OCFactor = 1.0f;
-			SConfig::GetInstance().m_OCEnable = false;
-			isHardFFW = false;
+				// could possibly be some crazy edgecase here where it locks and waits forever
+				// if the target frame has usessed already
+				// yup it happens
+
+				Core::SetState(Core::CORE_PAUSE);
+
+				SConfig::GetInstance().m_OCFactor = 1.0f;
+				SConfig::GetInstance().m_OCEnable = false;
+				isHardFFW = false;
+			}
 
 			if (!paused)
-				Core::PauseAndLock(false, pause);
+				Core::SetState(Core::CORE_RUN);
 
 			g_shouldJumpBack = false;
 			g_shouldJumpForward = false;

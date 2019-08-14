@@ -1257,7 +1257,7 @@ void CFrame::ParseHotkeys()
 	if (IsHotkey(HK_FULLSCREEN))
 		DoFullscreen(!RendererIsFullscreen());
 	// Pause and Unpause
-	if (IsHotkey(HK_PLAY_PAUSE))
+	if (IsHotkey(HK_PLAY_PAUSE) || IsHotkey(HK_TOGGLE_PLAY_PAUSE))
 		DoPause();
 	// Frame advance
 	HandleFrameSkipHotkeys();
