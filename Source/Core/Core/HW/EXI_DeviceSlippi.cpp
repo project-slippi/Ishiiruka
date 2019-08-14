@@ -750,7 +750,7 @@ void CEXISlippi::prepareFrameCount()
 	int bufferCount = 15;
 
 	// Make sure we've loaded all the latest data, maybe this should be part of GetFrameCount
-	auto latestFrame = m_current_game->GetFrameCount();
+	latestFrame = m_current_game->GetFrameCount();
 	auto frameCount = latestFrame - Slippi::GAME_FIRST_FRAME;
 	auto frameCountPlusBuffer = frameCount + bufferCount;
 
@@ -926,8 +926,14 @@ void CEXISlippi::SeekThread()
 			if (g_shouldJumpBack)
 				g_targetFrameNum = currentPlaybackFrame - jumpInterval;
 
+			// Handle edgecases for trying to seek before start or past end of game
 			if (g_targetFrameNum < START_FRAME)
 				g_targetFrameNum = START_FRAME;
+
+			if (g_targetFrameNum > latestFrame)
+			{
+				g_targetFrameNum = latestFrame;
+			}
 
 			int32_t closestStateFrame = g_targetFrameNum - emod(g_targetFrameNum + 123, FRAME_INTERVAL);
 
@@ -957,7 +963,7 @@ void CEXISlippi::SeekThread()
 				}
 			}
 
-			if (g_targetFrameNum != closestStateFrame) {
+			if (g_targetFrameNum != closestStateFrame && g_targetFrameNum != latestFrame) {
 				isHardFFW = true;
 				SConfig::GetInstance().m_OCEnable = true;
 				SConfig::GetInstance().m_OCFactor = 4.0f;
