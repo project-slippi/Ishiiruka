@@ -955,8 +955,7 @@ void CEXISlippi::SeekThread()
 						INFO_LOG(SLIPPI, "loading a saved diff");
 
 						std::string stateString;
-						decoder.Decode((char *)iState.data(), iState.size(), futureDiffs[closestStateFrame].get(),
-						               &stateString);
+						decoder.Decode((char *)iState.data(), iState.size(), futureDiffs[closestStateFrame].get(), &stateString);
 						std::vector<u8> stateToLoad(stateString.begin(), stateString.end());
 						State::LoadFromBuffer(stateToLoad);
 					};
