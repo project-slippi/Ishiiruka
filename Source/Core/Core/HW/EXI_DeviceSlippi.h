@@ -10,12 +10,12 @@
 #include <ctime>
 #include <deque>
 #include <mutex>
+#include <future>
 #include <string>
 #include <unordered_map>
 
 #include "Common/CommonTypes.h"
 #include "Common/FileUtil.h"
-#include "Common/ThreadPoolQueue.h"
 #include "Core/HW/EXI_Device.h"
 #include "Core/Slippi/SlippiReplayComm.h"
 
@@ -105,10 +105,8 @@ class CEXISlippi : public IEXIDevice
 	void prepareFrameCount();
 	void prepareSlippiPlayback(int32_t &frameIndex);
 	void prepareIsFileReady();
-	void processInitialState(std::vector<u8> &iState, open_vcdiff::VCDiffEncoder *&encoder);
-	void processSaveState(uint32_t fixedFrameNumber, std::vector<u8> &iState, std::vector<u8> &cState,
-                          std::unordered_map<int32_t, std::shared_future<std::string>> &futureDiffs,
-						  ThreadPoolQueue &pool, open_vcdiff::VCDiffEncoder *&encoder);
+	void processInitialState(std::vector<u8> &iState);
+
 	void SavestateThread(void);
 	void SeekThread(void);
 	
@@ -126,7 +124,6 @@ class CEXISlippi : public IEXIDevice
 
 	std::unordered_map<u8, std::string> getNetplayNames();
 
-	bool hasProcessedSaveStates = false;
 	bool inReplay = false;
 	bool isSoftFFW = false;
 	bool isHardFFW = false;
