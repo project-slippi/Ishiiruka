@@ -1,15 +1,18 @@
-#include <wx/timer.h> // timer for updating status bar
+#ifndef SLIPPI_TIMER_HEADER
+#define SLIPPI_TIMER_HEADER
+
+#include <wx/timer.h>
 #include <wx/stattext.h>
-#include "DolphinWX/Frame.h"
 #include "DolphinWX/DolphinSlider.h"
 #include "Common/Logging/Log.h"
 
+class CFrame;
 
 class slippiTimer : public wxTimer
 {
   public:
-	slippiTimer(CFrame* frame, DolphinSlider *slider, wxStaticText *text) { 
-		m_frame = frame;
+	slippiTimer(CFrame* mainFrame, DolphinSlider *slider, wxStaticText *text) { 
+		m_frame = mainFrame;
 		m_slider = slider; 
 		m_text = text;
 	}
@@ -23,3 +26,5 @@ class slippiTimer : public wxTimer
 
 	bool hasSetRange = false;
 };
+
+#endif

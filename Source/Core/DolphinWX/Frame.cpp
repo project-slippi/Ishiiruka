@@ -33,7 +33,6 @@
 #include <wx/button.h>
 #include <wx/event.h> 
 #include "Common/Logging/Log.h"
-#include <wx/stattext.h>
 
 #include "AudioCommon/AudioCommon.h"
 
@@ -79,6 +78,7 @@
 bool g_shouldJumpBack = false;
 bool g_shouldJumpForward = false;
 bool g_inSlippiPlayback = false;
+bool g_showingSlippiControls = false;
 int32_t g_currentPlaybackFrame = INT_MIN;
 int32_t g_targetFrameNum = INT_MAX;
 int32_t g_lastFrame = -123;
@@ -387,32 +387,6 @@ CFrame::CFrame(wxFrame *parent, wxWindowID id, const wxString &title, wxRect geo
 		                                          .FloatingSize(wxSize(600, 350))
 		                                          .CloseButton(true)
 		                                          .Hide());
-
-	wxPanel *slippiPanel = new wxPanel(this, wxID_ANY);
-	wxBoxSizer *slippiSizer = new wxBoxSizer(wxHORIZONTAL);
-	slippiPanel->SetSizer(slippiSizer);
-
-	seekBar = new DolphinSlider(slippiPanel, wxID_ANY, 0, 0, 127, wxDefaultPosition, wxDefaultSize);
-	seekBar->SetLineSize(0);
-	seekBar->SetPageSize(0);
-	slippiSizer->Add(seekBar, 1, wxALIGN_CENTER_VERTICAL, 0);
-	slippiSizer->Add(new wxStaticText(slippiPanel, wxID_ANY, _("0:00 / 0:00")), 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
-
-	Bind(wxEVT_SCROLL_THUMBTRACK, &CFrame::OnBeginSeek, this);
-	Bind(wxEVT_SCROLL_THUMBRELEASE, &CFrame::OnEndSeek, this);
-
-	m_Mgr->AddPane(slippiPanel, wxAuiPaneInfo()
-									.Name("Pane 2")
-									.Caption(_("Slippi"))
-									.CaptionVisible(true)
-									.Layer(1)
-									.CloseButton(false)
-									.PaneBorder(false)
-									.MinSize(wxSize(wxDefaultCoord, 100))
-									.Fixed()
-									.Bottom()
-									.Floatable(false)
-									.Show());
 
 	AuiFullscreen = m_Mgr->SavePerspective();
 
@@ -799,7 +773,6 @@ void CFrame::OnRenderWindowSizeRequest(int width, int height)
 		// Resize for the render panel only, this implicitly retains space for everything else
 		// (i.e. log panel, toolbar, statusbar, etc) without needing to compute for them.
 		old_size = m_RenderParent->GetSize();
-		INFO_LOG(SLIPPI, "old size, w: %d, h: %d", old_size.GetWidth(), old_size.GetHeight() );
 	}
 
 	wxSize diff = requested_size - old_size;
@@ -1612,7 +1585,7 @@ void CFrame::ParseHotkeys()
 	if (IsHotkey(HK_UNDO_SAVE_STATE))
 		State::UndoSaveState();
 
-	// Slippi replay hotkeys
+	// Slippi replay hotkeys and setup
 	if (g_inSlippiPlayback)
 	{		
 		if (IsHotkey(HK_JUMP_BACK))
@@ -1625,6 +1598,42 @@ void CFrame::ParseHotkeys()
 		{
 			INFO_LOG(SLIPPI, "going forward -5 seconds");
 			g_shouldJumpForward = true;
+		}
+
+		if (!g_showingSlippiControls) {
+			// Create UI for Slippi playback controls, hide until replay is booted
+			wxPanel *slippiPanel = new wxPanel(this, wxID_ANY);
+			wxBoxSizer *slippiSizer = new wxBoxSizer(wxHORIZONTAL);
+			slippiPanel->SetSizer(slippiSizer);
+
+			seekBar = new DolphinSlider(slippiPanel, wxID_ANY, 0, 0, 127, wxDefaultPosition, wxDefaultSize);
+			seekBarText = new wxStaticText(slippiPanel, wxID_ANY, _("0:00 / 0:00"));
+			seekBar->SetLineSize(0);
+			seekBar->SetPageSize(0);
+			slippiSizer->Add(seekBar, 1, wxALIGN_CENTER_VERTICAL, 0);
+			slippiSizer->Add(seekBarText, 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
+
+			Bind(wxEVT_SCROLL_THUMBTRACK, &CFrame::OnBeginSeek, this);
+			Bind(wxEVT_SCROLL_THUMBRELEASE, &CFrame::OnEndSeek, this);
+
+			m_Mgr->AddPane(slippiPanel, wxAuiPaneInfo()
+			                                .Name("Pane 2")
+			                                .Caption(_("Slippi"))
+			                                .CaptionVisible(true)
+			                                .Layer(1)
+			                                .CloseButton(false)
+			                                .PaneBorder(false)
+			                                .MinSize(wxSize(wxDefaultCoord, 100))
+			                                .Fixed()
+			                                .Bottom()
+			                                .Floatable(false)
+			                                .Show());
+			m_Mgr->Update();
+
+			m_slippi_timer = new slippiTimer(this, seekBar, seekBarText);
+			m_slippi_timer->Start(500); 
+
+			g_showingSlippiControls = true;
 		}
 	}
 }

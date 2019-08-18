@@ -12,11 +12,13 @@
 #include <wx/frame.h>
 #include <wx/image.h>
 #include <wx/panel.h>
+#include <wx/stattext.h>
 #include <wx/timer.h>
 
 #include "Common/CommonTypes.h"
 #include "Common/Event.h"
 #include "Core/HW/WiimoteEmu/WiimoteEmu.h"
+#include "Core/SlippiTimer.h"
 #include "DolphinWX/Globals.h"
 #include "DolphinWX/DolphinSlider.h"
 #include "InputCommon/GCPadStatus.h"
@@ -88,7 +90,6 @@ public:
 	NetPlaySetupFrame* g_NetPlaySetupDiag = nullptr;
 	wxCheatsWindow* g_CheatsWindow = nullptr;
 	TASInputDlg* g_TASInputDlg[8];
-	DolphinSlider* seekBar = nullptr;
 
 	void DoPause();
 	void DoStop();
@@ -178,6 +179,9 @@ private:
 
 	wxTimer m_poll_hotkey_timer;
 	wxTimer m_handle_signal_timer;
+	slippiTimer *m_slippi_timer;
+	DolphinSlider *seekBar = nullptr;
+	wxStaticText *seekBarText = nullptr;
 
 	wxMenuBar* m_menubar_shadow = nullptr;
 

@@ -1,5 +1,6 @@
 #include "SlippiTimer.h"
 #include "Core/SlippiPlayback.h"
+#include "DolphinWX/Frame.h"
 
 void slippiTimer::Notify()
 {
@@ -11,10 +12,12 @@ void slippiTimer::Notify()
 	int currMinutes = (int)(currSeconds / 60);
 	int currRemainder = (int)(currSeconds % 60);
 	// Position string (i.e. MM:SS)
-	std::string endTime = std::to_string(totalMinutes) + ":" + std::to_string(totalRemainder);
-	std::string currTime = std::to_string(currMinutes) + ":" + std::to_string(currRemainder);
+	char endTime[5];
+	sprintf(endTime, "%d:%02d", totalMinutes, totalRemainder);
+	char currTime[5];
+	sprintf(endTime, "%d:%02d", currMinutes, currRemainder);
 
-	std::string time = currTime + " / " + endTime;
+	std::string time = std::string(currTime) + " / " + std::string(endTime);
 
 	// Setup the slider and gauge min/max values
 	if (!hasSetRange)
