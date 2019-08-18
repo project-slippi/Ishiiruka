@@ -32,6 +32,7 @@
 #include "Common/MathUtil.h"
 #include "Common/StringUtil.h"
 #include "Core/ConfigManager.h"
+#include "Core/SlippiPlayback.h"
 #include "DolphinWX/Debugger/CodeWindow.h"
 #include "DolphinWX/Frame.h"
 #include "DolphinWX/Globals.h"
@@ -1052,3 +1053,16 @@ wxAuiNotebook* CFrame::GetNotebookFromId(u32 NBId)
 	}
 	return nullptr;
 }
+
+// Slippi playback control functions
+
+void CFrame::OnBeginSeek(wxScrollEvent& event) {
+	isDraggingSlider = true;
+}
+
+void CFrame::OnEndSeek(wxScrollEvent& event) {
+	isDraggingSlider = false;
+	int value = seekBar->GetValue();
+	g_targetFrameNum = (int32_t) (value * 60 - 123);
+}
+

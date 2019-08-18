@@ -18,6 +18,7 @@
 #include "Common/Event.h"
 #include "Core/HW/WiimoteEmu/WiimoteEmu.h"
 #include "DolphinWX/Globals.h"
+#include "DolphinWX/DolphinSlider.h"
 #include "InputCommon/GCPadStatus.h"
 
 #if defined(HAVE_X11) && HAVE_X11
@@ -87,6 +88,7 @@ public:
 	NetPlaySetupFrame* g_NetPlaySetupDiag = nullptr;
 	wxCheatsWindow* g_CheatsWindow = nullptr;
 	TASInputDlg* g_TASInputDlg[8];
+	DolphinSlider* seekBar = nullptr;
 
 	void DoPause();
 	void DoStop();
@@ -113,6 +115,9 @@ public:
 	void UpdateTitle(const std::string& str);
 	void OpenGeneralConfiguration(wxWindowID tab_id = wxID_ANY);
 
+	bool isDraggingSlider = false;
+	void OnBeginSeek(wxScrollEvent& event);
+	void OnEndSeek(wxScrollEvent& event);
 	const CGameListCtrl* GetGameListCtrl() const;
 	wxMenuBar* GetMenuBar() const override;
 

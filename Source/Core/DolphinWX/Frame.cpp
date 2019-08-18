@@ -30,6 +30,10 @@
 #include <wx/textctrl.h>
 #include <wx/thread.h>
 #include <wx/toolbar.h>
+#include <wx/button.h>
+#include <wx/event.h> 
+#include "Common/Logging/Log.h"
+#include <wx/stattext.h>
 
 #include "AudioCommon/AudioCommon.h"
 
@@ -75,7 +79,9 @@
 bool g_shouldJumpBack = false;
 bool g_shouldJumpForward = false;
 bool g_inSlippiPlayback = false;
+int32_t g_currentPlaybackFrame = INT_MIN;
 int32_t g_targetFrameNum = INT_MAX;
+int32_t g_lastFrame = -123;
 
 #if defined(HAVE_X11) && HAVE_X11
 // X11Utils nastiness that's only used here
@@ -357,7 +363,7 @@ CFrame::CFrame(wxFrame *parent, wxWindowID id, const wxString &title, wxRect geo
 	m_GameListCtrl->Bind(wxEVT_LIST_ITEM_ACTIVATED, &CFrame::OnGameListCtrlItemActivated, this);
 
 	wxBoxSizer *sizerPanel = new wxBoxSizer(wxHORIZONTAL);
-	sizerPanel->Add(m_GameListCtrl, 1, wxEXPAND | wxALL);
+	sizerPanel->Add(m_GameListCtrl, 1, wxALIGN_TOP);
 	m_Panel->SetSizer(sizerPanel);
 	// ---------------
 
@@ -381,6 +387,33 @@ CFrame::CFrame(wxFrame *parent, wxWindowID id, const wxString &title, wxRect geo
 		                                          .FloatingSize(wxSize(600, 350))
 		                                          .CloseButton(true)
 		                                          .Hide());
+
+	wxPanel *slippiPanel = new wxPanel(this, wxID_ANY);
+	wxBoxSizer *slippiSizer = new wxBoxSizer(wxHORIZONTAL);
+	slippiPanel->SetSizer(slippiSizer);
+
+	seekBar = new DolphinSlider(slippiPanel, wxID_ANY, 0, 0, 127, wxDefaultPosition, wxDefaultSize);
+	seekBar->SetLineSize(0);
+	seekBar->SetPageSize(0);
+	slippiSizer->Add(seekBar, 1, wxALIGN_CENTER_VERTICAL, 0);
+	slippiSizer->Add(new wxStaticText(slippiPanel, wxID_ANY, _("0:00 / 0:00")), 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
+
+	Bind(wxEVT_SCROLL_THUMBTRACK, &CFrame::OnBeginSeek, this);
+	Bind(wxEVT_SCROLL_THUMBRELEASE, &CFrame::OnEndSeek, this);
+
+	m_Mgr->AddPane(slippiPanel, wxAuiPaneInfo()
+									.Name("Pane 2")
+									.Caption(_("Slippi"))
+									.CaptionVisible(true)
+									.Layer(1)
+									.CloseButton(false)
+									.PaneBorder(false)
+									.MinSize(wxSize(wxDefaultCoord, 100))
+									.Fixed()
+									.Bottom()
+									.Floatable(false)
+									.Show());
+
 	AuiFullscreen = m_Mgr->SavePerspective();
 
 	if (!SConfig::GetInstance().m_InterfaceToolbar)
@@ -766,6 +799,7 @@ void CFrame::OnRenderWindowSizeRequest(int width, int height)
 		// Resize for the render panel only, this implicitly retains space for everything else
 		// (i.e. log panel, toolbar, statusbar, etc) without needing to compute for them.
 		old_size = m_RenderParent->GetSize();
+		INFO_LOG(SLIPPI, "old size, w: %d, h: %d", old_size.GetWidth(), old_size.GetHeight() );
 	}
 
 	wxSize diff = requested_size - old_size;
@@ -1580,16 +1614,16 @@ void CFrame::ParseHotkeys()
 
 	// Slippi replay hotkeys
 	if (g_inSlippiPlayback)
-	{
+	{		
 		if (IsHotkey(HK_JUMP_BACK))
 		{
-			INFO_LOG(SLIPPI, "going back 2 seconds");
+			INFO_LOG(SLIPPI, "going back 5 seconds");
 			g_shouldJumpBack = true;
 		}
 
 		if (IsHotkey(HK_JUMP_FORWARD))
 		{
-			INFO_LOG(SLIPPI, "going forward 2 seconds");
+			INFO_LOG(SLIPPI, "going forward -5 seconds");
 			g_shouldJumpForward = true;
 		}
 	}

@@ -84,6 +84,8 @@
 #include "VideoCommon/VideoBackendBase.h"
 #include "VideoCommon/VideoConfig.h"
 
+#include "Common/Logging/Log.h"
+
 class InputConfig;
 class wxFrame;
 

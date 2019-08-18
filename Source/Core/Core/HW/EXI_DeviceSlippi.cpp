@@ -43,7 +43,6 @@ int32_t emod(int32_t a, int32_t b)
 	return r >= 0 ? r : r + std::abs(b);
 }
 
-static int32_t currentPlaybackFrame = INT_MAX;
 static int32_t latestFrame = INT_MAX;
 
 static std::mutex mtx;
@@ -161,7 +160,7 @@ void CEXISlippi::updateMetadataFields(u8 *payload, u32 length)
 	}
 
 	// Keep track of last frame
-	lastFrame = payload[1] << 24 | payload[2] << 16 | payload[3] << 8 | payload[4];
+	g_lastFrame = payload[1] << 24 | payload[2] << 16 | payload[3] << 8 | payload[4];
 
 	// Keep track of character usage
 	u8 playerIndex = payload[5];
@@ -211,7 +210,7 @@ std::vector<u8> CEXISlippi::generateMetadata()
 	metadata.insert(metadata.end(), dateTimeBuf.begin(), dateTimeBuf.end());
 
 	// Add game duration
-	std::vector<u8> lastFrameToWrite = int32ToVector(lastFrame);
+	std::vector<u8> lastFrameToWrite = int32ToVector(g_lastFrame);
 	metadata.insert(metadata.end(), {'U', 9, 'l', 'a', 's', 't', 'F', 'r', 'a', 'm', 'e', 'l'});
 	metadata.insert(metadata.end(), lastFrameToWrite.begin(), lastFrameToWrite.end());
 
@@ -293,7 +292,7 @@ void CEXISlippi::writeToFile(u8 *payload, u32 length, std::string fileOption)
 		characterUsage.clear();
 
 		// Reset lastFrame
-		lastFrame = Slippi::GAME_FIRST_FRAME;
+		g_lastFrame = Slippi::GAME_FIRST_FRAME;
 	}
 
 	// If no file, do nothing
@@ -626,13 +625,13 @@ void CEXISlippi::prepareFrameData(u8 *payload)
 		isHardFFW = false;
 	}
 
-	currentPlaybackFrame = frameIndex;
+	g_currentPlaybackFrame = frameIndex;
 
 	// For normal replays, modify slippi seek/playback data as needed
 	// TODO: maybe handle other modes too?
 	if (commSettings.mode == "normal")
 	{
-		prepareSlippiPlayback(currentPlaybackFrame);
+		prepareSlippiPlayback(g_currentPlaybackFrame);
 	}
 
 	bool shouldFFW = shouldFFWFrame(frameIndex);
@@ -891,10 +890,10 @@ void CEXISlippi::SavestateThread()
 	while (true)
 	{
 		// Wait to hit one of the intervals
-		while ((currentPlaybackFrame + 123) % FRAME_INTERVAL != 0)
+		while ((g_currentPlaybackFrame + 123) % FRAME_INTERVAL != 0)
 			condVar.wait(intervalLock);
 		
-		uint32_t fixedFrameNumber = currentPlaybackFrame;
+		uint32_t fixedFrameNumber = g_currentPlaybackFrame;
 
 		bool isStartFrame = fixedFrameNumber == START_FRAME;
 		bool hasStateBeenProcessed = futureDiffs.count(fixedFrameNumber) > 0;
@@ -933,10 +932,10 @@ void CEXISlippi::SeekThread()
 			uint32_t jumpInterval = 300; // 5 seconds;
 
 			if (g_shouldJumpForward)
-				g_targetFrameNum = currentPlaybackFrame + jumpInterval;
+				g_targetFrameNum = g_currentPlaybackFrame + jumpInterval;
 
 			if (g_shouldJumpBack)
-				g_targetFrameNum = currentPlaybackFrame - jumpInterval;
+				g_targetFrameNum = g_currentPlaybackFrame - jumpInterval;
 
 			// Handle edgecases for trying to seek before start or past end of game
 			if (g_targetFrameNum < START_FRAME)
@@ -950,7 +949,7 @@ void CEXISlippi::SeekThread()
 			int32_t closestStateFrame = g_targetFrameNum - emod(g_targetFrameNum + 123, FRAME_INTERVAL);
 
 			bool isLoadingStateOptimal =
-			    g_targetFrameNum < currentPlaybackFrame || closestStateFrame > currentPlaybackFrame;
+			    g_targetFrameNum < g_currentPlaybackFrame || closestStateFrame > g_currentPlaybackFrame;
 
 			if (isLoadingStateOptimal)
 			{
@@ -1005,14 +1004,14 @@ void CEXISlippi::prepareSlippiPlayback(int32_t &frameIndex)
 		cv_processingDiff.wait(processingLock);
 	}
 
-	if (g_inSlippiPlayback && currentPlaybackFrame == g_targetFrameNum)
+	if (g_inSlippiPlayback && g_currentPlaybackFrame == g_targetFrameNum)
 	{
 		INFO_LOG(SLIPPI, "Reached frame to seek to, unblock", frameIndex);
 		cv_waitingForTargetFrame.notify_one();
 	}
 
 	// Unblock thread to save a state every interval
-	if ((currentPlaybackFrame + 123) % FRAME_INTERVAL == 0)
+	if ((g_currentPlaybackFrame + 123) % FRAME_INTERVAL == 0)
 		condVar.notify_one();
 }
 
