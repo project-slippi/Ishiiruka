@@ -4,7 +4,7 @@
 
 void slippiTimer::Notify()
 {
-	int totalSeconds = (int) ((g_lastFrame + 123) / 60);
+	int totalSeconds = (int) ((g_latestFrame + 123) / 60);
 	int totalMinutes = (int)(totalSeconds / 60);
 	int totalRemainder = (int)(totalSeconds % 60);
 
@@ -13,9 +13,9 @@ void slippiTimer::Notify()
 	int currRemainder = (int)(currSeconds % 60);
 	// Position string (i.e. MM:SS)
 	char endTime[5];
-	sprintf(endTime, "%d:%02d", totalMinutes, totalRemainder);
+	sprintf(endTime, "%02d:%02d", totalMinutes, totalRemainder);
 	char currTime[5];
-	sprintf(endTime, "%d:%02d", currMinutes, currRemainder);
+	sprintf(currTime, "%02d:%02d", currMinutes, currRemainder);
 
 	std::string time = std::string(currTime) + " / " + std::string(endTime);
 

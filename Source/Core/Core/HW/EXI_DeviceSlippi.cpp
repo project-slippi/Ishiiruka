@@ -43,8 +43,6 @@ int32_t emod(int32_t a, int32_t b)
 	return r >= 0 ? r : r + std::abs(b);
 }
 
-static int32_t latestFrame = INT_MAX;
-
 static std::mutex mtx;
 static std::mutex seekMtx;
 static std::mutex diffMtx;
@@ -160,7 +158,7 @@ void CEXISlippi::updateMetadataFields(u8 *payload, u32 length)
 	}
 
 	// Keep track of last frame
-	g_lastFrame = payload[1] << 24 | payload[2] << 16 | payload[3] << 8 | payload[4];
+	lastFrame = payload[1] << 24 | payload[2] << 16 | payload[3] << 8 | payload[4];
 
 	// Keep track of character usage
 	u8 playerIndex = payload[5];
@@ -210,7 +208,7 @@ std::vector<u8> CEXISlippi::generateMetadata()
 	metadata.insert(metadata.end(), dateTimeBuf.begin(), dateTimeBuf.end());
 
 	// Add game duration
-	std::vector<u8> lastFrameToWrite = int32ToVector(g_lastFrame);
+	std::vector<u8> lastFrameToWrite = int32ToVector(lastFrame);
 	metadata.insert(metadata.end(), {'U', 9, 'l', 'a', 's', 't', 'F', 'r', 'a', 'm', 'e', 'l'});
 	metadata.insert(metadata.end(), lastFrameToWrite.begin(), lastFrameToWrite.end());
 
@@ -292,7 +290,7 @@ void CEXISlippi::writeToFile(u8 *payload, u32 length, std::string fileOption)
 		characterUsage.clear();
 
 		// Reset lastFrame
-		g_lastFrame = Slippi::GAME_FIRST_FRAME;
+		lastFrame = Slippi::GAME_FIRST_FRAME;
 	}
 
 	// If no file, do nothing
@@ -581,8 +579,8 @@ void CEXISlippi::prepareFrameData(u8 *payload)
 	// data from this frame. Don't wait until next frame is processing is complete
 	// (this is the last frame, in that case)
 	auto isFrameFound = m_current_game->DoesFrameExist(frameIndex);
-	latestFrame = m_current_game->GetFrameCount();
-	auto isNextFrameFound = latestFrame > frameIndex;
+	g_latestFrame = m_current_game->GetFrameCount();
+	auto isNextFrameFound = g_latestFrame > frameIndex;
 	auto isFrameComplete = checkFrameFullyFetched(frameIndex);
 	auto isFrameReady = isFrameFound && (isProcessingComplete || isNextFrameFound || isFrameComplete);
 
@@ -602,8 +600,8 @@ void CEXISlippi::prepareFrameData(u8 *payload)
 
 	// If RealTimeMode is enabled, let's trigger fast forwarding under certain conditions
 	auto commSettings = replayComm->getSettings();
-	auto isFarBehind = latestFrame - frameIndex > 2;
-	auto isVeryFarBehind = latestFrame - frameIndex > 25;
+	auto isFarBehind = g_latestFrame - frameIndex > 2;
+	auto isVeryFarBehind = g_latestFrame - frameIndex > 25;
 	if (isFarBehind && commSettings.mode == "mirror" && commSettings.isRealTimeMode)
 	{
 		isSoftFFW = true;
@@ -614,7 +612,7 @@ void CEXISlippi::prepareFrameData(u8 *payload)
 			isHardFFW = isVeryFarBehind;
 	}
 
-	if (latestFrame == frameIndex)
+	if (g_latestFrame == frameIndex)
 	{
 		// The reason to disable fast forwarding here is in hopes
 		// of disabling it on the last frame that we have actually received.
@@ -658,13 +656,13 @@ void CEXISlippi::prepareFrameData(u8 *payload)
 	}
 
 	// WARN_LOG(EXPANSIONINTERFACE, "[Frame %d] Playback current behind by: %d frames.", frameIndex,
-	//        latestFrame - frameIndex);
+	//        g_latestFrame - frameIndex);
 
 	// Keep track of last FFW frame, used for soft FFW's
 	if (shouldFFW)
 	{
 		WARN_LOG(EXPANSIONINTERFACE, "[Frame %d] FFW frame, behind by: %d frames.", frameIndex,
-		         latestFrame - frameIndex);
+		         g_latestFrame - frameIndex);
 		lastFFWFrame = frameIndex;
 	}
 
@@ -758,8 +756,8 @@ void CEXISlippi::prepareFrameCount()
 	int bufferCount = 15;
 
 	// Make sure we've loaded all the latest data, maybe this should be part of GetFrameCount
-	latestFrame = m_current_game->GetFrameCount();
-	auto frameCount = latestFrame - Slippi::GAME_FIRST_FRAME;
+	g_latestFrame = m_current_game->GetFrameCount();
+	auto frameCount = g_latestFrame - Slippi::GAME_FIRST_FRAME;
 	auto frameCountPlusBuffer = frameCount + bufferCount;
 
 	u8 result = frameCountPlusBuffer > 0xFF ? 0xFF : (u8)frameCountPlusBuffer;
@@ -941,9 +939,9 @@ void CEXISlippi::SeekThread()
 			if (g_targetFrameNum < START_FRAME)
 				g_targetFrameNum = START_FRAME;
 
-			if (g_targetFrameNum > latestFrame)
+			if (g_targetFrameNum > g_latestFrame)
 			{
-				g_targetFrameNum = latestFrame;
+				g_targetFrameNum = g_latestFrame;
 			}
 
 			int32_t closestStateFrame = g_targetFrameNum - emod(g_targetFrameNum + 123, FRAME_INTERVAL);
@@ -971,7 +969,7 @@ void CEXISlippi::SeekThread()
 			}
 
 			// Fastforward until we get to the frame we want
-			if (g_targetFrameNum != closestStateFrame && g_targetFrameNum != latestFrame) {
+			if (g_targetFrameNum != closestStateFrame && g_targetFrameNum != g_latestFrame) {
 				isHardFFW = true;
 				SConfig::GetInstance().m_OCEnable = true;
 				SConfig::GetInstance().m_OCFactor = 4.0f;

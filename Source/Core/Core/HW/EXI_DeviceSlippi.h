@@ -79,6 +79,7 @@ class CEXISlippi : public IEXIDevice
 
 	// vars for metadata generation
 	time_t gameStartTime;
+	int32_t lastFrame;
 	std::unordered_map<u8, std::unordered_map<u8, u32>> characterUsage;
 
 	void updateMetadataFields(u8 *payload, u32 length);

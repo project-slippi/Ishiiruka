@@ -81,7 +81,7 @@ bool g_inSlippiPlayback = false;
 bool g_showingSlippiControls = false;
 int32_t g_currentPlaybackFrame = INT_MIN;
 int32_t g_targetFrameNum = INT_MAX;
-int32_t g_lastFrame = -123;
+int32_t g_latestFrame = -123;
 
 #if defined(HAVE_X11) && HAVE_X11
 // X11Utils nastiness that's only used here
@@ -1607,7 +1607,7 @@ void CFrame::ParseHotkeys()
 			slippiPanel->SetSizer(slippiSizer);
 
 			seekBar = new DolphinSlider(slippiPanel, wxID_ANY, 0, 0, 127, wxDefaultPosition, wxDefaultSize);
-			seekBarText = new wxStaticText(slippiPanel, wxID_ANY, _("0:00 / 0:00"));
+			seekBarText = new wxStaticText(slippiPanel, wxID_ANY, _("00:00 / 00:00"));
 			seekBar->SetLineSize(0);
 			seekBar->SetPageSize(0);
 			slippiSizer->Add(seekBar, 1, wxALIGN_CENTER_VERTICAL, 0);
@@ -1623,7 +1623,7 @@ void CFrame::ParseHotkeys()
 			                                .Layer(1)
 			                                .CloseButton(false)
 			                                .PaneBorder(false)
-			                                .MinSize(wxSize(wxDefaultCoord, 100))
+			                                .MinSize(wxSize(wxDefaultCoord, 20))
 			                                .Fixed()
 			                                .Bottom()
 			                                .Floatable(false)
