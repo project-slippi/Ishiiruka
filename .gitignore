@@ -49,3 +49,5 @@ Source/.idea/
 *.Build.CppClean.log
 .vscode/
 Externals/nlohmann/x64
+Externals/open-vcdiff/x64/Release/
+Source/x64/Release/open-vcdiff.lib
