@@ -30,6 +30,6 @@ void slippiTimer::Notify()
 	m_text->SetLabel(_(time));
 
 	// if the slider is not being dragged then update it with the song position
-	if (m_frame->isDraggingSlider == false)
+	if (m_frame->isDraggingSlider == false && g_targetFrameNum == INT_MAX)
 		m_slider->SetValue(currSeconds);
 }

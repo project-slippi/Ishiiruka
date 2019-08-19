@@ -30,9 +30,6 @@
 #include <wx/textctrl.h>
 #include <wx/thread.h>
 #include <wx/toolbar.h>
-#include <wx/button.h>
-#include <wx/event.h> 
-#include "Common/Logging/Log.h"
 
 #include "AudioCommon/AudioCommon.h"
 
@@ -363,7 +360,7 @@ CFrame::CFrame(wxFrame *parent, wxWindowID id, const wxString &title, wxRect geo
 	m_GameListCtrl->Bind(wxEVT_LIST_ITEM_ACTIVATED, &CFrame::OnGameListCtrlItemActivated, this);
 
 	wxBoxSizer *sizerPanel = new wxBoxSizer(wxHORIZONTAL);
-	sizerPanel->Add(m_GameListCtrl, 1, wxALIGN_TOP);
+	sizerPanel->Add(m_GameListCtrl, 1, wxEXPAND | wxALL);
 	m_Panel->SetSizer(sizerPanel);
 	// ---------------
 
@@ -1590,13 +1587,11 @@ void CFrame::ParseHotkeys()
 	{		
 		if (IsHotkey(HK_JUMP_BACK))
 		{
-			INFO_LOG(SLIPPI, "going back 5 seconds");
 			g_shouldJumpBack = true;
 		}
 
 		if (IsHotkey(HK_JUMP_FORWARD))
 		{
-			INFO_LOG(SLIPPI, "going forward -5 seconds");
 			g_shouldJumpForward = true;
 		}
 

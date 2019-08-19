@@ -4,7 +4,6 @@
 #include <wx/timer.h>
 #include <wx/stattext.h>
 #include "DolphinWX/DolphinSlider.h"
-#include "Common/Logging/Log.h"
 
 class CFrame;
 
