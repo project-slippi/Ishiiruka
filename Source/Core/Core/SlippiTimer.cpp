@@ -22,14 +22,16 @@ void slippiTimer::Notify()
 	// Setup the slider and gauge min/max values
 	if (!hasSetRange)
 	{
-		m_slider->SetRange(0, totalSeconds);
+		m_slider->SetRange(-123, (int)(g_latestFrame));
 		hasSetRange = true;
 	}
 
-	// Update text showing current position and time
-	m_text->SetLabel(_(time));
+	// Only update values while not actively seeking
+	if (g_targetFrameNum == INT_MAX)
+	{
+		m_text->SetLabel(_(time));
 
-	// if the slider is not being dragged then update it with the song position
-	if (m_frame->isDraggingSlider == false && g_targetFrameNum == INT_MAX)
-		m_slider->SetValue(currSeconds);
+		if (m_frame->isDraggingSlider == false)
+			m_slider->SetValue(g_currentPlaybackFrame);
+	}
 }

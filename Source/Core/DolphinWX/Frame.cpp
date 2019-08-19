@@ -1613,7 +1613,7 @@ void CFrame::ParseHotkeys()
 
 			m_Mgr->AddPane(slippiPanel, wxAuiPaneInfo()
 			                                .Name("Pane 2")
-			                                .Caption(_("Slippi"))
+			                                .Caption(_("Space: Pause/Play. Left Arrow: Rewind 5 seconds. Right Arrow: Fast forward 5 seconds. Drag and release slider to seek"))
 			                                .CaptionVisible(true)
 			                                .Layer(1)
 			                                .CloseButton(false)
@@ -1626,7 +1626,7 @@ void CFrame::ParseHotkeys()
 			m_Mgr->Update();
 
 			m_slippi_timer = new slippiTimer(this, seekBar, seekBarText);
-			m_slippi_timer->Start(500); 
+			m_slippi_timer->Start(50); 
 
 			g_showingSlippiControls = true;
 		}

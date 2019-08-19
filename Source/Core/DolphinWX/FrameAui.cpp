@@ -1061,8 +1061,7 @@ void CFrame::OnBeginSeek(wxScrollEvent& event) {
 }
 
 void CFrame::OnEndSeek(wxScrollEvent& event) {
+	g_targetFrameNum = (int32_t) seekBar->GetValue();
 	isDraggingSlider = false;
-	int value = seekBar->GetValue();
-	g_targetFrameNum = (int32_t) (value * 60 - 123);
 }
 
