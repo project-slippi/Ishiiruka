@@ -43,9 +43,6 @@ int32_t emod(int32_t a, int32_t b)
 	return r >= 0 ? r : r + std::abs(b);
 }
 
-static int32_t currentPlaybackFrame = INT_MAX;
-static int32_t latestFrame = INT_MAX;
-
 static std::mutex mtx;
 static std::mutex seekMtx;
 static std::mutex diffMtx;
@@ -582,8 +579,8 @@ void CEXISlippi::prepareFrameData(u8 *payload)
 	// data from this frame. Don't wait until next frame is processing is complete
 	// (this is the last frame, in that case)
 	auto isFrameFound = m_current_game->DoesFrameExist(frameIndex);
-	latestFrame = m_current_game->GetFrameCount();
-	auto isNextFrameFound = latestFrame > frameIndex;
+	g_latestFrame = m_current_game->GetFrameCount();
+	auto isNextFrameFound = g_latestFrame > frameIndex;
 	auto isFrameComplete = checkFrameFullyFetched(frameIndex);
 	auto isFrameReady = isFrameFound && (isProcessingComplete || isNextFrameFound || isFrameComplete);
 
@@ -603,8 +600,8 @@ void CEXISlippi::prepareFrameData(u8 *payload)
 
 	// If RealTimeMode is enabled, let's trigger fast forwarding under certain conditions
 	auto commSettings = replayComm->getSettings();
-	auto isFarBehind = latestFrame - frameIndex > 2;
-	auto isVeryFarBehind = latestFrame - frameIndex > 25;
+	auto isFarBehind = g_latestFrame - frameIndex > 2;
+	auto isVeryFarBehind = g_latestFrame - frameIndex > 25;
 	if (isFarBehind && commSettings.mode == "mirror" && commSettings.isRealTimeMode)
 	{
 		isSoftFFW = true;
@@ -615,7 +612,7 @@ void CEXISlippi::prepareFrameData(u8 *payload)
 			isHardFFW = isVeryFarBehind;
 	}
 
-	if (latestFrame == frameIndex)
+	if (g_latestFrame == frameIndex)
 	{
 		// The reason to disable fast forwarding here is in hopes
 		// of disabling it on the last frame that we have actually received.
@@ -626,13 +623,13 @@ void CEXISlippi::prepareFrameData(u8 *payload)
 		isHardFFW = false;
 	}
 
-	currentPlaybackFrame = frameIndex;
+	g_currentPlaybackFrame = frameIndex;
 
 	// For normal replays, modify slippi seek/playback data as needed
 	// TODO: maybe handle other modes too?
 	if (commSettings.mode == "normal")
 	{
-		prepareSlippiPlayback(currentPlaybackFrame);
+		prepareSlippiPlayback(g_currentPlaybackFrame);
 	}
 
 	bool shouldFFW = shouldFFWFrame(frameIndex);
@@ -659,13 +656,13 @@ void CEXISlippi::prepareFrameData(u8 *payload)
 	}
 
 	// WARN_LOG(EXPANSIONINTERFACE, "[Frame %d] Playback current behind by: %d frames.", frameIndex,
-	//        latestFrame - frameIndex);
+	//        g_latestFrame - frameIndex);
 
 	// Keep track of last FFW frame, used for soft FFW's
 	if (shouldFFW)
 	{
 		WARN_LOG(EXPANSIONINTERFACE, "[Frame %d] FFW frame, behind by: %d frames.", frameIndex,
-		         latestFrame - frameIndex);
+		         g_latestFrame - frameIndex);
 		lastFFWFrame = frameIndex;
 	}
 
@@ -759,8 +756,8 @@ void CEXISlippi::prepareFrameCount()
 	int bufferCount = 15;
 
 	// Make sure we've loaded all the latest data, maybe this should be part of GetFrameCount
-	latestFrame = m_current_game->GetFrameCount();
-	auto frameCount = latestFrame - Slippi::GAME_FIRST_FRAME;
+	g_latestFrame = m_current_game->GetFrameCount();
+	auto frameCount = g_latestFrame - Slippi::GAME_FIRST_FRAME;
 	auto frameCountPlusBuffer = frameCount + bufferCount;
 
 	u8 result = frameCountPlusBuffer > 0xFF ? 0xFF : (u8)frameCountPlusBuffer;
@@ -891,10 +888,10 @@ void CEXISlippi::SavestateThread()
 	while (true)
 	{
 		// Wait to hit one of the intervals
-		while ((currentPlaybackFrame + 123) % FRAME_INTERVAL != 0)
+		while ((g_currentPlaybackFrame + 123) % FRAME_INTERVAL != 0)
 			condVar.wait(intervalLock);
 		
-		uint32_t fixedFrameNumber = currentPlaybackFrame;
+		uint32_t fixedFrameNumber = g_currentPlaybackFrame;
 
 		bool isStartFrame = fixedFrameNumber == START_FRAME;
 		bool hasStateBeenProcessed = futureDiffs.count(fixedFrameNumber) > 0;
@@ -933,24 +930,24 @@ void CEXISlippi::SeekThread()
 			uint32_t jumpInterval = 300; // 5 seconds;
 
 			if (g_shouldJumpForward)
-				g_targetFrameNum = currentPlaybackFrame + jumpInterval;
+				g_targetFrameNum = g_currentPlaybackFrame + jumpInterval;
 
 			if (g_shouldJumpBack)
-				g_targetFrameNum = currentPlaybackFrame - jumpInterval;
+				g_targetFrameNum = g_currentPlaybackFrame - jumpInterval;
 
 			// Handle edgecases for trying to seek before start or past end of game
 			if (g_targetFrameNum < START_FRAME)
 				g_targetFrameNum = START_FRAME;
 
-			if (g_targetFrameNum > latestFrame)
+			if (g_targetFrameNum > g_latestFrame)
 			{
-				g_targetFrameNum = latestFrame;
+				g_targetFrameNum = g_latestFrame;
 			}
 
 			int32_t closestStateFrame = g_targetFrameNum - emod(g_targetFrameNum + 123, FRAME_INTERVAL);
 
 			bool isLoadingStateOptimal =
-			    g_targetFrameNum < currentPlaybackFrame || closestStateFrame > currentPlaybackFrame;
+			    g_targetFrameNum < g_currentPlaybackFrame || closestStateFrame > g_currentPlaybackFrame;
 
 			if (isLoadingStateOptimal)
 			{
@@ -972,7 +969,7 @@ void CEXISlippi::SeekThread()
 			}
 
 			// Fastforward until we get to the frame we want
-			if (g_targetFrameNum != closestStateFrame && g_targetFrameNum != latestFrame) {
+			if (g_targetFrameNum != closestStateFrame && g_targetFrameNum != g_latestFrame) {
 				isHardFFW = true;
 				SConfig::GetInstance().m_OCEnable = true;
 				SConfig::GetInstance().m_OCFactor = 4.0f;
@@ -1005,14 +1002,14 @@ void CEXISlippi::prepareSlippiPlayback(int32_t &frameIndex)
 		cv_processingDiff.wait(processingLock);
 	}
 
-	if (g_inSlippiPlayback && currentPlaybackFrame == g_targetFrameNum)
+	if (g_inSlippiPlayback && g_currentPlaybackFrame == g_targetFrameNum)
 	{
 		INFO_LOG(SLIPPI, "Reached frame to seek to, unblock", frameIndex);
 		cv_waitingForTargetFrame.notify_one();
 	}
 
 	// Unblock thread to save a state every interval
-	if ((currentPlaybackFrame + 123) % FRAME_INTERVAL == 0)
+	if ((g_currentPlaybackFrame + 123) % FRAME_INTERVAL == 0)
 		condVar.notify_one();
 }
 
