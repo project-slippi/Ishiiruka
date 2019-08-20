@@ -124,8 +124,6 @@ CEXISlippi::CEXISlippi()
 	// Spawn thread for savestates
 	// maybe stick this into functions below so it doesn't always get spawned
 	// only spin off and join when a replay is loaded, delete after replay is done, etc
-	m_savestateThread = std::thread(&CEXISlippi::SavestateThread, this);
-	m_seekThread = std::thread(&CEXISlippi::SeekThread, this);
 }
 
 CEXISlippi::~CEXISlippi()
@@ -136,6 +134,19 @@ CEXISlippi::~CEXISlippi()
 	// suddenly stops. This would happen often on netplay when the opponent
 	// would close the emulation before the file successfully finished writing
 	writeToFile(&empty[0], 0, "close");
+
+	if (m_savestateThread.joinable())
+		m_savestateThread.detach();
+
+	if (m_seekThread.joinable())
+		m_seekThread.detach();
+
+	g_shouldJumpBack = false;
+	g_shouldJumpForward = false;
+	g_targetFrameNum = INT_MAX;
+	g_inSlippiPlayback = false;
+	futureDiffs.clear();
+	futureDiffs.rehash(0);
 }
 
 void CEXISlippi::configureCommands(u8 *payload, u8 length)
@@ -480,8 +491,9 @@ void CEXISlippi::prepareGameInfo()
 	// Write PS Frozen byte
 	m_read_queue.push_back(settings->isFrozenPS);
 
-	// Set values for initializing saveState thread
-	inReplay = true;
+	// Initialize replay related threads
+	m_savestateThread = std::thread(&CEXISlippi::SavestateThread, this);
+	m_seekThread = std::thread(&CEXISlippi::SeekThread, this);
 }
 
 void CEXISlippi::prepareCharacterFrameData(int32_t frameIndex, u8 port, u8 isFollower)
@@ -775,7 +787,6 @@ void CEXISlippi::prepareIsFileReady()
 	{
 		replayComm->nextReplay();
 		m_read_queue.push_back(0);
-		inReplay = false;
 		return;
 	}
 
@@ -787,7 +798,6 @@ void CEXISlippi::prepareIsFileReady()
 		// Do not start if replay file doesn't exist
 		// TODO: maybe display error message?
 		INFO_LOG(SLIPPI, "EXI_DeviceSlippi.cpp: Replay file does not exist?");
-		inReplay = false;
 		m_read_queue.push_back(0);
 		return;
 	}
@@ -882,6 +892,9 @@ void CEXISlippi::TransferByte(u8 &byte) {}
 
 void CEXISlippi::SavestateThread()
 {
+	// TODO: reopening game causes crash on line 912, count crashes
+	futureDiffs.clear();
+	futureDiffs.rehash(0);
 	Common::SetCurrentThreadName("Savestate thread");
 	std::unique_lock<std::mutex> intervalLock(mtx);
 
@@ -891,7 +904,9 @@ void CEXISlippi::SavestateThread()
 		while ((g_currentPlaybackFrame + 123) % FRAME_INTERVAL != 0)
 			condVar.wait(intervalLock);
 		
-		uint32_t fixedFrameNumber = g_currentPlaybackFrame;
+		int32_t fixedFrameNumber = g_currentPlaybackFrame;
+		if (fixedFrameNumber == INT_MAX)
+			continue;
 
 		bool isStartFrame = fixedFrameNumber == START_FRAME;
 		bool hasStateBeenProcessed = futureDiffs.count(fixedFrameNumber) > 0;
@@ -900,8 +915,7 @@ void CEXISlippi::SavestateThread()
 		{
 			processInitialState(iState);
 			haveInitialState = true;
-		}
-		else if (!hasStateBeenProcessed && !isStartFrame)
+		} else if (!hasStateBeenProcessed && !isStartFrame)
 		{
 			INFO_LOG(SLIPPI, "saving diff at frame: %d", fixedFrameNumber);
 			State::SaveToBuffer(cState);

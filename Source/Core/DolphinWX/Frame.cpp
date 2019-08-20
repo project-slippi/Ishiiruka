@@ -385,6 +385,34 @@ CFrame::CFrame(wxFrame *parent, wxWindowID id, const wxString &title, wxRect geo
 		                                          .CloseButton(true)
 		                                          .Hide());
 
+	// Create UI for Slippi playback controls, hide until replay is booted
+	wxPanel *slippiPanel = new wxPanel(this, wxID_ANY);
+	wxBoxSizer *slippiSizer = new wxBoxSizer(wxHORIZONTAL);
+	slippiPanel->SetSizer(slippiSizer);
+
+	seekBar = new PlaybackSlider(slippiPanel, wxID_ANY, 0, 0, 127, wxDefaultPosition, wxDefaultSize);
+	seekBarText = new wxStaticText(slippiPanel, wxID_ANY, _("\n00:00 / 00:00"));
+	seekBar->SetLineSize(0);
+	seekBar->SetPageSize(0);
+	slippiSizer->Add(seekBar, 1, wxALIGN_CENTER_VERTICAL, 0);
+	slippiSizer->Add(seekBarText, 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
+
+	Bind(wxEVT_SCROLL_THUMBTRACK, &CFrame::OnBeginSeek, this);
+	Bind(wxEVT_SCROLL_THUMBRELEASE, &CFrame::OnEndSeek, this);
+
+	m_Mgr->AddPane(slippiPanel, wxAuiPaneInfo()
+									.Name("Pane 2")
+									.Caption(_("Space: Pause/Play. Left Arrow: Rewind 5 seconds. Right Arrow: Fast forward 5 seconds. Drag and release slider to seek"))
+									.CaptionVisible(true)
+									.Layer(1)
+									.CloseButton(false)
+									.PaneBorder(false)
+									.MinSize(wxSize(wxDefaultCoord, 30))
+									.Fixed()
+									.Bottom()
+									.Floatable(false)
+									.Hide());
+
 	AuiFullscreen = m_Mgr->SavePerspective();
 
 	if (!SConfig::GetInstance().m_InterfaceToolbar)
@@ -1596,33 +1624,7 @@ void CFrame::ParseHotkeys()
 		}
 
 		if (!g_showingSlippiControls) {
-			// Create UI for Slippi playback controls, hide until replay is booted
-			wxPanel *slippiPanel = new wxPanel(this, wxID_ANY);
-			wxBoxSizer *slippiSizer = new wxBoxSizer(wxHORIZONTAL);
-			slippiPanel->SetSizer(slippiSizer);
-
-			seekBar = new PlaybackSlider(slippiPanel, wxID_ANY, 0, 0, 127, wxDefaultPosition, wxDefaultSize);
-			seekBarText = new wxStaticText(slippiPanel, wxID_ANY, _("\n00:00 / 00:00"));
-			seekBar->SetLineSize(0);
-			seekBar->SetPageSize(0);
-			slippiSizer->Add(seekBar, 1, wxALIGN_CENTER_VERTICAL, 0);
-			slippiSizer->Add(seekBarText, 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
-
-			Bind(wxEVT_SCROLL_THUMBTRACK, &CFrame::OnBeginSeek, this);
-			Bind(wxEVT_SCROLL_THUMBRELEASE, &CFrame::OnEndSeek, this);
-
-			m_Mgr->AddPane(slippiPanel, wxAuiPaneInfo()
-			                                .Name("Pane 2")
-			                                .Caption(_("Space: Pause/Play. Left Arrow: Rewind 5 seconds. Right Arrow: Fast forward 5 seconds. Drag and release slider to seek"))
-			                                .CaptionVisible(true)
-			                                .Layer(1)
-			                                .CloseButton(false)
-			                                .PaneBorder(false)
-			                                .MinSize(wxSize(wxDefaultCoord, 30))
-			                                .Fixed()
-			                                .Bottom()
-			                                .Floatable(false)
-			                                .Show());
+			m_Mgr->GetPane("Pane 2").Show();
 			m_Mgr->Update();
 
 			m_slippi_timer = new slippiTimer(this, seekBar, seekBarText);

@@ -850,6 +850,8 @@ void CFrame::DoStop()
 		if (NetPlayDialog::GetNetPlayClient())
 			NetPlayDialog::GetNetPlayClient()->Stop();
 
+		m_Mgr->GetPane("Pane 2").Hide();
+
 		if (!m_tried_graceful_shutdown && TriggerSTMPowerEvent())
 		{
 			m_tried_graceful_shutdown = true;
