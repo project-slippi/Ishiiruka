@@ -763,6 +763,9 @@
     <ClCompile Include="SlippiTimer.cpp">
       <Filter>Slippi</Filter>
     </ClCompile>
+    <ClCompile Include="..\DolphinWX\PlaybackSlider.cpp">
+      <Filter>Slippi</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="BootManager.h" />
@@ -1305,6 +1308,9 @@
       <Filter>HW %28Flipper/Hollywood%29\EXI - Expansion Interface</Filter>
     </ClInclude>
     <ClInclude Include="SlippiTimer.h">
+      <Filter>Slippi</Filter>
+    </ClInclude>
+    <ClInclude Include="..\DolphinWX\PlaybackSlider.h">
       <Filter>Slippi</Filter>
     </ClInclude>
   </ItemGroup>

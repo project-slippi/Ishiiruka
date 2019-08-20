@@ -20,7 +20,7 @@
 #include "Core/HW/WiimoteEmu/WiimoteEmu.h"
 #include "Core/SlippiTimer.h"
 #include "DolphinWX/Globals.h"
-#include "DolphinWX/DolphinSlider.h"
+#include "DolphinWX/PlaybackSlider.h"
 #include "InputCommon/GCPadStatus.h"
 
 #if defined(HAVE_X11) && HAVE_X11
@@ -180,7 +180,7 @@ private:
 	wxTimer m_poll_hotkey_timer;
 	wxTimer m_handle_signal_timer;
 	slippiTimer *m_slippi_timer;
-	DolphinSlider *seekBar = nullptr;
+	PlaybackSlider *seekBar = nullptr;
 	wxStaticText *seekBarText = nullptr;
 
 	wxMenuBar* m_menubar_shadow = nullptr;

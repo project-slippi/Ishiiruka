@@ -46,6 +46,7 @@
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\DolphinWX\PlaybackSlider.cpp" />
     <ClCompile Include="ActionReplay.cpp" />
     <ClCompile Include="Analytics.cpp" />
     <ClCompile Include="ARDecrypt.cpp" />
@@ -271,6 +272,7 @@
     <ClCompile Include="State.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\DolphinWX\PlaybackSlider.h" />
     <ClInclude Include="ActionReplay.h" />
     <ClInclude Include="Analytics.h" />
     <ClInclude Include="ARDecrypt.h" />

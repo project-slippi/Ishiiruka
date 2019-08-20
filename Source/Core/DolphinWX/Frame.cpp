@@ -1601,8 +1601,8 @@ void CFrame::ParseHotkeys()
 			wxBoxSizer *slippiSizer = new wxBoxSizer(wxHORIZONTAL);
 			slippiPanel->SetSizer(slippiSizer);
 
-			seekBar = new DolphinSlider(slippiPanel, wxID_ANY, 0, 0, 127, wxDefaultPosition, wxDefaultSize);
-			seekBarText = new wxStaticText(slippiPanel, wxID_ANY, _("00:00 / 00:00"));
+			seekBar = new PlaybackSlider(slippiPanel, wxID_ANY, 0, 0, 127, wxDefaultPosition, wxDefaultSize);
+			seekBarText = new wxStaticText(slippiPanel, wxID_ANY, _("\n00:00 / 00:00"));
 			seekBar->SetLineSize(0);
 			seekBar->SetPageSize(0);
 			slippiSizer->Add(seekBar, 1, wxALIGN_CENTER_VERTICAL, 0);
@@ -1618,7 +1618,7 @@ void CFrame::ParseHotkeys()
 			                                .Layer(1)
 			                                .CloseButton(false)
 			                                .PaneBorder(false)
-			                                .MinSize(wxSize(wxDefaultCoord, 20))
+			                                .MinSize(wxSize(wxDefaultCoord, 30))
 			                                .Fixed()
 			                                .Bottom()
 			                                .Floatable(false)
