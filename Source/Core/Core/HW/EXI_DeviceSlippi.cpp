@@ -1012,13 +1012,14 @@ void CEXISlippi::SeekThread()
 void CEXISlippi::prepareSlippiPlayback(int32_t &frameIndex)
 {
 	// block if there's too many diffs being processed
-	while (numDiffsProcessing > 2) {
+	while (numDiffsProcessing > 3) {
+		INFO_LOG(SLIPPI, "Processing too many diffs, blocking main process");
 		cv_processingDiff.wait(processingLock);
 	}
 
 	if (g_inSlippiPlayback && g_currentPlaybackFrame == g_targetFrameNum)
 	{
-		INFO_LOG(SLIPPI, "Reached frame to seek to, unblock", frameIndex);
+		INFO_LOG(SLIPPI, "Reached frame to seek to, unblock");
 		cv_waitingForTargetFrame.notify_one();
 	}
 
