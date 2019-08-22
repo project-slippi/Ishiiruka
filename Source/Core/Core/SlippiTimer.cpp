@@ -31,7 +31,7 @@ void slippiTimer::Notify()
 	{
 		m_text->SetLabel(_(time));
 
-		if (m_frame->isDraggingSlider == false)
+		if (m_slider->isDraggingSlider == false)
 			m_slider->SetValue(g_currentPlaybackFrame);
 	}
 }

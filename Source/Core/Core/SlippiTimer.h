@@ -3,14 +3,14 @@
 
 #include <wx/timer.h>
 #include <wx/stattext.h>
-#include "DolphinWX/DolphinSlider.h"
+#include "DolphinWX/PlaybackSlider.h"
 
 class CFrame;
 
 class slippiTimer : public wxTimer
 {
   public:
-	slippiTimer(CFrame* mainFrame, DolphinSlider *slider, wxStaticText *text) { 
+	slippiTimer(CFrame* mainFrame, PlaybackSlider *slider, wxStaticText *text) { 
 		m_frame = mainFrame;
 		m_slider = slider; 
 		m_text = text;
@@ -20,7 +20,7 @@ class slippiTimer : public wxTimer
 	void Notify() wxOVERRIDE;
 
 	CFrame *m_frame;
-	DolphinSlider *m_slider;
+	PlaybackSlider *m_slider;
 	wxStaticText *m_text;
 
 	bool hasSetRange = false;

@@ -116,9 +116,6 @@ public:
 	void UpdateTitle(const std::string& str);
 	void OpenGeneralConfiguration(wxWindowID tab_id = wxID_ANY);
 
-	bool isDraggingSlider = false;
-	void OnBeginSeek(wxScrollEvent& event);
-	void OnEndSeek(wxScrollEvent& event);
 	const CGameListCtrl* GetGameListCtrl() const;
 	wxMenuBar* GetMenuBar() const override;
 

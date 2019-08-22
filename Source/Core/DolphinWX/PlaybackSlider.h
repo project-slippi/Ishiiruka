@@ -21,12 +21,15 @@ class PlaybackSlider : public DolphinSlider
 		Create(parent, id, value, min_value, max_value, pos, size, style, validator, name);
 	}
 
+	bool isDraggingSlider;
+
 	DECLARE_EVENT_TABLE()
 
 	bool Create(wxWindow *parent, wxWindowID id, int value, int min_value, int max_value,
 	            const wxPoint &pos = wxDefaultPosition, const wxSize &size = wxDefaultSize,
 	            long style = wxSL_HORIZONTAL, const wxValidator &validator = wxDefaultValidator,
 	            const wxString &name = wxSliderNameStr);
-
 	void OnSliderClick(wxMouseEvent &event);
+	void OnSliderDown(wxMouseEvent &event);
+	int CalculatePosition(wxMouseEvent &event);
 };

@@ -114,7 +114,6 @@ class CEXISlippi : public IEXIDevice
 	std::vector<u8> iState;                                            // The initial state
 	std::vector<u8> cState;                                            // The current (latest) state
 
-	bool haveInitialState = false;
 	bool shouldFFWToTarget = false;
 	int mostRecentlyProcessedFrame = INT_MAX;
 

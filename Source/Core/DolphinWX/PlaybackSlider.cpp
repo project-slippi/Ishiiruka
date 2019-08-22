@@ -10,6 +10,7 @@
 
 // Event table
 BEGIN_EVENT_TABLE(PlaybackSlider, wxSlider)
+EVT_LEFT_DOWN(PlaybackSlider::OnSliderDown)
 EVT_LEFT_UP(PlaybackSlider::OnSliderClick)
 END_EVENT_TABLE()
 
@@ -46,5 +47,38 @@ void PlaybackSlider::OnSliderClick(wxMouseEvent &event) {
 		g_targetFrameNum = min + val;
 	}
 
+	isDraggingSlider = false;
 	event.Skip();
+}
+
+void PlaybackSlider::OnSliderDown(wxMouseEvent &event) {
+    isDraggingSlider = true;
+	int position = CalculatePosition(event);
+	this->SetValue(position);
+	event.Skip();
+}
+
+int PlaybackSlider::CalculatePosition(wxMouseEvent &event) {
+	int min = this->GetMin();
+	int max = this->GetMax();
+	int pos, dim;
+
+	if (this->GetWindowStyle() & wxVERTICAL) {
+		pos = event.GetPosition().y;
+		dim = this->GetSize().y;
+	} else {
+		// hard code hack to address calculate width correctly by accounting for border
+		// TODO: revisit?
+		pos = event.GetPosition().x - 9;
+		dim = this->GetSize().x - 18;
+	}
+
+	if (pos >= 0 && pos < dim) {
+		// now we're sure the click is on the slider, and (width != 0)
+		INFO_LOG(SLIPPI, "%d %d", pos, dim);
+		int dim2 = (dim >> 1); // for proper rounding
+		int val = (pos * (max - min) + dim2) / dim;
+		return min + val;
+	}
+	return INT_MAX;
 }

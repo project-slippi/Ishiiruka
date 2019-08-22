@@ -911,10 +911,10 @@ void CEXISlippi::SavestateThread()
 		bool isStartFrame = fixedFrameNumber == START_FRAME;
 		bool hasStateBeenProcessed = futureDiffs.count(fixedFrameNumber) > 0;
 
-		if (!haveInitialState && isStartFrame)
+		if (!g_inSlippiPlayback && isStartFrame)
 		{
 			processInitialState(iState);
-			haveInitialState = true;
+			g_inSlippiPlayback = true;
 		} else if (!hasStateBeenProcessed && !isStartFrame)
 		{
 			INFO_LOG(SLIPPI, "saving diff at frame: %d", fixedFrameNumber);
@@ -933,7 +933,7 @@ void CEXISlippi::SeekThread()
 
 	while (true)
 	{
-		bool shouldSeek = g_inSlippiPlayback && haveInitialState &&
+		bool shouldSeek = g_inSlippiPlayback &&
 		                  (g_shouldJumpBack || g_shouldJumpForward || g_targetFrameNum != INT_MAX);
 
 		if (shouldSeek)
@@ -1032,6 +1032,5 @@ void CEXISlippi::processInitialState(std::vector<u8> &iState)
 {
 	INFO_LOG(SLIPPI, "saving iState");
 	State::SaveToBuffer(iState);
-	g_inSlippiPlayback = true;
 	SConfig::GetInstance().bHideCursor = false;
 };

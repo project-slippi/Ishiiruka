@@ -1054,14 +1054,3 @@ wxAuiNotebook* CFrame::GetNotebookFromId(u32 NBId)
 	return nullptr;
 }
 
-// Slippi playback control functions
-
-void CFrame::OnBeginSeek(wxScrollEvent& event) {
-	isDraggingSlider = true;
-}
-
-void CFrame::OnEndSeek(wxScrollEvent& event) {
-	g_targetFrameNum = (int32_t) seekBar->GetValue();
-	isDraggingSlider = false;
-}
-
