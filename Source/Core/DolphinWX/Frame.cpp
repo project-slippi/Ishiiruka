@@ -390,8 +390,8 @@ CFrame::CFrame(wxFrame *parent, wxWindowID id, const wxString &title, wxRect geo
 	wxBoxSizer *slippiSizer = new wxBoxSizer(wxHORIZONTAL);
 	slippiPanel->SetSizer(slippiSizer);
 
-	seekBar = new PlaybackSlider(slippiPanel, wxID_ANY, 0, 0, 127, wxDefaultPosition, wxDefaultSize);
 	seekBarText = new wxStaticText(slippiPanel, wxID_ANY, _("\n00:00 / 00:00"));
+	seekBar = new PlaybackSlider(seekBarText, slippiPanel, wxID_ANY, 0, 0, 127, wxDefaultPosition, wxDefaultSize);
 	seekBar->SetLineSize(0);
 	seekBar->SetPageSize(0);
 	slippiSizer->Add(seekBar, 1, wxALIGN_CENTER_VERTICAL, 0);

@@ -27,11 +27,9 @@ void slippiTimer::Notify()
 	}
 
 	// Only update values while not actively seeking
-	if (g_targetFrameNum == INT_MAX)
+	if (g_targetFrameNum == INT_MAX && m_slider->isDraggingSlider == false)
 	{
 		m_text->SetLabel(_(time));
-
-		if (m_slider->isDraggingSlider == false)
-			m_slider->SetValue(g_currentPlaybackFrame);
+		m_slider->SetValue(g_currentPlaybackFrame);
 	}
 }
