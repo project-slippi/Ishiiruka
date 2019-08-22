@@ -10,7 +10,7 @@
 
 // Event table
 BEGIN_EVENT_TABLE(PlaybackSlider, wxSlider)
-EVT_LEFT_DOWN(PlaybackSlider::OnSliderClick)
+EVT_LEFT_UP(PlaybackSlider::OnSliderClick)
 END_EVENT_TABLE()
 
 PlaybackSlider::PlaybackSlider() = default;
@@ -45,4 +45,6 @@ void PlaybackSlider::OnSliderClick(wxMouseEvent &event) {
 		int val = (pos * (max - min) + dim2) / dim;
 		g_targetFrameNum = min + val;
 	}
+
+	event.Skip();
 }
