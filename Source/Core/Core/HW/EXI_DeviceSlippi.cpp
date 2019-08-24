@@ -7,8 +7,8 @@
 #include <array>
 #include <cmath>
 #include <condition_variable>
-#include <stdexcept>
 #include <functional>
+#include <stdexcept>
 #include <string>
 #include <tuple>
 #include <unordered_map>
@@ -135,11 +135,15 @@ CEXISlippi::~CEXISlippi()
 	// would close the emulation before the file successfully finished writing
 	writeToFile(&empty[0], 0, "close");
 
+	g_shouldRunThreads = false;
+
 	if (m_savestateThread.joinable())
 		m_savestateThread.detach();
 
 	if (m_seekThread.joinable())
 		m_seekThread.detach();
+
+	condVar.notify_one(); // Will allow thread to kill itself
 
 	g_shouldJumpBack = false;
 	g_shouldJumpForward = false;
@@ -492,6 +496,7 @@ void CEXISlippi::prepareGameInfo()
 	m_read_queue.push_back(settings->isFrozenPS);
 
 	// Initialize replay related threads
+	g_shouldRunThreads = true;
 	m_savestateThread = std::thread(&CEXISlippi::SavestateThread, this);
 	m_seekThread = std::thread(&CEXISlippi::SeekThread, this);
 }
@@ -898,12 +903,17 @@ void CEXISlippi::SavestateThread()
 	Common::SetCurrentThreadName("Savestate thread");
 	std::unique_lock<std::mutex> intervalLock(mtx);
 
-	while (true)
+	INFO_LOG(SLIPPI, "Entering savestate thread");
+
+	while (g_shouldRunThreads)
 	{
 		// Wait to hit one of the intervals
-		while ((g_currentPlaybackFrame + 123) % FRAME_INTERVAL != 0)
+		while (g_shouldRunThreads && (g_currentPlaybackFrame + 123) % FRAME_INTERVAL != 0)
 			condVar.wait(intervalLock);
-		
+
+		if (!g_shouldRunThreads)
+			break;
+
 		int32_t fixedFrameNumber = g_currentPlaybackFrame;
 		if (fixedFrameNumber == INT_MAX)
 			continue;
@@ -915,7 +925,8 @@ void CEXISlippi::SavestateThread()
 		{
 			processInitialState(iState);
 			g_inSlippiPlayback = true;
-		} else if (!hasStateBeenProcessed && !isStartFrame)
+		}
+		else if (!hasStateBeenProcessed && !isStartFrame)
 		{
 			INFO_LOG(SLIPPI, "saving diff at frame: %d", fixedFrameNumber);
 			State::SaveToBuffer(cState);
@@ -924,6 +935,8 @@ void CEXISlippi::SavestateThread()
 		}
 		Common::SleepCurrentThread(SLEEP_TIME_MS);
 	}
+
+	INFO_LOG(SLIPPI, "Exiting savestate thread");
 }
 
 void CEXISlippi::SeekThread()
@@ -931,10 +944,12 @@ void CEXISlippi::SeekThread()
 	Common::SetCurrentThreadName("Seek thread");
 	std::unique_lock<std::mutex> seekLock(seekMtx);
 
-	while (true)
+	INFO_LOG(SLIPPI, "Entering seek thread");
+
+	while (g_shouldRunThreads)
 	{
-		bool shouldSeek = g_inSlippiPlayback &&
-		                  (g_shouldJumpBack || g_shouldJumpForward || g_targetFrameNum != INT_MAX);
+		bool shouldSeek =
+		    g_inSlippiPlayback && (g_shouldJumpBack || g_shouldJumpForward || g_targetFrameNum != INT_MAX);
 
 		if (shouldSeek)
 		{
@@ -975,7 +990,8 @@ void CEXISlippi::SeekThread()
 					if (futureDiffs.count(closestStateFrame) > 0)
 					{
 						std::string stateString;
-						decoder.Decode((char *)iState.data(), iState.size(), futureDiffs[closestStateFrame].get(), &stateString);
+						decoder.Decode((char *)iState.data(), iState.size(), futureDiffs[closestStateFrame].get(),
+						               &stateString);
 						std::vector<u8> stateToLoad(stateString.begin(), stateString.end());
 						State::LoadFromBuffer(stateToLoad);
 					};
@@ -983,7 +999,8 @@ void CEXISlippi::SeekThread()
 			}
 
 			// Fastforward until we get to the frame we want
-			if (g_targetFrameNum != closestStateFrame && g_targetFrameNum != g_latestFrame) {
+			if (g_targetFrameNum != closestStateFrame && g_targetFrameNum != g_latestFrame)
+			{
 				isHardFFW = true;
 				SConfig::GetInstance().m_OCEnable = true;
 				SConfig::GetInstance().m_OCFactor = 4.0f;
@@ -1007,12 +1024,15 @@ void CEXISlippi::SeekThread()
 
 		Common::SleepCurrentThread(SLEEP_TIME_MS);
 	}
+
+	INFO_LOG(SLIPPI, "Exit seek thread");
 }
 
 void CEXISlippi::prepareSlippiPlayback(int32_t &frameIndex)
 {
 	// block if there's too many diffs being processed
-	while (numDiffsProcessing > 3) {
+	while (numDiffsProcessing > 3)
+	{
 		INFO_LOG(SLIPPI, "Processing too many diffs, blocking main process");
 		cv_processingDiff.wait(processingLock);
 	}

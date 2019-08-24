@@ -76,6 +76,7 @@ bool g_shouldJumpBack = false;
 bool g_shouldJumpForward = false;
 bool g_inSlippiPlayback = false;
 bool g_showingSlippiControls = false;
+volatile bool g_shouldRunThreads = false;
 int32_t g_currentPlaybackFrame = INT_MIN;
 int32_t g_targetFrameNum = INT_MAX;
 int32_t g_latestFrame = -123;
