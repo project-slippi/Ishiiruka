@@ -179,7 +179,6 @@ private:
 	slippiTimer *m_slippi_timer;
 	PlaybackSlider *seekBar = nullptr;
 	wxStaticText *seekBarText = nullptr;
-	wxPanel *slippiPanel;
 
 	wxMenuBar* m_menubar_shadow = nullptr;
 

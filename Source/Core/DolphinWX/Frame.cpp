@@ -386,19 +386,32 @@ CFrame::CFrame(wxFrame *parent, wxWindowID id, const wxString &title, wxRect geo
 		                                          .CloseButton(true)
 		                                          .Hide());
 
-	AuiFullscreen = m_Mgr->SavePerspective();	
-
 	// Create UI for Slippi playback controls, hide until replay is booted
-	slippiPanel = new wxPanel(this, wxID_ANY);
+	wxPanel *slippiPanel = new wxPanel(this, wxID_ANY);
 	wxBoxSizer *slippiSizer = new wxBoxSizer(wxHORIZONTAL);
 	slippiPanel->SetSizer(slippiSizer);
 
-	seekBarText = new wxStaticText(slippiPanel, wxID_ANY, _("00:00 / 00:00"));
+	seekBarText = new wxStaticText(slippiPanel, wxID_ANY, _("\n00:00 / 00:00"));
 	seekBar = new PlaybackSlider(seekBarText, slippiPanel, wxID_ANY, 0, 0, 127, wxDefaultPosition, wxDefaultSize);
 	seekBar->SetLineSize(0);
 	seekBar->SetPageSize(0);
 	slippiSizer->Add(seekBar, 1, wxALIGN_CENTER_VERTICAL, 0);
 	slippiSizer->Add(seekBarText, 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
+
+	m_Mgr->AddPane(slippiPanel, wxAuiPaneInfo()
+									.Name(_("Slippi Pane"))
+									.Caption(_("Space: Pause/Play. Left Arrow: Rewind 5 seconds. Right Arrow: Fast forward 5 seconds. Drag and release slider to seek"))
+									.CaptionVisible(true)
+									.Layer(1)
+									.CloseButton(false)
+									.PaneBorder(false)
+									.MinSize(wxSize(wxDefaultCoord, 30))
+									.Fixed()
+									.Bottom()
+									.Floatable(false)
+									.Hide());
+
+	AuiFullscreen = m_Mgr->SavePerspective();
 
 	if (!SConfig::GetInstance().m_InterfaceToolbar)
 		DoToggleToolbar(false);
@@ -1608,35 +1621,14 @@ void CFrame::ParseHotkeys()
 			g_shouldJumpForward = true;
 		}
 
-		bool controlsExist = m_Mgr->GetPane(_("Slippi Pane")).IsOk();
-		bool controlsShown = m_Mgr->GetPane(_("Slippi Pane")).IsShown();
-		
-		if (!controlsExist || !controlsShown)
-		{
-			m_slippi_timer = new slippiTimer(this, seekBar, seekBarText);
-			m_slippi_timer->Start(50);
-		}
-
-		if (!controlsExist) {
-			m_Mgr->AddPane(slippiPanel, wxAuiPaneInfo()
-								.Name(_("Slippi Pane"))
-								.Caption(_("Space: Pause/Play. Left Arrow: Rewind 5 seconds. Right Arrow: Fast forward 5 seconds. Drag and release slider to seek"))
-								.CaptionVisible(true)
-								.Layer(1)
-								.CloseButton(false)
-								.PaneBorder(false)
-								.MinSize(wxSize(wxDefaultCoord, 30))
-								.Fixed()
-								.Bottom()
-								.Floatable(false)
-								.Show());
-			
-			m_Mgr->Update();
-		} 
-		
-		if (!controlsShown) {
+		if (!g_showingSlippiControls) {
 			m_Mgr->GetPane(_("Slippi Pane")).Show();
 			m_Mgr->Update();
+
+			m_slippi_timer = new slippiTimer(this, seekBar, seekBarText);
+			m_slippi_timer->Start(50); 
+
+			g_showingSlippiControls = true;
 		}
 	}
 }
