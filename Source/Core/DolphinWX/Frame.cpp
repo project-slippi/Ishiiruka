@@ -398,7 +398,7 @@ CFrame::CFrame(wxFrame *parent, wxWindowID id, const wxString &title, wxRect geo
 	slippiSizer->Add(seekBarText, 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
 
 	m_Mgr->AddPane(slippiPanel, wxAuiPaneInfo()
-									.Name("Pane 2")
+									.Name(_("Slippi Pane"))
 									.Caption(_("Space: Pause/Play. Left Arrow: Rewind 5 seconds. Right Arrow: Fast forward 5 seconds. Drag and release slider to seek"))
 									.CaptionVisible(true)
 									.Layer(1)
@@ -1621,7 +1621,7 @@ void CFrame::ParseHotkeys()
 		}
 
 		if (!g_showingSlippiControls) {
-			m_Mgr->GetPane("Pane 2").Show();
+			m_Mgr->GetPane(_("Slippi Pane")).Show();
 			m_Mgr->Update();
 
 			m_slippi_timer = new slippiTimer(this, seekBar, seekBarText);
