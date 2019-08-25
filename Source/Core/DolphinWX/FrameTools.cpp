@@ -850,7 +850,10 @@ void CFrame::DoStop()
 		if (NetPlayDialog::GetNetPlayClient())
 			NetPlayDialog::GetNetPlayClient()->Stop();
 
-		m_Mgr->GetPane(_("Slippi Pane")).Hide();
+		if (m_Mgr->GetPane(_("Slippi Pane")).IsShown()) {
+			m_Mgr->GetPane(_("Slippi Pane")).Hide();
+			delete m_slippi_timer;
+		}
 
 		if (!m_tried_graceful_shutdown && TriggerSTMPowerEvent())
 		{

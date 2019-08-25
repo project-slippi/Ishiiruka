@@ -398,18 +398,19 @@ CFrame::CFrame(wxFrame *parent, wxWindowID id, const wxString &title, wxRect geo
 	slippiSizer->Add(seekBar, 1, wxALIGN_CENTER_VERTICAL, 0);
 	slippiSizer->Add(seekBarText, 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
 
-	m_Mgr->AddPane(slippiPanel, wxAuiPaneInfo()
-									.Name(_("Slippi Pane"))
-									.Caption(_("Space: Pause/Play. Left Arrow: Rewind 5 seconds. Right Arrow: Fast forward 5 seconds. Drag and release slider to seek"))
-									.CaptionVisible(true)
-									.Layer(1)
-									.CloseButton(false)
-									.PaneBorder(false)
-									.MinSize(wxSize(wxDefaultCoord, 30))
-									.Fixed()
-									.Bottom()
-									.Floatable(false)
-									.Hide());
+	if (!g_pCodeWindow)
+		m_Mgr->AddPane(slippiPanel, wxAuiPaneInfo()
+										.Name(_("Slippi Pane"))
+										.Caption(_("Space: Pause/Play. Left Arrow: Rewind 5 seconds. Right Arrow: Fast forward 5 seconds. Drag and release slider to seek"))
+										.CaptionVisible(true)
+										.Layer(1)
+										.CloseButton(false)
+										.PaneBorder(false)
+										.MinSize(wxSize(wxDefaultCoord, 30))
+										.Fixed()
+										.Bottom()
+										.Floatable(false)
+										.Hide());
 
 	AuiFullscreen = m_Mgr->SavePerspective();
 
@@ -1621,7 +1622,7 @@ void CFrame::ParseHotkeys()
 			g_shouldJumpForward = true;
 		}
 
-		if (!g_showingSlippiControls) {
+		if (!m_Mgr->GetPane(_("Slippi Pane")).IsShown()) {
 			m_Mgr->GetPane(_("Slippi Pane")).Show();
 			m_Mgr->Update();
 
