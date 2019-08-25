@@ -75,7 +75,6 @@
 bool g_shouldJumpBack = false;
 bool g_shouldJumpForward = false;
 bool g_inSlippiPlayback = false;
-bool g_showingSlippiControls = false;
 volatile bool g_shouldRunThreads = false;
 int32_t g_currentPlaybackFrame = INT_MIN;
 int32_t g_targetFrameNum = INT_MAX;
@@ -1628,8 +1627,6 @@ void CFrame::ParseHotkeys()
 
 			m_slippi_timer = new slippiTimer(this, seekBar, seekBarText);
 			m_slippi_timer->Start(50); 
-
-			g_showingSlippiControls = true;
 		}
 	}
 }
