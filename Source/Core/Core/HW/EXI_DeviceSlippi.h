@@ -107,6 +107,7 @@ class CEXISlippi : public IEXIDevice
 	void prepareIsFileReady();
 	void processInitialState(std::vector<u8> &iState);
 	void resetPlayback();
+	void clearWatchSettingsStartEnd(); 
 
 	void SavestateThread(void);
 	void SeekThread(void);

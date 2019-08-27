@@ -33,7 +33,6 @@
 #include "Core/State.h"
 
 #define FRAME_INTERVAL 900
-#define START_FRAME -123
 #define SLEEP_TIME_MS 8
 
 int32_t emod(int32_t a, int32_t b)
@@ -903,7 +902,7 @@ void CEXISlippi::SavestateThread()
 		if (fixedFrameNumber == INT_MAX)
 			continue;
 
-		bool isStartFrame = fixedFrameNumber == START_FRAME;
+		bool isStartFrame = fixedFrameNumber == Slippi::GAME_FIRST_FRAME;
 		bool hasStateBeenProcessed = futureDiffs.count(fixedFrameNumber) > 0;
 
 		if (!g_inSlippiPlayback && isStartFrame)
@@ -938,6 +937,11 @@ void CEXISlippi::SeekThread()
 
 		if (shouldSeek)
 		{
+			// Clear start and end frames in queue mode
+			auto replayCommSettings = replayComm->getSettings();
+			if (replayCommSettings.mode == "queue")
+				clearWatchSettingsStartEnd();
+
 			bool paused = (Core::GetState() == Core::CORE_PAUSE);
 			Core::SetState(Core::CORE_PAUSE);
 
@@ -950,8 +954,8 @@ void CEXISlippi::SeekThread()
 				g_targetFrameNum = g_currentPlaybackFrame - jumpInterval;
 
 			// Handle edgecases for trying to seek before start or past end of game
-			if (g_targetFrameNum < START_FRAME)
-				g_targetFrameNum = START_FRAME;
+			if (g_targetFrameNum < Slippi::GAME_FIRST_FRAME)
+				g_targetFrameNum = Slippi::GAME_FIRST_FRAME;
 
 			if (g_targetFrameNum > g_latestFrame)
 			{
@@ -965,7 +969,7 @@ void CEXISlippi::SeekThread()
 
 			if (isLoadingStateOptimal)
 			{
-				if (closestStateFrame <= START_FRAME)
+				if (closestStateFrame <= Slippi::GAME_FIRST_FRAME)
 				{
 					State::LoadFromBuffer(iState);
 				}
@@ -1058,4 +1062,13 @@ void CEXISlippi::resetPlayback()
 	g_inSlippiPlayback = false;
 	futureDiffs.clear();
 	futureDiffs.rehash(0);
+}
+
+void CEXISlippi::clearWatchSettingsStartEnd() {
+	int startFrame = replayComm->current.startFrame;
+	int endFrame = replayComm->current.endFrame;
+	if (startFrame != Slippi::GAME_FIRST_FRAME || endFrame != INT_MAX) {
+		replayComm->current.startFrame = Slippi::GAME_FIRST_FRAME;
+		replayComm->current.endFrame = INT_MAX;
+	}
 }
