@@ -401,7 +401,11 @@ void HotkeyManager::LoadDefaults(const ControllerInterface& ciface)
     set_key_expression(HK_SHOW_OSD_CHAT, "Y");
 
   // TAS
-	set_key_expression(HK_FRAME_ADVANCE, ".");
+#ifdef _WIN32
+	set_key_expression(HK_FRAME_ADVANCE, "PERIOD");
+#else
+	set_key_expression(HK_FRAME_ADVANCE, "Period");
+#endif
 
 // Slippi
 #ifdef _WIN32
