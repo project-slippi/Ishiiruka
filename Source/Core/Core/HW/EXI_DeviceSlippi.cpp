@@ -134,23 +134,7 @@ CEXISlippi::~CEXISlippi()
 	// suddenly stops. This would happen often on netplay when the opponent
 	// would close the emulation before the file successfully finished writing
 	writeToFile(&empty[0], 0, "close");
-
-	g_shouldRunThreads = false;
-
-	if (m_savestateThread.joinable())
-		m_savestateThread.detach();
-
-	if (m_seekThread.joinable())
-		m_seekThread.detach();
-
-	condVar.notify_one(); // Will allow thread to kill itself
-
-	g_shouldJumpBack = false;
-	g_shouldJumpForward = false;
-	g_targetFrameNum = INT_MAX;
-	g_inSlippiPlayback = false;
-	futureDiffs.clear();
-	futureDiffs.rehash(0);
+	resetPlayback();
 }
 
 void CEXISlippi::configureCommands(u8 *payload, u8 length)
@@ -644,7 +628,7 @@ void CEXISlippi::prepareFrameData(u8 *payload)
 
 	// For normal replays, modify slippi seek/playback data as needed
 	// TODO: maybe handle other modes too?
-	if (commSettings.mode == "normal")
+	if (commSettings.mode == "normal" || commSettings.mode == "queue")
 	{
 		prepareSlippiPlayback(g_currentPlaybackFrame);
 	}
@@ -808,6 +792,10 @@ void CEXISlippi::prepareIsFileReady()
 	}
 
 	INFO_LOG(SLIPPI, "EXI_DeviceSlippi.cpp: Replay file loaded successfully!?");
+
+	// Clear playback control related vars
+	resetPlayback();
+
 	// Start the playback!
 	m_read_queue.push_back(1);
 }
@@ -897,9 +885,6 @@ void CEXISlippi::TransferByte(u8 &byte) {}
 
 void CEXISlippi::SavestateThread()
 {
-	// TODO: reopening game causes crash on line 912, count crashes
-	futureDiffs.clear();
-	futureDiffs.rehash(0);
 	Common::SetCurrentThreadName("Savestate thread");
 	std::unique_lock<std::mutex> intervalLock(mtx);
 
@@ -1054,3 +1039,23 @@ void CEXISlippi::processInitialState(std::vector<u8> &iState)
 	State::SaveToBuffer(iState);
 	SConfig::GetInstance().bHideCursor = false;
 };
+
+void CEXISlippi::resetPlayback() 
+{
+	g_shouldRunThreads = false;
+
+	if (m_savestateThread.joinable())
+		m_savestateThread.detach();
+
+	if (m_seekThread.joinable())
+		m_seekThread.detach();
+
+	condVar.notify_one(); // Will allow thread to kill itself
+
+	g_shouldJumpBack = false;
+	g_shouldJumpForward = false;
+	g_targetFrameNum = INT_MAX;
+	g_inSlippiPlayback = false;
+	futureDiffs.clear();
+	futureDiffs.rehash(0);
+}

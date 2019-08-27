@@ -106,6 +106,7 @@ class CEXISlippi : public IEXIDevice
 	void prepareSlippiPlayback(int32_t &frameIndex);
 	void prepareIsFileReady();
 	void processInitialState(std::vector<u8> &iState);
+	void resetPlayback();
 
 	void SavestateThread(void);
 	void SeekThread(void);
