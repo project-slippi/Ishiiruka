@@ -385,19 +385,17 @@ CFrame::CFrame(wxFrame *parent, wxWindowID id, const wxString &title, wxRect geo
 		                                          .CloseButton(true)
 		                                          .Hide());
 
-	// Create UI for Slippi playback controls, hide until replay is booted
-	wxPanel *slippiPanel = new wxPanel(this, wxID_ANY);
-	wxBoxSizer *slippiSizer = new wxBoxSizer(wxHORIZONTAL);
-	slippiPanel->SetSizer(slippiSizer);
-
-	seekBarText = new wxStaticText(slippiPanel, wxID_ANY, _("\n00:00 / 00:00"));
-	seekBar = new PlaybackSlider(seekBarText, slippiPanel, wxID_ANY, 0, 0, 127, wxDefaultPosition, wxDefaultSize);
-	seekBar->SetLineSize(0);
-	seekBar->SetPageSize(0);
-	slippiSizer->Add(seekBar, 1, wxALIGN_CENTER_VERTICAL, 0);
-	slippiSizer->Add(seekBarText, 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
-
-	if (!g_pCodeWindow)
+	if (!g_pCodeWindow) {
+		// Create UI for Slippi playback controls, hide until replay is booted
+		wxPanel *slippiPanel = new wxPanel(this, wxID_ANY);
+		wxBoxSizer *slippiSizer = new wxBoxSizer(wxHORIZONTAL);
+		slippiPanel->SetSizer(slippiSizer);
+		seekBarText = new wxStaticText(slippiPanel, wxID_ANY, _("00:00 / 00:00"));
+		seekBar = new PlaybackSlider(seekBarText, slippiPanel, wxID_ANY, 0, 0, 127, wxDefaultPosition, wxDefaultSize);
+		seekBar->SetLineSize(0);
+		seekBar->SetPageSize(0);
+		slippiSizer->Add(seekBar, 1, wxALIGN_CENTER_VERTICAL, 0);
+		slippiSizer->Add(seekBarText, 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
 		m_Mgr->AddPane(slippiPanel, wxAuiPaneInfo()
 										.Name(_("Slippi Pane"))
 										.Caption(_("Space: Pause/Play. Left Arrow: Rewind 5 seconds. Right Arrow: Fast forward 5 seconds. Period: Advance one frame. Large fast-forwards might be slow."))
@@ -410,6 +408,7 @@ CFrame::CFrame(wxFrame *parent, wxWindowID id, const wxString &title, wxRect geo
 										.Bottom()
 										.Floatable(false)
 										.Hide());
+	}
 
 	AuiFullscreen = m_Mgr->SavePerspective();
 
