@@ -31,7 +31,7 @@ void PlaybackSlider::OnSliderClick(wxMouseEvent &event) {
 }
 
 void PlaybackSlider::OnSliderDown(wxMouseEvent &event) {
-    isDraggingSlider = true;
+	isDraggingSlider = true;
 	int position = CalculatePosition(event);
 	this->SetValue(position);
 	event.Skip();

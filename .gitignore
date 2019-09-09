@@ -51,3 +51,4 @@ Source/.idea/
 Externals/nlohmann/x64
 Externals/open-vcdiff/x64/Release/
 Source/x64/Release/open-vcdiff.lib
+open-vcdiff.log

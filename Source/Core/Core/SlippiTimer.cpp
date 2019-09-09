@@ -20,10 +20,11 @@ void slippiTimer::Notify()
 	std::string time = std::string(currTime) + " / " + std::string(endTime);
 
 	// Setup the slider and gauge min/max values
-	if (!hasSetRange)
+	int minValue = m_slider->GetMin();
+	int maxValue = m_slider->GetMax();
+	if (maxValue != (int)g_latestFrame || minValue != -123)
 	{
 		m_slider->SetRange(-123, (int)(g_latestFrame));
-		hasSetRange = true;
 	}
 
 	// Only update values while not actively seeking

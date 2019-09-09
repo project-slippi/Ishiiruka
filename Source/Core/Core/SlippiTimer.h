@@ -22,8 +22,6 @@ class slippiTimer : public wxTimer
 	CFrame *m_frame;
 	PlaybackSlider *m_slider;
 	wxStaticText *m_text;
-
-	bool hasSetRange = false;
 };
 
 #endif
