@@ -479,9 +479,12 @@ void CEXISlippi::prepareGameInfo()
 	m_read_queue.push_back(settings->isFrozenPS);
 
 	// Initialize replay related threads
-	g_shouldRunThreads = true;
-	m_savestateThread = std::thread(&CEXISlippi::SavestateThread, this);
-	m_seekThread = std::thread(&CEXISlippi::SeekThread, this);
+	if (replayCommSettings.mode == "normal" || replayCommSettings.mode == "queue")
+	{
+		g_shouldRunThreads = true;
+		m_savestateThread = std::thread(&CEXISlippi::SavestateThread, this);
+		m_seekThread = std::thread(&CEXISlippi::SeekThread, this);
+	}
 }
 
 void CEXISlippi::prepareCharacterFrameData(int32_t frameIndex, u8 port, u8 isFollower)
