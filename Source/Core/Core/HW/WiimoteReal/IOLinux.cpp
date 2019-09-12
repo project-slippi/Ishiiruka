@@ -7,6 +7,7 @@
 #include <bluetooth/hci_lib.h>
 #include <bluetooth/l2cap.h>
 #include <unistd.h>
+#include <sys/select.h>
 
 #include "Common/CommonTypes.h"
 #include "Common/Logging/Log.h"
