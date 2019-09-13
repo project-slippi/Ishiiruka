@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////////
-// Name:        wx/vector.h
+// Name:        vector.h
 // Purpose:     STL vector clone
 // Author:      Lindsay Mathieson
 // Modified by: Vaclav Slavik - make it a template
@@ -12,7 +12,7 @@
 #ifndef _WX_VECTOR_H_
 #define _WX_VECTOR_H_
 
-#include "wx/defs.h"
+#include "defs.h"
 
 #if wxUSE_STD_CONTAINERS
 
@@ -28,15 +28,15 @@ inline void wxVectorSort(wxVector<T>& v)
 
 #else // !wxUSE_STD_CONTAINERS
 
-#include "wx/scopeguard.h"
-#include "wx/meta/movable.h"
-#include "wx/meta/if.h"
+#include "scopeguard.h"
+#include "meta/movable.h"
+#include "meta/if.h"
 
-#include "wx/beforestd.h"
+#include "beforestd.h"
 #include <new> // for placement new
-#include "wx/afterstd.h"
+#include "afterstd.h"
 
-// wxQsort is declared in wx/utils.h, but can't include that file here,
+// wxQsort is declared in utils.h, but can't include that file here,
 // it indirectly includes this file. Just lovely...
 typedef int (*wxSortCallback)(const void* pItem1,
                               const void* pItem2,

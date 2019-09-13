@@ -1,5 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////////
-// Name:        wx/window.h
+// Name:        window.h
 // Purpose:     wxWindowBase class - the interface of wxWindow
 // Author:      Vadim Zeitlin
 // Modified by: Ron Lee
@@ -15,29 +15,29 @@
 // headers which we must include here
 // ----------------------------------------------------------------------------
 
-#include "wx/event.h"           // the base class
+#include "event.h"           // the base class
 
-#include "wx/list.h"            // defines wxWindowList
+#include "list.h"            // defines wxWindowList
 
-#include "wx/cursor.h"          // we have member variables of these classes
-#include "wx/font.h"            // so we can't do without them
-#include "wx/colour.h"
-#include "wx/region.h"
-#include "wx/utils.h"
-#include "wx/intl.h"
+#include "cursor.h"          // we have member variables of these classes
+#include "font.h"            // so we can't do without them
+#include "colour.h"
+#include "region.h"
+#include "utils.h"
+#include "intl.h"
 
-#include "wx/validate.h"        // for wxDefaultValidator (always include it)
+#include "validate.h"        // for wxDefaultValidator (always include it)
 
 #if wxUSE_PALETTE
-    #include "wx/palette.h"
+    #include "palette.h"
 #endif // wxUSE_PALETTE
 
 #if wxUSE_ACCEL
-    #include "wx/accel.h"
+    #include "accel.h"
 #endif // wxUSE_ACCEL
 
 #if wxUSE_ACCESSIBILITY
-#include "wx/access.h"
+#include "access.h"
 #endif
 
 // when building wxUniv/Foo we don't want the code for native menu use to be
@@ -151,7 +151,7 @@ WX_DECLARE_LIST_3(wxWindow, wxWindowBase, wxWindowList, wxWindowListNode, class 
 
 extern WXDLLIMPEXP_DATA_CORE(wxWindowList) wxTopLevelWindows;
 
-// declared here for compatibility only, main declaration is in wx/app.h
+// declared here for compatibility only, main declaration is in app.h
 extern WXDLLIMPEXP_DATA_BASE(wxList) wxPendingDelete;
 
 // ----------------------------------------------------------------------------
@@ -1931,16 +1931,16 @@ inline void wxWindowBase::SetInitialBestSize(const wxSize& size)
     #else // !wxUniv
         #define wxWindowMSW wxWindow
     #endif // wxUniv/!wxUniv
-    #include "wx/msw/window.h"
+    #include "msw/window.h"
 #elif defined(__WXMOTIF__)
-    #include "wx/motif/window.h"
+    #include "motif/window.h"
 #elif defined(__WXGTK20__)
     #ifdef __WXUNIVERSAL__
         #define wxWindowNative wxWindowGTK
     #else // !wxUniv
         #define wxWindowGTK wxWindow
     #endif // wxUniv
-    #include "wx/gtk/window.h"
+    #include "gtk/window.h"
     #ifdef __WXGTK3__
         #define wxHAVE_DPI_INDEPENDENT_PIXELS
     #endif
@@ -1950,24 +1950,24 @@ inline void wxWindowBase::SetInitialBestSize(const wxSize& size)
     #else // !wxUniv
         #define wxWindowGTK wxWindow
     #endif // wxUniv
-    #include "wx/gtk1/window.h"
+    #include "gtk1/window.h"
 #elif defined(__WXX11__)
     #ifdef __WXUNIVERSAL__
         #define wxWindowNative wxWindowX11
     #else // !wxUniv
         #define wxWindowX11 wxWindow
     #endif // wxUniv
-    #include "wx/x11/window.h"
+    #include "x11/window.h"
 #elif defined(__WXDFB__)
     #define wxWindowNative wxWindowDFB
-    #include "wx/dfb/window.h"
+    #include "dfb/window.h"
 #elif defined(__WXMAC__)
     #ifdef __WXUNIVERSAL__
         #define wxWindowNative wxWindowMac
     #else // !wxUniv
         #define wxWindowMac wxWindow
     #endif // wxUniv
-    #include "wx/osx/window.h"
+    #include "osx/window.h"
     #define wxHAVE_DPI_INDEPENDENT_PIXELS
 #elif defined(__WXQT__)
     #ifdef __WXUNIVERSAL__
@@ -1975,7 +1975,7 @@ inline void wxWindowBase::SetInitialBestSize(const wxSize& size)
     #else // !wxUniv
         #define wxWindowQt wxWindow
     #endif // wxUniv
-    #include "wx/qt/window.h"
+    #include "qt/window.h"
 #endif
 
 // for wxUniversal, we now derive the real wxWindow from wxWindow<platform>,
@@ -1985,7 +1985,7 @@ inline void wxWindowBase::SetInitialBestSize(const wxSize& size)
         #error "wxWindowNative must be defined above!"
     #endif
 
-    #include "wx/univ/window.h"
+    #include "univ/window.h"
 #endif // wxUniv
 
 // ----------------------------------------------------------------------------
