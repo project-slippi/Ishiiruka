@@ -71,13 +71,17 @@ option(DSPTOOL "Build dsptool" OFF)
 if (APPLE)
 	# Use clang compiler
 	if (NOT DEFINED CMAKE_CXX_COMPILER)
-		set(CMAKE_CXX_COMPILER "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang++")
+		EXECUTE_PROCESS(COMMAND xcrun --find clang++
+			OUTPUT_VARIABLE CMAKE_CXX_COMPILER
+			OUTPUT_STRIP_TRAILING_WHITESPACE)
 		if (NOT EXISTS "${CMAKE_CXX_COMPILER}")
 			set(CMAKE_CXX_COMPILER "clang++")
 		endif()
 	endif()
 	if (NOT DEFINED CMAKE_C_COMPILER)
-		set(CMAKE_C_COMPILER "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang")
+		EXECUTE_PROCESS(COMMAND xcrun --find clang
+			OUTPUT_VARIABLE CMAKE_C_COMPILER
+			OUTPUT_STRIP_TRAILING_WHITESPACE)
 		if (NOT EXISTS "${CMAKE_C_COMPILER}")
 			set(CMAKE_C_COMPILER "clang")
 		endif()
