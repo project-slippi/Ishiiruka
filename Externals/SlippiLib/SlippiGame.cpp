@@ -417,7 +417,6 @@ namespace Slippi {
         break;
       case EVENT_GAME_END:
         handleGameEnd(game, payloadSize);
-        //log.close();
         isProcessingComplete = true;
         break;
       case 0x55:

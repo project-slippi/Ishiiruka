@@ -12,6 +12,7 @@
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{8C60E805-0DA5-4E25-8F84-038DB504BB0D}</ProjectGuid>
+    <WindowsTargetPlatformVersion>10.0.15063.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Label="Configuration">
@@ -36,15 +37,16 @@
   <PropertyGroup Label="UserMacros" />
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
-      <AdditionalIncludeDirectories>$(ExternalsDir)nlohmann;$(ExternalsDir)SlippiLib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ExternalsDir)nlohmann;${ExternalsDir}open-vcdiff;$(ExternalsDir)SlippiLib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
-      <AdditionalIncludeDirectories>$(ExternalsDir)nlohmann;$(ExternalsDir)SlippiLib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ExternalsDir)nlohmann;$(ExternalsDir)SlippiLib;$(ExternalsDir)HDiffPatch;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\DolphinWX\PlaybackSlider.cpp" />
     <ClCompile Include="ActionReplay.cpp" />
     <ClCompile Include="Analytics.cpp" />
     <ClCompile Include="ARDecrypt.cpp" />
@@ -265,10 +267,12 @@
     <ClCompile Include="PowerPC\PPCTables.cpp" />
     <ClCompile Include="PowerPC\Profiler.cpp" />
     <ClCompile Include="PowerPC\SignatureDB.cpp" />
+    <ClCompile Include="SlippiTimer.cpp" />
     <ClCompile Include="Slippi\SlippiReplayComm.cpp" />
     <ClCompile Include="State.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\DolphinWX\PlaybackSlider.h" />
     <ClInclude Include="ActionReplay.h" />
     <ClInclude Include="Analytics.h" />
     <ClInclude Include="ARDecrypt.h" />
@@ -457,6 +461,8 @@
     <ClInclude Include="PowerPC\PPCTables.h" />
     <ClInclude Include="PowerPC\Profiler.h" />
     <ClInclude Include="PowerPC\SignatureDB.h" />
+    <ClInclude Include="SlippiPlayback.h" />
+    <ClInclude Include="SlippiTimer.h" />
     <ClInclude Include="Slippi\SlippiReplayComm.h" />
     <ClInclude Include="State.h" />
   </ItemGroup>
@@ -508,6 +514,9 @@
     </ProjectReference>
     <ProjectReference Include="..\..\..\Externals\nlohmann\nlohmann.vcxproj">
       <Project>{732d2110-06a3-4aa1-9634-7bb5a4f75b82}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\..\Externals\open-vcdiff\open-vcdiff.vcxproj">
+      <Project>{9193a8de-bc2e-458c-b52e-510457eee4b8}</Project>
     </ProjectReference>
     <ProjectReference Include="..\..\..\Externals\SlippiLib\SlippiLib.vcxproj">
       <Project>{ff39260b-839a-4a6c-a117-caa73c1683f5}</Project>

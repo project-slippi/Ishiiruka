@@ -142,6 +142,10 @@ const std::string hotkey_labels[] = {
 		_trans("Save State"),
 		_trans("Load State"),
 		_trans("Reload Post-Processing Shaders"),
+
+		_trans("Jump backwards in Slippi replay"),
+		_trans("Pause/unpause Slippi replay"),
+		_trans("Jump forwards in Slippi replay"),
 };
 static_assert(NUM_HOTKEYS == sizeof(hotkey_labels) / sizeof(hotkey_labels[0]),
 	"Wrong count of hotkey_labels");
@@ -253,7 +257,9 @@ const std::array<HotkeyGroupInfo, NUM_HOTKEY_GROUPS> groups_info = {
 		 {_trans("Save state"), HK_SAVE_STATE_SLOT_1, HK_SAVE_STATE_SLOT_SELECTED},
 		 {_trans("Select state"), HK_SELECT_STATE_SLOT_1, HK_SELECT_STATE_SLOT_10},
 		 {_trans("Load last state"), HK_LOAD_LAST_STATE_1, HK_LOAD_LAST_STATE_10},
-		 {_trans("Other state hotkeys"), HK_SAVE_FIRST_STATE, HK_RELOAD_POSTPROCESS_SHADERS }} };
+		 {_trans("Other state hotkeys"), HK_SAVE_FIRST_STATE, HK_RELOAD_POSTPROCESS_SHADERS},
+		 {_trans("Slippi playback controls"), HK_JUMP_BACK, HK_JUMP_FORWARD} }};
+;
 
 HotkeyManager::HotkeyManager()
 {
@@ -393,6 +399,28 @@ void HotkeyManager::LoadDefaults(const ControllerInterface& ciface)
 	set_key_expression(HK_UNDO_SAVE_STATE, SHIFT + " & `F12`");
 
     set_key_expression(HK_SHOW_OSD_CHAT, "Y");
+
+  // TAS
+#ifdef _WIN32
+	set_key_expression(HK_FRAME_ADVANCE, "PERIOD");
+#else
+	set_key_expression(HK_FRAME_ADVANCE, "Period");
+#endif
+
+// Slippi
+#ifdef _WIN32
+	set_key_expression(HK_JUMP_BACK, "LEFT");
+	set_key_expression(HK_TOGGLE_PLAY_PAUSE, "SPACE");
+	set_key_expression(HK_JUMP_FORWARD, "RIGHT");
+#elif __APPLE__
+	set_key_expression(HK_JUMP_BACK, "Left Arrow");
+	set_key_expression(HK_TOGGLE_PLAY_PAUSE, "Space");
+	set_key_expression(HK_JUMP_FORWARD, "Right Arrow");
+#else 
+	set_key_expression(HK_JUMP_BACK, "Left");
+	set_key_expression(HK_TOGGLE_PLAY_PAUSE, "Space");
+	set_key_expression(HK_JUMP_FORWARD, "Right");
+#endif
 
 #ifdef _WIN32
     set_key_expression(HK_SEND_CHAT_MSG, "RETURN");
