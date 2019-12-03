@@ -666,6 +666,9 @@ add_subdirectory(Externals/SlippiLib)
 include_directories(Externals/SlippiLib)
 include_directories(Externals/nlohmann)
 
+add_subdirectory(Externals/open-vcdiff)
+include_directories(Externals/open-vcdiff)
+
 if(USE_SHARED_ENET)
 	check_lib(ENET libenet enet enet/enet.h QUIET)
 	include(CheckSymbolExists)

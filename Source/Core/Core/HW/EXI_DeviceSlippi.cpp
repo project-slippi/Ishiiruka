@@ -49,7 +49,7 @@ static std::unique_lock<std::mutex> processingLock(diffMtx);
 static std::condition_variable condVar;
 static std::condition_variable cv_waitingForTargetFrame;
 static std::condition_variable cv_processingDiff;
-static std::atomic<int> numDiffsProcessing = 0;
+static std::atomic<int> numDiffsProcessing(0);
 
 template <typename T> bool isFutureReady(std::future<T> &t)
 {
