@@ -8,11 +8,11 @@ set (PROJECT_SOVERSION 0)
 
 
 # Configuration options
-option (vcdiff_build_exec "Build vcdiff executable" ON)
+option (vcdiff_build_exec "Build vcdiff executable" OFF)
 option (vcdiff_use_system_gflags "Use system wide installed gflags" OFF)
 option (vcdiff_use_system_gtest "Use system wide installed gtest" OFF)
 option (BUILD_SHARED_LIBS "Request build of shared libraries." OFF)
-option (BUILD_STATIC_LIBS "Request build of static libraries (default if BUILD_SHARED_LIBS is OFF)." OFF)
+option (BUILD_STATIC_LIBS "Request build of static libraries (default if BUILD_SHARED_LIBS is OFF)." ON)
 option (BUILD_TESTING "Enable build of the unit tests and their execution using CTest." OFF)
 
 if (NOT BUILD_SHARED_LIBS AND NOT BUILD_STATIC_LIBS)
@@ -44,6 +44,7 @@ check_include_files (getopt.h HAVE_GETOPT_H)
 check_include_files (malloc.h HAVE_MALLOC_H)
 check_include_files (sys/mman.h HAVE_SYS_MMAN_H)
 check_include_files (sys/time.h HAVE_SYS_TIME_H)
+check_include_files (sys/stat.h HAVE_SYS_STAT_H)
 check_include_files (unistd.h HAVE_UNISTD_H)
 check_include_files (windows.h HAVE_WINDOWS_H)
 
