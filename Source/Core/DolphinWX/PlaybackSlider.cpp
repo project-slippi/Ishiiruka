@@ -36,8 +36,13 @@ void PlaybackSlider::OnSliderDown(wxMouseEvent &event) {
 	// This handler sets the slider position on a mouse down event. Normally
 	// the Dolphin slider can only be changed by clicking and dragging
 	isDraggingSlider = true;
-	int position = CalculatePosition(event);
-	this->SetValue(position);
+	int value = CalculatePosition(event);
+
+  // Sets the lastMoveVal for Windows because on a normal click the move event
+  // doesn't fire fast enough
+	lastMoveVal = value;
+
+	this->SetValue(value);
 	event.Skip();
 }
 
