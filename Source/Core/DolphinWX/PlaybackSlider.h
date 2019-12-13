@@ -10,7 +10,7 @@
 
 class PlaybackSlider : public DolphinSlider
 {
-  public:
+public:
 	PlaybackSlider(wxStaticText *sliderLabel, wxWindow *parent, wxWindowID id, int value, int min_value, int max_value,
 	               const wxPoint &pos = wxDefaultPosition, const wxSize &size = wxDefaultSize,
 	               long style = wxSL_HORIZONTAL, const wxValidator &validator = wxDefaultValidator,
@@ -34,4 +34,7 @@ class PlaybackSlider : public DolphinSlider
 	void OnSliderDown(wxMouseEvent &event);
 	int CalculatePosition(wxMouseEvent &event);
 	void OnSliderMove(wxCommandEvent &event);
+
+private:
+	int lastMoveVal;
 };

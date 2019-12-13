@@ -25,12 +25,16 @@ bool PlaybackSlider::Create(wxStaticText *sliderLabel, wxWindow* parent, wxWindo
 }
 
 void PlaybackSlider::OnSliderClick(wxMouseEvent &event) {
+	// This handler is the confirmation handler that actually sets the frame we
+	// want to skip to
 	isDraggingSlider = false;
-	g_targetFrameNum = (int32_t) CalculatePosition(event);
+	g_targetFrameNum = lastMoveVal;
 	event.Skip();
 }
 
 void PlaybackSlider::OnSliderDown(wxMouseEvent &event) {
+	// This handler sets the slider position on a mouse down event. Normally
+	// the Dolphin slider can only be changed by clicking and dragging
 	isDraggingSlider = true;
 	int position = CalculatePosition(event);
 	this->SetValue(position);
@@ -38,6 +42,7 @@ void PlaybackSlider::OnSliderDown(wxMouseEvent &event) {
 }
 
 int PlaybackSlider::CalculatePosition(wxMouseEvent &event) {
+	// This function calculates a frame value based on an event click postiion
 	int min = this->GetMin();
 	int max = this->GetMax();
 	int pos, dim;
@@ -56,14 +61,29 @@ int PlaybackSlider::CalculatePosition(wxMouseEvent &event) {
 		// now we're sure the click is on the slider, and (width != 0)
 		int dim2 = (dim >> 1); // for proper rounding
 		int val = (pos * (max - min) + dim2) / dim;
+
 		return min + val;
 	}
+
 	return INT_MAX;
 }
 
 void PlaybackSlider::OnSliderMove(wxCommandEvent &event)
 {
+	if (!event.ShouldPropagate()) {
+		// On mac for some reason this event handler will infinitely trigger
+		// itself, by adding this check, we can prevent that
+		return;
+	}
+
+	// This function is responsible with updating the time text
+	// while clicking and dragging
 	int value = event.GetInt();
+
+	// On mac the mouse up event always has the same position as the mouse down
+	// event, this means clicking and dragging does not work. So instead let's
+	// save the value of the last move here and use that to set the game pos
+	lastMoveVal = value;
 
 	int totalSeconds = (int)((g_latestFrame + 123) / 60);
 	int totalMinutes = (int)(totalSeconds / 60);
@@ -81,4 +101,5 @@ void PlaybackSlider::OnSliderMove(wxCommandEvent &event)
 	std::string time = std::string(currTime) + " / " + std::string(endTime);
 	seekBarText->SetLabel(_(time));
 	event.Skip();
+	event.StopPropagation();
 }
