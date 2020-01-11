@@ -129,6 +129,13 @@ class CEXISlippi : public IEXIDevice
 	int32_t lastFFWFrame = INT_MIN;
 	std::vector<u8> m_read_queue;
 	Slippi::SlippiGame *m_current_game = nullptr;
+	bool g_inSlippiPlayback = false;
+	int g_currentPlaybackFrame = 0;
+	bool g_shouldRunThreads = false;
+	bool g_shouldJumpBack = false;
+	bool g_shouldJumpForward = false;
+	int g_targetFrameNum = INT_MAX;
+	int g_latestFrame = 0;
 
   protected:
 	void TransferByte(u8 &byte) override;
