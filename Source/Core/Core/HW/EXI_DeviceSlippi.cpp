@@ -35,6 +35,14 @@
 #define FRAME_INTERVAL 900
 #define SLEEP_TIME_MS 8
 
+bool g_shouldJumpBack = false;
+bool g_shouldJumpForward = false;
+bool g_inSlippiPlayback = false;
+volatile bool g_shouldRunThreads = false;
+int32_t g_currentPlaybackFrame = INT_MIN;
+int32_t g_targetFrameNum = INT_MAX;
+int32_t g_latestFrame = -123;
+
 int32_t emod(int32_t a, int32_t b)
 {
 	assert(b != 0);
