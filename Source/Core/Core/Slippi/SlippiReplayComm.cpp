@@ -128,6 +128,9 @@ Slippi::SlippiGame *SlippiReplayComm::loadGame()
 
 void SlippiReplayComm::loadFile()
 {
+  // TODO: Consider even only checking file mod time every 250 ms or something? Not sure
+  // TODO: what the perf impact is atm
+
 	u64 modTime = File::GetFileModTime(configFilePath);
 	if (modTime != 0 && modTime == configLastLoadModTime)
   {
