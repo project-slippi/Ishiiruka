@@ -84,6 +84,8 @@
 #include "VideoCommon/VideoBackendBase.h"
 #include "VideoCommon/VideoConfig.h"
 
+#include "Common/Logging/Log.h"
+
 class InputConfig;
 class wxFrame;
 
@@ -847,6 +849,11 @@ void CFrame::DoStop()
 
 		if (NetPlayDialog::GetNetPlayClient())
 			NetPlayDialog::GetNetPlayClient()->Stop();
+
+		if (m_Mgr->GetPane(_("Slippi Pane")).IsShown()) {
+			m_Mgr->GetPane(_("Slippi Pane")).Hide();
+			delete m_slippi_timer;
+		}
 
 		if (!m_tried_graceful_shutdown && TriggerSTMPowerEvent())
 		{

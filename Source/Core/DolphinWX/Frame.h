@@ -12,12 +12,15 @@
 #include <wx/frame.h>
 #include <wx/image.h>
 #include <wx/panel.h>
+#include <wx/stattext.h>
 #include <wx/timer.h>
 
 #include "Common/CommonTypes.h"
 #include "Common/Event.h"
 #include "Core/HW/WiimoteEmu/WiimoteEmu.h"
+#include "Core/SlippiTimer.h"
 #include "DolphinWX/Globals.h"
+#include "DolphinWX/PlaybackSlider.h"
 #include "InputCommon/GCPadStatus.h"
 
 #if defined(HAVE_X11) && HAVE_X11
@@ -173,6 +176,9 @@ private:
 
 	wxTimer m_poll_hotkey_timer;
 	wxTimer m_handle_signal_timer;
+	slippiTimer *m_slippi_timer;
+	PlaybackSlider *seekBar = nullptr;
+	wxStaticText *seekBarText = nullptr;
 
 	wxMenuBar* m_menubar_shadow = nullptr;
 

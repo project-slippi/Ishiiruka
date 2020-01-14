@@ -66,6 +66,7 @@ set(GUI_SRCS
 	LogWindow.cpp
 	Main.cpp
 	MainMenuBar.cpp
+	PlaybackSlider.cpp
 	MainToolBar.cpp
 	MemcardManager.cpp
 	PatchAddEdit.cpp

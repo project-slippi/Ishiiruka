@@ -32,6 +32,7 @@
 #include "Common/MathUtil.h"
 #include "Common/StringUtil.h"
 #include "Core/ConfigManager.h"
+#include "Core/SlippiPlayback.h"
 #include "DolphinWX/Debugger/CodeWindow.h"
 #include "DolphinWX/Frame.h"
 #include "DolphinWX/Globals.h"
@@ -1052,3 +1053,4 @@ wxAuiNotebook* CFrame::GetNotebookFromId(u32 NBId)
 	}
 	return nullptr;
 }
+
