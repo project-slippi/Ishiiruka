@@ -572,7 +572,28 @@ bool DeleteDirRecursively(const std::string& directory)
 	return success;
 }
 
-// Create directory and copy contents (does not overwrite existing files)
+u64 GetFileModTime(const std::string &filename)
+{
+	struct stat file_info;
+
+	std::string copy(filename);
+	StripTailDirSlashes(copy);
+
+#ifdef _WIN32
+	int result = _tstat64(UTF8ToTStr(copy).c_str(), &file_info);
+#else
+	int result = stat(copy.c_str(), &file_info);
+#endif
+
+  if (result < 0)
+	{
+	  return 0;
+  }
+
+	return file_info.st_mtime;
+}
+
+	// Create directory and copy contents (does not overwrite existing files)
 void CopyDir(const std::string& source_path, const std::string& dest_path)
 {
 	if (source_path == dest_path)

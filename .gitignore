@@ -46,11 +46,14 @@ Externals/SlippiLib/Makefile
 Externals/SlippiLib/cmake_install.cmake
 Ishiiruka.pro
 Source/.idea/
+Source/enc_temp_folder/
 *.Build.CppClean.log
 .vscode/
 Externals/nlohmann/x64
 Externals/open-vcdiff/x64/Release/
-Source/x64/Release/open-vcdiff.lib
+open-vcdiff.lib
+open-vcdiff.idb
+open-vcdiff.pdb
 open-vcdiff.log
 .cproject
 .project

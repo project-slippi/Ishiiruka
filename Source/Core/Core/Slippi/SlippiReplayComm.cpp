@@ -128,6 +128,16 @@ Slippi::SlippiGame *SlippiReplayComm::loadGame()
 
 void SlippiReplayComm::loadFile()
 {
+	u64 modTime = File::GetFileModTime(configFilePath);
+	if (modTime != 0 && modTime == configLastLoadModTime)
+  {
+    // TODO: Maybe be smarter than just using mod time? Look for other things that would
+    // TODO: indicate that file has changed and needs to be reloaded?
+		return;
+  }
+
+  configLastLoadModTime = modTime;
+
 	// TODO: Maybe load file in a more intelligent way to save
 	// TODO: file operations
 	std::string commFileContents;
