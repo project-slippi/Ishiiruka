@@ -14,6 +14,7 @@ namespace Slippi {
   const uint8_t EVENT_POST_FRAME_UPDATE = 0x38;
   const uint8_t EVENT_GAME_END = 0x39;
   const uint8_t EVENT_FRAME_START = 0x3A;
+  const uint8_t EVENT_GECKO_LIST = 0x3D;
 
   const uint8_t GAME_INFO_HEADER_SIZE = 78;
   const uint8_t UCF_TOGGLE_SIZE = 8;
@@ -82,6 +83,7 @@ namespace Slippi {
     std::unordered_map<uint8_t, PlayerSettings> players;
     uint8_t isPAL;
     uint8_t isFrozenPS;
+    std::vector<uint8_t> geckoCodes;
   } GameSettings;
 
   typedef struct {

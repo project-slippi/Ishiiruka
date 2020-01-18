@@ -486,6 +486,10 @@ void CEXISlippi::prepareGameInfo()
 	// Write PS Frozen byte
 	m_read_queue.push_back(settings->isFrozenPS);
 
+	// Return the size of the gecko code list
+	prepareGeckoList();
+	appendWordToBuffer(&m_read_queue, (u32)geckoList.size());
+
 	// Initialize replay related threads
 	if (replayCommSettings.mode == "normal" || replayCommSettings.mode == "queue")
 	{
@@ -493,6 +497,53 @@ void CEXISlippi::prepareGameInfo()
 		m_savestateThread = std::thread(&CEXISlippi::SavestateThread, this);
 		m_seekThread = std::thread(&CEXISlippi::SeekThread, this);
 	}
+}
+
+void CEXISlippi::prepareGeckoList()
+{
+	static std::vector<uint8_t> defaultCodeList = {
+	    0x04, 0x08, 0x11, 0x48,  0x38, 0x00, 0x00, 0x00,
+	    0xC2, 0x1C, 0x0A, 0x30, 0x00,
+	    0x00,
+	    0x00,
+	    0x04,
+	    0x3C, 0x60,
+	    0x80, 0x49,
+	                                               0x60,
+	                                               0x63,
+	                                               0xE6,
+	                                               0xC8,
+	                                               0x80,
+	                                               0x63,
+	                                               0x06,
+	                                               0xB0,
+	                                               0x3C,
+	                                               0x80,
+	                                               0x40,
+	                                               0x40,
+	                                               0x90,
+	                                               0x83,
+	                                               0x00,
+	                                               0x00,
+	                                               0x80,
+	                                               0x7E,
+	                                               0x06,
+	                                               0xAC, 0x60, 0x00,
+	    0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0xFF, 0x00, 0x00, 0x00,  0x00, 0x00, 0x00, 0x00
+  };
+
+  geckoList.clear();
+
+	Slippi::GameSettings *settings = m_current_game->GetSettings();
+	if (settings->geckoCodes.empty())
+	{
+		geckoList = defaultCodeList;
+		return;
+  }
+
+  geckoList.insert(geckoList.end(), settings->geckoCodes.begin(), settings->geckoCodes.end());
+  geckoList.insert(geckoList.end(), {0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00});
 }
 
 void CEXISlippi::prepareCharacterFrameData(int32_t frameIndex, u8 port, u8 isFollower)
@@ -861,6 +912,10 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 		case CMD_IS_FILE_READY:
 			prepareIsFileReady();
 			break;
+		case CMD_GET_GECKO_CODES:
+			m_read_queue.clear();
+			m_read_queue.insert(m_read_queue.begin(), geckoList.begin(), geckoList.end());
+			break;
 		default:
 			writeToFile(&memPtr[bufLoc], payloadLen + 1, "");
 			break;
@@ -1055,7 +1110,7 @@ void CEXISlippi::processInitialState(std::vector<u8> &iState)
 	SConfig::GetInstance().bHideCursor = false;
 };
 
-void CEXISlippi::resetPlayback() 
+void CEXISlippi::resetPlayback()
 {
 	g_shouldRunThreads = false;
 
@@ -1075,10 +1130,12 @@ void CEXISlippi::resetPlayback()
 	futureDiffs.rehash(0);
 }
 
-void CEXISlippi::clearWatchSettingsStartEnd() {
+void CEXISlippi::clearWatchSettingsStartEnd()
+{
 	int startFrame = replayComm->current.startFrame;
 	int endFrame = replayComm->current.endFrame;
-	if (startFrame != Slippi::GAME_FIRST_FRAME || endFrame != INT_MAX) {
+	if (startFrame != Slippi::GAME_FIRST_FRAME || endFrame != INT_MAX)
+	{
 		replayComm->current.startFrame = Slippi::GAME_FIRST_FRAME;
 		replayComm->current.endFrame = INT_MAX;
 	}
