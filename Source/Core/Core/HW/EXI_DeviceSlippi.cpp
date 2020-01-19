@@ -501,112 +501,111 @@ void CEXISlippi::prepareGameInfo()
 
 void CEXISlippi::prepareGeckoList()
 {
-  // TODO: Add codes for use pre 3.1.0 addition of dynamic gecko codes
-	static std::vector<uint8_t> defaultCodeList = {
-    0xFF, 0x00, 0x00, 0x00,  0x00, 0x00, 0x00, 0x00
-  };
+	// TODO: Add codes for use pre 3.1.0 addition of dynamic gecko codes
+	static std::vector<uint8_t> defaultCodeList = {0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 
-  static std::unordered_map<u32, bool> blacklist = {
-	  {0x8008d698, true}, // Recording/GetLCancelStatus/GetLCancelStatus.asm
-	  {0x8006c324, true}, // Recording/GetLCancelStatus/ResetLCancelStatus.asm
-    {0x800679bc, true}, // Recording/ExtendPlayerBlock.asm
-	  {0x802fef88, true}, // Recording/FlushFrameBuffer.asm
-	  {0x80005604, true}, // Recording/IsVSMode.asm
-	  {0x8016d30c, true}, // Recording/SendGameEnd.asm
-	  {0x8016e74c, true}, // Recording/SendGameInfo.asm
-	  {0x8006c5d8, true}, // Recording/SendGamePostFrame.asm
-	  {0x8006b0dc, true}, // Recording/SendGamePreFrame.asm
+	static std::unordered_map<u32, bool> blacklist = {
+	    {0x8008d698, true}, // Recording/GetLCancelStatus/GetLCancelStatus.asm
+	    {0x8006c324, true}, // Recording/GetLCancelStatus/ResetLCancelStatus.asm
+	    {0x800679bc, true}, // Recording/ExtendPlayerBlock.asm
+	    {0x802fef88, true}, // Recording/FlushFrameBuffer.asm
+	    {0x80005604, true}, // Recording/IsVSMode.asm
+	    {0x8016d30c, true}, // Recording/SendGameEnd.asm
+	    {0x8016e74c, true}, // Recording/SendGameInfo.asm
+	    {0x8006c5d8, true}, // Recording/SendGamePostFrame.asm
+	    {0x8006b0dc, true}, // Recording/SendGamePreFrame.asm
 
-    {0x8021aae4, true}, // Binary/FasterMeleeSettings/DisableFdTransitions.bin
-	  {0x801cbb90, true}, // Binary/FasterMeleeSettings/LaglessFod.bin
-		{0x801CC8AC, true}, // Binary/FasterMeleeSettings/LaglessFod.bin
-	  {0x801CBE9C, true}, // Binary/FasterMeleeSettings/LaglessFod.bin
-	  {0x801CBEF0, true}, // Binary/FasterMeleeSettings/LaglessFod.bin
-	  {0x801CBF54, true}, // Binary/FasterMeleeSettings/LaglessFod.bin
-	  {0x80390838, true}, // Binary/FasterMeleeSettings/LaglessFod.bin
-	  {0x801CD250, true}, // Binary/FasterMeleeSettings/LaglessFod.bin
-	  {0x801CCDCC, true}, // Binary/FasterMeleeSettings/LaglessFod.bin
-	  {0x801C26B0, true}, // Binary/FasterMeleeSettings/RandomStageMusic.bin
-    {0x803761ec, true}, // Binary/NormalLagReduction.bin
-    {0x800198a4, true}, // Binary/PerformanceLagReduction.bin
-	  {0x80019620, true}, // Binary/PerformanceLagReduction.bin
-	  {0x801A5054, true}, // Binary/PerformanceLagReduction.bin
-    {0x80023ffc, true}, // Binary/GameMusicOn.bin + Binary/GameMusicOff.bin
-    {0x80397878, true}, // Binary/OsReportPrintOnCrash.bin
+	    {0x8021aae4, true}, // Binary/FasterMeleeSettings/DisableFdTransitions.bin
+	    {0x801cbb90, true}, // Binary/FasterMeleeSettings/LaglessFod.bin
+	    {0x801CC8AC, true}, // Binary/FasterMeleeSettings/LaglessFod.bin
+	    {0x801CBE9C, true}, // Binary/FasterMeleeSettings/LaglessFod.bin
+	    {0x801CBEF0, true}, // Binary/FasterMeleeSettings/LaglessFod.bin
+	    {0x801CBF54, true}, // Binary/FasterMeleeSettings/LaglessFod.bin
+	    {0x80390838, true}, // Binary/FasterMeleeSettings/LaglessFod.bin
+	    {0x801CD250, true}, // Binary/FasterMeleeSettings/LaglessFod.bin
+	    {0x801CCDCC, true}, // Binary/FasterMeleeSettings/LaglessFod.bin
+	    {0x801C26B0, true}, // Binary/FasterMeleeSettings/RandomStageMusic.bin
+	    {0x803761ec, true}, // Binary/NormalLagReduction.bin
+	    {0x800198a4, true}, // Binary/PerformanceLagReduction.bin
+	    {0x80019620, true}, // Binary/PerformanceLagReduction.bin
+	    {0x801A5054, true}, // Binary/PerformanceLagReduction.bin
+	    {0x80023ffc, true}, // Binary/GameMusicOn.bin + Binary/GameMusicOff.bin
+	    {0x80397878, true}, // Binary/OsReportPrintOnCrash.bin
 
-    {0x800055f0, true}, // Common/EXITransferBuffer.asm
-	  {0x800055f8, true}, // Common/GetIsFollower.asm
-	  {0x800055fc, true}, // Common/Gecko/ProcessCodeList.asm
-	  {0x8016d294, true}, // Common/IncrementFrameIndex.asm
+	    {0x800055f0, true}, // Common/EXITransferBuffer.asm
+	    {0x800055f8, true}, // Common/GetIsFollower.asm
+	    {0x800055fc, true}, // Common/Gecko/ProcessCodeList.asm
+	    {0x8016d294, true}, // Common/IncrementFrameIndex.asm
 
-    {0x801a5b14, true}, // External/Salty Runback/Salty Runback.asm
-    {0x801a4570, true}, // External/LagReduction/ForceHD/480pDeflickerOff.asm
-	  {0x802fccd8, true}, // External/Hide Nametag When Invisible/Hide Nametag When Invisible.asm
+	    {0x801a5b14, true}, // External/Salty Runback/Salty Runback.asm
+	    {0x801a4570, true}, // External/LagReduction/ForceHD/480pDeflickerOff.asm
+	    {0x802fccd8, true}, // External/Hide Nametag When Invisible/Hide Nametag When Invisible.asm
 
-    {0x804ddb30, true}, // External/Widescreen/Adjust Offscreen Scissor/Fix Bubble Positions/Adjust Corner Value 1.asm
-	  {0x804ddb34, true}, // External/Widescreen/Adjust Offscreen Scissor/Fix Bubble Positions/Adjust Corner Value 2.asm
-	  {0x804ddb2c, true}, // External/Widescreen/Adjust Offscreen Scissor/Fix Bubble Positions/Extend Negative Vertical Bound.asm
-	  {0x804ddb28, true}, // External/Widescreen/Adjust Offscreen Scissor/Fix Bubble Positions/Extend Positive Vertical Bound.asm
-	  {0x804ddb4c, true}, // External/Widescreen/Adjust Offscreen Scissor/Fix Bubble Positions/Widen Bubble Region.asm
-	  {0x804ddb58, true}, // External/Widescreen/Adjust Offscreen Scissor/Adjust Bubble Zoom.asm
-	  {0x80086b24, true}, // External/Widescreen/Adjust Offscreen Scissor/Draw High Poly Models.asm
-	  {0x80030C7C, true}, // External/Widescreen/Adjust Offscreen Scissor/Left Camera Bound.asm
-	  {0x80030C88, true}, // External/Widescreen/Adjust Offscreen Scissor/Right Camera Bound.asm
-	  {0x802fcfc4, true}, // External/Widescreen/Nametag Fixes/Adjust Nametag Background X Scale.asm
-	  {0x804ddb84, true}, // External/Widescreen/Nametag Fixes/Adjust Nametag Text X Scale.asm
-	  {0x803BB05C, true}, // External/Widescreen/Fix Screen Flash.asm
-	  {0x8036A4A8, true}, // External/Widescreen/Overwrite CObj Values.asm
-  };
+	    {0x804ddb30, true}, // External/Widescreen/Adjust Offscreen Scissor/Fix Bubble Positions/Adjust Corner Value 1.asm
+	    {0x804ddb34, true}, // External/Widescreen/Adjust Offscreen Scissor/Fix Bubble Positions/Adjust Corner Value 2.asm
+	    {0x804ddb2c, true}, // External/Widescreen/Adjust Offscreen Scissor/Fix Bubble Positions/Extend Negative Vertical Bound.asm
+	    {0x804ddb28, true}, // External/Widescreen/Adjust Offscreen Scissor/Fix Bubble Positions/Extend Positive Vertical Bound.asm
+	    {0x804ddb4c, true}, // External/Widescreen/Adjust Offscreen Scissor/Fix Bubble Positions/Widen Bubble Region.asm
+	    {0x804ddb58, true}, // External/Widescreen/Adjust Offscreen Scissor/Adjust Bubble Zoom.asm
+	    {0x80086b24, true}, // External/Widescreen/Adjust Offscreen Scissor/Draw High Poly Models.asm
+	    {0x80030C7C, true}, // External/Widescreen/Adjust Offscreen Scissor/Left Camera Bound.asm
+	    {0x80030C88, true}, // External/Widescreen/Adjust Offscreen Scissor/Right Camera Bound.asm
+	    {0x802fcfc4, true}, // External/Widescreen/Nametag Fixes/Adjust Nametag Background X Scale.asm
+	    {0x804ddb84, true}, // External/Widescreen/Nametag Fixes/Adjust Nametag Text X Scale.asm
+	    {0x803BB05C, true}, // External/Widescreen/Fix Screen Flash.asm
+	    {0x8036A4A8, true}, // External/Widescreen/Overwrite CObj Values.asm
+	};
 
-  geckoList.clear();
+	geckoList.clear();
 
 	Slippi::GameSettings *settings = m_current_game->GetSettings();
 	if (settings->geckoCodes.empty())
 	{
 		geckoList = defaultCodeList;
 		return;
-  }
+	}
 
-  std::vector<u8> source = settings->geckoCodes;
-  int idx = 0;
-  while (idx < source.size())
-  {
-	  u8 codeType = source[idx] & 0xFE;
-	  u32 address = source[idx] << 24 | source[idx + 1] << 16 | source[idx + 2] << 8 | source[idx + 3];
-	  address = (address & 0x01FFFFFF) | 0x80000000;
+	std::vector<u8> source = settings->geckoCodes;
+	int idx = 0;
+	while (idx < source.size())
+	{
+		u8 codeType = source[idx] & 0xFE;
+		u32 address = source[idx] << 24 | source[idx + 1] << 16 | source[idx + 2] << 8 | source[idx + 3];
+		address = (address & 0x01FFFFFF) | 0x80000000;
 
-	  u32 codeOffset = 8; // Default code offset. Most codes are this length
-	  switch (codeType)
-	  {
-	  case 0xC0:
-	  case 0xC2:
-    {
-		  u32 lineCount = source[idx + 4] << 24 | source[idx + 5] << 16 | source[idx + 6] << 8 | source[idx + 7];
-		  codeOffset = 8 + (lineCount * 8);
-		  break;
-	  }
-	  case 0x08:
-		  codeOffset = 16;
-		  break;
-	  case 0x06:
-    {
-		  u32 byteLen = source[idx + 4] << 24 | source[idx + 5] << 16 | source[idx + 6] << 8 | source[idx + 7];
-		  codeOffset = 8 + ((byteLen + 7) & 0xFFFFFFF8); // Round up to next 8 bytes and add the first 8 bytes
-		  break;
-    }
-    }
+		u32 codeOffset = 8; // Default code offset. Most codes are this length
+		switch (codeType)
+		{
+		case 0xC0:
+		case 0xC2:
+		{
+			u32 lineCount = source[idx + 4] << 24 | source[idx + 5] << 16 | source[idx + 6] << 8 | source[idx + 7];
+			codeOffset = 8 + (lineCount * 8);
+			break;
+		}
+		case 0x08:
+			codeOffset = 16;
+			break;
+		case 0x06:
+		{
+			u32 byteLen = source[idx + 4] << 24 | source[idx + 5] << 16 | source[idx + 6] << 8 | source[idx + 7];
+			codeOffset = 8 + ((byteLen + 7) & 0xFFFFFFF8); // Round up to next 8 bytes and add the first 8 bytes
+			break;
+		}
+		}
 
-    idx += codeOffset;
+		idx += codeOffset;
 
-    // If this address is blacklisted, we don't add it to what we will send to game
-	  if (blacklist.count(address)) continue;
-  
-    // If not blacklisted, add code to return vector
-    geckoList.insert(geckoList.end(), source.begin() + (idx - codeOffset), source.begin() + idx);
-  }
+		// If this address is blacklisted, we don't add it to what we will send to game
+		if (blacklist.count(address))
+			continue;
 
-  // Add the termination sequence
-  geckoList.insert(geckoList.end(), {0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00});
+		// If not blacklisted, add code to return vector
+		geckoList.insert(geckoList.end(), source.begin() + (idx - codeOffset), source.begin() + idx);
+	}
+
+	// Add the termination sequence
+	geckoList.insert(geckoList.end(), {0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00});
 }
 
 void CEXISlippi::prepareCharacterFrameData(int32_t frameIndex, u8 port, u8 isFollower)
