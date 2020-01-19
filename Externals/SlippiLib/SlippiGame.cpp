@@ -125,7 +125,6 @@ namespace Slippi {
   void handleGeckoList(Game* game, uint32_t maxSize) {
     game->settings.geckoCodes.clear();
     std::copy(data, data + maxSize, std::back_inserter(game->settings.geckoCodes));
-    game->settings.geckoCodes.insert(game->settings.geckoCodes.end(), { 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 });
   }
 
   void handleFrameStart(Game* game, uint32_t maxSize) {
