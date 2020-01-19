@@ -118,7 +118,7 @@ namespace Slippi {
     auto majorVersion = game->version[0];
     auto minorVersion = game->version[1];
     if (majorVersion > 1 || (majorVersion == 1 && minorVersion >= 6)) {
-	    game->areSettingsLoaded = true;
+      game->areSettingsLoaded = true;
     }
   }
 
@@ -489,7 +489,7 @@ namespace Slippi {
 
   std::array<uint8_t, 4> SlippiGame::GetVersion()
   {
-	  return game->version;
+    return game->version;
   }
 
   FrameData* SlippiGame::GetFrame(int32_t frame) {
