@@ -32,7 +32,6 @@
 #include "Common/MathUtil.h"
 #include "Common/StringUtil.h"
 #include "Core/ConfigManager.h"
-#include "Core/SlippiPlayback.h"
 #include "DolphinWX/Debugger/CodeWindow.h"
 #include "DolphinWX/Frame.h"
 #include "DolphinWX/Globals.h"
@@ -41,6 +40,10 @@
 #include "DolphinWX/MainMenuBar.h"
 #include "DolphinWX/WxUtils.h"
 #include "DolphinWX/Debugger/DebuggerUIUtil.h"
+
+//#include "SlippiPlayback/SlippiPlayback.h"
+//std::unique_ptr<SlippiPlaybackStatus> g_playback_status;
+
 
 // ------------
 // Aui events
