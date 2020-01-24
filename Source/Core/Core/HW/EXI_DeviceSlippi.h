@@ -46,6 +46,7 @@ class CEXISlippi : public IEXIDevice
 		CMD_GET_LOCATION = 0x77,
 		CMD_IS_FILE_READY = 0x88,
 		CMD_IS_STOCK_STEAL = 0x89,
+		CMD_GET_GECKO_CODES = 0x8A,
 		CMD_GET_FRAME_COUNT = 0x90,
 	};
 
@@ -69,6 +70,7 @@ class CEXISlippi : public IEXIDevice
 	                                            {CMD_IS_STOCK_STEAL, 5},
 	                                            {CMD_GET_LOCATION, 6},
 	                                            {CMD_IS_FILE_READY, 0},
+	                                            {CMD_GET_GECKO_CODES, 0},
 	                                            {CMD_GET_FRAME_COUNT, 0}};
 
 	// Communication with Launcher
@@ -99,6 +101,7 @@ class CEXISlippi : public IEXIDevice
 
 	// replay playback stuff
 	void prepareGameInfo();
+	void prepareGeckoList();
 	void prepareCharacterFrameData(int32_t frameIndex, u8 port, u8 isFollower);
 	void prepareFrameData(u8 *payload);
 	void prepareIsStockSteal(u8 *payload);
@@ -123,6 +126,8 @@ class CEXISlippi : public IEXIDevice
 	open_vcdiff::VCDiffEncoder *encoder = NULL;
 
 	std::unordered_map<u8, std::string> getNetplayNames();
+
+  std::vector<uint8_t> geckoList;
 
 	bool isSoftFFW = false;
 	bool isHardFFW = false;

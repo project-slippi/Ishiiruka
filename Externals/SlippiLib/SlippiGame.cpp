@@ -118,8 +118,13 @@ namespace Slippi {
     auto majorVersion = game->version[0];
     auto minorVersion = game->version[1];
     if (majorVersion > 1 || (majorVersion == 1 && minorVersion >= 6)) {
-	    game->areSettingsLoaded = true;
+      game->areSettingsLoaded = true;
     }
+  }
+
+  void handleGeckoList(Game* game, uint32_t maxSize) {
+    game->settings.geckoCodes.clear();
+    std::copy(data, data + maxSize, std::back_inserter(game->settings.geckoCodes));
   }
 
   void handleFrameStart(Game* game, uint32_t maxSize) {
@@ -406,6 +411,9 @@ namespace Slippi {
       case EVENT_GAME_INIT:
         handleGameInit(game, payloadSize);
         break;
+      case EVENT_GECKO_LIST:
+        handleGeckoList(game, payloadSize);
+        break;
       case EVENT_FRAME_START:
         handleFrameStart(game, payloadSize);
         break;
@@ -481,7 +489,7 @@ namespace Slippi {
 
   std::array<uint8_t, 4> SlippiGame::GetVersion()
   {
-	  return game->version;
+    return game->version;
   }
 
   FrameData* SlippiGame::GetFrame(int32_t frame) {
