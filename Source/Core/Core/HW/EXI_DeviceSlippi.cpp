@@ -893,6 +893,15 @@ void CEXISlippi::prepareGeckoList()
 	    {0x801A5054, true}, // Binary/PerformanceLagReduction.bin
 	    {0x80023ffc, true}, // Binary/GameMusicOn.bin + Binary/GameMusicOff.bin
 	    {0x80397878, true}, // Binary/OsReportPrintOnCrash.bin
+	    {0x801A4DA0, true}, // Binary/LagReduction/PD.bin
+	    {0x801A4DB4, true}, // Binary/LagReduction/PD.bin
+	    {0x80019860, true}, // Binary/LagReduction/PD.bin
+	    {0x801A4C24, true}, // Binary/LagReduction/PD+VB.bin
+	    {0x8001985C, true}, // Binary/LagReduction/PD+VB.bin
+	    {0x80019860, true}, // Binary/LagReduction/PD+VB.bin
+	    {0x80376200, true}, // Binary/LagReduction/PD+VB.bin
+	    {0x801A5018, true}, // Binary/LagReduction/PD+VB.bin
+	    {0x80218D68, true}, // Binary/LagReduction/PD+VB.bin
 
 	    {0x800055f0, true}, // Common/EXITransferBuffer.asm
 	    {0x800055f8, true}, // Common/GetIsFollower.asm
