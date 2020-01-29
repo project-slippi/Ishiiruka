@@ -1,6 +1,6 @@
 #include <memory>
 
-#include "SlippiPlayback/SlippiPlayback.h"
+#include "SlippiPlayback.h"
 std::unique_ptr<SlippiPlaybackStatus> g_playback_status;
 
 SlippiPlaybackStatus::SlippiPlaybackStatus()
