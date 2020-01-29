@@ -139,6 +139,7 @@ void SlippiReplayComm::loadFile()
 		return;
   }
 
+  WARN_LOG(EXPANSIONINTERFACE, "File change detected in comm file: %s", configFilePath.c_str());
   configLastLoadModTime = modTime;
 
 	// TODO: Maybe load file in a more intelligent way to save
@@ -168,6 +169,10 @@ void SlippiReplayComm::loadFile()
 		else
 		{
 			WARN_LOG(EXPANSIONINTERFACE, "Comm file load error detected. Check file format");
+
+			// Reset in the case of read error. this fixes a race condition where file mod time changes but
+      // the file is not readable yet?
+			configLastLoadModTime = 0; 
 		}
 
 		return;

@@ -120,11 +120,21 @@ namespace Slippi {
     if (majorVersion > 1 || (majorVersion == 1 && minorVersion >= 6)) {
       game->areSettingsLoaded = true;
     }
+
+    // After version 3.1.0 we added a dynamic gecko loading process. These
+    // are needed before starting the game. areSettingsLoaded will be set
+    // to true when they are received
+    if (majorVersion > 3 || (majorVersion == 3 && minorVersion >= 1)) {
+      game->areSettingsLoaded = false;
+    }
   }
 
   void handleGeckoList(Game* game, uint32_t maxSize) {
     game->settings.geckoCodes.clear();
     std::copy(data, data + maxSize, std::back_inserter(game->settings.geckoCodes));
+
+    // File is good to load
+    game->areSettingsLoaded = true;
   }
 
   void handleFrameStart(Game* game, uint32_t maxSize) {
