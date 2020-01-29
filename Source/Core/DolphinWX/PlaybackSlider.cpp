@@ -5,7 +5,10 @@
 #include "PlaybackSlider.h"
 #include <wx/utils.h>
 #include "DolphinWX/DolphinSlider.h"
-#include "Core/SlippiPlayback.h"
+
+#include <memory>
+#include "SlippiPlayback/SlippiPlayback.h"
+extern std::unique_ptr<SlippiPlaybackStatus> g_playback_status;
 
 // Event table
 BEGIN_EVENT_TABLE(PlaybackSlider, wxSlider)
@@ -28,7 +31,7 @@ void PlaybackSlider::OnSliderClick(wxMouseEvent &event) {
 	// This handler is the confirmation handler that actually sets the frame we
 	// want to skip to
 	isDraggingSlider = false;
-	g_targetFrameNum = lastMoveVal;
+	g_playback_status->targetFrameNum = lastMoveVal;
 	event.Skip();
 }
 
@@ -90,7 +93,7 @@ void PlaybackSlider::OnSliderMove(wxCommandEvent &event)
 	// save the value of the last move here and use that to set the game pos
 	lastMoveVal = value;
 
-	int totalSeconds = (int)((g_latestFrame + 123) / 60);
+	int totalSeconds = (int)((g_playback_status->latestFrame + 123) / 60);
 	int totalMinutes = (int)(totalSeconds / 60);
 	int totalRemainder = (int)(totalSeconds % 60);
 

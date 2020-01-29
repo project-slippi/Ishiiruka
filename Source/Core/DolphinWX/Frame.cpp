@@ -44,7 +44,6 @@
 #include "Core/HW/DVDInterface.h"
 #include "Core/HW/GCKeyboard.h"
 #include "Core/HW/GCPad.h"
-#include "Core/SlippiPlayback.h"
 #include "Core/HW/Wiimote.h"
 #include "Core/HotkeyManager.h"
 #include "Core/IPC_HLE/WII_IPC_HLE.h"
@@ -71,6 +70,9 @@
 #include "VideoCommon/RenderBase.h"
 #include "VideoCommon/VertexShaderManager.h"
 #include "VideoCommon/VideoConfig.h"
+
+#include "SlippiPlayback/SlippiPlayback.h"
+extern std::unique_ptr<SlippiPlaybackStatus> g_playback_status;
 
 #if defined(HAVE_X11) && HAVE_X11
 // X11Utils nastiness that's only used here
@@ -1600,17 +1602,13 @@ void CFrame::ParseHotkeys()
 		State::UndoSaveState();
 
 	// Slippi replay hotkeys and setup
-	if (g_inSlippiPlayback)
+	if (g_playback_status->inSlippiPlayback)
 	{		
 		if (IsHotkey(HK_JUMP_BACK))
-		{
-			g_shouldJumpBack = true;
-		}
+			g_playback_status->shouldJumpBack = true;
 
 		if (IsHotkey(HK_JUMP_FORWARD))
-		{
-			g_shouldJumpForward = true;
-		}
+			g_playback_status->shouldJumpForward = true;
 
 		if (!m_Mgr->GetPane(_("Slippi Pane")).IsShown()) {
 			m_Mgr->GetPane(_("Slippi Pane")).Show();

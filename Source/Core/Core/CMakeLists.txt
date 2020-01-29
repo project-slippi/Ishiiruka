@@ -243,6 +243,7 @@ set(LIBS
 	${LZO}
 	sfml-network
 	sfml-system
+	SlippiPlaybackStatus
 	SlippiLib
 	vcdcom
 	vcddec

@@ -57,3 +57,6 @@ open-vcdiff.pdb
 open-vcdiff.log
 .cproject
 .project
+SlippiPlayback.lib
+SlippiPlayback.log
+vc141.pdb
