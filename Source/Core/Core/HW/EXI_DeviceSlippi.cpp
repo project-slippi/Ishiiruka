@@ -28,6 +28,7 @@
 #include "Core/HW/Memmap.h"
 #include "Core/SlippiPlayback.h"
 #include "Core/NetPlayClient.h"
+#include "SlippiPlayback/SlippiPlayback.h"
 
 #include "Core/Core.h"
 #include "Core/CoreTiming.h"
