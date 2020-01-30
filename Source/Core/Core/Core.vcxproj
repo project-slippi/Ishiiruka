@@ -523,6 +523,9 @@
     <ProjectReference Include="..\..\..\Externals\SlippiLib\SlippiLib.vcxproj">
       <Project>{ff39260b-839a-4a6c-a117-caa73c1683f5}</Project>
     </ProjectReference>
+    <ProjectReference Include="..\SlippiPlayback\SlippiPlayback.vcxproj">
+      <Project>{0ebbdafa-3a7d-46d0-b0ee-f53d7dd6f571}</Project>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
