@@ -27,6 +27,7 @@
 #include "Common/Thread.h"
 #include "Core/HW/Memmap.h"
 #include "Core/NetPlayClient.h"
+#include "SlippiPlayback/SlippiPlayback.h"
 
 #include "Core/Core.h"
 #include "Core/CoreTiming.h"
