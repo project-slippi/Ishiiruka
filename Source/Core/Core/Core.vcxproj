@@ -268,6 +268,7 @@
     <ClCompile Include="PowerPC\Profiler.cpp" />
     <ClCompile Include="PowerPC\SignatureDB.cpp" />
     <ClCompile Include="SlippiTimer.cpp" />
+    <ClCompile Include="Slippi\SlippiPad.cpp" />
     <ClCompile Include="Slippi\SlippiReplayComm.cpp" />
     <ClCompile Include="State.cpp" />
   </ItemGroup>
@@ -463,6 +464,7 @@
     <ClInclude Include="PowerPC\SignatureDB.h" />
     <ClInclude Include="SlippiPlayback.h" />
     <ClInclude Include="SlippiTimer.h" />
+    <ClInclude Include="Slippi\SlippiPad.h" />
     <ClInclude Include="Slippi\SlippiReplayComm.h" />
     <ClInclude Include="State.h" />
   </ItemGroup>

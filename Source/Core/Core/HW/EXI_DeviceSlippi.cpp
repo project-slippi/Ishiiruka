@@ -24,7 +24,6 @@
 #include "Common/StringUtil.h"
 #include "Common/Thread.h"
 #include "Core/HW/Memmap.h"
-#include "Core/NetPlayClient.h"
 #include "Core/SlippiPlayback.h"
 
 #include "Core/Core.h"
@@ -810,6 +809,138 @@ void CEXISlippi::prepareIsFileReady()
 	m_read_queue.push_back(1);
 }
 
+static int tempTestCount = 0;
+void CEXISlippi::handleOnlineInputs(u8* payload)
+{
+  m_read_queue.clear();
+
+  int32_t frame = payload[0] << 24 | payload[1] << 16 | payload[2] << 8 | payload[3];
+
+  // The following code successfully causes the game to hang for 2 seconds. This
+  // is how the game will be delayed when ahead. Still need to look if the scene
+  // frame count still gets incremented when the game hangs like this
+  //if (frame == 250 && tempTestCount < 120)
+  //{
+  //  tempTestCount++;
+  //  m_read_queue.push_back(2);
+  //  return;
+  //}
+  //tempTestCount = 0;
+
+  if (frame == 1 && !slippi_netplay)
+  {
+    std::string opp_ip;
+    File::ReadFileToString("opp_ip.txt", opp_ip);
+    slippi_netplay = std::make_unique<NetPlayClient>(opp_ip, 51000, true);
+
+    INFO_LOG(SLIPPI_ONLINE, "Connecting to %s", opp_ip.c_str());
+
+    slippi_netplay->StartSlippiGame();
+  }
+  else if (frame == 2)
+  {
+    // TODO: Should this all happen on frame 1? Prob not a big deal since connecting
+    // TODO: here is only temporary
+    auto status = slippi_netplay->GetSlippiConnectStatus();
+    if (status == NetPlayClient::SlippiConnectStatus::NET_CONNECT_STATUS_INITIATED)
+    {
+      // Send inputs that have not yet been acked
+      slippi_netplay->SendSlippiPad(nullptr);
+      m_read_queue.push_back(2);
+      return;
+    }
+
+    INFO_LOG(SLIPPI_ONLINE, "Connection attempt over...");
+  }
+
+  if (shouldSkipOnlineFrame(frame))
+  {
+    // Send inputs that have not yet been acked
+    slippi_netplay->SendSlippiPad(nullptr);
+    m_read_queue.push_back(2);
+    return;
+  }
+
+  handleSendInputs(payload);
+  prepareOpponentInputs(payload);
+}
+
+bool CEXISlippi::shouldSkipOnlineFrame(int32_t frame)
+{
+  auto status = slippi_netplay->GetSlippiConnectStatus();
+  if (status == NetPlayClient::SlippiConnectStatus::NET_CONNECT_STATUS_FAILED)
+  {
+    // If connection failed just continue the game
+    return false;
+  }
+
+  // Return true if we are too far ahead for rollback. 5 is the number of frames we can
+  // receive for the opponent at one time and is our "look-ahead" limit
+  int32_t latestRemoteFrame = slippi_netplay->GetSlippiLatestRemoteFrame();
+  if (frame - latestRemoteFrame >= 1) // TODO: should be 5
+  {
+    WARN_LOG(SLIPPI_ONLINE, "Skipping frame due to rollback limit (frame: %d | latest: %d)...", frame, latestRemoteFrame);
+    return true;
+  }
+
+  // Return true if we are over 60% of a frame ahead of our opponent. Currently limiting how
+  // often this happens because I'm worried about jittery data causing a lot of unneccesary delays
+  auto isTimeSyncFrame = frame % SLIPPI_ONLINE_LOCKSTEP_INTERVAL; // Only time sync every 30 frames
+  if (isTimeSyncFrame)
+  {
+    auto offsetUs = slippi_netplay->CalcTimeOffsetUs();
+    if (offsetUs > 10000)
+    {
+      // If ahead by 60% of a frame, stall. I opted to use 60% instead of half a frame
+      // because I was worried about two systems continuously stalling for each other
+      WARN_LOG(SLIPPI_ONLINE, "Skipping frame due to time sync...");
+      return true;
+    }
+  }
+
+  return false;
+}
+
+void CEXISlippi::handleSendInputs(u8* payload)
+{
+  int32_t frame = payload[0] << 24 | payload[1] << 16 | payload[2] << 8 | payload[3];
+  u8 delay = payload[4];
+
+  auto pad = std::make_unique<SlippiPad>(frame + delay, &payload[5]);
+
+  slippi_netplay->SendSlippiPad(std::move(pad));
+}
+
+void CEXISlippi::prepareOpponentInputs(u8* payload)
+{
+  m_read_queue.clear();
+  m_read_queue.push_back(1); // Indicate a continue frame
+
+  int32_t frame = payload[0] << 24 | payload[1] << 16 | payload[2] << 8 | payload[3];
+
+  auto result = slippi_netplay->GetSlippiRemotePad(frame);
+
+  // determine offset from which to copy data
+  int offset = (result->latestFrame - frame) * SLIPPI_PAD_FULL_SIZE;
+  offset = offset < 0 ? 0 : offset;
+
+  // add latest frame we are transfering to begining of return buf
+  int32_t latestFrame = offset > 0 ? frame : result->latestFrame;
+  appendWordToBuffer(&m_read_queue, *(u32 *)&latestFrame);
+
+  // copy pad data over
+  auto txStart = result->data.begin() + offset;
+  auto txEnd = result->data.end();
+
+  std::vector<u8> tx;
+  tx.insert(tx.end(), txStart, txEnd);
+  tx.resize(SLIPPI_PAD_FULL_SIZE * 5, 0);
+
+  m_read_queue.insert(m_read_queue.end(), tx.begin(), tx.end());
+
+  //ERROR_LOG(SLIPPI_ONLINE, "EXI: [%d] %X %X %X %X %X %X %X %X", latestFrame, m_read_queue[5], m_read_queue[6], m_read_queue[7], m_read_queue[8], m_read_queue[9], m_read_queue[10], m_read_queue[11], m_read_queue[12]);
+}
+
 void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 {
 	u8 *memPtr = Memory::GetPointer(_uAddr);
@@ -836,6 +967,7 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 		if (!payloadSizes.count(byte))
 		{
 			// This should never happen. Do something else if it does?
+      WARN_LOG(EXPANSIONINTERFACE, "EXI SLIPPI: Invalid command byte: 0x%x", byte);
 			return;
 		}
 
@@ -850,10 +982,10 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 			prepareGameInfo();
 			break;
 		case CMD_READ_FRAME:
-			prepareFrameData(&memPtr[1]);
+			prepareFrameData(&memPtr[bufLoc + 1]);
 			break;
 		case CMD_IS_STOCK_STEAL:
-			prepareIsStockSteal(&memPtr[1]);
+			prepareIsStockSteal(&memPtr[bufLoc + 1]);
 			break;
 		case CMD_GET_FRAME_COUNT:
 			prepareFrameCount();
@@ -861,6 +993,9 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 		case CMD_IS_FILE_READY:
 			prepareIsFileReady();
 			break;
+    case CMD_ONLINE_INPUTS:
+      handleOnlineInputs(&memPtr[bufLoc + 1]);
+      break;
 		default:
 			writeToFile(&memPtr[bufLoc], payloadLen + 1, "");
 			break;
@@ -877,6 +1012,8 @@ void CEXISlippi::DMARead(u32 addr, u32 size)
 		INFO_LOG(EXPANSIONINTERFACE, "EXI SLIPPI DMARead: Empty");
 		return;
 	}
+
+  m_read_queue.resize(size, 0); // Resize response array to make sure it's all full/allocated
 
 	auto queueAddr = &m_read_queue[0];
 	INFO_LOG(EXPANSIONINTERFACE, "EXI SLIPPI DMARead: addr: 0x%08x size: %d, startResp: [%02x %02x %02x %02x %02x]",

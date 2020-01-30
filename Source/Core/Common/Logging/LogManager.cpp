@@ -58,6 +58,7 @@ LogManager::LogManager()
 	m_Log[LogTypes::DYNA_REC] = new LogContainer("JIT", "Dynamic Recompiler");
 	m_Log[LogTypes::EXPANSIONINTERFACE] = new LogContainer("EXI", "Expansion Interface");
 	m_Log[LogTypes::SLIPPI] = new LogContainer("SLIPPI", "Slippi");
+  m_Log[LogTypes::SLIPPI_ONLINE] = new LogContainer("SLIPPI_ONLINE", "Slippi Online");
 	m_Log[LogTypes::FILEMON] = new LogContainer("FileMon", "File Monitor");
 	m_Log[LogTypes::GDB_STUB] = new LogContainer("GDB_STUB", "GDB Stub");
 	m_Log[LogTypes::GPFIFO] = new LogContainer("GP", "GPFifo");

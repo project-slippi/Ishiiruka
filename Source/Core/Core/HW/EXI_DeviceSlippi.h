@@ -16,6 +16,7 @@
 
 #include "Common/CommonTypes.h"
 #include "Common/FileUtil.h"
+#include "Core/NetPlayClient.h"
 #include "Core/HW/EXI_Device.h"
 #include "Core/Slippi/SlippiReplayComm.h"
 
@@ -47,6 +48,7 @@ class CEXISlippi : public IEXIDevice
 		CMD_IS_FILE_READY = 0x88,
 		CMD_IS_STOCK_STEAL = 0x89,
 		CMD_GET_FRAME_COUNT = 0x90,
+    CMD_ONLINE_INPUTS = 0xB0,
 	};
 
 	enum
@@ -57,19 +59,24 @@ class CEXISlippi : public IEXIDevice
 		FRAME_RESP_FASTFORWARD = 3,
 	};
 
-	std::unordered_map<u8, u32> payloadSizes = {// The actual size of this command will be sent in one byte
-	                                            // after the command is received. The other receive command IDs
-	                                            // and sizes will be received immediately following
-	                                            {CMD_RECEIVE_COMMANDS, 1},
+  std::unordered_map<u8, u32> payloadSizes = {
+    // The actual size of this command will be sent in one byte
+    // after the command is received. The other receive command IDs
+    // and sizes will be received immediately following
+    {CMD_RECEIVE_COMMANDS, 1},
 
-	                                            // The following are all commands used to play back a replay and
-	                                            // have fixed sizes
-	                                            {CMD_PREPARE_REPLAY, 0},
-	                                            {CMD_READ_FRAME, 4},
-	                                            {CMD_IS_STOCK_STEAL, 5},
-	                                            {CMD_GET_LOCATION, 6},
-	                                            {CMD_IS_FILE_READY, 0},
-	                                            {CMD_GET_FRAME_COUNT, 0}};
+    // The following are all commands used to play back a replay and
+    // have fixed sizes
+    {CMD_PREPARE_REPLAY, 0},
+    {CMD_READ_FRAME, 4},
+    {CMD_IS_STOCK_STEAL, 5},
+    {CMD_GET_LOCATION, 6},
+    {CMD_IS_FILE_READY, 0},
+    {CMD_GET_FRAME_COUNT, 0},
+
+    // The following are used for Slippi online and also have fixed sizes
+    {CMD_ONLINE_INPUTS, 17}
+  };
 
 	// Communication with Launcher
 	SlippiReplayComm *replayComm;
@@ -96,6 +103,12 @@ class CEXISlippi : public IEXIDevice
 
 	File::IOFile m_file;
 	std::vector<u8> m_payload;
+
+  // online play stuff
+  void handleOnlineInputs(u8* payload);
+  void prepareOpponentInputs(u8* payload);
+  void handleSendInputs(u8 *payload);
+  bool shouldSkipOnlineFrame(int32_t frame);
 
 	// replay playback stuff
 	void prepareGameInfo();
@@ -132,4 +145,7 @@ class CEXISlippi : public IEXIDevice
 
   protected:
 	void TransferByte(u8 &byte) override;
+
+  private:
+  std::unique_ptr<NetPlayClient> slippi_netplay;
 };
