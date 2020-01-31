@@ -1363,7 +1363,7 @@ bool CEXISlippi::shouldSkipOnlineFrame(int32_t frame)
   // Return true if we are too far ahead for rollback. 5 is the number of frames we can
   // receive for the opponent at one time and is our "look-ahead" limit
   int32_t latestRemoteFrame = slippi_netplay->GetSlippiLatestRemoteFrame();
-  if (frame - latestRemoteFrame >= 1) // TODO: should be 5
+  if (frame - latestRemoteFrame >= 5) // TODO: 5 is rollback amount, should be a variable
   {
     WARN_LOG(SLIPPI_ONLINE, "Skipping frame due to rollback limit (frame: %d | latest: %d)...", frame, latestRemoteFrame);
     return true;
