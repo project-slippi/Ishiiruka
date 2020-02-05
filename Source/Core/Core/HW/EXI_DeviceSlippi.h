@@ -83,8 +83,8 @@ class CEXISlippi : public IEXIDevice
 
 	    // The following are used for Slippi online and also have fixed sizes
 	    {CMD_ONLINE_INPUTS, 17},
-	    {CMD_CAPTURE_SAVESTATE, 20},
-	    {CMD_LOAD_SAVESTATE, 20},
+	    {CMD_CAPTURE_SAVESTATE, 28},
+	    {CMD_LOAD_SAVESTATE, 28},
 	};
 
 	// Communication with Launcher
@@ -117,6 +117,8 @@ class CEXISlippi : public IEXIDevice
 	void handleOnlineInputs(u8 *payload);
 	void prepareOpponentInputs(u8 *payload);
 	void handleSendInputs(u8 *payload);
+	void handleCaptureSavestate();
+	void handleLoadSavestate(u32 *preserveArr);
 	bool shouldSkipOnlineFrame(int32_t frame);
 
 	// replay playback stuff
@@ -179,4 +181,22 @@ class CEXISlippi : public IEXIDevice
 	    //{true, 0x00005520, 0x420, NULL}, // Data Sections 0 and 1
 	    //{true, 0x003b7240, 0x1279C0, NULL}, // Data Sections 2-7 and in between sections
 	};
+
+	struct preserveLoc
+	{
+		u32 address;
+		u32 length;
+
+		bool operator==(const preserveLoc &p) const { return address == p.address && length == p.length; }
+	};
+
+	struct preserve_hash_fn
+	{
+		std::size_t operator()(const preserveLoc &node) const
+		{
+			return node.address ^ node.length; // TODO: This is probably a bad hash
+		}
+	};
+
+	std::unordered_map<preserveLoc, std::vector<u8>, preserve_hash_fn> preservationMap;
 };

@@ -1165,7 +1165,10 @@ void CEXISlippi::handleOnlineInputs(u8 *payload)
 	{
 		std::string opp_ip;
 		File::ReadFileToString("opp_ip.txt", opp_ip);
-		slippi_netplay = std::make_unique<NetPlayClient>(opp_ip, 51000, true);
+
+		// TODO: Fizzi's desktop will always be host
+		bool isHost = !(opp_ip.compare("192.168.1.16") == 0 || opp_ip.compare("136.24.10.119") == 0);
+		slippi_netplay = std::make_unique<NetPlayClient>(opp_ip, 51000, isHost);
 
 		INFO_LOG(SLIPPI_ONLINE, "Connecting to %s", opp_ip.c_str());
 
@@ -1277,6 +1280,68 @@ void CEXISlippi::prepareOpponentInputs(u8 *payload)
 	// m_read_queue[7], m_read_queue[8], m_read_queue[9], m_read_queue[10], m_read_queue[11], m_read_queue[12]);
 }
 
+void CEXISlippi::handleCaptureSavestate()
+{
+	u64 startTime = Common::Timer::GetTimeUs();
+	for (auto it = backupLocs.begin(); it != backupLocs.end(); ++it)
+	{
+		if (it->isGame)
+		{
+			Memory::CopyFromEmu(it->data, it->address, it->size);
+		}
+		else
+		{
+			memcpy(it->data, *it->nonGamePtr, it->size);
+		}
+	}
+
+	u32 timeDiff = (u32)(Common::Timer::GetTimeUs() - startTime);
+	ERROR_LOG(SLIPPI_ONLINE, "SLIPPI ONLINE: Captured savestate in: %f ms", ((double)timeDiff) / 1000);
+}
+
+void CEXISlippi::handleLoadSavestate(u32 *preserveArr)
+{
+	// Back up
+	int idx = 0;
+	while (Common::swap32(preserveArr[idx]) != 0)
+	{
+		preserveLoc p = {Common::swap32(preserveArr[idx]), Common::swap32(preserveArr[idx + 1])};
+		if (!preservationMap.count(p))
+		{
+			// TODO: Clear preservation map when game ends
+			preservationMap[p] = std::vector<u8>(p.length);
+		}
+
+		Memory::CopyFromEmu(&preservationMap[p][0], p.address, p.length);
+		idx += 2;
+	}
+
+	u64 startTime = Common::Timer::GetTimeUs();
+	for (auto it = backupLocs.begin(); it != backupLocs.end(); ++it)
+	{
+		if (it->isGame)
+		{
+			Memory::CopyToEmu(it->address, it->data, it->size);
+		}
+		else
+		{
+			memcpy(*it->nonGamePtr, it->data, it->size);
+		}
+	}
+
+	// Restore
+	idx = 0;
+	while (preserveArr[idx] != 0)
+	{
+		preserveLoc p = {Common::swap32(preserveArr[idx]), Common::swap32(preserveArr[idx + 1])};
+		Memory::CopyToEmu(p.address, &preservationMap[p][0], p.length);
+		idx += 2;
+	}
+
+	u32 timeDiff = (u32)(Common::Timer::GetTimeUs() - startTime);
+	ERROR_LOG(SLIPPI_ONLINE, "SLIPPI ONLINE: Loaded savestate in: %f ms", ((double)timeDiff) / 1000);
+}
+
 void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 {
 	u8 *memPtr = Memory::GetPointer(_uAddr);
@@ -1337,45 +1402,11 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 			m_read_queue.insert(m_read_queue.begin(), geckoList.begin(), geckoList.end());
 			break;
 		case CMD_CAPTURE_SAVESTATE:
-		{
-			u64 startTime = Common::Timer::GetTimeUs();
-			for (auto it = backupLocs.begin(); it != backupLocs.end(); ++it)
-			{
-				if (it->isGame)
-				{
-					Memory::CopyFromEmu(it->data, it->address, it->size);
-				}
-				else
-				{
-					memcpy(it->data, *it->nonGamePtr, it->size);
-				}
-			}
-
-			u32 timeDiff = (u32)(Common::Timer::GetTimeUs() - startTime);
-			ERROR_LOG(SLIPPI_ONLINE, "SLIPPI ONLINE: Captured savestate in: %f ms", ((double)timeDiff) / 1000);
-
+			handleCaptureSavestate();
 			break;
-		}
 		case CMD_LOAD_SAVESTATE:
-		{
-			u64 startTime = Common::Timer::GetTimeUs();
-			for (auto it = backupLocs.begin(); it != backupLocs.end(); ++it)
-			{
-				if (it->isGame)
-				{
-					Memory::CopyToEmu(it->address, it->data, it->size);
-				}
-				else
-				{
-					memcpy(*it->nonGamePtr, it->data, it->size);
-				}
-			}
-
-			u32 timeDiff = (u32)(Common::Timer::GetTimeUs() - startTime);
-			ERROR_LOG(SLIPPI_ONLINE, "SLIPPI ONLINE: Loaded savestate in: %f ms", ((double)timeDiff) / 1000);
-
+			handleLoadSavestate((u32 *)(&memPtr[bufLoc + 1]));
 			break;
-		}
 		default:
 			writeToFile(&memPtr[bufLoc], payloadLen + 1, "");
 			break;

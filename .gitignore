@@ -59,5 +59,8 @@ open-vcdiff.log
 .project
 SlippiPlayback.lib
 SlippiPlayback.log
+SlippiPlayback.pdb
+SlippiPlayback.idb
 vc141.pdb
+vc141.idb
 online.patch
