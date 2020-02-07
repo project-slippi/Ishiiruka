@@ -171,6 +171,7 @@ void CPUInfo::Detect()
 	}
 
 	bFlushToZero = bSSE;
+	bFastBMI2 = bBMI2 && !bZen;
 
 	if (max_ex_fn >= 0x80000004)
 	{
