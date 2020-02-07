@@ -25,7 +25,7 @@
 #include <Qos2.h>
 #endif
 
-#define SLIPPI_ONLINE_LOCKSTEP_INTERVAL 30 // Number of frames to wait before attempting to time-sync
+#define SLIPPI_ONLINE_LOCKSTEP_INTERVAL 45 // Number of frames to wait before attempting to time-sync
 
 class NetPlayUI
 {

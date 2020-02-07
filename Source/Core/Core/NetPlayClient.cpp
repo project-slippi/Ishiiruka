@@ -658,7 +658,7 @@ unsigned int NetPlayClient::OnData(sf::Packet& packet)
     // are with respect to the opponent
     auto timing = lastFrameTiming;
     s64 opponentSendTimeUs = Common::Timer::GetTimeUs() - (pingUs / 2);
-    s64 frameDiffOffsetUs = 16666 * (timing->frame - frame);
+    s64 frameDiffOffsetUs = 16683 * (timing->frame - frame);
     s64 timeOffsetUs = timing->timeUs - opponentSendTimeUs + frameDiffOffsetUs;
 
     // Add this offset to circular buffer for use later

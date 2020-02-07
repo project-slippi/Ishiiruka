@@ -1163,16 +1163,19 @@ void CEXISlippi::handleOnlineInputs(u8 *payload)
 	//}
 	// tempTestCount = 0;
 
-	if (frame == 1 && !slippi_netplay)
+	if (frame == 1)
 	{
-		std::string opp_ip;
-		File::ReadFileToString("opp_ip.txt", opp_ip);
+		if (!slippi_netplay)
+		{
+			std::string opp_ip;
+			File::ReadFileToString("opp_ip.txt", opp_ip);
 
-		// TODO: Fizzi's desktop will always be host
-		bool isHost = !(opp_ip.compare("192.168.1.16") == 0 || opp_ip.compare("136.24.10.119") == 0);
-		slippi_netplay = std::make_unique<NetPlayClient>(opp_ip, 51000, isHost);
+			// TODO: Fizzi's desktop will always be host
+			bool isHost = !(opp_ip.compare("192.168.1.16") == 0 || opp_ip.compare("136.24.10.119") == 0);
+			slippi_netplay = std::make_unique<NetPlayClient>(opp_ip, 51000, isHost);
 
-		INFO_LOG(SLIPPI_ONLINE, "Connecting to %s", opp_ip.c_str());
+			INFO_LOG(SLIPPI_ONLINE, "Connecting to %s", opp_ip.c_str());
+		}
 
 		slippi_netplay->StartSlippiGame();
 	}
@@ -1223,20 +1226,29 @@ bool CEXISlippi::shouldSkipOnlineFrame(int32_t frame)
 		return true;
 	}
 
+	static bool didSkipLastTime = false;
+
 	// Return true if we are over 60% of a frame ahead of our opponent. Currently limiting how
-	// often this happens because I'm worried about jittery data causing a lot of unneccesary delays
-	// auto isTimeSyncFrame = frame % SLIPPI_ONLINE_LOCKSTEP_INTERVAL; // Only time sync every 30 frames
-	// if (isTimeSyncFrame)
-	//{
-	//	auto offsetUs = slippi_netplay->CalcTimeOffsetUs();
-	//	if (offsetUs > 10000)
-	//	{
-	//		// If ahead by 60% of a frame, stall. I opted to use 60% instead of half a frame
-	//		// because I was worried about two systems continuously stalling for each other
-	//		WARN_LOG(SLIPPI_ONLINE, "Skipping frame due to time sync...");
-	//		return true;
-	//	}
-	//}
+	// often this happens because I'm worried about jittery data causing a lot of unneccesary delays.
+	// Only skip once for a given frame because our time detection method doesn't take into consideration
+	// waiting for a frame. Also it's less jarring and it happens often enough that it will smoothly
+	// get to the right place
+	auto isTimeSyncFrame = frame % SLIPPI_ONLINE_LOCKSTEP_INTERVAL; // Only time sync every 30 frames
+	if (isTimeSyncFrame == 0 && !didSkipLastTime)
+	{
+		auto offsetUs = slippi_netplay->CalcTimeOffsetUs();
+		if (offsetUs > 10000)
+		{
+			didSkipLastTime = true;
+
+			// If ahead by 60% of a frame, stall. I opted to use 60% instead of half a frame
+			// because I was worried about two systems continuously stalling for each other
+			WARN_LOG(SLIPPI_ONLINE, "Skipping frame due to time sync. Offset: %d us...", offsetUs);
+			return true;
+		}
+	}
+
+	didSkipLastTime = false;
 
 	return false;
 }
@@ -1391,9 +1403,6 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 		{
 		case CMD_RECEIVE_GAME_END:
 			writeToFile(&memPtr[bufLoc], payloadLen + 1, "close");
-
-			slippi_netplay = NULL; // TODO: This should be somewhere else
-
 			break;
 		case CMD_PREPARE_REPLAY:
 			// log.open("log.txt");
