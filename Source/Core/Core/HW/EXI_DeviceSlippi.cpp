@@ -133,19 +133,19 @@ CEXISlippi::CEXISlippi()
 		it->data = static_cast<u8 *>(Common::AllocateAlignedMemory(it->size, 64));
 	}
 
-	ssBackupLoc gameMemory;
-	gameMemory.isGame = false;
-	gameMemory.nonGamePtr = &Memory::m_pRAM;
-	gameMemory.size = Memory::RAM_SIZE;
-	gameMemory.data = static_cast<u8 *>(Common::AllocateAlignedMemory(Memory::RAM_SIZE, 64));
-	backupLocs.push_back(gameMemory);
+	//ssBackupLoc gameMemory;
+	//gameMemory.isGame = false;
+	//gameMemory.nonGamePtr = &Memory::m_pRAM;
+	//gameMemory.size = Memory::RAM_SIZE;
+	//gameMemory.data = static_cast<u8 *>(Common::AllocateAlignedMemory(Memory::RAM_SIZE, 64));
+	//backupLocs.push_back(gameMemory);
 
-	ssBackupLoc l1Cache;
-	l1Cache.isGame = false;
-	l1Cache.nonGamePtr = &Memory::m_pL1Cache;
-	l1Cache.size = Memory::L1_CACHE_SIZE;
-	l1Cache.data = static_cast<u8 *>(Common::AllocateAlignedMemory(Memory::L1_CACHE_SIZE, 64));
-	backupLocs.push_back(l1Cache);
+	//ssBackupLoc l1Cache;
+	//l1Cache.isGame = false;
+	//l1Cache.nonGamePtr = &Memory::m_pL1Cache;
+	//l1Cache.size = Memory::L1_CACHE_SIZE;
+	//l1Cache.data = static_cast<u8 *>(Common::AllocateAlignedMemory(Memory::L1_CACHE_SIZE, 64));
+	//backupLocs.push_back(l1Cache);
 
 	audioBackup.resize(40);
 	// Spawn thread for savestates

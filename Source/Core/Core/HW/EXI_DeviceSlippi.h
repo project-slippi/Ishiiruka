@@ -177,12 +177,14 @@ class CEXISlippi : public IEXIDevice
 	} ssBackupLoc;
 
 	std::vector<ssBackupLoc> backupLocs = {
-	    //{true, 0x00bd5c40, 0x5D7960, NULL}, // Heap
-	    //{0x004316c0, 0xA6309, NULL}, // BSS
-	    //{0x004d79e0, 0x7220, NULL}, // Data Section 7?
-	    //{0x004dec00, 0x10000, NULL}, // Stack
-	    //{true, 0x00005520, 0x420, NULL}, // Data Sections 0 and 1
-	    //{true, 0x003b7240, 0x1279C0, NULL}, // Data Sections 2-7 and in between sections
+	    //{true, 0x80bd5c40, 0x5D7960, NULL}, // Heap
+	    //{0x804316c0, 0xA6309, NULL}, // BSS
+	    //{0x804d79e0, 0x7220, NULL}, // Data Section 7?
+	    //{0x804dec00, 0x10000, NULL}, // Stack
+	    {true, 0x80005520, 0x420, NULL}, // Data Sections 0 and 1
+	    {true, 0x803b7240, 0x1279C0, NULL}, // Data Sections 2-7 and in between sections
+	    {true, 0x804fec00, 0xCAE9A0, NULL}, // End of stack to the end of heap, a lot of the middle is unknown
+	    //{true, 0x80005520, 0x11A8080, NULL}, // Everything we know is relevant
 	};
 
 	struct preserveLoc
