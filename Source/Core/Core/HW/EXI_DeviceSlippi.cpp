@@ -26,6 +26,7 @@
 #include "Common/MemoryUtil.h"
 #include "Common/StringUtil.h"
 #include "Common/Thread.h"
+#include "Core/HW/AudioInterface.h"
 #include "Core/HW/Memmap.h"
 #include "Core/NetPlayClient.h"
 #include "SlippiPlayback/SlippiPlayback.h"
@@ -146,6 +147,7 @@ CEXISlippi::CEXISlippi()
 	l1Cache.data = static_cast<u8 *>(Common::AllocateAlignedMemory(Memory::L1_CACHE_SIZE, 64));
 	backupLocs.push_back(l1Cache);
 
+	audioBackup.resize(40);
 	// Spawn thread for savestates
 	// maybe stick this into functions below so it doesn't always get spawned
 	// only spin off and join when a replay is loaded, delete after replay is done, etc
@@ -1223,18 +1225,18 @@ bool CEXISlippi::shouldSkipOnlineFrame(int32_t frame)
 
 	// Return true if we are over 60% of a frame ahead of our opponent. Currently limiting how
 	// often this happens because I'm worried about jittery data causing a lot of unneccesary delays
-	auto isTimeSyncFrame = frame % SLIPPI_ONLINE_LOCKSTEP_INTERVAL; // Only time sync every 30 frames
-	if (isTimeSyncFrame)
-	{
-		auto offsetUs = slippi_netplay->CalcTimeOffsetUs();
-		if (offsetUs > 10000)
-		{
-			// If ahead by 60% of a frame, stall. I opted to use 60% instead of half a frame
-			// because I was worried about two systems continuously stalling for each other
-			WARN_LOG(SLIPPI_ONLINE, "Skipping frame due to time sync...");
-			return true;
-		}
-	}
+	// auto isTimeSyncFrame = frame % SLIPPI_ONLINE_LOCKSTEP_INTERVAL; // Only time sync every 30 frames
+	// if (isTimeSyncFrame)
+	//{
+	//	auto offsetUs = slippi_netplay->CalcTimeOffsetUs();
+	//	if (offsetUs > 10000)
+	//	{
+	//		// If ahead by 60% of a frame, stall. I opted to use 60% instead of half a frame
+	//		// because I was worried about two systems continuously stalling for each other
+	//		WARN_LOG(SLIPPI_ONLINE, "Skipping frame due to time sync...");
+	//		return true;
+	//	}
+	//}
 
 	return false;
 }
@@ -1283,6 +1285,8 @@ void CEXISlippi::prepareOpponentInputs(u8 *payload)
 void CEXISlippi::handleCaptureSavestate()
 {
 	u64 startTime = Common::Timer::GetTimeUs();
+
+	// First copy memory
 	for (auto it = backupLocs.begin(); it != backupLocs.end(); ++it)
 	{
 		if (it->isGame)
@@ -1294,6 +1298,11 @@ void CEXISlippi::handleCaptureSavestate()
 			memcpy(it->data, *it->nonGamePtr, it->size);
 		}
 	}
+
+	// Second copy sound
+	u8 *ptr = &audioBackup[0];
+	PointerWrap p(&ptr, PointerWrap::MODE_WRITE);
+	AudioInterface::DoState(p);
 
 	u32 timeDiff = (u32)(Common::Timer::GetTimeUs() - startTime);
 	ERROR_LOG(SLIPPI_ONLINE, "SLIPPI ONLINE: Captured savestate in: %f ms", ((double)timeDiff) / 1000);
@@ -1338,6 +1347,11 @@ void CEXISlippi::handleLoadSavestate(u32 *preserveArr)
 		idx += 2;
 	}
 
+	// Restore audio
+	u8 *ptr = &audioBackup[0];
+	PointerWrap p(&ptr, PointerWrap::MODE_READ);
+	AudioInterface::DoState(p);
+
 	u32 timeDiff = (u32)(Common::Timer::GetTimeUs() - startTime);
 	ERROR_LOG(SLIPPI_ONLINE, "SLIPPI ONLINE: Loaded savestate in: %f ms", ((double)timeDiff) / 1000);
 }
@@ -1377,6 +1391,9 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 		{
 		case CMD_RECEIVE_GAME_END:
 			writeToFile(&memPtr[bufLoc], payloadLen + 1, "close");
+
+			slippi_netplay = NULL; // TODO: This should be somewhere else
+
 			break;
 		case CMD_PREPARE_REPLAY:
 			// log.open("log.txt");

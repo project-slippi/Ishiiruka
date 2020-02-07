@@ -828,6 +828,7 @@ void NetPlayClient::ThreadFunc()
         m_server = netEvent.peer;
       }
 
+      m_is_connected = true;
       m_client->intercept = ENetUtil::InterceptCallback;
       slippiConnectStatus = SlippiConnectStatus::NET_CONNECT_STATUS_CONNECTED;
       INFO_LOG(SLIPPI_ONLINE, "Slippi online connection successful!");

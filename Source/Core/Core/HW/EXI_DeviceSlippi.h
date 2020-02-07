@@ -14,6 +14,7 @@
 #include <string>
 #include <unordered_map>
 
+#include "Common/ChunkFile.h"
 #include "Common/CommonTypes.h"
 #include "Common/FileUtil.h"
 #include "Core/HW/EXI_Device.h"
@@ -22,6 +23,8 @@
 
 #define MELEE_HEAP_START 0x00bd5c40
 #define MELEE_HEAP_SIZE 0x5D7960
+
+class PointerWrap;
 
 // Acts
 class CEXISlippi : public IEXIDevice
@@ -199,4 +202,6 @@ class CEXISlippi : public IEXIDevice
 	};
 
 	std::unordered_map<preserveLoc, std::vector<u8>, preserve_hash_fn> preservationMap;
+
+	std::vector<u8> audioBackup;
 };
