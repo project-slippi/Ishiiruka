@@ -270,6 +270,7 @@
     <ClCompile Include="SlippiTimer.cpp" />
     <ClCompile Include="Slippi\SlippiPad.cpp" />
     <ClCompile Include="Slippi\SlippiReplayComm.cpp" />
+    <ClCompile Include="Slippi\SlippiSavestate.cpp" />
     <ClCompile Include="State.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -466,6 +467,7 @@
     <ClInclude Include="SlippiTimer.h" />
     <ClInclude Include="Slippi\SlippiPad.h" />
     <ClInclude Include="Slippi\SlippiReplayComm.h" />
+    <ClInclude Include="Slippi\SlippiSavestate.h" />
     <ClInclude Include="State.h" />
   </ItemGroup>
   <ItemGroup>

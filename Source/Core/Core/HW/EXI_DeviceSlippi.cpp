@@ -14,6 +14,7 @@
 #include <string>
 #include <tuple>
 #include <unordered_map>
+#include <utility> // std::move
 
 #ifdef _WIN32
 #include <share.h>
@@ -26,8 +27,8 @@
 #include "Common/MemoryUtil.h"
 #include "Common/StringUtil.h"
 #include "Common/Thread.h"
-#include "Core/HW/AudioInterface.h"
 #include "Core/HW/Memmap.h"
+
 #include "Core/NetPlayClient.h"
 #include "SlippiPlayback/SlippiPlayback.h"
 
@@ -128,26 +129,13 @@ CEXISlippi::CEXISlippi()
 	// Loggers will check 5 bytes, make sure we own that memory
 	m_read_queue.reserve(5);
 
-	for (auto it = backupLocs.begin(); it != backupLocs.end(); ++it)
+	// Prepare savestates for online play
+	// TODO: This should only be initialized when online play is actually going to happen
+	for (int i = 0; i < ROLLBACK_MAX_FRAMES; i++)
 	{
-		it->data = static_cast<u8 *>(Common::AllocateAlignedMemory(it->size, 64));
+		availableSavestates.push(std::make_unique<SlippiSavestate>());
 	}
 
-	//ssBackupLoc gameMemory;
-	//gameMemory.isGame = false;
-	//gameMemory.nonGamePtr = &Memory::m_pRAM;
-	//gameMemory.size = Memory::RAM_SIZE;
-	//gameMemory.data = static_cast<u8 *>(Common::AllocateAlignedMemory(Memory::RAM_SIZE, 64));
-	//backupLocs.push_back(gameMemory);
-
-	//ssBackupLoc l1Cache;
-	//l1Cache.isGame = false;
-	//l1Cache.nonGamePtr = &Memory::m_pL1Cache;
-	//l1Cache.size = Memory::L1_CACHE_SIZE;
-	//l1Cache.data = static_cast<u8 *>(Common::AllocateAlignedMemory(Memory::L1_CACHE_SIZE, 64));
-	//backupLocs.push_back(l1Cache);
-
-	audioBackup.resize(40);
 	// Spawn thread for savestates
 	// maybe stick this into functions below so it doesn't always get spawned
 	// only spin off and join when a replay is loaded, delete after replay is done, etc
@@ -162,11 +150,6 @@ CEXISlippi::~CEXISlippi()
 	// would close the emulation before the file successfully finished writing
 	writeToFile(&empty[0], 0, "close");
 	resetPlayback();
-
-	for (auto it = backupLocs.begin(); it != backupLocs.end(); ++it)
-	{
-		Common::FreeAlignedMemory(it->data);
-	}
 
 	// g_playback_status = SlippiPlaybackStatus::SlippiPlaybackStatus();
 }
@@ -1177,6 +1160,13 @@ void CEXISlippi::handleOnlineInputs(u8 *payload)
 			INFO_LOG(SLIPPI_ONLINE, "Connecting to %s", opp_ip.c_str());
 		}
 
+		// Move all active savestates to available
+		for (auto it = activeSavestates.begin(); it != activeSavestates.end(); ++it)
+		{
+			availableSavestates.push(std::move(it->second));
+		}
+		activeSavestates.clear();
+
 		slippi_netplay->StartSlippiGame();
 	}
 	else if (frame == 2)
@@ -1219,7 +1209,7 @@ bool CEXISlippi::shouldSkipOnlineFrame(int32_t frame)
 	// Return true if we are too far ahead for rollback. 5 is the number of frames we can
 	// receive for the opponent at one time and is our "look-ahead" limit
 	int32_t latestRemoteFrame = slippi_netplay->GetSlippiLatestRemoteFrame();
-	if (frame - latestRemoteFrame >= 5) // TODO: 5 is rollback amount, should be a variable
+	if (frame - latestRemoteFrame >= ROLLBACK_MAX_FRAMES) // TODO: 5 is rollback amount, should be a variable
 	{
 		WARN_LOG(SLIPPI_ONLINE, "Skipping frame due to rollback limit (frame: %d | latest: %d)...", frame,
 		         latestRemoteFrame);
@@ -1243,7 +1233,7 @@ bool CEXISlippi::shouldSkipOnlineFrame(int32_t frame)
 
 			// If ahead by 60% of a frame, stall. I opted to use 60% instead of half a frame
 			// because I was worried about two systems continuously stalling for each other
-			WARN_LOG(SLIPPI_ONLINE, "Skipping frame due to time sync. Offset: %d us...", offsetUs);
+			WARN_LOG(SLIPPI_ONLINE, "Skipping on frame %d due to time sync. Offset: %d us...", frame, offsetUs);
 			return true;
 		}
 	}
@@ -1294,78 +1284,82 @@ void CEXISlippi::prepareOpponentInputs(u8 *payload)
 	// m_read_queue[7], m_read_queue[8], m_read_queue[9], m_read_queue[10], m_read_queue[11], m_read_queue[12]);
 }
 
-void CEXISlippi::handleCaptureSavestate()
+void CEXISlippi::handleCaptureSavestate(u8 *payload)
 {
+	u32 frame = payload[0] << 24 | payload[1] << 16 | payload[2] << 8 | payload[3];
+
 	u64 startTime = Common::Timer::GetTimeUs();
 
-	// First copy memory
-	for (auto it = backupLocs.begin(); it != backupLocs.end(); ++it)
+	// Grab an available savestate
+	std::unique_ptr<SlippiSavestate> ss;
+	if (!availableSavestates.empty())
 	{
-		if (it->isGame)
-		{
-			Memory::CopyFromEmu(it->data, it->address, it->size);
-		}
-		else
-		{
-			memcpy(it->data, *it->nonGamePtr, it->size);
-		}
+		ss = std::move(availableSavestates.top());
+		availableSavestates.pop();
+	}
+	else
+	{
+		// If there were no available savestates, use the oldest one
+		auto it = activeSavestates.begin();
+		ss = std::move(it->second);
+		activeSavestates.erase(it->first);
 	}
 
-	// Second copy sound
-	u8 *ptr = &audioBackup[0];
-	PointerWrap p(&ptr, PointerWrap::MODE_WRITE);
-	AudioInterface::DoState(p);
+	// If there is already a savestate for this frame, remove it and add it to available
+	if (activeSavestates.count(frame))
+	{
+		availableSavestates.push(std::move(activeSavestates[frame]));
+		activeSavestates.erase(frame);
+	}
+
+	ss->Capture();
+	activeSavestates[frame] = std::move(ss);
 
 	u32 timeDiff = (u32)(Common::Timer::GetTimeUs() - startTime);
-	ERROR_LOG(SLIPPI_ONLINE, "SLIPPI ONLINE: Captured savestate in: %f ms", ((double)timeDiff) / 1000);
+	ERROR_LOG(SLIPPI_ONLINE, "SLIPPI ONLINE: Captured savestate for frame %d in: %f ms", frame,
+	          ((double)timeDiff) / 1000);
 }
 
-void CEXISlippi::handleLoadSavestate(u32 *preserveArr)
+void CEXISlippi::handleLoadSavestate(u8 *payload)
 {
-	// Back up
+	u32 frame = payload[0] << 24 | payload[1] << 16 | payload[2] << 8 | payload[3];
+	u32 *preserveArr = (u32 *)(&payload[4]);
+
+	if (!activeSavestates.count(frame))
+	{
+		// This savestate does not exist... uhhh? What do we do?
+		ERROR_LOG(SLIPPI_ONLINE, "SLIPPI ONLINE: Savestate for frame %d does not exist.", frame);
+		return;
+	}
+
+	u64 startTime = Common::Timer::GetTimeUs();
+
+	// Fetch preservation blocks
+	std::vector<SlippiSavestate::PreserveBlock> blocks;
+
+	// Get preservation blocks
 	int idx = 0;
 	while (Common::swap32(preserveArr[idx]) != 0)
 	{
-		preserveLoc p = {Common::swap32(preserveArr[idx]), Common::swap32(preserveArr[idx + 1])};
-		if (!preservationMap.count(p))
-		{
-			// TODO: Clear preservation map when game ends
-			preservationMap[p] = std::vector<u8>(p.length);
-		}
-
-		Memory::CopyFromEmu(&preservationMap[p][0], p.address, p.length);
+		SlippiSavestate::PreserveBlock p = {Common::swap32(preserveArr[idx]), Common::swap32(preserveArr[idx + 1])};
+		blocks.push_back(p);
 		idx += 2;
 	}
 
-	u64 startTime = Common::Timer::GetTimeUs();
-	for (auto it = backupLocs.begin(); it != backupLocs.end(); ++it)
+	// Load savestate
+	activeSavestates[frame]->Load(blocks);
+
+	// Move all active savestates to available
+	for (auto it = activeSavestates.begin(); it != activeSavestates.end(); ++it)
 	{
-		if (it->isGame)
-		{
-			Memory::CopyToEmu(it->address, it->data, it->size);
-		}
-		else
-		{
-			memcpy(*it->nonGamePtr, it->data, it->size);
-		}
+		availableSavestates.push(std::move(it->second));
 	}
 
-	// Restore
-	idx = 0;
-	while (preserveArr[idx] != 0)
-	{
-		preserveLoc p = {Common::swap32(preserveArr[idx]), Common::swap32(preserveArr[idx + 1])};
-		Memory::CopyToEmu(p.address, &preservationMap[p][0], p.length);
-		idx += 2;
-	}
-
-	// Restore audio
-	u8 *ptr = &audioBackup[0];
-	PointerWrap p(&ptr, PointerWrap::MODE_READ);
-	AudioInterface::DoState(p);
+	activeSavestates.clear();
 
 	u32 timeDiff = (u32)(Common::Timer::GetTimeUs() - startTime);
-	ERROR_LOG(SLIPPI_ONLINE, "SLIPPI ONLINE: Loaded savestate in: %f ms", ((double)timeDiff) / 1000);
+	ERROR_LOG(SLIPPI_ONLINE, "SLIPPI ONLINE: Loaded savestate for frame %d in: %f ms", frame,
+	          ((double)timeDiff) / 1000);
 }
 
 void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
@@ -1403,6 +1397,7 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 		{
 		case CMD_RECEIVE_GAME_END:
 			writeToFile(&memPtr[bufLoc], payloadLen + 1, "close");
+
 			break;
 		case CMD_PREPARE_REPLAY:
 			// log.open("log.txt");
@@ -1428,10 +1423,10 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 			m_read_queue.insert(m_read_queue.begin(), geckoList.begin(), geckoList.end());
 			break;
 		case CMD_CAPTURE_SAVESTATE:
-			handleCaptureSavestate();
+			handleCaptureSavestate(&memPtr[bufLoc + 1]);
 			break;
 		case CMD_LOAD_SAVESTATE:
-			handleLoadSavestate((u32 *)(&memPtr[bufLoc + 1]));
+			handleLoadSavestate(&memPtr[bufLoc + 1]);
 			break;
 		default:
 			writeToFile(&memPtr[bufLoc], payloadLen + 1, "");

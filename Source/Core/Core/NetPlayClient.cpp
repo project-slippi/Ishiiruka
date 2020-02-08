@@ -657,9 +657,10 @@ unsigned int NetPlayClient::OnData(sf::Packet& packet)
     // We can compare this to when we sent a pad for last frame to figure out how far/behind we
     // are with respect to the opponent
     auto timing = lastFrameTiming;
-    s64 opponentSendTimeUs = Common::Timer::GetTimeUs() - (pingUs / 2);
+    u64 curTime = Common::Timer::GetTimeUs();
+    s64 opponentSendTimeUs = curTime - (pingUs / 2);
     s64 frameDiffOffsetUs = 16683 * (timing->frame - frame);
-    s64 timeOffsetUs = timing->timeUs - opponentSendTimeUs + frameDiffOffsetUs;
+    s64 timeOffsetUs = opponentSendTimeUs - timing->timeUs + frameDiffOffsetUs;
 
     // Add this offset to circular buffer for use later
     if (frameOffsetData.buf.size() < SLIPPI_ONLINE_LOCKSTEP_INTERVAL)
@@ -667,7 +668,7 @@ unsigned int NetPlayClient::OnData(sf::Packet& packet)
     else
       frameOffsetData.buf[frameOffsetData.idx] = (s32)timeOffsetUs;
     
-    frameOffsetData.idx = (frameOffsetData.idx + 1) % frameOffsetData.buf.size();
+    frameOffsetData.idx = (frameOffsetData.idx + 1) % SLIPPI_ONLINE_LOCKSTEP_INTERVAL;
 
     {
       std::lock_guard<std::mutex> lk(crit_netplay_client); // TODO: Is this the correct lock?

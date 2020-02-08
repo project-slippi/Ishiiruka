@@ -769,6 +769,9 @@
     <ClCompile Include="Slippi\SlippiPad.cpp">
       <Filter>Slippi</Filter>
     </ClCompile>
+    <ClCompile Include="Slippi\SlippiSavestate.cpp">
+      <Filter>Slippi</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="BootManager.h" />
@@ -1317,6 +1320,9 @@
       <Filter>Slippi</Filter>
     </ClInclude>
     <ClInclude Include="Slippi\SlippiPad.h">
+      <Filter>Slippi</Filter>
+    </ClInclude>
+    <ClInclude Include="Slippi\SlippiSavestate.h">
       <Filter>Slippi</Filter>
     </ClInclude>
   </ItemGroup>
