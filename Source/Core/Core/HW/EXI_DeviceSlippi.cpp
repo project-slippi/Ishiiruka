@@ -129,13 +129,6 @@ CEXISlippi::CEXISlippi()
 	// Loggers will check 5 bytes, make sure we own that memory
 	m_read_queue.reserve(5);
 
-	// Prepare savestates for online play
-	// TODO: This should only be initialized when online play is actually going to happen
-	for (int i = 0; i < ROLLBACK_MAX_FRAMES; i++)
-	{
-		availableSavestates.push(std::make_unique<SlippiSavestate>());
-	}
-
 	// Spawn thread for savestates
 	// maybe stick this into functions below so it doesn't always get spawned
 	// only spin off and join when a replay is loaded, delete after replay is done, etc
@@ -1160,12 +1153,14 @@ void CEXISlippi::handleOnlineInputs(u8 *payload)
 			INFO_LOG(SLIPPI_ONLINE, "Connecting to %s", opp_ip.c_str());
 		}
 
-		// Move all active savestates to available
-		for (auto it = activeSavestates.begin(); it != activeSavestates.end(); ++it)
-		{
-			availableSavestates.push(std::move(it->second));
-		}
+		availableSavestates.clear();
 		activeSavestates.clear();
+
+		// Prepare savestates for online play
+		for (int i = 0; i < ROLLBACK_MAX_FRAMES; i++)
+		{
+			availableSavestates.push_back(std::make_unique<SlippiSavestate>());
+		}
 
 		slippi_netplay->StartSlippiGame();
 	}
@@ -1294,8 +1289,8 @@ void CEXISlippi::handleCaptureSavestate(u8 *payload)
 	std::unique_ptr<SlippiSavestate> ss;
 	if (!availableSavestates.empty())
 	{
-		ss = std::move(availableSavestates.top());
-		availableSavestates.pop();
+		ss = std::move(availableSavestates.back());
+		availableSavestates.pop_back();
 	}
 	else
 	{
@@ -1308,7 +1303,7 @@ void CEXISlippi::handleCaptureSavestate(u8 *payload)
 	// If there is already a savestate for this frame, remove it and add it to available
 	if (activeSavestates.count(frame))
 	{
-		availableSavestates.push(std::move(activeSavestates[frame]));
+		availableSavestates.push_back(std::move(activeSavestates[frame]));
 		activeSavestates.erase(frame);
 	}
 
@@ -1352,7 +1347,7 @@ void CEXISlippi::handleLoadSavestate(u8 *payload)
 	// Move all active savestates to available
 	for (auto it = activeSavestates.begin(); it != activeSavestates.end(); ++it)
 	{
-		availableSavestates.push(std::move(it->second));
+		availableSavestates.push_back(std::move(it->second));
 	}
 
 	activeSavestates.clear();

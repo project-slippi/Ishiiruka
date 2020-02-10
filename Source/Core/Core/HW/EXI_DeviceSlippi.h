@@ -11,7 +11,6 @@
 #include <mutex>
 #include <open-vcdiff/src/google/vcdecoder.h>
 #include <open-vcdiff/src/google/vcencoder.h>
-#include <stack>
 #include <string>
 #include <unordered_map>
 
@@ -169,5 +168,5 @@ class CEXISlippi : public IEXIDevice
 	std::unique_ptr<NetPlayClient> slippi_netplay;
 
 	std::map<u32, std::unique_ptr<SlippiSavestate>> activeSavestates;
-	std::stack<std::unique_ptr<SlippiSavestate>> availableSavestates;
+	std::deque<std::unique_ptr<SlippiSavestate>> availableSavestates;
 };

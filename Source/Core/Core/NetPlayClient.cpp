@@ -710,7 +710,7 @@ unsigned int NetPlayClient::OnData(sf::Packet& packet)
     if (ackTimers.count(frame))
     {
       pingUs = Common::Timer::GetTimeUs() - ackTimers[frame];
-      if (g_ActiveConfig.bShowNetPlayPing && frame % 60 == 0)
+      if (g_ActiveConfig.bShowNetPlayPing && frame % SLIPPI_PING_DISPLAY_INTERVAL == 0)
       {
 		    OSD::AddTypedMessage(OSD::MessageType::NetPlayPing, StringFromFormat("Ping: %u", pingUs / 1000),
 			    OSD::Duration::SHORT, OSD::Color::CYAN);
