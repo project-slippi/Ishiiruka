@@ -1,14 +1,15 @@
 #include "SlippiSavestate.h"
 #include "Common/MemoryUtil.h"
-#include "Core/HW/Memmap.h"
 #include "Core/HW/AudioInterface.h"
+#include "Core/HW/Memmap.h"
 #include <vector>
 
 SlippiSavestate::SlippiSavestate()
 {
 	for (auto it = backupLocs.begin(); it != backupLocs.end(); ++it)
 	{
-		it->data = static_cast<u8 *>(Common::AllocateAlignedMemory(it->size, 64));
+		auto size = it->endAddress - it->startAddress;
+		it->data = static_cast<u8 *>(Common::AllocateAlignedMemory(size, 16));
 	}
 
 	// ssBackupLoc gameMemory;
@@ -41,32 +42,34 @@ void SlippiSavestate::Capture()
 	// First copy memory
 	for (auto it = backupLocs.begin(); it != backupLocs.end(); ++it)
 	{
-	  Memory::CopyFromEmu(it->data, it->address, it->size);
+		auto size = it->endAddress - it->startAddress;
+		Memory::CopyFromEmu(it->data, it->startAddress, size);
 	}
 
 	// Second copy sound
-	u8 *ptr = &audioBackup[0];
-	PointerWrap p(&ptr, PointerWrap::MODE_WRITE);
-	AudioInterface::DoState(p);
+	// u8 *ptr = &audioBackup[0];
+	// PointerWrap p(&ptr, PointerWrap::MODE_WRITE);
+	// AudioInterface::DoState(p);
 }
 
 void SlippiSavestate::Load(std::vector<PreserveBlock> blocks)
 {
 	// Back up
-  for (auto it = blocks.begin(); it != blocks.end(); ++it)
-  {
-	  if (!preservationMap.count(*it))
-	  {
-		  // TODO: Clear preservation map when game ends
-		  preservationMap[*it] = std::vector<u8>(it->length);
-	  }
+	for (auto it = blocks.begin(); it != blocks.end(); ++it)
+	{
+		if (!preservationMap.count(*it))
+		{
+			// TODO: Clear preservation map when game ends
+			preservationMap[*it] = std::vector<u8>(it->length);
+		}
 
-	  Memory::CopyFromEmu(&preservationMap[*it][0], it->address, it->length);
-  }
+		Memory::CopyFromEmu(&preservationMap[*it][0], it->address, it->length);
+	}
 
 	for (auto it = backupLocs.begin(); it != backupLocs.end(); ++it)
 	{
-		Memory::CopyToEmu(it->address, it->data, it->size);
+		auto size = it->endAddress - it->startAddress;
+		Memory::CopyToEmu(it->startAddress, it->data, size);
 	}
 
 	// Restore
@@ -76,7 +79,7 @@ void SlippiSavestate::Load(std::vector<PreserveBlock> blocks)
 	}
 
 	// Restore audio
-	u8 *ptr = &audioBackup[0];
-	PointerWrap p(&ptr, PointerWrap::MODE_READ);
-	AudioInterface::DoState(p);
+	// u8 *ptr = &audioBackup[0];
+	// PointerWrap p(&ptr, PointerWrap::MODE_READ);
+	// AudioInterface::DoState(p);
 }

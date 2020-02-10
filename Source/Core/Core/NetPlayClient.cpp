@@ -41,7 +41,7 @@ NetPlayClient::~NetPlayClient()
 	if (m_is_running.IsSet())
 		StopGame();
 
-	if (m_is_connected)
+	if (m_is_connected || isSlippiConnection)
 	{
 		m_do_loop.Clear();
 		m_thread.join();
@@ -710,7 +710,11 @@ unsigned int NetPlayClient::OnData(sf::Packet& packet)
     if (ackTimers.count(frame))
     {
       pingUs = Common::Timer::GetTimeUs() - ackTimers[frame];
-
+      if (g_ActiveConfig.bShowNetPlayPing && frame % 60 == 0)
+      {
+		    OSD::AddTypedMessage(OSD::MessageType::NetPlayPing, StringFromFormat("Ping: %u", pingUs / 1000),
+			    OSD::Duration::SHORT, OSD::Color::CYAN);
+      }
       // Now we are going to clear out any potential old acks, these simply won't be used to get
       // a ping
       // TODO: These probably a better way to do this...
@@ -829,7 +833,6 @@ void NetPlayClient::ThreadFunc()
         m_server = netEvent.peer;
       }
 
-      m_is_connected = true;
       m_client->intercept = ENetUtil::InterceptCallback;
       slippiConnectStatus = SlippiConnectStatus::NET_CONNECT_STATUS_CONNECTED;
       INFO_LOG(SLIPPI_ONLINE, "Slippi online connection successful!");
@@ -1183,9 +1186,9 @@ std::unique_ptr<SlippiRemotePadOutput> NetPlayClient::GetSlippiRemotePad(int32_t
   return std::move(padOutput);
 }
 
-void NetPlayClient::GetSlippiPing()
+u64 NetPlayClient::GetSlippiPing()
 {
-
+	return pingUs;
 }
 
 int32_t NetPlayClient::GetSlippiLatestRemoteFrame()

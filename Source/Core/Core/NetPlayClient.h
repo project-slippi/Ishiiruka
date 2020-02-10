@@ -26,6 +26,7 @@
 #endif
 
 #define SLIPPI_ONLINE_LOCKSTEP_INTERVAL 30 // Number of frames to wait before attempting to time-sync
+#define SLIPPI_PING_DISPLAY_INTERVAL 60
 
 class NetPlayUI
 {
@@ -117,7 +118,7 @@ public:
   void StartSlippiGame();
   void SendSlippiPad(std::unique_ptr<SlippiPad> pad);
   std::unique_ptr<SlippiRemotePadOutput> GetSlippiRemotePad(int32_t curFrame);
-  void GetSlippiPing();
+  u64 GetSlippiPing();
   int32_t GetSlippiLatestRemoteFrame();
   s32 CalcTimeOffsetUs();
 
