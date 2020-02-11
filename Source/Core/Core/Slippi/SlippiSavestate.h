@@ -24,6 +24,10 @@ class SlippiSavestate
 	void Load(std::vector<PreserveBlock> blocks);
 
   private:
+	const u32 FIRST_ALARM_PTR_ADDR = 0x804D7358;
+	const u32 READ_ALARM_ADDR = 0x804a74f0;
+	const u32 ALARM_DATA_SIZE = 0x28;
+
 	typedef struct
 	{
 		u32 startAddress;
@@ -43,7 +47,7 @@ class SlippiSavestate
 	    //{0x804C07E0, 0x804DEC00, NULL},
 
 	    // https://docs.google.com/spreadsheets/d/1IBeM_YPFEzWAyC0SEz5hbFUi7W9pCAx7QRh9hkEZx_w/edit#gid=702784062
-	    //{0x8065CC00, 0x1000, NULL}, // Write MemLog Unknown Section while in game (plus lots of padding)
+	    //{0x8065CC00, 0x8065DC00, NULL}, // Write MemLog Unknown Section while in game (plus lots of padding)
 
 	    {0x804fec00, 0x80BD5C40, NULL}, // Full Unknown Region
 	    //{0x811AD5A0, 0x64B520, NULL}, // Unknown Region 2
@@ -61,5 +65,9 @@ class SlippiSavestate
 
 	std::vector<u8> dolphinSsBackup;
 
-  void captureDolphinState(PointerWrap &p);
+	std::vector<u8> alarmPtrs;
+
+	u32 origAlarmPtr;
+
+	void captureDolphinState(PointerWrap &p);
 };
