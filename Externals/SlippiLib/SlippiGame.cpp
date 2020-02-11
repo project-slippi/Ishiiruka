@@ -112,20 +112,18 @@ namespace Slippi {
 
     game->settings.stage = gameInfoHeader[3] & 0xFFFF;
 
-    // Indicate settings loaded immediately if after version 1.6.0
-    // Sheik game info was added in this version and so we no longer
-    // need to wait
     auto majorVersion = game->version[0];
     auto minorVersion = game->version[1];
-    if (majorVersion > 1 || (majorVersion == 1 && minorVersion >= 6)) {
-      game->areSettingsLoaded = true;
-    }
-
-    // After version 3.1.0 we added a dynamic gecko loading process. These
-    // are needed before starting the game. areSettingsLoaded will be set
-    // to true when they are received
     if (majorVersion > 3 || (majorVersion == 3 && minorVersion >= 1)) {
+      // After version 3.1.0 we added a dynamic gecko loading process. These
+      // are needed before starting the game. areSettingsLoaded will be set
+      // to true when they are received
       game->areSettingsLoaded = false;
+    } else if (majorVersion > 1 || (majorVersion == 1 && minorVersion >= 6)) {
+      // Indicate settings loaded immediately if after version 1.6.0
+      // Sheik game info was added in this version and so we no longer
+      // need to wait
+      game->areSettingsLoaded = true;
     }
   }
 
