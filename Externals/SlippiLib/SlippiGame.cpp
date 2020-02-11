@@ -399,6 +399,8 @@ namespace Slippi {
     std::vector<char> newData(sizeToRead);
     file->read(&newData[0], sizeToRead);
 
+    std::vector<uint8_t> splitMessageBuf;
+
     int newDataPos = 0;
     while (newDataPos < sizeToRead) {
       auto command = newData[newDataPos];
@@ -417,6 +419,26 @@ namespace Slippi {
       }
 
       data = (uint8_t*)&newData[newDataPos + 1];
+
+      uint8_t isSplitComplete = false;
+      uint32_t outerPayloadSize = payloadSize;
+
+      // Handle a split message, combining in until we possess the entire message
+      if (command == EVENT_SPLIT_MESSAGE) {
+        int _ = 0;
+        uint16_t blockSize = readHalf(&data[SPLIT_MESSAGE_INTERNAL_DATA_LEN], _, payloadSize, 0);
+        splitMessageBuf.insert(splitMessageBuf.end(), data, data + blockSize);
+
+        isSplitComplete = data[SPLIT_MESSAGE_INTERNAL_DATA_LEN + 3];
+        if (isSplitComplete)
+        {
+          // Transform this message into a different message
+          command = data[SPLIT_MESSAGE_INTERNAL_DATA_LEN + 2];
+          data = &splitMessageBuf[0];
+          payloadSize = asmEvents[command];
+        }
+      }
+
       switch (command) {
       case EVENT_GAME_INIT:
         handleGameInit(game, payloadSize);
@@ -447,6 +469,8 @@ namespace Slippi {
         file->seekg(-remainingLen, std::ios::cur);
         return;
       }
+
+      payloadSize = isSplitComplete ? outerPayloadSize : payloadSize;
       newDataPos += payloadSize + 1;
     }
   }

@@ -7,7 +7,7 @@ public:
 	SlippiPlaybackStatus();
 	virtual ~SlippiPlaybackStatus();
 
-  	bool shouldJumpBack = false;
+	bool shouldJumpBack = false;
 	bool shouldJumpForward = false;
 	bool inSlippiPlayback = false;
 	volatile bool shouldRunThreads = false;
