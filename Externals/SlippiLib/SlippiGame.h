@@ -8,6 +8,7 @@
 #include <fstream>
 
 namespace Slippi {
+  const uint8_t EVENT_SPLIT_MESSAGE = 0x10;
   const uint8_t EVENT_PAYLOAD_SIZES = 0x35;
   const uint8_t EVENT_GAME_INIT = 0x36;
   const uint8_t EVENT_PRE_FRAME_UPDATE = 0x37;
@@ -22,6 +23,8 @@ namespace Slippi {
   const int32_t GAME_FIRST_FRAME = -123;
   const uint8_t GAME_SHEIK_INTERNAL_ID = 0x7;
   const uint8_t GAME_SHEIK_EXTERNAL_ID = 0x13;
+
+  const uint32_t SPLIT_MESSAGE_INTERNAL_DATA_LEN = 512;
 	
   static uint8_t* data;
 

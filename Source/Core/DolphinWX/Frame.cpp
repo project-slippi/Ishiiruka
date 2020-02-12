@@ -1602,7 +1602,7 @@ void CFrame::ParseHotkeys()
 		State::UndoSaveState();
 
 	// Slippi replay hotkeys and setup
-	if (g_playback_status->inSlippiPlayback)
+	if (g_playback_status && g_playback_status->inSlippiPlayback)
 	{		
 		if (IsHotkey(HK_JUMP_BACK))
 			g_playback_status->shouldJumpBack = true;
