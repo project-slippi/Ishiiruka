@@ -86,8 +86,8 @@ class CEXISlippi : public IEXIDevice
 
 	    // The following are used for Slippi online and also have fixed sizes
 	    {CMD_ONLINE_INPUTS, 17},
-	    {CMD_CAPTURE_SAVESTATE, 24},
-	    {CMD_LOAD_SAVESTATE, 24},
+	    {CMD_CAPTURE_SAVESTATE, 32},
+	    {CMD_LOAD_SAVESTATE, 32},
 	};
 
 	// Communication with Launcher

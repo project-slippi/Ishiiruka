@@ -2,6 +2,8 @@
 // Licensed under GPLv2+
 // Refer to the license.txt file included.
 
+#include <unordered_map>
+
 #include "Common/Atomic.h"
 #include "Common/BitSet.h"
 #include "Common/CommonTypes.h"
@@ -449,6 +451,30 @@ u32 HostRead_Instruction(const u32 address)
 
 static __forceinline void Memcheck(u32 address, u32 var, bool write, int size)
 {
+	//if (!write || size != 4)
+	//{
+	//	return;
+ // }
+
+ // static u32 heapStart = 0x80bd5c40;
+ // static u32 heapEnd = 0x811AD5A0;
+
+ // static std::unordered_map<u32, bool> visited;
+
+ // // If we are writting to somewhere in heap, return
+ // if (address >= heapStart && address < heapEnd)
+	//  return;
+
+ // // If we are not writting a pointer the somewhere in heap, return
+ // if (var < heapStart || var >= heapEnd)
+	//  return;
+
+ // if (visited.count(address))
+	//	return;
+
+ // visited[address] = true;
+ // ERROR_LOG(SLIPPI_ONLINE, "%x (%s) %x -> %x", PC, PowerPC::debug_interface.GetDescription(PC).c_str(), address, var);
+
 #ifdef ENABLE_MEM_CHECK
 	TMemCheck *mc = PowerPC::memchecks.GetMemCheck(address);
 	if (mc)

@@ -77,8 +77,8 @@ void SlippiSavestate::captureDolphinState(PointerWrap &p)
 	// p.DoMarker("DVDInterface");
 	// GPFifo::DoState(p);
 	// p.DoMarker("GPFifo");
-	ExpansionInterface::DoState(p);
-	p.DoMarker("ExpansionInterface");
+	//ExpansionInterface::DoState(p);
+	//p.DoMarker("ExpansionInterface");
 	AudioInterface::DoState(p);
 	p.DoMarker("AudioInterface");
 }
@@ -94,6 +94,12 @@ void SlippiSavestate::Capture()
 		Memory::CopyFromEmu(it->data, it->startAddress, size);
 	}
 
+  // Copy ptr to heap locations
+  for (auto it = backupPtrLocs.begin(); it != backupPtrLocs.end(); ++it)
+  {
+	  it->value = Memory::Read_U32(it->address);
+  }
+
 	// Second copy dolphin states
 	u8 *ptr = &dolphinSsBackup[0];
 	PointerWrap p(&ptr, PointerWrap::MODE_WRITE);
@@ -103,32 +109,47 @@ void SlippiSavestate::Capture()
 void SlippiSavestate::Load(std::vector<PreserveBlock> blocks)
 {
 	// Back up alarm stuff
-	Memory::CopyFromEmu(&alarmPtrs[0], FIRST_ALARM_PTR_ADDR, 8);
+	//Memory::CopyFromEmu(&alarmPtrs[0], FIRST_ALARM_PTR_ADDR, 8);
 
-	std::unordered_map<u32, std::vector<u8>> alarmData;
+	//std::unordered_map<u32, std::vector<u8>> alarmData;
 
 	u32 alarmPtr = Memory::Read_U32(FIRST_ALARM_PTR_ADDR);
 	if (alarmPtr != origAlarmPtr)
 	{
-		ERROR_LOG(SLIPPI_ONLINE, "Trying to deal with alarm boundary: %8x -> %8x", origAlarmPtr, alarmPtr);
+		ERROR_LOG(SLIPPI_ONLINE, "Trying to deal with alarm boundary: %x -> %x", origAlarmPtr, alarmPtr);
 	}
 
-	while (alarmPtr != 0)
-	{
-		std::vector<u8> iAlarmData;
-		iAlarmData.resize(ALARM_DATA_SIZE);
-		Memory::CopyFromEmu(&iAlarmData[0], alarmPtr, ALARM_DATA_SIZE);
-		alarmData[alarmPtr] = iAlarmData;
+	//while (alarmPtr != 0)
+	//{
+	//	std::vector<u8> iAlarmData;
+	//	iAlarmData.resize(ALARM_DATA_SIZE);
+	//	Memory::CopyFromEmu(&iAlarmData[0], alarmPtr, ALARM_DATA_SIZE);
+	//	alarmData[alarmPtr] = iAlarmData;
 
-		alarmPtr = Memory::Read_U32(alarmPtr + 0x14);
-	}
+	//	alarmPtr = Memory::Read_U32(alarmPtr + 0x14);
+	//}
 
 	// static PreserveBlock stackBlock = {0x804DEC00, 0x10000};
 	// blocks.push_back(stackBlock);
 
 	// Always back up this alarm anyway... shouldn't be necessary
-	static PreserveBlock readAlarmBlock = {READ_ALARM_ADDR, ALARM_DATA_SIZE};
-	blocks.push_back(readAlarmBlock);
+	//static PreserveBlock readAlarmBlock = {READ_ALARM_ADDR, ALARM_DATA_SIZE};
+	//blocks.push_back(readAlarmBlock);
+
+ // static PreserveBlock interruptAlarmBlock = {0x804d7358, 0x34};
+	//blocks.push_back(interruptAlarmBlock);
+
+ // static std::vector<PreserveBlock> interruptStuff = {
+	//    {0x804BF9D2, 4},
+	//    {0x804C3DE4, 20},
+	//    {0x804C4560, 44},
+	//    {0x804D7760, 36},
+	//};
+
+ // for (auto it = interruptStuff.begin(); it != interruptStuff.end(); ++it)
+ // {
+	//  blocks.push_back(*it);
+ // }
 
 	// Back up
 	for (auto it = blocks.begin(); it != blocks.end(); ++it)
@@ -142,10 +163,17 @@ void SlippiSavestate::Load(std::vector<PreserveBlock> blocks)
 		Memory::CopyFromEmu(&preservationMap[*it][0], it->address, it->length);
 	}
 
+  // Restore memory blocks
 	for (auto it = backupLocs.begin(); it != backupLocs.end(); ++it)
 	{
 		auto size = it->endAddress - it->startAddress;
 		Memory::CopyToEmu(it->startAddress, it->data, size);
+	}
+
+  // Restore ptr to heap locations
+	for (auto it = backupPtrLocs.begin(); it != backupPtrLocs.end(); ++it)
+	{
+		Memory::Write_U32(it->value, it->address);
 	}
 
 	// Restore audio
@@ -159,11 +187,16 @@ void SlippiSavestate::Load(std::vector<PreserveBlock> blocks)
 		Memory::CopyToEmu(it->address, &preservationMap[*it][0], it->length);
 	}
 
-	// Restore alarm stuff
-	Memory::CopyToEmu(FIRST_ALARM_PTR_ADDR, &alarmPtrs[0], 8);
+  // Try to turn off any alarms
+	//Memory::Write_U32(0, FIRST_ALARM_PTR_ADDR);
+	//Memory::Write_U32(0, FIRST_ALARM_PTR_ADDR + 4);
+	//Memory::Write_U32(0, READ_ALARM_ADDR);
 
-	for (auto it = alarmData.begin(); it != alarmData.end(); ++it)
-	{
-		Memory::CopyToEmu(it->first, &it->second[0], ALARM_DATA_SIZE);
-	}
+	// Restore alarm stuff
+	//Memory::CopyToEmu(FIRST_ALARM_PTR_ADDR, &alarmPtrs[0], 8);
+
+	//for (auto it = alarmData.begin(); it != alarmData.end(); ++it)
+	//{
+	//	Memory::CopyToEmu(it->first, &it->second[0], ALARM_DATA_SIZE);
+	//}
 }
