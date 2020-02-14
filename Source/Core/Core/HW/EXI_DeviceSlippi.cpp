@@ -938,6 +938,8 @@ void CEXISlippi::prepareGeckoList()
 	}
 
 	std::vector<u8> source = settings->geckoCodes;
+	INFO_LOG(SLIPPI, "Booting codes with source size: %d", source.size());
+
 	int idx = 0;
 	while (idx < source.size())
 	{
@@ -971,6 +973,9 @@ void CEXISlippi::prepareGeckoList()
 		// If this address is blacklisted, we don't add it to what we will send to game
 		if (blacklist.count(address))
 			continue;
+
+    INFO_LOG(SLIPPI, "Codetype [%x] Inserting section: %d - %d (%x, %d)", codeType, idx - codeOffset, idx, address,
+		          codeOffset);
 
 		// If not blacklisted, add code to return vector
 		geckoList.insert(geckoList.end(), source.begin() + (idx - codeOffset), source.begin() + idx);

@@ -129,6 +129,8 @@ namespace Slippi {
     std::vector<uint8_t> rawData;
     std::string path;
     std::ofstream log;
+    std::vector<uint8_t> splitMessageBuf;
+    bool shouldResetSplitMessageBuf = false;
 
     bool isProcessingComplete = false;
     void processData();
