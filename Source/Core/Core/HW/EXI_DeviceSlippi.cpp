@@ -1211,7 +1211,7 @@ bool CEXISlippi::shouldSkipOnlineFrame(int32_t frame)
 	int32_t latestRemoteFrame = slippi_netplay->GetSlippiLatestRemoteFrame();
 	if (frame - latestRemoteFrame >= ROLLBACK_MAX_FRAMES) // TODO: 5 is rollback amount, should be a variable
 	{
-		WARN_LOG(SLIPPI_ONLINE, "Skipping frame due to rollback limit (frame: %d | latest: %d)...", frame,
+		WARN_LOG(SLIPPI_ONLINE, "Halting for one frame due to rollback limit (frame: %d | latest: %d)...", frame,
 		         latestRemoteFrame);
 		return true;
 	}
@@ -1233,7 +1233,7 @@ bool CEXISlippi::shouldSkipOnlineFrame(int32_t frame)
 
 			// If ahead by 60% of a frame, stall. I opted to use 60% instead of half a frame
 			// because I was worried about two systems continuously stalling for each other
-			WARN_LOG(SLIPPI_ONLINE, "Skipping on frame %d due to time sync. Offset: %d us...", frame, offsetUs);
+			WARN_LOG(SLIPPI_ONLINE, "Halting on frame %d due to time sync. Offset: %d us...", frame, offsetUs);
 			return true;
 		}
 	}
@@ -1316,7 +1316,7 @@ void CEXISlippi::handleCaptureSavestate(u8 *payload)
 	activeSavestates[frame] = std::move(ss);
 
 	u32 timeDiff = (u32)(Common::Timer::GetTimeUs() - startTime);
-	WARN_LOG(SLIPPI_ONLINE, "SLIPPI ONLINE: Captured savestate for frame %d in: %f ms", frame,
+	INFO_LOG(SLIPPI_ONLINE, "SLIPPI ONLINE: Captured savestate for frame %d in: %f ms", frame,
 	          ((double)timeDiff) / 1000);
 }
 
@@ -1358,7 +1358,7 @@ void CEXISlippi::handleLoadSavestate(u8 *payload)
 	activeSavestates.clear();
 
 	u32 timeDiff = (u32)(Common::Timer::GetTimeUs() - startTime);
-	WARN_LOG(SLIPPI_ONLINE, "SLIPPI ONLINE: Loaded savestate for frame %d in: %f ms", frame,
+	INFO_LOG(SLIPPI_ONLINE, "SLIPPI ONLINE: Loaded savestate for frame %d in: %f ms", frame,
 	          ((double)timeDiff) / 1000);
 }
 

@@ -77,8 +77,8 @@ void SlippiSavestate::captureDolphinState(PointerWrap &p)
 	// p.DoMarker("DVDInterface");
 	// GPFifo::DoState(p);
 	// p.DoMarker("GPFifo");
-	//ExpansionInterface::DoState(p);
-	//p.DoMarker("ExpansionInterface");
+	ExpansionInterface::DoState(p);
+	p.DoMarker("ExpansionInterface");
 	AudioInterface::DoState(p);
 	p.DoMarker("AudioInterface");
 }
