@@ -129,7 +129,7 @@ namespace Slippi {
 
   void handleGeckoList(Game* game, uint32_t maxSize) {
     game->settings.geckoCodes.clear();
-    std::copy(data, data + maxSize, std::back_inserter(game->settings.geckoCodes));
+    game->settings.geckoCodes.insert(game->settings.geckoCodes.end(), data, data + maxSize);
 
     // File is good to load
     game->areSettingsLoaded = true;
@@ -397,8 +397,6 @@ namespace Slippi {
     std::vector<char> newData(sizeToRead);
     file->read(&newData[0], sizeToRead);
 
-    std::vector<uint8_t> splitMessageBuf;
-
     int newDataPos = 0;
     while (newDataPos < sizeToRead) {
       auto command = newData[newDataPos];
@@ -423,6 +421,12 @@ namespace Slippi {
 
       // Handle a split message, combining in until we possess the entire message
       if (command == EVENT_SPLIT_MESSAGE) {
+        if (shouldResetSplitMessageBuf)
+        {
+          splitMessageBuf.clear();
+          shouldResetSplitMessageBuf = false;
+        }
+
         int _ = 0;
         uint16_t blockSize = readHalf(&data[SPLIT_MESSAGE_INTERNAL_DATA_LEN], _, payloadSize, 0);
         splitMessageBuf.insert(splitMessageBuf.end(), data, data + blockSize);
@@ -434,6 +438,7 @@ namespace Slippi {
           command = data[SPLIT_MESSAGE_INTERNAL_DATA_LEN + 2];
           data = &splitMessageBuf[0];
           payloadSize = asmEvents[command];
+          shouldResetSplitMessageBuf = true;
         }
       }
 
