@@ -1227,6 +1227,8 @@ bool CEXISlippi::shouldSkipOnlineFrame(int32_t frame)
 	if (isTimeSyncFrame == 0 && !didSkipLastTime)
 	{
 		auto offsetUs = slippi_netplay->CalcTimeOffsetUs();
+		INFO_LOG(SLIPPI_ONLINE, "[Frame %d] Offset is: %d us", frame, offsetUs);
+
 		if (offsetUs > 10000)
 		{
 			didSkipLastTime = true;
