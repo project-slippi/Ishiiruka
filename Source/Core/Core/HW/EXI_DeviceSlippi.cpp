@@ -22,6 +22,7 @@
 #include "Common/CommonFuncs.h"
 #include "Common/CommonTypes.h"
 #include "Common/FileUtil.h"
+#include "Common/CommonPaths.h"
 #include "Common/Logging/Log.h"
 #include "Common/StringUtil.h"
 #include "Common/Thread.h"
@@ -350,8 +351,9 @@ void CEXISlippi::createNewFile()
 		closeFile();
 	}
 
-	File::CreateDir("Slippi");
-	std::string filepath = generateFileName();
+	std::string dirpath = File::GetExeDirectory();
+	File::CreateDir(dirpath + DIR_SEP + "Slippi");
+	std::string filepath = dirpath + DIR_SEP + generateFileName();
 
 	INFO_LOG(SLIPPI, "EXI_DeviceSlippi.cpp: Creating new replay file %s", filepath.c_str());
 
