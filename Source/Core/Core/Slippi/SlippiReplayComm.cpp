@@ -1,6 +1,6 @@
 #include "SlippiReplayComm.h"
 #include "Common/FileUtil.h"
-
+#include "Common/CommonPaths.h"
 #include "Common/Logging/LogManager.h"
 #include "Core/ConfigManager.h"
 
@@ -116,8 +116,9 @@ Slippi::SlippiGame *SlippiReplayComm::loadGame()
 
 		if (commFileSettings.outputOverlayFiles)
 		{
-			File::WriteStringToFile(ws.gameStation, "Slippi/out-station.txt");
-			File::WriteStringToFile(ws.gameStartAt, "Slippi/out-time.txt");
+			std::string dirpath = File::GetExeDirectory();
+			File::WriteStringToFile(ws.gameStation, dirpath + DIR_SEP + "Slippi/out-station.txt");
+			File::WriteStringToFile(ws.gameStartAt, dirpath + DIR_SEP + "Slippi/out-time.txt");
 		}
 
 		current = ws;
