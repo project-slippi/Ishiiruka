@@ -21,9 +21,9 @@
 #endif
 
 #include "Common/CommonFuncs.h"
+#include "Common/CommonPaths.h"
 #include "Common/CommonTypes.h"
 #include "Common/FileUtil.h"
-#include "Common/CommonPaths.h"
 #include "Common/Logging/Log.h"
 #include "Common/MemoryUtil.h"
 #include "Common/StringUtil.h"
@@ -124,6 +124,7 @@ CEXISlippi::CEXISlippi()
 	INFO_LOG(SLIPPI, "EXI SLIPPI Constructor called.");
 
 	g_playback_status = std::make_unique<SlippiPlaybackStatus>();
+	matchmaking = std::make_unique<SlippiMatchmaking>();
 
 	replayComm = new SlippiReplayComm();
 
@@ -802,8 +803,8 @@ void CEXISlippi::prepareGeckoList()
 		if (blacklist.count(address))
 			continue;
 
-    INFO_LOG(SLIPPI, "Codetype [%x] Inserting section: %d - %d (%x, %d)", codeType, idx - codeOffset, idx, address,
-		          codeOffset);
+		INFO_LOG(SLIPPI, "Codetype [%x] Inserting section: %d - %d (%x, %d)", codeType, idx - codeOffset, idx, address,
+		         codeOffset);
 
 		// If not blacklisted, add code to return vector
 		geckoList.insert(geckoList.end(), source.begin() + (idx - codeOffset), source.begin() + idx);
@@ -1163,6 +1164,8 @@ void CEXISlippi::handleOnlineInputs(u8 *payload)
 		availableSavestates.clear();
 		activeSavestates.clear();
 
+		matchmaking->FindMatch();
+
 		// Prepare savestates for online play
 		for (int i = 0; i < ROLLBACK_MAX_FRAMES; i++)
 		{
@@ -1321,7 +1324,7 @@ void CEXISlippi::handleCaptureSavestate(u8 *payload)
 
 	u32 timeDiff = (u32)(Common::Timer::GetTimeUs() - startTime);
 	INFO_LOG(SLIPPI_ONLINE, "SLIPPI ONLINE: Captured savestate for frame %d in: %f ms", frame,
-	          ((double)timeDiff) / 1000);
+	         ((double)timeDiff) / 1000);
 }
 
 void CEXISlippi::handleLoadSavestate(u8 *payload)
@@ -1362,8 +1365,7 @@ void CEXISlippi::handleLoadSavestate(u8 *payload)
 	activeSavestates.clear();
 
 	u32 timeDiff = (u32)(Common::Timer::GetTimeUs() - startTime);
-	INFO_LOG(SLIPPI_ONLINE, "SLIPPI ONLINE: Loaded savestate for frame %d in: %f ms", frame,
-	          ((double)timeDiff) / 1000);
+	INFO_LOG(SLIPPI_ONLINE, "SLIPPI ONLINE: Loaded savestate for frame %d in: %f ms", frame, ((double)timeDiff) / 1000);
 }
 
 void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)

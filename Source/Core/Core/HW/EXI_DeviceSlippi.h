@@ -20,6 +20,7 @@
 #include "Core/NetPlayClient.h"
 #include "Core/Slippi/SlippiReplayComm.h"
 #include "Core/Slippi/SlippiSavestate.h"
+#include "Core/Slippi/SlippiMatchmaking.h"
 
 #define MELEE_HEAP_START 0x00bd5c40
 #define MELEE_HEAP_SIZE 0x5D7960
@@ -166,6 +167,7 @@ class CEXISlippi : public IEXIDevice
 
   private:
 	std::unique_ptr<NetPlayClient> slippi_netplay;
+	std::unique_ptr<SlippiMatchmaking> matchmaking;
 
 	std::map<u32, std::unique_ptr<SlippiSavestate>> activeSavestates;
 	std::deque<std::unique_ptr<SlippiSavestate>> availableSavestates;
