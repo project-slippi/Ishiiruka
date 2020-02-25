@@ -15,18 +15,13 @@
 #include "Common/CommonTypes.h"
 #include "Common/Event.h"
 #include "Common/FifoQueue.h"
-#include "Common/Timer.h"
 #include "Common/TraversalClient.h"
 #include "Core/NetPlayProto.h"
-#include "Core/Slippi/SlippiPad.h"
 #include "InputCommon/GCPadStatus.h"
 
 #ifdef _WIN32
 #include <Qos2.h>
 #endif
-
-#define SLIPPI_ONLINE_LOCKSTEP_INTERVAL 30 // Number of frames to wait before attempting to time-sync
-#define SLIPPI_PING_DISPLAY_INTERVAL 60
 
 class NetPlayUI
 {
@@ -73,11 +68,6 @@ public:
 	u32 buffer = 0;
 };
 
-struct SlippiRemotePadOutput
-{
-  int32_t latestFrame;
-  std::vector<u8> data;
-};
 
 class NetPlayClient : public TraversalClientClient
 {
@@ -88,7 +78,6 @@ public:
 	NetPlayClient(const std::string& address, const u16 port, NetPlayUI* dialog,
 		const std::string& name, bool traversal, const std::string& centralServer,
 		u16 centralPort);
-  NetPlayClient(const std::string& address, const u16 port, bool isHost);
 	~NetPlayClient();
 
 	void GetPlayerList(std::string& list, std::vector<int>& pid_list);
@@ -102,25 +91,7 @@ public:
 	bool ChangeGame(const std::string& game);
 	void SendChatMessage(const std::string& msg);
 
-  void ReportFrameTimeToServer(float frame_time);
-
-  // Slippi Online
-  enum class SlippiConnectStatus
-  {
-    NET_CONNECT_STATUS_UNSET,
-    NET_CONNECT_STATUS_INITIATED,
-    NET_CONNECT_STATUS_CONNECTED,
-    NET_CONNECT_STATUS_FAILED
-  };
-
-  bool IsSlippiConnection();
-  SlippiConnectStatus GetSlippiConnectStatus();
-  void StartSlippiGame();
-  void SendSlippiPad(std::unique_ptr<SlippiPad> pad);
-  std::unique_ptr<SlippiRemotePadOutput> GetSlippiRemotePad(int32_t curFrame);
-  u64 GetSlippiPing();
-  int32_t GetSlippiLatestRemoteFrame();
-  s32 CalcTimeOffsetUs();
+    void ReportFrameTimeToServer(float frame_time);
 
 	// Send and receive pads values
 	bool WiimoteUpdate(int _number, u8* data, const u8 size, u8 reporting_mode);
@@ -209,30 +180,6 @@ protected:
 
 	PadMappingArray m_pad_map;
 	PadMappingArray m_wiimote_map;
-
-  // Slippi Stuff
-  struct FrameTiming
-  {
-    int32_t frame;
-    u64 timeUs;
-  };
-
-  struct
-  {
-    // TODO: Should the buffer size be dynamic based on time sync interval or not?
-    int idx;
-    std::vector<s32> buf;
-  } frameOffsetData;
-
-  bool isSlippiConnection = false;
-  bool isHost = false;
-  int32_t lastFrameAcked;
-  std::shared_ptr<FrameTiming> lastFrameTiming;
-  u64 pingUs;
-  std::deque<std::unique_ptr<SlippiPad>> localPadQueue; // most recent inputs at start of deque
-  std::deque<std::unique_ptr<SlippiPad>> remotePadQueue; // most recent inputs at start of deque
-  std::map<int32_t, u64> ackTimers;
-  SlippiConnectStatus slippiConnectStatus = SlippiConnectStatus::NET_CONNECT_STATUS_UNSET;
 
 	bool m_is_recording = false;
 private:

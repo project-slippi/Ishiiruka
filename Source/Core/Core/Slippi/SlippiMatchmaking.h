@@ -2,43 +2,50 @@
 
 #include "Common/CommonTypes.h"
 #include "Common/Thread.h"
+#include "Core/Slippi/SlippiNetplay.h"
 
-#include <vector>
 #include <curl/curl.h>
+#include <vector>
 
 class SlippiMatchmaking
 {
-public:
+  public:
 	SlippiMatchmaking();
 	~SlippiMatchmaking();
 
-  void FindMatch();
-	void MatchmakeThread();
-
-  enum ProcessState
+	enum ProcessState
 	{
-	  UNCONNECTED,
-    MATCHMAKING,
-    OPPONENT_FOUND,
-    OPPONENT_CONNECTING,
-    GAME_READY,
-    ERROR_ENCOUNTERED,
-  };
+		UNCONNECTED,
+		MATCHMAKING,
+		OPPONENT_CONNECTING,
+		CONNECTION_SUCCESS,
+		ERROR_ENCOUNTERED,
+	};
 
-protected:
-  const std::string URL_START = "http://35.197.121.196:43113/tickets";
+	void FindMatch();
+	void MatchmakeThread();
+	ProcessState GetMatchmakeState();
+	std::unique_ptr<SlippiNetplayClient> GetNetplayClient();
 
-  CURL *m_curl = nullptr;
-  std::thread m_matchmakeThread;
+  protected:
+	const std::string URL_START = "http://35.197.121.196:43113/tickets";
 
-  ProcessState m_state;
+	CURL *m_curl = nullptr;
+	std::thread m_matchmakeThread;
 
-  std::string m_ticketId;
-  
-  std::vector<char> findReceiveBuf;
-  std::vector<char> getReceiveBuf;
+	ProcessState m_state;
 
-  void startMatchmaking();
-  void handleMatchmaking();
+	std::string m_ticketId;
+	std::string m_oppIp;
+	bool m_isHost;
+
+	std::unique_ptr<SlippiNetplayClient> m_netplayClient;
+
+	std::vector<char> findReceiveBuf;
+	std::vector<char> getReceiveBuf;
+	std::vector<char> deleteReceiveBuf;
+
+	void startMatchmaking();
+	void handleMatchmaking();
+	void handleConnecting();
 };
-

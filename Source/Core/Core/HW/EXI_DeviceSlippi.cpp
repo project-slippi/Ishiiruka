@@ -1147,24 +1147,44 @@ void CEXISlippi::handleOnlineInputs(u8 *payload)
 	//}
 	// tempTestCount = 0;
 
+  static bool oneShot = false;
+
 	if (frame == 1)
 	{
-		if (!slippi_netplay)
+		// if (!slippi_netplay)
+		//{
+		//	std::string opp_ip;
+		//	File::ReadFileToString("opp_ip.txt", opp_ip);
+
+		//	// TODO: Fizzi's desktop will always be host
+		//	bool isHost = !(opp_ip.compare("192.168.1.16") == 0 || opp_ip.compare("136.24.10.119") == 0);
+		//	slippi_netplay = std::make_unique<SlippiNetplayClient>(opp_ip, 51000, isHost);
+
+		//	INFO_LOG(SLIPPI_ONLINE, "Connecting to %s", opp_ip.c_str());
+		//}
+
+		// Start matchmaking
+		if (!oneShot)
 		{
-			std::string opp_ip;
-			File::ReadFileToString("opp_ip.txt", opp_ip);
-
-			// TODO: Fizzi's desktop will always be host
-			bool isHost = !(opp_ip.compare("192.168.1.16") == 0 || opp_ip.compare("136.24.10.119") == 0);
-			slippi_netplay = std::make_unique<NetPlayClient>(opp_ip, 51000, isHost);
-
-			INFO_LOG(SLIPPI_ONLINE, "Connecting to %s", opp_ip.c_str());
+			matchmaking->FindMatch();
+			oneShot = true;
 		}
+
+		auto matchmakeState = matchmaking->GetMatchmakeState();
+		bool isMatchmakeSuccess = matchmakeState == SlippiMatchmaking::ProcessState::CONNECTION_SUCCESS;
+		bool isMatchmakeFailure = matchmakeState == SlippiMatchmaking::ProcessState::ERROR_ENCOUNTERED;
+		if (!isMatchmakeSuccess && !isMatchmakeFailure)
+		{
+			// Send inputs that have not yet been acked
+			m_read_queue.push_back(2);
+			return;
+		}
+
+		slippi_netplay = isMatchmakeSuccess ? matchmaking->GetNetplayClient()
+		                                    : std::make_unique<SlippiNetplayClient>("0.0.0.0", 51000, true);
 
 		availableSavestates.clear();
 		activeSavestates.clear();
-
-		matchmaking->FindMatch();
 
 		// Prepare savestates for online play
 		for (int i = 0; i < ROLLBACK_MAX_FRAMES; i++)
@@ -1179,7 +1199,7 @@ void CEXISlippi::handleOnlineInputs(u8 *payload)
 		// TODO: Should this all happen on frame 1? Prob not a big deal since connecting
 		// TODO: here is only temporary
 		auto status = slippi_netplay->GetSlippiConnectStatus();
-		if (status == NetPlayClient::SlippiConnectStatus::NET_CONNECT_STATUS_INITIATED)
+		if (status == SlippiNetplayClient::SlippiConnectStatus::NET_CONNECT_STATUS_INITIATED)
 		{
 			// Send inputs that have not yet been acked
 			slippi_netplay->SendSlippiPad(nullptr);
@@ -1205,7 +1225,7 @@ void CEXISlippi::handleOnlineInputs(u8 *payload)
 bool CEXISlippi::shouldSkipOnlineFrame(int32_t frame)
 {
 	auto status = slippi_netplay->GetSlippiConnectStatus();
-	if (status == NetPlayClient::SlippiConnectStatus::NET_CONNECT_STATUS_FAILED)
+	if (status == SlippiNetplayClient::SlippiConnectStatus::NET_CONNECT_STATUS_FAILED)
 	{
 		// If connection failed just continue the game
 		return false;

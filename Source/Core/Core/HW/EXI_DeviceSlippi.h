@@ -17,7 +17,7 @@
 #include "Common/CommonTypes.h"
 #include "Common/FileUtil.h"
 #include "Core/HW/EXI_Device.h"
-#include "Core/NetPlayClient.h"
+#include "Core/Slippi/SlippiNetplay.h"
 #include "Core/Slippi/SlippiReplayComm.h"
 #include "Core/Slippi/SlippiSavestate.h"
 #include "Core/Slippi/SlippiMatchmaking.h"
@@ -166,7 +166,7 @@ class CEXISlippi : public IEXIDevice
 	void TransferByte(u8 &byte) override;
 
   private:
-	std::unique_ptr<NetPlayClient> slippi_netplay;
+	std::unique_ptr<SlippiNetplayClient> slippi_netplay;
 	std::unique_ptr<SlippiMatchmaking> matchmaking;
 
 	std::map<u32, std::unique_ptr<SlippiSavestate>> activeSavestates;

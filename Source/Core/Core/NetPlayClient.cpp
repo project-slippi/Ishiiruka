@@ -8,7 +8,6 @@
 #include <mbedtls/md5.h>
 #include <memory>
 #include <thread>
-#include <SlippiGame.h>
 #include "Common/Common.h"
 #include "Common/CommonPaths.h"
 #include "Common/CommonTypes.h"
@@ -41,7 +40,7 @@ NetPlayClient::~NetPlayClient()
 	if (m_is_running.IsSet())
 		StopGame();
 
-	if (m_is_connected || isSlippiConnection)
+	if (m_is_connected)
 	{
 		m_do_loop.Clear();
 		m_thread.join();
@@ -169,49 +168,6 @@ NetPlayClient::NetPlayClient(const std::string& address, const u16 port, NetPlay
 		}
 		PanicAlertT("Failed To Connect!");
 	}
-}
-
-// called from ---SLIPPI EXI--- thread
-NetPlayClient::NetPlayClient(const std::string& address, const u16 port, bool isHost)
-#ifdef _WIN32
-  : m_qos_handle(nullptr), m_qos_flow_id(0)
-#endif
-{
-  INFO_LOG(SLIPPI_ONLINE, "Initializing Slippi Netplay with host: %s", isHost ? "true" : "false");
-  this->isHost = isHost;
-
-  ClearBuffers();
-
-  // Direct Connection
-  ENetAddress serverAddr;
-  serverAddr.host = ENET_HOST_ANY;
-  serverAddr.port = port;
-
-  m_client = enet_host_create(isHost? &serverAddr : nullptr, 1, 3, 0, 0);
-
-  if (m_client == nullptr)
-  {
-    PanicAlertT("Couldn't Create Client");
-  }
-
-  if (!isHost)
-  {
-    ENetAddress addr;
-    enet_address_set_host(&addr, address.c_str());
-    addr.port = port;
-
-    m_server = enet_host_connect(m_client, &addr, 3, 0);
-
-    if (m_server == nullptr)
-    {
-      PanicAlertT("Couldn't create peer.");
-    }
-  }
-
-  isSlippiConnection = true;
-  slippiConnectStatus = SlippiConnectStatus::NET_CONNECT_STATUS_INITIATED;
-
-  m_thread = std::thread(&NetPlayClient::ThreadFunc, this);
 }
 
 bool NetPlayClient::Connect()
@@ -648,91 +604,6 @@ unsigned int NetPlayClient::OnData(sf::Packet& packet)
 	}
 	break;
 
-  case NP_MSG_SLIPPI_PAD:
-  {
-    int32_t frame;
-    packet >> frame;
-
-    // Pad received, try to guess what our local time was when the frame was sent by our opponent
-    // We can compare this to when we sent a pad for last frame to figure out how far/behind we
-    // are with respect to the opponent
-    auto timing = lastFrameTiming;
-    u64 curTime = Common::Timer::GetTimeUs();
-    s64 opponentSendTimeUs = curTime - (pingUs / 2);
-    s64 frameDiffOffsetUs = 16683 * (timing->frame - frame);
-    s64 timeOffsetUs = opponentSendTimeUs - timing->timeUs + frameDiffOffsetUs;
-
-    // Add this offset to circular buffer for use later
-    if (frameOffsetData.buf.size() < SLIPPI_ONLINE_LOCKSTEP_INTERVAL)
-      frameOffsetData.buf.push_back((s32)timeOffsetUs);
-    else
-      frameOffsetData.buf[frameOffsetData.idx] = (s32)timeOffsetUs;
-    
-    frameOffsetData.idx = (frameOffsetData.idx + 1) % SLIPPI_ONLINE_LOCKSTEP_INTERVAL;
-
-    {
-      std::lock_guard<std::mutex> lk(crit_netplay_client); // TODO: Is this the correct lock?
-
-      auto packetData = (u8*)packet.getData();
-
-      int32_t headFrame = remotePadQueue.empty() ? 0 : remotePadQueue.front()->frame;
-      int inputsToCopy = frame - headFrame;
-      for (int i = inputsToCopy - 1; i >= 0; i--)
-      {
-        auto pad = std::make_unique<SlippiPad>(frame - i, &packetData[5 + i * SLIPPI_PAD_DATA_SIZE]);
-
-        //if (!isHost)
-        //{
-        //  ERROR_LOG(SLIPPI_ONLINE, "[%d] %X %X %X %X %X %X %X %X", pad->frame, pad->padBuf[0], pad->padBuf[1], pad->padBuf[2], pad->padBuf[3], pad->padBuf[4], pad->padBuf[5], pad->padBuf[6], pad->padBuf[7]);
-        //}
-
-        INFO_LOG(SLIPPI_ONLINE, "Adding opponent input for frame %d", pad->frame);
-        remotePadQueue.push_front(std::move(pad));
-      }
-    }
-
-    // Send Ack
-    sf::Packet spac;
-    spac << (MessageId)NP_MSG_SLIPPI_PAD_ACK;
-    spac << frame;
-    Send(spac);
-  }
-  break;
-
-  case NP_MSG_SLIPPI_PAD_ACK:
-  {
-    // Store last frame acked
-    int32_t frame;
-    packet >> frame;
-    
-    lastFrameAcked = frame > lastFrameAcked ? frame : lastFrameAcked;
-
-    if (ackTimers.count(frame))
-    {
-      pingUs = Common::Timer::GetTimeUs() - ackTimers[frame];
-      if (g_ActiveConfig.bShowNetPlayPing && frame % SLIPPI_PING_DISPLAY_INTERVAL == 0)
-      {
-		    OSD::AddTypedMessage(OSD::MessageType::NetPlayPing, StringFromFormat("Ping: %u", pingUs / 1000),
-			    OSD::Duration::SHORT, OSD::Color::CYAN);
-      }
-      // Now we are going to clear out any potential old acks, these simply won't be used to get
-      // a ping
-      // TODO: These probably a better way to do this...
-      std::vector<int32_t> toDelete;
-      for (auto it = ackTimers.begin(); it != ackTimers.end(); ++it)
-      {
-        if (it->first > frame) break;
-        toDelete.push_back(it->first);
-      }
-
-      for (auto it = toDelete.begin(); it != toDelete.end(); ++it)
-      {
-        ackTimers.erase(*it);
-      }
-    }
-  }
-  break;
-
 	default:
 		PanicAlertT("Unknown message received with id : %d", mid);
 		break;
@@ -743,21 +614,9 @@ unsigned int NetPlayClient::OnData(sf::Packet& packet)
 
 void NetPlayClient::Send(sf::Packet& packet)
 {
-  enet_uint32 flags = ENET_PACKET_FLAG_RELIABLE;
-  u8 channelId = 0;
-
-  MessageId mid = ((u8*)packet.getData())[0];
-  if (mid == NP_MSG_SLIPPI_PAD || mid == NP_MSG_SLIPPI_PAD_ACK)
-  {
-    // Slippi communications do not need reliable connection and do not need to
-    // be received in order. Channel is changed so that other reliable communications
-    // do not block anything. This may not be necessary if order is not maintained?
-    flags = ENET_PACKET_FLAG_UNSEQUENCED;
-    channelId = 1;
-  }
-  
-	ENetPacket* epac = enet_packet_create(packet.getData(), packet.getDataSize(), flags);
-	enet_peer_send(m_server, channelId, epac);
+	ENetPacket* epac =
+		enet_packet_create(packet.getData(), packet.getDataSize(), ENET_PACKET_FLAG_RELIABLE);
+	enet_peer_send(m_server, 0, epac);
 }
 
 void NetPlayClient::DisplayPlayersPing()
@@ -819,37 +678,7 @@ void NetPlayClient::SendAsync(std::unique_ptr<sf::Packet> packet)
 // called from ---NETPLAY--- thread
 void NetPlayClient::ThreadFunc()
 {
-  int attemptCount = 0;
-  while (slippiConnectStatus == SlippiConnectStatus::NET_CONNECT_STATUS_INITIATED)
-  {
-    // This will confirm that connection went through successfully
-    ENetEvent netEvent;
-    int net = enet_host_service(m_client, &netEvent, 5000);
-    if (net > 0 && netEvent.type == ENET_EVENT_TYPE_CONNECT)
-    {
-      // TODO: Confirm gecko codes match?
-      if (isHost)
-      {
-        m_server = netEvent.peer;
-      }
-
-      m_client->intercept = ENetUtil::InterceptCallback;
-      slippiConnectStatus = SlippiConnectStatus::NET_CONNECT_STATUS_CONNECTED;
-      INFO_LOG(SLIPPI_ONLINE, "Slippi online connection successful!");
-      break;
-    }
-    
-    // Time out after enough time has passed
-    attemptCount++;
-    if (attemptCount >= 3)
-    {
-      slippiConnectStatus = SlippiConnectStatus::NET_CONNECT_STATUS_FAILED;
-      INFO_LOG(SLIPPI_ONLINE, "Slippi online connection failed");
-      return;
-    }
-  }
-
-  bool qos_success = false;
+    bool qos_success = false;
 #ifdef _WIN32
 	QOS_VERSION ver = { 1, 0 };
 
@@ -899,7 +728,7 @@ void NetPlayClient::ThreadFunc()
 	}
 #endif
 
-	if(SConfig::GetInstance().bQoSEnabled && dialog)
+	if(SConfig::GetInstance().bQoSEnabled)
 	{
 		if(qos_success)
 			dialog->AppendChat("QoS was successfully enabled, netplay packets should be prioritized over normal packets", false);
@@ -931,8 +760,7 @@ void NetPlayClient::ThreadFunc()
 				enet_packet_destroy(netEvent.packet);
 				break;
 			case ENET_EVENT_TYPE_DISCONNECT:
-        if (dialog)
-				  dialog->OnConnectionLost();
+				dialog->OnConnectionLost();
 
 				if (m_is_running.IsSet())
 					StopGame();
@@ -1046,11 +874,6 @@ void NetPlayClient::SendChatMessage(const std::string& msg)
 // called from ---CPU--- thread
 void NetPlayClient::ReportFrameTimeToServer(float frame_time)
 {
-  if (isSlippiConnection)
-  {
-    return;
-  }
-
 	auto spac = std::make_unique<sf::Packet>();
 	*spac << static_cast<MessageId>(NP_MSG_REPORT_FRAME_TIME);
 	*spac << frame_time;
@@ -1070,169 +893,6 @@ void NetPlayClient::SendPadState(const int in_game_pad, const GCPadStatus& pad)
 		<< pad.substickY << pad.triggerLeft << pad.triggerRight;
 
 	SendAsync(std::move(spac));
-}
-
-bool NetPlayClient::IsSlippiConnection()
-{
-  return isSlippiConnection;
-}
-
-NetPlayClient::SlippiConnectStatus NetPlayClient::GetSlippiConnectStatus()
-{
-  return slippiConnectStatus;
-}
-
-void NetPlayClient::StartSlippiGame()
-{
-  // Reset variables to start a new game
-  lastFrameAcked = 0;
-
-  auto timing = std::make_shared<FrameTiming>();
-  timing->frame = 0;
-  timing->timeUs = Common::Timer::GetTimeUs();
-  lastFrameTiming = timing;
-
-  localPadQueue.clear();
-
-  remotePadQueue.clear();
-  for (s32 i = 1; i <= 2; i++)
-  {
-    std::unique_ptr<SlippiPad> pad = std::make_unique<SlippiPad>(i);
-    remotePadQueue.push_front(std::move(pad));
-  }
-}
-
-void NetPlayClient::SendSlippiPad(std::unique_ptr<SlippiPad> pad)
-{
-  //if (pad && isHost)
-  //{
-  //  ERROR_LOG(SLIPPI_ONLINE, "[%d] %X %X %X %X %X %X %X %X", pad->frame, pad->padBuf[0], pad->padBuf[1], pad->padBuf[2], pad->padBuf[3], pad->padBuf[4], pad->padBuf[5], pad->padBuf[6], pad->padBuf[7]);
-  //}
-
-  if (pad)
-  {
-    // Add latest local pad report to queue
-    localPadQueue.push_front(std::move(pad));
-  }
-  
-  // Remove pad reports that have been received and acked
-  while (!localPadQueue.empty() && localPadQueue.back()->frame < lastFrameAcked)
-  {
-    localPadQueue.pop_back();
-  }
-
-  if (localPadQueue.empty())
-  {
-    // If pad queue is empty now, there's no reason to send anything
-    return;
-  }
-
-  auto frame = localPadQueue.front()->frame;
-
-  auto spac = std::make_unique<sf::Packet>();
-  *spac << static_cast<MessageId>(NP_MSG_SLIPPI_PAD);
-  *spac << frame;
-
-  for (auto it = localPadQueue.begin(); it != localPadQueue.end(); ++it)
-  {
-    spac->append((*it)->padBuf, SLIPPI_PAD_DATA_SIZE); // only transfer 8 bytes per pad
-  }
-
-  SendAsync(std::move(spac));
-
-  u64 time = Common::Timer::GetTimeUs();
-
-  auto timing = std::make_shared<FrameTiming>();
-  timing->frame = frame;
-  timing->timeUs = time;
-  lastFrameTiming = timing;
-
-  ackTimers[frame] = time;
-}
-
-std::unique_ptr<SlippiRemotePadOutput> NetPlayClient::GetSlippiRemotePad(int32_t curFrame)
-{
-  std::lock_guard<std::mutex> lk(crit_netplay_client); // TODO: Is this the correct lock?
-
-  std::unique_ptr<SlippiRemotePadOutput> padOutput = std::make_unique<SlippiRemotePadOutput>();
-
-  if (remotePadQueue.empty())
-  {
-    auto emptyPad = std::make_unique<SlippiPad>(0);
-
-    padOutput->latestFrame = emptyPad->frame;
-
-    auto emptyIt = std::begin(emptyPad->padBuf);
-    padOutput->data.insert(padOutput->data.end(), emptyIt, emptyIt + SLIPPI_PAD_FULL_SIZE);
-
-    return std::move(padOutput);
-  }
-
-  padOutput->latestFrame = remotePadQueue.front()->frame;
-
-  // Copy the entire remaining remote buffer
-  for (auto it = remotePadQueue.begin(); it != remotePadQueue.end(); ++it)
-  {
-    auto padIt = std::begin((*it)->padBuf);
-    padOutput->data.insert(padOutput->data.end(), padIt, padIt + SLIPPI_PAD_FULL_SIZE);
-  }
-
-  // Remove pad reports that should no longer be needed
-  while (remotePadQueue.size() > 1 && remotePadQueue.back()->frame < curFrame)
-  {
-    remotePadQueue.pop_back();
-  }
-
-  return std::move(padOutput);
-}
-
-u64 NetPlayClient::GetSlippiPing()
-{
-	return pingUs;
-}
-
-int32_t NetPlayClient::GetSlippiLatestRemoteFrame()
-{
-  std::lock_guard<std::mutex> lk(crit_netplay_client); // TODO: Is this the correct lock?
-
-  if (remotePadQueue.empty())
-  {
-    return 0;
-  }
-
-  return remotePadQueue.front()->frame;
-}
-
-s32 NetPlayClient::CalcTimeOffsetUs()
-{
-  if (frameOffsetData.buf.empty())
-  {
-    return 0;
-  }
-
-  std::vector<s32> buf;
-  std::copy(frameOffsetData.buf.begin(), frameOffsetData.buf.end(), std::back_inserter(buf));
-
-  // TODO: Does this work?
-  std::sort(buf.begin(), buf.end());
-
-  int bufSize = (int)buf.size();
-  int offset = (1 / 3) * bufSize;
-  int end = bufSize - offset;
-
-  int sum = 0;
-  for (int i = offset; i < end; i++)
-  {
-    sum += buf[i];
-  }
-
-  int count = end - offset;
-  if (count <= 0)
-  {
-    return 0; // What do I return here?
-  }
-
-  return sum / count;
 }
 
 // called from ---CPU--- thread
@@ -1427,7 +1087,7 @@ void NetPlayClient::OnConnectFailed(u8 reason)
 // called from ---CPU--- thread
 bool NetPlayClient::GetNetPads(const int pad_nb, GCPadStatus* pad_status)
 {
-  SendNetPad(pad_nb);
+	SendNetPad(pad_nb);
 
 	// Now, we either use the data pushed earlier, or wait for the
 	// other clients to send it to us
