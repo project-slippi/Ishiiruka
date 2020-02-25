@@ -17,10 +17,10 @@
 #include "Common/CommonTypes.h"
 #include "Common/FileUtil.h"
 #include "Core/HW/EXI_Device.h"
+#include "Core/Slippi/SlippiMatchmaking.h"
 #include "Core/Slippi/SlippiNetplay.h"
 #include "Core/Slippi/SlippiReplayComm.h"
 #include "Core/Slippi/SlippiSavestate.h"
-#include "Core/Slippi/SlippiMatchmaking.h"
 
 #define MELEE_HEAP_START 0x00bd5c40
 #define MELEE_HEAP_SIZE 0x5D7960
@@ -59,6 +59,8 @@ class CEXISlippi : public IEXIDevice
 		CMD_ONLINE_INPUTS = 0xB0,
 		CMD_CAPTURE_SAVESTATE = 0xB1,
 		CMD_LOAD_SAVESTATE = 0xB2,
+		CMD_FIND_MATCH = 0xB3,
+		CMD_GET_ONLINE_GAME = 0xB4,
 	};
 
 	enum
@@ -123,6 +125,8 @@ class CEXISlippi : public IEXIDevice
 	void handleSendInputs(u8 *payload);
 	void handleCaptureSavestate(u8 *payload);
 	void handleLoadSavestate(u8 *payload);
+	void startFindMatch();
+	void prepareOnlineMatch();
 	bool shouldSkipOnlineFrame(int32_t frame);
 
 	// replay playback stuff
