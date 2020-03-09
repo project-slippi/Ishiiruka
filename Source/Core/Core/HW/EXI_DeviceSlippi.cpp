@@ -1147,41 +1147,9 @@ void CEXISlippi::handleOnlineInputs(u8 *payload)
 	//}
 	// tempTestCount = 0;
 
-	static bool oneShot = false;
-
 	if (frame == 1)
 	{
-		// if (!slippi_netplay)
-		//{
-		//	std::string opp_ip;
-		//	File::ReadFileToString("opp_ip.txt", opp_ip);
-
-		//	// TODO: Fizzi's desktop will always be host
-		//	bool isHost = !(opp_ip.compare("192.168.1.16") == 0 || opp_ip.compare("136.24.10.119") == 0);
-		//	slippi_netplay = std::make_unique<SlippiNetplayClient>(opp_ip, 51000, isHost);
-
-		//	INFO_LOG(SLIPPI_ONLINE, "Connecting to %s", opp_ip.c_str());
-		//}
-
-		// Start matchmaking
-		if (!oneShot)
-		{
-			matchmaking->FindMatch();
-			oneShot = true;
-		}
-
-		auto matchmakeState = matchmaking->GetMatchmakeState();
-		bool isMatchmakeSuccess = matchmakeState == SlippiMatchmaking::ProcessState::CONNECTION_SUCCESS;
-		bool isMatchmakeFailure = matchmakeState == SlippiMatchmaking::ProcessState::ERROR_ENCOUNTERED;
-		if (!isMatchmakeSuccess && !isMatchmakeFailure)
-		{
-			// Send inputs that have not yet been acked
-			m_read_queue.push_back(2);
-			return;
-		}
-
-		slippi_netplay = isMatchmakeSuccess ? matchmaking->GetNetplayClient()
-		                                    : std::make_unique<SlippiNetplayClient>("0.0.0.0", 51000, true);
+		slippi_netplay = std::make_unique<SlippiNetplayClient>();
 
 		availableSavestates.clear();
 		activeSavestates.clear();
@@ -1193,21 +1161,6 @@ void CEXISlippi::handleOnlineInputs(u8 *payload)
 		}
 
 		slippi_netplay->StartSlippiGame();
-	}
-	else if (frame == 2)
-	{
-		// TODO: Should this all happen on frame 1? Prob not a big deal since connecting
-		// TODO: here is only temporary
-		auto status = slippi_netplay->GetSlippiConnectStatus();
-		if (status == SlippiNetplayClient::SlippiConnectStatus::NET_CONNECT_STATUS_INITIATED)
-		{
-			// Send inputs that have not yet been acked
-			slippi_netplay->SendSlippiPad(nullptr);
-			m_read_queue.push_back(2);
-			return;
-		}
-
-		INFO_LOG(SLIPPI_ONLINE, "Connection attempt over...");
 	}
 
 	if (shouldSkipOnlineFrame(frame))
@@ -1388,9 +1341,12 @@ void CEXISlippi::handleLoadSavestate(u8 *payload)
 	INFO_LOG(SLIPPI_ONLINE, "SLIPPI ONLINE: Loaded savestate for frame %d in: %f ms", frame, ((double)timeDiff) / 1000);
 }
 
-void CEXISlippi::startFindMatch() {}
+void CEXISlippi::startFindMatch()
+{
+	matchmaking->FindMatch();
+}
 
-void CEXISlippi::prepareOnlineMatch()
+void CEXISlippi::prepareOnlineMatchState()
 {
 	// This match block is a VS match with P1 Red Falco vs P2 Red Bowser on Battlefield
 	static std::vector<u8> onlineMatchBlock = {
@@ -1413,6 +1369,16 @@ void CEXISlippi::prepareOnlineMatch()
 	    0x40, 0x00, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x3F, 0x80, 0x00, 0x00, 0x3F, 0x80,
 	    0x00, 0x00, 0x3F, 0x80, 0x00, 0x00,
 	};
+
+	m_read_queue.clear();
+
+	m_read_queue.push_back(2); // Connection state
+	m_read_queue.push_back(1); // Local player ready
+	m_read_queue.push_back(1); // Remote player ready
+	m_read_queue.push_back(0); // Local player index
+	m_read_queue.push_back(1); // Remote player index
+
+	m_read_queue.insert(m_read_queue.end(), onlineMatchBlock.begin(), onlineMatchBlock.end());
 }
 
 void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
@@ -1481,11 +1447,12 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 		case CMD_LOAD_SAVESTATE:
 			handleLoadSavestate(&memPtr[bufLoc + 1]);
 			break;
-		case CMD_FIND_MATCH:
+		case CMD_GET_MATCH_STATE:
+			prepareOnlineMatchState();
+			break;
+		case CMD_FIND_OPPONENT:
 			startFindMatch();
 			break;
-		case CMD_GET_ONLINE_GAME:
-			prepareOnlineMatch();
 		default:
 			writeToFile(&memPtr[bufLoc], payloadLen + 1, "");
 			break;

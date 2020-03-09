@@ -99,6 +99,13 @@ SlippiNetplayClient::SlippiNetplayClient(const std::string &address, const u16 p
 	m_thread = std::thread(&SlippiNetplayClient::ThreadFunc, this);
 }
 
+// Make a dummy client
+SlippiNetplayClient::SlippiNetplayClient()
+{
+	isSlippiConnection = true;
+	slippiConnectStatus = SlippiConnectStatus::NET_CONNECT_STATUS_FAILED;
+}
+
 // called from ---NETPLAY--- thread
 unsigned int SlippiNetplayClient::OnData(sf::Packet &packet)
 {

@@ -45,10 +45,14 @@ class CEXISlippi : public IEXIDevice
 	enum
 	{
 		CMD_UNKNOWN = 0x0,
+
+		// Recording
 		CMD_RECEIVE_COMMANDS = 0x35,
 		CMD_RECEIVE_GAME_INFO = 0x36,
 		CMD_RECEIVE_POST_FRAME_UPDATE = 0x38,
 		CMD_RECEIVE_GAME_END = 0x39,
+
+		// Playback
 		CMD_PREPARE_REPLAY = 0x75,
 		CMD_READ_FRAME = 0x76,
 		CMD_GET_LOCATION = 0x77,
@@ -56,11 +60,14 @@ class CEXISlippi : public IEXIDevice
 		CMD_IS_STOCK_STEAL = 0x89,
 		CMD_GET_GECKO_CODES = 0x8A,
 		CMD_GET_FRAME_COUNT = 0x90,
+
+		// Online
 		CMD_ONLINE_INPUTS = 0xB0,
 		CMD_CAPTURE_SAVESTATE = 0xB1,
 		CMD_LOAD_SAVESTATE = 0xB2,
-		CMD_FIND_MATCH = 0xB3,
-		CMD_GET_ONLINE_GAME = 0xB4,
+		CMD_GET_MATCH_STATE = 0xB3,
+		CMD_FIND_OPPONENT = 0xB4,
+		CMD_START_GAME = 0xB5,
 	};
 
 	enum
@@ -91,6 +98,7 @@ class CEXISlippi : public IEXIDevice
 	    {CMD_ONLINE_INPUTS, 17},
 	    {CMD_CAPTURE_SAVESTATE, 32},
 	    {CMD_LOAD_SAVESTATE, 32},
+	    {CMD_GET_MATCH_STATE, 0},
 	};
 
 	// Communication with Launcher
@@ -126,7 +134,7 @@ class CEXISlippi : public IEXIDevice
 	void handleCaptureSavestate(u8 *payload);
 	void handleLoadSavestate(u8 *payload);
 	void startFindMatch();
-	void prepareOnlineMatch();
+	void prepareOnlineMatchState();
 	bool shouldSkipOnlineFrame(int32_t frame);
 
 	// replay playback stuff

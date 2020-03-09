@@ -35,17 +35,49 @@ struct SlippiRemotePadOutput
 	std::vector<u8> data;
 };
 
+class SlippiPlayerSelections
+{
+  public:
+	u8 characterId;
+	u8 characterColor;
+	bool isCharacterSelected;
+
+	u16 stageId;
+	bool isStageSelected;
+
+	void Reset()
+	{
+		characterId = 0;
+		characterColor = 0;
+		isCharacterSelected = false;
+
+		stageId = 0;
+		isStageSelected = false;
+	}
+};
+
+class SlippiMatchInfo
+{
+  public:
+	SlippiPlayerSelections localPlayerSelections;
+	SlippiPlayerSelections remotePlayerSelections;
+
+	void Reset()
+	{
+		localPlayerSelections.Reset();
+		remotePlayerSelections.Reset();
+	}
+};
+
 class SlippiNetplayClient
 {
   public:
 	void ThreadFunc();
 	void SendAsync(std::unique_ptr<sf::Packet> packet);
 
+	SlippiNetplayClient(); // Make a dummy client
 	SlippiNetplayClient(const std::string &address, const u16 port, bool isHost);
 	~SlippiNetplayClient();
-
-	// Called from the GUI thread.
-	bool IsConnected() const { return m_is_connected; }
 
 	// Slippi Online
 	enum class SlippiConnectStatus

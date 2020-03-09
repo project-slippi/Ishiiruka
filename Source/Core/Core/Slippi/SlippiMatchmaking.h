@@ -5,6 +5,7 @@
 #include "Core/Slippi/SlippiNetplay.h"
 
 #include <curl/curl.h>
+#include <unordered_map>
 #include <vector>
 
 class SlippiMatchmaking
@@ -15,7 +16,8 @@ class SlippiMatchmaking
 
 	enum ProcessState
 	{
-		UNCONNECTED,
+		IDLE,
+		INITIALIZING,
 		MATCHMAKING,
 		OPPONENT_CONNECTING,
 		CONNECTION_SUCCESS,
@@ -25,6 +27,7 @@ class SlippiMatchmaking
 	void FindMatch();
 	void MatchmakeThread();
 	ProcessState GetMatchmakeState();
+	bool IsSearching();
 	std::unique_ptr<SlippiNetplayClient> GetNetplayClient();
 
   protected:
@@ -44,6 +47,12 @@ class SlippiMatchmaking
 	std::vector<char> findReceiveBuf;
 	std::vector<char> getReceiveBuf;
 	std::vector<char> deleteReceiveBuf;
+
+	const std::unordered_map<ProcessState, bool> searchingStates = {
+	    {ProcessState::INITIALIZING, true},
+	    {ProcessState::MATCHMAKING, true},
+	    {ProcessState::OPPONENT_CONNECTING, true},
+	};
 
 	void startMatchmaking();
 	void handleMatchmaking();

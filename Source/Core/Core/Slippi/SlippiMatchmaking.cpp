@@ -29,6 +29,8 @@ SlippiMatchmaking::SlippiMatchmaking()
 
 		m_curl = curl;
 	}
+
+	m_state = ProcessState::IDLE;
 }
 
 SlippiMatchmaking::~SlippiMatchmaking()
@@ -49,13 +51,18 @@ void SlippiMatchmaking::FindMatch()
 	if (!m_curl)
 		return;
 
-	m_state = ProcessState::UNCONNECTED;
+	m_state = ProcessState::INITIALIZING;
 	m_matchmakeThread = std::thread(&SlippiMatchmaking::MatchmakeThread, this);
 }
 
 SlippiMatchmaking::ProcessState SlippiMatchmaking::GetMatchmakeState()
 {
 	return m_state;
+}
+
+bool SlippiMatchmaking::IsSearching()
+{
+	return searchingStates.count(m_state) != 0;
 }
 
 std::unique_ptr<SlippiNetplayClient> SlippiMatchmaking::GetNetplayClient()
@@ -65,11 +72,11 @@ std::unique_ptr<SlippiNetplayClient> SlippiMatchmaking::GetNetplayClient()
 
 void SlippiMatchmaking::MatchmakeThread()
 {
-	while (m_state != ProcessState::CONNECTION_SUCCESS && m_state != ProcessState::ERROR_ENCOUNTERED)
+	while (IsSearching())
 	{
 		switch (m_state)
 		{
-		case ProcessState::UNCONNECTED:
+		case ProcessState::INITIALIZING:
 			startMatchmaking();
 			break;
 		case ProcessState::MATCHMAKING:
@@ -196,7 +203,7 @@ void SlippiMatchmaking::handleConnecting()
 	{
 		// Return to the start to get a new ticket to find someone else we can hopefully connect with
 		m_netplayClient = nullptr;
-		m_state = ProcessState::UNCONNECTED;
+		m_state = ProcessState::INITIALIZING;
 		return;
 	}
 
