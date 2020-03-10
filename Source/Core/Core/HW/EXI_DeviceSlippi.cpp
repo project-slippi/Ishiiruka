@@ -1149,8 +1149,6 @@ void CEXISlippi::handleOnlineInputs(u8 *payload)
 
 	if (frame == 1)
 	{
-		slippi_netplay = std::make_unique<SlippiNetplayClient>();
-
 		availableSavestates.clear();
 		activeSavestates.clear();
 
@@ -1372,13 +1370,61 @@ void CEXISlippi::prepareOnlineMatchState()
 
 	m_read_queue.clear();
 
-	m_read_queue.push_back(2); // Connection state
-	m_read_queue.push_back(1); // Local player ready
-	m_read_queue.push_back(1); // Remote player ready
-	m_read_queue.push_back(0); // Local player index
-	m_read_queue.push_back(1); // Remote player index
+	SlippiMatchmaking::ProcessState mmState = matchmaking->GetMatchmakeState();
+	m_read_queue.push_back(mmState); // Matchmaking State
+
+	u8 localPlayerReady = 0;
+	u8 remotePlayerReady = 0;
+	u8 localPlayerIndex = 0;
+	u8 remotePlayerIndex = 1;
+
+	if (mmState == SlippiMatchmaking::ProcessState::CONNECTION_SUCCESS)
+	{
+		// TODO: Does this work if it's called multiple times on a ptr that has already been moved?
+		slippi_netplay = matchmaking->GetNetplayClient();
+
+		auto matchInfo = slippi_netplay->GetMatchInfo();
+		localPlayerReady = matchInfo->localPlayerSelections.isCharacterSelected;
+		remotePlayerReady = matchInfo->remotePlayerSelections.isCharacterSelected;
+
+		auto isHost = slippi_netplay->IsHost();
+		localPlayerIndex = isHost ? 0 : 1;
+		remotePlayerIndex = isHost ? 1 : 0;
+	}
+
+	m_read_queue.push_back(localPlayerReady);  // Local player ready
+	m_read_queue.push_back(remotePlayerReady); // Remote player ready
+	m_read_queue.push_back(localPlayerIndex);  // Local player index
+	m_read_queue.push_back(remotePlayerIndex); // Remote player index
+
+	if (localPlayerReady && remotePlayerReady)
+	{
+		auto matchInfo = slippi_netplay->GetMatchInfo();
+
+		// Overwrite local player character
+		onlineMatchBlock[0x60 + localPlayerIndex * 0x24] = matchInfo->localPlayerSelections.characterId;
+		onlineMatchBlock[0x63 + localPlayerIndex * 0x24] = matchInfo->localPlayerSelections.characterColor;
+
+		// Overwrite remote player character
+		onlineMatchBlock[0x60 + remotePlayerIndex * 0x24] = matchInfo->remotePlayerSelections.characterId;
+		onlineMatchBlock[0x63 + remotePlayerIndex * 0x24] = matchInfo->remotePlayerSelections.characterColor;
+	}
 
 	m_read_queue.insert(m_read_queue.end(), onlineMatchBlock.begin(), onlineMatchBlock.end());
+}
+
+void CEXISlippi::setMatchSelections(u8 *payload)
+{
+	auto s = std::make_unique<SlippiPlayerSelections>();
+	s->characterId = payload[0];
+	s->characterColor = payload[1];
+	s->isCharacterSelected = payload[2];
+
+	s->stageId = Common::swap16(&payload[3]);
+	s->isStageSelected = payload[5];
+
+	// slippi netplay should have been set by the time this is called
+	slippi_netplay->SetMatchSelections(std::move(s));
 }
 
 void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
@@ -1452,6 +1498,9 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 			break;
 		case CMD_FIND_OPPONENT:
 			startFindMatch();
+			break;
+		case CMD_MATCH_SELECTIONS:
+			setMatchSelections(&memPtr[bufLoc + 1]);
 			break;
 		default:
 			writeToFile(&memPtr[bufLoc], payloadLen + 1, "");

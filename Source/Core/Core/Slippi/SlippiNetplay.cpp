@@ -201,12 +201,40 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet)
 	}
 	break;
 
+	case NP_MSG_SLIPPI_MATCH_SELECTIONS:
+	{
+		auto s = readSelectionsFromPacket(packet);
+		matchInfo.remotePlayerSelections.Merge(*s);
+	}
+	break;
+
 	default:
 		PanicAlertT("Unknown message received with id : %d", mid);
 		break;
 	}
 
 	return 0;
+}
+
+void SlippiNetplayClient::writeToPacket(sf::Packet &packet, SlippiPlayerSelections &s)
+{
+	packet << static_cast<MessageId>(NP_MSG_SLIPPI_MATCH_SELECTIONS);
+	packet << s.characterId << s.characterColor << s.isCharacterSelected;
+	packet << s.stageId << s.isStageSelected;
+}
+
+std::unique_ptr<SlippiPlayerSelections> SlippiNetplayClient::readSelectionsFromPacket(sf::Packet &packet)
+{
+	auto s = std::make_unique<SlippiPlayerSelections>();
+
+	packet >> s->characterId;
+	packet >> s->characterColor;
+	packet >> s->isCharacterSelected;
+
+	packet >> s->stageId;
+	packet >> s->isStageSelected;
+
+	return std::move(s);
 }
 
 void SlippiNetplayClient::Send(sf::Packet &packet)
@@ -382,6 +410,11 @@ void SlippiNetplayClient::ThreadFunc()
 	return;
 }
 
+bool SlippiNetplayClient::IsHost()
+{
+	return isHost;
+}
+
 bool SlippiNetplayClient::IsSlippiConnection()
 {
 	return isSlippiConnection;
@@ -461,6 +494,16 @@ void SlippiNetplayClient::SendSlippiPad(std::unique_ptr<SlippiPad> pad)
 	ackTimers[frame] = time;
 }
 
+void SlippiNetplayClient::SetMatchSelections(std::unique_ptr<SlippiPlayerSelections> s)
+{
+	matchInfo.localPlayerSelections.Merge(*s);
+
+	// Send packet containing selections
+	auto spac = std::make_unique<sf::Packet>();
+	writeToPacket(*spac, matchInfo.localPlayerSelections);
+	SendAsync(std::move(spac));
+}
+
 std::unique_ptr<SlippiRemotePadOutput> SlippiNetplayClient::GetSlippiRemotePad(int32_t curFrame)
 {
 	std::lock_guard<std::mutex> lk(crit_netplay_client); // TODO: Is this the correct lock?
@@ -495,6 +538,11 @@ std::unique_ptr<SlippiRemotePadOutput> SlippiNetplayClient::GetSlippiRemotePad(i
 	}
 
 	return std::move(padOutput);
+}
+
+SlippiMatchInfo *SlippiNetplayClient::GetMatchInfo()
+{
+	return &matchInfo;
 }
 
 u64 SlippiNetplayClient::GetSlippiPing()

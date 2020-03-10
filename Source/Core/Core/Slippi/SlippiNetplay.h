@@ -45,6 +45,22 @@ class SlippiPlayerSelections
 	u16 stageId;
 	bool isStageSelected;
 
+	void Merge(SlippiPlayerSelections s)
+	{
+		if (s.isCharacterSelected)
+		{
+			this->characterId = s.characterId;
+			this->characterColor = s.characterColor;
+			this->isCharacterSelected = true;
+		}
+
+		if (s.isStageSelected)
+		{
+			this->stageId = s.stageId;
+			this->isStageSelected = true;
+		}
+	}
+
 	void Reset()
 	{
 		characterId = 0;
@@ -88,11 +104,14 @@ class SlippiNetplayClient
 		NET_CONNECT_STATUS_FAILED
 	};
 
+	bool IsHost();
 	bool IsSlippiConnection();
 	SlippiConnectStatus GetSlippiConnectStatus();
 	void StartSlippiGame();
 	void SendSlippiPad(std::unique_ptr<SlippiPad> pad);
+	void SetMatchSelections(std::unique_ptr<SlippiPlayerSelections> s);
 	std::unique_ptr<SlippiRemotePadOutput> GetSlippiRemotePad(int32_t curFrame);
+	SlippiMatchInfo *GetMatchInfo();
 	u64 GetSlippiPing();
 	int32_t GetSlippiLatestRemoteFrame();
 	s32 CalcTimeOffsetUs();
@@ -143,8 +162,12 @@ class SlippiNetplayClient
 	std::deque<std::unique_ptr<SlippiPad>> remotePadQueue; // most recent inputs at start of deque
 	std::map<int32_t, u64> ackTimers;
 	SlippiConnectStatus slippiConnectStatus = SlippiConnectStatus::NET_CONNECT_STATUS_UNSET;
+	SlippiMatchInfo matchInfo;
 
 	bool m_is_recording = false;
+
+	void writeToPacket(sf::Packet &packet, SlippiPlayerSelections &s);
+	std::unique_ptr<SlippiPlayerSelections> readSelectionsFromPacket(sf::Packet &packet);
 
   private:
 	enum class ConnectionState

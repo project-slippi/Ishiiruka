@@ -4,11 +4,11 @@
 
 #pragma once
 
+#include "Common/CommonTypes.h"
+#include "Core/ConfigManager.h"
+#include "Core/HW/EXI_Device.h"
 #include <array>
 #include <vector>
-#include "Common/CommonTypes.h"
-#include "Core/HW/EXI_Device.h"
-#include "Core/ConfigManager.h"
 
 struct NetSettings
 {
@@ -26,8 +26,8 @@ struct NetSettings
 	float m_OCFactor;
 	TEXIDevices m_EXIDevice[2];
 
-    MeleeLagReductionCode m_LagReduction;
-    bool m_MeleeForceWidescreen;
+	MeleeLagReductionCode m_LagReduction;
+	bool m_MeleeForceWidescreen;
 };
 
 extern NetSettings g_NetPlaySettings;
@@ -46,7 +46,7 @@ enum
 
 	NP_MSG_CHAT_MESSAGE = 0x30,
 
-    NP_MSG_REPORT_FRAME_TIME = 0x40,
+	NP_MSG_REPORT_FRAME_TIME = 0x40,
 
 	NP_MSG_PAD_DATA = 0x60,
 	NP_MSG_PAD_MAPPING = 0x61,
@@ -56,8 +56,9 @@ enum
 	NP_MSG_WIIMOTE_DATA = 0x70,
 	NP_MSG_WIIMOTE_MAPPING = 0x71,
 
-  NP_MSG_SLIPPI_PAD = 0x80,
-  NP_MSG_SLIPPI_PAD_ACK = 0x81,
+	NP_MSG_SLIPPI_PAD = 0x80,
+	NP_MSG_SLIPPI_PAD_ACK = 0x81,
+	NP_MSG_SLIPPI_MATCH_SELECTIONS = 0x82,
 
 	NP_MSG_START_GAME = 0xA0,
 	NP_MSG_CHANGE_GAME = 0xA1,

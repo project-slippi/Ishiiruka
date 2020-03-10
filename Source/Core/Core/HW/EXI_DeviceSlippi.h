@@ -67,7 +67,7 @@ class CEXISlippi : public IEXIDevice
 		CMD_LOAD_SAVESTATE = 0xB2,
 		CMD_GET_MATCH_STATE = 0xB3,
 		CMD_FIND_OPPONENT = 0xB4,
-		CMD_START_GAME = 0xB5,
+		CMD_MATCH_SELECTIONS = 0xB5,
 	};
 
 	enum
@@ -135,6 +135,7 @@ class CEXISlippi : public IEXIDevice
 	void handleLoadSavestate(u8 *payload);
 	void startFindMatch();
 	void prepareOnlineMatchState();
+	void setMatchSelections(u8 *payload);
 	bool shouldSkipOnlineFrame(int32_t frame);
 
 	// replay playback stuff
@@ -178,6 +179,8 @@ class CEXISlippi : public IEXIDevice
 	void TransferByte(u8 &byte) override;
 
   private:
+	SlippiPlayerSelections localSelections;
+
 	std::unique_ptr<SlippiNetplayClient> slippi_netplay;
 	std::unique_ptr<SlippiMatchmaking> matchmaking;
 
