@@ -43,7 +43,7 @@ SlippiMatchmaking::~SlippiMatchmaking()
 	m_state = ProcessState::ERROR_ENCOUNTERED;
 
 	if (m_matchmakeThread.joinable())
-		m_matchmakeThread.detach();
+		m_matchmakeThread.join();
 }
 
 void SlippiMatchmaking::FindMatch()

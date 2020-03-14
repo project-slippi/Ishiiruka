@@ -1371,6 +1371,11 @@ void CEXISlippi::prepareOnlineMatchState()
 	m_read_queue.clear();
 
 	SlippiMatchmaking::ProcessState mmState = matchmaking->GetMatchmakeState();
+
+  // TEMP: Remove this
+	if (mmState != 0)
+		mmState = SlippiMatchmaking::ProcessState::CONNECTION_SUCCESS;
+
 	m_read_queue.push_back(mmState); // Matchmaking State
 
 	u8 localPlayerReady = localSelections.isCharacterSelected;
@@ -1381,11 +1386,13 @@ void CEXISlippi::prepareOnlineMatchState()
 	if (mmState == SlippiMatchmaking::ProcessState::CONNECTION_SUCCESS)
 	{
 		// TODO: Does this work if it's called multiple times on a ptr that has already been moved?
-		slippi_netplay = matchmaking->GetNetplayClient();
+		//slippi_netplay = matchmaking->GetNetplayClient();
+		slippi_netplay = std::make_unique<SlippiNetplayClient>();
 		slippi_netplay->SetMatchSelections(localSelections);
 
 		auto matchInfo = slippi_netplay->GetMatchInfo();
-		remotePlayerReady = matchInfo->remotePlayerSelections.isCharacterSelected;
+		//remotePlayerReady = matchInfo->remotePlayerSelections.isCharacterSelected;
+		remotePlayerReady = true;
 
 		auto isHost = slippi_netplay->IsHost();
 		localPlayerIndex = isHost ? 0 : 1;
@@ -1406,8 +1413,10 @@ void CEXISlippi::prepareOnlineMatchState()
 		onlineMatchBlock[0x63 + localPlayerIndex * 0x24] = matchInfo->localPlayerSelections.characterColor;
 
 		// Overwrite remote player character
-		onlineMatchBlock[0x60 + remotePlayerIndex * 0x24] = matchInfo->remotePlayerSelections.characterId;
-		onlineMatchBlock[0x63 + remotePlayerIndex * 0x24] = matchInfo->remotePlayerSelections.characterColor;
+		//onlineMatchBlock[0x60 + remotePlayerIndex * 0x24] = matchInfo->remotePlayerSelections.characterId;
+		//onlineMatchBlock[0x63 + remotePlayerIndex * 0x24] = matchInfo->remotePlayerSelections.characterColor;
+		onlineMatchBlock[0x60 + remotePlayerIndex * 0x24] = 0;
+		onlineMatchBlock[0x63 + remotePlayerIndex * 0x24] = 0;
 
 		// Make one character lighter if same character, same color
 		bool charMatch = matchInfo->localPlayerSelections.characterId == matchInfo->remotePlayerSelections.characterId;

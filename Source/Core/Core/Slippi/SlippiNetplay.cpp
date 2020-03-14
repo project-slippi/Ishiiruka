@@ -38,7 +38,7 @@ SlippiNetplayClient::~SlippiNetplayClient()
 	if (m_is_connected || isSlippiConnection)
 	{
 		m_do_loop.Clear();
-		m_thread.join();
+		if (m_thread.joinable()) m_thread.join();
 	}
 
 	if (m_server)
@@ -102,6 +102,8 @@ SlippiNetplayClient::SlippiNetplayClient(const std::string &address, const u16 p
 // Make a dummy client
 SlippiNetplayClient::SlippiNetplayClient()
 {
+	this->isHost = true;
+
 	isSlippiConnection = true;
 	slippiConnectStatus = SlippiConnectStatus::NET_CONNECT_STATUS_FAILED;
 }
