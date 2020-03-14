@@ -1416,7 +1416,7 @@ void CEXISlippi::prepareOnlineMatchState()
 
 		if (charMatch && colMatch)
 		{
-			onlineMatchBlock[0x67 + remotePlayerIndex * 0x24] = 1;
+			onlineMatchBlock[0x67 + 0x24] = 1;
 		}
 	}
 
