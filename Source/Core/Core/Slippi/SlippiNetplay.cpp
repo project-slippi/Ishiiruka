@@ -126,15 +126,16 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet)
 		// Pad received, try to guess what our local time was when the frame was sent by our opponent
 		// We can compare this to when we sent a pad for last frame to figure out how far/behind we
 		// are with respect to the opponent
-		if (!lastFrameTiming)
-		{
-			// Handle case where opponent starts sending inputs before
-			lastFrameTiming = std::make_shared<FrameTiming>();
-			lastFrameTiming->frame = 0;
-			lastFrameTiming->timeUs = Common::Timer::GetTimeUs();
-		}
 
 		auto timing = lastFrameTiming;
+		if (!timing)
+		{
+			// Handle case where opponent starts sending inputs before our game has reached frame 1. This will
+			// continuously say frame 0 is now to prevent opp from getting too far ahead
+			timing = std::make_shared<FrameTiming>();
+			timing->frame = 0;
+			timing->timeUs = Common::Timer::GetTimeUs();
+		}
 
 		u64 curTime = Common::Timer::GetTimeUs();
 		s64 opponentSendTimeUs = curTime - (pingUs / 2);
