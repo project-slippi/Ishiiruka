@@ -494,9 +494,9 @@ void SlippiNetplayClient::SendSlippiPad(std::unique_ptr<SlippiPad> pad)
 	ackTimers[frame] = time;
 }
 
-void SlippiNetplayClient::SetMatchSelections(std::unique_ptr<SlippiPlayerSelections> s)
+void SlippiNetplayClient::SetMatchSelections(SlippiPlayerSelections &s)
 {
-	matchInfo.localPlayerSelections.Merge(*s);
+	matchInfo.localPlayerSelections.Merge(s);
 
 	// Send packet containing selections
 	auto spac = std::make_unique<sf::Packet>();

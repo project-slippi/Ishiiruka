@@ -1373,7 +1373,7 @@ void CEXISlippi::prepareOnlineMatchState()
 	SlippiMatchmaking::ProcessState mmState = matchmaking->GetMatchmakeState();
 	m_read_queue.push_back(mmState); // Matchmaking State
 
-	u8 localPlayerReady = 0;
+	u8 localPlayerReady = localSelections.isCharacterSelected;
 	u8 remotePlayerReady = 0;
 	u8 localPlayerIndex = 0;
 	u8 remotePlayerIndex = 1;
@@ -1382,9 +1382,9 @@ void CEXISlippi::prepareOnlineMatchState()
 	{
 		// TODO: Does this work if it's called multiple times on a ptr that has already been moved?
 		slippi_netplay = matchmaking->GetNetplayClient();
+		slippi_netplay->SetMatchSelections(localSelections);
 
 		auto matchInfo = slippi_netplay->GetMatchInfo();
-		localPlayerReady = matchInfo->localPlayerSelections.isCharacterSelected;
 		remotePlayerReady = matchInfo->remotePlayerSelections.isCharacterSelected;
 
 		auto isHost = slippi_netplay->IsHost();
@@ -1415,16 +1415,21 @@ void CEXISlippi::prepareOnlineMatchState()
 
 void CEXISlippi::setMatchSelections(u8 *payload)
 {
-	auto s = std::make_unique<SlippiPlayerSelections>();
-	s->characterId = payload[0];
-	s->characterColor = payload[1];
-	s->isCharacterSelected = payload[2];
+	SlippiPlayerSelections s;
 
-	s->stageId = Common::swap16(&payload[3]);
-	s->isStageSelected = payload[5];
+	s.characterId = payload[0];
+	s.characterColor = payload[1];
+	s.isCharacterSelected = payload[2];
 
-	// slippi netplay should have been set by the time this is called
-	slippi_netplay->SetMatchSelections(std::move(s));
+	s.stageId = Common::swap16(&payload[3]);
+	s.isStageSelected = payload[5];
+
+  localSelections.Merge(s);
+
+  if (slippi_netplay)
+  {
+	  slippi_netplay->SetMatchSelections(localSelections);
+  }
 }
 
 void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
@@ -1499,7 +1504,7 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 		case CMD_FIND_OPPONENT:
 			startFindMatch();
 			break;
-		case CMD_MATCH_SELECTIONS:
+		case CMD_SET_MATCH_SELECTIONS:
 			setMatchSelections(&memPtr[bufLoc + 1]);
 			break;
 		default:

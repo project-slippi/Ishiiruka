@@ -45,7 +45,7 @@ class SlippiPlayerSelections
 	u16 stageId;
 	bool isStageSelected;
 
-	void Merge(SlippiPlayerSelections s)
+	void Merge(SlippiPlayerSelections &s)
 	{
 		if (s.isCharacterSelected)
 		{
@@ -109,7 +109,7 @@ class SlippiNetplayClient
 	SlippiConnectStatus GetSlippiConnectStatus();
 	void StartSlippiGame();
 	void SendSlippiPad(std::unique_ptr<SlippiPad> pad);
-	void SetMatchSelections(std::unique_ptr<SlippiPlayerSelections> s);
+	void SetMatchSelections(SlippiPlayerSelections &s);
 	std::unique_ptr<SlippiRemotePadOutput> GetSlippiRemotePad(int32_t curFrame);
 	SlippiMatchInfo *GetMatchInfo();
 	u64 GetSlippiPing();

@@ -67,7 +67,7 @@ class CEXISlippi : public IEXIDevice
 		CMD_LOAD_SAVESTATE = 0xB2,
 		CMD_GET_MATCH_STATE = 0xB3,
 		CMD_FIND_OPPONENT = 0xB4,
-		CMD_MATCH_SELECTIONS = 0xB5,
+		CMD_SET_MATCH_SELECTIONS = 0xB5,
 	};
 
 	enum
@@ -99,6 +99,8 @@ class CEXISlippi : public IEXIDevice
 	    {CMD_CAPTURE_SAVESTATE, 32},
 	    {CMD_LOAD_SAVESTATE, 32},
 	    {CMD_GET_MATCH_STATE, 0},
+	    {CMD_FIND_OPPONENT, 0},
+	    {CMD_SET_MATCH_SELECTIONS, 6},
 	};
 
 	// Communication with Launcher
