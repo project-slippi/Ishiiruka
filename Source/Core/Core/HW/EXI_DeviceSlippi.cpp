@@ -1158,6 +1158,8 @@ void CEXISlippi::handleOnlineInputs(u8 *payload)
 			availableSavestates.push_back(std::make_unique<SlippiSavestate>());
 		}
 
+		// Reset character selections as they are no longer needed
+		localSelections.Reset();
 		slippi_netplay->StartSlippiGame();
 	}
 
@@ -1502,12 +1504,12 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 		case CMD_IS_FILE_READY:
 			prepareIsFileReady();
 			break;
-		case CMD_ONLINE_INPUTS:
-			handleOnlineInputs(&memPtr[bufLoc + 1]);
-			break;
 		case CMD_GET_GECKO_CODES:
 			m_read_queue.clear();
 			m_read_queue.insert(m_read_queue.begin(), geckoList.begin(), geckoList.end());
+			break;
+		case CMD_ONLINE_INPUTS:
+			handleOnlineInputs(&memPtr[bufLoc + 1]);
 			break;
 		case CMD_CAPTURE_SAVESTATE:
 			handleCaptureSavestate(&memPtr[bufLoc + 1]);

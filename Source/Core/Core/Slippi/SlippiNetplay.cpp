@@ -446,6 +446,9 @@ void SlippiNetplayClient::StartSlippiGame()
 		std::unique_ptr<SlippiPad> pad = std::make_unique<SlippiPad>(i);
 		remotePadQueue.push_front(std::move(pad));
 	}
+
+	// Reset match info for next game
+	matchInfo.Reset();
 }
 
 void SlippiNetplayClient::SendSlippiPad(std::unique_ptr<SlippiPad> pad)
