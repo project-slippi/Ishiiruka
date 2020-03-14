@@ -1408,6 +1408,16 @@ void CEXISlippi::prepareOnlineMatchState()
 		// Overwrite remote player character
 		onlineMatchBlock[0x60 + remotePlayerIndex * 0x24] = matchInfo->remotePlayerSelections.characterId;
 		onlineMatchBlock[0x63 + remotePlayerIndex * 0x24] = matchInfo->remotePlayerSelections.characterColor;
+
+		// Make one character lighter if same character, same color
+		bool charMatch = matchInfo->localPlayerSelections.characterId == matchInfo->remotePlayerSelections.characterId;
+		bool colMatch =
+		    matchInfo->localPlayerSelections.characterColor == matchInfo->remotePlayerSelections.characterColor;
+
+		if (charMatch && colMatch)
+		{
+			onlineMatchBlock[0x67 + remotePlayerIndex * 0x24] = 1;
+		}
 	}
 
 	m_read_queue.insert(m_read_queue.end(), onlineMatchBlock.begin(), onlineMatchBlock.end());
@@ -1424,12 +1434,12 @@ void CEXISlippi::setMatchSelections(u8 *payload)
 	s.stageId = Common::swap16(&payload[3]);
 	s.isStageSelected = payload[5];
 
-  localSelections.Merge(s);
+	localSelections.Merge(s);
 
-  if (slippi_netplay)
-  {
-	  slippi_netplay->SetMatchSelections(localSelections);
-  }
+	if (slippi_netplay)
+	{
+		slippi_netplay->SetMatchSelections(localSelections);
+	}
 }
 
 void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
