@@ -179,7 +179,8 @@ void SlippiMatchmaking::handleMatchmaking()
 	m_isHost = splitResp[1] == "true";
 
 	m_state = ProcessState::OPPONENT_CONNECTING;
-	ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Opponent found. IP: %s, isHost: %t", m_oppIp.c_str(), m_isHost);
+	ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Opponent found. IP: %s, isHost: %s", m_oppIp.c_str(),
+	          m_isHost ? "true" : "false");
 }
 
 void SlippiMatchmaking::handleConnecting()

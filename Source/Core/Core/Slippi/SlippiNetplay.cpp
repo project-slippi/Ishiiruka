@@ -65,7 +65,8 @@ SlippiNetplayClient::SlippiNetplayClient(const std::string &address, const u16 p
     , m_qos_flow_id(0)
 #endif
 {
-	INFO_LOG(SLIPPI_ONLINE, "Initializing Slippi Netplay with host: %s", isHost ? "true" : "false");
+	WARN_LOG(SLIPPI_ONLINE, "Initializing Slippi Netplay for ip: %s, port: %d, with host: %s", address.c_str(), port,
+	         isHost ? "true" : "false");
 	this->isHost = isHost;
 
 	// Direct Connection
@@ -125,7 +126,16 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet)
 		// Pad received, try to guess what our local time was when the frame was sent by our opponent
 		// We can compare this to when we sent a pad for last frame to figure out how far/behind we
 		// are with respect to the opponent
+		if (!lastFrameTiming)
+		{
+			// Handle case where opponent starts sending inputs before
+			lastFrameTiming = std::make_shared<FrameTiming>();
+			lastFrameTiming->frame = 0;
+			lastFrameTiming->timeUs = Common::Timer::GetTimeUs();
+		}
+
 		auto timing = lastFrameTiming;
+
 		u64 curTime = Common::Timer::GetTimeUs();
 		s64 opponentSendTimeUs = curTime - (pingUs / 2);
 		s64 frameDiffOffsetUs = 16683 * (timing->frame - frame);
