@@ -38,7 +38,8 @@ SlippiNetplayClient::~SlippiNetplayClient()
 	if (m_is_connected || isSlippiConnection)
 	{
 		m_do_loop.Clear();
-		if (m_thread.joinable()) m_thread.join();
+		if (m_thread.joinable())
+			m_thread.join();
 	}
 
 	if (m_server)
