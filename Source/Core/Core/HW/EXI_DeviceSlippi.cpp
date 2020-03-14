@@ -1375,8 +1375,8 @@ void CEXISlippi::prepareOnlineMatchState()
 	SlippiMatchmaking::ProcessState mmState = matchmaking->GetMatchmakeState();
 
 	// TEMP: Remove this
-	if (mmState != 0)
-		mmState = SlippiMatchmaking::ProcessState::CONNECTION_SUCCESS;
+	// if (mmState != 0)
+	//	mmState = SlippiMatchmaking::ProcessState::CONNECTION_SUCCESS;
 
 	m_read_queue.push_back(mmState); // Matchmaking State
 
@@ -1387,18 +1387,24 @@ void CEXISlippi::prepareOnlineMatchState()
 
 	if (mmState == SlippiMatchmaking::ProcessState::CONNECTION_SUCCESS)
 	{
-		// TODO: Does this work if it's called multiple times on a ptr that has already been moved?
-		// slippi_netplay = matchmaking->GetNetplayClient();
-		slippi_netplay = std::make_unique<SlippiNetplayClient>();
-		slippi_netplay->SetMatchSelections(localSelections);
+		if (!slippi_netplay)
+		{
+			slippi_netplay = matchmaking->GetNetplayClient();
+			// slippi_netplay = std::make_unique<SlippiNetplayClient>();
+			slippi_netplay->SetMatchSelections(localSelections);
+		}
 
 		auto matchInfo = slippi_netplay->GetMatchInfo();
-		// remotePlayerReady = matchInfo->remotePlayerSelections.isCharacterSelected;
-		remotePlayerReady = true;
+		remotePlayerReady = matchInfo->remotePlayerSelections.isCharacterSelected;
+		// remotePlayerReady = true;
 
 		auto isHost = slippi_netplay->IsHost();
 		localPlayerIndex = isHost ? 0 : 1;
 		remotePlayerIndex = isHost ? 1 : 0;
+	}
+	else
+	{
+		slippi_netplay = nullptr;
 	}
 
 	m_read_queue.push_back(localPlayerReady);  // Local player ready
@@ -1414,8 +1420,8 @@ void CEXISlippi::prepareOnlineMatchState()
 		onlineMatchBlock[0x60 + localPlayerIndex * 0x24] = matchInfo->localPlayerSelections.characterId;
 		onlineMatchBlock[0x63 + localPlayerIndex * 0x24] = matchInfo->localPlayerSelections.characterColor;
 
-		matchInfo->remotePlayerSelections.characterId = 0;
-		matchInfo->remotePlayerSelections.characterColor = 0;
+		// matchInfo->remotePlayerSelections.characterId = 0;
+		// matchInfo->remotePlayerSelections.characterColor = 0;
 
 		// Overwrite remote player character
 		onlineMatchBlock[0x60 + remotePlayerIndex * 0x24] = matchInfo->remotePlayerSelections.characterId;
