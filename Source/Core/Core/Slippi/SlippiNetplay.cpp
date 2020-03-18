@@ -208,7 +208,7 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet)
 			if (g_ActiveConfig.bShowNetPlayPing && frame % SLIPPI_PING_DISPLAY_INTERVAL == 0)
 			{
 				OSD::AddTypedMessage(OSD::MessageType::NetPlayPing, StringFromFormat("Ping: %u", pingUs / 1000),
-				                     OSD::Duration::SHORT, OSD::Color::CYAN);
+				                     OSD::Duration::NORMAL, OSD::Color::CYAN);
 			}
 			// Now we are going to clear out any potential old acks, these simply won't be used to get
 			// a ping
