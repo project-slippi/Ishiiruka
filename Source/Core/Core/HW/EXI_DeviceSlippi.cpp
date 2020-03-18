@@ -131,6 +131,8 @@ CEXISlippi::CEXISlippi()
 	// Loggers will check 5 bytes, make sure we own that memory
 	m_read_queue.reserve(5);
 
+	localSelections.Reset();
+
 	// Spawn thread for savestates
 	// maybe stick this into functions below so it doesn't always get spawned
 	// only spin off and join when a replay is loaded, delete after replay is done, etc
@@ -145,6 +147,8 @@ CEXISlippi::~CEXISlippi()
 	// would close the emulation before the file successfully finished writing
 	writeToFile(&empty[0], 0, "close");
 	resetPlayback();
+
+	localSelections.Reset();
 
 	// g_playback_status = SlippiPlaybackStatus::SlippiPlaybackStatus();
 }
@@ -1376,7 +1380,7 @@ void CEXISlippi::prepareOnlineMatchState()
 
 	// TEMP: Remove this
 	// if (mmState != 0)
-	//	mmState = SlippiMatchmaking::ProcessState::CONNECTION_SUCCESS;
+	// mmState = SlippiMatchmaking::ProcessState::CONNECTION_SUCCESS;
 
 	m_read_queue.push_back(mmState); // Matchmaking State
 
@@ -1420,8 +1424,8 @@ void CEXISlippi::prepareOnlineMatchState()
 		onlineMatchBlock[0x60 + localPlayerIndex * 0x24] = matchInfo->localPlayerSelections.characterId;
 		onlineMatchBlock[0x63 + localPlayerIndex * 0x24] = matchInfo->localPlayerSelections.characterColor;
 
-		// matchInfo->remotePlayerSelections.characterId = 0;
-		// matchInfo->remotePlayerSelections.characterColor = 0;
+		// matchInfo->remotePlayerSelections.characterId = 2;
+		// matchInfo->remotePlayerSelections.characterColor = 2;
 
 		// Overwrite remote player character
 		onlineMatchBlock[0x60 + remotePlayerIndex * 0x24] = matchInfo->remotePlayerSelections.characterId;
