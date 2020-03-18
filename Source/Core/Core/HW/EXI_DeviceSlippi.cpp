@@ -41,6 +41,8 @@
 #define FRAME_INTERVAL 900
 #define SLEEP_TIME_MS 8
 
+//#define LOCAL_TESTING
+
 int32_t emod(int32_t a, int32_t b)
 {
 	assert(b != 0);
@@ -1347,7 +1349,9 @@ void CEXISlippi::handleLoadSavestate(u8 *payload)
 
 void CEXISlippi::startFindMatch()
 {
+#ifndef LOCAL_TESTING
 	matchmaking->FindMatch();
+#endif
 }
 
 void CEXISlippi::prepareOnlineMatchState()
@@ -1378,9 +1382,10 @@ void CEXISlippi::prepareOnlineMatchState()
 
 	SlippiMatchmaking::ProcessState mmState = matchmaking->GetMatchmakeState();
 
-	// TEMP: Remove this
-	// if (mmState != 0)
-	// mmState = SlippiMatchmaking::ProcessState::CONNECTION_SUCCESS;
+#ifdef LOCAL_TESTING
+	if (mmState != 0)
+		mmState = SlippiMatchmaking::ProcessState::CONNECTION_SUCCESS;
+#endif
 
 	m_read_queue.push_back(mmState); // Matchmaking State
 
@@ -1393,14 +1398,21 @@ void CEXISlippi::prepareOnlineMatchState()
 	{
 		if (!slippi_netplay)
 		{
+#ifdef LOCAL_TESTING
+			slippi_netplay = std::make_unique<SlippiNetplayClient>();
+#else
 			slippi_netplay = matchmaking->GetNetplayClient();
-			// slippi_netplay = std::make_unique<SlippiNetplayClient>();
+#endif
+
 			slippi_netplay->SetMatchSelections(localSelections);
 		}
 
 		auto matchInfo = slippi_netplay->GetMatchInfo();
+#ifdef LOCAL_TESTING
+		remotePlayerReady = true;
+#else
 		remotePlayerReady = matchInfo->remotePlayerSelections.isCharacterSelected;
-		// remotePlayerReady = true;
+#endif
 
 		auto isHost = slippi_netplay->IsHost();
 		localPlayerIndex = isHost ? 0 : 1;
@@ -1424,8 +1436,10 @@ void CEXISlippi::prepareOnlineMatchState()
 		onlineMatchBlock[0x60 + localPlayerIndex * 0x24] = matchInfo->localPlayerSelections.characterId;
 		onlineMatchBlock[0x63 + localPlayerIndex * 0x24] = matchInfo->localPlayerSelections.characterColor;
 
-		// matchInfo->remotePlayerSelections.characterId = 2;
-		// matchInfo->remotePlayerSelections.characterColor = 2;
+#ifdef LOCAL_TESTING
+		matchInfo->remotePlayerSelections.characterId = 2;
+		matchInfo->remotePlayerSelections.characterColor = 2;
+#endif
 
 		// Overwrite remote player character
 		onlineMatchBlock[0x60 + remotePlayerIndex * 0x24] = matchInfo->remotePlayerSelections.characterId;
