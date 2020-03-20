@@ -25,7 +25,7 @@
 #define MELEE_HEAP_START 0x00bd5c40
 #define MELEE_HEAP_SIZE 0x5D7960
 
-#define ROLLBACK_MAX_FRAMES 5
+#define ROLLBACK_MAX_FRAMES 7
 
 // Acts
 class CEXISlippi : public IEXIDevice
@@ -68,6 +68,9 @@ class CEXISlippi : public IEXIDevice
 		CMD_GET_MATCH_STATE = 0xB3,
 		CMD_FIND_OPPONENT = 0xB4,
 		CMD_SET_MATCH_SELECTIONS = 0xB5,
+
+		// Misc
+		CMD_LOG_MESSAGE = 0xD0,
 	};
 
 	enum
@@ -101,6 +104,9 @@ class CEXISlippi : public IEXIDevice
 	    {CMD_GET_MATCH_STATE, 0},
 	    {CMD_FIND_OPPONENT, 0},
 	    {CMD_SET_MATCH_SELECTIONS, 6},
+
+	    // Misc
+	    {CMD_LOG_MESSAGE, 0xFFFF}, // Variable size... will only work if by itself
 	};
 
 	// Communication with Launcher

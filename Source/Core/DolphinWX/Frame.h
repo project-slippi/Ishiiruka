@@ -176,7 +176,7 @@ private:
 
 	wxTimer m_poll_hotkey_timer;
 	wxTimer m_handle_signal_timer;
-	slippiTimer *m_slippi_timer;
+	slippiTimer *m_slippi_timer = nullptr;
 	PlaybackSlider *seekBar = nullptr;
 	wxStaticText *seekBarText = nullptr;
 

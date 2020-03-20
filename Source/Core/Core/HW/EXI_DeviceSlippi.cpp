@@ -61,6 +61,8 @@ static std::atomic<int> numDiffsProcessing(0);
 
 extern std::unique_ptr<SlippiPlaybackStatus> g_playback_status;
 
+extern u64 g_BButtonPressTime;
+
 template <typename T> bool isFutureReady(std::future<T> &t)
 {
 	return t.wait_for(std::chrono::seconds(0)) == std::future_status::ready;
@@ -1193,7 +1195,7 @@ bool CEXISlippi::shouldSkipOnlineFrame(int32_t frame)
 	// Return true if we are too far ahead for rollback. 5 is the number of frames we can
 	// receive for the opponent at one time and is our "look-ahead" limit
 	int32_t latestRemoteFrame = slippi_netplay->GetSlippiLatestRemoteFrame();
-	if (frame - latestRemoteFrame >= ROLLBACK_MAX_FRAMES) // TODO: 5 is rollback amount, should be a variable
+	if (frame - latestRemoteFrame >= ROLLBACK_MAX_FRAMES)
 	{
 		WARN_LOG(SLIPPI_ONLINE, "Halting for one frame due to rollback limit (frame: %d | latest: %d)...", frame,
 		         latestRemoteFrame);
@@ -1383,7 +1385,7 @@ void CEXISlippi::prepareOnlineMatchState()
 	SlippiMatchmaking::ProcessState mmState = matchmaking->GetMatchmakeState();
 
 #ifdef LOCAL_TESTING
-	if (mmState != 0)
+	if (localSelections.isCharacterSelected)
 		mmState = SlippiMatchmaking::ProcessState::CONNECTION_SUCCESS;
 #endif
 
@@ -1550,6 +1552,18 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 		case CMD_SET_MATCH_SELECTIONS:
 			setMatchSelections(&memPtr[bufLoc + 1]);
 			break;
+		case CMD_LOG_MESSAGE:
+		{
+			ERROR_LOG(SLIPPI, "%s: %llu", (char *)&memPtr[bufLoc + 1], Common::Timer::GetTimeUs());
+
+			std::string logStr = std::string((char *)&memPtr[bufLoc + 1]);
+			if (logStr == "Shine start")
+			{
+				NOTICE_LOG(SLIPPI, "%llu", Common::Timer::GetTimeUs() - g_BButtonPressTime);
+			}
+
+			break;
+		}
 		default:
 			writeToFile(&memPtr[bufLoc], payloadLen + 1, "");
 			break;
