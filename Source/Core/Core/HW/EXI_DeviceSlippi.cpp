@@ -1167,21 +1167,11 @@ void CEXISlippi::prepareFrameData(u8 *payload)
 
 	// If loading from queue, move on to the next replay if we have past endFrame
 	auto watchSettings = g_replayComm->current;
-	if (frameIndex == watchSettings.startFrame)
-	{
-		std::cout << "[GAME_START]" << std::endl;
-	}
 
-	// This is exactly where the Game! text shows, not when the game really finishes.
-	// Should actually wait 114 frames to send the signal in order to be completely accurate.
-	if (frameIndex == watchSettings.endFrame - 124)
-	{
-		std::cout << "[GAME!]" << std::endl;
-	}
+	std::cout << "[CURRENT FRAME] " << frameIndex << std::endl;
 
 	if (frameIndex > watchSettings.endFrame)
 	{
-		std::cout << "[END_FRAME]" << std::endl;
 		INFO_LOG(SLIPPI, "Killing game because we are past endFrame");
 		m_read_queue.push_back(FRAME_RESP_TERMINATE);
 		return;
@@ -1407,6 +1397,12 @@ void CEXISlippi::prepareIsFileReady()
 		m_read_queue.push_back(0);
 		return;
 	}
+
+	auto lastFrame = m_current_game->GetFrameCount();
+	auto watchSettings = replayComm->current;
+	std::cout << "[PLAYBACK_START_FRAME] " << watchSettings.startFrame << std::endl;
+	std::cout << "[GAME_END_FRAME] " << lastFrame << std::endl;
+	std::cout << "[PLAYBACK_END_FRAME] " << watchSettings.endFrame << std::endl;
 
 	INFO_LOG(SLIPPI, "EXI_DeviceSlippi.cpp: Replay file loaded successfully!?");
 
