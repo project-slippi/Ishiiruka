@@ -346,7 +346,7 @@ void SlippiNetplayClient::ThreadFunc()
 
 		// Time out after enough time has passed
 		attemptCount++;
-		if (attemptCount >= 15 || !m_do_loop.IsSet())
+		if (attemptCount >= 10 || !m_do_loop.IsSet())
 		{
 			slippiConnectStatus = SlippiConnectStatus::NET_CONNECT_STATUS_FAILED;
 			INFO_LOG(SLIPPI_ONLINE, "Slippi online connection failed");
@@ -478,6 +478,11 @@ void SlippiNetplayClient::StartSlippiGame()
 
 void SlippiNetplayClient::SendSlippiPad(std::unique_ptr<SlippiPad> pad)
 {
+	if (slippiConnectStatus == SlippiConnectStatus::NET_CONNECT_STATUS_FAILED)
+	{
+		return;
+	}
+
 	// if (pad && isHost)
 	//{
 	//  ERROR_LOG(SLIPPI_ONLINE, "[%d] %X %X %X %X %X %X %X %X", pad->frame, pad->padBuf[0], pad->padBuf[1],

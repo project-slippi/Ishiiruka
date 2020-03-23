@@ -1565,7 +1565,7 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 			break;
 		}
 		default:
-			writeToFile(&memPtr[bufLoc], payloadLen + 1, "");
+			//writeToFile(&memPtr[bufLoc], payloadLen + 1, "");
 			break;
 		}
 
