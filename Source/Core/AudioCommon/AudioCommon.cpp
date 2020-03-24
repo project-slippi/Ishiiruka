@@ -217,6 +217,8 @@ void StartAudioDump()
 {
   std::string audio_file_name_dtk = File::GetUserPath(D_DUMPAUDIO_IDX) + "dtkdump.wav";
   std::string audio_file_name_dsp = File::GetUserPath(D_DUMPAUDIO_IDX) + "dspdump.wav";
+  if (!SConfig::GetInstance().m_strOutputFilenameBase.empty())
+    audio_file_name_dsp = SConfig::GetInstance().m_strOutputFilenameBase + ".wav";
   File::CreateFullPath(audio_file_name_dtk);
   File::CreateFullPath(audio_file_name_dsp);
   g_sound_stream->GetMixer()->StartLogDTKAudio(audio_file_name_dtk);

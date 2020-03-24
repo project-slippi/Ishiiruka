@@ -98,6 +98,9 @@ bool AVIDump::Start(int w, int h, bool fromBGRA)
 
 static std::string GetDumpPath(const std::string& format)
 {
+	if (!SConfig::GetInstance().m_strOutputFilenameBase.empty())
+		return SConfig::GetInstance().m_strOutputFilenameBase + "." + format;
+
 	if (!g_Config.sDumpPath.empty())
 		return g_Config.sDumpPath;
 
