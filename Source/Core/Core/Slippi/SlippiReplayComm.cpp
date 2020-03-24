@@ -84,8 +84,13 @@ bool SlippiReplayComm::isNewReplay()
 void SlippiReplayComm::nextReplay()
 {
 	if (commFileSettings.queue.empty())
+	{
+		if (!wasEmpty) std::cout << "[NO_GAME]" << std::endl;
+		wasEmpty = true;
 		return;
+	}
 
+	wasEmpty = false;
 	// Increment queue position
 	commFileSettings.queue.pop();
 }

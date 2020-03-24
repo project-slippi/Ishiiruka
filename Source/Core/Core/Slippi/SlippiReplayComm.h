@@ -59,6 +59,7 @@ class SlippiReplayComm
 	// Queue stuff
 	bool isFirstLoad = true;
 	bool provideNew = false;
+	bool wasEmpty = true;
 	int queuePos = 0;
 
 	CommSettings commFileSettings;
