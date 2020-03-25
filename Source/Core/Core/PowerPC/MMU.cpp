@@ -8,6 +8,7 @@
 #include "Common/BitSet.h"
 #include "Common/CommonTypes.h"
 
+#include "Core/Slippi/SlippiSavestate.h"
 #include "Core/ConfigManager.h"
 #include "Core/Core.h"
 #include "Core/HW/CPU.h"
@@ -15,6 +16,7 @@
 #include "Core/HW/Memmap.h"
 #include "Core/HW/MMIO.h"
 #include "Core/PowerPC/PowerPC.h"
+#include "Core/Debugger/Debugger_SymbolMap.h"
 
 #include "VideoCommon/VideoBackendBase.h"
 
@@ -451,6 +453,9 @@ u32 HostRead_Instruction(const u32 address)
 
 static __forceinline void Memcheck(u32 address, u32 var, bool write, int size)
 {
+  //*********************************************************************
+  //* Looking for heap writes?
+	//*********************************************************************
 	//if (!write || size != 4)
 	//{
 	//	return;
@@ -475,6 +480,66 @@ static __forceinline void Memcheck(u32 address, u32 var, bool write, int size)
  // visited[address] = true;
  // ERROR_LOG(SLIPPI_ONLINE, "%x (%s) %x -> %x", PC, PowerPC::debug_interface.GetDescription(PC).c_str(), address, var);
 
+  //*********************************************************************
+  //* Looking for sound memory
+  //*********************************************************************
+  static std::unordered_map<u32, bool> visited = {};
+  static std::unordered_map<std::string, bool> whitelist = {{"__AXOutAiCallback", true}};
+
+  static std::vector<SlippiSavestate::PreserveBlock> soundStuff = {
+	  //{0x804D7720, 0x4},    {0x804D774C, 0x4},    {0x804D775C, 0x4},    {0x804D77C8, 0x4},
+	  //{0x804D77D0, 0x4},    {0x804D7788, 0x10},   {0x804b09e0, 0x3000}, {0x804b89e0, 0x7E00},
+	  //{0x804c2c64, 0x1400}, {0x804c45a0, 0x1380}, {0x804C5920, 0x100},  {0x804a8d78, 0x1788},
+  };
+
+  	 if (!write)
+  {
+  	return;
+   }
+
+  if (visited.count(address))
+  {
+	  return;
+  }
+
+  visited[address] = true;
+
+  for (auto it = soundStuff.begin(); it != soundStuff.end(); ++it)
+  {
+    if (address >= it->address && address < it->address + it->length)
+    {
+		  return;
+    }
+  }
+
+  if ((address & 0xFF000000) == 0xcc000000)
+  {
+	  return;
+  }
+
+  std::vector<Dolphin_Debugger::CallstackEntry> callstack;
+  Dolphin_Debugger::GetCallstack(callstack);
+
+  bool isFound = false;
+  for (auto it = callstack.begin(); it != callstack.end(); ++it)
+  {
+	  std::string func = PowerPC::debug_interface.GetDescription(it->vAddress).c_str();
+	  if (whitelist.count(func))
+	  {
+		  isFound = true;
+		  break;
+	  }
+  }
+
+  if (!isFound)
+  {
+	  return;
+  }
+
+  NOTICE_LOG(MEMMAP, "(%s) %x (%s) | %x (%x) <-> %x", write ? "Write" : "Read", PC,
+	         PowerPC::debug_interface.GetDescription(PC).c_str(), var, size, address);
+
+  /*
 #ifdef ENABLE_MEM_CHECK
 	TMemCheck *mc = PowerPC::memchecks.GetMemCheck(address);
 	if (mc)
@@ -500,6 +565,7 @@ static __forceinline void Memcheck(u32 address, u32 var, bool write, int size)
 		}
 	}
 #endif
+  */
 }
 
 u8 Read_U8(const u32 address)
