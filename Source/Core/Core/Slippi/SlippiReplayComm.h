@@ -57,10 +57,7 @@ class SlippiReplayComm
 	u64 configLastLoadModTime;
 
 	// Queue stuff
-	bool isFirstLoad = true;
-	bool provideNew = false;
-	bool wasEmpty = true;
-	int queuePos = 0;
+	bool queueWasEmpty = true;
 
 	CommSettings commFileSettings;
 };

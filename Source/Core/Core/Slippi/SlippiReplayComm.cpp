@@ -85,12 +85,11 @@ void SlippiReplayComm::nextReplay()
 {
 	if (commFileSettings.queue.empty())
 	{
-		if (!wasEmpty) std::cout << "[NO_GAME]" << std::endl;
-		wasEmpty = true;
+		if (!queueWasEmpty) std::cout << "[NO_GAME]" << std::endl;
+		queueWasEmpty = true;
 		return;
 	}
 
-	wasEmpty = false;
 	// Increment queue position
 	commFileSettings.queue.pop();
 }
@@ -200,7 +199,7 @@ void SlippiReplayComm::loadFile()
 	commFileSettings.isRealTimeMode = res.value("isRealTimeMode", false);
 	commFileSettings.rollbackDisplayMethod = res.value("rollbackDisplayMethod", "off");
 
-	if (isFirstLoad)
+	if (commFileSettings.mode == "queue")
 	{
 		auto queue = res["queue"];
 		if (queue.is_array())
@@ -219,8 +218,8 @@ void SlippiReplayComm::loadFile()
 
 				commFileSettings.queue.push(w);
 			};
-		}
 
-		isFirstLoad = false;
+			queueWasEmpty = false;
+		}
 	}
 }
