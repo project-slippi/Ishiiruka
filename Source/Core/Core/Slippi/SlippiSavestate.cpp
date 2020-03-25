@@ -43,7 +43,7 @@ SlippiSavestate::SlippiSavestate()
 	u8 *ptr = nullptr;
 	PointerWrap p(&ptr, PointerWrap::MODE_MEASURE);
 
-	captureDolphinState(p);
+	getDolphinState(p);
 	const size_t buffer_size = reinterpret_cast<size_t>(ptr);
 	dolphinSsBackup.resize(buffer_size);
 
@@ -61,7 +61,7 @@ SlippiSavestate::~SlippiSavestate()
 	}
 }
 
-void SlippiSavestate::captureDolphinState(PointerWrap &p)
+void SlippiSavestate::getDolphinState(PointerWrap &p)
 {
 	// p.DoArray(Memory::m_pRAM, Memory::RAM_SIZE);
 	// p.DoMarker("Memory");
@@ -79,8 +79,8 @@ void SlippiSavestate::captureDolphinState(PointerWrap &p)
 	// p.DoMarker("GPFifo");
 	ExpansionInterface::DoState(p);
 	p.DoMarker("ExpansionInterface");
-	AudioInterface::DoState(p);
-	p.DoMarker("AudioInterface");
+	// AudioInterface::DoState(p);
+	// p.DoMarker("AudioInterface");
 }
 
 void SlippiSavestate::Capture()
@@ -103,7 +103,7 @@ void SlippiSavestate::Capture()
 	// Second copy dolphin states
 	u8 *ptr = &dolphinSsBackup[0];
 	PointerWrap p(&ptr, PointerWrap::MODE_WRITE);
-	captureDolphinState(p);
+	getDolphinState(p);
 }
 
 void SlippiSavestate::Load(std::vector<PreserveBlock> blocks)
@@ -152,6 +152,8 @@ void SlippiSavestate::Load(std::vector<PreserveBlock> blocks)
 	// }
 
 	static std::vector<PreserveBlock> soundStuff = {
+	    {0x804D7720, 0x4},
+	    {0x804D774C, 0x4},
 	    {0x804D775C, 0x4},
 	    {0x804D77C8, 0x4},
 	    {0x804D77D0, 0x4},
@@ -160,6 +162,7 @@ void SlippiSavestate::Load(std::vector<PreserveBlock> blocks)
 	    {0x804b89e0, 0x7E00},
 	    {0x804c2c64, 0x1400},
 	    {0x804c45a0, 0x1380},
+	    {0x804C5920, 0x100},
 	    {0x804a8d78, 0x1788},
 	};
 
@@ -196,7 +199,7 @@ void SlippiSavestate::Load(std::vector<PreserveBlock> blocks)
 	// Restore audio
 	u8 *ptr = &dolphinSsBackup[0];
 	PointerWrap p(&ptr, PointerWrap::MODE_READ);
-	captureDolphinState(p);
+	getDolphinState(p);
 
 	// Restore
 	for (auto it = blocks.begin(); it != blocks.end(); ++it)

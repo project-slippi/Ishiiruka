@@ -37,23 +37,14 @@ class SlippiSavestate
 
 	// These are the game locations to back up and restore
 	std::vector<ssBackupLoc> backupLocs = {
-	    //{0x8046b6a0, 0x8046DB68, NULL}, // Game info block
-	    //{0x80453080, 0x80456AC0, NULL}, // Static character blocks
-
 	    {0x80bd5c40, 0x811AD5A0, NULL}, // Heap
 	    {0x80005520, 0x80005940, NULL}, // Data Sections 0 and 1
 	    {0x803b7240, 0x804DEC00, NULL}, // Data Sections 2-7 and in between sections including BSS
-
-	    // Vin suggested preserving 804b89e0 (7E00) and 804b09e0 (3000)
-	    //{0x803b7240, 0x804b09e0, NULL},
-	    //{0x804B39E0, 0x804b89e0, NULL},
-	    //{0x804C07E0, 0x804DEC00, NULL},
 
 	    // https://docs.google.com/spreadsheets/d/1IBeM_YPFEzWAyC0SEz5hbFUi7W9pCAx7QRh9hkEZx_w/edit#gid=702784062
 	    //{0x8065CC00, 0x8065DC00, NULL}, // Write MemLog Unknown Section while in game (plus lots of padding)
 
 	    {0x804fec00, 0x80BD5C40, NULL}, // Full Unknown Region
-	    //{0x811AD5A0, 0x64B520, NULL}, // Unknown Region 2
 	};
 
   typedef struct
@@ -153,5 +144,5 @@ class SlippiSavestate
 
 	u32 origAlarmPtr;
 
-	void captureDolphinState(PointerWrap &p);
+	void getDolphinState(PointerWrap &p);
 };
