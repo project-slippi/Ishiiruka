@@ -1167,8 +1167,12 @@ void CEXISlippi::prepareFrameData(u8 *payload)
 
 	// If loading from queue, move on to the next replay if we have past endFrame
 	auto watchSettings = g_replayComm->current;
-
-	std::cout << "[CURRENT_FRAME] " << frameIndex << std::endl;
+	if (watchSettings.startFrame == frameIndex)
+		startFrameOutput = true;
+	if (startFrameOutput)
+		std::cout << "[CURRENT_FRAME] " << frameIndex << std::endl;
+	if (watchSettings.endFrame == frameIndex)
+		startFrameOutput = false;
 
 	if (frameIndex > watchSettings.endFrame)
 	{
@@ -1265,7 +1269,6 @@ void CEXISlippi::prepareFrameData(u8 *payload)
 
 		if (requestResultCode == FRAME_RESP_TERMINATE)
 		{
-			std::cout << "[LRAS]" << std::endl;
 			ERROR_LOG(EXPANSIONINTERFACE, "Game should terminate on frame %d [%X]", frameIndex, frameIndex);
 		}
 

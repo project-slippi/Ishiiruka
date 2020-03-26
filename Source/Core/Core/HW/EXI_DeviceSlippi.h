@@ -121,6 +121,9 @@ class CEXISlippi : public IEXIDevice
 	// .slp File creation stuff
 	u32 writtenByteCount = 0;
 
+	//cout stuff
+	bool startFrameOutput = false;
+
 	// vars for metadata generation
 	time_t gameStartTime;
 	s32 lastFrame;
