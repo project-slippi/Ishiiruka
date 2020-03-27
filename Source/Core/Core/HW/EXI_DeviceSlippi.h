@@ -109,6 +109,12 @@ class CEXISlippi : public IEXIDevice
 	    {CMD_LOG_MESSAGE, 0xFFFF}, // Variable size... will only work if by itself
 	};
 
+	struct WriteMessage
+	{
+		std::vector<u8> data;
+		std::string operation;
+	};
+
 	// Communication with Launcher
 	SlippiReplayComm *replayComm;
 
@@ -122,7 +128,8 @@ class CEXISlippi : public IEXIDevice
 
 	void updateMetadataFields(u8 *payload, u32 length);
 	void configureCommands(u8 *payload, u8 length);
-	void writeToFile(u8 *payload, u32 length, std::string fileOption);
+	void writeToFileAsync(u8 *payload, u32 length, std::string fileOption);
+	void writeToFile(std::unique_ptr<WriteMessage> msg);
 	std::vector<u8> generateMetadata();
 	void createNewFile();
 	void closeFile();
@@ -161,6 +168,11 @@ class CEXISlippi : public IEXIDevice
 
 	void SavestateThread(void);
 	void SeekThread(void);
+	void FileWriteThread(void);
+
+	std::deque<std::unique_ptr<WriteMessage>> fileWriteQueue;
+	bool writeThreadRunning = false;
+	std::thread m_fileWriteThread;
 
 	std::unordered_map<int32_t, std::shared_future<std::string>>
 	    futureDiffs;        // State diffs keyed by frameIndex, processed async

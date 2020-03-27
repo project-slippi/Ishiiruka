@@ -41,7 +41,7 @@
 #define FRAME_INTERVAL 900
 #define SLEEP_TIME_MS 8
 
-//#define LOCAL_TESTING
+#define LOCAL_TESTING
 
 int32_t emod(int32_t a, int32_t b)
 {
@@ -149,7 +149,14 @@ CEXISlippi::~CEXISlippi()
 	// Closes file gracefully to prevent file corruption when emulation
 	// suddenly stops. This would happen often on netplay when the opponent
 	// would close the emulation before the file successfully finished writing
-	writeToFile(&empty[0], 0, "close");
+	writeToFileAsync(&empty[0], 0, "close");
+	writeThreadRunning = false;
+	if (m_fileWriteThread.joinable())
+	{
+		m_fileWriteThread.join();
+	}
+
+	// Resets seek threads
 	resetPlayback();
 
 	localSelections.Reset();
@@ -288,8 +295,52 @@ std::vector<u8> CEXISlippi::generateMetadata()
 	return metadata;
 }
 
-void CEXISlippi::writeToFile(u8 *payload, u32 length, std::string fileOption)
+void CEXISlippi::writeToFileAsync(u8 *payload, u32 length, std::string fileOption)
 {
+	if (fileOption == "create" && !writeThreadRunning)
+	{
+		WARN_LOG(SLIPPI, "Creating file write thread...");
+		writeThreadRunning = true;
+		m_fileWriteThread = std::thread(&CEXISlippi::FileWriteThread, this);
+	}
+
+	if (!writeThreadRunning)
+	{
+		return;
+	}
+
+	std::vector<u8> payloadData;
+	payloadData.insert(payloadData.end(), payload, payload + length);
+
+	auto writeMsg = std::make_unique<WriteMessage>();
+	writeMsg->data = payloadData;
+	writeMsg->operation = fileOption;
+
+	fileWriteQueue.push_back(std::move(writeMsg));
+}
+
+void CEXISlippi::FileWriteThread(void)
+{
+	while (writeThreadRunning || !fileWriteQueue.empty())
+	{
+		WARN_LOG(SLIPPI, "Write thread processing %d messages...", fileWriteQueue.size());
+		// Process all messages
+		while (!fileWriteQueue.empty())
+		{
+			writeToFile(std::move(fileWriteQueue.front()));
+			fileWriteQueue.pop_front();
+		}
+
+		Common::SleepCurrentThread(150);
+	}
+}
+
+void CEXISlippi::writeToFile(std::unique_ptr<WriteMessage> msg)
+{
+	u8 *payload = &msg->data[0];
+	u32 length = (u32)msg->data.size();
+	std::string fileOption = msg->operation;
+
 	std::vector<u8> dataToWrite;
 	if (fileOption == "create")
 	{
@@ -562,7 +613,8 @@ void CEXISlippi::prepareGeckoList()
 	    0x37, 0x27, 0x00, 0x00, 0x43, 0x30, 0x00, 0x00, 0x3F, 0x80, 0x00, 0x00, 0xBF, 0x4C, 0xCC, 0xCD, 0x43, 0x30,
 	    0x00, 0x00, 0x80, 0x00, 0x00, 0x00, 0x7F, 0xC3, 0xF3, 0x78, 0x7F, 0xE4, 0xFB, 0x78, 0xBA, 0x81, 0x00, 0x08,
 	    0x80, 0x01, 0x00, 0xB4, 0x38, 0x21, 0x00, 0xB0, 0x7C, 0x08, 0x03, 0xA6, 0x60, 0x00, 0x00, 0x00, 0x00, 0x00,
-	    0x00, 0x00, 0xC2, 0x16, 0xE7, 0x50, 0x00, 0x00, 0x00, 0x33, // #Common/StaticPatches/ToggledStaticOverwrites.asm
+	    0x00, 0x00, 0xC2, 0x16, 0xE7, 0x50, 0x00, 0x00, 0x00,
+	    0x33, // #Common/StaticPatches/ToggledStaticOverwrites.asm
 	    0x88, 0x62, 0xF2, 0x34, 0x2C, 0x03, 0x00, 0x00, 0x41, 0x82, 0x00, 0x14, 0x48, 0x00, 0x00, 0x75, 0x7C, 0x68,
 	    0x02, 0xA6, 0x48, 0x00, 0x01, 0x3D, 0x48, 0x00, 0x00, 0x14, 0x48, 0x00, 0x00, 0x95, 0x7C, 0x68, 0x02, 0xA6,
 	    0x48, 0x00, 0x01, 0x2D, 0x48, 0x00, 0x00, 0x04, 0x88, 0x62, 0xF2, 0x38, 0x2C, 0x03, 0x00, 0x00, 0x41, 0x82,
@@ -750,10 +802,10 @@ void CEXISlippi::prepareGeckoList()
 	     true}, // External/Widescreen/Adjust Offscreen Scissor/Fix Bubble Positions/Adjust Corner Value 1.asm
 	    {0x804ddb34,
 	     true}, // External/Widescreen/Adjust Offscreen Scissor/Fix Bubble Positions/Adjust Corner Value 2.asm
-	    {0x804ddb2c,
-	     true}, // External/Widescreen/Adjust Offscreen Scissor/Fix Bubble Positions/Extend Negative Vertical Bound.asm
-	    {0x804ddb28,
-	     true}, // External/Widescreen/Adjust Offscreen Scissor/Fix Bubble Positions/Extend Positive Vertical Bound.asm
+	    {0x804ddb2c, true}, // External/Widescreen/Adjust Offscreen Scissor/Fix Bubble Positions/Extend Negative
+	                        // Vertical Bound.asm
+	    {0x804ddb28, true}, // External/Widescreen/Adjust Offscreen Scissor/Fix Bubble Positions/Extend Positive
+	                        // Vertical Bound.asm
 	    {0x804ddb4c, true}, // External/Widescreen/Adjust Offscreen Scissor/Fix Bubble Positions/Widen Bubble Region.asm
 	    {0x804ddb58, true}, // External/Widescreen/Adjust Offscreen Scissor/Adjust Bubble Zoom.asm
 	    {0x80086b24, true}, // External/Widescreen/Adjust Offscreen Scissor/Draw High Poly Models.asm
@@ -844,7 +896,8 @@ void CEXISlippi::prepareCharacterFrameData(int32_t frameIndex, u8 port, u8 isFol
 	// Get data for this player
 	Slippi::PlayerFrameData data = source[port];
 
-	// log << frameIndex << "\t" << port << "\t" << data.locationX << "\t" << data.locationY << "\t" << data.animation
+	// log << frameIndex << "\t" << port << "\t" << data.locationX << "\t" << data.locationY << "\t" <<
+	// data.animation
 	// << "\n";
 
 	// WARN_LOG(EXPANSIONINTERFACE, "[Frame %d] [Player %d] Positions: %f | %f", frameIndex, port, data.locationX,
@@ -1489,7 +1542,7 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 		time(&gameStartTime); // Store game start time
 		u8 receiveCommandsLen = memPtr[1];
 		configureCommands(&memPtr[1], receiveCommandsLen);
-		writeToFile(&memPtr[0], receiveCommandsLen + 1, "create");
+		writeToFileAsync(&memPtr[0], receiveCommandsLen + 1, "create");
 		bufLoc += receiveCommandsLen + 1;
 	}
 
@@ -1511,8 +1564,7 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 		switch (byte)
 		{
 		case CMD_RECEIVE_GAME_END:
-			writeToFile(&memPtr[bufLoc], payloadLen + 1, "close");
-
+			writeToFileAsync(&memPtr[bufLoc], payloadLen + 1, "close");
 			break;
 		case CMD_PREPARE_REPLAY:
 			// log.open("log.txt");
@@ -1565,7 +1617,7 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 			break;
 		}
 		default:
-			//writeToFile(&memPtr[bufLoc], payloadLen + 1, "");
+			writeToFileAsync(&memPtr[bufLoc], payloadLen + 1, "");
 			break;
 		}
 
