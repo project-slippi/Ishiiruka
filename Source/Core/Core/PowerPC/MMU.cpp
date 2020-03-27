@@ -480,22 +480,88 @@ static __forceinline void Memcheck(u32 address, u32 var, bool write, int size)
  // visited[address] = true;
  // ERROR_LOG(SLIPPI_ONLINE, "%x (%s) %x -> %x", PC, PowerPC::debug_interface.GetDescription(PC).c_str(), address, var);
 
-  //*********************************************************************
+	//*********************************************************************
   //* Looking for sound memory
   //*********************************************************************
+  /*
   static std::unordered_map<u32, bool> visited = {};
-  static std::unordered_map<std::string, bool> whitelist = {{"__AXOutAiCallback", true}};
-
-  static std::vector<SlippiSavestate::PreserveBlock> soundStuff = {
-	  //{0x804D7720, 0x4},    {0x804D774C, 0x4},    {0x804D775C, 0x4},    {0x804D77C8, 0x4},
-	  //{0x804D77D0, 0x4},    {0x804D7788, 0x10},   {0x804b09e0, 0x3000}, {0x804b89e0, 0x7E00},
-	  //{0x804c2c64, 0x1400}, {0x804c45a0, 0x1380}, {0x804C5920, 0x100},  {0x804a8d78, 0x1788},
+  static std::unordered_map<std::string, bool> whitelist = {
+	  //{"__AIDHandler", true},      // lol
+	  //{"__AXOutAiCallback", true}, // lol
+	  //{"__AXOutNewFrame", true},   // lol
+	  //{"__AXSyncPBs", true},       // lol
+	  //{"SFX_PlaySFX", true},       // lol
+	  {"__DSPHandler", true},
   };
 
-  	 if (!write)
+  static std::vector<SlippiSavestate::PreserveBlock> soundStuff = {
+	  {0x804dec00, 0x10000}, // Stack
+
+	  {0x804D7720, 0x4},
+	  {0x804D774C, 0x4},
+	  {0x804D775C, 0x4},
+	  {0x804D77C8, 0x4},
+	  {0x804D77D0, 0x4},
+	  {0x804D7788, 0x10},
+	  {0x804b09e0, 0x3000},
+	  {0x804b89e0, 0x7E00},
+	  {0x804c2c64, 0x1400},
+	  {0x804c45a0, 0x1380},
+	  {0x804C5920, 0x100},
+	  {0x804a8d78, 0x1788},
+
+	  {0x804abb82, 0x34},
+	  {0x804abe82, 0x34},
+	  {0x804D752C, 0xC}, // __AXNextFrame
+	  {0x804b09a0, 0x40},
+	  {0x804D7558, 0x24}, // __AXPrintStudio
+	  {0x804D7580, 0xC},  // __AXSyncPBs
+	  {0x80441064, 0x11A80},
+	  {0x804c6240, 0x3C},
+	  {0x804aa500, 0x1680}, // AXFXDelayCallback
+	  {0x80433c64, 0xD400},
+	  {0x804c5e00, 0x240}, // HandleReverb
+	  {0x80407fb4, 0x28},
+	  {0x804a8458, 0x238},
+	  {0x804abb80, 0x2},
+	  {0x804abe80, 0x2}, // __AXNextFrame
+	  {0x804ac900, 0x34},
+	  {0x804b4960, 0x40},
+	  {0x804C4064, 0x54C},
+	  {0x804d7508, 0x34},
+	  {0x804d7750, 0x4},   // aaa
+	  {0x804B39E0, 0xF80}, // Gap
+	  {0x804D753C, 0x4},   // Temp
+
+	  // Temp from reads
+	  {0x804031a0, 0x24}, // __AXSyncPBs
+	  {0x804d7474, 0x8},  // __AIDHandler
+	  {0x804d74f0, 0x18}, // __AXPopCallbackStack and __AXProcessAux
+	  {0x804d7548, 0x4},  // __AXOutNewFrame
+	  {0x804d759c, 0x4},  // __AXGetCurrentProfile
+	  {0x804de3c8, 0xC},  // HandleReverb
+	  {0x804de800, 0x70}, // zz_038a000_, zz_038bf6c_, zz_038cc1c_
+	  {0x80408250, 0xB0}, // zz_038c6c0_
+	  {0x804d7744, 0x4},  // zz_038abd4_
+	  {0x804d7758, 0x4},  // zz_038a000_
+	  {0x804d77e0, 0x4},  // zz_038cc1c_
+	  {0x804de358, 0x4},  // AXSetVoiceSrcRatio
+  };
+
+  auto majorScene = ReadFromHardware<FLAG_READ, u8>(0x80479d30);
+  if (majorScene != 0x8)
   {
-  	return;
-   }
+	  return;
+  }
+
+  if (address >= 0x804dec00)
+  {
+	  return;
+  }
+  //if (!write)
+  //{
+  //	return;
+  //}
 
   if (visited.count(address))
   {
@@ -506,10 +572,10 @@ static __forceinline void Memcheck(u32 address, u32 var, bool write, int size)
 
   for (auto it = soundStuff.begin(); it != soundStuff.end(); ++it)
   {
-    if (address >= it->address && address < it->address + it->length)
-    {
-		  return;
-    }
+	  if (address >= it->address && address < it->address + it->length)
+	  {
+	      return;
+	  }
   }
 
   if ((address & 0xFF000000) == 0xcc000000)
@@ -526,8 +592,8 @@ static __forceinline void Memcheck(u32 address, u32 var, bool write, int size)
 	  std::string func = PowerPC::debug_interface.GetDescription(it->vAddress).c_str();
 	  if (whitelist.count(func))
 	  {
-		  isFound = true;
-		  break;
+	      isFound = true;
+	      break;
 	  }
   }
 
@@ -538,6 +604,7 @@ static __forceinline void Memcheck(u32 address, u32 var, bool write, int size)
 
   NOTICE_LOG(MEMMAP, "(%s) %x (%s) | %x (%x) <-> %x", write ? "Write" : "Read", PC,
 	         PowerPC::debug_interface.GetDescription(PC).c_str(), var, size, address);
+  */
 
   /*
 #ifdef ENABLE_MEM_CHECK
