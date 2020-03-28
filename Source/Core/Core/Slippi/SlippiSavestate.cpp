@@ -153,10 +153,8 @@ void SlippiSavestate::Load(std::vector<PreserveBlock> blocks)
 
 	static std::vector<PreserveBlock> soundStuff = {
 	    {0x804031A0, 0x24},    // [804031A0 - 804031C4)
-	    {0x80407FB4, 0x28},    // [80407FB4 - 80407FDC)
-	    {0x80408250, 0xB0},    // [80408250 - 80408300)
+	    {0x80407FB4, 0x34C},   // [80407FB4 - 80408300)
 	    {0x80433C64, 0x1EE80}, // [80433C64 - 80452AE4)
-	    {0x804A8458, 0x238},   // [804A8458 - 804A8690)
 	    {0x804A8D78, 0x17A68}, // [804A8D78 - 804C07E0)
 	    {0x804C28E0, 0x399C},  // [804C28E0 - 804C627C)
 	    {0x804D7474, 0x8},     // [804D7474 - 804D747C)
