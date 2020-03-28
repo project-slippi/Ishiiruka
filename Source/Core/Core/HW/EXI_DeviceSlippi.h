@@ -22,9 +22,6 @@
 #include "Core/Slippi/SlippiReplayComm.h"
 #include "Core/Slippi/SlippiSavestate.h"
 
-#define MELEE_HEAP_START 0x00bd5c40
-#define MELEE_HEAP_SIZE 0x5D7960
-
 #define ROLLBACK_MAX_FRAMES 7
 
 // Acts
@@ -170,7 +167,7 @@ class CEXISlippi : public IEXIDevice
 	void SeekThread(void);
 	void FileWriteThread(void);
 
-	std::deque<std::unique_ptr<WriteMessage>> fileWriteQueue;
+	Common::FifoQueue<std::unique_ptr<WriteMessage>, false> fileWriteQueue;
 	bool writeThreadRunning = false;
 	std::thread m_fileWriteThread;
 

@@ -40,8 +40,9 @@
 
 #define FRAME_INTERVAL 900
 #define SLEEP_TIME_MS 8
+#define WRITE_FILE_SLEEP_TIME_MS 85
 
-#define LOCAL_TESTING
+//#define LOCAL_TESTING
 
 int32_t emod(int32_t a, int32_t b)
 {
@@ -316,27 +317,34 @@ void CEXISlippi::writeToFileAsync(u8 *payload, u32 length, std::string fileOptio
 	writeMsg->data = payloadData;
 	writeMsg->operation = fileOption;
 
-	fileWriteQueue.push_back(std::move(writeMsg));
+	fileWriteQueue.Push(std::move(writeMsg));
 }
 
 void CEXISlippi::FileWriteThread(void)
 {
-	while (writeThreadRunning || !fileWriteQueue.empty())
+	while (writeThreadRunning || !fileWriteQueue.Empty())
 	{
-		WARN_LOG(SLIPPI, "Write thread processing %d messages...", fileWriteQueue.size());
 		// Process all messages
-		while (!fileWriteQueue.empty())
+		while (!fileWriteQueue.Empty())
 		{
-			writeToFile(std::move(fileWriteQueue.front()));
-			fileWriteQueue.pop_front();
+			writeToFile(std::move(fileWriteQueue.Front()));
+			fileWriteQueue.Pop();
+
+			Common::SleepCurrentThread(0);
 		}
 
-		Common::SleepCurrentThread(150);
+		Common::SleepCurrentThread(WRITE_FILE_SLEEP_TIME_MS);
 	}
 }
 
 void CEXISlippi::writeToFile(std::unique_ptr<WriteMessage> msg)
 {
+	if (!msg)
+	{
+		ERROR_LOG(SLIPPI, "Unexpected error: write message is falsy.");
+		return;
+	}
+
 	u8 *payload = &msg->data[0];
 	u32 length = (u32)msg->data.size();
 	std::string fileOption = msg->operation;
