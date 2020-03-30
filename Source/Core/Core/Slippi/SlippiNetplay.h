@@ -45,6 +45,8 @@ class SlippiPlayerSelections
 	u16 stageId;
 	bool isStageSelected;
 
+	u32 rngOffset;
+
 	void Merge(SlippiPlayerSelections &s)
 	{
 		if (s.isCharacterSelected)
@@ -59,6 +61,8 @@ class SlippiPlayerSelections
 			this->stageId = s.stageId;
 			this->isStageSelected = true;
 		}
+
+		this->rngOffset = s.rngOffset;
 	}
 
 	void Reset()
@@ -69,6 +73,8 @@ class SlippiPlayerSelections
 
 		stageId = 0;
 		isStageSelected = false;
+
+		rngOffset = 0;
 	}
 };
 

@@ -140,6 +140,7 @@ class CEXISlippi : public IEXIDevice
 	std::vector<u8> m_payload;
 
 	// online play stuff
+	void initRngSeed();
 	u16 getRandomStage();
 	void handleOnlineInputs(u8 *payload);
 	void prepareOpponentInputs(u8 *payload);

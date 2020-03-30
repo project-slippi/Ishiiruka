@@ -1489,27 +1489,30 @@ void CEXISlippi::prepareOnlineMatchState()
 	m_read_queue.push_back(localPlayerIndex);  // Local player index
 	m_read_queue.push_back(remotePlayerIndex); // Remote player index
 
+	u32 rngOffset = 0;
+
 	if (localPlayerReady && remotePlayerReady)
 	{
 		auto matchInfo = slippi_netplay->GetMatchInfo();
+		SlippiPlayerSelections lps = matchInfo->localPlayerSelections;
+		SlippiPlayerSelections rps = matchInfo->remotePlayerSelections;
 
 		// Overwrite local player character
-		onlineMatchBlock[0x60 + localPlayerIndex * 0x24] = matchInfo->localPlayerSelections.characterId;
-		onlineMatchBlock[0x63 + localPlayerIndex * 0x24] = matchInfo->localPlayerSelections.characterColor;
+		onlineMatchBlock[0x60 + localPlayerIndex * 0x24] = lps.characterId;
+		onlineMatchBlock[0x63 + localPlayerIndex * 0x24] = lps.characterColor;
 
 #ifdef LOCAL_TESTING
-		matchInfo->remotePlayerSelections.characterId = 2;
-		matchInfo->remotePlayerSelections.characterColor = 2;
+		rps.characterId = 2;
+		rps.characterColor = 2;
 #endif
 
 		// Overwrite remote player character
-		onlineMatchBlock[0x60 + remotePlayerIndex * 0x24] = matchInfo->remotePlayerSelections.characterId;
-		onlineMatchBlock[0x63 + remotePlayerIndex * 0x24] = matchInfo->remotePlayerSelections.characterColor;
+		onlineMatchBlock[0x60 + remotePlayerIndex * 0x24] = rps.characterId;
+		onlineMatchBlock[0x63 + remotePlayerIndex * 0x24] = rps.characterColor;
 
 		// Make one character lighter if same character, same color
-		bool charMatch = matchInfo->localPlayerSelections.characterId == matchInfo->remotePlayerSelections.characterId;
-		bool colMatch =
-		    matchInfo->localPlayerSelections.characterColor == matchInfo->remotePlayerSelections.characterColor;
+		bool charMatch = lps.characterId == rps.characterId;
+		bool colMatch = lps.characterColor == rps.characterColor;
 
 		onlineMatchBlock[0x67 + 0x24] = charMatch && colMatch ? 1 : 0;
 
@@ -1517,20 +1520,37 @@ void CEXISlippi::prepareOnlineMatchState()
 		u16 stageId;
 		if (slippi_netplay->IsHost())
 		{
-			stageId = matchInfo->localPlayerSelections.isStageSelected ? matchInfo->localPlayerSelections.stageId
-			                                                           : matchInfo->remotePlayerSelections.stageId;
+			stageId = lps.isStageSelected ? lps.stageId : rps.stageId;
 		}
 		else
 		{
-			stageId = matchInfo->remotePlayerSelections.isStageSelected ? matchInfo->remotePlayerSelections.stageId
-			                                                            : matchInfo->localPlayerSelections.stageId;
+			stageId = rps.isStageSelected ? rps.stageId : lps.stageId;
 		}
 
 		u16 *stage = (u16 *)&onlineMatchBlock[0xE];
 		*stage = Common::swap16(stageId);
+
+		// Set rng offset
+		rngOffset = slippi_netplay->IsHost() ? lps.rngOffset : rps.rngOffset;
 	}
 
+	// Add rng offset to output
+	appendWordToBuffer(&m_read_queue, rngOffset);
+
+	// Add the match struct block to output
 	m_read_queue.insert(m_read_queue.end(), onlineMatchBlock.begin(), onlineMatchBlock.end());
+}
+
+void CEXISlippi::initRngSeed()
+{
+	// Initialize rand seed once for random stage selection. For some reason running this in the
+	// constructor didn't work...
+	static bool isSeeded = false;
+	if (!isSeeded)
+	{
+		srand((u32)time(nullptr));
+		isSeeded = true;
+	}
 }
 
 u16 CEXISlippi::getRandomStage()
@@ -1544,15 +1564,6 @@ u16 CEXISlippi::getRandomStage()
 	    0x20, // Final Destination
 	};
 
-	// Initialize rand seed once for random stage selection. For some reason running this in the
-	// constructor didn't work...
-	static bool isSeeded = false;
-	if (!isSeeded)
-	{
-		srand((u32)time(nullptr));
-		isSeeded = true;
-	}
-
 	// Get random stage
 	int randIndex = rand() % stages.size();
 	return stages[randIndex];
@@ -1561,6 +1572,8 @@ u16 CEXISlippi::getRandomStage()
 void CEXISlippi::setMatchSelections(u8 *payload)
 {
 	SlippiPlayerSelections s;
+
+	initRngSeed();
 
 	s.characterId = payload[0];
 	s.characterColor = payload[1];
@@ -1575,6 +1588,9 @@ void CEXISlippi::setMatchSelections(u8 *payload)
 		s.stageId = getRandomStage();
 		s.isStageSelected = true;
 	}
+
+	s.rngOffset = rand() % 0xFFFF;
+	INFO_LOG(SLIPPI_ONLINE, "Rng Offset: %d", s.rngOffset);
 
 	localSelections.Merge(s);
 

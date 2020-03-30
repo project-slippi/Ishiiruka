@@ -249,6 +249,7 @@ void SlippiNetplayClient::writeToPacket(sf::Packet &packet, SlippiPlayerSelectio
 	packet << static_cast<MessageId>(NP_MSG_SLIPPI_MATCH_SELECTIONS);
 	packet << s.characterId << s.characterColor << s.isCharacterSelected;
 	packet << s.stageId << s.isStageSelected;
+	packet << s.rngOffset;
 }
 
 std::unique_ptr<SlippiPlayerSelections> SlippiNetplayClient::readSelectionsFromPacket(sf::Packet &packet)
@@ -261,6 +262,8 @@ std::unique_ptr<SlippiPlayerSelections> SlippiNetplayClient::readSelectionsFromP
 
 	packet >> s->stageId;
 	packet >> s->isStageSelected;
+
+	packet >> s->rngOffset;
 
 	return std::move(s);
 }
