@@ -9,6 +9,7 @@
 #include <array>
 #include <cmath>
 #include <condition_variable>
+#include <cstdlib>
 #include <functional>
 #include <stdexcept>
 #include <string>
@@ -136,11 +137,8 @@ CEXISlippi::CEXISlippi()
 	// Loggers will check 5 bytes, make sure we own that memory
 	m_read_queue.reserve(5);
 
+	// Initialize local selections to empty
 	localSelections.Reset();
-
-	// Spawn thread for savestates
-	// maybe stick this into functions below so it doesn't always get spawned
-	// only spin off and join when a replay is loaded, delete after replay is done, etc
 }
 
 CEXISlippi::~CEXISlippi()
@@ -1514,9 +1512,50 @@ void CEXISlippi::prepareOnlineMatchState()
 		    matchInfo->localPlayerSelections.characterColor == matchInfo->remotePlayerSelections.characterColor;
 
 		onlineMatchBlock[0x67 + 0x24] = charMatch && colMatch ? 1 : 0;
+
+		// Overwrite stage
+		u16 stageId;
+		if (slippi_netplay->IsHost())
+		{
+			stageId = matchInfo->localPlayerSelections.isStageSelected ? matchInfo->localPlayerSelections.stageId
+			                                                           : matchInfo->remotePlayerSelections.stageId;
+		}
+		else
+		{
+			stageId = matchInfo->remotePlayerSelections.isStageSelected ? matchInfo->remotePlayerSelections.stageId
+			                                                            : matchInfo->localPlayerSelections.stageId;
+		}
+
+		u16 *stage = (u16 *)&onlineMatchBlock[0xE];
+		*stage = Common::swap16(stageId);
 	}
 
 	m_read_queue.insert(m_read_queue.end(), onlineMatchBlock.begin(), onlineMatchBlock.end());
+}
+
+u16 CEXISlippi::getRandomStage()
+{
+	static std::vector<u16> stages = {
+	    0x2,  // FoD
+	    0x3,  // Pokemon
+	    0x8,  // Yoshi's Story
+	    0x1C, // Dream Land
+	    0x1F, // Battlefield
+	    0x20, // Final Destination
+	};
+
+	// Initialize rand seed once for random stage selection. For some reason running this in the
+	// constructor didn't work...
+	static bool isSeeded = false;
+	if (!isSeeded)
+	{
+		srand((u32)time(nullptr));
+		isSeeded = true;
+	}
+
+	// Get random stage
+	int randIndex = rand() % stages.size();
+	return stages[randIndex];
 }
 
 void CEXISlippi::setMatchSelections(u8 *payload)
@@ -1529,6 +1568,13 @@ void CEXISlippi::setMatchSelections(u8 *payload)
 
 	s.stageId = Common::swap16(&payload[3]);
 	s.isStageSelected = payload[5];
+
+	if (!s.isStageSelected)
+	{
+		// If stage is not selected, select a random stage
+		s.stageId = getRandomStage();
+		s.isStageSelected = true;
+	}
 
 	localSelections.Merge(s);
 

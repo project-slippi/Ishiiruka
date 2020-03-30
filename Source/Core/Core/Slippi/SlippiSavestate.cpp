@@ -47,8 +47,6 @@ SlippiSavestate::SlippiSavestate()
 	const size_t buffer_size = reinterpret_cast<size_t>(ptr);
 	dolphinSsBackup.resize(buffer_size);
 
-	ERROR_LOG(SLIPPI_ONLINE, "Dolphin backup size: %d", buffer_size);
-
 	// Set up alarm stuff
 	alarmPtrs.resize(8);
 }
