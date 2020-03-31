@@ -25,7 +25,7 @@ namespace Slippi {
   const uint8_t GAME_SHEIK_EXTERNAL_ID = 0x13;
 
   const uint32_t SPLIT_MESSAGE_INTERNAL_DATA_LEN = 512;
-	
+
   static uint8_t* data;
 
   typedef struct {
@@ -91,7 +91,7 @@ namespace Slippi {
 
   typedef struct {
     std::array<uint8_t, 4> version;
-    std::unordered_map<int32_t, FrameData> frameData;
+    std::unordered_map<int32_t, std::unique_ptr<FrameData>> frameData;
     GameSettings settings;
     bool areSettingsLoaded = false;
 
@@ -114,18 +114,18 @@ namespace Slippi {
   class SlippiGame
   {
   public:
-    static SlippiGame* FromFile(std::string path);
+    static std::unique_ptr<SlippiGame> FromFile(std::string path);
     bool AreSettingsLoaded();
     bool DoesFrameExist(int32_t frame);
-	std::array<uint8_t, 4> GetVersion();
+    std::array<uint8_t, 4> GetVersion();
     FrameData* GetFrame(int32_t frame);
     int32_t GetFrameCount();
     GameSettings* GetSettings();
     bool DoesPlayerExist(int8_t port);
     bool IsProcessingComplete();
   private:
-    Game* game;
-    std::ifstream* file;
+    std::unique_ptr<Game> game;
+    std::unique_ptr<std::ifstream> file;
     std::vector<uint8_t> rawData;
     std::string path;
     std::ofstream log;
