@@ -86,7 +86,7 @@ void SlippiReplayComm::nextReplay()
 	commFileSettings.queue.pop();
 }
 
-Slippi::SlippiGame *SlippiReplayComm::loadGame()
+std::unique_ptr<Slippi::SlippiGame> SlippiReplayComm::loadGame()
 {
 	auto replayFilePath = getReplayPath();
 	INFO_LOG(EXPANSIONINTERFACE, "Attempting to load replay file %s", replayFilePath.c_str());
@@ -124,7 +124,7 @@ Slippi::SlippiGame *SlippiReplayComm::loadGame()
 		current = ws;
 	}
 
-	return result;
+	return std::move(result);
 }
 
 void SlippiReplayComm::loadFile()

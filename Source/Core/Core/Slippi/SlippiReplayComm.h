@@ -39,7 +39,7 @@ class SlippiReplayComm
 	CommSettings getSettings();
 	void nextReplay();
 	bool isNewReplay();
-	Slippi::SlippiGame *loadGame();
+	std::unique_ptr<Slippi::SlippiGame> loadGame();
 
   private:
 	void loadFile();

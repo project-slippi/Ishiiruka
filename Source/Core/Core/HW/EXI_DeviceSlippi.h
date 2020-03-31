@@ -74,7 +74,7 @@ class CEXISlippi : public IEXIDevice
 	                                            {CMD_GET_FRAME_COUNT, 0}};
 
 	// Communication with Launcher
-	SlippiReplayComm *replayComm;
+	std::unique_ptr<SlippiReplayComm> replayComm;
 
 	// .slp File creation stuff
 	u32 writtenByteCount = 0;
@@ -133,7 +133,7 @@ class CEXISlippi : public IEXIDevice
 	bool isHardFFW = false;
 	int32_t lastFFWFrame = INT_MIN;
 	std::vector<u8> m_read_queue;
-	Slippi::SlippiGame *m_current_game = nullptr;
+	std::unique_ptr<Slippi::SlippiGame> m_current_game = nullptr;
 
   protected:
 	void TransferByte(u8 &byte) override;

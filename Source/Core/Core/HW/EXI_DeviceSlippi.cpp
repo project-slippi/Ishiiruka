@@ -122,7 +122,7 @@ CEXISlippi::CEXISlippi()
 
 	g_playback_status = std::make_unique<SlippiPlaybackStatus>();
 
-	replayComm = new SlippiReplayComm();
+	replayComm = std::make_unique<SlippiReplayComm>();
 
 	// Loggers will check 5 bytes, make sure we own that memory
 	m_read_queue.reserve(5);
