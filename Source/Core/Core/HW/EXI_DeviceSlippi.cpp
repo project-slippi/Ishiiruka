@@ -561,6 +561,25 @@ void CEXISlippi::prepareGameInfo()
 	prepareGeckoList();
 	appendWordToBuffer(&m_read_queue, (u32)geckoList.size());
 
+	// Initialize frame sequence index value for reading rollbacks
+	frameSeqIdx = 0;
+
+	if (replayCommSettings.shouldPlayRollbacks)
+	{
+		// Prepare savestates
+		availableSavestates.clear();
+		activeSavestates.clear();
+
+		// Prepare savestates for online play
+		for (int i = 0; i < ROLLBACK_MAX_FRAMES; i++)
+		{
+			availableSavestates.push_back(std::make_unique<SlippiSavestate>());
+		}
+	}
+
+	// Reset playback frame to begining
+	g_playback_status->currentPlaybackFrame = Slippi::GAME_FIRST_FRAME;
+
 	// Initialize replay related threads
 	if (replayCommSettings.mode == "normal" || replayCommSettings.mode == "queue")
 	{
@@ -880,11 +899,8 @@ void CEXISlippi::prepareGeckoList()
 	geckoList.insert(geckoList.end(), {0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00});
 }
 
-void CEXISlippi::prepareCharacterFrameData(int32_t frameIndex, u8 port, u8 isFollower)
+void CEXISlippi::prepareCharacterFrameData(Slippi::FrameData *frame, u8 port, u8 isFollower)
 {
-	// Load the data from this frame into the read buffer
-	Slippi::FrameData *frame = m_current_game->GetFrame(frameIndex);
-
 	std::unordered_map<uint8_t, Slippi::PlayerFrameData> source;
 	source = isFollower ? frame->followers : frame->players;
 
@@ -976,7 +992,7 @@ void CEXISlippi::prepareFrameData(u8 *payload)
 	// data from this frame. Don't wait until next frame is processing is complete
 	// (this is the last frame, in that case)
 	auto isFrameFound = m_current_game->DoesFrameExist(frameIndex);
-	g_playback_status->latestFrame = m_current_game->GetFrameCount();
+	g_playback_status->latestFrame = m_current_game->GetLatestIndex();
 	auto isNextFrameFound = g_playback_status->latestFrame > frameIndex;
 	auto isFrameComplete = checkFrameFullyFetched(frameIndex);
 	auto isFrameReady = isFrameFound && (isProcessingComplete || isNextFrameFound || isFrameComplete);
@@ -995,8 +1011,24 @@ void CEXISlippi::prepareFrameData(u8 *payload)
 		}
 	}
 
-	// If RealTimeMode is enabled, let's trigger fast forwarding under certain conditions
 	auto commSettings = replayComm->getSettings();
+	if (commSettings.shouldPlayRollbacks)
+	{
+		auto nextFrame = m_current_game->GetFrameAt(frameSeqIdx);
+		isHardFFW = nextFrame && nextFrame->frame <= g_playback_status->currentPlaybackFrame;
+
+		if (nextFrame)
+		{
+			// This feels jank but without this g_playback_status ends up getting updated to
+			// a value beyond the frame that actually gets played causes too much FFW
+			frameIndex = nextFrame->frame;
+
+			ERROR_LOG(SLIPPI, "Next Frame: %d. Last Played Frame: %d", nextFrame->frame,
+			          g_playback_status->currentPlaybackFrame);
+		}
+	}
+
+	// If RealTimeMode is enabled, let's trigger fast forwarding under certain conditions
 	auto isFarBehind = g_playback_status->latestFrame - frameIndex > 2;
 	auto isVeryFarBehind = g_playback_status->latestFrame - frameIndex > 25;
 	if (isFarBehind && commSettings.mode == "mirror" && commSettings.isRealTimeMode)
@@ -1018,15 +1050,6 @@ void CEXISlippi::prepareFrameData(u8 *payload)
 		// Not sure if this fully works with partial frames
 		isSoftFFW = false;
 		isHardFFW = false;
-	}
-
-	g_playback_status->currentPlaybackFrame = frameIndex;
-
-	// For normal replays, modify slippi seek/playback data as needed
-	// TODO: maybe handle other modes too?
-	if (commSettings.mode == "normal" || commSettings.mode == "queue")
-	{
-		prepareSlippiPlayback(g_playback_status->currentPlaybackFrame);
 	}
 
 	bool shouldFFW = shouldFFWFrame(frameIndex);
@@ -1052,6 +1075,19 @@ void CEXISlippi::prepareFrameData(u8 *payload)
 		return;
 	}
 
+	// Increment frame index if greater
+	if (frameIndex > g_playback_status->currentPlaybackFrame)
+	{
+		g_playback_status->currentPlaybackFrame = frameIndex;
+	}
+
+	// For normal replays, modify slippi seek/playback data as needed
+	// TODO: maybe handle other modes too?
+	if (commSettings.mode == "normal" || commSettings.mode == "queue")
+	{
+		prepareSlippiPlayback(g_playback_status->currentPlaybackFrame);
+	}
+
 	// WARN_LOG(EXPANSIONINTERFACE, "[Frame %d] Playback current behind by: %d frames.", frameIndex,
 	//        g_playback_status->latestFrame - frameIndex);
 
@@ -1066,8 +1102,29 @@ void CEXISlippi::prepareFrameData(u8 *payload)
 	// Return success code
 	m_read_queue.push_back(requestResultCode);
 
-	// Add frame rng seed to be restored at priority 0
+	// Get frame
 	Slippi::FrameData *frame = m_current_game->GetFrame(frameIndex);
+	if (commSettings.shouldPlayRollbacks)
+	{
+		auto previousFrame = m_current_game->GetFrameAt(frameSeqIdx - 1);
+		frame = m_current_game->GetFrameAt(frameSeqIdx);
+
+		std::vector<u8> fakePayload(8, 0);
+		*(s32 *)(&fakePayload[0]) = Common::swap32(frame->frame);
+
+		if (previousFrame && frame->frame <= previousFrame->frame)
+		{
+			// Here we should load a savestate
+			handleLoadSavestate(&fakePayload[0]);
+		}
+
+		// Here we should save a savestate
+		handleCaptureSavestate(&fakePayload[0]);
+
+		frameSeqIdx += 1;
+	}
+
+	// Add frame rng seed to be restored at priority 0
 	u8 rngResult = frame->randomSeedExists ? 1 : 0;
 	m_read_queue.push_back(rngResult);
 	appendWordToBuffer(&m_read_queue, *(u32 *)&frame->randomSeed);
@@ -1075,8 +1132,8 @@ void CEXISlippi::prepareFrameData(u8 *payload)
 	// Add frame data for every character
 	for (u8 port = 0; port < 4; port++)
 	{
-		prepareCharacterFrameData(frameIndex, port, 0);
-		prepareCharacterFrameData(frameIndex, port, 1);
+		prepareCharacterFrameData(frame, port, 0);
+		prepareCharacterFrameData(frame, port, 1);
 	}
 }
 
@@ -1129,38 +1186,6 @@ void CEXISlippi::prepareIsStockSteal(u8 *payload)
 
 	u8 playerIsBack = players.count(playerIndex) ? 1 : 0;
 	m_read_queue.push_back(playerIsBack);
-}
-
-void CEXISlippi::prepareFrameCount()
-{
-	m_read_queue.clear();
-
-	if (!m_current_game)
-	{
-		// Do not start if replay file doesn't exist
-		// TODO: maybe display error message?
-		INFO_LOG(EXPANSIONINTERFACE, "EXI_DeviceSlippi.cpp: Replay file does not exist");
-		m_read_queue.push_back(0);
-		return;
-	}
-
-	if (m_current_game->IsProcessingComplete())
-	{
-		m_read_queue.push_back(0);
-		return;
-	}
-
-	int bufferCount = 15;
-
-	// Make sure we've loaded all the latest data, maybe this should be part of GetFrameCount
-	g_playback_status->latestFrame = m_current_game->GetFrameCount();
-	auto frameCount = g_playback_status->latestFrame - Slippi::GAME_FIRST_FRAME;
-	auto frameCountPlusBuffer = frameCount + bufferCount;
-
-	u8 result = frameCountPlusBuffer > 0xFF ? 0xFF : (u8)frameCountPlusBuffer;
-	WARN_LOG(EXPANSIONINTERFACE, "EXI_DeviceSlippi.cpp: Fast forwarding by %d frames. (+%d)", result, bufferCount);
-
-	m_read_queue.push_back(result);
 }
 
 void CEXISlippi::prepareIsFileReady()
@@ -1333,7 +1358,7 @@ void CEXISlippi::prepareOpponentInputs(u8 *payload)
 
 void CEXISlippi::handleCaptureSavestate(u8 *payload)
 {
-	u32 frame = payload[0] << 24 | payload[1] << 16 | payload[2] << 8 | payload[3];
+	s32 frame = payload[0] << 24 | payload[1] << 16 | payload[2] << 8 | payload[3];
 
 	u64 startTime = Common::Timer::GetTimeUs();
 
@@ -1369,7 +1394,7 @@ void CEXISlippi::handleCaptureSavestate(u8 *payload)
 
 void CEXISlippi::handleLoadSavestate(u8 *payload)
 {
-	u32 frame = payload[0] << 24 | payload[1] << 16 | payload[2] << 8 | payload[3];
+	s32 frame = payload[0] << 24 | payload[1] << 16 | payload[2] << 8 | payload[3];
 	u32 *preserveArr = (u32 *)(&payload[4]);
 
 	if (!activeSavestates.count(frame))
@@ -1532,6 +1557,7 @@ void CEXISlippi::prepareOnlineMatchState()
 
 		// Set rng offset
 		rngOffset = slippi_netplay->IsHost() ? lps.rngOffset : rps.rngOffset;
+		ERROR_LOG(SLIPPI_ONLINE, "Rng Offset: 0x%x", rngOffset);
 	}
 
 	// Add rng offset to output
@@ -1590,7 +1616,6 @@ void CEXISlippi::setMatchSelections(u8 *payload)
 	}
 
 	s.rngOffset = rand() % 0xFFFF;
-	INFO_LOG(SLIPPI_ONLINE, "Rng Offset: %d", s.rngOffset);
 
 	localSelections.Merge(s);
 
@@ -1645,9 +1670,6 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 			break;
 		case CMD_IS_STOCK_STEAL:
 			prepareIsStockSteal(&memPtr[bufLoc + 1]);
-			break;
-		case CMD_GET_FRAME_COUNT:
-			prepareFrameCount();
 			break;
 		case CMD_IS_FILE_READY:
 			prepareIsFileReady();
@@ -1731,7 +1753,7 @@ void CEXISlippi::SavestateThread()
 	{
 		// Wait to hit one of the intervals
 		while (g_playback_status->shouldRunThreads &&
-		       (g_playback_status->currentPlaybackFrame + 123) % FRAME_INTERVAL != 0)
+		       (g_playback_status->currentPlaybackFrame - Slippi::GAME_FIRST_FRAME) % FRAME_INTERVAL != 0)
 			condVar.wait(intervalLock);
 
 		if (!g_playback_status->shouldRunThreads)
@@ -1876,7 +1898,7 @@ void CEXISlippi::prepareSlippiPlayback(int32_t &frameIndex)
 	}
 
 	// Unblock thread to save a state every interval
-	if ((g_playback_status->currentPlaybackFrame + 123) % FRAME_INTERVAL == 0)
+	if ((g_playback_status->currentPlaybackFrame - Slippi::GAME_FIRST_FRAME) % FRAME_INTERVAL == 0)
 		condVar.notify_one();
 }
 

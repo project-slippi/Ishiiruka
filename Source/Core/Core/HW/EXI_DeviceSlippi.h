@@ -56,7 +56,6 @@ class CEXISlippi : public IEXIDevice
 		CMD_IS_FILE_READY = 0x88,
 		CMD_IS_STOCK_STEAL = 0x89,
 		CMD_GET_GECKO_CODES = 0x8A,
-		CMD_GET_FRAME_COUNT = 0x90,
 
 		// Online
 		CMD_ONLINE_INPUTS = 0xB0,
@@ -92,7 +91,6 @@ class CEXISlippi : public IEXIDevice
 	    {CMD_GET_LOCATION, 6},
 	    {CMD_IS_FILE_READY, 0},
 	    {CMD_GET_GECKO_CODES, 0},
-	    {CMD_GET_FRAME_COUNT, 0},
 
 	    // The following are used for Slippi online and also have fixed sizes
 	    {CMD_ONLINE_INPUTS, 17},
@@ -155,10 +153,9 @@ class CEXISlippi : public IEXIDevice
 	// replay playback stuff
 	void prepareGameInfo();
 	void prepareGeckoList();
-	void prepareCharacterFrameData(int32_t frameIndex, u8 port, u8 isFollower);
+	void prepareCharacterFrameData(Slippi::FrameData *frame, u8 port, u8 isFollower);
 	void prepareFrameData(u8 *payload);
 	void prepareIsStockSteal(u8 *payload);
-	void prepareFrameCount();
 	void prepareSlippiPlayback(int32_t &frameIndex);
 	void prepareIsFileReady();
 	void processInitialState(std::vector<u8> &iState);
@@ -194,6 +191,8 @@ class CEXISlippi : public IEXIDevice
 	std::vector<u8> m_read_queue;
 	std::unique_ptr<Slippi::SlippiGame> m_current_game = nullptr;
 
+	u32 frameSeqIdx = 0;
+
   protected:
 	void TransferByte(u8 &byte) override;
 
@@ -203,6 +202,6 @@ class CEXISlippi : public IEXIDevice
 	std::unique_ptr<SlippiNetplayClient> slippi_netplay;
 	std::unique_ptr<SlippiMatchmaking> matchmaking;
 
-	std::map<u32, std::unique_ptr<SlippiSavestate>> activeSavestates;
+	std::map<s32, std::unique_ptr<SlippiSavestate>> activeSavestates;
 	std::deque<std::unique_ptr<SlippiSavestate>> availableSavestates;
 };

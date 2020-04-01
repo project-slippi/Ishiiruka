@@ -62,6 +62,7 @@ namespace Slippi {
 
   typedef struct {
     int32_t frame;
+    uint32_t numSinceStart;
     bool randomSeedExists = false;
     uint32_t randomSeed;
     bool inputsFullyFetched = false;
@@ -91,7 +92,8 @@ namespace Slippi {
 
   typedef struct {
     std::array<uint8_t, 4> version;
-    std::unordered_map<int32_t, std::unique_ptr<FrameData>> frameData;
+    std::unordered_map<int32_t, FrameData*> framesByIndex;
+    std::vector<std::unique_ptr<FrameData>> frames;
     GameSettings settings;
     bool areSettingsLoaded = false;
 
@@ -119,7 +121,8 @@ namespace Slippi {
     bool DoesFrameExist(int32_t frame);
     std::array<uint8_t, 4> GetVersion();
     FrameData* GetFrame(int32_t frame);
-    int32_t GetFrameCount();
+    FrameData* GetFrameAt(uint32_t pos);
+    int32_t GetLatestIndex();
     GameSettings* GetSettings();
     bool DoesPlayerExist(int8_t port);
     bool IsProcessingComplete();
