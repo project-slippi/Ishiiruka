@@ -1,8 +1,8 @@
 #pragma once
 
 #include <SlippiGame.h>
-#include <string>
 #include <queue>
+#include <string>
 
 #include <json.hpp>
 using json = nlohmann::json;
@@ -10,7 +10,8 @@ using json = nlohmann::json;
 class SlippiReplayComm
 {
   public:
-	typedef struct {
+	typedef struct
+	{
 		std::string path;
 		int startFrame = Slippi::GAME_FIRST_FRAME;
 		int endFrame = INT_MAX;
@@ -20,7 +21,8 @@ class SlippiReplayComm
 	} WatchSettings;
 
 	// Loaded file contents
-	typedef struct {
+	typedef struct
+	{
 		std::string mode;
 		std::string replayPath;
 		int startFrame = Slippi::GAME_FIRST_FRAME;
@@ -31,7 +33,7 @@ class SlippiReplayComm
 		std::string commandId;
 		std::queue<WatchSettings> queue;
 	} CommSettings;
-	
+
 	SlippiReplayComm();
 	~SlippiReplayComm();
 
@@ -52,8 +54,8 @@ class SlippiReplayComm
 	std::string previousCommandId;
 	int previousIndex;
 
-  u64 configLastLoadModTime;
-	
+	u64 configLastLoadModTime;
+
 	// Queue stuff
 	bool isFirstLoad = true;
 	bool provideNew = false;
