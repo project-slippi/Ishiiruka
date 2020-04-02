@@ -159,7 +159,7 @@ void SlippiReplayComm::loadFile()
 		commFileSettings.commandId = "";
 		commFileSettings.outputOverlayFiles = false;
 		commFileSettings.isRealTimeMode = false;
-		commFileSettings.shouldPlayRollbacks = false;
+		commFileSettings.rollbackDisplayMethod = "off";
 
 		if (res.is_string())
 		{
@@ -188,7 +188,7 @@ void SlippiReplayComm::loadFile()
 	commFileSettings.commandId = res.value("commandId", "");
 	commFileSettings.outputOverlayFiles = res.value("outputOverlayFiles", false);
 	commFileSettings.isRealTimeMode = res.value("isRealTimeMode", false);
-	commFileSettings.shouldPlayRollbacks = res.value("shouldPlayRollbacks", false);
+	commFileSettings.rollbackDisplayMethod = res.value("rollbackDisplayMethod", "off");
 
 	if (isFirstLoad)
 	{

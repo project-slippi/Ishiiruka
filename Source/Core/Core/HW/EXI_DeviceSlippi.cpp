@@ -564,7 +564,7 @@ void CEXISlippi::prepareGameInfo()
 	// Initialize frame sequence index value for reading rollbacks
 	frameSeqIdx = 0;
 
-	if (replayCommSettings.shouldPlayRollbacks)
+	if (replayCommSettings.rollbackDisplayMethod != "off")
 	{
 		// Prepare savestates
 		availableSavestates.clear();
@@ -1012,7 +1012,7 @@ void CEXISlippi::prepareFrameData(u8 *payload)
 	}
 
 	auto commSettings = replayComm->getSettings();
-	if (commSettings.shouldPlayRollbacks)
+	if (commSettings.rollbackDisplayMethod == "normal")
 	{
 		auto nextFrame = m_current_game->GetFrameAt(frameSeqIdx);
 		isHardFFW = nextFrame && nextFrame->frame <= g_playback_status->currentPlaybackFrame;
@@ -1104,7 +1104,7 @@ void CEXISlippi::prepareFrameData(u8 *payload)
 
 	// Get frame
 	Slippi::FrameData *frame = m_current_game->GetFrame(frameIndex);
-	if (commSettings.shouldPlayRollbacks)
+	if (commSettings.rollbackDisplayMethod != "off")
 	{
 		auto previousFrame = m_current_game->GetFrameAt(frameSeqIdx - 1);
 		frame = m_current_game->GetFrameAt(frameSeqIdx);

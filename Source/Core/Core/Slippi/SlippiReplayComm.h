@@ -29,7 +29,7 @@ class SlippiReplayComm
 		int endFrame = INT_MAX;
 		bool outputOverlayFiles;
 		bool isRealTimeMode;
-		bool shouldPlayRollbacks;
+		std::string rollbackDisplayMethod; // off, normal, visible
 		std::string commandId;
 		std::queue<WatchSettings> queue;
 	} CommSettings;
