@@ -14,9 +14,12 @@ void slippiTimer::Notify()
 	unsigned char currMinutes = currSeconds / 60;
 	unsigned char currRemainder = currSeconds % 60;
 
-	std::string time =
-		std::to_string(totalMinutes) + ":" + std::to_string(totalRemainder) + " / " +
-		std::to_string(currMinutes) + ":" + std::to_string(currRemainder);
+	// Position string (i.e. MM:SS)
+	char endTime[6];
+	sprintf(endTime, "%02d:%02d", totalMinutes%100, totalRemainder);
+	char currTime[6];
+	sprintf(currTime, "%02d:%02d", currMinutes%100, currRemainder);
+	std::string time = std::string(currTime) + " / " + std::string(endTime);
 
 	// Setup the slider and gauge min/max values
 	int minValue = m_slider->GetMin();
