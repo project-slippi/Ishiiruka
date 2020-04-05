@@ -65,7 +65,7 @@ static const SPatch OSPatches[] =
 
 static const SPatch OSBreakPoints[] =
 {
-	{ "FAKE_TO_SKIP_0", HLE_Misc::UnimplementedFunction },
+	{ "FAKE_TO_SKIP_0", HLE_Misc::UnimplementedFunction, 0, 0 },
 };
 
 void Patch(u32 addr, const char *hle_func_name)

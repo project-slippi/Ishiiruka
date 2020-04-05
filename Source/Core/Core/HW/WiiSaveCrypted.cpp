@@ -167,7 +167,7 @@ void CWiiSaveCrypted::ReadHDR()
 	u8 md5_calc[16];
 	memcpy(md5_file, m_header.hdr.Md5, 0x10);
 	memcpy(m_header.hdr.Md5, s_md5_blanker, 0x10);
-	mbedtls_md5((u8*)&m_header, HEADER_SZ, md5_calc);
+	mbedtls_md5_ret((u8*)&m_header, HEADER_SZ, md5_calc);
 	if (memcmp(md5_file, md5_calc, 0x10))
 	{
 		ERROR_LOG(CONSOLE, "MD5 mismatch\n %016" PRIx64 "%016" PRIx64 " != %016" PRIx64 "%016" PRIx64,
@@ -216,7 +216,7 @@ void CWiiSaveCrypted::WriteHDR()
 	m_header.BNR[7] &= ~1;
 
 	u8 md5_calc[16];
-	mbedtls_md5((u8*)&m_header, HEADER_SZ, md5_calc);
+	mbedtls_md5_ret((u8*)&m_header, HEADER_SZ, md5_calc);
 	memcpy(m_header.hdr.Md5, md5_calc, 0x10);
 
 	mbedtls_aes_crypt_cbc(&m_aes_ctx, MBEDTLS_AES_ENCRYPT, HEADER_SZ, m_sd_iv, (const u8*)&m_header,
@@ -506,7 +506,7 @@ void CWiiSaveCrypted::do_sig()
 	sprintf(name, "AP%08x%08x", 1, 2);
 	make_ec_cert(ap_cert, ap_sig, signer, name, ap_priv, 0);
 
-	mbedtls_sha1(ap_cert + 0x80, 0x100, hash);
+	mbedtls_sha1_ret(ap_cert + 0x80, 0x100, hash);
 	generate_ecdsa(ap_sig, ap_sig + 30, ng_priv, hash);
 	make_ec_cert(ap_cert, ap_sig, signer, name, ap_priv, 0);
 
@@ -527,8 +527,8 @@ void CWiiSaveCrypted::do_sig()
 		return;
 	}
 
-	mbedtls_sha1(data.get(), data_size, hash);
-	mbedtls_sha1(hash, 20, hash);
+	mbedtls_sha1_ret(data.get(), data_size, hash);
+	mbedtls_sha1_ret(hash, 20, hash);
 
 	data_file.Open(m_encrypted_save_path, "ab");
 	if (!data_file)

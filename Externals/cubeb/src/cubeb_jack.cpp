@@ -986,7 +986,7 @@ cbjack_enumerate_devices(cubeb * context, cubeb_device_type type,
   if (!context)
     return CUBEB_ERROR;
 
-  uint32_t rate;
+  uint32_t rate = 0;
   cbjack_get_preferred_sample_rate(context, &rate);
 
   cubeb_device_info * devices = new cubeb_device_info[2];

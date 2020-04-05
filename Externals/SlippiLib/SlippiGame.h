@@ -26,8 +26,6 @@ namespace Slippi {
 
   const uint32_t SPLIT_MESSAGE_INTERNAL_DATA_LEN = 512;
 
-  static uint8_t* data;
-
   typedef struct {
     // Every player update has its own rng seed because it might change in between players
     uint32_t randomSeed;

@@ -6,11 +6,13 @@
 
 namespace Slippi {
 
+  static uint8_t* data;
+
   //**********************************************************************
   //*                         Event Handlers
   //**********************************************************************
   //The read operators will read a value and increment the index so the next read will read in the correct location
-  uint8_t readByte(uint8_t* a, int& idx, uint32_t maxSize, uint8_t defaultValue) {
+  static uint8_t readByte(uint8_t* a, int& idx, uint32_t maxSize, uint8_t defaultValue) {
     if (idx >= (int)maxSize) {
       idx += 1;
       return defaultValue;
@@ -19,7 +21,7 @@ namespace Slippi {
     return a[idx++];
   }
 
-  uint16_t readHalf(uint8_t* a, int& idx, uint32_t maxSize, uint16_t defaultValue) {
+  static uint16_t readHalf(uint8_t* a, int& idx, uint32_t maxSize, uint16_t defaultValue) {
     if (idx >= (int)maxSize) {
       idx += 2;
       return defaultValue;
@@ -30,7 +32,7 @@ namespace Slippi {
     return value;
   }
 
-  uint32_t readWord(uint8_t* a, int& idx, uint32_t maxSize, uint32_t defaultValue) {
+  static uint32_t readWord(uint8_t* a, int& idx, uint32_t maxSize, uint32_t defaultValue) {
     if (idx >= (int)maxSize) {
       idx += 4;
       return defaultValue;
@@ -41,12 +43,12 @@ namespace Slippi {
     return value;
   }
 
-  float readFloat(uint8_t* a, int& idx, uint32_t maxSize, float defaultValue) {
+  static float readFloat(uint8_t* a, int& idx, uint32_t maxSize, float defaultValue) {
     uint32_t bytes = readWord(a, idx, maxSize, *(uint32_t*)(&defaultValue));
     return *(float*)(&bytes);
   }
 
-  void handleGameInit(Game* game, uint32_t maxSize) {
+  static void handleGameInit(Game* game, uint32_t maxSize) {
     int idx = 0;
 
     // Read version number
@@ -128,7 +130,7 @@ namespace Slippi {
     }
   }
 
-  void handleGeckoList(Game* game, uint32_t maxSize) {
+  static void handleGeckoList(Game* game, uint32_t maxSize) {
     game->settings.geckoCodes.clear();
     game->settings.geckoCodes.insert(game->settings.geckoCodes.end(), data, data + maxSize);
 
@@ -136,7 +138,7 @@ namespace Slippi {
     game->areSettingsLoaded = true;
   }
 
-  void handleFrameStart(Game* game, uint32_t maxSize) {
+  static void handleFrameStart(Game* game, uint32_t maxSize) {
     int idx = 0;
 
     //Check frame count
@@ -154,7 +156,7 @@ namespace Slippi {
     game->frameData[frameCount] = std::move(frameUniquePtr);
   }
 
-  void handlePreFrameUpdate(Game* game, uint32_t maxSize) {
+  static void handlePreFrameUpdate(Game* game, uint32_t maxSize) {
     int idx = 0;
 
     //Check frame count
@@ -221,7 +223,7 @@ namespace Slippi {
     }
   }
 
-  void handlePostFrameUpdate(Game* game, uint32_t maxSize) {
+  static void handlePostFrameUpdate(Game* game, uint32_t maxSize) {
     int idx = 0;
 
     //Check frame count
@@ -267,14 +269,14 @@ namespace Slippi {
     }
   }
 
-  void handleGameEnd(Game* game, uint32_t maxSize) {
+  static void handleGameEnd(Game* game, uint32_t maxSize) {
     int idx = 0;
 
     game->winCondition = readByte(data, idx, maxSize, 0);
   }
 
   // This function gets the position where the raw data starts
-  int getRawDataPosition(std::ifstream* f) {
+  static int getRawDataPosition(std::ifstream* f) {
     char buffer[2];
     f->seekg(0, std::ios::beg);
     f->read(buffer, 2);
@@ -293,21 +295,7 @@ namespace Slippi {
     return 15;
   }
 
-  uint32_t getRawDataLength(std::ifstream* f, int position, int fileSize) {
-    if (position == 0) {
-      return fileSize;
-    }
-
-    char buffer[4];
-    f->seekg(position - 4, std::ios::beg);
-    f->read(buffer, 4);
-
-    uint8_t* byteBuf = (uint8_t*)&buffer[0];
-    uint32_t length = byteBuf[0] << 24 | byteBuf[1] << 16 | byteBuf[2] << 8 | byteBuf[3];
-    return length;
-  }
-
-  std::unordered_map<uint8_t, uint32_t> getMessageSizes(std::ifstream* f, int position) {
+  static std::unordered_map<uint8_t, uint32_t> getMessageSizes(std::ifstream* f, int position) {
     char buffer[2];
     f->seekg(position, std::ios::beg);
     f->read(buffer, 2);
@@ -384,9 +372,6 @@ namespace Slippi {
     int endPos = (int)file->tellg();
     int sizeToRead = endPos - startPos;
     file->seekg(startPos);
-    //log << "Size to read: " << sizeToRead << "\n";
-    //log << "Start Pos: " << startPos << "\n";
-    //log << "End Pos: " << endPos << "\n\n";
     if (sizeToRead <= 0) {
       return;
     }
@@ -492,17 +477,6 @@ namespace Slippi {
     if (!result->file->is_open()) {
       return nullptr;
     }
-
-    //int fileLength = (int)file.tellg();
-    //int rawDataPos = getRawDataPosition(&file);
-    //uint32_t rawDataLength = getRawDataLength(&file, rawDataPos, fileLength);
-    //asmEvents = getMessageSizes(&file, rawDataPos);
-
-    //std::vector<char> rawData(rawDataLength);
-    //file.seekg(rawDataPos, std::ios::beg);
-    //file.read(&rawData[0], rawDataLength);
-
-    //SlippiGame* result = processFile((uint8_t*)&rawData[0], rawDataLength);
 
     return std::move(result);
   }

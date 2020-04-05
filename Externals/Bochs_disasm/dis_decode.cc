@@ -235,7 +235,7 @@ x86_insn disassembler::decode(bx_bool is_32, bx_bool is_64, bx_address cs_base, 
       dis_sprintf("(bad xop+rex prefix) ");
     if (rex_prefix)
       dis_sprintf("(bad xop+sse prefix) ");
-    
+
     // decode 0x8F XOP prefix
     sse_prefix = decode_xop(&insn);
     if (insn.b1 >= 768 || sse_prefix != 0)
@@ -477,7 +477,7 @@ unsigned disassembler::decode_evex(x86_insn *insn)
   if (evex_opcext == 0) {
     insn->is_evex = -1;
   }
-    
+
   if (insn->is_64) {
     insn->rex_r = ((evex >> 4) & 0x8) ^ 0x8;
     insn->rex_r |= (evex & 0x10) ^ 0x10;
@@ -488,7 +488,7 @@ unsigned disassembler::decode_evex(x86_insn *insn)
 
   unsigned sse_prefix = (evex >> 8) & 0x3;
 
-  insn->vex_vvv = 15 - ((evex >> 11) & 0xf);
+  insn->vex_vvv = 0xF - ((evex >> 11) & 0xF);
   unsigned evex_v = ((evex >> 15) & 0x10) ^ 0x10;
   insn->vex_vvv |= evex_v;
   if (! insn->is_64) insn->vex_vvv &= 7;
@@ -502,7 +502,7 @@ unsigned disassembler::decode_evex(x86_insn *insn)
   insn->evex_b = (evex >> 20) & 0x1;
   insn->evex_ll_rc = (evex >> 21) & 0x3;
   insn->evex_z = (evex >> 23) & 0x1;
-  
+
   insn->b1 = (evex >> 24);
   insn->b1 += 256 * (evex_opcext-1);
 

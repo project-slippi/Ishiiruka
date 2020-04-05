@@ -250,8 +250,8 @@ DDSCompression ImageLoader::ReadDDS(ImageLoaderParams& loader_params)
 	}
 
 	//
-	// How big will the buffer need to be to load all of the pixel data 
-	// including mip-maps?	
+	// How big will the buffer need to be to load all of the pixel data
+	// including mip-maps?
 	ddsd.dwLinearSize = ((ddsd.dwWidth + 3) >> 2)*((ddsd.dwHeight + 3) >> 2)*block_size;
 	ddsd.dwMipMapCount = std::min<u32>(std::max<u32>(IntLog2(std::max(ddsd.dwWidth, ddsd.dwHeight)) - 2, 0), ddsd.dwMipMapCount);
 	bool mipmapspresent = ddsd.dwMipMapCount > 1 && ddsd.dwFlags & DDSD_MIPMAPCOUNT;
@@ -310,7 +310,7 @@ DDSCompression ImageLoader::ReadDDS(ImageLoaderParams& loader_params)
 
 bool TextureToDDS(const u8* data, int row_stride, const std::string& filename, int width, int height, DDSCompression format)
 {
-	DDSHeader header = { 0 };
+	DDSHeader header = DDSHeader();
 	header.dwSignature = DDS_SIGNARURE;
 	header.dwSize = 124;
 	header.dwFlags = DDSD_CAPS | DDSD_HEIGHT | DDSD_WIDTH | DDSD_PIXELFORMAT;

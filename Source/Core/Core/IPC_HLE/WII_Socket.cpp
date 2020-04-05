@@ -489,7 +489,7 @@ void WiiSocket::Update(bool read, bool write, bool except)
 					// send/sendto only handles MSG_OOB
 					flags &= SO_MSG_OOB;
 
-					sockaddr_in local_name = { 0 };
+					sockaddr_in local_name = sockaddr_in();
 					if (has_destaddr)
 					{
 						WiiSockAddrIn* wii_name = (WiiSockAddrIn*)Memory::GetPointer(BufferIn2 + 0x0C);
@@ -589,14 +589,13 @@ void WiiSocket::Update(bool read, bool write, bool except)
 
 void WiiSocket::DoSock(u32 _CommandAddress, NET_IOCTL type)
 {
-	sockop so = { _CommandAddress, false };
-	so.net_type = type;
+	sockop so = { _CommandAddress, false, type };
 	pending_sockops.push_back(so);
 }
 
 void WiiSocket::DoSock(u32 _CommandAddress, SSL_IOCTL type)
 {
-	sockop so = { _CommandAddress, true };
+	sockop so = { _CommandAddress, true, NET_IOCTL() };
 	so.ssl_type = type;
 	pending_sockops.push_back(so);
 }

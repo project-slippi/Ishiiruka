@@ -366,7 +366,7 @@ bool CVolumeWiiCrypted::CheckIntegrity() const
 		{
 			u8 hash[20];
 
-			mbedtls_sha1(clusterData + hashID * 0x400, 0x400, hash);
+			mbedtls_sha1_ret(clusterData + hashID * 0x400, 0x400, hash);
 
 			// Note that we do not use strncmp here
 			if (memcmp(hash, clusterMD + hashID * 20, 20))

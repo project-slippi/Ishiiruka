@@ -1018,19 +1018,18 @@ void ExecuteCommand(u32 command_0, u32 command_1, u32 command_2, u32 output_addr
 		switch (command_0 >> 16 & 0xFF)
 		{
 		case 0x00:  // Returns streaming status
-			INFO_LOG(DVDINTERFACE, "(Audio): Stream Status: Request Audio status AudioPos:%08x/%08x "
-				"CurrentStart:%08x CurrentLength:%08x",
-				s_audio_position, s_current_start + s_current_length, s_current_start,
-				s_current_length);
+			INFO_LOG(DVDINTERFACE, "(Audio): Stream Status: Request Audio status "
+				"AudioPos:%08lu/%08lu CurrentStart:%08lu CurrentLength:%08x",
+				s_audio_position, s_current_start + s_current_length, s_current_start, s_current_length);
 			WriteImmediate(s_stream ? 1 : 0, output_address, reply_to_ios);
 			break;
 		case 0x01:  // Returns the current offset
-			INFO_LOG(DVDINTERFACE, "(Audio): Stream Status: Request Audio status AudioPos:%08x",
+			INFO_LOG(DVDINTERFACE, "(Audio): Stream Status: Request Audio status AudioPos:%08lu",
 				s_audio_position);
 			WriteImmediate(static_cast<u32>(s_audio_position >> 2), output_address, reply_to_ios);
 			break;
 		case 0x02:  // Returns the start offset
-			INFO_LOG(DVDINTERFACE, "(Audio): Stream Status: Request Audio status CurrentStart:%08x",
+			INFO_LOG(DVDINTERFACE, "(Audio): Stream Status: Request Audio status CurrentStart:%08lu",
 				s_current_start);
 			WriteImmediate(static_cast<u32>(s_current_start >> 2), output_address, reply_to_ios);
 			break;

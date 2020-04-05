@@ -252,17 +252,17 @@ void RegisterMMIO(MMIO::Mapping* mmio, u32 base)
 		u16* ptr;
 		bool align_writes_on_32_bytes;
 	} directly_mapped_vars[] = {
-			{AR_INFO, &g_ARAM_Info.Hex},
-			{AR_MODE, &g_AR_MODE},
-			{AR_REFRESH, &g_AR_REFRESH},
-			{AR_DMA_MMADDR_H, MMIO::Utils::HighPart(&g_arDMA.MMAddr)},
-			{AR_DMA_MMADDR_L, MMIO::Utils::LowPart(&g_arDMA.MMAddr), true},
-			{AR_DMA_ARADDR_H, MMIO::Utils::HighPart(&g_arDMA.ARAddr)},
-			{AR_DMA_ARADDR_L, MMIO::Utils::LowPart(&g_arDMA.ARAddr), true},
-			{AR_DMA_CNT_H, MMIO::Utils::HighPart(&g_arDMA.Cnt.Hex)},
-			// AR_DMA_CNT_L triggers DMA
-			{AUDIO_DMA_START_HI, MMIO::Utils::HighPart(&g_audioDMA.SourceAddress)},
-			{AUDIO_DMA_START_LO, MMIO::Utils::LowPart(&g_audioDMA.SourceAddress)},
+		{AR_INFO,            &g_ARAM_Info.Hex,                                 false},
+		{AR_MODE,            &g_AR_MODE,                                       false},
+		{AR_REFRESH,         &g_AR_REFRESH,                                    false},
+		{AR_DMA_MMADDR_H,    MMIO::Utils::HighPart(&g_arDMA.MMAddr),           false},
+		{AR_DMA_MMADDR_L,    MMIO::Utils::LowPart(&g_arDMA.MMAddr),            true},
+		{AR_DMA_ARADDR_H,    MMIO::Utils::HighPart(&g_arDMA.ARAddr),           false},
+		{AR_DMA_ARADDR_L,    MMIO::Utils::LowPart(&g_arDMA.ARAddr),            true},
+		{AR_DMA_CNT_H,       MMIO::Utils::HighPart(&g_arDMA.Cnt.Hex),          false},
+		// AR_DMA_CNT_L triggers DMA
+		{AUDIO_DMA_START_HI, MMIO::Utils::HighPart(&g_audioDMA.SourceAddress), false},
+		{AUDIO_DMA_START_LO, MMIO::Utils::LowPart(&g_audioDMA.SourceAddress),  false},
 	};
 	for (auto& mapped_var : directly_mapped_vars)
 	{

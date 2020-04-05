@@ -87,7 +87,7 @@ std::string DolphinAnalytics::MakeUniqueId(const std::string& data)
 {
 	u8 digest[20];
 	std::string input = m_unique_id + data;
-	mbedtls_sha1(reinterpret_cast<const u8*>(input.c_str()), input.size(), digest);
+	mbedtls_sha1_ret(reinterpret_cast<const u8*>(input.c_str()), input.size(), digest);
 
 	// Convert to hex string and truncate to 64 bits.
 	std::string out;

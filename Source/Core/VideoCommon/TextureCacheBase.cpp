@@ -34,7 +34,7 @@ static const u64 MAX_TEXTURE_BINARY_SIZE = 1024 * 1024 * 4; // 1024 x 1024 texel
 std::unique_ptr<TextureCacheBase> g_texture_cache;
 
 TextureCacheBase::TCacheEntryBase::~TCacheEntryBase()
-{	
+{
 }
 
 void TextureCacheBase::CheckTempSize(size_t required_size)
@@ -116,7 +116,7 @@ void TextureCacheBase::OnConfigChanged(VideoConfig& config)
 		g_texture_cache->Invalidate();
 
 		TexDecoder_SetTexFmtOverlayOptions(g_ActiveConfig.bTexFmtOverlayEnable, g_ActiveConfig.bTexFmtOverlayCenter);
-		
+
 	}
 
 	if ((config.iStereoMode > 0) != backup_config.stereo_3d ||
@@ -556,7 +556,7 @@ TextureCacheBase::TCacheEntryBase* TextureCacheBase::Load(const u32 stage)
 	if (g_bRecordFifoData && !from_tmem)
 		FifoRecorder::GetInstance().UseMemory(address, texture_size + additional_mips_size, MemoryUpdate::TEXTURE_MAP);
 
-	// TODO: This doesn't hash GB tiles for preloaded RGBA8 textures (instead, it's hashing more data from the low tmem bank than it should)	
+	// TODO: This doesn't hash GB tiles for preloaded RGBA8 textures (instead, it's hashing more data from the low tmem bank than it should)
 	tex_hash = GetHash64(src_data, texture_size, g_ActiveConfig.iSafeTextureCache_ColorSamples);
 	u32 palette_size = std::min(TexDecoder_GetPaletteSize(texformat), TMEM_SIZE - tlutaddr);
 	if (isPaletteTexture)
@@ -760,7 +760,7 @@ TextureCacheBase::TCacheEntryBase* TextureCacheBase::Load(const u32 stage)
 	config.levels = texLevels;
 	config.pcformat = pcfmt;
 	config.materialmap = hires_tex && hires_tex->m_nrm_levels && g_ActiveConfig.HiresMaterialMapsEnabled();
-	
+
 	if (use_scaling)
 	{
 		config.width *= g_ActiveConfig.iTexScalingFactor;
@@ -826,7 +826,7 @@ TextureCacheBase::TCacheEntryBase* TextureCacheBase::Load(const u32 stage)
 				0, src_data, texture_size, static_cast<TextureFormat>(texformat), width, height,
 				expandedWidth, expandedHeight, row_stride, &texMem[tlutaddr], static_cast<TlutFormat>(tlutfmt));
 		}
-		
+
 		if (!decode_on_gpu)
 		{
 			u8* texturedata = TextureCacheBase::temp;
@@ -917,19 +917,19 @@ void TextureCacheBase::CopyRenderTargetToTexture(u32 dstAddr, u32 dstFormat, u32
 	const EFBRectangle& srcRect, bool isIntensity, bool scaleByHalf)
 {
 	// Emulation methods:
-	// 
+	//
 	// - EFB to RAM:
 	//		Encodes the requested EFB data at its native resolution to the emulated RAM using shaders.
 	//		Load() decodes the data from there again (using TextureDecoder) if the EFB copy is being used as a texture again.
 	//		Advantage: CPU can read data from the EFB copy and we don't lose any important updates to the texture
 	//		Disadvantage: Encoding+decoding steps often are redundant because only some games read or modify EFB copies before using them as textures.
-	// 
+	//
 	// - EFB to texture:
 	//		Copies the requested EFB data to a texture object in VRAM, performing any color conversion using shaders.
 	//		Advantage:	Works for many games, since in most cases EFB copies aren't read or modified at all before being used as a texture again.
 	//					Since we don't do any further encoding or decoding here, this method is much faster.
 	//					It also allows enhancing the visual quality by doing scaled EFB copies.
-	// 
+	//
 	// - Hybrid EFB copies:
 	//		1a) Whenever this function gets called, encode the requested EFB data to RAM (like EFB to RAM)
 	//		1b) Set type to TCET_EC_DYNAMIC for all texture cache entries in the destination address range.
@@ -978,7 +978,7 @@ void TextureCacheBase::CopyRenderTargetToTexture(u32 dstAddr, u32 dstFormat, u32
 			break;
 		case 8: // Z8H
 			dstFormat |= _GX_TF_CTF;
-		case 1: // Z8		
+		case 1: // Z8
 			colmat[0] = colmat[4] = colmat[8] = colmat[12] = 1.0f;
 			cbufid = 1;
 			break;
@@ -1279,7 +1279,7 @@ void TextureCacheBase::CopyRenderTargetToTexture(u32 dstAddr, u32 dstFormat, u32
 	bool copy_to_ram = !g_ActiveConfig.bSkipEFBCopyToRam && srcRect.GetWidth() <= EFB_WIDTH && srcRect.GetHeight() <= EFB_HEIGHT;
 	if (g_ActiveConfig.bLastStoryEFBToRam)
 	{
-		// mimimi085181: Ugly speedhack for the Last Story 
+		// mimimi085181: Ugly speedhack for the Last Story
 		copy_to_ram = copy_to_ram || ((tex_w == 64 || tex_w == 128 || tex_w == 256) && !isIntensity && tex_h != 1 && (dstFormat == 6 || dstFormat == 32));
 	}
 
@@ -1469,7 +1469,6 @@ TextureCacheBase::TexAddrCache::iterator TextureCacheBase::InvalidateTexture(Tex
 	if (iter == textures_by_address.end())
 		return textures_by_address.end();
 
-	TCacheEntryBase* entry = iter->second;
 	DisposeTexture(iter->second);
 	return textures_by_address.erase(iter);
 }

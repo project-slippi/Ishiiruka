@@ -410,7 +410,7 @@ GCPadStatus Input(int chan)
 
 	if(AdapterError())
 	{
-		GCPadStatus centered_status = {0};
+		GCPadStatus centered_status = GCPadStatus();
 		centered_status.stickX = centered_status.stickY =
 		centered_status.substickX = centered_status.substickY =
 		/* these are all the same */ GCPadStatus::MAIN_STICK_CENTER_X;
@@ -494,7 +494,7 @@ GCPadStatus Input(int chan)
 		}
 		else
 		{
-			GCPadStatus centered_status = {0};
+			GCPadStatus centered_status = GCPadStatus();
 			centered_status.stickX = centered_status.stickY =
 			centered_status.substickX = centered_status.substickY =
 			/* these are all the same */ GCPadStatus::MAIN_STICK_CENTER_X;
@@ -538,10 +538,10 @@ static void ResetRumbleLockNeeded()
 
 	std::fill(std::begin(s_controller_rumble), std::end(s_controller_rumble), 0);
 
-	s_latest_rumble_data[0] = 0x11;	
+	s_latest_rumble_data[0] = 0x11;
 	for (int i = 0; i < 4; i++)
 		s_latest_rumble_data[i + 1] = s_controller_rumble[i];
-		
+
 	s_rumble_data_available.Set();
 }
 

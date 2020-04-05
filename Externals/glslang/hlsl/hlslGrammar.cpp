@@ -111,7 +111,7 @@ bool HlslGrammar::acceptCompilationUnit()
 }
 
 // sampler_state
-//      : LEFT_BRACE [sampler_state_assignment ... ] RIGHT_BRACE 
+//      : LEFT_BRACE [sampler_state_assignment ... ] RIGHT_BRACE
 //
 // sampler_state_assignment
 //     : sampler_state_identifier EQUAL value SEMICOLON
@@ -136,7 +136,7 @@ bool HlslGrammar::acceptSamplerState()
         return true;
 
     parseContext.warn(token.loc, "unimplemented", "immediate sampler state", "");
-    
+
     do {
         // read state name
         HlslToken state;
@@ -215,7 +215,7 @@ bool HlslGrammar::acceptSamplerDeclarationDX9(TType& /*type*/)
 {
     if (! acceptTokenClass(EHTokSampler))
         return false;
- 
+
     // TODO: remove this when DX9 style declarations are implemented.
     unimplemented("Direct3D 9 sampler declaration");
 
@@ -281,7 +281,7 @@ bool HlslGrammar::acceptDeclaration(TIntermNode*& node)
             // Sampler/textures are uniform by default (if no explicit qualifier is present) in
             // HLSL.  This line silently converts samplers *explicitly* declared static to uniform,
             // which is incorrect but harmless.
-            type.getQualifier().storage = EvqUniform; 
+            type.getQualifier().storage = EvqUniform;
         } else {
             type.getQualifier().storage = EvqGlobal;
         }
@@ -363,7 +363,7 @@ bool HlslGrammar::acceptDeclaration(TIntermNode*& node)
         expected(";");
         return false;
     }
-    
+
     return true;
 }
 
@@ -624,7 +624,7 @@ bool HlslGrammar::acceptMatrixTemplateType(TType& type)
         expected(",");
         return false;
     }
-    
+
     // integer cols
     if (! peekTokenClass(EHTokIntConstant)) {
         expected("literal integer");
@@ -661,16 +661,15 @@ bool HlslGrammar::acceptSamplerType(TType& type)
     // read sampler type
     const EHlslTokenClass samplerType = peek();
 
-    TSamplerDim dim = EsdNone;
-
     switch (samplerType) {
-    case EHTokSampler:      break;
-    case EHTokSampler1d:    dim = Esd1D; break;
-    case EHTokSampler2d:    dim = Esd2D; break;
-    case EHTokSampler3d:    dim = Esd3D; break;
-    case EHTokSamplerCube:  dim = EsdCube; break;
-    case EHTokSamplerState: break;
-    case EHTokSamplerComparisonState: break;
+    case EHTokSampler:
+    case EHTokSampler1d:
+    case EHTokSampler2d:
+    case EHTokSampler3d:
+    case EHTokSamplerCube:
+    case EHTokSamplerState:
+    case EHTokSamplerComparisonState:
+        break;
     default:
         return false;  // not a sampler declaration
     }
@@ -713,7 +712,7 @@ bool HlslGrammar::acceptTextureType(TType& type)
     case EHTokTexture1darray:    dim = Esd1D; array = true;            break;
     case EHTokTexture2d:         dim = Esd2D;                          break;
     case EHTokTexture2darray:    dim = Esd2D; array = true;            break;
-    case EHTokTexture3d:         dim = Esd3D;                          break; 
+    case EHTokTexture3d:         dim = Esd3D;                          break;
     case EHTokTextureCube:       dim = EsdCube;                        break;
     case EHTokTextureCubearray:  dim = EsdCube; array = true;          break;
     case EHTokTexture2DMS:       dim = Esd2D; ms = true;               break;
@@ -725,7 +724,7 @@ bool HlslGrammar::acceptTextureType(TType& type)
     advanceToken();  // consume the texture object keyword
 
     TType txType(EbtFloat, EvqUniform, 4); // default type is float4
-    
+
     TIntermTyped* msCount = nullptr;
 
     // texture type: required for multisample types!
@@ -778,7 +777,7 @@ bool HlslGrammar::acceptTextureType(TType& type)
 
     TSampler sampler;
     sampler.setTexture(txType.getBasicType(), dim, array, shadow, ms);
-    
+
     type.shallowCopy(TType(sampler, EvqUniform, arraySizes));
 
     return true;
@@ -1648,7 +1647,7 @@ bool HlslGrammar::acceptUnaryExpression(TIntermTyped*& node)
 
     // peek for "op unary_expression"
     TOperator unaryOp = HlslOpMap::preUnary(peek());
-    
+
     // postfix_expression (if no unary operator)
     if (unaryOp == EOpNull)
         return acceptPostfixExpression(node);
@@ -1700,7 +1699,7 @@ bool HlslGrammar::acceptPostfixExpression(TIntermTyped*& node)
             return false;
         }
     } else if (acceptLiteral(node)) {
-        // literal (nothing else to do yet), go on to the 
+        // literal (nothing else to do yet), go on to the
     } else if (acceptConstructor(node)) {
         // constructor (nothing else to do yet)
     } else if (acceptIdentifier(idToken)) {
@@ -2339,7 +2338,7 @@ bool HlslGrammar::acceptJumpStatement(TIntermNode*& statement)
     // SEMICOLON
     if (! acceptTokenClass(EHTokSemicolon))
         expected(";");
-    
+
     return true;
 }
 
@@ -2424,7 +2423,7 @@ void HlslGrammar::acceptArraySpecifier(TArraySizes*& arraySizes)
 void HlslGrammar::acceptPostDecls(TType& type)
 {
     do {
-        // COLON 
+        // COLON
         if (acceptTokenClass(EHTokColon)) {
             HlslToken idToken;
             if (acceptTokenClass(EHTokPackOffset)) {

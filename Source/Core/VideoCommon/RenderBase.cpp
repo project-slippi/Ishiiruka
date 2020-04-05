@@ -382,10 +382,10 @@ void Renderer::DrawDebugText()
     if(g_ActiveConfig.bShowOSDClock)
     {
         std::stringstream ss;
-        
+
         // makes std::put_time use AM/PM depending on the system locale
         ss.imbue(std::locale(""));
-        
+
         std::time_t time = std::time(nullptr);
         ss << std::put_time(std::localtime(&time), "%X");
 
@@ -492,9 +492,9 @@ void Renderer::DrawDebugText()
 		final_cyan += Statistics::ToStringProj();
 
 	if(GCAdapter::AdapterError())
-		final_yellow += 
+		final_yellow +=
 		"There is a potential problem with your GameCube Adapter and inputs\nare being set to their default positon to prevent unintended inputs"
-		"\nIf you want, you can turn this off in [Config] > [Advanced Options]";	
+		"\nIf you want, you can turn this off in [Config] > [Advanced Options]";
 
 	// and then the text
 	RenderText(final_cyan, 20, 20, 0xFF00FFFF);
@@ -507,10 +507,10 @@ void Renderer::DrawDebugText()
         if(OSD::Chat::toggled)
         {
            RenderText(
-               "[" + netplay_client->local_player->name + netplay_client->FindPlayerPadName(netplay_client->local_player) + "]: " + OSD::Chat::current_msg + 
+               "[" + netplay_client->local_player->name + netplay_client->FindPlayerPadName(netplay_client->local_player) + "]: " + OSD::Chat::current_msg +
                 (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count() % 500 < 250 ? "_" : ""),
                 20, m_backbuffer_height - (
-					(g_ActiveConfig.backend_info.APIType & API_D3D9) || 
+					(g_ActiveConfig.backend_info.APIType & API_D3D9) ||
 					(g_ActiveConfig.backend_info.APIType & API_D3D11) ? 40 : 20), 0xFFFFFF30);
         }
     }
@@ -592,9 +592,6 @@ TargetRectangle Renderer::CalculateFrameDumpDrawRectangle()
 	unsigned int efb_width, efb_height;
 	g_framebuffer_manager->GetTargetSize(&efb_width, &efb_height);
 
-	// Scale either the width or height depending the content aspect ratio.
-	// This way we preserve as much resolution as possible when scaling.
-	float ratio = CalculateDrawAspectRatio(efb_width, efb_height);
 	float draw_width, draw_height;
 	std::tie(draw_width, draw_height) = ScaleToDisplayAspectRatio(efb_width, efb_height);
 

@@ -176,13 +176,13 @@ public:
    * @parameter target_rate The sample-rate of the audio output.
    * @parameter quality A number between 0 (fast, low quality) and 10 (slow,
    * high quality). */
-  cubeb_resampler_speex_one_way(uint32_t channels,
-                                uint32_t source_rate,
+  cubeb_resampler_speex_one_way(uint32_t channels_,
+                                uint32_t source_rate_,
                                 uint32_t target_rate,
                                 int quality)
   : processor(channels)
   , resampling_ratio(static_cast<float>(source_rate) / target_rate)
-  , source_rate(source_rate)
+  , source_rate(source_rate_)
   , additional_latency(0)
   , leftover_samples(0)
   {
@@ -382,11 +382,11 @@ public:
    * @parameter frames the number of frames of delay.
    * @parameter channels the number of channels of this delay line.
    * @parameter sample_rate sample-rate of the audio going through this delay line */
-  delay_line(uint32_t frames, uint32_t channels, uint32_t sample_rate)
+  delay_line(uint32_t frames, uint32_t channels_, uint32_t sample_rate_)
     : processor(channels)
     , length(frames)
     , leftover_samples(0)
-    , sample_rate(sample_rate)
+    , sample_rate(sample_rate_)
   {
     /* Fill the delay line with some silent frames to add latency. */
     delay_input_buffer.push_silence(frames * channels);

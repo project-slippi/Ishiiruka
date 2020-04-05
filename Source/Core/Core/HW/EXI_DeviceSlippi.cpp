@@ -38,7 +38,7 @@
 #define FRAME_INTERVAL 900
 #define SLEEP_TIME_MS 8
 
-int32_t emod(int32_t a, int32_t b)
+static int32_t emod(int32_t a, int32_t b)
 {
 	assert(b != 0);
 	int r = a % b;
@@ -61,7 +61,7 @@ template <typename T> bool isFutureReady(std::future<T> &t)
 	return t.wait_for(std::chrono::seconds(0)) == std::future_status::ready;
 }
 
-std::vector<u8> uint16ToVector(u16 num)
+static std::vector<u8> uint16ToVector(u16 num)
 {
 	u8 byte0 = num >> 8;
 	u8 byte1 = num & 0xFF;
@@ -69,7 +69,7 @@ std::vector<u8> uint16ToVector(u16 num)
 	return std::vector<u8>({byte0, byte1});
 }
 
-std::vector<u8> uint32ToVector(u32 num)
+static std::vector<u8> uint32ToVector(u32 num)
 {
 	u8 byte0 = num >> 24;
 	u8 byte1 = (num & 0xFF0000) >> 16;
@@ -79,7 +79,7 @@ std::vector<u8> uint32ToVector(u32 num)
 	return std::vector<u8>({byte0, byte1, byte2, byte3});
 }
 
-std::vector<u8> int32ToVector(int32_t num)
+static std::vector<u8> int32ToVector(int32_t num)
 {
 	u8 byte0 = num >> 24;
 	u8 byte1 = (num & 0xFF0000) >> 16;
@@ -89,19 +89,19 @@ std::vector<u8> int32ToVector(int32_t num)
 	return std::vector<u8>({byte0, byte1, byte2, byte3});
 }
 
-void appendWordToBuffer(std::vector<u8> *buf, u32 word)
+static void appendWordToBuffer(std::vector<u8> *buf, u32 word)
 {
 	auto wordVector = uint32ToVector(word);
 	buf->insert(buf->end(), wordVector.begin(), wordVector.end());
 }
 
-void appendHalfToBuffer(std::vector<u8> *buf, u16 word)
+static void appendHalfToBuffer(std::vector<u8> *buf, u16 word)
 {
 	auto halfVector = uint16ToVector(word);
 	buf->insert(buf->end(), halfVector.begin(), halfVector.end());
 }
 
-std::string processDiff(std::vector<u8> iState, std::vector<u8> cState)
+static std::string processDiff(std::vector<u8> iState, std::vector<u8> cState)
 {
 	INFO_LOG(SLIPPI, "Processing diff");
 	numDiffsProcessing += 1;
@@ -188,7 +188,7 @@ std::unordered_map<u8, std::string> CEXISlippi::getNetplayNames()
 		for (auto it = netplayPlayers.begin(); it != netplayPlayers.end(); ++it)
 		{
 			auto player = *it;
-			u8 portIndex = netplay_client->FindPlayerPad(player);
+			s8 portIndex = netplay_client->FindPlayerPad(player);
 			if (portIndex < 0)
 			{
 				continue;
@@ -940,9 +940,9 @@ void CEXISlippi::prepareGeckoList()
 	}
 
 	std::vector<u8> source = settings->geckoCodes;
-	INFO_LOG(SLIPPI, "Booting codes with source size: %d", source.size());
+	INFO_LOG(SLIPPI, "Booting codes with source size: %lu", source.size());
 
-	int idx = 0;
+	auto idx = 0u;
 	while (idx < source.size())
 	{
 		u8 codeType = source[idx] & 0xFE;

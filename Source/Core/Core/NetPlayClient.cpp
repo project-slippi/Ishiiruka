@@ -312,7 +312,7 @@ unsigned int NetPlayClient::OnData(sf::Packet& packet)
 	}
 	break;
 
-    case NP_MSG_REPORT_FRAME_TIME:
+	case NP_MSG_REPORT_FRAME_TIME:
 	{
 		PlayerId pid;
 		packet >> pid;
@@ -469,10 +469,10 @@ unsigned int NetPlayClient::OnData(sf::Packet& packet)
 			packet >> tmp;
 			g_NetPlaySettings.m_EXIDevice[1] = (TEXIDevices)tmp;
 
-            packet >> tmp;
-            g_NetPlaySettings.m_LagReduction = (MeleeLagReductionCode)tmp;
+			packet >> tmp;
+			g_NetPlaySettings.m_LagReduction = (MeleeLagReductionCode)tmp;
 
-            packet >> g_NetPlaySettings.m_MeleeForceWidescreen;
+			packet >> g_NetPlaySettings.m_MeleeForceWidescreen;
 
 			u32 time_low, time_high;
 			packet >> time_low;
@@ -678,7 +678,7 @@ void NetPlayClient::SendAsync(std::unique_ptr<sf::Packet> packet)
 // called from ---NETPLAY--- thread
 void NetPlayClient::ThreadFunc()
 {
-    bool qos_success = false;
+	bool qos_success = false;
 #ifdef _WIN32
 	QOS_VERSION ver = { 1, 0 };
 
@@ -813,15 +813,15 @@ void NetPlayClient::GetPlayerList(std::string& list, std::vector<int>& pid_list)
 
 		ss << " |\nPing: " << player.ping << "ms\n";
 
-        std::string frame_time_str = std::to_string(player.frame_time);
-        frame_time_str = frame_time_str.substr(0, 3);
+		std::string frame_time_str = std::to_string(player.frame_time);
+		frame_time_str = frame_time_str.substr(0, 3);
 
-        while(frame_time_str.find(",") != std::string::npos)
-            frame_time_str[frame_time_str.find(",")] = '.';
+		while(frame_time_str.find(",") != std::string::npos)
+			frame_time_str[frame_time_str.find(",")] = '.';
 
-        int percent_of_full_frame = SConfig::GetInstance().bNTSC ? (int)(player.frame_time / (1000.0 / 60.0) * 100) : (int)(player.frame_time / (1000.0 / 50.0) * 100);
+		int percent_of_full_frame = SConfig::GetInstance().bNTSC ? (int)(player.frame_time / (1000.0 / 60.0) * 100) : (int)(player.frame_time / (1000.0 / 50.0) * 100);
 
-        ss << "Frame time: " << (player.frame_time == 0 ? "(unknown)" : frame_time_str + " ms (" + std::to_string(percent_of_full_frame) + "% of max)") << "\n";
+		ss << "Frame time: " << (player.frame_time == 0 ? "(unknown)" : frame_time_str + " ms (" + std::to_string(percent_of_full_frame) + "% of max)") << "\n";
 
 		ss << "Buffer: " << player.buffer << "\n";
 		ss << "Status: ";
@@ -880,7 +880,7 @@ void NetPlayClient::ReportFrameTimeToServer(float frame_time)
 
 	SendAsync(std::move(spac));
 
-    local_player->frame_time = frame_time;
+	local_player->frame_time = frame_time;
 }
 
 // called from ---CPU--- thread
@@ -1119,7 +1119,7 @@ bool NetPlayClient::GetNetPads(const int pad_nb, GCPadStatus* pad_status)
 // called from ---CPU--- thread
 void NetPlayClient::SendNetPad(int pad_nb)
 {
-	GCPadStatus status = {0};
+	GCPadStatus status = GCPadStatus();
 	status.stickX = status.stickY =
 	status.substickX = status.substickY =
 	/* these are all the same */ GCPadStatus::MAIN_STICK_CENTER_X;
@@ -1134,19 +1134,19 @@ void NetPlayClient::SendNetPad(int pad_nb)
 
 			if(m_pad_buffer[ingame_pad].Size() <= BufferSizeForPort(ingame_pad) / (SConfig::GetInstance().iPollingMethod == POLLING_ONSIREAD ? buffer_accuracy : 1))
 			{
-                if(!OSD::Chat::toggled)
-                {
-                    switch (SConfig::GetInstance().m_SIDevice[i])
-                    {
-                    case SIDEVICE_WIIU_ADAPTER:
-                        status = GCAdapter::Input(i);
-                        break;
-                    case SIDEVICE_GC_CONTROLLER:
-                    default:
-                        status = Pad::GetStatus(i);
-                        break;
-                    }
-                }
+				if(!OSD::Chat::toggled)
+				{
+					switch (SConfig::GetInstance().m_SIDevice[i])
+					{
+					case SIDEVICE_WIIU_ADAPTER:
+						status = GCAdapter::Input(i);
+						break;
+					case SIDEVICE_GC_CONTROLLER:
+					default:
+						status = Pad::GetStatus(i);
+						break;
+					}
+				}
 
 				while (m_pad_buffer[ingame_pad].Size() <= BufferSizeForPort(ingame_pad) / (SConfig::GetInstance().iPollingMethod == POLLING_ONSIREAD ? buffer_accuracy : 1))
 				{
@@ -1164,19 +1164,19 @@ void NetPlayClient::SendNetPad(int pad_nb)
 		{
 			if(m_pad_buffer[pad_nb].Size() <= BufferSizeForPort(pad_nb) / (SConfig::GetInstance().iPollingMethod == POLLING_ONSIREAD ? buffer_accuracy : 1))
 			{
-                if(!OSD::Chat::toggled)
-                {
-                    switch (SConfig::GetInstance().m_SIDevice[local_pad])
-                    {
-                    case SIDEVICE_WIIU_ADAPTER:
-                        status = GCAdapter::Input(local_pad);
-                        break;
-                    case SIDEVICE_GC_CONTROLLER:
-                    default:
-                        status = Pad::GetStatus(local_pad);
-                        break;
-                    }
-                }
+				if(!OSD::Chat::toggled)
+				{
+					switch (SConfig::GetInstance().m_SIDevice[local_pad])
+					{
+					case SIDEVICE_WIIU_ADAPTER:
+						status = GCAdapter::Input(local_pad);
+						break;
+					case SIDEVICE_GC_CONTROLLER:
+					default:
+						status = Pad::GetStatus(local_pad);
+						break;
+					}
+				}
 
 				while (m_pad_buffer[pad_nb].Size() <= BufferSizeForPort(pad_nb) / (SConfig::GetInstance().iPollingMethod == POLLING_ONSIREAD ? buffer_accuracy : 1))
 				{
@@ -1276,8 +1276,8 @@ bool NetPlayClient::StopGame()
 	// stop game
 	dialog->StopGame();
 
-    for(auto& player : m_players)
-        player.second.frame_time = 0;
+	for(auto& player : m_players)
+		player.second.frame_time = 0;
 
 	return true;
 }

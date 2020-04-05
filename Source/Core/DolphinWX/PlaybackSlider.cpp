@@ -93,20 +93,17 @@ void PlaybackSlider::OnSliderMove(wxCommandEvent &event)
 	// save the value of the last move here and use that to set the game pos
 	lastMoveVal = value;
 
-	int totalSeconds = (int)((g_playback_status->latestFrame + 123) / 60);
-	int totalMinutes = (int)(totalSeconds / 60);
-	int totalRemainder = (int)(totalSeconds % 60);
+	unsigned int totalSeconds = (g_playback_status->latestFrame + 123) / 60;
+	unsigned char totalMinutes = totalSeconds / 60;
+	unsigned char totalRemainder = totalSeconds % 60;
 
-	int currSeconds = int((value + 123) / 60);
-	int currMinutes = (int)(currSeconds / 60);
-	int currRemainder = (int)(currSeconds % 60);
-	// Position string (i.e. MM:SS)
-	char endTime[5];
-	sprintf(endTime, "%02d:%02d", totalMinutes, totalRemainder);
-	char currTime[5];
-	sprintf(currTime, "%02d:%02d", currMinutes, currRemainder);
+	unsigned int currSeconds = (g_playback_status->currentPlaybackFrame + 123) / 60;
+	unsigned char currMinutes = currSeconds / 60;
+	unsigned char currRemainder = currSeconds % 60;
+	std::string time =
+		std::to_string(totalMinutes) + ":" + std::to_string(totalRemainder) + " / " +
+		std::to_string(currMinutes) + ":" + std::to_string(currRemainder);
 
-	std::string time = std::string(currTime) + " / " + std::string(endTime);
 	seekBarText->SetLabel(_(time));
 	event.Skip();
 	event.StopPropagation();

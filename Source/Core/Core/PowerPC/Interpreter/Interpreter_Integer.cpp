@@ -368,7 +368,7 @@ void Interpreter::srawx(UGeckoInstruction _inst)
 			s32 rrs = rGPR[_inst.RS];
 			rGPR[_inst.RA] = rrs >> amount;
 
-			if ((rrs < 0) && (rrs << (32 - amount)))
+			if ((rrs < 0) && (rrs << (32 - amount)) != 0)
 				SetCarry(1);
 			else
 				SetCarry(0);
@@ -388,7 +388,7 @@ void Interpreter::srawix(UGeckoInstruction _inst)
 		s32 rrs = rGPR[_inst.RS];
 		rGPR[_inst.RA] = rrs >> amount;
 
-		if ((rrs < 0) && (rrs << (32 - amount)))
+		if ((rrs < 0) && (rrs << (32 - amount)) != 0)
 			SetCarry(1);
 		else
 			SetCarry(0);

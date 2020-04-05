@@ -120,7 +120,7 @@ public:
     }
 
     // accessors
-    int GetValue() const { return int(DoGetValue()); }
+    unsigned int GetValue() const { return DoGetValue(); }
     int GetMin() const { return int(DoGetMin()); }
     int GetMax() const { return int(DoGetMax()); }
     int GetIncrement() const { return int(DoGetIncrement()); }

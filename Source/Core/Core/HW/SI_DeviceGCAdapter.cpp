@@ -25,7 +25,7 @@ CSIDevice_GCAdapter::CSIDevice_GCAdapter(SIDevices device, int _iDeviceNumber)
 
 GCPadStatus CSIDevice_GCAdapter::GetPadStatus()
 {
-	GCPadStatus pad_status = {0};
+	GCPadStatus pad_status = GCPadStatus();
 	pad_status.stickX = pad_status.stickY =
 	pad_status.substickX = pad_status.substickY =
 	/* these are all the same */ GCPadStatus::MAIN_STICK_CENTER_X;

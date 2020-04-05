@@ -22,7 +22,7 @@
 #define OPEN_VCDIFF_CODETABLEWRITER_INTERFACE_H_
 
 #include <stddef.h>  // size_t
-#include "../checksum.h";
+#include "../checksum.h"
 #include "format_extension_flags.h"  // VCDiffFormatExtensionFlags
 
 namespace open_vcdiff {

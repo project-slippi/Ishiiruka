@@ -124,7 +124,7 @@ static TraversalInetAddress MakeInetAddress(const sockaddr_in6& addr)
 		exit(1);
 	}
 	u32* words = (u32*) addr.sin6_addr.s6_addr;
-	TraversalInetAddress result = {0};
+	TraversalInetAddress result = TraversalInetAddress();
 	if (words[0] == 0 && words[1] == 0 && words[2] == 0xffff0000)
 	{
 		result.isIPV6 = false;

@@ -295,9 +295,9 @@ void Interpreter::unknown_instruction(UGeckoInstruction _inst)
 			i + 3, rGPR[i + 3]);
 
   std::string msg;
-	
+
   msg.append(StringFromFormat("\nIntCPU: Unknown instruction %08x at PC = %08x  last_PC = %08x  LR = %08x\n\n", _inst.hex, PC, last_pc, LR));
-  
+
   std::vector<Dolphin_Debugger::CallstackEntry> callstack;
   Dolphin_Debugger::GetCallstack(callstack);
 
@@ -306,7 +306,7 @@ void Interpreter::unknown_instruction(UGeckoInstruction _inst)
     msg.append(it->Name);
   }
 
-  _assert_msg_(POWERPC, 0, msg.c_str());
+  _assert_msg_(POWERPC, 0, "%s", msg.c_str());
 }
 
 void Interpreter::ClearCache()

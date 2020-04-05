@@ -128,28 +128,28 @@ void RegisterMMIO(MMIO::Mapping* mmio, u32 base)
 		bool readonly;
 		bool writes_align_to_32_bytes;
 	} directly_mapped_vars[] = {
-		{ FIFO_TOKEN_REGISTER, &m_tokenReg },
+		{ FIFO_TOKEN_REGISTER, &m_tokenReg, false, false },
 
 		// Bounding box registers are read only.
-		{ FIFO_BOUNDING_BOX_LEFT, &m_bboxleft, true },
-		{ FIFO_BOUNDING_BOX_RIGHT, &m_bboxright, true },
-		{ FIFO_BOUNDING_BOX_TOP, &m_bboxtop, true },
-		{ FIFO_BOUNDING_BOX_BOTTOM, &m_bboxbottom, true },
+		{ FIFO_BOUNDING_BOX_LEFT,   &m_bboxleft,   true, false },
+		{ FIFO_BOUNDING_BOX_RIGHT,  &m_bboxright,  true, false },
+		{ FIFO_BOUNDING_BOX_TOP,    &m_bboxtop,    true, false },
+		{ FIFO_BOUNDING_BOX_BOTTOM, &m_bboxbottom, true, false },
 
 		// Some FIFO addresses need to be aligned on 32 bytes on write - only
 		// the high part can be written directly without a mask.
-		{ FIFO_BASE_LO, MMIO::Utils::LowPart(&fifo.CPBase), false, true },
-		{ FIFO_BASE_HI, MMIO::Utils::HighPart(&fifo.CPBase) },
-		{ FIFO_END_LO, MMIO::Utils::LowPart(&fifo.CPEnd), false, true },
-		{ FIFO_END_HI, MMIO::Utils::HighPart(&fifo.CPEnd) },
-		{ FIFO_HI_WATERMARK_LO, MMIO::Utils::LowPart(&fifo.CPHiWatermark) },
-		{ FIFO_HI_WATERMARK_HI, MMIO::Utils::HighPart(&fifo.CPHiWatermark) },
-		{ FIFO_LO_WATERMARK_LO, MMIO::Utils::LowPart(&fifo.CPLoWatermark) },
-		{ FIFO_LO_WATERMARK_HI, MMIO::Utils::HighPart(&fifo.CPLoWatermark) },
+		{ FIFO_BASE_LO,         MMIO::Utils::LowPart(&fifo.CPBase),         false, true },
+		{ FIFO_BASE_HI,         MMIO::Utils::HighPart(&fifo.CPBase),        false, true },
+		{ FIFO_END_LO,          MMIO::Utils::LowPart(&fifo.CPEnd),          false, true },
+		{ FIFO_END_HI,          MMIO::Utils::HighPart(&fifo.CPEnd),         false, true },
+		{ FIFO_HI_WATERMARK_LO, MMIO::Utils::LowPart(&fifo.CPHiWatermark),  false, true },
+		{ FIFO_HI_WATERMARK_HI, MMIO::Utils::HighPart(&fifo.CPHiWatermark), false, true },
+		{ FIFO_LO_WATERMARK_LO, MMIO::Utils::LowPart(&fifo.CPLoWatermark),  false, true },
+		{ FIFO_LO_WATERMARK_HI, MMIO::Utils::HighPart(&fifo.CPLoWatermark), false, true },
 		// FIFO_RW_DISTANCE has some complex read code different for
 		// single/dual core.
-		{ FIFO_WRITE_POINTER_LO, MMIO::Utils::LowPart(&fifo.CPWritePointer), false, true },
-		{ FIFO_WRITE_POINTER_HI, MMIO::Utils::HighPart(&fifo.CPWritePointer) },
+		{ FIFO_WRITE_POINTER_LO, MMIO::Utils::LowPart(&fifo.CPWritePointer),  false, true },
+		{ FIFO_WRITE_POINTER_HI, MMIO::Utils::HighPart(&fifo.CPWritePointer), false, true },
 		// FIFO_READ_POINTER has different code for single/dual core.
 	};
 

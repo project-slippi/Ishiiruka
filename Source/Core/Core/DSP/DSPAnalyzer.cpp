@@ -128,12 +128,12 @@ void AnalyzeRange(u16 start_addr, u16 end_addr)
 	}
 
 	// Next, we'll scan for potential idle skips.
-	for (int s = 0; s < NUM_IDLE_SIGS; s++)
+	for (auto s = 0u; s < NUM_IDLE_SIGS; s++)
 	{
 		for (u16 addr = start_addr; addr < end_addr; addr++)
 		{
 			bool found = false;
-			for (int i = 0; i < MAX_IDLE_SIG_SIZE + 1; i++)
+			for (auto i = 0u; i < MAX_IDLE_SIG_SIZE + 1; i++)
 			{
 				if (idle_skip_sigs[s][i] == 0)
 					found = true;

@@ -1695,7 +1695,7 @@ void VideoConfigDiag::PopulateAAList()
 
 void VideoConfigDiag::OnAAChanged(wxCommandEvent& ev)
 {
-	int mode = ev.GetInt();
+	unsigned int mode = ev.GetInt();
 	ev.Skip();
 	const std::vector<int>& aa_modes = vconfig.backend_info.AAModes;
 	vconfig.bSSAA = mode >= aa_modes.size();

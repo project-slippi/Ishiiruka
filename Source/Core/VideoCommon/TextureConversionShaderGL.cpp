@@ -41,13 +41,13 @@ static void WriteSwizzler(char*& p, u32 format, API_TYPE ApiType)
 	WRITE(p, "{\n");
 	WRITE(p, "  return float4(src.xyz, 1.0);\n");
 	WRITE(p, "}\n");
-	
+
 	WRITE(p, "float4 RGBA8ToRGBA6(float4 src)\n");
 	WRITE(p, "{\n");
 	WRITE(p, "  int4 val = int4(src * 255.0) >> 2;\n");
 	WRITE(p, "  return float4(val) / 63.0;\n");
 	WRITE(p, "}\n");
-	
+
 	WRITE(p, "float4 RGBA8ToRGB565(float4 src)\n");
 	WRITE(p, "{\n");
 	WRITE(p, "  int4 val = int4(src * 255.0);\n");
@@ -307,7 +307,7 @@ static void WriteIA4Encoder(char*& p, API_TYPE ApiType, const EFBCopyFormat& for
 static void WriteRGB565Encoder(char*& p, API_TYPE ApiType, const EFBCopyFormat& format)
 {
 	WriteSwizzler(p, GX_TF_RGB565, ApiType);
-	
+
 	WRITE(p, "  float3 texSample0;\n");
 	WRITE(p, "  float3 texSample1;\n");
 
@@ -702,7 +702,7 @@ const char* GenerateEncodingShader(const EFBCopyFormat& format, API_TYPE ApiType
 		WriteZ16LEncoder(p, ApiType, format);
 		break;
 	default:
-		PanicAlert("Unknown texture copy format: 0x%x\n", format);
+		PanicAlert("Unknown texture copy format: 0x%x\n", format.copy_format);
 		break;
 	}
 
@@ -1021,7 +1021,7 @@ static const std::map<TextureFormat, DecodingShaderInfo> s_decoding_shader_info{
         vec4 norm_color = vec4(color) / 255.0;
         imageStore(output_image, ivec3(ivec2(coords), 0), norm_color);
       }
-      )" } },	  
+      )" } },
 	  { GX_TF_C4,
 	  { BUFFER_FORMAT_R8_UINT, static_cast<u32>(TexDecoder_GetPaletteSize(GX_TF_C4)), 8, 8, false,
 	R"(
