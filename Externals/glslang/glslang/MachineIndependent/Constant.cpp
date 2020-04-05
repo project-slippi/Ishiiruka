@@ -542,7 +542,7 @@ TIntermTyped* TIntermConstantUnion::fold(TOperator op, const TType& returnType) 
                 newConstArray[i] = unionArray[i];
             break;
         case EOpSign:
-            #define SIGN(X) (X >= 0)
+            #define SIGN(X) (X == 0 ? 0 : (X < 0 ? -1 : 1))
             if (unionArray[i].getType() == EbtDouble)
                 newConstArray[i].setDConst(SIGN(unionArray[i].getDConst()));
             else
