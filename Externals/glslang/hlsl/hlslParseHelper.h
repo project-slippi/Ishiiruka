@@ -128,12 +128,12 @@ public:
     void checkNoShaderLayouts(const TSourceLoc&, const TShaderQualifiers&);
 
     const TFunction* findFunction(const TSourceLoc& loc, const TFunction& call, bool& builtIn);
-    void declareTypedef(const TSourceLoc&, TString& identifier, const TType&, TArraySizes* typeArray = 0);
-    TIntermNode* declareVariable(const TSourceLoc&, TString& identifier, const TType&, TArraySizes* typeArray = 0, TIntermTyped* initializer = 0);
+    void declareTypedef(const TSourceLoc&, TString& identifier, const TType&, TArraySizes* typeArray = nullptr);
+    TIntermNode* declareVariable(const TSourceLoc&, TString& identifier, const TType&, TArraySizes* typeArray = nullptr, TIntermTyped* initializer = nullptr);
     TIntermTyped* addConstructor(const TSourceLoc&, TIntermNode*, const TType&, TOperator);
     TIntermTyped* constructAggregate(TIntermNode*, const TType&, int, const TSourceLoc&);
     TIntermTyped* constructBuiltIn(const TType&, TOperator, TIntermTyped*, const TSourceLoc&, bool subset);
-    void declareBlock(const TSourceLoc&, TTypeList& typeList, const TString* instanceName = 0, TArraySizes* arraySizes = 0);
+    void declareBlock(const TSourceLoc&, TTypeList& typeList, const TString* instanceName = nullptr, TArraySizes* arraySizes = nullptr);
     void fixBlockLocations(const TSourceLoc&, TQualifier&, TTypeList&, bool memberWithLocation, bool memberWithoutLocation);
     void fixBlockXfbOffsets(TQualifier&, TTypeList&);
     void fixBlockUniformOffsets(TQualifier&, TTypeList&);
@@ -148,7 +148,7 @@ public:
     void nestLooping()     { ++loopNestingLevel; }
     void unnestLooping()   { --loopNestingLevel; }
     void pushScope()       { symbolTable.push(); }
-    void popScope()        { symbolTable.pop(0); }
+    void popScope()        { symbolTable.pop(nullptr); }
 
     void pushSwitchSequence(TIntermSequence* sequence) { switchSequenceStack.push_back(sequence); }
     void popSwitchSequence() { switchSequenceStack.pop_back(); }
@@ -221,7 +221,7 @@ protected:
     //     * note, that appropriately gives an error if redeclaring a block that
     //       was already used and hence already copied-up
     //
-    //  - on seeing a layout declaration that sizes the array, fix everything in the 
+    //  - on seeing a layout declaration that sizes the array, fix everything in the
     //    resize-list, giving errors for mismatch
     //
     //  - on seeing an array size declaration, give errors on mismatch between it and previous

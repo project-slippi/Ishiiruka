@@ -160,9 +160,9 @@ typedef struct {
 
 //
 // ShHandle held by but opaque to the driver.  It is allocated,
-// managed, and de-allocated by the compiler/linker. It's contents 
+// managed, and de-allocated by the compiler/linker. It's contents
 // are defined by and used by the compiler and linker.  For example,
-// symbol table information and object code passed from the compiler 
+// symbol table information and object code passed from the compiler
 // to the linker can be stored where ShHandle points.
 //
 // If handle creation fails, 0 will be returned.
@@ -182,7 +182,7 @@ SH_IMPORT_EXPORT void ShDestruct(ShHandle);
 // The return value of ShCompile is boolean, non-zero indicating
 // success.
 //
-// The info-log should be written by ShCompile into 
+// The info-log should be written by ShCompile into
 // ShHandle, so it can answer future queries.
 //
 SH_IMPORT_EXPORT int ShCompile(
@@ -246,8 +246,8 @@ SH_IMPORT_EXPORT int ShGetUniformLocation(const ShHandle uniformMap, const char*
 // -----------------------------------
 //
 // Below is a new alternate C++ interface that might potentially replace the above
-// opaque handle-based interface.  
-//    
+// opaque handle-based interface.
+//
 // The below is further designed to handle multiple compilation units per stage, where
 // the intermediate results, including the parse tree, are preserved until link time,
 // rather than the above interface which is designed to have each compilation unit
@@ -434,7 +434,7 @@ private:
 
 class TReflection;
 
-// Make one TProgram per set of shaders that will get linked together.  Add all 
+// Make one TProgram per set of shaders that will get linked together.  Add all
 // the shaders that are to be linked together.  After calling shader.parse()
 // for all shaders, call link().
 //

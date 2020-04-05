@@ -153,34 +153,34 @@ enum EPrecisionClass {
     EPcCount
 };
 
-// A process-global symbol table per version per profile for built-ins common 
-// to multiple stages (languages), and a process-global symbol table per version 
+// A process-global symbol table per version per profile for built-ins common
+// to multiple stages (languages), and a process-global symbol table per version
 // per profile per stage for built-ins unique to each stage.  They will be sparsely
 // populated, so they will only be generated as needed.
-// 
+//
 // Each has a different set of built-ins, and we want to preserve that from
 // compile to compile.
 //
 TSymbolTable* CommonSymbolTable[VersionCount][SpvVersionCount][ProfileCount][EPcCount] = {};
 TSymbolTable* SharedSymbolTables[VersionCount][SpvVersionCount][ProfileCount][EShLangCount] = {};
 
-TPoolAllocator* PerProcessGPA = 0;
+TPoolAllocator* PerProcessGPA = nullptr;
 
 //
 // Parse and add to the given symbol table the content of the given shader string.
 //
-bool InitializeSymbolTable(const TString& builtIns, int version, EProfile profile, const SpvVersion& spvVersion, EShLanguage language, TInfoSink& infoSink, 
+bool InitializeSymbolTable(const TString& builtIns, int version, EProfile profile, const SpvVersion& spvVersion, EShLanguage language, TInfoSink& infoSink,
                            TSymbolTable& symbolTable)
 {
     TIntermediate intermediate(language, version, profile);
-    
+
     TParseContext parseContext(symbolTable, intermediate, true, version, profile, spvVersion, language, infoSink);
     TShader::ForbidInclude includer;
     TPpContext ppContext(parseContext, "", includer);
     TScanContext scanContext(parseContext);
     parseContext.setScanContext(&scanContext);
     parseContext.setPpContext(&ppContext);
-    
+
     //
     // Push the symbol table to give it an initial scope.  This
     // push should not have a corresponding pop, so that built-ins
@@ -196,7 +196,7 @@ bool InitializeSymbolTable(const TString& builtIns, int version, EProfile profil
 
     if (builtInLengths[0] == 0)
         return true;
-    
+
     TInputScanner input(1, builtInShaders, builtInLengths);
     if (! parseContext.parseShaderStrings(ppContext, input) != 0) {
         infoSink.info.message(EPrefixInternalError, "Unable to parse built-ins");
@@ -274,7 +274,7 @@ bool AddContextSpecificSymbols(const TBuiltInResource* resources, TInfoSink& inf
                                EProfile profile, const SpvVersion& spvVersion, EShLanguage language, EShSource source)
 {
     std::unique_ptr<TBuiltInParseables> builtInParseables(CreateBuiltInParseables(infoSink, source));
-    
+
     builtInParseables->initialize(*resources, version, profile, spvVersion, language);
     InitializeSymbolTable(builtInParseables->getCommonString(), version, profile, spvVersion, language, infoSink, symbolTable);
     builtInParseables->identifyBuiltIns(version, profile, spvVersion, language, symbolTable, *resources);
@@ -283,7 +283,7 @@ bool AddContextSpecificSymbols(const TBuiltInResource* resources, TInfoSink& inf
 }
 
 //
-// To do this on the fly, we want to leave the current state of our thread's 
+// To do this on the fly, we want to leave the current state of our thread's
 // pool allocator intact, so:
 //  - Switch to a new pool for parsing the built-ins
 //  - Do the parsing, which builds the symbol table, using the new pool
@@ -345,7 +345,7 @@ void SetupBuiltinSymbolTable(int version, EProfile profile, const SpvVersion& sp
                               [versionIndex][spvVersionIndex][profileIndex][CommonIndex(profile, (EShLanguage)stage)]);
             SharedSymbolTables[versionIndex][spvVersionIndex][profileIndex][stage]->copyTable(*stageTables[stage]);
             SharedSymbolTables[versionIndex][spvVersionIndex][profileIndex][stage]->readOnly();
-        }    
+        }
     }
 
     // Clean up the local tables before deleting the pool they used.
@@ -414,7 +414,7 @@ bool DeduceVersionProfile(TInfoSink& infoSink, EShLanguage stage, bool versionNo
                     profile = ECoreProfile;
                 else
                     profile = ENoProfile;
-            } 
+            }
             // else: typical desktop case... e.g., "#version 410 core"
         }
     }
@@ -570,7 +570,7 @@ bool ProcessDeferred(
 
     if (numStrings == 0)
         return true;
-    
+
     // Move to length-based strings, rather than null-terminated strings.
     // Also, add strings to include the preamble and to ensure the shader is not null,
     // which lets the grammar accept what was a null (post preprocessing) shader.
@@ -588,7 +588,7 @@ bool ProcessDeferred(
     const char** names = new const char*[numTotal];
     for (int s = 0; s < numStrings; ++s) {
         strings[s + numPre] = shaderStrings[s];
-        if (inputLengths == 0 || inputLengths[s] < 0)
+        if (inputLengths == nullptr || inputLengths[s] < 0)
             lengths[s + numPre] = strlen(shaderStrings[s]);
         else
             lengths[s + numPre] = inputLengths[s];
@@ -652,23 +652,23 @@ bool ProcessDeferred(
     if (spvVersion.vulkan >= 100)
         intermediate.setOriginUpperLeft();
     SetupBuiltinSymbolTable(version, profile, spvVersion, source);
-    
+
     TSymbolTable* cachedTable = SharedSymbolTables[MapVersionToIndex(version)]
                                                   [MapSpvVersionToIndex(spvVersion)]
                                                   [MapProfileToIndex(profile)]
                                                   [compiler->getLanguage()];
-    
+
     // Dynamically allocate the symbol table so we can control when it is deallocated WRT the pool.
     TSymbolTable* symbolTableMemory = new TSymbolTable;
     TSymbolTable& symbolTable = *symbolTableMemory;
     if (cachedTable)
         symbolTable.adoptLevels(*cachedTable);
-    
+
     // Add built-in symbols that are potentially context dependent;
     // they get popped again further down.
     AddContextSpecificSymbols(resources, compiler->infoSink, symbolTable, version, profile, spvVersion,
                               compiler->getLanguage(), source);
-    
+
     //
     // Now we can process the full shader under proper symbols and rules.
     //
@@ -701,7 +701,7 @@ bool ProcessDeferred(
     }
 
     parseContext->initializeExtensionBehavior();
-    
+
     // Fill in the strings as outlined above.
     std::string preamble;
     parseContext->getPreamble(preamble);
@@ -921,7 +921,7 @@ struct DoFullParse{
   bool operator()(TParseContextBase& parseContext, TPpContext& ppContext,
                   TInputScanner& fullInput, bool versionWillBeError,
                   TSymbolTable& symbolTable, TIntermediate& intermediate,
-                  EShOptimizationLevel optLevel, EShMessages messages) 
+                  EShOptimizationLevel optLevel, EShMessages messages)
     {
         bool success = true;
         // Parse the full shader.
@@ -985,7 +985,7 @@ bool PreprocessDeferred(
 // all preprocessing, parsing, semantic checks, etc. for a single compilation unit
 // are done here.
 //
-// return:  the tree and other information is filled into the intermediate argument, 
+// return:  the tree and other information is filled into the intermediate argument,
 //          and true is returned by the function for success.
 //
 bool CompileDeferred(
@@ -1042,17 +1042,17 @@ int ShInitialize()
 ShHandle ShConstructCompiler(const EShLanguage language, int debugOptions)
 {
     if (!InitThread())
-        return 0;
+        return nullptr;
 
     TShHandleBase* base = static_cast<TShHandleBase*>(ConstructCompiler(language, debugOptions));
-    
+
     return reinterpret_cast<void*>(base);
 }
 
 ShHandle ShConstructLinker(const EShExecutable executable, int debugOptions)
 {
     if (!InitThread())
-        return 0;
+        return nullptr;
 
     TShHandleBase* base = static_cast<TShHandleBase*>(ConstructLinker(executable, debugOptions));
 
@@ -1062,7 +1062,7 @@ ShHandle ShConstructLinker(const EShExecutable executable, int debugOptions)
 ShHandle ShConstructUniformMap()
 {
     if (!InitThread())
-        return 0;
+        return nullptr;
 
     TShHandleBase* base = static_cast<TShHandleBase*>(ConstructUniformMap());
 
@@ -1071,7 +1071,7 @@ ShHandle ShConstructUniformMap()
 
 void ShDestruct(ShHandle handle)
 {
-    if (handle == 0)
+    if (handle == nullptr)
         return;
 
     TShHandleBase* base = static_cast<TShHandleBase*>(handle);
@@ -1094,7 +1094,7 @@ int __fastcall ShFinalize()
             for (int p = 0; p < ProfileCount; ++p) {
                 for (int lang = 0; lang < EShLangCount; ++lang) {
                     delete SharedSymbolTables[version][spvVersion][p][lang];
-                    SharedSymbolTables[version][spvVersion][p][lang] = 0;
+                    SharedSymbolTables[version][spvVersion][p][lang] = nullptr;
                 }
             }
         }
@@ -1105,7 +1105,7 @@ int __fastcall ShFinalize()
             for (int p = 0; p < ProfileCount; ++p) {
                 for (int pc = 0; pc < EPcCount; ++pc) {
                     delete CommonSymbolTable[version][spvVersion][p][pc];
-                    CommonSymbolTable[version][spvVersion][p][pc] = 0;
+                    CommonSymbolTable[version][spvVersion][p][pc] = nullptr;
                 }
             }
         }
@@ -1114,7 +1114,7 @@ int __fastcall ShFinalize()
     if (PerProcessGPA) {
         PerProcessGPA->popAll();
         delete PerProcessGPA;
-        PerProcessGPA = 0;
+        PerProcessGPA = nullptr;
     }
 
     glslang::TScanContext::deleteKeywordMap();
@@ -1144,12 +1144,12 @@ int ShCompile(
     )
 {
     // Map the generic handle to the C++ object
-    if (handle == 0)
+    if (handle == nullptr)
         return 0;
 
     TShHandleBase* base = reinterpret_cast<TShHandleBase*>(handle);
     TCompiler* compiler = base->getAsCompiler();
-    if (compiler == 0)
+    if (compiler == nullptr)
         return 0;
 
     compiler->infoSink.info.erase();
@@ -1187,13 +1187,13 @@ int ShLinkExt(
     const ShHandle compHandles[],
     const int numHandles)
 {
-    if (linkHandle == 0 || numHandles == 0)
+    if (linkHandle == nullptr || numHandles == 0)
         return 0;
 
     THandleList cObjects;
 
     for (int i = 0; i < numHandles; ++i) {
-        if (compHandles[i] == 0)
+        if (compHandles[i] == nullptr)
             return 0;
         TShHandleBase* base = reinterpret_cast<TShHandleBase*>(compHandles[i]);
         if (base->getAsLinker()) {
@@ -1201,16 +1201,15 @@ int ShLinkExt(
         }
         if (base->getAsCompiler())
             cObjects.push_back(base->getAsCompiler());
-    
-    
-        if (cObjects[i] == 0)
+
+        if (cObjects[i] == nullptr)
             return 0;
     }
 
     TShHandleBase* base = reinterpret_cast<TShHandleBase*>(linkHandle);
     TLinker* linker = static_cast<TLinker*>(base->getAsLinker());
 
-    if (linker == 0)
+    if (linker == nullptr)
         return 0;
 
     linker->infoSink.info.erase();
@@ -1218,7 +1217,7 @@ int ShLinkExt(
     for (int i = 0; i < numHandles; ++i) {
         if (cObjects[i]->getAsCompiler()) {
             if (! cObjects[i]->getAsCompiler()->linkable()) {
-                linker->infoSink.info.message(EPrefixError, "Not all shaders have valid object code.");                
+                linker->infoSink.info.message(EPrefixError, "Not all shaders have valid object code.");
                 return 0;
             }
         }
@@ -1235,7 +1234,7 @@ int ShLinkExt(
 //
 void ShSetEncryptionMethod(ShHandle handle)
 {
-    if (handle == 0)
+    if (handle == nullptr)
         return;
 }
 
@@ -1245,10 +1244,10 @@ void ShSetEncryptionMethod(ShHandle handle)
 const char* ShGetInfoLog(const ShHandle handle)
 {
     if (!InitThread())
-        return 0;
+        return nullptr;
 
-    if (handle == 0)
-        return 0;
+    if (handle == nullptr)
+        return nullptr;
 
     TShHandleBase* base = static_cast<TShHandleBase*>(handle);
     TInfoSink* infoSink;
@@ -1258,7 +1257,7 @@ const char* ShGetInfoLog(const ShHandle handle)
     else if (base->getAsLinker())
         infoSink = &(base->getAsLinker()->getInfoSink());
     else
-        return 0;
+        return nullptr;
 
     infoSink->info << infoSink->debug.c_str();
     return infoSink->info.c_str();
@@ -1270,19 +1269,7 @@ const char* ShGetInfoLog(const ShHandle handle)
 //
 const void* ShGetExecutable(const ShHandle handle)
 {
-    if (!InitThread())
-        return 0;
-
-    if (handle == 0)
-        return 0;
-
-    TShHandleBase* base = reinterpret_cast<TShHandleBase*>(handle);
-    
-    TLinker* linker = static_cast<TLinker*>(base->getAsLinker());
-    if (linker == 0)
-        return 0;
-
-    return linker->getObjectCode();
+    return nullptr;
 }
 
 //
@@ -1294,19 +1281,19 @@ const void* ShGetExecutable(const ShHandle handle)
 // success or failure.
 //
 int ShSetVirtualAttributeBindings(const ShHandle handle, const ShBindingTable* table)
-{    
+{
     if (!InitThread())
         return 0;
 
-    if (handle == 0)
+    if (handle == nullptr)
         return 0;
 
     TShHandleBase* base = reinterpret_cast<TShHandleBase*>(handle);
     TLinker* linker = static_cast<TLinker*>(base->getAsLinker());
 
-    if (linker == 0)
+    if (linker == nullptr)
         return 0;
-   
+
     linker->setAppAttributeBindings(table);
 
     return 1;
@@ -1320,13 +1307,13 @@ int ShSetFixedAttributeBindings(const ShHandle handle, const ShBindingTable* tab
     if (!InitThread())
         return 0;
 
-    if (handle == 0)
+    if (handle == nullptr)
         return 0;
 
     TShHandleBase* base = reinterpret_cast<TShHandleBase*>(handle);
     TLinker* linker = static_cast<TLinker*>(base->getAsLinker());
 
-    if (linker == 0)
+    if (linker == nullptr)
         return 0;
 
     linker->setFixedAttributeBindings(table);
@@ -1341,12 +1328,12 @@ int ShExcludeAttributes(const ShHandle handle, int *attributes, int count)
     if (!InitThread())
         return 0;
 
-    if (handle == 0)
+    if (handle == nullptr)
         return 0;
 
     TShHandleBase* base = reinterpret_cast<TShHandleBase*>(handle);
     TLinker* linker = static_cast<TLinker*>(base->getAsLinker());
-    if (linker == 0)
+    if (linker == nullptr)
         return 0;
 
     linker->setExcludedAttributes(attributes, count);
@@ -1365,12 +1352,12 @@ int ShGetUniformLocation(const ShHandle handle, const char* name)
     if (!InitThread())
         return 0;
 
-    if (handle == 0)
+    if (handle == nullptr)
         return -1;
 
     TShHandleBase* base = reinterpret_cast<TShHandleBase*>(handle);
     TUniformMap* uniformMap= base->getAsUniformMap();
-    if (uniformMap == 0)
+    if (uniformMap == nullptr)
         return -1;
 
     return uniformMap->getLocation(name);
@@ -1383,7 +1370,7 @@ int ShGetUniformLocation(const ShHandle handle, const char* name)
 //
 // Below is a new alternate C++ interface that might potentially replace the above
 // opaque handle-based interface.
-//    
+//
 // See more detailed comment in ShaderLang.h
 //
 
@@ -1422,8 +1409,8 @@ public:
     virtual bool compile(TIntermNode*, int = 0, EProfile = ENoProfile) { return true; }
 };
 
-TShader::TShader(EShLanguage s) 
-    : pool(0), stage(s), lengths(nullptr), stringNames(nullptr), preamble("")
+TShader::TShader(EShLanguage s)
+    : pool(nullptr), stage(s), lengths(nullptr), stringNames(nullptr), preamble("")
 {
     infoSink = new TInfoSink;
     compiler = new TDeferredCompiler(stage, *infoSink);
@@ -1476,7 +1463,7 @@ bool TShader::parse(const TBuiltInResource* builtInResources, int defaultVersion
 {
     if (! InitThread())
         return false;
-    
+
     pool = new TPoolAllocator();
     SetThreadPoolAllocator(*pool);
     if (! preamble)
@@ -1526,11 +1513,11 @@ const char* TShader::getInfoDebugLog()
     return infoSink->debug.c_str();
 }
 
-TProgram::TProgram() : pool(0), reflection(0), linked(false)
+TProgram::TProgram() : pool(nullptr), reflection(nullptr), linked(false)
 {
     infoSink = new TInfoSink;
     for (int s = 0; s < EShLangCount; ++s) {
-        intermediate[s] = 0;
+        intermediate[s] = nullptr;
         newedIntermediate[s] = false;
     }
 }
@@ -1560,7 +1547,7 @@ bool TProgram::link(EShMessages messages)
     linked = true;
 
     bool error = false;
-    
+
     pool = new TPoolAllocator();
     SetThreadPoolAllocator(*pool);
 
@@ -1646,7 +1633,7 @@ const char* TProgram::getInfoDebugLog()
 //
 
 bool TProgram::buildReflection()
-{    
+{
     if (! linked || reflection)
         return false;
 

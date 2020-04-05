@@ -119,7 +119,7 @@ static struct cubeb_ops const cbjack_ops = {
   .get_max_channel_count = cbjack_get_max_channel_count,
   .get_min_latency = cbjack_get_min_latency,
   .get_preferred_sample_rate = cbjack_get_preferred_sample_rate,
-  .get_preferred_channel_layout = NULL,
+  .get_preferred_channel_layout = nullptr,
   .enumerate_devices = cbjack_enumerate_devices,
   .device_collection_destroy = cbjack_device_collection_destroy,
   .destroy = cbjack_destroy,
@@ -127,15 +127,15 @@ static struct cubeb_ops const cbjack_ops = {
   .stream_destroy = cbjack_stream_destroy,
   .stream_start = cbjack_stream_start,
   .stream_stop = cbjack_stream_stop,
-  .stream_reset_default_device = NULL,
+  .stream_reset_default_device = nullptr,
   .stream_get_position = cbjack_stream_get_position,
   .stream_get_latency = cbjack_get_latency,
   .stream_set_volume = cbjack_stream_set_volume,
-  .stream_set_panning = NULL,
+  .stream_set_panning = nullptr,
   .stream_get_current_device = cbjack_stream_get_current_device,
   .stream_device_destroy = cbjack_stream_device_destroy,
-  .stream_register_device_changed_callback = NULL,
-  .register_device_collection_changed = NULL
+  .stream_register_device_changed_callback = nullptr,
+  .register_device_collection_changed = nullptr
 };
 
 struct cubeb_stream {
@@ -235,11 +235,11 @@ static void
 cbjack_connect_ports (cubeb_stream * stream)
 {
   const char ** phys_in_ports = api_jack_get_ports (stream->context->jack_client,
-                                                   NULL, NULL,
+                                                   nullptr, nullptr,
                                                    JackPortIsInput
                                                    | JackPortIsPhysical);
   const char ** phys_out_ports = api_jack_get_ports (stream->context->jack_client,
-                                                    NULL, NULL,
+                                                    nullptr, nullptr,
                                                     JackPortIsOutput
                                                     | JackPortIsPhysical);
 
@@ -602,9 +602,9 @@ jack_init (cubeb ** context, char const * context_name)
 
   ctx->jack_client = api_jack_client_open(jack_client_name,
                                           JackNoStartServer,
-                                          NULL);
+                                          nullptr);
 
-  if (ctx->jack_client == NULL) {
+  if (ctx->jack_client == nullptr) {
     cbjack_destroy(ctx);
     return CUBEB_ERROR;
   }
@@ -662,7 +662,7 @@ cbjack_get_preferred_sample_rate(cubeb * ctx, uint32_t * rate)
   if (!ctx->jack_client) {
     jack_client_t * testclient = api_jack_client_open("test-samplerate",
                                                  JackNoStartServer,
-                                                 NULL);
+                                                 nullptr);
     if (!testclient) {
       return CUBEB_ERROR;
     }
@@ -681,7 +681,7 @@ cbjack_destroy(cubeb * context)
 {
   context->active = false;
 
-  if (context->jack_client != NULL)
+  if (context->jack_client != nullptr)
     api_jack_client_close (context->jack_client);
 
   if (context->libjack)
@@ -735,14 +735,14 @@ cbjack_stream_init(cubeb * context, cubeb_stream ** stream, char const * stream_
   if (input_device || output_device)
     return CUBEB_ERROR_NOT_SUPPORTED;
 
-  *stream = NULL;
+  *stream = nullptr;
 
   // Find a free stream.
   pthread_mutex_lock(&context->mutex);
   cubeb_stream * stm = context_alloc_stream(context, stream_name);
 
   // No free stream?
-  if (stm == NULL) {
+  if (stm == nullptr) {
     pthread_mutex_unlock(&context->mutex);
     return CUBEB_ERROR;
   }
@@ -808,7 +808,7 @@ cbjack_stream_init(cubeb * context, cubeb_stream ** stream, char const * stream_
     return CUBEB_ERROR;
   }
 
-  stm->resampler = NULL;
+  stm->resampler = nullptr;
 
   if (stm->devs == DUPLEX) {
     stm->resampler = cubeb_resampler_create(stm,
@@ -903,7 +903,7 @@ cbjack_stream_destroy(cubeb_stream * stream)
 
   if (stream->resampler) {
     cubeb_resampler_destroy(stream->resampler);
-    stream->resampler = NULL;
+    stream->resampler = nullptr;
   }
   stream->in_use = false;
   pthread_mutex_unlock(&stream->mutex);

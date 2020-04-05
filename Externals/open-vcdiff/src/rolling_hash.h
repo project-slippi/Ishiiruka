@@ -165,7 +165,7 @@ class RollingHash {
 // See the comments in Init(), below, for a description of how the contents of
 // remove_table_ are computed.
 template<int window_size>
-const uint32_t* RollingHash<window_size>::remove_table_ = NULL;
+const uint32_t* RollingHash<window_size>::remove_table_ = nullptr;
 
 // Init() checks to make sure that the static object remove_table_ has been
 // initialized; if not, it does the considerable work of populating it.  Once
@@ -176,7 +176,7 @@ template<int window_size>
 void RollingHash<window_size>::Init() {
   VCD_COMPILE_ASSERT(window_size >= 2,
                      RollingHash_window_size_must_be_at_least_2);
-  if (remove_table_ == NULL) {
+  if (remove_table_ == nullptr) {
     // The new object is placed into a local pointer instead of directly into
     // remove_table_, for two reasons:
     //   1. remove_table_ is a pointer to const.  The table is populated using

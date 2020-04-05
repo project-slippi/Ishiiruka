@@ -308,7 +308,7 @@ class VCDiffDeltaFileWindow {
 
 // *** Inline methods for VCDiffDeltaFileWindow
 
-inline VCDiffDeltaFileWindow::VCDiffDeltaFileWindow() : parent_(NULL) {
+inline VCDiffDeltaFileWindow::VCDiffDeltaFileWindow() : parent_(nullptr) {
   Reset();
 }
 

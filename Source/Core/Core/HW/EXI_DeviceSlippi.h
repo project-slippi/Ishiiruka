@@ -110,11 +110,11 @@ class CEXISlippi : public IEXIDevice
 	void prepareIsFileReady();
 	void processInitialState(std::vector<u8> &iState);
 	void resetPlayback();
-	void clearWatchSettingsStartEnd(); 
+	void clearWatchSettingsStartEnd();
 
 	void SavestateThread(void);
 	void SeekThread(void);
-	
+
 	std::unordered_map<int32_t, std::shared_future<std::string>> futureDiffs; // State diffs keyed by frameIndex, processed async
 	std::vector<u8> iState;                                            // The initial state
 	std::vector<u8> cState;                                            // The current (latest) state

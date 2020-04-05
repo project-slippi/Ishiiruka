@@ -82,7 +82,7 @@ VCDiffHeaderParser::VCDiffHeaderParser(const char* header_start,
     : parseable_chunk_(header_start, data_end - header_start),
       return_code_(RESULT_SUCCESS),
       delta_encoding_length_(0),
-      delta_encoding_start_(NULL) { }
+      delta_encoding_start_(nullptr) { }
 
 bool VCDiffHeaderParser::ParseByte(unsigned char* value) {
   if (RESULT_SUCCESS != return_code_) {

@@ -38,7 +38,7 @@
 // Definition of the in-memory high-level intermediate representation
 // of shaders.  This is a tree that parser creates.
 //
-// Nodes in the tree are defined as a hierarchy of classes derived from 
+// Nodes in the tree are defined as a hierarchy of classes derived from
 // TIntermNode. Each is a node in a tree.  There is no preset branching factor;
 // each node can have it's own type of list of children.
 //
@@ -59,14 +59,14 @@ enum TOperator {
     EOpNull,            // if in a node, should only mean a node is still being built
     EOpSequence,        // denotes a list of statements, or parameters, etc.
     EOpLinkerObjects,   // for aggregate node of objects the linker may need, if not reference by the rest of the AST
-    EOpFunctionCall,    
+    EOpFunctionCall,
     EOpFunction,        // For function definition
     EOpParameters,      // an aggregate listing the parameters to a function
 
     //
     // Unary operators
     //
-    
+
     EOpNegative,
     EOpLogicalNot,
     EOpVectorLogicalNot,
@@ -376,7 +376,7 @@ enum TOperator {
     //
     // moves
     //
-    
+
     EOpAssign,
     EOpAddAssign,
     EOpSubAssign,
@@ -568,29 +568,29 @@ public:
     virtual const glslang::TSourceLoc& getLoc() const { return loc; }
     virtual void setLoc(const glslang::TSourceLoc& l) { loc = l; }
     virtual void traverse(glslang::TIntermTraverser*) = 0;
-    virtual       glslang::TIntermTyped*         getAsTyped()               { return 0; }
-    virtual       glslang::TIntermOperator*      getAsOperator()            { return 0; }
-    virtual       glslang::TIntermConstantUnion* getAsConstantUnion()       { return 0; }
-    virtual       glslang::TIntermAggregate*     getAsAggregate()           { return 0; }
-    virtual       glslang::TIntermUnary*         getAsUnaryNode()           { return 0; }
-    virtual       glslang::TIntermBinary*        getAsBinaryNode()          { return 0; }
-    virtual       glslang::TIntermSelection*     getAsSelectionNode()       { return 0; }
-    virtual       glslang::TIntermSwitch*        getAsSwitchNode()          { return 0; }
-    virtual       glslang::TIntermMethod*        getAsMethodNode()          { return 0; }
-    virtual       glslang::TIntermSymbol*        getAsSymbolNode()          { return 0; }
-    virtual       glslang::TIntermBranch*        getAsBranchNode()          { return 0; }
+    virtual       glslang::TIntermTyped*         getAsTyped()               { return nullptr; }
+    virtual       glslang::TIntermOperator*      getAsOperator()            { return nullptr; }
+    virtual       glslang::TIntermConstantUnion* getAsConstantUnion()       { return nullptr; }
+    virtual       glslang::TIntermAggregate*     getAsAggregate()           { return nullptr; }
+    virtual       glslang::TIntermUnary*         getAsUnaryNode()           { return nullptr; }
+    virtual       glslang::TIntermBinary*        getAsBinaryNode()          { return nullptr; }
+    virtual       glslang::TIntermSelection*     getAsSelectionNode()       { return nullptr; }
+    virtual       glslang::TIntermSwitch*        getAsSwitchNode()          { return nullptr; }
+    virtual       glslang::TIntermMethod*        getAsMethodNode()          { return nullptr; }
+    virtual       glslang::TIntermSymbol*        getAsSymbolNode()          { return nullptr; }
+    virtual       glslang::TIntermBranch*        getAsBranchNode()          { return nullptr; }
 
-    virtual const glslang::TIntermTyped*         getAsTyped()         const { return 0; }
-    virtual const glslang::TIntermOperator*      getAsOperator()      const { return 0; }
-    virtual const glslang::TIntermConstantUnion* getAsConstantUnion() const { return 0; }
-    virtual const glslang::TIntermAggregate*     getAsAggregate()     const { return 0; }
-    virtual const glslang::TIntermUnary*         getAsUnaryNode()     const { return 0; }
-    virtual const glslang::TIntermBinary*        getAsBinaryNode()    const { return 0; }
-    virtual const glslang::TIntermSelection*     getAsSelectionNode() const { return 0; }
-    virtual const glslang::TIntermSwitch*        getAsSwitchNode()    const { return 0; }
-    virtual const glslang::TIntermMethod*        getAsMethodNode()    const { return 0; }
-    virtual const glslang::TIntermSymbol*        getAsSymbolNode()    const { return 0; }
-    virtual const glslang::TIntermBranch*        getAsBranchNode()    const { return 0; }
+    virtual const glslang::TIntermTyped*         getAsTyped()         const { return nullptr; }
+    virtual const glslang::TIntermOperator*      getAsOperator()      const { return nullptr; }
+    virtual const glslang::TIntermConstantUnion* getAsConstantUnion() const { return nullptr; }
+    virtual const glslang::TIntermAggregate*     getAsAggregate()     const { return nullptr; }
+    virtual const glslang::TIntermUnary*         getAsUnaryNode()     const { return nullptr; }
+    virtual const glslang::TIntermBinary*        getAsBinaryNode()    const { return nullptr; }
+    virtual const glslang::TIntermSelection*     getAsSelectionNode() const { return nullptr; }
+    virtual const glslang::TIntermSwitch*        getAsSwitchNode()    const { return nullptr; }
+    virtual const glslang::TIntermMethod*        getAsMethodNode()    const { return nullptr; }
+    virtual const glslang::TIntermSymbol*        getAsSymbolNode()    const { return nullptr; }
+    virtual const glslang::TIntermBranch*        getAsBranchNode()    const { return nullptr; }
     virtual ~TIntermNode() { }
 
 protected:
@@ -621,7 +621,7 @@ public:
     virtual void setType(const TType& t) { type.shallowCopy(t); }
     virtual const TType& getType() const { return type; }
     virtual TType& getWritableType() { return type; }
-    
+
     virtual TBasicType getBasicType() const { return type.getBasicType(); }
     virtual TQualifier& getQualifier() { return type.getQualifier(); }
     virtual const TQualifier& getQualifier() const { return type.getQualifier(); }
@@ -646,7 +646,7 @@ protected:
 //
 class TIntermLoop : public TIntermNode {
 public:
-    TIntermLoop(TIntermNode* aBody, TIntermTyped* aTest, TIntermTyped* aTerminal, bool testFirst) : 
+    TIntermLoop(TIntermNode* aBody, TIntermTyped* aTest, TIntermTyped* aTerminal, bool testFirst) :
         body(aBody),
         test(aTest),
         terminal(aTerminal),
@@ -938,8 +938,8 @@ protected:
 //
 class TIntermUnary : public TIntermOperator {
 public:
-    TIntermUnary(TOperator o, TType& t) : TIntermOperator(o, t), operand(0) {}
-    TIntermUnary(TOperator o) : TIntermOperator(o), operand(0) {}
+    TIntermUnary(TOperator o, TType& t) : TIntermOperator(o, t), operand(nullptr) {}
+    TIntermUnary(TOperator o) : TIntermOperator(o), operand(nullptr) {}
     virtual void traverse(TIntermTraverser*);
     virtual void setOperand(TIntermTyped* o) { operand = o; }
     virtual       TIntermTyped* getOperand() { return operand; }
@@ -959,8 +959,8 @@ typedef TVector<int> TQualifierList;
 //
 class TIntermAggregate : public TIntermOperator {
 public:
-    TIntermAggregate() : TIntermOperator(EOpNull), userDefined(false), pragmaTable(0) { }
-    TIntermAggregate(TOperator o) : TIntermOperator(o), pragmaTable(0) { }
+    TIntermAggregate() : TIntermOperator(EOpNull), userDefined(false), pragmaTable(nullptr) { }
+    TIntermAggregate(TOperator o) : TIntermOperator(o), pragmaTable(nullptr) { }
     ~TIntermAggregate() { delete pragmaTable; }
     virtual       TIntermAggregate* getAsAggregate()       { return this; }
     virtual const TIntermAggregate* getAsAggregate() const { return this; }
@@ -1040,7 +1040,7 @@ enum TVisit
 };
 
 //
-// For traversing the tree.  User should derive from this, 
+// For traversing the tree.  User should derive from this,
 // put their traversal specific data in it, and then pass
 // it to a Traverse method.
 //
@@ -1052,10 +1052,10 @@ enum TVisit
 // the subtree).  Similarly for inVisit for in-order visiting of nodes with
 // multiple children.
 //
-// If you only want post-visits, explicitly turn off preVisit (and inVisit) 
+// If you only want post-visits, explicitly turn off preVisit (and inVisit)
 // and turn on postVisit.
 //
-// In general, for the visit*() methods, return true from interior nodes 
+// In general, for the visit*() methods, return true from interior nodes
 // to have the traversal continue on to children.
 //
 // If you process children yourself, or don't want them processed, return false.
@@ -1099,7 +1099,7 @@ public:
 
     TIntermNode *getParentNode()
     {
-        return path.size() == 0 ? NULL : path.back();
+        return path.size() == 0 ? nullptr : path.back();
     }
 
     const bool preVisit;

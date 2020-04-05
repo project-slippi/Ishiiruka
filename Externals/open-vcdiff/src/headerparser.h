@@ -107,7 +107,7 @@ class ParseableChunk {
 // ParseableChunk object) is added.
 class DeltaWindowSection {
  public:
-  DeltaWindowSection() : parseable_chunk_(NULL), owned_(true) { }
+  DeltaWindowSection() : parseable_chunk_(nullptr), owned_(true) { }
 
   ~DeltaWindowSection() {
     FreeChunk();
@@ -168,10 +168,10 @@ class DeltaWindowSection {
     if (owned_) {
       delete parseable_chunk_;
     }
-    parseable_chunk_ = NULL;
+    parseable_chunk_ = nullptr;
   }
 
-  // Will be NULL until Init() has been called.  If owned_ is true, this will
+  // Will be nullptr until Init() has been called.  If owned_ is true, this will
   // point to a ParseableChunk object that has been allocated with "new" and
   // must be deleted by this DeltaWindowSection object.  If owned_ is false,
   // this points at the parseable_chunk_ owned by a different DeltaWindowSection
@@ -382,7 +382,7 @@ class VCDiffHeaderParser {
   // parsed length of the delta encoding.
   size_t delta_encoding_length_;
 
-  // Will be NULL until ParseWindowLengths() has been called.  After
+  // Will be nullptr until ParseWindowLengths() has been called.  After
   // ParseWindowLengths() has been called successfully, this points to the
   // beginning of the section of the current window titled "The delta encoding"
   // in the RFC, i.e., to the position just after the length of the delta

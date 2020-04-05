@@ -3451,8 +3451,8 @@ public:
                  int lastId,
                  wxEventType eventType,
                  wxObjectEventFunction func,
-                 wxObject *userData = NULL,
-                 wxEvtHandler *eventSink = NULL)
+                 wxObject *userData = nullptr,
+                 wxEvtHandler *eventSink = nullptr)
     {
         DoBind(winid, lastId, eventType,
                   wxNewEventFunctor(eventType, func, eventSink),
@@ -3463,23 +3463,23 @@ public:
     void Connect(int winid,
                  wxEventType eventType,
                  wxObjectEventFunction func,
-                 wxObject *userData = NULL,
-                 wxEvtHandler *eventSink = NULL)
+                 wxObject *userData = nullptr,
+                 wxEvtHandler *eventSink = nullptr)
         { Connect(winid, wxID_ANY, eventType, func, userData, eventSink); }
 
     // Even more convenient: without id (same as using id of wxID_ANY)
     void Connect(wxEventType eventType,
                  wxObjectEventFunction func,
-                 wxObject *userData = NULL,
-                 wxEvtHandler *eventSink = NULL)
+                 wxObject *userData = nullptr,
+                 wxEvtHandler *eventSink = nullptr)
         { Connect(wxID_ANY, wxID_ANY, eventType, func, userData, eventSink); }
 
     bool Disconnect(int winid,
                     int lastId,
                     wxEventType eventType,
                     wxObjectEventFunction func = NULL,
-                    wxObject *userData = NULL,
-                    wxEvtHandler *eventSink = NULL)
+                    wxObject *userData = nullptr,
+                    wxEvtHandler *eventSink = nullptr)
     {
         return DoUnbind(winid, lastId, eventType,
                             wxMakeEventFunctor(eventType, func, eventSink),
@@ -3489,14 +3489,14 @@ public:
     bool Disconnect(int winid = wxID_ANY,
                     wxEventType eventType = wxEVT_NULL,
                     wxObjectEventFunction func = NULL,
-                    wxObject *userData = NULL,
-                    wxEvtHandler *eventSink = NULL)
+                    wxObject *userData = nullptr,
+                    wxEvtHandler *eventSink = nullptr)
         { return Disconnect(winid, wxID_ANY, eventType, func, userData, eventSink); }
 
     bool Disconnect(wxEventType eventType,
                     wxObjectEventFunction func,
-                    wxObject *userData = NULL,
-                    wxEvtHandler *eventSink = NULL)
+                    wxObject *userData = nullptr,
+                    wxEvtHandler *eventSink = nullptr)
         { return Disconnect(wxID_ANY, eventType, func, userData, eventSink); }
 
     // Bind functions to an event:
@@ -3505,7 +3505,7 @@ public:
               void (*function)(EventArg &),
               int winid = wxID_ANY,
               int lastId = wxID_ANY,
-              wxObject *userData = NULL)
+              wxObject *userData = nullptr)
     {
         DoBind(winid, lastId, eventType,
                   wxNewEventFunctor(eventType, function),
@@ -3518,7 +3518,7 @@ public:
                 void (*function)(EventArg &),
                 int winid = wxID_ANY,
                 int lastId = wxID_ANY,
-                wxObject *userData = NULL)
+                wxObject *userData = nullptr)
     {
         return DoUnbind(winid, lastId, eventType,
                             wxMakeEventFunctor(eventType, function),
@@ -3531,7 +3531,7 @@ public:
               const Functor &functor,
               int winid = wxID_ANY,
               int lastId = wxID_ANY,
-              wxObject *userData = NULL)
+              wxObject *userData = nullptr)
     {
         DoBind(winid, lastId, eventType,
                   wxNewEventFunctor(eventType, functor),
@@ -3544,7 +3544,7 @@ public:
                 const Functor &functor,
                 int winid = wxID_ANY,
                 int lastId = wxID_ANY,
-                wxObject *userData = NULL)
+                wxObject *userData = nullptr)
     {
         return DoUnbind(winid, lastId, eventType,
                             wxMakeEventFunctor(eventType, functor),
@@ -3561,7 +3561,7 @@ public:
               EventHandler *handler,
               int winid = wxID_ANY,
               int lastId = wxID_ANY,
-              wxObject *userData = NULL)
+              wxObject *userData = nullptr)
     {
         DoBind(winid, lastId, eventType,
                   wxNewEventFunctor(eventType, method, handler),
@@ -3574,7 +3574,7 @@ public:
                 EventHandler *handler,
                 int winid = wxID_ANY,
                 int lastId = wxID_ANY,
-                wxObject *userData = NULL )
+                wxObject *userData = nullptr )
     {
         return DoUnbind(winid, lastId, eventType,
                             wxMakeEventFunctor(eventType, method, handler),
@@ -3623,13 +3623,13 @@ private:
                    int lastId,
                    wxEventType eventType,
                    wxEventFunctor *func,
-                   wxObject* userData = NULL);
+                   wxObject* userData = nullptr);
 
     bool DoUnbind(int winid,
                       int lastId,
                       wxEventType eventType,
                       const wxEventFunctor& func,
-                      wxObject *userData = NULL);
+                      wxObject *userData = nullptr);
 
     static const wxEventTableEntry sm_eventTableEntries[];
 
@@ -3764,7 +3764,7 @@ inline void wxObjectEventFunctor::operator()(wxEvtHandler *handler, wxEvent& eve
 class wxEventConnectionRef : public wxTrackerNode
 {
 public:
-    wxEventConnectionRef() : m_src(NULL), m_sink(NULL), m_refCount(0) { }
+    wxEventConnectionRef() : m_src(nullptr), m_sink(nullptr), m_refCount(0) { }
     wxEventConnectionRef(wxEvtHandler *src, wxEvtHandler *sink)
         : m_src(src), m_sink(sink), m_refCount(1)
     {

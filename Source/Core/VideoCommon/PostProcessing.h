@@ -498,7 +498,7 @@ public:
 	void PostProcess(TargetRectangle* output_rect, TargetSize* output_size, uintptr_t* output_texture,
 		const TargetRectangle& src_rect, const TargetSize& src_size, uintptr_t src_texture,
 		const TargetRectangle& src_depth_rect, const TargetSize& src_depth_size, uintptr_t src_depth_texture,
-		uintptr_t dst_texture = 0, const TargetRectangle* dst_rect = 0, const TargetSize* dst_size = 0);
+		uintptr_t dst_texture = 0, const TargetRectangle* dst_rect = nullptr, const TargetSize* dst_size = nullptr);
 
 	// Construct the options uniform buffer source for the specified config.
 	static void GetUniformBufferShaderSource(API_TYPE api, const PostProcessingShaderConfiguration* config, std::string& shader_source);
@@ -514,7 +514,7 @@ public:
 
 	// Scale a target rectangle to an output's scale
 	static TargetRectangle ScaleTargetRectangle(API_TYPE api, const TargetRectangle& src, float scale);
-	
+
 	void*  GetConstatsData()
 	{
 		return m_current_constants.data();

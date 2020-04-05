@@ -58,7 +58,7 @@ VCDiffCodeTableWriter::VCDiffCodeTableWriter(bool interleaved)
       dictionary_size_(0),
       target_length_(0),
       code_table_data_(&VCDiffCodeTableData::kDefaultCodeTableData),
-      instruction_map_(NULL),
+      instruction_map_(nullptr),
       last_opcode_index_(-1),
       add_checksum_(false),
       checksum_(0) {
@@ -76,7 +76,7 @@ VCDiffCodeTableWriter::VCDiffCodeTableWriter(
       dictionary_size_(0),
       target_length_(0),
       code_table_data_(&code_table_data),
-      instruction_map_(NULL),
+      instruction_map_(nullptr),
       last_opcode_index_(-1),
       add_checksum_(false),
       checksum_(0)  {

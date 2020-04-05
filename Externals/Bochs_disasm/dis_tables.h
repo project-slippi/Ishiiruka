@@ -203,7 +203,7 @@
 #define Jw &disassembler::Jw
 #define Jd &disassembler::Jd
 
-#define XX 0
+#define XX nullptr
 
 const struct BxDisasmOpcodeInfo_t
 #include "opcodes.inc"

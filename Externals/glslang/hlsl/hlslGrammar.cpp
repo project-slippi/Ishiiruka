@@ -399,7 +399,7 @@ bool HlslGrammar::acceptControlDeclaration(TIntermNode*& node)
         return false;
     }
 
-    node = parseContext.declareVariable(idToken.loc, *idToken.string, type, 0, expressionNode);
+    node = parseContext.declareVariable(idToken.loc, *idToken.string, type, nullptr, expressionNode);
 
     return true;
 }
@@ -2229,7 +2229,7 @@ bool HlslGrammar::acceptIterationStatement(TIntermNode*& statement)
 
         parseContext.unnestLooping();
 
-        statement = intermediate.addLoop(statement, condition, 0, false, loc);
+        statement = intermediate.addLoop(statement, condition, nullptr, false, loc);
 
         return true;
 

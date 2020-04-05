@@ -34,7 +34,7 @@ StreamBuffer::StreamBuffer(u32 type, u32 size, u32 align_size, bool need_cpu_buf
 	m_free_iterator = 0;
 	for (int i = 0; i < SYNC_POINTS; i++)
 	{
-		m_fences[i] = 0;
+		m_fences[i] = nullptr;
 	}
 }
 
@@ -82,7 +82,7 @@ void StreamBuffer::DeleteFences()
 		{
 			glDeleteSync(m_fences[i]);
 		}
-		m_fences[i] = 0;
+		m_fences[i] = nullptr;
 	}
 }
 void StreamBuffer::AllocMemory(u32 size)
@@ -123,7 +123,7 @@ void StreamBuffer::AllocMemory(u32 size)
 		{
 			glClientWaitSync(m_fences[i], GL_SYNC_FLUSH_COMMANDS_BIT, GL_TIMEOUT_IGNORED);
 			glDeleteSync(m_fences[i]);
-			m_fences[i] = 0;
+			m_fences[i] = nullptr;
 		}
 	}
 	m_free_iterator = m_iterator + size;

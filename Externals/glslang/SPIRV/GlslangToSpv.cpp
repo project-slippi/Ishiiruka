@@ -662,7 +662,7 @@ bool HasNonLayoutQualifiers(const glslang::TQualifier& qualifier)
 //
 
 TGlslangToSpvTraverser::TGlslangToSpvTraverser(const glslang::TIntermediate* glslangIntermediate, spv::SpvBuildLogger* buildLogger)
-    : TIntermTraverser(true, false, true), shaderEntry(0), sequenceDepth(0), logger(buildLogger),
+    : TIntermTraverser(true, false, true), shaderEntry(nullptr), sequenceDepth(0), logger(buildLogger),
       builder((glslang::GetKhronosToolId() << 16) | GeneratorVersion, logger),
       inMain(false), mainTerminated(false), linkageOnly(false),
       glslangIntermediate(glslangIntermediate)
@@ -2730,7 +2730,7 @@ spv::Id TGlslangToSpvTraverser::createImageTextureFunctionCall(glslang::TIntermO
         }
         // copy the projective coordinate if we have to
         if (projTargetComp != projSourceComp) {
-            spv::Id projComp = builder.createCompositeExtract(params.coords, 
+            spv::Id projComp = builder.createCompositeExtract(params.coords,
                                                               builder.getScalarTypeId(builder.getTypeId(params.coords)),
                                                               projSourceComp);
             params.coords = builder.createCompositeInsert(projComp, params.coords,
@@ -4488,7 +4488,7 @@ void GlslangToSpv(const glslang::TIntermediate& intermediate, std::vector<unsign
 {
     TIntermNode* root = intermediate.getTreeRoot();
 
-    if (root == 0)
+    if (root == nullptr)
         return;
 
     glslang::GetThreadPoolAllocator().push();

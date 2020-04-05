@@ -57,7 +57,7 @@ Except as expressly stated in this notice, no other rights or licenses
 express or implied, are granted by NVIDIA herein, including but not
 limited to any patent rights that may be infringed by your derivative
 works or by other works in which the NVIDIA Software may be
-incorporated. No hardware is licensed hereunder. 
+incorporated. No hardware is licensed hereunder.
 
 THE NVIDIA SOFTWARE IS BEING PROVIDED ON AN "AS IS" BASIS, WITHOUT
 WARRANTIES OR CONDITIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED,
@@ -179,10 +179,10 @@ int TPpContext::ReadToken(TokenStream *pTok, TPpToken *ppToken)
     if (ltoken > 127)
         ltoken += 128;
     switch (ltoken) {
-    case '#':        
+    case '#':
         if (lReadByte(pTok) == '#') {
             parseContext.requireProfile(ppToken->loc, ~EEsProfile, "token pasting (##)");
-            parseContext.profileRequires(ppToken->loc, ~EEsProfile, 130, 0, "token pasting (##)");
+            parseContext.profileRequires(ppToken->loc, ~EEsProfile, 130, nullptr, "token pasting (##)");
             parseContext.error(ppToken->loc, "token pasting not implemented (internal error)", "##", "");
             //return PpAtomPaste;
             return ReadToken(pTok, ppToken);
@@ -225,9 +225,9 @@ int TPpContext::ReadToken(TokenStream *pTok, TPpToken *ppToken)
         case PpAtomConstUint:
             if (len > 0 && tokenText[0] == '0') {
                 if (len > 1 && (tokenText[1] == 'x' || tokenText[1] == 'X'))
-                    ppToken->ival = strtol(ppToken->name, 0, 16);
+                    ppToken->ival = strtol(ppToken->name, nullptr, 16);
                 else
-                    ppToken->ival = strtol(ppToken->name, 0, 8);
+                    ppToken->ival = strtol(ppToken->name, nullptr, 8);
             } else
                 ppToken->ival = atoi(ppToken->name);
             break;

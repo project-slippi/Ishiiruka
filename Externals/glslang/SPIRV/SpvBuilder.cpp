@@ -58,9 +58,9 @@ Builder::Builder(unsigned int magicNumber, SpvBuildLogger* buildLogger) :
     addressModel(AddressingModelLogical),
     memoryModel(MemoryModelGLSL450),
     builderNumber(magicNumber),
-    buildPoint(0),
+    buildPoint(nullptr),
     uniqueId(0),
-    mainFunction(0),
+    mainFunction(nullptr),
     generatingOpCodeForSpecConst(false),
     logger(buildLogger)
 {
@@ -75,7 +75,7 @@ Id Builder::import(const char* name)
 {
     Instruction* import = new Instruction(getUniqueId(), NoType, OpExtInstImport);
     import->addStringOperand(name);
-    
+
     imports.push_back(std::unique_ptr<Instruction>(import));
     return import->getResultId();
 }
@@ -242,7 +242,7 @@ Id Builder::makeStructResultType(Id type0, Id type1)
         type = groupedTypes[OpTypeStruct][t];
         if (type->getNumOperands() != 2)
             continue;
-        if (type->getIdOperand(0) != type0 || 
+        if (type->getIdOperand(0) != type0 ||
             type->getIdOperand(1) != type1)
             continue;
         return type->getResultId();
@@ -624,7 +624,7 @@ Id Builder::findScalarConstant(Op typeClass, Op opcode, Id typeId, unsigned v1, 
 bool Builder::isConstantOpCode(Op opcode) const
 {
     switch (opcode) {
-    case OpUndef: 
+    case OpUndef:
     case OpConstantTrue:
     case OpConstantFalse:
     case OpConstant:
@@ -787,7 +787,7 @@ Id Builder::makeDoubleConstant(double d, bool specConstant)
 
 Id Builder::findCompositeConstant(Op typeClass, std::vector<Id>& comps) const
 {
-    Instruction* constant = 0;
+    Instruction* constant = nullptr;
     bool found = false;
     for (int i = 0; i < (int)groupedConstants[typeClass].size(); ++i) {
         constant = groupedConstants[typeClass][i];
@@ -1917,7 +1917,7 @@ Id Builder::createMatrixConstructor(Decoration precision, const std::vector<Id>&
 Builder::If::If(Id cond, Builder& gb) :
     builder(gb),
     condition(cond),
-    elseBlock(0)
+    elseBlock(nullptr)
 {
     function = &builder.getBuildPoint()->getParent();
 

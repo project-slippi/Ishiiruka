@@ -51,9 +51,9 @@ namespace glslang {
 //
 
 //
-// Wrapper for Linux call to DetachThread.  This is required as pthread_cleanup_push() expects 
+// Wrapper for Linux call to DetachThread.  This is required as pthread_cleanup_push() expects
 // the cleanup routine to return void.
-// 
+//
 static void DetachThreadLinux(void *)
 {
 	DetachThread();
@@ -62,17 +62,17 @@ static void DetachThreadLinux(void *)
 
 //
 // Registers cleanup handler, sets cancel type and state, and executes the thread specific
-// cleanup handler.  This function will be called in the Standalone.cpp for regression 
-// testing.  When OpenGL applications are run with the driver code, Linux OS does the 
+// cleanup handler.  This function will be called in the Standalone.cpp for regression
+// testing.  When OpenGL applications are run with the driver code, Linux OS does the
 // thread cleanup.
-// 
+//
 void OS_CleanupThreadData(void)
 {
 #ifdef __ANDROID__
-	DetachThreadLinux(NULL);
+	DetachThreadLinux(nullptr);
 #else
 	int old_cancel_state, old_cancel_type;
-	void *cleanupArg = NULL;
+	void *cleanupArg = nullptr;
 
 	//
 	// Set thread cancel state and push cleanup handler.
@@ -93,7 +93,7 @@ void OS_CleanupThreadData(void)
 	//
 	// Restore the thread's previous cancellation mode.
 	//
-	pthread_setcanceltype(old_cancel_state, NULL);
+	pthread_setcanceltype(old_cancel_state, nullptr);
 #endif
 }
 
@@ -118,7 +118,7 @@ OS_TLSIndex OS_AllocTLSIndex()
 	//
 	// Create global pool key.
 	//
-	if ((pthread_key_create(&pPoolIndex, NULL)) != 0) {
+	if ((pthread_key_create(&pPoolIndex, nullptr)) != 0) {
 		assert(0 && "OS_AllocTLSIndex(): Unable to allocate Thread Local Storage");
 		return OS_INVALID_TLS_INDEX;
 	}
@@ -146,7 +146,7 @@ void* OS_GetTLSValue(OS_TLSIndex nIndex)
 	// This function should return 0 if nIndex is invalid.
 	//
 	assert(nIndex != OS_INVALID_TLS_INDEX);
-	return pthread_getspecific(TLSIndexToPthreadKey(nIndex)); 
+	return pthread_getspecific(TLSIndexToPthreadKey(nIndex));
 }
 
 bool OS_FreeTLSIndex(OS_TLSIndex nIndex)
@@ -172,7 +172,7 @@ void ReleaseGlobalLock() { }
 
 void* OS_CreateThread(TThreadEntrypoint entry)
 {
-    return 0;
+    return nullptr;
 }
 
 void OS_WaitForAllThreads(void* threads, int numThreads)

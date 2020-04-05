@@ -250,11 +250,11 @@ TSymbol::TSymbol(const TSymbol& copyOf)
 }
 
 TVariable::TVariable(const TVariable& copyOf) : TSymbol(copyOf)
-{	
+{
     type.deepCopy(copyOf.type);
     userType = copyOf.userType;
     numExtensions = 0;
-    extensions = 0;
+    extensions = nullptr;
     if (copyOf.numExtensions != 0)
         setExtensions(copyOf.numExtensions, copyOf.extensions);
 
@@ -276,7 +276,7 @@ TVariable* TVariable::clone() const
 }
 
 TFunction::TFunction(const TFunction& copyOf) : TSymbol(copyOf)
-{	
+{
     for (unsigned int i = 0; i < copyOf.parameters.size(); ++i) {
         TParameter param;
         parameters.push_back(param);
@@ -284,8 +284,8 @@ TFunction::TFunction(const TFunction& copyOf) : TSymbol(copyOf)
     }
 
     numExtensions = 0;
-    extensions = 0;
-    if (copyOf.extensions != 0)
+    extensions = nullptr;
+    if (copyOf.extensions != nullptr)
         setExtensions(copyOf.numExtensions, copyOf.extensions);
     returnType.deepCopy(copyOf.returnType);
     mangledName = copyOf.mangledName;
@@ -308,7 +308,7 @@ TAnonMember* TAnonMember::clone() const
     // copy of the original container.
     assert(0);
 
-    return 0;
+    return nullptr;
 }
 
 TSymbolTableLevel* TSymbolTableLevel::clone() const

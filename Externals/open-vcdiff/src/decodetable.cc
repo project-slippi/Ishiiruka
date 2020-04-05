@@ -26,9 +26,9 @@ namespace open_vcdiff {
 
 VCDiffCodeTableReader::VCDiffCodeTableReader()
     : code_table_data_(&VCDiffCodeTableData::kDefaultCodeTableData),
-      instructions_and_sizes_(NULL),
-      instructions_and_sizes_end_(NULL),
-      last_instruction_start_(NULL),
+      instructions_and_sizes_(nullptr),
+      instructions_and_sizes_end_(nullptr),
+      last_instruction_start_(nullptr),
       pending_second_instruction_(kNoOpcode),
       last_pending_second_instruction_(kNoOpcode) {
 }

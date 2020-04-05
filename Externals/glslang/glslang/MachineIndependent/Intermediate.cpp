@@ -102,7 +102,7 @@ TIntermTyped* TIntermediate::addBinaryMath(TOperator op, TIntermTyped* left, TIn
 {
     // No operations work on blocks
     if (left->getType().getBasicType() == EbtBlock || right->getType().getBasicType() == EbtBlock)
-        return 0;
+        return nullptr;
 
     // Try converting the children's base types to compatible types.
     TIntermTyped* child = addConversion(op, left->getType(), right);
@@ -113,7 +113,7 @@ TIntermTyped* TIntermediate::addBinaryMath(TOperator op, TIntermTyped* left, TIn
         if (child)
             left = child;
         else
-            return 0;
+            return nullptr;
     }
 
     //
@@ -128,7 +128,7 @@ TIntermTyped* TIntermediate::addBinaryMath(TOperator op, TIntermTyped* left, TIn
     node->setLeft(left);
     node->setRight(right);
     if (! node->promote())
-        return 0;
+        return nullptr;
 
     node->updatePrecision();
 
@@ -144,7 +144,7 @@ TIntermTyped* TIntermediate::addBinaryMath(TOperator op, TIntermTyped* left, TIn
             return folded;
     }
 
-    // If either is a specialization constant, while the other is 
+    // If either is a specialization constant, while the other is
     // a constant (or specialization constant), the result is still
     // a specialization constant, if the operation is an allowed
     // specialization-constant operation.
@@ -165,7 +165,7 @@ TIntermTyped* TIntermediate::addAssign(TOperator op, TIntermTyped* left, TInterm
 {
     // No block assignment
     if (left->getType().getBasicType() == EbtBlock || right->getType().getBasicType() == EbtBlock)
-        return 0;
+        return nullptr;
 
     //
     // Like adding binary math, except the conversion can only go
@@ -177,13 +177,13 @@ TIntermTyped* TIntermediate::addAssign(TOperator op, TIntermTyped* left, TInterm
     node->setLoc(loc);
 
     TIntermTyped* child = addConversion(op, left->getType(), right);
-    if (child == 0)
-        return 0;
+    if (child == nullptr)
+        return nullptr;
 
     node->setLeft(left);
     node->setRight(child);
     if (! node->promote())
-        return 0;
+        return nullptr;
 
     node->updatePrecision();
 
@@ -218,16 +218,16 @@ TIntermTyped* TIntermediate::addIndex(TOperator op, TIntermTyped* base, TIntermT
 //
 TIntermTyped* TIntermediate::addUnaryMath(TOperator op, TIntermTyped* child, TSourceLoc loc)
 {
-    if (child == 0)
-        return 0;
+    if (child == nullptr)
+        return nullptr;
 
     if (child->getType().getBasicType() == EbtBlock)
-        return 0;
+        return nullptr;
 
     switch (op) {
     case EOpLogicalNot:
         if (child->getType().getBasicType() != EbtBool || child->getType().isMatrix() || child->getType().isArray() || child->getType().isVector()) {
-            return 0;
+            return nullptr;
         }
         break;
 
@@ -237,7 +237,7 @@ TIntermTyped* TIntermediate::addUnaryMath(TOperator op, TIntermTyped* child, TSo
     case EOpPreDecrement:
     case EOpNegative:
         if (child->getType().getBasicType() == EbtStruct || child->getType().isArray())
-            return 0;
+            return nullptr;
     default: break; // some compilers want this
     }
 
@@ -258,11 +258,11 @@ TIntermTyped* TIntermediate::addUnaryMath(TOperator op, TIntermTyped* child, TSo
 
     if (newType != EbtVoid) {
         child = addConversion(op, TType(newType, EvqTemporary, child->getVectorSize(),
-                                                               child->getMatrixCols(),
-                                                               child->getMatrixRows()),
-                              child);
-        if (child == 0)
-            return 0;
+                                                            child->getMatrixCols(),
+                                                            child->getMatrixRows()),
+                            child);
+        if (child == nullptr)
+            return nullptr;
     }
 
     //
@@ -291,7 +291,7 @@ TIntermTyped* TIntermediate::addUnaryMath(TOperator op, TIntermTyped* child, TSo
     node->setOperand(child);
 
     if (! node->promote())
-        return 0;
+        return nullptr;
 
     node->updatePrecision();
 
@@ -316,8 +316,8 @@ TIntermTyped* TIntermediate::addBuiltInFunctionCall(const TSourceLoc& loc, TOper
         // including constness (which would differ from the prototype).
         //
         TIntermTyped* child = childNode->getAsTyped();
-        if (child == 0)
-            return 0;
+        if (child == nullptr)
+            return nullptr;
 
         if (child->getAsConstantUnion()) {
             TIntermTyped* folded = child->getAsConstantUnion()->fold(op, returnType);
@@ -382,7 +382,7 @@ TIntermTyped* TIntermediate::setAggregateOperator(TIntermNode* node, TOperator o
     //
     if (node) {
         aggNode = node->getAsAggregate();
-        if (aggNode == 0 || aggNode->getOp() != EOpNull) {
+        if (aggNode == nullptr || aggNode->getOp() != EOpNull) {
             //
             // Make an aggregate containing this node.
             //
@@ -423,7 +423,7 @@ TIntermTyped* TIntermediate::addConversion(TOperator op, const TType& type, TInt
     //
     switch (node->getBasicType()) {
     case EbtVoid:
-        return 0;
+        return nullptr;
     case EbtAtomicUint:
     case EbtSampler:
         // opaque types can be passed to functions
@@ -431,12 +431,12 @@ TIntermTyped* TIntermediate::addConversion(TOperator op, const TType& type, TInt
             break;
         // samplers can get assigned via a sampler constructor
         // (well, not yet, but code in the rest of this function is ready for it)
-        if (node->getBasicType() == EbtSampler && op == EOpAssign && 
+        if (node->getBasicType() == EbtSampler && op == EOpAssign &&
             node->getAsOperator() != nullptr && node->getAsOperator()->getOp() == EOpConstructTextureSampler)
             break;
 
         // otherwise, opaque types can't even be operated on, let alone converted
-        return 0;
+        return nullptr;
     default:
         break;
     }
@@ -447,11 +447,11 @@ TIntermTyped* TIntermediate::addConversion(TOperator op, const TType& type, TInt
 
     // If one's a structure, then no conversions.
     if (type.isStruct() || node->isStruct())
-        return 0;
+        return nullptr;
 
     // If one's an array, then no conversions.
     if (type.isArray() || node->getType().isArray())
-        return 0;
+        return nullptr;
 
     // Note: callers are responsible for other aspects of shape,
     // like vector and matrix sizes.
@@ -533,7 +533,7 @@ TIntermTyped* TIntermediate::addConversion(TOperator op, const TType& type, TInt
         if (canImplicitlyPromote(node->getType().getBasicType(), type.getBasicType()))
             promoteTo = type.getBasicType();
         else
-            return 0;
+            return nullptr;
 
         break;
 
@@ -545,17 +545,17 @@ TIntermTyped* TIntermediate::addConversion(TOperator op, const TType& type, TInt
     case EOpLeftShiftAssign:
     case EOpRightShiftAssign:
         if ((type.getBasicType() == EbtInt ||
-             type.getBasicType() == EbtUint ||
-             type.getBasicType() == EbtInt64 ||
-             type.getBasicType() == EbtUint64) &&
+            type.getBasicType() == EbtUint ||
+            type.getBasicType() == EbtInt64 ||
+            type.getBasicType() == EbtUint64) &&
             (node->getType().getBasicType() == EbtInt ||
-             node->getType().getBasicType() == EbtUint ||
-             node->getType().getBasicType() == EbtInt64 ||
-             node->getType().getBasicType() == EbtUint64))
+            node->getType().getBasicType() == EbtUint ||
+            node->getType().getBasicType() == EbtInt64 ||
+            node->getType().getBasicType() == EbtUint64))
 
             return node;
         else
-            return 0;
+            return nullptr;
 
     default:
         // default is to require a match; all exceptions should have case statements above
@@ -563,7 +563,7 @@ TIntermTyped* TIntermediate::addConversion(TOperator op, const TType& type, TInt
         if (type.getBasicType() == node->getType().getBasicType())
             return node;
         else
-            return 0;
+            return nullptr;
     }
 
     if (node->getAsConstantUnion())
@@ -572,7 +572,7 @@ TIntermTyped* TIntermediate::addConversion(TOperator op, const TType& type, TInt
     //
     // Add a new newNode for the conversion.
     //
-    TIntermUnary* newNode = 0;
+    TIntermUnary* newNode = nullptr;
 
     TOperator newOp = EOpNull;
 
@@ -587,8 +587,7 @@ TIntermTyped* TIntermediate::addConversion(TOperator op, const TType& type, TInt
         case EbtFloat: newOp = EOpConvFloatToDouble; break;
         case EbtInt64: newOp = EOpConvInt64ToDouble; break;
         case EbtUint64: newOp = EOpConvUint64ToDouble; break;
-        default:
-            return 0;
+        default: return nullptr;
         }
         break;
     case EbtFloat:
@@ -599,8 +598,7 @@ TIntermTyped* TIntermediate::addConversion(TOperator op, const TType& type, TInt
         case EbtDouble: newOp = EOpConvDoubleToFloat; break;
         case EbtInt64:  newOp = EOpConvInt64ToFloat;  break;
         case EbtUint64: newOp = EOpConvUint64ToFloat; break;
-        default:
-            return 0;
+        default: return nullptr;
         }
         break;
     case EbtBool:
@@ -611,8 +609,7 @@ TIntermTyped* TIntermediate::addConversion(TOperator op, const TType& type, TInt
         case EbtDouble: newOp = EOpConvDoubleToBool; break;
         case EbtInt64:  newOp = EOpConvInt64ToBool;  break;
         case EbtUint64: newOp = EOpConvUint64ToBool; break;
-        default:
-            return 0;
+        default: return nullptr;
         }
         break;
     case EbtInt:
@@ -623,8 +620,7 @@ TIntermTyped* TIntermediate::addConversion(TOperator op, const TType& type, TInt
         case EbtDouble: newOp = EOpConvDoubleToInt; break;
         case EbtInt64:  newOp = EOpConvInt64ToInt;  break;
         case EbtUint64: newOp = EOpConvUint64ToInt; break;
-        default:
-            return 0;
+        default: return nullptr;
         }
         break;
     case EbtUint:
@@ -635,8 +631,7 @@ TIntermTyped* TIntermediate::addConversion(TOperator op, const TType& type, TInt
         case EbtDouble: newOp = EOpConvDoubleToUint; break;
         case EbtInt64:  newOp = EOpConvInt64ToUint;  break;
         case EbtUint64: newOp = EOpConvUint64ToUint; break;
-        default:
-            return 0;
+        default: return nullptr;
         }
         break;
     case EbtInt64:
@@ -647,8 +642,7 @@ TIntermTyped* TIntermediate::addConversion(TOperator op, const TType& type, TInt
         case EbtFloat:  newOp = EOpConvFloatToInt64;  break;
         case EbtDouble: newOp = EOpConvDoubleToInt64; break;
         case EbtUint64: newOp = EOpConvUint64ToInt64; break;
-        default:
-            return 0;
+        default: return nullptr;
         }
         break;
     case EbtUint64:
@@ -659,12 +653,11 @@ TIntermTyped* TIntermediate::addConversion(TOperator op, const TType& type, TInt
         case EbtFloat:  newOp = EOpConvFloatToUint64;  break;
         case EbtDouble: newOp = EOpConvDoubleToUint64; break;
         case EbtInt64:  newOp = EOpConvInt64ToUint64;  break;
-        default:
-            return 0;
+        default: return nullptr;
         }
         break;
     default:
-        return 0;
+        return nullptr;
     }
 
     TType newType(promoteTo, EvqTemporary, node->getVectorSize(), node->getMatrixCols(), node->getMatrixRows());
@@ -760,10 +753,10 @@ bool TIntermediate::canImplicitlyPromote(TBasicType from, TBasicType to) const
 //
 TIntermAggregate* TIntermediate::growAggregate(TIntermNode* left, TIntermNode* right)
 {
-    if (left == 0 && right == 0)
-        return 0;
+    if (left == nullptr && right == nullptr)
+        return nullptr;
 
-    TIntermAggregate* aggNode = 0;
+    TIntermAggregate* aggNode = nullptr;
     if (left)
         aggNode = left->getAsAggregate();
     if (! aggNode || aggNode->getOp() != EOpNull) {
@@ -794,8 +787,8 @@ TIntermAggregate* TIntermediate::growAggregate(TIntermNode* left, TIntermNode* r
 //
 TIntermAggregate* TIntermediate::makeAggregate(TIntermNode* node)
 {
-    if (node == 0)
-        return 0;
+    if (node == nullptr)
+        return nullptr;
 
     TIntermAggregate* aggNode = new TIntermAggregate;
     aggNode->getSequence().push_back(node);
@@ -806,8 +799,8 @@ TIntermAggregate* TIntermediate::makeAggregate(TIntermNode* node)
 
 TIntermAggregate* TIntermediate::makeAggregate(TIntermNode* node, const TSourceLoc& loc)
 {
-    if (node == 0)
-        return 0;
+    if (node == nullptr)
+        return nullptr;
 
     TIntermAggregate* aggNode = new TIntermAggregate;
     aggNode->getSequence().push_back(node);
@@ -884,12 +877,12 @@ TIntermTyped* TIntermediate::addSelection(TIntermTyped* cond, TIntermTyped* true
         if (child)
             trueBlock = child;
         else
-            return 0;
+            return nullptr;
     }
 
     // After conversion, types have to match.
     if (falseBlock->getType() != trueBlock->getType())
-        return 0;
+        return nullptr;
 
     //
     // See if all the operands are constant, then fold it otherwise not.
@@ -1059,7 +1052,7 @@ TIntermAggregate* TIntermediate::addForLoop(TIntermNode* body, TIntermNode* init
 //
 TIntermBranch* TIntermediate::addBranch(TOperator branchOp, const TSourceLoc& loc)
 {
-    return addBranch(branchOp, 0, loc);
+    return addBranch(branchOp, nullptr, loc);
 }
 
 TIntermBranch* TIntermediate::addBranch(TOperator branchOp, TIntermTyped* expression, const TSourceLoc& loc)
@@ -1076,7 +1069,7 @@ TIntermBranch* TIntermediate::addBranch(TOperator branchOp, TIntermTyped* expres
 //
 bool TIntermediate::postProcess(TIntermNode* root, EShLanguage /*language*/)
 {
-    if (root == 0)
+    if (root == nullptr)
         return true;
 
     // Finish off the top-level sequence
@@ -1484,9 +1477,9 @@ bool TIntermBinary::promote()
     case EOpExclusiveOrAssign:
         // Check for integer-only operands.
         if ((left->getBasicType() != EbtInt &&  left->getBasicType() != EbtUint &&
-             left->getBasicType() != EbtInt64 &&  left->getBasicType() != EbtUint64) ||
+            left->getBasicType() != EbtInt64 &&  left->getBasicType() != EbtUint64) ||
             (right->getBasicType() != EbtInt && right->getBasicType() != EbtUint &&
-             right->getBasicType() != EbtInt64 && right->getBasicType() != EbtUint64))
+            right->getBasicType() != EbtInt64 && right->getBasicType() != EbtUint64))
             return false;
         if (left->isMatrix() || right->isMatrix())
             return false;

@@ -438,7 +438,7 @@ const char* ImageChannelOrderString(int format)
     case 18: return "sBGRA";
 
     case ImageChannelOrderCeiling:
-    default: 
+    default:
         return "Bad";
     }
 }
@@ -740,7 +740,7 @@ const char* CapabilityString(int info)
     case 22: return "Int16";
     case 23: return "TessellationPointSize";
     case 24: return "GeometryPointSize";
-    case 25: return "ImageGatherExtended"; 
+    case 25: return "ImageGatherExtended";
     case 26: return "Bad";
     case 27: return "StorageImageMultisample";
     case 28: return "UniformBufferArrayDynamicIndexing";
@@ -1271,7 +1271,7 @@ void Parameterize()
     DecorationOperands[DecorationInputAttachmentIndex].push(OperandLiteralNumber, "'Attachment Index'");
     DecorationOperands[DecorationAlignment].push(OperandLiteralNumber, "'Alignment'");
 
-    OperandClassParams[OperandSource].set(SourceLanguageCeiling, SourceString, 0);
+    OperandClassParams[OperandSource].set(SourceLanguageCeiling, SourceString, nullptr);
     OperandClassParams[OperandExecutionModel].set(ExecutionModelCeiling, ExecutionModelString, ExecutionModelParams);
     OperandClassParams[OperandAddressing].set(AddressingModelCeiling, AddressingString, AddressingParams);
     OperandClassParams[OperandMemory].set(MemoryModelCeiling, MemoryString, MemoryParams);
@@ -1303,7 +1303,7 @@ void Parameterize()
     OperandClassParams[OperandKernelEnqueueFlags].set(KernelEnqueueFlagsCeiling, KernelEnqueueFlagsString, KernelEnqueueFlagsParams);
     OperandClassParams[OperandKernelProfilingInfo].set(KernelProfilingInfoCeiling, KernelProfilingInfoString, KernelProfilingInfoParams, true);
     OperandClassParams[OperandCapability].set(CapabilityCeiling, CapabilityString, CapabilityParams);
-    OperandClassParams[OperandOpcode].set(OpcodeCeiling, OpcodeString, 0);
+    OperandClassParams[OperandOpcode].set(OpcodeCeiling, OpcodeString, nullptr);
 
     CapabilityParams[CapabilityShader].caps.push_back(CapabilityMatrix);
     CapabilityParams[CapabilityGeometry].caps.push_back(CapabilityShader);
@@ -2215,17 +2215,17 @@ void Parameterize()
     InstructionDesc[OpBitFieldInsert].operands.push(OperandId, "'Insert'");
     InstructionDesc[OpBitFieldInsert].operands.push(OperandId, "'Offset'");
     InstructionDesc[OpBitFieldInsert].operands.push(OperandId, "'Count'");
-    
+
     InstructionDesc[OpBitFieldSExtract].capabilities.push_back(CapabilityShader);
     InstructionDesc[OpBitFieldSExtract].operands.push(OperandId, "'Base'");
     InstructionDesc[OpBitFieldSExtract].operands.push(OperandId, "'Offset'");
     InstructionDesc[OpBitFieldSExtract].operands.push(OperandId, "'Count'");
-    
+
     InstructionDesc[OpBitFieldUExtract].capabilities.push_back(CapabilityShader);
     InstructionDesc[OpBitFieldUExtract].operands.push(OperandId, "'Base'");
     InstructionDesc[OpBitFieldUExtract].operands.push(OperandId, "'Offset'");
     InstructionDesc[OpBitFieldUExtract].operands.push(OperandId, "'Count'");
-    
+
     InstructionDesc[OpBitReverse].capabilities.push_back(CapabilityShader);
     InstructionDesc[OpBitReverse].operands.push(OperandId, "'Base'");
 

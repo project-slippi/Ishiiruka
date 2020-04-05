@@ -192,7 +192,7 @@ void VertexLoaderCompiled::InitializeVertexData()
 		TPipelineFunction pFunc = VertexLoader_Normal::GetFunction(m_VtxDesc.Normal,
 			m_VtxAttr.NormalFormat, m_VtxAttr.NormalElements, m_VtxAttr.NormalIndex3);
 
-		if (pFunc == 0)
+		if (pFunc == nullptr)
 		{
 			PanicAlert("VertexLoader_Normal::GetFunction(%i %i %i %i) returned zero!",
 				m_VtxDesc.Normal, m_VtxAttr.NormalFormat,

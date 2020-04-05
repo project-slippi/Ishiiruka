@@ -96,7 +96,7 @@ bool InitThread()
         return false;
     }
 
-    if (OS_GetTLSValue(ThreadInitializeIndex) != 0)
+    if (OS_GetTLSValue(ThreadInitializeIndex) != nullptr)
         return true;
 
     InitializeMemoryPools();
@@ -120,8 +120,8 @@ bool DetachThread()
     //
     // Function is re-entrant and this thread may not have been initialized.
     //
-    if (OS_GetTLSValue(ThreadInitializeIndex) != 0) {
-        if (!OS_SetTLSValue(ThreadInitializeIndex, (void *)0)) {
+    if (OS_GetTLSValue(ThreadInitializeIndex) != nullptr) {
+        if (!OS_SetTLSValue(ThreadInitializeIndex, nullptr)) {
             assert(0 && "DetachThread(): Unable to clear init flag.");
             success = false;
         }

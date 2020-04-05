@@ -28,7 +28,7 @@ VCDiffEngine::VCDiffEngine(const char* dictionary, size_t dictionary_size)
     // using a NULL value.
     : dictionary_((dictionary_size > 0) ? new char[dictionary_size] : ""),
       dictionary_size_(dictionary_size),
-      hashed_dictionary_(NULL) {
+      hashed_dictionary_(nullptr) {
   if (dictionary_size > 0) {
     memcpy(const_cast<char*>(dictionary_), dictionary, dictionary_size);
   }
@@ -149,7 +149,7 @@ void VCDiffEngine::EncodeInternal(const char* target_data,
     return;
   }
   RollingHash<BlockHash::kBlockSize> hasher;
-  BlockHash* target_hash = NULL;
+  BlockHash* target_hash = nullptr;
   if (look_for_target_matches) {
     // Check matches against previously encoded target data
     // in this same target window, as well as against the dictionary

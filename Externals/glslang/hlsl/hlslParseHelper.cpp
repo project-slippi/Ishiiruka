@@ -71,7 +71,7 @@ HlslParseContext::HlslParseContext(TSymbolTable& symbolTable, TIntermediate& int
     globalInputDefaults.clear();
     globalOutputDefaults.clear();
 
-    // "Shaders in the transform 
+    // "Shaders in the transform
     // feedback capturing mode have an initial global default of
     //     layout(xfb_buffer = 0) out;"
     if (language == EShLangVertex ||
@@ -297,12 +297,12 @@ TIntermTyped* HlslParseContext::handleVariable(const TSourceLoc& loc, TSymbol* s
         requireExtensions(loc, symbol->getNumExtensions(), symbol->getExtensions(), symbol->getName().c_str());
 
     if (symbol && symbol->isReadOnly()) {
-        // All shared things containing an implicitly sized array must be copied up 
+        // All shared things containing an implicitly sized array must be copied up
         // on first use, so that all future references will share its array structure,
         // so that editing the implicit size will effect all nodes consuming it,
         // and so that editing the implicit size won't change the shared one.
         //
-        // If this is a variable or a block, check it and all it contains, but if this 
+        // If this is a variable or a block, check it and all it contains, but if this
         // is a member of an anonymous block, check the whole block, as the whole block
         // will need to be copied up if it contains an implicitly-sized array.
         if (symbol->getType().containsImplicitlySizedArray() || (symbol->getAsAnonMember() && symbol->getAsAnonMember()->getAnonContainer().getType().containsImplicitlySizedArray()))
@@ -414,7 +414,7 @@ void HlslParseContext::checkIndex(const TSourceLoc& /*loc*/, const TType& /*type
     // HLSL todo: any rules for index fixups?
 }
 
-// Make a shared symbol have a non-shared version that can be edited by the current 
+// Make a shared symbol have a non-shared version that can be edited by the current
 // compile, such that editing its type will not change the shared version and will
 // effect all nodes sharing it.
 void HlslParseContext::makeEditable(TSymbol*& symbol)
@@ -488,7 +488,7 @@ void HlslParseContext::handleIoResizeArrayAccess(const TSourceLoc& /*loc*/, TInt
 
 // If there has been an input primitive declaration (geometry shader) or an output
 // number of vertices declaration(tessellation shader), make sure all input array types
-// match it in size.  Types come either from nodes in the AST or symbols in the 
+// match it in size.  Types come either from nodes in the AST or symbols in the
 // symbol table.
 //
 // Types without an array size will be given one.
@@ -565,7 +565,7 @@ TIntermTyped* HlslParseContext::handleDotDereference(const TSourceLoc& loc, TInt
 
     //
     // methods can't be resolved until we later see the function-calling syntax.
-    // Save away the name in the AST for now.  Processing is completed in 
+    // Save away the name in the AST for now.  Processing is completed in
     // handleLengthMethod(), etc.
     //
     if (field == "length") {
@@ -674,7 +674,7 @@ TFunction* HlslParseContext::handleFunctionDeclarator(const TSourceLoc& loc, TFu
     //
     bool builtIn;
     TSymbol* symbol = symbolTable.find(function.getMangledName(), &builtIn);
-    const TFunction* prevDec = symbol ? symbol->getAsFunction() : 0;
+    const TFunction* prevDec = symbol ? symbol->getAsFunction() : nullptr;
 
     if (prototype) {
         // All built-in functions are defined, even though they don't have a body.
@@ -702,7 +702,7 @@ TFunction* HlslParseContext::handleFunctionDeclarator(const TSourceLoc& loc, TFu
 }
 
 //
-// Handle seeing the function prototype in front of a function definition in the grammar.  
+// Handle seeing the function prototype in front of a function definition in the grammar.
 // The body is handled after this function returns.
 //
 TIntermAggregate* HlslParseContext::handleFunctionDefinition(const TSourceLoc& loc, TFunction& function)
@@ -781,7 +781,7 @@ TIntermAggregate* HlslParseContext::handleFunctionDefinition(const TSourceLoc& l
 
 void HlslParseContext::handleFunctionArgument(TFunction* function, TIntermTyped*& arguments, TIntermTyped* newArg)
 {
-    TParameter param = { 0, new TType };
+    TParameter param = { nullptr, new TType };
     param.type->shallowCopy(newArg->getType());
     function->addParameter(param);
     if (arguments)
@@ -806,7 +806,7 @@ TOperator HlslParseContext::mapAtomicOp(const TSourceLoc& loc, TOperator op, boo
     case EOpInterlockedOr:              return isImage ? EOpImageAtomicOr : EOpAtomicOr;
     case EOpInterlockedXor:             return isImage ? EOpImageAtomicXor : EOpAtomicXor;
     case EOpInterlockedExchange:        return isImage ? EOpImageAtomicExchange : EOpAtomicExchange;
-    case EOpInterlockedCompareStore:  // TODO: ... 
+    case EOpInterlockedCompareStore:  // TODO: ...
     default:
         error(loc, "unknown atomic operation", "unknown op", "");
         return EOpNull;
@@ -874,7 +874,7 @@ void HlslParseContext::decomposeSampleMethods(const TSourceLoc& loc, TIntermType
             case EsdCube: constructOp = EOpConstructVec3;  break; // also 3D
             default: break;
             }
-            
+
             TIntermAggregate* constructCoord = new TIntermAggregate(constructOp);
             constructCoord->getSequence().push_back(arg1);
             constructCoord->setLoc(loc);
@@ -929,7 +929,7 @@ void HlslParseContext::decomposeSampleMethods(const TSourceLoc& loc, TIntermType
 
             break;
         }
-        
+
     case EOpMethodSampleGrad: // ...
         {
             TIntermTyped* argTex    = argAggregate->getSequence()[0]->getAsTyped();
@@ -980,7 +980,7 @@ void HlslParseContext::decomposeIntrinsic(const TSourceLoc& loc, TIntermTyped*& 
 
     if (!decomposeHlslIntrinsics || !node || !node->getAsOperator())
         return;
-    
+
     const TIntermAggregate* argAggregate = arguments ? arguments->getAsAggregate() : nullptr;
     TIntermUnary* fnUnary = node->getAsUnaryNode();
     const TOperator op  = node->getAsOperator()->getOp();
@@ -1075,7 +1075,7 @@ void HlslParseContext::decomposeIntrinsic(const TSourceLoc& loc, TIntermTyped*& 
                                     arg0->getType().isVector()));
 
                 // calculate # of components for comparison const
-                const int constComponentCount = 
+                const int constComponentCount =
                     std::max(arg0->getType().getVectorSize(), 1) *
                     std::max(arg0->getType().getMatrixCols(), 1) *
                     std::max(arg0->getType().getMatrixRows(), 1);
@@ -1091,12 +1091,12 @@ void HlslParseContext::decomposeIntrinsic(const TSourceLoc& loc, TIntermTyped*& 
                 TIntermTyped* zero = intermediate.addConstantUnion(0, type0, loc, true);
                 compareNode = handleBinaryMath(loc, "clip", EOpLessThan, arg0, zero);
             }
-            
+
             TIntermBranch* killNode = intermediate.addBranch(EOpKill, loc);
 
             node = new TIntermSelection(compareNode, killNode, nullptr);
             node->setLoc(loc);
-            
+
             break;
         }
 
@@ -1195,7 +1195,7 @@ void HlslParseContext::decomposeIntrinsic(const TSourceLoc& loc, TIntermTyped*& 
             atomic->getWritableType().getQualifier().makeTemporary();
 
             node = intermediate.addAssign(EOpAssign, arg3, atomic, loc);
-            
+
             break;
         }
 
@@ -1221,7 +1221,7 @@ void HlslParseContext::decomposeIntrinsic(const TSourceLoc& loc, TIntermTyped*& 
                                                          intermediate.addConversion(EOpConstructFloat,
                                                                                     TType(EbtFloat, EvqTemporary, 2), iU),
                                                          recip16);
-            
+
             TIntermAggregate* interp = new TIntermAggregate(EOpInterpolateAtOffset);
             interp->getSequence().push_back(arg0);
             interp->getSequence().push_back(floatOffset);
@@ -1265,7 +1265,7 @@ void HlslParseContext::decomposeIntrinsic(const TSourceLoc& loc, TIntermTyped*& 
             TIntermTyped* n_dot_h_m = handleBinaryMath(loc, "mul", EOpMul, n_dot_h, m);  // n_dot_h * m
 
             dst->getSequence().push_back(intermediate.addSelection(compare, zero, n_dot_h_m, loc));
-            
+
             // One:
             dst->getSequence().push_back(intermediate.addConstantUnion(1.0, EbtFloat, loc, true));
 
@@ -1300,10 +1300,10 @@ void HlslParseContext::decomposeIntrinsic(const TSourceLoc& loc, TIntermTyped*& 
             convert->setLoc(loc);
             convert->setType(TType(EbtDouble, EvqTemporary));
             node = convert;
-            
+
             break;
         }
-        
+
     case EOpF16tof32:
     case EOpF32tof16:
         {
@@ -1434,7 +1434,7 @@ TIntermTyped* HlslParseContext::handleFunctionCall(const TSourceLoc& loc, TFunct
 }
 
 // Finish processing object.length(). This started earlier in handleDotDereference(), where
-// the ".length" part was recognized and semantically checked, and finished here where the 
+// the ".length" part was recognized and semantically checked, and finished here where the
 // function syntax "()" is recognized.
 //
 // Return resulting tree node.
@@ -1452,8 +1452,8 @@ TIntermTyped* HlslParseContext::handleLengthMethod(const TSourceLoc& loc, TFunct
                 return intermediate.addBuiltInFunctionCall(loc, EOpArrayLength, true, intermNode, TType(EbtInt));
             } else if (type.isImplicitlySizedArray()) {
                 if (intermNode->getAsSymbolNode() && isIoResizeArray(type)) {
-                    // We could be between a layout declaration that gives a built-in io array implicit size and 
-                    // a user redeclaration of that array, meaning we have to substitute its implicit size here 
+                    // We could be between a layout declaration that gives a built-in io array implicit size and
+                    // a user redeclaration of that array, meaning we have to substitute its implicit size here
                     // without actually redeclaring the array.  (It is an error to use a member before the
                     // redeclaration, but not an error to use the array name itself.)
                     const TString& name = intermNode->getAsSymbolNode()->getName();
@@ -1771,7 +1771,7 @@ void HlslParseContext::handleSemantic(TType& type, const TString& semantic)
     // TODO: need to know if it's an input or an output
     // The following sketches what needs to be done, but can't be right
     // without taking into account stage and input/output.
-    
+
     if (semantic == "PSIZE")
         type.getQualifier().builtIn = EbvPointSize;
     else if (semantic == "POSITION")
@@ -2860,9 +2860,9 @@ void HlslParseContext::setLayoutQualifier(const TSourceLoc& loc, TPublicType& pu
             publicType.qualifier.layoutComponent = value;
         return;
     } else if (id.compare(0, 4, "xfb_") == 0) {
-        // "Any shader making any static use (after preprocessing) of any of these 
-        // *xfb_* qualifiers will cause the shader to be in a transform feedback 
-        // capturing mode and hence responsible for describing the transform feedback 
+        // "Any shader making any static use (after preprocessing) of any of these
+        // *xfb_* qualifiers will cause the shader to be in a transform feedback
+        // capturing mode and hence responsible for describing the transform feedback
         // setup."
         intermediate.setXfbMode();
         if (id == "xfb_buffer") {
@@ -2882,7 +2882,7 @@ void HlslParseContext::setLayoutQualifier(const TSourceLoc& loc, TPublicType& pu
                 publicType.qualifier.layoutXfbOffset = value;
             return;
         } else if (id == "xfb_stride") {
-            // "The resulting stride (implicit or explicit), when divided by 4, must be less than or equal to the 
+            // "The resulting stride (implicit or explicit), when divided by 4, must be less than or equal to the
             // implementation-dependent constant gl_MaxTransformFeedbackInterleavedComponents."
             if (value > 4 * resources.maxTransformFeedbackInterleavedComponents)
                 error(loc, "1/4 stride is too large:", id.c_str(), "gl_MaxTransformFeedbackInterleavedComponents is %d", resources.maxTransformFeedbackInterleavedComponents);
@@ -3000,17 +3000,17 @@ void HlslParseContext::setLayoutQualifier(const TSourceLoc& loc, TPublicType& pu
 // Merge any layout qualifier information from src into dst, leaving everything else in dst alone
 //
 // "More than one layout qualifier may appear in a single declaration.
-// Additionally, the same layout-qualifier-name can occur multiple times 
-// within a layout qualifier or across multiple layout qualifiers in the 
-// same declaration. When the same layout-qualifier-name occurs 
-// multiple times, in a single declaration, the last occurrence overrides 
-// the former occurrence(s).  Further, if such a layout-qualifier-name 
-// will effect subsequent declarations or other observable behavior, it 
-// is only the last occurrence that will have any effect, behaving as if 
-// the earlier occurrence(s) within the declaration are not present.  
-// This is also true for overriding layout-qualifier-names, where one 
-// overrides the other (e.g., row_major vs. column_major); only the last 
-// occurrence has any effect."    
+// Additionally, the same layout-qualifier-name can occur multiple times
+// within a layout qualifier or across multiple layout qualifiers in the
+// same declaration. When the same layout-qualifier-name occurs
+// multiple times, in a single declaration, the last occurrence overrides
+// the former occurrence(s).  Further, if such a layout-qualifier-name
+// will effect subsequent declarations or other observable behavior, it
+// is only the last occurrence that will have any effect, behaving as if
+// the earlier occurrence(s) within the declaration are not present.
+// This is also true for overriding layout-qualifier-names, where one
+// overrides the other (e.g., row_major vs. column_major); only the last
+// occurrence has any effect."
 //
 void HlslParseContext::mergeObjectLayoutQualifiers(TQualifier& dst, const TQualifier& src, bool inheritOnly)
 {
@@ -3135,7 +3135,7 @@ const TFunction* HlslParseContext::findFunction(const TSourceLoc& loc, const TFu
 
 //
 // Do everything necessary to handle a typedef declaration, for a single symbol.
-// 
+//
 // 'parseType' is the type part of the declaration (to the left)
 // 'arraySizes' is the arrayness tagged on the identifier (to the right)
 //
@@ -3144,7 +3144,7 @@ void HlslParseContext::declareTypedef(const TSourceLoc& loc, TString& identifier
     TType type;
     type.deepCopy(parseType);
 
-    // Arrayness is potentially coming both from the type and from the 
+    // Arrayness is potentially coming both from the type and from the
     // variable: "int[] a[];" or just one or the other.
     // Merge it all to the type, so all arrayness is part of the type.
     arrayDimMerge(type, arraySizes);
@@ -3187,7 +3187,7 @@ TIntermNode* HlslParseContext::declareVariable(const TSourceLoc& loc, TString& i
 
     // Declare the variable
     if (arraySizes || type.isArray()) {
-        // Arrayness is potentially coming both from the type and from the 
+        // Arrayness is potentially coming both from the type and from the
         // variable: "int[] a[];" or just one or the other.
         // Merge it all to the type, so all arrayness is part of the type.
         arrayDimMerge(type, arraySizes);
@@ -3689,9 +3689,9 @@ void HlslParseContext::declareBlock(const TSourceLoc& loc, TTypeList& typeList, 
                 error(memberLoc, "member cannot contradict block", "stream", "");
         }
 
-        // "This includes a block's inheritance of the 
-        // current global default buffer, a block member's inheritance of the block's 
-        // buffer, and the requirement that any *xfb_buffer* declared on a block 
+        // "This includes a block's inheritance of the
+        // current global default buffer, a block member's inheritance of the block's
+        // buffer, and the requirement that any *xfb_buffer* declared on a block
         // member must match the buffer inherited from the block."
         if (memberQualifier.hasXfbBuffer()) {
             if (defaultQualification.layoutXfbBuffer != memberQualifier.layoutXfbBuffer)
@@ -3792,15 +3792,15 @@ void HlslParseContext::declareBlock(const TSourceLoc& loc, TTypeList& typeList, 
 }
 
 //
-// "For a block, this process applies to the entire block, or until the first member 
-// is reached that has a location layout qualifier. When a block member is declared with a location 
+// "For a block, this process applies to the entire block, or until the first member
+// is reached that has a location layout qualifier. When a block member is declared with a location
 // qualifier, its location comes from that qualifier: The member's location qualifier overrides the block-level
-// declaration. Subsequent members are again assigned consecutive locations, based on the newest location, 
-// until the next member declared with a location qualifier. The values used for locations do not have to be 
+// declaration. Subsequent members are again assigned consecutive locations, based on the newest location,
+// until the next member declared with a location qualifier. The values used for locations do not have to be
 // declared in increasing order."
 void HlslParseContext::fixBlockLocations(const TSourceLoc& loc, TQualifier& qualifier, TTypeList& typeList, bool memberWithLocation, bool memberWithoutLocation)
 {
-    // "If a block has no block-level location layout qualifier, it is required that either all or none of its members 
+    // "If a block has no block-level location layout qualifier, it is required that either all or none of its members
     // have a location layout qualifier, or a compile-time error results."
     if (! qualifier.hasLocation() && memberWithLocation && memberWithoutLocation)
         error(loc, "either the block needs a location, or all members need a location, or no members have a location", "location", "");
@@ -3836,9 +3836,9 @@ void HlslParseContext::fixBlockLocations(const TSourceLoc& loc, TQualifier& qual
 
 void HlslParseContext::fixBlockXfbOffsets(TQualifier& qualifier, TTypeList& typeList)
 {
-    // "If a block is qualified with xfb_offset, all its 
-    // members are assigned transform feedback buffer offsets. If a block is not qualified with xfb_offset, any 
-    // members of that block not qualified with an xfb_offset will not be assigned transform feedback buffer 
+    // "If a block is qualified with xfb_offset, all its
+    // members are assigned transform feedback buffer offsets. If a block is not qualified with xfb_offset, any
+    // members of that block not qualified with an xfb_offset will not be assigned transform feedback buffer
     // offsets."
 
     if (! qualifier.hasXfbBuffer() || ! qualifier.hasXfbOffset())
@@ -3865,10 +3865,10 @@ void HlslParseContext::fixBlockXfbOffsets(TQualifier& qualifier, TTypeList& type
     qualifier.layoutXfbOffset = TQualifier::layoutXfbOffsetEnd;
 }
 
-// Calculate and save the offset of each block member, using the recursively 
+// Calculate and save the offset of each block member, using the recursively
 // defined block offset rules and the user-provided offset and align.
 //
-// Also, compute and save the total size of the block. For the block's size, arrayness 
+// Also, compute and save the total size of the block. For the block's size, arrayness
 // is not taken into account, as each element is backed by a separate buffer.
 //
 void HlslParseContext::fixBlockUniformOffsets(TQualifier& qualifier, TTypeList& typeList)
@@ -3892,30 +3892,30 @@ void HlslParseContext::fixBlockUniformOffsets(TQualifier& qualifier, TTypeList& 
         int memberAlignment = intermediate.getBaseAlignment(*typeList[member].type, memberSize, dummyStride, qualifier.layoutPacking == ElpStd140,
             subMatrixLayout != ElmNone ? subMatrixLayout == ElmRowMajor : qualifier.layoutMatrix == ElmRowMajor);
         if (memberQualifier.hasOffset()) {
-            // "The specified offset must be a multiple 
+            // "The specified offset must be a multiple
             // of the base alignment of the type of the block member it qualifies, or a compile-time error results."
             if (! IsMultipleOfPow2(memberQualifier.layoutOffset, memberAlignment))
                 error(memberLoc, "must be a multiple of the member's alignment", "offset", "");
 
-            // "It is a compile-time error to specify an offset that is smaller than the offset of the previous 
+            // "It is a compile-time error to specify an offset that is smaller than the offset of the previous
             // member in the block or that lies within the previous member of the block"
             if (memberQualifier.layoutOffset < offset)
                 error(memberLoc, "cannot lie in previous members", "offset", "");
 
-            // "The offset qualifier forces the qualified member to start at or after the specified 
-            // integral-constant expression, which will be its byte offset from the beginning of the buffer. 
-            // "The actual offset of a member is computed as 
+            // "The offset qualifier forces the qualified member to start at or after the specified
+            // integral-constant expression, which will be its byte offset from the beginning of the buffer.
+            // "The actual offset of a member is computed as
             // follows: If offset was declared, start with that offset, otherwise start with the next available offset."
             offset = std::max(offset, memberQualifier.layoutOffset);
         }
 
-        // "The actual alignment of a member will be the greater of the specified align alignment and the standard 
+        // "The actual alignment of a member will be the greater of the specified align alignment and the standard
         // (e.g., std140) base alignment for the member's type."
         if (memberQualifier.hasAlign())
             memberAlignment = std::max(memberAlignment, memberQualifier.layoutAlign);
 
         // "If the resulting offset is not a multiple of the actual alignment,
-        // increase it to the first offset that is a multiple of 
+        // increase it to the first offset that is a multiple of
         // the actual alignment."
         RoundToPow2(offset, memberAlignment);
         typeList[member].type->getQualifier().layoutOffset = offset;

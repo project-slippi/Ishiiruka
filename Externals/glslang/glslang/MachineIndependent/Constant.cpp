@@ -57,7 +57,7 @@ bool isNan(double x)
     u.d = x;
     int bitPatternL = u.i[0];
     int bitPatternH = u.i[1];
-    return (bitPatternH & 0x7ff80000) == 0x7ff80000 && 
+    return (bitPatternH & 0x7ff80000) == 0x7ff80000 &&
            ((bitPatternH & 0xFFFFF) != 0 || bitPatternL != 0);
 }
 
@@ -68,7 +68,7 @@ bool isInf(double x)
     u.d = x;
     int bitPatternL = u.i[0];
     int bitPatternH = u.i[1];
-    return (bitPatternH & 0x7ff00000) == 0x7ff00000 && 
+    return (bitPatternH & 0x7ff00000) == 0x7ff00000 &&
            (bitPatternH & 0xFFFFF) == 0 && bitPatternL == 0;
 }
 
@@ -131,7 +131,7 @@ TIntermTyped* TIntermConstantUnion::fold(TOperator op, const TIntermTyped* right
             TConstUnionArray smearedArray(newComps, rightNode->getConstArray()[0]);
             rightUnionArray = smearedArray;
         } else if (constComps > 1 && newComps == 1) {
-            // for a case like vec4 f = 1.2 + vec4(2,3,4,5);            
+            // for a case like vec4 f = 1.2 + vec4(2,3,4,5);
             newComps = constComps;
             rightUnionArray = rightNode->getConstArray();
             TConstUnionArray smearedArray(newComps, getConstArray()[0]);
@@ -211,7 +211,7 @@ TIntermTyped* TIntermConstantUnion::fold(TOperator op, const TIntermTyped* right
                     newConstArray[i].setU64Const(leftUnionArray[i].getU64Const() / rightUnionArray[i].getU64Const());
                 break;
             default:
-                return 0;
+                return nullptr;
             }
         }
         break;
@@ -316,7 +316,7 @@ TIntermTyped* TIntermConstantUnion::fold(TOperator op, const TIntermTyped* right
         break;
 
     default:
-        return 0;
+        return nullptr;
     }
 
     TIntermConstantUnion *newNode = new TIntermConstantUnion(newConstArray, returnType);
@@ -351,7 +351,7 @@ TIntermTyped* TIntermConstantUnion::fold(TOperator op, const TType& returnType) 
     case EOpEmitStreamVertex:
     case EOpEndStreamPrimitive:
         // These don't actually fold
-        return 0;
+        return nullptr;
 
     case EOpPackSnorm2x16:
     case EOpPackUnorm2x16:
@@ -433,7 +433,7 @@ TIntermTyped* TIntermConstantUnion::fold(TOperator op, const TType& returnType) 
     case EOpDeterminant:
     case EOpMatrixInverse:
     case EOpTranspose:
-        return 0;
+        return nullptr;
 
     default:
         assert(componentWise);
@@ -456,7 +456,7 @@ TIntermTyped* TIntermConstantUnion::fold(TOperator op, const TType& returnType) 
             case EbtInt64: newConstArray[i].setI64Const(-unionArray[i].getI64Const()); break;
             case EbtUint64: newConstArray[i].setU64Const(static_cast<unsigned int>(-static_cast<int>(unionArray[i].getU64Const())));  break;
             default:
-                return 0;
+                return nullptr;
             }
             break;
         case EOpLogicalNot:
@@ -464,7 +464,7 @@ TIntermTyped* TIntermConstantUnion::fold(TOperator op, const TType& returnType) 
             switch (getType().getBasicType()) {
             case EbtBool:  newConstArray[i].setBConst(!unionArray[i].getBConst()); break;
             default:
-                return 0;
+                return nullptr;
             }
             break;
         case EOpBitwiseNot:
@@ -542,7 +542,7 @@ TIntermTyped* TIntermConstantUnion::fold(TOperator op, const TType& returnType) 
                 newConstArray[i] = unionArray[i];
             break;
         case EOpSign:
-            #define SIGN(X) (X == 0 ? 0 : (X < 0 ? -1 : 1))
+            #define SIGN(X) (X >= 0)
             if (unionArray[i].getType() == EbtDouble)
                 newConstArray[i].setDConst(SIGN(unionArray[i].getDConst()));
             else
@@ -606,7 +606,7 @@ TIntermTyped* TIntermConstantUnion::fold(TOperator op, const TType& returnType) 
         case EOpDoubleBitsToUint64:
 
         default:
-            return 0;
+            return nullptr;
         }
     }
 
@@ -620,7 +620,7 @@ TIntermTyped* TIntermConstantUnion::fold(TOperator op, const TType& returnType) 
 //
 // Do constant folding for an aggregate node that has all its children
 // as constants and an operator that requires constant folding.
-// 
+//
 TIntermTyped* TIntermediate::fold(TIntermAggregate* aggrNode)
 {
     if (! areAllChildConst(aggrNode))
@@ -793,7 +793,7 @@ TIntermTyped* TIntermediate::fold(TIntermAggregate* aggrNode)
                 break;
             case EOpSmoothStep:
             {
-                double t = (childConstUnions[2][arg2comp].getDConst() - childConstUnions[0][arg0comp].getDConst()) / 
+                double t = (childConstUnions[2][arg2comp].getDConst() - childConstUnions[0][arg0comp].getDConst()) /
                            (childConstUnions[1][arg1comp].getDConst() - childConstUnions[0][arg0comp].getDConst());
                 if (t < 0.0)
                     t = 0.0;
@@ -832,7 +832,7 @@ TIntermTyped* TIntermediate::fold(TIntermAggregate* aggrNode)
             newConstArray[2] = childConstUnions[0][0] * childConstUnions[1][1] - childConstUnions[0][1] * childConstUnions[1][0];
             break;
         case EOpFaceForward:
-            // If dot(Nref, I) < 0 return N, otherwise return –N:  Arguments are (N, I, Nref).
+            // If dot(Nref, I) < 0 return N, otherwise return ï¿½N:  Arguments are (N, I, Nref).
             dot = childConstUnions[1].dot(childConstUnions[2]);
             for (int comp = 0; comp < numComps; ++comp) {
                 if (dot < 0.0)
@@ -932,7 +932,7 @@ TIntermTyped* TIntermediate::foldDereference(TIntermTyped* node, int index, cons
 {
     TType dereferencedType(node->getType(), index);
     dereferencedType.getQualifier().storage = EvqConst;
-    TIntermTyped* result = 0;
+    TIntermTyped* result = nullptr;
     int size = dereferencedType.computeNumComponents();
 
     // arrays, vectors, matrices, all use simple multiplicative math
@@ -950,7 +950,7 @@ TIntermTyped* TIntermediate::foldDereference(TIntermTyped* node, int index, cons
 
     result = addConstantUnion(TConstUnionArray(node->getAsConstantUnion()->getConstArray(), start, size), node->getType(), loc);
 
-    if (result == 0)
+    if (result == nullptr)
         result = node;
     else
         result->setType(dereferencedType);
@@ -959,7 +959,7 @@ TIntermTyped* TIntermediate::foldDereference(TIntermTyped* node, int index, cons
 }
 
 //
-// Make a constant vector node or constant scalar node, representing a given 
+// Make a constant vector node or constant scalar node, representing a given
 // constant vector and constant swizzle into it.
 //
 TIntermTyped* TIntermediate::foldSwizzle(TIntermTyped* node, TVectorFields& fields, const TSourceLoc& loc)
@@ -972,7 +972,7 @@ TIntermTyped* TIntermediate::foldSwizzle(TIntermTyped* node, TVectorFields& fiel
 
     TIntermTyped* result = addConstantUnion(constArray, node->getType(), loc);
 
-    if (result == 0)
+    if (result == nullptr)
         result = node;
     else
         result->setType(TType(node->getBasicType(), EvqConst, fields.num));

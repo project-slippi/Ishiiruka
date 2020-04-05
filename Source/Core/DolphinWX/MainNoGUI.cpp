@@ -381,7 +381,7 @@ int main(int argc, char* argv[])
 	{ "version", no_argument, nullptr, 'v' },
 	{ nullptr, 0, nullptr, 0 } };
 
-	while ((ch = getopt_long(argc, argv, "eh?v", longopts, 0)) != -1)
+	while ((ch = getopt_long(argc, argv, "eh?v", longopts, nullptr)) != -1)
 	{
 		switch (ch)
 		{

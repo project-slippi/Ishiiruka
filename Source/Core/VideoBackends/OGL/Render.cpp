@@ -734,7 +734,7 @@ Renderer::Renderer()
 
 	// Because of the fixed framebuffer size we need to disable the resolution
 	// options while running
-	g_Config.bRunning = true;	
+	g_Config.bRunning = true;
 	UpdateActiveConfig();
 	ClearEFBCache();
 }
@@ -1430,7 +1430,7 @@ void Renderer::SwapImpl(u32 xfbAddr, u32 fbWidth, u32 fbStride, u32 fbHeight,
 	// Flip top and bottom for some reason; TODO: Fix the code to suck less?
 	std::swap(flipped_trc.top, flipped_trc.bottom);
 
-	// Copy the framebuffer to screen.	
+	// Copy the framebuffer to screen.
 	const TargetSize dst_size = {m_backbuffer_width, m_backbuffer_height};
 	DrawFrame(flipped_trc, rc, xfbAddr, xfbSourceList, xfbCount, 0, dst_size, fbWidth, fbStride, fbHeight, Gamma);
 
@@ -1760,7 +1760,7 @@ void Renderer::DumpFrame(const TargetRectangle& flipped_trc, u64 ticks)
 
 	glPixelStorei(GL_PACK_ALIGNMENT, 1);
 	glReadPixels(flipped_trc.left, flipped_trc.bottom, m_last_frame_width[0], m_last_frame_height[0],
-		GL_RGBA, GL_UNSIGNED_BYTE, 0);
+		GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
 	glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
 }
 
@@ -1778,7 +1778,7 @@ void Renderer::DumpFrameUsingFBO(const EFBRectangle& source_rc, u32 xfb_addr,
 	PrepareFrameDumpRenderTexture(render_width, render_height);
 
 	// Ensure the alpha channel of the render texture is blank. The frame dump backend expects
-	// that the alpha is set to 1.0 for all pixels.	
+	// that the alpha is set to 1.0 for all pixels.
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT);
 

@@ -102,7 +102,7 @@ private:
 class ShaderCode
 {
 public:
-	ShaderCode() : buf(NULL), write_ptr(NULL)
+	ShaderCode() : buf(nullptr), write_ptr(nullptr)
 	{
 
 	}

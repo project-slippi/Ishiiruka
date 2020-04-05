@@ -190,7 +190,7 @@ bool CBoot::Load_BS2(const std::string& _rBootROMFilename)
 		return false;
 
 	// Use zlibs crc32 implementation to compute the hash
-	u32 ipl_hash = crc32(0L, Z_NULL, 0);
+	u32 ipl_hash = crc32(0L, nullptr, 0);
 	ipl_hash = crc32(ipl_hash, (const Bytef*)data.data(), (u32)data.size());
 	std::string ipl_region;
 	switch (ipl_hash)

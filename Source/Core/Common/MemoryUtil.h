@@ -24,17 +24,17 @@ template <typename T>
 class SimpleBuf
 {
 public:
-	SimpleBuf() : m_buf(0), m_size(0)
+	SimpleBuf() : m_buf(nullptr), m_size(0)
 	{}
 
-	SimpleBuf(size_t s) : m_buf(0)
+	SimpleBuf(size_t s) : m_buf(nullptr)
 	{
 		resize(s);
 	}
 
 	~SimpleBuf()
 	{
-		if (m_buf != 0)
+		if (m_buf != nullptr)
 		{
 			FreeMemoryPages(m_buf, m_size * sizeof(T));
 		}
@@ -50,7 +50,7 @@ public:
 	{
 		if (m_size < s)
 		{
-			if (m_buf != 0)
+			if (m_buf != nullptr)
 			{
 				FreeMemoryPages(m_buf, m_size * sizeof(T));
 			}

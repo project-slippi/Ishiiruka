@@ -81,18 +81,18 @@ class TAnonMember;
 class TSymbol {
 public:
     POOL_ALLOCATOR_NEW_DELETE(GetThreadPoolAllocator())
-    explicit TSymbol(const TString *n) :  name(n), numExtensions(0), extensions(0), writable(true) { }
+    explicit TSymbol(const TString *n) :  name(n), numExtensions(0), extensions(nullptr), writable(true) { }
     virtual TSymbol* clone() const = 0;
     virtual ~TSymbol() { }  // rely on all symbol owned memory coming from the pool
 
     virtual const TString& getName() const { return *name; }
     virtual void changeName(const TString* newName) { name = newName; }
     virtual const TString& getMangledName() const { return getName(); }
-    virtual TFunction* getAsFunction() { return 0; }
-    virtual const TFunction* getAsFunction() const { return 0; }
-    virtual TVariable* getAsVariable() { return 0; }
-    virtual const TVariable* getAsVariable() const { return 0; }
-    virtual const TAnonMember* getAsAnonMember() const { return 0; }
+    virtual TFunction* getAsFunction() { return nullptr; }
+    virtual const TFunction* getAsFunction() const { return nullptr; }
+    virtual TVariable* getAsVariable() { return nullptr; }
+    virtual const TVariable* getAsVariable() const { return nullptr; }
+    virtual const TAnonMember* getAsAnonMember() const { return nullptr; }
     virtual const TType& getType() const = 0;
     virtual TType& getWritableType() = 0;
     virtual void setUniqueId(int id) { uniqueId = id; }
@@ -120,7 +120,7 @@ protected:
     const TString *name;
     unsigned int uniqueId;      // For cross-scope comparing during code generation
 
-    // For tracking what extensions must be present 
+    // For tracking what extensions must be present
     // (don't use if correct version/profile is present).
     int numExtensions;
     const char** extensions; // an array of pointers to existing constant char strings
@@ -145,7 +145,7 @@ protected:
 class TVariable : public TSymbol {
 public:
     TVariable(const TString *name, const TType& t, bool uT = false )
-        : TSymbol(name), 
+        : TSymbol(name),
           userType(uT),
           constSubtree(nullptr) { type.shallowCopy(t); }
     virtual TVariable* clone() const;
@@ -187,12 +187,12 @@ protected:
 struct TParameter {
     TString *name;
     TType* type;
-    void copyParam(const TParameter& param) 
+    void copyParam(const TParameter& param)
     {
         if (param.name)
             name = NewPoolTString(param.name->c_str());
         else
-            name = 0;
+            name = nullptr;
         type = param.type->clone();
     }
 };
@@ -203,7 +203,7 @@ struct TParameter {
 class TFunction : public TSymbol {
 public:
     explicit TFunction(TOperator o) :
-        TSymbol(0),
+        TSymbol(nullptr),
         op(o),
         defined(false), prototyped(false) { }
     TFunction(const TString *name, const TType& retType, TOperator tOp = EOpNull) :
@@ -268,7 +268,7 @@ public:
     virtual const TAnonMember* getAsAnonMember() const { return this; }
     virtual const TVariable& getAnonContainer() const { return anonContainer; }
     virtual unsigned int getMemberNumber() const { return memberNumber; }
-    
+
     virtual const TType& getType() const
     {
         const TTypeList& types = *anonContainer.getType().getStruct();
@@ -281,7 +281,7 @@ public:
         const TTypeList& types = *anonContainer.getType().getStruct();
         return *types[memberNumber].type;
     }
-    
+
     virtual int getAnonId() const { return anonId; }
     virtual void dump(TInfoSink &infoSink) const;
 
@@ -297,7 +297,7 @@ protected:
 class TSymbolTableLevel {
 public:
     POOL_ALLOCATOR_NEW_DELETE(GetThreadPoolAllocator())
-    TSymbolTableLevel() : defaultPrecision(0), anonId(0) { }
+    TSymbolTableLevel() : defaultPrecision(nullptr), anonId(0) { }
     ~TSymbolTableLevel();
 
     bool insert(TSymbol& symbol, bool separateNameSpaces)
@@ -351,8 +351,8 @@ public:
     TSymbol* find(const TString& name) const
     {
         tLevel::const_iterator it = level.find(name);
-        if (it == level.end()) 
-            return 0;
+        if (it == level.end())
+            return nullptr;
         else
             return (*it).second;
     }
@@ -420,7 +420,7 @@ public:
     {
         // can call multiple times at one scope, will only latch on first call,
         // as we're tracking the previous scope's values, not the current values
-        if (defaultPrecision != 0)
+        if (defaultPrecision != nullptr)
             return;
 
         defaultPrecision = new TPrecisionQualifier[EbtNumTypes];
@@ -432,7 +432,7 @@ public:
     {
         // can be called for table level pops that didn't set the
         // defaults
-        if (defaultPrecision == 0 || p == 0)
+        if (defaultPrecision == nullptr || p == nullptr)
             return;
 
         for (int t = 0; t < EbtNumTypes; ++t)
@@ -472,9 +472,9 @@ public:
 
         // don't deallocate levels passed in from elsewhere
         while (table.size() > adoptedLevels)
-            pop(0);
+            pop(nullptr);
     }
-    
+
     void adoptLevels(TSymbolTable& symTable)
     {
         for (unsigned int level = 0; level < symTable.table.size(); ++level) {
@@ -506,7 +506,7 @@ public:
 
     void setNoBuiltInRedeclarations() { noBuiltInRedeclarations = true; }
     void setSeparateNameSpaces() { separateNameSpaces = true; }
-    
+
     void push()
     {
         table.push_back(new TSymbolTableLevel);
@@ -532,7 +532,7 @@ public:
         // make sure there isn't a function of this variable name
         if (! separateNameSpaces && ! symbol.getAsFunction() && table[currentLevel()]->hasFunctionName(symbol.getName()))
             return false;
-            
+
         // check for not overloading or redefining a built-in function
         if (noBuiltInRedeclarations) {
             if (atGlobalLevel() && currentLevel() > 0) {
@@ -548,7 +548,7 @@ public:
 
     //
     // To allocate an internal temporary, which will need to be uniquely
-    // identified by the consumer of the AST, but never need to 
+    // identified by the consumer of the AST, but never need to
     // found by doing a symbol table search by name, hence allowed an
     // arbitrary name in the symbol with no worry of collision.
     //
@@ -590,14 +590,14 @@ public:
         }
     }
 
-    TSymbol* find(const TString& name, bool* builtIn = 0, bool *currentScope = 0)
+    TSymbol* find(const TString& name, bool* builtIn = nullptr, bool *currentScope = nullptr)
     {
         int level = currentLevel();
         TSymbol* symbol;
         do {
             symbol = table[level]->find(name);
             --level;
-        } while (symbol == 0 && level >= 0);
+        } while (symbol == nullptr && level >= 0);
         level++;
         if (builtIn)
             *builtIn = isBuiltInLevel(level);
@@ -650,7 +650,7 @@ public:
         for (unsigned int level = 0; level < table.size(); ++level)
             table[level]->relateToOperator(name, op);
     }
-    
+
     void setFunctionExtensions(const char* name, int num, const char* const extensions[])
     {
         for (unsigned int level = 0; level < table.size(); ++level)

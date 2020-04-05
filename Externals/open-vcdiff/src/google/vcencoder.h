@@ -218,7 +218,7 @@ class VCDiffEncoder {
  public:
   VCDiffEncoder(const char* dictionary_contents, size_t dictionary_size)
       : dictionary_(dictionary_contents, dictionary_size),
-        encoder_(NULL),
+        encoder_(nullptr),
         flags_(VCD_STANDARD_FORMAT),
         look_for_target_matches_(true) { }
 

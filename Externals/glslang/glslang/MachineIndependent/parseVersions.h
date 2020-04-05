@@ -58,7 +58,7 @@ public:
                    bool forwardCompatible, EShMessages messages)
         : infoSink(infoSink), version(version), profile(profile), language(language),
           spvVersion(spvVersion), forwardCompatible(forwardCompatible),
-          intermediate(interm), messages(messages), numErrors(0), currentScanner(0) { }
+          intermediate(interm), messages(messages), numErrors(0), currentScanner(nullptr) { }
     virtual ~TParseVersions() { }
     virtual void initializeExtensionBehavior();
     virtual void requireProfile(const TSourceLoc&, int queryProfiles, const char* featureDesc);

@@ -215,7 +215,7 @@ public:
     // Return the function, pass back the entry.
     // The returned pointer is only valid for the lifetime of this builder.
     Function* makeFunctionEntry(Decoration precision, Id returnType, const char* name, const std::vector<Id>& paramTypes,
-                                const std::vector<Decoration>& precisions, Block **entry = 0);
+                                const std::vector<Decoration>& precisions, Block **entry = nullptr);
 
     // Create a return. An 'implicit' return is one not appearing in the source
     // code.  In the case of an implicit return, no post-return block is inserted.
@@ -228,7 +228,7 @@ public:
     void makeDiscard();
 
     // Create a global or function local or IO variable.
-    Id createVariable(StorageClass, Id type, const char* name = 0);
+    Id createVariable(StorageClass, Id type, const char* name = nullptr);
 
     // Create an intermediate with an undefined value.
     Id createUndefined(Id type);
@@ -297,7 +297,7 @@ public:
     // Generally, the type of 'scalar' does not need to be the same type as the components in 'vector'.
     // The type of the created vector is a vector of components of the same type as the scalar.
     //
-    // Note: One of the arguments will change, with the result coming back that way rather than 
+    // Note: One of the arguments will change, with the result coming back that way rather than
     // through the return value.
     void promoteScalar(Decoration precision, Id& left, Id& right);
 
