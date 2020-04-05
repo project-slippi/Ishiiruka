@@ -799,7 +799,7 @@ void CFrame::DoStop()
 
 			// Do not pause if netplay is running as CPU thread might be blocked
 			// waiting on inputs
-			bool should_pause = !NetPlayDialog::GetNetPlayClient();			
+			bool should_pause = !netplay_client;
 
 			if (should_pause)
 			{
@@ -847,8 +847,8 @@ void CFrame::DoStop()
 		if (Movie::IsMovieActive())
 			Movie::EndPlayInput(false);
 
-		if (NetPlayDialog::GetNetPlayClient())
-			NetPlayDialog::GetNetPlayClient()->Stop();
+		if (netplay_client)
+			netplay_client->Stop();
 
 		if (m_Mgr->GetPane(_("Slippi Pane")).IsShown()) {
 			m_Mgr->GetPane(_("Slippi Pane")).Hide();

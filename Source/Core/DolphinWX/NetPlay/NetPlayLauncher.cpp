@@ -44,7 +44,6 @@ bool NetPlayLauncher::Host(const NetPlayHostConfig& config)
 
 	npd = new NetPlayDialog(config.parent_window, config.game_list_ctrl, config.game_name, true);
 
-	NetPlayClient*& netplay_client = NetPlayDialog::GetNetPlayClient();
 	netplay_client =
 		new NetPlayClient("127.0.0.1", netplay_server->GetPort(), npd, config.player_name, false,
 			config.traversal_host, config.traversal_port);
@@ -66,7 +65,6 @@ bool NetPlayLauncher::Host(const NetPlayHostConfig& config)
 bool NetPlayLauncher::Join(const NetPlayJoinConfig& config)
 {
 	NetPlayDialog*& npd = NetPlayDialog::GetInstance();
-	NetPlayClient*& netplay_client = NetPlayDialog::GetNetPlayClient();
 
 	npd = new NetPlayDialog(config.parent_window, config.game_list_ctrl, "", false);
 

@@ -370,7 +370,7 @@ void TextureCache::TCacheEntry::FromRenderTarget(bool is_depth_copy, const EFBRe
 		&sourcerect,
 		g_renderer->GetTargetWidth(),
 		g_renderer->GetTargetHeight(),
-		is_depth_copy ? StaticShaderCache::GetDepthMatrixPixelShader(multisampled) 
+		is_depth_copy ? StaticShaderCache::GetDepthMatrixPixelShader(multisampled)
 		: StaticShaderCache::GetColorMatrixPixelShader(multisampled),
 		StaticShaderCache::GetSimpleVertexShader(),
 		StaticShaderCache::GetSimpleVertexShaderInputLayout(),
@@ -561,7 +561,7 @@ bool TextureCache::Palettize(TCacheEntryBase* entry, const TCacheEntryBase* unco
 
 	// D3D12: See TextureCache::TextureCache() - because there are only two possible buffer contents here,
 	// just pre-populate the data in two parts of the same upload heap.
-	if ((unconverted->format & 0xf) == GX_TF_I4)
+	if ((unconverted->mem_format & 0xf) == GX_TF_I4)
 	{
 		D3D::current_command_list->SetGraphicsRootConstantBufferView(DESCRIPTOR_TABLE_PS_CBVONE, m_palette_uniform_buffer->GetGPUVirtualAddress());
 	}

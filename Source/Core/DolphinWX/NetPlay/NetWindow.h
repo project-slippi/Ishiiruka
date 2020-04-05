@@ -105,7 +105,6 @@ public:
 	void OnTraversalError(int error) override;
 
 	static NetPlayDialog*& GetInstance() { return npd; }
-	static NetPlayClient*& GetNetPlayClient() { return netplay_client; }
 	static NetPlayServer*& GetNetPlayServer() { return netplay_server; }
 	static void FillWithGameNames(wxListBox* game_lbox, const CGameListCtrl& game_list);
 

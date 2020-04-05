@@ -97,9 +97,9 @@ public:
 				return (u64)c.materialmap << 57	// 1 bit
 					| (u64)c.rendertarget << 56	// 1 bit
 					| (u64)c.pcformat << 48		// 8 bits
-					| (u64)c.layers << 40		// 8 bits 
-					| (u64)c.levels << 32		// 8 bits 
-					| (u64)c.height << 16		// 16 bits 
+					| (u64)c.layers << 40		// 8 bits
+					| (u64)c.levels << 32		// 8 bits
+					| (u64)c.height << 16		// 16 bits
 					| (u64)c.width;				// 16 bits
 			}
 		};
@@ -123,7 +123,7 @@ public:
 		u32 addr = {};
 		u32 size_in_bytes = {};
 		u32 native_size_in_bytes = {};
-		u32 format = {}; // bits 0-3 will contain the in-memory format.
+		u32 mem_format = {}; // bits 0-3 will contain the in-memory format.
 		u32 memory_stride = {};
 		u32 native_width = {}, native_height = {}; // Texture dimensions from the GameCube's point of view
 		u32 native_levels = {};
@@ -146,7 +146,7 @@ public:
 		{
 			addr = _addr;
 			size_in_bytes = _size;
-			format = _format;
+			mem_format = _format;
 		}
 
 		void SetDimensions(u32 _native_width, u32 _native_height, u32 _native_levels)
@@ -223,7 +223,7 @@ public:
 		{
 			return false;
 		}
-		
+
 
 		bool IsEfbCopy() const
 		{
@@ -249,7 +249,7 @@ public:
 	TCacheEntryBase* AllocateTexture(const TCacheEntryConfig& config);
 	void DisposeTexture(TCacheEntryBase* texture);
 
-	
+
 	virtual bool Palettize(TCacheEntryBase* entry, const TCacheEntryBase* base_entry) = 0;
 	virtual void CopyEFB(u8* dst, const EFBCopyFormat& format, u32 native_width, u32 bytes_per_row,
 		u32 num_blocks_y, u32 memory_stride,
@@ -307,7 +307,7 @@ private:
 	TexHashCache textures_by_hash;
 	TexPool texture_pool;
 	size_t texture_pool_memory_usage = {};
-	
+
 	u32 s_last_texture = {};
 
 	// Backup configuration values

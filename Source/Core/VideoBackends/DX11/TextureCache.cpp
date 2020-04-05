@@ -368,7 +368,7 @@ void TextureCache::TCacheEntry::FromRenderTarget(bool is_depth_copy, const EFBRe
 	}
 	D3D::stateman->SetPixelConstants(efbcopycbuf[cbufid].get());
 
-	
+
 	// TODO: try targetSource.asRECT();
 	const D3D11_RECT sourcerect = CD3D11_RECT(targetSource.left, targetSource.top, targetSource.right, targetSource.bottom);
 
@@ -408,7 +408,7 @@ void TextureCache::CopyEFB(u8* dst, const EFBCopyFormat& format, u32 native_widt
 bool TextureCache::Palettize(TCacheEntryBase* entry, const TCacheEntryBase* base_entry)
 {
 	DX11::D3DTexture2D* texture = ((TextureCache::TCacheEntry*)entry)->texture;
-	u32 texformat = entry->format & 0xf;
+	u32 texformat = entry->mem_format & 0xf;
 	BaseType baseType = Unorm4;
 	if (texformat == GX_TF_C4 || texformat == GX_TF_I4)
 		baseType = Unorm4;

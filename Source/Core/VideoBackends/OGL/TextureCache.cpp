@@ -321,7 +321,7 @@ TextureCache::TCacheEntryBase* TextureCache::CreateTexture(const TCacheEntryConf
 	{
 		if (config.materialmap)
 		{
-			glGenTextures(1, &entry->nrm_texture);			
+			glGenTextures(1, &entry->nrm_texture);
 			glBindTexture(GL_TEXTURE_2D_ARRAY, entry->nrm_texture);
 			glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAX_LEVEL, config.levels - 1);
 			if (g_ogl_config.bSupportsTextureStorage)
@@ -531,7 +531,7 @@ void TextureCache::TCacheEntry::FromRenderTarget(bool is_depth_copy, const EFBRe
 		uniform_location = s_ColorMatrixPositionUniform;
 	}
 
-	
+
 	glUniform4f(uniform_location, static_cast<float>(R.left), static_cast<float>(R.top),
 		static_cast<float>(R.right), static_cast<float>(R.bottom));
 
@@ -553,7 +553,7 @@ void TextureCache::CopyEFB(u8* dst, const EFBCopyFormat& format, u32 native_widt
 bool TextureCache::Palettize(TCacheEntryBase* src_entry, const TCacheEntryBase* base_entry)
 {
 	TextureCache::TCacheEntry* entry = (TextureCache::TCacheEntry*)src_entry;
-	u32 texformat = entry->format & 0xf;
+	u32 texformat = entry->mem_format & 0xf;
 	if (!g_ActiveConfig.backend_info.bSupportsPaletteConversion)
 	{
 		return false;
@@ -601,7 +601,7 @@ TextureCache::TextureCache()
 		// buffer here. This buffer is also used as storage for undecoded textures when compute shader
 		// texture decoding is enabled, in which case the requested size is 32MB.
 		glGetIntegerv(GL_MAX_TEXTURE_BUFFER_SIZE, &max_buffer_size);
-		
+
 		// Clamp the buffer size to the maximum size that the driver supports.
 		buffer_size = std::min(buffer_size, max_buffer_size);
 

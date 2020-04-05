@@ -1544,10 +1544,10 @@ void CEXISlippi::prepareSlippiPlayback(int32_t &frameIndex)
 		condVar.notify_one();
 }
 
-void CEXISlippi::processInitialState(std::vector<u8> &iState)
+void CEXISlippi::processInitialState(std::vector<u8> &iState_)
 {
 	INFO_LOG(SLIPPI, "saving iState");
-	State::SaveToBuffer(iState);
+	State::SaveToBuffer(iState_);
 	SConfig::GetInstance().bHideCursor = false;
 };
 

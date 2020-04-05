@@ -231,7 +231,7 @@ TextureCacheBase::TCacheEntryBase* TextureCacheBase::ApplyPaletteToEntry(TCacheE
 
 	if (decoded_entry)
 	{
-		decoded_entry->SetGeneralParameters(entry->addr, entry->size_in_bytes, entry->format);
+		decoded_entry->SetGeneralParameters(entry->addr, entry->size_in_bytes, entry->mem_format);
 		decoded_entry->SetDimensions(entry->native_width, entry->native_height, 1);
 		decoded_entry->SetHashes(entry->base_hash, entry->hash);
 		decoded_entry->frameCount = FRAMECOUNT_INVALID;
@@ -270,7 +270,7 @@ void TextureCacheBase::ScaleTextureCacheEntryTo(TextureCacheBase::TCacheEntryBas
 	TCacheEntryBase* newentry = AllocateTexture(newconfig);
 	if (newentry)
 	{
-		newentry->SetGeneralParameters((*entry)->addr, (*entry)->size_in_bytes, (*entry)->format);
+		newentry->SetGeneralParameters((*entry)->addr, (*entry)->size_in_bytes, (*entry)->mem_format);
 		newentry->SetDimensions((*entry)->native_width, (*entry)->native_height, 1);
 		newentry->SetHashes((*entry)->base_hash, (*entry)->hash);
 		newentry->frameCount = frameCount;
@@ -312,19 +312,19 @@ TextureCacheBase::TCacheEntryBase* TextureCacheBase::DoPartialTextureUpdates(TCa
 		return entry_to_update;
 	entry_to_update->may_have_overlapping_textures = false;
 
-	const bool isPaletteTexture = (entry_to_update->format == GX_TF_C4
-		|| entry_to_update->format == GX_TF_C8
-		|| entry_to_update->format == GX_TF_C14X2
-		|| entry_to_update->format >= 0x10000);
+	const bool isPaletteTexture = (entry_to_update->mem_format == GX_TF_C4
+		|| entry_to_update->mem_format == GX_TF_C8
+		|| entry_to_update->mem_format == GX_TF_C14X2
+		|| entry_to_update->mem_format >= 0x10000);
 
 	// Efb copies and paletted textures are excluded from these updates, until there's an example where a game would
 	// benefit from this. Both would require more work to be done.
 	if (entry_to_update->IsEfbCopy())
 		return entry_to_update;
 
-	u32 block_width = TexDecoder_GetBlockWidthInTexels(entry_to_update->format & 0xf);
-	u32 block_height = TexDecoder_GetBlockHeightInTexels(entry_to_update->format & 0xf);
-	u32 block_size = block_width * block_height * TexDecoder_GetTexelSizeInNibbles(entry_to_update->format & 0xf) / 2;
+	u32 block_width = TexDecoder_GetBlockWidthInTexels(entry_to_update->mem_format & 0xf);
+	u32 block_height = TexDecoder_GetBlockHeightInTexels(entry_to_update->mem_format & 0xf);
+	u32 block_size = block_width * block_height * TexDecoder_GetTexelSizeInNibbles(entry_to_update->mem_format & 0xf) / 2;
 
 	u32 numBlocksX = (entry_to_update->native_width + block_width - 1) / block_width;
 
@@ -637,7 +637,7 @@ TextureCacheBase::TCacheEntryBase* TextureCacheBase::Load(const u32 stage)
 		else
 		{
 			// For normal textures, all texture parameters need to match
-			if (entry->hash == (full_hash) && entry->format == full_format && entry->native_levels >= tex_levels &&
+			if (entry->hash == (full_hash) && entry->mem_format == full_format && entry->native_levels >= tex_levels &&
 				entry->native_width == nativeW && entry->native_height == nativeH)
 			{
 				entry = DoPartialTextureUpdates(iter->second, tlutaddr, tlutfmt, palette_size);
@@ -683,7 +683,7 @@ TextureCacheBase::TCacheEntryBase* TextureCacheBase::Load(const u32 stage)
 		{
 			TCacheEntryBase* entry = hash_iter->second;
 			// All parameters, except the address, need to match here
-			if (entry->format == full_format && entry->native_levels >= tex_levels &&
+			if (entry->mem_format == full_format && entry->native_levels >= tex_levels &&
 				entry->native_width == nativeW && entry->native_height == nativeH)
 			{
 				entry = DoPartialTextureUpdates(hash_iter->second, tlutaddr, tlutfmt, palette_size);
@@ -1493,7 +1493,7 @@ TextureCacheBase::FindOverlappingTextures(u32 addr, u32 size_in_bytes)
 
 u32 TextureCacheBase::TCacheEntryBase::BytesPerRow() const
 {
-	const u32 blockW = TexDecoder_GetBlockWidthInTexels(format);
+	const u32 blockW = TexDecoder_GetBlockWidthInTexels(mem_format);
 
 	// Round up source height to multiple of block size
 	const u32 actualWidth = Common::AlignUpSizePow2(native_width, blockW);
@@ -1501,14 +1501,14 @@ u32 TextureCacheBase::TCacheEntryBase::BytesPerRow() const
 	const u32 numBlocksX = actualWidth / blockW;
 
 	// RGBA takes two cache lines per block; all others take one
-	const u32 bytes_per_block = (format & 0xF) == GX_TF_RGBA8 ? 64 : 32;
+	const u32 bytes_per_block = (mem_format & 0xF) == GX_TF_RGBA8 ? 64 : 32;
 
 	return numBlocksX * bytes_per_block;
 }
 
 u32 TextureCacheBase::TCacheEntryBase::NumBlocksY() const
 {
-	u32 blockH = TexDecoder_GetBlockHeightInTexels(format);
+	u32 blockH = TexDecoder_GetBlockHeightInTexels(mem_format);
 	// Round up source height to multiple of block size
 	u32 actualHeight = Common::AlignUpSizePow2(native_height, blockH);
 

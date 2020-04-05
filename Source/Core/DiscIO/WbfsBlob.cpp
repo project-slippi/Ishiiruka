@@ -146,19 +146,19 @@ File::IOFile& WbfsFileReader::SeekToCluster(u64 offset, u64* available)
     u64 cluster_offset = offset & (m_wbfs_sector_size - 1);
     u64 final_address = cluster_address + cluster_offset;
 
-    for (file_entry& file_entry : m_files)
+    for (file_entry& m_file : m_files)
     {
-      if (final_address < (file_entry.base_address + file_entry.size))
+      if (final_address < (m_file.base_address + m_file.size))
       {
-        file_entry.file.Seek(final_address - file_entry.base_address, SEEK_SET);
+        m_file.file.Seek(final_address - m_file.base_address, SEEK_SET);
         if (available)
         {
-          u64 till_end_of_file = file_entry.size - (final_address - file_entry.base_address);
+          u64 till_end_of_file = m_file.size - (final_address - m_file.base_address);
           u64 till_end_of_sector = m_wbfs_sector_size - cluster_offset;
           *available = std::min(till_end_of_file, till_end_of_sector);
         }
 
-        return file_entry.file;
+        return m_file.file;
       }
     }
   }

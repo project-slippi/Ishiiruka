@@ -45,12 +45,12 @@ passthrough_resampler<T>::passthrough_resampler(cubeb_stream * s,
                                                 cubeb_data_callback cb,
                                                 void * ptr,
                                                 uint32_t input_channels,
-                                                uint32_t sample_rate)
+                                                uint32_t sample_rate_)
   : processor(input_channels)
   , stream(s)
   , data_callback(cb)
   , user_ptr(ptr)
-  , sample_rate(sample_rate)
+  , sample_rate(sample_rate_)
 {
 }
 
@@ -88,13 +88,13 @@ long passthrough_resampler<T>::fill(void * input_buffer, long * input_frames_cou
 
 template<typename T, typename InputProcessor, typename OutputProcessor>
 cubeb_resampler_speex<T, InputProcessor, OutputProcessor>
-  ::cubeb_resampler_speex(InputProcessor * input_processor,
-                          OutputProcessor * output_processor,
+  ::cubeb_resampler_speex(InputProcessor * input_processor_,
+                          OutputProcessor * output_processor_,
                           cubeb_stream * s,
                           cubeb_data_callback cb,
                           void * ptr)
-  : input_processor(input_processor)
-  , output_processor(output_processor)
+  : input_processor(input_processor_)
+  , output_processor(output_processor_)
   , stream(s)
   , data_callback(cb)
   , user_ptr(ptr)

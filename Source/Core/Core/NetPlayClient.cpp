@@ -68,10 +68,10 @@ NetPlayClient::~NetPlayClient()
 }
 
 // called from ---GUI--- thread
-NetPlayClient::NetPlayClient(const std::string& address, const u16 port, NetPlayUI* dialog,
+NetPlayClient::NetPlayClient(const std::string& address, const u16 port, NetPlayUI* dialog_,
 	const std::string& name, bool traversal,
 	const std::string& centralServer, u16 centralPort)
-	: dialog(dialog), m_player_name(name)
+	: dialog(dialog_), m_player_name(name)
 #ifdef _WIN32
 	, m_qos_handle(nullptr), m_qos_flow_id(0)
 #endif

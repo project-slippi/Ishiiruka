@@ -198,7 +198,7 @@ void TextureConverter::ConvertTexture(TextureCache::TCacheEntry* dst_entry, cons
 	draw.BeginRenderPass(dst_entry->GetFramebuffer(), region);
 
 	PSUniformBlock uniforms = {};
-	uniforms.multiplier = (src_entry->format & 0xF) == GX_TF_I4 ? 15.0f : 255.0f;
+	uniforms.multiplier = (src_entry->mem_format & 0xF) == GX_TF_I4 ? 15.0f : 255.0f;
 	uniforms.texel_buffer_offset = static_cast<int>(palette_offset / sizeof(u16));
 	draw.SetPushConstants(&uniforms, sizeof(uniforms));
 	draw.SetPSSampler(0, src_entry->GetTexture()->GetView(), g_object_cache->GetPointSampler());

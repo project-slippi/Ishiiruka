@@ -364,8 +364,8 @@ public:
    * @param channel_count       Number of channels.
    * @param capacity_in_frames  The capacity in frames.
    */
-  audio_ring_buffer_base(int channel_count, int capacity_in_frames)
-    : channel_count(channel_count)
+  audio_ring_buffer_base(int channel_count_, int capacity_in_frames)
+    : channel_count(channel_count_)
     , ring_buffer(frames_to_samples(capacity_in_frames))
   {
     assert(channel_count > 0);
