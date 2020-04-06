@@ -43,7 +43,7 @@
 #define SLEEP_TIME_MS 8
 #define WRITE_FILE_SLEEP_TIME_MS 85
 
-//#define LOCAL_TESTING
+#define LOCAL_TESTING
 
 int32_t emod(int32_t a, int32_t b)
 {
@@ -576,6 +576,15 @@ void CEXISlippi::prepareGameInfo()
 			availableSavestates.push_back(std::make_unique<SlippiSavestate>());
 		}
 	}
+	else
+	{
+		// Prepare savestates
+		availableSavestates.clear();
+		activeSavestates.clear();
+
+		// Add savestate for testing
+		availableSavestates.push_back(std::make_unique<SlippiSavestate>());
+	}
 
 	// Reset playback frame to begining
 	g_playback_status->currentPlaybackFrame = Slippi::GAME_FIRST_FRAME;
@@ -1022,9 +1031,6 @@ void CEXISlippi::prepareFrameData(u8 *payload)
 			// This feels jank but without this g_playback_status ends up getting updated to
 			// a value beyond the frame that actually gets played causes too much FFW
 			frameIndex = nextFrame->frame;
-
-			ERROR_LOG(SLIPPI, "Next Frame: %d. Last Played Frame: %d", nextFrame->frame,
-			          g_playback_status->currentPlaybackFrame);
 		}
 	}
 
@@ -1075,17 +1081,16 @@ void CEXISlippi::prepareFrameData(u8 *payload)
 		return;
 	}
 
+	u8 rollbackCode = 0; // 0 = not rollback, 1 = rollback, perhaps other options in the future?
+
 	// Increment frame index if greater
 	if (frameIndex > g_playback_status->currentPlaybackFrame)
 	{
 		g_playback_status->currentPlaybackFrame = frameIndex;
 	}
-
-	// For normal replays, modify slippi seek/playback data as needed
-	// TODO: maybe handle other modes too?
-	if (commSettings.mode == "normal" || commSettings.mode == "queue")
+	else if (commSettings.rollbackDisplayMethod != "off")
 	{
-		prepareSlippiPlayback(g_playback_status->currentPlaybackFrame);
+		rollbackCode = 1;
 	}
 
 	// WARN_LOG(EXPANSIONINTERFACE, "[Frame %d] Playback current behind by: %d frames.", frameIndex,
@@ -1123,6 +1128,33 @@ void CEXISlippi::prepareFrameData(u8 *payload)
 
 		frameSeqIdx += 1;
 	}
+	// else
+	//{
+	//	std::vector<u8> fakePayload(8, 0);
+	//	*(s32 *)(&fakePayload[0]) = Common::swap32(frame->frame);
+
+	//	if (frame->frame == 400)
+	//	{
+	//		handleCaptureSavestate(&fakePayload[0]);
+	//	}
+
+	//	if (frame->frame == 950)
+	//	{
+	//		*(s32 *)(&fakePayload[0]) = Common::swap32(400);
+	//		handleLoadSavestate(&fakePayload[0]);
+	//		handleCaptureSavestate(&fakePayload[0]);
+	//	}
+	//}
+
+	// For normal replays, modify slippi seek/playback data as needed
+	// TODO: maybe handle other modes too?
+	if (commSettings.mode == "normal" || commSettings.mode == "queue")
+	{
+		prepareSlippiPlayback(frame->frame);
+	}
+
+	// Push RB code
+	m_read_queue.push_back(rollbackCode);
 
 	// Add frame rng seed to be restored at priority 0
 	u8 rngResult = frame->randomSeedExists ? 1 : 0;
@@ -1854,6 +1886,7 @@ void CEXISlippi::SeekThread()
 			if (g_playback_status->targetFrameNum != closestStateFrame &&
 			    g_playback_status->targetFrameNum != g_playback_status->latestFrame)
 			{
+				g_playback_status->currentPlaybackFrame = g_playback_status->targetFrameNum;
 				isHardFFW = true;
 				SConfig::GetInstance().m_OCEnable = true;
 				SConfig::GetInstance().m_OCFactor = 4.0f;
@@ -1890,8 +1923,7 @@ void CEXISlippi::prepareSlippiPlayback(int32_t &frameIndex)
 		cv_processingDiff.wait(processingLock);
 	}
 
-	if (g_playback_status->inSlippiPlayback &&
-	    g_playback_status->currentPlaybackFrame == g_playback_status->targetFrameNum)
+	if (g_playback_status->inSlippiPlayback && frameIndex == g_playback_status->targetFrameNum)
 	{
 		INFO_LOG(SLIPPI, "Reached frame to seek to, unblock");
 		cv_waitingForTargetFrame.notify_one();

@@ -480,133 +480,183 @@ static __forceinline void Memcheck(u32 address, u32 var, bool write, int size)
  // visited[address] = true;
  // ERROR_LOG(SLIPPI_ONLINE, "%x (%s) %x -> %x", PC, PowerPC::debug_interface.GetDescription(PC).c_str(), address, var);
 
-	//*********************************************************************
-  //* Looking for sound memory
   //*********************************************************************
-  /*
-  static std::unordered_map<u32, bool> visited = {};
-  static std::unordered_map<std::string, bool> whitelist = {
-	  //{"__AIDHandler", true},      // lol
-	  //{"__AXOutAiCallback", true}, // lol
-	  //{"__AXOutNewFrame", true},   // lol
-	  //{"__AXSyncPBs", true},       // lol
-	  //{"SFX_PlaySFX", true},       // lol
-	  {"__DSPHandler", true},
-  };
+  //* Looking for camera player position memory
+  //*********************************************************************
+  //static std::unordered_map<u32, bool> visited = {};
+  //static std::unordered_map<std::string, bool> whitelist = {
+	 // {"PlayerThink_CameraBehavior", true}, // Per-Player update camera position function
+	 // {"CameraFunctionBlrl", true}, // Update camera position
+  //};
 
-  static std::vector<SlippiSavestate::PreserveBlock> soundStuff = {
-	  {0x804dec00, 0x10000}, // Stack
+  //static std::vector<SlippiSavestate::PreserveBlock> soundStuff = {
+	 // 
+  //};
 
-	  {0x804D7720, 0x4},
-	  {0x804D774C, 0x4},
-	  {0x804D775C, 0x4},
-	  {0x804D77C8, 0x4},
-	  {0x804D77D0, 0x4},
-	  {0x804D7788, 0x10},
-	  {0x804b09e0, 0x3000},
-	  {0x804b89e0, 0x7E00},
-	  {0x804c2c64, 0x1400},
-	  {0x804c45a0, 0x1380},
-	  {0x804C5920, 0x100},
-	  {0x804a8d78, 0x1788},
+  //auto sceneController = ReadFromHardware<FLAG_READ, u32>(0x80479d30);
+  //if ((sceneController & 0xFF0000FF) != 0x08000002)
+  //{
+	 // return;
+  //}
 
-	  {0x804abb82, 0x34},
-	  {0x804abe82, 0x34},
-	  {0x804D752C, 0xC}, // __AXNextFrame
-	  {0x804b09a0, 0x40},
-	  {0x804D7558, 0x24}, // __AXPrintStudio
-	  {0x804D7580, 0xC},  // __AXSyncPBs
-	  {0x80441064, 0x11A80},
-	  {0x804c6240, 0x3C},
-	  {0x804aa500, 0x1680}, // AXFXDelayCallback
-	  {0x80433c64, 0xD400},
-	  {0x804c5e00, 0x240}, // HandleReverb
-	  {0x80407fb4, 0x28},
-	  {0x804a8458, 0x238},
-	  {0x804abb80, 0x2},
-	  {0x804abe80, 0x2}, // __AXNextFrame
-	  {0x804ac900, 0x34},
-	  {0x804b4960, 0x40},
-	  {0x804C4064, 0x54C},
-	  {0x804d7508, 0x34},
-	  {0x804d7750, 0x4},   // aaa
-	  {0x804B39E0, 0xF80}, // Gap
-	  {0x804D753C, 0x4},   // Temp
+  //auto isLoading = ReadFromHardware<FLAG_READ, u32>(0x80479d64);
+  //if (isLoading)
+  //{
+	 // return;
+  //}
 
-	  // Temp from reads
-	  {0x804031a0, 0x24}, // __AXSyncPBs
-	  {0x804d7474, 0x8},  // __AIDHandler
-	  {0x804d74f0, 0x18}, // __AXPopCallbackStack and __AXProcessAux
-	  {0x804d7548, 0x4},  // __AXOutNewFrame
-	  {0x804d759c, 0x4},  // __AXGetCurrentProfile
-	  {0x804de3c8, 0xC},  // HandleReverb
-	  {0x804de800, 0x70}, // zz_038a000_, zz_038bf6c_, zz_038cc1c_
-	  {0x80408250, 0xB0}, // zz_038c6c0_
-	  {0x804d7744, 0x4},  // zz_038abd4_
-	  {0x804d7758, 0x4},  // zz_038a000_
-	  {0x804d77e0, 0x4},  // zz_038cc1c_
-	  {0x804de358, 0x4},  // AXSetVoiceSrcRatio
-  };
-
-  auto majorScene = ReadFromHardware<FLAG_READ, u8>(0x80479d30);
-  if (majorScene != 0x8)
-  {
-	  return;
-  }
-
-  if (address >= 0x804dec00)
-  {
-	  return;
-  }
   //if (!write)
   //{
   //	return;
   //}
 
-  if (visited.count(address))
-  {
-	  return;
-  }
+  //if (address >= 0x804dec00 && address < 0x804eec00)
+  //{
+	 // return;
+  //}
 
-  visited[address] = true;
+  //if (visited.count(address))
+  //{
+	 // return;
+  //}
 
-  for (auto it = soundStuff.begin(); it != soundStuff.end(); ++it)
-  {
-	  if (address >= it->address && address < it->address + it->length)
-	  {
-	      return;
-	  }
-  }
+  //visited[address] = true;
 
-  if ((address & 0xFF000000) == 0xcc000000)
-  {
-	  return;
-  }
+  //for (auto it = soundStuff.begin(); it != soundStuff.end(); ++it)
+  //{
+	 // if (address >= it->address && address < it->address + it->length)
+	 // {
+	 //     return;
+	 // }
+  //}
 
-  std::vector<Dolphin_Debugger::CallstackEntry> callstack;
-  Dolphin_Debugger::GetCallstack(callstack);
+  //if ((address & 0xFF000000) == 0xcc000000)
+  //{
+	 // return;
+  //}
 
-  bool isFound = false;
-  for (auto it = callstack.begin(); it != callstack.end(); ++it)
-  {
-	  std::string func = PowerPC::debug_interface.GetDescription(it->vAddress).c_str();
-	  if (whitelist.count(func))
-	  {
-	      isFound = true;
-	      break;
-	  }
-  }
+  //std::vector<Dolphin_Debugger::CallstackEntry> callstack;
+  //Dolphin_Debugger::GetCallstack(callstack);
 
-  if (!isFound)
-  {
-	  return;
-  }
+  //bool isFound = false;
+  //for (auto it = callstack.begin(); it != callstack.end(); ++it)
+  //{
+	 // std::string func = PowerPC::debug_interface.GetDescription(it->vAddress).c_str();
+	 // if (whitelist.count(func))
+	 // {
+	 //     isFound = true;
+	 //     break;
+	 // }
+  //}
 
-  NOTICE_LOG(MEMMAP, "(%s) %x (%s) | %x (%x) <-> %x", write ? "Write" : "Read", PC,
-	         PowerPC::debug_interface.GetDescription(PC).c_str(), var, size, address);
-  */
+  //if (!isFound)
+  //{
+	 // return;
+  //}
 
-  /*
+  //NOTICE_LOG(MEMMAP, "(%s) %x (%s) | %x (%x) <-> %x", write ? "Write" : "Read", PC,
+	 //        PowerPC::debug_interface.GetDescription(PC).c_str(), var, size, address);
+
+	//*********************************************************************
+  //* Looking for sound memory
+  //*********************************************************************
+  //static std::unordered_map<u32, bool> visited = {};
+  //static std::unordered_map<std::string, bool> whitelist = {
+	 // {"__AIDHandler", true},      // lol
+	 // {"__AXOutAiCallback", true}, // lol
+	 // {"__AXOutNewFrame", true},   // lol
+	 // {"__AXSyncPBs", true},       // lol
+	 // {"SFX_PlaySFX", true},       // lol
+	 // {"__DSPHandler", true},
+  //};
+
+  //static std::vector<SlippiSavestate::PreserveBlock> soundStuff = {
+	 // {0x804031A0, 0x24},    // [804031A0 - 804031C4)
+	 // {0x80407FB4, 0x34C},   // [80407FB4 - 80408300)
+	 // {0x80433C64, 0x1EE80}, // [80433C64 - 80452AE4)
+	 // {0x804A8D78, 0x17A68}, // [804A8D78 - 804C07E0)
+	 // {0x804C28E0, 0x399C},  // [804C28E0 - 804C627C)
+	 // {0x804D7474, 0x8},     // [804D7474 - 804D747C)
+	 // {0x804D74F0, 0x50},    // [804D74F0 - 804D7540)
+	 // {0x804D7548, 0x4},     // [804D7548 - 804D754C)
+	 // {0x804D7558, 0x24},    // [804D7558 - 804D757C)
+	 // {0x804D7580, 0xC},     // [804D7580 - 804D758C)
+	 // {0x804D759C, 0x4},     // [804D759C - 804D75A0)
+	 // {0x804D7720, 0x4},     // [804D7720 - 804D7724)
+	 // {0x804D7744, 0x4},     // [804D7744 - 804D7748)
+	 // {0x804D774C, 0x8},     // [804D774C - 804D7754)
+	 // {0x804D7758, 0x8},     // [804D7758 - 804D7760)
+	 // {0x804D7788, 0x10},    // [804D7788 - 804D7798)
+	 // {0x804D77C8, 0x4},     // [804D77C8 - 804D77CC)
+	 // {0x804D77D0, 0x4},     // [804D77D0 - 804D77D4)
+	 // {0x804D77E0, 0x4},     // [804D77E0 - 804D77E4)
+	 // {0x804DE358, 0x80},    // [804DE358 - 804DE3D8)
+	 // {0x804DE800, 0x70},    // [804DE800 - 804DE870)
+  //};
+
+  // auto sceneController = ReadFromHardware<FLAG_READ, u32>(0x80479d30);
+  // if ((sceneController & 0xFF0000FF) != 0x08000002)
+  //{
+  // return;
+  //}
+
+  // auto isLoading = ReadFromHardware<FLAG_READ, u32>(0x80479d64);
+  // if (isLoading)
+  //{
+  // return;
+  //}
+
+  //if (address >= 0x804dec00)
+  //{
+	 // return;
+  //}
+  ////if (!write)
+  ////{
+  ////	return;
+  ////}
+
+  //if (visited.count(address))
+  //{
+	 // return;
+  //}
+
+  //visited[address] = true;
+
+  //for (auto it = soundStuff.begin(); it != soundStuff.end(); ++it)
+  //{
+	 // if (address >= it->address && address < it->address + it->length)
+	 // {
+	 //     return;
+	 // }
+  //}
+
+  //if ((address & 0xFF000000) == 0xcc000000)
+  //{
+	 // return;
+  //}
+
+  //std::vector<Dolphin_Debugger::CallstackEntry> callstack;
+  //Dolphin_Debugger::GetCallstack(callstack);
+
+  //bool isFound = false;
+  //for (auto it = callstack.begin(); it != callstack.end(); ++it)
+  //{
+	 // std::string func = PowerPC::debug_interface.GetDescription(it->vAddress).c_str();
+	 // if (whitelist.count(func))
+	 // {
+	 //     isFound = true;
+	 //     break;
+	 // }
+  //}
+
+  //if (!isFound)
+  //{
+	 // return;
+  //}
+
+  //NOTICE_LOG(MEMMAP, "(%s) %x (%s) | %x (%x) <-> %x", write ? "Write" : "Read", PC,
+	 //        PowerPC::debug_interface.GetDescription(PC).c_str(), var, size, address);
+
 #ifdef ENABLE_MEM_CHECK
 	TMemCheck *mc = PowerPC::memchecks.GetMemCheck(address);
 	if (mc)
@@ -632,7 +682,6 @@ static __forceinline void Memcheck(u32 address, u32 var, bool write, int size)
 		}
 	}
 #endif
-  */
 }
 
 u8 Read_U8(const u32 address)
