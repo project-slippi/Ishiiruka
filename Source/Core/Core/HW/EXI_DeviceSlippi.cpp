@@ -43,7 +43,7 @@
 #define SLEEP_TIME_MS 8
 #define WRITE_FILE_SLEEP_TIME_MS 85
 
-#define LOCAL_TESTING
+//#define LOCAL_TESTING
 
 int32_t emod(int32_t a, int32_t b)
 {
@@ -1260,17 +1260,6 @@ void CEXISlippi::handleOnlineInputs(u8 *payload)
 
 	int32_t frame = payload[0] << 24 | payload[1] << 16 | payload[2] << 8 | payload[3];
 
-	// The following code successfully causes the game to hang for 2 seconds. This
-	// is how the game will be delayed when ahead. Still need to look if the scene
-	// frame count still gets incremented when the game hangs like this
-	// if (frame == 250 && tempTestCount < 120)
-	//{
-	//  tempTestCount++;
-	//  m_read_queue.push_back(2);
-	//  return;
-	//}
-	// tempTestCount = 0;
-
 	if (frame == 1)
 	{
 		availableSavestates.clear();
@@ -1380,7 +1369,7 @@ void CEXISlippi::prepareOpponentInputs(u8 *payload)
 
 	std::vector<u8> tx;
 	tx.insert(tx.end(), txStart, txEnd);
-	tx.resize(SLIPPI_PAD_FULL_SIZE * 5, 0);
+	tx.resize(SLIPPI_PAD_FULL_SIZE * ROLLBACK_MAX_FRAMES, 0);
 
 	m_read_queue.insert(m_read_queue.end(), tx.begin(), tx.end());
 
