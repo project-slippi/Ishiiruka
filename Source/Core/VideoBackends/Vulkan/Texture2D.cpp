@@ -34,7 +34,7 @@ Texture2D::Texture2D(u32 width, u32 height, u32 levels, u32 layers, VkFormat for
 Texture2D::~Texture2D()
 {
 	g_command_buffer_mgr->DeferImageViewDestruction(m_view);
-	
+
 	if (m_framebuffer != VK_NULL_HANDLE)
 		g_command_buffer_mgr->DeferFramebufferDestruction(m_framebuffer);
 
@@ -139,8 +139,7 @@ std::unique_ptr<Texture2D> Texture2D::Create(u32 width, u32 height, u32 levels, 
 			height,
 			layers };
 
-		VkResult res = vkCreateFramebuffer(g_vulkan_context->GetDevice(), &framebuffer_info, nullptr,
-			&framebuffer);
+		res = vkCreateFramebuffer(g_vulkan_context->GetDevice(), &framebuffer_info, nullptr, &framebuffer);
 		if (res != VK_SUCCESS)
 		{
 			LOG_VULKAN_ERROR(res, "vkCreateFramebuffer failed: ");
