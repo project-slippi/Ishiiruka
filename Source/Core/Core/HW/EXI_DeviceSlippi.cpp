@@ -1168,11 +1168,11 @@ void CEXISlippi::prepareFrameData(u8 *payload)
 	// If loading from queue, move on to the next replay if we have past endFrame
 	auto watchSettings = g_replayComm->current;
 	if (watchSettings.startFrame == frameIndex)
-		startFrameOutput = true;
-	if (startFrameOutput)
+		outputCurrentFrame = true;
+	if (outputCurrentFrame)
 		std::cout << "[CURRENT_FRAME] " << frameIndex << std::endl;
-	if (watchSettings.endFrame == frameIndex)
-		startFrameOutput = false;
+	if (watchSettings.endFrame >= frameIndex)
+		outputCurrentFrame = false;
 
 	if (frameIndex > watchSettings.endFrame)
 	{
@@ -1403,6 +1403,8 @@ void CEXISlippi::prepareIsFileReady()
 
 	auto lastFrame = m_current_game->GetFrameCount();
 	auto watchSettings = replayComm->current;
+	auto replayCommSettings = replayComm->getSettings();
+	std::cout << "[FILE_PATH] " << watchSettings.path << std::endl;
 	std::cout << "[PLAYBACK_START_FRAME] " << watchSettings.startFrame << std::endl;
 	std::cout << "[GAME_END_FRAME] " << lastFrame << std::endl;
 	std::cout << "[PLAYBACK_END_FRAME] " << watchSettings.endFrame << std::endl;

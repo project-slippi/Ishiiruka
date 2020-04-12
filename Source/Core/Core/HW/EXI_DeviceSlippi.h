@@ -122,7 +122,7 @@ class CEXISlippi : public IEXIDevice
 	u32 writtenByteCount = 0;
 
 	//cout stuff
-	bool startFrameOutput = false;
+	bool outputCurrentFrame = false;
 
 	// vars for metadata generation
 	time_t gameStartTime;
