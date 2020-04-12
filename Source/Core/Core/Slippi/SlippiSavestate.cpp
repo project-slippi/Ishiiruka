@@ -23,15 +23,12 @@ SlippiSavestate::SlippiSavestate()
 		it->data = static_cast<u8 *>(Common::AllocateAlignedMemory(size, 64));
 	}
 
-	u8 *ptr = nullptr;
-	PointerWrap p(&ptr, PointerWrap::MODE_MEASURE);
+	// u8 *ptr = nullptr;
+	// PointerWrap p(&ptr, PointerWrap::MODE_MEASURE);
 
-	getDolphinState(p);
-	const size_t buffer_size = reinterpret_cast<size_t>(ptr);
-	dolphinSsBackup.resize(buffer_size);
-
-	// Set up alarm stuff
-	alarmPtrs.resize(8);
+	// getDolphinState(p);
+	// const size_t buffer_size = reinterpret_cast<size_t>(ptr);
+	// dolphinSsBackup.resize(buffer_size);
 }
 
 SlippiSavestate::~SlippiSavestate()
@@ -53,10 +50,10 @@ void SlippiSavestate::initBackupLocs()
 	    {0x80005520, 0x80005940, nullptr}, // Data Sections 0 and 1
 	    {0x803b7240, 0x804DEC00, nullptr}, // Data Sections 2-7 and in between sections including BSS
 
-	    // https://docs.google.com/spreadsheets/d/1IBeM_YPFEzWAyC0SEz5hbFUi7W9pCAx7QRh9hkEZx_w/edit#gid=702784062
-	    //{0x8065CC00, 0x8065DC00, nullptr}, // Write MemLog Unknown Section while in game (plus lots of padding)
-
-	    {0x804fec00, 0x811AD5A0, nullptr}, // Full Unknown Region [804fec00 - 80BD5C40), Heap [80bd5c40 - 811AD5A0)
+	    // Full Unknown Region: [804fec00 - 80BD5C40)
+	    // https://docs.google.com/spreadsheets/d/16ccNK_qGrtPfx4U25w7OWIDMZ-NxN1WNBmyQhaDxnEg/edit?usp=sharing
+	    {0x8065c000, 0x8071b000, nullptr}, // Unknown Region Pt1
+	    {0x80bb0000, 0x811AD5A0, nullptr}, // Unknown Region Pt2, Heap [80bd5c40 - 811AD5A0)
 	};
 
 	static std::vector<PreserveBlock> excludeSections = {
@@ -195,8 +192,6 @@ void SlippiSavestate::getDolphinState(PointerWrap &p)
 
 void SlippiSavestate::Capture()
 {
-	origAlarmPtr = Memory::Read_U32(FIRST_ALARM_PTR_ADDR);
-
 	// First copy memory
 	for (auto it = backupLocs.begin(); it != backupLocs.end(); ++it)
 	{
@@ -204,45 +199,14 @@ void SlippiSavestate::Capture()
 		Memory::CopyFromEmu(it->data, it->startAddress, size);
 	}
 
-	// Second copy dolphin states
-	u8 *ptr = &dolphinSsBackup[0];
-	PointerWrap p(&ptr, PointerWrap::MODE_WRITE);
-	getDolphinState(p);
+	//// Second copy dolphin states
+	// u8 *ptr = &dolphinSsBackup[0];
+	// PointerWrap p(&ptr, PointerWrap::MODE_WRITE);
+	// getDolphinState(p);
 }
 
 void SlippiSavestate::Load(std::vector<PreserveBlock> blocks)
 {
-	// Back up alarm stuff
-	// Memory::CopyFromEmu(&alarmPtrs[0], FIRST_ALARM_PTR_ADDR, 8);
-
-	// std::unordered_map<u32, std::vector<u8>> alarmData;
-
-	u32 alarmPtr = Memory::Read_U32(FIRST_ALARM_PTR_ADDR);
-	if (alarmPtr != origAlarmPtr)
-	{
-		ERROR_LOG(SLIPPI_ONLINE, "Trying to deal with alarm boundary: %x -> %x", origAlarmPtr, alarmPtr);
-	}
-
-	// while (alarmPtr != 0)
-	//{
-	//	std::vector<u8> iAlarmData;
-	//	iAlarmData.resize(ALARM_DATA_SIZE);
-	//	Memory::CopyFromEmu(&iAlarmData[0], alarmPtr, ALARM_DATA_SIZE);
-	//	alarmData[alarmPtr] = iAlarmData;
-
-	//	alarmPtr = Memory::Read_U32(alarmPtr + 0x14);
-	//}
-
-	// static PreserveBlock stackBlock = {0x804DEC00, 0x10000};
-	// blocks.push_back(stackBlock);
-
-	// Always back up this alarm anyway... shouldn't be necessary
-	// static PreserveBlock readAlarmBlock = {READ_ALARM_ADDR, ALARM_DATA_SIZE};
-	// blocks.push_back(readAlarmBlock);
-
-	// static PreserveBlock interruptAlarmBlock = {0x804d7358, 0x34};
-	// blocks.push_back(interruptAlarmBlock);
-
 	// static std::vector<PreserveBlock> interruptStuff = {
 	//    {0x804BF9D2, 4},
 	//    {0x804C3DE4, 20},
@@ -274,27 +238,14 @@ void SlippiSavestate::Load(std::vector<PreserveBlock> blocks)
 		Memory::CopyToEmu(it->startAddress, it->data, size);
 	}
 
-	// Restore audio
-	u8 *ptr = &dolphinSsBackup[0];
-	PointerWrap p(&ptr, PointerWrap::MODE_READ);
-	getDolphinState(p);
+	//// Restore audio
+	// u8 *ptr = &dolphinSsBackup[0];
+	// PointerWrap p(&ptr, PointerWrap::MODE_READ);
+	// getDolphinState(p);
 
 	// Restore
 	for (auto it = blocks.begin(); it != blocks.end(); ++it)
 	{
 		Memory::CopyToEmu(it->address, &preservationMap[*it][0], it->length);
 	}
-
-	// Try to turn off any alarms
-	// Memory::Write_U32(0, FIRST_ALARM_PTR_ADDR);
-	// Memory::Write_U32(0, FIRST_ALARM_PTR_ADDR + 4);
-	// Memory::Write_U32(0, READ_ALARM_ADDR);
-
-	// Restore alarm stuff
-	// Memory::CopyToEmu(FIRST_ALARM_PTR_ADDR, &alarmPtrs[0], 8);
-
-	// for (auto it = alarmData.begin(); it != alarmData.end(); ++it)
-	//{
-	//	Memory::CopyToEmu(it->first, &it->second[0], ALARM_DATA_SIZE);
-	//}
 }

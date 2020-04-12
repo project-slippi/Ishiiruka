@@ -169,19 +169,18 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet)
 
 			auto packetData = (u8 *)packet.getData();
 
+			INFO_LOG(SLIPPI_ONLINE, "Receiving a packet of inputs [%d]...", frame);
+
 			int32_t headFrame = remotePadQueue.empty() ? 0 : remotePadQueue.front()->frame;
 			int inputsToCopy = frame - headFrame;
 			for (int i = inputsToCopy - 1; i >= 0; i--)
 			{
 				auto pad = std::make_unique<SlippiPad>(frame - i, &packetData[5 + i * SLIPPI_PAD_DATA_SIZE]);
 
-				// if (!isHost)
-				//{
-				//  ERROR_LOG(SLIPPI_ONLINE, "[%d] %X %X %X %X %X %X %X %X", pad->frame, pad->padBuf[0], pad->padBuf[1],
-				//  pad->padBuf[2], pad->padBuf[3], pad->padBuf[4], pad->padBuf[5], pad->padBuf[6], pad->padBuf[7]);
-				//}
+				INFO_LOG(SLIPPI_ONLINE, "Rcv [%d] -> %02X %02X %02X %02X %02X %02X %02X %02X", pad->frame,
+				         pad->padBuf[0], pad->padBuf[1], pad->padBuf[2], pad->padBuf[3], pad->padBuf[4], pad->padBuf[5],
+				         pad->padBuf[6], pad->padBuf[7]);
 
-				INFO_LOG(SLIPPI_ONLINE, "Adding opponent input for frame %d", pad->frame);
 				remotePadQueue.push_front(std::move(pad));
 			}
 		}
@@ -516,8 +515,12 @@ void SlippiNetplayClient::SendSlippiPad(std::unique_ptr<SlippiPad> pad)
 	*spac << static_cast<MessageId>(NP_MSG_SLIPPI_PAD);
 	*spac << frame;
 
+	INFO_LOG(SLIPPI_ONLINE, "Sending a packet of inputs [%d]...", frame);
 	for (auto it = localPadQueue.begin(); it != localPadQueue.end(); ++it)
 	{
+		INFO_LOG(SLIPPI_ONLINE, "Send [%d] -> %02X %02X %02X %02X %02X %02X %02X %02X", (*it)->frame, (*it)->padBuf[0],
+		         (*it)->padBuf[1], (*it)->padBuf[2], (*it)->padBuf[3], (*it)->padBuf[4], (*it)->padBuf[5],
+		         (*it)->padBuf[6], (*it)->padBuf[7]);
 		spac->append((*it)->padBuf, SLIPPI_PAD_DATA_SIZE); // only transfer 8 bytes per pad
 	}
 
