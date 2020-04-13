@@ -1167,12 +1167,14 @@ void CEXISlippi::prepareFrameData(u8 *payload)
 
 	// If loading from queue, move on to the next replay if we have past endFrame
 	auto watchSettings = g_replayComm->current;
-	if (watchSettings.startFrame == frameIndex)
+	if (!outputCurrentFrame && frameIndex >= watchSettings.startFrame)
 		outputCurrentFrame = true;
 	if (outputCurrentFrame)
+	{
 		std::cout << "[CURRENT_FRAME] " << frameIndex << std::endl;
-	if (watchSettings.endFrame >= frameIndex)
-		outputCurrentFrame = false;
+		if (frameIndex >= watchSettings.endFrame)
+			outputCurrentFrame = false;
+	}
 
 	if (frameIndex > watchSettings.endFrame)
 	{
