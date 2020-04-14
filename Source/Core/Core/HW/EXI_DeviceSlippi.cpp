@@ -1404,9 +1404,12 @@ void CEXISlippi::prepareIsFileReady()
 	}
 
 	auto lastFrame = m_current_game->GetFrameCount();
+	auto gameEndMethod = m_current_game->getGameEndMethod();
 	auto watchSettings = replayComm->current;
 	auto replayCommSettings = replayComm->getSettings();
 	std::cout << "[FILE_PATH] " << watchSettings.path << std::endl;
+	if (gameEndMethod == 0 || gameEndMethod == 7)
+		std::cout << "[LRAS]" << std::endl;
 	std::cout << "[PLAYBACK_START_FRAME] " << watchSettings.startFrame << std::endl;
 	std::cout << "[GAME_END_FRAME] " << lastFrame << std::endl;
 	std::cout << "[PLAYBACK_END_FRAME] " << watchSettings.endFrame << std::endl;
