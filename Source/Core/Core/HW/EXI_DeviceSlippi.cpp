@@ -43,7 +43,7 @@
 #define SLEEP_TIME_MS 8
 #define WRITE_FILE_SLEEP_TIME_MS 85
 
-//#define LOCAL_TESTING
+#define LOCAL_TESTING
 
 int32_t emod(int32_t a, int32_t b)
 {
@@ -1506,7 +1506,7 @@ void CEXISlippi::prepareOnlineMatchState()
 		if (!slippi_netplay)
 		{
 #ifdef LOCAL_TESTING
-			slippi_netplay = std::make_unique<SlippiNetplayClient>();
+			slippi_netplay = std::make_unique<SlippiNetplayClient>(true);
 #else
 			slippi_netplay = matchmaking->GetNetplayClient();
 #endif

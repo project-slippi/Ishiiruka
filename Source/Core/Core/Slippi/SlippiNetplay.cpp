@@ -116,9 +116,9 @@ SlippiNetplayClient::SlippiNetplayClient(const std::string &address, const u16 p
 }
 
 // Make a dummy client
-SlippiNetplayClient::SlippiNetplayClient()
+SlippiNetplayClient::SlippiNetplayClient(bool isHost)
 {
-	this->isHost = true;
+	this->isHost = isHost;
 
 	isSlippiConnection = true;
 	slippiConnectStatus = SlippiConnectStatus::NET_CONNECT_STATUS_FAILED;

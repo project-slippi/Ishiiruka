@@ -97,7 +97,7 @@ class SlippiNetplayClient
 	void ThreadFunc();
 	void SendAsync(std::unique_ptr<sf::Packet> packet);
 
-	SlippiNetplayClient(); // Make a dummy client
+	SlippiNetplayClient(bool isHost); // Make a dummy client
 	SlippiNetplayClient(const std::string &address, const u16 port, bool isHost);
 	~SlippiNetplayClient();
 
