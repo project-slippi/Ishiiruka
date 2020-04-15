@@ -30,8 +30,6 @@ class CEXISlippi : public IEXIDevice
 	void DMARead(u32 addr, u32 size) override;
 
 	bool IsPresent() const override;
-	std::thread m_savestateThread;
-	std::thread m_seekThread;
 
   private:
 	enum
@@ -106,31 +104,16 @@ class CEXISlippi : public IEXIDevice
 	void prepareFrameData(u8 *payload);
 	void prepareIsStockSteal(u8 *payload);
 	void prepareFrameCount();
-	void prepareSlippiPlayback(int32_t &frameIndex);
 	void prepareIsFileReady();
-	void processInitialState(std::vector<u8> &iState);
-	void resetPlayback();
-	void clearWatchSettingsStartEnd(); 
-
-	void SavestateThread(void);
-	void SeekThread(void);
-	
-	std::unordered_map<int32_t, std::shared_future<std::string>> futureDiffs; // State diffs keyed by frameIndex, processed async
-	std::vector<u8> iState;                                            // The initial state
-	std::vector<u8> cState;                                            // The current (latest) state
 
 	bool shouldFFWToTarget = false;
 	int mostRecentlyProcessedFrame = INT_MAX;
-
-	open_vcdiff::VCDiffDecoder decoder;
-	open_vcdiff::VCDiffEncoder *encoder = NULL;
 
 	std::unordered_map<u8, std::string> getNetplayNames();
 
   std::vector<uint8_t> geckoList;
 
 	bool isSoftFFW = false;
-	bool isHardFFW = false;
 	int32_t lastFFWFrame = INT_MIN;
 	std::vector<u8> m_read_queue;
 	std::unique_ptr<Slippi::SlippiGame> m_current_game = nullptr;
