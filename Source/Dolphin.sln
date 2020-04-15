@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.27004.2002
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.30011.22
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Dolphin", "Core\DolphinWX\Dolphin.vcxproj", "{1B099EF8-6F87-47A2-A3E7-898A24584F49}"
 	ProjectSection(ProjectDependencies) = postProject
@@ -158,8 +158,6 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "nlohmann", "..\Externals\nlohmann\nlohmann.vcxproj", "{732D2110-06A3-4AA1-9634-7BB5A4F75B82}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "open-vcdiff", "..\Externals\open-vcdiff\open-vcdiff.vcxproj", "{9193A8DE-BC2E-458C-B52E-510457EEE4B8}"
-EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SlippiPlayback", "Core\SlippiPlayback\SlippiPlayback.vcxproj", "{0EBBDAFA-3A7D-46D0-B0EE-F53D7DD6F571}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -495,18 +493,6 @@ Global
 		{9193A8DE-BC2E-458C-B52E-510457EEE4B8}.Release|x64.Build.0 = Release|x64
 		{9193A8DE-BC2E-458C-B52E-510457EEE4B8}.Release|x86.ActiveCfg = Release|Win32
 		{9193A8DE-BC2E-458C-B52E-510457EEE4B8}.Release|x86.Build.0 = Release|Win32
-		{0EBBDAFA-3A7D-46D0-B0EE-F53D7DD6F571}.Debug|Win32.ActiveCfg = Debug|Win32
-		{0EBBDAFA-3A7D-46D0-B0EE-F53D7DD6F571}.Debug|Win32.Build.0 = Debug|Win32
-		{0EBBDAFA-3A7D-46D0-B0EE-F53D7DD6F571}.Debug|x64.ActiveCfg = Debug|x64
-		{0EBBDAFA-3A7D-46D0-B0EE-F53D7DD6F571}.Debug|x64.Build.0 = Debug|x64
-		{0EBBDAFA-3A7D-46D0-B0EE-F53D7DD6F571}.Debug|x86.ActiveCfg = Debug|Win32
-		{0EBBDAFA-3A7D-46D0-B0EE-F53D7DD6F571}.Debug|x86.Build.0 = Debug|Win32
-		{0EBBDAFA-3A7D-46D0-B0EE-F53D7DD6F571}.Release|Win32.ActiveCfg = Release|Win32
-		{0EBBDAFA-3A7D-46D0-B0EE-F53D7DD6F571}.Release|Win32.Build.0 = Release|Win32
-		{0EBBDAFA-3A7D-46D0-B0EE-F53D7DD6F571}.Release|x64.ActiveCfg = Release|x64
-		{0EBBDAFA-3A7D-46D0-B0EE-F53D7DD6F571}.Release|x64.Build.0 = Release|x64
-		{0EBBDAFA-3A7D-46D0-B0EE-F53D7DD6F571}.Release|x86.ActiveCfg = Release|Win32
-		{0EBBDAFA-3A7D-46D0-B0EE-F53D7DD6F571}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -547,7 +533,6 @@ Global
 		{8EA11166-6512-44FC-B7A5-A4D1ECC81170} = {39DB5AF5-003D-412B-8FF1-FB195541DB7A}
 		{732D2110-06A3-4AA1-9634-7BB5A4F75B82} = {39DB5AF5-003D-412B-8FF1-FB195541DB7A}
 		{9193A8DE-BC2E-458C-B52E-510457EEE4B8} = {39DB5AF5-003D-412B-8FF1-FB195541DB7A}
-		{0EBBDAFA-3A7D-46D0-B0EE-F53D7DD6F571} = {701E4F10-DED0-4ECB-A486-91188247EDBD}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {0ABE564D-D33A-4999-8E79-2A81739F0A18}

@@ -7,7 +7,8 @@
 #include "DolphinWX/DolphinSlider.h"
 
 #include <memory>
-#include "SlippiPlayback/SlippiPlayback.h"
+#include <SlippiPlayback/SlippiPlayback.h>
+
 extern std::unique_ptr<SlippiPlaybackStatus> g_playback_status;
 
 // Event table

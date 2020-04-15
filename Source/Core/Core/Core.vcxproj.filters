@@ -142,6 +142,9 @@
     <Filter Include="Slippi">
       <UniqueIdentifier>{09518b35-f1cc-428f-b2f7-6210874489a9}</UniqueIdentifier>
     </Filter>
+    <Filter Include="SlippiPlayback">
+      <UniqueIdentifier>{3b394a5f-9188-4df3-afa9-2605b96f7998}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="BootManager.cpp" />
@@ -766,6 +769,9 @@
     <ClCompile Include="..\DolphinWX\PlaybackSlider.cpp">
       <Filter>Slippi</Filter>
     </ClCompile>
+    <ClCompile Include="..\SlippiPlayback\SlippiPlayback.cpp">
+      <Filter>SlippiPlayback</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="BootManager.h" />
@@ -1312,6 +1318,9 @@
     </ClInclude>
     <ClInclude Include="..\DolphinWX\PlaybackSlider.h">
       <Filter>Slippi</Filter>
+    </ClInclude>
+    <ClInclude Include="..\SlippiPlayback\SlippiPlayback.h">
+      <Filter>SlippiPlayback</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

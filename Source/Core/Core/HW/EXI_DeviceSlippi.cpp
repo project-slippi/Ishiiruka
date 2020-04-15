@@ -3,9 +3,7 @@
 // Refer to the license.txt file included.
 
 #include "Core/HW/EXI_DeviceSlippi.h"
-#include "SlippiPlayback/SlippiPlayback.h"
 
-#include <SlippiGame.h>
 #include <array>
 #include <cmath>
 #include <condition_variable>
@@ -14,6 +12,8 @@
 #include <string>
 #include <tuple>
 #include <unordered_map>
+#include <SlippiGame.h>
+#include <SlippiPlayback/SlippiPlayback.h>
 
 #ifdef _WIN32
 #include <share.h>
@@ -28,7 +28,6 @@
 #include "Common/Thread.h"
 #include "Core/HW/Memmap.h"
 #include "Core/NetPlayClient.h"
-#include "SlippiPlayback/SlippiPlayback.h"
 
 #include "Core/Core.h"
 #include "Core/CoreTiming.h"

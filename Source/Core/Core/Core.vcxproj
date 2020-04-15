@@ -47,6 +47,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\DolphinWX\PlaybackSlider.cpp" />
+    <ClCompile Include="..\SlippiPlayback\SlippiPlayback.cpp" />
     <ClCompile Include="ActionReplay.cpp" />
     <ClCompile Include="Analytics.cpp" />
     <ClCompile Include="ARDecrypt.cpp" />
@@ -273,6 +274,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\DolphinWX\PlaybackSlider.h" />
+    <ClInclude Include="..\SlippiPlayback\SlippiPlayback.h" />
     <ClInclude Include="ActionReplay.h" />
     <ClInclude Include="Analytics.h" />
     <ClInclude Include="ARDecrypt.h" />
@@ -520,9 +522,6 @@
     </ProjectReference>
     <ProjectReference Include="..\..\..\Externals\SlippiLib\SlippiLib.vcxproj">
       <Project>{ff39260b-839a-4a6c-a117-caa73c1683f5}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\SlippiPlayback\SlippiPlayback.vcxproj">
-      <Project>{0ebbdafa-3a7d-46d0-b0ee-f53d7dd6f571}</Project>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
