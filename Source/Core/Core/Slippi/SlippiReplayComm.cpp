@@ -3,6 +3,7 @@
 #include "Common/CommonPaths.h"
 #include "Common/Logging/LogManager.h"
 #include "Core/ConfigManager.h"
+#include <cctype>
 
 // https://stackoverflow.com/questions/216823/whats-the-best-way-to-trim-stdstring
 // trim from start (in place)
@@ -173,7 +174,7 @@ void SlippiReplayComm::loadFile()
 
 			// Reset in the case of read error. this fixes a race condition where file mod time changes but
       // the file is not readable yet?
-			configLastLoadModTime = 0; 
+			configLastLoadModTime = 0;
 		}
 
 		return;
