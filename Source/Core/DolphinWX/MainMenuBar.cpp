@@ -294,6 +294,8 @@ wxMenu* MainMenuBar::CreateViewMenu() const
 	view_menu->Check(IDM_TOGGLE_TOOLBAR, config_instance.m_InterfaceToolbar);
 	view_menu->AppendCheckItem(IDM_TOGGLE_STATUSBAR, _("Show &Status Bar"));
 	view_menu->Check(IDM_TOGGLE_STATUSBAR, config_instance.m_InterfaceStatusbar);
+	view_menu->AppendCheckItem(IDM_TOGGLE_SEEKBAR, _("Show &Seekbar"));
+	view_menu->Check(IDM_TOGGLE_SEEKBAR, config_instance.m_InterfaceSeekbar);
 	view_menu->AppendSeparator();
 	view_menu->AppendCheckItem(IDM_LOG_WINDOW, _("Show &Log"));
 	view_menu->AppendCheckItem(IDM_LOG_CONFIG_WINDOW, _("Show Log &Configuration"));

@@ -105,6 +105,7 @@ class CEXISlippi : public IEXIDevice
 	void prepareIsStockSteal(u8 *payload);
 	void prepareFrameCount();
 	void prepareIsFileReady();
+	void clearWatchSettingsStartEnd(); 
 
 	std::unordered_map<u8, std::string> getNetplayNames();
 

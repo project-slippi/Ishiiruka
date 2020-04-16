@@ -4,7 +4,7 @@
 
 extern std::unique_ptr<SlippiPlaybackStatus> g_playback_status;
 
-void slippiTimer::Notify()
+void SlippiTimer::Notify()
 {
 	int totalSeconds = (int) ((g_playback_status->latestFrame + 123) / 60);
 	int totalMinutes = (int)(totalSeconds / 60);

@@ -1348,3 +1348,14 @@ bool CEXISlippi::IsPresent() const
 }
 
 void CEXISlippi::TransferByte(u8 &byte) {}
+
+void CEXISlippi::clearWatchSettingsStartEnd()
+{
+	int startFrame = replayComm->current.startFrame;
+	int endFrame = replayComm->current.endFrame;
+	if (startFrame != Slippi::GAME_FIRST_FRAME || endFrame != INT_MAX)
+	{
+		replayComm->current.startFrame = Slippi::GAME_FIRST_FRAME;
+		replayComm->current.endFrame = INT_MAX;
+	}
+}

@@ -1602,7 +1602,7 @@ void CFrame::ParseHotkeys()
 		State::UndoSaveState();
 
 	// Slippi replay hotkeys and setup
-	if (g_playback_status && g_playback_status->inSlippiPlayback)
+	if (SConfig::GetInstance().m_InterfaceSeekbar && g_playback_status && g_playback_status->inSlippiPlayback)
 	{		
 		if (IsHotkey(HK_JUMP_BACK))
 			g_playback_status->shouldJumpBack = true;
@@ -1610,13 +1610,19 @@ void CFrame::ParseHotkeys()
 		if (IsHotkey(HK_JUMP_FORWARD))
 			g_playback_status->shouldJumpForward = true;
 
-		if (!m_Mgr->GetPane(_("Slippi Pane")).IsShown()) {
+		if (!m_Mgr->GetPane(_("Slippi Pane")).IsShown())
+		{
 			m_Mgr->GetPane(_("Slippi Pane")).Show();
 			m_Mgr->Update();
 
-			m_slippi_timer = new slippiTimer(this, seekBar, seekBarText);
+			m_slippi_timer = new SlippiTimer(this, seekBar, seekBarText);
 			m_slippi_timer->Start(50); 
 		}
+	}
+	else if (m_Mgr->GetPane(_("Slippi Pane")).IsShown())
+	{
+		m_Mgr->GetPane(_("Slippi Pane")).Hide();
+		m_Mgr->Update();
 	}
 }
 

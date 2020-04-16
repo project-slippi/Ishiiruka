@@ -56,6 +56,8 @@ private:
 	wxString m_user_path;
 	wxString m_file_to_load;
 	wxString m_movie_file;
+	bool m_hide_seekbar;
+	bool m_prev_seekbar;
 	std::unique_ptr<wxLocale> m_locale;
 };
 

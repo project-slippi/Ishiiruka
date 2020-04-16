@@ -176,7 +176,7 @@ private:
 
 	wxTimer m_poll_hotkey_timer;
 	wxTimer m_handle_signal_timer;
-	slippiTimer *m_slippi_timer;
+	SlippiTimer *m_slippi_timer;
 	PlaybackSlider *seekBar = nullptr;
 	wxStaticText *seekBarText = nullptr;
 
@@ -297,6 +297,7 @@ private:
 	void OnToggleToolbar(wxCommandEvent& event);
 	void DoToggleToolbar(bool);
 	void OnToggleStatusbar(wxCommandEvent& event);
+	void OnToggleSeekbar(wxCommandEvent &event);
 	void OnToggleWindow(wxCommandEvent& event);
 
 	void OnKeyDown(wxKeyEvent& event);  // Keyboard
