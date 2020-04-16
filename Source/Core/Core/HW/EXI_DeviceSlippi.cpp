@@ -14,6 +14,7 @@
 #include <unordered_map>
 #include <SlippiGame.h>
 #include <SlippiPlayback/SlippiPlayback.h>
+#include <Core\Slippi\SlippiReplayComm.h>
 
 #ifdef _WIN32
 #include <share.h>
@@ -35,6 +36,8 @@
 #include "Core/State.h"
 
 extern std::unique_ptr<SlippiPlaybackStatus> g_playback_status;
+
+extern std::unique_ptr<SlippiReplayComm> g_replay_comm;
 
 template <typename T> bool isFutureReady(std::future<T> &t)
 {
@@ -87,7 +90,7 @@ CEXISlippi::CEXISlippi()
 
 	g_playback_status = std::make_unique<SlippiPlaybackStatus>();
 
-	replayComm = std::make_unique<SlippiReplayComm>();
+	g_replay_comm = std::make_unique<SlippiReplayComm>();
 
 	// Loggers will check 5 bytes, make sure we own that memory
 	m_read_queue.reserve(5);
@@ -373,7 +376,7 @@ void CEXISlippi::prepareGameInfo()
 	Slippi::GameSettings *settings = m_current_game->GetSettings();
 
 	// Start in Fast Forward if this is mirrored
-	auto replayCommSettings = replayComm->getSettings();
+	auto replayCommSettings = g_replay_comm->getSettings();
 	if (!g_playback_status->isHardFFW)
 		g_playback_status->isHardFFW = replayCommSettings.mode == "mirror";
 	g_playback_status->lastFFWFrame = INT_MIN;
@@ -1020,7 +1023,7 @@ void CEXISlippi::prepareFrameData(u8 *payload)
 	int32_t frameIndex = payload[0] << 24 | payload[1] << 16 | payload[2] << 8 | payload[3];
 
 	// If loading from queue, move on to the next replay if we have past endFrame
-	auto watchSettings = replayComm->current;
+	auto watchSettings = g_replay_comm->current;
 	if (frameIndex > watchSettings.endFrame)
 	{
 		INFO_LOG(SLIPPI, "Killing game because we are past endFrame");
@@ -1029,7 +1032,7 @@ void CEXISlippi::prepareFrameData(u8 *payload)
 	}
 
 	// If a new replay should be played, terminate the current game
-	auto isNewReplay = replayComm->isNewReplay();
+	auto isNewReplay = g_replay_comm->isNewReplay();
 	if (isNewReplay)
 	{
 		m_read_queue.push_back(FRAME_RESP_TERMINATE);
@@ -1062,7 +1065,7 @@ void CEXISlippi::prepareFrameData(u8 *payload)
 	}
 
 	// If RealTimeMode is enabled, let's trigger fast forwarding under certain conditions
-	auto commSettings = replayComm->getSettings();
+	auto commSettings = g_replay_comm->getSettings();
 	auto isFarBehind = g_playback_status->latestFrame - frameIndex > 2;
 	auto isVeryFarBehind = g_playback_status->latestFrame - frameIndex > 25;
 	if (isFarBehind && commSettings.mode == "mirror" && commSettings.isRealTimeMode)
@@ -1233,17 +1236,17 @@ void CEXISlippi::prepareIsFileReady()
 {
 	m_read_queue.clear();
 
-	auto isNewReplay = replayComm->isNewReplay();
+	auto isNewReplay = g_replay_comm->isNewReplay();
 	if (!isNewReplay)
 	{
-		replayComm->nextReplay();
+		g_replay_comm->nextReplay();
 		m_read_queue.push_back(0);
 		return;
 	}
 
 	// Attempt to load game if there is a new replay file
 	// this can come pack falsy if the replay file does not exist
-	m_current_game = replayComm->loadGame();
+	m_current_game = g_replay_comm->loadGame();
 	if (!m_current_game)
 	{
 		// Do not start if replay file doesn't exist
@@ -1348,14 +1351,3 @@ bool CEXISlippi::IsPresent() const
 }
 
 void CEXISlippi::TransferByte(u8 &byte) {}
-
-void CEXISlippi::clearWatchSettingsStartEnd()
-{
-	int startFrame = replayComm->current.startFrame;
-	int endFrame = replayComm->current.endFrame;
-	if (startFrame != Slippi::GAME_FIRST_FRAME || endFrame != INT_MAX)
-	{
-		replayComm->current.startFrame = Slippi::GAME_FIRST_FRAME;
-		replayComm->current.endFrame = INT_MAX;
-	}
-}

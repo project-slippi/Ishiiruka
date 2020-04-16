@@ -71,9 +71,6 @@ class CEXISlippi : public IEXIDevice
 	                                            {CMD_GET_GECKO_CODES, 0},
 	                                            {CMD_GET_FRAME_COUNT, 0}};
 
-	// Communication with Launcher
-	std::unique_ptr<SlippiReplayComm> replayComm;
-
 	// .slp File creation stuff
 	u32 writtenByteCount = 0;
 
@@ -105,7 +102,6 @@ class CEXISlippi : public IEXIDevice
 	void prepareIsStockSteal(u8 *payload);
 	void prepareFrameCount();
 	void prepareIsFileReady();
-	void clearWatchSettingsStartEnd(); 
 
 	std::unordered_map<u8, std::string> getNetplayNames();
 

@@ -17,6 +17,8 @@
 
 std::unique_ptr<SlippiPlaybackStatus> g_playback_status;
 
+extern std::unique_ptr<SlippiReplayComm> g_replay_comm;
+
 static std::mutex mtx;
 static std::mutex seekMtx;
 static std::mutex diffMtx;
@@ -174,6 +176,10 @@ void SlippiPlaybackStatus::SeekThread()
 
 		if (shouldSeek)
 		{
+			auto replayCommSettings = g_replay_comm->getSettings();
+			if (replayCommSettings.mode == "queue")
+				clearWatchSettingsStartEnd();
+
 			bool paused = (Core::GetState() == Core::CORE_PAUSE);
 			Core::SetState(Core::CORE_PAUSE);
 
@@ -249,6 +255,19 @@ void SlippiPlaybackStatus::SeekThread()
 	}
 
 	INFO_LOG(SLIPPI, "Exit seek thread");
+}
+
+void SlippiPlaybackStatus::clearWatchSettingsStartEnd()
+{
+	int startFrame = g_replay_comm->current.startFrame;
+	int endFrame = g_replay_comm->current.endFrame;
+	if (startFrame != Slippi::GAME_FIRST_FRAME || endFrame != INT_MAX)
+	{
+		if (g_playback_status->targetFrameNum < startFrame)
+			g_replay_comm->current.startFrame = g_playback_status->targetFrameNum;
+		if (g_playback_status->targetFrameNum > endFrame)
+			g_replay_comm->current.endFrame = INT_MAX;
+	}
 }
 
 SlippiPlaybackStatus::~SlippiPlaybackStatus() {}
