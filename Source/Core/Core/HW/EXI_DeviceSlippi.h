@@ -123,6 +123,7 @@ class CEXISlippi : public IEXIDevice
 
 	//cout stuff
 	bool outputCurrentFrame = false;
+	bool notMirroring = false;
 
 	// vars for metadata generation
 	time_t gameStartTime;

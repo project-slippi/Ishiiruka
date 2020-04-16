@@ -106,6 +106,8 @@ CEXISlippi::CEXISlippi()
 
 	generator = std::default_random_engine(Common::Timer::GetTimeMs());
 
+	notMirroring = replayComm->getSettings().mode != "mirror";
+
 	// Loggers will check 5 bytes, make sure we own that memory
 	m_read_queue.reserve(5);
 
@@ -1167,9 +1169,9 @@ void CEXISlippi::prepareFrameData(u8 *payload)
 
 	// If loading from queue, move on to the next replay if we have past endFrame
 	auto watchSettings = g_replayComm->current;
-	if (!outputCurrentFrame && frameIndex >= watchSettings.startFrame)
+	if (notMirroring && !outputCurrentFrame && frameIndex >= watchSettings.startFrame)
 		outputCurrentFrame = true;
-	if (outputCurrentFrame)
+	if (notMirroring && outputCurrentFrame)
 	{
 		std::cout << "[CURRENT_FRAME] " << frameIndex << std::endl;
 		if (frameIndex >= watchSettings.endFrame)
@@ -1402,17 +1404,19 @@ void CEXISlippi::prepareIsFileReady()
 		m_read_queue.push_back(0);
 		return;
 	}
-
-	auto lastFrame = m_current_game->GetFrameCount();
-	auto gameEndMethod = m_current_game->getGameEndMethod();
-	auto watchSettings = replayComm->current;
-	auto replayCommSettings = replayComm->getSettings();
-	std::cout << "[FILE_PATH] " << watchSettings.path << std::endl;
-	if (gameEndMethod == 0 || gameEndMethod == 7)
-		std::cout << "[LRAS]" << std::endl;
-	std::cout << "[PLAYBACK_START_FRAME] " << watchSettings.startFrame << std::endl;
-	std::cout << "[GAME_END_FRAME] " << lastFrame << std::endl;
-	std::cout << "[PLAYBACK_END_FRAME] " << watchSettings.endFrame << std::endl;
+	if (notMirroring)
+	{
+		auto lastFrame = m_current_game->GetFrameCount();
+		auto gameEndMethod = m_current_game->getGameEndMethod();
+		auto watchSettings = replayComm->current;
+		auto replayCommSettings = replayComm->getSettings();
+		std::cout << "[FILE_PATH] " << watchSettings.path << std::endl;
+		if (gameEndMethod == 0 || gameEndMethod == 7)
+			std::cout << "[LRAS]" << std::endl;
+		std::cout << "[PLAYBACK_START_FRAME] " << watchSettings.startFrame << std::endl;
+		std::cout << "[GAME_END_FRAME] " << lastFrame << std::endl;
+		std::cout << "[PLAYBACK_END_FRAME] " << watchSettings.endFrame << std::endl;
+	}
 
 	INFO_LOG(SLIPPI, "EXI_DeviceSlippi.cpp: Replay file loaded successfully!?");
 
