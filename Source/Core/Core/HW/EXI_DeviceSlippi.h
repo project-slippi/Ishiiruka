@@ -106,15 +106,10 @@ class CEXISlippi : public IEXIDevice
 	void prepareFrameCount();
 	void prepareIsFileReady();
 
-	bool shouldFFWToTarget = false;
-	int mostRecentlyProcessedFrame = INT_MAX;
-
 	std::unordered_map<u8, std::string> getNetplayNames();
 
-  std::vector<uint8_t> geckoList;
+	std::vector<uint8_t> geckoList;
 
-	bool isSoftFFW = false;
-	int32_t lastFFWFrame = INT_MIN;
 	std::vector<u8> m_read_queue;
 	std::unique_ptr<Slippi::SlippiGame> m_current_game = nullptr;
 

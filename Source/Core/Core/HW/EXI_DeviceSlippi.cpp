@@ -106,9 +106,6 @@ CEXISlippi::~CEXISlippi()
 	// would close the emulation before the file successfully finished writing
 	writeToFile(&empty[0], 0, "close");
 	g_playback_status->resetPlayback();
-
-
-	//g_playback_status = SlippiPlaybackStatus::SlippiPlaybackStatus();
 }
 
 void CEXISlippi::configureCommands(u8 *payload, u8 length)
@@ -379,7 +376,7 @@ void CEXISlippi::prepareGameInfo()
 	auto replayCommSettings = replayComm->getSettings();
 	if (!g_playback_status->isHardFFW)
 		g_playback_status->isHardFFW = replayCommSettings.mode == "mirror";
-	lastFFWFrame = INT_MIN;
+	g_playback_status->lastFFWFrame = INT_MIN;
 
 	// Build a word containing the stage and the presence of the characters
 	u32 randomSeed = settings->randomSeed;
@@ -1070,7 +1067,7 @@ void CEXISlippi::prepareFrameData(u8 *payload)
 	auto isVeryFarBehind = g_playback_status->latestFrame - frameIndex > 25;
 	if (isFarBehind && commSettings.mode == "mirror" && commSettings.isRealTimeMode)
 	{
-		isSoftFFW = true;
+		g_playback_status->isSoftFFW = true;
 
 		// Once g_playback_status->isHardFFW has been turned on, do not turn it off with this condition, should
 		// hard FFW to the latest point
@@ -1085,7 +1082,7 @@ void CEXISlippi::prepareFrameData(u8 *payload)
 		// Doing this will allow the rendering logic to run to display the
 		// last frame instead of the frame previous to fast forwarding.
 		// Not sure if this fully works with partial frames
-		isSoftFFW = false;
+		g_playback_status->isSoftFFW = false;
 		g_playback_status->isHardFFW = false;
 	}
 
@@ -1110,7 +1107,7 @@ void CEXISlippi::prepareFrameData(u8 *payload)
 
 		// Disable fast forward here too... this shouldn't be necessary but better
 		// safe than sorry I guess
-		isSoftFFW = false;
+		g_playback_status->isSoftFFW = false;
 		g_playback_status->isHardFFW = false;
 
 		if (requestResultCode == FRAME_RESP_TERMINATE)
@@ -1129,7 +1126,7 @@ void CEXISlippi::prepareFrameData(u8 *payload)
 	{
 		WARN_LOG(EXPANSIONINTERFACE, "[Frame %d] FFW frame, behind by: %d frames.", frameIndex,
 		         g_playback_status->latestFrame - frameIndex);
-		lastFFWFrame = frameIndex;
+		g_playback_status->lastFFWFrame = frameIndex;
 	}
 
 	// Return success code
@@ -1151,7 +1148,7 @@ void CEXISlippi::prepareFrameData(u8 *payload)
 
 bool CEXISlippi::shouldFFWFrame(int32_t frameIndex)
 {
-	if (!isSoftFFW && !g_playback_status->isHardFFW)
+	if (!g_playback_status->isSoftFFW && !g_playback_status->isHardFFW)
 	{
 		// If no FFW at all, don't FFW this frame
 		return false;
@@ -1165,7 +1162,7 @@ bool CEXISlippi::shouldFFWFrame(int32_t frameIndex)
 
 	// Here we have a soft FFW, we only want to turn on FFW for single frames once
 	// every X frames to FFW in a more smooth manner
-	return frameIndex - lastFFWFrame >= 15;
+	return frameIndex - g_playback_status->lastFFWFrame >= 15;
 }
 
 void CEXISlippi::prepareIsStockSteal(u8 *payload)

@@ -55,6 +55,8 @@ SlippiPlaybackStatus::SlippiPlaybackStatus()
   inSlippiPlayback = false;
   shouldRunThreads = false;
   isHardFFW = false;
+  isSoftFFW = false;
+  lastFFWFrame = INT_MIN;
   currentPlaybackFrame = INT_MIN;
   targetFrameNum = INT_MAX;
   latestFrame = -123;
