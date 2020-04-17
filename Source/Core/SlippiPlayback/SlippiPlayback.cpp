@@ -1,6 +1,6 @@
 #include <mutex>
 #include <memory>
-#include <SlippiPlayback\SlippiPlayback.h>
+#include <SlippiPlayback/SlippiPlayback.h>
 
 #ifdef _WIN32
 #include <share.h>

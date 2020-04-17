@@ -1,6 +1,6 @@
 #include "SlippiTimer.h"
 #include "DolphinWX/Frame.h"
-#include <SlippiPlayback\SlippiPlayback.h>
+#include <SlippiPlayback/SlippiPlayback.h>
 
 extern std::unique_ptr<SlippiPlaybackStatus> g_playback_status;
 

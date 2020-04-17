@@ -14,7 +14,7 @@
 #include <unordered_map>
 #include <SlippiGame.h>
 #include <SlippiPlayback/SlippiPlayback.h>
-#include <Core\Slippi\SlippiReplayComm.h>
+#include <Core/Slippi/SlippiReplayComm.h>
 
 #ifdef _WIN32
 #include <share.h>
