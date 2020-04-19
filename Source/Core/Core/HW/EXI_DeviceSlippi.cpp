@@ -1130,7 +1130,7 @@ void CEXISlippi::prepareFrameData(u8 *payload)
 
 	// For normal replays, modify slippi seek/playback data as needed
 	// TODO: maybe handle other modes too?
-	if (commSettings.mode == "normal" || commSettings.mode == "queue")
+	if (commSettings.mode != "mirror")
 	{
 		prepareSlippiPlayback(g_playback_status->currentPlaybackFrame);
 	}
