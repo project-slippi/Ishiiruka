@@ -1,0 +1,87 @@
+name: Linux
+
+on:
+  push:
+    tags:
+      - master
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  ubuntu64:
+    name: "Linux/Ubuntu 64-bit"
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Checkout"
+        uses: actions/checkout@v2
+        with:
+          submodules: recursive
+      - name: 'Fetch Git Tags'
+        run: |
+          git fetch --prune --unshallow
+          echo ::set-env name=OBS_GIT_BRANCH::$(git rev-parse --abbrev-ref HEAD)
+          echo ::set-env name=OBS_GIT_HASH::$(git rev-parse --short HEAD)
+          echo ::set-env name=OBS_GIT_TAG::$(git describe --tags --abbrev=0):  
+      - name: "Install prerequisites"
+        shell: bash
+        run: |
+          sudo dpkg --add-architecture amd64
+          sudo apt update
+          sudo apt install \
+          cmake \
+          pkg-config \
+          git \
+          libao-dev \
+          libasound2-dev \
+          libavcodec-dev \
+          libavformat-dev \
+          libbluetooth-dev \
+          libenet-dev \
+          libgtk2.0-dev \
+          liblzo2-dev \
+          libminiupnpc-dev \
+          libopenal-dev \
+          libpulse-dev \
+          libreadline-dev \
+          libsfml-dev \
+          libsoil-dev \
+          libsoundtouch-dev \
+          libswscale-dev \
+          libusb-1.0-0-dev \
+          libwxbase3.0-dev \
+          libwxgtk3.0-dev \
+          libxext-dev \
+          libxrandr-dev \
+          portaudio19-dev \
+          zlib1g-dev \
+          libudev-dev \
+          libevdev-dev \
+          "libpolarssl-dev|libmbedtls-dev" \
+          libcurl4-openssl-dev \
+          libegl1-mesa-dev \
+          libpng-dev \
+          qtbase5-private-dev \
+          libxxf86vm-dev \
+          x11proto-xinerama-dev
+      - name: "Build"
+        working-directory: ${{ github.workspace }}/build
+        run: |
+          cmake ..
+          make
+          sudo make install
+      - name: "Package"
+        run: |
+          FILE_DATE=$(date +%Y-%m-%d)
+          FILE_NAME=$FILE_DATE-${{ env.OBS_GIT_HASH }}-${{ env.OBS_GIT_TAG }}-linux64.tar.gz
+          echo "::set-env name=FILE_NAME::${FILE_NAME}"
+          cd ./Binaries/
+          mkdir ../nighty/
+          tar -cvzf "${FILE_NAME}" .
+          cd -
+      - name: "Publish"
+        uses: actions/upload-artifact@v2-preview
+        with:
+          name: "${{ env.FILE_NAME }}"
+          path: "./nightly/*.tar.gz"
+          
