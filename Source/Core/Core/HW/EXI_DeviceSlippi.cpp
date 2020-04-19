@@ -62,7 +62,7 @@ std::vector<u8> uint32ToVector(u32 num)
 	return std::vector<u8>({byte0, byte1, byte2, byte3});
 }
 
-std::vector<u8> int32ToVector(int32_t num)
+std::vector<u8> int32ToVector(s32 num)
 {
 	u8 byte0 = num >> 24;
 	u8 byte1 = (num & 0xFF0000) >> 16;
@@ -173,11 +173,11 @@ std::vector<u8> CEXISlippi::generateMetadata()
 	// TODO: Abstract out UBJSON functions to make this cleaner
 
 	// Add game start time
-	uint8_t dateTimeStrLength = sizeof "2011-10-08T07:07:09Z";
+	u8 dateTimeStrLength = sizeof "2011-10-08T07:07:09Z";
 	std::vector<char> dateTimeBuf(dateTimeStrLength);
 	strftime(&dateTimeBuf[0], dateTimeStrLength, "%FT%TZ", gmtime(&gameStartTime));
 	dateTimeBuf.pop_back(); // Removes the \0 from the back of string
-	metadata.insert(metadata.end(), {'U', 7, 's', 't', 'a', 'r', 't', 'A', 't', 'S', 'U', (uint8_t)dateTimeBuf.size()});
+	metadata.insert(metadata.end(), {'U', 7, 's', 't', 'a', 'r', 't', 'A', 't', 'S', 'U', (u8)dateTimeBuf.size()});
 	metadata.insert(metadata.end(), dateTimeBuf.begin(), dateTimeBuf.end());
 
 	// Add game duration
@@ -332,7 +332,7 @@ void CEXISlippi::createNewFile()
 std::string CEXISlippi::generateFileName()
 {
 	// Add game start time
-	uint8_t dateTimeStrLength = sizeof "20171015T095717";
+	u8 dateTimeStrLength = sizeof "20171015T095717";
 	std::vector<char> dateTimeBuf(dateTimeStrLength);
 	strftime(&dateTimeBuf[0], dateTimeStrLength, "%Y%m%dT%H%M%S", localtime(&gameStartTime));
 
@@ -389,7 +389,7 @@ void CEXISlippi::prepareGameInfo()
 	// into sheik/zelda immediately. This info is not stored in the game info header
 	// and so let's overwrite those values
 	int player1Pos = 24; // This is the index of the first players character info
-	std::array<uint32_t, Slippi::GAME_INFO_HEADER_SIZE> gameInfoHeader = settings->header;
+	std::array<u32, Slippi::GAME_INFO_HEADER_SIZE> gameInfoHeader = settings->header;
 	for (int i = 0; i < 4; i++)
 	{
 		// check if this player is actually in the game
@@ -400,7 +400,7 @@ void CEXISlippi::prepareGameInfo()
 		}
 
 		// check if the player is playing sheik or zelda
-		uint8_t externalCharId = settings->players[i].characterId;
+		u8 externalCharId = settings->players[i].characterId;
 		if (externalCharId != 0x12 && externalCharId != 0x13)
 		{
 			continue;
@@ -423,7 +423,7 @@ void CEXISlippi::prepareGameInfo()
 	}
 
 	// Write UCF toggles
-	std::array<uint32_t, Slippi::UCF_TOGGLE_SIZE> ucfToggles = settings->ucfToggles;
+	std::array<u32, Slippi::UCF_TOGGLE_SIZE> ucfToggles = settings->ucfToggles;
 	for (int i = 0; i < Slippi::UCF_TOGGLE_SIZE; i++)
 	{
 		appendWordToBuffer(&m_read_queue, ucfToggles[i]);
@@ -469,7 +469,7 @@ void CEXISlippi::prepareGeckoList()
 {
 	// TODO: How do I move this somewhere else?
 	// This contains all of the codes required to play legacy replays (UCF, PAL, Frz Stadium)
-	static std::vector<uint8_t> defaultCodeList = {
+	static std::vector<u8> defaultCodeList = {
     0xC2,	0x0C,	0x9A,	0x44,		0x00,	0x00,	0x00,	0x2F,	// #External/UCF + Arduino Toggle UI/UCF/UCF 0.74 Dashback - Check for Toggle.asm
     0xD0,	0x1F,	0x00,	0x2C,		0x88,	0x9F,	0x06,	0x18,
     0x38,	0x62,	0xF2,	0x28,		0x7C,	0x63,	0x20,	0xAE,
@@ -950,12 +950,12 @@ void CEXISlippi::prepareGeckoList()
 	geckoList.insert(geckoList.end(), {0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00});
 }
 
-void CEXISlippi::prepareCharacterFrameData(int32_t frameIndex, u8 port, u8 isFollower)
+void CEXISlippi::prepareCharacterFrameData(s32 frameIndex, u8 port, u8 isFollower)
 {
 	// Load the data from this frame into the read buffer
 	Slippi::FrameData *frame = m_current_game->GetFrame(frameIndex);
 
-	std::unordered_map<uint8_t, Slippi::PlayerFrameData> source;
+	std::unordered_map<u8, Slippi::PlayerFrameData> source;
 	source = isFollower ? frame->followers : frame->players;
 
 	// This must be updated if new data is added
@@ -995,7 +995,7 @@ void CEXISlippi::prepareCharacterFrameData(int32_t frameIndex, u8 port, u8 isFol
 	// NOTE TO DEV: If you add data here, make sure to increase the size above
 }
 
-bool CEXISlippi::checkFrameFullyFetched(int32_t frameIndex)
+bool CEXISlippi::checkFrameFullyFetched(s32 frameIndex)
 {
 	auto doesFrameExist = m_current_game->DoesFrameExist(frameIndex);
 	if (!doesFrameExist)
@@ -1020,7 +1020,7 @@ void CEXISlippi::prepareFrameData(u8 *payload)
 	}
 
 	// Parse input
-	int32_t frameIndex = payload[0] << 24 | payload[1] << 16 | payload[2] << 8 | payload[3];
+	s32 frameIndex = payload[0] << 24 | payload[1] << 16 | payload[2] << 8 | payload[3];
 
 	// If loading from queue, move on to the next replay if we have past endFrame
 	auto watchSettings = g_replay_comm->current;
@@ -1149,7 +1149,7 @@ void CEXISlippi::prepareFrameData(u8 *payload)
 	}
 }
 
-bool CEXISlippi::shouldFFWFrame(int32_t frameIndex)
+bool CEXISlippi::shouldFFWFrame(s32 frameIndex)
 {
 	if (!g_playback_status->isSoftFFW && !g_playback_status->isHardFFW)
 	{
@@ -1180,7 +1180,7 @@ void CEXISlippi::prepareIsStockSteal(u8 *payload)
 	}
 
 	// Parse args
-	int32_t frameIndex = payload[0] << 24 | payload[1] << 16 | payload[2] << 8 | payload[3];
+	s32 frameIndex = payload[0] << 24 | payload[1] << 16 | payload[2] << 8 | payload[3];
 	u8 playerIndex = payload[4];
 
 	// I'm not sure checking for the frame should be necessary. Theoretically this

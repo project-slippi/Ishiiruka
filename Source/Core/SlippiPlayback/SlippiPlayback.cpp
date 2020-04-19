@@ -28,7 +28,7 @@ static std::condition_variable cv_waitingForTargetFrame;
 static std::condition_variable cv_processingDiff;
 static std::atomic<int> numDiffsProcessing(0);
 
-int32_t emod(int32_t a, int32_t b)
+s32 emod(s32 a, s32 b)
 {
 	assert(b != 0);
 	int r = a % b;
@@ -136,7 +136,7 @@ void SlippiPlaybackStatus::SavestateThread()
 		if (!shouldRunThreads)
 			break;
 
-		int32_t fixedFrameNumber = currentPlaybackFrame;
+		s32 fixedFrameNumber = currentPlaybackFrame;
 		if (fixedFrameNumber == INT_MAX)
 			continue;
 
@@ -183,7 +183,7 @@ void SlippiPlaybackStatus::SeekThread()
 			bool paused = (Core::GetState() == Core::CORE_PAUSE);
 			Core::SetState(Core::CORE_PAUSE);
 
-			uint32_t jumpInterval = 300; // 5 seconds;
+			u32 jumpInterval = 300; // 5 seconds;
 
 			if (shouldJumpForward)
 				targetFrameNum = currentPlaybackFrame + jumpInterval;
@@ -200,7 +200,7 @@ void SlippiPlaybackStatus::SeekThread()
 				targetFrameNum = latestFrame;
 			}
 
-			int32_t closestStateFrame =
+			s32 closestStateFrame =
 			    targetFrameNum - emod(targetFrameNum + 123, FRAME_INTERVAL);
 
 			bool isLoadingStateOptimal = targetFrameNum < currentPlaybackFrame ||

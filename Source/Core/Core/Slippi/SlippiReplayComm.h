@@ -51,7 +51,7 @@ class SlippiReplayComm
 	std::string previousCommandId;
 	int previousIndex;
 
-  u64 configLastLoadModTime;
+	u64 configLastLoadModTime;
 	
 	// Queue stuff
 	bool isFirstLoad = true;

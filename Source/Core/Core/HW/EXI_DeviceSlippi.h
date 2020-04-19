@@ -76,7 +76,7 @@ class CEXISlippi : public IEXIDevice
 
 	// vars for metadata generation
 	time_t gameStartTime;
-	int32_t lastFrame;
+	s32 lastFrame;
 	std::unordered_map<u8, std::unordered_map<u8, u32>> characterUsage;
 
 	void updateMetadataFields(u8 *payload, u32 length);
@@ -86,8 +86,8 @@ class CEXISlippi : public IEXIDevice
 	void createNewFile();
 	void closeFile();
 	std::string generateFileName();
-	bool checkFrameFullyFetched(int32_t frameIndex);
-	bool shouldFFWFrame(int32_t frameIndex);
+	bool checkFrameFullyFetched(s32 frameIndex);
+	bool shouldFFWFrame(s32 frameIndex);
 
 	// std::ofstream log;
 
@@ -97,7 +97,7 @@ class CEXISlippi : public IEXIDevice
 	// replay playback stuff
 	void prepareGameInfo();
 	void prepareGeckoList();
-	void prepareCharacterFrameData(int32_t frameIndex, u8 port, u8 isFollower);
+	void prepareCharacterFrameData(s32 frameIndex, u8 port, u8 isFollower);
 	void prepareFrameData(u8 *payload);
 	void prepareIsStockSteal(u8 *payload);
 	void prepareFrameCount();
@@ -105,7 +105,7 @@ class CEXISlippi : public IEXIDevice
 
 	std::unordered_map<u8, std::string> getNetplayNames();
 
-	std::vector<uint8_t> geckoList;
+	std::vector<u8> geckoList;
 
 	std::vector<u8> m_read_queue;
 	std::unique_ptr<Slippi::SlippiGame> m_current_game = nullptr;
