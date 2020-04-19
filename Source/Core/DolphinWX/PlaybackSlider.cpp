@@ -2,12 +2,11 @@
 // Licensed under GPLv2+
 // Refer to the license.txt file included.
 
-#include "PlaybackSlider.h"
 #include <wx/utils.h>
-#include "DolphinWX/DolphinSlider.h"
-
-#include <memory>
 #include <SlippiPlayback/SlippiPlayback.h>
+
+#include "PlaybackSlider.h"
+#include "DolphinWX/DolphinSlider.h"
 
 extern std::unique_ptr<SlippiPlaybackStatus> g_playback_status;
 

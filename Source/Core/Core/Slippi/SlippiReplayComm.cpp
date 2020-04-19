@@ -1,10 +1,10 @@
+#include <cctype>
+#include <memory>
 #include "SlippiReplayComm.h"
 #include "Common/FileUtil.h"
 #include "Common/CommonPaths.h"
-#include "Common/Logging/LogManager.h"
 #include "Core/ConfigManager.h"
-#include <cctype>
-#include <memory>
+#include "Common/Logging/LogManager.h"
 
 std::unique_ptr<SlippiReplayComm> g_replay_comm;
 

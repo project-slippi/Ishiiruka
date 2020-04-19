@@ -1,8 +1,8 @@
 #pragma once
 #include <future>
+#include <unordered_map>
 #include <open-vcdiff/src/google/vcdecoder.h>
 #include <open-vcdiff/src/google/vcencoder.h>
-#include <unordered_map>
 
 #include "../Common/CommonTypes.h"
 

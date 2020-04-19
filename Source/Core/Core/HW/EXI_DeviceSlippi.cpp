@@ -2,38 +2,16 @@
 // Licensed under GPLv2+
 // Refer to the license.txt file included.
 
-#include "Core/HW/EXI_DeviceSlippi.h"
-
-#include <array>
-#include <cmath>
-#include <condition_variable>
-#include <functional>
-#include <stdexcept>
-#include <string>
-#include <tuple>
-#include <unordered_map>
 #include <SlippiGame.h>
-#include <SlippiPlayback/SlippiPlayback.h>
 #include <Core/Slippi/SlippiReplayComm.h>
+#include <SlippiPlayback/SlippiPlayback.h>
 
-#ifdef _WIN32
-#include <share.h>
-#endif
-
-#include "Common/CommonFuncs.h"
+#include "Core/HW/Memmap.h"
 #include "Common/CommonTypes.h"
-#include "Common/FileUtil.h"
 #include "Common/CommonPaths.h"
 #include "Common/Logging/Log.h"
-#include "Common/StringUtil.h"
-#include "Common/Thread.h"
-#include "Core/HW/Memmap.h"
 #include "Core/NetPlayClient.h"
-
-#include "Core/Core.h"
-#include "Core/CoreTiming.h"
-#include "Core/HW/SystemTimers.h"
-#include "Core/State.h"
+#include "Core/HW/EXI_DeviceSlippi.h"
 
 extern std::unique_ptr<SlippiPlaybackStatus> g_playback_status;
 

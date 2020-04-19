@@ -5,17 +5,9 @@
 #pragma once
 
 #include <SlippiGame.h>
-#include <open-vcdiff/src/google/vcdecoder.h>
-#include <open-vcdiff/src/google/vcencoder.h>
-#include <ctime>
-#include <deque>
-#include <mutex>
-#include <future>
-#include <string>
-#include <unordered_map>
 
-#include "Common/CommonTypes.h"
 #include "Common/FileUtil.h"
+#include "Common/CommonTypes.h"
 #include "Core/HW/EXI_Device.h"
 #include "Core/Slippi/SlippiReplayComm.h"
 
