@@ -1,4 +1,6 @@
 #include "SlippiMatchmaking.h"
+#include "Common/CommonPaths.h"
+#include "Common/FileUtil.h"
 #include "Common/Logging/Log.h"
 #include "Common/StringUtil.h"
 
@@ -22,6 +24,10 @@ SlippiMatchmaking::SlippiMatchmaking()
 		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, &receive);
 		curl_easy_setopt(curl, CURLOPT_TIMEOUT_MS, 10000);
 
+		// Set up HTTP Headers
+		m_curlHeaderList = curl_slist_append(m_curlHeaderList, "Content-Type: application/json");
+		curl_easy_setopt(curl, CURLOPT_HTTPHEADER, m_curlHeaderList);
+
 #ifdef _WIN32
 		// ALPN support is enabled by default but requires Windows >= 8.1.
 		curl_easy_setopt(curl, CURLOPT_SSL_ENABLE_ALPN, false);
@@ -35,15 +41,16 @@ SlippiMatchmaking::SlippiMatchmaking()
 
 SlippiMatchmaking::~SlippiMatchmaking()
 {
-	if (m_curl)
-	{
-		curl_easy_cleanup(m_curl);
-	}
-
 	m_state = ProcessState::ERROR_ENCOUNTERED;
 
 	if (m_matchmakeThread.joinable())
 		m_matchmakeThread.join();
+
+	if (m_curl)
+	{
+		curl_slist_free_all(m_curlHeaderList);
+		curl_easy_cleanup(m_curl);
+	}
 }
 
 void SlippiMatchmaking::FindMatch()
@@ -97,9 +104,18 @@ void SlippiMatchmaking::startMatchmaking()
 	m_ticketId.clear();
 	findReceiveBuf.clear();
 
+	// Get user file
+	std::string dirPath = File::GetExeDirectory();
+	std::string userFilePath = dirPath + DIR_SEP + "user.json";
+	std::string userFileContents;
+	File::ReadFileToString(userFilePath, userFileContents);
+
+	// Perform curl request
 	curl_easy_setopt(m_curl, CURLOPT_CUSTOMREQUEST, NULL);
 	curl_easy_setopt(m_curl, CURLOPT_POST, true);
 	curl_easy_setopt(m_curl, CURLOPT_URL, URL_START.c_str());
+	curl_easy_setopt(m_curl, CURLOPT_POSTFIELDS, userFileContents.c_str());
+	curl_easy_setopt(m_curl, CURLOPT_POSTFIELDSIZE, userFileContents.length());
 	curl_easy_setopt(m_curl, CURLOPT_WRITEDATA, &findReceiveBuf);
 	CURLcode res = curl_easy_perform(m_curl);
 

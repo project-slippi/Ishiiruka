@@ -34,6 +34,8 @@ class SlippiMatchmaking
 	const std::string URL_START = "http://35.197.121.196:43113/tickets";
 
 	CURL *m_curl = nullptr;
+	struct curl_slist *m_curlHeaderList = nullptr;
+
 	std::thread m_matchmakeThread;
 
 	ProcessState m_state;

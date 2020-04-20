@@ -1536,9 +1536,13 @@ void CEXISlippi::prepareOnlineMatchState()
 	m_read_queue.push_back(remotePlayerIndex); // Remote player index
 
 	u32 rngOffset = 0;
+	std::string p1Name = "";
+	std::string p2Name = "";
 
 	if (localPlayerReady && remotePlayerReady)
 	{
+		auto isHost = slippi_netplay->IsHost();
+
 		auto matchInfo = slippi_netplay->GetMatchInfo();
 		SlippiPlayerSelections lps = matchInfo->localPlayerSelections;
 		SlippiPlayerSelections rps = matchInfo->remotePlayerSelections;
@@ -1550,6 +1554,7 @@ void CEXISlippi::prepareOnlineMatchState()
 #ifdef LOCAL_TESTING
 		rps.characterId = 2;
 		rps.characterColor = 2;
+		rps.playerName = std::string("Player");
 #endif
 
 		// Overwrite remote player character
@@ -1564,7 +1569,7 @@ void CEXISlippi::prepareOnlineMatchState()
 
 		// Overwrite stage
 		u16 stageId;
-		if (slippi_netplay->IsHost())
+		if (isHost)
 		{
 			stageId = lps.isStageSelected ? lps.stageId : rps.stageId;
 		}
@@ -1577,12 +1582,24 @@ void CEXISlippi::prepareOnlineMatchState()
 		*stage = Common::swap16(stageId);
 
 		// Set rng offset
-		rngOffset = slippi_netplay->IsHost() ? lps.rngOffset : rps.rngOffset;
+		rngOffset = isHost ? lps.rngOffset : rps.rngOffset;
 		ERROR_LOG(SLIPPI_ONLINE, "Rng Offset: 0x%x", rngOffset);
+
+		// Set player names
+		p1Name = isHost ? lps.playerName : rps.playerName;
+		p2Name = isHost ? rps.playerName : lps.playerName;
 	}
 
 	// Add rng offset to output
 	appendWordToBuffer(&m_read_queue, rngOffset);
+
+	// Add names to output
+	p1Name.resize(MAX_NAME_LENGTH);
+	auto nameBuf = p1Name.c_str();
+	m_read_queue.insert(m_read_queue.end(), nameBuf, nameBuf + MAX_NAME_LENGTH + 1);
+	p2Name.resize(MAX_NAME_LENGTH);
+	nameBuf = p2Name.c_str();
+	m_read_queue.insert(m_read_queue.end(), nameBuf, nameBuf + MAX_NAME_LENGTH + 1);
 
 	// Add the match struct block to output
 	m_read_queue.insert(m_read_queue.end(), onlineMatchBlock.begin(), onlineMatchBlock.end());
@@ -1638,6 +1655,26 @@ void CEXISlippi::setMatchSelections(u8 *payload)
 
 	s.rngOffset = rand() % 0xFFFF;
 
+	// Get user name from file
+	std::string dirPath = File::GetExeDirectory();
+	std::string userFilePath = dirPath + DIR_SEP + "user.json";
+	std::string userFileContents;
+	File::ReadFileToString(userFilePath, userFileContents);
+	auto res = json::parse(userFileContents, nullptr, false);
+	std::string displayName = "";
+	if (!res.is_discarded() && res.is_object())
+	{
+		displayName = res.value("displayName", "");
+	}
+
+	if (displayName.length() > MAX_NAME_LENGTH)
+	{
+		displayName.resize(MAX_NAME_LENGTH);
+	}
+
+	s.playerName = displayName;
+
+	// Merge these selections
 	localSelections.Merge(s);
 
 	if (slippi_netplay)
@@ -1700,6 +1737,8 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 			m_read_queue.insert(m_read_queue.begin(), geckoList.begin(), geckoList.end());
 			break;
 		case CMD_ONLINE_INPUTS:
+			WARN_LOG(SLIPPI_ONLINE, "Handling Inputs [%d] -> %08X %08X", Common::swap32(&memPtr[1]) + memPtr[5],
+			         Common::swap32(&memPtr[6]), Common::swap32(&memPtr[10]));
 			handleOnlineInputs(&memPtr[bufLoc + 1]);
 			break;
 		case CMD_CAPTURE_SAVESTATE:

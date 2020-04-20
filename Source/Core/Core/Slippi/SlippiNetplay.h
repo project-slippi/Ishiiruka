@@ -47,6 +47,8 @@ class SlippiPlayerSelections
 
 	u32 rngOffset;
 
+	std::string playerName;
+
 	void Merge(SlippiPlayerSelections &s)
 	{
 		if (s.isCharacterSelected)
@@ -63,6 +65,7 @@ class SlippiPlayerSelections
 		}
 
 		this->rngOffset = s.rngOffset;
+		this->playerName = s.playerName;
 	}
 
 	void Reset()
@@ -75,6 +78,7 @@ class SlippiPlayerSelections
 		isStageSelected = false;
 
 		rngOffset = 0;
+		playerName.clear();
 	}
 };
 

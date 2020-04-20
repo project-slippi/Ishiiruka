@@ -23,6 +23,7 @@
 #include "Core/Slippi/SlippiSavestate.h"
 
 #define ROLLBACK_MAX_FRAMES 7
+#define MAX_NAME_LENGTH 15
 
 // Acts
 class CEXISlippi : public IEXIDevice
