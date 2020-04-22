@@ -1633,8 +1633,6 @@ void CFrame::OnToggleStatusbar(wxCommandEvent& event)
 void CFrame::OnToggleSeekbar(wxCommandEvent& event) 
 {
 	SConfig::GetInstance().m_InterfaceSeekbar = event.IsChecked();
-
-	SendSizeEvent();
 }
 
 void CFrame::OnChangeColumnsVisible(wxCommandEvent& event)
