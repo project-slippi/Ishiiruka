@@ -17,6 +17,7 @@
 #include "Common/CommonTypes.h"
 #include "Common/FileUtil.h"
 #include "Core/HW/EXI_Device.h"
+#include "Core/Slippi/SlippiGameFileLoader.h"
 #include "Core/Slippi/SlippiMatchmaking.h"
 #include "Core/Slippi/SlippiNetplay.h"
 #include "Core/Slippi/SlippiReplayComm.h"
@@ -65,9 +66,12 @@ class CEXISlippi : public IEXIDevice
 		CMD_GET_MATCH_STATE = 0xB3,
 		CMD_FIND_OPPONENT = 0xB4,
 		CMD_SET_MATCH_SELECTIONS = 0xB5,
+		CMD_OPEN_LOGIN = 0xB6,
 
 		// Misc
 		CMD_LOG_MESSAGE = 0xD0,
+		CMD_FILE_LENGTH = 0xD1,
+		CMD_FILE_LOAD = 0xD2,
 	};
 
 	enum
@@ -100,9 +104,12 @@ class CEXISlippi : public IEXIDevice
 	    {CMD_GET_MATCH_STATE, 0},
 	    {CMD_FIND_OPPONENT, 0},
 	    {CMD_SET_MATCH_SELECTIONS, 6},
+	    {CMD_OPEN_LOGIN, 0},
 
 	    // Misc
 	    {CMD_LOG_MESSAGE, 0xFFFF}, // Variable size... will only work if by itself
+	    {CMD_FILE_LENGTH, 0x40},
+	    {CMD_FILE_LOAD, 0x40},
 	};
 
 	struct WriteMessage
@@ -150,6 +157,7 @@ class CEXISlippi : public IEXIDevice
 	void prepareOnlineMatchState();
 	void setMatchSelections(u8 *payload);
 	bool shouldSkipOnlineFrame(int32_t frame);
+	void handleLogInRequest();
 
 	// replay playback stuff
 	void prepareGameInfo();
@@ -162,6 +170,11 @@ class CEXISlippi : public IEXIDevice
 	void processInitialState(std::vector<u8> &iState);
 	void resetPlayback();
 	void clearWatchSettingsStartEnd();
+
+	// misc stuff
+	void logMessageFromGame(u8 *payload);
+	void prepareFileLength(u8 *payload);
+	void prepareFileLoad(u8 *payload);
 
 	void SavestateThread(void);
 	void SeekThread(void);
@@ -200,6 +213,7 @@ class CEXISlippi : public IEXIDevice
   private:
 	SlippiPlayerSelections localSelections;
 
+	std::unique_ptr<SlippiGameFileLoader> gameFileLoader;
 	std::unique_ptr<SlippiNetplayClient> slippi_netplay;
 	std::unique_ptr<SlippiMatchmaking> matchmaking;
 

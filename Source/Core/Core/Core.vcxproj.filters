@@ -778,6 +778,9 @@
     <ClCompile Include="Slippi\SlippiNetplay.cpp">
       <Filter>Slippi</Filter>
     </ClCompile>
+    <ClCompile Include="Slippi\SlippiGameFileLoader.cpp">
+      <Filter>Slippi</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="BootManager.h" />
@@ -1335,6 +1338,9 @@
       <Filter>Slippi</Filter>
     </ClInclude>
     <ClInclude Include="Slippi\SlippiNetplay.h">
+      <Filter>Slippi</Filter>
+    </ClInclude>
+    <ClInclude Include="Slippi\SlippiGameFileLoader.h">
       <Filter>Slippi</Filter>
     </ClInclude>
   </ItemGroup>

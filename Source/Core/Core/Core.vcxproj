@@ -281,6 +281,7 @@
     <ClCompile Include="PowerPC\Profiler.cpp" />
     <ClCompile Include="PowerPC\SignatureDB.cpp" />
     <ClCompile Include="SlippiTimer.cpp" />
+    <ClCompile Include="Slippi\SlippiGameFileLoader.cpp" />
     <ClCompile Include="Slippi\SlippiMatchmaking.cpp" />
     <ClCompile Include="Slippi\SlippiNetplay.cpp" />
     <ClCompile Include="Slippi\SlippiPad.cpp" />
@@ -480,6 +481,7 @@
     <ClInclude Include="PowerPC\SignatureDB.h" />
     <ClInclude Include="SlippiPlayback.h" />
     <ClInclude Include="SlippiTimer.h" />
+    <ClInclude Include="Slippi\SlippiGameFileLoader.h" />
     <ClInclude Include="Slippi\SlippiMatchmaking.h" />
     <ClInclude Include="Slippi\SlippiNetplay.h" />
     <ClInclude Include="Slippi\SlippiPad.h" />

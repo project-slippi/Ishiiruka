@@ -43,7 +43,7 @@
 #define SLEEP_TIME_MS 8
 #define WRITE_FILE_SLEEP_TIME_MS 85
 
-#define LOCAL_TESTING
+//#define LOCAL_TESTING
 
 int32_t emod(int32_t a, int32_t b)
 {
@@ -131,7 +131,7 @@ CEXISlippi::CEXISlippi()
 
 	g_playback_status = std::make_unique<SlippiPlaybackStatus>();
 	matchmaking = std::make_unique<SlippiMatchmaking>();
-
+	gameFileLoader = std::make_unique<SlippiGameFileLoader>();
 	replayComm = std::make_unique<SlippiReplayComm>();
 
 	// Loggers will check 5 bytes, make sure we own that memory
@@ -139,6 +139,23 @@ CEXISlippi::CEXISlippi()
 
 	// Initialize local selections to empty
 	localSelections.Reset();
+
+	// TEMP
+	std::string origStr;
+	std::string modifiedStr;
+	File::ReadFileToString("C:\\Users\\Jas\\Documents\\Melee\\Textures\\Slippi\\MainMenu\\MnMaAll-orig.usd", origStr);
+	File::ReadFileToString("C:\\Users\\Jas\\Documents\\Melee\\Textures\\Slippi\\MainMenu\\MnMaAll-new.usd",
+	                       modifiedStr);
+	std::vector<u8> orig(origStr.begin(), origStr.end());
+	std::vector<u8> modified(modifiedStr.begin(), modifiedStr.end());
+	auto diff = processDiff(orig, modified);
+	File::WriteStringToFile(diff, "C:\\Users\\Jas\\Documents\\Melee\\Textures\\Slippi\\MainMenu\\MnMaAll.usd.diff");
+
+	// TEMP - Restore orig
+	std::string stateString;
+	decoder.Decode((char *)orig.data(), orig.size(), diff, &stateString);
+	File::WriteStringToFile(stateString,
+	                        "C:\\Users\\Jas\\Documents\\Melee\\Textures\\Slippi\\MainMenu\\MnMaAll-restored.usd");
 }
 
 CEXISlippi::~CEXISlippi()
@@ -1683,6 +1700,61 @@ void CEXISlippi::setMatchSelections(u8 *payload)
 	}
 }
 
+void CEXISlippi::prepareFileLength(u8 *payload)
+{
+	m_read_queue.clear();
+
+	std::string fileName((char *)&payload[0]);
+
+	std::string contents;
+	u32 size = gameFileLoader->LoadFile(fileName, contents);
+
+	ERROR_LOG(SLIPPI, "Getting file size for: %s -> %d", fileName.c_str(), size);
+
+	// Write size to output
+	appendWordToBuffer(&m_read_queue, size);
+}
+
+void CEXISlippi::prepareFileLoad(u8 *payload)
+{
+	m_read_queue.clear();
+
+	std::string fileName((char *)&payload[0]);
+
+	std::string contents;
+	u32 size = gameFileLoader->LoadFile(fileName, contents);
+	std::vector<u8> buf(contents.begin(), contents.end());
+
+	ERROR_LOG(SLIPPI, "Writing file contents: %s -> %d", fileName.c_str(), size);
+
+	// Write the contents to output
+	m_read_queue.insert(m_read_queue.end(), buf.begin(), buf.end());
+}
+
+void CEXISlippi::logMessageFromGame(u8 *payload)
+{
+	if (payload[0] == 0)
+	{
+		// The first byte indicates whether to log the time or not
+		ERROR_LOG(SLIPPI, "%s", (char *)&payload[1]);
+	}
+	else
+	{
+		ERROR_LOG(SLIPPI, "%s: %llu", (char *)&payload[1], Common::Timer::GetTimeUs());
+	}
+
+	// std::string logStr = std::string((char *)&memPtr[bufLoc + 1]);
+	// if (logStr == "Shine start")
+	//{
+	//	NOTICE_LOG(SLIPPI, "%llu", Common::Timer::GetTimeUs() - g_BButtonPressTime);
+	//}
+}
+
+void CEXISlippi::handleLogInRequest()
+{
+	system("start chrome https://slippi.gg/online/enable");
+}
+
 void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 {
 	u8 *memPtr = Memory::GetPointer(_uAddr);
@@ -1756,18 +1828,18 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 		case CMD_SET_MATCH_SELECTIONS:
 			setMatchSelections(&memPtr[bufLoc + 1]);
 			break;
-		case CMD_LOG_MESSAGE:
-		{
-			ERROR_LOG(SLIPPI, "%s: %llu", (char *)&memPtr[bufLoc + 1], Common::Timer::GetTimeUs());
-
-			std::string logStr = std::string((char *)&memPtr[bufLoc + 1]);
-			if (logStr == "Shine start")
-			{
-				NOTICE_LOG(SLIPPI, "%llu", Common::Timer::GetTimeUs() - g_BButtonPressTime);
-			}
-
+		case CMD_FILE_LENGTH:
+			prepareFileLength(&memPtr[bufLoc + 1]);
 			break;
-		}
+		case CMD_FILE_LOAD:
+			prepareFileLoad(&memPtr[bufLoc + 1]);
+			break;
+		case CMD_OPEN_LOGIN:
+			handleLogInRequest();
+			break;
+		case CMD_LOG_MESSAGE:
+			logMessageFromGame(&memPtr[bufLoc + 1]);
+			break;
 		default:
 			writeToFileAsync(&memPtr[bufLoc], payloadLen + 1, "");
 			break;
