@@ -144,6 +144,8 @@ private:
     bool Is20XX();
     bool IsPALMelee();
 
+	void OnSpectatorToggle(wxCommandEvent& event);
+
 	wxListBox* m_player_lbox;
 	wxTextCtrl* m_chat_text;
 	wxTextCtrl* m_chat_msg_text;
