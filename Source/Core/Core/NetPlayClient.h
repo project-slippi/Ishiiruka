@@ -42,6 +42,7 @@ public:
 	virtual void OnConnectionLost() = 0;
 	virtual void OnTraversalError(int error) = 0;
 	virtual bool IsRecording() = 0;
+	virtual bool IsSpectating() = 0;
 	virtual std::string FindGame(const std::string& game) = 0;
 	virtual void ShowMD5Dialog(const std::string& file_identifier) = 0;
 	virtual void SetMD5Progress(int pid, int progress) = 0;

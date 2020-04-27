@@ -316,11 +316,13 @@ wxSizer* NetPlayDialog::CreateBottomGUI(wxWindow* parent)
 	}
 
 	m_record_chkbox = new wxCheckBox(parent, wxID_ANY, _("Record inputs"));
+	m_spec_chkbox = new wxCheckBox(parent, wxID_ANY, _("Spectator"));
+	m_spec_chkbox->SetToolTip("Spectators will not cause lag unless there is a networking issue");
 
 	wxButton* quit_btn = new wxButton(parent, wxID_ANY, _("Quit Netplay"));
 	quit_btn->Bind(wxEVT_BUTTON, &NetPlayDialog::OnQuit, this);
 
-	bottom_szr->Add(m_record_chkbox, 0, wxALIGN_CENTER_VERTICAL);
+	bottom_szr->Add(m_spec_chkbox, 0, wxALIGN_CENTER_VERTICAL);
 
 	bottom_szr->AddStretchSpacer();
 	bottom_szr->Add(quit_btn, 0, wxALIGN_CENTER_VERTICAL);
@@ -497,6 +499,7 @@ void NetPlayDialog::OnMsgStartGame()
 	}
 
 	m_record_chkbox->Disable();
+	m_spec_chkbox->Disable();
 }
 
 void NetPlayDialog::OnMsgStopGame()
@@ -518,6 +521,7 @@ void NetPlayDialog::OnMsgStopGame()
         }
 	}
 	m_record_chkbox->Enable();
+	m_spec_chkbox->Enable();
 }
 
 void NetPlayDialog::OnAdjustMinimumBuffer(wxCommandEvent& event)
@@ -872,6 +876,11 @@ void NetPlayDialog::OnPlayerSelect(wxCommandEvent&)
 bool NetPlayDialog::IsRecording()
 {
 	return m_record_chkbox->GetValue();
+}
+
+bool NetPlayDialog::IsSpectating() 
+{
+	return m_spec_chkbox->GetValue();
 }
 
 void NetPlayDialog::OnCopyIP(wxCommandEvent&)
