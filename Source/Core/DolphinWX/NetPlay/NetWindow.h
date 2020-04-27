@@ -111,6 +111,7 @@ public:
 
 	bool IsRecording() override;
 	bool IsSpectating() override;
+	void SetSpectating(bool spectating) override;
 
 private:
 	void CreateGUI();

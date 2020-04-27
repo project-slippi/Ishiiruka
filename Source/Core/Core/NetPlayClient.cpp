@@ -326,10 +326,14 @@ unsigned int NetPlayClient::OnData(sf::Packet& packet)
 
 	case NP_MSG_PAD_MAPPING:
 	{
+		bool assigned = false;
 		for (PadMapping& mapping : m_pad_map)
 		{
 			packet >> mapping;
+			if (!assigned && mapping == this->m_pid)
+				assigned = true;
 		}
+		dialog->SetSpectating(!assigned);
 
 		UpdateDevices();
 
