@@ -231,6 +231,7 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet)
 	case NP_MSG_SLIPPI_MATCH_SELECTIONS:
 	{
 		auto s = readSelectionsFromPacket(packet);
+		ERROR_LOG(SLIPPI_ONLINE, "[Received Selections] Char: 0x%X, Color: 0x%X", s->characterId, s->characterId);
 		matchInfo.remotePlayerSelections.Merge(*s);
 	}
 	break;

@@ -1601,6 +1601,7 @@ void CEXISlippi::prepareOnlineMatchState()
 		// Set rng offset
 		rngOffset = isHost ? lps.rngOffset : rps.rngOffset;
 		ERROR_LOG(SLIPPI_ONLINE, "Rng Offset: 0x%x", rngOffset);
+    ERROR_LOG(SLIPPI_ONLINE, "P1 Char: 0x%X, P2 Char: 0x%X", onlineMatchBlock[0x60], onlineMatchBlock[0x84]);
 
 		// Set player names
 		p1Name = isHost ? lps.playerName : rps.playerName;
@@ -1809,8 +1810,6 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 			m_read_queue.insert(m_read_queue.begin(), geckoList.begin(), geckoList.end());
 			break;
 		case CMD_ONLINE_INPUTS:
-			WARN_LOG(SLIPPI_ONLINE, "Handling Inputs [%d] -> %08X %08X", Common::swap32(&memPtr[1]) + memPtr[5],
-			         Common::swap32(&memPtr[6]), Common::swap32(&memPtr[10]));
 			handleOnlineInputs(&memPtr[bufLoc + 1]);
 			break;
 		case CMD_CAPTURE_SAVESTATE:

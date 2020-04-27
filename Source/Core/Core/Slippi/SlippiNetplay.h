@@ -51,12 +51,8 @@ class SlippiPlayerSelections
 
 	void Merge(SlippiPlayerSelections &s)
 	{
-		if (s.isCharacterSelected)
-		{
-			this->characterId = s.characterId;
-			this->characterColor = s.characterColor;
-			this->isCharacterSelected = true;
-		}
+		this->rngOffset = s.rngOffset;
+		this->playerName = s.playerName;
 
 		if (s.isStageSelected)
 		{
@@ -64,8 +60,12 @@ class SlippiPlayerSelections
 			this->isStageSelected = true;
 		}
 
-		this->rngOffset = s.rngOffset;
-		this->playerName = s.playerName;
+		if (s.isCharacterSelected)
+		{
+			this->characterId = s.characterId;
+			this->characterColor = s.characterColor;
+			this->isCharacterSelected = true;
+		}
 	}
 
 	void Reset()
