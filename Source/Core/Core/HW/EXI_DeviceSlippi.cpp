@@ -1601,7 +1601,7 @@ void CEXISlippi::prepareOnlineMatchState()
 		// Set rng offset
 		rngOffset = isHost ? lps.rngOffset : rps.rngOffset;
 		ERROR_LOG(SLIPPI_ONLINE, "Rng Offset: 0x%x", rngOffset);
-    ERROR_LOG(SLIPPI_ONLINE, "P1 Char: 0x%X, P2 Char: 0x%X", onlineMatchBlock[0x60], onlineMatchBlock[0x84]);
+		ERROR_LOG(SLIPPI_ONLINE, "P1 Char: 0x%X, P2 Char: 0x%X", onlineMatchBlock[0x60], onlineMatchBlock[0x84]);
 
 		// Set player names
 		p1Name = isHost ? lps.playerName : rps.playerName;

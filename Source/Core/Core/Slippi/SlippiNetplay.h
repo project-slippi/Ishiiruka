@@ -38,16 +38,16 @@ struct SlippiRemotePadOutput
 class SlippiPlayerSelections
 {
   public:
-	u8 characterId;
-	u8 characterColor;
-	bool isCharacterSelected;
+	u8 characterId = 0;
+	u8 characterColor = 0;
+	bool isCharacterSelected = false;
 
-	u16 stageId;
-	bool isStageSelected;
+	u16 stageId = 0;
+	bool isStageSelected = false;
 
-	u32 rngOffset;
+	u32 rngOffset = 0;
 
-	std::string playerName;
+	std::string playerName = "";
 
 	void Merge(SlippiPlayerSelections &s)
 	{
