@@ -26,7 +26,7 @@
 #define ROLLBACK_MAX_FRAMES 7
 #define MAX_NAME_LENGTH 15
 
-// Acts
+// Emulated Slippi device used to receive and respond to in-game messages
 class CEXISlippi : public IEXIDevice
 {
   public:
