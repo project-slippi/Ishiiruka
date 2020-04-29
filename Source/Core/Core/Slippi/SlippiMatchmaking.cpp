@@ -1,6 +1,4 @@
 #include "SlippiMatchmaking.h"
-#include "Common/CommonPaths.h"
-#include "Common/FileUtil.h"
 #include "Common/Logging/Log.h"
 #include "Common/StringUtil.h"
 
@@ -16,8 +14,10 @@ size_t receive(char *ptr, size_t size, size_t nmemb, void *userdata)
 	return len;
 }
 
-SlippiMatchmaking::SlippiMatchmaking()
+SlippiMatchmaking::SlippiMatchmaking(SlippiUser *user)
 {
+	m_user = user;
+
 	CURL *curl = curl_easy_init();
 	if (curl)
 	{
@@ -104,11 +104,15 @@ void SlippiMatchmaking::startMatchmaking()
 	m_ticketId.clear();
 	findReceiveBuf.clear();
 
-	// Get user file
-	std::string dirPath = File::GetExeDirectory();
-	std::string userFilePath = dirPath + DIR_SEP + "user.json";
-	std::string userFileContents;
-	File::ReadFileToString(userFilePath, userFileContents);
+	if (!m_user->IsLoggedIn())
+	{
+		ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Must be logged in to queue");
+		m_state = ProcessState::ERROR_ENCOUNTERED;
+		return;
+	}
+
+	auto userInfo = m_user->GetUserInfo();
+	std::string userFileContents = userInfo.fileContents;
 
 	// Perform curl request
 	curl_easy_setopt(m_curl, CURLOPT_CUSTOMREQUEST, NULL);

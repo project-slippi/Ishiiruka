@@ -22,9 +22,11 @@
 #include "Core/Slippi/SlippiNetplay.h"
 #include "Core/Slippi/SlippiReplayComm.h"
 #include "Core/Slippi/SlippiSavestate.h"
+#include "Core/Slippi/SlippiUser.h"
 
 #define ROLLBACK_MAX_FRAMES 7
 #define MAX_NAME_LENGTH 15
+#define CONNECT_CODE_LENGTH 8
 
 // Emulated Slippi device used to receive and respond to in-game messages
 class CEXISlippi : public IEXIDevice
@@ -67,6 +69,9 @@ class CEXISlippi : public IEXIDevice
 		CMD_FIND_OPPONENT = 0xB4,
 		CMD_SET_MATCH_SELECTIONS = 0xB5,
 		CMD_OPEN_LOGIN = 0xB6,
+		CMD_LOGOUT = 0xB7,
+		CMD_UPDATE = 0xB8,
+		CMD_GET_ONLINE_STATUS = 0xB9,
 
 		// Misc
 		CMD_LOG_MESSAGE = 0xD0,
@@ -105,6 +110,9 @@ class CEXISlippi : public IEXIDevice
 	    {CMD_FIND_OPPONENT, 0},
 	    {CMD_SET_MATCH_SELECTIONS, 6},
 	    {CMD_OPEN_LOGIN, 0},
+	    {CMD_LOGOUT, 0},
+	    {CMD_UPDATE, 0},
+	    {CMD_GET_ONLINE_STATUS, 0},
 
 	    // Misc
 	    {CMD_LOG_MESSAGE, 0xFFFF}, // Variable size... will only work if by itself
@@ -158,6 +166,7 @@ class CEXISlippi : public IEXIDevice
 	void setMatchSelections(u8 *payload);
 	bool shouldSkipOnlineFrame(int32_t frame);
 	void handleLogInRequest();
+	void prepareOnlineStatus();
 
 	// replay playback stuff
 	void prepareGameInfo();
@@ -213,6 +222,7 @@ class CEXISlippi : public IEXIDevice
   private:
 	SlippiPlayerSelections localSelections;
 
+	std::unique_ptr<SlippiUser> user;
 	std::unique_ptr<SlippiGameFileLoader> gameFileLoader;
 	std::unique_ptr<SlippiNetplayClient> slippi_netplay;
 	std::unique_ptr<SlippiMatchmaking> matchmaking;

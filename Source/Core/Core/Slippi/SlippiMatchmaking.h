@@ -3,6 +3,7 @@
 #include "Common/CommonTypes.h"
 #include "Common/Thread.h"
 #include "Core/Slippi/SlippiNetplay.h"
+#include "Core/Slippi/SlippiUser.h"
 
 #include <curl/curl.h>
 #include <unordered_map>
@@ -11,7 +12,7 @@
 class SlippiMatchmaking
 {
   public:
-	SlippiMatchmaking();
+	SlippiMatchmaking(SlippiUser *user);
 	~SlippiMatchmaking();
 
 	enum ProcessState
@@ -39,6 +40,8 @@ class SlippiMatchmaking
 	std::thread m_matchmakeThread;
 
 	ProcessState m_state;
+
+	SlippiUser *m_user;
 
 	std::string m_ticketId;
 	std::string m_oppIp;

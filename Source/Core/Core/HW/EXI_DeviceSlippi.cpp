@@ -129,8 +129,9 @@ CEXISlippi::CEXISlippi()
 {
 	INFO_LOG(SLIPPI, "EXI SLIPPI Constructor called.");
 
+	user = std::make_unique<SlippiUser>();
 	g_playback_status = std::make_unique<SlippiPlaybackStatus>();
-	matchmaking = std::make_unique<SlippiMatchmaking>();
+	matchmaking = std::make_unique<SlippiMatchmaking>(user.get());
 	gameFileLoader = std::make_unique<SlippiGameFileLoader>();
 	replayComm = std::make_unique<SlippiReplayComm>();
 
@@ -139,6 +140,9 @@ CEXISlippi::CEXISlippi()
 
 	// Initialize local selections to empty
 	localSelections.Reset();
+
+	// Listen for User
+	user->ListenForLogIn();
 
 	// TEMP
 	std::string origStr;
@@ -1753,7 +1757,30 @@ void CEXISlippi::logMessageFromGame(u8 *payload)
 
 void CEXISlippi::handleLogInRequest()
 {
-	system("start chrome https://slippi.gg/online/enable");
+	user->OpenLogInPage();
+	user->ListenForLogIn();
+}
+
+void CEXISlippi::prepareOnlineStatus()
+{
+	m_read_queue.clear();
+
+	auto isLoggedIn = user->IsLoggedIn();
+	m_read_queue.push_back(isLoggedIn);
+
+	auto userInfo = user->GetUserInfo();
+
+	// Write player name (16 bytes)
+	std::string playerName = userInfo.displayName;
+	playerName.resize(MAX_NAME_LENGTH);
+	auto nameBuf = playerName.c_str();
+	m_read_queue.insert(m_read_queue.end(), nameBuf, nameBuf + MAX_NAME_LENGTH + 1);
+
+	// Write connect code (9 bytes)
+	std::string connectCode = userInfo.connectCode;
+	connectCode.resize(CONNECT_CODE_LENGTH);
+	auto codeBuf = connectCode.c_str();
+	m_read_queue.insert(m_read_queue.end(), codeBuf, codeBuf + CONNECT_CODE_LENGTH + 1);
 }
 
 void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
@@ -1835,6 +1862,9 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 			break;
 		case CMD_OPEN_LOGIN:
 			handleLogInRequest();
+			break;
+		case CMD_GET_ONLINE_STATUS:
+			prepareOnlineStatus();
 			break;
 		case CMD_LOG_MESSAGE:
 			logMessageFromGame(&memPtr[bufLoc + 1]);
