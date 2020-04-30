@@ -1604,8 +1604,8 @@ void CEXISlippi::prepareOnlineMatchState()
 
 		// Set rng offset
 		rngOffset = isHost ? lps.rngOffset : rps.rngOffset;
-		ERROR_LOG(SLIPPI_ONLINE, "Rng Offset: 0x%x", rngOffset);
-		ERROR_LOG(SLIPPI_ONLINE, "P1 Char: 0x%X, P2 Char: 0x%X", onlineMatchBlock[0x60], onlineMatchBlock[0x84]);
+		WARN_LOG(SLIPPI_ONLINE, "Rng Offset: 0x%x", rngOffset);
+		WARN_LOG(SLIPPI_ONLINE, "P1 Char: 0x%X, P2 Char: 0x%X", onlineMatchBlock[0x60], onlineMatchBlock[0x84]);
 
 		// Set player names
 		p1Name = isHost ? lps.playerName : rps.playerName;
@@ -1630,11 +1630,13 @@ void CEXISlippi::prepareOnlineMatchState()
 void CEXISlippi::initRngSeed()
 {
 	// Initialize rand seed once for random stage selection. For some reason running this in the
-	// constructor didn't work...
-	static bool isSeeded = false;
+	// constructor didn't work... It might be because something else would set the seed to
+	// a set value after the constructor would run
 	if (!isSeeded)
 	{
-		srand((u32)time(nullptr));
+		auto seed = (u32)time(nullptr);
+		ERROR_LOG(SLIPPI_ONLINE, "Seed is: %d", seed);
+		srand(seed);
 		isSeeded = true;
 	}
 }
@@ -1714,7 +1716,7 @@ void CEXISlippi::prepareFileLength(u8 *payload)
 	std::string contents;
 	u32 size = gameFileLoader->LoadFile(fileName, contents);
 
-	ERROR_LOG(SLIPPI, "Getting file size for: %s -> %d", fileName.c_str(), size);
+	INFO_LOG(SLIPPI, "Getting file size for: %s -> %d", fileName.c_str(), size);
 
 	// Write size to output
 	appendWordToBuffer(&m_read_queue, size);
@@ -1730,7 +1732,7 @@ void CEXISlippi::prepareFileLoad(u8 *payload)
 	u32 size = gameFileLoader->LoadFile(fileName, contents);
 	std::vector<u8> buf(contents.begin(), contents.end());
 
-	ERROR_LOG(SLIPPI, "Writing file contents: %s -> %d", fileName.c_str(), size);
+	INFO_LOG(SLIPPI, "Writing file contents: %s -> %d", fileName.c_str(), size);
 
 	// Write the contents to output
 	m_read_queue.insert(m_read_queue.end(), buf.begin(), buf.end());

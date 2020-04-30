@@ -216,6 +216,8 @@ class CEXISlippi : public IEXIDevice
 
 	u32 frameSeqIdx = 0;
 
+	bool isSeeded = false;
+
   protected:
 	void TransferByte(u8 &byte) override;
 
