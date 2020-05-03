@@ -1759,8 +1759,17 @@ void CEXISlippi::logMessageFromGame(u8 *payload)
 
 void CEXISlippi::handleLogInRequest()
 {
-	user->OpenLogInPage();
-	user->ListenForLogIn();
+	bool logInRes = user->AttemptLogin();
+	if (!logInRes)
+	{
+		user->OpenLogInPage();
+		user->ListenForLogIn();
+	}
+}
+
+void CEXISlippi::handleLogOutRequest()
+{
+	user->LogOut();
 }
 
 void CEXISlippi::prepareOnlineStatus()
@@ -1864,6 +1873,9 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 			break;
 		case CMD_OPEN_LOGIN:
 			handleLogInRequest();
+			break;
+		case CMD_LOGOUT:
+			handleLogOutRequest();
 			break;
 		case CMD_GET_ONLINE_STATUS:
 			prepareOnlineStatus();

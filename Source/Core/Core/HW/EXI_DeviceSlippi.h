@@ -166,6 +166,7 @@ class CEXISlippi : public IEXIDevice
 	void setMatchSelections(u8 *payload);
 	bool shouldSkipOnlineFrame(int32_t frame);
 	void handleLogInRequest();
+	void handleLogOutRequest();
 	void prepareOnlineStatus();
 
 	// replay playback stuff

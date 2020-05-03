@@ -19,6 +19,7 @@ class SlippiUser
 
 	~SlippiUser();
 
+	bool AttemptLogin();
 	void OpenLogInPage();
 	void ListenForLogIn();
 	void LogOut();

@@ -3,6 +3,7 @@
 #include "Common/CommonPaths.h"
 #include "Common/FileUtil.h"
 #include "Common/Logging/Log.h"
+#include "Common/StringUtil.h"
 #include "Common/Thread.h"
 
 #include <json.hpp>
@@ -16,9 +17,48 @@ SlippiUser::~SlippiUser()
 		fileListenThread.join();
 }
 
+bool SlippiUser::AttemptLogin()
+{
+	std::string userFilePath = getUserFilePath();
+
+	ERROR_LOG(SLIPPI_ONLINE, "Looking for file at: %s", userFilePath.c_str());
+
+	// Get user file
+	std::string userFileContents;
+	File::ReadFileToString(userFilePath, userFileContents);
+
+	userInfo = parseFile(userFileContents);
+
+	isLoggedIn = !userInfo.uid.empty();
+	if (isLoggedIn)
+	{
+		ERROR_LOG(SLIPPI_ONLINE, "Found user %s (%s)", userInfo.displayName.c_str(), userInfo.uid.c_str());
+	}
+
+	return isLoggedIn;
+}
+
 void SlippiUser::OpenLogInPage()
 {
-	system("start chrome https://slippi.gg/online/enable");
+#ifdef _WIN32
+	std::string folderSep = "%5C";
+#else
+	std::string folderSep = "%2F";
+#endif
+
+	std::string url = "https://slippi.gg/online/enable";
+	std::string path = File::GetExeDirectory() + "/user.json";
+	path = ReplaceAll(path, "\\", folderSep);
+	path = ReplaceAll(path, "/", folderSep);
+	std::string fullUrl = url + "?path=" + path;
+
+#ifdef _WIN32
+	std::string command = "explorer \"" + fullUrl + "\"";
+#else
+	std::string command = "open \"" + fullUrl + "\""; // Does this work on linux?
+#endif
+
+	system(command.c_str());
 }
 
 void SlippiUser::ListenForLogIn()
@@ -26,8 +66,13 @@ void SlippiUser::ListenForLogIn()
 	if (runThread)
 		return;
 
-	ERROR_LOG(SLIPPI_ONLINE, "Starting user file thread...");
+	if (fileListenThread.joinable())
+	{
+		ERROR_LOG(SLIPPI_ONLINE, "Waiting for previous thread termination...");
+		fileListenThread.join();
+	}
 
+	ERROR_LOG(SLIPPI_ONLINE, "Starting user file thread...");
 	runThread = true;
 	fileListenThread = std::thread(&SlippiUser::FileListenThread, this);
 }
@@ -54,28 +99,18 @@ bool SlippiUser::IsLoggedIn()
 
 void SlippiUser::FileListenThread()
 {
-	std::string userFilePath = getUserFilePath();
-
 	while (runThread)
 	{
-		ERROR_LOG(SLIPPI_ONLINE, "Reading file at: %s", userFilePath.c_str());
-
-		// Get user file
-		std::string userFileContents;
-		File::ReadFileToString(userFilePath, userFileContents);
-
-		userInfo = parseFile(userFileContents);
-		if (!userInfo.uid.empty())
+		if (AttemptLogin())
 		{
-			ERROR_LOG(SLIPPI_ONLINE, "Found user %s (%s)", userInfo.displayName.c_str(), userInfo.uid.c_str());
-			isLoggedIn = true;
 			runThread = false;
 			break;
 		}
 
-		isLoggedIn = false;
 		Common::SleepCurrentThread(500);
 	}
+
+	ERROR_LOG(SLIPPI_ONLINE, "Thread is terminating");
 }
 
 std::string SlippiUser::getUserFilePath()
