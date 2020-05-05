@@ -1328,31 +1328,40 @@ bool CEXISlippi::shouldSkipOnlineFrame(int32_t frame)
 		return true;
 	}
 
-	static bool didSkipLastTime = false;
-
 	// Return true if we are over 60% of a frame ahead of our opponent. Currently limiting how
 	// often this happens because I'm worried about jittery data causing a lot of unneccesary delays.
 	// Only skip once for a given frame because our time detection method doesn't take into consideration
 	// waiting for a frame. Also it's less jarring and it happens often enough that it will smoothly
 	// get to the right place
 	auto isTimeSyncFrame = frame % SLIPPI_ONLINE_LOCKSTEP_INTERVAL; // Only time sync every 30 frames
-	if (isTimeSyncFrame == 0 && !didSkipLastTime)
+	if (isTimeSyncFrame == 0 && !isCurrentlySkipping)
 	{
 		auto offsetUs = slippi_netplay->CalcTimeOffsetUs();
 		INFO_LOG(SLIPPI_ONLINE, "[Frame %d] Offset is: %d us", frame, offsetUs);
 
 		if (offsetUs > 10000)
 		{
-			didSkipLastTime = true;
+			isCurrentlySkipping = true;
 
-			// If ahead by 60% of a frame, stall. I opted to use 60% instead of half a frame
-			// because I was worried about two systems continuously stalling for each other
-			WARN_LOG(SLIPPI_ONLINE, "Halting on frame %d due to time sync. Offset: %d us...", frame, offsetUs);
-			return true;
+			int maxSkipFrames = frame <= 120 ? 5 : 1; // On early frames, support skipping more frames
+			framesToSkip = ((offsetUs - 10000) / 16683) + 1;
+			framesToSkip = framesToSkip > maxSkipFrames ? maxSkipFrames : framesToSkip; // Only skip 5 frames max
+
+			WARN_LOG(SLIPPI_ONLINE, "Halting on frame %d due to time sync. Offset: %d us. Frames: %d...", frame,
+			         offsetUs, framesToSkip);
 		}
 	}
 
-	didSkipLastTime = false;
+	// Handle the skipped frames
+	if (framesToSkip > 0)
+	{
+		// If ahead by 60% of a frame, stall. I opted to use 60% instead of half a frame
+		// because I was worried about two systems continuously stalling for each other
+		framesToSkip = framesToSkip - 1;
+		return true;
+	}
+
+	isCurrentlySkipping = false;
 
 	return false;
 }

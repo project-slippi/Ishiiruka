@@ -156,6 +156,9 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet)
 		s64 frameDiffOffsetUs = 16683 * (timing->frame - frame);
 		s64 timeOffsetUs = opponentSendTimeUs - timing->timeUs + frameDiffOffsetUs;
 
+		INFO_LOG(SLIPPI_ONLINE, "[Offset] Opp Frame: %d, My Frame: %d. Time offset: %lld", frame, timing->frame,
+		         timeOffsetUs);
+
 		// Add this offset to circular buffer for use later
 		if (frameOffsetData.buf.size() < SLIPPI_ONLINE_LOCKSTEP_INTERVAL)
 			frameOffsetData.buf.push_back((s32)timeOffsetUs);
@@ -621,7 +624,7 @@ s32 SlippiNetplayClient::CalcTimeOffsetUs()
 	std::sort(buf.begin(), buf.end());
 
 	int bufSize = (int)buf.size();
-	int offset = (1 / 3) * bufSize;
+	int offset = (int)((1.0f / 3.0f) * bufSize);
 	int end = bufSize - offset;
 
 	int sum = 0;

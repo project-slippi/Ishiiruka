@@ -219,6 +219,10 @@ class CEXISlippi : public IEXIDevice
 
 	bool isSeeded = false;
 
+	// Frame skipping variables
+	int framesToSkip = 0;
+	bool isCurrentlySkipping = false;
+
   protected:
 	void TransferByte(u8 &byte) override;
 
