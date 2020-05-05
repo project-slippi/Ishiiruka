@@ -51,6 +51,7 @@ public:
 	std::string connect_host;
 	u16 connect_port;
 	std::string connect_hash_code;
+	bool is_spectator;
 };
 
 class NetPlayLauncher

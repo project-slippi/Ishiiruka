@@ -77,6 +77,10 @@ NetPlaySetupFrame::NetPlaySetupFrame(wxWindow* const parent, const CGameListCtrl
 		m_upnp_chk->SetValue(use_upnp);
 #endif
 
+		bool is_spectator = false;
+		netplay_section.Get("IsSpectator", &is_spectator, false);
+		m_spectator_toggle->SetValue(is_spectator);
+
 		unsigned int listen_port = 0;
 		netplay_section.Get("ListenPort", &listen_port, 0);
 		m_traversal_listen_port_enabled->SetValue(listen_port != 0);
@@ -198,6 +202,11 @@ wxNotebook* NetPlaySetupFrame::CreateNotebookGUI(wxWindow* parent)
 				"\n"
 				"Wii Remote support in netplay is experimental and should not be expected to work.\n"));
 
+		wxStaticText *const spectator_info = new wxStaticText(connect_tab, wxID_ANY, 
+			_("Enabling Spectator Mode will disable your controller so you can view the game without interfering with the players."));
+
+		m_spectator_toggle = new wxCheckBox(connect_tab, wxID_ANY, _("Spectator Mode"));
+
 		wxBoxSizer* const top_szr = new wxBoxSizer(wxHORIZONTAL);
 		top_szr->Add(m_ip_lbl, 0, wxALIGN_CENTER_VERTICAL);
 		top_szr->Add(m_connect_ip_text, 3, wxALIGN_CENTER_VERTICAL | wxLEFT, space5);
@@ -212,6 +221,9 @@ wxNotebook* NetPlaySetupFrame::CreateNotebookGUI(wxWindow* parent)
 		con_szr->AddSpacer(space5);
 		con_szr->Add(alert_lbl, 0, wxEXPAND | wxLEFT | wxRIGHT, space5);
 		con_szr->AddStretchSpacer(1);
+		con_szr->AddSpacer(space5);
+		con_szr->Add(spectator_info, 0, wxEXPAND | wxLEFT | wxRIGHT, space5);
+		con_szr->Add(m_spectator_toggle, 0, wxEXPAND | wxLEFT | wxRIGHT, space5);
 		con_szr->AddSpacer(space5);
 		con_szr->Add(connect_btn, 0, wxALIGN_RIGHT | wxLEFT | wxRIGHT, space5);
 		con_szr->AddSpacer(space5);
@@ -304,6 +316,7 @@ NetPlaySetupFrame::~NetPlaySetupFrame()
 	netplay_section.Set("ListenPort", m_traversal_listen_port_enabled->IsChecked() ?
 		m_traversal_listen_port->GetValue() :
 		0);
+	netplay_section.Set("IsSpectator", m_spectator_toggle->IsChecked());
 
 #ifdef USE_UPNP
 	netplay_section.Set("UseUPNP", m_upnp_chk->GetValue(), false);
@@ -394,6 +407,8 @@ void NetPlaySetupFrame::DoJoin()
 
 	join_config.traversal_port = NetPlayLaunchConfig::GetTraversalPortFromIniConfig(netplay_section);
 	join_config.traversal_host = NetPlayLaunchConfig::GetTraversalHostFromIniConfig(netplay_section);
+
+	netplay_section.Get("IsSpectator", &join_config.is_spectator, false);
 
 	if (NetPlayLauncher::Join(join_config))
 	{
