@@ -362,59 +362,53 @@ void SlippiMatchmaking::handleMatchmaking()
 
 	m_netplayClient = nullptr;
 	m_oppIp = getResp.value("oppAddress", "");
-	m_isDecider = getResp.value("isHost", false);
+	m_isHost = getResp.value("isHost", false);
 
 	// Disconnect and destroy enet client to mm server
 	terminateMmConnection();
 
 	m_state = ProcessState::OPPONENT_CONNECTING;
 	ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Opponent found. IP: %s, isDecider: %s", m_oppIp.c_str(),
-	          m_isDecider ? "true" : "false");
+	          m_isHost ? "true" : "false");
 }
 
-int SlippiMatchmaking::deciderChoose(SlippiNetplayClient *n1, SlippiNetplayClient *n2)
+void SlippiMatchmaking::sendHolePunchMsg(std::string remoteIp, u16 remotePort, u16 localPort)
 {
-	auto s1 = n1->GetSlippiConnectStatus();
-	auto s2 = n2->GetSlippiConnectStatus();
+	// We are explicitly setting the client address because we are trying to utilize our connection
+	// to the matchmaking service in order to hole punch. This port will end up being the port
+	// we listen on when we start our server
+	ENetAddress clientAddr;
+	clientAddr.host = ENET_HOST_ANY;
+	clientAddr.port = localPort;
 
-	auto failedStatus = SlippiNetplayClient::SlippiConnectStatus::NET_CONNECT_STATUS_FAILED;
-	auto successStatus = SlippiNetplayClient::SlippiConnectStatus::NET_CONNECT_STATUS_CONNECTED;
+	auto client = enet_host_create(&clientAddr, 1, 3, 0, 0);
 
-	if (s1 == failedStatus && s2 == failedStatus)
-		return -1;
-
-	if (s1 == successStatus)
+	if (client == nullptr)
 	{
-		n1->SendConnectionSelected();
-		return 1;
+		// Failed to create client
+		m_state = ProcessState::ERROR_ENCOUNTERED;
+		return;
 	}
 
-	if (s2 == successStatus)
+	ENetAddress addr;
+	enet_address_set_host(&addr, remoteIp.c_str());
+	addr.port = remotePort;
+
+	auto server = enet_host_connect(client, &addr, 3, 0);
+
+	if (server == nullptr)
 	{
-		n2->SendConnectionSelected();
-		return 2;
+		// Failed to connect to server
+		m_state = ProcessState::ERROR_ENCOUNTERED;
+		ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Failed to start connection to mm server...");
+		return;
 	}
 
-	return 0;
-}
+	// Send connect message?
+	enet_host_flush(client);
 
-int SlippiMatchmaking::getDecided(SlippiNetplayClient *n1, SlippiNetplayClient *n2)
-{
-	auto s1 = n1->GetSlippiConnectStatus();
-	auto s2 = n2->GetSlippiConnectStatus();
-
-	auto failedStatus = SlippiNetplayClient::SlippiConnectStatus::NET_CONNECT_STATUS_FAILED;
-
-	if (s1 == failedStatus && s2 == failedStatus)
-		return -1;
-
-	if (n1->IsConnectionSelected())
-		return 1;
-
-	if (n2->IsConnectionSelected())
-		return 2;
-
-	return 0;
+	enet_peer_reset(server);
+	enet_host_destroy(client);
 }
 
 void SlippiMatchmaking::handleConnecting()
@@ -422,13 +416,26 @@ void SlippiMatchmaking::handleConnecting()
 	std::vector<std::string> ipParts;
 	SplitString(m_oppIp, ':', ipParts);
 
-	auto host = std::make_unique<SlippiNetplayClient>("", m_hostPort, 0, true);
-	auto client = std::make_unique<SlippiNetplayClient>(ipParts[0], m_hostPort, std::stoi(ipParts[1]), false);
+	std::unique_ptr<SlippiNetplayClient> client;
+	if (m_isHost)
+	{
+		sendHolePunchMsg(ipParts[0], std::stoi(ipParts[1]), m_hostPort);
+		if (m_state != ProcessState::OPPONENT_CONNECTING)
+			return;
+
+		client = std::make_unique<SlippiNetplayClient>("", 0, m_hostPort, true);
+	}
+	else
+	{
+		client = std::make_unique<SlippiNetplayClient>(ipParts[0], std::stoi(ipParts[1]), m_hostPort, false);
+	}
+
+	// TODO: Swap host if connection fails
 
 	while (!m_netplayClient)
 	{
-		int res = m_isDecider ? deciderChoose(host.get(), client.get()) : getDecided(host.get(), client.get());
-		if (res == 0)
+		auto status = client->GetSlippiConnectStatus();
+		if (status == SlippiNetplayClient::SlippiConnectStatus::NET_CONNECT_STATUS_INITIATED)
 		{
 			INFO_LOG(SLIPPI_ONLINE, "[Matchmaking] Connection not yet successful");
 			Common::SleepCurrentThread(500);
@@ -439,7 +446,7 @@ void SlippiMatchmaking::handleConnecting()
 
 			continue;
 		}
-		else if (res == -1)
+		else if (status == SlippiNetplayClient::SlippiConnectStatus::NET_CONNECT_STATUS_FAILED)
 		{
 			// Return to the start to get a new ticket to find someone else we can hopefully connect with
 			m_netplayClient = nullptr;
@@ -447,7 +454,10 @@ void SlippiMatchmaking::handleConnecting()
 			return;
 		}
 
-		m_netplayClient = res == 1 ? std::move(host) : std::move(client);
+		ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Connection success!");
+
+		// Successful connection
+		m_netplayClient = std::move(client);
 	}
 
 	// Connection success, our work is done

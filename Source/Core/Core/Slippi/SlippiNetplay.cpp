@@ -56,7 +56,7 @@ SlippiNetplayClient::~SlippiNetplayClient()
 }
 
 // called from ---SLIPPI EXI--- thread
-SlippiNetplayClient::SlippiNetplayClient(const std::string &address, const u16 localPort, const u16 remotePort,
+SlippiNetplayClient::SlippiNetplayClient(const std::string &address, const u16 remotePort, const u16 localPort,
                                          bool isHost)
 #ifdef _WIN32
     : m_qos_handle(nullptr)
@@ -228,6 +228,7 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet)
 
 	case NP_MSG_SLIPPI_CONN_SELECTED:
 	{
+		// Currently this is unused but the intent is to support two-way simultaneous connection attempts
 		isConnectionSelected = true;
 	}
 	break;

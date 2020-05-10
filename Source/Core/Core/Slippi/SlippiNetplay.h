@@ -102,7 +102,7 @@ class SlippiNetplayClient
 	void SendAsync(std::unique_ptr<sf::Packet> packet);
 
 	SlippiNetplayClient(bool isHost); // Make a dummy client
-	SlippiNetplayClient(const std::string &address, const u16 localPort, const u16 remotePort, bool isHost);
+	SlippiNetplayClient(const std::string &address, const u16 remotePort, const u16 localPort, bool isHost);
 	~SlippiNetplayClient();
 
 	// Slippi Online

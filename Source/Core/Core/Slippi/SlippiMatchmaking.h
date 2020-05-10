@@ -56,7 +56,7 @@ class SlippiMatchmaking
 	int m_hostPort;
 	std::string m_ticketId;
 	std::string m_oppIp;
-	bool m_isDecider;
+	bool m_isHost;
 
 	std::unique_ptr<SlippiNetplayClient> m_netplayClient;
 
@@ -75,8 +75,7 @@ class SlippiMatchmaking
 	void sendMessage(json msg);
 	int receiveMessage(json &msg, int maxAttempts);
 
-	int deciderChoose(SlippiNetplayClient *n1, SlippiNetplayClient *n2);
-	int getDecided(SlippiNetplayClient *n1, SlippiNetplayClient *n2);
+	void sendHolePunchMsg(std::string remoteIp, u16 remotePort, u16 localPort);
 
 	void startMatchmaking();
 	void handleMatchmaking();
