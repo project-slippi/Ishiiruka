@@ -53,10 +53,10 @@ class SlippiMatchmaking
 
 	SlippiUser *m_user;
 
-  int m_hostPort;
+	int m_hostPort;
 	std::string m_ticketId;
 	std::string m_oppIp;
-	bool m_isHost;
+	bool m_isDecider;
 
 	std::unique_ptr<SlippiNetplayClient> m_netplayClient;
 
@@ -70,10 +70,13 @@ class SlippiMatchmaking
 	    {ProcessState::OPPONENT_CONNECTING, true},
 	};
 
-  void disconnectFromServer();
-  void terminateMmConnection();
+	void disconnectFromServer();
+	void terminateMmConnection();
 	void sendMessage(json msg);
 	int receiveMessage(json &msg, int maxAttempts);
+
+	int deciderChoose(SlippiNetplayClient *n1, SlippiNetplayClient *n2);
+	int getDecided(SlippiNetplayClient *n1, SlippiNetplayClient *n2);
 
 	void startMatchmaking();
 	void handleMatchmaking();

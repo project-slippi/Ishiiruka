@@ -35,12 +35,9 @@ static std::mutex crit_netplay_client;
 // called from ---GUI--- thread
 SlippiNetplayClient::~SlippiNetplayClient()
 {
-	if (m_is_connected || isSlippiConnection)
-	{
-		m_do_loop.Clear();
-		if (m_thread.joinable())
-			m_thread.join();
-	}
+	m_do_loop.Clear();
+	if (m_thread.joinable())
+		m_thread.join();
 
 	if (m_server)
 	{
@@ -59,22 +56,29 @@ SlippiNetplayClient::~SlippiNetplayClient()
 }
 
 // called from ---SLIPPI EXI--- thread
-SlippiNetplayClient::SlippiNetplayClient(const std::string &address, const u16 port, bool isHost)
+SlippiNetplayClient::SlippiNetplayClient(const std::string &address, const u16 localPort, const u16 remotePort,
+                                         bool isHost)
 #ifdef _WIN32
     : m_qos_handle(nullptr)
     , m_qos_flow_id(0)
 #endif
 {
-	WARN_LOG(SLIPPI_ONLINE, "Initializing Slippi Netplay for ip: %s, port: %d, with host: %s", address.c_str(), port,
-	         isHost ? "true" : "false");
+	WARN_LOG(SLIPPI_ONLINE, "Initializing Slippi Netplay for ip: %s, port: %d, with host: %s", address.c_str(),
+	         localPort, isHost ? "true" : "false");
 	this->isHost = isHost;
 
-	// Direct Connection
-	ENetAddress serverAddr;
-	serverAddr.host = ENET_HOST_ANY;
-	serverAddr.port = port;
+	// Local address
+	ENetAddress *localAddr = nullptr;
+	if (localPort > 0)
+	{
+		ENetAddress localAddrDef;
+		localAddrDef.host = ENET_HOST_ANY;
+		localAddrDef.port = localPort;
 
-	m_client = enet_host_create(isHost ? &serverAddr : nullptr, 1, 3, 0, 0);
+		localAddr = &localAddrDef;
+	}
+
+	m_client = enet_host_create(localAddr, 1, 3, 0, 0);
 
 	if (m_client == nullptr)
 	{
@@ -85,7 +89,7 @@ SlippiNetplayClient::SlippiNetplayClient(const std::string &address, const u16 p
 	{
 		ENetAddress addr;
 		enet_address_set_host(&addr, address.c_str());
-		addr.port = port;
+		addr.port = remotePort;
 
 		m_server = enet_host_connect(m_client, &addr, 3, 0);
 
@@ -95,7 +99,6 @@ SlippiNetplayClient::SlippiNetplayClient(const std::string &address, const u16 p
 		}
 	}
 
-	isSlippiConnection = true;
 	slippiConnectStatus = SlippiConnectStatus::NET_CONNECT_STATUS_INITIATED;
 
 	m_thread = std::thread(&SlippiNetplayClient::ThreadFunc, this);
@@ -105,8 +108,6 @@ SlippiNetplayClient::SlippiNetplayClient(const std::string &address, const u16 p
 SlippiNetplayClient::SlippiNetplayClient(bool isHost)
 {
 	this->isHost = isHost;
-
-	isSlippiConnection = true;
 	slippiConnectStatus = SlippiConnectStatus::NET_CONNECT_STATUS_FAILED;
 }
 
@@ -222,6 +223,12 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet)
 		auto s = readSelectionsFromPacket(packet);
 		ERROR_LOG(SLIPPI_ONLINE, "[Received Selections] Char: 0x%X, Color: 0x%X", s->characterId, s->characterId);
 		matchInfo.remotePlayerSelections.Merge(*s);
+	}
+	break;
+
+	case NP_MSG_SLIPPI_CONN_SELECTED:
+	{
+		isConnectionSelected = true;
 	}
 	break;
 
@@ -437,9 +444,9 @@ bool SlippiNetplayClient::IsHost()
 	return isHost;
 }
 
-bool SlippiNetplayClient::IsSlippiConnection()
+bool SlippiNetplayClient::IsConnectionSelected()
 {
-	return isSlippiConnection;
+	return isConnectionSelected;
 }
 
 SlippiNetplayClient::SlippiConnectStatus SlippiNetplayClient::GetSlippiConnectStatus()
@@ -468,6 +475,15 @@ void SlippiNetplayClient::StartSlippiGame()
 
 	// Reset match info for next game
 	matchInfo.Reset();
+}
+
+void SlippiNetplayClient::SendConnectionSelected()
+{
+	isConnectionSelected = true;
+
+	auto spac = std::make_unique<sf::Packet>();
+	*spac << static_cast<MessageId>(NP_MSG_SLIPPI_CONN_SELECTED);
+	SendAsync(std::move(spac));
 }
 
 void SlippiNetplayClient::SendSlippiPad(std::unique_ptr<SlippiPad> pad)

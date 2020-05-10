@@ -3,6 +3,7 @@
 #include "Common/Logging/Log.h"
 #include "Common/StringUtil.h"
 #include <string>
+#include <vector>
 
 class MmMessageType
 {
@@ -27,7 +28,7 @@ SlippiMatchmaking::SlippiMatchmaking(SlippiUser *user)
 	m_user = user;
 	m_state = ProcessState::IDLE;
 
-  m_client = nullptr;
+	m_client = nullptr;
 	m_server = nullptr;
 }
 
@@ -38,10 +39,141 @@ SlippiMatchmaking::~SlippiMatchmaking()
 	if (m_matchmakeThread.joinable())
 		m_matchmakeThread.join();
 
-  terminateMmConnection();
+	terminateMmConnection();
 }
 
 void SlippiMatchmaking::FindMatch()
+{
+	isMmConnected = false;
+
+	m_state = ProcessState::INITIALIZING;
+	m_matchmakeThread = std::thread(&SlippiMatchmaking::MatchmakeThread, this);
+}
+
+SlippiMatchmaking::ProcessState SlippiMatchmaking::GetMatchmakeState()
+{
+	return m_state;
+}
+
+bool SlippiMatchmaking::IsSearching()
+{
+	return searchingStates.count(m_state) != 0;
+}
+
+std::unique_ptr<SlippiNetplayClient> SlippiMatchmaking::GetNetplayClient()
+{
+	return std::move(m_netplayClient);
+}
+
+void SlippiMatchmaking::sendMessage(json msg)
+{
+	enet_uint32 flags = ENET_PACKET_FLAG_RELIABLE;
+	u8 channelId = 0;
+
+	std::string msgContents = msg.dump();
+
+	ENetPacket *epac = enet_packet_create(msgContents.c_str(), msgContents.length(), flags);
+	enet_peer_send(m_server, channelId, epac);
+}
+
+int SlippiMatchmaking::receiveMessage(json &msg, int maxAttempts)
+{
+	for (int i = 0; i < maxAttempts; i++)
+	{
+		ENetEvent netEvent;
+		int net = enet_host_service(m_client, &netEvent, 250);
+		if (net <= 0)
+			continue;
+
+		switch (netEvent.type)
+		{
+		case ENET_EVENT_TYPE_RECEIVE:
+		{
+			std::vector<u8> buf;
+			buf.insert(buf.end(), netEvent.packet->data, netEvent.packet->data + netEvent.packet->dataLength);
+
+			std::string str(buf.begin(), buf.end());
+			INFO_LOG(SLIPPI_ONLINE, "[Matchmaking] Received: %s", str.c_str());
+			msg = json::parse(str);
+
+			enet_packet_destroy(netEvent.packet);
+			return 0;
+		}
+		case ENET_EVENT_TYPE_DISCONNECT:
+			// TODO: Handle
+			break;
+		}
+	}
+
+	return -1;
+}
+
+void SlippiMatchmaking::MatchmakeThread()
+{
+	while (IsSearching())
+	{
+		switch (m_state)
+		{
+		case ProcessState::INITIALIZING:
+			startMatchmaking();
+			break;
+		case ProcessState::MATCHMAKING:
+			handleMatchmaking();
+			break;
+		case ProcessState::OPPONENT_CONNECTING:
+			handleConnecting();
+			break;
+		}
+	}
+
+	// TODO: Clean up ENET connections
+	terminateMmConnection();
+}
+
+void SlippiMatchmaking::disconnectFromServer()
+{
+	isMmConnected = false;
+
+	if (m_server)
+		enet_peer_disconnect(m_server, 0);
+	else
+		return;
+
+	ENetEvent netEvent;
+	while (enet_host_service(m_client, &netEvent, 3000) > 0)
+	{
+		switch (netEvent.type)
+		{
+		case ENET_EVENT_TYPE_RECEIVE:
+			enet_packet_destroy(netEvent.packet);
+			break;
+		case ENET_EVENT_TYPE_DISCONNECT:
+			m_server = nullptr;
+			return;
+		default:
+			break;
+		}
+	}
+
+	// didn't disconnect gracefully force disconnect
+	enet_peer_reset(m_server);
+	m_server = nullptr;
+}
+
+void SlippiMatchmaking::terminateMmConnection()
+{
+	// Disconnect from server
+	disconnectFromServer();
+
+	// Destroy client
+	if (m_client)
+	{
+		enet_host_destroy(m_client);
+		m_client = nullptr;
+	}
+}
+
+void SlippiMatchmaking::startMatchmaking()
 {
 	m_hostPort = 51000;
 
@@ -75,135 +207,6 @@ void SlippiMatchmaking::FindMatch()
 		return;
 	}
 
-	isMmConnected = false;
-
-	m_state = ProcessState::INITIALIZING;
-	m_matchmakeThread = std::thread(&SlippiMatchmaking::MatchmakeThread, this);
-}
-
-SlippiMatchmaking::ProcessState SlippiMatchmaking::GetMatchmakeState()
-{
-	return m_state;
-}
-
-bool SlippiMatchmaking::IsSearching()
-{
-	return searchingStates.count(m_state) != 0;
-}
-
-std::unique_ptr<SlippiNetplayClient> SlippiMatchmaking::GetNetplayClient()
-{
-	return std::move(m_netplayClient);
-}
-
-void SlippiMatchmaking::MatchmakeThread()
-{
-	while (IsSearching())
-	{
-		switch (m_state)
-		{
-		case ProcessState::INITIALIZING:
-			startMatchmaking();
-			break;
-		case ProcessState::MATCHMAKING:
-			handleMatchmaking();
-			break;
-		case ProcessState::OPPONENT_CONNECTING:
-			handleConnecting();
-			break;
-		}
-	}
-
-	// TODO: Clean up ENET connections
-}
-
-void SlippiMatchmaking::sendMessage(json msg)
-{
-	enet_uint32 flags = ENET_PACKET_FLAG_RELIABLE;
-	u8 channelId = 0;
-
-	sf::Packet packet;
-	packet << msg.dump();
-
-	ENetPacket *epac = enet_packet_create(packet.getData(), packet.getDataSize(), flags);
-	enet_peer_send(m_server, channelId, epac);
-}
-
-int SlippiMatchmaking::receiveMessage(json &msg, int maxAttempts)
-{
-	for (int i = 0; i < maxAttempts; i++)
-	{
-		ENetEvent netEvent;
-		int net = enet_host_service(m_client, &netEvent, 250);
-		if (net <= 0)
-			continue;
-
-		switch (netEvent.type)
-		{
-		case ENET_EVENT_TYPE_RECEIVE:
-		{
-			sf::Packet rpac;
-			rpac.append(netEvent.packet->data, netEvent.packet->dataLength);
-
-			std::string str;
-			rpac >> str;
-
-			msg = json::parse(str);
-
-			enet_packet_destroy(netEvent.packet);
-			return 0;
-		}
-		case ENET_EVENT_TYPE_DISCONNECT:
-			// TODO: Handle
-			break;
-		}
-	}
-
-	return -1;
-}
-
-void SlippiMatchmaking::disconnectFromServer() {
-	if (m_server)
-		enet_peer_disconnect(m_server, 0);
-	else
-		return;
-
-  ENetEvent netEvent;
-	while (enet_host_service(m_client, &netEvent, 3000) > 0)
-	{
-		switch (netEvent.type)
-		{
-		case ENET_EVENT_TYPE_RECEIVE:
-			enet_packet_destroy(netEvent.packet);
-			break;
-		case ENET_EVENT_TYPE_DISCONNECT:
-			m_server = nullptr;
-			return;
-		default:
-			break;
-		}
-	}
-
-	// didn't disconnect gracefully force disconnect
-	enet_peer_reset(m_server);
-	m_server = nullptr;
-}
-
-void SlippiMatchmaking::terminateMmConnection()
-{
-  // Disconnect from server
-	disconnectFromServer();
-
-  // Destroy client
-  if (m_client)
-  {
-	  enet_host_destroy(m_client);
-	  m_client = nullptr;
-  }
-}
-
-void SlippiMatchmaking::startMatchmaking()
-{
 	// Before we can request a ticket, we must wait for connection to be successful
 	int connectAttemptCount = 0;
 	while (!isMmConnected)
@@ -286,11 +289,10 @@ void SlippiMatchmaking::startMatchmaking()
 void SlippiMatchmaking::handleMatchmaking()
 {
 	Common::SleepCurrentThread(1000);
+
+	// Deal with class shut down
 	if (m_state != ProcessState::MATCHMAKING)
-	{
-		// If the destructor was called during the sleep, state might have changed
 		return;
-	}
 
 	// Send message to server to get ticket
 	json getReq;
@@ -360,14 +362,59 @@ void SlippiMatchmaking::handleMatchmaking()
 
 	m_netplayClient = nullptr;
 	m_oppIp = getResp.value("oppAddress", "");
-	m_isHost = getResp.value("isHost", false);
+	m_isDecider = getResp.value("isHost", false);
 
 	// Disconnect and destroy enet client to mm server
 	terminateMmConnection();
 
 	m_state = ProcessState::OPPONENT_CONNECTING;
-	ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Opponent found. IP: %s, isHost: %s", m_oppIp.c_str(),
-	          m_isHost ? "true" : "false");
+	ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Opponent found. IP: %s, isDecider: %s", m_oppIp.c_str(),
+	          m_isDecider ? "true" : "false");
+}
+
+int SlippiMatchmaking::deciderChoose(SlippiNetplayClient *n1, SlippiNetplayClient *n2)
+{
+	auto s1 = n1->GetSlippiConnectStatus();
+	auto s2 = n2->GetSlippiConnectStatus();
+
+	auto failedStatus = SlippiNetplayClient::SlippiConnectStatus::NET_CONNECT_STATUS_FAILED;
+	auto successStatus = SlippiNetplayClient::SlippiConnectStatus::NET_CONNECT_STATUS_CONNECTED;
+
+	if (s1 == failedStatus && s2 == failedStatus)
+		return -1;
+
+	if (s1 == successStatus)
+	{
+		n1->SendConnectionSelected();
+		return 1;
+	}
+
+	if (s2 == successStatus)
+	{
+		n2->SendConnectionSelected();
+		return 2;
+	}
+
+	return 0;
+}
+
+int SlippiMatchmaking::getDecided(SlippiNetplayClient *n1, SlippiNetplayClient *n2)
+{
+	auto s1 = n1->GetSlippiConnectStatus();
+	auto s2 = n2->GetSlippiConnectStatus();
+
+	auto failedStatus = SlippiNetplayClient::SlippiConnectStatus::NET_CONNECT_STATUS_FAILED;
+
+	if (s1 == failedStatus && s2 == failedStatus)
+		return -1;
+
+	if (n1->IsConnectionSelected())
+		return 1;
+
+	if (n2->IsConnectionSelected())
+		return 2;
+
+	return 0;
 }
 
 void SlippiMatchmaking::handleConnecting()
@@ -375,25 +422,32 @@ void SlippiMatchmaking::handleConnecting()
 	std::vector<std::string> ipParts;
 	SplitString(m_oppIp, ':', ipParts);
 
-	if (!m_netplayClient)
-	{
-		int port = m_isHost ? m_hostPort : std::stoi(ipParts[1]);
-		m_netplayClient = std::make_unique<SlippiNetplayClient>(ipParts[0], port, m_isHost);
-	}
+	auto host = std::make_unique<SlippiNetplayClient>("", m_hostPort, 0, true);
+	auto client = std::make_unique<SlippiNetplayClient>(ipParts[0], m_hostPort, std::stoi(ipParts[1]), false);
 
-	auto status = m_netplayClient->GetSlippiConnectStatus();
-	if (status == SlippiNetplayClient::SlippiConnectStatus::NET_CONNECT_STATUS_INITIATED)
+	while (!m_netplayClient)
 	{
-		ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Connection not yet successful");
-		Common::SleepCurrentThread(1000);
-		return;
-	}
-	else if (status == SlippiNetplayClient::SlippiConnectStatus::NET_CONNECT_STATUS_FAILED)
-	{
-		// Return to the start to get a new ticket to find someone else we can hopefully connect with
-		m_netplayClient = nullptr;
-		m_state = ProcessState::INITIALIZING;
-		return;
+		int res = m_isDecider ? deciderChoose(host.get(), client.get()) : getDecided(host.get(), client.get());
+		if (res == 0)
+		{
+			INFO_LOG(SLIPPI_ONLINE, "[Matchmaking] Connection not yet successful");
+			Common::SleepCurrentThread(500);
+
+			// Deal with class shut down
+			if (m_state != ProcessState::OPPONENT_CONNECTING)
+				return;
+
+			continue;
+		}
+		else if (res == -1)
+		{
+			// Return to the start to get a new ticket to find someone else we can hopefully connect with
+			m_netplayClient = nullptr;
+			m_state = ProcessState::INITIALIZING;
+			return;
+		}
+
+		m_netplayClient = res == 1 ? std::move(host) : std::move(client);
 	}
 
 	// Connection success, our work is done
