@@ -35,12 +35,9 @@ static std::mutex crit_netplay_client;
 // called from ---GUI--- thread
 SlippiNetplayClient::~SlippiNetplayClient()
 {
-	if (m_is_connected || isSlippiConnection)
-	{
-		m_do_loop.Clear();
-		if (m_thread.joinable())
-			m_thread.join();
-	}
+	m_do_loop.Clear();
+	if (m_thread.joinable())
+		m_thread.join();
 
 	if (m_server)
 	{
@@ -56,32 +53,32 @@ SlippiNetplayClient::~SlippiNetplayClient()
 		enet_host_destroy(m_client);
 		m_client = nullptr;
 	}
-
-#ifdef USE_UPNP
-	if (m_upnp_thread.joinable())
-		m_upnp_thread.join();
-	m_upnp_thread = std::thread(&SlippiNetplayClient::unmapPortThread);
-	m_upnp_thread.join();
-#endif
 }
 
 // called from ---SLIPPI EXI--- thread
-SlippiNetplayClient::SlippiNetplayClient(const std::string &address, const u16 port, bool isHost)
+SlippiNetplayClient::SlippiNetplayClient(const std::string &address, const u16 remotePort, const u16 localPort,
+                                         bool isHost)
 #ifdef _WIN32
     : m_qos_handle(nullptr)
     , m_qos_flow_id(0)
 #endif
 {
-	WARN_LOG(SLIPPI_ONLINE, "Initializing Slippi Netplay for ip: %s, port: %d, with host: %s", address.c_str(), port,
-	         isHost ? "true" : "false");
+	WARN_LOG(SLIPPI_ONLINE, "Initializing Slippi Netplay for ip: %s, port: %d, with host: %s", address.c_str(),
+	         localPort, isHost ? "true" : "false");
 	this->isHost = isHost;
 
-	// Direct Connection
-	ENetAddress serverAddr;
-	serverAddr.host = ENET_HOST_ANY;
-	serverAddr.port = port;
+	// Local address
+	ENetAddress *localAddr = nullptr;
+	if (localPort > 0)
+	{
+		ENetAddress localAddrDef;
+		localAddrDef.host = ENET_HOST_ANY;
+		localAddrDef.port = localPort;
 
-	m_client = enet_host_create(isHost ? &serverAddr : nullptr, 1, 3, 0, 0);
+		localAddr = &localAddrDef;
+	}
+
+	m_client = enet_host_create(localAddr, 1, 3, 0, 0);
 
 	if (m_client == nullptr)
 	{
@@ -92,7 +89,7 @@ SlippiNetplayClient::SlippiNetplayClient(const std::string &address, const u16 p
 	{
 		ENetAddress addr;
 		enet_address_set_host(&addr, address.c_str());
-		addr.port = port;
+		addr.port = remotePort;
 
 		m_server = enet_host_connect(m_client, &addr, 3, 0);
 
@@ -102,14 +99,6 @@ SlippiNetplayClient::SlippiNetplayClient(const std::string &address, const u16 p
 		}
 	}
 
-	if (isHost)
-	{
-#ifdef USE_UPNP
-		TryPortmapping(port);
-#endif
-	}
-
-	isSlippiConnection = true;
 	slippiConnectStatus = SlippiConnectStatus::NET_CONNECT_STATUS_INITIATED;
 
 	m_thread = std::thread(&SlippiNetplayClient::ThreadFunc, this);
@@ -119,8 +108,6 @@ SlippiNetplayClient::SlippiNetplayClient(const std::string &address, const u16 p
 SlippiNetplayClient::SlippiNetplayClient(bool isHost)
 {
 	this->isHost = isHost;
-
-	isSlippiConnection = true;
 	slippiConnectStatus = SlippiConnectStatus::NET_CONNECT_STATUS_FAILED;
 }
 
@@ -239,6 +226,13 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet)
 	}
 	break;
 
+	case NP_MSG_SLIPPI_CONN_SELECTED:
+	{
+		// Currently this is unused but the intent is to support two-way simultaneous connection attempts
+		isConnectionSelected = true;
+	}
+	break;
+
 	default:
 		PanicAlertT("Unknown message received with id : %d", mid);
 		break;
@@ -337,7 +331,7 @@ void SlippiNetplayClient::ThreadFunc()
 	{
 		// This will confirm that connection went through successfully
 		ENetEvent netEvent;
-		int net = enet_host_service(m_client, &netEvent, 1000);
+		int net = enet_host_service(m_client, &netEvent, 500);
 		if (net > 0 && netEvent.type == ENET_EVENT_TYPE_CONNECT)
 		{
 			// TODO: Confirm gecko codes match?
@@ -451,9 +445,9 @@ bool SlippiNetplayClient::IsHost()
 	return isHost;
 }
 
-bool SlippiNetplayClient::IsSlippiConnection()
+bool SlippiNetplayClient::IsConnectionSelected()
 {
-	return isSlippiConnection;
+	return isConnectionSelected;
 }
 
 SlippiNetplayClient::SlippiConnectStatus SlippiNetplayClient::GetSlippiConnectStatus()
@@ -482,6 +476,15 @@ void SlippiNetplayClient::StartSlippiGame()
 
 	// Reset match info for next game
 	matchInfo.Reset();
+}
+
+void SlippiNetplayClient::SendConnectionSelected()
+{
+	isConnectionSelected = true;
+
+	auto spac = std::make_unique<sf::Packet>();
+	*spac << static_cast<MessageId>(NP_MSG_SLIPPI_CONN_SELECTED);
+	SendAsync(std::move(spac));
 }
 
 void SlippiNetplayClient::SendSlippiPad(std::unique_ptr<SlippiPad> pad)
@@ -641,157 +644,3 @@ s32 SlippiNetplayClient::CalcTimeOffsetUs()
 
 	return sum / count;
 }
-
-#ifdef USE_UPNP
-#include <miniupnpc.h>
-#include <miniwget.h>
-#include <upnpcommands.h>
-
-struct UPNPUrls SlippiNetplayClient::m_upnp_urls;
-struct IGDdatas SlippiNetplayClient::m_upnp_data;
-std::string SlippiNetplayClient::m_upnp_ourip;
-u16 SlippiNetplayClient::m_upnp_mapped = 0;
-bool SlippiNetplayClient::m_upnp_inited = false;
-bool SlippiNetplayClient::m_upnp_error = false;
-std::thread SlippiNetplayClient::m_upnp_thread;
-
-// called from ---GUI--- thread
-void SlippiNetplayClient::TryPortmapping(u16 port)
-{
-	if (m_upnp_thread.joinable())
-		m_upnp_thread.join();
-	m_upnp_thread = std::thread(&SlippiNetplayClient::mapPortThread, port);
-}
-
-// UPnP thread: try to map a port
-void SlippiNetplayClient::mapPortThread(const u16 port)
-{
-	if (!m_upnp_inited)
-		if (!initUPnP())
-			goto fail;
-
-	if (!UPnPMapPort(m_upnp_ourip, port))
-		goto fail;
-
-	NOTICE_LOG(NETPLAY, "Successfully mapped port %d to %s.", port, m_upnp_ourip.c_str());
-	return;
-fail:
-	WARN_LOG(NETPLAY, "Failed to map port %d to %s.", port, m_upnp_ourip.c_str());
-	return;
-}
-
-// UPnP thread: try to unmap a port
-void SlippiNetplayClient::unmapPortThread()
-{
-	if (m_upnp_mapped > 0)
-		UPnPUnmapPort(m_upnp_mapped);
-}
-
-// called from ---UPnP--- thread
-// discovers the IGD
-bool SlippiNetplayClient::initUPnP()
-{
-	std::vector<UPNPDev *> igds;
-	int descXMLsize = 0, upnperror = 0;
-	char cIP[20];
-
-	// Don't init if already inited
-	if (m_upnp_inited)
-		return true;
-
-	// Don't init if it failed before
-	if (m_upnp_error)
-		return false;
-
-	memset(&m_upnp_urls, 0, sizeof(UPNPUrls));
-	memset(&m_upnp_data, 0, sizeof(IGDdatas));
-
-	// Find all UPnP devices
-	std::unique_ptr<UPNPDev, decltype(&freeUPNPDevlist)> devlist(nullptr, freeUPNPDevlist);
-#if MINIUPNPC_API_VERSION >= 14
-	devlist.reset(upnpDiscover(2000, nullptr, nullptr, 0, 0, 2, &upnperror));
-#else
-	devlist.reset(upnpDiscover(2000, nullptr, nullptr, 0, 0, &upnperror));
-#endif
-	if (!devlist)
-	{
-		WARN_LOG(NETPLAY, "An error occurred trying to discover UPnP devices.");
-
-		m_upnp_error = true;
-		m_upnp_inited = false;
-
-		return false;
-	}
-
-	// Look for the IGD
-	for (UPNPDev *dev = devlist.get(); dev; dev = dev->pNext)
-	{
-		if (strstr(dev->st, "InternetGatewayDevice"))
-			igds.push_back(dev);
-	}
-
-	for (const UPNPDev *dev : igds)
-	{
-		std::unique_ptr<char, decltype(&std::free)> descXML(nullptr, std::free);
-		int statusCode = 200;
-#if MINIUPNPC_API_VERSION >= 16
-		descXML.reset(
-		    static_cast<char *>(miniwget_getaddr(dev->descURL, &descXMLsize, cIP, sizeof(cIP), 0, &statusCode)));
-#else
-		descXML.reset(static_cast<char *>(miniwget_getaddr(dev->descURL, &descXMLsize, cIP, sizeof(cIP), 0)));
-#endif
-		if (descXML && statusCode == 200)
-		{
-			parserootdesc(descXML.get(), descXMLsize, &m_upnp_data);
-			GetUPNPUrls(&m_upnp_urls, &m_upnp_data, dev->descURL, 0);
-
-			m_upnp_ourip = cIP;
-
-			NOTICE_LOG(NETPLAY, "Got info from IGD at %s.", dev->descURL);
-			break;
-		}
-		else
-		{
-			WARN_LOG(NETPLAY, "Error getting info from IGD at %s.", dev->descURL);
-		}
-	}
-
-	return true;
-}
-
-// called from ---UPnP--- thread
-// Attempt to portforward!
-bool SlippiNetplayClient::UPnPMapPort(const std::string &addr, const u16 port)
-{
-	if (m_upnp_mapped > 0)
-		UPnPUnmapPort(m_upnp_mapped);
-
-	std::string port_str = StringFromFormat("%d", port);
-	int result =
-	    UPNP_AddPortMapping(m_upnp_urls.controlURL, m_upnp_data.first.servicetype, port_str.c_str(), port_str.c_str(),
-	                        addr.c_str(), (std::string("dolphin-emu UDP on ") + addr).c_str(), "UDP", nullptr, nullptr);
-
-	if (result != 0)
-		return false;
-
-	m_upnp_mapped = port;
-
-	return true;
-}
-
-// called from ---UPnP--- thread
-// Attempt to stop portforwarding.
-// --
-// NOTE: It is important that this happens! A few very crappy routers
-// apparently do not delete UPnP mappings on their own, so if you leave them
-// hanging, the NVRAM will fill with portmappings, and eventually all UPnP
-// requests will fail silently, with the only recourse being a factory reset.
-// --
-bool SlippiNetplayClient::UPnPUnmapPort(const u16 port)
-{
-	std::string port_str = StringFromFormat("%d", port);
-	UPNP_DeletePortMapping(m_upnp_urls.controlURL, m_upnp_data.first.servicetype, port_str.c_str(), "UDP", nullptr);
-
-	return true;
-}
-#endif

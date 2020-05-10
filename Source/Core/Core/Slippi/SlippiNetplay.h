@@ -102,7 +102,7 @@ class SlippiNetplayClient
 	void SendAsync(std::unique_ptr<sf::Packet> packet);
 
 	SlippiNetplayClient(bool isHost); // Make a dummy client
-	SlippiNetplayClient(const std::string &address, const u16 port, bool isHost);
+	SlippiNetplayClient(const std::string &address, const u16 remotePort, const u16 localPort, bool isHost);
 	~SlippiNetplayClient();
 
 	// Slippi Online
@@ -115,9 +115,10 @@ class SlippiNetplayClient
 	};
 
 	bool IsHost();
-	bool IsSlippiConnection();
+	bool IsConnectionSelected();
 	SlippiConnectStatus GetSlippiConnectStatus();
 	void StartSlippiGame();
+	void SendConnectionSelected();
 	void SendSlippiPad(std::unique_ptr<SlippiPad> pad);
 	void SetMatchSelections(SlippiPlayerSelections &s);
 	std::unique_ptr<SlippiRemotePadOutput> GetSlippiRemotePad(int32_t curFrame);
@@ -125,10 +126,6 @@ class SlippiNetplayClient
 	u64 GetSlippiPing();
 	int32_t GetSlippiLatestRemoteFrame();
 	s32 CalcTimeOffsetUs();
-
-#ifdef USE_UPNP
-	void TryPortmapping(u16 port);
-#endif
 
   protected:
 	struct
@@ -167,7 +164,7 @@ class SlippiNetplayClient
 		std::vector<s32> buf;
 	} frameOffsetData;
 
-	bool isSlippiConnection = false;
+	bool isConnectionSelected = false;
 	bool isHost = false;
 	int32_t lastFrameAcked;
 	std::shared_ptr<FrameTiming> lastFrameTiming;
@@ -207,21 +204,4 @@ class SlippiNetplayClient
 #endif
 
 	u32 m_timebase_frame = 0;
-
-#ifdef USE_UPNP
-	static void mapPortThread(const u16 port);
-	static void unmapPortThread();
-
-	static bool initUPnP();
-	static bool UPnPMapPort(const std::string &addr, const u16 port);
-	static bool UPnPUnmapPort(const u16 port);
-
-	static struct UPNPUrls m_upnp_urls;
-	static struct IGDdatas m_upnp_data;
-	static std::string m_upnp_ourip;
-	static u16 m_upnp_mapped;
-	static bool m_upnp_inited;
-	static bool m_upnp_error;
-	static std::thread m_upnp_thread;
-#endif
 };
