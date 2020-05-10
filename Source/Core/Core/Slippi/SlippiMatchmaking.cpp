@@ -360,6 +360,7 @@ void SlippiMatchmaking::handleMatchmaking()
 		ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Received error from server for delete ticket");
 	}
 
+	m_isSwapAttempt = false;
 	m_netplayClient = nullptr;
 	m_oppIp = getResp.value("oppAddress", "");
 	m_isHost = getResp.value("isHost", false);
@@ -448,6 +449,18 @@ void SlippiMatchmaking::handleConnecting()
 		}
 		else if (status == SlippiNetplayClient::SlippiConnectStatus::NET_CONNECT_STATUS_FAILED)
 		{
+			if (!m_isSwapAttempt)
+			{
+				ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Connection attempt 1 failed, attempting swap.");
+
+				// Try swapping hosts and connecting again
+				m_isHost = !m_isHost;
+				m_isSwapAttempt = true;
+				return;
+			}
+
+			ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Connection attempts both failed, looking for someone else.");
+
 			// Return to the start to get a new ticket to find someone else we can hopefully connect with
 			m_netplayClient = nullptr;
 			m_state = ProcessState::INITIALIZING;

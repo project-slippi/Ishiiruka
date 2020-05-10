@@ -36,7 +36,7 @@ class SlippiMatchmaking
 	std::unique_ptr<SlippiNetplayClient> GetNetplayClient();
 
   protected:
-	const std::string MM_HOST = "35.197.121.196";
+	const std::string MM_HOST = "mm.slippi.gg";
 	const u16 MM_PORT = 43113;
 
 	ENetHost *m_client;
@@ -52,6 +52,8 @@ class SlippiMatchmaking
 	ProcessState m_state;
 
 	SlippiUser *m_user;
+
+	int m_isSwapAttempt = false;
 
 	int m_hostPort;
 	std::string m_ticketId;

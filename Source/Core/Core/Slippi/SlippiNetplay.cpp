@@ -331,7 +331,7 @@ void SlippiNetplayClient::ThreadFunc()
 	{
 		// This will confirm that connection went through successfully
 		ENetEvent netEvent;
-		int net = enet_host_service(m_client, &netEvent, 1000);
+		int net = enet_host_service(m_client, &netEvent, 500);
 		if (net > 0 && netEvent.type == ENET_EVENT_TYPE_CONNECT)
 		{
 			// TODO: Confirm gecko codes match?
