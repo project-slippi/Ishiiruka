@@ -1806,11 +1806,11 @@ void CEXISlippi::prepareOnlineStatus()
 	auto nameBuf = playerName.c_str();
 	m_read_queue.insert(m_read_queue.end(), nameBuf, nameBuf + MAX_NAME_LENGTH + 1);
 
-	// Write connect code (9 bytes)
+	// Write connect code (10 bytes)
 	std::string connectCode = userInfo.connectCode;
 	char shiftJisHashtag[] = {(char)0x81, (char)0x94, (char)0x00};
+	connectCode.resize(CONNECT_CODE_LENGTH);
 	connectCode = ReplaceAll(connectCode, "#", shiftJisHashtag);
-	connectCode.resize(CONNECT_CODE_LENGTH + 1);
 	auto codeBuf = connectCode.c_str();
 	m_read_queue.insert(m_read_queue.end(), codeBuf, codeBuf + CONNECT_CODE_LENGTH + 2);
 }
