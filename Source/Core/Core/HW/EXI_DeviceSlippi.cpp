@@ -154,6 +154,16 @@ CEXISlippi::CEXISlippi()
 	std::vector<u8> modified(modifiedStr.begin(), modifiedStr.end());
 	auto diff = processDiff(orig, modified);
 	File::WriteStringToFile(diff, "C:\\Users\\Jas\\Documents\\Melee\\Textures\\Slippi\\MainMenu\\MnMaAll.usd.diff");
+	File::WriteStringToFile(diff, "C:\\Dolphin\\IshiiDev\\Sys\\GameFiles\\GALE01\\MnMaAll.usd.diff");
+
+  // MnExtAll
+	File::ReadFileToString("C:\\Users\\Jas\\Documents\\Melee\\Textures\\Slippi\\CSS\\MnExtAll.usd", origStr);
+	File::ReadFileToString("C:\\Users\\Jas\\Documents\\Melee\\Textures\\Slippi\\CSS\\MnExtAll-new.usd", modifiedStr);
+	orig = std::vector<u8>(origStr.begin(), origStr.end());
+	modified = std::vector<u8>(modifiedStr.begin(), modifiedStr.end());
+	diff = processDiff(orig, modified);
+	File::WriteStringToFile(diff, "C:\\Users\\Jas\\Documents\\Melee\\Textures\\Slippi\\CSS\\MnExtAll.usd.diff");
+	File::WriteStringToFile(diff, "C:\\Dolphin\\IshiiDev\\Sys\\GameFiles\\GALE01\\MnExtAll.usd.diff");
 
 	// TEMP - Restore orig
 	std::string stateString;
@@ -1798,9 +1808,11 @@ void CEXISlippi::prepareOnlineStatus()
 
 	// Write connect code (9 bytes)
 	std::string connectCode = userInfo.connectCode;
-	connectCode.resize(CONNECT_CODE_LENGTH);
+	char shiftJisHashtag[] = {(char)0x81, (char)0x94, (char)0x00};
+	connectCode = ReplaceAll(connectCode, "#", shiftJisHashtag);
+	connectCode.resize(CONNECT_CODE_LENGTH + 1);
 	auto codeBuf = connectCode.c_str();
-	m_read_queue.insert(m_read_queue.end(), codeBuf, codeBuf + CONNECT_CODE_LENGTH + 1);
+	m_read_queue.insert(m_read_queue.end(), codeBuf, codeBuf + CONNECT_CODE_LENGTH + 2);
 }
 
 void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
