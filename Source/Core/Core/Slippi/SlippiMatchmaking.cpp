@@ -251,11 +251,15 @@ void SlippiMatchmaking::startMatchmaking()
 
 	auto userInfo = m_user->GetUserInfo();
 
+	std::vector<u8> connectCodeBuf;
+	connectCodeBuf.insert(connectCodeBuf.end(), m_searchSettings.connectCode.begin(),
+	                      m_searchSettings.connectCode.end());
+
 	// Send message to server to create ticket
 	json request;
 	request["type"] = MmMessageType::CREATE_TICKET;
 	request["user"] = {{"uid", userInfo.uid}, {"playKey", userInfo.playKey}};
-	request["search"] = {{"mode", m_searchSettings.mode}, {"connectCode", m_searchSettings.connectCode}};
+	request["search"] = {{"mode", m_searchSettings.mode}, {"connectCode", connectCodeBuf}};
 	sendMessage(request);
 
 	// Get response from server

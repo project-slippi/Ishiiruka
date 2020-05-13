@@ -1504,7 +1504,9 @@ void CEXISlippi::startFindMatch(u8 *payload)
 	shiftJisCode.insert(shiftJisCode.begin(), &payload[1], &payload[1] + 18);
 	shiftJisCode.erase(std::find(shiftJisCode.begin(), shiftJisCode.end(), 0x00), shiftJisCode.end());
 
-	search.connectCode = SHIFTJISToUTF8(shiftJisCode).c_str();
+	// TODO: Make this work so we dont have to pass shiftJis to mm server
+	// search.connectCode = SHIFTJISToUTF8(shiftJisCode).c_str();
+	search.connectCode = shiftJisCode;
 
 	matchmaking->FindMatch(search);
 #endif
