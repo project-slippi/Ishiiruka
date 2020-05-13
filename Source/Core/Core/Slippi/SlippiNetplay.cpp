@@ -53,6 +53,8 @@ SlippiNetplayClient::~SlippiNetplayClient()
 		enet_host_destroy(m_client);
 		m_client = nullptr;
 	}
+
+	ERROR_LOG(SLIPPI_ONLINE, "Netplay client cleanup complete");
 }
 
 // called from ---SLIPPI EXI--- thread

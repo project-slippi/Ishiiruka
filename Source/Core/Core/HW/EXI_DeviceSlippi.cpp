@@ -1584,11 +1584,11 @@ void CEXISlippi::prepareOnlineMatchState()
 			localPlayerIndex = isHost ? 0 : 1;
 			remotePlayerIndex = isHost ? 1 : 0;
 		}
-    else
-    {
-      // If we get here, our opponent likely disconnected. Let's trigger a clean up
-		  handleConnectionCleanup();
-    }
+		else
+		{
+			// If we get here, our opponent likely disconnected. Let's trigger a clean up
+			handleConnectionCleanup();
+		}
 	}
 	else
 	{
@@ -1840,20 +1840,33 @@ void CEXISlippi::prepareOnlineStatus()
 	m_read_queue.insert(m_read_queue.end(), codeBuf, codeBuf + CONNECT_CODE_LENGTH + 2);
 }
 
+void doConnectionCleanup(std::unique_ptr<SlippiMatchmaking> mm, std::unique_ptr<SlippiNetplayClient> nc)
+{
+	if (mm)
+		mm.reset();
+
+	if (nc)
+		nc.reset();
+}
+
 void CEXISlippi::handleConnectionCleanup()
 {
+	ERROR_LOG(SLIPPI_ONLINE, "Connection cleanup started...");
+
+	// Handle destructors in a separate thread to not block the main thread
+	std::thread cleanup(doConnectionCleanup, std::move(matchmaking), std::move(slippi_netplay));
+	cleanup.detach();
+
 	// Reset matchmaking
-	matchmaking->Reset();
+	matchmaking = std::make_unique<SlippiMatchmaking>(user.get());
 
 	// Disconnect netplay client
-	if (slippi_netplay)
-	{
-		slippi_netplay.reset();
-		slippi_netplay = nullptr;
-	}
+	slippi_netplay = nullptr;
 
 	// Clear character selections
 	localSelections.Reset();
+
+	ERROR_LOG(SLIPPI_ONLINE, "Connection cleanup completed...");
 }
 
 void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)

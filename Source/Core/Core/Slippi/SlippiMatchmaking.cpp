@@ -42,22 +42,6 @@ SlippiMatchmaking::~SlippiMatchmaking()
 	terminateMmConnection();
 }
 
-void SlippiMatchmaking::Reset() 
-{
-	m_state = ProcessState::ERROR_ENCOUNTERED;
-
-  // Probably don't want to block like this?
-	if (m_matchmakeThread.joinable())
-		m_matchmakeThread.join();
-
-	terminateMmConnection();
-
-  // Reset variables
-  m_state = ProcessState::IDLE;
-	m_client = nullptr;
-	m_server = nullptr;
-}
-
 void SlippiMatchmaking::FindMatch(MatchSearchSettings settings)
 {
 	isMmConnected = false;
