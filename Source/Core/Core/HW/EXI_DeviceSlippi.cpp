@@ -156,7 +156,7 @@ CEXISlippi::CEXISlippi()
 	File::WriteStringToFile(diff, "C:\\Users\\Jas\\Documents\\Melee\\Textures\\Slippi\\MainMenu\\MnMaAll.usd.diff");
 	File::WriteStringToFile(diff, "C:\\Dolphin\\IshiiDev\\Sys\\GameFiles\\GALE01\\MnMaAll.usd.diff");
 
-  // MnExtAll
+	// MnExtAll
 	File::ReadFileToString("C:\\Users\\Jas\\Documents\\Melee\\Textures\\Slippi\\CSS\\MnExtAll.usd", origStr);
 	File::ReadFileToString("C:\\Users\\Jas\\Documents\\Melee\\Textures\\Slippi\\CSS\\MnExtAll-new.usd", modifiedStr);
 	orig = std::vector<u8>(origStr.begin(), origStr.end());
@@ -1494,10 +1494,19 @@ void CEXISlippi::handleLoadSavestate(u8 *payload)
 	INFO_LOG(SLIPPI_ONLINE, "SLIPPI ONLINE: Loaded savestate for frame %d in: %f ms", frame, ((double)timeDiff) / 1000);
 }
 
-void CEXISlippi::startFindMatch()
+void CEXISlippi::startFindMatch(u8 *payload)
 {
 #ifndef LOCAL_TESTING
-	matchmaking->FindMatch();
+	SlippiMatchmaking::MatchSearchSettings search;
+	search.mode = (SlippiMatchmaking::OnlinePlayMode)payload[0];
+
+	std::string shiftJisCode;
+	shiftJisCode.insert(shiftJisCode.begin(), &payload[1], &payload[1] + 18);
+	shiftJisCode.erase(std::find(shiftJisCode.begin(), shiftJisCode.end(), 0x00), shiftJisCode.end());
+
+	search.connectCode = SHIFTJISToUTF8(shiftJisCode).c_str();
+
+	matchmaking->FindMatch(search);
 #endif
 }
 
@@ -1881,7 +1890,7 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 			prepareOnlineMatchState();
 			break;
 		case CMD_FIND_OPPONENT:
-			startFindMatch();
+			startFindMatch(&memPtr[bufLoc + 1]);
 			break;
 		case CMD_SET_MATCH_SELECTIONS:
 			setMatchSelections(&memPtr[bufLoc + 1]);

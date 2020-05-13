@@ -19,6 +19,13 @@ class SlippiMatchmaking
 	SlippiMatchmaking(SlippiUser *user);
 	~SlippiMatchmaking();
 
+	enum OnlinePlayMode
+	{
+		RANKED = 0,
+		UNRANKED = 1,
+		DIRECT = 2,
+	};
+
 	enum ProcessState
 	{
 		IDLE,
@@ -29,7 +36,13 @@ class SlippiMatchmaking
 		ERROR_ENCOUNTERED,
 	};
 
-	void FindMatch();
+	struct MatchSearchSettings
+	{
+		OnlinePlayMode mode = OnlinePlayMode::RANKED;
+		std::string connectCode = "";
+	};
+
+	void FindMatch(MatchSearchSettings settings);
 	void MatchmakeThread();
 	ProcessState GetMatchmakeState();
 	bool IsSearching();
@@ -48,6 +61,8 @@ class SlippiMatchmaking
 	struct curl_slist *m_curlHeaderList = nullptr;
 
 	std::thread m_matchmakeThread;
+
+	MatchSearchSettings m_searchSettings;
 
 	ProcessState m_state;
 

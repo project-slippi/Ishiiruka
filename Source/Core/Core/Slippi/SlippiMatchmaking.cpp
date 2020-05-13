@@ -42,9 +42,13 @@ SlippiMatchmaking::~SlippiMatchmaking()
 	terminateMmConnection();
 }
 
-void SlippiMatchmaking::FindMatch()
+void SlippiMatchmaking::FindMatch(MatchSearchSettings settings)
 {
 	isMmConnected = false;
+
+	ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Starting matchmaking...");
+
+	m_searchSettings = settings;
 
 	m_state = ProcessState::INITIALIZING;
 	m_matchmakeThread = std::thread(&SlippiMatchmaking::MatchmakeThread, this);
@@ -175,7 +179,7 @@ void SlippiMatchmaking::terminateMmConnection()
 
 void SlippiMatchmaking::startMatchmaking()
 {
-	m_hostPort = 51000;
+	m_hostPort = 51000 + (rand() % 100);
 
 	// We are explicitly setting the client address because we are trying to utilize our connection
 	// to the matchmaking service in order to hole punch. This port will end up being the port
@@ -190,6 +194,7 @@ void SlippiMatchmaking::startMatchmaking()
 	{
 		// Failed to create client
 		m_state = ProcessState::ERROR_ENCOUNTERED;
+		ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Failed to create client...");
 		return;
 	}
 
@@ -250,6 +255,7 @@ void SlippiMatchmaking::startMatchmaking()
 	json request;
 	request["type"] = MmMessageType::CREATE_TICKET;
 	request["user"] = {{"uid", userInfo.uid}, {"playKey", userInfo.playKey}};
+	request["search"] = {{"mode", m_searchSettings.mode}, {"connectCode", m_searchSettings.connectCode}};
 	sendMessage(request);
 
 	// Get response from server

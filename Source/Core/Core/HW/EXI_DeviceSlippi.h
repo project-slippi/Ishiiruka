@@ -107,7 +107,7 @@ class CEXISlippi : public IEXIDevice
 	    {CMD_CAPTURE_SAVESTATE, 32},
 	    {CMD_LOAD_SAVESTATE, 32},
 	    {CMD_GET_MATCH_STATE, 0},
-	    {CMD_FIND_OPPONENT, 0},
+	    {CMD_FIND_OPPONENT, 19},
 	    {CMD_SET_MATCH_SELECTIONS, 6},
 	    {CMD_OPEN_LOGIN, 0},
 	    {CMD_LOGOUT, 0},
@@ -161,7 +161,7 @@ class CEXISlippi : public IEXIDevice
 	void handleSendInputs(u8 *payload);
 	void handleCaptureSavestate(u8 *payload);
 	void handleLoadSavestate(u8 *payload);
-	void startFindMatch();
+	void startFindMatch(u8 *payload);
 	void prepareOnlineMatchState();
 	void setMatchSelections(u8 *payload);
 	bool shouldSkipOnlineFrame(int32_t frame);
