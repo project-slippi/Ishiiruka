@@ -289,7 +289,7 @@ void SlippiNetplayClient::Send(sf::Packet &packet)
 void SlippiNetplayClient::Disconnect()
 {
 	ENetEvent netEvent;
-	m_connection_state = ConnectionState::Failure;
+	slippiConnectStatus = SlippiConnectStatus::NET_CONNECT_STATUS_DISCONNECTED;
 	if (m_server)
 		enet_peer_disconnect(m_server, 0);
 	else
@@ -420,6 +420,7 @@ void SlippiNetplayClient::ThreadFunc()
 				enet_packet_destroy(netEvent.packet);
 				break;
 			case ENET_EVENT_TYPE_DISCONNECT:
+				m_do_loop.Clear(); // Stop the loop, will trigger a disconnect
 				break;
 			default:
 				break;

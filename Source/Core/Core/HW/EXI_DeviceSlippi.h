@@ -72,6 +72,7 @@ class CEXISlippi : public IEXIDevice
 		CMD_LOGOUT = 0xB7,
 		CMD_UPDATE = 0xB8,
 		CMD_GET_ONLINE_STATUS = 0xB9,
+		CMD_CLEANUP_CONNECTION = 0xBA,
 
 		// Misc
 		CMD_LOG_MESSAGE = 0xD0,
@@ -113,6 +114,7 @@ class CEXISlippi : public IEXIDevice
 	    {CMD_LOGOUT, 0},
 	    {CMD_UPDATE, 0},
 	    {CMD_GET_ONLINE_STATUS, 0},
+	    {CMD_CLEANUP_CONNECTION, 0},
 
 	    // Misc
 	    {CMD_LOG_MESSAGE, 0xFFFF}, // Variable size... will only work if by itself
@@ -168,6 +170,7 @@ class CEXISlippi : public IEXIDevice
 	void handleLogInRequest();
 	void handleLogOutRequest();
 	void prepareOnlineStatus();
+	void handleConnectionCleanup();
 
 	// replay playback stuff
 	void prepareGameInfo();

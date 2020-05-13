@@ -111,7 +111,8 @@ class SlippiNetplayClient
 		NET_CONNECT_STATUS_UNSET,
 		NET_CONNECT_STATUS_INITIATED,
 		NET_CONNECT_STATUS_CONNECTED,
-		NET_CONNECT_STATUS_FAILED
+		NET_CONNECT_STATUS_FAILED,
+    NET_CONNECT_STATUS_DISCONNECTED,
 	};
 
 	bool IsHost();
@@ -181,22 +182,12 @@ class SlippiNetplayClient
 	std::unique_ptr<SlippiPlayerSelections> readSelectionsFromPacket(sf::Packet &packet);
 
   private:
-	enum class ConnectionState
-	{
-		WaitingForTraversalClientConnection,
-		WaitingForTraversalClientConnectReady,
-		Connecting,
-		WaitingForHelloResponse,
-		Connected,
-		Failure
-	};
 
 	unsigned int OnData(sf::Packet &packet);
 	void Send(sf::Packet &packet);
 	void Disconnect();
 
 	bool m_is_connected = false;
-	ConnectionState m_connection_state = ConnectionState::Failure;
 
 #ifdef _WIN32
 	HANDLE m_qos_handle;

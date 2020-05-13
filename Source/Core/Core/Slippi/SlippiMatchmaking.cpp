@@ -42,6 +42,22 @@ SlippiMatchmaking::~SlippiMatchmaking()
 	terminateMmConnection();
 }
 
+void SlippiMatchmaking::Reset() 
+{
+	m_state = ProcessState::ERROR_ENCOUNTERED;
+
+  // Probably don't want to block like this?
+	if (m_matchmakeThread.joinable())
+		m_matchmakeThread.join();
+
+	terminateMmConnection();
+
+  // Reset variables
+  m_state = ProcessState::IDLE;
+	m_client = nullptr;
+	m_server = nullptr;
+}
+
 void SlippiMatchmaking::FindMatch(MatchSearchSettings settings)
 {
 	isMmConnected = false;
@@ -180,6 +196,7 @@ void SlippiMatchmaking::terminateMmConnection()
 void SlippiMatchmaking::startMatchmaking()
 {
 	m_hostPort = 51000 + (rand() % 100);
+	ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Port to use: %d...", m_hostPort);
 
 	// We are explicitly setting the client address because we are trying to utilize our connection
 	// to the matchmaking service in order to hole punch. This port will end up being the port
@@ -457,7 +474,7 @@ void SlippiMatchmaking::handleConnecting()
 
 			continue;
 		}
-		else if (status == SlippiNetplayClient::SlippiConnectStatus::NET_CONNECT_STATUS_FAILED)
+		else if (status != SlippiNetplayClient::SlippiConnectStatus::NET_CONNECT_STATUS_CONNECTED)
 		{
 			if (!m_isSwapAttempt)
 			{

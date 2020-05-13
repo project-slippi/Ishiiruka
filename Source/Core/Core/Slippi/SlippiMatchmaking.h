@@ -44,6 +44,7 @@ class SlippiMatchmaking
 
 	void FindMatch(MatchSearchSettings settings);
 	void MatchmakeThread();
+	void Reset();
 	ProcessState GetMatchmakeState();
 	bool IsSearching();
 	std::unique_ptr<SlippiNetplayClient> GetNetplayClient();

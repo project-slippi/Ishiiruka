@@ -1322,8 +1322,12 @@ void CEXISlippi::handleOnlineInputs(u8 *payload)
 bool CEXISlippi::shouldSkipOnlineFrame(int32_t frame)
 {
 	auto status = slippi_netplay->GetSlippiConnectStatus();
-	if (status == SlippiNetplayClient::SlippiConnectStatus::NET_CONNECT_STATUS_FAILED)
+	bool connectionFailed = status == SlippiNetplayClient::SlippiConnectStatus::NET_CONNECT_STATUS_FAILED;
+	bool connectionDisconnected = status == SlippiNetplayClient::SlippiConnectStatus::NET_CONNECT_STATUS_DISCONNECTED;
+	if (connectionFailed || connectionDisconnected)
 	{
+		// TODO: Should we do something better on a disconnect? Probably just kill the game?
+
 		// If connection failed just continue the game
 		return false;
 	}
@@ -1565,16 +1569,26 @@ void CEXISlippi::prepareOnlineMatchState()
 			slippi_netplay->SetMatchSelections(localSelections);
 		}
 
-		auto matchInfo = slippi_netplay->GetMatchInfo();
+		auto status = slippi_netplay->GetSlippiConnectStatus();
+		bool isConnected = status == SlippiNetplayClient::SlippiConnectStatus::NET_CONNECT_STATUS_CONNECTED;
+		if (isConnected)
+		{
+			auto matchInfo = slippi_netplay->GetMatchInfo();
 #ifdef LOCAL_TESTING
-		remotePlayerReady = true;
+			remotePlayerReady = true;
 #else
-		remotePlayerReady = matchInfo->remotePlayerSelections.isCharacterSelected;
+			remotePlayerReady = matchInfo->remotePlayerSelections.isCharacterSelected;
 #endif
 
-		auto isHost = slippi_netplay->IsHost();
-		localPlayerIndex = isHost ? 0 : 1;
-		remotePlayerIndex = isHost ? 1 : 0;
+			auto isHost = slippi_netplay->IsHost();
+			localPlayerIndex = isHost ? 0 : 1;
+			remotePlayerIndex = isHost ? 1 : 0;
+		}
+    else
+    {
+      // If we get here, our opponent likely disconnected. Let's trigger a clean up
+		  handleConnectionCleanup();
+    }
 	}
 	else
 	{
@@ -1826,6 +1840,22 @@ void CEXISlippi::prepareOnlineStatus()
 	m_read_queue.insert(m_read_queue.end(), codeBuf, codeBuf + CONNECT_CODE_LENGTH + 2);
 }
 
+void CEXISlippi::handleConnectionCleanup()
+{
+	// Reset matchmaking
+	matchmaking->Reset();
+
+	// Disconnect netplay client
+	if (slippi_netplay)
+	{
+		slippi_netplay.reset();
+		slippi_netplay = nullptr;
+	}
+
+	// Clear character selections
+	localSelections.Reset();
+}
+
 void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 {
 	u8 *memPtr = Memory::GetPointer(_uAddr);
@@ -1911,6 +1941,9 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 			break;
 		case CMD_GET_ONLINE_STATUS:
 			prepareOnlineStatus();
+			break;
+		case CMD_CLEANUP_CONNECTION:
+			handleConnectionCleanup();
 			break;
 		case CMD_LOG_MESSAGE:
 			logMessageFromGame(&memPtr[bufLoc + 1]);
