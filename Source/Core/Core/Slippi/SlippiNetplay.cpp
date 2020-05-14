@@ -225,6 +225,12 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet)
 		auto s = readSelectionsFromPacket(packet);
 		ERROR_LOG(SLIPPI_ONLINE, "[Received Selections] Char: 0x%X, Color: 0x%X", s->characterId, s->characterId);
 		matchInfo.remotePlayerSelections.Merge(*s);
+
+		// Set player name is not empty
+		if (!matchInfo.remotePlayerSelections.playerName.empty())
+		{
+			oppName = matchInfo.remotePlayerSelections.playerName;
+		}
 	}
 	break;
 
@@ -602,6 +608,11 @@ SlippiMatchInfo *SlippiNetplayClient::GetMatchInfo()
 u64 SlippiNetplayClient::GetSlippiPing()
 {
 	return pingUs;
+}
+
+std::string SlippiNetplayClient::GetOpponentName()
+{
+	return oppName;
 }
 
 int32_t SlippiNetplayClient::GetSlippiLatestRemoteFrame()

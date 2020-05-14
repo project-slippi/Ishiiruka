@@ -112,7 +112,7 @@ class SlippiNetplayClient
 		NET_CONNECT_STATUS_INITIATED,
 		NET_CONNECT_STATUS_CONNECTED,
 		NET_CONNECT_STATUS_FAILED,
-    NET_CONNECT_STATUS_DISCONNECTED,
+		NET_CONNECT_STATUS_DISCONNECTED,
 	};
 
 	bool IsHost();
@@ -125,6 +125,7 @@ class SlippiNetplayClient
 	std::unique_ptr<SlippiRemotePadOutput> GetSlippiRemotePad(int32_t curFrame);
 	SlippiMatchInfo *GetMatchInfo();
 	u64 GetSlippiPing();
+	std::string GetOpponentName();
 	int32_t GetSlippiLatestRemoteFrame();
 	s32 CalcTimeOffsetUs();
 
@@ -138,6 +139,8 @@ class SlippiNetplayClient
 	} m_crit;
 
 	Common::FifoQueue<std::unique_ptr<sf::Packet>, false> m_async_queue;
+
+	std::string oppName = "";
 
 	ENetHost *m_client = nullptr;
 	ENetPeer *m_server = nullptr;
@@ -182,7 +185,6 @@ class SlippiNetplayClient
 	std::unique_ptr<SlippiPlayerSelections> readSelectionsFromPacket(sf::Packet &packet);
 
   private:
-
 	unsigned int OnData(sf::Packet &packet);
 	void Send(sf::Packet &packet);
 	void Disconnect();

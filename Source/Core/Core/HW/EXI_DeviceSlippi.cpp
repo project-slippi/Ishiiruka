@@ -1556,6 +1556,8 @@ void CEXISlippi::prepareOnlineMatchState()
 	u8 localPlayerIndex = 0;
 	u8 remotePlayerIndex = 1;
 
+	std::string oppName = "";
+
 	if (mmState == SlippiMatchmaking::ProcessState::CONNECTION_SUCCESS)
 	{
 		if (!slippi_netplay)
@@ -1583,6 +1585,8 @@ void CEXISlippi::prepareOnlineMatchState()
 			auto isHost = slippi_netplay->IsHost();
 			localPlayerIndex = isHost ? 0 : 1;
 			remotePlayerIndex = isHost ? 1 : 0;
+
+			oppName = slippi_netplay->GetOpponentName();
 		}
 		else
 		{
@@ -1665,6 +1669,9 @@ void CEXISlippi::prepareOnlineMatchState()
 	m_read_queue.insert(m_read_queue.end(), nameBuf, nameBuf + MAX_NAME_LENGTH + 1);
 	p2Name.resize(MAX_NAME_LENGTH);
 	nameBuf = p2Name.c_str();
+	m_read_queue.insert(m_read_queue.end(), nameBuf, nameBuf + MAX_NAME_LENGTH + 1);
+	oppName.resize(MAX_NAME_LENGTH);
+	nameBuf = oppName.c_str();
 	m_read_queue.insert(m_read_queue.end(), nameBuf, nameBuf + MAX_NAME_LENGTH + 1);
 
 	// Add the match struct block to output
