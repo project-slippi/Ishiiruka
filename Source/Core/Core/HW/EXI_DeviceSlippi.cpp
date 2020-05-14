@@ -1663,6 +1663,9 @@ void CEXISlippi::prepareOnlineMatchState()
 	// Add rng offset to output
 	appendWordToBuffer(&m_read_queue, rngOffset);
 
+  // Add delay frames to output
+	m_read_queue.push_back((u8)SConfig::GetInstance().m_slippiOnlineDelay);
+
 	// Add names to output
 	p1Name.resize(MAX_NAME_LENGTH);
 	auto nameBuf = p1Name.c_str();

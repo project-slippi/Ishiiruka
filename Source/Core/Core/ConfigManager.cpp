@@ -275,6 +275,7 @@ void SConfig::SaveCoreSettings(IniFile& ini)
 	core->Set("TimeStretching", bTimeStretching);
 	core->Set("RSHACK", bRSHACK);
 	core->Set("Latency", iLatency);
+	core->Set("SlippiOnlineDelay", m_slippiOnlineDelay);
 	core->Set("MemcardAPath", m_strMemoryCardA);
 	core->Set("MemcardBPath", m_strMemoryCardB);
 	core->Set("AgpCartAPath", m_strGbaCartA);
@@ -589,6 +590,7 @@ void SConfig::LoadCoreSettings(IniFile& ini)
 	core->Get("TimeStretching", &bTimeStretching, false);
 	core->Get("RSHACK", &bRSHACK, false);
 	core->Get("Latency", &iLatency, 2);
+	core->Get("SlippiOnlineDelay", &m_slippiOnlineDelay, 1);
 	core->Get("MemcardAPath", &m_strMemoryCardA);
 	core->Get("MemcardBPath", &m_strMemoryCardB);
 	core->Get("AgpCartAPath", &m_strGbaCartA);

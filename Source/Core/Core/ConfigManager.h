@@ -264,6 +264,8 @@ struct SConfig : NonCopyable
 	std::string m_NANDPath;
 	std::string m_DumpPath;
 
+	int m_slippiOnlineDelay = 1;
+
 	std::string m_strMemoryCardA;
 	std::string m_strMemoryCardB;
 	std::string m_strGbaCartA;
