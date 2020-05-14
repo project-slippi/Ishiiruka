@@ -135,6 +135,8 @@ CEXISlippi::CEXISlippi()
 	gameFileLoader = std::make_unique<SlippiGameFileLoader>();
 	replayComm = std::make_unique<SlippiReplayComm>();
 
+	generator = std::default_random_engine(Common::Timer::GetTimeMs());
+
 	// Loggers will check 5 bytes, make sure we own that memory
 	m_read_queue.reserve(5);
 
@@ -1580,8 +1582,13 @@ void CEXISlippi::prepareOnlineMatchState()
 			slippi_netplay->SetMatchSelections(localSelections);
 		}
 
+#ifdef LOCAL_TESTING
+		bool isConnected = true;
+#else
 		auto status = slippi_netplay->GetSlippiConnectStatus();
 		bool isConnected = status == SlippiNetplayClient::SlippiConnectStatus::NET_CONNECT_STATUS_CONNECTED;
+#endif
+
 		if (isConnected)
 		{
 			auto matchInfo = slippi_netplay->GetMatchInfo();
@@ -1599,8 +1606,10 @@ void CEXISlippi::prepareOnlineMatchState()
 		}
 		else
 		{
+#ifndef LOCAL_TESTING
 			// If we get here, our opponent likely disconnected. Let's trigger a clean up
 			handleConnectionCleanup();
+#endif
 		}
 	}
 	else
@@ -1690,20 +1699,6 @@ void CEXISlippi::prepareOnlineMatchState()
 	m_read_queue.insert(m_read_queue.end(), onlineMatchBlock.begin(), onlineMatchBlock.end());
 }
 
-void CEXISlippi::initRngSeed()
-{
-	// Initialize rand seed once for random stage selection. For some reason running this in the
-	// constructor didn't work... It might be because something else would set the seed to
-	// a set value after the constructor would run
-	if (!isSeeded)
-	{
-		auto seed = (u32)time(nullptr);
-		ERROR_LOG(SLIPPI_ONLINE, "Seed is: %d", seed);
-		srand(seed);
-		isSeeded = true;
-	}
-}
-
 u16 CEXISlippi::getRandomStage()
 {
 	static std::vector<u16> stages = {
@@ -1716,15 +1711,13 @@ u16 CEXISlippi::getRandomStage()
 	};
 
 	// Get random stage
-	int randIndex = rand() % stages.size();
+	int randIndex = generator() % stages.size();
 	return stages[randIndex];
 }
 
 void CEXISlippi::setMatchSelections(u8 *payload)
 {
 	SlippiPlayerSelections s;
-
-	initRngSeed();
 
 	s.characterId = payload[0];
 	s.characterColor = payload[1];

@@ -5,7 +5,6 @@
 #include "Core/Slippi/SlippiNetplay.h"
 #include "Core/Slippi/SlippiUser.h"
 
-#include <curl/curl.h>
 #include <enet/enet.h>
 #include <unordered_map>
 #include <vector>
@@ -55,10 +54,9 @@ class SlippiMatchmaking
 	ENetHost *m_client;
 	ENetPeer *m_server;
 
-	bool isMmConnected = false;
+	std::default_random_engine generator;
 
-	CURL *m_curl = nullptr;
-	struct curl_slist *m_curlHeaderList = nullptr;
+	bool isMmConnected = false;
 
 	std::thread m_matchmakeThread;
 

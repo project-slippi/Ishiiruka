@@ -156,7 +156,6 @@ class CEXISlippi : public IEXIDevice
 	std::vector<u8> m_payload;
 
 	// online play stuff
-	void initRngSeed();
 	u16 getRandomStage();
 	void handleOnlineInputs(u8 *payload);
 	void prepareOpponentInputs(u8 *payload);
@@ -220,7 +219,7 @@ class CEXISlippi : public IEXIDevice
 
 	u32 frameSeqIdx = 0;
 
-	bool isSeeded = false;
+	std::default_random_engine generator;
 
 	// Frame skipping variables
 	int framesToSkip = 0;

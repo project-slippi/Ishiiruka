@@ -30,6 +30,8 @@ SlippiMatchmaking::SlippiMatchmaking(SlippiUser *user)
 
 	m_client = nullptr;
 	m_server = nullptr;
+
+	generator = std::default_random_engine(Common::Timer::GetTimeMs());
 }
 
 SlippiMatchmaking::~SlippiMatchmaking()
@@ -179,7 +181,9 @@ void SlippiMatchmaking::terminateMmConnection()
 
 void SlippiMatchmaking::startMatchmaking()
 {
-	m_hostPort = 51000 + (rand() % 100);
+	// I don't understand why I have to do this... if I don't do this, rand always returns the
+	// same value
+	m_hostPort = 51000 + (generator() % 100);
 	ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Port to use: %d...", m_hostPort);
 
 	// We are explicitly setting the client address because we are trying to utilize our connection
