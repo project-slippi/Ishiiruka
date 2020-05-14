@@ -65,8 +65,8 @@ SlippiNetplayClient::SlippiNetplayClient(const std::string &address, const u16 r
     , m_qos_flow_id(0)
 #endif
 {
-	WARN_LOG(SLIPPI_ONLINE, "Initializing Slippi Netplay for ip: %s, port: %d, with host: %s", address.c_str(),
-	         localPort, isHost ? "true" : "false");
+	WARN_LOG(SLIPPI_ONLINE, "Initializing Slippi Netplay for port: %d, with host: %s", localPort,
+	         isHost ? "true" : "false");
 	this->isHost = isHost;
 
 	// Local address

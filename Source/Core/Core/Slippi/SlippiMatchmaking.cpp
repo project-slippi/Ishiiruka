@@ -380,8 +380,7 @@ void SlippiMatchmaking::handleMatchmaking()
 	terminateMmConnection();
 
 	m_state = ProcessState::OPPONENT_CONNECTING;
-	ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Opponent found. IP: %s, isDecider: %s", m_oppIp.c_str(),
-	          m_isHost ? "true" : "false");
+	ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Opponent found. isDecider: %s", m_isHost ? "true" : "false");
 }
 
 void SlippiMatchmaking::sendHolePunchMsg(std::string remoteIp, u16 remotePort, u16 localPort)
