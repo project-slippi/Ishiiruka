@@ -1393,7 +1393,16 @@ void CEXISlippi::handleSendInputs(u8 *payload)
 void CEXISlippi::prepareOpponentInputs(u8 *payload)
 {
 	m_read_queue.clear();
-	m_read_queue.push_back(1); // Indicate a continue frame
+
+	u8 frameResult = 1; // Indicates to continue frame
+
+	auto state = slippi_netplay->GetSlippiConnectStatus();
+	if (state != SlippiNetplayClient::SlippiConnectStatus::NET_CONNECT_STATUS_CONNECTED)
+	{
+		frameResult = 3; // Indicates we have disconnected
+	}
+
+	m_read_queue.push_back(frameResult); // Indicate a continue frame
 
 	int32_t frame = payload[0] << 24 | payload[1] << 16 | payload[2] << 8 | payload[3];
 
@@ -1663,7 +1672,7 @@ void CEXISlippi::prepareOnlineMatchState()
 	// Add rng offset to output
 	appendWordToBuffer(&m_read_queue, rngOffset);
 
-  // Add delay frames to output
+	// Add delay frames to output
 	m_read_queue.push_back((u8)SConfig::GetInstance().m_slippiOnlineDelay);
 
 	// Add names to output
