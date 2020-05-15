@@ -30,7 +30,8 @@
 #include <memory>
 #include <thread>
 
-static std::mutex crit_netplay_client;
+static std::mutex pad_mutex;
+static std::mutex ack_mutex;
 
 // called from ---GUI--- thread
 SlippiNetplayClient::~SlippiNetplayClient()
@@ -157,7 +158,7 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet)
 		frameOffsetData.idx = (frameOffsetData.idx + 1) % SLIPPI_ONLINE_LOCKSTEP_INTERVAL;
 
 		{
-			std::lock_guard<std::mutex> lk(crit_netplay_client); // TODO: Is this the correct lock?
+			std::lock_guard<std::mutex> lk(pad_mutex); // TODO: Is this the correct lock?
 
 			auto packetData = (u8 *)packet.getData();
 
@@ -187,6 +188,8 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet)
 
 	case NP_MSG_SLIPPI_PAD_ACK:
 	{
+		std::lock_guard<std::mutex> lk(ack_mutex); // Trying to fix rare crash on ackTimers.count
+
 		// Store last frame acked
 		int32_t frame;
 		packet >> frame;
@@ -551,7 +554,10 @@ void SlippiNetplayClient::SendSlippiPad(std::unique_ptr<SlippiPad> pad)
 	timing->timeUs = time;
 	lastFrameTiming = timing;
 
-	ackTimers[frame] = time;
+	{
+		std::lock_guard<std::mutex> lk(ack_mutex); // Trying to fix rare crash on ackTimers.count
+		ackTimers[frame] = time;
+	}
 }
 
 void SlippiNetplayClient::SetMatchSelections(SlippiPlayerSelections &s)
@@ -566,7 +572,7 @@ void SlippiNetplayClient::SetMatchSelections(SlippiPlayerSelections &s)
 
 std::unique_ptr<SlippiRemotePadOutput> SlippiNetplayClient::GetSlippiRemotePad(int32_t curFrame)
 {
-	std::lock_guard<std::mutex> lk(crit_netplay_client); // TODO: Is this the correct lock?
+	std::lock_guard<std::mutex> lk(pad_mutex); // TODO: Is this the correct lock?
 
 	std::unique_ptr<SlippiRemotePadOutput> padOutput = std::make_unique<SlippiRemotePadOutput>();
 
@@ -617,7 +623,7 @@ std::string SlippiNetplayClient::GetOpponentName()
 
 int32_t SlippiNetplayClient::GetSlippiLatestRemoteFrame()
 {
-	std::lock_guard<std::mutex> lk(crit_netplay_client); // TODO: Is this the correct lock?
+	std::lock_guard<std::mutex> lk(pad_mutex); // TODO: Is this the correct lock?
 
 	if (remotePadQueue.empty())
 	{
