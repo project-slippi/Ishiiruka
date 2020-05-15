@@ -175,7 +175,7 @@ class SlippiNetplayClient
 	u64 pingUs;
 	std::deque<std::unique_ptr<SlippiPad>> localPadQueue;  // most recent inputs at start of deque
 	std::deque<std::unique_ptr<SlippiPad>> remotePadQueue; // most recent inputs at start of deque
-	std::map<int32_t, u64> ackTimers;
+	Common::FifoQueue<FrameTiming, false> ackTimers;
 	SlippiConnectStatus slippiConnectStatus = SlippiConnectStatus::NET_CONNECT_STATUS_UNSET;
 	SlippiMatchInfo matchInfo;
 

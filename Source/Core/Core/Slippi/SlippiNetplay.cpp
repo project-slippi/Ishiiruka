@@ -196,29 +196,26 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet)
 
 		lastFrameAcked = frame > lastFrameAcked ? frame : lastFrameAcked;
 
-		if (ackTimers.count(frame))
+		// Remove old timings
+		while (!ackTimers.Empty() && ackTimers.Front().frame < frame)
 		{
-			pingUs = Common::Timer::GetTimeUs() - ackTimers[frame];
-			if (g_ActiveConfig.bShowNetPlayPing && frame % SLIPPI_PING_DISPLAY_INTERVAL == 0)
-			{
-				OSD::AddTypedMessage(OSD::MessageType::NetPlayPing, StringFromFormat("Ping: %u", pingUs / 1000),
-				                     OSD::Duration::NORMAL, OSD::Color::CYAN);
-			}
-			// Now we are going to clear out any potential old acks, these simply won't be used to get
-			// a ping
-			// TODO: These probably a better way to do this...
-			std::vector<int32_t> toDelete;
-			for (auto it = ackTimers.begin(); it != ackTimers.end(); ++it)
-			{
-				if (it->first > frame)
-					break;
-				toDelete.push_back(it->first);
-			}
+			ackTimers.Pop();
+		}
 
-			for (auto it = toDelete.begin(); it != toDelete.end(); ++it)
-			{
-				ackTimers.erase(*it);
-			}
+		// Don't get a ping if we do not have the right ack frame
+		if (ackTimers.Empty() || ackTimers.Front().frame != frame)
+		{
+			break;
+		}
+
+		auto sendTime = ackTimers.Front().timeUs;
+		ackTimers.Pop();
+
+		pingUs = Common::Timer::GetTimeUs() - sendTime;
+		if (g_ActiveConfig.bShowNetPlayPing && frame % SLIPPI_PING_DISPLAY_INTERVAL == 0)
+		{
+			OSD::AddTypedMessage(OSD::MessageType::NetPlayPing, StringFromFormat("Ping: %u", pingUs / 1000),
+			                     OSD::Duration::NORMAL, OSD::Color::CYAN);
 		}
 	}
 	break;
@@ -488,6 +485,9 @@ void SlippiNetplayClient::StartSlippiGame()
 
 	// Reset match info for next game
 	matchInfo.Reset();
+
+	// Reset ack timers
+	ackTimers.Clear();
 }
 
 void SlippiNetplayClient::SendConnectionSelected()
@@ -554,10 +554,11 @@ void SlippiNetplayClient::SendSlippiPad(std::unique_ptr<SlippiPad> pad)
 	timing->timeUs = time;
 	lastFrameTiming = timing;
 
-	{
-		std::lock_guard<std::mutex> lk(ack_mutex); // Trying to fix rare crash on ackTimers.count
-		ackTimers[frame] = time;
-	}
+	// Add send time to ack timers
+	FrameTiming sendTime;
+	sendTime.frame = frame;
+	sendTime.timeUs = time;
+	ackTimers.Push(sendTime);
 }
 
 void SlippiNetplayClient::SetMatchSelections(SlippiPlayerSelections &s)
