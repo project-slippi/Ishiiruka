@@ -128,25 +128,18 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet)
 		packet >> frame;
 
 		// Pad received, try to guess what our local time was when the frame was sent by our opponent
+		// before we initialized
 		// We can compare this to when we sent a pad for last frame to figure out how far/behind we
 		// are with respect to the opponent
 
 		auto timing = lastFrameTiming;
-		if (!timing)
-		{
-			// Handle case where opponent starts sending inputs before our game has reached frame 1. This will
-			// continuously say frame 0 is now to prevent opp from getting too far ahead
-			timing = std::make_shared<FrameTiming>();
-			timing->frame = 0;
-			timing->timeUs = Common::Timer::GetTimeUs();
-		}
 
 		u64 curTime = Common::Timer::GetTimeUs();
 		s64 opponentSendTimeUs = curTime - (pingUs / 2);
-		s64 frameDiffOffsetUs = 16683 * (timing->frame - frame);
-		s64 timeOffsetUs = opponentSendTimeUs - timing->timeUs + frameDiffOffsetUs;
+		s64 frameDiffOffsetUs = 16683 * (timing.frame - frame);
+		s64 timeOffsetUs = opponentSendTimeUs - timing.timeUs + frameDiffOffsetUs;
 
-		INFO_LOG(SLIPPI_ONLINE, "[Offset] Opp Frame: %d, My Frame: %d. Time offset: %lld", frame, timing->frame,
+		INFO_LOG(SLIPPI_ONLINE, "[Offset] Opp Frame: %d, My Frame: %d. Time offset: %lld", frame, timing.frame,
 		         timeOffsetUs);
 
 		// Add this offset to circular buffer for use later
@@ -231,6 +224,10 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet)
 		{
 			oppName = matchInfo.remotePlayerSelections.playerName;
 		}
+
+		// This might be a good place to initialize the slippi game? Game can't start until we receive this msg
+		// so this should ensure that everything is initialized before the game starts
+		StartSlippiGame();
 	}
 	break;
 
@@ -469,9 +466,9 @@ void SlippiNetplayClient::StartSlippiGame()
 	// Reset variables to start a new game
 	lastFrameAcked = 0;
 
-	auto timing = std::make_shared<FrameTiming>();
-	timing->frame = 0;
-	timing->timeUs = Common::Timer::GetTimeUs();
+	FrameTiming timing;
+	timing.frame = 0;
+	timing.timeUs = Common::Timer::GetTimeUs();
 	lastFrameTiming = timing;
 
 	localPadQueue.clear();
@@ -549,9 +546,9 @@ void SlippiNetplayClient::SendSlippiPad(std::unique_ptr<SlippiPad> pad)
 
 	u64 time = Common::Timer::GetTimeUs();
 
-	auto timing = std::make_shared<FrameTiming>();
-	timing->frame = frame;
-	timing->timeUs = time;
+	FrameTiming timing;
+	timing.frame = frame;
+	timing.timeUs = time;
 	lastFrameTiming = timing;
 
 	// Add send time to ack timers
