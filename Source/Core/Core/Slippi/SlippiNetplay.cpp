@@ -233,11 +233,11 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet)
 			oppName = matchInfo.remotePlayerSelections.playerName;
 		}
 
-		// This might be a good place to initialize the slippi game? Game can't start until we receive this msg
+		// This might be a good place to reset some logic? Game can't start until we receive this msg
 		// so this should ensure that everything is initialized before the game starts
 		// TODO: This could cause issues in the case of a desync? If this is ever received mid-game, bad things
 		// TODO: will happen. Consider improving this
-		StartSlippiGame();
+		hasGameStarted = false;
 	}
 	break;
 
