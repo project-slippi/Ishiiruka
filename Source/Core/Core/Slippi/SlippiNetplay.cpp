@@ -132,9 +132,17 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet)
 		// We can compare this to when we sent a pad for last frame to figure out how far/behind we
 		// are with respect to the opponent
 
-		auto timing = lastFrameTiming;
-
 		u64 curTime = Common::Timer::GetTimeUs();
+
+		auto timing = lastFrameTiming;
+		if (!hasGameStarted)
+		{
+			// Handle case where opponent starts sending inputs before our game has reached frame 1. This will
+			// continuously say frame 0 is now to prevent opp from getting too far ahead
+			timing.frame = 0;
+			timing.timeUs = curTime;
+		}
+
 		s64 opponentSendTimeUs = curTime - (pingUs / 2);
 		s64 frameDiffOffsetUs = 16683 * (timing.frame - frame);
 		s64 timeOffsetUs = opponentSendTimeUs - timing.timeUs + frameDiffOffsetUs;
@@ -227,6 +235,8 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet)
 
 		// This might be a good place to initialize the slippi game? Game can't start until we receive this msg
 		// so this should ensure that everything is initialized before the game starts
+		// TODO: This could cause issues in the case of a desync? If this is ever received mid-game, bad things
+		// TODO: will happen. Consider improving this
 		StartSlippiGame();
 	}
 	break;
@@ -470,6 +480,7 @@ void SlippiNetplayClient::StartSlippiGame()
 	timing.frame = 0;
 	timing.timeUs = Common::Timer::GetTimeUs();
 	lastFrameTiming = timing;
+	hasGameStarted = false;
 
 	localPadQueue.clear();
 
@@ -545,6 +556,8 @@ void SlippiNetplayClient::SendSlippiPad(std::unique_ptr<SlippiPad> pad)
 	SendAsync(std::move(spac));
 
 	u64 time = Common::Timer::GetTimeUs();
+
+	hasGameStarted = true;
 
 	FrameTiming timing;
 	timing.frame = frame;

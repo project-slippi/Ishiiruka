@@ -1306,7 +1306,6 @@ void CEXISlippi::handleOnlineInputs(u8 *payload)
 
 		// Reset character selections as they are no longer needed
 		localSelections.Reset();
-		slippi_netplay->StartSlippiGame();
 	}
 
 	if (shouldSkipOnlineFrame(frame))

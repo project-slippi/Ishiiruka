@@ -171,6 +171,7 @@ class SlippiNetplayClient
 	bool isConnectionSelected = false;
 	bool isHost = false;
 	int32_t lastFrameAcked;
+	bool hasGameStarted = false;
 	FrameTiming lastFrameTiming;
 	u64 pingUs;
 	std::deque<std::unique_ptr<SlippiPad>> localPadQueue;  // most recent inputs at start of deque
