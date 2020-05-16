@@ -10,16 +10,12 @@ class MmMessageType
   public:
 	static std::string CREATE_TICKET;
 	static std::string CREATE_TICKET_RESP;
-	static std::string DELETE_TICKET;
-	static std::string DELETE_TICKET_RESP;
 	static std::string GET_TICKET;
 	static std::string GET_TICKET_RESP;
 };
 
 std::string MmMessageType::CREATE_TICKET = "create-ticket";
 std::string MmMessageType::CREATE_TICKET_RESP = "create-ticket-resp";
-std::string MmMessageType::DELETE_TICKET = "delete-ticket";
-std::string MmMessageType::DELETE_TICKET_RESP = "delete-ticket-resp";
 std::string MmMessageType::GET_TICKET = "get-ticket";
 std::string MmMessageType::GET_TICKET_RESP = "get-ticket-resp";
 
@@ -106,7 +102,7 @@ int SlippiMatchmaking::receiveMessage(json &msg, int maxAttempts)
 			return 0;
 		}
 		case ENET_EVENT_TYPE_DISCONNECT:
-			// TODO: Handle
+			// TODO: Handle? Probably don't want to mark error because we trigger a disconnect ourselves when we have a success
 			break;
 		}
 	}
@@ -132,7 +128,7 @@ void SlippiMatchmaking::MatchmakeThread()
 		}
 	}
 
-	// TODO: Clean up ENET connections
+	// Clean up ENET connections
 	terminateMmConnection();
 }
 
@@ -346,33 +342,6 @@ void SlippiMatchmaking::handleMatchmaking()
 	{
 		ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] No assignment found yet");
 		return;
-	}
-
-	// Delete ticket now that we've been assigned
-	// Send message to server to delete ticket
-	json deleteReq;
-	deleteReq["type"] = MmMessageType::DELETE_TICKET;
-	deleteReq["ticketId"] = m_ticketId;
-	sendMessage(deleteReq);
-
-	// Get response from server
-	json deleteResp;
-	rcvRes = receiveMessage(deleteResp, 20);
-	if (rcvRes != 0)
-	{
-		ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Did not receive response from server for delete ticket");
-	}
-
-	std::string deleteRespType = deleteResp.value("type", "");
-	if (deleteRespType != MmMessageType::DELETE_TICKET_RESP)
-	{
-		ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Received incorrect response for delete ticket");
-	}
-
-	err = deleteResp.value("error", "");
-	if (err.length() > 0)
-	{
-		ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Received error from server for delete ticket");
 	}
 
 	m_isSwapAttempt = false;
