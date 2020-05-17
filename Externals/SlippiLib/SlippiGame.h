@@ -6,6 +6,7 @@
 #include <unordered_map>
 #include <iostream>
 #include <fstream>
+#include <memory>
 
 namespace Slippi {
   const uint8_t EVENT_SPLIT_MESSAGE = 0x10;
