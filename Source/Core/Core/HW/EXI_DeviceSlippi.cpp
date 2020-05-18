@@ -15,8 +15,11 @@
 #include <tuple>
 #include <unordered_map>
 
+// Networking
 #ifdef _WIN32
 #include <share.h>
+#else
+#include <arpa/inet.h>
 #endif
 
 #include "Common/CommonFuncs.h"
@@ -120,6 +123,8 @@ CEXISlippi::CEXISlippi()
 {
 	INFO_LOG(SLIPPI, "EXI SLIPPI Constructor called.");
 
+	m_slippiserver = SlippicommServer::getInstance();
+
 	g_playback_status = std::make_unique<SlippiPlaybackStatus>();
 
 	replayComm = std::make_unique<SlippiReplayComm>();
@@ -140,8 +145,9 @@ CEXISlippi::~CEXISlippi()
 	// suddenly stops. This would happen often on netplay when the opponent
 	// would close the emulation before the file successfully finished writing
 	writeToFile(&empty[0], 0, "close");
+	m_slippiserver->write(&empty[0], 0);
+	m_slippiserver->clearEventHistory();
 	resetPlayback();
-
 
 	//g_playback_status = SlippiPlaybackStatus::SlippiPlaybackStatus();
 }
@@ -1315,6 +1321,7 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 		u8 receiveCommandsLen = memPtr[1];
 		configureCommands(&memPtr[1], receiveCommandsLen);
 		writeToFile(&memPtr[0], receiveCommandsLen + 1, "create");
+		m_slippiserver->write(&memPtr[0], receiveCommandsLen + 1);
 		bufLoc += receiveCommandsLen + 1;
 	}
 
@@ -1336,6 +1343,8 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 		{
 		case CMD_RECEIVE_GAME_END:
 			writeToFile(&memPtr[bufLoc], payloadLen + 1, "close");
+			m_slippiserver->write(&memPtr[bufLoc], payloadLen + 1);
+			m_slippiserver->clearEventHistory();
 			break;
 		case CMD_PREPARE_REPLAY:
 			// log.open("log.txt");
@@ -1359,6 +1368,7 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 			break;
 		default:
 			writeToFile(&memPtr[bufLoc], payloadLen + 1, "");
+			m_slippiserver->write(&memPtr[bufLoc], payloadLen + 1);
 			break;
 		}
 

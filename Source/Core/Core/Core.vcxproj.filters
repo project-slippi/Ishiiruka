@@ -760,6 +760,9 @@
     <ClCompile Include="Slippi\SlippiReplayComm.cpp">
       <Filter>Slippi</Filter>
     </ClCompile>
+    <ClCompile Include="Slippi\SlippicommServer.cpp">
+      <Filter>Slippi</Filter>
+    </ClCompile>
     <ClCompile Include="SlippiTimer.cpp">
       <Filter>Slippi</Filter>
     </ClCompile>
@@ -1302,6 +1305,9 @@
     </ClInclude>
     <ClInclude Include="DSP\Jit\DSPEmitter.h" />
     <ClInclude Include="Slippi\SlippiReplayComm.h">
+      <Filter>Slippi</Filter>
+    </ClInclude>
+    <ClInclude Include="Slippi\SlippicommServer.h">
       <Filter>Slippi</Filter>
     </ClInclude>
     <ClInclude Include="SlippiPlayback.h">

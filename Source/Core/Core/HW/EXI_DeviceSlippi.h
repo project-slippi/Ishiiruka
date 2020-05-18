@@ -18,6 +18,7 @@
 #include "Common/FileUtil.h"
 #include "Core/HW/EXI_Device.h"
 #include "Core/Slippi/SlippiReplayComm.h"
+#include "Core/Slippi/SlippicommServer.h"
 
 // Acts
 class CEXISlippi : public IEXIDevice
@@ -110,11 +111,11 @@ class CEXISlippi : public IEXIDevice
 	void prepareIsFileReady();
 	void processInitialState(std::vector<u8> &iState);
 	void resetPlayback();
-	void clearWatchSettingsStartEnd(); 
+	void clearWatchSettingsStartEnd();
 
 	void SavestateThread(void);
 	void SeekThread(void);
-	
+
 	std::unordered_map<int32_t, std::shared_future<std::string>> futureDiffs; // State diffs keyed by frameIndex, processed async
 	std::vector<u8> iState;                                            // The initial state
 	std::vector<u8> cState;                                            // The current (latest) state
@@ -134,6 +135,7 @@ class CEXISlippi : public IEXIDevice
 	int32_t lastFFWFrame = INT_MIN;
 	std::vector<u8> m_read_queue;
 	std::unique_ptr<Slippi::SlippiGame> m_current_game = nullptr;
+  SlippicommServer *m_slippiserver = 0;
 
   protected:
 	void TransferByte(u8 &byte) override;
