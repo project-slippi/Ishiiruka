@@ -172,7 +172,7 @@ class CEXISlippi : public IEXIDevice
 	void handleConnectionCleanup();
 
 	// replay playback stuff
-	void prepareGameInfo();
+	void prepareGameInfo(u8 *payload);
 	void prepareGeckoList();
 	void prepareCharacterFrameData(Slippi::FrameData *frame, u8 port, u8 isFollower);
 	void prepareFrameData(u8 *payload);
@@ -208,6 +208,8 @@ class CEXISlippi : public IEXIDevice
 	open_vcdiff::VCDiffEncoder *encoder = NULL;
 
 	std::unordered_map<u8, std::string> getNetplayNames();
+
+  std::vector<u8> playbackSavestatePayload;
 
 	std::vector<uint8_t> geckoList;
 

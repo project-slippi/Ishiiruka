@@ -489,7 +489,7 @@ void CEXISlippi::closeFile()
 	m_file = nullptr;
 }
 
-void CEXISlippi::prepareGameInfo()
+void CEXISlippi::prepareGameInfo(u8 *payload)
 {
 	// Since we are prepping new data, clear any existing data
 	m_read_queue.clear();
@@ -508,6 +508,15 @@ void CEXISlippi::prepareGameInfo()
 
 	// Return success code
 	m_read_queue.push_back(1);
+
+  // Prepare playback savestate payload
+	playbackSavestatePayload.clear();
+	appendWordToBuffer(&playbackSavestatePayload, 0); // This space will be used to set frame index
+	int bkpPos = 0;
+	while ((*(u32 *)(&payload[bkpPos * 8])) != 0) {
+		bkpPos += 1;
+  }
+	playbackSavestatePayload.insert(playbackSavestatePayload.end(), payload, payload + (bkpPos * 8 + 4));
 
 	Slippi::GameSettings *settings = m_current_game->GetSettings();
 
@@ -882,6 +891,10 @@ void CEXISlippi::prepareGeckoList()
 	    {0x804ddb84, true}, // External/Widescreen/Nametag Fixes/Adjust Nametag Text X Scale.asm
 	    {0x803BB05C, true}, // External/Widescreen/Fix Screen Flash.asm
 	    {0x8036A4A8, true}, // External/Widescreen/Overwrite CObj Values.asm
+
+	    {0x801a4de4, true}, // Start engine loop
+	    {0x8038d0b0, true}, // PreventDuplicateSounds
+	    {0x801a5014, true}, // LoopEngineForRollback
 	};
 
 	geckoList.clear();
@@ -1147,17 +1160,16 @@ void CEXISlippi::prepareFrameData(u8 *payload)
 		auto previousFrame = m_current_game->GetFrameAt(frameSeqIdx - 1);
 		frame = m_current_game->GetFrameAt(frameSeqIdx);
 
-		std::vector<u8> fakePayload(8, 0);
-		*(s32 *)(&fakePayload[0]) = Common::swap32(frame->frame);
+		*(s32 *)(&playbackSavestatePayload[0]) = Common::swap32(frame->frame);
 
 		if (previousFrame && frame->frame <= previousFrame->frame)
 		{
 			// Here we should load a savestate
-			handleLoadSavestate(&fakePayload[0]);
+			handleLoadSavestate(&playbackSavestatePayload[0]);
 		}
 
 		// Here we should save a savestate
-		handleCaptureSavestate(&fakePayload[0]);
+		handleCaptureSavestate(&playbackSavestatePayload[0]);
 
 		frameSeqIdx += 1;
 	}
@@ -1530,9 +1542,8 @@ void CEXISlippi::startFindMatch(u8 *payload)
 void CEXISlippi::prepareOnlineMatchState()
 {
 	// This match block is a VS match with P1 Red Falco vs P2 Red Bowser on Battlefield
-  // TODO: change first byte from 0x30 to 0x32 to add stock timer
 	static std::vector<u8> onlineMatchBlock = {
-	    0x30, 0x01, 0x86, 0x4C, 0xC3, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0x6E, 0x00, 0x1F, 0x00, 0x00,
+	    0x32, 0x01, 0x86, 0x4C, 0xC3, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0x6E, 0x00, 0x1F, 0x00, 0x00,
 	    0x01, 0xE0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF,
 	    0xFF, 0xFF, 0xFF, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x3F, 0x80, 0x00, 0x00, 0x3F, 0x80, 0x00, 0x00, 0x3F, 0x80,
 	    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -1666,8 +1677,8 @@ void CEXISlippi::prepareOnlineMatchState()
 			stageId = rps.isStageSelected ? rps.stageId : lps.stageId;
 		}
 
-		//int seconds = 0;
-		//u32 *timer = (u32 *)&onlineMatchBlock[0x10];
+		// int seconds = 0;
+		// u32 *timer = (u32 *)&onlineMatchBlock[0x10];
 		//*timer = Common::swap32(seconds * 60);
 
 		u16 *stage = (u16 *)&onlineMatchBlock[0xE];
@@ -1924,7 +1935,7 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 			break;
 		case CMD_PREPARE_REPLAY:
 			// log.open("log.txt");
-			prepareGameInfo();
+			prepareGameInfo(&memPtr[bufLoc + 1]);
 			break;
 		case CMD_READ_FRAME:
 			prepareFrameData(&memPtr[bufLoc + 1]);
@@ -2182,14 +2193,13 @@ void CEXISlippi::processInitialState(std::vector<u8> &iState)
 void CEXISlippi::resetPlayback()
 {
 	g_playback_status->shouldRunThreads = false;
+	condVar.notify_one(); // Will allow thread to kill itself
 
 	if (m_savestateThread.joinable())
-		m_savestateThread.detach();
+		m_savestateThread.join();
 
 	if (m_seekThread.joinable())
-		m_seekThread.detach();
-
-	condVar.notify_one(); // Will allow thread to kill itself
+		m_seekThread.join();
 
 	g_playback_status->shouldJumpBack = false;
 	g_playback_status->shouldJumpForward = false;
