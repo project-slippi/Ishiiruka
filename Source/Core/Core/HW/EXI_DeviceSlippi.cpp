@@ -509,13 +509,14 @@ void CEXISlippi::prepareGameInfo(u8 *payload)
 	// Return success code
 	m_read_queue.push_back(1);
 
-  // Prepare playback savestate payload
+	// Prepare playback savestate payload
 	playbackSavestatePayload.clear();
 	appendWordToBuffer(&playbackSavestatePayload, 0); // This space will be used to set frame index
 	int bkpPos = 0;
-	while ((*(u32 *)(&payload[bkpPos * 8])) != 0) {
+	while ((*(u32 *)(&payload[bkpPos * 8])) != 0)
+	{
 		bkpPos += 1;
-  }
+	}
 	playbackSavestatePayload.insert(playbackSavestatePayload.end(), payload, payload + (bkpPos * 8 + 4));
 
 	Slippi::GameSettings *settings = m_current_game->GetSettings();
@@ -1541,7 +1542,8 @@ void CEXISlippi::startFindMatch(u8 *payload)
 
 void CEXISlippi::prepareOnlineMatchState()
 {
-	// This match block is a VS match with P1 Red Falco vs P2 Red Bowser on Battlefield
+	// This match block is a VS match with P1 Red Falco vs P2 Red Bowser on Battlefield. The proper values will
+  // be overwritten
 	static std::vector<u8> onlineMatchBlock = {
 	    0x32, 0x01, 0x86, 0x4C, 0xC3, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0x6E, 0x00, 0x1F, 0x00, 0x00,
 	    0x01, 0xE0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF,
@@ -1701,15 +1703,12 @@ void CEXISlippi::prepareOnlineMatchState()
 	m_read_queue.push_back((u8)SConfig::GetInstance().m_slippiOnlineDelay);
 
 	// Add names to output
-	p1Name.resize(MAX_NAME_LENGTH);
-	auto nameBuf = p1Name.c_str();
-	m_read_queue.insert(m_read_queue.end(), nameBuf, nameBuf + MAX_NAME_LENGTH + 1);
-	p2Name.resize(MAX_NAME_LENGTH);
-	nameBuf = p2Name.c_str();
-	m_read_queue.insert(m_read_queue.end(), nameBuf, nameBuf + MAX_NAME_LENGTH + 1);
-	oppName.resize(MAX_NAME_LENGTH);
-	nameBuf = oppName.c_str();
-	m_read_queue.insert(m_read_queue.end(), nameBuf, nameBuf + MAX_NAME_LENGTH + 1);
+	p1Name = ConvertStringForGame(p1Name, MAX_NAME_LENGTH);
+	m_read_queue.insert(m_read_queue.end(), p1Name.begin(), p1Name.end());
+	p2Name = ConvertStringForGame(p2Name, MAX_NAME_LENGTH);
+	m_read_queue.insert(m_read_queue.end(), p2Name.begin(), p2Name.end());
+	oppName = ConvertStringForGame(oppName, MAX_NAME_LENGTH);
+	m_read_queue.insert(m_read_queue.end(), oppName.begin(), oppName.end());
 
 	// Add the match struct block to output
 	m_read_queue.insert(m_read_queue.end(), onlineMatchBlock.begin(), onlineMatchBlock.end());
@@ -1749,7 +1748,7 @@ void CEXISlippi::setMatchSelections(u8 *payload)
 		s.isStageSelected = true;
 	}
 
-	s.rngOffset = rand() % 0xFFFF;
+	s.rngOffset = generator() % 0xFFFF;
 
 	// Get user name from file
 	std::string dirPath = File::GetExeDirectory();
@@ -1763,9 +1762,12 @@ void CEXISlippi::setMatchSelections(u8 *payload)
 		displayName = res.value("displayName", "");
 	}
 
-	if (displayName.length() > MAX_NAME_LENGTH)
+	// Just let the max length to transfer to opponent be potentially 16 worst-case utf-8 chars
+	// This string will get converted to the game format later
+	int maxLenth = MAX_NAME_LENGTH * 4 + 4;
+	if (displayName.length() > maxLenth)
 	{
-		displayName.resize(MAX_NAME_LENGTH);
+		displayName.resize(maxLenth);
 	}
 
 	s.playerName = displayName;
@@ -1853,11 +1855,9 @@ void CEXISlippi::prepareOnlineStatus()
 
 	auto userInfo = user->GetUserInfo();
 
-	// Write player name (16 bytes)
-	std::string playerName = userInfo.displayName;
-	playerName.resize(MAX_NAME_LENGTH);
-	auto nameBuf = playerName.c_str();
-	m_read_queue.insert(m_read_queue.end(), nameBuf, nameBuf + MAX_NAME_LENGTH + 1);
+	// Write player name (31 bytes)
+	std::string playerName = ConvertStringForGame(userInfo.displayName, MAX_NAME_LENGTH);
+	m_read_queue.insert(m_read_queue.end(), playerName.begin(), playerName.end());
 
 	// Write connect code (10 bytes)
 	std::string connectCode = userInfo.connectCode;
