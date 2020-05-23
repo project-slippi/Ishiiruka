@@ -509,7 +509,10 @@ void SlippiNetplayClient::SendConnectionSelected()
 
 void SlippiNetplayClient::SendSlippiPad(std::unique_ptr<SlippiPad> pad)
 {
-	if (slippiConnectStatus == SlippiConnectStatus::NET_CONNECT_STATUS_FAILED)
+	auto status = slippiConnectStatus;
+	bool connectionFailed = status == SlippiNetplayClient::SlippiConnectStatus::NET_CONNECT_STATUS_FAILED;
+	bool connectionDisconnected = status == SlippiNetplayClient::SlippiConnectStatus::NET_CONNECT_STATUS_DISCONNECTED;
+	if (connectionFailed || connectionDisconnected)
 	{
 		return;
 	}
