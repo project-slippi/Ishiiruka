@@ -1817,11 +1817,12 @@ void CEXISlippi::logMessageFromGame(u8 *payload)
 	if (payload[0] == 0)
 	{
 		// The first byte indicates whether to log the time or not
-		ERROR_LOG(SLIPPI, "%s", (char *)&payload[1]);
+		GENERIC_LOG(LogTypes::SLIPPI, (LogTypes::LOG_LEVELS)payload[1], "%s", (char *)&payload[2]);
 	}
 	else
 	{
-		ERROR_LOG(SLIPPI, "%s: %llu", (char *)&payload[1], Common::Timer::GetTimeUs());
+		GENERIC_LOG(LogTypes::SLIPPI, (LogTypes::LOG_LEVELS)payload[1], "%s: %llu", (char *)&payload[2],
+		            Common::Timer::GetTimeUs());
 	}
 
 	// std::string logStr = std::string((char *)&memPtr[bufLoc + 1]);
