@@ -1317,6 +1317,10 @@ void CEXISlippi::handleOnlineInputs(u8 *payload)
 			availableSavestates.push_back(std::make_unique<SlippiSavestate>());
 		}
 
+		// Reset stall counter
+		isConnectionStalled = false;
+		stallFrameCount = 0;
+
 		// Reset character selections as they are no longer needed
 		localSelections.Reset();
 		slippi_netplay->StartSlippiGame();
@@ -1341,9 +1345,12 @@ bool CEXISlippi::shouldSkipOnlineFrame(int32_t frame)
 	bool connectionDisconnected = status == SlippiNetplayClient::SlippiConnectStatus::NET_CONNECT_STATUS_DISCONNECTED;
 	if (connectionFailed || connectionDisconnected)
 	{
-		// TODO: Should we do something better on a disconnect? Probably just kill the game?
-
 		// If connection failed just continue the game
+		return false;
+	}
+
+	if (isConnectionStalled)
+	{
 		return false;
 	}
 
@@ -1352,10 +1359,19 @@ bool CEXISlippi::shouldSkipOnlineFrame(int32_t frame)
 	int32_t latestRemoteFrame = slippi_netplay->GetSlippiLatestRemoteFrame();
 	if (frame - latestRemoteFrame >= ROLLBACK_MAX_FRAMES)
 	{
+		stallFrameCount++;
+		if (stallFrameCount > 60 * 7)
+		{
+			// 7 second stall will disconnect game
+			isConnectionStalled = true;
+		}
+
 		WARN_LOG(SLIPPI_ONLINE, "Halting for one frame due to rollback limit (frame: %d | latest: %d)...", frame,
 		         latestRemoteFrame);
 		return true;
 	}
+
+	stallFrameCount = 0;
 
 	// Return true if we are over 60% of a frame ahead of our opponent. Currently limiting how
 	// often this happens because I'm worried about jittery data causing a lot of unneccesary delays.
@@ -1397,6 +1413,9 @@ bool CEXISlippi::shouldSkipOnlineFrame(int32_t frame)
 
 void CEXISlippi::handleSendInputs(u8 *payload)
 {
+	if (isConnectionStalled)
+		return;
+
 	int32_t frame = payload[0] << 24 | payload[1] << 16 | payload[2] << 8 | payload[3];
 	u8 delay = payload[4];
 
@@ -1412,7 +1431,7 @@ void CEXISlippi::prepareOpponentInputs(u8 *payload)
 	u8 frameResult = 1; // Indicates to continue frame
 
 	auto state = slippi_netplay->GetSlippiConnectStatus();
-	if (state != SlippiNetplayClient::SlippiConnectStatus::NET_CONNECT_STATUS_CONNECTED)
+	if (state != SlippiNetplayClient::SlippiConnectStatus::NET_CONNECT_STATUS_CONNECTED || isConnectionStalled)
 	{
 		frameResult = 3; // Indicates we have disconnected
 	}
@@ -1543,7 +1562,7 @@ void CEXISlippi::startFindMatch(u8 *payload)
 void CEXISlippi::prepareOnlineMatchState()
 {
 	// This match block is a VS match with P1 Red Falco vs P2 Red Bowser on Battlefield. The proper values will
-  // be overwritten
+	// be overwritten
 	static std::vector<u8> onlineMatchBlock = {
 	    0x32, 0x01, 0x86, 0x4C, 0xC3, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0x6E, 0x00, 0x1F, 0x00, 0x00,
 	    0x01, 0xE0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF,

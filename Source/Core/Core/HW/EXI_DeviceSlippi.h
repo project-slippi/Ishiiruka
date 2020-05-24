@@ -209,9 +209,12 @@ class CEXISlippi : public IEXIDevice
 
 	std::unordered_map<u8, std::string> getNetplayNames();
 
-  std::vector<u8> playbackSavestatePayload;
+	std::vector<u8> playbackSavestatePayload;
 
 	std::vector<uint8_t> geckoList;
+
+	u32 stallFrameCount = 0;
+	bool isConnectionStalled = false;
 
 	bool isSoftFFW = false;
 	bool isHardFFW = false;
