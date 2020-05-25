@@ -4,6 +4,9 @@
 cmake_minimum_required(VERSION 2.8.8)
 project(dolphin-emu)
 
+set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
 option(USE_EGL "Enables EGL OpenGL Interface" OFF)
 option(TRY_X11 "Enables X11 Support" ON)
 option(USE_SHARED_ENET "Use shared libenet if found rather than Dolphin's soon-to-compatibly-diverge version" OFF)
@@ -339,6 +342,7 @@ if(WIN32)
 	add_definitions(-D_SECURE_SCL=0)
 	add_definitions(-D_CRT_SECURE_NO_WARNINGS)
 	add_definitions(-D_CRT_SECURE_NO_DEPRECATE)
+	find_library(WINSOCK2_LIBRARY NAMES ws2_32 WS2_32 Ws2_32)
 endif(WIN32)
 
 # Add an option to build relocatable binaries on Linux
