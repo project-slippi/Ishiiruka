@@ -266,9 +266,9 @@ void SlippicommServer::writeBroadcast()
 
   //TODO COnfigureable string
   char nickname[] = "Dolphin";
-  char cmd[] = "SLIPREADY";
+  char cmd[] = "SLIP_READY";
 
-  strncpy(broadcast.cmd, cmd, sizeof(broadcast.cmd));
+  memcpy(broadcast.cmd, cmd, sizeof(broadcast.cmd));
   memset(broadcast.mac_addr, 0, sizeof(broadcast.mac_addr));
   strncpy(broadcast.nickname, nickname, sizeof(broadcast.nickname));
 
