@@ -149,7 +149,7 @@ CEXISlippi::CEXISlippi()
 	// TEMP
 	std::string origStr;
 	std::string modifiedStr;
-	File::ReadFileToString("C:\\Users\\Jas\\Documents\\Melee\\Textures\\Slippi\\MainMenu\\MnMaAll-orig.usd", origStr);
+	File::ReadFileToString("C:\\Users\\Jas\\Documents\\Melee\\Textures\\Slippi\\MainMenu\\MnMaAll.usd", origStr);
 	File::ReadFileToString("C:\\Users\\Jas\\Documents\\Melee\\Textures\\Slippi\\MainMenu\\MnMaAll-new.usd",
 	                       modifiedStr);
 	std::vector<u8> orig(origStr.begin(), origStr.end());
@@ -167,11 +167,21 @@ CEXISlippi::CEXISlippi()
 	File::WriteStringToFile(diff, "C:\\Users\\Jas\\Documents\\Melee\\Textures\\Slippi\\CSS\\MnExtAll.usd.diff");
 	File::WriteStringToFile(diff, "C:\\Dolphin\\IshiiDev\\Sys\\GameFiles\\GALE01\\MnExtAll.usd.diff");
 
+  // SdMenu
+	File::ReadFileToString("C:\\Users\\Jas\\Documents\\Melee\\Textures\\Slippi\\MainMenu\\SdMenu.usd", origStr);
+	File::ReadFileToString("C:\\Users\\Jas\\Documents\\Melee\\Textures\\Slippi\\MainMenu\\SdMenu-new.usd",
+	                       modifiedStr);
+	orig = std::vector<u8>(origStr.begin(), origStr.end());
+	modified = std::vector<u8>(modifiedStr.begin(), modifiedStr.end());
+	diff = processDiff(orig, modified);
+	File::WriteStringToFile(diff, "C:\\Users\\Jas\\Documents\\Melee\\Textures\\Slippi\\MainMenu\\SdMenu.usd.diff");
+	File::WriteStringToFile(diff, "C:\\Dolphin\\IshiiDev\\Sys\\GameFiles\\GALE01\\SdMenu.usd.diff");
+
 	// TEMP - Restore orig
-	std::string stateString;
-	decoder.Decode((char *)orig.data(), orig.size(), diff, &stateString);
-	File::WriteStringToFile(stateString,
-	                        "C:\\Users\\Jas\\Documents\\Melee\\Textures\\Slippi\\MainMenu\\MnMaAll-restored.usd");
+	//std::string stateString;
+	//decoder.Decode((char *)orig.data(), orig.size(), diff, &stateString);
+	//File::WriteStringToFile(stateString,
+	//                        "C:\\Users\\Jas\\Documents\\Melee\\Textures\\Slippi\\MainMenu\\MnMaAll-restored.usd");
 }
 
 CEXISlippi::~CEXISlippi()
@@ -1354,8 +1364,8 @@ bool CEXISlippi::shouldSkipOnlineFrame(int32_t frame)
 		return false;
 	}
 
-	// Return true if we are too far ahead for rollback. 5 is the number of frames we can
-	// receive for the opponent at one time and is our "look-ahead" limit
+	// Return true if we are too far ahead for rollback. ROLLBACK_MAX_FRAMES is the number of frames
+	// we can receive for the opponent at one time and is our "look-ahead" limit
 	int32_t latestRemoteFrame = slippi_netplay->GetSlippiLatestRemoteFrame();
 	if (frame - latestRemoteFrame >= ROLLBACK_MAX_FRAMES)
 	{
