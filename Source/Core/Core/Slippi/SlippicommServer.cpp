@@ -240,7 +240,6 @@ void SlippicommServer::writeKeepalives()
   std::map<SOCKET, std::shared_ptr<SlippiSocket>>::iterator it = m_sockets.begin();
   while(it != m_sockets.end())
   {
-    // TODO technically this should be in a loop, will do later
     send(it->first, (char*)&keepalive_len, sizeof(keepalive_len), 0);
 
     int32_t byteswritten = 0;
@@ -264,8 +263,7 @@ void SlippicommServer::writeBroadcast()
     // Broadcast message structure
   struct broadcast_msg broadcast;
 
-  //TODO COnfigureable string
-  char nickname[] = "Dolphin";
+  char nickname[] = "Dolphin";   //TODO Load this from config
   char cmd[] = "SLIP_READY";
 
   memcpy(broadcast.cmd, cmd, sizeof(broadcast.cmd));
@@ -354,9 +352,15 @@ void SlippicommServer::handleMessage(SOCKET socket)
   u32 cursor = 0;
   // Do we have a "payload" and a "cursor"?
   if(handshake.find("payload") != handshake.end() &&
-    handshake.at("payload").find("cursor") != handshake.at("payload").end())
+    handshake.at("payload").find("cursor") != handshake.at("payload").end() &&
+    handshake.at("payload").at("cursor").is_array())
   {
-    cursor = handshake.at("payload").at("cursor");
+    std::vector<u8> cursor_array = handshake.at("payload").at("cursor");
+    // Convert the array to an integer
+    for(uint32_t i = 0; i < cursor_array.size(); i++)
+    {
+      cursor += (cursor_array[i]) << (8*i);
+    }
   }
   else
   {
@@ -374,7 +378,6 @@ void SlippicommServer::handleMessage(SOCKET socket)
   m_sockets[socket]->m_incoming_buffer = std::vector<char>(begin, end);
 
   // handshake back
-  // TODO CHANGE THESE VALUES CONFIGURABLE
   nlohmann::json handshake_back = {
     {"type", HANDSHAKE_TYPE},
     {"payload", {
@@ -387,7 +390,6 @@ void SlippicommServer::handleMessage(SOCKET socket)
 
   std::vector<u8> ubjson_handshake_back = nlohmann::json::to_ubjson(handshake_back);
   u32 handshake_back_len = htonl((u32)ubjson_handshake_back.size());
-  // TODO technically this should be in a loop, will do later
   send(socket, (char*)&handshake_back_len, sizeof(handshake_back_len), 0);
 
   int32_t byteswritten = 0;
