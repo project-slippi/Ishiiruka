@@ -373,7 +373,7 @@ void SlippicommServer::handleMessage(SOCKET socket)
 
   // handshake back
   nlohmann::json handshake_back = {
-    {"type", HANDSHAKE_TYPE},
+    {"type", (u8)HANDSHAKE_TYPE},
     {"payload", {
       {"nick", "Dolphin"},
       {"nintendontVersion", "1.9.0-dev-2"},
