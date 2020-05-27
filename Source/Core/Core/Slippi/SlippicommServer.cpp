@@ -270,14 +270,8 @@ void SlippicommServer::writeBroadcast()
   memset(broadcast.mac_addr, 0, sizeof(broadcast.mac_addr));
   strncpy(broadcast.nickname, nickname, sizeof(broadcast.nickname));
 
-  // So this sends twice due to some networking weirdness
-  //  Broadcasts to 255.255.255.255 won't send to localhost on most systems
-  //  so we go out of our way to "broadcast" to localhost in addition
-  //  just so that autodiscovery works locally too
   sendto(m_broadcast_socket, (char*)&broadcast, sizeof(broadcast), 0,
     (struct sockaddr *)&m_broadcastAddr, sizeof(m_broadcastAddr));
-  sendto(m_broadcast_socket, (char*)&broadcast, sizeof(broadcast), 0,
-    (struct sockaddr *)&m_localhostAddr, sizeof(m_localhostAddr));
 }
 
 void SlippicommServer::handleMessage(SOCKET socket)
@@ -453,10 +447,6 @@ void SlippicommServer::SlippicommSocketThread(void)
   m_broadcastAddr.sin_family = AF_INET;
   m_broadcastAddr.sin_addr.s_addr = inet_addr("255.255.255.255");
   m_broadcastAddr.sin_port = htons(20582);
-  memset(&m_localhostAddr, 0, sizeof(m_localhostAddr));
-  m_localhostAddr.sin_family = AF_INET;
-  m_localhostAddr.sin_addr.s_addr = inet_addr("127.0.0.1");
-  m_localhostAddr.sin_port = htons(20582);
 
 	// Infinite loop, keep accepting new connections and putting them into the list
 	while(1)

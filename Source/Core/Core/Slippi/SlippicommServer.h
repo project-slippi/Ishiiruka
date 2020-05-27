@@ -66,7 +66,7 @@ public:
     std::chrono::system_clock::time_point m_last_write_time;
     std::chrono::system_clock::time_point m_last_broadcast_time;
     SOCKET m_broadcast_socket;
-    struct sockaddr_in m_broadcastAddr, m_localhostAddr;
+    struct sockaddr_in m_broadcastAddr;
 
     // Private constructor to avoid making another instance
     SlippicommServer();
