@@ -2,7 +2,7 @@
 #include "Common/Logging/Log.h"
 #include "nlohmann/json.hpp"
 #include "Common/CommonTypes.h"
-#include <Core\ConfigManager.h>
+#include <Core/ConfigManager.h>
 
 // Networking
 #ifdef _WIN32
