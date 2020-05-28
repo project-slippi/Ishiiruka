@@ -73,7 +73,7 @@ void SlippicommServer::write(u8 *payload, u32 length)
 void SlippicommServer::writeEvents(SOCKET socket)
 {
     // Get the cursor for this socket
-    u32 cursor = m_sockets[socket]->m_cursor[0];
+    u32 cursor = m_sockets[socket]->m_cursor;
 
     // Loop through each event that needs to be sent
     //  send all the events starting at their cursor
@@ -99,7 +99,7 @@ void SlippicommServer::writeEvents(SOCKET socket)
             }
         }
         // We successfully wrote the event. So increment the cursor
-        m_sockets[socket]->m_cursor[0]++;
+        m_sockets[socket]->m_cursor++;
     }
     m_event_buffer_mutex.unlock();
 }
@@ -140,11 +140,11 @@ SOCKET SlippicommServer::buildFDSet(fd_set *read_fds, fd_set *write_fds)
         // reset cursor if it's > event buffer size
         //  This will happen when a new game starts
         //  or some weird error. In both cases, starting over is right
-        if(m_sockets[it->first]->m_cursor[0] > event_count)
+        if(m_sockets[it->first]->m_cursor > event_count)
         {
-            m_sockets[it->first]->m_cursor[0] = 0;
+            m_sockets[it->first]->m_cursor = 0;
         }
-        if(m_sockets[it->first]->m_cursor[0] < event_count)
+        if(m_sockets[it->first]->m_cursor < event_count)
         {
             FD_SET(it->first, write_fds);
         }
