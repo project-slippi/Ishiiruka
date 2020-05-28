@@ -378,7 +378,7 @@ void SlippicommServer::handleMessage(SOCKET socket)
         {"nick", SConfig::GetInstance().m_slippiConsoleName},
         {"nintendontVersion", "1.9.0-dev-2"},
         {"clientToken", std::vector<u32>{0, 0, 0, 0}},
-        {"pos", cursor}
+        {"pos", uint32ToVector(cursor)}
         }}
     };
 
