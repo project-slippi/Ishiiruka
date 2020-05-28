@@ -1738,6 +1738,11 @@ void CEXISlippi::prepareOnlineMatchState()
 	oppName = ConvertStringForGame(oppName, MAX_NAME_LENGTH);
 	m_read_queue.insert(m_read_queue.end(), oppName.begin(), oppName.end());
 
+	// Add error message if there is one
+	auto errorStr = matchmaking->GetErrorMessage();
+	errorStr = ConvertStringForGame(errorStr, 120);
+	m_read_queue.insert(m_read_queue.end(), errorStr.begin(), errorStr.end());
+
 	// Add the match struct block to output
 	m_read_queue.insert(m_read_queue.end(), onlineMatchBlock.begin(), onlineMatchBlock.end());
 }

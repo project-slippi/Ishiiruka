@@ -23,6 +23,7 @@ SlippiMatchmaking::SlippiMatchmaking(SlippiUser *user)
 {
 	m_user = user;
 	m_state = ProcessState::IDLE;
+	m_errorMsg = "";
 
 	m_client = nullptr;
 	m_server = nullptr;
@@ -33,6 +34,7 @@ SlippiMatchmaking::SlippiMatchmaking(SlippiUser *user)
 SlippiMatchmaking::~SlippiMatchmaking()
 {
 	m_state = ProcessState::ERROR_ENCOUNTERED;
+	m_errorMsg = "Matchmaking shut down";
 
 	if (m_matchmakeThread.joinable())
 		m_matchmakeThread.join();
@@ -48,6 +50,7 @@ void SlippiMatchmaking::FindMatch(MatchSearchSettings settings)
 
 	m_searchSettings = settings;
 
+	m_errorMsg = "";
 	m_state = ProcessState::INITIALIZING;
 	m_matchmakeThread = std::thread(&SlippiMatchmaking::MatchmakeThread, this);
 }
@@ -55,6 +58,11 @@ void SlippiMatchmaking::FindMatch(MatchSearchSettings settings)
 SlippiMatchmaking::ProcessState SlippiMatchmaking::GetMatchmakeState()
 {
 	return m_state;
+}
+
+std::string SlippiMatchmaking::GetErrorMessage()
+{
+	return m_errorMsg;
 }
 
 bool SlippiMatchmaking::IsSearching()
@@ -102,7 +110,8 @@ int SlippiMatchmaking::receiveMessage(json &msg, int maxAttempts)
 			return 0;
 		}
 		case ENET_EVENT_TYPE_DISCONNECT:
-			// TODO: Handle? Probably don't want to mark error because we trigger a disconnect ourselves when we have a success
+			// TODO: Handle? Probably don't want to mark error because we trigger a disconnect ourselves when we have a
+			// success
 			break;
 		}
 	}
@@ -195,6 +204,7 @@ void SlippiMatchmaking::startMatchmaking()
 	{
 		// Failed to create client
 		m_state = ProcessState::ERROR_ENCOUNTERED;
+		m_errorMsg = "Failed to create mm client";
 		ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Failed to create client...");
 		return;
 	}
@@ -209,6 +219,7 @@ void SlippiMatchmaking::startMatchmaking()
 	{
 		// Failed to connect to server
 		m_state = ProcessState::ERROR_ENCOUNTERED;
+		m_errorMsg = "Failed to start connection to mm server";
 		ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Failed to start connection to mm server...");
 		return;
 	}
@@ -227,6 +238,7 @@ void SlippiMatchmaking::startMatchmaking()
 			{
 				ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Failed to connect to mm server...");
 				m_state = ProcessState::ERROR_ENCOUNTERED;
+				m_errorMsg = "Failed to connect to mm server";
 				return;
 			}
 
@@ -247,6 +259,7 @@ void SlippiMatchmaking::startMatchmaking()
 	{
 		ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Must be logged in to queue");
 		m_state = ProcessState::ERROR_ENCOUNTERED;
+		m_errorMsg = "Must be logged in to queue. Go back to menu";
 		return;
 	}
 
@@ -270,6 +283,7 @@ void SlippiMatchmaking::startMatchmaking()
 	{
 		ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Did not receive response from server for create ticket");
 		m_state = ProcessState::ERROR_ENCOUNTERED;
+		m_errorMsg = "Failed to join mm queue";
 		return;
 	}
 
@@ -278,6 +292,7 @@ void SlippiMatchmaking::startMatchmaking()
 	{
 		ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Received incorrect response for create ticket");
 		m_state = ProcessState::ERROR_ENCOUNTERED;
+		m_errorMsg = "Invalid response when joining mm queue";
 		return;
 	}
 
@@ -286,6 +301,7 @@ void SlippiMatchmaking::startMatchmaking()
 	{
 		ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Received error from server for create ticket");
 		m_state = ProcessState::ERROR_ENCOUNTERED;
+		m_errorMsg = err;
 		return;
 	}
 
@@ -318,6 +334,7 @@ void SlippiMatchmaking::handleMatchmaking()
 	{
 		ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Did not receive response from server for get ticket");
 		m_state = ProcessState::ERROR_ENCOUNTERED;
+		m_errorMsg = "Mm server did not respond in time";
 		return;
 	}
 
@@ -326,6 +343,7 @@ void SlippiMatchmaking::handleMatchmaking()
 	{
 		ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Received incorrect response for get ticket");
 		m_state = ProcessState::ERROR_ENCOUNTERED;
+		m_errorMsg = "Invalid response when getting mm status";
 		return;
 	}
 
@@ -334,6 +352,7 @@ void SlippiMatchmaking::handleMatchmaking()
 	{
 		ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Received error from server for get ticket");
 		m_state = ProcessState::ERROR_ENCOUNTERED;
+		m_errorMsg = err;
 		return;
 	}
 
@@ -371,6 +390,7 @@ void SlippiMatchmaking::sendHolePunchMsg(std::string remoteIp, u16 remotePort, u
 	{
 		// Failed to create client
 		m_state = ProcessState::ERROR_ENCOUNTERED;
+		m_errorMsg = "Failed to start hole punch";
 		return;
 	}
 
@@ -384,7 +404,7 @@ void SlippiMatchmaking::sendHolePunchMsg(std::string remoteIp, u16 remotePort, u
 	{
 		// Failed to connect to server
 		m_state = ProcessState::ERROR_ENCOUNTERED;
-		ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Failed to start connection to mm server...");
+		m_errorMsg = "Failed to start hole punch";
 		return;
 	}
 

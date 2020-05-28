@@ -46,6 +46,7 @@ class SlippiMatchmaking
 	ProcessState GetMatchmakeState();
 	bool IsSearching();
 	std::unique_ptr<SlippiNetplayClient> GetNetplayClient();
+	std::string GetErrorMessage();
 
   protected:
 	const std::string MM_HOST = "mm.slippi.gg";
@@ -63,6 +64,7 @@ class SlippiMatchmaking
 	MatchSearchSettings m_searchSettings;
 
 	ProcessState m_state;
+	std::string m_errorMsg = "";
 
 	SlippiUser *m_user;
 
