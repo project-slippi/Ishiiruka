@@ -23,9 +23,9 @@ typedef int SOCKET;
 class SlippiSocket
 {
 public:
-  // Fragmented data that hasn't yet fully arrived
-  std::vector<char> m_incoming_buffer;
-  u32 m_cursor = 0;
+    // Fragmented data that hasn't yet fully arrived
+    std::vector<char> m_incoming_buffer;
+    std::vector<u32> m_cursor{0, 0, 0, 0};
 };
 
 class SlippicommServer
@@ -50,9 +50,9 @@ public:
 
     struct broadcast_msg
     {
-    	char	cmd[10];
-    	u8		mac_addr[6];	// Wi-Fi interface MAC address
-    	char	nickname[32];	// Console nickname
+        char	cmd[10];
+        u8		mac_addr[6];	// Wi-Fi interface MAC address
+        char	nickname[32];	// Console nickname
     };
 
   private:
@@ -67,7 +67,7 @@ public:
     std::chrono::system_clock::time_point m_last_broadcast_time;
     SOCKET m_broadcast_socket;
     struct sockaddr_in m_broadcastAddr;
-	std::vector<u8> handshake_type_vec{105, 4, 116, 121, 112, 101, 85, 1};
+    std::vector<u8> handshake_type_vec{105, 4, 116, 121, 112, 101, 85, 1};
 
     // Private constructor to avoid making another instance
     SlippicommServer();
