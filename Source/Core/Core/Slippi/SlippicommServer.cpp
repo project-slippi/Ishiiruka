@@ -395,6 +395,8 @@ void SlippicommServer::handleMessage(SOCKET socket)
       byteswritten = send(socket, (char*)ubjson_handshake_back.data() +
         byteswritten, (int)ubjson_handshake_back.size(), 0);
     }
+
+    m_sockets[socket]->m_shook_hands = true;
 }
 
 void SlippicommServer::SlippicommSocketThread(void)
@@ -500,7 +502,7 @@ void SlippicommServer::SlippicommSocketThread(void)
 
             // Broadcasts are on their own timer. Send one every 2 seconds-ish
             // In a perfect world, we'd have these setup on a signal-based timer but...
-            if(now - std::chrono::seconds(2) > last_write)
+            if(now - std::chrono::seconds(2) > m_last_broadcast_time)
             {
                 writeBroadcast();
                 m_last_broadcast_time = now;
@@ -551,7 +553,10 @@ void SlippicommServer::SlippicommSocketThread(void)
         {
             if(FD_ISSET(sock, &write_fds))
             {
+              if(m_sockets.find(sock) != m_sockets.end() && m_sockets[sock]->m_shook_hands)
+              {
                 writeEvents(sock);
+              }
             }
         }
     }
