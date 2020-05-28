@@ -39,6 +39,8 @@ void SlippicommServer::write(u8 *payload, u32 length)
         '\x02', 'i', '\x07', 'p', 'a', 'y', 'l', 'o', 'a', 'd', '{',});
     std::vector<u8> cursor_header({'i', '\x03', 'p', 'o', 's', '[','$', 'U', '#', 'U', '\x08'});
     std::vector<u8> cursor_value = uint32ToLongVector(cursor);
+    std::vector<u8> next_cursor_header({'i', '\x07', 'n', 'e', 'x', 't', 'P', 'o', 's', '[','$', 'U', '#', 'U', '\x08'});
+    std::vector<u8> next_cursor_value = uint32ToLongVector(cursor+1);
     std::vector<u8> data_field_header({'i', '\x04', 'd', 'a', 't', 'a', '[',
         '$', 'U', '#', 'I'});
     std::vector<u8> length_vector = uint16ToVector(length);
@@ -48,6 +50,7 @@ void SlippicommServer::write(u8 *payload, u32 length)
     u32 event_length = length +
             (u32)ubjson_header.size() + (u32)cursor_header.size() +
       (u32)cursor_value.size() + (u32)data_field_header.size() +
+      (u32)next_cursor_value.size() + (u32)next_cursor_header.size() +
       (u32)length_vector.size() + (u32)ubjson_footer.size();
     std::vector<u8> event_length_vector = uint32ToVector(event_length);
 
@@ -58,6 +61,8 @@ void SlippicommServer::write(u8 *payload, u32 length)
     buffer.insert(buffer.end(), ubjson_header.begin(), ubjson_header.end());
     buffer.insert(buffer.end(), cursor_header.begin(), cursor_header.end());
     buffer.insert(buffer.end(), cursor_value.begin(), cursor_value.end());
+    buffer.insert(buffer.end(), next_cursor_header.begin(), next_cursor_header.end());
+    buffer.insert(buffer.end(), next_cursor_value.begin(), next_cursor_value.end());
     buffer.insert(buffer.end(), data_field_header.begin(), data_field_header.end());
     buffer.insert(buffer.end(), length_vector.begin(), length_vector.end());
     buffer.insert(buffer.end(), payload, payload + length);
