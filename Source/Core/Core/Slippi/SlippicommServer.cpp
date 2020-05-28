@@ -37,8 +37,8 @@ void SlippicommServer::write(u8 *payload, u32 length)
       //  regular JSON, so this doesn't work. :(
     std::vector<u8> ubjson_header({'{', 'i', '\x04', 't', 'y', 'p', 'e', 'U',
         '\x02', 'i', '\x07', 'p', 'a', 'y', 'l', 'o', 'a', 'd', '{',});
-    std::vector<u8> cursor_header({'i', '\x03', 'p', 'o', 's', '[','$', 'U', '#', 'U', '\x04'});
-    std::vector<u8> cursor_value = uint32ToVector(cursor);
+    std::vector<u8> cursor_header({'i', '\x03', 'p', 'o', 's', '[','$', 'U', '#', 'U', '\x08'});
+    std::vector<u8> cursor_value = uint32ToLongVector(cursor);
     std::vector<u8> data_field_header({'i', '\x04', 'd', 'a', 't', 'a', '[',
         '$', 'U', '#', 'I'});
     std::vector<u8> length_vector = uint16ToVector(length);
@@ -160,6 +160,17 @@ std::vector<u8> SlippicommServer::uint16ToVector(u16 num)
     u8 byte1 = num & 0xFF;
 
     return std::vector<u8>({byte0, byte1});
+}
+
+// Same as below, but 8 bytes wide
+std::vector<u8> SlippicommServer::uint32ToLongVector(u32 num)
+{
+  u8 byte0 = num >> 24;
+  u8 byte1 = (num & 0xFF0000) >> 16;
+  u8 byte2 = (num & 0xFF00) >> 8;
+  u8 byte3 = num & 0xFF;
+
+  return std::vector<u8>({0, 0, 0, 0, byte0, byte1, byte2, byte3});
 }
 
 std::vector<u8> SlippicommServer::uint32ToVector(u32 num)
@@ -378,7 +389,7 @@ void SlippicommServer::handleMessage(SOCKET socket)
         {"nick", SConfig::GetInstance().m_slippiConsoleName},
         {"nintendontVersion", "1.9.0-dev-2"},
         {"clientToken", std::vector<u32>{0, 0, 0, 0}},
-        {"pos", uint32ToVector(cursor)}
+        {"pos", uint32ToLongVector(cursor)}
         }}
     };
 

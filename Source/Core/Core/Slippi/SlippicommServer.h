@@ -93,6 +93,7 @@ public:
     //    actually send the data. Best-effort
     void writeEvents(SOCKET socket);
 
+    std::vector<u8> uint32ToLongVector(u32 num);
     std::vector<u8> uint32ToVector(u32 num);
     std::vector<u8> uint16ToVector(u16 num);
 };
