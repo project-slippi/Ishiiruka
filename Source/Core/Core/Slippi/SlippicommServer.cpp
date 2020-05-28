@@ -48,7 +48,7 @@ void SlippicommServer::write(u8 *payload, u32 length)
 
     // Length of the entire TCP event. Not part of the slippi message per-se
     u32 event_length = length +
-            (u32)ubjson_header.size() + (u32)cursor_header.size() +
+      (u32)ubjson_header.size() + (u32)cursor_header.size() +
       (u32)cursor_value.size() + (u32)data_field_header.size() +
       (u32)next_cursor_value.size() + (u32)next_cursor_header.size() +
       (u32)length_vector.size() + (u32)ubjson_footer.size();
@@ -213,8 +213,8 @@ SlippicommServer::SlippicommServer()
 
 SlippicommServer::~SlippicommServer()
 {
-  // The socket thread will be blocked waiting for input
-    //	So to wake it up, let's connect to the socket!
+    // The socket thread will be blocked waiting for input
+    // So to wake it up, let's connect to the socket!
     m_stop_socket_thread = true;
 
     SOCKET sock = 0;
@@ -251,13 +251,12 @@ void SlippicommServer::writeKeepalives()
 {
     nlohmann::json keepalive = {{"type", KEEPALIVE_TYPE}};
     std::vector<u8> ubjson_keepalive = nlohmann::json::to_ubjson(keepalive);
-    u32 keepalive_len = htonl((u32)ubjson_keepalive.size());
 
     // Write the data to each open socket
     std::map<SOCKET, std::shared_ptr<SlippiSocket>>::iterator it = m_sockets.begin();
     while(it != m_sockets.end())
     {
-        send(it->first, (char *)&keepalive_len, sizeof(keepalive_len), 0);
+        send(it->first, (char *)&m_keepalive_len, sizeof(m_keepalive_len), 0);
 
         int32_t byteswritten = 0;
         while ((uint32_t)byteswritten < ubjson_keepalive.size())
@@ -400,7 +399,7 @@ void SlippicommServer::handleMessage(SOCKET socket)
 
     std::vector<u8> ubjson_handshake_back = nlohmann::json::to_ubjson(handshake_back);
     auto it = ubjson_handshake_back.begin() + 1; // we want to insert type at index 1
-    ubjson_handshake_back.insert(it, handshake_type_vec.begin(), handshake_type_vec.end());
+    ubjson_handshake_back.insert(it, m_handshake_type_vec.begin(), m_handshake_type_vec.end());
 
     std::vector<u8> handshake_back_len = uint32ToVector((u32)ubjson_handshake_back.size());
     ubjson_handshake_back.insert(ubjson_handshake_back.begin(), handshake_back_len.begin(), handshake_back_len.end());
