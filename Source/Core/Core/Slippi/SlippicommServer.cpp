@@ -385,8 +385,9 @@ void SlippicommServer::handleMessage(SOCKET socket)
     std::vector<u8> ubjson_handshake_back = nlohmann::json::to_ubjson(handshake_back);
     auto it = ubjson_handshake_back.begin() + 1; // we want to insert type at index 1
     ubjson_handshake_back.insert(it, handshake_type_vec.begin(), handshake_type_vec.end());
-    u32 handshake_back_len = htonl((u32)ubjson_handshake_back.size());
-    send(socket, (char*)&handshake_back_len, sizeof(handshake_back_len), 0);
+
+    std::vector<u8> handshake_back_len = uint32ToVector((u32)ubjson_handshake_back.size());
+    ubjson_handshake_back.insert(ubjson_handshake_back.begin(), handshake_back_len.begin(), handshake_back_len.end());
 
     int32_t byteswritten = 0;
     while((uint32_t)byteswritten < ubjson_handshake_back.size())
