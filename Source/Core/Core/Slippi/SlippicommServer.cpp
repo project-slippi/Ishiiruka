@@ -2,6 +2,7 @@
 #include "Common/Logging/Log.h"
 #include "nlohmann/json.hpp"
 #include "Common/CommonTypes.h"
+#include <Core\ConfigManager.h>
 
 // Networking
 #ifdef _WIN32
@@ -263,7 +264,7 @@ void SlippicommServer::writeBroadcast()
     // Broadcast message structure
     struct broadcast_msg broadcast;
 
-    char nickname[] = "Dolphin";   //TODO Load this from config
+    const char* nickname = SConfig::GetInstance().m_slippiConsoleName.c_str();
     char cmd[] = "SLIP_READY";
 
     memcpy(broadcast.cmd, cmd, sizeof(broadcast.cmd));
@@ -374,7 +375,7 @@ void SlippicommServer::handleMessage(SOCKET socket)
     // handshake back
     nlohmann::json handshake_back = {
         {"payload", {
-        {"nick", "Dolphin"},
+        {"nick", SConfig::GetInstance().m_slippiConsoleName},
         {"nintendontVersion", "1.9.0-dev-2"},
         {"clientToken", std::vector<u32>{0, 0, 0, 0}},
         {"pos", cursor}
