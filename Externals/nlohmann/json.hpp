@@ -9393,7 +9393,15 @@ class binary_writer
     void write_number_with_ubjson_prefix(const NumberType n,
                                          const bool add_prefix)
     {
-        if (n <= (std::numeric_limits<uint8_t>::max)())
+        if (n <= static_cast<uint64_t>((std::numeric_limits<int8_t>::max)()))
+        {
+            if (add_prefix)
+            {
+                oa->write_character(to_char_type('i'));  // int8
+            }
+            write_number(static_cast<uint8_t>(n));
+        }
+        else if (n <= (std::numeric_limits<uint8_t>::max)())
         {
             if (add_prefix)
             {

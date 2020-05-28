@@ -67,6 +67,7 @@ public:
     std::chrono::system_clock::time_point m_last_broadcast_time;
     SOCKET m_broadcast_socket;
     struct sockaddr_in m_broadcastAddr;
+	std::vector<u8> handshake_type_vec{105, 4, 116, 121, 112, 101, 85, 1};
 
     // Private constructor to avoid making another instance
     SlippicommServer();
