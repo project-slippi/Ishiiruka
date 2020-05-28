@@ -72,6 +72,12 @@ struct SConfig : NonCopyable
 	// name of the last used filename
 	std::string m_LastFilename;
 
+	// name of Slippi "console"
+	std::string m_slippiConsoleName;
+
+	// enable Slippi Networking output
+	bool m_slippiNetworkingOutput;
+
 	GameType m_gameType;
 
 	// ISO folder

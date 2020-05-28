@@ -158,6 +158,8 @@ void SConfig::SaveGeneralSettings(IniFile& ini)
 	CreateDumpPath(m_DumpPath);
 	general->Set("WirelessMac", m_WirelessMac);
 	general->Set("WiiSDCardPath", m_strWiiSDCardPath);
+	general->Set("SlippiConsoleName", m_slippiConsoleName);
+	general->Set("EnableSlippiNetworkingOutput", m_slippiNetworkingOutput);
 
 #ifdef USE_GDBSTUB
 #ifndef _WIN32
@@ -476,6 +478,8 @@ void SConfig::LoadGeneralSettings(IniFile& ini)
 	general->Get("WirelessMac", &m_WirelessMac);
 	general->Get("WiiSDCardPath", &m_strWiiSDCardPath, File::GetUserPath(F_WIISDCARD_IDX));
 	File::SetUserPath(F_WIISDCARD_IDX, m_strWiiSDCardPath);
+	general->Get("SlippiConsoleName", &m_slippiConsoleName, "Dolphin");
+	general->Get("EnableSlippiNetworkingOutput", &m_slippiNetworkingOutput, false);
 }
 
 void SConfig::LoadInterfaceSettings(IniFile& ini)
