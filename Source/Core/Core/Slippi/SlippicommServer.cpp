@@ -28,7 +28,7 @@ void SlippicommServer::write(u8 *payload, u32 length)
     m_write_time_mutex.unlock();
 
     m_event_buffer_mutex.lock();
-    u32 cursor = (u32)m_event_buffer.size() + 1;
+    u32 cursor = (u32)m_event_buffer.size();
     m_event_buffer_mutex.unlock();
 
       // Note: This is a bit messy because nlohmann can't be used for this case.
@@ -37,7 +37,7 @@ void SlippicommServer::write(u8 *payload, u32 length)
       //  regular JSON, so this doesn't work. :(
     std::vector<u8> ubjson_header({'{', 'i', '\x04', 't', 'y', 'p', 'e', 'U',
         '\x02', 'i', '\x07', 'p', 'a', 'y', 'l', 'o', 'a', 'd', '{',});
-    std::vector<u8> cursor_header({'i', '\x06', 'c', 'u', 'r', 's', 'o', 'r', 'l'});
+    std::vector<u8> cursor_header({'i', '\x03', 'p', 'o', 's', '[','$', 'U', '#', 'U', '\x04'});
     std::vector<u8> cursor_value = uint32ToVector(cursor);
     std::vector<u8> data_field_header({'i', '\x04', 'd', 'a', 't', 'a', '[',
         '$', 'U', '#', 'I'});
