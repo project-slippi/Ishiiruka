@@ -38,9 +38,9 @@ void SlippicommServer::write(u8 *payload, u32 length)
     std::vector<u8> ubjson_header({'{', 'i', '\x04', 't', 'y', 'p', 'e', 'U',
         '\x02', 'i', '\x07', 'p', 'a', 'y', 'l', 'o', 'a', 'd', '{',});
     std::vector<u8> cursor_header({'i', '\x03', 'p', 'o', 's', '[','$', 'U', '#', 'U', '\x08'});
-    std::vector<u8> cursor_value = uint32ToLongVector(cursor);
+    std::vector<u8> cursor_value = uint64ToVector(cursor);
     std::vector<u8> next_cursor_header({'i', '\x07', 'n', 'e', 'x', 't', 'P', 'o', 's', '[','$', 'U', '#', 'U', '\x08'});
-    std::vector<u8> next_cursor_value = uint32ToLongVector(cursor+1);
+	std::vector<u8> next_cursor_value = uint64ToVector(cursor + 1);
     std::vector<u8> data_field_header({'i', '\x04', 'd', 'a', 't', 'a', '[',
         '$', 'U', '#', 'I'});
     std::vector<u8> length_vector = uint16ToVector(length);
@@ -78,13 +78,13 @@ void SlippicommServer::write(u8 *payload, u32 length)
 void SlippicommServer::writeEvents(SOCKET socket)
 {
     // Get the cursor for this socket
-    u32 cursor = m_sockets[socket]->m_cursor;
+    u64 cursor = m_sockets[socket]->m_cursor;
 
     // Loop through each event that needs to be sent
     //  send all the events starting at their cursor
     int32_t byteswritten = 0;
     m_event_buffer_mutex.lock();
-    for(u32 i=cursor; i < m_event_buffer.size(); i++)
+    for(u64 i = cursor; i < m_event_buffer.size(); i++)
     {
         byteswritten = 0;
         while((u32)byteswritten < m_event_buffer[i].size())
@@ -167,15 +167,18 @@ std::vector<u8> SlippicommServer::uint16ToVector(u16 num)
     return std::vector<u8>({byte0, byte1});
 }
 
-// Same as below, but 8 bytes wide
-std::vector<u8> SlippicommServer::uint32ToLongVector(u32 num)
+std::vector<u8> SlippicommServer::uint64ToVector(u64 num)
 {
-  u8 byte0 = num >> 24;
-  u8 byte1 = (num & 0xFF0000) >> 16;
-  u8 byte2 = (num & 0xFF00) >> 8;
-  u8 byte3 = num & 0xFF;
+    u8 byte0 = num >> 56;
+    u8 byte1 = (num >> 48) & 0xFF;
+	u8 byte2 = (num >> 40) & 0xFF;
+	u8 byte3 = (num >> 32) & 0xFF;
+	u8 byte4 = (num >> 24) & 0xFF;
+	u8 byte5 = (num >> 16) & 0xFF;
+	u8 byte6 = (num >> 8) & 0xFF;
+	u8 byte7 = num & 0xFF;
 
-  return std::vector<u8>({0, 0, 0, 0, byte0, byte1, byte2, byte3});
+    return std::vector<u8>{byte0, byte1, byte2, byte3, byte4, byte5, byte6, byte7};
 }
 
 std::vector<u8> SlippicommServer::uint32ToVector(u32 num)
@@ -393,7 +396,7 @@ void SlippicommServer::handleMessage(SOCKET socket)
         {"nick", SConfig::GetInstance().m_slippiConsoleName},
         {"nintendontVersion", "1.9.0-dev-2"},
         {"clientToken", std::vector<u32>{0, 0, 0, 0}},
-        {"pos", uint32ToLongVector(cursor)}
+        {"pos", uint64ToVector(cursor)}
         }}
     };
 

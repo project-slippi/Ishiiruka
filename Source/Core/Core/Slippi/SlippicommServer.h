@@ -25,7 +25,7 @@ class SlippiSocket
 public:
     // Fragmented data that hasn't yet fully arrived
     std::vector<char> m_incoming_buffer;
-    u32 m_cursor;
+    u64 m_cursor;
     bool m_shook_hands = false;
 };
 
@@ -94,7 +94,7 @@ public:
     //    actually send the data. Best-effort
     void writeEvents(SOCKET socket);
 
-    std::vector<u8> uint32ToLongVector(u32 num);
+    std::vector<u8> uint64ToVector(u64 num);
     std::vector<u8> uint32ToVector(u32 num);
     std::vector<u8> uint16ToVector(u16 num);
 };
