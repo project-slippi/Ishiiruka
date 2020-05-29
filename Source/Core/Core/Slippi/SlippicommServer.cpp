@@ -362,7 +362,7 @@ void SlippicommServer::handleMessage(SOCKET socket)
         return;
     }
 
-    u32 cursor = 0;
+    u64 cursor = 0;
     // Do we have a "payload" and a "cursor"?
     if(handshake.find("payload") != handshake.end() &&
        handshake.at("payload").find("cursor") != handshake.at("payload").end() &&
