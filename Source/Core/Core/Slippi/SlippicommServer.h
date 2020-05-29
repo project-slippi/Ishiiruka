@@ -69,7 +69,12 @@ public:
     SOCKET m_broadcast_socket;
     struct sockaddr_in m_broadcastAddr;
     const std::vector<u8> m_handshake_type_vec{105, 4, 116, 121, 112, 101, 85, 1};
-	const u32 m_keepalive_len = 167772160; // htonl((u32)ubjson_keepalive.size());
+    const u32 m_keepalive_len = 167772160; // htonl((u32)ubjson_keepalive.size());
+    // In order to emulate Wii behavior, the cursor position should be strictly
+    //  increasing. But internally, we need to index arrays by the cursor value.
+    //  To solve this, we keep an "offset" value that is added to all outgoing
+    //  cursor positions to give the appearance like it's going up
+    u64 m_cursor_offset = 0;
 
     // Private constructor to avoid making another instance
     SlippicommServer();
