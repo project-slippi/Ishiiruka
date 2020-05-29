@@ -403,7 +403,8 @@ void SlippicommServer::handleMessage(SOCKET socket)
         // Convert the array to an integer
         for(uint32_t i = 0; i < cursor_array.size(); i++)
         {
-            cursor += (cursor_array[i]) << (8*i);
+            uint32_t index = cursor_array.size() - i - 1;
+            cursor += (cursor_array[i]) << (8*index);
         }
         // Set the user's cursor position
         m_event_buffer_mutex.lock();
@@ -425,17 +426,13 @@ void SlippicommServer::handleMessage(SOCKET socket)
         + messageLength + 4;
     m_sockets[socket]->m_incoming_buffer = std::vector<char>(begin, end);
 
-    m_event_buffer_mutex.lock();
-    u64 offset = m_cursor_offset;
-    m_event_buffer_mutex.unlock();
-
     // handshake back
     nlohmann::json handshake_back = {
         {"payload", {
         {"nick", SConfig::GetInstance().m_slippiConsoleName},
         {"nintendontVersion", "1.9.0-dev-2"},
         {"clientToken", std::vector<u32>{0, 0, 0, 0}},
-        {"pos", uint64ToVector(offset + cursor)}
+        {"pos", uint64ToVector(cursor)}
         }}
     };
 
