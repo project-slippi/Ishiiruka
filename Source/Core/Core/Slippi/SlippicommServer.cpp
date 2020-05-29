@@ -366,11 +366,36 @@ void SlippicommServer::handleMessage(SOCKET socket)
        handshake.at("payload").find("cursor") != handshake.at("payload").end() &&
        handshake.at("payload").at("cursor").is_array())
     {
+        // Additional type checking on cursor. It needs to be an array of length 8
+        //  consisting entirely of integers. This is painful
+        bool bad_cursor = false;
+        if(handshake.at("payload").at("cursor").size() != 8)
+        {
+            bad_cursor = true;
+        }
+
+        for( auto it = handshake.at("payload").at("cursor").begin();
+            it != handshake.at("payload").at("cursor").end(); ++it)
+        {
+            if(!(*it).is_number_integer())
+            {
+                bad_cursor = true;
+            }
+        }
+        if(bad_cursor)
+        {
+            // Got a bogus UBJSON event. Hang up on the client
+            WARN_LOG(SLIPPI, "Got invalid UBJSON cursor from Slippi client");
+            sockClose(socket);
+            m_sockets.erase(socket);
+            return;
+        }
+
         std::vector<u8> cursor_array = handshake.at("payload").at("cursor");
         // Convert the array to an integer
         for(uint32_t i = 0; i < cursor_array.size(); i++)
         {
-        cursor += (cursor_array[i]) << (8*i);
+            cursor += (cursor_array[i]) << (8*i);
         }
     }
     else
@@ -444,7 +469,7 @@ void SlippicommServer::SlippicommSocketThread(void)
         WARN_LOG(SLIPPI, "Failed binding to Slippi streaming port");
         return;
     }
-    if (listen(m_server_fd, 3) < 0)
+    if (listen(m_server_fd, 10) < 0)
     {
         WARN_LOG(SLIPPI, "Failed listening to Slippi streaming socket");
         return;
@@ -569,10 +594,10 @@ void SlippicommServer::SlippicommSocketThread(void)
         {
             if(FD_ISSET(sock, &write_fds))
             {
-              if(m_sockets.find(sock) != m_sockets.end() && m_sockets[sock]->m_shook_hands)
-              {
-                writeEvents(sock);
-              }
+                if(m_sockets.find(sock) != m_sockets.end() && m_sockets[sock]->m_shook_hands)
+                {
+                    writeEvents(sock);
+                }
             }
         }
     }
