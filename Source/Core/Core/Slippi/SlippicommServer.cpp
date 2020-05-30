@@ -21,6 +21,11 @@ SlippicommServer* SlippicommServer::getInstance()
 
 void SlippicommServer::write(u8 *payload, u32 length)
 {
+    if(!SConfig::GetInstance().m_slippiNetworkingOutput)
+    {
+        return;
+    }
+
     // Keep track of the latest time we wrote data.
     //  So that we can know when to send keepalives later
     m_write_time_mutex.lock();
@@ -207,6 +212,11 @@ std::vector<u8> SlippicommServer::uint32ToVector(u32 num)
 
 void SlippicommServer::clearEventHistory()
 {
+    if(!SConfig::GetInstance().m_slippiNetworkingOutput)
+    {
+        return;
+    }
+
     m_event_buffer_mutex.lock();
     if(m_event_buffer.size() > 0)
     {
@@ -219,6 +229,11 @@ void SlippicommServer::clearEventHistory()
 
 SlippicommServer::SlippicommServer()
 {
+    if(!SConfig::GetInstance().m_slippiNetworkingOutput)
+    {
+        return;
+    }
+
     #ifdef _WIN32
     WSADATA wsa_data;
     WSAStartup(MAKEWORD(2,2), &wsa_data);
@@ -243,8 +258,8 @@ SlippicommServer::~SlippicommServer()
     struct sockaddr_in serv_addr;
     if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0)
     {
-            WARN_LOG(SLIPPI, "Failed to shut down Slippi networking thread");
-            return;
+        WARN_LOG(SLIPPI, "Failed to shut down Slippi networking thread");
+        return;
     }
 
     serv_addr.sin_family = AF_INET;
@@ -253,20 +268,20 @@ SlippicommServer::~SlippicommServer()
     // Convert IPv4 and IPv6 addresses from text to binary form
     if(inet_pton(AF_INET, "127.0.0.1", &serv_addr.sin_addr)<=0)
     {
-            WARN_LOG(SLIPPI, "Failed to shut down Slippi networking thread");
-            return;
+        WARN_LOG(SLIPPI, "Failed to shut down Slippi networking thread");
+        return;
     }
 
     if (connect(sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0)
     {
-            WARN_LOG(SLIPPI, "Failed to shut down Slippi networking thread");
-            return;
+        WARN_LOG(SLIPPI, "Failed to shut down Slippi networking thread");
+        return;
     }
 
     m_socketThread.join();
-  #ifdef _WIN32
-  WSACleanup();
-  #endif
+    #ifdef _WIN32
+    WSACleanup();
+    #endif
 }
 
 void SlippicommServer::writeKeepalives()
