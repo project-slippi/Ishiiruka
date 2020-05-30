@@ -102,13 +102,14 @@ void SlippicommServer::writeEvents(SOCKET socket)
         if(byteswritten < (int32_t)(m_event_buffer[i].size() - fragment_index))
         {
             // Is this just a blocking error?
-            if(errno == (EWOULDBLOCK|EAGAIN))
+            if(errno == EWOULDBLOCK || byteswritten >= 0)
             {
                 // Update the index to represent the bytes that DID get sent
                 m_sockets[socket]->m_outgoing_fragment_index += byteswritten;
             }
             else {
                 // Kill the socket
+                sockClose(socket);
                 m_sockets.erase(socket);
             }
             // In both error cases, we have to return. No more data to send
@@ -117,10 +118,8 @@ void SlippicommServer::writeEvents(SOCKET socket)
         }
         // Result #1. Keep the data coming with a new event
         m_sockets[socket]->m_outgoing_fragment_index = 0;
+        m_sockets[socket]->m_cursor++;
     }
-
-    // We successfully wrote the event. So increment the cursor
-    m_sockets[socket]->m_cursor++;
     m_event_buffer_mutex.unlock();
 }
 
@@ -429,10 +428,6 @@ void SlippicommServer::handleMessage(SOCKET socket)
             uint32_t index = cursor_array.size() - i - 1;
             cursor += (cursor_array[i]) << (8*index);
         }
-        // Set the user's cursor position
-        m_event_buffer_mutex.lock();
-        m_sockets[socket]->m_cursor = cursor - m_cursor_offset;
-        m_event_buffer_mutex.unlock();
     }
     else
     {
@@ -448,6 +443,21 @@ void SlippicommServer::handleMessage(SOCKET socket)
     end = m_sockets[socket]->m_incoming_buffer.begin()
         + messageLength + 4;
     m_sockets[socket]->m_incoming_buffer = std::vector<char>(begin, end);
+
+    // Set the user's cursor position
+    m_event_buffer_mutex.lock();
+    if(cursor >= m_cursor_offset)
+    {
+        m_sockets[socket]->m_cursor = cursor - m_cursor_offset;
+    }
+    else
+    {
+        // The client requested a cursor for an old game. Reset them to the present
+        m_sockets[socket]->m_cursor = 0;
+        cursor = m_cursor_offset;
+    }
+
+    m_event_buffer_mutex.unlock();
 
     // handshake back
     nlohmann::json handshake_back = {
