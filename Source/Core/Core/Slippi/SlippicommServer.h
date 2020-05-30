@@ -25,7 +25,8 @@ class SlippiSocket
 public:
     // Fragmented data that hasn't yet fully arrived
     std::vector<char> m_incoming_buffer;
-    u64 m_cursor;
+    u32 m_outgoing_fragment_index = 0;
+    u64 m_cursor = 0;
     bool m_shook_hands = false;
 };
 

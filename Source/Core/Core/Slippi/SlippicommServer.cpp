@@ -83,30 +83,44 @@ void SlippicommServer::writeEvents(SOCKET socket)
 
     // Loop through each event that needs to be sent
     //  send all the events starting at their cursor
-    int32_t byteswritten = 0;
     m_event_buffer_mutex.lock();
     for(u64 i = cursor; i < m_event_buffer.size(); i++)
     {
-        byteswritten = 0;
-        while((u32)byteswritten < m_event_buffer[i].size())
+        u32 fragment_index = m_sockets[socket]->m_outgoing_fragment_index;
+        int32_t byteswritten = send(socket,
+          (char*)m_event_buffer[i].data() + fragment_index,
+          (int)m_event_buffer[i].size() - fragment_index, 0);
+        // There are three possible results from a send() call.
+        //  1) All the data was sent.
+        //      Keep the data coming
+        //  2) Partial data was sent, and this would block.
+        //      Stop sending data for now. Save the partial fragment
+        //  3) The socket is broken
+        //      Kill the socket
+
+        // We didn't send all the data. This means result #2 or #3
+        if(byteswritten < (int32_t)(m_event_buffer[i].size() - fragment_index))
         {
-            byteswritten = send(socket, (char*)m_event_buffer[i].data() +
-            byteswritten, (int)m_event_buffer[i].size(), 0);
-            // -1 means an error has occurred
-            if(byteswritten == -1)
+            // Is this just a blocking error?
+            if(errno == (EWOULDBLOCK|EAGAIN))
             {
-                // Is this just a blocking error?
-                if(errno != EWOULDBLOCK)
-                {
-                    m_sockets.erase(socket);
-                }
-                m_event_buffer_mutex.unlock();
-                return;
+                // Update the index to represent the bytes that DID get sent
+                m_sockets[socket]->m_outgoing_fragment_index += byteswritten;
             }
+            else {
+                // Kill the socket
+                m_sockets.erase(socket);
+            }
+            // In both error cases, we have to return. No more data to send
+            m_event_buffer_mutex.unlock();
+            return;
         }
-        // We successfully wrote the event. So increment the cursor
-        m_sockets[socket]->m_cursor++;
+        // Result #1. Keep the data coming with a new event
+        m_sockets[socket]->m_outgoing_fragment_index = 0;
     }
+
+    // We successfully wrote the event. So increment the cursor
+    m_sockets[socket]->m_cursor++;
     m_event_buffer_mutex.unlock();
 }
 
@@ -263,23 +277,32 @@ void SlippicommServer::writeKeepalives()
 
     // Write the data to each open socket
     std::map<SOCKET, std::shared_ptr<SlippiSocket>>::iterator it = m_sockets.begin();
-    while(it != m_sockets.end())
+    for(; it != m_sockets.end(); it++)
     {
+        // Don't send a keepalive in the middle of an event message
+        if(it->second->m_outgoing_fragment_index > 0)
+        {
+            continue;
+        }
+
+        // Keepalives only get sent when no other data was sent for two whole seconds
+        //  So the chances of the network buffer being full here are pretty low.
+        //   It's fine to just loop the send(), effectively blocking on the call
         send(it->first, (char *)&m_keepalive_len, sizeof(m_keepalive_len), 0);
 
         int32_t byteswritten = 0;
         while ((uint32_t)byteswritten < ubjson_keepalive.size())
         {
-            byteswritten = send(it->first, (char *)ubjson_keepalive.data() + byteswritten,
+            int32_t ret = send(it->first, (char *)ubjson_keepalive.data() + byteswritten,
                                 (int)ubjson_keepalive.size() - byteswritten, 0);
             // -1 means the socket is closed
-            if (byteswritten == -1)
+            if (ret == -1)
             {
                 m_sockets.erase(it->first);
                 break;
             }
+            byteswritten += ret;
         }
-        it++;
     }
 }
 
@@ -443,6 +466,8 @@ void SlippicommServer::handleMessage(SOCKET socket)
     std::vector<u8> handshake_back_len = uint32ToVector((u32)ubjson_handshake_back.size());
     ubjson_handshake_back.insert(ubjson_handshake_back.begin(), handshake_back_len.begin(), handshake_back_len.end());
 
+    // This loop will effectively block until the send() completes.
+    //  But it's probably fine. The data is small and only sent infrequently.
     int32_t byteswritten = 0;
     while((uint32_t)byteswritten < ubjson_handshake_back.size())
     {
