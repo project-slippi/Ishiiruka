@@ -14,6 +14,7 @@ class SlippiUser
 		std::string playKey = "";
 		std::string displayName = "";
 		std::string connectCode = "";
+		std::string latestVersion = "";
 		std::string fileContents = "";
 	};
 
@@ -21,6 +22,7 @@ class SlippiUser
 
 	bool AttemptLogin();
 	void OpenLogInPage();
+	void UpdateFile();
 	void ListenForLogIn();
 	void LogOut();
 	UserInfo GetUserInfo();

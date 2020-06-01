@@ -143,7 +143,8 @@ CEXISlippi::CEXISlippi()
 	// Initialize local selections to empty
 	localSelections.Reset();
 
-	// Listen for User
+	// Update user file and then listen for User
+	user->UpdateFile();
 	user->ListenForLogIn();
 
 	// TEMP

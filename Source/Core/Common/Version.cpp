@@ -13,7 +13,7 @@
 #define BUILD_TYPE_STR ""
 #endif
 
-//const std::string scm_rev_str = "Ishiiruka-Dolphin"
+// const std::string scm_rev_str = "Ishiiruka-Dolphin"
 //#if !SCM_IS_MASTER
 //"[" SCM_BRANCH_STR "] "
 //#endif
@@ -23,7 +23,7 @@
 //#else
 //" " BUILD_TYPE_STR " " SCM_DESC_STR;
 //#endif
-#define SLIPPI_REV_STR "r19-dev-4"
+#define SLIPPI_REV_STR "2.0.0-beta.3"
 const std::string scm_rev_str = "Faster Melee - Slippi (" SLIPPI_REV_STR ")";
 
 #ifdef _WIN32

@@ -61,6 +61,13 @@ void SlippiUser::OpenLogInPage()
 	system(command.c_str());
 }
 
+void SlippiUser::UpdateFile()
+{
+	std::string path = File::GetExeDirectory() + "/dolphin-slippi-tools.exe";
+	std::string command = path + " user-update";
+	system(command.c_str());
+}
+
 void SlippiUser::ListenForLogIn()
 {
 	if (runThread)
@@ -146,6 +153,7 @@ SlippiUser::UserInfo SlippiUser::parseFile(std::string fileContents)
 	info.displayName = readString(res, "displayName");
 	info.playKey = readString(res, "playKey");
 	info.connectCode = readString(res, "connectCode");
+	info.latestVersion = readString(res, "latestVersion");
 
 	return info;
 }
