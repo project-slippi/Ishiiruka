@@ -11,6 +11,7 @@
 #include <condition_variable>
 #include <cstdlib>
 #include <functional>
+#include <semver/include/semver200.h>
 #include <stdexcept>
 #include <string>
 #include <tuple>
@@ -38,6 +39,9 @@
 #include "Core/CoreTiming.h"
 #include "Core/HW/SystemTimers.h"
 #include "Core/State.h"
+
+#include "DolphinWX/Frame.h"
+#include "DolphinWX/Main.h"
 
 #define FRAME_INTERVAL 900
 #define SLEEP_TIME_MS 8
@@ -1881,14 +1885,30 @@ void CEXISlippi::handleLogOutRequest()
 	user->LogOut();
 }
 
+void CEXISlippi::handleUpdateAppRequest()
+{
+	user->UpdateApp();
+	main_frame->DoExit();
+}
+
 void CEXISlippi::prepareOnlineStatus()
 {
 	m_read_queue.clear();
 
 	auto isLoggedIn = user->IsLoggedIn();
-	m_read_queue.push_back(isLoggedIn);
-
 	auto userInfo = user->GetUserInfo();
+
+	u8 appState = 0;
+	if (isLoggedIn)
+	{
+		// Check if we have the latest version, and if not, indicate we need to update
+		version::Semver200_version latestVersion(userInfo.latestVersion);
+		version::Semver200_version currentVersion(scm_slippi_semver_str);
+
+		appState = latestVersion > currentVersion ? 2 : 1;
+	}
+
+	m_read_queue.push_back(appState);
 
 	// Write player name (31 bytes)
 	std::string playerName = ConvertStringForGame(userInfo.displayName, MAX_NAME_LENGTH);
@@ -2023,6 +2043,9 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 			break;
 		case CMD_LOG_MESSAGE:
 			logMessageFromGame(&memPtr[bufLoc + 1]);
+			break;
+		case CMD_UPDATE:
+			handleUpdateAppRequest();
 			break;
 		default:
 			writeToFileAsync(&memPtr[bufLoc], payloadLen + 1, "");

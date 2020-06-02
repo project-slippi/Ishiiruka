@@ -867,6 +867,11 @@ void CFrame::DoStop()
 	}
 }
 
+void CFrame::DoExit()
+{
+	Close(true);
+}
+
 bool CFrame::TriggerSTMPowerEvent()
 {
 	const auto stm = WII_IPC_HLE_Interface::GetDeviceByName("/dev/stm/eventhook");

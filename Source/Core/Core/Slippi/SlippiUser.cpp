@@ -1,5 +1,10 @@
 #include "SlippiUser.h"
 
+#ifdef _WIN32
+#include "AtlBase.h"
+#include "AtlConv.h"
+#endif
+
 #include "Common/CommonPaths.h"
 #include "Common/FileUtil.h"
 #include "Common/Logging/Log.h"
@@ -8,6 +13,31 @@
 
 #include <json.hpp>
 using json = nlohmann::json;
+
+#ifdef _WIN32
+#define MAX_SYSTEM_PROGRAM (4096)
+static int system_hidden(const char *cmd)
+{
+	PROCESS_INFORMATION p_info;
+	STARTUPINFO s_info;
+	DWORD ReturnValue;
+
+	memset(&s_info, 0, sizeof(s_info));
+	memset(&p_info, 0, sizeof(p_info));
+	s_info.cb = sizeof(s_info);
+
+	wchar_t utf16cmd[MAX_SYSTEM_PROGRAM] = {0};
+	MultiByteToWideChar(CP_UTF8, 0, cmd, -1, utf16cmd, MAX_SYSTEM_PROGRAM);
+	if (CreateProcessW(NULL, utf16cmd, NULL, NULL, 0, CREATE_NO_WINDOW, NULL, NULL, &s_info, &p_info))
+	{
+		WaitForSingleObject(p_info.hProcess, INFINITE);
+		GetExitCodeProcess(p_info.hProcess, &ReturnValue);
+		CloseHandle(p_info.hProcess);
+		CloseHandle(p_info.hThread);
+	}
+	return ReturnValue;
+}
+#endif
 
 SlippiUser::~SlippiUser()
 {
@@ -63,9 +93,20 @@ void SlippiUser::OpenLogInPage()
 
 void SlippiUser::UpdateFile()
 {
+#ifdef _WIN32
 	std::string path = File::GetExeDirectory() + "/dolphin-slippi-tools.exe";
 	std::string command = path + " user-update";
+	system_hidden(command.c_str());
+#endif
+}
+
+void SlippiUser::UpdateApp()
+{
+#ifdef _WIN32
+	std::string path = File::GetExeDirectory() + "/dolphin-slippi-tools.exe";
+	std::string command = "start \"Updating Dolphin\" " + path + " app-update";
 	system(command.c_str());
+#endif
 }
 
 void SlippiUser::ListenForLogIn()

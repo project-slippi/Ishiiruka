@@ -138,7 +138,7 @@ class CEXISlippi : public IEXIDevice
 	time_t gameStartTime;
 	int32_t lastFrame;
 	std::unordered_map<u8, std::unordered_map<u8, u32>> characterUsage;
-
+  
 	void updateMetadataFields(u8 *payload, u32 length);
 	void configureCommands(u8 *payload, u8 length);
 	void writeToFileAsync(u8 *payload, u32 length, std::string fileOption);
@@ -168,6 +168,7 @@ class CEXISlippi : public IEXIDevice
 	bool shouldSkipOnlineFrame(int32_t frame);
 	void handleLogInRequest();
 	void handleLogOutRequest();
+	void handleUpdateAppRequest();
 	void prepareOnlineStatus();
 	void handleConnectionCleanup();
 

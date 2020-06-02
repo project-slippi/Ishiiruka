@@ -44,7 +44,7 @@
   <PropertyGroup Label="UserMacros" />
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
-      <AdditionalIncludeDirectories>$(ExternalsDir)nlohmann;${ExternalsDir}open-vcdiff;$(ExternalsDir)SlippiLib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ExternalsDir)nlohmann;${ExternalsDir}open-vcdiff;$(ExternalsDir)SlippiLib;$(ExternalsDir)semver;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DebugFast|x64'">
@@ -55,7 +55,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
-      <AdditionalIncludeDirectories>$(ExternalsDir)nlohmann;$(ExternalsDir)SlippiLib;$(ExternalsDir)HDiffPatch;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ExternalsDir)nlohmann;$(ExternalsDir)SlippiLib;$(ExternalsDir)HDiffPatch;$(ExternalsDir)semver;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -542,6 +542,9 @@
     </ProjectReference>
     <ProjectReference Include="..\..\..\Externals\open-vcdiff\open-vcdiff.vcxproj">
       <Project>{9193a8de-bc2e-458c-b52e-510457eee4b8}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\..\Externals\semver\semver.vcxproj">
+      <Project>{1bc426c4-af38-4c29-a925-02406bc00490}</Project>
     </ProjectReference>
     <ProjectReference Include="..\..\..\Externals\SlippiLib\SlippiLib.vcxproj">
       <Project>{ff39260b-839a-4a6c-a117-caa73c1683f5}</Project>

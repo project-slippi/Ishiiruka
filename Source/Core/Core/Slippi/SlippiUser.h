@@ -23,6 +23,7 @@ class SlippiUser
 	bool AttemptLogin();
 	void OpenLogInPage();
 	void UpdateFile();
+	void UpdateApp();
 	void ListenForLogIn();
 	void LogOut();
 	UserInfo GetUserInfo();
