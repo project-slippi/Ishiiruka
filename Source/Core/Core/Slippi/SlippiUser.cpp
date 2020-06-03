@@ -11,6 +11,8 @@
 #include "Common/StringUtil.h"
 #include "Common/Thread.h"
 
+#include "Core/ConfigManager.h"
+
 #include <json.hpp>
 using json = nlohmann::json;
 
@@ -103,8 +105,10 @@ void SlippiUser::UpdateFile()
 void SlippiUser::UpdateApp()
 {
 #ifdef _WIN32
+	auto isoPath = SConfig::GetInstance().m_strFilename;
+
 	std::string path = File::GetExeDirectory() + "/dolphin-slippi-tools.exe";
-	std::string command = "start \"Updating Dolphin\" " + path + " app-update";
+	std::string command = "start \"Updating Dolphin\" " + path + " app-update -launch -iso \"" + isoPath + "\"";
 	system(command.c_str());
 #endif
 }
