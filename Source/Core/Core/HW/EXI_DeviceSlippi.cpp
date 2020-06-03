@@ -1755,6 +1755,8 @@ void CEXISlippi::prepareOnlineMatchState()
 
 u16 CEXISlippi::getRandomStage()
 {
+	static u16 selectedStage;
+
 	static std::vector<u16> stages = {
 	    0x2,  // FoD
 	    0x3,  // Pokemon
@@ -1764,9 +1766,32 @@ u16 CEXISlippi::getRandomStage()
 	    0x20, // Final Destination
 	};
 
+	std::vector<u16> stagesToConsider;
+
+	// Add all stages to consider to the vector
+	for (auto it = stages.begin(); it != stages.end(); ++it)
+	{
+		auto stageId = *it;
+		if (lastSelectedStage != nullptr && stageId == *lastSelectedStage)
+			continue;
+
+		stagesToConsider.push_back(stageId);
+	}
+
+	// Shuffle the stages to consider. This isn't really necessary considering we
+	// use a random number to select an index but idk the generator was giving a lot
+	// of the same stage (same index) many times in a row or so it seemed to I figured
+	// this can't hurt
+	std::random_shuffle(stagesToConsider.begin(), stagesToConsider.end());
+
 	// Get random stage
-	int randIndex = generator() % stages.size();
-	return stages[randIndex];
+	int randIndex = generator() % stagesToConsider.size();
+	selectedStage = stagesToConsider[randIndex];
+
+	// Set last selected stage
+	lastSelectedStage = &selectedStage;
+
+	return selectedStage;
 }
 
 void CEXISlippi::setMatchSelections(u8 *payload)
