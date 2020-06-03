@@ -3,6 +3,7 @@
 // Refer to the license.txt file included.
 
 #include "Core/HW/EXI_DeviceSlippi.h"
+#include "Core/Debugger/Debugger_SymbolMap.h"
 #include "SlippiPlayback/SlippiPlayback.h"
 
 #include <SlippiGame.h>
@@ -1957,6 +1958,14 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 	u8 *memPtr = Memory::GetPointer(_uAddr);
 
 	u32 bufLoc = 0;
+
+	if (memPtr == nullptr)
+	{
+		NOTICE_LOG(SLIPPI, "DMA Write was passed an invalid address: %x", _uAddr);
+		Dolphin_Debugger::PrintCallstack(LogTypes::LOG_TYPE::SLIPPI, LogTypes::LOG_LEVELS::LNOTICE);
+		m_read_queue.clear();
+		return;
+	}
 
 	u8 byte = memPtr[0];
 	if (byte == CMD_RECEIVE_COMMANDS)
