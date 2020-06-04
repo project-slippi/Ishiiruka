@@ -1,4 +1,5 @@
 #include "SlippiMatchmaking.h"
+#include "Common/Common.h"
 #include "Common/ENetUtil.h"
 #include "Common/Logging/Log.h"
 #include "Common/StringUtil.h"
@@ -86,12 +87,21 @@ void SlippiMatchmaking::sendMessage(json msg)
 	enet_peer_send(m_server, channelId, epac);
 }
 
-int SlippiMatchmaking::receiveMessage(json &msg, int maxAttempts)
+int SlippiMatchmaking::receiveMessage(json &msg, int timeoutMs)
 {
+	int hostServiceTimeoutMs = 250;
+
+	// Make sure loop runs at least once
+	if (timeoutMs < hostServiceTimeoutMs)
+		timeoutMs = hostServiceTimeoutMs;
+
+	// This is not a perfect way to timeout but hopefully it's close enough?
+	int maxAttempts = timeoutMs / hostServiceTimeoutMs;
+
 	for (int i = 0; i < maxAttempts; i++)
 	{
 		ENetEvent netEvent;
-		int net = enet_host_service(m_client, &netEvent, 250);
+		int net = enet_host_service(m_client, &netEvent, hostServiceTimeoutMs);
 		if (net <= 0)
 			continue;
 
@@ -274,11 +284,12 @@ void SlippiMatchmaking::startMatchmaking()
 	request["type"] = MmMessageType::CREATE_TICKET;
 	request["user"] = {{"uid", userInfo.uid}, {"playKey", userInfo.playKey}};
 	request["search"] = {{"mode", m_searchSettings.mode}, {"connectCode", connectCodeBuf}};
+	request["appVersion"] = scm_slippi_semver_str;
 	sendMessage(request);
 
 	// Get response from server
 	json response;
-	int rcvRes = receiveMessage(response, 20);
+	int rcvRes = receiveMessage(response, 5000);
 	if (rcvRes != 0)
 	{
 		ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Did not receive response from server for create ticket");
@@ -315,26 +326,16 @@ void SlippiMatchmaking::startMatchmaking()
 
 void SlippiMatchmaking::handleMatchmaking()
 {
-	Common::SleepCurrentThread(1000);
-
 	// Deal with class shut down
 	if (m_state != ProcessState::MATCHMAKING)
 		return;
 
-	// Send message to server to get ticket
-	json getReq;
-	getReq["type"] = MmMessageType::GET_TICKET;
-	getReq["ticketId"] = m_ticketId;
-	sendMessage(getReq);
-
 	// Get response from server
 	json getResp;
-	int rcvRes = receiveMessage(getResp, 20);
+	int rcvRes = receiveMessage(getResp, 2000);
 	if (rcvRes != 0)
 	{
-		ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Did not receive response from server for get ticket");
-		m_state = ProcessState::ERROR_ENCOUNTERED;
-		m_errorMsg = "Mm server did not respond in time";
+		INFO_LOG(SLIPPI_ONLINE, "[Matchmaking] Have not yet received assignment");
 		return;
 	}
 
@@ -350,16 +351,16 @@ void SlippiMatchmaking::handleMatchmaking()
 	std::string err = getResp.value("error", "");
 	if (err.length() > 0)
 	{
+		if (StringStartsWith(err, "Your application is outdated"))
+		{
+			// Update file to get new version number when the mm server tells us our version is outdated
+			m_user->UpdateFile();
+			m_user->AttemptLogin();
+		}
+
 		ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Received error from server for get ticket");
 		m_state = ProcessState::ERROR_ENCOUNTERED;
 		m_errorMsg = err;
-		return;
-	}
-
-	// Handle case where ticket has yet to be assigned
-	if (!getResp.value("isAssigned", false))
-	{
-		ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] No assignment found yet");
 		return;
 	}
 
