@@ -94,6 +94,8 @@ public:
 	void DoPause();
 	void DoStop();
 	void DoExit();
+	void RaiseRenderWindow();
+	void LowerRenderWindow();
 	bool TriggerSTMPowerEvent();
 	void OnStopped();
 	void DoRecordingSave();

@@ -872,6 +872,22 @@ void CFrame::DoExit()
 	Close(true);
 }
 
+void CFrame::RaiseRenderWindow()
+{
+	if (SConfig::GetInstance().bRenderToMain)
+		return;
+
+	m_RenderFrame->Raise();
+}
+
+void CFrame::LowerRenderWindow()
+{
+	if (SConfig::GetInstance().bRenderToMain)
+		return;
+
+	m_RenderFrame->Lower();
+}
+
 bool CFrame::TriggerSTMPowerEvent()
 {
 	const auto stm = WII_IPC_HLE_Interface::GetDeviceByName("/dev/stm/eventhook");

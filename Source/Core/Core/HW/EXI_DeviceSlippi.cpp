@@ -41,6 +41,7 @@
 #include "Core/HW/SystemTimers.h"
 #include "Core/State.h"
 
+// Not clean but idk a better way atm
 #include "DolphinWX/Frame.h"
 #include "DolphinWX/Main.h"
 
@@ -854,6 +855,8 @@ void CEXISlippi::prepareGeckoList()
 	    {0x8016e74c, true}, // Recording/SendGameInfo.asm
 	    {0x8006c5d8, true}, // Recording/SendGamePostFrame.asm
 	    {0x8006b0dc, true}, // Recording/SendGamePreFrame.asm
+	    {0x803219ec, true}, // 3.4.0: Recording/FlushFrameBuffer.asm (Have to keep old ones for backward compatibility)
+	    {0x8006da34, true}, // 3.4.0: Recording/SendGamePostFrame.asm
 
 	    {0x8021aae4, true}, // Binary/FasterMeleeSettings/DisableFdTransitions.bin
 	    {0x801cbb90, true}, // Binary/FasterMeleeSettings/LaglessFod.bin
@@ -1901,6 +1904,7 @@ void CEXISlippi::handleLogInRequest()
 	bool logInRes = user->AttemptLogin();
 	if (!logInRes)
 	{
+		main_frame->LowerRenderWindow();
 		user->OpenLogInPage();
 		user->ListenForLogIn();
 	}
