@@ -1917,6 +1917,7 @@ void CEXISlippi::handleLogOutRequest()
 
 void CEXISlippi::handleUpdateAppRequest()
 {
+	main_frame->LowerRenderWindow();
 	user->UpdateApp();
 	main_frame->DoExit();
 }
