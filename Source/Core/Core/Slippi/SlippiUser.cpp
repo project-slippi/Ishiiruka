@@ -108,7 +108,8 @@ void SlippiUser::UpdateApp()
 	auto isoPath = SConfig::GetInstance().m_strFilename;
 
 	std::string path = File::GetExeDirectory() + "/dolphin-slippi-tools.exe";
-	std::string command = "start \"Updating Dolphin\" " + path + " app-update -launch -iso \"" + isoPath + "\"";
+	std::string command = "start \"Updating Dolphin\" \"" + path + "\" app-update -launch -iso \"" + isoPath + "\"";
+	WARN_LOG(SLIPPI, "Executing app update command: %s", command);
 	system(command.c_str());
 #endif
 }

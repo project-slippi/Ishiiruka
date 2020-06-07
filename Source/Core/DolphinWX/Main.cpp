@@ -354,6 +354,7 @@ void DolphinApp::AfterInit()
 			if (m_load_file && !m_file_to_load.empty())
 			{
 				main_frame->BootGame(WxStrToStr(m_file_to_load));
+				main_frame->RaiseRenderWindow();
 			}
 			else
 			{
@@ -365,6 +366,7 @@ void DolphinApp::AfterInit()
 	else if (m_load_file && !m_file_to_load.empty())
 	{
 		main_frame->BootGame(WxStrToStr(m_file_to_load));
+		main_frame->RaiseRenderWindow();
 	}
 	// If we have selected Automatic Start, start the default ISO,
 	// or if no default ISO exists, start the last loaded ISO
