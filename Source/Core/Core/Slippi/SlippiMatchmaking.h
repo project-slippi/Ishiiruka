@@ -71,15 +71,10 @@ class SlippiMatchmaking
 	int m_isSwapAttempt = false;
 
 	int m_hostPort;
-	std::string m_ticketId;
 	std::string m_oppIp;
 	bool m_isHost;
 
 	std::unique_ptr<SlippiNetplayClient> m_netplayClient;
-
-	std::vector<char> findReceiveBuf;
-	std::vector<char> getReceiveBuf;
-	std::vector<char> deleteReceiveBuf;
 
 	const std::unordered_map<ProcessState, bool> searchingStates = {
 	    {ProcessState::INITIALIZING, true},

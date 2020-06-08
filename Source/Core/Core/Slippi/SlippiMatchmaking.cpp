@@ -11,13 +11,11 @@ class MmMessageType
   public:
 	static std::string CREATE_TICKET;
 	static std::string CREATE_TICKET_RESP;
-	static std::string GET_TICKET;
 	static std::string GET_TICKET_RESP;
 };
 
 std::string MmMessageType::CREATE_TICKET = "create-ticket";
 std::string MmMessageType::CREATE_TICKET_RESP = "create-ticket-resp";
-std::string MmMessageType::GET_TICKET = "get-ticket";
 std::string MmMessageType::GET_TICKET_RESP = "get-ticket-resp";
 
 SlippiMatchmaking::SlippiMatchmaking(SlippiUser *user)
@@ -262,9 +260,6 @@ void SlippiMatchmaking::startMatchmaking()
 
 	ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Trying to find match...");
 
-	// Reset variables for
-	m_ticketId.clear();
-
 	if (!m_user->IsLoggedIn())
 	{
 		ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Must be logged in to queue");
@@ -316,12 +311,8 @@ void SlippiMatchmaking::startMatchmaking()
 		return;
 	}
 
-	// Process ticket ID
-	std::string ticketId = response["ticketId"];
-	m_ticketId.insert(m_ticketId.end(), ticketId.begin(), ticketId.end());
-
 	m_state = ProcessState::MATCHMAKING;
-	ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Request ticket success: %s", m_ticketId.c_str());
+	ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Request ticket success");
 }
 
 void SlippiMatchmaking::handleMatchmaking()
