@@ -50,6 +50,7 @@
 #define WRITE_FILE_SLEEP_TIME_MS 85
 
 //#define LOCAL_TESTING
+//#define CREATE_DIFF_FILES
 
 int32_t emod(int32_t a, int32_t b)
 {
@@ -153,7 +154,8 @@ CEXISlippi::CEXISlippi()
 	user->UpdateFile();
 	user->ListenForLogIn();
 
-	// TEMP
+#ifdef CREATE_DIFF_FILES
+	// MnMaAll.usd
 	std::string origStr;
 	std::string modifiedStr;
 	File::ReadFileToString("C:\\Users\\Jas\\Documents\\Melee\\Textures\\Slippi\\MainMenu\\MnMaAll.usd", origStr);
@@ -165,7 +167,7 @@ CEXISlippi::CEXISlippi()
 	File::WriteStringToFile(diff, "C:\\Users\\Jas\\Documents\\Melee\\Textures\\Slippi\\MainMenu\\MnMaAll.usd.diff");
 	File::WriteStringToFile(diff, "C:\\Dolphin\\IshiiDev\\Sys\\GameFiles\\GALE01\\MnMaAll.usd.diff");
 
-	// MnExtAll
+	// MnExtAll.usd
 	File::ReadFileToString("C:\\Users\\Jas\\Documents\\Melee\\Textures\\Slippi\\CSS\\MnExtAll.usd", origStr);
 	File::ReadFileToString("C:\\Users\\Jas\\Documents\\Melee\\Textures\\Slippi\\CSS\\MnExtAll-new.usd", modifiedStr);
 	orig = std::vector<u8>(origStr.begin(), origStr.end());
@@ -174,7 +176,7 @@ CEXISlippi::CEXISlippi()
 	File::WriteStringToFile(diff, "C:\\Users\\Jas\\Documents\\Melee\\Textures\\Slippi\\CSS\\MnExtAll.usd.diff");
 	File::WriteStringToFile(diff, "C:\\Dolphin\\IshiiDev\\Sys\\GameFiles\\GALE01\\MnExtAll.usd.diff");
 
-	// SdMenu
+	// SdMenu.usd
 	File::ReadFileToString("C:\\Users\\Jas\\Documents\\Melee\\Textures\\Slippi\\MainMenu\\SdMenu.usd", origStr);
 	File::ReadFileToString("C:\\Users\\Jas\\Documents\\Melee\\Textures\\Slippi\\MainMenu\\SdMenu-new.usd", modifiedStr);
 	orig = std::vector<u8>(origStr.begin(), origStr.end());
@@ -183,11 +185,41 @@ CEXISlippi::CEXISlippi()
 	File::WriteStringToFile(diff, "C:\\Users\\Jas\\Documents\\Melee\\Textures\\Slippi\\MainMenu\\SdMenu.usd.diff");
 	File::WriteStringToFile(diff, "C:\\Dolphin\\IshiiDev\\Sys\\GameFiles\\GALE01\\SdMenu.usd.diff");
 
+	// Japanese Files
+	// MnMaAll.dat
+	File::ReadFileToString("C:\\Users\\Jas\\Documents\\Melee\\Textures\\Slippi\\MainMenu\\MnMaAll.dat", origStr);
+	File::ReadFileToString("C:\\Users\\Jas\\Documents\\Melee\\Textures\\Slippi\\MainMenu\\MnMaAll-new.dat",
+	                       modifiedStr);
+	orig = std::vector<u8>(origStr.begin(), origStr.end());
+	modified = std::vector<u8>(modifiedStr.begin(), modifiedStr.end());
+	diff = processDiff(orig, modified);
+	File::WriteStringToFile(diff, "C:\\Users\\Jas\\Documents\\Melee\\Textures\\Slippi\\MainMenu\\MnMaAll.dat.diff");
+	File::WriteStringToFile(diff, "C:\\Dolphin\\IshiiDev\\Sys\\GameFiles\\GALE01\\MnMaAll.dat.diff");
+
+	// MnExtAll.dat
+	File::ReadFileToString("C:\\Users\\Jas\\Documents\\Melee\\Textures\\Slippi\\CSS\\MnExtAll.dat", origStr);
+	File::ReadFileToString("C:\\Users\\Jas\\Documents\\Melee\\Textures\\Slippi\\CSS\\MnExtAll-new.dat", modifiedStr);
+	orig = std::vector<u8>(origStr.begin(), origStr.end());
+	modified = std::vector<u8>(modifiedStr.begin(), modifiedStr.end());
+	diff = processDiff(orig, modified);
+	File::WriteStringToFile(diff, "C:\\Users\\Jas\\Documents\\Melee\\Textures\\Slippi\\CSS\\MnExtAll.dat.diff");
+	File::WriteStringToFile(diff, "C:\\Dolphin\\IshiiDev\\Sys\\GameFiles\\GALE01\\MnExtAll.dat.diff");
+
+	// SdMenu.dat
+	File::ReadFileToString("C:\\Users\\Jas\\Documents\\Melee\\Textures\\Slippi\\MainMenu\\SdMenu.dat", origStr);
+	File::ReadFileToString("C:\\Users\\Jas\\Documents\\Melee\\Textures\\Slippi\\MainMenu\\SdMenu-new.dat", modifiedStr);
+	orig = std::vector<u8>(origStr.begin(), origStr.end());
+	modified = std::vector<u8>(modifiedStr.begin(), modifiedStr.end());
+	diff = processDiff(orig, modified);
+	File::WriteStringToFile(diff, "C:\\Users\\Jas\\Documents\\Melee\\Textures\\Slippi\\MainMenu\\SdMenu.dat.diff");
+	File::WriteStringToFile(diff, "C:\\Dolphin\\IshiiDev\\Sys\\GameFiles\\GALE01\\SdMenu.dat.diff");
+
 	// TEMP - Restore orig
 	// std::string stateString;
 	// decoder.Decode((char *)orig.data(), orig.size(), diff, &stateString);
 	// File::WriteStringToFile(stateString,
 	//                        "C:\\Users\\Jas\\Documents\\Melee\\Textures\\Slippi\\MainMenu\\MnMaAll-restored.usd");
+#endif
 }
 
 CEXISlippi::~CEXISlippi()
@@ -1700,7 +1732,9 @@ void CEXISlippi::prepareOnlineMatchState()
 		onlineMatchBlock[0x63 + remotePlayerIndex * 0x24] = rps.characterColor;
 
 		// Make one character lighter if same character, same color
-		bool charMatch = lps.characterId == rps.characterId;
+		bool isSheikVsZelda =
+		    lps.characterId == 0x12 && rps.characterId == 0x13 || lps.characterId == 0x13 && rps.characterId == 0x12;
+		bool charMatch = lps.characterId == rps.characterId || isSheikVsZelda;
 		bool colMatch = lps.characterColor == rps.characterColor;
 
 		onlineMatchBlock[0x67 + 0x24] = charMatch && colMatch ? 1 : 0;
@@ -1762,7 +1796,7 @@ u16 CEXISlippi::getRandomStage()
 
 	static std::vector<u16> stages = {
 	    0x2,  // FoD
-	    0x3,  // Pokemon
+	          // 0x3, // Pokemon
 	    0x8,  // Yoshi's Story
 	    0x1C, // Dream Land
 	    0x1F, // Battlefield
@@ -1771,6 +1805,7 @@ u16 CEXISlippi::getRandomStage()
 
 	std::vector<u16> stagesToConsider;
 
+	// stagesToConsider = stages;
 	// Add all stages to consider to the vector
 	for (auto it = stages.begin(); it != stages.end(); ++it)
 	{
