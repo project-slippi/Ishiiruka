@@ -101,9 +101,9 @@ void PlaybackSlider::OnSliderMove(wxCommandEvent &event)
 	int currMinutes = (int)(currSeconds / 60);
 	int currRemainder = (int)(currSeconds % 60);
 	// Position string (i.e. MM:SS)
-	char endTime[5];
+	char endTime[16];
 	sprintf(endTime, "%02d:%02d", totalMinutes, totalRemainder);
-	char currTime[5];
+	char currTime[16];
 	sprintf(currTime, "%02d:%02d", currMinutes, currRemainder);
 
 	std::string time = std::string(currTime) + " / " + std::string(endTime);

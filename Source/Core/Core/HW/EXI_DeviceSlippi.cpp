@@ -2164,10 +2164,8 @@ void CEXISlippi::SavestateThread()
 
 	while (g_playback_status->shouldRunThreads)
 	{
-		// Wait to hit one of the intervals
-		while (g_playback_status->shouldRunThreads &&
-		       (g_playback_status->currentPlaybackFrame - Slippi::GAME_FIRST_FRAME) % FRAME_INTERVAL != 0)
-			condVar.wait(intervalLock);
+		// Wait for signal to capture state
+		condVar.wait(intervalLock);
 
 		if (!g_playback_status->shouldRunThreads)
 			break;
@@ -2267,7 +2265,6 @@ void CEXISlippi::SeekThread()
 			if (g_playback_status->targetFrameNum != closestStateFrame &&
 			    g_playback_status->targetFrameNum != g_playback_status->latestFrame)
 			{
-				g_playback_status->currentPlaybackFrame = g_playback_status->targetFrameNum;
 				isHardFFW = true;
 				SConfig::GetInstance().m_OCEnable = true;
 				SConfig::GetInstance().m_OCFactor = 4.0f;
@@ -2306,6 +2303,14 @@ void CEXISlippi::prepareSlippiPlayback(int32_t &frameIndex)
 
 	if (g_playback_status->inSlippiPlayback && frameIndex == g_playback_status->targetFrameNum)
 	{
+		if (g_playback_status->targetFrameNum < g_playback_status->currentPlaybackFrame)
+		{
+			// Since playback logic only goes up in currentPlaybackFrame now due to handling rollback
+			// playback, we need to rewind the currentPlaybackFrame here instead such that the playback
+			// cursor will show up in the correct place
+			g_playback_status->currentPlaybackFrame = g_playback_status->targetFrameNum;
+		}
+
 		INFO_LOG(SLIPPI, "Reached frame to seek to, unblock");
 		cv_waitingForTargetFrame.notify_one();
 	}
@@ -2325,7 +2330,8 @@ void CEXISlippi::processInitialState(std::vector<u8> &iState)
 void CEXISlippi::resetPlayback()
 {
 	g_playback_status->shouldRunThreads = false;
-	condVar.notify_one(); // Will allow thread to kill itself
+	condVar.notify_one();                  // Will allow savestate thread to kill itself
+	cv_waitingForTargetFrame.notify_one(); // Will allow seek thread to kill itself
 
 	if (m_savestateThread.joinable())
 		m_savestateThread.join();
@@ -2339,6 +2345,8 @@ void CEXISlippi::resetPlayback()
 	g_playback_status->inSlippiPlayback = false;
 	futureDiffs.clear();
 	futureDiffs.rehash(0);
+
+	INFO_LOG(SLIPPI, "Done resetting playback");
 }
 
 void CEXISlippi::clearWatchSettingsStartEnd()
