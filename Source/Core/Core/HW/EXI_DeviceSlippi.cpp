@@ -877,7 +877,7 @@ void CEXISlippi::prepareGeckoList()
 	    0x00, 0x00, 0x00, 0x00 // Termination sequence
 	};
 
-	static std::unordered_map<u32, bool> blacklist = {
+	static std::unordered_map<u32, bool> staticBlacklist = {
 	    {0x8008d698, true}, // Recording/GetLCancelStatus/GetLCancelStatus.asm
 	    {0x8006c324, true}, // Recording/GetLCancelStatus/ResetLCancelStatus.asm
 	    {0x800679bc, true}, // Recording/ExtendPlayerBlock.asm
@@ -947,6 +947,18 @@ void CEXISlippi::prepareGeckoList()
 	    {0x8038d0b0, true}, // PreventDuplicateSounds
 	    {0x801a5014, true}, // LoopEngineForRollback
 	};
+
+	std::unordered_map<u32, bool> blacklist;
+	blacklist.insert(staticBlacklist.begin(), staticBlacklist.end());
+
+	auto replayCommSettings = replayComm->getSettings();
+	if (replayCommSettings.rollbackDisplayMethod == "off")
+	{
+		// Some codes should only be blacklisted when not displaying rollbacks, these are codes
+		// that are required for things to not break when using Slippi savestates. Perhaps this
+		// should be handled by actually applying these codes in the playback ASM instead? not sure
+		blacklist[0x8038add0] = true; // PreventMusicAlarm
+	}
 
 	geckoList.clear();
 
