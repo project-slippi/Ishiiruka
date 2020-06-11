@@ -79,7 +79,7 @@ void SlippiUser::OpenLogInPage()
 #endif
 
 	std::string url = "https://slippi.gg/online/enable";
-	std::string path = File::GetExeDirectory() + "/user.json";
+	std::string path = getUserFilePath();
 	path = ReplaceAll(path, "\\", folderSep);
 	path = ReplaceAll(path, "/", folderSep);
 	std::string fullUrl = url + "?path=" + path;
@@ -168,7 +168,11 @@ void SlippiUser::FileListenThread()
 
 std::string SlippiUser::getUserFilePath()
 {
+#if defined(__APPLE__)
+	std::string dirPath = File::GetBundleDirectory() + "/Contents/Resources";
+#else
 	std::string dirPath = File::GetExeDirectory();
+#endif
 	std::string userFilePath = dirPath + DIR_SEP + "user.json";
 	return userFilePath;
 }

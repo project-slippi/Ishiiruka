@@ -37,7 +37,6 @@ class SlippiUser
 
 	UserInfo userInfo;
 	bool isLoggedIn = false;
-	std::string userFileContents = "";
 
 	std::thread fileListenThread;
 	std::atomic<bool> runThread;

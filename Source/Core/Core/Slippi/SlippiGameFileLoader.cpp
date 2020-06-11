@@ -1,5 +1,7 @@
 #include "SlippiGameFileLoader.h"
 
+#include "Common/Logging/Log.h"
+
 #include "Common/FileUtil.h"
 #include "DiscIO/FileMonitor.h"
 
@@ -30,6 +32,8 @@ u32 SlippiGameFileLoader::LoadFile(std::string fileName, std::string &data)
 		return (u32)data.size();
 	}
 
+	ERROR_LOG(SLIPPI, "Loading file: %s", fileName.c_str());
+
 	std::string gameFilePath = getFilePath(fileName);
 	if (gameFilePath.empty())
 	{
@@ -45,6 +49,7 @@ u32 SlippiGameFileLoader::LoadFile(std::string fileName, std::string &data)
 	{
 		// If the file was a diff file, load the main file from ISO and apply patch
 		std::vector<u8> buf;
+		ERROR_LOG(SLIPPI, "Reading?");
 		FileMon::ReadFileWithName(fileName, buf);
 		std::string diffContents = fileContents;
 		decoder.Decode((char *)buf.data(), buf.size(), diffContents, &fileContents);
