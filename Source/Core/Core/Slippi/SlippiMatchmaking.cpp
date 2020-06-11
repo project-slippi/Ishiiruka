@@ -347,6 +347,9 @@ void SlippiMatchmaking::handleMatchmaking()
 			// Update file to get new version number when the mm server tells us our version is outdated
 			m_user->UpdateFile();
 			m_user->AttemptLogin();
+#ifndef _WIN32
+			err = "Your application is outdated. Head to slippi.gg to get the latest version.";
+#endif
 		}
 
 		ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Received error from server for get ticket");
