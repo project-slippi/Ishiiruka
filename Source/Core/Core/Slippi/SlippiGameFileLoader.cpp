@@ -53,11 +53,6 @@ u32 SlippiGameFileLoader::LoadFile(std::string fileName, std::string &data)
 		FileMon::ReadFileWithName(fileName, buf);
 		std::string diffContents = fileContents;
 
-#if defined(__APPLE__)
-		// Do a second read because the very first read fails on mac?
-		// We could put this behind a one-shot too
-		FileMon::ReadFileWithName(fileName, buf);
-#endif
 		decoder.Decode((char *)buf.data(), buf.size(), diffContents, &fileContents);
 	}
 

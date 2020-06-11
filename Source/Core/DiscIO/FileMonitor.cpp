@@ -184,7 +184,6 @@ void ReadFileWithName(std::string &fileName, std::vector<u8> &buf)
 		ReadFileSystem(SConfig::GetInstance().m_LastFilename);
 		ISOFile = SConfig::GetInstance().m_LastFilename;
 		INFO_LOG(FILEMON, "Opening '%s'", ISOFile.c_str());
-		return;
 	}
 
 	auto fileSize = s_filesystem->GetFileSize(fileName);
