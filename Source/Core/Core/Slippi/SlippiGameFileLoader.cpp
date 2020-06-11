@@ -5,8 +5,8 @@
 
 std::string getFilePath(std::string fileName)
 {
-	std::string dirPath = File::GetExeDirectory();
-	std::string filePath = dirPath + "/Sys/GameFiles/GALE01/" + fileName; // TODO: Handle other games?
+	std::string dirPath = File::GetSysDirectory();
+	std::string filePath = dirPath + "/GameFiles/GALE01/" + fileName; // TODO: Handle other games?
 
 	if (File::Exists(filePath))
 	{
