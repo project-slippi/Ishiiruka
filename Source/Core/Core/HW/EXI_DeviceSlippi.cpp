@@ -1865,16 +1865,7 @@ void CEXISlippi::setMatchSelections(u8 *payload)
 	s.rngOffset = generator() % 0xFFFF;
 
 	// Get user name from file
-	std::string dirPath = File::GetExeDirectory();
-	std::string userFilePath = dirPath + DIR_SEP + "user.json";
-	std::string userFileContents;
-	File::ReadFileToString(userFilePath, userFileContents);
-	auto res = json::parse(userFileContents, nullptr, false);
-	std::string displayName = "";
-	if (!res.is_discarded() && res.is_object())
-	{
-		displayName = res.value("displayName", "");
-	}
+	std::string displayName = user->GetUserInfo().displayName;
 
 	// Just let the max length to transfer to opponent be potentially 16 worst-case utf-8 chars
 	// This string will get converted to the game format later
