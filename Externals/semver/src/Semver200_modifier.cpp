@@ -28,17 +28,17 @@ SOFTWARE.
 namespace version {
 
 	Version_data Semver200_modifier::set_major(const Version_data& s, const int m) const {
-		if (m < 0) throw Modification_error("major version cannot be less than 0");
+		// if (m < 0) throw Modification_error("major version cannot be less than 0");
 		return Version_data{ m, s.minor, s.patch, s.prerelease_ids, s.build_ids };
 	}
 
 	Version_data Semver200_modifier::set_minor(const Version_data& s, const int m) const {
-		if (m < 0) throw Modification_error("minor version cannot be less than 0");
+		// if (m < 0) throw Modification_error("minor version cannot be less than 0");
 		return Version_data{ s.major, m, s.patch, s.prerelease_ids, s.build_ids };
 	}
 
 	Version_data Semver200_modifier::set_patch(const Version_data& s, const int p) const {
-		if (p < 0) throw Modification_error("patch version cannot be less than 0");
+		// if (p < 0) throw Modification_error("patch version cannot be less than 0");
 		return Version_data{ s.major, s.minor, p, s.prerelease_ids, s.build_ids };
 	}
 
@@ -50,18 +50,18 @@ namespace version {
 		return Version_data{ s.major, s.minor, s.patch, s.prerelease_ids, b };
 	}
 
-	Version_data Semver200_modifier::reset_major(const Version_data& s, const int m) const {
-		if (m < 0) throw Modification_error("major version cannot be less than 0");
+	Version_data Semver200_modifier::reset_major(const Version_data&, const int m) const {
+		// if (m < 0) throw Modification_error("major version cannot be less than 0");
 		return Version_data{ m, 0, 0, Prerelease_identifiers{}, Build_identifiers{} };
 	}
 
 	Version_data Semver200_modifier::reset_minor(const Version_data& s, const int m) const {
-		if (m < 0) throw Modification_error("minor version cannot be less than 0");
+		// if (m < 0) throw Modification_error("minor version cannot be less than 0");
 		return Version_data{ s.major, m, 0, Prerelease_identifiers{}, Build_identifiers{} };
 	}
 
 	Version_data Semver200_modifier::reset_patch(const Version_data& s, const int p) const {
-		if (p < 0) throw Modification_error("patch version cannot be less than 0");
+		// if (p < 0) throw Modification_error("patch version cannot be less than 0");
 		return Version_data{ s.major, s.minor, p, Prerelease_identifiers{}, Build_identifiers{} };
 	}
 

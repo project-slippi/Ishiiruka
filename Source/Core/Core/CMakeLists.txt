@@ -190,6 +190,12 @@ set(SRCS	ActionReplay.cpp
 			PowerPC/JitILCommon/JitILBase_FloatingPoint.cpp
 			PowerPC/JitILCommon/JitILBase_Integer.cpp
 			Slippi/SlippiReplayComm.cpp
+			Slippi/SlippiGameFileLoader.cpp
+			Slippi/SlippiMatchmaking.cpp
+			Slippi/SlippiNetplay.cpp
+			Slippi/SlippiPad.cpp
+			Slippi/SlippiSavestate.cpp
+			Slippi/SlippiUser.cpp
 			)
 
 if(_M_X86)

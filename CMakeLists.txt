@@ -668,6 +668,8 @@ add_subdirectory(Externals/glslang)
 add_subdirectory(Externals/SlippiLib)
 include_directories(Externals/SlippiLib)
 include_directories(Externals/nlohmann)
+add_subdirectory(Externals/semver/src)
+include_directories(Externals/semver/src)
 
 add_subdirectory(Externals/open-vcdiff)
 include_directories(Externals/open-vcdiff)

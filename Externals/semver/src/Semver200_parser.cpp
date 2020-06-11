@@ -81,7 +81,7 @@ namespace version {
 		}
 
 		/// Validate normal (major, minor, patch) version components.
-		inline void normal_version_validator(const string& tgt, const char c) {
+		inline void normal_version_validator(const string&, const char) {
 			//if (c < '0' || c > '9') throw Parse_error("invalid character encountered: " + string(1, c));
 			//if (tgt.compare(0, 1, "0") == 0) throw Parse_error("leading 0 not allowed");
 		}
@@ -100,9 +100,9 @@ namespace version {
 			return id.find_first_not_of("0123456789") == string::npos;
 		}
 
-		inline bool check_for_leading_0(const string& str) {
-			return str.length() > 1 && str[0] == '0';
-		}
+		// inline bool check_for_leading_0(const string& str) {
+		// 	return str.length() > 1 && str[0] == '0';
+		// }
 
 		/// Validate every individual prerelease identifier, determine it's type and add it to collection.
 		void prerelease_hook_impl(string& id, Prerelease_identifiers& prerelease) {

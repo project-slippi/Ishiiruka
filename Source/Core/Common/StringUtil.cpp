@@ -379,20 +379,6 @@ std::string ReplaceAll(std::string result, const std::string& src, const std::st
 	return result;
 }
 
-std::u32string UTF8ToUTF32(const std::string &input)
-{
-	std::wstring_convert<std::codecvt_utf8<int32_t>, int32_t> utf32Convert;
-	auto asInt = utf32Convert.from_bytes(input);
-	return std::u32string(reinterpret_cast<char32_t const *>(asInt.data()), asInt.length());
-}
-
-std::string UTF32toUTF8(const std::u32string &input)
-{
-	std::wstring_convert<std::codecvt_utf8<int32_t>, int32_t> utf8Convert;
-	auto p = reinterpret_cast<const int32_t *>(input.data());
-	return utf8Convert.to_bytes(p, p + input.size());
-}
-
 void ConvertNarrowSpecialSHIFTJIS(std::string &input)
 {
 	// Melee doesn't correctly display special characters in narrow form We need to convert them to wide form.
@@ -536,67 +522,26 @@ std::string CP1252ToUTF8(const std::string& input)
 	return UTF16ToUTF8(CPToUTF16(1252, input));
 }
 
+std::u32string UTF8ToUTF32(const std::string &input)
+{
+	std::wstring_convert<std::codecvt_utf8<int32_t>, int32_t> utf32Convert;
+	auto asInt = utf32Convert.from_bytes(input);
+	return std::u32string(reinterpret_cast<char32_t const *>(asInt.data()), asInt.length());
+}
+
+std::string UTF32toUTF8(const std::u32string &input)
+{
+	std::wstring_convert<std::codecvt_utf8<int32_t>, int32_t> utf8Convert;
+	auto p = reinterpret_cast<const int32_t *>(input.data());
+	return utf8Convert.to_bytes(p, p + input.size());
+}
 #else
-std::string CodeTo(const char *tocode, const char *fromcode, std::basic_string_view<T> input)
+template <typename T>
+std::string CodeTo(const char *tocode, const char *fromcode, const std::basic_string<T>& input)
 {
 	std::string result;
 
 	iconv_t const conv_desc = iconv_open(tocode, fromcode);
-	if ((iconv_t)-1 == conv_desc)
-	{
-		ERROR_LOG(COMMON, "Iconv initialization failure [%s]: %s", fromcode, strerror(errno));
-	}
-	else
-	{
-		size_t const in_bytes = sizeof(T) * input.size();
-		size_t const out_buffer_size = 4 * in_bytes;
-
-		std::string out_buffer;
-		out_buffer.resize(out_buffer_size);
-
-		auto src_buffer = input.data();
-		size_t src_bytes = in_bytes;
-		auto dst_buffer = out_buffer.data();
-		size_t dst_bytes = out_buffer.size();
-
-		while (src_bytes != 0)
-		{
-			size_t const iconv_result = iconv(conv_desc, (char **)(&src_buffer), &src_bytes, &dst_buffer, &dst_bytes);
-
-			if ((size_t)-1 == iconv_result)
-			{
-				if (EILSEQ == errno || EINVAL == errno)
-				{
-					// Try to skip the bad character
-					if (src_bytes != 0)
-					{
-						--src_bytes;
-						++src_buffer;
-					}
-				}
-				else
-				{
-					ERROR_LOG(COMMON, "iconv failure [%s]: %s", fromcode, strerror(errno));
-					break;
-				}
-			}
-		}
-
-		out_buffer.resize(out_buffer_size - dst_bytes);
-		out_buffer.swap(result);
-
-		iconv_close(conv_desc);
-	}
-
-	return result;
-}
-
-template <typename T>
-std::string CodeToUTF8(const char* fromcode, const std::basic_string<T>& input)
-{
-	std::string result;
-
-	iconv_t const conv_desc = iconv_open("UTF-8", fromcode);
 	if ((iconv_t)-1 == conv_desc)
 	{
 		ERROR_LOG(COMMON, "Iconv initialization failure [%s]: %s", fromcode, strerror(errno));
@@ -647,6 +592,12 @@ std::string CodeToUTF8(const char* fromcode, const std::basic_string<T>& input)
 	return result;
 }
 
+template <typename T>
+std::string CodeToUTF8(const char* fromcode, const std::basic_string<T>& input)
+{
+	return CodeTo("UTF-8", fromcode, input);
+}
+
 std::string CP1252ToUTF8(const std::string& input)
 {
 	// return CodeToUTF8("CP1252//TRANSLIT", input);
@@ -672,6 +623,17 @@ std::string UTF16ToUTF8(const std::wstring& input)
 	// TODO: why is this needed?
 	result.erase(std::remove(result.begin(), result.end(), 0x00), result.end());
 	return result;
+}
+
+std::u32string UTF8ToUTF32(const std::string &input)
+{
+	auto val = CodeTo("UTF-32", "UTF-8", input);
+	return std::u32string(val.begin(), val.end());
+}
+
+std::string UTF32toUTF8(const std::u32string &input)
+{
+	return CodeTo("UTF-8", "UTF-32", std::string(input.begin(), input.end()));
 }
 
 #endif
