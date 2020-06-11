@@ -32,7 +32,7 @@ u32 SlippiGameFileLoader::LoadFile(std::string fileName, std::string &data)
 		return (u32)data.size();
 	}
 
-	ERROR_LOG(SLIPPI, "Loading file: %s", fileName.c_str());
+	INFO_LOG(SLIPPI, "Loading file: %s", fileName.c_str());
 
 	std::string gameFilePath = getFilePath(fileName);
 	if (gameFilePath.empty())
@@ -49,13 +49,20 @@ u32 SlippiGameFileLoader::LoadFile(std::string fileName, std::string &data)
 	{
 		// If the file was a diff file, load the main file from ISO and apply patch
 		std::vector<u8> buf;
-		ERROR_LOG(SLIPPI, "Reading?");
+		INFO_LOG(SLIPPI, "Will process diff");
 		FileMon::ReadFileWithName(fileName, buf);
 		std::string diffContents = fileContents;
+
+#if defined(__APPLE__)
+		// Do a second read because the very first read fails on mac?
+		// We could put this behind a one-shot too
+		FileMon::ReadFileWithName(fileName, buf);
+#endif
 		decoder.Decode((char *)buf.data(), buf.size(), diffContents, &fileContents);
 	}
 
 	fileCache[fileName] = fileContents;
 	data = fileCache[fileName];
+	INFO_LOG(SLIPPI, "File size: %d", (u32)data.size());
 	return (u32)data.size();
 }
