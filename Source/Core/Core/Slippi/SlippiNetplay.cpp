@@ -66,15 +66,21 @@ SlippiNetplayClient::SlippiNetplayClient(const std::string &address, const u16 r
     , m_qos_flow_id(0)
 #endif
 {
+	// Initialize enet
+	auto res = enet_initialize();
+	INFO_LOG(SLIPPI_ONLINE, "Enet init res: %d", res);
+
 	WARN_LOG(SLIPPI_ONLINE, "Initializing Slippi Netplay for port: %d, with host: %s", localPort,
 	         isHost ? "true" : "false");
 	this->isHost = isHost;
 
 	// Local address
 	ENetAddress *localAddr = nullptr;
+	ENetAddress localAddrDef;
 	if (localPort > 0)
 	{
-		ENetAddress localAddrDef;
+		INFO_LOG(SLIPPI_ONLINE, "Setting up local address");
+
 		localAddrDef.host = ENET_HOST_ANY;
 		localAddrDef.port = localPort;
 
