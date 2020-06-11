@@ -629,13 +629,16 @@ std::string UTF16ToUTF8(const std::wstring& input)
 
 std::u32string UTF8ToUTF32(const std::string &input)
 {
-	auto val = CodeTo("UTF-32", "UTF-8", input);
-	return std::u32string(val.begin(), val.end());
+	auto val = CodeTo("UTF-32LE", "UTF-8", input);
+	auto utf32Data = (char32_t*)val.data();
+	return std::u32string(utf32Data, utf32Data + (val.size() / 4));
 }
 
 std::string UTF32toUTF8(const std::u32string &input)
 {
-	return CodeTo("UTF-8", "UTF-32", std::string(input.begin(), input.end()));
+	auto utf8Data = (char*)input.data();
+	auto str = std::string(utf8Data, utf8Data + (input.size() * 4));
+	return CodeTo("UTF-8", "UTF-32LE", str);
 }
 
 #endif
