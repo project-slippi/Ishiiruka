@@ -17,8 +17,10 @@
 #include <vector>
 #include <unordered_map>
 
+#ifdef _WIN32
 #include <locale>
 #include <codecvt>
+#endif
 
 #include "Common/CommonFuncs.h"
 #include "Common/CommonPaths.h"
