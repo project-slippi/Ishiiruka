@@ -247,6 +247,7 @@ set(LIBS
 	enet
 	inputcommon
 	${LZO}
+	semver
 	sfml-network
 	sfml-system
 	SlippiPlaybackStatus
