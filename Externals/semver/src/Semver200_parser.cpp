@@ -82,8 +82,8 @@ namespace version {
 
 		/// Validate normal (major, minor, patch) version components.
 		inline void normal_version_validator(const string& tgt, const char c) {
-			if (c < '0' || c > '9') throw Parse_error("invalid character encountered: " + string(1, c));
-			if (tgt.compare(0, 1, "0") == 0) throw Parse_error("leading 0 not allowed");
+			//if (c < '0' || c > '9') throw Parse_error("invalid character encountered: " + string(1, c));
+			//if (tgt.compare(0, 1, "0") == 0) throw Parse_error("leading 0 not allowed");
 		}
 
 		/// Validate that prerelease and build version identifiers are comprised of allowed chars only.
@@ -92,8 +92,8 @@ namespace version {
 			for (const auto& r : allowed_prerel_id_chars) {
 				res |= (c >= r.first && c <= r.second);
 			}
-			if (!res)
-				throw Parse_error("invalid character encountered: " + string(1, c));
+			//if (!res)
+			//	throw Parse_error("invalid character encountered: " + string(1, c));
 		}
 
 		inline bool is_identifier_numeric(const string& id) {
@@ -106,13 +106,13 @@ namespace version {
 
 		/// Validate every individual prerelease identifier, determine it's type and add it to collection.
 		void prerelease_hook_impl(string& id, Prerelease_identifiers& prerelease) {
-			if (id.empty()) throw Parse_error("version identifier cannot be empty");
+			//if (id.empty()) throw Parse_error("version identifier cannot be empty");
 			Id_type t = Id_type::alnum;
 			if (is_identifier_numeric(id)) {
 				t = Id_type::num;
-				if (check_for_leading_0(id)) {
-					throw Parse_error("numeric identifiers cannot have leading 0");
-				}
+				//if (check_for_leading_0(id)) {
+				//	throw Parse_error("numeric identifiers cannot have leading 0");
+				//}
 			}
 			prerelease.push_back(Prerelease_identifier(id, t));
 			id.clear();
@@ -123,7 +123,7 @@ namespace version {
 			std::string& prerelease_id, Prerelease_identifiers& prerelease) {
 			// process last token left from parsing prerelease data
 			if (pstate == Parser_state::prerelease) prerelease_hook_impl(prerelease_id, prerelease);
-			if (id.empty()) throw Parse_error("version identifier cannot be empty");
+			//if (id.empty()) throw Parse_error("version identifier cannot be empty");
 			build.push_back(id);
 			id.clear();
 		}
@@ -199,10 +199,11 @@ namespace version {
 			build_hook(build_id);
 		}
 
-		try {
-			return Version_data{ stoi(major), stoi(minor), stoi(patch), prerelease, build };
-		} catch (invalid_argument& ex) {
-			throw Parse_error(ex.what());
-		}
+		//try {
+		//	return Version_data{ stoi(major), stoi(minor), stoi(patch), prerelease, build };
+		//} catch (invalid_argument& ex) {
+		//	throw Parse_error(ex.what());
+		//}
+		return Version_data{ stoi(major), stoi(minor), stoi(patch), prerelease, build };
 	}
 }
