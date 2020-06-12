@@ -42,7 +42,7 @@
 #include "Core/State.h"
 
 // Not clean but idk a better way atm
-#ifdef _WIN32
+#ifndef LINUX_LOCAL_DEV
 #include "DolphinWX/Frame.h"
 #include "DolphinWX/Main.h"
 #endif
@@ -1944,7 +1944,7 @@ void CEXISlippi::handleLogInRequest()
 	bool logInRes = user->AttemptLogin();
 	if (!logInRes)
 	{
-#ifdef _WIN32
+#ifndef LINUX_LOCAL_DEV
 		main_frame->LowerRenderWindow();
 #endif
 		user->OpenLogInPage();
@@ -1959,7 +1959,7 @@ void CEXISlippi::handleLogOutRequest()
 
 void CEXISlippi::handleUpdateAppRequest()
 {
-#ifdef _WIN32
+#ifndef LINUX_LOCAL_DEV
 	main_frame->LowerRenderWindow();
 	user->UpdateApp();
 	main_frame->DoExit();

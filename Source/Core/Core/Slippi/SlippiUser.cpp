@@ -86,8 +86,10 @@ void SlippiUser::OpenLogInPage()
 
 #ifdef _WIN32
 	std::string command = "explorer \"" + fullUrl + "\"";
+#elif defined(__APPLE__)
+	std::string command = "open \"" + fullUrl + "\"";
 #else
-	std::string command = "open \"" + fullUrl + "\""; // Does this work on linux?
+	std::string command = "xdg-open \"" + fullUrl + "\""; // Linux
 #endif
 
 	system(command.c_str());
