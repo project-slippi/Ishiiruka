@@ -42,8 +42,10 @@
 #include "Core/State.h"
 
 // Not clean but idk a better way atm
+#ifdef _WIN32
 #include "DolphinWX/Frame.h"
 #include "DolphinWX/Main.h"
+#endif
 
 #define FRAME_INTERVAL 900
 #define SLEEP_TIME_MS 8
@@ -1942,7 +1944,9 @@ void CEXISlippi::handleLogInRequest()
 	bool logInRes = user->AttemptLogin();
 	if (!logInRes)
 	{
+#ifdef _WIN32
 		main_frame->LowerRenderWindow();
+#endif
 		user->OpenLogInPage();
 		user->ListenForLogIn();
 	}
@@ -1955,9 +1959,11 @@ void CEXISlippi::handleLogOutRequest()
 
 void CEXISlippi::handleUpdateAppRequest()
 {
+#ifdef _WIN32
 	main_frame->LowerRenderWindow();
 	user->UpdateApp();
 	main_frame->DoExit();
+#endif
 }
 
 void CEXISlippi::prepareOnlineStatus()

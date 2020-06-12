@@ -53,7 +53,7 @@ bool SlippiUser::AttemptLogin()
 {
 	std::string userFilePath = getUserFilePath();
 
-	ERROR_LOG(SLIPPI_ONLINE, "Looking for file at: %s", userFilePath.c_str());
+	INFO_LOG(SLIPPI_ONLINE, "Looking for file at: %s", userFilePath.c_str());
 
 	// Get user file
 	std::string userFileContents;
@@ -64,7 +64,7 @@ bool SlippiUser::AttemptLogin()
 	isLoggedIn = !userInfo.uid.empty();
 	if (isLoggedIn)
 	{
-		ERROR_LOG(SLIPPI_ONLINE, "Found user %s (%s)", userInfo.displayName.c_str(), userInfo.uid.c_str());
+		WARN_LOG(SLIPPI_ONLINE, "Found user %s (%s)", userInfo.displayName.c_str(), userInfo.uid.c_str());
 	}
 
 	return isLoggedIn;
@@ -120,12 +120,8 @@ void SlippiUser::ListenForLogIn()
 		return;
 
 	if (fileListenThread.joinable())
-	{
-		ERROR_LOG(SLIPPI_ONLINE, "Waiting for previous thread termination...");
 		fileListenThread.join();
-	}
 
-	ERROR_LOG(SLIPPI_ONLINE, "Starting user file thread...");
 	runThread = true;
 	fileListenThread = std::thread(&SlippiUser::FileListenThread, this);
 }
@@ -162,8 +158,6 @@ void SlippiUser::FileListenThread()
 
 		Common::SleepCurrentThread(500);
 	}
-
-	ERROR_LOG(SLIPPI_ONLINE, "Thread is terminating");
 }
 
 std::string SlippiUser::getUserFilePath()
