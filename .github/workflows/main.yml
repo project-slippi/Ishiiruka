@@ -1,4 +1,4 @@
-name: CI Slippi Dolphin Builds
+name: Slippi Dolphin CI Builds
 
 on:
   push:
