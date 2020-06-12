@@ -63,7 +63,7 @@ jobs:
           zlib1g-dev \
           libudev-dev \
           libevdev-dev \
-          "libpolarssl-dev|libmbedtls-dev" \
+          libmbedtls-dev \
           libcurl4-openssl-dev \
           libegl1-mesa-dev \
           libpng-dev \
