@@ -79,7 +79,7 @@ jobs:
         if: success() && (github.event_name != 'pull_request' || contains( github.event.pull_request.labels.*.name, 'seeking testers'))
         working-directory: ${{ github.workspace }}
         run: |
-          FILE_NAME=$CURR_DATE-${{ env.OBS_GIT_HASH }}-${{ env.OBS_GIT_TAG }}-linux64-netplay.tar.gz
+          FILE_NAME=$CURR_DATE-${{ env.OBS_GIT_HASH }}-${{ env.OBS_GIT_TAG }}-ubuntu64-netplay.tar.gz
           echo "::set-env name=FILE_NAME::${FILE_NAME}"
           mkdir artifact
           cd ./build/Binaries/
@@ -93,12 +93,12 @@ jobs:
           cd ./build/Binaries/
           cp -Rf ../../slippi-desktop-app/app/dolphin-dev/overwrite/Sys .
           cp -Rf ../../slippi-desktop-app/app/dolphin-dev/overwrite/User .
-          FILE_NAME=$CURR_DATE-${{ env.OBS_GIT_HASH }}-${{ env.OBS_GIT_TAG }}-linux64-playback.zip
+          FILE_NAME=$CURR_DATE-${{ env.OBS_GIT_HASH }}-${{ env.OBS_GIT_TAG }}-ubuntu64-playback.zip
           zip -r "${FILE_NAME}" .
           mv "${FILE_NAME}" ../../artifact/
       - name: "Publish"
         if: success() && (github.event_name != 'pull_request' || contains( github.event.pull_request.labels.*.name, 'seeking testers'))
         uses: actions/upload-artifact@v2-preview
         with:
-          name: "ubuntu-bionic64-builds"
+          name: "ubuntu18.04-builds"
           path: "./artifact/*.zip"
