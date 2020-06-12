@@ -1,0 +1,104 @@
+name: CI Slippi Dolphin Builds
+
+on:
+  push:
+    tags:
+      - r*
+  pull_request:
+    paths-ignore:
+      - "**.md"
+    branches:
+      - "**"
+
+jobs:
+  ubuntu64:
+    name: "Ubuntu/Bionic 64-bit"
+    runs-on: ubuntu-18.04
+    steps:
+      - name: "Checkout"
+        if: github.event_name != 'pull_request' || contains( github.event.pull_request.labels.*.name, 'seeking testers')
+        uses: actions/checkout@v2
+        with:
+          submodules: recursive
+      - name: 'Fetch Git Tags'
+        if: success() && (github.event_name != 'pull_request' || contains( github.event.pull_request.labels.*.name, 'seeking testers'))
+        run: |
+          git fetch --prune --unshallow
+          echo ::set-env name=OBS_GIT_BRANCH::$(git rev-parse --abbrev-ref HEAD)
+          echo ::set-env name=OBS_GIT_HASH::$(git rev-parse --short HEAD)
+          echo ::set-env name=OBS_GIT_TAG::$(git describe --tags --abbrev=0)
+          echo ::set-env name=CURR_DATE::$(date +%Y-%m-%d)
+      - name: "Install prerequisites"
+        if: success() && (github.event_name != 'pull_request' || contains( github.event.pull_request.labels.*.name, 'seeking testers'))
+        shell: bash
+        run: |
+          sudo dpkg --add-architecture amd64
+          sudo apt update
+          sudo apt install \
+          cmake \
+          pkg-config \
+          git \
+          libao-dev \
+          libasound2-dev \
+          libavcodec-dev \
+          libavformat-dev \
+          libbluetooth-dev \
+          libenet-dev \
+          libgtk2.0-dev \
+          liblzo2-dev \
+          libminiupnpc-dev \
+          libopenal-dev \
+          libpulse-dev \
+          libreadline-dev \
+          libsfml-dev \
+          libsoil-dev \
+          libsoundtouch-dev \
+          libswscale-dev \
+          libusb-1.0-0-dev \
+          libwxbase3.0-dev \
+          libwxgtk3.0-dev \
+          libxext-dev \
+          libxrandr-dev \
+          portaudio19-dev \
+          zlib1g-dev \
+          libudev-dev \
+          libevdev-dev \
+          "libpolarssl-dev|libmbedtls-dev" \
+          libcurl4-openssl-dev \
+          libegl1-mesa-dev \
+          libpng-dev \
+          qtbase5-private-dev \
+          libxxf86vm-dev \
+          x11proto-xinerama-dev
+      - name: "Build"
+        if: success() && (github.event_name != 'pull_request' || contains( github.event.pull_request.labels.*.name, 'seeking testers'))
+        working-directory: ${{ github.workspace }}
+        run: |
+          ./build-linux.sh
+      - name: "Package Netplay"
+        if: success() && (github.event_name != 'pull_request' || contains( github.event.pull_request.labels.*.name, 'seeking testers'))
+        working-directory: ${{ github.workspace }}
+        run: |
+          FILE_NAME=$CURR_DATE-${{ env.OBS_GIT_HASH }}-${{ env.OBS_GIT_TAG }}-linux64-netplay.tar.gz
+          echo "::set-env name=FILE_NAME::${FILE_NAME}"
+          mkdir artifact
+          cd ./build/Binaries/
+          zip -r "${FILE_NAME}" .
+          mv "${FILE_NAME}" ../../artifact/
+      - name: "Package Playback"
+        if: success() && (github.event_name != 'pull_request' || contains( github.event.pull_request.labels.*.name, 'seeking testers'))
+        working-directory: ${{ github.workspace }}
+        run: |
+          git clone https://github.com/project-slippi/slippi-desktop-app
+          cd ./build/Binaries/
+          cp -Rf ../../slippi-desktop-app/app/dolphin-dev/overwrite/Sys .
+          cp -Rf ../../slippi-desktop-app/app/dolphin-dev/overwrite/User .
+          FILE_NAME=$CURR_DATE-${{ env.OBS_GIT_HASH }}-${{ env.OBS_GIT_TAG }}-linux64-playback.zip
+          zip -r "${FILE_NAME}" .
+          mv "${FILE_NAME}" ../../artifact/
+      - name: "Publish"
+        if: success() && (github.event_name != 'pull_request' || contains( github.event.pull_request.labels.*.name, 'seeking testers'))
+        uses: actions/upload-artifact@v2-preview
+        with:
+          name: "ubuntu-bionic64-builds"
+          path: "./artifact/*.zip"
