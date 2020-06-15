@@ -17,14 +17,14 @@ jobs:
   ubuntu64:
     name: "Ubuntu/Bionic"
     runs-on: ubuntu-18.04
+    if: github.event_name != 'pull_request' || contains( github.event.pull_request.labels.*.name, 'seeking testers')
     steps:
       - name: "Checkout"
-        if: github.event_name != 'pull_request' || contains( github.event.pull_request.labels.*.name, 'seeking testers')
         uses: actions/checkout@v2
         with:
           submodules: recursive
       - name: 'Fetch Git Tags'
-        if: success() && (github.event_name != 'pull_request' || contains( github.event.pull_request.labels.*.name, 'seeking testers'))
+        if: success()
         run: |
           git fetch --prune --unshallow
           echo ::set-env name=OBS_GIT_BRANCH::$(git rev-parse --abbrev-ref HEAD)
@@ -32,7 +32,7 @@ jobs:
           echo ::set-env name=OBS_GIT_TAG::$(git describe --tags --abbrev=0)
           echo ::set-env name=CURR_DATE::$(date +%Y-%m-%d)
       - name: "Install prerequisites"
-        if: success() && (github.event_name != 'pull_request' || contains( github.event.pull_request.labels.*.name, 'seeking testers'))
+        if: success()
         shell: bash
         run: |
           sudo dpkg --add-architecture amd64
@@ -74,12 +74,12 @@ jobs:
           libxxf86vm-dev \
           x11proto-xinerama-dev
       - name: "Build"
-        if: success() && (github.event_name != 'pull_request' || contains( github.event.pull_request.labels.*.name, 'seeking testers'))
+        if: success()
         working-directory: ${{ github.workspace }}
         run: |
           ./build-linux.sh
       - name: "Package Netplay"
-        if: success() && (github.event_name != 'pull_request' || contains( github.event.pull_request.labels.*.name, 'seeking testers'))
+        if: success()
         working-directory: ${{ github.workspace }}
         run: |
           FILE_NAME=$CURR_DATE-${{ env.OBS_GIT_HASH }}-${{ env.OBS_GIT_TAG }}-ubuntu64-netplay.tar.gz
@@ -89,7 +89,7 @@ jobs:
           zip -r "${FILE_NAME}" .
           mv "${FILE_NAME}" ../../artifact/
       - name: "Package Playback"
-        if: success() && (github.event_name != 'pull_request' || contains( github.event.pull_request.labels.*.name, 'seeking testers'))
+        if: success()
         working-directory: ${{ github.workspace }}
         run: |
           git clone https://github.com/project-slippi/slippi-desktop-app
@@ -100,7 +100,7 @@ jobs:
           zip -r "${FILE_NAME}" .
           mv "${FILE_NAME}" ../../artifact/
       - name: "Publish"
-        if: success() && (github.event_name != 'pull_request' || contains( github.event.pull_request.labels.*.name, 'seeking testers'))
+        if: success()
         uses: actions/upload-artifact@v2-preview
         with:
           name: "ubuntu18.04-builds"
@@ -108,14 +108,14 @@ jobs:
   macOS64:
     name: "macOS Catalina"
     runs-on: macos-10.15
+    if: github.event_name != 'pull_request' || contains( github.event.pull_request.labels.*.name, 'seeking testers')
     steps:
       - name: "Checkout"
-        if: github.event_name != 'pull_request' || contains( github.event.pull_request.labels.*.name, 'seeking testers')
         uses: actions/checkout@v2
         with:
           submodules: recursive
       - name: 'Fetch Git Tags'
-        if: success() && (github.event_name != 'pull_request' || contains( github.event.pull_request.labels.*.name, 'seeking testers'))
+        if: success()
         run: |
           git fetch --prune --unshallow
           echo ::set-env name=OBS_GIT_BRANCH::$(git rev-parse --abbrev-ref HEAD)
@@ -123,7 +123,7 @@ jobs:
           echo ::set-env name=OBS_GIT_TAG::$(git describe --tags --abbrev=0)
           echo ::set-env name=CURR_DATE::$(date +%Y-%m-%d)
       - name: "Install 10.14 SDK"
-        if: success() && (github.event_name != 'pull_request' || contains( github.event.pull_request.labels.*.name, 'seeking testers'))
+        if: success()
         shell: bash
         working-directory: ${{ github.workspace }}
         run: |
@@ -132,7 +132,7 @@ jobs:
           rm MacOSX10.14.sdk.tar.xz
           sudo mv MacOSX10.14.sdk /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/
       - name: "Download and Install prerequisites"
-        if: success() && (github.event_name != 'pull_request' || contains( github.event.pull_request.labels.*.name, 'seeking testers'))
+        if: success()
         shell: bash
         run: |
           wget https://github.com/wxWidgets/wxWidgets/releases/download/v3.1.3/wxWidgets-3.1.3.tar.bz2
@@ -156,7 +156,7 @@ jobs:
           path: ./wxWidgets-3.1.3/build
           key: "wxWidgets-3.1.3-macOS"
       - name: "Install wxWidgets 3.1.3"
-        if: success() && (github.event_name != 'pull_request' || contains( github.event.pull_request.labels.*.name, 'seeking testers'))
+        if: success()
         shell: bash
         working-directory: ${{ github.workspace }}
         run: |
@@ -166,7 +166,7 @@ jobs:
           make
           sudo make install
       - name: "Build"
-        if: success() && (github.event_name != 'pull_request' || contains( github.event.pull_request.labels.*.name, 'seeking testers'))
+        if: success()
         shell: bash
         working-directory: ${{ github.workspace }}
         run: |
@@ -175,7 +175,7 @@ jobs:
           cmake ..
           make -j7
       - name: "Package Netplay"
-        if: success() && (github.event_name != 'pull_request' || contains( github.event.pull_request.labels.*.name, 'seeking testers'))
+        if: success()
         shell: bash
         working-directory: ${{ github.workspace }}
         run: |
@@ -187,7 +187,7 @@ jobs:
           zip -r "${FILE_NAME}" .
           mv "${FILE_NAME}" ../../artifact/
       - name: "Package Playback"
-        if: success() && (github.event_name != 'pull_request' || contains( github.event.pull_request.labels.*.name, 'seeking testers'))
+        if: success()
         shell: bash
         working-directory: ${{ github.workspace }}
         run: |
@@ -199,7 +199,7 @@ jobs:
           zip -r "${FILE_NAME}" .
           mv "${FILE_NAME}" ../../artifact/
       - name: "Publish"
-        if: success() && (github.event_name != 'pull_request' || contains( github.event.pull_request.labels.*.name, 'seeking testers'))
+        if: success()
         uses: actions/upload-artifact@v2-preview
         with:
           name: "macOS-builds"
