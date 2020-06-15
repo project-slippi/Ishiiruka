@@ -1,9 +1,12 @@
 name: Slippi Dolphin CI Builds
 
 on:
+  release:
+    types: 
+      - published
   push:
-    tags:
-      - r*
+    branches:
+      - slippi
   pull_request:
     paths-ignore:
       - "**.md"
@@ -12,7 +15,7 @@ on:
 
 jobs:
   ubuntu64:
-    name: "Ubuntu/Bionic 64-bit"
+    name: "Ubuntu/Bionic"
     runs-on: ubuntu-18.04
     steps:
       - name: "Checkout"
@@ -103,8 +106,8 @@ jobs:
           name: "ubuntu18.04-builds"
           path: "./artifact/"
   macOS64:
-    name: "macOS Catalina 64-bit"
-    runs-on: macos-latest
+    name: "macOS Catalina"
+    runs-on: macos-10.15
     steps:
       - name: "Checkout"
         if: github.event_name != 'pull_request' || contains( github.event.pull_request.labels.*.name, 'seeking testers')
@@ -119,18 +122,14 @@ jobs:
           echo ::set-env name=OBS_GIT_HASH::$(git rev-parse --short HEAD)
           echo ::set-env name=OBS_GIT_TAG::$(git describe --tags --abbrev=0)
           echo ::set-env name=CURR_DATE::$(date +%Y-%m-%d)
-      - name: "Install 10.11 and 10.14 SDK"
+      - name: "Install 10.14 SDK"
         if: success() && (github.event_name != 'pull_request' || contains( github.event.pull_request.labels.*.name, 'seeking testers'))
         shell: bash
         working-directory: ${{ github.workspace }}
         run: |
-          wget https://github.com/phracker/MacOSX-SDKs/releases/download/10.15/MacOSX10.11.sdk.tar.xz
           wget https://github.com/phracker/MacOSX-SDKs/releases/download/10.15/MacOSX10.14.sdk.tar.xz
-          tar -xf MacOSX10.11.sdk.tar.xz
           tar -xf MacOSX10.14.sdk.tar.xz
-          rm MacOSX10.11.sdk.tar.xz
           rm MacOSX10.14.sdk.tar.xz
-          sudo mv MacOSX10.11.sdk /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/
           sudo mv MacOSX10.14.sdk /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/
       - name: "Download and Install prerequisites"
         if: success() && (github.event_name != 'pull_request' || contains( github.event.pull_request.labels.*.name, 'seeking testers'))
