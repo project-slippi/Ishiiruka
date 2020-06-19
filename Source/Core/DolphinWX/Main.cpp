@@ -211,7 +211,7 @@ bool DolphinApp::OnInit()
 
 	// Init the slippicom server thread
 	SlippicommServer *init = SlippicommServer::getInstance();
-	init->clearEventHistory();
+	init->endGame();
 
 	return true;
 }

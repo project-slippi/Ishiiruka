@@ -146,7 +146,7 @@ CEXISlippi::~CEXISlippi()
 	// would close the emulation before the file successfully finished writing
 	writeToFile(&empty[0], 0, "close");
 	m_slippiserver->write(&empty[0], 0);
-	m_slippiserver->clearEventHistory();
+	m_slippiserver->endGame();
 	resetPlayback();
 
 	//g_playback_status = SlippiPlaybackStatus::SlippiPlaybackStatus();
@@ -1321,8 +1321,14 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 		u8 receiveCommandsLen = memPtr[1];
 		configureCommands(&memPtr[1], receiveCommandsLen);
 		writeToFile(&memPtr[0], receiveCommandsLen + 1, "create");
+		m_slippiserver->startGame();
 		m_slippiserver->write(&memPtr[0], receiveCommandsLen + 1);
 		bufLoc += receiveCommandsLen + 1;
+	}
+
+	if (byte == CMD_MENU_FRAME)
+	{
+		m_slippiserver->writeMenuEvent(&memPtr[0], _uSize);
 	}
 
 	INFO_LOG(EXPANSIONINTERFACE, "EXI SLIPPI DMAWrite: addr: 0x%08x size: %d, bufLoc:[%02x %02x %02x %02x %02x]",
@@ -1344,7 +1350,7 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 		case CMD_RECEIVE_GAME_END:
 			writeToFile(&memPtr[bufLoc], payloadLen + 1, "close");
 			m_slippiserver->write(&memPtr[bufLoc], payloadLen + 1);
-			m_slippiserver->clearEventHistory();
+			m_slippiserver->endGame();
 			break;
 		case CMD_PREPARE_REPLAY:
 			// log.open("log.txt");

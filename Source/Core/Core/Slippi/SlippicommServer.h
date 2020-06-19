@@ -18,6 +18,7 @@ typedef int SOCKET;
 #define HANDSHAKE_TYPE 1
 #define PAYLOAD_TYPE 2
 #define KEEPALIVE_TYPE 3
+#define MENU_TYPE 4
 
 // Actual socket value is not here since that's the key of the map
 class SlippiSocket
@@ -28,6 +29,7 @@ public:
     u32 m_outgoing_fragment_index = 0;
     u64 m_cursor = 0;
     bool m_shook_hands = false;
+    bool m_in_game = false;
 };
 
 class SlippicommServer
@@ -41,12 +43,19 @@ public:
     // Write the given game payload data to all listening sockets
     void write(u8 *payload, u32 length);
 
+    // Write a menu state payload to all listening sockets
+    void writeMenuEvent(u8 *payload, u32 length);
+
+    // Should be called each time a new game starts.
+    //  This will clear out the old game event buffer and start a new one
+    void startGame();
+
     // Clear the game event history buffer. Such as when a game ends.
     //  The slippi server keeps a history of events in a buffer. So that
     //  when a new client connects to the server mid-match, it can recieve all
     //  the game events that have happened so far. This buffer needs to be
     //  cleared when a match ends.
-    void clearEventHistory();
+    void endGame();
 
     // Don't try to copy the class. Delete those functions
     SlippicommServer(SlippicommServer const&) = delete;
@@ -63,6 +72,7 @@ public:
     std::map<SOCKET, std::shared_ptr<SlippiSocket>> m_sockets;
     bool m_stop_socket_thread;
     std::vector< std::vector<u8> > m_event_buffer;
+    std::vector< std::vector<u8> > m_menu_event_buffer;
     std::mutex m_event_buffer_mutex;
     std::thread m_socketThread;
     SOCKET m_server_fd;
@@ -78,6 +88,9 @@ public:
     //  To solve this, we keep an "offset" value that is added to all outgoing
     //  cursor positions to give the appearance like it's going up
     u64 m_cursor_offset = 0;
+    // Keep track of what the current state of the emulator is. Are we in the middle
+    //  of a game or not?
+    bool m_in_game = false;
 
     // Private constructor to avoid making another instance
     SlippicommServer();
