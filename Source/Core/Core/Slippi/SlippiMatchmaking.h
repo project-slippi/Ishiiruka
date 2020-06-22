@@ -49,7 +49,7 @@ class SlippiMatchmaking
 	std::string GetErrorMessage();
 
   protected:
-	const std::string MM_HOST = "mm.slippi.gg";
+	const std::string MM_HOST = "35.247.98.48";
 	const u16 MM_PORT = 43113;
 
 	ENetHost *m_client;
