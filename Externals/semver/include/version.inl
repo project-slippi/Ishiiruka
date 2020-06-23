@@ -65,12 +65,12 @@ namespace version {
 		const Basic_version<Parser, Comparator, Modifier>&) = default;
 
 	template<typename Parser, typename Comparator, typename Modifier>
-	int Basic_version<Parser, Comparator, Modifier>::major() const {
+	int Basic_version<Parser, Comparator, Modifier>::major_ver() const {
 		return ver_.major;
 	}
 
 	template<typename Parser, typename Comparator, typename Modifier>
-	int Basic_version<Parser, Comparator, Modifier>::minor() const {
+	int Basic_version<Parser, Comparator, Modifier>::minor_ver() const {
 		return ver_.minor;
 	}
 

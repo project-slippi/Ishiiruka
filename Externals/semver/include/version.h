@@ -148,8 +148,8 @@ namespace version {
 		/// Copy version data from another Basic_version to this one.
 		Basic_version& operator=(const Basic_version&);
 
-		int major() const; ///< Get major version.
-		int minor() const; ///< Get minor version.
+		int major_ver() const; ///< Get major version.
+		int minor_ver() const; ///< Get minor version.
 		int patch() const; ///< Get patch version.
 		const std::string prerelease() const; ///< Get prerelease version string.
 		const std::string build() const; ///< Get build version string.
