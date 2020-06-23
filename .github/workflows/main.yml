@@ -19,7 +19,6 @@ jobs:
   ubuntu64:
     name: "Ubuntu/Bionic"
     runs-on: ubuntu-18.04
-    if: github.event_name != 'pull_request' || contains( github.event.pull_request.labels.*.name, 'seeking testers')
     steps:
       - name: "Checkout"
         uses: actions/checkout@v2
@@ -102,7 +101,7 @@ jobs:
           zip -r "${FILE_NAME}" .
           mv "${FILE_NAME}" ../../artifact/
       - name: "Publish"
-        if: success()
+        if: github.event_name != 'pull_request' || contains( github.event.pull_request.labels.*.name, 'seeking testers') && success()
         uses: actions/upload-artifact@v2-preview
         with:
           name: "ubuntu18.04-builds"
@@ -110,7 +109,6 @@ jobs:
   macOS64:
     name: "macOS Catalina"
     runs-on: macos-10.15
-    if: github.event_name != 'pull_request' || contains( github.event.pull_request.labels.*.name, 'seeking testers')
     steps:
       - name: "Checkout"
         uses: actions/checkout@v2
@@ -201,7 +199,7 @@ jobs:
           zip -r "${FILE_NAME}" .
           mv "${FILE_NAME}" ../../artifact/
       - name: "Publish"
-        if: success()
+        if: github.event_name != 'pull_request' || contains( github.event.pull_request.labels.*.name, 'seeking testers') && success()
         uses: actions/upload-artifact@v2-preview
         with:
           name: "macOS-builds"
