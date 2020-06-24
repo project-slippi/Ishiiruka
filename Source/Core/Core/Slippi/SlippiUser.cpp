@@ -55,6 +55,18 @@ bool SlippiUser::AttemptLogin()
 
 	INFO_LOG(SLIPPI_ONLINE, "Looking for file at: %s", userFilePath.c_str());
 
+	{
+		std::string userFilePathTxt = userFilePath + ".txt"; //Put the filename here in its own scope because we don't really need it elsewhere
+		if (File::Exists(userFilePathTxt) && File::Exists(userFilePath))
+		{
+			INFO_LOG(SLIPPI_ONLINE, "Found both .txt and .json file for user data. Using .json");
+		}
+		else if (File::Exists(userFilePathTxt))
+		{
+			File::Rename(userFilePathTxt, userFilePath);
+		}
+	}
+
 	// Get user file
 	std::string userFileContents;
 	File::ReadFileToString(userFilePath, userFileContents);
@@ -169,6 +181,7 @@ std::string SlippiUser::getUserFilePath()
 #else
 	std::string dirPath = File::GetExeDirectory();
 #endif
+
 	std::string userFilePath = dirPath + DIR_SEP + "user.json";
 	return userFilePath;
 }
