@@ -379,6 +379,10 @@ std::vector<u8> CEXISlippi::generateMetadata()
 
 void CEXISlippi::writeToFileAsync(u8 *payload, u32 length, std::string fileOption)
 {
+	if (!SConfig::GetInstance().m_slippiSaveReplays) {
+		return;
+	}
+
 	if (fileOption == "create" && !writeThreadRunning)
 	{
 		WARN_LOG(SLIPPI, "Creating file write thread...");
@@ -502,9 +506,9 @@ void CEXISlippi::createNewFile()
 		closeFile();
 	}
 
-	std::string dirpath = File::GetExeDirectory();
-	File::CreateDir(dirpath + DIR_SEP + "Slippi");
-	std::string filepath = dirpath + DIR_SEP + generateFileName();
+	std::string dirpath = SConfig::GetInstance().m_strSlippiReplayDir;
+	File::CreateDir(dirpath);
+	std::string filepath = dirpath + generateFileName();
 
 	INFO_LOG(SLIPPI, "EXI_DeviceSlippi.cpp: Creating new replay file %s", filepath.c_str());
 
@@ -523,7 +527,7 @@ std::string CEXISlippi::generateFileName()
 	strftime(&dateTimeBuf[0], dateTimeStrLength, "%Y%m%dT%H%M%S", localtime(&gameStartTime));
 
 	std::string str(&dateTimeBuf[0]);
-	return StringFromFormat("Slippi/Game_%s.slp", str.c_str());
+	return StringFromFormat("Game_%s.slp", str.c_str());
 }
 
 void CEXISlippi::closeFile()

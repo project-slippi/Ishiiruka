@@ -12,6 +12,7 @@ enum TEXIDevices : int;
 class wxButton;
 class wxCheckBox;
 class wxChoice;
+class wxDirPickerCtrl;
 class wxString;
 
 class GameCubeConfigPane final : public wxPanel
@@ -37,6 +38,9 @@ private:
 	void HandleEXISlotChange(int slot, const wxString& title);
 	void ChooseSlotPath(bool is_slot_a, TEXIDevices device_type);
 
+	void OnReplaySavingToggle(wxCommandEvent& event);
+	void OnReplayDirChanged(wxCommandEvent& event);
+
 	wxArrayString m_ipl_language_strings;
 
 	wxChoice* m_system_lang_choice;
@@ -44,4 +48,6 @@ private:
 	wxCheckBox* m_skip_bios_checkbox;
 	wxChoice* m_exi_devices[3];
 	wxButton* m_memcard_path[2];
+	wxCheckBox* m_replay_enable_checkbox;
+	wxDirPickerCtrl* m_replay_directory_picker;
 };

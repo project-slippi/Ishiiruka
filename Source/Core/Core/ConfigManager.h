@@ -131,6 +131,9 @@ struct SConfig : NonCopyable
     bool bHasShownLagReductionWarning = false;
     bool bMeleeForceWidescreen = false;
 
+	bool m_slippiSaveReplays = true;
+	std::string m_strSlippiReplayDir;
+
 	bool bDPL2Decoder = false;
 	bool bTimeStretching = false;
 	bool bRSHACK = false;
