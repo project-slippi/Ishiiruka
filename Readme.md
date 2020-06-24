@@ -62,8 +62,10 @@ missing packages yourself.
 
 An application bundle will be created in `./Binaries`.
 
-If you are building on Mojave or later, you will need to install the 10.11 and 10.14 SDKs to build because Quicktime has been removed in the latest SDKs. Find the sdk version here https://github.com/phracker/MacOSX-SDKs and copy it to 
+If you are building on Mojave, you will need to install the 10.11 and 10.14 SDKs to build because Quicktime has been removed in the latest SDKs. Find the sdk version here https://github.com/phracker/MacOSX-SDKs and copy it to 
 `/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs`. You should not need to modify the plist file as the project readme seems to indicate.
+
+If you are building on Catalina, you only need to install the 10.14 SDK. However you will also need to install wxWidgets from source. Details on how to do this can be found by reading the CI script (https://github.com/project-slippi/Ishiiruka/blob/slippi/.github/workflows/main.yml#L109-L206).
 
 ### Linux Global Build Steps:
 
