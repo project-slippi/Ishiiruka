@@ -10,6 +10,7 @@
 #include "Common/Logging/Log.h"
 #include "Common/StringUtil.h"
 #include "Common/Thread.h"
+#include "VideoCommon/OnScreenDisplay.h"
 
 #include "Core/ConfigManager.h"
 
@@ -150,6 +151,9 @@ void SlippiUser::UpdateApp()
 	std::string command = "start \"Updating Dolphin\" \"" + path + "\" app-update -launch -iso \"" + isoPath + "\"";
 	WARN_LOG(SLIPPI, "Executing app update command: %s", command);
 	RunSystemCommand(command);
+#else
+	OSD::AddTypedMessage(OSD::MessageType::Typeless, "Auto update is not available for macOS and Linux, please update manually.",
+	                     OSD::Duration::NORMAL, OSD::Color::CYAN);
 #endif
 }
 
