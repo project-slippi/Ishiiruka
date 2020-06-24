@@ -44,6 +44,15 @@ static int system_hidden(const char *cmd)
 }
 #endif
 
+static void RunSystemCommand(const std::string& command)
+{
+#ifdef _WIN32
+	_wsystem(UTF8ToUTF16(command).c_str());
+#else
+	system(command.c_str());
+#endif
+}
+
 SlippiUser::~SlippiUser()
 {
 	// Wait for thread to terminate
@@ -120,8 +129,7 @@ void SlippiUser::OpenLogInPage()
 	std::string command = "xdg-open \"" + fullUrl + "\""; // Linux
 #endif
 
-	std::wstring convertedCommand = std::wstring_convert<std::codecvt_utf8<wchar_t>>().from_bytes(command);
-	_wsystem(convertedCommand.c_str());
+	RunSystemCommand(command);
 }
 
 void SlippiUser::UpdateFile()
@@ -141,8 +149,7 @@ void SlippiUser::UpdateApp()
 	std::string path = File::GetExeDirectory() + "/dolphin-slippi-tools.exe";
 	std::string command = "start \"Updating Dolphin\" \"" + path + "\" app-update -launch -iso \"" + isoPath + "\"";
 	WARN_LOG(SLIPPI, "Executing app update command: %s", command);
-	std::wstring convertedCommand = std::wstring_convert<std::codecvt_utf8<wchar_t>>().from_bytes(command);
-	_wsystem(convertedCommand.c_str());
+	RunSystemCommand(command);
 #endif
 }
 
