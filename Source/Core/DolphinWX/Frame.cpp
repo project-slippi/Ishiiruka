@@ -349,16 +349,16 @@ CFrame::CFrame(wxFrame *parent, wxWindowID id, const wxString &title, wxRect geo
 	// This panel is the parent for rendering and it holds the gamelistctrl
 	m_Panel = new wxPanel(this, IDM_MPANEL, wxDefaultPosition, wxDefaultSize, 0);
 
-    // macOS dark mode with a sunken border produces a striking white border around 
-    // the game list. wxSIMPLE_BORDER looks fine in both macOS light/dark mode.
+	// macOS dark mode with a sunken border produces a striking white border around 
+	// the game list. wxSIMPLE_BORDER looks fine in both macOS light/dark mode.
 #ifdef __WXOSX__
-    long game_list_style = wxLC_REPORT | wxSIMPLE_BORDER | wxLC_ALIGN_LEFT; 
+	long game_list_style = wxLC_REPORT | wxSIMPLE_BORDER | wxLC_ALIGN_LEFT; 
 #else
-    long game_list_style = wxLC_REPORT | wxSUNKEN_BORDER | wxLC_ALIGN_LEFT;
+	long game_list_style = wxLC_REPORT | wxSUNKEN_BORDER | wxLC_ALIGN_LEFT;
 #endif
 
 	m_GameListCtrl = new CGameListCtrl(m_Panel, wxID_ANY, wxDefaultPosition, wxDefaultSize,
-	                                   game_list_style);
+										game_list_style);
 	m_GameListCtrl->Bind(wxEVT_LIST_ITEM_ACTIVATED, &CFrame::OnGameListCtrlItemActivated, this);
 
 	wxBoxSizer *sizerPanel = new wxBoxSizer(wxHORIZONTAL);
