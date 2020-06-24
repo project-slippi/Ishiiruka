@@ -37,7 +37,7 @@ Dolphin can only be installed on devices that satisfy the above requirements. At
 Open the solution file `Source/Dolphin.sln` to build Dolphin on Windows using [Visual Studio 2017](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=Community&rel=15).
 Other compilers might be
 able to build Dolphin on Windows but have not been tested and are not
-recommended to be used. Git and Windows 10 SDK 10.0.10563.0 must be installed. You can install these using the Visual Studio installer as indicated here: https://github.com/dolphin-emu/dolphin/wiki/Building-for-Windows.
+recommended to be used. Git and Windows 10 SDK 10.0.15063.0 must be installed. You can install these using the Visual Studio installer as indicated here: https://github.com/dolphin-emu/dolphin/wiki/Building-for-Windows.
 
 You also need the June 2010 DirectX SDK, you can [download it here](http://www.microsoft.com/en-us/download/details.aspx?id=6812). You will most likely have issues installing this, look at [this comment](https://stackoverflow.com/a/9401911) for how to fix it. Not sure everything in it is a hard requirement.
 
