@@ -70,3 +70,5 @@ semver.lib
 semver.idb
 semver.pdb
 semver.log
+
+AppDir/

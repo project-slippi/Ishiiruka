@@ -760,14 +760,19 @@ std::string GetSysDirectory()
 	std::string sysDir;
 
 #if defined(__APPLE__)
-	sysDir = GetBundleDirectory() + DIR_SEP + SYSDATA_DIR;
+	sysDir = GetBundleDirectory() + DIR_SEP + SYSDATA_DIR + DIR_SEP;
 #elif defined(_WIN32) || defined(LINUX_LOCAL_DEV)
-	sysDir = GetExeDirectory() + DIR_SEP + SYSDATA_DIR;
+	sysDir = GetExeDirectory() + DIR_SEP + SYSDATA_DIR + DIR_SEP;
 #else
-	sysDir = SYSDATA_DIR;
+	const char* home = getenv("HOME");
+	if (!home) home = getenv("PWD");
+	if (!home) home = "";
+	std::string home_path = std::string(home) + DIR_SEP;
+	const char* config_home = getenv("XDG_CONFIG_HOME");
+	sysDir = std::string(config_home && config_home[0] == '/' 
+		? config_home : (home_path + ".config")) 
+		+ DIR_SEP DOLPHIN_DATA_DIR "Sys" DIR_SEP;
 #endif
-	sysDir += DIR_SEP;
-
 	INFO_LOG(COMMON, "GetSysDirectory: Setting to %s:", sysDir.c_str());
 	return sysDir;
 }

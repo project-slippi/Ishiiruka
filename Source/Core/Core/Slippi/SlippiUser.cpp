@@ -199,14 +199,18 @@ void SlippiUser::FileListenThread()
 	}
 }
 
+// On Linux platforms, the user.json file lives in the Sys/ directory in
+// order to deal with the fact that we want the configuration for AppImage 
+// builds to be mutable. 
 std::string SlippiUser::getUserFilePath()
 {
 #if defined(__APPLE__)
 	std::string dirPath = File::GetBundleDirectory() + "/Contents/Resources";
-#else
+#elif defined(_WIN32)
 	std::string dirPath = File::GetExeDirectory();
+#else
+	std::string dirPath = File::GetSysDirectory();
 #endif
-
 	std::string userFilePath = dirPath + DIR_SEP + "user.json";
 	return userFilePath;
 }
