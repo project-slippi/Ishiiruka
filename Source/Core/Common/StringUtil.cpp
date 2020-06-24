@@ -15,6 +15,12 @@
 #include <sstream>
 #include <string>
 #include <vector>
+#include <unordered_map>
+
+#ifdef _WIN32
+#include <locale>
+#include <codecvt>
+#endif
 
 #include "Common/CommonFuncs.h"
 #include "Common/CommonPaths.h"
@@ -24,6 +30,8 @@
 
 #ifdef _WIN32
 #include <Windows.h>
+constexpr u32 CODEPAGE_SHIFT_JIS = 932;
+constexpr u32 CODEPAGE_WINDOWS_1252 = 1252;
 #else
 #include <errno.h>
 #include <iconv.h>
@@ -373,6 +381,68 @@ std::string ReplaceAll(std::string result, const std::string& src, const std::st
 	return result;
 }
 
+void ConvertNarrowSpecialSHIFTJIS(std::string &input)
+{
+	// Melee doesn't correctly display special characters in narrow form We need to convert them to wide form.
+	// I couldn't find a library to do this so for now let's just do it manually
+	static std::unordered_map<char, char16_t> specialCharConvert = {
+	    {'!', (char16_t)0x8149}, {'"', (char16_t)0x8168}, {'#', (char16_t)0x8194},  {'$', (char16_t)0x8190},
+	    {'%', (char16_t)0x8193}, {'&', (char16_t)0x8195}, {'\'', (char16_t)0x8166}, {'(', (char16_t)0x8169},
+	    {')', (char16_t)0x816a}, {'*', (char16_t)0x8196}, {'+', (char16_t)0x817b},  {',', (char16_t)0x8143},
+	    {'-', (char16_t)0x817c}, {'.', (char16_t)0x8144}, {'/', (char16_t)0x815e},  {':', (char16_t)0x8146},
+	    {';', (char16_t)0x8147}, {'<', (char16_t)0x8183}, {'=', (char16_t)0x8181},  {'>', (char16_t)0x8184},
+	    {'?', (char16_t)0x8148}, {'@', (char16_t)0x8197}, {'[', (char16_t)0x816d},  {'\\', (char16_t)0x815f},
+	    {']', (char16_t)0x816e}, {'^', (char16_t)0x814f}, {'_', (char16_t)0x8151},  {'`', (char16_t)0x814d},
+	    {'{', (char16_t)0x816f}, {'|', (char16_t)0x8162}, {'}', (char16_t)0x8170},  {'~', (char16_t)0x8160},
+	};
+
+	int pos = 0;
+	while (pos < input.length())
+	{
+		auto c = input[pos];
+		if ((u8)(0x80 & (u8)c) == 0x80)
+		{
+			// This is a 2 char rune, move to next
+			pos += 2;
+			continue;
+		}
+
+		bool hasConversion = specialCharConvert.count(c);
+		if (!hasConversion)
+		{
+			pos += 1;
+			continue;
+		}
+
+		// Remove previous character
+		input.erase(pos, 1);
+
+		// Add new chars to pos to replace
+		auto newChars = (char *)&specialCharConvert[c];
+		input.insert(input.begin() + pos, 1, newChars[0]);
+		input.insert(input.begin() + pos, 1, newChars[1]);
+	}
+}
+
+std::string ConvertStringForGame(const std::string &input, int length)
+{
+	auto utf32 = UTF8ToUTF32(input);
+
+	// Limit length
+	if (utf32.length() > length)
+	{
+		utf32.resize(length);
+	}
+
+	auto utf8 = UTF32toUTF8(utf32);
+	auto shiftJis = UTF8ToSHIFTJIS(utf8);
+	ConvertNarrowSpecialSHIFTJIS(shiftJis);
+
+	// Make fixed size
+	shiftJis.resize(length * 2 + 1);
+	return shiftJis;
+}
+
 #ifdef _WIN32
 
 std::string UTF16ToUTF8(const std::wstring& input)
@@ -410,6 +480,30 @@ std::wstring CPToUTF16(u32 code_page, const std::string& input)
 	return output;
 }
 
+std::string UTF16ToCP(u32 code_page, const std::wstring &input)
+{
+	std::string output;
+
+	if (0 != input.size())
+	{
+		// "If cchWideChar [input buffer size] is set to 0, the function fails." -MSDN
+		auto const size = WideCharToMultiByte(code_page, 0, input.data(), static_cast<int>(input.size()), nullptr, 0,
+		                                      nullptr, nullptr);
+
+		output.resize(size);
+
+		if (size != WideCharToMultiByte(code_page, 0, input.data(), static_cast<int>(input.size()), &output[0],
+		                                static_cast<int>(output.size()), nullptr, nullptr))
+		{
+			const DWORD error_code = GetLastError();
+			ERROR_LOG(COMMON, "WideCharToMultiByte Error in String '%s': %lu", std::wstring(input).c_str(), error_code);
+			output.clear();
+		}
+	}
+
+	return output;
+}
+
 std::wstring UTF8ToUTF16(const std::string& input)
 {
 	return CPToUTF16(CP_UTF8, input);
@@ -417,7 +511,12 @@ std::wstring UTF8ToUTF16(const std::string& input)
 
 std::string SHIFTJISToUTF8(const std::string& input)
 {
-	return UTF16ToUTF8(CPToUTF16(932, input));
+	return UTF16ToUTF8(CPToUTF16(CODEPAGE_SHIFT_JIS, input));
+}
+
+std::string UTF8ToSHIFTJIS(const std::string &input)
+{
+	return UTF16ToCP(CODEPAGE_SHIFT_JIS, UTF8ToUTF16(input));
 }
 
 std::string CP1252ToUTF8(const std::string& input)
@@ -425,14 +524,26 @@ std::string CP1252ToUTF8(const std::string& input)
 	return UTF16ToUTF8(CPToUTF16(1252, input));
 }
 
-#else
+std::u32string UTF8ToUTF32(const std::string &input)
+{
+	std::wstring_convert<std::codecvt_utf8<int32_t>, int32_t> utf32Convert;
+	auto asInt = utf32Convert.from_bytes(input);
+	return std::u32string(reinterpret_cast<char32_t const *>(asInt.data()), asInt.length());
+}
 
+std::string UTF32toUTF8(const std::u32string &input)
+{
+	std::wstring_convert<std::codecvt_utf8<int32_t>, int32_t> utf8Convert;
+	auto p = reinterpret_cast<const int32_t *>(input.data());
+	return utf8Convert.to_bytes(p, p + input.size());
+}
+#else
 template <typename T>
-std::string CodeToUTF8(const char* fromcode, const std::basic_string<T>& input)
+std::string CodeTo(const char *tocode, const char *fromcode, const std::basic_string<T>& input)
 {
 	std::string result;
 
-	iconv_t const conv_desc = iconv_open("UTF-8", fromcode);
+	iconv_t const conv_desc = iconv_open(tocode, fromcode);
 	if ((iconv_t)-1 == conv_desc)
 	{
 		ERROR_LOG(COMMON, "Iconv initialization failure [%s]: %s", fromcode, strerror(errno));
@@ -483,6 +594,12 @@ std::string CodeToUTF8(const char* fromcode, const std::basic_string<T>& input)
 	return result;
 }
 
+template <typename T>
+std::string CodeToUTF8(const char* fromcode, const std::basic_string<T>& input)
+{
+	return CodeTo("UTF-8", fromcode, input);
+}
+
 std::string CP1252ToUTF8(const std::string& input)
 {
 	// return CodeToUTF8("CP1252//TRANSLIT", input);
@@ -496,6 +613,11 @@ std::string SHIFTJISToUTF8(const std::string& input)
 	return CodeToUTF8("SJIS", input);
 }
 
+std::string UTF8ToSHIFTJIS(const std::string& input)
+{
+	return CodeTo("SJIS", "UTF-8", input);
+}
+
 std::string UTF16ToUTF8(const std::wstring& input)
 {
 	std::string result = CodeToUTF8("UTF-16LE", input);
@@ -503,6 +625,20 @@ std::string UTF16ToUTF8(const std::wstring& input)
 	// TODO: why is this needed?
 	result.erase(std::remove(result.begin(), result.end(), 0x00), result.end());
 	return result;
+}
+
+std::u32string UTF8ToUTF32(const std::string &input)
+{
+	auto val = CodeTo("UTF-32LE", "UTF-8", input);
+	auto utf32Data = (char32_t*)val.data();
+	return std::u32string(utf32Data, utf32Data + (val.size() / 4));
+}
+
+std::string UTF32toUTF8(const std::u32string &input)
+{
+	auto utf8Data = (char*)input.data();
+	auto str = std::string(utf8Data, utf8Data + (input.size() * 4));
+	return CodeTo("UTF-8", "UTF-32LE", str);
 }
 
 #endif

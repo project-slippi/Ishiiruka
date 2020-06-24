@@ -64,3 +64,9 @@ SlippiPlayback.idb
 vc141.pdb
 vc141.idb
 online.patch
+online.zip
+OnlinePatch/
+semver.lib
+semver.idb
+semver.pdb
+semver.log

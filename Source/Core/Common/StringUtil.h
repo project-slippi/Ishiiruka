@@ -123,9 +123,14 @@ bool SplitPath(const std::string& full_path, std::string* _pPath, std::string* _
 void BuildCompleteFilename(std::string& _CompleteFilename, const std::string& _Path, const std::string& _Filename);
 std::string ReplaceAll(std::string result, const std::string& src, const std::string& dest);
 
+std::u32string UTF8ToUTF32(const std::string &input);
+std::string UTF32toUTF8(const std::u32string &input);
+std::string ConvertStringForGame(const std::string &input, int length);
+
 std::string CP1252ToUTF8(const std::string& str);
 std::string SHIFTJISToUTF8(const std::string& str);
-std::string UTF16ToUTF8(const std::wstring& str);
+std::string UTF8ToSHIFTJIS(const std::string& str);
+std::string UTF16ToUTF8(const std::wstring &str);
 
 #ifdef _WIN32
 

@@ -852,7 +852,8 @@ void CFrame::DoStop()
 
 		if (m_Mgr->GetPane(_("Slippi Pane")).IsShown()) {
 			m_Mgr->GetPane(_("Slippi Pane")).Hide();
-			delete m_slippi_timer;
+			if (m_slippi_timer)
+			  delete m_slippi_timer;
 		}
 
 		if (!m_tried_graceful_shutdown && TriggerSTMPowerEvent())
@@ -864,6 +865,27 @@ void CFrame::DoStop()
 		Core::Stop();
 		UpdateGUI();
 	}
+}
+
+void CFrame::DoExit()
+{
+	Close(true);
+}
+
+void CFrame::RaiseRenderWindow()
+{
+	if (SConfig::GetInstance().bRenderToMain)
+		return;
+
+	m_RenderFrame->Raise();
+}
+
+void CFrame::LowerRenderWindow()
+{
+	if (SConfig::GetInstance().bRenderToMain)
+		return;
+
+	m_RenderFrame->Lower();
 }
 
 bool CFrame::TriggerSTMPowerEvent()

@@ -1,0 +1,18 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClInclude Include="include\semver200.h" />
+    <ClInclude Include="include\version.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\Semver200_comparator.cpp" />
+    <ClCompile Include="src\Semver200_modifier.cpp" />
+    <ClCompile Include="src\Semver200_parser.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="include\version.inl" />
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="CMakeLists.txt" />
+  </ItemGroup>
+</Project>

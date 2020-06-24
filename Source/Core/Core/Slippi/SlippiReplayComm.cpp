@@ -1,6 +1,6 @@
 #include "SlippiReplayComm.h"
-#include "Common/FileUtil.h"
 #include "Common/CommonPaths.h"
+#include "Common/FileUtil.h"
 #include "Common/Logging/LogManager.h"
 #include "Core/ConfigManager.h"
 
@@ -62,7 +62,7 @@ bool SlippiReplayComm::isNewReplay()
 	// work if someone tries to load the same replay twice in a row
 	// the commandId was added to deal with this
 	bool hasCommandChanged = commFileSettings.commandId != previousCommandId;
-	
+
 	// This checks if the queue index has changed, this is to fix the
 	// issue where the same replay showing up twice in a row in a
 	// queue would never cause this function to return true
@@ -71,7 +71,7 @@ bool SlippiReplayComm::isNewReplay()
 	{
 		hasQueueIdxChanged = commFileSettings.queue.front().index != previousIndex;
 	}
-	
+
 	bool isNewReplay = hasPathChanged || hasCommandChanged || hasQueueIdxChanged;
 
 	return isReplay && isNewReplay;
@@ -129,19 +129,19 @@ std::unique_ptr<Slippi::SlippiGame> SlippiReplayComm::loadGame()
 
 void SlippiReplayComm::loadFile()
 {
-  // TODO: Consider even only checking file mod time every 250 ms or something? Not sure
-  // TODO: what the perf impact is atm
+	// TODO: Consider even only checking file mod time every 250 ms or something? Not sure
+	// TODO: what the perf impact is atm
 
 	u64 modTime = File::GetFileModTime(configFilePath);
 	if (modTime != 0 && modTime == configLastLoadModTime)
-  {
-    // TODO: Maybe be smarter than just using mod time? Look for other things that would
-    // TODO: indicate that file has changed and needs to be reloaded?
+	{
+		// TODO: Maybe be smarter than just using mod time? Look for other things that would
+		// TODO: indicate that file has changed and needs to be reloaded?
 		return;
-  }
+	}
 
-  WARN_LOG(EXPANSIONINTERFACE, "File change detected in comm file: %s", configFilePath.c_str());
-  configLastLoadModTime = modTime;
+	WARN_LOG(EXPANSIONINTERFACE, "File change detected in comm file: %s", configFilePath.c_str());
+	configLastLoadModTime = modTime;
 
 	// TODO: Maybe load file in a more intelligent way to save
 	// TODO: file operations
@@ -159,6 +159,7 @@ void SlippiReplayComm::loadFile()
 		commFileSettings.commandId = "";
 		commFileSettings.outputOverlayFiles = false;
 		commFileSettings.isRealTimeMode = false;
+		commFileSettings.rollbackDisplayMethod = "off";
 
 		if (res.is_string())
 		{
@@ -172,8 +173,8 @@ void SlippiReplayComm::loadFile()
 			WARN_LOG(EXPANSIONINTERFACE, "Comm file load error detected. Check file format");
 
 			// Reset in the case of read error. this fixes a race condition where file mod time changes but
-      // the file is not readable yet?
-			configLastLoadModTime = 0; 
+			// the file is not readable yet?
+			configLastLoadModTime = 0;
 		}
 
 		return;
@@ -187,6 +188,7 @@ void SlippiReplayComm::loadFile()
 	commFileSettings.commandId = res.value("commandId", "");
 	commFileSettings.outputOverlayFiles = res.value("outputOverlayFiles", false);
 	commFileSettings.isRealTimeMode = res.value("isRealTimeMode", false);
+	commFileSettings.rollbackDisplayMethod = res.value("rollbackDisplayMethod", "off");
 
 	if (isFirstLoad)
 	{

@@ -191,6 +191,12 @@ set(SRCS	ActionReplay.cpp
 			PowerPC/JitILCommon/JitILBase_Integer.cpp
 			Slippi/SlippiReplayComm.cpp
 			Slippi/SlippicommServer.cpp
+			Slippi/SlippiGameFileLoader.cpp
+			Slippi/SlippiMatchmaking.cpp
+			Slippi/SlippiNetplay.cpp
+			Slippi/SlippiPad.cpp
+			Slippi/SlippiSavestate.cpp
+			Slippi/SlippiUser.cpp
 			)
 
 if(_M_X86)
@@ -242,6 +248,7 @@ set(LIBS
 	enet
 	inputcommon
 	${LZO}
+	semver
 	sfml-network
 	sfml-system
 	SlippiPlaybackStatus

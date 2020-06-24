@@ -150,8 +150,11 @@ namespace Slippi {
     frame->randomSeedExists = true;
     frame->randomSeed = readWord(data, idx, maxSize, 0);
 
-    // Add frame to game
-    game->frameData[frameCount] = std::move(frameUniquePtr);
+    // Add frame to game. The frames are stored in multiple ways because
+    // for games with rollback, the same frame may be replayed multiple times
+    frame->numSinceStart = game->frames.size();
+    game->frames.push_back(std::move(frameUniquePtr));
+    game->framesByIndex[frameCount] = frame;
   }
 
   void handlePreFrameUpdate(Game* game, uint32_t maxSize) {
@@ -165,10 +168,9 @@ namespace Slippi {
     FrameData* frame = frameUniquePtr.get();
     bool isNewFrame = true;
 
-    if (game->frameData.count(frameCount)) {
-      // If this frame already exists, this is probably another player
-      // in this frame, so let's fetch it.
-      frame = game->frameData[frameCount].get();
+    if (game->framesByIndex.count(frameCount)) {
+      // If this frame already exists, get the current frame
+      frame = game->frames.back().get();
       isNewFrame = false;
     }
 
@@ -217,7 +219,9 @@ namespace Slippi {
 
     // Add frame to game
     if (isNewFrame) {
-      game->frameData[frameCount] = std::move(frameUniquePtr);
+      frame->numSinceStart = game->frames.size();
+      game->frames.push_back(std::move(frameUniquePtr));
+      game->framesByIndex[frameCount] = frame;
     }
   }
 
@@ -228,10 +232,9 @@ namespace Slippi {
     int32_t frameCount = readWord(data, idx, maxSize, 0);
 
     FrameData* frame;
-    if (game->frameData.count(frameCount)) {
-      // If this frame already exists, this is probably another player
-      // in this frame, so let's fetch it.
-      frame = game->frameData[frameCount].get();
+    if (game->framesByIndex.count(frameCount)) {
+      // If this frame already exists, get the current frame
+      frame = game->frames.back().get();
     }
 
     // As soon as a post frame update happens, we know we have received all the inputs
@@ -518,7 +521,7 @@ namespace Slippi {
 
   bool SlippiGame::DoesFrameExist(int32_t frame) {
     processData();
-    return (bool)game->frameData.count(frame);
+    return (bool)game->framesByIndex.count(frame);
   }
 
   std::array<uint8_t, 4> SlippiGame::GetVersion()
@@ -528,10 +531,19 @@ namespace Slippi {
 
   FrameData* SlippiGame::GetFrame(int32_t frame) {
     // Get the frame we want
-    return game->frameData.at(frame).get();
+    return game->framesByIndex.at(frame);
   }
 
-  int32_t SlippiGame::GetFrameCount() {
+  FrameData* SlippiGame::GetFrameAt(uint32_t pos) {
+    if (pos >= game->frames.size()) {
+      return nullptr;
+    }
+
+    // Get the frame we want
+    return game->frames[pos].get();
+  }
+
+  int32_t SlippiGame::GetLatestIndex() {
     processData();
     return game->frameCount;
   }

@@ -165,6 +165,33 @@ std::string GetFilenameAt(u64 offset)
 	return filename;
 }
 
+void ReadFileWithName(std::string &fileName, std::vector<u8> &buf)
+{
+	// Clear anything that was in the buffer
+	buf.clear();
+
+	// Don't do anything if a game is not running
+	if (Core::GetState() != Core::CORE_RUN)
+		return;
+
+	// Or if we don't have file access
+	if (!FileAccess)
+		return;
+
+	if (!s_filesystem || ISOFile != SConfig::GetInstance().m_LastFilename)
+	{
+		FileAccess = false;
+		ReadFileSystem(SConfig::GetInstance().m_LastFilename);
+		ISOFile = SConfig::GetInstance().m_LastFilename;
+		INFO_LOG(FILEMON, "Opening '%s'", ISOFile.c_str());
+	}
+
+	auto fileSize = s_filesystem->GetFileSize(fileName);
+
+	buf.resize(fileSize);
+	s_filesystem->ReadFile(fileName, &buf[0], fileSize);
+}
+
 void Close()
 {
 	s_open_iso.reset();

@@ -1,6 +1,10 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="DebugFast|x64">
+      <Configuration>DebugFast</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
     <ProjectConfiguration Include="Debug|x64">
       <Configuration>Debug</Configuration>
       <Platform>x64</Platform>
@@ -26,6 +30,9 @@
   <PropertyGroup Condition="'$(Configuration)'=='Release'" Label="Configuration">
     <UseDebugLibraries>false</UseDebugLibraries>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)'=='DebugFast'" Label="Configuration">
+    <UseDebugLibraries>false</UseDebugLibraries>
+  </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
   </ImportGroup>
@@ -37,12 +44,18 @@
   <PropertyGroup Label="UserMacros" />
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
+      <AdditionalIncludeDirectories>$(ExternalsDir)nlohmann;${ExternalsDir}open-vcdiff;$(ExternalsDir)SlippiLib;$(ExternalsDir)semver;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DebugFast|x64'">
+    <ClCompile>
       <AdditionalIncludeDirectories>$(ExternalsDir)nlohmann;${ExternalsDir}open-vcdiff;$(ExternalsDir)SlippiLib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>DEBUGFAST;_WIN32_WINNT=0x0602;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
-      <AdditionalIncludeDirectories>$(ExternalsDir)nlohmann;$(ExternalsDir)SlippiLib;$(ExternalsDir)HDiffPatch;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ExternalsDir)nlohmann;$(ExternalsDir)SlippiLib;$(ExternalsDir)HDiffPatch;$(ExternalsDir)semver;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -268,8 +281,14 @@
     <ClCompile Include="PowerPC\Profiler.cpp" />
     <ClCompile Include="PowerPC\SignatureDB.cpp" />
     <ClCompile Include="SlippiTimer.cpp" />
+    <ClCompile Include="Slippi\SlippiGameFileLoader.cpp" />
+    <ClCompile Include="Slippi\SlippiMatchmaking.cpp" />
+    <ClCompile Include="Slippi\SlippiNetplay.cpp" />
+    <ClCompile Include="Slippi\SlippiPad.cpp" />
     <ClCompile Include="Slippi\SlippiReplayComm.cpp" />
     <ClCompile Include="Slippi\SlippicommServer.cpp" />
+    <ClCompile Include="Slippi\SlippiSavestate.cpp" />
+    <ClCompile Include="Slippi\SlippiUser.cpp" />
     <ClCompile Include="State.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -464,8 +483,14 @@
     <ClInclude Include="PowerPC\SignatureDB.h" />
     <ClInclude Include="SlippiPlayback.h" />
     <ClInclude Include="SlippiTimer.h" />
+    <ClInclude Include="Slippi\SlippiGameFileLoader.h" />
+    <ClInclude Include="Slippi\SlippiMatchmaking.h" />
+    <ClInclude Include="Slippi\SlippiNetplay.h" />
+    <ClInclude Include="Slippi\SlippiPad.h" />
     <ClInclude Include="Slippi\SlippiReplayComm.h" />
     <ClInclude Include="Slippi\SlippicommServer.h" />
+    <ClInclude Include="Slippi\SlippiSavestate.h" />
+    <ClInclude Include="Slippi\SlippiUser.h" />
     <ClInclude Include="State.h" />
   </ItemGroup>
   <ItemGroup>
@@ -519,6 +544,9 @@
     </ProjectReference>
     <ProjectReference Include="..\..\..\Externals\open-vcdiff\open-vcdiff.vcxproj">
       <Project>{9193a8de-bc2e-458c-b52e-510457eee4b8}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\..\Externals\semver\semver.vcxproj">
+      <Project>{1bc426c4-af38-4c29-a925-02406bc00490}</Project>
     </ProjectReference>
     <ProjectReference Include="..\..\..\Externals\SlippiLib\SlippiLib.vcxproj">
       <Project>{ff39260b-839a-4a6c-a117-caa73c1683f5}</Project>
