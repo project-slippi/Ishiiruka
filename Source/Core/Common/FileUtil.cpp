@@ -971,7 +971,7 @@ bool IOFile::OpenShared(const std::string& filename, const char openmode[], int 
 {
 	Close();
 #ifdef _WIN32
-	m_file = _fsopen(filename.c_str(), openmode, shflag);
+	m_file = _tfsopen(UTF8ToTStr(filename).c_str(), UTF8ToTStr(openmode).c_str(), shflag);
 #else
 	m_file = fopen(filename.c_str(), openmode);
 #endif

@@ -13,6 +13,9 @@
 
 #include "Core/ConfigManager.h"
 
+#include <codecvt>
+#include <locale>
+
 #include <json.hpp>
 using json = nlohmann::json;
 
@@ -56,11 +59,13 @@ bool SlippiUser::AttemptLogin()
 	INFO_LOG(SLIPPI_ONLINE, "Looking for file at: %s", userFilePath.c_str());
 
 	{
-		std::string userFilePathTxt = userFilePath + ".txt"; // Put the filename here in its own scope because we don't really need it elsewhere
+		std::string userFilePathTxt =
+		    userFilePath + ".txt"; // Put the filename here in its own scope because we don't really need it elsewhere
 		// If both files exist we just log they exist and take no further action
 		if (File::Exists(userFilePathTxt) && File::Exists(userFilePath))
 		{
-			INFO_LOG(SLIPPI_ONLINE, "Found both .json.txt and .json file for user data. Using .json and ignoring the .json.txt");
+			INFO_LOG(SLIPPI_ONLINE,
+			         "Found both .json.txt and .json file for user data. Using .json and ignoring the .json.txt");
 		}
 		// If only the .txt file exists copy the contents to a json file and delete the text file
 		else if (File::Exists(userFilePathTxt))
@@ -115,7 +120,8 @@ void SlippiUser::OpenLogInPage()
 	std::string command = "xdg-open \"" + fullUrl + "\""; // Linux
 #endif
 
-	system(command.c_str());
+	std::wstring convertedCommand = std::wstring_convert<std::codecvt_utf8<wchar_t>>().from_bytes(command);
+	_wsystem(convertedCommand.c_str());
 }
 
 void SlippiUser::UpdateFile()
@@ -135,7 +141,8 @@ void SlippiUser::UpdateApp()
 	std::string path = File::GetExeDirectory() + "/dolphin-slippi-tools.exe";
 	std::string command = "start \"Updating Dolphin\" \"" + path + "\" app-update -launch -iso \"" + isoPath + "\"";
 	WARN_LOG(SLIPPI, "Executing app update command: %s", command);
-	system(command.c_str());
+	std::wstring convertedCommand = std::wstring_convert<std::codecvt_utf8<wchar_t>>().from_bytes(command);
+	_wsystem(convertedCommand.c_str());
 #endif
 }
 
