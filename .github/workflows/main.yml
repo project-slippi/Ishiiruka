@@ -78,12 +78,7 @@ jobs:
         if: success()
         working-directory: ${{ github.workspace }}
         run: |
-          mkdir ./build
-          cd build
-          cmake -DLINUX_LOCAL_DEV=true ../
-          make -j
-          touch ./Binaries/portable.txt
-          cp -R ../Overwrite/* ./Binaries/
+          ./build-linux.sh
       - name: "Package Netplay"
         if: success()
         working-directory: ${{ github.workspace }}
@@ -168,7 +163,7 @@ jobs:
           cd wxWidgets-3.1.3
           cd build
           ../configure
-          make -j
+          make -j7
           sudo make install
       - name: "Build"
         if: success()
@@ -178,7 +173,7 @@ jobs:
           mkdir build
           cd build
           cmake ..
-          make -j
+          make -j7
       - name: "Package Netplay"
         if: success()
         shell: bash
