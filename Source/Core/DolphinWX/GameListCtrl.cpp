@@ -528,10 +528,17 @@ static wxColour blend50(const wxColour& c1, const wxColour& c2)
 
 void CGameListCtrl::SetBackgroundColor()
 {
+#ifdef __WXOSX__
+    wxSystemAppearance appearance = wxSystemSettings::GetAppearance();
+    wxColour alt = appearance.IsDark() ? wxSystemSettings::GetColour(wxSYS_COLOUR_3DDKSHADOW) :
+        wxSystemSettings::GetColour(wxSYS_COLOUR_3DLIGHT);
+#else
+    wxColour alt = wxSystemSettings::GetColour(wxSYS_COLOUR_3DLIGHT);
+#endif
+
 	for (long i = 0; i < GetItemCount(); i++)
 	{
-		wxColour color = (i & 1) ? blend50(wxSystemSettings::GetColour(wxSYS_COLOUR_3DLIGHT),
-			wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOW)) :
+		wxColour color = (i & 1) ? blend50(alt, wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOW)) :
 			wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOW);
 		CGameListCtrl::SetItemBackgroundColour(i, color);
 	}
