@@ -27,6 +27,8 @@ SlippiMatchmaking::SlippiMatchmaking(SlippiUser *user)
 	m_client = nullptr;
 	m_server = nullptr;
 
+	MM_HOST = scm_slippi_semver_str.find("dev") == std::string::npos ? MM_HOST_PROD : MM_HOST_DEV;
+
 	generator = std::default_random_engine(Common::Timer::GetTimeMs());
 }
 
@@ -118,7 +120,7 @@ int SlippiMatchmaking::receiveMessage(json &msg, int timeoutMs)
 			return 0;
 		}
 		case ENET_EVENT_TYPE_DISCONNECT:
-      // Return -2 code to indicate we have lost connection to the server
+			// Return -2 code to indicate we have lost connection to the server
 			return -2;
 		}
 	}
@@ -328,14 +330,14 @@ void SlippiMatchmaking::handleMatchmaking()
 		INFO_LOG(SLIPPI_ONLINE, "[Matchmaking] Have not yet received assignment");
 		return;
 	}
-  else if (rcvRes != 0)
-  {
-    // Right now the only other code is -2 meaning the server died probably?
-	  ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Lost connection to the mm server");
-	  m_state = ProcessState::ERROR_ENCOUNTERED;
-	  m_errorMsg = "Lost connection to the mm server";
-	  return;
-  }
+	else if (rcvRes != 0)
+	{
+		// Right now the only other code is -2 meaning the server died probably?
+		ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Lost connection to the mm server");
+		m_state = ProcessState::ERROR_ENCOUNTERED;
+		m_errorMsg = "Lost connection to the mm server";
+		return;
+	}
 
 	std::string respType = getResp["type"];
 	if (respType != MmMessageType::GET_TICKET_RESP)
@@ -400,6 +402,8 @@ void SlippiMatchmaking::sendHolePunchMsg(std::string remoteIp, u16 remotePort, u
 	enet_address_set_host(&addr, remoteIp.c_str());
 	addr.port = remotePort;
 
+	ERROR_LOG(SLIPPI_ONLINE, "Sending hole punch to: %s:%d", remoteIp.c_str(), remotePort);
+
 	auto server = enet_host_connect(client, &addr, 3, 0);
 
 	if (server == nullptr)
@@ -426,6 +430,8 @@ void SlippiMatchmaking::handleConnecting()
 	if (m_isHost)
 	{
 		sendHolePunchMsg(ipParts[0], std::stoi(ipParts[1]), m_hostPort);
+
+		// Handle case where we encountered an error sending hole punch message
 		if (m_state != ProcessState::OPPONENT_CONNECTING)
 			return;
 
