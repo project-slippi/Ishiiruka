@@ -73,15 +73,15 @@ SlippiNetplayClient::SlippiNetplayClient(const std::string &address, const u16 r
 	WARN_LOG(SLIPPI_ONLINE, "Initializing Slippi Netplay for port: %d, with host: %s", localPort,
 	         isHost ? "true" : "false");
 
-	if (isHost)
-	{
-		ERROR_LOG(SLIPPI_ONLINE, "[Netplay] Starting host on port %d", localPort);
-	}
-	else
-	{
-		ERROR_LOG(SLIPPI_ONLINE, "[Netplay] Starting client on port %d, connecting to: %s:%d", localPort,
-		          address.c_str(), remotePort);
-	}
+	//if (isHost)
+	//{
+	//	ERROR_LOG(SLIPPI_ONLINE, "[Netplay] Starting host on port %d", localPort);
+	//}
+	//else
+	//{
+	//	ERROR_LOG(SLIPPI_ONLINE, "[Netplay] Starting client on port %d, connecting to: %s:%d", localPort,
+	//	          address.c_str(), remotePort);
+	//}
 
 	this->isHost = isHost;
 
@@ -378,11 +378,11 @@ void SlippiNetplayClient::ThreadFunc()
 			break;
 		}
 
-		WARN_LOG(SLIPPI_ONLINE, "[Netplay] Not yet connected. Res: %d, Type: %d", net, netEvent.type);
+		//WARN_LOG(SLIPPI_ONLINE, "[Netplay] Not yet connected. Res: %d, Type: %d", net, netEvent.type);
 
 		// Time out after enough time has passed@N
 		attemptCount++;
-		if (attemptCount >= 15 || !m_do_loop.IsSet())
+		if (attemptCount >= 12 || !m_do_loop.IsSet())
 		{
 			slippiConnectStatus = SlippiConnectStatus::NET_CONNECT_STATUS_FAILED;
 			INFO_LOG(SLIPPI_ONLINE, "Slippi online connection failed");
