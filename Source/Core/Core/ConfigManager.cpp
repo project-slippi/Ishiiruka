@@ -595,7 +595,7 @@ void SConfig::LoadCoreSettings(IniFile& ini)
 	core->Get("SlippiOnlineDelay", &m_slippiOnlineDelay, 2);
 	core->Get("SlippiSaveReplays", &m_slippiSaveReplays, true);
 	core->Get("SlippiReplayDir", &m_strSlippiReplayDir,
-		File::GetExeDirectory() + DIR_SEP + "Slippi/");
+		File::GetExeDirectory() + DIR_SEP + "Slippi");
 	core->Get("MemcardAPath", &m_strMemoryCardA);
 	core->Get("MemcardBPath", &m_strMemoryCardB);
 	core->Get("AgpCartAPath", &m_strGbaCartA);

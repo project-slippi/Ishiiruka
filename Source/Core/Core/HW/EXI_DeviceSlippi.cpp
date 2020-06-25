@@ -508,8 +508,13 @@ void CEXISlippi::createNewFile()
 
 	std::string dirpath = SConfig::GetInstance().m_strSlippiReplayDir;
 	File::CreateDir(dirpath);
-	std::string filepath = dirpath + generateFileName();
 
+	char dirpathEnd = dirpath.back();
+	if (dirpathEnd == '/' || dirpathEnd == '\\') {
+		dirpath.pop_back();
+	}
+
+	std::string filepath = dirpath + DIR_SEP + generateFileName();
 	INFO_LOG(SLIPPI, "EXI_DeviceSlippi.cpp: Creating new replay file %s", filepath.c_str());
 
 #ifdef _WIN32
