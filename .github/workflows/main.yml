@@ -89,8 +89,8 @@ jobs:
         if: success()
         working-directory: ${{ github.workspace }}
         run: |
-          mv *.AppImage ./artifact/
           mkdir artifact
+          mv *.AppImage ./artifact/
       - name: "Package Playback"
         if: success()
         working-directory: ${{ github.workspace }}
