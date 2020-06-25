@@ -771,7 +771,7 @@ std::string GetSysDirectory()
 	const char* config_home = getenv("XDG_CONFIG_HOME");
 	sysDir = std::string(config_home && config_home[0] == '/' 
 		? config_home : (home_path + ".config")) 
-		+ DIR_SEP DOLPHIN_DATA_DIR "Sys" DIR_SEP;
+		+ DIR_SEP DOLPHIN_DATA_DIR DIR_SEP "Sys" DIR_SEP;
 #endif
 	INFO_LOG(COMMON, "GetSysDirectory: Setting to %s:", sysDir.c_str());
 	return sysDir;

@@ -78,7 +78,7 @@ set(GUI_SRCS
 	WXInputBase.cpp
 	WxUtils.cpp)
 
-set(NOGUI_SRCS MainNoGUI.cpp)
+set(NOGUI_SRCS Main.cpp MainNoGUI.cpp)
 
 if(USE_X11)
 	set(GUI_SRCS ${GUI_SRCS} X11Utils.cpp)
@@ -220,13 +220,11 @@ if(wxWidgets_FOUND)
 	set(CPACK_PACKAGE_EXECUTABLES ${CPACK_PACKAGE_EXECUTABLES} ${DOLPHIN_EXE})
 endif()
 
-# Headless builds don't make sense for Slippi online because we depend on 
-# wx in order to deal with some things apparently 
-
-#if(USE_X11 OR ENABLE_HEADLESS)
-#	set(DOLPHIN_NOGUI_EXE ${DOLPHIN_EXE_BASE}-nogui)
-#	add_executable(${DOLPHIN_NOGUI_EXE} ${SRCS} ${NOGUI_SRCS})
-#	target_link_libraries(${DOLPHIN_NOGUI_EXE} ${LIBS} ${WXLIBS})
-#	set(CPACK_PACKAGE_EXECUTABLES ${CPACK_PACKAGE_EXECUTABLES} ${DOLPHIN_NOGUI_EXE})
-#	install(TARGETS ${DOLPHIN_NOGUI_EXE} RUNTIME DESTINATION ${bindir})
-#endif()
+# Only build -nogui binaries when ENABLE_HEADLESS is on
+if(USE_X11 AND ENABLE_HEADLESS)
+	set(DOLPHIN_NOGUI_EXE ${DOLPHIN_EXE_BASE}-nogui)
+	add_executable(${DOLPHIN_NOGUI_EXE} ${SRCS} ${NOGUI_SRCS})
+	target_link_libraries(${DOLPHIN_NOGUI_EXE} ${LIBS} ${WXLIBS})
+	set(CPACK_PACKAGE_EXECUTABLES ${CPACK_PACKAGE_EXECUTABLES} ${DOLPHIN_NOGUI_EXE})
+	install(TARGETS ${DOLPHIN_NOGUI_EXE} RUNTIME DESTINATION ${bindir})
+endif()

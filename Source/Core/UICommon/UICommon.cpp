@@ -9,6 +9,7 @@
 #include "Common/CommonPaths.h"
 #include "Common/FileUtil.h"
 #include "Common/Logging/LogManager.h"
+#include "Common/Logging/Log.h"
 #include "Common/MsgHandler.h"
 
 #include "Core/ConfigManager.h"
@@ -169,7 +170,6 @@ void SetUserDirectory(const std::string& custom_path)
       return;
     }
 
-    // Let Slippi just throw everything in XDG_CONFIG_HOME/SlippiDolphin/User
     const char* config_home = getenv("XDG_CONFIG_HOME");
     user_path = std::string(config_home && config_home[0] == '/' 
 	? config_home : (home_path + ".config")) 
@@ -179,7 +179,7 @@ void SetUserDirectory(const std::string& custom_path)
     const char* cache_home = getenv("XDG_CACHE_HOME");
     std::string cache_path = std::string(cache_home && cache_home[0] == '/' 
 	? cache_home : (home_path + ".cache")) + DIR_SEP DOLPHIN_DATA_DIR DIR_SEP;
-      File::SetUserPath(D_CACHE_IDX, cache_path);
+    File::SetUserPath(D_CACHE_IDX, cache_path);
       return;
 #endif
   }

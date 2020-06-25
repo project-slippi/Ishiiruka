@@ -1,21 +1,16 @@
 #!/bin/sh -e
-# build-linux.sh - simple script for invoking CMake
-# Note that this will destroy any local configuration in build/Binaries/.
+# build-linux.sh
 
-if [ -e "build/" ]; then 
-	rm -rf build/
-	mkdir build
-else
-	mkdir build
-fi
+# Arguments passed to CMake
+CMAKE_FLAGS=''
 
-pushd build
-#cmake -DLINUX_LOCAL_DEV=true ../
-#cmake -DLINUX_LOCAL_DEV=true -DFASTLOG=true../
-#cmake -DCMAKE_BUILD_TYPE=Debug -DLINUX_LOCAL_DEV=true ../
-cmake ../
+# Create the build directory if it doesn't exist
+if [ ! -e "./build/" ]; then  mkdir ./build; fi
+
+# Move into the build directory, run CMake, and compile the project
+pushd ./build
+cmake ${CMAKE_FLAGS} ../
 make -j7
 popd
 
-#touch build/Binaries/portable.txt
-#cp -R Overwrite/* build/Binaries/
+

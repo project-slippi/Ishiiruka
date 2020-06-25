@@ -25,7 +25,7 @@
 	#define DOLPHIN_DATA_DIR "/sdcard/dolphin-emu"
 #else
 	#define USERDATA_DIR "user"
-	#define DOLPHIN_DATA_DIR "SlippiDolphin"
+	#define DOLPHIN_DATA_DIR "SlippiOnline"
 #endif
 
 // Shared data dirs (Sys and shared User for Linux)
