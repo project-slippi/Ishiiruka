@@ -90,7 +90,9 @@ jobs:
         working-directory: ${{ github.workspace }}
         run: |
           mkdir artifact
-          mv *.AppImage ./artifact/
+          FILE_NAME=${{ env.CURR_DATE }}-${{ env.GIT_HASH }}-${{ env.GIT_TAG }}-linux-appimage-netplay.zip
+          zip -r "${FILE_NAME}" ./*.AppImage
+          mv "${FILE_NAME}" ./artifact/
       - name: "Package Playback"
         if: success()
         working-directory: ${{ github.workspace }}
@@ -104,7 +106,7 @@ jobs:
           zip -r "${FILE_NAME}" .
           mv "${FILE_NAME}" ../../artifact/
       - name: "Publish"
-        if: github.event_name != 'pull_request' || contains( github.event.pull_request.labels.*.name, 'seeking testers') && success()
+        if: success()
         uses: actions/upload-artifact@v2-preview
         with:
           name: "ubuntu18.04-builds"
@@ -202,7 +204,7 @@ jobs:
           zip -r "${FILE_NAME}" .
           mv "${FILE_NAME}" ../../artifact/
       - name: "Publish"
-        if: github.event_name != 'pull_request' || contains( github.event.pull_request.labels.*.name, 'seeking testers') && success()
+        if: success()
         uses: actions/upload-artifact@v2-preview
         with:
           name: "macOS-builds"
