@@ -100,10 +100,12 @@ void GameCubeConfigPane::InitializeGUI()
 	
 	// Slippi replay settings
 	m_replay_enable_checkbox = new wxCheckBox(this, wxID_ANY, _("Save Slippi Replays"));
+	m_replay_enable_checkbox->SetToolTip(
+		_("Enable this to make Slippi automatically save .slp recordings of your games."));
+
 	m_replay_directory_picker = new wxDirPickerCtrl(this, wxID_ANY, wxEmptyString, 
 		_("Choose a Slippi replay folder:"), wxDefaultPosition, wxDefaultSize, 
 		wxDIRP_USE_TEXTCTRL | wxDIRP_SMALL);
-	
 	m_replay_directory_picker->SetToolTip(
 		_("Choose where your Slippi replay files are saved."));
 
