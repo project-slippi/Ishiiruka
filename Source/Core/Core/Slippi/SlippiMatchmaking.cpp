@@ -118,9 +118,8 @@ int SlippiMatchmaking::receiveMessage(json &msg, int timeoutMs)
 			return 0;
 		}
 		case ENET_EVENT_TYPE_DISCONNECT:
-			// TODO: Handle? Probably don't want to mark error because we trigger a disconnect ourselves when we have a
-			// success
-			break;
+      // Return -2 code to indicate we have lost connection to the server
+			return -2;
 		}
 	}
 
@@ -324,11 +323,19 @@ void SlippiMatchmaking::handleMatchmaking()
 	// Get response from server
 	json getResp;
 	int rcvRes = receiveMessage(getResp, 2000);
-	if (rcvRes != 0)
+	if (rcvRes == -1)
 	{
 		INFO_LOG(SLIPPI_ONLINE, "[Matchmaking] Have not yet received assignment");
 		return;
 	}
+  else if (rcvRes != 0)
+  {
+    // Right now the only other code is -2 meaning the server died probably?
+	  ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Lost connection to the mm server");
+	  m_state = ProcessState::ERROR_ENCOUNTERED;
+	  m_errorMsg = "Lost connection to the mm server";
+	  return;
+  }
 
 	std::string respType = getResp["type"];
 	if (respType != MmMessageType::GET_TICKET_RESP)
