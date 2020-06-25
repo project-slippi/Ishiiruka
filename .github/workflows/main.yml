@@ -106,7 +106,7 @@ jobs:
           zip -r "${FILE_NAME}" .
           mv "${FILE_NAME}" ../../artifact/
       - name: "Publish"
-        if: github.event_name != 'pull_request' || contains( github.event.pull_request.labels.*.name, 'seeking testers') && success()
+        if: success()
         uses: actions/upload-artifact@v2-preview
         with:
           name: "ubuntu18.04-builds"
@@ -204,7 +204,7 @@ jobs:
           zip -r "${FILE_NAME}" .
           mv "${FILE_NAME}" ../../artifact/
       - name: "Publish"
-        if: github.event_name != 'pull_request' || contains( github.event.pull_request.labels.*.name, 'seeking testers') && success()
+        if: success()
         uses: actions/upload-artifact@v2-preview
         with:
           name: "macOS-builds"
