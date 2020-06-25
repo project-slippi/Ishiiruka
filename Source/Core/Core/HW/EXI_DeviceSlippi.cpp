@@ -73,8 +73,6 @@ static std::unordered_map<u8, std::string> slippi_names;
 
 extern std::unique_ptr<SlippiPlaybackStatus> g_playback_status;
 
-extern u64 g_BButtonPressTime;
-
 template <typename T> bool isFutureReady(std::future<T> &t)
 {
 	return t.wait_for(std::chrono::seconds(0)) == std::future_status::ready;
@@ -1952,12 +1950,6 @@ void CEXISlippi::logMessageFromGame(u8 *payload)
 		GENERIC_LOG(LogTypes::SLIPPI, (LogTypes::LOG_LEVELS)payload[1], "%s: %llu", (char *)&payload[2],
 		            Common::Timer::GetTimeUs());
 	}
-
-	// std::string logStr = std::string((char *)&memPtr[bufLoc + 1]);
-	// if (logStr == "Shine start")
-	//{
-	//	NOTICE_LOG(SLIPPI, "%llu", Common::Timer::GetTimeUs() - g_BButtonPressTime);
-	//}
 }
 
 void CEXISlippi::handleLogInRequest()
