@@ -9,6 +9,7 @@
 #include "Common/CommonPaths.h"
 #include "Common/FileUtil.h"
 #include "Common/Logging/LogManager.h"
+#include "Common/Logging/Log.h"
 #include "Common/MsgHandler.h"
 
 #include "Core/ConfigManager.h"
@@ -155,45 +156,31 @@ void SetUserDirectory(const std::string& custom_path)
 
 #if defined(__APPLE__) || defined(ANDROID)
     user_path = File::GetBundleDirectory() + "/Contents/Resources/User" DIR_SEP;
+
+    // For Slippi users on non-Apple/non-Android POSIX systems, we want the 
+    // entire configuration to live in ~/.config/{User,Sys}
 #else
-    // We are on a non-Apple and non-Android POSIX system, there are 3 cases:
-    // 1. GetExeDirectory()/portable.txt exists
-    //    -> Use GetExeDirectory/User
-    // 2. ~/.dolphin-emu directory exists
-    //    -> Use ~/.dolphin-emu
-    // 3. Default
-    //    -> Use XDG basedir, see
-    //    http://standards.freedesktop.org/basedir-spec/basedir-spec-latest.html
-    user_path = home_path + "." DOLPHIN_DATA_DIR DIR_SEP;
+
+    // If this is a "portable" build, use User/ in the executable path
     std::string exe_path = File::GetExeDirectory();
     if (File::Exists(exe_path + DIR_SEP "portable.txt"))
     {
       user_path = exe_path + DIR_SEP "User" DIR_SEP;
-    }
-    else if (!File::Exists(user_path))
-    {
-      const char* data_home = getenv("XDG_DATA_HOME");
-      std::string data_path =
-          std::string(data_home && data_home[0] == '/' ? data_home :
-                                                         (home_path + ".local" DIR_SEP "share")) +
-          DIR_SEP DOLPHIN_DATA_DIR DIR_SEP;
-
-      const char* config_home = getenv("XDG_CONFIG_HOME");
-      std::string config_path =
-          std::string(config_home && config_home[0] == '/' ? config_home :
-                                                             (home_path + ".config")) +
-          DIR_SEP DOLPHIN_DATA_DIR DIR_SEP;
-
-      const char* cache_home = getenv("XDG_CACHE_HOME");
-      std::string cache_path =
-          std::string(cache_home && cache_home[0] == '/' ? cache_home : (home_path + ".cache")) +
-          DIR_SEP DOLPHIN_DATA_DIR DIR_SEP;
-
-      File::SetUserPath(D_USER_IDX, data_path);
-      File::SetUserPath(D_CONFIG_IDX, config_path);
-      File::SetUserPath(D_CACHE_IDX, cache_path);
+      File::SetUserPath(D_USER_IDX, user_path);
       return;
     }
+
+    const char* config_home = getenv("XDG_CONFIG_HOME");
+    user_path = std::string(config_home && config_home[0] == '/' 
+	? config_home : (home_path + ".config")) 
+	+ DIR_SEP DOLPHIN_DATA_DIR DIR_SEP "User" DIR_SEP;
+    File::SetUserPath(D_USER_IDX, user_path);
+
+    const char* cache_home = getenv("XDG_CACHE_HOME");
+    std::string cache_path = std::string(cache_home && cache_home[0] == '/' 
+	? cache_home : (home_path + ".cache")) + DIR_SEP DOLPHIN_DATA_DIR DIR_SEP;
+    File::SetUserPath(D_CACHE_IDX, cache_path);
+      return;
 #endif
   }
 #endif

@@ -42,6 +42,7 @@ jobs:
           cmake \
           pkg-config \
           git \
+          wget \
           libao-dev \
           libasound2-dev \
           libavcodec-dev \
@@ -74,27 +75,29 @@ jobs:
           qtbase5-private-dev \
           libxxf86vm-dev \
           x11proto-xinerama-dev
-      - name: "Build"
+      - name: "Build Dolphin"
         if: success()
         working-directory: ${{ github.workspace }}
         run: |
           ./build-linux.sh
+      - name: "Build AppImage"
+        if: success()
+        working-directory: ${{ github.workspace }}
+        run: |
+          ./build-online-appimage.sh
       - name: "Package Netplay"
         if: success()
         working-directory: ${{ github.workspace }}
         run: |
-          FILE_NAME=${{ env.CURR_DATE }}-${{ env.GIT_HASH }}-${{ env.GIT_TAG }}-ubuntu64-netplay.tar.gz
-          echo "::set-env name=FILE_NAME::${FILE_NAME}"
+          mv *.AppImage ./artifact/
           mkdir artifact
-          cd ./build/Binaries/
-          zip -r "${FILE_NAME}" .
-          mv "${FILE_NAME}" ../../artifact/
       - name: "Package Playback"
         if: success()
         working-directory: ${{ github.workspace }}
         run: |
           git clone https://github.com/project-slippi/slippi-desktop-app
           cd ./build/Binaries/
+          touch portable.txt
           cp -Rf ../../slippi-desktop-app/app/dolphin-dev/overwrite/Sys .
           cp -Rf ../../slippi-desktop-app/app/dolphin-dev/overwrite/User .
           FILE_NAME=${{ env.CURR_DATE }}-${{ env.GIT_HASH }}-${{ env.GIT_TAG }}-ubuntu64-playback.zip
