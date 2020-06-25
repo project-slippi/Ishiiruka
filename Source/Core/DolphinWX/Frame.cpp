@@ -1291,8 +1291,8 @@ void CFrame::ParseHotkeys()
 	if (IsHotkey(HK_PLAY_PAUSE))
 		DoPause();
 
-  // Slippi Playback Pause/Unpause
-	if (g_playback_status->inSlippiPlayback && IsHotkey(HK_TOGGLE_PLAY_PAUSE))
+	// Slippi Playback Pause/Unpause
+	if (g_playback_status && g_playback_status->inSlippiPlayback && IsHotkey(HK_TOGGLE_PLAY_PAUSE))
 		DoPause();
 
 	// Frame advance
