@@ -674,18 +674,6 @@ static void RunSIBuffer(u64 userdata, s64 cyclesLate)
 
 static void SendNetplayInputs(u64 userdata, s64 cyclesLate)
 {
-	/*
-	static short prevButton = 0x0000;
-
-	GCPadStatus status = GCAdapter::Input(0);
-	if (status.button & 0x0200 && !(prevButton & 0x0200))
-	{
-		g_BButtonPressTime = Common::Timer::GetTimeUs();
-		ERROR_LOG(SLIPPI, "B Press: %llu", g_BButtonPressTime);
-	}
-	prevButton = status.button;
-  */
-
 	if(netplay_client)
 	{
 		for(int i = 0; i < 4; i++)
