@@ -90,7 +90,9 @@ jobs:
         working-directory: ${{ github.workspace }}
         run: |
           mkdir artifact
-          mv *.AppImage ./artifact/
+          FILE_NAME=${{ env.CURR_DATE }}-${{ env.GIT_HASH }}-${{ env.GIT_TAG }}-linux-appimage-netplay.zip
+          zip -r "${FILE_NAME}" ./*.AppImage
+          mv "${FILE_NAME}" ./artifact/
       - name: "Package Playback"
         if: success()
         working-directory: ${{ github.workspace }}
