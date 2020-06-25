@@ -1,6 +1,5 @@
-#!/bin/sh -e
-# build-appimage.sh
-
+#!/bin/bash -e
+# build-online-appimage.sh
 
 LINUXDEPLOY_REPO="https://github.com/linuxdeploy/linuxdeploy"
 LINUXDEPLOY_PATH="releases/download/continuous"
@@ -20,7 +19,6 @@ if [ ! -e ./AppDir ]; then mkdir AppDir; fi
 	-e ./build/Binaries/dolphin-emu \
 	-d ./Data/slippi-online.desktop \
 	-i ./Data/dolphin-emu.png
-
 
 # Bake an AppImage
 ./linuxdeploy --appdir=./AppDir --output appimage

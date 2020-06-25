@@ -1,4 +1,4 @@
-#!/bin/sh -e
+#!/bin/bash -e
 # build-linux.sh
 
 # Arguments passed to CMake
