@@ -429,11 +429,14 @@ void SlippiMatchmaking::handleConnecting()
 	std::unique_ptr<SlippiNetplayClient> client;
 	if (m_isHost)
 	{
-		sendHolePunchMsg(ipParts[0], std::stoi(ipParts[1]), m_hostPort);
+		if (!m_isSwapAttempt)
+		{
+			sendHolePunchMsg(ipParts[0], std::stoi(ipParts[1]), m_hostPort);
 
-		// Handle case where we encountered an error sending hole punch message
-		if (m_state != ProcessState::OPPONENT_CONNECTING)
-			return;
+			// Handle case where we encountered an error sending hole punch message
+			if (m_state != ProcessState::OPPONENT_CONNECTING)
+				return;
+		}
 
 		client = std::make_unique<SlippiNetplayClient>("", 0, m_hostPort, true);
 	}
@@ -460,6 +463,9 @@ void SlippiMatchmaking::handleConnecting()
 		}
 		else if (status != SlippiNetplayClient::SlippiConnectStatus::NET_CONNECT_STATUS_CONNECTED)
 		{
+			// Clean up previous connection
+			client.reset();
+
 			if (!m_isSwapAttempt)
 			{
 				ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Connection attempt 1 failed, attempting swap.");
