@@ -39,6 +39,7 @@ private:
 	void ChooseSlotPath(bool is_slot_a, TEXIDevices device_type);
 
 	void OnReplaySavingToggle(wxCommandEvent& event);
+	void OnReplayMonthFoldersToggle(wxCommandEvent& event);
 	void OnReplayDirChanged(wxCommandEvent& event);
 
 	wxArrayString m_ipl_language_strings;
@@ -50,4 +51,5 @@ private:
 	wxButton* m_memcard_path[2];
 	wxCheckBox* m_replay_enable_checkbox;
 	wxDirPickerCtrl* m_replay_directory_picker;
+	wxCheckBox* m_replay_month_folders_checkbox;
 };

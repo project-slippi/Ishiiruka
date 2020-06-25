@@ -277,6 +277,7 @@ void SConfig::SaveCoreSettings(IniFile& ini)
 	core->Set("Latency", iLatency);
 	core->Set("SlippiOnlineDelay", m_slippiOnlineDelay);
 	core->Set("SlippiSaveReplays", m_slippiSaveReplays);
+	core->Set("SlippiReplayMonthFolders", m_slippiReplayMonthFolders);
 	core->Set("SlippiReplayDir", m_strSlippiReplayDir);
 	core->Set("MemcardAPath", m_strMemoryCardA);
 	core->Set("MemcardBPath", m_strMemoryCardB);
@@ -594,6 +595,7 @@ void SConfig::LoadCoreSettings(IniFile& ini)
 	core->Get("Latency", &iLatency, 2);
 	core->Get("SlippiOnlineDelay", &m_slippiOnlineDelay, 2);
 	core->Get("SlippiSaveReplays", &m_slippiSaveReplays, true);
+	core->Get("SlippiReplayMonthFolders", &m_slippiReplayMonthFolders, false);
 	#ifdef _WIN32
 		core->Get("SlippiReplayDir", &m_strSlippiReplayDir,
 			File::GetExeDirectory() + "\\" + "Slippi");

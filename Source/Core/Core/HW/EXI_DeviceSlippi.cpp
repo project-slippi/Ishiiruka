@@ -528,11 +528,31 @@ void CEXISlippi::createNewFile()
 	}
 
 	std::string dirpath = SConfig::GetInstance().m_strSlippiReplayDir;
+
+	// First, ensure that the root Slippi replay directory is created
 	File::CreateDir(dirpath);
 
+	// Remove a trailing / or \\ if the user managed to have that in their config
 	char dirpathEnd = dirpath.back();
 	if (dirpathEnd == '/' || dirpathEnd == '\\') {
 		dirpath.pop_back();
+	}
+
+	// Now we have a dir such as /home/Replays but we need to make one such 
+	// as /home/Replays/2020-06 if month categorization is enabled
+	if (SConfig::GetInstance().m_slippiReplayMonthFolders) {
+		dirpath.push_back('/');
+
+		// Append YYYY-MM to the directory path
+		uint8_t yearMonthStrLength = sizeof "2020-06";
+		std::vector<char> yearMonthBuf(yearMonthStrLength);
+		strftime(&yearMonthBuf[0], yearMonthStrLength, "%Y-%m", localtime(&gameStartTime));
+
+		std::string yearMonth(&yearMonthBuf[0]);
+		dirpath.append(yearMonth);
+
+		// Ensure that the subfolder directory is created
+		File::CreateDir(dirpath);
 	}
 
 	std::string filepath = dirpath + DIR_SEP + generateFileName();

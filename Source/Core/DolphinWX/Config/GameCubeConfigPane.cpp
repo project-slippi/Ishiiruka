@@ -99,15 +99,21 @@ void GameCubeConfigPane::InitializeGUI()
 		new wxButton(this, wxID_ANY, "...", wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT);
 	
 	// Slippi replay settings
-	m_replay_enable_checkbox = new wxCheckBox(this, wxID_ANY, _("Save Slippi Replays"));
+	m_replay_enable_checkbox = new wxCheckBox(this, wxID_ANY, _("Save Slippi replays"));
 	m_replay_enable_checkbox->SetToolTip(
 		_("Enable this to make Slippi automatically save .slp recordings of your games."));
 
+	m_replay_month_folders_checkbox =
+		new wxCheckBox(this, wxID_ANY, _("Categorize replays by month"));
+	m_replay_month_folders_checkbox->SetToolTip(
+		_("Enable this to categorize your replays into subfolders by month (YYYY-MM)."));
+
 	m_replay_directory_picker = new wxDirPickerCtrl(this, wxID_ANY, wxEmptyString, 
 		_("Choose a Slippi replay folder:"), wxDefaultPosition, wxDefaultSize, 
-		wxDIRP_USE_TEXTCTRL | wxDIRP_SMALL);
-	m_replay_directory_picker->SetToolTip(
-		_("Choose where your Slippi replay files are saved."));
+		wxDIRP_DIR_MUST_EXIST | wxDIRP_USE_TEXTCTRL | wxDIRP_SMALL);
+	m_replay_directory_picker->SetToolTip(_(
+		"Choose where your Slippi replay files are saved. If you type in a folder"
+		" manually, make sure that folder exists."));
 
 	const int space5 = FromDIP(5);
 	const int space10 = FromDIP(10);
@@ -148,9 +154,11 @@ void GameCubeConfigPane::InitializeGUI()
 
 	wxGridBagSizer* const sGamecubeReplaySettings = new wxGridBagSizer(space5, space5);
 	sGamecubeReplaySettings->Add(m_replay_enable_checkbox, wxGBPosition(0, 0), wxGBSpan(1, 2));
-	sGamecubeReplaySettings->Add(new wxStaticText(this, wxID_ANY, _("Replay folder:")), wxGBPosition(1, 0),
+	sGamecubeReplaySettings->Add(m_replay_month_folders_checkbox, wxGBPosition(1, 0), wxGBSpan(1, 2),
+		wxRESERVE_SPACE_EVEN_IF_HIDDEN);
+	sGamecubeReplaySettings->Add(new wxStaticText(this, wxID_ANY, _("Replay folder:")), wxGBPosition(2, 0),
 		wxDefaultSpan, wxALIGN_CENTER_VERTICAL);
-	sGamecubeReplaySettings->Add(m_replay_directory_picker, wxGBPosition(1, 1), wxDefaultSpan, wxEXPAND);
+	sGamecubeReplaySettings->Add(m_replay_directory_picker, wxGBPosition(2, 1), wxDefaultSpan, wxEXPAND);
 	sGamecubeReplaySettings->AddGrowableCol(1);
 
 	wxStaticBoxSizer* const sbGamecubeReplaySettings =
@@ -244,8 +252,15 @@ void GameCubeConfigPane::LoadGUIValues()
 			m_memcard_path[i]->Disable();
 	}
 
-	m_replay_enable_checkbox->SetValue(startup_params.m_slippiSaveReplays);
+	bool enableReplays = startup_params.m_slippiSaveReplays;
+
+	m_replay_enable_checkbox->SetValue(enableReplays);
+	m_replay_month_folders_checkbox->SetValue(startup_params.m_slippiReplayMonthFolders);
 	m_replay_directory_picker->SetPath(StrToWxStr(startup_params.m_strSlippiReplayDir));
+
+	if (!enableReplays) {
+		m_replay_month_folders_checkbox->Hide();
+	}
 }
 
 void GameCubeConfigPane::BindEvents()
@@ -272,6 +287,10 @@ void GameCubeConfigPane::BindEvents()
 
 	m_replay_enable_checkbox->Bind(wxEVT_CHECKBOX, &GameCubeConfigPane::OnReplaySavingToggle, this);
 	m_replay_enable_checkbox->Bind(wxEVT_UPDATE_UI, &WxEventUtils::OnEnableIfCoreNotRunning);
+
+	m_replay_month_folders_checkbox->Bind(wxEVT_CHECKBOX, &GameCubeConfigPane::OnReplayMonthFoldersToggle,
+		this);
+	m_replay_month_folders_checkbox->Bind(wxEVT_UPDATE_UI, &WxEventUtils::OnEnableIfCoreNotRunning);
 
 	m_replay_directory_picker->Bind(wxEVT_DIRPICKER_CHANGED, &GameCubeConfigPane::OnReplayDirChanged, this);
 	m_replay_directory_picker->Bind(wxEVT_UPDATE_UI, &WxEventUtils::OnEnableIfCoreNotRunning);
@@ -339,7 +358,24 @@ void GameCubeConfigPane::OnSlotBButtonClick(wxCommandEvent& event)
 
 void GameCubeConfigPane::OnReplaySavingToggle(wxCommandEvent& event)
 {
-	SConfig::GetInstance().m_slippiSaveReplays = m_replay_enable_checkbox->IsChecked();
+	bool enableReplays = m_replay_enable_checkbox->IsChecked();
+
+	SConfig::GetInstance().m_slippiSaveReplays = enableReplays;
+
+	if (enableReplays) {
+		m_replay_month_folders_checkbox->Show();
+	} else {
+		m_replay_month_folders_checkbox->SetValue(false);
+		m_replay_month_folders_checkbox->Hide();
+		SConfig::GetInstance().m_slippiReplayMonthFolders = false;
+	}
+}
+
+void GameCubeConfigPane::OnReplayMonthFoldersToggle(wxCommandEvent& event)
+{
+	SConfig::GetInstance().m_slippiReplayMonthFolders =
+		m_replay_enable_checkbox->IsChecked() &&
+		m_replay_month_folders_checkbox->IsChecked();
 }
 
 void GameCubeConfigPane::OnReplayDirChanged(wxCommandEvent& event)
