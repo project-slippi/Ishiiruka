@@ -1980,11 +1980,13 @@ void CEXISlippi::handleLogOutRequest()
 
 void CEXISlippi::handleUpdateAppRequest()
 {
-//#ifndef LINUX_LOCAL_DEV
+#ifdef _WIN32
 	main_frame->LowerRenderWindow();
 	user->UpdateApp();
 	main_frame->DoExit();
-//#endif
+#else
+	CriticalAlertT("Automatic updates are not available for macOS and Linux, please update manually.");
+#endif
 }
 
 void CEXISlippi::prepareOnlineStatus()
