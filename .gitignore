@@ -72,3 +72,5 @@ semver.pdb
 semver.log
 
 AppDir/
+linuxdeploy
+*.AppImage
