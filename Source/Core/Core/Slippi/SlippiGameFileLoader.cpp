@@ -10,8 +10,6 @@ std::string getFilePath(std::string fileName)
 	std::string dirPath = File::GetSysDirectory();
 	std::string filePath = dirPath + "GameFiles/GALE01/" + fileName; // TODO: Handle other games?
 
-	ERROR_LOG(SLIPPI, "File path: %s", filePath.c_str());
-
 	if (File::Exists(filePath))
 	{
 		return filePath;
