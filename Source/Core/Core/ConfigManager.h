@@ -182,6 +182,7 @@ struct SConfig : NonCopyable
 	std::string m_analytics_id;
 	bool m_analytics_enabled = false;
 	bool m_analytics_permission_asked = false;
+	bool m_analytics_will_prompt = false;
 
 	// Bluetooth passthrough mode settings
 	bool m_bt_passthrough_enabled = false;

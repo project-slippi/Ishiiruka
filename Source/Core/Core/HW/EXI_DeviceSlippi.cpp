@@ -69,6 +69,7 @@ static std::condition_variable condVar;
 static std::condition_variable cv_waitingForTargetFrame;
 static std::condition_variable cv_processingDiff;
 static std::atomic<int> numDiffsProcessing(0);
+static std::unordered_map<u8, std::string> slippi_names;
 
 extern std::unique_ptr<SlippiPlaybackStatus> g_playback_status;
 
@@ -282,7 +283,12 @@ std::unordered_map<u8, std::string> CEXISlippi::getNetplayNames()
 {
 	std::unordered_map<u8, std::string> names;
 
-	if (netplay_client && netplay_client->IsConnected())
+	if (slippi_names.size())
+	{
+		names = slippi_names;
+	}
+
+	else if (netplay_client && netplay_client->IsConnected())
 	{
 		auto netplayPlayers = netplay_client->GetPlayers();
 		for (auto it = netplayPlayers.begin(); it != netplayPlayers.end(); ++it)
@@ -450,6 +456,18 @@ void CEXISlippi::writeToFile(std::unique_ptr<WriteMessage> msg)
 
 		// Reset lastFrame
 		lastFrame = Slippi::GAME_FIRST_FRAME;
+
+		// Get display names from slippi netplay client
+		if (slippi_netplay)
+		{
+			auto matchInfo = slippi_netplay->GetMatchInfo();
+			SlippiPlayerSelections lps = matchInfo->localPlayerSelections;
+			SlippiPlayerSelections rps = matchInfo->remotePlayerSelections;
+
+			auto isHost = slippi_netplay->IsHost();
+			slippi_names[0] = isHost ? lps.playerName : rps.playerName;
+			slippi_names[1] = isHost ? rps.playerName : lps.playerName;
+		}
 	}
 
 	// If no file, do nothing
@@ -472,6 +490,9 @@ void CEXISlippi::writeToFile(std::unique_ptr<WriteMessage> msg)
 		std::vector<u8> closingBytes = generateMetadata();
 		closingBytes.push_back('}');
 		dataToWrite.insert(dataToWrite.end(), closingBytes.begin(), closingBytes.end());
+
+		// Reset display names retrieved from slippi client
+		slippi_names.clear();
 	}
 
 	// Write data to file
@@ -1959,11 +1980,13 @@ void CEXISlippi::handleLogOutRequest()
 
 void CEXISlippi::handleUpdateAppRequest()
 {
-//#ifndef LINUX_LOCAL_DEV
+#ifdef _WIN32
 	main_frame->LowerRenderWindow();
 	user->UpdateApp();
 	main_frame->DoExit();
-//#endif
+#else
+	CriticalAlertT("Automatic updates are not available for macOS and Linux, please update manually.");
+#endif
 }
 
 void CEXISlippi::prepareOnlineStatus()

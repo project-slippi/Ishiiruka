@@ -316,7 +316,7 @@ void DolphinApp::AfterInit()
 	if (!m_batch_mode)
 		main_frame->UpdateGameList();
 
-	if (!SConfig::GetInstance().m_analytics_permission_asked)
+	if (SConfig::GetInstance().m_analytics_will_prompt && !SConfig::GetInstance().m_analytics_permission_asked)
 	{
 		int answer =
 			wxMessageBox(_("If authorized, Dolphin can collect data on its performance, "
