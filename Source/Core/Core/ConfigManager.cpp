@@ -599,6 +599,11 @@ void SConfig::LoadCoreSettings(IniFile& ini)
 	#ifdef _WIN32
 		core->Get("SlippiReplayDir", &m_strSlippiReplayDir,
 			File::GetExeDirectory() + "\\" + "Slippi");
+	#elif defined(__APPLE__)
+		std::string bundleDir = File::GetBundleDirectory();
+		std::string slpDir = bundleDir.substr(0, bundleDir.find("Dolphin.app")) + "Slippi";
+
+		core->Get("SlippiReplayDir", &m_strSlippiReplayDir, slpDir);
 	#else
 		core->Get("SlippiReplayDir", &m_strSlippiReplayDir,
 			File::GetExeDirectory() + DIR_SEP + "Slippi");

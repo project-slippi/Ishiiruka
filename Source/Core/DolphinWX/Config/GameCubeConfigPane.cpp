@@ -104,16 +104,15 @@ void GameCubeConfigPane::InitializeGUI()
 		_("Enable this to make Slippi automatically save .slp recordings of your games."));
 
 	m_replay_month_folders_checkbox =
-		new wxCheckBox(this, wxID_ANY, _("Categorize replays by month"));
+		new wxCheckBox(this, wxID_ANY, _("Save replays to monthly subfolders"));
 	m_replay_month_folders_checkbox->SetToolTip(
-		_("Enable this to categorize your replays into subfolders by month (YYYY-MM)."));
+		_("Enable this to save your replays into subfolders by month (YYYY-MM)."));
 
 	m_replay_directory_picker = new wxDirPickerCtrl(this, wxID_ANY, wxEmptyString, 
 		_("Choose a Slippi replay folder:"), wxDefaultPosition, wxDefaultSize, 
-		wxDIRP_DIR_MUST_EXIST | wxDIRP_USE_TEXTCTRL | wxDIRP_SMALL);
-	m_replay_directory_picker->SetToolTip(_(
-		"Choose where your Slippi replay files are saved. If you type in a folder"
-		" manually, make sure that folder exists."));
+		wxDIRP_USE_TEXTCTRL | wxDIRP_SMALL);
+	m_replay_directory_picker->SetToolTip(
+		_("Choose where your Slippi replay files are saved."));
 
 	const int space5 = FromDIP(5);
 	const int space10 = FromDIP(10);

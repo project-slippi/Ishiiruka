@@ -29,6 +29,7 @@
 #include "Common/FileUtil.h"
 #include "Common/Logging/Log.h"
 #include "Common/MemoryUtil.h"
+#include "Common/MsgHandler.h"
 #include "Common/StringUtil.h"
 #include "Common/Thread.h"
 #include "Core/HW/Memmap.h"
@@ -529,14 +530,14 @@ void CEXISlippi::createNewFile()
 
 	std::string dirpath = SConfig::GetInstance().m_strSlippiReplayDir;
 
-	// First, ensure that the root Slippi replay directory is created
-	File::CreateDir(dirpath);
-
 	// Remove a trailing / or \\ if the user managed to have that in their config
 	char dirpathEnd = dirpath.back();
 	if (dirpathEnd == '/' || dirpathEnd == '\\') {
 		dirpath.pop_back();
 	}
+
+	// First, ensure that the root Slippi replay directory is created
+	File::CreateFullPath(dirpath + "/");
 
 	// Now we have a dir such as /home/Replays but we need to make one such 
 	// as /home/Replays/2020-06 if month categorization is enabled
@@ -563,6 +564,15 @@ void CEXISlippi::createNewFile()
 #else
 	m_file = File::IOFile(filepath, "wb");
 #endif
+
+	if (!m_file) {
+		PanicAlertT("Could not create .slp replay file [%s].\n\n"
+					"The replay folder's path might be invalid, or you might "
+					"not have permission to write to it.\n\n"
+					"You can change the replay folder in Config > GameCube > "
+					"Slippi Replay Settings.",
+					filepath.c_str());
+	}
 }
 
 std::string CEXISlippi::generateFileName()
