@@ -10,7 +10,7 @@ if [ ! -e "./build/" ]; then  mkdir ./build; fi
 # Move into the build directory, run CMake, and compile the project
 pushd ./build
 cmake ${CMAKE_FLAGS} ../
-make -j7
+make -j$(nproc)
 popd
 
 
