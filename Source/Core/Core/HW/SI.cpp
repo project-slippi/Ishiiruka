@@ -9,7 +9,6 @@
 
 #include "Common/ChunkFile.h"
 #include "Common/CommonTypes.h"
-#include "Common/Timer.h"
 #include "Core/ConfigManager.h"
 #include "Core/CoreTiming.h"
 #include "Core/HW/MMIO.h"
@@ -26,8 +25,6 @@
 #include "InputCommon/ControllerInterface/ControllerInterface.h"
 #include "InputCommon/GCAdapter.h"
 #include "InputCommon/GCPadStatus.h"
-
-u64 g_BButtonPressTime = 0;
 
 namespace SerialInterface
 {
@@ -355,16 +352,12 @@ void RegisterMMIO(MMIO::Mapping* mmio, u32 base)
 
 							// double msec = (diff / (double)SystemTimers::GetTicksPerSecond()) * 1000.0;
 
-							    // if (NetPlay::IsNetPlayRunning() && netplay_client &&
-							//    (netplay_client->BufferSizeForPort(c) % NetPlayClient::buffer_accuracy) != 0)
-							// Schedule an event to poll and send inputs earlier in the next frame
-							u32 buffer = netplay_client ? netplay_client->BufferSizeForPort(c) : 0;
-							CoreTiming::ScheduleEvent(diff - (diff / NetPlayClient::buffer_accuracy) *
-							                                     (buffer % NetPlayClient::buffer_accuracy),
-							                          et_send_netplay_inputs);
-
-							last_si_read = std::chrono::high_resolution_clock::now();
-						}
+							if(NetPlay::IsNetPlayRunning() && netplay_client && (netplay_client->BufferSizeForPort(c) % NetPlayClient::buffer_accuracy) != 0)
+								// Schedule an event to poll and send inputs earlier in the next frame
+								CoreTiming::ScheduleEvent(diff - (diff / NetPlayClient::buffer_accuracy) * (netplay_client->BufferSizeForPort(c) % NetPlayClient::buffer_accuracy), et_send_netplay_inputs);
+						
+                            last_si_read = std::chrono::high_resolution_clock::now();
+                        }
 
 						// Stop if we are not the first plugged in controller
 						break;
@@ -681,18 +674,6 @@ static void RunSIBuffer(u64 userdata, s64 cyclesLate)
 
 static void SendNetplayInputs(u64 userdata, s64 cyclesLate)
 {
-	/*
-	static short prevButton = 0x0000;
-
-	GCPadStatus status = GCAdapter::Input(0);
-	if (status.button & 0x0200 && !(prevButton & 0x0200))
-	{
-		g_BButtonPressTime = Common::Timer::GetTimeUs();
-		ERROR_LOG(SLIPPI, "B Press: %llu", g_BButtonPressTime);
-	}
-	prevButton = status.button;
-  */
-
 	if(netplay_client)
 	{
 		for(int i = 0; i < 4; i++)
