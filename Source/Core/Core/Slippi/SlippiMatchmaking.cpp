@@ -429,7 +429,8 @@ void SlippiMatchmaking::handleConnecting()
 	std::unique_ptr<SlippiNetplayClient> client;
 	if (m_isHost)
 	{
-    // TODO: Sending hole punch might not be necessary after a swap since you were just trying to connect to the person anyway
+		// TODO: Sending hole punch might not be necessary after a swap since you were just trying to connect to the
+		// person anyway
 		sendHolePunchMsg(ipParts[0], std::stoi(ipParts[1]), m_hostPort);
 
 		// Handle case where we encountered an error sending hole punch message
@@ -469,6 +470,14 @@ void SlippiMatchmaking::handleConnecting()
 				// Try swapping hosts and connecting again
 				m_isHost = !m_isHost;
 				m_isSwapAttempt = true;
+
+				if (!m_isHost)
+				{
+					// Kinda jank but the person that switches to host seems to take longer to transition.
+					// This helps synchronize
+					Common::SleepCurrentThread(2000);
+				}
+
 				return;
 			}
 

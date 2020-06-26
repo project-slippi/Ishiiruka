@@ -73,11 +73,11 @@ SlippiNetplayClient::SlippiNetplayClient(const std::string &address, const u16 r
 	WARN_LOG(SLIPPI_ONLINE, "Initializing Slippi Netplay for port: %d, with host: %s", localPort,
 	         isHost ? "true" : "false");
 
-	//if (isHost)
+	// if (isHost)
 	//{
 	//	ERROR_LOG(SLIPPI_ONLINE, "[Netplay] Starting host on port %d", localPort);
 	//}
-	//else
+	// else
 	//{
 	//	ERROR_LOG(SLIPPI_ONLINE, "[Netplay] Starting client on port %d, connecting to: %s:%d", localPort,
 	//	          address.c_str(), remotePort);
@@ -88,7 +88,11 @@ SlippiNetplayClient::SlippiNetplayClient(const std::string &address, const u16 r
 	// Local address
 	ENetAddress *localAddr = nullptr;
 	ENetAddress localAddrDef;
-	if (localPort > 0)
+
+  // Previously we were setting localAddr even on a client connection. This caused issues when swapping host
+  // because the new client would connect to the old client of their opponent, which had been abandoned.
+  // It should be fine for the client to use a random port (unless that breaks hole punching which it might)
+	if (isHost && localPort > 0)
 	{
 		INFO_LOG(SLIPPI_ONLINE, "Setting up local address");
 
@@ -378,9 +382,9 @@ void SlippiNetplayClient::ThreadFunc()
 			break;
 		}
 
-		//WARN_LOG(SLIPPI_ONLINE, "[Netplay] Not yet connected. Res: %d, Type: %d", net, netEvent.type);
+		// WARN_LOG(SLIPPI_ONLINE, "[Netplay] Not yet connected. Res: %d, Type: %d", net, netEvent.type);
 
-		// Time out after enough time has passed@N
+		// Time out after enough time has passed
 		attemptCount++;
 		if (attemptCount >= 12 || !m_do_loop.IsSet())
 		{
