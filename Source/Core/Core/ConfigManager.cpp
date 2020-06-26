@@ -183,6 +183,7 @@ void SConfig::SaveInterfaceSettings(IniFile& ini)
 	interface->Set("LanguageCode", m_InterfaceLanguage);
 	interface->Set("ShowToolbar", m_InterfaceToolbar);
 	interface->Set("ShowStatusbar", m_InterfaceStatusbar);
+	interface->Set("ShowSeekbar", m_InterfaceSeekbar);
 	interface->Set("ShowLogWindow", m_InterfaceLogWindow);
 	interface->Set("ShowLogConfigWindow", m_InterfaceLogConfigWindow);
 	interface->Set("ExtendedFPSInfo", m_InterfaceExtendedFPSInfo);
@@ -495,6 +496,7 @@ void SConfig::LoadInterfaceSettings(IniFile& ini)
 	interface->Get("LanguageCode", &m_InterfaceLanguage, "");
 	interface->Get("ShowToolbar", &m_InterfaceToolbar, true);
 	interface->Get("ShowStatusbar", &m_InterfaceStatusbar, true);
+	interface->Get("ShowSeekbar", &m_InterfaceSeekbar, true);
 	interface->Get("ShowLogWindow", &m_InterfaceLogWindow, false);
 	interface->Get("ShowLogConfigWindow", &m_InterfaceLogConfigWindow, false);
 	interface->Get("ExtendedFPSInfo", &m_InterfaceExtendedFPSInfo, false);

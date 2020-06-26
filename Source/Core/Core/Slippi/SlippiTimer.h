@@ -3,7 +3,7 @@
 
 #include <wx/timer.h>
 #include <wx/stattext.h>
-#include "DolphinWX/PlaybackSlider.h"
+#include "PlaybackSlider.h"
 
 class CFrame;
 

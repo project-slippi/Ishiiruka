@@ -51,6 +51,8 @@ endif()
 
 if(APPLE)
 	option(OSX_USE_DEFAULT_SEARCH_PATH "Don't prioritize system library paths" OFF)
+	set(CMAKE_FIND_FRAMEWORK LAST)
+	set(CMAKE_FIND_APPBUNDLE LAST)
 endif()
 
 option(ENCODE_FRAMEDUMPS "Encode framedumps in AVI format" ON)
