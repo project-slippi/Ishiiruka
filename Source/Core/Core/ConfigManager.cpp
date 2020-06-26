@@ -276,6 +276,9 @@ void SConfig::SaveCoreSettings(IniFile& ini)
 	core->Set("RSHACK", bRSHACK);
 	core->Set("Latency", iLatency);
 	core->Set("SlippiOnlineDelay", m_slippiOnlineDelay);
+	core->Set("SlippiSaveReplays", m_slippiSaveReplays);
+	core->Set("SlippiReplayMonthFolders", m_slippiReplayMonthFolders);
+	core->Set("SlippiReplayDir", m_strSlippiReplayDir);
 	core->Set("MemcardAPath", m_strMemoryCardA);
 	core->Set("MemcardBPath", m_strMemoryCardB);
 	core->Set("AgpCartAPath", m_strGbaCartA);
@@ -591,6 +594,20 @@ void SConfig::LoadCoreSettings(IniFile& ini)
 	core->Get("RSHACK", &bRSHACK, false);
 	core->Get("Latency", &iLatency, 2);
 	core->Get("SlippiOnlineDelay", &m_slippiOnlineDelay, 2);
+	core->Get("SlippiSaveReplays", &m_slippiSaveReplays, true);
+	core->Get("SlippiReplayMonthFolders", &m_slippiReplayMonthFolders, false);
+	#ifdef _WIN32
+		core->Get("SlippiReplayDir", &m_strSlippiReplayDir,
+			File::GetExeDirectory() + "\\" + "Slippi");
+	#elif defined(__APPLE__)
+		std::string bundleDir = File::GetBundleDirectory();
+		std::string slpDir = bundleDir.substr(0, bundleDir.find("Dolphin.app")) + "Slippi";
+
+		core->Get("SlippiReplayDir", &m_strSlippiReplayDir, slpDir);
+	#else
+		core->Get("SlippiReplayDir", &m_strSlippiReplayDir,
+			File::GetExeDirectory() + DIR_SEP + "Slippi");
+	#endif
 	core->Get("MemcardAPath", &m_strMemoryCardA);
 	core->Get("MemcardBPath", &m_strMemoryCardB);
 	core->Get("AgpCartAPath", &m_strGbaCartA);
