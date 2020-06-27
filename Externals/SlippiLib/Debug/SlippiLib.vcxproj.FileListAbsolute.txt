@@ -1,0 +1,2 @@
+G:\Projects\Ishiiruka\Source\Debug\SlippiLib.pdb
+G:\Projects\Ishiiruka\Externals\SlippiLib\Debug\SlippiLib.pdb

@@ -23,7 +23,7 @@ SOFTWARE.
 */
 
 #include <climits>
-#include "semver200.h"
+#include "..\include\semver200.h"
 
 namespace version {
 

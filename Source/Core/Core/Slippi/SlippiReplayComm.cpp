@@ -166,7 +166,7 @@ void SlippiReplayComm::loadFile()
 			// If we have a string, let's use that as the replayPath
 			// This is really only here because when developing it might be easier
 			// to just throw in a string instead of an object
-			commFileSettings.replayPath = res;
+			commFileSettings.replayPath = res.dump();
 		}
 		else
 		{
