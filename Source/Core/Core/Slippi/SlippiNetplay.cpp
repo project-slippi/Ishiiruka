@@ -89,10 +89,10 @@ SlippiNetplayClient::SlippiNetplayClient(const std::string &address, const u16 r
 	ENetAddress *localAddr = nullptr;
 	ENetAddress localAddrDef;
 
-  // Previously we were setting localAddr even on a client connection. This caused issues when swapping host
-  // because the new client would connect to the old client of their opponent, which had been abandoned.
-  // It should be fine for the client to use a random port (unless that breaks hole punching which it might)
-	if (isHost && localPort > 0)
+  // It is important to be able to set the local port to listen on even in a client connection because
+  // not doing so will break hole punching, the host is expecting traffic to come from a specific ip/port
+  // and if the port does not match what it is expecting, it will not get through the NAT on some routers
+	if (localPort > 0)
 	{
 		INFO_LOG(SLIPPI_ONLINE, "Setting up local address");
 
