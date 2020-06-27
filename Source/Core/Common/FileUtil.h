@@ -158,6 +158,8 @@ std::string GetBundleDirectory();
 
 std::string& GetExeDirectory();
 
+std::string GetHomeDirectory();
+
 bool WriteStringToFile(const std::string& str, const std::string& filename);
 bool ReadFileToString(const std::string& filename, std::string& str);
 
