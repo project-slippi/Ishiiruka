@@ -164,7 +164,7 @@ void GameCubeConfigPane::InitializeGUI()
 		wxDefaultSpan, wxALIGN_CENTER_VERTICAL);
 	sGamecubeSlippiSettings->Add(m_replay_directory_picker, wxGBPosition(2, 1), wxDefaultSpan, wxEXPAND);
 	sGamecubeSlippiSettings->Add(m_slippi_delay_frames_txt, wxGBPosition(3, 0), wxDefaultSpan, wxEXPAND);
-	sGamecubeSlippiSettings->Add(m_slippi_delay_frames_ctrl, wxGBPosition(3, 1), wxDefaultSpan, wxALIGN_RIGHT);
+	sGamecubeSlippiSettings->Add(m_slippi_delay_frames_ctrl, wxGBPosition(3, 1), wxDefaultSpan, wxALIGN_LEFT);
 	sGamecubeSlippiSettings->AddGrowableCol(1);
 
 	wxStaticBoxSizer* const sbGamecubeSlippiSettings =
