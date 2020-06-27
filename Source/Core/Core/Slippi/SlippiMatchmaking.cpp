@@ -426,23 +426,8 @@ void SlippiMatchmaking::handleConnecting()
 	std::vector<std::string> ipParts;
 	SplitString(m_oppIp, ':', ipParts);
 
-	std::unique_ptr<SlippiNetplayClient> client;
-	if (m_isHost)
-	{
-		// TODO: Sending hole punch might not be necessary after a swap since you were just trying to connect to the
-		// person anyway
-		sendHolePunchMsg(ipParts[0], std::stoi(ipParts[1]), m_hostPort);
-
-		// Handle case where we encountered an error sending hole punch message
-		if (m_state != ProcessState::OPPONENT_CONNECTING)
-			return;
-
-		client = std::make_unique<SlippiNetplayClient>("", 0, m_hostPort, true);
-	}
-	else
-	{
-		client = std::make_unique<SlippiNetplayClient>(ipParts[0], std::stoi(ipParts[1]), m_hostPort, false);
-	}
+	sendHolePunchMsg(ipParts[0], std::stoi(ipParts[1]), m_hostPort);
+	auto client = std::make_unique<SlippiNetplayClient>(ipParts[0], std::stoi(ipParts[1]), m_hostPort, false);
 
 	while (!m_netplayClient)
 	{
@@ -460,28 +445,7 @@ void SlippiMatchmaking::handleConnecting()
 		}
 		else if (status != SlippiNetplayClient::SlippiConnectStatus::NET_CONNECT_STATUS_CONNECTED)
 		{
-			// Clean up previous connection
-			client.reset();
-
-			if (!m_isSwapAttempt)
-			{
-				ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Connection attempt 1 failed, attempting swap.");
-
-				// Try swapping hosts and connecting again
-				m_isHost = !m_isHost;
-				m_isSwapAttempt = true;
-
-				if (!m_isHost)
-				{
-					// Kinda jank but the person that switches to host seems to take longer to transition.
-					// This helps synchronize
-					Common::SleepCurrentThread(2000);
-				}
-
-				return;
-			}
-
-			ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Connection attempts both failed, looking for someone else.");
+			ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Connection attempt failed, looking for someone else.");
 
 			// Return to the start to get a new ticket to find someone else we can hopefully connect with
 			m_netplayClient = nullptr;

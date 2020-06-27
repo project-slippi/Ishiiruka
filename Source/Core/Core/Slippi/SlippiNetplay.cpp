@@ -73,15 +73,15 @@ SlippiNetplayClient::SlippiNetplayClient(const std::string &address, const u16 r
 	WARN_LOG(SLIPPI_ONLINE, "Initializing Slippi Netplay for port: %d, with host: %s", localPort,
 	         isHost ? "true" : "false");
 
-	// if (isHost)
-	//{
-	//	ERROR_LOG(SLIPPI_ONLINE, "[Netplay] Starting host on port %d", localPort);
-	//}
-	// else
-	//{
-	//	ERROR_LOG(SLIPPI_ONLINE, "[Netplay] Starting client on port %d, connecting to: %s:%d", localPort,
-	//	          address.c_str(), remotePort);
-	//}
+	if (isHost)
+	{
+		ERROR_LOG(SLIPPI_ONLINE, "[Netplay] Starting host on port %d", localPort);
+	}
+	else
+	{
+		ERROR_LOG(SLIPPI_ONLINE, "[Netplay] Starting client on port %d, connecting to: %s:%d", localPort,
+		          address.c_str(), remotePort);
+	}
 
 	this->isHost = isHost;
 
@@ -89,9 +89,9 @@ SlippiNetplayClient::SlippiNetplayClient(const std::string &address, const u16 r
 	ENetAddress *localAddr = nullptr;
 	ENetAddress localAddrDef;
 
-  // It is important to be able to set the local port to listen on even in a client connection because
-  // not doing so will break hole punching, the host is expecting traffic to come from a specific ip/port
-  // and if the port does not match what it is expecting, it will not get through the NAT on some routers
+	// It is important to be able to set the local port to listen on even in a client connection because
+	// not doing so will break hole punching, the host is expecting traffic to come from a specific ip/port
+	// and if the port does not match what it is expecting, it will not get through the NAT on some routers
 	if (localPort > 0)
 	{
 		INFO_LOG(SLIPPI_ONLINE, "Setting up local address");
@@ -102,6 +102,7 @@ SlippiNetplayClient::SlippiNetplayClient(const std::string &address, const u16 r
 		localAddr = &localAddrDef;
 	}
 
+	// TODO: Figure out how to use a local port when not hosting without accepting incoming connections
 	m_client = enet_host_create(localAddr, 1, 3, 0, 0);
 
 	if (m_client == nullptr)
@@ -109,18 +110,15 @@ SlippiNetplayClient::SlippiNetplayClient(const std::string &address, const u16 r
 		PanicAlertT("Couldn't Create Client");
 	}
 
-	if (!isHost)
+	ENetAddress addr;
+	enet_address_set_host(&addr, address.c_str());
+	addr.port = remotePort;
+
+	m_server = enet_host_connect(m_client, &addr, 3, 0);
+
+	if (m_server == nullptr)
 	{
-		ENetAddress addr;
-		enet_address_set_host(&addr, address.c_str());
-		addr.port = remotePort;
-
-		m_server = enet_host_connect(m_client, &addr, 3, 0);
-
-		if (m_server == nullptr)
-		{
-			PanicAlertT("Couldn't create peer.");
-		}
+		PanicAlertT("Couldn't create peer.");
 	}
 
 	slippiConnectStatus = SlippiConnectStatus::NET_CONNECT_STATUS_INITIATED;
@@ -362,6 +360,9 @@ void SlippiNetplayClient::SendAsync(std::unique_ptr<sf::Packet> packet)
 // called from ---NETPLAY--- thread
 void SlippiNetplayClient::ThreadFunc()
 {
+	// Let client die 1 second before host such that after a swap, the client won't be connected to
+	int attemptCountLimit = isHost ? 16 : 16;
+
 	int attemptCount = 0;
 	while (slippiConnectStatus == SlippiConnectStatus::NET_CONNECT_STATUS_INITIATED)
 	{
@@ -371,7 +372,7 @@ void SlippiNetplayClient::ThreadFunc()
 		if (net > 0 && netEvent.type == ENET_EVENT_TYPE_CONNECT)
 		{
 			// TODO: Confirm gecko codes match?
-			if (isHost)
+			if (netEvent.peer)
 			{
 				m_server = netEvent.peer;
 			}
@@ -382,11 +383,11 @@ void SlippiNetplayClient::ThreadFunc()
 			break;
 		}
 
-		// WARN_LOG(SLIPPI_ONLINE, "[Netplay] Not yet connected. Res: %d, Type: %d", net, netEvent.type);
+		WARN_LOG(SLIPPI_ONLINE, "[Netplay] Not yet connected. Res: %d, Type: %d", net, netEvent.type);
 
 		// Time out after enough time has passed
 		attemptCount++;
-		if (attemptCount >= 12 || !m_do_loop.IsSet())
+		if (attemptCount >= attemptCountLimit || !m_do_loop.IsSet())
 		{
 			slippiConnectStatus = SlippiConnectStatus::NET_CONNECT_STATUS_FAILED;
 			INFO_LOG(SLIPPI_ONLINE, "Slippi online connection failed");
