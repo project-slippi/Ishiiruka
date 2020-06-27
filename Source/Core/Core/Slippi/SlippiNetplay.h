@@ -101,8 +101,8 @@ class SlippiNetplayClient
 	void ThreadFunc();
 	void SendAsync(std::unique_ptr<sf::Packet> packet);
 
-	SlippiNetplayClient(bool isHost); // Make a dummy client
-	SlippiNetplayClient(const std::string &address, const u16 remotePort, const u16 localPort, bool isHost);
+	SlippiNetplayClient(bool isDecider); // Make a dummy client
+	SlippiNetplayClient(const std::string &address, const u16 remotePort, const u16 localPort, bool isDecider);
 	~SlippiNetplayClient();
 
 	// Slippi Online
@@ -115,7 +115,7 @@ class SlippiNetplayClient
 		NET_CONNECT_STATUS_DISCONNECTED,
 	};
 
-	bool IsHost();
+	bool IsDecider();
 	bool IsConnectionSelected();
 	SlippiConnectStatus GetSlippiConnectStatus();
 	void StartSlippiGame();
@@ -169,7 +169,7 @@ class SlippiNetplayClient
 	} frameOffsetData;
 
 	bool isConnectionSelected = false;
-	bool isHost = false;
+	bool isDecider = false;
 	int32_t lastFrameAcked;
 	bool hasGameStarted = false;
 	FrameTiming lastFrameTiming;

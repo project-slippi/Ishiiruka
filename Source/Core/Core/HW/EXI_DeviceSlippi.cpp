@@ -462,9 +462,9 @@ void CEXISlippi::writeToFile(std::unique_ptr<WriteMessage> msg)
 			SlippiPlayerSelections lps = matchInfo->localPlayerSelections;
 			SlippiPlayerSelections rps = matchInfo->remotePlayerSelections;
 
-			auto isHost = slippi_netplay->IsHost();
-			slippi_names[0] = isHost ? lps.playerName : rps.playerName;
-			slippi_names[1] = isHost ? rps.playerName : lps.playerName;
+			auto isDecider = slippi_netplay->IsDecider();
+			slippi_names[0] = isDecider ? lps.playerName : rps.playerName;
+			slippi_names[1] = isDecider ? rps.playerName : lps.playerName;
 		}
 	}
 
@@ -1714,9 +1714,9 @@ void CEXISlippi::prepareOnlineMatchState()
 			remotePlayerReady = matchInfo->remotePlayerSelections.isCharacterSelected;
 #endif
 
-			auto isHost = slippi_netplay->IsHost();
-			localPlayerIndex = isHost ? 0 : 1;
-			remotePlayerIndex = isHost ? 1 : 0;
+			auto isDecider = slippi_netplay->IsDecider();
+			localPlayerIndex = isDecider ? 0 : 1;
+			remotePlayerIndex = isDecider ? 1 : 0;
 
 			oppName = slippi_netplay->GetOpponentName();
 		}
@@ -1744,7 +1744,7 @@ void CEXISlippi::prepareOnlineMatchState()
 
 	if (localPlayerReady && remotePlayerReady)
 	{
-		auto isHost = slippi_netplay->IsHost();
+		auto isDecider = slippi_netplay->IsDecider();
 
 		auto matchInfo = slippi_netplay->GetMatchInfo();
 		SlippiPlayerSelections lps = matchInfo->localPlayerSelections;
@@ -1774,7 +1774,7 @@ void CEXISlippi::prepareOnlineMatchState()
 
 		// Overwrite stage
 		u16 stageId;
-		if (isHost)
+		if (isDecider)
 		{
 			stageId = lps.isStageSelected ? lps.stageId : rps.stageId;
 		}
@@ -1791,13 +1791,13 @@ void CEXISlippi::prepareOnlineMatchState()
 		*stage = Common::swap16(stageId);
 
 		// Set rng offset
-		rngOffset = isHost ? lps.rngOffset : rps.rngOffset;
+		rngOffset = isDecider ? lps.rngOffset : rps.rngOffset;
 		WARN_LOG(SLIPPI_ONLINE, "Rng Offset: 0x%x", rngOffset);
 		WARN_LOG(SLIPPI_ONLINE, "P1 Char: 0x%X, P2 Char: 0x%X", onlineMatchBlock[0x60], onlineMatchBlock[0x84]);
 
 		// Set player names
-		p1Name = isHost ? lps.playerName : rps.playerName;
-		p2Name = isHost ? rps.playerName : lps.playerName;
+		p1Name = isDecider ? lps.playerName : rps.playerName;
+		p2Name = isDecider ? rps.playerName : lps.playerName;
 	}
 
 	// Add rng offset to output
