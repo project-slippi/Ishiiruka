@@ -16,6 +16,7 @@
 #include <wx/gbsizer.h>
 #include <wx/sizer.h>
 #include <wx/stattext.h>
+#include <wx/spinctrl.h>
 
 #include "Common/Common.h"
 #include "Common/CommonPaths.h"
@@ -98,21 +99,26 @@ void GameCubeConfigPane::InitializeGUI()
 	m_memcard_path[1] =
 		new wxButton(this, wxID_ANY, "...", wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT);
 	
-	// Slippi replay settings
-	m_replay_enable_checkbox = new wxCheckBox(this, wxID_ANY, _("Save Slippi replays"));
+	// Slippi settings
+	m_replay_enable_checkbox = new wxCheckBox(this, wxID_ANY, _("Save Slippi Replays"));
 	m_replay_enable_checkbox->SetToolTip(
 		_("Enable this to make Slippi automatically save .slp recordings of your games."));
 
 	m_replay_month_folders_checkbox =
-		new wxCheckBox(this, wxID_ANY, _("Save replays to monthly subfolders"));
+		new wxCheckBox(this, wxID_ANY, _("Save Replays to Monthly Subfolders"));
 	m_replay_month_folders_checkbox->SetToolTip(
 		_("Enable this to save your replays into subfolders by month (YYYY-MM)."));
 
 	m_replay_directory_picker = new wxDirPickerCtrl(this, wxID_ANY, wxEmptyString, 
-		_("Choose a Slippi replay folder:"), wxDefaultPosition, wxDefaultSize, 
+		_("Slippi Replay Folder:"), wxDefaultPosition, wxDefaultSize, 
 		wxDIRP_USE_TEXTCTRL | wxDIRP_SMALL);
 	m_replay_directory_picker->SetToolTip(
 		_("Choose where your Slippi replay files are saved."));
+	m_slippi_delay_frames_txt = new wxStaticText(this, wxID_ANY, _("Slippi Online Delay Frames:"));
+	m_slippi_delay_frames_ctrl = new wxSpinCtrl(this, wxID_ANY, _(std::to_string(SConfig::GetInstance().m_slippiOnlineDelay)));
+	m_slippi_delay_frames_ctrl->SetToolTip(_("Set how many delay frames you have when playing Slippi Online."));
+	m_slippi_delay_frames_ctrl->SetMin(1);
+	m_slippi_delay_frames_ctrl->SetMax(10);
 
 	const int space5 = FromDIP(5);
 	const int space10 = FromDIP(10);
@@ -151,20 +157,22 @@ void GameCubeConfigPane::InitializeGUI()
 	sbGamecubeDeviceSettings->Add(gamecube_EXIDev_sizer, 0, wxEXPAND | wxLEFT | wxRIGHT, space5);
 	sbGamecubeDeviceSettings->AddSpacer(space5);
 
-	wxGridBagSizer* const sGamecubeReplaySettings = new wxGridBagSizer(space5, space5);
-	sGamecubeReplaySettings->Add(m_replay_enable_checkbox, wxGBPosition(0, 0), wxGBSpan(1, 2));
-	sGamecubeReplaySettings->Add(m_replay_month_folders_checkbox, wxGBPosition(1, 0), wxGBSpan(1, 2),
+	wxGridBagSizer* const sGamecubeSlippiSettings = new wxGridBagSizer(space5, space5);
+	sGamecubeSlippiSettings->Add(m_replay_enable_checkbox, wxGBPosition(0, 0), wxGBSpan(1, 2));
+	sGamecubeSlippiSettings->Add(m_replay_month_folders_checkbox, wxGBPosition(1, 0), wxGBSpan(1, 2),
 		wxRESERVE_SPACE_EVEN_IF_HIDDEN);
-	sGamecubeReplaySettings->Add(new wxStaticText(this, wxID_ANY, _("Replay folder:")), wxGBPosition(2, 0),
+	sGamecubeSlippiSettings->Add(new wxStaticText(this, wxID_ANY, _("Replay folder:")), wxGBPosition(2, 0),
 		wxDefaultSpan, wxALIGN_CENTER_VERTICAL);
-	sGamecubeReplaySettings->Add(m_replay_directory_picker, wxGBPosition(2, 1), wxDefaultSpan, wxEXPAND);
-	sGamecubeReplaySettings->AddGrowableCol(1);
+	sGamecubeSlippiSettings->Add(m_replay_directory_picker, wxGBPosition(2, 1), wxDefaultSpan, wxEXPAND);
+	sGamecubeSlippiSettings->Add(m_slippi_delay_frames_txt, wxGBPosition(3, 0), wxDefaultSpan, wxEXPAND);
+	sGamecubeSlippiSettings->Add(m_slippi_delay_frames_ctrl, wxGBPosition(3, 1), wxDefaultSpan, wxALIGN_RIGHT);
+	sGamecubeSlippiSettings->AddGrowableCol(1);
 
-	wxStaticBoxSizer* const sbGamecubeReplaySettings =
-		new wxStaticBoxSizer(wxVERTICAL, this, _("Slippi Replay Settings"));
-	sbGamecubeReplaySettings->AddSpacer(space5);
-	sbGamecubeReplaySettings->Add(sGamecubeReplaySettings, 0, wxEXPAND | wxLEFT | wxRIGHT, space5);
-	sbGamecubeReplaySettings->AddSpacer(space5);
+	wxStaticBoxSizer* const sbGamecubeSlippiSettings =
+		new wxStaticBoxSizer(wxVERTICAL, this, _("Slippi Settings"));
+	sbGamecubeSlippiSettings->AddSpacer(space5);
+	sbGamecubeSlippiSettings->Add(sGamecubeSlippiSettings, 0, wxEXPAND | wxLEFT | wxRIGHT, space5);
+	sbGamecubeSlippiSettings->AddSpacer(space5);
 
 	wxBoxSizer* const main_sizer = new wxBoxSizer(wxVERTICAL);
 	main_sizer->AddSpacer(space5);
@@ -172,7 +180,7 @@ void GameCubeConfigPane::InitializeGUI()
 	main_sizer->AddSpacer(space5);
 	main_sizer->Add(sbGamecubeDeviceSettings, 0, wxEXPAND | wxLEFT | wxRIGHT, space5);
 	main_sizer->AddSpacer(space5);
-	main_sizer->Add(sbGamecubeReplaySettings, 0, wxEXPAND | wxLEFT | wxRIGHT, space5);
+	main_sizer->Add(sbGamecubeSlippiSettings, 0, wxEXPAND | wxLEFT | wxRIGHT, space5);
 	main_sizer->AddSpacer(space5);
 
 	SetSizer(main_sizer);
@@ -293,6 +301,9 @@ void GameCubeConfigPane::BindEvents()
 
 	m_replay_directory_picker->Bind(wxEVT_DIRPICKER_CHANGED, &GameCubeConfigPane::OnReplayDirChanged, this);
 	m_replay_directory_picker->Bind(wxEVT_UPDATE_UI, &WxEventUtils::OnEnableIfCoreNotRunning);
+
+	m_slippi_delay_frames_ctrl->Bind(wxEVT_SPINCTRL, &GameCubeConfigPane::OnDelayFramesChanged, this);
+	m_slippi_delay_frames_ctrl->Bind(wxEVT_UPDATE_UI, &WxEventUtils::OnEnableIfCoreNotRunning);
 }
 
 void GameCubeConfigPane::OnSystemLanguageChange(wxCommandEvent& event)
@@ -381,6 +392,11 @@ void GameCubeConfigPane::OnReplayDirChanged(wxCommandEvent& event)
 {
 	SConfig::GetInstance().m_strSlippiReplayDir =
 		WxStrToStr(m_replay_directory_picker->GetPath());
+}
+
+void GameCubeConfigPane::OnDelayFramesChanged(wxCommandEvent& event)
+{
+	SConfig::GetInstance().m_slippiOnlineDelay = m_slippi_delay_frames_ctrl->GetValue();
 }
 
 void GameCubeConfigPane::ChooseEXIDevice(const wxString& deviceName, int deviceNum)
