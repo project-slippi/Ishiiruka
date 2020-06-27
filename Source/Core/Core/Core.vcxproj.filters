@@ -784,7 +784,7 @@
     <ClCompile Include="Slippi\SlippiTimer.cpp">
       <Filter>Slippi</Filter>
     </ClCompile>
-    <ClCompile Include="PlaybackSlider.cpp">
+    <ClCompile Include="..\DolphinWX\PlaybackSlider.cpp">
       <Filter>Slippi</Filter>
     </ClCompile>
   </ItemGroup>

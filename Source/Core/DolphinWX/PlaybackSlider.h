@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include "DolphinWX/DolphinSlider.h"
+#include "DolphinSlider.h"
 #include <wx/slider.h>
 #include <wx/stattext.h>
 
