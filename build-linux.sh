@@ -11,7 +11,7 @@ case "${1}" in
 		;;
 	*)
 		echo "usage: ${0} <portable|appimage>"
-		exit 0
+		exit 1
 		;;
 esac
 
