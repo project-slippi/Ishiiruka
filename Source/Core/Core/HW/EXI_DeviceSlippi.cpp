@@ -29,6 +29,7 @@
 #include "Common/FileUtil.h"
 #include "Common/Logging/Log.h"
 #include "Common/MemoryUtil.h"
+#include "Common/MsgHandler.h"
 #include "Common/StringUtil.h"
 #include "Common/Thread.h"
 #include "Core/HW/Memmap.h"
@@ -393,6 +394,10 @@ std::vector<u8> CEXISlippi::generateMetadata()
 
 void CEXISlippi::writeToFileAsync(u8 *payload, u32 length, std::string fileOption)
 {
+	if (!SConfig::GetInstance().m_slippiSaveReplays) {
+		return;
+	}
+
 	if (fileOption == "create" && !writeThreadRunning)
 	{
 		WARN_LOG(SLIPPI, "Creating file write thread...");
@@ -538,10 +543,35 @@ void CEXISlippi::createNewFile()
 		closeFile();
 	}
 
-	std::string dirpath = File::GetExeDirectory();
-	File::CreateDir(dirpath + DIR_SEP + "Slippi");
-	std::string filepath = dirpath + DIR_SEP + generateFileName();
+	std::string dirpath = SConfig::GetInstance().m_strSlippiReplayDir;
 
+	// Remove a trailing / or \\ if the user managed to have that in their config
+	char dirpathEnd = dirpath.back();
+	if (dirpathEnd == '/' || dirpathEnd == '\\') {
+		dirpath.pop_back();
+	}
+
+	// First, ensure that the root Slippi replay directory is created
+	File::CreateFullPath(dirpath + "/");
+
+	// Now we have a dir such as /home/Replays but we need to make one such 
+	// as /home/Replays/2020-06 if month categorization is enabled
+	if (SConfig::GetInstance().m_slippiReplayMonthFolders) {
+		dirpath.push_back('/');
+
+		// Append YYYY-MM to the directory path
+		uint8_t yearMonthStrLength = sizeof "2020-06";
+		std::vector<char> yearMonthBuf(yearMonthStrLength);
+		strftime(&yearMonthBuf[0], yearMonthStrLength, "%Y-%m", localtime(&gameStartTime));
+
+		std::string yearMonth(&yearMonthBuf[0]);
+		dirpath.append(yearMonth);
+
+		// Ensure that the subfolder directory is created
+		File::CreateDir(dirpath);
+	}
+
+	std::string filepath = dirpath + DIR_SEP + generateFileName();
 	INFO_LOG(SLIPPI, "EXI_DeviceSlippi.cpp: Creating new replay file %s", filepath.c_str());
 
 #ifdef _WIN32
@@ -549,6 +579,15 @@ void CEXISlippi::createNewFile()
 #else
 	m_file = File::IOFile(filepath, "wb");
 #endif
+
+	if (!m_file) {
+		PanicAlertT("Could not create .slp replay file [%s].\n\n"
+					"The replay folder's path might be invalid, or you might "
+					"not have permission to write to it.\n\n"
+					"You can change the replay folder in Config > GameCube > "
+					"Slippi Replay Settings.",
+					filepath.c_str());
+	}
 }
 
 std::string CEXISlippi::generateFileName()
@@ -559,7 +598,7 @@ std::string CEXISlippi::generateFileName()
 	strftime(&dateTimeBuf[0], dateTimeStrLength, "%Y%m%dT%H%M%S", localtime(&gameStartTime));
 
 	std::string str(&dateTimeBuf[0]);
-	return StringFromFormat("Slippi/Game_%s.slp", str.c_str());
+	return StringFromFormat("Game_%s.slp", str.c_str());
 }
 
 void CEXISlippi::closeFile()
