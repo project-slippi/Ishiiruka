@@ -55,12 +55,12 @@ SlippiNetplayClient::~SlippiNetplayClient()
 		m_client = nullptr;
 	}
 
-	ERROR_LOG(SLIPPI_ONLINE, "Netplay client cleanup complete");
+	WARN_LOG(SLIPPI_ONLINE, "Netplay client cleanup complete");
 }
 
 // called from ---SLIPPI EXI--- thread
 SlippiNetplayClient::SlippiNetplayClient(const std::string &address, const u16 remotePort, const u16 localPort,
-                                         bool isHost)
+                                         bool isDecider)
 #ifdef _WIN32
     : m_qos_handle(nullptr)
     , m_qos_flow_id(0)
@@ -71,19 +71,9 @@ SlippiNetplayClient::SlippiNetplayClient(const std::string &address, const u16 r
 	INFO_LOG(SLIPPI_ONLINE, "Enet init res: %d", res);
 
 	WARN_LOG(SLIPPI_ONLINE, "Initializing Slippi Netplay for port: %d, with host: %s", localPort,
-	         isHost ? "true" : "false");
+	         isDecider ? "true" : "false");
 
-	if (isHost)
-	{
-		ERROR_LOG(SLIPPI_ONLINE, "[Netplay] Starting host on port %d", localPort);
-	}
-	else
-	{
-		ERROR_LOG(SLIPPI_ONLINE, "[Netplay] Starting client on port %d, connecting to: %s:%d", localPort,
-		          address.c_str(), remotePort);
-	}
-
-	this->isHost = isHost;
+	this->isDecider = isDecider;
 
 	// Local address
 	ENetAddress *localAddr = nullptr;
@@ -127,9 +117,9 @@ SlippiNetplayClient::SlippiNetplayClient(const std::string &address, const u16 r
 }
 
 // Make a dummy client
-SlippiNetplayClient::SlippiNetplayClient(bool isHost)
+SlippiNetplayClient::SlippiNetplayClient(bool isDecider)
 {
-	this->isHost = isHost;
+	this->isDecider = isDecider;
 	slippiConnectStatus = SlippiConnectStatus::NET_CONNECT_STATUS_FAILED;
 }
 
@@ -361,7 +351,7 @@ void SlippiNetplayClient::SendAsync(std::unique_ptr<sf::Packet> packet)
 void SlippiNetplayClient::ThreadFunc()
 {
 	// Let client die 1 second before host such that after a swap, the client won't be connected to
-	int attemptCountLimit = isHost ? 16 : 16;
+	int attemptCountLimit = 16;
 
 	int attemptCount = 0;
 	while (slippiConnectStatus == SlippiConnectStatus::NET_CONNECT_STATUS_INITIATED)
@@ -374,6 +364,7 @@ void SlippiNetplayClient::ThreadFunc()
 			// TODO: Confirm gecko codes match?
 			if (netEvent.peer)
 			{
+				WARN_LOG(SLIPPI_ONLINE, "[Netplay] Overwritting server");
 				m_server = netEvent.peer;
 			}
 
@@ -480,9 +471,9 @@ void SlippiNetplayClient::ThreadFunc()
 	return;
 }
 
-bool SlippiNetplayClient::IsHost()
+bool SlippiNetplayClient::IsDecider()
 {
-	return isHost;
+	return isDecider;
 }
 
 bool SlippiNetplayClient::IsConnectionSelected()
@@ -541,7 +532,7 @@ void SlippiNetplayClient::SendSlippiPad(std::unique_ptr<SlippiPad> pad)
 		return;
 	}
 
-	// if (pad && isHost)
+	// if (pad && isDecider)
 	//{
 	//  ERROR_LOG(SLIPPI_ONLINE, "[%d] %X %X %X %X %X %X %X %X", pad->frame, pad->padBuf[0], pad->padBuf[1],
 	//  pad->padBuf[2], pad->padBuf[3], pad->padBuf[4], pad->padBuf[5], pad->padBuf[6], pad->padBuf[7]);
