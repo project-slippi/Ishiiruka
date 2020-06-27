@@ -79,7 +79,7 @@ jobs:
         if: success()
         working-directory: ${{ github.workspace }}
         run: |
-          ./build-linux.sh
+          ./build-linux.sh appimage
       - name: "Build AppImage"
         if: success()
         working-directory: ${{ github.workspace }}
