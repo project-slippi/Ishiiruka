@@ -15,11 +15,9 @@ case "${1}" in
 		;;
 esac
 
-# Create the build directory if it doesn't exist
-if [ ! -e "./build/" ]; then  mkdir ./build; fi
-
 # Move into the build directory, run CMake, and compile the project
-pushd ./build
+mkdir -p build
+pushd build
 cmake ${CMAKE_FLAGS} ../
 make -j$(nproc)
 popd
