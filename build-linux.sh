@@ -2,11 +2,11 @@
 # build-linux.sh
 
 case "${1}" in
-	# Enables portable configuration files via `portable.txt`
-	"portable")
+	# Enables portable configuration files via portable.txt
+	portable)
 		CMAKE_FLAGS='-DLINUX_LOCAL_DEV=true'
 		;;
-	"appimage")
+	appimage)
 		CMAKE_FLAGS=''
 		;;
 	*)
@@ -18,8 +18,6 @@ esac
 # Move into the build directory, run CMake, and compile the project
 mkdir -p build
 pushd build
-cmake ${CMAKE_FLAGS} ../
+cmake ${CMAKE_FLAGS} ..
 make -j$(nproc)
 popd
-
-

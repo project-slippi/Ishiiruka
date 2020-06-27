@@ -22,4 +22,3 @@ mkdir -p AppDir
 
 # Bake an AppImage
 ./linuxdeploy --appdir=./AppDir --output appimage
-
