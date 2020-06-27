@@ -59,6 +59,7 @@
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\DolphinWX\PlaybackSlider.cpp" />
     <ClCompile Include="ActionReplay.cpp" />
     <ClCompile Include="Analytics.cpp" />
     <ClCompile Include="ARDecrypt.cpp" />
@@ -229,7 +230,6 @@
     <ClCompile Include="NetPlayClient.cpp" />
     <ClCompile Include="NetPlayServer.cpp" />
     <ClCompile Include="PatchEngine.cpp" />
-    <ClCompile Include="PlaybackSlider.cpp" />
     <ClCompile Include="PowerPC\Interpreter\Interpreter.cpp" />
     <ClCompile Include="PowerPC\Interpreter\Interpreter_Branch.cpp" />
     <ClCompile Include="PowerPC\Interpreter\Interpreter_FloatingPoint.cpp" />

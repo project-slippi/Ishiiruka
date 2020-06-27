@@ -15,9 +15,8 @@
 #define FRAME_INTERVAL 900
 #define SLEEP_TIME_MS 8
 
-std::unique_ptr<SlippiPlaybackStatus> g_playback_status;
-
-extern std::unique_ptr<SlippiReplayComm> g_replay_comm;
+std::unique_ptr<SlippiPlaybackStatus> g_playbackStatus;
+extern std::unique_ptr<SlippiReplayComm> g_replayComm;
 
 static std::mutex mtx;
 static std::mutex seekMtx;
@@ -172,7 +171,7 @@ void SlippiPlaybackStatus::SeekThread()
 
 		if (shouldSeek)
 		{
-			auto replayCommSettings = g_replay_comm->getSettings();
+			auto replayCommSettings = g_replayComm->getSettings();
 			if (replayCommSettings.mode == "queue")
 				clearWatchSettingsStartEnd();
 
@@ -253,14 +252,14 @@ void SlippiPlaybackStatus::SeekThread()
 
 void SlippiPlaybackStatus::clearWatchSettingsStartEnd()
 {
-	int startFrame = g_replay_comm->current.startFrame;
-	int endFrame = g_replay_comm->current.endFrame;
+	int startFrame = g_replayComm->current.startFrame;
+	int endFrame = g_replayComm->current.endFrame;
 	if (startFrame != Slippi::GAME_FIRST_FRAME || endFrame != INT_MAX)
 	{
-		if (g_playback_status->targetFrameNum < startFrame)
-			g_replay_comm->current.startFrame = g_playback_status->targetFrameNum;
-		if (g_playback_status->targetFrameNum > endFrame)
-			g_replay_comm->current.endFrame = INT_MAX;
+		if (g_playbackStatus->targetFrameNum < startFrame)
+			g_replayComm->current.startFrame = g_playbackStatus->targetFrameNum;
+		if (g_playbackStatus->targetFrameNum > endFrame)
+			g_replayComm->current.endFrame = INT_MAX;
 	}
 }
 

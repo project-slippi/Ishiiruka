@@ -18,7 +18,7 @@
 #include "Common/CommonTypes.h"
 #include "Common/Event.h"
 #include "Core/HW/WiimoteEmu/WiimoteEmu.h"
-#include "Core/SlippiTimer.h"
+#include "Core/Slippi/SlippiTimer.h"
 #include "DolphinWX/Globals.h"
 #include "DolphinWX/PlaybackSlider.h"
 #include "InputCommon/GCPadStatus.h"
@@ -179,9 +179,9 @@ private:
 
 	wxTimer m_poll_hotkey_timer;
 	wxTimer m_handle_signal_timer;
-	slippiTimer *m_slippi_timer = nullptr;
-	PlaybackSlider *seekBar = nullptr;
-	wxStaticText *seekBarText = nullptr;
+	std::unique_ptr<SlippiTimer> m_slippi_timer;
+	PlaybackSlider* seekBar;
+	wxStaticText* seekBarText;
 
 	wxMenuBar* m_menubar_shadow = nullptr;
 

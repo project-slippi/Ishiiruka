@@ -853,7 +853,7 @@ void CFrame::DoStop()
 		if (m_Mgr->GetPane(_("Slippi Pane")).IsShown()) {
 			m_Mgr->GetPane(_("Slippi Pane")).Hide();
 			if (m_slippi_timer)
-			  delete m_slippi_timer;
+				m_slippi_timer.reset();
 		}
 
 		if (!m_tried_graceful_shutdown && TriggerSTMPowerEvent())

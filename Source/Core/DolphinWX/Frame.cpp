@@ -71,8 +71,8 @@
 #include "VideoCommon/VertexShaderManager.h"
 #include "VideoCommon/VideoConfig.h"
 
-#include "SlippiPlayback/SlippiPlayback.h"
-extern std::unique_ptr<SlippiPlaybackStatus> g_playback_status;
+#include "Core/Slippi/SlippiPlayback.h"
+extern std::unique_ptr<SlippiPlaybackStatus> g_playbackStatus;
 
 #if defined(HAVE_X11) && HAVE_X11
 // X11Utils nastiness that's only used here
@@ -1292,7 +1292,7 @@ void CFrame::ParseHotkeys()
 		DoPause();
 
 	// Slippi Playback Pause/Unpause
-	if (g_playback_status && g_playback_status->inSlippiPlayback && IsHotkey(HK_TOGGLE_PLAY_PAUSE))
+	if (g_playbackStatus && g_playbackStatus->inSlippiPlayback && IsHotkey(HK_TOGGLE_PLAY_PAUSE))
 		DoPause();
 
 	// Frame advance
@@ -1615,21 +1615,27 @@ void CFrame::ParseHotkeys()
 		State::UndoSaveState();
 
 	// Slippi replay hotkeys and setup
-	if (g_playback_status && g_playback_status->inSlippiPlayback)
+	if (SConfig::GetInstance().m_InterfaceSeekbar && g_playbackStatus && g_playbackStatus->inSlippiPlayback)
 	{		
 		if (IsHotkey(HK_JUMP_BACK))
-			g_playback_status->shouldJumpBack = true;
+			g_playbackStatus->shouldJumpBack = true;
 
 		if (IsHotkey(HK_JUMP_FORWARD))
-			g_playback_status->shouldJumpForward = true;
+			g_playbackStatus->shouldJumpForward = true;
 
-		if (!m_Mgr->GetPane(_("Slippi Pane")).IsShown()) {
+		if (!m_Mgr->GetPane(_("Slippi Pane")).IsShown()) 
+		{
 			m_Mgr->GetPane(_("Slippi Pane")).Show();
 			m_Mgr->Update();
 
-			m_slippi_timer = new slippiTimer(this, seekBar, seekBarText);
+			m_slippi_timer = std::make_unique<SlippiTimer>(this, seekBar, seekBarText);
 			m_slippi_timer->Start(50); 
 		}
+	} 
+	else if (m_Mgr->GetPane(_("Slippi Pane")).IsShown())
+	{
+		m_Mgr->GetPane(_("Slippi Pane")).Hide();
+		m_Mgr->Update();
 	}
 }
 
