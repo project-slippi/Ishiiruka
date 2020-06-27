@@ -115,9 +115,9 @@ void GameCubeConfigPane::InitializeGUI()
 	m_replay_directory_picker->SetToolTip(
 		_("Choose where your Slippi replay files are saved."));
 	m_slippi_delay_frames_txt = new wxStaticText(this, wxID_ANY, _("Slippi Online Delay Frames:"));
-	m_slippi_delay_frames_ctrl = new wxSpinCtrl(this, wxID_ANY, _(std::to_string(SConfig::GetInstance().m_slippiOnlineDelay)));
+	m_slippi_delay_frames_ctrl = new wxSpinCtrl(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(50, -1));
 	m_slippi_delay_frames_ctrl->SetToolTip(_("Set how many delay frames you have when playing Slippi Online."));
-	m_slippi_delay_frames_ctrl->SetRange(1, 10);
+	m_slippi_delay_frames_ctrl->SetRange(1, 9);
 
 	const int space5 = FromDIP(5);
 	const int space10 = FromDIP(10);
@@ -267,6 +267,8 @@ void GameCubeConfigPane::LoadGUIValues()
 	if (!enableReplays) {
 		m_replay_month_folders_checkbox->Hide();
 	}
+
+	m_slippi_delay_frames_ctrl->SetValue(startup_params.m_slippiOnlineDelay);
 }
 
 void GameCubeConfigPane::BindEvents()
