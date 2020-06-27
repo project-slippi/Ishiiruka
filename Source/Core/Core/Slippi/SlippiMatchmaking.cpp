@@ -427,7 +427,7 @@ void SlippiMatchmaking::handleConnecting()
 	SplitString(m_oppIp, ':', ipParts);
 
 	sendHolePunchMsg(ipParts[0], std::stoi(ipParts[1]), m_hostPort);
-	auto client = std::make_unique<SlippiNetplayClient>(ipParts[0], std::stoi(ipParts[1]), m_hostPort, false);
+	auto client = std::make_unique<SlippiNetplayClient>(ipParts[0], std::stoi(ipParts[1]), m_hostPort, m_isHost);
 
 	while (!m_netplayClient)
 	{

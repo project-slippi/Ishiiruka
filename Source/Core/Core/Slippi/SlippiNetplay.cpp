@@ -103,7 +103,7 @@ SlippiNetplayClient::SlippiNetplayClient(const std::string &address, const u16 r
 	}
 
 	// TODO: Figure out how to use a local port when not hosting without accepting incoming connections
-	m_client = enet_host_create(localAddr, 1, 3, 0, 0);
+	m_client = enet_host_create(localAddr, 2, 3, 0, 0);
 
 	if (m_client == nullptr)
 	{
