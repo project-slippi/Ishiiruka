@@ -10,7 +10,7 @@ using json = nlohmann::json;
 class SlippiReplayComm
 {
   public:
-	typedef struct
+	typedef struct WatchSettings
 	{
 		std::string path;
 		int startFrame = Slippi::GAME_FIRST_FRAME;
@@ -21,7 +21,7 @@ class SlippiReplayComm
 	} WatchSettings;
 
 	// Loaded file contents
-	typedef struct
+	typedef struct CommSettings
 	{
 		std::string mode;
 		std::string replayPath;
