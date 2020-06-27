@@ -24,7 +24,7 @@ SOFTWARE.
 
 #include <functional>
 #include <map>
-#include "semver200.h"
+#include "..\include\semver200.h"
 
 #ifdef _MSC_VER
 // disable symbol name too long warning

@@ -1,0 +1,2 @@
+G:\Projects\Ishiiruka\Source\Debug\open-vcdiff.pdb
+G:\Projects\Ishiiruka\Externals\open-vcdiff\Debug\open-vcdiff.pdb

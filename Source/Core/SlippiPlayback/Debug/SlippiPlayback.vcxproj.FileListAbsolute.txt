@@ -1,0 +1,2 @@
+G:\Projects\Ishiiruka\Source\Debug\SlippiPlayback.pdb
+G:\Projects\Ishiiruka\Source\Core\SlippiPlayback\Debug\SlippiPlayback.pdb

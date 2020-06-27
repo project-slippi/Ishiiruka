@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="16.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="G:\Projects\Ishiiruka\CMakeFiles\CheckTypeSize\HAS_SOCKLEN_T.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{5C4B6892-461C-327B-AE3C-55F40CCDA719}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

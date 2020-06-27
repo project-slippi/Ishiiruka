@@ -1,0 +1,1421 @@
+Performing C++ SOURCE FILE Test FLAG_VISIBILITY_INLINES_HIDDEN failed with the following output:
+Change Dir: G:/Projects/Ishiiruka/CMakeFiles/CMakeTmp
+
+Run Build Command(s):C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/MSBuild/Current/Bin/MSBuild.exe cmTC_f3214.vcxproj /p:Configuration=Debug /p:Platform=x64 /p:VisualStudioVersion=16.0 /v:m && Microsoft (R) Build Engine version 16.6.0+5ff7b0c9e for .NET Framework
+Copyright (C) Microsoft Corporation. All rights reserved.
+
+  Microsoft (R) C/C++ Optimizing Compiler Version 19.26.28806 for x64
+  src.cxx
+  Copyright (C) Microsoft Corporation.  All rights reserved.
+  cl /c /Zi /W3 /WX- /diagnostics:column /Od /Ob0 /D WIN32 /D _WINDOWS /D FLAG_VISIBILITY_INLINES_HIDDEN /D "CMAKE_INTDIR=\"Debug\"" /D _MBCS /Gm- /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /GR /Fo"cmTC_f3214.dir\Debug\\" /Fd"cmTC_f3214.dir\Debug\vc142.pdb" /Gd /TP /errorReport:queue  -fvisibility-inlines-hidden G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\src.cxx
+cl : command line warning D9002: ignoring unknown option '-fvisibility-inlines-hidden' [G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\cmTC_f3214.vcxproj]
+  cmTC_f3214.vcxproj -> G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\Debug\cmTC_f3214.exe
+
+
+Source file was:
+int main() { return 0; }
+Determining if the include file pthread.h exists failed with the following output:
+Change Dir: G:/Projects/Ishiiruka/CMakeFiles/CMakeTmp
+
+Run Build Command(s):C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/MSBuild/Current/Bin/MSBuild.exe cmTC_67462.vcxproj /p:Configuration=Debug /p:Platform=x64 /p:VisualStudioVersion=16.0 /v:m && Microsoft (R) Build Engine version 16.6.0+5ff7b0c9e for .NET Framework
+Copyright (C) Microsoft Corporation. All rights reserved.
+
+  Microsoft (R) C/C++ Optimizing Compiler Version 19.26.28806 for x64
+  CheckIncludeFile.c
+  Copyright (C) Microsoft Corporation.  All rights reserved.
+  cl /c /Zi /W3 /WX- /diagnostics:column /Od /Ob0 /D WIN32 /D _WINDOWS /D "CMAKE_INTDIR=\"Debug\"" /D _MBCS /Gm- /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /Fo"cmTC_67462.dir\Debug\\" /Fd"cmTC_67462.dir\Debug\vc142.pdb" /Gd /TC /errorReport:queue G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\CheckIncludeFile.c
+G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\CheckIncludeFile.c(1,10): fatal error C1083: Cannot open include file: 'pthread.h': No such file or directory [G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\cmTC_67462.vcxproj]
+
+
+
+Performing C++ SOURCE FILE Test LIBAV_FOUND failed with the following output:
+Change Dir: G:/Projects/Ishiiruka/CMakeFiles/CMakeTmp
+
+Run Build Command(s):C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/MSBuild/Current/Bin/MSBuild.exe cmTC_bc13a.vcxproj /p:Configuration=Debug /p:Platform=x64 /p:VisualStudioVersion=16.0 /v:m && Microsoft (R) Build Engine version 16.6.0+5ff7b0c9e for .NET Framework
+Copyright (C) Microsoft Corporation. All rights reserved.
+
+  Microsoft (R) C/C++ Optimizing Compiler Version 19.26.28806 for x64
+  src.cxx
+  Copyright (C) Microsoft Corporation.  All rights reserved.
+  cl /c /Zi /W3 /WX- /diagnostics:column /Od /Ob0 /D WIN32 /D _WINDOWS /D LIBAV_FOUND /D "CMAKE_INTDIR=\"Debug\"" /D _MBCS /Gm- /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /GR /Fo"cmTC_bc13a.dir\Debug\\" /Fd"cmTC_bc13a.dir\Debug\vc142.pdb" /Gd /TP /errorReport:queue G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\src.cxx
+G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\src.cxx(2,13): fatal error C1083: Cannot open include file: 'libavcodec/avcodec.h': No such file or directory [G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\cmTC_bc13a.vcxproj]
+
+
+Source file was:
+extern "C" {
+			#include <libavcodec/avcodec.h>
+			#include <libavformat/avformat.h>
+			#include <libavutil/mathematics.h>
+			#include <libswscale/swscale.h>
+			}
+			int main(int argc, char **argv)
+			{
+				av_register_all();
+				return 0;
+			}
+Performing C++ SOURCE FILE Test SYSTEM_PORTAUDIO failed with the following output:
+Change Dir: G:/Projects/Ishiiruka/CMakeFiles/CMakeTmp
+
+Run Build Command(s):C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/MSBuild/Current/Bin/MSBuild.exe cmTC_56b4b.vcxproj /p:Configuration=Debug /p:Platform=x64 /p:VisualStudioVersion=16.0 /v:m && Microsoft (R) Build Engine version 16.6.0+5ff7b0c9e for .NET Framework
+Copyright (C) Microsoft Corporation. All rights reserved.
+
+  Microsoft (R) C/C++ Optimizing Compiler Version 19.26.28806 for x64
+  src.cxx
+  Copyright (C) Microsoft Corporation.  All rights reserved.
+  cl /c /Zi /W3 /WX- /diagnostics:column /Od /Ob0 /D WIN32 /D _WINDOWS /D SYSTEM_PORTAUDIO /D "CMAKE_INTDIR=\"Debug\"" /D _MBCS /Gm- /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /GR /Fo"cmTC_56b4b.dir\Debug\\" /Fd"cmTC_56b4b.dir\Debug\vc142.pdb" /Gd /TP /errorReport:queue G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\src.cxx
+G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\src.cxx(1,10): fatal error C1083: Cannot open include file: 'portaudio.h': No such file or directory [G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\cmTC_56b4b.vcxproj]
+
+
+...and run output:
+
+Return value: 1
+Source file was:
+#include <portaudio.h>
+			int main(int argc, char **argv)
+			{ if(Pa_GetVersion() >= 1890) return 0; else return 1; }
+Determining if files ext/rope exist failed with the following output:
+Change Dir: G:/Projects/Ishiiruka/CMakeFiles/CMakeTmp
+
+Run Build Command(s):C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/MSBuild/Current/Bin/MSBuild.exe cmTC_64119.vcxproj /p:Configuration=Debug /p:Platform=x64 /p:VisualStudioVersion=16.0 /v:m && Microsoft (R) Build Engine version 16.6.0+5ff7b0c9e for .NET Framework
+Copyright (C) Microsoft Corporation. All rights reserved.
+
+  Microsoft (R) C/C++ Optimizing Compiler Version 19.26.28806 for x64
+  HAVE_EXT_ROPE.c
+  Copyright (C) Microsoft Corporation.  All rights reserved.
+  cl /c /Zi /W3 /WX- /diagnostics:column /Od /Ob0 /D WIN32 /D _WINDOWS /D "CMAKE_INTDIR=\"Debug\"" /D _MBCS /Gm- /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /Fo"cmTC_64119.dir\Debug\\" /Fd"cmTC_64119.dir\Debug\vc142.pdb" /Gd /TC /errorReport:queue G:\Projects\Ishiiruka\CMakeFiles\CheckIncludeFiles\HAVE_EXT_ROPE.c
+G:\Projects\Ishiiruka\CMakeFiles\CheckIncludeFiles\HAVE_EXT_ROPE.c(2,10): fatal error C1083: Cannot open include file: 'ext/rope': No such file or directory [G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\cmTC_64119.vcxproj]
+
+
+Source:
+/* */
+#include <ext/rope>
+
+
+int main(void){return 0;}
+
+Determining if files getopt.h exist failed with the following output:
+Change Dir: G:/Projects/Ishiiruka/CMakeFiles/CMakeTmp
+
+Run Build Command(s):C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/MSBuild/Current/Bin/MSBuild.exe cmTC_e3c5b.vcxproj /p:Configuration=Debug /p:Platform=x64 /p:VisualStudioVersion=16.0 /v:m && Microsoft (R) Build Engine version 16.6.0+5ff7b0c9e for .NET Framework
+Copyright (C) Microsoft Corporation. All rights reserved.
+
+  Microsoft (R) C/C++ Optimizing Compiler Version 19.26.28806 for x64
+  HAVE_GETOPT_H.c
+  Copyright (C) Microsoft Corporation.  All rights reserved.
+  cl /c /Zi /W3 /WX- /diagnostics:column /Od /Ob0 /D WIN32 /D _WINDOWS /D "CMAKE_INTDIR=\"Debug\"" /D _MBCS /Gm- /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /Fo"cmTC_e3c5b.dir\Debug\\" /Fd"cmTC_e3c5b.dir\Debug\vc142.pdb" /Gd /TC /errorReport:queue G:\Projects\Ishiiruka\CMakeFiles\CheckIncludeFiles\HAVE_GETOPT_H.c
+G:\Projects\Ishiiruka\CMakeFiles\CheckIncludeFiles\HAVE_GETOPT_H.c(2,10): fatal error C1083: Cannot open include file: 'getopt.h': No such file or directory [G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\cmTC_e3c5b.vcxproj]
+
+
+Source:
+/* */
+#include <getopt.h>
+
+
+int main(void){return 0;}
+
+Determining if files sys/mman.h exist failed with the following output:
+Change Dir: G:/Projects/Ishiiruka/CMakeFiles/CMakeTmp
+
+Run Build Command(s):C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/MSBuild/Current/Bin/MSBuild.exe cmTC_91a08.vcxproj /p:Configuration=Debug /p:Platform=x64 /p:VisualStudioVersion=16.0 /v:m && Microsoft (R) Build Engine version 16.6.0+5ff7b0c9e for .NET Framework
+Copyright (C) Microsoft Corporation. All rights reserved.
+
+  Microsoft (R) C/C++ Optimizing Compiler Version 19.26.28806 for x64
+  HAVE_SYS_MMAN_H.c
+  Copyright (C) Microsoft Corporation.  All rights reserved.
+  cl /c /Zi /W3 /WX- /diagnostics:column /Od /Ob0 /D WIN32 /D _WINDOWS /D "CMAKE_INTDIR=\"Debug\"" /D _MBCS /Gm- /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /Fo"cmTC_91a08.dir\Debug\\" /Fd"cmTC_91a08.dir\Debug\vc142.pdb" /Gd /TC /errorReport:queue G:\Projects\Ishiiruka\CMakeFiles\CheckIncludeFiles\HAVE_SYS_MMAN_H.c
+G:\Projects\Ishiiruka\CMakeFiles\CheckIncludeFiles\HAVE_SYS_MMAN_H.c(2,10): fatal error C1083: Cannot open include file: 'sys/mman.h': No such file or directory [G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\cmTC_91a08.vcxproj]
+
+
+Source:
+/* */
+#include <sys/mman.h>
+
+
+int main(void){return 0;}
+
+Determining if files sys/time.h exist failed with the following output:
+Change Dir: G:/Projects/Ishiiruka/CMakeFiles/CMakeTmp
+
+Run Build Command(s):C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/MSBuild/Current/Bin/MSBuild.exe cmTC_a04f3.vcxproj /p:Configuration=Debug /p:Platform=x64 /p:VisualStudioVersion=16.0 /v:m && Microsoft (R) Build Engine version 16.6.0+5ff7b0c9e for .NET Framework
+Copyright (C) Microsoft Corporation. All rights reserved.
+
+  Microsoft (R) C/C++ Optimizing Compiler Version 19.26.28806 for x64
+  HAVE_SYS_TIME_H.c
+  Copyright (C) Microsoft Corporation.  All rights reserved.
+  cl /c /Zi /W3 /WX- /diagnostics:column /Od /Ob0 /D WIN32 /D _WINDOWS /D "CMAKE_INTDIR=\"Debug\"" /D _MBCS /Gm- /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /Fo"cmTC_a04f3.dir\Debug\\" /Fd"cmTC_a04f3.dir\Debug\vc142.pdb" /Gd /TC /errorReport:queue G:\Projects\Ishiiruka\CMakeFiles\CheckIncludeFiles\HAVE_SYS_TIME_H.c
+G:\Projects\Ishiiruka\CMakeFiles\CheckIncludeFiles\HAVE_SYS_TIME_H.c(2,10): fatal error C1083: Cannot open include file: 'sys/time.h': No such file or directory [G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\cmTC_a04f3.vcxproj]
+
+
+Source:
+/* */
+#include <sys/time.h>
+
+
+int main(void){return 0;}
+
+Determining if files unistd.h exist failed with the following output:
+Change Dir: G:/Projects/Ishiiruka/CMakeFiles/CMakeTmp
+
+Run Build Command(s):C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/MSBuild/Current/Bin/MSBuild.exe cmTC_2409a.vcxproj /p:Configuration=Debug /p:Platform=x64 /p:VisualStudioVersion=16.0 /v:m && Microsoft (R) Build Engine version 16.6.0+5ff7b0c9e for .NET Framework
+Copyright (C) Microsoft Corporation. All rights reserved.
+
+  Microsoft (R) C/C++ Optimizing Compiler Version 19.26.28806 for x64
+  HAVE_UNISTD_H.c
+  Copyright (C) Microsoft Corporation.  All rights reserved.
+  cl /c /Zi /W3 /WX- /diagnostics:column /Od /Ob0 /D WIN32 /D _WINDOWS /D "CMAKE_INTDIR=\"Debug\"" /D _MBCS /Gm- /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /Fo"cmTC_2409a.dir\Debug\\" /Fd"cmTC_2409a.dir\Debug\vc142.pdb" /Gd /TC /errorReport:queue G:\Projects\Ishiiruka\CMakeFiles\CheckIncludeFiles\HAVE_UNISTD_H.c
+G:\Projects\Ishiiruka\CMakeFiles\CheckIncludeFiles\HAVE_UNISTD_H.c(2,10): fatal error C1083: Cannot open include file: 'unistd.h': No such file or directory [G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\cmTC_2409a.vcxproj]
+
+
+Source:
+/* */
+#include <unistd.h>
+
+
+int main(void){return 0;}
+
+Determining if the function gettimeofday exists failed with the following output:
+Change Dir: G:/Projects/Ishiiruka/CMakeFiles/CMakeTmp
+
+Run Build Command(s):C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/MSBuild/Current/Bin/MSBuild.exe cmTC_b18e6.vcxproj /p:Configuration=Debug /p:Platform=x64 /p:VisualStudioVersion=16.0 /v:m && Microsoft (R) Build Engine version 16.6.0+5ff7b0c9e for .NET Framework
+Copyright (C) Microsoft Corporation. All rights reserved.
+
+  Microsoft (R) C/C++ Optimizing Compiler Version 19.26.28806 for x64
+  CheckFunctionExists.c
+  Copyright (C) Microsoft Corporation.  All rights reserved.
+  cl /c /Zi /W3 /WX- /diagnostics:column /Od /Ob0 /D WIN32 /D _WINDOWS /D CHECK_FUNCTION_EXISTS=gettimeofday /D "CMAKE_INTDIR=\"Debug\"" /D _MBCS /Gm- /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /Fo"cmTC_b18e6.dir\Debug\\" /Fd"cmTC_b18e6.dir\Debug\vc142.pdb" /Gd /TC /errorReport:queue "C:\Program Files\CMake\share\cmake-3.17\Modules\CheckFunctionExists.c"
+CheckFunctionExists.obj : error LNK2019: unresolved external symbol gettimeofday referenced in function main [G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\cmTC_b18e6.vcxproj]
+G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\Debug\cmTC_b18e6.exe : fatal error LNK1120: 1 unresolved externals [G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\cmTC_b18e6.vcxproj]
+
+
+
+Determining if the function memalign exists failed with the following output:
+Change Dir: G:/Projects/Ishiiruka/CMakeFiles/CMakeTmp
+
+Run Build Command(s):C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/MSBuild/Current/Bin/MSBuild.exe cmTC_b984e.vcxproj /p:Configuration=Debug /p:Platform=x64 /p:VisualStudioVersion=16.0 /v:m && Microsoft (R) Build Engine version 16.6.0+5ff7b0c9e for .NET Framework
+Copyright (C) Microsoft Corporation. All rights reserved.
+
+  Microsoft (R) C/C++ Optimizing Compiler Version 19.26.28806 for x64
+  CheckFunctionExists.c
+  Copyright (C) Microsoft Corporation.  All rights reserved.
+  cl /c /Zi /W3 /WX- /diagnostics:column /Od /Ob0 /D WIN32 /D _WINDOWS /D CHECK_FUNCTION_EXISTS=memalign /D "CMAKE_INTDIR=\"Debug\"" /D _MBCS /Gm- /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /Fo"cmTC_b984e.dir\Debug\\" /Fd"cmTC_b984e.dir\Debug\vc142.pdb" /Gd /TC /errorReport:queue "C:\Program Files\CMake\share\cmake-3.17\Modules\CheckFunctionExists.c"
+CheckFunctionExists.obj : error LNK2019: unresolved external symbol memalign referenced in function main [G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\cmTC_b984e.vcxproj]
+G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\Debug\cmTC_b984e.exe : fatal error LNK1120: 1 unresolved externals [G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\cmTC_b984e.vcxproj]
+
+
+
+Determining if the function posix_memalign exists failed with the following output:
+Change Dir: G:/Projects/Ishiiruka/CMakeFiles/CMakeTmp
+
+Run Build Command(s):C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/MSBuild/Current/Bin/MSBuild.exe cmTC_02ae8.vcxproj /p:Configuration=Debug /p:Platform=x64 /p:VisualStudioVersion=16.0 /v:m && Microsoft (R) Build Engine version 16.6.0+5ff7b0c9e for .NET Framework
+Copyright (C) Microsoft Corporation. All rights reserved.
+
+  Microsoft (R) C/C++ Optimizing Compiler Version 19.26.28806 for x64
+  CheckFunctionExists.c
+  Copyright (C) Microsoft Corporation.  All rights reserved.
+  cl /c /Zi /W3 /WX- /diagnostics:column /Od /Ob0 /D WIN32 /D _WINDOWS /D CHECK_FUNCTION_EXISTS=posix_memalign /D "CMAKE_INTDIR=\"Debug\"" /D _MBCS /Gm- /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /Fo"cmTC_02ae8.dir\Debug\\" /Fd"cmTC_02ae8.dir\Debug\vc142.pdb" /Gd /TC /errorReport:queue "C:\Program Files\CMake\share\cmake-3.17\Modules\CheckFunctionExists.c"
+CheckFunctionExists.obj : error LNK2019: unresolved external symbol posix_memalign referenced in function main [G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\cmTC_02ae8.vcxproj]
+G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\Debug\cmTC_02ae8.exe : fatal error LNK1120: 1 unresolved externals [G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\cmTC_02ae8.vcxproj]
+
+
+
+Determining if the function mprotect exists failed with the following output:
+Change Dir: G:/Projects/Ishiiruka/CMakeFiles/CMakeTmp
+
+Run Build Command(s):C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/MSBuild/Current/Bin/MSBuild.exe cmTC_2523e.vcxproj /p:Configuration=Debug /p:Platform=x64 /p:VisualStudioVersion=16.0 /v:m && Microsoft (R) Build Engine version 16.6.0+5ff7b0c9e for .NET Framework
+Copyright (C) Microsoft Corporation. All rights reserved.
+
+  Microsoft (R) C/C++ Optimizing Compiler Version 19.26.28806 for x64
+  CheckFunctionExists.c
+  Copyright (C) Microsoft Corporation.  All rights reserved.
+  cl /c /Zi /W3 /WX- /diagnostics:column /Od /Ob0 /D WIN32 /D _WINDOWS /D CHECK_FUNCTION_EXISTS=mprotect /D "CMAKE_INTDIR=\"Debug\"" /D _MBCS /Gm- /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /Fo"cmTC_2523e.dir\Debug\\" /Fd"cmTC_2523e.dir\Debug\vc142.pdb" /Gd /TC /errorReport:queue "C:\Program Files\CMake\share\cmake-3.17\Modules\CheckFunctionExists.c"
+CheckFunctionExists.obj : error LNK2019: unresolved external symbol mprotect referenced in function main [G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\cmTC_2523e.vcxproj]
+G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\Debug\cmTC_2523e.exe : fatal error LNK1120: 1 unresolved externals [G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\cmTC_2523e.vcxproj]
+
+
+
+Determining if the function fcntl exists failed with the following output:
+Change Dir: G:/Projects/Ishiiruka/CMakeFiles/CMakeTmp
+
+Run Build Command(s):C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/MSBuild/Current/Bin/MSBuild.exe cmTC_98533.vcxproj /p:Configuration=Debug /p:Platform=x64 /p:VisualStudioVersion=16.0 /v:m && Microsoft (R) Build Engine version 16.6.0+5ff7b0c9e for .NET Framework
+Copyright (C) Microsoft Corporation. All rights reserved.
+
+  Microsoft (R) C/C++ Optimizing Compiler Version 19.26.28806 for x64
+  CheckFunctionExists.c
+  Copyright (C) Microsoft Corporation.  All rights reserved.
+  cl /c /Zi /W3 /WX- /diagnostics:column /Od /Ob0 /D WIN32 /D _WINDOWS /D CHECK_FUNCTION_EXISTS=fcntl /D "CMAKE_INTDIR=\"Debug\"" /D _MBCS /Gm- /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /Fo"cmTC_98533.dir\Debug\\" /Fd"cmTC_98533.dir\Debug\vc142.pdb" /Gd /TC /errorReport:queue "C:\Program Files\CMake\share\cmake-3.17\Modules\CheckFunctionExists.c"
+CheckFunctionExists.obj : error LNK2019: unresolved external symbol fcntl referenced in function main [G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\cmTC_98533.vcxproj]
+G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\Debug\cmTC_98533.exe : fatal error LNK1120: 1 unresolved externals [G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\cmTC_98533.vcxproj]
+
+
+
+Determining if the function poll exists failed with the following output:
+Change Dir: G:/Projects/Ishiiruka/CMakeFiles/CMakeTmp
+
+Run Build Command(s):C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/MSBuild/Current/Bin/MSBuild.exe cmTC_2e871.vcxproj /p:Configuration=Debug /p:Platform=x64 /p:VisualStudioVersion=16.0 /v:m && Microsoft (R) Build Engine version 16.6.0+5ff7b0c9e for .NET Framework
+Copyright (C) Microsoft Corporation. All rights reserved.
+
+  Microsoft (R) C/C++ Optimizing Compiler Version 19.26.28806 for x64
+  CheckFunctionExists.c
+  Copyright (C) Microsoft Corporation.  All rights reserved.
+  cl /c /Zi /W3 /WX- /diagnostics:column /Od /Ob0 /D WIN32 /D _WINDOWS /D CHECK_FUNCTION_EXISTS=poll /D "CMAKE_INTDIR=\"Debug\"" /D _MBCS /Gm- /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /Fo"cmTC_2e871.dir\Debug\\" /Fd"cmTC_2e871.dir\Debug\vc142.pdb" /Gd /TC /errorReport:queue "C:\Program Files\CMake\share\cmake-3.17\Modules\CheckFunctionExists.c"
+CheckFunctionExists.obj : error LNK2019: unresolved external symbol poll referenced in function main [G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\cmTC_2e871.vcxproj]
+G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\Debug\cmTC_2e871.exe : fatal error LNK1120: 1 unresolved externals [G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\cmTC_2e871.vcxproj]
+
+
+
+Determining if the function getaddrinfo exists failed with the following output:
+Change Dir: G:/Projects/Ishiiruka/CMakeFiles/CMakeTmp
+
+Run Build Command(s):C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/MSBuild/Current/Bin/MSBuild.exe cmTC_77277.vcxproj /p:Configuration=Debug /p:Platform=x64 /p:VisualStudioVersion=16.0 /v:m && Microsoft (R) Build Engine version 16.6.0+5ff7b0c9e for .NET Framework
+Copyright (C) Microsoft Corporation. All rights reserved.
+
+  Microsoft (R) C/C++ Optimizing Compiler Version 19.26.28806 for x64
+  CheckFunctionExists.c
+  Copyright (C) Microsoft Corporation.  All rights reserved.
+  cl /c /Zi /W3 /WX- /diagnostics:column /Od /Ob0 /D WIN32 /D _WINDOWS /D CHECK_FUNCTION_EXISTS=getaddrinfo /D "CMAKE_INTDIR=\"Debug\"" /D _MBCS /Gm- /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /Fo"cmTC_77277.dir\Debug\\" /Fd"cmTC_77277.dir\Debug\vc142.pdb" /Gd /TC /errorReport:queue "C:\Program Files\CMake\share\cmake-3.17\Modules\CheckFunctionExists.c"
+CheckFunctionExists.obj : error LNK2019: unresolved external symbol getaddrinfo referenced in function main [G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\cmTC_77277.vcxproj]
+G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\Debug\cmTC_77277.exe : fatal error LNK1120: 1 unresolved externals [G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\cmTC_77277.vcxproj]
+
+
+
+Determining if the function getnameinfo exists failed with the following output:
+Change Dir: G:/Projects/Ishiiruka/CMakeFiles/CMakeTmp
+
+Run Build Command(s):C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/MSBuild/Current/Bin/MSBuild.exe cmTC_93f43.vcxproj /p:Configuration=Debug /p:Platform=x64 /p:VisualStudioVersion=16.0 /v:m && Microsoft (R) Build Engine version 16.6.0+5ff7b0c9e for .NET Framework
+Copyright (C) Microsoft Corporation. All rights reserved.
+
+  Microsoft (R) C/C++ Optimizing Compiler Version 19.26.28806 for x64
+  CheckFunctionExists.c
+  Copyright (C) Microsoft Corporation.  All rights reserved.
+  cl /c /Zi /W3 /WX- /diagnostics:column /Od /Ob0 /D WIN32 /D _WINDOWS /D CHECK_FUNCTION_EXISTS=getnameinfo /D "CMAKE_INTDIR=\"Debug\"" /D _MBCS /Gm- /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /Fo"cmTC_93f43.dir\Debug\\" /Fd"cmTC_93f43.dir\Debug\vc142.pdb" /Gd /TC /errorReport:queue "C:\Program Files\CMake\share\cmake-3.17\Modules\CheckFunctionExists.c"
+CheckFunctionExists.obj : error LNK2019: unresolved external symbol getnameinfo referenced in function main [G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\cmTC_93f43.vcxproj]
+G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\Debug\cmTC_93f43.exe : fatal error LNK1120: 1 unresolved externals [G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\cmTC_93f43.vcxproj]
+
+
+
+Determining if the function gethostbyname_r exists failed with the following output:
+Change Dir: G:/Projects/Ishiiruka/CMakeFiles/CMakeTmp
+
+Run Build Command(s):C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/MSBuild/Current/Bin/MSBuild.exe cmTC_39939.vcxproj /p:Configuration=Debug /p:Platform=x64 /p:VisualStudioVersion=16.0 /v:m && Microsoft (R) Build Engine version 16.6.0+5ff7b0c9e for .NET Framework
+Copyright (C) Microsoft Corporation. All rights reserved.
+
+  Microsoft (R) C/C++ Optimizing Compiler Version 19.26.28806 for x64
+  CheckFunctionExists.c
+  Copyright (C) Microsoft Corporation.  All rights reserved.
+  cl /c /Zi /W3 /WX- /diagnostics:column /Od /Ob0 /D WIN32 /D _WINDOWS /D CHECK_FUNCTION_EXISTS=gethostbyname_r /D "CMAKE_INTDIR=\"Debug\"" /D _MBCS /Gm- /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /Fo"cmTC_39939.dir\Debug\\" /Fd"cmTC_39939.dir\Debug\vc142.pdb" /Gd /TC /errorReport:queue "C:\Program Files\CMake\share\cmake-3.17\Modules\CheckFunctionExists.c"
+CheckFunctionExists.obj : error LNK2019: unresolved external symbol gethostbyname_r referenced in function main [G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\cmTC_39939.vcxproj]
+G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\Debug\cmTC_39939.exe : fatal error LNK1120: 1 unresolved externals [G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\cmTC_39939.vcxproj]
+
+
+
+Determining if the function gethostbyaddr_r exists failed with the following output:
+Change Dir: G:/Projects/Ishiiruka/CMakeFiles/CMakeTmp
+
+Run Build Command(s):C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/MSBuild/Current/Bin/MSBuild.exe cmTC_ff3ae.vcxproj /p:Configuration=Debug /p:Platform=x64 /p:VisualStudioVersion=16.0 /v:m && Microsoft (R) Build Engine version 16.6.0+5ff7b0c9e for .NET Framework
+Copyright (C) Microsoft Corporation. All rights reserved.
+
+  Microsoft (R) C/C++ Optimizing Compiler Version 19.26.28806 for x64
+  CheckFunctionExists.c
+  Copyright (C) Microsoft Corporation.  All rights reserved.
+  cl /c /Zi /W3 /WX- /diagnostics:column /Od /Ob0 /D WIN32 /D _WINDOWS /D CHECK_FUNCTION_EXISTS=gethostbyaddr_r /D "CMAKE_INTDIR=\"Debug\"" /D _MBCS /Gm- /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /Fo"cmTC_ff3ae.dir\Debug\\" /Fd"cmTC_ff3ae.dir\Debug\vc142.pdb" /Gd /TC /errorReport:queue "C:\Program Files\CMake\share\cmake-3.17\Modules\CheckFunctionExists.c"
+CheckFunctionExists.obj : error LNK2019: unresolved external symbol gethostbyaddr_r referenced in function main [G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\cmTC_ff3ae.vcxproj]
+G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\Debug\cmTC_ff3ae.exe : fatal error LNK1120: 1 unresolved externals [G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\cmTC_ff3ae.vcxproj]
+
+
+
+Determining if the function inet_pton exists failed with the following output:
+Change Dir: G:/Projects/Ishiiruka/CMakeFiles/CMakeTmp
+
+Run Build Command(s):C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/MSBuild/Current/Bin/MSBuild.exe cmTC_f3901.vcxproj /p:Configuration=Debug /p:Platform=x64 /p:VisualStudioVersion=16.0 /v:m && Microsoft (R) Build Engine version 16.6.0+5ff7b0c9e for .NET Framework
+Copyright (C) Microsoft Corporation. All rights reserved.
+
+  Microsoft (R) C/C++ Optimizing Compiler Version 19.26.28806 for x64
+  CheckFunctionExists.c
+  Copyright (C) Microsoft Corporation.  All rights reserved.
+  cl /c /Zi /W3 /WX- /diagnostics:column /Od /Ob0 /D WIN32 /D _WINDOWS /D CHECK_FUNCTION_EXISTS=inet_pton /D "CMAKE_INTDIR=\"Debug\"" /D _MBCS /Gm- /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /Fo"cmTC_f3901.dir\Debug\\" /Fd"cmTC_f3901.dir\Debug\vc142.pdb" /Gd /TC /errorReport:queue "C:\Program Files\CMake\share\cmake-3.17\Modules\CheckFunctionExists.c"
+CheckFunctionExists.obj : error LNK2019: unresolved external symbol inet_pton referenced in function main [G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\cmTC_f3901.vcxproj]
+G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\Debug\cmTC_f3901.exe : fatal error LNK1120: 1 unresolved externals [G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\cmTC_f3901.vcxproj]
+
+
+
+Determining if the function inet_ntop exists failed with the following output:
+Change Dir: G:/Projects/Ishiiruka/CMakeFiles/CMakeTmp
+
+Run Build Command(s):C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/MSBuild/Current/Bin/MSBuild.exe cmTC_256b9.vcxproj /p:Configuration=Debug /p:Platform=x64 /p:VisualStudioVersion=16.0 /v:m && Microsoft (R) Build Engine version 16.6.0+5ff7b0c9e for .NET Framework
+Copyright (C) Microsoft Corporation. All rights reserved.
+
+  Microsoft (R) C/C++ Optimizing Compiler Version 19.26.28806 for x64
+  CheckFunctionExists.c
+  Copyright (C) Microsoft Corporation.  All rights reserved.
+  cl /c /Zi /W3 /WX- /diagnostics:column /Od /Ob0 /D WIN32 /D _WINDOWS /D CHECK_FUNCTION_EXISTS=inet_ntop /D "CMAKE_INTDIR=\"Debug\"" /D _MBCS /Gm- /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /Fo"cmTC_256b9.dir\Debug\\" /Fd"cmTC_256b9.dir\Debug\vc142.pdb" /Gd /TC /errorReport:queue "C:\Program Files\CMake\share\cmake-3.17\Modules\CheckFunctionExists.c"
+CheckFunctionExists.obj : error LNK2019: unresolved external symbol inet_ntop referenced in function main [G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\cmTC_256b9.vcxproj]
+G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\Debug\cmTC_256b9.exe : fatal error LNK1120: 1 unresolved externals [G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\cmTC_256b9.vcxproj]
+
+
+
+Performing C SOURCE FILE Test HAS_MSGHDR_FLAGS failed with the following output:
+Change Dir: G:/Projects/Ishiiruka/CMakeFiles/CMakeTmp
+
+Run Build Command(s):C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/MSBuild/Current/Bin/MSBuild.exe cmTC_5c207.vcxproj /p:Configuration=Debug /p:Platform=x64 /p:VisualStudioVersion=16.0 /v:m && Microsoft (R) Build Engine version 16.6.0+5ff7b0c9e for .NET Framework
+Copyright (C) Microsoft Corporation. All rights reserved.
+
+  Microsoft (R) C/C++ Optimizing Compiler Version 19.26.28806 for x64
+  src.c
+  Copyright (C) Microsoft Corporation.  All rights reserved.
+  cl /c /Zi /W3 /WX- /diagnostics:column /Od /Ob0 /D WIN32 /D _WINDOWS /D HAS_MSGHDR_FLAGS /D "CMAKE_INTDIR=\"Debug\"" /D _MBCS /Gm- /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /Fo"cmTC_5c207.dir\Debug\\" /Fd"cmTC_5c207.dir\Debug\vc142.pdb" /Gd /TC /errorReport:queue G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\src.c
+G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\src.c(3,10): fatal error C1083: Cannot open include file: 'sys/socket.h': No such file or directory [G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\cmTC_5c207.vcxproj]
+
+
+Source file was:
+
+#include <sys/types.h>
+#include <sys/socket.h>
+
+int main()
+{
+  (void)sizeof(((struct msghdr *)0)->msg_flags);
+  return 0;
+}
+
+Determining size of socklen_t failed with the following output:
+Change Dir: G:/Projects/Ishiiruka/CMakeFiles/CMakeTmp
+
+Run Build Command(s):C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/MSBuild/Current/Bin/MSBuild.exe cmTC_42731.vcxproj /p:Configuration=Debug /p:Platform=x64 /p:VisualStudioVersion=16.0 /v:m && Microsoft (R) Build Engine version 16.6.0+5ff7b0c9e for .NET Framework
+Copyright (C) Microsoft Corporation. All rights reserved.
+
+  Microsoft (R) C/C++ Optimizing Compiler Version 19.26.28806 for x64
+  HAS_SOCKLEN_T.c
+  Copyright (C) Microsoft Corporation.  All rights reserved.
+  cl /c /Zi /W3 /WX- /diagnostics:column /Od /Ob0 /D WIN32 /D _WINDOWS /D "CMAKE_INTDIR=\"Debug\"" /D _MBCS /Gm- /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /Fo"cmTC_42731.dir\Debug\\" /Fd"cmTC_42731.dir\Debug\vc142.pdb" /Gd /TC /errorReport:queue G:\Projects\Ishiiruka\CMakeFiles\CheckTypeSize\HAS_SOCKLEN_T.c
+G:\Projects\Ishiiruka\CMakeFiles\CheckTypeSize\HAS_SOCKLEN_T.c(2,10): fatal error C1083: Cannot open include file: 'sys/socket.h': No such file or directory [G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\cmTC_42731.vcxproj]
+
+
+G:/Projects/Ishiiruka/CMakeFiles/CheckTypeSize/HAS_SOCKLEN_T.c:
+#include "sys/types.h"
+#include "sys/socket.h"
+
+
+#undef KEY
+#if defined(__i386)
+# define KEY '_','_','i','3','8','6'
+#elif defined(__x86_64)
+# define KEY '_','_','x','8','6','_','6','4'
+#elif defined(__ppc__)
+# define KEY '_','_','p','p','c','_','_'
+#elif defined(__ppc64__)
+# define KEY '_','_','p','p','c','6','4','_','_'
+#elif defined(__aarch64__)
+# define KEY '_','_','a','a','r','c','h','6','4','_','_'
+#elif defined(__ARM_ARCH_7A__)
+# define KEY '_','_','A','R','M','_','A','R','C','H','_','7','A','_','_'
+#elif defined(__ARM_ARCH_7S__)
+# define KEY '_','_','A','R','M','_','A','R','C','H','_','7','S','_','_'
+#endif
+
+#define SIZE (sizeof(socklen_t))
+static char info_size[] =  {'I', 'N', 'F', 'O', ':', 's','i','z','e','[',
+  ('0' + ((SIZE / 10000)%10)),
+  ('0' + ((SIZE / 1000)%10)),
+  ('0' + ((SIZE / 100)%10)),
+  ('0' + ((SIZE / 10)%10)),
+  ('0' +  (SIZE    % 10)),
+  ']',
+#ifdef KEY
+  ' ','k','e','y','[', KEY, ']',
+#endif
+  '\0'};
+
+#ifdef __CLASSIC_C__
+int main(argc, argv) int argc; char *argv[];
+#else
+int main(int argc, char *argv[])
+#endif
+{
+  int require = 0;
+  require += info_size[argc];
+  (void)argv;
+  return require;
+}
+
+
+Determining if the include file unistd.h exists failed with the following output:
+Change Dir: G:/Projects/Ishiiruka/CMakeFiles/CMakeTmp
+
+Run Build Command(s):C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/MSBuild/Current/Bin/MSBuild.exe cmTC_9bfa2.vcxproj /p:Configuration=Debug /p:Platform=x64 /p:VisualStudioVersion=16.0 /v:m && Microsoft (R) Build Engine version 16.6.0+5ff7b0c9e for .NET Framework
+Copyright (C) Microsoft Corporation. All rights reserved.
+
+  Microsoft (R) C/C++ Optimizing Compiler Version 19.26.28806 for x64
+  CheckIncludeFile.c
+  Copyright (C) Microsoft Corporation.  All rights reserved.
+  cl /c /Zi /W3 /WX- /diagnostics:column /Od /Ob0 /D WIN32 /D _WINDOWS /D "CMAKE_INTDIR=\"Debug\"" /D _MBCS /Gm- /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /Fo"cmTC_9bfa2.dir\Debug\\" /Fd"cmTC_9bfa2.dir\Debug\vc142.pdb" /Gd /TC /errorReport:queue G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\CheckIncludeFile.c
+G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\CheckIncludeFile.c(1,10): fatal error C1083: Cannot open include file: 'unistd.h': No such file or directory [G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\cmTC_9bfa2.vcxproj]
+
+
+
+Determining size of off64_t failed with the following output:
+Change Dir: G:/Projects/Ishiiruka/CMakeFiles/CMakeTmp
+
+Run Build Command(s):C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/MSBuild/Current/Bin/MSBuild.exe cmTC_e6070.vcxproj /p:Configuration=Debug /p:Platform=x64 /p:VisualStudioVersion=16.0 /v:m && Microsoft (R) Build Engine version 16.6.0+5ff7b0c9e for .NET Framework
+Copyright (C) Microsoft Corporation. All rights reserved.
+
+  Microsoft (R) C/C++ Optimizing Compiler Version 19.26.28806 for x64
+  OFF64_T.c
+  Copyright (C) Microsoft Corporation.  All rights reserved.
+  cl /c /Zi /W3 /WX- /diagnostics:column /Od /Ob0 /D WIN32 /D _WINDOWS /D _LARGEFILE64_SOURCE=1 /D HAVE_SYS_TYPES_H /D HAVE_STDINT_H /D HAVE_STDDEF_H /D "CMAKE_INTDIR=\"Debug\"" /D _MBCS /Gm- /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /Fo"cmTC_e6070.dir\Debug\\" /Fd"cmTC_e6070.dir\Debug\vc142.pdb" /Gd /TC /errorReport:queue G:\Projects\Ishiiruka\CMakeFiles\CheckTypeSize\OFF64_T.c
+G:\Projects\Ishiiruka\CMakeFiles\CheckTypeSize\OFF64_T.c(25,12): error C2065: 'off64_t': undeclared identifier [G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\cmTC_e6070.vcxproj]
+G:\Projects\Ishiiruka\CMakeFiles\CheckTypeSize\OFF64_T.c(26,12): error C2065: 'off64_t': undeclared identifier [G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\cmTC_e6070.vcxproj]
+G:\Projects\Ishiiruka\CMakeFiles\CheckTypeSize\OFF64_T.c(27,12): error C2065: 'off64_t': undeclared identifier [G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\cmTC_e6070.vcxproj]
+G:\Projects\Ishiiruka\CMakeFiles\CheckTypeSize\OFF64_T.c(28,12): error C2065: 'off64_t': undeclared identifier [G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\cmTC_e6070.vcxproj]
+G:\Projects\Ishiiruka\CMakeFiles\CheckTypeSize\OFF64_T.c(29,12): error C2065: 'off64_t': undeclared identifier [G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\cmTC_e6070.vcxproj]
+
+
+G:/Projects/Ishiiruka/CMakeFiles/CheckTypeSize/OFF64_T.c:
+#include <sys/types.h>
+#include <stdint.h>
+#include <stddef.h>
+
+
+#undef KEY
+#if defined(__i386)
+# define KEY '_','_','i','3','8','6'
+#elif defined(__x86_64)
+# define KEY '_','_','x','8','6','_','6','4'
+#elif defined(__ppc__)
+# define KEY '_','_','p','p','c','_','_'
+#elif defined(__ppc64__)
+# define KEY '_','_','p','p','c','6','4','_','_'
+#elif defined(__aarch64__)
+# define KEY '_','_','a','a','r','c','h','6','4','_','_'
+#elif defined(__ARM_ARCH_7A__)
+# define KEY '_','_','A','R','M','_','A','R','C','H','_','7','A','_','_'
+#elif defined(__ARM_ARCH_7S__)
+# define KEY '_','_','A','R','M','_','A','R','C','H','_','7','S','_','_'
+#endif
+
+#define SIZE (sizeof(off64_t))
+static char info_size[] =  {'I', 'N', 'F', 'O', ':', 's','i','z','e','[',
+  ('0' + ((SIZE / 10000)%10)),
+  ('0' + ((SIZE / 1000)%10)),
+  ('0' + ((SIZE / 100)%10)),
+  ('0' + ((SIZE / 10)%10)),
+  ('0' +  (SIZE    % 10)),
+  ']',
+#ifdef KEY
+  ' ','k','e','y','[', KEY, ']',
+#endif
+  '\0'};
+
+#ifdef __CLASSIC_C__
+int main(argc, argv) int argc; char *argv[];
+#else
+int main(int argc, char *argv[])
+#endif
+{
+  int require = 0;
+  require += info_size[argc];
+  (void)argv;
+  return require;
+}
+
+
+Determining if the function fseeko exists failed with the following output:
+Change Dir: G:/Projects/Ishiiruka/CMakeFiles/CMakeTmp
+
+Run Build Command(s):C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/MSBuild/Current/Bin/MSBuild.exe cmTC_4aa15.vcxproj /p:Configuration=Debug /p:Platform=x64 /p:VisualStudioVersion=16.0 /v:m && Microsoft (R) Build Engine version 16.6.0+5ff7b0c9e for .NET Framework
+Copyright (C) Microsoft Corporation. All rights reserved.
+
+  Microsoft (R) C/C++ Optimizing Compiler Version 19.26.28806 for x64
+  CheckFunctionExists.c
+  Copyright (C) Microsoft Corporation.  All rights reserved.
+  cl /c /Zi /W3 /WX- /diagnostics:column /Od /Ob0 /D WIN32 /D _WINDOWS /D CHECK_FUNCTION_EXISTS=fseeko /D "CMAKE_INTDIR=\"Debug\"" /D _MBCS /Gm- /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /Fo"cmTC_4aa15.dir\Debug\\" /Fd"cmTC_4aa15.dir\Debug\vc142.pdb" /Gd /TC /errorReport:queue "C:\Program Files\CMake\share\cmake-3.17\Modules\CheckFunctionExists.c"
+CheckFunctionExists.obj : error LNK2019: unresolved external symbol fseeko referenced in function main [G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\cmTC_4aa15.vcxproj]
+G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\Debug\cmTC_4aa15.exe : fatal error LNK1120: 1 unresolved externals [G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\cmTC_4aa15.vcxproj]
+
+
+
+Determining if files asm/types.h exist failed with the following output:
+Change Dir: G:/Projects/Ishiiruka/CMakeFiles/CMakeTmp
+
+Run Build Command(s):C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/MSBuild/Current/Bin/MSBuild.exe cmTC_2a711.vcxproj /p:Configuration=Debug /p:Platform=x64 /p:VisualStudioVersion=16.0 /v:m && Microsoft (R) Build Engine version 16.6.0+5ff7b0c9e for .NET Framework
+Copyright (C) Microsoft Corporation. All rights reserved.
+
+  Microsoft (R) C/C++ Optimizing Compiler Version 19.26.28806 for x64
+  HAVE_ASM_TYPES_H.c
+  Copyright (C) Microsoft Corporation.  All rights reserved.
+  cl /c /Zi /W3 /WX- /diagnostics:column /Od /Ob0 /D WIN32 /D _WINDOWS /D "CMAKE_INTDIR=\"Debug\"" /D _MBCS /Gm- /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /Fo"cmTC_2a711.dir\Debug\\" /Fd"cmTC_2a711.dir\Debug\vc142.pdb" /Gd /TC /errorReport:queue G:\Projects\Ishiiruka\CMakeFiles\CheckIncludeFiles\HAVE_ASM_TYPES_H.c
+G:\Projects\Ishiiruka\CMakeFiles\CheckIncludeFiles\HAVE_ASM_TYPES_H.c(2,10): fatal error C1083: Cannot open include file: 'asm/types.h': No such file or directory [G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\cmTC_2a711.vcxproj]
+
+
+Source:
+/* */
+#include <asm/types.h>
+
+
+int main(void){return 0;}
+
+Determining if files linux/filter.h exist failed with the following output:
+Change Dir: G:/Projects/Ishiiruka/CMakeFiles/CMakeTmp
+
+Run Build Command(s):C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/MSBuild/Current/Bin/MSBuild.exe cmTC_86011.vcxproj /p:Configuration=Debug /p:Platform=x64 /p:VisualStudioVersion=16.0 /v:m && Microsoft (R) Build Engine version 16.6.0+5ff7b0c9e for .NET Framework
+Copyright (C) Microsoft Corporation. All rights reserved.
+
+  Microsoft (R) C/C++ Optimizing Compiler Version 19.26.28806 for x64
+  HAVE_LINUX_FILTER_H.c
+  Copyright (C) Microsoft Corporation.  All rights reserved.
+  cl /c /Zi /W3 /WX- /diagnostics:column /Od /Ob0 /D WIN32 /D _WINDOWS /D "CMAKE_INTDIR=\"Debug\"" /D _MBCS /Gm- /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /Fo"cmTC_86011.dir\Debug\\" /Fd"cmTC_86011.dir\Debug\vc142.pdb" /Gd /TC /errorReport:queue G:\Projects\Ishiiruka\CMakeFiles\CheckIncludeFiles\HAVE_LINUX_FILTER_H.c
+G:\Projects\Ishiiruka\CMakeFiles\CheckIncludeFiles\HAVE_LINUX_FILTER_H.c(2,10): fatal error C1083: Cannot open include file: 'linux/filter.h': No such file or directory [G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\cmTC_86011.vcxproj]
+
+
+Source:
+/* */
+#include <linux/filter.h>
+
+
+int main(void){return 0;}
+
+Determining if files linux/netlink.h exist failed with the following output:
+Change Dir: G:/Projects/Ishiiruka/CMakeFiles/CMakeTmp
+
+Run Build Command(s):C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/MSBuild/Current/Bin/MSBuild.exe cmTC_e949a.vcxproj /p:Configuration=Debug /p:Platform=x64 /p:VisualStudioVersion=16.0 /v:m && Microsoft (R) Build Engine version 16.6.0+5ff7b0c9e for .NET Framework
+Copyright (C) Microsoft Corporation. All rights reserved.
+
+  Microsoft (R) C/C++ Optimizing Compiler Version 19.26.28806 for x64
+  HAVE_LINUX_NETLINK_H.c
+  Copyright (C) Microsoft Corporation.  All rights reserved.
+  cl /c /Zi /W3 /WX- /diagnostics:column /Od /Ob0 /D WIN32 /D _WINDOWS /D "CMAKE_INTDIR=\"Debug\"" /D _MBCS /Gm- /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /Fo"cmTC_e949a.dir\Debug\\" /Fd"cmTC_e949a.dir\Debug\vc142.pdb" /Gd /TC /errorReport:queue G:\Projects\Ishiiruka\CMakeFiles\CheckIncludeFiles\HAVE_LINUX_NETLINK_H.c
+G:\Projects\Ishiiruka\CMakeFiles\CheckIncludeFiles\HAVE_LINUX_NETLINK_H.c(2,10): fatal error C1083: Cannot open include file: 'linux/netlink.h': No such file or directory [G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\cmTC_e949a.vcxproj]
+
+
+Source:
+/* */
+#include <linux/netlink.h>
+
+
+int main(void){return 0;}
+
+Determining if files poll.h exist failed with the following output:
+Change Dir: G:/Projects/Ishiiruka/CMakeFiles/CMakeTmp
+
+Run Build Command(s):C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/MSBuild/Current/Bin/MSBuild.exe cmTC_8ee7d.vcxproj /p:Configuration=Debug /p:Platform=x64 /p:VisualStudioVersion=16.0 /v:m && Microsoft (R) Build Engine version 16.6.0+5ff7b0c9e for .NET Framework
+Copyright (C) Microsoft Corporation. All rights reserved.
+
+  Microsoft (R) C/C++ Optimizing Compiler Version 19.26.28806 for x64
+  HAVE_POLL_H.c
+  Copyright (C) Microsoft Corporation.  All rights reserved.
+  cl /c /Zi /W3 /WX- /diagnostics:column /Od /Ob0 /D WIN32 /D _WINDOWS /D "CMAKE_INTDIR=\"Debug\"" /D _MBCS /Gm- /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /Fo"cmTC_8ee7d.dir\Debug\\" /Fd"cmTC_8ee7d.dir\Debug\vc142.pdb" /Gd /TC /errorReport:queue G:\Projects\Ishiiruka\CMakeFiles\CheckIncludeFiles\HAVE_POLL_H.c
+G:\Projects\Ishiiruka\CMakeFiles\CheckIncludeFiles\HAVE_POLL_H.c(2,10): fatal error C1083: Cannot open include file: 'poll.h': No such file or directory [G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\cmTC_8ee7d.vcxproj]
+
+
+Source:
+/* */
+#include <poll.h>
+
+
+int main(void){return 0;}
+
+Determining if files strings.h exist failed with the following output:
+Change Dir: G:/Projects/Ishiiruka/CMakeFiles/CMakeTmp
+
+Run Build Command(s):C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/MSBuild/Current/Bin/MSBuild.exe cmTC_a7111.vcxproj /p:Configuration=Debug /p:Platform=x64 /p:VisualStudioVersion=16.0 /v:m && Microsoft (R) Build Engine version 16.6.0+5ff7b0c9e for .NET Framework
+Copyright (C) Microsoft Corporation. All rights reserved.
+
+  Microsoft (R) C/C++ Optimizing Compiler Version 19.26.28806 for x64
+  HAVE_STRINGS_H.c
+  Copyright (C) Microsoft Corporation.  All rights reserved.
+  cl /c /Zi /W3 /WX- /diagnostics:column /Od /Ob0 /D WIN32 /D _WINDOWS /D "CMAKE_INTDIR=\"Debug\"" /D _MBCS /Gm- /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /Fo"cmTC_a7111.dir\Debug\\" /Fd"cmTC_a7111.dir\Debug\vc142.pdb" /Gd /TC /errorReport:queue G:\Projects\Ishiiruka\CMakeFiles\CheckIncludeFiles\HAVE_STRINGS_H.c
+G:\Projects\Ishiiruka\CMakeFiles\CheckIncludeFiles\HAVE_STRINGS_H.c(2,10): fatal error C1083: Cannot open include file: 'strings.h': No such file or directory [G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\cmTC_a7111.vcxproj]
+
+
+Source:
+/* */
+#include <strings.h>
+
+
+int main(void){return 0;}
+
+Determining size of struct timespec failed with the following output:
+Change Dir: G:/Projects/Ishiiruka/CMakeFiles/CMakeTmp
+
+Run Build Command(s):C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/MSBuild/Current/Bin/MSBuild.exe cmTC_16594.vcxproj /p:Configuration=Debug /p:Platform=x64 /p:VisualStudioVersion=16.0 /v:m && Microsoft (R) Build Engine version 16.6.0+5ff7b0c9e for .NET Framework
+Copyright (C) Microsoft Corporation. All rights reserved.
+
+  Microsoft (R) C/C++ Optimizing Compiler Version 19.26.28806 for x64
+  STRUCT_TIMESPEC.c
+  Copyright (C) Microsoft Corporation.  All rights reserved.
+  cl /c /Zi /W3 /WX- /diagnostics:column /Od /Ob0 /D WIN32 /D _WINDOWS /D "CMAKE_INTDIR=\"Debug\"" /D _MBCS /Gm- /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /Fo"cmTC_16594.dir\Debug\\" /Fd"cmTC_16594.dir\Debug\vc142.pdb" /Gd /TC /errorReport:queue G:\Projects\Ishiiruka\CMakeFiles\CheckTypeSize\STRUCT_TIMESPEC.c
+G:\Projects\Ishiiruka\CMakeFiles\CheckTypeSize\STRUCT_TIMESPEC.c(25,12): error C2027: use of undefined type 'timespec' [G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\cmTC_16594.vcxproj]
+G:\Projects\Ishiiruka\CMakeFiles\CheckTypeSize\STRUCT_TIMESPEC.c(25): message : see declaration of 'timespec' [G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\cmTC_16594.vcxproj]
+G:\Projects\Ishiiruka\CMakeFiles\CheckTypeSize\STRUCT_TIMESPEC.c(26,12): error C2027: use of undefined type 'timespec' [G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\cmTC_16594.vcxproj]
+G:\Projects\Ishiiruka\CMakeFiles\CheckTypeSize\STRUCT_TIMESPEC.c(25): message : see declaration of 'timespec' [G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\cmTC_16594.vcxproj]
+G:\Projects\Ishiiruka\CMakeFiles\CheckTypeSize\STRUCT_TIMESPEC.c(27,12): error C2027: use of undefined type 'timespec' [G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\cmTC_16594.vcxproj]
+G:\Projects\Ishiiruka\CMakeFiles\CheckTypeSize\STRUCT_TIMESPEC.c(25): message : see declaration of 'timespec' [G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\cmTC_16594.vcxproj]
+G:\Projects\Ishiiruka\CMakeFiles\CheckTypeSize\STRUCT_TIMESPEC.c(28,12): error C2027: use of undefined type 'timespec' [G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\cmTC_16594.vcxproj]
+G:\Projects\Ishiiruka\CMakeFiles\CheckTypeSize\STRUCT_TIMESPEC.c(25): message : see declaration of 'timespec' [G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\cmTC_16594.vcxproj]
+G:\Projects\Ishiiruka\CMakeFiles\CheckTypeSize\STRUCT_TIMESPEC.c(29,12): error C2027: use of undefined type 'timespec' [G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\cmTC_16594.vcxproj]
+G:\Projects\Ishiiruka\CMakeFiles\CheckTypeSize\STRUCT_TIMESPEC.c(25): message : see declaration of 'timespec' [G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\cmTC_16594.vcxproj]
+
+
+G:/Projects/Ishiiruka/CMakeFiles/CheckTypeSize/STRUCT_TIMESPEC.c:
+#include <sys/types.h>
+#include <stdint.h>
+#include <stddef.h>
+
+
+#undef KEY
+#if defined(__i386)
+# define KEY '_','_','i','3','8','6'
+#elif defined(__x86_64)
+# define KEY '_','_','x','8','6','_','6','4'
+#elif defined(__ppc__)
+# define KEY '_','_','p','p','c','_','_'
+#elif defined(__ppc64__)
+# define KEY '_','_','p','p','c','6','4','_','_'
+#elif defined(__aarch64__)
+# define KEY '_','_','a','a','r','c','h','6','4','_','_'
+#elif defined(__ARM_ARCH_7A__)
+# define KEY '_','_','A','R','M','_','A','R','C','H','_','7','A','_','_'
+#elif defined(__ARM_ARCH_7S__)
+# define KEY '_','_','A','R','M','_','A','R','C','H','_','7','S','_','_'
+#endif
+
+#define SIZE (sizeof(struct timespec))
+static char info_size[] =  {'I', 'N', 'F', 'O', ':', 's','i','z','e','[',
+  ('0' + ((SIZE / 10000)%10)),
+  ('0' + ((SIZE / 1000)%10)),
+  ('0' + ((SIZE / 100)%10)),
+  ('0' + ((SIZE / 10)%10)),
+  ('0' +  (SIZE    % 10)),
+  ']',
+#ifdef KEY
+  ' ','k','e','y','[', KEY, ']',
+#endif
+  '\0'};
+
+#ifdef __CLASSIC_C__
+int main(argc, argv) int argc; char *argv[];
+#else
+int main(int argc, char *argv[])
+#endif
+{
+  int require = 0;
+  require += info_size[argc];
+  (void)argv;
+  return require;
+}
+
+
+Determining if the function syslog exists failed with the following output:
+Change Dir: G:/Projects/Ishiiruka/CMakeFiles/CMakeTmp
+
+Run Build Command(s):C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/MSBuild/Current/Bin/MSBuild.exe cmTC_dd27c.vcxproj /p:Configuration=Debug /p:Platform=x64 /p:VisualStudioVersion=16.0 /v:m && Microsoft (R) Build Engine version 16.6.0+5ff7b0c9e for .NET Framework
+Copyright (C) Microsoft Corporation. All rights reserved.
+
+  Microsoft (R) C/C++ Optimizing Compiler Version 19.26.28806 for x64
+  CheckFunctionExists.c
+  Copyright (C) Microsoft Corporation.  All rights reserved.
+  cl /c /Zi /W3 /WX- /diagnostics:column /Od /Ob0 /D WIN32 /D _WINDOWS /D CHECK_FUNCTION_EXISTS=syslog /D "CMAKE_INTDIR=\"Debug\"" /D _MBCS /Gm- /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /Fo"cmTC_dd27c.dir\Debug\\" /Fd"cmTC_dd27c.dir\Debug\vc142.pdb" /Gd /TC /errorReport:queue "C:\Program Files\CMake\share\cmake-3.17\Modules\CheckFunctionExists.c"
+CheckFunctionExists.obj : error LNK2019: unresolved external symbol syslog referenced in function main [G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\cmTC_dd27c.vcxproj]
+G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\Debug\cmTC_dd27c.exe : fatal error LNK1120: 1 unresolved externals [G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\cmTC_dd27c.vcxproj]
+
+
+
+Determining if files syslog.h exist failed with the following output:
+Change Dir: G:/Projects/Ishiiruka/CMakeFiles/CMakeTmp
+
+Run Build Command(s):C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/MSBuild/Current/Bin/MSBuild.exe cmTC_07edb.vcxproj /p:Configuration=Debug /p:Platform=x64 /p:VisualStudioVersion=16.0 /v:m && Microsoft (R) Build Engine version 16.6.0+5ff7b0c9e for .NET Framework
+Copyright (C) Microsoft Corporation. All rights reserved.
+
+  Microsoft (R) C/C++ Optimizing Compiler Version 19.26.28806 for x64
+  HAVE_SYSLOG_H.c
+  Copyright (C) Microsoft Corporation.  All rights reserved.
+  cl /c /Zi /W3 /WX- /diagnostics:column /Od /Ob0 /D WIN32 /D _WINDOWS /D "CMAKE_INTDIR=\"Debug\"" /D _MBCS /Gm- /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /Fo"cmTC_07edb.dir\Debug\\" /Fd"cmTC_07edb.dir\Debug\vc142.pdb" /Gd /TC /errorReport:queue G:\Projects\Ishiiruka\CMakeFiles\CheckIncludeFiles\HAVE_SYSLOG_H.c
+G:\Projects\Ishiiruka\CMakeFiles\CheckIncludeFiles\HAVE_SYSLOG_H.c(2,10): fatal error C1083: Cannot open include file: 'syslog.h': No such file or directory [G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\cmTC_07edb.vcxproj]
+
+
+Source:
+/* */
+#include <syslog.h>
+
+
+int main(void){return 0;}
+
+Determining if files sys/socket.h exist failed with the following output:
+Change Dir: G:/Projects/Ishiiruka/CMakeFiles/CMakeTmp
+
+Run Build Command(s):C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/MSBuild/Current/Bin/MSBuild.exe cmTC_7d2e1.vcxproj /p:Configuration=Debug /p:Platform=x64 /p:VisualStudioVersion=16.0 /v:m && Microsoft (R) Build Engine version 16.6.0+5ff7b0c9e for .NET Framework
+Copyright (C) Microsoft Corporation. All rights reserved.
+
+  Microsoft (R) C/C++ Optimizing Compiler Version 19.26.28806 for x64
+  HAVE_SYS_SOCKET_H.c
+  Copyright (C) Microsoft Corporation.  All rights reserved.
+  cl /c /Zi /W3 /WX- /diagnostics:column /Od /Ob0 /D WIN32 /D _WINDOWS /D "CMAKE_INTDIR=\"Debug\"" /D _MBCS /Gm- /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /Fo"cmTC_7d2e1.dir\Debug\\" /Fd"cmTC_7d2e1.dir\Debug\vc142.pdb" /Gd /TC /errorReport:queue G:\Projects\Ishiiruka\CMakeFiles\CheckIncludeFiles\HAVE_SYS_SOCKET_H.c
+G:\Projects\Ishiiruka\CMakeFiles\CheckIncludeFiles\HAVE_SYS_SOCKET_H.c(2,10): fatal error C1083: Cannot open include file: 'sys/socket.h': No such file or directory [G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\cmTC_7d2e1.vcxproj]
+
+
+Source:
+/* */
+#include <sys/socket.h>
+
+
+int main(void){return 0;}
+
+Determining size of nfds_t failed with the following output:
+Change Dir: G:/Projects/Ishiiruka/CMakeFiles/CMakeTmp
+
+Run Build Command(s):C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/MSBuild/Current/Bin/MSBuild.exe cmTC_4f68d.vcxproj /p:Configuration=Debug /p:Platform=x64 /p:VisualStudioVersion=16.0 /v:m && Microsoft (R) Build Engine version 16.6.0+5ff7b0c9e for .NET Framework
+Copyright (C) Microsoft Corporation. All rights reserved.
+
+  Microsoft (R) C/C++ Optimizing Compiler Version 19.26.28806 for x64
+  nfds_t.c
+  Copyright (C) Microsoft Corporation.  All rights reserved.
+  cl /c /Zi /W3 /WX- /diagnostics:column /Od /Ob0 /D WIN32 /D _WINDOWS /D "CMAKE_INTDIR=\"Debug\"" /D _MBCS /Gm- /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /Fo"cmTC_4f68d.dir\Debug\\" /Fd"cmTC_4f68d.dir\Debug\vc142.pdb" /Gd /TC /errorReport:queue G:\Projects\Ishiiruka\CMakeFiles\CheckTypeSize\nfds_t.c
+G:\Projects\Ishiiruka\CMakeFiles\CheckTypeSize\nfds_t.c(4,10): fatal error C1083: Cannot open include file: 'poll.h': No such file or directory [G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\cmTC_4f68d.vcxproj]
+
+
+G:/Projects/Ishiiruka/CMakeFiles/CheckTypeSize/nfds_t.c:
+#include <sys/types.h>
+#include <stdint.h>
+#include <stddef.h>
+#include "poll.h"
+
+
+#undef KEY
+#if defined(__i386)
+# define KEY '_','_','i','3','8','6'
+#elif defined(__x86_64)
+# define KEY '_','_','x','8','6','_','6','4'
+#elif defined(__ppc__)
+# define KEY '_','_','p','p','c','_','_'
+#elif defined(__ppc64__)
+# define KEY '_','_','p','p','c','6','4','_','_'
+#elif defined(__aarch64__)
+# define KEY '_','_','a','a','r','c','h','6','4','_','_'
+#elif defined(__ARM_ARCH_7A__)
+# define KEY '_','_','A','R','M','_','A','R','C','H','_','7','A','_','_'
+#elif defined(__ARM_ARCH_7S__)
+# define KEY '_','_','A','R','M','_','A','R','C','H','_','7','S','_','_'
+#endif
+
+#define SIZE (sizeof(nfds_t))
+static char info_size[] =  {'I', 'N', 'F', 'O', ':', 's','i','z','e','[',
+  ('0' + ((SIZE / 10000)%10)),
+  ('0' + ((SIZE / 1000)%10)),
+  ('0' + ((SIZE / 100)%10)),
+  ('0' + ((SIZE / 10)%10)),
+  ('0' +  (SIZE    % 10)),
+  ']',
+#ifdef KEY
+  ' ','k','e','y','[', KEY, ']',
+#endif
+  '\0'};
+
+#ifdef __CLASSIC_C__
+int main(argc, argv) int argc; char *argv[];
+#else
+int main(int argc, char *argv[])
+#endif
+{
+  int require = 0;
+  require += info_size[argc];
+  (void)argv;
+  return require;
+}
+
+
+Determining if files sys/timerfd.h exist failed with the following output:
+Change Dir: G:/Projects/Ishiiruka/CMakeFiles/CMakeTmp
+
+Run Build Command(s):C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/MSBuild/Current/Bin/MSBuild.exe cmTC_96731.vcxproj /p:Configuration=Debug /p:Platform=x64 /p:VisualStudioVersion=16.0 /v:m && Microsoft (R) Build Engine version 16.6.0+5ff7b0c9e for .NET Framework
+Copyright (C) Microsoft Corporation. All rights reserved.
+
+  Microsoft (R) C/C++ Optimizing Compiler Version 19.26.28806 for x64
+  USBI_TIMERFD_AVAILABLE.c
+  Copyright (C) Microsoft Corporation.  All rights reserved.
+  cl /c /Zi /W3 /WX- /diagnostics:column /Od /Ob0 /D WIN32 /D _WINDOWS /D "CMAKE_INTDIR=\"Debug\"" /D _MBCS /Gm- /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /Fo"cmTC_96731.dir\Debug\\" /Fd"cmTC_96731.dir\Debug\vc142.pdb" /Gd /TC /errorReport:queue G:\Projects\Ishiiruka\CMakeFiles\CheckIncludeFiles\USBI_TIMERFD_AVAILABLE.c
+G:\Projects\Ishiiruka\CMakeFiles\CheckIncludeFiles\USBI_TIMERFD_AVAILABLE.c(2,10): fatal error C1083: Cannot open include file: 'sys/timerfd.h': No such file or directory [G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\cmTC_96731.vcxproj]
+
+
+Source:
+/* */
+#include <sys/timerfd.h>
+
+
+int main(void){return 0;}
+
+Performing C++ SOURCE FILE Test MBEDTLS_VERSION_OK failed with the following output:
+Change Dir: G:/Projects/Ishiiruka/CMakeFiles/CMakeTmp
+
+Run Build Command(s):C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/MSBuild/Current/Bin/MSBuild.exe cmTC_572d7.vcxproj /p:Configuration=Debug /p:Platform=x64 /p:VisualStudioVersion=16.0 /v:m && Microsoft (R) Build Engine version 16.6.0+5ff7b0c9e for .NET Framework
+Copyright (C) Microsoft Corporation. All rights reserved.
+
+  Microsoft (R) C/C++ Optimizing Compiler Version 19.26.28806 for x64
+  src.cxx
+  Copyright (C) Microsoft Corporation.  All rights reserved.
+  cl /c /Zi /W3 /WX- /diagnostics:column /Od /Ob0 /D WIN32 /D _WINDOWS /D MBEDTLS_VERSION_OK /D "CMAKE_INTDIR=\"Debug\"" /D _MBCS /Gm- /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /GR /Fo"cmTC_572d7.dir\Debug\\" /Fd"cmTC_572d7.dir\Debug\vc142.pdb" /Gd /TP /errorReport:queue G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\src.cxx
+G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\src.cxx(2,11): fatal error C1083: Cannot open include file: 'mbedtls/version.h': No such file or directory [G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\cmTC_572d7.vcxproj]
+
+
+Source file was:
+
+	#include <mbedtls/version.h>
+	#if MBEDTLS_VERSION_NUMBER < 0x02010100
+	#error "Your mbed TLS version is too old."
+	#endif
+	int main() {}
+Performing C++ SOURCE FILE Test COMPILER_HAS_DEPRECATED_ATTR failed with the following output:
+Change Dir: G:/Projects/Ishiiruka/CMakeFiles/CMakeTmp
+
+Run Build Command(s):C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/MSBuild/Current/Bin/MSBuild.exe cmTC_d1f2c.vcxproj /p:Configuration=Debug /p:Platform=x64 /p:VisualStudioVersion=16.0 /v:m && Microsoft (R) Build Engine version 16.6.0+5ff7b0c9e for .NET Framework
+Copyright (C) Microsoft Corporation. All rights reserved.
+
+  Microsoft (R) C/C++ Optimizing Compiler Version 19.26.28806 for x64
+  src.cxx
+  Copyright (C) Microsoft Corporation.  All rights reserved.
+  cl /c /Zi /W3 /WX- /diagnostics:column /Od /Ob0 /D WIN32 /D _WINDOWS /D COMPILER_HAS_DEPRECATED_ATTR /D "CMAKE_INTDIR=\"Debug\"" /D _MBCS /Gm- /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /GR /Fo"cmTC_d1f2c.dir\Debug\\" /Fd"cmTC_d1f2c.dir\Debug\vc142.pdb" /Gd /TP /errorReport:queue G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\src.cxx
+G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\src.cxx(1,16): error C2065: '__deprecated__': undeclared identifier [G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\cmTC_d1f2c.vcxproj]
+G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\src.cxx(1,31): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int [G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\cmTC_d1f2c.vcxproj]
+G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\src.cxx(1,37): error C2448: '__attribute__': function-style initializer appears to be a function definition [G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\cmTC_d1f2c.vcxproj]
+
+
+Source file was:
+__attribute__((__deprecated__)) int somefunc() { return 0; }
+    int main() { return somefunc();}
+Determining if files AudioUnit/AudioUnit.h exist failed with the following output:
+Change Dir: G:/Projects/Ishiiruka/CMakeFiles/CMakeTmp
+
+Run Build Command(s):C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/MSBuild/Current/Bin/MSBuild.exe cmTC_f94d3.vcxproj /p:Configuration=Debug /p:Platform=x64 /p:VisualStudioVersion=16.0 /v:m && Microsoft (R) Build Engine version 16.6.0+5ff7b0c9e for .NET Framework
+Copyright (C) Microsoft Corporation. All rights reserved.
+
+  Microsoft (R) C/C++ Optimizing Compiler Version 19.26.28806 for x64
+  USE_AUDIOUNIT.c
+  Copyright (C) Microsoft Corporation.  All rights reserved.
+  cl /c /Zi /W3 /WX- /diagnostics:column /Od /Ob0 /D WIN32 /D _WINDOWS /D "CMAKE_INTDIR=\"Debug\"" /D _MBCS /Gm- /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /Fo"cmTC_f94d3.dir\Debug\\" /Fd"cmTC_f94d3.dir\Debug\vc142.pdb" /Gd /TC /errorReport:queue G:\Projects\Ishiiruka\CMakeFiles\CheckIncludeFiles\USE_AUDIOUNIT.c
+G:\Projects\Ishiiruka\CMakeFiles\CheckIncludeFiles\USE_AUDIOUNIT.c(2,10): fatal error C1083: Cannot open include file: 'AudioUnit/AudioUnit.h': No such file or directory [G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\cmTC_f94d3.vcxproj]
+
+
+Source:
+/* */
+#include <AudioUnit/AudioUnit.h>
+
+
+int main(void){return 0;}
+
+Determining if files pulse/pulseaudio.h exist failed with the following output:
+Change Dir: G:/Projects/Ishiiruka/CMakeFiles/CMakeTmp
+
+Run Build Command(s):C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/MSBuild/Current/Bin/MSBuild.exe cmTC_8b862.vcxproj /p:Configuration=Debug /p:Platform=x64 /p:VisualStudioVersion=16.0 /v:m && Microsoft (R) Build Engine version 16.6.0+5ff7b0c9e for .NET Framework
+Copyright (C) Microsoft Corporation. All rights reserved.
+
+  Microsoft (R) C/C++ Optimizing Compiler Version 19.26.28806 for x64
+  USE_PULSE.c
+  Copyright (C) Microsoft Corporation.  All rights reserved.
+  cl /c /Zi /W3 /WX- /diagnostics:column /Od /Ob0 /D WIN32 /D _WINDOWS /D "CMAKE_INTDIR=\"Debug\"" /D _MBCS /Gm- /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /Fo"cmTC_8b862.dir\Debug\\" /Fd"cmTC_8b862.dir\Debug\vc142.pdb" /Gd /TC /errorReport:queue G:\Projects\Ishiiruka\CMakeFiles\CheckIncludeFiles\USE_PULSE.c
+G:\Projects\Ishiiruka\CMakeFiles\CheckIncludeFiles\USE_PULSE.c(2,10): fatal error C1083: Cannot open include file: 'pulse/pulseaudio.h': No such file or directory [G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\cmTC_8b862.vcxproj]
+
+
+Source:
+/* */
+#include <pulse/pulseaudio.h>
+
+
+int main(void){return 0;}
+
+Determining if files alsa/asoundlib.h exist failed with the following output:
+Change Dir: G:/Projects/Ishiiruka/CMakeFiles/CMakeTmp
+
+Run Build Command(s):C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/MSBuild/Current/Bin/MSBuild.exe cmTC_47e6b.vcxproj /p:Configuration=Debug /p:Platform=x64 /p:VisualStudioVersion=16.0 /v:m && Microsoft (R) Build Engine version 16.6.0+5ff7b0c9e for .NET Framework
+Copyright (C) Microsoft Corporation. All rights reserved.
+
+  Microsoft (R) C/C++ Optimizing Compiler Version 19.26.28806 for x64
+  USE_ALSA.c
+  Copyright (C) Microsoft Corporation.  All rights reserved.
+  cl /c /Zi /W3 /WX- /diagnostics:column /Od /Ob0 /D WIN32 /D _WINDOWS /D "CMAKE_INTDIR=\"Debug\"" /D _MBCS /Gm- /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /Fo"cmTC_47e6b.dir\Debug\\" /Fd"cmTC_47e6b.dir\Debug\vc142.pdb" /Gd /TC /errorReport:queue G:\Projects\Ishiiruka\CMakeFiles\CheckIncludeFiles\USE_ALSA.c
+G:\Projects\Ishiiruka\CMakeFiles\CheckIncludeFiles\USE_ALSA.c(2,10): fatal error C1083: Cannot open include file: 'alsa/asoundlib.h': No such file or directory [G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\cmTC_47e6b.vcxproj]
+
+
+Source:
+/* */
+#include <alsa/asoundlib.h>
+
+
+int main(void){return 0;}
+
+Determining if files jack/jack.h exist failed with the following output:
+Change Dir: G:/Projects/Ishiiruka/CMakeFiles/CMakeTmp
+
+Run Build Command(s):C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/MSBuild/Current/Bin/MSBuild.exe cmTC_b14c9.vcxproj /p:Configuration=Debug /p:Platform=x64 /p:VisualStudioVersion=16.0 /v:m && Microsoft (R) Build Engine version 16.6.0+5ff7b0c9e for .NET Framework
+Copyright (C) Microsoft Corporation. All rights reserved.
+
+  Microsoft (R) C/C++ Optimizing Compiler Version 19.26.28806 for x64
+  USE_JACK.c
+  Copyright (C) Microsoft Corporation.  All rights reserved.
+  cl /c /Zi /W3 /WX- /diagnostics:column /Od /Ob0 /D WIN32 /D _WINDOWS /D "CMAKE_INTDIR=\"Debug\"" /D _MBCS /Gm- /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /Fo"cmTC_b14c9.dir\Debug\\" /Fd"cmTC_b14c9.dir\Debug\vc142.pdb" /Gd /TC /errorReport:queue G:\Projects\Ishiiruka\CMakeFiles\CheckIncludeFiles\USE_JACK.c
+G:\Projects\Ishiiruka\CMakeFiles\CheckIncludeFiles\USE_JACK.c(2,10): fatal error C1083: Cannot open include file: 'jack/jack.h': No such file or directory [G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\cmTC_b14c9.vcxproj]
+
+
+Source:
+/* */
+#include <jack/jack.h>
+
+
+int main(void){return 0;}
+
+Determining if files SLES/OpenSLES.h exist failed with the following output:
+Change Dir: G:/Projects/Ishiiruka/CMakeFiles/CMakeTmp
+
+Run Build Command(s):C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/MSBuild/Current/Bin/MSBuild.exe cmTC_fca7d.vcxproj /p:Configuration=Debug /p:Platform=x64 /p:VisualStudioVersion=16.0 /v:m && Microsoft (R) Build Engine version 16.6.0+5ff7b0c9e for .NET Framework
+Copyright (C) Microsoft Corporation. All rights reserved.
+
+  Microsoft (R) C/C++ Optimizing Compiler Version 19.26.28806 for x64
+  USE_OPENSL.c
+  Copyright (C) Microsoft Corporation.  All rights reserved.
+  cl /c /Zi /W3 /WX- /diagnostics:column /Od /Ob0 /D WIN32 /D _WINDOWS /D "CMAKE_INTDIR=\"Debug\"" /D _MBCS /Gm- /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /Fo"cmTC_fca7d.dir\Debug\\" /Fd"cmTC_fca7d.dir\Debug\vc142.pdb" /Gd /TC /errorReport:queue G:\Projects\Ishiiruka\CMakeFiles\CheckIncludeFiles\USE_OPENSL.c
+G:\Projects\Ishiiruka\CMakeFiles\CheckIncludeFiles\USE_OPENSL.c(2,10): fatal error C1083: Cannot open include file: 'SLES/OpenSLES.h': No such file or directory [G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\cmTC_fca7d.vcxproj]
+
+
+Source:
+/* */
+#include <SLES/OpenSLES.h>
+
+
+int main(void){return 0;}
+
+Determining if files android/log.h exist failed with the following output:
+Change Dir: G:/Projects/Ishiiruka/CMakeFiles/CMakeTmp
+
+Run Build Command(s):C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/MSBuild/Current/Bin/MSBuild.exe cmTC_51c9f.vcxproj /p:Configuration=Debug /p:Platform=x64 /p:VisualStudioVersion=16.0 /v:m && Microsoft (R) Build Engine version 16.6.0+5ff7b0c9e for .NET Framework
+Copyright (C) Microsoft Corporation. All rights reserved.
+
+  Microsoft (R) C/C++ Optimizing Compiler Version 19.26.28806 for x64
+  USE_AUDIOTRACK.c
+  Copyright (C) Microsoft Corporation.  All rights reserved.
+  cl /c /Zi /W3 /WX- /diagnostics:column /Od /Ob0 /D WIN32 /D _WINDOWS /D "CMAKE_INTDIR=\"Debug\"" /D _MBCS /Gm- /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /Fo"cmTC_51c9f.dir\Debug\\" /Fd"cmTC_51c9f.dir\Debug\vc142.pdb" /Gd /TC /errorReport:queue G:\Projects\Ishiiruka\CMakeFiles\CheckIncludeFiles\USE_AUDIOTRACK.c
+G:\Projects\Ishiiruka\CMakeFiles\CheckIncludeFiles\USE_AUDIOTRACK.c(2,10): fatal error C1083: Cannot open include file: 'android/log.h': No such file or directory [G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\cmTC_51c9f.vcxproj]
+
+
+Source:
+/* */
+#include <android/log.h>
+
+
+int main(void){return 0;}
+
+Determining if files sndio.h exist failed with the following output:
+Change Dir: G:/Projects/Ishiiruka/CMakeFiles/CMakeTmp
+
+Run Build Command(s):C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/MSBuild/Current/Bin/MSBuild.exe cmTC_ccdb4.vcxproj /p:Configuration=Debug /p:Platform=x64 /p:VisualStudioVersion=16.0 /v:m && Microsoft (R) Build Engine version 16.6.0+5ff7b0c9e for .NET Framework
+Copyright (C) Microsoft Corporation. All rights reserved.
+
+  Microsoft (R) C/C++ Optimizing Compiler Version 19.26.28806 for x64
+  USE_SNDIO.c
+  Copyright (C) Microsoft Corporation.  All rights reserved.
+  cl /c /Zi /W3 /WX- /diagnostics:column /Od /Ob0 /D WIN32 /D _WINDOWS /D "CMAKE_INTDIR=\"Debug\"" /D _MBCS /Gm- /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /Fo"cmTC_ccdb4.dir\Debug\\" /Fd"cmTC_ccdb4.dir\Debug\vc142.pdb" /Gd /TC /errorReport:queue G:\Projects\Ishiiruka\CMakeFiles\CheckIncludeFiles\USE_SNDIO.c
+G:\Projects\Ishiiruka\CMakeFiles\CheckIncludeFiles\USE_SNDIO.c(2,10): fatal error C1083: Cannot open include file: 'sndio.h': No such file or directory [G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\cmTC_ccdb4.vcxproj]
+
+
+Source:
+/* */
+#include <sndio.h>
+
+
+int main(void){return 0;}
+
+Determining if files kai.h exist failed with the following output:
+Change Dir: G:/Projects/Ishiiruka/CMakeFiles/CMakeTmp
+
+Run Build Command(s):C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/MSBuild/Current/Bin/MSBuild.exe cmTC_77a5e.vcxproj /p:Configuration=Debug /p:Platform=x64 /p:VisualStudioVersion=16.0 /v:m && Microsoft (R) Build Engine version 16.6.0+5ff7b0c9e for .NET Framework
+Copyright (C) Microsoft Corporation. All rights reserved.
+
+  Microsoft (R) C/C++ Optimizing Compiler Version 19.26.28806 for x64
+  USE_KAI.c
+  Copyright (C) Microsoft Corporation.  All rights reserved.
+  cl /c /Zi /W3 /WX- /diagnostics:column /Od /Ob0 /D WIN32 /D _WINDOWS /D "CMAKE_INTDIR=\"Debug\"" /D _MBCS /Gm- /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /Fo"cmTC_77a5e.dir\Debug\\" /Fd"cmTC_77a5e.dir\Debug\vc142.pdb" /Gd /TC /errorReport:queue G:\Projects\Ishiiruka\CMakeFiles\CheckIncludeFiles\USE_KAI.c
+G:\Projects\Ishiiruka\CMakeFiles\CheckIncludeFiles\USE_KAI.c(2,10): fatal error C1083: Cannot open include file: 'kai.h': No such file or directory [G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\cmTC_77a5e.vcxproj]
+
+
+Source:
+/* */
+#include <kai.h>
+
+
+int main(void){return 0;}
+
+Performing C++ SOURCE FILE Test FLAG_VISIBILITY_INLINES_HIDDEN failed with the following output:
+Change Dir: G:/Projects/Ishiiruka/CMakeFiles/CMakeTmp
+
+Run Build Command(s):C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/MSBuild/Current/Bin/MSBuild.exe cmTC_ad8bd.vcxproj /p:Configuration=Debug /p:Platform=x64 /p:VisualStudioVersion=16.0 /v:m && Microsoft (R) Build Engine version 16.6.0+5ff7b0c9e for .NET Framework
+Copyright (C) Microsoft Corporation. All rights reserved.
+
+  Microsoft (R) C/C++ Optimizing Compiler Version 19.26.28806 for x64
+  src.cxx
+  Copyright (C) Microsoft Corporation.  All rights reserved.
+  cl /c /Zi /W3 /WX- /diagnostics:column /Od /Ob0 /D WIN32 /D _WINDOWS /D FLAG_VISIBILITY_INLINES_HIDDEN /D "CMAKE_INTDIR=\"Debug\"" /D _MBCS /Gm- /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /GR /Fo"cmTC_ad8bd.dir\Debug\\" /Fd"cmTC_ad8bd.dir\Debug\vc142.pdb" /Gd /TP /errorReport:queue  -fvisibility-inlines-hidden G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\src.cxx
+cl : command line warning D9002: ignoring unknown option '-fvisibility-inlines-hidden' [G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\cmTC_ad8bd.vcxproj]
+  cmTC_ad8bd.vcxproj -> G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\Debug\cmTC_ad8bd.exe
+
+
+Source file was:
+int main() { return 0; }
+Determining if the include file pthread.h exists failed with the following output:
+Change Dir: G:/Projects/Ishiiruka/CMakeFiles/CMakeTmp
+
+Run Build Command(s):C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/MSBuild/Current/Bin/MSBuild.exe cmTC_8d979.vcxproj /p:Configuration=Debug /p:Platform=x64 /p:VisualStudioVersion=16.0 /v:m && Microsoft (R) Build Engine version 16.6.0+5ff7b0c9e for .NET Framework
+Copyright (C) Microsoft Corporation. All rights reserved.
+
+  Microsoft (R) C/C++ Optimizing Compiler Version 19.26.28806 for x64
+  CheckIncludeFile.c
+  Copyright (C) Microsoft Corporation.  All rights reserved.
+  cl /c /Zi /W3 /WX- /diagnostics:column /Od /Ob0 /D WIN32 /D _WINDOWS /D "CMAKE_INTDIR=\"Debug\"" /D _MBCS /Gm- /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /Fo"cmTC_8d979.dir\Debug\\" /Fd"cmTC_8d979.dir\Debug\vc142.pdb" /Gd /TC /errorReport:queue G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\CheckIncludeFile.c
+G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\CheckIncludeFile.c(1,10): fatal error C1083: Cannot open include file: 'pthread.h': No such file or directory [G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\cmTC_8d979.vcxproj]
+
+
+
+Performing C++ SOURCE FILE Test LIBAV_FOUND failed with the following output:
+Change Dir: G:/Projects/Ishiiruka/CMakeFiles/CMakeTmp
+
+Run Build Command(s):C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/MSBuild/Current/Bin/MSBuild.exe cmTC_865a9.vcxproj /p:Configuration=Debug /p:Platform=x64 /p:VisualStudioVersion=16.0 /v:m && Microsoft (R) Build Engine version 16.6.0+5ff7b0c9e for .NET Framework
+Copyright (C) Microsoft Corporation. All rights reserved.
+
+  Microsoft (R) C/C++ Optimizing Compiler Version 19.26.28806 for x64
+  src.cxx
+  Copyright (C) Microsoft Corporation.  All rights reserved.
+  cl /c /Zi /W3 /WX- /diagnostics:column /Od /Ob0 /D WIN32 /D _WINDOWS /D LIBAV_FOUND /D "CMAKE_INTDIR=\"Debug\"" /D _MBCS /Gm- /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /GR /Fo"cmTC_865a9.dir\Debug\\" /Fd"cmTC_865a9.dir\Debug\vc142.pdb" /Gd /TP /errorReport:queue G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\src.cxx
+G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\src.cxx(2,13): fatal error C1083: Cannot open include file: 'libavcodec/avcodec.h': No such file or directory [G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\cmTC_865a9.vcxproj]
+
+
+Source file was:
+extern "C" {
+			#include <libavcodec/avcodec.h>
+			#include <libavformat/avformat.h>
+			#include <libavutil/mathematics.h>
+			#include <libswscale/swscale.h>
+			}
+			int main(int argc, char **argv)
+			{
+				av_register_all();
+				return 0;
+			}
+Performing C++ SOURCE FILE Test SYSTEM_PORTAUDIO failed with the following output:
+Change Dir: G:/Projects/Ishiiruka/CMakeFiles/CMakeTmp
+
+Run Build Command(s):C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/MSBuild/Current/Bin/MSBuild.exe cmTC_8bb7c.vcxproj /p:Configuration=Debug /p:Platform=x64 /p:VisualStudioVersion=16.0 /v:m && Microsoft (R) Build Engine version 16.6.0+5ff7b0c9e for .NET Framework
+Copyright (C) Microsoft Corporation. All rights reserved.
+
+  Microsoft (R) C/C++ Optimizing Compiler Version 19.26.28806 for x64
+  src.cxx
+  Copyright (C) Microsoft Corporation.  All rights reserved.
+  cl /c /Zi /W3 /WX- /diagnostics:column /Od /Ob0 /D WIN32 /D _WINDOWS /D SYSTEM_PORTAUDIO /D "CMAKE_INTDIR=\"Debug\"" /D _MBCS /Gm- /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /GR /Fo"cmTC_8bb7c.dir\Debug\\" /Fd"cmTC_8bb7c.dir\Debug\vc142.pdb" /Gd /TP /errorReport:queue G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\src.cxx
+G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\src.cxx(1,10): fatal error C1083: Cannot open include file: 'portaudio.h': No such file or directory [G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\cmTC_8bb7c.vcxproj]
+
+
+...and run output:
+
+Return value: 1
+Source file was:
+#include <portaudio.h>
+			int main(int argc, char **argv)
+			{ if(Pa_GetVersion() >= 1890) return 0; else return 1; }
+Determining if files ext/rope exist failed with the following output:
+Change Dir: G:/Projects/Ishiiruka/CMakeFiles/CMakeTmp
+
+Run Build Command(s):C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/MSBuild/Current/Bin/MSBuild.exe cmTC_e2c85.vcxproj /p:Configuration=Debug /p:Platform=x64 /p:VisualStudioVersion=16.0 /v:m && Microsoft (R) Build Engine version 16.6.0+5ff7b0c9e for .NET Framework
+Copyright (C) Microsoft Corporation. All rights reserved.
+
+  Microsoft (R) C/C++ Optimizing Compiler Version 19.26.28806 for x64
+  HAVE_EXT_ROPE.c
+  Copyright (C) Microsoft Corporation.  All rights reserved.
+  cl /c /Zi /W3 /WX- /diagnostics:column /Od /Ob0 /D WIN32 /D _WINDOWS /D "CMAKE_INTDIR=\"Debug\"" /D _MBCS /Gm- /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /Fo"cmTC_e2c85.dir\Debug\\" /Fd"cmTC_e2c85.dir\Debug\vc142.pdb" /Gd /TC /errorReport:queue G:\Projects\Ishiiruka\CMakeFiles\CheckIncludeFiles\HAVE_EXT_ROPE.c
+G:\Projects\Ishiiruka\CMakeFiles\CheckIncludeFiles\HAVE_EXT_ROPE.c(2,10): fatal error C1083: Cannot open include file: 'ext/rope': No such file or directory [G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\cmTC_e2c85.vcxproj]
+
+
+Source:
+/* */
+#include <ext/rope>
+
+
+int main(void){return 0;}
+
+Determining if files getopt.h exist failed with the following output:
+Change Dir: G:/Projects/Ishiiruka/CMakeFiles/CMakeTmp
+
+Run Build Command(s):C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/MSBuild/Current/Bin/MSBuild.exe cmTC_e0865.vcxproj /p:Configuration=Debug /p:Platform=x64 /p:VisualStudioVersion=16.0 /v:m && Microsoft (R) Build Engine version 16.6.0+5ff7b0c9e for .NET Framework
+Copyright (C) Microsoft Corporation. All rights reserved.
+
+  Microsoft (R) C/C++ Optimizing Compiler Version 19.26.28806 for x64
+  HAVE_GETOPT_H.c
+  Copyright (C) Microsoft Corporation.  All rights reserved.
+  cl /c /Zi /W3 /WX- /diagnostics:column /Od /Ob0 /D WIN32 /D _WINDOWS /D "CMAKE_INTDIR=\"Debug\"" /D _MBCS /Gm- /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /Fo"cmTC_e0865.dir\Debug\\" /Fd"cmTC_e0865.dir\Debug\vc142.pdb" /Gd /TC /errorReport:queue G:\Projects\Ishiiruka\CMakeFiles\CheckIncludeFiles\HAVE_GETOPT_H.c
+G:\Projects\Ishiiruka\CMakeFiles\CheckIncludeFiles\HAVE_GETOPT_H.c(2,10): fatal error C1083: Cannot open include file: 'getopt.h': No such file or directory [G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\cmTC_e0865.vcxproj]
+
+
+Source:
+/* */
+#include <getopt.h>
+
+
+int main(void){return 0;}
+
+Determining if files sys/mman.h exist failed with the following output:
+Change Dir: G:/Projects/Ishiiruka/CMakeFiles/CMakeTmp
+
+Run Build Command(s):C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/MSBuild/Current/Bin/MSBuild.exe cmTC_c66c0.vcxproj /p:Configuration=Debug /p:Platform=x64 /p:VisualStudioVersion=16.0 /v:m && Microsoft (R) Build Engine version 16.6.0+5ff7b0c9e for .NET Framework
+Copyright (C) Microsoft Corporation. All rights reserved.
+
+  Microsoft (R) C/C++ Optimizing Compiler Version 19.26.28806 for x64
+  HAVE_SYS_MMAN_H.c
+  Copyright (C) Microsoft Corporation.  All rights reserved.
+  cl /c /Zi /W3 /WX- /diagnostics:column /Od /Ob0 /D WIN32 /D _WINDOWS /D "CMAKE_INTDIR=\"Debug\"" /D _MBCS /Gm- /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /Fo"cmTC_c66c0.dir\Debug\\" /Fd"cmTC_c66c0.dir\Debug\vc142.pdb" /Gd /TC /errorReport:queue G:\Projects\Ishiiruka\CMakeFiles\CheckIncludeFiles\HAVE_SYS_MMAN_H.c
+G:\Projects\Ishiiruka\CMakeFiles\CheckIncludeFiles\HAVE_SYS_MMAN_H.c(2,10): fatal error C1083: Cannot open include file: 'sys/mman.h': No such file or directory [G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\cmTC_c66c0.vcxproj]
+
+
+Source:
+/* */
+#include <sys/mman.h>
+
+
+int main(void){return 0;}
+
+Determining if files sys/time.h exist failed with the following output:
+Change Dir: G:/Projects/Ishiiruka/CMakeFiles/CMakeTmp
+
+Run Build Command(s):C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/MSBuild/Current/Bin/MSBuild.exe cmTC_23b6f.vcxproj /p:Configuration=Debug /p:Platform=x64 /p:VisualStudioVersion=16.0 /v:m && Microsoft (R) Build Engine version 16.6.0+5ff7b0c9e for .NET Framework
+Copyright (C) Microsoft Corporation. All rights reserved.
+
+  Microsoft (R) C/C++ Optimizing Compiler Version 19.26.28806 for x64
+  HAVE_SYS_TIME_H.c
+  Copyright (C) Microsoft Corporation.  All rights reserved.
+  cl /c /Zi /W3 /WX- /diagnostics:column /Od /Ob0 /D WIN32 /D _WINDOWS /D "CMAKE_INTDIR=\"Debug\"" /D _MBCS /Gm- /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /Fo"cmTC_23b6f.dir\Debug\\" /Fd"cmTC_23b6f.dir\Debug\vc142.pdb" /Gd /TC /errorReport:queue G:\Projects\Ishiiruka\CMakeFiles\CheckIncludeFiles\HAVE_SYS_TIME_H.c
+G:\Projects\Ishiiruka\CMakeFiles\CheckIncludeFiles\HAVE_SYS_TIME_H.c(2,10): fatal error C1083: Cannot open include file: 'sys/time.h': No such file or directory [G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\cmTC_23b6f.vcxproj]
+
+
+Source:
+/* */
+#include <sys/time.h>
+
+
+int main(void){return 0;}
+
+Determining if files unistd.h exist failed with the following output:
+Change Dir: G:/Projects/Ishiiruka/CMakeFiles/CMakeTmp
+
+Run Build Command(s):C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/MSBuild/Current/Bin/MSBuild.exe cmTC_b1f7b.vcxproj /p:Configuration=Debug /p:Platform=x64 /p:VisualStudioVersion=16.0 /v:m && Microsoft (R) Build Engine version 16.6.0+5ff7b0c9e for .NET Framework
+Copyright (C) Microsoft Corporation. All rights reserved.
+
+  Microsoft (R) C/C++ Optimizing Compiler Version 19.26.28806 for x64
+  HAVE_UNISTD_H.c
+  Copyright (C) Microsoft Corporation.  All rights reserved.
+  cl /c /Zi /W3 /WX- /diagnostics:column /Od /Ob0 /D WIN32 /D _WINDOWS /D "CMAKE_INTDIR=\"Debug\"" /D _MBCS /Gm- /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /Fo"cmTC_b1f7b.dir\Debug\\" /Fd"cmTC_b1f7b.dir\Debug\vc142.pdb" /Gd /TC /errorReport:queue G:\Projects\Ishiiruka\CMakeFiles\CheckIncludeFiles\HAVE_UNISTD_H.c
+G:\Projects\Ishiiruka\CMakeFiles\CheckIncludeFiles\HAVE_UNISTD_H.c(2,10): fatal error C1083: Cannot open include file: 'unistd.h': No such file or directory [G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\cmTC_b1f7b.vcxproj]
+
+
+Source:
+/* */
+#include <unistd.h>
+
+
+int main(void){return 0;}
+
+Determining if the function gettimeofday exists failed with the following output:
+Change Dir: G:/Projects/Ishiiruka/CMakeFiles/CMakeTmp
+
+Run Build Command(s):C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/MSBuild/Current/Bin/MSBuild.exe cmTC_b6fe6.vcxproj /p:Configuration=Debug /p:Platform=x64 /p:VisualStudioVersion=16.0 /v:m && Microsoft (R) Build Engine version 16.6.0+5ff7b0c9e for .NET Framework
+Copyright (C) Microsoft Corporation. All rights reserved.
+
+  Microsoft (R) C/C++ Optimizing Compiler Version 19.26.28806 for x64
+  CheckFunctionExists.c
+  Copyright (C) Microsoft Corporation.  All rights reserved.
+  cl /c /Zi /W3 /WX- /diagnostics:column /Od /Ob0 /D WIN32 /D _WINDOWS /D CHECK_FUNCTION_EXISTS=gettimeofday /D "CMAKE_INTDIR=\"Debug\"" /D _MBCS /Gm- /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /Fo"cmTC_b6fe6.dir\Debug\\" /Fd"cmTC_b6fe6.dir\Debug\vc142.pdb" /Gd /TC /errorReport:queue "C:\Program Files\CMake\share\cmake-3.17\Modules\CheckFunctionExists.c"
+CheckFunctionExists.obj : error LNK2019: unresolved external symbol gettimeofday referenced in function main [G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\cmTC_b6fe6.vcxproj]
+G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\Debug\cmTC_b6fe6.exe : fatal error LNK1120: 1 unresolved externals [G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\cmTC_b6fe6.vcxproj]
+
+
+
+Determining if the function memalign exists failed with the following output:
+Change Dir: G:/Projects/Ishiiruka/CMakeFiles/CMakeTmp
+
+Run Build Command(s):C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/MSBuild/Current/Bin/MSBuild.exe cmTC_cc187.vcxproj /p:Configuration=Debug /p:Platform=x64 /p:VisualStudioVersion=16.0 /v:m && Microsoft (R) Build Engine version 16.6.0+5ff7b0c9e for .NET Framework
+Copyright (C) Microsoft Corporation. All rights reserved.
+
+  Microsoft (R) C/C++ Optimizing Compiler Version 19.26.28806 for x64
+  CheckFunctionExists.c
+  Copyright (C) Microsoft Corporation.  All rights reserved.
+  cl /c /Zi /W3 /WX- /diagnostics:column /Od /Ob0 /D WIN32 /D _WINDOWS /D CHECK_FUNCTION_EXISTS=memalign /D "CMAKE_INTDIR=\"Debug\"" /D _MBCS /Gm- /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /Fo"cmTC_cc187.dir\Debug\\" /Fd"cmTC_cc187.dir\Debug\vc142.pdb" /Gd /TC /errorReport:queue "C:\Program Files\CMake\share\cmake-3.17\Modules\CheckFunctionExists.c"
+CheckFunctionExists.obj : error LNK2019: unresolved external symbol memalign referenced in function main [G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\cmTC_cc187.vcxproj]
+G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\Debug\cmTC_cc187.exe : fatal error LNK1120: 1 unresolved externals [G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\cmTC_cc187.vcxproj]
+
+
+
+Determining if the function posix_memalign exists failed with the following output:
+Change Dir: G:/Projects/Ishiiruka/CMakeFiles/CMakeTmp
+
+Run Build Command(s):C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/MSBuild/Current/Bin/MSBuild.exe cmTC_900db.vcxproj /p:Configuration=Debug /p:Platform=x64 /p:VisualStudioVersion=16.0 /v:m && Microsoft (R) Build Engine version 16.6.0+5ff7b0c9e for .NET Framework
+Copyright (C) Microsoft Corporation. All rights reserved.
+
+  Microsoft (R) C/C++ Optimizing Compiler Version 19.26.28806 for x64
+  CheckFunctionExists.c
+  Copyright (C) Microsoft Corporation.  All rights reserved.
+  cl /c /Zi /W3 /WX- /diagnostics:column /Od /Ob0 /D WIN32 /D _WINDOWS /D CHECK_FUNCTION_EXISTS=posix_memalign /D "CMAKE_INTDIR=\"Debug\"" /D _MBCS /Gm- /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /Fo"cmTC_900db.dir\Debug\\" /Fd"cmTC_900db.dir\Debug\vc142.pdb" /Gd /TC /errorReport:queue "C:\Program Files\CMake\share\cmake-3.17\Modules\CheckFunctionExists.c"
+CheckFunctionExists.obj : error LNK2019: unresolved external symbol posix_memalign referenced in function main [G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\cmTC_900db.vcxproj]
+G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\Debug\cmTC_900db.exe : fatal error LNK1120: 1 unresolved externals [G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\cmTC_900db.vcxproj]
+
+
+
+Determining if the function mprotect exists failed with the following output:
+Change Dir: G:/Projects/Ishiiruka/CMakeFiles/CMakeTmp
+
+Run Build Command(s):C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/MSBuild/Current/Bin/MSBuild.exe cmTC_24795.vcxproj /p:Configuration=Debug /p:Platform=x64 /p:VisualStudioVersion=16.0 /v:m && Microsoft (R) Build Engine version 16.6.0+5ff7b0c9e for .NET Framework
+Copyright (C) Microsoft Corporation. All rights reserved.
+
+  Microsoft (R) C/C++ Optimizing Compiler Version 19.26.28806 for x64
+  CheckFunctionExists.c
+  Copyright (C) Microsoft Corporation.  All rights reserved.
+  cl /c /Zi /W3 /WX- /diagnostics:column /Od /Ob0 /D WIN32 /D _WINDOWS /D CHECK_FUNCTION_EXISTS=mprotect /D "CMAKE_INTDIR=\"Debug\"" /D _MBCS /Gm- /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /Fo"cmTC_24795.dir\Debug\\" /Fd"cmTC_24795.dir\Debug\vc142.pdb" /Gd /TC /errorReport:queue "C:\Program Files\CMake\share\cmake-3.17\Modules\CheckFunctionExists.c"
+CheckFunctionExists.obj : error LNK2019: unresolved external symbol mprotect referenced in function main [G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\cmTC_24795.vcxproj]
+G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\Debug\cmTC_24795.exe : fatal error LNK1120: 1 unresolved externals [G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\cmTC_24795.vcxproj]
+
+
+
+Determining if the function fcntl exists failed with the following output:
+Change Dir: G:/Projects/Ishiiruka/CMakeFiles/CMakeTmp
+
+Run Build Command(s):C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/MSBuild/Current/Bin/MSBuild.exe cmTC_f2143.vcxproj /p:Configuration=Debug /p:Platform=x64 /p:VisualStudioVersion=16.0 /v:m && Microsoft (R) Build Engine version 16.6.0+5ff7b0c9e for .NET Framework
+Copyright (C) Microsoft Corporation. All rights reserved.
+
+  Microsoft (R) C/C++ Optimizing Compiler Version 19.26.28806 for x64
+  CheckFunctionExists.c
+  Copyright (C) Microsoft Corporation.  All rights reserved.
+  cl /c /Zi /W3 /WX- /diagnostics:column /Od /Ob0 /D WIN32 /D _WINDOWS /D CHECK_FUNCTION_EXISTS=fcntl /D "CMAKE_INTDIR=\"Debug\"" /D _MBCS /Gm- /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /Fo"cmTC_f2143.dir\Debug\\" /Fd"cmTC_f2143.dir\Debug\vc142.pdb" /Gd /TC /errorReport:queue "C:\Program Files\CMake\share\cmake-3.17\Modules\CheckFunctionExists.c"
+CheckFunctionExists.obj : error LNK2019: unresolved external symbol fcntl referenced in function main [G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\cmTC_f2143.vcxproj]
+G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\Debug\cmTC_f2143.exe : fatal error LNK1120: 1 unresolved externals [G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\cmTC_f2143.vcxproj]
+
+
+
+Determining if the function poll exists failed with the following output:
+Change Dir: G:/Projects/Ishiiruka/CMakeFiles/CMakeTmp
+
+Run Build Command(s):C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/MSBuild/Current/Bin/MSBuild.exe cmTC_da93d.vcxproj /p:Configuration=Debug /p:Platform=x64 /p:VisualStudioVersion=16.0 /v:m && Microsoft (R) Build Engine version 16.6.0+5ff7b0c9e for .NET Framework
+Copyright (C) Microsoft Corporation. All rights reserved.
+
+  Microsoft (R) C/C++ Optimizing Compiler Version 19.26.28806 for x64
+  CheckFunctionExists.c
+  Copyright (C) Microsoft Corporation.  All rights reserved.
+  cl /c /Zi /W3 /WX- /diagnostics:column /Od /Ob0 /D WIN32 /D _WINDOWS /D CHECK_FUNCTION_EXISTS=poll /D "CMAKE_INTDIR=\"Debug\"" /D _MBCS /Gm- /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /Fo"cmTC_da93d.dir\Debug\\" /Fd"cmTC_da93d.dir\Debug\vc142.pdb" /Gd /TC /errorReport:queue "C:\Program Files\CMake\share\cmake-3.17\Modules\CheckFunctionExists.c"
+CheckFunctionExists.obj : error LNK2019: unresolved external symbol poll referenced in function main [G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\cmTC_da93d.vcxproj]
+G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\Debug\cmTC_da93d.exe : fatal error LNK1120: 1 unresolved externals [G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\cmTC_da93d.vcxproj]
+
+
+
+Determining if the function getaddrinfo exists failed with the following output:
+Change Dir: G:/Projects/Ishiiruka/CMakeFiles/CMakeTmp
+
+Run Build Command(s):C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/MSBuild/Current/Bin/MSBuild.exe cmTC_96b0e.vcxproj /p:Configuration=Debug /p:Platform=x64 /p:VisualStudioVersion=16.0 /v:m && Microsoft (R) Build Engine version 16.6.0+5ff7b0c9e for .NET Framework
+Copyright (C) Microsoft Corporation. All rights reserved.
+
+  Microsoft (R) C/C++ Optimizing Compiler Version 19.26.28806 for x64
+  CheckFunctionExists.c
+  Copyright (C) Microsoft Corporation.  All rights reserved.
+  cl /c /Zi /W3 /WX- /diagnostics:column /Od /Ob0 /D WIN32 /D _WINDOWS /D CHECK_FUNCTION_EXISTS=getaddrinfo /D "CMAKE_INTDIR=\"Debug\"" /D _MBCS /Gm- /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /Fo"cmTC_96b0e.dir\Debug\\" /Fd"cmTC_96b0e.dir\Debug\vc142.pdb" /Gd /TC /errorReport:queue "C:\Program Files\CMake\share\cmake-3.17\Modules\CheckFunctionExists.c"
+CheckFunctionExists.obj : error LNK2019: unresolved external symbol getaddrinfo referenced in function main [G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\cmTC_96b0e.vcxproj]
+G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\Debug\cmTC_96b0e.exe : fatal error LNK1120: 1 unresolved externals [G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\cmTC_96b0e.vcxproj]
+
+
+
+Determining if the function getnameinfo exists failed with the following output:
+Change Dir: G:/Projects/Ishiiruka/CMakeFiles/CMakeTmp
+
+Run Build Command(s):C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/MSBuild/Current/Bin/MSBuild.exe cmTC_2b5ba.vcxproj /p:Configuration=Debug /p:Platform=x64 /p:VisualStudioVersion=16.0 /v:m && Microsoft (R) Build Engine version 16.6.0+5ff7b0c9e for .NET Framework
+Copyright (C) Microsoft Corporation. All rights reserved.
+
+  Microsoft (R) C/C++ Optimizing Compiler Version 19.26.28806 for x64
+  CheckFunctionExists.c
+  Copyright (C) Microsoft Corporation.  All rights reserved.
+  cl /c /Zi /W3 /WX- /diagnostics:column /Od /Ob0 /D WIN32 /D _WINDOWS /D CHECK_FUNCTION_EXISTS=getnameinfo /D "CMAKE_INTDIR=\"Debug\"" /D _MBCS /Gm- /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /Fo"cmTC_2b5ba.dir\Debug\\" /Fd"cmTC_2b5ba.dir\Debug\vc142.pdb" /Gd /TC /errorReport:queue "C:\Program Files\CMake\share\cmake-3.17\Modules\CheckFunctionExists.c"
+CheckFunctionExists.obj : error LNK2019: unresolved external symbol getnameinfo referenced in function main [G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\cmTC_2b5ba.vcxproj]
+G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\Debug\cmTC_2b5ba.exe : fatal error LNK1120: 1 unresolved externals [G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\cmTC_2b5ba.vcxproj]
+
+
+
+Determining if the function gethostbyname_r exists failed with the following output:
+Change Dir: G:/Projects/Ishiiruka/CMakeFiles/CMakeTmp
+
+Run Build Command(s):C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/MSBuild/Current/Bin/MSBuild.exe cmTC_9def6.vcxproj /p:Configuration=Debug /p:Platform=x64 /p:VisualStudioVersion=16.0 /v:m && Microsoft (R) Build Engine version 16.6.0+5ff7b0c9e for .NET Framework
+Copyright (C) Microsoft Corporation. All rights reserved.
+
+  Microsoft (R) C/C++ Optimizing Compiler Version 19.26.28806 for x64
+  CheckFunctionExists.c
+  Copyright (C) Microsoft Corporation.  All rights reserved.
+  cl /c /Zi /W3 /WX- /diagnostics:column /Od /Ob0 /D WIN32 /D _WINDOWS /D CHECK_FUNCTION_EXISTS=gethostbyname_r /D "CMAKE_INTDIR=\"Debug\"" /D _MBCS /Gm- /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /Fo"cmTC_9def6.dir\Debug\\" /Fd"cmTC_9def6.dir\Debug\vc142.pdb" /Gd /TC /errorReport:queue "C:\Program Files\CMake\share\cmake-3.17\Modules\CheckFunctionExists.c"
+CheckFunctionExists.obj : error LNK2019: unresolved external symbol gethostbyname_r referenced in function main [G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\cmTC_9def6.vcxproj]
+G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\Debug\cmTC_9def6.exe : fatal error LNK1120: 1 unresolved externals [G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\cmTC_9def6.vcxproj]
+
+
+
+Determining if the function gethostbyaddr_r exists failed with the following output:
+Change Dir: G:/Projects/Ishiiruka/CMakeFiles/CMakeTmp
+
+Run Build Command(s):C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/MSBuild/Current/Bin/MSBuild.exe cmTC_40209.vcxproj /p:Configuration=Debug /p:Platform=x64 /p:VisualStudioVersion=16.0 /v:m && Microsoft (R) Build Engine version 16.6.0+5ff7b0c9e for .NET Framework
+Copyright (C) Microsoft Corporation. All rights reserved.
+
+  Microsoft (R) C/C++ Optimizing Compiler Version 19.26.28806 for x64
+  CheckFunctionExists.c
+  Copyright (C) Microsoft Corporation.  All rights reserved.
+  cl /c /Zi /W3 /WX- /diagnostics:column /Od /Ob0 /D WIN32 /D _WINDOWS /D CHECK_FUNCTION_EXISTS=gethostbyaddr_r /D "CMAKE_INTDIR=\"Debug\"" /D _MBCS /Gm- /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /Fo"cmTC_40209.dir\Debug\\" /Fd"cmTC_40209.dir\Debug\vc142.pdb" /Gd /TC /errorReport:queue "C:\Program Files\CMake\share\cmake-3.17\Modules\CheckFunctionExists.c"
+CheckFunctionExists.obj : error LNK2019: unresolved external symbol gethostbyaddr_r referenced in function main [G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\cmTC_40209.vcxproj]
+G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\Debug\cmTC_40209.exe : fatal error LNK1120: 1 unresolved externals [G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\cmTC_40209.vcxproj]
+
+
+
+Determining if the function inet_pton exists failed with the following output:
+Change Dir: G:/Projects/Ishiiruka/CMakeFiles/CMakeTmp
+
+Run Build Command(s):C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/MSBuild/Current/Bin/MSBuild.exe cmTC_1e655.vcxproj /p:Configuration=Debug /p:Platform=x64 /p:VisualStudioVersion=16.0 /v:m && Microsoft (R) Build Engine version 16.6.0+5ff7b0c9e for .NET Framework
+Copyright (C) Microsoft Corporation. All rights reserved.
+
+  Microsoft (R) C/C++ Optimizing Compiler Version 19.26.28806 for x64
+  CheckFunctionExists.c
+  Copyright (C) Microsoft Corporation.  All rights reserved.
+  cl /c /Zi /W3 /WX- /diagnostics:column /Od /Ob0 /D WIN32 /D _WINDOWS /D CHECK_FUNCTION_EXISTS=inet_pton /D "CMAKE_INTDIR=\"Debug\"" /D _MBCS /Gm- /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /Fo"cmTC_1e655.dir\Debug\\" /Fd"cmTC_1e655.dir\Debug\vc142.pdb" /Gd /TC /errorReport:queue "C:\Program Files\CMake\share\cmake-3.17\Modules\CheckFunctionExists.c"
+CheckFunctionExists.obj : error LNK2019: unresolved external symbol inet_pton referenced in function main [G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\cmTC_1e655.vcxproj]
+G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\Debug\cmTC_1e655.exe : fatal error LNK1120: 1 unresolved externals [G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\cmTC_1e655.vcxproj]
+
+
+
+Determining if the function inet_ntop exists failed with the following output:
+Change Dir: G:/Projects/Ishiiruka/CMakeFiles/CMakeTmp
+
+Run Build Command(s):C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/MSBuild/Current/Bin/MSBuild.exe cmTC_0db5b.vcxproj /p:Configuration=Debug /p:Platform=x64 /p:VisualStudioVersion=16.0 /v:m && Microsoft (R) Build Engine version 16.6.0+5ff7b0c9e for .NET Framework
+Copyright (C) Microsoft Corporation. All rights reserved.
+
+  Microsoft (R) C/C++ Optimizing Compiler Version 19.26.28806 for x64
+  CheckFunctionExists.c
+  Copyright (C) Microsoft Corporation.  All rights reserved.
+  cl /c /Zi /W3 /WX- /diagnostics:column /Od /Ob0 /D WIN32 /D _WINDOWS /D CHECK_FUNCTION_EXISTS=inet_ntop /D "CMAKE_INTDIR=\"Debug\"" /D _MBCS /Gm- /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /Fo"cmTC_0db5b.dir\Debug\\" /Fd"cmTC_0db5b.dir\Debug\vc142.pdb" /Gd /TC /errorReport:queue "C:\Program Files\CMake\share\cmake-3.17\Modules\CheckFunctionExists.c"
+CheckFunctionExists.obj : error LNK2019: unresolved external symbol inet_ntop referenced in function main [G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\cmTC_0db5b.vcxproj]
+G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\Debug\cmTC_0db5b.exe : fatal error LNK1120: 1 unresolved externals [G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\cmTC_0db5b.vcxproj]
+
+
+
+Performing C SOURCE FILE Test HAS_MSGHDR_FLAGS failed with the following output:
+Change Dir: G:/Projects/Ishiiruka/CMakeFiles/CMakeTmp
+
+Run Build Command(s):C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/MSBuild/Current/Bin/MSBuild.exe cmTC_12188.vcxproj /p:Configuration=Debug /p:Platform=x64 /p:VisualStudioVersion=16.0 /v:m && Microsoft (R) Build Engine version 16.6.0+5ff7b0c9e for .NET Framework
+Copyright (C) Microsoft Corporation. All rights reserved.
+
+  Microsoft (R) C/C++ Optimizing Compiler Version 19.26.28806 for x64
+  src.c
+  Copyright (C) Microsoft Corporation.  All rights reserved.
+  cl /c /Zi /W3 /WX- /diagnostics:column /Od /Ob0 /D WIN32 /D _WINDOWS /D HAS_MSGHDR_FLAGS /D "CMAKE_INTDIR=\"Debug\"" /D _MBCS /Gm- /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /Fo"cmTC_12188.dir\Debug\\" /Fd"cmTC_12188.dir\Debug\vc142.pdb" /Gd /TC /errorReport:queue G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\src.c
+G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\src.c(3,10): fatal error C1083: Cannot open include file: 'sys/socket.h': No such file or directory [G:\Projects\Ishiiruka\CMakeFiles\CMakeTmp\cmTC_12188.vcxproj]
+
+
+Source file was:
+
+#include <sys/types.h>
+#include <sys/socket.h>
+
+int main()
+{
+  (void)sizeof(((struct msghdr *)0)->msg_flags);
+  return 0;
+}
+
