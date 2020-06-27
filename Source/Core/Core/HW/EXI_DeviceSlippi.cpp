@@ -70,6 +70,7 @@ static std::condition_variable cv_waitingForTargetFrame;
 static std::condition_variable cv_processingDiff;
 static std::atomic<int> numDiffsProcessing(0);
 static std::unordered_map<u8, std::string> slippi_names;
+static std::unordered_map<u8, std::string> slippi_connect_codes;
 
 extern std::unique_ptr<SlippiPlaybackStatus> g_playback_status;
 
@@ -352,6 +353,15 @@ std::vector<u8> CEXISlippi::generateMetadata()
 			metadata.insert(metadata.end(), playerName.begin(), playerName.end());
 		}
 
+		if (slippi_connect_codes.count(playerIndex))
+		{
+			auto connectCode = slippi_connect_codes[playerIndex];
+			// Add connection code element for this player name
+			metadata.insert(metadata.end(), {'U', 4, 'c', 'o', 'd', 'e', 'S', 'U'});
+			metadata.push_back((u8)connectCode.length());
+			metadata.insert(metadata.end(), connectCode.begin(), connectCode.end());
+		}
+
 		metadata.push_back('}'); // close names
 
 		// Add character element for this player
@@ -455,16 +465,22 @@ void CEXISlippi::writeToFile(std::unique_ptr<WriteMessage> msg)
 		// Reset lastFrame
 		lastFrame = Slippi::GAME_FIRST_FRAME;
 
-		// Get display names from slippi netplay client
+		// Get display names and connection codes from slippi netplay client
 		if (slippi_netplay)
 		{
 			auto matchInfo = slippi_netplay->GetMatchInfo();
+
 			SlippiPlayerSelections lps = matchInfo->localPlayerSelections;
 			SlippiPlayerSelections rps = matchInfo->remotePlayerSelections;
 
 			auto isDecider = slippi_netplay->IsDecider();
-			slippi_names[0] = isDecider ? lps.playerName : rps.playerName;
-			slippi_names[1] = isDecider ? rps.playerName : lps.playerName;
+			int local_port = isDecider ? 0 : 1;
+			int remote_port = isDecider ? 1 : 0;
+
+			slippi_names[local_port] = lps.playerName;
+			slippi_connect_codes[local_port] = lps.connectCode;
+			slippi_names[remote_port] = rps.playerName;
+			slippi_connect_codes[remote_port] = rps.connectCode;
 		}
 	}
 
@@ -489,8 +505,9 @@ void CEXISlippi::writeToFile(std::unique_ptr<WriteMessage> msg)
 		closingBytes.push_back('}');
 		dataToWrite.insert(dataToWrite.end(), closingBytes.begin(), closingBytes.end());
 
-		// Reset display names retrieved from slippi client
+		// Reset display names and connect codes retrieved from netplay client
 		slippi_names.clear();
+		slippi_connect_codes.clear();
 	}
 
 	// Write data to file
@@ -1897,6 +1914,9 @@ void CEXISlippi::setMatchSelections(u8 *payload)
 	}
 
 	s.playerName = displayName;
+
+	// Get user connect code from file
+	s.connectCode = user->GetUserInfo().connectCode;
 
 	// Merge these selections
 	localSelections.Merge(s);

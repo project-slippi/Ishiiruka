@@ -48,11 +48,13 @@ class SlippiPlayerSelections
 	u32 rngOffset = 0;
 
 	std::string playerName = "";
+	std::string connectCode = "";
 
 	void Merge(SlippiPlayerSelections &s)
 	{
 		this->rngOffset = s.rngOffset;
 		this->playerName = s.playerName;
+		this->connectCode = s.connectCode;
 
 		if (s.isStageSelected)
 		{
