@@ -117,8 +117,7 @@ void GameCubeConfigPane::InitializeGUI()
 	m_slippi_delay_frames_txt = new wxStaticText(this, wxID_ANY, _("Slippi Online Delay Frames:"));
 	m_slippi_delay_frames_ctrl = new wxSpinCtrl(this, wxID_ANY, _(std::to_string(SConfig::GetInstance().m_slippiOnlineDelay)));
 	m_slippi_delay_frames_ctrl->SetToolTip(_("Set how many delay frames you have when playing Slippi Online."));
-	m_slippi_delay_frames_ctrl->SetMin(1);
-	m_slippi_delay_frames_ctrl->SetMax(10);
+	m_slippi_delay_frames_ctrl->SetRange(1, 10);
 
 	const int space5 = FromDIP(5);
 	const int space10 = FromDIP(10);

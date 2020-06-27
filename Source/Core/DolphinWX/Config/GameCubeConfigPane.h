@@ -13,6 +13,7 @@ class wxButton;
 class wxCheckBox;
 class wxChoice;
 class wxDirPickerCtrl;
+class wxSpinCtrl;
 class wxString;
 class wxStaticText;
 
