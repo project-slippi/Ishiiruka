@@ -21,11 +21,10 @@ using json = nlohmann::json;
 
 #ifdef _WIN32
 #define MAX_SYSTEM_PROGRAM (4096)
-static int system_hidden(const char *cmd)
+static void system_hidden(const char *cmd)
 {
 	PROCESS_INFORMATION p_info;
 	STARTUPINFO s_info;
-	DWORD ReturnValue;
 
 	memset(&s_info, 0, sizeof(s_info));
 	memset(&p_info, 0, sizeof(p_info));
@@ -35,12 +34,12 @@ static int system_hidden(const char *cmd)
 	MultiByteToWideChar(CP_UTF8, 0, cmd, -1, utf16cmd, MAX_SYSTEM_PROGRAM);
 	if (CreateProcessW(NULL, utf16cmd, NULL, NULL, 0, CREATE_NO_WINDOW, NULL, NULL, &s_info, &p_info))
 	{
+		DWORD ExitCode;
 		WaitForSingleObject(p_info.hProcess, INFINITE);
-		GetExitCodeProcess(p_info.hProcess, &ReturnValue);
+		GetExitCodeProcess(p_info.hProcess, &ExitCode);
 		CloseHandle(p_info.hProcess);
 		CloseHandle(p_info.hThread);
 	}
-	return ReturnValue;
 }
 #endif
 

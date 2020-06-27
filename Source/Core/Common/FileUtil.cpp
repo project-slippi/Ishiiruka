@@ -25,7 +25,9 @@
 #include <io.h>
 #include <objbase.h>  // guid stuff
 #include <shellapi.h>
+#include <ShlObj.h>
 #include <windows.h>
+#include <winerror.h>
 #else
 #include <dirent.h>
 #include <errno.h>
@@ -753,6 +755,31 @@ std::string& GetExeDirectory()
 #endif
 	}
 	return DolphinPath;
+}
+
+std::string GetHomeDirectory()
+{
+	std::string homeDir;
+#ifdef _WIN32
+	wchar_t *path = nullptr;
+	
+	if (SUCCEEDED(SHGetKnownFolderPath(FOLDERID_Documents, 0, nullptr, &path))) {
+		char pathStr[MAX_PATH];
+		wcstombs(pathStr, path, MAX_PATH);
+	
+		homeDir = std::string(pathStr);
+		CoTaskMemFree(path);		
+	}
+	else {
+		const char* home = getenv("USERPROFILE");
+		homeDir = std::string(home) + "\\Documents";
+	}
+#else
+	const char* home = getenv("HOME");
+    homeDir = std::string(home);
+#endif
+
+	return homeDir;
 }
 
 std::string GetSysDirectory()
