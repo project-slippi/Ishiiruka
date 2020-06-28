@@ -27,6 +27,8 @@ SlippiMatchmaking::SlippiMatchmaking(SlippiUser *user)
 	m_client = nullptr;
 	m_server = nullptr;
 
+	MM_HOST = scm_slippi_semver_str.find("dev") == std::string::npos ? MM_HOST_PROD : MM_HOST_DEV;
+
 	generator = std::default_random_engine(Common::Timer::GetTimeMs());
 }
 
@@ -118,7 +120,7 @@ int SlippiMatchmaking::receiveMessage(json &msg, int timeoutMs)
 			return 0;
 		}
 		case ENET_EVENT_TYPE_DISCONNECT:
-      // Return -2 code to indicate we have lost connection to the server
+			// Return -2 code to indicate we have lost connection to the server
 			return -2;
 		}
 	}
@@ -328,14 +330,14 @@ void SlippiMatchmaking::handleMatchmaking()
 		INFO_LOG(SLIPPI_ONLINE, "[Matchmaking] Have not yet received assignment");
 		return;
 	}
-  else if (rcvRes != 0)
-  {
-    // Right now the only other code is -2 meaning the server died probably?
-	  ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Lost connection to the mm server");
-	  m_state = ProcessState::ERROR_ENCOUNTERED;
-	  m_errorMsg = "Lost connection to the mm server";
-	  return;
-  }
+	else if (rcvRes != 0)
+	{
+		// Right now the only other code is -2 meaning the server died probably?
+		ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Lost connection to the mm server");
+		m_state = ProcessState::ERROR_ENCOUNTERED;
+		m_errorMsg = "Lost connection to the mm server";
+		return;
+	}
 
 	std::string respType = getResp["type"];
 	if (respType != MmMessageType::GET_TICKET_RESP)
@@ -377,66 +379,13 @@ void SlippiMatchmaking::handleMatchmaking()
 	ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Opponent found. isDecider: %s", m_isHost ? "true" : "false");
 }
 
-void SlippiMatchmaking::sendHolePunchMsg(std::string remoteIp, u16 remotePort, u16 localPort)
-{
-	// We are explicitly setting the client address because we are trying to utilize our connection
-	// to the matchmaking service in order to hole punch. This port will end up being the port
-	// we listen on when we start our server
-	ENetAddress clientAddr;
-	clientAddr.host = ENET_HOST_ANY;
-	clientAddr.port = localPort;
-
-	auto client = enet_host_create(&clientAddr, 1, 3, 0, 0);
-
-	if (client == nullptr)
-	{
-		// Failed to create client
-		m_state = ProcessState::ERROR_ENCOUNTERED;
-		m_errorMsg = "Failed to start hole punch";
-		return;
-	}
-
-	ENetAddress addr;
-	enet_address_set_host(&addr, remoteIp.c_str());
-	addr.port = remotePort;
-
-	auto server = enet_host_connect(client, &addr, 3, 0);
-
-	if (server == nullptr)
-	{
-		// Failed to connect to server
-		m_state = ProcessState::ERROR_ENCOUNTERED;
-		m_errorMsg = "Failed to start hole punch";
-		return;
-	}
-
-	// Send connect message?
-	enet_host_flush(client);
-
-	enet_peer_reset(server);
-	enet_host_destroy(client);
-}
-
 void SlippiMatchmaking::handleConnecting()
 {
 	std::vector<std::string> ipParts;
 	SplitString(m_oppIp, ':', ipParts);
 
-	std::unique_ptr<SlippiNetplayClient> client;
-	if (m_isHost)
-	{
-		sendHolePunchMsg(ipParts[0], std::stoi(ipParts[1]), m_hostPort);
-		if (m_state != ProcessState::OPPONENT_CONNECTING)
-			return;
-
-		client = std::make_unique<SlippiNetplayClient>("", 0, m_hostPort, true);
-	}
-	else
-	{
-		client = std::make_unique<SlippiNetplayClient>(ipParts[0], std::stoi(ipParts[1]), m_hostPort, false);
-	}
-
-	// TODO: Swap host if connection fails
+  // Is host is now used to specify who the decider is
+	auto client = std::make_unique<SlippiNetplayClient>(ipParts[0], std::stoi(ipParts[1]), m_hostPort, m_isHost);
 
 	while (!m_netplayClient)
 	{
@@ -454,17 +403,7 @@ void SlippiMatchmaking::handleConnecting()
 		}
 		else if (status != SlippiNetplayClient::SlippiConnectStatus::NET_CONNECT_STATUS_CONNECTED)
 		{
-			if (!m_isSwapAttempt)
-			{
-				ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Connection attempt 1 failed, attempting swap.");
-
-				// Try swapping hosts and connecting again
-				m_isHost = !m_isHost;
-				m_isSwapAttempt = true;
-				return;
-			}
-
-			ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Connection attempts both failed, looking for someone else.");
+			ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Connection attempt failed, looking for someone else.");
 
 			// Return to the start to get a new ticket to find someone else we can hopefully connect with
 			m_netplayClient = nullptr;

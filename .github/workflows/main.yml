@@ -79,7 +79,7 @@ jobs:
         if: success()
         working-directory: ${{ github.workspace }}
         run: |
-          ./build-linux.sh
+          ./build-linux.sh appimage
       - name: "Build AppImage"
         if: success()
         working-directory: ${{ github.workspace }}
@@ -168,7 +168,7 @@ jobs:
           cd wxWidgets-3.1.3
           cd build
           ../configure
-          make -j7
+          make -j$(nproc)
           sudo make install
       - name: "Build"
         if: success()
@@ -178,7 +178,7 @@ jobs:
           mkdir build
           cd build
           cmake ..
-          make -j7
+          make -j$(nproc)
       - name: "Package Netplay"
         if: success()
         shell: bash
