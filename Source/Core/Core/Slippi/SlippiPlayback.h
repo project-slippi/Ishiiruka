@@ -23,7 +23,7 @@ class SlippiPlaybackStatus
 	bool isHardFFW = false;
 	bool isSoftFFW = false;
 	s32 lastFFWFrame = INT_MIN;
-	std::atomic<s32> currentPlaybackFrame = INT_MIN;
+	s32 currentPlaybackFrame = INT_MIN;
 	s32 targetFrameNum = INT_MAX;
 	s32 latestFrame = Slippi::GAME_FIRST_FRAME;
 
