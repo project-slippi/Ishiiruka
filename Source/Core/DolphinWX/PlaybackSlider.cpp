@@ -3,6 +3,7 @@
 // Refer to the license.txt file included.
 
 #include <Core/Slippi/SlippiPlayback.h>
+#include <SlippiLib/SlippiGame.h>
 #include <wx/utils.h>
 
 #include "PlaybackSlider.h"
@@ -100,11 +101,11 @@ void PlaybackSlider::OnSliderMove(wxCommandEvent &event)
 	// save the value of the last move here and use that to set the game pos
 	lastMoveVal = value;
 
-	int totalSeconds = (int)((g_playbackStatus->latestFrame + 123) / 60);
+	int totalSeconds = (int)((g_playbackStatus->latestFrame - Slippi::GAME_FIRST_FRAME) / 60);
 	int totalMinutes = (int)(totalSeconds / 60);
 	int totalRemainder = (int)(totalSeconds % 60);
 
-	int currSeconds = int((value + 123) / 60);
+	int currSeconds = int((value - Slippi::GAME_FIRST_FRAME) / 60);
 	int currMinutes = (int)(currSeconds / 60);
 	int currRemainder = (int)(currSeconds % 60);
 	// Position string (i.e. MM:SS)

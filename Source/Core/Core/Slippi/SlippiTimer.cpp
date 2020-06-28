@@ -12,11 +12,11 @@ void SlippiTimer::Notify()
 		return;
 	}
 
-	int totalSeconds = (int) ((g_playbackStatus->latestFrame + 123) / 60);
+	int totalSeconds = (int) ((g_playbackStatus->latestFrame - Slippi::GAME_FIRST_FRAME) / 60);
 	int totalMinutes = (int)(totalSeconds / 60);
 	int totalRemainder = (int)(totalSeconds % 60);
 
-	int currSeconds = int ((g_playbackStatus->currentPlaybackFrame + 123) / 60);
+	int currSeconds = int((g_playbackStatus->currentPlaybackFrame - Slippi::GAME_FIRST_FRAME) / 60);
 	int currMinutes = (int)(currSeconds / 60);
 	int currRemainder = (int)(currSeconds % 60);
 	// Position string (i.e. MM:SS)
@@ -30,9 +30,9 @@ void SlippiTimer::Notify()
   // Setup the slider and gauge min/max values
 	int minValue = m_slider->GetMin();
 	int maxValue = m_slider->GetMax();
-	if (maxValue != (int)g_playbackStatus->latestFrame || minValue != -123)
+	if (maxValue != (int)g_playbackStatus->latestFrame || minValue != Slippi::PLAYBACK_FIRST_SAVE)
 	{
-		m_slider->SetRange(-123, (int)(g_playbackStatus->latestFrame));
+		m_slider->SetRange(Slippi::PLAYBACK_FIRST_SAVE, (int)(g_playbackStatus->latestFrame));
 	}
 
 	// Only update values while not actively seeking

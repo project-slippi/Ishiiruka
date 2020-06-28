@@ -2,6 +2,7 @@
 #include <future>
 #include <open-vcdiff/src/google/vcdecoder.h>
 #include <open-vcdiff/src/google/vcencoder.h>
+#include <SlippiLib/SlippiGame.h>
 #include <unordered_map>
 
 #include "../../Common/CommonTypes.h"
@@ -18,10 +19,10 @@ class SlippiPlaybackStatus
 	volatile bool shouldRunThreads = false;
 	bool isHardFFW = false;
 	bool isSoftFFW = false;
-	int32_t lastFFWFrame = INT_MIN;
-	int32_t currentPlaybackFrame = INT_MIN;
-	int32_t targetFrameNum = INT_MAX;
-	int32_t latestFrame = -123;
+	s32 lastFFWFrame = INT_MIN;
+	std::atomic<s32> currentPlaybackFrame = INT_MIN;
+	s32 targetFrameNum = INT_MAX;
+	s32 latestFrame = Slippi::GAME_FIRST_FRAME;
 
 	std::thread m_savestateThread;
 	std::thread m_seekThread;
