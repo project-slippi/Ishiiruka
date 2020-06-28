@@ -13,7 +13,7 @@ fi
 
 
 # Build the AppDir directory for this image
-if [ ! -e ./AppDir ]; then mkdir AppDir; fi
+mkdir -p AppDir
 ./linuxdeploy \
 	--appdir=./AppDir \
 	-e ./build/Binaries/dolphin-emu \
@@ -22,4 +22,3 @@ if [ ! -e ./AppDir ]; then mkdir AppDir; fi
 
 # Bake an AppImage
 ./linuxdeploy --appdir=./AppDir --output appimage
-
