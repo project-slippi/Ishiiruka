@@ -1,9 +1,12 @@
 #pragma once
+
+#include <climits>
 #include <future>
 #include <open-vcdiff/src/google/vcdecoder.h>
 #include <open-vcdiff/src/google/vcencoder.h>
 #include <SlippiLib/SlippiGame.h>
 #include <unordered_map>
+#include <vector>
 
 #include "../../Common/CommonTypes.h"
 

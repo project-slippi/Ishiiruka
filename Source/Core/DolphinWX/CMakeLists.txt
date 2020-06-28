@@ -91,7 +91,7 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
 	set(WXLIBS ${WXLIBS} dl)
 endif()
 
-list(APPEND LIBS core SlippiPlaybackStatus uicommon)
+list(APPEND LIBS core uicommon)
 
 if(APPLE)
 	if(wxWidgets_FOUND)

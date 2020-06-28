@@ -14,6 +14,10 @@
 #include "Common/CommonPaths.h"
 #include "Common/CommonTypes.h"
 #include "Common/Logging/Log.h"
+#include "Common/MemoryUtil.h"
+#include "Common/MsgHandler.h"
+#include "Common/StringUtil.h"
+#include "Common/Thread.h"
 #include "Core/HW/Memmap.h"
 
 #include "Core/NetPlayClient.h"
@@ -38,6 +42,7 @@
 //#define CREATE_DIFF_FILES
 
 static std::unordered_map<u8, std::string> slippi_names;
+static std::unordered_map<u8, std::string> slippi_connect_codes;
 
 extern std::unique_ptr<SlippiPlaybackStatus> g_playbackStatus;
 extern std::unique_ptr<SlippiReplayComm> g_replayComm;
@@ -301,6 +306,15 @@ std::vector<u8> CEXISlippi::generateMetadata()
 			metadata.insert(metadata.end(), playerName.begin(), playerName.end());
 		}
 
+		if (slippi_connect_codes.count(playerIndex))
+		{
+			auto connectCode = slippi_connect_codes[playerIndex];
+			// Add connection code element for this player name
+			metadata.insert(metadata.end(), {'U', 4, 'c', 'o', 'd', 'e', 'S', 'U'});
+			metadata.push_back((u8)connectCode.length());
+			metadata.insert(metadata.end(), connectCode.begin(), connectCode.end());
+		}
+
 		metadata.push_back('}'); // close names
 
 		// Add character element for this player
@@ -332,6 +346,10 @@ std::vector<u8> CEXISlippi::generateMetadata()
 
 void CEXISlippi::writeToFileAsync(u8 *payload, u32 length, std::string fileOption)
 {
+	if (!SConfig::GetInstance().m_slippiSaveReplays) {
+		return;
+	}
+
 	if (fileOption == "create" && !writeThreadRunning)
 	{
 		WARN_LOG(SLIPPI, "Creating file write thread...");
@@ -404,16 +422,22 @@ void CEXISlippi::writeToFile(std::unique_ptr<WriteMessage> msg)
 		// Reset lastFrame
 		lastFrame = Slippi::GAME_FIRST_FRAME;
 
-		// Get display names from slippi netplay client
+		// Get display names and connection codes from slippi netplay client
 		if (slippi_netplay)
 		{
 			auto matchInfo = slippi_netplay->GetMatchInfo();
+
 			SlippiPlayerSelections lps = matchInfo->localPlayerSelections;
 			SlippiPlayerSelections rps = matchInfo->remotePlayerSelections;
 
-			auto isHost = slippi_netplay->IsHost();
-			slippi_names[0] = isHost ? lps.playerName : rps.playerName;
-			slippi_names[1] = isHost ? rps.playerName : lps.playerName;
+			auto isDecider = slippi_netplay->IsDecider();
+			int local_port = isDecider ? 0 : 1;
+			int remote_port = isDecider ? 1 : 0;
+
+			slippi_names[local_port] = lps.playerName;
+			slippi_connect_codes[local_port] = lps.connectCode;
+			slippi_names[remote_port] = rps.playerName;
+			slippi_connect_codes[remote_port] = rps.connectCode;
 		}
 	}
 
@@ -438,8 +462,9 @@ void CEXISlippi::writeToFile(std::unique_ptr<WriteMessage> msg)
 		closingBytes.push_back('}');
 		dataToWrite.insert(dataToWrite.end(), closingBytes.begin(), closingBytes.end());
 
-		// Reset display names retrieved from slippi client
+		// Reset display names and connect codes retrieved from netplay client
 		slippi_names.clear();
+		slippi_connect_codes.clear();
 	}
 
 	// Write data to file
@@ -470,10 +495,35 @@ void CEXISlippi::createNewFile()
 		closeFile();
 	}
 
-	std::string dirpath = File::GetExeDirectory();
-	File::CreateDir(dirpath + DIR_SEP + "Slippi");
-	std::string filepath = dirpath + DIR_SEP + generateFileName();
+	std::string dirpath = SConfig::GetInstance().m_strSlippiReplayDir;
 
+	// Remove a trailing / or \\ if the user managed to have that in their config
+	char dirpathEnd = dirpath.back();
+	if (dirpathEnd == '/' || dirpathEnd == '\\') {
+		dirpath.pop_back();
+	}
+
+	// First, ensure that the root Slippi replay directory is created
+	File::CreateFullPath(dirpath + "/");
+
+	// Now we have a dir such as /home/Replays but we need to make one such
+	// as /home/Replays/2020-06 if month categorization is enabled
+	if (SConfig::GetInstance().m_slippiReplayMonthFolders) {
+		dirpath.push_back('/');
+
+		// Append YYYY-MM to the directory path
+		uint8_t yearMonthStrLength = sizeof "2020-06";
+		std::vector<char> yearMonthBuf(yearMonthStrLength);
+		strftime(&yearMonthBuf[0], yearMonthStrLength, "%Y-%m", localtime(&gameStartTime));
+
+		std::string yearMonth(&yearMonthBuf[0]);
+		dirpath.append(yearMonth);
+
+		// Ensure that the subfolder directory is created
+		File::CreateDir(dirpath);
+	}
+
+	std::string filepath = dirpath + DIR_SEP + generateFileName();
 	INFO_LOG(SLIPPI, "EXI_DeviceSlippi.cpp: Creating new replay file %s", filepath.c_str());
 
 #ifdef _WIN32
@@ -481,6 +531,15 @@ void CEXISlippi::createNewFile()
 #else
 	m_file = File::IOFile(filepath, "wb");
 #endif
+
+	if (!m_file) {
+		PanicAlertT("Could not create .slp replay file [%s].\n\n"
+					"The replay folder's path might be invalid, or you might "
+					"not have permission to write to it.\n\n"
+					"You can change the replay folder in Config > GameCube > "
+					"Slippi Replay Settings.",
+					filepath.c_str());
+	}
 }
 
 std::string CEXISlippi::generateFileName()
@@ -491,7 +550,7 @@ std::string CEXISlippi::generateFileName()
 	strftime(&dateTimeBuf[0], dateTimeStrLength, "%Y%m%dT%H%M%S", localtime(&gameStartTime));
 
 	std::string str(&dateTimeBuf[0]);
-	return StringFromFormat("Slippi/Game_%s.slp", str.c_str());
+	return StringFromFormat("Game_%s.slp", str.c_str());
 }
 
 void CEXISlippi::closeFile()
@@ -1661,9 +1720,9 @@ void CEXISlippi::prepareOnlineMatchState()
 			remotePlayerReady = matchInfo->remotePlayerSelections.isCharacterSelected;
 #endif
 
-			auto isHost = slippi_netplay->IsHost();
-			localPlayerIndex = isHost ? 0 : 1;
-			remotePlayerIndex = isHost ? 1 : 0;
+			auto isDecider = slippi_netplay->IsDecider();
+			localPlayerIndex = isDecider ? 0 : 1;
+			remotePlayerIndex = isDecider ? 1 : 0;
 
 			oppName = slippi_netplay->GetOpponentName();
 		}
@@ -1691,7 +1750,7 @@ void CEXISlippi::prepareOnlineMatchState()
 
 	if (localPlayerReady && remotePlayerReady)
 	{
-		auto isHost = slippi_netplay->IsHost();
+		auto isDecider = slippi_netplay->IsDecider();
 
 		auto matchInfo = slippi_netplay->GetMatchInfo();
 		SlippiPlayerSelections lps = matchInfo->localPlayerSelections;
@@ -1721,7 +1780,7 @@ void CEXISlippi::prepareOnlineMatchState()
 
 		// Overwrite stage
 		u16 stageId;
-		if (isHost)
+		if (isDecider)
 		{
 			stageId = lps.isStageSelected ? lps.stageId : rps.stageId;
 		}
@@ -1738,13 +1797,13 @@ void CEXISlippi::prepareOnlineMatchState()
 		*stage = Common::swap16(stageId);
 
 		// Set rng offset
-		rngOffset = isHost ? lps.rngOffset : rps.rngOffset;
+		rngOffset = isDecider ? lps.rngOffset : rps.rngOffset;
 		WARN_LOG(SLIPPI_ONLINE, "Rng Offset: 0x%x", rngOffset);
 		WARN_LOG(SLIPPI_ONLINE, "P1 Char: 0x%X, P2 Char: 0x%X", onlineMatchBlock[0x60], onlineMatchBlock[0x84]);
 
 		// Set player names
-		p1Name = isHost ? lps.playerName : rps.playerName;
-		p2Name = isHost ? rps.playerName : lps.playerName;
+		p1Name = isDecider ? lps.playerName : rps.playerName;
+		p2Name = isDecider ? rps.playerName : lps.playerName;
 	}
 
 	// Add rng offset to output
@@ -1844,6 +1903,9 @@ void CEXISlippi::setMatchSelections(u8 *payload)
 	}
 
 	s.playerName = displayName;
+
+	// Get user connect code from file
+	s.connectCode = user->GetUserInfo().connectCode;
 
 	// Merge these selections
 	localSelections.Merge(s);
