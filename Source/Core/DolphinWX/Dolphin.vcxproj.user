@@ -8,7 +8,7 @@
     <ShowAllFiles>false</ShowAllFiles>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <LocalDebuggerCommandArguments>-i "C:/test.json"</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>-i "C:/Users/R2DLiu/Documents/test.json"</LocalDebuggerCommandArguments>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugFast|x64'">
     <LocalDebuggerCommandArguments>-i "C:/test.json"</LocalDebuggerCommandArguments>

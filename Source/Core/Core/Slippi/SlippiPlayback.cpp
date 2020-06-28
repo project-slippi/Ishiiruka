@@ -60,7 +60,7 @@ SlippiPlaybackStatus::SlippiPlaybackStatus()
 	lastFFWFrame = INT_MIN;
 	currentPlaybackFrame = INT_MIN;
 	targetFrameNum = INT_MAX;
-	latestFrame = -123;
+	latestFrame = Slippi::GAME_FIRST_FRAME;
 }
 
 void SlippiPlaybackStatus::startThreads()
@@ -79,15 +79,20 @@ void SlippiPlaybackStatus::prepareSlippiPlayback()
 		cv_processingDiff.wait(processingLock);
 	}
 
-	if (inSlippiPlayback && currentPlaybackFrame == targetFrameNum)
+	// Unblock thread to save a state every interval
+	if ((currentPlaybackFrame + 122) % FRAME_INTERVAL == 0)
+		condVar.notify_one();
+
+	// TODO: figure out why sometimes playback frame increments past targetFrameNum
+	if (inSlippiPlayback && currentPlaybackFrame >= targetFrameNum)
 	{
-		INFO_LOG(SLIPPI, "Reached frame to seek to, unblock");
+		if (currentPlaybackFrame > targetFrameNum)
+		{
+			INFO_LOG(SLIPPI, "Reached frame %d. Target was %d. Unblocking", currentPlaybackFrame.load(),
+			         targetFrameNum);
+		}
 		cv_waitingForTargetFrame.notify_one();
 	}
-
-	// Unblock thread to save a state every interval
-	if ((currentPlaybackFrame + 123) % FRAME_INTERVAL == 0)
-		condVar.notify_one();
 }
 
 void SlippiPlaybackStatus::resetPlayback()
@@ -127,7 +132,8 @@ void SlippiPlaybackStatus::SavestateThread()
 	while (shouldRunThreads)
 	{
 		// Wait to hit one of the intervals
-		while (shouldRunThreads && (currentPlaybackFrame + 123) % FRAME_INTERVAL != 0)
+		// Possible while rewinding that we hit this wait again.
+		while (shouldRunThreads && (currentPlaybackFrame - Slippi::PLAYBACK_FIRST_SAVE) % FRAME_INTERVAL != 0)
 			condVar.wait(intervalLock);
 
 		if (!shouldRunThreads)
@@ -137,7 +143,7 @@ void SlippiPlaybackStatus::SavestateThread()
 		if (fixedFrameNumber == INT_MAX)
 			continue;
 
-		bool isStartFrame = fixedFrameNumber == Slippi::GAME_FIRST_FRAME;
+		bool isStartFrame = fixedFrameNumber == Slippi::PLAYBACK_FIRST_SAVE;
 		bool hasStateBeenProcessed = futureDiffs.count(fixedFrameNumber) > 0;
 
 		if (!inSlippiPlayback && isStartFrame)
@@ -187,22 +193,22 @@ void SlippiPlaybackStatus::SeekThread()
 				targetFrameNum = currentPlaybackFrame - jumpInterval;
 
 			// Handle edgecases for trying to seek before start or past end of game
-			if (targetFrameNum < Slippi::GAME_FIRST_FRAME)
-				targetFrameNum = Slippi::GAME_FIRST_FRAME;
+			if (targetFrameNum < Slippi::PLAYBACK_FIRST_SAVE)
+				targetFrameNum = Slippi::PLAYBACK_FIRST_SAVE;
 
 			if (targetFrameNum > latestFrame)
 			{
 				targetFrameNum = latestFrame;
 			}
 
-			s32 closestStateFrame = targetFrameNum - emod(targetFrameNum + 123, FRAME_INTERVAL);
+			s32 closestStateFrame = targetFrameNum - emod(targetFrameNum - Slippi::PLAYBACK_FIRST_SAVE, FRAME_INTERVAL);
 
 			bool isLoadingStateOptimal =
 			    targetFrameNum < currentPlaybackFrame || closestStateFrame > currentPlaybackFrame;
 
 			if (isLoadingStateOptimal)
 			{
-				if (closestStateFrame <= Slippi::GAME_FIRST_FRAME)
+				if (closestStateFrame <= Slippi::PLAYBACK_FIRST_SAVE)
 				{
 					State::LoadFromBuffer(iState);
 				}
