@@ -143,7 +143,7 @@ void SlippiUser::UpdateFile()
 #else
 	std::string path = "dolphin-slippi-tools";
 	std::string command = path + " user-update";
-	system_hidden(command.c_str());
+	system(command.c_str());
 #endif
 }
 
