@@ -119,8 +119,8 @@ void GameCubeConfigPane::InitializeGUI()
 	m_slippi_delay_frames_txt = new wxStaticText(this, wxID_ANY, _("Slippi Online Delay Frames:"));
 	m_slippi_delay_frames_ctrl = new wxSpinCtrl(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(50, -1));
 	m_slippi_delay_frames_ctrl->SetToolTip(_(
-		"Set the # of delay frames you'll have when playing Slippi Online. "
-		"Keep this at 2 unless consistently playing over 120 ping. Higher delays become unplayable."));
+		"Leave this at 2 unless consistently playing on 120+ ping. "
+		"Increasing this can cause unplayable input delay."));
 	m_slippi_delay_frames_ctrl->SetRange(1, 9);
 
 	const int space5 = FromDIP(5);
@@ -176,8 +176,8 @@ void GameCubeConfigPane::InitializeGUI()
 	sbGamecubeSlippiSettings->AddSpacer(space5);
 
 	wxGridBagSizer* const sGamecubeOnlineSettings = new wxGridBagSizer(space5, space5);
-	sGamecubeOnlineSettings->Add(m_slippi_delay_frames_txt, wxGBPosition(1, 0), wxDefaultSpan, wxEXPAND);
-	sGamecubeOnlineSettings->Add(m_slippi_delay_frames_ctrl, wxGBPosition(1, 1), wxDefaultSpan, wxALIGN_LEFT);
+	sGamecubeOnlineSettings->Add(m_slippi_delay_frames_txt, wxGBPosition(0, 0), wxDefaultSpan, wxEXPAND);
+	sGamecubeOnlineSettings->Add(m_slippi_delay_frames_ctrl, wxGBPosition(0, 1), wxDefaultSpan, wxALIGN_LEFT);
 
 	wxStaticBoxSizer* const sbGamecubeOnlineSettings =
 		new wxStaticBoxSizer(wxVERTICAL, this, _("Online Settings"));
