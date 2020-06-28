@@ -2031,12 +2031,12 @@ void CEXISlippi::handleLogOutRequest()
 
 void CEXISlippi::handleUpdateAppRequest()
 {
-#ifdef _WIN32
+#ifdef __APPLE__
+	CriticalAlertT("Automatic updates are not available for macOS and Linux, please update manually.");
+#else
 	main_frame->LowerRenderWindow();
 	user->UpdateApp();
 	main_frame->DoExit();
-#else
-	CriticalAlertT("Automatic updates are not available for macOS and Linux, please update manually.");
 #endif
 }
 

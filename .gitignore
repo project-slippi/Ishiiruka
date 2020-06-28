@@ -73,4 +73,8 @@ semver.log
 
 AppDir/
 linuxdeploy
+linuxdeploy-update-plugin
+appimageupdatetool
 *.AppImage
+*.zsync
+*.zs-old
