@@ -88,7 +88,7 @@ void SlippiPlaybackStatus::prepareSlippiPlayback()
 	{
 		if (currentPlaybackFrame > targetFrameNum)
 		{
-			INFO_LOG(SLIPPI, "Reached frame %d. Target was %d. Unblocking", currentPlaybackFrame.load(),
+			INFO_LOG(SLIPPI, "Reached frame %d. Target was %d. Unblocking", currentPlaybackFrame,
 			         targetFrameNum);
 		}
 		cv_waitingForTargetFrame.notify_one();
