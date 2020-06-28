@@ -114,9 +114,13 @@ void GameCubeConfigPane::InitializeGUI()
 		wxDIRP_USE_TEXTCTRL | wxDIRP_SMALL);
 	m_replay_directory_picker->SetToolTip(
 		_("Choose where your Slippi replay files are saved."));
+
+	// Online settings
 	m_slippi_delay_frames_txt = new wxStaticText(this, wxID_ANY, _("Slippi Online Delay Frames:"));
 	m_slippi_delay_frames_ctrl = new wxSpinCtrl(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(50, -1));
-	m_slippi_delay_frames_ctrl->SetToolTip(_("Set how many delay frames you have when playing Slippi Online."));
+	m_slippi_delay_frames_ctrl->SetToolTip(_(
+		"Set the # of delay frames you'll have when playing Slippi Online. "
+		"Keep this at 2 unless consistently playing over 120 ping. Higher delays become unplayable."));
 	m_slippi_delay_frames_ctrl->SetRange(1, 9);
 
 	const int space5 = FromDIP(5);
@@ -163,8 +167,6 @@ void GameCubeConfigPane::InitializeGUI()
 	sGamecubeSlippiSettings->Add(new wxStaticText(this, wxID_ANY, _("Replay folder:")), wxGBPosition(2, 0),
 		wxDefaultSpan, wxALIGN_CENTER_VERTICAL);
 	sGamecubeSlippiSettings->Add(m_replay_directory_picker, wxGBPosition(2, 1), wxDefaultSpan, wxEXPAND);
-	sGamecubeSlippiSettings->Add(m_slippi_delay_frames_txt, wxGBPosition(3, 0), wxDefaultSpan, wxEXPAND);
-	sGamecubeSlippiSettings->Add(m_slippi_delay_frames_ctrl, wxGBPosition(3, 1), wxDefaultSpan, wxALIGN_LEFT);
 	sGamecubeSlippiSettings->AddGrowableCol(1);
 
 	wxStaticBoxSizer* const sbGamecubeSlippiSettings =
@@ -173,6 +175,16 @@ void GameCubeConfigPane::InitializeGUI()
 	sbGamecubeSlippiSettings->Add(sGamecubeSlippiSettings, 0, wxEXPAND | wxLEFT | wxRIGHT, space5);
 	sbGamecubeSlippiSettings->AddSpacer(space5);
 
+	wxGridBagSizer* const sGamecubeOnlineSettings = new wxGridBagSizer(space5, space5);
+	sGamecubeOnlineSettings->Add(m_slippi_delay_frames_txt, wxGBPosition(1, 0), wxDefaultSpan, wxEXPAND);
+	sGamecubeOnlineSettings->Add(m_slippi_delay_frames_ctrl, wxGBPosition(1, 1), wxDefaultSpan, wxALIGN_LEFT);
+
+	wxStaticBoxSizer* const sbGamecubeOnlineSettings =
+		new wxStaticBoxSizer(wxVERTICAL, this, _("Online Settings"));
+	sbGamecubeOnlineSettings->AddSpacer(space5);
+	sbGamecubeOnlineSettings->Add(sGamecubeOnlineSettings, 0, wxEXPAND | wxLEFT | wxRIGHT, space5);
+	sbGamecubeOnlineSettings->AddSpacer(space5);
+
 	wxBoxSizer* const main_sizer = new wxBoxSizer(wxVERTICAL);
 	main_sizer->AddSpacer(space5);
 	main_sizer->Add(sbGamecubeIPLSettings, 0, wxEXPAND | wxLEFT | wxRIGHT, space5);
@@ -180,6 +192,8 @@ void GameCubeConfigPane::InitializeGUI()
 	main_sizer->Add(sbGamecubeDeviceSettings, 0, wxEXPAND | wxLEFT | wxRIGHT, space5);
 	main_sizer->AddSpacer(space5);
 	main_sizer->Add(sbGamecubeSlippiSettings, 0, wxEXPAND | wxLEFT | wxRIGHT, space5);
+	main_sizer->AddSpacer(space5);
+	main_sizer->Add(sbGamecubeOnlineSettings, 0, wxEXPAND | wxLEFT | wxRIGHT, space5);
 	main_sizer->AddSpacer(space5);
 
 	SetSizer(main_sizer);
