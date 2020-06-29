@@ -42,6 +42,8 @@ public:
 	virtual void OnConnectionLost() = 0;
 	virtual void OnTraversalError(int error) = 0;
 	virtual bool IsRecording() = 0;
+	virtual bool IsSpectating() = 0;
+	virtual void SetSpectating(bool spectating) = 0;
 	virtual std::string FindGame(const std::string& game) = 0;
 	virtual void ShowMD5Dialog(const std::string& file_identifier) = 0;
 	virtual void SetMD5Progress(int pid, int progress) = 0;
@@ -97,6 +99,7 @@ public:
 	bool WiimoteUpdate(int _number, u8* data, const u8 size, u8 reporting_mode);
 	bool GetNetPads(int pad_nb, GCPadStatus* pad_status);
 	void SendNetPad(int pad_nb);
+	void SendSpectatorSetting(bool spectator);
 
 	void OnTraversalStateChanged() override;
 	void OnConnectReady(ENetAddress addr) override;

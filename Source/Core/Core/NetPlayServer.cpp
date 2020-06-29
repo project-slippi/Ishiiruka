@@ -561,6 +561,27 @@ unsigned int NetPlayServer::OnData(sf::Packet& packet, Client& player)
 	}
 	break;
 
+	case NP_MSG_PAD_SPECTATOR:
+	{
+		bool spectator;
+		packet >> spectator;
+		auto padmap = this->GetPadMapping();
+		for (int i = 0; i < padmap.size(); i++)
+		{
+			if (spectator && padmap[i] == player.pid)
+			{
+				padmap[i] = -1;
+			}
+			else if (!spectator && padmap[i] == -1)
+			{
+				padmap[i] = player.pid;
+				break;
+			}
+		}
+		this->SetPadMapping(padmap);
+	}
+	break;
+
     case NP_MSG_REPORT_FRAME_TIME:
     {
 		float frame_time;

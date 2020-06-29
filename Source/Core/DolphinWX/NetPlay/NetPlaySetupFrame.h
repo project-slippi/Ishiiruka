@@ -59,6 +59,7 @@ private:
 	wxCheckBox* m_traversal_listen_port_enabled;
 	wxSpinCtrl* m_traversal_listen_port;
 	wxNotebook* m_notebook;
+	wxCheckBox *m_spectator_toggle;
 
 	wxListBox* m_game_lbox;
 #ifdef USE_UPNP

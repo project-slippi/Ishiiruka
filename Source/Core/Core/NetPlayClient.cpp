@@ -326,10 +326,14 @@ unsigned int NetPlayClient::OnData(sf::Packet& packet)
 
 	case NP_MSG_PAD_MAPPING:
 	{
+		bool assigned = false;
 		for (PadMapping& mapping : m_pad_map)
 		{
 			packet >> mapping;
+			if (!assigned && mapping == this->m_pid)
+				assigned = true;
 		}
+		dialog->SetSpectating(!assigned);
 
 		UpdateDevices();
 
@@ -1114,6 +1118,14 @@ bool NetPlayClient::GetNetPads(const int pad_nb, GCPadStatus* pad_status)
 	}
 
 	return true;
+}
+
+// called from ---GUI--- thread
+void NetPlayClient::SendSpectatorSetting(bool spectator) {
+	auto spac = std::make_unique<sf::Packet>();
+	*spac << static_cast<MessageId>(NP_MSG_PAD_SPECTATOR);
+	*spac << spectator;
+	SendAsync(std::move(spac));
 }
 
 // called from ---CPU--- thread

@@ -316,11 +316,18 @@ wxSizer* NetPlayDialog::CreateBottomGUI(wxWindow* parent)
 	}
 
 	m_record_chkbox = new wxCheckBox(parent, wxID_ANY, _("Record inputs"));
+	m_spec_chkbox = new wxCheckBox(parent, wxID_ANY, _("Spectator"));
+	m_spec_chkbox->SetToolTip("Spectators will not cause lag unless there is a networking issue");
+	m_spec_chkbox->Bind(wxEVT_CHECKBOX, &NetPlayDialog::OnSpectatorToggle, this);
 
 	wxButton* quit_btn = new wxButton(parent, wxID_ANY, _("Quit Netplay"));
 	quit_btn->Bind(wxEVT_BUTTON, &NetPlayDialog::OnQuit, this);
 
-	bottom_szr->Add(m_record_chkbox, 0, wxALIGN_CENTER_VERTICAL);
+	wxBoxSizer* const chkbox_sizer_2 = new wxBoxSizer(wxVERTICAL);
+	chkbox_sizer_2->Add(m_record_chkbox, 0, wxLEFT, space5);
+	chkbox_sizer_2->Add(m_spec_chkbox, 0, wxLEFT, space5);
+
+	bottom_szr->Add(chkbox_sizer_2, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, space5);
 
 	bottom_szr->AddStretchSpacer();
 	bottom_szr->Add(quit_btn, 0, wxALIGN_CENTER_VERTICAL);
@@ -352,6 +359,13 @@ NetPlayDialog::~NetPlayDialog()
 		netplay_server = nullptr;
 	}
 	npd = nullptr;
+}
+
+void NetPlayDialog::OnSpectatorToggle(wxCommandEvent& event) 
+{
+	// ask server to set mapping
+	const bool spectator = ((wxCheckBox *)event.IsChecked());
+	netplay_client->SendSpectatorSetting(spectator);
 }
 
 void NetPlayDialog::OnChat(wxCommandEvent&)
@@ -497,6 +511,7 @@ void NetPlayDialog::OnMsgStartGame()
 	}
 
 	m_record_chkbox->Disable();
+	m_spec_chkbox->Disable();
 }
 
 void NetPlayDialog::OnMsgStopGame()
@@ -518,6 +533,7 @@ void NetPlayDialog::OnMsgStopGame()
         }
 	}
 	m_record_chkbox->Enable();
+	m_spec_chkbox->Enable();
 }
 
 void NetPlayDialog::OnAdjustMinimumBuffer(wxCommandEvent& event)
@@ -872,6 +888,16 @@ void NetPlayDialog::OnPlayerSelect(wxCommandEvent&)
 bool NetPlayDialog::IsRecording()
 {
 	return m_record_chkbox->GetValue();
+}
+
+bool NetPlayDialog::IsSpectating() 
+{
+	return m_spec_chkbox->GetValue();
+}
+
+void NetPlayDialog::SetSpectating(bool spectating) 
+{
+	m_spec_chkbox->SetValue(spectating);
 }
 
 void NetPlayDialog::OnCopyIP(wxCommandEvent&)
