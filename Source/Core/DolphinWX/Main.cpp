@@ -356,6 +356,11 @@ void DolphinApp::AfterInit()
 				main_frame->BootGame(WxStrToStr(m_file_to_load));
 				main_frame->RaiseRenderWindow();
 			}
+			else if (SConfig::GetInstance().bBootDefaultISO && !SConfig::GetInstance().m_strDefaultISO.empty())
+			{
+				main_frame->BootGame(WxStrToStr(SConfig::GetInstance().m_strDefaultISO));
+				main_frame->RaiseRenderWindow();
+			}
 			else
 			{
 				main_frame->BootGame("");
@@ -366,6 +371,11 @@ void DolphinApp::AfterInit()
 	else if (m_load_file && !m_file_to_load.empty())
 	{
 		main_frame->BootGame(WxStrToStr(m_file_to_load));
+		main_frame->RaiseRenderWindow();
+	}
+	else if (SConfig::GetInstance().bBootDefaultISO && !SConfig::GetInstance().m_strDefaultISO.empty())
+	{
+		main_frame->BootGame(WxStrToStr(SConfig::GetInstance().m_strDefaultISO));
 		main_frame->RaiseRenderWindow();
 	}
 	// If we have selected Automatic Start, start the default ISO,

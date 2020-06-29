@@ -267,6 +267,7 @@ void SConfig::SaveCoreSettings(IniFile& ini)
 	core->Set("FPRF", bFPRF);
 	core->Set("AccurateNaNs", bAccurateNaNs);
 	core->Set("DefaultISO", m_strDefaultISO);
+	core->Set("BootDefaultISO", bBootDefaultISO);
 	core->Set("DVDRoot", m_strDVDRoot);
 	core->Set("Apploader", m_strApploader);
 	core->Set("EnableCheats", bEnableCheats);
@@ -586,6 +587,7 @@ void SConfig::LoadCoreSettings(IniFile& ini)
 	core->Get("CPUThread", &bCPUThread, true);
 	core->Get("SyncOnSkipIdle", &bSyncGPUOnSkipIdleHack, true);
 	core->Get("DefaultISO", &m_strDefaultISO);
+	core->Get("BootDefaultISO", &bBootDefaultISO, false);
 	core->Get("DVDRoot", &m_strDVDRoot);
 	core->Get("Apploader", &m_strApploader);
 	core->Get("EnableCheats", &bEnableCheats, false);
