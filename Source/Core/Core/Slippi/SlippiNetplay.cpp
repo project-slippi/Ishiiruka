@@ -66,10 +66,6 @@ SlippiNetplayClient::SlippiNetplayClient(const std::string &address, const u16 r
     , m_qos_flow_id(0)
 #endif
 {
-	// Initialize enet
-	auto res = enet_initialize();
-	INFO_LOG(SLIPPI_ONLINE, "Enet init res: %d", res);
-
 	WARN_LOG(SLIPPI_ONLINE, "Initializing Slippi Netplay for port: %d, with host: %s", localPort,
 	         isDecider ? "true" : "false");
 
