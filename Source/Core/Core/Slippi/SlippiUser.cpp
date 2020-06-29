@@ -10,6 +10,7 @@
 #include "Common/Logging/Log.h"
 #include "Common/StringUtil.h"
 #include "Common/Thread.h"
+#include "Common/MsgHandler.h"
 
 #include "Core/ConfigManager.h"
 
@@ -137,6 +138,12 @@ void SlippiUser::UpdateFile()
 	std::string path = File::GetExeDirectory() + "/dolphin-slippi-tools.exe";
 	std::string command = path + " user-update";
 	system_hidden(command.c_str());
+#elif defined(__APPLE__)
+	CriticalAlertT("Automatic updates are not available for OSX builds.");
+#else
+	std::string path = "dolphin-slippi-tools";
+	std::string command = path + " user-update";
+	system(command.c_str());
 #endif
 }
 
@@ -148,6 +155,17 @@ void SlippiUser::UpdateApp()
 	std::string path = File::GetExeDirectory() + "/dolphin-slippi-tools.exe";
 	std::string command = "start \"Updating Dolphin\" \"" + path + "\" app-update -launch -iso \"" + isoPath + "\"";
 	WARN_LOG(SLIPPI, "Executing app update command: %s", command);
+	RunSystemCommand(command);
+#elif defined(__APPLE__)
+#else 
+	const char* appimage_path = getenv("APPIMAGE");
+	if (!appimage_path) {
+		CriticalAlertT("Automatic updates are not available for non-AppImage Linux builds.");
+		return;
+	}
+	std::string path(appimage_path);
+	std::string command = "appimageupdatetool " + path;
+	WARN_LOG(SLIPPI, "Executing app update command: %s", command.c_str());
 	RunSystemCommand(command);
 #endif
 }

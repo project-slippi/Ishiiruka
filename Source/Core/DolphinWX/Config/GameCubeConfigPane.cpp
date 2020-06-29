@@ -294,17 +294,13 @@ void GameCubeConfigPane::BindEvents()
 	m_memcard_path[1]->Bind(wxEVT_BUTTON, &GameCubeConfigPane::OnSlotBButtonClick, this);
 
 	m_replay_enable_checkbox->Bind(wxEVT_CHECKBOX, &GameCubeConfigPane::OnReplaySavingToggle, this);
-	m_replay_enable_checkbox->Bind(wxEVT_UPDATE_UI, &WxEventUtils::OnEnableIfCoreNotRunning);
 
 	m_replay_month_folders_checkbox->Bind(wxEVT_CHECKBOX, &GameCubeConfigPane::OnReplayMonthFoldersToggle,
 		this);
-	m_replay_month_folders_checkbox->Bind(wxEVT_UPDATE_UI, &WxEventUtils::OnEnableIfCoreNotRunning);
 
 	m_replay_directory_picker->Bind(wxEVT_DIRPICKER_CHANGED, &GameCubeConfigPane::OnReplayDirChanged, this);
-	m_replay_directory_picker->Bind(wxEVT_UPDATE_UI, &WxEventUtils::OnEnableIfCoreNotRunning);
 
 	m_slippi_delay_frames_ctrl->Bind(wxEVT_SPINCTRL, &GameCubeConfigPane::OnDelayFramesChanged, this);
-	m_slippi_delay_frames_ctrl->Bind(wxEVT_UPDATE_UI, &WxEventUtils::OnEnableIfCoreNotRunning);
 }
 
 void GameCubeConfigPane::OnSystemLanguageChange(wxCommandEvent& event)

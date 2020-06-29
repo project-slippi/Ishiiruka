@@ -238,12 +238,12 @@ void SlippiMatchmaking::startMatchmaking()
 	while (!isMmConnected)
 	{
 		ENetEvent netEvent;
-		int net = enet_host_service(m_client, &netEvent, 1000);
+		int net = enet_host_service(m_client, &netEvent, 500);
 		if (net <= 0 || netEvent.type != ENET_EVENT_TYPE_CONNECT)
 		{
 			// Not yet connected, will retry
 			connectAttemptCount++;
-			if (connectAttemptCount >= 30)
+			if (connectAttemptCount >= 20)
 			{
 				ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Failed to connect to mm server...");
 				m_state = ProcessState::ERROR_ENCOUNTERED;
@@ -298,6 +298,7 @@ void SlippiMatchmaking::startMatchmaking()
 	if (respType != MmMessageType::CREATE_TICKET_RESP)
 	{
 		ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Received incorrect response for create ticket");
+		ERROR_LOG(SLIPPI_ONLINE, "%s", response.dump().c_str());
 		m_state = ProcessState::ERROR_ENCOUNTERED;
 		m_errorMsg = "Invalid response when joining mm queue";
 		return;
@@ -384,7 +385,7 @@ void SlippiMatchmaking::handleConnecting()
 	std::vector<std::string> ipParts;
 	SplitString(m_oppIp, ':', ipParts);
 
-  // Is host is now used to specify who the decider is
+	// Is host is now used to specify who the decider is
 	auto client = std::make_unique<SlippiNetplayClient>(ipParts[0], std::stoi(ipParts[1]), m_hostPort, m_isHost);
 
 	while (!m_netplayClient)
