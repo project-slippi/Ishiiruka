@@ -244,6 +244,9 @@ CEXISlippi::~CEXISlippi()
 
 	localSelections.Reset();
 
+	if (isEnetInitialized)
+		enet_deinitialize();
+
 	// g_playback_status = SlippiPlaybackStatus::SlippiPlaybackStatus();
 }
 
@@ -1701,6 +1704,16 @@ void CEXISlippi::startFindMatch(u8 *payload)
 	lastSearch = search;
 
 #ifndef LOCAL_TESTING
+	if (!isEnetInitialized)
+	{
+		// Initialize enet
+		auto res = enet_initialize();
+		if (res < 0)
+			ERROR_LOG(SLIPPI_ONLINE, "Failed to initialize enet res: %d", res);
+
+		isEnetInitialized = true;
+	}
+
 	matchmaking->FindMatch(search);
 #endif
 }
