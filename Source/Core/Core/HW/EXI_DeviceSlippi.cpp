@@ -1156,7 +1156,7 @@ void CEXISlippi::prepareFrameData(u8 *payload)
 		else if (frameIndex == watchSettings.startFrame)
 		{
 			// TODO: This might disable fast forward on first frame when we dont want to?
-			isHardFFW = false;
+			g_playbackStatus->isHardFFW = false;
 		}
 	}
 
@@ -1164,7 +1164,7 @@ void CEXISlippi::prepareFrameData(u8 *payload)
 	if (commSettings.rollbackDisplayMethod == "normal")
 	{
 		auto nextFrame = m_current_game->GetFrameAt(frameSeqIdx);
-		isHardFFW = nextFrame && nextFrame->frame <= g_playbackStatus->currentPlaybackFrame;
+		g_playbackStatus->isHardFFW = nextFrame && nextFrame->frame <= g_playbackStatus->currentPlaybackFrame;
 
 		if (nextFrame)
 		{
@@ -1224,7 +1224,7 @@ void CEXISlippi::prepareFrameData(u8 *payload)
 	u8 rollbackCode = 0; // 0 = not rollback, 1 = rollback, perhaps other options in the future?
 
 	// Increment frame index if greater
-	if (frameIndex > g_playbackStatus->currentPlaybackFrame || g_playbackStatus->inSlippiPlayback)
+	if (frameIndex > g_playbackStatus->currentPlaybackFrame)
 	{
 		g_playbackStatus->currentPlaybackFrame = frameIndex;
 	}
@@ -1289,7 +1289,7 @@ void CEXISlippi::prepareFrameData(u8 *payload)
 	// TODO: maybe handle other modes too?
 	if (commSettings.mode == "normal" || commSettings.mode == "queue")
 	{
-		g_playbackStatus->prepareSlippiPlayback();
+		g_playbackStatus->prepareSlippiPlayback(frame->frame);
 	}
 
 	// Push RB code

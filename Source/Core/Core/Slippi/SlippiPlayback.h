@@ -32,7 +32,7 @@ class SlippiPlaybackStatus
 
 	void startThreads(void);
 	void resetPlayback(void);
-	void prepareSlippiPlayback();
+	void prepareSlippiPlayback(s32 &frameIndex);
 
   private:
 	void SavestateThread(void);

@@ -70,7 +70,7 @@ void SlippiPlaybackStatus::startThreads()
 	m_seekThread = std::thread(&SlippiPlaybackStatus::SeekThread, this);
 }
 
-void SlippiPlaybackStatus::prepareSlippiPlayback()
+void SlippiPlaybackStatus::prepareSlippiPlayback(s32 &frameIndex)
 {
 	// block if there's too many diffs being processed
 	while (numDiffsProcessing > 3)
@@ -84,8 +84,16 @@ void SlippiPlaybackStatus::prepareSlippiPlayback()
 		condVar.notify_one();
 
 	// TODO: figure out why sometimes playback frame increments past targetFrameNum
-	if (inSlippiPlayback && currentPlaybackFrame >= targetFrameNum)
+	if (inSlippiPlayback && frameIndex >= targetFrameNum)
 	{
+		if (targetFrameNum < currentPlaybackFrame)
+		{
+			// Since playback logic only goes up in currentPlaybackFrame now due to handling rollback
+			// playback, we need to rewind the currentPlaybackFrame here instead such that the playback
+			// cursor will show up in the correct place
+			currentPlaybackFrame = targetFrameNum;
+		}
+
 		if (currentPlaybackFrame > targetFrameNum)
 		{
 			INFO_LOG(SLIPPI, "Reached frame %d. Target was %d. Unblocking", currentPlaybackFrame,
