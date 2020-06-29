@@ -1,8 +1,12 @@
+#include <cctype>
+#include <memory>
 #include "SlippiReplayComm.h"
 #include "Common/CommonPaths.h"
 #include "Common/FileUtil.h"
 #include "Common/Logging/LogManager.h"
 #include "Core/ConfigManager.h"
+
+std::unique_ptr<SlippiReplayComm> g_replayComm;
 
 // https://stackoverflow.com/questions/216823/whats-the-best-way-to-trim-stdstring
 // trim from start (in place)
@@ -166,7 +170,7 @@ void SlippiReplayComm::loadFile()
 			// If we have a string, let's use that as the replayPath
 			// This is really only here because when developing it might be easier
 			// to just throw in a string instead of an object
-			commFileSettings.replayPath = res;
+			commFileSettings.replayPath = res.get<std::string>();
 		}
 		else
 		{

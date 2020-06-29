@@ -2,31 +2,17 @@
 // Licensed under GPLv2+
 // Refer to the license.txt file included.
 
-#include "Core/HW/EXI_DeviceSlippi.h"
 #include "Core/Debugger/Debugger_SymbolMap.h"
-#include "SlippiPlayback/SlippiPlayback.h"
 
 #include <SlippiGame.h>
-#include <array>
-#include <cmath>
-#include <condition_variable>
-#include <cstdlib>
-#include <functional>
+#include "Core/Slippi/SlippiReplayComm.h"
+#include "Core/Slippi/SlippiPlayback.h"
 #include <semver/include/semver200.h>
-#include <stdexcept>
-#include <string>
-#include <tuple>
-#include <unordered_map>
 #include <utility> // std::move
 
-#ifdef _WIN32
-#include <share.h>
-#endif
 
-#include "Common/CommonFuncs.h"
 #include "Common/CommonPaths.h"
 #include "Common/CommonTypes.h"
-#include "Common/FileUtil.h"
 #include "Common/Logging/Log.h"
 #include "Common/MemoryUtil.h"
 #include "Common/MsgHandler.h"
@@ -35,10 +21,10 @@
 #include "Core/HW/Memmap.h"
 
 #include "Core/NetPlayClient.h"
-#include "SlippiPlayback/SlippiPlayback.h"
-
 #include "Core/Core.h"
 #include "Core/CoreTiming.h"
+
+#include "Core/HW/EXI_DeviceSlippi.h"
 #include "Core/HW/SystemTimers.h"
 #include "Core/State.h"
 
@@ -55,25 +41,11 @@
 //#define LOCAL_TESTING
 //#define CREATE_DIFF_FILES
 
-int32_t emod(int32_t a, int32_t b)
-{
-	assert(b != 0);
-	int r = a % b;
-	return r >= 0 ? r : r + std::abs(b);
-}
-
-static std::mutex mtx;
-static std::mutex seekMtx;
-static std::mutex diffMtx;
-static std::unique_lock<std::mutex> processingLock(diffMtx);
-static std::condition_variable condVar;
-static std::condition_variable cv_waitingForTargetFrame;
-static std::condition_variable cv_processingDiff;
-static std::atomic<int> numDiffsProcessing(0);
 static std::unordered_map<u8, std::string> slippi_names;
 static std::unordered_map<u8, std::string> slippi_connect_codes;
 
-extern std::unique_ptr<SlippiPlaybackStatus> g_playback_status;
+extern std::unique_ptr<SlippiPlaybackStatus> g_playbackStatus;
+extern std::unique_ptr<SlippiReplayComm> g_replayComm;
 
 template <typename T> bool isFutureReady(std::future<T> &t)
 {
@@ -120,30 +92,15 @@ void appendHalfToBuffer(std::vector<u8> *buf, u16 word)
 	buf->insert(buf->end(), halfVector.begin(), halfVector.end());
 }
 
-std::string processDiff(std::vector<u8> iState, std::vector<u8> cState)
-{
-	INFO_LOG(SLIPPI, "Processing diff");
-	numDiffsProcessing += 1;
-	cv_processingDiff.notify_one();
-	std::string diff = std::string();
-	open_vcdiff::VCDiffEncoder encoder((char *)iState.data(), iState.size());
-	encoder.Encode((char *)cState.data(), cState.size(), &diff);
-
-	INFO_LOG(SLIPPI, "done processing");
-	numDiffsProcessing -= 1;
-	cv_processingDiff.notify_one();
-	return diff;
-}
-
 CEXISlippi::CEXISlippi()
 {
 	INFO_LOG(SLIPPI, "EXI SLIPPI Constructor called.");
 
 	user = std::make_unique<SlippiUser>();
-	g_playback_status = std::make_unique<SlippiPlaybackStatus>();
+	g_playbackStatus = std::make_unique<SlippiPlaybackStatus>();
 	matchmaking = std::make_unique<SlippiMatchmaking>(user.get());
 	gameFileLoader = std::make_unique<SlippiGameFileLoader>();
-	replayComm = std::make_unique<SlippiReplayComm>();
+	g_replayComm = std::make_unique<SlippiReplayComm>();
 
 	generator = std::default_random_engine(Common::Timer::GetTimeMs());
 
@@ -239,9 +196,6 @@ CEXISlippi::~CEXISlippi()
 		m_fileWriteThread.join();
 	}
 
-	// Resets seek threads
-	resetPlayback();
-
 	localSelections.Reset();
 
 	// TODO: ENET shutdown should maybe be done at app shutdown instead.
@@ -251,8 +205,6 @@ CEXISlippi::~CEXISlippi()
 	// you'd have to be kinda dumb to do that sequence of stuff anyway so maybe it's nbd
 	if (isEnetInitialized)
 		enet_deinitialize();
-
-	// g_playback_status = SlippiPlaybackStatus::SlippiPlaybackStatus();
 }
 
 void CEXISlippi::configureCommands(u8 *payload, u8 length)
@@ -322,11 +274,11 @@ std::vector<u8> CEXISlippi::generateMetadata()
 	// TODO: Abstract out UBJSON functions to make this cleaner
 
 	// Add game start time
-	uint8_t dateTimeStrLength = sizeof "2011-10-08T07:07:09Z";
+	u8 dateTimeStrLength = sizeof "2011-10-08T07:07:09Z";
 	std::vector<char> dateTimeBuf(dateTimeStrLength);
 	strftime(&dateTimeBuf[0], dateTimeStrLength, "%FT%TZ", gmtime(&gameStartTime));
 	dateTimeBuf.pop_back(); // Removes the \0 from the back of string
-	metadata.insert(metadata.end(), {'U', 7, 's', 't', 'a', 'r', 't', 'A', 't', 'S', 'U', (uint8_t)dateTimeBuf.size()});
+	metadata.insert(metadata.end(), {'U', 7, 's', 't', 'a', 'r', 't', 'A', 't', 'S', 'U', (u8)dateTimeBuf.size()});
 	metadata.insert(metadata.end(), dateTimeBuf.begin(), dateTimeBuf.end());
 
 	// Add game duration
@@ -605,7 +557,7 @@ void CEXISlippi::createNewFile()
 std::string CEXISlippi::generateFileName()
 {
 	// Add game start time
-	uint8_t dateTimeStrLength = sizeof "20171015T095717";
+	u8 dateTimeStrLength = sizeof "20171015T095717";
 	std::vector<char> dateTimeBuf(dateTimeStrLength);
 	strftime(&dateTimeBuf[0], dateTimeStrLength, "%Y%m%dT%H%M%S", localtime(&gameStartTime));
 
@@ -659,10 +611,10 @@ void CEXISlippi::prepareGameInfo(u8 *payload)
 	Slippi::GameSettings *settings = m_current_game->GetSettings();
 
 	// Start in Fast Forward if this is mirrored
-	auto replayCommSettings = replayComm->getSettings();
-	if (!isHardFFW)
-		isHardFFW = replayCommSettings.mode == "mirror";
-	lastFFWFrame = INT_MIN;
+	auto replayCommSettings = g_replayComm->getSettings();
+	if (!g_playbackStatus->isHardFFW)
+		g_playbackStatus->isHardFFW = replayCommSettings.mode == "mirror";
+	g_playbackStatus->lastFFWFrame = INT_MIN;
 
 	// Build a word containing the stage and the presence of the characters
 	u32 randomSeed = settings->randomSeed;
@@ -672,7 +624,7 @@ void CEXISlippi::prepareGameInfo(u8 *payload)
 	// into sheik/zelda immediately. This info is not stored in the game info header
 	// and so let's overwrite those values
 	int player1Pos = 24; // This is the index of the first players character info
-	std::array<uint32_t, Slippi::GAME_INFO_HEADER_SIZE> gameInfoHeader = settings->header;
+	std::array<u32, Slippi::GAME_INFO_HEADER_SIZE> gameInfoHeader = settings->header;
 	for (int i = 0; i < 4; i++)
 	{
 		// check if this player is actually in the game
@@ -683,7 +635,7 @@ void CEXISlippi::prepareGameInfo(u8 *payload)
 		}
 
 		// check if the player is playing sheik or zelda
-		uint8_t externalCharId = settings->players[i].characterId;
+		u8 externalCharId = settings->players[i].characterId;
 		if (externalCharId != 0x12 && externalCharId != 0x13)
 		{
 			continue;
@@ -706,7 +658,7 @@ void CEXISlippi::prepareGameInfo(u8 *payload)
 	}
 
 	// Write UCF toggles
-	std::array<uint32_t, Slippi::UCF_TOGGLE_SIZE> ucfToggles = settings->ucfToggles;
+	std::array<u32, Slippi::UCF_TOGGLE_SIZE> ucfToggles = settings->ucfToggles;
 	for (int i = 0; i < Slippi::UCF_TOGGLE_SIZE; i++)
 	{
 		appendWordToBuffer(&m_read_queue, ucfToggles[i]);
@@ -767,14 +719,13 @@ void CEXISlippi::prepareGameInfo(u8 *payload)
 	}
 
 	// Reset playback frame to begining
-	g_playback_status->currentPlaybackFrame = Slippi::GAME_FIRST_FRAME;
+	g_playbackStatus->currentPlaybackFrame = Slippi::GAME_FIRST_FRAME;
 
-	// Initialize replay related threads
-	if (replayCommSettings.mode == "normal" || replayCommSettings.mode == "queue")
+	// Initialize replay related threads if not viewing rollback versions of relays
+	if (replayCommSettings.rollbackDisplayMethod == "off" &&
+	    (replayCommSettings.mode == "normal" || replayCommSettings.mode == "queue"))
 	{
-		g_playback_status->shouldRunThreads = true;
-		m_savestateThread = std::thread(&CEXISlippi::SavestateThread, this);
-		m_seekThread = std::thread(&CEXISlippi::SeekThread, this);
+		g_playbackStatus->startThreads();
 	}
 }
 
@@ -782,7 +733,7 @@ void CEXISlippi::prepareGeckoList()
 {
 	// TODO: How do I move this somewhere else?
 	// This contains all of the codes required to play legacy replays (UCF, PAL, Frz Stadium)
-	static std::vector<uint8_t> defaultCodeList = {
+	static std::vector<u8> defaultCodeList = {
 	    0xC2, 0x0C, 0x9A, 0x44, 0x00, 0x00, 0x00, 0x2F, // #External/UCF + Arduino Toggle UI/UCF/UCF 0.74
 	                                                    // Dashback - Check for Toggle.asm
 	    0xD0, 0x1F, 0x00, 0x2C, 0x88, 0x9F, 0x06, 0x18, 0x38, 0x62, 0xF2, 0x28, 0x7C, 0x63, 0x20, 0xAE, 0x2C, 0x03,
@@ -1040,7 +991,7 @@ void CEXISlippi::prepareGeckoList()
 	std::unordered_map<u32, bool> blacklist;
 	blacklist.insert(staticBlacklist.begin(), staticBlacklist.end());
 
-	auto replayCommSettings = replayComm->getSettings();
+	auto replayCommSettings = g_replayComm->getSettings();
 	if (replayCommSettings.rollbackDisplayMethod == "off")
 	{
 		// Some codes should only be blacklisted when not displaying rollbacks, these are codes
@@ -1149,7 +1100,7 @@ void CEXISlippi::prepareCharacterFrameData(Slippi::FrameData *frame, u8 port, u8
 	// NOTE TO DEV: If you add data here, make sure to increase the size above
 }
 
-bool CEXISlippi::checkFrameFullyFetched(int32_t frameIndex)
+bool CEXISlippi::checkFrameFullyFetched(s32 frameIndex)
 {
 	auto doesFrameExist = m_current_game->DoesFrameExist(frameIndex);
 	if (!doesFrameExist)
@@ -1174,10 +1125,10 @@ void CEXISlippi::prepareFrameData(u8 *payload)
 	}
 
 	// Parse input
-	int32_t frameIndex = payload[0] << 24 | payload[1] << 16 | payload[2] << 8 | payload[3];
+	s32 frameIndex = payload[0] << 24 | payload[1] << 16 | payload[2] << 8 | payload[3];
 
 	// If loading from queue, move on to the next replay if we have past endFrame
-	auto watchSettings = replayComm->current;
+	auto watchSettings = g_replayComm->current;
 	if (frameIndex > watchSettings.endFrame)
 	{
 		INFO_LOG(SLIPPI, "Killing game because we are past endFrame");
@@ -1186,7 +1137,7 @@ void CEXISlippi::prepareFrameData(u8 *payload)
 	}
 
 	// If a new replay should be played, terminate the current game
-	auto isNewReplay = replayComm->isNewReplay();
+	auto isNewReplay = g_replayComm->isNewReplay();
 	if (isNewReplay)
 	{
 		m_read_queue.push_back(FRAME_RESP_TERMINATE);
@@ -1199,8 +1150,8 @@ void CEXISlippi::prepareFrameData(u8 *payload)
 	// data from this frame. Don't wait until next frame is processing is complete
 	// (this is the last frame, in that case)
 	auto isFrameFound = m_current_game->DoesFrameExist(frameIndex);
-	g_playback_status->latestFrame = m_current_game->GetLatestIndex();
-	auto isNextFrameFound = g_playback_status->latestFrame > frameIndex;
+	g_playbackStatus->latestFrame = m_current_game->GetLatestIndex();
+	auto isNextFrameFound = g_playbackStatus->latestFrame > frameIndex;
 	auto isFrameComplete = checkFrameFullyFetched(frameIndex);
 	auto isFrameReady = isFrameFound && (isProcessingComplete || isNextFrameFound || isFrameComplete);
 
@@ -1209,51 +1160,51 @@ void CEXISlippi::prepareFrameData(u8 *payload)
 	{
 		if (frameIndex < watchSettings.startFrame)
 		{
-			isHardFFW = true;
+			g_playbackStatus->isHardFFW = true;
 		}
 		else if (frameIndex == watchSettings.startFrame)
 		{
 			// TODO: This might disable fast forward on first frame when we dont want to?
-			isHardFFW = false;
+			g_playbackStatus->isHardFFW = false;
 		}
 	}
 
-	auto commSettings = replayComm->getSettings();
+	auto commSettings = g_replayComm->getSettings();
 	if (commSettings.rollbackDisplayMethod == "normal")
 	{
 		auto nextFrame = m_current_game->GetFrameAt(frameSeqIdx);
-		isHardFFW = nextFrame && nextFrame->frame <= g_playback_status->currentPlaybackFrame;
+		g_playbackStatus->isHardFFW = nextFrame && nextFrame->frame <= g_playbackStatus->currentPlaybackFrame;
 
 		if (nextFrame)
 		{
-			// This feels jank but without this g_playback_status ends up getting updated to
+			// This feels jank but without this g_playbackStatus ends up getting updated to
 			// a value beyond the frame that actually gets played causes too much FFW
 			frameIndex = nextFrame->frame;
 		}
 	}
 
 	// If RealTimeMode is enabled, let's trigger fast forwarding under certain conditions
-	auto isFarBehind = g_playback_status->latestFrame - frameIndex > 2;
-	auto isVeryFarBehind = g_playback_status->latestFrame - frameIndex > 25;
+	auto isFarBehind = g_playbackStatus->latestFrame - frameIndex > 2;
+	auto isVeryFarBehind = g_playbackStatus->latestFrame - frameIndex > 25;
 	if (isFarBehind && commSettings.mode == "mirror" && commSettings.isRealTimeMode)
 	{
-		isSoftFFW = true;
+		g_playbackStatus->isSoftFFW = true;
 
 		// Once isHardFFW has been turned on, do not turn it off with this condition, should
 		// hard FFW to the latest point
-		if (!isHardFFW)
-			isHardFFW = isVeryFarBehind;
+		if (!g_playbackStatus->isHardFFW)
+			g_playbackStatus->isHardFFW = isVeryFarBehind;
 	}
 
-	if (g_playback_status->latestFrame == frameIndex)
+	if (g_playbackStatus->latestFrame == frameIndex)
 	{
 		// The reason to disable fast forwarding here is in hopes
 		// of disabling it on the last frame that we have actually received.
 		// Doing this will allow the rendering logic to run to display the
 		// last frame instead of the frame previous to fast forwarding.
 		// Not sure if this fully works with partial frames
-		isSoftFFW = false;
-		isHardFFW = false;
+		g_playbackStatus->isSoftFFW = false;
+		g_playbackStatus->isHardFFW = false;
 	}
 
 	bool shouldFFW = shouldFFWFrame(frameIndex);
@@ -1268,8 +1219,8 @@ void CEXISlippi::prepareFrameData(u8 *payload)
 
 		// Disable fast forward here too... this shouldn't be necessary but better
 		// safe than sorry I guess
-		isSoftFFW = false;
-		isHardFFW = false;
+		g_playbackStatus->isSoftFFW = false;
+		g_playbackStatus->isHardFFW = false;
 
 		if (requestResultCode == FRAME_RESP_TERMINATE)
 		{
@@ -1282,9 +1233,9 @@ void CEXISlippi::prepareFrameData(u8 *payload)
 	u8 rollbackCode = 0; // 0 = not rollback, 1 = rollback, perhaps other options in the future?
 
 	// Increment frame index if greater
-	if (frameIndex > g_playback_status->currentPlaybackFrame)
+	if (frameIndex > g_playbackStatus->currentPlaybackFrame)
 	{
-		g_playback_status->currentPlaybackFrame = frameIndex;
+		g_playbackStatus->currentPlaybackFrame = frameIndex;
 	}
 	else if (commSettings.rollbackDisplayMethod != "off")
 	{
@@ -1292,14 +1243,14 @@ void CEXISlippi::prepareFrameData(u8 *payload)
 	}
 
 	// WARN_LOG(EXPANSIONINTERFACE, "[Frame %d] Playback current behind by: %d frames.", frameIndex,
-	//        g_playback_status->latestFrame - frameIndex);
+	//        g_playbackStatus->latestFrame - frameIndex);
 
 	// Keep track of last FFW frame, used for soft FFW's
 	if (shouldFFW)
 	{
 		WARN_LOG(EXPANSIONINTERFACE, "[Frame %d] FFW frame, behind by: %d frames.", frameIndex,
-		         g_playback_status->latestFrame - frameIndex);
-		lastFFWFrame = frameIndex;
+		         g_playbackStatus->latestFrame - frameIndex);
+		g_playbackStatus->lastFFWFrame = frameIndex;
 	}
 
 	// Return success code
@@ -1347,7 +1298,7 @@ void CEXISlippi::prepareFrameData(u8 *payload)
 	// TODO: maybe handle other modes too?
 	if (commSettings.mode == "normal" || commSettings.mode == "queue")
 	{
-		prepareSlippiPlayback(frame->frame);
+		g_playbackStatus->prepareSlippiPlayback(frame->frame);
 	}
 
 	// Push RB code
@@ -1368,13 +1319,13 @@ void CEXISlippi::prepareFrameData(u8 *payload)
 
 bool CEXISlippi::shouldFFWFrame(int32_t frameIndex)
 {
-	if (!isSoftFFW && !isHardFFW)
+	if (!g_playbackStatus->isSoftFFW && !g_playbackStatus->isHardFFW)
 	{
 		// If no FFW at all, don't FFW this frame
 		return false;
 	}
 
-	if (isHardFFW)
+	if (g_playbackStatus->isHardFFW)
 	{
 		// For a hard FFW, always FFW until it's turned off
 		return true;
@@ -1382,7 +1333,7 @@ bool CEXISlippi::shouldFFWFrame(int32_t frameIndex)
 
 	// Here we have a soft FFW, we only want to turn on FFW for single frames once
 	// every X frames to FFW in a more smooth manner
-	return frameIndex - lastFFWFrame >= 15;
+	return frameIndex - g_playbackStatus->lastFFWFrame >= 15;
 }
 
 void CEXISlippi::prepareIsStockSteal(u8 *payload)
@@ -1397,7 +1348,7 @@ void CEXISlippi::prepareIsStockSteal(u8 *payload)
 	}
 
 	// Parse args
-	int32_t frameIndex = payload[0] << 24 | payload[1] << 16 | payload[2] << 8 | payload[3];
+	s32 frameIndex = payload[0] << 24 | payload[1] << 16 | payload[2] << 8 | payload[3];
 	u8 playerIndex = payload[4];
 
 	// I'm not sure checking for the frame should be necessary. Theoretically this
@@ -1421,17 +1372,17 @@ void CEXISlippi::prepareIsFileReady()
 {
 	m_read_queue.clear();
 
-	auto isNewReplay = replayComm->isNewReplay();
+	auto isNewReplay = g_replayComm->isNewReplay();
 	if (!isNewReplay)
 	{
-		replayComm->nextReplay();
+		g_replayComm->nextReplay();
 		m_read_queue.push_back(0);
 		return;
 	}
 
 	// Attempt to load game if there is a new replay file
 	// this can come pack falsy if the replay file does not exist
-	m_current_game = replayComm->loadGame();
+	m_current_game = g_replayComm->loadGame();
 	if (!m_current_game)
 	{
 		// Do not start if replay file doesn't exist
@@ -1444,7 +1395,7 @@ void CEXISlippi::prepareIsFileReady()
 	INFO_LOG(SLIPPI, "EXI_DeviceSlippi.cpp: Replay file loaded successfully!?");
 
 	// Clear playback control related vars
-	resetPlayback();
+	g_playbackStatus->resetPlayback();
 
 	// Start the playback!
 	m_read_queue.push_back(1);
@@ -2267,208 +2218,3 @@ bool CEXISlippi::IsPresent() const
 }
 
 void CEXISlippi::TransferByte(u8 &byte) {}
-
-void CEXISlippi::SavestateThread()
-{
-	Common::SetCurrentThreadName("Savestate thread");
-	std::unique_lock<std::mutex> intervalLock(mtx);
-
-	INFO_LOG(SLIPPI, "Entering savestate thread");
-
-	while (g_playback_status->shouldRunThreads)
-	{
-		// Wait for signal to capture state
-		condVar.wait(intervalLock);
-
-		if (!g_playback_status->shouldRunThreads)
-			break;
-
-		int32_t fixedFrameNumber = g_playback_status->currentPlaybackFrame;
-		if (fixedFrameNumber == INT_MAX)
-			continue;
-
-		bool isStartFrame = fixedFrameNumber == Slippi::GAME_FIRST_FRAME;
-		bool hasStateBeenProcessed = futureDiffs.count(fixedFrameNumber) > 0;
-
-		if (!g_playback_status->inSlippiPlayback && isStartFrame)
-		{
-			processInitialState(iState);
-			g_playback_status->inSlippiPlayback = true;
-		}
-		else if (!hasStateBeenProcessed && !isStartFrame)
-		{
-			INFO_LOG(SLIPPI, "saving diff at frame: %d", fixedFrameNumber);
-			State::SaveToBuffer(cState);
-
-			futureDiffs[fixedFrameNumber] = std::async(processDiff, iState, cState);
-		}
-		Common::SleepCurrentThread(SLEEP_TIME_MS);
-	}
-
-	INFO_LOG(SLIPPI, "Exiting savestate thread");
-}
-
-void CEXISlippi::SeekThread()
-{
-	Common::SetCurrentThreadName("Seek thread");
-	std::unique_lock<std::mutex> seekLock(seekMtx);
-
-	INFO_LOG(SLIPPI, "Entering seek thread");
-
-	while (g_playback_status->shouldRunThreads)
-	{
-		bool shouldSeek = g_playback_status->inSlippiPlayback &&
-		                  (g_playback_status->shouldJumpBack || g_playback_status->shouldJumpForward ||
-		                   g_playback_status->targetFrameNum != INT_MAX);
-
-		if (shouldSeek)
-		{
-			// Clear start and end frames in queue mode
-			auto replayCommSettings = replayComm->getSettings();
-			if (replayCommSettings.mode == "queue")
-				clearWatchSettingsStartEnd();
-
-			bool paused = (Core::GetState() == Core::CORE_PAUSE);
-			Core::SetState(Core::CORE_PAUSE);
-
-			uint32_t jumpInterval = 300; // 5 seconds;
-
-			if (g_playback_status->shouldJumpForward)
-				g_playback_status->targetFrameNum = g_playback_status->currentPlaybackFrame + jumpInterval;
-
-			if (g_playback_status->shouldJumpBack)
-				g_playback_status->targetFrameNum = g_playback_status->currentPlaybackFrame - jumpInterval;
-
-			// Handle edgecases for trying to seek before start or past end of game
-			if (g_playback_status->targetFrameNum < Slippi::GAME_FIRST_FRAME)
-				g_playback_status->targetFrameNum = Slippi::GAME_FIRST_FRAME;
-
-			if (g_playback_status->targetFrameNum > g_playback_status->latestFrame)
-			{
-				g_playback_status->targetFrameNum = g_playback_status->latestFrame;
-			}
-
-			int32_t closestStateFrame =
-			    g_playback_status->targetFrameNum - emod(g_playback_status->targetFrameNum + 123, FRAME_INTERVAL);
-
-			bool isLoadingStateOptimal = g_playback_status->targetFrameNum < g_playback_status->currentPlaybackFrame ||
-			                             closestStateFrame > g_playback_status->currentPlaybackFrame;
-
-			if (isLoadingStateOptimal)
-			{
-				if (closestStateFrame <= Slippi::GAME_FIRST_FRAME)
-				{
-					State::LoadFromBuffer(iState);
-				}
-				else
-				{
-					// If this diff has been processed, load it
-					if (futureDiffs.count(closestStateFrame) > 0)
-					{
-						std::string stateString;
-						decoder.Decode((char *)iState.data(), iState.size(), futureDiffs[closestStateFrame].get(),
-						               &stateString);
-						std::vector<u8> stateToLoad(stateString.begin(), stateString.end());
-						State::LoadFromBuffer(stateToLoad);
-					};
-				}
-			}
-
-			// Fastforward until we get to the frame we want
-			if (g_playback_status->targetFrameNum != closestStateFrame &&
-			    g_playback_status->targetFrameNum != g_playback_status->latestFrame)
-			{
-				isHardFFW = true;
-				SConfig::GetInstance().m_OCEnable = true;
-				SConfig::GetInstance().m_OCFactor = 4.0f;
-
-				Core::SetState(Core::CORE_RUN);
-				cv_waitingForTargetFrame.wait(seekLock);
-				Core::SetState(Core::CORE_PAUSE);
-
-				SConfig::GetInstance().m_OCFactor = 1.0f;
-				SConfig::GetInstance().m_OCEnable = false;
-				isHardFFW = false;
-			}
-
-			if (!paused)
-				Core::SetState(Core::CORE_RUN);
-
-			g_playback_status->shouldJumpBack = false;
-			g_playback_status->shouldJumpForward = false;
-			g_playback_status->targetFrameNum = INT_MAX;
-		}
-
-		Common::SleepCurrentThread(SLEEP_TIME_MS);
-	}
-
-	INFO_LOG(SLIPPI, "Exit seek thread");
-}
-
-void CEXISlippi::prepareSlippiPlayback(int32_t &frameIndex)
-{
-	// block if there's too many diffs being processed
-	while (numDiffsProcessing > 3)
-	{
-		INFO_LOG(SLIPPI, "Processing too many diffs, blocking main process");
-		cv_processingDiff.wait(processingLock);
-	}
-
-	if (g_playback_status->inSlippiPlayback && frameIndex == g_playback_status->targetFrameNum)
-	{
-		if (g_playback_status->targetFrameNum < g_playback_status->currentPlaybackFrame)
-		{
-			// Since playback logic only goes up in currentPlaybackFrame now due to handling rollback
-			// playback, we need to rewind the currentPlaybackFrame here instead such that the playback
-			// cursor will show up in the correct place
-			g_playback_status->currentPlaybackFrame = g_playback_status->targetFrameNum;
-		}
-
-		INFO_LOG(SLIPPI, "Reached frame to seek to, unblock");
-		cv_waitingForTargetFrame.notify_one();
-	}
-
-	// Unblock thread to save a state every interval
-	if ((g_playback_status->currentPlaybackFrame - Slippi::GAME_FIRST_FRAME) % FRAME_INTERVAL == 0)
-		condVar.notify_one();
-}
-
-void CEXISlippi::processInitialState(std::vector<u8> &iState)
-{
-	INFO_LOG(SLIPPI, "saving iState");
-	State::SaveToBuffer(iState);
-	SConfig::GetInstance().bHideCursor = false;
-};
-
-void CEXISlippi::resetPlayback()
-{
-	g_playback_status->shouldRunThreads = false;
-	condVar.notify_one();                  // Will allow savestate thread to kill itself
-	cv_waitingForTargetFrame.notify_one(); // Will allow seek thread to kill itself
-
-	if (m_savestateThread.joinable())
-		m_savestateThread.join();
-
-	if (m_seekThread.joinable())
-		m_seekThread.join();
-
-	g_playback_status->shouldJumpBack = false;
-	g_playback_status->shouldJumpForward = false;
-	g_playback_status->targetFrameNum = INT_MAX;
-	g_playback_status->inSlippiPlayback = false;
-	futureDiffs.clear();
-	futureDiffs.rehash(0);
-
-	INFO_LOG(SLIPPI, "Done resetting playback");
-}
-
-void CEXISlippi::clearWatchSettingsStartEnd()
-{
-	int startFrame = replayComm->current.startFrame;
-	int endFrame = replayComm->current.endFrame;
-	if (startFrame != Slippi::GAME_FIRST_FRAME || endFrame != INT_MAX)
-	{
-		replayComm->current.startFrame = Slippi::GAME_FIRST_FRAME;
-		replayComm->current.endFrame = INT_MAX;
-	}
-}

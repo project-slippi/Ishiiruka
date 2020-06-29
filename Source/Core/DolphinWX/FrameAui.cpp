@@ -41,10 +41,6 @@
 #include "DolphinWX/WxUtils.h"
 #include "DolphinWX/Debugger/DebuggerUIUtil.h"
 
-//#include "SlippiPlayback/SlippiPlayback.h"
-//std::unique_ptr<SlippiPlaybackStatus> g_playback_status;
-
-
 // ------------
 // Aui events
 
