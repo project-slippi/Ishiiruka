@@ -197,17 +197,24 @@ void SlippiMatchmaking::startMatchmaking()
 {
 	// I don't understand why I have to do this... if I don't do this, rand always returns the
 	// same value
-	m_hostPort = 49000 + (generator() % 2000);
-	ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Port to use: %d...", m_hostPort);
+	m_client = nullptr;
 
-	// We are explicitly setting the client address because we are trying to utilize our connection
-	// to the matchmaking service in order to hole punch. This port will end up being the port
-	// we listen on when we start our server
-	ENetAddress clientAddr;
-	clientAddr.host = ENET_HOST_ANY;
-	clientAddr.port = m_hostPort;
+	int retryCount = 0;
+	while (m_client == nullptr && retryCount < 15)
+	{
+		m_hostPort = 49000 + (generator() % 2000);
+		ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Port to use: %d...", m_hostPort);
 
-	m_client = enet_host_create(&clientAddr, 1, 3, 0, 0);
+		// We are explicitly setting the client address because we are trying to utilize our connection
+		// to the matchmaking service in order to hole punch. This port will end up being the port
+		// we listen on when we start our server
+		ENetAddress clientAddr;
+		clientAddr.host = ENET_HOST_ANY;
+		clientAddr.port = m_hostPort;
+
+		m_client = enet_host_create(&clientAddr, 1, 3, 0, 0);
+		retryCount++;
+	}
 
 	if (m_client == nullptr)
 	{

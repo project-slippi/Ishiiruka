@@ -244,6 +244,11 @@ CEXISlippi::~CEXISlippi()
 
 	localSelections.Reset();
 
+	// TODO: ENET shutdown should maybe be done at app shutdown instead.
+	// Right now this might be problematic in the case where someone starts a netplay client
+	// and then queues into online matchmaking, and then stops the game. That might deinit
+	// the ENET libraries so that they can't be used anymore for the netplay lobby? Course
+	// you'd have to be kinda dumb to do that sequence of stuff anyway so maybe it's nbd
 	if (isEnetInitialized)
 		enet_deinitialize();
 
