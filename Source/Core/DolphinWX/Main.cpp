@@ -38,6 +38,7 @@
 #include "Core/HW/Wiimote.h"
 #include "Core/Host.h"
 #include "Core/Movie.h"
+#include "Core/Debugger/StackWalker.h"
 
 #include "DolphinWX/Debugger/CodeWindow.h"
 #include "DolphinWX/Debugger/JitWindow.h"
@@ -473,6 +474,8 @@ int DolphinApp::OnExit()
 
 void DolphinApp::OnFatalException()
 {
+	StackWalker walker (true);
+	walker.WalkFromException();
 	WiimoteReal::Shutdown();
 }
 
