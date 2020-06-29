@@ -8,9 +8,9 @@
 #include "Common/CommonPaths.h"
 #include "Common/FileUtil.h"
 #include "Common/Logging/Log.h"
+#include "Common/MsgHandler.h"
 #include "Common/StringUtil.h"
 #include "Common/Thread.h"
-#include "Common/MsgHandler.h"
 
 #include "Core/ConfigManager.h"
 
@@ -44,7 +44,7 @@ static void system_hidden(const char *cmd)
 }
 #endif
 
-static void RunSystemCommand(const std::string& command)
+static void RunSystemCommand(const std::string &command)
 {
 #ifdef _WIN32
 	_wsystem(UTF8ToUTF16(command).c_str());
@@ -156,9 +156,10 @@ void SlippiUser::UpdateApp()
 	WARN_LOG(SLIPPI, "Executing app update command: %s", command);
 	RunSystemCommand(command);
 #elif defined(__APPLE__)
-#else 
-	const char* appimage_path = getenv("APPIMAGE");
-	if (!appimage_path) {
+#else
+	const char *appimage_path = getenv("APPIMAGE");
+	if (!appimage_path)
+	{
 		CriticalAlertT("Automatic updates are not available for non-AppImage Linux builds.");
 		return;
 	}
@@ -191,6 +192,11 @@ void SlippiUser::LogOut()
 	userInfo = emptyUser;
 }
 
+void SlippiUser::OverwriteLatestVersion(std::string version)
+{
+	userInfo.latestVersion = version;
+}
+
 SlippiUser::UserInfo SlippiUser::GetUserInfo()
 {
 	return userInfo;
@@ -216,8 +222,8 @@ void SlippiUser::FileListenThread()
 }
 
 // On Linux platforms, the user.json file lives in the Sys/ directory in
-// order to deal with the fact that we want the configuration for AppImage 
-// builds to be mutable. 
+// order to deal with the fact that we want the configuration for AppImage
+// builds to be mutable.
 std::string SlippiUser::getUserFilePath()
 {
 #if defined(__APPLE__)
