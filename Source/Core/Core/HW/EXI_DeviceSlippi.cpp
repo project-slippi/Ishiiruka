@@ -394,7 +394,8 @@ std::vector<u8> CEXISlippi::generateMetadata()
 
 void CEXISlippi::writeToFileAsync(u8 *payload, u32 length, std::string fileOption)
 {
-	if (!SConfig::GetInstance().m_slippiSaveReplays) {
+	if (!SConfig::GetInstance().m_slippiSaveReplays)
+	{
 		return;
 	}
 
@@ -547,16 +548,18 @@ void CEXISlippi::createNewFile()
 
 	// Remove a trailing / or \\ if the user managed to have that in their config
 	char dirpathEnd = dirpath.back();
-	if (dirpathEnd == '/' || dirpathEnd == '\\') {
+	if (dirpathEnd == '/' || dirpathEnd == '\\')
+	{
 		dirpath.pop_back();
 	}
 
 	// First, ensure that the root Slippi replay directory is created
 	File::CreateFullPath(dirpath + "/");
 
-	// Now we have a dir such as /home/Replays but we need to make one such 
+	// Now we have a dir such as /home/Replays but we need to make one such
 	// as /home/Replays/2020-06 if month categorization is enabled
-	if (SConfig::GetInstance().m_slippiReplayMonthFolders) {
+	if (SConfig::GetInstance().m_slippiReplayMonthFolders)
+	{
 		dirpath.push_back('/');
 
 		// Append YYYY-MM to the directory path
@@ -580,13 +583,14 @@ void CEXISlippi::createNewFile()
 	m_file = File::IOFile(filepath, "wb");
 #endif
 
-	if (!m_file) {
+	if (!m_file)
+	{
 		PanicAlertT("Could not create .slp replay file [%s].\n\n"
-					"The replay folder's path might be invalid, or you might "
-					"not have permission to write to it.\n\n"
-					"You can change the replay folder in Config > GameCube > "
-					"Slippi Replay Settings.",
-					filepath.c_str());
+		            "The replay folder's path might be invalid, or you might "
+		            "not have permission to write to it.\n\n"
+		            "You can change the replay folder in Config > GameCube > "
+		            "Slippi Replay Settings.",
+		            filepath.c_str());
 	}
 }
 
@@ -1885,7 +1889,7 @@ u16 CEXISlippi::getRandomStage()
 
 	static std::vector<u16> stages = {
 	    0x2,  // FoD
-	          // 0x3, // Pokemon
+	    0x3,  // Pokemon
 	    0x8,  // Yoshi's Story
 	    0x1C, // Dream Land
 	    0x1F, // Battlefield
@@ -2016,9 +2020,9 @@ void CEXISlippi::handleLogInRequest()
 	bool logInRes = user->AttemptLogin();
 	if (!logInRes)
 	{
-//#ifndef LINUX_LOCAL_DEV
+		//#ifndef LINUX_LOCAL_DEV
 		main_frame->LowerRenderWindow();
-//#endif
+		//#endif
 		user->OpenLogInPage();
 		user->ListenForLogIn();
 	}
