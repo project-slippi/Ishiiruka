@@ -647,6 +647,11 @@ u64 SlippiNetplayClient::GetSlippiPing()
 	return pingUs;
 }
 
+u32 SlippiNetplayClient::GetEnetPing()
+{
+	return m_server ? m_server->roundTripTime : 0;
+}
+
 std::string SlippiNetplayClient::GetOpponentName()
 {
 	return oppName;

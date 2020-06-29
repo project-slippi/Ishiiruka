@@ -127,6 +127,7 @@ class SlippiNetplayClient
 	std::unique_ptr<SlippiRemotePadOutput> GetSlippiRemotePad(int32_t curFrame);
 	SlippiMatchInfo *GetMatchInfo();
 	u64 GetSlippiPing();
+	u32 GetEnetPing();
 	std::string GetOpponentName();
 	int32_t GetSlippiLatestRemoteFrame();
 	s32 CalcTimeOffsetUs();

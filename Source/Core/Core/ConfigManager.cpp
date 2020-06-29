@@ -275,6 +275,7 @@ void SConfig::SaveCoreSettings(IniFile& ini)
 	core->Set("TimeStretching", bTimeStretching);
 	core->Set("RSHACK", bRSHACK);
 	core->Set("Latency", iLatency);
+	core->Set("SlippiOnlineAutoDelay", m_slippiOnlineAutoDelay);
 	core->Set("SlippiOnlineDelay", m_slippiOnlineDelay);
 	core->Set("SlippiSaveReplays", m_slippiSaveReplays);
 	core->Set("SlippiReplayMonthFolders", m_slippiReplayMonthFolders);
@@ -593,6 +594,7 @@ void SConfig::LoadCoreSettings(IniFile& ini)
 	core->Get("TimeStretching", &bTimeStretching, false);
 	core->Get("RSHACK", &bRSHACK, false);
 	core->Get("Latency", &iLatency, 2);
+	core->Get("SlippiOnlineAutoDelay", &m_slippiOnlineAutoDelay, true);
 	core->Get("SlippiOnlineDelay", &m_slippiOnlineDelay, 2);
 	core->Get("SlippiSaveReplays", &m_slippiSaveReplays, true);
 	core->Get("SlippiReplayMonthFolders", &m_slippiReplayMonthFolders, false);
