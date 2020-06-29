@@ -222,6 +222,7 @@ class CEXISlippi : public IEXIDevice
 	int32_t lastFFWFrame = INT_MIN;
 	std::vector<u8> m_read_queue;
 	std::unique_ptr<Slippi::SlippiGame> m_current_game = nullptr;
+	SlippiMatchmaking::MatchSearchSettings lastSearch;
 
 	u16 *lastSelectedStage = nullptr;
 

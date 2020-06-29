@@ -1686,7 +1686,6 @@ void CEXISlippi::handleLoadSavestate(u8 *payload)
 
 void CEXISlippi::startFindMatch(u8 *payload)
 {
-#ifndef LOCAL_TESTING
 	SlippiMatchmaking::MatchSearchSettings search;
 	search.mode = (SlippiMatchmaking::OnlinePlayMode)payload[0];
 
@@ -1698,6 +1697,10 @@ void CEXISlippi::startFindMatch(u8 *payload)
 	// search.connectCode = SHIFTJISToUTF8(shiftJisCode).c_str();
 	search.connectCode = shiftJisCode;
 
+	// Store this search so we know what was queued for
+	lastSearch = search;
+
+#ifndef LOCAL_TESTING
 	matchmaking->FindMatch(search);
 #endif
 }
@@ -1858,6 +1861,11 @@ void CEXISlippi::prepareOnlineMatchState()
 		// Set player names
 		p1Name = isDecider ? lps.playerName : rps.playerName;
 		p2Name = isDecider ? rps.playerName : lps.playerName;
+
+		// Turn pause on in direct, off in everything else
+		u8 *gameBitField3 = (u8 *)&onlineMatchBlock[2];
+		auto directMode = SlippiMatchmaking::OnlinePlayMode::DIRECT;
+		*gameBitField3 = lastSearch.mode == directMode ? *gameBitField3 & 0xF7 : *gameBitField3 | 0x8;
 	}
 
 	// Add rng offset to output
