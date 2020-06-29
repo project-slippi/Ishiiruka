@@ -26,6 +26,7 @@ class SlippiUser
 	void UpdateApp();
 	void ListenForLogIn();
 	void LogOut();
+	void OverwriteLatestVersion(std::string version);
 	UserInfo GetUserInfo();
 	bool IsLoggedIn();
 	void FileListenThread();
