@@ -713,8 +713,9 @@ void CEXISlippi::prepareGameInfo(u8 *payload)
 	// Reset playback frame to begining
 	g_playbackStatus->currentPlaybackFrame = Slippi::GAME_FIRST_FRAME;
 
-	// Initialize replay related threads
-	if (replayCommSettings.mode == "normal" || replayCommSettings.mode == "queue")
+	// Initialize replay related threads if not viewing rollback versions of relays
+	if (replayCommSettings.rollbackDisplayMethod == "off" &&
+	    (replayCommSettings.mode == "normal" || replayCommSettings.mode == "queue"))
 	{
 		g_playbackStatus->startThreads();
 	}

@@ -73,14 +73,14 @@ void SlippiPlaybackStatus::startThreads()
 void SlippiPlaybackStatus::prepareSlippiPlayback(s32 &frameIndex)
 {
 	// block if there's too many diffs being processed
-	while (numDiffsProcessing > 3)
+	while (shouldRunThreads && numDiffsProcessing > 3)
 	{
 		INFO_LOG(SLIPPI, "Processing too many diffs, blocking main process");
 		cv_processingDiff.wait(processingLock);
 	}
 
 	// Unblock thread to save a state every interval
-	if ((currentPlaybackFrame + 122) % FRAME_INTERVAL == 0)
+	if (shouldRunThreads && ((currentPlaybackFrame + 122) % FRAME_INTERVAL == 0))
 		condVar.notify_one();
 
 	// TODO: figure out why sometimes playback frame increments past targetFrameNum
@@ -105,22 +105,27 @@ void SlippiPlaybackStatus::prepareSlippiPlayback(s32 &frameIndex)
 
 void SlippiPlaybackStatus::resetPlayback()
 {
-	shouldRunThreads = false;
+	if (shouldRunThreads)
+	{
+		shouldRunThreads = false;
 
-	if (m_savestateThread.joinable())
-		m_savestateThread.detach();
+		if (m_savestateThread.joinable())
+			m_savestateThread.detach();
 
-	if (m_seekThread.joinable())
-		m_seekThread.detach();
+		if (m_seekThread.joinable())
+			m_seekThread.detach();
 
-	condVar.notify_one(); // Will allow thread to kill itself
+		condVar.notify_one(); // Will allow thread to kill itself
+		futureDiffs.clear();
+		futureDiffs.rehash(0);
+	}
 
 	shouldJumpBack = false;
 	shouldJumpForward = false;
+	isHardFFW = false;
+	isSoftFFW = false;
 	targetFrameNum = INT_MAX;
 	inSlippiPlayback = false;
-	futureDiffs.clear();
-	futureDiffs.rehash(0);
 }
 
 void SlippiPlaybackStatus::processInitialState(std::vector<u8> &iState)
