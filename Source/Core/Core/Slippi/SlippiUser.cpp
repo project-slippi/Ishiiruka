@@ -65,10 +65,6 @@ bool SlippiUser::AttemptLogin()
 {
 	std::string userFilePath = getUserFilePath();
 
-	// Crash this bitch
-	std::string* foo = nullptr;
-	foo->resize(69);
-
 	INFO_LOG(SLIPPI_ONLINE, "Looking for file at: %s", userFilePath.c_str());
 
 	{
