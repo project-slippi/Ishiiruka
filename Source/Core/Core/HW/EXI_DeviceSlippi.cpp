@@ -2013,7 +2013,7 @@ void CEXISlippi::handleLogOutRequest()
 void CEXISlippi::handleUpdateAppRequest()
 {
 #ifdef __APPLE__
-	CriticalAlertT("Automatic updates are not available for macOS and Linux, please update manually.");
+	CriticalAlertT("Automatic updates are not available for macOS, please update manually.");
 #else
 	main_frame->LowerRenderWindow();
 	user->UpdateApp();

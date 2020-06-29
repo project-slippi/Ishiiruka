@@ -139,7 +139,6 @@ void SlippiUser::UpdateFile()
 	std::string command = path + " user-update";
 	system_hidden(command.c_str());
 #elif defined(__APPLE__)
-	CriticalAlertT("Automatic updates are not available for OSX builds.");
 #else
 	std::string path = "dolphin-slippi-tools";
 	std::string command = path + " user-update";
