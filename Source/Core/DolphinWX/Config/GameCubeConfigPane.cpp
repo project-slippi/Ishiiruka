@@ -120,7 +120,7 @@ void GameCubeConfigPane::InitializeGUI()
 	m_slippi_delay_frames_ctrl = new wxSpinCtrl(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(50, -1));
 	m_slippi_delay_frames_ctrl->SetToolTip(_(
 		"Leave this at 2 unless consistently playing on 120+ ping. "
-		"Increasing this can cause unplayable input delay."));
+		"Increasing this can cause unplayable input delay, and lowering it can cause visual artifacts/lag."));
 	m_slippi_delay_frames_ctrl->SetRange(1, 9);
 
 	const int space5 = FromDIP(5);
