@@ -152,7 +152,9 @@ void SlippiUser::UpdateApp()
 	auto isoPath = SConfig::GetInstance().m_strFilename;
 
 	std::string path = File::GetExeDirectory() + "/dolphin-slippi-tools.exe";
-	std::string command = "start \"Updating Dolphin\" \"" + path + "\" app-update -launch -iso \"" + isoPath + "\"";
+	std::string echoMsg = "echo Starting update process. If nothing happen after a few "
+	                      "minutes, you may need to update manually from https://slippi.gg/netplay ...";
+	std::string command = "start /b cmd /c " + echoMsg + " && \"" + path + "\" app-update -launch -iso \"" + isoPath + "\"";
 	WARN_LOG(SLIPPI, "Executing app update command: %s", command);
 	RunSystemCommand(command);
 #elif defined(__APPLE__)
