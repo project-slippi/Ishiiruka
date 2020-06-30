@@ -122,6 +122,7 @@ struct SConfig : NonCopyable
 	bool bForceNTSCJ = false;
 	bool bHLE_BS2 = true;
 	bool bEnableCheats = false;
+	bool bBootDefaultISO = false;
 	bool bEnableMemcardSdWriting = true;
 	bool bAllowAllNetplayVersions = false;
 	bool bQoSEnabled = true;
@@ -287,6 +288,7 @@ struct SConfig : NonCopyable
 	// other interface settings
 	bool m_InterfaceToolbar;
 	bool m_InterfaceStatusbar;
+	bool m_InterfaceSeekbar;
 	bool m_InterfaceLogWindow;
 	bool m_InterfaceLogConfigWindow;
 	bool m_InterfaceExtendedFPSInfo;

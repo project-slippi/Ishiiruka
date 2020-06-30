@@ -81,6 +81,8 @@ bool NetPlayLauncher::Join(const NetPlayJoinConfig& config)
 			config.traversal_host, config.traversal_port);
 	if (netplay_client->IsConnected())
 	{
+		if (config.is_spectator)
+			netplay_client->SendSpectatorSetting(true);
 		npd->SetSize(config.window_pos);
 		npd->Show();
 		return true;

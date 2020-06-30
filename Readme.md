@@ -13,7 +13,7 @@ Please read the [FAQ](https://dolphin-emu.org/docs/faq/) before using Dolphin.
 * OS
     * Windows (7 SP1 or higher is officially supported, but Vista SP2 might also work).
     * Linux.
-    * macOS (10.10 Yosemite or higher).
+    * macOS (10.13 High Sierra or higher).
     * Unix-like systems other than Linux are not officially supported but might work.
 * Processor
     * A CPU with SSE2 support.
@@ -85,7 +85,7 @@ Useful for development as root access is not required.
 2. `cd Build`
 3. `cmake .. -DLINUX_LOCAL_DEV=true`
 4. `make`
-5. `ln -s ../../Data/Sys Binaries/`
+5. `ln -s ../../Overwrite/{Sys,User} Binaries/`
 
 ### Linux Portable Build Steps:
 
@@ -96,7 +96,7 @@ Or useful for having multiple distinct Dolphin setups for testing/development/TA
 2. `cd Build`
 3. `cmake .. -DLINUX_LOCAL_DEV=true`
 4. `make`
-5. `cp -r ../Data/Sys/ Binaries/`
+5. `cp -r ../Overwrite/{Sys,User} Binaries/`
 6. `touch Binaries/portable.txt`
 
 ## Building for Android

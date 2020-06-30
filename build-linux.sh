@@ -1,16 +1,23 @@
 #!/bin/bash -e
 # build-linux.sh
 
-# Arguments passed to CMake
-CMAKE_FLAGS=''
-
-# Create the build directory if it doesn't exist
-if [ ! -e "./build/" ]; then  mkdir ./build; fi
+case "${1}" in
+	# Enables portable configuration files via portable.txt
+	portable)
+		CMAKE_FLAGS='-DLINUX_LOCAL_DEV=true'
+		;;
+	appimage)
+		CMAKE_FLAGS=''
+		;;
+	*)
+		echo "usage: ${0} <portable|appimage>"
+		exit 1
+		;;
+esac
 
 # Move into the build directory, run CMake, and compile the project
-pushd ./build
-cmake ${CMAKE_FLAGS} ../
+mkdir -p build
+pushd build
+cmake ${CMAKE_FLAGS} ..
 make -j$(nproc)
 popd
-
-

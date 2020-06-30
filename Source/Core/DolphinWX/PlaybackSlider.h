@@ -4,13 +4,13 @@
 
 #pragma once
 
+#include "DolphinSlider.h"
 #include <wx/slider.h>
 #include <wx/stattext.h>
-#include "DolphinSlider.h"
 
 class PlaybackSlider : public DolphinSlider
 {
-public:
+  public:
 	PlaybackSlider(wxStaticText *sliderLabel, wxWindow *parent, wxWindowID id, int value, int min_value, int max_value,
 	               const wxPoint &pos = wxDefaultPosition, const wxSize &size = wxDefaultSize,
 	               long style = wxSL_HORIZONTAL, const wxValidator &validator = wxDefaultValidator,
@@ -35,6 +35,6 @@ public:
 	int CalculatePosition(wxMouseEvent &event);
 	void OnSliderMove(wxCommandEvent &event);
 
-private:
+  private:
 	int lastMoveVal;
 };

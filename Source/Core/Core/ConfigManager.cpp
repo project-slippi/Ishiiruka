@@ -183,6 +183,7 @@ void SConfig::SaveInterfaceSettings(IniFile& ini)
 	interface->Set("LanguageCode", m_InterfaceLanguage);
 	interface->Set("ShowToolbar", m_InterfaceToolbar);
 	interface->Set("ShowStatusbar", m_InterfaceStatusbar);
+	interface->Set("ShowSeekbar", m_InterfaceSeekbar);
 	interface->Set("ShowLogWindow", m_InterfaceLogWindow);
 	interface->Set("ShowLogConfigWindow", m_InterfaceLogConfigWindow);
 	interface->Set("ExtendedFPSInfo", m_InterfaceExtendedFPSInfo);
@@ -266,6 +267,7 @@ void SConfig::SaveCoreSettings(IniFile& ini)
 	core->Set("FPRF", bFPRF);
 	core->Set("AccurateNaNs", bAccurateNaNs);
 	core->Set("DefaultISO", m_strDefaultISO);
+	core->Set("BootDefaultISO", bBootDefaultISO);
 	core->Set("DVDRoot", m_strDVDRoot);
 	core->Set("Apploader", m_strApploader);
 	core->Set("EnableCheats", bEnableCheats);
@@ -498,6 +500,7 @@ void SConfig::LoadInterfaceSettings(IniFile& ini)
 	interface->Get("LanguageCode", &m_InterfaceLanguage, "");
 	interface->Get("ShowToolbar", &m_InterfaceToolbar, true);
 	interface->Get("ShowStatusbar", &m_InterfaceStatusbar, true);
+	interface->Get("ShowSeekbar", &m_InterfaceSeekbar, true);
 	interface->Get("ShowLogWindow", &m_InterfaceLogWindow, false);
 	interface->Get("ShowLogConfigWindow", &m_InterfaceLogConfigWindow, false);
 	interface->Get("ExtendedFPSInfo", &m_InterfaceExtendedFPSInfo, false);
@@ -584,6 +587,7 @@ void SConfig::LoadCoreSettings(IniFile& ini)
 	core->Get("CPUThread", &bCPUThread, true);
 	core->Get("SyncOnSkipIdle", &bSyncGPUOnSkipIdleHack, true);
 	core->Get("DefaultISO", &m_strDefaultISO);
+	core->Get("BootDefaultISO", &bBootDefaultISO, false);
 	core->Get("DVDRoot", &m_strDVDRoot);
 	core->Get("Apploader", &m_strApploader);
 	core->Get("EnableCheats", &bEnableCheats, false);
@@ -596,18 +600,13 @@ void SConfig::LoadCoreSettings(IniFile& ini)
 	core->Get("SlippiOnlineDelay", &m_slippiOnlineDelay, 2);
 	core->Get("SlippiSaveReplays", &m_slippiSaveReplays, true);
 	core->Get("SlippiReplayMonthFolders", &m_slippiReplayMonthFolders, false);
-	#ifdef _WIN32
-		core->Get("SlippiReplayDir", &m_strSlippiReplayDir,
-			File::GetExeDirectory() + "\\" + "Slippi");
-	#elif defined(__APPLE__)
-		std::string bundleDir = File::GetBundleDirectory();
-		std::string slpDir = bundleDir.substr(0, bundleDir.find("Dolphin.app")) + "Slippi";
-
-		core->Get("SlippiReplayDir", &m_strSlippiReplayDir, slpDir);
-	#else
-		core->Get("SlippiReplayDir", &m_strSlippiReplayDir,
-			File::GetExeDirectory() + DIR_SEP + "Slippi");
-	#endif
+#ifdef _WIN32
+	core->Get("SlippiReplayDir", &m_strSlippiReplayDir,
+		File::GetHomeDirectory() + "\\Slippi");
+#else
+	core->Get("SlippiReplayDir", &m_strSlippiReplayDir,
+		File::GetHomeDirectory() + DIR_SEP + "Slippi");
+#endif
 	core->Get("MemcardAPath", &m_strMemoryCardA);
 	core->Get("MemcardBPath", &m_strMemoryCardB);
 	core->Get("AgpCartAPath", &m_strGbaCartA);

@@ -13,7 +13,9 @@ class wxButton;
 class wxCheckBox;
 class wxChoice;
 class wxDirPickerCtrl;
+class wxSpinCtrl;
 class wxString;
+class wxStaticText;
 
 class GameCubeConfigPane final : public wxPanel
 {
@@ -41,6 +43,7 @@ private:
 	void OnReplaySavingToggle(wxCommandEvent& event);
 	void OnReplayMonthFoldersToggle(wxCommandEvent& event);
 	void OnReplayDirChanged(wxCommandEvent& event);
+	void OnDelayFramesChanged(wxCommandEvent &event);
 
 	wxArrayString m_ipl_language_strings;
 
@@ -52,4 +55,6 @@ private:
 	wxCheckBox* m_replay_enable_checkbox;
 	wxDirPickerCtrl* m_replay_directory_picker;
 	wxCheckBox* m_replay_month_folders_checkbox;
+	wxStaticText* m_slippi_delay_frames_txt;
+	wxSpinCtrl *m_slippi_delay_frames_ctrl;
 };

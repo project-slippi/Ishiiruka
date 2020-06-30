@@ -5,14 +5,6 @@
 #pragma once
 
 #include <SlippiGame.h>
-#include <ctime>
-#include <deque>
-#include <future>
-#include <mutex>
-#include <open-vcdiff/src/google/vcdecoder.h>
-#include <open-vcdiff/src/google/vcencoder.h>
-#include <string>
-#include <unordered_map>
 
 #include "Common/CommonTypes.h"
 #include "Common/FileUtil.h"
@@ -39,8 +31,6 @@ class CEXISlippi : public IEXIDevice
 	void DMARead(u32 addr, u32 size) override;
 
 	bool IsPresent() const override;
-	std::thread m_savestateThread;
-	std::thread m_seekThread;
 
   private:
 	enum
@@ -128,15 +118,12 @@ class CEXISlippi : public IEXIDevice
 		std::string operation;
 	};
 
-	// Communication with Launcher
-	std::unique_ptr<SlippiReplayComm> replayComm;
-
 	// .slp File creation stuff
 	u32 writtenByteCount = 0;
 
 	// vars for metadata generation
 	time_t gameStartTime;
-	int32_t lastFrame;
+	s32 lastFrame;
 	std::unordered_map<u8, std::unordered_map<u8, u32>> characterUsage;
 
 	void updateMetadataFields(u8 *payload, u32 length);
@@ -147,8 +134,8 @@ class CEXISlippi : public IEXIDevice
 	void createNewFile();
 	void closeFile();
 	std::string generateFileName();
-	bool checkFrameFullyFetched(int32_t frameIndex);
-	bool shouldFFWFrame(int32_t frameIndex);
+	bool checkFrameFullyFetched(s32 frameIndex);
+	bool shouldFFWFrame(s32 frameIndex);
 
 	// std::ofstream log;
 
@@ -165,7 +152,7 @@ class CEXISlippi : public IEXIDevice
 	void startFindMatch(u8 *payload);
 	void prepareOnlineMatchState();
 	void setMatchSelections(u8 *payload);
-	bool shouldSkipOnlineFrame(int32_t frame);
+	bool shouldSkipOnlineFrame(s32 frame);
 	void handleLogInRequest();
 	void handleLogOutRequest();
 	void handleUpdateAppRequest();
@@ -178,41 +165,23 @@ class CEXISlippi : public IEXIDevice
 	void prepareCharacterFrameData(Slippi::FrameData *frame, u8 port, u8 isFollower);
 	void prepareFrameData(u8 *payload);
 	void prepareIsStockSteal(u8 *payload);
-	void prepareSlippiPlayback(int32_t &frameIndex);
 	void prepareIsFileReady();
-	void processInitialState(std::vector<u8> &iState);
-	void resetPlayback();
-	void clearWatchSettingsStartEnd();
 
 	// misc stuff
 	void logMessageFromGame(u8 *payload);
 	void prepareFileLength(u8 *payload);
 	void prepareFileLoad(u8 *payload);
 
-	void SavestateThread(void);
-	void SeekThread(void);
 	void FileWriteThread(void);
 
 	Common::FifoQueue<std::unique_ptr<WriteMessage>, false> fileWriteQueue;
 	bool writeThreadRunning = false;
 	std::thread m_fileWriteThread;
 
-	std::unordered_map<int32_t, std::shared_future<std::string>>
-	    futureDiffs;        // State diffs keyed by frameIndex, processed async
-	std::vector<u8> iState; // The initial state
-	std::vector<u8> cState; // The current (latest) state
-
-	bool shouldFFWToTarget = false;
-	int mostRecentlyProcessedFrame = INT_MAX;
-
-	open_vcdiff::VCDiffDecoder decoder;
-	open_vcdiff::VCDiffEncoder *encoder = NULL;
-
 	std::unordered_map<u8, std::string> getNetplayNames();
 
 	std::vector<u8> playbackSavestatePayload;
-
-	std::vector<uint8_t> geckoList;
+	std::vector<u8> geckoList;
 
 	u32 stallFrameCount = 0;
 	bool isConnectionStalled = false;
@@ -222,10 +191,13 @@ class CEXISlippi : public IEXIDevice
 	int32_t lastFFWFrame = INT_MIN;
 	std::vector<u8> m_read_queue;
 	std::unique_ptr<Slippi::SlippiGame> m_current_game = nullptr;
+	SlippiMatchmaking::MatchSearchSettings lastSearch;
 
 	u16 *lastSelectedStage = nullptr;
 
 	u32 frameSeqIdx = 0;
+
+	bool isEnetInitialized = false;
 
 	std::default_random_engine generator;
 

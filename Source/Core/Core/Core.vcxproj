@@ -280,7 +280,8 @@
     <ClCompile Include="PowerPC\PPCTables.cpp" />
     <ClCompile Include="PowerPC\Profiler.cpp" />
     <ClCompile Include="PowerPC\SignatureDB.cpp" />
-    <ClCompile Include="SlippiTimer.cpp" />
+    <ClCompile Include="Slippi\SlippiPlayback.cpp" />
+    <ClCompile Include="Slippi\SlippiTimer.cpp" />
     <ClCompile Include="Slippi\SlippiGameFileLoader.cpp" />
     <ClCompile Include="Slippi\SlippiMatchmaking.cpp" />
     <ClCompile Include="Slippi\SlippiNetplay.cpp" />
@@ -291,7 +292,6 @@
     <ClCompile Include="State.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\DolphinWX\PlaybackSlider.h" />
     <ClInclude Include="ActionReplay.h" />
     <ClInclude Include="Analytics.h" />
     <ClInclude Include="ARDecrypt.h" />
@@ -452,6 +452,7 @@
     <ClInclude Include="NetPlayProto.h" />
     <ClInclude Include="NetPlayServer.h" />
     <ClInclude Include="PatchEngine.h" />
+    <ClInclude Include="PlaybackSlider.h" />
     <ClInclude Include="PowerPC\CPUCoreBase.h" />
     <ClInclude Include="PowerPC\Gekko.h" />
     <ClInclude Include="PowerPC\Interpreter\Interpreter.h" />
@@ -480,8 +481,8 @@
     <ClInclude Include="PowerPC\PPCTables.h" />
     <ClInclude Include="PowerPC\Profiler.h" />
     <ClInclude Include="PowerPC\SignatureDB.h" />
-    <ClInclude Include="SlippiPlayback.h" />
-    <ClInclude Include="SlippiTimer.h" />
+    <ClInclude Include="Slippi\SlippiPlayback.h" />
+    <ClInclude Include="Slippi\SlippiTimer.h" />
     <ClInclude Include="Slippi\SlippiGameFileLoader.h" />
     <ClInclude Include="Slippi\SlippiMatchmaking.h" />
     <ClInclude Include="Slippi\SlippiNetplay.h" />
@@ -548,9 +549,6 @@
     </ProjectReference>
     <ProjectReference Include="..\..\..\Externals\SlippiLib\SlippiLib.vcxproj">
       <Project>{ff39260b-839a-4a6c-a117-caa73c1683f5}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\SlippiPlayback\SlippiPlayback.vcxproj">
-      <Project>{0ebbdafa-3a7d-46d0-b0ee-f53d7dd6f571}</Project>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

@@ -54,6 +54,7 @@ void GeneralConfigPane::InitializeGUI()
 
 	m_dual_core_checkbox = new wxCheckBox(this, wxID_ANY, _("Enable Dual Core (speedup)"));
 	m_cheats_checkbox = new wxCheckBox(this, wxID_ANY, _("Enable Cheats"));
+	m_boot_default_iso_checkbox = new wxCheckBox(this, wxID_ANY, _("Start Default ISO on Launch"));
 	m_force_ntscj_checkbox = new wxCheckBox(this, wxID_ANY, _("Force Console as NTSC-J"));
 	m_analytics_checkbox = new wxCheckBox(this, wxID_ANY, _("Enable Usage Statistics Reporting"));
 #ifdef __APPLE__
@@ -72,6 +73,7 @@ void GeneralConfigPane::InitializeGUI()
 		_("Splits the CPU and GPU threads so they can be run on separate cores.\nProvides major "
 			"speed improvements on most modern PCs, but can cause occasional crashes/glitches."));
 	m_cheats_checkbox->SetToolTip(_("Enables the use of Action Replay and Gecko cheats."));
+	m_boot_default_iso_checkbox->SetToolTip(_("Boots the Default ISO when Dolphin launches. Right click a game in games list to set it as the default ISO."));
 	m_force_ntscj_checkbox->SetToolTip(
 		_("Forces NTSC-J mode for using the Japanese ROM font.\nIf left unchecked, Dolphin defaults "
 			"to NTSC-U and automatically enables this setting when playing Japanese games."));
@@ -103,6 +105,8 @@ void GeneralConfigPane::InitializeGUI()
 	basic_settings_sizer->Add(m_dual_core_checkbox, 0, wxLEFT | wxRIGHT, space5);
 	basic_settings_sizer->AddSpacer(space5);
 	basic_settings_sizer->Add(m_cheats_checkbox, 0, wxLEFT | wxRIGHT, space5);
+	basic_settings_sizer->AddSpacer(space5);
+	basic_settings_sizer->Add(m_boot_default_iso_checkbox, 0, wxLEFT | wxRIGHT, space5);
 	basic_settings_sizer->AddSpacer(space5);
 	basic_settings_sizer->Add(throttler_sizer);
 
@@ -140,6 +144,7 @@ void GeneralConfigPane::LoadGUIValues()
 
 	m_dual_core_checkbox->SetValue(startup_params.bCPUThread);
 	m_cheats_checkbox->SetValue(startup_params.bEnableCheats);
+	m_boot_default_iso_checkbox->SetValue(startup_params.bBootDefaultISO);
 	m_force_ntscj_checkbox->SetValue(startup_params.bForceNTSCJ);
 	m_analytics_checkbox->SetValue(startup_params.m_analytics_enabled);
 	u32 selection = std::lround(startup_params.m_EmulationSpeed * 10.0f);
@@ -160,6 +165,8 @@ void GeneralConfigPane::BindEvents()
 
 	m_cheats_checkbox->Bind(wxEVT_CHECKBOX, &GeneralConfigPane::OnCheatCheckBoxChanged, this);
 	m_cheats_checkbox->Bind(wxEVT_UPDATE_UI, &WxEventUtils::OnEnableIfCoreNotRunning);
+
+	m_boot_default_iso_checkbox->Bind(wxEVT_CHECKBOX, &GeneralConfigPane::OnBootDefaultCheckBoxChanged, this);
 
 	m_force_ntscj_checkbox->Bind(wxEVT_CHECKBOX, &GeneralConfigPane::OnForceNTSCJCheckBoxChanged,
 		this);
@@ -186,6 +193,11 @@ void GeneralConfigPane::OnDualCoreCheckBoxChanged(wxCommandEvent& event)
 void GeneralConfigPane::OnCheatCheckBoxChanged(wxCommandEvent& event)
 {
 	SConfig::GetInstance().bEnableCheats = m_cheats_checkbox->IsChecked();
+}
+
+void GeneralConfigPane::OnBootDefaultCheckBoxChanged(wxCommandEvent &event)
+{
+	SConfig::GetInstance().bBootDefaultISO = m_boot_default_iso_checkbox->IsChecked();
 }
 
 void GeneralConfigPane::OnForceNTSCJCheckBoxChanged(wxCommandEvent& event)

@@ -12,7 +12,6 @@ set(SRCS	ActionReplay.cpp
 			HotkeyManager.cpp
 			MemTools.cpp
 			Movie.cpp
-			SlippiTimer.cpp
 			NetPlayClient.cpp
 			NetPlayServer.cpp
 			PatchEngine.cpp
@@ -189,12 +188,14 @@ set(SRCS	ActionReplay.cpp
 			PowerPC/JitILCommon/JitILBase_Paired.cpp
 			PowerPC/JitILCommon/JitILBase_FloatingPoint.cpp
 			PowerPC/JitILCommon/JitILBase_Integer.cpp
-			Slippi/SlippiReplayComm.cpp
 			Slippi/SlippiGameFileLoader.cpp
 			Slippi/SlippiMatchmaking.cpp
 			Slippi/SlippiNetplay.cpp
 			Slippi/SlippiPad.cpp
+			Slippi/SlippiPlayback.cpp
+			Slippi/SlippiReplayComm.cpp
 			Slippi/SlippiSavestate.cpp
+			Slippi/SlippiTimer.cpp
 			Slippi/SlippiUser.cpp
 			)
 
@@ -250,7 +251,6 @@ set(LIBS
 	semver
 	sfml-network
 	sfml-system
-	SlippiPlaybackStatus
 	SlippiLib
 	vcdcom
 	vcddec

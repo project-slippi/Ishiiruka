@@ -55,39 +55,29 @@ SlippiNetplayClient::~SlippiNetplayClient()
 		m_client = nullptr;
 	}
 
-	ERROR_LOG(SLIPPI_ONLINE, "Netplay client cleanup complete");
+	WARN_LOG(SLIPPI_ONLINE, "Netplay client cleanup complete");
 }
 
 // called from ---SLIPPI EXI--- thread
 SlippiNetplayClient::SlippiNetplayClient(const std::string &address, const u16 remotePort, const u16 localPort,
-                                         bool isHost)
+                                         bool isDecider)
 #ifdef _WIN32
     : m_qos_handle(nullptr)
     , m_qos_flow_id(0)
 #endif
 {
-	// Initialize enet
-	auto res = enet_initialize();
-	INFO_LOG(SLIPPI_ONLINE, "Enet init res: %d", res);
-
 	WARN_LOG(SLIPPI_ONLINE, "Initializing Slippi Netplay for port: %d, with host: %s", localPort,
-	         isHost ? "true" : "false");
+	         isDecider ? "true" : "false");
 
-	//if (isHost)
-	//{
-	//	ERROR_LOG(SLIPPI_ONLINE, "[Netplay] Starting host on port %d", localPort);
-	//}
-	//else
-	//{
-	//	ERROR_LOG(SLIPPI_ONLINE, "[Netplay] Starting client on port %d, connecting to: %s:%d", localPort,
-	//	          address.c_str(), remotePort);
-	//}
-
-	this->isHost = isHost;
+	this->isDecider = isDecider;
 
 	// Local address
 	ENetAddress *localAddr = nullptr;
 	ENetAddress localAddrDef;
+
+	// It is important to be able to set the local port to listen on even in a client connection because
+	// not doing so will break hole punching, the host is expecting traffic to come from a specific ip/port
+	// and if the port does not match what it is expecting, it will not get through the NAT on some routers
 	if (localPort > 0)
 	{
 		INFO_LOG(SLIPPI_ONLINE, "Setting up local address");
@@ -98,25 +88,23 @@ SlippiNetplayClient::SlippiNetplayClient(const std::string &address, const u16 r
 		localAddr = &localAddrDef;
 	}
 
-	m_client = enet_host_create(localAddr, 1, 3, 0, 0);
+	// TODO: Figure out how to use a local port when not hosting without accepting incoming connections
+	m_client = enet_host_create(localAddr, 2, 3, 0, 0);
 
 	if (m_client == nullptr)
 	{
 		PanicAlertT("Couldn't Create Client");
 	}
 
-	if (!isHost)
+	ENetAddress addr;
+	enet_address_set_host(&addr, address.c_str());
+	addr.port = remotePort;
+
+	m_server = enet_host_connect(m_client, &addr, 3, 0);
+
+	if (m_server == nullptr)
 	{
-		ENetAddress addr;
-		enet_address_set_host(&addr, address.c_str());
-		addr.port = remotePort;
-
-		m_server = enet_host_connect(m_client, &addr, 3, 0);
-
-		if (m_server == nullptr)
-		{
-			PanicAlertT("Couldn't create peer.");
-		}
+		PanicAlertT("Couldn't create peer.");
 	}
 
 	slippiConnectStatus = SlippiConnectStatus::NET_CONNECT_STATUS_INITIATED;
@@ -125,9 +113,9 @@ SlippiNetplayClient::SlippiNetplayClient(const std::string &address, const u16 r
 }
 
 // Make a dummy client
-SlippiNetplayClient::SlippiNetplayClient(bool isHost)
+SlippiNetplayClient::SlippiNetplayClient(bool isDecider)
 {
-	this->isHost = isHost;
+	this->isDecider = isDecider;
 	slippiConnectStatus = SlippiConnectStatus::NET_CONNECT_STATUS_FAILED;
 }
 
@@ -280,6 +268,7 @@ void SlippiNetplayClient::writeToPacket(sf::Packet &packet, SlippiPlayerSelectio
 	packet << s.stageId << s.isStageSelected;
 	packet << s.rngOffset;
 	packet << s.playerName;
+	packet << s.connectCode;
 }
 
 std::unique_ptr<SlippiPlayerSelections> SlippiNetplayClient::readSelectionsFromPacket(sf::Packet &packet)
@@ -295,6 +284,7 @@ std::unique_ptr<SlippiPlayerSelections> SlippiNetplayClient::readSelectionsFromP
 
 	packet >> s->rngOffset;
 	packet >> s->playerName;
+	packet >> s->connectCode;
 
 	return std::move(s);
 }
@@ -358,6 +348,9 @@ void SlippiNetplayClient::SendAsync(std::unique_ptr<sf::Packet> packet)
 // called from ---NETPLAY--- thread
 void SlippiNetplayClient::ThreadFunc()
 {
+	// Let client die 1 second before host such that after a swap, the client won't be connected to
+	int attemptCountLimit = 16;
+
 	int attemptCount = 0;
 	while (slippiConnectStatus == SlippiConnectStatus::NET_CONNECT_STATUS_INITIATED)
 	{
@@ -367,8 +360,9 @@ void SlippiNetplayClient::ThreadFunc()
 		if (net > 0 && netEvent.type == ENET_EVENT_TYPE_CONNECT)
 		{
 			// TODO: Confirm gecko codes match?
-			if (isHost)
+			if (netEvent.peer)
 			{
+				WARN_LOG(SLIPPI_ONLINE, "[Netplay] Overwritting server");
 				m_server = netEvent.peer;
 			}
 
@@ -378,11 +372,11 @@ void SlippiNetplayClient::ThreadFunc()
 			break;
 		}
 
-		//WARN_LOG(SLIPPI_ONLINE, "[Netplay] Not yet connected. Res: %d, Type: %d", net, netEvent.type);
+		WARN_LOG(SLIPPI_ONLINE, "[Netplay] Not yet connected. Res: %d, Type: %d", net, netEvent.type);
 
-		// Time out after enough time has passed@N
+		// Time out after enough time has passed
 		attemptCount++;
-		if (attemptCount >= 12 || !m_do_loop.IsSet())
+		if (attemptCount >= attemptCountLimit || !m_do_loop.IsSet())
 		{
 			slippiConnectStatus = SlippiConnectStatus::NET_CONNECT_STATUS_FAILED;
 			INFO_LOG(SLIPPI_ONLINE, "Slippi online connection failed");
@@ -454,7 +448,15 @@ void SlippiNetplayClient::ThreadFunc()
 				enet_packet_destroy(netEvent.packet);
 				break;
 			case ENET_EVENT_TYPE_DISCONNECT:
-				m_do_loop.Clear(); // Stop the loop, will trigger a disconnect
+				ERROR_LOG(SLIPPI_ONLINE, "[Netplay] Disconnected Event detected: %s",
+				          netEvent.peer == m_server ? "same client" : "diff client");
+
+				// If the disconnect event doesn't come from the client we are actually listening to,
+				// it can be safely ignored
+				if (netEvent.peer == m_server)
+				{
+					m_do_loop.Clear(); // Stop the loop, will trigger a disconnect
+				}
 				break;
 			default:
 				break;
@@ -475,9 +477,9 @@ void SlippiNetplayClient::ThreadFunc()
 	return;
 }
 
-bool SlippiNetplayClient::IsHost()
+bool SlippiNetplayClient::IsDecider()
 {
-	return isHost;
+	return isDecider;
 }
 
 bool SlippiNetplayClient::IsConnectionSelected()
@@ -536,7 +538,7 @@ void SlippiNetplayClient::SendSlippiPad(std::unique_ptr<SlippiPad> pad)
 		return;
 	}
 
-	// if (pad && isHost)
+	// if (pad && isDecider)
 	//{
 	//  ERROR_LOG(SLIPPI_ONLINE, "[%d] %X %X %X %X %X %X %X %X", pad->frame, pad->padBuf[0], pad->padBuf[1],
 	//  pad->padBuf[2], pad->padBuf[3], pad->padBuf[4], pad->padBuf[5], pad->padBuf[6], pad->padBuf[7]);

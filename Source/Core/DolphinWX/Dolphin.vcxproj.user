@@ -5,16 +5,15 @@
     <LocalDebuggerCommand>$(BinaryOutputDir)$(TargetFileName)</LocalDebuggerCommand>
     <LocalDebuggerWorkingDirectory>$(BinaryOutputDir)</LocalDebuggerWorkingDirectory>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
-    <ShowAllFiles>true</ShowAllFiles>
+    <ShowAllFiles>false</ShowAllFiles>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <LocalDebuggerCommandArguments>
-    </LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>-d</LocalDebuggerCommandArguments>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugFast|x64'">
-    <LocalDebuggerCommandArguments>/d</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>-i "C:/test.json"</LocalDebuggerCommandArguments>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <LocalDebuggerCommandArguments>/d</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>-i "C:/test.json</LocalDebuggerCommandArguments>
   </PropertyGroup>
 </Project>

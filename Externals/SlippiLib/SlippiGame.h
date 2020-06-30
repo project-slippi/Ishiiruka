@@ -22,6 +22,7 @@ namespace Slippi {
   const uint8_t UCF_TOGGLE_SIZE = 8;
   const uint8_t NAMETAG_SIZE = 8;
   const int32_t GAME_FIRST_FRAME = -123;
+  const int32_t PLAYBACK_FIRST_SAVE = -122;
   const uint8_t GAME_SHEIK_INTERNAL_ID = 0x7;
   const uint8_t GAME_SHEIK_EXTERNAL_ID = 0x13;
 
