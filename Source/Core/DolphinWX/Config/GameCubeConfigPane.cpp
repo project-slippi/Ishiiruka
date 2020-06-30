@@ -114,9 +114,13 @@ void GameCubeConfigPane::InitializeGUI()
 		wxDIRP_USE_TEXTCTRL | wxDIRP_SMALL);
 	m_replay_directory_picker->SetToolTip(
 		_("Choose where your Slippi replay files are saved."));
-	m_slippi_delay_frames_txt = new wxStaticText(this, wxID_ANY, _("Slippi Online Delay Frames:"));
+
+	// Online settings
+	m_slippi_delay_frames_txt = new wxStaticText(this, wxID_ANY, _("Delay Frames:"));
 	m_slippi_delay_frames_ctrl = new wxSpinCtrl(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(50, -1));
-	m_slippi_delay_frames_ctrl->SetToolTip(_("Set how many delay frames you have when playing Slippi Online."));
+	m_slippi_delay_frames_ctrl->SetToolTip(_(
+		"Leave this at 2 unless consistently playing on 120+ ping. "
+		"Increasing this can cause unplayable input delay, and lowering it can cause visual artifacts/lag."));
 	m_slippi_delay_frames_ctrl->SetRange(1, 9);
 
 	const int space5 = FromDIP(5);
@@ -156,22 +160,30 @@ void GameCubeConfigPane::InitializeGUI()
 	sbGamecubeDeviceSettings->Add(gamecube_EXIDev_sizer, 0, wxEXPAND | wxLEFT | wxRIGHT, space5);
 	sbGamecubeDeviceSettings->AddSpacer(space5);
 
-	wxGridBagSizer* const sGamecubeSlippiSettings = new wxGridBagSizer(space5, space5);
-	sGamecubeSlippiSettings->Add(m_replay_enable_checkbox, wxGBPosition(0, 0), wxGBSpan(1, 2));
-	sGamecubeSlippiSettings->Add(m_replay_month_folders_checkbox, wxGBPosition(1, 0), wxGBSpan(1, 2),
+	wxGridBagSizer* const sSlippiReplaySettings = new wxGridBagSizer(space5, space5);
+	sSlippiReplaySettings->Add(m_replay_enable_checkbox, wxGBPosition(0, 0), wxGBSpan(1, 2));
+	sSlippiReplaySettings->Add(m_replay_month_folders_checkbox, wxGBPosition(1, 0), wxGBSpan(1, 2),
 		wxRESERVE_SPACE_EVEN_IF_HIDDEN);
-	sGamecubeSlippiSettings->Add(new wxStaticText(this, wxID_ANY, _("Replay folder:")), wxGBPosition(2, 0),
+	sSlippiReplaySettings->Add(new wxStaticText(this, wxID_ANY, _("Replay folder:")), wxGBPosition(2, 0),
 		wxDefaultSpan, wxALIGN_CENTER_VERTICAL);
-	sGamecubeSlippiSettings->Add(m_replay_directory_picker, wxGBPosition(2, 1), wxDefaultSpan, wxEXPAND);
-	sGamecubeSlippiSettings->Add(m_slippi_delay_frames_txt, wxGBPosition(3, 0), wxDefaultSpan, wxEXPAND);
-	sGamecubeSlippiSettings->Add(m_slippi_delay_frames_ctrl, wxGBPosition(3, 1), wxDefaultSpan, wxALIGN_LEFT);
-	sGamecubeSlippiSettings->AddGrowableCol(1);
+	sSlippiReplaySettings->Add(m_replay_directory_picker, wxGBPosition(2, 1), wxDefaultSpan, wxEXPAND);
+	sSlippiReplaySettings->AddGrowableCol(1);
 
-	wxStaticBoxSizer* const sbGamecubeSlippiSettings =
-		new wxStaticBoxSizer(wxVERTICAL, this, _("Slippi Settings"));
-	sbGamecubeSlippiSettings->AddSpacer(space5);
-	sbGamecubeSlippiSettings->Add(sGamecubeSlippiSettings, 0, wxEXPAND | wxLEFT | wxRIGHT, space5);
-	sbGamecubeSlippiSettings->AddSpacer(space5);
+	wxStaticBoxSizer* const sbSlippiReplaySettings =
+		new wxStaticBoxSizer(wxVERTICAL, this, _("Slippi Replay Settings"));
+	sbSlippiReplaySettings->AddSpacer(space5);
+	sbSlippiReplaySettings->Add(sSlippiReplaySettings, 0, wxEXPAND | wxLEFT | wxRIGHT, space5);
+	sbSlippiReplaySettings->AddSpacer(space5);
+
+	wxGridBagSizer* const sSlippiOnlineSettings = new wxGridBagSizer(space5, space5);
+	sSlippiOnlineSettings->Add(m_slippi_delay_frames_txt, wxGBPosition(0, 0), wxDefaultSpan, wxALIGN_CENTER_VERTICAL);
+	sSlippiOnlineSettings->Add(m_slippi_delay_frames_ctrl, wxGBPosition(0, 1), wxDefaultSpan, wxALIGN_LEFT);
+
+	wxStaticBoxSizer* const sbSlippiOnlineSettings =
+		new wxStaticBoxSizer(wxVERTICAL, this, _("Slippi Online Settings"));
+	sbSlippiOnlineSettings->AddSpacer(space5);
+	sbSlippiOnlineSettings->Add(sSlippiOnlineSettings, 0, wxEXPAND | wxLEFT | wxRIGHT, space5);
+	sbSlippiOnlineSettings->AddSpacer(space5);
 
 	wxBoxSizer* const main_sizer = new wxBoxSizer(wxVERTICAL);
 	main_sizer->AddSpacer(space5);
@@ -179,7 +191,9 @@ void GameCubeConfigPane::InitializeGUI()
 	main_sizer->AddSpacer(space5);
 	main_sizer->Add(sbGamecubeDeviceSettings, 0, wxEXPAND | wxLEFT | wxRIGHT, space5);
 	main_sizer->AddSpacer(space5);
-	main_sizer->Add(sbGamecubeSlippiSettings, 0, wxEXPAND | wxLEFT | wxRIGHT, space5);
+	main_sizer->Add(sbSlippiReplaySettings, 0, wxEXPAND | wxLEFT | wxRIGHT, space5);
+	main_sizer->AddSpacer(space5);
+	main_sizer->Add(sbSlippiOnlineSettings, 0, wxEXPAND | wxLEFT | wxRIGHT, space5);
 	main_sizer->AddSpacer(space5);
 
 	SetSizer(main_sizer);
