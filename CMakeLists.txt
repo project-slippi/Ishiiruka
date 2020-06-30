@@ -941,7 +941,6 @@ if(NOT DISABLE_WX)
 		if(${wxWidgets_VERSION} VERSION_LESS ${wxMIN_VERSION})
 			if(APPLE OR UNIX)
 				message(SEND_ERROR "At least wxWidgets@${wxMIN_VERSION} is required; exiting")
-				exit()
 			else()
 				message("At least ${wxMIN_VERSION} is required; ignoring found version")
 			endif()
@@ -977,6 +976,10 @@ if(NOT DISABLE_WX)
 		include(${wxWidgets_USE_FILE})
 		message("wxWidgets found, enabling GUI build")
 	else(wxWidgets_FOUND)
+		if(APPLE OR UNIX)
+			# Will have to be removed once externals is updated.
+			message(SEND_ERROR "wxWidgets can't use /Externals/wxWidgets on your os. Please install wxWidgets@3.1.3 or higher.")
+		endif()
 		message("Using static wxWidgets from Externals")
 
 		# These definitions and includes are used when building dolphin against wx,
