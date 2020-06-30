@@ -448,7 +448,15 @@ void SlippiNetplayClient::ThreadFunc()
 				enet_packet_destroy(netEvent.packet);
 				break;
 			case ENET_EVENT_TYPE_DISCONNECT:
-				m_do_loop.Clear(); // Stop the loop, will trigger a disconnect
+				ERROR_LOG(SLIPPI_ONLINE, "[Netplay] Disconnected Event detected: %s",
+				          netEvent.peer == m_server ? "same client" : "diff client");
+
+				// If the disconnect event doesn't come from the client we are actually listening to,
+				// it can be safely ignored
+				if (netEvent.peer == m_server)
+				{
+					m_do_loop.Clear(); // Stop the loop, will trigger a disconnect
+				}
 				break;
 			default:
 				break;
