@@ -16,30 +16,30 @@ UPDATETOOL_FILE="appimageupdatetool-x86_64.AppImage"
 UPDATETOOL_URL="${UPDATETOOL_PATH}/${UPDATETOOL_FILE}"
 
 # Grab various appimage binaries from GitHub if we don't have them
-if [ ! -e ./linuxdeploy ]; then
-	wget ${LINUXDEPLOY_URL} -O linuxdeploy
-	chmod +x linuxdeploy
+if [ ! -e ./Tools/linuxdeploy ]; then
+	wget ${LINUXDEPLOY_URL} -O ./Tools/linuxdeploy
+	chmod +x ./Tools/linuxdeploy
 fi
-if [ ! -e ./linuxdeploy-update-plugin ]; then
-	wget ${UPDATEPLUG_URL} -O linuxdeploy-update-plugin
-	chmod +x linuxdeploy-update-plugin
+if [ ! -e ./Tools/linuxdeploy-update-plugin ]; then
+	wget ${UPDATEPLUG_URL} -O ./Tools/linuxdeploy-update-plugin
+	chmod +x ./Tools/linuxdeploy-update-plugin
 fi
-if [ ! -e ./appimageupdatetool ]; then
-	wget ${UPDATEPLUG_URL} -O appimageupdatetool
-	chmod +x appimageupdatetool
+if [ ! -e ./Tools/appimageupdatetool ]; then
+	wget ${UPDATEPLUG_URL} -O ./Tools/appimageupdatetool
+	chmod +x ./Tools/appimageupdatetool
 fi
 
 # Build the AppDir directory for this image
 mkdir -p AppDir
-./linuxdeploy \
+./Tools/linuxdeploy \
 	--appdir=./AppDir \
 	-e ./build/Binaries/dolphin-emu \
 	-d ./Data/slippi-online.desktop \
 	-i ./Data/dolphin-emu.png
 
 # Package up the update tool within the AppImage
-cp ./appimageupdatetool ./AppDir/usr/bin/
+cp ./Tools/appimageupdatetool ./AppDir/usr/bin/
 
 # Bake an AppImage with the update metadata
 UPDATE_INFORMATION="${ZSYNC_STRING}" \
-	./linuxdeploy-update-plugin --appdir=./AppDir/ \
+	./Tools/linuxdeploy-update-plugin --appdir=./AppDir/ \
