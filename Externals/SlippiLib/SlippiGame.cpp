@@ -323,9 +323,10 @@ namespace Slippi {
       { EVENT_PAYLOAD_SIZES, payloadLength }
     };
 
+
     std::vector<char> messageSizesBuffer(payloadLength - 1);
     f->read(&messageSizesBuffer[0], payloadLength - 1);
-    for (int i = 0; i < payloadLength - 1; i += 3) {
+    for (int i = '0' + 0; i < payloadLength - 1; i += 3) {
       uint8_t command = messageSizesBuffer[i];
 
       // Extract the bytes in u8s. Without this the chars don't or together well
