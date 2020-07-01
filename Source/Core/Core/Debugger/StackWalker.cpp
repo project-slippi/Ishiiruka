@@ -22,8 +22,15 @@ StackWalker::StackWalker(bool log)
 #else
 	std::string path = File::GetSysDirectory();
 #endif
+
+    // This conversion is necessary for *reasons*
+    char sep = DIR_SEP_CHR;
+    if (path.back() != sep) {
+        path.push_back(sep);
+    }
     
     int timestamp = std::time(0);
+
     path = StringFromFormat("%s%d.txt", path.c_str(), timestamp);
     
     if (_log) 
