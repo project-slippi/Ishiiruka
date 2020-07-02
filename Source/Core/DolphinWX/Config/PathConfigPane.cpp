@@ -182,15 +182,20 @@ void PathConfigPane::OnAddISOPath(wxCommandEvent& event)
 
 void PathConfigPane::OnRemoveISOPath(wxCommandEvent& event)
 {
-	AddPendingEvent(wxCommandEvent(wxDOLPHIN_CFG_REFRESH_LIST));
-	m_iso_paths_listbox->Delete(m_iso_paths_listbox->GetSelection());
+	int selection = m_iso_paths_listbox->GetSelection();
 
-	// This seems to not be activated on Windows when it should be. wxw bug?
+	if (selection >= 0) {
+		AddPendingEvent(wxCommandEvent(wxDOLPHIN_CFG_REFRESH_LIST));
+
+		m_iso_paths_listbox->Delete(selection);
+
+		// This seems to not be activated on Windows when it should be. wxw bug?
 #ifdef _WIN32
-	OnISOPathSelectionChanged(wxCommandEvent());
+		OnISOPathSelectionChanged(wxCommandEvent());
 #endif
 
-	SaveISOPathChanges();
+		SaveISOPathChanges();
+	}
 }
 
 void PathConfigPane::OnDefaultISOChanged(wxCommandEvent& event)
