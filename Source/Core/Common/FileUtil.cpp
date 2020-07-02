@@ -763,14 +763,12 @@ std::string GetHomeDirectory()
 #ifdef _WIN32
 	wchar_t *path = nullptr;
 	
-	if (SUCCEEDED(SHGetKnownFolderPath(FOLDERID_Documents, 0, nullptr, &path))) {
-		char pathStr[MAX_PATH];
-		wcstombs(pathStr, path, MAX_PATH);
-	
-		homeDir = std::string(pathStr);
-		CoTaskMemFree(path);		
+	if (SUCCEEDED(SHGetKnownFolderPath(FOLDERID_Documents, 0, nullptr, &path)))
+	{
+		homeDir = UTF16ToUTF8(path);
 	}
-	else {
+	else
+	{
 		const char* home = getenv("USERPROFILE");
 		homeDir = std::string(home) + "\\Documents";
 	}
