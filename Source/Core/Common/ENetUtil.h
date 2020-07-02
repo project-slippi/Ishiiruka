@@ -9,7 +9,20 @@
 namespace ENetUtil
 {
 
-void WakeupThread(ENetHost* host);
-int ENET_CALLBACK InterceptCallback(ENetHost* host, ENetEvent* event);
+void WakeupThread(ENetHost *host);
+int ENET_CALLBACK InterceptCallback(ENetHost *host, ENetEvent *event);
 
-}
+// Creates a class that can be used with unique_ptr to clean up a host correctly when it's
+// passed between classes
+class DestroyableHost
+{
+  public:
+	DestroyableHost(ENetHost *host);
+	~DestroyableHost();
+	ENetHost *GetHost();
+
+  protected:
+	ENetHost *host;
+};
+
+} // namespace ENetUtil

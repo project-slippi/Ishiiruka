@@ -5,6 +5,7 @@
 #pragma once
 
 #include "Common/CommonTypes.h"
+#include "Common/ENetUtil.h"
 #include "Common/Event.h"
 #include "Common/FifoQueue.h"
 #include "Common/Timer.h"
@@ -105,6 +106,8 @@ class SlippiNetplayClient
 
 	SlippiNetplayClient(bool isDecider); // Make a dummy client
 	SlippiNetplayClient(const std::string &address, const u16 remotePort, const u16 localPort, bool isDecider);
+	SlippiNetplayClient(std::unique_ptr<ENetUtil::DestroyableHost> host, const std::string &address,
+	                    const u16 remotePort, bool isDecider);
 	~SlippiNetplayClient();
 
 	// Slippi Online
@@ -143,6 +146,8 @@ class SlippiNetplayClient
 	Common::FifoQueue<std::unique_ptr<sf::Packet>, false> m_async_queue;
 
 	std::string oppName = "";
+
+	std::unique_ptr<ENetUtil::DestroyableHost> hostDestroyer;
 
 	ENetHost *m_client = nullptr;
 	ENetPeer *m_server = nullptr;

@@ -4,6 +4,7 @@
 
 #include "ENetUtil.h"
 
+#include "Common/Logging/Log.h"
 #include "Common/CommonTypes.h"
 
 namespace ENetUtil
@@ -41,5 +42,21 @@ int ENET_CALLBACK InterceptCallback(ENetHost* host, ENetEvent* event)
 	return 0;
 }
 
+DestroyableHost::DestroyableHost(ENetHost *host)
+{
+	this->host = host;
+}
+
+DestroyableHost::~DestroyableHost()
+{
+	enet_host_destroy(host);
+	this->host = nullptr;
+	ERROR_LOG(SLIPPI_ONLINE, "host destroyed");
+}
+
+ENetHost *DestroyableHost::GetHost()
+{
+	return this->host;
+}
 
 }

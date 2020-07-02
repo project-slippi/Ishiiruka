@@ -45,16 +45,6 @@ SlippiNetplayClient::~SlippiNetplayClient()
 		Disconnect();
 	}
 
-	if (g_MainNetHost.get() == m_client)
-	{
-		g_MainNetHost.release();
-	}
-	if (m_client)
-	{
-		enet_host_destroy(m_client);
-		m_client = nullptr;
-	}
-
 	WARN_LOG(SLIPPI_ONLINE, "Netplay client cleanup complete");
 }
 
@@ -88,8 +78,42 @@ SlippiNetplayClient::SlippiNetplayClient(const std::string &address, const u16 r
 		localAddr = &localAddrDef;
 	}
 
-	// TODO: Figure out how to use a local port when not hosting without accepting incoming connections
 	m_client = enet_host_create(localAddr, 2, 3, 0, 0);
+
+	if (m_client == nullptr)
+	{
+		PanicAlertT("Couldn't Create Client");
+	}
+
+	ENetAddress addr;
+	enet_address_set_host(&addr, address.c_str());
+	addr.port = remotePort;
+
+	m_server = enet_host_connect(m_client, &addr, 3, 0);
+
+	if (m_server == nullptr)
+	{
+		PanicAlertT("Couldn't create peer.");
+	}
+
+	slippiConnectStatus = SlippiConnectStatus::NET_CONNECT_STATUS_INITIATED;
+
+	m_thread = std::thread(&SlippiNetplayClient::ThreadFunc, this);
+}
+
+SlippiNetplayClient::SlippiNetplayClient(std::unique_ptr<ENetUtil::DestroyableHost> host, const std::string &address,
+                                         const u16 remotePort, bool isDecider)
+#ifdef _WIN32
+    : m_qos_handle(nullptr)
+    , m_qos_flow_id(0)
+#endif
+{
+	this->isDecider = isDecider;
+
+	// Take in host that was used to communicate with mm server. The hope here is this will avoid some
+	// firewall issues or source port randomization by re-using the same connection
+	m_client = host->GetHost();
+	hostDestroyer = std::move(host); // Move this here so it will be destroyed when class is destroyed
 
 	if (m_client == nullptr)
 	{

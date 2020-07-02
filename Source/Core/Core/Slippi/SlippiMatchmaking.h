@@ -4,6 +4,7 @@
 #include "Common/Thread.h"
 #include "Core/Slippi/SlippiNetplay.h"
 #include "Core/Slippi/SlippiUser.h"
+#include "Common/ENetUtil.h"
 
 #include <enet/enet.h>
 #include <unordered_map>
@@ -54,6 +55,8 @@ class SlippiMatchmaking
 	const u16 MM_PORT = 43113;
 
 	std::string MM_HOST = "";
+
+	std::unique_ptr<ENetUtil::DestroyableHost> hostDestroyer;
 
 	ENetHost *m_client;
 	ENetPeer *m_server;

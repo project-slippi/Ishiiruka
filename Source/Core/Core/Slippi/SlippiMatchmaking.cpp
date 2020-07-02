@@ -184,21 +184,10 @@ void SlippiMatchmaking::terminateMmConnection()
 {
 	// Disconnect from server
 	disconnectFromServer();
-
-	// Destroy client
-	if (m_client)
-	{
-		enet_host_destroy(m_client);
-		m_client = nullptr;
-	}
 }
 
 void SlippiMatchmaking::startMatchmaking()
 {
-	// I don't understand why I have to do this... if I don't do this, rand always returns the
-	// same value
-	m_client = nullptr;
-
 	int retryCount = 0;
 	while (m_client == nullptr && retryCount < 15)
 	{
@@ -212,7 +201,7 @@ void SlippiMatchmaking::startMatchmaking()
 		clientAddr.host = ENET_HOST_ANY;
 		clientAddr.port = m_hostPort;
 
-		m_client = enet_host_create(&clientAddr, 1, 3, 0, 0);
+		m_client = enet_host_create(&clientAddr, 2, 3, 0, 0);
 		retryCount++;
 	}
 
@@ -224,6 +213,8 @@ void SlippiMatchmaking::startMatchmaking()
 		ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Failed to create client...");
 		return;
 	}
+
+	hostDestroyer = std::make_unique<ENetUtil::DestroyableHost>(m_client);
 
 	ENetAddress addr;
 	enet_address_set_host(&addr, MM_HOST.c_str());
@@ -365,7 +356,8 @@ void SlippiMatchmaking::handleMatchmaking()
 			// Update file to get new version number when the mm server tells us our version is outdated
 			m_user->UpdateFile();
 			m_user->AttemptLogin();
-			m_user->OverwriteLatestVersion(latestVersion); // Force latest version for people whose file updates dont work
+			m_user->OverwriteLatestVersion(
+			    latestVersion); // Force latest version for people whose file updates dont work
 		}
 
 		ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Received error from server for get ticket");
@@ -392,7 +384,7 @@ void SlippiMatchmaking::handleConnecting()
 	SplitString(m_oppIp, ':', ipParts);
 
 	// Is host is now used to specify who the decider is
-	auto client = std::make_unique<SlippiNetplayClient>(ipParts[0], std::stoi(ipParts[1]), m_hostPort, m_isHost);
+	auto client = std::make_unique<SlippiNetplayClient>(std::move(hostDestroyer), ipParts[0], std::stoi(ipParts[1]), m_isHost);
 
 	while (!m_netplayClient)
 	{
