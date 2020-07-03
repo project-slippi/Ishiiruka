@@ -789,14 +789,7 @@ std::string GetSysDirectory()
 #elif defined(_WIN32) || defined(LINUX_LOCAL_DEV)
 	sysDir = GetExeDirectory() + DIR_SEP + SYSDATA_DIR + DIR_SEP;
 #else
-	const char* home = getenv("HOME");
-	if (!home) home = getenv("PWD");
-	if (!home) home = "";
-	std::string home_path = std::string(home) + DIR_SEP;
-	const char* config_home = getenv("XDG_CONFIG_HOME");
-	sysDir = std::string(config_home && config_home[0] == '/' 
-		? config_home : (home_path + ".config")) 
-		+ DIR_SEP DOLPHIN_DATA_DIR DIR_SEP "Sys" DIR_SEP;
+	sysDir = SYSDATA_DIR + DIR_SEP;
 #endif
 	INFO_LOG(COMMON, "GetSysDirectory: Setting to %s:", sysDir.c_str());
 	return sysDir;
