@@ -480,7 +480,7 @@ void SConfig::LoadGeneralSettings(IniFile& ini)
 	general->Get("DumpPath", &m_DumpPath);
 	CreateDumpPath(m_DumpPath);
 	general->Get("WirelessMac", &m_WirelessMac);
-	general->Get("WiiSDCardPath", &m_strWiiSDCardPath, File::GetUserPath(F_WIISDCARD_IDX));
+	general->Get("WiiSDCardPath", &m_strWiiSDCardPath);
 	File::SetUserPath(F_WIISDCARD_IDX, m_strWiiSDCardPath);
 }
 
@@ -488,7 +488,7 @@ void SConfig::LoadInterfaceSettings(IniFile& ini)
 {
 	IniFile::Section* interface = ini.GetOrCreateSection("Interface");
 
-	interface->Get("ConfirmStop", &bConfirmStop, true);
+	interface->Get("ConfirmStop", &bConfirmStop, false);
 	interface->Get("UsePanicHandlers", &bUsePanicHandlers, true);
 	interface->Get("OnScreenDisplayMessages", &bOnScreenDisplayMessages, true);
 	interface->Get("HideCursor", &bHideCursor, false);
@@ -590,13 +590,13 @@ void SConfig::LoadCoreSettings(IniFile& ini)
 	core->Get("BootDefaultISO", &bBootDefaultISO, false);
 	core->Get("DVDRoot", &m_strDVDRoot);
 	core->Get("Apploader", &m_strApploader);
-	core->Get("EnableCheats", &bEnableCheats, false);
+	core->Get("EnableCheats", &bEnableCheats, true);
 	core->Get("SelectedLanguage", &SelectedLanguage, 0);
 	core->Get("OverrideGCLang", &bOverrideGCLanguage, false);
 	core->Get("DPL2Decoder", &bDPL2Decoder, false);
 	core->Get("TimeStretching", &bTimeStretching, false);
 	core->Get("RSHACK", &bRSHACK, false);
-	core->Get("Latency", &iLatency, 2);
+	core->Get("Latency", &iLatency, 0);
 	core->Get("SlippiOnlineDelay", &m_slippiOnlineDelay, 2);
 	core->Get("SlippiSaveReplays", &m_slippiSaveReplays, true);
 	core->Get("SlippiReplayMonthFolders", &m_slippiReplayMonthFolders, false);
@@ -681,7 +681,7 @@ void SConfig::LoadDSPSettings(IniFile& ini)
 #elif defined __APPLE__
 	dsp->Get("Backend", &sBackend, BACKEND_COREAUDIO);
 #elif defined _WIN32
-	dsp->Get("Backend", &sBackend, BACKEND_XAUDIO2);
+	dsp->Get("Backend", &sBackend, BACKEND_CUBEB);
 #elif defined ANDROID
 	dsp->Get("Backend", &sBackend, BACKEND_OPENSLES);
 #else
