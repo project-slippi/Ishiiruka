@@ -78,6 +78,11 @@ struct SConfig : NonCopyable
 	std::vector<std::string> m_ISOFolder;
 	bool m_RecursiveISOFolder;
 
+	// enable Slippi Networking output
+	bool m_enableSpectator;
+	std::string m_spectator_IP;
+	int m_spectator_port;
+
 	// Settings
 	bool bEnableDebugging = false;
 #ifdef USE_GDBSTUB

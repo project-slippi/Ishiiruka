@@ -288,6 +288,7 @@
     <ClCompile Include="Slippi\SlippiPad.cpp" />
     <ClCompile Include="Slippi\SlippiReplayComm.cpp" />
     <ClCompile Include="Slippi\SlippiSavestate.cpp" />
+    <ClCompile Include="Slippi\SlippiSpectate.cpp" />
     <ClCompile Include="Slippi\SlippiUser.cpp" />
     <ClCompile Include="State.cpp" />
   </ItemGroup>
@@ -489,6 +490,7 @@
     <ClInclude Include="Slippi\SlippiPad.h" />
     <ClInclude Include="Slippi\SlippiReplayComm.h" />
     <ClInclude Include="Slippi\SlippiSavestate.h" />
+    <ClInclude Include="Slippi\SlippiSpectate.h" />
     <ClInclude Include="Slippi\SlippiUser.h" />
     <ClInclude Include="State.h" />
   </ItemGroup>

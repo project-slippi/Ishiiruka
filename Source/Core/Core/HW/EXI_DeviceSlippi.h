@@ -14,6 +14,7 @@
 #include "Core/Slippi/SlippiNetplay.h"
 #include "Core/Slippi/SlippiReplayComm.h"
 #include "Core/Slippi/SlippiSavestate.h"
+#include "Core/Slippi/SlippiSpectate.h"
 #include "Core/Slippi/SlippiUser.h"
 
 #define ROLLBACK_MAX_FRAMES 7
@@ -42,6 +43,7 @@ class CEXISlippi : public IEXIDevice
 		CMD_RECEIVE_GAME_INFO = 0x36,
 		CMD_RECEIVE_POST_FRAME_UPDATE = 0x38,
 		CMD_RECEIVE_GAME_END = 0x39,
+		CMD_MENU_FRAME = 0x3E,
 
 		// Playback
 		CMD_PREPARE_REPLAY = 0x75,
@@ -191,6 +193,7 @@ class CEXISlippi : public IEXIDevice
 	int32_t lastFFWFrame = INT_MIN;
 	std::vector<u8> m_read_queue;
 	std::unique_ptr<Slippi::SlippiGame> m_current_game = nullptr;
+  SlippiSpectateServer *m_slippiserver = nullptr;
 	SlippiMatchmaking::MatchSearchSettings lastSearch;
 
 	u16 *lastSelectedStage = nullptr;
