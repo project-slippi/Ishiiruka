@@ -224,13 +224,12 @@ void SlippiUser::FileListenThread()
 std::string SlippiUser::getUserFilePath()
 {
 #if defined(__APPLE__)
-	std::string dirPath = File::GetBundleDirectory() + "/Contents/Resources";
+	std::string userFilePath = File::GetBundleDirectory() + "/Contents/Resources" + DIR_SEP + "user.json";
 #elif defined(_WIN32)
-	std::string dirPath = File::GetExeDirectory();
+	std::string userFilePath = File::GetExeDirectory() + DIR_SEP + "user.json";
 #else
-	std::string dirPath = File::GetSysDirectory();
+	std::string userFilePath = File::GetUserPath(F_USERJSON_IDX);
 #endif
-	std::string userFilePath = dirPath + DIR_SEP + "user.json";
 	return userFilePath;
 }
 
