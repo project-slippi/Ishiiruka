@@ -4,12 +4,11 @@
 
 #include "Core/Debugger/Debugger_SymbolMap.h"
 
-#include <SlippiGame.h>
-#include "Core/Slippi/SlippiReplayComm.h"
 #include "Core/Slippi/SlippiPlayback.h"
+#include "Core/Slippi/SlippiReplayComm.h"
+#include <SlippiGame.h>
 #include <semver/include/semver200.h>
 #include <utility> // std::move
-
 
 #include "Common/CommonPaths.h"
 #include "Common/CommonTypes.h"
@@ -20,9 +19,9 @@
 #include "Common/Thread.h"
 #include "Core/HW/Memmap.h"
 
-#include "Core/NetPlayClient.h"
 #include "Core/Core.h"
 #include "Core/CoreTiming.h"
+#include "Core/NetPlayClient.h"
 
 #include "Core/HW/EXI_DeviceSlippi.h"
 #include "Core/HW/SystemTimers.h"
@@ -944,7 +943,6 @@ void CEXISlippi::prepareGeckoList()
 	    {0x800198a4, true}, // Binary/PerformanceLagReduction.bin
 	    {0x80019620, true}, // Binary/PerformanceLagReduction.bin
 	    {0x801A5054, true}, // Binary/PerformanceLagReduction.bin
-	    {0x80023ffc, true}, // Binary/GameMusicOn.bin + Binary/GameMusicOff.bin
 	    {0x80397878, true}, // Binary/OsReportPrintOnCrash.bin
 	    {0x801A4DA0, true}, // Binary/LagReduction/PD.bin
 	    {0x801A4DB4, true}, // Binary/LagReduction/PD.bin
@@ -983,7 +981,7 @@ void CEXISlippi::prepareGeckoList()
 	    {0x803BB05C, true}, // External/Widescreen/Fix Screen Flash.asm
 	    {0x8036A4A8, true}, // External/Widescreen/Overwrite CObj Values.asm
 
-		{0x8006A880, true}, // Online/Core/BrawlOffscreenDamage.asm
+	    {0x8006A880, true}, // Online/Core/BrawlOffscreenDamage.asm
 	    {0x801A4DB4, true}, // Online/Core/ForceEngineOnRollback.asm
 	    {0x8016D310, true}, // Online/Core/HandleLRAS.asm
 	    {0x8034DED8, true}, // Online/Core/HandleRumble.asm
@@ -999,8 +997,6 @@ void CEXISlippi::prepareGeckoList()
 	    {0x80376304, true}, // Online/Core/Hacks/ForceNoVideoAssert.asm
 	    {0x80321d70, true}, // Online/Core/Hacks/PreventCharacterCrowdChants.asm
 	    {0x80019608, true}, // Online/Core/Hacks/PreventPadAlarmDuringRollback.asm
-	    {0x80023FFC, true}, // Online/Core/PreventFileAlarms/MuteMusic.asm
-	    {0x8038add0, true}, // Online/Core/PreventFileAlarms/PreventMusicAlarm.asm
 	    {0x8038D224, true}, // Online/Core/Sound/AssignSoundInstanceId.asm
 	    {0x80088224, true}, // Online/Core/Sound/NoDestroyVoice.asm
 	    {0x800882B0, true}, // Online/Core/Sound/NoDestroyVoice2.asm
@@ -1023,6 +1019,7 @@ void CEXISlippi::prepareGeckoList()
 		// that are required for things to not break when using Slippi savestates. Perhaps this
 		// should be handled by actually applying these codes in the playback ASM instead? not sure
 		blacklist[0x8038add0] = true; // Online/Core/PreventFileAlarms/PreventMusicAlarm.asm
+		blacklist[0x80023FFC] = true; // Online/Core/PreventFileAlarms/MuteMusic.asm
 	}
 
 	geckoList.clear();
