@@ -22,6 +22,7 @@ class DestroyableHost
 	ENetHost *GetHost();
 
   protected:
+	bool isDestroyed = false;
 	ENetHost *host;
 };
 

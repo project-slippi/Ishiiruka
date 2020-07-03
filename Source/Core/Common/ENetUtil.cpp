@@ -49,9 +49,14 @@ DestroyableHost::DestroyableHost(ENetHost *host)
 
 DestroyableHost::~DestroyableHost()
 {
-	enet_host_destroy(host);
-	this->host = nullptr;
-	ERROR_LOG(SLIPPI_ONLINE, "host destroyed");
+	// This if check doesn't seem like it should do anything but idk
+	if (isDestroyed == false)
+	{
+		enet_host_destroy(host);
+		this->host = nullptr;
+		ERROR_LOG(SLIPPI_ONLINE, "host destroyed");
+		isDestroyed = true;
+	}
 }
 
 ENetHost *DestroyableHost::GetHost()

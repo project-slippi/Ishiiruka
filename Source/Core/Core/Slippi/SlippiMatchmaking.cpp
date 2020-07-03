@@ -188,6 +188,9 @@ void SlippiMatchmaking::terminateMmConnection()
 
 void SlippiMatchmaking::startMatchmaking()
 {
+	hostDestroyer.reset();
+	m_client = nullptr;
+
 	int retryCount = 0;
 	while (m_client == nullptr && retryCount < 15)
 	{
