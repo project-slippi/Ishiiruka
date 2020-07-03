@@ -601,11 +601,15 @@ void SConfig::LoadCoreSettings(IniFile& ini)
 	core->Get("SlippiSaveReplays", &m_slippiSaveReplays, true);
 	core->Get("SlippiReplayMonthFolders", &m_slippiReplayMonthFolders, false);
 #ifdef _WIN32
-	core->Get("SlippiReplayDir", &m_strSlippiReplayDir,
-		File::GetHomeDirectory() + "\\Slippi");
+	std::string default_replay_dir = File::GetHomeDirectory() + "\\Slippi";
+	core->Get("SlippiReplayDir", &m_strSlippiReplayDir, default_replay_dir);
+	if (m_strSlippiReplayDir.empty())
+		m_strSlippiReplayDir = default_replay_dir;
 #else
-	core->Get("SlippiReplayDir", &m_strSlippiReplayDir,
-		File::GetHomeDirectory() + DIR_SEP + "Slippi");
+	std::string default_replay_dir = File::GetHomeDirectory() + DIR_SEP + "Slippi";
+	core->Get("SlippiReplayDir", &m_strSlippiReplayDir, default_replay_dir);
+	if (m_strSlippiReplayDir.empty())
+		m_strSlippiReplayDir = default_replay_dir;
 #endif
 	core->Get("MemcardAPath", &m_strMemoryCardA);
 	core->Get("MemcardBPath", &m_strMemoryCardB);
