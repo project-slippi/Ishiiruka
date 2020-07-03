@@ -97,7 +97,7 @@ NetPlayServer::NetPlayServer(const u16 port, bool traversal, const std::string& 
 		is_connected = true;
 		m_do_loop = true;
 		m_thread = std::thread(&NetPlayServer::ThreadFunc, this);
-		m_minimum_buffer_size = 6;
+		m_minimum_buffer_size = 8;
 	}
 }
 
