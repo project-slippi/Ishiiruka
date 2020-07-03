@@ -138,11 +138,6 @@ void SlippiUser::UpdateFile()
 	std::string path = File::GetExeDirectory() + "/dolphin-slippi-tools.exe";
 	std::string command = path + " user-update";
 	system_hidden(command.c_str());
-#elif defined(__APPLE__)
-#else
-	std::string path = "dolphin-slippi-tools";
-	std::string command = path + " user-update";
-	system(command.c_str());
 #endif
 }
 
