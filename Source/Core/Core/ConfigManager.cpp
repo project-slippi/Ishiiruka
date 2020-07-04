@@ -480,7 +480,7 @@ void SConfig::LoadGeneralSettings(IniFile& ini)
 	general->Get("DumpPath", &m_DumpPath);
 	CreateDumpPath(m_DumpPath);
 	general->Get("WirelessMac", &m_WirelessMac);
-	general->Get("WiiSDCardPath", &m_strWiiSDCardPath, File::GetUserPath(F_WIISDCARD_IDX));
+	general->Get("WiiSDCardPath", &m_strWiiSDCardPath);
 	File::SetUserPath(F_WIISDCARD_IDX, m_strWiiSDCardPath);
 }
 
@@ -488,10 +488,10 @@ void SConfig::LoadInterfaceSettings(IniFile& ini)
 {
 	IniFile::Section* interface = ini.GetOrCreateSection("Interface");
 
-	interface->Get("ConfirmStop", &bConfirmStop, true);
+	interface->Get("ConfirmStop", &bConfirmStop, false);
 	interface->Get("UsePanicHandlers", &bUsePanicHandlers, true);
 	interface->Get("OnScreenDisplayMessages", &bOnScreenDisplayMessages, true);
-	interface->Get("HideCursor", &bHideCursor, false);
+	interface->Get("HideCursor", &bHideCursor, true);
 	interface->Get("AutoHideCursor", &bAutoHideCursor, false);
 	interface->Get("MainWindowPosX", &iPosX, INT_MIN);
 	interface->Get("MainWindowPosY", &iPosY, INT_MIN);
@@ -562,11 +562,11 @@ void SConfig::LoadGameListSettings(IniFile& ini)
 	gamelist->Get("ColumnPlatform", &m_showSystemColumn, true);
 	gamelist->Get("ColumnBanner", &m_showBannerColumn, true);
 	gamelist->Get("ColumnNotes", &m_showMakerColumn, true);
-	gamelist->Get("ColumnFileName", &m_showFileNameColumn, false);
-	gamelist->Get("ColumnID", &m_showIDColumn, false);
+	gamelist->Get("ColumnFileName", &m_showFileNameColumn, true);
+	gamelist->Get("ColumnID", &m_showIDColumn, true);
 	gamelist->Get("ColumnRegion", &m_showRegionColumn, true);
 	gamelist->Get("ColumnSize", &m_showSizeColumn, true);
-	gamelist->Get("ColumnState", &m_showStateColumn, true);
+	gamelist->Get("ColumnState", &m_showStateColumn, false);
 }
 
 void SConfig::LoadCoreSettings(IniFile& ini)
@@ -590,13 +590,13 @@ void SConfig::LoadCoreSettings(IniFile& ini)
 	core->Get("BootDefaultISO", &bBootDefaultISO, false);
 	core->Get("DVDRoot", &m_strDVDRoot);
 	core->Get("Apploader", &m_strApploader);
-	core->Get("EnableCheats", &bEnableCheats, false);
+	core->Get("EnableCheats", &bEnableCheats, true);
 	core->Get("SelectedLanguage", &SelectedLanguage, 0);
 	core->Get("OverrideGCLang", &bOverrideGCLanguage, false);
 	core->Get("DPL2Decoder", &bDPL2Decoder, false);
 	core->Get("TimeStretching", &bTimeStretching, false);
 	core->Get("RSHACK", &bRSHACK, false);
-	core->Get("Latency", &iLatency, 2);
+	core->Get("Latency", &iLatency, 0);
 	core->Get("SlippiOnlineDelay", &m_slippiOnlineDelay, 2);
 	core->Get("SlippiSaveReplays", &m_slippiSaveReplays, true);
 	core->Get("SlippiReplayMonthFolders", &m_slippiReplayMonthFolders, false);
@@ -611,8 +611,8 @@ void SConfig::LoadCoreSettings(IniFile& ini)
 	core->Get("MemcardBPath", &m_strMemoryCardB);
 	core->Get("AgpCartAPath", &m_strGbaCartA);
 	core->Get("AgpCartBPath", &m_strGbaCartB);
-	core->Get("SlotA", (int*)&m_EXIDevice[0], EXIDEVICE_MEMORYCARD);
-	core->Get("SlotB", (int*)&m_EXIDevice[1], EXIDEVICE_NONE);
+	core->Get("SlotA", (int *)&m_EXIDevice[0], EXIDEVICE_NONE);
+	core->Get("SlotB", (int*)&m_EXIDevice[1], EXIDEVICE_SLIPPI);
 	core->Get("SerialPort1", (int*)&m_EXIDevice[2], EXIDEVICE_NONE);
 	core->Get("BBA_MAC", &m_bba_mac);
 	core->Get("TimeProfiling", &bJITILTimeProfiling, false);
@@ -681,7 +681,7 @@ void SConfig::LoadDSPSettings(IniFile& ini)
 #elif defined __APPLE__
 	dsp->Get("Backend", &sBackend, BACKEND_COREAUDIO);
 #elif defined _WIN32
-	dsp->Get("Backend", &sBackend, BACKEND_XAUDIO2);
+	dsp->Get("Backend", &sBackend, BACKEND_CUBEB);
 #elif defined ANDROID
 	dsp->Get("Backend", &sBackend, BACKEND_OPENSLES);
 #else
@@ -728,7 +728,7 @@ void SConfig::LoadAnalyticsSettings(IniFile& ini)
 
 	analytics->Get("ID", &m_analytics_id, "");
 	analytics->Get("Enabled", &m_analytics_enabled, false);
-	analytics->Get("PermissionAsked", &m_analytics_permission_asked, false);
+	analytics->Get("PermissionAsked", &m_analytics_permission_asked, true);
 }
 
 void SConfig::LoadBluetoothPassthroughSettings(IniFile& ini)
@@ -783,7 +783,7 @@ void SConfig::LoadDefaults()
 #endif
 
 	iCPUCore = PowerPC::CORE_JIT64;
-	iTimingVariance = 40;
+	iTimingVariance = 8;
 	bCPUThread = false;
 	bSyncGPUOnSkipIdleHack = true;
 	bRunCompareServer = false;

@@ -76,7 +76,7 @@ void VideoConfig::Load(const std::string& ini_file)
 
 	IniFile::Section* settings = iniFile.GetOrCreateSection("Settings");
 	settings->Get("wideScreenHack", &bWidescreenHack, false);
-	settings->Get("AspectRatio", &iAspectRatio, (int)ASPECT_AUTO);
+	settings->Get("AspectRatio", &iAspectRatio, (int)ASPECT_73_60);
 	settings->Get("Crop", &bCrop, false);
 	settings->Get("UseXFB", &bUseXFB, 0);
 	settings->Get("UseRealXFB", &bUseRealXFB, 0);
