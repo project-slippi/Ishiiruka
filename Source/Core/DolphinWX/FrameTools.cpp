@@ -175,6 +175,7 @@ void CFrame::BindMenuBarEvents()
 	// View menu
 	Bind(wxEVT_MENU, &CFrame::OnToggleToolbar, this, IDM_TOGGLE_TOOLBAR);
 	Bind(wxEVT_MENU, &CFrame::OnToggleStatusbar, this, IDM_TOGGLE_STATUSBAR);
+	Bind(wxEVT_MENU, &CFrame::OnToggleSeekbar, this, IDM_TOGGLE_SEEKBAR);
 	Bind(wxEVT_MENU, &CFrame::OnToggleWindow, this, IDM_LOG_WINDOW, IDM_VIDEO_WINDOW);
 	Bind(wxEVT_MENU, &CFrame::GameListChanged, this, IDM_LIST_WAD, IDM_LIST_DRIVES);
 	Bind(wxEVT_MENU, &CFrame::GameListChanged, this, IDM_PURGE_GAME_LIST_CACHE);
@@ -1647,6 +1648,13 @@ void CFrame::OnToggleStatusbar(wxCommandEvent& event)
 	SConfig::GetInstance().m_InterfaceStatusbar = event.IsChecked();
 
 	GetStatusBar()->Show(event.IsChecked());
+
+	SendSizeEvent();
+}
+
+void CFrame::OnToggleSeekbar(wxCommandEvent &event)
+{
+	SConfig::GetInstance().m_InterfaceSeekbar = event.IsChecked();
 
 	SendSizeEvent();
 }
