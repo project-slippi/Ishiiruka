@@ -687,7 +687,7 @@ void SConfig::LoadDSPSettings(IniFile& ini)
 #else
 	dsp->Get("Backend", &sBackend, BACKEND_NULLSOUND);
 #endif
-	dsp->Get("Volume", &m_Volume, 100);
+	dsp->Get("Volume", &m_Volume, 25);
 	dsp->Get("CaptureLog", &m_DSPCaptureLog, false);
 
 	// fix 5.8b style setting
