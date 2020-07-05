@@ -93,6 +93,7 @@ static void Read()
 		{
 			memcpy(bkp_payload_swap, s_controller_payload_swap, 37);
 			bkp_payload_size = payload_size;
+			has_prev_input = true;
 		}
 		else if (has_prev_input)
 		{
