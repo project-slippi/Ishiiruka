@@ -192,7 +192,7 @@ void SlippiPlaybackStatus::SeekThread()
 		{
 			auto replayCommSettings = g_replayComm->getSettings();
 			if (replayCommSettings.mode == "queue")
-				clearWatchSettingsStartEnd();
+				updateWatchSettingsStartEnd();
 
 			bool paused = (Core::GetState() == Core::CORE_PAUSE);
 			Core::SetState(Core::CORE_PAUSE);
@@ -269,7 +269,7 @@ void SlippiPlaybackStatus::SeekThread()
 	INFO_LOG(SLIPPI, "Exit seek thread");
 }
 
-void SlippiPlaybackStatus::clearWatchSettingsStartEnd()
+void SlippiPlaybackStatus::updateWatchSettingsStartEnd()
 {
 	int startFrame = g_replayComm->current.startFrame;
 	int endFrame = g_replayComm->current.endFrame;
