@@ -78,11 +78,27 @@ static void Read()
 {
 	adapter_error = false;
 
+	u8 bkp_payload_swap[37];
+	int bkp_payload_size = 0;
+	bool has_prev_input = false;
+
 	int payload_size = 0;
 	while (s_adapter_thread_running.IsSet())
 	{
 		adapter_error = libusb_interrupt_transfer(s_handle, s_endpoint_in, s_controller_payload_swap,
 			sizeof(s_controller_payload_swap), &payload_size, 16) != LIBUSB_SUCCESS && SConfig::GetInstance().bAdapterWarning;
+
+		// Store previous input and restore in the case of an adapter error
+		if (!adapter_error)
+		{
+			memcpy(bkp_payload_swap, s_controller_payload_swap, 37);
+			bkp_payload_size = payload_size;
+		}
+		else if (has_prev_input)
+		{
+			memcpy(s_controller_payload_swap, bkp_payload_swap, 37);
+			payload_size = bkp_payload_size;
+		}
 
 		{
 			std::lock_guard<std::mutex> lk(s_mutex);
