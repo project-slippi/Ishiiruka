@@ -164,7 +164,7 @@ void SlippiPlaybackStatus::SavestateThread()
 			processInitialState(iState);
 			inSlippiPlayback = true;
 		}
-		else if (!hasStateBeenProcessed && !isStartFrame)
+		else if (SConfig::GetInstance().m_InterfaceSeekbar && !hasStateBeenProcessed && !isStartFrame)
 		{
 			INFO_LOG(SLIPPI, "saving diff at frame: %d", fixedFrameNumber);
 			State::SaveToBuffer(cState);
