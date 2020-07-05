@@ -235,7 +235,11 @@ void SlippiPlaybackStatus::SeekThread()
 						               &stateString);
 						std::vector<u8> stateToLoad(stateString.begin(), stateString.end());
 						State::LoadFromBuffer(stateToLoad);
-					};
+					}
+					else if (shouldJumpBack)
+					{
+						State::LoadFromBuffer(iState);
+					}
 				}
 			}
 
