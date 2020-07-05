@@ -1,3 +1,11 @@
+Slippi-specific changes (as of 2020-07-05)
+-------------------------------------------
+
+- Updated os/darwin_usb.c to change device claiming, as Apple
+    changed an underlying type between High Sierra and Mojave.
+    When linking against the 10.14SDK, Gamecube Controller Adapters in High Sierra
+    can be properly detected with this.
+
 Dolphin-specific changes (as of 2016-11-20)
 -------------------------------------------
 
