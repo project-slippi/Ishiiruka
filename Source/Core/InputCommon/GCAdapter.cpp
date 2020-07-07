@@ -68,6 +68,7 @@ static u8 s_endpoint_out = 0;
 static u64 s_last_init = 0;
 
 static u64 s_consecutive_slow_transfers = 0;
+static double s_read_rate = 0.0;
 
 bool adapter_error = false;
 
@@ -81,6 +82,11 @@ bool IsReadingAtReducedRate()
 	return s_consecutive_slow_transfers > 80;
 }
 
+double ReadRate() 
+{
+	return s_read_rate;
+}
+
 static void Read()
 {
 	s_consecutive_slow_transfers = 0;
@@ -89,6 +95,7 @@ static void Read()
 	u8 bkp_payload_swap[37];
 	int bkp_payload_size = 0;
 	bool has_prev_input = false;
+	s_read_rate = 0.0;
 
 	int payload_size = 0;
 	while (s_adapter_thread_running.IsSet())
@@ -120,6 +127,8 @@ static void Read()
 			s_consecutive_slow_transfers++;
 		else
 			s_consecutive_slow_transfers = 0;
+
+		s_read_rate = elapsed;
 		
 		{
 			std::lock_guard<std::mutex> lk(s_mutex);
