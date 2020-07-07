@@ -6,6 +6,7 @@
 #include <libusb.h>
 #include <mutex>
 #include <iostream>
+#include <chrono>
 
 #include "Common/Event.h"
 #include "Common/Flag.h"
@@ -66,23 +67,29 @@ static u8 s_endpoint_out = 0;
 
 static u64 s_last_init = 0;
 
-bool adapter_error = false;
+static u64 s_consecutive_slow_transfers = 0;
 
-bool AdapterError()
+bool IsReadingAtReducedRate()
 {
-	return adapter_error && s_adapter_thread_running.IsSet();
+	return s_consecutive_slow_transfers > 80;
 }
 
 static void Read()
 {
-	adapter_error = false;
+	s_consecutive_slow_transfers = 0;
 
 	int payload_size = 0;
 	while (s_adapter_thread_running.IsSet())
 	{
-		adapter_error = libusb_interrupt_transfer(s_handle, s_endpoint_in, s_controller_payload_swap,
-			sizeof(s_controller_payload_swap), &payload_size, 16) != LIBUSB_SUCCESS && SConfig::GetInstance().bAdapterWarning;
+		std::chrono::time_point<std::chrono::high_resolution_clock> start = std::chrono::high_resolution_clock::now();
+		libusb_interrupt_transfer(s_handle, s_endpoint_in, s_controller_payload_swap, sizeof(s_controller_payload_swap), &payload_size, 32);
+		double elapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now() - start).count() / 1000000.0;
 
+		if(elapsed > 15.0)
+			s_consecutive_slow_transfers++;
+		else
+			s_consecutive_slow_transfers = 0;
+		
 		{
 			std::lock_guard<std::mutex> lk(s_mutex);
 			std::swap(s_controller_payload_swap, s_controller_payload);
@@ -102,7 +109,7 @@ static void Write()
 		{
 			unsigned char rumble[5] = {0x11, s_controller_rumble[0], s_controller_rumble[1], s_controller_rumble[2],
 			                           s_controller_rumble[3]};
-			libusb_interrupt_transfer(s_handle, s_endpoint_out, rumble, sizeof(rumble), &size, 16);
+			libusb_interrupt_transfer(s_handle, s_endpoint_out, rumble, sizeof(rumble), &size, 32);
 		}
 	}
 
@@ -343,7 +350,7 @@ static void AddGCAdapter(libusb_device* device)
 
 	int tmp = 0;
 	unsigned char payload = 0x13;
-	libusb_interrupt_transfer(s_handle, s_endpoint_out, &payload, sizeof(payload), &tmp, 16);
+	libusb_interrupt_transfer(s_handle, s_endpoint_out, &payload, sizeof(payload), &tmp, 32);
 
 	s_adapter_thread_running.Set(true);
 	s_adapter_input_thread = std::thread(Read);
@@ -410,16 +417,6 @@ GCPadStatus Input(int chan)
 
 	if (s_handle == nullptr || !s_detected)
 		return{};
-
-	if(AdapterError())
-	{
-		GCPadStatus centered_status = {0};
-		centered_status.stickX = centered_status.stickY =
-		centered_status.substickX = centered_status.substickY =
-		/* these are all the same */ GCPadStatus::MAIN_STICK_CENTER_X;
-
-		return centered_status;
-	}
 
 	int payload_size = 0;
 	u8 controller_payload_copy[37];
