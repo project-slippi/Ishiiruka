@@ -32,12 +32,12 @@ constexpr T SNANConstant()
 template <>
 constexpr double SNANConstant()
 {
-	return (_CSTD _Snan._Double);
+	return std::numeric_limits<double>::signaling_NaN();
 }
 template <>
 constexpr float SNANConstant()
 {
-	return (_CSTD _Snan._Float);
+	return std::numeric_limits<float>::signaling_NaN();
 }
 
 #endif

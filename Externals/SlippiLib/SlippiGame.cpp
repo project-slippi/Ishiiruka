@@ -323,6 +323,7 @@ namespace Slippi {
       { EVENT_PAYLOAD_SIZES, payloadLength }
     };
 
+
     std::vector<char> messageSizesBuffer(payloadLength - 1);
     f->read(&messageSizesBuffer[0], payloadLength - 1);
     for (int i = 0; i < payloadLength - 1; i += 3) {

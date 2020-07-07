@@ -78,15 +78,32 @@ static void Read()
 {
 	adapter_error = false;
 
+	u8 bkp_payload_swap[37];
+	int bkp_payload_size = 0;
+	bool has_prev_input = false;
+
 	int payload_size = 0;
 	while (s_adapter_thread_running.IsSet())
 	{
-		int err = libusb_interrupt_transfer(s_handle, s_endpoint_in, s_controller_payload_swap,
-		                                    sizeof(s_controller_payload_swap), &payload_size, 16);
-		adapter_error = err != LIBUSB_SUCCESS && SConfig::GetInstance().bAdapterWarning;
+		bool reuseOldInputsEnabled = SConfig::GetInstance().bAdapterWarning;
+		adapter_error = libusb_interrupt_transfer(s_handle, s_endpoint_in, s_controller_payload_swap,
+			sizeof(s_controller_payload_swap), &payload_size, 16) != LIBUSB_SUCCESS && reuseOldInputsEnabled;
 
-		if (err)
-			ERROR_LOG(SERIALINTERFACE, "adapter libusb read failed: err=%s", libusb_error_name(err));
+		// Store previous input and restore in the case of an adapter error
+		if (reuseOldInputsEnabled)
+		{
+			if (!adapter_error)
+			{
+				memcpy(bkp_payload_swap, s_controller_payload_swap, 37);
+				bkp_payload_size = payload_size;
+				has_prev_input = true;
+			}
+			else if (has_prev_input)
+			{
+				memcpy(s_controller_payload_swap, bkp_payload_swap, 37);
+				payload_size = bkp_payload_size;
+			}
+		}
 
 		{
 			std::lock_guard<std::mutex> lk(s_mutex);
@@ -104,12 +121,7 @@ static void Write()
 	while (s_adapter_thread_running.IsSet())
 	{
 		if (s_rumble_data_available.WaitFor(std::chrono::milliseconds(100)))
-		{
-			int err = libusb_interrupt_transfer(s_handle, s_endpoint_out, s_latest_rumble_data,
-			                                    sizeof(s_latest_rumble_data), &size, 16);
-			if (err)
-				ERROR_LOG(SERIALINTERFACE, "adapter libusb write failed: err=%s", libusb_error_name(err));
-		}
+			libusb_interrupt_transfer(s_handle, s_endpoint_out, s_latest_rumble_data, sizeof(s_latest_rumble_data), &size, 16);
 	}
 
 	s_rumble_data_available.Reset();
@@ -416,16 +428,6 @@ GCPadStatus Input(int chan)
 
 	if (s_handle == nullptr || !s_detected)
 		return{};
-
-	if(AdapterError())
-	{
-		GCPadStatus centered_status = {0};
-		centered_status.stickX = centered_status.stickY =
-		centered_status.substickX = centered_status.substickY =
-		/* these are all the same */ GCPadStatus::MAIN_STICK_CENTER_X;
-
-		return centered_status;
-	}
 
 	int payload_size = 0;
 	u8 controller_payload_copy[37];

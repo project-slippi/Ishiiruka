@@ -62,7 +62,7 @@ namespace Slippi {
     uint8_t joystickXRaw;
   } PlayerFrameData;
 
-  typedef struct {
+  typedef struct FrameData {
     int32_t frame;
     uint32_t numSinceStart;
     bool randomSeedExists = false;
@@ -92,7 +92,7 @@ namespace Slippi {
     std::vector<uint8_t> geckoCodes;
   } GameSettings;
 
-  typedef struct {
+  typedef struct Game {
     std::array<uint8_t, 4> version;
     std::unordered_map<int32_t, FrameData*> framesByIndex;
     std::vector<std::unique_ptr<FrameData>> frames;

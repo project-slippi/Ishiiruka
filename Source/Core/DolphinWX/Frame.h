@@ -300,6 +300,7 @@ private:
 	void OnToggleToolbar(wxCommandEvent& event);
 	void DoToggleToolbar(bool);
 	void OnToggleStatusbar(wxCommandEvent& event);
+	void OnToggleSeekbar(wxCommandEvent &event);
 	void OnToggleWindow(wxCommandEvent& event);
 
 	void OnKeyDown(wxKeyEvent& event);  // Keyboard
