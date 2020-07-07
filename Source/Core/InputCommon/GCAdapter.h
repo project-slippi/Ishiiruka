@@ -20,6 +20,7 @@ enum ControllerTypes
 };
 
 bool IsReadingAtReducedRate();
+double ReadRate();
 
 void Init();
 void ResetRumble();
