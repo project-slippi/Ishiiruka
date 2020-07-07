@@ -77,32 +77,11 @@ static void Read()
 {
 	adapter_error = false;
 
-	u8 bkp_payload_swap[37];
-	int bkp_payload_size = 0;
-	bool has_prev_input = false;
-
 	int payload_size = 0;
 	while (s_adapter_thread_running.IsSet())
 	{
-		bool reuseOldInputsEnabled = SConfig::GetInstance().bAdapterWarning;
 		adapter_error = libusb_interrupt_transfer(s_handle, s_endpoint_in, s_controller_payload_swap,
-			sizeof(s_controller_payload_swap), &payload_size, 16) != LIBUSB_SUCCESS && reuseOldInputsEnabled;
-
-		// Store previous input and restore in the case of an adapter error
-		if (reuseOldInputsEnabled)
-		{
-			if (!adapter_error)
-			{
-				memcpy(bkp_payload_swap, s_controller_payload_swap, 37);
-				bkp_payload_size = payload_size;
-				has_prev_input = true;
-			}
-			else if (has_prev_input)
-			{
-				memcpy(s_controller_payload_swap, bkp_payload_swap, 37);
-				payload_size = bkp_payload_size;
-			}
-		}
+			sizeof(s_controller_payload_swap), &payload_size, 16) != LIBUSB_SUCCESS && SConfig::GetInstance().bAdapterWarning;
 
 		{
 			std::lock_guard<std::mutex> lk(s_mutex);
@@ -431,6 +410,16 @@ GCPadStatus Input(int chan)
 
 	if (s_handle == nullptr || !s_detected)
 		return{};
+
+	if(AdapterError())
+	{
+		GCPadStatus centered_status = {0};
+		centered_status.stickX = centered_status.stickY =
+		centered_status.substickX = centered_status.substickY =
+		/* these are all the same */ GCPadStatus::MAIN_STICK_CENTER_X;
+
+		return centered_status;
+	}
 
 	int payload_size = 0;
 	u8 controller_payload_copy[37];

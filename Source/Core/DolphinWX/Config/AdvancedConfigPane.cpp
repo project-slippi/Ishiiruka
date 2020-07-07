@@ -34,7 +34,7 @@ void AdvancedConfigPane::InitializeGUI()
 	m_clock_override_text = new wxStaticText(this, wxID_ANY, "");
 
 	m_qos_enabled = new wxCheckBox(this, wxID_ANY, _("Enable QoS (Quality of Service) bit on packets"));
-	m_adapter_warning = new wxCheckBox(this, wxID_ANY, _("Re-use old inputs when adapter problems are detected"));
+	m_adapter_warning = new wxCheckBox(this, wxID_ANY, _("Neutralize inputs when adapter problems are detected"));
 	
 	m_custom_rtc_checkbox = new wxCheckBox(this, wxID_ANY, _("Enable Custom RTC"));
 	m_custom_rtc_date_picker = new wxDatePickerCtrl(this, wxID_ANY);
