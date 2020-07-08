@@ -37,6 +37,7 @@ class SlippiPlaybackStatus
   private:
 	void SavestateThread(void);
 	void SeekThread(void);
+	void loadState(s32 closestStateFrame);
 	void processInitialState(std::vector<u8> &iState);
 	void updateWatchSettingsStartEnd();
 

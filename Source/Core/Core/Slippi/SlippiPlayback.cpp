@@ -230,15 +230,14 @@ void SlippiPlaybackStatus::SeekThread()
 					// If this diff has been processed, load it
 					if (futureDiffs.count(closestStateFrame) > 0)
 					{
-						std::string stateString;
-						decoder.Decode((char *)iState.data(), iState.size(), futureDiffs[closestStateFrame].get(),
-						               &stateString);
-						std::vector<u8> stateToLoad(stateString.begin(), stateString.end());
-						State::LoadFromBuffer(stateToLoad);
+						loadState(closestStateFrame);
 					}
-					else if (shouldJumpBack)
+					else if (targetFrameNum < currentPlaybackFrame)
 					{
-						State::LoadFromBuffer(iState);
+						s32 closestActualStateFrame = closestStateFrame - FRAME_INTERVAL;
+						while (closestActualStateFrame > Slippi::PLAYBACK_FIRST_SAVE && futureDiffs.count(closestActualStateFrame) == 0)
+							closestActualStateFrame -= FRAME_INTERVAL;
+						loadState(closestActualStateFrame);
 					}
 				}
 			}
@@ -271,6 +270,19 @@ void SlippiPlaybackStatus::SeekThread()
 	}
 
 	INFO_LOG(SLIPPI, "Exit seek thread");
+}
+
+void SlippiPlaybackStatus::loadState(s32 closestStateFrame)
+{
+	if (closestStateFrame == Slippi::PLAYBACK_FIRST_SAVE)
+		State::LoadFromBuffer(iState);
+	else
+	{
+		std::string stateString;
+		decoder.Decode((char *)iState.data(), iState.size(), futureDiffs[closestStateFrame].get(), &stateString);
+		std::vector<u8> stateToLoad(stateString.begin(), stateString.end());
+		State::LoadFromBuffer(stateToLoad);
+	}
 }
 
 void SlippiPlaybackStatus::updateWatchSettingsStartEnd()
