@@ -52,6 +52,7 @@ static Common::Event s_rumble_data_available;
 static std::mutex s_init_mutex;
 static std::thread s_adapter_detect_thread;
 static Common::Flag s_adapter_detect_thread_running;
+static Common::Event s_hotplug_event;
 
 static std::function<void(void)> s_detect_callback;
 
@@ -162,11 +163,8 @@ static int HotplugCallback(libusb_context* ctx, libusb_device* dev, libusb_hotpl
 {
 	if (event == LIBUSB_HOTPLUG_EVENT_DEVICE_ARRIVED)
 	{
-		if (s_handle == nullptr && CheckDeviceAccess(dev))
-		{
-			std::lock_guard<std::mutex> lk(s_init_mutex);
-			AddGCAdapter(dev);
-		}
+		if (s_handle == nullptr)
+			s_hotplug_event.Set();
 	}
 	else if (event == LIBUSB_HOTPLUG_EVENT_DEVICE_LEFT)
 	{
@@ -199,22 +197,16 @@ static void ScanThreadFunc()
 
 	while (s_adapter_detect_thread_running.IsSet())
 	{
+		if (s_handle == nullptr)
+		{
+			std::lock_guard<std::mutex> lk(s_init_mutex);
+			Setup();
+		}
+
 		if (s_libusb_hotplug_enabled)
-		{
-			static timeval tv = { 0, 500000 };
-			libusb_handle_events_timeout(s_libusb_context, &tv);
-		}
+			s_hotplug_event.Wait();
 		else
-		{
-			if (s_handle == nullptr)
-			{
-				std::lock_guard<std::mutex> lk(s_init_mutex);
-				Setup();
-				if (s_detected && s_detect_callback != nullptr)
-					s_detect_callback();
-			}
 			Common::SleepCurrentThread(500);
-		}
 	}
 	NOTICE_LOG(SERIALINTERFACE, "GC Adapter scanning thread stopped");
 }
@@ -267,6 +259,7 @@ void StopScanThread()
 {
 	if (s_adapter_detect_thread_running.TestAndClear())
 	{
+		s_hotplug_event.Set();
 		s_adapter_detect_thread.join();
 	}
 }
@@ -349,6 +342,12 @@ static bool CheckDeviceAccess(libusb_device* device)
 				ERROR_LOG(SERIALINTERFACE, "libusb_detach_kernel_driver failed with error: %d", ret);
 			}
 		}
+		// This call makes Nyko-brand (and perhaps other) adapters work.
+		// However it returns LIBUSB_ERROR_PIPE with Mayflash adapters.
+		const int transfer = libusb_control_transfer(s_handle, 0x21, 11, 0x0001, 0, nullptr, 0, 1000);
+		if (transfer < 0)
+			WARN_LOG(SERIALINTERFACE, "libusb_control_transfer failed with error: %d", transfer);
+
 		// this split is needed so that we don't avoid claiming the interface when
 		// detaching the kernel driver is successful
 		if (ret != 0 && ret != LIBUSB_ERROR_NOT_SUPPORTED)
@@ -472,9 +471,9 @@ GCPadStatus Input(int chan)
 	if (payload_size != sizeof(controller_payload_copy) ||
 		controller_payload_copy[0] != LIBUSB_DT_HID)
 	{
+		// This can occur for a few frames on initialization.
 		ERROR_LOG(SERIALINTERFACE, "error reading payload (size: %d, type: %02x)", payload_size,
 			controller_payload_copy[0]);
-		Reset();
 	}
 	else
 	{
