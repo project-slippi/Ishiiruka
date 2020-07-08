@@ -6,6 +6,7 @@
 #include <libusb.h>
 #include <mutex>
 #include <iostream>
+#include <chrono>
 
 #include "Common/Event.h"
 #include "Common/Flag.h"
@@ -66,6 +67,9 @@ static u8 s_endpoint_out = 0;
 
 static u64 s_last_init = 0;
 
+static u64 s_consecutive_slow_transfers = 0;
+static double s_read_rate = 0.0;
+
 bool adapter_error = false;
 
 bool AdapterError()
@@ -73,20 +77,35 @@ bool AdapterError()
 	return adapter_error && s_adapter_thread_running.IsSet();
 }
 
+bool IsReadingAtReducedRate()
+{
+	return s_consecutive_slow_transfers > 80;
+}
+
+double ReadRate() 
+{
+	return s_read_rate;
+}
+
 static void Read()
 {
+	s_consecutive_slow_transfers = 0;
 	adapter_error = false;
 
 	u8 bkp_payload_swap[37];
 	int bkp_payload_size = 0;
 	bool has_prev_input = false;
+	s_read_rate = 0.0;
 
 	int payload_size = 0;
 	while (s_adapter_thread_running.IsSet())
 	{
 		bool reuseOldInputsEnabled = SConfig::GetInstance().bAdapterWarning;
+		std::chrono::time_point<std::chrono::high_resolution_clock> start = std::chrono::high_resolution_clock::now();
 		adapter_error = libusb_interrupt_transfer(s_handle, s_endpoint_in, s_controller_payload_swap,
-			sizeof(s_controller_payload_swap), &payload_size, 16) != LIBUSB_SUCCESS && reuseOldInputsEnabled;
+			sizeof(s_controller_payload_swap), &payload_size, 32) != LIBUSB_SUCCESS && reuseOldInputsEnabled;
+
+		double elapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now() - start).count() / 1000000.0;
 
 		// Store previous input and restore in the case of an adapter error
 		if (reuseOldInputsEnabled)
@@ -104,6 +123,13 @@ static void Read()
 			}
 		}
 
+		if(elapsed > 15.0)
+			s_consecutive_slow_transfers++;
+		else
+			s_consecutive_slow_transfers = 0;
+
+		s_read_rate = elapsed;
+		
 		{
 			std::lock_guard<std::mutex> lk(s_mutex);
 			std::swap(s_controller_payload_swap, s_controller_payload);
@@ -123,7 +149,7 @@ static void Write()
 		{
 			unsigned char rumble[5] = {0x11, s_controller_rumble[0], s_controller_rumble[1], s_controller_rumble[2],
 			                           s_controller_rumble[3]};
-			libusb_interrupt_transfer(s_handle, s_endpoint_out, rumble, sizeof(rumble), &size, 16);
+			libusb_interrupt_transfer(s_handle, s_endpoint_out, rumble, sizeof(rumble), &size, 32);
 		}
 	}
 
@@ -364,7 +390,7 @@ static void AddGCAdapter(libusb_device* device)
 
 	int tmp = 0;
 	unsigned char payload = 0x13;
-	libusb_interrupt_transfer(s_handle, s_endpoint_out, &payload, sizeof(payload), &tmp, 16);
+	libusb_interrupt_transfer(s_handle, s_endpoint_out, &payload, sizeof(payload), &tmp, 32);
 
 	s_adapter_thread_running.Set(true);
 	s_adapter_input_thread = std::thread(Read);
