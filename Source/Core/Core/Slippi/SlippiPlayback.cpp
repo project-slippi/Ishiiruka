@@ -96,8 +96,7 @@ void SlippiPlaybackStatus::prepareSlippiPlayback(s32 &frameIndex)
 
 		if (currentPlaybackFrame > targetFrameNum)
 		{
-			INFO_LOG(SLIPPI, "Reached frame %d. Target was %d. Unblocking", currentPlaybackFrame,
-			         targetFrameNum);
+			INFO_LOG(SLIPPI, "Reached frame %d. Target was %d. Unblocking", currentPlaybackFrame, targetFrameNum);
 		}
 		cv_waitingForTargetFrame.notify_one();
 	}
@@ -235,9 +234,21 @@ void SlippiPlaybackStatus::SeekThread()
 					else if (targetFrameNum < currentPlaybackFrame)
 					{
 						s32 closestActualStateFrame = closestStateFrame - FRAME_INTERVAL;
-						while (closestActualStateFrame > Slippi::PLAYBACK_FIRST_SAVE && futureDiffs.count(closestActualStateFrame) == 0)
+						while (closestActualStateFrame > Slippi::PLAYBACK_FIRST_SAVE &&
+						       futureDiffs.count(closestActualStateFrame) == 0)
 							closestActualStateFrame -= FRAME_INTERVAL;
 						loadState(closestActualStateFrame);
+					}
+					else if (targetFrameNum > currentPlaybackFrame)
+					{
+						s32 closestActualStateFrame = closestStateFrame - FRAME_INTERVAL;
+						while (closestActualStateFrame > currentPlaybackFrame &&
+						       futureDiffs.count(closestActualStateFrame) == 0)
+							closestActualStateFrame -= FRAME_INTERVAL;
+
+						// only load a savestate if we find one past our current frame since we are seeking forwards
+						if (closestActualStateFrame > currentPlaybackFrame)
+							loadState(closestActualStateFrame);
 					}
 				}
 			}
