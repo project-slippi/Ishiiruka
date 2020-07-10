@@ -20,6 +20,7 @@ class SlippiUser
 
 	~SlippiUser();
 
+	void OpenLink(std::string);
 	bool AttemptLogin();
 	void OpenLogInPage();
 	void UpdateFile();

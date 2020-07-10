@@ -61,6 +61,19 @@ SlippiUser::~SlippiUser()
 		fileListenThread.join();
 }
 
+void SlippiUser::OpenLink(std::string link)
+{
+#ifdef _WIN32
+	std::string command = "explorer \"" + link + "\"";
+#elif defined(__APPLE__)
+	std::string command = "open \"" + link + "\"";
+#else
+	std::string command = "xdg-open \"" + link + "\""; // Linux
+#endif
+
+	RunSystemCommand(command);
+}
+
 bool SlippiUser::AttemptLogin()
 {
 	std::string userFilePath = getUserFilePath();
@@ -76,7 +89,7 @@ bool SlippiUser::AttemptLogin()
 			if (File::Exists(userFilePath))
 			{
 				INFO_LOG(SLIPPI_ONLINE,
-						 "Found both .json.txt and .json file for user data. Using .json and ignoring the .json.txt");
+				         "Found both .json.txt and .json file for user data. Using .json and ignoring the .json.txt");
 			}
 			// If only the .txt file exists move the contents to a json file and log if it fails
 			else if (!File::Rename(userFilePathTxt, userFilePath))
@@ -114,16 +127,6 @@ void SlippiUser::OpenLogInPage()
 	path = ReplaceAll(path, "\\", folderSep);
 	path = ReplaceAll(path, "/", folderSep);
 	std::string fullUrl = url + "?path=" + path;
-
-#ifdef _WIN32
-	std::string command = "explorer \"" + fullUrl + "\"";
-#elif defined(__APPLE__)
-	std::string command = "open \"" + fullUrl + "\"";
-#else
-	std::string command = "xdg-open \"" + fullUrl + "\""; // Linux
-#endif
-
-	RunSystemCommand(command);
 }
 
 void SlippiUser::UpdateFile()
@@ -142,6 +145,7 @@ void SlippiUser::UpdateFile()
 
 void SlippiUser::UpdateApp()
 {
+	OpenLink("https://github.com/project-slippi/ishiiruka/releases/latest");
 #ifdef _WIN32
 	auto isoPath = SConfig::GetInstance().m_strFilename;
 
