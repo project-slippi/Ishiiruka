@@ -37,8 +37,9 @@ class SlippiPlaybackStatus
   private:
 	void SavestateThread(void);
 	void SeekThread(void);
+	void loadState(s32 closestStateFrame);
 	void processInitialState(std::vector<u8> &iState);
-	void clearWatchSettingsStartEnd();
+	void updateWatchSettingsStartEnd();
 
 	std::unordered_map<int32_t, std::shared_future<std::string>>
 	    futureDiffs;        // State diffs keyed by frameIndex, processed async
