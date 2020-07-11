@@ -603,15 +603,11 @@ void UpdateDevices()
 	// Update inputs at 240 hz
 	g_controller_interface.UpdateInput();
 
+	// The adapter needs to update what devices are connected
+	GCAdapter::UpdateDevices();
+
 	if(SConfig::GetInstance().iPollingMethod == POLLING_ONSIREAD)
 	{
-		// We need to always update the GC adapter, so that it can know what ports are plugged in
-		if(!NetPlay::IsNetPlayRunning())
-		{
-			for(int i = 0; i < 4; i++)
-				GCAdapter::Input(i);
-		}
-
 		// Pretend that there's always new data
 		g_StatusReg.RDST0 = g_StatusReg.RDST1 = g_StatusReg.RDST2 = g_StatusReg.RDST3 = true;
 	}

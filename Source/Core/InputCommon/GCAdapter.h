@@ -30,6 +30,7 @@ void StartScanThread();
 void StopScanThread();
 GCPadStatus Input(int chan);
 void Output(int chan, u8 rumble_command);
+void UpdateDevices();
 bool IsDetected();
 bool IsDriverDetected();
 bool DeviceConnected(int chan);
