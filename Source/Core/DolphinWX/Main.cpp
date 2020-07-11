@@ -133,6 +133,11 @@ bool DolphinApp::OnInit()
 	else
 		SConfig::GetInstance().m_strSlippiInput = "Slippi/playback.txt";
 
+	if (m_hide_seekbar) // Hide seekbar if necessary by cmd line (mostly for external recording applications)
+	{
+		m_prev_seekbar = SConfig::GetInstance().m_InterfaceSeekbar;
+		SConfig::GetInstance().m_InterfaceSeekbar = false;
+	}
 
 	if (m_select_audio_emulation)
 		SConfig::GetInstance().bDSPHLE = (m_audio_emulation_name.Upper() == "HLE");
@@ -233,6 +238,8 @@ void DolphinApp::OnInitCmdLine(wxCmdLineParser& parser)
 			wxCMD_LINE_VAL_STRING, wxCMD_LINE_PARAM_OPTIONAL},
 			{wxCMD_LINE_OPTION, "a", "audio_emulation", "Low level (LLE) or high level (HLE) audio",
 			 wxCMD_LINE_VAL_STRING, wxCMD_LINE_PARAM_OPTIONAL},
+			{wxCMD_LINE_SWITCH, "hs", "hide-seekbar", "Hide seekbar during playback", wxCMD_LINE_VAL_NONE,
+			 wxCMD_LINE_PARAM_OPTIONAL},
 			{wxCMD_LINE_OPTION, "m", "movie", "Play a movie file", wxCMD_LINE_VAL_STRING,
 			 wxCMD_LINE_PARAM_OPTIONAL},
 			{wxCMD_LINE_OPTION, "u", "user", "User folder path", wxCMD_LINE_VAL_STRING,
@@ -296,6 +303,7 @@ bool DolphinApp::OnCmdLineParsed(wxCmdLineParser& parser)
 	m_select_video_backend = parser.Found("video_backend", &m_video_backend_name);
 	m_select_audio_emulation = parser.Found("audio_emulation", &m_audio_emulation_name);
 	m_select_slippi_input = parser.Found("slippi-input", &m_slippi_input_name);
+	m_hide_seekbar = parser.Found("hide-seekbar");
 	m_play_movie = parser.Found("movie", &m_movie_file);
 	parser.Found("user", &m_user_path);
 
@@ -453,6 +461,10 @@ void DolphinApp::OnEndSession(wxCloseEvent& event)
 
 int DolphinApp::OnExit()
 {
+	if (m_hide_seekbar) // retain the seekbar setting from before cmd line switch
+	{
+		SConfig::GetInstance().m_InterfaceSeekbar = m_prev_seekbar;
+	}
 	Core::Shutdown();
 	UICommon::Shutdown();
 

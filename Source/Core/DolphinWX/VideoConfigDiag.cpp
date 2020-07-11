@@ -503,6 +503,8 @@ VideoConfigDiag::VideoConfigDiag(wxWindow* parent, const std::string &title)
 		wxStaticBoxSizer* const group_enh = new wxStaticBoxSizer(wxVERTICAL, page_enh, _("Enhancements"));
 		group_enh->Add(szr_enh, 1, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 5);
 		szr_enh_main->Add(group_enh, 0, wxEXPAND | wxALL, 5);
+		// Feature disabled in Slippi: Texture scaling causes crashes on Pokémon Stadium
+#if ISHIIRUKA_ALLOW_TEXTURE_SCALING
 		{
 			wxFlexGridSizer* const szr_texturescaling = new wxFlexGridSizer(3, 5, 5);
 			szr_texturescaling->AddGrowableCol(1, 1);
@@ -533,6 +535,7 @@ VideoConfigDiag::VideoConfigDiag(wxWindow* parent, const std::string &title)
 			group_scaling->Add(szr_texturescaling, 1, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 5);
 			szr_enh_main->Add(group_scaling, 0, wxEXPAND | wxALL, 5);
 		}
+#endif
 		{
 			wxFlexGridSizer* const szr_phong = new wxFlexGridSizer(4, 5, 5);
 			szr_phong->AddGrowableCol(1, 1);

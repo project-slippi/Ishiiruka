@@ -34,7 +34,7 @@ void AdvancedConfigPane::InitializeGUI()
 	m_clock_override_text = new wxStaticText(this, wxID_ANY, "");
 
 	m_qos_enabled = new wxCheckBox(this, wxID_ANY, _("Enable QoS (Quality of Service) bit on packets"));
-	m_adapter_warning = new wxCheckBox(this, wxID_ANY, _("Neutralize inputs when adapter problems are detected"));
+	m_adapter_warning = new wxCheckBox(this, wxID_ANY, _("Show a message when inputs are being read at a reduced rate"));
 	
 	m_custom_rtc_checkbox = new wxCheckBox(this, wxID_ANY, _("Enable Custom RTC"));
 	m_custom_rtc_date_picker = new wxDatePickerCtrl(this, wxID_ANY);
@@ -49,21 +49,6 @@ void AdvancedConfigPane::InitializeGUI()
 			"can and will break games and cause glitches. "
 			"Do so at your own risk. Please do not report "
 			"bugs that occur with a non-default clock. "));
-
-	/* wxStaticText* const qos_description =
-		new wxStaticText(this, wxID_ANY, _("This setting makes Dolphin tag outgoing packets with a QoS bit.\n\n"
-			"This should make your router prioritize NetPlay packets over normal packets, "
-			"which means you can download and use your Internet connection for other things "
-			"while playing without getting extra packet drops/input lag."
-			"\n\n"
-			"Try turning this setting off if you experience problems with NetPlay."));	
-
-	wxStaticText* const adapter_warning_description =
-		new wxStaticText(this, wxID_ANY, _("This setting makes Dolphin warn and neutralize (centered sticks and no buttons pressed) inputs when an adapter problem is detected.\n\n"
-			"This should only occur when your adapter returns something other than LIBUSB_SUCCESS.\n"
-			"Before turning this off, try reinstalling drivers and switching USB ports."
-			"\n\n"
-			"Try turning this setting off if a false positive error is being detected (though there's a high chance that an actual problem is happening).")); */
 
 	wxStaticText* const custom_rtc_description = new wxStaticText(
 		this, wxID_ANY,

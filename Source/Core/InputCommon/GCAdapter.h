@@ -19,9 +19,8 @@ enum ControllerTypes
 	CONTROLLER_WIRELESS = 2
 };
 
-extern bool adapter_error;
-
-bool AdapterError();
+bool IsReadingAtReducedRate();
+double ReadRate();
 
 void Init();
 void ResetRumble();

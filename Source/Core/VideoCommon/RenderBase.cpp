@@ -491,11 +491,24 @@ void Renderer::DrawDebugText()
 	if (g_ActiveConfig.bOverlayProjStats)
 		final_cyan += Statistics::ToStringProj();
 
-	if(GCAdapter::AdapterError())
-		final_yellow += 
-		"There is a potential problem with your GameCube Adapter and inputs\nare being set to their default positon to prevent unintended inputs"
-		"\nIf you want, you can turn this off in [Config] > [Advanced Options]";	
-
+	if(GCAdapter::IsReadingAtReducedRate() && SConfig::GetInstance().bAdapterWarning)
+	{
+		final_yellow +=
+			"\n"
+			"Your GameCube Controller Adapter is reading inputs at a reduced rate.\n"
+			"You can still play normally but you will experience higher input lag.\n"
+			"This indicates a potential hardware or driver issue.\n"
+			"\n"
+			"If you're using a computer with an AMD Ryzen processor:\n"
+			"Try connecting the black plug of your adapter to a USB 3.0/3.1 Gen 1 port on your motherboard.\n"
+			"These ports are usually blue or say \"SS\" (SuperSpeed). USB 3.2 (light blue) or USB 2.0 (black) will NOT work.\n"
+			"\n"
+			"The recommended driver on Windows is WinUSB. If you're using another driver in Zadig try switching to WinUSB.\n"
+			"\n"
+			"You can turn this message off by going to \"Config\" and then \"Advanced\".\n"
+			"Under \"Troubleshooting\", uncheck \"Show a message when inputs are being read at a reduced rate\".";	
+	}
+	
 	// and then the text
 	RenderText(final_cyan, 20, 20, 0xFF00FFFF);
 	RenderText(final_yellow, 20, 20, 0xFFFFFF00);
