@@ -110,7 +110,6 @@ CEXISlippi::CEXISlippi()
 
 	// Update user file and then listen for User
 #ifndef IS_PLAYBACK
-	user->UpdateFile();
 	user->ListenForLogIn();
 #endif
 

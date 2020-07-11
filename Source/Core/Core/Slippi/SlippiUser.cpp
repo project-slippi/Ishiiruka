@@ -53,12 +53,51 @@ static void RunSystemCommand(const std::string &command)
 #endif
 }
 
+static size_t receive(char *ptr, size_t size, size_t nmemb, void *rcvBuf)
+{
+	size_t len = size * nmemb;
+	INFO_LOG(SLIPPI_ONLINE, "[User] Received data: %d", len);
+
+	std::string *buf = (std::string *)rcvBuf;
+
+	buf->insert(buf->end(), ptr, ptr + len);
+
+	return len;
+}
+
+SlippiUser::SlippiUser()
+{
+	CURL *curl = curl_easy_init();
+	if (curl)
+	{
+		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, &receive);
+		curl_easy_setopt(curl, CURLOPT_TIMEOUT_MS, 5000);
+
+		// Set up HTTP Headers
+		m_curlHeaderList = curl_slist_append(m_curlHeaderList, "Content-Type: application/json");
+		curl_easy_setopt(curl, CURLOPT_HTTPHEADER, m_curlHeaderList);
+
+#ifdef _WIN32
+		// ALPN support is enabled by default but requires Windows >= 8.1.
+		curl_easy_setopt(curl, CURLOPT_SSL_ENABLE_ALPN, false);
+#endif
+
+		m_curl = curl;
+	}
+}
+
 SlippiUser::~SlippiUser()
 {
 	// Wait for thread to terminate
 	runThread = false;
 	if (fileListenThread.joinable())
 		fileListenThread.join();
+
+	if (m_curl)
+	{
+		curl_slist_free_all(m_curlHeaderList);
+		curl_easy_cleanup(m_curl);
+	}
 }
 
 bool SlippiUser::AttemptLogin()
@@ -95,6 +134,7 @@ bool SlippiUser::AttemptLogin()
 	isLoggedIn = !userInfo.uid.empty();
 	if (isLoggedIn)
 	{
+		overwriteFromServer();
 		WARN_LOG(SLIPPI_ONLINE, "Found user %s (%s)", userInfo.displayName.c_str(), userInfo.uid.c_str());
 	}
 
@@ -124,15 +164,6 @@ void SlippiUser::OpenLogInPage()
 #endif
 
 	RunSystemCommand(command);
-}
-
-void SlippiUser::UpdateFile()
-{
-#ifdef _WIN32
-	std::string path = File::GetExeDirectory() + "/dolphin-slippi-tools.exe";
-	std::string command = path + " user-update";
-	system_hidden(command.c_str());
-#endif
 }
 
 void SlippiUser::UpdateApp()
@@ -263,4 +294,38 @@ void SlippiUser::deleteFile()
 {
 	std::string userFilePath = getUserFilePath();
 	File::Delete(userFilePath);
+}
+
+void SlippiUser::overwriteFromServer()
+{
+	if (!m_curl)
+		return;
+
+	// Perform curl request
+	std::string resp;
+	curl_easy_setopt(m_curl, CURLOPT_URL, (URL_START + "/" + userInfo.uid).c_str());
+	curl_easy_setopt(m_curl, CURLOPT_WRITEDATA, &resp);
+	CURLcode res = curl_easy_perform(m_curl);
+
+	if (res != 0)
+	{
+		ERROR_LOG(SLIPPI, "[User] Error fetching user info from server, code: %d", res);
+		return;
+	}
+
+	long responseCode;
+	curl_easy_getinfo(m_curl, CURLINFO_RESPONSE_CODE, &responseCode);
+	if (responseCode != 200)
+	{
+		ERROR_LOG(SLIPPI, "[User] Server responded with non-success status: %d", responseCode);
+		return;
+	}
+
+	// Overwrite userInfo with data from server
+	auto r = json::parse(resp);
+	userInfo.connectCode = r.value("connectCode", userInfo.connectCode);
+	userInfo.latestVersion = r.value("latestVersion", userInfo.latestVersion);
+
+	// TODO: Once it's possible to change Display name from website, uncomment below
+	// userInfo.displayName = r.value("displayName", userInfo.displayName);
 }
