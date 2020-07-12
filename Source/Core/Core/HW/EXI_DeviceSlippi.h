@@ -193,7 +193,7 @@ class CEXISlippi : public IEXIDevice
 	std::unique_ptr<Slippi::SlippiGame> m_current_game = nullptr;
 	SlippiMatchmaking::MatchSearchSettings lastSearch;
 
-	u16 *lastSelectedStage = nullptr;
+	std::vector<u16> stagePool;
 
 	u32 frameSeqIdx = 0;
 
