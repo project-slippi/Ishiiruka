@@ -36,10 +36,38 @@ jobs:
         shell: cmd
         run: |
           msbuild /p:Configuration=Release /p:Platform=x64 ${{ github.workspace }}\Source\Dolphin.sln
+      - name: "Package Netplay"
+        working-directory: ${{ github.workspace }}
+        run: |
+          $env:FILE_NAME="${{ env.CURR_DATE }}-${{ env.OBS_GIT_HASH }}-${{ env.OBS_GIT_TAG }}-win64-netplay.7z"
+          mkdir artifact
+          Xcopy /Y /E /I .\Overwrite\Sys .\Binary\x64\Sys
+          Xcopy /Y /E /I .\Overwrite\Sys .\Binary\x64\User
+          cd .\Binary\x64\
+          fsutil file createnew portable.txt 0
+          7z a ${env:FILE_NAME} .\*
+          move ${env:FILE_NAME} ..\..\artifact\
       - name: "Build Playback Dolphin"
         shell: cmd
         run: |
           msbuild /p:Configuration=ReleasePlayback /p:Platform=x64 ${{ github.workspace }}\Source\Dolphin.sln
+      - name: "Package Playback"
+        if: success()
+        working-directory: ${{ github.workspace }}
+        run: |
+          $env:FILE_NAME="${{ env.CURR_DATE }}-${{ env.OBS_GIT_HASH }}-${{ env.OBS_GIT_TAG }}-win64-playback.7z"
+          git clone https://github.com/project-slippi/slippi-desktop-app
+          cd .\Binary\x64\
+          Xcopy /Y /E /I ../../slippi-desktop-app/app/dolphin-dev/overwrite/Sys .\Sys
+          Xcopy /Y /E /I ../../slippi-desktop-app/app/dolphin-dev/overwrite/User .\User
+          7z a ${env:FILE_NAME} .\*
+          move ${env:FILE_NAME} ..\..\artifact\
+      - name: "Publish"
+        if: success()
+        uses: actions/upload-artifact@v2-preview
+        with:
+          name: "windows64-builds"
+          path: "./artifact/*.7z"
   ubuntu64:
       name: "Ubuntu"
       runs-on: ubuntu-18.04
