@@ -9,6 +9,10 @@
       <Configuration>Debug</Configuration>
       <Platform>x64</Platform>
     </ProjectConfiguration>
+    <ProjectConfiguration Include="ReleasePlayback|x64">
+      <Configuration>ReleasePlayback</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
     <ProjectConfiguration Include="Release|x64">
       <Configuration>Release</Configuration>
       <Platform>x64</Platform>
@@ -31,6 +35,9 @@
   <PropertyGroup Condition="'$(Configuration)'=='Release'" Label="Configuration">
     <UseDebugLibraries>false</UseDebugLibraries>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)'=='ReleasePlayback'" Label="Configuration">
+    <UseDebugLibraries>false</UseDebugLibraries>
+  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)'=='DebugFast'" Label="Configuration">
     <UseDebugLibraries>false</UseDebugLibraries>
   </PropertyGroup>
@@ -49,6 +56,9 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LibraryPath>$(DXSDK_DIR)Lib\x64;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleasePlayback|x64'">
+    <LibraryPath>$(DXSDK_DIR)Lib\x64;$(LibraryPath)</LibraryPath>
+  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugFast|x64'">
     <LibraryPath>$(DXSDK_DIR)Lib\x64;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
@@ -61,6 +71,7 @@
       <AdditionalDependencies>avrt.lib;dsound.lib;iphlpapi.lib;winmm.lib;setupapi.lib;OpenAL32.lib;opengl32.lib;glu32.lib;rpcrt4.lib;comctl32.lib;avcodec.lib;avformat.lib;avutil.lib;swresample.lib;swscale.lib;version.lib;qwave.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">/NODEFAULTLIB:libcmt /ignore:4281 %(AdditionalOptions)</AdditionalOptions>
       <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Release|x64'">/NODEFAULTLIB:libcmt /ignore:4281 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='ReleasePlayback|x64'">/NODEFAULTLIB:libcmt /ignore:4281 %(AdditionalOptions)</AdditionalOptions>
       <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='DebugFast|x64'">/NODEFAULTLIB:libcmt /ignore:4281 %(AdditionalOptions)</AdditionalOptions>
       <SubSystem>Windows</SubSystem>
     </Link>
@@ -72,6 +83,9 @@
     <Manifest>
       <EnableDpiAwareness>true</EnableDpiAwareness>
     </Manifest>
+    <ClCompile>
+      <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='ReleasePlayback|x64'">IS_PLAYBACK;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="AboutDolphin.cpp" />
