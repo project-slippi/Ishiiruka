@@ -128,13 +128,14 @@ struct SConfig : NonCopyable
 	bool bQoSEnabled = true;
 	bool bAdapterWarning = true;
 
-    MeleeLagReductionCode iLagReductionCode = MELEE_LAG_REDUCTION_CODE_UNSET;
-    bool bHasShownLagReductionWarning = false;
-    bool bMeleeForceWidescreen = false;
+	MeleeLagReductionCode iLagReductionCode = MELEE_LAG_REDUCTION_CODE_UNSET;
+	bool bHasShownLagReductionWarning = false;
+	bool bMeleeForceWidescreen = false;
 
 	bool m_slippiSaveReplays = true;
 	bool m_slippiReplayMonthFolders = false;
 	std::string m_strSlippiReplayDir;
+	bool m_meleeUserIniBootstrapped = false;
 
 	bool bDPL2Decoder = false;
 	bool bTimeStretching = false;
@@ -257,6 +258,8 @@ struct SConfig : NonCopyable
 	void CheckMemcardPath(std::string& memcardPath, const std::string& gameRegion, bool isSlotA);
 	DiscIO::Language GetCurrentLanguage(bool wii) const;
 
+	u16 GetGameRevision() const;
+	std::string GetGameID_Wrapper() const;
 	IniFile LoadDefaultGameIni() const;
 	IniFile LoadLocalGameIni() const;
 	IniFile LoadGameIni() const;

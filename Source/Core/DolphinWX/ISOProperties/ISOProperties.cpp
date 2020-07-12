@@ -717,7 +717,7 @@ bool CISOProperties::SaveGameConfig()
 
 	PatchList_Save();
 	m_ar_code_panel->SaveCodes(&GameIniLocal);
-	Gecko::SaveCodes(GameIniLocal, m_geckocode_panel->GetCodes());
+	Gecko::FillIni(GameIniLocal, m_geckocode_panel->GetCodes());
 
 	bool success = GameIniLocal.Save(GameIniFileLocal);
 

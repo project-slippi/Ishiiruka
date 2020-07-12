@@ -1133,19 +1133,28 @@ DiscIO::Language SConfig::GetCurrentLanguage(bool wii) const
 	return language;
 }
 
+// Hack to deal with 20XX images
+u16 SConfig::GetGameRevision() const { return m_revision; }
+std::string SConfig::GetGameID_Wrapper() const
+{
+	return m_gameType == GAMETYPE_MELEE_20XX ? "GALEXX" : GetGameID();
+}
+
+
+
 IniFile SConfig::LoadDefaultGameIni() const
 {
-	return LoadDefaultGameIni(m_gameType == GAMETYPE_MELEE_20XX ? "GALEXX" : GetGameID(), m_revision);
+	return LoadDefaultGameIni(GetGameID_Wrapper(), m_revision);
 }
 
 IniFile SConfig::LoadLocalGameIni() const
 {
-	return LoadLocalGameIni(m_gameType == GAMETYPE_MELEE_20XX ? "GALEXX" : GetGameID(), m_revision);
+	return LoadLocalGameIni(GetGameID_Wrapper(), m_revision);
 }
 
 IniFile SConfig::LoadGameIni() const
 {
-	return LoadGameIni(m_gameType == GAMETYPE_MELEE_20XX ? "GALEXX" : GetGameID(), m_revision);
+	return LoadGameIni(GetGameID_Wrapper(), m_revision);
 }
 
 IniFile SConfig::LoadDefaultGameIni(const std::string& id, u16 revision)

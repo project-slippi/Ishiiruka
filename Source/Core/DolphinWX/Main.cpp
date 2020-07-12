@@ -39,6 +39,9 @@
 #include "Core/Host.h"
 #include "Core/Movie.h"
 
+#include "Core/GeckoCode.h"
+#include "Core/GeckoCodeConfig.h"
+
 #include "DolphinWX/Debugger/CodeWindow.h"
 #include "DolphinWX/Debugger/JitWindow.h"
 #include "DolphinWX/Frame.h"
@@ -346,6 +349,32 @@ void DolphinApp::AfterInit()
 
 		DolphinAnalytics::Instance()->ReloadConfig();
 	}
+
+
+	// Get a list of user INIs that we might have to create
+	std::vector<std::string> meleeIniFiles;
+	std::vector<std::string> newFiles;
+	std::string user_path = File::GetUserPath(D_GAMESETTINGS_IDX);
+	meleeIniFiles.push_back(user_path + "GALE01r2.ini");
+	meleeIniFiles.push_back(user_path + "GALJ01r2.ini");
+	for (const std::string &filename : meleeIniFiles) {
+		if (!File::Exists(filename)) {
+			newFiles.push_back(filename);
+		}
+	}
+
+	IniFile globalIni = SConfig::GetInstance().LoadDefaultGameIni("GALE01", 2);
+	std::vector<Gecko::GeckoCode> global_codes;
+	Gecko::ParseCodes(globalIni, global_codes, false);
+	MarkBootstrapCodes(globalIni, global_codes);
+
+	for (const std::string &filename : newFiles) {
+		IniFile localIni;
+		Gecko::BootstrapLocalConfig(localIni, global_codes);
+		localIni.Save(filename);
+		printf("Created %s\n", filename.c_str());
+	}
+
 
 	if (m_confirm_stop)
 	{
