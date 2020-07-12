@@ -387,6 +387,7 @@ CFrame::CFrame(wxFrame *parent, wxWindowID id, const wxString &title, wxRect geo
 		                                          .CloseButton(true)
 		                                          .Hide());
 
+#ifdef IS_PLAYBACK
 	if (!g_pCodeWindow) {
 		// Create UI for Slippi playback controls, hide until replay is booted
 		wxPanel *slippiPanel = new wxPanel(this, wxID_ANY);
@@ -411,7 +412,7 @@ CFrame::CFrame(wxFrame *parent, wxWindowID id, const wxString &title, wxRect geo
 										.Floatable(false)
 										.Hide());
 	}
-
+#endif
 	AuiFullscreen = m_Mgr->SavePerspective();
 
 	if (!SConfig::GetInstance().m_InterfaceToolbar)
@@ -1291,10 +1292,11 @@ void CFrame::ParseHotkeys()
 	if (IsHotkey(HK_PLAY_PAUSE))
 		DoPause();
 
+#ifdef IS_PLAYBACK
 	// Slippi Playback Pause/Unpause
 	if (g_playbackStatus && g_playbackStatus->inSlippiPlayback && IsHotkey(HK_TOGGLE_PLAY_PAUSE))
 		DoPause();
-
+#endif
 	// Frame advance
 	HandleFrameSkipHotkeys();
 	// Stop
@@ -1613,7 +1615,7 @@ void CFrame::ParseHotkeys()
 		State::UndoLoadState();
 	if (IsHotkey(HK_UNDO_SAVE_STATE))
 		State::UndoSaveState();
-
+#ifdef IS_PLAYBACK
 	// Slippi replay hotkeys and setup
 	if (SConfig::GetInstance().m_InterfaceSeekbar && g_playbackStatus && g_playbackStatus->inSlippiPlayback)
 	{		
@@ -1637,6 +1639,7 @@ void CFrame::ParseHotkeys()
 		m_Mgr->GetPane(_("Slippi Pane")).Hide();
 		m_Mgr->Update();
 	}
+#endif
 }
 
 void CFrame::HandleFrameSkipHotkeys()
