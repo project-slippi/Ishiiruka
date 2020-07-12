@@ -46,6 +46,10 @@ static std::unordered_map<u8, std::string> slippi_connect_codes;
 extern std::unique_ptr<SlippiPlaybackStatus> g_playbackStatus;
 extern std::unique_ptr<SlippiReplayComm> g_replayComm;
 
+#ifdef LOCAL_TESTING
+bool isLocalConnected = false;
+#endif
+
 template <typename T> bool isFutureReady(std::future<T> &t)
 {
 	return t.wait_for(std::chrono::seconds(0)) == std::future_status::ready;
@@ -1737,8 +1741,11 @@ void CEXISlippi::prepareOnlineMatchState()
 	SlippiMatchmaking::ProcessState mmState = matchmaking->GetMatchmakeState();
 
 #ifdef LOCAL_TESTING
-	if (localSelections.isCharacterSelected)
+	if (localSelections.isCharacterSelected || isLocalConnected)
+	{
 		mmState = SlippiMatchmaking::ProcessState::CONNECTION_SUCCESS;
+		isLocalConnected = true;
+	}
 #endif
 
 	m_read_queue.push_back(mmState); // Matchmaking State
@@ -2099,6 +2106,10 @@ void CEXISlippi::handleConnectionCleanup()
 
 	// Reset random stage pool
 	stagePool.clear();
+
+#ifdef LOCAL_TESTING
+	isLocalConnected = false;
+#endif
 
 	ERROR_LOG(SLIPPI_ONLINE, "Connection cleanup completed...");
 }
