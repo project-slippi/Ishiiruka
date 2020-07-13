@@ -616,8 +616,7 @@ void SConfig::LoadCoreSettings(IniFile& ini)
 	core->Get("OutputIR", &bJITILOutputIR, false);
 	for (int i = 0; i < MAX_SI_CHANNELS; ++i)
 	{
-		core->Get(StringFromFormat("SIDevice%i", i), (u32*)&m_SIDevice[i],
-			(i == 0) ? SIDEVICE_GC_CONTROLLER : SIDEVICE_NONE);
+		core->Get(StringFromFormat("SIDevice%i", i), (u32*)&m_SIDevice[i], SIDEVICE_WIIU_ADAPTER);
 		core->Get(StringFromFormat("AdapterRumble%i", i), &m_AdapterRumble[i], true);
 		core->Get(StringFromFormat("SimulateKonga%i", i), &m_AdapterKonga[i], false);
 	}

@@ -123,7 +123,11 @@ void VideoConfig::Load(const std::string& ini_file)
 
 	settings->Get("FastDepthCalc", &bFastDepthCalc, true);
 	settings->Get("MSAA", &iMultisamples, 1);
-	settings->Get("EFBScale", &iEFBScale, (int)SCALE_AUTO);
+#ifdef IS_PLAYBACK
+	settings->Get("EFBScale", &iEFBScale, (int)SCALE_2X);
+#else
+	settings->Get("EFBScale", &iEFBScale, (int)SCALE_1X);
+#endif
 	settings->Get("TexFmtOverlayEnable", &bTexFmtOverlayEnable, 0);
 	settings->Get("TexFmtOverlayCenter", &bTexFmtOverlayCenter, 0);
 	settings->Get("WireFrame", &bWireFrame, 0);
@@ -147,7 +151,7 @@ void VideoConfig::Load(const std::string& ini_file)
 	IniFile::Section* enhancements = iniFile.GetOrCreateSection("Enhancements");
 	enhancements->Get("ForceFiltering", &bForceFiltering, 0);
 	enhancements->Get("DisableFiltering", &bDisableTextureFiltering, 0);
-	enhancements->Get("MaxAnisotropy", &iMaxAnisotropy, 3);  // NOTE - this is x in (1 << x)
+	enhancements->Get("MaxAnisotropy", &iMaxAnisotropy, 0);  // NOTE - this is x in (1 << x)
 	enhancements->Get("PostProcessingEnable", &bPostProcessingEnable, false);
 	enhancements->Get("PostProcessingTrigger", &iPostProcessingTrigger, 0);
 	enhancements->Get("PostProcessingShaders", &sPostProcessingShaders, "");
@@ -176,7 +180,11 @@ void VideoConfig::Load(const std::string& ini_file)
 	hacks->Get("EFBFastAccess", &bEFBFastAccess, false);
 	hacks->Get("ForceProgressive", &bForceProgressive, true);
 	hacks->Get("EFBToTextureEnable", &bSkipEFBCopyToRam, true);
+#ifdef IS_PLAYBACK
+	hacks->Get("EFBScaledCopy", &bCopyEFBScaled, true);
+#else
 	hacks->Get("EFBScaledCopy", &bCopyEFBScaled, false);
+#endif
 	hacks->Get("EFBEmulateFormatChanges", &bEFBEmulateFormatChanges, false);
 	hacks->Get("ForceDualSourceBlend", &bForceDualSourceBlend, false);
 	hacks->Get("FullAsyncShaderCompilation", &bFullAsyncShaderCompilation, true);
