@@ -196,6 +196,9 @@ void FillIni(IniFile &inifile, const std::vector<GeckoCode> &gcodes)
 		FillLines(lines, enabledLines, geckoCode);
 	}
 
+	// TODO: add a write flag to the Section class so we don't need this
+	if (lines.size() == 0)
+		lines.push_back("");
 	inifile.SetLines("Gecko", lines);
 	inifile.SetLines("Gecko_Enabled", enabledLines);
 }

@@ -101,7 +101,6 @@ void SetActiveCodes(const std::vector<GeckoCode>& gcodes)
 		if ((gecko_code.enabled && !IsDisabledMeleeCode(gecko_code)) 
 			|| IsEnabledMeleeCode(gecko_code))
 		{
-			printf("%s is active\n", gecko_code.name.c_str());
 			active_codes.push_back(gecko_code);
 		}
 	}
