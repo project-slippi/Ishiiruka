@@ -39,7 +39,7 @@ GCAdapterConfigDiag::GCAdapterConfigDiag(wxWindow* const parent, const wxString&
 	}
 	else
 	{
-		m_adapter_status->SetLabelText(wxString::Format("%s (input rate: %.1f hz)", _("Adapter Detected"), 1000.0 / GCAdapter::ReadRate()));
+		m_adapter_status->SetLabelText(wxString::Format("%s (poll rate: %.1f hz)", _("Adapter Detected"), 1000.0 / GCAdapter::ReadRate()));
 	}
 	GCAdapter::SetAdapterCallback(std::bind(&GCAdapterConfigDiag::ScheduleAdapterUpdate, this));
 
@@ -81,7 +81,7 @@ void GCAdapterConfigDiag::OnUpdateAdapter(wxCommandEvent& WXUNUSED(event))
 {
 	bool unpause = Core::PauseAndLock(true);
 	if (GCAdapter::IsDetected())
-		m_adapter_status->SetLabelText(wxString::Format("%s (input rate: %.1f hz)", _("Adapter Detected"), 1000.0 / GCAdapter::ReadRate()));
+		m_adapter_status->SetLabelText(wxString::Format("%s (poll rate: %.1f hz)", _("Adapter Detected"), 1000.0 / GCAdapter::ReadRate()));
 	else
 		m_adapter_status->SetLabelText(_("Adapter Not Detected"));
 	Core::PauseAndLock(false, unpause);
@@ -100,5 +100,5 @@ void GCAdapterConfigDiag::OnAdapterKonga(wxCommandEvent& event)
 void GCAdapterConfigDiag::OnUpdateRate(wxTimerEvent& ev) 
 {
 	if (GCAdapter::IsDetected())
-		m_adapter_status->SetLabelText(wxString::Format("%s (input rate: %.1f hz)", _("Adapter Detected"), 1000.0 / GCAdapter::ReadRate()));
+		m_adapter_status->SetLabelText(wxString::Format("%s (poll rate: %.1f hz)", _("Adapter Detected"), 1000.0 / GCAdapter::ReadRate()));
 }
