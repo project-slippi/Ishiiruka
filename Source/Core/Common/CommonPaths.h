@@ -79,7 +79,7 @@
 #define SHADERCACHE_LEGACY_DIR "ShaderCache"
 
 // The theme directory used by default
-#define DEFAULT_THEME_DIR "Clean"
+#define DEFAULT_THEME_DIR "Clean Blue"
 
 // Subdirectory names for post-processing shader types
 #define POSTPROCESSING_SHADER_SUBDIR  "Postprocessing"

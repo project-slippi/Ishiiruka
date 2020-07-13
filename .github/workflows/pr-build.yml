@@ -23,23 +23,60 @@ jobs:
       - name: "Remove Redistributable"
         shell: cmd
         run: |
-          MsiExec.exe /passive /X{F0C3E5D1-1ADE-321E-8167-68EF0DE699A5}
-                    
+          MsiExec.exe /passive /X{F0C3E5D1-1ADE-321E-8167-68EF0DE699A5}  
       - name: "Setup MSBuild"
-        uses: microsoft/setup-msbuild@v1
-                    
-      - name: "Install DirectX Sdk"
+        uses: microsoft/setup-msbuild@v1   
+      - name: "Install DirectX SDK"
         shell: powershell
         run: |
           choco install directx-sdk
-          
       - name: "Checkout"
         uses: actions/checkout@v2.3.1
-      
-      - name: "Call MSBuild Release|x64"
+      - name: 'Fetch Git Tags'
+        if: success()
+        shell: bash
+        run: |
+          git fetch --prune --unshallow
+          echo ::set-env name=GIT_BRANCH::$(git rev-parse --abbrev-ref HEAD)
+          echo ::set-env name=GIT_HASH::$(git rev-parse --short HEAD)
+          echo ::set-env name=GIT_TAG::$(git describe --tags --abbrev=0)
+          echo ::set-env name=CURR_DATE::$(date +%Y-%m-%d)
+      - name: "Build Netplay Dolphin"
         shell: cmd
         run: |
           msbuild /p:Configuration=Release /p:Platform=x64 ${{ github.workspace }}\Source\Dolphin.sln
+      - name: "Package Netplay"
+        working-directory: ${{ github.workspace }}
+        run: |
+          $env:FILE_NAME="${{ env.CURR_DATE }}-${{ env.OBS_GIT_HASH }}-${{ env.OBS_GIT_TAG }}-win64-netplay.7z"
+          mkdir artifact
+          Xcopy /Y /E /I .\Overwrite\Sys .\Binary\x64\Sys
+          Xcopy /Y /E /I .\Overwrite\User .\Binary\x64\User
+          cd .\Binary\x64\
+          fsutil file createnew portable.txt 0
+          7z a ${env:FILE_NAME} .\*
+          move ${env:FILE_NAME} ..\..\artifact\
+      - name: "Build Playback Dolphin"
+        shell: cmd
+        run: |
+          msbuild /p:Configuration=ReleasePlayback /p:Platform=x64 ${{ github.workspace }}\Source\Dolphin.sln
+      - name: "Package Playback"
+        if: success()
+        working-directory: ${{ github.workspace }}
+        run: |
+          $env:FILE_NAME="${{ env.CURR_DATE }}-${{ env.OBS_GIT_HASH }}-${{ env.OBS_GIT_TAG }}-win64-playback.7z"
+          git clone https://github.com/project-slippi/slippi-desktop-app
+          cd .\Binary\x64\
+          Xcopy /Y /E /I ../../slippi-desktop-app/app/dolphin-dev/overwrite/Sys .\Sys
+          Xcopy /Y /E /I ../../slippi-desktop-app/app/dolphin-dev/overwrite/User .\User
+          7z a ${env:FILE_NAME} .\*
+          move ${env:FILE_NAME} ..\..\artifact\
+      - name: "Publish"
+        if: success()
+        uses: actions/upload-artifact@v2-preview
+        with:
+          name: "windows64-builds"
+          path: "./artifact/*.zip"
   ubuntu64:
       name: "Ubuntu"
       runs-on: ubuntu-18.04
@@ -99,12 +136,12 @@ jobs:
             qtbase5-private-dev \
             libxxf86vm-dev \
             x11proto-xinerama-dev
-        - name: "Build Dolphin"
+        - name: "Build Netplay Dolphin"
           if: success()
           working-directory: ${{ github.workspace }}
           run: |
-            ./build-linux.sh appimage
-        - name: "Build AppImage"
+            ./build-linux.sh
+        - name: "Build Netplay AppImage"
           if: success()
           working-directory: ${{ github.workspace }}
           run: |
@@ -117,6 +154,11 @@ jobs:
             FILE_NAME=${{ env.CURR_DATE }}-${{ env.GIT_HASH }}-${{ env.GIT_TAG }}-linux-appimage-netplay.zip
             zip -r "${FILE_NAME}" ./*.AppImage
             mv "${FILE_NAME}" ./artifact/
+        - name: "Build Playback Dolphin"
+          if: success()
+          working-directory: ${{ github.workspace }}
+          run: |
+            ./build-linux.sh playback
         - name: "Package Playback"
           if: success()
           working-directory: ${{ github.workspace }}
@@ -194,7 +236,7 @@ jobs:
           ../configure
           make -j7
           sudo make install
-      - name: "Build"
+      - name: "Build Netplay"
         if: success()
         shell: bash
         working-directory: ${{ github.workspace }}
@@ -215,6 +257,14 @@ jobs:
           cd ./build/Binaries/
           zip -r "${FILE_NAME}" Dolphin.app
           mv "${FILE_NAME}" ../../artifact/
+      - name: "Build Playback"
+        if: success()
+        shell: bash
+        working-directory: ${{ github.workspace }}
+        run: |
+          cd build
+          cmake -DIS_PLAYBACK=true ..
+          make -j7
       - name: "Package Playback"
         if: success()
         shell: bash

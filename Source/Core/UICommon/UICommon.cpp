@@ -82,21 +82,9 @@ void SetUserDirectory(const std::string& custom_path)
     File::SetUserPath(D_USER_IDX, custom_path + DIR_SEP);
     return;
   }
-
   std::string user_path = "";
+
 #ifdef _WIN32
-  // Detect where the User directory is. There are five different cases
-  // (on top of the command line flag, which overrides all this):
-  // 1. GetExeDirectory()\portable.txt exists
-  //    -> Use GetExeDirectory()\User
-  // 2. HKCU\Software\Dolphin Emulator\LocalUserConfig exists and is true
-  //    -> Use GetExeDirectory()\User
-  // 3. HKCU\Software\Dolphin Emulator\UserConfigPath exists
-  //    -> Use this as the user directory path
-  // 4. My Documents exists
-  //    -> Use My Documents\Dolphin Emulator as the User directory path
-  // 5. Default
-  //    -> Use GetExeDirectory()\User
 
   // Check our registry keys
   HKEY hkey;
@@ -124,28 +112,59 @@ void SetUserDirectory(const std::string& custom_path)
   bool my_documents_found = SUCCEEDED(
       SHGetFolderPath(nullptr, CSIDL_MYDOCUMENTS, nullptr, SHGFP_TYPE_CURRENT, my_documents));
 
-  if (local)  // Case 1-2
+  // Detect where the User directory is (on top of the command line flag, which overrides all this):
+  // 1. GetExeDirectory()\portable.txt exists
+  //    -> Use GetExeDirectory()\User
+  // 2. HKCU\Software\Dolphin Emulator\LocalUserConfig exists and is true
+  //    -> Use GetExeDirectory()\User
+  // 3. HKCU\Software\Dolphin Emulator\UserConfigPath exists
+  //    -> Use this as the user directory path
+  // 4. My Documents exists
+  //    -> Use My Documents\Dolphin Emulator as the User directory path
+  // 5. Default
+  //    -> Use GetExeDirectory()\User
+
+  if (local) // Case 1-2
     user_path = File::GetExeDirectory() + DIR_SEP USERDATA_DIR DIR_SEP;
-  else if (configPath[0])  // Case 3
+  else if (configPath[0]) // Case 3
     user_path = TStrToUTF8(configPath);
-  else if (my_documents_found)  // Case 4
+  else if (my_documents_found) // Case 4
     user_path = TStrToUTF8(my_documents) + DIR_SEP "Dolphin Emulator" DIR_SEP;
-  else  // Case 5
+  else // Case 5
     user_path = File::GetExeDirectory() + DIR_SEP USERDATA_DIR DIR_SEP;
 
-  // Prettify the path: it will be displayed in some places, we don't want a mix
-  // of \ and /.
+  // Prettify the path: it will be displayed in some places, we don't want a mix of \ and /.
   user_path = ReplaceAll(user_path, "\\", DIR_SEP);
 
   // Make sure it ends in DIR_SEP.
   if (*user_path.rbegin() != DIR_SEP_CHR)
     user_path += DIR_SEP;
-#else
+
+#elif defined(__APPLE__) || defined(ANDROID)
+
   if (File::Exists(ROOT_DIR DIR_SEP USERDATA_DIR))
   {
     user_path = ROOT_DIR DIR_SEP USERDATA_DIR DIR_SEP;
   }
   else
+  {
+    user_path = File::GetBundleDirectory() + "/Contents/Resources/User" DIR_SEP;
+  }
+
+#else
+
+  // If there's a ./User/ directory wherever we've executed this (?)
+  if (File::Exists(ROOT_DIR DIR_SEP USERDATA_DIR))
+  {
+    user_path = ROOT_DIR DIR_SEP USERDATA_DIR DIR_SEP;
+  }
+  // If there's a portable.txt, use User/ in the executable path
+  else if (File::Exists(File::GetExeDirectory() + DIR_SEP "portable.txt"))
+  {
+      user_path = File::GetExeDirectory() + DIR_SEP "User" DIR_SEP;
+  }
+  // Otherwise, just use some XDG paths to keep user data
+  else 
   {
     const char* home = getenv("HOME");
     if (!home)
@@ -153,36 +172,20 @@ void SetUserDirectory(const std::string& custom_path)
     if (!home)
       home = "";
     std::string home_path = std::string(home) + DIR_SEP;
-
-#if defined(__APPLE__) || defined(ANDROID)
-    user_path = File::GetBundleDirectory() + "/Contents/Resources/User" DIR_SEP;
-
-    // For Slippi users on non-Apple/non-Android POSIX systems, we want the 
-    // entire configuration to live in ~/.config/{User,Sys}
-#else
-
-    // If this is a "portable" build, use User/ in the executable path
-    std::string exe_path = File::GetExeDirectory();
-    if (File::Exists(exe_path + DIR_SEP "portable.txt"))
-    {
-      user_path = exe_path + DIR_SEP "User" DIR_SEP;
-      File::SetUserPath(D_USER_IDX, user_path);
-      return;
-    }
-
-    const char* config_home = getenv("XDG_CONFIG_HOME");
-    user_path = std::string(config_home && config_home[0] == '/' 
-	? config_home : (home_path + ".config")) 
-	+ DIR_SEP DOLPHIN_DATA_DIR DIR_SEP "User" DIR_SEP;
-    File::SetUserPath(D_USER_IDX, user_path);
-
+  
+    // Set the cache path to ~/.cache/SlippiOnline/
     const char* cache_home = getenv("XDG_CACHE_HOME");
     std::string cache_path = std::string(cache_home && cache_home[0] == '/' 
-	? cache_home : (home_path + ".cache")) + DIR_SEP DOLPHIN_DATA_DIR DIR_SEP;
+        ? cache_home : (home_path + ".cache")) + DIR_SEP DOLPHIN_DATA_DIR DIR_SEP;
     File::SetUserPath(D_CACHE_IDX, cache_path);
-      return;
-#endif
+  
+    // Set the user path to ~/.config/SlippiOnline/
+    const char* config_home = getenv("XDG_CONFIG_HOME");
+    user_path = std::string(config_home && config_home[0] == '/' 
+        ? config_home : (home_path + ".config")) 
+        + DIR_SEP DOLPHIN_DATA_DIR DIR_SEP;
   }
+
 #endif
   File::SetUserPath(D_USER_IDX, user_path);
 }

@@ -98,10 +98,9 @@ void SetActiveCodes(const std::vector<GeckoCode>& gcodes)
 	// add enabled codes
 	for (const GeckoCode& gecko_code : gcodes)
 	{        
-		if ((gecko_code.enabled && !IsDisabledMeleeCode(gecko_code)) || IsEnabledMeleeCode(gecko_code))
+		if ((gecko_code.enabled && !IsDisabledMeleeCode(gecko_code)) 
+			|| IsEnabledMeleeCode(gecko_code))
 		{
-			// TODO: apply modifiers
-			// TODO: don't need description or creator string, just takin up memory
 			active_codes.push_back(gecko_code);
 		}
 	}
