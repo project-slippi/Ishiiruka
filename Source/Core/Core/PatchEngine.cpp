@@ -166,7 +166,7 @@ void LoadPatches()
 	// Load the current set of gecko codes from user/global config
 	std::vector<Gecko::GeckoCode> current_set;
 	Gecko::MergeCodes(globalIni, localIni, current_set);
-	Gecko::MarkEnabledCodes(localIni, current_set);
+	Gecko::MarkEnabledCodes(globalIni, localIni, current_set);
 	Gecko::SetActiveCodes(current_set);
 
 	// Load action replay codes

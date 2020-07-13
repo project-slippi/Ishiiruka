@@ -20,7 +20,7 @@ void BootstrapLocalConfig(IniFile& local_ini, std::vector<GeckoCode>& global_cod
 void MarkBootstrapCodes(const IniFile& globalIni, std::vector<GeckoCode>& gcodes);
 
 // For each enabled code in 'someIni', enable the matching code in 'gcodes'.
-void MarkEnabledCodes(const IniFile& someIni, std::vector<GeckoCode>& gcodes);
+void MarkEnabledCodes(const IniFile& globalIni, const IniFile& localIni, std::vector<GeckoCode>& gcodes);
 
 // Parse an 'ini', producing a set 'gcodes'.
 void ParseCodes(const IniFile& ini, std::vector<GeckoCode>& gcodes, bool is_user_ini);

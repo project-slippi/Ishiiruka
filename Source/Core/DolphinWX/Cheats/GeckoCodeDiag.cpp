@@ -105,7 +105,7 @@ void CodeConfigPanel::LoadCodes(const IniFile& globalIni, const IniFile& localIn
 	if (!checkRunning || Core::IsRunning())
 	{
 		Gecko::MergeCodes(globalIni, localIni, m_gcodes);
-		Gecko::MarkEnabledCodes(localIni, m_gcodes);
+		Gecko::MarkEnabledCodes(globalIni, localIni, m_gcodes);
 	}
 
 	UpdateCodeList(checkRunning);

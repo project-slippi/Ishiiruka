@@ -63,10 +63,16 @@ void ParseCodes(const IniFile &ini, std::vector<GeckoCode> &gcodes, bool is_user
 
 // For each line in the Gecko_Enabled section of a *local* INI file, mark all
 // matching matching gecko codes in some set as enabled.
-void MarkEnabledCodes(const IniFile &localIni, std::vector<GeckoCode> &gcodes)
+void MarkEnabledCodes(const IniFile& globalIni, const IniFile &localIni, std::vector<GeckoCode> &gcodes)
 {
+	std::vector<std::string> globallines;
+	std::vector<std::string> userlines;
 	std::vector<std::string> lines;
-	localIni.GetLines("Gecko_Enabled", &lines, false);
+	globalIni.GetLines("Gecko_Enabled", &globallines, false);
+	localIni.GetLines("Gecko_Enabled", &userlines, false);
+	lines.reserve(globallines.size() + userlines.size());
+	lines.insert(lines.end(), globallines.begin(), globallines.end());
+	lines.insert(lines.end(), userlines.begin(), userlines.end());
 	for (const std::string &line : lines)
 	{
 		if (line.size() == 0)
