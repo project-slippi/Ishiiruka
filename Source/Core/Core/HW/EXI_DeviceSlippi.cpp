@@ -46,6 +46,10 @@ static std::unordered_map<u8, std::string> slippi_connect_codes;
 extern std::unique_ptr<SlippiPlaybackStatus> g_playbackStatus;
 extern std::unique_ptr<SlippiReplayComm> g_replayComm;
 
+#ifdef LOCAL_TESTING
+bool isLocalConnected = false;
+#endif
+
 template <typename T> bool isFutureReady(std::future<T> &t)
 {
 	return t.wait_for(std::chrono::seconds(0)) == std::future_status::ready;
@@ -936,6 +940,7 @@ void CEXISlippi::prepareGeckoList()
 	    {0x8006b0dc, true}, // Recording/SendGamePreFrame.asm
 	    {0x803219ec, true}, // 3.4.0: Recording/FlushFrameBuffer.asm (Have to keep old ones for backward compatibility)
 	    {0x8006da34, true}, // 3.4.0: Recording/SendGamePostFrame.asm
+	    {0x8016d884, true}, // 3.7.0: Recording/SendGameEnd.asm
 
 	    {0x8021aae4, true}, // Binary/FasterMeleeSettings/DisableFdTransitions.bin
 	    {0x801cbb90, true}, // Binary/FasterMeleeSettings/LaglessFod.bin
@@ -988,6 +993,8 @@ void CEXISlippi::prepareGeckoList()
 	    {0x804ddb84, true}, // External/Widescreen/Nametag Fixes/Adjust Nametag Text X Scale.asm
 	    {0x803BB05C, true}, // External/Widescreen/Fix Screen Flash.asm
 	    {0x8036A4A8, true}, // External/Widescreen/Overwrite CObj Values.asm
+	    {0x800C0148, true}, // External/FlashRedFailedLCancel/ChangeColor.asm
+	    {0x8008D690, true}, // External/FlashRedFailedLCancel/TriggerColor.asm
 
 	    {0x8006A880, true}, // Online/Core/BrawlOffscreenDamage.asm
 	    {0x801A4DB4, true}, // Online/Core/ForceEngineOnRollback.asm
@@ -1734,8 +1741,11 @@ void CEXISlippi::prepareOnlineMatchState()
 	SlippiMatchmaking::ProcessState mmState = matchmaking->GetMatchmakeState();
 
 #ifdef LOCAL_TESTING
-	if (localSelections.isCharacterSelected)
+	if (localSelections.isCharacterSelected || isLocalConnected)
+	{
 		mmState = SlippiMatchmaking::ProcessState::CONNECTION_SUCCESS;
+		isLocalConnected = true;
+	}
 #endif
 
 	m_read_queue.push_back(mmState); // Matchmaking State
@@ -1903,31 +1913,16 @@ u16 CEXISlippi::getRandomStage()
 	    0x20, // Final Destination
 	};
 
-	std::vector<u16> stagesToConsider;
-
-	// stagesToConsider = stages;
-	// Add all stages to consider to the vector
-	for (auto it = stages.begin(); it != stages.end(); ++it)
-	{
-		auto stageId = *it;
-		if (lastSelectedStage != nullptr && stageId == *lastSelectedStage)
-			continue;
-
-		stagesToConsider.push_back(stageId);
-	}
-
-	// Shuffle the stages to consider. This isn't really necessary considering we
-	// use a random number to select an index but idk the generator was giving a lot
-	// of the same stage (same index) many times in a row or so it seemed to I figured
-	// this can't hurt
-	std::random_shuffle(stagesToConsider.begin(), stagesToConsider.end());
+	// Reset stage pool if it's empty
+	if (stagePool.empty())
+		stagePool.insert(stagePool.end(), stages.begin(), stages.end());
 
 	// Get random stage
-	int randIndex = generator() % stagesToConsider.size();
-	selectedStage = stagesToConsider[randIndex];
+	int randIndex = generator() % stagePool.size();
+	selectedStage = stagePool[randIndex];
 
-	// Set last selected stage
-	lastSelectedStage = &selectedStage;
+	// Remove last selection from stage pool
+	stagePool.erase(stagePool.begin() + randIndex);
 
 	return selectedStage;
 }
@@ -2108,6 +2103,13 @@ void CEXISlippi::handleConnectionCleanup()
 
 	// Clear character selections
 	localSelections.Reset();
+
+	// Reset random stage pool
+	stagePool.clear();
+
+#ifdef LOCAL_TESTING
+	isLocalConnected = false;
+#endif
 
 	ERROR_LOG(SLIPPI_ONLINE, "Connection cleanup completed...");
 }

@@ -5,6 +5,7 @@
 #pragma once
 
 #include <wx/dialog.h>
+#include <wx/timer.h>
 
 class wxStaticText;
 
@@ -19,8 +20,11 @@ public:
 
 private:
 	wxStaticText* m_adapter_status;
+	wxTimer m_update_rate_timer;
+	
 	int m_pad_id;
 
 	void OnAdapterRumble(wxCommandEvent& event);
 	void OnAdapterKonga(wxCommandEvent& event);
+	void OnUpdateRate(wxTimerEvent& ev);
 };

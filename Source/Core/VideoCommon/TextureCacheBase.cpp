@@ -742,7 +742,12 @@ TextureCacheBase::TCacheEntryBase* TextureCacheBase::Load(const u32 stage)
 	}
 	// how many levels the allocated texture shall have
 	const u32 texLevels = hires_tex ? hires_tex->m_levels : tex_levels;
+	// Feature disabled in Slippi: Texture scaling causes crashes on Pokémon Stadium
+#if ISHIIRUKA_ALLOW_TEXTURE_SCALING
 	const bool use_scaling = (g_ActiveConfig.iTexScalingType > 0) && !hires_tex && (width < 384) && (height < 384);
+#else
+	const bool use_scaling = false;
+#endif
 	// We can decode on the GPU if it is a supported format and the flag is enabled.
 	// Currently we don't decode RGBA8 textures from Tmem, as that would require copying from both
 	// banks, and if we're doing an copy we may as well just do the whole thing on the CPU, since
