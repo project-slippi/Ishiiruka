@@ -48,7 +48,7 @@ jobs:
       - name: "Package Netplay"
         working-directory: ${{ github.workspace }}
         run: |
-          $env:FILE_NAME="${{ env.CURR_DATE }}-${{ env.OBS_GIT_HASH }}-${{ env.OBS_GIT_TAG }}-win64-netplay.7z"
+          $env:FILE_NAME="${{ env.CURR_DATE }}-${{ env.OBS_GIT_HASH }}-${{ env.OBS_GIT_TAG }}-win64-netplay.zip"
           mkdir artifact
           Xcopy /Y /E /I .\Overwrite\Sys .\Binary\x64\Sys
           Xcopy /Y /E /I .\Overwrite\User .\Binary\x64\User
@@ -64,7 +64,7 @@ jobs:
         if: success()
         working-directory: ${{ github.workspace }}
         run: |
-          $env:FILE_NAME="${{ env.CURR_DATE }}-${{ env.OBS_GIT_HASH }}-${{ env.OBS_GIT_TAG }}-win64-playback.7z"
+          $env:FILE_NAME="${{ env.CURR_DATE }}-${{ env.OBS_GIT_HASH }}-${{ env.OBS_GIT_TAG }}-win64-playback.zip"
           git clone https://github.com/project-slippi/slippi-desktop-app
           cd .\Binary\x64\
           Xcopy /Y /E /I ../../slippi-desktop-app/app/dolphin-dev/overwrite/Sys .\Sys
