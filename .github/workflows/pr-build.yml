@@ -32,6 +32,15 @@ jobs:
           choco install directx-sdk
       - name: "Checkout"
         uses: actions/checkout@v2.3.1
+      - name: 'Fetch Git Tags'
+        if: success()
+        shell: bash
+        run: |
+          git fetch --prune --unshallow
+          echo ::set-env name=GIT_BRANCH::$(git rev-parse --abbrev-ref HEAD)
+          echo ::set-env name=GIT_HASH::$(git rev-parse --short HEAD)
+          echo ::set-env name=GIT_TAG::$(git describe --tags --abbrev=0)
+          echo ::set-env name=CURR_DATE::$(date +%Y-%m-%d)
       - name: "Build Netplay Dolphin"
         shell: cmd
         run: |
@@ -42,7 +51,7 @@ jobs:
           $env:FILE_NAME="${{ env.CURR_DATE }}-${{ env.OBS_GIT_HASH }}-${{ env.OBS_GIT_TAG }}-win64-netplay.7z"
           mkdir artifact
           Xcopy /Y /E /I .\Overwrite\Sys .\Binary\x64\Sys
-          Xcopy /Y /E /I .\Overwrite\Sys .\Binary\x64\User
+          Xcopy /Y /E /I .\Overwrite\User .\Binary\x64\User
           cd .\Binary\x64\
           fsutil file createnew portable.txt 0
           7z a ${env:FILE_NAME} .\*
@@ -67,7 +76,7 @@ jobs:
         uses: actions/upload-artifact@v2-preview
         with:
           name: "windows64-builds"
-          path: "./artifact/*.7z"
+          path: "./artifact/*.zip"
   ubuntu64:
       name: "Ubuntu"
       runs-on: ubuntu-18.04
