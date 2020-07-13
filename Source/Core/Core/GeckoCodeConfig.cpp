@@ -61,8 +61,8 @@ void ParseCodes(const IniFile &ini, std::vector<GeckoCode> &gcodes, bool is_user
 		gcodes.push_back(gcode);
 }
 
-// For each line in the Gecko_Enabled section of a *local* INI file, mark all
-// matching matching gecko codes in some set as enabled.
+// For each line in the Gecko_Enabled section of the global INI file, mark all
+// matching gecko codes as enabled, do the same for the user INI file but also handle disabling
 void MarkEnabledCodes(const IniFile& globalIni, const IniFile &localIni, std::vector<GeckoCode> &gcodes)
 {
 	std::vector<std::string> globallines;
@@ -150,7 +150,6 @@ void MergeCodes(const IniFile &globalIni, const IniFile &localIni, std::vector<G
 // Convert from a set of gecko codes to INI file contents (lines of text).
 static void FillLines(std::vector<std::string> &lines, std::vector<std::string> &enabledLines, const GeckoCode &gcode)
 {
-	// Is this jank? maybe
 	if (gcode.enabled)
 		enabledLines.push_back("$" + gcode.name);
 	else
