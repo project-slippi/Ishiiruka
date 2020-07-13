@@ -244,8 +244,8 @@ void SlippiUser::FileListenThread()
 	}
 }
 
-// On Linux platforms, the user.json file lives in the Sys/ directory in
-// order to deal with the fact that we want the configuration for AppImage
+// On Linux platforms, the user.json file lives in the XDG_CONFIG_HOME/SlippiOnline
+// directory in order to deal with the fact that we want the configuration for AppImage
 // builds to be mutable.
 std::string SlippiUser::getUserFilePath()
 {
