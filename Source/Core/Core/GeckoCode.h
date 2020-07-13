@@ -16,7 +16,8 @@ class GeckoCode
 {
 public:
 
-	GeckoCode() : enabled(false), bootstrap_enabled(false)
+	GeckoCode()
+	  : enabled(false)
 	{}
 
 	struct Code
@@ -31,7 +32,6 @@ public:
 	std::vector<std::string> notes;
 
 	bool enabled;
-	bool bootstrap_enabled;
 	bool user_defined;
 
 	bool Compare(const GeckoCode& compare) const;

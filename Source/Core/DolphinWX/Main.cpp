@@ -363,19 +363,6 @@ void DolphinApp::AfterInit()
 		}
 	}
 
-	IniFile globalIni = SConfig::GetInstance().LoadDefaultGameIni("GALE01", 2);
-	std::vector<Gecko::GeckoCode> global_codes;
-	Gecko::ParseCodes(globalIni, global_codes, false);
-	MarkBootstrapCodes(globalIni, global_codes);
-
-	for (const std::string &filename : newFiles) {
-		IniFile localIni;
-		Gecko::BootstrapLocalConfig(localIni, global_codes);
-		localIni.Save(filename);
-		printf("Created %s\n", filename.c_str());
-	}
-
-
 	if (m_confirm_stop)
 	{
 		if (m_confirm_setting.Upper() == "TRUE")
