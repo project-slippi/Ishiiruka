@@ -26,6 +26,7 @@
 #else
 	#define USERDATA_DIR "user"
 	#define DOLPHIN_DATA_DIR "SlippiOnline"
+	#define PLAYBACK_DATA_DIR "SlippiPlayback"
 #endif
 
 // Shared data dirs (Sys and shared User for Linux)
