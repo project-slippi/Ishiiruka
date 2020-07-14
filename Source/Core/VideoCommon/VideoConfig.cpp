@@ -81,11 +81,11 @@ void VideoConfig::Load(const std::string& ini_file)
 	settings->Get("UseXFB", &bUseXFB, 0);
 	settings->Get("UseRealXFB", &bUseRealXFB, 0);
 	settings->Get("SafeTextureCacheColorSamples", &iSafeTextureCache_ColorSamples, 128);
-	settings->Get("ShowFPS", &bShowFPS, false);
-	settings->Get("ShowNetPlayPing", &bShowNetPlayPing, false);
-	settings->Get("ShowNetPlayMessages", &bShowNetPlayMessages, false);
-    settings->Get("ShowOSDClock", &bShowOSDClock, false);
-    settings->Get("ShowFrameTimes", &bShowFrameTimes, false);
+	settings->Get("ShowFPS", &bShowFPS, true);
+	settings->Get("ShowNetPlayPing", &bShowNetPlayPing, true);
+	settings->Get("ShowNetPlayMessages", &bShowNetPlayMessages, true);
+        settings->Get("ShowOSDClock", &bShowOSDClock, false);
+        settings->Get("ShowFrameTimes", &bShowFrameTimes, false);
 	settings->Get("LogRenderTimeToFile", &bLogRenderTimeToFile, false);
 	settings->Get("ShowInputDisplay", &bShowInputDisplay, false);
 	settings->Get("OverlayStats", &bOverlayStats, false);
@@ -100,7 +100,7 @@ void VideoConfig::Load(const std::string& ini_file)
 	settings->Get("DumpEFBTarget", &bDumpEFBTarget, 0);
 	settings->Get("DumpFramesAsImages", &bDumpFramesAsImages, 0);
 	settings->Get("FreeLook", &bFreeLook, 0);
-	settings->Get("CompileShaderOnStartup", &bCompileShaderOnStartup, 1);
+	settings->Get("CompileShaderOnStartup", &bCompileShaderOnStartup, 0);
 	settings->Get("UseFFV1", &bUseFFV1, 0);
 	settings->Get("DumpFormat", &sDumpFormat, "avi");
 	settings->Get("DumpCodec", &sDumpCodec, "");
@@ -123,14 +123,18 @@ void VideoConfig::Load(const std::string& ini_file)
 
 	settings->Get("FastDepthCalc", &bFastDepthCalc, true);
 	settings->Get("MSAA", &iMultisamples, 1);
-	settings->Get("EFBScale", &iEFBScale, (int)SCALE_2X); // native	
+#ifdef IS_PLAYBACK
+	settings->Get("EFBScale", &iEFBScale, (int)SCALE_2X);
+#else
+	settings->Get("EFBScale", &iEFBScale, (int)SCALE_1X);
+#endif
 	settings->Get("TexFmtOverlayEnable", &bTexFmtOverlayEnable, 0);
 	settings->Get("TexFmtOverlayCenter", &bTexFmtOverlayCenter, 0);
 	settings->Get("WireFrame", &bWireFrame, 0);
 	settings->Get("DisableFog", &bDisableFog, 0);
 	settings->Get("SSAA", &bSSAA, false);
 	settings->Get("EnableOpenCL", &bEnableOpenCL, false);
-	settings->Get("BorderlessFullscreen", &bBorderlessFullscreen, true);
+	settings->Get("BorderlessFullscreen", &bBorderlessFullscreen, false);
 
 	settings->Get("SWZComploc", &bZComploc, true);
 	settings->Get("SWZFreeze", &bZFreeze, true);
@@ -147,7 +151,7 @@ void VideoConfig::Load(const std::string& ini_file)
 	IniFile::Section* enhancements = iniFile.GetOrCreateSection("Enhancements");
 	enhancements->Get("ForceFiltering", &bForceFiltering, 0);
 	enhancements->Get("DisableFiltering", &bDisableTextureFiltering, 0);
-	enhancements->Get("MaxAnisotropy", &iMaxAnisotropy, 3);  // NOTE - this is x in (1 << x)
+	enhancements->Get("MaxAnisotropy", &iMaxAnisotropy, 0);  // NOTE - this is x in (1 << x)
 	enhancements->Get("PostProcessingEnable", &bPostProcessingEnable, false);
 	enhancements->Get("PostProcessingTrigger", &iPostProcessingTrigger, 0);
 	enhancements->Get("PostProcessingShaders", &sPostProcessingShaders, "");
@@ -162,7 +166,7 @@ void VideoConfig::Load(const std::string& ini_file)
 	enhancements->Get("TessellationMax", &iTessellationMax, 6);
 	enhancements->Get("TessellationRoundingIntensity", &iTessellationRoundingIntensity, 0);
 	enhancements->Get("TessellationDisplacementIntensity", &iTessellationDisplacementIntensity, 0);
-	enhancements->Get("ForceTrueColor", &bForceTrueColor, true);
+	enhancements->Get("ForceTrueColor", &bForceTrueColor, false);
 
 	IniFile::Section* stereoscopy = iniFile.GetOrCreateSection("Stereoscopy");
 	stereoscopy->Get("StereoMode", &iStereoMode, 0);
@@ -172,11 +176,15 @@ void VideoConfig::Load(const std::string& ini_file)
 	stereoscopy->Get("StereoShader", &sStereoShader, "Anaglyph/dubois");
 
 	IniFile::Section* hacks = iniFile.GetOrCreateSection("Hacks");
-	hacks->Get("EFBAccessEnable", &bEFBAccessEnable, true);
+	hacks->Get("EFBAccessEnable", &bEFBAccessEnable, false);
 	hacks->Get("EFBFastAccess", &bEFBFastAccess, false);
 	hacks->Get("ForceProgressive", &bForceProgressive, true);
 	hacks->Get("EFBToTextureEnable", &bSkipEFBCopyToRam, true);
+#ifdef IS_PLAYBACK
 	hacks->Get("EFBScaledCopy", &bCopyEFBScaled, true);
+#else
+	hacks->Get("EFBScaledCopy", &bCopyEFBScaled, false);
+#endif
 	hacks->Get("EFBEmulateFormatChanges", &bEFBEmulateFormatChanges, false);
 	hacks->Get("ForceDualSourceBlend", &bForceDualSourceBlend, false);
 	hacks->Get("FullAsyncShaderCompilation", &bFullAsyncShaderCompilation, true);

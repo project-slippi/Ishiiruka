@@ -207,6 +207,11 @@ void VideoBackendBase::InitializeShared()
 	g_Config.GameIniLoad();
 	g_Config.UpdateProjectionHack();
 	g_Config.VerifyValidity();
+
+	// Slippi: Always save user's configuration when initializing backend.
+	// This is a hack to auto-generate sane defaults for Slippi.
+	g_Config.Save(File::GetUserPath(D_CONFIG_IDX) + "GFX.ini");
+
 	UpdateActiveConfig();
 
 	CommandProcessor::Init();

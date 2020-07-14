@@ -156,21 +156,26 @@ int GetSpeedhackCycles(const u32 addr)
 		return iter->second;
 }
 
+// Called at runtime (when booting the emulator).
 void LoadPatches()
 {
-	IniFile merged = SConfig::GetInstance().LoadGameIni();
+	// References to the global/local gecko configuration
 	IniFile globalIni = SConfig::GetInstance().LoadDefaultGameIni();
 	IniFile localIni = SConfig::GetInstance().LoadLocalGameIni();
 
+	// Load the current set of gecko codes from user/global config
+	std::vector<Gecko::GeckoCode> current_set;
+	Gecko::MergeCodes(globalIni, localIni, current_set);
+	Gecko::MarkEnabledCodes(globalIni, localIni, current_set);
+	Gecko::SetActiveCodes(current_set);
+
+	// Load action replay codes
 	LoadPatchSection("OnFrame", onFrame, globalIni, localIni);
 	ActionReplay::LoadAndApplyCodes(globalIni, localIni);
 
-	// lil silly
-	std::vector<Gecko::GeckoCode> gcodes;
-	Gecko::LoadCodes(globalIni, localIni, gcodes);
-	Gecko::SetActiveCodes(gcodes);
-
-	LoadSpeedhacks("Speedhacks", merged);
+	// Load other patches (?)
+	IniFile speedhacks = SConfig::GetInstance().LoadGameIni();
+	LoadSpeedhacks("Speedhacks", speedhacks);
 }
 
 static void ApplyPatches(const std::vector<Patch>& patches)
