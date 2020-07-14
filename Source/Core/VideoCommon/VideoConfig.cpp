@@ -71,7 +71,11 @@ void VideoConfig::Load(const std::string& ini_file)
 	iniFile.Load(ini_file);
 
 	IniFile::Section* hardware = iniFile.GetOrCreateSection("Hardware");
-	hardware->Get("VSync", &bVSync, 0);
+#ifdef IS_PLAYBACK
+	hardware->Get("VSync", &bVSync, true);
+#else
+	hardware->Get("VSync", &bVSync, false);
+#endif
 	hardware->Get("Adapter", &iAdapter, 0);
 
 	IniFile::Section* settings = iniFile.GetOrCreateSection("Settings");
@@ -81,11 +85,16 @@ void VideoConfig::Load(const std::string& ini_file)
 	settings->Get("UseXFB", &bUseXFB, 0);
 	settings->Get("UseRealXFB", &bUseRealXFB, 0);
 	settings->Get("SafeTextureCacheColorSamples", &iSafeTextureCache_ColorSamples, 128);
+#ifdef IS_PLAYBACK
+	settings->Get("ShowFPS", &bShowFPS, false);
+	settings->Get("ShowNetPlayPing", &bShowNetPlayPing, false);
+#else
 	settings->Get("ShowFPS", &bShowFPS, true);
 	settings->Get("ShowNetPlayPing", &bShowNetPlayPing, true);
-	settings->Get("ShowNetPlayMessages", &bShowNetPlayMessages, true);
-        settings->Get("ShowOSDClock", &bShowOSDClock, false);
-        settings->Get("ShowFrameTimes", &bShowFrameTimes, false);
+#endif
+	settings->Get("ShowNetPlayMessages", &bShowNetPlayMessages, false);
+    settings->Get("ShowOSDClock", &bShowOSDClock, false);
+    settings->Get("ShowFrameTimes", &bShowFrameTimes, false);
 	settings->Get("LogRenderTimeToFile", &bLogRenderTimeToFile, false);
 	settings->Get("ShowInputDisplay", &bShowInputDisplay, false);
 	settings->Get("OverlayStats", &bOverlayStats, false);

@@ -487,16 +487,21 @@ void SConfig::LoadGeneralSettings(IniFile& ini)
 void SConfig::LoadInterfaceSettings(IniFile& ini)
 {
 	IniFile::Section* interface = ini.GetOrCreateSection("Interface");
-
-	interface->Get("ConfirmStop", &bConfirmStop, false);
+#ifdef IS_PLAYBACK
+	interface->Get("UsePanicHandlers", &bUsePanicHandlers, false);
+	interface->Get("OnScreenDisplayMessages", &bOnScreenDisplayMessages, false);
+#else
 	interface->Get("UsePanicHandlers", &bUsePanicHandlers, true);
 	interface->Get("OnScreenDisplayMessages", &bOnScreenDisplayMessages, true);
+	
+#endif
 	interface->Get("HideCursor", &bHideCursor, true);
+	interface->Get("ConfirmStop", &bConfirmStop, false);
 	interface->Get("AutoHideCursor", &bAutoHideCursor, false);
 	interface->Get("MainWindowPosX", &iPosX, INT_MIN);
 	interface->Get("MainWindowPosY", &iPosY, INT_MIN);
-	interface->Get("MainWindowWidth", &iWidth, -1);
-	interface->Get("MainWindowHeight", &iHeight, -1);
+	interface->Get("MainWindowWidth", &iWidth, 640);
+	interface->Get("MainWindowHeight", &iHeight, 430);
 	interface->Get("LanguageCode", &m_InterfaceLanguage, "");
 	interface->Get("ShowToolbar", &m_InterfaceToolbar, true);
 	interface->Get("ShowStatusbar", &m_InterfaceStatusbar, true);
@@ -515,7 +520,11 @@ void SConfig::LoadDisplaySettings(IniFile& ini)
 
 	display->Get("Fullscreen", &bFullscreen, false);
 	display->Get("FullscreenResolution", &strFullscreenResolution, "Auto");
+#ifdef IS_PLAYBACK
+	display->Get("RenderToMain", &bRenderToMain, true);
+#else
 	display->Get("RenderToMain", &bRenderToMain, false);
+#endif
 	display->Get("RenderWindowXPos", &iRenderWindowXPos, -1);
 	display->Get("RenderWindowYPos", &iRenderWindowYPos, -1);
 	display->Get("RenderWindowWidth", &iRenderWindowWidth, 640);
@@ -583,8 +592,12 @@ void SConfig::LoadCoreSettings(IniFile& ini)
 #endif
 	core->Get("Fastmem", &bFastmem, true);
 	core->Get("DSPHLE", &bDSPHLE, true);
-	core->Get("TimingVariance", &iTimingVariance, 40);
+	core->Get("TimingVariance", &iTimingVariance, 8);
+#ifdef IS_PLAYBACK
+	core->Get("CPUThread", &bCPUThread, false);
+#else
 	core->Get("CPUThread", &bCPUThread, true);
+#endif
 	core->Get("SyncOnSkipIdle", &bSyncGPUOnSkipIdleHack, true);
 	core->Get("DefaultISO", &m_strDefaultISO);
 	core->Get("BootDefaultISO", &bBootDefaultISO, false);
@@ -780,7 +793,11 @@ void SConfig::LoadDefaults()
 
 	iCPUCore = PowerPC::CORE_JIT64;
 	iTimingVariance = 8;
+#ifdef IS_PLAYBACK
 	bCPUThread = false;
+#else
+	bCPUThread = true;
+#endif
 	bSyncGPUOnSkipIdleHack = true;
 	bRunCompareServer = false;
 	bDSPHLE = true;
@@ -792,10 +809,10 @@ void SConfig::LoadDefaults()
 	iBBDumpPort = -1;
 	iVideoRate = 8;
 	bHalfAudioRate = false;
-	iPollingMethod = POLLING_CONSOLE;
+	iPollingMethod = POLLING_ONSIREAD;
 	bSyncGPU = false;
 	bFastDiscSpeed = false;
-	m_strWiiSDCardPath = File::GetUserPath(F_WIISDCARD_IDX);
+	m_strWiiSDCardPath = "";
 	bEnableMemcardSdWriting = true;
 	SelectedLanguage = 0;
 	bOverrideGCLanguage = false;
@@ -807,8 +824,8 @@ void SConfig::LoadDefaults()
 
 	iPosX = INT_MIN;
 	iPosY = INT_MIN;
-	iWidth = -1;
-	iHeight = -1;
+	iWidth = 640;
+	iHeight = 430;
 
 	m_analytics_id = "";
 	m_analytics_enabled = false;
