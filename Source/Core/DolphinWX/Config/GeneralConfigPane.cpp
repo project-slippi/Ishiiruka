@@ -56,13 +56,6 @@ void GeneralConfigPane::InitializeGUI()
 	m_cheats_checkbox = new wxCheckBox(this, wxID_ANY, _("Enable Cheats"));
 	m_boot_default_iso_checkbox = new wxCheckBox(this, wxID_ANY, _("Start Default ISO on Launch"));
 	m_force_ntscj_checkbox = new wxCheckBox(this, wxID_ANY, _("Force Console as NTSC-J"));
-	m_analytics_checkbox = new wxCheckBox(this, wxID_ANY, _("Enable Usage Statistics Reporting"));
-#ifdef __APPLE__
-	m_analytics_new_id = new wxButton(this, wxID_ANY, _("Generate a New Statistics Identity"),
-		wxDefaultPosition, wxSize(350, 25));
-#else
-	m_analytics_new_id = new wxButton(this, wxID_ANY, _("Generate a New Statistics Identity"));
-#endif
 	m_throttler_choice =
 		new wxChoice(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, m_throttler_array_string);
 	m_cpu_engine_radiobox =
@@ -77,14 +70,6 @@ void GeneralConfigPane::InitializeGUI()
 	m_force_ntscj_checkbox->SetToolTip(
 		_("Forces NTSC-J mode for using the Japanese ROM font.\nIf left unchecked, Dolphin defaults "
 			"to NTSC-U and automatically enables this setting when playing Japanese games."));
-	m_analytics_checkbox->SetToolTip(
-		_("Enables the collection and sharing of usage statistics data with the Dolphin development "
-			"team. This data is used to improve the emulator and help us understand how our users "
-			"interact with the system. No private data is ever collected."));
-	m_analytics_new_id->SetToolTip(
-		_("Usage statistics reporting uses a unique random per-machine identifier to distinguish "
-			"users from one another. This button generates a new random identifier for this machine "
-			"which is dissociated from the previous one."));
 	m_throttler_choice->SetToolTip(_("Limits the emulation speed to the specified percentage.\nNote "
 		"that raising or lowering the emulation speed will also raise "
 		"or lower the audio pitch to prevent audio from stuttering."));
@@ -110,14 +95,6 @@ void GeneralConfigPane::InitializeGUI()
 	basic_settings_sizer->AddSpacer(space5);
 	basic_settings_sizer->Add(throttler_sizer);
 
-	wxStaticBoxSizer* const analytics_sizer =
-		new wxStaticBoxSizer(wxVERTICAL, this, _("Usage Statistics Reporting Settings"));
-	analytics_sizer->AddSpacer(space5);
-	analytics_sizer->Add(m_analytics_checkbox, 0, wxLEFT | wxRIGHT, space5);
-	analytics_sizer->AddSpacer(space5);
-	analytics_sizer->Add(m_analytics_new_id, 0, wxLEFT | wxRIGHT, space5);
-	analytics_sizer->AddSpacer(space5);
-
 	wxStaticBoxSizer* const advanced_settings_sizer =
 		new wxStaticBoxSizer(wxVERTICAL, this, _("Advanced Settings"));
 	advanced_settings_sizer->AddSpacer(space5);
@@ -129,8 +106,6 @@ void GeneralConfigPane::InitializeGUI()
 	wxBoxSizer* const main_sizer = new wxBoxSizer(wxVERTICAL);
 	main_sizer->AddSpacer(space5);
 	main_sizer->Add(basic_settings_sizer, 0, wxEXPAND | wxLEFT | wxRIGHT, space5);
-	main_sizer->AddSpacer(space5);
-	main_sizer->Add(analytics_sizer, 0, wxEXPAND | wxLEFT | wxLEFT, space5);
 	main_sizer->AddSpacer(space5);
 	main_sizer->Add(advanced_settings_sizer, 0, wxEXPAND | wxLEFT | wxRIGHT, space5);
 	main_sizer->AddSpacer(space5);
@@ -146,7 +121,6 @@ void GeneralConfigPane::LoadGUIValues()
 	m_cheats_checkbox->SetValue(startup_params.bEnableCheats);
 	m_boot_default_iso_checkbox->SetValue(startup_params.bBootDefaultISO);
 	m_force_ntscj_checkbox->SetValue(startup_params.bForceNTSCJ);
-	m_analytics_checkbox->SetValue(startup_params.m_analytics_enabled);
 	u32 selection = std::lround(startup_params.m_EmulationSpeed * 10.0f);
 	if (selection < m_throttler_array_string.size())
 		m_throttler_choice->SetSelection(selection);
@@ -171,10 +145,6 @@ void GeneralConfigPane::BindEvents()
 	m_force_ntscj_checkbox->Bind(wxEVT_CHECKBOX, &GeneralConfigPane::OnForceNTSCJCheckBoxChanged,
 		this);
 	m_force_ntscj_checkbox->Bind(wxEVT_UPDATE_UI, &WxEventUtils::OnEnableIfCoreNotRunning);
-
-	m_analytics_checkbox->Bind(wxEVT_CHECKBOX, &GeneralConfigPane::OnAnalyticsCheckBoxChanged, this);
-
-	m_analytics_new_id->Bind(wxEVT_BUTTON, &GeneralConfigPane::OnAnalyticsNewIdButtonClick, this);
 
 	m_throttler_choice->Bind(wxEVT_CHOICE, &GeneralConfigPane::OnThrottlerChoiceChanged, this);
 
@@ -214,16 +184,4 @@ void GeneralConfigPane::OnThrottlerChoiceChanged(wxCommandEvent& event)
 void GeneralConfigPane::OnCPUEngineRadioBoxChanged(wxCommandEvent& event)
 {
 	SConfig::GetInstance().iCPUCore = m_cpu_cores.at(event.GetSelection()).CPUid;
-}
-
-void GeneralConfigPane::OnAnalyticsCheckBoxChanged(wxCommandEvent& event)
-{
-	SConfig::GetInstance().m_analytics_enabled = m_analytics_checkbox->IsChecked();
-	DolphinAnalytics::Instance()->ReloadConfig();
-}
-
-void GeneralConfigPane::OnAnalyticsNewIdButtonClick(wxCommandEvent& event)
-{
-	DolphinAnalytics::Instance()->GenerateNewIdentity();
-	wxMessageBox(_("New identity generated."), _("Identity generation"), wxICON_INFORMATION);
 }
