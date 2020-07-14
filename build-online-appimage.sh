@@ -38,7 +38,7 @@ mkdir -p AppDir
 	-i ./Data/dolphin-emu.png
 
 # Add the sys dir to the AppDir for packaging
-cp -r Overwrite/Sys AppDir/usr/bin
+cp -r Data/Sys AppDir/usr/bin
 
 # Package up the update tool within the AppImage
 cp ./Tools/appimageupdatetool ./AppDir/usr/bin/
