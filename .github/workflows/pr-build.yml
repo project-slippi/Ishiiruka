@@ -187,7 +187,7 @@ jobs:
           run: |
             mkdir artifact
             FILE_NAME=${{ env.CURR_DATE }}-${{ env.GIT_HASH }}-${{ env.GIT_TAG }}-linux-appimage-netplay.zip
-            zip -r "${FILE_NAME}" ./*.AppImage
+            zip -r "${FILE_NAME}" ./*.AppImage*
             mv "${FILE_NAME}" ./artifact/
         - name: "Publish"
           if: success()
