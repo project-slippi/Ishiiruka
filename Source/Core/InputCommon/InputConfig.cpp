@@ -23,8 +23,11 @@ bool InputConfig::LoadConfig(bool isGC)
 	std::string path;
 
 	// This is so we can push the b0xx inis to the user's folder, kinda hacky
+	// TODO: Find a less hacky way to do this and support Linux
+#if defined(_WIN32) || defined(__APPLE__)
 	File::CopyDir(File::GetSysDirectory() + DIR_SEP + "Config", File::GetUserPath(D_CONFIG_IDX));
 	File::DeleteDirRecursively(File::GetSysDirectory() + DIR_SEP + "Config");
+#endif
 
 	if (SConfig::GetInstance().GetGameID() != "00000000")
 	{
