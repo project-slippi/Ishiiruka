@@ -28,6 +28,8 @@
 #include "Core/HW/SystemTimers.h"
 #include "Core/State.h"
 
+#include <json.hpp>
+
 // Not clean but idk a better way atm
 #include "DolphinWX/Frame.h"
 #include "DolphinWX/Main.h"
@@ -1693,6 +1695,22 @@ void CEXISlippi::startFindMatch(u8 *payload)
 
 	// Store this search so we know what was queued for
 	lastSearch = search;
+
+	if (search.mode == SlippiMatchmaking::OnlinePlayMode::DIRECT)
+	{
+		std::string previousPlayersFilePath = File::GetExeDirectory() + DIR_SEP + "previous_players.json";
+		json previousPlayers;
+		if (File::Exists(previousPlayersFilePath))
+		{
+			std::string previousPlayersFileContents;
+			File::ReadFileToString(previousPlayersFileContents, previousPlayersFileContents);
+			previousPlayers = json::parse(previousPlayersFileContents, nullptr, false);
+		}
+
+		previousPlayers.push_back(shiftJisCode);
+
+		File::WriteStringToFile(previousPlayers.dump(), previousPlayersFilePath);
+	}
 
 #ifndef LOCAL_TESTING
 	if (!isEnetInitialized)
