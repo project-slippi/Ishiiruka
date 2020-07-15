@@ -22,12 +22,15 @@ using json = nlohmann::json;
 
 SlippiDirectCodes::SlippiDirectCodes()
 {
+    // Prevent additional file reads, if we've already loaded data to memory.
     if (directCodeInfos.empty())
         ReadFile();
 }
 
 SlippiDirectCodes::~SlippiDirectCodes()
 {
+    // Add additional cleanup behavior here? Just added something
+    // So compiler wouldn't nag.
     return;
 }
 
@@ -39,6 +42,7 @@ void SlippiDirectCodes::ReadFile()
 
     if (!File::Exists(directCodesFilePath))
     {
+        // Attempt to create empty file with array as parent json item.
         if (File::CreateEmptyFile(directCodesFilePath))
         {
             File::WriteStringToFile("[\n]", directCodesFilePath);
@@ -70,13 +74,13 @@ void SlippiDirectCodes::AddOrUpdateCode(std::string code)
     
     if (!found)
     {
-        INFO_LOG(SLIPPI_ONLINE, "Reached new entry");
+        INFO_LOG(SLIPPI_ONLINE, "Creating new direct code entry %s" code);
         CodeInfo newDirectCode = {code, "today", false};
         directCodeInfos.push_back(newDirectCode);
     }
 
-    // TODO: Remove from here. Or start a thread that is periodically called
-    INFO_LOG(SLIPPI_ONLINE, "Attempting to write to file.");
+    // TODO: Maybe remove from here? 
+    // Or start a thread that is periodically called, if file writes will happen enough.
     WriteFile();
 }
 
@@ -86,22 +90,20 @@ void SlippiDirectCodes::WriteFile()
 
     // Outer empty array.
     json fileData = json::array();
+
     // Inner contents.
     json directCodeData = json::object();
 
     // TODO Define constants for string literals. 
     for (auto it = directCodeInfos.begin(); it != directCodeInfos.end(); ++it)
     {
-        directCodeData["name"] = it->connectCode;
+        directCodeData["connectCode"] = it->connectCode;
         directCodeData["lastPlayed"] = it->lastPlayed;
         directCodeData["isFavorite"] = it->isFavorite;
 
-        INFO_LOG(SLIPPI_ONLINE, "Reached pushing back data");
-
-        fileData.push_back(directCodeData);
+        fileData.emplace_back(directCodeData);
     }    
 
-    INFO_LOG(SLIPPI_ONLINE, "Dumping file contents %s", fileData.dump());
     File::WriteStringToFile(fileData.dump(), directCodesFilePath);
 }
 
@@ -152,7 +154,7 @@ std::vector<SlippiDirectCodes::CodeInfo> SlippiDirectCodes::parseFile(std::strin
         return directCodes;
     }
 
-    // Retrieve all saved direct codes
+    // Retrieve all saved direct codes and related info
     for (auto it = res.begin(); it != res.end(); ++it) 
     {
         if (it.value().is_array())
