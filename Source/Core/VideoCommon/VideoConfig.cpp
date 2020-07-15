@@ -132,11 +132,7 @@ void VideoConfig::Load(const std::string& ini_file)
 
 	settings->Get("FastDepthCalc", &bFastDepthCalc, true);
 	settings->Get("MSAA", &iMultisamples, 1);
-#ifdef IS_PLAYBACK
 	settings->Get("EFBScale", &iEFBScale, (int)SCALE_2X);
-#else
-	settings->Get("EFBScale", &iEFBScale, (int)SCALE_1X);
-#endif
 	settings->Get("TexFmtOverlayEnable", &bTexFmtOverlayEnable, 0);
 	settings->Get("TexFmtOverlayCenter", &bTexFmtOverlayCenter, 0);
 	settings->Get("WireFrame", &bWireFrame, 0);
