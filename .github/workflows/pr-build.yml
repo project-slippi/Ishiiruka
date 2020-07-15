@@ -53,6 +53,8 @@ jobs:
           Xcopy /Y /E /I .\Data\Sys .\Binary\x64\Sys
           cd .\Binary\x64\
           fsutil file createnew portable.txt 0
+          fsutil file createnew FIX-VCRUNTIME140-ERROR.txt 0
+          echo "Download and install this: https://aka.ms/vs/16/release/vc_redist.x64.exe" > .\FIX-VCRUNTIME140-ERROR.txt
           7z a ${env:FILE_NAME} .\*
           move ${env:FILE_NAME} ..\..\artifact\
       - name: "Publish"
@@ -104,8 +106,6 @@ jobs:
           Xcopy /Y /E /I .\slippi-desktop-app\app\dolphin-dev\overwrite\User .\Binary\x64\User
           cd .\Binary\x64\
           fsutil file createnew portable.txt 0
-          fsutil file createnew FIX-VCRUNTIME140-ERROR.txt 0
-          echo "Download and install this: https://aka.ms/vs/16/release/vc_redist.x64.exe" > .\FIX-VCRUNTIME140-ERROR.txt
           7z a ${env:FILE_NAME} .\*
           move ${env:FILE_NAME} ..\..\artifact\
       - name: "Publish"
