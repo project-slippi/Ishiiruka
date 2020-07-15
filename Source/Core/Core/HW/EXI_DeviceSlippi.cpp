@@ -1699,17 +1699,36 @@ void CEXISlippi::startFindMatch(u8 *payload)
 	if (search.mode == SlippiMatchmaking::OnlinePlayMode::DIRECT)
 	{
 		std::string previousPlayersFilePath = File::GetExeDirectory() + DIR_SEP + "previous_players.json";
-		json previousPlayers;
+		std::list<std::string> previousPlayers;
 		if (File::Exists(previousPlayersFilePath))
 		{
 			std::string previousPlayersFileContents;
-			File::ReadFileToString(previousPlayersFileContents, previousPlayersFileContents);
-			previousPlayers = json::parse(previousPlayersFileContents, nullptr, false);
+			File::ReadFileToString(previousPlayersFilePath, previousPlayersFileContents);
+
+			try
+			{
+				json previousPlayersJson = json::parse(previousPlayersFileContents, nullptr, false);
+				if (previousPlayersJson.is_array())
+				{
+					previousPlayers = previousPlayersJson.get<std::list<std::string>>();
+				}
+			}
+			catch (...)
+			{
+				// Ignore parse error and default to empty previous players list
+			}
 		}
 
-		previousPlayers.push_back(shiftJisCode);
+		std::string utf8Code = SHIFTJISToUTF8(shiftJisCode);
+		previousPlayers.remove(utf8Code);
+		previousPlayers.push_front(utf8Code);
+		while (previousPlayers.size() > 10)
+		{
+			previousPlayers.pop_back();
+		}
 
-		File::WriteStringToFile(previousPlayers.dump(), previousPlayersFilePath);
+		json previousPlayersJson = previousPlayers;
+		File::WriteStringToFile(previousPlayersJson.dump(), previousPlayersFilePath);
 	}
 
 #ifndef LOCAL_TESTING
