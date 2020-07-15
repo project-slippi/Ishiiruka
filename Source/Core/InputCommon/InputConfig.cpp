@@ -4,6 +4,7 @@
 
 #include <vector>
 
+#include "Common\CommonPaths.h"
 #include "Common/FileUtil.h"
 #include "Common/IniFile.h"
 #include "Common/MsgHandler.h"
@@ -20,6 +21,10 @@ bool InputConfig::LoadConfig(bool isGC)
 	std::string num[MAX_BBMOTES] = { "1", "2", "3", "4", "BB" };
 	std::string profile[MAX_BBMOTES];
 	std::string path;
+
+	// This is so we can push the b0xx inis to the user's folder, kinda hacky
+	File::CopyDir(File::GetSysDirectory() + DIR_SEP + "Config", File::GetUserPath(D_CONFIG_IDX));
+	File::DeleteDirRecursively(File::GetSysDirectory() + DIR_SEP + "Config");
 
 	if (SConfig::GetInstance().GetGameID() != "00000000")
 	{
