@@ -780,12 +780,14 @@ std::string GetSysDirectory()
 	std::string sysDir;
 
 #if defined(__APPLE__)
-	sysDir = GetBundleDirectory() + DIR_SEP + SYSDATA_DIR + DIR_SEP;
+	sysDir = GetBundleDirectory() + DIR_SEP + SYSDATA_DIR;
 #elif defined(_WIN32) || defined(LINUX_LOCAL_DEV)
-	sysDir = GetExeDirectory() + DIR_SEP + SYSDATA_DIR + DIR_SEP;
+	sysDir = GetExeDirectory() + DIR_SEP + SYSDATA_DIR;
 #else
-	sysDir = SYSDATA_DIR + DIR_SEP;
+	sysDir = SYSDATA_DIR;
 #endif
+	sysDir += DIR_SEP;
+
 	INFO_LOG(COMMON, "GetSysDirectory: Setting to %s:", sysDir.c_str());
 	return sysDir;
 }
