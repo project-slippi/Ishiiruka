@@ -24,7 +24,7 @@ AboutDolphin::AboutDolphin(wxWindow* parent, wxWindowID id, const wxString& titl
 		this, wxID_ANY, WxUtils::LoadScaledResourceBitmap("dolphin_logo", this));
 
 	const wxString DolphinText = _("Ishiiruka - Dolphin");
-	const wxString RevisionText = scm_desc_str;
+	const wxString RevisionText = scm_rev_str;
 	const wxString CopyrightText =
 		_("(c) 2003-2015+ Dolphin Team. \"GameCube\" and \"Wii\" are trademarks of Nintendo. Dolphin "
 			"is not affiliated with Nintendo in any way.");
