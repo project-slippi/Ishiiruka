@@ -350,6 +350,11 @@ void DolphinApp::AfterInit()
 		DolphinAnalytics::Instance()->ReloadConfig();
 	}
 
+#ifdef _WIN32
+	// delete the VC notice file since the user has successfully started Dolphin.
+	std::string vc_notice_path = File::GetExeDirectory() + DIR_SEP + "FIX-VCRUNTIME140-ERROR.txt";
+	File::Delete(vc_notice_path);
+#endif
 
 	// Get a list of user INIs that we might have to create
 	std::vector<std::string> meleeIniFiles;
