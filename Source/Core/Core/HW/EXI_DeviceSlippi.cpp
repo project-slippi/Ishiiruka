@@ -103,6 +103,7 @@ CEXISlippi::CEXISlippi()
 	matchmaking = std::make_unique<SlippiMatchmaking>(user.get());
 	gameFileLoader = std::make_unique<SlippiGameFileLoader>();
 	g_replayComm = std::make_unique<SlippiReplayComm>();
+	directCodes = std::make_unique<SlippiDirectCodes>();
 
 	generator = std::default_random_engine(Common::Timer::GetTimeMs());
 
@@ -1653,6 +1654,11 @@ void CEXISlippi::startFindMatch(u8 *payload)
 	std::string shiftJisCode;
 	shiftJisCode.insert(shiftJisCode.begin(), &payload[1], &payload[1] + 18);
 	shiftJisCode.erase(std::find(shiftJisCode.begin(), shiftJisCode.end(), 0x00), shiftJisCode.end());
+
+	if (search.mode == SlippiMatchmaking::DIRECT)
+	{
+		directCodes->AddOrUpdateCode(shiftJisCode);
+	}
 
 	// TODO: Make this work so we dont have to pass shiftJis to mm server
 	// search.connectCode = SHIFTJISToUTF8(shiftJisCode).c_str();
