@@ -1688,9 +1688,15 @@ void CEXISlippi::startFindMatch(u8 *payload)
 	shiftJisCode.insert(shiftJisCode.begin(), &payload[1], &payload[1] + 18);
 	shiftJisCode.erase(std::find(shiftJisCode.begin(), shiftJisCode.end(), 0x00), shiftJisCode.end());
 
+	// Log the direct code to file.
+	// TODO: Add some behavior so only the codes that result in a 
+	// succesful connection are saved. 
 	if (search.mode == SlippiMatchmaking::DIRECT)
 	{
-		directCodes->AddOrUpdateCode(shiftJisCode);
+		// Make sure to convert to UTF8, otherwise json library will fail when 
+		// calling dump().
+		std::string utf8Code = SHIFTJISToUTF8(shiftJisCode);
+		directCodes->AddOrUpdateCode(utf8Code);
 	}
 
 	// TODO: Make this work so we dont have to pass shiftJis to mm server
