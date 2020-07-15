@@ -4,7 +4,7 @@
 
 #include <vector>
 
-#include "Common\CommonPaths.h"
+#include "Common/CommonPaths.h"
 #include "Common/FileUtil.h"
 #include "Common/IniFile.h"
 #include "Common/MsgHandler.h"
