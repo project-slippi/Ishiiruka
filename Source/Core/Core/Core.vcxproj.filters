@@ -787,6 +787,9 @@
     <ClCompile Include="..\DolphinWX\PlaybackSlider.cpp">
       <Filter>Slippi</Filter>
     </ClCompile>
+    <ClCompile Include="Slippi\SlippiDirectCodes.cpp">
+      <Filter>Slippi</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="BootManager.h" />
@@ -1350,6 +1353,9 @@
       <Filter>Slippi</Filter>
     </ClInclude>
     <ClInclude Include="Slippi\SlippiPlayback.h">
+      <Filter>Slippi</Filter>
+    </ClInclude>
+    <ClInclude Include="Slippi\SlippiDirectCodes.h">
       <Filter>Slippi</Filter>
     </ClInclude>
   </ItemGroup>

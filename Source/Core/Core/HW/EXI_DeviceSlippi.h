@@ -15,6 +15,7 @@
 #include "Core/Slippi/SlippiReplayComm.h"
 #include "Core/Slippi/SlippiSavestate.h"
 #include "Core/Slippi/SlippiUser.h"
+#include "Core/Slippi/SlippiDirectCodes.h"
 
 #define ROLLBACK_MAX_FRAMES 7
 #define MAX_NAME_LENGTH 15
@@ -215,6 +216,7 @@ class CEXISlippi : public IEXIDevice
 	std::unique_ptr<SlippiGameFileLoader> gameFileLoader;
 	std::unique_ptr<SlippiNetplayClient> slippi_netplay;
 	std::unique_ptr<SlippiMatchmaking> matchmaking;
+	std::unique_ptr<SlippiDirectCodes> directCodes;
 
 	std::map<s32, std::unique_ptr<SlippiSavestate>> activeSavestates;
 	std::deque<std::unique_ptr<SlippiSavestate>> availableSavestates;
