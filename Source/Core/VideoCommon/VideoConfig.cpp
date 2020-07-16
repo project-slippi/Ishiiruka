@@ -134,7 +134,7 @@ void VideoConfig::Load(const std::string& ini_file)
 	settings->Get("MSAA", &iMultisamples, 1);
 
 // Retina displays on macOS seemingly have worse performance when defaulted to @2x.
-#ifdef __WXOSX__
+#ifdef __APPLE__
 	settings->Get("EFBScale", &iEFBScale, (int)SCALE_1X);
 #else
 	settings->Get("EFBScale", &iEFBScale, (int)SCALE_2X);
