@@ -19,6 +19,9 @@
 #include "Core/Core.h"
 #include "Core/PowerPC/PowerPC.h"
 #include "DolphinWX/WxEventUtils.h"
+#ifdef USE_DISCORD_PRESENCE
+#include "UICommon/DiscordPresence.h"
+#endif
 
 GeneralConfigPane::GeneralConfigPane(wxWindow* parent, wxWindowID id) : wxPanel(parent, id)
 {
@@ -55,6 +58,9 @@ void GeneralConfigPane::InitializeGUI()
 	m_dual_core_checkbox = new wxCheckBox(this, wxID_ANY, _("Enable Dual Core (speedup)"));
 	m_cheats_checkbox = new wxCheckBox(this, wxID_ANY, _("Enable Cheats"));
 	m_boot_default_iso_checkbox = new wxCheckBox(this, wxID_ANY, _("Start Default ISO on Launch"));
+#ifdef USE_DISCORD_PRESENCE
+	m_discord_presence_checkbox = new wxCheckBox(this, wxID_ANY, _("Show Current Game on Discord"));
+#endif
 	m_force_ntscj_checkbox = new wxCheckBox(this, wxID_ANY, _("Force Console as NTSC-J"));
 	m_throttler_choice =
 		new wxChoice(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, m_throttler_array_string);
@@ -67,6 +73,11 @@ void GeneralConfigPane::InitializeGUI()
 			"speed improvements on most modern PCs, but can cause occasional crashes/glitches."));
 	m_cheats_checkbox->SetToolTip(_("Enables the use of Action Replay and Gecko cheats."));
 	m_boot_default_iso_checkbox->SetToolTip(_("Boots the Default ISO when Dolphin launches. Right click a game in games list to set it as the default ISO."));
+#ifdef USE_DISCORD_PRESENCE
+	m_discord_presence_checkbox->SetToolTip(
+		_("Allow other people on Discord to see the current activity in Dolphin. Activities such as "
+			"the game being played, and for how long"));
+#endif
 	m_force_ntscj_checkbox->SetToolTip(
 		_("Forces NTSC-J mode for using the Japanese ROM font.\nIf left unchecked, Dolphin defaults "
 			"to NTSC-U and automatically enables this setting when playing Japanese games."));
@@ -93,6 +104,12 @@ void GeneralConfigPane::InitializeGUI()
 	basic_settings_sizer->AddSpacer(space5);
 	basic_settings_sizer->Add(m_boot_default_iso_checkbox, 0, wxLEFT | wxRIGHT, space5);
 	basic_settings_sizer->AddSpacer(space5);
+
+#ifdef USE_DISCORD_PRESENCE
+	basic_settings_sizer->Add(m_discord_presence_checkbox, 0, wxLEFT | wxRIGHT, space5);
+	basic_settings_sizer->AddSpacer(space5);
+#endif
+
 	basic_settings_sizer->Add(throttler_sizer);
 
 	wxStaticBoxSizer* const advanced_settings_sizer =
@@ -120,6 +137,11 @@ void GeneralConfigPane::LoadGUIValues()
 	m_dual_core_checkbox->SetValue(startup_params.bCPUThread);
 	m_cheats_checkbox->SetValue(startup_params.bEnableCheats);
 	m_boot_default_iso_checkbox->SetValue(startup_params.bBootDefaultISO);
+
+#ifdef USE_DISCORD_PRESENCE
+	m_discord_presence_checkbox->SetValue(startup_params.m_DiscordPresence);
+#endif
+
 	m_force_ntscj_checkbox->SetValue(startup_params.bForceNTSCJ);
 	u32 selection = std::lround(startup_params.m_EmulationSpeed * 10.0f);
 	if (selection < m_throttler_array_string.size())
@@ -141,6 +163,11 @@ void GeneralConfigPane::BindEvents()
 	m_cheats_checkbox->Bind(wxEVT_UPDATE_UI, &WxEventUtils::OnEnableIfCoreNotRunning);
 
 	m_boot_default_iso_checkbox->Bind(wxEVT_CHECKBOX, &GeneralConfigPane::OnBootDefaultCheckBoxChanged, this);
+
+#ifdef USE_DISCORD_PRESENCE
+	m_discord_presence_checkbox->Bind(wxEVT_CHECKBOX, &GeneralConfigPane::OnDiscordPresenceCheckBoxChanged, this);
+	m_discord_presence_checkbox->Bind(wxEVT_UPDATE_UI, &WxEventUtils::OnEnableIfCoreNotRunning);
+#endif
 
 	m_force_ntscj_checkbox->Bind(wxEVT_CHECKBOX, &GeneralConfigPane::OnForceNTSCJCheckBoxChanged,
 		this);
@@ -174,6 +201,13 @@ void GeneralConfigPane::OnForceNTSCJCheckBoxChanged(wxCommandEvent& event)
 {
 	SConfig::GetInstance().bForceNTSCJ = m_force_ntscj_checkbox->IsChecked();
 }
+
+#ifdef USE_DISCORD_PRESENCE
+void GeneralConfigPane::OnDiscordPresenceCheckBoxChanged(wxCommandEvent& event)
+{
+	Discord::SetDiscordPresenceEnabled(m_discord_presence_checkbox->IsChecked());
+}
+#endif
 
 void GeneralConfigPane::OnThrottlerChoiceChanged(wxCommandEvent& event)
 {

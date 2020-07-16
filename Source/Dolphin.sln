@@ -161,6 +161,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "open-vcdiff", "..\Externals
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "semver", "..\Externals\semver\semver.vcxproj", "{0EBBDAFA-3A7D-46D0-B0EE-F53D7DD6F571}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "discord-rpc", "..\Externals\discord-rpc\src\discord-rpc.vcxproj", "{4482FD2A-EC43-3FFB-AC20-2E5C54B05EAD}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -847,6 +849,50 @@ Global
 		{0EBBDAFA-3A7D-46D0-B0EE-F53D7DD6F571}.ReleasePlayback|x64.Build.0 = Release|x64
 		{0EBBDAFA-3A7D-46D0-B0EE-F53D7DD6F571}.ReleasePlayback|x86.ActiveCfg = ReleasePlayback|Win32
 		{0EBBDAFA-3A7D-46D0-B0EE-F53D7DD6F571}.ReleasePlayback|x86.Build.0 = ReleasePlayback|Win32
+		{1BC426C4-AF38-4C29-A925-02406BC00490}.Debug|Win32.ActiveCfg = Debug|Win32
+		{1BC426C4-AF38-4C29-A925-02406BC00490}.Debug|Win32.Build.0 = Debug|Win32
+		{1BC426C4-AF38-4C29-A925-02406BC00490}.Debug|x64.ActiveCfg = Debug|x64
+		{1BC426C4-AF38-4C29-A925-02406BC00490}.Debug|x64.Build.0 = Debug|x64
+		{1BC426C4-AF38-4C29-A925-02406BC00490}.Debug|x86.ActiveCfg = Debug|Win32
+		{1BC426C4-AF38-4C29-A925-02406BC00490}.Debug|x86.Build.0 = Debug|Win32
+		{1BC426C4-AF38-4C29-A925-02406BC00490}.DebugFast|Win32.ActiveCfg = DebugFast|Win32
+		{1BC426C4-AF38-4C29-A925-02406BC00490}.DebugFast|Win32.Build.0 = DebugFast|Win32
+		{1BC426C4-AF38-4C29-A925-02406BC00490}.DebugFast|x64.ActiveCfg = DebugFast|x64
+		{1BC426C4-AF38-4C29-A925-02406BC00490}.DebugFast|x64.Build.0 = DebugFast|x64
+		{1BC426C4-AF38-4C29-A925-02406BC00490}.DebugFast|x86.ActiveCfg = DebugFast|Win32
+		{1BC426C4-AF38-4C29-A925-02406BC00490}.DebugFast|x86.Build.0 = DebugFast|Win32
+		{1BC426C4-AF38-4C29-A925-02406BC00490}.Release|Win32.ActiveCfg = Release|Win32
+		{1BC426C4-AF38-4C29-A925-02406BC00490}.Release|Win32.Build.0 = Release|Win32
+		{1BC426C4-AF38-4C29-A925-02406BC00490}.Release|x64.ActiveCfg = Release|x64
+		{1BC426C4-AF38-4C29-A925-02406BC00490}.Release|x64.Build.0 = Release|x64
+		{1BC426C4-AF38-4C29-A925-02406BC00490}.Release|x86.ActiveCfg = Release|Win32
+		{1BC426C4-AF38-4C29-A925-02406BC00490}.Release|x86.Build.0 = Release|Win32
+		{1BC426C4-AF38-4C29-A925-02406BC00490}.ReleasePlayback|Win32.ActiveCfg = ReleasePlayback|Win32
+		{1BC426C4-AF38-4C29-A925-02406BC00490}.ReleasePlayback|Win32.Build.0 = ReleasePlayback|Win32
+		{1BC426C4-AF38-4C29-A925-02406BC00490}.ReleasePlayback|x64.ActiveCfg = ReleasePlayback|x64
+		{1BC426C4-AF38-4C29-A925-02406BC00490}.ReleasePlayback|x64.Build.0 = ReleasePlayback|x64
+		{1BC426C4-AF38-4C29-A925-02406BC00490}.ReleasePlayback|x86.ActiveCfg = ReleasePlayback|Win32
+		{1BC426C4-AF38-4C29-A925-02406BC00490}.ReleasePlayback|x86.Build.0 = ReleasePlayback|Win32
+		{4482FD2A-EC43-3FFB-AC20-2E5C54B05EAD}.Debug|Win32.ActiveCfg = Debug|x64
+		{4482FD2A-EC43-3FFB-AC20-2E5C54B05EAD}.Debug|x64.ActiveCfg = Debug|x64
+		{4482FD2A-EC43-3FFB-AC20-2E5C54B05EAD}.Debug|x64.Build.0 = Debug|x64
+		{4482FD2A-EC43-3FFB-AC20-2E5C54B05EAD}.Debug|x86.ActiveCfg = Debug|x64
+		{4482FD2A-EC43-3FFB-AC20-2E5C54B05EAD}.DebugFast|Win32.ActiveCfg = Release|x64
+		{4482FD2A-EC43-3FFB-AC20-2E5C54B05EAD}.DebugFast|Win32.Build.0 = Release|x64
+		{4482FD2A-EC43-3FFB-AC20-2E5C54B05EAD}.DebugFast|x64.ActiveCfg = Debug|x64
+		{4482FD2A-EC43-3FFB-AC20-2E5C54B05EAD}.DebugFast|x64.Build.0 = Debug|x64
+		{4482FD2A-EC43-3FFB-AC20-2E5C54B05EAD}.DebugFast|x86.ActiveCfg = Release|x64
+		{4482FD2A-EC43-3FFB-AC20-2E5C54B05EAD}.DebugFast|x86.Build.0 = Release|x64
+		{4482FD2A-EC43-3FFB-AC20-2E5C54B05EAD}.Release|Win32.ActiveCfg = Release|x64
+		{4482FD2A-EC43-3FFB-AC20-2E5C54B05EAD}.Release|x64.ActiveCfg = Release|x64
+		{4482FD2A-EC43-3FFB-AC20-2E5C54B05EAD}.Release|x64.Build.0 = Release|x64
+		{4482FD2A-EC43-3FFB-AC20-2E5C54B05EAD}.Release|x86.ActiveCfg = Release|x64
+		{4482FD2A-EC43-3FFB-AC20-2E5C54B05EAD}.ReleasePlayback|Win32.ActiveCfg = Release|x64
+		{4482FD2A-EC43-3FFB-AC20-2E5C54B05EAD}.ReleasePlayback|Win32.Build.0 = Release|x64
+		{4482FD2A-EC43-3FFB-AC20-2E5C54B05EAD}.ReleasePlayback|x64.ActiveCfg = Release|x64
+		{4482FD2A-EC43-3FFB-AC20-2E5C54B05EAD}.ReleasePlayback|x64.Build.0 = Release|x64
+		{4482FD2A-EC43-3FFB-AC20-2E5C54B05EAD}.ReleasePlayback|x86.ActiveCfg = Release|x64
+		{4482FD2A-EC43-3FFB-AC20-2E5C54B05EAD}.ReleasePlayback|x86.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

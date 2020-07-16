@@ -24,6 +24,7 @@ option(ENABLE_PULSEAUDIO "Enables PulseAudio sound backend" ON)
 option(ENABLE_OPENAL "Enables OpenAL sound backend" ON)
 option(ENABLE_LLVM "Enables LLVM support, for disassembly" ON)
 option(ENABLE_BLUEZ "Enables bluetooth support" ON)
+option(USE_DISCORD_PRESENCE "Enables Discord Rich Presence, show the current game on Discord" ON)
 
 # Maintainers: if you consider blanket disabling this for your users, please
 # consider the following points:
@@ -425,6 +426,7 @@ if(ANDROID)
 	set(USE_EGL 1)
 	set(DISABLE_WX 1)
 	set(ENABLE_QT2 0)
+	set(USE_DISCORD_PRESENCE 0)
 
 	# We are cross compiling, search only the toolchain for libraries and includes
 	SET(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
@@ -441,6 +443,7 @@ if(ENABLE_HEADLESS)
 	set(USE_EGL 1)
 	set(DISABLE_WX 1)
 	set(ENABLE_QT2 0)
+	set(USE_DISCORD_PRESENCE 0)
 	add_definitions(-DUSE_HEADLESS)
 endif()
 
@@ -1022,6 +1025,11 @@ if(APPLE)
 		${IOK_LIBRARY}
 		${FORCEFEEDBACK}
 		)
+endif()
+
+if(USE_DISCORD_PRESENCE)
+  message(STATUS "Using static DiscordRPC from Externals")
+  add_subdirectory(Externals/discord-rpc)
 endif()
 
 ########################################

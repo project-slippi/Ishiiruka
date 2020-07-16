@@ -17,6 +17,8 @@
 
 #include "InputCommon/GCAdapter.h"
 
+#include "UICommon/DiscordPresence.h"
+
 #include "UICommon/UICommon.h"
 
 #include "VideoCommon/VideoBackendBase.h"
@@ -29,6 +31,7 @@ void Init()
 {
   LogManager::Init();
   SConfig::Init();
+  Discord::Init();
   VideoBackendBase::PopulateList();
   WiimoteReal::LoadSettings();
   GCAdapter::Init();
@@ -42,6 +45,7 @@ void Shutdown()
   GCAdapter::Shutdown();
   WiimoteReal::Shutdown();
   VideoBackendBase::ClearList();
+  Discord::Shutdown();
   SConfig::Shutdown();
   LogManager::Shutdown();
 }

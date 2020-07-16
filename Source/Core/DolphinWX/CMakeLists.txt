@@ -222,6 +222,10 @@ if(wxWidgets_FOUND)
 	set(CPACK_PACKAGE_EXECUTABLES ${CPACK_PACKAGE_EXECUTABLES} ${DOLPHIN_EXE})
 endif()
 
+if(USE_DISCORD_PRESENCE)
+  target_compile_definitions(dolphin-emu-wx PRIVATE -DUSE_DISCORD_PRESENCE)
+endif()
+
 # Only build -nogui binaries when ENABLE_HEADLESS is on
 if(USE_X11 AND ENABLE_HEADLESS)
 	set(DOLPHIN_NOGUI_EXE ${DOLPHIN_EXE_BASE}-nogui)

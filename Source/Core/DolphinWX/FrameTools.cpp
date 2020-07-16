@@ -80,6 +80,7 @@
 
 #include "InputCommon/ControllerInterface/ControllerInterface.h"
 
+#include "UICommon/DiscordPresence.h"
 #include "VideoCommon/RenderBase.h"
 #include "VideoCommon/VideoBackendBase.h"
 #include "VideoCommon/VideoConfig.h"
@@ -745,6 +746,10 @@ void CFrame::StartGame(const std::string& filename)
 		SetThreadExecutionState(ES_CONTINUOUS | shouldScreenSave | ES_SYSTEM_REQUIRED);
 #endif
 
+#ifdef USE_DISCORD_PRESENCE
+		Discord::UpdateDiscordPresence();
+#endif
+
 		// We need this specifically to support setting the focus properly when using
 		// the 'render to main window' feature on Windows
 		if (auto panel = wxDynamicCast(m_RenderParent, wxPanel))
@@ -951,6 +956,10 @@ void CFrame::OnStopped()
 #ifdef _WIN32
 	// Allow windows to resume normal idling behavior
 	SetThreadExecutionState(ES_CONTINUOUS);
+#endif
+
+#ifdef USE_DISCORD_PRESENCE
+	Discord::UpdateDiscordPresence();
 #endif
 
 	m_RenderFrame->SetTitle(StrToWxStr(scm_rev_str));

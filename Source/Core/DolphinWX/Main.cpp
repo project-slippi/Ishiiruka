@@ -53,6 +53,7 @@
 #include "DolphinWX/WxUtils.h"
 
 #include "UICommon/UICommon.h"
+#include "UICommon/DiscordPresence.h"
 
 #include "VideoCommon/VideoBackendBase.h"
 #include "VideoCommon/OnScreenDisplay.h"
@@ -341,6 +342,11 @@ void DolphinApp::MacOpenFile(const wxString& fileName)
 
 void DolphinApp::AfterInit()
 {
+#ifdef USE_DISCORD_PRESENCE
+	if (SConfig::GetInstance().m_DiscordPresence)
+		Discord::Init();
+#endif
+
 	if (!m_batch_mode)
 		main_frame->UpdateGameList();
 
