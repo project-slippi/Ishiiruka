@@ -12,8 +12,8 @@
 #include "Common/Thread.h"
 #include "Core/ConfigManager.h"
 
-// ~10 ms - needs to be at least 240 for surround
-constexpr u32 BUFFER_SAMPLES = 512;
+// SSBM outputs samples in 5 ms batches - ensures we always have at least one extra batch buffered
+constexpr u32 MINIMUM_FRAMES = 480;
 
 long CubebStream::DataCallback(cubeb_stream* stream, void* user_data, const void* /*input_buffer*/,
                                void* output_buffer, long num_frames)
@@ -41,8 +41,15 @@ bool CubebStream::Start()
   params.format = CUBEB_SAMPLE_S16NE;
   params.layout = CUBEB_LAYOUT_STEREO;
 
+  u32 minimum_latency = 0; 
+  if (cubeb_get_min_latency(m_ctx.get(), &params, &minimum_latency) != CUBEB_OK)
+    ERROR_LOG(AUDIO, "Error getting minimum latency");
+  minimum_latency = std::max(minimum_latency, MINIMUM_FRAMES);
+
+  INFO_LOG(AUDIO, "Minimum latency: %i frames", minimum_latency);
+
   if (cubeb_stream_init(m_ctx.get(), &m_stream, "Dolphin Audio Output", nullptr, nullptr, nullptr,
-                        &params, 1, DataCallback,
+                        &params, minimum_latency, DataCallback,
                         StateCallback, this) != CUBEB_OK)
   {
     ERROR_LOG(AUDIO, "Error initializing cubeb stream");
