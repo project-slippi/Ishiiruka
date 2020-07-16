@@ -29,7 +29,9 @@ bool InputConfig::LoadConfig(bool isGC)
 	std::string sys_config_path = File::GetSysDirectory() + "Config";
 	if (File::Exists(sys_config_path)) {
 		std::string sys_boxx_path = sys_config_path + DIR_SEP + "Profiles" + DIR_SEP + "GCPad" + DIR_SEP + "B0XX.ini";
-		std::string user_boxx_path = File::GetUserPath(D_CONFIG_IDX) + "Profiles" + DIR_SEP + "GCPad" + DIR_SEP + "B0XX.ini";
+		std::string user_pad_path = File::GetUserPath(D_CONFIG_IDX) + "Profiles" + DIR_SEP + "GCPad" + DIR_SEP;
+		std::string user_boxx_path = user_pad_path + "B0XX.ini";
+		File::CreateFullPath(user_pad_path);
 		File::Copy(sys_boxx_path, user_boxx_path);
 		File::DeleteDirRecursively(sys_config_path);
 	}
