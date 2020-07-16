@@ -3,7 +3,7 @@
 
 CMAKE_FLAGS='-DLINUX_LOCAL_DEV=true'
 
-# Build
+# Build type
 if [ -z "$1" ]
     then
         echo "Using Netplay build config"

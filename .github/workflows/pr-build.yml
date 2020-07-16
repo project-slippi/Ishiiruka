@@ -182,7 +182,7 @@ jobs:
           if: success()
           working-directory: ${{ github.workspace }}
           run: |
-            ./build-online-appimage.sh
+            ./build-appimage.sh
         - name: "Package Netplay"
           if: success()
           working-directory: ${{ github.workspace }}
@@ -195,7 +195,7 @@ jobs:
           if: success()
           uses: actions/upload-artifact@v2-preview
           with:
-            name: "linux-netplay-build"
+            name: "linux-netplay"
             path: "./artifact/"
   ubuntu64-playback:
       name: "Ubuntu Playback"
@@ -261,25 +261,24 @@ jobs:
           working-directory: ${{ github.workspace }}
           run: |
             ./build-linux.sh playback
+        - name: "Build Playback AppImage"
+          if: success()
+          working-directory: ${{ github.workspace }}
+          run: |
+            ./build-appimage.sh playback
         - name: "Package Playback"
           if: success()
           working-directory: ${{ github.workspace }}
           run: |
             mkdir artifact
-            git clone https://github.com/project-slippi/slippi-desktop-app
-            cd ./build/Binaries/
-            touch portable.txt
-            cp -Rf ../../Data/Sys .
-            cp -Rf ../../slippi-desktop-app/app/dolphin-dev/overwrite/Sys .
-            cp -Rf ../../slippi-desktop-app/app/dolphin-dev/overwrite/User .
-            FILE_NAME=${{ env.CURR_DATE }}-${{ env.GIT_HASH }}-${{ env.GIT_TAG }}-ubuntu64-playback.zip
-            zip -r "${FILE_NAME}" .
-            mv "${FILE_NAME}" ../../artifact/
+            FILE_NAME=${{ env.CURR_DATE }}-${{ env.GIT_HASH }}-${{ env.GIT_TAG }}-linux-appimage-playback.zip
+            zip -r "${FILE_NAME}" ./*.AppImage
+            mv "${FILE_NAME}" ./artifact/
         - name: "Publish"
           if: success()
           uses: actions/upload-artifact@v2-preview
           with:
-            name: "linux-ubuntu18.04-playback"
+            name: "linux-playback"
             path: "./artifact/"
   macOS64-netplay:
     name: "macOS Netplay"
