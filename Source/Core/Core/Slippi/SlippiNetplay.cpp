@@ -360,9 +360,17 @@ void SlippiNetplayClient::ThreadFunc()
 		if (net > 0 && netEvent.type == ENET_EVENT_TYPE_CONNECT)
 		{
 			// TODO: Confirm gecko codes match?
-			if (netEvent.peer)
+			if (netEvent.peer && m_server != netEvent.peer)
 			{
 				WARN_LOG(SLIPPI_ONLINE, "[Netplay] Overwritting server");
+
+				// Try disconnecting old server.. maybe fix strange game 2 ping spike issues people are having?
+				if (m_server)
+				{
+					WARN_LOG(SLIPPI_ONLINE, "[Netplay] Disconnecting from old server");
+					enet_peer_reset(m_server);
+				}
+
 				m_server = netEvent.peer;
 			}
 
@@ -442,8 +450,15 @@ void SlippiNetplayClient::ThreadFunc()
 			switch (netEvent.type)
 			{
 			case ENET_EVENT_TYPE_RECEIVE:
-				rpac.append(netEvent.packet->data, netEvent.packet->dataLength);
-				OnData(rpac);
+				if (netEvent.peer == m_server)
+				{
+					rpac.append(netEvent.packet->data, netEvent.packet->dataLength);
+					OnData(rpac);
+				}
+				else
+				{
+					ERROR_LOG(SLIPPI_ONLINE, "[Netplay] Received packet from diff client, ignoring");
+				}
 
 				enet_packet_destroy(netEvent.packet);
 				break;
@@ -576,6 +591,9 @@ void SlippiNetplayClient::SendSlippiPad(std::unique_ptr<SlippiPad> pad)
 		         (*it)->padBuf[6], (*it)->padBuf[7]);
 		spac->append((*it)->padBuf, SLIPPI_PAD_DATA_SIZE); // only transfer 8 bytes per pad
 	}
+
+	ERROR_LOG(SLIPPI_ONLINE, "[Netplay] Transferring controller data for frame %d. Size: %d", frame,
+	          spac->getDataSize());
 
 	SendAsync(std::move(spac));
 
