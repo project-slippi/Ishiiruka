@@ -98,7 +98,7 @@ void GameCubeConfigPane::InitializeGUI()
 		new wxButton(this, wxID_ANY, "...", wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT);
 	m_memcard_path[1] =
 		new wxButton(this, wxID_ANY, "...", wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT);
-	
+#ifndef IS_PLAYBACK
 	// Slippi settings
 	m_replay_enable_checkbox = new wxCheckBox(this, wxID_ANY, _("Save Slippi Replays"));
 	m_replay_enable_checkbox->SetToolTip(
@@ -122,7 +122,7 @@ void GameCubeConfigPane::InitializeGUI()
 		"Leave this at 2 unless consistently playing on 120+ ping. "
 		"Increasing this can cause unplayable input delay, and lowering it can cause visual artifacts/lag."));
 	m_slippi_delay_frames_ctrl->SetRange(1, 9);
-
+#endif
 	const int space5 = FromDIP(5);
 	const int space10 = FromDIP(10);
 
@@ -159,7 +159,7 @@ void GameCubeConfigPane::InitializeGUI()
 	sbGamecubeDeviceSettings->AddSpacer(space5);
 	sbGamecubeDeviceSettings->Add(gamecube_EXIDev_sizer, 0, wxEXPAND | wxLEFT | wxRIGHT, space5);
 	sbGamecubeDeviceSettings->AddSpacer(space5);
-
+#ifndef IS_PLAYBACK
 	wxGridBagSizer* const sSlippiReplaySettings = new wxGridBagSizer(space5, space5);
 	sSlippiReplaySettings->Add(m_replay_enable_checkbox, wxGBPosition(0, 0), wxGBSpan(1, 2));
 	sSlippiReplaySettings->Add(m_replay_month_folders_checkbox, wxGBPosition(1, 0), wxGBSpan(1, 2),
@@ -184,18 +184,19 @@ void GameCubeConfigPane::InitializeGUI()
 	sbSlippiOnlineSettings->AddSpacer(space5);
 	sbSlippiOnlineSettings->Add(sSlippiOnlineSettings, 0, wxEXPAND | wxLEFT | wxRIGHT, space5);
 	sbSlippiOnlineSettings->AddSpacer(space5);
-
+#endif
 	wxBoxSizer* const main_sizer = new wxBoxSizer(wxVERTICAL);
 	main_sizer->AddSpacer(space5);
 	main_sizer->Add(sbGamecubeIPLSettings, 0, wxEXPAND | wxLEFT | wxRIGHT, space5);
 	main_sizer->AddSpacer(space5);
 	main_sizer->Add(sbGamecubeDeviceSettings, 0, wxEXPAND | wxLEFT | wxRIGHT, space5);
+#ifndef IS_PLAYBACK
 	main_sizer->AddSpacer(space5);
 	main_sizer->Add(sbSlippiReplaySettings, 0, wxEXPAND | wxLEFT | wxRIGHT, space5);
 	main_sizer->AddSpacer(space5);
 	main_sizer->Add(sbSlippiOnlineSettings, 0, wxEXPAND | wxLEFT | wxRIGHT, space5);
 	main_sizer->AddSpacer(space5);
-
+#endif
 	SetSizer(main_sizer);
 }
 
@@ -271,7 +272,7 @@ void GameCubeConfigPane::LoadGUIValues()
 		if (!isMemcard && !isMic && i < 2)
 			m_memcard_path[i]->Disable();
 	}
-
+#ifndef IS_PLAYBACK
 	bool enableReplays = startup_params.m_slippiSaveReplays;
 
 	m_replay_enable_checkbox->SetValue(enableReplays);
@@ -283,6 +284,7 @@ void GameCubeConfigPane::LoadGUIValues()
 	}
 
 	m_slippi_delay_frames_ctrl->SetValue(startup_params.m_slippiOnlineDelay);
+#endif
 }
 
 void GameCubeConfigPane::BindEvents()
@@ -306,7 +308,7 @@ void GameCubeConfigPane::BindEvents()
 
 	m_memcard_path[0]->Bind(wxEVT_BUTTON, &GameCubeConfigPane::OnSlotAButtonClick, this);
 	m_memcard_path[1]->Bind(wxEVT_BUTTON, &GameCubeConfigPane::OnSlotBButtonClick, this);
-
+#ifndef IS_PLAYBACK
 	m_replay_enable_checkbox->Bind(wxEVT_CHECKBOX, &GameCubeConfigPane::OnReplaySavingToggle, this);
 
 	m_replay_month_folders_checkbox->Bind(wxEVT_CHECKBOX, &GameCubeConfigPane::OnReplayMonthFoldersToggle,
@@ -315,6 +317,7 @@ void GameCubeConfigPane::BindEvents()
 	m_replay_directory_picker->Bind(wxEVT_DIRPICKER_CHANGED, &GameCubeConfigPane::OnReplayDirChanged, this);
 
 	m_slippi_delay_frames_ctrl->Bind(wxEVT_SPINCTRL, &GameCubeConfigPane::OnDelayFramesChanged, this);
+#endif
 }
 
 void GameCubeConfigPane::OnSystemLanguageChange(wxCommandEvent& event)

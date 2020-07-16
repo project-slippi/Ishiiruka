@@ -26,6 +26,7 @@
 #else
 	#define USERDATA_DIR "user"
 	#define DOLPHIN_DATA_DIR "SlippiOnline"
+	#define PLAYBACK_DATA_DIR "SlippiPlayback"
 #endif
 
 // Shared data dirs (Sys and shared User for Linux)
@@ -79,7 +80,7 @@
 #define SHADERCACHE_LEGACY_DIR "ShaderCache"
 
 // The theme directory used by default
-#define DEFAULT_THEME_DIR "Clean"
+#define DEFAULT_THEME_DIR "Clean Blue"
 
 // Subdirectory names for post-processing shader types
 #define POSTPROCESSING_SHADER_SUBDIR  "Postprocessing"

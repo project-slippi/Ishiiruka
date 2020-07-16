@@ -37,6 +37,9 @@ mkdir -p AppDir
 	-d ./Data/slippi-online.desktop \
 	-i ./Data/dolphin-emu.png
 
+# Add the sys dir to the AppDir for packaging
+cp -r Data/Sys AppDir/usr/bin
+
 # Package up the update tool within the AppImage
 cp ./Tools/appimageupdatetool ./AppDir/usr/bin/
 

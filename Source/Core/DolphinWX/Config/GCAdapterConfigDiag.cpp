@@ -39,7 +39,7 @@ GCAdapterConfigDiag::GCAdapterConfigDiag(wxWindow* const parent, const wxString&
 	}
 	else
 	{
-		m_adapter_status->SetLabelText(_("Adapter Detected"));
+		m_adapter_status->SetLabelText(wxString::Format("%s (poll rate: %.1f hz)", _("Adapter Detected"), 1000.0 / GCAdapter::ReadRate()));
 	}
 	GCAdapter::SetAdapterCallback(std::bind(&GCAdapterConfigDiag::ScheduleAdapterUpdate, this));
 
@@ -47,16 +47,24 @@ GCAdapterConfigDiag::GCAdapterConfigDiag(wxWindow* const parent, const wxString&
 
 	wxBoxSizer* const szr = new wxBoxSizer(wxVERTICAL);
 	szr->Add(m_adapter_status, 0, wxEXPAND);
+	szr->AddSpacer(space5);
 	szr->Add(gamecube_rumble, 0, wxEXPAND);
 	szr->Add(gamecube_konga, 0, wxEXPAND);
 	szr->AddSpacer(space5);
 	szr->Add(CreateButtonSizer(wxCLOSE | wxNO_DEFAULT), 0, wxEXPAND | wxLEFT | wxRIGHT, space5);
 	szr->AddSpacer(space5);
 
-	SetSizerAndFit(szr);
+	wxBoxSizer* const padding_szr = new wxBoxSizer(wxVERTICAL);
+	padding_szr->Add(szr, 0, wxALL, 12);
+
+	SetSizerAndFit(padding_szr);
 	Center();
 
 	Bind(wxEVT_ADAPTER_UPDATE, &GCAdapterConfigDiag::OnUpdateAdapter, this);
+	
+	m_update_rate_timer.SetOwner(this);
+	Bind(wxEVT_TIMER, &GCAdapterConfigDiag::OnUpdateRate, this, m_update_rate_timer.GetId());
+	m_update_rate_timer.Start(1000, wxTIMER_CONTINUOUS);
 }
 
 GCAdapterConfigDiag::~GCAdapterConfigDiag()
@@ -73,7 +81,7 @@ void GCAdapterConfigDiag::OnUpdateAdapter(wxCommandEvent& WXUNUSED(event))
 {
 	bool unpause = Core::PauseAndLock(true);
 	if (GCAdapter::IsDetected())
-		m_adapter_status->SetLabelText(_("Adapter Detected"));
+		m_adapter_status->SetLabelText(wxString::Format("%s (poll rate: %.1f hz)", _("Adapter Detected"), 1000.0 / GCAdapter::ReadRate()));
 	else
 		m_adapter_status->SetLabelText(_("Adapter Not Detected"));
 	Core::PauseAndLock(false, unpause);
@@ -87,4 +95,10 @@ void GCAdapterConfigDiag::OnAdapterRumble(wxCommandEvent& event)
 void GCAdapterConfigDiag::OnAdapterKonga(wxCommandEvent& event)
 {
 	SConfig::GetInstance().m_AdapterKonga[m_pad_id] = event.IsChecked();
+}
+
+void GCAdapterConfigDiag::OnUpdateRate(wxTimerEvent& ev) 
+{
+	if (GCAdapter::IsDetected())
+		m_adapter_status->SetLabelText(wxString::Format("%s (poll rate: %.1f hz)", _("Adapter Detected"), 1000.0 / GCAdapter::ReadRate()));
 }

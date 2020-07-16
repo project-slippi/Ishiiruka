@@ -196,7 +196,7 @@ class CEXISlippi : public IEXIDevice
   SlippiSpectateServer *m_slippiserver = nullptr;
 	SlippiMatchmaking::MatchSearchSettings lastSearch;
 
-	u16 *lastSelectedStage = nullptr;
+	std::vector<u16> stagePool;
 
 	u32 frameSeqIdx = 0;
 

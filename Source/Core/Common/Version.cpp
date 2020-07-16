@@ -23,8 +23,12 @@
 //#else
 //" " BUILD_TYPE_STR " " SCM_DESC_STR;
 //#endif
-#define SLIPPI_REV_STR "2.1.1"
+#define SLIPPI_REV_STR "2.2.0"
+#ifdef IS_PLAYBACK
+const std::string scm_rev_str = "Faster Melee - Slippi (" SLIPPI_REV_STR ") - Playback";
+#else
 const std::string scm_rev_str = "Faster Melee - Slippi (" SLIPPI_REV_STR ")";
+#endif
 const std::string scm_slippi_semver_str = SLIPPI_REV_STR;
 
 #ifdef _WIN32

@@ -62,7 +62,7 @@ target_include_directories(cubeb
   PUBLIC $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/exports>
 )
 
-install(DIRECTORY ${CMAKE_SOURCE_DIR}/include DESTINATION ${CMAKE_INSTALL_PREFIX})
+install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include DESTINATION ${CMAKE_INSTALL_PREFIX})
 install(DIRECTORY ${CMAKE_BINARY_DIR}/exports/ DESTINATION ${CMAKE_INSTALL_PREFIX}/include/cubeb)
 
 include(CMakePackageConfigHelpers)

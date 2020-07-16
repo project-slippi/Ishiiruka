@@ -22,22 +22,12 @@ Please read the [FAQ](https://dolphin-emu.org/docs/faq/) before using Dolphin.
     * A reasonably modern graphics card (Direct3D 10.0 / OpenGL 3.0).
     * A graphics card that supports Direct3D 11 / OpenGL 4.4 is recommended.
 
-### Android
-* OS
-    * Android (5.0 Lollipop or higher).
-* Processor
-    * An ARM processor with support for 64-bit applications. (An Intel x86 processor could also work in theory, but no known x86 devices support 64-bit applications.)
-* Graphics
-    * A graphics processor that supports OpenGL ES 3.0 or higher. Performance varies heavily with [driver quality](https://dolphin-emu.org/blog/2013/09/26/dolphin-emulator-and-opengl-drivers-hall-fameshame/).
-    * A graphics processor that supports standard desktop OpenGL features is recommended for best performance.
-
-Dolphin can only be installed on devices that satisfy the above requirements. Attempting to install on an unsupported device will fail and display an error message.
-
 ## Building for Windows
 Open the solution file `Source/Dolphin.sln` to build Dolphin on Windows using [Visual Studio 2019](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=Community&rel=16).
 Other compilers might be
 able to build Dolphin on Windows but have not been tested and are not
-recommended to be used. Git and Windows 10 SDK 10.0.17763.0 must be installed. You can [download it here](https://developer.microsoft.com/en-us/windows/downloads/sdk-archive/).
+recommended to be used. Git and Windows 10 SDK 10.0.17763.0 must be installed. You can [download it here](https://developer.microsoft.com/en-us/windows/downloads/sdk-archive/). Once the solution is loaded, change the Configuration from `Debug Win32` to `Release x64`, this can be done changed in the top toolbar.
+
 
 You also need the June 2010 DirectX SDK, you can [download it here](http://www.microsoft.com/en-us/download/details.aspx?id=6812). You will most likely have issues installing this, look at [this comment](https://stackoverflow.com/a/9401911) for how to fix it. Not sure everything in it is a hard requirement.
 
@@ -65,62 +55,17 @@ An application bundle will be created in `./Binaries`.
 If you are building on Mojave, you will need to install the 10.11 and 10.14 SDKs to build because Quicktime has been removed in the latest SDKs. Find the sdk version here https://github.com/phracker/MacOSX-SDKs and copy it to 
 `/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs`. You should not need to modify the plist file as the project readme seems to indicate.
 
-If you are building on Catalina, you only need to install the 10.14 SDK. However you will also need to install wxWidgets from source. Details on how to do this can be found by reading the CI script (https://github.com/project-slippi/Ishiiruka/blob/slippi/.github/workflows/main.yml#L109-L206).
-
-### Linux Global Build Steps:
-
-To install to your system.
-
-1. `mkdir build`
-2. `cd build`
-3. `cmake ..`
-4. `make`
-5. `sudo make install`
-
-### Linux Local Build Steps:
-
-Useful for development as root access is not required.
-
-1. `mkdir Build`
-2. `cd Build`
-3. `cmake .. -DLINUX_LOCAL_DEV=true`
-4. `make`
-5. `ln -s ../../Overwrite/{Sys,User} Binaries/`
+If you are building on Catalina, you only need to install the 10.14 SDK. However you will also need to install wxWidgets from source. Details on how to do this can be found by reading the CI script (https://github.com/project-slippi/Ishiiruka/blob/slippi/.github/workflows/pr-build.yml#L167-L196).
 
 ### Linux Portable Build Steps:
 
 Can be stored on external storage and used on different Linux systems.
 Or useful for having multiple distinct Dolphin setups for testing/development/TAS.
 
-1. `mkdir Build`
-2. `cd Build`
-3. `cmake .. -DLINUX_LOCAL_DEV=true`
-4. `make`
-5. `cp -r ../Overwrite/{Sys,User} Binaries/`
-6. `touch Binaries/portable.txt`
-
-## Building for Android
-
-These instructions assume familiarity with Android development. If you do not have an
-Android dev environment set up, see [AndroidSetup.md](AndroidSetup.md).
-
-If using Android Studio, import the Gradle project located in `./Source/Android`. 
-
-Android apps are compiled using a build system called Gradle. Dolphin's native component,
-however, is compiled using CMake. The Gradle script will attempt to run a CMake build
-automatically while building the Java code.
-
-## Uninstalling
-When Dolphin has been installed with the NSIS installer, you can uninstall
-Dolphin like any other Windows application.
-
-Linux users can run `cat install_manifest.txt | xargs -d '\n' rm` as root from the build directory
-to uninstall Dolphin from their system.
-
-macOS users can simply delete Dolphin.app to uninstall it.
-
-Additionally, you'll want to remove the global user directory (see below to
-see where it's stored) if you don't plan to reinstall Dolphin.
+1. Clone repo and navigate to the directory.
+2. `./build-linux.sh`
+3. `cp -r ../Data/Sys ./build/Binaries/`
+4. `touch ./build/Binaries/portable.txt`
 
 ## Command Line Usage
 `Usage: Dolphin [-h] [-d] [-l] [-e <str>] [-b] [-V <str>] [-A <str>]`  

@@ -4,15 +4,15 @@
 
 #include "Core/Debugger/Debugger_SymbolMap.h"
 
-#include <SlippiGame.h>
-#include "Core/Slippi/SlippiReplayComm.h"
 #include "Core/Slippi/SlippiPlayback.h"
+#include "Core/Slippi/SlippiReplayComm.h"
+#include <SlippiGame.h>
 #include <semver/include/semver200.h>
 #include <utility> // std::move
 
-
 #include "Common/CommonPaths.h"
 #include "Common/CommonTypes.h"
+#include "Common/FileUtil.h"
 #include "Common/Logging/Log.h"
 #include "Common/MemoryUtil.h"
 #include "Common/MsgHandler.h"
@@ -20,19 +20,17 @@
 #include "Common/Thread.h"
 #include "Core/HW/Memmap.h"
 
-#include "Core/NetPlayClient.h"
 #include "Core/Core.h"
 #include "Core/CoreTiming.h"
+#include "Core/NetPlayClient.h"
 
 #include "Core/HW/EXI_DeviceSlippi.h"
 #include "Core/HW/SystemTimers.h"
 #include "Core/State.h"
 
 // Not clean but idk a better way atm
-//#ifndef LINUX_LOCAL_DEV
 #include "DolphinWX/Frame.h"
 #include "DolphinWX/Main.h"
-//#endif
 
 #define FRAME_INTERVAL 900
 #define SLEEP_TIME_MS 8
@@ -46,6 +44,10 @@ static std::unordered_map<u8, std::string> slippi_connect_codes;
 
 extern std::unique_ptr<SlippiPlaybackStatus> g_playbackStatus;
 extern std::unique_ptr<SlippiReplayComm> g_replayComm;
+
+#ifdef LOCAL_TESTING
+bool isLocalConnected = false;
+#endif
 
 template <typename T> bool isFutureReady(std::future<T> &t)
 {
@@ -112,8 +114,9 @@ CEXISlippi::CEXISlippi()
 	localSelections.Reset();
 
 	// Update user file and then listen for User
-	user->UpdateFile();
+#ifndef IS_PLAYBACK
 	user->ListenForLogIn();
+#endif
 
 #ifdef CREATE_DIFF_FILES
 	// MnMaAll.usd
@@ -508,6 +511,12 @@ void CEXISlippi::createNewFile()
 	}
 
 	std::string dirpath = SConfig::GetInstance().m_strSlippiReplayDir;
+	// in case the config value just gets lost somehow
+	if (dirpath.empty())
+	{
+		SConfig::GetInstance().m_strSlippiReplayDir = File::GetHomeDirectory() + DIR_SEP + "Slippi";
+		dirpath = SConfig::GetInstance().m_strSlippiReplayDir;
+	}
 
 	// Remove a trailing / or \\ if the user managed to have that in their config
 	char dirpathEnd = dirpath.back();
@@ -932,6 +941,7 @@ void CEXISlippi::prepareGeckoList()
 	    {0x8006b0dc, true}, // Recording/SendGamePreFrame.asm
 	    {0x803219ec, true}, // 3.4.0: Recording/FlushFrameBuffer.asm (Have to keep old ones for backward compatibility)
 	    {0x8006da34, true}, // 3.4.0: Recording/SendGamePostFrame.asm
+	    {0x8016d884, true}, // 3.7.0: Recording/SendGameEnd.asm
 
 	    {0x8021aae4, true}, // Binary/FasterMeleeSettings/DisableFdTransitions.bin
 	    {0x801cbb90, true}, // Binary/FasterMeleeSettings/LaglessFod.bin
@@ -947,7 +957,6 @@ void CEXISlippi::prepareGeckoList()
 	    {0x800198a4, true}, // Binary/PerformanceLagReduction.bin
 	    {0x80019620, true}, // Binary/PerformanceLagReduction.bin
 	    {0x801A5054, true}, // Binary/PerformanceLagReduction.bin
-	    {0x80023ffc, true}, // Binary/GameMusicOn.bin + Binary/GameMusicOff.bin
 	    {0x80397878, true}, // Binary/OsReportPrintOnCrash.bin
 	    {0x801A4DA0, true}, // Binary/LagReduction/PD.bin
 	    {0x801A4DB4, true}, // Binary/LagReduction/PD.bin
@@ -985,10 +994,35 @@ void CEXISlippi::prepareGeckoList()
 	    {0x804ddb84, true}, // External/Widescreen/Nametag Fixes/Adjust Nametag Text X Scale.asm
 	    {0x803BB05C, true}, // External/Widescreen/Fix Screen Flash.asm
 	    {0x8036A4A8, true}, // External/Widescreen/Overwrite CObj Values.asm
+	    {0x800C0148, true}, // External/FlashRedFailedLCancel/ChangeColor.asm
+	    {0x8008D690, true}, // External/FlashRedFailedLCancel/TriggerColor.asm
 
-	    {0x801a4de4, true}, // Start engine loop
-	    {0x8038d0b0, true}, // PreventDuplicateSounds
-	    {0x801a5014, true}, // LoopEngineForRollback
+	    {0x8006A880, true}, // Online/Core/BrawlOffscreenDamage.asm
+	    {0x801A4DB4, true}, // Online/Core/ForceEngineOnRollback.asm
+	    {0x8016D310, true}, // Online/Core/HandleLRAS.asm
+	    {0x8034DED8, true}, // Online/Core/HandleRumble.asm
+	    {0x8016E748, true}, // Online/Core/InitOnlinePlay.asm
+	    {0x8016e904, true}, // Online/Core/InitPause.asm
+	    {0x801a5014, true}, // Online/Core/LoopEngineForRollback.asm
+	    {0x801a4de4, true}, // Online/Core/StartEngineLoop.asm
+	    {0x80376A28, true}, // Online/Core/TriggerSendInput.asm
+	    {0x801a4cb4, true}, // Online/Core/EXIFileLoad/AllocBuffer.asm
+	    {0x800163fc, true}, // Online/Core/EXIFileLoad/GetFileSize.asm
+	    {0x800166b8, true}, // Online/Core/EXIFileLoad/TransferFile.asm
+	    {0x80019260, true}, // Online/Core/Hacks/ForceNoDiskCrash.asm
+	    {0x80376304, true}, // Online/Core/Hacks/ForceNoVideoAssert.asm
+	    {0x80321d70, true}, // Online/Core/Hacks/PreventCharacterCrowdChants.asm
+	    {0x80019608, true}, // Online/Core/Hacks/PreventPadAlarmDuringRollback.asm
+	    {0x8038D224, true}, // Online/Core/Sound/AssignSoundInstanceId.asm
+	    {0x80088224, true}, // Online/Core/Sound/NoDestroyVoice.asm
+	    {0x800882B0, true}, // Online/Core/Sound/NoDestroyVoice2.asm
+	    {0x8038D0B0, true}, // Online/Core/Sound/PreventDuplicateSounds.asm
+	    {0x803775b8, true}, // Online/Logging/LogInputOnCopy.asm
+	    {0x8016e9b4, true}, // Online/Menus/InGame/InitInGame.asm
+	    {0x80185050, true}, // Online/Menus/VSScreen/HideStageDisplay/PreventEarlyR3Overwrite.asm
+	    {0x80184b1c, true}, // Online/Menus/VSScreen/HideStageText/SkipStageNumberShow.asm
+	    {0x801A45BC, true}, // Online/Slippi Online Scene/main.asm
+	    {0x801BFA20, true}, // Online/Slippi Online Scene/boot.asm
 	};
 
 	std::unordered_map<u32, bool> blacklist;
@@ -1000,7 +1034,8 @@ void CEXISlippi::prepareGeckoList()
 		// Some codes should only be blacklisted when not displaying rollbacks, these are codes
 		// that are required for things to not break when using Slippi savestates. Perhaps this
 		// should be handled by actually applying these codes in the playback ASM instead? not sure
-		blacklist[0x8038add0] = true; // PreventMusicAlarm
+		blacklist[0x8038add0] = true; // Online/Core/PreventFileAlarms/PreventMusicAlarm.asm
+		blacklist[0x80023FFC] = true; // Online/Core/PreventFileAlarms/MuteMusic.asm
 	}
 
 	geckoList.clear();
@@ -1707,8 +1742,11 @@ void CEXISlippi::prepareOnlineMatchState()
 	SlippiMatchmaking::ProcessState mmState = matchmaking->GetMatchmakeState();
 
 #ifdef LOCAL_TESTING
-	if (localSelections.isCharacterSelected)
+	if (localSelections.isCharacterSelected || isLocalConnected)
+	{
 		mmState = SlippiMatchmaking::ProcessState::CONNECTION_SUCCESS;
+		isLocalConnected = true;
+	}
 #endif
 
 	m_read_queue.push_back(mmState); // Matchmaking State
@@ -1876,31 +1914,16 @@ u16 CEXISlippi::getRandomStage()
 	    0x20, // Final Destination
 	};
 
-	std::vector<u16> stagesToConsider;
-
-	// stagesToConsider = stages;
-	// Add all stages to consider to the vector
-	for (auto it = stages.begin(); it != stages.end(); ++it)
-	{
-		auto stageId = *it;
-		if (lastSelectedStage != nullptr && stageId == *lastSelectedStage)
-			continue;
-
-		stagesToConsider.push_back(stageId);
-	}
-
-	// Shuffle the stages to consider. This isn't really necessary considering we
-	// use a random number to select an index but idk the generator was giving a lot
-	// of the same stage (same index) many times in a row or so it seemed to I figured
-	// this can't hurt
-	std::random_shuffle(stagesToConsider.begin(), stagesToConsider.end());
+	// Reset stage pool if it's empty
+	if (stagePool.empty())
+		stagePool.insert(stagePool.end(), stages.begin(), stages.end());
 
 	// Get random stage
-	int randIndex = generator() % stagesToConsider.size();
-	selectedStage = stagesToConsider[randIndex];
+	int randIndex = generator() % stagePool.size();
+	selectedStage = stagePool[randIndex];
 
-	// Set last selected stage
-	lastSelectedStage = &selectedStage;
+	// Remove last selection from stage pool
+	stagePool.erase(stagePool.begin() + randIndex);
 
 	return selectedStage;
 }
@@ -1914,13 +1937,13 @@ void CEXISlippi::setMatchSelections(u8 *payload)
 	s.isCharacterSelected = payload[2];
 
 	s.stageId = Common::swap16(&payload[3]);
-	s.isStageSelected = payload[5];
+	u8 stageSelectOption = payload[5];
 
-	if (!s.isStageSelected)
+	s.isStageSelected = stageSelectOption == 1 || stageSelectOption == 3;
+	if (stageSelectOption == 3)
 	{
-		// If stage is not selected, select a random stage
+		// If stage requested is random, select a random stage
 		s.stageId = getRandomStage();
-		s.isStageSelected = true;
 	}
 
 	s.rngOffset = generator() % 0xFFFF;
@@ -2000,9 +2023,7 @@ void CEXISlippi::handleLogInRequest()
 	bool logInRes = user->AttemptLogin();
 	if (!logInRes)
 	{
-		//#ifndef LINUX_LOCAL_DEV
 		main_frame->LowerRenderWindow();
-		//#endif
 		user->OpenLogInPage();
 		user->ListenForLogIn();
 	}
@@ -2081,6 +2102,13 @@ void CEXISlippi::handleConnectionCleanup()
 
 	// Clear character selections
 	localSelections.Reset();
+
+	// Reset random stage pool
+	stagePool.clear();
+
+#ifdef LOCAL_TESTING
+	isLocalConnected = false;
+#endif
 
 	ERROR_LOG(SLIPPI_ONLINE, "Connection cleanup completed...");
 }
