@@ -111,7 +111,6 @@ CEXISlippi::CEXISlippi()
 
 	// Initialize local selections to empty
 	localSelections.Reset();
-
 	// Update user file and then listen for User
 #ifndef IS_PLAYBACK
 	user->ListenForLogIn();
@@ -2030,11 +2029,12 @@ void CEXISlippi::logMessageFromGame(u8 *payload)
 
 void CEXISlippi::handleLogInRequest()
 {
+	
 	bool logInRes = user->AttemptLogin();
 	if (!logInRes)
 	{
-		main_frame->LowerRenderWindow();
 		user->OpenLogInPage();
+		main_frame->LowerRenderWindow();
 		user->ListenForLogIn();
 	}
 }
