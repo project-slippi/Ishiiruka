@@ -245,6 +245,15 @@ bool BootCore(const std::string& _rFilename)
 	if (!StartUp.AutoSetup(SConfig::BOOT_DEFAULT))
 		return false;
 
+	// Block running anything other than Melee and homebrew
+	if (!StartUp.GetGameID().empty() && !StartUp.GameHasDefaultGameIni())
+	{
+		PanicAlertT("This does not seem to be a copy of Super Smash Bros. Melee. "
+		            "Please use regular Dolphin (https://dolphin-emu.org/) for running "
+		            "games other than Super Smash Bros. Melee.");
+		return false;
+	}
+
 	// Load game specific settings
 	{
 		IniFile game_ini = StartUp.LoadGameIni();
