@@ -21,11 +21,12 @@ class SlippiDirectCodes
 
         void ReadFile();
         void AddOrUpdateCode(std::string code);
+        std::string get(u8 index);
 
     protected:
         void WriteFile();
         std::string getCodesFilePath();
-        std::vector<CodeInfo> SlippiDirectCodes::parseFile(std::string fileContents);
+        std::vector<CodeInfo> parseFile(std::string fileContents);
         std::vector<CodeInfo> directCodeInfos;
         
 };

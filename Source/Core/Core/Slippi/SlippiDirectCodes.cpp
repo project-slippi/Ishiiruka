@@ -23,7 +23,7 @@ using json = nlohmann::json;
 SlippiDirectCodes::SlippiDirectCodes()
 {
     // Prevent additional file reads, if we've already loaded data to memory.
-    if (directCodeInfos.empty())
+    // if (directCodeInfos.empty())
         ReadFile();
 }
 
@@ -38,7 +38,7 @@ void SlippiDirectCodes::ReadFile()
 {
     std::string directCodesFilePath = getCodesFilePath();
 
-    INFO_LOG(SLIPPI_ONLINE, "Looking for direct codes file at %s", directCodesFilePath);
+    INFO_LOG(SLIPPI_ONLINE, "Looking for direct codes file at %s", directCodesFilePath.c_str());
 
     if (!File::Exists(directCodesFilePath))
     {
@@ -57,6 +57,7 @@ void SlippiDirectCodes::ReadFile()
     File::ReadFileToString(directCodesFilePath, directCodesFileContents);
 
     directCodeInfos = parseFile(directCodesFileContents);
+    
 }
 
 void SlippiDirectCodes::AddOrUpdateCode(std::string code)
@@ -74,7 +75,7 @@ void SlippiDirectCodes::AddOrUpdateCode(std::string code)
     
     if (!found)
     {
-        INFO_LOG(SLIPPI_ONLINE, "Creating new direct code entry %s" code);
+        INFO_LOG(SLIPPI_ONLINE, "Creating new direct code entry %s", code);
         CodeInfo newDirectCode = {code, "today", false};
         directCodeInfos.push_back(newDirectCode);
     }
@@ -82,6 +83,19 @@ void SlippiDirectCodes::AddOrUpdateCode(std::string code)
     // TODO: Maybe remove from here? 
     // Or start a thread that is periodically called, if file writes will happen enough.
     WriteFile();
+}
+
+std::string SlippiDirectCodes::get(u8 index)
+{
+
+    if (index < directCodeInfos.size() && index >= 0)
+    {
+        return directCodeInfos.at(index).connectCode;
+    }
+
+    WARN_LOG(SLIPPI_ONLINE, "Out of bounds name entry index %d", index);
+
+    return "";
 }
 
 void SlippiDirectCodes::WriteFile()
@@ -110,15 +124,14 @@ void SlippiDirectCodes::WriteFile()
 std::string SlippiDirectCodes::getCodesFilePath()
 {
 #if defined(__APPLE__)
-	std::string dirPath = File::GetBundleDirectory() + "/Contents/Resources";
+	std::string directCodesPath = File::GetBundleDirectory() + "/Contents/Resources";
 #elif defined(_WIN32)
-	std::string dirPath = File::GetExeDirectory();
+	std::string directCodesPath = File::GetExeDirectory() + DIR_SEP + "directcodes.json";
 #else
-	std::string dirPath = File::GetSysDirectory();
+	std::string directCodesPath = File::GetSysDirectory();
 	dirPath.pop_back();
 #endif
-	std::string directCodesFilePath = dirPath + DIR_SEP + "directcodes.json";
-	return directCodesFilePath;
+	return directCodesPath;
 }
 
 inline std::string readString(json obj, std::string key)
@@ -151,19 +164,20 @@ std::vector<SlippiDirectCodes::CodeInfo> SlippiDirectCodes::parseFile(std::strin
     // Unlike the user.json, the encapsulating type should be an array.
     if (res.is_discarded() || !res.is_array())
     {
+        WARN_LOG(SLIPPI_ONLINE, "Malformed json in direct codes file.");
         return directCodes;
     }
 
     // Retrieve all saved direct codes and related info
     for (auto it = res.begin(); it != res.end(); ++it) 
     {
-        if (it.value().is_array())
+        if (it.value().is_object())
         {
            CodeInfo curDirectCode;
            curDirectCode.connectCode = readString(*it, "connectCode");
            curDirectCode.lastPlayed = readString(*it, "lastPlayed");
            curDirectCode.isFavorite = readBool(*it, "favorite");
-
+           
            directCodes.push_back(curDirectCode);
         }
     }
