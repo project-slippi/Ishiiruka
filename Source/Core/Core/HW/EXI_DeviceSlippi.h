@@ -205,6 +205,8 @@ class CEXISlippi : public IEXIDevice
 	int framesToSkip = 0;
 	bool isCurrentlySkipping = false;
 
+	std::string forcedError = "";
+
   protected:
 	void TransferByte(u8 &byte) override;
 
