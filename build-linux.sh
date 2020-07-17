@@ -20,4 +20,7 @@ cmake ${CMAKE_FLAGS} ../
 make -j$(nproc)
 popd
 
+# Copy the Sys folder in
+cp -r -n Data/Sys/ build/Binaries/
+
 touch ./build/Binaries/portable.txt
