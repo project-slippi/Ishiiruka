@@ -1721,6 +1721,15 @@ void CEXISlippi::startFindMatch(u8 *payload)
 #endif
 }
 
+void CEXISlippi::handleNameEntryLoad(u8 *payload)
+{
+	std::string tagAtIndex = directCodes->get(payload[0]);
+	INFO_LOG(SLIPPI_ONLINE, "Returned tag: %s", tagAtIndex);
+	std::string jisCode = UTF8ToSHIFTJIS(tagAtIndex);
+	m_read_queue.clear();
+	m_read_queue.insert(m_read_queue.end(), jisCode.begin(), jisCode.end());
+}
+
 void CEXISlippi::prepareOnlineMatchState()
 {
 	// This match block is a VS match with P1 Red Falco vs P2 Red Bowser on Battlefield. The proper values will
@@ -2203,6 +2212,9 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 			break;
 		case CMD_FILE_LENGTH:
 			prepareFileLength(&memPtr[bufLoc + 1]);
+			break;
+		case CMD_NAME_ENTRY_INDEX:
+			handleNameEntryLoad(&memPtr[bufLoc + 1]);
 			break;
 		case CMD_FILE_LOAD:
 			prepareFileLoad(&memPtr[bufLoc + 1]);
