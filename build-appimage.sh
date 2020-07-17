@@ -35,6 +35,9 @@ if [ ! -e ./Tools/appimageupdatetool ]; then
 	chmod +x ./Tools/appimageupdatetool
 fi
 
+# Delete the AppDir folder to prevent build issues
+rm -rf ./AppDir/
+
 # Build the AppDir directory for this image
 mkdir -p AppDir
 ./Tools/linuxdeploy \
