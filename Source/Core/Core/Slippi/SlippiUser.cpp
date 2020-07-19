@@ -145,15 +145,21 @@ void SlippiUser::OpenLogInPage()
 {
 #ifdef _WIN32
 	std::string folderSep = "%5C";
+#elif defined(__APPLE__)
 #else
 	std::string folderSep = "%2F";
 #endif
 
 	std::string url = "https://slippi.gg/online/enable";
 	std::string path = getUserFilePath();
+
+#if defined(__APPLE__)
+#else
 	path = ReplaceAll(path, "\\", folderSep);
-	path = ReplaceAll(path, "/", folderSep);
-	std::string fullUrl = url + "?path=" + path;
+    path = ReplaceAll(path, "/", folderSep);
+#endif
+	
+    std::string fullUrl = url + "?path=" + path;
 
 #ifdef _WIN32
 	std::string command = "explorer \"" + fullUrl + "\"";
