@@ -1701,11 +1701,20 @@ void CEXISlippi::startFindMatch(u8 *payload)
 void CEXISlippi::handleNameEntryLoad(u8 *payload)
 {
 	std::string tagAtIndex = directCodes->get(payload[0]);
-	INFO_LOG(SLIPPI_ONLINE, "Returned tag: %s", tagAtIndex);
-
-	std::string jisCode = UTF8ToSHIFTJIS(tagAtIndex);
+	INFO_LOG(SLIPPI_ONLINE, "Retrieved tag: %s", tagAtIndex);
+	std::string jisCode;
 	m_read_queue.clear();
+
+	if (tagAtIndex == "1")
+	{
+		m_read_queue.insert(m_read_queue.end(), {0x01, 0x00, 0x00});
+		return;
+	}
+	
+	jisCode = UTF8ToSHIFTJIS(tagAtIndex);
+	
 	u8 padEveryThirdByte = 0;
+	
 	for (auto it = jisCode.begin(); it != jisCode.end(); ++it)
 	{
 		m_read_queue.push_back(*it);
