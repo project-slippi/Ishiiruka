@@ -16,6 +16,7 @@
 
 #include <codecvt>
 #include <locale>
+#include <time.h>  
 
 #include <json.hpp>
 using json = nlohmann::json;
@@ -25,6 +26,7 @@ SlippiDirectCodes::SlippiDirectCodes()
     // Prevent additional file reads, if we've already loaded data to memory.
     // if (directCodeInfos.empty())
         ReadFile();
+        Sort();
 }
 
 SlippiDirectCodes::~SlippiDirectCodes()
@@ -63,26 +65,54 @@ void SlippiDirectCodes::ReadFile()
 void SlippiDirectCodes::AddOrUpdateCode(std::string code)
 {
     WARN_LOG(SLIPPI_ONLINE, "Attempting to add or update direct code: %s", code);
+
+    time_t curTime;
+    time(&curTime);
+	u8 dateTimeStrLength = sizeof "20171015T095717";
+	std::vector<char> dateTimeBuf(dateTimeStrLength);
+	strftime(&dateTimeBuf[0], dateTimeStrLength, "%Y%m%dT%H%M%S", localtime(&curTime));
+	std::string timestamp(&dateTimeBuf[0]);
+
     bool found = false;
     for (auto it = directCodeInfos.begin(); it != directCodeInfos.end(); ++it)
     {
        if (it->connectCode == code)
        {
            found = true;
-           // TODO: Update timestamp
+           it->lastPlayed = timestamp;
        }
     }
     
     if (!found)
     {
         INFO_LOG(SLIPPI_ONLINE, "Creating new direct code entry %s", code);
-        CodeInfo newDirectCode = {code, "today", false};
+        CodeInfo newDirectCode = {code, timestamp, false};
         directCodeInfos.push_back(newDirectCode);
     }
 
     // TODO: Maybe remove from here? 
     // Or start a thread that is periodically called, if file writes will happen enough.
     WriteFile();
+}
+
+void SlippiDirectCodes::Sort(u8 sortByProperty)
+{
+    switch(sortByProperty)
+    {
+        case SORT_BY_TIME:
+            std::sort(directCodeInfos.begin(), directCodeInfos.end(), 
+            [](const CodeInfo a, const CodeInfo b) -> bool {
+                return a.lastPlayed < b.lastPlayed;
+            });
+        break;
+
+        case SORT_BY_NAME:
+            std::sort(directCodeInfos.begin(), directCodeInfos.end(), 
+            [](const CodeInfo a, const CodeInfo b) -> bool {
+                return a.connectCode < b.connectCode;
+            });
+        break;
+    }
 }
 
 std::string SlippiDirectCodes::get(u8 index)
@@ -95,7 +125,7 @@ std::string SlippiDirectCodes::get(u8 index)
 
     WARN_LOG(SLIPPI_ONLINE, "Out of bounds name entry index %d", index);
 
-    return "";
+    return (index >= directCodeInfos.size()) ? "1" : "";
 }
 
 void SlippiDirectCodes::WriteFile()
