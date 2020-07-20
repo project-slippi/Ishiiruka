@@ -27,13 +27,22 @@ main() {
     local _url="https://forums.dolphin-emu.org/attachment.php?aid=16637"
     say "Downloading kext from ${_url}."
 
-    local _file="SmashEnabler.kext"
+    local _file="SmashEnabler.kext.zip"
     ensure downloader "$_url" "$_file"
 
+    say "Unzipping..."
+    unzip "$_file"
+
+    say "Clearing out old versions if they exist. This may require your password."
+    sudo rm -rf /Library/Extensions/SmashEnabler.kext
+    
     say "Installing kext. This may require your password."
-    sudo mv "$_file" /Library/Extensions/SmashEnabler.kext
+    sudo mv SmashEnabler.kext /Library/Extensions/
     sudo chown -R root:wheel /Library/Extensions/SmashEnabler.kext
     sudo touch /Library/Extensions
+
+    say "Cleaning up..."
+    rm "${_file}"
 
     say "Kext installed. You should boot into recovery mode and re-enable SIP to be safe."
 
