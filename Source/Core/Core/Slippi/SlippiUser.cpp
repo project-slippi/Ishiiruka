@@ -160,7 +160,7 @@ void SlippiUser::OpenLogInPage()
 
 	std::string fullUrl = url + "?path=" + path;
 
-	INFO_LOG(SLIPPI_ONLINE, "[User] Login at path: %s", fullUrl);
+	INFO_LOG(SLIPPI_ONLINE, "[User] Login at path: %s", fullUrl.c_str());
 
 #ifdef _WIN32
 	std::string command = "explorer \"" + fullUrl + "\"";
