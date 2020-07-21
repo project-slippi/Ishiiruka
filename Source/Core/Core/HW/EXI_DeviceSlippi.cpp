@@ -1701,7 +1701,7 @@ void CEXISlippi::startFindMatch(u8 *payload)
 void CEXISlippi::handleNameEntryLoad(u8 *payload)
 {
 	std::string tagAtIndex = directCodes->get(payload[0]);
-	INFO_LOG(SLIPPI_ONLINE, "Retrieved tag: %s", tagAtIndex);
+	INFO_LOG(SLIPPI_ONLINE, "Retrieved tag: %s", tagAtIndex.c_str());
 	std::string jisCode;
 	m_read_queue.clear();
 
