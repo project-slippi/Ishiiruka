@@ -2,6 +2,7 @@
 // Licensed under GPLv2+
 // Refer to the license.txt file included.
 
+#include <algorithm>
 #include <cinttypes>
 #include <climits>
 #include <memory>
@@ -1156,7 +1157,10 @@ std::string SConfig::GetGameID_Wrapper() const
 	return m_gameType == GAMETYPE_MELEE_20XX ? "GALEXX" : GetGameID();
 }
 
-
+bool SConfig::GameHasDefaultGameIni() const
+{
+	return GameHasDefaultGameIni(GetGameID_Wrapper(), m_revision);
+}
 
 IniFile SConfig::LoadDefaultGameIni() const
 {
@@ -1171,6 +1175,14 @@ IniFile SConfig::LoadLocalGameIni() const
 IniFile SConfig::LoadGameIni() const
 {
 	return LoadGameIni(GetGameID_Wrapper(), m_revision);
+}
+
+bool SConfig::GameHasDefaultGameIni(const std::string& id, u16 revision)
+{
+	const std::vector<std::string> filenames = GetGameIniFilenames(id, revision);
+	return std::any_of(filenames.begin(), filenames.end(), [](const std::string& filename) {
+		return File::Exists(File::GetSysDirectory() + GAMESETTINGS_DIR DIR_SEP + filename);
+	});
 }
 
 IniFile SConfig::LoadDefaultGameIni(const std::string& id, u16 revision)
