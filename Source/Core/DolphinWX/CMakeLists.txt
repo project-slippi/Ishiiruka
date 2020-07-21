@@ -108,7 +108,7 @@ if(APPLE)
 endif()
 
 if(APPLE)
-	set(DOLPHIN_EXE_BASE Dolphin)
+	set(DOLPHIN_EXE_BASE "Slippi Dolphin")
 else()
 	set(DOLPHIN_EXE_BASE dolphin-emu)
 endif()
@@ -123,11 +123,12 @@ if(GETTEXT_MSGMERGE_EXECUTABLE AND GETTEXT_MSGFMT_EXECUTABLE AND wxWidgets_FOUND
 endif()
 
 if(wxWidgets_FOUND)
-	add_executable(${DOLPHIN_EXE} ${SRCS} ${GUI_SRCS})
-	target_link_libraries(${DOLPHIN_EXE} ${LIBS} ${WXLIBS})
+	add_executable("${DOLPHIN_EXE}" ${SRCS} ${GUI_SRCS})
+	target_link_libraries("${DOLPHIN_EXE}" ${LIBS} ${WXLIBS})
 	if(APPLE)
 		include(BundleUtilities)
-		set(BUNDLE_PATH ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${DOLPHIN_EXE}.app)
+		set(BUNDLE_PATH ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/"${DOLPHIN_EXE}".app)
+		string(REPLACE "\"" "" BUNDLE_PATH_NO_QUOTES ${BUNDLE_PATH})
 
 		# Ask for an application bundle.
 		set_target_properties(${DOLPHIN_EXE} PROPERTIES
@@ -143,19 +144,19 @@ if(wxWidgets_FOUND)
 			# so we invoke CMake again on a generated script.
 			file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/postprocess_bundle.cmake "
 				include(BundleUtilities)
-				message(\"Fixing up application bundle: ${BUNDLE_PATH}\")
+				message(\"Fixing up application bundle: ${BUNDLE_PATH_NO_QUOTES}\")
 				message(\"(Note: This is only necessary to produce a redistributable binary.\")
 				message(\"To skip, pass -DSKIP_POSTPROCESS_BUNDLE=1 to cmake.)\")
 				set(BU_CHMOD_BUNDLE_ITEMS ON)
 				execute_process(
-					COMMAND ${CMAKE_SOURCE_DIR}/Tools/deploy-mac.py \"${BUNDLE_PATH}\"
+					COMMAND ${CMAKE_SOURCE_DIR}/Tools/deploy-mac.py \"${BUNDLE_PATH_NO_QUOTES}\"
 					RESULT_VARIABLE retcode
 				)
 				if(NOT \${retcode} EQUAL 0)
 					message(FATAL_ERROR \"Error when postprocessing bundle (return code: \${retcode}).\")
 				endif()
 				file(INSTALL \"${CMAKE_SOURCE_DIR}/Data/Sys\"
-					DESTINATION \"${BUNDLE_PATH}/Contents/Resources\"
+					DESTINATION \"${BUNDLE_PATH_NO_QUOTES}/Contents/Resources\"
 					)
 				")
 			add_custom_command(TARGET ${DOLPHIN_EXE} POST_BUILD
@@ -183,12 +184,12 @@ if(wxWidgets_FOUND)
 					# It would be better to copy to the new name as a single action,
 					# but I can't figure out a way to let CMake do that.
 					file(COPY ${CMAKE_CURRENT_BINARY_DIR}/\${TRANSLATION_FILE}
-						DESTINATION ${BUNDLE_PATH}/Contents/Resources/\${TRANSLATION_DIR}
+						DESTINATION \"${BUNDLE_PATH_NO_QUOTES}/Contents/Resources/\${TRANSLATION_DIR}\"
 						NO_SOURCE_PERMISSIONS
 						)
 					file(RENAME
-						${BUNDLE_PATH}/Contents/Resources/\${TRANSLATION_DIR}/\${TRANSLATION_FILE}
-						${BUNDLE_PATH}/Contents/Resources/\${TRANSLATION_DIR}/dolphin-emu.mo
+						\"${BUNDLE_PATH_NO_QUOTES}/Contents/Resources/\${TRANSLATION_DIR}/\${TRANSLATION_FILE}\"
+						\"${BUNDLE_PATH_NO_QUOTES}/Contents/Resources/\${TRANSLATION_DIR}/dolphin-emu.mo\"
 						)
 				endforeach(TRANSLATION_FILE)
 				")

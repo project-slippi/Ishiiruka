@@ -2,35 +2,16 @@
 <!DOCTYPE plist PUBLIC "-//Apple Computer//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>CFBundleDocumentTypes</key>
-	<array>
-		<dict>
-			<key>CFBundleTypeExtensions</key>
-			<array>
-				<string>ciso</string>
-				<string>dol</string>
-				<string>elf</string>
-				<string>gcm</string>
-				<string>gcz</string>
-				<string>iso</string>
-				<string>tgc</string>
-				<string>wad</string>
-				<string>wbfs</string>
-			</array>
-			<key>CFBundleTypeIconFile</key>
-			<string>Dolphin.icns</string>
-			<key>CFBundleTypeName</key>
-			<string>Nintendo GC/Wii file</string>
-			<key>CFBundleTypeRole</key>
-			<string>Viewer</string>
-		</dict>
-	</array>
 	<key>CFBundleExecutable</key>
-	<string>Dolphin</string>
+	<string>Slippi Dolphin</string>
+	<key>CFBundleName</key>
+	<string>Slippi Dolphin</string>
+	<key>CFBundleDisplayName</key>
+	<string>Slippi Dolphin</string>
 	<key>CFBundleIconFile</key>
 	<string>Dolphin.icns</string>
 	<key>CFBundleIdentifier</key>
-	<string>org.dolphin-emu.dolphin</string>
+	<string>com.project-slippi.dolphin</string>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>English</string>
 	<key>CFBundleLocalizations</key>

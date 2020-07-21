@@ -143,17 +143,24 @@ bool SlippiUser::AttemptLogin()
 
 void SlippiUser::OpenLogInPage()
 {
-#ifdef _WIN32
-	std::string folderSep = "%5C";
-#else
-	std::string folderSep = "%2F";
-#endif
-
 	std::string url = "https://slippi.gg/online/enable";
 	std::string path = getUserFilePath();
-	path = ReplaceAll(path, "\\", folderSep);
-	path = ReplaceAll(path, "/", folderSep);
+
+#ifdef _WIN32
+	// On windows, sometimes the path can have backslashes and slashes mixed, convert all to backslashes
+	path = ReplaceAll(path, "\\", "\\");
+	path = ReplaceAll(path, "/", "\\");
+#endif
+
+#ifndef __APPLE__
+	char *escapedPath = curl_easy_escape(m_curl, path.c_str(), (int)path.length());
+	path = std::string(escapedPath);
+	curl_free(escapedPath);
+#endif
+
 	std::string fullUrl = url + "?path=" + path;
+
+	INFO_LOG(SLIPPI_ONLINE, "[User] Login at path: %s", fullUrl.c_str());
 
 #ifdef _WIN32
 	std::string command = "explorer \"" + fullUrl + "\"";
