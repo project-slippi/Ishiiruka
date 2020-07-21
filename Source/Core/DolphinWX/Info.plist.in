@@ -4,10 +4,10 @@
 <dict>
 	<key>CFBundleExecutable</key>
 	<string>Slippi Dolphin</string>
-    <key>CFBundleName</key>
-    <string>Slippi Dolphin</string>
-    <key>CFBundleDisplayName</key>
-    <string>Slippi Dolphin</string>
+	<key>CFBundleName</key>
+	<string>Slippi Dolphin</string>
+	<key>CFBundleDisplayName</key>
+	<string>Slippi Dolphin</string>
 	<key>CFBundleIconFile</key>
 	<string>Dolphin.icns</string>
 	<key>CFBundleIdentifier</key>
