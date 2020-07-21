@@ -153,7 +153,7 @@ void SlippiUser::OpenLogInPage()
 #endif
 
 #ifndef __APPLE__
-	char *escapedPath = curl_easy_escape(m_curl, path.c_str(), (int)path.length());
+	char *escapedPath = curl_easy_escape(nullptr, path.c_str(), (int)path.length());
 	path = std::string(escapedPath);
 	curl_free(escapedPath);
 #endif
