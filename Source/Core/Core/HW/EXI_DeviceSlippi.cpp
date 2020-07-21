@@ -1245,7 +1245,7 @@ void CEXISlippi::prepareFrameData(u8 *payload)
 		g_playbackStatus->isHardFFW = false;
 	}
 
-	bool shouldFFW = shouldFFWFrame(frameIndex);
+	bool shouldFFW = g_playbackStatus->shouldFFWFrame(frameIndex);
 	u8 requestResultCode = shouldFFW ? FRAME_RESP_FASTFORWARD : FRAME_RESP_CONTINUE;
 	if (!isFrameReady)
 	{
@@ -1336,25 +1336,6 @@ void CEXISlippi::prepareFrameData(u8 *payload)
 		prepareCharacterFrameData(frame, port, 0);
 		prepareCharacterFrameData(frame, port, 1);
 	}
-}
-
-bool CEXISlippi::shouldFFWFrame(int32_t frameIndex)
-{
-	if (!g_playbackStatus->isSoftFFW && !g_playbackStatus->isHardFFW)
-	{
-		// If no FFW at all, don't FFW this frame
-		return false;
-	}
-
-	if (g_playbackStatus->isHardFFW)
-	{
-		// For a hard FFW, always FFW until it's turned off
-		return true;
-	}
-
-	// Here we have a soft FFW, we only want to turn on FFW for single frames once
-	// every X frames to FFW in a more smooth manner
-	return frameIndex - g_playbackStatus->lastFFWFrame >= 15;
 }
 
 void CEXISlippi::prepareIsStockSteal(u8 *payload)
