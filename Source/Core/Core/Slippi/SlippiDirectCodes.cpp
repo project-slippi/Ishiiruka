@@ -51,7 +51,7 @@ void SlippiDirectCodes::ReadFile()
         }
         else 
         {
-            WARN_LOG(SLIPPI_ONLINE, "Was unable to create %s", directCodesFilePath);
+            WARN_LOG(SLIPPI_ONLINE, "Was unable to create %s", directCodesFilePath.c_str());
         }
     }
 
@@ -64,7 +64,7 @@ void SlippiDirectCodes::ReadFile()
 
 void SlippiDirectCodes::AddOrUpdateCode(std::string code)
 {
-    WARN_LOG(SLIPPI_ONLINE, "Attempting to add or update direct code: %s", code);
+    WARN_LOG(SLIPPI_ONLINE, "Attempting to add or update direct code: %s", code.c_str());
 
     time_t curTime;
     time(&curTime);
@@ -85,7 +85,6 @@ void SlippiDirectCodes::AddOrUpdateCode(std::string code)
     
     if (!found)
     {
-        INFO_LOG(SLIPPI_ONLINE, "Creating new direct code entry %s", code);
         CodeInfo newDirectCode = {code, timestamp, false};
         directCodeInfos.push_back(newDirectCode);
     }
