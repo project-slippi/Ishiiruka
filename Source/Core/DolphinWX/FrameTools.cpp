@@ -619,26 +619,26 @@ void CFrame::ToggleDisplayMode(bool bFullscreen)
 void CFrame::ToggleScreenSaver(bool enable)
 {
 #if defined(__APPLE__)
-    static IOPMAssertionID s_power_assertion = kIOPMNullAssertionID;
+	static IOPMAssertionID s_power_assertion = kIOPMNullAssertionID;
 
-    if (enable)
-    {
-        if (s_power_assertion != kIOPMNullAssertionID)
-        {
-            IOPMAssertionRelease(s_power_assertion);
-            s_power_assertion = kIOPMNullAssertionID;
-        }
-    }
-    else
-    {
-        CFStringRef reason_for_activity = CFSTR("Slippi Running");
-        if (IOPMAssertionCreateWithName(kIOPMAssertionTypePreventUserIdleDisplaySleep,
-                    kIOPMAssertionLevelOn, reason_for_activity,
-                    &s_power_assertion) != kIOReturnSuccess)
-        {
-            s_power_assertion = kIOPMNullAssertionID;
-        }
-    }
+	if (enable)
+	{
+		if (s_power_assertion != kIOPMNullAssertionID)
+		{
+			IOPMAssertionRelease(s_power_assertion);
+			s_power_assertion = kIOPMNullAssertionID;
+		}
+	}
+	else
+	{
+		CFStringRef reason_for_activity = CFSTR("Slippi Running");
+		if (IOPMAssertionCreateWithName(kIOPMAssertionTypePreventUserIdleDisplaySleep,
+					kIOPMAssertionLevelOn, reason_for_activity,
+					&s_power_assertion) != kIOReturnSuccess)
+		{
+			s_power_assertion = kIOPMNullAssertionID;
+		}
+	}
 #endif
 }
 
@@ -716,7 +716,7 @@ void CFrame::StartGame(const std::string& filename)
 
 	wxBusyCursor hourglass;
 
-    ToggleScreenSaver(false);
+	ToggleScreenSaver(false);
 	DoFullscreen(SConfig::GetInstance().bFullscreen);
 
 	if (!BootManager::BootCore(filename))
@@ -898,7 +898,7 @@ void CFrame::DoStop()
 		UpdateGUI();
 	}
 
-    ToggleScreenSaver(true);
+	ToggleScreenSaver(true);
 }
 
 void CFrame::DoExit()
