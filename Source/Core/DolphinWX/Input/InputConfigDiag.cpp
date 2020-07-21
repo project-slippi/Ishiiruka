@@ -271,7 +271,7 @@ void InputConfigDialog::UpdateProfileComboBox()
 		std::string base;
 		SplitPath(filename, nullptr, &base, nullptr);
 		wxString wxBase = StrToWxStr(base);
-		if (strs.Index(base) == wxNOT_FOUND)
+		if (strs.Index(wxBase) == wxNOT_FOUND)
 		{
 			strs.push_back(wxBase);
 		}
