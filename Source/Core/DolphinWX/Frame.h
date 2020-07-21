@@ -115,6 +115,7 @@ public:
 	void DoFullscreen(bool enable_fullscreen);
 	void DoExclusiveFullscreen(bool enable_fullscreen);
 	void ToggleDisplayMode(bool bFullscreen);
+	void ToggleScreenSaver(bool enable);
 	static void ConnectWiimote(int wm_idx, bool connect);
 	void UpdateTitle(const std::string& str);
 	void OpenGeneralConfiguration(wxWindowID tab_id = wxID_ANY);
