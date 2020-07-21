@@ -159,7 +159,7 @@ std::string SlippiDirectCodes::getCodesFilePath()
 	std::string directCodesPath = File::GetExeDirectory() + DIR_SEP + "directcodes.json";
 #else
 	std::string directCodesPath = File::GetSysDirectory();
-	dirPath.pop_back();
+	directCodesPath.pop_back();
 #endif
 	return directCodesPath;
 }
