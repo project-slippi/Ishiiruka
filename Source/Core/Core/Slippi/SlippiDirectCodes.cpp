@@ -153,12 +153,12 @@ void SlippiDirectCodes::WriteFile()
 std::string SlippiDirectCodes::getCodesFilePath()
 {
 #if defined(__APPLE__)
-	std::string directCodesPath = File::GetBundleDirectory() + "/Contents/Resources";
+	std::string directCodesPath = File::GetBundleDirectory() + "/Contents/Resources" + DIR_SEP + "directcodes.json";
 #elif defined(_WIN32)
 	std::string directCodesPath = File::GetExeDirectory() + DIR_SEP + "directcodes.json";
 #else
-	std::string directCodesPath = File::GetSysDirectory();
-	directCodesPath.pop_back();
+	std::string directCodesPath = File::GetSysDirectory(F_DIRECTCODESJSON_IDX);
+//	directCodesPath.pop_back();
 #endif
 	return directCodesPath;
 }
