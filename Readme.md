@@ -62,10 +62,8 @@ If you are building on Catalina, you only need to install the 10.14 SDK. However
 Can be stored on external storage and used on different Linux systems.
 Or useful for having multiple distinct Dolphin setups for testing/development/TAS.
 
-1. Clone repo and navigate to the directory.
-2. `./build-linux.sh`
-3. `cp -r ../Data/Sys ./build/Binaries/`
-4. `touch ./build/Binaries/portable.txt`
+1. `./build-linux.sh`
+2. `touch ./build/Binaries/portable.txt`
 
 ## Command Line Usage
 `Usage: Dolphin [-h] [-d] [-l] [-e <str>] [-b] [-V <str>] [-A <str>]`  
