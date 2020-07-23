@@ -157,7 +157,7 @@ std::string SlippiDirectCodes::getCodesFilePath()
 #elif defined(_WIN32)
 	std::string directCodesPath = File::GetExeDirectory() + DIR_SEP + "directcodes.json";
 #else
-	std::string directCodesPath = File::GetSysDirectory(F_DIRECTCODESJSON_IDX);
+	std::string directCodesPath = File::GetUserPath(F_DIRECTCODESJSON_IDX);
 //	directCodesPath.pop_back();
 #endif
 	return directCodesPath;
