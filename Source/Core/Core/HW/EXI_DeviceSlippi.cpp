@@ -1867,6 +1867,7 @@ void CEXISlippi::prepareOnlineMatchState()
 		// Turn pause on in direct, off in everything else
 		u8 *gameBitField3 = (u8 *)&onlineMatchBlock[2];
 		*gameBitField3 = lastSearch.mode == directMode ? *gameBitField3 & 0xF7 : *gameBitField3 | 0x8;
+		//*gameBitField3 = *gameBitField3 | 0x8;
 	}
 
 	// Add rng offset to output

@@ -12,6 +12,7 @@
 #include "Common/StringUtil.h"
 #include "Common/Thread.h"
 
+#include "Common/Common.h"
 #include "Core/ConfigManager.h"
 
 #include <codecvt>
@@ -181,8 +182,10 @@ void SlippiUser::UpdateApp()
 	std::string path = File::GetExeDirectory() + "/dolphin-slippi-tools.exe";
 	std::string echoMsg = "echo Starting update process. If nothing happen after a few "
 	                      "minutes, you may need to update manually from https://slippi.gg/netplay ...";
-	std::string command =
-	    "start /b cmd /c " + echoMsg + " && \"" + path + "\" app-update -launch -iso \"" + isoPath + "\"";
+	// std::string command =
+	//    "start /b cmd /c " + echoMsg + " && \"" + path + "\" app-update -launch -iso \"" + isoPath + "\"";
+	std::string command = "start /b cmd /c " + echoMsg + " && \"" + path + "\" app-update -launch -iso \"" + isoPath +
+	                      "\" -version \"" + scm_slippi_semver_str + "\"";
 	WARN_LOG(SLIPPI, "Executing app update command: %s", command);
 	RunSystemCommand(command);
 #elif defined(__APPLE__)
