@@ -2029,7 +2029,8 @@ void CEXISlippi::handleLogOutRequest()
 void CEXISlippi::handleUpdateAppRequest()
 {
 #ifdef __APPLE__
-	CriticalAlertT("Automatic updates are not available for macOS, please update manually.");
+	CriticalAlertT(
+	    "Automatic updates are not available for macOS, please get the latest update from slippi.gg/netplay.");
 #else
 	main_frame->LowerRenderWindow();
 	user->UpdateApp();
