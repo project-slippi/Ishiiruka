@@ -2,6 +2,7 @@
 # build-online-appimage.sh
 
 ZSYNC_STRING="gh-releases-zsync|project-slippi|Ishiiruka|latest|Slippi_Online-x86_64.AppImage.zsync"
+NETPLAY_APPIMAGE_STRING="Slippi_Online-x86_64.AppImage"
 PLAYBACK_APPIMAGE_STRING="Slippi_Playback-x86_64.AppImage"
 
 LINUXDEPLOY_PATH="https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous"
@@ -31,7 +32,7 @@ if [ ! -e ./Tools/linuxdeploy-update-plugin ]; then
 	chmod +x ./Tools/linuxdeploy-update-plugin
 fi
 if [ ! -e ./Tools/appimageupdatetool ]; then
-	wget ${UPDATEPLUG_URL} -O ./Tools/appimageupdatetool
+	wget ${UPDATETOOL_URL} -O ./Tools/appimageupdatetool
 	chmod +x ./Tools/appimageupdatetool
 fi
 
@@ -53,6 +54,8 @@ cp -r Data/Sys ${APPDIR_BIN}
 if [ -z "$1" ] # Netplay
     then
         echo "Using Netplay build config"
+
+		rm -f ${NETPLAY_APPIMAGE_STRING}
 		
 		# Package up the update tool within the AppImage
 		cp ./Tools/appimageupdatetool ./AppDir/usr/bin/
@@ -63,6 +66,9 @@ if [ -z "$1" ] # Netplay
 elif [ "$1" == "playback" ] # Playback
     then
         echo "Using Playback build config"
+
+		rm -f ${PLAYBACK_APPIMAGE_STRING}
+
 		if [ -d "slippi-desktop-app" ]
 			then
 				pushd slippi-desktop-app

@@ -191,13 +191,15 @@ void SlippiUser::UpdateApp()
 #elif defined(__APPLE__)
 #else
 	const char *appimage_path = getenv("APPIMAGE");
+	const char *appmount_path = getenv("APPDIR");
 	if (!appimage_path)
 	{
 		CriticalAlertT("Automatic updates are not available for non-AppImage Linux builds.");
 		return;
 	}
 	std::string path(appimage_path);
-	std::string command = "appimageupdatetool " + path;
+	std::string mount_path(appmount_path);
+	std::string command = mount_path + "/usr/bin/appimageupdatetool " + path;
 	WARN_LOG(SLIPPI, "Executing app update command: %s", command.c_str());
 	RunSystemCommand(command);
 #endif
