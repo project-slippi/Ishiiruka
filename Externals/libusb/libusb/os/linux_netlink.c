@@ -45,33 +45,24 @@
 
 #define NL_GROUP_KERNEL 1
 
-#ifndef SOCK_CLOEXEC
-#define SOCK_CLOEXEC	0
-#endif
-
-#ifndef SOCK_NONBLOCK
-#define SOCK_NONBLOCK	0
-#endif
-
 static int linux_netlink_socket = -1;
 static int netlink_control_pipe[2] = { -1, -1 };
 static pthread_t libusb_linux_event_thread;
 
 static void *linux_netlink_event_thread_main(void *arg);
 
-static int set_fd_cloexec_nb(int fd, int socktype)
+static int set_fd_cloexec_nb(int fd)
 {
 	int flags;
 
 #if defined(FD_CLOEXEC)
-	/* Make sure the netlink socket file descriptor is marked as CLOEXEC */
-	if (!(socktype & SOCK_CLOEXEC)) {
-		flags = fcntl(fd, F_GETFD);
-		if (flags == -1) {
-			usbi_err(NULL, "failed to get netlink fd flags (%d)", errno);
-			return -1;
-		}
+	flags = fcntl(fd, F_GETFD);
+	if (flags == -1) {
+		usbi_err(NULL, "failed to get netlink fd flags (%d)", errno);
+		return -1;
+	}
 
+	if (!(flags & FD_CLOEXEC)) {
 		if (fcntl(fd, F_SETFD, flags | FD_CLOEXEC) == -1) {
 			usbi_err(NULL, "failed to set netlink fd flags (%d)", errno);
 			return -1;
@@ -79,14 +70,13 @@ static int set_fd_cloexec_nb(int fd, int socktype)
 	}
 #endif
 
-	/* Make sure the netlink socket is non-blocking */
-	if (!(socktype & SOCK_NONBLOCK)) {
-		flags = fcntl(fd, F_GETFL);
-		if (flags == -1) {
-			usbi_err(NULL, "failed to get netlink fd status flags (%d)", errno);
-			return -1;
-		}
+	flags = fcntl(fd, F_GETFL);
+	if (flags == -1) {
+		usbi_err(NULL, "failed to get netlink fd status flags (%d)", errno);
+		return -1;
+	}
 
+	if (!(flags & O_NONBLOCK)) {
 		if (fcntl(fd, F_SETFL, flags | O_NONBLOCK) == -1) {
 			usbi_err(NULL, "failed to set netlink fd status flags (%d)", errno);
 			return -1;
@@ -99,15 +89,21 @@ static int set_fd_cloexec_nb(int fd, int socktype)
 int linux_netlink_start_event_monitor(void)
 {
 	struct sockaddr_nl sa_nl = { .nl_family = AF_NETLINK, .nl_groups = NL_GROUP_KERNEL };
-	int socktype = SOCK_RAW | SOCK_NONBLOCK | SOCK_CLOEXEC;
+	int socktype = SOCK_RAW;
 	int opt = 1;
 	int ret;
+
+#if defined(SOCK_CLOEXEC)
+	socktype |= SOCK_CLOEXEC;
+#endif
+#if defined(SOCK_NONBLOCK)
+	socktype |= SOCK_NONBLOCK;
+#endif
 
 	linux_netlink_socket = socket(PF_NETLINK, socktype, NETLINK_KOBJECT_UEVENT);
 	if (linux_netlink_socket == -1 && errno == EINVAL) {
 		usbi_dbg("failed to create netlink socket of type %d, attempting SOCK_RAW", socktype);
-		socktype = SOCK_RAW;
-		linux_netlink_socket = socket(PF_NETLINK, socktype, NETLINK_KOBJECT_UEVENT);
+		linux_netlink_socket = socket(PF_NETLINK, SOCK_RAW, NETLINK_KOBJECT_UEVENT);
 	}
 
 	if (linux_netlink_socket == -1) {
@@ -115,7 +111,7 @@ int linux_netlink_start_event_monitor(void)
 		goto err;
 	}
 
-	ret = set_fd_cloexec_nb(linux_netlink_socket, socktype);
+	ret = set_fd_cloexec_nb(linux_netlink_socket);
 	if (ret == -1)
 		goto err_close_socket;
 
@@ -166,7 +162,7 @@ int linux_netlink_stop_event_monitor(void)
 
 	/* Write some dummy data to the control pipe and
 	 * wait for the thread to exit */
-	r = write(netlink_control_pipe[1], &dummy, sizeof(dummy));
+	r = usbi_write(netlink_control_pipe[1], &dummy, sizeof(dummy));
 	if (r <= 0)
 		usbi_warn(NULL, "netlink control pipe signal failed");
 
@@ -360,8 +356,7 @@ static int linux_netlink_read_message(void)
 static void *linux_netlink_event_thread_main(void *arg)
 {
 	char dummy;
-	int r;
-	ssize_t nb;
+	ssize_t r;
 	struct pollfd fds[] = {
 		{ .fd = netlink_control_pipe[0],
 		  .events = POLLIN },
@@ -373,15 +368,11 @@ static void *linux_netlink_event_thread_main(void *arg)
 
 	usbi_dbg("netlink event thread entering");
 
-	while ((r = poll(fds, 2, -1)) >= 0 || errno == EINTR) {
-		if (r < 0) {
-			/* temporary failure */
-			continue;
-		}
+	while (poll(fds, 2, -1) >= 0) {
 		if (fds[0].revents & POLLIN) {
 			/* activity on control pipe, read the byte and exit */
-			nb = read(netlink_control_pipe[0], &dummy, sizeof(dummy));
-			if (nb <= 0)
+			r = usbi_read(netlink_control_pipe[0], &dummy, sizeof(dummy));
+			if (r <= 0)
 				usbi_warn(NULL, "netlink control pipe read failed");
 			break;
 		}
