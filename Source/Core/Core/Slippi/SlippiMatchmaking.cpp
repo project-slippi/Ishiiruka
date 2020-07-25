@@ -377,6 +377,18 @@ void SlippiMatchmaking::handleMatchmaking()
 	m_oppIp = getResp.value("oppAddress", "");
 	m_isHost = getResp.value("isHost", false);
 
+	// Clear old user
+	SlippiUser::UserInfo emptyInfo;
+	m_oppUser = emptyInfo;
+
+	auto oppUser = getResp["oppUser"];
+	if (oppUser.is_object())
+	{
+		m_oppUser.uid = oppUser.value("uid", "");
+		m_oppUser.displayName = oppUser.value("displayName", "");
+		m_oppUser.connectCode = oppUser.value("connectCode", "");
+	}
+
 	// Disconnect and destroy enet client to mm server
 	terminateMmConnection();
 

@@ -76,6 +76,7 @@ class SlippiMatchmaking
 	int m_hostPort;
 	std::string m_oppIp;
 	bool m_isHost;
+	SlippiUser::UserInfo m_oppUser;
 
 	std::unique_ptr<SlippiNetplayClient> m_netplayClient;
 
