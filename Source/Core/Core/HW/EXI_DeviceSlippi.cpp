@@ -1698,6 +1698,20 @@ void CEXISlippi::startFindMatch(u8 *payload)
 #endif
 }
 
+void CEXISlippi::handleNameEntryAutoComplete(u8 *payload)
+{
+	std::string shiftJisCode;
+	shiftJisCode.insert(shiftJisCode.begin(), &payload[0], &payload[0] + 18);
+	shiftJisCode.erase(std::find(shiftJisCode.begin(), shiftJisCode.end(), 0x00), shiftJisCode.end());
+
+	std::string startText = SHIFTJISToUTF8(shiftJisCode);
+	INFO_LOG(SLIPPI_ONLINE, "Autocomplete text: %s", startText);
+
+	std::string autocompletedText = directCodes->Autocomplete(startText);
+	INFO_LOG(SLIPPI_ONLINE, "Autocompleted result: %s", autocompletedText);
+
+}
+
 void CEXISlippi::handleNameEntryLoad(u8 *payload)
 {
 	std::string tagAtIndex = directCodes->get(payload[0]);
@@ -2233,6 +2247,9 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 			break;
 		case CMD_NAME_ENTRY_INDEX:
 			handleNameEntryLoad(&memPtr[bufLoc + 1]);
+			break;
+		case CMD_NAME_ENTRY_AUTOCOMPLETE:
+			handleNameEntryAutoComplete(&memPtr[bufLoc + 1]);
 			break;
 		case CMD_FILE_LOAD:
 			prepareFileLoad(&memPtr[bufLoc + 1]);

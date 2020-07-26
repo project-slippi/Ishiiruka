@@ -114,6 +114,23 @@ void SlippiDirectCodes::Sort(u8 sortByProperty)
     }
 }
 
+std::string SlippiDirectCodes::Autocomplete(std::string startText) 
+{
+    // Pre-sort direct codes.
+	Sort();
+	
+    // Find first entry in our sorted vector that starts with the given text.
+    for (auto it = directCodeInfos.begin(); it != directCodeInfos.end(); it++)
+	{
+		if (it->connectCode.rfind(startText, 0) == 0)
+		{
+			return it->connectCode;
+		}
+	}
+
+    return startText;
+}
+
 std::string SlippiDirectCodes::get(u8 index)
 {
 
