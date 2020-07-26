@@ -1710,6 +1710,20 @@ void CEXISlippi::handleNameEntryAutoComplete(u8 *payload)
 	std::string autocompletedText = directCodes->Autocomplete(startText);
 	INFO_LOG(SLIPPI_ONLINE, "Autocompleted result: %s", autocompletedText);
 
+	m_read_queue.clear();
+
+	std::string jisCode = UTF8ToSHIFTJIS(autocompletedText);
+	u8 padEveryThirdByte = 0;
+
+	for (auto it = jisCode.begin(); it != jisCode.end(); ++it)
+	{
+		m_read_queue.push_back(*it);
+		if (++padEveryThirdByte == 2)
+		{
+			m_read_queue.push_back(0x0);
+			padEveryThirdByte = 0;
+		}
+	}
 }
 
 void CEXISlippi::handleNameEntryLoad(u8 *payload)
