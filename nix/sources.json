@@ -22,5 +22,17 @@
         "type": "tarball",
         "url": "https://github.com/NixOS/nixpkgs-channels/archive/b8c367a7bd05e3a514c2b057c09223c74804a21b.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
+    },
+    "slippi-desktop-app": {
+        "branch": "master",
+        "description": "Slippi desktop app used for launching replays",
+        "homepage": null,
+        "owner": "project-slippi",
+        "repo": "slippi-desktop-app",
+        "rev": "65e99dd9eca112bffc87bd36705f7bb6cd0c4b62",
+        "sha256": "05dz59jh9vcwnkgnsbv4331zcb0qv1gj20iymidbkn97r1h64yzj",
+        "type": "tarball",
+        "url": "https://github.com/project-slippi/slippi-desktop-app/archive/65e99dd9eca112bffc87bd36705f7bb6cd0c4b62.tar.gz",
+        "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     }
 }

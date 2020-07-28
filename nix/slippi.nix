@@ -1,8 +1,8 @@
-{ stdenv, lib, gcc, playbackSlippi, mesa_drivers, mesa_glu, mesa, pkgconfig
-, cmake, bluez, ffmpeg, libao, libGLU, gtk2, gtk3, glib, gettext, xorg, readline
-, openal, libevdev, portaudio, libusb, libpulseaudio, libudev, gnumake, wxGTK31
-, gdk-pixbuf, soundtouch, miniupnpc, mbedtls, curl, lzo, sfml, enet, xdg_utils
-, hidapi }:
+{ stdenv, lib, gcc, slippiDesktopApp ? false, playbackSlippi ? false
+, mesa_drivers, mesa_glu, mesa, pkgconfig, cmake, bluez, ffmpeg, libao, libGLU
+, gtk2, gtk3, glib, gettext, xorg, readline, openal, libevdev, portaudio, libusb
+, libpulseaudio, libudev, gnumake, wxGTK31, gdk-pixbuf, soundtouch, miniupnpc
+, mbedtls, curl, lzo, sfml, enet, xdg_utils, hidapi }:
 stdenv.mkDerivation rec {
   pname = "slippi-ishiiruka";
   version = "2.2.1";
@@ -28,12 +28,16 @@ stdenv.mkDerivation rec {
     "-DENABLE_LTO=True"
   ] ++ lib.optional (playbackSlippi) "-DIS_PLAYBACK=true";
 
-  postBuild = ''
-    touch Binaries/portable.txt
-    cp -r -n ../Data/Sys/ Binaries/
-    cp -r Binaries/ $out
-    mkdir -p $out/bin
-  '';
+  postBuild = with lib;
+    optionalString playbackSlippi ''
+      rm -rf ../Data/Sys/GameSettings
+      cp -r "${slippiDesktopApp}/app/dolphin-dev/overwrite/Sys" ../Data/Sys
+    '' + ''
+      touch Binaries/portable.txt
+      cp -r -n ../Data/Sys/ Binaries/
+      cp -r Binaries/ $out
+      mkdir -p $out/bin
+    '';
 
   installPhase = if playbackSlippi then ''
     ln -s $out/dolphin-emu $out/bin/slippi-playback
