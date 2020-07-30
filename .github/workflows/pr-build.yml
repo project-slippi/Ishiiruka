@@ -321,7 +321,8 @@ jobs:
           pkgconfig \
           libao \
           sound-touch \
-          hidapi
+          hidapi \
+          create-dmg
       - name: "Cache wxWidgets 3.1.3"
         uses: actions/cache@v1
         env:
@@ -353,13 +354,24 @@ jobs:
         shell: bash
         working-directory: ${{ github.workspace }}
         run: |
-          FILE_NAME=${{ env.CURR_DATE }}-${{ env.GIT_HASH }}-${{ env.GIT_TAG }}-macOS-netplay.tar.gz
+          FILE_NAME=${{ env.CURR_DATE }}-${{ env.GIT_HASH }}-${{ env.GIT_TAG }}-macOS-netplay.dmg
           echo "::set-env name=FILE_NAME::${FILE_NAME}"
           cp -Rf Data/Sys build/Binaries/Slippi\ Dolphin.app/Contents/Resources/
           mkdir artifact
-          cd ./build/Binaries/
-          zip -r "${FILE_NAME}" Slippi\ Dolphin.app
-          mv "${FILE_NAME}" ../../artifact/
+          create-dmg --no-internet-enable \
+            --volname "Slippi Dolphin Installer" \
+            --volicon "Data/slippi_dmg_icon.icns" \
+            --background "Data/slippi_dmg_background.png" \
+            --text-size 14 \
+            --window-pos 200 120 \
+            --window-size 590 610 \
+            --icon-size 100 \
+            --app-drop-link 440 196 \
+            --icon "Slippi Dolphin.app" 140 110 \
+            --hide-extension "Slippi Dolphin.app" \
+            "${FILE_NAME}" \
+            "./build/Binaries/"
+          mv "./build/Binaries/${FILE_NAME}" artifact/
       - name: "Publish"
         if: success()
         uses: actions/upload-artifact@v2-preview
