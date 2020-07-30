@@ -371,7 +371,7 @@ jobs:
             --hide-extension "Slippi Dolphin.app" \
             "${FILE_NAME}" \
             "./build/Binaries/"
-          mv "./build/Binaries/${FILE_NAME}" artifact/
+          mv "${FILE_NAME}" artifact/
       - name: "Publish"
         if: success()
         uses: actions/upload-artifact@v2-preview
