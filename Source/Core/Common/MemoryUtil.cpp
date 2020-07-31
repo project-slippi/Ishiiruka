@@ -67,7 +67,7 @@ void* AllocateExecutableMemory(size_t size, bool low)
     flags |= MAP_JIT;
 #endif
 
-	void* ptr = mmap(map_hint, size, PROT_READ | PROT_WRITE | PROT_EXEC, flags,
+	void* ptr = mmap(map_hint, size, PROT_READ | PROT_WRITE | PROT_EXEC, flags
 #if defined(_M_X86_64) && defined(MAP_32BIT)
 		| (low ? MAP_32BIT : 0)
 #endif
