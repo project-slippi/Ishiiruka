@@ -210,10 +210,11 @@ if(wxWidgets_FOUND)
 				)
 		endif()
 
-		# Install bundle into systemwide /Applications directory.
-		install(DIRECTORY ${BUNDLE_PATH} DESTINATION /Applications
-			USE_SOURCE_PERMISSIONS
-			)
+        if(MACOS_CODE_SIGNING)
+            add_custom_command(TARGET ${BUNDLE_PATH}/Contents/MacOS/Slippi\ Dolphin
+                POST_BUILD COMMAND
+                /usr/bin/codesign -f -s "${MACOS_CODE_SIGNING_IDENTITY}" --deep ${BUNDLE_PATH})
+        endif()
 	else()
 		install(TARGETS ${DOLPHIN_EXE} RUNTIME DESTINATION ${bindir})
 	endif()
