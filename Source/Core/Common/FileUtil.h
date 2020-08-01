@@ -147,6 +147,9 @@ const std::string& GetUserPath(unsigned int dir_index);
 // Rebuilds internal directory structure to compensate for the new directory
 void SetUserPath(unsigned int dir_index, const std::string& path);
 
+// Gets the path where a Slippi user.json file lives.
+std::string GetSlippiUserJSONPath();
+
 // probably doesn't belong here
 std::string GetThemeDir(const std::string& theme_name);
 

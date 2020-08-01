@@ -1,4 +1,3 @@
-
 #include <wx/debug.h>
 #include <wx/sizer.h>
 #include <wx/stattext.h>
@@ -6,10 +5,16 @@
 #include <wx/webviewfshandler.h>
 
 #include "Common/CommonTypes.h"
+#include "Common/FileUtil.h"
 #include "Common/Logging/Log.h"
+
+#include "Core/Slippi/SlippiUser.h"
 
 #include "DolphinWX/SlippiAuthWebView/SlippiAuthWebView.h"
 #include "DolphinWX/WxUtils.h"
+
+#include <json.hpp>
+using json = nlohmann::json;
 
 SlippiAuthWebView::SlippiAuthWebView(wxWindow* parent, wxWindowID id, const wxString& title,
 	const wxPoint& position, const wxSize& size, long style)
@@ -30,25 +35,16 @@ SlippiAuthWebView::~SlippiAuthWebView()
 
 void SlippiAuthWebView::CreateGUIControls()
 {
-    std::string url = "https://slippi.gg/online/enable";
+    std::string url = "https://slippi.gg/online/enable?isWebview=true";
     m_browser = wxWebView::New(this, wxID_ANY, url);
 
-    //Connect(m_browser->GetId(), wxEVT_WEBVIEW_NAVIGATED,
-    //        wxWebViewEventHandler(SlippiAuthWebView::OnNavigationComplete), NULL, this);
-    Connect(m_browser->GetId(), wxEVT_WEBVIEW_TITLE_CHANGED,
-            wxWebViewEventHandler(SlippiAuthWebView::OnTitleChanged), NULL, this);
+    Bind(wxEVT_WEBVIEW_TITLE_CHANGED, &SlippiAuthWebView::OnTitleChanged, this, m_browser->GetId());
 
 	const int space5 = FromDIP(5);
-
 	wxBoxSizer* const main_sizer = new wxBoxSizer(wxVERTICAL);
 	main_sizer->AddSpacer(space5);
 	main_sizer->Add(m_browser, 1, wxEXPAND, space5);
-
-#ifdef __APPLE__
 	main_sizer->SetMinSize(800, 600);
-#else
-	main_sizer->SetMinSize(FromDIP(400), 0);
-#endif
 
 	SetLayoutAdaptationMode(wxDIALOG_ADAPTATION_MODE_ENABLED);
 	SetLayoutAdaptationLevel(wxDIALOG_ADAPTATION_STANDARD_SIZER);
@@ -57,9 +53,7 @@ void SlippiAuthWebView::CreateGUIControls()
 
 void SlippiAuthWebView::OnClose(wxCloseEvent& WXUNUSED(event))
 {
-	Hide();
-
-	//SConfig::GetInstance().SaveSettings();
+    delete this;
 }
 
 void SlippiAuthWebView::OnShow(wxShowEvent& event)
@@ -70,26 +64,44 @@ void SlippiAuthWebView::OnShow(wxShowEvent& event)
 
 void SlippiAuthWebView::OnCloseButton(wxCommandEvent& WXUNUSED(event))
 {
-	Close();
+    delete this;
 }
 
+// A cross-platform method of passing data from a webview: simply shove it through the
+// document title. Our JSON payload is small enough (and in practice, browsers don't seem to
+// limit this) that it works out fine.
 void SlippiAuthWebView::OnTitleChanged(wxWebViewEvent& evt)
 {
     wxString title = evt.GetString();
-    INFO_LOG(SLIPPI, "Title: %s",  (const char*)title.mb_str());
-}
+    wxString prefix("SlippiUser:");
 
-/*void SlippiAuthWebView::OnNavigationComplete(wxWebViewEvent& evt)
-{
-    wxString url = evt.GetURL();
-    wxString lookup("blob:https://slippi.gg/");
-    
-    if (url.Find(lookup) == wxNOT_FOUND)
+    // If it's not the first thing, don't grab it.
+    if (title.Find(prefix) != 0)
     {
         return;
     }
 
-    INFO_LOG(SLIPPI, "Data blob found; url='%s'",  (const char*)url.mb_str());
-    wxString source = m_browser->GetPageSource();
-    INFO_LOG(SLIPPI, "Found JSON? %i %s", source.length(), (const char*)source.mb_str());
-}*/
+    int prefix_length = prefix.length();
+    wxString userJSON = title.substr(prefix_length, title.length() - prefix_length);
+    std::string user = std::string(userJSON.mb_str());
+
+    // INFO_LOG(SLIPPI, "JSON: %s", user.c_str());
+	
+    // As a sanity check, let's try to parse it before writing it and make sure it's an actual
+    // JSON object - i.e, don't write an arbitrary file. ;P
+    auto res = json::parse(user, nullptr, false);
+	if (res.is_discarded() || !res.is_object())
+	{
+        ERROR_LOG(SLIPPI, "File is invalid JSON, or not an object.");
+		return;
+	}
+
+    // Now we can write it and do some cleanup
+	std::string userFilePath = File::GetSlippiUserJSONPath();
+    File::WriteStringToFile(user, userFilePath);
+
+    // At this point, the background thread in SlippiUser will pick it up and the game should be 
+    // logged in. From this point on, we want to go ahead and clean this up - having a browser instance
+    // sitting around in memory is no fun when running a game. ;P
+    delete this;
+}
