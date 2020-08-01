@@ -20,7 +20,6 @@ typedef int SOCKET;
 #endif
 
 #define MAX_CLIENTS 4
-#define SLIPPI_PORT 51441
 
 #define HANDSHAKE_MSG_BUF_SIZE 128
 #define HANDSHAKE_TYPE 1

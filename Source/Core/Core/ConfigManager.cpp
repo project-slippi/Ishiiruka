@@ -281,6 +281,7 @@ void SConfig::SaveCoreSettings(IniFile& ini)
 	core->Set("SlippiEnableSpectator", m_enableSpectator);
 	core->Set("SlippiSpectatorIP", m_spectator_IP);
 	core->Set("SlippiSpectatorPort", m_spectator_port);
+	core->Set("SlippiSpectatorLocalPort", m_spectator_local_port);
 	core->Set("SlippiSaveReplays", m_slippiSaveReplays);
 	core->Set("SlippiReplayMonthFolders", m_slippiReplayMonthFolders);
 	core->Set("SlippiReplayDir", m_strSlippiReplayDir);
@@ -615,6 +616,7 @@ void SConfig::LoadCoreSettings(IniFile& ini)
 	core->Get("Latency", &iLatency, 0);
 	core->Get("SlippiEnableSpectator", &m_enableSpectator, false);
 	core->Get("SlippiSpectatorIP", &m_spectator_IP, "");
+	core->Get("SlippiSpectatorLocalPort", &m_spectator_local_port, 51441);
 	core->Get("SlippiSpectatorPort", &m_spectator_port, 14415);
 	core->Get("SlippiOnlineDelay", &m_slippiOnlineDelay, 2);
 	core->Get("SlippiSaveReplays", &m_slippiSaveReplays, true);

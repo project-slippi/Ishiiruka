@@ -82,6 +82,7 @@ struct SConfig : NonCopyable
 	bool m_enableSpectator;
 	std::string m_spectator_IP;
 	int m_spectator_port;
+	int m_spectator_local_port;
 
 	// Settings
 	bool bEnableDebugging = false;
