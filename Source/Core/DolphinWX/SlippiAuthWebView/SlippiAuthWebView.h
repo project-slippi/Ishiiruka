@@ -1,7 +1,3 @@
-// Copyright 2015 Dolphin Emulator Project
-// Licensed under GPLv2+
-// Refer to the license.txt file included.
-
 #pragma once
 
 #include <wx/dialog.h>
@@ -18,15 +14,12 @@ public:
 	virtual ~SlippiAuthWebView();
 
     void OnTitleChanged(wxWebViewEvent& evt);
-    //void OnNavigationComplete(wxWebViewEvent& evt);
 
 private:
 	void CreateGUIControls();
 	void OnClose(wxCloseEvent& event);
 	void OnCloseButton(wxCommandEvent& event);
 	void OnShow(wxShowEvent& event);
-	void OnSetRefreshGameListOnClose(wxCommandEvent& event);
 
     wxWebView* m_browser;
-
 };
