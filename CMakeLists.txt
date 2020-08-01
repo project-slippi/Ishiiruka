@@ -926,7 +926,7 @@ endif()
 
 if(NOT DISABLE_WX)
 	include(FindwxWidgets OPTIONAL)
-	FIND_PACKAGE(wxWidgets COMPONENTS core aui adv)
+	FIND_PACKAGE(wxWidgets COMPONENTS core aui adv webview)
 
 	if(_ARCH_32)
 		add_definitions(-DwxSIZE_T_IS_UINT)

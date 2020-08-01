@@ -14,6 +14,8 @@
 
 #include "Common/Common.h"
 #include "Core/ConfigManager.h"
+#include "DolphinWX/frame.h"
+#include "DolphinWX/main.h"
 
 #include <codecvt>
 #include <locale>
@@ -144,6 +146,10 @@ bool SlippiUser::AttemptLogin()
 
 void SlippiUser::OpenLogInPage()
 {
+    CFrame* cframe = wxGetApp().GetCFrame();
+    cframe->OpenSlippiAuthenticationDialog();
+
+    /*
 	std::string url = "https://slippi.gg/online/enable";
 	std::string path = getUserFilePath();
 
@@ -171,7 +177,7 @@ void SlippiUser::OpenLogInPage()
 	std::string command = "xdg-open \"" + fullUrl + "\""; // Linux
 #endif
 
-	RunSystemCommand(command);
+	RunSystemCommand(command);*/
 }
 
 void SlippiUser::UpdateApp()

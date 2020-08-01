@@ -71,6 +71,7 @@ set(GUI_SRCS
 	MemcardManager.cpp
 	PatchAddEdit.cpp
 	PostProcessingConfigDiag.cpp
+    SlippiAuthWebView/SlippiAuthWebView.cpp
 	SoftwareVideoConfigDialog.cpp
 	TASInputDlg.cpp
 	VideoConfigDiag.cpp

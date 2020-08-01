@@ -270,6 +270,18 @@ void CFrame::OpenGeneralConfiguration(wxWindowID tab_id)
 	m_main_config_dialog->SetFocus();
 }
 
+void CFrame::ShowSlippiAuthenticationDialog()
+{
+    m_slippi_auth_dialog = new SlippiAuthWebView(this);
+    m_slippi_auth_dialog->Show();
+    m_slippi_auth_dialog->SetFocus();
+}
+
+void CFrame::OpenSlippiAuthenticationDialog()
+{
+    CallAfter(&CFrame::ShowSlippiAuthenticationDialog);
+}
+
 // Menu items
 
 // Start the game or change the disc.
