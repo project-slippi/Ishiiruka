@@ -158,6 +158,7 @@ jobs:
             libsoundtouch-dev \
             libswscale-dev \
             libusb-1.0-0-dev \
+            libwebkitgtk-dev \
             libwxbase3.0-dev \
             libwxgtk3.0-dev \
             libxext-dev \
@@ -241,6 +242,7 @@ jobs:
             libsoundtouch-dev \
             libswscale-dev \
             libusb-1.0-0-dev \
+            libwebkitgtk-dev \
             libwxbase3.0-dev \
             libwxgtk3.0-dev \
             libxext-dev \
