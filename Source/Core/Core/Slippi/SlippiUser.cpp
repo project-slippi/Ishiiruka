@@ -14,7 +14,7 @@
 
 #include "Common/Common.h"
 #include "Core/ConfigManager.h"
-#include "DolphinWX/frame.h"
+#include "DolphinWX/Frame.h"
 #include "DolphinWX/main.h"
 
 #include <codecvt>
