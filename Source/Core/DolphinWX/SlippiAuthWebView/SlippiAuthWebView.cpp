@@ -1,3 +1,5 @@
+#include "DolphinWX/SlippiAuthWebView/SlippiAuthWebView.h"
+
 #include <wx/debug.h>
 #include <wx/sizer.h>
 #include <wx/stattext.h>
@@ -10,7 +12,6 @@
 
 #include "Core/Slippi/SlippiUser.h"
 
-#include "DolphinWX/SlippiAuthWebView/SlippiAuthWebView.h"
 #include "DolphinWX/WxUtils.h"
 
 #include <json.hpp>
