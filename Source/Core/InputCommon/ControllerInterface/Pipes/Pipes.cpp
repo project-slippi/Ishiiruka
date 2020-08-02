@@ -18,6 +18,7 @@
 #include "Common/StringUtil.h"
 #include "InputCommon/ControllerInterface/ControllerInterface.h"
 #include "InputCommon/ControllerInterface/Pipes/Pipes.h"
+#include "Core/ConfigManager.h"
 
 namespace ciface
 {
@@ -155,29 +156,42 @@ s32 PipeDevice::readFromPipe(PIPE_FD file_descriptor, char *in_buffer, size_t si
   }
   return (s32)bytesread;
   #else
+  if(SConfig::GetInstance().m_blockingPipes)
+  {
+    fd_set set;
+    FD_ZERO (&set);
+    FD_SET (file_descriptor, &set);
+
+    // Wait for activity on the socket
+    select(1, &set, NULL, NULL, NULL);
+  }
   return read(file_descriptor, in_buffer, size);
   #endif
 }
 
 void PipeDevice::UpdateInput()
 {
-  // Read any pending characters off the pipe. If we hit a newline,
-  // then dequeue a command off the front of m_buf and parse it.
-  char buf[32];
-  s32 bytes_read = readFromPipe(m_fd, buf, sizeof buf);
-  while (bytes_read > 0)
+  bool finished = false;
+  do
   {
-    m_buf.append(buf, bytes_read);
-    bytes_read = readFromPipe(m_fd, buf, sizeof buf);
-  }
-  std::size_t newline = m_buf.find("\n");
-  while (newline != std::string::npos)
-  {
-    std::string command = m_buf.substr(0, newline);
-    ParseCommand(command);
-    m_buf.erase(0, newline + 1);
-    newline = m_buf.find("\n");
-  }
+    // Read any pending characters off the pipe. If we hit a newline,
+    // then dequeue a command off the front of m_buf and parse it.
+    char buf[32];
+    s32 bytes_read = readFromPipe(m_fd, buf, sizeof buf);
+    while (bytes_read > 0)
+    {
+      m_buf.append(buf, bytes_read);
+      bytes_read = readFromPipe(m_fd, buf, sizeof buf);
+    }
+    std::size_t newline = m_buf.find("\n");
+    while (newline != std::string::npos)
+    {
+      std::string command = m_buf.substr(0, newline);
+      finished = ParseCommand(command);
+      m_buf.erase(0, newline + 1);
+      newline = m_buf.find("\n");
+    }
+  } while(!finished && SConfig::GetInstance().m_blockingPipes);
 }
 
 void PipeDevice::AddAxis(const std::string& name, double value)
@@ -205,12 +219,17 @@ void PipeDevice::SetAxis(const std::string& entry, double value)
     search_lo->second->SetState(lo);
 }
 
-void PipeDevice::ParseCommand(const std::string& command)
+bool PipeDevice::ParseCommand(const std::string& command)
 {
   std::vector<std::string> tokens;
   SplitString(command, ' ', tokens);
   if (tokens.size() < 2 || tokens.size() > 4)
-    return;
+    return false;
+  if(tokens[0] == "FLUSH")
+  {
+    g_needInputForFrame = false;
+    return true;
+  }
   if (tokens[0] == "PRESS" || tokens[0] == "RELEASE")
   {
     auto search = m_buttons.find(tokens[1]);
@@ -232,6 +251,7 @@ void PipeDevice::ParseCommand(const std::string& command)
       SetAxis(tokens[1] + " Y", y);
     }
   }
+  return false;
 }
 }
 }
