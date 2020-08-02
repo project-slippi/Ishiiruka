@@ -1,11 +1,9 @@
 #pragma once
 
 #include <wx/dialog.h>
+#include <wx/webview.h>
 
 #include "Common/CommonTypes.h"
-
-class wxWebView;
-class wxWebViewEvent;
 
 class SlippiAuthWebView : public wxDialog
 {
