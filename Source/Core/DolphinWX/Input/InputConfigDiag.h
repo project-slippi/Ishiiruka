@@ -222,6 +222,7 @@ public:
 	void AdjustBooleanSetting(wxCommandEvent& event);
 
 	void GetProfilePath(std::string& path);
+	void GetSysProfilePath(std::string &path);
 	ControllerEmu* GetController() const;
 
 	wxComboBox* profile_cbox = nullptr;

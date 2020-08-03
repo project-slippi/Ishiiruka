@@ -2,6 +2,7 @@
 // Licensed under GPLv2+
 // Refer to the license.txt file included.
 
+#include <algorithm>
 #include <cinttypes>
 #include <climits>
 #include <memory>
@@ -285,6 +286,7 @@ void SConfig::SaveCoreSettings(IniFile& ini)
 	core->Set("SlippiSaveReplays", m_slippiSaveReplays);
 	core->Set("SlippiReplayMonthFolders", m_slippiReplayMonthFolders);
 	core->Set("SlippiReplayDir", m_strSlippiReplayDir);
+	core->Set("BlockingPipes", m_blockingPipes);
 	core->Set("MemcardAPath", m_strMemoryCardA);
 	core->Set("MemcardBPath", m_strMemoryCardB);
 	core->Set("AgpCartAPath", m_strGbaCartA);
@@ -625,6 +627,7 @@ void SConfig::LoadCoreSettings(IniFile& ini)
 	core->Get("SlippiReplayDir", &m_strSlippiReplayDir, default_replay_dir);
 	if (m_strSlippiReplayDir.empty())
 		m_strSlippiReplayDir = default_replay_dir;
+	core->Get("BlockingPipes", &m_blockingPipes, false);
 	core->Get("MemcardAPath", &m_strMemoryCardA);
 	core->Get("MemcardBPath", &m_strMemoryCardB);
 	core->Get("AgpCartAPath", &m_strGbaCartA);
@@ -1164,7 +1167,10 @@ std::string SConfig::GetGameID_Wrapper() const
 	return m_gameType == GAMETYPE_MELEE_20XX ? "GALEXX" : GetGameID();
 }
 
-
+bool SConfig::GameHasDefaultGameIni() const
+{
+	return GameHasDefaultGameIni(GetGameID_Wrapper(), m_revision);
+}
 
 IniFile SConfig::LoadDefaultGameIni() const
 {
@@ -1179,6 +1185,14 @@ IniFile SConfig::LoadLocalGameIni() const
 IniFile SConfig::LoadGameIni() const
 {
 	return LoadGameIni(GetGameID_Wrapper(), m_revision);
+}
+
+bool SConfig::GameHasDefaultGameIni(const std::string& id, u16 revision)
+{
+	const std::vector<std::string> filenames = GetGameIniFilenames(id, revision);
+	return std::any_of(filenames.begin(), filenames.end(), [](const std::string& filename) {
+		return File::Exists(File::GetSysDirectory() + GAMESETTINGS_DIR DIR_SEP + filename);
+	});
 }
 
 IniFile SConfig::LoadDefaultGameIni(const std::string& id, u16 revision)

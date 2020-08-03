@@ -11,7 +11,6 @@
 #include <sstream>
 #include <string>
 #include <sys/stat.h>
-#include <unistd.h>
 #include <vector>
 
 #include "Common/FileUtil.h"
@@ -19,6 +18,7 @@
 #include "Common/StringUtil.h"
 #include "InputCommon/ControllerInterface/ControllerInterface.h"
 #include "InputCommon/ControllerInterface/Pipes/Pipes.h"
+#include "Core/ConfigManager.h"
 
 namespace ciface
 {
@@ -43,6 +43,32 @@ static double StringToDouble(const std::string& text)
 
 void PopulateDevices()
 {
+  #ifdef _WIN32
+  PIPE_FD pipes[4];
+  // Windows has named pipes, but they're different. They don't exist on the
+  //  local filesystem and are transient. So rather than searching the /Pipes
+  //  directory for pipes, we just always assume there's 4 and then make them
+  for (uint32_t i = 0; i < 4; i++)
+  {
+    std::string pipename = "\\\\.\\pipe\\slippibot" + std::to_string(i+1);
+    pipes[i] = CreateNamedPipeA(
+       pipename.data(),              // pipe name
+       PIPE_ACCESS_INBOUND,          // read access, inward only
+       PIPE_TYPE_BYTE | PIPE_NOWAIT, // byte mode, nonblocking
+       1,                            // number of clients
+       256,                          // output buffer size
+       256,                          // input buffer size
+       0,                            // timeout value
+       NULL                          // security attributes
+    );
+
+    // We're in nonblocking mode, so this won't wait for clients
+    ConnectNamedPipe(pipes[i], NULL);
+    std::string ui_pipe_name = "slippibot" + std::to_string(i+1);
+    g_controller_interface.AddDevice(std::make_shared<PipeDevice>(pipes[i], ui_pipe_name));
+  }
+  #else
+
   // Search the Pipes directory for files that we can open in read-only,
   // non-blocking mode. The device name is the virtual name of the file.
   File::FSTEntry fst;
@@ -57,14 +83,15 @@ void PopulateDevices()
     const File::FSTEntry& child = fst.children[i];
     if (child.isDirectory)
       continue;
-    int fd = open(child.physicalName.c_str(), O_RDONLY | O_NONBLOCK);
+    PIPE_FD fd = open(child.physicalName.c_str(), O_RDONLY | O_NONBLOCK);
     if (fd < 0)
       continue;
     g_controller_interface.AddDevice(std::make_shared<PipeDevice>(fd, child.virtualName));
   }
+  #endif
 }
 
-PipeDevice::PipeDevice(int fd, const std::string& name) : m_fd(fd), m_name(name)
+PipeDevice::PipeDevice(PIPE_FD fd, const std::string& name) : m_fd(fd), m_name(name)
 {
   for (const auto& tok : s_button_tokens)
   {
@@ -85,28 +112,87 @@ PipeDevice::PipeDevice(int fd, const std::string& name) : m_fd(fd), m_name(name)
 
 PipeDevice::~PipeDevice()
 {
+  #ifdef _WIN32
+  CloseHandle(m_fd);
+  #else
   close(m_fd);
+  #endif
+}
+
+s32 PipeDevice::readFromPipe(PIPE_FD file_descriptor, char *in_buffer, size_t size)
+{
+  #ifdef _WIN32
+
+  u32 bytes_available = 0;
+  DWORD bytesread = 0;
+  bool peek_success = PeekNamedPipe(
+    file_descriptor,
+    NULL,
+    0,
+    NULL,
+    (LPDWORD)&bytes_available,
+    NULL
+  );
+
+  if(!peek_success && (GetLastError() == ERROR_BROKEN_PIPE))
+  {
+    DisconnectNamedPipe(file_descriptor);
+    ConnectNamedPipe(file_descriptor, NULL);
+    return -1;
+  }
+
+  if(peek_success && (bytes_available > 0))
+  {
+    bool success = ReadFile(
+      file_descriptor,    // pipe handle
+      in_buffer,          // buffer to receive reply
+      (DWORD)std::min(bytes_available, (u32)size),        // size of buffer
+      &bytesread,         // number of bytes read
+      NULL);              // not overlapped
+    if(!success)
+    {
+        return -1;
+    }
+  }
+  return (s32)bytesread;
+  #else
+  return read(file_descriptor, in_buffer, size);
+  #endif
 }
 
 void PipeDevice::UpdateInput()
 {
-  // Read any pending characters off the pipe. If we hit a newline,
-  // then dequeue a command off the front of m_buf and parse it.
-  char buf[32];
-  ssize_t bytes_read = read(m_fd, buf, sizeof buf);
-  while (bytes_read > 0)
+  bool finished = false;
+  if(SConfig::GetInstance().m_blockingPipes && g_needInputForFrame)
   {
-    m_buf.append(buf, bytes_read);
-    bytes_read = read(m_fd, buf, sizeof buf);
+    fd_set set;
+    FD_ZERO (&set);
+    FD_SET (m_fd, &set);
+
+    // Wait for activity on the socket
+    select(m_fd+1, &set, NULL, NULL, NULL);
   }
-  std::size_t newline = m_buf.find("\n");
-  while (newline != std::string::npos)
+  do
   {
-    std::string command = m_buf.substr(0, newline);
-    ParseCommand(command);
-    m_buf.erase(0, newline + 1);
-    newline = m_buf.find("\n");
-  }
+    // Read any pending characters off the pipe. If we hit a newline,
+    // then dequeue a command off the front of m_buf and parse it.
+    char buf[32];
+    s32 bytes_read = readFromPipe(m_fd, buf, sizeof buf);
+    while (bytes_read > 0)
+    {
+      m_buf.append(buf, bytes_read);
+      bytes_read = readFromPipe(m_fd, buf, sizeof buf);
+    }
+    std::size_t newline = m_buf.find("\n");
+    while (newline != std::string::npos)
+    {
+      std::string command = m_buf.substr(0, newline);
+      finished = ParseCommand(command);
+
+      m_buf.erase(0, newline + 1);
+      newline = m_buf.find("\n");
+    }
+  } while(!finished && g_needInputForFrame && SConfig::GetInstance().m_blockingPipes);
 }
 
 void PipeDevice::AddAxis(const std::string& name, double value)
@@ -134,12 +220,17 @@ void PipeDevice::SetAxis(const std::string& entry, double value)
     search_lo->second->SetState(lo);
 }
 
-void PipeDevice::ParseCommand(const std::string& command)
+bool PipeDevice::ParseCommand(const std::string& command)
 {
+  if(command == "FLUSH")
+  {
+    g_needInputForFrame = false;
+    return true;
+  }
   std::vector<std::string> tokens;
   SplitString(command, ' ', tokens);
   if (tokens.size() < 2 || tokens.size() > 4)
-    return;
+    return false;
   if (tokens[0] == "PRESS" || tokens[0] == "RELEASE")
   {
     auto search = m_buttons.find(tokens[1]);
@@ -161,6 +252,7 @@ void PipeDevice::ParseCommand(const std::string& command)
       SetAxis(tokens[1] + " Y", y);
     }
   }
+  return false;
 }
 }
 }

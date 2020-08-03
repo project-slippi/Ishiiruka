@@ -3,7 +3,7 @@
 
 CMAKE_FLAGS='-DLINUX_LOCAL_DEV=true'
 
-# Build
+# Build type
 if [ -z "$1" ]
     then
         echo "Using Netplay build config"
@@ -19,5 +19,8 @@ pushd build
 cmake ${CMAKE_FLAGS} ../
 make -j$(nproc)
 popd
+
+# Copy the Sys folder in
+cp -r -n Data/Sys/ build/Binaries/
 
 touch ./build/Binaries/portable.txt

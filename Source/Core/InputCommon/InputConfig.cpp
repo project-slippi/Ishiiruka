@@ -19,40 +19,10 @@ bool InputConfig::LoadConfig(bool isGC)
 {
 	IniFile inifile;
 	bool useProfile[MAX_BBMOTES] = { false, false, false, false, false };
+	bool useSysProfile[MAX_BBMOTES] = { false, false, false, false, false };
 	std::string num[MAX_BBMOTES] = { "1", "2", "3", "4", "BB" };
 	std::string profile[MAX_BBMOTES];
 	std::string path;
-
-	// This is so we can push the b0xx inis to the user's folder, kinda hacky
-	// TODO: Find a less hacky way to do this
-#if defined(_WIN32) || defined(__APPLE__)
-	std::string sys_config_path = File::GetSysDirectory() + "Config";
-	if (File::Exists(sys_config_path)) {
-		std::string sys_boxx_path = sys_config_path + DIR_SEP + "Profiles" + DIR_SEP + "GCPad" + DIR_SEP + "B0XX.ini";
-		std::string user_pad_path = File::GetUserPath(D_CONFIG_IDX) + "Profiles" + DIR_SEP + "GCPad" + DIR_SEP;
-		std::string user_boxx_path = user_pad_path + "B0XX.ini";
-		File::CreateFullPath(user_pad_path);
-		File::Copy(sys_boxx_path, user_boxx_path);
-		File::DeleteDirRecursively(sys_config_path);
-	}
-#else
-	// OK I have no clue why I can't just copy but this works for now
-	// TODO: Figure out why File::Copy won't work on Linux
-	std::string user_pad_path = File::GetUserPath(D_CONFIG_IDX) + "Profiles" + DIR_SEP + "GCPad" + DIR_SEP;
-	if (!File::Exists(user_pad_path)) {
-		std::string user_boxx_path = user_pad_path + "B0XX.ini";
-
-		std::string sys_config_path = File::GetSysDirectory() + "Config";
-		std::string sys_boxx_path = sys_config_path + DIR_SEP + "Profiles" + DIR_SEP + "GCPad" + DIR_SEP + "B0XX_Linux.ini";
-		std::string sys_boxx_data;
-		
-		File::ReadFileToString(sys_boxx_path, sys_boxx_data);
-		File::CreateFullPath(user_pad_path);
-	
-		if(!File::WriteStringToFile(sys_boxx_data, user_boxx_path))
-			WARN_LOG(COMMON, "failed to write");
-	}
-#endif
 
 	if (SConfig::GetInstance().GetGameID() != "00000000")
 	{
@@ -81,6 +51,10 @@ bool InputConfig::LoadConfig(bool isGC)
 					{
 						useProfile[i] = true;
 					}
+					else if (File::Exists(File::GetSysDirectory() + "Config/" + path + profile[i] + ".ini"))
+					{
+						useSysProfile[i] = true;
+					}
 					else
 					{
 						// TODO: PanicAlert shouldn't be used for this.
@@ -101,6 +75,12 @@ bool InputConfig::LoadConfig(bool isGC)
 			{
 				IniFile profile_ini;
 				profile_ini.Load(File::GetUserPath(D_CONFIG_IDX) + path + profile[n] + ".ini");
+				controller->LoadConfig(profile_ini.GetOrCreateSection("Profile"));
+			}
+			else if (useSysProfile[n])
+			{
+				IniFile profile_ini;
+				profile_ini.Load(File::GetSysDirectory() + "Config/" + path + profile[n] + ".ini");
 				controller->LoadConfig(profile_ini.GetOrCreateSection("Profile"));
 			}
 			else

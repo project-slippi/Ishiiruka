@@ -12,6 +12,7 @@
 #include "Common/StringUtil.h"
 #include "Common/Thread.h"
 
+#include "Common/Common.h"
 #include "Core/ConfigManager.h"
 
 #include <codecvt>
@@ -143,17 +144,24 @@ bool SlippiUser::AttemptLogin()
 
 void SlippiUser::OpenLogInPage()
 {
-#ifdef _WIN32
-	std::string folderSep = "%5C";
-#else
-	std::string folderSep = "%2F";
-#endif
-
 	std::string url = "https://slippi.gg/online/enable";
 	std::string path = getUserFilePath();
-	path = ReplaceAll(path, "\\", folderSep);
-	path = ReplaceAll(path, "/", folderSep);
+
+#ifdef _WIN32
+	// On windows, sometimes the path can have backslashes and slashes mixed, convert all to backslashes
+	path = ReplaceAll(path, "\\", "\\");
+	path = ReplaceAll(path, "/", "\\");
+#endif
+
+#ifndef __APPLE__
+	char *escapedPath = curl_easy_escape(nullptr, path.c_str(), (int)path.length());
+	path = std::string(escapedPath);
+	curl_free(escapedPath);
+#endif
+
 	std::string fullUrl = url + "?path=" + path;
+
+	INFO_LOG(SLIPPI_ONLINE, "[User] Login at path: %s", fullUrl.c_str());
 
 #ifdef _WIN32
 	std::string command = "explorer \"" + fullUrl + "\"";
@@ -174,20 +182,24 @@ void SlippiUser::UpdateApp()
 	std::string path = File::GetExeDirectory() + "/dolphin-slippi-tools.exe";
 	std::string echoMsg = "echo Starting update process. If nothing happen after a few "
 	                      "minutes, you may need to update manually from https://slippi.gg/netplay ...";
-	std::string command =
-	    "start /b cmd /c " + echoMsg + " && \"" + path + "\" app-update -launch -iso \"" + isoPath + "\"";
+	// std::string command =
+	//    "start /b cmd /c " + echoMsg + " && \"" + path + "\" app-update -launch -iso \"" + isoPath + "\"";
+	std::string command = "start /b cmd /c " + echoMsg + " && \"" + path + "\" app-update -launch -iso \"" + isoPath +
+	                      "\" -version \"" + scm_slippi_semver_str + "\"";
 	WARN_LOG(SLIPPI, "Executing app update command: %s", command);
 	RunSystemCommand(command);
 #elif defined(__APPLE__)
 #else
 	const char *appimage_path = getenv("APPIMAGE");
+	const char *appmount_path = getenv("APPDIR");
 	if (!appimage_path)
 	{
 		CriticalAlertT("Automatic updates are not available for non-AppImage Linux builds.");
 		return;
 	}
 	std::string path(appimage_path);
-	std::string command = "appimageupdatetool " + path;
+	std::string mount_path(appmount_path);
+	std::string command = mount_path + "/usr/bin/appimageupdatetool " + path;
 	WARN_LOG(SLIPPI, "Executing app update command: %s", command.c_str());
 	RunSystemCommand(command);
 #endif

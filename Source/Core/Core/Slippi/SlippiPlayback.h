@@ -32,6 +32,7 @@ class SlippiPlaybackStatus
 
 	void startThreads(void);
 	void resetPlayback(void);
+	bool shouldFFWFrame(int32_t frameIndex) const;
 	void prepareSlippiPlayback(s32 &frameIndex);
 
   private:

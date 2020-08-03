@@ -7,11 +7,24 @@
 #include <map>
 #include <string>
 #include <vector>
+#ifdef _WIN32
+#include <windows.h>
+#else
+#include <unistd.h>
+#endif
+
+extern bool g_needInputForFrame;
 
 namespace ciface
 {
 namespace Pipes
 {
+  #ifdef _WIN32
+  typedef HANDLE PIPE_FD;
+  #else
+  typedef int PIPE_FD;
+  #endif
+
 // To create a piped controller input, create a named pipe in the
 // Pipes directory and write commands out to it. Commands are separated
 // by a newline character, with spaces separating command tokens.
@@ -21,13 +34,14 @@ namespace Pipes
 // {PRESS, RELEASE} {A, B, X, Y, Z, START, L, R, D_UP, D_DOWN, D_LEFT, D_RIGHT}
 // SET {L, R} [0, 1]
 // SET {MAIN, C} [0, 1] [0, 1]
-
+// FLUSH -> In blocking input mode, this tells dolphin to progress to the next frame
+//    (does nothing in non-blocking mode)
 void PopulateDevices();
 
 class PipeDevice : public Core::Device
 {
 public:
-  PipeDevice(int fd, const std::string& name);
+  PipeDevice(PIPE_FD fd, const std::string& name);
   ~PipeDevice();
 
   void UpdateInput() override;
@@ -47,10 +61,11 @@ private:
   };
 
   void AddAxis(const std::string& name, double value);
-  void ParseCommand(const std::string& command);
+  bool ParseCommand(const std::string& command);
   void SetAxis(const std::string& entry, double value);
+  s32 readFromPipe(PIPE_FD file_descriptor, char *in_buffer, size_t size);
 
-  const int m_fd;
+  const PIPE_FD m_fd;
   const std::string m_name;
   std::string m_buf;
   std::map<std::string, PipeInput*> m_buttons;

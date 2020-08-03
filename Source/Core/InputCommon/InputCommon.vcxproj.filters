@@ -10,6 +10,9 @@
     <Filter Include="ControllerInterface\XInput">
       <UniqueIdentifier>{07bad1aa-7e03-4f5c-ade2-a44857c5cbc3}</UniqueIdentifier>
     </Filter>
+    <Filter Include="ControllerInterface\Pipes">
+      <UniqueIdentifier>{489e6f5e-36e0-4c77-aad3-c08143727baf}</UniqueIdentifier>
+    </Filter>
     <Filter Include="ControllerInterface\ForceFeedback">
       <UniqueIdentifier>{e10ce316-283c-4be0-848d-578dec2b6404}</UniqueIdentifier>
     </Filter>
@@ -29,6 +32,9 @@
     </ClCompile>
     <ClCompile Include="ControllerInterface\XInput\XInput.cpp">
       <Filter>ControllerInterface\XInput</Filter>
+    </ClCompile>
+    <ClCompile Include="ControllerInterface\Pipes\Pipes.cpp">
+      <Filter>ControllerInterface\Pipes</Filter>
     </ClCompile>
     <ClCompile Include="ControllerInterface\Device.cpp">
       <Filter>ControllerInterface</Filter>
@@ -61,6 +67,9 @@
     </ClInclude>
     <ClInclude Include="ControllerInterface\XInput\XInput.h">
       <Filter>ControllerInterface\XInput</Filter>
+    </ClInclude>
+    <ClInclude Include="ControllerInterface\Pipes\Pipes.h">
+      <Filter>ControllerInterface\Pipes</Filter>
     </ClInclude>
     <ClInclude Include="ControllerInterface\ControllerInterface.h">
       <Filter>ControllerInterface</Filter>

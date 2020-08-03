@@ -142,6 +142,7 @@ struct SConfig : NonCopyable
 	bool m_slippiReplayMonthFolders = false;
 	std::string m_strSlippiReplayDir;
 	bool m_meleeUserIniBootstrapped = false;
+	bool m_blockingPipes = false;
 
 	bool bDPL2Decoder = false;
 	bool bTimeStretching = false;
@@ -266,10 +267,12 @@ struct SConfig : NonCopyable
 
 	u16 GetGameRevision() const;
 	std::string GetGameID_Wrapper() const;
+	bool GameHasDefaultGameIni() const;
 	IniFile LoadDefaultGameIni() const;
 	IniFile LoadLocalGameIni() const;
 	IniFile LoadGameIni() const;
 
+	static bool GameHasDefaultGameIni(const std::string& id, u16 revision);
 	static IniFile LoadDefaultGameIni(const std::string& id, u16 revision);
 	static IniFile LoadLocalGameIni(const std::string& id, u16 revision);
 	static IniFile LoadGameIni(const std::string& id, u16 revision);

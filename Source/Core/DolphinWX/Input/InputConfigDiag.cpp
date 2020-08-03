@@ -246,10 +246,16 @@ wxSize ControlButton::DoGetBestSize() const
 
 void InputConfigDialog::UpdateProfileComboBox()
 {
+	// we add some default configs to Sys so check there too
+	std::string syspname(File::GetSysDirectory() + "Config/");
+	syspname += PROFILES_PATH;
+	syspname += m_config.GetProfileName();
+
 	std::string pname(File::GetUserPath(D_CONFIG_IDX));
 	pname += PROFILES_PATH;
 	pname += m_config.GetProfileName();
 
+	std::vector<std::string> sysv = DoFileSearch({ ".ini" }, { syspname });
 	std::vector<std::string> sv = DoFileSearch({ ".ini" }, { pname });
 
 	wxArrayString strs;
@@ -258,6 +264,17 @@ void InputConfigDialog::UpdateProfileComboBox()
 		std::string base;
 		SplitPath(filename, nullptr, &base, nullptr);
 		strs.push_back(StrToWxStr(base));
+	}
+
+	for (const std::string& filename : sysv)
+	{
+		std::string base;
+		SplitPath(filename, nullptr, &base, nullptr);
+		wxString wxBase = StrToWxStr(base);
+		if (strs.Index(wxBase) == wxNOT_FOUND)
+		{
+			strs.push_back(wxBase);
+		}
 	}
 
 	profile_cbox->Clear();
@@ -831,6 +848,18 @@ void InputConfigDialog::GetProfilePath(std::string& path)
 	}
 }
 
+void InputConfigDialog::GetSysProfilePath(std::string& path)
+{
+	path.clear();
+	path += File::GetSysDirectory();
+	path += "Config/";
+	path += PROFILES_PATH;
+	path += m_config.GetProfileName();
+	path += '/';
+	path += WxStrToStr(profile_cbox->GetValue());
+	path += ".ini";
+}
+
 ControllerEmu* InputConfigDialog::GetController() const
 {
 	return controller;
@@ -842,7 +871,11 @@ void InputConfigDialog::LoadProfile(wxCommandEvent&)
 	InputConfigDialog::GetProfilePath(fname);
 
 	if (!File::Exists(fname))
-		return;
+	{
+		InputConfigDialog::GetSysProfilePath(fname);
+		if (!File::Exists(fname))
+			return;
+	}
 
 	IniFile inifile;
 	inifile.Load(fname);

@@ -55,17 +55,15 @@ An application bundle will be created in `./Binaries`.
 If you are building on Mojave, you will need to install the 10.11 and 10.14 SDKs to build because Quicktime has been removed in the latest SDKs. Find the sdk version here https://github.com/phracker/MacOSX-SDKs and copy it to 
 `/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs`. You should not need to modify the plist file as the project readme seems to indicate.
 
-If you are building on Catalina, you only need to install the 10.14 SDK. However you will also need to install wxWidgets from source. Details on how to do this can be found by reading the CI script (https://github.com/project-slippi/Ishiiruka/blob/slippi/.github/workflows/pr-build.yml#L167-L196).
+If you are building on Catalina, you only need to install the 10.14 SDK. However you will also need to install wxWidgets from source. Details on how to do this can be found by reading the CI script (https://github.com/project-slippi/Ishiiruka/blob/slippi/.github/workflows/pr-build.yml#L284).
 
 ### Linux Portable Build Steps:
 
 Can be stored on external storage and used on different Linux systems.
 Or useful for having multiple distinct Dolphin setups for testing/development/TAS.
 
-1. Clone repo and navigate to the directory.
-2. `./build-linux.sh`
-3. `cp -r ../Data/Sys ./build/Binaries/`
-4. `touch ./build/Binaries/portable.txt`
+1. `./build-linux.sh`
+2. `touch ./build/Binaries/portable.txt`
 
 ## Command Line Usage
 `Usage: Dolphin [-h] [-d] [-l] [-e <str>] [-b] [-V <str>] [-A <str>]`  

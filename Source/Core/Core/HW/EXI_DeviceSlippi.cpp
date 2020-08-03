@@ -49,6 +49,10 @@ extern std::unique_ptr<SlippiReplayComm> g_replayComm;
 bool isLocalConnected = false;
 #endif
 
+// Are we waiting for input on this frame?
+//  Is set to true between frames
+bool g_needInputForFrame = false;
+
 template <typename T> bool isFutureReady(std::future<T> &t)
 {
 	return t.wait_for(std::chrono::seconds(0)) == std::future_status::ready;
@@ -203,6 +207,9 @@ CEXISlippi::~CEXISlippi()
 	m_slippiserver->endGame();
 
 	localSelections.Reset();
+
+	// Kill threads to prevent cleanup crash
+	g_playbackStatus->resetPlayback();
 
 	// TODO: ENET shutdown should maybe be done at app shutdown instead.
 	// Right now this might be problematic in the case where someone starts a netplay client
@@ -1245,7 +1252,7 @@ void CEXISlippi::prepareFrameData(u8 *payload)
 		g_playbackStatus->isHardFFW = false;
 	}
 
-	bool shouldFFW = shouldFFWFrame(frameIndex);
+	bool shouldFFW = g_playbackStatus->shouldFFWFrame(frameIndex);
 	u8 requestResultCode = shouldFFW ? FRAME_RESP_FASTFORWARD : FRAME_RESP_CONTINUE;
 	if (!isFrameReady)
 	{
@@ -1314,23 +1321,6 @@ void CEXISlippi::prepareFrameData(u8 *payload)
 
 		frameSeqIdx += 1;
 	}
-	// else
-	//{
-	//	std::vector<u8> fakePayload(8, 0);
-	//	*(s32 *)(&fakePayload[0]) = Common::swap32(frame->frame);
-
-	//	if (frame->frame == 400)
-	//	{
-	//		handleCaptureSavestate(&fakePayload[0]);
-	//	}
-
-	//	if (frame->frame == 950)
-	//	{
-	//		*(s32 *)(&fakePayload[0]) = Common::swap32(400);
-	//		handleLoadSavestate(&fakePayload[0]);
-	//		handleCaptureSavestate(&fakePayload[0]);
-	//	}
-	//}
 
 	// For normal replays, modify slippi seek/playback data as needed
 	// TODO: maybe handle other modes too?
@@ -1353,25 +1343,6 @@ void CEXISlippi::prepareFrameData(u8 *payload)
 		prepareCharacterFrameData(frame, port, 0);
 		prepareCharacterFrameData(frame, port, 1);
 	}
-}
-
-bool CEXISlippi::shouldFFWFrame(int32_t frameIndex)
-{
-	if (!g_playbackStatus->isSoftFFW && !g_playbackStatus->isHardFFW)
-	{
-		// If no FFW at all, don't FFW this frame
-		return false;
-	}
-
-	if (g_playbackStatus->isHardFFW)
-	{
-		// For a hard FFW, always FFW until it's turned off
-		return true;
-	}
-
-	// Here we have a soft FFW, we only want to turn on FFW for single frames once
-	// every X frames to FFW in a more smooth manner
-	return frameIndex - g_playbackStatus->lastFFWFrame >= 15;
 }
 
 void CEXISlippi::prepareIsStockSteal(u8 *payload)
@@ -1478,7 +1449,7 @@ void CEXISlippi::handleOnlineInputs(u8 *payload)
 	prepareOpponentInputs(payload);
 }
 
-bool CEXISlippi::shouldSkipOnlineFrame(int32_t frame)
+bool CEXISlippi::shouldSkipOnlineFrame(s32 frame)
 {
 	auto status = slippi_netplay->GetSlippiConnectStatus();
 	bool connectionFailed = status == SlippiNetplayClient::SlippiConnectStatus::NET_CONNECT_STATUS_FAILED;
@@ -1697,6 +1668,16 @@ void CEXISlippi::startFindMatch(u8 *payload)
 	// Store this search so we know what was queued for
 	lastSearch = search;
 
+	// While we do have another condition that checks characters after being connected, it's nice to give
+	// someone an early error before they even queue so that they wont enter the queue and make someone
+	// else get force removed from queue and have to requeue
+	auto directMode = SlippiMatchmaking::OnlinePlayMode::DIRECT;
+	if (search.mode != directMode && localSelections.characterId >= 26)
+	{
+		forcedError = "The character you selected is not allowed in this mode";
+		return;
+	}
+
 #ifndef LOCAL_TESTING
 	if (!isEnetInitialized)
 	{
@@ -1739,7 +1720,8 @@ void CEXISlippi::prepareOnlineMatchState()
 
 	m_read_queue.clear();
 
-	SlippiMatchmaking::ProcessState mmState = matchmaking->GetMatchmakeState();
+	auto errorState = SlippiMatchmaking::ProcessState::ERROR_ENCOUNTERED;
+	SlippiMatchmaking::ProcessState mmState = !forcedError.empty() ? errorState : matchmaking->GetMatchmakeState();
 
 #ifdef LOCAL_TESTING
 	if (localSelections.isCharacterSelected || isLocalConnected)
@@ -1798,6 +1780,8 @@ void CEXISlippi::prepareOnlineMatchState()
 #ifndef LOCAL_TESTING
 			// If we get here, our opponent likely disconnected. Let's trigger a clean up
 			handleConnectionCleanup();
+			prepareOnlineMatchState();
+			return;
 #endif
 		}
 	}
@@ -1815,6 +1799,8 @@ void CEXISlippi::prepareOnlineMatchState()
 	std::string p1Name = "";
 	std::string p2Name = "";
 
+	auto directMode = SlippiMatchmaking::OnlinePlayMode::DIRECT;
+
 	if (localPlayerReady && remotePlayerReady)
 	{
 		auto isDecider = slippi_netplay->IsDecider();
@@ -1823,15 +1809,28 @@ void CEXISlippi::prepareOnlineMatchState()
 		SlippiPlayerSelections lps = matchInfo->localPlayerSelections;
 		SlippiPlayerSelections rps = matchInfo->remotePlayerSelections;
 
-		// Overwrite local player character
-		onlineMatchBlock[0x60 + localPlayerIndex * 0x24] = lps.characterId;
-		onlineMatchBlock[0x63 + localPlayerIndex * 0x24] = lps.characterColor;
-
 #ifdef LOCAL_TESTING
-		rps.characterId = 2;
+		rps.characterId = 0x2;
 		rps.characterColor = 2;
 		rps.playerName = std::string("Player");
 #endif
+
+		// Check if someone is picking dumb characters in non-direct
+		auto localCharOk = lps.characterId < 26;
+		auto remoteCharOk = rps.characterId < 26;
+		if (lastSearch.mode != directMode && (!localCharOk || !remoteCharOk))
+		{
+			// If we get here, someone is doing something bad, clear the lobby
+			handleConnectionCleanup();
+			if (!localCharOk)
+				forcedError = "The character you selected is not allowed in this mode";
+			prepareOnlineMatchState();
+			return;
+		}
+
+		// Overwrite local player character
+		onlineMatchBlock[0x60 + localPlayerIndex * 0x24] = lps.characterId;
+		onlineMatchBlock[0x63 + localPlayerIndex * 0x24] = lps.characterColor;
 
 		// Overwrite remote player character
 		onlineMatchBlock[0x60 + remotePlayerIndex * 0x24] = rps.characterId;
@@ -1874,8 +1873,8 @@ void CEXISlippi::prepareOnlineMatchState()
 
 		// Turn pause on in direct, off in everything else
 		u8 *gameBitField3 = (u8 *)&onlineMatchBlock[2];
-		auto directMode = SlippiMatchmaking::OnlinePlayMode::DIRECT;
 		*gameBitField3 = lastSearch.mode == directMode ? *gameBitField3 & 0xF7 : *gameBitField3 | 0x8;
+		//*gameBitField3 = *gameBitField3 | 0x8;
 	}
 
 	// Add rng offset to output
@@ -1893,7 +1892,7 @@ void CEXISlippi::prepareOnlineMatchState()
 	m_read_queue.insert(m_read_queue.end(), oppName.begin(), oppName.end());
 
 	// Add error message if there is one
-	auto errorStr = matchmaking->GetErrorMessage();
+	auto errorStr = !forcedError.empty() ? forcedError : matchmaking->GetErrorMessage();
 	errorStr = ConvertStringForGame(errorStr, 120);
 	m_read_queue.insert(m_read_queue.end(), errorStr.begin(), errorStr.end());
 
@@ -2037,7 +2036,8 @@ void CEXISlippi::handleLogOutRequest()
 void CEXISlippi::handleUpdateAppRequest()
 {
 #ifdef __APPLE__
-	CriticalAlertT("Automatic updates are not available for macOS, please update manually.");
+	CriticalAlertT(
+	    "Automatic updates are not available for macOS, please get the latest update from slippi.gg/netplay.");
 #else
 	main_frame->LowerRenderWindow();
 	user->UpdateApp();
@@ -2106,6 +2106,9 @@ void CEXISlippi::handleConnectionCleanup()
 	// Reset random stage pool
 	stagePool.clear();
 
+	// Reset any forced errors
+	forcedError.clear();
+
 #ifdef LOCAL_TESTING
 	isLocalConnected = false;
 #endif
@@ -2135,6 +2138,7 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 		configureCommands(&memPtr[1], receiveCommandsLen);
 		writeToFileAsync(&memPtr[0], receiveCommandsLen + 1, "create");
 		bufLoc += receiveCommandsLen + 1;
+		g_needInputForFrame = true;
 		m_slippiserver->startGame();
 		m_slippiserver->write(&memPtr[0], receiveCommandsLen + 1);
 	}
@@ -2172,6 +2176,9 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 			break;
 		case CMD_READ_FRAME:
 			prepareFrameData(&memPtr[bufLoc + 1]);
+			break;
+		case CMD_FRAME_BOOKEND:
+			g_needInputForFrame = true;
 			break;
 		case CMD_IS_STOCK_STEAL:
 			prepareIsStockSteal(&memPtr[bufLoc + 1]);
