@@ -163,6 +163,7 @@ s32 PipeDevice::readFromPipe(PIPE_FD file_descriptor, char *in_buffer, size_t si
 void PipeDevice::UpdateInput()
 {
   bool finished = false;
+  #ifndef _WIN32
   if(SConfig::GetInstance().m_blockingPipes && g_needInputForFrame)
   {
     fd_set set;
@@ -172,6 +173,7 @@ void PipeDevice::UpdateInput()
     // Wait for activity on the socket
     select(m_fd+1, &set, NULL, NULL, NULL);
   }
+  #endif
   do
   {
     // Read any pending characters off the pipe. If we hit a newline,
