@@ -54,32 +54,32 @@ template <typename T> bool isFutureReady(std::future<T> &t)
 	return t.wait_for(std::chrono::seconds(0)) == std::future_status::ready;
 }
 
-std::vector<u8> uint16ToVector(u16 num)
+std::array<u8, sizeof(u16)/sizeof(u8)> uint16ToVector(u16 num)
 {
 	u8 byte0 = num >> 8;
 	u8 byte1 = num & 0xFF;
 
-	return std::vector<u8>({byte0, byte1});
+	return {byte0, byte1};
 }
 
-std::vector<u8> uint32ToVector(u32 num)
+std::array<u8, sizeof(u32)/sizeof(u8)> uint32ToVector(u32 num)
 {
 	u8 byte0 = num >> 24;
 	u8 byte1 = (num & 0xFF0000) >> 16;
 	u8 byte2 = (num & 0xFF00) >> 8;
 	u8 byte3 = num & 0xFF;
 
-	return std::vector<u8>({byte0, byte1, byte2, byte3});
+	return {byte0, byte1, byte2, byte3};
 }
 
-std::vector<u8> int32ToVector(int32_t num)
+std::array<u8, sizeof(int32_t)/sizeof(u8)> int32ToVector(int32_t num)
 {
 	u8 byte0 = num >> 24;
 	u8 byte1 = (num & 0xFF0000) >> 16;
 	u8 byte2 = (num & 0xFF00) >> 8;
 	u8 byte3 = num & 0xFF;
 
-	return std::vector<u8>({byte0, byte1, byte2, byte3});
+	return {byte0, byte1, byte2, byte3};
 }
 
 void appendWordToBuffer(std::vector<u8> *buf, u32 word)
@@ -280,15 +280,15 @@ std::vector<u8> CEXISlippi::generateMetadata()
 	// TODO: Abstract out UBJSON functions to make this cleaner
 
 	// Add game start time
-	u8 dateTimeStrLength = sizeof "2011-10-08T07:07:09Z";
-	std::vector<char> dateTimeBuf(dateTimeStrLength);
+	static constexpr u8 dateTimeStrLength = sizeof "2011-10-08T07:07:09Z";
+	std::array<char, dateTimeStrLength> dateTimeBuf;
 	strftime(&dateTimeBuf[0], dateTimeStrLength, "%FT%TZ", gmtime(&gameStartTime));
-	dateTimeBuf.pop_back(); // Removes the \0 from the back of string
-	metadata.insert(metadata.end(), {'U', 7, 's', 't', 'a', 'r', 't', 'A', 't', 'S', 'U', (u8)dateTimeBuf.size()});
-	metadata.insert(metadata.end(), dateTimeBuf.begin(), dateTimeBuf.end());
+	const auto dateTimeBufSize = dateTimeBuf.size() - 1; // Ignore the null terminator.
+	metadata.insert(metadata.end(), {'U', 7, 's', 't', 'a', 'r', 't', 'A', 't', 'S', 'U', dateTimeBufSize});
+	metadata.insert(metadata.end(), dateTimeBuf.begin(), dateTimeBuf.begin() + dateTimeBufSize);
 
 	// Add game duration
-	std::vector<u8> lastFrameToWrite = int32ToVector(lastFrame);
+	const auto lastFrameToWrite = int32ToVector(lastFrame);
 	metadata.insert(metadata.end(), {'U', 9, 'l', 'a', 's', 't', 'F', 'r', 'a', 'm', 'e', 'l'});
 	metadata.insert(metadata.end(), lastFrameToWrite.begin(), lastFrameToWrite.end());
 
@@ -341,7 +341,7 @@ std::vector<u8> CEXISlippi::generateMetadata()
 			metadata.insert(metadata.end(), internalCharIdStr.begin(), internalCharIdStr.end());
 
 			metadata.push_back('l');
-			std::vector<u8> frameCount = uint32ToVector(it2->second);
+			const auto frameCount = uint32ToVector(it2->second);
 			metadata.insert(metadata.end(), frameCount.begin(), frameCount.end());
 		}
 		metadata.push_back('}'); // close characters
@@ -425,7 +425,7 @@ void CEXISlippi::writeToFile(std::unique_ptr<WriteMessage> msg)
 		// Start ubjson file and prepare the "raw" element that game
 		// data output will be dumped into. The size of the raw output will
 		// be initialized to 0 until all of the data has been received
-		std::vector<u8> headerBytes({'{', 'U', 3, 'r', 'a', 'w', '[', '$', 'U', '#', 'l', 0, 0, 0, 0});
+		static const std::array<u8,15> headerBytes = {'{', 'U', 3, 'r', 'a', 'w', '[', '$', 'U', '#', 'l', 0, 0, 0, 0};
 		dataToWrite.insert(dataToWrite.end(), headerBytes.begin(), headerBytes.end());
 
 		// Used to keep track of how many bytes have been written to the file
@@ -493,7 +493,7 @@ void CEXISlippi::writeToFile(std::unique_ptr<WriteMessage> msg)
 	if (fileOption == "close")
 	{
 		// Write the number of bytes for the raw output
-		std::vector<u8> sizeBytes = uint32ToVector(writtenByteCount);
+		const auto sizeBytes = uint32ToVector(writtenByteCount);
 		m_file.Seek(11, 0);
 		m_file.WriteBytes(&sizeBytes[0], sizeBytes.size());
 
@@ -535,8 +535,8 @@ void CEXISlippi::createNewFile()
 		dirpath.push_back('/');
 
 		// Append YYYY-MM to the directory path
-		uint8_t yearMonthStrLength = sizeof "2020-06";
-		std::vector<char> yearMonthBuf(yearMonthStrLength);
+		static constexpr uint8_t yearMonthStrLength = sizeof "2020-06";
+		std::array<char, yearMonthStrLength> yearMonthBuf{};
 		strftime(&yearMonthBuf[0], yearMonthStrLength, "%Y-%m", localtime(&gameStartTime));
 
 		std::string yearMonth(&yearMonthBuf[0]);
@@ -569,8 +569,8 @@ void CEXISlippi::createNewFile()
 std::string CEXISlippi::generateFileName()
 {
 	// Add game start time
-	u8 dateTimeStrLength = sizeof "20171015T095717";
-	std::vector<char> dateTimeBuf(dateTimeStrLength);
+	static constexpr u8 dateTimeStrLength = sizeof "20171015T095717";
+	std::array<char, dateTimeStrLength> dateTimeBuf{};
 	strftime(&dateTimeBuf[0], dateTimeStrLength, "%Y%m%dT%H%M%S", localtime(&gameStartTime));
 
 	std::string str(&dateTimeBuf[0]);
@@ -745,7 +745,7 @@ void CEXISlippi::prepareGeckoList()
 {
 	// TODO: How do I move this somewhere else?
 	// This contains all of the codes required to play legacy replays (UCF, PAL, Frz Stadium)
-	static std::vector<u8> defaultCodeList = {
+	static std::array<u8, 2880> defaultCodeList = {
 	    0xC2, 0x0C, 0x9A, 0x44, 0x00, 0x00, 0x00, 0x2F, // #External/UCF + Arduino Toggle UI/UCF/UCF 0.74
 	                                                    // Dashback - Check for Toggle.asm
 	    0xD0, 0x1F, 0x00, 0x2C, 0x88, 0x9F, 0x06, 0x18, 0x38, 0x62, 0xF2, 0x28, 0x7C, 0x63, 0x20, 0xAE, 0x2C, 0x03,
@@ -1043,7 +1043,7 @@ void CEXISlippi::prepareGeckoList()
 	Slippi::GameSettings *settings = m_current_game->GetSettings();
 	if (settings->geckoCodes.empty())
 	{
-		geckoList = defaultCodeList;
+		geckoList = std::vector<u8>{std::begin(defaultCodeList), std::end(defaultCodeList)};
 		return;
 	}
 
@@ -1690,7 +1690,7 @@ void CEXISlippi::prepareOnlineMatchState()
 {
 	// This match block is a VS match with P1 Red Falco vs P2 Red Bowser on Battlefield. The proper values will
 	// be overwritten
-	static std::vector<u8> onlineMatchBlock = {
+	static std::array<u8, 312> onlineMatchBlock = {
 	    0x32, 0x01, 0x86, 0x4C, 0xC3, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0x6E, 0x00, 0x1F, 0x00, 0x00,
 	    0x01, 0xE0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF,
 	    0xFF, 0xFF, 0xFF, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x3F, 0x80, 0x00, 0x00, 0x3F, 0x80, 0x00, 0x00, 0x3F, 0x80,
@@ -1895,9 +1895,7 @@ void CEXISlippi::prepareOnlineMatchState()
 
 u16 CEXISlippi::getRandomStage()
 {
-	static u16 selectedStage;
-
-	static std::vector<u16> stages = {
+	static const std::array<u16, 6> stages = {
 	    0x2,  // FoD
 	    0x3,  // Pokemon
 	    0x8,  // Yoshi's Story
@@ -1912,7 +1910,7 @@ u16 CEXISlippi::getRandomStage()
 
 	// Get random stage
 	int randIndex = generator() % stagePool.size();
-	selectedStage = stagePool[randIndex];
+	const u16 selectedStage = stagePool[randIndex];
 
 	// Remove last selection from stage pool
 	stagePool.erase(stagePool.begin() + randIndex);
