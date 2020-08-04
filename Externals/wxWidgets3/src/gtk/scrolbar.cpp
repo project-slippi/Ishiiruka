@@ -201,12 +201,15 @@ void wxScrollBar::SetThumbPosition( int viewStart )
 
 void wxScrollBar::SetScrollbar(int position, int thumbSize, int range, int pageSize, bool)
 {
-    if (range == 0)
+    if (range <= 0)
     {
         // GtkRange requires upper > lower
         range =
+        pageSize =
         thumbSize = 1;
     }
+    else if (pageSize <= 0)
+        pageSize = 1;
     g_signal_handlers_block_by_func(m_widget, (void*)gtk_value_changed, this);
     GtkRange* widget = GTK_RANGE(m_widget);
     GtkAdjustment* adj = gtk_range_get_adjustment(widget);
@@ -220,6 +223,11 @@ void wxScrollBar::SetScrollbar(int position, int thumbSize, int range, int pageS
     gtk_range_set_value(widget, position);
     m_scrollPos[0] = gtk_range_get_value(widget);
     g_signal_handlers_unblock_by_func(m_widget, (void*)gtk_value_changed, this);
+}
+
+void wxScrollBar::SetThumbSize(int thumbSize)
+{
+    SetScrollbar(GetThumbPosition(), thumbSize, GetRange(), GetPageSize());
 }
 
 void wxScrollBar::SetPageSize( int pageLength )

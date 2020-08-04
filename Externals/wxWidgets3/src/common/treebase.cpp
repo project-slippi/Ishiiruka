@@ -153,12 +153,12 @@ wxTreeEvent::wxTreeEvent(wxEventType commandType, int id)
 
 wxTreeEvent::wxTreeEvent(const wxTreeEvent & event)
            : wxNotifyEvent(event)
+    , m_evtKey(event.m_evtKey)
+    , m_item(event.m_item)
+    , m_itemOld(event.m_itemOld)
+    , m_pointDrag(event.m_pointDrag)
+    , m_label(event.m_label)
 {
-    m_evtKey = event.m_evtKey;
-    m_item = event.m_item;
-    m_itemOld = event.m_itemOld;
-    m_pointDrag = event.m_pointDrag;
-    m_label = event.m_label;
     m_editCancelled = event.m_editCancelled;
 }
 
@@ -179,7 +179,7 @@ wxTreeCtrlBase::wxTreeCtrlBase()
     // quick DoGetBestSize calculation
     m_quickBestSize = true;
 
-    Connect(wxEVT_CHAR_HOOK, wxKeyEventHandler(wxTreeCtrlBase::OnCharHook));
+    Bind(wxEVT_CHAR_HOOK, &wxTreeCtrlBase::OnCharHook, this);
 }
 
 wxTreeCtrlBase::~wxTreeCtrlBase()
@@ -279,13 +279,8 @@ wxSize wxTreeCtrlBase::DoGetBestSize() const
     // need some minimal size even for empty tree
     if ( !size.x || !size.y )
         size = wxControl::DoGetBestSize();
-    else
-    {
-        // Add border size
+    else // add border size
         size += GetWindowBorderSize();
-
-        CacheBestSize(size);
-    }
 
     return size;
 }
@@ -362,6 +357,7 @@ void wxTreeCtrlBase::OnCharHook(wxKeyEvent& event)
                 wxFALLTHROUGH;
 
             case WXK_RETURN:
+            case WXK_NUMPAD_ENTER:
                 EndEditLabel(GetFocusedItem(), discardChanges);
 
                 // Do not call Skip() below.

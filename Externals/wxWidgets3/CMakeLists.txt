@@ -70,7 +70,6 @@ set(SRCS_COMMON
 	"src/common/docview.cpp"
 	"src/common/dpycmn.cpp"
 	"src/common/dseldlg.cpp"
-	"src/common/dynarray.cpp"
 	"src/common/dynlib.cpp"
 	"src/common/dynload.cpp"
 	#"src/common/effects.cpp"
@@ -147,6 +146,7 @@ set(SRCS_COMMON
 	"src/common/listctrlcmn.cpp"
 	"src/common/log.cpp"
 	"src/common/longlong.cpp"
+    "src/common/lzmastream.cpp"
 	#"src/common/markupparser.cpp"
 	"src/common/matrix.cpp"
 	#"src/common/mediactrlcmn.cpp"
@@ -188,6 +188,7 @@ set(SRCS_COMMON
 	"src/common/sckipc.cpp"
 	"src/common/sckstrm.cpp"
 	"src/common/scrolbarcmn.cpp"
+    "src/common/secretstore.cpp"
 	"src/common/selectdispatcher.cpp"
 	"src/common/settcmn.cpp"
 	"src/common/sizer.cpp"
@@ -242,7 +243,7 @@ set(SRCS_COMMON
 	"src/common/valnum.cpp"
 	"src/common/valtext.cpp"
 	"src/common/variant.cpp"
-	#"src/common/webview.cpp"
+	"src/common/webview.cpp"
 	#"src/common/webviewfshandler.cpp"
 	"src/common/wfstream.cpp"
 	"src/common/wincmn.cpp"
@@ -313,6 +314,7 @@ set(SRCS_GENERIC
 	#"src/generic/regiong.cpp"
 	"src/generic/renderg.cpp"
 	"src/generic/richmsgdlgg.cpp"
+    "src/generic/rowheightcache.cpp"
 	"src/generic/sashwin.cpp"
 	"src/generic/scrlwing.cpp"
 	"src/generic/selstore.cpp"
@@ -360,7 +362,7 @@ set(SRCS_GENERICOSX
 	"src/generic/fontpickerg.cpp")
 
 set(SRCS_GTK
-	"src/aui/tabartgtk.cpp"
+	#"src/aui/tabartgtk.cpp"
 	"src/gtk/aboutdlg.cpp"
 	"src/gtk/activityindicator.cpp"
 	"src/gtk/animate.cpp"
@@ -388,14 +390,14 @@ set(SRCS_GTK
 	"src/gtk/dataobj.cpp"
 	"src/gtk/dataview.cpp"
 	"src/gtk/dc.cpp"
-	"src/gtk/dcclient.cpp"
-	"src/gtk/dcmemory.cpp"
-	"src/gtk/dcscreen.cpp"
+	#"src/gtk/dcclient.cpp"
+	#"src/gtk/dcmemory.cpp"
+	#"src/gtk/dcscreen.cpp"
 	"src/gtk/dialog.cpp"
 	"src/gtk/dirdlg.cpp"
 	"src/gtk/display.cpp"
 	"src/gtk/dnd.cpp"
-	"src/gtk/eggtrayicon.c"
+	#"src/gtk/eggtrayicon.c"
 	"src/gtk/evtloop.cpp"
 	"src/gtk/filectrl.cpp"
 	"src/gtk/filedlg.cpp"
@@ -413,6 +415,7 @@ set(SRCS_GTK
 	"src/gtk/listbox.cpp"
 	"src/gtk/mdi.cpp"
 	"src/gtk/menu.cpp"
+    "src/gtk/mimetype.cpp"
 	"src/gtk/minifram.cpp"
 	"src/gtk/mnemonics.cpp"
 	"src/gtk/msgdlg.cpp"
@@ -430,6 +433,7 @@ set(SRCS_GTK
 	"src/gtk/renderer.cpp"
 	"src/gtk/scrolbar.cpp"
 	"src/gtk/scrolwin.cpp"
+    "src/gtk/srchctrl.cpp"
 	"src/gtk/settings.cpp"
 	"src/gtk/slider.cpp"
 	"src/gtk/sockgtk.cpp"
@@ -451,6 +455,8 @@ set(SRCS_GTK
 	"src/gtk/treeentry_gtk.c"
 	"src/gtk/utilsgtk.cpp"
 	#"src/gtk/webview_webkit.cpp"
+    "src/gtk/webview_webkit2.cpp"
+    "src/gtk/webview_webkit2_extension.cpp"
 	"src/gtk/win_gtk.cpp"
 	"src/gtk/window.cpp")
 
@@ -483,6 +489,7 @@ set(SRCS_MSW
 	"src/msw/control.cpp"
 	#"src/msw/crashrpt.cpp"
 	"src/msw/cursor.cpp"
+    "src/msw/customdraw.cpp"
 	#"src/msw/data.cpp"
 	"src/msw/datecontrols.cpp"
 	"src/msw/datectrl.cpp"
@@ -550,6 +557,7 @@ set(SRCS_MSW
 	"src/msw/ole/access.cpp"
 	"src/msw/ole/activex.cpp"
 	"src/msw/ole/automtn.cpp"
+    "src/msw/ole/comimpl.cpp"
 	"src/msw/ole/dataobj.cpp"
 	"src/msw/ole/dropsrc.cpp"
 	"src/msw/ole/droptgt.cpp"
@@ -573,6 +581,7 @@ set(SRCS_MSW
 	"src/msw/renderer.cpp"
 	"src/msw/richmsgdlg.cpp"
 	"src/msw/scrolbar.cpp"
+    "src/msw/secretstore.cpp"
 	"src/msw/settings.cpp"
 	"src/msw/slider.cpp"
 	"src/msw/snglinst.cpp"
@@ -654,6 +663,7 @@ set(SRCS_OSX
 	"src/osx/sound_osx.cpp"
 	"src/osx/spinbutt_osx.cpp"
 	"src/osx/srchctrl_osx.cpp"
+    "src/osx/statbmp_osx.cpp"
 	"src/osx/statbox_osx.cpp"
 	"src/osx/statline_osx.cpp"
 	"src/osx/stattext_osx.cpp"
@@ -665,7 +675,7 @@ set(SRCS_OSX
 	"src/osx/toplevel_osx.cpp"
 	"src/osx/uiaction_osx.cpp"
 	"src/osx/utils_osx.cpp"
-	#"src/osx/webview_webkit.mm"
+	"src/osx/webview_webkit.mm"
 	"src/osx/window_osx.cpp"
 	"src/osx/carbon/app.cpp"
 	"src/osx/carbon/clipbrd.cpp"
@@ -733,6 +743,7 @@ set(SRCS_OSX
 	"src/osx/cocoa/spinbutt.mm"
 	"src/osx/cocoa/srchctrl.mm"
 	"src/osx/cocoa/statbox.mm"
+    "src/osx/cocoa/statbmp.mm"
 	"src/osx/cocoa/statline.mm"
 	"src/osx/cocoa/stattext.mm"
 	"src/osx/cocoa/stdpaths.mm"
@@ -755,6 +766,7 @@ set(SRCS_OSX
 	#"src/osx/core/hidjoystick.cpp"
 	"src/osx/core/mimetype.cpp"
 	"src/osx/core/printmac.cpp"
+    "src/osx/core/secretstore.cpp"
 	"src/osx/core/sockosx.cpp"
 	"src/osx/core/sound.cpp"
 	"src/osx/core/strconv_cf.cpp"
@@ -789,6 +801,7 @@ set(SRCS_UNIX
 	"src/unix/fdiounix.cpp"
 	#"src/unix/fswatcher_kqueue.cpp"
 	#"src/unix/net.cpp"
+    "src/unix/secretstore.cpp"
 	"src/unix/snglinst.cpp"
 	"src/unix/sockunix.cpp"
 	"src/unix/stackwalk.cpp"
@@ -852,6 +865,28 @@ elseif(${CMAKE_SYSTEM_NAME} MATCHES "Linux|FreeBSD")
 		add_definitions(-D__BSD__=1)
 	endif()
 	add_definitions(-D__WXGTK__)
+    
+    include(modules/FindPANGOFT2.cmake)
+    include_directories(${PANGOFT2_INCLUDE_DIRS})
+
+    include(modules/FindLIBSOUP.cmake)
+    include_directories(${LIBSOUP_INCLUDE_DIRS})
+
+    include(modules/FindFONTCONFIG.cmake)
+    include_directories(${FONTCONFIG_INCLUDE_DIRS})
+
+    include(modules/FindGio.cmake)
+    include_directories(${GIO_INCLUDE_DIR})
+    ADD_DEFINITIONS(${GIO_DEFINITIONS})
+
+    include(modules/FindWebkit2.cmake)
+    include_directories(${WEBKIT2_INCLUDE_DIR})
+
+    include(modules/FindJavaScriptCore.cmake)
+
+    INCLUDE_DIRECTORIES(${GTK3_INCLUDE_DIRS})
+    ADD_DEFINITIONS(${GTK3_CFLAGS_OTHER})
+
 	set(SRCS
 		${SRCS}
 		${SRCS_GENERICGTK}
@@ -865,8 +900,14 @@ elseif(${CMAKE_SYSTEM_NAME} MATCHES "Linux|FreeBSD")
 		png
 		${GTHREAD2_LIBRARIES}
 		${PANGOCAIRO_LIBRARIES}
-		${GTK2_LIBRARIES}
+        ${PANGOFT2_LIBRARIES}
+		${GTK3_LIBRARIES}
+        ${GIO_LIBRARIES}
+        ${LIBSOUP_LIBRARIES}
 		${Backtrace_LIBRARY}
+        ${WEBKIT2_LIBRARIES}
+        ${JAVASCRIPTCORE_LIBRARIES}
+        ${FONTCONFIG_LIBRARIES}
 		${X11_X11_LIB}
 		${X11_Xxf86vm_LIB}
 		${X11_Xinerama_LIB})

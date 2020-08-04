@@ -20,7 +20,6 @@
     #include "wx/button.h"
 #endif
 
-#include <gtk/gtk.h>
 #include "wx/gtk/private.h"
 #include "wx/gtk/private/eventsdisabler.h"
 #include "wx/gtk/private/list.h"
@@ -149,6 +148,7 @@ void wxToggleButton::SetValue(bool state)
     wxGtkEventsDisabler<wxToggleButton> noEvents(this);
 
     gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(m_widget), state);
+    GTKUpdateBitmap();
 }
 
 // bool GetValue() const
@@ -216,6 +216,8 @@ void wxToggleButton::DoApplyWidgetStyle(GtkRcStyle *style)
     GtkWidget* child = gtk_bin_get_child(GTK_BIN(m_widget));
     GTKApplyStyle(child, style);
 
+#ifndef __WXGTK4__
+    wxGCC_WARNING_SUPPRESS(deprecated-declarations)
     // for buttons with images, the path to the label is (at least in 2.12)
     // GtkButton -> GtkAlignment -> GtkHBox -> GtkLabel
     if ( GTK_IS_ALIGNMENT(child) )
@@ -230,6 +232,8 @@ void wxToggleButton::DoApplyWidgetStyle(GtkRcStyle *style)
             }
         }
     }
+    wxGCC_WARNING_RESTORE()
+#endif
 }
 
 // Get the "best" size for this control.
@@ -242,7 +246,6 @@ wxSize wxToggleButton::DoGetBestSize() const
         if (ret.x < 80) ret.x = 80;
     }
 
-    CacheBestSize(ret);
     return ret;
 }
 
