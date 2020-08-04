@@ -2,7 +2,6 @@
 
 #include <wx/dialog.h>
 #include <wx/webview.h>
-
 #include "Common/CommonTypes.h"
 
 class SlippiAuthWebView : public wxDialog
