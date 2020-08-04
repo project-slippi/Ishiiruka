@@ -134,9 +134,6 @@ jobs:
           if: success()
           shell: bash
           run: |
-            wget https://github.com/wxWidgets/wxWidgets/releases/download/v3.1.3/wxWidgets-3.1.3.tar.bz2
-            tar -xf wxWidgets-3.1.3.tar.bz2
-            rm wxWidgets-3.1.3.tar.bz2
             sudo dpkg --add-architecture amd64
             sudo apt update
             sudo apt install \
@@ -161,8 +158,7 @@ jobs:
             libsoundtouch-dev \
             libswscale-dev \
             libusb-1.0-0-dev \
-            libwebkitgtk-dev \
-            libwxbase3.0-dev \
+            libwebkit2gtk-4.0-dev \
             libxext-dev \
             libxrandr-dev \
             portaudio19-dev \
@@ -176,23 +172,6 @@ jobs:
             qtbase5-private-dev \
             libxxf86vm-dev \
             x11proto-xinerama-dev
-        - name: "Cache wxWidgets 3.1.3"
-          uses: actions/cache@v1
-          env:
-            cache-name: "wxWidgets-3.1.3-Linux"
-          with:
-            path: ./wxWidgets-3.1.3/build
-            key: "wxWidgets-3.1.3-Ubuntu"
-        - name: "Install wxWidgets 3.1.3"
-          if: success()
-          shell: bash
-          working-directory: ${{ github.workspace }}
-          run: |
-            cd wxWidgets-3.1.3
-            cd build
-            ../configure --enable-webview
-            make -j7
-            sudo make install
         - name: "Build Netplay Dolphin"
           if: success()
           working-directory: ${{ github.workspace }}
@@ -237,9 +216,6 @@ jobs:
           if: success()
           shell: bash
           run: |
-            wget https://github.com/wxWidgets/wxWidgets/releases/download/v3.1.3/wxWidgets-3.1.3.tar.bz2
-            tar -xf wxWidgets-3.1.3.tar.bz2
-            rm wxWidgets-3.1.3.tar.bz2
             sudo dpkg --add-architecture amd64
             sudo apt update
             sudo apt install \
@@ -264,8 +240,7 @@ jobs:
             libsoundtouch-dev \
             libswscale-dev \
             libusb-1.0-0-dev \
-            libwebkitgtk-dev \
-            libwxbase3.0-dev \
+            libwebkit2gtk-4.0-dev \
             libxext-dev \
             libxrandr-dev \
             portaudio19-dev \
@@ -279,23 +254,6 @@ jobs:
             qtbase5-private-dev \
             libxxf86vm-dev \
             x11proto-xinerama-dev
-        - name: "Cache wxWidgets 3.1.3"
-          uses: actions/cache@v1
-          env:
-            cache-name: "wxWidgets-3.1.3-Linux"
-          with:
-            path: ./wxWidgets-3.1.3/build
-            key: "wxWidgets-3.1.3-Ubuntu"
-        - name: "Install wxWidgets 3.1.3"
-          if: success()
-          shell: bash
-          working-directory: ${{ github.workspace }}
-          run: |
-            cd wxWidgets-3.1.3
-            cd build
-            ../configure --enable-webview
-            make -j7
-            sudo make install
         - name: "Build Playback Dolphin"
           if: success()
           working-directory: ${{ github.workspace }}
