@@ -2179,6 +2179,8 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 			break;
 		case CMD_FRAME_BOOKEND:
 			g_needInputForFrame = true;
+			writeToFileAsync(&memPtr[bufLoc], payloadLen + 1, "");
+			m_slippiserver->write(&memPtr[bufLoc], payloadLen + 1);
 			break;
 		case CMD_IS_STOCK_STEAL:
 			prepareIsStockSteal(&memPtr[bufLoc + 1]);
