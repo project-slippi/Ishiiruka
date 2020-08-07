@@ -646,7 +646,7 @@ set(SRCS_OSX
 	#"src/osx/fswatcher_fsevents.cpp"
 	"src/osx/gauge_osx.cpp"
 	#"src/osx/glcanvas_osx.cpp"
-	"src/osx/imaglist.cpp"
+    #"src/osx/imaglist.cpp"
 	"src/osx/listbox_osx.cpp"
 	"src/osx/menu_osx.cpp"
 	"src/osx/menuitem_osx.cpp"
@@ -677,35 +677,35 @@ set(SRCS_OSX
 	"src/osx/utils_osx.cpp"
 	"src/osx/webview_webkit.mm"
 	"src/osx/window_osx.cpp"
-	"src/osx/carbon/app.cpp"
-	"src/osx/carbon/clipbrd.cpp"
+    #"src/osx/carbon/app.cpp"
+    #"src/osx/carbon/clipbrd.cpp"
 	#"src/osx/carbon/colordlg.cpp"
-	"src/osx/carbon/colordlgosx.mm"
-	"src/osx/carbon/control.cpp"
-	"src/osx/carbon/cursor.cpp"
-	"src/osx/carbon/dataobj.cpp"
-	"src/osx/carbon/dcclient.cpp"
-	"src/osx/carbon/dcprint.cpp"
-	"src/osx/carbon/dcscreen.cpp"
-	"src/osx/carbon/font.cpp"
-	"src/osx/carbon/fontdlg.cpp"
-	"src/osx/carbon/fontdlgosx.mm"
-	"src/osx/carbon/frame.cpp"
-	"src/osx/carbon/gdiobj.cpp"
-	"src/osx/carbon/graphics.cpp"
-	"src/osx/carbon/icon.cpp"
+    #"src/osx/carbon/colordlgosx.mm"
+    #"src/osx/carbon/control.cpp"
+    #"src/osx/carbon/cursor.cpp"
+    #"src/osx/carbon/dataobj.cpp"
+    #"src/osx/carbon/dcclient.cpp"
+    #"src/osx/carbon/dcprint.cpp"
+    #"src/osx/carbon/dcscreen.cpp"
+    #"src/osx/carbon/font.cpp"
+    #"src/osx/carbon/fontdlg.cpp"
+    #"src/osx/carbon/fontdlgosx.mm"
+    #"src/osx/carbon/frame.cpp"
+    #"src/osx/carbon/gdiobj.cpp"
+    #"src/osx/carbon/graphics.cpp"
+    #"src/osx/carbon/icon.cpp"
 	#"src/osx/carbon/main.cpp"
-	"src/osx/carbon/mdi.cpp"
-	"src/osx/carbon/metafile.cpp"
+    #"src/osx/carbon/mdi.cpp"
+    #"src/osx/carbon/metafile.cpp"
 	#"src/osx/carbon/overlay.cpp"
-	"src/osx/carbon/popupwin.cpp"
-	"src/osx/carbon/region.cpp"
-	"src/osx/carbon/renderer.cpp"
+    #"src/osx/carbon/popupwin.cpp"
+    #"src/osx/carbon/region.cpp"
+    #"src/osx/carbon/renderer.cpp"
 	#"src/osx/carbon/sound.cpp"
-	"src/osx/carbon/statbrma.cpp"
+    #"src/osx/carbon/statbrma.cpp"
 	#"src/osx/carbon/thread.cpp"
 	#"src/osx/carbon/timer.cpp"
-	"src/osx/carbon/utilscocoa.mm"
+    #"src/osx/carbon/utilscocoa.mm"
 	"src/osx/cocoa/aboutdlg.mm"
 	"src/osx/cocoa/activityindicator.mm"
 	"src/osx/cocoa/anybutton.mm"
@@ -771,7 +771,7 @@ set(SRCS_OSX
 	"src/osx/core/sound.cpp"
 	"src/osx/core/strconv_cf.cpp"
 	"src/osx/core/timer.cpp"
-	"src/osx/core/utilsexc_base.cpp"
+    #"src/osx/core/utilsexc_base.cpp"
 	"src/osx/core/utilsexc_cf.cpp"
 	#"src/osx/iphone/button.mm"
 	#"src/osx/iphone/checkbox.mm"
@@ -839,6 +839,7 @@ set(SRCS
 if(APPLE)
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++98")
 	add_definitions(-D__WXOSX_COCOA__)
+	
 	set(SRCS
 		${SRCS}
 		${SRCS_GENERICOSX}
@@ -850,13 +851,12 @@ if(APPLE)
 		${APPKIT_LIBRARY}
 		${APPSERV_LIBRARY}
 		${ATB_LIBRARY}
-		${CARBON_LIBRARY}
+        #${CARBON_LIBRARY}
 		${COCOA_LIBRARY}
 		${COREFUND_LIBRARY}
 		${CORESERV_LIBRARY}
 		${IOK_LIBRARY}
-		${OPENGL_LIBRARY}
-		${QUICKTIME_LIBRARY})
+		${OPENGL_LIBRARY})
 elseif(${CMAKE_SYSTEM_NAME} MATCHES "Linux|FreeBSD")
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++11")
 	if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")

@@ -333,7 +333,7 @@
 
 #define wxUSE_STC 0
 
-#define wxUSE_WEBVIEW 0
+#define wxUSE_WEBVIEW 1
 
 #ifdef __WXMSW__
 #define wxUSE_WEBVIEW_IE 0
@@ -342,7 +342,7 @@
 #endif
 
 #if defined(__WXGTK__) || defined(__WXOSX__)
-#define wxUSE_WEBVIEW_WEBKIT 0
+#define wxUSE_WEBVIEW_WEBKIT 1
 #else
 #define wxUSE_WEBVIEW_WEBKIT 0
 #endif
@@ -1284,6 +1284,13 @@
 
 /* wxLogChain class available */
 #define wxHAS_LOG_CHAIN
+
+#define wxUSE_MENUBAR 1
+#define wxUSE_UNSAFE_WXSTRING_CONV 0
+#define wxUSE_SECRETSTORE 0
+#define wxUSE_PRIVATE_FONTS 1
+#define wxUSE_NATIVE_DATAVIEWCTRL 0
+#define wxUSE_XTEST 0
 
 /* define this when wxDC::Blit() respects SetDeviceOrigin() in wxGTK */
 /* #undef wxHAS_WORKING_GTK_DC_BLIT */

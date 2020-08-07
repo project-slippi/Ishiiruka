@@ -2,7 +2,12 @@
 # General setup
 #
 cmake_minimum_required(VERSION 2.8.8)
+
+if(APPLE)
+endif()
+
 project(dolphin-emu)
+set(CMAKE_VERBOSE_MAKEFILE on)
 
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -299,12 +304,12 @@ if(APPLE)
 	# Identify the target system:
 	# Ask for 64-bit binary.
 	set(TARGET_FLAGS "-arch x86_64")
+	set(CMAKE_OSX_SYSROOT "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.14.sdk")
 	# Minimum OS X version.
 	# This is inserted into the Info.plist as well.
 	# Note that the SDK determines the maximum version of which optional
 	# features can be used, not the minimum required version to run.
 	set(OSX_MIN_VERSION "10.9")
-	set(CMAKE_OSX_SYSROOT "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.14.sdk")
 	set(TARGET_FLAGS "${TARGET_FLAGS} -mmacosx-version-min=${OSX_MIN_VERSION}")
 	# Do not warn about frameworks that are not available on all architectures.
 	# This avoids a warning when linking with QuickTime.
@@ -478,13 +483,13 @@ endif()
 
 if(ENABLE_AO)
 	check_lib(AO ao ao QUIET)
-	if(AO_FOUND)
-		add_definitions(-DHAVE_AO=1)
-		message("ao found, enabling ao sound backend")
-	else()
+    if(AO_FOUND)
+    	add_definitions(-DHAVE_AO=1)
+    		message("ao found, enabling ao sound backend")
+    else()
 		add_definitions(-DHAVE_AO=0)
 		message("ao NOT found, disabling ao sound backend")
-	endif()
+    endif()
 else()
 	message("ao explicitly disabled, disabling ao sound backend")
 endif()
@@ -520,7 +525,7 @@ if(ENABLE_OPENAL)
 	if(OPENAL_FOUND)
 		add_definitions(-DHAVE_OPENAL=1)
 		include_directories(${OPENAL_INCLUDE_DIR})
-		message("OpenAL found, enabling OpenAL sound backend")
+        message("OpenAL found, enabling OpenAL sound backend ${OPENAL_INCLUDE_DIR}")
 	else()
 		add_definitions(-DHAVE_OPENAL=0)
 		message("OpenAL NOT found, disabling OpenAL sound backend")
