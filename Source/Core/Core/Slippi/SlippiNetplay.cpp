@@ -122,15 +122,21 @@ SlippiNetplayClient::SlippiNetplayClient(bool isDecider)
 // called from ---NETPLAY--- thread
 unsigned int SlippiNetplayClient::OnData(sf::Packet &packet)
 {
-	MessageId mid;
-	packet >> mid;
+	MessageId mid = 0;
+	if(!(packet >> mid))
+	{
+		return 0;
+	}
 
 	switch (mid)
 	{
 	case NP_MSG_SLIPPI_PAD:
 	{
 		int32_t frame;
-		packet >> frame;
+		if(!(packet >> frame))
+		{
+			break;
+		}
 
 		// Pad received, try to guess what our local time was when the frame was sent by our opponent
 		// before we initialized
@@ -205,7 +211,10 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet)
 
 		// Store last frame acked
 		int32_t frame;
-		packet >> frame;
+		if(!(packet >> frame))
+		{
+			break;
+		}
 
 		lastFrameAcked = frame > lastFrameAcked ? frame : lastFrameAcked;
 
