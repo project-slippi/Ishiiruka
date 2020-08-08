@@ -184,6 +184,7 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet)
 			// Check that the packet actually contains the data it claims to
 			if((5 + inputsToCopy * SLIPPI_PAD_DATA_SIZE) > (int)packet.getDataSize())
 			{
+				ERROR_LOG(SLIPPI_ONLINE, "Netplay packet too small to read pad buffer");
 				break;
 			}
 
@@ -215,6 +216,7 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet)
 		int32_t frame;
 		if(!(packet >> frame))
 		{
+			ERROR_LOG(SLIPPI_ONLINE, "Ack packet too small to read frame");
 			break;
 		}
 
