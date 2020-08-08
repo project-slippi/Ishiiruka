@@ -125,6 +125,7 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet)
 	MessageId mid = 0;
 	if(!(packet >> mid))
 	{
+		ERROR_LOG(SLIPPI_ONLINE, "Received empty netplay packet");
 		return 0;
 	}
 
@@ -135,6 +136,7 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet)
 		int32_t frame;
 		if(!(packet >> frame))
 		{
+			ERROR_LOG(SLIPPI_ONLINE, "Netplay packet too small to read frame count");
 			break;
 		}
 
