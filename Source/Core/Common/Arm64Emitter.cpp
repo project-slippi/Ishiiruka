@@ -1993,7 +1993,7 @@ void ARM64XEmitter::ABI_PushRegisters(BitSet32 registers)
 		bool first = true;
 
 		// Stack is required to be quad-word aligned.
-		u32 stack_size = ROUND_UP(num_regs * 8, 16);
+		u32 stack_size = (num_regs + (num_regs & 1)) * 8;
 		u32 current_offset = 0;
 		std::vector<ARM64Reg> reg_pair;
 
