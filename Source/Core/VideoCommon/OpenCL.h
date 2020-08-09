@@ -7,6 +7,10 @@
 
 #include "Common/Common.h"
 
+#ifdef _M_ARM_64
+#include "../../../Externals/CLRun/include/CL/cl.h"
+#include "../../../Externals/CLRun/include/clrun.h"
+#else
 #ifdef __APPLE__
 #define AVAILABLE_MAC_OS_X_VERSION_10_6_AND_LATER WEAK_IMPORT_ATTRIBUTE
 #include <OpenCL/cl.h>
@@ -14,6 +18,7 @@
 // The CLRun library provides the headers and all the imports.
 #include <CL/cl.h>
 #include <clrun.h>
+#endif
 #endif
 
 namespace OpenCL
