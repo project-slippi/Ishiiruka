@@ -15,10 +15,10 @@
 // Official SVN repository and contact information can be found at
 // http://code.google.com/p/dolphin-emu/
 
-#include "Common.h"
+#include "../Common/Common.h"
 //#include "VideoCommon.h" // to get debug logs
 
-#include "CPUDetect.h"
+#include "../Common/CPUDetect.h"
 #include "TextureDecoder.h"
 #include "OpenCL.h"
 #include "OpenCL/OCLTextureDecoder.h"
