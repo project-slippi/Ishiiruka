@@ -6,8 +6,11 @@ project(dolphin-emu)
 
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-
-option(USE_EGL "Enables EGL OpenGL Interface" OFF)
+if(_M_ARM_64)
+	option(USE_EGL "Enables EGL OpenGL Interface" ON)
+else()
+	option(USE_EGL "Enables EGL OpenGL Interface" OFF)
+endif()
 option(TRY_X11 "Enables X11 Support" ON)
 option(USE_SHARED_ENET "Use shared libenet if found rather than Dolphin's soon-to-compatibly-diverge version" OFF)
 option(USE_SHARED_GTEST "Use shared gtest library if found" OFF)
