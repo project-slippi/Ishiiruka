@@ -1,10 +1,10 @@
 #pragma once
 
-#include <SlippiGame.h>
+#include <SlippiLib/SlippiGame.h>
 #include <queue>
 #include <string>
 
-#include <json.hpp>
+#include <nlohmann/json.hpp>
 using json = nlohmann::json;
 
 class SlippiReplayComm

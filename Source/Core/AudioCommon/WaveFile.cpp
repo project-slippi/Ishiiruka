@@ -12,6 +12,11 @@
 #include "Common/StringUtil.h"
 
 #include "Core/ConfigManager.h"
+#include "Core/Slippi/SlippiReplayComm.h"
+#include "Core/Slippi/SlippiPlayback.h"
+
+extern std::unique_ptr<SlippiReplayComm> g_replayComm;
+extern std::unique_ptr<SlippiPlaybackStatus> g_playbackStatus;
 
 constexpr size_t WaveFileWriter::BUFFER_SIZE;
 
@@ -115,43 +120,47 @@ void WaveFileWriter::Write4(const char* ptr)
 
 void WaveFileWriter::AddStereoSamplesBE(const short* sample_data, u32 count, int sample_rate)
 {
-	if (!file)
-		PanicAlertT("WaveFileWriter - file not open.");
-
-	if (count > BUFFER_SIZE * 2)
-		PanicAlert("WaveFileWriter - buffer too small (count = %u).", count);
-
-	if (skip_silence)
+	if(g_playbackStatus->inSlippiPlayback && !g_playbackStatus->isHardFFW && !g_playbackStatus->isSoftFFW && g_replayComm->current.startFrame <= g_playbackStatus->currentPlaybackFrame &&
+		g_replayComm->current.endFrame >= g_playbackStatus->currentPlaybackFrame)
 	{
-		bool all_zero = true;
+		if (!file)
+			PanicAlertT("WaveFileWriter - file not open.");
 
-		for (u32 i = 0; i < count * 2; i++)
+		if (count > BUFFER_SIZE * 2)
+			PanicAlert("WaveFileWriter - buffer too small (count = %u).", count);
+
+		if (skip_silence)
 		{
-			if (sample_data[i])
-				all_zero = false;
+			bool all_zero = true;
+	
+			for (u32 i = 0; i < count * 2; i++)
+			{
+				if (sample_data[i])
+					all_zero = false;
+			}
+	
+			if (all_zero)
+				return;
 		}
-
-		if (all_zero)
-			return;
+	
+		for (u32 i = 0; i < count; i++)
+		{
+			// Flip the audio channels from RL to LR
+			conv_buffer[2 * i] = Common::swap16((u16)sample_data[2 * i + 1]);
+			conv_buffer[2 * i + 1] = Common::swap16((u16)sample_data[2 * i]);
+		}
+	
+		if (sample_rate != current_sample_rate)
+		{
+			Stop();
+			file_index++;
+			std::stringstream filename;
+			filename << File::GetUserPath(D_DUMPAUDIO_IDX) << basename << file_index << ".wav";
+			Start(filename.str(), sample_rate);
+			current_sample_rate = sample_rate;
+		}
+	
+		file.WriteBytes(conv_buffer.data(), count * 4);
+		audio_size += count * 4;
 	}
-
-	for (u32 i = 0; i < count; i++)
-	{
-		// Flip the audio channels from RL to LR
-		conv_buffer[2 * i] = Common::swap16((u16)sample_data[2 * i + 1]);
-		conv_buffer[2 * i + 1] = Common::swap16((u16)sample_data[2 * i]);
-	}
-
-	if (sample_rate != current_sample_rate)
-	{
-		Stop();
-		file_index++;
-		std::stringstream filename;
-		filename << File::GetUserPath(D_DUMPAUDIO_IDX) << basename << file_index << ".wav";
-		Start(filename.str(), sample_rate);
-		current_sample_rate = sample_rate;
-	}
-
-	file.WriteBytes(conv_buffer.data(), count * 4);
-	audio_size += count * 4;
 }
