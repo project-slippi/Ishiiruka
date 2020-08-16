@@ -16,6 +16,7 @@
 #include "Core/NetPlayProto.h"
 #include "DolphinWX/Config/AdvancedConfigPane.h"
 #include "DolphinWX/Config/AudioConfigPane.h"
+#include "DolphinWX/Config/SlippiConfigPane.h"
 #include "DolphinWX/Config/GameCubeConfigPane.h"
 #include "DolphinWX/Config/GeneralConfigPane.h"
 #include "DolphinWX/Config/InterfaceConfigPane.h"
@@ -76,6 +77,7 @@ void CConfigMain::CreateGUIControls()
 	wxPanel* const general_pane = new GeneralConfigPane(Notebook, ID_GENERALPAGE);
 	wxPanel* const interface_pane = new InterfaceConfigPane(Notebook, ID_DISPLAYPAGE);
 	wxPanel* const audio_pane = new AudioConfigPane(Notebook, ID_AUDIOPAGE);
+	wxPanel *const slippi_pane = new SlippiConfigPane(Notebook, ID_SLIPPIPAGE);
 	wxPanel* const gamecube_pane = new GameCubeConfigPane(Notebook, ID_GAMECUBEPAGE);
 	wxPanel* const wii_pane = new WiiConfigPane(Notebook, ID_WIIPAGE);
 	wxPanel* const path_pane = new PathConfigPane(Notebook, ID_PATHSPAGE);
@@ -84,6 +86,7 @@ void CConfigMain::CreateGUIControls()
 	Notebook->AddPage(general_pane, _("General"));
 	Notebook->AddPage(interface_pane, _("Interface"));
 	Notebook->AddPage(audio_pane, _("Audio"));
+	Notebook->AddPage(slippi_pane, _("Slippi"));
 	Notebook->AddPage(gamecube_pane, _("GameCube"));
 	Notebook->AddPage(wii_pane, _("Wii"));
 	Notebook->AddPage(path_pane, _("Paths"));
