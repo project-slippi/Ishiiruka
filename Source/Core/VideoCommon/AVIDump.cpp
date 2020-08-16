@@ -26,6 +26,8 @@ extern "C" {
 #include "Core/HW/VideoInterface.h"  //for TargetRefreshRate
 #include "Core/Movie.h"
 
+#include "Core/Slippi/SlippiPlayback.h"
+
 #include "VideoCommon/AVIDump.h"
 #include "VideoCommon/OnScreenDisplay.h"
 #include "VideoCommon/VideoConfig.h"
@@ -35,6 +37,8 @@ extern "C" {
 #define av_frame_alloc avcodec_alloc_frame
 #define av_frame_free avcodec_free_frame
 #endif
+
+extern std::unique_ptr<SlippiPlaybackStatus> g_playbackStatus;
 
 static AVFormatContext* s_format_context = nullptr;
 static AVStream* s_stream = nullptr;
@@ -136,6 +140,8 @@ bool AVIDump::CreateVideoFile()
 
 	if (s_dump_path.empty())
 		return false;
+
+	File::CreateFullPath(s_dump_path);
 
 	AVOutputFormat* output_format = av_guess_format(s_format.c_str(), s_dump_path.c_str(), nullptr);
 	if (!output_format)
@@ -290,6 +296,10 @@ static void WritePacket(AVPacket& pkt)
 
 void AVIDump::AddFrame(const u8* data, int width, int height, int stride, const Frame& state)
 {
+#ifdef IS_PLAYBACK
+	if (g_playbackStatus && !g_playbackStatus->inSlippiPlayback)
+		return;
+#endif
 	// Assume that the timing is valid, if the savestate id of the new frame
 	// doesn't match the last one.
 	if (state.savestate_index != s_last_savestate_index)
@@ -417,7 +427,7 @@ void AVIDump::DoState()
 void AVIDump::CheckResolution(int width, int height)
 {
 	// We check here to see if the requested width and height have changed since the last frame which
-	// was dumped, then create a new file accordingly. However, is it possible for the height
+	// was dumped, then create a new file accordingly. However, it is possible for the height
 	// (possibly width as well, but no examples known) to have a value of zero. This can occur as the
 	// VI is able to be set to a zero value for height/width to disable output. If this is the case,
 	// simply keep the last known resolution of the video for the added frame.
