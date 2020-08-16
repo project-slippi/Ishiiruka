@@ -24,24 +24,10 @@
 #include "Core/ConfigManager.h"
 #include "Core/Core.h"
 #include "Core/HW/EXI.h"
-#include "Core/HW/GCMemcard.h"
-#include "Core/HW/GCPad.h"
 #include "Core/NetPlayProto.h"
 #include "DolphinWX/Config/ConfigMain.h"
-#include "DolphinWX/Input/MicButtonConfigDiag.h"
 #include "DolphinWX/WxEventUtils.h"
 #include "DolphinWX/WxUtils.h"
-
-#define DEV_NONE_STR _trans("<Nothing>")
-#define DEV_DUMMY_STR _trans("Dummy")
-
-#define EXIDEV_MEMCARD_STR _trans("Memory Card")
-#define EXIDEV_MEMDIR_STR _trans("GCI Folder")
-#define EXIDEV_MIC_STR _trans("Microphone")
-#define EXIDEV_BBA_STR _trans("Broadband Adapter")
-#define EXIDEV_AGP_STR _trans("Advance Game Port")
-#define EXIDEV_GECKO_STR _trans("USB Gecko")
-#define EXIDEV_SLIPPI_STR _trans("Slippi")
 
 SlippiConfigPane::SlippiConfigPane(wxWindow* parent, wxWindowID id) : wxPanel(parent, id)
 {
@@ -205,6 +191,6 @@ void SlippiConfigPane::OnDelayFramesChanged(wxCommandEvent &event)
 void SlippiConfigPane::OnDisplayNameChanged(wxCommandEvent &event)
 {
 	user->ChangeDisplayName(WxStrToStr(m_slippi_display_name_ctrl->GetValue()));
-	SConfig::GetInstance().m_slippiOnlineDisplayName = user->userInfo.displayName;
+	SConfig::GetInstance().m_slippiOnlineDisplayName = user->GetUserInfo().displayName;
 
 }

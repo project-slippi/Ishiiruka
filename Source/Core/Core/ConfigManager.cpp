@@ -584,8 +584,6 @@ void SConfig::LoadGameListSettings(IniFile& ini)
 void SConfig::LoadCoreSettings(IniFile& ini)
 {
 	IniFile::Section* core = ini.GetOrCreateSection("Core");
-	std::unique_ptr<SlippiUser>	user = std::make_unique<SlippiUser>();
-	user->ReadUserInfo(true);
 
 	core->Get("HLE_BS2", &bHLE_BS2, false);
 #ifdef _M_X86
@@ -616,7 +614,7 @@ void SConfig::LoadCoreSettings(IniFile& ini)
 	core->Get("RSHACK", &bRSHACK, false);
 	core->Get("Latency", &iLatency, 0);
 	core->Get("SlippiOnlineDelay", &m_slippiOnlineDelay, 2);
-	core->Get("SlippiOnlineDisplayName", &m_slippiOnlineDisplayName, user->userInfo.displayName);
+	core->Get("SlippiOnlineDisplayName", &m_slippiOnlineDisplayName, "User");
 	core->Get("SlippiSaveReplays", &m_slippiSaveReplays, true);
 	core->Get("SlippiReplayMonthFolders", &m_slippiReplayMonthFolders, false);
 	std::string default_replay_dir = File::GetHomeDirectory() + DIR_SEP + "Slippi";

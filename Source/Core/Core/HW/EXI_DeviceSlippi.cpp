@@ -2041,9 +2041,10 @@ void CEXISlippi::handleUpdateAppRequest()
 void CEXISlippi::prepareOnlineStatus()
 {
 	m_read_queue.clear();
-
 	auto isLoggedIn = user->IsLoggedIn();
 	auto userInfo = user->GetUserInfo();
+	// Read from config to allow immediate changes into the game
+	std::string displayName = SConfig::GetInstance().m_slippiOnlineDisplayName; 
 
 	u8 appState = 0;
 	if (isLoggedIn)
@@ -2058,7 +2059,7 @@ void CEXISlippi::prepareOnlineStatus()
 	m_read_queue.push_back(appState);
 
 	// Write player name (31 bytes)
-	std::string playerName = ConvertStringForGame(userInfo.displayName, MAX_NAME_LENGTH);
+	std::string playerName = ConvertStringForGame(displayName, MAX_NAME_LENGTH);
 	m_read_queue.insert(m_read_queue.end(), playerName.begin(), playerName.end());
 
 	// Write connect code (10 bytes)

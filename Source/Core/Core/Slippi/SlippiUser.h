@@ -35,13 +35,14 @@ class SlippiUser
 	bool IsLoggedIn();
 	void FileListenThread();
 	void ChangeDisplayName(std::string name);
-	UserInfo userInfo;
 
   protected:
 	std::string getUserFilePath();
 	UserInfo parseFile(std::string fileContents);
 	void deleteFile();
+	void saveFile();
 	void overwriteFromServer();
+	UserInfo userInfo;
 
 	bool isLoggedIn = false;
 

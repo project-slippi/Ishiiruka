@@ -119,7 +119,7 @@ bool SlippiUser::AttemptLogin()
 
 void SlippiUser::ChangeDisplayName(std::string name) {
 	userInfo.displayName = name;
-	// TODO: save to json file
+	saveFile();
 }
 
 SlippiUser::UserInfo SlippiUser::ReadUserInfo(bool assignResult) {
@@ -153,6 +153,9 @@ SlippiUser::UserInfo SlippiUser::ReadUserInfo(bool assignResult) {
 	SlippiUser::UserInfo info = parseFile(userFileContents);
 	if (assignResult == true)
 		userInfo = info;
+
+	// Store on global config as well
+	SConfig::GetInstance().m_slippiOnlineDisplayName = info.displayName;
 
 	return info;
 }
@@ -283,6 +286,7 @@ std::string SlippiUser::getUserFilePath()
 #else
 	std::string userFilePath = File::GetUserPath(F_USERJSON_IDX);
 #endif
+
 	return userFilePath;
 }
 
@@ -321,6 +325,22 @@ void SlippiUser::deleteFile()
 {
 	std::string userFilePath = getUserFilePath();
 	File::Delete(userFilePath);
+}
+
+void SlippiUser::saveFile() {
+	std::string userFilePath = getUserFilePath();
+
+	json jsonObject ={
+	    {"uid",  userInfo.uid},
+		{"playKey", userInfo.playKey},
+		{"connectCode", userInfo.connectCode},
+		{"displayName", userInfo.displayName},
+	    {"latestVersion", userInfo.latestVersion},
+	};
+	std::string jsonStr = jsonObject.dump();
+
+
+	File::WriteStringToFile(jsonStr, userFilePath);
 }
 
 void SlippiUser::overwriteFromServer()
