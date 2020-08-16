@@ -51,6 +51,7 @@
 #include "Core/Movie.h"
 #include "Core/NetPlayProto.h"
 #include "Core/State.h"
+#include "Core/Slippi/SlippiNetplay.h"
 
 #include "DolphinWX/Config/ConfigMain.h"
 #include "DolphinWX/Debugger/BreakpointDlg.h"
@@ -1544,11 +1545,11 @@ void CFrame::ParseHotkeys()
 			g_renderer->GetPostProcessor()->SetReloadFlag();
 	}
 
-	if (IsHotkey(HK_SHOW_OSD_CHAT) && RendererHasFocus() && NetPlay::IsNetPlayRunning())
+	if (IsHotkey(HK_SHOW_OSD_CHAT) && RendererHasFocus() && slippi_netplay)
 		OSD::Chat::toggled = true;
 
 	// un-toggling the osd chat will send the message unless it's empty
-	if (IsHotkey(HK_SEND_CHAT_MSG) && RendererHasFocus() && NetPlay::IsNetPlayRunning())
+	if (IsHotkey(HK_SEND_CHAT_MSG) && RendererHasFocus() && slippi_netplay)
 	{
 		OSD::Chat::toggled = false;
 

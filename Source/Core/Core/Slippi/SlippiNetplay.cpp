@@ -33,6 +33,8 @@
 static std::mutex pad_mutex;
 static std::mutex ack_mutex;
 
+std::unique_ptr<SlippiNetplayClient> slippi_netplay;
+
 // called from ---GUI--- thread
 SlippiNetplayClient::~SlippiNetplayClient()
 {
@@ -246,6 +248,25 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet)
 	}
 	break;
 
+	case NP_MSG_SLIPPI_CHAT_MESSAGE:
+	{
+		if (!SConfig::GetInstance().m_slippiAllowChat)
+		{
+			INFO_LOG(SLIPPI_ONLINE, "[Netplay] Blocked chat message from opponent");
+			break;
+		}
+		
+
+		auto playerSelection = ReadChatMessageFromPacket(packet);
+
+		INFO_LOG(SLIPPI_ONLINE, "[Netplay] Received chat message from opponent");
+
+		// Show chat message OSD
+		OSD::AddMessage("[" + GetOpponentName() + "]: " + playerSelection->message,
+		                OSD::Duration::VERY_LONG, OSD::Color::YELLOW);
+	}
+	break;
+
 	case NP_MSG_SLIPPI_CONN_SELECTED:
 	{
 		// Currently this is unused but the intent is to support two-way simultaneous connection attempts
@@ -269,6 +290,24 @@ void SlippiNetplayClient::writeToPacket(sf::Packet &packet, SlippiPlayerSelectio
 	packet << s.rngOffset;
 	packet << s.playerName;
 	packet << s.connectCode;
+	packet << s.message;
+}
+
+void SlippiNetplayClient::WriteChatMessageToPacket(sf::Packet &packet, std::string message)
+{
+	packet << static_cast<MessageId>(NP_MSG_SLIPPI_CHAT_MESSAGE);
+	packet << slippi_netplay->GetMatchInfo()->localPlayerSelections.playerName;
+	packet << message; 
+}
+
+std::unique_ptr<SlippiPlayerSelections> SlippiNetplayClient::ReadChatMessageFromPacket(sf::Packet &packet)
+{
+	auto s = std::make_unique<SlippiPlayerSelections>();
+	
+	packet >> s->playerName;
+	packet >> s->message;
+
+	return std::move(s);
 }
 
 std::unique_ptr<SlippiPlayerSelections> SlippiNetplayClient::readSelectionsFromPacket(sf::Packet &packet)
@@ -285,6 +324,7 @@ std::unique_ptr<SlippiPlayerSelections> SlippiNetplayClient::readSelectionsFromP
 	packet >> s->rngOffset;
 	packet >> s->playerName;
 	packet >> s->connectCode;
+	packet >> s->message;
 
 	return std::move(s);
 }

@@ -212,9 +212,10 @@ class CEXISlippi : public IEXIDevice
 
 	std::unique_ptr<SlippiUser> user;
 	std::unique_ptr<SlippiGameFileLoader> gameFileLoader;
-	std::unique_ptr<SlippiNetplayClient> slippi_netplay;
+	//std::unique_ptr<SlippiNetplayClient> slippi_netplay;
 	std::unique_ptr<SlippiMatchmaking> matchmaking;
 
 	std::map<s32, std::unique_ptr<SlippiSavestate>> activeSavestates;
 	std::deque<std::unique_ptr<SlippiSavestate>> availableSavestates;
 };
+

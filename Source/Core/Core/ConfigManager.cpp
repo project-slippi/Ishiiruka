@@ -279,6 +279,7 @@ void SConfig::SaveCoreSettings(IniFile& ini)
 	core->Set("RSHACK", bRSHACK);
 	core->Set("Latency", iLatency);
 	core->Set("SlippiOnlineDelay", m_slippiOnlineDelay);
+	core->Set("SlippiAllowChat", m_slippiAllowChat);
 	core->Set("SlippiSaveReplays", m_slippiSaveReplays);
 	core->Set("SlippiReplayMonthFolders", m_slippiReplayMonthFolders);
 	core->Set("SlippiReplayDir", m_strSlippiReplayDir);
@@ -612,6 +613,7 @@ void SConfig::LoadCoreSettings(IniFile& ini)
 	core->Get("RSHACK", &bRSHACK, false);
 	core->Get("Latency", &iLatency, 0);
 	core->Get("SlippiOnlineDelay", &m_slippiOnlineDelay, 2);
+	core->Get("SlippiAllowChat", &m_slippiAllowChat, false);
 	core->Get("SlippiSaveReplays", &m_slippiSaveReplays, true);
 	core->Get("SlippiReplayMonthFolders", &m_slippiReplayMonthFolders, false);
 	std::string default_replay_dir = File::GetHomeDirectory() + DIR_SEP + "Slippi";

@@ -44,6 +44,7 @@ private:
 	void OnReplayMonthFoldersToggle(wxCommandEvent& event);
 	void OnReplayDirChanged(wxCommandEvent& event);
 	void OnDelayFramesChanged(wxCommandEvent &event);
+	void OnNetplayChatToggle(wxCommandEvent &event);
 
 	wxArrayString m_ipl_language_strings;
 
@@ -57,4 +58,5 @@ private:
 	wxCheckBox* m_replay_month_folders_checkbox;
 	wxStaticText* m_slippi_delay_frames_txt;
 	wxSpinCtrl *m_slippi_delay_frames_ctrl;
+	wxCheckBox *m_slippi_netplay_chat_checkbox;
 };

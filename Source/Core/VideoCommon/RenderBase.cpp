@@ -45,6 +45,7 @@
 #include "Core/NetPlayProto.h"
 #include "Core/NetPlayClient.h"
 #include "Core/HW/SI.h"
+#include "Core/Slippi/SlippiNetplay.h"
 
 #include "InputCommon/GCAdapter.h"
 
@@ -513,14 +514,13 @@ void Renderer::DrawDebugText()
 	RenderText(final_cyan, 20, 20, 0xFF00FFFF);
 	RenderText(final_yellow, 20, 20, 0xFFFFFF00);
 
-    if(NetPlay::IsNetPlayRunning())
+    if (slippi_netplay && SConfig::GetInstance().m_slippiAllowChat)
     {
         OSD::Chat::Update();
 
         if(OSD::Chat::toggled)
         {
-           RenderText(
-               "[" + netplay_client->local_player->name + netplay_client->FindPlayerPadName(netplay_client->local_player) + "]: " + OSD::Chat::current_msg + 
+           RenderText("Type your message: " + OSD::Chat::current_msg + 
                 (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count() % 500 < 250 ? "_" : ""),
                 20, m_backbuffer_height - (
 					(g_ActiveConfig.backend_info.APIType & API_D3D9) || 

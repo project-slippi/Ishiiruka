@@ -12,6 +12,7 @@
 
 #include "Core/ConfigManager.h"
 #include "Core/NetPlayClient.h"
+#include "Core/Slippi/SlippiNetplay.h"
 
 #include "VideoCommon/OnScreenDisplay.h"
 #include "VideoCommon/RenderBase.h"
@@ -48,34 +49,68 @@ namespace Chat
 
     static bool last_toggled = false;
 
+	std::string banned_words[] = {
+        "anal",        "anus",         "arse",     "ass",     "ballsack", "balls",    "bastard",  "bitch",  "biatch",
+        "bloody",      "blowjob",      "blow job", "bollock", "bollok",   "boner",    "boob",     "bugger", "bum",
+        "butt",        "buttplug",     "clitoris", "cock",    "coon",     "crap",     "cunt",     "damn",   "dick",
+        "dildo",       "dyke",         "fag",      "feck",    "fellate",  "fellatio", "felching", "fuck",   "f u c k",
+        "fudgepacker", "fudge packer", "flange",   "Goddamn", "God damn", "hell",     "homo",     "jerk",   "jizz",
+        "knobend",     "knob end",     "labia",    "lmao",    "lmfao",    "muff",     "nigger",   "nigga",  "penis",
+        "piss",        "poop",         "prick",    "pube",    "pussy",    "queer",    "scrotum",  "sex",    "shit",
+        "s hit",       "sh1t",         "slut",     "smegma",  "spunk",    "tit",      "tosser",   "turd",   "twat",
+        "vagina",      "wank",         "whore",
+    };
+
+	bool hasProfanity(std::string &message){
+		// TODO: use a profanity list and filter out
+		// checkout http://www.bannedwordlist.com/lists/swearWords.txt
+		// and https://github.com/LDNOOBW/List-of-Dirty-Naughty-Obscene-and-Otherwise-Bad-Words/blob/master/en
+		// use Traslations with _("profanity_list") to filter out
+	    for (std::string s : banned_words)
+	    {
+		    if (message.find(s) != std::string::npos)
+			    return true;
+	    }
+		
+	    return false;
+    };
+
     void Update()
     {
-        if(NetPlay::IsNetPlayRunning())
-        {
-            if(!last_toggled && toggled)
-                current_msg = "";
+	    if (slippi_netplay)
+	    {
+			if(!last_toggled && toggled)
+				current_msg = "";
 
-            if(last_toggled && !toggled)
-            {
-                trim(current_msg);
+			if(last_toggled && !toggled)
+			{
+				trim(current_msg);
 
-                if(current_msg != "")
-                {
-                    netplay_client->SendChatMessage(current_msg);
-                    netplay_client->dialog->AppendChat(current_msg, true);
+				if(current_msg != "")
+				{
+					
+				    std::string msg = current_msg.substr();
+				    if (hasProfanity(msg))
+					    msg = "You are awesome! GGs!";
 
-                    current_msg = "";
-                }
-                else
-                    keep_open = false;
-            }
+				    auto packet = std::make_unique<sf::Packet>();
 
-            if(last_toggled && !toggled && keep_open)
-            {
-                keep_open = false;
-                toggled = true;
-            }
-        }
+				    OSD::AddMessage("[Me]: "+ msg, OSD::Duration::VERY_LONG, OSD::Color::YELLOW);
+				    slippi_netplay->WriteChatMessageToPacket(*packet, msg);
+				    slippi_netplay->SendAsync(std::move(packet));
+
+				    current_msg = "";
+				}
+				else
+					keep_open = false;
+			}
+
+			if(last_toggled && !toggled && keep_open)
+			{
+				keep_open = false;
+				toggled = true;
+			}
+	    }
 
         last_toggled = toggled;
     }

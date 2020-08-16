@@ -122,6 +122,11 @@ void GameCubeConfigPane::InitializeGUI()
 		"Leave this at 2 unless consistently playing on 120+ ping. "
 		"Increasing this can cause unplayable input delay, and lowering it can cause visual artifacts/lag."));
 	m_slippi_delay_frames_ctrl->SetRange(1, 9);
+
+	// Slippi settings
+	m_slippi_netplay_chat_checkbox = new wxCheckBox(this, wxID_ANY, _("Enable netplay Chat"));
+	m_slippi_netplay_chat_checkbox->SetToolTip(
+	    _("Enable this to allow netplay chat. Open the console by pressing 'Y'. Be good and behave!"));
 #endif
 	const int space5 = FromDIP(5);
 	const int space10 = FromDIP(10);
@@ -178,6 +183,7 @@ void GameCubeConfigPane::InitializeGUI()
 	wxGridBagSizer* const sSlippiOnlineSettings = new wxGridBagSizer(space5, space5);
 	sSlippiOnlineSettings->Add(m_slippi_delay_frames_txt, wxGBPosition(0, 0), wxDefaultSpan, wxALIGN_CENTER_VERTICAL);
 	sSlippiOnlineSettings->Add(m_slippi_delay_frames_ctrl, wxGBPosition(0, 1), wxDefaultSpan, wxALIGN_LEFT);
+	sSlippiOnlineSettings->Add(m_slippi_netplay_chat_checkbox, wxGBPosition(1, 0), wxDefaultSpan, wxALIGN_LEFT);
 
 	wxStaticBoxSizer* const sbSlippiOnlineSettings =
 		new wxStaticBoxSizer(wxVERTICAL, this, _("Slippi Online Settings"));
@@ -284,6 +290,7 @@ void GameCubeConfigPane::LoadGUIValues()
 	}
 
 	m_slippi_delay_frames_ctrl->SetValue(startup_params.m_slippiOnlineDelay);
+	m_slippi_netplay_chat_checkbox->SetValue(startup_params.m_slippiAllowChat);
 #endif
 }
 
@@ -317,6 +324,7 @@ void GameCubeConfigPane::BindEvents()
 	m_replay_directory_picker->Bind(wxEVT_DIRPICKER_CHANGED, &GameCubeConfigPane::OnReplayDirChanged, this);
 
 	m_slippi_delay_frames_ctrl->Bind(wxEVT_SPINCTRL, &GameCubeConfigPane::OnDelayFramesChanged, this);
+	m_slippi_netplay_chat_checkbox->Bind(wxEVT_CHECKBOX, &GameCubeConfigPane::OnNetplayChatToggle, this);
 #endif
 }
 
@@ -411,6 +419,11 @@ void GameCubeConfigPane::OnReplayDirChanged(wxCommandEvent& event)
 void GameCubeConfigPane::OnDelayFramesChanged(wxCommandEvent& event)
 {
 	SConfig::GetInstance().m_slippiOnlineDelay = m_slippi_delay_frames_ctrl->GetValue();
+}
+
+void GameCubeConfigPane::OnNetplayChatToggle(wxCommandEvent &event)
+{
+	SConfig::GetInstance().m_slippiAllowChat = m_slippi_netplay_chat_checkbox->IsChecked();
 }
 
 void GameCubeConfigPane::ChooseEXIDevice(const wxString& deviceName, int deviceNum)

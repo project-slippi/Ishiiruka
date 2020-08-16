@@ -49,6 +49,7 @@ class SlippiPlayerSelections
 
 	std::string playerName = "";
 	std::string connectCode = "";
+	std::string message = "";
 
 	void Merge(SlippiPlayerSelections &s)
 	{
@@ -131,6 +132,9 @@ class SlippiNetplayClient
 	int32_t GetSlippiLatestRemoteFrame();
 	s32 CalcTimeOffsetUs();
 
+	void WriteChatMessageToPacket(sf::Packet &packet, std::string message);
+	std::unique_ptr<SlippiPlayerSelections> ReadChatMessageFromPacket(sf::Packet &packet);
+
   protected:
 	struct
 	{
@@ -201,3 +205,4 @@ class SlippiNetplayClient
 
 	u32 m_timebase_frame = 0;
 };
+extern std::unique_ptr<SlippiNetplayClient> slippi_netplay;
