@@ -296,8 +296,10 @@ static void WritePacket(AVPacket& pkt)
 
 void AVIDump::AddFrame(const u8* data, int width, int height, int stride, const Frame& state)
 {
-	if(!g_playbackStatus->inSlippiPlayback)
+#ifdef IS_PLAYBACK
+	if (g_playbackStatus && !g_playbackStatus->inSlippiPlayback)
 		return;
+#endif
 	// Assume that the timing is valid, if the savestate id of the new frame
 	// doesn't match the last one.
 	if (state.savestate_index != s_last_savestate_index)

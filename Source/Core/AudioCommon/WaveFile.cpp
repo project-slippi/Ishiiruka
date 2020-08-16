@@ -120,9 +120,11 @@ void WaveFileWriter::Write4(const char* ptr)
 
 void WaveFileWriter::AddStereoSamplesBE(const short* sample_data, u32 count, int sample_rate)
 {
-	if(g_playbackStatus->inSlippiPlayback && !g_playbackStatus->isHardFFW && !g_playbackStatus->isSoftFFW && g_replayComm->current.startFrame <= g_playbackStatus->currentPlaybackFrame &&
+#ifdef IS_PLAYBACK
+	if(g_playbackStatus && g_playbackStatus->inSlippiPlayback && !g_playbackStatus->isHardFFW && !g_playbackStatus->isSoftFFW && g_replayComm->current.startFrame <= g_playbackStatus->currentPlaybackFrame &&
 		g_replayComm->current.endFrame >= g_playbackStatus->currentPlaybackFrame)
 	{
+#endif
 		if (!file)
 			PanicAlertT("WaveFileWriter - file not open.");
 
@@ -162,5 +164,7 @@ void WaveFileWriter::AddStereoSamplesBE(const short* sample_data, u32 count, int
 	
 		file.WriteBytes(conv_buffer.data(), count * 4);
 		audio_size += count * 4;
+#ifdef IS_PLAYBACK
 	}
+#endif
 }
