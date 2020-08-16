@@ -85,8 +85,10 @@ void SlippiReplayComm::nextReplay()
 {
 	if (commFileSettings.queue.empty())
 	{
+#ifdef IS_PLAYBACK
 		if (!queueWasEmpty) std::cout << "[NO_GAME]" << std::endl;
 		queueWasEmpty = true;
+#endif
 		return;
 	}
 
