@@ -26,6 +26,7 @@ extern "C" {
 #include "Core/HW/VideoInterface.h"  //for TargetRefreshRate
 #include "Core/Movie.h"
 
+#include "Core/Slippi/SlippiReplayComm.h"
 #include "Core/Slippi/SlippiPlayback.h"
 
 #include "VideoCommon/AVIDump.h"
@@ -38,6 +39,7 @@ extern "C" {
 #define av_frame_free avcodec_free_frame
 #endif
 
+extern std::unique_ptr<SlippiReplayComm> g_replayComm;
 extern std::unique_ptr<SlippiPlaybackStatus> g_playbackStatus;
 
 static AVFormatContext* s_format_context = nullptr;
@@ -297,7 +299,9 @@ static void WritePacket(AVPacket& pkt)
 void AVIDump::AddFrame(const u8* data, int width, int height, int stride, const Frame& state)
 {
 #ifdef IS_PLAYBACK
-	if (g_playbackStatus && !g_playbackStatus->inSlippiPlayback)
+	if (!g_playbackStatus && g_playbackStatus->inSlippiPlayback && !g_playbackStatus->isHardFFW &&
+	    !g_playbackStatus->isSoftFFW && g_replayComm->current.startFrame <= g_playbackStatus->currentPlaybackFrame &&
+	    g_replayComm->current.endFrame >= g_playbackStatus->currentPlaybackFrame)
 		return;
 #endif
 	// Assume that the timing is valid, if the savestate id of the new frame
