@@ -135,7 +135,7 @@ struct SConfig : NonCopyable
 	bool m_slippiSaveReplays = true;
 	bool m_slippiReplayMonthFolders = false;
 	std::string m_strSlippiReplayDir;
-	bool m_meleeUserIniBootstrapped = false;
+	bool m_coutEnabled = false;
 
 	bool bDPL2Decoder = false;
 	bool bTimeStretching = false;

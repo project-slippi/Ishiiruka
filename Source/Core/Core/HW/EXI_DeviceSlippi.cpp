@@ -106,7 +106,7 @@ CEXISlippi::CEXISlippi()
 
 	generator = std::default_random_engine(Common::Timer::GetTimeMs());
 
-	notMirroring = g_replayComm->getSettings().mode != "mirror";
+	shouldOutput = SConfig::GetInstance().m_coutEnabled && g_replayComm->getSettings().mode != "mirror";
 
 	// Loggers will check 5 bytes, make sure we own that memory
 	m_read_queue.reserve(5);
@@ -1170,9 +1170,9 @@ void CEXISlippi::prepareFrameData(u8 *payload)
 	// If loading from queue, move on to the next replay if we have past endFrame
 	auto watchSettings = g_replayComm->current;
 #ifdef IS_PLAYBACK
-	if (notMirroring && !outputCurrentFrame && frameIndex >= watchSettings.startFrame)
+	if (shouldOutput && !outputCurrentFrame && frameIndex >= watchSettings.startFrame)
 		outputCurrentFrame = true;
-	if (notMirroring && outputCurrentFrame)
+	if (shouldOutput && outputCurrentFrame)
 	{
 		std::cout << "[CURRENT_FRAME] " << frameIndex << std::endl;
 		if (frameIndex >= watchSettings.endFrame)
@@ -1406,7 +1406,7 @@ void CEXISlippi::prepareIsFileReady()
 		return;
 	}
 #ifdef IS_PLAYBACK
-	if (notMirroring)
+	if (shouldOutput)
 	{
 		auto lastFrame = m_current_game->GetLatestIndex();
 		auto gameEndMethod = m_current_game->getGameEndMethod();
