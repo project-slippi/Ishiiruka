@@ -101,8 +101,28 @@ SlippiUser::~SlippiUser()
 	}
 }
 
+
+
 bool SlippiUser::AttemptLogin()
 {
+	userInfo = ReadUserInfo(true);
+
+	isLoggedIn = !userInfo.uid.empty();
+	if (isLoggedIn)
+	{
+		overwriteFromServer();
+		WARN_LOG(SLIPPI_ONLINE, "Found user %s (%s)", userInfo.displayName.c_str(), userInfo.uid.c_str());
+	}
+
+	return isLoggedIn;
+}
+
+void SlippiUser::ChangeDisplayName(std::string name) {
+	userInfo.displayName = name;
+	// TODO: save to json file
+}
+
+SlippiUser::UserInfo SlippiUser::ReadUserInfo(bool assignResult) {
 	std::string userFilePath = getUserFilePath();
 
 	INFO_LOG(SLIPPI_ONLINE, "Looking for file at: %s", userFilePath.c_str());
@@ -130,16 +150,11 @@ bool SlippiUser::AttemptLogin()
 	std::string userFileContents;
 	File::ReadFileToString(userFilePath, userFileContents);
 
-	userInfo = parseFile(userFileContents);
+	SlippiUser::UserInfo info = parseFile(userFileContents);
+	if (assignResult == true)
+		userInfo = info;
 
-	isLoggedIn = !userInfo.uid.empty();
-	if (isLoggedIn)
-	{
-		overwriteFromServer();
-		WARN_LOG(SLIPPI_ONLINE, "Found user %s (%s)", userInfo.displayName.c_str(), userInfo.uid.c_str());
-	}
-
-	return isLoggedIn;
+	return info;
 }
 
 void SlippiUser::OpenLogInPage()

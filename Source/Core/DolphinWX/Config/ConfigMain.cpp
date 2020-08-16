@@ -17,6 +17,7 @@
 #include "DolphinWX/Config/AdvancedConfigPane.h"
 #include "DolphinWX/Config/AudioConfigPane.h"
 #include "DolphinWX/Config/GameCubeConfigPane.h"
+#include "DolphinWX/Config/SlippiConfigPane.h"
 #include "DolphinWX/Config/GeneralConfigPane.h"
 #include "DolphinWX/Config/InterfaceConfigPane.h"
 #include "DolphinWX/Config/PathConfigPane.h"
@@ -80,6 +81,7 @@ void CConfigMain::CreateGUIControls()
 	wxPanel* const wii_pane = new WiiConfigPane(Notebook, ID_WIIPAGE);
 	wxPanel* const path_pane = new PathConfigPane(Notebook, ID_PATHSPAGE);
 	wxPanel* const advanced_pane = new AdvancedConfigPane(Notebook, ID_ADVANCEDPAGE);
+	wxPanel* const slippi_pane = new SlippiConfigPane(Notebook, ID_SLIPPIPAGE);
 
 	Notebook->AddPage(general_pane, _("General"));
 	Notebook->AddPage(interface_pane, _("Interface"));
@@ -88,6 +90,7 @@ void CConfigMain::CreateGUIControls()
 	Notebook->AddPage(wii_pane, _("Wii"));
 	Notebook->AddPage(path_pane, _("Paths"));
 	Notebook->AddPage(advanced_pane, _("Advanced"));
+	Notebook->AddPage(slippi_pane, _("Slippi"));
 
 	const int space5 = FromDIP(5);
 

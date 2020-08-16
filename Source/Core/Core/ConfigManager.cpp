@@ -24,6 +24,7 @@
 #include "Core/HW/SI.h"
 #include "Core/IPC_HLE/WII_IPC_HLE_Device_usb_bt_base.h"
 #include "Core/PowerPC/PowerPC.h"
+#include "Core/Slippi/SlippiUser.h"
 
 #include "DiscIO/Enums.h"
 #include "DiscIO/NANDContentLoader.h"
@@ -279,6 +280,7 @@ void SConfig::SaveCoreSettings(IniFile& ini)
 	core->Set("RSHACK", bRSHACK);
 	core->Set("Latency", iLatency);
 	core->Set("SlippiOnlineDelay", m_slippiOnlineDelay);
+	core->Set("SlippiOnlineDisplayName", m_slippiOnlineDisplayName);
 	core->Set("SlippiSaveReplays", m_slippiSaveReplays);
 	core->Set("SlippiReplayMonthFolders", m_slippiReplayMonthFolders);
 	core->Set("SlippiReplayDir", m_strSlippiReplayDir);
@@ -582,6 +584,8 @@ void SConfig::LoadGameListSettings(IniFile& ini)
 void SConfig::LoadCoreSettings(IniFile& ini)
 {
 	IniFile::Section* core = ini.GetOrCreateSection("Core");
+	std::unique_ptr<SlippiUser>	user = std::make_unique<SlippiUser>();
+	user->ReadUserInfo(true);
 
 	core->Get("HLE_BS2", &bHLE_BS2, false);
 #ifdef _M_X86
@@ -612,6 +616,7 @@ void SConfig::LoadCoreSettings(IniFile& ini)
 	core->Get("RSHACK", &bRSHACK, false);
 	core->Get("Latency", &iLatency, 0);
 	core->Get("SlippiOnlineDelay", &m_slippiOnlineDelay, 2);
+	core->Get("SlippiOnlineDisplayName", &m_slippiOnlineDisplayName, user->userInfo.displayName);
 	core->Get("SlippiSaveReplays", &m_slippiSaveReplays, true);
 	core->Get("SlippiReplayMonthFolders", &m_slippiReplayMonthFolders, false);
 	std::string default_replay_dir = File::GetHomeDirectory() + DIR_SEP + "Slippi";

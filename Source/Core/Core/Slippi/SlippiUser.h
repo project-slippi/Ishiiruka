@@ -31,8 +31,11 @@ class SlippiUser
 	void LogOut();
 	void OverwriteLatestVersion(std::string version);
 	UserInfo GetUserInfo();
+	UserInfo ReadUserInfo(bool assignResult);
 	bool IsLoggedIn();
 	void FileListenThread();
+	void ChangeDisplayName(std::string name);
+	UserInfo userInfo;
 
   protected:
 	std::string getUserFilePath();
@@ -40,7 +43,6 @@ class SlippiUser
 	void deleteFile();
 	void overwriteFromServer();
 
-	UserInfo userInfo;
 	bool isLoggedIn = false;
 
 	const std::string URL_START = "https://users-rest-dot-slippi.uc.r.appspot.com/user";

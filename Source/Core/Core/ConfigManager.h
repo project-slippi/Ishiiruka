@@ -276,6 +276,7 @@ struct SConfig : NonCopyable
 	std::string m_DumpPath;
 
 	int m_slippiOnlineDelay = 2;
+	std::string m_slippiOnlineDisplayName;
 
 	std::string m_strMemoryCardA;
 	std::string m_strMemoryCardB;
