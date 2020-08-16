@@ -17,8 +17,9 @@ const std::string hotkey_labels[] = {
 		_trans("Stop/Hide OSD chat"),
 		_trans("Reset"),
 		_trans("Toggle Fullscreen"),
-        _trans("Toggle OSD chat"),
-        _trans("Send OSD chat message"),
+		_trans("Toggle OSD chat"),
+		_trans("Toggle OSD Display Name"),
+        _trans("Send OSD chat message/Set Display Name"),
 		_trans("Take Screenshot"),
 		_trans("Exit"),
 
@@ -399,6 +400,7 @@ void HotkeyManager::LoadDefaults(const ControllerInterface& ciface)
 	set_key_expression(HK_UNDO_SAVE_STATE, SHIFT + " & `F12`");
 
     set_key_expression(HK_SHOW_OSD_CHAT, "Y");
+	set_key_expression(HK_SHOW_OSD_DISPLAY_NAME, "T");
 
   // TAS
 #ifdef _WIN32

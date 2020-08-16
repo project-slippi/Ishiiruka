@@ -66,6 +66,15 @@ using Callback = std::function<void()>;
 void AddCallback(CallbackType type, Callback cb);
 void DoCallbacks(CallbackType type);
 
+namespace Slippi
+{
+extern bool toggled;
+extern bool keep_open;
+extern std::string current_msg;
+
+void UpdateDisplayName();
+}; // namespace Chat
+
 namespace Chat
 {
     extern bool toggled;

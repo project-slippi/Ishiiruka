@@ -41,6 +41,7 @@ class SlippiUser
 	UserInfo parseFile(std::string fileContents);
 	void deleteFile();
 	void saveFile();
+	void saveNameToConfig(UserInfo info);
 	void overwriteFromServer();
 	UserInfo userInfo;
 

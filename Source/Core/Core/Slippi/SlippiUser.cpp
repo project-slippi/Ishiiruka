@@ -120,6 +120,7 @@ bool SlippiUser::AttemptLogin()
 void SlippiUser::ChangeDisplayName(std::string name) {
 	userInfo.displayName = name;
 	saveFile();
+	saveNameToConfig(userInfo);
 }
 
 SlippiUser::UserInfo SlippiUser::ReadUserInfo(bool assignResult) {
@@ -154,8 +155,7 @@ SlippiUser::UserInfo SlippiUser::ReadUserInfo(bool assignResult) {
 	if (assignResult == true)
 		userInfo = info;
 
-	// Store on global config as well
-	SConfig::GetInstance().m_slippiOnlineDisplayName = info.displayName;
+	saveNameToConfig(info);
 
 	return info;
 }
@@ -341,6 +341,11 @@ void SlippiUser::saveFile() {
 
 
 	File::WriteStringToFile(jsonStr, userFilePath);
+}
+
+void SlippiUser::saveNameToConfig(UserInfo info) {
+	// Store on global config as well
+	SConfig::GetInstance().m_slippiOnlineDisplayName = info.displayName;
 }
 
 void SlippiUser::overwriteFromServer()

@@ -12,6 +12,7 @@
 
 #include "Core/ConfigManager.h"
 #include "Core/NetPlayClient.h"
+#include "Core/Slippi/SlippiUser.h"
 
 #include "VideoCommon/OnScreenDisplay.h"
 #include "VideoCommon/RenderBase.h"
@@ -40,6 +41,46 @@ static inline void trim(std::string &s) {
     rtrim(s);
 }
 
+namespace Slippi
+{
+
+bool toggled = false;
+bool keep_open = false;
+std::string current_msg;
+
+static bool last_toggled = false;
+
+void UpdateDisplayName()
+{
+	if (!last_toggled && toggled)
+		current_msg = "";
+
+	if (last_toggled && !toggled)
+	{
+		trim(current_msg);
+
+		if (current_msg != "")
+		{
+			auto user = std::make_unique<SlippiUser>();
+			user->ReadUserInfo(true);
+			user->ChangeDisplayName(current_msg);
+
+			current_msg = "";
+		}
+		else
+			keep_open = false;
+	}
+
+	if (last_toggled && !toggled && keep_open)
+	{
+		keep_open = false;
+		toggled = true;
+	}
+
+	last_toggled = toggled;
+}
+}
+
 namespace Chat
 {
     bool toggled = false;
@@ -61,8 +102,9 @@ namespace Chat
 
                 if(current_msg != "")
                 {
-                    netplay_client->SendChatMessage(current_msg);
-                    netplay_client->dialog->AppendChat(current_msg, true);
+				    auto user = std::make_unique<SlippiUser>();
+				    user->ReadUserInfo(true);
+				    user->ChangeDisplayName(current_msg);
 
                     current_msg = "";
                 }

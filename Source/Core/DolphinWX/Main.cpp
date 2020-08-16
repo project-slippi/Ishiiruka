@@ -265,6 +265,8 @@ int DolphinApp::FilterEvent(wxEvent& event)
             {
                 if(OSD::Chat::current_msg.size() > 0)
                     OSD::Chat::current_msg.pop_back();
+				if (OSD::Slippi::current_msg.size() > 0)
+					OSD::Slippi::current_msg.pop_back();
             }
             else
             {
@@ -278,6 +280,7 @@ int DolphinApp::FilterEvent(wxEvent& event)
                 }
 
                 OSD::Chat::current_msg += filtered;
+				OSD::Slippi::current_msg += filtered;
             }
         }
     }

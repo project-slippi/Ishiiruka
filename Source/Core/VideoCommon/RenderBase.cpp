@@ -513,6 +513,17 @@ void Renderer::DrawDebugText()
 	RenderText(final_cyan, 20, 20, 0xFF00FFFF);
 	RenderText(final_yellow, 20, 20, 0xFFFFFF00);
 
+	OSD::Slippi::UpdateDisplayName();
+	if(OSD::Slippi::toggled)
+    {
+        RenderText(
+            "Set Display Name: " + OSD::Slippi::current_msg + 
+            (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count() % 500 < 250 ? "_" : ""),
+            20, m_backbuffer_height - (
+				(g_ActiveConfig.backend_info.APIType & API_D3D9) || 
+				(g_ActiveConfig.backend_info.APIType & API_D3D11) ? 40 : 20), 0xFFFFFF30);
+    }
+
     if(NetPlay::IsNetPlayRunning())
     {
         OSD::Chat::Update();

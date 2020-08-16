@@ -1310,6 +1310,14 @@ void CFrame::ParseHotkeys()
 				OSD::Chat::toggled = false;
 			}
 		}
+		else if (OSD::Slippi::toggled)
+		{
+			if (RendererHasFocus())
+			{
+				OSD::Slippi::current_msg = "";
+				OSD::Slippi::toggled = false;
+			}
+		}
 		else
 			DoStop();
 	}
@@ -1544,6 +1552,17 @@ void CFrame::ParseHotkeys()
 			g_renderer->GetPostProcessor()->SetReloadFlag();
 	}
 
+	if (IsHotkey(HK_SHOW_OSD_DISPLAY_NAME) && RendererHasFocus())
+		OSD::Slippi::toggled = true;
+
+	// un-toggling the osd chat will send the message unless it's empty
+	if (IsHotkey(HK_SEND_CHAT_MSG) && RendererHasFocus())
+	{
+		OSD::Slippi::toggled = false;
+		OSD::Slippi::keep_open = false;
+	}
+
+	// TODO: Remove legacy netplay stuff?
 	if (IsHotkey(HK_SHOW_OSD_CHAT) && RendererHasFocus() && NetPlay::IsNetPlayRunning())
 		OSD::Chat::toggled = true;
 
