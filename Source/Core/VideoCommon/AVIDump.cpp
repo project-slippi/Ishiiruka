@@ -299,9 +299,9 @@ static void WritePacket(AVPacket& pkt)
 void AVIDump::AddFrame(const u8* data, int width, int height, int stride, const Frame& state)
 {
 #ifdef IS_PLAYBACK
-	if (!g_playbackStatus && g_playbackStatus->inSlippiPlayback && !g_playbackStatus->isHardFFW &&
-	    !g_playbackStatus->isSoftFFW && g_replayComm->current.startFrame <= g_playbackStatus->currentPlaybackFrame &&
-	    g_replayComm->current.endFrame >= g_playbackStatus->currentPlaybackFrame)
+	if (!g_playbackStatus && !g_playbackStatus->inSlippiPlayback && (g_playbackStatus->isHardFFW ||
+	    g_playbackStatus->isSoftFFW) && g_replayComm->current.startFrame > g_playbackStatus->currentPlaybackFrame &&
+	    g_replayComm->current.endFrame < g_playbackStatus->currentPlaybackFrame)
 		return;
 #endif
 	// Assume that the timing is valid, if the savestate id of the new frame
