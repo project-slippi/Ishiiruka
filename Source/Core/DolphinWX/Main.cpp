@@ -321,8 +321,10 @@ bool DolphinApp::OnCmdLineParsed(wxCmdLineParser& parser)
 	m_select_video_backend = parser.Found("video_backend", &m_video_backend_name);
 	m_select_audio_emulation = parser.Found("audio_emulation", &m_audio_emulation_name);
 	m_select_slippi_input = parser.Found("slippi-input", &m_slippi_input_name);
+#ifdef IS_PLAYBACK
 	m_hide_seekbar = parser.Found("hide-seekbar");
 	m_enable_cout = parser.Found("cout");
+#endif
 	m_select_output_filename_base = parser.Found("output-filename-base", &m_output_filename_base);
 	m_play_movie = parser.Found("movie", &m_movie_file);
 	parser.Found("user", &m_user_path);
