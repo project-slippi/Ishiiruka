@@ -375,18 +375,6 @@ void DolphinApp::AfterInit()
 	File::Delete(vc_notice_path);
 #endif
 
-	// Get a list of user INIs that we might have to create
-	std::vector<std::string> meleeIniFiles;
-	std::vector<std::string> newFiles;
-	std::string user_path = File::GetUserPath(D_GAMESETTINGS_IDX);
-	meleeIniFiles.push_back(user_path + "GALE01r2.ini");
-	meleeIniFiles.push_back(user_path + "GALJ01r2.ini");
-	for (const std::string &filename : meleeIniFiles) {
-		if (!File::Exists(filename)) {
-			newFiles.push_back(filename);
-		}
-	}
-
 	if (m_confirm_stop)
 	{
 		if (m_confirm_setting.Upper() == "TRUE")
