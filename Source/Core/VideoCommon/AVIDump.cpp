@@ -73,7 +73,7 @@ static void InitAVCodec()
 static bool AVStreamCopyContext(AVStream* stream, AVCodecContext* codec_context)
 {
 #if (LIBAVCODEC_VERSION_MICRO >= 100 && LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(57, 33, 100)) ||  \
-    (LIBAVCODEC_VERSION_MICRO < 100 && LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(57, 5, 0))
+	(LIBAVCODEC_VERSION_MICRO < 100 && LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(57, 5, 0))
 
 	stream->time_base = codec_context->time_base;
 	return avcodec_parameters_from_context(stream->codecpar, codec_context) >= 0;
@@ -300,9 +300,9 @@ void AVIDump::AddFrame(const u8* data, int width, int height, int stride, const 
 {
 #ifdef IS_PLAYBACK
 	if (!g_playbackStatus && !g_playbackStatus->inSlippiPlayback &&
-	    (g_playbackStatus->isHardFFW || g_playbackStatus->isSoftFFW) &&
-	    g_replayComm->current.startFrame > g_playbackStatus->currentPlaybackFrame &&
-	    g_replayComm->current.endFrame < g_playbackStatus->currentPlaybackFrame)
+		(g_playbackStatus->isHardFFW || g_playbackStatus->isSoftFFW) &&
+		g_replayComm->current.startFrame > g_playbackStatus->currentPlaybackFrame &&
+		g_replayComm->current.endFrame < g_playbackStatus->currentPlaybackFrame)
 		return;
 #endif
 	// Assume that the timing is valid, if the savestate id of the new frame

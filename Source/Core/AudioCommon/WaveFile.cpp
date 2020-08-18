@@ -122,9 +122,9 @@ void WaveFileWriter::AddStereoSamplesBE(const short* sample_data, u32 count, int
 {
 #ifdef IS_PLAYBACK
 	if (!g_playbackStatus && !g_playbackStatus->inSlippiPlayback &&
-	    (g_playbackStatus->isHardFFW || g_playbackStatus->isSoftFFW) &&
-	    g_replayComm->current.startFrame > g_playbackStatus->currentPlaybackFrame &&
-	    g_replayComm->current.endFrame < g_playbackStatus->currentPlaybackFrame)
+		(g_playbackStatus->isHardFFW || g_playbackStatus->isSoftFFW) &&
+		g_replayComm->current.startFrame > g_playbackStatus->currentPlaybackFrame &&
+		g_replayComm->current.endFrame < g_playbackStatus->currentPlaybackFrame)
 		return;
 #endif
 	if (!file)
