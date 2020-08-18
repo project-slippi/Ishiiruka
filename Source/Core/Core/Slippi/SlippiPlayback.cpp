@@ -133,7 +133,6 @@ void SlippiPlaybackStatus::processInitialState(std::vector<u8> &iState)
 {
 	INFO_LOG(SLIPPI, "saving iState");
 	State::SaveToBuffer(iState);
-	SConfig::GetInstance().bHideCursor = false;
 };
 
 void SlippiPlaybackStatus::SavestateThread()
