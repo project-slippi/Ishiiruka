@@ -20,6 +20,8 @@ jobs:
     name: "Windows Netplay"
     runs-on: windows-2019
     steps:
+      - name: "Setup Go"
+        uses: actions/setup-go@v2
       - name: "Remove Redistributable"
         shell: cmd
         run: |
@@ -40,15 +42,25 @@ jobs:
           echo ::set-env name=GIT_BRANCH::$(git rev-parse --abbrev-ref HEAD)
           echo ::set-env name=GIT_HASH::$(git rev-parse --short HEAD)
           echo ::set-env name=GIT_TAG::$(git describe --tags --abbrev=0)
-          echo ::set-env name=CURR_DATE::$(date +%Y-%m-%d)
       - name: "Build Netplay Dolphin"
         shell: cmd
         run: |
           msbuild /p:Configuration=Release /p:Platform=x64 ${{ github.workspace }}\Source\Dolphin.sln
+      - name: "Build Updater"
+        working-directory: ${{ github.workspace }}
+        shell: cmd
+        run: |
+          cd %GOPATH%
+          git clone https://github.com/project-slippi/dolphin-slippi-tools
+          cd dolphin-slippi-tools
+          go get github.com/gonutz/w32 github.com/machinebox/graphql golang.org/x/sys/windows/registry
+          go build
+          copy /b /v /y dolphin-slippi-tools.exe ${{ github.workspace }}\Binary\x64\
       - name: "Package Netplay"
         working-directory: ${{ github.workspace }}
         run: |
-          $env:FILE_NAME="${{ env.CURR_DATE }}-${{ env.OBS_GIT_HASH }}-${{ env.OBS_GIT_TAG }}-win64-netplay.zip"
+          $env:FILE_DATE=(Get-Date -UFormat "%F")
+          $env:FILE_NAME="${env:FILE_DATE}-${{ env.GIT_HASH }}-${{ env.GIT_TAG }}-win64-netplay.zip"
           mkdir artifact
           Xcopy /Y /E /I .\Data\Sys .\Binary\x64\Sys
           cd .\Binary\x64\
@@ -89,7 +101,6 @@ jobs:
           echo ::set-env name=GIT_BRANCH::$(git rev-parse --abbrev-ref HEAD)
           echo ::set-env name=GIT_HASH::$(git rev-parse --short HEAD)
           echo ::set-env name=GIT_TAG::$(git describe --tags --abbrev=0)
-          echo ::set-env name=CURR_DATE::$(date +%Y-%m-%d)
       - name: "Build Playback Dolphin"
         shell: cmd
         run: |
@@ -98,7 +109,8 @@ jobs:
         if: success()
         working-directory: ${{ github.workspace }}
         run: |
-          $env:FILE_NAME="${{ env.CURR_DATE }}-${{ env.OBS_GIT_HASH }}-${{ env.OBS_GIT_TAG }}-win64-playback.zip"
+          $env:FILE_DATE=(Get-Date -UFormat "%F")
+          $env:FILE_NAME="${env:FILE_DATE}-${{ env.GIT_HASH }}-${{ env.GIT_TAG }}-win64-playback.zip"
           mkdir artifact
           git clone https://github.com/project-slippi/slippi-desktop-app
           Xcopy /Y /E /I .\Data\Sys .\Binary\x64\Sys

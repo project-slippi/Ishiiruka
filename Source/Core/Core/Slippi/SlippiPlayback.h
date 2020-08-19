@@ -14,7 +14,7 @@ class SlippiPlaybackStatus
 {
   public:
 	SlippiPlaybackStatus();
-	virtual ~SlippiPlaybackStatus();
+	~SlippiPlaybackStatus();
 
 	bool shouldJumpBack = false;
 	bool shouldJumpForward = false;
@@ -27,6 +27,9 @@ class SlippiPlaybackStatus
 	s32 targetFrameNum = INT_MAX;
 	s32 latestFrame = Slippi::GAME_FIRST_FRAME;
 
+	bool prevOCEnable;
+	float prevOCFactor;
+
 	std::thread m_savestateThread;
 	std::thread m_seekThread;
 
@@ -34,6 +37,7 @@ class SlippiPlaybackStatus
 	void resetPlayback(void);
 	bool shouldFFWFrame(int32_t frameIndex) const;
 	void prepareSlippiPlayback(s32 &frameIndex);
+	void setHardFFW(bool enable);
 
   private:
 	void SavestateThread(void);

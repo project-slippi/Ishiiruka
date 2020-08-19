@@ -106,6 +106,8 @@ CEXISlippi::CEXISlippi()
 
 	generator = std::default_random_engine(Common::Timer::GetTimeMs());
 
+	shouldOutput = SConfig::GetInstance().m_coutEnabled && g_replayComm->getSettings().mode != "mirror";
+
 	// Loggers will check 5 bytes, make sure we own that memory
 	m_read_queue.reserve(5);
 
@@ -1167,6 +1169,16 @@ void CEXISlippi::prepareFrameData(u8 *payload)
 
 	// If loading from queue, move on to the next replay if we have past endFrame
 	auto watchSettings = g_replayComm->current;
+#ifdef IS_PLAYBACK
+	if (shouldOutput && !outputCurrentFrame && frameIndex >= watchSettings.startFrame)
+		outputCurrentFrame = true;
+	if (shouldOutput && outputCurrentFrame)
+	{
+		std::cout << "[CURRENT_FRAME] " << frameIndex << std::endl;
+		if (frameIndex >= watchSettings.endFrame)
+			outputCurrentFrame = false;
+	}
+#endif
 	if (frameIndex > watchSettings.endFrame)
 	{
 		INFO_LOG(SLIPPI, "Killing game because we are past endFrame");
@@ -1198,12 +1210,12 @@ void CEXISlippi::prepareFrameData(u8 *payload)
 	{
 		if (frameIndex < watchSettings.startFrame)
 		{
-			g_playbackStatus->isHardFFW = true;
+			g_playbackStatus->setHardFFW(true);
 		}
 		else if (frameIndex == watchSettings.startFrame)
 		{
 			// TODO: This might disable fast forward on first frame when we dont want to?
-			g_playbackStatus->isHardFFW = false;
+			g_playbackStatus->setHardFFW(false);
 		}
 	}
 
@@ -1211,7 +1223,8 @@ void CEXISlippi::prepareFrameData(u8 *payload)
 	if (commSettings.rollbackDisplayMethod == "normal")
 	{
 		auto nextFrame = m_current_game->GetFrameAt(frameSeqIdx);
-		g_playbackStatus->isHardFFW = nextFrame && nextFrame->frame <= g_playbackStatus->currentPlaybackFrame;
+		bool shouldHardFFW = nextFrame && nextFrame->frame <= g_playbackStatus->currentPlaybackFrame;
+		g_playbackStatus->setHardFFW(shouldHardFFW);
 
 		if (nextFrame)
 		{
@@ -1242,7 +1255,7 @@ void CEXISlippi::prepareFrameData(u8 *payload)
 		// last frame instead of the frame previous to fast forwarding.
 		// Not sure if this fully works with partial frames
 		g_playbackStatus->isSoftFFW = false;
-		g_playbackStatus->isHardFFW = false;
+		g_playbackStatus->setHardFFW(false);
 	}
 
 	bool shouldFFW = g_playbackStatus->shouldFFWFrame(frameIndex);
@@ -1258,7 +1271,7 @@ void CEXISlippi::prepareFrameData(u8 *payload)
 		// Disable fast forward here too... this shouldn't be necessary but better
 		// safe than sorry I guess
 		g_playbackStatus->isSoftFFW = false;
-		g_playbackStatus->isHardFFW = false;
+		g_playbackStatus->setHardFFW(false);
 
 		if (requestResultCode == FRAME_RESP_TERMINATE)
 		{
@@ -1393,7 +1406,21 @@ void CEXISlippi::prepareIsFileReady()
 		m_read_queue.push_back(0);
 		return;
 	}
-
+#ifdef IS_PLAYBACK
+	if (shouldOutput)
+	{
+		auto lastFrame = m_current_game->GetLatestIndex();
+		auto gameEndMethod = m_current_game->getGameEndMethod();
+		auto watchSettings = g_replayComm->current;
+		auto replayCommSettings = g_replayComm->getSettings();
+		std::cout << "[FILE_PATH] " << watchSettings.path << std::endl;
+		if (gameEndMethod == 0 || gameEndMethod == 7)
+			std::cout << "[LRAS]" << std::endl;
+		std::cout << "[PLAYBACK_START_FRAME] " << watchSettings.startFrame << std::endl;
+		std::cout << "[GAME_END_FRAME] " << lastFrame << std::endl;
+		std::cout << "[PLAYBACK_END_FRAME] " << watchSettings.endFrame << std::endl;
+	}
+#endif
 	INFO_LOG(SLIPPI, "EXI_DeviceSlippi.cpp: Replay file loaded successfully!?");
 
 	// Clear playback control related vars
