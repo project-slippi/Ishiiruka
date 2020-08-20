@@ -453,6 +453,9 @@ u32 HostRead_Instruction(const u32 address)
 
 static __forceinline void Memcheck(u32 address, u32 var, bool write, int size)
 {
+	#ifndef ENABLE_MEM_CHECK
+	return;
+	#endif
 	if (!PowerPC::memchecks.HasAny())
 		return;
 
