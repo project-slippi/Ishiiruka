@@ -118,7 +118,8 @@ CMemoryWindow::CMemoryWindow(CCodeWindow *_pCodeWindow, wxWindow *parent, wxWind
 
 	wxStaticBoxSizer* const memcheck_options_sizer =
 		new wxStaticBoxSizer(wxVERTICAL, this, "Memory breakpoint options");
-	memcheck_options_sizer->Add(rdbReadWrite = new wxRadioButton(this, IDM_MEMCHECK_OPTIONS_CHANGE,
+	memcheck_options_sizer->Add(
+		rdbReadWrite = new wxRadioButton(this, IDM_MEMCHECK_OPTIONS_CHANGE,
 		"Read and Write", wxDefaultPosition,
 		wxDefaultSize, wxRB_GROUP));
 	memcheck_options_sizer->Add(
@@ -144,6 +145,8 @@ CMemoryWindow::CMemoryWindow(CCodeWindow *_pCodeWindow, wxWindow *parent, wxWind
 	SetSizer(sizerBig);
 	m_rb_hex->SetValue(true);  // Set defaults
 	chkLog->SetValue(true);
+	rdbReadWrite->SetValue(false);
+	rdbWrite->SetValue(true);
 	m_rbox_data_type->SetSelection(static_cast<int>(memview->GetDataType()));
 
 	sizerRight->Fit(this);

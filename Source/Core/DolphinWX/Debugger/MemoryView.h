@@ -75,9 +75,9 @@ private:
 	int memory;
 	int curAddress;
 
-	bool memCheckRead;
-	bool memCheckWrite;
-	bool memCheckLog;
+	bool memCheckRead = false;
+	bool memCheckWrite = true;
+	bool memCheckLog = true;
 
 	MemoryDataType m_data_type;
 	MemoryDataType m_last_hex_type = MemoryDataType::U8;

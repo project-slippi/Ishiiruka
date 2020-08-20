@@ -9,6 +9,8 @@
 #include "Common/BreakPoints.h"
 #include "Common/CommonTypes.h"
 #include "Common/DebugInterface.h"
+#include "Core/Core.h"
+
 #include "Core/PowerPC/JitCommon/JitBase.h"
 #include "Core/PowerPC/JitCommon/JitCache.h"
 
@@ -186,27 +188,34 @@ bool MemChecks::OverlapsMemcheck(u32 address, u32 length) const
 
 void MemChecks::Add(const TMemCheck& _rMemoryCheck)
 {
+
+	 if (GetMemCheck(_rMemoryCheck.StartAddress) != nullptr)
+		return;
+
 	bool had_any = HasAny();
-	if (GetMemCheck(_rMemoryCheck.StartAddress) == nullptr)
+	Core::RunAsCPUThread([&] {
 		m_MemChecks.push_back(_rMemoryCheck);
-	// If this is the first one, clear the JIT cache so it can switch to
-	// watchpoint-compatible code.
-	if (!had_any && jit)
-		jit->ClearCache();
+		// If this is the first one, clear the JIT cache so it can switch to
+		// watchpoint-compatible code.
+		if (!had_any && jit)
+			jit->ClearCache();
+	});
+
 }
 
 void MemChecks::Remove(u32 _Address)
 {
-	for (auto i = m_MemChecks.begin(); i != m_MemChecks.end(); ++i)
-	{
-		if (i->StartAddress == _Address)
-		{
-			m_MemChecks.erase(i);
-			return;
-		}
-	}
-	if (!HasAny() && jit)
-		jit->ClearCache();
+	const auto iter = std::find_if(m_MemChecks.cbegin(), m_MemChecks.cend(),
+	                               [_Address](const auto &check) { return check.StartAddress == _Address; });
+
+	if (iter == m_MemChecks.cend())
+		return;
+
+	Core::RunAsCPUThread([&] {
+		m_MemChecks.erase(iter);
+		if (!HasAny())
+			jit->ClearCache();
+	});
 }
 
 TMemCheck* MemChecks::GetMemCheck(u32 address)

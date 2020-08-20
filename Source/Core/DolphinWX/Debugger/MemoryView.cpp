@@ -142,8 +142,9 @@ void CMemoryView::ToggleMemCheck(u32 address)
 		check.EndAddress = check.StartAddress + length;
 		check.bRange = length > 0;
 		check.OnRead = memCheckRead;
+		check.OnWrite = memCheckWrite;
 		check.Log = memCheckLog;
-		check.Break = memCheckWrite;
+		check.Break = true;
 
 
 		PowerPC::memchecks.Add(check);

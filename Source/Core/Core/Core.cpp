@@ -838,6 +838,19 @@ bool PauseAndLock(bool do_lock, bool unpause_on_unlock)
 	return was_unpaused;
 }
 
+void RunAsCPUThread(std::function<void()> function)
+{
+	const bool is_cpu_thread = IsCPUThread();
+	bool was_unpaused = false;
+	if (!is_cpu_thread)
+		was_unpaused = PauseAndLock(true, true);
+
+	function();
+
+	if (!is_cpu_thread)
+		PauseAndLock(false, was_unpaused);
+}
+
 // Display FPS info
 // This should only be called from VI
 void VideoThrottle()
