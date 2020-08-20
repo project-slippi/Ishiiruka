@@ -120,16 +120,21 @@ void CMemoryView::OnMouseDownL(wxMouseEvent& event)
 	}
 	else
 	{
-		debugger->ToggleMemCheck(YToAddress(y), memCheckRead, memCheckWrite, memCheckLog);
-
-		Refresh();
-
-		// Propagate back to the parent window to update the breakpoint list.
-		wxCommandEvent evt(wxEVT_HOST_COMMAND, IDM_UPDATE_BREAKPOINTS);
-		GetEventHandler()->AddPendingEvent(evt);
+		ToggleMemCheck(YToAddress(y));
+		
 	}
 
 	event.Skip();
+}
+
+void CMemoryView::ToggleMemCheck(u32 address)
+{
+	debugger->ToggleMemCheck(address, memCheckRead, memCheckWrite, memCheckLog);
+	Refresh();
+
+	// Propagate back to the parent window to update the breakpoint list.
+	wxCommandEvent evt(wxEVT_HOST_COMMAND, IDM_UPDATE_BREAKPOINTS);
+	GetEventHandler()->AddPendingEvent(evt);
 }
 
 void CMemoryView::OnMouseMove(wxMouseEvent& event)

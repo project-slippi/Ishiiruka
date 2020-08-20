@@ -25,6 +25,8 @@ class CMemoryView : public wxControl
 public:
 	CMemoryView(DebugInterface* debuginterface, wxWindow* parent);
 
+	void ToggleMemCheck(u32 address);
+  
 	u32 GetSelection() const { return selection; }
 	int GetMemoryType() const { return memory; }
 	void Center(u32 addr)

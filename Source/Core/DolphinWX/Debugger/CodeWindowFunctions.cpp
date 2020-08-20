@@ -513,7 +513,7 @@ wxPanel* CCodeWindow::CreateSiblingPanel(int id)
 		panel = new CBreakPointWindow(this, Parent, IDM_BREAKPOINT_WINDOW);
 		break;
 	case IDM_MEMORY_WINDOW:
-		panel = new CMemoryWindow(Parent, IDM_MEMORY_WINDOW);
+		panel = new CMemoryWindow(this, Parent, IDM_MEMORY_WINDOW);
 		break;
 	case IDM_JIT_WINDOW:
 		panel = new CJitWindow(Parent, IDM_JIT_WINDOW);
