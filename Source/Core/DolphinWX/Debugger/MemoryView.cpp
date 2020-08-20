@@ -129,7 +129,30 @@ void CMemoryView::OnMouseDownL(wxMouseEvent& event)
 
 void CMemoryView::ToggleMemCheck(u32 address)
 {
-	debugger->ToggleMemCheck(address, memCheckRead, memCheckWrite, memCheckLog);
+	auto length = 15;
+	if (GetDataType() >= MemoryDataType::ASCII)
+	{
+		length = 3;
+	}
+
+	TMemCheck check;
+	if (!PowerPC::memchecks.OverlapsMemcheck(address, length))
+	{
+		check.StartAddress = address;
+		check.EndAddress = check.StartAddress + length;
+		check.bRange = length > 0;
+		check.OnRead = memCheckRead;
+		check.Log = memCheckLog;
+		check.Break = memCheckWrite;
+
+
+		PowerPC::memchecks.Add(check);
+	}
+	else
+	{
+		PowerPC::memchecks.Remove(address);
+	}
+
 	Refresh();
 
 	// Propagate back to the parent window to update the breakpoint list.

@@ -105,6 +105,8 @@ public:
 	void Add(const TMemCheck& _rMemoryCheck);
 
 	// memory breakpoint
+	bool OverlapsMemcheck(u32 address, u32 length) const;
+
 	TMemCheck* GetMemCheck(u32 address);
 	void Remove(u32 _Address);
 

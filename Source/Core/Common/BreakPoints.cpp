@@ -168,6 +168,22 @@ void MemChecks::AddFromStrings(const TMemChecksStr& mcstrs)
 	}
 }
 
+bool MemChecks::OverlapsMemcheck(u32 address, u32 length) const
+{
+	if (!HasAny())
+		return false;
+
+	const u32 page_end_suffix = length - 1;
+	const u32 page_end_address = address | page_end_suffix;
+
+	return std::any_of(m_MemChecks.cbegin(), m_MemChecks.cend(), [&](const auto &mc) {
+		return ((mc.StartAddress | page_end_suffix) == page_end_address ||
+		        (mc.EndAddress | page_end_suffix) == page_end_address) ||
+		       ((mc.StartAddress | page_end_suffix) < page_end_address &&
+		        (mc.EndAddress | page_end_suffix) > page_end_address);
+	});
+}
+
 void MemChecks::Add(const TMemCheck& _rMemoryCheck)
 {
 	bool had_any = HasAny();
