@@ -258,7 +258,7 @@ const std::array<HotkeyGroupInfo, NUM_HOTKEY_GROUPS> groups_info = {
 		 {_trans("Select state"), HK_SELECT_STATE_SLOT_1, HK_SELECT_STATE_SLOT_10},
 		 {_trans("Load last state"), HK_LOAD_LAST_STATE_1, HK_LOAD_LAST_STATE_10},
 		 {_trans("Other state hotkeys"), HK_SAVE_FIRST_STATE, HK_RELOAD_POSTPROCESS_SHADERS},
-		 {_trans("Slippi playback controls"), HK_JUMP_BACK, HK_JUMP_FORWARD} }};
+		 {_trans("Replay Controls"), HK_JUMP_BACK, HK_JUMP_FORWARD} }};
 ;
 
 HotkeyManager::HotkeyManager()
@@ -401,12 +401,14 @@ void HotkeyManager::LoadDefaults(const ControllerInterface& ciface)
     set_key_expression(HK_SHOW_OSD_CHAT, "Y");
 
   // TAS
+#ifdef IS_PLAYBACK
 #ifdef _WIN32
 	set_key_expression(HK_FRAME_ADVANCE, "PERIOD");
-#else
+#elif __APPLE__
 	set_key_expression(HK_FRAME_ADVANCE, "Period");
+#else
+	set_key_expression(HK_FRAME_ADVANCE, "period");
 #endif
-
 // Slippi
 #ifdef _WIN32
 	set_key_expression(HK_JUMP_BACK, "LEFT");
@@ -420,6 +422,7 @@ void HotkeyManager::LoadDefaults(const ControllerInterface& ciface)
 	set_key_expression(HK_JUMP_BACK, "Left");
 	set_key_expression(HK_TOGGLE_PLAY_PAUSE, "Space");
 	set_key_expression(HK_JUMP_FORWARD, "Right");
+#endif
 #endif
 
 #ifdef _WIN32
