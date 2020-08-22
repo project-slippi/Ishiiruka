@@ -107,13 +107,19 @@ static std::string GetDumpPath(const std::string& format)
 	if (!g_Config.sDumpPath.empty())
 		return g_Config.sDumpPath;
 
+	std::string s_dump_directory;
 	std::string s_dump_path;
 
+	if (!SConfig::GetInstance().m_strOutputDirectory.empty())
+		s_dump_directory = SConfig::GetInstance().m_strOutputDirectory;
+	else
+		s_dump_directory = File::GetUserPath(D_DUMPFRAMES_IDX);
+
 	if (!SConfig::GetInstance().m_strOutputFilenameBase.empty())
-		s_dump_path = File::GetUserPath(D_DUMPFRAMES_IDX) + 
+		s_dump_path = s_dump_directory +
 			SConfig::GetInstance().m_strOutputFilenameBase + "." + format;
 	else
-		s_dump_path = File::GetUserPath(D_DUMPFRAMES_IDX) + "framedump" +
+		s_dump_path = s_dump_directory + "framedump" +
 			std::to_string(s_file_index) + "." + format;
 
 	// Ask to delete file

@@ -216,9 +216,16 @@ void SendAIBuffer(const short* samples, unsigned int num_samples)
 void StartAudioDump()
 {
   std::string audio_file_name_dtk = File::GetUserPath(D_DUMPAUDIO_IDX) + "dtkdump.wav";
-  std::string audio_file_name_dsp = File::GetUserPath(D_DUMPAUDIO_IDX) + "dspdump.wav";
+  std::string s_dump_directory;
+  std::string audio_file_name_dsp;
+  if (!SConfig::GetInstance().m_strOutputDirectory.empty())
+	  s_dump_directory = SConfig::GetInstance().m_strOutputDirectory;
+  else
+	  s_dump_directory = File::GetUserPath(D_DUMPAUDIO_IDX);
   if (!SConfig::GetInstance().m_strOutputFilenameBase.empty())
-	  audio_file_name_dsp = File::GetUserPath(D_DUMPAUDIO_IDX) + SConfig::GetInstance().m_strOutputFilenameBase + ".wav";
+	  audio_file_name_dsp = s_dump_directory + SConfig::GetInstance().m_strOutputFilenameBase + ".wav";
+  else
+	  audio_file_name_dsp = s_dump_directory + "dspdump.wav";
   File::CreateFullPath(audio_file_name_dtk);
   File::CreateFullPath(audio_file_name_dsp);
   g_sound_stream->GetMixer()->StartLogDTKAudio(audio_file_name_dtk);
