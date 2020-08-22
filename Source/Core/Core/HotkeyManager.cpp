@@ -421,7 +421,7 @@ void HotkeyManager::LoadDefaults(const ControllerInterface& ciface)
 	set_key_expression(HK_JUMP_FORWARD, "Right Arrow");
 #else 
 	set_key_expression(HK_JUMP_BACK, "Left");
-	set_key_expression(HK_TOGGLE_PLAY_PAUSE, "Space");
+	set_key_expression(HK_TOGGLE_PLAY_PAUSE, "space");
 	set_key_expression(HK_JUMP_FORWARD, "Right");
 #endif
 #endif
