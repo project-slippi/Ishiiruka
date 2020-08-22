@@ -143,9 +143,10 @@ const std::string hotkey_labels[] = {
 		_trans("Load State"),
 		_trans("Reload Post-Processing Shaders"),
 
-		_trans("Jump backwards in Slippi replay"),
-		_trans("Pause/unpause Slippi replay"),
-		_trans("Jump forwards in Slippi replay"),
+		_trans("Jump Backwards 5 Seconds"),
+		_trans("Pause/Unpause"),
+		_trans("Jump Forwards 5 Seconds"),
+		_trans("Toggle Seekbar"),
 };
 static_assert(NUM_HOTKEYS == sizeof(hotkey_labels) / sizeof(hotkey_labels[0]),
 	"Wrong count of hotkey_labels");
@@ -258,7 +259,7 @@ const std::array<HotkeyGroupInfo, NUM_HOTKEY_GROUPS> groups_info = {
 		 {_trans("Select state"), HK_SELECT_STATE_SLOT_1, HK_SELECT_STATE_SLOT_10},
 		 {_trans("Load last state"), HK_LOAD_LAST_STATE_1, HK_LOAD_LAST_STATE_10},
 		 {_trans("Other state hotkeys"), HK_SAVE_FIRST_STATE, HK_RELOAD_POSTPROCESS_SHADERS},
-		 {_trans("Replay Controls"), HK_JUMP_BACK, HK_JUMP_FORWARD} }};
+		 {_trans("Replay Controls"), HK_JUMP_BACK, HK_HIDE_SEEKBAR} }};
 ;
 
 HotkeyManager::HotkeyManager()
