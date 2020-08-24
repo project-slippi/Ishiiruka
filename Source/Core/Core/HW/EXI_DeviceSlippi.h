@@ -66,6 +66,7 @@ class CEXISlippi : public IEXIDevice
 		CMD_CLEANUP_CONNECTION = 0xBA,
 
 		CMD_NAME_ENTRY_INDEX = 0xBB,
+		CMD_NAME_ENTRY_AUTOCOMPLETE = 0xBC,
 
 		// Misc
 		CMD_LOG_MESSAGE = 0xD0,
@@ -110,6 +111,7 @@ class CEXISlippi : public IEXIDevice
 	    {CMD_CLEANUP_CONNECTION, 0},
 
 		{CMD_NAME_ENTRY_INDEX, 1},
+	    {CMD_NAME_ENTRY_AUTOCOMPLETE, 24},
 
 	    // Misc
 	    {CMD_LOG_MESSAGE, 0xFFFF}, // Variable size... will only work if by itself
@@ -154,6 +156,7 @@ class CEXISlippi : public IEXIDevice
 	void handleSendInputs(u8 *payload);
 	void handleCaptureSavestate(u8 *payload);
 	void handleLoadSavestate(u8 *payload);
+	void handleNameEntryAutoComplete(u8 *payload);
 	void handleNameEntryLoad(u8 *payload);
 	void startFindMatch(u8 *payload);
 	void prepareOnlineMatchState();
