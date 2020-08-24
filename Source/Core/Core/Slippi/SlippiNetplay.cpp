@@ -252,12 +252,6 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet)
 		INFO_LOG(SLIPPI_ONLINE, "[Netplay] Received selections from opponent");
 		matchInfo.remotePlayerSelections.Merge(*s);
 
-		// Set player name is not empty
-		if (!matchInfo.remotePlayerSelections.playerName.empty())
-		{
-			oppName = matchInfo.remotePlayerSelections.playerName;
-		}
-
 		// This might be a good place to reset some logic? Game can't start until we receive this msg
 		// so this should ensure that everything is initialized before the game starts
 		// TODO: This could cause issues in the case of a desync? If this is ever received mid-game, bad things
@@ -287,8 +281,6 @@ void SlippiNetplayClient::writeToPacket(sf::Packet &packet, SlippiPlayerSelectio
 	packet << s.characterId << s.characterColor << s.isCharacterSelected;
 	packet << s.stageId << s.isStageSelected;
 	packet << s.rngOffset;
-	packet << s.playerName;
-	packet << s.connectCode;
 }
 
 std::unique_ptr<SlippiPlayerSelections> SlippiNetplayClient::readSelectionsFromPacket(sf::Packet &packet)
@@ -303,8 +295,6 @@ std::unique_ptr<SlippiPlayerSelections> SlippiNetplayClient::readSelectionsFromP
 	packet >> s->isStageSelected;
 
 	packet >> s->rngOffset;
-	packet >> s->playerName;
-	packet >> s->connectCode;
 
 	return std::move(s);
 }
@@ -669,11 +659,6 @@ SlippiMatchInfo *SlippiNetplayClient::GetMatchInfo()
 u64 SlippiNetplayClient::GetSlippiPing()
 {
 	return pingUs;
-}
-
-std::string SlippiNetplayClient::GetOpponentName()
-{
-	return oppName;
 }
 
 int32_t SlippiNetplayClient::GetSlippiLatestRemoteFrame()

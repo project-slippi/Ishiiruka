@@ -66,6 +66,11 @@ std::string SlippiMatchmaking::GetErrorMessage()
 	return m_errorMsg;
 }
 
+SlippiUser::UserInfo SlippiMatchmaking::GetOpponent()
+{
+	return m_oppUser;
+}
+
 bool SlippiMatchmaking::IsSearching()
 {
 	return searchingStates.count(m_state) != 0;
