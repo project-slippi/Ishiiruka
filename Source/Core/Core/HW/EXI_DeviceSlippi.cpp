@@ -1701,20 +1701,20 @@ void CEXISlippi::startFindMatch(u8 *payload)
 void CEXISlippi::handleNameEntryAutoComplete(u8 *payload)
 {
 	std::string shiftJisCode;
+
 	shiftJisCode.insert(shiftJisCode.begin(), &payload[0], &payload[0] + 18);
 	shiftJisCode.erase(std::find(shiftJisCode.begin(), shiftJisCode.end(), 0x00), shiftJisCode.end());
 
 	std::string startText = SHIFTJISToUTF8(shiftJisCode);
-	INFO_LOG(SLIPPI_ONLINE, "Autocomplete text: %s", startText);
 
 	std::string autocompletedText = directCodes->Autocomplete(startText);
-	INFO_LOG(SLIPPI_ONLINE, "Autocompleted result: %s", autocompletedText);
-
+	
 	m_read_queue.clear();
 
 	std::string jisCode = UTF8ToSHIFTJIS(autocompletedText);
 	u8 padEveryThirdByte = 0;
 
+	u8 totalBytes = 0;
 	for (auto it = jisCode.begin(); it != jisCode.end(); ++it)
 	{
 		m_read_queue.push_back(*it);
@@ -1722,8 +1722,19 @@ void CEXISlippi::handleNameEntryAutoComplete(u8 *payload)
 		{
 			m_read_queue.push_back(0x0);
 			padEveryThirdByte = 0;
+			totalBytes++;
 		}
+		
+		totalBytes++;
+	} 
+
+	// Ensure that the entire tag is overwritten in game.
+	while (totalBytes < 24)
+	{
+		m_read_queue.push_back(0x0);
+		totalBytes++;
 	}
+
 }
 
 void CEXISlippi::handleNameEntryLoad(u8 *payload)
