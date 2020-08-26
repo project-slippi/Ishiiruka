@@ -5,6 +5,7 @@
 #pragma once
 
 #include <memory>
+#include <chrono>
 #include "Common/CommonTypes.h"
 
 class PointerWrap;
@@ -91,6 +92,7 @@ public:
 
 	// Return true on new data
 	virtual bool GetData(u32& _Hi, u32& _Low) = 0;
+	virtual bool GetData(u32 &_Hi, u32 &_Low, std::chrono::high_resolution_clock::time_point when);
 
 	// Send a command directly (no detour per buffer)
 	virtual void SendCommand(u32 _Cmd, u8 _Poll) = 0;

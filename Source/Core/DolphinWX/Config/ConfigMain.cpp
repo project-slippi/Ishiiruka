@@ -22,6 +22,7 @@
 #include "DolphinWX/Config/InterfaceConfigPane.h"
 #include "DolphinWX/Config/PathConfigPane.h"
 #include "DolphinWX/Config/WiiConfigPane.h"
+#include "DolphinWX/Config/LagConfigPane.h"
 #include "DolphinWX/GameListCtrl.h"
 #include "DolphinWX/WxUtils.h"
 
@@ -61,6 +62,7 @@ void CConfigMain::SetSelectedTab(wxWindowID tab_id)
 	case ID_WIIPAGE:
 	case ID_PATHSPAGE:
 	case ID_ADVANCEDPAGE:
+	case ID_LAGPAGE:
 		Notebook->SetSelection(Notebook->FindPage(Notebook->FindWindowById(tab_id)));
 		break;
 
@@ -84,6 +86,7 @@ void CConfigMain::CreateGUIControls()
 	wxPanel* const wii_pane = new WiiConfigPane(Notebook, ID_WIIPAGE);
 	wxPanel* const path_pane = new PathConfigPane(Notebook, ID_PATHSPAGE);
 	wxPanel* const advanced_pane = new AdvancedConfigPane(Notebook, ID_ADVANCEDPAGE);
+	wxPanel *const lag_pane = new LagConfigPane(Notebook, ID_LAGPAGE);
 
 	Notebook->AddPage(general_pane, _("General"));
 	Notebook->AddPage(interface_pane, _("Interface"));
@@ -95,6 +98,7 @@ void CConfigMain::CreateGUIControls()
 	Notebook->AddPage(wii_pane, _("Wii"));
 	Notebook->AddPage(path_pane, _("Paths"));
 	Notebook->AddPage(advanced_pane, _("Advanced"));
+	Notebook->AddPage(lag_pane, _("Lag"));
 
 	const int space5 = FromDIP(5);
 

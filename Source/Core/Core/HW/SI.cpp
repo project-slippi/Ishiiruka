@@ -25,6 +25,9 @@
 #include "InputCommon/ControllerInterface/ControllerInterface.h"
 #include "InputCommon/GCAdapter.h"
 #include "InputCommon/GCPadStatus.h"
+#include "InputCommon/InputStabilizer.h"
+
+static std::vector<InputStabilizer> stabilizers(MAX_SI_CHANNELS, InputStabilizer());
 
 namespace SerialInterface
 {
@@ -332,41 +335,65 @@ void RegisterMMIO(MMIO::Mapping* mmio, u32 base)
 		mmio->Register(base | (SI_CHANNEL_0_IN_HI + 0xC * i),
 			MMIO::ComplexRead<u32>([i, rdst_bit](u32) {
 
-			if(SConfig::GetInstance().iPollingMethod == POLLING_ONSIREAD)
-			{
-				for(int c = 0; c < MAX_SI_CHANNELS; c++)
-				{
-					// If this port has a controller of any sort
-					if(g_Channel[c].m_device->GetDeviceType() != SIDEVICE_NONE)
-					{
-						if(i == c)
-						{
-							static u64 last_tick = 0;
-							u64 tick = CoreTiming::GetTicks();
+			if (SConfig::GetInstance().iPollingMethod == POLLING_ONSIREAD)
+			    {
+				    for (int c = 0; c < MAX_SI_CHANNELS; c++)
+				    {
+					    // If this port has a controller of any sort
+					    if (g_Channel[c].m_device->GetDeviceType() != SIDEVICE_NONE)
+					    {
+						    if (i == c)
+						    {
+							    static u64 last_tick = 0;
+							    u64 tick = CoreTiming::GetTicks();
 
-							if(last_tick > tick)
-								last_tick = 0;
+							    if (last_tick > tick)
+								    last_tick = 0;
 
-							u64 diff = tick - last_tick;
-							last_tick = tick;
+							    u64 diff = tick - last_tick;
+							    last_tick = tick;
 
-							// double msec = (diff / (double)SystemTimers::GetTicksPerSecond()) * 1000.0;
+							    // double msec = (diff / (double)SystemTimers::GetTicksPerSecond()) * 1000.0;
 
-							if(NetPlay::IsNetPlayRunning() && netplay_client && (netplay_client->BufferSizeForPort(c) % NetPlayClient::buffer_accuracy) != 0)
-								// Schedule an event to poll and send inputs earlier in the next frame
-								CoreTiming::ScheduleEvent(diff - (diff / NetPlayClient::buffer_accuracy) * (netplay_client->BufferSizeForPort(c) % NetPlayClient::buffer_accuracy), et_send_netplay_inputs);
-						
-                            last_si_read = std::chrono::high_resolution_clock::now();
-                        }
+							    if (NetPlay::IsNetPlayRunning() && netplay_client &&
+							        (netplay_client->BufferSizeForPort(c) % NetPlayClient::buffer_accuracy) != 0)
+								    // Schedule an event to poll and send inputs earlier in the next frame
+								    CoreTiming::ScheduleEvent(diff - (diff / NetPlayClient::buffer_accuracy) *
+								                                         (netplay_client->BufferSizeForPort(c) %
+								                                          NetPlayClient::buffer_accuracy),
+								                              et_send_netplay_inputs);
 
-						// Stop if we are not the first plugged in controller
-						break;
+							    last_si_read = std::chrono::high_resolution_clock::now();
+						    }
+
+						    // Stop if we are not the first plugged in controller
+						    break;
+					    }
+				    }
+
+				    auto now = std::chrono::high_resolution_clock::now();
+				    // the HI register is read before the LO register (at least by Melee)
+				    if (SConfig::GetInstance().bUseEngineStabilization)
+				    {
+					    if(!NetPlay::IsNetPlayRunning())
+					    {
+						    stabilizers[i].feedPollTiming(now);
+						    std::chrono::high_resolution_clock::time_point pollTiming =
+						        stabilizers[i].computeNextPollTiming();
+						    g_Channel[i].m_device->GetData(g_Channel[i].m_InHi.Hex, g_Channel[i].m_InLo.Hex,
+						                                   pollTiming);
+					    }
+					    else {
+						    g_Channel[i].m_device->GetData(g_Channel[i].m_InHi.Hex, g_Channel[i].m_InLo.Hex,
+						                                   now);
+						}
+				    }
+				    else
+				    {
+					    g_Channel[i].m_device->GetData(g_Channel[i].m_InHi.Hex, g_Channel[i].m_InLo.Hex,
+					                                   now); // Now added for measures
 					}
-				}
-
-				// the HI register is read before the LO register (at least by Melee)
-				g_Channel[i].m_device->GetData(g_Channel[i].m_InHi.Hex, g_Channel[i].m_InLo.Hex);
-			}
+			    }
 
 			g_StatusReg.Hex &= ~(1 << rdst_bit);
 			UpdateInterrupts();
