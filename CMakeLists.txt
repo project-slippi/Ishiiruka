@@ -3,9 +3,6 @@
 #
 cmake_minimum_required(VERSION 2.8.8)
 
-if(APPLE)
-endif()
-
 project(dolphin-emu)
 set(CMAKE_VERBOSE_MAKEFILE on)
 
