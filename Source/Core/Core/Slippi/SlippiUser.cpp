@@ -298,7 +298,5 @@ void SlippiUser::overwriteFromServer()
 	auto r = json::parse(resp);
 	userInfo.connectCode = r.value("connectCode", userInfo.connectCode);
 	userInfo.latestVersion = r.value("latestVersion", userInfo.latestVersion);
-
-	// TODO: Once it's possible to change Display name from website, uncomment below
-	// userInfo.displayName = r.value("displayName", userInfo.displayName);
+	userInfo.displayName = r.value("displayName", userInfo.displayName);
 }

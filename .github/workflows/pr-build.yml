@@ -20,6 +20,8 @@ jobs:
     name: "Windows Netplay"
     runs-on: windows-2019
     steps:
+      - name: "Setup Go"
+        uses: actions/setup-go@v2
       - name: "Remove Redistributable"
         shell: cmd
         run: |
@@ -44,6 +46,16 @@ jobs:
         shell: cmd
         run: |
           msbuild /p:Configuration=Release /p:Platform=x64 ${{ github.workspace }}\Source\Dolphin.sln
+      - name: "Build Updater"
+        working-directory: ${{ github.workspace }}
+        shell: cmd
+        run: |
+          cd %GOPATH%
+          git clone https://github.com/project-slippi/dolphin-slippi-tools
+          cd dolphin-slippi-tools
+          go get github.com/gonutz/w32 github.com/machinebox/graphql golang.org/x/sys/windows/registry
+          go build
+          copy /b /v /y dolphin-slippi-tools.exe ${{ github.workspace }}\Binary\x64\
       - name: "Package Netplay"
         working-directory: ${{ github.workspace }}
         run: |

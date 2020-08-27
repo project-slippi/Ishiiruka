@@ -122,15 +122,23 @@ SlippiNetplayClient::SlippiNetplayClient(bool isDecider)
 // called from ---NETPLAY--- thread
 unsigned int SlippiNetplayClient::OnData(sf::Packet &packet)
 {
-	MessageId mid;
-	packet >> mid;
+	MessageId mid = 0;
+	if(!(packet >> mid))
+	{
+		ERROR_LOG(SLIPPI_ONLINE, "Received empty netplay packet");
+		return 0;
+	}
 
 	switch (mid)
 	{
 	case NP_MSG_SLIPPI_PAD:
 	{
 		int32_t frame;
-		packet >> frame;
+		if(!(packet >> frame))
+		{
+			ERROR_LOG(SLIPPI_ONLINE, "Netplay packet too small to read frame count");
+			break;
+		}
 
 		// Pad received, try to guess what our local time was when the frame was sent by our opponent
 		// before we initialized
@@ -172,6 +180,14 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet)
 
 			int32_t headFrame = remotePadQueue.empty() ? 0 : remotePadQueue.front()->frame;
 			int inputsToCopy = frame - headFrame;
+
+			// Check that the packet actually contains the data it claims to
+			if((5 + inputsToCopy * SLIPPI_PAD_DATA_SIZE) > (int)packet.getDataSize())
+			{
+				ERROR_LOG(SLIPPI_ONLINE, "Netplay packet too small to read pad buffer");
+				break;
+			}
+
 			for (int i = inputsToCopy - 1; i >= 0; i--)
 			{
 				auto pad = std::make_unique<SlippiPad>(frame - i, &packetData[5 + i * SLIPPI_PAD_DATA_SIZE]);
@@ -198,7 +214,11 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet)
 
 		// Store last frame acked
 		int32_t frame;
-		packet >> frame;
+		if(!(packet >> frame))
+		{
+			ERROR_LOG(SLIPPI_ONLINE, "Ack packet too small to read frame");
+			break;
+		}
 
 		lastFrameAcked = frame > lastFrameAcked ? frame : lastFrameAcked;
 
@@ -232,12 +252,6 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet)
 		INFO_LOG(SLIPPI_ONLINE, "[Netplay] Received selections from opponent");
 		matchInfo.remotePlayerSelections.Merge(*s);
 
-		// Set player name is not empty
-		if (!matchInfo.remotePlayerSelections.playerName.empty())
-		{
-			oppName = matchInfo.remotePlayerSelections.playerName;
-		}
-
 		// This might be a good place to reset some logic? Game can't start until we receive this msg
 		// so this should ensure that everything is initialized before the game starts
 		// TODO: This could cause issues in the case of a desync? If this is ever received mid-game, bad things
@@ -254,7 +268,7 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet)
 	break;
 
 	default:
-		PanicAlertT("Unknown message received with id : %d", mid);
+		WARN_LOG(SLIPPI_ONLINE, "Unknown message received with id : %d", mid);
 		break;
 	}
 
@@ -267,8 +281,6 @@ void SlippiNetplayClient::writeToPacket(sf::Packet &packet, SlippiPlayerSelectio
 	packet << s.characterId << s.characterColor << s.isCharacterSelected;
 	packet << s.stageId << s.isStageSelected;
 	packet << s.rngOffset;
-	packet << s.playerName;
-	packet << s.connectCode;
 }
 
 std::unique_ptr<SlippiPlayerSelections> SlippiNetplayClient::readSelectionsFromPacket(sf::Packet &packet)
@@ -283,8 +295,6 @@ std::unique_ptr<SlippiPlayerSelections> SlippiNetplayClient::readSelectionsFromP
 	packet >> s->isStageSelected;
 
 	packet >> s->rngOffset;
-	packet >> s->playerName;
-	packet >> s->connectCode;
 
 	return std::move(s);
 }
@@ -649,11 +659,6 @@ SlippiMatchInfo *SlippiNetplayClient::GetMatchInfo()
 u64 SlippiNetplayClient::GetSlippiPing()
 {
 	return pingUs;
-}
-
-std::string SlippiNetplayClient::GetOpponentName()
-{
-	return oppName;
 }
 
 int32_t SlippiNetplayClient::GetSlippiLatestRemoteFrame()

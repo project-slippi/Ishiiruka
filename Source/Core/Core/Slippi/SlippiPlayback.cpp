@@ -61,6 +61,8 @@ SlippiPlaybackStatus::SlippiPlaybackStatus()
 	currentPlaybackFrame = INT_MIN;
 	targetFrameNum = INT_MAX;
 	latestFrame = Slippi::GAME_FIRST_FRAME;
+	prevOCEnable = SConfig::GetInstance().m_OCEnable;
+	prevOCFactor = SConfig::GetInstance().m_OCFactor;
 }
 
 void SlippiPlaybackStatus::startThreads()
@@ -131,7 +133,6 @@ void SlippiPlaybackStatus::processInitialState(std::vector<u8> &iState)
 {
 	INFO_LOG(SLIPPI, "saving iState");
 	State::SaveToBuffer(iState);
-	SConfig::GetInstance().bHideCursor = false;
 };
 
 void SlippiPlaybackStatus::SavestateThread()
@@ -216,7 +217,7 @@ void SlippiPlaybackStatus::SeekThread()
 			s32 closestStateFrame = targetFrameNum - emod(targetFrameNum - Slippi::PLAYBACK_FIRST_SAVE, FRAME_INTERVAL);
 
 			bool isLoadingStateOptimal =
-			    targetFrameNum < currentPlaybackFrame || closestStateFrame > currentPlaybackFrame;
+				targetFrameNum < currentPlaybackFrame || closestStateFrame > currentPlaybackFrame;
 
 			if (isLoadingStateOptimal)
 			{
@@ -235,7 +236,7 @@ void SlippiPlaybackStatus::SeekThread()
 					{
 						s32 closestActualStateFrame = closestStateFrame - FRAME_INTERVAL;
 						while (closestActualStateFrame > Slippi::PLAYBACK_FIRST_SAVE &&
-						       futureDiffs.count(closestActualStateFrame) == 0)
+							   futureDiffs.count(closestActualStateFrame) == 0)
 							closestActualStateFrame -= FRAME_INTERVAL;
 						loadState(closestActualStateFrame);
 					}
@@ -243,7 +244,7 @@ void SlippiPlaybackStatus::SeekThread()
 					{
 						s32 closestActualStateFrame = closestStateFrame - FRAME_INTERVAL;
 						while (closestActualStateFrame > currentPlaybackFrame &&
-						       futureDiffs.count(closestActualStateFrame) == 0)
+							   futureDiffs.count(closestActualStateFrame) == 0)
 							closestActualStateFrame -= FRAME_INTERVAL;
 
 						// only load a savestate if we find one past our current frame since we are seeking forwards
@@ -256,17 +257,13 @@ void SlippiPlaybackStatus::SeekThread()
 			// Fastforward until we get to the frame we want
 			if (targetFrameNum != closestStateFrame && targetFrameNum != latestFrame)
 			{
-				isHardFFW = true;
-				SConfig::GetInstance().m_OCEnable = true;
-				SConfig::GetInstance().m_OCFactor = 4.0f;
+				setHardFFW(true);
 
 				Core::SetState(Core::CORE_RUN);
 				cv_waitingForTargetFrame.wait(seekLock);
 				Core::SetState(Core::CORE_PAUSE);
 
-				SConfig::GetInstance().m_OCFactor = 1.0f;
-				SConfig::GetInstance().m_OCEnable = false;
-				isHardFFW = false;
+				setHardFFW(false);
 			}
 
 			if (!paused)
@@ -281,6 +278,21 @@ void SlippiPlaybackStatus::SeekThread()
 	}
 
 	INFO_LOG(SLIPPI, "Exit seek thread");
+}
+
+// Set isHardFFW and update OC settings to speed up the FFW
+void SlippiPlaybackStatus::setHardFFW(bool enable) {
+	isHardFFW = enable;
+	if (isHardFFW)
+	{
+		SConfig::GetInstance().m_OCEnable = true;
+		SConfig::GetInstance().m_OCFactor = 4.0f;
+	}
+	else
+	{
+		SConfig::GetInstance().m_OCFactor = prevOCFactor;
+		SConfig::GetInstance().m_OCEnable = prevOCEnable;
+	}
 }
 
 void SlippiPlaybackStatus::loadState(s32 closestStateFrame)
@@ -331,5 +343,7 @@ void SlippiPlaybackStatus::updateWatchSettingsStartEnd()
 SlippiPlaybackStatus::~SlippiPlaybackStatus()
 {
 	// Kill threads to prevent cleanup crash
+	SConfig::GetInstance().m_OCFactor = prevOCFactor;
+	SConfig::GetInstance().m_OCEnable = prevOCEnable;
 	resetPlayback();
 }

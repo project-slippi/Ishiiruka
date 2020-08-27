@@ -26,6 +26,9 @@ extern "C" {
 #include "Core/HW/VideoInterface.h"  //for TargetRefreshRate
 #include "Core/Movie.h"
 
+#include "Core/Slippi/SlippiReplayComm.h"
+#include "Core/Slippi/SlippiPlayback.h"
+
 #include "VideoCommon/AVIDump.h"
 #include "VideoCommon/OnScreenDisplay.h"
 #include "VideoCommon/VideoConfig.h"
@@ -35,6 +38,9 @@ extern "C" {
 #define av_frame_alloc avcodec_alloc_frame
 #define av_frame_free avcodec_free_frame
 #endif
+
+extern std::unique_ptr<SlippiReplayComm> g_replayComm;
+extern std::unique_ptr<SlippiPlaybackStatus> g_playbackStatus;
 
 static AVFormatContext* s_format_context = nullptr;
 static AVStream* s_stream = nullptr;
@@ -67,7 +73,7 @@ static void InitAVCodec()
 static bool AVStreamCopyContext(AVStream* stream, AVCodecContext* codec_context)
 {
 #if (LIBAVCODEC_VERSION_MICRO >= 100 && LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(57, 33, 100)) ||  \
-    (LIBAVCODEC_VERSION_MICRO < 100 && LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(57, 5, 0))
+	(LIBAVCODEC_VERSION_MICRO < 100 && LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(57, 5, 0))
 
 	stream->time_base = codec_context->time_base;
 	return avcodec_parameters_from_context(stream->codecpar, codec_context) >= 0;
@@ -101,8 +107,14 @@ static std::string GetDumpPath(const std::string& format)
 	if (!g_Config.sDumpPath.empty())
 		return g_Config.sDumpPath;
 
-	std::string s_dump_path = File::GetUserPath(D_DUMPFRAMES_IDX) + "framedump" +
-		std::to_string(s_file_index) + "." + format;
+	std::string s_dump_path;
+
+	if (!SConfig::GetInstance().m_strOutputFilenameBase.empty())
+		s_dump_path = File::GetUserPath(D_DUMPFRAMES_IDX) + 
+			SConfig::GetInstance().m_strOutputFilenameBase + "." + format;
+	else
+		s_dump_path = File::GetUserPath(D_DUMPFRAMES_IDX) + "framedump" +
+			std::to_string(s_file_index) + "." + format;
 
 	// Ask to delete file
 	if (File::Exists(s_dump_path))
@@ -130,6 +142,8 @@ bool AVIDump::CreateVideoFile()
 
 	if (s_dump_path.empty())
 		return false;
+
+	File::CreateFullPath(s_dump_path);
 
 	AVOutputFormat* output_format = av_guess_format(s_format.c_str(), s_dump_path.c_str(), nullptr);
 	if (!output_format)
@@ -284,6 +298,13 @@ static void WritePacket(AVPacket& pkt)
 
 void AVIDump::AddFrame(const u8* data, int width, int height, int stride, const Frame& state)
 {
+#ifdef IS_PLAYBACK
+	if (!g_playbackStatus && !g_playbackStatus->inSlippiPlayback &&
+		(g_playbackStatus->isHardFFW || g_playbackStatus->isSoftFFW) &&
+		g_replayComm->current.startFrame > g_playbackStatus->currentPlaybackFrame &&
+		g_replayComm->current.endFrame < g_playbackStatus->currentPlaybackFrame)
+		return;
+#endif
 	// Assume that the timing is valid, if the savestate id of the new frame
 	// doesn't match the last one.
 	if (state.savestate_index != s_last_savestate_index)
@@ -411,7 +432,7 @@ void AVIDump::DoState()
 void AVIDump::CheckResolution(int width, int height)
 {
 	// We check here to see if the requested width and height have changed since the last frame which
-	// was dumped, then create a new file accordingly. However, is it possible for the height
+	// was dumped, then create a new file accordingly. However, it is possible for the height
 	// (possibly width as well, but no examples known) to have a value of zero. This can occur as the
 	// VI is able to be set to a zero value for height/width to disable output. If this is the case,
 	// simply keep the last known resolution of the video for the added frame.
