@@ -101,7 +101,7 @@ void SlippiDirectCodes::Sort(u8 sortByProperty)
         case SORT_BY_TIME:
             std::sort(directCodeInfos.begin(), directCodeInfos.end(), 
             [](const CodeInfo a, const CodeInfo b) -> bool {
-                return a.lastPlayed < b.lastPlayed;
+                return a.lastPlayed > b.lastPlayed;
             });
         break;
 
@@ -133,7 +133,8 @@ std::string SlippiDirectCodes::Autocomplete(std::string startText)
 
 std::string SlippiDirectCodes::get(u8 index)
 {
-
+	Sort();
+    
     if (index < directCodeInfos.size() && index >= 0)
     {
         return directCodeInfos.at(index).connectCode;
