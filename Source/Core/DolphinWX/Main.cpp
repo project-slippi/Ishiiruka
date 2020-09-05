@@ -150,7 +150,7 @@ bool DolphinApp::OnInit()
 	if (m_select_output_directory && !m_output_directory.empty())
         {
                 std::string output_directory = WxStrToStr(m_output_directory);
-                if (output_directory.back() != '/')
+                if (output_directory.back() != '/' && output_directory.back() != '\\')
                         output_directory = output_directory + "/";
 		SConfig::GetInstance().m_strOutputDirectory = output_directory;
         }
