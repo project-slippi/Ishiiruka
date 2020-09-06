@@ -20,17 +20,17 @@ jobs:
     name: "Windows Netplay"
     runs-on: windows-2019
     steps:
-      - name: "Install DirectX SDK"
-        shell: powershell
-        run: |
-          choco install directx-sdk
-          type C:\ProgramData\chocolatey\logs\chocolatey.log
       - name: "Setup Go"
         uses: actions/setup-go@v2
       - name: "Remove Redistributable"
         shell: cmd
         run: |
-          MsiExec.exe /passive /X{F0C3E5D1-1ADE-321E-8167-68EF0DE699A5}  
+          MsiExec.exe /passive /X{F0C3E5D1-1ADE-321E-8167-68EF0DE699A5}
+          MsiExec.exe /passive /X{1D8E6291-B0D5-35EC-8441-6616F567A0F7}
+      - name: "Install DirectX SDK"
+        shell: powershell
+        run: |
+          choco install directx-sdk
       - name: "Setup MSBuild"
         uses: microsoft/setup-msbuild@v1   
       - name: "Checkout"
@@ -85,7 +85,12 @@ jobs:
       - name: "Remove Redistributable"
         shell: cmd
         run: |
-          MsiExec.exe /passive /X{F0C3E5D1-1ADE-321E-8167-68EF0DE699A5}  
+          MsiExec.exe /passive /X{F0C3E5D1-1ADE-321E-8167-68EF0DE699A5}
+          MsiExec.exe /passive /X{1D8E6291-B0D5-35EC-8441-6616F567A0F7}
+      - name: "Install DirectX SDK"
+        shell: powershell
+        run: |
+          choco install directx-sdk
       - name: "Setup MSBuild"
         uses: microsoft/setup-msbuild@v1   
       - name: "Checkout"
