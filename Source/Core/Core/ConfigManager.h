@@ -233,6 +233,7 @@ struct SConfig : NonCopyable
 
 	std::string m_strVideoBackend;
 	std::string m_strSlippiInput;
+	std::string m_strOutputDirectory;
 	std::string m_strOutputFilenameBase;
 	std::string m_strGPUDeterminismMode;
 

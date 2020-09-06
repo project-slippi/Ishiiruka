@@ -147,6 +147,14 @@ bool DolphinApp::OnInit()
 		SConfig::GetInstance().m_coutEnabled = true;
 #endif
 
+	if (m_select_output_directory && !m_output_directory.empty())
+        {
+                std::string output_directory = WxStrToStr(m_output_directory);
+                if (output_directory.back() != '/' && output_directory.back() != '\\')
+                        output_directory = output_directory + "/";
+		SConfig::GetInstance().m_strOutputDirectory = output_directory;
+        }
+
 	if (m_select_output_filename_base && !m_output_filename_base.empty())
 		SConfig::GetInstance().m_strOutputFilenameBase = WxStrToStr(m_output_filename_base);
 
@@ -248,6 +256,8 @@ void DolphinApp::OnInitCmdLine(wxCmdLineParser& parser)
 			 wxCMD_LINE_PARAM_OPTIONAL},
 			{wxCMD_LINE_OPTION, "i", "slippi-input", "Path to Slippi replay config file (default: Slippi/playback.txt)", 
 			wxCMD_LINE_VAL_STRING, wxCMD_LINE_PARAM_OPTIONAL},
+			{wxCMD_LINE_OPTION, "od", "output-directory", "Directory to place audio and video dump files",
+			wxCMD_LINE_VAL_STRING, wxCMD_LINE_PARAM_OPTIONAL},
 			{wxCMD_LINE_OPTION, "o", "output-filename-base", "Base of filenames for audio and video dump files", 
 			wxCMD_LINE_VAL_STRING, wxCMD_LINE_PARAM_OPTIONAL},
 			{wxCMD_LINE_OPTION, "a", "audio_emulation", "Low level (LLE) or high level (HLE) audio",
@@ -325,6 +335,7 @@ bool DolphinApp::OnCmdLineParsed(wxCmdLineParser& parser)
 	m_hide_seekbar = parser.Found("hide-seekbar");
 	m_enable_cout = parser.Found("cout");
 #endif
+	m_select_output_directory = parser.Found("output-directory", &m_output_directory);
 	m_select_output_filename_base = parser.Found("output-filename-base", &m_output_filename_base);
 	m_play_movie = parser.Found("movie", &m_movie_file);
 	parser.Found("user", &m_user_path);

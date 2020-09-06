@@ -48,6 +48,7 @@ private:
 	bool m_use_logger = false;
 	bool m_select_video_backend = false;
 	bool m_select_slippi_input = false;
+	bool m_select_output_directory = false;
 	bool m_select_output_filename_base = false;
 	bool m_select_audio_emulation = false;
 	bool m_hide_seekbar = false;
@@ -57,6 +58,7 @@ private:
 	wxString m_video_backend_name;
 	wxString m_audio_emulation_name;
 	wxString m_slippi_input_name;
+	wxString m_output_directory;
 	wxString m_output_filename_base;
 	wxString m_user_path;
 	wxString m_file_to_load;
