@@ -20,6 +20,11 @@ jobs:
     name: "Windows Netplay"
     runs-on: windows-2019
     steps:
+      - name: "Install DirectX SDK"
+        shell: powershell
+        run: |
+          choco install directx-sdk
+          type C:\ProgramData\chocolatey\logs\chocolatey.log
       - name: "Setup Go"
         uses: actions/setup-go@v2
       - name: "Remove Redistributable"
