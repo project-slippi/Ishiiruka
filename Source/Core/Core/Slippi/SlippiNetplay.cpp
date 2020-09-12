@@ -280,7 +280,7 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet)
 
         std::string msg = predefinedChatMessages[messageId];
 		// Show chat message OSD
-		OSD::AddMessage("[" + matchInfo.remotePlayerSelections.playerName + "]: " + msg,
+		OSD::AddMessage("[" + playerSelection->playerName + "]: " + msg,
 		                OSD::Duration::VERY_LONG, OSD::Color::YELLOW);
 	}
 	break;
