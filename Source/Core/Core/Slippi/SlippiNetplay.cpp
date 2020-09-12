@@ -264,19 +264,19 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet)
 
 	case NP_MSG_SLIPPI_CHAT_MESSAGE:
 	{
-		if (!SConfig::GetInstance().m_slippiAllowChat)
-		{
-			INFO_LOG(SLIPPI_ONLINE, "[Netplay] Blocked chat message from opponent");
-			break;
-		}
-
-
 		auto playerSelection = ReadChatMessageFromPacket(packet);
+		auto messageId = playerSelection->messageId;
 
 		INFO_LOG(SLIPPI_ONLINE, "[Netplay] Received chat message from opponent");
+		if (!predefinedChatMessages.count(messageId))
+		{
+			WARN_LOG(SLIPPI, "EXI SLIPPI: Invalid Chat Message ID: 0x%x", messageId);
+			break;
+		}
+		std::string msg = predefinedChatMessages[messageId];
 
 		// Show chat message OSD
-		OSD::AddMessage("[" + GetOpponentName() + "]: " + playerSelection->message,
+		OSD::AddMessage("[" + matchInfo.remotePlayerSelections.playerName + "]: " + msg,
 		                OSD::Duration::VERY_LONG, OSD::Color::YELLOW);
 	}
 	break;
@@ -304,11 +304,11 @@ void SlippiNetplayClient::writeToPacket(sf::Packet &packet, SlippiPlayerSelectio
 	packet << s.rngOffset;
 }
 
-void SlippiNetplayClient::WriteChatMessageToPacket(sf::Packet &packet, std::string message)
+void SlippiNetplayClient::WriteChatMessageToPacket(sf::Packet &packet, int messageId)
 {
 	packet << static_cast<MessageId>(NP_MSG_SLIPPI_CHAT_MESSAGE);
 	packet << slippi_netplay->GetMatchInfo()->localPlayerSelections.playerName;
-	packet << message;
+	packet << messageId;
 }
 
 std::unique_ptr<SlippiPlayerSelections> SlippiNetplayClient::ReadChatMessageFromPacket(sf::Packet &packet)
@@ -316,7 +316,7 @@ std::unique_ptr<SlippiPlayerSelections> SlippiNetplayClient::ReadChatMessageFrom
 	auto s = std::make_unique<SlippiPlayerSelections>();
 
 	packet >> s->playerName;
-	packet >> s->message;
+	packet >> s->messageId;
 
 	return std::move(s);
 }

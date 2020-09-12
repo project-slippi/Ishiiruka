@@ -21,7 +21,7 @@
 #include <string>
 #include <thread>
 #include <vector>
-
+#include <unordered_map>
 #ifdef _WIN32
 #include <Qos2.h>
 #endif
@@ -49,7 +49,7 @@ class SlippiPlayerSelections
 
 	std::string playerName = "";
 	std::string connectCode = "";
-	std::string message = "";
+	int messageId;
 
 	void Merge(SlippiPlayerSelections &s)
 	{
@@ -115,6 +115,22 @@ class SlippiNetplayClient
 		NET_CONNECT_STATUS_DISCONNECTED,
 	};
 
+
+	std::unordered_map<u8, std::string> predefinedChatMessages = {
+		{CM_PAD_LEFT, "GGs"},
+		{CM_PAD_RIGHT, "BRB"},
+		{CM_PAD_DOWN, "Last One"},
+		{CM_PAD_UP, "One More"},
+		{CM_L_PAD_LEFT, "G2G"},
+		{CM_L_PAD_RIGHT, "This"},
+		{CM_L_PAD_DOWN, "is"},
+		{CM_L_PAD_UP, "a"},
+		{CM_R_PAD_LEFT, "Test"},
+		{CM_R_PAD_RIGHT, "Yeah"},
+		{CM_R_PAD_DOWN, "baby"},
+		{CM_R_PAD_UP, "Yeah!"},
+	};
+
 	bool IsDecider();
 	bool IsConnectionSelected();
 	SlippiConnectStatus GetSlippiConnectStatus();
@@ -128,7 +144,7 @@ class SlippiNetplayClient
 	int32_t GetSlippiLatestRemoteFrame();
 	s32 CalcTimeOffsetUs();
 
-	void WriteChatMessageToPacket(sf::Packet &packet, std::string message);
+	void WriteChatMessageToPacket(sf::Packet &packet, int messageId);
 	std::unique_ptr<SlippiPlayerSelections> ReadChatMessageFromPacket(sf::Packet &packet);
 
   protected:
@@ -186,6 +202,23 @@ class SlippiNetplayClient
 	std::unique_ptr<SlippiPlayerSelections> readSelectionsFromPacket(sf::Packet &packet);
 
   private:
+	enum {
+		// Chat Messages
+    CM_PAD_LEFT = 0x01,
+    CM_PAD_RIGHT = 0x02,
+    CM_PAD_DOWN = 0x04,
+    CM_PAD_UP = 0x08,
+
+    CM_R_PAD_LEFT = 0x21,
+    CM_R_PAD_RIGHT = 0x22,
+    CM_R_PAD_DOWN = 0x24,
+    CM_R_PAD_UP = 0x28,
+
+    CM_L_PAD_LEFT = 0x41,
+    CM_L_PAD_RIGHT = 0x42,
+    CM_L_PAD_DOWN = 0x44,
+    CM_L_PAD_UP = 0x48,
+	};
 	unsigned int OnData(sf::Packet &packet);
 	void Send(sf::Packet &packet);
 	void Disconnect();

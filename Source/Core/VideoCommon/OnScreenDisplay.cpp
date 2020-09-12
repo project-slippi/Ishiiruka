@@ -71,13 +71,14 @@ namespace Chat
 		    if (message.find(s) != std::string::npos)
 			    return true;
 	    }
-		
+
 	    return false;
     };
 
     void Update()
     {
-	    if (slippi_netplay)
+      // DISABLED in favor of in-game communication only
+	    if (false) //(slippi_netplay)
 	    {
 			if(!last_toggled && toggled)
 				current_msg = "";
@@ -88,7 +89,7 @@ namespace Chat
 
 				if(current_msg != "")
 				{
-					
+
 				    std::string msg = current_msg.substr();
 				    if (hasProfanity(msg))
 					    msg = "You are awesome! GGs!";
