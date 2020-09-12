@@ -2087,7 +2087,7 @@ void CEXISlippi::handleChatMessage(u8 *payload)
         auto userInfo = user->GetUserInfo();
 		auto packet = std::make_unique<sf::Packet>();
 
-		OSD::AddMessage("[Me]: "+ msg, OSD::Duration::VERY_LONG, OSD::Color::YELLOW);
+//		OSD::AddMessage("[Me]: "+ msg, OSD::Duration::VERY_LONG, OSD::Color::YELLOW);
 		slippi_netplay->remoteSentChatMessageId = messageId;
 		slippi_netplay->WriteChatMessageToPacket(*packet, userInfo.displayName, messageId);
 		slippi_netplay->SendAsync(std::move(packet));
