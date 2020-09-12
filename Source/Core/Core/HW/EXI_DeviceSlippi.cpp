@@ -2024,12 +2024,18 @@ void CEXISlippi::handleChatMessage(u8 *payload)
 	INFO_LOG(SLIPPI, "SLIPPI CHAT MESSAGE: %s", msg.c_str());
 
 	if(slippi_netplay) {
+        m_read_queue.clear();
 		auto packet = std::make_unique<sf::Packet>();
 
 		OSD::AddMessage("[Me]: "+ msg, OSD::Duration::VERY_LONG, OSD::Color::YELLOW);
 		slippi_netplay->WriteChatMessageToPacket(*packet, messageId);
 		slippi_netplay->SendAsync(std::move(packet));
 
+        auto result = slippi_netplay->GetSlippiRemoteChatMessage();
+        // Send back opponent message if any
+        if(result > 0){
+            m_read_queue.push_back(result);
+        }
 	}
 
 }
