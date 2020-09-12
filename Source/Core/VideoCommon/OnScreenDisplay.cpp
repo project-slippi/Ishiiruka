@@ -97,7 +97,7 @@ namespace Chat
 				    auto packet = std::make_unique<sf::Packet>();
 
 				    OSD::AddMessage("[Me]: "+ msg, OSD::Duration::VERY_LONG, OSD::Color::YELLOW);
-				    slippi_netplay->WriteChatMessageToPacket(*packet, msg);
+				    slippi_netplay->WriteChatMessageToPacket(*packet, 1);
 				    slippi_netplay->SendAsync(std::move(packet));
 
 				    current_msg = "";
