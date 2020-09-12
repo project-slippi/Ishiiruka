@@ -68,11 +68,28 @@ class CEXISlippi : public IEXIDevice
 		CMD_UPDATE = 0xB8,
 		CMD_GET_ONLINE_STATUS = 0xB9,
 		CMD_CLEANUP_CONNECTION = 0xBA,
+    CMD_SEND_CHAT_MESSAGE = 0xBB,
 
 		// Misc
 		CMD_LOG_MESSAGE = 0xD0,
 		CMD_FILE_LENGTH = 0xD1,
 		CMD_FILE_LOAD = 0xD2,
+
+    // Chat Messages
+    CM_PAD_LEFT = 0x01,
+    CM_PAD_RIGHT = 0x02,
+    CM_PAD_DOWN = 0x04,
+    CM_PAD_UP = 0x08,
+
+    CM_R_PAD_LEFT = 0x21,
+    CM_R_PAD_RIGHT = 0x22,
+    CM_R_PAD_DOWN = 0x24,
+    CM_R_PAD_UP = 0x28,
+
+    CM_L_PAD_LEFT = 0x41,
+    CM_L_PAD_RIGHT = 0x42,
+    CM_L_PAD_DOWN = 0x44,
+    CM_L_PAD_UP = 0x48,
 	};
 
 	enum
@@ -105,6 +122,7 @@ class CEXISlippi : public IEXIDevice
 	    {CMD_GET_MATCH_STATE, 0},
 	    {CMD_FIND_OPPONENT, 19},
 	    {CMD_SET_MATCH_SELECTIONS, 6},
+      {CMD_SEND_CHAT_MESSAGE, 2},
 	    {CMD_OPEN_LOGIN, 0},
 	    {CMD_LOGOUT, 0},
 	    {CMD_UPDATE, 0},
@@ -115,6 +133,22 @@ class CEXISlippi : public IEXIDevice
 	    {CMD_LOG_MESSAGE, 0xFFFF}, // Variable size... will only work if by itself
 	    {CMD_FILE_LENGTH, 0x40},
 	    {CMD_FILE_LOAD, 0x40},
+	};
+
+  // TODO: remove and use form slippi_netplay
+  std::unordered_map<u8, std::string> predefinedChatMessages = {
+	    {CM_PAD_LEFT, "GGs"},
+	    {CM_PAD_RIGHT, "BRB"},
+	    {CM_PAD_DOWN, "Last One"},
+	    {CM_PAD_UP, "One More"},
+	    {CM_L_PAD_LEFT, "G2G"},
+	    {CM_L_PAD_RIGHT, "This"},
+	    {CM_L_PAD_DOWN, "is"},
+	    {CM_L_PAD_UP, "a"},
+	    {CM_R_PAD_LEFT, "Test"},
+	    {CM_R_PAD_RIGHT, "Yeah"},
+	    {CM_R_PAD_DOWN, "baby"},
+	    {CM_R_PAD_UP, "Yeah!"},
 	};
 
 	struct WriteMessage
@@ -178,6 +212,7 @@ class CEXISlippi : public IEXIDevice
 	void prepareIsFileReady();
 
 	// misc stuff
+  void handleChatMessage(u8 *payload);
 	void logMessageFromGame(u8 *payload);
 	void prepareFileLength(u8 *payload);
 	void prepareFileLoad(u8 *payload);

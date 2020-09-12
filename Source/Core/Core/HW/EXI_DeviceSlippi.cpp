@@ -18,6 +18,8 @@
 #include "Common/MsgHandler.h"
 #include "Common/StringUtil.h"
 #include "Common/Thread.h"
+#include "VideoCommon/OnScreenDisplay.h"
+
 #include "Core/HW/Memmap.h"
 
 #include "Core/Core.h"
@@ -2040,6 +2042,32 @@ void CEXISlippi::prepareFileLoad(u8 *payload)
 	m_read_queue.insert(m_read_queue.end(), buf.begin(), buf.end());
 }
 
+void CEXISlippi::handleChatMessage(u8 *payload)
+{
+
+	int messageId = payload[0];
+	INFO_LOG(SLIPPI, "SLIPPI CHAT INPUT: 0x%x", messageId);
+	if (!predefinedChatMessages.count(messageId))
+	{
+		WARN_LOG(SLIPPI, "EXI SLIPPI: Invalid Chat Message ID: 0x%x", messageId);
+		return;
+	}
+
+	std::string msg = predefinedChatMessages[messageId];
+
+	INFO_LOG(SLIPPI, "SLIPPI CHAT MESSAGE: %s", msg.c_str());
+
+	if(slippi_netplay) {
+		auto packet = std::make_unique<sf::Packet>();
+
+		OSD::AddMessage("[Me]: "+ msg, OSD::Duration::VERY_LONG, OSD::Color::YELLOW);
+		slippi_netplay->WriteChatMessageToPacket(*packet, messageId);
+		slippi_netplay->SendAsync(std::move(packet));
+
+	}
+
+}
+
 void CEXISlippi::logMessageFromGame(u8 *payload)
 {
 	if (payload[0] == 0)
@@ -2267,6 +2295,9 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 			break;
 		case CMD_LOG_MESSAGE:
 			logMessageFromGame(&memPtr[bufLoc + 1]);
+			break;
+		case CMD_SEND_CHAT_MESSAGE:
+			handleChatMessage(&memPtr[bufLoc+1]);
 			break;
 		case CMD_UPDATE:
 			handleUpdateAppRequest();

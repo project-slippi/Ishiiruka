@@ -260,6 +260,25 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet)
 	}
 	break;
 
+	case NP_MSG_SLIPPI_CHAT_MESSAGE:
+	{
+		auto playerSelection = ReadChatMessageFromPacket(packet);
+		auto messageId = playerSelection->messageId;
+
+		INFO_LOG(SLIPPI_ONLINE, "[Netplay] Received chat message from opponent");
+		if (!predefinedChatMessages.count(messageId))
+		{
+			WARN_LOG(SLIPPI, "EXI SLIPPI: Invalid Chat Message ID: 0x%x", messageId);
+			break;
+		}
+		std::string msg = predefinedChatMessages[messageId];
+
+		// Show chat message OSD
+		OSD::AddMessage("[" + matchInfo.remotePlayerSelections.playerName + "]: " + msg,
+		                OSD::Duration::VERY_LONG, OSD::Color::YELLOW);
+	}
+	break;
+
 	case NP_MSG_SLIPPI_CONN_SELECTED:
 	{
 		// Currently this is unused but the intent is to support two-way simultaneous connection attempts
@@ -281,6 +300,23 @@ void SlippiNetplayClient::writeToPacket(sf::Packet &packet, SlippiPlayerSelectio
 	packet << s.characterId << s.characterColor << s.isCharacterSelected;
 	packet << s.stageId << s.isStageSelected;
 	packet << s.rngOffset;
+}
+
+void SlippiNetplayClient::WriteChatMessageToPacket(sf::Packet &packet, int messageId)
+{
+	packet << static_cast<MessageId>(NP_MSG_SLIPPI_CHAT_MESSAGE);
+	packet << slippi_netplay->GetMatchInfo()->localPlayerSelections.playerName;
+	packet << messageId;
+}
+
+std::unique_ptr<SlippiPlayerSelections> SlippiNetplayClient::ReadChatMessageFromPacket(sf::Packet &packet)
+{
+	auto s = std::make_unique<SlippiPlayerSelections>();
+
+	packet >> s->playerName;
+	packet >> s->messageId;
+
+	return std::move(s);
 }
 
 std::unique_ptr<SlippiPlayerSelections> SlippiNetplayClient::readSelectionsFromPacket(sf::Packet &packet)
