@@ -135,20 +135,20 @@ class CEXISlippi : public IEXIDevice
 	    {CMD_FILE_LOAD, 0x40},
 	};
 
-    // TODO: remove and use form slippi_netplay
+    // TODO: remove and use only from slippi_netplay
     std::unordered_map<u8, std::string> predefinedChatMessages = {
-	    {CM_PAD_LEFT, "GGs"},
-	    {CM_PAD_RIGHT, "BRB"},
-	    {CM_PAD_DOWN, "Last One"},
-	    {CM_PAD_UP, "One More"},
-	    {CM_L_PAD_LEFT, "G2G"},
-	    {CM_L_PAD_RIGHT, "This"},
-	    {CM_L_PAD_DOWN, "is"},
-	    {CM_L_PAD_UP, "a"},
-	    {CM_R_PAD_LEFT, "Test"},
-	    {CM_R_PAD_RIGHT, "Yeah"},
-	    {CM_R_PAD_DOWN, "baby"},
-	    {CM_R_PAD_UP, "Yeah!"},
+		{CM_PAD_LEFT, "GGs!"},
+		{CM_PAD_RIGHT, "BRB"},
+		{CM_PAD_DOWN, "Last!"},
+		{CM_PAD_UP, "One More"},
+		{CM_L_PAD_LEFT, "G2G"},
+		{CM_L_PAD_RIGHT, "OK"},
+		{CM_L_PAD_DOWN, "Nope"},
+		{CM_L_PAD_UP, "Back"},
+		{CM_R_PAD_LEFT, "Awesome!"},
+		{CM_R_PAD_RIGHT, "Sorry"},
+		{CM_R_PAD_DOWN, "Thanks!"},
+		{CM_R_PAD_UP, "Please"},
 	};
 
 	struct WriteMessage

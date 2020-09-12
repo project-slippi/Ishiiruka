@@ -1852,7 +1852,27 @@ void CEXISlippi::prepareOnlineMatchState()
 
 	u32 rngOffset = 0;
 	std::string p1Name = "";
-	std::string p2Name = "";
+    std::string p2Name = "";
+    std::string chatMessage = "";
+    std::string sentChatMessage = "";
+
+    // Set chat message if any
+    if (slippi_netplay)
+    {
+        u8 messageId = slippi_netplay->GetSlippiRemoteChatMessage();
+        if(messageId > 0)
+        {
+            // I am cheating here by sending the players name + the message formatted so that I don't have to
+            // calculate the str length of each player's name in-game :)
+            chatMessage = StringFromFormat("%s: %s", oppName.c_str(), predefinedChatMessages[messageId].c_str());
+        }
+
+        messageId = slippi_netplay->GetSlippiRemoteSentChatMessage();
+        if(messageId > 0)
+        {
+            sentChatMessage = StringFromFormat("%s: %s", userInfo.displayName.c_str(), predefinedChatMessages[messageId].c_str());
+        }
+    }
 
 	auto directMode = SlippiMatchmaking::OnlinePlayMode::DIRECT;
 
@@ -1945,6 +1965,11 @@ void CEXISlippi::prepareOnlineMatchState()
 	m_read_queue.insert(m_read_queue.end(), p2Name.begin(), p2Name.end());
 	oppName = ConvertStringForGame(oppName, MAX_NAME_LENGTH);
 	m_read_queue.insert(m_read_queue.end(), oppName.begin(), oppName.end());
+
+    chatMessage = ConvertStringForGame(chatMessage, MAX_NAME_LENGTH);
+    m_read_queue.insert(m_read_queue.end(), chatMessage.begin(), chatMessage.end());
+    sentChatMessage = ConvertStringForGame(sentChatMessage, MAX_NAME_LENGTH);
+    m_read_queue.insert(m_read_queue.end(), sentChatMessage.begin(), sentChatMessage.end());
 
 	// Add error message if there is one
 	auto errorStr = !forcedError.empty() ? forcedError : matchmaking->GetErrorMessage();
@@ -2058,18 +2083,14 @@ void CEXISlippi::handleChatMessage(u8 *payload)
 	INFO_LOG(SLIPPI, "SLIPPI CHAT MESSAGE: %s", msg.c_str());
 
 	if(slippi_netplay) {
-        m_read_queue.clear();
+
+        auto userInfo = user->GetUserInfo();
 		auto packet = std::make_unique<sf::Packet>();
 
 		OSD::AddMessage("[Me]: "+ msg, OSD::Duration::VERY_LONG, OSD::Color::YELLOW);
-		slippi_netplay->WriteChatMessageToPacket(*packet, messageId);
+		slippi_netplay->remoteSentChatMessageId = messageId;
+		slippi_netplay->WriteChatMessageToPacket(*packet, userInfo.displayName, messageId);
 		slippi_netplay->SendAsync(std::move(packet));
-
-        auto result = slippi_netplay->GetSlippiRemoteChatMessage();
-        // Send back opponent message if any
-        if(result > 0){
-            m_read_queue.push_back(result);
-        }
 	}
 
 }
