@@ -117,18 +117,18 @@ class SlippiNetplayClient
 
 
 	std::unordered_map<u8, std::string> predefinedChatMessages = {
-		{CM_PAD_LEFT, "GGs"},
+		{CM_PAD_LEFT, "GGs!"},
 		{CM_PAD_RIGHT, "BRB"},
-		{CM_PAD_DOWN, "Last One"},
+		{CM_PAD_DOWN, "Last!"},
 		{CM_PAD_UP, "One More"},
 		{CM_L_PAD_LEFT, "G2G"},
-		{CM_L_PAD_RIGHT, "This"},
-		{CM_L_PAD_DOWN, "is"},
-		{CM_L_PAD_UP, "a"},
-		{CM_R_PAD_LEFT, "Test"},
-		{CM_R_PAD_RIGHT, "Yeah"},
-		{CM_R_PAD_DOWN, "baby"},
-		{CM_R_PAD_UP, "Yeah!"},
+		{CM_L_PAD_RIGHT, "OK"},
+		{CM_L_PAD_DOWN, "Nope"},
+		{CM_L_PAD_UP, "Back"},
+		{CM_R_PAD_LEFT, "Awesome!"},
+		{CM_R_PAD_RIGHT, "Sorry"},
+		{CM_R_PAD_DOWN, "Thanks!"},
+		{CM_R_PAD_UP, "Please"},
 	};
 
 	bool IsDecider();
@@ -143,10 +143,14 @@ class SlippiNetplayClient
 	u64 GetSlippiPing();
     int32_t GetSlippiLatestRemoteFrame();
     u8 GetSlippiRemoteChatMessage();
+    u8 GetSlippiRemoteSentChatMessage();
 	s32 CalcTimeOffsetUs();
 
 	void WriteChatMessageToPacket(sf::Packet &packet, std::string playerName, int messageId);
 	std::unique_ptr<SlippiPlayerSelections> ReadChatMessageFromPacket(sf::Packet &packet);
+
+	u8 remoteChatMessageId = 0; // most recent chat message id from opponent
+    u8 remoteSentChatMessageId = 0; // most recent chat message id that current player sent
 
   protected:
 	struct
@@ -191,7 +195,7 @@ class SlippiNetplayClient
 	bool hasGameStarted = false;
 	FrameTiming lastFrameTiming;
 	u64 pingUs;
-	u8 remoteChatMessageId; // most recent chat message id from opponent
+
 	std::deque<std::unique_ptr<SlippiPad>> localPadQueue;  // most recent inputs at start of deque
 	std::deque<std::unique_ptr<SlippiPad>> remotePadQueue; // most recent inputs at start of deque
 	Common::FifoQueue<FrameTiming, false> ackTimers;

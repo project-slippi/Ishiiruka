@@ -660,7 +660,14 @@ void SlippiNetplayClient::SetMatchSelections(SlippiPlayerSelections &s)
 u8 SlippiNetplayClient::GetSlippiRemoteChatMessage()
 {
     u8 copiedMessageId = remoteChatMessageId;
-    remoteChatMessageId = 0; // Clear it out
+    // Do not clear it because the game relies on this to keep on showing it.
+    // remoteChatMessageId = 0; // Clear it out
+    return copiedMessageId;
+}
+
+u8 SlippiNetplayClient::GetSlippiRemoteSentChatMessage()
+{
+    u8 copiedMessageId = remoteSentChatMessageId;
     return copiedMessageId;
 }
 
