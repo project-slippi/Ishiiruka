@@ -308,10 +308,10 @@ void SlippiNetplayClient::writeToPacket(sf::Packet &packet, SlippiPlayerSelectio
 	packet << s.rngOffset;
 }
 
-void SlippiNetplayClient::WriteChatMessageToPacket(sf::Packet &packet, int messageId)
+void SlippiNetplayClient::WriteChatMessageToPacket(sf::Packet &packet, std::string playerName, int messageId)
 {
 	packet << static_cast<MessageId>(NP_MSG_SLIPPI_CHAT_MESSAGE);
-	packet << slippi_netplay->GetMatchInfo()->localPlayerSelections.playerName;
+	packet << playerName;
 	packet << messageId;
 }
 

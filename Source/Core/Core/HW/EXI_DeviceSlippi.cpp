@@ -2025,10 +2025,12 @@ void CEXISlippi::handleChatMessage(u8 *payload)
 
 	if(slippi_netplay) {
         m_read_queue.clear();
+
+        auto userInfo = user->GetUserInfo();
 		auto packet = std::make_unique<sf::Packet>();
 
 		OSD::AddMessage("[Me]: "+ msg, OSD::Duration::VERY_LONG, OSD::Color::YELLOW);
-		slippi_netplay->WriteChatMessageToPacket(*packet, messageId);
+		slippi_netplay->WriteChatMessageToPacket(*packet, userInfo.displayName, messageId);
 		slippi_netplay->SendAsync(std::move(packet));
 
         auto result = slippi_netplay->GetSlippiRemoteChatMessage();
