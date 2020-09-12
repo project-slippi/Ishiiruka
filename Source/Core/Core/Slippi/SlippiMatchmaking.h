@@ -47,6 +47,7 @@ class SlippiMatchmaking
 	bool IsSearching();
 	std::unique_ptr<SlippiNetplayClient> GetNetplayClient();
 	std::string GetErrorMessage();
+	SlippiUser::UserInfo GetOpponent();
 
   protected:
 	const std::string MM_HOST_DEV = "35.197.121.196"; // Dev host
@@ -76,6 +77,7 @@ class SlippiMatchmaking
 	int m_hostPort;
 	std::string m_oppIp;
 	bool m_isHost;
+	SlippiUser::UserInfo m_oppUser;
 
 	std::unique_ptr<SlippiNetplayClient> m_netplayClient;
 

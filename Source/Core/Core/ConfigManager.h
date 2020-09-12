@@ -136,7 +136,7 @@ struct SConfig : NonCopyable
 	bool m_slippiAllowChat = false;
 	bool m_slippiReplayMonthFolders = false;
 	std::string m_strSlippiReplayDir;
-	bool m_meleeUserIniBootstrapped = false;
+	bool m_coutEnabled = false;
 
 	bool bDPL2Decoder = false;
 	bool bTimeStretching = false;
@@ -234,6 +234,8 @@ struct SConfig : NonCopyable
 
 	std::string m_strVideoBackend;
 	std::string m_strSlippiInput;
+	std::string m_strOutputDirectory;
+	std::string m_strOutputFilenameBase;
 	std::string m_strGPUDeterminismMode;
 
 	// set based on the string version

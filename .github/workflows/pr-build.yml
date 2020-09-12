@@ -20,16 +20,19 @@ jobs:
     name: "Windows Netplay"
     runs-on: windows-2019
     steps:
+      - name: "Setup Go"
+        uses: actions/setup-go@v2
       - name: "Remove Redistributable"
         shell: cmd
         run: |
-          MsiExec.exe /passive /X{F0C3E5D1-1ADE-321E-8167-68EF0DE699A5}  
-      - name: "Setup MSBuild"
-        uses: microsoft/setup-msbuild@v1   
+          MsiExec.exe /passive /X{F0C3E5D1-1ADE-321E-8167-68EF0DE699A5}
+          MsiExec.exe /passive /X{1D8E6291-B0D5-35EC-8441-6616F567A0F7}
       - name: "Install DirectX SDK"
         shell: powershell
         run: |
           choco install directx-sdk
+      - name: "Setup MSBuild"
+        uses: microsoft/setup-msbuild@v1   
       - name: "Checkout"
         uses: actions/checkout@v2.3.1
       - name: 'Fetch Git Tags'
@@ -44,6 +47,16 @@ jobs:
         shell: cmd
         run: |
           msbuild /p:Configuration=Release /p:Platform=x64 ${{ github.workspace }}\Source\Dolphin.sln
+      - name: "Build Updater"
+        working-directory: ${{ github.workspace }}
+        shell: cmd
+        run: |
+          cd %GOPATH%
+          git clone https://github.com/project-slippi/dolphin-slippi-tools
+          cd dolphin-slippi-tools
+          go get github.com/gonutz/w32 github.com/machinebox/graphql golang.org/x/sys/windows/registry
+          go build
+          copy /b /v /y dolphin-slippi-tools.exe ${{ github.workspace }}\Binary\x64\
       - name: "Package Netplay"
         working-directory: ${{ github.workspace }}
         run: |
@@ -72,13 +85,14 @@ jobs:
       - name: "Remove Redistributable"
         shell: cmd
         run: |
-          MsiExec.exe /passive /X{F0C3E5D1-1ADE-321E-8167-68EF0DE699A5}  
-      - name: "Setup MSBuild"
-        uses: microsoft/setup-msbuild@v1   
+          MsiExec.exe /passive /X{F0C3E5D1-1ADE-321E-8167-68EF0DE699A5}
+          MsiExec.exe /passive /X{1D8E6291-B0D5-35EC-8441-6616F567A0F7}
       - name: "Install DirectX SDK"
         shell: powershell
         run: |
           choco install directx-sdk
+      - name: "Setup MSBuild"
+        uses: microsoft/setup-msbuild@v1   
       - name: "Checkout"
         uses: actions/checkout@v2.3.1
       - name: 'Fetch Git Tags'

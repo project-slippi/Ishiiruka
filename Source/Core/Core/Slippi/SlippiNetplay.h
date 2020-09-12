@@ -54,8 +54,6 @@ class SlippiPlayerSelections
 	void Merge(SlippiPlayerSelections &s)
 	{
 		this->rngOffset = s.rngOffset;
-		this->playerName = s.playerName;
-		this->connectCode = s.connectCode;
 
 		if (s.isStageSelected)
 		{
@@ -81,7 +79,6 @@ class SlippiPlayerSelections
 		isStageSelected = false;
 
 		rngOffset = 0;
-		playerName.clear();
 	}
 };
 
@@ -128,7 +125,6 @@ class SlippiNetplayClient
 	std::unique_ptr<SlippiRemotePadOutput> GetSlippiRemotePad(int32_t curFrame);
 	SlippiMatchInfo *GetMatchInfo();
 	u64 GetSlippiPing();
-	std::string GetOpponentName();
 	int32_t GetSlippiLatestRemoteFrame();
 	s32 CalcTimeOffsetUs();
 
@@ -145,8 +141,6 @@ class SlippiNetplayClient
 	} m_crit;
 
 	Common::FifoQueue<std::unique_ptr<sf::Packet>, false> m_async_queue;
-
-	std::string oppName = "";
 
 	ENetHost *m_client = nullptr;
 	ENetPeer *m_server = nullptr;

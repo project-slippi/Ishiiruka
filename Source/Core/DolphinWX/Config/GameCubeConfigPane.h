@@ -40,12 +40,6 @@ private:
 	void HandleEXISlotChange(int slot, const wxString& title);
 	void ChooseSlotPath(bool is_slot_a, TEXIDevices device_type);
 
-	void OnReplaySavingToggle(wxCommandEvent& event);
-	void OnReplayMonthFoldersToggle(wxCommandEvent& event);
-	void OnReplayDirChanged(wxCommandEvent& event);
-	void OnDelayFramesChanged(wxCommandEvent &event);
-	void OnNetplayChatToggle(wxCommandEvent &event);
-
 	wxArrayString m_ipl_language_strings;
 
 	wxChoice* m_system_lang_choice;
@@ -53,10 +47,4 @@ private:
 	wxCheckBox* m_skip_bios_checkbox;
 	wxChoice* m_exi_devices[3];
 	wxButton* m_memcard_path[2];
-	wxCheckBox* m_replay_enable_checkbox;
-	wxDirPickerCtrl* m_replay_directory_picker;
-	wxCheckBox* m_replay_month_folders_checkbox;
-	wxStaticText* m_slippi_delay_frames_txt;
-	wxSpinCtrl *m_slippi_delay_frames_ctrl;
-	wxCheckBox *m_slippi_netplay_chat_checkbox;
 };
