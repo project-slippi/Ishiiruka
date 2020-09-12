@@ -271,8 +271,12 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet)
 			WARN_LOG(SLIPPI, "EXI SLIPPI: Invalid Chat Message ID: 0x%x", messageId);
 			break;
 		}
-		std::string msg = predefinedChatMessages[messageId];
 
+		// set message id to netplay instance
+        remoteChatMessageId = messageId;
+
+
+        std::string msg = predefinedChatMessages[messageId];
 		// Show chat message OSD
 		OSD::AddMessage("[" + matchInfo.remotePlayerSelections.playerName + "]: " + msg,
 		                OSD::Duration::VERY_LONG, OSD::Color::YELLOW);
@@ -649,6 +653,13 @@ void SlippiNetplayClient::SetMatchSelections(SlippiPlayerSelections &s)
 	auto spac = std::make_unique<sf::Packet>();
 	writeToPacket(*spac, matchInfo.localPlayerSelections);
 	SendAsync(std::move(spac));
+}
+
+u8 SlippiNetplayClient::GetSlippiRemoteChatMessage()
+{
+    u8 copiedMessageId = remoteChatMessageId;
+    remoteChatMessageId = 0; // Clear it out
+    return copiedMessageId;
 }
 
 std::unique_ptr<SlippiRemotePadOutput> SlippiNetplayClient::GetSlippiRemotePad(int32_t curFrame)

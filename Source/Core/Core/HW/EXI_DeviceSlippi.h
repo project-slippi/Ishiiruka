@@ -68,28 +68,28 @@ class CEXISlippi : public IEXIDevice
 		CMD_UPDATE = 0xB8,
 		CMD_GET_ONLINE_STATUS = 0xB9,
 		CMD_CLEANUP_CONNECTION = 0xBA,
-    CMD_SEND_CHAT_MESSAGE = 0xBB,
+        CMD_SEND_CHAT_MESSAGE = 0xBB,
 
 		// Misc
 		CMD_LOG_MESSAGE = 0xD0,
 		CMD_FILE_LENGTH = 0xD1,
 		CMD_FILE_LOAD = 0xD2,
 
-    // Chat Messages
-    CM_PAD_LEFT = 0x01,
-    CM_PAD_RIGHT = 0x02,
-    CM_PAD_DOWN = 0x04,
-    CM_PAD_UP = 0x08,
+        // Chat Messages
+        CM_PAD_LEFT = 0x01,
+        CM_PAD_RIGHT = 0x02,
+        CM_PAD_DOWN = 0x04,
+        CM_PAD_UP = 0x08,
 
-    CM_R_PAD_LEFT = 0x21,
-    CM_R_PAD_RIGHT = 0x22,
-    CM_R_PAD_DOWN = 0x24,
-    CM_R_PAD_UP = 0x28,
+        CM_R_PAD_LEFT = 0x21,
+        CM_R_PAD_RIGHT = 0x22,
+        CM_R_PAD_DOWN = 0x24,
+        CM_R_PAD_UP = 0x28,
 
-    CM_L_PAD_LEFT = 0x41,
-    CM_L_PAD_RIGHT = 0x42,
-    CM_L_PAD_DOWN = 0x44,
-    CM_L_PAD_UP = 0x48,
+        CM_L_PAD_LEFT = 0x41,
+        CM_L_PAD_RIGHT = 0x42,
+        CM_L_PAD_DOWN = 0x44,
+        CM_L_PAD_UP = 0x48,
 	};
 
 	enum
