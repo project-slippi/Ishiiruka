@@ -1549,7 +1549,7 @@
 // Default is 1.
 //
 // Recommended setting: 1, required by wxMediaCtrl
-#define wxUSE_ACTIVEX 0
+#define wxUSE_ACTIVEX 1
 
 // Enable WinRT support
 //
