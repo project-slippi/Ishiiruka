@@ -767,7 +767,6 @@
     <ClCompile Include="..\..\src\common\dummy.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="..\..\src\common\dynarray.cpp" />
     <ClCompile Include="..\..\src\common\dynlib.cpp" />
     <ClCompile Include="..\..\src\common\dynload.cpp" />
     <ClCompile Include="..\..\src\common\effects.cpp">
