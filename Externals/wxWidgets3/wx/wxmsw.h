@@ -1656,13 +1656,29 @@
 // Crash debugging helpers
 // ----------------------------------------------------------------------------
 
+// Set this to 1 to use dbghelp.dll for providing stack traces in crash
+// reports.
+//
+// Default is 1 if the compiler supports it, 0 for old MinGW.
+//
+// Recommended setting: 1, there is not much gain in disabling this
+#if defined(__VISUALC__) || defined(__MINGW64_TOOLCHAIN__)
+    #define wxUSE_DBGHELP 1
+#else
+    #define wxUSE_DBGHELP 0
+#endif
+
+// ----------------------------------------------------------------------------
+// Crash debugging helpers
+// ----------------------------------------------------------------------------
+
 // Set this to 1 to be able to use wxCrashReport::Generate() to create mini
 // dumps of your program when it crashes (or at any other moment)
 //
 // Default is 1 if supported by the compiler (VC++ and recent BC++ only).
 //
 // Recommended setting: 1, set to 0 if your programs never crash
-#define wxUSE_CRASHREPORT 0
+#define wxUSE_CRASHREPORT 1
 /* --- end MSW options --- */
 
 // Options as of 3.1.4.
