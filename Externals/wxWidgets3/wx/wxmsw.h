@@ -723,14 +723,14 @@
 //
 // NOTE: This is important! If this isn't done, you'll
 // wind up with IE...7.
-#define wxUSE_WEBVIEW_EDGE 1
+#define wxUSE_WEBVIEW_EDGE 0
 
 // Use the IE wxWebView backend
 //
 // Default is 1 on MSW
 //
 // Recommended setting: 1
-#define wxUSE_WEBVIEW_IE 0
+#define wxUSE_WEBVIEW_IE 1
 
 // Use the WebKit wxWebView backend
 //
