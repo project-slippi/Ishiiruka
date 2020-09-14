@@ -1665,5 +1665,13 @@
 #define wxUSE_CRASHREPORT 0
 /* --- end MSW options --- */
 
+// Options as of 3.1.4.
+#define wxUSE_MENUBAR 1
+#define wxUSE_UNSAFE_WXSTRING_CONV 0
+#define wxUSE_SECRETSTORE 0
+#define wxUSE_PRIVATE_FONTS 1
+#define wxUSE_NATIVE_DATAVIEWCTRL 0
+#define wxUSE_XTEST 0
+
 #endif // _WX_SETUP_H_
 
