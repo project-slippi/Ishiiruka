@@ -991,9 +991,7 @@
     <ClCompile Include="..\..\src\common\valnum.cpp" />
     <ClCompile Include="..\..\src\common\valtext.cpp" />
     <ClCompile Include="..\..\src\common\variant.cpp" />
-    <ClCompile Include="..\..\src\common\webview.cpp">
-      <ExcludedFromBuild>true</ExcludedFromBuild>
-    </ClCompile>
+    <ClCompile Include="..\..\src\common\webview.cpp" />
     <ClCompile Include="..\..\src\common\webviewarchivehandler.cpp">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
@@ -1321,19 +1319,17 @@
     <ClCompile Include="..\..\src\msw\toplevel.cpp" />
     <ClCompile Include="..\..\src\msw\treectrl.cpp" />
     <ClCompile Include="..\..\src\msw\uiaction.cpp" />
-    <ClCompile Include="..\..\src\msw\urlmsw.cpp">
-      <ExcludedFromBuild>true</ExcludedFromBuild>
-    </ClCompile>
+    <ClCompile Include="..\..\src\msw\urlmsw.cpp" />
     <ClCompile Include="..\..\src\msw\utils.cpp" />
     <ClCompile Include="..\..\src\msw\utilsexc.cpp" />
     <ClCompile Include="..\..\src\msw\utilsgui.cpp" />
     <ClCompile Include="..\..\src\msw\utilswin.cpp" />
     <ClCompile Include="..\..\src\msw\uxtheme.cpp" />
     <ClCompile Include="..\..\src\msw\volume.cpp" />
-    <ClCompile Include="..\..\src\msw\webview_edge.cpp" />
-    <ClCompile Include="..\..\src\msw\webview_ie.cpp">
+    <ClCompile Include="..\..\src\msw\webview_edge.cpp">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="..\..\src\msw\webview_ie.cpp" />
     <ClCompile Include="..\..\src\msw\window.cpp" />
     <ClCompile Include="..\..\src\msw\winestub.c">
       <ExcludedFromBuild>true</ExcludedFromBuild>

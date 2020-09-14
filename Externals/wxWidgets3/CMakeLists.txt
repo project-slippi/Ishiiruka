@@ -614,7 +614,7 @@ set(SRCS_MSW
 	"src/msw/toplevel.cpp"
 	"src/msw/treectrl.cpp"
 	"src/msw/uiaction.cpp"
-	#"src/msw/urlmsw.cpp"
+	"src/msw/urlmsw.cpp"
 	"src/msw/utils.cpp"
 	"src/msw/utilsexc.cpp"
 	"src/msw/utilsgui.cpp"
