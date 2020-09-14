@@ -387,6 +387,7 @@ jobs:
         if: success()
         shell: bash
         run: |
+          brew uninstall gnupg
           brew update
           brew upgrade cmake
           brew install \
