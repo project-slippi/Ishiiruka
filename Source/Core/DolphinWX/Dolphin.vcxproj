@@ -77,6 +77,7 @@
     </Link>
     <ResourceCompile>
       <AdditionalIncludeDirectories>$(ExternalsDir)wxWidgets3\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ExternalsDir)nlohmann;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ResourceCompile>
     <ClCompile />
     <ClCompile />

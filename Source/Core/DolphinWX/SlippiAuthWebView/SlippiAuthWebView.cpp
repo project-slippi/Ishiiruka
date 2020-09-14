@@ -14,8 +14,7 @@
 
 #include "DolphinWX/WxUtils.h"
 
-//#include <json.hpp>
-#include <nlohmann/json.hpp>
+#include <json.hpp>
 using json = nlohmann::json;
 
 SlippiAuthWebView::SlippiAuthWebView(wxWindow* parent, wxWindowID id, const wxString& title,
