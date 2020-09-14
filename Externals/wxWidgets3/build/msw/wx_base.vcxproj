@@ -1271,7 +1271,6 @@
     <ClCompile Include="..\..\src\msw\ole\uuid.cpp" />
     <ClCompile Include="..\..\src\msw\ownerdrw.cpp" />
     <ClCompile Include="..\..\src\msw\palette.cpp" />
-    <ClCompile Include="..\..\src\msw\panel.cpp" />
     <ClCompile Include="..\..\src\msw\pen.cpp" />
     <ClCompile Include="..\..\src\msw\popupwin.cpp" />
     <ClCompile Include="..\..\src\msw\power.cpp" />
@@ -1331,6 +1330,7 @@
     <ClCompile Include="..\..\src\msw\utilswin.cpp" />
     <ClCompile Include="..\..\src\msw\uxtheme.cpp" />
     <ClCompile Include="..\..\src\msw\volume.cpp" />
+    <ClCompile Include="..\..\src\msw\webview_edge.cpp" />
     <ClCompile Include="..\..\src\msw\webview_ie.cpp">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
