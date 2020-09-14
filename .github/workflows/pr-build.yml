@@ -319,7 +319,7 @@ jobs:
         if: success()
         shell: bash
         run: |
-          brew upgrade
+          brew upgrade gnupg
           brew update
           brew upgrade cmake
           brew install \
