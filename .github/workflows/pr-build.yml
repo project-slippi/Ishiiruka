@@ -334,6 +334,7 @@ jobs:
         shell: bash
         working-directory: ${{ github.workspace }}
         run: |
+          export LIBRARY_PATH=$LIBRARY_PATH:/usr/local/lib
           mkdir build
           cd build
           cmake ..
@@ -400,6 +401,7 @@ jobs:
         shell: bash
         working-directory: ${{ github.workspace }}
         run: |
+          export LIBRARY_PATH=$LIBRARY_PATH:/usr/local/lib
           mkdir build
           cd build
           cmake -DIS_PLAYBACK=true ..
