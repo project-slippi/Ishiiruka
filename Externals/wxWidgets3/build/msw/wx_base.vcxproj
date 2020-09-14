@@ -1156,6 +1156,7 @@
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="..\..\src\msw\cursor.cpp" />
+    <ClCompile Include="..\..\src\msw\customdraw.cpp" />
     <ClCompile Include="..\..\src\msw\data.cpp">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
