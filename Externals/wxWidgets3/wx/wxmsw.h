@@ -1689,5 +1689,12 @@
 #define wxUSE_NATIVE_DATAVIEWCTRL 0
 #define wxUSE_XTEST 0
 
+// Set to 1 if you need to include <winsock2.h> over <winsock.h>
+//
+// Default is 0.
+//
+// Recommended setting: 0, set to 1 automatically if wxUSE_IPV6 is 1.
+#define wxUSE_WINSOCK2 0
+
 #endif // _WX_SETUP_H_
 
