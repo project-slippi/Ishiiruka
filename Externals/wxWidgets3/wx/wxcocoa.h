@@ -83,6 +83,13 @@
  */
 #define wxUSE_UNIX 1
 
+// I have no clue why all these variations are required.
+#define wxUSE_COCOA 1
+#define wxOSX_USE_COCOA 1
+#define __WXCOCOA__ 1
+#define __WXOSX_COCOA__ 1
+#define __WXOSX__ 1
+
 #define __UNIX__ 1
 
 /* #undef __AIX__ */
@@ -114,7 +121,7 @@
 
 /* PowerPC Darwin & Mac OS X */
 /* #undef __POWERPC__ */
-#define TARGET_CARBON 1
+#define TARGET_CARBON 0
 
 /* Hack to make IOGraphicsTypes.h not define Point conflicting with MacTypes */
 /* #undef __Point__ */
@@ -317,7 +324,7 @@
 
 #define wxUSE_SYSTEM_OPTIONS 1
 
-#define wxUSE_SOUND 1
+#define wxUSE_SOUND 0
 
 #define wxUSE_MEDIACTRL 0
 

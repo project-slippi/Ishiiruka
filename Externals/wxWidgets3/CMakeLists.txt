@@ -70,6 +70,7 @@ set(SRCS_COMMON
 	"src/common/docview.cpp"
 	"src/common/dpycmn.cpp"
 	"src/common/dseldlg.cpp"
+    "src/common/dummy.cpp"
 	"src/common/dynlib.cpp"
 	"src/common/dynload.cpp"
 	#"src/common/effects.cpp"
@@ -294,6 +295,8 @@ set(SRCS_GENERIC
 	"src/generic/helpext.cpp"
 	#"src/generic/htmllbox.cpp"
 	"src/generic/hyperlinkg.cpp"
+    "src/generic/icon.cpp"
+    "src/generic/imaglist.cpp"
 	"src/generic/infobar.cpp"
 	"src/generic/laywin.cpp"
 	"src/generic/listbkg.cpp"
@@ -677,35 +680,35 @@ set(SRCS_OSX
 	"src/osx/utils_osx.cpp"
 	"src/osx/webview_webkit.mm"
 	"src/osx/window_osx.cpp"
-    #"src/osx/carbon/app.cpp"
-    #"src/osx/carbon/clipbrd.cpp"
+    "src/osx/carbon/app.cpp"
+    "src/osx/carbon/clipbrd.cpp"
 	#"src/osx/carbon/colordlg.cpp"
-    #"src/osx/carbon/colordlgosx.mm"
-    #"src/osx/carbon/control.cpp"
-    #"src/osx/carbon/cursor.cpp"
-    #"src/osx/carbon/dataobj.cpp"
-    #"src/osx/carbon/dcclient.cpp"
-    #"src/osx/carbon/dcprint.cpp"
-    #"src/osx/carbon/dcscreen.cpp"
-    #"src/osx/carbon/font.cpp"
-    #"src/osx/carbon/fontdlg.cpp"
-    #"src/osx/carbon/fontdlgosx.mm"
-    #"src/osx/carbon/frame.cpp"
-    #"src/osx/carbon/gdiobj.cpp"
-    #"src/osx/carbon/graphics.cpp"
+    "src/osx/carbon/colordlgosx.mm"
+    "src/osx/carbon/control.cpp"
+    "src/osx/carbon/cursor.cpp"
+    "src/osx/carbon/dataobj.cpp"
+    "src/osx/carbon/dcclient.cpp"
+    "src/osx/carbon/dcprint.cpp"
+    "src/osx/carbon/dcscreen.cpp"
+    "src/osx/carbon/font.cpp"
+    "src/osx/carbon/fontdlg.cpp"
+    "src/osx/carbon/fontdlgosx.mm"
+    "src/osx/carbon/frame.cpp"
+    "src/osx/carbon/gdiobj.cpp"
+    "src/osx/carbon/graphics.cpp"
     #"src/osx/carbon/icon.cpp"
 	#"src/osx/carbon/main.cpp"
-    #"src/osx/carbon/mdi.cpp"
-    #"src/osx/carbon/metafile.cpp"
+    "src/osx/carbon/mdi.cpp"
+    "src/osx/carbon/metafile.cpp"
 	#"src/osx/carbon/overlay.cpp"
-    #"src/osx/carbon/popupwin.cpp"
-    #"src/osx/carbon/region.cpp"
-    #"src/osx/carbon/renderer.cpp"
+    "src/osx/carbon/popupwin.cpp"
+    "src/osx/carbon/region.cpp"
+    "src/osx/carbon/renderer.cpp"
 	#"src/osx/carbon/sound.cpp"
-    #"src/osx/carbon/statbrma.cpp"
+    "src/osx/carbon/statbrma.cpp"
 	#"src/osx/carbon/thread.cpp"
 	#"src/osx/carbon/timer.cpp"
-    #"src/osx/carbon/utilscocoa.mm"
+    "src/osx/carbon/utilscocoa.mm"
 	"src/osx/cocoa/aboutdlg.mm"
 	"src/osx/cocoa/activityindicator.mm"
 	"src/osx/cocoa/anybutton.mm"
@@ -735,6 +738,7 @@ set(SRCS_OSX
 	"src/osx/cocoa/notifmsg.mm"
 	"src/osx/cocoa/overlay.mm"
 	"src/osx/cocoa/power.mm"
+    "src/osx/cocoa/preferences.mm"
 	"src/osx/cocoa/printdlg.mm"
 	"src/osx/cocoa/radiobut.mm"
 	"src/osx/cocoa/scrolbar.mm"
@@ -837,9 +841,15 @@ set(SRCS
 	${SRCS_GENERIC})
 
 if(APPLE)
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++98")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++11")
+    # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++98")
 	add_definitions(-D__WXOSX_COCOA__)
-	
+
+    find_library(WEBKIT_FRAMEWORK WebKit)
+    if (NOT WEBKIT_FRAMEWORK)
+        message(FATAL_ERROR "WebKit not found")
+    endif()
+    
 	set(SRCS
 		${SRCS}
 		${SRCS_GENERICOSX}
@@ -856,7 +866,9 @@ if(APPLE)
 		${COREFUND_LIBRARY}
 		${CORESERV_LIBRARY}
 		${IOK_LIBRARY}
-		${OPENGL_LIBRARY})
+		${OPENGL_LIBRARY}
+        ${WEBKIT_FRAMEWORK}
+        )
 elseif(${CMAKE_SYSTEM_NAME} MATCHES "Linux|FreeBSD")
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++11")
 	if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
