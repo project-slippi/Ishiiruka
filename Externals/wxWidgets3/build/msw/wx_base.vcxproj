@@ -421,6 +421,7 @@
     <ClInclude Include="..\..\include\wx\msw\ole\access.h" />
     <ClInclude Include="..\..\include\wx\msw\ole\activex.h" />
     <ClInclude Include="..\..\include\wx\msw\ole\automtn.h" />
+    <ClInclude Include="..\..\include\wx\msw\ole\comimpl.h" />
     <ClInclude Include="..\..\include\wx\msw\ole\dataform.h" />
     <ClInclude Include="..\..\include\wx\msw\ole\dataobj.h" />
     <ClInclude Include="..\..\include\wx\msw\ole\dataobj2.h" />
@@ -1258,6 +1259,7 @@
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="..\..\src\msw\ole\automtn.cpp" />
+    <ClCompile Include="..\..\src\msw\ole\comimpl.cpp" />
     <ClCompile Include="..\..\src\msw\ole\dataobj.cpp" />
     <ClCompile Include="..\..\src\msw\ole\dropsrc.cpp" />
     <ClCompile Include="..\..\src\msw\ole\droptgt.cpp" />
