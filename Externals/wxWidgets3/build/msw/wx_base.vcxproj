@@ -1256,9 +1256,7 @@
     <ClCompile Include="..\..\src\msw\ole\access.cpp">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="..\..\src\msw\ole\activex.cpp">
-      <ExcludedFromBuild>true</ExcludedFromBuild>
-    </ClCompile>
+    <ClCompile Include="..\..\src\msw\ole\activex.cpp" />
     <ClCompile Include="..\..\src\msw\ole\automtn.cpp" />
     <ClCompile Include="..\..\src\msw\ole\comimpl.cpp" />
     <ClCompile Include="..\..\src\msw\ole\dataobj.cpp" />
