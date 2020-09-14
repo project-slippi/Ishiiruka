@@ -717,7 +717,13 @@
 // Default is 1
 //
 // Recommended setting: 1
-#define wxUSE_WEBVIEW 0
+#define wxUSE_WEBVIEW 1
+
+// Use the Edge wxWebView backend.
+//
+// NOTE: This is important! If this isn't done, you'll
+// wind up with IE...7.
+#define wxUSE_WEBVIEW_EDGE 1
 
 // Use the IE wxWebView backend
 //
