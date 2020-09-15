@@ -493,8 +493,15 @@
     <ClInclude Include="..\..\include\wx\msw\treectrl.h" />
     <ClInclude Include="..\..\include\wx\msw\uxtheme.h" />
     <ClInclude Include="..\..\include\wx\msw\uxthemep.h" />
-    <ClInclude Include="..\..\include\wx\msw\webviewhistoryitem_ie.h" />
-    <ClInclude Include="..\..\include\wx\msw\webview_ie.h" />
+    <ClInclude Include="..\..\..\Webview2\WebView2.h" />
+    <ClInclude Include="..\..\..\Webview2\WebView2EnvironmentOptions.h" />
+    <ClInclude Include="..\..\include\wx\msw\webview_edge.h" />
+    <ClInclude Include="..\..\include\wx\msw\webviewhistoryitem_ie.h">
+        <ExcludedFromBuild>true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="..\..\include\wx\msw\webview_ie.h">
+        <ExcludedFromBuild>true</ExcludedFromBuild>
+    </ClInclude>
     <ClInclude Include="..\..\include\wx\msw\webview_missing.h" />
     <ClInclude Include="..\..\include\wx\msw\window.h" />
     <ClInclude Include="..\..\include\wx\msw\winundef.h" />

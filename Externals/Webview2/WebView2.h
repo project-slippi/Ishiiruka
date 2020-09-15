@@ -1,9 +1,4 @@
-/*  This file is provided by https://www.nuget.org/packages/Microsoft.Web.WebView2,
- *  however for build purposes it's been inlined here. The point of this is to enable
- *  wxWebView to use Edge (Chromium) behind the scenes instead of IE.
- *
- *  See the relevent license in the repository base for more information.
- */
+
 
 /* this ALWAYS GENERATED file contains the definitions for the interfaces */
 

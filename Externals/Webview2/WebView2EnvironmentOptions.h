@@ -2,20 +2,13 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-/*  This file is provided by https://www.nuget.org/packages/Microsoft.Web.WebView2,
- *  however for build purposes it's been inlined here. The point of this is to enable
- *  wxWebView to use Edge (Chromium) behind the scenes instead of IE.
- *
- *  See the relevent license in the repository base for more information.
- */
-
 #ifndef __core_webview2_environment_options_h__
 #define __core_webview2_environment_options_h__
 
 #include <objbase.h>
 #include <wrl/implements.h>
 
-#include "wx/msw/private/webview2.h"
+#include "webview2.h"
 #define CORE_WEBVIEW_TARGET_PRODUCT_VERSION L"86.0.622.11"
 
 #define COREWEBVIEW2ENVIRONMENTOPTIONS_STRING_PROPERTY(p)     \

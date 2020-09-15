@@ -926,6 +926,10 @@ elseif(${CMAKE_SYSTEM_NAME} MATCHES "Linux|FreeBSD")
 		${X11_Xinerama_LIB})
 else()
 	add_definitions(-D__WXMSW__)
+    
+    # Necessary for wxWebView to be able to use Edge/Chromium.
+    include_directories(../Webview2)
+
 	set(SRCS
 		${SRCS}
 		${SRCS_GENERICMSW}
