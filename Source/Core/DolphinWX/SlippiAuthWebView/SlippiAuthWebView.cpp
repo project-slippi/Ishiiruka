@@ -4,6 +4,11 @@
 #include <wx/sizer.h>
 #include <wx/stattext.h>
 #include <wx/webview.h>
+
+#ifdef _WIN32
+#include <wx/webview_ie.h>
+#endif
+
 #include <wx/webviewfshandler.h>
 
 #include "Common/CommonTypes.h"
@@ -37,13 +42,18 @@ SlippiAuthWebView::~SlippiAuthWebView()
 void SlippiAuthWebView::CreateGUIControls()
 {
     std::string url = "https://slippi.gg/online/enable?isWebview=true";
-    m_browser = wxWebView::New(this, wxID_ANY, url);
 
     // On Windows, we need to explicitly force it to elect to use IE11.
     // In the future, this can (and should!) use Edge/Chromium, but that's currently
     // not in general availability and would require shipping some extra stuff.
+    // 
+    // The other platforms use WebKit, thankfully... which is a one-liner.
 #ifdef _WIN32
+    m_browser = wxWebViewIE::New();
     m_browser.MSWSetEmulationLevel(wxWEBVIEWIE_EMU_IE11);
+    wxWebView::Create(m_browser, wxID_ANY, url);
+#else
+    m_browser = wxWebView::New(this, wxID_ANY, url);
 #endif
 
     Bind(wxEVT_WEBVIEW_TITLE_CHANGED, &SlippiAuthWebView::OnTitleChanged, this, m_browser->GetId());
