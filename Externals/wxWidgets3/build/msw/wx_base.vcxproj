@@ -1324,10 +1324,10 @@
     <ClCompile Include="..\..\src\msw\utilswin.cpp" />
     <ClCompile Include="..\..\src\msw\uxtheme.cpp" />
     <ClCompile Include="..\..\src\msw\volume.cpp" />
-    <ClCompile Include="..\..\src\msw\webview_edge.cpp">
+    <ClCompile Include="..\..\src\msw\webview_edge.cpp" />
+    <ClCompile Include="..\..\src\msw\webview_ie.cpp">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="..\..\src\msw\webview_ie.cpp" />
     <ClCompile Include="..\..\src\msw\window.cpp" />
     <ClCompile Include="..\..\src\msw\winestub.c">
       <ExcludedFromBuild>true</ExcludedFromBuild>

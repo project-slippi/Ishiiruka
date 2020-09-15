@@ -13,7 +13,8 @@
 #include "wx/dynlib.h"
 #include "wx/msw/private/comptr.h"
 
-#include <Webview2.h>
+#include "wx/msw/private/Webview2.h"
+// #include <Webview2.h>
 
 #ifndef __ICoreWebView2Environment_INTERFACE_DEFINED__
     #error "WebView2 SDK version 0.9.430 or newer is required"
