@@ -6,7 +6,7 @@
 #include <wx/webview.h>
 
 #ifdef _WIN32
-#include <wx/webview_ie.h>
+#include <wx/msw/webview_ie.h>
 #endif
 
 #include <wx/webviewfshandler.h>
