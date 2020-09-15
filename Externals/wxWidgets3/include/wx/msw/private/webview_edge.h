@@ -13,7 +13,7 @@
 #include "wx/dynlib.h"
 #include "wx/msw/private/comptr.h"
 
-#include "wx/msw/private/Webview2.h"
+#include "WebView2.h"
 // #include <Webview2.h>
 
 #ifndef __ICoreWebView2Environment_INTERFACE_DEFINED__
