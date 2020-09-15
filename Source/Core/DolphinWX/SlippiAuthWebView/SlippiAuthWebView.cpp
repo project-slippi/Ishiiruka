@@ -6,7 +6,7 @@
 #include <wx/webview.h>
 
 #ifdef _WIN32
-//#include <wx/webview_ie.h>
+#include <wx/webview_ie.h>
 #endif
 
 #include <wx/webviewfshandler.h>
@@ -49,7 +49,10 @@ void SlippiAuthWebView::CreateGUIControls()
     // 
     // The other platforms use WebKit, thankfully... which is a one-liner.
 #ifdef _WIN32
-    m_browser = wxWebView::New(this, wxID_ANY, url);
+    wxWebViewIE *browser = static_cast<wxWebViewIE*>(wxWebViewIE::New());
+    browser->MSWSetEmulationLevel(wxWEBVIEWIE_EMU_IE11);
+    browser->Create(this, wxID_ANY, url);
+    m_browser = browser;
 #else
     m_browser = wxWebView::New(this, wxID_ANY, url);
 #endif

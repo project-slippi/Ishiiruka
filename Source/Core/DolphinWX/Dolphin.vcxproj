@@ -332,7 +332,8 @@
     <DataSysFiles Include="$(DolphinRootDir)Data\**\Sys\**\*.*" />
     <DataLicenseFile Include="$(DolphinRootDir)Data\license.txt" />
     <DataPortableFile Include="$(DolphinRootDir)Data\portable.txt" />
-    <ExternalDlls Include="$(ExternalsDir)OpenAL\$(PlatformName)\*.dll;$(ExternalsDir)Webview2\$(PlatformName)\*.dll" />
+    <!--ExternalDlls Include="$(ExternalsDir)OpenAL\$(PlatformName)\*.dll;$(ExternalsDir)Webview2\$(PlatformName)\*.dll" / -->
+    <ExternalDlls Include="$(ExternalsDir)OpenAL\$(PlatformName)\*.dll" />
     <BinaryFiles Include="$(TargetPath)" />
     <AllInputFiles Include="@(DataSysFiles);@(DataTxtFiles);@(ExternalDlls);@(BinaryFiles)" />
   </ItemGroup>
