@@ -39,6 +39,13 @@ void SlippiAuthWebView::CreateGUIControls()
     std::string url = "https://slippi.gg/online/enable?isWebview=true";
     m_browser = wxWebView::New(this, wxID_ANY, url);
 
+    // On Windows, we need to explicitly force it to elect to use IE11.
+    // In the future, this can (and should!) use Edge/Chromium, but that's currently
+    // not in general availability and would require shipping some extra stuff.
+#ifdef _WIN32
+    m_browser.MSWSetEmulationLevel(wxWEBVIEWIE_EMU_IE11);
+#endif
+
     Bind(wxEVT_WEBVIEW_TITLE_CHANGED, &SlippiAuthWebView::OnTitleChanged, this, m_browser->GetId());
 
 	const int space5 = FromDIP(5);
