@@ -15,6 +15,9 @@
 #include "Common/Common.h"
 #include "Core/ConfigManager.h"
 
+#include "DolphinWX/Frame.h"
+#include "DolphinWX/Main.h"
+
 #include <codecvt>
 #include <locale>
 
@@ -103,7 +106,7 @@ SlippiUser::~SlippiUser()
 
 bool SlippiUser::AttemptLogin()
 {
-	std::string userFilePath = getUserFilePath();
+	std::string userFilePath = File::GetSlippiUserJSONPath();
 
 	INFO_LOG(SLIPPI_ONLINE, "Looking for file at: %s", userFilePath.c_str());
 
@@ -144,34 +147,8 @@ bool SlippiUser::AttemptLogin()
 
 void SlippiUser::OpenLogInPage()
 {
-	std::string url = "https://slippi.gg/online/enable";
-	std::string path = getUserFilePath();
-
-#ifdef _WIN32
-	// On windows, sometimes the path can have backslashes and slashes mixed, convert all to backslashes
-	path = ReplaceAll(path, "\\", "\\");
-	path = ReplaceAll(path, "/", "\\");
-#endif
-
-#ifndef __APPLE__
-	char *escapedPath = curl_easy_escape(nullptr, path.c_str(), (int)path.length());
-	path = std::string(escapedPath);
-	curl_free(escapedPath);
-#endif
-
-	std::string fullUrl = url + "?path=" + path;
-
-	INFO_LOG(SLIPPI_ONLINE, "[User] Login at path: %s", fullUrl.c_str());
-
-#ifdef _WIN32
-	std::string command = "explorer \"" + fullUrl + "\"";
-#elif defined(__APPLE__)
-	std::string command = "open \"" + fullUrl + "\"";
-#else
-	std::string command = "xdg-open \"" + fullUrl + "\""; // Linux
-#endif
-
-	RunSystemCommand(command);
+    CFrame* cframe = wxGetApp().GetCFrame();
+    cframe->OpenSlippiAuthenticationDialog();
 }
 
 void SlippiUser::UpdateApp()
@@ -260,21 +237,6 @@ void SlippiUser::FileListenThread()
 	}
 }
 
-// On Linux platforms, the user.json file lives in the XDG_CONFIG_HOME/SlippiOnline
-// directory in order to deal with the fact that we want the configuration for AppImage
-// builds to be mutable.
-std::string SlippiUser::getUserFilePath()
-{
-#if defined(__APPLE__)
-	std::string userFilePath = File::GetBundleDirectory() + "/Contents/Resources" + DIR_SEP + "user.json";
-#elif defined(_WIN32)
-	std::string userFilePath = File::GetExeDirectory() + DIR_SEP + "user.json";
-#else
-	std::string userFilePath = File::GetUserPath(F_USERJSON_IDX);
-#endif
-	return userFilePath;
-}
-
 inline std::string readString(json obj, std::string key)
 {
 	auto item = obj.find(key);
@@ -308,7 +270,7 @@ SlippiUser::UserInfo SlippiUser::parseFile(std::string fileContents)
 
 void SlippiUser::deleteFile()
 {
-	std::string userFilePath = getUserFilePath();
+	std::string userFilePath = File::GetSlippiUserJSONPath();
 	File::Delete(userFilePath);
 }
 
