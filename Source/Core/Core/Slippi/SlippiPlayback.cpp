@@ -343,7 +343,5 @@ void SlippiPlaybackStatus::updateWatchSettingsStartEnd()
 SlippiPlaybackStatus::~SlippiPlaybackStatus()
 {
 	// Kill threads to prevent cleanup crash
-	SConfig::GetInstance().m_OCFactor = prevOCFactor;
-	SConfig::GetInstance().m_OCEnable = prevOCEnable;
 	resetPlayback();
 }
