@@ -305,9 +305,9 @@ if(APPLE)
 	# This is inserted into the Info.plist as well.
 	# Note that the SDK determines the maximum version of which optional
 	# features can be used, not the minimum required version to run.
-	set(OSX_MIN_VERSION "10.14")
+	set(OSX_MIN_VERSION "10.13")
 	set(CMAKE_OSX_SYSROOT "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.14.sdk")
-    set(CMAKE_OSX_DEPLOYMENT_TARGET "10.14")
+    set(CMAKE_OSX_DEPLOYMENT_TARGET "10.13")
 	set(TARGET_FLAGS "${TARGET_FLAGS} -mmacosx-version-min=${OSX_MIN_VERSION}")
 	# Do not warn about frameworks that are not available on all architectures.
 	# This avoids a warning when linking with QuickTime.
@@ -931,7 +931,7 @@ endif()
 
 if(NOT DISABLE_WX)
 	include(FindwxWidgets OPTIONAL)
-	FIND_PACKAGE(wxWidgets COMPONENTS core aui adv)
+	FIND_PACKAGE(wxWidgets COMPONENTS core aui adv webview)
 
 	if(_ARCH_32)
 		add_definitions(-DwxSIZE_T_IS_UINT)
@@ -965,14 +965,14 @@ if(NOT DISABLE_WX)
 			ERROR_QUIET OUTPUT_STRIP_TRAILING_WHITESPACE)
 		if(${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION}.${CMAKE_PATCH_VERSION}
 				VERSION_EQUAL 2.8.2 OR "${DIST_NAME}" STREQUAL "natty")
-			check_lib(GTK2 gtk+-2.0 gtk+-2.0 gtk.h REQUIRED)
+			check_lib(GTK2 gtk+-3.0 gtk+-3.0 gtk.h REQUIRED)
 		else()
-			include(FindGTK2)
-			if(GTK2_FOUND)
-				include_directories(${GTK2_INCLUDE_DIRS})
-				list(APPEND LIBS ${GTK2_LIBRARIES})
+			include(FindGTK3)
+			if(GTK3_FOUND)
+				include_directories(${GTK3_INCLUDE_DIRS})
+				list(APPEND LIBS ${GTK3_LIBRARIES})
 			else()
-				message(FATAL_ERROR "GTK is required to build the WX UI. Please install the GTK development libraries.")
+				message(FATAL_ERROR "GTK3 is required to build the WX UI. Please install the GTK3 development libraries.")
 			endif()
 		endif()
 	endif()

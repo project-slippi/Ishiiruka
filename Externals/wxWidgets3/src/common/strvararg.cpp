@@ -198,16 +198,22 @@ public:
 
                 switch ( *format )
                 {
-#ifdef __VISUALC__
+                    // MSVC doesn't support C99 'z' size modifier, but it uses
+                    // 'I' with exactly the same meaning.
+                    //
+                    // MinGW does support 'z' but only in ANSI stdio mode, and
+                    // we can't be sure that this is what is actually going to
+                    // be used, application code could explicitly define
+                    // __USE_MINGW_ANSI_STDIO=0 (e.g. because it needs legacy
+                    // behaviour for its own printf() calls), so we map it to
+                    // 'I' for it too.
+#if defined(__VISUALC__) || defined(__MINGW32__)
                     case 'z':
-                        // Used for size_t printing (e.g. %zu) and is in C99,
-                        // but is not portable, MSVC uses 'I' with the same
-                        // meaning.
                         ChangeFmtChar('I');
                         format++;
                         size = Size_Default;
                         break;
-#endif // __VISUALC__
+#endif // __VISUALC__ || __MINGW32__
 
                     case 'h':
                         size = Size_Short;
@@ -361,7 +367,7 @@ private:
             CopyAllBefore();
         }
 
-        *m_fmtLast = ch;
+        *m_fmtLast++ = ch;
     }
 
     void CopyAllBefore()
@@ -411,12 +417,14 @@ private:
 };
 
 // Distinguish between the traditional Windows (and MSVC) behaviour and Cygwin
-// (which is always Unix-like) and MinGW which can use either depending on the
-// "ANSI stdio" option value (which is normally set to either 0 or 1, but test
-// for it in a way which works even if it's not defined at all, just in case).
+// (which is always Unix-like) and MinGW. The last one is the most interesting
+// case as it can behave either as MSVC (__USE_MINGW_ANSI_STDIO=0) or as POSIX
+// (__USE_MINGW_ANSI_STDIO=1, which is explicitly set by including any standard
+// C++ header such as e.g. <string>). Luckily, "%ls" and "%lc" work in both
+// cases, at least for recent MinGW versions, so just use it always.
 #if defined(__WINDOWS__) && \
     !defined(__CYGWIN__) && \
-    (!defined(__MINGW32__) || (__USE_MINGW_ANSI_STDIO +0 == 0))
+    !defined(__MINGW32__)
 
 // on Windows, we should use %s and %c regardless of the build:
 class wxPrintfFormatConverterWchar : public wxFormatConverterBase<wchar_t>

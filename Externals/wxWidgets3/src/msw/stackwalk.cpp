@@ -4,7 +4,7 @@
 // Author:      Vadim Zeitlin
 // Modified by: Artur Bac 2010-10-01 AMD64 Port
 // Created:     2005-01-08
-// Copyright:   (c) 2003-2005 Vadim Zeitlin <vadim@wxwindows.org>
+// Copyright:   (c) 2003-2005 Vadim Zeitlin <vadim@wxwidgets.org>
 // Licence:     wxWindows licence
 /////////////////////////////////////////////////////////////////////////////
 
@@ -31,8 +31,7 @@
 #include "wx/stackwalk.h"
 
 #include "wx/msw/debughlp.h"
-
-#if wxUSE_DBGHELP
+#include "wx/msw/seh.h"
 
 // ============================================================================
 // implementation
@@ -103,6 +102,8 @@ void wxStackFrame::OnParam(wxSYMBOL_INFO *pSymInfo)
     m_paramTypes.Add(wxEmptyString);
     m_paramNames.Add(pSymInfo->Name);
 
+    wxString value;
+
     // if symbol information is corrupted and we crash, the exception is going
     // to be ignored when we're called from WalkFromException() because of the
     // exception handler there returning EXCEPTION_CONTINUE_EXECUTION, but we'd
@@ -111,22 +112,23 @@ void wxStackFrame::OnParam(wxSYMBOL_INFO *pSymInfo)
 #ifdef _CPPUNWIND
     try
 #else
-    __try
+    wxSEH_TRY
 #endif
     {
         // as it is a parameter (and not a global var), it is always offset by
         // the frame address
         DWORD_PTR pValue = m_addrFrame + pSymInfo->Address;
-        m_paramValues.Add(wxDbgHelpDLL::DumpSymbol(pSymInfo, (void *)pValue));
+        value = wxDbgHelpDLL::DumpSymbol(pSymInfo, (void *)pValue);
     }
 #ifdef _CPPUNWIND
     catch ( ... )
-#else
-    __except ( EXCEPTION_EXECUTE_HANDLER )
-#endif
     {
-        m_paramValues.Add(wxEmptyString);
     }
+#else
+    wxSEH_IGNORE
+#endif
+
+    m_paramValues.Add(value);
 }
 
 BOOL CALLBACK
@@ -170,7 +172,7 @@ void wxStackFrame::OnGetParam()
     if ( !wxDbgHelpDLL::CallSymEnumSymbols
                         (
                             ::GetCurrentProcess(),
-                            NULL,               // DLL base: use current context
+                            0,                  // DLL base: use current context
                             EnumSymbolsProc,    // callback
                             this                // data to pass to it
                         ) )
@@ -198,8 +200,8 @@ void wxStackWalker::WalkFrom(const CONTEXT *pCtx, size_t skip, size_t maxDepth)
 
     // according to MSDN, the first parameter should be just a unique value and
     // not process handle (although the parameter is prototyped as "HANDLE
-    // hProcess") and actually it advises to use the process id and not handle
-    // for Win9x, but then we need to use the same value in StackWalk() call
+    // hProcess") and actually it advises to use the process id and not handle,
+    // but then we need to use the same value in StackWalk() call
     // below which should be a real handle... so this is what we use
     const HANDLE hProcess = ::GetCurrentProcess();
 
@@ -231,6 +233,16 @@ void wxStackWalker::WalkFrom(const CONTEXT *pCtx, size_t skip, size_t maxDepth)
     sf.AddrFrame.Mode      = AddrModeFlat;
 
     dwMachineType = IMAGE_FILE_MACHINE_AMD64;
+#elif defined(_M_ARM64)
+    // TODO: Verify this code once Windows 10 for ARM64 is commercially available
+    sf.AddrPC.Offset       = ctx.Pc;
+    sf.AddrPC.Mode         = AddrModeFlat;
+    sf.AddrStack.Offset    = ctx.Sp;
+    sf.AddrStack.Mode      = AddrModeFlat;
+    sf.AddrFrame.Offset    = ctx.Fp;
+    sf.AddrFrame.Mode      = AddrModeFlat;
+
+    dwMachineType = IMAGE_FILE_MACHINE_ARM64;
 #elif  defined(_M_IX86)
     sf.AddrPC.Offset       = ctx.Eip;
     sf.AddrPC.Mode         = AddrModeFlat;
@@ -304,91 +316,63 @@ void wxStackWalker::WalkFromException(size_t maxDepth)
 
 #endif // wxUSE_ON_FATAL_EXCEPTION
 
-void wxStackWalker::Walk(size_t skip, size_t WXUNUSED(maxDepth))
+#ifdef __VISUALC__
+    #pragma warning(push)
+
+    // "warning C4740: flow in or out of inline asm code suppresses global
+    //  optimization"
+    #pragma warning(disable: 4740)
+
+    // "warning C4748: /GS can not protect parameters and local variables from
+    //  local buffer overrun because optimizations are disabled in function"
+    #pragma warning(disable: 4748)
+#endif
+
+void wxStackWalker::Walk(size_t skip, size_t maxDepth)
 {
-    // to get a CONTEXT for the current location, simply force an exception and
-    // get EXCEPTION_POINTERS from it
-    //
-    // note:
-    //  1. we additionally skip RaiseException() and WalkFrom() frames
-    //  2. explicit cast to EXCEPTION_POINTERS is needed with VC7.1 even if it
-    //     shouldn't have been according to the docs
-    __try
-    {
-        RaiseException(0x1976, 0, 0, NULL);
-    }
-    __except( WalkFrom((EXCEPTION_POINTERS *)GetExceptionInformation(),
-                       skip + 2), EXCEPTION_CONTINUE_EXECUTION )
-    {
-        // never executed because the above expression always evaluates to
-        // EXCEPTION_CONTINUE_EXECUTION
-    }
+    // This code is based on frames.cpp from Edd Dawson's dbg library
+    // (https://bitbucket.org/edd/dbg/) which is distributed under Boost
+    // Software License.
+
+    CONTEXT ctx;
+#ifdef __WIN64__
+    RtlCaptureContext(&ctx);
+#else // Win32
+    // RtlCaptureContext() is not implemented correctly for x86 and can even
+    // crash when frame pointer is omitted, don't use it.
+    wxZeroMemory(ctx);
+    ctx.ContextFlags = CONTEXT_CONTROL;
+
+    #ifdef __GNUC__
+        DWORD regEip, regEsp, regEbp;
+
+        asm volatile ("call 1f\n\t" "1: pop %0" : "=g"(regEip));
+        asm volatile ("movl %%esp, %0" : "=g"(regEsp));
+        asm volatile ("movl %%ebp, %0" : "=g"(regEbp));
+
+        ctx.Eip = regEip;
+        ctx.Esp = regEsp;
+        ctx.Ebp = regEbp;
+    #elif defined(__VISUALC__)
+        __asm
+        {
+        Here:
+          mov [ctx.Ebp], ebp
+          mov [ctx.Esp], esp
+          mov eax, [Here]
+          mov [ctx.Eip], eax
+        }
+    #else
+        #error Missing implementation of RtlCaptureContext()
+    #endif
+#endif // Win64/32
+
+    WalkFrom(&ctx, skip, maxDepth);
 }
 
-#else // !wxUSE_DBGHELP
-
-// ============================================================================
-// stubs
-// ============================================================================
-
-// ----------------------------------------------------------------------------
-// wxStackFrame
-// ----------------------------------------------------------------------------
-
-void wxStackFrame::OnGetName()
-{
-}
-
-void wxStackFrame::OnGetLocation()
-{
-}
-
-bool
-wxStackFrame::GetParam(size_t WXUNUSED(n),
-                       wxString * WXUNUSED(type),
-                       wxString * WXUNUSED(name),
-                       wxString * WXUNUSED(value)) const
-{
-    return false;
-}
-
-void wxStackFrame::OnParam(wxSYMBOL_INFO * WXUNUSED(pSymInfo))
-{
-}
-
-void wxStackFrame::OnGetParam()
-{
-}
-
-// ----------------------------------------------------------------------------
-// wxStackWalker
-// ----------------------------------------------------------------------------
-
-void
-wxStackWalker::WalkFrom(const CONTEXT * WXUNUSED(pCtx),
-                        size_t WXUNUSED(skip),
-                        size_t WXUNUSED(maxDepth))
-{
-}
-
-void
-wxStackWalker::WalkFrom(const _EXCEPTION_POINTERS * WXUNUSED(ep),
-                        size_t WXUNUSED(skip),
-                        size_t WXUNUSED(maxDepth))
-{
-}
-
-#if wxUSE_ON_FATAL_EXCEPTION
-void wxStackWalker::WalkFromException(size_t WXUNUSED(maxDepth))
-{
-}
-#endif // wxUSE_ON_FATAL_EXCEPTION
-
-void wxStackWalker::Walk(size_t WXUNUSED(skip), size_t WXUNUSED(maxDepth))
-{
-}
-
-#endif // wxUSE_DBGHELP/!wxUSE_DBGHELP
+#ifdef __VISUALC__
+    #pragma warning(pop)
+#endif
 
 #endif // wxUSE_STACKWALKER
 

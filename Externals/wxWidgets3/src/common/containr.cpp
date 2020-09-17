@@ -38,6 +38,10 @@
 // trace mask for focus messages
 #define TRACE_FOCUS wxT("focus")
 
+#if (defined(__WXMSW__) || defined(__WXMAC__)) && wxUSE_RADIOBTN
+#define USE_RADIOBTN_NAV
+#endif
+
 // ============================================================================
 // implementation
 // ============================================================================
@@ -46,25 +50,21 @@
 // wxControlContainerBase
 // ----------------------------------------------------------------------------
 
-void wxControlContainerBase::UpdateParentCanFocus()
+void wxControlContainerBase::UpdateParentCanFocus(bool acceptsFocusChildren)
 {
     // In the ports where it does something non trivial, the parent window
     // should only be focusable if it doesn't have any focusable children
     // (e.g. native focus handling in wxGTK totally breaks down otherwise).
-    m_winParent->SetCanFocus(m_acceptsFocusSelf && !m_acceptsFocusChildren);
+    m_winParent->SetCanFocus(m_acceptsFocusSelf && !acceptsFocusChildren);
 }
 
 bool wxControlContainerBase::UpdateCanFocusChildren()
 {
     const bool acceptsFocusChildren = HasAnyFocusableChildren();
-    if ( acceptsFocusChildren != m_acceptsFocusChildren )
-    {
-        m_acceptsFocusChildren = acceptsFocusChildren;
 
-        UpdateParentCanFocus();
-    }
+    UpdateParentCanFocus(acceptsFocusChildren);
 
-    return m_acceptsFocusChildren;
+    return acceptsFocusChildren;
 }
 
 bool wxControlContainerBase::HasAnyFocusableChildren() const
@@ -162,6 +162,24 @@ bool wxControlContainerBase::SetFocusToChild()
     return wxSetFocusToChild(m_winParent, &m_winLastFocused);
 }
 
+#ifdef __WXMSW__
+
+bool wxControlContainerBase::HasTransparentBackground() const
+{
+    for ( wxWindow *win = m_winParent->GetParent(); win; win = win->GetParent() )
+    {
+        if ( win->MSWHasInheritableBackground() )
+            return true;
+
+        if ( win->IsTopLevel() )
+            break;
+    }
+
+    return false;
+}
+
+#endif // __WXMSW__
+
 #ifndef wxHAS_NATIVE_TAB_TRAVERSAL
 
 // ----------------------------------------------------------------------------
@@ -217,10 +235,10 @@ void wxControlContainer::SetLastFocus(wxWindow *win)
 
 // --------------------------------------------------------------------
 // The following four functions are used to find other radio buttons
-// within the same group. Used by wxSetFocusToChild on wxMSW
+// within the same group. Used by wxSetFocusToChild
 // --------------------------------------------------------------------
 
-#if wxUSE_RADIOBTN 
+#if wxUSE_RADIOBTN
 
 wxRadioButton* wxGetPreviousButtonInGroup(wxRadioButton *btn)
 {
@@ -330,7 +348,7 @@ wxRadioButton* wxGetSelectedButtonInGroup(wxRadioButton *btn)
     return NULL;
 }
 
-#endif // __WXMSW__
+#endif // wxUSE_RADIOBTN
 
 // ----------------------------------------------------------------------------
 // Keyboard handling - this is the place where the TAB traversal logic is
@@ -446,12 +464,12 @@ void wxControlContainer::HandleOnNavigationKey( wxNavigationKeyEvent& event )
 
         if ( winFocus )
         {
-#if defined(__WXMSW__) && wxUSE_RADIOBTN
+#if defined(USE_RADIOBTN_NAV)
             // If we are in a radio button group, start from the first item in the
             // group
             if ( event.IsFromTab() && wxIsKindOf(winFocus, wxRadioButton ) )
                 winFocus = wxGetFirstButtonInGroup((wxRadioButton*)winFocus);
-#endif // __WXMSW__
+#endif // USE_RADIOBTN_NAV
             // ok, we found the focus - now is it our child?
             start_node = children.Find( winFocus );
         }
@@ -536,7 +554,7 @@ void wxControlContainer::HandleOnNavigationKey( wxNavigationKeyEvent& event )
             continue;
         }
 
-#if defined(__WXMSW__) && wxUSE_RADIOBTN
+#if defined(USE_RADIOBTN_NAV)
         if ( event.IsFromTab() )
         {
             if ( wxIsKindOf(child, wxRadioButton) )
@@ -593,7 +611,7 @@ void wxControlContainer::HandleOnNavigationKey( wxNavigationKeyEvent& event )
                 return;
             }
         }
-#endif // __WXMSW__
+#endif // USE_RADIOBTN_NAV
 
         if ( child->CanAcceptFocusFromKeyboard() )
         {
@@ -693,6 +711,16 @@ bool wxSetFocusToChild(wxWindow *win, wxWindow **childLastFocused)
                 else
                     deepestVisibleWindow = NULL;
 
+                // We shouldn't be looking for the child to focus beyond the
+                // TLW boundary. And we use IsTopNavigationDomain() here
+                // instead of IsTopLevel() because wxMDIChildFrame is also TLW
+                // from this point of view.
+                if ( (*childLastFocused)->
+                        IsTopNavigationDomain(wxWindow::Navigation_Tab) )
+                {
+                    break;
+                }
+
                 *childLastFocused = (*childLastFocused)->GetParent();
             }
 
@@ -730,7 +758,7 @@ bool wxSetFocusToChild(wxWindow *win, wxWindow **childLastFocused)
 
         if ( child->CanAcceptFocusFromKeyboard() && !child->IsTopLevel() )
         {
-#if defined(__WXMSW__) && wxUSE_RADIOBTN
+#if defined(USE_RADIOBTN_NAV)
             // If a radiobutton is the first focusable child, search for the
             // selected radiobutton in the same group
             wxRadioButton* btn = wxDynamicCast(child, wxRadioButton);
@@ -740,7 +768,7 @@ bool wxSetFocusToChild(wxWindow *win, wxWindow **childLastFocused)
                 if (selected)
                     child = selected;
             }
-#endif // __WXMSW__
+#endif // USE_RADIOBTN_NAV
 
             wxLogTrace(TRACE_FOCUS,
                        wxT("SetFocusToChild() => first child (0x%p)."),

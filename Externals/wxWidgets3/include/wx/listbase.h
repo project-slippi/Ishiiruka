@@ -16,6 +16,7 @@
 #include "wx/gdicmn.h"
 #include "wx/event.h"
 #include "wx/control.h"
+#include "wx/itemattr.h"
 #include "wx/systhemectrl.h"
 
 class WXDLLIMPEXP_FWD_CORE wxImageList;
@@ -91,15 +92,15 @@ int (wxCALLBACK *wxListCtrlCompare)(wxIntPtr item1, wxIntPtr item2, wxIntPtr sor
 #define wxLIST_STATE_SOURCE         0x0100      // Not used
 
 // Hit test flags, used in HitTest
-#define wxLIST_HITTEST_ABOVE            0x0001  // Above the client area.
-#define wxLIST_HITTEST_BELOW            0x0002  // Below the client area.
-#define wxLIST_HITTEST_NOWHERE          0x0004  // In the client area but below the last item.
-#define wxLIST_HITTEST_ONITEMICON       0x0020  // On the bitmap associated with an item.
-#define wxLIST_HITTEST_ONITEMLABEL      0x0080  // On the label (string) associated with an item.
-#define wxLIST_HITTEST_ONITEMRIGHT      0x0100  // In the area to the right of an item.
-#define wxLIST_HITTEST_ONITEMSTATEICON  0x0200  // On the state icon for a tree view item that is in a user-defined state.
-#define wxLIST_HITTEST_TOLEFT           0x0400  // To the left of the client area.
-#define wxLIST_HITTEST_TORIGHT          0x0800  // To the right of the client area.
+#define wxLIST_HITTEST_ABOVE            0x0001  // Above the control's client area.
+#define wxLIST_HITTEST_BELOW            0x0002  // Below the control's client area.
+#define wxLIST_HITTEST_NOWHERE          0x0004  // Inside the control's client area but not over an item.
+#define wxLIST_HITTEST_ONITEMICON       0x0020  // Over an item's icon.
+#define wxLIST_HITTEST_ONITEMLABEL      0x0080  // Over an item's text.
+#define wxLIST_HITTEST_ONITEMRIGHT      0x0100  // Not used
+#define wxLIST_HITTEST_ONITEMSTATEICON  0x0200  // Over the checkbox of an item.
+#define wxLIST_HITTEST_TOLEFT           0x0400  // To the left of the control's client area.
+#define wxLIST_HITTEST_TORIGHT          0x0800  // To the right of the control's client area.
 
 #define wxLIST_HITTEST_ONITEM (wxLIST_HITTEST_ONITEMICON | wxLIST_HITTEST_ONITEMLABEL | wxLIST_HITTEST_ONITEMSTATEICON)
 
@@ -158,60 +159,10 @@ enum
     wxLIST_FIND_RIGHT
 };
 
-// ----------------------------------------------------------------------------
-// wxListItemAttr: a structure containing the visual attributes of an item
-// ----------------------------------------------------------------------------
-
-// TODO: this should be renamed to wxItemAttr or something general like this
-//       and used as base class for wxTextAttr which duplicates this class
-//       entirely currently
-class WXDLLIMPEXP_CORE wxListItemAttr
-{
-public:
-    // ctors
-    wxListItemAttr() { }
-    wxListItemAttr(const wxColour& colText,
-                   const wxColour& colBack,
-                   const wxFont& font)
-        : m_colText(colText), m_colBack(colBack), m_font(font)
-    {
-    }
-
-    // default copy ctor, assignment operator and dtor are ok
-
-
-    // setters
-    void SetTextColour(const wxColour& colText) { m_colText = colText; }
-    void SetBackgroundColour(const wxColour& colBack) { m_colBack = colBack; }
-    void SetFont(const wxFont& font) { m_font = font; }
-
-    // accessors
-    bool HasTextColour() const { return m_colText.IsOk(); }
-    bool HasBackgroundColour() const { return m_colBack.IsOk(); }
-    bool HasFont() const { return m_font.IsOk(); }
-
-    const wxColour& GetTextColour() const { return m_colText; }
-    const wxColour& GetBackgroundColour() const { return m_colBack; }
-    const wxFont& GetFont() const { return m_font; }
-
-
-    // this is almost like assignment operator except it doesn't overwrite the
-    // fields unset in the source attribute
-    void AssignFrom(const wxListItemAttr& source)
-    {
-        if ( source.HasTextColour() )
-            SetTextColour(source.GetTextColour());
-        if ( source.HasBackgroundColour() )
-            SetBackgroundColour(source.GetBackgroundColour());
-        if ( source.HasFont() )
-            SetFont(source.GetFont());
-    }
-
-private:
-    wxColour m_colText,
-             m_colBack;
-    wxFont   m_font;
-};
+// For compatibility, define the old name for this class. There is no need to
+// deprecate it as it doesn't cost us anything to keep this typedef, but the
+// new code should prefer to use the new wxItemAttr name.
+typedef wxItemAttr wxListItemAttr;
 
 // ----------------------------------------------------------------------------
 // wxListItem: the item or column info, used to exchange data with wxListCtrl
@@ -237,7 +188,7 @@ public:
     {
         // copy list item attributes
         if ( item.HasAttributes() )
-            m_attr = new wxListItemAttr(*item.GetAttributes());
+            m_attr = new wxItemAttr(*item.GetAttributes());
     }
 
     wxListItem& operator=(const wxListItem& item)
@@ -254,7 +205,7 @@ public:
             m_data = item.m_data;
             m_format = item.m_format;
             m_width = item.m_width;
-            m_attr = item.m_attr ? new wxListItemAttr(*item.m_attr) : NULL;
+            m_attr = item.m_attr ? new wxItemAttr(*item.m_attr) : NULL;
         }
 
         return *this;
@@ -310,7 +261,7 @@ public:
     int GetWidth() const { return m_width; }
     wxListColumnFormat GetAlign() const { return (wxListColumnFormat)m_format; }
 
-    wxListItemAttr *GetAttributes() const { return m_attr; }
+    wxItemAttr *GetAttributes() const { return m_attr; }
     bool HasAttributes() const { return m_attr != NULL; }
 
     wxColour GetTextColour() const
@@ -342,10 +293,10 @@ public:
 
 protected:
     // creates m_attr if we don't have it yet
-    wxListItemAttr& Attributes()
+    wxItemAttr& Attributes()
     {
         if ( !m_attr )
-            m_attr = new wxListItemAttr;
+            m_attr = new wxItemAttr;
 
         return *m_attr;
     }
@@ -364,7 +315,7 @@ protected:
         m_width = 0;
     }
 
-    wxListItemAttr *m_attr;     // optional pointer to the items style
+    wxItemAttr *m_attr;     // optional pointer to the items style
 
 private:
     wxDECLARE_DYNAMIC_CLASS(wxListItem);
@@ -427,6 +378,12 @@ public:
     virtual bool DeleteColumn(int col) = 0;
     virtual bool DeleteAllColumns() = 0;
 
+    // Return the current number of items.
+    virtual int GetItemCount() const = 0;
+
+    // Check if the control is empty, i.e. doesn't contain any items.
+    bool IsEmpty() const { return GetItemCount() == 0; }
+
     // Return the current number of columns.
     virtual int GetColumnCount() const = 0;
 
@@ -442,15 +399,15 @@ public:
     virtual int GetColumnWidth(int col) const = 0;
     virtual bool SetColumnWidth(int col, int width) = 0;
 
-    // return the attribute for the item (may return NULL if none)
-    virtual wxListItemAttr *OnGetItemAttr(long item) const;
-
     // Other miscellaneous accessors.
     // ------------------------------
 
     // Convenient functions for testing the list control mode:
     bool InReportView() const { return HasFlag(wxLC_REPORT); }
     bool IsVirtual() const { return HasFlag(wxLC_VIRTUAL); }
+
+    // Check if the item is visible
+    virtual bool IsVisible(long WXUNUSED(item)) const { return false; }
 
     // Enable or disable beep when incremental match doesn't find any item.
     // Only implemented in the generic version currently.
@@ -460,9 +417,12 @@ public:
     void SetAlternateRowColour(const wxColour& colour);
     wxColour GetAlternateRowColour() const { return m_alternateRowColour.GetBackgroundColour(); }
 
-    // Checkboxes support: only implemented in wxMSW currently.
-    virtual bool HasCheckboxes() const { return false; }
-    virtual bool EnableCheckboxes(bool WXUNUSED(enable) = true) { return false; }
+    // Header attributes support: only implemented in wxMSW currently.
+    virtual bool SetHeaderAttr(const wxItemAttr& WXUNUSED(attr)) { return false; }
+
+    // Checkboxes support.
+    virtual bool HasCheckBoxes() const { return false; }
+    virtual bool EnableCheckBoxes(bool WXUNUSED(enable) = true) { return false; }
     virtual bool IsItemChecked(long WXUNUSED(item)) const { return false; }
     virtual void CheckItem(long WXUNUSED(item), bool WXUNUSED(check)) { }
 
@@ -473,9 +433,32 @@ protected:
     // Overridden methods of the base class.
     virtual wxSize DoGetBestClientSize() const wxOVERRIDE;
 
+    // these functions are only used for virtual list view controls, i.e. the
+    // ones with wxLC_VIRTUAL style
+
+    // return the attribute for the item (may return NULL if none)
+    virtual wxItemAttr* OnGetItemAttr(long item) const;
+
+    // return the text for the given column of the given item
+    virtual wxString OnGetItemText(long item, long column) const;
+
+    // return whether the given item is checked
+    virtual bool OnGetItemIsChecked(long item) const;
+
+    // return the icon for the given item. In report view, OnGetItemImage will
+    // only be called for the first column. See OnGetItemColumnImage for
+    // details.
+    virtual int OnGetItemImage(long item) const;
+
+    // return the icon for the given item and column.
+    virtual int OnGetItemColumnImage(long item, long column) const;
+
+    // return the attribute for the given item and column (may return NULL if none)
+    virtual wxItemAttr* OnGetItemColumnAttr(long item, long column) const;
+
 private:
     // user defined color to draw row lines, may be invalid
-    wxListItemAttr m_alternateRowColour;
+    wxItemAttr m_alternateRowColour;
 };
 
 // ----------------------------------------------------------------------------
@@ -518,9 +501,17 @@ public:
     long GetMask() const { return m_item.m_mask; }
     const wxListItem& GetItem() const { return m_item; }
 
+    void SetKeyCode(int code) { m_code = code; }
+    void SetIndex(long index) { m_itemIndex = index; }
+    void SetColumn(int col) { m_col = col; }
+    void SetPoint(const wxPoint& point) { m_pointDrag = point; }
+    void SetItem(const wxListItem& item) { m_item = item; }
+
     // for wxEVT_LIST_CACHE_HINT only
     long GetCacheFrom() const { return m_oldItemIndex; }
     long GetCacheTo() const { return m_itemIndex; }
+    void SetCacheFrom(long cacheFrom) { m_oldItemIndex = cacheFrom; }
+    void SetCacheTo(long cacheTo) { m_itemIndex = cacheTo; }
 
     // was label editing canceled? (for wxEVT_LIST_END_LABEL_EDIT only)
     bool IsEditCancelled() const { return m_editCancelled; }
