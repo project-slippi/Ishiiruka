@@ -493,11 +493,13 @@
     <ClInclude Include="..\..\include\wx\msw\treectrl.h" />
     <ClInclude Include="..\..\include\wx\msw\uxtheme.h" />
     <ClInclude Include="..\..\include\wx\msw\uxthemep.h" />
-    <ClInclude Include="..\..\include\wx\msw\webview_edge.h">
+    <ClInclude Include="..\..\include\wx\msw\WebView2.h" />
+    <ClInclude Include="..\..\includes\wx\msw\WebView2EnvironmentOptions.h" />
+    <ClInclude Include="..\..\include\wx\msw\webview_edge.h" />
+    <ClInclude Include="..\..\include\wx\msw\webviewhistoryitem_ie.h" />
+    <ClInclude Include="..\..\include\wx\msw\webview_ie.h">
         <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClInclude>
-    <ClInclude Include="..\..\include\wx\msw\webviewhistoryitem_ie.h" />
-    <ClInclude Include="..\..\include\wx\msw\webview_ie.h" />
     <ClInclude Include="..\..\include\wx\msw\webview_missing.h" />
     <ClInclude Include="..\..\include\wx\msw\window.h" />
     <ClInclude Include="..\..\include\wx\msw\winundef.h" />
@@ -1327,10 +1329,10 @@
     <ClCompile Include="..\..\src\msw\utilswin.cpp" />
     <ClCompile Include="..\..\src\msw\uxtheme.cpp" />
     <ClCompile Include="..\..\src\msw\volume.cpp" />
-    <ClCompile Include="..\..\src\msw\webview_edge.cpp">
-      <ExcludedFromBuild>true</ExcludedFromBuild>
+    <ClCompile Include="..\..\src\msw\webview_edge.cpp" />
+    <ClCompile Include="..\..\src\msw\webview_ie.cpp">
+        <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="..\..\src\msw\webview_ie.cpp" />
     <ClCompile Include="..\..\src\msw\window.cpp" />
     <ClCompile Include="..\..\src\msw\winestub.c">
       <ExcludedFromBuild>true</ExcludedFromBuild>

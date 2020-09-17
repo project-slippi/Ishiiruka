@@ -78,7 +78,7 @@
       <SubSystem>Windows</SubSystem>
     </Link>
     <ResourceCompile>
-      <AdditionalIncludeDirectories>$(ExternalsDir)wxWidgets3\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ExternalsDir)wxWidgets3\include;$(ExternalsDir)nlohmann;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ResourceCompile>
     <ClCompile />
     <ClCompile />
@@ -163,6 +163,7 @@
     <ClCompile Include="MemcardManager.cpp" />
     <ClCompile Include="NetPlay\PadMapDialog.cpp" />
     <ClCompile Include="PatchAddEdit.cpp" />
+    <ClCompile Include="SlippiAuthWebView\SlippiAuthWebView.cpp" />
     <ClCompile Include="SoftwareVideoConfigDialog.cpp" />
     <ClCompile Include="TASInputDlg.cpp" />
     <ClCompile Include="VideoConfigDiag.cpp" />
@@ -241,6 +242,7 @@
     <ClInclude Include="MainToolBar.h" />
     <ClInclude Include="MemcardManager.h" />
     <ClInclude Include="PatchAddEdit.h" />
+    <ClInclude Include="SlippiAuthWebView\SlippiAuthWebView.h" />
     <ClInclude Include="SoftwareVideoConfigDialog.h" />
     <ClInclude Include="TASInputDlg.h" />
     <ClInclude Include="VideoConfigDiag.h" />
@@ -320,6 +322,9 @@
     <ProjectReference Include="..\VideoBackends\Software\Software.vcxproj">
       <Project>{9e9da440-e9ad-413c-b648-91030e792211}</Project>
     </ProjectReference>
+    <ProjectReference Include="..\..\..\Externals\nlohmann\nlohmann.vcxproj">
+      <Project>{732d2110-06a3-4aa1-9634-7bb5a4f75b82}</Project>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
@@ -329,7 +334,7 @@
     <DataSysFiles Include="$(DolphinRootDir)Data\**\Sys\**\*.*" />
     <DataLicenseFile Include="$(DolphinRootDir)Data\license.txt" />
     <DataPortableFile Include="$(DolphinRootDir)Data\portable.txt" />
-    <ExternalDlls Include="$(ExternalsDir)OpenAL\$(PlatformName)\*.dll" />
+    <ExternalDlls Include="$(ExternalsDir)OpenAL\$(PlatformName)\*.dll;$(ExternalsDir)wxWidgets3\dlls\Webview2\$(PlatformName)\*.dll" />
     <BinaryFiles Include="$(TargetPath)" />
     <AllInputFiles Include="@(DataSysFiles);@(DataTxtFiles);@(ExternalDlls);@(BinaryFiles)" />
   </ItemGroup>
