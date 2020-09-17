@@ -360,7 +360,7 @@ public:
     // Convert to greyscale image. Uses the luminance component (Y) of the image.
     // The luma value (YUV) is calculated using (R * weight_r) + (G * weight_g) + (B * weight_b), defaults to ITU-T BT.601
     wxImage ConvertToGreyscale(double weight_r, double weight_g, double weight_b) const;
-    wxImage ConvertToGreyscale(void) const;
+    wxImage ConvertToGreyscale() const;
 
     // convert to monochrome image (<r,g,b> will be replaced by white,
     // everything else by black)
@@ -401,7 +401,7 @@ public:
     // (actually shades of grey) typically when you draw anti-
     // aliased text into a bitmap. The DC drawinf routines
     // draw grey values on the black background although they
-    // actually mean to draw white with differnt alpha values.
+    // actually mean to draw white with different alpha values.
     // This method reverses it, assuming a black (!) background
     // and white text (actually only the red channel is read).
     // The method will then fill up the whole image with the

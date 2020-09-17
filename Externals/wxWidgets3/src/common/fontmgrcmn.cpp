@@ -118,7 +118,7 @@ wxFontBundleBase::GetFaceForFont(const wxFontMgrFontRefData& font) const
 
     int type = FaceType_Regular;
 
-    if ( font.GetWeight() == wxFONTWEIGHT_BOLD )
+    if ( font.GetNumericWeight() >= wxFONTWEIGHT_BOLD )
         type |= FaceType_Bold;
 
     // FIXME -- this should read "if ( font->GetStyle() == wxFONTSTYLE_ITALIC )",
@@ -227,7 +227,7 @@ void wxFontsManagerBase::AddBundle(wxFontBundle *bundle)
 wxFontMgrFontRefData::wxFontMgrFontRefData(int size,
                                            wxFontFamily family,
                                            wxFontStyle style,
-                                           wxFontWeight weight,
+                                           int weight,
                                            bool underlined,
                                            const wxString& faceName,
                                            wxFontEncoding encoding)
@@ -240,7 +240,7 @@ wxFontMgrFontRefData::wxFontMgrFontRefData(int size,
     m_info.family = (wxFontFamily)family;
     m_info.faceName = faceName;
     m_info.style = (wxFontStyle)style;
-    m_info.weight = (wxFontWeight)weight;
+    m_info.weight = weight;
     m_info.pointSize = size;
     m_info.underlined = underlined;
     m_info.encoding = encoding;
@@ -251,9 +251,8 @@ wxFontMgrFontRefData::wxFontMgrFontRefData(int size,
 }
 
 wxFontMgrFontRefData::wxFontMgrFontRefData(const wxFontMgrFontRefData& data)
+    : m_info(data.m_info)
 {
-    m_info = data.m_info;
-
     m_fontFace = data.m_fontFace;
     m_fontBundle = data.m_fontBundle;
     m_fontValid = data.m_fontValid;
@@ -281,7 +280,7 @@ wxFontMgrFontRefData::GetFontInstance(float scale, bool antialiased) const
                                        antialiased);
 }
 
-void wxFontMgrFontRefData::SetPointSize(int pointSize)
+void wxFontMgrFontRefData::SetFractionalPointSize(double pointSize)
 {
     m_info.pointSize = pointSize;
     m_fontValid = false;
@@ -299,7 +298,7 @@ void wxFontMgrFontRefData::SetStyle(wxFontStyle style)
     m_fontValid = false;
 }
 
-void wxFontMgrFontRefData::SetWeight(wxFontWeight weight)
+void wxFontMgrFontRefData::SetNumericWeight(int weight)
 {
     m_info.weight = weight;
     m_fontValid = false;

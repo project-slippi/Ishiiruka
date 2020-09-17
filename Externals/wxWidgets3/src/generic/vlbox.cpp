@@ -4,7 +4,7 @@
 // Author:      Vadim Zeitlin
 // Modified by:
 // Created:     31.05.03
-// Copyright:   (c) 2003 Vadim Zeitlin <vadim@wxwindows.org>
+// Copyright:   (c) 2003 Vadim Zeitlin <vadim@wxwidgets.org>
 // Licence:     wxWindows licence
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -79,11 +79,6 @@ bool wxVListBox::Create(wxWindow *parent,
                         long style,
                         const wxString& name)
 {
-#ifdef __WXMSW__
-    if ( (style & wxBORDER_MASK) == wxDEFAULT )
-        style |= wxBORDER_THEME;
-#endif
-
     style |= wxWANTS_CHARS | wxFULL_REPAINT_ON_RESIZE;
     if ( !wxVScrolledWindow::Create(parent, id, pos, size, style, name) )
         return false;
@@ -100,7 +95,7 @@ bool wxVListBox::Create(wxWindow *parent,
     m_colBgSel = wxNullColour;
 
     // flicker-free drawing requires this
-    SetBackgroundStyle(wxBG_STYLE_CUSTOM);
+    SetBackgroundStyle(wxBG_STYLE_PAINT);
 
     return true;
 }
@@ -664,6 +659,7 @@ void wxVListBox::OnKeyDown(wxKeyEvent& event)
             // events for the tabs on MSW
             HandleAsNavigationKey(event);
             // fall through to default
+            wxFALLTHROUGH;
 #endif
         default:
             event.Skip();

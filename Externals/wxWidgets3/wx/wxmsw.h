@@ -717,14 +717,20 @@
 // Default is 1
 //
 // Recommended setting: 1
-#define wxUSE_WEBVIEW 0
+#define wxUSE_WEBVIEW 1
+
+// Use the Edge wxWebView backend.
+//
+// NOTE: This is important! If this isn't done, you'll
+// wind up with IE...7.
+#define wxUSE_WEBVIEW_EDGE 0
 
 // Use the IE wxWebView backend
 //
 // Default is 1 on MSW
 //
 // Recommended setting: 1
-#define wxUSE_WEBVIEW_IE 0
+#define wxUSE_WEBVIEW_IE 1
 
 // Use the WebKit wxWebView backend
 //
@@ -1543,7 +1549,7 @@
 // Default is 1.
 //
 // Recommended setting: 1, required by wxMediaCtrl
-#define wxUSE_ACTIVEX 0
+#define wxUSE_ACTIVEX 1
 
 // Enable WinRT support
 //
@@ -1656,6 +1662,22 @@
 // Crash debugging helpers
 // ----------------------------------------------------------------------------
 
+// Set this to 1 to use dbghelp.dll for providing stack traces in crash
+// reports.
+//
+// Default is 1 if the compiler supports it, 0 for old MinGW.
+//
+// Recommended setting: 1, there is not much gain in disabling this
+#if defined(__VISUALC__) || defined(__MINGW64_TOOLCHAIN__)
+    #define wxUSE_DBGHELP 1
+#else
+    #define wxUSE_DBGHELP 0
+#endif
+
+// ----------------------------------------------------------------------------
+// Crash debugging helpers
+// ----------------------------------------------------------------------------
+
 // Set this to 1 to be able to use wxCrashReport::Generate() to create mini
 // dumps of your program when it crashes (or at any other moment)
 //
@@ -1664,6 +1686,21 @@
 // Recommended setting: 1, set to 0 if your programs never crash
 #define wxUSE_CRASHREPORT 0
 /* --- end MSW options --- */
+
+// Options as of 3.1.4.
+#define wxUSE_MENUBAR 1
+#define wxUSE_UNSAFE_WXSTRING_CONV 0
+#define wxUSE_SECRETSTORE 0
+#define wxUSE_PRIVATE_FONTS 1
+#define wxUSE_NATIVE_DATAVIEWCTRL 0
+#define wxUSE_XTEST 0
+
+// Set to 1 if you need to include <winsock2.h> over <winsock.h>
+//
+// Default is 0.
+//
+// Recommended setting: 0, set to 1 automatically if wxUSE_IPV6 is 1.
+#define wxUSE_WINSOCK2 0
 
 #endif // _WX_SETUP_H_
 

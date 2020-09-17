@@ -333,8 +333,8 @@ std::string GameListItem::GetUniqueIdentifier() const
 	std::string lower_name = name;
 	std::transform(lower_name.begin(), lower_name.end(), lower_name.begin(), ::tolower);
 	if (disc_number > 1 &&
-		lower_name.find(std::string(wxString::Format("disc %i", disc_number))) == std::string::npos &&
-		lower_name.find(std::string(wxString::Format("disc%i", disc_number))) == std::string::npos)
+		lower_name.find(std::string(wxString::Format("disc %i", disc_number).ToStdString())) == std::string::npos &&
+		lower_name.find(std::string(wxString::Format("disc%i", disc_number).ToStdString())) == std::string::npos)
 	{
 		std::string disc_text = "Disc ";
 		info.push_back(disc_text + std::to_string(disc_number));
