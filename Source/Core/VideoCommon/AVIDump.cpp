@@ -84,6 +84,13 @@ static bool AVStreamCopyContext(AVStream* stream, AVCodecContext* codec_context)
 
 bool AVIDump::Start(int w, int h, bool fromBGRA)
 {
+#ifdef IS_PLAYBACK
+	if (!g_playbackStatus || !g_playbackStatus->inSlippiPlayback ||
+	    (g_playbackStatus->isHardFFW || g_playbackStatus->isSoftFFW) ||
+	    g_replayComm->current.startFrame >= g_playbackStatus->currentPlaybackFrame ||
+	    g_replayComm->current.endFrame <= g_playbackStatus->currentPlaybackFrame)
+		return false;
+#endif
 	s_pix_fmt = fromBGRA ? AV_PIX_FMT_BGRA : AV_PIX_FMT_RGBA;
 
 	s_width = w;

@@ -988,10 +988,12 @@ void Renderer::RunFrameDumps()
 					frame_dump_started = StartFrameDumpToAVI(config);
 				else
 					frame_dump_started = StartFrameDumpToImage(config);
-
+// just keep retrying if this is a playback build
+#ifndef IS_PLAYBACK
 				// Stop frame dumping if we fail to start.
 				if (!frame_dump_started)
 					SConfig::GetInstance().m_DumpFrames = false;
+#endif
 			}
 
 			// If we failed to start frame dumping, don't write a frame.
