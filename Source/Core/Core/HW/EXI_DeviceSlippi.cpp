@@ -1684,7 +1684,8 @@ void CEXISlippi::startFindMatch(u8 *payload)
 
 	// TODO: Make this work so we dont have to pass shiftJis to mm server
 	// search.connectCode = SHIFTJISToUTF8(shiftJisCode).c_str();
-	search.connectCode = shiftJisCode;
+    search.connectCode = shiftJisCode;
+//    search.connectCode = "RAP#583";//shiftJisCode;
 
 	// Store this search so we know what was queued for
 	lastSearch = search;
@@ -1821,22 +1822,24 @@ void CEXISlippi::prepareOnlineMatchState()
     std::string p2Name = "";
     std::string chatMessage = "";
     std::string sentChatMessage = "";
+    u8 chatMessageId = 0;
+    u8 sentChatMessageId = 0;
 
     // Set chat message if any
     if (slippi_netplay)
     {
-        u8 messageId = slippi_netplay->GetSlippiRemoteChatMessage();
-        if(messageId > 0)
+        chatMessageId = slippi_netplay->GetSlippiRemoteChatMessage();
+        if(chatMessageId > 0)
         {
             // I am cheating here by sending the players name + the message formatted so that I don't have to
             // calculate the str length of each player's name in-game :)
-            chatMessage = StringFromFormat("%s: %s", oppName.c_str(), predefinedChatMessages[messageId].c_str());
+            chatMessage = StringFromFormat("%s: %s", oppName.c_str(), predefinedChatMessages[chatMessageId].c_str());
         }
 
-        messageId = slippi_netplay->GetSlippiRemoteSentChatMessage();
-        if(messageId > 0)
+        sentChatMessageId = slippi_netplay->GetSlippiRemoteSentChatMessage();
+        if(sentChatMessageId > 0)
         {
-            sentChatMessage = StringFromFormat("%s: %s", userInfo.displayName.c_str(), predefinedChatMessages[messageId].c_str());
+            sentChatMessage = StringFromFormat("%s: %s", userInfo.displayName.c_str(), predefinedChatMessages[sentChatMessageId].c_str());
         }
     }
 
@@ -1924,6 +1927,10 @@ void CEXISlippi::prepareOnlineMatchState()
 	// Add delay frames to output
 	m_read_queue.push_back((u8)SConfig::GetInstance().m_slippiOnlineDelay);
 
+	// Add chat messages id
+    m_read_queue.push_back((u8)sentChatMessageId);
+    m_read_queue.push_back((u8)chatMessageId);
+
 	// Add names to output
 	p1Name = ConvertStringForGame(p1Name, MAX_NAME_LENGTH);
 	m_read_queue.insert(m_read_queue.end(), p1Name.begin(), p1Name.end());
@@ -1937,7 +1944,7 @@ void CEXISlippi::prepareOnlineMatchState()
     sentChatMessage = ConvertStringForGame(sentChatMessage, MAX_NAME_LENGTH);
     m_read_queue.insert(m_read_queue.end(), sentChatMessage.begin(), sentChatMessage.end());
 
-	// Add error message if there is one
+    // Add error message if there is one
 	auto errorStr = !forcedError.empty() ? forcedError : matchmaking->GetErrorMessage();
 	errorStr = ConvertStringForGame(errorStr, 120);
 	m_read_queue.insert(m_read_queue.end(), errorStr.begin(), errorStr.end());
@@ -2043,7 +2050,6 @@ void CEXISlippi::handleChatMessage(u8 *payload)
 		WARN_LOG(SLIPPI, "EXI SLIPPI: Invalid Chat Message ID: 0x%x", messageId);
 		return;
 	}
-
 	std::string msg = predefinedChatMessages[messageId];
 
 	INFO_LOG(SLIPPI, "SLIPPI CHAT MESSAGE: %s", msg.c_str());
