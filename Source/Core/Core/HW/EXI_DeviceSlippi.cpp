@@ -1875,6 +1875,10 @@ void CEXISlippi::prepareOnlineMatchState()
         {
             sentChatMessage = StringFromFormat("%s: %s", userInfo.displayName.c_str(), predefinedChatMessages[sentChatMessageId].c_str());
         }
+
+        // in CSS p1 is always current player and p2 is opponent
+        p1Name = userInfo.displayName;
+        p2Name = oppName;
     }
 
 	auto directMode = SlippiMatchmaking::OnlinePlayMode::DIRECT;
