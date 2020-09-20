@@ -268,19 +268,9 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet)
 		auto messageId = playerSelection->messageId;
 
 		INFO_LOG(SLIPPI_ONLINE, "[Netplay] Received chat message from opponent");
-		if (!predefinedChatMessages.count(messageId))
-		{
-			WARN_LOG(SLIPPI, "EXI SLIPPI: Invalid Chat Message ID: 0x%x", messageId);
-			break;
-		}
-
 		// set message id to netplay instance
         remoteChatMessageId = messageId;
-
-
-        std::string msg = predefinedChatMessages[messageId];
 		// Show chat message OSD
-		// No need to show anymore
         INFO_LOG(SLIPPI_ONLINE, "[Netplay] Received chat message from opponent %i", messageId);
         // OSD::AddMessage("[" + playerSelection->playerName + "]: " + msg, OSD::Duration::VERY_LONG, OSD::Color::YELLOW);
 	}
