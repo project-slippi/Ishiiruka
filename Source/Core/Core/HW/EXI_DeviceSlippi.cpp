@@ -1863,19 +1863,7 @@ void CEXISlippi::prepareOnlineMatchState()
     if (slippi_netplay)
     {
         chatMessageId = slippi_netplay->GetSlippiRemoteChatMessage();
-        if(chatMessageId > 0)
-        {
-            // I am cheating here by sending the players name + the message formatted so that I don't have to
-            // calculate the str length of each player's name in-game :)
-            chatMessage = StringFromFormat("%s: %s", oppName.c_str(), predefinedChatMessages[chatMessageId].c_str());
-        }
-
         sentChatMessageId = slippi_netplay->GetSlippiRemoteSentChatMessage();
-        if(sentChatMessageId > 0)
-        {
-            sentChatMessage = StringFromFormat("%s: %s", userInfo.displayName.c_str(), predefinedChatMessages[sentChatMessageId].c_str());
-        }
-
         // in CSS p1 is always current player and p2 is opponent
         p1Name = userInfo.displayName;
         p2Name = oppName;
@@ -2083,14 +2071,6 @@ void CEXISlippi::handleChatMessage(u8 *payload)
 
 	int messageId = payload[0];
 	INFO_LOG(SLIPPI, "SLIPPI CHAT INPUT: 0x%x", messageId);
-	if (!predefinedChatMessages.count(messageId))
-	{
-		WARN_LOG(SLIPPI, "EXI SLIPPI: Invalid Chat Message ID: 0x%x", messageId);
-		return;
-	}
-	std::string msg = predefinedChatMessages[messageId];
-
-	INFO_LOG(SLIPPI, "SLIPPI CHAT MESSAGE: %s", msg.c_str());
 
 	if(slippi_netplay) {
 
