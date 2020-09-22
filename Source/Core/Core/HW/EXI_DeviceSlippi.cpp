@@ -100,6 +100,19 @@ void appendHalfToBuffer(std::vector<u8> *buf, u16 word)
 	buf->insert(buf->end(), halfVector.begin(), halfVector.end());
 }
 
+
+std::string processDiff2(std::vector<u8> iState, std::vector<u8> cState)
+{
+	INFO_LOG(SLIPPI, "Processing diff");
+	std::string diff = std::string();
+	open_vcdiff::VCDiffEncoder encoder((char *)iState.data(), iState.size());
+	encoder.Encode((char *)cState.data(), cState.size(), &diff);
+
+	INFO_LOG(SLIPPI, "done processing");
+	return diff;
+}
+
+
 CEXISlippi::CEXISlippi()
 {
 	INFO_LOG(SLIPPI, "EXI SLIPPI Constructor called.");
@@ -157,6 +170,19 @@ CEXISlippi::CEXISlippi()
 	File::WriteStringToFile(diff, "C:\\Users\\Jas\\Documents\\Melee\\Textures\\Slippi\\MainMenu\\SdMenu.usd.diff");
 	File::WriteStringToFile(diff, "C:\\Dolphin\\IshiiDev\\Sys\\GameFiles\\GALE01\\SdMenu.usd.diff");
 
+	
+	// MnSlChr.usd
+	std::string origStr;
+	std::string modifiedStr;
+	File::ReadFileToString("D:\\Melee\\MnSlChr.usd", origStr);
+	File::ReadFileToString("D:\\Melee\\MnSlChr.new.usd", modifiedStr);
+	orig = std::vector<u8>(origStr.begin(), origStr.end());
+	modified = std::vector<u8>(modifiedStr.begin(), modifiedStr.end());
+	diff = processDiff(orig, modified);
+	File::WriteStringToFile(diff, "D:\\Melee\\MnSlChr.usd.diff");
+	File::WriteStringToFile(diff, "D:\\GitHub\\Ishiiruka\\Binary\\x64\\Sys\\GameFiles\\GALE01\\MnSlChr.usd.diff");
+
+
 	// Japanese Files
 	// MnMaAll.dat
 	File::ReadFileToString("C:\\Users\\Jas\\Documents\\Melee\\Textures\\Slippi\\MainMenu\\MnMaAll.dat", origStr);
@@ -185,6 +211,16 @@ CEXISlippi::CEXISlippi()
 	diff = processDiff(orig, modified);
 	File::WriteStringToFile(diff, "C:\\Users\\Jas\\Documents\\Melee\\Textures\\Slippi\\MainMenu\\SdMenu.dat.diff");
 	File::WriteStringToFile(diff, "C:\\Dolphin\\IshiiDev\\Sys\\GameFiles\\GALE01\\SdMenu.dat.diff");
+
+	
+	// MnSlChr.usd
+	File::ReadFileToString("D:\\Melee\\MnSlChr.dat", origStr);
+	File::ReadFileToString("D:\\Melee\\MnSlChr.new.dat", modifiedStr);
+	orig = std::vector<u8>(origStr.begin(), origStr.end());
+	modified = std::vector<u8>(modifiedStr.begin(), modifiedStr.end());
+	diff = processDiff2(orig, modified);
+	File::WriteStringToFile(diff, "D:\\Melee\\MnSlChr.dat.diff");
+	File::WriteStringToFile(diff, "D:\\GitHub\\Ishiiruka\\Binary\\x64\\Sys\\GameFiles\\GALE01\\MnSlChr.dat.diff");
 
 	// TEMP - Restore orig
 	// std::string stateString;
