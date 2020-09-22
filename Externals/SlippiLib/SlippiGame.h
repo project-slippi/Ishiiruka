@@ -130,6 +130,7 @@ namespace Slippi {
     int32_t GetLastFinalizedFrame();
     int32_t GetLatestIndex();
     GameSettings* GetSettings();
+    uint8_t getGameEndMethod();
     bool DoesPlayerExist(int8_t port);
     bool IsProcessingComplete();
   private:
