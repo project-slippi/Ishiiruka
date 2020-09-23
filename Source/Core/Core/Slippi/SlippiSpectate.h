@@ -3,7 +3,6 @@
 #include <map>
 #include <chrono>
 #include <thread>
-#include <mutex>
 #include <atomic>
 
 #include "Common/FifoQueue.h"

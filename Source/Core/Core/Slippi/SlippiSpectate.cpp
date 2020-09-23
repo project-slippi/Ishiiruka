@@ -128,7 +128,7 @@ void SlippiSpectateServer::popEvents()
         }
         if(m_in_game)
         {
-            u32 cursor = (u32)m_event_buffer.size() + m_cursor_offset;
+            u32 cursor = (u32)(m_event_buffer.size() + m_cursor_offset);
             game_event["type"] = "game_event";
             game_event["cursor"] = cursor;
             game_event["next_cursor"] = cursor+1;
