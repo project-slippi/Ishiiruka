@@ -12,75 +12,51 @@
 #include <errno.h>
 #endif
 
+// CALLED FROM DOLPHIN MAIN THREAD
 SlippiSpectateServer* SlippiSpectateServer::getInstance()
 {
     static SlippiSpectateServer instance; // Guaranteed to be destroyed.
-                                    // Instantiated on first use.
+                                          // Instantiated on first use.
     return &instance;
 }
 
+// CALLED FROM DOLPHIN MAIN THREAD
 void SlippiSpectateServer::write(u8 *payload, u32 length)
 {
     if(!SConfig::GetInstance().m_enableSpectator)
     {
         return;
     }
-
-    m_event_buffer_mutex.lock();
-    u32 cursor = (u32)m_event_buffer.size();
-    u64 offset = m_cursor_offset;
-    m_event_buffer_mutex.unlock();
-
-    // Make json wrapper for game event
-    json game_event;
-    game_event["type"] = "game_event";
-    game_event["cursor"] = offset+cursor;
-    game_event["next_cursor"] = offset+cursor+1;
     std::string str_payload((char*)payload, length);
-    if(str_payload.empty())
-    {
-        game_event["payload"] = "";
-    }
-    else
-    {
-        game_event["payload"] = base64::Base64::Encode(str_payload);
-    }
-    std::string buffer = game_event.dump();
-
-    // Put this message into the event buffer
-    //  This will queue the message up to go out for all clients
-    m_event_buffer_mutex.lock();
-    m_event_buffer.push_back(buffer);
-    m_event_buffer_mutex.unlock();
+    m_event_queue.Push(str_payload);
 }
 
-void SlippiSpectateServer::writeMenuEvent(u8 *payload, u32 length)
+// CALLED FROM DOLPHIN MAIN THREAD
+void SlippiSpectateServer::startGame()
 {
-  if(!SConfig::GetInstance().m_enableSpectator)
-  {
-      return;
-  }
-
-  m_menu_cursor += 1;
-
-  json menu_event;
-  std::string str_payload((char*)payload, length);
-  menu_event["type"] = "menu_event";
-  menu_event["payload"] = base64::Base64::Encode(str_payload);
-
-  // Put this message into the menu event buffer
-  //  This will queue the message up to go out for all clients
-  m_event_buffer_mutex.lock();
-  m_menu_event = menu_event.dump();
-  m_event_buffer_mutex.unlock();
+    if(!SConfig::GetInstance().m_enableSpectator)
+    {
+        return;
+    }
+    m_event_queue.Push("START_GAME");
 }
 
+// CALLED FROM DOLPHIN MAIN THREAD
+void SlippiSpectateServer::endGame()
+{
+    if(!SConfig::GetInstance().m_enableSpectator)
+    {
+        return;
+    }
+    m_event_queue.Push("END_GAME");
+}
+
+// CALLED FROM SERVER THREAD
 void SlippiSpectateServer::writeEvents(u16 peer_id)
 {
     // Send menu events
     if(!m_in_game && (m_sockets[peer_id]->m_menu_cursor != m_menu_cursor))
     {
-        m_event_buffer_mutex.lock();
         ENetPacket *packet = enet_packet_create(m_menu_event.data(),
                                                 m_menu_event.length(),
                                                 ENET_PACKET_FLAG_RELIABLE);
@@ -88,14 +64,11 @@ void SlippiSpectateServer::writeEvents(u16 peer_id)
         enet_peer_send(m_sockets[peer_id]->m_peer, 0, packet);
         // Record for the peer that it was sent
         m_sockets[peer_id]->m_menu_cursor = m_menu_cursor;
-        m_event_buffer_mutex.unlock();
     }
 
     // Send game events
-        // Loop through each event that needs to be sent
+    // Loop through each event that needs to be sent
     //  send all the events starting at their cursor
-    m_event_buffer_mutex.lock();
-
     // If the client's cursor is beyond the end of the event buffer, then
     //  it's probably left over from an old game. (Or is invalid anyway)
     //  So reset it back to 0
@@ -106,7 +79,6 @@ void SlippiSpectateServer::writeEvents(u16 peer_id)
 
     for(u64 i = m_sockets[peer_id]->m_cursor; i < m_event_buffer.size(); i++)
     {
-
         ENetPacket *packet = enet_packet_create(m_event_buffer[i].data(),
                                                 m_event_buffer[i].size(),
                                                 ENET_PACKET_FLAG_RELIABLE);
@@ -114,46 +86,64 @@ void SlippiSpectateServer::writeEvents(u16 peer_id)
         enet_peer_send(m_sockets[peer_id]->m_peer, 0, packet);
         m_sockets[peer_id]->m_cursor++;
     }
-    m_event_buffer_mutex.unlock();
-
 }
 
-// We assume, for the sake of simplicity, that all clients have finished reading
-//  from the previous game event buffer by now. At least many seconds will have passed
-//  by now, so if a listener is still stuck getting events from the last game,
-//  they will get erroneous data.
-void SlippiSpectateServer::startGame()
+// CALLED FROM SERVER THREAD
+void SlippiSpectateServer::popEvents()
 {
-    if(!SConfig::GetInstance().m_enableSpectator)
+    // Loop through the event queue and keep popping off events and handlign them
+    while(!m_event_queue.Empty())
     {
-        return;
-    }
+        std::string event;
+        m_event_queue.Pop(event);
+        // These two are meta-events, used to signify the start/end of a game
+        //  They are not sent over the wire
+        if(event == "END_GAME")
+        {
+            m_menu_cursor = 0;
+            if(m_event_buffer.size() > 0)
+            {
+                m_cursor_offset += m_event_buffer.size();
+            }
+            m_menu_event.clear();
+            m_in_game = false;
+            continue;
+        }
+        if(event == "START_GAME")
+        {
+            m_event_buffer.clear();
+            m_in_game = true;
+            continue;
+        }
 
-    m_event_buffer_mutex.lock();
-    m_event_buffer.clear();
-    m_in_game = true;
-    m_event_buffer_mutex.unlock();
+        // Make json wrapper for game event
+        json game_event;
+        if(event.empty())
+        {
+            game_event["payload"] = "";
+        }
+        else
+        {
+            game_event["payload"] = base64::Base64::Encode(event);
+        }
+        if(m_in_game)
+        {
+            u32 cursor = (u32)m_event_buffer.size() + m_cursor_offset;
+            game_event["type"] = "game_event";
+            game_event["cursor"] = cursor;
+            game_event["next_cursor"] = cursor+1;
+            m_event_buffer.push_back(game_event.dump());
+        }
+        else
+        {
+            m_menu_cursor += 1;
+            game_event["type"] = "menu_event";
+            m_menu_event = game_event.dump();
+        }
+    }
 }
 
-void SlippiSpectateServer::endGame()
-{
-    if(!SConfig::GetInstance().m_enableSpectator)
-    {
-        return;
-    }
-
-    m_menu_cursor = 0;
-
-    m_event_buffer_mutex.lock();
-    if(m_event_buffer.size() > 0)
-    {
-        m_cursor_offset += m_event_buffer.size();
-    }
-    m_menu_event.clear();
-    m_in_game = false;
-    m_event_buffer_mutex.unlock();
-}
-
+// CALLED ONCE EVER, DOLPHIN MAIN THREAD
 SlippiSpectateServer::SlippiSpectateServer()
 {
     if(!SConfig::GetInstance().m_enableSpectator)
@@ -172,6 +162,7 @@ SlippiSpectateServer::SlippiSpectateServer()
     m_socketThread = std::thread(&SlippiSpectateServer::SlippicommSocketThread, this);
 }
 
+// CALLED FROM DOLPHIN MAIN THREAD
 SlippiSpectateServer::~SlippiSpectateServer()
 {
     // The socket thread will be blocked waiting for input
@@ -183,6 +174,7 @@ SlippiSpectateServer::~SlippiSpectateServer()
     }
 }
 
+// CALLED FROM SERVER THREAD
 void SlippiSpectateServer::writeBroadcast()
 {
     sendto(m_broadcast_socket, (char*)&m_broadcast_message, sizeof(m_broadcast_message), 0,
@@ -191,6 +183,7 @@ void SlippiSpectateServer::writeBroadcast()
     m_last_broadcast_time = std::chrono::system_clock::now();
 }
 
+// CALLED FROM SERVER THREAD
 void SlippiSpectateServer::handleMessage(u8 *buffer, u32 length, u16 peer_id)
 {
     // Unpack the message
@@ -218,7 +211,6 @@ void SlippiSpectateServer::handleMessage(u8 *buffer, u32 length, u16 peer_id)
             u32 requested_cursor = json_message["cursor"];
             u32 sent_cursor = 0;
             // Set the user's cursor position
-            m_event_buffer_mutex.lock();
             if(requested_cursor >= m_cursor_offset)
             {
                 // If the requested cursor is past what events we even have, then just tell them to start over
@@ -247,8 +239,6 @@ void SlippiSpectateServer::handleMessage(u8 *buffer, u32 length, u16 peer_id)
                 m_sockets[peer_id]->m_cursor = m_event_buffer.size();
             }
 
-            m_event_buffer_mutex.unlock();
-
             json reply;
             reply["type"] = "connect_reply";
             reply["nick"] = "Slippi Online";
@@ -269,6 +259,7 @@ void SlippiSpectateServer::handleMessage(u8 *buffer, u32 length, u16 peer_id)
     }
 }
 
+// CALLED FROM SERVER THREAD
 void SlippiSpectateServer::sendHolePunchMsg(ENetHost *host, std::string remoteIp, u16 remotePort)
 {
   	ENetAddress addr;
@@ -351,6 +342,9 @@ void SlippiSpectateServer::SlippicommSocketThread(void)
             return;
         }
 
+        // Pop off any events in the queue
+        popEvents();
+
         std::map<u16, std::shared_ptr<SlippiSocket>>::iterator it = m_sockets.begin();
         for(; it != m_sockets.end(); it++)
         {
@@ -368,9 +362,6 @@ void SlippiSpectateServer::SlippicommSocketThread(void)
             // Also take this time to punch a connection out to the spectator
             if(!SConfig::GetInstance().m_spectator_IP.empty())
             {
-                // TODO don't send this hole punch if we're already connected to that machine
-                //    It doesn't hurt anything, but... is kind of spammy
-                //  look that in the sockets somehow
                 sendHolePunchMsg(server,
                   SConfig::GetInstance().m_spectator_IP,
                   SConfig::GetInstance().m_spectator_port);
@@ -392,9 +383,6 @@ void SlippiSpectateServer::SlippicommSocketThread(void)
                     std::shared_ptr<SlippiSocket> newSlippiSocket(new SlippiSocket());
                     newSlippiSocket->m_peer = event.peer;
                     m_sockets[event.peer->incomingPeerID] = newSlippiSocket;
-
-                    // New incoming client connection
-                    //  I don't think there's any special logic that we need to do here
                     break;
                 }
                 case ENET_EVENT_TYPE_RECEIVE:

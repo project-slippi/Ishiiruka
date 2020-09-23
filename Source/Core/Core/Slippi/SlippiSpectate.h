@@ -6,6 +6,7 @@
 #include <mutex>
 #include <atomic>
 
+#include "Common/FifoQueue.h"
 #include <enet/enet.h>
 #include "nlohmann/json.hpp"
 using json = nlohmann::json;
@@ -54,9 +55,6 @@ public:
     // Write the given game payload data to all listening sockets
     void write(u8 *payload, u32 length);
 
-    // Write a menu state payload to all listening sockets
-    void writeMenuEvent(u8 *payload, u32 length);
-
     // Should be called each time a new game starts.
     //  This will clear out the old game event buffer and start a new one
     void startGame();
@@ -73,14 +71,21 @@ public:
     void operator=(SlippiSpectateServer const&)  = delete;
 
   private:
-    // Structure for keeping track of clients. Only access from server thread
+    // ACCESSED FROM BOTH DOLPHIN AND SERVER THREADS
+    // This is a lockless queue that bridges the gap between the main
+    //  dolphin thred and the spectator server thread. The purpose here
+    //  is to avoid blocking (even if just for a brief mutex) on the main
+    //  dolphin thread.
+    Common::FifoQueue<std::string> m_event_queue;
+    // Bool gets flipped by the destrctor to tell the server thread to shut down
+    //  bools are probably atomic by default, but just for safety...
+    std::atomic<bool> m_stop_socket_thread;
+
+    // ONLY ACCESSED FROM SERVER THREAD
+    bool m_in_game;
     std::map<u16, std::shared_ptr<SlippiSocket>> m_sockets;
-    bool m_stop_socket_thread;
     std::vector<std::string> m_event_buffer;
     std::string m_menu_event;
-    std::mutex m_event_buffer_mutex;
-
-    std::thread m_socketThread;
     std::chrono::system_clock::time_point m_last_broadcast_time;
     struct broadcast_msg m_broadcast_message;
     SOCKET m_broadcast_socket;
@@ -90,18 +95,17 @@ public:
     //  To solve this, we keep an "offset" value that is added to all outgoing
     //  cursor positions to give the appearance like it's going up
     u64 m_cursor_offset = 0;
-    // Keep track of what the current state of the emulator is. Are we in the middle
-    //  of a game or not?
-    std::atomic<bool> m_in_game;
     //  How many menu events have we sent so far? (Reset between matches)
     //    Is used to know when a client hasn't been sent a menu event
-    //    Needs to be access cross-thread so protect with atomic
-    std::atomic<u64> m_menu_cursor;
+    u64 m_menu_cursor;
+
+    std::thread m_socketThread;
 
     // Private constructor to avoid making another instance
     SlippiSpectateServer();
     ~SlippiSpectateServer();
 
+    // FUNCTIONS CALLED ONLY FROM SERVER THREAD
     // Server thread. Accepts new incoming connections and goes back to sleep
     void SlippicommSocketThread(void);
     // Handle an incoming message on a socket
@@ -111,6 +115,8 @@ public:
     // Catch up given socket to the latest events
     //  Does nothing if they're already caught up.
     void writeEvents(u16 peer_id);
+    // Pop events
+    void popEvents();
     // Punch a hold in the NAT to the remote end
     void sendHolePunchMsg(ENetHost *server, std::string remoteIp, u16 remotePort);
 };

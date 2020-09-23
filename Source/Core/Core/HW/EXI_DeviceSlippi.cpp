@@ -1155,7 +1155,7 @@ bool CEXISlippi::checkFrameFullyFetched(s32 frameIndex)
 
 	version::Semver200_version lastFinalizedVersion("3.7.0");
 	version::Semver200_version currentVersion(m_current_game->GetVersionString());
-	
+
 	bool frameIsFinalized = true;
 	if (currentVersion >= lastFinalizedVersion)
 	{
@@ -2164,7 +2164,7 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 
 	if (byte == CMD_MENU_FRAME)
 	{
-		m_slippiserver->writeMenuEvent(&memPtr[0], _uSize);
+		m_slippiserver->write(&memPtr[0], _uSize);
 	}
 
 	INFO_LOG(EXPANSIONINTERFACE, "EXI SLIPPI DMAWrite: addr: 0x%08x size: %d, bufLoc:[%02x %02x %02x %02x %02x]",
