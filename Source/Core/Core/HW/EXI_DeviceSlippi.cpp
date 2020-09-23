@@ -50,6 +50,7 @@ extern std::unique_ptr<SlippiReplayComm> g_replayComm;
 
 #ifdef LOCAL_TESTING
 bool isLocalConnected = false;
+int localChatMessageId = 0;
 #endif
 
 template <typename T> bool isFutureReady(std::future<T> &t)
@@ -1856,10 +1857,16 @@ void CEXISlippi::prepareOnlineMatchState()
 	u32 rngOffset = 0;
 	std::string p1Name = "";
     std::string p2Name = "";
-    std::string chatMessage = "";
-    std::string sentChatMessage = "";
     u8 chatMessageId = 0;
     u8 sentChatMessageId = 0;
+
+    #ifdef LOCAL_TESTING
+        chatMessageId = localChatMessageId;
+        localChatMessageId = 0;
+        // in CSS p1 is always current player and p2 is opponent
+        p1Name = "Player 1";
+        p2Name = "Player 2";
+    #endif
 
     // Set chat message if any
     if (slippi_netplay)
@@ -1967,11 +1974,6 @@ void CEXISlippi::prepareOnlineMatchState()
 	oppName = ConvertStringForGame(oppName, MAX_NAME_LENGTH);
 	m_read_queue.insert(m_read_queue.end(), oppName.begin(), oppName.end());
 
-    chatMessage = ConvertStringForGame(chatMessage, MAX_NAME_LENGTH);
-    m_read_queue.insert(m_read_queue.end(), chatMessage.begin(), chatMessage.end());
-    sentChatMessage = ConvertStringForGame(sentChatMessage, MAX_NAME_LENGTH);
-    m_read_queue.insert(m_read_queue.end(), sentChatMessage.begin(), sentChatMessage.end());
-
     // Add error message if there is one
 	auto errorStr = !forcedError.empty() ? forcedError : matchmaking->GetErrorMessage();
 	errorStr = ConvertStringForGame(errorStr, 120);
@@ -2074,11 +2076,14 @@ void CEXISlippi::handleChatMessage(u8 *payload)
 	int messageId = payload[0];
 	INFO_LOG(SLIPPI, "SLIPPI CHAT INPUT: 0x%x", messageId);
 
+    #ifdef LOCAL_TESTING
+        localChatMessageId = 11;
+    #endif
+
 	if(slippi_netplay) {
 
         auto userInfo = user->GetUserInfo();
 		auto packet = std::make_unique<sf::Packet>();
-
 //		OSD::AddMessage("[Me]: "+ msg, OSD::Duration::VERY_LONG, OSD::Color::YELLOW);
 		slippi_netplay->remoteSentChatMessageId = messageId;
 		slippi_netplay->WriteChatMessageToPacket(*packet, userInfo.displayName, messageId);
