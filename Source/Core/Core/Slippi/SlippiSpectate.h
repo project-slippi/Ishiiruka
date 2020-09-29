@@ -27,13 +27,6 @@ typedef int SOCKET;
 #define KEEPALIVE_TYPE 3
 #define MENU_TYPE 4
 
-struct broadcast_msg
-{
-    char	cmd[10];
-    u8		mac_addr[6];	// Wi-Fi interface MAC address (we ignore this field)
-    char	nickname[32];	// Console nickname
-};
-
 class SlippiSocket
 {
 public:
@@ -85,10 +78,6 @@ public:
     std::map<u16, std::shared_ptr<SlippiSocket>> m_sockets;
     std::vector<std::string> m_event_buffer;
     std::string m_menu_event;
-    std::chrono::system_clock::time_point m_last_broadcast_time;
-    struct broadcast_msg m_broadcast_message;
-    SOCKET m_broadcast_socket;
-    struct sockaddr_in m_broadcastAddr;
     // In order to emulate Wii behavior, the cursor position should be strictly
     //  increasing. But internally, we need to index arrays by the cursor value.
     //  To solve this, we keep an "offset" value that is added to all outgoing
@@ -109,8 +98,6 @@ public:
     void SlippicommSocketThread(void);
     // Handle an incoming message on a socket
     void handleMessage(u8 *buffer, u32 length, u16 peer_id);
-    // Send broadcast advertisement of the slippi server
-    void writeBroadcast();
     // Catch up given socket to the latest events
     //  Does nothing if they're already caught up.
     void writeEvents(u16 peer_id);

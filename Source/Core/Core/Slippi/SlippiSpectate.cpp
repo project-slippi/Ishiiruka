@@ -154,9 +154,6 @@ SlippiSpectateServer::SlippiSpectateServer()
     m_in_game = false;
     m_menu_cursor = 0;
 
-    // Init some timestamps
-    m_last_broadcast_time = std::chrono::system_clock::now();
-
     // Spawn thread for socket listener
     m_stop_socket_thread = false;
     m_socketThread = std::thread(&SlippiSpectateServer::SlippicommSocketThread, this);
@@ -172,15 +169,6 @@ SlippiSpectateServer::~SlippiSpectateServer()
     {
         m_socketThread.join();
     }
-}
-
-// CALLED FROM SERVER THREAD
-void SlippiSpectateServer::writeBroadcast()
-{
-    sendto(m_broadcast_socket, (char*)&m_broadcast_message, sizeof(m_broadcast_message), 0,
-        (struct sockaddr *)&m_broadcastAddr, sizeof(m_broadcastAddr));
-
-    m_last_broadcast_time = std::chrono::system_clock::now();
 }
 
 // CALLED FROM SERVER THREAD
@@ -261,29 +249,6 @@ void SlippiSpectateServer::handleMessage(u8 *buffer, u32 length, u16 peer_id)
 
 void SlippiSpectateServer::SlippicommSocketThread(void)
 {
-    // Setup the broadcast advertisement message and socket
-    m_broadcast_socket = socket(AF_INET, SOCK_DGRAM, 0);
-    int broadcastEnable=1;
-    if(setsockopt(m_broadcast_socket, SOL_SOCKET, SO_BROADCAST,
-       (char*)&broadcastEnable, sizeof(broadcastEnable)))
-    {
-        WARN_LOG(SLIPPI, "Failed configuring Slippi braodcast socket");
-        return;
-    }
-    memset(&m_broadcastAddr, 0, sizeof(m_broadcastAddr));
-    m_broadcastAddr.sin_family = AF_INET;
-    m_broadcastAddr.sin_addr.s_addr = inet_addr("255.255.255.255");
-    m_broadcastAddr.sin_port = htons(20582);
-
-    // Setup the broadcast message
-    //  It never changes, so let's just do this once
-    const char* nickname = netplay_dolphin_ver.c_str();
-    char cmd[] = "SLIP_READY";
-
-    memcpy(m_broadcast_message.cmd, cmd, sizeof(m_broadcast_message.cmd));
-    memset(m_broadcast_message.mac_addr, 0, sizeof(m_broadcast_message.mac_addr));
-    strncpy(m_broadcast_message.nickname, nickname, sizeof(m_broadcast_message.nickname));
-
     if (enet_initialize () != 0) {
         WARN_LOG(SLIPPI, "An error occurred while initializing spectator server.");
         return;
@@ -334,13 +299,6 @@ void SlippiSpectateServer::SlippicommSocketThread(void)
             {
                 writeEvents(it->first);
             }
-        }
-
-        // Write any broadcast messages if we haven't in two seconds
-        std::chrono::system_clock::time_point now = std::chrono::system_clock::now();
-        if(now - std::chrono::seconds(2) > m_last_broadcast_time)
-        {
-            writeBroadcast();
         }
 
         ENetEvent event;
