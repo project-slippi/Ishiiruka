@@ -259,24 +259,6 @@ void SlippiSpectateServer::handleMessage(u8 *buffer, u32 length, u16 peer_id)
     }
 }
 
-// CALLED FROM SERVER THREAD
-void SlippiSpectateServer::sendHolePunchMsg(ENetHost *host, std::string remoteIp, u16 remotePort)
-{
-  	ENetAddress addr;
-  	enet_address_set_host(&addr, remoteIp.c_str());
-  	addr.port = remotePort;
-
-  	auto server = enet_host_connect(host, &addr, 3, 0);
-  	if (server == nullptr)
-  	{
-    		// Failed to connect to server
-    		return;
-  	}
-
-  	enet_host_flush(host);
-  	enet_peer_reset(server);
-}
-
 void SlippiSpectateServer::SlippicommSocketThread(void)
 {
     // Setup the broadcast advertisement message and socket
@@ -359,13 +341,6 @@ void SlippiSpectateServer::SlippicommSocketThread(void)
         if(now - std::chrono::seconds(2) > m_last_broadcast_time)
         {
             writeBroadcast();
-            // Also take this time to punch a connection out to the spectator
-            if(!SConfig::GetInstance().m_spectator_IP.empty())
-            {
-                sendHolePunchMsg(server,
-                  SConfig::GetInstance().m_spectator_IP,
-                  SConfig::GetInstance().m_spectator_port);
-            }
         }
 
         ENetEvent event;

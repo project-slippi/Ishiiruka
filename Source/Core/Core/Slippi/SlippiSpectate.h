@@ -116,6 +116,4 @@ public:
     void writeEvents(u16 peer_id);
     // Pop events
     void popEvents();
-    // Punch a hold in the NAT to the remote end
-    void sendHolePunchMsg(ENetHost *server, std::string remoteIp, u16 remotePort);
 };
