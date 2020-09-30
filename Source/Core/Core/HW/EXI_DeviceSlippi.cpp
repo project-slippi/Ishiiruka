@@ -18,8 +18,6 @@
 #include "Common/MsgHandler.h"
 #include "Common/StringUtil.h"
 #include "Common/Thread.h"
-#include "VideoCommon/OnScreenDisplay.h"
-
 #include "Core/HW/Memmap.h"
 
 #include "Core/Core.h"
@@ -101,7 +99,6 @@ void appendHalfToBuffer(std::vector<u8> *buf, u16 word)
 	buf->insert(buf->end(), halfVector.begin(), halfVector.end());
 }
 
-
 std::string processDiff2(std::vector<u8> iState, std::vector<u8> cState)
 {
 	INFO_LOG(SLIPPI, "Processing diff");
@@ -112,7 +109,6 @@ std::string processDiff2(std::vector<u8> iState, std::vector<u8> cState)
 	INFO_LOG(SLIPPI, "done processing");
 	return diff;
 }
-
 
 CEXISlippi::CEXISlippi()
 {
@@ -171,7 +167,6 @@ CEXISlippi::CEXISlippi()
 	File::WriteStringToFile(diff, "C:\\Users\\Jas\\Documents\\Melee\\Textures\\Slippi\\MainMenu\\SdMenu.usd.diff");
 	File::WriteStringToFile(diff, "C:\\Dolphin\\IshiiDev\\Sys\\GameFiles\\GALE01\\SdMenu.usd.diff");
 
-	
 	// MnSlChr.usd
 	std::string origStr;
 	std::string modifiedStr;
@@ -182,7 +177,6 @@ CEXISlippi::CEXISlippi()
 	diff = processDiff(orig, modified);
 	File::WriteStringToFile(diff, "D:\\Melee\\MnSlChr.usd.diff");
 	File::WriteStringToFile(diff, "D:\\GitHub\\Ishiiruka\\Binary\\x64\\Sys\\GameFiles\\GALE01\\MnSlChr.usd.diff");
-
 
 	// Japanese Files
 	// MnMaAll.dat
@@ -213,7 +207,6 @@ CEXISlippi::CEXISlippi()
 	File::WriteStringToFile(diff, "C:\\Users\\Jas\\Documents\\Melee\\Textures\\Slippi\\MainMenu\\SdMenu.dat.diff");
 	File::WriteStringToFile(diff, "C:\\Dolphin\\IshiiDev\\Sys\\GameFiles\\GALE01\\SdMenu.dat.diff");
 
-	
 	// MnSlChr.usd
 	File::ReadFileToString("D:\\Melee\\MnSlChr.dat", origStr);
 	File::ReadFileToString("D:\\Melee\\MnSlChr.new.dat", modifiedStr);
@@ -1755,8 +1748,7 @@ void CEXISlippi::startFindMatch(u8 *payload)
 
 	// TODO: Make this work so we dont have to pass shiftJis to mm server
 	// search.connectCode = SHIFTJISToUTF8(shiftJisCode).c_str();
-    search.connectCode = shiftJisCode;
-//    search.connectCode = "RAP#583";//shiftJisCode;
+	search.connectCode = shiftJisCode;
 
 	// Store this search so we know what was queued for
 	lastSearch = search;
@@ -1890,27 +1882,27 @@ void CEXISlippi::prepareOnlineMatchState()
 
 	u32 rngOffset = 0;
 	std::string p1Name = "";
-    std::string p2Name = "";
-    u8 chatMessageId = 0;
-    u8 sentChatMessageId = 0;
+	std::string p2Name = "";
+	u8 chatMessageId = 0;
+	u8 sentChatMessageId = 0;
 
-    #ifdef LOCAL_TESTING
-        chatMessageId = localChatMessageId;
-        localChatMessageId = 0;
-        // in CSS p1 is always current player and p2 is opponent
-        p1Name = "Player 1";
-        p2Name = "Player 2";
-    #endif
+#ifdef LOCAL_TESTING
+	chatMessageId = localChatMessageId;
+	localChatMessageId = 0;
+	// in CSS p1 is always current player and p2 is opponent
+	p1Name = "Player 1";
+	p2Name = "Player 2";
+#endif
 
-    // Set chat message if any
-    if (slippi_netplay)
-    {
-        chatMessageId = slippi_netplay->GetSlippiRemoteChatMessage();
-        sentChatMessageId = slippi_netplay->GetSlippiRemoteSentChatMessage();
-        // in CSS p1 is always current player and p2 is opponent
-        p1Name = userInfo.displayName;
-        p2Name = oppName;
-    }
+	// Set chat message if any
+	if (slippi_netplay)
+	{
+		chatMessageId = slippi_netplay->GetSlippiRemoteChatMessage();
+		sentChatMessageId = slippi_netplay->GetSlippiRemoteSentChatMessage();
+		// in CSS p1 is always current player and p2 is opponent
+		p1Name = userInfo.displayName;
+		p2Name = oppName;
+	}
 
 	auto directMode = SlippiMatchmaking::OnlinePlayMode::DIRECT;
 
@@ -1997,8 +1989,8 @@ void CEXISlippi::prepareOnlineMatchState()
 	m_read_queue.push_back((u8)SConfig::GetInstance().m_slippiOnlineDelay);
 
 	// Add chat messages id
-    m_read_queue.push_back((u8)sentChatMessageId);
-    m_read_queue.push_back((u8)chatMessageId);
+	m_read_queue.push_back((u8)sentChatMessageId);
+	m_read_queue.push_back((u8)chatMessageId);
 
 	// Add names to output
 	p1Name = ConvertStringForGame(p1Name, MAX_NAME_LENGTH);
@@ -2008,7 +2000,7 @@ void CEXISlippi::prepareOnlineMatchState()
 	oppName = ConvertStringForGame(oppName, MAX_NAME_LENGTH);
 	m_read_queue.insert(m_read_queue.end(), oppName.begin(), oppName.end());
 
-    // Add error message if there is one
+	// Add error message if there is one
 	auto errorStr = !forcedError.empty() ? forcedError : matchmaking->GetErrorMessage();
 	errorStr = ConvertStringForGame(errorStr, 120);
 	m_read_queue.insert(m_read_queue.end(), errorStr.begin(), errorStr.end());
@@ -2110,20 +2102,20 @@ void CEXISlippi::handleChatMessage(u8 *payload)
 	int messageId = payload[0];
 	INFO_LOG(SLIPPI, "SLIPPI CHAT INPUT: 0x%x", messageId);
 
-    #ifdef LOCAL_TESTING
-        localChatMessageId = 11;
-    #endif
+#ifdef LOCAL_TESTING
+	localChatMessageId = 11;
+#endif
 
-	if(slippi_netplay) {
+	if (slippi_netplay)
+	{
 
-        auto userInfo = user->GetUserInfo();
+		auto userInfo = user->GetUserInfo();
 		auto packet = std::make_unique<sf::Packet>();
-//		OSD::AddMessage("[Me]: "+ msg, OSD::Duration::VERY_LONG, OSD::Color::YELLOW);
+		//		OSD::AddMessage("[Me]: "+ msg, OSD::Duration::VERY_LONG, OSD::Color::YELLOW);
 		slippi_netplay->remoteSentChatMessageId = messageId;
-		slippi_netplay->WriteChatMessageToPacket(*packet, userInfo.displayName, messageId);
+		slippi_netplay->WriteChatMessageToPacket(*packet, messageId);
 		slippi_netplay->SendAsync(std::move(packet));
 	}
-
 }
 
 void CEXISlippi::logMessageFromGame(u8 *payload)
@@ -2355,7 +2347,7 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 			logMessageFromGame(&memPtr[bufLoc + 1]);
 			break;
 		case CMD_SEND_CHAT_MESSAGE:
-			handleChatMessage(&memPtr[bufLoc+1]);
+			handleChatMessage(&memPtr[bufLoc + 1]);
 			break;
 		case CMD_UPDATE:
 			handleUpdateAppRequest();

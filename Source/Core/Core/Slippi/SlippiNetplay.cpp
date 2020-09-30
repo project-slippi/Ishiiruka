@@ -265,12 +265,10 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet)
 		auto playerSelection = ReadChatMessageFromPacket(packet);
 		auto messageId = playerSelection->messageId;
 
-		INFO_LOG(SLIPPI_ONLINE, "[Netplay] Received chat message from opponent");
 		// set message id to netplay instance
-        remoteChatMessageId = messageId;
+		remoteChatMessageId = messageId;
 		// Show chat message OSD
-        INFO_LOG(SLIPPI_ONLINE, "[Netplay] Received chat message from opponent %i", messageId);
-        // OSD::AddMessage("[" + playerSelection->playerName + "]: " + msg, OSD::Duration::VERY_LONG, OSD::Color::YELLOW);
+		INFO_LOG(SLIPPI_ONLINE, "[Netplay] Received chat message from opponent %i", messageId);
 	}
 	break;
 
@@ -300,7 +298,6 @@ void SlippiNetplayClient::writeToPacket(sf::Packet &packet, SlippiPlayerSelectio
 void SlippiNetplayClient::WriteChatMessageToPacket(sf::Packet &packet, int messageId)
 {
 	packet << static_cast<MessageId>(NP_MSG_SLIPPI_CHAT_MESSAGE);
-	packet << slippi_netplay->GetMatchInfo()->localPlayerSelections.playerName;
 	packet << messageId;
 }
 
@@ -308,7 +305,6 @@ std::unique_ptr<SlippiPlayerSelections> SlippiNetplayClient::ReadChatMessageFrom
 {
 	auto s = std::make_unique<SlippiPlayerSelections>();
 
-	packet >> s->playerName;
 	packet >> s->messageId;
 
 	return std::move(s);
@@ -648,17 +644,16 @@ void SlippiNetplayClient::SetMatchSelections(SlippiPlayerSelections &s)
 
 u8 SlippiNetplayClient::GetSlippiRemoteChatMessage()
 {
-    u8 copiedMessageId = remoteChatMessageId;
-//     Do not clear it because the game relies on this to keep on showing it.
-     remoteChatMessageId = 0; // Clear it out
-    return copiedMessageId;
+	u8 copiedMessageId = remoteChatMessageId;
+	remoteChatMessageId = 0; // Clear it out
+	return copiedMessageId;
 }
 
 u8 SlippiNetplayClient::GetSlippiRemoteSentChatMessage()
 {
-    u8 copiedMessageId = remoteSentChatMessageId;
-    remoteSentChatMessageId = 0; // Clear it out
-    return copiedMessageId;
+	u8 copiedMessageId = remoteSentChatMessageId;
+	remoteSentChatMessageId = 0; // Clear it out
+	return copiedMessageId;
 }
 
 std::unique_ptr<SlippiRemotePadOutput> SlippiNetplayClient::GetSlippiRemotePad(int32_t curFrame)

@@ -107,7 +107,7 @@ class CEXISlippi : public IEXIDevice
 	    {CMD_GET_MATCH_STATE, 0},
 	    {CMD_FIND_OPPONENT, 19},
 	    {CMD_SET_MATCH_SELECTIONS, 6},
-        {CMD_SEND_CHAT_MESSAGE, 2},
+	    {CMD_SEND_CHAT_MESSAGE, 2},
 	    {CMD_OPEN_LOGIN, 0},
 	    {CMD_LOGOUT, 0},
 	    {CMD_UPDATE, 0},
@@ -181,7 +181,7 @@ class CEXISlippi : public IEXIDevice
 	void prepareIsFileReady();
 
 	// misc stuff
-    void handleChatMessage(u8 *payload);
+	void handleChatMessage(u8 *payload);
 	void logMessageFromGame(u8 *payload);
 	void prepareFileLength(u8 *payload);
 	void prepareFileLoad(u8 *payload);
