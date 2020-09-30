@@ -49,6 +49,10 @@ extern std::unique_ptr<SlippiReplayComm> g_replayComm;
 bool isLocalConnected = false;
 #endif
 
+// Are we waiting for input on this frame?
+//  Is set to true between frames
+bool g_needInputForFrame = false;
+
 template <typename T> bool isFutureReady(std::future<T> &t)
 {
 	return t.wait_for(std::chrono::seconds(0)) == std::future_status::ready;
@@ -98,6 +102,7 @@ CEXISlippi::CEXISlippi()
 {
 	INFO_LOG(SLIPPI, "EXI SLIPPI Constructor called.");
 
+	m_slippiserver = SlippiSpectateServer::getInstance();
 	user = std::make_unique<SlippiUser>();
 	g_playbackStatus = std::make_unique<SlippiPlaybackStatus>();
 	matchmaking = std::make_unique<SlippiMatchmaking>(user.get());
@@ -200,6 +205,8 @@ CEXISlippi::~CEXISlippi()
 	{
 		m_fileWriteThread.join();
 	}
+	m_slippiserver->write(&empty[0], 0);
+	m_slippiserver->endGame();
 
 	localSelections.Reset();
 
@@ -1146,9 +1153,20 @@ bool CEXISlippi::checkFrameFullyFetched(s32 frameIndex)
 
 	Slippi::FrameData *frame = m_current_game->GetFrame(frameIndex);
 
+	version::Semver200_version lastFinalizedVersion("3.7.0");
+	version::Semver200_version currentVersion(m_current_game->GetVersionString());
+
+	bool frameIsFinalized = true;
+	if (currentVersion >= lastFinalizedVersion)
+	{
+		// If latest finalized frame should exist, check it as well. This will prevent us
+		// from loading a non-committed frame when mirroring a rollback game
+		frameIsFinalized = m_current_game->GetLastFinalizedFrame() >= frameIndex;
+	}
+
 	// This flag is set to true after a post frame update has been received. At that point
 	// we know we have received all of the input data for the frame
-	return frame->inputsFullyFetched;
+	return frame->inputsFullyFetched && frameIsFinalized;
 }
 
 void CEXISlippi::prepareFrameData(u8 *payload)
@@ -1199,9 +1217,8 @@ void CEXISlippi::prepareFrameData(u8 *payload)
 	// (this is the last frame, in that case)
 	auto isFrameFound = m_current_game->DoesFrameExist(frameIndex);
 	g_playbackStatus->latestFrame = m_current_game->GetLatestIndex();
-	auto isNextFrameFound = g_playbackStatus->latestFrame > frameIndex;
 	auto isFrameComplete = checkFrameFullyFetched(frameIndex);
-	auto isFrameReady = isFrameFound && (isProcessingComplete || isNextFrameFound || isFrameComplete);
+	auto isFrameReady = isFrameFound && (isProcessingComplete || isFrameComplete);
 
 	// If there is a startFrame configured, manage the fast-forward flag
 	if (watchSettings.startFrame > Slippi::GAME_FIRST_FRAME)
@@ -2140,6 +2157,14 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 		configureCommands(&memPtr[1], receiveCommandsLen);
 		writeToFileAsync(&memPtr[0], receiveCommandsLen + 1, "create");
 		bufLoc += receiveCommandsLen + 1;
+		g_needInputForFrame = true;
+		m_slippiserver->startGame();
+		m_slippiserver->write(&memPtr[0], receiveCommandsLen + 1);
+	}
+
+	if (byte == CMD_MENU_FRAME)
+	{
+		m_slippiserver->write(&memPtr[0], _uSize);
 	}
 
 	INFO_LOG(EXPANSIONINTERFACE, "EXI SLIPPI DMAWrite: addr: 0x%08x size: %d, bufLoc:[%02x %02x %02x %02x %02x]",
@@ -2161,6 +2186,8 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 		{
 		case CMD_RECEIVE_GAME_END:
 			writeToFileAsync(&memPtr[bufLoc], payloadLen + 1, "close");
+			m_slippiserver->write(&memPtr[bufLoc], payloadLen + 1);
+			m_slippiserver->endGame();
 			break;
 		case CMD_PREPARE_REPLAY:
 			// log.open("log.txt");
@@ -2168,6 +2195,11 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 			break;
 		case CMD_READ_FRAME:
 			prepareFrameData(&memPtr[bufLoc + 1]);
+			break;
+		case CMD_FRAME_BOOKEND:
+			g_needInputForFrame = true;
+			writeToFileAsync(&memPtr[bufLoc], payloadLen + 1, "");
+			m_slippiserver->write(&memPtr[bufLoc], payloadLen + 1);
 			break;
 		case CMD_IS_STOCK_STEAL:
 			prepareIsStockSteal(&memPtr[bufLoc + 1]);
@@ -2223,6 +2255,7 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 			break;
 		default:
 			writeToFileAsync(&memPtr[bufLoc], payloadLen + 1, "");
+			m_slippiserver->write(&memPtr[bufLoc], payloadLen + 1);
 			break;
 		}
 

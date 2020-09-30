@@ -670,6 +670,8 @@ endif()
 #   - place the CMakeLists.txt in the first-level subdirectory, e.g.
 #     Externals/zlib/CMakeLists.txt (that is: NOT in some Src/ subdirectory)
 #
+include_directories(Externals/base64)
+
 add_subdirectory(Externals/Bochs_disasm)
 include_directories(Externals/Bochs_disasm)
 

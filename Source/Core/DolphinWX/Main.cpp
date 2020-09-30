@@ -38,6 +38,7 @@
 #include "Core/HW/Wiimote.h"
 #include "Core/Host.h"
 #include "Core/Movie.h"
+#include "Core/Slippi/SlippiSpectate.h"
 
 #include "Core/GeckoCode.h"
 #include "Core/GeckoCodeConfig.h"
@@ -233,6 +234,10 @@ bool DolphinApp::OnInit()
 
     AfterInit();
 
+	// Init the spectator server
+	SlippiSpectateServer *init = SlippiSpectateServer::getInstance();
+	init->endGame();
+
 	return true;
 }
 
@@ -254,7 +259,7 @@ void DolphinApp::OnInitCmdLine(wxCmdLineParser& parser)
 			 wxCMD_LINE_PARAM_OPTIONAL},
 			{wxCMD_LINE_OPTION, "v", "video_backend", "Specify a video backend", wxCMD_LINE_VAL_STRING,
 			 wxCMD_LINE_PARAM_OPTIONAL},
-			{wxCMD_LINE_OPTION, "i", "slippi-input", "Path to Slippi replay config file (default: Slippi/playback.txt)", 
+			{wxCMD_LINE_OPTION, "i", "slippi-input", "Path to Slippi replay config file (default: Slippi/playback.txt)",
 			wxCMD_LINE_VAL_STRING, wxCMD_LINE_PARAM_OPTIONAL},
 			{wxCMD_LINE_OPTION, "od", "output-directory", "Directory to place audio and video dump files",
 			wxCMD_LINE_VAL_STRING, wxCMD_LINE_PARAM_OPTIONAL},
