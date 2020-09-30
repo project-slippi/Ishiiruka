@@ -1,13 +1,13 @@
 #pragma once
 
-#include <map>
-#include <chrono>
-#include <thread>
 #include <atomic>
+#include <chrono>
+#include <map>
+#include <thread>
 
 #include "Common/FifoQueue.h"
-#include <enet/enet.h>
 #include "nlohmann/json.hpp"
+#include <enet/enet.h>
 using json = nlohmann::json;
 
 // Sockets in windows are unsigned
@@ -29,79 +29,79 @@ typedef int SOCKET;
 
 class SlippiSocket
 {
-public:
-    u64 m_cursor = 0;           // Index of the last game event this client sent
-    u64 m_menu_cursor = 0;      // The latest menu event that this socket has sent
-    bool m_shook_hands = false; // Has this client shaken hands yet?
-    ENetPeer *m_peer = NULL;    // The ENet peer object for the socket
+  public:
+	u64 m_cursor = 0;           // Index of the last game event this client sent
+	u64 m_menu_cursor = 0;      // The latest menu event that this socket has sent
+	bool m_shook_hands = false; // Has this client shaken hands yet?
+	ENetPeer *m_peer = NULL;    // The ENet peer object for the socket
 };
 
 class SlippiSpectateServer
 {
-public:
-    // Singleton. Get an instance of the class here
-    //   When SConfig::GetInstance().m_slippiNetworkingOutput is false, this
-    //  instance exists and is callable, but does nothing
-    static SlippiSpectateServer* getInstance();
+  public:
+	// Singleton. Get an instance of the class here
+	//   When SConfig::GetInstance().m_slippiNetworkingOutput is false, this
+	//  instance exists and is callable, but does nothing
+	static SlippiSpectateServer *getInstance();
 
-    // Write the given game payload data to all listening sockets
-    void write(u8 *payload, u32 length);
+	// Write the given game payload data to all listening sockets
+	void write(u8 *payload, u32 length);
 
-    // Should be called each time a new game starts.
-    //  This will clear out the old game event buffer and start a new one
-    void startGame();
+	// Should be called each time a new game starts.
+	//  This will clear out the old game event buffer and start a new one
+	void startGame();
 
-    // Clear the game event history buffer. Such as when a game ends.
-    //  The slippi server keeps a history of events in a buffer. So that
-    //  when a new client connects to the server mid-match, it can recieve all
-    //  the game events that have happened so far. This buffer needs to be
-    //  cleared when a match ends.
-    void endGame();
+	// Clear the game event history buffer. Such as when a game ends.
+	//  The slippi server keeps a history of events in a buffer. So that
+	//  when a new client connects to the server mid-match, it can recieve all
+	//  the game events that have happened so far. This buffer needs to be
+	//  cleared when a match ends.
+	void endGame();
 
-    // Don't try to copy the class. Delete those functions
-    SlippiSpectateServer(SlippiSpectateServer const&) = delete;
-    void operator=(SlippiSpectateServer const&)  = delete;
+	// Don't try to copy the class. Delete those functions
+	SlippiSpectateServer(SlippiSpectateServer const &) = delete;
+	void operator=(SlippiSpectateServer const &) = delete;
 
   private:
-    // ACCESSED FROM BOTH DOLPHIN AND SERVER THREADS
-    // This is a lockless queue that bridges the gap between the main
-    //  dolphin thred and the spectator server thread. The purpose here
-    //  is to avoid blocking (even if just for a brief mutex) on the main
-    //  dolphin thread.
-    Common::FifoQueue<std::string> m_event_queue;
-    // Bool gets flipped by the destrctor to tell the server thread to shut down
-    //  bools are probably atomic by default, but just for safety...
-    std::atomic<bool> m_stop_socket_thread;
+	// ACCESSED FROM BOTH DOLPHIN AND SERVER THREADS
+	// This is a lockless queue that bridges the gap between the main
+	//  dolphin thred and the spectator server thread. The purpose here
+	//  is to avoid blocking (even if just for a brief mutex) on the main
+	//  dolphin thread.
+	Common::FifoQueue<std::string> m_event_queue;
+	// Bool gets flipped by the destrctor to tell the server thread to shut down
+	//  bools are probably atomic by default, but just for safety...
+	std::atomic<bool> m_stop_socket_thread;
 
-    // ONLY ACCESSED FROM SERVER THREAD
-    bool m_in_game;
-    std::map<u16, std::shared_ptr<SlippiSocket>> m_sockets;
+	// ONLY ACCESSED FROM SERVER THREAD
+	bool m_in_game;
+	std::map<u16, std::shared_ptr<SlippiSocket>> m_sockets;
 	std::string m_event_concat = "";
-    std::vector<std::string> m_event_buffer;
-    std::string m_menu_event;
-    // In order to emulate Wii behavior, the cursor position should be strictly
-    //  increasing. But internally, we need to index arrays by the cursor value.
-    //  To solve this, we keep an "offset" value that is added to all outgoing
-    //  cursor positions to give the appearance like it's going up
-    u64 m_cursor_offset = 0;
-    //  How many menu events have we sent so far? (Reset between matches)
-    //    Is used to know when a client hasn't been sent a menu event
-    u64 m_menu_cursor;
+	std::vector<std::string> m_event_buffer;
+	std::string m_menu_event;
+	// In order to emulate Wii behavior, the cursor position should be strictly
+	//  increasing. But internally, we need to index arrays by the cursor value.
+	//  To solve this, we keep an "offset" value that is added to all outgoing
+	//  cursor positions to give the appearance like it's going up
+	u64 m_cursor_offset = 0;
+	//  How many menu events have we sent so far? (Reset between matches)
+	//    Is used to know when a client hasn't been sent a menu event
+	u64 m_menu_cursor;
 
-    std::thread m_socketThread;
+	std::thread m_socketThread;
 
-    // Private constructor to avoid making another instance
-    SlippiSpectateServer();
-    ~SlippiSpectateServer();
+	// Private constructor to avoid making another instance
+	SlippiSpectateServer();
+	~SlippiSpectateServer();
 
-    // FUNCTIONS CALLED ONLY FROM SERVER THREAD
-    // Server thread. Accepts new incoming connections and goes back to sleep
-    void SlippicommSocketThread(void);
-    // Handle an incoming message on a socket
-    void handleMessage(u8 *buffer, u32 length, u16 peer_id);
-    // Catch up given socket to the latest events
-    //  Does nothing if they're already caught up.
-    void writeEvents(u16 peer_id);
-    // Pop events
-    void popEvents();
+	// FUNCTIONS CALLED ONLY FROM SERVER THREAD
+	// Server thread. Accepts new incoming connections and goes back to sleep
+	void SlippicommSocketThread(void);
+	// Handle an incoming message on a socket
+	void handleMessage(u8 *buffer, u32 length, u16 peer_id);
+	// Catch up given socket to the latest events
+	//  Does nothing if they're already caught up.
+	void writeEvents(u16 peer_id);
+	// Pop events
+	void popEvents();
 };
