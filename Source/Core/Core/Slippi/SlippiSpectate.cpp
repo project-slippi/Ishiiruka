@@ -118,27 +118,36 @@ void SlippiSpectateServer::popEvents()
 
         // Make json wrapper for game event
         json game_event;
-        if(event.empty())
+		game_event["payload"] = "";
+
+		if (!m_in_game)
         {
-            game_event["payload"] = "";
-        }
-        else
-        {
-            game_event["payload"] = base64::Base64::Encode(event);
-        }
-        if(m_in_game)
-        {
-            u32 cursor = (u32)(m_event_buffer.size() + m_cursor_offset);
-            game_event["type"] = "game_event";
-            game_event["cursor"] = cursor;
-            game_event["next_cursor"] = cursor+1;
-            m_event_buffer.push_back(game_event.dump());
-        }
-        else
-        {
+			game_event["payload"] = base64::Base64::Encode(event);
             m_menu_cursor += 1;
             game_event["type"] = "menu_event";
             m_menu_event = game_event.dump();
+			continue;
+        }
+
+        u8 command = (u8)event[0];
+		m_event_concat = m_event_concat + event;
+
+        static std::unordered_map<u8, bool> sendEvents = {
+		    {0x36, true}, // GAME_INIT
+		    {0x3C, true}, // FRAME_END
+		    {0x39, true}, // GAME_END
+		};
+
+        if (sendEvents.count(command))
+		{
+			u32 cursor = (u32)(m_event_buffer.size() + m_cursor_offset);
+			game_event["payload"] = base64::Base64::Encode(m_event_concat);
+			game_event["type"] = "game_event";
+			game_event["cursor"] = cursor;
+			game_event["next_cursor"] = cursor + 1;
+			m_event_buffer.push_back(game_event.dump());
+
+            m_event_concat = "";
         }
     }
 }

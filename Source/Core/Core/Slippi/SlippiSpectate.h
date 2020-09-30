@@ -76,6 +76,7 @@ public:
     // ONLY ACCESSED FROM SERVER THREAD
     bool m_in_game;
     std::map<u16, std::shared_ptr<SlippiSocket>> m_sockets;
+	std::string m_event_concat = "";
     std::vector<std::string> m_event_buffer;
     std::string m_menu_event;
     // In order to emulate Wii behavior, the cursor position should be strictly

@@ -45,7 +45,7 @@ class CEXISlippi : public IEXIDevice
 		CMD_RECEIVE_GAME_INFO = 0x36,
 		CMD_RECEIVE_POST_FRAME_UPDATE = 0x38,
 		CMD_RECEIVE_GAME_END = 0x39,
-    CMD_FRAME_BOOKEND = 0x3C,
+		CMD_FRAME_BOOKEND = 0x3C,
 		CMD_MENU_FRAME = 0x3E,
 
 		// Playback
@@ -126,7 +126,7 @@ class CEXISlippi : public IEXIDevice
 	// .slp File creation stuff
 	u32 writtenByteCount = 0;
 
-	//cout stuff
+	// cout stuff
 	bool outputCurrentFrame = false;
 	bool shouldOutput = false;
 
@@ -197,7 +197,7 @@ class CEXISlippi : public IEXIDevice
 
 	std::vector<u8> m_read_queue;
 	std::unique_ptr<Slippi::SlippiGame> m_current_game = nullptr;
-  SlippiSpectateServer *m_slippiserver = nullptr;
+	SlippiSpectateServer *m_slippiserver = nullptr;
 	SlippiMatchmaking::MatchSearchSettings lastSearch;
 
 	std::vector<u16> stagePool;
