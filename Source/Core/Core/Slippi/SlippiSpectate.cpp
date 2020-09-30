@@ -88,7 +88,7 @@ void SlippiSpectateServer::writeEvents(u16 peer_id)
 // CALLED FROM SERVER THREAD
 void SlippiSpectateServer::popEvents()
 {
-	// Loop through the event queue and keep popping off events and handlign them
+	// Loop through the event queue and keep popping off events and handling them
 	while (!m_event_queue.Empty())
 	{
 		std::string event;
@@ -115,7 +115,17 @@ void SlippiSpectateServer::popEvents()
 
 		// Make json wrapper for game event
 		json game_event;
-		game_event["payload"] = "";
+
+		// An SLP event with an empty payload is a quasi-event that signifies
+		//  the unclean exit of a game. Send this out as its own event
+		//  (Since you can't meaningfully concat it with other events)
+		if(event.empty())
+		{
+			game_event["payload"] = "";
+			game_event["type"] = "game_event";
+			m_event_buffer.push_back(game_event.dump());
+			continue;
+		}
 
 		if (!m_in_game)
 		{
