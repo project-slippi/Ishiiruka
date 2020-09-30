@@ -143,6 +143,7 @@ void SlippiSpectateServer::popEvents()
 		    {0x36, true}, // GAME_INIT
 		    {0x3C, true}, // FRAME_END
 		    {0x39, true}, // GAME_END
+		    {0x10, true}, // SPLIT_MESSAGE
 		};
 
 		if (sendEvents.count(command))
