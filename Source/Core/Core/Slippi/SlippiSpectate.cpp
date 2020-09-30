@@ -119,7 +119,7 @@ void SlippiSpectateServer::popEvents()
 		// An SLP event with an empty payload is a quasi-event that signifies
 		//  the unclean exit of a game. Send this out as its own event
 		//  (Since you can't meaningfully concat it with other events)
-		if(event.empty())
+		if (event.empty())
 		{
 			game_event["payload"] = "";
 			game_event["type"] = "game_event";
