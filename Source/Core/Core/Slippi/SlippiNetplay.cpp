@@ -123,7 +123,7 @@ SlippiNetplayClient::SlippiNetplayClient(bool isDecider)
 unsigned int SlippiNetplayClient::OnData(sf::Packet &packet)
 {
 	MessageId mid = 0;
-	if(!(packet >> mid))
+	if (!(packet >> mid))
 	{
 		ERROR_LOG(SLIPPI_ONLINE, "Received empty netplay packet");
 		return 0;
@@ -134,7 +134,7 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet)
 	case NP_MSG_SLIPPI_PAD:
 	{
 		int32_t frame;
-		if(!(packet >> frame))
+		if (!(packet >> frame))
 		{
 			ERROR_LOG(SLIPPI_ONLINE, "Netplay packet too small to read frame count");
 			break;
@@ -181,12 +181,12 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet)
 			int32_t headFrame = remotePadQueue.empty() ? 0 : remotePadQueue.front()->frame;
 			int inputsToCopy = frame - headFrame;
 
-			// Check that the packet actually contains the data it claims to
-			if((5 + inputsToCopy * SLIPPI_PAD_DATA_SIZE) > (int)packet.getDataSize())
-			{
-				ERROR_LOG(SLIPPI_ONLINE, "Netplay packet too small to read pad buffer");
-				break;
-			}
+			//// Check that the packet actually contains the data it claims to
+			// if((5 + inputsToCopy * SLIPPI_PAD_DATA_SIZE) > (int)packet.getDataSize())
+			//{
+			//	ERROR_LOG(SLIPPI_ONLINE, "Netplay packet too small to read pad buffer");
+			//	break;
+			//}
 
 			for (int i = inputsToCopy - 1; i >= 0; i--)
 			{
@@ -214,7 +214,7 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet)
 
 		// Store last frame acked
 		int32_t frame;
-		if(!(packet >> frame))
+		if (!(packet >> frame))
 		{
 			ERROR_LOG(SLIPPI_ONLINE, "Ack packet too small to read frame");
 			break;
