@@ -39,6 +39,10 @@ fi
 # Delete the AppDir folder to prevent build issues
 rm -rf ./AppDir/
 
+mkdir -p ./AppDir/apprun-hooks/
+
+echo 'export LD_LIBRARY_PATH="/usr/lib/:$LD_LIBRARY_PATH"' >> ./AppDir/apprun-hooks/arch_linux_env.sh
+
 # Build the AppDir directory for this image
 mkdir -p AppDir
 ./Tools/linuxdeploy \
