@@ -1445,12 +1445,27 @@ void CEXISlippi::prepareIsFileReady()
 	m_read_queue.push_back(1);
 }
 
+bool CEXISlippi::isDisconnected()
+{
+	if (!slippi_netplay)
+		return true;
+
+	auto status = slippi_netplay->GetSlippiConnectStatus();
+	return status != SlippiNetplayClient::SlippiConnectStatus::NET_CONNECT_STATUS_CONNECTED || isConnectionStalled;
+}
+
 static int tempTestCount = 0;
 void CEXISlippi::handleOnlineInputs(u8 *payload)
 {
 	m_read_queue.clear();
 
 	int32_t frame = payload[0] << 24 | payload[1] << 16 | payload[2] << 8 | payload[3];
+
+	if (isDisconnected())
+	{
+		m_read_queue.push_back(3); // Indicate we disconnected
+		return;
+	}
 
 	if (frame == 1)
 	{
@@ -1612,6 +1627,9 @@ void CEXISlippi::prepareOpponentInputs(u8 *payload)
 
 void CEXISlippi::handleCaptureSavestate(u8 *payload)
 {
+	if (isDisconnected())
+		return;
+
 	s32 frame = payload[0] << 24 | payload[1] << 16 | payload[2] << 8 | payload[3];
 
 	u64 startTime = Common::Timer::GetTimeUs();
