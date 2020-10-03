@@ -567,7 +567,7 @@ void CEXISlippi::createNewFile()
 		PanicAlertT("Could not create .slp replay file [%s].\n\n"
 		            "The replay folder's path might be invalid, or you might "
 		            "not have permission to write to it.\n\n"
-		            "You can change the replay folder in Config > GameCube > "
+		            "You can change the replay folder in Config > Slippi > "
 		            "Slippi Replay Settings.",
 		            filepath.c_str());
 	}
