@@ -5,6 +5,7 @@
 #include <map>
 #include <thread>
 
+#include <SlippiGame.h>
 #include "Common/FifoQueue.h"
 #include "nlohmann/json.hpp"
 #include <enet/enet.h>
@@ -49,7 +50,8 @@ class SlippiSpectateServer
 
 	// Should be called each time a new game starts.
 	//  This will clear out the old game event buffer and start a new one
-	void startGame();
+  //  argument is the list of player connect codes for the game. First one in the list is the "decider"
+	void startGame(std::vector<std::string> connect_codes);
 
 	// Clear the game event history buffer. Such as when a game ends.
 	//  The slippi server keeps a history of events in a buffer. So that
@@ -78,6 +80,7 @@ class SlippiSpectateServer
 	std::map<u16, std::shared_ptr<SlippiSocket>> m_sockets;
 	std::string m_event_concat = "";
 	std::vector<std::string> m_event_buffer;
+  std::vector<std::string> m_meta_event_buffer;
 	std::string m_menu_event;
 	// In order to emulate Wii behavior, the cursor position should be strictly
 	//  increasing. But internally, we need to index arrays by the cursor value.

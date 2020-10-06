@@ -205,7 +205,6 @@ CEXISlippi::~CEXISlippi()
 	{
 		m_fileWriteThread.join();
 	}
-	m_slippiserver->write(&empty[0], 0);
 	m_slippiserver->endGame();
 
 	localSelections.Reset();
@@ -2158,7 +2157,23 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 		writeToFileAsync(&memPtr[0], receiveCommandsLen + 1, "create");
 		bufLoc += receiveCommandsLen + 1;
 		g_needInputForFrame = true;
-		m_slippiserver->startGame();
+
+		std::vector<std::string> codes;
+		if (slippi_netplay != nullptr)
+		{
+			if (slippi_netplay->IsDecider())
+			{
+				codes.push_back(user->GetUserInfo().connectCode);
+				codes.push_back(matchmaking->GetOpponent().connectCode);
+			}
+			else
+			{
+				codes.push_back(matchmaking->GetOpponent().connectCode);
+				codes.push_back(user->GetUserInfo().connectCode);
+			}
+		}
+
+		m_slippiserver->startGame(codes);
 		m_slippiserver->write(&memPtr[0], receiveCommandsLen + 1);
 	}
 
