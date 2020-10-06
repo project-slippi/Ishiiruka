@@ -5,7 +5,6 @@
 #include <map>
 #include <thread>
 
-#include <SlippiGame.h>
 #include "Common/FifoQueue.h"
 #include "nlohmann/json.hpp"
 #include <enet/enet.h>
