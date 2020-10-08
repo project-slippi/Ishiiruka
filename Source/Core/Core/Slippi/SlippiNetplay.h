@@ -193,3 +193,7 @@ class SlippiNetplayClient
 	u32 m_timebase_frame = 0;
 };
 extern SlippiNetplayClient* SLIPPI_NETPLAY; // singleton static pointer
+
+static bool IsOnline(){
+    return SLIPPI_NETPLAY != nullptr;
+}
