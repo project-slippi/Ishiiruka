@@ -3,32 +3,33 @@
 // Refer to the license.txt file included.
 
 #include "Core/Slippi/SlippiNetplay.h"
-#include "Common/Common.h"
-#include "Common/CommonPaths.h"
 #include "Common/CommonTypes.h"
 #include "Common/ENetUtil.h"
-#include "Common/MD5.h"
 #include "Common/MsgHandler.h"
 #include "Common/Timer.h"
 #include "Core/ConfigManager.h"
 #include "Core/Core.h"
-#include "Core/HW/EXI_DeviceIPL.h"
-#include "Core/HW/SI.h"
-#include "Core/HW/SI_DeviceGCController.h"
-#include "Core/HW/Sram.h"
-#include "Core/HW/WiimoteEmu/WiimoteEmu.h"
-#include "Core/HW/WiimoteReal/WiimoteReal.h"
-#include "Core/IPC_HLE/WII_IPC_HLE_Device_usb_bt_emu.h"
-#include "Core/Movie.h"
-#include "InputCommon/GCAdapter.h"
 #include "VideoCommon/OnScreenDisplay.h"
 #include "VideoCommon/VideoConfig.h"
-#include <SlippiGame.h>
 #include <algorithm>
 #include <fstream>
-#include <mbedtls/md5.h>
 #include <memory>
 #include <thread>
+
+//#include "Common/MD5.h"
+//#include "Common/Common.h"
+//#include "Common/CommonPaths.h"
+//#include "Core/HW/EXI_DeviceIPL.h"
+//#include "Core/HW/SI.h"
+//#include "Core/HW/SI_DeviceGCController.h"
+//#include "Core/HW/Sram.h"
+//#include "Core/HW/WiimoteEmu/WiimoteEmu.h"
+//#include "Core/HW/WiimoteReal/WiimoteReal.h"
+//#include "Core/IPC_HLE/WII_IPC_HLE_Device_usb_bt_emu.h"
+//#include "Core/Movie.h"
+//#include "InputCommon/GCAdapter.h"
+//#include <mbedtls/md5.h>
+//#include <SlippiGame.h>
 
 static std::mutex pad_mutex;
 static std::mutex ack_mutex;
