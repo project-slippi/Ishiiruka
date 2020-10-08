@@ -76,13 +76,6 @@ void SlippiSpectateServer::writeEvents(u16 peer_id)
 		m_sockets[peer_id]->m_menu_cursor = m_menu_cursor;
 	}
 
-	// Send meta events
-	for (auto& event : m_meta_event_buffer)
-	{
-		ENetPacket *packet = enet_packet_create(event.data(), event.length(), ENET_PACKET_FLAG_RELIABLE);
-		enet_peer_send(m_sockets[peer_id]->m_peer, 0, packet);
-	}
-
 	// Send game events
 	// Loop through each event that needs to be sent
 	//  send all the events starting at their cursor
@@ -101,6 +94,13 @@ void SlippiSpectateServer::writeEvents(u16 peer_id)
 		// Batch for sending
 		enet_peer_send(m_sockets[peer_id]->m_peer, 0, packet);
 		m_sockets[peer_id]->m_cursor++;
+	}
+
+	// Send meta events
+	for (auto& event : m_meta_event_buffer)
+	{
+		ENetPacket *packet = enet_packet_create(event.data(), event.length(), ENET_PACKET_FLAG_RELIABLE);
+		enet_peer_send(m_sockets[peer_id]->m_peer, 0, packet);
 	}
 }
 
