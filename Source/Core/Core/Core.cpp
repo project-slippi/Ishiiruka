@@ -64,6 +64,7 @@
 #include "Core/PowerPC/JitInterface.h"
 #include "Core/PowerPC/PowerPC.h"
 #include "Core/State.h"
+#include "Core/Slippi/SlippiNetplay.h"
 
 #ifdef USE_GDBSTUB
 #include "Core/PowerPC/GDBStub.h"
@@ -83,6 +84,7 @@
 #else  // Everything besides OSX and Android
 #define ThreadLocalStorage thread_local
 #endif
+
 
 namespace Core
 {
@@ -190,8 +192,16 @@ bool IsRunning()
 	return (GetState() != CORE_UNINITIALIZED || s_hardware_initialized) && !s_is_stopping;
 }
 
+
+bool IsConnected()
+{
+    return SLIPPI_NETPLAY != nullptr;
+}
+
+
 bool IsRunningAndStarted()
 {
+
 	return s_is_started && !s_is_stopping;
 }
 
@@ -693,7 +703,11 @@ void SetState(EState state)
 	if (!IsRunningAndStarted())
 		return;
 
-	switch (state)
+	// Do not allow any kind of cpu pause/resum if we are connected to someone on slippi
+	if (IsConnected())
+	    return;
+
+    switch (state)
 	{
 	case CORE_PAUSE:
 		// NOTE: GetState() will return CORE_PAUSE immediately, even before anything has
