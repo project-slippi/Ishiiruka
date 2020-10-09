@@ -28,6 +28,7 @@
 #include <shellapi.h>
 #include <windows.h>
 #include <winerror.h>
+#include <Shlwapi.h>
 #else
 #include <dirent.h>
 #include <errno.h>
@@ -42,7 +43,6 @@
 #include <CoreFoundation/CFURL.h>
 #include <sys/param.h>
 #endif
-#include <Shlwapi.h>
 
 #ifndef S_ISDIR
 #define S_ISDIR(m) (((m)&S_IFMT) == S_IFDIR)
