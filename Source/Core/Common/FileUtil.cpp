@@ -754,7 +754,7 @@ std::string GetAbsolutePathFromRelativePath(const std::string &path, const std::
 	}
 	else if (tempPath.back() == '/' && tempOrigin.front() == '/')
 	{
-		tempPath.erase(tempPath.size() - 1);
+		tempPath.pop_back();
 	}
 #endif
 	return tempOrigin + tempPath;
@@ -762,6 +762,7 @@ std::string GetAbsolutePathFromRelativePath(const std::string &path, const std::
 
 std::wstring s2ws(const std::string &s)
 {
+#ifdef _WIN32
 	int len;
 	int slength = (int)s.length() + 1;
 	len = MultiByteToWideChar(CP_ACP, 0, s.c_str(), slength, 0, 0);
@@ -770,6 +771,9 @@ std::wstring s2ws(const std::string &s)
 	std::wstring r(buf);
 	delete[] buf;
 	return r;
+#else
+	return NULL;
+#endif
 }
 
 std::string &GetExeDirectory()
