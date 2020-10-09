@@ -42,6 +42,7 @@
 #include <CoreFoundation/CFURL.h>
 #include <sys/param.h>
 #endif
+#include <Shlwapi.h>
 
 #ifndef S_ISDIR
 #define S_ISDIR(m) (((m)&S_IFMT) == S_IFDIR)
@@ -722,6 +723,54 @@ std::string GetBundleDirectory()
 	return AppBundlePath;
 }
 #endif
+
+std::string GetAbsolutePathFromRelativePath(const std::string &path, const std::string &origin) {
+	std::string tempPath = path;
+	std::string tempOrigin = origin;
+#ifdef _WIN32
+	LPCWSTR winPath = s2ws(tempPath).c_str();
+	if (!PathIsRelativeW(winPath))
+	{
+		return tempPath;
+	}
+	std::replace(tempOrigin.begin(), tempOrigin.end(), '/', '\\');
+	std::replace(tempPath.begin(), tempPath.end(), '/', '\\');
+	if (tempOrigin.back() != '\\' && tempPath.front() != '\\')
+	{
+		tempOrigin.push_back('\\');
+	}
+	else if (tempOrigin.back() == '\\' && tempPath.front() == '\\')
+	{
+		tempOrigin.pop_back();
+	}
+#else
+	if (tempPath.at(0) == '/')
+	{
+		return tempPath;
+	}
+	if (tempPath.back() != '/' && tempOrigin.front() != '/')
+	{
+		tempPath.push_back('/');
+	}
+	else if (tempPath.back() == '/' && tempOrigin.front() == '/')
+	{
+		tempPath.erase(tempPath.size() - 1);
+	}
+#endif
+	return tempOrigin + tempPath;
+}
+
+std::wstring s2ws(const std::string &s)
+{
+	int len;
+	int slength = (int)s.length() + 1;
+	len = MultiByteToWideChar(CP_ACP, 0, s.c_str(), slength, 0, 0);
+	wchar_t *buf = new wchar_t[len];
+	MultiByteToWideChar(CP_ACP, 0, s.c_str(), slength, buf, len);
+	std::wstring r(buf);
+	delete[] buf;
+	return r;
+}
 
 std::string &GetExeDirectory()
 {
