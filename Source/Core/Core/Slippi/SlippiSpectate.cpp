@@ -95,13 +95,6 @@ void SlippiSpectateServer::writeEvents(u16 peer_id)
 		enet_peer_send(m_sockets[peer_id]->m_peer, 0, packet);
 		m_sockets[peer_id]->m_cursor++;
 	}
-
-	// Send meta events
-	for (auto& event : m_meta_event_buffer)
-	{
-		ENetPacket *packet = enet_packet_create(event.data(), event.length(), ENET_PACKET_FLAG_RELIABLE);
-		enet_peer_send(m_sockets[peer_id]->m_peer, 0, packet);
-	}
 }
 
 // CALLED FROM SERVER THREAD
@@ -118,23 +111,30 @@ void SlippiSpectateServer::popEvents()
 		{
 			if (json_message["type"] == "end_game")
 			{
+				u32 cursor = (u32)(m_event_buffer.size() + m_cursor_offset);
+				json_message["cursor"] = cursor;
+				json_message["next_cursor"] = cursor + 1;
+				json_message["game_count"] = m_game_count;
 				m_menu_cursor = 0;
 				if (m_event_buffer.size() > 0)
 				{
 					m_cursor_offset += m_event_buffer.size();
 				}
-				m_meta_event_buffer.push_back(event);
+				m_event_buffer.push_back(json_message.dump());
 				m_menu_event.clear();
 				m_in_game = false;
 				continue;
 			}
 			if (json_message["type"] == "start_game")
 			{
-				m_game_count += 1;
 				m_event_buffer.clear();
+				u32 cursor = (u32)(m_event_buffer.size() + m_cursor_offset);
 				m_in_game = true;
+				m_game_count += 1;
 				json_message["game_count"] = m_game_count;
-				m_meta_event_buffer.push_back(json_message.dump());
+				json_message["cursor"] = cursor;
+				json_message["next_cursor"] = cursor + 1;
+				m_event_buffer.push_back(json_message.dump());
 				continue;
 			}
 		}
@@ -187,6 +187,8 @@ SlippiSpectateServer::SlippiSpectateServer()
 	m_in_game = false;
 	m_menu_cursor = 0;
 	m_game_count = 0;
+	m_menu_event.clear();
+	m_cursor_offset = 0;
 
 	// Spawn thread for socket listener
 	m_stop_socket_thread = false;
@@ -336,7 +338,6 @@ void SlippiSpectateServer::SlippicommSocketThread(void)
 				writeEvents(it->first);
 			}
 		}
-		m_meta_event_buffer.clear();
 
 		ENetEvent event;
 		while (enet_host_service(server, &event, 1) > 0)

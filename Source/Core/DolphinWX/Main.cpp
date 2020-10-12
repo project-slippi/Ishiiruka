@@ -236,7 +236,6 @@ bool DolphinApp::OnInit()
 
 	// Init the spectator server
 	SlippiSpectateServer *init = SlippiSpectateServer::getInstance();
-	init->endGame();
 
 	return true;
 }
@@ -263,7 +262,7 @@ void DolphinApp::OnInitCmdLine(wxCmdLineParser& parser)
 			wxCMD_LINE_VAL_STRING, wxCMD_LINE_PARAM_OPTIONAL},
 			{wxCMD_LINE_OPTION, "od", "output-directory", "Directory to place audio and video dump files",
 			wxCMD_LINE_VAL_STRING, wxCMD_LINE_PARAM_OPTIONAL},
-			{wxCMD_LINE_OPTION, "o", "output-filename-base", "Base of filenames for audio and video dump files", 
+			{wxCMD_LINE_OPTION, "o", "output-filename-base", "Base of filenames for audio and video dump files",
 			wxCMD_LINE_VAL_STRING, wxCMD_LINE_PARAM_OPTIONAL},
 			{wxCMD_LINE_OPTION, "a", "audio_emulation", "Low level (LLE) or high level (HLE) audio",
 			 wxCMD_LINE_VAL_STRING, wxCMD_LINE_PARAM_OPTIONAL},
