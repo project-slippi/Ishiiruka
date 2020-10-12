@@ -89,6 +89,7 @@ class SlippiSpectateServer
 	//  How many menu events have we sent so far? (Reset between matches)
 	//    Is used to know when a client hasn't been sent a menu event
 	u64 m_menu_cursor;
+	u64 m_game_count;
 
 	std::thread m_socketThread;
 

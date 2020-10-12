@@ -130,9 +130,11 @@ void SlippiSpectateServer::popEvents()
 			}
 			if (json_message["type"] == "start_game")
 			{
+				m_game_count += 1;
 				m_event_buffer.clear();
 				m_in_game = true;
-				m_meta_event_buffer.push_back(event);
+				json_message["game_count"] = m_game_count;
+				m_meta_event_buffer.push_back(json_message.dump());
 				continue;
 			}
 		}
@@ -166,6 +168,7 @@ void SlippiSpectateServer::popEvents()
 			game_event["type"] = "game_event";
 			game_event["cursor"] = cursor;
 			game_event["next_cursor"] = cursor + 1;
+			game_event["game_count"] = m_game_count;
 			m_event_buffer.push_back(game_event.dump());
 
 			m_event_concat = "";
@@ -183,6 +186,7 @@ SlippiSpectateServer::SlippiSpectateServer()
 
 	m_in_game = false;
 	m_menu_cursor = 0;
+	m_game_count = 0;
 
 	// Spawn thread for socket listener
 	m_stop_socket_thread = false;
@@ -262,6 +266,7 @@ void SlippiSpectateServer::handleMessage(u8 *buffer, u32 length, u16 peer_id)
 			reply["nick"] = "Slippi Online";
 			reply["version"] = scm_slippi_semver_str;
 			reply["cursor"] = sent_cursor;
+			reply["game_count"] = m_game_count;
 
 			std::string packet_buffer = reply.dump();
 
