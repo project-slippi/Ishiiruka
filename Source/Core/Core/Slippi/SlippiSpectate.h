@@ -65,7 +65,7 @@ class SlippiSpectateServer
   private:
 	// ACCESSED FROM BOTH DOLPHIN AND SERVER THREADS
 	// This is a lockless queue that bridges the gap between the main
-	//  dolphin thred and the spectator server thread. The purpose here
+	//  dolphin thread and the spectator server thread. The purpose here
 	//  is to avoid blocking (even if just for a brief mutex) on the main
 	//  dolphin thread.
 	Common::FifoQueue<std::string> m_event_queue;
