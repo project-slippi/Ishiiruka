@@ -275,14 +275,36 @@ unsigned int NetPlayServer::OnConnect(ENetPeer* socket)
 
 	enet_packet_destroy(epack);
 	// try to automatically assign new user a pad
-	for (PadMapping& mapping : m_pad_map)
+	if (player.pid == 1) // Is he the first player joining the server?
 	{
-		if (mapping == -1)
+		for (PadMapping &mapping : m_pad_map)
 		{
-			mapping = player.pid;
-			break;
+			if (mapping == -1)
+			{
+				mapping = player.pid;
+			}
 		}
 	}
+	else // take the second port used by player 1
+	{
+		bool firstUsedPortDetected = false;
+		for (PadMapping &mapping : m_pad_map)
+		{
+			if (mapping == 1)
+			{
+				if (firstUsedPortDetected)
+				{
+					mapping = player.pid;
+					break;
+				}
+				else
+				{
+					firstUsedPortDetected = true;
+				}
+			}
+		}
+	}
+
 
 	// send join message to already connected clients
 	sf::Packet spac;
@@ -445,7 +467,7 @@ unsigned int NetPlayServer::OnDisconnect(Client& player)
 	{
 		if (mapping == pid)
 		{
-			mapping = -1;
+			mapping = 1; // Give the port back to player 1
 		}
 	}
 	UpdatePadMapping();
