@@ -232,10 +232,7 @@ void NetPlayServer::AssignPorts(const PlayerId pid)
 	{
 		for (PadMapping &mapping : m_pad_map)
 		{
-			if (mapping == -1)
-			{
-				mapping = pid;
-			}
+			mapping = pid;
 		}
 	}
 	else // take the second port used by player 1
@@ -243,6 +240,11 @@ void NetPlayServer::AssignPorts(const PlayerId pid)
 		bool firstUsedPortDetected = false;
 		for (PadMapping &mapping : m_pad_map)
 		{
+			if (mapping == -1) // Not assigned at all? Then give me this port
+			{
+				mapping = pid;
+				break;
+			}
 			if (mapping == 1)
 			{
 				if (firstUsedPortDetected)
