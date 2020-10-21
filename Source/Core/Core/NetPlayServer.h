@@ -92,6 +92,7 @@ private:
 
 	void SendToClients(sf::Packet& packet, const PlayerId skip_pid = 0);
 	void Send(ENetPeer* socket, sf::Packet& packet);
+	void AssignPorts(const PlayerId pid);
 	unsigned int OnConnect(ENetPeer* socket);
 	unsigned int OnDisconnect(Client& player);
 	unsigned int OnData(sf::Packet& packet, Client& player);

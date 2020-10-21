@@ -226,6 +226,39 @@ void NetPlayServer::ThreadFunc()
 	}
 }
 
+void NetPlayServer::AssignPorts(const PlayerId pid)
+{
+	if (pid == 1) // Is he the first player joining the server?
+	{
+		for (PadMapping &mapping : m_pad_map)
+		{
+			if (mapping == -1)
+			{
+				mapping = pid;
+			}
+		}
+	}
+	else // take the second port used by player 1
+	{
+		bool firstUsedPortDetected = false;
+		for (PadMapping &mapping : m_pad_map)
+		{
+			if (mapping == 1)
+			{
+				if (firstUsedPortDetected)
+				{
+					mapping = pid;
+					break;
+				}
+				else
+				{
+					firstUsedPortDetected = true;
+				}
+			}
+		}
+	}
+}
+
 // called from ---NETPLAY--- thread
 unsigned int NetPlayServer::OnConnect(ENetPeer* socket)
 {
@@ -275,36 +308,7 @@ unsigned int NetPlayServer::OnConnect(ENetPeer* socket)
 
 	enet_packet_destroy(epack);
 	// try to automatically assign new user a pad
-	if (player.pid == 1) // Is he the first player joining the server?
-	{
-		for (PadMapping &mapping : m_pad_map)
-		{
-			if (mapping == -1)
-			{
-				mapping = player.pid;
-			}
-		}
-	}
-	else // take the second port used by player 1
-	{
-		bool firstUsedPortDetected = false;
-		for (PadMapping &mapping : m_pad_map)
-		{
-			if (mapping == 1)
-			{
-				if (firstUsedPortDetected)
-				{
-					mapping = player.pid;
-					break;
-				}
-				else
-				{
-					firstUsedPortDetected = true;
-				}
-			}
-		}
-	}
-
+	AssignPorts(player.pid);
 
 	// send join message to already connected clients
 	sf::Packet spac;
@@ -476,7 +480,7 @@ unsigned int NetPlayServer::OnDisconnect(Client& player)
 	{
 		if (mapping == pid)
 		{
-			mapping = -1;
+			mapping = 1;
 		}
 	}
 	UpdateWiimoteMapping();
@@ -587,20 +591,23 @@ unsigned int NetPlayServer::OnData(sf::Packet& packet, Client& player)
 	{
 		bool spectator;
 		packet >> spectator;
-		auto padmap = this->GetPadMapping();
-		for (int i = 0; i < padmap.size(); i++)
+
+		if (spectator)
 		{
-			if (spectator && padmap[i] == player.pid)
+			for (int i = 0; i < m_pad_map.size(); i++)
 			{
-				padmap[i] = -1;
-			}
-			else if (!spectator && padmap[i] == -1)
-			{
-				padmap[i] = player.pid;
-				break;
+				if (spectator && m_pad_map[i] == player.pid)
+				{
+					m_pad_map[i] = 1; // Assign this port for player 1
+				}
 			}
 		}
-		this->SetPadMapping(padmap);
+		else
+		{
+			this->AssignPorts(player.pid);
+		}
+
+		this->UpdatePadMapping();
 	}
 	break;
 
