@@ -600,7 +600,7 @@ unsigned int NetPlayServer::OnData(sf::Packet& packet, Client& player)
 			{
 				if (spectator && m_pad_map[i] == player.pid)
 				{
-					m_pad_map[i] = 1; // Assign this port for player 1
+					m_pad_map[i] = 1; // Assign this port to player 1
 				}
 			}
 		}
