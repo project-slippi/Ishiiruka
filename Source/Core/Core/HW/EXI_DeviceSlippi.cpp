@@ -708,6 +708,9 @@ void CEXISlippi::prepareGameInfo(u8 *payload)
 	// Write PS Frozen byte
 	m_read_queue.push_back(settings->isFrozenPS);
 
+	// Write should resync setting
+	m_read_queue.push_back(replayCommSettings.shouldResync ? 1 : 0);
+
 	// Return the size of the gecko code list
 	prepareGeckoList();
 	appendWordToBuffer(&m_read_queue, (u32)geckoList.size());
@@ -1029,6 +1032,7 @@ void CEXISlippi::prepareGeckoList()
 	    {0x80185050, true}, // Online/Menus/VSScreen/HideStageDisplay/PreventEarlyR3Overwrite.asm
 	    {0x80184b1c, true}, // Online/Menus/VSScreen/HideStageText/SkipStageNumberShow.asm
 	    {0x801A45BC, true}, // Online/Slippi Online Scene/main.asm
+	    {0x801a45b8, true}, // Online/Slippi Online Scene/main.asm (https://bit.ly/3kxohf4)
 	    {0x801BFA20, true}, // Online/Slippi Online Scene/boot.asm
 	};
 
