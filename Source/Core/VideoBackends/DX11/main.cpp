@@ -208,4 +208,9 @@ void VideoBackend::Video_Cleanup()
 	CleanupShared();
 }
 
+void Videobackend::PrepareWindow()
+{
+
+}
+
 }

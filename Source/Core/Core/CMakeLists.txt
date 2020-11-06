@@ -268,9 +268,7 @@ if(LIBUSB_FOUND)
 	        	       	IPC_HLE/WII_IPC_HLE_Device_usb_bt_real.cpp)
 endif(LIBUSB_FOUND)
 
-if(NOT APPLE)
-	set(LIBS ${LIBS} videovulkan)
-endif()
+set(LIBS ${LIBS} videovulkan)
 
 set(LIBS ${LIBS} ${MBEDTLS_LIBRARIES})
 
