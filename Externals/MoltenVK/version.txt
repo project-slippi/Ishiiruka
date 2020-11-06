@@ -1,0 +1,3 @@
+MoltenVK/macOS/dynamic/libMoltenVK.dylib from MoltenVK v1.1.0 (Vulkan SDK 1.2.154), renamed to libvulkan.dylib.
+
+Downloaded from: https://github.com/KhronosGroup/MoltenVK/archive/v1.1.0.zip

@@ -147,6 +147,15 @@ if __name__ == '__main__':
 			continue
 		fullPath = os.path.join(args.bundle, 'Contents/MacOS/', executable)
 		updateMachO(fullPath, splitPath(os.path.join(args.bundle, 'Contents/MacOS')), splitPath(args.root))
+
+        # Copy MoltenVK into the bundle frameworks folder; mainline differs here since they
+        # reworked all this some time ago, but the old wxWidgets build(s) used this script which blows away
+        # the frameworks folder and rebuilds it.
+        shutil.copy2(
+            args.bundle + '/../../../Externals/MoltenVK/libvulkan.dylib',
+            args.bundle + '/Contents/Frameworks/libvulkan.dylib'
+        )
+
 	if args.qt_plugins:
 		try:
 			shutil.rmtree(os.path.join(args.bundle, 'Contents/PlugIns/'))

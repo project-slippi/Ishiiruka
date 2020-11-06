@@ -191,6 +191,9 @@ bool VulkanContext::SelectInstanceExtensions(ExtensionList* extension_list, bool
 #elif defined(VK_USE_PLATFORM_ANDROID_KHR)
 	if (enable_surface && !CheckForExtension(VK_KHR_ANDROID_SURFACE_EXTENSION_NAME, true))
 		return false;
+#elif defined(VK_USE_PLATFORM_METAL_EXT)
+	if (enable_surface && !CheckForExtension(VK_EXT_METAL_SURFACE_EXTENSION_NAME, true))
+		return false;
 #endif
 
 	// VK_EXT_debug_report

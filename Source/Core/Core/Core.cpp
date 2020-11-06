@@ -263,6 +263,11 @@ bool Init()
 
 	s_window_handle = Host_GetRenderHandle();
 
+	// Issue any API calls which must occur on the main thread for the graphics
+	// backend. This currently is only used for macOS, as the CAMetalLayer
+	// components need to run on the main thread.
+	g_video_backend->PrepareWindow(s_window_handle);
+
 	// Start the emu thread
 	s_emu_thread = std::thread(EmuThread);
 
