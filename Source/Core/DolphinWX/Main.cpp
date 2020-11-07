@@ -4,10 +4,10 @@
 
 #include <cstdio>
 #include <cstring>
+#include <locale>
 #include <mutex>
 #include <string>
 #include <utility>
-#include <locale>
 
 #include <wx/app.h>
 #include <wx/buffer.h>
@@ -55,8 +55,8 @@
 
 #include "UICommon/UICommon.h"
 
-#include "VideoCommon/VideoBackendBase.h"
 #include "VideoCommon/OnScreenDisplay.h"
+#include "VideoCommon/VideoBackendBase.h"
 
 #if defined HAVE_X11 && HAVE_X11
 #include <X11/Xlib.h>
@@ -87,14 +87,14 @@ __declspec(dllexport) int AmdPowerXpressRequestHighPerformance = 1;
 
 IMPLEMENT_APP(DolphinApp)
 
-bool wxMsgAlert(const char*, const char*, bool, int);
-std::string wxStringTranslator(const char*);
+bool wxMsgAlert(const char *, const char *, bool, int);
+std::string wxStringTranslator(const char *);
 
-CFrame* main_frame = nullptr;
+CFrame *main_frame = nullptr;
 
 static std::mutex s_init_mutex;
 
-bool DolphinApp::Initialize(int& c, wxChar** v)
+bool DolphinApp::Initialize(int &c, wxChar **v)
 {
 #if defined HAVE_X11 && HAVE_X11
 	XInitThreads();
@@ -125,19 +125,19 @@ bool DolphinApp::OnInit()
 
 	UICommon::SetUserDirectory(m_user_path.ToStdString());
 	UICommon::CreateDirectories();
-	InitLanguageSupport();  // The language setting is loaded from the user directory
+	InitLanguageSupport(); // The language setting is loaded from the user directory
 	UICommon::Init();
 
 	if (m_select_video_backend && !m_video_backend_name.empty())
 		SConfig::GetInstance().m_strVideoBackend = WxStrToStr(m_video_backend_name);
 
+#ifdef IS_PLAYBACK
 	// Fallback to a default config file path if the user fails to provide one
 	if (m_select_slippi_input && !m_slippi_input_name.empty())
 		SConfig::GetInstance().m_strSlippiInput = WxStrToStr(m_slippi_input_name);
 	else
 		SConfig::GetInstance().m_strSlippiInput = "Slippi/playback.txt";
 
-#ifdef IS_PLAYBACK
 	if (m_hide_seekbar) // Hide seekbar if necessary by cmd line (mostly for external recording applications)
 	{
 		m_prev_seekbar = SConfig::GetInstance().m_InterfaceSeekbar;
@@ -149,12 +149,12 @@ bool DolphinApp::OnInit()
 #endif
 
 	if (m_select_output_directory && !m_output_directory.empty())
-        {
-                std::string output_directory = WxStrToStr(m_output_directory);
-                if (output_directory.back() != '/' && output_directory.back() != '\\')
-                        output_directory = output_directory + "/";
+	{
+		std::string output_directory = WxStrToStr(m_output_directory);
+		if (output_directory.back() != '/' && output_directory.back() != '\\')
+			output_directory = output_directory + "/";
 		SConfig::GetInstance().m_strOutputDirectory = output_directory;
-        }
+	}
 
 	if (m_select_output_filename_base && !m_output_filename_base.empty())
 		SConfig::GetInstance().m_strOutputFilenameBase = WxStrToStr(m_output_filename_base);
@@ -172,48 +172,53 @@ bool DolphinApp::OnInit()
 	wxImage::AddHandler(new wxPNGHandler);
 
 #ifdef __APPLE__
-	typedef Boolean (*SecTranslocateIsTranslocatedURL)(CFURLRef path, bool* isTranslocated, CFErrorRef* error);
-	typedef CFURLRef (*SecTranslocateCreateOriginalPathForURL)(CFURLRef translocatedPath, CFErrorRef* error);
+	typedef Boolean (*SecTranslocateIsTranslocatedURL)(CFURLRef path, bool *isTranslocated, CFErrorRef *error);
+	typedef CFURLRef (*SecTranslocateCreateOriginalPathForURL)(CFURLRef translocatedPath, CFErrorRef * error);
 
-	void* security_framework = dlopen("/System/Library/Frameworks/Security.framework/Security", RTLD_NOW);
+	void *security_framework = dlopen("/System/Library/Frameworks/Security.framework/Security", RTLD_NOW);
 
-	if(security_framework)
+	if (security_framework)
 	{
 		SecTranslocateIsTranslocatedURL SecTranslocateIsTranslocatedURL_func =
-			(SecTranslocateIsTranslocatedURL)dlsym(security_framework, "SecTranslocateIsTranslocatedURL");
+		    (SecTranslocateIsTranslocatedURL)dlsym(security_framework, "SecTranslocateIsTranslocatedURL");
 		SecTranslocateCreateOriginalPathForURL SecTranslocateCreateOriginalPathForURL_func =
-			(SecTranslocateCreateOriginalPathForURL)dlsym(security_framework, "SecTranslocateCreateOriginalPathForURL");
+		    (SecTranslocateCreateOriginalPathForURL)dlsym(security_framework, "SecTranslocateCreateOriginalPathForURL");
 
-		if(SecTranslocateIsTranslocatedURL_func && SecTranslocateCreateOriginalPathForURL_func)
+		if (SecTranslocateIsTranslocatedURL_func && SecTranslocateCreateOriginalPathForURL_func)
 		{
-			CFStringRef path = CFStringCreateWithCString(NULL, File::GetBundleDirectory().c_str(), kCFStringEncodingUTF8);
+			CFStringRef path =
+			    CFStringCreateWithCString(NULL, File::GetBundleDirectory().c_str(), kCFStringEncodingUTF8);
 			CFURLRef url = CFURLCreateWithFileSystemPath(NULL, path, kCFURLPOSIXPathStyle, 0);
 			CFURLRef translocated_original = SecTranslocateCreateOriginalPathForURL_func(url, nullptr);
 
 			bool is_translocated = false;
 			SecTranslocateIsTranslocatedURL_func(url, &is_translocated, nullptr);
 
-			if(is_translocated)
+			if (is_translocated)
 			{
 				// https://stackoverflow.com/questions/28860033/convert-from-cfurlref-or-cfstringref-to-stdstring
-				CFIndex bufferSize = CFStringGetLength(CFURLGetString(translocated_original)) + 1; // The +1 is for having space for the string to be NUL terminated
+				CFIndex bufferSize = CFStringGetLength(CFURLGetString(translocated_original)) +
+				                     1; // The +1 is for having space for the string to be NUL terminated
 				char buffer[bufferSize];
 
 				// CFStringGetCString is documented to return a false if the buffer is too small
 				// (which shouldn't happen in this example) or if the conversion generally fails
-				if (CFStringGetCString(CFURLGetString(translocated_original), buffer, bufferSize, kCFStringEncodingUTF8))
+				if (CFStringGetCString(CFURLGetString(translocated_original), buffer, bufferSize,
+				                       kCFStringEncodingUTF8))
 				{
-				    std::string cppString(buffer);
-				    cppString.erase(0, std::string("file://").size());
+					std::string cppString(buffer);
+					cppString.erase(0, std::string("file://").size());
 
-				    if(system(("xattr -r -d com.apple.quarantine \"" + cppString + "\"").c_str()) == EXIT_SUCCESS)
+					if (system(("xattr -r -d com.apple.quarantine \"" + cppString + "\"").c_str()) == EXIT_SUCCESS)
 					{
-				    	system(("\"" + cppString + "/Contents/MacOS/Dolphin\" &disown").c_str());
+						system(("\"" + cppString + "/Contents/MacOS/Dolphin\" &disown").c_str());
 						exit(EXIT_SUCCESS);
 					}
 				}
 
-				wxMessageBox("This app is quarantined! Move it to your Applications folder and reopen it.\nAsk in the Discord (#macos-support) for further help.", "An error occured", wxOK | wxCENTRE | wxICON_WARNING);
+				wxMessageBox("This app is quarantined! Move it to your Applications folder and reopen it.\nAsk in the "
+				             "Discord (#macos-support) for further help.",
+				             "An error occured", wxOK | wxCENTRE | wxICON_WARNING);
 				exit(EXIT_SUCCESS);
 			}
 		}
@@ -225,14 +230,14 @@ bool DolphinApp::OnInit()
 	// We have to copy the size and position out of SConfig now because CFrame's OnMove
 	// handler will corrupt them during window creation (various APIs like SetMenuBar cause
 	// event dispatch including WM_MOVE/WM_SIZE)
-	wxRect window_geometry(SConfig::GetInstance().iPosX, SConfig::GetInstance().iPosY,
-		SConfig::GetInstance().iWidth, SConfig::GetInstance().iHeight);
+	wxRect window_geometry(SConfig::GetInstance().iPosX, SConfig::GetInstance().iPosY, SConfig::GetInstance().iWidth,
+	                       SConfig::GetInstance().iHeight);
 
-	main_frame = new CFrame(nullptr, wxID_ANY, StrToWxStr(scm_rev_str), window_geometry,
-		m_use_debugger, m_batch_mode, m_use_logger);
+	main_frame = new CFrame(nullptr, wxID_ANY, StrToWxStr(scm_rev_str), window_geometry, m_use_debugger, m_batch_mode,
+	                        m_use_logger);
 	SetTopWindow(main_frame);
 
-    AfterInit();
+	AfterInit();
 
 	// Init the spectator server
 	SlippiSpectateServer *init = SlippiSpectateServer::getInstance();
@@ -241,80 +246,72 @@ bool DolphinApp::OnInit()
 	return true;
 }
 
-void DolphinApp::OnInitCmdLine(wxCmdLineParser& parser)
+void DolphinApp::OnInitCmdLine(wxCmdLineParser &parser)
 {
 	static const wxCmdLineEntryDesc desc[] = {
-			{wxCMD_LINE_SWITCH, "h", "help", "Show this help message", wxCMD_LINE_VAL_NONE,
-			 wxCMD_LINE_OPTION_HELP},
-			{wxCMD_LINE_SWITCH, "d", "debugger", "Opens the debugger", wxCMD_LINE_VAL_NONE,
-			 wxCMD_LINE_PARAM_OPTIONAL},
-			{wxCMD_LINE_SWITCH, "l", "logger", "Opens the logger", wxCMD_LINE_VAL_NONE,
-			 wxCMD_LINE_PARAM_OPTIONAL},
-			{wxCMD_LINE_OPTION, "e", "exec",
-			"Loads the specified file (ELF, DOL, GCM, ISO, TGC, WBFS, CISO, GCZ, WAD)",
-			wxCMD_LINE_VAL_STRING, wxCMD_LINE_PARAM_OPTIONAL },
-			{wxCMD_LINE_SWITCH, "b", "batch", "Exit Dolphin with emulator", wxCMD_LINE_VAL_NONE,
-			 wxCMD_LINE_PARAM_OPTIONAL},
-			{wxCMD_LINE_OPTION, "c", "confirm", "Set Confirm on Stop", wxCMD_LINE_VAL_STRING,
-			 wxCMD_LINE_PARAM_OPTIONAL},
-			{wxCMD_LINE_OPTION, "v", "video_backend", "Specify a video backend", wxCMD_LINE_VAL_STRING,
-			 wxCMD_LINE_PARAM_OPTIONAL},
-			{wxCMD_LINE_OPTION, "od", "output-directory", "Directory to place audio and video dump files",
-			wxCMD_LINE_VAL_STRING, wxCMD_LINE_PARAM_OPTIONAL},
-			{wxCMD_LINE_OPTION, "o", "output-filename-base", "Base of filenames for audio and video dump files", 
-			wxCMD_LINE_VAL_STRING, wxCMD_LINE_PARAM_OPTIONAL},
-			{wxCMD_LINE_OPTION, "a", "audio_emulation", "Low level (LLE) or high level (HLE) audio",
-			 wxCMD_LINE_VAL_STRING, wxCMD_LINE_PARAM_OPTIONAL},
+	    {wxCMD_LINE_SWITCH, "h", "help", "Show this help message", wxCMD_LINE_VAL_NONE, wxCMD_LINE_OPTION_HELP},
+	    {wxCMD_LINE_SWITCH, "d", "debugger", "Opens the debugger", wxCMD_LINE_VAL_NONE, wxCMD_LINE_PARAM_OPTIONAL},
+	    {wxCMD_LINE_SWITCH, "l", "logger", "Opens the logger", wxCMD_LINE_VAL_NONE, wxCMD_LINE_PARAM_OPTIONAL},
+	    {wxCMD_LINE_OPTION, "e", "exec", "Loads the specified file (ELF, DOL, GCM, ISO, TGC, WBFS, CISO, GCZ, WAD)",
+	     wxCMD_LINE_VAL_STRING, wxCMD_LINE_PARAM_OPTIONAL},
+	    {wxCMD_LINE_SWITCH, "b", "batch", "Exit Dolphin with emulator", wxCMD_LINE_VAL_NONE, wxCMD_LINE_PARAM_OPTIONAL},
+	    {wxCMD_LINE_OPTION, "c", "confirm", "Set Confirm on Stop", wxCMD_LINE_VAL_STRING, wxCMD_LINE_PARAM_OPTIONAL},
+	    {wxCMD_LINE_OPTION, "v", "video_backend", "Specify a video backend", wxCMD_LINE_VAL_STRING,
+	     wxCMD_LINE_PARAM_OPTIONAL},
+	    {wxCMD_LINE_OPTION, "od", "output-directory", "Directory to place audio and video dump files",
+	     wxCMD_LINE_VAL_STRING, wxCMD_LINE_PARAM_OPTIONAL},
+	    {wxCMD_LINE_OPTION, "o", "output-filename-base", "Base of filenames for audio and video dump files",
+	     wxCMD_LINE_VAL_STRING, wxCMD_LINE_PARAM_OPTIONAL},
+	    {wxCMD_LINE_OPTION, "a", "audio_emulation", "Low level (LLE) or high level (HLE) audio", wxCMD_LINE_VAL_STRING,
+	     wxCMD_LINE_PARAM_OPTIONAL},
 #ifdef IS_PLAYBACK
-			{wxCMD_LINE_OPTION, "i", "slippi-input", "Path to Slippi replay config file (default: Slippi/playback.txt)",
-			 wxCMD_LINE_VAL_STRING, wxCMD_LINE_PARAM_OPTIONAL},
-			{wxCMD_LINE_SWITCH, "hs", "hide-seekbar", "Hide seekbar during playback", wxCMD_LINE_VAL_NONE,
-			 wxCMD_LINE_PARAM_OPTIONAL},
-			 {wxCMD_LINE_SWITCH, "co", "cout", "Enable cout during playback", wxCMD_LINE_VAL_NONE,
-			 wxCMD_LINE_PARAM_OPTIONAL},
+	    {wxCMD_LINE_OPTION, "i", "slippi-input", "Path to Slippi replay config file (default: Slippi/playback.txt)",
+	     wxCMD_LINE_VAL_STRING, wxCMD_LINE_PARAM_OPTIONAL},
+	    {wxCMD_LINE_SWITCH, "hs", "hide-seekbar", "Hide seekbar during playback", wxCMD_LINE_VAL_NONE,
+	     wxCMD_LINE_PARAM_OPTIONAL},
+	    {wxCMD_LINE_SWITCH, "co", "cout", "Enable cout during playback", wxCMD_LINE_VAL_NONE,
+	     wxCMD_LINE_PARAM_OPTIONAL},
 #endif
-			{wxCMD_LINE_OPTION, "m", "movie", "Play a movie file", wxCMD_LINE_VAL_STRING,
-			 wxCMD_LINE_PARAM_OPTIONAL},
-			{wxCMD_LINE_OPTION, "u", "user", "User folder path", wxCMD_LINE_VAL_STRING,
-			 wxCMD_LINE_PARAM_OPTIONAL},
-			{wxCMD_LINE_NONE, nullptr, nullptr, nullptr, wxCMD_LINE_VAL_NONE, 0} };
+	    {wxCMD_LINE_OPTION, "m", "movie", "Play a movie file", wxCMD_LINE_VAL_STRING, wxCMD_LINE_PARAM_OPTIONAL},
+	    {wxCMD_LINE_OPTION, "u", "user", "User folder path", wxCMD_LINE_VAL_STRING, wxCMD_LINE_PARAM_OPTIONAL},
+	    {wxCMD_LINE_NONE, nullptr, nullptr, nullptr, wxCMD_LINE_VAL_NONE, 0}};
 
 	parser.SetDesc(desc);
 }
 
-int DolphinApp::FilterEvent(wxEvent& event)
+int DolphinApp::FilterEvent(wxEvent &event)
 {
-    wxKeyEvent& kev = reinterpret_cast<wxKeyEvent&>(event);
+	wxKeyEvent &kev = reinterpret_cast<wxKeyEvent &>(event);
 
-    if(main_frame && main_frame->RendererHasFocus())
-    {
-        if(event.GetEventType() == wxEVT_CHAR)
-        {
-            if(kev.GetKeyCode() == WXK_BACK)
-            {
-                if(OSD::Chat::current_msg.size() > 0)
-                    OSD::Chat::current_msg.pop_back();
-            }
-            else
-            {
-                std::string result = wxString(kev.GetUnicodeKey()).ToStdString();
-                std::string filtered;
+	if (main_frame && main_frame->RendererHasFocus())
+	{
+		if (event.GetEventType() == wxEVT_CHAR)
+		{
+			if (kev.GetKeyCode() == WXK_BACK)
+			{
+				if (OSD::Chat::current_msg.size() > 0)
+					OSD::Chat::current_msg.pop_back();
+			}
+			else
+			{
+				std::string result = wxString(kev.GetUnicodeKey()).ToStdString();
+				std::string filtered;
 
-                for(char c : result)
-                {
-                    if(std::isalnum(c, std::locale::classic()) || std::ispunct(c, std::locale::classic()) || c == ' ')
-                        filtered += c;
-                }
+				for (char c : result)
+				{
+					if (std::isalnum(c, std::locale::classic()) || std::ispunct(c, std::locale::classic()) || c == ' ')
+						filtered += c;
+				}
 
-                OSD::Chat::current_msg += filtered;
-            }
-        }
-    }
+				OSD::Chat::current_msg += filtered;
+			}
+		}
+	}
 
-    return -1;
+	return -1;
 }
 
-bool DolphinApp::OnCmdLineParsed(wxCmdLineParser& parser)
+bool DolphinApp::OnCmdLineParsed(wxCmdLineParser &parser)
 {
 	if (argc == 2 && File::Exists(argv[1].ToUTF8().data()))
 	{
@@ -335,8 +332,8 @@ bool DolphinApp::OnCmdLineParsed(wxCmdLineParser& parser)
 	m_confirm_stop = parser.Found("confirm", &m_confirm_setting);
 	m_select_video_backend = parser.Found("video_backend", &m_video_backend_name);
 	m_select_audio_emulation = parser.Found("audio_emulation", &m_audio_emulation_name);
-	m_select_slippi_input = parser.Found("slippi-input", &m_slippi_input_name);
 #ifdef IS_PLAYBACK
+	m_select_slippi_input = parser.Found("slippi-input", &m_slippi_input_name);
 	m_hide_seekbar = parser.Found("hide-seekbar");
 	m_enable_cout = parser.Found("cout");
 #endif
@@ -349,7 +346,7 @@ bool DolphinApp::OnCmdLineParsed(wxCmdLineParser& parser)
 }
 
 #ifdef __APPLE__
-void DolphinApp::MacOpenFile(const wxString& fileName)
+void DolphinApp::MacOpenFile(const wxString &fileName)
 {
 	m_file_to_load = fileName;
 	m_load_file = true;
@@ -364,19 +361,18 @@ void DolphinApp::AfterInit()
 
 	if (SConfig::GetInstance().m_analytics_will_prompt && !SConfig::GetInstance().m_analytics_permission_asked)
 	{
-		int answer =
-			wxMessageBox(_("If authorized, Dolphin can collect data on its performance, "
-				"feature usage, and configuration, as well as data on your system's "
-				"hardware and operating system.\n\n"
-				"No private data is ever collected. This data helps us understand "
-				"how people and emulated games use Dolphin and prioritize our "
-				"efforts. It also helps us identify rare configurations that are "
-				"causing bugs, performance and stability issues.\n"
-				"This authorization can be revoked at any time through Dolphin's "
-				"settings.\n\n"
-				"Do you authorize Dolphin to report this information to Dolphin's "
-				"developers?"),
-				_("Usage statistics reporting"), wxYES_NO, main_frame);
+		int answer = wxMessageBox(_("If authorized, Dolphin can collect data on its performance, "
+		                            "feature usage, and configuration, as well as data on your system's "
+		                            "hardware and operating system.\n\n"
+		                            "No private data is ever collected. This data helps us understand "
+		                            "how people and emulated games use Dolphin and prioritize our "
+		                            "efforts. It also helps us identify rare configurations that are "
+		                            "causing bugs, performance and stability issues.\n"
+		                            "This authorization can be revoked at any time through Dolphin's "
+		                            "settings.\n\n"
+		                            "Do you authorize Dolphin to report this information to Dolphin's "
+		                            "developers?"),
+		                          _("Usage statistics reporting"), wxYES_NO, main_frame);
 
 		SConfig::GetInstance().m_analytics_permission_asked = true;
 		SConfig::GetInstance().m_analytics_enabled = (answer == wxYES);
@@ -441,7 +437,7 @@ void DolphinApp::AfterInit()
 	}
 }
 
-void DolphinApp::OnActivate(wxActivateEvent& ev)
+void DolphinApp::OnActivate(wxActivateEvent &ev)
 {
 	m_is_active = ev.GetActive();
 }
@@ -461,7 +457,7 @@ void DolphinApp::InitLanguageSupport()
 	}
 	else
 	{
-		const wxLanguageInfo* language_info = wxLocale::FindLanguageInfo(StrToWxStr(language_code));
+		const wxLanguageInfo *language_info = wxLocale::FindLanguageInfo(StrToWxStr(language_code));
 		if (language_info)
 			language = language_info->Language;
 	}
@@ -477,8 +473,7 @@ void DolphinApp::InitLanguageSupport()
 #elif defined(__WXGTK__)
 		m_locale->AddCatalogLookupPathPrefix(StrToWxStr(DATA_DIR "../locale"));
 #elif defined(__WXOSX__)
-		m_locale->AddCatalogLookupPathPrefix(
-			StrToWxStr(File::GetBundleDirectory() + "Contents/Resources"));
+		m_locale->AddCatalogLookupPathPrefix(StrToWxStr(File::GetBundleDirectory() + "Contents/Resources"));
 #endif
 
 		m_locale->AddCatalog("dolphin-emu");
@@ -494,7 +489,7 @@ void DolphinApp::InitLanguageSupport()
 	}
 }
 
-void DolphinApp::OnEndSession(wxCloseEvent& event)
+void DolphinApp::OnEndSession(wxCloseEvent &event)
 {
 	// Close if we've received wxEVT_END_SESSION (ignore wxEVT_QUERY_END_SESSION)
 	if (!event.CanVeto())
@@ -520,7 +515,7 @@ void DolphinApp::OnFatalException()
 	WiimoteReal::Shutdown();
 }
 
-void DolphinApp::OnIdle(wxIdleEvent& ev)
+void DolphinApp::OnIdle(wxIdleEvent &ev)
 {
 	ev.Skip();
 	Core::HostDispatchJobs();
@@ -529,20 +524,20 @@ void DolphinApp::OnIdle(wxIdleEvent& ev)
 // ------------
 // Talk to GUI
 
-bool wxMsgAlert(const char* caption, const char* text, bool yes_no, int /*Style*/)
+bool wxMsgAlert(const char *caption, const char *text, bool yes_no, int /*Style*/)
 {
 #ifdef __WXGTK__
 	if (wxIsMainThread())
 	{
 #endif
-		NetPlayDialog*& npd = NetPlayDialog::GetInstance();
+		NetPlayDialog *&npd = NetPlayDialog::GetInstance();
 		if (npd != nullptr && npd->IsShown())
 		{
-			npd->AppendChat("/!\\ " + std::string{ text }, false);
+			npd->AppendChat("/!\\ " + std::string{text}, false);
 			return true;
 		}
-		return wxYES == wxMessageBox(StrToWxStr(text), StrToWxStr(caption), (yes_no) ? wxYES_NO : wxOK,
-			wxWindow::FindFocus());
+		return wxYES ==
+		       wxMessageBox(StrToWxStr(text), StrToWxStr(caption), (yes_no) ? wxYES_NO : wxOK, wxWindow::FindFocus());
 #ifdef __WXGTK__
 	}
 	else
@@ -557,13 +552,13 @@ bool wxMsgAlert(const char* caption, const char* text, bool yes_no, int /*Style*
 #endif
 }
 
-std::string wxStringTranslator(const char* text)
+std::string wxStringTranslator(const char *text)
 {
 	return WxStrToStr(wxGetTranslation(wxString::FromUTF8(text)));
 }
 
 // Accessor for the main window class
-CFrame* DolphinApp::GetCFrame()
+CFrame *DolphinApp::GetCFrame()
 {
 	return main_frame;
 }
@@ -580,7 +575,7 @@ void Host_Message(int Id)
 	main_frame->GetEventHandler()->AddPendingEvent(event);
 }
 
-void* Host_GetRenderHandle()
+void *Host_GetRenderHandle()
 {
 	return main_frame->GetRenderHandle();
 }
@@ -620,7 +615,7 @@ void Host_UpdateMainFrame()
 	}
 }
 
-void Host_UpdateTitle(const std::string& title)
+void Host_UpdateTitle(const std::string &title)
 {
 	wxCommandEvent event(wxEVT_HOST_COMMAND, IDM_UPDATE_TITLE);
 	event.SetString(StrToWxStr(title));
@@ -636,7 +631,7 @@ void Host_RequestRenderWindowSize(int width, int height)
 
 void Host_SetStartupDebuggingParameters()
 {
-	SConfig& StartUp = SConfig::GetInstance();
+	SConfig &StartUp = SConfig::GetInstance();
 	if (main_frame->g_pCodeWindow)
 	{
 		StartUp.bBootToPause = main_frame->g_pCodeWindow->BootToPause();
@@ -648,7 +643,7 @@ void Host_SetStartupDebuggingParameters()
 	{
 		StartUp.bBootToPause = false;
 	}
-	StartUp.bEnableDebugging = main_frame->g_pCodeWindow ? true : false;  // RUNNING_DEBUG
+	StartUp.bEnableDebugging = main_frame->g_pCodeWindow ? true : false; // RUNNING_DEBUG
 }
 
 void Host_SetWiiMoteConnectionState(int _State)
@@ -675,7 +670,7 @@ void Host_SetWiiMoteConnectionState(int _State)
 	// Update field 1 or 2
 	event.SetInt(1);
 
-	NOTICE_LOG(WIIMOTE, "%s", static_cast<const char*>(event.GetString().c_str()));
+	NOTICE_LOG(WIIMOTE, "%s", static_cast<const char *>(event.GetString().c_str()));
 
 	main_frame->GetEventHandler()->AddPendingEvent(event);
 }
@@ -710,16 +705,16 @@ void Host_ConnectWiimote(int wm_idx, bool connect)
 	}
 }
 
-void Host_ShowVideoConfig(void* parent, const std::string& backend_name)
+void Host_ShowVideoConfig(void *parent, const std::string &backend_name)
 {
 	if (backend_name == "Software Renderer")
 	{
-		SoftwareVideoConfigDialog diag((wxWindow*)parent, backend_name);
+		SoftwareVideoConfigDialog diag((wxWindow *)parent, backend_name);
 		diag.ShowModal();
 	}
 	else
 	{
-		VideoConfigDiag diag((wxWindow*)parent, backend_name);
+		VideoConfigDiag diag((wxWindow *)parent, backend_name);
 		diag.ShowModal();
 	}
 }
