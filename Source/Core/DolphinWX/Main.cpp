@@ -259,8 +259,6 @@ void DolphinApp::OnInitCmdLine(wxCmdLineParser& parser)
 			 wxCMD_LINE_PARAM_OPTIONAL},
 			{wxCMD_LINE_OPTION, "v", "video_backend", "Specify a video backend", wxCMD_LINE_VAL_STRING,
 			 wxCMD_LINE_PARAM_OPTIONAL},
-			{wxCMD_LINE_OPTION, "i", "slippi-input", "Path to Slippi replay config file (default: Slippi/playback.txt)",
-			wxCMD_LINE_VAL_STRING, wxCMD_LINE_PARAM_OPTIONAL},
 			{wxCMD_LINE_OPTION, "od", "output-directory", "Directory to place audio and video dump files",
 			wxCMD_LINE_VAL_STRING, wxCMD_LINE_PARAM_OPTIONAL},
 			{wxCMD_LINE_OPTION, "o", "output-filename-base", "Base of filenames for audio and video dump files", 
@@ -268,6 +266,8 @@ void DolphinApp::OnInitCmdLine(wxCmdLineParser& parser)
 			{wxCMD_LINE_OPTION, "a", "audio_emulation", "Low level (LLE) or high level (HLE) audio",
 			 wxCMD_LINE_VAL_STRING, wxCMD_LINE_PARAM_OPTIONAL},
 #ifdef IS_PLAYBACK
+			{wxCMD_LINE_OPTION, "i", "slippi-input", "Path to Slippi replay config file (default: Slippi/playback.txt)",
+			 wxCMD_LINE_VAL_STRING, wxCMD_LINE_PARAM_OPTIONAL},
 			{wxCMD_LINE_SWITCH, "hs", "hide-seekbar", "Hide seekbar during playback", wxCMD_LINE_VAL_NONE,
 			 wxCMD_LINE_PARAM_OPTIONAL},
 			 {wxCMD_LINE_SWITCH, "co", "cout", "Enable cout during playback", wxCMD_LINE_VAL_NONE,
