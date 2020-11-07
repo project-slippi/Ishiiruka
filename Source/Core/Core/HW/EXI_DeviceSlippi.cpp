@@ -1034,6 +1034,8 @@ void CEXISlippi::prepareGeckoList()
 	    {0x801A45BC, true}, // Online/Slippi Online Scene/main.asm
 	    {0x801a45b8, true}, // Online/Slippi Online Scene/main.asm (https://bit.ly/3kxohf4)
 	    {0x801BFA20, true}, // Online/Slippi Online Scene/boot.asm
+	    {0x800cc818, true}, // External/GreenDuringWait/fall.asm
+	    {0x8008a478, true}, // External/GreenDuringWait/wait.asm
 	};
 
 	std::unordered_map<u32, bool> blacklist;
