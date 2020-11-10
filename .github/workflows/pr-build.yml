@@ -40,9 +40,9 @@ jobs:
         shell: bash
         run: |
           git fetch --prune --unshallow
-          echo ::set-env name=GIT_BRANCH::$(git rev-parse --abbrev-ref HEAD)
-          echo ::set-env name=GIT_HASH::$(git rev-parse --short HEAD)
-          echo ::set-env name=GIT_TAG::$(git describe --tags --abbrev=0)
+          echo "GIT_BRANCH=$(git rev-parse --abbrev-ref HEAD)" >> $GITHUB_ENV
+          echo "GIT_HASH=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+          echo "GIT_TAG=$(git describe --tags --abbrev=0)" >> $GITHUB_ENV
       - name: "Build Netplay Dolphin"
         shell: cmd
         run: |
@@ -100,9 +100,9 @@ jobs:
         shell: bash
         run: |
           git fetch --prune --unshallow
-          echo ::set-env name=GIT_BRANCH::$(git rev-parse --abbrev-ref HEAD)
-          echo ::set-env name=GIT_HASH::$(git rev-parse --short HEAD)
-          echo ::set-env name=GIT_TAG::$(git describe --tags --abbrev=0)
+          echo "GIT_BRANCH=$(git rev-parse --abbrev-ref HEAD)" >> $GITHUB_ENV
+          echo "GIT_HASH=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+          echo "GIT_TAG=$(git describe --tags --abbrev=0)" >> $GITHUB_ENV
       - name: "Build Playback Dolphin"
         shell: cmd
         run: |
@@ -140,10 +140,10 @@ jobs:
           if: success()
           run: |
             git fetch --prune --unshallow
-            echo ::set-env name=GIT_BRANCH::$(git rev-parse --abbrev-ref HEAD)
-            echo ::set-env name=GIT_HASH::$(git rev-parse --short HEAD)
-            echo ::set-env name=GIT_TAG::$(git describe --tags --abbrev=0)
-            echo ::set-env name=CURR_DATE::$(date +%Y-%m-%d)
+            echo "GIT_BRANCH=$(git rev-parse --abbrev-ref HEAD)" >> $GITHUB_ENV
+            echo "GIT_HASH=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+            echo "GIT_TAG=$(git describe --tags --abbrev=0)" >> $GITHUB_ENV
+            echo "CURR_DATE=$(date +%Y-%m-%d)" >> $GITHUB_ENV
         - name: "Install prerequisites"
           if: success()
           shell: bash
@@ -223,10 +223,10 @@ jobs:
           if: success()
           run: |
             git fetch --prune --unshallow
-            echo ::set-env name=GIT_BRANCH::$(git rev-parse --abbrev-ref HEAD)
-            echo ::set-env name=GIT_HASH::$(git rev-parse --short HEAD)
-            echo ::set-env name=GIT_TAG::$(git describe --tags --abbrev=0)
-            echo ::set-env name=CURR_DATE::$(date +%Y-%m-%d)
+            echo "GIT_BRANCH=$(git rev-parse --abbrev-ref HEAD)" >> $GITHUB_ENV
+            echo "GIT_HASH=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+            echo "GIT_TAG=$(git describe --tags --abbrev=0)" >> $GITHUB_ENV
+            echo "CURR_DATE=$(date +%Y-%m-%d)" >> $GITHUB_ENV
         - name: "Install prerequisites"
           if: success()
           shell: bash
@@ -306,10 +306,10 @@ jobs:
         if: success()
         run: |
           git fetch --prune --unshallow
-          echo ::set-env name=GIT_BRANCH::$(git rev-parse --abbrev-ref HEAD)
-          echo ::set-env name=GIT_HASH::$(git rev-parse --short HEAD)
-          echo ::set-env name=GIT_TAG::$(git describe --tags --abbrev=0)
-          echo ::set-env name=CURR_DATE::$(date +%Y-%m-%d)
+          echo "GIT_BRANCH=$(git rev-parse --abbrev-ref HEAD)" >> $GITHUB_ENV
+            echo "GIT_HASH=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+            echo "GIT_TAG=$(git describe --tags --abbrev=0)" >> $GITHUB_ENV
+            echo "CURR_DATE=$(date +%Y-%m-%d)" >> $GITHUB_ENV
       - name: "Install 10.14 SDK"
         if: success()
         shell: bash
@@ -368,7 +368,6 @@ jobs:
         working-directory: ${{ github.workspace }}
         run: |
           FILE_NAME=${{ env.CURR_DATE }}-${{ env.GIT_HASH }}-${{ env.GIT_TAG }}-macOS-netplay.tar.gz
-          echo "::set-env name=FILE_NAME::${FILE_NAME}"
           cp -Rf Data/Sys build/Binaries/Slippi\ Dolphin.app/Contents/Resources/
           mkdir artifact
           cd ./build/Binaries/
@@ -392,10 +391,10 @@ jobs:
         if: success()
         run: |
           git fetch --prune --unshallow
-          echo ::set-env name=GIT_BRANCH::$(git rev-parse --abbrev-ref HEAD)
-          echo ::set-env name=GIT_HASH::$(git rev-parse --short HEAD)
-          echo ::set-env name=GIT_TAG::$(git describe --tags --abbrev=0)
-          echo ::set-env name=CURR_DATE::$(date +%Y-%m-%d)
+          echo "GIT_BRANCH=$(git rev-parse --abbrev-ref HEAD)" >> $GITHUB_ENV
+          echo "GIT_HASH=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+          echo "GIT_TAG=$(git describe --tags --abbrev=0)" >> $GITHUB_ENV
+          echo "CURR_DATE=$(date +%Y-%m-%d)" >> $GITHUB_ENV
       - name: "Install 10.14 SDK"
         if: success()
         shell: bash
