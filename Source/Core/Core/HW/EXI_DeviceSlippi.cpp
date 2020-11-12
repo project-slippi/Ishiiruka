@@ -977,6 +977,8 @@ void CEXISlippi::prepareGeckoList()
 	    {0x80376200, true}, // Binary/LagReduction/PD+VB.bin
 	    {0x801A5018, true}, // Binary/LagReduction/PD+VB.bin
 	    {0x80218D68, true}, // Binary/LagReduction/PD+VB.bin
+	    {0x8016E9AC, true}, // Binary/Force2PCenterHud.bin
+	    {0x80030E44, true}, // Binary/DisableScreenShake.bin
 
 	    {0x800055f0, true}, // Common/EXITransferBuffer.asm
 	    {0x800055f8, true}, // Common/GetIsFollower.asm
@@ -1036,6 +1038,8 @@ void CEXISlippi::prepareGeckoList()
 	    {0x801BFA20, true}, // Online/Slippi Online Scene/boot.asm
 	    {0x800cc818, true}, // External/GreenDuringWait/fall.asm
 	    {0x8008a478, true}, // External/GreenDuringWait/wait.asm
+
+	    {0x802f6690, true}, // HUD Transparency v1.1
 	};
 
 	std::unordered_map<u32, bool> blacklist;
