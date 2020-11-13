@@ -381,7 +381,7 @@ jobs:
             --window-size 590 610 \
             --icon-size 100 \
             --app-drop-link 440 196 \
-            --icon "Slippi Dolphin.app" 140 110 \
+            --icon "Slippi Dolphin.app" 140 196 \
             --hide-extension "Slippi Dolphin.app" \
             "${FILE_NAME}" \
             "./build/Binaries/"
