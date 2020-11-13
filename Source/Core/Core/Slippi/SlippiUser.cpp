@@ -145,10 +145,28 @@ bool SlippiUser::AttemptLogin()
 	return isLoggedIn;
 }
 
+// macOS and Linux have modern WebKit views (in our wxWidgets build) that can pop open and enable login
+// with relative ease; Windows unfortunately is locked to IE11 until Edge no longer requires shipping an
+// additional DLL, so it gets the older form (pop them over to browser and guide them to place the file).
 void SlippiUser::OpenLogInPage()
 {
+#ifdef _WIN32
+	std::string url = "https://slippi.gg/online/enable";
+	std::string path = getUserFilePath();
+    
+    // On windows, sometimes the path can have backslashes and slashes mixed, convert all to backslashes
+	path = ReplaceAll(path, "\\", "\\");
+	path = ReplaceAll(path, "/", "\\");
+    
+    std::string fullUrl = url + "?path=" + path;
+	INFO_LOG(SLIPPI_ONLINE, "[User] Login at path: %s", fullUrl.c_str());
+
+    std::string command = "explorer \"" + fullUrl + "\"";
+    RunSystemCommand(command);
+#else
     CFrame* cframe = wxGetApp().GetCFrame();
     cframe->OpenSlippiAuthenticationDialog();
+#endif
 }
 
 void SlippiUser::UpdateApp()
