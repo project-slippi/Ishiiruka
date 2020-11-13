@@ -14,11 +14,14 @@
 #include "Core/Slippi/SlippiNetplay.h"
 #include "Core/Slippi/SlippiReplayComm.h"
 #include "Core/Slippi/SlippiSavestate.h"
+#include "Core/Slippi/SlippiSpectate.h"
 #include "Core/Slippi/SlippiUser.h"
 
 #define ROLLBACK_MAX_FRAMES 7
 #define MAX_NAME_LENGTH 15
 #define CONNECT_CODE_LENGTH 8
+
+extern bool g_needInputForFrame;
 
 // Emulated Slippi device used to receive and respond to in-game messages
 class CEXISlippi : public IEXIDevice
@@ -42,6 +45,8 @@ class CEXISlippi : public IEXIDevice
 		CMD_RECEIVE_GAME_INFO = 0x36,
 		CMD_RECEIVE_POST_FRAME_UPDATE = 0x38,
 		CMD_RECEIVE_GAME_END = 0x39,
+		CMD_FRAME_BOOKEND = 0x3C,
+		CMD_MENU_FRAME = 0x3E,
 
 		// Playback
 		CMD_PREPARE_REPLAY = 0x75,
@@ -121,6 +126,10 @@ class CEXISlippi : public IEXIDevice
 	// .slp File creation stuff
 	u32 writtenByteCount = 0;
 
+	// cout stuff
+	bool outputCurrentFrame = false;
+	bool shouldOutput = false;
+
 	// vars for metadata generation
 	time_t gameStartTime;
 	s32 lastFrame;
@@ -144,6 +153,7 @@ class CEXISlippi : public IEXIDevice
 
 	// online play stuff
 	u16 getRandomStage();
+	bool isDisconnected();
 	void handleOnlineInputs(u8 *payload);
 	void prepareOpponentInputs(u8 *payload);
 	void handleSendInputs(u8 *payload);
@@ -185,9 +195,10 @@ class CEXISlippi : public IEXIDevice
 
 	u32 stallFrameCount = 0;
 	bool isConnectionStalled = false;
-	
+
 	std::vector<u8> m_read_queue;
 	std::unique_ptr<Slippi::SlippiGame> m_current_game = nullptr;
+	SlippiSpectateServer *m_slippiserver = nullptr;
 	SlippiMatchmaking::MatchSearchSettings lastSearch;
 
 	std::vector<u16> stagePool;

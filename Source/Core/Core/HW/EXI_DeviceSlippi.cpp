@@ -49,6 +49,10 @@ extern std::unique_ptr<SlippiReplayComm> g_replayComm;
 bool isLocalConnected = false;
 #endif
 
+// Are we waiting for input on this frame?
+//  Is set to true between frames
+bool g_needInputForFrame = false;
+
 template <typename T> bool isFutureReady(std::future<T> &t)
 {
 	return t.wait_for(std::chrono::seconds(0)) == std::future_status::ready;
@@ -98,6 +102,7 @@ CEXISlippi::CEXISlippi()
 {
 	INFO_LOG(SLIPPI, "EXI SLIPPI Constructor called.");
 
+	m_slippiserver = SlippiSpectateServer::getInstance();
 	user = std::make_unique<SlippiUser>();
 	g_playbackStatus = std::make_unique<SlippiPlaybackStatus>();
 	matchmaking = std::make_unique<SlippiMatchmaking>(user.get());
@@ -105,6 +110,8 @@ CEXISlippi::CEXISlippi()
 	g_replayComm = std::make_unique<SlippiReplayComm>();
 
 	generator = std::default_random_engine(Common::Timer::GetTimeMs());
+
+	shouldOutput = SConfig::GetInstance().m_coutEnabled && g_replayComm->getSettings().mode != "mirror";
 
 	// Loggers will check 5 bytes, make sure we own that memory
 	m_read_queue.reserve(5);
@@ -198,6 +205,8 @@ CEXISlippi::~CEXISlippi()
 	{
 		m_fileWriteThread.join();
 	}
+	m_slippiserver->write(&empty[0], 0);
+	m_slippiserver->endGame();
 
 	localSelections.Reset();
 
@@ -440,19 +449,17 @@ void CEXISlippi::writeToFile(std::unique_ptr<WriteMessage> msg)
 		// Get display names and connection codes from slippi netplay client
 		if (slippi_netplay)
 		{
-			auto matchInfo = slippi_netplay->GetMatchInfo();
-
-			SlippiPlayerSelections lps = matchInfo->localPlayerSelections;
-			SlippiPlayerSelections rps = matchInfo->remotePlayerSelections;
+			auto userInfo = user->GetUserInfo();
+			auto oppInfo = matchmaking->GetOpponent();
 
 			auto isDecider = slippi_netplay->IsDecider();
 			int local_port = isDecider ? 0 : 1;
 			int remote_port = isDecider ? 1 : 0;
 
-			slippi_names[local_port] = lps.playerName;
-			slippi_connect_codes[local_port] = lps.connectCode;
-			slippi_names[remote_port] = rps.playerName;
-			slippi_connect_codes[remote_port] = rps.connectCode;
+			slippi_names[local_port] = userInfo.displayName;
+			slippi_connect_codes[local_port] = userInfo.connectCode;
+			slippi_names[remote_port] = oppInfo.displayName;
+			slippi_connect_codes[remote_port] = oppInfo.connectCode;
 		}
 	}
 
@@ -560,7 +567,7 @@ void CEXISlippi::createNewFile()
 		PanicAlertT("Could not create .slp replay file [%s].\n\n"
 		            "The replay folder's path might be invalid, or you might "
 		            "not have permission to write to it.\n\n"
-		            "You can change the replay folder in Config > GameCube > "
+		            "You can change the replay folder in Config > Slippi > "
 		            "Slippi Replay Settings.",
 		            filepath.c_str());
 	}
@@ -700,6 +707,9 @@ void CEXISlippi::prepareGameInfo(u8 *payload)
 
 	// Write PS Frozen byte
 	m_read_queue.push_back(settings->isFrozenPS);
+
+	// Write should resync setting
+	m_read_queue.push_back(replayCommSettings.shouldResync ? 1 : 0);
 
 	// Return the size of the gecko code list
 	prepareGeckoList();
@@ -967,6 +977,8 @@ void CEXISlippi::prepareGeckoList()
 	    {0x80376200, true}, // Binary/LagReduction/PD+VB.bin
 	    {0x801A5018, true}, // Binary/LagReduction/PD+VB.bin
 	    {0x80218D68, true}, // Binary/LagReduction/PD+VB.bin
+	    {0x8016E9AC, true}, // Binary/Force2PCenterHud.bin
+	    {0x80030E44, true}, // Binary/DisableScreenShake.bin
 
 	    {0x800055f0, true}, // Common/EXITransferBuffer.asm
 	    {0x800055f8, true}, // Common/GetIsFollower.asm
@@ -1022,7 +1034,12 @@ void CEXISlippi::prepareGeckoList()
 	    {0x80185050, true}, // Online/Menus/VSScreen/HideStageDisplay/PreventEarlyR3Overwrite.asm
 	    {0x80184b1c, true}, // Online/Menus/VSScreen/HideStageText/SkipStageNumberShow.asm
 	    {0x801A45BC, true}, // Online/Slippi Online Scene/main.asm
+	    {0x801a45b8, true}, // Online/Slippi Online Scene/main.asm (https://bit.ly/3kxohf4)
 	    {0x801BFA20, true}, // Online/Slippi Online Scene/boot.asm
+	    {0x800cc818, true}, // External/GreenDuringWait/fall.asm
+	    {0x8008a478, true}, // External/GreenDuringWait/wait.asm
+
+	    {0x802f6690, true}, // HUD Transparency v1.1
 	};
 
 	std::unordered_map<u32, bool> blacklist;
@@ -1146,9 +1163,20 @@ bool CEXISlippi::checkFrameFullyFetched(s32 frameIndex)
 
 	Slippi::FrameData *frame = m_current_game->GetFrame(frameIndex);
 
+	version::Semver200_version lastFinalizedVersion("3.7.0");
+	version::Semver200_version currentVersion(m_current_game->GetVersionString());
+
+	bool frameIsFinalized = true;
+	if (currentVersion >= lastFinalizedVersion)
+	{
+		// If latest finalized frame should exist, check it as well. This will prevent us
+		// from loading a non-committed frame when mirroring a rollback game
+		frameIsFinalized = m_current_game->GetLastFinalizedFrame() >= frameIndex;
+	}
+
 	// This flag is set to true after a post frame update has been received. At that point
 	// we know we have received all of the input data for the frame
-	return frame->inputsFullyFetched;
+	return frame->inputsFullyFetched && frameIsFinalized;
 }
 
 void CEXISlippi::prepareFrameData(u8 *payload)
@@ -1167,6 +1195,16 @@ void CEXISlippi::prepareFrameData(u8 *payload)
 
 	// If loading from queue, move on to the next replay if we have past endFrame
 	auto watchSettings = g_replayComm->current;
+#ifdef IS_PLAYBACK
+	if (shouldOutput && !outputCurrentFrame && frameIndex >= watchSettings.startFrame)
+		outputCurrentFrame = true;
+	if (shouldOutput && outputCurrentFrame)
+	{
+		std::cout << "[CURRENT_FRAME] " << frameIndex << std::endl;
+		if (frameIndex >= watchSettings.endFrame)
+			outputCurrentFrame = false;
+	}
+#endif
 	if (frameIndex > watchSettings.endFrame)
 	{
 		INFO_LOG(SLIPPI, "Killing game because we are past endFrame");
@@ -1189,21 +1227,20 @@ void CEXISlippi::prepareFrameData(u8 *payload)
 	// (this is the last frame, in that case)
 	auto isFrameFound = m_current_game->DoesFrameExist(frameIndex);
 	g_playbackStatus->latestFrame = m_current_game->GetLatestIndex();
-	auto isNextFrameFound = g_playbackStatus->latestFrame > frameIndex;
 	auto isFrameComplete = checkFrameFullyFetched(frameIndex);
-	auto isFrameReady = isFrameFound && (isProcessingComplete || isNextFrameFound || isFrameComplete);
+	auto isFrameReady = isFrameFound && (isProcessingComplete || isFrameComplete);
 
 	// If there is a startFrame configured, manage the fast-forward flag
 	if (watchSettings.startFrame > Slippi::GAME_FIRST_FRAME)
 	{
 		if (frameIndex < watchSettings.startFrame)
 		{
-			g_playbackStatus->isHardFFW = true;
+			g_playbackStatus->setHardFFW(true);
 		}
 		else if (frameIndex == watchSettings.startFrame)
 		{
 			// TODO: This might disable fast forward on first frame when we dont want to?
-			g_playbackStatus->isHardFFW = false;
+			g_playbackStatus->setHardFFW(false);
 		}
 	}
 
@@ -1211,7 +1248,8 @@ void CEXISlippi::prepareFrameData(u8 *payload)
 	if (commSettings.rollbackDisplayMethod == "normal")
 	{
 		auto nextFrame = m_current_game->GetFrameAt(frameSeqIdx);
-		g_playbackStatus->isHardFFW = nextFrame && nextFrame->frame <= g_playbackStatus->currentPlaybackFrame;
+		bool shouldHardFFW = nextFrame && nextFrame->frame <= g_playbackStatus->currentPlaybackFrame;
+		g_playbackStatus->setHardFFW(shouldHardFFW);
 
 		if (nextFrame)
 		{
@@ -1242,7 +1280,7 @@ void CEXISlippi::prepareFrameData(u8 *payload)
 		// last frame instead of the frame previous to fast forwarding.
 		// Not sure if this fully works with partial frames
 		g_playbackStatus->isSoftFFW = false;
-		g_playbackStatus->isHardFFW = false;
+		g_playbackStatus->setHardFFW(false);
 	}
 
 	bool shouldFFW = g_playbackStatus->shouldFFWFrame(frameIndex);
@@ -1258,7 +1296,7 @@ void CEXISlippi::prepareFrameData(u8 *payload)
 		// Disable fast forward here too... this shouldn't be necessary but better
 		// safe than sorry I guess
 		g_playbackStatus->isSoftFFW = false;
-		g_playbackStatus->isHardFFW = false;
+		g_playbackStatus->setHardFFW(false);
 
 		if (requestResultCode == FRAME_RESP_TERMINATE)
 		{
@@ -1393,7 +1431,21 @@ void CEXISlippi::prepareIsFileReady()
 		m_read_queue.push_back(0);
 		return;
 	}
-
+#ifdef IS_PLAYBACK
+	if (shouldOutput)
+	{
+		auto lastFrame = m_current_game->GetLatestIndex();
+		auto gameEndMethod = m_current_game->getGameEndMethod();
+		auto watchSettings = g_replayComm->current;
+		auto replayCommSettings = g_replayComm->getSettings();
+		std::cout << "[FILE_PATH] " << watchSettings.path << std::endl;
+		if (gameEndMethod == 0 || gameEndMethod == 7)
+			std::cout << "[LRAS]" << std::endl;
+		std::cout << "[PLAYBACK_START_FRAME] " << watchSettings.startFrame << std::endl;
+		std::cout << "[GAME_END_FRAME] " << lastFrame << std::endl;
+		std::cout << "[PLAYBACK_END_FRAME] " << watchSettings.endFrame << std::endl;
+	}
+#endif
 	INFO_LOG(SLIPPI, "EXI_DeviceSlippi.cpp: Replay file loaded successfully!?");
 
 	// Clear playback control related vars
@@ -1403,12 +1455,27 @@ void CEXISlippi::prepareIsFileReady()
 	m_read_queue.push_back(1);
 }
 
+bool CEXISlippi::isDisconnected()
+{
+	if (!slippi_netplay)
+		return true;
+
+	auto status = slippi_netplay->GetSlippiConnectStatus();
+	return status != SlippiNetplayClient::SlippiConnectStatus::NET_CONNECT_STATUS_CONNECTED || isConnectionStalled;
+}
+
 static int tempTestCount = 0;
 void CEXISlippi::handleOnlineInputs(u8 *payload)
 {
 	m_read_queue.clear();
 
 	int32_t frame = payload[0] << 24 | payload[1] << 16 | payload[2] << 8 | payload[3];
+
+	if (isDisconnected())
+	{
+		m_read_queue.push_back(3); // Indicate we disconnected
+		return;
+	}
 
 	if (frame == 1)
 	{
@@ -1570,6 +1637,9 @@ void CEXISlippi::prepareOpponentInputs(u8 *payload)
 
 void CEXISlippi::handleCaptureSavestate(u8 *payload)
 {
+	if (isDisconnected())
+		return;
+
 	s32 frame = payload[0] << 24 | payload[1] << 16 | payload[2] << 8 | payload[3];
 
 	u64 startTime = Common::Timer::GetTimeUs();
@@ -1731,7 +1801,9 @@ void CEXISlippi::prepareOnlineMatchState()
 	u8 localPlayerIndex = 0;
 	u8 remotePlayerIndex = 1;
 
-	std::string oppName = "";
+	auto opponent = matchmaking->GetOpponent();
+	std::string oppName = opponent.displayName;
+	auto userInfo = user->GetUserInfo();
 
 	if (mmState == SlippiMatchmaking::ProcessState::CONNECTION_SUCCESS)
 	{
@@ -1765,8 +1837,6 @@ void CEXISlippi::prepareOnlineMatchState()
 			auto isDecider = slippi_netplay->IsDecider();
 			localPlayerIndex = isDecider ? 0 : 1;
 			remotePlayerIndex = isDecider ? 1 : 0;
-
-			oppName = slippi_netplay->GetOpponentName();
 		}
 		else
 		{
@@ -1805,7 +1875,7 @@ void CEXISlippi::prepareOnlineMatchState()
 #ifdef LOCAL_TESTING
 		rps.characterId = 0x2;
 		rps.characterColor = 2;
-		rps.playerName = std::string("Player");
+		oppName = std::string("Player");
 #endif
 
 		// Check if someone is picking dumb characters in non-direct
@@ -1861,8 +1931,8 @@ void CEXISlippi::prepareOnlineMatchState()
 		WARN_LOG(SLIPPI_ONLINE, "P1 Char: 0x%X, P2 Char: 0x%X", onlineMatchBlock[0x60], onlineMatchBlock[0x84]);
 
 		// Set player names
-		p1Name = isDecider ? lps.playerName : rps.playerName;
-		p2Name = isDecider ? rps.playerName : lps.playerName;
+		p1Name = isDecider ? userInfo.displayName : oppName;
+		p2Name = isDecider ? oppName : userInfo.displayName;
 
 		// Turn pause on in direct, off in everything else
 		u8 *gameBitField3 = (u8 *)&onlineMatchBlock[2];
@@ -1940,22 +2010,6 @@ void CEXISlippi::setMatchSelections(u8 *payload)
 
 	s.rngOffset = generator() % 0xFFFF;
 
-	// Get user name from file
-	std::string displayName = user->GetUserInfo().displayName;
-
-	// Just let the max length to transfer to opponent be potentially 16 worst-case utf-8 chars
-	// This string will get converted to the game format later
-	int maxLenth = MAX_NAME_LENGTH * 4 + 4;
-	if (displayName.length() > maxLenth)
-	{
-		displayName.resize(maxLenth);
-	}
-
-	s.playerName = displayName;
-
-	// Get user connect code from file
-	s.connectCode = user->GetUserInfo().connectCode;
-
 	// Merge these selections
 	localSelections.Merge(s);
 
@@ -2028,12 +2082,9 @@ void CEXISlippi::handleLogOutRequest()
 
 void CEXISlippi::handleUpdateAppRequest()
 {
-#ifdef __APPLE__
-	CriticalAlertT(
-	    "Automatic updates are not available for macOS, please get the latest update from slippi.gg/netplay.");
-#else
 	main_frame->LowerRenderWindow();
 	user->UpdateApp();
+#ifdef _WIN32
 	main_frame->DoExit();
 #endif
 }
@@ -2131,6 +2182,14 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 		configureCommands(&memPtr[1], receiveCommandsLen);
 		writeToFileAsync(&memPtr[0], receiveCommandsLen + 1, "create");
 		bufLoc += receiveCommandsLen + 1;
+		g_needInputForFrame = true;
+		m_slippiserver->startGame();
+		m_slippiserver->write(&memPtr[0], receiveCommandsLen + 1);
+	}
+
+	if (byte == CMD_MENU_FRAME)
+	{
+		m_slippiserver->write(&memPtr[0], _uSize);
 	}
 
 	INFO_LOG(EXPANSIONINTERFACE, "EXI SLIPPI DMAWrite: addr: 0x%08x size: %d, bufLoc:[%02x %02x %02x %02x %02x]",
@@ -2152,6 +2211,8 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 		{
 		case CMD_RECEIVE_GAME_END:
 			writeToFileAsync(&memPtr[bufLoc], payloadLen + 1, "close");
+			m_slippiserver->write(&memPtr[bufLoc], payloadLen + 1);
+			m_slippiserver->endGame();
 			break;
 		case CMD_PREPARE_REPLAY:
 			// log.open("log.txt");
@@ -2159,6 +2220,11 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 			break;
 		case CMD_READ_FRAME:
 			prepareFrameData(&memPtr[bufLoc + 1]);
+			break;
+		case CMD_FRAME_BOOKEND:
+			g_needInputForFrame = true;
+			writeToFileAsync(&memPtr[bufLoc], payloadLen + 1, "");
+			m_slippiserver->write(&memPtr[bufLoc], payloadLen + 1);
 			break;
 		case CMD_IS_STOCK_STEAL:
 			prepareIsStockSteal(&memPtr[bufLoc + 1]);
@@ -2214,6 +2280,7 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 			break;
 		default:
 			writeToFileAsync(&memPtr[bufLoc], payloadLen + 1, "");
+			m_slippiserver->write(&memPtr[bufLoc], payloadLen + 1);
 			break;
 		}
 

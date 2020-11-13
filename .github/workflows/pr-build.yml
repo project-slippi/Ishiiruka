@@ -20,16 +20,19 @@ jobs:
     name: "Windows Netplay"
     runs-on: windows-2019
     steps:
+      - name: "Setup Go"
+        uses: actions/setup-go@v2
       - name: "Remove Redistributable"
         shell: cmd
         run: |
-          MsiExec.exe /passive /X{F0C3E5D1-1ADE-321E-8167-68EF0DE699A5}  
-      - name: "Setup MSBuild"
-        uses: microsoft/setup-msbuild@v1   
+          MsiExec.exe /passive /X{F0C3E5D1-1ADE-321E-8167-68EF0DE699A5}
+          MsiExec.exe /passive /X{1D8E6291-B0D5-35EC-8441-6616F567A0F7}
       - name: "Install DirectX SDK"
         shell: powershell
         run: |
           choco install directx-sdk
+      - name: "Setup MSBuild"
+        uses: microsoft/setup-msbuild@v1   
       - name: "Checkout"
         uses: actions/checkout@v2.3.1
       - name: 'Fetch Git Tags'
@@ -37,13 +40,23 @@ jobs:
         shell: bash
         run: |
           git fetch --prune --unshallow
-          echo ::set-env name=GIT_BRANCH::$(git rev-parse --abbrev-ref HEAD)
-          echo ::set-env name=GIT_HASH::$(git rev-parse --short HEAD)
-          echo ::set-env name=GIT_TAG::$(git describe --tags --abbrev=0)
+          echo "GIT_BRANCH=$(git rev-parse --abbrev-ref HEAD)" >> $GITHUB_ENV
+          echo "GIT_HASH=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+          echo "GIT_TAG=$(git describe --tags --abbrev=0)" >> $GITHUB_ENV
       - name: "Build Netplay Dolphin"
         shell: cmd
         run: |
           msbuild /p:Configuration=Release /p:Platform=x64 ${{ github.workspace }}\Source\Dolphin.sln
+      - name: "Build Updater"
+        working-directory: ${{ github.workspace }}
+        shell: cmd
+        run: |
+          cd %GOPATH%
+          git clone https://github.com/project-slippi/dolphin-slippi-tools
+          cd dolphin-slippi-tools
+          go get github.com/gonutz/w32 github.com/machinebox/graphql golang.org/x/sys/windows/registry
+          go build
+          copy /b /v /y dolphin-slippi-tools.exe ${{ github.workspace }}\Binary\x64\
       - name: "Package Netplay"
         working-directory: ${{ github.workspace }}
         run: |
@@ -72,13 +85,14 @@ jobs:
       - name: "Remove Redistributable"
         shell: cmd
         run: |
-          MsiExec.exe /passive /X{F0C3E5D1-1ADE-321E-8167-68EF0DE699A5}  
-      - name: "Setup MSBuild"
-        uses: microsoft/setup-msbuild@v1   
+          MsiExec.exe /passive /X{F0C3E5D1-1ADE-321E-8167-68EF0DE699A5}
+          MsiExec.exe /passive /X{1D8E6291-B0D5-35EC-8441-6616F567A0F7}
       - name: "Install DirectX SDK"
         shell: powershell
         run: |
           choco install directx-sdk
+      - name: "Setup MSBuild"
+        uses: microsoft/setup-msbuild@v1   
       - name: "Checkout"
         uses: actions/checkout@v2.3.1
       - name: 'Fetch Git Tags'
@@ -86,9 +100,9 @@ jobs:
         shell: bash
         run: |
           git fetch --prune --unshallow
-          echo ::set-env name=GIT_BRANCH::$(git rev-parse --abbrev-ref HEAD)
-          echo ::set-env name=GIT_HASH::$(git rev-parse --short HEAD)
-          echo ::set-env name=GIT_TAG::$(git describe --tags --abbrev=0)
+          echo "GIT_BRANCH=$(git rev-parse --abbrev-ref HEAD)" >> $GITHUB_ENV
+          echo "GIT_HASH=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+          echo "GIT_TAG=$(git describe --tags --abbrev=0)" >> $GITHUB_ENV
       - name: "Build Playback Dolphin"
         shell: cmd
         run: |
@@ -126,10 +140,10 @@ jobs:
           if: success()
           run: |
             git fetch --prune --unshallow
-            echo ::set-env name=GIT_BRANCH::$(git rev-parse --abbrev-ref HEAD)
-            echo ::set-env name=GIT_HASH::$(git rev-parse --short HEAD)
-            echo ::set-env name=GIT_TAG::$(git describe --tags --abbrev=0)
-            echo ::set-env name=CURR_DATE::$(date +%Y-%m-%d)
+            echo "GIT_BRANCH=$(git rev-parse --abbrev-ref HEAD)" >> $GITHUB_ENV
+            echo "GIT_HASH=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+            echo "GIT_TAG=$(git describe --tags --abbrev=0)" >> $GITHUB_ENV
+            echo "CURR_DATE=$(date +%Y-%m-%d)" >> $GITHUB_ENV
         - name: "Install prerequisites"
           if: success()
           shell: bash
@@ -209,10 +223,10 @@ jobs:
           if: success()
           run: |
             git fetch --prune --unshallow
-            echo ::set-env name=GIT_BRANCH::$(git rev-parse --abbrev-ref HEAD)
-            echo ::set-env name=GIT_HASH::$(git rev-parse --short HEAD)
-            echo ::set-env name=GIT_TAG::$(git describe --tags --abbrev=0)
-            echo ::set-env name=CURR_DATE::$(date +%Y-%m-%d)
+            echo "GIT_BRANCH=$(git rev-parse --abbrev-ref HEAD)" >> $GITHUB_ENV
+            echo "GIT_HASH=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+            echo "GIT_TAG=$(git describe --tags --abbrev=0)" >> $GITHUB_ENV
+            echo "CURR_DATE=$(date +%Y-%m-%d)" >> $GITHUB_ENV
         - name: "Install prerequisites"
           if: success()
           shell: bash
@@ -292,10 +306,10 @@ jobs:
         if: success()
         run: |
           git fetch --prune --unshallow
-          echo ::set-env name=GIT_BRANCH::$(git rev-parse --abbrev-ref HEAD)
-          echo ::set-env name=GIT_HASH::$(git rev-parse --short HEAD)
-          echo ::set-env name=GIT_TAG::$(git describe --tags --abbrev=0)
-          echo ::set-env name=CURR_DATE::$(date +%Y-%m-%d)
+          echo "GIT_BRANCH=$(git rev-parse --abbrev-ref HEAD)" >> $GITHUB_ENV
+            echo "GIT_HASH=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+            echo "GIT_TAG=$(git describe --tags --abbrev=0)" >> $GITHUB_ENV
+            echo "CURR_DATE=$(date +%Y-%m-%d)" >> $GITHUB_ENV
       - name: "Install 10.14 SDK"
         if: success()
         shell: bash
@@ -354,8 +368,7 @@ jobs:
         shell: bash
         working-directory: ${{ github.workspace }}
         run: |
-          FILE_NAME=${{ env.CURR_DATE }}-${{ env.GIT_HASH }}-${{ env.GIT_TAG }}-macOS-netplay.dmg
-          echo "::set-env name=FILE_NAME::${FILE_NAME}"
+          FILE_NAME=${{ env.CURR_DATE }}-${{ env.GIT_HASH }}-${{ env.GIT_TAG }}-macOS-netplay.tar.gz
           cp -Rf Data/Sys build/Binaries/Slippi\ Dolphin.app/Contents/Resources/
           mkdir artifact
           create-dmg --no-internet-enable \
@@ -390,10 +403,10 @@ jobs:
         if: success()
         run: |
           git fetch --prune --unshallow
-          echo ::set-env name=GIT_BRANCH::$(git rev-parse --abbrev-ref HEAD)
-          echo ::set-env name=GIT_HASH::$(git rev-parse --short HEAD)
-          echo ::set-env name=GIT_TAG::$(git describe --tags --abbrev=0)
-          echo ::set-env name=CURR_DATE::$(date +%Y-%m-%d)
+          echo "GIT_BRANCH=$(git rev-parse --abbrev-ref HEAD)" >> $GITHUB_ENV
+          echo "GIT_HASH=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+          echo "GIT_TAG=$(git describe --tags --abbrev=0)" >> $GITHUB_ENV
+          echo "CURR_DATE=$(date +%Y-%m-%d)" >> $GITHUB_ENV
       - name: "Install 10.14 SDK"
         if: success()
         shell: bash

@@ -1,10 +1,10 @@
 #pragma once
 
-#include <SlippiGame.h>
+#include <SlippiLib/SlippiGame.h>
 #include <queue>
 #include <string>
 
-#include <json.hpp>
+#include <nlohmann/json.hpp>
 using json = nlohmann::json;
 
 class SlippiReplayComm
@@ -29,6 +29,7 @@ class SlippiReplayComm
 		int endFrame = INT_MAX;
 		bool outputOverlayFiles;
 		bool isRealTimeMode;
+		bool shouldResync; // If true, logic will attempt to resync games
 		std::string rollbackDisplayMethod; // off, normal, visible
 		std::string commandId;
 		std::queue<WatchSettings> queue;
@@ -57,9 +58,7 @@ class SlippiReplayComm
 	u64 configLastLoadModTime;
 
 	// Queue stuff
-	bool isFirstLoad = true;
-	bool provideNew = false;
-	int queuePos = 0;
+	bool queueWasEmpty = true;
 
 	CommSettings commFileSettings;
 };

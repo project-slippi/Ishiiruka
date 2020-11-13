@@ -260,6 +260,9 @@
     <ClCompile Include="Input\MicButtonConfigDiag.cpp">
       <Filter>GUI\InputConfig</Filter>
     </ClCompile>
+    <ClCompile Include="Config\SlippiConfigPane.cpp">
+      <Filter>GUI\Config</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Main.h" />
@@ -478,6 +481,9 @@
     </ClInclude>
     <ClInclude Include="Input\MicButtonConfigDiag.h">
       <Filter>GUI\InputConfig</Filter>
+    </ClInclude>
+    <ClInclude Include="Config\SlippiConfigPane.h">
+      <Filter>GUI\Config</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

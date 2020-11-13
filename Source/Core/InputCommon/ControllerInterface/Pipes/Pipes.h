@@ -13,6 +13,8 @@
 #include <unistd.h>
 #endif
 
+extern bool g_needInputForFrame;
+
 namespace ciface
 {
 namespace Pipes
@@ -32,7 +34,8 @@ namespace Pipes
 // {PRESS, RELEASE} {A, B, X, Y, Z, START, L, R, D_UP, D_DOWN, D_LEFT, D_RIGHT}
 // SET {L, R} [0, 1]
 // SET {MAIN, C} [0, 1] [0, 1]
-
+// FLUSH -> In blocking input mode, this tells dolphin to progress to the next frame
+//    (does nothing in non-blocking mode)
 void PopulateDevices();
 
 class PipeDevice : public Core::Device
@@ -58,7 +61,7 @@ private:
   };
 
   void AddAxis(const std::string& name, double value);
-  void ParseCommand(const std::string& command);
+  bool ParseCommand(const std::string& command);
   void SetAxis(const std::string& entry, double value);
   s32 readFromPipe(PIPE_FD file_descriptor, char *in_buffer, size_t size);
 
