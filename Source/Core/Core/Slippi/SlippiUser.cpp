@@ -152,7 +152,7 @@ void SlippiUser::OpenLogInPage()
 {
 #ifdef _WIN32
 	std::string url = "https://slippi.gg/online/enable";
-	std::string path = getUserFilePath();
+	std::string path = File::GetSlippiUserJSONPath();;
     
     // On windows, sometimes the path can have backslashes and slashes mixed, convert all to backslashes
 	path = ReplaceAll(path, "\\", "\\");
