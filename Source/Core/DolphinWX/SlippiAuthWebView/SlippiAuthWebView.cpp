@@ -38,7 +38,7 @@ SlippiAuthWebView::~SlippiAuthWebView()
 // On Windows, Edge *may* be available as of Oct 19th 2020. But it also might not.
 // So, this is a check to silo some platform-specific logic, and should be called
 // before initiating this flow (and opt to use another method of authentication, perhaps).
-static bool SlippiAuthWebView::IsAvailable()
+bool SlippiAuthWebView::IsAvailable()
 {
 #ifdef _WIN32
     if (!wxWebView::IsBackendAvailable(wxWebViewBackendEdge))
