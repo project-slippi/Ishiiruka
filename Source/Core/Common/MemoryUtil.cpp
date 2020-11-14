@@ -61,7 +61,13 @@ void* AllocateExecutableMemory(size_t size, bool low)
 	if (low && (!map_hint))
 		map_hint = (char*)RoundPage(512 * 1024 * 1024); /* 0.5 GB rounded up to the next page */
 #endif
-	void* ptr = mmap(map_hint, size, PROT_READ | PROT_WRITE | PROT_EXEC, MAP_ANON | MAP_PRIVATE
+
+	int flags = MAP_ANON | MAP_PRIVATE;
+#ifdef __APPLE__
+	flags |= MAP_JIT;
+#endif
+
+	void* ptr = mmap(map_hint, size, PROT_READ | PROT_WRITE | PROT_EXEC, flags
 #if defined(_M_X86_64) && defined(MAP_32BIT)
 		| (low ? MAP_32BIT : 0)
 #endif
