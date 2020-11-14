@@ -5,10 +5,6 @@
 #include <wx/stattext.h>
 #include <wx/webview.h>
 
-#ifdef _WIN32
-#include <wx/msw/webview_ie.h>
-#endif
-
 #include <wx/webviewfshandler.h>
 
 #include "Common/CommonTypes.h"
@@ -39,20 +35,32 @@ SlippiAuthWebView::~SlippiAuthWebView()
 {
 }
 
+// On Windows, Edge *may* be available as of Oct 19th 2020. But it also might not.
+// So, this is a check to silo some platform-specific logic, and should be called
+// before initiating this flow (and opt to use another method of authentication, perhaps).
+static bool SlippiAuthWebView::IsAvailable()
+{
+#ifdef _WIN32
+    if (!wxWebView::IsBackendAvailable(wxWebViewBackendEdge))
+    {
+        return false;
+    }
+#endif
+
+    // macOS will almost certainly have a WebView, as it's built in to the platform.
+    // Linux is built explicitly with webkitgtk2 and should have it, but this is admittedly
+    // a bit of an assumption...
+    return true;
+}
+
 void SlippiAuthWebView::CreateGUIControls()
 {
     std::string url = "https://slippi.gg/online/enable?isWebview=true";
 
-    // On Windows, we need to explicitly force it to elect to use IE11.
-    // In the future, this can (and should!) use Edge/Chromium, but that's currently
-    // not in general availability and would require shipping some extra stuff.
-    // 
+    // On Windows, we need to explicitly force it to elect to use Edge.
     // The other platforms use WebKit, thankfully... which is a one-liner.
 #ifdef _WIN32
-    wxWebViewIE *browser = static_cast<wxWebViewIE*>(wxWebViewIE::New());
-    browser->MSWSetEmulationLevel(wxWEBVIEWIE_EMU_IE11);
-    browser->Create(this, wxID_ANY, url);
-    m_browser = browser;
+    m_browser = wxWebView::New(this, wxID_ANY, url, wxDefaultPosition, wxDefaultSize, wxWebViewBackendEdge);
 #else
     m_browser = wxWebView::New(this, wxID_ANY, url);
 #endif

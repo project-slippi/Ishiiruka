@@ -14,6 +14,7 @@ public:
 	virtual ~SlippiAuthWebView();
 
     void OnTitleChanged(wxWebViewEvent& evt);
+    static bool IsAvailable();
 
 private:
 	void CreateGUIControls();
