@@ -25,6 +25,10 @@
 #include <sys/ioctl.h>
 #include <linux/ashmem.h>
 #endif
+
+#if defined(__APPLE__)
+#include <sys/sysctl.h>
+#endif
 #endif
 
 #ifdef ANDROID
@@ -48,6 +52,35 @@ static int AshmemCreateFileMapping(const char* name, size_t size)
 		return ret;
 	}
 	return fd;
+}
+#endif
+
+#if defined(__APPLE__)
+// This can be used to determine if a process is running under Rosetta 2 on an
+// Apple-Silicon-based Mac. Returns 0 if the process is running natively (compiled for
+// target), 1 if it's translated (e.g, Rosetta) and -1 for whatever error there could be.
+//
+// On Intel-based Macs, this should return 0; on Apple-Silicon-based Macs, this should
+// return 1.
+//
+// If Rosetta requires more tweaks this may be better off elsewhere; however, pursuing
+// Rosetta performance is probably a losing game and it's better to get it running under
+// Rosetta while examining any potential native steps that could be taken.
+int processIsRunningUnderRosetta2() {
+	int ret = 0;
+
+	size_t size = sizeof(ret);
+	if (sysctlbyname("sysctl.proc_translated", &ret, &size, NULL, 0) == -1)
+	{
+		if (errno == ENOENT)
+		{
+			return 0;
+		}
+
+		return -1;
+	}
+
+	return ret;
 }
 #endif
 
@@ -131,6 +164,33 @@ void MemArena::ReleaseView(void* view, size_t size)
 
 u8* MemArena::FindMemoryBase()
 {
+	// Running under Rosetta 2 on an Apple-Silicon-based Mac will fail if it
+	// goes the normal path, presumably due to the translation process just not
+	// grok'ing it.
+	//
+	// What does seem to work, though, is mapping it the same way that Mainline does
+	// from 2017 onwards. Considering the level of plumbing this is, it's blocked off
+	// to run _only_ on Apple-Silicon-based Macs that are running the process under
+	// a translated environment. Intel-based Macs will still get the "regular" path
+	// and should have no changes.
+#if defined(__APPLE__)
+	if (processIsRunningUnderRosetta2())
+	{
+		const size_t memory_size = 0x400000000;
+		const int flags = MAP_ANON | MAP_PRIVATE;
+
+		void* base = mmap(nullptr, memory_size, PROT_NONE, flags, -1, 0);
+		if (base == MAP_FAILED)
+		{
+			PanicAlert("Failed to map enough memory space: %s", strerror(errno));
+			return nullptr;
+		}
+
+		munmap(base, memory_size);
+		return static_cast<u8*>(base);
+	}
+#endif
+
 #if _ARCH_64
 #ifdef _WIN32
 	// 64 bit
