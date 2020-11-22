@@ -48,6 +48,10 @@ int ISIDevice::TransferInterval()
 	return 0;
 }
 
+bool ISIDevice::GetData(u32& _Hi, u32& _Low, std::chrono::high_resolution_clock::time_point when) {
+	return GetData(_Hi, _Low);
+}
+
 // Stub class for saying nothing is attached, and not having to deal with null pointers :)
 class CSIDevice_Null : public ISIDevice
 {
