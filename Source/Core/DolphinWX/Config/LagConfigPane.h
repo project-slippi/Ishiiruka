@@ -28,8 +28,8 @@ private:
     void OnUseSteadyStateEngineStabilizationCheckBoxChanged(wxCommandEvent&);
     void OnUseUsbPollingStabilizationCheckBoxChanged(wxCommandEvent&);
 	void OnUseOfficialAdapterTimingReconstructionIfApplicableCheckBoxChanged(wxCommandEvent&);
-	void LagConfigPane::On5994HzSelected(wxCommandEvent &);
-	void LagConfigPane::On60HzSelected(wxCommandEvent &);
+	void On5994HzSelected(wxCommandEvent &);
+	void On60HzSelected(wxCommandEvent &);
 
 	wxCheckBox *m_increase_process_priority_checkbox;
 	wxCheckBox *m_saturate_polling_thread_priority_checkbox;
