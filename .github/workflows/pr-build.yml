@@ -451,8 +451,8 @@ jobs:
           ../configure
           make -j7
           sudo make install
-      - name: "Build Playback"
-        if: success()
+      - name: "Build Playback (No Codesigning)"
+        if: success() && env.CERTIFICATE_MACOS_APPLICATION == null
         shell: bash
         working-directory: ${{ github.workspace }}
         run: |
