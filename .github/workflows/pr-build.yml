@@ -354,7 +354,7 @@ jobs:
           ../configure
           make -j7
           sudo make install
-      - name: "Build Netplay"
+      - name: "Build Netplay (No Codesigning)"
         if: success()
         shell: bash
         working-directory: ${{ github.workspace }}
@@ -458,19 +458,42 @@ jobs:
         run: |
           mkdir build
           cd build
-          cmake -DIS_PLAYBACK=true ..
+
+          if [[ -z "$MACOS_CERT_PASSWD" ]]; then
+            cmake -DIS_PLAYBACK=true -DMACOS_CODE_SIGNING="ON" ..
+          else
+            cmake -DIS_PLAYBACK=true ..
+          fi
+          
           make -j7
+        env:
+          MACOS_CERT_PASSWD: ${{ secrets.CERTIFICATE_MACOS_PASSWORD }}
+      - name: "Inject Playback Resources"
+        if: success()
+        shell: bash
+        workig-directory: ${{ github.workspace }}
+        run: |
+          git clone https://github.com/project-slippi/slippi-desktop-app
+          cd ./build/Binaries/
+          cp -Rf ../../Data/Sys ./Slippi\ Dolphin.app/Contents/Resources
+          cp -Rf ../../slippi-desktop-app/app/dolphin-dev/overwrite/Sys ./Slippi\ Dolphin.app/Contents/Resources
+          cp -Rf ../../slippi-desktop-app/app/dolphin-dev/overwrite/User ./Slippi\ Dolphin.app/Contents/Resources 
+      - name: "Codesign Playback"
+        if: success() && env.CERTIFICATE_MACOS_APPLICATION != null
+        shell: bash
+        working-directory: ${{ github.workspace }}
+        run: |
+          chmod +x Tools/load-macos-certs-ci.sh && ./Tools/load-macos-certs-ci.sh
+          /usr/bin/codesign -f -s "${{ secrets.APPLE_IDENTITY_HASH }}" --deep --options runtime --entitlements Source/Core/DolphinWX/Entitlements.plist "./build/Binaries/Slippi\ Dolphin.app"
+        env:
+          CERTIFICATE_MACOS_APPLICATION: ${{ secrets.CERTIFICATE_MACOS_APPLICATION }}
       - name: "Package Playback"
         if: success()
         shell: bash
         working-directory: ${{ github.workspace }}
         run: |
+          cd  ./build/Binaries
           mkdir artifact
-          git clone https://github.com/project-slippi/slippi-desktop-app
-          cd ./build/Binaries/
-          cp -Rf ../../Data/Sys ./Slippi\ Dolphin.app/Contents/Resources
-          cp -Rf ../../slippi-desktop-app/app/dolphin-dev/overwrite/Sys ./Slippi\ Dolphin.app/Contents/Resources
-          cp -Rf ../../slippi-desktop-app/app/dolphin-dev/overwrite/User ./Slippi\ Dolphin.app/Contents/Resources
           FILE_NAME=${{ env.CURR_DATE }}-${{ env.GIT_HASH }}-${{ env.GIT_TAG }}-macOS-playback.zip
           zip -r "${FILE_NAME}" Slippi\ Dolphin.app
           mv "${FILE_NAME}" ../../artifact/
