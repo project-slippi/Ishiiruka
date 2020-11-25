@@ -310,6 +310,13 @@ jobs:
           echo "GIT_HASH=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
           echo "GIT_TAG=$(git describe --tags --abbrev=0)" >> $GITHUB_ENV
           echo "CURR_DATE=$(date +%Y-%m-%d)" >> $GITHUB_ENV
+      - name: Load macOS signing certificates and secrets
+        if: success() && env.CERTIFICATE_MACOS_APPLICATION != null
+        run: |
+          chmod +x Tools/load-macos-certs-ci.sh && ./Tools/load-macos-certs-ci.sh
+        env:
+          CERTIFICATE_MACOS_APPLICATION: ${{ secrets.CERTIFICATE_MACOS_APPLICATION }}
+          CERTIFICATE_MACOS_PASSWORD: ${{ secrets.CERTIFICATE_MACOS_PASSWORD }}
       - name: "Install 10.14 SDK"
         if: success()
         shell: bash
@@ -354,8 +361,8 @@ jobs:
           ../configure
           make -j7
           sudo make install
-      - name: "Build Netplay"
-        if: success()
+      - name: "Build Netplay (No Codesigning)"
+        if: success() && env.CERTIFICATE_MACOS_APPLICATION == null
         shell: bash
         working-directory: ${{ github.workspace }}
         run: |
@@ -363,6 +370,19 @@ jobs:
           cd build
           cmake ..
           make -j7
+        env:
+          CERTIFICATE_MACOS_APPLICATION: ${{ secrets.CERTIFICATE_MACOS_APPLICATION }}
+      - name: "Build & Codesign Netplay"
+        if: success() && env.CERTIFICATE_MACOS_APPLICATION != null
+        shell: bash
+        working-directory: ${{ github.workspace }}
+        run: |
+          mkdir build
+          cd build
+          cmake -DMACOS_CODE_SIGNING="ON" -DMACOS_CODE_SIGNING_IDENTITY="${{ secrets.APPLE_IDENTITY_HASH }}" ..
+          make -j7
+        env:
+          CERTIFICATE_MACOS_APPLICATION: ${{ secrets.CERTIFICATE_MACOS_APPLICATION }}
       - name: "Package Netplay"
         if: success()
         shell: bash
@@ -408,6 +428,13 @@ jobs:
           echo "GIT_HASH=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
           echo "GIT_TAG=$(git describe --tags --abbrev=0)" >> $GITHUB_ENV
           echo "CURR_DATE=$(date +%Y-%m-%d)" >> $GITHUB_ENV
+      - name: Load macOS signing certificates and secrets
+        if: success() && env.CERTIFICATE_MACOS_APPLICATION != null
+        run: |
+          chmod +x Tools/load-macos-certs-ci.sh && ./Tools/load-macos-certs-ci.sh
+        env:
+          CERTIFICATE_MACOS_APPLICATION: ${{ secrets.CERTIFICATE_MACOS_APPLICATION }}
+          CERTIFICATE_MACOS_PASSWORD: ${{ secrets.CERTIFICATE_MACOS_PASSWORD }}
       - name: "Install 10.14 SDK"
         if: success()
         shell: bash
@@ -451,8 +478,8 @@ jobs:
           ../configure
           make -j7
           sudo make install
-      - name: "Build Playback"
-        if: success()
+      - name: "Build Playback (No Codesigning)"
+        if: success() && env.CERTIFICATE_MACOS_APPLICATION == null
         shell: bash
         working-directory: ${{ github.workspace }}
         run: |
@@ -460,6 +487,19 @@ jobs:
           cd build
           cmake -DIS_PLAYBACK=true ..
           make -j7
+        env:
+          CERTIFICATE_MACOS_APPLICATION: ${{ secrets.CERTIFICATE_MACOS_APPLICATION }}
+      - name: "Build & Codesign Playback"
+        if: success() && env.CERTIFICATE_MACOS_APPLICATION != null
+        shell: bash
+        working-directory: ${{ github.workspace }}
+        run: |
+          mkdir build
+          cd build
+          cmake -DIS_PLAYBACK=true -DMACOS_CODE_SIGNING="ON" -DMACOS_CODE_SIGNING_IDENTITY="${{ secrets.APPLE_IDENTITY_HASH }}" ..
+          make -j7
+        env:
+          CERTIFICATE_MACOS_APPLICATION: ${{ secrets.CERTIFICATE_MACOS_APPLICATION }}
       - name: "Package Playback"
         if: success()
         shell: bash
