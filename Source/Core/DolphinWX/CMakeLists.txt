@@ -212,9 +212,12 @@ if(wxWidgets_FOUND)
 		endif()
 
 		if(MACOS_CODE_SIGNING)
-			add_custom_command(TARGET ${DOLPHIN_EXE}
-				POST_BUILD COMMAND
-				/usr/bin/codesign -f -s "${MACOS_CODE_SIGNING_IDENTITY}" --deep --options runtime --entitlements ${CMAKE_SOURCE_DIR}/Source/Core/DolphinWX/Entitlements.plist "${BUNDLE_PATH_NO_QUOTES}")
+            # Commented out as of Nov 25th, 2020.
+            # Why? Slippi replaces bundle contents after build, so signing needs to take place after that
+            # otherwise macOS will complain in some cases about unsealed contents.
+            #add_custom_command(TARGET ${DOLPHIN_EXE}
+            #		POST_BUILD COMMAND
+            #	/usr/bin/codesign -f -s "${MACOS_CODE_SIGNING_IDENTITY}" --deep --options runtime --entitlements ${CMAKE_SOURCE_DIR}/Source/Core/DolphinWX/Entitlements.plist "${BUNDLE_PATH_NO_QUOTES}")
 		endif()
 	else()
 		install(TARGETS ${DOLPHIN_EXE} RUNTIME DESTINATION ${bindir})
