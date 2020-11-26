@@ -485,7 +485,7 @@ jobs:
         working-directory: ${{ github.workspace }}
         run: |
           chmod +x Tools/load-macos-certs-ci.sh && ./Tools/load-macos-certs-ci.sh
-          /usr/bin/codesign -f -s "${{ secrets.APPLE_IDENTITY_HASH }}" --deep --options runtime --entitlements Source/Core/DolphinWX/Entitlements.plist "./build/Binaries/Slippi\ Dolphin.app"
+          /usr/bin/codesign -f -s "${{ secrets.APPLE_IDENTITY_HASH }}" --deep --options runtime --entitlements Source/Core/DolphinWX/Entitlements.plist Slippi\ Dolphin.app
         env:
           CERTIFICATE_MACOS_APPLICATION: ${{ secrets.CERTIFICATE_MACOS_APPLICATION }}
           CERTIFICATE_MACOS_PASSWORD: ${{ secrets.CERTIFICATE_MACOS_PASSWORD }}
