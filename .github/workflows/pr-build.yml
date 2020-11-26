@@ -460,6 +460,7 @@ jobs:
           cd build
 
           if [[ -z "$MACOS_CERT_PASSWD" ]]; then
+            echo "Building with code signing"
             cmake -DIS_PLAYBACK=true -DMACOS_CODE_SIGNING="ON" ..
           else
             cmake -DIS_PLAYBACK=true ..
@@ -487,6 +488,7 @@ jobs:
           /usr/bin/codesign -f -s "${{ secrets.APPLE_IDENTITY_HASH }}" --deep --options runtime --entitlements Source/Core/DolphinWX/Entitlements.plist "./build/Binaries/Slippi\ Dolphin.app"
         env:
           CERTIFICATE_MACOS_APPLICATION: ${{ secrets.CERTIFICATE_MACOS_APPLICATION }}
+          CERTIFICATE_MACOS_PASSWORD: ${{ secrets.CERTIFICATE_MACOS_PASSWORD }}
       - name: "Package Playback"
         if: success()
         shell: bash
