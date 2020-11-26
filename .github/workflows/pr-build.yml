@@ -494,8 +494,8 @@ jobs:
         shell: bash
         working-directory: ${{ github.workspace }}
         run: |
-          cd  ./build/Binaries
           mkdir artifact
+          cd  ./build/Binaries
           FILE_NAME=${{ env.CURR_DATE }}-${{ env.GIT_HASH }}-${{ env.GIT_TAG }}-macOS-playback.zip
           zip -r "${FILE_NAME}" Slippi\ Dolphin.app
           mv "${FILE_NAME}" ../../artifact/
