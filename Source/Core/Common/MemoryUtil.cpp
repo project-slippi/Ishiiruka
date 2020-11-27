@@ -43,6 +43,27 @@ static uintptr_t RoundPage(uintptr_t addr)
 }
 #endif
 
+#if defined __APPLE__
+// On High Sierra, passing MAP_JIT seems to cause weird issues - the hardened runtime only exists
+// from Mojave (10.14) onwards, so there's some clash happening in 10.13. Thus, we just need to branch
+// here for that one OS (18 is the kernel for Mojave)... and this should be removed at some point. 
+static int determine_macos_jit_flag()
+{
+    static int jit_flag = -1;
+
+    if (jit_flag == -1)
+    {
+        struct utsname name;
+        uname(&name);
+        
+        // Kernel version 18 = Mojave
+        jit_flag = (atoi(name.release) >= 18) ? MAP_JIT : 0;
+    }
+
+    return jit_flag;
+}
+#endif
+
 // This is purposely not a full wrapper for virtualalloc/mmap, but it
 // provides exactly the primitive operations that Dolphin needs.
 
@@ -63,17 +84,9 @@ void* AllocateExecutableMemory(size_t size, bool low)
 		map_hint = (char*)RoundPage(512 * 1024 * 1024); /* 0.5 GB rounded up to the next page */
 #endif
 
-	int flags = MAP_ANON | MAP_PRIVATE;
-    
-    // On High Sierra, passing MAP_JIT seems to cause weird issues - the hardened runtime only exists
-    // from Mojave (10.14) onwards, so there's some clash happening in 10.13. Thus, we just need to branch
-    // here for that one OS (18 is the kernel for Mojave)... and this should be removed at some point. 
+	int flags = MAP_ANON | MAP_PRIVATE;    
 #ifdef __APPLE__
-    struct utsname name;
-    uname(&name);
-    if (atoi(name.release) >= 18) {
-	    flags |= MAP_JIT;
-    }
+    flags |= determine_macos_jit_flag();
 #endif
 
 	void* ptr = mmap(map_hint, size, PROT_READ | PROT_WRITE | PROT_EXEC, flags
