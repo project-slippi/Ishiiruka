@@ -22,6 +22,7 @@
 #include <sys/types.h>
 #if defined __APPLE__ || defined __FreeBSD__ || defined __OpenBSD__
 #include <sys/sysctl.h>
+#include <sys/utsname.h>
 #else
 #include <sys/sysinfo.h>
 #endif
@@ -63,8 +64,16 @@ void* AllocateExecutableMemory(size_t size, bool low)
 #endif
 
 	int flags = MAP_ANON | MAP_PRIVATE;
+    
+    // On High Sierra, passing MAP_JIT seems to cause weird issues - the hardened runtime only exists
+    // from Mojave (10.14) onwards, so there's some clash happening in 10.13. Thus, we just need to branch
+    // here for that one OS (18 is the kernel for Mojave)... and this should be removed at some point. 
 #ifdef __APPLE__
-	flags |= MAP_JIT;
+    struct utsname name;
+    uname(&name);
+    if (atoi(name.release) >= 18) {
+	    flags |= MAP_JIT;
+    }
 #endif
 
 	void* ptr = mmap(map_hint, size, PROT_READ | PROT_WRITE | PROT_EXEC, flags
