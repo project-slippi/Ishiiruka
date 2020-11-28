@@ -1009,7 +1009,6 @@ void CEXISlippi::prepareGeckoList()
 	    {0x800C0148, true}, // External/FlashRedFailedLCancel/ChangeColor.asm
 	    {0x8008D690, true}, // External/FlashRedFailedLCancel/TriggerColor.asm
 
-	    {0x8006A880, true}, // Online/Core/BrawlOffscreenDamage.asm
 	    {0x801A4DB4, true}, // Online/Core/ForceEngineOnRollback.asm
 	    {0x8016D310, true}, // Online/Core/HandleLRAS.asm
 	    {0x8034DED8, true}, // Online/Core/HandleRumble.asm
@@ -1637,8 +1636,10 @@ void CEXISlippi::prepareOpponentInputs(u8 *payload)
 
 void CEXISlippi::handleCaptureSavestate(u8 *payload)
 {
+#ifndef IS_PLAYBACK
 	if (isDisconnected())
 		return;
+#endif
 
 	s32 frame = payload[0] << 24 | payload[1] << 16 | payload[2] << 8 | payload[3];
 
