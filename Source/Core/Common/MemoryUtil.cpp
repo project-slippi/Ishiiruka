@@ -38,7 +38,7 @@ namespace Common
 #include <unistd.h>
 static uintptr_t RoundPage(uintptr_t addr)
 {
-    uintptr_t mask = getpagesize() - 1;
+	uintptr_t mask = getpagesize() - 1;
 	return (addr + mask) & ~mask;
 }
 #endif
