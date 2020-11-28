@@ -1617,6 +1617,8 @@ void CFrame::ParseHotkeys()
 		State::UndoSaveState();
 #ifdef IS_PLAYBACK
 	// Slippi replay hotkeys and setup
+	if (IsHotkey(HK_HIDE_SEEKBAR))
+		SConfig::GetInstance().m_InterfaceSeekbar = !SConfig::GetInstance().m_InterfaceSeekbar;
 	if (SConfig::GetInstance().m_InterfaceSeekbar && g_playbackStatus && g_playbackStatus->inSlippiPlayback)
 	{		
 		if (IsHotkey(HK_JUMP_BACK))
@@ -1633,7 +1635,7 @@ void CFrame::ParseHotkeys()
 			m_slippi_timer = std::make_unique<SlippiTimer>(this, seekBar, seekBarText);
 			m_slippi_timer->Start(50); 
 		}
-	} 
+	}
 	else if (m_Mgr->GetPane(_("Slippi Pane")).IsShown())
 	{
 		m_Mgr->GetPane(_("Slippi Pane")).Hide();

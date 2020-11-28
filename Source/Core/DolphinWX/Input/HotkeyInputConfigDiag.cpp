@@ -77,7 +77,7 @@ void HotkeyInputConfigDialog::InitializeNotebook()
 
 	// i18n: TAS is short for tool-assisted speedrun. Read http://tasvideos.org/ for details.
 	// Frame advance is an example of a typical TAS tool.
-	m_notebook->AddPage(CreateTASToolsPanel(), _("TAS Tools"));
+	m_notebook->AddPage(CreateSlippiPlaybackPanel(), _("Slippi Playback"));
 
 	if (m_using_debugger)
 	{
@@ -122,24 +122,28 @@ wxPanel* HotkeyInputConfigDialog::CreateGeneralPanel()
 	return general_panel;
 }
 
-wxPanel* HotkeyInputConfigDialog::CreateTASToolsPanel()
+wxPanel* HotkeyInputConfigDialog::CreateSlippiPlaybackPanel()
 {
 	const int space5 = FromDIP(5);
-	auto* const tas_panel = new wxPanel(m_notebook);
+	auto* const slippi_panel = new wxPanel(m_notebook);
 
 	auto* const frame_advance_group_box =
-		new ControlGroupBox(HotkeyManagerEmu::GetHotkeyGroup(HKGP_FRAME_ADVANCE), tas_panel, this);
+		new ControlGroupBox(HotkeyManagerEmu::GetHotkeyGroup(HKGP_FRAME_ADVANCE), slippi_panel, this);
 	auto* const movie_group_box =
-		new ControlGroupBox(HotkeyManagerEmu::GetHotkeyGroup(HKGP_MOVIE), tas_panel, this);
+		new ControlGroupBox(HotkeyManagerEmu::GetHotkeyGroup(HKGP_MOVIE), slippi_panel, this);
+	auto* const slippi_group_box = 
+		new ControlGroupBox(HotkeyManagerEmu::GetHotkeyGroup(HKGP_SLIPPI_PLAYBACK), slippi_panel, this);
 
-	auto* const tas_sizer = new wxBoxSizer(wxHORIZONTAL);
-	tas_sizer->AddSpacer(space5);
-	tas_sizer->Add(frame_advance_group_box, 0, wxEXPAND | wxTOP, space5);
-	tas_sizer->AddSpacer(space5);
-	tas_sizer->Add(movie_group_box, 0, wxEXPAND | wxTOP, space5);
+	auto* const slippi_sizer = new wxBoxSizer(wxHORIZONTAL);
+	slippi_sizer->AddSpacer(space5);
+	slippi_sizer->Add(frame_advance_group_box, 0, wxEXPAND | wxTOP, space5);
+	slippi_sizer->AddSpacer(space5);
+	slippi_sizer->Add(movie_group_box, 0, wxEXPAND | wxTOP, space5);
+	slippi_sizer->AddSpacer(space5);
+	slippi_sizer->Add(slippi_group_box, 0, wxEXPAND | wxTOP, space5);
 
-	tas_panel->SetSizerAndFit(tas_sizer);
-	return tas_panel;
+	slippi_panel->SetSizerAndFit(slippi_sizer);
+	return slippi_panel;
 }
 
 wxPanel* HotkeyInputConfigDialog::CreateDebuggingPanel()
