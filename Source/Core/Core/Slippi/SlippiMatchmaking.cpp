@@ -52,7 +52,7 @@ void SlippiMatchmaking::FindMatch(MatchSearchSettings settings)
 	m_searchSettings = settings;
 
 	m_errorMsg = "";
-	m_state = ProcessState::INITIALIZING;
+	m_state = ProcessState::OPPONENT_CONNECTING;
 	m_matchmakeThread = std::thread(&SlippiMatchmaking::MatchmakeThread, this);
 }
 
@@ -403,11 +403,25 @@ void SlippiMatchmaking::handleMatchmaking()
 
 void SlippiMatchmaking::handleConnecting()
 {
+	auto userInfo = m_user->GetUserInfo();
+	INFO_LOG(SLIPPI_ONLINE, "[Matchmaking] My port: %d || First remote IP: %s", userInfo.myPort, userInfo.remotePlayer);
+
+	m_isSwapAttempt = false;
+	m_netplayClient = nullptr;
+	m_oppIp = userInfo.remotePlayer;
+	m_isHost = false;
+	if (userInfo.myPort == 1) {
+		m_isHost = true;
+	}
+
+	SlippiUser::UserInfo emptyInfo;
+	m_oppUser = emptyInfo;
+
 	std::vector<std::string> ipParts;
 	SplitString(m_oppIp, ':', ipParts);
 
 	// Is host is now used to specify who the decider is
-	auto client = std::make_unique<SlippiNetplayClient>(ipParts[0], std::stoi(ipParts[1]), m_hostPort, m_isHost);
+	auto client = std::make_unique<SlippiNetplayClient>(ipParts[0], std::stoi(ipParts[1]), userInfo.bindPort, m_isHost);
 
 	while (!m_netplayClient)
 	{

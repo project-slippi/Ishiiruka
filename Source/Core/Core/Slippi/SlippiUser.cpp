@@ -303,6 +303,10 @@ SlippiUser::UserInfo SlippiUser::parseFile(std::string fileContents)
 	info.connectCode = readString(res, "connectCode");
 	info.latestVersion = readString(res, "latestVersion");
 
+	info.myPort = std::stoi(readString(res, "myPort"));
+	info.bindPort = std::stoi(readString(res, "bindPort"));
+	info.remotePlayer = readString(res, "player1");
+	
 	return info;
 }
 

@@ -19,6 +19,10 @@ class SlippiUser
 		std::string connectCode = "";
 		std::string latestVersion = "";
 		std::string fileContents = "";
+
+		int myPort = 0;
+		int bindPort = 2626;
+		std::string remotePlayer = "";
 	};
 
 	SlippiUser();

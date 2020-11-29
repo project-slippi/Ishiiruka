@@ -1757,12 +1757,72 @@ void CEXISlippi::startFindMatch(u8 *payload)
 #endif
 }
 
+
+// teamId 0 = red, 1 = blue, 2 = green
+int CEXISlippi::getCharColor(u8 charId, u8 teamId)
+{
+	switch (charId)
+	{
+	case 0x0: // Falcon
+		switch (teamId)
+		{
+		case 0:
+			return 2;
+		case 1:
+			return 5;
+		case 2:
+			return 4;
+		}
+	case 0x2: // Fox
+		switch (teamId)
+		{
+		case 0:
+			return 1;
+		case 1:
+			return 2;
+		case 2:
+			return 3;
+		}
+	case 0xC: // Peach
+		switch (teamId)
+		{
+		case 0:
+			return 0;
+		case 1:
+			return 3;
+		case 2:
+			return 4;
+		}
+	case 0x13: // Sheik
+		switch (teamId)
+		{
+		case 0:
+			return 1;
+		case 1:
+			return 2;
+		case 2:
+			return 3;
+		}
+	case 0x14: // Falco
+		switch (teamId)
+		{
+		case 0:
+			return 1;
+		case 1:
+			return 2;
+		case 2:
+			return 3;
+		}
+	}
+	return 0;
+}
+
 void CEXISlippi::prepareOnlineMatchState()
 {
 	// This match block is a VS match with P1 Red Falco vs P2 Red Bowser on Battlefield. The proper values will
 	// be overwritten
 	static std::vector<u8> onlineMatchBlock = {
-	    0x32, 0x01, 0x86, 0x4C, 0xC3, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0x6E, 0x00, 0x1F, 0x00, 0x00,
+	    0x32, 0x01, 0x86, 0x4C, 0xC3, 0x00, 0x00, 0x00, 0x01, 0x01, 0x00, 0xFF, 0xFF, 0x6E, 0x00, 0x1F, 0x00, 0x00,
 	    0x01, 0xE0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF,
 	    0xFF, 0xFF, 0xFF, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x3F, 0x80, 0x00, 0x00, 0x3F, 0x80, 0x00, 0x00, 0x3F, 0x80,
 	    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -1894,19 +1954,47 @@ void CEXISlippi::prepareOnlineMatchState()
 
 		// Overwrite local player character
 		onlineMatchBlock[0x60 + localPlayerIndex * 0x24] = lps.characterId;
-		onlineMatchBlock[0x63 + localPlayerIndex * 0x24] = lps.characterColor;
 
 		// Overwrite remote player character
 		onlineMatchBlock[0x60 + remotePlayerIndex * 0x24] = rps.characterId;
-		onlineMatchBlock[0x63 + remotePlayerIndex * 0x24] = rps.characterColor;
 
+		// Overwrite p3/p4
+		onlineMatchBlock[0x60 + 2 * 0x24] = 0x2;
+		onlineMatchBlock[0x61 + 2 * 0x24] = 0;
+
+		onlineMatchBlock[0x60 + 3 * 0x24] = 0x14;
+		onlineMatchBlock[0x61 + 3 * 0x24] = 0;
+
+		// Set team ids
+		onlineMatchBlock[0x69 + 0 * 0x24] = 0x1;
+		onlineMatchBlock[0x69 + 1 * 0x24] = 0x2;
+		onlineMatchBlock[0x69 + 2 * 0x24] = 0x2;
+		onlineMatchBlock[0x69 + 3 * 0x24] = 0x1;
+
+		// Set char colors for teams
+		onlineMatchBlock[0x63 + 0 * 0x24] = getCharColor(onlineMatchBlock[0x60 + 0 * 0x24], 1);
+		onlineMatchBlock[0x63 + 1 * 0x24] = getCharColor(onlineMatchBlock[0x60 + 1 * 0x24], 2);
+		onlineMatchBlock[0x63 + 2 * 0x24] = getCharColor(onlineMatchBlock[0x60 + 2 * 0x24], 2);
+		onlineMatchBlock[0x63 + 3 * 0x24] = getCharColor(onlineMatchBlock[0x60 + 3 * 0x24], 1);
+
+		// Set light alt colors if same character
+		if (onlineMatchBlock[0x60 + 0 * 0x24] == onlineMatchBlock[0x60 + 3 * 0x24])
+		{
+			onlineMatchBlock[0x67 + 3 * 0x24] = 1;
+		}
+
+		if (onlineMatchBlock[0x60 + 1 * 0x24] == onlineMatchBlock[0x60 + 2 * 0x24])
+		{
+			onlineMatchBlock[0x67 + 2 * 0x24] = 1;
+		}
+		
 		// Make one character lighter if same character, same color
 		bool isSheikVsZelda =
 		    lps.characterId == 0x12 && rps.characterId == 0x13 || lps.characterId == 0x13 && rps.characterId == 0x12;
 		bool charMatch = lps.characterId == rps.characterId || isSheikVsZelda;
 		bool colMatch = lps.characterColor == rps.characterColor;
 
-		onlineMatchBlock[0x67 + 0x24] = charMatch && colMatch ? 1 : 0;
+		//onlineMatchBlock[0x67 + 0x24] = charMatch && colMatch ? 1 : 0;
 
 		// Overwrite stage
 		u16 stageId;

@@ -182,6 +182,8 @@ class CEXISlippi : public IEXIDevice
 	void prepareFileLength(u8 *payload);
 	void prepareFileLoad(u8 *payload);
 
+	int getCharColor(u8 charId, u8 teamId);
+
 	void FileWriteThread(void);
 
 	Common::FifoQueue<std::unique_ptr<WriteMessage>, false> fileWriteQueue;
