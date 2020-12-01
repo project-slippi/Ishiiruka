@@ -64,6 +64,7 @@
 #include "Core/PowerPC/JitInterface.h"
 #include "Core/PowerPC/PowerPC.h"
 #include "Core/State.h"
+#include "Core/Slippi/SlippiNetplay.h"
 
 #ifdef USE_GDBSTUB
 #include "Core/PowerPC/GDBStub.h"
@@ -83,6 +84,7 @@
 #else  // Everything besides OSX and Android
 #define ThreadLocalStorage thread_local
 #endif
+
 
 namespace Core
 {
@@ -192,6 +194,7 @@ bool IsRunning()
 
 bool IsRunningAndStarted()
 {
+
 	return s_is_started && !s_is_stopping;
 }
 
@@ -693,7 +696,11 @@ void SetState(EState state)
 	if (!IsRunningAndStarted())
 		return;
 
-	switch (state)
+	// Do not allow any kind of cpu pause/resum if we are connected to someone on slippi
+    if(IsOnline())
+        return;
+
+    switch (state)
 	{
 	case CORE_PAUSE:
 		// NOTE: GetState() will return CORE_PAUSE immediately, even before anything has
@@ -762,6 +769,7 @@ static std::string GenerateScreenshotName()
 
 void SaveScreenShot()
 {
+    if(IsOnline()) return;
 	const bool bPaused = (GetState() == CORE_PAUSE);
 
 	SetState(CORE_PAUSE);

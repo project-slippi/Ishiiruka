@@ -30,6 +30,7 @@
 #include <wx/textctrl.h>
 #include <wx/thread.h>
 #include <wx/toolbar.h>
+#include <Core/Slippi/SlippiNetplay.h>
 
 #include "AudioCommon/AudioCommon.h"
 
@@ -1448,7 +1449,7 @@ void CFrame::ParseHotkeys()
 		g_Config.bDisableFog = !g_Config.bDisableFog;
 	}
 	Core::SetIsThrottlerTempDisabled(IsHotkey(HK_TOGGLE_THROTTLE, true));
-	if (IsHotkey(HK_DECREASE_EMULATION_SPEED))
+	if (IsHotkey(HK_DECREASE_EMULATION_SPEED) && !IsOnline())
 	{
 		OSDChoice = 5;
 
@@ -1462,7 +1463,7 @@ void CFrame::ParseHotkeys()
 		if (SConfig::GetInstance().m_EmulationSpeed >= 0.95f && SConfig::GetInstance().m_EmulationSpeed <= 1.05f)
 			SConfig::GetInstance().m_EmulationSpeed = 1.0f;
 	}
-	if (IsHotkey(HK_INCREASE_EMULATION_SPEED))
+	if (IsHotkey(HK_INCREASE_EMULATION_SPEED) && !IsOnline())
 	{
 		OSDChoice = 5;
 
