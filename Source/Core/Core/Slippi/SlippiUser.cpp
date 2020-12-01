@@ -255,6 +255,7 @@ void SlippiUser::FileListenThread()
 		if (AttemptLogin())
 		{
 			runThread = false;
+			main_frame->RaiseRenderWindow();
 			break;
 		}
 
