@@ -180,6 +180,10 @@ VULKAN_INSTANCE_ENTRY_POINT(vkCreateAndroidSurfaceKHR, false)
 
 #endif
 
+#if defined(VK_USE_PLATFORM_METAL_EXT)
+VULKAN_INSTANCE_ENTRY_POINT(vkCreateMetalSurfaceEXT, false)
+#endif
+
 VULKAN_INSTANCE_ENTRY_POINT(vkCreateDebugReportCallbackEXT, false)
 VULKAN_INSTANCE_ENTRY_POINT(vkDestroyDebugReportCallbackEXT, false)
 VULKAN_INSTANCE_ENTRY_POINT(vkDebugReportMessageEXT, false)
