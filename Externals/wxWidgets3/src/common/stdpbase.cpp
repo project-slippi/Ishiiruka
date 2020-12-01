@@ -4,7 +4,7 @@
 // Author:      Vadim Zeitlin
 // Modified by:
 // Created:     2004-10-19
-// Copyright:   (c) 2004 Vadim Zeitlin <vadim@wxwindows.org>
+// Copyright:   (c) 2004 Vadim Zeitlin <vadim@wxwidgets.org>
 // Licence:     wxWindows licence
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -97,6 +97,9 @@ wxStandardPathsBase::wxStandardPathsBase()
     // Derived classes can call this in their constructors
     // to set the platform-specific settings
     UseAppInfo(AppInfo_AppName);
+
+    // Default for compatibility with the existing config files.
+    SetFileLayout(FileLayout_Classic);
 }
 
 wxStandardPathsBase::~wxStandardPathsBase()

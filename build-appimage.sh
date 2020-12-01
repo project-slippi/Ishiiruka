@@ -1,5 +1,5 @@
 #!/bin/bash -e
-# build-online-appimage.sh
+# build-appimage.sh
 
 ZSYNC_STRING="gh-releases-zsync|project-slippi|Ishiiruka|latest|Slippi_Online-x86_64.AppImage.zsync"
 NETPLAY_APPIMAGE_STRING="Slippi_Online-x86_64.AppImage"
@@ -21,6 +21,7 @@ DESKTOP_APP_URL="https://github.com/project-slippi/slippi-desktop-app"
 DESKTOP_APP_SYS_PATH="./slippi-desktop-app/app/dolphin-dev/overwrite/Sys"
 
 APPDIR_BIN="./AppDir/usr/bin"
+APPDIR_HOOKS="./AppDir/apprun-hooks"
 
 # Grab various appimage binaries from GitHub if we don't have them
 if [ ! -e ./Tools/linuxdeploy ]; then
@@ -38,6 +39,10 @@ fi
 
 # Delete the AppDir folder to prevent build issues
 rm -rf ./AppDir/
+
+# Add the linux-env script to the AppDir prior to running linuxdeploy
+mkdir -p ${APPDIR_HOOKS}
+cp Data/linux-env.sh ${APPDIR_HOOKS}
 
 # Build the AppDir directory for this image
 mkdir -p AppDir

@@ -25,7 +25,6 @@
 
 #include "wx/modalhook.h"
 
-#include <gtk/gtk.h>
 #include "wx/gtk/private.h"
 #include "wx/gtk/private/messagetype.h"
 #include "wx/gtk/private/mnemonics.h"
@@ -50,27 +49,47 @@ wxMessageDialog::wxMessageDialog(wxWindow *parent,
 
 wxString wxMessageDialog::GetDefaultYesLabel() const
 {
-    return GTK_STOCK_YES;
+#ifdef __WXGTK4__
+    return wxConvertMnemonicsToGTK(wxGetStockLabel(wxID_YES));
+#else
+    return "gtk-yes";
+#endif
 }
 
 wxString wxMessageDialog::GetDefaultNoLabel() const
 {
-    return GTK_STOCK_NO;
+#ifdef __WXGTK4__
+    return wxConvertMnemonicsToGTK(wxGetStockLabel(wxID_NO));
+#else
+    return "gtk-no";
+#endif
 }
 
 wxString wxMessageDialog::GetDefaultOKLabel() const
 {
-    return GTK_STOCK_OK;
+#ifdef __WXGTK4__
+    return wxConvertMnemonicsToGTK(wxGetStockLabel(wxID_OK));
+#else
+    return "gtk-ok";
+#endif
 }
 
 wxString wxMessageDialog::GetDefaultCancelLabel() const
 {
-    return GTK_STOCK_CANCEL;
+#ifdef __WXGTK4__
+    return wxConvertMnemonicsToGTK(wxGetStockLabel(wxID_CANCEL));
+#else
+    return "gtk-cancel";
+#endif
 }
 
 wxString wxMessageDialog::GetDefaultHelpLabel() const
 {
-    return GTK_STOCK_HELP;
+#ifdef __WXGTK4__
+    return wxConvertMnemonicsToGTK(wxGetStockLabel(wxID_HELP));
+#else
+    return "gtk-help";
+#endif
 }
 
 void wxMessageDialog::DoSetCustomLabel(wxString& var, const ButtonLabel& label)
@@ -83,7 +102,11 @@ void wxMessageDialog::DoSetCustomLabel(wxString& var, const ButtonLabel& label)
     }
     else // stock label
     {
+#ifdef __WXGTK4__
+        var = wxConvertMnemonicsToGTK(wxGetStockLabel(stockId));
+#else
         var = wxGetStockGtkID(stockId);
+#endif
     }
 }
 
@@ -214,6 +237,8 @@ void wxMessageDialog::GTKCreateMsgDialog()
         defaultButton = GTK_RESPONSE_NO;
     else if ( m_dialogStyle & wxYES_NO )
         defaultButton = GTK_RESPONSE_YES;
+    else if ( m_dialogStyle & wxOK )
+        defaultButton = GTK_RESPONSE_OK;
     else // No need to change the default value, whatever it is.
         defaultButton = GTK_RESPONSE_NONE;
 

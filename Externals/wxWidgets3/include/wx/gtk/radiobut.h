@@ -24,7 +24,7 @@ public:
                    const wxSize& size = wxDefaultSize,
                    long style = 0,
                    const wxValidator& validator = wxDefaultValidator,
-                   const wxString& name = wxRadioButtonNameStr )
+                   const wxString& name = wxASCII_STR(wxRadioButtonNameStr) )
     {
         Create( parent, id, label, pos, size, style, validator, name );
     }
@@ -36,12 +36,11 @@ public:
                  const wxSize& size = wxDefaultSize,
                  long style = 0,
                  const wxValidator& validator = wxDefaultValidator,
-                 const wxString& name = wxRadioButtonNameStr );
+                 const wxString& name = wxASCII_STR(wxRadioButtonNameStr) );
 
     virtual void SetLabel(const wxString& label) wxOVERRIDE;
     virtual void SetValue(bool val);
     virtual bool GetValue() const;
-    virtual bool Enable( bool enable = true ) wxOVERRIDE;
 
     static wxVisualAttributes
     GetClassDefaultAttributes(wxWindowVariant variant = wxWINDOW_VARIANT_NORMAL);
@@ -51,6 +50,8 @@ protected:
 
     virtual void DoApplyWidgetStyle(GtkRcStyle *style) wxOVERRIDE;
     virtual GdkWindow *GTKGetWindow(wxArrayGdkWindows& windows) const wxOVERRIDE;
+
+    virtual void DoEnable(bool enable) wxOVERRIDE;
 
 private:
     typedef wxControl base_type;
