@@ -68,11 +68,13 @@ class CEXISlippi : public IEXIDevice
 		CMD_UPDATE = 0xB8,
 		CMD_GET_ONLINE_STATUS = 0xB9,
 		CMD_CLEANUP_CONNECTION = 0xBA,
+		CMD_SEND_CHAT_MESSAGE = 0xBB,
 
 		// Misc
 		CMD_LOG_MESSAGE = 0xD0,
 		CMD_FILE_LENGTH = 0xD1,
 		CMD_FILE_LOAD = 0xD2,
+
 	};
 
 	enum
@@ -105,6 +107,7 @@ class CEXISlippi : public IEXIDevice
 	    {CMD_GET_MATCH_STATE, 0},
 	    {CMD_FIND_OPPONENT, 19},
 	    {CMD_SET_MATCH_SELECTIONS, 6},
+	    {CMD_SEND_CHAT_MESSAGE, 2},
 	    {CMD_OPEN_LOGIN, 0},
 	    {CMD_LOGOUT, 0},
 	    {CMD_UPDATE, 0},
@@ -178,6 +181,7 @@ class CEXISlippi : public IEXIDevice
 	void prepareIsFileReady();
 
 	// misc stuff
+	void handleChatMessage(u8 *payload);
 	void logMessageFromGame(u8 *payload);
 	void prepareFileLength(u8 *payload);
 	void prepareFileLoad(u8 *payload);
