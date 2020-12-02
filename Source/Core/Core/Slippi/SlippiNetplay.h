@@ -32,12 +32,14 @@
 struct SlippiRemotePadOutput
 {
 	int32_t latestFrame;
+	u8 playerIdx;
 	std::vector<u8> data;
 };
 
 class SlippiPlayerSelections
 {
   public:
+	u8 playerIdx = 0;
 	u8 characterId = 0;
 	u8 characterColor = 0;
 	bool isCharacterSelected = false;
@@ -98,7 +100,7 @@ class SlippiNetplayClient
 	void SendAsync(std::unique_ptr<sf::Packet> packet);
 
 	SlippiNetplayClient(bool isDecider); // Make a dummy client
-	SlippiNetplayClient(const std::string &address, const u16 remotePort, const u16 localPort, bool isDecider);
+	SlippiNetplayClient(const std::string &address, const u16 remotePort, const u16 localPort, bool isDecider, u8 playerIdx);
 	~SlippiNetplayClient();
 
 	// Slippi Online
@@ -163,6 +165,7 @@ class SlippiNetplayClient
 
 	bool isConnectionSelected = false;
 	bool isDecider = false;
+	u8 playerIdx = 0;
 	int32_t lastFrameAcked;
 	bool hasGameStarted = false;
 	FrameTiming lastFrameTiming;

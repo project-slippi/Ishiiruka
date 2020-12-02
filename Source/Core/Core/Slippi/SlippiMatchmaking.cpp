@@ -401,6 +401,11 @@ void SlippiMatchmaking::handleMatchmaking()
 	ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Opponent found. isDecider: %s", m_isHost ? "true" : "false");
 }
 
+int SlippiMatchmaking::LocalPlayerIndex() {
+	auto userInfo = m_user->GetUserInfo();
+	return userInfo.myPort;
+}
+
 void SlippiMatchmaking::handleConnecting()
 {
 	auto userInfo = m_user->GetUserInfo();
@@ -421,7 +426,7 @@ void SlippiMatchmaking::handleConnecting()
 	SplitString(m_oppIp, ':', ipParts);
 
 	// Is host is now used to specify who the decider is
-	auto client = std::make_unique<SlippiNetplayClient>(ipParts[0], std::stoi(ipParts[1]), userInfo.bindPort, m_isHost);
+	auto client = std::make_unique<SlippiNetplayClient>(ipParts[0], std::stoi(ipParts[1]), userInfo.bindPort, m_isHost, userInfo.myPort);
 
 	while (!m_netplayClient)
 	{

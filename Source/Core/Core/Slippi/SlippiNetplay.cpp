@@ -60,7 +60,7 @@ SlippiNetplayClient::~SlippiNetplayClient()
 
 // called from ---SLIPPI EXI--- thread
 SlippiNetplayClient::SlippiNetplayClient(const std::string &address, const u16 remotePort, const u16 localPort,
-                                         bool isDecider)
+                                         bool isDecider, u8 playerIdx)
 #ifdef _WIN32
     : m_qos_handle(nullptr)
     , m_qos_flow_id(0)
@@ -70,6 +70,7 @@ SlippiNetplayClient::SlippiNetplayClient(const std::string &address, const u16 r
 	         isDecider ? "true" : "false");
 
 	this->isDecider = isDecider;
+	this->playerIdx = playerIdx;
 
 	// Local address
 	ENetAddress *localAddr = nullptr;
@@ -139,6 +140,12 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet)
 			ERROR_LOG(SLIPPI_ONLINE, "Netplay packet too small to read frame count");
 			break;
 		}
+		u8 playerIdx;
+		if (!(packet >> playerIdx))
+		{
+			ERROR_LOG(SLIPPI_ONLINE, "Netplay packet too small to read player index");
+			break;
+		}
 
 		// Pad received, try to guess what our local time was when the frame was sent by our opponent
 		// before we initialized
@@ -176,7 +183,7 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet)
 
 			auto packetData = (u8 *)packet.getData();
 
-			INFO_LOG(SLIPPI_ONLINE, "Receiving a packet of inputs [%d]...", frame);
+			INFO_LOG(SLIPPI_ONLINE, "Receiving a packet of inputs from player %d [%d]...", playerIdx, frame);
 
 			int32_t headFrame = remotePadQueue.empty() ? 0 : remotePadQueue.front()->frame;
 			int inputsToCopy = frame - headFrame;
@@ -190,7 +197,7 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet)
 
 			for (int i = inputsToCopy - 1; i >= 0; i--)
 			{
-				auto pad = std::make_unique<SlippiPad>(frame - i, &packetData[5 + i * SLIPPI_PAD_DATA_SIZE]);
+				auto pad = std::make_unique<SlippiPad>(frame - i, playerIdx, &packetData[6 + i * SLIPPI_PAD_DATA_SIZE]);
 
 				INFO_LOG(SLIPPI_ONLINE, "Rcv [%d] -> %02X %02X %02X %02X %02X %02X %02X %02X", pad->frame,
 				         pad->padBuf[0], pad->padBuf[1], pad->padBuf[2], pad->padBuf[3], pad->padBuf[4], pad->padBuf[5],
@@ -577,6 +584,7 @@ void SlippiNetplayClient::SendSlippiPad(std::unique_ptr<SlippiPad> pad)
 	auto spac = std::make_unique<sf::Packet>();
 	*spac << static_cast<MessageId>(NP_MSG_SLIPPI_PAD);
 	*spac << frame;
+	*spac << this->playerIdx;
 
 	INFO_LOG(SLIPPI_ONLINE, "Sending a packet of inputs [%d]...", frame);
 	for (auto it = localPadQueue.begin(); it != localPadQueue.end(); ++it)
@@ -608,6 +616,7 @@ void SlippiNetplayClient::SendSlippiPad(std::unique_ptr<SlippiPad> pad)
 void SlippiNetplayClient::SetMatchSelections(SlippiPlayerSelections &s)
 {
 	matchInfo.localPlayerSelections.Merge(s);
+	matchInfo.localPlayerSelections.playerIdx = playerIdx;
 
 	// Send packet containing selections
 	auto spac = std::make_unique<sf::Packet>();

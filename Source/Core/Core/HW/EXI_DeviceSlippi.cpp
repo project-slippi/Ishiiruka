@@ -1618,7 +1618,11 @@ void CEXISlippi::prepareOpponentInputs(u8 *payload)
 
 	// add latest frame we are transfering to begining of return buf
 	int32_t latestFrame = offset > 0 ? frame : result->latestFrame;
+	int32_t latestFrame2 = offset > 0 ? frame : result->latestFrame;
+	int32_t latestFrame3 = offset > 0 ? frame : result->latestFrame;
 	appendWordToBuffer(&m_read_queue, *(u32 *)&latestFrame);
+	appendWordToBuffer(&m_read_queue, *(u32 *)&latestFrame2);
+	appendWordToBuffer(&m_read_queue, *(u32 *)&latestFrame3);
 
 	// copy pad data over
 	auto txStart = result->data.begin() + offset;
@@ -1915,7 +1919,7 @@ void CEXISlippi::prepareOnlineMatchState()
 	}
 
 	m_read_queue.push_back(localPlayerReady);  // Local player ready
-	m_read_queue.push_back(remotePlayerReady); // Remote player ready
+	m_read_queue.push_back(remotePlayerReady); // Remote player ready TODO: make this a composite of all remote players
 	m_read_queue.push_back(localPlayerIndex);  // Local player index
 	m_read_queue.push_back(remotePlayerIndex); // Remote player index
 
