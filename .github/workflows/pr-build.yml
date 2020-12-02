@@ -15,14 +15,26 @@ on:
       - "**.ini"
 
 jobs:
-  windows64-netplay:
+  windows64:
+    strategy:
+      fail-fast: false
+      matrix:
+        build_type: [Netplay, Playback]
+        include:
+          - build_type: Netplay
+            artifact_name: windows64-netplay
+            build_config: Release
+          - build_type: Playback
+            artifact_name: windows64-playback
+            build_config: ReleasePlayback
     env:
       DXSDK_DIR: "C:\\Program Files (x86)\\Microsoft DirectX SDK (June 2010)\\"
-    name: "Windows Netplay"
+    name: "Windows ${{ matrix.build_type }}"
     runs-on: windows-2019
     steps:
       - name: "Setup Go"
         uses: actions/setup-go@v2
+        if: matrix.build_type == "Netplay"
       - name: "Remove Redistributable"
         shell: cmd
         run: |
@@ -37,20 +49,23 @@ jobs:
       - name: "Checkout"
         uses: actions/checkout@v2.3.1
       - name: 'Fetch Git Tags'
-        if: success()
         shell: bash
+        if: success()
         run: |
           git fetch --prune --unshallow
           echo "GIT_BRANCH=$(git rev-parse --abbrev-ref HEAD)" >> $GITHUB_ENV
           echo "GIT_HASH=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
           echo "GIT_TAG=$(git describe --tags --abbrev=0)" >> $GITHUB_ENV
-      - name: "Build Netplay Dolphin"
+          echo "CURR_DATE=$(date +%Y-%m-%d)" >> $GITHUB_ENV
+          echo "FILE_NAME="${{ env.CURR_DATE }}-${{ env.GIT_HASH }}-${{ env.GIT_TAG }}-${{ matrix.artifact_name }}.zip" >> $GITHUB_ENV
+      - name: "Build Dolphin"
         shell: cmd
         run: |
-          msbuild /p:Configuration=Release /p:Platform=x64 ${{ github.workspace }}\Source\Dolphin.sln
+          msbuild /p:Configuration=${{ matrix.build_config }} /p:Platform=x64 ${{ github.workspace }}\Source\Dolphin.sln
       - name: "Build Updater"
         working-directory: ${{ github.workspace }}
         shell: cmd
+        if: matrix.build_type == "Netplay"
         run: |
           cd %GOPATH%
           git clone https://github.com/project-slippi/dolphin-slippi-tools
@@ -58,76 +73,34 @@ jobs:
           go get github.com/gonutz/w32 github.com/machinebox/graphql golang.org/x/sys/windows/registry
           go build
           copy /b /v /y dolphin-slippi-tools.exe ${{ github.workspace }}\Binary\x64\
-      - name: "Package Netplay"
+      - name: "Prepare Artifact"
         working-directory: ${{ github.workspace }}
         run: |
-          $env:FILE_DATE=(Get-Date -UFormat "%F")
-          $env:FILE_NAME="${env:FILE_DATE}-${{ env.GIT_HASH }}-${{ env.GIT_TAG }}-win64-netplay.zip"
-          mkdir artifact
           Xcopy /Y /E /I .\Data\Sys .\Binary\x64\Sys
           cd .\Binary\x64\
-          fsutil file createnew portable.txt 0
           fsutil file createnew FIX-VCRUNTIME140-ERROR.txt 0
           echo "Download and install this: https://aka.ms/vs/16/release/vc_redist.x64.exe" > .\FIX-VCRUNTIME140-ERROR.txt
-          7z a ${env:FILE_NAME} .\*
-          move ${env:FILE_NAME} ..\..\artifact\
-      - name: "Publish"
-        if: success()
-        uses: actions/upload-artifact@v2-preview
-        with:
-          name: "windows64-netplay"
-          path: "./artifact/"
-  windows64-playback:
-    env:
-      DXSDK_DIR: "C:\\Program Files (x86)\\Microsoft DirectX SDK (June 2010)\\"
-    name: "Windows Playback"
-    runs-on: windows-2019
-    steps:
-      - name: "Remove Redistributable"
-        shell: cmd
-        run: |
-          MsiExec.exe /passive /X{F0C3E5D1-1ADE-321E-8167-68EF0DE699A5}
-          MsiExec.exe /passive /X{1D8E6291-B0D5-35EC-8441-6616F567A0F7}
-      - name: "Install DirectX SDK"
-        shell: powershell
-        run: |
-          choco install directx-sdk
-      - name: "Setup MSBuild"
-        uses: microsoft/setup-msbuild@v1   
-      - name: "Checkout"
-        uses: actions/checkout@v2.3.1
-      - name: 'Fetch Git Tags'
-        if: success()
-        shell: bash
-        run: |
-          git fetch --prune --unshallow
-          echo "GIT_BRANCH=$(git rev-parse --abbrev-ref HEAD)" >> $GITHUB_ENV
-          echo "GIT_HASH=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
-          echo "GIT_TAG=$(git describe --tags --abbrev=0)" >> $GITHUB_ENV
-      - name: "Build Playback Dolphin"
-        shell: cmd
-        run: |
-          msbuild /p:Configuration=ReleasePlayback /p:Platform=x64 ${{ github.workspace }}\Source\Dolphin.sln
-      - name: "Package Playback"
-        if: success()
+      - name: "Add Playback codes"
         working-directory: ${{ github.workspace }}
+        if: matrix.build_type == "Playback"
         run: |
-          $env:FILE_DATE=(Get-Date -UFormat "%F")
-          $env:FILE_NAME="${env:FILE_DATE}-${{ env.GIT_HASH }}-${{ env.GIT_TAG }}-win64-playback.zip"
-          mkdir artifact
           git clone https://github.com/project-slippi/slippi-desktop-app
           Xcopy /Y /E /I .\Data\Sys .\Binary\x64\Sys
           Xcopy /Y /E /I .\slippi-desktop-app\app\dolphin-dev\overwrite\Sys .\Binary\x64\Sys
           Xcopy /Y /E /I .\slippi-desktop-app\app\dolphin-dev\overwrite\User .\Binary\x64\User
+      - name: Package Artifact
+        working-directory: ${{ github.workspace }}
+        run: |
+          mkdir artifact
           cd .\Binary\x64\
           fsutil file createnew portable.txt 0
-          7z a ${env:FILE_NAME} .\*
-          move ${env:FILE_NAME} ..\..\artifact\
+          7z a ${{ env.FILE_NAME }} .\*
+          move ${{ env.FILE_NAME }} ..\..\artifact\
       - name: "Publish"
         if: success()
         uses: actions/upload-artifact@v2-preview
         with:
-          name: "windows64-playback"
+          name: ${{ matrix.artifact_name }}
           path: "./artifact/"
   ubuntu64-netplay:
       name: "Ubuntu Netplay"
