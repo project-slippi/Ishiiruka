@@ -3,12 +3,13 @@ name: PR Builds x64
 on:
   push:
     branches:
-        - slippi
+        - "**"
     paths-ignore:
         - "**.md"
         - "**.ini"
   pull_request:
-    branches: [ slippi ]
+    branches:
+      - "**"
     paths-ignore:
       - "**.md"
       - "**.ini"
