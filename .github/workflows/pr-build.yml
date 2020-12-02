@@ -57,7 +57,6 @@ jobs:
           echo "GIT_HASH=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
           echo "GIT_TAG=$(git describe --tags --abbrev=0)" >> $GITHUB_ENV
           echo "CURR_DATE=$(date +%Y-%m-%d)" >> $GITHUB_ENV
-          echo "FILE_NAME="${{ env.CURR_DATE }}-${{ env.GIT_HASH }}-${{ env.GIT_TAG }}-${{ matrix.artifact_name }}.zip" >> $GITHUB_ENV
       - name: "Build Dolphin"
         shell: cmd
         run: |
@@ -91,181 +90,111 @@ jobs:
       - name: Package Artifact
         working-directory: ${{ github.workspace }}
         run: |
+          $FILE_NAME=${{ env.CURR_DATE }}-${{ env.GIT_HASH }}-${{ env.GIT_TAG }}-${{ matrix.artifact_name }}.zip
           mkdir artifact
           cd .\Binary\x64\
           fsutil file createnew portable.txt 0
-          7z a ${{ env.FILE_NAME }} .\*
-          move ${{ env.FILE_NAME }} ..\..\artifact\
+          7z a $FILE_NAME .\*
+          move $FILE_NAME ..\..\artifact\
       - name: "Publish"
         if: success()
         uses: actions/upload-artifact@v2-preview
         with:
           name: ${{ matrix.artifact_name }}
           path: "./artifact/"
-  ubuntu64-netplay:
-      name: "Ubuntu Netplay"
-      runs-on: ubuntu-18.04
-      steps:
-        - name: "Checkout"
-          uses: actions/checkout@v2
-          with:
-            submodules: recursive
-        - name: 'Fetch Git Tags'
-          if: success()
-          run: |
-            git fetch --prune --unshallow
-            echo "GIT_BRANCH=$(git rev-parse --abbrev-ref HEAD)" >> $GITHUB_ENV
-            echo "GIT_HASH=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
-            echo "GIT_TAG=$(git describe --tags --abbrev=0)" >> $GITHUB_ENV
-            echo "CURR_DATE=$(date +%Y-%m-%d)" >> $GITHUB_ENV
-        - name: "Install prerequisites"
-          if: success()
-          shell: bash
-          run: |
-            sudo dpkg --add-architecture amd64
-            sudo apt update
-            sudo apt install \
-            cmake \
-            pkg-config \
-            git \
-            wget \
-            libao-dev \
-            libasound2-dev \
-            libavcodec-dev \
-            libavformat-dev \
-            libbluetooth-dev \
-            libenet-dev \
-            libgtk2.0-dev \
-            liblzo2-dev \
-            libminiupnpc-dev \
-            libopenal-dev \
-            libpulse-dev \
-            libreadline-dev \
-            libsfml-dev \
-            libsoil-dev \
-            libsoundtouch-dev \
-            libswscale-dev \
-            libusb-1.0-0-dev \
-            libwebkit2gtk-4.0-dev \
-            libxext-dev \
-            libxrandr-dev \
-            portaudio19-dev \
-            zlib1g-dev \
-            libudev-dev \
-            libevdev-dev \
-            libmbedtls-dev \
-            libcurl4-openssl-dev \
-            libegl1-mesa-dev \
-            libpng-dev \
-            qtbase5-private-dev \
-            libxxf86vm-dev \
-            x11proto-xinerama-dev
-        - name: "Build Netplay Dolphin"
-          if: success()
-          working-directory: ${{ github.workspace }}
-          run: |
-            ./build-linux.sh
-        - name: "Build Netplay AppImage"
-          if: success()
-          working-directory: ${{ github.workspace }}
-          run: |
-            ./build-appimage.sh
-        - name: "Package Netplay"
-          if: success()
-          working-directory: ${{ github.workspace }}
-          run: |
-            mkdir artifact
-            FILE_NAME=${{ env.CURR_DATE }}-${{ env.GIT_HASH }}-${{ env.GIT_TAG }}-linux-appimage-netplay.zip
-            zip -r "${FILE_NAME}" ./*.AppImage*
-            mv "${FILE_NAME}" ./artifact/
-        - name: "Publish"
-          if: success()
-          uses: actions/upload-artifact@v2-preview
-          with:
-            name: "linux-netplay"
-            path: "./artifact/"
-  ubuntu64-playback:
-      name: "Ubuntu Playback"
-      runs-on: ubuntu-18.04
-      steps:
-        - name: "Checkout"
-          uses: actions/checkout@v2
-          with:
-            submodules: recursive
-        - name: 'Fetch Git Tags'
-          if: success()
-          run: |
-            git fetch --prune --unshallow
-            echo "GIT_BRANCH=$(git rev-parse --abbrev-ref HEAD)" >> $GITHUB_ENV
-            echo "GIT_HASH=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
-            echo "GIT_TAG=$(git describe --tags --abbrev=0)" >> $GITHUB_ENV
-            echo "CURR_DATE=$(date +%Y-%m-%d)" >> $GITHUB_ENV
-        - name: "Install prerequisites"
-          if: success()
-          shell: bash
-          run: |
-            sudo dpkg --add-architecture amd64
-            sudo apt update
-            sudo apt install \
-            cmake \
-            pkg-config \
-            git \
-            wget \
-            libao-dev \
-            libasound2-dev \
-            libavcodec-dev \
-            libavformat-dev \
-            libbluetooth-dev \
-            libenet-dev \
-            libgtk2.0-dev \
-            liblzo2-dev \
-            libminiupnpc-dev \
-            libopenal-dev \
-            libpulse-dev \
-            libreadline-dev \
-            libsfml-dev \
-            libsoil-dev \
-            libsoundtouch-dev \
-            libswscale-dev \
-            libusb-1.0-0-dev \
-            libwebkit2gtk-4.0-dev \
-            libxext-dev \
-            libxrandr-dev \
-            portaudio19-dev \
-            zlib1g-dev \
-            libudev-dev \
-            libevdev-dev \
-            libmbedtls-dev \
-            libcurl4-openssl-dev \
-            libegl1-mesa-dev \
-            libpng-dev \
-            qtbase5-private-dev \
-            libxxf86vm-dev \
-            x11proto-xinerama-dev
-        - name: "Build Playback Dolphin"
-          if: success()
-          working-directory: ${{ github.workspace }}
-          run: |
-            ./build-linux.sh playback
-        - name: "Build Playback AppImage"
-          if: success()
-          working-directory: ${{ github.workspace }}
-          run: |
-            ./build-appimage.sh playback
-        - name: "Package Playback"
-          if: success()
-          working-directory: ${{ github.workspace }}
-          run: |
-            mkdir artifact
-            FILE_NAME=${{ env.CURR_DATE }}-${{ env.GIT_HASH }}-${{ env.GIT_TAG }}-linux-appimage-playback.zip
-            zip -r "${FILE_NAME}" ./*.AppImage
-            mv "${FILE_NAME}" ./artifact/
-        - name: "Publish"
-          if: success()
-          uses: actions/upload-artifact@v2-preview
-          with:
-            name: "linux-playback"
-            path: "./artifact/"
+  ubuntu64:
+    strategy:
+      fail-fast: false
+      matrix:
+        build_type: [Netplay, Playback]
+        include:
+          - build_type: Netplay
+            artifact_name: linux-netplay
+            build_config: netplay
+          - build_type: Playback
+            artifact_name: linux-playback
+            build_config: playback
+    name: "Ubuntu ${{ matrix.build_type }}"
+    runs-on: ubuntu-18.04
+    steps:
+      - name: "Checkout"
+        uses: actions/checkout@v2
+        with:
+          submodules: recursive
+      - name: 'Fetch Git Tags'
+        if: success()
+        run: |
+          git fetch --prune --unshallow
+          echo "GIT_BRANCH=$(git rev-parse --abbrev-ref HEAD)" >> $GITHUB_ENV
+          echo "GIT_HASH=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+          echo "GIT_TAG=$(git describe --tags --abbrev=0)" >> $GITHUB_ENV
+          echo "CURR_DATE=$(date +%Y-%m-%d)" >> $GITHUB_ENV
+      - name: "Install prerequisites"
+        if: success()
+        shell: bash
+        run: |
+          sudo dpkg --add-architecture amd64
+          sudo apt update
+          sudo apt install \
+          cmake \
+          pkg-config \
+          git \
+          wget \
+          libao-dev \
+          libasound2-dev \
+          libavcodec-dev \
+          libavformat-dev \
+          libbluetooth-dev \
+          libenet-dev \
+          libgtk2.0-dev \
+          liblzo2-dev \
+          libminiupnpc-dev \
+          libopenal-dev \
+          libpulse-dev \
+          libreadline-dev \
+          libsfml-dev \
+          libsoil-dev \
+          libsoundtouch-dev \
+          libswscale-dev \
+          libusb-1.0-0-dev \
+          libwebkit2gtk-4.0-dev \
+          libxext-dev \
+          libxrandr-dev \
+          portaudio19-dev \
+          zlib1g-dev \
+          libudev-dev \
+          libevdev-dev \
+          libmbedtls-dev \
+          libcurl4-openssl-dev \
+          libegl1-mesa-dev \
+          libpng-dev \
+          qtbase5-private-dev \
+          libxxf86vm-dev \
+          x11proto-xinerama-dev
+      - name: "Build Dolphin"
+        if: success()
+        working-directory: ${{ github.workspace }}
+        run: |
+          ./build-linux.sh ${{ matrix.build_config }}
+      - name: "Build AppImage"
+        if: success()
+        working-directory: ${{ github.workspace }}
+        run: |
+          ./build-appimage.sh ${{ matrix.build_config }}
+      - name: "Package"
+        if: success()
+        working-directory: ${{ github.workspace }}
+        run: |
+          mkdir artifact
+          FILE_NAME=${{ env.CURR_DATE }}-${{ env.GIT_HASH }}-${{ env.GIT_TAG }}-${{ matrix.artifact_name }}.zip
+          zip -r "${FILE_NAME}" ./*.AppImage*
+          mv "${FILE_NAME}" ./artifact/
+      - name: "Publish"
+        if: success()
+        uses: actions/upload-artifact@v2-preview
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: "./artifact/"
   macOS64-netplay:
     name: "macOS Netplay"
     runs-on: macos-10.15
