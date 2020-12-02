@@ -34,7 +34,7 @@ jobs:
     steps:
       - name: "Setup Go"
         uses: actions/setup-go@v2
-        if: matrix.build_type == "Netplay"
+        if: matrix.build_type == 'Netplay'
       - name: "Remove Redistributable"
         shell: cmd
         run: |
@@ -65,7 +65,7 @@ jobs:
       - name: "Build Updater"
         working-directory: ${{ github.workspace }}
         shell: cmd
-        if: matrix.build_type == "Netplay"
+        if: matrix.build_type == 'Netplay'
         run: |
           cd %GOPATH%
           git clone https://github.com/project-slippi/dolphin-slippi-tools
@@ -82,7 +82,7 @@ jobs:
           echo "Download and install this: https://aka.ms/vs/16/release/vc_redist.x64.exe" > .\FIX-VCRUNTIME140-ERROR.txt
       - name: "Add Playback codes"
         working-directory: ${{ github.workspace }}
-        if: matrix.build_type == "Playback"
+        if: matrix.build_type == 'Playback'
         run: |
           git clone https://github.com/project-slippi/slippi-desktop-app
           Xcopy /Y /E /I .\Data\Sys .\Binary\x64\Sys
