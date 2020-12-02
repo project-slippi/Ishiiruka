@@ -3,13 +3,13 @@ name: PR Builds x64
 on:
   push:
     branches:
-        - "**"
+        - "*"
     paths-ignore:
         - "**.md"
         - "**.ini"
   pull_request:
     branches:
-      - "**"
+      "*"
     paths-ignore:
       - "**.md"
       - "**.ini"
@@ -333,16 +333,42 @@ jobs:
           sound-touch \
           hidapi \
           create-dmg
-      - name: "Build Netplay (No Codesigning)"
-        if: success()
+      - name: "Build Netplay and Inject Resources"
+        if: success() && env.CERTIFICATE_MACOS_APPLICATION == null
         shell: bash
         working-directory: ${{ github.workspace }}
         run: |
           export LIBRARY_PATH=$LIBRARY_PATH:/usr/local/lib
           mkdir build
           cd build
-          cmake ..
+          
+          if [[ -z "$MACOS_CERT_PASSWD" ]]; then
+            echo "Building with code signing"
+            cmake -DMACOS_CODE_SIGNING="ON" ..
+          else
+            cmake ..
+          fi
+          
           make -j7
+          cp -Rf ../Data/Sys Binaries/Slippi\ Dolphin.app/Contents/Resources/
+        env:
+          MACOS_CERT_PASSWD: ${{ secrets.CERTIFICATE_MACOS_PASSWORD }}
+      - name: "Codesign Netplay App"
+        if: success() && env.CERTIFICATE_MACOS_APPLICATION != null
+        shell: bash
+        working-directory: ${{ github.workspace }}
+        run: |
+          chmod +x Tools/load-macos-certs-ci.sh && ./Tools/load-macos-certs-ci.sh
+
+          mkdir -p ~/private_keys/
+          echo '${{ secrets.APPLE_CONNECT_API_KEY }}' > ~/private_keys/AuthKey_${{ secrets.APPLE_API_KEY_ID }}.p8
+          echo "APPLE_API_KEY=${{ secrets.APPLE_API_KEY_ID }}" >> $GITHUB_ENV
+          echo "APPLE_ISSUER_ID=${{ secrets.APPLE_ISSUER_ID }}" >> $GITHUB_ENV
+
+          /usr/bin/codesign -f -s "${{ secrets.APPLE_IDENTITY_HASH }}" --deep --options runtime --entitlements Source/Core/DolphinWX/Entitlements.plist build/Binaries/Slippi\ Dolphin.app
+        env:
+          CERTIFICATE_MACOS_APPLICATION: ${{ secrets.CERTIFICATE_MACOS_APPLICATION }}
+          CERTIFICATE_MACOS_PASSWORD: ${{ secrets.CERTIFICATE_MACOS_PASSWORD }}
       - name: "Package Netplay"
         if: success()
         shell: bash
@@ -350,7 +376,6 @@ jobs:
         run: |
           FILE_NAME=${{ env.CURR_DATE }}-${{ env.GIT_HASH }}-${{ env.GIT_TAG }}-macOS-netplay.dmg
           echo "FILE_NAME=$(FILE_NAME)" >> $GITHUB_ENV
-          cp -Rf Data/Sys build/Binaries/Slippi\ Dolphin.app/Contents/Resources/
           mkdir artifact
           create-dmg --no-internet-enable \
             --volname "Slippi Dolphin Installer" \
@@ -366,6 +391,15 @@ jobs:
             "${FILE_NAME}" \
             "./build/Binaries/"
           mv "${FILE_NAME}" artifact/
+      - name: "Sign and Notarize Netplay DMG"
+        if: success() && env.CERTIFICATE_MACOS_APPLICATION != null
+        shell: bash
+        working-directory: ${{ github.workspace }}
+        run: |
+          /usr/bin/codesign -f -s "${{ secrets.APPLE_IDENTITY_HASH }}" --deep --options runtime artifact/"${{ env.FILE_NAME }}"
+          chmod +x Tools/notarize_netplay.sh && ./Tools/notarize_netplay.sh artifact/"${{ env.FILE_NAME }}"
+        env:
+          CERTIFICATE_MACOS_APPLICATION: ${{ secrets.CERTIFICATE_MACOS_APPLICATION }}
       - name: "Publish"
         if: success()
         uses: actions/upload-artifact@v2-preview
@@ -439,7 +473,7 @@ jobs:
           cd ./build/Binaries/
           cp -Rf ../../Data/Sys ./Slippi\ Dolphin.app/Contents/Resources
           cp -Rf ../../slippi-desktop-app/app/dolphin-dev/overwrite/Sys ./Slippi\ Dolphin.app/Contents/Resources
-          cp -Rf ../../slippi-desktop-app/app/dolphin-dev/overwrite/User ./Slippi\ Dolphin.app/Contents/Resources 
+          cp -Rf ../../slippi-desktop-app/app/dolphin-dev/overwrite/User ./Slippi\ Dolphin.app/Contents/Resources
       - name: "Codesign Playback"
         if: success() && env.CERTIFICATE_MACOS_APPLICATION != null
         shell: bash
