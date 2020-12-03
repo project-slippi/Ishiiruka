@@ -90,7 +90,7 @@ jobs:
       - name: Package Artifact
         working-directory: ${{ github.workspace }}
         run: |
-          $FILE_NAME=${{ env.CURR_DATE }}-${{ env.GIT_HASH }}-${{ env.GIT_TAG }}-${{ matrix.artifact_name }}.zip
+          $FILE_NAME="${{ env.CURR_DATE }}-${{ env.GIT_HASH }}-${{ env.GIT_TAG }}-${{ matrix.artifact_name }}.zip"
           mkdir artifact
           cd .\Binary\x64\
           fsutil file createnew portable.txt 0
