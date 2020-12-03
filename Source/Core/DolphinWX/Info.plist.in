@@ -64,8 +64,6 @@
 	<string>Licensed under GPL version 2</string>
 	<key>LSMinimumSystemVersion</key>
 	<string>${OSX_MIN_VERSION}</string>
-	<key>LSRequiresCarbon</key>
-	<true/>
 	<key>NSHighResolutionCapable</key>
 	<true/>
 	<key>CSResourcesFileMapped</key>

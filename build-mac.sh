@@ -18,7 +18,7 @@ else
         echo "Using Netplay build config"
 fi
 
-if [[ -z "$MACOS_CERT_PASSWD" ]]
+if [[ -z "$CERTIFICATE_MACOS_APPLICATION" ]]
     then
         echo "Building with code signing"
         CMAKE_FLAGS+='-DMACOS_CODE_SIGNING="ON"'

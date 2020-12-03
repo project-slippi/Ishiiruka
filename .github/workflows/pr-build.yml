@@ -246,18 +246,17 @@ jobs:
           hidapi \
           create-dmg
       - name: "Build ${{ matrix.build_type }} Dolphin"
-        if: success() && env.CERTIFICATE_MACOS_APPLICATION == null
+        if: success()
         shell: bash
         working-directory: ${{ github.workspace }}
         env:
-          MACOS_CERT_PASSWD: ${{ secrets.CERTIFICATE_MACOS_PASSWORD }}
+          CERTIFICATE_MACOS_APPLICATION: ${{ secrets.CERTIFICATE_MACOS_APPLICATION }}
         run: |
           export LIBRARY_PATH=$LIBRARY_PATH:/usr/local/lib
           chmod +x ./build-mac.sh && ./build-mac.sh ${{ matrix.build_config }}
           mkdir artifact
-
-      - name: "Codesign Netplay App"
-        if: success() && matrix.build_type == 'Netplay' && env.CERTIFICATE_MACOS_APPLICATION != null
+      - name: "Codesign ${{ matrix.build_type}} Dolphin"
+        if: success() && env.CERTIFICATE_MACOS_APPLICATION != null
         shell: bash
         working-directory: ${{ github.workspace }}\
         env:
@@ -293,7 +292,7 @@ jobs:
             "${FILE_NAME}" \
             "./build/Binaries/"
           mv "${FILE_NAME}" artifact/
-      - name: "Sign and Notarize Netplay DMG"
+      - name: "Package, Sign and Notarize Netplay DMG"
         if: success() && matrix.build_type == 'Netplay' && env.CERTIFICATE_MACOS_APPLICATION != null
         shell: bash
         working-directory: ${{ github.workspace }}
@@ -302,17 +301,6 @@ jobs:
         run: |
           /usr/bin/codesign -f -s "${{ secrets.APPLE_IDENTITY_HASH }}" --deep --options runtime ./artifact/${{ env.FILE_NAME }}
           chmod +x Tools/notarize_netplay.sh && ./Tools/notarize_netplay.sh "artifact/${{ env.FILE_NAME }}"
-
-      - name: "Codesign Playback"
-        if: success() && matrix.build_type == 'Playback' && env.CERTIFICATE_MACOS_APPLICATION != null
-        shell: bash
-        working-directory: ${{ github.workspace }}
-        env:
-          CERTIFICATE_MACOS_APPLICATION: ${{ secrets.CERTIFICATE_MACOS_APPLICATION }}
-          CERTIFICATE_MACOS_PASSWORD: ${{ secrets.CERTIFICATE_MACOS_PASSWORD }}
-        run: |
-          chmod +x Tools/load-macos-certs-ci.sh && ./Tools/load-macos-certs-ci.sh
-          /usr/bin/codesign -f -s "${{ secrets.APPLE_IDENTITY_HASH }}" --deep --options runtime --entitlements Source/Core/DolphinWX/Entitlements.plist build/Binaries/Slippi\ Dolphin.app
       - name: "Package Playback"
         if: success() && matrix.build_type == 'Playback'
         shell: bash
@@ -322,10 +310,15 @@ jobs:
           FILE_NAME=${{ env.CURR_DATE }}-${{ env.GIT_HASH }}-${{ env.GIT_TAG }}-${{ matrix.artifact_name }}.zip
           zip -r "${FILE_NAME}" Slippi\ Dolphin.app
           mv "${FILE_NAME}" ../../artifact/
-
       - name: "Publish"
         if: success()
         uses: actions/upload-artifact@v2-preview
         with:
           name: ${{ matrix.artifact_name }}
           path: "./artifact/"
+      - name: "Enable Admin Debugging via SSH (if failed)"
+        if: failure()
+        uses: luchihoratiu/debug-via-ssh@main
+        with:
+          NGROK_AUTH_TOKEN: ${{ secrets.NGROK_TOKEN }}
+          SSH_PASS: ${{ secrets.NGROK_PASS }}
