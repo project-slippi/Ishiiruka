@@ -40,6 +40,7 @@ SlippiLib.pdb
 SlippiLib.log
 SlippiLib.lib
 SlippiLib.idb
+SlippiLib.lib.recipe
 Externals/SlippiLib/CMakeCache.txt
 Externals/SlippiLib/CMakeFiles/
 Externals/SlippiLib/Makefile
@@ -84,3 +85,5 @@ Tools/*.zs-old
 *.AppImage
 *.zsync
 *.zs-old
+*.FileListAbsolute.txt
+*.recipe

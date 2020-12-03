@@ -54,7 +54,9 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux" AND NOT ANDROID)
 endif()
 
 if(APPLE)
-	option(OSX_USE_DEFAULT_SEARCH_PATH "Don't prioritize system library paths" OFF)
+	option(MACOS_USE_DEFAULT_SEARCH_PATH "Don't prioritize system library paths" OFF)
+	option(MACOS_CODE_SIGNING "Enable codesigning" OFF)
+	set(MACOS_CODE_SIGNING_IDENTITY "The identity used for codesigning." CACHE STRING "")
 	set(CMAKE_FIND_FRAMEWORK LAST)
 	set(CMAKE_FIND_APPBUNDLE LAST)
 endif()
@@ -285,7 +287,7 @@ if(ENABLE_LTO)
 endif()
 
 if(APPLE)
-	if(NOT OSX_USE_DEFAULT_SEARCH_PATH)
+	if(NOT MACOS_USE_DEFAULT_SEARCH_PATH)
 		# Hack up the path to prioritize the path to built-in OS libraries to
 		# increase the chance of not depending on a bunch of copies of them
 		# installed by MacPorts, Fink, Homebrew, etc, and ending up copying
@@ -673,6 +675,8 @@ endif()
 #   - place the CMakeLists.txt in the first-level subdirectory, e.g.
 #     Externals/zlib/CMakeLists.txt (that is: NOT in some Src/ subdirectory)
 #
+include_directories(Externals/base64)
+
 add_subdirectory(Externals/Bochs_disasm)
 include_directories(Externals/Bochs_disasm)
 

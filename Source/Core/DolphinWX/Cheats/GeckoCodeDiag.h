@@ -33,7 +33,6 @@ public:
 protected:
 	void UpdateInfoBox(wxCommandEvent&);
 	void ToggleCode(wxCommandEvent& evt);
-	void DownloadCodes(wxCommandEvent&);
 	// void ApplyChanges(wxCommandEvent&);
 
 	void UpdateCodeList(bool checkRunning = false);
@@ -51,6 +50,5 @@ private:
 		wxTextCtrl* textctrl_notes;
 		wxListBox* listbox_codes;
 	} m_infobox;
-	wxButton* btn_download;
 };
 }

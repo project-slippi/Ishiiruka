@@ -195,6 +195,8 @@ void SlippiUser::UpdateApp()
 	WARN_LOG(SLIPPI, "Executing app update command: %s", command);
 	RunSystemCommand(command);
 #elif defined(__APPLE__)
+	CriticalAlertT(
+	    "Automatic updates are not available for macOS, please get the latest update from slippi.gg/netplay.");
 #else
 	const char *appimage_path = getenv("APPIMAGE");
 	const char *appmount_path = getenv("APPDIR");
@@ -208,6 +210,8 @@ void SlippiUser::UpdateApp()
 	std::string command = mount_path + "/usr/bin/appimageupdatetool " + path;
 	WARN_LOG(SLIPPI, "Executing app update command: %s", command.c_str());
 	RunSystemCommand(command);
+	CriticalAlertT("Restart Dolphin to finish the update. If there was an issue, please head over to the Slippi "
+	               "Discord for support.");
 #endif
 }
 
@@ -343,7 +347,5 @@ void SlippiUser::overwriteFromServer()
 	auto r = json::parse(resp);
 	userInfo.connectCode = r.value("connectCode", userInfo.connectCode);
 	userInfo.latestVersion = r.value("latestVersion", userInfo.latestVersion);
-
-	// TODO: Once it's possible to change Display name from website, uncomment below
-	// userInfo.displayName = r.value("displayName", userInfo.displayName);
+	userInfo.displayName = r.value("displayName", userInfo.displayName);
 }

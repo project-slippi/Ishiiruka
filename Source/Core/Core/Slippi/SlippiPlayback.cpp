@@ -133,7 +133,6 @@ void SlippiPlaybackStatus::processInitialState(std::vector<u8> &iState)
 {
 	INFO_LOG(SLIPPI, "saving iState");
 	State::SaveToBuffer(iState);
-	SConfig::GetInstance().bHideCursor = false;
 };
 
 void SlippiPlaybackStatus::SavestateThread()
@@ -218,7 +217,7 @@ void SlippiPlaybackStatus::SeekThread()
 			s32 closestStateFrame = targetFrameNum - emod(targetFrameNum - Slippi::PLAYBACK_FIRST_SAVE, FRAME_INTERVAL);
 
 			bool isLoadingStateOptimal =
-			    targetFrameNum < currentPlaybackFrame || closestStateFrame > currentPlaybackFrame;
+				targetFrameNum < currentPlaybackFrame || closestStateFrame > currentPlaybackFrame;
 
 			if (isLoadingStateOptimal)
 			{
@@ -237,7 +236,7 @@ void SlippiPlaybackStatus::SeekThread()
 					{
 						s32 closestActualStateFrame = closestStateFrame - FRAME_INTERVAL;
 						while (closestActualStateFrame > Slippi::PLAYBACK_FIRST_SAVE &&
-						       futureDiffs.count(closestActualStateFrame) == 0)
+							   futureDiffs.count(closestActualStateFrame) == 0)
 							closestActualStateFrame -= FRAME_INTERVAL;
 						loadState(closestActualStateFrame);
 					}
@@ -245,7 +244,7 @@ void SlippiPlaybackStatus::SeekThread()
 					{
 						s32 closestActualStateFrame = closestStateFrame - FRAME_INTERVAL;
 						while (closestActualStateFrame > currentPlaybackFrame &&
-						       futureDiffs.count(closestActualStateFrame) == 0)
+							   futureDiffs.count(closestActualStateFrame) == 0)
 							closestActualStateFrame -= FRAME_INTERVAL;
 
 						// only load a savestate if we find one past our current frame since we are seeking forwards
@@ -344,7 +343,5 @@ void SlippiPlaybackStatus::updateWatchSettingsStartEnd()
 SlippiPlaybackStatus::~SlippiPlaybackStatus()
 {
 	// Kill threads to prevent cleanup crash
-	SConfig::GetInstance().m_OCFactor = prevOCFactor;
-	SConfig::GetInstance().m_OCEnable = prevOCEnable;
 	resetPlayback();
 }

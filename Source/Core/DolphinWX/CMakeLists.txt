@@ -211,10 +211,12 @@ if(wxWidgets_FOUND)
 				)
 		endif()
 
-		# Install bundle into systemwide /Applications directory.
-		install(DIRECTORY ${BUNDLE_PATH} DESTINATION /Applications
-			USE_SOURCE_PERMISSIONS
-			)
+		if(MACOS_CODE_SIGNING)
+            # Disable this as we need to codesign AFTER resources replacement.
+            #add_custom_command(TARGET ${DOLPHIN_EXE}
+            #	POST_BUILD COMMAND
+            #	/usr/bin/codesign -f -s "${MACOS_CODE_SIGNING_IDENTITY}" --deep --options runtime --entitlements ${CMAKE_SOURCE_DIR}/Source/Core/DolphinWX/Entitlements.plist "${BUNDLE_PATH_NO_QUOTES}")
+		endif()
 	else()
 		install(TARGETS ${DOLPHIN_EXE} RUNTIME DESTINATION ${bindir})
 	endif()
