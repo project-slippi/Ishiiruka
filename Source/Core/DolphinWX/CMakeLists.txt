@@ -225,7 +225,7 @@ if(wxWidgets_FOUND)
 endif()
 
 if(USE_DISCORD_PRESENCE)
-  target_compile_definitions(DOLPHIN_EXE_BASE PRIVATE -DUSE_DISCORD_PRESENCE)
+  target_compile_definitions(${DOLPHIN_EXE_BASE} PRIVATE -DUSE_DISCORD_PRESENCE)
 endif()
 
 # Only build -nogui binaries when ENABLE_HEADLESS is on
