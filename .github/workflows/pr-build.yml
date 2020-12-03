@@ -1,4 +1,4 @@
-name: PR Builds x64
+name: Builds
 
 on:
   push:
@@ -9,7 +9,7 @@ on:
         - "**.ini"
   pull_request:
     branches:
-      "*"
+      - slippi
     paths-ignore:
       - "**.md"
       - "**.ini"
@@ -57,11 +57,11 @@ jobs:
           echo "GIT_HASH=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
           echo "GIT_TAG=$(git describe --tags --abbrev=0)" >> $GITHUB_ENV
           echo "CURR_DATE=$(date +%Y-%m-%d)" >> $GITHUB_ENV
-      - name: "Build Dolphin"
+      - name: "Build ${{ matrix.build_type }} Dolphin"
         shell: cmd
         run: |
           msbuild /p:Configuration=${{ matrix.build_config }} /p:Platform=x64 ${{ github.workspace }}\Source\Dolphin.sln
-      - name: "Build Updater"
+      - name: "Build Netplay Updater"
         working-directory: ${{ github.workspace }}
         shell: cmd
         if: matrix.build_type == 'Netplay'
@@ -86,7 +86,6 @@ jobs:
           git clone https://github.com/project-slippi/slippi-desktop-app
           Xcopy /Y /E /I .\Data\Sys .\Binary\x64\Sys
           Xcopy /Y /E /I .\slippi-desktop-app\app\dolphin-dev\overwrite\Sys .\Binary\x64\Sys
-          Xcopy /Y /E /I .\slippi-desktop-app\app\dolphin-dev\overwrite\User .\Binary\x64\User
       - name: Package Artifact
         working-directory: ${{ github.workspace }}
         run: |
@@ -171,12 +170,12 @@ jobs:
           qtbase5-private-dev \
           libxxf86vm-dev \
           x11proto-xinerama-dev
-      - name: "Build Dolphin"
+      - name: "Build ${{ matrix.build_type }} Dolphin"
         if: success()
         working-directory: ${{ github.workspace }}
         run: |
           ./build-linux.sh ${{ matrix.build_config }}
-      - name: "Build AppImage"
+      - name: "Build ${{ matrix.build_type }} AppImage"
         if: success()
         working-directory: ${{ github.workspace }}
         run: |
@@ -195,8 +194,19 @@ jobs:
         with:
           name: ${{ matrix.artifact_name }}
           path: "./artifact/"
-  macOS64-netplay:
-    name: "macOS Netplay"
+  macOS:
+    strategy:
+      fail-fast: false
+      matrix:
+        build_type: [Netplay, Playback]
+        include:
+          - build_type: Netplay
+            artifact_name: macOS-netplay
+            build_config: netplay
+          - build_type: Playback
+            artifact_name: macOS-playback
+            build_config: playback
+    name: "macOS ${{ matrix.build_type }}"
     runs-on: macos-10.15
     steps:
       - name: "Checkout"
@@ -235,30 +245,24 @@ jobs:
           sound-touch \
           hidapi \
           create-dmg
-      - name: "Build Netplay and Inject Resources"
+      - name: "Build ${{ matrix.build_type }} Dolphin"
         if: success() && env.CERTIFICATE_MACOS_APPLICATION == null
         shell: bash
         working-directory: ${{ github.workspace }}
-        run: |
-          export LIBRARY_PATH=$LIBRARY_PATH:/usr/local/lib
-          mkdir build
-          cd build
-          
-          if [[ -z "$MACOS_CERT_PASSWD" ]]; then
-            echo "Building with code signing"
-            cmake -DMACOS_CODE_SIGNING="ON" ..
-          else
-            cmake ..
-          fi
-          
-          make -j7
-          cp -Rf ../Data/Sys Binaries/Slippi\ Dolphin.app/Contents/Resources/
         env:
           MACOS_CERT_PASSWD: ${{ secrets.CERTIFICATE_MACOS_PASSWORD }}
+        run: |
+          export LIBRARY_PATH=$LIBRARY_PATH:/usr/local/lib
+          chmod +x ./build-mac.sh && ./build-mac.sh ${{ matrix.build_config }}
+          mkdir artifact
+
       - name: "Codesign Netplay App"
-        if: success() && env.CERTIFICATE_MACOS_APPLICATION != null
+        if: success() && matrix.build_type == 'Netplay' && env.CERTIFICATE_MACOS_APPLICATION != null
         shell: bash
-        working-directory: ${{ github.workspace }}
+        working-directory: ${{ github.workspace }}\
+        env:
+          CERTIFICATE_MACOS_APPLICATION: ${{ secrets.CERTIFICATE_MACOS_APPLICATION }}
+          CERTIFICATE_MACOS_PASSWORD: ${{ secrets.CERTIFICATE_MACOS_PASSWORD }}
         run: |
           chmod +x Tools/load-macos-certs-ci.sh && ./Tools/load-macos-certs-ci.sh
 
@@ -268,17 +272,13 @@ jobs:
           echo "APPLE_ISSUER_ID=${{ secrets.APPLE_ISSUER_ID }}" >> $GITHUB_ENV
 
           /usr/bin/codesign -f -s "${{ secrets.APPLE_IDENTITY_HASH }}" --deep --options runtime --entitlements Source/Core/DolphinWX/Entitlements.plist build/Binaries/Slippi\ Dolphin.app
-        env:
-          CERTIFICATE_MACOS_APPLICATION: ${{ secrets.CERTIFICATE_MACOS_APPLICATION }}
-          CERTIFICATE_MACOS_PASSWORD: ${{ secrets.CERTIFICATE_MACOS_PASSWORD }}
       - name: "Package Netplay"
-        if: success()
+        if: success() && matrix.build_type == 'Netplay'
         shell: bash
         working-directory: ${{ github.workspace }}
         run: |
-          FILE_NAME=${{ env.CURR_DATE }}-${{ env.GIT_HASH }}-${{ env.GIT_TAG }}-macOS-netplay.dmg
+          FILE_NAME=${{ env.CURR_DATE }}-${{ env.GIT_HASH }}-${{ env.GIT_TAG }}-${{ matrix.artifact_name }}.dmg
           echo "FILE_NAME=$FILE_NAME" >> $GITHUB_ENV
-          mkdir artifact
           create-dmg --no-internet-enable \
             --volname "Slippi Dolphin Installer" \
             --volicon "Data/slippi_dmg_icon.icns" \
@@ -294,111 +294,38 @@ jobs:
             "./build/Binaries/"
           mv "${FILE_NAME}" artifact/
       - name: "Sign and Notarize Netplay DMG"
-        if: success() && env.CERTIFICATE_MACOS_APPLICATION != null
+        if: success() && matrix.build_type == 'Netplay' && env.CERTIFICATE_MACOS_APPLICATION != null
         shell: bash
         working-directory: ${{ github.workspace }}
-        run: |
-          /usr/bin/codesign -f -s "${{ secrets.APPLE_IDENTITY_HASH }}" --deep --options runtime "artifact/${{ env.FILE_NAME }}"
-          chmod +x Tools/notarize_netplay.sh && ./Tools/notarize_netplay.sh "artifact/${{ env.FILE_NAME }}"
         env:
           CERTIFICATE_MACOS_APPLICATION: ${{ secrets.CERTIFICATE_MACOS_APPLICATION }}
-      - name: "Publish"
-        if: success()
-        uses: actions/upload-artifact@v2-preview
-        with:
-          name: "macOS-netplay"
-          path: "./artifact/"
-  macOS64-playback:
-    name: "macOS Playback"
-    runs-on: macos-10.15
-    steps:
-      - name: "Checkout"
-        uses: actions/checkout@v2
-        with:
-          submodules: recursive
-      - name: 'Fetch Git Tags'
-        if: success()
         run: |
-          git fetch --prune --unshallow
-          echo "GIT_BRANCH=$(git rev-parse --abbrev-ref HEAD)" >> $GITHUB_ENV
-          echo "GIT_HASH=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
-          echo "GIT_TAG=$(git describe --tags --abbrev=0)" >> $GITHUB_ENV
-          echo "CURR_DATE=$(date +%Y-%m-%d)" >> $GITHUB_ENV
-      - name: "Install 10.14 SDK"
-        if: success()
-        shell: bash
-        working-directory: ${{ github.workspace }}
-        run: |
-          wget https://github.com/phracker/MacOSX-SDKs/releases/download/10.15/MacOSX10.14.sdk.tar.xz
-          tar -xf MacOSX10.14.sdk.tar.xz
-          rm MacOSX10.14.sdk.tar.xz
-          sudo mv MacOSX10.14.sdk /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/
-      - name: "Download and Install prerequisites"
-        if: success()
-        shell: bash
-        run: |
-          brew update
-          brew upgrade cmake
-          brew install \
-          ffmpeg \
-          libpng \
-          libav \
-          pkgconfig \
-          libao \
-          sound-touch \
-          hidapi
-      - name: "Build Playback"
-        if: success() && env.CERTIFICATE_MACOS_APPLICATION == null
-        shell: bash
-        working-directory: ${{ github.workspace }}
-        run: |
-          export LIBRARY_PATH=$LIBRARY_PATH:/usr/local/lib
-          mkdir build
-          cd build
+          /usr/bin/codesign -f -s "${{ secrets.APPLE_IDENTITY_HASH }}" --deep --options runtime ./artifact/${{ env.FILE_NAME }}
+          chmod +x Tools/notarize_netplay.sh && ./Tools/notarize_netplay.sh "artifact/${{ env.FILE_NAME }}"
 
-          if [[ -z "$MACOS_CERT_PASSWD" ]]; then
-            echo "Building with code signing"
-            cmake -DIS_PLAYBACK=true -DMACOS_CODE_SIGNING="ON" ..
-          else
-            cmake -DIS_PLAYBACK=true ..
-          fi
-          
-          make -j7
-        env:
-          MACOS_CERT_PASSWD: ${{ secrets.CERTIFICATE_MACOS_PASSWORD }}
-      - name: "Inject Playback Resources"
-        if: success()
-        shell: bash
-        working-directory: ${{ github.workspace }}
-        run: |
-          git clone https://github.com/project-slippi/slippi-desktop-app
-          cd ./build/Binaries/
-          cp -Rf ../../Data/Sys ./Slippi\ Dolphin.app/Contents/Resources
-          cp -Rf ../../slippi-desktop-app/app/dolphin-dev/overwrite/Sys ./Slippi\ Dolphin.app/Contents/Resources
-          cp -Rf ../../slippi-desktop-app/app/dolphin-dev/overwrite/User ./Slippi\ Dolphin.app/Contents/Resources
       - name: "Codesign Playback"
-        if: success() && env.CERTIFICATE_MACOS_APPLICATION != null
+        if: success() && matrix.build_type == 'Playback' && env.CERTIFICATE_MACOS_APPLICATION != null
         shell: bash
         working-directory: ${{ github.workspace }}
-        run: |
-          chmod +x Tools/load-macos-certs-ci.sh && ./Tools/load-macos-certs-ci.sh
-          /usr/bin/codesign -f -s "${{ secrets.APPLE_IDENTITY_HASH }}" --deep --options runtime --entitlements Source/Core/DolphinWX/Entitlements.plist build/Binaries/Slippi\ Dolphin.app
         env:
           CERTIFICATE_MACOS_APPLICATION: ${{ secrets.CERTIFICATE_MACOS_APPLICATION }}
           CERTIFICATE_MACOS_PASSWORD: ${{ secrets.CERTIFICATE_MACOS_PASSWORD }}
+        run: |
+          chmod +x Tools/load-macos-certs-ci.sh && ./Tools/load-macos-certs-ci.sh
+          /usr/bin/codesign -f -s "${{ secrets.APPLE_IDENTITY_HASH }}" --deep --options runtime --entitlements Source/Core/DolphinWX/Entitlements.plist build/Binaries/Slippi\ Dolphin.app
       - name: "Package Playback"
-        if: success()
+        if: success() && matrix.build_type == 'Playback'
         shell: bash
         working-directory: ${{ github.workspace }}
         run: |
-          mkdir artifact
           cd  ./build/Binaries
-          FILE_NAME=${{ env.CURR_DATE }}-${{ env.GIT_HASH }}-${{ env.GIT_TAG }}-macOS-playback.zip
+          FILE_NAME=${{ env.CURR_DATE }}-${{ env.GIT_HASH }}-${{ env.GIT_TAG }}-${{ matrix.artifact_name }}.zip
           zip -r "${FILE_NAME}" Slippi\ Dolphin.app
           mv "${FILE_NAME}" ../../artifact/
+
       - name: "Publish"
         if: success()
         uses: actions/upload-artifact@v2-preview
         with:
-          name: "macOS-playback"
+          name: ${{ matrix.artifact_name }}
           path: "./artifact/"
