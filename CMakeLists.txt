@@ -1033,7 +1033,7 @@ endif()
 
 if(USE_DISCORD_PRESENCE)
   message(STATUS "Using static DiscordRPC from Externals")
-  add_subdirectory(Externals/discord-rpc)
+  add_subdirectory(Externals/discord-rpc EXCLUDE_FROM_ALL)
 endif()
 
 ########################################
