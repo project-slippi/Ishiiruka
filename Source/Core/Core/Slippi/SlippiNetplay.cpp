@@ -40,7 +40,7 @@ SlippiNetplayClient::~SlippiNetplayClient()
 	if (m_thread.joinable())
 		m_thread.join();
 
-	if (m_server)
+	if (!m_server.empty())
 	{
 		Disconnect();
 	}
@@ -59,7 +59,8 @@ SlippiNetplayClient::~SlippiNetplayClient()
 }
 
 // called from ---SLIPPI EXI--- thread
-SlippiNetplayClient::SlippiNetplayClient(const std::string &address, const u16 remotePort, const u16 localPort,
+SlippiNetplayClient::SlippiNetplayClient(const std::string &address1, const u16 remotePort1,
+                                         const std::string &address2, const u16 remotePort2, const u16 localPort,
                                          bool isDecider, u8 playerIdx)
 #ifdef _WIN32
     : m_qos_handle(nullptr)
@@ -71,6 +72,16 @@ SlippiNetplayClient::SlippiNetplayClient(const std::string &address, const u16 r
 
 	this->isDecider = isDecider;
 	this->playerIdx = playerIdx;
+
+	int j = 1;
+	for (int i = 0; i < 3; i++)
+	{
+		if (j == playerIdx)
+			j++;
+		this->matchInfo.remotePlayerSelections[i] = SlippiPlayerSelections();
+		this->matchInfo.remotePlayerSelections[i].playerIdx = j;
+		j++;
+	}
 
 	// Local address
 	ENetAddress *localAddr = nullptr;
@@ -90,22 +101,45 @@ SlippiNetplayClient::SlippiNetplayClient(const std::string &address, const u16 r
 	}
 
 	// TODO: Figure out how to use a local port when not hosting without accepting incoming connections
-	m_client = enet_host_create(localAddr, 2, 3, 0, 0);
+	m_client = enet_host_create(localAddr, 4, 10, 0, 0);
 
 	if (m_client == nullptr)
 	{
 		PanicAlertT("Couldn't Create Client");
 	}
 
-	ENetAddress addr;
-	enet_address_set_host(&addr, address.c_str());
-	addr.port = remotePort;
-
-	m_server = enet_host_connect(m_client, &addr, 3, 0);
-
-	if (m_server == nullptr)
+	for (int i = 0; i < 2; i++)
 	{
-		PanicAlertT("Couldn't create peer.");
+		std::string address = "";
+		u16 remotePort = 0;
+		if (i == 0)
+		{
+			address = address1;
+			remotePort = remotePort1;
+		}
+		else
+		{
+			address = address2;
+			remotePort = remotePort2;
+		}
+
+		ENetAddress addr;
+		enet_address_set_host(&addr, address.c_str());
+		addr.port = remotePort;
+		INFO_LOG(SLIPPI_ONLINE, "Set ENet host, addr = %s, port = %d", addr.host, addr.port);
+
+		ENetPeer *peer = enet_host_connect(m_client, &addr, 3, 0);
+		m_server.push_back(peer);
+
+		if (peer == nullptr)
+		{
+			PanicAlertT("Couldn't create peer.");
+		}
+		else
+		{
+			INFO_LOG(SLIPPI_ONLINE, "Connected to ENet host, addr = %x, port = %d", peer->address.host,
+			         peer->address.port);
+		}
 	}
 
 	slippiConnectStatus = SlippiConnectStatus::NET_CONNECT_STATUS_INITIATED;
@@ -256,8 +290,14 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet)
 	case NP_MSG_SLIPPI_MATCH_SELECTIONS:
 	{
 		auto s = readSelectionsFromPacket(packet);
-		INFO_LOG(SLIPPI_ONLINE, "[Netplay] Received selections from opponent");
-		matchInfo.remotePlayerSelections.Merge(*s);
+		INFO_LOG(SLIPPI_ONLINE, "[Netplay] Received selections from opponent with player idx %d", s->playerIdx);
+		for (int i = 0; i < 3; i++) {
+			if (matchInfo.remotePlayerSelections[i].playerIdx == s->playerIdx)
+			{
+				matchInfo.remotePlayerSelections[i].Merge(*s);
+				break;
+			}
+		}
 
 		// This might be a good place to reset some logic? Game can't start until we receive this msg
 		// so this should ensure that everything is initialized before the game starts
@@ -286,6 +326,7 @@ void SlippiNetplayClient::writeToPacket(sf::Packet &packet, SlippiPlayerSelectio
 {
 	packet << static_cast<MessageId>(NP_MSG_SLIPPI_MATCH_SELECTIONS);
 	packet << s.characterId << s.characterColor << s.isCharacterSelected;
+	packet << s.playerIdx;
 	packet << s.stageId << s.isStageSelected;
 	packet << s.rngOffset;
 }
@@ -297,6 +338,8 @@ std::unique_ptr<SlippiPlayerSelections> SlippiNetplayClient::readSelectionsFromP
 	packet >> s->characterId;
 	packet >> s->characterColor;
 	packet >> s->isCharacterSelected;
+
+	packet >> s->playerIdx;
 
 	packet >> s->stageId;
 	packet >> s->isStageSelected;
@@ -311,26 +354,33 @@ void SlippiNetplayClient::Send(sf::Packet &packet)
 	enet_uint32 flags = ENET_PACKET_FLAG_RELIABLE;
 	u8 channelId = 0;
 
-	MessageId mid = ((u8 *)packet.getData())[0];
-	if (mid == NP_MSG_SLIPPI_PAD || mid == NP_MSG_SLIPPI_PAD_ACK)
+	// Echo the packet to each remote peer.
+	for (int i = 0; i < m_server.size(); i++)
 	{
-		// Slippi communications do not need reliable connection and do not need to
-		// be received in order. Channel is changed so that other reliable communications
-		// do not block anything. This may not be necessary if order is not maintained?
-		flags = ENET_PACKET_FLAG_UNSEQUENCED;
-		channelId = 1;
-	}
+		MessageId mid = ((u8 *)packet.getData())[0];
+		if (mid == NP_MSG_SLIPPI_PAD || mid == NP_MSG_SLIPPI_PAD_ACK || mid == NP_MSG_SLIPPI_CONN_READY || mid == NP_MSG_SLIPPI_GAME_READY)
+		{
+			// Slippi communications do not need reliable connection and do not need to
+			// be received in order. Channel is changed so that other reliable communications
+			// do not block anything. This may not be necessary if order is not maintained?
+			flags = ENET_PACKET_FLAG_UNSEQUENCED;
+			channelId = 1;
+		}
 
-	ENetPacket *epac = enet_packet_create(packet.getData(), packet.getDataSize(), flags);
-	enet_peer_send(m_server, channelId, epac);
+		ENetPacket *epac = enet_packet_create(packet.getData(), packet.getDataSize(), flags);
+		enet_peer_send(m_server[i], channelId, epac);
+	}
 }
 
 void SlippiNetplayClient::Disconnect()
 {
 	ENetEvent netEvent;
 	slippiConnectStatus = SlippiConnectStatus::NET_CONNECT_STATUS_DISCONNECTED;
-	if (m_server)
-		enet_peer_disconnect(m_server, 0);
+	if (!m_server.empty())
+		for (int i = 0; i < m_server.size(); i++)
+		{
+			enet_peer_disconnect(m_server[i], 0);
+		}
 	else
 		return;
 
@@ -342,15 +392,18 @@ void SlippiNetplayClient::Disconnect()
 			enet_packet_destroy(netEvent.packet);
 			break;
 		case ENET_EVENT_TYPE_DISCONNECT:
-			m_server = nullptr;
+			m_server.clear();
 			return;
 		default:
 			break;
 		}
 	}
 	// didn't disconnect gracefully force disconnect
-	enet_peer_reset(m_server);
-	m_server = nullptr;
+	for (int i = 0; i < m_server.size(); i++)
+	{
+		enet_peer_reset(m_server[i]);
+	}
+	m_server.clear();
 }
 
 void SlippiNetplayClient::SendAsync(std::unique_ptr<sf::Packet> packet)
@@ -366,9 +419,10 @@ void SlippiNetplayClient::SendAsync(std::unique_ptr<sf::Packet> packet)
 void SlippiNetplayClient::ThreadFunc()
 {
 	// Let client die 1 second before host such that after a swap, the client won't be connected to
-	int attemptCountLimit = 16;
+	int attemptCountLimit = 30;
 
 	int attemptCount = 0;
+	int connections = 0;
 	while (slippiConnectStatus == SlippiConnectStatus::NET_CONNECT_STATUS_INITIATED)
 	{
 		// This will confirm that connection went through successfully
@@ -379,16 +433,36 @@ void SlippiNetplayClient::ThreadFunc()
 			// TODO: Confirm gecko codes match?
 			if (netEvent.peer)
 			{
-				WARN_LOG(SLIPPI_ONLINE, "[Netplay] Overwritting server");
-				m_server = netEvent.peer;
+				INFO_LOG(SLIPPI_ONLINE, "[Netplay] got event with peer port %d", netEvent.peer->address.port);
+				for (int i = 0; i < m_server.size(); i++)
+				{
+					INFO_LOG(SLIPPI_ONLINE, "[Netplay] Comparing connection address: %s:%d - %s:%d",
+					         m_server[i]->address.host, m_server[i]->address.port,
+					         netEvent.peer->address.host, netEvent.peer->address.port);
+					if (m_server[i]->address.host == netEvent.peer->address.host &&
+					    m_server[i]->address.port == netEvent.peer->address.port)
+					{
+						INFO_LOG(SLIPPI_ONLINE, "[Netplay] Overwriting ENetPeer for address: %s:%d",
+						         netEvent.peer->address.host, netEvent.peer->address.port);
+						m_server[i] = netEvent.peer;
+						connections++;
+						break;
+					}
+				}
 			}
 
-			m_client->intercept = ENetUtil::InterceptCallback;
-			slippiConnectStatus = SlippiConnectStatus::NET_CONNECT_STATUS_CONNECTED;
-			INFO_LOG(SLIPPI_ONLINE, "Slippi online connection successful!");
-			break;
+			if (connections == 2)
+			{
+				m_client->intercept = ENetUtil::InterceptCallback;
+				INFO_LOG(SLIPPI_ONLINE, "Slippi online connection successful!");
+				break;
+			}
 		}
 
+		for (int i = 0; i < 2; i++)
+		{
+			INFO_LOG(SLIPPI_ONLINE, "m_client peer %d state: %d", i, m_client->peers[i].state);
+		}
 		WARN_LOG(SLIPPI_ONLINE, "[Netplay] Not yet connected. Res: %d, Type: %d", net, netEvent.type);
 
 		// Time out after enough time has passed
@@ -401,30 +475,145 @@ void SlippiNetplayClient::ThreadFunc()
 		}
 	}
 
+	if (playerIdx == 1)
+	{
+		// Wait for acks, then send the start packet
+		bool acks[3] = { false, false, false };
+		bool sentStart[3] = {false, false, false};
+		while (!sentStart[0] || !sentStart[1])
+		{
+			ENetEvent netEvent;
+			int net;
+			net = enet_host_service(m_client, &netEvent, 250);
+
+			sf::Packet rpac;
+			sf::Packet fwdPac;
+			MessageId mid = 0;
+			u8 pIdx = 0;
+			switch (netEvent.type)
+			{
+			case ENET_EVENT_TYPE_RECEIVE:
+				rpac.append(netEvent.packet->data, netEvent.packet->dataLength);
+				rpac >> mid;
+				rpac >> pIdx;
+				INFO_LOG(SLIPPI_ONLINE, "Got ready waiting packet for player %d with mid %d", pIdx, mid);
+				if (mid == NP_MSG_SLIPPI_CONN_READY)
+				{
+					acks[pIdx-2] = true;
+				}
+				else if (mid == NP_MSG_SLIPPI_CLIENT_READY)
+				{
+					sentStart[pIdx - 2] = true;
+				}
+				else
+				{
+					fwdPac.append(netEvent.packet->data, netEvent.packet->dataLength);
+					OnData(fwdPac);
+
+					enet_packet_destroy(netEvent.packet);
+					break;
+				}
+
+				if (acks[0] && acks[1])
+				{
+					sf::Packet spac;
+					spac << (MessageId)NP_MSG_SLIPPI_GAME_READY;
+					Send(spac);
+				}
+
+				enet_packet_destroy(netEvent.packet);
+				break;
+			default:
+				break;
+			}
+		}
+	}
+	else
+	{
+		// send the ack packet, then wait for start
+		bool gameReady = false;
+		while (!gameReady)
+		{
+			sf::Packet spac;
+			spac << (MessageId)NP_MSG_SLIPPI_CONN_READY;
+			spac << playerIdx;
+			Send(spac);
+
+			ENetEvent netEvent;
+			int net;
+			net = enet_host_service(m_client, &netEvent, 250);
+
+			sf::Packet rpac;
+			sf::Packet fwdPac;
+			MessageId mid;
+			switch (netEvent.type)
+			{
+			case ENET_EVENT_TYPE_RECEIVE:
+				rpac.append(netEvent.packet->data, netEvent.packet->dataLength);
+				rpac >> mid;
+				if (mid == NP_MSG_SLIPPI_GAME_READY)
+				{
+					INFO_LOG(SLIPPI_ONLINE, "Got game ready packet");
+					gameReady = true;
+
+					sf::Packet spac;
+					spac << (MessageId)NP_MSG_SLIPPI_CLIENT_READY;
+					spac << playerIdx;
+					Send(spac);
+				}
+				else
+				{
+					INFO_LOG(SLIPPI_ONLINE, "Got packet with mid %d while waiting for game ready", mid);
+					fwdPac.append(netEvent.packet->data, netEvent.packet->dataLength);
+					OnData(fwdPac);
+
+					enet_packet_destroy(netEvent.packet);
+					break;
+				}
+
+				enet_packet_destroy(netEvent.packet);
+				break;
+			default:
+				break;
+			}
+		}
+	}
+
+	slippiConnectStatus = SlippiConnectStatus::NET_CONNECT_STATUS_CONNECTED;
+
+	INFO_LOG(SLIPPI_ONLINE, "Successfully initialized %d connections", m_server.size());
+	for (int i = 0; i < m_server.size(); i++)
+	{
+		INFO_LOG(SLIPPI_ONLINE, "Connection %d: %d, %d", i, m_server[i]->address.host, m_server[i]->address.port);
+	}
+
 	bool qos_success = false;
 #ifdef _WIN32
 	QOS_VERSION ver = {1, 0};
 
 	if (SConfig::GetInstance().bQoSEnabled && QOSCreateHandle(&ver, &m_qos_handle))
 	{
-		// from win32.c
-		struct sockaddr_in sin = {0};
-
-		sin.sin_family = AF_INET;
-		sin.sin_port = ENET_HOST_TO_NET_16(m_server->host->address.port);
-		sin.sin_addr.s_addr = m_server->host->address.host;
-
-		if (QOSAddSocketToFlow(m_qos_handle, m_server->host->socket, reinterpret_cast<PSOCKADDR>(&sin),
-		                       // this is 0x38
-		                       QOSTrafficTypeControl, QOS_NON_ADAPTIVE_FLOW, &m_qos_flow_id))
+		for (int i = 0; i < m_server.size(); i++)
 		{
-			DWORD dscp = 0x2e;
+			// from win32.c
+			struct sockaddr_in sin = {0};
 
-			// this will fail if we're not admin
-			// sets DSCP to the same as linux (0x2e)
-			QOSSetFlow(m_qos_handle, m_qos_flow_id, QOSSetOutgoingDSCPValue, sizeof(DWORD), &dscp, 0, nullptr);
+			sin.sin_family = AF_INET;
+			sin.sin_port = ENET_HOST_TO_NET_16(m_server[i]->host->address.port);
+			sin.sin_addr.s_addr = m_server[i]->host->address.host;
 
-			qos_success = true;
+			if (QOSAddSocketToFlow(m_qos_handle, m_server[i]->host->socket, reinterpret_cast<PSOCKADDR>(&sin),
+			    // this is 0x38
+			    QOSTrafficTypeControl, QOS_NON_ADAPTIVE_FLOW, &m_qos_flow_id))
+			{
+				DWORD dscp = 0x2e;
+
+				// this will fail if we're not admin
+				// sets DSCP to the same as linux (0x2e)
+				QOSSetFlow(m_qos_handle, m_qos_flow_id, QOSSetOutgoingDSCPValue, sizeof(DWORD), &dscp, 0, nullptr);
+
+				qos_success = true;
+			}
 		}
 	}
 #else
@@ -456,6 +645,7 @@ void SlippiNetplayClient::ThreadFunc()
 		if (net > 0)
 		{
 			sf::Packet rpac;
+			bool sameClient = false;
 			switch (netEvent.type)
 			{
 			case ENET_EVENT_TYPE_RECEIVE:
@@ -465,12 +655,19 @@ void SlippiNetplayClient::ThreadFunc()
 				enet_packet_destroy(netEvent.packet);
 				break;
 			case ENET_EVENT_TYPE_DISCONNECT:
+				for (int i = 0; i < m_server.size(); i++)
+				{
+					if (netEvent.peer == m_server[i])
+					{
+						sameClient = true;
+					}
+				}
 				ERROR_LOG(SLIPPI_ONLINE, "[Netplay] Disconnected Event detected: %s",
-				          netEvent.peer == m_server ? "same client" : "diff client");
+				          sameClient ? "same client" : "diff client");
 
 				// If the disconnect event doesn't come from the client we are actually listening to,
 				// it can be safely ignored
-				if (netEvent.peer == m_server)
+				if (sameClient)
 				{
 					m_do_loop.Clear(); // Stop the loop, will trigger a disconnect
 				}
@@ -485,7 +682,13 @@ void SlippiNetplayClient::ThreadFunc()
 	if (m_qos_handle != 0)
 	{
 		if (m_qos_flow_id != 0)
-			QOSRemoveSocketFromFlow(m_qos_handle, m_server->host->socket, m_qos_flow_id, 0);
+		{
+			for (int i = 0; i < m_server.size(); i++)
+			{
+				QOSRemoveSocketFromFlow(m_qos_handle, m_server[i]->host->socket, m_qos_flow_id, 0);
+			}
+		}
+
 		QOSCloseHandle(m_qos_handle);
 	}
 #endif

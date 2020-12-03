@@ -305,7 +305,9 @@ SlippiUser::UserInfo SlippiUser::parseFile(std::string fileContents)
 
 	info.myPort = std::stoi(readString(res, "myPort"));
 	info.bindPort = std::stoi(readString(res, "bindPort"));
-	info.remotePlayer = readString(res, "player1");
+	info.remotePlayerIPs.push_back(readString(res, "player1"));
+	info.remotePlayerIPs.push_back(readString(res, "player2"));
+	//info.remotePlayerIPs.push_back(readString(res, "player3"));
 	
 	return info;
 }

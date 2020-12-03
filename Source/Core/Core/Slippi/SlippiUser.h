@@ -22,7 +22,10 @@ class SlippiUser
 
 		int myPort = 0;
 		int bindPort = 2626;
-		std::string remotePlayer = "";
+		std::vector<std::string> remotePlayerIPs;
+		//std::string remotePlayer1 = "";
+		//std::string remotePlayer2 = "";
+		//std::string remotePlayer3 = "";
 	};
 
 	SlippiUser();

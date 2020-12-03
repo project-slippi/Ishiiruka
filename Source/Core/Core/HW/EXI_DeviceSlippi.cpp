@@ -1634,6 +1634,15 @@ void CEXISlippi::prepareOpponentInputs(u8 *payload)
 
 	m_read_queue.insert(m_read_queue.end(), tx.begin(), tx.end());
 
+	for (int i = 0; i < 2; i++)
+	{
+		std::vector<u8> tx;
+		//tx.insert(tx.end(), txStart, txEnd);
+		tx.resize(SLIPPI_PAD_FULL_SIZE * ROLLBACK_MAX_FRAMES, 0);
+		
+		m_read_queue.insert(m_read_queue.end(), tx.begin(), tx.end());
+	}
+
 	// ERROR_LOG(SLIPPI_ONLINE, "EXI: [%d] %X %X %X %X %X %X %X %X", latestFrame, m_read_queue[5], m_read_queue[6],
 	// m_read_queue[7], m_read_queue[8], m_read_queue[9], m_read_queue[10], m_read_queue[11], m_read_queue[12]);
 }
@@ -1889,14 +1898,27 @@ void CEXISlippi::prepareOnlineMatchState()
 		auto status = slippi_netplay->GetSlippiConnectStatus();
 		bool isConnected = status == SlippiNetplayClient::SlippiConnectStatus::NET_CONNECT_STATUS_CONNECTED;
 #endif
-
 		if (isConnected)
 		{
 			auto matchInfo = slippi_netplay->GetMatchInfo();
 #ifdef LOCAL_TESTING
 			remotePlayerReady = true;
 #else
-			remotePlayerReady = matchInfo->remotePlayerSelections.isCharacterSelected;
+			slippi_netplay->SetMatchSelections(localSelections);
+			//INFO_LOG(SLIPPI, "sending local selections as player %d", localSelections.playerIdx);
+
+			remotePlayerReady = true;
+			for (int i = 0; i < 2; i++)
+			{
+				//INFO_LOG(SLIPPI, "remotePlayerSelections %d status: %d", i,
+				         //matchInfo->remotePlayerSelections[i].isCharacterSelected);
+				if (!matchInfo->remotePlayerSelections[i].isCharacterSelected)
+				{
+					remotePlayerReady = false;
+					break;
+				}
+			}
+			//INFO_LOG(SLIPPI, "remotePlayerReady status: %d", remotePlayerReady);
 #endif
 
 			auto isDecider = slippi_netplay->IsDecider();
@@ -1919,7 +1941,7 @@ void CEXISlippi::prepareOnlineMatchState()
 	}
 
 	m_read_queue.push_back(localPlayerReady);  // Local player ready
-	m_read_queue.push_back(remotePlayerReady); // Remote player ready TODO: make this a composite of all remote players
+	m_read_queue.push_back(remotePlayerReady); // Remote player ready
 	m_read_queue.push_back(localPlayerIndex);  // Local player index
 	m_read_queue.push_back(remotePlayerIndex); // Remote player index
 
@@ -1935,7 +1957,7 @@ void CEXISlippi::prepareOnlineMatchState()
 
 		auto matchInfo = slippi_netplay->GetMatchInfo();
 		SlippiPlayerSelections lps = matchInfo->localPlayerSelections;
-		SlippiPlayerSelections rps = matchInfo->remotePlayerSelections;
+		SlippiPlayerSelections rps = matchInfo->remotePlayerSelections[0];
 
 #ifdef LOCAL_TESTING
 		rps.characterId = 0x2;
@@ -1957,16 +1979,22 @@ void CEXISlippi::prepareOnlineMatchState()
 		}
 
 		// Overwrite local player character
-		onlineMatchBlock[0x60 + localPlayerIndex * 0x24] = lps.characterId;
+		
+		onlineMatchBlock[0x60 + (lps.playerIdx-1) * 0x24] = lps.characterId;
 
 		// Overwrite remote player character
-		onlineMatchBlock[0x60 + remotePlayerIndex * 0x24] = rps.characterId;
+		for (int i = 0; i < 2; i++)
+		{
+			u8 idx = matchInfo->remotePlayerSelections[i].playerIdx-1;
+			onlineMatchBlock[0x60 + idx * 0x24] = matchInfo->remotePlayerSelections[i].characterId;
+		}
 
 		// Overwrite p3/p4
-		onlineMatchBlock[0x60 + 2 * 0x24] = 0x2;
-		onlineMatchBlock[0x61 + 2 * 0x24] = 0;
-
+		//onlineMatchBlock[0x60 + 2 * 0x24] = 0x2;
 		onlineMatchBlock[0x60 + 3 * 0x24] = 0x14;
+
+		// p3/p4 human
+		onlineMatchBlock[0x61 + 2 * 0x24] = 0;
 		onlineMatchBlock[0x61 + 3 * 0x24] = 0;
 
 		// Set team ids
@@ -1993,10 +2021,10 @@ void CEXISlippi::prepareOnlineMatchState()
 		}
 		
 		// Make one character lighter if same character, same color
-		bool isSheikVsZelda =
+		/*bool isSheikVsZelda =
 		    lps.characterId == 0x12 && rps.characterId == 0x13 || lps.characterId == 0x13 && rps.characterId == 0x12;
 		bool charMatch = lps.characterId == rps.characterId || isSheikVsZelda;
-		bool colMatch = lps.characterColor == rps.characterColor;
+		bool colMatch = lps.characterColor == rps.characterColor;*/
 
 		//onlineMatchBlock[0x67 + 0x24] = charMatch && colMatch ? 1 : 0;
 
@@ -2061,7 +2089,7 @@ u16 CEXISlippi::getRandomStage()
 	static u16 selectedStage;
 
 	static std::vector<u16> stages = {
-	    0x2,  // FoD
+	    //0x2,  // FoD
 	    0x3,  // Pokemon
 	    0x8,  // Yoshi's Story
 	    0x1C, // Dream Land

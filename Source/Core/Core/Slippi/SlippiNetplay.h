@@ -84,12 +84,15 @@ class SlippiMatchInfo
 {
   public:
 	SlippiPlayerSelections localPlayerSelections;
-	SlippiPlayerSelections remotePlayerSelections;
+	SlippiPlayerSelections remotePlayerSelections[3];
 
 	void Reset()
 	{
 		localPlayerSelections.Reset();
-		remotePlayerSelections.Reset();
+		for (int i = 0; i < 3; i++)
+		{
+			remotePlayerSelections[i].Reset();
+		}
 	}
 };
 
@@ -100,7 +103,8 @@ class SlippiNetplayClient
 	void SendAsync(std::unique_ptr<sf::Packet> packet);
 
 	SlippiNetplayClient(bool isDecider); // Make a dummy client
-	SlippiNetplayClient(const std::string &address, const u16 remotePort, const u16 localPort, bool isDecider, u8 playerIdx);
+	SlippiNetplayClient(const std::string &address1, const u16 remotePort1, const std::string &address2,
+	                    const u16 remotePort2, const u16 localPort, bool isDecider, u8 playerIdx);
 	~SlippiNetplayClient();
 
 	// Slippi Online
@@ -138,7 +142,7 @@ class SlippiNetplayClient
 	Common::FifoQueue<std::unique_ptr<sf::Packet>, false> m_async_queue;
 
 	ENetHost *m_client = nullptr;
-	ENetPeer *m_server = nullptr;
+	std::vector<ENetPeer *> m_server;
 	std::thread m_thread;
 
 	std::string m_selected_game;
