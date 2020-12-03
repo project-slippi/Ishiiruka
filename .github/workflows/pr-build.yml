@@ -15,7 +15,7 @@ on:
       - "**.ini"
 
 jobs:
-  windows64:
+  windows:
     strategy:
       fail-fast: false
       matrix:
@@ -102,7 +102,7 @@ jobs:
         with:
           name: ${{ matrix.artifact_name }}
           path: "./artifact/"
-  ubuntu64:
+  linux:
     strategy:
       fail-fast: false
       matrix:
