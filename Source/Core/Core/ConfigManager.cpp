@@ -597,11 +597,7 @@ void SConfig::LoadCoreSettings(IniFile& ini)
 	core->Get("Fastmem", &bFastmem, true);
 	core->Get("DSPHLE", &bDSPHLE, true);
 	core->Get("TimingVariance", &iTimingVariance, 8);
-#ifdef IS_PLAYBACK
-	core->Get("CPUThread", &bCPUThread, false);
-#else
 	core->Get("CPUThread", &bCPUThread, true);
-#endif
 	core->Get("SyncOnSkipIdle", &bSyncGPUOnSkipIdleHack, true);
 	core->Get("DefaultISO", &m_strDefaultISO);
 	core->Get("BootDefaultISO", &bBootDefaultISO, false);
