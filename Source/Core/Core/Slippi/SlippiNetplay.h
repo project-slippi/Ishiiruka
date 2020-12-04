@@ -28,6 +28,8 @@
 
 #define SLIPPI_ONLINE_LOCKSTEP_INTERVAL 30 // Number of frames to wait before attempting to time-sync
 #define SLIPPI_PING_DISPLAY_INTERVAL 60
+#define SLIPPI_REMOTE_PLAYER_MAX 3
+#define SLIPPI_REMOTE_PLAYER_COUNT 2
 
 struct SlippiRemotePadOutput
 {
@@ -124,9 +126,10 @@ class SlippiNetplayClient
 	void SendConnectionSelected();
 	void SendSlippiPad(std::unique_ptr<SlippiPad> pad);
 	void SetMatchSelections(SlippiPlayerSelections &s);
-	std::unique_ptr<SlippiRemotePadOutput> GetSlippiRemotePad(int32_t curFrame);
+	std::unique_ptr<SlippiRemotePadOutput> GetSlippiRemotePad(int32_t curFrame, int index);
+	void SlippiNetplayClient::DropOldRemoteInputs(int32_t curFrame);
 	SlippiMatchInfo *GetMatchInfo();
-	u64 GetSlippiPing();
+	//u64 GetSlippiPing();
 	int32_t GetSlippiLatestRemoteFrame();
 	s32 CalcTimeOffsetUs();
 
@@ -160,23 +163,24 @@ class SlippiNetplayClient
 		u64 timeUs;
 	};
 
-	struct
+	struct FrameOffsetData
 	{
 		// TODO: Should the buffer size be dynamic based on time sync interval or not?
 		int idx;
 		std::vector<s32> buf;
-	} frameOffsetData;
+	};
 
 	bool isConnectionSelected = false;
 	bool isDecider = false;
 	u8 playerIdx = 0;
-	int32_t lastFrameAcked;
+	int32_t lastFrameAcked[3];
 	bool hasGameStarted = false;
-	FrameTiming lastFrameTiming;
-	u64 pingUs;
+	FrameTiming lastFrameTiming[3];
+	u64 pingUs[3];
 	std::deque<std::unique_ptr<SlippiPad>> localPadQueue;  // most recent inputs at start of deque
-	std::deque<std::unique_ptr<SlippiPad>> remotePadQueue; // most recent inputs at start of deque
-	Common::FifoQueue<FrameTiming, false> ackTimers;
+	std::deque<std::unique_ptr<SlippiPad>> remotePadQueue[3]; // most recent inputs at start of deque
+	FrameOffsetData frameOffsetData[3];
+	std::array<Common::FifoQueue<FrameTiming, false>, 3> ackTimers;
 	SlippiConnectStatus slippiConnectStatus = SlippiConnectStatus::NET_CONNECT_STATUS_UNSET;
 	SlippiMatchInfo matchInfo;
 
@@ -186,8 +190,9 @@ class SlippiNetplayClient
 	std::unique_ptr<SlippiPlayerSelections> readSelectionsFromPacket(sf::Packet &packet);
 
   private:
-	unsigned int OnData(sf::Packet &packet);
-	void Send(sf::Packet &packet);
+	u8 SlippiNetplayClient::PlayerIdxFromPort(u8 port);
+	unsigned int OnData(sf::Packet &packet, enet_uint32 connectID);
+	void Send(sf::Packet &packet, enet_uint32 connectID, bool sendToAll);
 	void Disconnect();
 
 	bool m_is_connected = false;

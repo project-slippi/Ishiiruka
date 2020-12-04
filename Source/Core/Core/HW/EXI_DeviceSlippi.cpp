@@ -1610,38 +1610,38 @@ void CEXISlippi::prepareOpponentInputs(u8 *payload)
 
 	int32_t frame = payload[0] << 24 | payload[1] << 16 | payload[2] << 8 | payload[3];
 
-	auto result = slippi_netplay->GetSlippiRemotePad(frame);
+	std::unique_ptr<SlippiRemotePadOutput> results[3];
+	int offset[3];
+	// Get pad data for each remote player and write each of their latest frame nums to the buf
+	for (int i = 0; i < SLIPPI_REMOTE_PLAYER_COUNT; i++)
+	{
+		results[i] = slippi_netplay->GetSlippiRemotePad(frame, i);
 
-	// determine offset from which to copy data
-	int offset = (result->latestFrame - frame) * SLIPPI_PAD_FULL_SIZE;
-	offset = offset < 0 ? 0 : offset;
+		// determine offset from which to copy data
+		offset[i] = (results[i]->latestFrame - frame) * SLIPPI_PAD_FULL_SIZE;
+		offset[i] = offset[i] < 0 ? 0 : offset[i];
 
-	// add latest frame we are transfering to begining of return buf
-	int32_t latestFrame = offset > 0 ? frame : result->latestFrame;
-	int32_t latestFrame2 = offset > 0 ? frame : result->latestFrame;
-	int32_t latestFrame3 = offset > 0 ? frame : result->latestFrame;
-	appendWordToBuffer(&m_read_queue, *(u32 *)&latestFrame);
-	appendWordToBuffer(&m_read_queue, *(u32 *)&latestFrame2);
-	appendWordToBuffer(&m_read_queue, *(u32 *)&latestFrame3);
+		// add latest frame we are transfering to begining of return buf
+		int32_t latestFrame = offset > 0 ? frame : results[i]->latestFrame;
+		appendWordToBuffer(&m_read_queue, *(u32 *)&latestFrame);
+	}
+	appendWordToBuffer(&m_read_queue, *(u32 *)&frame); // fake for p4
 
 	// copy pad data over
-	auto txStart = result->data.begin() + offset;
-	auto txEnd = result->data.end();
-
-	std::vector<u8> tx;
-	tx.insert(tx.end(), txStart, txEnd);
-	tx.resize(SLIPPI_PAD_FULL_SIZE * ROLLBACK_MAX_FRAMES, 0);
-
-	m_read_queue.insert(m_read_queue.end(), tx.begin(), tx.end());
-
-	for (int i = 0; i < 2; i++)
+	for (int i = 0; i < SLIPPI_REMOTE_PLAYER_COUNT; i++)
 	{
+		auto txStart = results[i]->data.begin() + offset[i];
+		auto txEnd = results[i]->data.end();
+
 		std::vector<u8> tx;
-		//tx.insert(tx.end(), txStart, txEnd);
+		tx.insert(tx.end(), txStart, txEnd);
 		tx.resize(SLIPPI_PAD_FULL_SIZE * ROLLBACK_MAX_FRAMES, 0);
-		
+
 		m_read_queue.insert(m_read_queue.end(), tx.begin(), tx.end());
 	}
+
+
+	slippi_netplay->DropOldRemoteInputs(frame);
 
 	// ERROR_LOG(SLIPPI_ONLINE, "EXI: [%d] %X %X %X %X %X %X %X %X", latestFrame, m_read_queue[5], m_read_queue[6],
 	// m_read_queue[7], m_read_queue[8], m_read_queue[9], m_read_queue[10], m_read_queue[11], m_read_queue[12]);
@@ -1922,7 +1922,7 @@ void CEXISlippi::prepareOnlineMatchState()
 #endif
 
 			auto isDecider = slippi_netplay->IsDecider();
-			localPlayerIndex = isDecider ? 0 : 1;
+			localPlayerIndex = matchInfo->localPlayerSelections.playerIdx-1;
 			remotePlayerIndex = isDecider ? 1 : 0;
 		}
 		else
