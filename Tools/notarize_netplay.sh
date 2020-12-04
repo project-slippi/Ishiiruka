@@ -48,7 +48,7 @@ notarizefile() { # $1: path to file to notarize, $2: identifier
     # print status information
     xcrun altool --notarization-info "$requestUUID" \
         --apiKey "${APPLE_API_KEY}" \
-        --apiIssuer "${APPLE_API_ISSUER}"
+        --apiIssuer "${APPLE_ISSUER_ID}"
     echo 
     
     if [[ $request_status != "success" ]]; then
