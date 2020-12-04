@@ -56,19 +56,7 @@ mkdir -p AppDir
 cp -r Data/Sys ${APPDIR_BIN}
 
 # Build type
-if [ -z "$1" ] # Netplay
-    then
-        echo "Using Netplay build config"
-
-		rm -f ${NETPLAY_APPIMAGE_STRING}
-		
-		# Package up the update tool within the AppImage
-		cp ./Tools/appimageupdatetool ./AppDir/usr/bin/
-
-		# Bake an AppImage with the update metadata
-		UPDATE_INFORMATION="${ZSYNC_STRING}" \
-			./Tools/linuxdeploy-update-plugin --appdir=./AppDir/
-elif [ "$1" == "playback" ] # Playback
+if [ "$1" == "playback" ] # Playback
     then
         echo "Using Playback build config"
 
@@ -89,4 +77,15 @@ elif [ "$1" == "playback" ] # Playback
 
 		OUTPUT="${PLAYBACK_APPIMAGE_STRING}" \
 		./Tools/linuxdeploy-update-plugin --appdir=./AppDir/
+else
+		echo "Using Netplay build config"
+
+		rm -f ${NETPLAY_APPIMAGE_STRING}
+		
+		# Package up the update tool within the AppImage
+		cp ./Tools/appimageupdatetool ./AppDir/usr/bin/
+
+		# Bake an AppImage with the update metadata
+		UPDATE_INFORMATION="${ZSYNC_STRING}" \
+			./Tools/linuxdeploy-update-plugin --appdir=./AppDir/
 fi

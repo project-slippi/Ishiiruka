@@ -14,7 +14,7 @@ if(WIN32)
 				ControllerInterface/ForceFeedback/ForceFeedbackDevice.cpp)
 elseif(APPLE)
 	find_library(COREFOUNDATION_LIBRARY CoreFoundation)
-	find_library(CARBON_LIBRARY Carbon)
+    find_library(CARBON_LIBRARY Carbon)
 	find_library(COCOA_LIBRARY Cocoa)
 	set(SRCS	${SRCS}
 				ControllerInterface/OSX/OSX.mm
@@ -23,7 +23,7 @@ elseif(APPLE)
 				ControllerInterface/Quartz/Quartz.mm
 				ControllerInterface/Quartz/QuartzKeyboardAndMouse.mm
 				ControllerInterface/ForceFeedback/ForceFeedbackDevice.cpp)
-	set(LIBS ${LIBS} ${COREFOUNDATION_LIBRARY} ${CARBON_LIBRARY} ${COCOA_LIBRARY})
+    set(LIBS ${LIBS} ${COREFOUNDATION_LIBRARY} ${CARBON_LIBRARY} ${COCOA_LIBRARY})
 elseif(X11_FOUND)
 	set(SRCS	${SRCS}
 				ControllerInterface/Xlib/XInput2.cpp)
