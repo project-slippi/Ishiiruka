@@ -316,9 +316,9 @@ jobs:
         with:
           name: ${{ matrix.artifact_name }}
           path: "./artifact/"
-      - name: "Enable Admin Debugging via SSH (if failed)"
-        if: failure()
-        uses: luchihoratiu/debug-via-ssh@main
-        with:
-          NGROK_AUTH_TOKEN: ${{ secrets.NGROK_TOKEN }}
-          SSH_PASS: ${{ secrets.NGROK_PASS }}
+      #- name: "Enable Admin Debugging via SSH (if failed)"
+      # if: failure()
+      # uses: luchihoratiu/debug-via-ssh@main
+      # with:
+      #  NGROK_AUTH_TOKEN: ${{ secrets.NGROK_TOKEN }}
+      #   SSH_PASS: ${{ secrets.NGROK_PASS }}

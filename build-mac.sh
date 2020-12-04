@@ -34,7 +34,7 @@ make -j7
 popd
 
 # Copy the Sys folder in
-cp -Rfn ${DATA_SYS_PATH} ${BINARY_PATH}
+cp -Rfn "${DATA_SYS_PATH}" "${BINARY_PATH}"
 
 # Copy playback specific codes if needed
 if [ "$1" == "playback" ]
@@ -50,5 +50,5 @@ if [ "$1" == "playback" ]
 		fi
         
         rm -rf "${BINARY_PATH}/Sys/GameSettings"
-        cp -r ${DESKTOP_APP_SYS_PATH} ${BINARY_PATH}
+        cp -r "${DESKTOP_APP_SYS_PATH}" "${BINARY_PATH}"
 fi
