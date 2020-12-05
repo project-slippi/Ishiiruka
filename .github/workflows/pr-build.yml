@@ -3,7 +3,7 @@ name: Builds
 on:
   push:
     branches:
-        - "*"
+        - "**"
     paths-ignore:
         - "**.md"
         - "**.ini"
