@@ -176,6 +176,7 @@ class SlippiNetplayClient
 	int32_t lastFrameAcked[3];
 	bool hasGameStarted = false;
 	FrameTiming lastFrameTiming[3];
+	int remoteFramesSeen[3];
 	u64 pingUs[3];
 	std::deque<std::unique_ptr<SlippiPad>> localPadQueue;  // most recent inputs at start of deque
 	std::deque<std::unique_ptr<SlippiPad>> remotePadQueue[3]; // most recent inputs at start of deque
@@ -183,6 +184,8 @@ class SlippiNetplayClient
 	std::array<Common::FifoQueue<FrameTiming, false>, 3> ackTimers;
 	SlippiConnectStatus slippiConnectStatus = SlippiConnectStatus::NET_CONNECT_STATUS_UNSET;
 	SlippiMatchInfo matchInfo;
+
+	std::vector<std::unique_ptr<SlippiPad>> loggedInputs[3];
 
 	bool m_is_recording = false;
 

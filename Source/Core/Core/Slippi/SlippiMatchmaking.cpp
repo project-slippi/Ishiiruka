@@ -402,20 +402,22 @@ void SlippiMatchmaking::handleMatchmaking()
 }
 
 int SlippiMatchmaking::LocalPlayerIndex() {
-	auto userInfo = m_user->GetUserInfo();
-	return userInfo.myPort;
+	auto doublesInfo = m_user->GetDoublesInfo();
+	return doublesInfo.myPort;
 }
 
 void SlippiMatchmaking::handleConnecting()
 {
 	auto userInfo = m_user->GetUserInfo();
-	INFO_LOG(SLIPPI_ONLINE, "[Matchmaking] My port: %d || First remote IP: %s || Second remote IP: %s", userInfo.myPort,
-	         userInfo.remotePlayerIPs[0], userInfo.remotePlayerIPs[1]);
+	auto doublesInfo = m_user->GetDoublesInfo();
+	//INFO_LOG(SLIPPI_ONLINE, "[Matchmaking] My port: %d || First remote IP: %s || Second remote IP: %s",
+    //     doublesInfo.myPort, doublesInfo.remotePlayerIPs[0], doublesInfo.remotePlayerIPs[1]);
 
 	m_isSwapAttempt = false;
 	m_netplayClient = nullptr;
 	m_isHost = false;
-	if (userInfo.myPort == 1) {
+	if (doublesInfo.myPort == 1)
+	{
 		m_isHost = true;
 	}
 
@@ -424,13 +426,13 @@ void SlippiMatchmaking::handleConnecting()
 
 	std::vector<std::string> remoteParts1;
 	std::vector<std::string> remoteParts2;
-	SplitString(userInfo.remotePlayerIPs[0], ':', remoteParts1);
-	SplitString(userInfo.remotePlayerIPs[1], ':', remoteParts2);
+	SplitString(doublesInfo.remotePlayerIPs[0], ':', remoteParts1);
+	SplitString(doublesInfo.remotePlayerIPs[1], ':', remoteParts2);
 
 	// Is host is now used to specify who the decider is
 	auto client = std::make_unique<SlippiNetplayClient>(remoteParts1[0], std::stoi(remoteParts1[1]), remoteParts2[0],
-	                                          std::stoi(remoteParts2[1]), userInfo.bindPort,
-	                                                    m_isHost, userInfo.myPort);
+	                                                    std::stoi(remoteParts2[1]), doublesInfo.bindPort, m_isHost,
+	                                                    doublesInfo.myPort);
 
 	while (!m_netplayClient)
 	{

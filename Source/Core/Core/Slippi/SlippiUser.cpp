@@ -132,6 +132,12 @@ bool SlippiUser::AttemptLogin()
 
 	userInfo = parseFile(userFileContents);
 
+	// Get doubles file
+	std::string doublesFileContents;
+	File::ReadFileToString(getDoublesFilePath(), doublesFileContents);
+
+	doublesInfo = parseDoublesFile(doublesFileContents);
+
 	isLoggedIn = !userInfo.uid.empty();
 	if (isLoggedIn)
 	{
@@ -241,6 +247,11 @@ SlippiUser::UserInfo SlippiUser::GetUserInfo()
 	return userInfo;
 }
 
+SlippiUser::DoublesInfo SlippiUser::GetDoublesInfo()
+{
+	return doublesInfo;
+}
+
 bool SlippiUser::IsLoggedIn()
 {
 	return isLoggedIn;
@@ -275,6 +286,18 @@ std::string SlippiUser::getUserFilePath()
 	return userFilePath;
 }
 
+std::string SlippiUser::getDoublesFilePath()
+{
+#if defined(__APPLE__)
+	std::string userFilePath = File::GetBundleDirectory() + "/Contents/Resources" + DIR_SEP + "doubles.json";
+#elif defined(_WIN32)
+	std::string userFilePath = File::GetExeDirectory() + DIR_SEP + "doubles.json";
+#else
+	std::string userFilePath = File::GetUserPath(F_USERJSON_IDX);
+#endif
+	return userFilePath;
+}
+
 inline std::string readString(json obj, std::string key)
 {
 	auto item = obj.find(key);
@@ -302,13 +325,27 @@ SlippiUser::UserInfo SlippiUser::parseFile(std::string fileContents)
 	info.playKey = readString(res, "playKey");
 	info.connectCode = readString(res, "connectCode");
 	info.latestVersion = readString(res, "latestVersion");
-
-	info.myPort = std::stoi(readString(res, "myPort"));
-	info.bindPort = std::stoi(readString(res, "bindPort"));
-	info.remotePlayerIPs.push_back(readString(res, "player1"));
-	info.remotePlayerIPs.push_back(readString(res, "player2"));
-	//info.remotePlayerIPs.push_back(readString(res, "player3"));
 	
+	return info;
+}
+
+SlippiUser::DoublesInfo SlippiUser::parseDoublesFile(std::string fileContents)
+{
+	SlippiUser::DoublesInfo info;
+	info.fileContents = fileContents;
+
+	auto res = json::parse(fileContents, nullptr, false);
+	if (res.is_discarded() || !res.is_object())
+	{
+		return info;
+	}
+
+	info.myPort = std::stoi(readString(res, "myPlayerPort"));
+	info.bindPort = std::stoi(readString(res, "bindPort"));
+	info.remotePlayerIPs.push_back(readString(res, "remotePlayer1"));
+	info.remotePlayerIPs.push_back(readString(res, "remotePlayer2"));
+	info.remotePlayerIPs.push_back(readString(res, "remotePlayer3"));
+
 	return info;
 }
 

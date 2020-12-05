@@ -1612,18 +1612,25 @@ void CEXISlippi::prepareOpponentInputs(u8 *payload)
 
 	std::unique_ptr<SlippiRemotePadOutput> results[3];
 	int offset[3];
+	INFO_LOG(SLIPPI_ONLINE, "Preparing pad data for frame %d", frame);
 	// Get pad data for each remote player and write each of their latest frame nums to the buf
 	for (int i = 0; i < SLIPPI_REMOTE_PLAYER_COUNT; i++)
 	{
 		results[i] = slippi_netplay->GetSlippiRemotePad(frame, i);
 
 		// determine offset from which to copy data
+		INFO_LOG(SLIPPI_ONLINE, "Got remote pad starting from frame %d for player %d",
+		         results[i]->latestFrame, i);
 		offset[i] = (results[i]->latestFrame - frame) * SLIPPI_PAD_FULL_SIZE;
 		offset[i] = offset[i] < 0 ? 0 : offset[i];
 
 		// add latest frame we are transfering to begining of return buf
-		int32_t latestFrame = offset > 0 ? frame : results[i]->latestFrame;
+		//int32_t latestFrame = offset > 0 ? frame : results[i]->latestFrame;
+		int32_t latestFrame = results[i]->latestFrame;
+		if (latestFrame > frame)
+			latestFrame = frame;
 		appendWordToBuffer(&m_read_queue, *(u32 *)&latestFrame);
+		INFO_LOG(SLIPPI_ONLINE, "Sending frame num %d for pIdx %d (offset: %d)", latestFrame, i, offset[i]);
 	}
 	appendWordToBuffer(&m_read_queue, *(u32 *)&frame); // fake for p4
 
@@ -1639,7 +1646,6 @@ void CEXISlippi::prepareOpponentInputs(u8 *payload)
 
 		m_read_queue.insert(m_read_queue.end(), tx.begin(), tx.end());
 	}
-
 
 	slippi_netplay->DropOldRemoteInputs(frame);
 
@@ -1957,7 +1963,7 @@ void CEXISlippi::prepareOnlineMatchState()
 
 		auto matchInfo = slippi_netplay->GetMatchInfo();
 		SlippiPlayerSelections lps = matchInfo->localPlayerSelections;
-		SlippiPlayerSelections rps = matchInfo->remotePlayerSelections[0];
+		auto rps = matchInfo->remotePlayerSelections;
 
 #ifdef LOCAL_TESTING
 		rps.characterId = 0x2;
@@ -1967,7 +1973,12 @@ void CEXISlippi::prepareOnlineMatchState()
 
 		// Check if someone is picking dumb characters in non-direct
 		auto localCharOk = lps.characterId < 26;
-		auto remoteCharOk = rps.characterId < 26;
+		auto remoteCharOk = true;
+		for (int i = 0; i < SLIPPI_REMOTE_PLAYER_COUNT; i++)
+		{
+			if (rps[i].characterId < 26)
+				remoteCharOk = false;
+		}
 		if (lastSearch.mode != directMode && (!localCharOk || !remoteCharOk))
 		{
 			// If we get here, someone is doing something bad, clear the lobby
@@ -1983,7 +1994,7 @@ void CEXISlippi::prepareOnlineMatchState()
 		onlineMatchBlock[0x60 + (lps.playerIdx-1) * 0x24] = lps.characterId;
 
 		// Overwrite remote player character
-		for (int i = 0; i < 2; i++)
+		for (int i = 0; i < SLIPPI_REMOTE_PLAYER_COUNT; i++)
 		{
 			u8 idx = matchInfo->remotePlayerSelections[i].playerIdx-1;
 			onlineMatchBlock[0x60 + idx * 0x24] = matchInfo->remotePlayerSelections[i].characterId;
@@ -2032,11 +2043,11 @@ void CEXISlippi::prepareOnlineMatchState()
 		u16 stageId;
 		if (isDecider)
 		{
-			stageId = lps.isStageSelected ? lps.stageId : rps.stageId;
+			stageId = lps.isStageSelected ? lps.stageId : rps[0].stageId;
 		}
 		else
 		{
-			stageId = rps.isStageSelected ? rps.stageId : lps.stageId;
+			stageId = rps[0].isStageSelected ? rps[0].stageId : lps.stageId;
 		}
 
 		// int seconds = 0;
@@ -2047,7 +2058,7 @@ void CEXISlippi::prepareOnlineMatchState()
 		*stage = Common::swap16(stageId);
 
 		// Set rng offset
-		rngOffset = isDecider ? lps.rngOffset : rps.rngOffset;
+		rngOffset = isDecider ? lps.rngOffset : rps[0].rngOffset;
 		WARN_LOG(SLIPPI_ONLINE, "Rng Offset: 0x%x", rngOffset);
 		WARN_LOG(SLIPPI_ONLINE, "P1 Char: 0x%X, P2 Char: 0x%X", onlineMatchBlock[0x60], onlineMatchBlock[0x84]);
 
@@ -2227,7 +2238,8 @@ void CEXISlippi::prepareOnlineStatus()
 		appState = latestVersion > currentVersion ? 2 : 1;
 	}
 
-	m_read_queue.push_back(appState);
+	//m_read_queue.push_back(appState);
+	m_read_queue.push_back(1);
 
 	// Write player name (31 bytes)
 	std::string playerName = ConvertStringForGame(userInfo.displayName, MAX_NAME_LENGTH);
