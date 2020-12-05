@@ -2161,6 +2161,15 @@ void CEXISlippi::handleConnectionCleanup()
 	ERROR_LOG(SLIPPI_ONLINE, "Connection cleanup completed...");
 }
 
+void CEXISlippi::prepareNewSeed()
+{
+	m_read_queue.clear();
+
+	u32 newSeed = generator() % 0xFFFFFFFF;
+
+	appendWordToBuffer(&m_read_queue, newSeed);
+}
+
 void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 {
 	u8 *memPtr = Memory::GetPointer(_uAddr);
@@ -2279,6 +2288,9 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 			break;
 		case CMD_UPDATE:
 			handleUpdateAppRequest();
+			break;
+		case CMD_GET_NEW_SEED:
+			prepareNewSeed();
 			break;
 		default:
 			writeToFileAsync(&memPtr[bufLoc], payloadLen + 1, "");
