@@ -68,6 +68,7 @@ class CEXISlippi : public IEXIDevice
 		CMD_UPDATE = 0xB8,
 		CMD_GET_ONLINE_STATUS = 0xB9,
 		CMD_CLEANUP_CONNECTION = 0xBA,
+		CMD_GET_NEW_SEED = 0xBC,
 
 		// Misc
 		CMD_LOG_MESSAGE = 0xD0,
@@ -110,6 +111,7 @@ class CEXISlippi : public IEXIDevice
 	    {CMD_UPDATE, 0},
 	    {CMD_GET_ONLINE_STATUS, 0},
 	    {CMD_CLEANUP_CONNECTION, 0},
+	    {CMD_GET_NEW_SEED, 0},
 
 	    // Misc
 	    {CMD_LOG_MESSAGE, 0xFFFF}, // Variable size... will only work if by itself
@@ -168,6 +170,7 @@ class CEXISlippi : public IEXIDevice
 	void handleUpdateAppRequest();
 	void prepareOnlineStatus();
 	void handleConnectionCleanup();
+	void prepareNewSeed();
 
 	// replay playback stuff
 	void prepareGameInfo(u8 *payload);
