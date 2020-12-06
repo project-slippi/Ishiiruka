@@ -12,10 +12,12 @@
 #include <json.hpp>
 using json = nlohmann::json;
 
+extern std::atomic<bool> connectionsReset;
+
 class SlippiMatchmaking
 {
   public:
-	SlippiMatchmaking(SlippiUser *user);
+	SlippiMatchmaking(SlippiUser *user, std::atomic<bool> &netplayReset);
 	~SlippiMatchmaking();
 
 	enum OnlinePlayMode
@@ -81,6 +83,7 @@ class SlippiMatchmaking
 	SlippiUser::UserInfo m_oppUser;
 
 	std::unique_ptr<SlippiNetplayClient> m_netplayClient;
+	std::atomic<bool> *m_netplayReset;
 
 	const std::unordered_map<ProcessState, bool> searchingStates = {
 	    {ProcessState::INITIALIZING, true},

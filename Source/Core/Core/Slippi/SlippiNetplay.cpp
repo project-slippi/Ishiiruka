@@ -59,8 +59,7 @@ SlippiNetplayClient::~SlippiNetplayClient()
 }
 
 // called from ---SLIPPI EXI--- thread
-SlippiNetplayClient::SlippiNetplayClient(const std::string &address1, const u16 remotePort1,
-                                         const std::string &address2, const u16 remotePort2, const u16 localPort,
+SlippiNetplayClient::SlippiNetplayClient(const std::string addrs[], const u16 ports[], const u16 localPort,
                                          bool isDecider, u8 playerIdx)
 #ifdef _WIN32
     : m_qos_handle(nullptr)
@@ -69,7 +68,6 @@ SlippiNetplayClient::SlippiNetplayClient(const std::string &address1, const u16 
 {
 	WARN_LOG(SLIPPI_ONLINE, "Initializing Slippi Netplay for port: %d, with host: %s", localPort,
 	         isDecider ? "true" : "false");
-
 	this->isDecider = isDecider;
 	this->playerIdx = playerIdx;
 
@@ -120,24 +118,11 @@ SlippiNetplayClient::SlippiNetplayClient(const std::string &address1, const u16 
 		PanicAlertT("Couldn't Create Client");
 	}
 
-	for (int i = 0; i < 2; i++)
+	for (int i = 0; i < SLIPPI_REMOTE_PLAYER_COUNT; i++)
 	{
-		std::string address = "";
-		u16 remotePort = 0;
-		if (i == 0)
-		{
-			address = address1;
-			remotePort = remotePort1;
-		}
-		else
-		{
-			address = address2;
-			remotePort = remotePort2;
-		}
-
 		ENetAddress addr;
-		enet_address_set_host(&addr, address.c_str());
-		addr.port = remotePort;
+		enet_address_set_host(&addr, addrs[i].c_str());
+		addr.port = ports[i];
 		INFO_LOG(SLIPPI_ONLINE, "Set ENet host, addr = %x, port = %d", addr.host, addr.port);
 
 		ENetPeer *peer = enet_host_connect(m_client, &addr, 3, 0);
@@ -407,7 +392,7 @@ void SlippiNetplayClient::Send(sf::Packet &packet, enet_uint32 connectID, bool s
 			continue;
 
 		MessageId mid = ((u8 *)packet.getData())[0];
-		if (mid == NP_MSG_SLIPPI_PAD || mid == NP_MSG_SLIPPI_PAD_ACK || mid == NP_MSG_SLIPPI_CONN_READY || mid == NP_MSG_SLIPPI_GAME_READY)
+		if (mid == NP_MSG_SLIPPI_PAD || mid == NP_MSG_SLIPPI_PAD_ACK)
 		{
 			// Slippi communications do not need reliable connection and do not need to
 			// be received in order. Channel is changed so that other reliable communications
@@ -437,7 +422,7 @@ void SlippiNetplayClient::Disconnect()
 	else
 		return;
 
-	while (enet_host_service(m_client, &netEvent, 3000) > 0)
+	while (enet_host_service(m_client, &netEvent, 1000) > 0)
 	{
 		switch (netEvent.type)
 		{
@@ -472,7 +457,7 @@ void SlippiNetplayClient::SendAsync(std::unique_ptr<sf::Packet> packet)
 void SlippiNetplayClient::ThreadFunc()
 {
 	// Let client die 1 second before host such that after a swap, the client won't be connected to
-	int attemptCountLimit = 30;
+	int attemptCountLimit = 3000;
 
 	int attemptCount = 0;
 
@@ -529,7 +514,7 @@ void SlippiNetplayClient::ThreadFunc()
 			}
 		}
 
-		for (int i = 0; i < 2; i++)
+		for (int i = 0; i < SLIPPI_REMOTE_PLAYER_COUNT; i++)
 		{
 			INFO_LOG(SLIPPI_ONLINE, "m_client peer %d state: %d", i, m_client->peers[i].state);
 		}
@@ -550,7 +535,8 @@ void SlippiNetplayClient::ThreadFunc()
 		// Wait for acks, then send the start packet
 		bool acks[3] = { false, false, false };
 		bool sentStart[3] = {false, false, false};
-		while (!sentStart[0] || !sentStart[1])
+		bool allSentStart = false;
+		while (!allSentStart)
 		{
 			ENetEvent netEvent;
 			int net;
@@ -560,6 +546,7 @@ void SlippiNetplayClient::ThreadFunc()
 			sf::Packet fwdPac;
 			MessageId mid = 0;
 			u8 pIdx = 0;
+			bool allSentAck;
 			switch (netEvent.type)
 			{
 			case ENET_EVENT_TYPE_DISCONNECT:
@@ -588,7 +575,13 @@ void SlippiNetplayClient::ThreadFunc()
 					break;
 				}
 
-				if (acks[0] && acks[1])
+				allSentAck = true;
+				for (int i = 0; i < SLIPPI_REMOTE_PLAYER_COUNT; i++)
+				{
+					if (!acks[i])
+						allSentAck = false;
+				}
+				if (allSentAck)
 				{
 					sf::Packet spac;
 					spac << (MessageId)NP_MSG_SLIPPI_GAME_READY;
@@ -599,6 +592,13 @@ void SlippiNetplayClient::ThreadFunc()
 				break;
 			default:
 				break;
+			}
+
+			allSentStart = true;
+			for (int i = 0; i < SLIPPI_REMOTE_PLAYER_COUNT; i++)
+			{
+				if (!sentStart[i])
+					allSentStart = false;
 			}
 		}
 	}
@@ -898,7 +898,7 @@ void SlippiNetplayClient::SendSlippiPad(std::unique_ptr<SlippiPad> pad)
 
 	hasGameStarted = true;
 
-	for (int i = 0; i < SLIPPI_REMOTE_PLAYER_MAX; i++)
+	for (int i = 0; i < SLIPPI_REMOTE_PLAYER_COUNT; i++)
 	{
 		FrameTiming timing;
 		timing.frame = frame;
@@ -978,16 +978,16 @@ void SlippiNetplayClient::DropOldRemoteInputs(int32_t curFrame)
 			lowestCommonFrame = playerFrame[i];
 	}
 
-	//INFO_LOG(SLIPPI_ONLINE, "Checking for remotePadQueue inputs to drop, lowest common: %d, [0]: %d, [1]: %d",
-	//         lowestCommonFrame, playerFrame[0], playerFrame[1]);
+	INFO_LOG(SLIPPI_ONLINE, "Checking for remotePadQueue inputs to drop, lowest common: %d, [0]: %d, [1]: %d, [2]: %d",
+	         lowestCommonFrame, playerFrame[0], playerFrame[1], playerFrame[2]);
 	for (int i = 0; i < SLIPPI_REMOTE_PLAYER_COUNT; i++)
 	{
-		//INFO_LOG(SLIPPI_ONLINE, "remotePadQueue[%d] size: %d", i, remotePadQueue[i].size());
+		INFO_LOG(SLIPPI_ONLINE, "remotePadQueue[%d] size: %d", i, remotePadQueue[i].size());
 		while (remotePadQueue[i].size() > 1 && remotePadQueue[i].back()->frame < lowestCommonFrame &&
 		       remotePadQueue[i].back()->frame < curFrame)
 		{
-			//INFO_LOG(SLIPPI_ONLINE, "Popping inputs for frame %d from back of player %d queue",
-			//         remotePadQueue[i].back()->frame, i);
+			INFO_LOG(SLIPPI_ONLINE, "Popping inputs for frame %d from back of player %d queue",
+			         remotePadQueue[i].back()->frame, i);
 			remotePadQueue[i].pop_back();
 		}
 	}
@@ -1026,7 +1026,7 @@ int32_t SlippiNetplayClient::GetSlippiLatestRemoteFrame()
 
 	// Return the lowest frame among remote queues // TODO: should this be highest frame instead?
 	int lowestFrame = 0;
-	for (int i = 0; i < 2; i++)
+	for (int i = 0; i < SLIPPI_REMOTE_PLAYER_COUNT; i++)
 	{
 		if (remotePadQueue[i].empty())
 		{
@@ -1059,7 +1059,7 @@ s32 SlippiNetplayClient::CalcTimeOffsetUs()
 		return 0;
 	}
 	
-	s32 maxOffset = 0;
+	s32 avgOffset = 0;
 	for (int i = 0; i < SLIPPI_REMOTE_PLAYER_MAX; i++)
 	{
 		if (frameOffsetData[i].buf.empty())
@@ -1088,9 +1088,8 @@ s32 SlippiNetplayClient::CalcTimeOffsetUs()
 		}
 
 		s32 result = sum / count;
-		if (i == 0 || result > maxOffset)
-			maxOffset = result;
+		avgOffset += result;
 	}
 	
-	return maxOffset;
+	return avgOffset / SLIPPI_REMOTE_PLAYER_COUNT;
 }

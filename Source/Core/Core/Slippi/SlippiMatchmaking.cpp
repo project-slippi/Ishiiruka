@@ -17,8 +17,9 @@ class MmMessageType
 std::string MmMessageType::CREATE_TICKET = "create-ticket";
 std::string MmMessageType::CREATE_TICKET_RESP = "create-ticket-resp";
 std::string MmMessageType::GET_TICKET_RESP = "get-ticket-resp";
+extern std::atomic<bool> connectionsReset = true;
 
-SlippiMatchmaking::SlippiMatchmaking(SlippiUser *user)
+SlippiMatchmaking::SlippiMatchmaking(SlippiUser *user, std::atomic<bool> &netplayReset)
 {
 	m_user = user;
 	m_state = ProcessState::IDLE;
@@ -26,6 +27,7 @@ SlippiMatchmaking::SlippiMatchmaking(SlippiUser *user)
 
 	m_client = nullptr;
 	m_server = nullptr;
+	m_netplayReset = &netplayReset;
 
 	MM_HOST = scm_slippi_semver_str.find("dev") == std::string::npos ? MM_HOST_PROD : MM_HOST_DEV;
 
@@ -424,14 +426,25 @@ void SlippiMatchmaking::handleConnecting()
 	SlippiUser::UserInfo emptyInfo;
 	m_oppUser = emptyInfo;
 
-	std::vector<std::string> remoteParts1;
-	std::vector<std::string> remoteParts2;
-	SplitString(doublesInfo.remotePlayerIPs[0], ':', remoteParts1);
-	SplitString(doublesInfo.remotePlayerIPs[1], ':', remoteParts2);
+	std::vector<std::string> remoteParts[SLIPPI_REMOTE_PLAYER_COUNT];
+	std::string addrs[SLIPPI_REMOTE_PLAYER_COUNT];
+	u16 ports[SLIPPI_REMOTE_PLAYER_COUNT];
+	for (int i = 0; i < SLIPPI_REMOTE_PLAYER_COUNT; i++)
+	{
+		SplitString(doublesInfo.remotePlayerIPs[i], ':', remoteParts[i]);
+		addrs[i] = remoteParts[i][0];
+		ports[i] = std::stoi(remoteParts[i][1]);
+	}
+
+	ERROR_LOG(SLIPPI_ONLINE, "m_netplayReset = %d", connectionsReset.load());
+	while (!connectionsReset.load())
+	{
+		INFO_LOG(SLIPPI_ONLINE, "[Matchmaking] Waiting to clear previous connections");
+		Common::SleepCurrentThread(100);
+	}
 
 	// Is host is now used to specify who the decider is
-	auto client = std::make_unique<SlippiNetplayClient>(remoteParts1[0], std::stoi(remoteParts1[1]), remoteParts2[0],
-	                                                    std::stoi(remoteParts2[1]), doublesInfo.bindPort, m_isHost,
+	auto client = std::make_unique<SlippiNetplayClient>(addrs, ports, doublesInfo.bindPort, m_isHost,
 	                                                    doublesInfo.myPort);
 
 	while (!m_netplayClient)

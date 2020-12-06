@@ -105,7 +105,8 @@ CEXISlippi::CEXISlippi()
 	m_slippiserver = SlippiSpectateServer::getInstance();
 	user = std::make_unique<SlippiUser>();
 	g_playbackStatus = std::make_unique<SlippiPlaybackStatus>();
-	matchmaking = std::make_unique<SlippiMatchmaking>(user.get());
+	std::atomic<bool> netplayReady = true;
+	matchmaking = std::make_unique<SlippiMatchmaking>(user.get(), std::ref(netplayReady));
 	gameFileLoader = std::make_unique<SlippiGameFileLoader>();
 	g_replayComm = std::make_unique<SlippiReplayComm>();
 
@@ -1633,7 +1634,10 @@ void CEXISlippi::prepareOpponentInputs(u8 *payload)
 		appendWordToBuffer(&m_read_queue, *(u32 *)&latestFrame);
 		//INFO_LOG(SLIPPI_ONLINE, "Sending frame num %d for pIdx %d (offset: %d)", latestFrame, i, offset[i]);
 	}
-	appendWordToBuffer(&m_read_queue, *(u32 *)&frame); // fake for p4
+	if (SLIPPI_REMOTE_PLAYER_COUNT < 3)
+	{
+		appendWordToBuffer(&m_read_queue, *(u32 *)&frame); // fake for p4
+	}
 
 	// copy pad data over
 	for (int i = 0; i < SLIPPI_REMOTE_PLAYER_COUNT; i++)
@@ -1793,11 +1797,111 @@ int CEXISlippi::getCharColor(u8 charId, u8 teamId)
 		case 2:
 			return 4;
 		}
+	case 0x1: // DK
+		switch (teamId)
+		{
+		case 0:
+			return 2;
+		case 1:
+			return 3;
+		case 2:
+			return 4;
+		}
 	case 0x2: // Fox
 		switch (teamId)
 		{
 		case 0:
 			return 1;
+		case 1:
+			return 2;
+		case 2:
+			return 3;
+		}
+	case 0x3: // GaW
+		switch (teamId)
+		{
+		case 0:
+			return 1;
+		case 1:
+			return 2;
+		case 2:
+			return 3;
+		}
+	case 0x4: // Kirby
+		switch (teamId)
+		{
+		case 0:
+			return 3;
+		case 1:
+			return 2;
+		case 2:
+			return 4;
+		}
+	case 0x5: // Bowser
+		switch (teamId)
+		{
+		case 0:
+			return 1;
+		case 1:
+			return 2;
+		case 2:
+			return 0;
+		}
+	case 0x6: // Link
+		switch (teamId)
+		{
+		case 0:
+			return 1;
+		case 1:
+			return 2;
+		case 2:
+			return 0;
+		}
+	case 0x7: // Luigi
+		switch (teamId)
+		{
+		case 0:
+			return 3;
+		case 1:
+			return 2;
+		case 2:
+			return 0;
+		}
+	case 0x8: // Mario
+		switch (teamId)
+		{
+		case 0:
+			return 0;
+		case 1:
+			return 3;
+		case 2:
+			return 4;
+		}
+	case 0x9: // Marth
+		switch (teamId)
+		{
+		case 0:
+			return 1;
+		case 1:
+			return 0;
+		case 2:
+			return 2;
+		}
+	case 0xA: // Mewtwo
+		switch (teamId)
+		{
+		case 0:
+			return 1;
+		case 1:
+			return 2;
+		case 2:
+			return 3;
+		}
+	case 0xB: // Ness
+		switch (teamId)
+		{
+		case 0:
+			return 0;
 		case 1:
 			return 2;
 		case 2:
@@ -1813,6 +1917,66 @@ int CEXISlippi::getCharColor(u8 charId, u8 teamId)
 		case 2:
 			return 4;
 		}
+	case 0xD: // Pikachu
+		switch (teamId)
+		{
+		case 0:
+			return 1;
+		case 1:
+			return 2;
+		case 2:
+			return 3;
+		}
+	case 0xE: // Ice Climbers
+		switch (teamId)
+		{
+		case 0:
+			return 3;
+		case 1:
+			return 0;
+		case 2:
+			return 1;
+		}
+	case 0xF: // Jigglypuff
+		switch (teamId)
+		{
+		case 0:
+			return 1;
+		case 1:
+			return 2;
+		case 2:
+			return 3;
+		}
+	case 0x10: // Samus
+		switch (teamId)
+		{
+		case 0:
+			return 0;
+		case 1:
+			return 4;
+		case 2:
+			return 3;
+		}
+	case 0x11: // Yoshi
+		switch (teamId)
+		{
+		case 0:
+			return 1;
+		case 1:
+			return 2;
+		case 2:
+			return 0;
+		}
+	case 0x12: // Zelda
+		switch (teamId)
+		{
+		case 0:
+			return 1;
+		case 1:
+			return 2;
+		case 2:
+			return 3;
+		}
 	case 0x13: // Sheik
 		switch (teamId)
 		{
@@ -1824,6 +1988,56 @@ int CEXISlippi::getCharColor(u8 charId, u8 teamId)
 			return 3;
 		}
 	case 0x14: // Falco
+		switch (teamId)
+		{
+		case 0:
+			return 1;
+		case 1:
+			return 2;
+		case 2:
+			return 3;
+		}
+	case 0x15: // YLink
+		switch (teamId)
+		{
+		case 0:
+			return 1;
+		case 1:
+			return 2;
+		case 2:
+			return 0;
+		}
+	case 0x16: // DrMario
+		switch (teamId)
+		{
+		case 0:
+			return 1;
+		case 1:
+			return 2;
+		case 2:
+			return 3;
+		}
+	case 0x17: // Roy
+		switch (teamId)
+		{
+		case 0:
+			return 1;
+		case 1:
+			return 2;
+		case 2:
+			return 3;
+		}
+	case 0x18: // Pichu
+		switch (teamId)
+		{
+		case 0:
+			return 1;
+		case 1:
+			return 2;
+		case 2:
+			return 3;
+		}
+	case 0x19: // Ganondorf
 		switch (teamId)
 		{
 		case 0:
@@ -1879,7 +2093,7 @@ void CEXISlippi::prepareOnlineMatchState()
 
 	u8 localPlayerReady = 0;
 	u8 remotePlayerReady = 0;
-	u8 localPlayerIndex = 0;
+	u8 localPlayerIndex = user->GetDoublesInfo().myPort-1;
 	u8 remotePlayerIndex = 1;
 
 	auto opponent = matchmaking->GetOpponent();
@@ -1914,31 +2128,47 @@ void CEXISlippi::prepareOnlineMatchState()
 			//slippi_netplay->SetMatchSelections(localSelections);
 			//INFO_LOG(SLIPPI, "sending local selections as player %d", localSelections.playerIdx);
 			
-			remotePlayerReady = true;
+			remotePlayerReady = 1;
 			for (int i = 0; i < SLIPPI_REMOTE_PLAYER_COUNT; i++)
 			{
-				//INFO_LOG(SLIPPI, "remotePlayerSelections %d status: %d", i,
-				         //matchInfo->remotePlayerSelections[i].isCharacterSelected);
+				INFO_LOG(SLIPPI, "remotePlayerSelections %d status: %d", i,
+				         matchInfo->remotePlayerSelections[i].isCharacterSelected);
 				if (!matchInfo->remotePlayerSelections[i].isCharacterSelected)
 				{
-					remotePlayerReady = false;
-					break;
+					remotePlayerReady = 0;
+				}
+				if (i == 0 && localPlayerIndex != 0 && !matchInfo->remotePlayerSelections[0].isStageSelected)
+				{
+					remotePlayerReady = 0;
 				}
 			}
-			localPlayerIndex = matchInfo->localPlayerSelections.playerIdx - 1;
-			if (localPlayerIndex != 0 && !matchInfo->remotePlayerSelections[0].isStageSelected) 
-				remotePlayerReady = false;
+			//localPlayerIndex = matchInfo->localPlayerSelections.playerIdx - 1;
+			//if (localPlayerIndex != 0 && !matchInfo->remotePlayerSelections[0].isStageSelected) 
+			//	remotePlayerReady = false;
 #endif
 
 			auto isDecider = slippi_netplay->IsDecider();
 			remotePlayerIndex = isDecider ? 1 : 0;
 
-			bool stageSelectedIfP1 = localPlayerIndex == 0 ? localSelections.isStageSelected : true;
-			localPlayerReady = localSelections.isCharacterSelected && stageSelectedIfP1;
+			if (localPlayerIndex == 0)
+			{
+				if (localSelections.isCharacterSelected && localSelections.isStageSelected)
+				{
+					localPlayerReady = 1;
+				}
+				else
+				{
+					localPlayerReady = 0;
+				}
+			}
+			else
+			{
+				localPlayerReady = localSelections.isCharacterSelected;
+			}
 
-			INFO_LOG(SLIPPI, "local idx: [%], localPlayerReady: %d | remotePlayerReady: %d | p1StageSelect: %d, %d",
+			INFO_LOG(SLIPPI, "local idx: [%d], localPlayerReady: %d | remotePlayerReady: %d | p[0]StageSelect: %d",
 			         localPlayerIndex, localPlayerReady, remotePlayerReady,
-			         matchInfo->remotePlayerSelections[0].isStageSelected, stageSelectedIfP1);
+			         matchInfo->remotePlayerSelections[0].isStageSelected);
 		}
 		else
 		{
@@ -1954,6 +2184,9 @@ void CEXISlippi::prepareOnlineMatchState()
 	{
 		slippi_netplay = nullptr;
 	}
+
+	//INFO_LOG(SLIPPI, "[%d] localPlayerReady: %d | remotePlayerReady: %d", localPlayerIndex, localPlayerReady,
+	//         remotePlayerReady);
 
 	m_read_queue.push_back(localPlayerReady);  // Local player ready
 	m_read_queue.push_back(remotePlayerReady); // Remote player ready
@@ -2011,7 +2244,11 @@ void CEXISlippi::prepareOnlineMatchState()
 
 		// Overwrite p3/p4
 		//onlineMatchBlock[0x60 + 2 * 0x24] = 0x2;
-		onlineMatchBlock[0x60 + 3 * 0x24] = 0x14;
+		
+		if (SLIPPI_REMOTE_PLAYER_COUNT < 3)
+		{
+			onlineMatchBlock[0x60 + 3 * 0x24] = 0x14;
+		}
 
 		// p3/p4 human
 		onlineMatchBlock[0x61 + 2 * 0x24] = 0;
@@ -2148,6 +2385,8 @@ void CEXISlippi::setMatchSelections(u8 *payload)
 		// If stage requested is random, select a random stage
 		s.stageId = getRandomStage();
 	}
+	INFO_LOG(SLIPPI, "LPS set char: %d, iSS: %d, %d, stage: %d", s.isCharacterSelected,
+	         stageSelectOption, s.isStageSelected, s.stageId);
 
 	s.rngOffset = generator() % 0xFFFF;
 
@@ -2265,11 +2504,13 @@ void CEXISlippi::prepareOnlineStatus()
 
 void doConnectionCleanup(std::unique_ptr<SlippiMatchmaking> mm, std::unique_ptr<SlippiNetplayClient> nc)
 {
-	if (mm)
-		mm.reset();
-
 	if (nc)
 		nc.reset();
+
+	connectionsReset = true;
+
+	if (mm)
+		mm.reset();
 }
 
 void CEXISlippi::handleConnectionCleanup()
@@ -2277,11 +2518,14 @@ void CEXISlippi::handleConnectionCleanup()
 	ERROR_LOG(SLIPPI_ONLINE, "Connection cleanup started...");
 
 	// Handle destructors in a separate thread to not block the main thread
-	std::thread cleanup(doConnectionCleanup, std::move(matchmaking), std::move(slippi_netplay));
-	cleanup.detach();
+	std::atomic<bool> netplayReset(false);
+	//connectionsReset = false;
+	//std::thread cleanup(doConnectionCleanup, std::move(matchmaking), std::move(slippi_netplay));
+	doConnectionCleanup(std::move(matchmaking), std::move(slippi_netplay));
+	//cleanup.detach();
 
 	// Reset matchmaking
-	matchmaking = std::make_unique<SlippiMatchmaking>(user.get());
+	matchmaking = std::make_unique<SlippiMatchmaking>(user.get(), std::ref(netplayReset));
 
 	// Disconnect netplay client
 	slippi_netplay = nullptr;
