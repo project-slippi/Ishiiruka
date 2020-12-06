@@ -121,6 +121,7 @@ class SlippiNetplayClient
 
 	bool IsDecider();
 	bool IsConnectionSelected();
+	u8 LocalPlayerPort();
 	SlippiConnectStatus GetSlippiConnectStatus();
 	void StartSlippiGame();
 	void SendConnectionSelected();
