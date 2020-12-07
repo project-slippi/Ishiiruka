@@ -165,7 +165,7 @@ u8 SlippiNetplayClient::LocalPlayerPort() {
 }
 
 // called from ---NETPLAY--- thread
-unsigned int SlippiNetplayClient::OnData(sf::Packet &packet, enet_uint32 connectID)
+unsigned int SlippiNetplayClient::OnData(sf::Packet &packet, ENetPeer *peer)
 {
 	MessageId mid = 0;
 	if (!(packet >> mid))
@@ -266,8 +266,10 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet, enet_uint32 connect
 		spac << (MessageId)NP_MSG_SLIPPI_PAD_ACK;
 		spac << frame;
 		spac << playerIdx;
-		INFO_LOG(SLIPPI_ONLINE, "Sending ack packet for frame %d (player %d) to connectID %d", frame, packetPlayerPort, connectID);
-		Send(spac, connectID, false);
+		INFO_LOG(SLIPPI_ONLINE, "Sending ack packet for frame %d (player %d) to peer at %d:%d", frame, packetPlayerPort, peer->address.host, peer->address.port);
+		
+		ENetPacket *epac = enet_packet_create(spac.getData(), spac.getDataSize(), ENET_PACKET_FLAG_UNSEQUENCED);
+		int sendResult = enet_peer_send(peer, 2, epac);
 	}
 	break;
 
@@ -314,7 +316,7 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet, enet_uint32 connect
 		{
 			OSD::AddTypedMessage(
 			    OSD::MessageType::NetPlayPing,
-			                     StringFromFormat("Ping[0]: %u | Ping[1]: %u | Ping[2]: %", pingUs[0] / 1000,
+			                     StringFromFormat("Ping[0]: %u | Ping[1]: %u | Ping[2]: %u", pingUs[0] / 1000,
 			                                      pingUs[1] / 1000, pingUs[2] / 1000),
 			                     OSD::Duration::NORMAL, OSD::Color::CYAN);
 		}
@@ -378,19 +380,13 @@ std::unique_ptr<SlippiPlayerSelections> SlippiNetplayClient::readSelectionsFromP
 	return std::move(s);
 }
 
-void SlippiNetplayClient::Send(sf::Packet &packet, enet_uint32 connectID, bool sendToAll = true)
+void SlippiNetplayClient::Send(sf::Packet &packet)
 {
 	enet_uint32 flags = ENET_PACKET_FLAG_RELIABLE;
 	u8 channelId = 0;
 
 	for (int i = 0; i < m_server.size(); i++)
 	{
-		//if (connectID != 0)
-		//	INFO_LOG(SLIPPI_ONLINE, "Comparing m_server[%d] (%d) with connectID %d", i,
-		//	         m_server[i]->connectID, connectID);
-		if (!sendToAll && connectID != m_server[i]->connectID)
-			continue;
-
 		MessageId mid = ((u8 *)packet.getData())[0];
 		if (mid == NP_MSG_SLIPPI_PAD || mid == NP_MSG_SLIPPI_PAD_ACK)
 		{
@@ -403,10 +399,6 @@ void SlippiNetplayClient::Send(sf::Packet &packet, enet_uint32 connectID, bool s
 
 		ENetPacket *epac = enet_packet_create(packet.getData(), packet.getDataSize(), flags);
 		int sendResult = enet_peer_send(m_server[i], channelId, epac);
-		if (sendResult < 0)
-			INFO_LOG(SLIPPI_ONLINE, "Failed to send packet to connectID %d", connectID);
-		else if (connectID != 0)
-			INFO_LOG(SLIPPI_ONLINE, "Sent ack packet to connectID %d", connectID);
 	}
 }
 
@@ -569,7 +561,7 @@ void SlippiNetplayClient::ThreadFunc()
 				else
 				{
 					fwdPac.append(netEvent.packet->data, netEvent.packet->dataLength);
-					OnData(fwdPac, netEvent.peer->connectID);
+					OnData(fwdPac, netEvent.peer);
 
 					enet_packet_destroy(netEvent.packet);
 					break;
@@ -585,7 +577,7 @@ void SlippiNetplayClient::ThreadFunc()
 				{
 					sf::Packet spac;
 					spac << (MessageId)NP_MSG_SLIPPI_GAME_READY;
-					Send(spac, 0);
+					Send(spac);
 				}
 
 				enet_packet_destroy(netEvent.packet);
@@ -611,7 +603,7 @@ void SlippiNetplayClient::ThreadFunc()
 			sf::Packet spac;
 			spac << (MessageId)NP_MSG_SLIPPI_CONN_READY;
 			spac << playerIdx;
-			Send(spac, 0);
+			Send(spac);
 
 			ENetEvent netEvent;
 			int net;
@@ -637,13 +629,13 @@ void SlippiNetplayClient::ThreadFunc()
 					sf::Packet spac;
 					spac << (MessageId)NP_MSG_SLIPPI_CLIENT_READY;
 					spac << playerIdx;
-					Send(spac, 0);
+					Send(spac);
 				}
 				else
 				{
 					INFO_LOG(SLIPPI_ONLINE, "Got packet with mid %d while waiting for game ready", mid);
 					fwdPac.append(netEvent.packet->data, netEvent.packet->dataLength);
-					OnData(fwdPac, netEvent.peer->connectID);
+					OnData(fwdPac, netEvent.peer);
 
 					enet_packet_destroy(netEvent.packet);
 					break;
@@ -717,7 +709,7 @@ void SlippiNetplayClient::ThreadFunc()
 		net = enet_host_service(m_client, &netEvent, 250);
 		while (!m_async_queue.Empty())
 		{
-			Send(*(m_async_queue.Front().get()), 0);
+			Send(*(m_async_queue.Front().get()));
 			m_async_queue.Pop();
 		}
 		if (net > 0)
@@ -728,11 +720,8 @@ void SlippiNetplayClient::ThreadFunc()
 			{
 			case ENET_EVENT_TYPE_RECEIVE:
 				rpac.append(netEvent.packet->data, netEvent.packet->dataLength);
-				enet_uint32 connectID;
-				if (netEvent.peer)
-					connectID = netEvent.peer->connectID;
 				
-				OnData(rpac, connectID);
+				OnData(rpac, netEvent.peer);
 
 				enet_packet_destroy(netEvent.packet);
 				break;
@@ -1059,7 +1048,7 @@ s32 SlippiNetplayClient::CalcTimeOffsetUs()
 		return 0;
 	}
 	
-	s32 avgOffset = 0;
+	int offsets[3];
 	for (int i = 0; i < SLIPPI_REMOTE_PLAYER_MAX; i++)
 	{
 		if (frameOffsetData[i].buf.empty())
@@ -1088,8 +1077,16 @@ s32 SlippiNetplayClient::CalcTimeOffsetUs()
 		}
 
 		s32 result = sum / count;
-		avgOffset += result;
+		offsets[i] = result;
 	}
-	
-	return avgOffset / SLIPPI_REMOTE_PLAYER_COUNT;
+
+	s32 maxOffset = offsets[0];
+	for (int i = 1; i < SLIPPI_REMOTE_PLAYER_COUNT; i++)
+	{
+		if (offsets[i] > maxOffset)
+			maxOffset = offsets[i];
+	}
+
+	INFO_LOG(SLIPPI_ONLINE, "Time offsets, [0]: %d, [1]: %d, [2]: %d", offsets[0], offsets[1], offsets[2]);
+	return maxOffset;
 }

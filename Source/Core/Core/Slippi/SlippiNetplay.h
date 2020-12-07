@@ -195,8 +195,8 @@ class SlippiNetplayClient
 
   private:
 	u8 SlippiNetplayClient::PlayerIdxFromPort(u8 port);
-	unsigned int OnData(sf::Packet &packet, enet_uint32 connectID);
-	void Send(sf::Packet &packet, enet_uint32 connectID, bool sendToAll);
+	unsigned int OnData(sf::Packet &packet, ENetPeer* peer);
+	void Send(sf::Packet &packet);
 	void Disconnect();
 
 	bool m_is_connected = false;
