@@ -1486,13 +1486,23 @@ void CEXISlippi::prepareIsFileReady()
 	m_read_queue.push_back(1);
 }
 
+// The original reason for this was to avoid crashes when people disconnected during CSS/VSS Screens, causing that
+// slippi_netplay got set to null on it's own thread and then the instance of the ExiDevice would crash while performing
+// a method that was that used it.
+// Maybe someone smart can fix that logic instead of this monkey patch.
 bool CEXISlippi::isDisconnected()
 {
 	if (!slippi_netplay)
 		return true;
 
-	auto status = slippi_netplay->GetSlippiConnectStatus();
-	return status != SlippiNetplayClient::SlippiConnectStatus::NET_CONNECT_STATUS_CONNECTED || isConnectionStalled;
+	// TODO: Figure out why connection status is not "CONNECTED" while initializing a match and coming back to CSS,
+	// err back into dumb return false until then.
+	return false;
+
+
+//	auto status = slippi_netplay->GetSlippiConnectStatus();
+//	return status != SlippiNetplayClient::SlippiConnectStatus::NET_CONNECT_STATUS_CONNECTED &&
+//        status != SlippiNetplayClient::SlippiConnectStatus::NET_CONNECT_STATUS_INITIATED;
 }
 
 static int tempTestCount = 0;
