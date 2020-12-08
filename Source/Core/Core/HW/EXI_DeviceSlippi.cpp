@@ -1591,6 +1591,17 @@ void CEXISlippi::handleSendInputs(u8 *payload)
 	int32_t frame = payload[0] << 24 | payload[1] << 16 | payload[2] << 8 | payload[3];
 	u8 delay = payload[4];
 
+	// On the first frame sent, we need to queue up empty dummy pads for as many
+	//	frames as we have delay
+	if (frame == 1)
+	{
+		for (int i = 1; i <= delay; i++)
+		{
+			auto empty = std::make_unique<SlippiPad>(i);
+			slippi_netplay->SendSlippiPad(std::move(empty));
+		}
+	}
+
 	auto pad = std::make_unique<SlippiPad>(frame + delay, &payload[5]);
 
 	slippi_netplay->SendSlippiPad(std::move(pad));
