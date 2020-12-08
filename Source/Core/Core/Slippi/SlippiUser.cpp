@@ -105,7 +105,7 @@ bool SlippiUser::AttemptLogin()
 {
 	std::string userFilePath = getUserFilePath();
 
-	INFO_LOG(SLIPPI_ONLINE, "Looking for file at: %s", userFilePath.c_str());
+	//INFO_LOG(SLIPPI_ONLINE, "Looking for file at: %s", userFilePath.c_str());
 
 	{
 		std::string userFilePathTxt =
@@ -131,12 +131,6 @@ bool SlippiUser::AttemptLogin()
 	File::ReadFileToString(userFilePath, userFileContents);
 
 	userInfo = parseFile(userFileContents);
-
-	// Get doubles file
-	std::string doublesFileContents;
-	File::ReadFileToString(getDoublesFilePath(), doublesFileContents);
-
-	doublesInfo = parseDoublesFile(doublesFileContents);
 
 	isLoggedIn = !userInfo.uid.empty();
 	if (isLoggedIn)
@@ -247,11 +241,6 @@ SlippiUser::UserInfo SlippiUser::GetUserInfo()
 	return userInfo;
 }
 
-SlippiUser::DoublesInfo SlippiUser::GetDoublesInfo()
-{
-	return doublesInfo;
-}
-
 bool SlippiUser::IsLoggedIn()
 {
 	return isLoggedIn;
@@ -326,26 +315,6 @@ SlippiUser::UserInfo SlippiUser::parseFile(std::string fileContents)
 	info.connectCode = readString(res, "connectCode");
 	info.latestVersion = readString(res, "latestVersion");
 	
-	return info;
-}
-
-SlippiUser::DoublesInfo SlippiUser::parseDoublesFile(std::string fileContents)
-{
-	SlippiUser::DoublesInfo info;
-	info.fileContents = fileContents;
-
-	auto res = json::parse(fileContents, nullptr, false);
-	if (res.is_discarded() || !res.is_object())
-	{
-		return info;
-	}
-
-	info.myPort = std::stoi(readString(res, "myPlayerPort"));
-	info.bindPort = std::stoi(readString(res, "bindPort"));
-	info.remotePlayerIPs.push_back(readString(res, "remotePlayer1"));
-	info.remotePlayerIPs.push_back(readString(res, "remotePlayer2"));
-	info.remotePlayerIPs.push_back(readString(res, "remotePlayer3"));
-
 	return info;
 }
 

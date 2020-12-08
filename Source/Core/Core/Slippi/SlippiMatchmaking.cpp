@@ -54,7 +54,7 @@ void SlippiMatchmaking::FindMatch(MatchSearchSettings settings)
 	m_searchSettings = settings;
 
 	m_errorMsg = "";
-	m_state = ProcessState::OPPONENT_CONNECTING;
+	m_state = ProcessState::INITIALIZING;
 	m_matchmakeThread = std::thread(&SlippiMatchmaking::MatchmakeThread, this);
 }
 
@@ -116,6 +116,7 @@ int SlippiMatchmaking::receiveMessage(json &msg, int timeoutMs)
 		{
 		case ENET_EVENT_TYPE_RECEIVE:
 		{
+			
 			std::vector<u8> buf;
 			buf.insert(buf.end(), netEvent.packet->data, netEvent.packet->data + netEvent.packet->dataLength);
 
@@ -233,8 +234,9 @@ void SlippiMatchmaking::startMatchmaking()
 	}
 
 	ENetAddress addr;
-	enet_address_set_host(&addr, MM_HOST.c_str());
-	addr.port = MM_PORT;
+	std::string MM_DOUBLES = "54.149.65.170";
+	enet_address_set_host(&addr, MM_DOUBLES.c_str());
+	addr.port = 3030;
 
 	m_server = enet_host_connect(m_client, &addr, 3, 0);
 
@@ -249,6 +251,7 @@ void SlippiMatchmaking::startMatchmaking()
 
 	// Before we can request a ticket, we must wait for connection to be successful
 	int connectAttemptCount = 0;
+	auto userInfo = m_user->GetUserInfo();
 	while (!isMmConnected)
 	{
 		ENetEvent netEvent;
@@ -268,6 +271,7 @@ void SlippiMatchmaking::startMatchmaking()
 			continue;
 		}
 
+		netEvent.peer->data = &userInfo.displayName;
 		m_client->intercept = ENetUtil::InterceptCallback;
 		isMmConnected = true;
 		ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Connected to mm server...");
@@ -275,15 +279,13 @@ void SlippiMatchmaking::startMatchmaking()
 
 	ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Trying to find match...");
 
-	if (!m_user->IsLoggedIn())
+	/*if (!m_user->IsLoggedIn())
 	{
 		ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Must be logged in to queue");
 		m_state = ProcessState::ERROR_ENCOUNTERED;
 		m_errorMsg = "Must be logged in to queue. Go back to menu";
 		return;
-	}
-
-	auto userInfo = m_user->GetUserInfo();
+	}*/
 
 	std::vector<u8> connectCodeBuf;
 	connectCodeBuf.insert(connectCodeBuf.end(), m_searchSettings.connectCode.begin(),
@@ -291,15 +293,105 @@ void SlippiMatchmaking::startMatchmaking()
 
 	// Send message to server to create ticket
 	json request;
-	request["type"] = MmMessageType::CREATE_TICKET;
-	request["user"] = {{"uid", userInfo.uid}, {"playKey", userInfo.playKey}};
-	request["search"] = {{"mode", m_searchSettings.mode}, {"connectCode", connectCodeBuf}};
-	request["appVersion"] = scm_slippi_semver_str;
+	request["type"] = "join";
+	request["username"] = userInfo.displayName;
+	request["connectCode"] = connectCodeBuf;
 	sendMessage(request);
 
 	// Get response from server
-	json response;
-	int rcvRes = receiveMessage(response, 5000);
+	bool matchStarted = false;
+	bool joinedLobby = false;
+
+	while (!matchStarted)
+	{
+		if (m_state != ProcessState::INITIALIZING)
+			return;
+
+		json response;
+
+		if (joinedLobby)
+		{
+			json request;
+			request["type"] = "keepalive";
+			request["username"] = userInfo.displayName;
+			request["connectCode"] = connectCodeBuf;
+			sendMessage(request);
+		}
+
+		int rcvRes = receiveMessage(response, 1000);
+		if (rcvRes == -2)
+		{
+			ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Did not receive response from server for create ticket");
+			m_state = ProcessState::ERROR_ENCOUNTERED;
+			m_errorMsg = "Disconnected from mm server";
+			return;
+		}
+		if (rcvRes == -1)
+		{
+			continue;
+		}
+
+		/*while (true)
+		{
+			ERROR_LOG(SLIPPI_ONLINE, "%s", response.dump().c_str());
+			Common::SleepCurrentThread(5000);
+		}*/
+
+		std::string respType = response.value("Type", "");
+		if (respType == "start")
+		{
+			m_isSwapAttempt = false;
+			m_netplayClient = nullptr;
+			auto ips = response["RemoteIPs"].get<std::vector<std::string>>();
+			for (int i = 0; i < ips.size(); i++)
+			{
+				m_oppIp[i] = ips[i];
+			}
+			m_localPlayerPort = response.value("Port", -1);
+			ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Got response from MM server: %d (local port: %d) | %s, %s, %s",
+			          m_localPlayerPort, m_hostPort,
+			          m_oppIp[0].c_str(), m_oppIp[1].c_str(), m_oppIp[2].c_str());
+			//m_oppIp = response.value("oppAddress", "");
+			//m_isHost = response.value("isHost", false);
+
+			// Clear old user
+			/*SlippiUser::UserInfo emptyInfo;
+			m_oppUser = emptyInfo;
+
+			auto oppUser = getResp["oppUser"];
+			if (oppUser.is_object())
+			{
+				m_oppUser.uid = oppUser.value("uid", "");
+				m_oppUser.displayName = oppUser.value("displayName", "");
+				m_oppUser.connectCode = oppUser.value("connectCode", "");
+			}*/
+
+			// Disconnect and destroy enet client to mm server
+			terminateMmConnection();
+			matchStarted = true;
+
+			m_state = ProcessState::OPPONENT_CONNECTING;
+			return;
+			//ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Opponents found. isDecider: %s", m_isHost ? "true" : "false");
+		}
+		else if (respType == "update")
+		{
+			int numPlayers = response.value("NumPlayers", -1);
+			ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Waiting for %d more players...", 4-numPlayers);
+			joinedLobby = true;
+		}
+		else if (respType == "error")
+		{
+			ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Received error from server for create ticket");
+			m_state = ProcessState::ERROR_ENCOUNTERED;
+			std::string err = response.value("Error", "");
+			m_errorMsg = err;
+			return;
+		}
+	}
+	
+	//m_state = ProcessState::MATCHMAKING;
+	/*int rcvRes = receiveMessage(response, 5000);
 	if (rcvRes != 0)
 	{
 		ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Did not receive response from server for create ticket");
@@ -328,7 +420,7 @@ void SlippiMatchmaking::startMatchmaking()
 	}
 
 	m_state = ProcessState::MATCHMAKING;
-	ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Request ticket success");
+	ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Request ticket success");*/
 }
 
 void SlippiMatchmaking::handleMatchmaking()
@@ -381,7 +473,7 @@ void SlippiMatchmaking::handleMatchmaking()
 
 	m_isSwapAttempt = false;
 	m_netplayClient = nullptr;
-	m_oppIp = getResp.value("oppAddress", "");
+	//m_oppIp = getResp.value("oppAddress", "");
 	m_isHost = getResp.value("isHost", false);
 
 	// Clear old user
@@ -404,21 +496,18 @@ void SlippiMatchmaking::handleMatchmaking()
 }
 
 int SlippiMatchmaking::LocalPlayerIndex() {
-	auto doublesInfo = m_user->GetDoublesInfo();
-	return doublesInfo.myPort;
+	return m_localPlayerPort;
 }
 
 void SlippiMatchmaking::handleConnecting()
 {
 	auto userInfo = m_user->GetUserInfo();
-	auto doublesInfo = m_user->GetDoublesInfo();
-	//INFO_LOG(SLIPPI_ONLINE, "[Matchmaking] My port: %d || First remote IP: %s || Second remote IP: %s",
-    //     doublesInfo.myPort, doublesInfo.remotePlayerIPs[0], doublesInfo.remotePlayerIPs[1]);
+	//auto doublesInfo = m_user->GetDoublesInfo();
 
 	m_isSwapAttempt = false;
 	m_netplayClient = nullptr;
 	m_isHost = false;
-	if (doublesInfo.myPort == 1)
+	if (m_localPlayerPort == 1)
 	{
 		m_isHost = true;
 	}
@@ -431,7 +520,7 @@ void SlippiMatchmaking::handleConnecting()
 	u16 ports[SLIPPI_REMOTE_PLAYER_COUNT];
 	for (int i = 0; i < SLIPPI_REMOTE_PLAYER_COUNT; i++)
 	{
-		SplitString(doublesInfo.remotePlayerIPs[i], ':', remoteParts[i]);
+		SplitString(m_oppIp[i], ':', remoteParts[i]);
 		addrs[i] = remoteParts[i][0];
 		ports[i] = std::stoi(remoteParts[i][1]);
 	}
@@ -443,9 +532,11 @@ void SlippiMatchmaking::handleConnecting()
 		Common::SleepCurrentThread(100);
 	}
 
+	INFO_LOG(SLIPPI_ONLINE, "[Matchmaking] My port: %d || IPs: %s, %s, %s",
+	         m_hostPort, m_oppIp[0], m_oppIp[1], m_oppIp[2]);
+
 	// Is host is now used to specify who the decider is
-	auto client = std::make_unique<SlippiNetplayClient>(addrs, ports, doublesInfo.bindPort, m_isHost,
-	                                                    doublesInfo.myPort);
+	auto client = std::make_unique<SlippiNetplayClient>(addrs, ports, m_hostPort, m_isHost, m_localPlayerPort);
 
 	while (!m_netplayClient)
 	{

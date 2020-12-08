@@ -21,15 +21,6 @@ class SlippiUser
 		std::string fileContents = "";
 	};
 
-	struct DoublesInfo
-	{
-		int myPort = 0;
-		int bindPort = 2626;
-		std::vector<std::string> remotePlayerIPs;
-
-		std::string fileContents = "";
-	};
-
 	SlippiUser();
 	~SlippiUser();
 
@@ -40,7 +31,6 @@ class SlippiUser
 	void LogOut();
 	void OverwriteLatestVersion(std::string version);
 	UserInfo GetUserInfo();
-	DoublesInfo GetDoublesInfo();
 	bool IsLoggedIn();
 	void FileListenThread();
 
@@ -48,12 +38,10 @@ class SlippiUser
 	std::string getUserFilePath();
 	std::string getDoublesFilePath();
 	UserInfo parseFile(std::string fileContents);
-	DoublesInfo parseDoublesFile(std::string fileContents);
 	void deleteFile();
 	void overwriteFromServer();
 
 	UserInfo userInfo;
-	DoublesInfo doublesInfo;
 	bool isLoggedIn = false;
 
 	const std::string URL_START = "https://users-rest-dot-slippi.uc.r.appspot.com/user";

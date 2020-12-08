@@ -78,7 +78,8 @@ class SlippiMatchmaking
 	int m_isSwapAttempt = false;
 
 	int m_hostPort;
-	std::string m_oppIp;
+	int m_localPlayerPort;
+	std::string m_oppIp[3];
 	bool m_isHost;
 	SlippiUser::UserInfo m_oppUser;
 

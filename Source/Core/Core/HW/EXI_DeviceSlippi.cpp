@@ -2093,7 +2093,7 @@ void CEXISlippi::prepareOnlineMatchState()
 
 	u8 localPlayerReady = 0;
 	u8 remotePlayerReady = 0;
-	u8 localPlayerIndex = user->GetDoublesInfo().myPort-1;
+	u8 localPlayerIndex = matchmaking->LocalPlayerIndex()-1;
 	u8 remotePlayerIndex = 1;
 
 	auto opponent = matchmaking->GetOpponent();
@@ -2125,14 +2125,9 @@ void CEXISlippi::prepareOnlineMatchState()
 #ifdef LOCAL_TESTING
 			remotePlayerReady = true;
 #else
-			//slippi_netplay->SetMatchSelections(localSelections);
-			//INFO_LOG(SLIPPI, "sending local selections as player %d", localSelections.playerIdx);
-			
 			remotePlayerReady = 1;
 			for (int i = 0; i < SLIPPI_REMOTE_PLAYER_COUNT; i++)
 			{
-				INFO_LOG(SLIPPI, "remotePlayerSelections %d status: %d", i,
-				         matchInfo->remotePlayerSelections[i].isCharacterSelected);
 				if (!matchInfo->remotePlayerSelections[i].isCharacterSelected)
 				{
 					remotePlayerReady = 0;
@@ -2142,9 +2137,6 @@ void CEXISlippi::prepareOnlineMatchState()
 					remotePlayerReady = 0;
 				}
 			}
-			//localPlayerIndex = matchInfo->localPlayerSelections.playerIdx - 1;
-			//if (localPlayerIndex != 0 && !matchInfo->remotePlayerSelections[0].isStageSelected) 
-			//	remotePlayerReady = false;
 #endif
 
 			auto isDecider = slippi_netplay->IsDecider();
@@ -2165,10 +2157,6 @@ void CEXISlippi::prepareOnlineMatchState()
 			{
 				localPlayerReady = localSelections.isCharacterSelected;
 			}
-
-			INFO_LOG(SLIPPI, "local idx: [%d], localPlayerReady: %d | remotePlayerReady: %d | p[0]StageSelect: %d",
-			         localPlayerIndex, localPlayerReady, remotePlayerReady,
-			         matchInfo->remotePlayerSelections[0].isStageSelected);
 		}
 		else
 		{
@@ -2184,9 +2172,6 @@ void CEXISlippi::prepareOnlineMatchState()
 	{
 		slippi_netplay = nullptr;
 	}
-
-	//INFO_LOG(SLIPPI, "[%d] localPlayerReady: %d | remotePlayerReady: %d", localPlayerIndex, localPlayerReady,
-	//         remotePlayerReady);
 
 	m_read_queue.push_back(localPlayerReady);  // Local player ready
 	m_read_queue.push_back(remotePlayerReady); // Remote player ready
@@ -2254,14 +2239,14 @@ void CEXISlippi::prepareOnlineMatchState()
 
 		// Set team ids
 		onlineMatchBlock[0x69 + 0 * 0x24] = 0x1;
-		onlineMatchBlock[0x69 + 1 * 0x24] = 0x2;
-		onlineMatchBlock[0x69 + 2 * 0x24] = 0x2;
+		onlineMatchBlock[0x69 + 1 * 0x24] = 0x0;
+		onlineMatchBlock[0x69 + 2 * 0x24] = 0x0;
 		onlineMatchBlock[0x69 + 3 * 0x24] = 0x1;
 
 		// Set char colors for teams
 		onlineMatchBlock[0x63 + 0 * 0x24] = getCharColor(onlineMatchBlock[0x60 + 0 * 0x24], 1);
-		onlineMatchBlock[0x63 + 1 * 0x24] = getCharColor(onlineMatchBlock[0x60 + 1 * 0x24], 2);
-		onlineMatchBlock[0x63 + 2 * 0x24] = getCharColor(onlineMatchBlock[0x60 + 2 * 0x24], 2);
+		onlineMatchBlock[0x63 + 1 * 0x24] = getCharColor(onlineMatchBlock[0x60 + 1 * 0x24], 0);
+		onlineMatchBlock[0x63 + 2 * 0x24] = getCharColor(onlineMatchBlock[0x60 + 2 * 0x24], 0);
 		onlineMatchBlock[0x63 + 3 * 0x24] = getCharColor(onlineMatchBlock[0x60 + 3 * 0x24], 1);
 
 		// Set light alt colors if same character
@@ -2388,8 +2373,7 @@ void CEXISlippi::setMatchSelections(u8 *payload)
 
 	s.rngOffset = generator() % 0xFFFF;
 
-	auto info = user->GetDoublesInfo();
-	if (info.myPort == 1 && firstMatch)
+	if (matchmaking->LocalPlayerIndex() == 1 && firstMatch)
 	{
 		firstMatch = false;
 		s.stageId = getRandomStage();
@@ -2525,9 +2509,9 @@ void CEXISlippi::handleConnectionCleanup()
 	// Handle destructors in a separate thread to not block the main thread
 	std::atomic<bool> netplayReset(false);
 	//connectionsReset = false;
-	//std::thread cleanup(doConnectionCleanup, std::move(matchmaking), std::move(slippi_netplay));
-	doConnectionCleanup(std::move(matchmaking), std::move(slippi_netplay));
-	//cleanup.detach();
+	std::thread cleanup(doConnectionCleanup, std::move(matchmaking), std::move(slippi_netplay));
+	//doConnectionCleanup(std::move(matchmaking), std::move(slippi_netplay));
+	cleanup.detach();
 
 	// Reset matchmaking
 	matchmaking = std::make_unique<SlippiMatchmaking>(user.get(), std::ref(netplayReset));

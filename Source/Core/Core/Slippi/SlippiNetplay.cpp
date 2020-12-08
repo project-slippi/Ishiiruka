@@ -449,7 +449,7 @@ void SlippiNetplayClient::SendAsync(std::unique_ptr<sf::Packet> packet)
 void SlippiNetplayClient::ThreadFunc()
 {
 	// Let client die 1 second before host such that after a swap, the client won't be connected to
-	int attemptCountLimit = 3000;
+	int attemptCountLimit = 15;
 
 	int attemptCount = 0;
 
