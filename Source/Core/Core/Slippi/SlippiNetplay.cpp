@@ -111,7 +111,7 @@ SlippiNetplayClient::SlippiNetplayClient(const std::string addrs[], const u16 po
 	}
 
 	// TODO: Figure out how to use a local port when not hosting without accepting incoming connections
-	m_client = enet_host_create(localAddr, 8, 255, 0, 0);
+	m_client = enet_host_create(localAddr, 64, 255, 0, 0);
 
 	if (m_client == nullptr)
 	{
@@ -316,7 +316,7 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet, ENetPeer *peer)
 		{
 			OSD::AddTypedMessage(
 			    OSD::MessageType::NetPlayPing,
-			                     StringFromFormat("Ping[0]: %u | Ping[1]: %u | Ping[2]: %u", pingUs[0] / 1000,
+			                     StringFromFormat("Ping: %u | %u | %u", pingUs[0] / 1000,
 			                                      pingUs[1] / 1000, pingUs[2] / 1000),
 			                     OSD::Duration::NORMAL, OSD::Color::CYAN);
 		}
