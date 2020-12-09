@@ -2249,6 +2249,11 @@ void CEXISlippi::prepareOnlineMatchState()
 		onlineMatchBlock[0x63 + 2 * 0x24] = getCharColor(onlineMatchBlock[0x60 + 2 * 0x24], 0);
 		onlineMatchBlock[0x63 + 3 * 0x24] = getCharColor(onlineMatchBlock[0x60 + 3 * 0x24], 1);
 
+		onlineMatchBlock[0x67 + 0 * 0x24] = 0;
+		onlineMatchBlock[0x67 + 1 * 0x24] = 0;
+		onlineMatchBlock[0x67 + 2 * 0x24] = 0;
+		onlineMatchBlock[0x67 + 3 * 0x24] = 0;
+
 		// Set light alt colors if same character
 		if (onlineMatchBlock[0x60 + 0 * 0x24] == onlineMatchBlock[0x60 + 3 * 0x24])
 		{

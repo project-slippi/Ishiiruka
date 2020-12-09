@@ -234,7 +234,8 @@ void SlippiMatchmaking::startMatchmaking()
 	}
 
 	ENetAddress addr;
-	std::string MM_DOUBLES = "54.149.65.170";
+	std::string MM_DOUBLES = "192.168.1.7";
+	//std::string MM_DOUBLES = "54.149.65.170";
 	enet_address_set_host(&addr, MM_DOUBLES.c_str());
 	addr.port = 3030;
 
@@ -525,15 +526,8 @@ void SlippiMatchmaking::handleConnecting()
 		ports[i] = std::stoi(remoteParts[i][1]);
 	}
 
-	ERROR_LOG(SLIPPI_ONLINE, "m_netplayReset = %d", connectionsReset.load());
-	while (!connectionsReset.load())
-	{
-		INFO_LOG(SLIPPI_ONLINE, "[Matchmaking] Waiting to clear previous connections");
-		Common::SleepCurrentThread(100);
-	}
-
-	INFO_LOG(SLIPPI_ONLINE, "[Matchmaking] My port: %d || IPs: %s, %s, %s",
-	         m_hostPort, m_oppIp[0], m_oppIp[1], m_oppIp[2]);
+	INFO_LOG(SLIPPI_ONLINE, "[Matchmaking] My port: %d || IPs: %s, %s, %s", m_hostPort, m_oppIp[0].c_str(),
+	         m_oppIp[1].c_str(), m_oppIp[2].c_str());
 
 	// Is host is now used to specify who the decider is
 	auto client = std::make_unique<SlippiNetplayClient>(addrs, ports, m_hostPort, m_isHost, m_localPlayerPort);

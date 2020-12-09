@@ -191,6 +191,11 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet, ENetPeer *peer)
 			break;
 		}
 		u8 pIdx = PlayerIdxFromPort(packetPlayerPort);
+		if (pIdx >= SLIPPI_REMOTE_PLAYER_COUNT)
+		{
+			ERROR_LOG(SLIPPI_ONLINE, "Got packet with invalid player idx %d", pIdx);
+			break;
+		}
 
 		// Pad received, try to guess what our local time was when the frame was sent by our opponent
 		// before we initialized
@@ -291,6 +296,12 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet, ENetPeer *peer)
 			break;
 		}
 		u8 pIdx = PlayerIdxFromPort(packetPlayerPort);
+		if (pIdx >= SLIPPI_REMOTE_PLAYER_COUNT)
+		{
+			ERROR_LOG(SLIPPI_ONLINE, "Got ack packet with invalid player idx %d", pIdx);
+			break;
+		}
+
 		INFO_LOG(SLIPPI_ONLINE, "Received ack packet from player %d(%d) [%d]...", packetPlayerPort, pIdx,
 		         frame);
 
