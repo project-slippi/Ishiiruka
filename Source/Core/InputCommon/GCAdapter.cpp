@@ -40,10 +40,12 @@ static u8 s_controller_type[MAX_SI_CHANNELS] = {
 		ControllerTypes::CONTROLLER_NONE, ControllerTypes::CONTROLLER_NONE };
 static u8 s_controller_rumble[4];
 
+static const int adapter_payload_size = 37;
+
 static std::mutex s_mutex;
-static u8 s_controller_payload[37];
-static u8 s_controller_payload_swap[37];
-static u8 default_controller_payload[37]{};
+static u8 s_controller_payload[adapter_payload_size];
+static u8 s_controller_payload_swap[adapter_payload_size];
+static u8 default_controller_payload[adapter_payload_size]{};
 
 static std::atomic<int> s_controller_payload_size = { 0 };
 
@@ -96,11 +98,11 @@ struct controller_payload_entry
 {
 	std::chrono::high_resolution_clock::time_point raw_timing;
 	std::chrono::high_resolution_clock::time_point estimated_timing;
-	u8 controller_payload[37];
+	u8 controller_payload[adapter_payload_size];
 	controller_payload_entry(std::chrono::high_resolution_clock::time_point tp, u8 *controller_payload)
 	    : raw_timing{tp}
 	{
-		std::copy(controller_payload, controller_payload + 37, this->controller_payload);
+		std::copy(controller_payload, controller_payload + adapter_payload_size, this->controller_payload);
 	}
 };
 
@@ -358,7 +360,7 @@ static void Read()
 	s_consecutive_slow_transfers = 0;
 	adapter_error = false;
 
-	u8 bkp_payload_swap[37];
+	u8 bkp_payload_swap[adapter_payload_size];
 	int bkp_payload_size = 0;
 	bool has_prev_input = false;
 	s_read_rate = 0.0;
@@ -379,13 +381,13 @@ static void Read()
 		{
 			if (!adapter_error)
 			{
-				memcpy(bkp_payload_swap, s_controller_payload_swap, 37);
+				memcpy(bkp_payload_swap, s_controller_payload_swap, adapter_payload_size);
 				bkp_payload_size = payload_size;
 				has_prev_input = true;
 			}
 			else if (has_prev_input)
 			{
-				memcpy(s_controller_payload_swap, bkp_payload_swap, 37);
+				memcpy(s_controller_payload_swap, bkp_payload_swap, adapter_payload_size);
 				payload_size = bkp_payload_size;
 			}
 		}
@@ -772,12 +774,12 @@ GCPadStatus Input(int chan, std::chrono::high_resolution_clock::time_point *tp)
 		return{};
 
 	int payload_size = 0;
-	u8 controller_payload_copy[37];
+	u8 controller_payload_copy[adapter_payload_size];
 
 	{
 		std::lock_guard<std::mutex> lk(s_mutex);
 		const u8 *controller_payload = Fetch(tp);
-		std::copy(controller_payload, controller_payload + 37, controller_payload_copy);
+		std::copy(controller_payload, controller_payload + adapter_payload_size, controller_payload_copy);
 		payload_size = s_controller_payload_size.load();
 	}
 
