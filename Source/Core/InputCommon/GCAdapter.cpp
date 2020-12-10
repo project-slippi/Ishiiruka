@@ -153,7 +153,7 @@ static void Feed(std::chrono::high_resolution_clock::time_point tp, u8 *controll
 
 	controller_payload_entry &newEntry = controller_payload_entries.front();
 	judgeEILVOptimsApplicability();
-
+	
 	size_t size = controller_payload_entries.size();
 
 	// Do we use USB Polling Stabilization ?
@@ -347,7 +347,7 @@ const u8 *Fetch(std::chrono::high_resolution_clock::time_point *tp)
 			// So we need to delay the timings by 0.8ms, otherwise, we would be writing the past.
 			// Plus some offset to account for the 1000Hz alignment of controller timings done in the process.
 
-			if (*tp > (sconfig.bUseAdapterTimingReconstructionWhenApplicable
+			if (*tp > ( (sconfig.bUseAdapterTimingReconstructionWhenApplicable && beenUsingTR())
 			               ? entry->estimated_timing + std::chrono::nanoseconds(800'000) +
 			                                 std::chrono::nanoseconds(usbPollingStabilizationDelay)
 			               : (sconfig.bUseUsbPollingStabilization
