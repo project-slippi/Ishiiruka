@@ -10,6 +10,7 @@
 #include <deque>
 #include <numeric>
 #include <fstream>
+#include <time.h>
 
 #include "Common/Event.h"
 #include "Common/Flag.h"
@@ -77,6 +78,11 @@ static u64 s_last_init = 0;
 static u64 s_consecutive_slow_transfers = 0;
 static double s_read_rate = 0.0;
 
+// Schmidtt trigger style, start applying if effective report rate > 290Hz, stop if < 260Hz
+static const int stopApplyingEILVOptimsHz = 260;
+static const int startApplyingEILVOptimsHz = 290;
+volatile static bool applyEILVOptims = false;
+
 // Outputs a file with the time points queried by the engine
 #define MEASURE_POLLS_FROM_ENGINE 0
 
@@ -124,12 +130,30 @@ void feedTruh(bool usedTR) {
 	truhIndex = (truhIndex + 1) % 1000;
 }
 
+void judgeEILVOptimsApplicability() {
+	if (controller_payload_entries.size() > 10)
+	{
+		double diff =
+		    (controller_payload_entries.front().raw_timing - controller_payload_entries.back().raw_timing).count() /
+		    1'000'000.;
+		double hz = 1000. / ( diff / controller_payload_entries.size() );
+
+		if (!applyEILVOptims && hz > startApplyingEILVOptimsHz)
+			applyEILVOptims = true;
+		else if (applyEILVOptims && hz < stopApplyingEILVOptimsHz)
+			applyEILVOptims = false;
+	}
+}
+
 static void Feed(std::chrono::high_resolution_clock::time_point tp, u8 *controller_payload)
 {
 	const SConfig &sconfig = SConfig::GetInstance();
 
 	controller_payload_entries.push_front(controller_payload_entry(tp, controller_payload));
+
 	controller_payload_entry &newEntry = controller_payload_entries.front();
+	judgeEILVOptimsApplicability();
+
 	size_t size = controller_payload_entries.size();
 
 	// Do we use USB Polling Stabilization ?
@@ -311,7 +335,7 @@ const u8 *Fetch(std::chrono::high_resolution_clock::time_point *tp)
 	}
 	#endif
 
-	if (sconfig.bUseEngineStabilization && tp!=nullptr)
+	if (applyEILVOptims && sconfig.bUseEngineStabilization && tp != nullptr)
 	{
 		for (auto entry = controller_payload_entries.begin(); entry != controller_payload_entries.end(); entry++)
 		{
