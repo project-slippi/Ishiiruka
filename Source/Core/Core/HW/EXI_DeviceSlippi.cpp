@@ -106,7 +106,7 @@ CEXISlippi::CEXISlippi()
 	user = std::make_unique<SlippiUser>();
 	g_playbackStatus = std::make_unique<SlippiPlaybackStatus>();
 	std::atomic<bool> netplayReady = true;
-	matchmaking = std::make_unique<SlippiMatchmaking>(user.get(), std::ref(netplayReady));
+	matchmaking = std::make_unique<SlippiMatchmaking>(user.get());
 	gameFileLoader = std::make_unique<SlippiGameFileLoader>();
 	g_replayComm = std::make_unique<SlippiReplayComm>();
 
@@ -2089,9 +2089,10 @@ void CEXISlippi::prepareOnlineMatchState()
 	}
 #endif
 
+	//INFO_LOG(SLIPPI, "MM State: %d", mmState);
 	m_read_queue.push_back(mmState); // Matchmaking State
 
-	u8 localPlayerReady = 0;
+	u8 localPlayerReady = localSelections.isCharacterSelected;
 	u8 remotePlayerReady = 0;
 	u8 localPlayerIndex = matchmaking->LocalPlayerIndex()-1;
 	u8 remotePlayerIndex = 1;
@@ -2313,11 +2314,33 @@ void CEXISlippi::prepareOnlineMatchState()
 	m_read_queue.push_back((u8)SConfig::GetInstance().m_slippiOnlineDelay);
 
 	// Add names to output
-	p1Name = ConvertStringForGame(p1Name, MAX_NAME_LENGTH);
+	auto names = matchmaking->PlayerNames();
+	for (int i = 0; i < 4; i++)
+	{
+		std::string name = names[i];
+		name = ConvertStringForGame(name, MAX_NAME_LENGTH);
+		m_read_queue.insert(m_read_queue.end(), name.begin(), name.end());
+	}
+	/*p1Name = ConvertStringForGame(p1Name, MAX_NAME_LENGTH);
 	m_read_queue.insert(m_read_queue.end(), p1Name.begin(), p1Name.end());
 	p2Name = ConvertStringForGame(p2Name, MAX_NAME_LENGTH);
-	m_read_queue.insert(m_read_queue.end(), p2Name.begin(), p2Name.end());
-	oppName = ConvertStringForGame(oppName, MAX_NAME_LENGTH);
+	m_read_queue.insert(m_read_queue.end(), p2Name.begin(), p2Name.end());*/
+
+	int teamIdx = onlineMatchBlock[0x69 + localPlayerIndex * 0x24];
+	std::string oppText = "";
+	for (int i = 0; i < 4; i++)
+	{
+		if (i == localPlayerIndex)
+			continue;
+
+		if (onlineMatchBlock[0x69 + i * 0x24] != teamIdx)
+		{
+			oppText += names[i];
+			if (i < 2)
+				oppText += "/";
+		}
+	}
+	oppName = ConvertStringForGame(oppText, MAX_NAME_LENGTH*2 + 1);
 	m_read_queue.insert(m_read_queue.end(), oppName.begin(), oppName.end());
 
 	// Add error message if there is one
@@ -2519,7 +2542,7 @@ void CEXISlippi::handleConnectionCleanup()
 	cleanup.detach();
 
 	// Reset matchmaking
-	matchmaking = std::make_unique<SlippiMatchmaking>(user.get(), std::ref(netplayReset));
+	matchmaking = std::make_unique<SlippiMatchmaking>(user.get());
 
 	// Disconnect netplay client
 	slippi_netplay = nullptr;

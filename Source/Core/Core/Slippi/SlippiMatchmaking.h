@@ -17,7 +17,7 @@ extern std::atomic<bool> connectionsReset;
 class SlippiMatchmaking
 {
   public:
-	SlippiMatchmaking(SlippiUser *user, std::atomic<bool> &netplayReset);
+	SlippiMatchmaking(SlippiUser *user);
 	~SlippiMatchmaking();
 
 	enum OnlinePlayMode
@@ -51,6 +51,7 @@ class SlippiMatchmaking
 	std::string GetErrorMessage();
 	SlippiUser::UserInfo GetOpponent();
 	int LocalPlayerIndex();
+	std::string *PlayerNames();
 
   protected:
 	const std::string MM_HOST_DEV = "35.197.121.196"; // Dev host
@@ -80,11 +81,12 @@ class SlippiMatchmaking
 	int m_hostPort;
 	int m_localPlayerPort;
 	std::string m_oppIp[3];
+	std::string m_playerNames[4];
+	bool m_joinedLobby;
 	bool m_isHost;
 	SlippiUser::UserInfo m_oppUser;
 
 	std::unique_ptr<SlippiNetplayClient> m_netplayClient;
-	std::atomic<bool> *m_netplayReset;
 
 	const std::unordered_map<ProcessState, bool> searchingStates = {
 	    {ProcessState::INITIALIZING, true},

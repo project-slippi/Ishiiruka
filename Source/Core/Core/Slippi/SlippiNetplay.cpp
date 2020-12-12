@@ -111,7 +111,7 @@ SlippiNetplayClient::SlippiNetplayClient(const std::string addrs[], const u16 po
 	}
 
 	// TODO: Figure out how to use a local port when not hosting without accepting incoming connections
-	m_client = enet_host_create(localAddr, 64, 255, 0, 0);
+	m_client = enet_host_create(localAddr, 10, 3, 0, 0);
 
 	if (m_client == nullptr)
 	{
@@ -134,7 +134,7 @@ SlippiNetplayClient::SlippiNetplayClient(const std::string addrs[], const u16 po
 		}
 		else
 		{
-			INFO_LOG(SLIPPI_ONLINE, "Connected to ENet host, addr = %x, port = %d", peer->address.host,
+			INFO_LOG(SLIPPI_ONLINE, "Connecting to ENet host, addr = %x, port = %d", peer->address.host,
 			         peer->address.port);
 		}
 	}
@@ -477,44 +477,75 @@ void SlippiNetplayClient::ThreadFunc()
 		// This will confirm that connection went through successfully
 		ENetEvent netEvent;
 		int net = enet_host_service(m_client, &netEvent, 500);
-		if (net > 0 && netEvent.type == ENET_EVENT_TYPE_CONNECT)
+		if (net <= 0)
 		{
-			// TODO: Confirm gecko codes match?
-			if (netEvent.peer)
+			continue;
+		}
+
+		switch (netEvent.type)
+		{
+		case ENET_EVENT_TYPE_RECEIVE:
+			if (!netEvent.peer)
 			{
-				INFO_LOG(SLIPPI_ONLINE, "[Netplay] got event with peer port %d", netEvent.peer->address.port);
-				for (int i = 0; i < m_server.size(); i++)
+				INFO_LOG(SLIPPI_ONLINE, "[Netplay] got receive event with nil peer");
+				continue;
+			}
+			INFO_LOG(SLIPPI_ONLINE, "[Netplay] got receive event with peer addr %x:%d", netEvent.peer->address.host,
+			         netEvent.peer->address.port);
+			break;
+
+		case ENET_EVENT_TYPE_DISCONNECT:
+			if (!netEvent.peer)
+			{
+				INFO_LOG(SLIPPI_ONLINE, "[Netplay] got disconnect event with nil peer");
+				continue;
+			}
+			INFO_LOG(SLIPPI_ONLINE, "[Netplay] got disconnect event with peer addr %x:%d", netEvent.peer->address.host,
+			         netEvent.peer->address.port);
+			break;
+
+		case ENET_EVENT_TYPE_CONNECT:
+		{
+			if (!netEvent.peer)
+			{
+				INFO_LOG(SLIPPI_ONLINE, "[Netplay] got connect event with nil peer");
+				continue;
+			}
+
+			INFO_LOG(SLIPPI_ONLINE, "[Netplay] got connect event with peer addr %x:%d", netEvent.peer->address.host,
+			         netEvent.peer->address.port);
+			for (int i = 0; i < m_server.size(); i++)
+			{
+				INFO_LOG(SLIPPI_ONLINE, "[Netplay] Comparing connection address: %x:%d - %x:%d", remoteAddrs[i].host,
+				         remoteAddrs[i].port, netEvent.peer->address.host, netEvent.peer->address.port);
+				if (remoteAddrs[i].host == netEvent.peer->address.host &&
+				    remoteAddrs[i].port == netEvent.peer->address.port)
 				{
-					INFO_LOG(SLIPPI_ONLINE, "[Netplay] Comparing connection address: %x:%d - %x:%d",
-					         remoteAddrs[i].host, remoteAddrs[i].port,
+					INFO_LOG(SLIPPI_ONLINE, "[Netplay] Overwriting ENetPeer for address: %x:%d",
 					         netEvent.peer->address.host, netEvent.peer->address.port);
-					if (remoteAddrs[i].host == netEvent.peer->address.host &&
-					    remoteAddrs[i].port == netEvent.peer->address.port)
-					{
-						INFO_LOG(SLIPPI_ONLINE, "[Netplay] Overwriting ENetPeer for address: %x:%d",
-						         netEvent.peer->address.host, netEvent.peer->address.port);
-						INFO_LOG(SLIPPI_ONLINE, "[Netplay] Overwriting ENetPeer with id (%d) with new peer of id %d",
-						         m_server[i]->connectID, netEvent.peer->connectID);
-						m_server[i] = netEvent.peer;
-						connections[i] = true;
-						break;
-					}
+					INFO_LOG(SLIPPI_ONLINE, "[Netplay] Overwriting ENetPeer with id (%d) with new peer of id %d",
+					         m_server[i]->connectID, netEvent.peer->connectID);
+					m_server[i] = netEvent.peer;
+					connections[i] = true;
+					break;
 				}
 			}
+			break;
+		}
+		}
 
-			bool allConnected = true;
-			for (int i = 0; i < SLIPPI_REMOTE_PLAYER_COUNT; i++)
-			{
-				if (!connections[i])
-					allConnected = false;
-			}
+		bool allConnected = true;
+		for (int i = 0; i < SLIPPI_REMOTE_PLAYER_COUNT; i++)
+		{
+			if (!connections[i])
+				allConnected = false;
+		}
 
-			if (allConnected)
-			{
-				m_client->intercept = ENetUtil::InterceptCallback;
-				INFO_LOG(SLIPPI_ONLINE, "Slippi online connection successful!");
-				break;
-			}
+		if (allConnected)
+		{
+			m_client->intercept = ENetUtil::InterceptCallback;
+			INFO_LOG(SLIPPI_ONLINE, "Slippi online connection successful!");
+			break;
 		}
 
 		for (int i = 0; i < SLIPPI_REMOTE_PLAYER_COUNT; i++)
@@ -537,13 +568,17 @@ void SlippiNetplayClient::ThreadFunc()
 	{
 		// Wait for acks, then send the start packet
 		bool acks[3] = { false, false, false };
-		bool sentStart[3] = {false, false, false};
+		bool sentStart[3] = { false, false, false };
 		bool allSentStart = false;
 		while (!allSentStart)
 		{
 			ENetEvent netEvent;
 			int net;
-			net = enet_host_service(m_client, &netEvent, 250);
+			net = enet_host_service(m_client, &netEvent, 500);
+			if (net <= 0)
+			{
+				continue;
+			}
 
 			sf::Packet rpac;
 			sf::Packet fwdPac;
@@ -552,6 +587,15 @@ void SlippiNetplayClient::ThreadFunc()
 			bool allSentAck;
 			switch (netEvent.type)
 			{
+			case ENET_EVENT_TYPE_CONNECT:
+				if (!netEvent.peer)
+				{
+					INFO_LOG(SLIPPI_ONLINE, "[Netplay] got connect event with nil peer during sync step");
+					continue;
+				}
+				INFO_LOG(SLIPPI_ONLINE, "[Netplay] got connect event during sync step with peer addr %x:%d",
+				         netEvent.peer->address.host, netEvent.peer->address.port);
+				break;
 			case ENET_EVENT_TYPE_DISCONNECT:
 				slippiConnectStatus = SlippiConnectStatus::NET_CONNECT_STATUS_FAILED;
 				INFO_LOG(SLIPPI_ONLINE, "Slippi online connection failed");
@@ -563,7 +607,7 @@ void SlippiNetplayClient::ThreadFunc()
 				INFO_LOG(SLIPPI_ONLINE, "Got ready waiting packet for player %d with mid %d", pIdx, mid);
 				if (mid == NP_MSG_SLIPPI_CONN_READY)
 				{
-					acks[pIdx-2] = true;
+					acks[pIdx - 2] = true;
 				}
 				else if (mid == NP_MSG_SLIPPI_CLIENT_READY)
 				{
@@ -619,12 +663,24 @@ void SlippiNetplayClient::ThreadFunc()
 			ENetEvent netEvent;
 			int net;
 			net = enet_host_service(m_client, &netEvent, 250);
+			if (net <= 0) {
+				continue;
+			}
 
 			sf::Packet rpac;
 			sf::Packet fwdPac;
 			MessageId mid;
 			switch (netEvent.type)
 			{
+			case ENET_EVENT_TYPE_CONNECT:
+				if (!netEvent.peer)
+				{
+					INFO_LOG(SLIPPI_ONLINE, "[Netplay] got connect event with nil peer during sync step");
+					continue;
+				}
+				INFO_LOG(SLIPPI_ONLINE, "[Netplay] got connect event during sync step with peer addr %x:%d",
+				         netEvent.peer->address.host, netEvent.peer->address.port);
+				break;
 			case ENET_EVENT_TYPE_DISCONNECT:
 				slippiConnectStatus = SlippiConnectStatus::NET_CONNECT_STATUS_FAILED;
 				INFO_LOG(SLIPPI_ONLINE, "Slippi online connection failed");
@@ -737,11 +793,13 @@ void SlippiNetplayClient::ThreadFunc()
 				enet_packet_destroy(netEvent.packet);
 				break;
 			case ENET_EVENT_TYPE_DISCONNECT:
-				for (int i = 0; i < m_server.size(); i++)
+				for (int i = 0; i < SLIPPI_REMOTE_PLAYER_COUNT; i++)
 				{
-					if (netEvent.peer->connectID == m_server[i]->connectID)
+					if (remoteAddrs[i].host == netEvent.peer->address.host &&
+					    remoteAddrs[i].port == netEvent.peer->address.port)
 					{
 						sameClient = true;
+						break;
 					}
 				}
 				ERROR_LOG(SLIPPI_ONLINE, "[Netplay] Disconnected Event detected: %s",

@@ -19,6 +19,8 @@ class SlippiUser
 		std::string connectCode = "";
 		std::string latestVersion = "";
 		std::string fileContents = "";
+
+		int port;
 	};
 
 	SlippiUser();

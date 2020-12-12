@@ -19,7 +19,7 @@ std::string MmMessageType::CREATE_TICKET_RESP = "create-ticket-resp";
 std::string MmMessageType::GET_TICKET_RESP = "get-ticket-resp";
 extern std::atomic<bool> connectionsReset = true;
 
-SlippiMatchmaking::SlippiMatchmaking(SlippiUser *user, std::atomic<bool> &netplayReset)
+SlippiMatchmaking::SlippiMatchmaking(SlippiUser *user)
 {
 	m_user = user;
 	m_state = ProcessState::IDLE;
@@ -27,7 +27,6 @@ SlippiMatchmaking::SlippiMatchmaking(SlippiUser *user, std::atomic<bool> &netpla
 
 	m_client = nullptr;
 	m_server = nullptr;
-	m_netplayReset = &netplayReset;
 
 	MM_HOST = scm_slippi_semver_str.find("dev") == std::string::npos ? MM_HOST_PROD : MM_HOST_DEV;
 
@@ -208,9 +207,13 @@ void SlippiMatchmaking::startMatchmaking()
 	m_client = nullptr;
 
 	int retryCount = 0;
+	auto userInfo = m_user->GetUserInfo();
 	while (m_client == nullptr && retryCount < 15)
 	{
-		m_hostPort = 49000 + (generator() % 2000);
+		if (userInfo.port > 0)
+			m_hostPort = userInfo.port;
+		else 
+			m_hostPort = 49000 + (generator() % 2000);
 		ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Port to use: %d...", m_hostPort);
 
 		// We are explicitly setting the client address because we are trying to utilize our connection
@@ -252,7 +255,6 @@ void SlippiMatchmaking::startMatchmaking()
 
 	// Before we can request a ticket, we must wait for connection to be successful
 	int connectAttemptCount = 0;
-	auto userInfo = m_user->GetUserInfo();
 	while (!isMmConnected)
 	{
 		ENetEvent netEvent;
@@ -299,99 +301,8 @@ void SlippiMatchmaking::startMatchmaking()
 	request["connectCode"] = connectCodeBuf;
 	sendMessage(request);
 
-	// Get response from server
-	bool matchStarted = false;
-	bool joinedLobby = false;
-
-	while (!matchStarted)
-	{
-		if (m_state != ProcessState::INITIALIZING)
-			return;
-
-		json response;
-
-		if (joinedLobby)
-		{
-			json request;
-			request["type"] = "keepalive";
-			request["username"] = userInfo.displayName;
-			request["connectCode"] = connectCodeBuf;
-			sendMessage(request);
-		}
-
-		int rcvRes = receiveMessage(response, 1000);
-		if (rcvRes == -2)
-		{
-			ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Did not receive response from server for create ticket");
-			m_state = ProcessState::ERROR_ENCOUNTERED;
-			m_errorMsg = "Disconnected from mm server";
-			return;
-		}
-		if (rcvRes == -1)
-		{
-			continue;
-		}
-
-		/*while (true)
-		{
-			ERROR_LOG(SLIPPI_ONLINE, "%s", response.dump().c_str());
-			Common::SleepCurrentThread(5000);
-		}*/
-
-		std::string respType = response.value("Type", "");
-		if (respType == "start")
-		{
-			m_isSwapAttempt = false;
-			m_netplayClient = nullptr;
-			auto ips = response["RemoteIPs"].get<std::vector<std::string>>();
-			for (int i = 0; i < ips.size(); i++)
-			{
-				m_oppIp[i] = ips[i];
-			}
-			m_localPlayerPort = response.value("Port", -1);
-			ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Got response from MM server: %d (local port: %d) | %s, %s, %s",
-			          m_localPlayerPort, m_hostPort,
-			          m_oppIp[0].c_str(), m_oppIp[1].c_str(), m_oppIp[2].c_str());
-			//m_oppIp = response.value("oppAddress", "");
-			//m_isHost = response.value("isHost", false);
-
-			// Clear old user
-			/*SlippiUser::UserInfo emptyInfo;
-			m_oppUser = emptyInfo;
-
-			auto oppUser = getResp["oppUser"];
-			if (oppUser.is_object())
-			{
-				m_oppUser.uid = oppUser.value("uid", "");
-				m_oppUser.displayName = oppUser.value("displayName", "");
-				m_oppUser.connectCode = oppUser.value("connectCode", "");
-			}*/
-
-			// Disconnect and destroy enet client to mm server
-			terminateMmConnection();
-			matchStarted = true;
-
-			m_state = ProcessState::OPPONENT_CONNECTING;
-			return;
-			//ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Opponents found. isDecider: %s", m_isHost ? "true" : "false");
-		}
-		else if (respType == "update")
-		{
-			int numPlayers = response.value("NumPlayers", -1);
-			ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Waiting for %d more players...", 4-numPlayers);
-			joinedLobby = true;
-		}
-		else if (respType == "error")
-		{
-			ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Received error from server for create ticket");
-			m_state = ProcessState::ERROR_ENCOUNTERED;
-			std::string err = response.value("Error", "");
-			m_errorMsg = err;
-			return;
-		}
-	}
-	
-	//m_state = ProcessState::MATCHMAKING;
+	m_joinedLobby = false;
+	m_state = ProcessState::MATCHMAKING;
 	/*int rcvRes = receiveMessage(response, 5000);
 	if (rcvRes != 0)
 	{
@@ -426,7 +337,99 @@ void SlippiMatchmaking::startMatchmaking()
 
 void SlippiMatchmaking::handleMatchmaking()
 {
-	// Deal with class shut down
+	if (m_state != ProcessState::MATCHMAKING)
+		return;
+
+	json response;
+
+	if (m_joinedLobby)
+	{
+		json request;
+		auto userInfo = m_user->GetUserInfo();
+		std::vector<u8> connectCodeBuf;
+		connectCodeBuf.insert(connectCodeBuf.end(), m_searchSettings.connectCode.begin(),
+		                      m_searchSettings.connectCode.end());
+
+		request["type"] = "keepalive";
+		request["username"] = userInfo.displayName;
+		request["connectCode"] = connectCodeBuf;
+		sendMessage(request);
+	}
+
+	int rcvRes = receiveMessage(response, 1000);
+	if (rcvRes == -2)
+	{
+		ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Did not receive response from server for create ticket");
+		m_state = ProcessState::ERROR_ENCOUNTERED;
+		m_errorMsg = "Disconnected from mm server";
+		return;
+	}
+	if (rcvRes < -0)
+	{
+		return;
+	}
+
+	/*while (true)
+	{
+	    ERROR_LOG(SLIPPI_ONLINE, "%s", response.dump().c_str());
+	    Common::SleepCurrentThread(5000);
+	}*/
+
+	std::string respType = response.value("Type", "");
+	if (respType == "start")
+	{
+		m_isSwapAttempt = false;
+		m_netplayClient = nullptr;
+		auto ips = response["RemoteIPs"].get<std::vector<std::string>>();
+		for (int i = 0; i < ips.size(); i++)
+		{
+			m_oppIp[i] = ips[i];
+		}
+		auto names = response["Usernames"].get<std::vector<std::string>>();
+		for (int i = 0; i < names.size(); i++)
+		{
+			m_playerNames[i] = names[i];
+		}
+		m_localPlayerPort = response.value("Port", -1);
+		ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Got response from MM server: %d (local port: %d) | %s, %s, %s",
+		          m_localPlayerPort, m_hostPort, m_oppIp[0].c_str(), m_oppIp[1].c_str(), m_oppIp[2].c_str());
+		// m_oppIp = response.value("oppAddress", "");
+		// m_isHost = response.value("isHost", false);
+
+		// Clear old user
+		/*SlippiUser::UserInfo emptyInfo;
+		m_oppUser = emptyInfo;
+
+		auto oppUser = getResp["oppUser"];
+		if (oppUser.is_object())
+		{
+		    m_oppUser.uid = oppUser.value("uid", "");
+		    m_oppUser.displayName = oppUser.value("displayName", "");
+		    m_oppUser.connectCode = oppUser.value("connectCode", "");
+		}*/
+
+		// Disconnect and destroy enet client to mm server
+		terminateMmConnection();
+
+		m_state = ProcessState::OPPONENT_CONNECTING;
+		return;
+		// ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Opponents found. isDecider: %s", m_isHost ? "true" : "false");
+	}
+	else if (respType == "update")
+	{
+		int numPlayers = response.value("NumPlayers", -1);
+		ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Waiting for %d more players...", 4 - numPlayers);
+		m_joinedLobby = true;
+	}
+	else if (respType == "error")
+	{
+		ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Received error from server for create ticket");
+		m_state = ProcessState::ERROR_ENCOUNTERED;
+		std::string err = response.value("Error", "");
+		m_errorMsg = err;
+		return;
+	}
+	/*// Deal with class shut down
 	if (m_state != ProcessState::MATCHMAKING)
 		return;
 
@@ -493,17 +496,20 @@ void SlippiMatchmaking::handleMatchmaking()
 	terminateMmConnection();
 
 	m_state = ProcessState::OPPONENT_CONNECTING;
-	ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Opponent found. isDecider: %s", m_isHost ? "true" : "false");
+	ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Opponent found. isDecider: %s", m_isHost ? "true" : "false");*/
 }
 
 int SlippiMatchmaking::LocalPlayerIndex() {
 	return m_localPlayerPort;
 }
 
+std::string* SlippiMatchmaking::PlayerNames() {
+	return m_playerNames;
+}
+
 void SlippiMatchmaking::handleConnecting()
 {
 	auto userInfo = m_user->GetUserInfo();
-	//auto doublesInfo = m_user->GetDoublesInfo();
 
 	m_isSwapAttempt = false;
 	m_netplayClient = nullptr;
