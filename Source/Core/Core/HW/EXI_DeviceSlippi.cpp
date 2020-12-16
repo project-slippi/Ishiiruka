@@ -1555,6 +1555,7 @@ bool CEXISlippi::shouldSkipOnlineFrame(s32 frame)
 		auto offsetUs = slippi_netplay->CalcTimeOffsetUs();
 		INFO_LOG(SLIPPI_ONLINE, "[Frame %d] Offset is: %d us", frame, offsetUs);
 
+		// TODO: figure out a better solution here for doubles?
 		if (offsetUs > 10000)
 		{
 			isCurrentlySkipping = true;

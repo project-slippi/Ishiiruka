@@ -550,13 +550,15 @@ void SlippiNetplayClient::ThreadFunc()
 		}
 	}
 
+	// If we're port 1, wait for everyone to send us a ready message before we move on.
+	// Other ports wait for p1 to receive a message from everyone and echo a 'game start'
+	// message back.
 	if (playerIdx == 1)
 	{
 		// Wait for acks, then send the start packet
-		bool acks[3] = { false, false, false };
-		bool sentStart[3] = { false, false, false };
-		bool allSentStart = false;
-		while (!allSentStart)
+		bool acks[SLIPPI_REMOTE_PLAYER_COUNT] = { false, false, false };
+		bool sentStart = false;
+		while (!sentStart)
 		{
 			ENetEvent netEvent;
 			int net;
@@ -595,10 +597,6 @@ void SlippiNetplayClient::ThreadFunc()
 				{
 					acks[pIdx - 2] = true;
 				}
-				else if (mid == NP_MSG_SLIPPI_CLIENT_READY)
-				{
-					sentStart[pIdx - 2] = true;
-				}
 				else
 				{
 					fwdPac.append(netEvent.packet->data, netEvent.packet->dataLength);
@@ -619,19 +617,13 @@ void SlippiNetplayClient::ThreadFunc()
 					sf::Packet spac;
 					spac << (MessageId)NP_MSG_SLIPPI_GAME_READY;
 					Send(spac);
+					sentStart = true;
 				}
 
 				enet_packet_destroy(netEvent.packet);
 				break;
 			default:
 				break;
-			}
-
-			allSentStart = true;
-			for (int i = 0; i < SLIPPI_REMOTE_PLAYER_COUNT; i++)
-			{
-				if (!sentStart[i])
-					allSentStart = false;
 			}
 		}
 	}
@@ -678,11 +670,6 @@ void SlippiNetplayClient::ThreadFunc()
 				{
 					INFO_LOG(SLIPPI_ONLINE, "Got game ready packet");
 					gameReady = true;
-
-					sf::Packet spac;
-					spac << (MessageId)NP_MSG_SLIPPI_CLIENT_READY;
-					spac << playerIdx;
-					Send(spac);
 				}
 				else
 				{
@@ -1073,7 +1060,7 @@ int32_t SlippiNetplayClient::GetSlippiLatestRemoteFrame()
 s32 SlippiNetplayClient::CalcTimeOffsetUs()
 {
 	bool empty = true;
-	for (int i = 0; i < 3; i++)
+	for (int i = 0; i < SLIPPI_REMOTE_PLAYER_MAX; i++)
 	{
 		if (!frameOffsetData[i].buf.empty())
 		{
