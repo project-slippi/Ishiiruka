@@ -86,7 +86,7 @@ class SlippiMatchInfo
 {
   public:
 	SlippiPlayerSelections localPlayerSelections;
-	SlippiPlayerSelections remotePlayerSelections[3];
+	SlippiPlayerSelections remotePlayerSelections[SLIPPI_REMOTE_PLAYER_MAX];
 
 	void Reset()
 	{
@@ -173,20 +173,21 @@ class SlippiNetplayClient
 
 	bool isConnectionSelected = false;
 	bool isDecider = false;
-	u8 playerIdx = 0;
-	int32_t lastFrameAcked[3];
 	bool hasGameStarted = false;
-	FrameTiming lastFrameTiming[3];
-	int remoteFramesSeen[3];
-	u64 pingUs[3];
+	u8 playerIdx = 0;
+
 	std::deque<std::unique_ptr<SlippiPad>> localPadQueue;  // most recent inputs at start of deque
-	std::deque<std::unique_ptr<SlippiPad>> remotePadQueue[3]; // most recent inputs at start of deque
-	FrameOffsetData frameOffsetData[3];
-	std::array<Common::FifoQueue<FrameTiming, false>, 3> ackTimers;
+	std::deque<std::unique_ptr<SlippiPad>>
+	    remotePadQueue[SLIPPI_REMOTE_PLAYER_MAX]; // most recent inputs at start of deque
+
+	u64 pingUs[SLIPPI_REMOTE_PLAYER_MAX];
+	int32_t lastFrameAcked[SLIPPI_REMOTE_PLAYER_MAX];
+	FrameOffsetData frameOffsetData[SLIPPI_REMOTE_PLAYER_MAX];
+	FrameTiming lastFrameTiming[SLIPPI_REMOTE_PLAYER_MAX];
+	std::array<Common::FifoQueue<FrameTiming, false>, SLIPPI_REMOTE_PLAYER_MAX> ackTimers;
+
 	SlippiConnectStatus slippiConnectStatus = SlippiConnectStatus::NET_CONNECT_STATUS_UNSET;
 	SlippiMatchInfo matchInfo;
-
-	std::vector<std::unique_ptr<SlippiPad>> loggedInputs[3];
 
 	bool m_is_recording = false;
 

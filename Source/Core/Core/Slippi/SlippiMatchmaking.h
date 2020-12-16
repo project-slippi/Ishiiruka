@@ -80,7 +80,7 @@ class SlippiMatchmaking
 
 	int m_hostPort;
 	int m_localPlayerPort;
-	std::string m_oppIp[3];
+	std::string m_oppIp[SLIPPI_REMOTE_PLAYER_MAX];
 	std::string m_playerNames[4];
 	bool m_joinedLobby;
 	bool m_isHost;

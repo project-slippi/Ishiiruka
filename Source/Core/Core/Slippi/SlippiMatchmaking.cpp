@@ -294,10 +294,39 @@ void SlippiMatchmaking::startMatchmaking()
 	connectCodeBuf.insert(connectCodeBuf.end(), m_searchSettings.connectCode.begin(),
 	                      m_searchSettings.connectCode.end());
 
+	// Compute LAN IP, in case 2 people are connecting from one IP we can send them each other's local
+	// IP instead of public. Experimental to allow people from behind one router to connect.
+	char host[256];
+	char *IP;
+	struct hostent *host_entry;
+	int hostname;
+	hostname = gethostname(host, sizeof(host)); // find the host name
+	if (hostname == -1)
+	{
+		ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Error finding LAN address");
+		m_state = ProcessState::ERROR_ENCOUNTERED;
+		m_errorMsg = "Error finding LAN address";
+		return;
+	}
+	host_entry = gethostbyname(host); // find host information
+	if (host_entry == NULL)
+	{
+		ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Error finding LAN host");
+		m_state = ProcessState::ERROR_ENCOUNTERED;
+		m_errorMsg = "Error finding LAN host";
+		return;
+	}
+	IP = inet_ntoa(*((struct in_addr *)host_entry->h_addr_list[0])); // Convert into IP string
+	ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] LAN IP: %s", IP);
+	char lanAddr[30];
+	sprintf(lanAddr, "%s:%d", IP, m_hostPort);
+
 	// Send message to server to create ticket
 	json request;
 	request["type"] = "join";
+	request["version"] = 5;
 	request["username"] = userInfo.displayName;
+	request["lanAddr"] = lanAddr;
 	request["connectCode"] = connectCodeBuf;
 	sendMessage(request);
 
@@ -368,12 +397,6 @@ void SlippiMatchmaking::handleMatchmaking()
 	{
 		return;
 	}
-
-	/*while (true)
-	{
-	    ERROR_LOG(SLIPPI_ONLINE, "%s", response.dump().c_str());
-	    Common::SleepCurrentThread(5000);
-	}*/
 
 	std::string respType = response.value("Type", "");
 	if (respType == "start")

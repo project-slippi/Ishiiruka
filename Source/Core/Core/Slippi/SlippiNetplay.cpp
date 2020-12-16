@@ -85,10 +85,6 @@ SlippiNetplayClient::SlippiNetplayClient(const std::string addrs[], const u16 po
 		this->lastFrameTiming[i] = FrameTiming();
 		this->pingUs[i] = 0;
 		this->lastFrameAcked[i] = 0;	
-		this->remoteFramesSeen[i] = 5;
-		//INFO_LOG(SLIPPI_ONLINE, "AckTimer for %d: %s", i, this->ackTimers[2].Front());
-
-		this->loggedInputs[i] = std::vector<std::unique_ptr<SlippiPad>>();
 
 		j++;
 	}
@@ -247,16 +243,6 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet, ENetPeer *peer)
 
 			for (int i = inputsToCopy - 1; i >= 0; i--)
 			{
-				/*auto loggedPad = std::make_unique<SlippiPad>(frame - i, pIdx, &packetData[6 + i * SLIPPI_PAD_DATA_SIZE]);
-				if (frame - i == remoteFramesSeen[pIdx] + 1)
-				{
-					INFO_LOG(SLIPPI_ONLINE, "Received new frame %d in sequence after frame %d from player %d",
-					         frame - i, remoteFramesSeen[pIdx], pIdx);
-					remoteFramesSeen[pIdx]++;
-
-					loggedInputs[pIdx].push_back(std::move(loggedPad));
-				}*/
-
 				auto pad = std::make_unique<SlippiPad>(frame - i, pIdx, &packetData[6 + i * SLIPPI_PAD_DATA_SIZE]);
 				INFO_LOG(SLIPPI_ONLINE, "Rcv [%d] -> %02X %02X %02X %02X %02X %02X %02X %02X", pad->frame,
 				         pad->padBuf[0], pad->padBuf[1], pad->padBuf[2], pad->padBuf[3], pad->padBuf[4], pad->padBuf[5],
@@ -1049,23 +1035,6 @@ void SlippiNetplayClient::DropOldRemoteInputs(int32_t curFrame)
 			remotePadQueue[i].pop_back();
 		}
 	}
-	
-	/*if (curFrame == 3000)
-	{
-		for (int i = 0; i < SLIPPI_REMOTE_PLAYER_COUNT; i++)
-		{
-			for (int j = 0; j < loggedInputs[i].size(); j++)
-			{
-				INFO_LOG(SLIPPI_ONLINE, "Player %d Frame [%d]: %02X %02X %02X %02X %02X %02X %02X %02X",
-				    loggedInputs[i][j]->playerIdx, loggedInputs[i][j]->frame, 
-					loggedInputs[i][j]->padBuf[0], loggedInputs[i][j]->padBuf[1],
-				    loggedInputs[i][j]->padBuf[2], loggedInputs[i][j]->padBuf[3], 
-					loggedInputs[i][j]->padBuf[4], loggedInputs[i][j]->padBuf[5],
-				    loggedInputs[i][j]->padBuf[6], loggedInputs[i][j]->padBuf[7]);
-			}
-		}
-		
-	}*/
 }
 
 SlippiMatchInfo* SlippiNetplayClient::GetMatchInfo()
@@ -1117,7 +1086,7 @@ s32 SlippiNetplayClient::CalcTimeOffsetUs()
 		return 0;
 	}
 	
-	int offsets[3];
+	int offsets[SLIPPI_REMOTE_PLAYER_MAX];
 	for (int i = 0; i < SLIPPI_REMOTE_PLAYER_MAX; i++)
 	{
 		if (frameOffsetData[i].buf.empty())
