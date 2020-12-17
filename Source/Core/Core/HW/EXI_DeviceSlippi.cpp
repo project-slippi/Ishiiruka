@@ -108,6 +108,7 @@ CEXISlippi::CEXISlippi()
 	matchmaking = std::make_unique<SlippiMatchmaking>(user.get());
 	gameFileLoader = std::make_unique<SlippiGameFileLoader>();
 	g_replayComm = std::make_unique<SlippiReplayComm>();
+	directCodes = std::make_unique<SlippiDirectCodes>();
 
 	generator = std::default_random_engine(Common::Timer::GetTimeMs());
 
@@ -1725,6 +1726,17 @@ void CEXISlippi::startFindMatch(u8 *payload)
 	shiftJisCode.insert(shiftJisCode.begin(), &payload[1], &payload[1] + 18);
 	shiftJisCode.erase(std::find(shiftJisCode.begin(), shiftJisCode.end(), 0x00), shiftJisCode.end());
 
+	// Log the direct code to file.
+	// TODO: Add some behavior so only the codes that result in a 
+	// succesful connection are saved. 
+	if (search.mode == SlippiMatchmaking::DIRECT)
+	{
+		// Make sure to convert to UTF8, otherwise json library will fail when 
+		// calling dump().
+		std::string utf8Code = SHIFTJISToUTF8(shiftJisCode);
+		directCodes->AddOrUpdateCode(utf8Code);
+	}
+
 	// TODO: Make this work so we dont have to pass shiftJis to mm server
 	// search.connectCode = SHIFTJISToUTF8(shiftJisCode).c_str();
 	search.connectCode = shiftJisCode;
@@ -1755,6 +1767,73 @@ void CEXISlippi::startFindMatch(u8 *payload)
 
 	matchmaking->FindMatch(search);
 #endif
+}
+
+void CEXISlippi::handleNameEntryAutoComplete(u8 *payload)
+{
+	std::string shiftJisCode;
+
+	shiftJisCode.insert(shiftJisCode.begin(), &payload[0], &payload[0] + 18);
+	shiftJisCode.erase(std::find(shiftJisCode.begin(), shiftJisCode.end(), 0x00), shiftJisCode.end());
+
+	std::string startText = SHIFTJISToUTF8(shiftJisCode);
+
+	std::string autocompletedText = directCodes->Autocomplete(startText);
+	
+	m_read_queue.clear();
+
+	std::string jisCode = UTF8ToSHIFTJIS(autocompletedText);
+	u8 padEveryThirdByte = 0;
+
+	u8 totalBytes = 0;
+	for (auto it = jisCode.begin(); it != jisCode.end(); ++it)
+	{
+		m_read_queue.push_back(*it);
+		if (++padEveryThirdByte == 2)
+		{
+			m_read_queue.push_back(0x0);
+			padEveryThirdByte = 0;
+			totalBytes++;
+		}
+		
+		totalBytes++;
+	} 
+
+	// Ensure that the entire tag is overwritten in game.
+	while (totalBytes < 24)
+	{
+		m_read_queue.push_back(0x0);
+		totalBytes++;
+	}
+
+}
+
+void CEXISlippi::handleNameEntryLoad(u8 *payload)
+{
+	std::string tagAtIndex = directCodes->get(payload[0]);
+	INFO_LOG(SLIPPI_ONLINE, "Retrieved tag: %s", tagAtIndex.c_str());
+	std::string jisCode;
+	m_read_queue.clear();
+
+	if (tagAtIndex == "1")
+	{
+		m_read_queue.insert(m_read_queue.end(), {0x01, 0x00, 0x00});
+		return;
+	}
+	
+	jisCode = UTF8ToSHIFTJIS(tagAtIndex);
+	
+	u8 padEveryThirdByte = 0;
+	
+	for (auto it = jisCode.begin(); it != jisCode.end(); ++it)
+	{
+		m_read_queue.push_back(*it);
+		if (++padEveryThirdByte == 2)
+		{	
+			m_read_queue.push_back(0x0);
+			padEveryThirdByte = 0;
+		}
+	}
 }
 
 void CEXISlippi::prepareOnlineMatchState()
@@ -2267,6 +2346,12 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 			break;
 		case CMD_FILE_LENGTH:
 			prepareFileLength(&memPtr[bufLoc + 1]);
+			break;
+		case CMD_NAME_ENTRY_INDEX:
+			handleNameEntryLoad(&memPtr[bufLoc + 1]);
+			break;
+		case CMD_NAME_ENTRY_AUTOCOMPLETE:
+			handleNameEntryAutoComplete(&memPtr[bufLoc + 1]);
 			break;
 		case CMD_FILE_LOAD:
 			prepareFileLoad(&memPtr[bufLoc + 1]);

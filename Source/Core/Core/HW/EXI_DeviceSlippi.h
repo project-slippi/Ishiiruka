@@ -16,6 +16,7 @@
 #include "Core/Slippi/SlippiSavestate.h"
 #include "Core/Slippi/SlippiSpectate.h"
 #include "Core/Slippi/SlippiUser.h"
+#include "Core/Slippi/SlippiDirectCodes.h"
 
 #define ROLLBACK_MAX_FRAMES 7
 #define MAX_NAME_LENGTH 15
@@ -70,6 +71,9 @@ class CEXISlippi : public IEXIDevice
 		CMD_CLEANUP_CONNECTION = 0xBA,
 		CMD_GET_NEW_SEED = 0xBC,
 
+		CMD_NAME_ENTRY_INDEX = 0xBB,
+		CMD_NAME_ENTRY_AUTOCOMPLETE = 0xBC,
+
 		// Misc
 		CMD_LOG_MESSAGE = 0xD0,
 		CMD_FILE_LENGTH = 0xD1,
@@ -112,6 +116,9 @@ class CEXISlippi : public IEXIDevice
 	    {CMD_GET_ONLINE_STATUS, 0},
 	    {CMD_CLEANUP_CONNECTION, 0},
 	    {CMD_GET_NEW_SEED, 0},
+
+		{CMD_NAME_ENTRY_INDEX, 1},
+	    {CMD_NAME_ENTRY_AUTOCOMPLETE, 24},
 
 	    // Misc
 	    {CMD_LOG_MESSAGE, 0xFFFF}, // Variable size... will only work if by itself
@@ -161,6 +168,8 @@ class CEXISlippi : public IEXIDevice
 	void handleSendInputs(u8 *payload);
 	void handleCaptureSavestate(u8 *payload);
 	void handleLoadSavestate(u8 *payload);
+	void handleNameEntryAutoComplete(u8 *payload);
+	void handleNameEntryLoad(u8 *payload);
 	void startFindMatch(u8 *payload);
 	void prepareOnlineMatchState();
 	void setMatchSelections(u8 *payload);
@@ -228,6 +237,7 @@ class CEXISlippi : public IEXIDevice
 	std::unique_ptr<SlippiGameFileLoader> gameFileLoader;
 	std::unique_ptr<SlippiNetplayClient> slippi_netplay;
 	std::unique_ptr<SlippiMatchmaking> matchmaking;
+	std::unique_ptr<SlippiDirectCodes> directCodes;
 
 	std::map<s32, std::unique_ptr<SlippiSavestate>> activeSavestates;
 	std::deque<std::unique_ptr<SlippiSavestate>> availableSavestates;

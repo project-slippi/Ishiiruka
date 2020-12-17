@@ -198,6 +198,7 @@ set(SRCS	ActionReplay.cpp
 			Slippi/SlippiSpectate.cpp
 			Slippi/SlippiTimer.cpp
 			Slippi/SlippiUser.cpp
+			Slippi/SlippiDirectCodes.cpp
 			)
 
 if(_M_X86)
