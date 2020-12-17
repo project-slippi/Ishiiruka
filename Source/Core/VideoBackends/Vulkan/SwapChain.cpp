@@ -20,6 +20,8 @@
 #elif defined(VK_USE_PLATFORM_XCB_KHR)
 #include <X11/Xlib-xcb.h>
 #include <X11/Xlib.h>
+#elif defined(VK_USE_PLATFORM_METAL_EXT)
+#include <objc/message.h>
 #endif
 
 namespace Vulkan
@@ -122,6 +124,27 @@ VkSurfaceKHR SwapChain::CreateVulkanSurface(VkInstance instance, void* hwnd)
 
 	return surface;
 
+#elif defined(VK_USE_PLATFORM_METAL_EXT)
+	// Unlike mainline Dolphin, we need to grab the layer from the view.
+	id view = reinterpret_cast<id>(hwnd);
+	id layer = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(view, sel_getUid("layer"));
+
+	VkMetalSurfaceCreateInfoEXT surface_create_info = {
+		VK_STRUCTURE_TYPE_METAL_SURFACE_CREATE_INFO_EXT,
+		nullptr,
+		0,
+		static_cast<const CAMetalLayer*>(layer)
+	};
+
+	VkSurfaceKHR surface;
+	VkResult res = vkCreateMetalSurfaceEXT(instance, &surface_create_info, nullptr, &surface);
+	if (res != VK_SUCCESS)
+	{
+		LOG_VULKAN_ERROR(res, "vkCreateMetalSurfaceEXT failed: ");
+		return VK_NULL_HANDLE;
+	}
+
+	return surface;
 #else
 	return VK_NULL_HANDLE;
 #endif

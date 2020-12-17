@@ -52,8 +52,8 @@ wxAuiFloatingFrame::wxAuiFloatingFrame(wxWindow* parent,
                         (pane.HasMaximizeButton()?wxMAXIMIZE_BOX:0) |
                         (pane.IsFixed()?0:wxRESIZE_BORDER)
                         )
+    , m_ownerMgr(owner_mgr)
 {
-    m_ownerMgr = owner_mgr;
     m_moving = false;
     m_mgr.SetManagedWindow(this);
     m_solidDrag = true;
@@ -236,6 +236,7 @@ void wxAuiFloatingFrame::OnMoveEvent(wxMoveEvent& event)
 #ifndef __WXOSX__
     // skip if moving too fast to avoid massive redraws and
     // jumping hint windows
+    // TODO: Should 3x3px threshold increase on Retina displays?
     if ((abs(winRect.x - m_lastRect.x) > 3) ||
         (abs(winRect.y - m_lastRect.y) > 3))
     {

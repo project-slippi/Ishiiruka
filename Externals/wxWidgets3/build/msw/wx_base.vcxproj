@@ -421,6 +421,7 @@
     <ClInclude Include="..\..\include\wx\msw\ole\access.h" />
     <ClInclude Include="..\..\include\wx\msw\ole\activex.h" />
     <ClInclude Include="..\..\include\wx\msw\ole\automtn.h" />
+    <ClInclude Include="..\..\include\wx\msw\ole\comimpl.h" />
     <ClInclude Include="..\..\include\wx\msw\ole\dataform.h" />
     <ClInclude Include="..\..\include\wx\msw\ole\dataobj.h" />
     <ClInclude Include="..\..\include\wx\msw\ole\dataobj2.h" />
@@ -492,8 +493,13 @@
     <ClInclude Include="..\..\include\wx\msw\treectrl.h" />
     <ClInclude Include="..\..\include\wx\msw\uxtheme.h" />
     <ClInclude Include="..\..\include\wx\msw\uxthemep.h" />
+    <ClInclude Include="..\..\include\wx\msw\WebView2.h" />
+    <ClInclude Include="..\..\includes\wx\msw\WebView2EnvironmentOptions.h" />
+    <ClInclude Include="..\..\include\wx\msw\webview_edge.h" />
     <ClInclude Include="..\..\include\wx\msw\webviewhistoryitem_ie.h" />
-    <ClInclude Include="..\..\include\wx\msw\webview_ie.h" />
+    <ClInclude Include="..\..\include\wx\msw\webview_ie.h">
+        <ExcludedFromBuild>true</ExcludedFromBuild>
+    </ClInclude>
     <ClInclude Include="..\..\include\wx\msw\webview_missing.h" />
     <ClInclude Include="..\..\include\wx\msw\window.h" />
     <ClInclude Include="..\..\include\wx\msw\winundef.h" />
@@ -767,7 +773,6 @@
     <ClCompile Include="..\..\src\common\dummy.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="..\..\src\common\dynarray.cpp" />
     <ClCompile Include="..\..\src\common\dynlib.cpp" />
     <ClCompile Include="..\..\src\common\dynload.cpp" />
     <ClCompile Include="..\..\src\common\effects.cpp">
@@ -958,9 +963,7 @@
     <ClCompile Include="..\..\src\common\stream.cpp" />
     <ClCompile Include="..\..\src\common\string.cpp" />
     <ClCompile Include="..\..\src\common\stringimpl.cpp" />
-    <ClCompile Include="..\..\src\common\stringops.cpp">
-      <ExcludedFromBuild>true</ExcludedFromBuild>
-    </ClCompile>
+    <ClCompile Include="..\..\src\common\stringops.cpp" />
     <ClCompile Include="..\..\src\common\strvararg.cpp" />
     <ClCompile Include="..\..\src\common\sysopt.cpp" />
     <ClCompile Include="..\..\src\common\tarstrm.cpp" />
@@ -991,9 +994,7 @@
     <ClCompile Include="..\..\src\common\valnum.cpp" />
     <ClCompile Include="..\..\src\common\valtext.cpp" />
     <ClCompile Include="..\..\src\common\variant.cpp" />
-    <ClCompile Include="..\..\src\common\webview.cpp">
-      <ExcludedFromBuild>true</ExcludedFromBuild>
-    </ClCompile>
+    <ClCompile Include="..\..\src\common\webview.cpp" />
     <ClCompile Include="..\..\src\common\webviewarchivehandler.cpp">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
@@ -1160,6 +1161,7 @@
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="..\..\src\msw\cursor.cpp" />
+    <ClCompile Include="..\..\src\msw\customdraw.cpp" />
     <ClCompile Include="..\..\src\msw\data.cpp">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
@@ -1259,10 +1261,9 @@
     <ClCompile Include="..\..\src\msw\ole\access.cpp">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="..\..\src\msw\ole\activex.cpp">
-      <ExcludedFromBuild>true</ExcludedFromBuild>
-    </ClCompile>
+    <ClCompile Include="..\..\src\msw\ole\activex.cpp" />
     <ClCompile Include="..\..\src\msw\ole\automtn.cpp" />
+    <ClCompile Include="..\..\src\msw\ole\comimpl.cpp" />
     <ClCompile Include="..\..\src\msw\ole\dataobj.cpp" />
     <ClCompile Include="..\..\src\msw\ole\dropsrc.cpp" />
     <ClCompile Include="..\..\src\msw\ole\droptgt.cpp" />
@@ -1271,7 +1272,6 @@
     <ClCompile Include="..\..\src\msw\ole\uuid.cpp" />
     <ClCompile Include="..\..\src\msw\ownerdrw.cpp" />
     <ClCompile Include="..\..\src\msw\palette.cpp" />
-    <ClCompile Include="..\..\src\msw\panel.cpp" />
     <ClCompile Include="..\..\src\msw\pen.cpp" />
     <ClCompile Include="..\..\src\msw\popupwin.cpp" />
     <ClCompile Include="..\..\src\msw\power.cpp" />
@@ -1322,17 +1322,16 @@
     <ClCompile Include="..\..\src\msw\toplevel.cpp" />
     <ClCompile Include="..\..\src\msw\treectrl.cpp" />
     <ClCompile Include="..\..\src\msw\uiaction.cpp" />
-    <ClCompile Include="..\..\src\msw\urlmsw.cpp">
-      <ExcludedFromBuild>true</ExcludedFromBuild>
-    </ClCompile>
+    <ClCompile Include="..\..\src\msw\urlmsw.cpp" />
     <ClCompile Include="..\..\src\msw\utils.cpp" />
     <ClCompile Include="..\..\src\msw\utilsexc.cpp" />
     <ClCompile Include="..\..\src\msw\utilsgui.cpp" />
     <ClCompile Include="..\..\src\msw\utilswin.cpp" />
     <ClCompile Include="..\..\src\msw\uxtheme.cpp" />
     <ClCompile Include="..\..\src\msw\volume.cpp" />
+    <ClCompile Include="..\..\src\msw\webview_edge.cpp" />
     <ClCompile Include="..\..\src\msw\webview_ie.cpp">
-      <ExcludedFromBuild>true</ExcludedFromBuild>
+        <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="..\..\src\msw\window.cpp" />
     <ClCompile Include="..\..\src\msw\winestub.c">

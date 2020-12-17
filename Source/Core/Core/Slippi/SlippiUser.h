@@ -37,8 +37,6 @@ class SlippiUser
 	void FileListenThread();
 
   protected:
-	std::string getUserFilePath();
-	std::string getDoublesFilePath();
 	UserInfo parseFile(std::string fileContents);
 	void deleteFile();
 	void overwriteFromServer();

@@ -403,7 +403,7 @@ void CCodeWindow::ReloadSymbolListBox()
 	const wxString filtering_string = m_symbol_filter_ctrl->GetValue().Trim().Trim(false);
 	for (const auto& symbol : g_symbolDB.Symbols())
 	{
-		if (symbol.second.name.find(filtering_string) == std::string::npos)
+		if (symbol.second.name.find(filtering_string.ToStdString()) == std::string::npos)
 			continue;
 		int idx = symbols->Append(StrToWxStr(symbol.second.name));
 		symbols->SetClientData(idx, (void*)&symbol.second);

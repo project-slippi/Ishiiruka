@@ -22,7 +22,7 @@ public:
            const wxPoint& pos = wxDefaultPosition,
            const wxSize& size = wxDefaultSize, long style = 0,
            const wxValidator& validator = wxDefaultValidator,
-           const wxString& name = wxRadioButtonNameStr)
+           const wxString& name = wxASCII_STR(wxRadioButtonNameStr))
     {
         Create(parent, id, label, pos, size, style, validator, name);
     }
@@ -33,21 +33,21 @@ public:
            const wxPoint& pos = wxDefaultPosition,
            const wxSize& size = wxDefaultSize, long style = 0,
            const wxValidator& validator = wxDefaultValidator,
-           const wxString& name = wxRadioButtonNameStr);
+           const wxString& name = wxASCII_STR(wxRadioButtonNameStr));
 
     virtual void SetValue(bool val);
     virtual bool GetValue() const ;
 
     // implementation
 
-    void Command(wxCommandEvent& event);
+    void Command(wxCommandEvent& event) wxOVERRIDE;
     wxRadioButton *AddInCycle(wxRadioButton *cycle);
     void RemoveFromCycle();
     wxRadioButton *NextInCycle() {return m_cycle;}
 
     // osx specific event handling common for all osx-ports
 
-    virtual bool        OSXHandleClicked( double timestampsec );
+    virtual bool OSXHandleClicked(double timestampsec) wxOVERRIDE;
   protected:
 
     wxRadioButton *m_cycle;

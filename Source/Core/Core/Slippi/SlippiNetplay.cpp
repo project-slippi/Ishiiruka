@@ -3,35 +3,38 @@
 // Refer to the license.txt file included.
 
 #include "Core/Slippi/SlippiNetplay.h"
-#include "Common/Common.h"
-#include "Common/CommonPaths.h"
 #include "Common/CommonTypes.h"
 #include "Common/ENetUtil.h"
-#include "Common/MD5.h"
 #include "Common/MsgHandler.h"
 #include "Common/Timer.h"
 #include "Core/ConfigManager.h"
 #include "Core/Core.h"
-#include "Core/HW/EXI_DeviceIPL.h"
-#include "Core/HW/SI.h"
-#include "Core/HW/SI_DeviceGCController.h"
-#include "Core/HW/Sram.h"
-#include "Core/HW/WiimoteEmu/WiimoteEmu.h"
-#include "Core/HW/WiimoteReal/WiimoteReal.h"
-#include "Core/IPC_HLE/WII_IPC_HLE_Device_usb_bt_emu.h"
-#include "Core/Movie.h"
-#include "InputCommon/GCAdapter.h"
 #include "VideoCommon/OnScreenDisplay.h"
 #include "VideoCommon/VideoConfig.h"
-#include <SlippiGame.h>
 #include <algorithm>
 #include <fstream>
-#include <mbedtls/md5.h>
 #include <memory>
 #include <thread>
 
+//#include "Common/MD5.h"
+//#include "Common/Common.h"
+//#include "Common/CommonPaths.h"
+//#include "Core/HW/EXI_DeviceIPL.h"
+//#include "Core/HW/SI.h"
+//#include "Core/HW/SI_DeviceGCController.h"
+//#include "Core/HW/Sram.h"
+//#include "Core/HW/WiimoteEmu/WiimoteEmu.h"
+//#include "Core/HW/WiimoteReal/WiimoteReal.h"
+//#include "Core/IPC_HLE/WII_IPC_HLE_Device_usb_bt_emu.h"
+//#include "Core/Movie.h"
+//#include "InputCommon/GCAdapter.h"
+//#include <mbedtls/md5.h>
+//#include <SlippiGame.h>
+
 static std::mutex pad_mutex;
 static std::mutex ack_mutex;
+
+SlippiNetplayClient* SLIPPI_NETPLAY = nullptr;
 
 // called from ---GUI--- thread
 SlippiNetplayClient::~SlippiNetplayClient()
@@ -55,6 +58,8 @@ SlippiNetplayClient::~SlippiNetplayClient()
 		m_client = nullptr;
 	}
 
+	SLIPPI_NETPLAY = nullptr;
+
 	WARN_LOG(SLIPPI_ONLINE, "Netplay client cleanup complete");
 }
 
@@ -73,7 +78,7 @@ SlippiNetplayClient::SlippiNetplayClient(const std::string addrs[], const u16 po
 
 	// Set up remote player data structures.
 	int j = 1;
-	for (int i = 0; i < SLIPPI_REMOTE_PLAYER_MAX; i++)
+	for (int i = 0; i < SLIPPI_REMOTE_PLAYER_MAX; i++, j++)
 	{
 		if (j == playerIdx)
 			j++;
@@ -84,10 +89,10 @@ SlippiNetplayClient::SlippiNetplayClient(const std::string addrs[], const u16 po
 		this->frameOffsetData[i] = FrameOffsetData();
 		this->lastFrameTiming[i] = FrameTiming();
 		this->pingUs[i] = 0;
-		this->lastFrameAcked[i] = 0;	
-
-		j++;
+		this->lastFrameAcked[i] = 0;
 	}
+
+	SLIPPI_NETPLAY = std::move(this);
 
 	// Local address
 	ENetAddress *localAddr = nullptr;
@@ -144,6 +149,7 @@ SlippiNetplayClient::SlippiNetplayClient(const std::string addrs[], const u16 po
 SlippiNetplayClient::SlippiNetplayClient(bool isDecider)
 {
 	this->isDecider = isDecider;
+	SLIPPI_NETPLAY = std::move(this);
 	slippiConnectStatus = SlippiConnectStatus::NET_CONNECT_STATUS_FAILED;
 }
 
@@ -335,6 +341,18 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet, ENetPeer *peer)
 	}
 	break;
 
+	case NP_MSG_SLIPPI_CHAT_MESSAGE:
+	{
+		auto playerSelection = ReadChatMessageFromPacket(packet);
+		auto messageId = playerSelection->messageId;
+
+		// set message id to netplay instance
+		remoteChatMessageId = messageId;
+		// Show chat message OSD
+		INFO_LOG(SLIPPI_ONLINE, "[Netplay] Received chat message from opponent %i", messageId);
+	}
+	break;
+
 	case NP_MSG_SLIPPI_CONN_SELECTED:
 	{
 		// Currently this is unused but the intent is to support two-way simultaneous connection attempts
@@ -357,6 +375,21 @@ void SlippiNetplayClient::writeToPacket(sf::Packet &packet, SlippiPlayerSelectio
 	packet << s.playerIdx;
 	packet << s.stageId << s.isStageSelected;
 	packet << s.rngOffset;
+}
+
+void SlippiNetplayClient::WriteChatMessageToPacket(sf::Packet &packet, int messageId)
+{
+	packet << static_cast<MessageId>(NP_MSG_SLIPPI_CHAT_MESSAGE);
+	packet << messageId;
+}
+
+std::unique_ptr<SlippiPlayerSelections> SlippiNetplayClient::ReadChatMessageFromPacket(sf::Packet &packet)
+{
+	auto s = std::make_unique<SlippiPlayerSelections>();
+
+	packet >> s->messageId;
+
+	return std::move(s);
 }
 
 std::unique_ptr<SlippiPlayerSelections> SlippiNetplayClient::readSelectionsFromPacket(sf::Packet &packet)
@@ -431,6 +464,7 @@ void SlippiNetplayClient::Disconnect()
 		enet_peer_reset(m_server[i]);
 	}
 	m_server.clear();
+	SLIPPI_NETPLAY = nullptr;
 }
 
 void SlippiNetplayClient::SendAsync(std::unique_ptr<sf::Packet> packet)
@@ -956,6 +990,20 @@ void SlippiNetplayClient::SetMatchSelections(SlippiPlayerSelections& s)
 	SendAsync(std::move(spac));
 }
 
+u8 SlippiNetplayClient::GetSlippiRemoteChatMessage()
+{
+	u8 copiedMessageId = remoteChatMessageId;
+	remoteChatMessageId = 0; // Clear it out
+	return copiedMessageId;
+}
+
+u8 SlippiNetplayClient::GetSlippiRemoteSentChatMessage()
+{
+	u8 copiedMessageId = remoteSentChatMessageId;
+	remoteSentChatMessageId = 0; // Clear it out
+	return copiedMessageId;
+}
+
 std::unique_ptr<SlippiRemotePadOutput> SlippiNetplayClient::GetSlippiRemotePad(int32_t curFrame, int index)
 {
 	std::lock_guard<std::mutex> lk(pad_mutex); // TODO: Is this the correct lock?
@@ -1028,11 +1076,6 @@ SlippiMatchInfo* SlippiNetplayClient::GetMatchInfo()
 {
 	return &matchInfo;
 }
-
-/*u64 SlippiNetplayClient::GetSlippiPing()
-{
-	return pingUs;
-}*/
 
 int32_t SlippiNetplayClient::GetSlippiLatestRemoteFrame()
 {

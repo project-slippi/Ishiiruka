@@ -3,7 +3,7 @@
 // Purpose:     implementation of GTK mnemonics conversion functions
 // Author:      Vadim Zeitlin
 // Created:     2007-11-12
-// Copyright:   (c) 2007 Vadim Zeitlin <vadim@wxwindows.org>
+// Copyright:   (c) 2007 Vadim Zeitlin <vadim@wxwidgets.org>
 // Licence:     wxWindows licence
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -120,7 +120,7 @@ static wxString GTKProcessMnemonics(const wxString& label, MnemonicsFlag flag)
                             labelGTK += wxT("_-");
                             break;
                         }
-                        //else: fall through
+                        wxFALLTHROUGH;
 
                     default:
                         if ( flag != MNEMONICS_REMOVE )
@@ -137,7 +137,7 @@ static wxString GTKProcessMnemonics(const wxString& label, MnemonicsFlag flag)
                     labelGTK += wxT("__");
                     break;
                 }
-                //else: fall through
+                wxFALLTHROUGH;
 
             default:
                 labelGTK += ch;

@@ -20,8 +20,8 @@
 #include <mutex>
 #include <string>
 #include <thread>
+#include <unordered_map>
 #include <vector>
-
 #ifdef _WIN32
 #include <Qos2.h>
 #endif
@@ -50,6 +50,8 @@ class SlippiPlayerSelections
 	bool isStageSelected = false;
 
 	u32 rngOffset = 0;
+
+	int messageId;
 
 	void Merge(SlippiPlayerSelections &s)
 	{
@@ -130,9 +132,16 @@ class SlippiNetplayClient
 	std::unique_ptr<SlippiRemotePadOutput> GetSlippiRemotePad(int32_t curFrame, int index);
 	void SlippiNetplayClient::DropOldRemoteInputs(int32_t curFrame);
 	SlippiMatchInfo *GetMatchInfo();
-	//u64 GetSlippiPing();
 	int32_t GetSlippiLatestRemoteFrame();
+	u8 GetSlippiRemoteChatMessage();
+	u8 GetSlippiRemoteSentChatMessage();
 	s32 CalcTimeOffsetUs();
+
+	void WriteChatMessageToPacket(sf::Packet &packet, int messageId);
+	std::unique_ptr<SlippiPlayerSelections> ReadChatMessageFromPacket(sf::Packet &packet);
+
+	u8 remoteChatMessageId = 0;     // most recent chat message id from opponent
+	u8 remoteSentChatMessageId = 0; // most recent chat message id that current player sent
 
   protected:
 	struct
@@ -209,3 +218,8 @@ class SlippiNetplayClient
 
 	u32 m_timebase_frame = 0;
 };
+extern SlippiNetplayClient* SLIPPI_NETPLAY; // singleton static pointer
+
+static bool IsOnline(){
+    return SLIPPI_NETPLAY != nullptr;
+}
