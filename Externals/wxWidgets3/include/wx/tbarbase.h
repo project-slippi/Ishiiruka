@@ -482,8 +482,13 @@ public:
     // return true if this is a vertical toolbar, otherwise false
     bool IsVertical() const;
 
+    // returns one of wxTB_TOP, wxTB_BOTTOM, wxTB_LEFT, wxTB_RIGHT
+    // indicating where the toolbar is placed in the associated frame
+    int GetDirection() const;
+
     // these methods allow to access tools by their index in the toolbar
     size_t GetToolsCount() const { return m_tools.GetCount(); }
+    wxToolBarToolBase *GetToolByPos(int pos) { return m_tools[pos]; }
     const wxToolBarToolBase *GetToolByPos(int pos) const { return m_tools[pos]; }
 
 #if WXWIN_COMPATIBILITY_2_8
@@ -592,7 +597,7 @@ public:
                           wxEmptyString, wxEmptyString);
     }
 
-    
+
     // implementation only from now on
     // -------------------------------
 

@@ -53,11 +53,18 @@
 
 #ifdef __cplusplus
 
-/* Any C++11 compiler should provide isfinite() */
+/*
+    Things are simple with C++11: we have everything we need in std.
+    Eventually we will only have this section and not the legacy stuff below.
+ */
 #if __cplusplus >= 201103
     #include <cmath>
+
     #define wxFinite(x) std::isfinite(x)
-#elif defined(__VISUALC__) || defined(__BORLANDC__)
+    #define wxIsNaN(x) std::isnan(x)
+#else /* C++98 */
+
+#if defined(__VISUALC__) || defined(__BORLANDC__)
     #include <float.h>
     #define wxFinite(x) _finite(x)
 #elif defined(__MINGW64_TOOLCHAIN__) || defined(__clang__)
@@ -97,6 +104,8 @@
     #define wxIsNaN(x) ((x) != (x))
 #endif
 
+#endif /* C++11/C++98 */
+
 #ifdef __INTELC__
 
     inline bool wxIsSameDouble(double x, double y)
@@ -127,7 +136,7 @@ inline bool wxIsNullDouble(double x) { return wxIsSameDouble(x, 0.); }
 
 inline int wxRound(double x)
 {
-    wxASSERT_MSG( x > INT_MIN - 0.5 && x < INT_MAX + 0.5,
+    wxASSERT_MSG( x > (double)INT_MIN - 0.5 && x < (double)INT_MAX + 0.5,
                   wxT("argument out of supported range") );
 
     #if defined(HAVE_ROUND)
@@ -140,6 +149,9 @@ inline int wxRound(double x)
 // Convert between degrees and radians.
 inline double wxDegToRad(double deg) { return (deg * M_PI) / 180.0; }
 inline double wxRadToDeg(double rad) { return (rad * 180.0) / M_PI; }
+
+// Count trailing zeros.
+WXDLLIMPEXP_BASE unsigned int wxCTZ(wxUint32 x);
 
 #endif /* __cplusplus */
 

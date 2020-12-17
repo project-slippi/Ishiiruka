@@ -21,6 +21,7 @@
 #include "Core/Slippi/SlippiTimer.h"
 #include "DolphinWX/Globals.h"
 #include "DolphinWX/PlaybackSlider.h"
+#include "DolphinWX/SlippiAuthWebView/SlippiAuthWebView.h"
 #include "InputCommon/GCPadStatus.h"
 
 #if defined(HAVE_X11) && HAVE_X11
@@ -116,6 +117,7 @@ public:
 	void DoExclusiveFullscreen(bool enable_fullscreen);
 	void ToggleDisplayMode(bool bFullscreen);
 	void ToggleScreenSaver(bool enable);
+    void OpenSlippiAuthenticationDialog();
 	static void ConnectWiimote(int wm_idx, bool connect);
 	void UpdateTitle(const std::string& str);
 	void OpenGeneralConfiguration(wxWindowID tab_id = wxID_ANY);
@@ -151,6 +153,7 @@ public:
 private:
 	CGameListCtrl* m_GameListCtrl = nullptr;
 	CConfigMain* m_main_config_dialog = nullptr;
+    SlippiAuthWebView* m_slippi_auth_dialog = nullptr;
 	wxPanel* m_Panel = nullptr;
 	CRenderFrame* m_RenderFrame = nullptr;
 	wxWindow* m_RenderParent = nullptr;
@@ -190,6 +193,7 @@ private:
 	void BindMenuBarEvents();
 	void BindDebuggerMenuBarEvents();
 	void BindDebuggerMenuBarUpdateEvents();
+    void ShowSlippiAuthenticationDialog();
 
 	wxToolBar* OnCreateToolBar(long style, wxWindowID id, const wxString& name) override;
 	wxMenuBar* CreateMenuBar() const;

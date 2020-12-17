@@ -4,7 +4,7 @@
 // Author:      Vadim Zeitlin
 // Modified by:
 // Created:     19.08.03
-// Copyright:   (c) 2003 Vadim Zeitlin <vadim@wxwindows.org>
+// Copyright:   (c) 2003 Vadim Zeitlin <vadim@wxwidgets.org>
 // Licence:     wxWindows licence
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -136,7 +136,7 @@ long wxListbook::GetListCtrlFlags() const
         {
             flags |= wxLC_LIST;
         }
-
+        
 #ifdef __WXQT__
         flags |= wxLC_NO_HEADER;
 #endif
@@ -237,6 +237,7 @@ int wxListbook::GetPageImage(size_t n) const
 {
     wxListItem item;
     item.SetId(n);
+    item.SetMask(wxLIST_MASK_IMAGE);
 
     if (GetListView()->GetItem(item))
     {
@@ -292,7 +293,6 @@ void wxListbook::SetImageList(wxImageList *imageList)
 
 void wxListbook::UpdateSelectedPage(size_t newsel)
 {
-    m_selection = newsel;
     GetListView()->Select(newsel);
     GetListView()->Focus(newsel);
 }

@@ -383,7 +383,7 @@ void GameCubeConfigPane::ChooseSlotPath(bool is_slot_a, TEXIDevices device_type)
 
 		wxFileName newFilename(filename);
 		newFilename.MakeAbsolute();
-		filename = newFilename.GetFullPath();
+		filename = newFilename.GetFullPath().ToStdString();
 
 #ifdef _WIN32
 		// If the Memory Card file is within the Exe dir, we can assume that the user wants it to be

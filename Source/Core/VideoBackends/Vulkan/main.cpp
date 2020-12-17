@@ -25,6 +25,10 @@
 #include "VideoCommon/VideoBackendBase.h"
 #include "VideoCommon/VideoConfig.h"
 
+#if defined(VK_USE_PLATFORM_METAL_EXT)
+#include <objc/message.h>
+#endif
+
 namespace Vulkan
 {
 void VideoBackend::InitBackendInfo()
@@ -295,5 +299,47 @@ void VideoBackend::Video_Cleanup()
 	g_renderer.reset();
 
 	CleanupShared();
+}
+
+void VideoBackend::PrepareWindow(void* window_handle) {
+#if defined(VK_USE_PLATFORM_METAL_EXT)
+	id view = reinterpret_cast<id>(window_handle);
+
+	// This is kinda messy, but it avoids having to write Objective C++ just to create a metal layer.
+	//id view = reinterpret_cast<id>(wsi.render_surface);
+	Class clsCAMetalLayer = objc_getClass("CAMetalLayer");
+	if (!clsCAMetalLayer)
+	{
+	ERROR_LOG(VIDEO, "Failed to get CAMetalLayer class.");
+	return;
+	}
+
+	// [CAMetalLayer layer]
+	id layer = reinterpret_cast<id (*)(Class, SEL)>(objc_msgSend)(objc_getClass("CAMetalLayer"),
+	                                                            sel_getUid("layer"));
+	if (!layer)
+	{
+	ERROR_LOG(VIDEO, "Failed to create Metal layer.");
+	return;
+	}
+
+	// [view setWantsLayer:YES]
+	reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(view, sel_getUid("setWantsLayer:"), YES);
+
+	// [view setLayer:layer]
+	reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(view, sel_getUid("setLayer:"), layer);
+
+	// NSScreen* screen = [NSScreen mainScreen]
+	id screen = reinterpret_cast<id (*)(Class, SEL)>(objc_msgSend)(objc_getClass("NSScreen"),
+	                                                             sel_getUid("mainScreen"));
+
+	// CGFloat factor = [screen backingScaleFactor]
+	double factor =
+	  reinterpret_cast<double (*)(id, SEL)>(objc_msgSend)(screen, sel_getUid("backingScaleFactor"));
+
+	// layer.contentsScale = factor
+	reinterpret_cast<void (*)(id, SEL, double)>(objc_msgSend)(layer, sel_getUid("setContentsScale:"),
+	                                                        factor);
+#endif
 }
 }

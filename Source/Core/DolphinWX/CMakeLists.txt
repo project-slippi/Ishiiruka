@@ -72,6 +72,7 @@ set(GUI_SRCS
 	MemcardManager.cpp
 	PatchAddEdit.cpp
 	PostProcessingConfigDiag.cpp
+    SlippiAuthWebView/SlippiAuthWebView.cpp
 	SoftwareVideoConfigDialog.cpp
 	TASInputDlg.cpp
 	VideoConfigDiag.cpp
@@ -97,8 +98,16 @@ list(APPEND LIBS core uicommon)
 if(APPLE)
 	if(wxWidgets_FOUND)
 		list(APPEND WXLIBS
-			${APPSERV_LIBRARY}
-			${COCOA_LIBRARY}
+            ${APPKIT_LIBRARY}
+            ${APPSERV_LIBRARY}
+            ${ATB_LIBRARY}
+            ${CARBON_LIBRARY}
+            ${COCOA_LIBRARY}
+            ${COREFUND_LIBRARY}
+            ${CORESERV_LIBRARY}
+            ${IOK_LIBRARY}
+            ${OPENGL_LIBRARY}
+            ${WEBKIT_FRAMEWORK}
 			)
 	endif()
 	# Add resource files to application bundle.
@@ -126,6 +135,7 @@ endif()
 if(wxWidgets_FOUND)
 	add_executable("${DOLPHIN_EXE}" ${SRCS} ${GUI_SRCS})
 	target_link_libraries("${DOLPHIN_EXE}" ${LIBS} ${WXLIBS})
+
 	if(APPLE)
 		include(BundleUtilities)
 		set(BUNDLE_PATH ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/"${DOLPHIN_EXE}".app)
@@ -135,7 +145,13 @@ if(wxWidgets_FOUND)
 		set_target_properties(${DOLPHIN_EXE} PROPERTIES
 			MACOSX_BUNDLE true
 			MACOSX_BUNDLE_INFO_PLIST ${CMAKE_CURRENT_SOURCE_DIR}/Info.plist.in
-			)
+		)
+        
+		# Link MoltenVK for the Vulkan (experimental) backend; the framework is
+		# added into the bundle in Tools/deploy-mac.py due to legacy build reasons.
+		find_library(MOLTENVK libvulkan.dylib PATHS ${CMAKE_SOURCE_DIR}/Externals/MoltenVK)
+		message("MoltenVK Path: ${MOLTENVK}")
+		target_link_libraries("${DOLPHIN_EXE}" ${MOLTENVK})
 
 		# get rid of any old copies
 		file (REMOVE_RECURSE ${BUNDLE_PATH}/Contents/Resources/Sys)

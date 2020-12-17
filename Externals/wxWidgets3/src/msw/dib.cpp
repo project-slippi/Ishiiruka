@@ -4,7 +4,7 @@
 // Author:      Vadim Zeitlin
 // Modified by:
 // Created:     03.03.03 (replaces the old file with the same name)
-// Copyright:   (c) 2003 Vadim Zeitlin <vadim@wxwindows.org>
+// Copyright:   (c) 2003 Vadim Zeitlin <vadim@wxwidgets.org>
 // Licence:     wxWindows licence
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -64,10 +64,9 @@ static inline WORD GetNumberOfColours(WORD bitsPerPixel)
 // wrapper around ::GetObject() for DIB sections
 static inline bool GetDIBSection(HBITMAP hbmp, DIBSECTION *ds)
 {
-    // note that at least under Win9x (this doesn't seem to happen under Win2K
-    // but this doesn't mean anything, of course), GetObject() may return
-    // sizeof(DIBSECTION) for a bitmap which is *not* a DIB section and the way
-    // to check for it is by looking at the bits pointer
+    // note that GetObject() may return sizeof(DIBSECTION) for a bitmap
+    // which is *not* a DIB section and the way to check for it is
+    // by looking at the bits pointer
     return ::GetObject(hbmp, sizeof(DIBSECTION), ds) == sizeof(DIBSECTION) &&
                 ds->dsBm.bmBits;
 }
@@ -349,7 +348,7 @@ HBITMAP wxDIB::CreateDDB(HDC hdc) const
 }
 
 /* static */
-HBITMAP wxDIB::ConvertToBitmap(const BITMAPINFO *pbmi, HDC hdc, void *bits)
+HBITMAP wxDIB::ConvertToBitmap(const BITMAPINFO *pbmi, HDC hdc, const void *bits)
 {
     wxCHECK_MSG( pbmi, 0, wxT("invalid DIB in ConvertToBitmap") );
 
@@ -390,7 +389,7 @@ HBITMAP wxDIB::ConvertToBitmap(const BITMAPINFO *pbmi, HDC hdc, void *bits)
                 numColors = 0;
         }
 
-        bits = (char *)pbmih + sizeof(*pbmih) + numColors*sizeof(RGBQUAD);
+        bits = reinterpret_cast<const char*>(pbmih + 1) + numColors * sizeof(RGBQUAD);
     }
 
     HBITMAP hbmp = ::CreateDIBitmap
@@ -485,8 +484,8 @@ HGLOBAL wxDIB::ConvertFromBitmap(HBITMAP hbmp)
     HGLOBAL hDIB = ::GlobalAlloc(GMEM_MOVEABLE, size);
     if ( !hDIB )
     {
-        // this is an error which does risk to happen especially under Win9x
-        // and which the user may understand so let him know about it
+        // this is an error which the user may understand so let him
+        // know about it
         wxLogError(_("Failed to allocate %luKb of memory for bitmap data."),
                    (unsigned long)(size / 1024));
 
