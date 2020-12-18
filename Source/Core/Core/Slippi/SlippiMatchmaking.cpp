@@ -575,6 +575,13 @@ void SlippiMatchmaking::handleConnecting()
 
 			continue;
 		}
+		else if (status == SlippiNetplayClient::SlippiConnectStatus::NET_CONNECT_STATUS_FAILED)
+		{
+			ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Failed to connect to players");
+			m_state = ProcessState::ERROR_ENCOUNTERED;
+			m_errorMsg = "Failed setting up connections between players";
+			return;
+		}
 		else if (status != SlippiNetplayClient::SlippiConnectStatus::NET_CONNECT_STATUS_CONNECTED)
 		{
 			ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Connection attempt failed, looking for someone else.");
