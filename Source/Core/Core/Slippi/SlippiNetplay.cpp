@@ -590,7 +590,7 @@ void SlippiNetplayClient::ThreadFunc()
 	if (playerIdx == 1)
 	{
 		// Wait for acks, then send the start packet
-		bool acks[SLIPPI_REMOTE_PLAYER_COUNT] = { false, false, false };
+		bool acks[SLIPPI_REMOTE_PLAYER_COUNT] = {false, false, false};
 		bool sentStart = false;
 		while (!sentStart)
 		{
@@ -675,7 +675,8 @@ void SlippiNetplayClient::ThreadFunc()
 			ENetEvent netEvent;
 			int net;
 			net = enet_host_service(m_client, &netEvent, 250);
-			if (net <= 0) {
+			if (net <= 0)
+			{
 				continue;
 			}
 
@@ -747,8 +748,8 @@ void SlippiNetplayClient::ThreadFunc()
 			sin.sin_addr.s_addr = m_server[i]->host->address.host;
 
 			if (QOSAddSocketToFlow(m_qos_handle, m_server[i]->host->socket, reinterpret_cast<PSOCKADDR>(&sin),
-			    // this is 0x38
-			    QOSTrafficTypeControl, QOS_NON_ADAPTIVE_FLOW, &m_qos_flow_id))
+			                       // this is 0x38
+			                       QOSTrafficTypeControl, QOS_NON_ADAPTIVE_FLOW, &m_qos_flow_id))
 			{
 				DWORD dscp = 0x2e;
 
@@ -763,16 +764,19 @@ void SlippiNetplayClient::ThreadFunc()
 #else
 	if (SConfig::GetInstance().bQoSEnabled)
 	{
+		for (int i = 0; i < m_server.size(); i++)
+		{
 #ifdef __linux__
-		// highest priority
-		int priority = 7;
-		setsockopt(m_server->host->socket, SOL_SOCKET, SO_PRIORITY, &priority, sizeof(priority));
+			// highest priority
+			int priority = 7;
+			setsockopt(m_server[i]->host->socket, SOL_SOCKET, SO_PRIORITY, &priority, sizeof(priority));
 #endif
 
-		// https://www.tucny.com/Home/dscp-tos
-		// ef is better than cs7
-		int tos_val = 0xb8;
-		qos_success = setsockopt(m_server->host->socket, IPPROTO_IP, IP_TOS, &tos_val, sizeof(tos_val)) == 0;
+			// https://www.tucny.com/Home/dscp-tos
+			// ef is better than cs7
+			int tos_val = 0xb8;
+			qos_success = setsockopt(m_server[i]->host->socket, IPPROTO_IP, IP_TOS, &tos_val, sizeof(tos_val)) == 0;
+		}
 	}
 #endif
 

@@ -204,7 +204,7 @@ class SlippiNetplayClient
 	std::unique_ptr<SlippiPlayerSelections> readSelectionsFromPacket(sf::Packet &packet);
 
   private:
-	u8 SlippiNetplayClient::PlayerIdxFromPort(u8 port);
+	u8 PlayerIdxFromPort(u8 port);
 	unsigned int OnData(sf::Packet &packet, ENetPeer* peer);
 	void Send(sf::Packet &packet);
 	void Disconnect();
