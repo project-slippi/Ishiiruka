@@ -117,7 +117,6 @@ CEXISlippi::CEXISlippi()
 	m_slippiserver = SlippiSpectateServer::getInstance();
 	user = std::make_unique<SlippiUser>();
 	g_playbackStatus = std::make_unique<SlippiPlaybackStatus>();
-	std::atomic<bool> netplayReady = true;
 	matchmaking = std::make_unique<SlippiMatchmaking>(user.get());
 	gameFileLoader = std::make_unique<SlippiGameFileLoader>();
 	g_replayComm = std::make_unique<SlippiReplayComm>();
@@ -2624,10 +2623,7 @@ void CEXISlippi::handleConnectionCleanup()
 	ERROR_LOG(SLIPPI_ONLINE, "Connection cleanup started...");
 
 	// Handle destructors in a separate thread to not block the main thread
-	std::atomic<bool> netplayReset(false);
-	//connectionsReset = false;
 	std::thread cleanup(doConnectionCleanup, std::move(matchmaking), std::move(slippi_netplay));
-	//doConnectionCleanup(std::move(matchmaking), std::move(slippi_netplay));
 	cleanup.detach();
 
 	// Reset matchmaking
