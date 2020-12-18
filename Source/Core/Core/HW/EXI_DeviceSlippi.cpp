@@ -2223,6 +2223,7 @@ void CEXISlippi::prepareOnlineMatchState()
 	m_read_queue.push_back(remotePlayerIndex); // Remote player index
 
 	u32 rngOffset = 0;
+	std::string localPlayerName = "";
 	std::string p1Name = "";
 	std::string p2Name = "";
 	u8 chatMessageId = 0;
@@ -2234,7 +2235,7 @@ void CEXISlippi::prepareOnlineMatchState()
 	chatMessagePlayerIdx = 0;
 	localChatMessageId = 0;
 	// in CSS p1 is always current player and p2 is opponent
-	p1Name = "Player 1";
+	localPlayerName = p1Name = "Player 1";
 	p2Name = "Player 2";
 #endif
 
@@ -2246,7 +2247,7 @@ void CEXISlippi::prepareOnlineMatchState()
 		chatMessagePlayerIdx = remoteMessageSelection->playerIdx;
 		sentChatMessageId = slippi_netplay->GetSlippiRemoteSentChatMessage();
 		// in CSS p1 is always current player and p2 is opponent
-		p1Name = userInfo.displayName;
+		localPlayerName = p1Name = userInfo.displayName;
 		p2Name = oppName;
 	}
 
@@ -2285,7 +2286,7 @@ void CEXISlippi::prepareOnlineMatchState()
 		}
 
 		// Overwrite local player character
-		
+
 		onlineMatchBlock[0x60 + (lps.playerIdx-1) * 0x24] = lps.characterId;
 
 		// Overwrite remote player character
@@ -2332,7 +2333,7 @@ void CEXISlippi::prepareOnlineMatchState()
 		{
 			onlineMatchBlock[0x67 + 2 * 0x24] = 1;
 		}
-		
+
 		// Make one character lighter if same character, same color
 		/*bool isSheikVsZelda =
 		    lps.characterId == 0x12 && rps.characterId == 0x13 || lps.characterId == 0x13 && rps.characterId == 0x12;
@@ -2386,6 +2387,9 @@ void CEXISlippi::prepareOnlineMatchState()
 	m_read_queue.push_back((u8)chatMessagePlayerIdx);
 
 	// Add names to output
+	// Always send static local player name
+	m_read_queue.insert(m_read_queue.end(), localPlayerName.begin(), localPlayerName.end());
+
 	auto names = matchmaking->PlayerNames();
 	for (int i = 0; i < 4; i++)
 	{
