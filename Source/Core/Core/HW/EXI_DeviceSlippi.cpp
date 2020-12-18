@@ -2225,11 +2225,13 @@ void CEXISlippi::prepareOnlineMatchState()
 	u32 rngOffset = 0;
 	std::string p1Name = "";
 	std::string p2Name = "";
-	u8 chatMessageId = 0;
+    u8 chatMessageId = 0;
+    u8 chatMessagePlayerIdx = 0;
 	u8 sentChatMessageId = 0;
 
 #ifdef LOCAL_TESTING
 	chatMessageId = localChatMessageId;
+	chatMessagePlayerIdx = 0;
 	localChatMessageId = 0;
 	// in CSS p1 is always current player and p2 is opponent
 	p1Name = "Player 1";
@@ -2239,8 +2241,10 @@ void CEXISlippi::prepareOnlineMatchState()
 	// Set chat message if any
 	if (slippi_netplay)
 	{
-		chatMessageId = slippi_netplay->GetSlippiRemoteChatMessage();
-		sentChatMessageId = slippi_netplay->GetSlippiRemoteSentChatMessage();
+	    auto remoteMessageSelection = slippi_netplay->GetSlippiRemoteChatMessage();
+		chatMessageId = remoteMessageSelection->messageId;
+        chatMessagePlayerIdx = remoteMessageSelection->playerIdx;
+        sentChatMessageId = slippi_netplay->GetSlippiRemoteSentChatMessage();
 		// in CSS p1 is always current player and p2 is opponent
 		p1Name = userInfo.displayName;
 		p2Name = oppName;
@@ -2378,7 +2382,8 @@ void CEXISlippi::prepareOnlineMatchState()
 
 	// Add chat messages id
 	m_read_queue.push_back((u8)sentChatMessageId);
-	m_read_queue.push_back((u8)chatMessageId);
+    m_read_queue.push_back((u8)chatMessageId);
+    m_read_queue.push_back((u8)chatMessagePlayerIdx);
 
 	// Add names to output
 	auto names = matchmaking->PlayerNames();
@@ -2388,10 +2393,7 @@ void CEXISlippi::prepareOnlineMatchState()
 		name = ConvertStringForGame(name, MAX_NAME_LENGTH);
 		m_read_queue.insert(m_read_queue.end(), name.begin(), name.end());
 	}
-	/*p1Name = ConvertStringForGame(p1Name, MAX_NAME_LENGTH);
-	m_read_queue.insert(m_read_queue.end(), p1Name.begin(), p1Name.end());
-	p2Name = ConvertStringForGame(p2Name, MAX_NAME_LENGTH);
-	m_read_queue.insert(m_read_queue.end(), p2Name.begin(), p2Name.end());*/
+
 
 	int teamIdx = onlineMatchBlock[0x69 + localPlayerIndex * 0x24];
 	std::string oppText = "";
@@ -2531,7 +2533,8 @@ void CEXISlippi::handleChatMessage(u8 *payload)
 		auto packet = std::make_unique<sf::Packet>();
 		//		OSD::AddMessage("[Me]: "+ msg, OSD::Duration::VERY_LONG, OSD::Color::YELLOW);
 		slippi_netplay->remoteSentChatMessageId = messageId;
-		slippi_netplay->WriteChatMessageToPacket(*packet, messageId);
+		// use LocalPlayerPort since it actually uses playerIdx which is what we want
+		slippi_netplay->WriteChatMessageToPacket(*packet, messageId, slippi_netplay->LocalPlayerPort());
 		slippi_netplay->SendAsync(std::move(packet));
 	}
 }
