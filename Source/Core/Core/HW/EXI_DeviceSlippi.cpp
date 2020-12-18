@@ -2242,8 +2242,8 @@ void CEXISlippi::prepareOnlineMatchState()
 	if (slippi_netplay)
 	{
 		auto remoteMessageSelection = slippi_netplay->GetSlippiRemoteChatMessage();
-		chatMessageId = remoteMessageSelection->messageId;
-		chatMessagePlayerIdx = remoteMessageSelection->playerIdx;
+		chatMessageId = remoteMessageSelection.messageId;
+		chatMessagePlayerIdx = remoteMessageSelection.playerIdx;
 		sentChatMessageId = slippi_netplay->GetSlippiRemoteSentChatMessage();
 		// in CSS p1 is always current player and p2 is opponent
 		localPlayerName = p1Name = userInfo.displayName;

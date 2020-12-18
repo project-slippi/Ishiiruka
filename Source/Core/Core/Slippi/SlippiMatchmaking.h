@@ -12,7 +12,7 @@
 #include <json.hpp>
 using json = nlohmann::json;
 
-extern std::atomic<bool> connectionsReset;
+extern bool connectionsReset;
 
 class SlippiMatchmaking
 {
