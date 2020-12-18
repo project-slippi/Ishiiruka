@@ -2225,8 +2225,8 @@ void CEXISlippi::prepareOnlineMatchState()
 	u32 rngOffset = 0;
 	std::string p1Name = "";
 	std::string p2Name = "";
-    u8 chatMessageId = 0;
-    u8 chatMessagePlayerIdx = 0;
+	u8 chatMessageId = 0;
+	u8 chatMessagePlayerIdx = 0;
 	u8 sentChatMessageId = 0;
 
 #ifdef LOCAL_TESTING
@@ -2241,10 +2241,10 @@ void CEXISlippi::prepareOnlineMatchState()
 	// Set chat message if any
 	if (slippi_netplay)
 	{
-	    auto remoteMessageSelection = slippi_netplay->GetSlippiRemoteChatMessage();
+		auto remoteMessageSelection = slippi_netplay->GetSlippiRemoteChatMessage();
 		chatMessageId = remoteMessageSelection->messageId;
-        chatMessagePlayerIdx = remoteMessageSelection->playerIdx;
-        sentChatMessageId = slippi_netplay->GetSlippiRemoteSentChatMessage();
+		chatMessagePlayerIdx = remoteMessageSelection->playerIdx;
+		sentChatMessageId = slippi_netplay->GetSlippiRemoteSentChatMessage();
 		// in CSS p1 is always current player and p2 is opponent
 		p1Name = userInfo.displayName;
 		p2Name = oppName;
@@ -2382,8 +2382,8 @@ void CEXISlippi::prepareOnlineMatchState()
 
 	// Add chat messages id
 	m_read_queue.push_back((u8)sentChatMessageId);
-    m_read_queue.push_back((u8)chatMessageId);
-    m_read_queue.push_back((u8)chatMessagePlayerIdx);
+	m_read_queue.push_back((u8)chatMessageId);
+	m_read_queue.push_back((u8)chatMessagePlayerIdx);
 
 	// Add names to output
 	auto names = matchmaking->PlayerNames();

@@ -140,7 +140,7 @@ class SlippiNetplayClient
 	void WriteChatMessageToPacket(sf::Packet &packet, int messageId, int playerIdx);
 	std::unique_ptr<SlippiPlayerSelections> ReadChatMessageFromPacket(sf::Packet &packet);
 
-    std::unique_ptr<SlippiPlayerSelections> remoteChatMessageSelection = nullptr; // most recent chat message player selection (message + player index)
+	std::unique_ptr<SlippiPlayerSelections> remoteChatMessageSelection = nullptr; // most recent chat message player selection (message + player index)
 	u8 remoteSentChatMessageId = 0; // most recent chat message id that current player sent
 
   protected:
