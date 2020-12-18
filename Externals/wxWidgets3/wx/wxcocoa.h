@@ -83,6 +83,13 @@
  */
 #define wxUSE_UNIX 1
 
+// I have no clue why all these variations are required.
+#define wxUSE_COCOA 1
+#define wxOSX_USE_COCOA 1
+#define __WXCOCOA__ 1
+#define __WXOSX_COCOA__ 1
+#define __WXOSX__ 1
+
 #define __UNIX__ 1
 
 /* #undef __AIX__ */
@@ -114,7 +121,7 @@
 
 /* PowerPC Darwin & Mac OS X */
 /* #undef __POWERPC__ */
-#define TARGET_CARBON 1
+#define TARGET_CARBON 0
 
 /* Hack to make IOGraphicsTypes.h not define Point conflicting with MacTypes */
 /* #undef __Point__ */
@@ -317,7 +324,7 @@
 
 #define wxUSE_SYSTEM_OPTIONS 1
 
-#define wxUSE_SOUND 1
+#define wxUSE_SOUND 0
 
 #define wxUSE_MEDIACTRL 0
 
@@ -333,7 +340,7 @@
 
 #define wxUSE_STC 0
 
-#define wxUSE_WEBVIEW 0
+#define wxUSE_WEBVIEW 1
 
 #ifdef __WXMSW__
 #define wxUSE_WEBVIEW_IE 0
@@ -342,7 +349,7 @@
 #endif
 
 #if defined(__WXGTK__) || defined(__WXOSX__)
-#define wxUSE_WEBVIEW_WEBKIT 0
+#define wxUSE_WEBVIEW_WEBKIT 1
 #else
 #define wxUSE_WEBVIEW_WEBKIT 0
 #endif
@@ -1284,6 +1291,13 @@
 
 /* wxLogChain class available */
 #define wxHAS_LOG_CHAIN
+
+#define wxUSE_MENUBAR 1
+#define wxUSE_UNSAFE_WXSTRING_CONV 0
+#define wxUSE_SECRETSTORE 0
+#define wxUSE_PRIVATE_FONTS 1
+#define wxUSE_NATIVE_DATAVIEWCTRL 0
+#define wxUSE_XTEST 0
 
 /* define this when wxDC::Blit() respects SetDeviceOrigin() in wxGTK */
 /* #undef wxHAS_WORKING_GTK_DC_BLIT */

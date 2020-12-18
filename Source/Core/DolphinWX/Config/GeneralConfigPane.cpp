@@ -13,6 +13,7 @@
 #include <wx/radiobox.h>
 #include <wx/sizer.h>
 #include <wx/stattext.h>
+#include <Core/Slippi/SlippiNetplay.h>
 
 #include "Core/Analytics.h"
 #include "Core/ConfigManager.h"
@@ -177,6 +178,7 @@ void GeneralConfigPane::OnForceNTSCJCheckBoxChanged(wxCommandEvent& event)
 
 void GeneralConfigPane::OnThrottlerChoiceChanged(wxCommandEvent& event)
 {
+    if(IsOnline()) return;
 	if (m_throttler_choice->GetSelection() != wxNOT_FOUND)
 		SConfig::GetInstance().m_EmulationSpeed = m_throttler_choice->GetSelection() * 0.1f;
 }

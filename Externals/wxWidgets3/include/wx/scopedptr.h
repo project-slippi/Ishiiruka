@@ -9,7 +9,7 @@
 /////////////////////////////////////////////////////////////////////////////
 
 //  This class closely follows the implementation of the boost
-//  library scoped_ptr and is an adaption for c++ macro's in
+//  library scoped_ptr and is an adaptation for c++ macro's in
 //  the wxWidgets project. The original authors of the boost
 //  scoped_ptr are given below with their respective copyrights.
 
@@ -40,7 +40,7 @@ class wxScopedPtr
 public:
     typedef T element_type;
 
-    wxEXPLICIT wxScopedPtr(T * ptr = NULL) : m_ptr(ptr) { }
+    explicit wxScopedPtr(T * ptr = NULL) : m_ptr(ptr) { }
 
     ~wxScopedPtr() { wxCHECKED_DELETE(m_ptr); }
 
@@ -123,7 +123,7 @@ private:                            \
     name & operator=(name const &); \
                                     \
 public:                             \
-    wxEXPLICIT name(T * ptr = NULL) \
+    explicit name(T * ptr = NULL)   \
     : m_ptr(ptr) { }                \
                                     \
     ~name();                        \

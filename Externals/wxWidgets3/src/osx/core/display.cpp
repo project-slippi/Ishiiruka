@@ -22,9 +22,7 @@
     #pragma hdrstop
 #endif
 
-#if wxUSE_DISPLAY
-
-#include "wx/display.h"
+#include "wx/private/display.h"
 
 #ifndef WX_PRECOMP
     #include "wx/dynarray.h"
@@ -33,11 +31,61 @@
     #include "wx/gdicmn.h"
 #endif
 
-#include "wx/display_impl.h"
-#include "wx/scopedarray.h"
 #include "wx/osx/private.h"
 
-#if wxOSX_USE_COCOA_OR_CARBON
+// ----------------------------------------------------------------------------
+// common helpers compiled even in wxUSE_DISPLAY==0 case
+// ----------------------------------------------------------------------------
+
+// This one is defined in Objective C++ code.
+extern wxRect wxOSXGetMainDisplayClientArea();
+
+namespace
+{
+
+wxRect wxGetDisplayGeometry(CGDirectDisplayID id)
+{
+    CGRect theRect = CGDisplayBounds(id);
+    return wxRect( (int)theRect.origin.x,
+                   (int)theRect.origin.y,
+                   (int)theRect.size.width,
+                   (int)theRect.size.height ); //floats
+}
+
+int wxGetDisplayDepth(CGDirectDisplayID id)
+{
+    CGDisplayModeRef currentMode = CGDisplayCopyDisplayMode(id);
+    CFStringRef encoding = CGDisplayModeCopyPixelEncoding(currentMode);
+
+    int theDepth = 32; // some reasonable default
+    if(encoding)
+    {
+        if(CFStringCompare(encoding, CFSTR(IO32BitDirectPixels), kCFCompareCaseInsensitive) == kCFCompareEqualTo)
+            theDepth = 32;
+        else if(CFStringCompare(encoding, CFSTR(IO16BitDirectPixels), kCFCompareCaseInsensitive) == kCFCompareEqualTo)
+            theDepth = 16;
+        else if(CFStringCompare(encoding, CFSTR(IO8BitIndexedPixels), kCFCompareCaseInsensitive) == kCFCompareEqualTo)
+            theDepth = 8;
+
+        CFRelease(encoding);
+    }
+
+    CGDisplayModeRelease(currentMode);
+
+    return theDepth;
+}
+
+wxSize wxGetDisplaySizeMM(CGDirectDisplayID id)
+{
+    const CGSize size = CGDisplayScreenSize(id);
+    return wxSize(wxRound(size.width), wxRound(size.height));
+}
+
+} // anonymous namespace
+
+#if wxUSE_DISPLAY
+
+#include "wx/scopedarray.h"
 
 // ----------------------------------------------------------------------------
 // display classes implementation
@@ -54,7 +102,8 @@ public:
 
     virtual wxRect GetGeometry() const wxOVERRIDE;
     virtual wxRect GetClientArea() const wxOVERRIDE;
-    virtual wxString GetName() const wxOVERRIDE { return wxString(); }
+    virtual int GetDepth() const wxOVERRIDE;
+    virtual wxSize GetSizeMM() const wxOVERRIDE;
 
     virtual wxArrayVideoModes GetModes(const wxVideoMode& mode) const wxOVERRIDE;
     virtual wxVideoMode GetCurrentMode() const wxOVERRIDE;
@@ -197,11 +246,7 @@ bool wxDisplayImplMacOSX::IsPrimary() const
 
 wxRect wxDisplayImplMacOSX::GetGeometry() const
 {
-    CGRect theRect = CGDisplayBounds(m_id);
-    return wxRect( (int)theRect.origin.x,
-                   (int)theRect.origin.y,
-                   (int)theRect.size.width,
-                   (int)theRect.size.height ); //floats
+    return wxGetDisplayGeometry(m_id);
 }
 
 wxRect wxDisplayImplMacOSX::GetClientArea() const
@@ -210,39 +255,51 @@ wxRect wxDisplayImplMacOSX::GetClientArea() const
     //     wxGetClientDisplayRect() does work correctly for at least the main
     //     one (TODO: do it correctly for the other displays too)
     if ( IsPrimary() )
-        return wxGetClientDisplayRect();
+        return wxOSXGetMainDisplayClientArea();
 
     return wxDisplayImpl::GetClientArea();
 }
 
-static int wxCFDictKeyToInt( CFDictionaryRef desc, CFStringRef key )
+int wxDisplayImplMacOSX::GetDepth() const
 {
-    CFNumberRef value = (CFNumberRef) CFDictionaryGetValue( desc, key );
-    if (value == NULL)
-        return 0;
+    return wxGetDisplayDepth(m_id);
+}
 
-    int num = 0;
-    CFNumberGetValue( value, kCFNumberIntType, &num );
+wxSize wxDisplayImplMacOSX::GetSizeMM() const
+{
+    return wxGetDisplaySizeMM(m_id);
+}
 
-    return num;
+static int wxOSXCGDisplayModeGetBitsPerPixel( CGDisplayModeRef theValue )
+{
+    wxCFRef<CFStringRef> pixelEncoding( CGDisplayModeCopyPixelEncoding(theValue) );
+    int depth = 0;
+    if ( CFStringCompare( pixelEncoding, CFSTR(IO32BitDirectPixels) , kCFCompareCaseInsensitive) == kCFCompareEqualTo )
+        depth = 32;
+    else if ( CFStringCompare( pixelEncoding, CFSTR(IO16BitDirectPixels) , kCFCompareCaseInsensitive) == kCFCompareEqualTo )
+        depth = 16;
+    else if ( CFStringCompare( pixelEncoding, CFSTR(IO8BitIndexedPixels) , kCFCompareCaseInsensitive) == kCFCompareEqualTo )
+        depth = 8;
+    
+    return depth;
 }
 
 wxArrayVideoModes wxDisplayImplMacOSX::GetModes(const wxVideoMode& mode) const
 {
     wxArrayVideoModes resultModes;
 
-    CFArrayRef theArray = CGDisplayAvailableModes( m_id );
-
+    wxCFRef<CFArrayRef> theArray(CGDisplayCopyAllDisplayModes( m_id ,NULL ) );
+    
     for (CFIndex i = 0; i < CFArrayGetCount(theArray); ++i)
     {
-        CFDictionaryRef theValue = (CFDictionaryRef) CFArrayGetValueAtIndex( theArray, i );
-
+        CGDisplayModeRef theValue = static_cast<CGDisplayModeRef>(const_cast<void*>(CFArrayGetValueAtIndex(theArray, i)));
+        
         wxVideoMode theMode(
-            wxCFDictKeyToInt( theValue, kCGDisplayWidth ),
-            wxCFDictKeyToInt( theValue, kCGDisplayHeight ),
-            wxCFDictKeyToInt( theValue, kCGDisplayBitsPerPixel ),
-            wxCFDictKeyToInt( theValue, kCGDisplayRefreshRate ));
-
+                            CGDisplayModeGetWidth(theValue),
+                            CGDisplayModeGetHeight(theValue),
+                            wxOSXCGDisplayModeGetBitsPerPixel(theValue),
+                            CGDisplayModeGetRefreshRate(theValue));
+        
         if (theMode.Matches( mode ))
             resultModes.Add( theMode );
     }
@@ -252,13 +309,13 @@ wxArrayVideoModes wxDisplayImplMacOSX::GetModes(const wxVideoMode& mode) const
 
 wxVideoMode wxDisplayImplMacOSX::GetCurrentMode() const
 {
-    CFDictionaryRef theValue = CGDisplayCurrentMode( m_id );
-
+    wxCFRef<CGDisplayModeRef> theValue( CGDisplayCopyDisplayMode( m_id ) );
+    
     return wxVideoMode(
-        wxCFDictKeyToInt( theValue, kCGDisplayWidth ),
-        wxCFDictKeyToInt( theValue, kCGDisplayHeight ),
-        wxCFDictKeyToInt( theValue, kCGDisplayBitsPerPixel ),
-        wxCFDictKeyToInt( theValue, kCGDisplayRefreshRate ));
+                       CGDisplayModeGetWidth(theValue),
+                       CGDisplayModeGetHeight(theValue),
+                       wxOSXCGDisplayModeGetBitsPerPixel(theValue),
+                       CGDisplayModeGetRefreshRate(theValue));
 }
 
 bool wxDisplayImplMacOSX::ChangeMode( const wxVideoMode& mode )
@@ -271,20 +328,32 @@ bool wxDisplayImplMacOSX::ChangeMode( const wxVideoMode& mode )
     }
 #endif
 
-    boolean_t bExactMatch;
-    CFDictionaryRef theCGMode = CGDisplayBestModeForParametersAndRefreshRate(
-        m_id,
-        (size_t)mode.GetDepth(),
-        (size_t)mode.GetWidth(),
-        (size_t)mode.GetHeight(),
-        (double)mode.GetRefresh(),
-        &bExactMatch );
-
-    bool bOK = bExactMatch;
-
-    if (bOK)
-        bOK = CGDisplaySwitchToMode( m_id, theCGMode ) == CGDisplayNoErr;
-
+    wxCHECK_MSG( mode.GetWidth() && mode.GetHeight(), false,
+                wxT("at least the width and height must be specified") );
+    
+    bool bOK = false;
+    wxCFRef<CFArrayRef> theArray(CGDisplayCopyAllDisplayModes( m_id ,NULL ) );
+    
+    for (CFIndex i = 0; i < CFArrayGetCount(theArray); ++i)
+    {
+        CGDisplayModeRef theValue = static_cast<CGDisplayModeRef>(const_cast<void*>(CFArrayGetValueAtIndex(theArray, i)));
+        
+        wxVideoMode theMode(
+                            CGDisplayModeGetWidth(theValue),
+                            CGDisplayModeGetHeight(theValue),
+                            wxOSXCGDisplayModeGetBitsPerPixel(theValue),
+                            CGDisplayModeGetRefreshRate(theValue));
+        
+        if ( theMode.GetWidth() == mode.GetWidth() && theMode.GetHeight() == mode.GetHeight() &&
+            ( mode.GetDepth() == 0 || theMode.GetDepth() == mode.GetDepth() ) &&
+            ( mode.GetRefresh() == 0 || theMode.GetRefresh() == mode.GetRefresh() ) )
+        {
+            CGDisplaySetDisplayMode( m_id, theValue , NULL );
+            bOK = true;
+            break;
+        }
+    }
+    
     return bOK;
 }
 
@@ -297,13 +366,44 @@ bool wxDisplayImplMacOSX::ChangeMode( const wxVideoMode& mode )
     return new wxDisplayFactoryMacOSX;
 }
 
-#else
+#else // !wxUSE_DISPLAY
+
+class wxDisplayImplSingleMacOSX : public wxDisplayImplSingle
+{
+public:
+    virtual wxRect GetGeometry() const wxOVERRIDE
+    {
+        return wxGetDisplayGeometry(CGMainDisplayID());
+    }
+
+    virtual wxRect GetClientArea() const wxOVERRIDE
+    {
+        return wxOSXGetMainDisplayClientArea();
+    }
+
+    virtual int GetDepth() const wxOVERRIDE
+    {
+        return wxGetDisplayDepth(CGMainDisplayID());
+    }
+
+    virtual wxSize GetSizeMM() const wxOVERRIDE
+    {
+        return wxGetDisplaySizeMM(CGMainDisplayID());
+    }
+};
+
+class wxDisplayFactorySingleMacOSX : public wxDisplayFactorySingle
+{
+protected:
+    virtual wxDisplayImpl *CreateSingleDisplay() wxOVERRIDE
+    {
+        return new wxDisplayImplSingleMacOSX;
+    }
+};
 
 /* static */ wxDisplayFactory *wxDisplay::CreateFactory()
 {
-    return new wxDisplayFactorySingle;
+    return new wxDisplayFactorySingleMacOSX;
 }
-
-#endif
 
 #endif // wxUSE_DISPLAY

@@ -71,6 +71,11 @@ void wxMSWEventLoopBase::WakeUp()
         wxLogLastError(wxS("SetEvent(wake)"));
 }
 
+bool wxMSWEventLoopBase::MSWIsWakeUpRequested()
+{
+    return ::WaitForSingleObject(m_heventWake, 0) == WAIT_OBJECT_0;
+}
+
 #if wxUSE_THREADS
 
 WXDWORD wxMSWEventLoopBase::MSWWaitForThread(WXHANDLE hThread)
@@ -117,7 +122,7 @@ int wxMSWEventLoopBase::GetNextMessageTimeout(WXMSG *msg, unsigned long timeout)
             default:
                 wxLogDebug("unexpected MsgWaitForMultipleObjects() return "
                            "value %lu", rc);
-                // fall through
+                wxFALLTHROUGH;
 
             case WAIT_TIMEOUT:
                 return -1;

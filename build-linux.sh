@@ -10,13 +10,12 @@ DATA_SYS_PATH="./Data/Sys/"
 BINARY_PATH="./build/Binaries/"
 
 # Build type
-if [ -z "$1" ]
-    then
-        echo "Using Netplay build config"
-elif [ "$1" == "playback" ]
+if [ "$1" == "playback" ]
     then
         CMAKE_FLAGS+=" -DIS_PLAYBACK=true"
         echo "Using Playback build config"
+else
+        echo "Using Netplay build config"
 fi
 
 # Move into the build directory, run CMake, and compile the project

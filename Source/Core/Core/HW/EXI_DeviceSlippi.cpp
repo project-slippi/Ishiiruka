@@ -47,6 +47,7 @@ extern std::unique_ptr<SlippiReplayComm> g_replayComm;
 
 #ifdef LOCAL_TESTING
 bool isLocalConnected = false;
+int localChatMessageId = 0;
 #endif
 
 // Are we waiting for input on this frame?
@@ -96,6 +97,17 @@ void appendHalfToBuffer(std::vector<u8> *buf, u16 word)
 {
 	auto halfVector = uint16ToVector(word);
 	buf->insert(buf->end(), halfVector.begin(), halfVector.end());
+}
+
+std::string processDiff2(std::vector<u8> iState, std::vector<u8> cState)
+{
+	INFO_LOG(SLIPPI, "Processing diff");
+	std::string diff = std::string();
+	open_vcdiff::VCDiffEncoder encoder((char *)iState.data(), iState.size());
+	encoder.Encode((char *)cState.data(), cState.size(), &diff);
+
+	INFO_LOG(SLIPPI, "done processing");
+	return diff;
 }
 
 CEXISlippi::CEXISlippi()
@@ -155,6 +167,17 @@ CEXISlippi::CEXISlippi()
 	File::WriteStringToFile(diff, "C:\\Users\\Jas\\Documents\\Melee\\Textures\\Slippi\\MainMenu\\SdMenu.usd.diff");
 	File::WriteStringToFile(diff, "C:\\Dolphin\\IshiiDev\\Sys\\GameFiles\\GALE01\\SdMenu.usd.diff");
 
+	// MnSlChr.usd
+	std::string origStr;
+	std::string modifiedStr;
+	File::ReadFileToString("D:\\Melee\\MnSlChr.usd", origStr);
+	File::ReadFileToString("D:\\Melee\\MnSlChr.new.usd", modifiedStr);
+	orig = std::vector<u8>(origStr.begin(), origStr.end());
+	modified = std::vector<u8>(modifiedStr.begin(), modifiedStr.end());
+	diff = processDiff(orig, modified);
+	File::WriteStringToFile(diff, "D:\\Melee\\MnSlChr.usd.diff");
+	File::WriteStringToFile(diff, "D:\\GitHub\\Ishiiruka\\Binary\\x64\\Sys\\GameFiles\\GALE01\\MnSlChr.usd.diff");
+
 	// Japanese Files
 	// MnMaAll.dat
 	File::ReadFileToString("C:\\Users\\Jas\\Documents\\Melee\\Textures\\Slippi\\MainMenu\\MnMaAll.dat", origStr);
@@ -183,6 +206,15 @@ CEXISlippi::CEXISlippi()
 	diff = processDiff(orig, modified);
 	File::WriteStringToFile(diff, "C:\\Users\\Jas\\Documents\\Melee\\Textures\\Slippi\\MainMenu\\SdMenu.dat.diff");
 	File::WriteStringToFile(diff, "C:\\Dolphin\\IshiiDev\\Sys\\GameFiles\\GALE01\\SdMenu.dat.diff");
+
+	// MnSlChr.usd
+	File::ReadFileToString("D:\\Melee\\MnSlChr.dat", origStr);
+	File::ReadFileToString("D:\\Melee\\MnSlChr.new.dat", modifiedStr);
+	orig = std::vector<u8>(origStr.begin(), origStr.end());
+	modified = std::vector<u8>(modifiedStr.begin(), modifiedStr.end());
+	diff = processDiff2(orig, modified);
+	File::WriteStringToFile(diff, "D:\\Melee\\MnSlChr.dat.diff");
+	File::WriteStringToFile(diff, "D:\\GitHub\\Ishiiruka\\Binary\\x64\\Sys\\GameFiles\\GALE01\\MnSlChr.dat.diff");
 
 	// TEMP - Restore orig
 	// std::string stateString;
@@ -1009,7 +1041,6 @@ void CEXISlippi::prepareGeckoList()
 	    {0x800C0148, true}, // External/FlashRedFailedLCancel/ChangeColor.asm
 	    {0x8008D690, true}, // External/FlashRedFailedLCancel/TriggerColor.asm
 
-	    {0x8006A880, true}, // Online/Core/BrawlOffscreenDamage.asm
 	    {0x801A4DB4, true}, // Online/Core/ForceEngineOnRollback.asm
 	    {0x8016D310, true}, // Online/Core/HandleLRAS.asm
 	    {0x8034DED8, true}, // Online/Core/HandleRumble.asm
@@ -1455,13 +1486,23 @@ void CEXISlippi::prepareIsFileReady()
 	m_read_queue.push_back(1);
 }
 
+// The original reason for this was to avoid crashes when people disconnected during CSS/VSS Screens, causing that
+// slippi_netplay got set to null on it's own thread and then the instance of the ExiDevice would crash while performing
+// a method that was that used it.
+// Maybe someone smart can fix that logic instead of this monkey patch.
 bool CEXISlippi::isDisconnected()
 {
 	if (!slippi_netplay)
 		return true;
 
-	auto status = slippi_netplay->GetSlippiConnectStatus();
-	return status != SlippiNetplayClient::SlippiConnectStatus::NET_CONNECT_STATUS_CONNECTED || isConnectionStalled;
+	// TODO: Figure out why connection status is not "CONNECTED" while initializing a match and coming back to CSS,
+	// err back into dumb return false until then.
+	return false;
+
+
+//	auto status = slippi_netplay->GetSlippiConnectStatus();
+//	return status != SlippiNetplayClient::SlippiConnectStatus::NET_CONNECT_STATUS_CONNECTED &&
+//        status != SlippiNetplayClient::SlippiConnectStatus::NET_CONNECT_STATUS_INITIATED;
 }
 
 static int tempTestCount = 0;
@@ -1637,8 +1678,10 @@ void CEXISlippi::prepareOpponentInputs(u8 *payload)
 
 void CEXISlippi::handleCaptureSavestate(u8 *payload)
 {
+#ifndef IS_PLAYBACK
 	if (isDisconnected())
 		return;
+#endif
 
 	s32 frame = payload[0] << 24 | payload[1] << 16 | payload[2] << 8 | payload[3];
 
@@ -1861,6 +1904,26 @@ void CEXISlippi::prepareOnlineMatchState()
 	u32 rngOffset = 0;
 	std::string p1Name = "";
 	std::string p2Name = "";
+	u8 chatMessageId = 0;
+	u8 sentChatMessageId = 0;
+
+#ifdef LOCAL_TESTING
+	chatMessageId = localChatMessageId;
+	localChatMessageId = 0;
+	// in CSS p1 is always current player and p2 is opponent
+	p1Name = "Player 1";
+	p2Name = "Player 2";
+#endif
+
+	// Set chat message if any
+	if (slippi_netplay)
+	{
+		chatMessageId = slippi_netplay->GetSlippiRemoteChatMessage();
+		sentChatMessageId = slippi_netplay->GetSlippiRemoteSentChatMessage();
+		// in CSS p1 is always current player and p2 is opponent
+		p1Name = userInfo.displayName;
+		p2Name = oppName;
+	}
 
 	auto directMode = SlippiMatchmaking::OnlinePlayMode::DIRECT;
 
@@ -1945,6 +2008,10 @@ void CEXISlippi::prepareOnlineMatchState()
 
 	// Add delay frames to output
 	m_read_queue.push_back((u8)SConfig::GetInstance().m_slippiOnlineDelay);
+
+	// Add chat messages id
+	m_read_queue.push_back((u8)sentChatMessageId);
+	m_read_queue.push_back((u8)chatMessageId);
 
 	// Add names to output
 	p1Name = ConvertStringForGame(p1Name, MAX_NAME_LENGTH);
@@ -2048,6 +2115,28 @@ void CEXISlippi::prepareFileLoad(u8 *payload)
 
 	// Write the contents to output
 	m_read_queue.insert(m_read_queue.end(), buf.begin(), buf.end());
+}
+
+void CEXISlippi::handleChatMessage(u8 *payload)
+{
+
+	int messageId = payload[0];
+	INFO_LOG(SLIPPI, "SLIPPI CHAT INPUT: 0x%x", messageId);
+
+#ifdef LOCAL_TESTING
+	localChatMessageId = 11;
+#endif
+
+	if (slippi_netplay)
+	{
+
+		auto userInfo = user->GetUserInfo();
+		auto packet = std::make_unique<sf::Packet>();
+		//		OSD::AddMessage("[Me]: "+ msg, OSD::Duration::VERY_LONG, OSD::Color::YELLOW);
+		slippi_netplay->remoteSentChatMessageId = messageId;
+		slippi_netplay->WriteChatMessageToPacket(*packet, messageId);
+		slippi_netplay->SendAsync(std::move(packet));
+	}
 }
 
 void CEXISlippi::logMessageFromGame(u8 *payload)
@@ -2160,6 +2249,15 @@ void CEXISlippi::handleConnectionCleanup()
 	ERROR_LOG(SLIPPI_ONLINE, "Connection cleanup completed...");
 }
 
+void CEXISlippi::prepareNewSeed()
+{
+	m_read_queue.clear();
+
+	u32 newSeed = generator() % 0xFFFFFFFF;
+
+	appendWordToBuffer(&m_read_queue, newSeed);
+}
+
 void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 {
 	u8 *memPtr = Memory::GetPointer(_uAddr);
@@ -2190,6 +2288,7 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 	if (byte == CMD_MENU_FRAME)
 	{
 		m_slippiserver->write(&memPtr[0], _uSize);
+		g_needInputForFrame = true;
 	}
 
 	INFO_LOG(EXPANSIONINTERFACE, "EXI SLIPPI DMAWrite: addr: 0x%08x size: %d, bufLoc:[%02x %02x %02x %02x %02x]",
@@ -2275,8 +2374,14 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 		case CMD_LOG_MESSAGE:
 			logMessageFromGame(&memPtr[bufLoc + 1]);
 			break;
+		case CMD_SEND_CHAT_MESSAGE:
+			handleChatMessage(&memPtr[bufLoc + 1]);
+			break;
 		case CMD_UPDATE:
 			handleUpdateAppRequest();
+			break;
+		case CMD_GET_NEW_SEED:
+			prepareNewSeed();
 			break;
 		default:
 			writeToFileAsync(&memPtr[bufLoc], payloadLen + 1, "");
