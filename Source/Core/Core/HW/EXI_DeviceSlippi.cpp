@@ -2387,9 +2387,14 @@ void CEXISlippi::prepareOnlineMatchState()
 
 	// Add names to output
 	// Always send static local player name
+	localPlayerName = ConvertStringForGame(localPlayerName, MAX_NAME_LENGTH);
 	m_read_queue.insert(m_read_queue.end(), localPlayerName.begin(), localPlayerName.end());
 
 	auto names = matchmaking->PlayerNames();
+	#ifdef LOCAL_TESTING
+	names = new std::string[]{"Player 1", "Player 2", "Player 3", "Player 4"};
+	#endif
+
 	for (int i = 0; i < 4; i++)
 	{
 		std::string name = names[i];
