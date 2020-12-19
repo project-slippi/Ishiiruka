@@ -117,7 +117,7 @@ CEXISlippi::CEXISlippi()
 	m_slippiserver = SlippiSpectateServer::getInstance();
 	user = std::make_unique<SlippiUser>();
 	g_playbackStatus = std::make_unique<SlippiPlaybackStatus>();
-	std::atomic<bool> netplayReady = true;
+	std::atomic<bool> netplayReady{true};
 	matchmaking = std::make_unique<SlippiMatchmaking>(user.get());
 	gameFileLoader = std::make_unique<SlippiGameFileLoader>();
 	g_replayComm = std::make_unique<SlippiReplayComm>();

@@ -766,13 +766,17 @@ void SlippiNetplayClient::ThreadFunc()
 #ifdef __linux__
 		// highest priority
 		int priority = 7;
-		setsockopt(m_server->host->socket, SOL_SOCKET, SO_PRIORITY, &priority, sizeof(priority));
+		for (const auto& server : m_server) {
+			setsockopt(server->host->socket, SOL_SOCKET, SO_PRIORITY, &priority, sizeof(priority));
+		}
 #endif
 
 		// https://www.tucny.com/Home/dscp-tos
 		// ef is better than cs7
 		int tos_val = 0xb8;
-		qos_success = setsockopt(m_server->host->socket, IPPROTO_IP, IP_TOS, &tos_val, sizeof(tos_val)) == 0;
+		for (const auto& server : m_server) {
+			qos_success = setsockopt(server->host->socket, IPPROTO_IP, IP_TOS, &tos_val, sizeof(tos_val)) == 0;
+		}
 	}
 #endif
 

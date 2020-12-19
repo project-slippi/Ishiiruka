@@ -5,7 +5,11 @@
 #include "Core/Slippi/SlippiNetplay.h"
 #include "Core/Slippi/SlippiUser.h"
 
-#include <enet/enet.h>
+#ifdef _WIN32
+#else
+#include <netdb.h>
+#include <arpa/inet.h>
+#endif
 #include <unordered_map>
 #include <vector>
 

@@ -130,7 +130,7 @@ class SlippiNetplayClient
 	void SendSlippiPad(std::unique_ptr<SlippiPad> pad);
 	void SetMatchSelections(SlippiPlayerSelections &s);
 	std::unique_ptr<SlippiRemotePadOutput> GetSlippiRemotePad(int32_t curFrame, int index);
-	void SlippiNetplayClient::DropOldRemoteInputs(int32_t curFrame);
+	void DropOldRemoteInputs(int32_t curFrame);
 	SlippiMatchInfo *GetMatchInfo();
 	int32_t GetSlippiLatestRemoteFrame();
 	u8 GetSlippiRemoteChatMessage();
@@ -204,7 +204,7 @@ class SlippiNetplayClient
 	std::unique_ptr<SlippiPlayerSelections> readSelectionsFromPacket(sf::Packet &packet);
 
   private:
-	u8 SlippiNetplayClient::PlayerIdxFromPort(u8 port);
+	u8 PlayerIdxFromPort(u8 port);
 	unsigned int OnData(sf::Packet &packet, ENetPeer* peer);
 	void Send(sf::Packet &packet);
 	void Disconnect();
