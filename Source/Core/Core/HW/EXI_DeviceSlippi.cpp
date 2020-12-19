@@ -117,7 +117,6 @@ CEXISlippi::CEXISlippi()
 	m_slippiserver = SlippiSpectateServer::getInstance();
 	user = std::make_unique<SlippiUser>();
 	g_playbackStatus = std::make_unique<SlippiPlaybackStatus>();
-	std::atomic<bool> netplayReady{true};
 	matchmaking = std::make_unique<SlippiMatchmaking>(user.get());
 	gameFileLoader = std::make_unique<SlippiGameFileLoader>();
 	g_replayComm = std::make_unique<SlippiReplayComm>();
@@ -1513,12 +1512,6 @@ void CEXISlippi::handleOnlineInputs(u8 *payload)
 
 	int32_t frame = payload[0] << 24 | payload[1] << 16 | payload[2] << 8 | payload[3];
 
-	if (isDisconnected())
-	{
-		m_read_queue.push_back(3); // Indicate we disconnected
-		return;
-	}
-
 	if (frame == 1)
 	{
 		availableSavestates.clear();
@@ -1537,6 +1530,13 @@ void CEXISlippi::handleOnlineInputs(u8 *payload)
 		// Reset character selections as they are no longer needed
 		localSelections.Reset();
 		slippi_netplay->StartSlippiGame();
+	}
+
+	if (isDisconnected())
+	{
+		auto status = slippi_netplay->GetSlippiConnectStatus();
+		m_read_queue.push_back(3); // Indicate we disconnected
+		return;
 	}
 
 	if (shouldSkipOnlineFrame(frame))
@@ -1654,8 +1654,8 @@ void CEXISlippi::prepareOpponentInputs(u8 *payload)
 
 	int32_t frame = payload[0] << 24 | payload[1] << 16 | payload[2] << 8 | payload[3];
 
-	std::unique_ptr<SlippiRemotePadOutput> results[3];
-	int offset[3];
+	std::unique_ptr<SlippiRemotePadOutput> results[SLIPPI_REMOTE_PLAYER_COUNT];
+	int offset[SLIPPI_REMOTE_PLAYER_COUNT];
 	INFO_LOG(SLIPPI_ONLINE, "Preparing pad data for frame %d", frame);
 
 	// Get pad data for each remote player and write each of their latest frame nums to the buf
@@ -2132,7 +2132,6 @@ void CEXISlippi::prepareOnlineMatchState()
 	}
 #endif
 
-	//INFO_LOG(SLIPPI, "MM State: %d", mmState);
 	m_read_queue.push_back(mmState); // Matchmaking State
 
 	u8 localPlayerReady = localSelections.isCharacterSelected;
@@ -2610,13 +2609,11 @@ void CEXISlippi::prepareOnlineStatus()
 
 void doConnectionCleanup(std::unique_ptr<SlippiMatchmaking> mm, std::unique_ptr<SlippiNetplayClient> nc)
 {
-	if (nc)
-		nc.reset();
-
-	connectionsReset = true;
-
 	if (mm)
 		mm.reset();
+
+	if (nc)
+		nc.reset();
 }
 
 void CEXISlippi::handleConnectionCleanup()
@@ -2624,10 +2621,7 @@ void CEXISlippi::handleConnectionCleanup()
 	ERROR_LOG(SLIPPI_ONLINE, "Connection cleanup started...");
 
 	// Handle destructors in a separate thread to not block the main thread
-	std::atomic<bool> netplayReset(false);
-	//connectionsReset = false;
 	std::thread cleanup(doConnectionCleanup, std::move(matchmaking), std::move(slippi_netplay));
-	//doConnectionCleanup(std::move(matchmaking), std::move(slippi_netplay));
 	cleanup.detach();
 
 	// Reset matchmaking
