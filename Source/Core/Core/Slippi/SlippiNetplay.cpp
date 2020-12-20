@@ -344,11 +344,11 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet, ENetPeer *peer)
 	case NP_MSG_SLIPPI_CHAT_MESSAGE:
 	{
 		auto playerSelection = ReadChatMessageFromPacket(packet);
-
+		INFO_LOG(SLIPPI_ONLINE, "[Netplay] Received chat message from opponent %d: %d",
+		         playerSelection->playerIdx, playerSelection->messageId);
 		// set message id to netplay instance
 		remoteChatMessageSelection = std::move(playerSelection);
 		// Show chat message OSD
-		INFO_LOG(SLIPPI_ONLINE, "[Netplay] Received chat message from opponent %i", playerSelection->messageId);
 	}
 	break;
 
@@ -379,7 +379,7 @@ void SlippiNetplayClient::writeToPacket(sf::Packet &packet, SlippiPlayerSelectio
 	packet << s.rngOffset;
 }
 
-void SlippiNetplayClient::WriteChatMessageToPacket(sf::Packet &packet, int messageId, int playerIdx)
+void SlippiNetplayClient::WriteChatMessageToPacket(sf::Packet &packet, int messageId, u8 playerIdx)
 {
 	packet << static_cast<MessageId>(NP_MSG_SLIPPI_CHAT_MESSAGE);
 	packet << messageId;

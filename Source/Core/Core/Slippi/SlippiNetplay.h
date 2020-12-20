@@ -137,7 +137,7 @@ class SlippiNetplayClient
 	u8 GetSlippiRemoteSentChatMessage();
 	s32 CalcTimeOffsetUs();
 
-	void WriteChatMessageToPacket(sf::Packet &packet, int messageId, int playerIdx);
+	void WriteChatMessageToPacket(sf::Packet &packet, int messageId, u8 playerIdx);
 	std::unique_ptr<SlippiPlayerSelections> ReadChatMessageFromPacket(sf::Packet &packet);
 
 	std::unique_ptr<SlippiPlayerSelections> remoteChatMessageSelection = nullptr; // most recent chat message player selection (message + player index)
