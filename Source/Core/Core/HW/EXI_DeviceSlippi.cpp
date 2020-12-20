@@ -2096,8 +2096,8 @@ int CEXISlippi::getCharColor(u8 charId, u8 teamId)
 
 void CEXISlippi::prepareOnlineMatchState()
 {
-	// This match block is a VS match with P1 Red Falco vs P2 Red Bowser on Battlefield. The proper values will
-	// be overwritten
+	// This match block is a VS match with P1 Red Falco vs P2 Red Bowser vs P3 Young Link vs P4 Young Link
+	// on Battlefield. The proper values will be overwritten
 	static std::vector<u8> onlineMatchBlock = {
 	    0x32, 0x01, 0x86, 0x4C, 0xC3, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0xFF, 0xFF, 0x6E, 0x00, 0x1F, 0x00, 0x00,
 	    0x01, 0xE0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF,
@@ -2216,11 +2216,6 @@ void CEXISlippi::prepareOnlineMatchState()
 		slippi_netplay = nullptr;
 	}
 
-	m_read_queue.push_back(localPlayerReady);  // Local player ready
-	m_read_queue.push_back(remotePlayerReady); // Remote player ready
-	m_read_queue.push_back(localPlayerIndex);  // Local player index
-	m_read_queue.push_back(remotePlayerIndex); // Remote player index
-
 	u32 rngOffset = 0;
 	std::string localPlayerName = "";
 	std::string p1Name = "";
@@ -2230,6 +2225,7 @@ void CEXISlippi::prepareOnlineMatchState()
 	u8 sentChatMessageId = 0;
 
 #ifdef LOCAL_TESTING
+	localPlayerIndex=0;
 	chatMessageId = localChatMessageId;
 	chatMessagePlayerIdx = 0;
 	localChatMessageId = 0;
@@ -2237,6 +2233,11 @@ void CEXISlippi::prepareOnlineMatchState()
 	localPlayerName = p1Name = "Player 1";
 	p2Name = "Player 2";
 #endif
+
+	m_read_queue.push_back(localPlayerReady);  // Local player ready
+	m_read_queue.push_back(remotePlayerReady); // Remote player ready
+	m_read_queue.push_back(localPlayerIndex);  // Local player index
+	m_read_queue.push_back(remotePlayerIndex); // Remote player index
 
 	// Set chat message if any
 	if (slippi_netplay)
@@ -2285,7 +2286,6 @@ void CEXISlippi::prepareOnlineMatchState()
 		}
 
 		// Overwrite local player character
-
 		onlineMatchBlock[0x60 + (lps.playerIdx-1) * 0x24] = lps.characterId;
 
 		// Overwrite remote player character
@@ -2299,6 +2299,9 @@ void CEXISlippi::prepareOnlineMatchState()
 		if (SLIPPI_REMOTE_PLAYER_COUNT < 3)
 		{
 			onlineMatchBlock[0x60 + 3 * 0x24] = 0x14;
+			onlineMatchBlock[0xD] = 0; // is Teams = false
+		} else {
+			onlineMatchBlock[0xD] = 1; // is Teams = true
 		}
 
 		// p3/p4 human
