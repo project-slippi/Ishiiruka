@@ -344,12 +344,11 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet, ENetPeer *peer)
 	case NP_MSG_SLIPPI_CHAT_MESSAGE:
 	{
 		auto playerSelection = ReadChatMessageFromPacket(packet);
-		auto messageId = playerSelection->messageId;
 
 		// set message id to netplay instance
-		remoteChatMessageId = messageId;
+		remoteChatMessageSelection = std::move(playerSelection);
 		// Show chat message OSD
-		INFO_LOG(SLIPPI_ONLINE, "[Netplay] Received chat message from opponent %i", messageId);
+		INFO_LOG(SLIPPI_ONLINE, "[Netplay] Received chat message from opponent %i", playerSelection->messageId);
 	}
 	break;
 
@@ -380,17 +379,19 @@ void SlippiNetplayClient::writeToPacket(sf::Packet &packet, SlippiPlayerSelectio
 	packet << s.rngOffset;
 }
 
-void SlippiNetplayClient::WriteChatMessageToPacket(sf::Packet &packet, int messageId)
+void SlippiNetplayClient::WriteChatMessageToPacket(sf::Packet &packet, int messageId, int playerIdx)
 {
 	packet << static_cast<MessageId>(NP_MSG_SLIPPI_CHAT_MESSAGE);
 	packet << messageId;
+	packet << playerIdx;
 }
 
 std::unique_ptr<SlippiPlayerSelections> SlippiNetplayClient::ReadChatMessageFromPacket(sf::Packet &packet)
 {
 	auto s = std::make_unique<SlippiPlayerSelections>();
 
-	packet >> s->messageId;
+    packet >> s->messageId;
+    packet >> s->playerIdx;
 
 	return std::move(s);
 }
@@ -972,11 +973,24 @@ void SlippiNetplayClient::SetMatchSelections(SlippiPlayerSelections& s)
 	SendAsync(std::move(spac));
 }
 
-u8 SlippiNetplayClient::GetSlippiRemoteChatMessage()
+SlippiPlayerSelections SlippiNetplayClient::GetSlippiRemoteChatMessage()
 {
-	u8 copiedMessageId = remoteChatMessageId;
-	remoteChatMessageId = 0; // Clear it out
-	return copiedMessageId;
+    SlippiPlayerSelections copiedSelection = SlippiPlayerSelections();
+
+    if(remoteChatMessageSelection != nullptr){
+        copiedSelection.messageId = remoteChatMessageSelection->messageId;
+        copiedSelection.playerIdx = remoteChatMessageSelection->playerIdx;
+
+		// Clear it out
+		remoteChatMessageSelection->messageId = 0;
+		remoteChatMessageSelection->playerIdx = 0;
+    } else {
+        copiedSelection.messageId = 0;
+        copiedSelection.playerIdx = 0;
+    }
+
+
+    return copiedSelection;
 }
 
 u8 SlippiNetplayClient::GetSlippiRemoteSentChatMessage()

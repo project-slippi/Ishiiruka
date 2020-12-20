@@ -6,6 +6,14 @@
 #include <string>
 #include <vector>
 
+#if defined __linux__ && HAVE_ALSA
+#elif defined __APPLE__
+#include <netdb.h>
+#include <arpa/inet.h>
+#elif defined _WIN32
+#endif
+
+
 class MmMessageType
 {
   public:
@@ -17,7 +25,7 @@ class MmMessageType
 std::string MmMessageType::CREATE_TICKET = "create-ticket";
 std::string MmMessageType::CREATE_TICKET_RESP = "create-ticket-resp";
 std::string MmMessageType::GET_TICKET_RESP = "get-ticket-resp";
-extern std::atomic<bool> connectionsReset = true;
+extern bool connectionsReset = true;
 
 SlippiMatchmaking::SlippiMatchmaking(SlippiUser *user)
 {
