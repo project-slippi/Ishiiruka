@@ -77,7 +77,7 @@ SlippiNetplayClient::SlippiNetplayClient(const std::string addrs[], const u16 po
 	this->playerIdx = playerIdx;
 
 	// Set up remote player data structures.
-	int j = 1;
+	int j = 0;
 	for (int i = 0; i < SLIPPI_REMOTE_PLAYER_MAX; i++, j++)
 	{
 		if (j == playerIdx)
@@ -154,7 +154,7 @@ SlippiNetplayClient::SlippiNetplayClient(bool isDecider)
 }
 
 u8 SlippiNetplayClient::PlayerIdxFromPort(u8 port) {
-	u8 p = port - 1;
+	u8 p = port;
 	if (port > playerIdx)
 	{
 		p--;
@@ -315,12 +315,16 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet, ENetPeer *peer)
 		ackTimers[pIdx].Pop();
 
 		pingUs[pIdx] = Common::Timer::GetTimeUs() - sendTime;
-		if (g_ActiveConfig.bShowNetPlayPing && frame % SLIPPI_PING_DISPLAY_INTERVAL == 0)
+		if (g_ActiveConfig.bShowNetPlayPing && frame % SLIPPI_PING_DISPLAY_INTERVAL == 0 && pIdx == 0)
 		{
+			std::stringstream pingDisplay;
+			pingDisplay << "Ping: " << (pingUs[0] / 1000);
+			for (int i = 1; i < SLIPPI_REMOTE_PLAYER_COUNT; i++)
+			{
+				pingDisplay << " | " << (pingUs[i] / 1000);
+			}
 			OSD::AddTypedMessage(
-			    OSD::MessageType::NetPlayPing,
-			                     StringFromFormat("Ping: %u | %u | %u", pingUs[0] / 1000,
-			                                      pingUs[1] / 1000, pingUs[2] / 1000),
+			    OSD::MessageType::NetPlayPing, pingDisplay.str(),
 			                     OSD::Duration::NORMAL, OSD::Color::CYAN);
 		}
 	}
@@ -599,8 +603,8 @@ void SlippiNetplayClient::ThreadFunc()
 	bool acks[SLIPPI_REMOTE_PLAYER_COUNT] = {false, false, false};
 	while (slippiConnectStatus == SlippiConnectStatus::NET_CONNECT_STATUS_INITIATED)
 	{
-		// Send the ready packet if we're not the deciding player.
-		if (playerIdx > 1)
+		// Send the ready packet if we're not port 1.
+		if (playerIdx > 0)
 		{
 			sf::Packet spac;
 			spac << (MessageId)NP_MSG_SLIPPI_CONN_READY;
@@ -640,12 +644,13 @@ void SlippiNetplayClient::ThreadFunc()
 			rpac.append(netEvent.packet->data, netEvent.packet->dataLength);
 			rpac >> mid;
 			rpac >> pIdx;
-			if (playerIdx == 1)
+			// Port 1 should wait until everyone sends a ready packet, then send the start message.
+			if (playerIdx == 0)
 			{
 				INFO_LOG(SLIPPI_ONLINE, "Got ready waiting packet for player %d with mid %d", pIdx, mid);
 				if (mid == NP_MSG_SLIPPI_CONN_READY)
 				{
-					acks[pIdx - 2] = true;
+					acks[pIdx - 1] = true;
 				}
 				else
 				{
@@ -905,7 +910,7 @@ void SlippiNetplayClient::SendSlippiPad(std::unique_ptr<SlippiPad> pad)
 
 	// Remove pad reports that have been received and acked
 	int minAckFrame = lastFrameAcked[0];
-	for (int i = 0; i < SLIPPI_REMOTE_PLAYER_COUNT; i++)
+	for (int i = 1; i < SLIPPI_REMOTE_PLAYER_COUNT; i++)
 	{
 		if (lastFrameAcked[i] < minAckFrame)
 			minAckFrame = lastFrameAcked[i];
@@ -1025,8 +1030,6 @@ std::unique_ptr<SlippiRemotePadOutput> SlippiNetplayClient::GetSlippiRemotePad(i
 		if ((*it)->frame > padOutput->latestFrame)
 			padOutput->latestFrame = (*it)->frame;
 
-		//INFO_LOG(SLIPPI_ONLINE, "Copying pad frame for player %d for frame [%d], latestFrame: %d", index, (*it)->frame,
-		//         padOutput->latestFrame);
 		auto padIt = std::begin((*it)->padBuf);
 		padOutput->data.insert(padOutput->data.end(), padIt, padIt + SLIPPI_PAD_FULL_SIZE);
 	}
@@ -1077,7 +1080,7 @@ int32_t SlippiNetplayClient::GetSlippiLatestRemoteFrame()
 {
 	std::lock_guard<std::mutex> lk(pad_mutex); // TODO: Is this the correct lock?
 
-	// Return the lowest frame among remote queues // TODO: should this be highest frame instead?
+	// Return the lowest frame among remote queues
 	int lowestFrame = 0;
 	for (int i = 0; i < SLIPPI_REMOTE_PLAYER_COUNT; i++)
 	{
