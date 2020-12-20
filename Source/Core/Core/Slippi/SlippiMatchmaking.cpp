@@ -586,7 +586,23 @@ void SlippiMatchmaking::handleConnecting()
 		{
 			ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Failed to connect to players");
 			m_state = ProcessState::ERROR_ENCOUNTERED;
-			m_errorMsg = "Failed setting up connections between players";
+			m_errorMsg = "Timed out waiting for other players to connect";
+			auto failedConns = client->GetFailedConnections();
+			if (!failedConns.empty())
+			{
+				std::stringstream err;
+				err << "Could not connect to players: ";
+				for (int i = 0; i < failedConns.size(); i++)
+				{
+					int p = failedConns[i];
+					if (p >= m_localPlayerPort)
+						p++;
+
+					err << m_playerNames[p] << " ";
+				}
+				m_errorMsg = err.str();
+			}
+
 			return;
 		}
 		else if (status != SlippiNetplayClient::SlippiConnectStatus::NET_CONNECT_STATUS_CONNECTED)
