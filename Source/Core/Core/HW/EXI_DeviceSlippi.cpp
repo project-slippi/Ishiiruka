@@ -2400,7 +2400,8 @@ void CEXISlippi::prepareOnlineMatchState()
 
 	auto names = matchmaking->PlayerNames();
 	#ifdef LOCAL_TESTING
-	names = new std::string[]{"Player 1", "Player 2", "Player 3", "Player 4"};
+	std::string defaultNames[] = {"Player 1", "Player 2", "Player 3", "Player 4"};
+	names = defaultNames;
 	#endif
 
 	for (int i = 0; i < 4; i++)
