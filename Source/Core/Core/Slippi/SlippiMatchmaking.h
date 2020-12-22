@@ -5,14 +5,15 @@
 #include "Core/Slippi/SlippiNetplay.h"
 #include "Core/Slippi/SlippiUser.h"
 
-#include <enet/enet.h>
+#ifndef _WIN32
+#include <netdb.h>
+#include <arpa/inet.h>
+#endif
 #include <unordered_map>
 #include <vector>
 
 #include <json.hpp>
 using json = nlohmann::json;
-
-extern bool connectionsReset;
 
 class SlippiMatchmaking
 {

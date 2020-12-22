@@ -25,7 +25,6 @@ class MmMessageType
 std::string MmMessageType::CREATE_TICKET = "create-ticket";
 std::string MmMessageType::CREATE_TICKET_RESP = "create-ticket-resp";
 std::string MmMessageType::GET_TICKET_RESP = "get-ticket-resp";
-extern bool connectionsReset = true;
 
 SlippiMatchmaking::SlippiMatchmaking(SlippiUser *user)
 {
