@@ -304,6 +304,7 @@ void SlippiMatchmaking::startMatchmaking()
 	// Compute LAN IP, in case 2 people are connecting from one IP we can send them each other's local
 	// IP instead of public. Experimental to allow people from behind one router to connect.
 	char host[256];
+	char lanAddr[30];
 	char *IP;
 	struct hostent *host_entry;
 	int hostname;
@@ -311,22 +312,21 @@ void SlippiMatchmaking::startMatchmaking()
 	if (hostname == -1)
 	{
 		ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Error finding LAN address");
-		m_state = ProcessState::ERROR_ENCOUNTERED;
-		m_errorMsg = "Error finding LAN address";
-		return;
 	}
-	host_entry = gethostbyname(host); // find host information
-	if (host_entry == NULL)
+	else
 	{
-		ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Error finding LAN host");
-		m_state = ProcessState::ERROR_ENCOUNTERED;
-		m_errorMsg = "Error finding LAN host";
-		return;
+		host_entry = gethostbyname(host); // find host information
+		if (host_entry == NULL)
+		{
+			ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Error finding LAN host");
+		}
+		else
+		{
+			IP = inet_ntoa(*((struct in_addr *)host_entry->h_addr_list[0])); // Convert into IP string
+			INFO_LOG(SLIPPI_ONLINE, "[Matchmaking] LAN IP: %s", IP);
+			sprintf(lanAddr, "%s:%d", IP, m_hostPort);
+		}
 	}
-	IP = inet_ntoa(*((struct in_addr *)host_entry->h_addr_list[0])); // Convert into IP string
-	ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] LAN IP: %s", IP);
-	char lanAddr[30];
-	sprintf(lanAddr, "%s:%d", IP, m_hostPort);
 
 	// Send message to server to create ticket
 	json request;
