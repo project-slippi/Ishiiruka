@@ -1039,6 +1039,8 @@ std::unique_ptr<SlippiRemotePadOutput> SlippiNetplayClient::GetSlippiRemotePad(i
 
 void SlippiNetplayClient::DropOldRemoteInputs(int32_t curFrame)
 {
+	std::lock_guard<std::mutex> lk(pad_mutex);
+
 	// Remove pad reports that should no longer be needed, compute the lowest frame recieved by
 	// all remote players that can be safely dropped.
 	int lowestCommonFrame = 0;
