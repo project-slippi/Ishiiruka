@@ -9,10 +9,11 @@
 #include <netdb.h>
 #include <arpa/inet.h>
 #endif
+
 #include <unordered_map>
 #include <vector>
-
 #include <json.hpp>
+
 using json = nlohmann::json;
 
 class SlippiMatchmaking
