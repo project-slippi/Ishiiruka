@@ -6,6 +6,14 @@
 #include <string>
 #include <vector>
 
+#if defined __linux__ && HAVE_ALSA
+#elif defined __APPLE__
+#include <netdb.h>
+#include <arpa/inet.h>
+#elif defined _WIN32
+#endif
+
+
 class MmMessageType
 {
   public:
@@ -17,7 +25,6 @@ class MmMessageType
 std::string MmMessageType::CREATE_TICKET = "create-ticket";
 std::string MmMessageType::CREATE_TICKET_RESP = "create-ticket-resp";
 std::string MmMessageType::GET_TICKET_RESP = "get-ticket-resp";
-extern std::atomic<bool> connectionsReset{true};
 
 SlippiMatchmaking::SlippiMatchmaking(SlippiUser *user)
 {
@@ -413,7 +420,7 @@ void SlippiMatchmaking::handleMatchmaking()
 		{
 			m_playerNames[i] = names[i];
 		}
-		m_localPlayerPort = response.value("Port", -1);
+		m_localPlayerPort = response.value("Port", -1)-1;
 		ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Got response from MM server: %d (local port: %d) | %s, %s, %s",
 		          m_localPlayerPort, m_hostPort, m_oppIp[0].c_str(), m_oppIp[1].c_str(), m_oppIp[2].c_str());
 		// m_oppIp = response.value("oppAddress", "");
@@ -537,7 +544,7 @@ void SlippiMatchmaking::handleConnecting()
 	m_isSwapAttempt = false;
 	m_netplayClient = nullptr;
 	m_isHost = false;
-	if (m_localPlayerPort == 1)
+	if (m_localPlayerPort == 0)
 	{
 		m_isHost = true;
 	}

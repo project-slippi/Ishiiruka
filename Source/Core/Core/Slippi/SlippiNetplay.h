@@ -133,14 +133,14 @@ class SlippiNetplayClient
 	void DropOldRemoteInputs(int32_t curFrame);
 	SlippiMatchInfo *GetMatchInfo();
 	int32_t GetSlippiLatestRemoteFrame();
-	u8 GetSlippiRemoteChatMessage();
+	SlippiPlayerSelections GetSlippiRemoteChatMessage();
 	u8 GetSlippiRemoteSentChatMessage();
 	s32 CalcTimeOffsetUs();
 
-	void WriteChatMessageToPacket(sf::Packet &packet, int messageId);
+	void WriteChatMessageToPacket(sf::Packet &packet, int messageId, u8 playerIdx);
 	std::unique_ptr<SlippiPlayerSelections> ReadChatMessageFromPacket(sf::Packet &packet);
 
-	u8 remoteChatMessageId = 0;     // most recent chat message id from opponent
+	std::unique_ptr<SlippiPlayerSelections> remoteChatMessageSelection = nullptr; // most recent chat message player selection (message + player index)
 	u8 remoteSentChatMessageId = 0; // most recent chat message id that current player sent
 
   protected:
