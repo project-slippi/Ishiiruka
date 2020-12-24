@@ -5,6 +5,7 @@
 #include "Core/Slippi/SlippiNetplay.h"
 #include "Core/Slippi/SlippiUser.h"
 
+#include <curl/curl.h>
 #include <enet/enet.h>
 #include <unordered_map>
 #include <vector>
@@ -50,10 +51,6 @@ class SlippiMatchmaking
 	SlippiUser::UserInfo GetOpponent();
 
   protected:
-	const std::string MM_HOST_DEV = "35.197.121.196"; // Dev host
-	const std::string MM_HOST_PROD = "35.247.98.48";  // Production host
-	const u16 MM_PORT = 43113;
-
 	std::string MM_HOST = "";
 
 	ENetHost *m_client;
@@ -69,6 +66,7 @@ class SlippiMatchmaking
 
 	ProcessState m_state;
 	std::string m_errorMsg = "";
+  std::string m_api_url = "http://localhost/";
 
 	SlippiUser *m_user;
 
@@ -76,6 +74,7 @@ class SlippiMatchmaking
 
 	int m_hostPort;
 	std::string m_oppIp;
+  std::string m_ticket;
 	bool m_isHost;
 	SlippiUser::UserInfo m_oppUser;
 
@@ -87,14 +86,18 @@ class SlippiMatchmaking
 	    {ProcessState::OPPONENT_CONNECTING, true},
 	};
 
-	void disconnectFromServer();
-	void terminateMmConnection();
-	void sendMessage(json msg);
-	int receiveMessage(json &msg, int maxAttempts);
+  // Used by libcurl
+  struct CurlString {
+    const char *readptr;
+    size_t sizeleft;
+  };
+
+  static size_t WriteCallback(void *ptr, size_t size, size_t nmemb, std::string *data);
+	std::string sendMessage(json msg);
 
 	void sendHolePunchMsg(std::string remoteIp, u16 remotePort, u16 localPort);
 
 	void startMatchmaking();
-	void handleMatchmaking();
+	void getTicketStatus();
 	void handleConnecting();
 };
