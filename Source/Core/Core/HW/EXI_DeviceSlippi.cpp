@@ -2459,16 +2459,17 @@ u16 CEXISlippi::getRandomStage()
 	return selectedStage;
 }
 
-void CEXISlippi::setMatchSelections(u8 *payload)
+void CEXISlippi::setMatchSelections(u8 *payload) 
 {
 	SlippiPlayerSelections s;
 
-	s.characterId = payload[0];
-	s.characterColor = payload[1];
-	s.isCharacterSelected = payload[2];
+	s.teamId = payload[0];
+	s.characterId = payload[1];
+	s.characterColor = payload[2];
+	s.isCharacterSelected = payload[3];
 
-	s.stageId = Common::swap16(&payload[3]);
-	u8 stageSelectOption = payload[5];
+	s.stageId = Common::swap16(&payload[4]);
+	u8 stageSelectOption = payload[6];
 
 	s.isStageSelected = stageSelectOption == 1 || stageSelectOption == 3;
 	if (stageSelectOption == 3)
@@ -2476,8 +2477,8 @@ void CEXISlippi::setMatchSelections(u8 *payload)
 		// If stage requested is random, select a random stage
 		s.stageId = getRandomStage();
 	}
-	INFO_LOG(SLIPPI, "LPS set char: %d, iSS: %d, %d, stage: %d", s.isCharacterSelected,
-	         stageSelectOption, s.isStageSelected, s.stageId);
+	INFO_LOG(SLIPPI, "LPS set char: %d, iSS: %d, %d, stage: %d, team: %d", s.isCharacterSelected,
+	         stageSelectOption, s.isStageSelected, s.stageId, s.teamId);
 
 	s.rngOffset = generator() % 0xFFFF;
 

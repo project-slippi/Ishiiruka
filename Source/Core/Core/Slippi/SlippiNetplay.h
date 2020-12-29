@@ -44,6 +44,8 @@ class SlippiPlayerSelections
 	u8 playerIdx = 0;
 	u8 characterId = 0;
 	u8 characterColor = 0;
+	u8 teamId = 0;
+
 	bool isCharacterSelected = false;
 
 	u16 stageId = 0;
