@@ -36,7 +36,7 @@
 #define SLEEP_TIME_MS 8
 #define WRITE_FILE_SLEEP_TIME_MS 85
 
-//#define LOCAL_TESTING
+#define LOCAL_TESTING
 //#define CREATE_DIFF_FILES
 
 static std::unordered_map<u8, std::string> slippi_names;
@@ -2292,12 +2292,24 @@ void CEXISlippi::prepareOnlineMatchState()
 
 		// Overwrite local player character
 		onlineMatchBlock[0x60 + (lps.playerIdx) * 0x24] = lps.characterId;
+		onlineMatchBlock[0x63 + (lps.playerIdx) * 0x24] = lps.characterColor;
+		onlineMatchBlock[0x67 + (lps.playerIdx) * 0x24] = 0;
+		onlineMatchBlock[0x69 + (lps.playerIdx) * 0x24] = lps.teamId;
 
 		// Overwrite remote player character
 		for (int i = 0; i < SLIPPI_REMOTE_PLAYER_COUNT; i++)
 		{
 			u8 idx = matchInfo->remotePlayerSelections[i].playerIdx;
 			onlineMatchBlock[0x60 + idx * 0x24] = matchInfo->remotePlayerSelections[i].characterId;
+
+			// Set Char Colors
+			onlineMatchBlock[0x63 + idx * 0x24] = matchInfo->remotePlayerSelections[i].characterColor;
+
+			// Set Alt Color to Default
+			onlineMatchBlock[0x67 + idx * 0x24] = 0;
+
+			// Set Team Ids
+			onlineMatchBlock[0x69 + idx * 0x24] = matchInfo->remotePlayerSelections[i].teamId;
 		}
 
 		// Overwrite p3/p4
@@ -2313,23 +2325,7 @@ void CEXISlippi::prepareOnlineMatchState()
 		onlineMatchBlock[0x61 + 2 * 0x24] = 0;
 		onlineMatchBlock[0x61 + 3 * 0x24] = 0;
 
-		// Set team ids
-		onlineMatchBlock[0x69 + 0 * 0x24] = 0x1;
-		onlineMatchBlock[0x69 + 1 * 0x24] = 0x0;
-		onlineMatchBlock[0x69 + 2 * 0x24] = 0x0;
-		onlineMatchBlock[0x69 + 3 * 0x24] = 0x1;
-
-		// Set char colors for teams
-		onlineMatchBlock[0x63 + 0 * 0x24] = getCharColor(onlineMatchBlock[0x60 + 0 * 0x24], 1);
-		onlineMatchBlock[0x63 + 1 * 0x24] = getCharColor(onlineMatchBlock[0x60 + 1 * 0x24], 0);
-		onlineMatchBlock[0x63 + 2 * 0x24] = getCharColor(onlineMatchBlock[0x60 + 2 * 0x24], 0);
-		onlineMatchBlock[0x63 + 3 * 0x24] = getCharColor(onlineMatchBlock[0x60 + 3 * 0x24], 1);
-
-		onlineMatchBlock[0x67 + 0 * 0x24] = 0;
-		onlineMatchBlock[0x67 + 1 * 0x24] = 0;
-		onlineMatchBlock[0x67 + 2 * 0x24] = 0;
-		onlineMatchBlock[0x67 + 3 * 0x24] = 0;
-
+		// TODO: this should loop to see if same team has same color and also handle 3vs1
 		// Set light alt colors if same character
 		if (onlineMatchBlock[0x60 + 0 * 0x24] == onlineMatchBlock[0x60 + 3 * 0x24])
 		{
@@ -2469,12 +2465,13 @@ void CEXISlippi::setMatchSelections(u8 *payload)
 {
 	SlippiPlayerSelections s;
 
-	s.characterId = payload[0];
-	s.characterColor = payload[1];
-	s.isCharacterSelected = payload[2];
+	s.teamId = payload[0];
+	s.characterId = payload[1];
+	s.characterColor = payload[2];
+	s.isCharacterSelected = payload[3];
 
-	s.stageId = Common::swap16(&payload[3]);
-	u8 stageSelectOption = payload[5];
+	s.stageId = Common::swap16(&payload[4]);
+	u8 stageSelectOption = payload[6];
 
 	s.isStageSelected = stageSelectOption == 1 || stageSelectOption == 3;
 	if (stageSelectOption == 3)
@@ -2482,8 +2479,8 @@ void CEXISlippi::setMatchSelections(u8 *payload)
 		// If stage requested is random, select a random stage
 		s.stageId = getRandomStage();
 	}
-	INFO_LOG(SLIPPI, "LPS set char: %d, iSS: %d, %d, stage: %d", s.isCharacterSelected,
-	         stageSelectOption, s.isStageSelected, s.stageId);
+	INFO_LOG(SLIPPI, "LPS set char: %d, iSS: %d, %d, stage: %d, team: %d", s.isCharacterSelected,
+	         stageSelectOption, s.isStageSelected, s.stageId, s.teamId);
 
 	s.rngOffset = generator() % 0xFFFF;
 
