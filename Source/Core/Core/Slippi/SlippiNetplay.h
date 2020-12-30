@@ -69,7 +69,8 @@ class SlippiPlayerSelections
 		{
 			this->characterId = s.characterId;
 			this->characterColor = s.characterColor;
-			this->isCharacterSelected = true;
+            this->teamId = s.teamId;
+            this->isCharacterSelected = true;
 		}
 	}
 
