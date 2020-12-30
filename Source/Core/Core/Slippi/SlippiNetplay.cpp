@@ -77,7 +77,7 @@ SlippiNetplayClient::SlippiNetplayClient(const std::string addrs[], const u16 po
 	this->playerIdx = playerIdx;
 
 	// Set up remote player data structures.
-	int j = 1;
+	int j = 0;
 	for (int i = 0; i < SLIPPI_REMOTE_PLAYER_MAX; i++, j++)
 	{
 		if (j == playerIdx)
@@ -89,7 +89,7 @@ SlippiNetplayClient::SlippiNetplayClient(const std::string addrs[], const u16 po
 		this->frameOffsetData[i] = FrameOffsetData();
 		this->lastFrameTiming[i] = FrameTiming();
 		this->pingUs[i] = 0;
-		this->lastFrameAcked[i] = 0;
+		this->lastFrameAcked[i] = 0;	
 	}
 
 	SLIPPI_NETPLAY = std::move(this);
@@ -154,7 +154,7 @@ SlippiNetplayClient::SlippiNetplayClient(bool isDecider)
 }
 
 u8 SlippiNetplayClient::PlayerIdxFromPort(u8 port) {
-	u8 p = port - 1;
+	u8 p = port;
 	if (port > playerIdx)
 	{
 		p--;
@@ -315,12 +315,16 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet, ENetPeer *peer)
 		ackTimers[pIdx].Pop();
 
 		pingUs[pIdx] = Common::Timer::GetTimeUs() - sendTime;
-		if (g_ActiveConfig.bShowNetPlayPing && frame % SLIPPI_PING_DISPLAY_INTERVAL == 0)
+		if (g_ActiveConfig.bShowNetPlayPing && frame % SLIPPI_PING_DISPLAY_INTERVAL == 0 && pIdx == 0)
 		{
+			std::stringstream pingDisplay;
+			pingDisplay << "Ping: " << (pingUs[0] / 1000);
+			for (int i = 1; i < SLIPPI_REMOTE_PLAYER_COUNT; i++)
+			{
+				pingDisplay << " | " << (pingUs[i] / 1000);
+			}
 			OSD::AddTypedMessage(
-			    OSD::MessageType::NetPlayPing,
-			                     StringFromFormat("Ping: %u | %u | %u", pingUs[0] / 1000,
-			                                      pingUs[1] / 1000, pingUs[2] / 1000),
+			    OSD::MessageType::NetPlayPing, pingDisplay.str(),
 			                     OSD::Duration::NORMAL, OSD::Color::CYAN);
 		}
 	}
@@ -344,11 +348,11 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet, ENetPeer *peer)
 	case NP_MSG_SLIPPI_CHAT_MESSAGE:
 	{
 		auto playerSelection = ReadChatMessageFromPacket(packet);
-
+		INFO_LOG(SLIPPI_ONLINE, "[Netplay] Received chat message from opponent %d: %d",
+		         playerSelection->playerIdx, playerSelection->messageId);
 		// set message id to netplay instance
 		remoteChatMessageSelection = std::move(playerSelection);
 		// Show chat message OSD
-		INFO_LOG(SLIPPI_ONLINE, "[Netplay] Received chat message from opponent %i", playerSelection->messageId);
 	}
 	break;
 
@@ -380,7 +384,7 @@ void SlippiNetplayClient::writeToPacket(sf::Packet &packet, SlippiPlayerSelectio
 	packet << s.teamId;
 }
 
-void SlippiNetplayClient::WriteChatMessageToPacket(sf::Packet &packet, int messageId, int playerIdx)
+void SlippiNetplayClient::WriteChatMessageToPacket(sf::Packet &packet, int messageId, u8 playerIdx)
 {
 	packet << static_cast<MessageId>(NP_MSG_SLIPPI_CHAT_MESSAGE);
 	packet << messageId;
@@ -488,8 +492,6 @@ void SlippiNetplayClient::SendAsync(std::unique_ptr<sf::Packet> packet)
 void SlippiNetplayClient::ThreadFunc()
 {
 	// Let client die 1 second before host such that after a swap, the client won't be connected to
-	int attemptCountLimit = 16;
-	int attemptCount = 0;
 	u64 startTime = Common::Timer::GetTimeMs();
 	u64 timeout = 8000;
 
@@ -506,61 +508,60 @@ void SlippiNetplayClient::ThreadFunc()
 		// This will confirm that connection went through successfully
 		ENetEvent netEvent;
 		int net = enet_host_service(m_client, &netEvent, 500);
-		if (net <= 0)
+		if (net > 0)
 		{
-			continue;
-		}
-
-		switch (netEvent.type)
-		{
-		case ENET_EVENT_TYPE_RECEIVE:
-			if (!netEvent.peer)
+			switch (netEvent.type)
 			{
-				INFO_LOG(SLIPPI_ONLINE, "[Netplay] got receive event with nil peer");
-				continue;
-			}
-			INFO_LOG(SLIPPI_ONLINE, "[Netplay] got receive event with peer addr %x:%d", netEvent.peer->address.host,
-			         netEvent.peer->address.port);
-			break;
-
-		case ENET_EVENT_TYPE_DISCONNECT:
-			if (!netEvent.peer)
-			{
-				INFO_LOG(SLIPPI_ONLINE, "[Netplay] got disconnect event with nil peer");
-				continue;
-			}
-			INFO_LOG(SLIPPI_ONLINE, "[Netplay] got disconnect event with peer addr %x:%d", netEvent.peer->address.host,
-			         netEvent.peer->address.port);
-			break;
-
-		case ENET_EVENT_TYPE_CONNECT:
-		{
-			if (!netEvent.peer)
-			{
-				INFO_LOG(SLIPPI_ONLINE, "[Netplay] got connect event with nil peer");
-				continue;
-			}
-
-			INFO_LOG(SLIPPI_ONLINE, "[Netplay] got connect event with peer addr %x:%d", netEvent.peer->address.host,
-			         netEvent.peer->address.port);
-			for (int i = 0; i < m_server.size(); i++)
-			{
-				INFO_LOG(SLIPPI_ONLINE, "[Netplay] Comparing connection address: %x:%d - %x:%d", remoteAddrs[i].host,
-				         remoteAddrs[i].port, netEvent.peer->address.host, netEvent.peer->address.port);
-				if (remoteAddrs[i].host == netEvent.peer->address.host &&
-				    remoteAddrs[i].port == netEvent.peer->address.port)
+			case ENET_EVENT_TYPE_RECEIVE:
+				if (!netEvent.peer)
 				{
-					INFO_LOG(SLIPPI_ONLINE, "[Netplay] Overwriting ENetPeer for address: %x:%d",
-					         netEvent.peer->address.host, netEvent.peer->address.port);
-					INFO_LOG(SLIPPI_ONLINE, "[Netplay] Overwriting ENetPeer with id (%d) with new peer of id %d",
-					         m_server[i]->connectID, netEvent.peer->connectID);
-					m_server[i] = netEvent.peer;
-					connections[i] = true;
-					break;
+					INFO_LOG(SLIPPI_ONLINE, "[Netplay] got receive event with nil peer");
+					continue;
 				}
+				INFO_LOG(SLIPPI_ONLINE, "[Netplay] got receive event with peer addr %x:%d", netEvent.peer->address.host,
+				         netEvent.peer->address.port);
+				break;
+
+			case ENET_EVENT_TYPE_DISCONNECT:
+				if (!netEvent.peer)
+				{
+					INFO_LOG(SLIPPI_ONLINE, "[Netplay] got disconnect event with nil peer");
+					continue;
+				}
+				INFO_LOG(SLIPPI_ONLINE, "[Netplay] got disconnect event with peer addr %x:%d",
+				         netEvent.peer->address.host, netEvent.peer->address.port);
+				break;
+
+			case ENET_EVENT_TYPE_CONNECT:
+			{
+				if (!netEvent.peer)
+				{
+					INFO_LOG(SLIPPI_ONLINE, "[Netplay] got connect event with nil peer");
+					continue;
+				}
+
+				INFO_LOG(SLIPPI_ONLINE, "[Netplay] got connect event with peer addr %x:%d", netEvent.peer->address.host,
+				         netEvent.peer->address.port);
+				for (int i = 0; i < m_server.size(); i++)
+				{
+					INFO_LOG(SLIPPI_ONLINE, "[Netplay] Comparing connection address: %x:%d - %x:%d",
+					         remoteAddrs[i].host, remoteAddrs[i].port, netEvent.peer->address.host,
+					         netEvent.peer->address.port);
+					if (remoteAddrs[i].host == netEvent.peer->address.host &&
+					    remoteAddrs[i].port == netEvent.peer->address.port)
+					{
+						INFO_LOG(SLIPPI_ONLINE, "[Netplay] Overwriting ENetPeer for address: %x:%d",
+						         netEvent.peer->address.host, netEvent.peer->address.port);
+						INFO_LOG(SLIPPI_ONLINE, "[Netplay] Overwriting ENetPeer with id (%d) with new peer of id %d",
+						         m_server[i]->connectID, netEvent.peer->connectID);
+						m_server[i] = netEvent.peer;
+						connections[i] = true;
+						break;
+					}
+				}
+				break;
 			}
-			break;
-		}
+			}
 		}
 
 		bool allConnected = true;
@@ -587,6 +588,14 @@ void SlippiNetplayClient::ThreadFunc()
 		u64 curTime = Common::Timer::GetTimeMs();
 		if ((curTime-startTime) >= timeout || !m_do_loop.IsSet())
 		{
+			for (int i = 0; i < SLIPPI_REMOTE_PLAYER_COUNT; i++)
+			{
+				if (!connections[i])
+				{
+					failedConnections.push_back(i);
+				}
+			}
+
 			slippiConnectStatus = SlippiConnectStatus::NET_CONNECT_STATUS_FAILED;
 			INFO_LOG(SLIPPI_ONLINE, "Slippi online connection failed");
 			return;
@@ -601,8 +610,8 @@ void SlippiNetplayClient::ThreadFunc()
 	bool acks[SLIPPI_REMOTE_PLAYER_COUNT] = {false, false, false};
 	while (slippiConnectStatus == SlippiConnectStatus::NET_CONNECT_STATUS_INITIATED)
 	{
-		// Send the ready packet if we're not the deciding player.
-		if (playerIdx > 1)
+		// Send the ready packet if we're not port 1.
+		if (playerIdx > 0)
 		{
 			sf::Packet spac;
 			spac << (MessageId)NP_MSG_SLIPPI_CONN_READY;
@@ -642,12 +651,13 @@ void SlippiNetplayClient::ThreadFunc()
 			rpac.append(netEvent.packet->data, netEvent.packet->dataLength);
 			rpac >> mid;
 			rpac >> pIdx;
-			if (playerIdx == 1)
+			// Port 1 should wait until everyone sends a ready packet, then send the start message.
+			if (playerIdx == 0)
 			{
 				INFO_LOG(SLIPPI_ONLINE, "Got ready waiting packet for player %d with mid %d", pIdx, mid);
 				if (mid == NP_MSG_SLIPPI_CONN_READY)
 				{
-					acks[pIdx - 2] = true;
+					acks[pIdx - 1] = true;
 				}
 				else
 				{
@@ -844,6 +854,10 @@ SlippiNetplayClient::SlippiConnectStatus SlippiNetplayClient::GetSlippiConnectSt
 	return slippiConnectStatus;
 }
 
+std::vector<int> SlippiNetplayClient::GetFailedConnections() {
+	return failedConnections;
+}
+
 void SlippiNetplayClient::StartSlippiGame()
 {
 	// Reset variables to start a new game
@@ -907,7 +921,7 @@ void SlippiNetplayClient::SendSlippiPad(std::unique_ptr<SlippiPad> pad)
 
 	// Remove pad reports that have been received and acked
 	int minAckFrame = lastFrameAcked[0];
-	for (int i = 0; i < SLIPPI_REMOTE_PLAYER_COUNT; i++)
+	for (int i = 1; i < SLIPPI_REMOTE_PLAYER_COUNT; i++)
 	{
 		if (lastFrameAcked[i] < minAckFrame)
 			minAckFrame = lastFrameAcked[i];
@@ -1027,8 +1041,6 @@ std::unique_ptr<SlippiRemotePadOutput> SlippiNetplayClient::GetSlippiRemotePad(i
 		if ((*it)->frame > padOutput->latestFrame)
 			padOutput->latestFrame = (*it)->frame;
 
-		//INFO_LOG(SLIPPI_ONLINE, "Copying pad frame for player %d for frame [%d], latestFrame: %d", index, (*it)->frame,
-		//         padOutput->latestFrame);
 		auto padIt = std::begin((*it)->padBuf);
 		padOutput->data.insert(padOutput->data.end(), padIt, padIt + SLIPPI_PAD_FULL_SIZE);
 	}
@@ -1038,6 +1050,8 @@ std::unique_ptr<SlippiRemotePadOutput> SlippiNetplayClient::GetSlippiRemotePad(i
 
 void SlippiNetplayClient::DropOldRemoteInputs(int32_t curFrame)
 {
+	std::lock_guard<std::mutex> lk(pad_mutex);
+
 	// Remove pad reports that should no longer be needed, compute the lowest frame recieved by
 	// all remote players that can be safely dropped.
 	int lowestCommonFrame = 0;
@@ -1079,7 +1093,7 @@ int32_t SlippiNetplayClient::GetSlippiLatestRemoteFrame()
 {
 	std::lock_guard<std::mutex> lk(pad_mutex); // TODO: Is this the correct lock?
 
-	// Return the lowest frame among remote queues // TODO: should this be highest frame instead?
+	// Return the lowest frame among remote queues
 	int lowestFrame = 0;
 	for (int i = 0; i < SLIPPI_REMOTE_PLAYER_COUNT; i++)
 	{
