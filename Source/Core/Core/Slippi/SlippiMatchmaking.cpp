@@ -244,8 +244,8 @@ void SlippiMatchmaking::startMatchmaking()
 	}
 
 	ENetAddress addr;
-	std::string MM_DOUBLES = "192.168.1.7";
-	//std::string MM_DOUBLES = "54.149.65.170";
+	//std::string MM_DOUBLES = "192.168.1.7";
+	std::string MM_DOUBLES = "54.149.65.170";
 	enet_address_set_host(&addr, MM_DOUBLES.c_str());
 	addr.port = 3030;
 
