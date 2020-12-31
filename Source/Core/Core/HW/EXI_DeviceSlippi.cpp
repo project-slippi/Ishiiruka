@@ -2389,6 +2389,16 @@ void CEXISlippi::prepareOnlineMatchState()
 	m_read_queue.push_back((u8)chatMessageId);
 	m_read_queue.push_back((u8)chatMessagePlayerIdx);
 
+    std::vector<u8> leftPlayers =   {0x00, 0x01, 0x03, 0x02};     // VS_LEFT_PLAYERS ports 0xP1P2P3PN
+    std::vector<u8> leftChars =     {0x02, 0x03, 0x04, 0x00};     // VS_LEFT_CHARS chars 0xC1C2C300
+    std::vector<u8> rightPlayers =  {0x02, 0x03, 0x01, 0x02};     // VS_RIGHT_PLAYERS ports 0xP1P2P3PN
+    std::vector<u8> rightChars =    {0x05, 0x06, 0x07, 0x00};     // VS_RIGHT_CHARS ports 0xC1C2C300
+
+    m_read_queue.insert(m_read_queue.end(), leftPlayers.begin(), leftPlayers.end());
+    m_read_queue.insert(m_read_queue.end(), leftChars.begin(), leftChars.end());
+    m_read_queue.insert(m_read_queue.end(), rightPlayers.begin(), rightPlayers.end());
+    m_read_queue.insert(m_read_queue.end(), rightChars.begin(), rightChars.end());
+
 	// Add names to output
 	// Always send static local player name
 	localPlayerName = ConvertStringForGame(localPlayerName, MAX_NAME_LENGTH);
