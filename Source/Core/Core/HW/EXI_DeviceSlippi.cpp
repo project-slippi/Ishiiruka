@@ -36,7 +36,7 @@
 #define SLEEP_TIME_MS 8
 #define WRITE_FILE_SLEEP_TIME_MS 85
 
-#define LOCAL_TESTING
+//#define LOCAL_TESTING
 //#define CREATE_DIFF_FILES
 
 static std::unordered_map<u8, std::string> slippi_names;
@@ -1829,276 +1829,6 @@ void CEXISlippi::startFindMatch(u8 *payload)
 #endif
 }
 
-
-// teamId 0 = red, 1 = blue, 2 = green
-int CEXISlippi::getCharColor(u8 charId, u8 teamId)
-{
-	switch (charId)
-	{
-	case 0x0: // Falcon
-		switch (teamId)
-		{
-		case 0:
-			return 2;
-		case 1:
-			return 5;
-		case 2:
-			return 4;
-		}
-	case 0x1: // DK
-		switch (teamId)
-		{
-		case 0:
-			return 2;
-		case 1:
-			return 3;
-		case 2:
-			return 4;
-		}
-	case 0x2: // Fox
-		switch (teamId)
-		{
-		case 0:
-			return 1;
-		case 1:
-			return 2;
-		case 2:
-			return 3;
-		}
-	case 0x3: // GaW
-		switch (teamId)
-		{
-		case 0:
-			return 1;
-		case 1:
-			return 2;
-		case 2:
-			return 3;
-		}
-	case 0x4: // Kirby
-		switch (teamId)
-		{
-		case 0:
-			return 3;
-		case 1:
-			return 2;
-		case 2:
-			return 4;
-		}
-	case 0x5: // Bowser
-		switch (teamId)
-		{
-		case 0:
-			return 1;
-		case 1:
-			return 2;
-		case 2:
-			return 0;
-		}
-	case 0x6: // Link
-		switch (teamId)
-		{
-		case 0:
-			return 1;
-		case 1:
-			return 2;
-		case 2:
-			return 0;
-		}
-	case 0x7: // Luigi
-		switch (teamId)
-		{
-		case 0:
-			return 3;
-		case 1:
-			return 2;
-		case 2:
-			return 0;
-		}
-	case 0x8: // Mario
-		switch (teamId)
-		{
-		case 0:
-			return 0;
-		case 1:
-			return 3;
-		case 2:
-			return 4;
-		}
-	case 0x9: // Marth
-		switch (teamId)
-		{
-		case 0:
-			return 1;
-		case 1:
-			return 0;
-		case 2:
-			return 2;
-		}
-	case 0xA: // Mewtwo
-		switch (teamId)
-		{
-		case 0:
-			return 1;
-		case 1:
-			return 2;
-		case 2:
-			return 3;
-		}
-	case 0xB: // Ness
-		switch (teamId)
-		{
-		case 0:
-			return 0;
-		case 1:
-			return 2;
-		case 2:
-			return 3;
-		}
-	case 0xC: // Peach
-		switch (teamId)
-		{
-		case 0:
-			return 0;
-		case 1:
-			return 3;
-		case 2:
-			return 4;
-		}
-	case 0xD: // Pikachu
-		switch (teamId)
-		{
-		case 0:
-			return 1;
-		case 1:
-			return 2;
-		case 2:
-			return 3;
-		}
-	case 0xE: // Ice Climbers
-		switch (teamId)
-		{
-		case 0:
-			return 3;
-		case 1:
-			return 0;
-		case 2:
-			return 1;
-		}
-	case 0xF: // Jigglypuff
-		switch (teamId)
-		{
-		case 0:
-			return 1;
-		case 1:
-			return 2;
-		case 2:
-			return 3;
-		}
-	case 0x10: // Samus
-		switch (teamId)
-		{
-		case 0:
-			return 0;
-		case 1:
-			return 4;
-		case 2:
-			return 3;
-		}
-	case 0x11: // Yoshi
-		switch (teamId)
-		{
-		case 0:
-			return 1;
-		case 1:
-			return 2;
-		case 2:
-			return 0;
-		}
-	case 0x12: // Zelda
-		switch (teamId)
-		{
-		case 0:
-			return 1;
-		case 1:
-			return 2;
-		case 2:
-			return 3;
-		}
-	case 0x13: // Sheik
-		switch (teamId)
-		{
-		case 0:
-			return 1;
-		case 1:
-			return 2;
-		case 2:
-			return 3;
-		}
-	case 0x14: // Falco
-		switch (teamId)
-		{
-		case 0:
-			return 1;
-		case 1:
-			return 2;
-		case 2:
-			return 3;
-		}
-	case 0x15: // YLink
-		switch (teamId)
-		{
-		case 0:
-			return 1;
-		case 1:
-			return 2;
-		case 2:
-			return 0;
-		}
-	case 0x16: // DrMario
-		switch (teamId)
-		{
-		case 0:
-			return 1;
-		case 1:
-			return 2;
-		case 2:
-			return 3;
-		}
-	case 0x17: // Roy
-		switch (teamId)
-		{
-		case 0:
-			return 1;
-		case 1:
-			return 2;
-		case 2:
-			return 3;
-		}
-	case 0x18: // Pichu
-		switch (teamId)
-		{
-		case 0:
-			return 1;
-		case 1:
-			return 2;
-		case 2:
-			return 3;
-		}
-	case 0x19: // Ganondorf
-		switch (teamId)
-		{
-		case 0:
-			return 1;
-		case 1:
-			return 2;
-		case 2:
-			return 3;
-		}
-	}
-	return 0;
-}
-
 void CEXISlippi::prepareOnlineMatchState()
 {
 	// This match block is a VS match with P1 Red Falco vs P2 Red Bowser vs P3 Young Link vs P4 Young Link
@@ -2305,45 +2035,40 @@ void CEXISlippi::prepareOnlineMatchState()
 			// Set Char Colors
 			onlineMatchBlock[0x63 + idx * 0x24] = matchInfo->remotePlayerSelections[i].characterColor;
 
-			// Set Alt Color to Default
-			onlineMatchBlock[0x67 + idx * 0x24] = 0;
-
 			// Set Team Ids
 			onlineMatchBlock[0x69 + idx * 0x24] = matchInfo->remotePlayerSelections[i].teamId;
 		}
 
-		// Overwrite p3/p4
+
+		// Set alt color to light/dark costume for multiples of the same character on a team
+		int characterCount[26][3] = {0};
+		for (int i = 0; i < 4; i++)
+		{
+			int charId = onlineMatchBlock[0x60 + i * 0x24];
+			int teamId = onlineMatchBlock[0x69 + i * 0x24];
+			onlineMatchBlock[0x67 + i * 0x24] = characterCount[charId][teamId];
+			characterCount[charId][teamId]++;
+		}
+
+		// Handle Singles/Teams specific logic
 		if (SLIPPI_REMOTE_PLAYER_COUNT < 3)
 		{
-			onlineMatchBlock[0x60 + 3 * 0x24] = 0x14;
 			onlineMatchBlock[0xD] = 0; // is Teams = false
+
+			// Make one character lighter if same character, same color
+			bool isSheikVsZelda = lps.characterId == 0x12 && rps[0].characterId == 0x13 ||
+			                      lps.characterId == 0x13 && rps[0].characterId == 0x12;
+			bool charMatch = lps.characterId == rps[0].characterId || isSheikVsZelda;
+			bool colMatch = lps.characterColor == rps[0].characterColor;
+
+			onlineMatchBlock[0x67 + 0x24] = charMatch && colMatch ? 1 : 0;
 		} else {
 			onlineMatchBlock[0xD] = 1; // is Teams = true
+
+			// Set p3/p4 player type to human
+			onlineMatchBlock[0x61 + 2 * 0x24] = 0;
+			onlineMatchBlock[0x61 + 3 * 0x24] = 0;
 		}
-
-		// p3/p4 human
-		onlineMatchBlock[0x61 + 2 * 0x24] = 0;
-		onlineMatchBlock[0x61 + 3 * 0x24] = 0;
-
-		// TODO: this should loop to see if same team has same color and also handle 3vs1
-		// Set light alt colors if same character
-		if (onlineMatchBlock[0x60 + 0 * 0x24] == onlineMatchBlock[0x60 + 3 * 0x24])
-		{
-			onlineMatchBlock[0x67 + 3 * 0x24] = 1;
-		}
-
-		if (onlineMatchBlock[0x60 + 1 * 0x24] == onlineMatchBlock[0x60 + 2 * 0x24])
-		{
-			onlineMatchBlock[0x67 + 2 * 0x24] = 1;
-		}
-
-		// Make one character lighter if same character, same color
-		/*bool isSheikVsZelda =
-		    lps.characterId == 0x12 && rps.characterId == 0x13 || lps.characterId == 0x13 && rps.characterId == 0x12;
-		bool charMatch = lps.characterId == rps.characterId || isSheikVsZelda;
-		bool colMatch = lps.characterColor == rps.characterColor;*/
-
-		//onlineMatchBlock[0x67 + 0x24] = charMatch && colMatch ? 1 : 0;
 
 		// Overwrite stage
 		u16 stageId;
@@ -2355,10 +2080,6 @@ void CEXISlippi::prepareOnlineMatchState()
 		{
 			stageId = rps[0].isStageSelected ? rps[0].stageId : lps.stageId;
 		}
-
-		// int seconds = 0;
-		// u32 *timer = (u32 *)&onlineMatchBlock[0x10];
-		//*timer = Common::swap32(seconds * 60);
 
 		u16 *stage = (u16 *)&onlineMatchBlock[0xE];
 		*stage = Common::swap16(stageId);
@@ -2407,7 +2128,7 @@ void CEXISlippi::prepareOnlineMatchState()
 		m_read_queue.insert(m_read_queue.end(), name.begin(), name.end());
 	}
 
-
+	// Create the opponent string using the names of all players on the opposing team
 	int teamIdx = onlineMatchBlock[0x69 + localPlayerIndex * 0x24];
 	std::string oppText = "";
 	for (int i = 0; i < 4; i++)
@@ -2417,9 +2138,10 @@ void CEXISlippi::prepareOnlineMatchState()
 
 		if (onlineMatchBlock[0x69 + i * 0x24] != teamIdx)
 		{
-			oppText += names[i];
-			if (i < 2)
+			if (oppText != "")
 				oppText += "/";
+
+			oppText += names[i];
 		}
 	}
 	oppName = ConvertStringForGame(oppText, MAX_NAME_LENGTH*2 + 1);
