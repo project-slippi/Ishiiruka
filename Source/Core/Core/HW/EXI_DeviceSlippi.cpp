@@ -1988,7 +1988,12 @@ void CEXISlippi::prepareOnlineMatchState()
 
 	auto directMode = SlippiMatchmaking::OnlinePlayMode::DIRECT;
 
-	if (localPlayerReady && remotePlayerReady)
+    std::vector<u8> leftPlayers = {};
+    std::vector<u8> leftChars = {};
+    std::vector<u8> rightPlayers = {};
+    std::vector<u8> rightChars = {};
+
+    if (localPlayerReady && remotePlayerReady)
 	{
 		auto isDecider = slippi_netplay->IsDecider();
 
@@ -2097,6 +2102,13 @@ void CEXISlippi::prepareOnlineMatchState()
 		u8 *gameBitField3 = (u8 *)&onlineMatchBlock[2];
 		*gameBitField3 = lastSearch.mode == directMode ? *gameBitField3 & 0xF7 : *gameBitField3 | 0x8;
 		//*gameBitField3 = *gameBitField3 | 0x8;
+
+
+		// First values on left side are ALWAYS from local player
+        leftPlayers     =   {lps.playerIdx, 0x01, 0x03, 0x02};     // VS_LEFT_PLAYERS ports 0xP1P2P3PN
+        leftChars       =   {lps.characterId, 0x03, 0x04, 0x00};              // VS_LEFT_CHARS chars 0xC1C2C300
+        rightPlayers    =   {0x02, 0x03, 0x01, 0x02};              // VS_RIGHT_PLAYERS ports 0xP1P2P3PN
+        rightChars      =   {0x05, 0x06, 0x07, 0x00};              // VS_RIGHT_CHARS ports 0xC1C2C300
 	}
 
 	// Add rng offset to output
@@ -2109,11 +2121,6 @@ void CEXISlippi::prepareOnlineMatchState()
 	m_read_queue.push_back((u8)sentChatMessageId);
 	m_read_queue.push_back((u8)chatMessageId);
 	m_read_queue.push_back((u8)chatMessagePlayerIdx);
-
-    std::vector<u8> leftPlayers =   {0x00, 0x01, 0x03, 0x02};     // VS_LEFT_PLAYERS ports 0xP1P2P3PN
-    std::vector<u8> leftChars =     {0x02, 0x03, 0x04, 0x00};     // VS_LEFT_CHARS chars 0xC1C2C300
-    std::vector<u8> rightPlayers =  {0x02, 0x03, 0x01, 0x02};     // VS_RIGHT_PLAYERS ports 0xP1P2P3PN
-    std::vector<u8> rightChars =    {0x05, 0x06, 0x07, 0x00};     // VS_RIGHT_CHARS ports 0xC1C2C300
 
     m_read_queue.insert(m_read_queue.end(), leftPlayers.begin(), leftPlayers.end());
     m_read_queue.insert(m_read_queue.end(), leftChars.begin(), leftChars.end());
