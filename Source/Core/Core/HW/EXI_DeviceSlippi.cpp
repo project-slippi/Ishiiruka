@@ -1988,10 +1988,8 @@ void CEXISlippi::prepareOnlineMatchState()
 
 	auto directMode = SlippiMatchmaking::OnlinePlayMode::DIRECT;
 
-    std::vector<u8> leftPlayers = {};
-    std::vector<u8> leftChars = {};
-    std::vector<u8> rightPlayers = {};
-    std::vector<u8> rightChars = {};
+    std::vector<u8> leftTeamPlayers = {};
+    std::vector<u8> rightTeamPlayers = {};
 
     if (localPlayerReady && remotePlayerReady)
 	{
@@ -2121,74 +2119,21 @@ void CEXISlippi::prepareOnlineMatchState()
 		*gameBitField3 = lastSearch.mode == directMode ? *gameBitField3 & 0xF7 : *gameBitField3 | 0x8;
 		//*gameBitField3 = *gameBitField3 | 0x8;
 
-		// TODO: move all this to a method maybe?
-        static std::unordered_map<u8, std::vector<SlippiPlayerSelections>> teams;
-        teams[0] = {}; // RED TEAM
-        teams[1] = {}; // BLUE TEAM
-        teams[2] = {}; // GREEN TEAM
-
-        for (int i = 0; i < SLIPPI_REMOTE_PLAYER_COUNT; i++)
-        {
-            teams[rps[i].teamId].push_back(rps[i]);
-        }
-
-        auto localPlayerTeam = teams[lps.teamId];
-        auto localPlayerTeamSize = localPlayerTeam.size();
-
-        if(localPlayerTeamSize == 0){ // handle 1v1v2
-            // Find the first team that has only one player and add it to local player "team"
-            for (int t = 0; t < teams.size(); t++)
-            {
-                if(t != lps.teamId)  // Skip if same team as local
-                if(teams[t].size() == 1){
-                    // move player to local team
-                    localPlayerTeam.push_back(teams[t][0]);
-                    teams[t].pop_back(); // Remove from team
-                }
-            }
-        }
-
-        // First values on left side are ALWAYS from local player
-        localPlayerTeamSize = localPlayerTeam.size();
-        leftPlayers.push_back(lps.playerIdx);
-        leftChars.push_back(lps.characterId);
-        for(int i = 0; i < localPlayerTeamSize ; i++){
-            leftPlayers.push_back(localPlayerTeam[i].playerIdx);
-            leftChars.push_back(localPlayerTeam[i].characterId);
-        }
-        // 0 out missing players
-        while(leftPlayers.size() < 3) {
-            leftPlayers.push_back(0x0);
-            leftChars.push_back(0x0);
-        }
-        // Add 1 because local player is never actually added
-        leftPlayers.push_back(localPlayerTeamSize+1);
-        leftChars.push_back(localPlayerTeamSize+1);
-
-        // Just add everyone else from any other teams to right side
-        int rightSidePlayerCount = 0;
-        for (int t = 0; t < teams.size(); t++)
-        {
-            if(t != lps.teamId)
-            for(int i=0;i<teams[t].size();i++){
-                rightPlayers.push_back(teams[t][i].playerIdx);
-                rightChars.push_back(teams[t][i].characterId);
-                rightSidePlayerCount++;
-            }
-        }
-        // 0 out missing players
-        while(rightPlayers.size() < 3) {
-            rightPlayers.push_back(0x0);
-            rightChars.push_back(0x0);
-        }
-        rightPlayers.push_back(rightSidePlayerCount);
-        rightChars.push_back(rightSidePlayerCount);
-
-		// First values on left side are ALWAYS from local player
-        //leftPlayers     =   {lps.playerIdx, 0x01, 0x03, 0x02};     // VS_LEFT_PLAYERS ports 0xP1P2P3PN
-        //leftChars       =   {lps.characterId, 0x03, 0x04, 0x00};   // VS_LEFT_CHARS chars 0xC1C2C300
-        //rightPlayers    =   {0x02, 0x03, 0x01, 0x02};              // VS_RIGHT_PLAYERS ports 0xP1P2P3PN
-        //rightChars      =   {0x05, 0x06, 0x07, 0x00};              // VS_RIGHT_CHARS ports 0xC1C2C300
+		// Group players into left/right side for splash screen display
+        for (int i = 0; i < 4; i++)
+		{
+			int teamId = onlineMatchBlock[0x69 + i * 0x24];
+			if (teamId == lps.teamId)
+				leftTeamPlayers.push_back(i);
+			else
+				rightTeamPlayers.push_back(i);
+		}
+		int leftTeamSize = leftTeamPlayers.size();
+		int rightTeamSize = rightTeamPlayers.size();
+		leftTeamPlayers.resize(4, 0);
+		rightTeamPlayers.resize(4, 0);
+		leftTeamPlayers[3] = leftTeamSize;
+		rightTeamPlayers[3] = rightTeamSize;
 	}
 
 	// Add rng offset to output
@@ -2202,10 +2147,11 @@ void CEXISlippi::prepareOnlineMatchState()
 	m_read_queue.push_back((u8)chatMessageId);
 	m_read_queue.push_back((u8)chatMessagePlayerIdx);
 
-    m_read_queue.insert(m_read_queue.end(), leftPlayers.begin(), leftPlayers.end());
-    m_read_queue.insert(m_read_queue.end(), leftChars.begin(), leftChars.end());
-    m_read_queue.insert(m_read_queue.end(), rightPlayers.begin(), rightPlayers.end());
-    m_read_queue.insert(m_read_queue.end(), rightChars.begin(), rightChars.end());
+	// Add player groupings for VS splash screen
+	leftTeamPlayers.resize(4, 0);
+	rightTeamPlayers.resize(4, 0);
+	m_read_queue.insert(m_read_queue.end(), leftTeamPlayers.begin(), leftTeamPlayers.end());
+	m_read_queue.insert(m_read_queue.end(), rightTeamPlayers.begin(), rightTeamPlayers.end());
 
 	// Add names to output
 	// Always send static local player name
