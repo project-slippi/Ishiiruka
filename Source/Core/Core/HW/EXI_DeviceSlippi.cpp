@@ -36,7 +36,7 @@
 #define SLEEP_TIME_MS 8
 #define WRITE_FILE_SLEEP_TIME_MS 85
 
-// #define LOCAL_TESTING
+//#define LOCAL_TESTING
 //#define CREATE_DIFF_FILES
 
 static std::unordered_map<u8, std::string> slippi_names;
@@ -1808,7 +1808,7 @@ void CEXISlippi::startFindMatch(u8 *payload)
 	// someone an early error before they even queue so that they wont enter the queue and make someone
 	// else get force removed from queue and have to requeue
 	auto directMode = SlippiMatchmaking::OnlinePlayMode::DIRECT;
-	if (search.mode != directMode && localSelections.characterId >= 26)
+	if (search.mode < directMode && localSelections.characterId >= 26)
 	{
 		forcedError = "The character you selected is not allowed in this mode";
 		return;
@@ -2031,7 +2031,7 @@ void CEXISlippi::prepareOnlineMatchState()
 			if (rps[i].characterId < 26)
 				remoteCharOk = false;
 		}
-		if (lastSearch.mode != directMode && (!localCharOk || !remoteCharOk))
+		if (lastSearch.mode < directMode && (!localCharOk || !remoteCharOk))
 		{
 			// If we get here, someone is doing something bad, clear the lobby
 			handleConnectionCleanup();
@@ -2116,7 +2116,7 @@ void CEXISlippi::prepareOnlineMatchState()
 
 		// Turn pause on in direct, off in everything else
 		u8 *gameBitField3 = (u8 *)&onlineMatchBlock[2];
-		*gameBitField3 = lastSearch.mode == directMode ? *gameBitField3 & 0xF7 : *gameBitField3 | 0x8;
+		*gameBitField3 = lastSearch.mode >= directMode ? *gameBitField3 & 0xF7 : *gameBitField3 | 0x8;
 		//*gameBitField3 = *gameBitField3 | 0x8;
 
 		// Group players into left/right side for splash screen display
