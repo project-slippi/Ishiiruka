@@ -5,14 +5,16 @@
 #include "Core/Slippi/SlippiNetplay.h"
 #include "Core/Slippi/SlippiUser.h"
 
-#include <enet/enet.h>
+#ifndef _WIN32
+#include <netdb.h>
+#include <arpa/inet.h>
+#endif
+
 #include <unordered_map>
 #include <vector>
-
 #include <json.hpp>
-using json = nlohmann::json;
 
-extern bool connectionsReset;
+using json = nlohmann::json;
 
 class SlippiMatchmaking
 {
@@ -25,6 +27,7 @@ class SlippiMatchmaking
 		RANKED = 0,
 		UNRANKED = 1,
 		DIRECT = 2,
+		TEAMS = 3,
 	};
 
 	enum ProcessState

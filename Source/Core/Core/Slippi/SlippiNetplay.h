@@ -69,7 +69,8 @@ class SlippiPlayerSelections
 		{
 			this->characterId = s.characterId;
 			this->characterColor = s.characterColor;
-			this->isCharacterSelected = true;
+            this->teamId = s.teamId;
+            this->isCharacterSelected = true;
 		}
 	}
 
@@ -127,6 +128,7 @@ class SlippiNetplayClient
 	bool IsConnectionSelected();
 	u8 LocalPlayerPort();
 	SlippiConnectStatus GetSlippiConnectStatus();
+	std::vector<int> GetFailedConnections();
 	void StartSlippiGame();
 	void SendConnectionSelected();
 	void SendSlippiPad(std::unique_ptr<SlippiPad> pad);
@@ -139,7 +141,7 @@ class SlippiNetplayClient
 	u8 GetSlippiRemoteSentChatMessage();
 	s32 CalcTimeOffsetUs();
 
-	void WriteChatMessageToPacket(sf::Packet &packet, int messageId, int playerIdx);
+	void WriteChatMessageToPacket(sf::Packet &packet, int messageId, u8 playerIdx);
 	std::unique_ptr<SlippiPlayerSelections> ReadChatMessageFromPacket(sf::Packet &packet);
 
 	std::unique_ptr<SlippiPlayerSelections> remoteChatMessageSelection = nullptr; // most recent chat message player selection (message + player index)
@@ -198,6 +200,7 @@ class SlippiNetplayClient
 	std::array<Common::FifoQueue<FrameTiming, false>, SLIPPI_REMOTE_PLAYER_MAX> ackTimers;
 
 	SlippiConnectStatus slippiConnectStatus = SlippiConnectStatus::NET_CONNECT_STATUS_UNSET;
+	std::vector<int> failedConnections;
 	SlippiMatchInfo matchInfo;
 
 	bool m_is_recording = false;
