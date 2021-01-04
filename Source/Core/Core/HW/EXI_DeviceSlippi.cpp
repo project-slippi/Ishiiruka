@@ -2131,6 +2131,7 @@ void CEXISlippi::prepareFileLoad(u8 *payload)
 
 void CEXISlippi::handleChatMessage(u8 *payload)
 {
+	if(!SConfig::GetInstance().m_slippiEnableQuickChat) return;
 
 	int messageId = payload[0];
 	INFO_LOG(SLIPPI, "SLIPPI CHAT INPUT: 0x%x", messageId);

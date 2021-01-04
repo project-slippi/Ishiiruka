@@ -652,6 +652,9 @@ void SlippiNetplayClient::SetMatchSelections(SlippiPlayerSelections &s)
 
 u8 SlippiNetplayClient::GetSlippiRemoteChatMessage()
 {
+	if(!SConfig::GetInstance().m_slippiEnableQuickChat) {
+		return 0;
+	}
 	u8 copiedMessageId = remoteChatMessageId;
 	remoteChatMessageId = 0; // Clear it out
 	return copiedMessageId;
@@ -659,6 +662,9 @@ u8 SlippiNetplayClient::GetSlippiRemoteChatMessage()
 
 u8 SlippiNetplayClient::GetSlippiRemoteSentChatMessage()
 {
+	if(!SConfig::GetInstance().m_slippiEnableQuickChat) {
+		return 0;
+	}
 	u8 copiedMessageId = remoteSentChatMessageId;
 	remoteSentChatMessageId = 0; // Clear it out
 	return copiedMessageId;
