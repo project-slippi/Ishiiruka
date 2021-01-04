@@ -204,8 +204,9 @@ CISOProperties::CISOProperties(const GameListItem& game_list_item, wxWindow* par
 	// Load game INIs
 	GameIniFileLocal = File::GetUserPath(D_GAMESETTINGS_IDX) + game_id + ".ini";
 
-	GameIniDefault = SConfig::LoadDefaultGameIni(game_id, m_open_iso->GetRevision());
-	GameIniLocal = SConfig::LoadLocalGameIni(game_id, m_open_iso->GetRevision());
+	game_rev = m_open_iso->GetRevision();
+	GameIniDefault = SConfig::LoadDefaultGameIni(game_id, game_rev);
+	GameIniLocal = SConfig::LoadLocalGameIni(game_id, game_rev);
 
 	// Setup GUI
 	CreateGUIControls();
@@ -481,7 +482,7 @@ void CISOProperties::CreateGUIControls()
 	// If there is no default gameini, disable the button.
 	bool game_ini_exists = false;
 	for (const std::string& ini_filename :
-		SConfig::GetGameIniFilenames(game_id, m_open_iso->GetRevision()))
+		SConfig::GetGameIniFilenames(game_id, game_rev))
 	{
 		if (File::Exists(File::GetSysDirectory() + GAMESETTINGS_DIR DIR_SEP + ini_filename))
 		{
@@ -621,7 +622,7 @@ void CISOProperties::LoadGameConfig()
 
 	PatchList_Load();
 	m_ar_code_panel->LoadCodes(GameIniDefault, GameIniLocal);
-	m_geckocode_panel->LoadCodes(GameIniDefault, GameIniLocal, m_open_iso->GetGameID());
+	m_geckocode_panel->LoadCodes(GameIniDefault, GameIniLocal, game_id, game_rev);
 }
 
 void CISOProperties::SaveGameIniValueFrom3StateCheckbox(const char* section, const char* key,
@@ -818,7 +819,7 @@ void CISOProperties::OnChangeTitle(wxCommandEvent& event)
 void CISOProperties::OnShowDefaultConfig(wxCommandEvent& WXUNUSED(event))
 {
 	for (const std::string& filename :
-		SConfig::GetGameIniFilenames(game_id, m_open_iso->GetRevision()))
+		SConfig::GetGameIniFilenames(game_id, game_rev))
 	{
 		std::string path = File::GetSysDirectory() + GAMESETTINGS_DIR DIR_SEP + filename;
 		if (File::Exists(path))
