@@ -33,10 +33,13 @@ private:
 	void OnReplayMonthFoldersToggle(wxCommandEvent& event);
 	void OnReplayDirChanged(wxCommandEvent& event);
 	void OnDelayFramesChanged(wxCommandEvent &event);
+	void OnQuickChatToggle(wxCommandEvent& event);
 
 	wxCheckBox* m_replay_enable_checkbox;
 	wxDirPickerCtrl* m_replay_directory_picker;
 	wxCheckBox* m_replay_month_folders_checkbox;
 	wxStaticText* m_slippi_delay_frames_txt;
 	wxSpinCtrl *m_slippi_delay_frames_ctrl;
+	wxCheckBox* m_slippi_enable_quick_chat;
+
 };
