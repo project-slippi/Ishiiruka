@@ -1070,7 +1070,8 @@ void CEXISlippi::prepareGeckoList()
 	    {0x800cc818, true}, // External/GreenDuringWait/fall.asm
 	    {0x8008a478, true}, // External/GreenDuringWait/wait.asm
 
-	    {0x802f6690, true}, // HUD Transparency v1.1
+	    {0x802f6690, true}, // HUD Transparency v1.1 (https://smashboards.com/threads/transparent-hud-v1-1.508509/)
+	    {0x802F71E0, true}, // Smaller "Ready, GO!" (https://smashboards.com/threads/smaller-ready-go.509740/)
 	};
 
 	std::unordered_map<u32, bool> blacklist;
