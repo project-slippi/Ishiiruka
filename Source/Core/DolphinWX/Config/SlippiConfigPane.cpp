@@ -92,7 +92,7 @@ void SlippiConfigPane::InitializeGUI()
 	sbSlippiReplaySettings->Add(sSlippiReplaySettings, 0, wxEXPAND | wxLEFT | wxRIGHT, space5);
 	sbSlippiReplaySettings->AddSpacer(space5);
 
-	wxGridBagSizer* const sSlippiOnlineSettings = new wxGridBagSizer(space5, space5);
+	wxGridBagSizer* const sSlippiOnlineSettings = new wxGridBagSizer(space10, space5);
 	sSlippiOnlineSettings->Add(m_slippi_delay_frames_txt, wxGBPosition(0, 0), wxDefaultSpan, wxALIGN_CENTER_VERTICAL);
 	sSlippiOnlineSettings->Add(m_slippi_delay_frames_ctrl, wxGBPosition(0, 1), wxDefaultSpan, wxALIGN_LEFT);
 	sSlippiOnlineSettings->Add(m_slippi_enable_quick_chat, wxGBPosition(1, 0), wxDefaultSpan, wxALIGN_LEFT);
