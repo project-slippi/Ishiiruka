@@ -79,6 +79,7 @@ class SlippiPlayerSelections
 		characterId = 0;
 		characterColor = 0;
 		isCharacterSelected = false;
+		teamId = 0;
 
 		stageId = 0;
 		isStageSelected = false;
@@ -110,8 +111,8 @@ class SlippiNetplayClient
 	void SendAsync(std::unique_ptr<sf::Packet> packet);
 
 	SlippiNetplayClient(bool isDecider); // Make a dummy client
-	SlippiNetplayClient(const std::string addrs[], const u16 ports[], const u16 localPort, bool isDecider,
-	                    u8 playerIdx);
+	SlippiNetplayClient(std::vector<std::string> addrs, std::vector<u16> ports, const u8 remotePlayerCount,
+	                    const u16 localPort, bool isDecider, u8 playerIdx);
 	~SlippiNetplayClient();
 
 	// Slippi Online
@@ -161,6 +162,7 @@ class SlippiNetplayClient
 	ENetHost *m_client = nullptr;
 	std::vector<ENetPeer *> m_server;
 	std::thread m_thread;
+	u8 m_remotePlayerCount = 0;
 
 	std::string m_selected_game;
 	Common::Flag m_is_running{false};
