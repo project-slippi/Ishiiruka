@@ -509,7 +509,7 @@ void SlippiMatchmaking::handleConnecting()
 	{
 		ipLog << m_remoteIps[i] << ", ";
 	}
-	INFO_LOG(SLIPPI_ONLINE, "[Matchmaking] My port: %d || %s", m_hostPort, ipLog.str());
+	//INFO_LOG(SLIPPI_ONLINE, "[Matchmaking] My port: %d || %s", m_hostPort, ipLog.str());
 
 	// Is host is now used to specify who the decider is
 	auto client =
