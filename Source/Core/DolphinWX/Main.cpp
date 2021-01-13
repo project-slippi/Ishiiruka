@@ -110,8 +110,10 @@ bool DolphinApp::OnInit()
 	if (!wxApp::OnInit())
 		return false;
 	if (m_show_version)
+	{
 		std::cout << scm_slippi_semver_str << std::endl;
 		return false;
+	}
 	wxLog::SetLogLevel(0);
 	Bind(wxEVT_QUERY_END_SESSION, &DolphinApp::OnEndSession, this);
 	Bind(wxEVT_END_SESSION, &DolphinApp::OnEndSession, this);
