@@ -110,6 +110,14 @@ std::string processDiff2(std::vector<u8> iState, std::vector<u8> cState)
 	return diff;
 }
 
+std::string ConvertConnectCodeForGame(const std::string &input)
+{
+	std::string connectCode(input);
+	connectCode.resize(CONNECT_CODE_LENGTH + 1); // full width (two byte) hashtag, so +1
+	char fullWidthShiftJisHashtag[] = {(char)0x81, (char)0x94, (char)0x00};
+	return ReplaceAll(connectCode, "#", fullWidthShiftJisHashtag);
+}
+
 CEXISlippi::CEXISlippi()
 {
 	INFO_LOG(SLIPPI, "EXI SLIPPI Constructor called.");
@@ -1993,6 +2001,9 @@ void CEXISlippi::prepareOnlineMatchState()
 		localPlayerName = p1Name = userInfo.displayName;
 	}
 
+	std::string p1ConnectCode = "";
+	std::string p2ConnectCode = "";
+
 	auto directMode = SlippiMatchmaking::OnlinePlayMode::DIRECT;
 
 	std::vector<u8> leftTeamPlayers = {};
@@ -2133,6 +2144,10 @@ void CEXISlippi::prepareOnlineMatchState()
 		WARN_LOG(SLIPPI_ONLINE, "Rng Offset: 0x%x", rngOffset);
 		WARN_LOG(SLIPPI_ONLINE, "P1 Char: 0x%X, P2 Char: 0x%X", onlineMatchBlock[0x60], onlineMatchBlock[0x84]);
 
+		// Set player connect codes
+		p1ConnectCode = isDecider ? userInfo.connectCode : opponent.connectCode;
+		p2ConnectCode = isDecider ? opponent.connectCode : userInfo.connectCode;
+
 		// Turn pause on in direct, off in everything else
 		u8 *gameBitField3 = (u8 *)&onlineMatchBlock[2];
 		*gameBitField3 = lastSearch.mode >= directMode ? *gameBitField3 & 0xF7 : *gameBitField3 | 0x8;
@@ -2211,6 +2226,12 @@ void CEXISlippi::prepareOnlineMatchState()
 		oppText = matchmaking->GetPlayerName(remotePlayerIndex);
 	oppName = ConvertStringForGame(oppText, MAX_NAME_LENGTH * 2 + 1);
 	m_read_queue.insert(m_read_queue.end(), oppName.begin(), oppName.end());
+
+	// Add connect codes to output
+	std::string p1ConnectCodeBuf = ConvertConnectCodeForGame(p1ConnectCode);
+	m_read_queue.insert(m_read_queue.end(), p1ConnectCodeBuf.begin(), p1ConnectCodeBuf.end());
+	std::string p2ConnectCodeBuf = ConvertConnectCodeForGame(p2ConnectCode);
+	m_read_queue.insert(m_read_queue.end(), p2ConnectCodeBuf.begin(), p2ConnectCodeBuf.end());
 
 	// Add error message if there is one
 	auto errorStr = !forcedError.empty() ? forcedError : matchmaking->GetErrorMessage();
@@ -2405,12 +2426,8 @@ void CEXISlippi::prepareOnlineStatus()
 	m_read_queue.insert(m_read_queue.end(), playerName.begin(), playerName.end());
 
 	// Write connect code (10 bytes)
-	std::string connectCode = userInfo.connectCode;
-	char shiftJisHashtag[] = {(char)0x81, (char)0x94, (char)0x00};
-	connectCode.resize(CONNECT_CODE_LENGTH);
-	connectCode = ReplaceAll(connectCode, "#", shiftJisHashtag);
-	auto codeBuf = connectCode.c_str();
-	m_read_queue.insert(m_read_queue.end(), codeBuf, codeBuf + CONNECT_CODE_LENGTH + 2);
+	std::string connectCode = ConvertConnectCodeForGame(userInfo.connectCode);
+	m_read_queue.insert(m_read_queue.end(), connectCode.begin(), connectCode.end());
 }
 
 void doConnectionCleanup(std::unique_ptr<SlippiMatchmaking> mm, std::unique_ptr<SlippiNetplayClient> nc)
