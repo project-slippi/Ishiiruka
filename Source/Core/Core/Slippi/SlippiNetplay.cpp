@@ -365,9 +365,6 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet, ENetPeer *peer)
 	}
 	break;
 
-	//case NP_MSG_SLIPPI_CONN_READY:
-	//	break;
-
 	default:
 		WARN_LOG(SLIPPI_ONLINE, "Unknown message received with id : %d", mid);
 		break;
@@ -604,126 +601,6 @@ void SlippiNetplayClient::ThreadFunc()
 			return;
 		}
 	}
-
-	//INFO_LOG(SLIPPI_ONLINE,
-	//         "Waiting for all players to be ready before starting the game | playerIdx: %d, remoteCount: %d", playerIdx,
-	//         m_remotePlayerCount);
-
-	//// If we're port 1, wait for everyone to send us a ready message before we move on.
-	//// Other ports wait for p1 to receive a message from everyone and echo a 'game start'
-	//// message back.
-	//bool acks[SLIPPI_REMOTE_PLAYER_MAX] = {false};
-	//while (slippiConnectStatus == SlippiConnectStatus::NET_CONNECT_STATUS_INITIATED)
-	//{
-	//	// Send the ready packet if we're not port 1.
-	//	//if (playerIdx > 0)
-	//	//{
-	//	//	sf::Packet spac;
-	//	//	spac << (MessageId)NP_MSG_SLIPPI_CONN_READY;
-	//	//	spac << playerIdx;
-	//	//	Send(spac);
-	//	//}
-
-	//	ENetEvent netEvent;
-	//	int net;
-	//	net = enet_host_service(m_client, &netEvent, 500);
-	//	if (net <= 0)
-	//	{
-	//		continue;
-	//	}
-
-	//	sf::Packet rpac;
-	//	sf::Packet fwdPac;
-	//	MessageId mid = 0;
-	//	u8 pIdx = 0;
-	//	bool allSentAck;
-	//	switch (netEvent.type)
-	//	{
-	//	case ENET_EVENT_TYPE_CONNECT:
-	//		if (!netEvent.peer)
-	//		{
-	//			INFO_LOG(SLIPPI_ONLINE, "[Netplay] got connect event with nil peer during sync step");
-	//			continue;
-	//		}
-	//		INFO_LOG(SLIPPI_ONLINE, "[Netplay] got connect event during sync step with peer addr %x:%d",
-	//		         netEvent.peer->address.host, netEvent.peer->address.port);
-	//		break;
-	//	case ENET_EVENT_TYPE_DISCONNECT:
-	//		slippiConnectStatus = SlippiConnectStatus::NET_CONNECT_STATUS_FAILED;
-	//		INFO_LOG(SLIPPI_ONLINE, "Slippi online connection failed");
-	//		return;
-	//	case ENET_EVENT_TYPE_RECEIVE:
-	//		rpac.append(netEvent.packet->data, netEvent.packet->dataLength);
-
-	//		OnData(rpac, netEvent.peer);
-
-	//		//rpac >> mid;
-	//		//rpac >> pIdx;
-	//		// Port 1 should wait until everyone sends a ready packet, then send the start message.
-	//		//if (playerIdx == 0)
-	//		//{
-	//		//	INFO_LOG(SLIPPI_ONLINE, "Got ready waiting packet for player %d with mid %d", pIdx, mid);
-	//		//	if (mid == NP_MSG_SLIPPI_CONN_READY)
-	//		//	{
-	//		//		acks[pIdx - 1] = true;
-	//		//	}
-	//		//	else
-	//		//	{
-	//		//		fwdPac.append(netEvent.packet->data, netEvent.packet->dataLength);
-	//		//		OnData(fwdPac, netEvent.peer);
-	//		//	}
-
-	//		//	allSentAck = true;
-	//		//	for (int i = 0; i < m_remotePlayerCount; i++)
-	//		//	{
-	//		//		if (!acks[i])
-	//		//			allSentAck = false;
-	//		//	}
-	//		//	if (allSentAck)
-	//		//	{
-	//		//		sf::Packet spac;
-	//		//		spac << (MessageId)NP_MSG_SLIPPI_GAME_READY;
-	//		//		Send(spac);
-	//		//		INFO_LOG(SLIPPI_ONLINE, "Sent game ready packet");
-	//		//		slippiConnectStatus = SlippiConnectStatus::NET_CONNECT_STATUS_CONNECTED;
-	//		//	}
-	//		//}
-	//		//else
-	//		//{
-	//		//	if (mid == NP_MSG_SLIPPI_GAME_READY)
-	//		//	{
-	//		//		INFO_LOG(SLIPPI_ONLINE, "Got game ready packet");
-	//		//		slippiConnectStatus = SlippiConnectStatus::NET_CONNECT_STATUS_CONNECTED;
-	//		//	}
-	//		//	else
-	//		//	{
-	//		//		fwdPac.append(netEvent.packet->data, netEvent.packet->dataLength);
-	//		//		OnData(fwdPac, netEvent.peer);
-	//		//	}
-	//		//}
-	//		
-	//		enet_packet_destroy(netEvent.packet);
-	//		break;
-	//	default:
-	//		break;
-	//	}
-
-	//	if (slippiConnectStatus == SlippiConnectStatus::NET_CONNECT_STATUS_CONNECTED)
-	//	{
-	//		INFO_LOG(SLIPPI_ONLINE, "All connections ready");
-	//		break;
-	//	}
-	//		
-
-	//	// Time out after enough time has passed.
-	//	u64 curTime = Common::Timer::GetTimeMs();
-	//	if ((curTime - startTime) >= timeout || !m_do_loop.IsSet())
-	//	{
-	//		slippiConnectStatus = SlippiConnectStatus::NET_CONNECT_STATUS_FAILED;
-	//		INFO_LOG(SLIPPI_ONLINE, "Slippi online connection failed");
-	//		return;
-	//	}
-	//}
 
 	INFO_LOG(SLIPPI_ONLINE, "Successfully initialized %d connections", m_server.size());
 	for (int i = 0; i < m_server.size(); i++)
