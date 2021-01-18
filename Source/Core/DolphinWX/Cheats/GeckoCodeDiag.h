@@ -27,12 +27,13 @@ class CodeConfigPanel : public wxPanel
 public:
 	CodeConfigPanel(wxWindow* const parent);
 
-	void LoadCodes(const IniFile& globalIni, const IniFile& localIni, const std::string& gameid = "",
-		bool checkRunning = false);
+	void LoadCodes(const IniFile &globalIni, const IniFile &localIni, const std::string &gameid = "",
+	               u16 game_rev = 0, bool checkRunning = false);
 	const std::vector<GeckoCode>& GetCodes() const { return m_gcodes; }
 protected:
 	void UpdateInfoBox(wxCommandEvent&);
 	void ToggleCode(wxCommandEvent& evt);
+	void RefreshCodes(wxCommandEvent &);
 	// void ApplyChanges(wxCommandEvent&);
 
 	void UpdateCodeList(bool checkRunning = false);
@@ -41,6 +42,7 @@ private:
 	std::vector<GeckoCode> m_gcodes;
 
 	std::string m_gameid;
+	u16 m_game_rev;
 
 	// wxwidgets stuff
 	wxCheckListBox* m_listbox_gcodes;
@@ -50,5 +52,6 @@ private:
 		wxTextCtrl* textctrl_notes;
 		wxListBox* listbox_codes;
 	} m_infobox;
+	wxButton *btn_refresh;
 };
 }

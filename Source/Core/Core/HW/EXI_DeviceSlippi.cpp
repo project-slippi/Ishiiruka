@@ -107,6 +107,7 @@ CEXISlippi::CEXISlippi()
 	g_playbackStatus = std::make_unique<SlippiPlaybackStatus>();
 	matchmaking = std::make_unique<SlippiMatchmaking>(user.get());
 	gameFileLoader = std::make_unique<SlippiGameFileLoader>();
+	gameReporter = std::make_unique<SlippiGameReporter>(user.get());
 	g_replayComm = std::make_unique<SlippiReplayComm>();
 
 	generator = std::default_random_engine(Common::Timer::GetTimeMs());
@@ -1038,7 +1039,8 @@ void CEXISlippi::prepareGeckoList()
 	    {0x800cc818, true}, // External/GreenDuringWait/fall.asm
 	    {0x8008a478, true}, // External/GreenDuringWait/wait.asm
 
-	    {0x802f6690, true}, // HUD Transparency v1.1
+	    {0x802f6690, true}, // HUD Transparency v1.1 (https://smashboards.com/threads/transparent-hud-v1-1.508509/)
+	    {0x802F71E0, true}, // Smaller "Ready, GO!" (https://smashboards.com/threads/smaller-ready-go.509740/)
 	};
 
 	std::unordered_map<u32, bool> blacklist;
@@ -1589,6 +1591,17 @@ void CEXISlippi::handleSendInputs(u8 *payload)
 	int32_t frame = payload[0] << 24 | payload[1] << 16 | payload[2] << 8 | payload[3];
 	u8 delay = payload[4];
 
+	// On the first frame sent, we need to queue up empty dummy pads for as many
+	//	frames as we have delay
+	if (frame == 1)
+	{
+		for (int i = 1; i <= delay; i++)
+		{
+			auto empty = std::make_unique<SlippiPad>(i);
+			slippi_netplay->SendSlippiPad(std::move(empty));
+		}
+	}
+
 	auto pad = std::make_unique<SlippiPad>(frame + delay, &payload[5]);
 
 	slippi_netplay->SendSlippiPad(std::move(pad));
@@ -1844,9 +1857,21 @@ void CEXISlippi::prepareOnlineMatchState()
 #ifndef LOCAL_TESTING
 			// If we get here, our opponent likely disconnected. Let's trigger a clean up
 			handleConnectionCleanup();
-			prepareOnlineMatchState();
+			prepareOnlineMatchState(); // run again with new state
 			return;
 #endif
+		}
+
+		// Here we are connected, check to see if we should init play session
+		if (!isPlaySessionActive)
+		{
+			std::vector<std::string> uids{"", ""};
+			uids[localPlayerIndex] = userInfo.uid;
+			uids[remotePlayerIndex] = opponent.uid;
+
+			gameReporter->StartNewSession(uids);
+
+			isPlaySessionActive = true;
 		}
 	}
 	else
@@ -2154,6 +2179,9 @@ void CEXISlippi::handleConnectionCleanup()
 	// Reset any forced errors
 	forcedError.clear();
 
+	// Reset play session
+	isPlaySessionActive = false;
+
 #ifdef LOCAL_TESTING
 	isLocalConnected = false;
 #endif
@@ -2168,6 +2196,30 @@ void CEXISlippi::prepareNewSeed()
 	u32 newSeed = generator() % 0xFFFFFFFF;
 
 	appendWordToBuffer(&m_read_queue, newSeed);
+}
+
+void CEXISlippi::handleReportGame(u8 *payload)
+{
+	SlippiGameReporter::GameReport r;
+	r.durationFrames = Common::swap32(&payload[0]);
+
+	//ERROR_LOG(SLIPPI_ONLINE, "Frames: %d", r.durationFrames);
+
+	for (auto i = 0; i < 2; ++i)
+	{
+		SlippiGameReporter::PlayerReport p;
+		auto offset = i * 6;
+		p.stocksRemaining = payload[5 + offset];
+
+		auto swappedDamageDone = Common::swap32(&payload[6 + offset]);
+		p.damageDone = *(float *)&swappedDamageDone;
+
+		//ERROR_LOG(SLIPPI_ONLINE, "Stocks: %d, DamageDone: %f", p.stocksRemaining, p.damageDone);
+
+		r.players.push_back(p);
+	}
+
+	gameReporter->StartReport(r);
 }
 
 void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
@@ -2291,6 +2343,9 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 			break;
 		case CMD_GET_NEW_SEED:
 			prepareNewSeed();
+			break;
+		case CMD_REPORT_GAME:
+			handleReportGame(&memPtr[bufLoc + 1]);
 			break;
 		default:
 			writeToFileAsync(&memPtr[bufLoc], payloadLen + 1, "");

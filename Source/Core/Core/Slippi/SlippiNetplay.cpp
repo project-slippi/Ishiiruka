@@ -181,12 +181,12 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet)
 			int32_t headFrame = remotePadQueue.empty() ? 0 : remotePadQueue.front()->frame;
 			int inputsToCopy = frame - headFrame;
 
-			//// Check that the packet actually contains the data it claims to
-			// if((5 + inputsToCopy * SLIPPI_PAD_DATA_SIZE) > (int)packet.getDataSize())
-			//{
-			//	ERROR_LOG(SLIPPI_ONLINE, "Netplay packet too small to read pad buffer");
-			//	break;
-			//}
+			// Check that the packet actually contains the data it claims to
+			if((5 + inputsToCopy * SLIPPI_PAD_DATA_SIZE) > (int)packet.getDataSize())
+			{
+				ERROR_LOG(SLIPPI_ONLINE, "Netplay packet too small to read pad buffer");
+				break;
+			}
 
 			for (int i = inputsToCopy - 1; i >= 0; i--)
 			{
@@ -277,24 +277,36 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet)
 
 void SlippiNetplayClient::writeToPacket(sf::Packet &packet, SlippiPlayerSelections &s)
 {
+	u8 playerIndex = isDecider ? 0 : 1;
+	u8 teamId = 0;
+
 	packet << static_cast<MessageId>(NP_MSG_SLIPPI_MATCH_SELECTIONS);
 	packet << s.characterId << s.characterColor << s.isCharacterSelected;
+	packet << playerIndex;
 	packet << s.stageId << s.isStageSelected;
 	packet << s.rngOffset;
+	packet << teamId;
 }
 
 std::unique_ptr<SlippiPlayerSelections> SlippiNetplayClient::readSelectionsFromPacket(sf::Packet &packet)
 {
 	auto s = std::make_unique<SlippiPlayerSelections>();
 
+	u8 playerIndex;
+	u8 teamId;
+
 	packet >> s->characterId;
 	packet >> s->characterColor;
 	packet >> s->isCharacterSelected;
+
+	packet >> playerIndex;
 
 	packet >> s->stageId;
 	packet >> s->isStageSelected;
 
 	packet >> s->rngOffset;
+
+	packet >> teamId;
 
 	return std::move(s);
 }
