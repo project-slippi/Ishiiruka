@@ -1,27 +1,40 @@
-name: PR Builds x64
+name: Builds
 
 on:
   push:
     branches:
-        - slippi
+        - "**"
     paths-ignore:
         - "**.md"
         - "**.ini"
   pull_request:
-    branches: [ slippi ]
+    branches:
+      - slippi
     paths-ignore:
       - "**.md"
       - "**.ini"
 
 jobs:
-  windows64-netplay:
+  windows:
+    strategy:
+      fail-fast: false
+      matrix:
+        build_type: [Netplay, Playback]
+        include:
+          - build_type: Netplay
+            artifact_name: windows64-netplay
+            build_config: Release
+          - build_type: Playback
+            artifact_name: windows64-playback
+            build_config: ReleasePlayback
     env:
       DXSDK_DIR: "C:\\Program Files (x86)\\Microsoft DirectX SDK (June 2010)\\"
-    name: "Windows Netplay"
+    name: "Windows ${{ matrix.build_type }}"
     runs-on: windows-2019
     steps:
       - name: "Setup Go"
         uses: actions/setup-go@v2
+        if: matrix.build_type == 'Netplay'
       - name: "Remove Redistributable"
         shell: cmd
         run: |
@@ -36,20 +49,22 @@ jobs:
       - name: "Checkout"
         uses: actions/checkout@v2.3.1
       - name: 'Fetch Git Tags'
-        if: success()
         shell: bash
+        if: success()
         run: |
           git fetch --prune --unshallow
           echo "GIT_BRANCH=$(git rev-parse --abbrev-ref HEAD)" >> $GITHUB_ENV
           echo "GIT_HASH=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
           echo "GIT_TAG=$(git describe --tags --abbrev=0)" >> $GITHUB_ENV
-      - name: "Build Netplay Dolphin"
+          echo "CURR_DATE=$(date +%Y-%m-%d)" >> $GITHUB_ENV
+      - name: "Build ${{ matrix.build_type }} Dolphin"
         shell: cmd
         run: |
-          msbuild /p:Configuration=Release /p:Platform=x64 ${{ github.workspace }}\Source\Dolphin.sln
-      - name: "Build Updater"
+          msbuild /p:Configuration=${{ matrix.build_config }} /p:Platform=x64 ${{ github.workspace }}\Source\Dolphin.sln
+      - name: "Build Netplay Updater"
         working-directory: ${{ github.workspace }}
         shell: cmd
+        if: matrix.build_type == 'Netplay'
         run: |
           cd %GOPATH%
           git clone https://github.com/project-slippi/dolphin-slippi-tools
@@ -57,245 +72,141 @@ jobs:
           go get github.com/gonutz/w32 github.com/machinebox/graphql golang.org/x/sys/windows/registry
           go build
           copy /b /v /y dolphin-slippi-tools.exe ${{ github.workspace }}\Binary\x64\
-      - name: "Package Netplay"
+      - name: "Prepare Artifact"
         working-directory: ${{ github.workspace }}
         run: |
-          $env:FILE_DATE=(Get-Date -UFormat "%F")
-          $env:FILE_NAME="${env:FILE_DATE}-${{ env.GIT_HASH }}-${{ env.GIT_TAG }}-win64-netplay.zip"
-          mkdir artifact
           Xcopy /Y /E /I .\Data\Sys .\Binary\x64\Sys
           cd .\Binary\x64\
-          fsutil file createnew portable.txt 0
           fsutil file createnew FIX-VCRUNTIME140-ERROR.txt 0
           echo "Download and install this: https://aka.ms/vs/16/release/vc_redist.x64.exe" > .\FIX-VCRUNTIME140-ERROR.txt
-          7z a ${env:FILE_NAME} .\*
-          move ${env:FILE_NAME} ..\..\artifact\
+      - name: "Add Playback codes"
+        working-directory: ${{ github.workspace }}
+        if: matrix.build_type == 'Playback'
+        run: |
+          git clone https://github.com/project-slippi/slippi-desktop-app
+          Xcopy /Y /E /I .\Data\Sys .\Binary\x64\Sys
+          Xcopy /Y /E /I .\slippi-desktop-app\app\dolphin-dev\overwrite\Sys .\Binary\x64\Sys
+      - name: Package Artifact
+        working-directory: ${{ github.workspace }}
+        run: |
+          $FILE_NAME="${{ env.CURR_DATE }}-${{ env.GIT_HASH }}-${{ env.GIT_TAG }}-${{ matrix.artifact_name }}.zip"
+          mkdir artifact
+          cd .\Binary\x64\
+          fsutil file createnew portable.txt 0
+          7z a $FILE_NAME .\*
+          move $FILE_NAME ..\..\artifact\
       - name: "Publish"
         if: success()
         uses: actions/upload-artifact@v2-preview
         with:
-          name: "windows64-netplay"
+          name: ${{ matrix.artifact_name }}
           path: "./artifact/"
-  windows64-playback:
-    env:
-      DXSDK_DIR: "C:\\Program Files (x86)\\Microsoft DirectX SDK (June 2010)\\"
-    name: "Windows Playback"
-    runs-on: windows-2019
+  linux:
+    strategy:
+      fail-fast: false
+      matrix:
+        build_type: [Netplay, Playback]
+        include:
+          - build_type: Netplay
+            artifact_name: linux-netplay
+            build_config: netplay
+          - build_type: Playback
+            artifact_name: linux-playback
+            build_config: playback
+    name: "Ubuntu ${{ matrix.build_type }}"
+    runs-on: ubuntu-18.04
     steps:
-      - name: "Remove Redistributable"
-        shell: cmd
-        run: |
-          MsiExec.exe /passive /X{F0C3E5D1-1ADE-321E-8167-68EF0DE699A5}
-          MsiExec.exe /passive /X{1D8E6291-B0D5-35EC-8441-6616F567A0F7}
-      - name: "Install DirectX SDK"
-        shell: powershell
-        run: |
-          choco install directx-sdk
-      - name: "Setup MSBuild"
-        uses: microsoft/setup-msbuild@v1   
       - name: "Checkout"
-        uses: actions/checkout@v2.3.1
+        uses: actions/checkout@v2
+        with:
+          submodules: recursive
       - name: 'Fetch Git Tags'
         if: success()
-        shell: bash
         run: |
           git fetch --prune --unshallow
           echo "GIT_BRANCH=$(git rev-parse --abbrev-ref HEAD)" >> $GITHUB_ENV
           echo "GIT_HASH=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
           echo "GIT_TAG=$(git describe --tags --abbrev=0)" >> $GITHUB_ENV
-      - name: "Build Playback Dolphin"
-        shell: cmd
+          echo "CURR_DATE=$(date +%Y-%m-%d)" >> $GITHUB_ENV
+      - name: "Install prerequisites"
+        if: success()
+        shell: bash
         run: |
-          msbuild /p:Configuration=ReleasePlayback /p:Platform=x64 ${{ github.workspace }}\Source\Dolphin.sln
-      - name: "Package Playback"
+          sudo dpkg --add-architecture amd64
+          sudo apt update
+          sudo apt install \
+          cmake \
+          pkg-config \
+          git \
+          wget \
+          libao-dev \
+          libasound2-dev \
+          libavcodec-dev \
+          libavformat-dev \
+          libbluetooth-dev \
+          libenet-dev \
+          libgtk2.0-dev \
+          liblzo2-dev \
+          libminiupnpc-dev \
+          libopenal-dev \
+          libpulse-dev \
+          libreadline-dev \
+          libsfml-dev \
+          libsoil-dev \
+          libsoundtouch-dev \
+          libswscale-dev \
+          libusb-1.0-0-dev \
+          libwebkit2gtk-4.0-dev \
+          libxext-dev \
+          libxrandr-dev \
+          portaudio19-dev \
+          zlib1g-dev \
+          libudev-dev \
+          libevdev-dev \
+          libmbedtls-dev \
+          libcurl4-openssl-dev \
+          libegl1-mesa-dev \
+          libpng-dev \
+          qtbase5-private-dev \
+          libxxf86vm-dev \
+          x11proto-xinerama-dev
+      - name: "Build ${{ matrix.build_type }} Dolphin"
         if: success()
         working-directory: ${{ github.workspace }}
         run: |
-          $env:FILE_DATE=(Get-Date -UFormat "%F")
-          $env:FILE_NAME="${env:FILE_DATE}-${{ env.GIT_HASH }}-${{ env.GIT_TAG }}-win64-playback.zip"
+          ./build-linux.sh ${{ matrix.build_config }}
+      - name: "Build ${{ matrix.build_type }} AppImage"
+        if: success()
+        working-directory: ${{ github.workspace }}
+        run: |
+          ./build-appimage.sh ${{ matrix.build_config }}
+      - name: "Package"
+        if: success()
+        working-directory: ${{ github.workspace }}
+        run: |
           mkdir artifact
-          git clone https://github.com/project-slippi/slippi-desktop-app
-          Xcopy /Y /E /I .\Data\Sys .\Binary\x64\Sys
-          Xcopy /Y /E /I .\slippi-desktop-app\app\dolphin-dev\overwrite\Sys .\Binary\x64\Sys
-          Xcopy /Y /E /I .\slippi-desktop-app\app\dolphin-dev\overwrite\User .\Binary\x64\User
-          cd .\Binary\x64\
-          fsutil file createnew portable.txt 0
-          7z a ${env:FILE_NAME} .\*
-          move ${env:FILE_NAME} ..\..\artifact\
+          FILE_NAME=${{ env.CURR_DATE }}-${{ env.GIT_HASH }}-${{ env.GIT_TAG }}-${{ matrix.artifact_name }}.zip
+          zip -r "${FILE_NAME}" ./*.AppImage*
+          mv "${FILE_NAME}" ./artifact/
       - name: "Publish"
         if: success()
         uses: actions/upload-artifact@v2-preview
         with:
-          name: "windows64-playback"
+          name: ${{ matrix.artifact_name }}
           path: "./artifact/"
-  ubuntu64-netplay:
-      name: "Ubuntu Netplay"
-      runs-on: ubuntu-18.04
-      steps:
-        - name: "Checkout"
-          uses: actions/checkout@v2
-          with:
-            submodules: recursive
-        - name: 'Fetch Git Tags'
-          if: success()
-          run: |
-            git fetch --prune --unshallow
-            echo "GIT_BRANCH=$(git rev-parse --abbrev-ref HEAD)" >> $GITHUB_ENV
-            echo "GIT_HASH=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
-            echo "GIT_TAG=$(git describe --tags --abbrev=0)" >> $GITHUB_ENV
-            echo "CURR_DATE=$(date +%Y-%m-%d)" >> $GITHUB_ENV
-        - name: "Install prerequisites"
-          if: success()
-          shell: bash
-          run: |
-            sudo dpkg --add-architecture amd64
-            sudo apt update
-            sudo apt install \
-            cmake \
-            pkg-config \
-            git \
-            wget \
-            libao-dev \
-            libasound2-dev \
-            libavcodec-dev \
-            libavformat-dev \
-            libbluetooth-dev \
-            libenet-dev \
-            libgtk2.0-dev \
-            liblzo2-dev \
-            libminiupnpc-dev \
-            libopenal-dev \
-            libpulse-dev \
-            libreadline-dev \
-            libsfml-dev \
-            libsoil-dev \
-            libsoundtouch-dev \
-            libswscale-dev \
-            libusb-1.0-0-dev \
-            libwxbase3.0-dev \
-            libwxgtk3.0-dev \
-            libxext-dev \
-            libxrandr-dev \
-            portaudio19-dev \
-            zlib1g-dev \
-            libudev-dev \
-            libevdev-dev \
-            libmbedtls-dev \
-            libcurl4-openssl-dev \
-            libegl1-mesa-dev \
-            libpng-dev \
-            qtbase5-private-dev \
-            libxxf86vm-dev \
-            x11proto-xinerama-dev
-        - name: "Build Netplay Dolphin"
-          if: success()
-          working-directory: ${{ github.workspace }}
-          run: |
-            ./build-linux.sh
-        - name: "Build Netplay AppImage"
-          if: success()
-          working-directory: ${{ github.workspace }}
-          run: |
-            ./build-appimage.sh
-        - name: "Package Netplay"
-          if: success()
-          working-directory: ${{ github.workspace }}
-          run: |
-            mkdir artifact
-            FILE_NAME=${{ env.CURR_DATE }}-${{ env.GIT_HASH }}-${{ env.GIT_TAG }}-linux-appimage-netplay.zip
-            zip -r "${FILE_NAME}" ./*.AppImage*
-            mv "${FILE_NAME}" ./artifact/
-        - name: "Publish"
-          if: success()
-          uses: actions/upload-artifact@v2-preview
-          with:
-            name: "linux-netplay"
-            path: "./artifact/"
-  ubuntu64-playback:
-      name: "Ubuntu Playback"
-      runs-on: ubuntu-18.04
-      steps:
-        - name: "Checkout"
-          uses: actions/checkout@v2
-          with:
-            submodules: recursive
-        - name: 'Fetch Git Tags'
-          if: success()
-          run: |
-            git fetch --prune --unshallow
-            echo "GIT_BRANCH=$(git rev-parse --abbrev-ref HEAD)" >> $GITHUB_ENV
-            echo "GIT_HASH=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
-            echo "GIT_TAG=$(git describe --tags --abbrev=0)" >> $GITHUB_ENV
-            echo "CURR_DATE=$(date +%Y-%m-%d)" >> $GITHUB_ENV
-        - name: "Install prerequisites"
-          if: success()
-          shell: bash
-          run: |
-            sudo dpkg --add-architecture amd64
-            sudo apt update
-            sudo apt install \
-            cmake \
-            pkg-config \
-            git \
-            wget \
-            libao-dev \
-            libasound2-dev \
-            libavcodec-dev \
-            libavformat-dev \
-            libbluetooth-dev \
-            libenet-dev \
-            libgtk2.0-dev \
-            liblzo2-dev \
-            libminiupnpc-dev \
-            libopenal-dev \
-            libpulse-dev \
-            libreadline-dev \
-            libsfml-dev \
-            libsoil-dev \
-            libsoundtouch-dev \
-            libswscale-dev \
-            libusb-1.0-0-dev \
-            libwxbase3.0-dev \
-            libwxgtk3.0-dev \
-            libxext-dev \
-            libxrandr-dev \
-            portaudio19-dev \
-            zlib1g-dev \
-            libudev-dev \
-            libevdev-dev \
-            libmbedtls-dev \
-            libcurl4-openssl-dev \
-            libegl1-mesa-dev \
-            libpng-dev \
-            qtbase5-private-dev \
-            libxxf86vm-dev \
-            x11proto-xinerama-dev
-        - name: "Build Playback Dolphin"
-          if: success()
-          working-directory: ${{ github.workspace }}
-          run: |
-            ./build-linux.sh playback
-        - name: "Build Playback AppImage"
-          if: success()
-          working-directory: ${{ github.workspace }}
-          run: |
-            ./build-appimage.sh playback
-        - name: "Package Playback"
-          if: success()
-          working-directory: ${{ github.workspace }}
-          run: |
-            mkdir artifact
-            FILE_NAME=${{ env.CURR_DATE }}-${{ env.GIT_HASH }}-${{ env.GIT_TAG }}-linux-appimage-playback.zip
-            zip -r "${FILE_NAME}" ./*.AppImage
-            mv "${FILE_NAME}" ./artifact/
-        - name: "Publish"
-          if: success()
-          uses: actions/upload-artifact@v2-preview
-          with:
-            name: "linux-playback"
-            path: "./artifact/"
-  macOS64-netplay:
-    name: "macOS Netplay"
+  macOS:
+    strategy:
+      fail-fast: false
+      matrix:
+        build_type: [Netplay, Playback]
+        include:
+          - build_type: Netplay
+            artifact_name: macOS-netplay
+            build_config: netplay
+          - build_type: Playback
+            artifact_name: macOS-playback
+            build_config: playback
+    name: "macOS ${{ matrix.build_type }}"
     runs-on: macos-10.15
     steps:
       - name: "Checkout"
@@ -323,9 +234,7 @@ jobs:
         if: success()
         shell: bash
         run: |
-          wget https://github.com/wxWidgets/wxWidgets/releases/download/v3.1.3/wxWidgets-3.1.3.tar.bz2
-          tar -xf wxWidgets-3.1.3.tar.bz2
-          rm wxWidgets-3.1.3.tar.bz2
+          rm '/usr/local/bin/2to3' || true
           brew update
           brew upgrade cmake
           brew install \
@@ -337,41 +246,36 @@ jobs:
           sound-touch \
           hidapi \
           create-dmg
-      - name: "Cache wxWidgets 3.1.3"
-        uses: actions/cache@v1
+      - name: "Build ${{ matrix.build_type }} Dolphin"
+        if: success()
+        shell: bash
+        working-directory: ${{ github.workspace }}
         env:
-          cache-name: "wxWidgets-3.1.3-macOS"
-        with:
-          path: ./wxWidgets-3.1.3/build
-          key: "wxWidgets-3.1.3-macOS-Catalina"
-      - name: "Install wxWidgets 3.1.3"
-        if: success()
-        shell: bash
-        working-directory: ${{ github.workspace }}
+          CERTIFICATE_MACOS_APPLICATION: ${{ secrets.CERTIFICATE_MACOS_APPLICATION }}
         run: |
-          cd wxWidgets-3.1.3
-          cd build
-          ../configure
-          make -j7
-          sudo make install
-      - name: "Build Netplay (No Codesigning)"
-        if: success()
-        shell: bash
-        working-directory: ${{ github.workspace }}
-        run: |
-          mkdir build
-          cd build
-          cmake ..
-          make -j7
-      - name: "Package Netplay"
-        if: success()
-        shell: bash
-        working-directory: ${{ github.workspace }}
-        run: |
-          FILE_NAME=${{ env.CURR_DATE }}-${{ env.GIT_HASH }}-${{ env.GIT_TAG }}-macOS-netplay.dmg
-          echo "FILE_NAME=$(FILE_NAME)" >> $GITHUB_ENV
-          cp -Rf Data/Sys build/Binaries/Slippi\ Dolphin.app/Contents/Resources/
+          export LIBRARY_PATH=$LIBRARY_PATH:/usr/local/lib
+          chmod +x ./build-mac.sh && ./build-mac.sh ${{ matrix.build_config }}
           mkdir artifact
+      - name: "Codesign ${{ matrix.build_type}} Dolphin"
+        if: success() && env.CERTIFICATE_MACOS_APPLICATION != null
+        shell: bash
+        working-directory: ${{ github.workspace }}
+        env:
+          CERTIFICATE_MACOS_APPLICATION: ${{ secrets.CERTIFICATE_MACOS_APPLICATION }}
+          CERTIFICATE_MACOS_PASSWORD: ${{ secrets.CERTIFICATE_MACOS_PASSWORD }}
+        run: |
+          chmod +x Tools/load-macos-certs-ci.sh && ./Tools/load-macos-certs-ci.sh
+          mkdir -p ~/private_keys/
+          echo '${{ secrets.APPLE_CONNECT_API_KEY }}' > ~/private_keys/AuthKey_${{ secrets.APPLE_API_KEY_ID }}.p8
+          /usr/bin/codesign -f -s "${{ secrets.APPLE_IDENTITY_HASH }}" --deep --options runtime --entitlements Source/Core/DolphinWX/Entitlements.plist ./build/Binaries/Slippi\ Dolphin.app
+      - name: "Package Netplay"
+        if: success() && matrix.build_type == 'Netplay'
+        shell: bash
+        working-directory: ${{ github.workspace }}
+        run: |
+          rm build/Binaries/traversal_server
+          FILE_NAME=${{ env.CURR_DATE }}-${{ env.GIT_HASH }}-${{ env.GIT_TAG }}-${{ matrix.artifact_name }}.dmg
+          echo "FILE_NAME=$FILE_NAME" >> $GITHUB_ENV
           create-dmg --no-internet-enable \
             --volname "Slippi Dolphin Installer" \
             --volicon "Data/slippi_dmg_icon.icns" \
@@ -386,122 +290,35 @@ jobs:
             "${FILE_NAME}" \
             "./build/Binaries/"
           mv "${FILE_NAME}" artifact/
-      - name: "Publish"
-        if: success()
-        uses: actions/upload-artifact@v2-preview
-        with:
-          name: "macOS-netplay"
-          path: "./artifact/"
-  macOS64-playback:
-    name: "macOS Playback"
-    runs-on: macos-10.15
-    steps:
-      - name: "Checkout"
-        uses: actions/checkout@v2
-        with:
-          submodules: recursive
-      - name: 'Fetch Git Tags'
-        if: success()
-        run: |
-          git fetch --prune --unshallow
-          echo "GIT_BRANCH=$(git rev-parse --abbrev-ref HEAD)" >> $GITHUB_ENV
-          echo "GIT_HASH=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
-          echo "GIT_TAG=$(git describe --tags --abbrev=0)" >> $GITHUB_ENV
-          echo "CURR_DATE=$(date +%Y-%m-%d)" >> $GITHUB_ENV
-      - name: "Install 10.14 SDK"
-        if: success()
+      - name: "Package, Sign and Notarize Netplay DMG"
+        if: success() && matrix.build_type == 'Netplay' && env.CERTIFICATE_MACOS_APPLICATION != null
         shell: bash
         working-directory: ${{ github.workspace }}
-        run: |
-          wget https://github.com/phracker/MacOSX-SDKs/releases/download/10.15/MacOSX10.14.sdk.tar.xz
-          tar -xf MacOSX10.14.sdk.tar.xz
-          rm MacOSX10.14.sdk.tar.xz
-          sudo mv MacOSX10.14.sdk /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/
-      - name: "Download and Install prerequisites"
-        if: success()
-        shell: bash
-        run: |
-          wget https://github.com/wxWidgets/wxWidgets/releases/download/v3.1.3/wxWidgets-3.1.3.tar.bz2
-          tar -xf wxWidgets-3.1.3.tar.bz2
-          rm wxWidgets-3.1.3.tar.bz2
-          brew update
-          brew upgrade cmake
-          brew install \
-          ffmpeg \
-          libpng \
-          libav \
-          pkgconfig \
-          libao \
-          sound-touch \
-          hidapi
-      - name: "Cache wxWidgets 3.1.3"
-        uses: actions/cache@v1
         env:
-          cache-name: "wxWidgets-3.1.3-macOS"
-        with:
-          path: ./wxWidgets-3.1.3/build
-          key: "wxWidgets-3.1.3-macOS-Catalina"
-      - name: "Install wxWidgets 3.1.3"
-        if: success()
-        shell: bash
-        working-directory: ${{ github.workspace }}
-        run: |
-          cd wxWidgets-3.1.3
-          cd build
-          ../configure
-          make -j7
-          sudo make install
-      - name: "Build Playback"
-        if: success() && env.CERTIFICATE_MACOS_APPLICATION == null
-        shell: bash
-        working-directory: ${{ github.workspace }}
-        run: |
-          mkdir build
-          cd build
-
-          if [[ -z "$MACOS_CERT_PASSWD" ]]; then
-            echo "Building with code signing"
-            cmake -DIS_PLAYBACK=true -DMACOS_CODE_SIGNING="ON" ..
-          else
-            cmake -DIS_PLAYBACK=true ..
-          fi
-          
-          make -j7
-        env:
-          MACOS_CERT_PASSWD: ${{ secrets.CERTIFICATE_MACOS_PASSWORD }}
-      - name: "Inject Playback Resources"
-        if: success()
-        shell: bash
-        working-directory: ${{ github.workspace }}
-        run: |
-          git clone https://github.com/project-slippi/slippi-desktop-app
-          cd ./build/Binaries/
-          cp -Rf ../../Data/Sys ./Slippi\ Dolphin.app/Contents/Resources
-          cp -Rf ../../slippi-desktop-app/app/dolphin-dev/overwrite/Sys ./Slippi\ Dolphin.app/Contents/Resources
-          cp -Rf ../../slippi-desktop-app/app/dolphin-dev/overwrite/User ./Slippi\ Dolphin.app/Contents/Resources 
-      - name: "Codesign Playback"
-        if: success() && env.CERTIFICATE_MACOS_APPLICATION != null
-        shell: bash
-        working-directory: ${{ github.workspace }}
-        run: |
-          chmod +x Tools/load-macos-certs-ci.sh && ./Tools/load-macos-certs-ci.sh
-          /usr/bin/codesign -f -s "${{ secrets.APPLE_IDENTITY_HASH }}" --deep --options runtime --entitlements Source/Core/DolphinWX/Entitlements.plist build/Binaries/Slippi\ Dolphin.app
-        env:
+          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_ISSUER_ID: ${{ secrets.APPLE_ISSUER_ID }}
           CERTIFICATE_MACOS_APPLICATION: ${{ secrets.CERTIFICATE_MACOS_APPLICATION }}
-          CERTIFICATE_MACOS_PASSWORD: ${{ secrets.CERTIFICATE_MACOS_PASSWORD }}
+        run: |
+          /usr/bin/codesign -f -s "${{ secrets.APPLE_IDENTITY_HASH }}" --deep --options runtime ./artifact/${{ env.FILE_NAME }}
+          chmod +x Tools/notarize_netplay.sh && ./Tools/notarize_netplay.sh ./artifact/${{ env.FILE_NAME }}
       - name: "Package Playback"
-        if: success()
+        if: success() && matrix.build_type == 'Playback'
         shell: bash
         working-directory: ${{ github.workspace }}
         run: |
-          mkdir artifact
           cd  ./build/Binaries
-          FILE_NAME=${{ env.CURR_DATE }}-${{ env.GIT_HASH }}-${{ env.GIT_TAG }}-macOS-playback.zip
+          FILE_NAME=${{ env.CURR_DATE }}-${{ env.GIT_HASH }}-${{ env.GIT_TAG }}-${{ matrix.artifact_name }}.zip
           zip -r "${FILE_NAME}" Slippi\ Dolphin.app
           mv "${FILE_NAME}" ../../artifact/
       - name: "Publish"
         if: success()
         uses: actions/upload-artifact@v2-preview
         with:
-          name: "macOS-playback"
+          name: ${{ matrix.artifact_name }}
           path: "./artifact/"
+      #- name: "Enable Admin Debugging via SSH (if failed)"
+      # if: failure()
+      # uses: luchihoratiu/debug-via-ssh@main
+      # with:
+      #  NGROK_AUTH_TOKEN: ${{ secrets.NGROK_TOKEN }}
+      #   SSH_PASS: ${{ secrets.NGROK_PASS }}
