@@ -16,6 +16,7 @@
 #include "Core/Slippi/SlippiSavestate.h"
 #include "Core/Slippi/SlippiSpectate.h"
 #include "Core/Slippi/SlippiUser.h"
+#include "Core/Slippi/SlippiGameReporter.h"
 
 #define ROLLBACK_MAX_FRAMES 7
 #define MAX_NAME_LENGTH 15
@@ -69,6 +70,7 @@ class CEXISlippi : public IEXIDevice
 		CMD_GET_ONLINE_STATUS = 0xB9,
 		CMD_CLEANUP_CONNECTION = 0xBA,
 		CMD_GET_NEW_SEED = 0xBC,
+		CMD_REPORT_GAME = 0xBD,
 
 		// Misc
 		CMD_LOG_MESSAGE = 0xD0,
@@ -112,6 +114,7 @@ class CEXISlippi : public IEXIDevice
 	    {CMD_GET_ONLINE_STATUS, 0},
 	    {CMD_CLEANUP_CONNECTION, 0},
 	    {CMD_GET_NEW_SEED, 0},
+	    {CMD_REPORT_GAME, 16},
 
 	    // Misc
 	    {CMD_LOG_MESSAGE, 0xFFFF}, // Variable size... will only work if by itself
@@ -171,6 +174,7 @@ class CEXISlippi : public IEXIDevice
 	void prepareOnlineStatus();
 	void handleConnectionCleanup();
 	void prepareNewSeed();
+	void handleReportGame(u8 *payload);
 
 	// replay playback stuff
 	void prepareGameInfo(u8 *payload);
@@ -218,6 +222,9 @@ class CEXISlippi : public IEXIDevice
 
 	std::string forcedError = "";
 
+	// Used to determine when to detect when a new session has started
+	bool isPlaySessionActive = false;
+
   protected:
 	void TransferByte(u8 &byte) override;
 
@@ -228,6 +235,7 @@ class CEXISlippi : public IEXIDevice
 	std::unique_ptr<SlippiGameFileLoader> gameFileLoader;
 	std::unique_ptr<SlippiNetplayClient> slippi_netplay;
 	std::unique_ptr<SlippiMatchmaking> matchmaking;
+	std::unique_ptr<SlippiGameReporter> gameReporter;
 
 	std::map<s32, std::unique_ptr<SlippiSavestate>> activeSavestates;
 	std::deque<std::unique_ptr<SlippiSavestate>> availableSavestates;
