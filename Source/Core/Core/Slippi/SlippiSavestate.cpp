@@ -14,6 +14,8 @@
 #include "Core/PowerPC/PowerPC.h"
 #include <vector>
 
+bool SlippiSavestate::shouldForceInit;
+
 SlippiSavestate::SlippiSavestate()
 {
 	initBackupLocs();
@@ -54,7 +56,7 @@ void SlippiSavestate::initBackupLocs()
 	    // Full Unknown Region: [804fec00 - 80BD5C40)
 	    // https://docs.google.com/spreadsheets/d/16ccNK_qGrtPfx4U25w7OWIDMZ-NxN1WNBmyQhaDxnEg/edit?usp=sharing
 	    {0x8065c000, 0x8071b000, nullptr}, // Unknown Region Pt1. Maybe get the low bound pointer at 804d5c10 and the size of the audio heap at 804d5e18
-	    {0x0, 0x0, nullptr},               // Unknown Region Pt2, Heap [80bd5c40 - 811AD5A0).
+	    {0x80bd5c40, 0x811AD5A0, nullptr}, // Unknown Region Pt2, Heap [80bd5c40 - 811AD5A0). Gets overwritten on init
 	};
 
 	static std::vector<PreserveBlock> excludeSections = {
@@ -99,11 +101,13 @@ void SlippiSavestate::initBackupLocs()
 	static std::vector<ssBackupLoc> processedLocs = {};
 
 	// If the processed locations are already computed, just copy them directly
-	if (processedLocs.size())
+	if (processedLocs.size() && !shouldForceInit)
 	{
 		backupLocs.insert(backupLocs.end(), processedLocs.begin(), processedLocs.end());
 		return;
 	}
+
+	shouldForceInit = false;
 
 	// Get Main Heap Boundaries
 	fullBackupRegions[3].startAddress = PowerPC::HostRead_U32(0x804d76b8);
