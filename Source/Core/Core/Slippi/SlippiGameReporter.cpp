@@ -97,6 +97,9 @@ void SlippiGameReporter::ReportThreadHandler()
 
 			auto userInfo = m_user->GetUserInfo();
 
+			WARN_LOG(SLIPPI_ONLINE, "Checking game report for game %d. Length: %d...", gameIndex,
+			         report.durationFrames);
+
 			// Prepare report
 			json request;
 			request["uid"] = userInfo.uid;
