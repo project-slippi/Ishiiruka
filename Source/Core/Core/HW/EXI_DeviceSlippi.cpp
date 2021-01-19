@@ -1944,9 +1944,13 @@ void CEXISlippi::prepareOnlineMatchState()
 		// Here we are connected, check to see if we should init play session
 		if (!isPlaySessionActive)
 		{
-			std::vector<std::string> uids{"", ""};
-			uids[localPlayerIndex] = userInfo.uid;
-			uids[remotePlayerIndex] = opponent.uid;
+			std::vector<std::string> uids;
+
+			auto mmPlayers = matchmaking->GetPlayerInfo();
+			for (auto mmp : mmPlayers)
+			{
+				uids.push_back(mmp.uid);
+			}
 
 			gameReporter->StartNewSession(uids);
 
