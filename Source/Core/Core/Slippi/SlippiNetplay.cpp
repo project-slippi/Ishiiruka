@@ -176,15 +176,14 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet)
 
 			auto packetData = (u8 *)packet.getData();
 
-			INFO_LOG(SLIPPI_ONLINE, "Receiving a packet of inputs [%d]...", frame);
-
 			int32_t headFrame = remotePadQueue.empty() ? 0 : remotePadQueue.front()->frame;
 			int inputsToCopy = frame - headFrame;
 
 			// Check that the packet actually contains the data it claims to
 			if((5 + inputsToCopy * SLIPPI_PAD_DATA_SIZE) > (int)packet.getDataSize())
 			{
-				ERROR_LOG(SLIPPI_ONLINE, "Netplay packet too small to read pad buffer");
+				ERROR_LOG(SLIPPI_ONLINE, "Netplay packet too small to read pad buffer. Size: %d, Inputs: %d, MinSize: %d",
+				          (int)packet.getDataSize(), inputsToCopy, 5 + inputsToCopy * SLIPPI_PAD_DATA_SIZE);
 				break;
 			}
 
@@ -254,9 +253,10 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet)
 
 		// This might be a good place to reset some logic? Game can't start until we receive this msg
 		// so this should ensure that everything is initialized before the game starts
-		// TODO: This could cause issues in the case of a desync? If this is ever received mid-game, bad things
-		// TODO: will happen. Consider improving this
 		hasGameStarted = false;
+
+		// Reset remote pad queue such that next inputs that we get are not compared to inputs from last game
+		remotePadQueue.clear();
 	}
 	break;
 
@@ -527,12 +527,7 @@ void SlippiNetplayClient::StartSlippiGame()
 
 	localPadQueue.clear();
 
-	remotePadQueue.clear();
-	for (s32 i = 1; i <= 2; i++)
-	{
-		std::unique_ptr<SlippiPad> pad = std::make_unique<SlippiPad>(i);
-		remotePadQueue.push_front(std::move(pad));
-	}
+	// Remote pad should have been cleared when receiving the match selections
 
 	// Reset match info for next game
 	matchInfo.Reset();
@@ -590,12 +585,12 @@ void SlippiNetplayClient::SendSlippiPad(std::unique_ptr<SlippiPad> pad)
 	*spac << static_cast<MessageId>(NP_MSG_SLIPPI_PAD);
 	*spac << frame;
 
-	INFO_LOG(SLIPPI_ONLINE, "Sending a packet of inputs [%d]...", frame);
+	//INFO_LOG(SLIPPI_ONLINE, "Sending a packet of inputs [%d]...", frame);
 	for (auto it = localPadQueue.begin(); it != localPadQueue.end(); ++it)
 	{
-		INFO_LOG(SLIPPI_ONLINE, "Send [%d] -> %02X %02X %02X %02X %02X %02X %02X %02X", (*it)->frame, (*it)->padBuf[0],
-		         (*it)->padBuf[1], (*it)->padBuf[2], (*it)->padBuf[3], (*it)->padBuf[4], (*it)->padBuf[5],
-		         (*it)->padBuf[6], (*it)->padBuf[7]);
+		//INFO_LOG(SLIPPI_ONLINE, "Send [%d] -> %02X %02X %02X %02X %02X %02X %02X %02X", (*it)->frame, (*it)->padBuf[0],
+		//         (*it)->padBuf[1], (*it)->padBuf[2], (*it)->padBuf[3], (*it)->padBuf[4], (*it)->padBuf[5],
+		//         (*it)->padBuf[6], (*it)->padBuf[7]);
 		spac->append((*it)->padBuf, SLIPPI_PAD_DATA_SIZE); // only transfer 8 bytes per pad
 	}
 
