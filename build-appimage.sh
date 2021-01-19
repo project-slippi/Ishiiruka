@@ -80,6 +80,7 @@ if [ "$1" == "playback" ] # Playback
 else
 		echo "Using Netplay build config"
 
+		# remove existing appimage just in case
 		rm -f ${NETPLAY_APPIMAGE_STRING}
 		
 		# Package up the update tool within the AppImage
