@@ -34,7 +34,7 @@
 static std::mutex pad_mutex;
 static std::mutex ack_mutex;
 
-SlippiNetplayClient* SLIPPI_NETPLAY = nullptr;
+SlippiNetplayClient *SLIPPI_NETPLAY = nullptr;
 
 // called from ---GUI--- thread
 SlippiNetplayClient::~SlippiNetplayClient()
@@ -65,8 +65,7 @@ SlippiNetplayClient::~SlippiNetplayClient()
 
 // called from ---SLIPPI EXI--- thread
 SlippiNetplayClient::SlippiNetplayClient(std::vector<std::string> addrs, std::vector<u16> ports,
-                                         const u8 remotePlayerCount, const u16 localPort,
-                                         bool isDecider, u8 playerIdx)
+                                         const u8 remotePlayerCount, const u16 localPort, bool isDecider, u8 playerIdx)
 #ifdef _WIN32
     : m_qos_handle(nullptr)
     , m_qos_flow_id(0)
@@ -91,7 +90,7 @@ SlippiNetplayClient::SlippiNetplayClient(std::vector<std::string> addrs, std::ve
 		this->frameOffsetData[i] = FrameOffsetData();
 		this->lastFrameTiming[i] = FrameTiming();
 		this->pingUs[i] = 0;
-		this->lastFrameAcked[i] = 0;	
+		this->lastFrameAcked[i] = 0;
 	}
 
 	SLIPPI_NETPLAY = std::move(this);
@@ -155,7 +154,8 @@ SlippiNetplayClient::SlippiNetplayClient(bool isDecider)
 	slippiConnectStatus = SlippiConnectStatus::NET_CONNECT_STATUS_FAILED;
 }
 
-u8 SlippiNetplayClient::PlayerIdxFromPort(u8 port) {
+u8 SlippiNetplayClient::PlayerIdxFromPort(u8 port)
+{
 	u8 p = port;
 	if (port > playerIdx)
 	{
@@ -164,7 +164,8 @@ u8 SlippiNetplayClient::PlayerIdxFromPort(u8 port) {
 	return p;
 }
 
-u8 SlippiNetplayClient::LocalPlayerPort() {
+u8 SlippiNetplayClient::LocalPlayerPort()
+{
 	return this->playerIdx;
 }
 
@@ -237,17 +238,20 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet, ENetPeer *peer)
 
 			auto packetData = (u8 *)packet.getData();
 
-			INFO_LOG(SLIPPI_ONLINE, "Receiving a packet of inputs from player %d(%d) [%d]...", packetPlayerPort, pIdx, frame);
+			INFO_LOG(SLIPPI_ONLINE, "Receiving a packet of inputs from player %d(%d) [%d]...", packetPlayerPort, pIdx,
+			         frame);
 
 			int32_t headFrame = remotePadQueue[pIdx].empty() ? 0 : remotePadQueue[pIdx].front()->frame;
 			int inputsToCopy = frame - headFrame;
 
-			//// Check that the packet actually contains the data it claims to
-			// if((5 + inputsToCopy * SLIPPI_PAD_DATA_SIZE) > (int)packet.getDataSize())
-			//{
-			//	ERROR_LOG(SLIPPI_ONLINE, "Netplay packet too small to read pad buffer");
-			//	break;
-			//}
+			// Check that the packet actually contains the data it claims to
+			if ((6 + inputsToCopy * SLIPPI_PAD_DATA_SIZE) > (int)packet.getDataSize())
+			{
+				ERROR_LOG(SLIPPI_ONLINE,
+				          "Netplay packet too small to read pad buffer. Size: %d, Inputs: %d, MinSize: %d",
+				          (int)packet.getDataSize(), inputsToCopy, 6 + inputsToCopy * SLIPPI_PAD_DATA_SIZE);
+				break;
+			}
 
 			for (int i = inputsToCopy - 1; i >= 0; i--)
 			{
@@ -265,8 +269,9 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet, ENetPeer *peer)
 		spac << (MessageId)NP_MSG_SLIPPI_PAD_ACK;
 		spac << frame;
 		spac << playerIdx;
-		INFO_LOG(SLIPPI_ONLINE, "Sending ack packet for frame %d (player %d) to peer at %d:%d", frame, packetPlayerPort, peer->address.host, peer->address.port);
-		
+		INFO_LOG(SLIPPI_ONLINE, "Sending ack packet for frame %d (player %d) to peer at %d:%d", frame, packetPlayerPort,
+		         peer->address.host, peer->address.port);
+
 		ENetPacket *epac = enet_packet_create(spac.getData(), spac.getDataSize(), ENET_PACKET_FLAG_UNSEQUENCED);
 		int sendResult = enet_peer_send(peer, 2, epac);
 	}
@@ -296,8 +301,7 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet, ENetPeer *peer)
 			break;
 		}
 
-		INFO_LOG(SLIPPI_ONLINE, "Received ack packet from player %d(%d) [%d]...", packetPlayerPort, pIdx,
-		         frame);
+		INFO_LOG(SLIPPI_ONLINE, "Received ack packet from player %d(%d) [%d]...", packetPlayerPort, pIdx, frame);
 
 		lastFrameAcked[pIdx] = frame > lastFrameAcked[pIdx] ? frame : lastFrameAcked[pIdx];
 
@@ -325,9 +329,8 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet, ENetPeer *peer)
 			{
 				pingDisplay << " | " << (pingUs[i] / 1000);
 			}
-			OSD::AddTypedMessage(
-			    OSD::MessageType::NetPlayPing, pingDisplay.str(),
-			                     OSD::Duration::NORMAL, OSD::Color::CYAN);
+			OSD::AddTypedMessage(OSD::MessageType::NetPlayPing, pingDisplay.str(), OSD::Duration::NORMAL,
+			                     OSD::Color::CYAN);
 		}
 	}
 	break;
@@ -341,17 +344,18 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet, ENetPeer *peer)
 
 		// This might be a good place to reset some logic? Game can't start until we receive this msg
 		// so this should ensure that everything is initialized before the game starts
-		// TODO: This could cause issues in the case of a desync? If this is ever received mid-game, bad things
-		// TODO: will happen. Consider improving this
 		hasGameStarted = false;
+
+		// Reset remote pad queue such that next inputs that we get are not compared to inputs from last game
+		remotePadQueue[idx].clear();
 	}
 	break;
 
 	case NP_MSG_SLIPPI_CHAT_MESSAGE:
 	{
 		auto playerSelection = ReadChatMessageFromPacket(packet);
-		INFO_LOG(SLIPPI_ONLINE, "[Netplay] Received chat message from opponent %d: %d",
-		         playerSelection->playerIdx, playerSelection->messageId);
+		INFO_LOG(SLIPPI_ONLINE, "[Netplay] Received chat message from opponent %d: %d", playerSelection->playerIdx,
+		         playerSelection->messageId);
 		// set message id to netplay instance
 		remoteChatMessageSelection = std::move(playerSelection);
 		// Show chat message OSD
@@ -394,8 +398,8 @@ std::unique_ptr<SlippiPlayerSelections> SlippiNetplayClient::ReadChatMessageFrom
 {
 	auto s = std::make_unique<SlippiPlayerSelections>();
 
-    packet >> s->messageId;
-    packet >> s->playerIdx;
+	packet >> s->messageId;
+	packet >> s->playerIdx;
 
 	return std::move(s);
 }
@@ -586,7 +590,7 @@ void SlippiNetplayClient::ThreadFunc()
 
 		// Time out after enough time has passed
 		u64 curTime = Common::Timer::GetTimeMs();
-		if ((curTime-startTime) >= timeout || !m_do_loop.IsSet())
+		if ((curTime - startTime) >= timeout || !m_do_loop.IsSet())
 		{
 			for (int i = 0; i < m_remotePlayerCount; i++)
 			{
@@ -674,7 +678,7 @@ void SlippiNetplayClient::ThreadFunc()
 			{
 			case ENET_EVENT_TYPE_RECEIVE:
 				rpac.append(netEvent.packet->data, netEvent.packet->dataLength);
-				
+
 				OnData(rpac, netEvent.peer);
 
 				enet_packet_destroy(netEvent.packet);
@@ -739,7 +743,8 @@ SlippiNetplayClient::SlippiConnectStatus SlippiNetplayClient::GetSlippiConnectSt
 	return slippiConnectStatus;
 }
 
-std::vector<int> SlippiNetplayClient::GetFailedConnections() {
+std::vector<int> SlippiNetplayClient::GetFailedConnections()
+{
 	return failedConnections;
 }
 
@@ -757,13 +762,6 @@ void SlippiNetplayClient::StartSlippiGame()
 		timing.timeUs = Common::Timer::GetTimeUs();
 		lastFrameTiming[i] = timing;
 		lastFrameAcked[i] = 0;
-
-		remotePadQueue[i].clear();
-		for (s32 i = 1; i <= 2; i++)
-		{
-			std::unique_ptr<SlippiPad> pad = std::make_unique<SlippiPad>(i);
-			remotePadQueue[i].push_front(std::move(pad));
-		}
 
 		// Reset ack timers
 		ackTimers[i].Clear();
@@ -832,12 +830,12 @@ void SlippiNetplayClient::SendSlippiPad(std::unique_ptr<SlippiPad> pad)
 	*spac << frame;
 	*spac << this->playerIdx;
 
-	INFO_LOG(SLIPPI_ONLINE, "Sending a packet of inputs [%d]...", frame);
+	// INFO_LOG(SLIPPI_ONLINE, "Sending a packet of inputs [%d]...", frame);
 	for (auto it = localPadQueue.begin(); it != localPadQueue.end(); ++it)
 	{
 		INFO_LOG(SLIPPI_ONLINE, "Send [%d] -> %02X %02X %02X %02X %02X %02X %02X %02X", (*it)->frame, (*it)->padBuf[0],
-			(*it)->padBuf[1], (*it)->padBuf[2], (*it)->padBuf[3], (*it)->padBuf[4], (*it)->padBuf[5],
-			(*it)->padBuf[6], (*it)->padBuf[7]);
+		         (*it)->padBuf[1], (*it)->padBuf[2], (*it)->padBuf[3], (*it)->padBuf[4], (*it)->padBuf[5],
+		         (*it)->padBuf[6], (*it)->padBuf[7]);
 		spac->append((*it)->padBuf, SLIPPI_PAD_DATA_SIZE); // only transfer 8 bytes per pad
 	}
 
@@ -862,8 +860,7 @@ void SlippiNetplayClient::SendSlippiPad(std::unique_ptr<SlippiPad> pad)
 	}
 }
 
-
-void SlippiNetplayClient::SetMatchSelections(SlippiPlayerSelections& s)
+void SlippiNetplayClient::SetMatchSelections(SlippiPlayerSelections &s)
 {
 	matchInfo.localPlayerSelections.Merge(s);
 	matchInfo.localPlayerSelections.playerIdx = playerIdx;
@@ -876,22 +873,24 @@ void SlippiNetplayClient::SetMatchSelections(SlippiPlayerSelections& s)
 
 SlippiPlayerSelections SlippiNetplayClient::GetSlippiRemoteChatMessage()
 {
-    SlippiPlayerSelections copiedSelection = SlippiPlayerSelections();
+	SlippiPlayerSelections copiedSelection = SlippiPlayerSelections();
 
-    if(remoteChatMessageSelection != nullptr){
-        copiedSelection.messageId = remoteChatMessageSelection->messageId;
-        copiedSelection.playerIdx = remoteChatMessageSelection->playerIdx;
+	if (remoteChatMessageSelection != nullptr)
+	{
+		copiedSelection.messageId = remoteChatMessageSelection->messageId;
+		copiedSelection.playerIdx = remoteChatMessageSelection->playerIdx;
 
 		// Clear it out
 		remoteChatMessageSelection->messageId = 0;
 		remoteChatMessageSelection->playerIdx = 0;
-    } else {
-        copiedSelection.messageId = 0;
-        copiedSelection.playerIdx = 0;
-    }
+	}
+	else
+	{
+		copiedSelection.messageId = 0;
+		copiedSelection.playerIdx = 0;
+	}
 
-
-    return copiedSelection;
+	return copiedSelection;
 }
 
 u8 SlippiNetplayClient::GetSlippiRemoteSentChatMessage()
@@ -953,7 +952,8 @@ void SlippiNetplayClient::DropOldRemoteInputs(int32_t curFrame)
 			lowestCommonFrame = playerFrame;
 	}
 
-	//INFO_LOG(SLIPPI_ONLINE, "Checking for remotePadQueue inputs to drop, lowest common: %d, [0]: %d, [1]: %d, [2]: %d",
+	// INFO_LOG(SLIPPI_ONLINE, "Checking for remotePadQueue inputs to drop, lowest common: %d, [0]: %d, [1]: %d, [2]:
+	// %d",
 	//         lowestCommonFrame, playerFrame[0], playerFrame[1], playerFrame[2]);
 	for (int i = 0; i < m_remotePlayerCount; i++)
 	{
@@ -968,7 +968,7 @@ void SlippiNetplayClient::DropOldRemoteInputs(int32_t curFrame)
 	}
 }
 
-SlippiMatchInfo* SlippiNetplayClient::GetMatchInfo()
+SlippiMatchInfo *SlippiNetplayClient::GetMatchInfo()
 {
 	return &matchInfo;
 }
@@ -987,11 +987,12 @@ int32_t SlippiNetplayClient::GetSlippiLatestRemoteFrame()
 		}
 
 		int f = remotePadQueue[i].front()->frame;
-		if (f < lowestFrame || lowestFrame == 0) {
+		if (f < lowestFrame || lowestFrame == 0)
+		{
 			lowestFrame = f;
 		}
 	}
-	
+
 	return lowestFrame;
 }
 
@@ -1011,7 +1012,7 @@ s32 SlippiNetplayClient::CalcTimeOffsetUs()
 	{
 		return 0;
 	}
-	
+
 	std::vector<int> offsets;
 	for (int i = 0; i < m_remotePlayerCount; i++)
 	{
@@ -1051,6 +1052,6 @@ s32 SlippiNetplayClient::CalcTimeOffsetUs()
 			maxOffset = offsets[i];
 	}
 
-	//INFO_LOG(SLIPPI_ONLINE, "Time offsets, [0]: %d, [1]: %d, [2]: %d", offsets[0], offsets[1], offsets[2]);
+	// INFO_LOG(SLIPPI_ONLINE, "Time offsets, [0]: %d, [1]: %d, [2]: %d", offsets[0], offsets[1], offsets[2]);
 	return maxOffset;
 }

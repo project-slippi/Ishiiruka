@@ -8,11 +8,10 @@
 
 #if defined __linux__ && HAVE_ALSA
 #elif defined __APPLE__
-#include <netdb.h>
 #include <arpa/inet.h>
+#include <netdb.h>
 #elif defined _WIN32
 #endif
-
 
 class MmMessageType
 {
@@ -117,7 +116,7 @@ int SlippiMatchmaking::receiveMessage(json &msg, int timeoutMs)
 		{
 		case ENET_EVENT_TYPE_RECEIVE:
 		{
-			
+
 			std::vector<u8> buf;
 			buf.insert(buf.end(), netEvent.packet->data, netEvent.packet->data + netEvent.packet->dataLength);
 
@@ -214,7 +213,7 @@ void SlippiMatchmaking::startMatchmaking()
 	{
 		if (userInfo.port > 0)
 			m_hostPort = userInfo.port;
-		else 
+		else
 			m_hostPort = 49000 + (generator() % 2000);
 		ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Port to use: %d...", m_hostPort);
 
@@ -240,7 +239,7 @@ void SlippiMatchmaking::startMatchmaking()
 
 	ENetAddress addr;
 	std::string MM_DOUBLES = "104.154.50.102";
-	//std::string MM_DOUBLES = "54.149.65.170";
+	// std::string MM_DOUBLES = "54.149.65.170";
 	enet_address_set_host(&addr, MM_DOUBLES.c_str());
 	addr.port = 43113;
 
@@ -286,10 +285,10 @@ void SlippiMatchmaking::startMatchmaking()
 
 	/*if (!m_user->IsLoggedIn())
 	{
-		ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Must be logged in to queue");
-		m_state = ProcessState::ERROR_ENCOUNTERED;
-		m_errorMsg = "Must be logged in to queue. Go back to menu";
-		return;
+	    ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Must be logged in to queue");
+	    m_state = ProcessState::ERROR_ENCOUNTERED;
+	    m_errorMsg = "Must be logged in to queue. Go back to menu";
+	    return;
 	}*/
 
 	// Compute LAN IP, in case 2 people are connecting from one IP we can send them each other's local
@@ -440,7 +439,7 @@ void SlippiMatchmaking::handleMatchmaking()
 			if (!isLocal)
 				m_remoteIps.push_back(el.value("ipAddressLan", "1.1.1.1:123"));
 			else
-				m_localPlayerPort = playerInfo.port-1;
+				m_localPlayerPort = playerInfo.port - 1;
 		};
 	}
 	m_isHost = getResp.value("isHost", false);
@@ -448,7 +447,7 @@ void SlippiMatchmaking::handleMatchmaking()
 	// If it's teams mode, just have port 1 be the host since they have to synchronize the game start for everyone.
 	/*if (m_searchSettings.mode == SlippiMatchmaking::OnlinePlayMode::TEAMS)
 	{
-		m_isHost = m_localPlayerPort == 0;
+	    m_isHost = m_localPlayerPort == 0;
 	}*/
 
 	// Disconnect and destroy enet client to mm server
@@ -458,7 +457,8 @@ void SlippiMatchmaking::handleMatchmaking()
 	ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Opponent found. isDecider: %s", m_isHost ? "true" : "false");
 }
 
-int SlippiMatchmaking::LocalPlayerIndex() {
+int SlippiMatchmaking::LocalPlayerIndex()
+{
 	return m_localPlayerPort;
 }
 
@@ -467,7 +467,7 @@ std::vector<SlippiUser::UserInfo> SlippiMatchmaking::GetPlayerInfo()
 	return m_playerInfo;
 }
 
-std::string SlippiMatchmaking::GetPlayerName(u8 port) 
+std::string SlippiMatchmaking::GetPlayerName(u8 port)
 {
 	if (port >= m_playerInfo.size())
 	{
@@ -476,12 +476,12 @@ std::string SlippiMatchmaking::GetPlayerName(u8 port)
 	return m_playerInfo[port].displayName;
 }
 
-u8 SlippiMatchmaking::RemotePlayerCount() 
+u8 SlippiMatchmaking::RemotePlayerCount()
 {
 	if (m_playerInfo.size() == 0)
 		return 0;
 
-	return (u8) m_playerInfo.size() - 1;
+	return (u8)m_playerInfo.size() - 1;
 }
 
 void SlippiMatchmaking::handleConnecting()
@@ -491,7 +491,7 @@ void SlippiMatchmaking::handleConnecting()
 	m_isSwapAttempt = false;
 	m_netplayClient = nullptr;
 
-	u8 remotePlayerCount = (u8) m_remoteIps.size();
+	u8 remotePlayerCount = (u8)m_remoteIps.size();
 	std::vector<std::string> remoteParts;
 	std::vector<std::string> addrs;
 	std::vector<u16> ports;
@@ -509,7 +509,7 @@ void SlippiMatchmaking::handleConnecting()
 	{
 		ipLog << m_remoteIps[i] << ", ";
 	}
-	//INFO_LOG(SLIPPI_ONLINE, "[Matchmaking] My port: %d || %s", m_hostPort, ipLog.str());
+	// INFO_LOG(SLIPPI_ONLINE, "[Matchmaking] My port: %d || %s", m_hostPort, ipLog.str());
 
 	// Is host is now used to specify who the decider is
 	auto client =
@@ -532,7 +532,8 @@ void SlippiMatchmaking::handleConnecting()
 		else if (status == SlippiNetplayClient::SlippiConnectStatus::NET_CONNECT_STATUS_FAILED &&
 		         m_searchSettings.mode == SlippiMatchmaking::OnlinePlayMode::TEAMS)
 		{
-			// If we failed setting up a connection in teams mode, show a detailed error about who we had issues connecting to.
+			// If we failed setting up a connection in teams mode, show a detailed error about who we had issues
+			// connecting to.
 			ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Failed to connect to players");
 			m_state = ProcessState::ERROR_ENCOUNTERED;
 			m_errorMsg = "Timed out waiting for other players to connect";

@@ -58,8 +58,8 @@ class SlippiMatchmaking
 	u8 RemotePlayerCount();
 
   protected:
-	const std::string MM_HOST_DEV = "35.197.121.196"; // Dev host
-	const std::string MM_HOST_PROD = "35.247.98.48";  // Production host
+	const std::string MM_HOST_DEV = "104.154.50.102"; // Dev host
+	const std::string MM_HOST_PROD = "104.154.50.102";  // Production host
 	const u16 MM_PORT = 43113;
 
 	std::string MM_HOST = "";

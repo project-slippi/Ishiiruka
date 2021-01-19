@@ -22,6 +22,7 @@
 #include "Core/GeckoCodeConfig.h"
 #include "DolphinWX/Cheats/GeckoCodeDiag.h"
 #include "DolphinWX/WxUtils.h"
+#include "Core/ConfigManager.h"
 
 wxDEFINE_EVENT(DOLPHIN_EVT_GECKOCODE_TOGGLED, wxCommandEvent);
 
@@ -56,11 +57,20 @@ CodeConfigPanel::CodeConfigPanel(wxWindow* const parent) : wxPanel(parent)
 	sizer_infobox->Add(m_infobox.textctrl_notes, 0, wxEXPAND | wxTOP, space5);
 	sizer_infobox->Add(m_infobox.listbox_codes, 1, wxEXPAND | wxTOP, space5);
 
+	wxBoxSizer *const sizer_buttons = new wxBoxSizer(wxHORIZONTAL);
+	btn_refresh = new wxButton(this, wxID_ANY, _("Refresh Codes"));
+	btn_refresh->Disable();
+	btn_refresh->Bind(wxEVT_BUTTON, &CodeConfigPanel::RefreshCodes, this);
+	sizer_buttons->AddStretchSpacer(1);
+	sizer_buttons->Add(WxUtils::GiveMinSizeDIP(btn_refresh, wxSize(128, -1)), 1, wxEXPAND);
+
 	wxBoxSizer* const sizer_main = new wxBoxSizer(wxVERTICAL);
 	sizer_main->AddSpacer(space5);
 	sizer_main->Add(m_listbox_gcodes, 1, wxEXPAND | wxLEFT | wxRIGHT, space5);
 	sizer_main->AddSpacer(space5);
 	sizer_main->Add(sizer_infobox, 0, wxEXPAND | wxLEFT | wxRIGHT, space5);
+	sizer_main->AddSpacer(space5);
+	sizer_main->Add(sizer_buttons, 0, wxEXPAND | wxLEFT | wxRIGHT, space5);
 	sizer_main->AddSpacer(space5);
 
 	SetSizerAndFit(sizer_main);
@@ -68,6 +78,8 @@ CodeConfigPanel::CodeConfigPanel(wxWindow* const parent) : wxPanel(parent)
 
 void CodeConfigPanel::UpdateCodeList(bool checkRunning)
 {
+	// disable the button if it doesn't have an effect
+	btn_refresh->Enable((!checkRunning || Core::IsRunning()) && !m_gameid.empty());
 
 	m_listbox_gcodes->Clear();
 	// add the codes to the listbox
@@ -85,9 +97,10 @@ void CodeConfigPanel::UpdateCodeList(bool checkRunning)
 }
 
 void CodeConfigPanel::LoadCodes(const IniFile& globalIni, const IniFile& localIni,
-	const std::string& gameid, bool checkRunning)
+	const std::string& gameid, u16 game_rev, bool checkRunning)
 {
 	m_gameid = gameid;
+	m_game_rev = game_rev;
 
 	m_gcodes.clear();
 	if (!checkRunning || Core::IsRunning())
@@ -144,5 +157,12 @@ void CodeConfigPanel::UpdateInfoBox(wxCommandEvent&)
 		m_infobox.textctrl_notes->Clear();
 		m_infobox.label_creator->SetLabel(wxGetTranslation(str_creator));
 	}
+}
+
+void CodeConfigPanel::RefreshCodes(wxCommandEvent&) 
+{
+	auto GameIniDefault = SConfig::LoadDefaultGameIni(m_gameid, m_game_rev);
+	auto GameIniLocal = SConfig::LoadLocalGameIni(m_gameid, m_game_rev);
+	LoadCodes(GameIniDefault, GameIniLocal, m_gameid, m_game_rev);
 }
 }
