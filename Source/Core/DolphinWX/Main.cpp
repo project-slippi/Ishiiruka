@@ -238,29 +238,29 @@ bool DolphinApp::OnInit()
 		dlclose(security_framework);
 	}
 
-    // Here, we check to see if the user is running the app from the mounted installer (DMG) volume. If so,
-    // we guide them to make sure the app is installed and running correctly. Running from the DMG volume exhibits
-    // similar characteristics to running the app as a quarantined application re: read-only filesystem issues.
-    CFBundleRef mainBundle = CFBundleGetMainBundle();
-    CFURLRef bundleURL = CFBundleCopyBundleURL(mainBundle);
-    CFStringRef url;
+	// Here, we check to see if the user is running the app from the mounted installer (DMG) volume. If so,
+	// we guide them to make sure the app is installed and running correctly. Running from the DMG volume exhibits
+	// similar characteristics to running the app as a quarantined application re: read-only filesystem issues.
+	CFBundleRef mainBundle = CFBundleGetMainBundle();
+	CFURLRef bundleURL = CFBundleCopyBundleURL(mainBundle);
+	CFStringRef url;
 
-    if(CFURLCopyResourcePropertyForKey(bundleURL, kCFURLVolumeNameKey, &url, NULL)) {
-        const char *volume = CFStringGetCStringPtr(url, kCFStringEncodingUTF8);
-        fprintf(stderr, "Volume: %s\n", volume);
+	if(CFURLCopyResourcePropertyForKey(bundleURL, kCFURLVolumeNameKey, &url, NULL)) {
+		const char *volume = CFStringGetCStringPtr(url, kCFStringEncodingUTF8);
+		// fprintf(stderr, "Volume: %s\n", volume);
 
-        if(strcmp(volume, "Slippi Dolphin Installer") == 0) {
-		    wxMessageBox("Slippi needs to be in your Applications folder to run properly, but you're trying to "
-                    "run it from the Installer. Make sure you've dragged the app to the Applications folder, and "
-                    "then start the app from there.",
-				    "Slippi must be in Applications.", wxOK | wxCENTRE | wxICON_WARNING);
+		if(strcmp(volume, "Slippi Dolphin Installer") == 0) {
+			wxMessageBox("Slippi needs to be in your Applications folder to run properly, but you're trying to "
+				"run it from the Installer. Make sure you've dragged the app to the Applications folder, and "
+				"then start the app from there.",
+				"Slippi must be in Applications.", wxOK | wxCENTRE | wxICON_WARNING);
 			exit(EXIT_SUCCESS);
-        }
-    }
+		}
+	}
 
-    CFRelease(url);
-    CFRelease(bundleURL);
-    CFRelease(mainBundle);
+	CFRelease(url);
+	CFRelease(bundleURL);
+	CFRelease(mainBundle);
 #endif
 
 	// We have to copy the size and position out of SConfig now because CFrame's OnMove
