@@ -804,8 +804,8 @@ bool wxTIFFHandler::SaveFile( wxImage *image, wxOutputStream& stream, bool verbo
                     if (hasAlpha)
                     {
                         value = image->GetAlpha(column, row);
-                        buf[column*bytesPerPixel+1]
-                            = minIsWhite ? 255 - value : value;
+                        buf[column*bytesPerPixel+1] = minIsWhite ? 255 - value
+                                                                 : value;
                     }
                 }
             }
@@ -895,7 +895,7 @@ bool wxTIFFHandler::DoCanRead( wxInputStream& stream )
 
     wxString copyright;
     const wxString desc = ver.BeforeFirst('\n', &copyright);
-    copyright.Replace("\n", "");
+    copyright.Replace("\n", wxString());
 
     return wxVersionInfo("libtiff", major, minor, micro, desc, copyright);
 }

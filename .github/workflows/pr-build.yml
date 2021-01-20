@@ -234,9 +234,6 @@ jobs:
         if: success()
         shell: bash
         run: |
-          wget https://github.com/wxWidgets/wxWidgets/releases/download/v3.1.3/wxWidgets-3.1.3.tar.bz2
-          tar -xf wxWidgets-3.1.3.tar.bz2
-          rm wxWidgets-3.1.3.tar.bz2
           rm '/usr/local/bin/2to3' || true
           brew update
           brew upgrade cmake
@@ -249,24 +246,6 @@ jobs:
           sound-touch \
           hidapi \
           create-dmg
-      - name: "Cache wxWidgets 3.1.3"
-        if: success()
-        uses: actions/cache@v1
-        env:
-          cache-name: "wxWidgets-3.1.3-macOS"
-        with:
-          path: ./wxWidgets-3.1.3/build
-          key: "wxWidgets-3.1.3-macOS-Catalina"
-      - name: "Install wxWidgets 3.1.3"
-        if: success()
-        shell: bash
-        working-directory: ${{ github.workspace }}
-        run: |
-          cd wxWidgets-3.1.3
-          cd build
-          ../configure
-          make -j7
-          sudo make install
       - name: "Build ${{ matrix.build_type }} Dolphin"
         if: success()
         shell: bash
@@ -286,8 +265,10 @@ jobs:
           CERTIFICATE_MACOS_PASSWORD: ${{ secrets.CERTIFICATE_MACOS_PASSWORD }}
         run: |
           chmod +x Tools/load-macos-certs-ci.sh && ./Tools/load-macos-certs-ci.sh
+
           mkdir -p ~/private_keys/
           echo '${{ secrets.APPLE_CONNECT_API_KEY }}' > ~/private_keys/AuthKey_${{ secrets.APPLE_API_KEY_ID }}.p8
+
           /usr/bin/codesign -f -s "${{ secrets.APPLE_IDENTITY_HASH }}" --deep --options runtime --entitlements Source/Core/DolphinWX/Entitlements.plist ./build/Binaries/Slippi\ Dolphin.app
       - name: "Package Netplay"
         if: success() && matrix.build_type == 'Netplay'

@@ -499,7 +499,7 @@ void ControlDialog::SetSelectedControl(wxCommandEvent&)
 		return;
 
 	textctrl->WriteText(expr);
-	control_reference->expression = textctrl->GetValue();
+	control_reference->expression = textctrl->GetValue().ToStdString();
 
 	auto lock = ControllerEmu::GetStateLock();
 	g_controller_interface.UpdateReference(control_reference,
@@ -535,7 +535,7 @@ void ControlDialog::AppendControl(wxCommandEvent& event)
 	}
 
 	textctrl->WriteText(expr);
-	control_reference->expression = textctrl->GetValue();
+	control_reference->expression = textctrl->GetValue().ToStdString();
 
 	auto lock = ControllerEmu::GetStateLock();
 	g_controller_interface.UpdateReference(control_reference,
@@ -718,7 +718,7 @@ bool InputConfigDialog::DetectButton(ControlButton* button)
 			wxString control_name = ctrl->GetName();
 			wxString expr;
 			GetExpressionForControl(expr, control_name);
-			button->control_reference->expression = expr;
+			button->control_reference->expression = expr.ToStdString();
 			auto lock = ControllerEmu::GetStateLock();
 			g_controller_interface.UpdateReference(button->control_reference, controller->default_device);
 			success = true;

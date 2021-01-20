@@ -3,7 +3,7 @@
  *  Purpose:     Various preprocessor helpers
  *  Author:      Vadim Zeitlin
  *  Created:     2006-09-30
- *  Copyright:   (c) 2006 Vadim Zeitlin <vadim@wxwindows.org>
+ *  Copyright:   (c) 2006 Vadim Zeitlin <vadim@wxwidgets.org>
  *  Licence:     wxWindows licence
  */
 
@@ -97,6 +97,27 @@
 #define wxSTATEMENT_MACRO_END } while ( (void)0, 0 )
 
 /*
+    Helper for executing the following statement conditionally without using
+    conditional statements.
+
+    This strange macro is needed in the first place to avoid the problems due
+    to nested if/else inside macros. E.g. if some MACRO started with "if", then
+
+        if ( cond )
+            MACRO();
+        else
+            ...
+
+    would be broken because "..." would bind to the wrong "if" inside the macro
+    rather than the visible one. So we use wxDO_IF() inside the macro instead
+    to avoid this problem.
+ */
+#define wxDO_IF_HELPER(loopvar, condition)                                    \
+    for ( bool loopvar = false; !loopvar && condition; loopvar = true )
+
+#define wxDO_IF(condition) wxDO_IF_HELPER(wxMAKE_UNIQUE_NAME(wxdoif), condition)
+
+/*
     Define __WXFUNCTION__ which is like standard __FUNCTION__ but defined as
     NULL for the compilers which don't support the latter.
  */
@@ -157,7 +178,7 @@
    Up to eight arguments are supported.
 
    (With thanks to https://groups.google.com/d/topic/comp.std.c/d-6Mj5Lko_s/discussion
-   and http://stackoverflow.com/questions/1872220/is-it-possible-to-iterate-over-arguments-in-variadic-macros)
+   and https://stackoverflow.com/questions/1872220/is-it-possible-to-iterate-over-arguments-in-variadic-macros)
 */
 #define wxCALL_FOR_EACH_NARG(...)   wxCALL_FOR_EACH_NARG_((__VA_ARGS__, wxCALL_FOR_EACH_RSEQ_N()))
 #define wxCALL_FOR_EACH_NARG_(args) wxCALL_FOR_EACH_ARG_N args

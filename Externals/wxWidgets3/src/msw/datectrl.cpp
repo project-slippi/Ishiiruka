@@ -4,7 +4,7 @@
 // Author:      Vadim Zeitlin
 // Modified by:
 // Created:     2005-01-09
-// Copyright:   (c) 2005 Vadim Zeitlin <vadim@wxwindows.org>
+// Copyright:   (c) 2005 Vadim Zeitlin <vadim@wxwidgets.org>
 // Licence:     wxWindows licence
 /////////////////////////////////////////////////////////////////////////////
 
@@ -74,11 +74,9 @@ WXDWORD wxDatePickerCtrl::MSWGetStyle(long style, WXDWORD *exstyle) const
         styleMSW |= DTS_UPDOWN;
     //else: drop down by default
 
-#ifdef DTS_SHORTDATECENTURYFORMAT
     if ( style & wxDP_SHOWCENTURY )
         styleMSW |= DTS_SHORTDATECENTURYFORMAT;
     else
-#endif // DTS_SHORTDATECENTURYFORMAT
         styleMSW |= DTS_SHORTDATEFORMAT;
 
     if ( style & wxDP_ALLOWNONE )
@@ -196,7 +194,11 @@ bool wxDatePickerCtrl::GetRange(wxDateTime *dt1, wxDateTime *dt2) const
     DWORD flags = DateTime_GetRange(GetHwnd(), st);
     if ( dt1 )
     {
-        if ( flags & GDTR_MIN )
+        // Workaround for https://bugs.winehq.org/show_bug.cgi?id=40301: WINE
+        // returns GDTR_MIN even if there is no lower range bound. Luckily we
+        // can check for it easily as the SYSTEMTIME contains only zeroes in
+        // this case and 0 is invalid value for wMonth field.
+        if ( (flags & GDTR_MIN) && (st[0].wMonth != 0) )
             dt1->SetFromMSWSysDate(st[0]);
         else
             *dt1 = wxDefaultDateTime;

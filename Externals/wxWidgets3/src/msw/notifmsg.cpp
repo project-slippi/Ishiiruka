@@ -3,7 +3,7 @@
 // Purpose:     implementation of wxNotificationMessage for Windows
 // Author:      Vadim Zeitlin
 // Created:     2007-12-01
-// Copyright:   (c) 2007 Vadim Zeitlin <vadim@wxwindows.org>
+// Copyright:   (c) 2007 Vadim Zeitlin <vadim@wxwidgets.org>
 // Licence:     wxWindows licence
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -92,7 +92,7 @@ public:
         m_icon = icon;
     }
 
-    virtual bool AddAction(wxWindowID WXUNUSED(actionid), const wxString &WXUNUSED(label))
+    virtual bool AddAction(wxWindowID WXUNUSED(actionid), const wxString &WXUNUSED(label)) wxOVERRIDE
     {
         // Actions are not supported in balloon notifications
         return false;
@@ -258,7 +258,7 @@ void wxBalloonNotifMsgImpl::SetUpIcon(wxWindow *win)
     }
 }
 
-bool
+bool 
 wxBalloonNotifMsgImpl::Show(int timeout)
 {
     // timout active event
@@ -341,15 +341,25 @@ bool wxNotificationMessage::MSWUseToasts(
     const wxString& shortcutPath,
     const wxString& appId)
 {
+#if wxUSE_WINRT
     return wxToastNotificationHelper::UseToasts(shortcutPath, appId);
+#else
+    wxUnusedVar(shortcutPath);
+    wxUnusedVar(appId);
+    return false;
+#endif
 }
 
 void wxNotificationMessage::Init()
 {
+#if wxUSE_WINRT
     if ( wxToastNotificationHelper::IsEnabled() )
         m_impl = wxToastNotificationHelper::CreateInstance(this);
     else
+#endif
+    {
         m_impl = new wxBalloonNotifMsgImpl(this);
+    }
 }
 
 #endif // wxUSE_NOTIFICATION_MESSAGE && wxUSE_TASKBARICON

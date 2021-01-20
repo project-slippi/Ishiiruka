@@ -88,6 +88,10 @@ public:
 	}
 	virtual void InitBackendInfo() = 0;
 
+	// Prepares a native window for rendering. This is called on the main thread, or the
+	// thread which owns the window.
+	virtual void PrepareWindow(void* window_handle) = 0;
+
 	void ShowConfig(void*);
 
 	virtual void Video_Prepare() = 0;

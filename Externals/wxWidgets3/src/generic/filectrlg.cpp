@@ -364,6 +364,7 @@ wxBEGIN_EVENT_TABLE(wxFileListCtrl,wxListCtrl)
     EVT_LIST_DELETE_ALL_ITEMS(wxID_ANY, wxFileListCtrl::OnListDeleteAllItems)
     EVT_LIST_END_LABEL_EDIT(wxID_ANY, wxFileListCtrl::OnListEndLabelEdit)
     EVT_LIST_COL_CLICK(wxID_ANY, wxFileListCtrl::OnListColClick)
+    EVT_SIZE (wxFileListCtrl::OnSize)
 wxEND_EVENT_TABLE()
 
 
@@ -673,7 +674,7 @@ void wxFileListCtrl::GoToParentDir()
         if (!m_dirName.empty())
         {
             if (m_dirName.Last() == wxT('.'))
-                m_dirName = wxEmptyString;
+                m_dirName.clear();
         }
 #elif defined(__UNIX__)
         if (m_dirName.empty())
@@ -809,6 +810,25 @@ void wxFileListCtrl::OnListColClick( wxListEvent &event )
     SortItems(m_sort_field, m_sort_forward);
 }
 
+void wxFileListCtrl::OnSize( wxSizeEvent &event )
+{
+    event.Skip();
+
+    if ( InReportView() )
+    {
+        // In report mode, set name column to use remaining width.
+        int newNameWidth = GetClientSize().GetWidth();
+        for ( int i = 1; i < GetColumnCount(); i++ )
+        {
+            newNameWidth -= GetColumnWidth(i);
+            if ( newNameWidth <= 0 )
+                return;
+        }
+
+        SetColumnWidth(0, newNameWidth);
+    }
+}
+
 void wxFileListCtrl::SortItems(wxFileData::fileListFieldType field, bool forward)
 {
     m_sort_field = field;
@@ -907,7 +927,7 @@ bool wxGenericFileCtrl::Create( wxWindow *parent,
     if ( ( len > 1 ) && ( wxEndsWithPathSeparator( m_dir ) ) )
         m_dir.Remove( len - 1, 1 );
 
-    m_filterExtension = wxEmptyString;
+    m_filterExtension.clear();
 
     // layout
 
@@ -1167,7 +1187,7 @@ void wxGenericFileCtrl::DoSetFilterIndex( int filterindex )
         m_filterExtension.clear();
     }
 
-    GenerateFilterChangedEvent( this, this );
+    wxGenerateFilterChangedEvent( this, this );
 }
 
 void wxGenericFileCtrl::SetWildcard( const wxString& wildCard )
@@ -1281,7 +1301,7 @@ void wxGenericFileCtrl::OnSelected( wxListEvent &event )
     }
 
     if ( !m_noSelChgEvent )
-        GenerateSelectionChangedEvent( this, this );
+        wxGenerateSelectionChangedEvent( this, this );
 
     m_ignoreChanges = false;
     m_inSelected = false;
@@ -1311,7 +1331,7 @@ void wxGenericFileCtrl::HandleAction( const wxString &fn )
         m_ignoreChanges = true;
         m_list->GoToParentDir();
 
-        GenerateFolderChangedEvent( this, this );
+        wxGenerateFolderChangedEvent( this, this );
 
         UpdateControls();
         m_ignoreChanges = false;
@@ -1324,7 +1344,7 @@ void wxGenericFileCtrl::HandleAction( const wxString &fn )
         m_ignoreChanges = true;
         m_list->GoToHomeDir();
 
-        GenerateFolderChangedEvent( this, this );
+        wxGenerateFolderChangedEvent( this, this );
 
         UpdateControls();
         m_ignoreChanges = false;
@@ -1367,7 +1387,7 @@ void wxGenericFileCtrl::HandleAction( const wxString &fn )
         m_list->GoToDir( filename );
         UpdateControls();
 
-        GenerateFolderChangedEvent( this, this );
+        wxGenerateFolderChangedEvent( this, this );
 
         m_ignoreChanges = false;
         return;
@@ -1389,11 +1409,11 @@ void wxGenericFileCtrl::HandleAction( const wxString &fn )
     if ( !( m_style & wxFC_OPEN ) || !wxFileExists( filename ) )
     {
         filename = wxFileDialogBase::AppendExtension( filename, m_filterExtension );
-        GenerateFileActivatedEvent( this, this, wxFileName( filename ).GetFullName() );
+        wxGenerateFileActivatedEvent( this, this, wxFileName( filename ).GetFullName() );
         return;
     }
 
-    GenerateFileActivatedEvent( this, this );
+    wxGenerateFileActivatedEvent( this, this );
 }
 
 bool wxGenericFileCtrl::SetPath( const wxString& path )

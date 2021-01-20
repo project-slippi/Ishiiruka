@@ -327,7 +327,7 @@ public:
     //   side: wxLEFT or wxRIGHT, indicates on which side the button will be placed.
     //   spacingX: empty space on sides of the button. Default is 0.
     // Remarks:
-    //   There is no spacingY - the button will be centered vertically.
+    //   There is no spacingY - the button will be centred vertically.
     void SetButtonPosition( int width = -1,
                             int height = -1,
                             int side = wxRIGHT,
@@ -397,7 +397,7 @@ public:
     }
 
     //
-    // Utilies needed by the popups or native implementations
+    // Utilities needed by the popups or native implementations
     //
 
     // Returns true if given key combination should toggle the popup.
@@ -455,7 +455,7 @@ public:
     enum
     {
         Hidden       = 0,
-        //Closing      = 1,
+        Closing      = 1,
         Animating    = 2,
         Visible      = 3
     };
@@ -482,8 +482,8 @@ protected:
     {
         return ( !m_text &&
                  !(flags & wxCONTROL_ISSUBMENU) &&
-                 !m_valueString.length() &&
-                 m_hintText.length() &&
+                 m_valueString.empty() &&
+                 !m_hintText.empty() &&
                  !ShouldDrawFocus() );
     }
 
@@ -494,7 +494,7 @@ protected:
     // called from wxSizeEvent handler
     virtual void OnResize() = 0;
 
-    // Return native text identation
+    // Return native text indentation
     // (i.e. text margin, for pure text, not textctrl)
     virtual wxCoord GetNativeTextIndent() const;
 
@@ -553,7 +553,7 @@ protected:
     // NULL popup can be used to indicate default in a derived class
     virtual void DoSetPopupControl(wxComboPopup* popup);
 
-    // ensures there is atleast the default popup
+    // ensures there is at least the default popup
     void EnsurePopupControl();
 
     // Recalculates button and textctrl areas. Called when size or button setup change.
@@ -711,7 +711,7 @@ protected:
     // draw blank button background under bitmap?
     bool                    m_blankButtonBg;
 
-    // is the popup window currenty shown?
+    // is the popup window currently shown?
     wxByte                  m_popupWinState;
 
     // should the focus be reset to the textctrl in idle time?
@@ -831,7 +831,7 @@ public:
     virtual bool LazyCreate();
 
     //
-    // Utilies
+    // Utilities
     //
 
     // Hides the popup
