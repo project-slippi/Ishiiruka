@@ -153,16 +153,8 @@ bool SlippiUser::AttemptLogin()
 // them to place the file).
 void SlippiUser::OpenLogInPage()
 {
-    // macOS has a stable webview that runs out of process, so we can open that
-    // to enable users to sign-in without hopping around.
-#if defined(__APPLE__)
-    CFrame* cframe = wxGetApp().GetCFrame();
-    cframe->OpenSlippiAuthenticationDialog();
-    return;
-#endif
-
-    // Uncomment this once the webview pieces have been agreed upon
-    // for Linux and/or Windows (Windows will always be a best-attempt).
+#ifdef _WIN32
+    // Uncomment this if Windows is in a position to try the login flow.
     //
     // if (!SlippiAuthWebView::IsAvailable())
     // {
@@ -178,7 +170,16 @@ void SlippiUser::OpenLogInPage()
 
     std::string command = "explorer \"" + fullUrl + "\"";
     RunSystemCommand(command);
+    return;
     // }
+#endif
+    
+    // macOS and Linux have stable WebView components that we can use to
+    // enable an easier login flow for users. On macOS, this is backed by
+    // the system-integrated WebKit framework. On Linux, this is provided
+    // by linking Webkit2.
+    CFrame* cframe = wxGetApp().GetCFrame();
+    cframe->OpenSlippiAuthenticationDialog();
 }
 
 void SlippiUser::UpdateApp()
