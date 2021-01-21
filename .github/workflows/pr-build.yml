@@ -256,6 +256,8 @@ jobs:
           export LIBRARY_PATH=$LIBRARY_PATH:/usr/local/lib
           chmod +x ./build-mac.sh && ./build-mac.sh ${{ matrix.build_config }}
           mkdir artifact
+          FILE_NAME=${{ env.CURR_DATE }}-${{ env.GIT_HASH }}-${{ env.GIT_TAG }}-${{ matrix.artifact_name }}
+          echo "FILE_NAME=$FILE_NAME" >> $GITHUB_ENV
       - name: "Codesign ${{ matrix.build_type}} Dolphin"
         if: success() && env.CERTIFICATE_MACOS_APPLICATION != null
         shell: bash
@@ -270,14 +272,16 @@ jobs:
           echo '${{ secrets.APPLE_CONNECT_API_KEY }}' > ~/private_keys/AuthKey_${{ secrets.APPLE_API_KEY_ID }}.p8
 
           /usr/bin/codesign -f -s "${{ secrets.APPLE_IDENTITY_HASH }}" --deep --options runtime --entitlements Source/Core/DolphinWX/Entitlements.plist ./build/Binaries/Slippi\ Dolphin.app
-      - name: "Package Netplay"
-        if: success() && matrix.build_type == 'Netplay'
+      - name: "Package, Sign and Notarize Netplay Release DMG"
+        if: success() && matrix.build_type == 'Netplay' && env.CERTIFICATE_MACOS_APPLICATION != null
         shell: bash
         working-directory: ${{ github.workspace }}
+        env:
+          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_ISSUER_ID: ${{ secrets.APPLE_ISSUER_ID }}
+          CERTIFICATE_MACOS_APPLICATION: ${{ secrets.CERTIFICATE_MACOS_APPLICATION }}
         run: |
           rm build/Binaries/traversal_server
-          FILE_NAME=${{ env.CURR_DATE }}-${{ env.GIT_HASH }}-${{ env.GIT_TAG }}-${{ matrix.artifact_name }}.dmg
-          echo "FILE_NAME=$FILE_NAME" >> $GITHUB_ENV
           create-dmg --no-internet-enable \
             --volname "Slippi Dolphin Installer" \
             --volicon "Data/slippi_dmg_icon.icns" \
@@ -289,29 +293,22 @@ jobs:
             --app-drop-link 440 196 \
             --icon "Slippi Dolphin.app" 140 196 \
             --hide-extension "Slippi Dolphin.app" \
-            "${FILE_NAME}" \
+            "${{ env.FILE_NAME }}.dmg" \
             "./build/Binaries/"
-          mv "${FILE_NAME}" artifact/
-      - name: "Package, Sign and Notarize Netplay DMG"
-        if: success() && matrix.build_type == 'Netplay' && env.CERTIFICATE_MACOS_APPLICATION != null
+          mv "${{ env.FILE_NAME }}.dmg" artifact/
+
+          /usr/bin/codesign -f -s "${{ secrets.APPLE_IDENTITY_HASH }}" --deep --options runtime ./artifact/${{ env.FILE_NAME }}.dmg
+          chmod +x Tools/notarize_netplay.sh && ./Tools/notarize_netplay.sh ./artifact/${{ env.FILE_NAME }}.dmg
+      - name: "Package ${{ maxtrix.build_type }}"
+        if: success() && (matrix.build_type == 'Playback' || env.CERTIFICATE_MACOS_APPLICATION == null)
         shell: bash
         working-directory: ${{ github.workspace }}
         env:
-          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY_ID }}
-          APPLE_ISSUER_ID: ${{ secrets.APPLE_ISSUER_ID }}
           CERTIFICATE_MACOS_APPLICATION: ${{ secrets.CERTIFICATE_MACOS_APPLICATION }}
         run: |
-          /usr/bin/codesign -f -s "${{ secrets.APPLE_IDENTITY_HASH }}" --deep --options runtime ./artifact/${{ env.FILE_NAME }}
-          chmod +x Tools/notarize_netplay.sh && ./Tools/notarize_netplay.sh ./artifact/${{ env.FILE_NAME }}
-      - name: "Package Playback"
-        if: success() && matrix.build_type == 'Playback'
-        shell: bash
-        working-directory: ${{ github.workspace }}
-        run: |
           cd  ./build/Binaries
-          FILE_NAME=${{ env.CURR_DATE }}-${{ env.GIT_HASH }}-${{ env.GIT_TAG }}-${{ matrix.artifact_name }}.zip
-          zip -r "${FILE_NAME}" Slippi\ Dolphin.app
-          mv "${FILE_NAME}" ../../artifact/
+          zip -r "${{ env.FILE_NAME }}.zip" Slippi\ Dolphin.app
+          mv "${{ env.FILE_NAME }}.zip" ../../artifact/
       - name: "Publish"
         if: success()
         uses: actions/upload-artifact@v2-preview
