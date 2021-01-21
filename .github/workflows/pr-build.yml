@@ -235,7 +235,7 @@ jobs:
         shell: bash
         run: |
           rm '/usr/local/bin/2to3' || true
-          brew update
+          echo "HOMEBREW_NO_AUTO_UPDATE=1" >> $GITHUB_ENV
           brew upgrade cmake
           brew install \
           ffmpeg \
@@ -244,8 +244,7 @@ jobs:
           pkgconfig \
           libao \
           sound-touch \
-          hidapi \
-          create-dmg
+          hidapi
       - name: "Build ${{ matrix.build_type }} Dolphin"
         if: success()
         shell: bash
@@ -282,7 +281,8 @@ jobs:
           CERTIFICATE_MACOS_APPLICATION: ${{ secrets.CERTIFICATE_MACOS_APPLICATION }}
         run: |
           rm build/Binaries/traversal_server
-          create-dmg --no-internet-enable \
+          chmox +x Tools/create-dmg.sh 
+          ./Tools/create-dmg/run.sh --no-internet-enable \
             --volname "Slippi Dolphin Installer" \
             --volicon "Data/slippi_dmg_icon.icns" \
             --background "Data/slippi_dmg_background.png" \
