@@ -281,7 +281,7 @@ jobs:
           CERTIFICATE_MACOS_APPLICATION: ${{ secrets.CERTIFICATE_MACOS_APPLICATION }}
         run: |
           rm build/Binaries/traversal_server
-          chmox +x Tools/create-dmg.sh 
+          chmod +x Tools/create-dmg.sh 
           ./Tools/create-dmg/run.sh --no-internet-enable \
             --volname "Slippi Dolphin Installer" \
             --volicon "Data/slippi_dmg_icon.icns" \
