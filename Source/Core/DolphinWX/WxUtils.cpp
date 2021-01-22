@@ -523,7 +523,7 @@ wxImage ScaleImage(wxImage image, double source_scale_factor, double content_sca
 
 std::string WxStrToStr(const wxString& str)
 {
-	return str.ToStdString();
+	return str.ToUTF8().data();
 }
 
 wxString StrToWxStr(const std::string& str)
