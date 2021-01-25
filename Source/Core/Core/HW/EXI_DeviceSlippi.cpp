@@ -119,6 +119,7 @@ CEXISlippi::CEXISlippi()
 	g_playbackStatus = std::make_unique<SlippiPlaybackStatus>();
 	matchmaking = std::make_unique<SlippiMatchmaking>(user.get());
 	gameFileLoader = std::make_unique<SlippiGameFileLoader>();
+	gameReporter = std::make_unique<SlippiGameReporter>(user.get());
 	g_replayComm = std::make_unique<SlippiReplayComm>();
 
 	generator = std::default_random_engine(Common::Timer::GetTimeMs());
@@ -130,6 +131,9 @@ CEXISlippi::CEXISlippi()
 
 	// Initialize local selections to empty
 	localSelections.Reset();
+
+	// Forces savestate to re-init regions when a new ISO is loaded
+	SlippiSavestate::shouldForceInit = true;
 
 	// Update user file and then listen for User
 #ifndef IS_PLAYBACK
@@ -1496,14 +1500,8 @@ bool CEXISlippi::isDisconnected()
 	if (!slippi_netplay)
 		return true;
 
-	// TODO: Figure out why connection status is not "CONNECTED" while initializing a match and coming back to CSS,
-	// err back into dumb return false until then.
-	return false;
-
-
-//	auto status = slippi_netplay->GetSlippiConnectStatus();
-//	return status != SlippiNetplayClient::SlippiConnectStatus::NET_CONNECT_STATUS_CONNECTED &&
-//        status != SlippiNetplayClient::SlippiConnectStatus::NET_CONNECT_STATUS_INITIATED;
+	auto status = slippi_netplay->GetSlippiConnectStatus();
+	return status != SlippiNetplayClient::SlippiConnectStatus::NET_CONNECT_STATUS_CONNECTED;
 }
 
 static int tempTestCount = 0;
@@ -1898,9 +1896,21 @@ void CEXISlippi::prepareOnlineMatchState()
 #ifndef LOCAL_TESTING
 			// If we get here, our opponent likely disconnected. Let's trigger a clean up
 			handleConnectionCleanup();
-			prepareOnlineMatchState();
+			prepareOnlineMatchState(); // run again with new state
 			return;
 #endif
+		}
+
+		// Here we are connected, check to see if we should init play session
+		if (!isPlaySessionActive)
+		{
+			std::vector<std::string> uids{"", ""};
+			uids[localPlayerIndex] = userInfo.uid;
+			uids[remotePlayerIndex] = opponent.uid;
+
+			gameReporter->StartNewSession(uids);
+
+			isPlaySessionActive = true;
 		}
 	}
 	else
@@ -2131,7 +2141,8 @@ void CEXISlippi::prepareFileLoad(u8 *payload)
 
 void CEXISlippi::handleChatMessage(u8 *payload)
 {
-	if(!SConfig::GetInstance().m_slippiEnableQuickChat) return;
+	if (!SConfig::GetInstance().m_slippiEnableQuickChat)
+		return;
 
 	int messageId = payload[0];
 	INFO_LOG(SLIPPI, "SLIPPI CHAT INPUT: 0x%x", messageId);
@@ -2255,6 +2266,9 @@ void CEXISlippi::handleConnectionCleanup()
 	// Reset any forced errors
 	forcedError.clear();
 
+	// Reset play session
+	isPlaySessionActive = false;
+
 #ifdef LOCAL_TESTING
 	isLocalConnected = false;
 #endif
@@ -2269,6 +2283,30 @@ void CEXISlippi::prepareNewSeed()
 	u32 newSeed = generator() % 0xFFFFFFFF;
 
 	appendWordToBuffer(&m_read_queue, newSeed);
+}
+
+void CEXISlippi::handleReportGame(u8 *payload)
+{
+	SlippiGameReporter::GameReport r;
+	r.durationFrames = Common::swap32(&payload[0]);
+
+	// ERROR_LOG(SLIPPI_ONLINE, "Frames: %d", r.durationFrames);
+
+	for (auto i = 0; i < 2; ++i)
+	{
+		SlippiGameReporter::PlayerReport p;
+		auto offset = i * 6;
+		p.stocksRemaining = payload[5 + offset];
+
+		auto swappedDamageDone = Common::swap32(&payload[6 + offset]);
+		p.damageDone = *(float *)&swappedDamageDone;
+
+		// ERROR_LOG(SLIPPI_ONLINE, "Stocks: %d, DamageDone: %f", p.stocksRemaining, p.damageDone);
+
+		r.players.push_back(p);
+	}
+
+	gameReporter->StartReport(r);
 }
 
 void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
@@ -2395,6 +2433,9 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 			break;
 		case CMD_GET_NEW_SEED:
 			prepareNewSeed();
+			break;
+		case CMD_REPORT_GAME:
+			handleReportGame(&memPtr[bufLoc + 1]);
 			break;
 		default:
 			writeToFileAsync(&memPtr[bufLoc], payloadLen + 1, "");

@@ -846,15 +846,6 @@ if(APPLE)
     # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++98")
 	add_definitions(-D__WXOSX_COCOA__)
 
-    find_library(APPKIT_LIBRARY AppKit)
-    find_library(APPSERV_LIBRARY ApplicationServices)
-    find_library(ATB_LIBRARY AudioToolbox)
-    find_library(CARBON_LIBRARY Carbon)
-    find_library(COCOA_LIBRARY Cocoa)
-    find_library(COREFUND_LIBRARY CoreFoundation)
-    find_library(CORESERV_LIBRARY CoreServices)
-    find_library(IOK_LIBRARY IOKit)
-    find_library(OPENGL_LIBRARY OpenGL)
     find_library(WEBKIT_FRAMEWORK WebKit)
     if (NOT WEBKIT_FRAMEWORK)
         message(FATAL_ERROR "WebKit not found")
@@ -871,7 +862,7 @@ if(APPLE)
 		${APPKIT_LIBRARY}
 		${APPSERV_LIBRARY}
 		${ATB_LIBRARY}
-        ${CARBON_LIBRARY}
+        #${CARBON_LIBRARY}
 		${COCOA_LIBRARY}
 		${COREFUND_LIBRARY}
 		${CORESERV_LIBRARY}
