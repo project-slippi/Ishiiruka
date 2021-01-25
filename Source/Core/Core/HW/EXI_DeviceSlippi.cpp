@@ -1496,13 +1496,8 @@ bool CEXISlippi::isDisconnected()
 	if (!slippi_netplay)
 		return true;
 
-	// TODO: Figure out why connection status is not "CONNECTED" while initializing a match and coming back to CSS,
-	// err back into dumb return false until then.
-	return false;
-
-	//	auto status = slippi_netplay->GetSlippiConnectStatus();
-	//	return status != SlippiNetplayClient::SlippiConnectStatus::NET_CONNECT_STATUS_CONNECTED &&
-	//        status != SlippiNetplayClient::SlippiConnectStatus::NET_CONNECT_STATUS_INITIATED;
+	auto status = slippi_netplay->GetSlippiConnectStatus();
+	return status != SlippiNetplayClient::SlippiConnectStatus::NET_CONNECT_STATUS_CONNECTED;
 }
 
 static int tempTestCount = 0;
@@ -2318,6 +2313,8 @@ void CEXISlippi::prepareFileLoad(u8 *payload)
 
 void CEXISlippi::handleChatMessage(u8 *payload)
 {
+	if (!SConfig::GetInstance().m_slippiEnableQuickChat)
+		return;
 
 	int messageId = payload[0];
 	INFO_LOG(SLIPPI, "SLIPPI CHAT INPUT: 0x%x", messageId);

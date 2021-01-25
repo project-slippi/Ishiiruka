@@ -618,7 +618,11 @@ void CFrame::OnClose(wxCloseEvent &event)
 		m_LogWindow->RemoveAllListeners();
 
 	// Uninit
-	m_Mgr->UnInit();
+    // As of wxWidgets 3.1.4, this is called automatically - and calling
+    // it here can lead to a doubling of shutdown conditions, which leads
+    // to a "crash" on close on some systems.
+    //
+	// m_Mgr->UnInit();
 }
 
 // Post events

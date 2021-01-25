@@ -53,8 +53,8 @@ void SlippiConfigPane::InitializeGUI()
 	m_replay_month_folders_checkbox->SetToolTip(
 		_("Enable this to save your replays into subfolders by month (YYYY-MM)."));
 
-	m_replay_directory_picker = new wxDirPickerCtrl(this, wxID_ANY, wxEmptyString, 
-		_("Slippi Replay Folder:"), wxDefaultPosition, wxDefaultSize, 
+	m_replay_directory_picker = new wxDirPickerCtrl(this, wxID_ANY, wxEmptyString,
+		_("Slippi Replay Folder:"), wxDefaultPosition, wxDefaultSize,
 		wxDIRP_USE_TEXTCTRL | wxDIRP_SMALL);
 	m_replay_directory_picker->SetToolTip(
 		_("Choose where your Slippi replay files are saved."));
@@ -67,8 +67,11 @@ void SlippiConfigPane::InitializeGUI()
 		"Increasing this can cause unplayable input delay, and lowering it can cause visual artifacts/lag."));
 	m_slippi_delay_frames_ctrl->SetRange(1, 9);
 
+	m_slippi_enable_quick_chat = new wxCheckBox(this, wxID_ANY, _("Enable Quick Chat"));
+	m_slippi_enable_quick_chat->SetToolTip(
+		_("Enable this to send and receive Quick Chat Messages when online."));
 
-	
+
 #endif
 	const int space5 = FromDIP(5);
 	const int space10 = FromDIP(10);
@@ -89,9 +92,10 @@ void SlippiConfigPane::InitializeGUI()
 	sbSlippiReplaySettings->Add(sSlippiReplaySettings, 0, wxEXPAND | wxLEFT | wxRIGHT, space5);
 	sbSlippiReplaySettings->AddSpacer(space5);
 
-	wxGridBagSizer* const sSlippiOnlineSettings = new wxGridBagSizer(space5, space5);
+	wxGridBagSizer* const sSlippiOnlineSettings = new wxGridBagSizer(space10, space5);
 	sSlippiOnlineSettings->Add(m_slippi_delay_frames_txt, wxGBPosition(0, 0), wxDefaultSpan, wxALIGN_CENTER_VERTICAL);
 	sSlippiOnlineSettings->Add(m_slippi_delay_frames_ctrl, wxGBPosition(0, 1), wxDefaultSpan, wxALIGN_LEFT);
+	sSlippiOnlineSettings->Add(m_slippi_enable_quick_chat, wxGBPosition(1, 0), wxDefaultSpan, wxALIGN_LEFT);
 
 	wxStaticBoxSizer* const sbSlippiOnlineSettings =
 		new wxStaticBoxSizer(wxVERTICAL, this, _("Slippi Online Settings"));
@@ -130,6 +134,7 @@ void SlippiConfigPane::LoadGUIValues()
 	}
 
 	m_slippi_delay_frames_ctrl->SetValue(startup_params.m_slippiOnlineDelay);
+	m_slippi_enable_quick_chat->SetValue(startup_params.m_slippiEnableQuickChat);
 #endif
 }
 
@@ -144,10 +149,15 @@ void SlippiConfigPane::BindEvents()
 	m_replay_directory_picker->Bind(wxEVT_DIRPICKER_CHANGED, &SlippiConfigPane::OnReplayDirChanged, this);
 
 	m_slippi_delay_frames_ctrl->Bind(wxEVT_SPINCTRL, &SlippiConfigPane::OnDelayFramesChanged, this);
-
+	m_slippi_enable_quick_chat->Bind(wxEVT_CHECKBOX, &SlippiConfigPane::OnQuickChatToggle, this);
 #endif
 }
 
+void SlippiConfigPane::OnQuickChatToggle(wxCommandEvent& event)
+{
+	bool enableQuickChat = m_slippi_enable_quick_chat->IsChecked();
+	SConfig::GetInstance().m_slippiEnableQuickChat = enableQuickChat;
+}
 
 void SlippiConfigPane::OnReplaySavingToggle(wxCommandEvent& event)
 {

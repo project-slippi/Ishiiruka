@@ -282,6 +282,7 @@ void SConfig::SaveCoreSettings(IniFile& ini)
 	core->Set("SlippiEnableSpectator", m_enableSpectator);
 	core->Set("SlippiSpectatorLocalPort", m_spectator_local_port);
 	core->Set("SlippiSaveReplays", m_slippiSaveReplays);
+	core->Set("SlippiEnableQuickChat", m_slippiEnableQuickChat);
 	core->Set("SlippiReplayMonthFolders", m_slippiReplayMonthFolders);
 	core->Set("SlippiReplayDir", m_strSlippiReplayDir);
 	core->Set("BlockingPipes", m_blockingPipes);
@@ -614,6 +615,7 @@ void SConfig::LoadCoreSettings(IniFile& ini)
 	core->Get("SlippiSpectatorLocalPort", &m_spectator_local_port, 51441);
 	core->Get("SlippiOnlineDelay", &m_slippiOnlineDelay, 2);
 	core->Get("SlippiSaveReplays", &m_slippiSaveReplays, true);
+	core->Get("SlippiEnableQuickChat", &m_slippiEnableQuickChat, true);
 	core->Get("SlippiReplayMonthFolders", &m_slippiReplayMonthFolders, false);
 	std::string default_replay_dir = File::GetHomeDirectory() + DIR_SEP + "Slippi";
 	core->Get("SlippiReplayDir", &m_strSlippiReplayDir, default_replay_dir);

@@ -177,6 +177,13 @@ bool DolphinApp::OnInit()
 	wxImage::AddHandler(new wxPNGHandler);
 
 #ifdef __APPLE__
+	// Here we check if the app is running in a quarantined state. A quarantined flag is
+	// applied by macOS GateKeeper if the app is unsigned, downloaded from the internet, or
+	// some other flags that can't possibly be listed here.
+	//
+	// If we detect that it's running quarantined, we tell the user to explicitly move it to the
+	// Applications folder, otherwise the app will fail in subtle fails due to be mounted as a translocated
+	// binary and being "read-only".
 	typedef Boolean (*SecTranslocateIsTranslocatedURL)(CFURLRef path, bool *isTranslocated, CFErrorRef *error);
 	typedef CFURLRef (*SecTranslocateCreateOriginalPathForURL)(CFURLRef translocatedPath, CFErrorRef * error);
 
@@ -222,14 +229,50 @@ bool DolphinApp::OnInit()
 				}
 
 				wxMessageBox("This app is quarantined! Move it to your Applications folder and reopen it.\nAsk in the "
-				             "Discord (#macos-support) for further help.",
-				             "An error occured", wxOK | wxCENTRE | wxICON_WARNING);
+				             "Discord (#mac-support) for further help.",
+				             "Slippi is Quarantined.", wxOK | wxCENTRE | wxICON_WARNING);
 				exit(EXIT_SUCCESS);
 			}
 		}
 
 		dlclose(security_framework);
 	}
+
+	// Here, we check to see if the user is running the app from the mounted installer (DMG) volume. If so,
+	// we guide them to make sure the app is installed and running correctly. Running from the DMG volume exhibits
+	// similar characteristics to running the app as a quarantined application re: read-only filesystem issues.
+	CFBundleRef mainBundle = CFBundleGetMainBundle();
+	CFURLRef bundleURL = CFBundleCopyBundleURL(mainBundle);
+	CFStringRef url;
+
+	if(CFURLCopyResourcePropertyForKey(bundleURL, kCFURLVolumeNameKey, &url, NULL)) {
+		// If you look at this and wonder why we can't just call CFStringGetCStringPtr, the
+		// reason is that it can technically return NULL - and actually does, in this case... 
+		// but on Mojave.
+		//
+		// Go figure.
+		//
+		// If we can't determine the volume name, then we'll just silently move on and deal
+		// with it as a support request I guess.
+		CFIndex maxSize = CFStringGetMaximumSizeForEncoding(CFStringGetLength(url), kCFStringEncodingUTF8);
+		char volume_name [maxSize + 1];
+		if(CFStringGetCString(url, volume_name, maxSize + 1, kCFStringEncodingUTF8)) {
+			//fprintf(stderr, "Volume: %s\n", volume_name);
+
+			if(strcmp(volume_name, "Slippi Dolphin Installer") == 0) {
+				wxMessageBox("Slippi needs to be in your Applications folder to run properly, but you're trying to "
+					"run it from the Installer. Make sure you've dragged the app to the Applications folder, and "
+					"then start the app from there.",
+					"Slippi must be in Applications.", wxOK | wxCENTRE | wxICON_WARNING);
+				exit(EXIT_SUCCESS);
+			}
+ 		}
+
+		CFRelease(url);
+	}
+
+	CFRelease(bundleURL);
+	CFRelease(mainBundle);
 #endif
 
 	// We have to copy the size and position out of SConfig now because CFrame's OnMove

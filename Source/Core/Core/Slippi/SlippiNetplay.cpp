@@ -94,6 +94,7 @@ SlippiNetplayClient::SlippiNetplayClient(std::vector<std::string> addrs, std::ve
 	}
 
 	SLIPPI_NETPLAY = std::move(this);
+	this->playerIdx = isDecider ? 0 : 1;
 
 	// Local address
 	ENetAddress *localAddr = nullptr;
@@ -833,9 +834,10 @@ void SlippiNetplayClient::SendSlippiPad(std::unique_ptr<SlippiPad> pad)
 	// INFO_LOG(SLIPPI_ONLINE, "Sending a packet of inputs [%d]...", frame);
 	for (auto it = localPadQueue.begin(); it != localPadQueue.end(); ++it)
 	{
-		INFO_LOG(SLIPPI_ONLINE, "Send [%d] -> %02X %02X %02X %02X %02X %02X %02X %02X", (*it)->frame, (*it)->padBuf[0],
-		         (*it)->padBuf[1], (*it)->padBuf[2], (*it)->padBuf[3], (*it)->padBuf[4], (*it)->padBuf[5],
-		         (*it)->padBuf[6], (*it)->padBuf[7]);
+		// INFO_LOG(SLIPPI_ONLINE, "Send [%d] -> %02X %02X %02X %02X %02X %02X %02X %02X", (*it)->frame,
+		// (*it)->padBuf[0],
+		//         (*it)->padBuf[1], (*it)->padBuf[2], (*it)->padBuf[3], (*it)->padBuf[4], (*it)->padBuf[5],
+		//         (*it)->padBuf[6], (*it)->padBuf[7]);
 		spac->append((*it)->padBuf, SLIPPI_PAD_DATA_SIZE); // only transfer 8 bytes per pad
 	}
 
@@ -875,7 +877,7 @@ SlippiPlayerSelections SlippiNetplayClient::GetSlippiRemoteChatMessage()
 {
 	SlippiPlayerSelections copiedSelection = SlippiPlayerSelections();
 
-	if (remoteChatMessageSelection != nullptr)
+	if (remoteChatMessageSelection != nullptr && SConfig::GetInstance().m_slippiEnableQuickChat)
 	{
 		copiedSelection.messageId = remoteChatMessageSelection->messageId;
 		copiedSelection.playerIdx = remoteChatMessageSelection->playerIdx;
@@ -895,6 +897,10 @@ SlippiPlayerSelections SlippiNetplayClient::GetSlippiRemoteChatMessage()
 
 u8 SlippiNetplayClient::GetSlippiRemoteSentChatMessage()
 {
+	if (!SConfig::GetInstance().m_slippiEnableQuickChat)
+	{
+		return 0;
+	}
 	u8 copiedMessageId = remoteSentChatMessageId;
 	remoteSentChatMessageId = 0; // Clear it out
 	return copiedMessageId;

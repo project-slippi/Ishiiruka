@@ -69,8 +69,8 @@ class SlippiPlayerSelections
 		{
 			this->characterId = s.characterId;
 			this->characterColor = s.characterColor;
-            this->teamId = s.teamId;
-            this->isCharacterSelected = true;
+			this->teamId = s.teamId;
+			this->isCharacterSelected = true;
 		}
 	}
 
@@ -145,7 +145,8 @@ class SlippiNetplayClient
 	void WriteChatMessageToPacket(sf::Packet &packet, int messageId, u8 playerIdx);
 	std::unique_ptr<SlippiPlayerSelections> ReadChatMessageFromPacket(sf::Packet &packet);
 
-	std::unique_ptr<SlippiPlayerSelections> remoteChatMessageSelection = nullptr; // most recent chat message player selection (message + player index)
+	std::unique_ptr<SlippiPlayerSelections> remoteChatMessageSelection =
+	    nullptr;                    // most recent chat message player selection (message + player index)
 	u8 remoteSentChatMessageId = 0; // most recent chat message id that current player sent
 
   protected:
@@ -191,7 +192,7 @@ class SlippiNetplayClient
 	bool hasGameStarted = false;
 	u8 playerIdx = 0;
 
-	std::deque<std::unique_ptr<SlippiPad>> localPadQueue;  // most recent inputs at start of deque
+	std::deque<std::unique_ptr<SlippiPad>> localPadQueue; // most recent inputs at start of deque
 	std::deque<std::unique_ptr<SlippiPad>>
 	    remotePadQueue[SLIPPI_REMOTE_PLAYER_MAX]; // most recent inputs at start of deque
 
@@ -212,7 +213,7 @@ class SlippiNetplayClient
 
   private:
 	u8 PlayerIdxFromPort(u8 port);
-	unsigned int OnData(sf::Packet &packet, ENetPeer* peer);
+	unsigned int OnData(sf::Packet &packet, ENetPeer *peer);
 	void Send(sf::Packet &packet);
 	void Disconnect();
 
@@ -225,8 +226,9 @@ class SlippiNetplayClient
 
 	u32 m_timebase_frame = 0;
 };
-extern SlippiNetplayClient* SLIPPI_NETPLAY; // singleton static pointer
+extern SlippiNetplayClient *SLIPPI_NETPLAY; // singleton static pointer
 
-static bool IsOnline(){
-    return SLIPPI_NETPLAY != nullptr;
+static bool IsOnline()
+{
+	return SLIPPI_NETPLAY != nullptr;
 }
