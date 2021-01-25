@@ -6,6 +6,13 @@
 #include <string>
 #include <vector>
 
+#if defined __linux__ && HAVE_ALSA
+#elif defined __APPLE__
+#include <arpa/inet.h>
+#include <netdb.h>
+#elif defined _WIN32
+#endif
+
 class MmMessageType
 {
   public:
@@ -66,11 +73,6 @@ std::string SlippiMatchmaking::GetErrorMessage()
 	return m_errorMsg;
 }
 
-SlippiUser::UserInfo SlippiMatchmaking::GetOpponent()
-{
-	return m_oppUser;
-}
-
 bool SlippiMatchmaking::IsSearching()
 {
 	return searchingStates.count(m_state) != 0;
@@ -114,6 +116,7 @@ int SlippiMatchmaking::receiveMessage(json &msg, int timeoutMs)
 		{
 		case ENET_EVENT_TYPE_RECEIVE:
 		{
+
 			std::vector<u8> buf;
 			buf.insert(buf.end(), netEvent.packet->data, netEvent.packet->data + netEvent.packet->dataLength);
 
@@ -205,9 +208,13 @@ void SlippiMatchmaking::startMatchmaking()
 	m_client = nullptr;
 
 	int retryCount = 0;
+	auto userInfo = m_user->GetUserInfo();
 	while (m_client == nullptr && retryCount < 15)
 	{
-		m_hostPort = 49000 + (generator() % 2000);
+		if (userInfo.port > 0)
+			m_hostPort = userInfo.port;
+		else
+			m_hostPort = 49000 + (generator() % 2000);
 		ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Port to use: %d...", m_hostPort);
 
 		// We are explicitly setting the client address because we are trying to utilize our connection
@@ -231,8 +238,10 @@ void SlippiMatchmaking::startMatchmaking()
 	}
 
 	ENetAddress addr;
-	enet_address_set_host(&addr, MM_HOST.c_str());
-	addr.port = MM_PORT;
+	std::string MM_DOUBLES = "104.154.50.102";
+	// std::string MM_DOUBLES = "54.149.65.170";
+	enet_address_set_host(&addr, MM_DOUBLES.c_str());
+	addr.port = 43113;
 
 	m_server = enet_host_connect(m_client, &addr, 3, 0);
 
@@ -266,6 +275,7 @@ void SlippiMatchmaking::startMatchmaking()
 			continue;
 		}
 
+		netEvent.peer->data = &userInfo.displayName;
 		m_client->intercept = ENetUtil::InterceptCallback;
 		isMmConnected = true;
 		ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Connected to mm server...");
@@ -273,15 +283,40 @@ void SlippiMatchmaking::startMatchmaking()
 
 	ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Trying to find match...");
 
-	if (!m_user->IsLoggedIn())
+	/*if (!m_user->IsLoggedIn())
 	{
-		ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Must be logged in to queue");
-		m_state = ProcessState::ERROR_ENCOUNTERED;
-		m_errorMsg = "Must be logged in to queue. Go back to menu";
-		return;
-	}
+	    ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Must be logged in to queue");
+	    m_state = ProcessState::ERROR_ENCOUNTERED;
+	    m_errorMsg = "Must be logged in to queue. Go back to menu";
+	    return;
+	}*/
 
-	auto userInfo = m_user->GetUserInfo();
+	// Compute LAN IP, in case 2 people are connecting from one IP we can send them each other's local
+	// IP instead of public. Experimental to allow people from behind one router to connect.
+	char host[256];
+	char lanAddr[30];
+	char *IP;
+	struct hostent *host_entry;
+	int hostname;
+	hostname = gethostname(host, sizeof(host)); // find the host name
+	if (hostname == -1)
+	{
+		ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Error finding LAN address");
+	}
+	else
+	{
+		host_entry = gethostbyname(host); // find host information
+		if (host_entry == NULL)
+		{
+			ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Error finding LAN host");
+		}
+		else
+		{
+			IP = inet_ntoa(*((struct in_addr *)host_entry->h_addr_list[0])); // Convert into IP string
+			INFO_LOG(SLIPPI_ONLINE, "[Matchmaking] LAN IP: %s", IP);
+			sprintf(lanAddr, "%s:%d", IP, m_hostPort);
+		}
+	}
 
 	std::vector<u8> connectCodeBuf;
 	connectCodeBuf.insert(connectCodeBuf.end(), m_searchSettings.connectCode.begin(),
@@ -293,6 +328,7 @@ void SlippiMatchmaking::startMatchmaking()
 	request["user"] = {{"uid", userInfo.uid}, {"playKey", userInfo.playKey}};
 	request["search"] = {{"mode", m_searchSettings.mode}, {"connectCode", connectCodeBuf}};
 	request["appVersion"] = scm_slippi_semver_str;
+	request["ipAddressLan"] = lanAddr;
 	sendMessage(request);
 
 	// Get response from server
@@ -368,7 +404,8 @@ void SlippiMatchmaking::handleMatchmaking()
 		if (latestVersion != "")
 		{
 			// Update version number when the mm server tells us our version is outdated
-			m_user->OverwriteLatestVersion(latestVersion); // Force latest version for people whose file updates dont work
+			m_user->OverwriteLatestVersion(
+			    latestVersion); // Force latest version for people whose file updates dont work
 		}
 
 		ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Received error from server for get ticket");
@@ -379,10 +416,10 @@ void SlippiMatchmaking::handleMatchmaking()
 
 	m_isSwapAttempt = false;
 	m_netplayClient = nullptr;
-	
-	// Clear old user
-	SlippiUser::UserInfo emptyInfo;
-	m_oppUser = emptyInfo;
+
+	// Clear old users
+	m_remoteIps.clear();
+	m_playerInfo.clear();
 
 	auto queue = getResp["players"];
 	if (queue.is_array())
@@ -390,27 +427,28 @@ void SlippiMatchmaking::handleMatchmaking()
 		for (json::iterator it = queue.begin(); it != queue.end(); ++it)
 		{
 			json el = *it;
-			//SlippiUser::UserInfo playerInfo;
+			SlippiUser::UserInfo playerInfo;
 
 			bool isLocal = el.value("isLocalPlayer", false);
-			//playerInfo.uid = el.value("uid", "");
-			//playerInfo.displayName = el.value("displayName", "");
-			//playerInfo.connectCode = el.value("connectCode", "");
-			//playerInfo.port = el.value("port", 0);
+			playerInfo.uid = el.value("uid", "");
+			playerInfo.displayName = el.value("displayName", "");
+			playerInfo.connectCode = el.value("connectCode", "");
+			playerInfo.port = el.value("port", 0);
+			m_playerInfo.push_back(playerInfo);
 
 			if (!isLocal)
-			{
-				m_oppIp = el.value("ipAddress", "1.1.1.1:123");
-				m_oppUser.uid = el.value("uid", "");
-				m_oppUser.displayName = el.value("displayName", "");
-				m_oppUser.connectCode = el.value("connectCode", "");
-			}
-				
-			//else
-			//	m_localPlayerPort = playerInfo.port - 1;
+				m_remoteIps.push_back(el.value("ipAddressLan", "1.1.1.1:123"));
+			else
+				m_localPlayerPort = playerInfo.port - 1;
 		};
 	}
 	m_isHost = getResp.value("isHost", false);
+
+	// If it's teams mode, just have port 1 be the host since they have to synchronize the game start for everyone.
+	/*if (m_searchSettings.mode == SlippiMatchmaking::OnlinePlayMode::TEAMS)
+	{
+	    m_isHost = m_localPlayerPort == 0;
+	}*/
 
 	// Disconnect and destroy enet client to mm server
 	terminateMmConnection();
@@ -419,13 +457,63 @@ void SlippiMatchmaking::handleMatchmaking()
 	ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Opponent found. isDecider: %s", m_isHost ? "true" : "false");
 }
 
+int SlippiMatchmaking::LocalPlayerIndex()
+{
+	return m_localPlayerPort;
+}
+
+std::vector<SlippiUser::UserInfo> SlippiMatchmaking::GetPlayerInfo()
+{
+	return m_playerInfo;
+}
+
+std::string SlippiMatchmaking::GetPlayerName(u8 port)
+{
+	if (port >= m_playerInfo.size())
+	{
+		return "";
+	}
+	return m_playerInfo[port].displayName;
+}
+
+u8 SlippiMatchmaking::RemotePlayerCount()
+{
+	if (m_playerInfo.size() == 0)
+		return 0;
+
+	return (u8)m_playerInfo.size() - 1;
+}
+
 void SlippiMatchmaking::handleConnecting()
 {
-	std::vector<std::string> ipParts;
-	SplitString(m_oppIp, ':', ipParts);
+	auto userInfo = m_user->GetUserInfo();
+
+	m_isSwapAttempt = false;
+	m_netplayClient = nullptr;
+
+	u8 remotePlayerCount = (u8)m_remoteIps.size();
+	std::vector<std::string> remoteParts;
+	std::vector<std::string> addrs;
+	std::vector<u16> ports;
+	for (int i = 0; i < m_remoteIps.size(); i++)
+	{
+		remoteParts.clear();
+		SplitString(m_remoteIps[i], ':', remoteParts);
+		addrs.push_back(remoteParts[0]);
+		ports.push_back(std::stoi(remoteParts[1]));
+	}
+
+	std::stringstream ipLog;
+	ipLog << "Remote player IPs: ";
+	for (int i = 0; i < m_remoteIps.size(); i++)
+	{
+		ipLog << m_remoteIps[i] << ", ";
+	}
+	// INFO_LOG(SLIPPI_ONLINE, "[Matchmaking] My port: %d || %s", m_hostPort, ipLog.str());
 
 	// Is host is now used to specify who the decider is
-	auto client = std::make_unique<SlippiNetplayClient>(ipParts[0], std::stoi(ipParts[1]), m_hostPort, m_isHost);
+	auto client =
+	    std::make_unique<SlippiNetplayClient>(addrs, ports, remotePlayerCount, m_hostPort, m_isHost, m_localPlayerPort);
 
 	while (!m_netplayClient)
 	{
@@ -440,6 +528,32 @@ void SlippiMatchmaking::handleConnecting()
 				return;
 
 			continue;
+		}
+		else if (status == SlippiNetplayClient::SlippiConnectStatus::NET_CONNECT_STATUS_FAILED &&
+		         m_searchSettings.mode == SlippiMatchmaking::OnlinePlayMode::TEAMS)
+		{
+			// If we failed setting up a connection in teams mode, show a detailed error about who we had issues
+			// connecting to.
+			ERROR_LOG(SLIPPI_ONLINE, "[Matchmaking] Failed to connect to players");
+			m_state = ProcessState::ERROR_ENCOUNTERED;
+			m_errorMsg = "Timed out waiting for other players to connect";
+			auto failedConns = client->GetFailedConnections();
+			if (!failedConns.empty())
+			{
+				std::stringstream err;
+				err << "Could not connect to players: ";
+				for (int i = 0; i < failedConns.size(); i++)
+				{
+					int p = failedConns[i];
+					if (p >= m_localPlayerPort)
+						p++;
+
+					err << m_playerInfo[p].displayName << " ";
+				}
+				m_errorMsg = err.str();
+			}
+
+			return;
 		}
 		else if (status != SlippiNetplayClient::SlippiConnectStatus::NET_CONNECT_STATUS_CONNECTED)
 		{

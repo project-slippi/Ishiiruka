@@ -5,11 +5,15 @@
 #include "Core/Slippi/SlippiNetplay.h"
 #include "Core/Slippi/SlippiUser.h"
 
-#include <enet/enet.h>
+#ifndef _WIN32
+#include <netdb.h>
+#include <arpa/inet.h>
+#endif
+
 #include <unordered_map>
 #include <vector>
-
 #include <json.hpp>
+
 using json = nlohmann::json;
 
 class SlippiMatchmaking
@@ -23,6 +27,7 @@ class SlippiMatchmaking
 		RANKED = 0,
 		UNRANKED = 1,
 		DIRECT = 2,
+		TEAMS = 3,
 	};
 
 	enum ProcessState
@@ -47,7 +52,10 @@ class SlippiMatchmaking
 	bool IsSearching();
 	std::unique_ptr<SlippiNetplayClient> GetNetplayClient();
 	std::string GetErrorMessage();
-	SlippiUser::UserInfo GetOpponent();
+	int LocalPlayerIndex();
+	std::vector<SlippiUser::UserInfo> GetPlayerInfo();
+	std::string GetPlayerName(u8 port);
+	u8 RemotePlayerCount();
 
   protected:
 	const std::string MM_HOST_DEV = "104.154.50.102"; // Dev host
@@ -75,9 +83,11 @@ class SlippiMatchmaking
 	int m_isSwapAttempt = false;
 
 	int m_hostPort;
-	std::string m_oppIp;
+	int m_localPlayerPort;
+	std::vector<std::string> m_remoteIps;
+	std::vector<SlippiUser::UserInfo> m_playerInfo;
+	bool m_joinedLobby;
 	bool m_isHost;
-	SlippiUser::UserInfo m_oppUser;
 
 	std::unique_ptr<SlippiNetplayClient> m_netplayClient;
 

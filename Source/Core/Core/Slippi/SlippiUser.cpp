@@ -109,7 +109,7 @@ bool SlippiUser::AttemptLogin()
 {
 	std::string userFilePath = File::GetSlippiUserJSONPath();
 
-	INFO_LOG(SLIPPI_ONLINE, "Looking for file at: %s", userFilePath.c_str());
+	//INFO_LOG(SLIPPI_ONLINE, "Looking for file at: %s", userFilePath.c_str());
 
 	{
 		std::string userFilePathTxt =
@@ -315,7 +315,8 @@ SlippiUser::UserInfo SlippiUser::parseFile(std::string fileContents)
 	info.playKey = readString(res, "playKey");
 	info.connectCode = readString(res, "connectCode");
 	info.latestVersion = readString(res, "latestVersion");
-
+	info.port = res.value("port", -1);
+	
 	return info;
 }
 

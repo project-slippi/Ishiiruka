@@ -274,6 +274,8 @@ jobs:
         if: success() && matrix.build_type == 'Netplay'
         shell: bash
         working-directory: ${{ github.workspace }}
+        env:
+          CERTIFICATE_MACOS_APPLICATION: ${{ secrets.CERTIFICATE_MACOS_APPLICATION }}
         run: |
           rm build/Binaries/traversal_server
           FILE_NAME=${{ env.CURR_DATE }}-${{ env.GIT_HASH }}-${{ env.GIT_TAG }}-${{ matrix.artifact_name }}.dmg
