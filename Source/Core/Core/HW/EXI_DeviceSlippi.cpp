@@ -2335,8 +2335,8 @@ std::vector<u8> CEXISlippi::loadPremadeText(u8* payload){
 
 		u8 paramId = payload[1] == 0x83 ? 0x88 : payload[1]; // TODO: Figure out what the hell is going on and fix this
 
-		INFO_LOG(SLIPPI, "SLIPPI premade param 0x%x", paramId);
-		INFO_LOG(SLIPPI, "SLIPPI premade name 0x%x", textId);
+//		INFO_LOG(SLIPPI, "SLIPPI premade param 0x%x", paramId);
+//		INFO_LOG(SLIPPI, "SLIPPI premade name 0x%x", textId);
 
 		auto chatMessage = spt.premadeTextsParams[paramId];
 		std::string param = ReplaceAll(chatMessage.c_str(), " ", "<S>");

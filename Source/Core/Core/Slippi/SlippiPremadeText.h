@@ -82,7 +82,7 @@ class SlippiPremadeText
 		va_start(args, textId);
 		vsprintf(str, format.c_str(), args);
 		va_end(args);
-		INFO_LOG(SLIPPI, "%s", str);
+//		INFO_LOG(SLIPPI, "%s", str);
 
 		vector<u8> data = {};
 		vector<u8> empty = {};
