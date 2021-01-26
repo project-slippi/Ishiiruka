@@ -2222,9 +2222,10 @@ void CEXISlippi::prepareOnlineMatchState()
 	std::string defaultConnectCodes[] = {"PLYR#001", "PLYR#002", "PLYR#003", "PLYR#004"};
 #endif
 
+	auto playerInfo = matchmaking->GetPlayerInfo();
 	for (int i = 0; i < 4; i++)
 	{
-		std::string connectCode = slippi_connect_codes[i];
+		std::string connectCode = i < playerInfo.size() ? playerInfo[i].connectCode : "";
 #ifdef LOCAL_TESTING
 		connectCode = defaultConnectCodes[i];
 #endif
