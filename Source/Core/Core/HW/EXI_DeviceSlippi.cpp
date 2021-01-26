@@ -1913,10 +1913,8 @@ void CEXISlippi::prepareOnlineMatchState()
 		if (isConnected)
 		{
 			auto matchInfo = slippi_netplay->GetMatchInfo();
-#ifdef LOCAL_TESTING
-			remotePlayerReady = true;
-#else
 			remotePlayersReady = 1;
+#ifndef LOCAL_TESTING
 			u8 remotePlayerCount = matchmaking->RemotePlayerCount();
 			for (int i = 0; i < remotePlayerCount; i++)
 			{
@@ -2199,20 +2197,6 @@ void CEXISlippi::prepareOnlineMatchState()
 		m_read_queue.insert(m_read_queue.end(), name.begin(), name.end());
 	}
 
-#ifdef LOCAL_TESTING
-	std::string defaultConnectCodes[] = {"PLYR#001", "PLYR#002", "PLYR#003", "PLYR#004"};
-#endif
-
-	for (int i = 0; i < 4; i++)
-	{
-		std::string connectCode = slippi_connect_codes[i];
-#ifdef LOCAL_TESTING
-		connectCode = defaultConnectCodes[i];
-#endif
-		connectCode = ConvertConnectCodeForGame(connectCode);
-		m_read_queue.insert(m_read_queue.end(), connectCode.begin(), connectCode.end());
-	}
-
 	// Create the opponent string using the names of all players on opposing teams
 	int teamIdx = onlineMatchBlock[0x69 + localPlayerIndex * 0x24];
 	std::string oppText = "";
@@ -2233,6 +2217,20 @@ void CEXISlippi::prepareOnlineMatchState()
 		oppText = matchmaking->GetPlayerName(remotePlayerIndex);
 	oppName = ConvertStringForGame(oppText, MAX_NAME_LENGTH * 2 + 1);
 	m_read_queue.insert(m_read_queue.end(), oppName.begin(), oppName.end());
+
+#ifdef LOCAL_TESTING
+	std::string defaultConnectCodes[] = {"PLYR#001", "PLYR#002", "PLYR#003", "PLYR#004"};
+#endif
+
+	for (int i = 0; i < 4; i++)
+	{
+		std::string connectCode = slippi_connect_codes[i];
+#ifdef LOCAL_TESTING
+		connectCode = defaultConnectCodes[i];
+#endif
+		connectCode = ConvertConnectCodeForGame(connectCode);
+		m_read_queue.insert(m_read_queue.end(), connectCode.begin(), connectCode.end());
+	}
 
 	// Add error message if there is one
 	auto errorStr = !forcedError.empty() ? forcedError : matchmaking->GetErrorMessage();
