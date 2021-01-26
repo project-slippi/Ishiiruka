@@ -2001,9 +2001,6 @@ void CEXISlippi::prepareOnlineMatchState()
 		localPlayerName = p1Name = userInfo.displayName;
 	}
 
-	std::string p1ConnectCode = "";
-	std::string p2ConnectCode = "";
-
 	auto directMode = SlippiMatchmaking::OnlinePlayMode::DIRECT;
 
 	std::vector<u8> leftTeamPlayers = {};
@@ -2144,10 +2141,6 @@ void CEXISlippi::prepareOnlineMatchState()
 		WARN_LOG(SLIPPI_ONLINE, "Rng Offset: 0x%x", rngOffset);
 		WARN_LOG(SLIPPI_ONLINE, "P1 Char: 0x%X, P2 Char: 0x%X", onlineMatchBlock[0x60], onlineMatchBlock[0x84]);
 
-		// Set player connect codes
-		p1ConnectCode = isDecider ? userInfo.connectCode : opponent.connectCode;
-		p2ConnectCode = isDecider ? opponent.connectCode : userInfo.connectCode;
-
 		// Turn pause on in direct, off in everything else
 		u8 *gameBitField3 = (u8 *)&onlineMatchBlock[2];
 		*gameBitField3 = lastSearch.mode >= directMode ? *gameBitField3 & 0xF7 : *gameBitField3 | 0x8;
@@ -2206,6 +2199,20 @@ void CEXISlippi::prepareOnlineMatchState()
 		m_read_queue.insert(m_read_queue.end(), name.begin(), name.end());
 	}
 
+#ifdef LOCAL_TESTING
+	std::string defaultConnectCodes[] = {"PLYR#001", "PLYR#002", "PLYR#003", "PLYR#004"};
+#endif
+
+	for (int i = 0; i < 4; i++)
+	{
+		std::string connectCode = slippi_connect_codes[i];
+#ifdef LOCAL_TESTING
+		connectCode = defaultConnectCodes[i];
+#endif
+		connectCode = ConvertConnectCodeForGame(connectCode);
+		m_read_queue.insert(m_read_queue.end(), connectCode.begin(), connectCode.end());
+	}
+
 	// Create the opponent string using the names of all players on opposing teams
 	int teamIdx = onlineMatchBlock[0x69 + localPlayerIndex * 0x24];
 	std::string oppText = "";
@@ -2226,12 +2233,6 @@ void CEXISlippi::prepareOnlineMatchState()
 		oppText = matchmaking->GetPlayerName(remotePlayerIndex);
 	oppName = ConvertStringForGame(oppText, MAX_NAME_LENGTH * 2 + 1);
 	m_read_queue.insert(m_read_queue.end(), oppName.begin(), oppName.end());
-
-	// Add connect codes to output
-	std::string p1ConnectCodeBuf = ConvertConnectCodeForGame(p1ConnectCode);
-	m_read_queue.insert(m_read_queue.end(), p1ConnectCodeBuf.begin(), p1ConnectCodeBuf.end());
-	std::string p2ConnectCodeBuf = ConvertConnectCodeForGame(p2ConnectCode);
-	m_read_queue.insert(m_read_queue.end(), p2ConnectCodeBuf.begin(), p2ConnectCodeBuf.end());
 
 	// Add error message if there is one
 	auto errorStr = !forcedError.empty() ? forcedError : matchmaking->GetErrorMessage();
