@@ -83,7 +83,7 @@ class SlippiMatchmaking
 	int m_isSwapAttempt = false;
 
 	int m_hostPort;
-	int m_localPlayerPort;
+	int m_localPlayerIndex;
 	std::vector<std::string> m_remoteIps;
 	std::vector<SlippiUser::UserInfo> m_playerInfo;
 	bool m_joinedLobby;
