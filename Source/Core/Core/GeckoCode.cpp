@@ -16,6 +16,8 @@
 #include "Core/NetPlayProto.h"
 #include "Core/PowerPC/PowerPC.h"
 
+#include "VideoCommon/OnScreenDisplay.h"
+
 #include <iostream>
 
 namespace Gecko
@@ -53,6 +55,7 @@ bool GeckoCode::Compare(const GeckoCode& compare) const
 	return exist == codes.size();
 }
 
+static bool code_limit_reached = false;
 static bool code_handler_installed = false;
 // the currently active codes
 static std::vector<GeckoCode> active_codes;
@@ -105,11 +108,15 @@ void SetActiveCodes(const std::vector<GeckoCode>& gcodes)
 		}
 	}
 
+	code_limit_reached = false;
 	code_handler_installed = false;
 }
 
 static bool InstallCodeHandler()
 {
+	if (code_limit_reached)
+		return false;
+
 	std::string data;
 	std::string _rCodeHandlerFilename = File::GetSysDirectory() + GECKO_CODE_HANDLER;
 	if (!File::ReadFileToString(_rCodeHandlerFilename, data))
@@ -185,7 +192,11 @@ static bool InstallCodeHandler()
 				}
 				else
 				{
+					OSD::AddMessage("Ran out of memory applying gecko codes. Too many codes enabled.", 30000, 0xFFFF0000);
+
 					ERROR_LOG(SLIPPI, "Ran out of memory applying gecko codes");
+					code_limit_reached = true;
+					return false;
 				}
 			}
 		}
