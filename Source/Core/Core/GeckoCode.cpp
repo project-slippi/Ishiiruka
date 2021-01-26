@@ -183,6 +183,10 @@ static bool InstallCodeHandler()
 					PowerPC::HostWrite_U32(code.data, codelist_base_address + 12 + i);
 					i += 8;
 				}
+				else
+				{
+					ERROR_LOG(SLIPPI, "Ran out of memory applying gecko codes");
+				}
 			}
 		}
 	}
