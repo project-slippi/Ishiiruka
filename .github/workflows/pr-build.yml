@@ -179,6 +179,7 @@ jobs:
         if: success()
         working-directory: ${{ github.workspace }}
         run: |
+          chmod +x ./build-appimage.sh
           ./build-appimage.sh ${{ matrix.build_config }}
       - name: "Package"
         if: success()
