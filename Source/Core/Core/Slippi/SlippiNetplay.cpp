@@ -94,7 +94,6 @@ SlippiNetplayClient::SlippiNetplayClient(std::vector<std::string> addrs, std::ve
 	}
 
 	SLIPPI_NETPLAY = std::move(this);
-	this->playerIdx = isDecider ? 0 : 1;
 
 	// Local address
 	ENetAddress *localAddr = nullptr;
@@ -869,6 +868,7 @@ void SlippiNetplayClient::SetMatchSelections(SlippiPlayerSelections &s)
 
 	// Send packet containing selections
 	auto spac = std::make_unique<sf::Packet>();
+	INFO_LOG(SLIPPI_ONLINE, "Setting match selections for %d", playerIdx);
 	writeToPacket(*spac, matchInfo.localPlayerSelections);
 	SendAsync(std::move(spac));
 }

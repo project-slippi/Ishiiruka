@@ -774,7 +774,9 @@ static std::string GenerateScreenshotName()
 
 void SaveScreenShot()
 {
-    if(IsOnline()) return;
+	if (IsOnline())
+		return;
+
 	const bool bPaused = (GetState() == CORE_PAUSE);
 
 	SetState(CORE_PAUSE);

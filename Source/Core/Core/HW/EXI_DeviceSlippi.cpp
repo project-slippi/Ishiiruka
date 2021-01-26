@@ -1877,7 +1877,7 @@ void CEXISlippi::prepareOnlineMatchState()
 	m_read_queue.push_back(mmState); // Matchmaking State
 
 	u8 localPlayerReady = localSelections.isCharacterSelected;
-	u8 remotePlayerReady = 0;
+	u8 remotePlayersReady = 0;
 	u8 localPlayerIndex = matchmaking->LocalPlayerIndex();
 	u8 remotePlayerIndex = 1;
 
@@ -1908,13 +1908,14 @@ void CEXISlippi::prepareOnlineMatchState()
 #ifdef LOCAL_TESTING
 			remotePlayerReady = true;
 #else
-			remotePlayerReady = 1;
+			remotePlayersReady = 1;
 			u8 remotePlayerCount = matchmaking->RemotePlayerCount();
 			for (int i = 0; i < remotePlayerCount; i++)
 			{
 				if (!matchInfo->remotePlayerSelections[i].isCharacterSelected)
 				{
-					remotePlayerReady = 0;
+					//NOTICE_LOG(SLIPPI_ONLINE, "[%d] Not ready", i);
+					remotePlayersReady = 0;
 				}
 			}
 
@@ -1977,7 +1978,7 @@ void CEXISlippi::prepareOnlineMatchState()
 #endif
 
 	m_read_queue.push_back(localPlayerReady);  // Local player ready
-	m_read_queue.push_back(remotePlayerReady); // Remote player ready
+	m_read_queue.push_back(remotePlayersReady); // Remote players ready
 	m_read_queue.push_back(localPlayerIndex);  // Local player index
 	m_read_queue.push_back(remotePlayerIndex); // Remote player index
 
@@ -1997,7 +1998,9 @@ void CEXISlippi::prepareOnlineMatchState()
 	std::vector<u8> leftTeamPlayers = {};
 	std::vector<u8> rightTeamPlayers = {};
 
-	if (localPlayerReady && remotePlayerReady)
+	//NOTICE_LOG(SLIPPI_ONLINE, "%d, %d", localPlayerReady, remotePlayersReady);
+
+	if (localPlayerReady && remotePlayersReady)
 	{
 		auto isDecider = slippi_netplay->IsDecider();
 		u8 remotePlayerCount = matchmaking->RemotePlayerCount();
@@ -2043,6 +2046,9 @@ void CEXISlippi::prepareOnlineMatchState()
 			if (rps[i].characterId >= 26)
 				remoteCharOk = false;
 		}
+
+		// TODO: Check to make sure that in unranked/ranked the opponent hasn't picked a dumb stage
+
 		if (lastSearch.mode < directMode && (!localCharOk || !remoteCharOk))
 		{
 			// If we get here, someone is doing something bad, clear the lobby
