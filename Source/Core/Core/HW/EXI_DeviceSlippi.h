@@ -77,7 +77,8 @@ class CEXISlippi : public IEXIDevice
 		CMD_LOG_MESSAGE = 0xD0,
 		CMD_FILE_LENGTH = 0xD1,
 		CMD_FILE_LOAD = 0xD2,
-
+		CMD_PREMADE_TEXT_LENGTH = 0xE1,
+		CMD_PREMADE_TEXT_LOAD = 0xE2,
 	};
 
 	enum
@@ -123,6 +124,8 @@ class CEXISlippi : public IEXIDevice
 	    {CMD_LOG_MESSAGE, 0xFFFF}, // Variable size... will only work if by itself
 	    {CMD_FILE_LENGTH, 0x40},
 	    {CMD_FILE_LOAD, 0x40},
+	    {CMD_PREMADE_TEXT_LENGTH, 0x1},
+	    {CMD_PREMADE_TEXT_LOAD, 0x1},
 	};
 
 	struct WriteMessage
@@ -192,6 +195,10 @@ class CEXISlippi : public IEXIDevice
 	void logMessageFromGame(u8 *payload);
 	void prepareFileLength(u8 *payload);
 	void prepareFileLoad(u8 *payload);
+	void preparePremadeTextLength(u8 *payload);
+	void preparePremadeTextLoad(u8 *payload);
+
+	std::vector<u8> loadPremadeText(u8 *payload);
 
 	int getCharColor(u8 charId, u8 teamId);
 
