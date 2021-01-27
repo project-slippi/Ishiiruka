@@ -112,10 +112,11 @@ std::string processDiff2(std::vector<u8> iState, std::vector<u8> cState)
 
 std::string ConvertConnectCodeForGame(const std::string &input)
 {
-	std::string connectCode(input);
-	connectCode.resize(CONNECT_CODE_LENGTH + 1); // full width (two byte) hashtag, so +1
 	char fullWidthShiftJisHashtag[] = {(char)0x81, (char)0x94, (char)0x00};
-	return ReplaceAll(connectCode, "#", fullWidthShiftJisHashtag);
+	std::string connectCode(input);
+	connectCode = ReplaceAll(connectCode, "#", fullWidthShiftJisHashtag);
+	connectCode.resize(CONNECT_CODE_LENGTH + 2); // fixed length + full width (two byte) hashtag +1, null terminator +1
+	return connectCode;
 }
 
 CEXISlippi::CEXISlippi()
