@@ -3,7 +3,7 @@
 // Purpose:     generic implementation of wxGenericNotificationMessage
 // Author:      Vadim Zeitlin
 // Created:     2007-11-24
-// Copyright:   (c) 2007 Vadim Zeitlin <vadim@wxwindows.org>
+// Copyright:   (c) 2007 Vadim Zeitlin <vadim@wxwidgets.org>
 // Licence:     wxWindows licence
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -159,7 +159,7 @@ wxNotificationMessageWindow::wxNotificationMessageWindow(wxGenericNotificationMe
 
     // Create title and message sizers
     wxSizer* textSizer = new wxBoxSizer(wxVERTICAL);
-
+    
     m_messageTitle = new wxStaticText(m_messagePanel, wxID_ANY, wxString());
     m_messageTitle->SetFont(m_messageTitle->GetFont().MakeBold());
     textSizer->Add(m_messageTitle, wxSizerFlags(0).Border());
@@ -327,7 +327,7 @@ void wxNotificationMessageWindow::AddVisibleNotification(wxNotificationMessageWi
 {
     bool found = false;
     for ( wxVector<wxNotificationMessageWindow*>::iterator it = ms_visibleNotifications.begin();
-        it != ms_visibleNotifications.end(); it++ )
+        it != ms_visibleNotifications.end(); ++it )
     {
         if ( *it == notif )
         {
@@ -345,7 +345,7 @@ void wxNotificationMessageWindow::AddVisibleNotification(wxNotificationMessageWi
 void wxNotificationMessageWindow::RemoveVisibleNotification(wxNotificationMessageWindow* notif)
 {
     for ( wxVector<wxNotificationMessageWindow*>::iterator it = ms_visibleNotifications.begin();
-        it != ms_visibleNotifications.end(); it++ )
+        it != ms_visibleNotifications.end(); ++it )
     {
         if ( *it == notif )
         {

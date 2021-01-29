@@ -15,6 +15,8 @@
 //#define VK_USE_PLATFORM_XCB_KHR
 #elif defined(ANDROID)
 #define VK_USE_PLATFORM_ANDROID_KHR
+#elif defined(__APPLE__)
+#define VK_USE_PLATFORM_METAL_EXT
 #else
 //#warning Unknown platform
 #endif

@@ -36,8 +36,6 @@
 #include "wx/gtk/dc.h"
 #include "wx/gtk/private.h"
 
-#include <gtk/gtk.h>
-
 #include "wx/aui/auibook.h"
 #include "wx/aui/tabartgtk.h"
 #include "wx/renderer.h"
@@ -133,7 +131,7 @@ wxRect DrawCloseButton(wxDC& dc,
 
     wxBitmap bmp(gtk_widget_render_icon(widget, GTK_STOCK_CLOSE, GTK_ICON_SIZE_SMALL_TOOLBAR, "tab"));
 
-    if(bmp.GetWidth() != s_CloseIconSize || bmp.GetHeight() != s_CloseIconSize)
+    if(bmp.GetScaledWidth() != s_CloseIconSize || bmp.GetScaledHeight() != s_CloseIconSize)
     {
         wxImage img = bmp.ConvertToImage();
         img.Rescale(s_CloseIconSize, s_CloseIconSize);
@@ -310,13 +308,13 @@ void wxAuiGtkTabArt::DrawTab(wxDC& dc, wxWindow* wnd, const wxAuiNotebookPage& p
 
     wxCoord textX = tab_rect.x + padding + style_notebook->xthickness;
 
-    int bitmap_offset = 0;
     if (page.bitmap.IsOk())
     {
+        int bitmap_offset;
         bitmap_offset = textX;
 
         // draw bitmap
-        int bitmapY = tab_rect.y +(tab_rect.height - page.bitmap.GetHeight()) / 2;
+        int bitmapY = tab_rect.y +(tab_rect.height - page.bitmap.GetScaledHeight()) / 2;
         if(!page.active)
         {
             if (tab_pos == wxAUI_NB_TOP)
@@ -329,7 +327,7 @@ void wxAuiGtkTabArt::DrawTab(wxDC& dc, wxWindow* wnd, const wxAuiNotebookPage& p
                       bitmapY,
                       true);
 
-        textX += page.bitmap.GetWidth() + padding;
+        textX += page.bitmap.GetScaledWidth() + padding;
     }
 
     wxCoord textW, textH, textY;

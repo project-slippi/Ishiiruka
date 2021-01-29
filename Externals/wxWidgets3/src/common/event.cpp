@@ -37,11 +37,10 @@
 
     #if wxUSE_GUI
         #include "wx/window.h"
-        #include "wx/combobox.h"
         #include "wx/control.h"
         #include "wx/dc.h"
         #include "wx/spinbutt.h"
-        #include "wx/textctrl.h"
+        #include "wx/textentry.h"
         #include "wx/validate.h"
     #endif // wxUSE_GUI
 #endif
@@ -92,6 +91,7 @@
     wxIMPLEMENT_DYNAMIC_CLASS(wxSetCursorEvent, wxEvent);
     wxIMPLEMENT_DYNAMIC_CLASS(wxSysColourChangedEvent, wxEvent);
     wxIMPLEMENT_DYNAMIC_CLASS(wxDisplayChangedEvent, wxEvent);
+    wxIMPLEMENT_DYNAMIC_CLASS(wxDPIChangedEvent, wxEvent);
     wxIMPLEMENT_DYNAMIC_CLASS(wxUpdateUIEvent, wxCommandEvent);
     wxIMPLEMENT_DYNAMIC_CLASS(wxNavigationKeyEvent, wxEvent);
     wxIMPLEMENT_DYNAMIC_CLASS(wxPaletteChangedEvent, wxEvent);
@@ -103,6 +103,13 @@
     wxIMPLEMENT_DYNAMIC_CLASS(wxMouseCaptureChangedEvent, wxEvent);
     wxIMPLEMENT_DYNAMIC_CLASS(wxMouseCaptureLostEvent, wxEvent);
     wxIMPLEMENT_DYNAMIC_CLASS(wxClipboardTextEvent, wxCommandEvent);
+    wxIMPLEMENT_DYNAMIC_CLASS(wxGestureEvent, wxEvent);
+    wxIMPLEMENT_DYNAMIC_CLASS(wxPanGestureEvent, wxGestureEvent);
+    wxIMPLEMENT_DYNAMIC_CLASS(wxZoomGestureEvent, wxGestureEvent);
+    wxIMPLEMENT_DYNAMIC_CLASS(wxRotateGestureEvent, wxGestureEvent);
+    wxIMPLEMENT_DYNAMIC_CLASS(wxTwoFingerTapEvent, wxGestureEvent);
+    wxIMPLEMENT_DYNAMIC_CLASS(wxLongPressEvent, wxGestureEvent);
+    wxIMPLEMENT_DYNAMIC_CLASS(wxPressAndTapEvent, wxGestureEvent);
 #endif // wxUSE_GUI
 
 #if wxUSE_BASE
@@ -133,8 +140,8 @@ class wxEventTableEntryModule: public wxModule
 {
 public:
     wxEventTableEntryModule() { }
-    virtual bool OnInit() { return true; }
-    virtual void OnExit() { wxEventHashTable::ClearAll(); }
+    virtual bool OnInit() wxOVERRIDE { return true; }
+    virtual void OnExit() wxOVERRIDE { wxEventHashTable::ClearAll(); }
 
     wxDECLARE_DYNAMIC_CLASS(wxEventTableEntryModule);
 };
@@ -258,6 +265,14 @@ wxDEFINE_EVENT( wxEVT_SCROLLWIN_PAGEDOWN, wxScrollWinEvent );
 wxDEFINE_EVENT( wxEVT_SCROLLWIN_THUMBTRACK, wxScrollWinEvent );
 wxDEFINE_EVENT( wxEVT_SCROLLWIN_THUMBRELEASE, wxScrollWinEvent );
 
+// Gesture events
+wxDEFINE_EVENT( wxEVT_GESTURE_PAN, wxPanGestureEvent );
+wxDEFINE_EVENT( wxEVT_GESTURE_ZOOM, wxZoomGestureEvent );
+wxDEFINE_EVENT( wxEVT_GESTURE_ROTATE, wxRotateGestureEvent );
+wxDEFINE_EVENT( wxEVT_TWO_FINGER_TAP, wxTwoFingerTapEvent );
+wxDEFINE_EVENT( wxEVT_LONG_PRESS, wxLongPressEvent );
+wxDEFINE_EVENT( wxEVT_PRESS_AND_TAP, wxPressAndTapEvent );
+
 // System events
 wxDEFINE_EVENT( wxEVT_SIZE, wxSizeEvent );
 wxDEFINE_EVENT( wxEVT_SIZING, wxSizeEvent );
@@ -287,6 +302,7 @@ wxDEFINE_EVENT( wxEVT_MENU_HIGHLIGHT, wxMenuEvent );
 wxDEFINE_EVENT( wxEVT_CONTEXT_MENU, wxContextMenuEvent );
 wxDEFINE_EVENT( wxEVT_SYS_COLOUR_CHANGED, wxSysColourChangedEvent );
 wxDEFINE_EVENT( wxEVT_DISPLAY_CHANGED, wxDisplayChangedEvent );
+wxDEFINE_EVENT( wxEVT_DPI_CHANGED, wxDPIChangedEvent );
 wxDEFINE_EVENT( wxEVT_QUERY_NEW_PALETTE, wxQueryNewPaletteEvent );
 wxDEFINE_EVENT( wxEVT_PALETTE_CHANGED, wxPaletteChangedEvent );
 wxDEFINE_EVENT( wxEVT_JOY_BUTTON_DOWN, wxJoystickEvent );
@@ -358,8 +374,8 @@ wxEventFunctor::~wxEventFunctor()
  */
 
 wxEvent::wxEvent(int theId, wxEventType commandType)
+    : m_eventType(commandType)
 {
-    m_eventType = commandType;
     m_eventObject = NULL;
     m_timeStamp = 0;
     m_id = theId;
@@ -426,25 +442,36 @@ wxString wxCommandEvent::GetString() const
 {
     // This is part of the hack retrieving the event string from the control
     // itself only when/if it's really needed to avoid copying potentially huge
-    // strings coming from multiline text controls. For consistency we also do
-    // it for combo boxes, even though there are no real performance advantages
-    // in doing this for them.
+    // strings coming from multiline text controls.
     if (m_eventType == wxEVT_TEXT && m_eventObject)
     {
-#if wxUSE_TEXTCTRL
-        wxTextCtrl *txt = wxDynamicCast(m_eventObject, wxTextCtrl);
-        if ( txt )
-            return txt->GetValue();
-#endif // wxUSE_TEXTCTRL
-
-#if wxUSE_COMBOBOX
-        wxComboBox* combo = wxDynamicCast(m_eventObject, wxComboBox);
-        if ( combo )
-            return combo->GetValue();
-#endif // wxUSE_COMBOBOX
+        // Only windows generate wxEVT_TEXT events, so this cast should really
+        // succeed, but err on the side of caution just in case somebody
+        // created a bogus event of this type.
+        if ( wxWindow* const w = wxDynamicCast(m_eventObject, wxWindow) )
+        {
+            if ( const wxTextEntry* const entry = w->WXGetTextEntry() )
+                return entry->GetValue();
+        }
     }
 
     return m_cmdString;
+}
+
+// ----------------------------------------------------------------------------
+// wxPaintEvent and wxNcPaintEvent
+// ----------------------------------------------------------------------------
+
+wxPaintEvent::wxPaintEvent(wxWindowBase* window)
+    : wxEvent(window ? window->GetId() : 0, wxEVT_PAINT)
+{
+    SetEventObject(window);
+}
+
+wxNcPaintEvent::wxNcPaintEvent(wxWindowBase* window)
+    : wxEvent(window ? window->GetId() : 0, wxEVT_NC_PAINT)
+{
+    SetEventObject(window);
 }
 
 // ----------------------------------------------------------------------------
@@ -562,6 +589,7 @@ wxMouseEvent::wxMouseEvent(wxEventType commandType)
     m_wheelAxis = wxMOUSE_WHEEL_VERTICAL;
     m_wheelRotation = 0;
     m_wheelDelta = 0;
+    m_wheelInverted = false;
     m_linesPerAction = 0;
     m_columnsPerAction = 0;
     m_magnification = 0.0f;
@@ -586,6 +614,7 @@ void wxMouseEvent::Assign(const wxMouseEvent& event)
 
     m_wheelRotation = event.m_wheelRotation;
     m_wheelDelta = event.m_wheelDelta;
+    m_wheelInverted = event.m_wheelInverted;
     m_linesPerAction = event.m_linesPerAction;
     m_columnsPerAction = event.m_columnsPerAction;
     m_wheelAxis = event.m_wheelAxis;
@@ -739,12 +768,12 @@ wxPoint wxMouseEvent::GetLogicalPosition(const wxDC& dc) const
 // ----------------------------------------------------------------------------
 
 wxKeyEvent::wxKeyEvent(wxEventType type)
+#if wxUSE_UNICODE
+    : m_uniChar(WXK_NONE)
+#endif
 {
     m_eventType = type;
     m_keyCode = WXK_NONE;
-#if wxUSE_UNICODE
-    m_uniChar = WXK_NONE;
-#endif
 
     m_x =
     m_y = wxDefaultCoord;
@@ -771,6 +800,21 @@ wxKeyEvent::wxKeyEvent(wxEventType eventType, const wxKeyEvent& evt)
     m_eventType = eventType;
 
     InitPropagation();
+}
+
+wxKeyEvent& wxKeyEvent::operator=(const wxKeyEvent& evt)
+{
+    if ( &evt != this )
+    {
+        wxEvent::operator=(evt);
+
+        // Borland C++ 5.82 doesn't compile an explicit call to an
+        // implicitly defined operator=() so need to do it this way:
+        *static_cast<wxKeyboardState *>(this) = evt;
+
+        DoAssignMembers(evt);
+    }
+    return *this;
 }
 
 void wxKeyEvent::InitPositionIfNecessary() const
@@ -824,13 +868,13 @@ bool wxKeyEvent::IsKeyInCategory(int category) const
             return (category & WXK_CATEGORY_ARROW) != 0;
 
         case WXK_PAGEDOWN:
-        case WXK_END:
+        case WXK_PAGEUP:
         case WXK_NUMPAD_PAGEUP:
         case WXK_NUMPAD_PAGEDOWN:
             return (category & WXK_CATEGORY_PAGING) != 0;
 
         case WXK_HOME:
-        case WXK_PAGEUP:
+        case WXK_END:
         case WXK_NUMPAD_HOME:
         case WXK_NUMPAD_END:
             return (category & WXK_CATEGORY_JUMP) != 0;
@@ -1604,69 +1648,91 @@ bool wxEvtHandler::SafelyProcessEvent(wxEvent& event)
     }
     catch ( ... )
     {
-        wxEventLoopBase * const loop = wxEventLoopBase::GetActive();
+        WXConsumeException();
+
+        return false;
+    }
+#endif // wxUSE_EXCEPTIONS
+}
+
+#if wxUSE_EXCEPTIONS
+/* static */
+void wxEvtHandler::WXConsumeException()
+{
+    wxEventLoopBase * const loop = wxEventLoopBase::GetActive();
+    try
+    {
+        if ( !wxTheApp || !wxTheApp->OnExceptionInMainLoop() )
+        {
+            // If OnExceptionInMainLoop() returns false, we're supposed to exit
+            // the program and for this we need to exit the main loop, not the
+            // possibly nested one we're running right now.
+            if ( wxTheApp )
+            {
+                wxTheApp->ExitMainLoop();
+            }
+            else
+            {
+                // We must not continue running after an exception, unless
+                // explicitly requested, so if we can't ensure this in any
+                // other way, do it brutally like this.
+                wxAbort();
+            }
+
+        }
+        //else: continue running current event loop
+    }
+    catch ( ... )
+    {
+        // OnExceptionInMainLoop() threw, possibly rethrowing the same
+        // exception again. We have to deal with it here because we can't
+        // allow the exception to escape from the handling code, this will
+        // result in a crash at best (e.g. when using wxGTK as C++
+        // exceptions can't propagate through the C GTK+ code and corrupt
+        // the stack) and in something even more weird at worst (like
+        // exceptions completely disappearing into the void under some
+        // 64 bit versions of Windows).
+        if ( loop && !loop->IsYielding() )
+            loop->Exit();
+
+        // Give the application one last possibility to store the exception
+        // for rethrowing it later, when we get back to our code.
+        bool stored = false;
         try
         {
-            if ( !wxTheApp || !wxTheApp->OnExceptionInMainLoop() )
-            {
-                if ( loop )
-                    loop->Exit();
-            }
-            //else: continue running current event loop
+            if ( wxTheApp )
+                stored = wxTheApp->StoreCurrentException();
         }
         catch ( ... )
         {
-            // OnExceptionInMainLoop() threw, possibly rethrowing the same
-            // exception again. We have to deal with it here because we can't
-            // allow the exception to escape from the handling code, this will
-            // result in a crash at best (e.g. when using wxGTK as C++
-            // exceptions can't propagate through the C GTK+ code and corrupt
-            // the stack) and in something even more weird at worst (like
-            // exceptions completely disappearing into the void under some
-            // 64 bit versions of Windows).
-            if ( loop && !loop->IsYielding() )
-                loop->Exit();
+            // StoreCurrentException() really shouldn't throw, but if it
+            // did, take it as an indication that it didn't store it.
+        }
 
-            // Give the application one last possibility to store the exception
-            // for rethrowing it later, when we get back to our code.
-            bool stored = false;
+        // If it didn't take it, just abort, at least like this we behave
+        // consistently everywhere.
+        if ( !stored )
+        {
             try
             {
                 if ( wxTheApp )
-                    stored = wxTheApp->StoreCurrentException();
+                    wxTheApp->OnUnhandledException();
             }
             catch ( ... )
             {
-                // StoreCurrentException() really shouldn't throw, but if it
-                // did, take it as an indication that it didn't store it.
+                // And OnUnhandledException() absolutely shouldn't throw,
+                // but we still must account for the possibility that it
+                // did. At least show some information about the exception
+                // in this case.
+                wxTheApp->wxAppConsoleBase::OnUnhandledException();
             }
 
-            // If it didn't take it, just abort, at least like this we behave
-            // consistently everywhere.
-            if ( !stored )
-            {
-                try
-                {
-                    if ( wxTheApp )
-                        wxTheApp->OnUnhandledException();
-                }
-                catch ( ... )
-                {
-                    // And OnUnhandledException() absolutely shouldn't throw,
-                    // but we still must account for the possibility that it
-                    // did. At least show some information about the exception
-                    // in this case.
-                    wxTheApp->wxAppConsoleBase::OnUnhandledException();
-                }
-
-                wxAbort();
-            }
+            wxAbort();
         }
     }
-
-    return false;
-#endif // wxUSE_EXCEPTIONS
 }
+
+#endif // wxUSE_EXCEPTIONS
 
 bool wxEvtHandler::SearchEventTable(wxEventTable& table, wxEvent& event)
 {
@@ -1869,8 +1935,7 @@ void wxEvtHandler::DoSetClientObject( wxClientData *data )
     wxASSERT_MSG( m_clientDataType != wxClientData_Void,
                   wxT("can't have both object and void client data") );
 
-    if ( m_clientObject )
-        delete m_clientObject;
+    delete m_clientObject;
 
     m_clientObject = data;
     m_clientDataType = wxClientData_Object;
@@ -2003,7 +2068,7 @@ bool wxEventBlocker::ProcessEvent(wxEvent& event)
             return true;   // yes, it should: mark this event as processed
     }
 
-    return wxEvtHandler::ProcessEvent(event);;
+    return wxEvtHandler::ProcessEvent(event);
 }
 
 #endif // wxUSE_GUI

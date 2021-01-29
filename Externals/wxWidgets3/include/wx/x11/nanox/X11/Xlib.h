@@ -197,7 +197,7 @@ typedef struct {
 
 /*
  * Depth structure; contains information for each possible depth.
- */
+ */	
 typedef struct {
 	int depth;		/* this depth (Z) of the depth */
 	int nvisuals;		/* number of Visual types at this depth */
@@ -228,7 +228,7 @@ typedef struct {
 	unsigned long black_pixel;	/* White and Black pixel values */
 	int max_maps, min_maps;	/* max and min color maps */
 	int backing_store;	/* Never, WhenMapped, Always */
-	Bool save_unders;
+	Bool save_unders;	
 	long root_input_mask;	/* initial root input mask */
 } Screen;
 

@@ -22,6 +22,7 @@ class VideoBackend : public VideoBackendBase
 
 	void InitBackendInfo() override;
 
+	void PrepareWindow(void* window_handle) override;
 	unsigned int PeekMessages() override;
 };
 }

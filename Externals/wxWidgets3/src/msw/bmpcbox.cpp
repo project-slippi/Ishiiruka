@@ -39,8 +39,6 @@
 #include "wx/odcombo.h"
 
 
-#define IMAGE_SPACING_CTRL_VERTICAL 7  // Spacing used in control size calculation
-
 
 // ============================================================================
 // implementation
@@ -129,6 +127,7 @@ void wxBitmapComboBox::RecreateControl()
     // mouse-wheel behaviour.
     //
     wxString value = GetValue();
+    int selection = GetSelection();
     wxPoint pos = GetPosition();
     wxSize size = GetSize();
     size.y = GetBestSize().y;
@@ -212,6 +211,12 @@ void wxBitmapComboBox::RecreateControl()
     // Revert the old string value
     if ( !HasFlag(wxCB_READONLY) )
         ChangeValue(value);
+    else if ( selection != wxNOT_FOUND )
+        SetSelection(selection);
+
+    // If disabled we'll have to disable it again after re-creating
+    if ( !IsEnabled() )
+        DoEnable(false);
 }
 
 wxBitmapComboBox::~wxBitmapComboBox()
@@ -226,10 +231,7 @@ wxSize wxBitmapComboBox::DoGetBestSize() const
 
     wxCoord useHeightBitmap = EDIT_HEIGHT_FROM_CHAR_HEIGHT(bitmapSize.y);
     if ( best.y < useHeightBitmap )
-    {
         best.y = useHeightBitmap;
-        CacheBestSize(best);
-    }
     return best;
 }
 
@@ -408,7 +410,7 @@ int wxBitmapComboBox::DoInsertItems(const wxArrayStringsAdapter & items,
 
 bool wxBitmapComboBox::OnAddBitmap(const wxBitmap& bitmap)
 {
-    if ( wxBitmapComboBoxBase::OnAddBitmap(bitmap) )
+    if ( wxBitmapComboBoxBase::OnAddBitmap(bitmap) || !GetCount() )
     {
         // Need to recreate control for a new measureitem call?
         int prevItemHeight = ::SendMessage(GetHwnd(), CB_GETITEMHEIGHT, 0, 0);
@@ -529,6 +531,15 @@ bool wxBitmapComboBox::MSWOnMeasure(WXMEASUREITEMSTRUCT *item)
     }
 
     return true;
+}
+
+void wxBitmapComboBox::MSWUpdateFontOnDPIChange(const wxSize& newDPI)
+{
+    wxComboBox::MSWUpdateFontOnDPIChange(newDPI);
+
+    UpdateInternals();
+
+    RecreateControl();
 }
 
 #endif // wxUSE_BITMAPCOMBOBOX
