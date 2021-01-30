@@ -28,6 +28,8 @@
 #include "Core/HW/SystemTimers.h"
 #include "Core/State.h"
 
+#include "Core/GeckoCode.h"
+
 // Not clean but idk a better way atm
 #include "DolphinWX/Frame.h"
 #include "DolphinWX/Main.h"
@@ -2317,6 +2319,25 @@ void CEXISlippi::prepareFileLoad(u8 *payload)
 	m_read_queue.insert(m_read_queue.end(), buf.begin(), buf.end());
 }
 
+void CEXISlippi::prepareGctLength()
+{
+	m_read_queue.clear();
+
+	u32 size = Gecko::GetGctLength();
+
+	INFO_LOG(SLIPPI, "Getting gct size: %d", size);
+
+	// Write size to output
+	appendWordToBuffer(&m_read_queue, size);
+}
+
+void CEXISlippi::prepareGctLoad()
+{
+	m_read_queue.clear();
+	auto gct = Gecko::GenerateGct();
+	m_read_queue.insert(m_read_queue.end(), gct.begin(), gct.end());
+}
+
 void CEXISlippi::handleChatMessage(u8 *payload)
 {
 	if (!SConfig::GetInstance().m_slippiEnableQuickChat)
@@ -2616,6 +2637,12 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 			break;
 		case CMD_REPORT_GAME:
 			handleReportGame(&memPtr[bufLoc + 1]);
+			break;
+		case CMD_GCT_LENGTH:
+			prepareGctLength();
+			break;
+		case CMD_GCT_LOAD:
+			prepareGctLoad();
 			break;
 		default:
 			writeToFileAsync(&memPtr[bufLoc], payloadLen + 1, "");

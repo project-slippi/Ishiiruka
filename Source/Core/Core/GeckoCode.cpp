@@ -253,4 +253,72 @@ void RunCodeHandler()
 	}
 }
 
+static u32 GetGctLength()
+{
+	std::lock_guard<std::mutex> lk(active_codes_lock);
+
+	int i = 0;
+
+	for (const GeckoCode &active_code : active_codes)
+	{
+		if ((active_code.enabled && !IsDisabledMeleeCode(active_code)) || IsEnabledMeleeCode(active_code))
+		{
+			for (const GeckoCode::Code &code : active_code.codes)
+			{
+				i += 8;
+			}
+		}
+	}
+
+	return i + 0x10; // 0x10 is the fixed size of the header and terminator
+}
+
+std::vector<u8> uint32ToVector(u32 num)
+{
+	u8 byte0 = num >> 24;
+	u8 byte1 = (num & 0xFF0000) >> 16;
+	u8 byte2 = (num & 0xFF00) >> 8;
+	u8 byte3 = num & 0xFF;
+
+	return std::vector<u8>({byte0, byte1, byte2, byte3});
+}
+
+void appendWordToBuffer(std::vector<u8> *buf, u32 word)
+{
+	auto wordVector = uint32ToVector(word);
+	buf->insert(buf->end(), wordVector.begin(), wordVector.end());
+}
+
+std::vector<u8> GenerateGct()
+{
+	std::vector<u8> res;
+
+	// Write header
+	appendWordToBuffer(&res, 0x00d0c0de);
+	appendWordToBuffer(&res, 0x00d0c0de);
+
+	std::lock_guard<std::mutex> lk(active_codes_lock);
+
+	int i = 0;
+
+	// Write codes
+	for (const GeckoCode &active_code : active_codes)
+	{
+		if ((active_code.enabled && !IsDisabledMeleeCode(active_code)) || IsEnabledMeleeCode(active_code))
+		{
+			for (const GeckoCode::Code &code : active_code.codes)
+			{
+				appendWordToBuffer(&res, code.address);
+				appendWordToBuffer(&res, code.data);
+			}
+		}
+	}
+
+	// Write footer
+	appendWordToBuffer(&res, 0xff000000);
+	appendWordToBuffer(&res, 0x00000000);
+
+	return res;
+}
+
 } // namespace Gecko
