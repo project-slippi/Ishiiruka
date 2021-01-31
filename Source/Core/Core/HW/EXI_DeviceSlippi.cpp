@@ -30,6 +30,8 @@
 
 #include "Core/GeckoCode.h"
 
+#include "Core/PowerPC/PowerPC.h"
+
 // Not clean but idk a better way atm
 #include "DolphinWX/Frame.h"
 #include "DolphinWX/Main.h"
@@ -2331,10 +2333,19 @@ void CEXISlippi::prepareGctLength()
 	appendWordToBuffer(&m_read_queue, size);
 }
 
-void CEXISlippi::prepareGctLoad()
+void CEXISlippi::prepareGctLoad(u8 *payload)
 {
 	m_read_queue.clear();
+
 	auto gct = Gecko::GenerateGct();
+
+	// This is the address where the codes will be written to
+	auto address = Common::swap32(&payload[0]);
+
+	// Overwrite 
+	PowerPC::HostWrite_U32(0x3DE00000 | (address >> 16), 0x80001f58); // lis r15, 0xXXXX # top half of address
+	PowerPC::HostWrite_U32(0x61EF0000 | (address & 0xFFFF), 0x80001f5C); // ori r15, r15, 0xXXXX # bottom half of address
+
 	m_read_queue.insert(m_read_queue.end(), gct.begin(), gct.end());
 }
 
@@ -2642,7 +2653,7 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 			prepareGctLength();
 			break;
 		case CMD_GCT_LOAD:
-			prepareGctLoad();
+			prepareGctLoad(&memPtr[bufLoc + 1]);
 			break;
 		default:
 			writeToFileAsync(&memPtr[bufLoc], payloadLen + 1, "");

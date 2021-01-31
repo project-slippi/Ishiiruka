@@ -150,60 +150,79 @@ static bool InstallCodeHandler()
 	u32 codelist_base_address = INSTALLER_BASE_ADDRESS + (u32)data.length() - 8;
 	u32 codelist_end_address = INSTALLER_END_ADDRESS;
 
+	// Write a magic value to 'gameid' (codehandleronly does not actually read this).
+	PowerPC::HostWrite_U32(0xd01f1bad, INSTALLER_BASE_ADDRESS);
+
 	if(SConfig::GetInstance().m_gameType == GAMETYPE_MELEE_NTSC)
 	{
-		// Move Gecko code handler to the tournament mode region
-		codelist_base_address = 0x801910E0;
-		codelist_end_address = 0x8019AF4C;
-		PowerPC::HostWrite_U32(0x3DE08019, 0x80001f58);
-		PowerPC::HostWrite_U32(0x61EF10E0, 0x80001f5C);
-
 		// Here we are replacing a line in the codehandler with a blr.
 		// The reason for this is that this is the section of the codehandler
 		// that attempts to read/write commands for the USB Gecko. These calls
 		// were sometimes interfering with the Slippi EXI calls and causing
 		// the game to loop infinitely in EXISync.
 		PowerPC::HostWrite_U32(0x4E800020, 0x80001D6C);
-	}
 
-	// Write a magic value to 'gameid' (codehandleronly does not actually read this).
-	PowerPC::HostWrite_U32(0xd01f1bad, INSTALLER_BASE_ADDRESS);
-
-	// Create GCT in memory
-	PowerPC::HostWrite_U32(0x00d0c0de, codelist_base_address);
-	PowerPC::HostWrite_U32(0x00d0c0de, codelist_base_address + 4);
-
-	std::lock_guard<std::mutex> lk(active_codes_lock);
-
-	int i = 0;
-
-	for (const GeckoCode& active_code : active_codes)
-	{
-		if ((active_code.enabled && !IsDisabledMeleeCode(active_code)) || IsEnabledMeleeCode(active_code))
+		// Write GCT loader into memory which will eventually load the real GCT into the heap
+		std::string bootloaderData;
+		std::string _bootloaderFilename = File::GetSysDirectory() + GCT_BOOTLOADER;
+		if (!File::ReadFileToString(_bootloaderFilename, bootloaderData))
 		{
-			for (const GeckoCode::Code& code : active_code.codes)
-			{
-				// Make sure we have enough memory to hold the code list
-				if ((codelist_base_address + 24 + i) < codelist_end_address)
-				{
-					PowerPC::HostWrite_U32(code.address, codelist_base_address + 8 + i);
-					PowerPC::HostWrite_U32(code.data, codelist_base_address + 12 + i);
-					i += 8;
-				}
-				else
-				{
-					OSD::AddMessage("Ran out of memory applying gecko codes. Too many codes enabled.", 30000, 0xFFFF0000);
+			NOTICE_LOG(ACTIONREPLAY, "Could not enable cheats because bootloader.gct was missing.");
+			return false;
+		}
 
-					ERROR_LOG(SLIPPI, "Ran out of memory applying gecko codes");
-					code_limit_reached = true;
-					return false;
+		if (bootloaderData.length() > codelist_end_address - codelist_base_address)
+		{
+			OSD::AddMessage("Gecko bootloader too large.", 30000, 0xFFFF0000);
+
+			ERROR_LOG(SLIPPI, "Gecko bootloader too large");
+			code_limit_reached = true;
+			return false;
+		}
+
+		// Install bootloader gct
+		for (size_t i = 0, e = bootloaderData.length(); i < e; ++i)
+			PowerPC::HostWrite_U8(bootloaderData[i], (u32)(codelist_base_address + i));
+	}
+	else
+	{
+		// Create GCT in memory
+		PowerPC::HostWrite_U32(0x00d0c0de, codelist_base_address);
+		PowerPC::HostWrite_U32(0x00d0c0de, codelist_base_address + 4);
+
+		std::lock_guard<std::mutex> lk(active_codes_lock);
+
+		int i = 0;
+
+		for (const GeckoCode &active_code : active_codes)
+		{
+			if ((active_code.enabled && !IsDisabledMeleeCode(active_code)) || IsEnabledMeleeCode(active_code))
+			{
+				for (const GeckoCode::Code &code : active_code.codes)
+				{
+					// Make sure we have enough memory to hold the code list
+					if ((codelist_base_address + 24 + i) < codelist_end_address)
+					{
+						PowerPC::HostWrite_U32(code.address, codelist_base_address + 8 + i);
+						PowerPC::HostWrite_U32(code.data, codelist_base_address + 12 + i);
+						i += 8;
+					}
+					else
+					{
+						OSD::AddMessage("Ran out of memory applying gecko codes. Too many codes enabled.", 30000,
+						                0xFFFF0000);
+
+						ERROR_LOG(SLIPPI, "Ran out of memory applying gecko codes");
+						code_limit_reached = true;
+						return false;
+					}
 				}
 			}
 		}
-	}
 
-	PowerPC::HostWrite_U32(0xff000000, codelist_base_address + 8 + i);
-	PowerPC::HostWrite_U32(0x00000000, codelist_base_address + 12 + i);
+		PowerPC::HostWrite_U32(0xff000000, codelist_base_address + 8 + i);
+		PowerPC::HostWrite_U32(0x00000000, codelist_base_address + 12 + i);
+	}
 
 	// Turn on codes
 	PowerPC::HostWrite_U8(1, INSTALLER_BASE_ADDRESS + 7);
@@ -253,7 +272,7 @@ void RunCodeHandler()
 	}
 }
 
-static u32 GetGctLength()
+u32 GetGctLength()
 {
 	std::lock_guard<std::mutex> lk(active_codes_lock);
 

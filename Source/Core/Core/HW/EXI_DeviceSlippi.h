@@ -196,7 +196,7 @@ class CEXISlippi : public IEXIDevice
 	void prepareFileLength(u8 *payload);
 	void prepareFileLoad(u8 *payload);
 	void prepareGctLength();
-	void prepareGctLoad();
+	void prepareGctLoad(u8 *payload);
 
 	int getCharColor(u8 charId, u8 teamId);
 
