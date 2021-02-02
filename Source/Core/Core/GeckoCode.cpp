@@ -55,7 +55,7 @@ bool GeckoCode::Compare(const GeckoCode& compare) const
 	return exist == codes.size();
 }
 
-static bool code_limit_reached = false;
+static bool initialization_failed = false;
 static bool code_handler_installed = false;
 // the currently active codes
 static std::vector<GeckoCode> active_codes;
@@ -108,13 +108,13 @@ void SetActiveCodes(const std::vector<GeckoCode>& gcodes)
 		}
 	}
 
-	code_limit_reached = false;
+	initialization_failed = false;
 	code_handler_installed = false;
 }
 
 static bool InstallCodeHandler()
 {
-	if (code_limit_reached)
+	if (initialization_failed)
 		return false;
 
 	std::string data;
@@ -167,16 +167,17 @@ static bool InstallCodeHandler()
 		std::string _bootloaderFilename = File::GetSysDirectory() + GCT_BOOTLOADER;
 		if (!File::ReadFileToString(_bootloaderFilename, bootloaderData))
 		{
-			NOTICE_LOG(ACTIONREPLAY, "Could not enable cheats because bootloader.gct was missing.");
+			OSD::AddMessage("bootloader.gct not found in Sys folder.", 30000, 0xFFFF0000);
+			ERROR_LOG(ACTIONREPLAY, "Could not enable cheats because bootloader.gct was missing.");
+			initialization_failed = true;
 			return false;
 		}
 
 		if (bootloaderData.length() > codelist_end_address - codelist_base_address)
 		{
 			OSD::AddMessage("Gecko bootloader too large.", 30000, 0xFFFF0000);
-
 			ERROR_LOG(SLIPPI, "Gecko bootloader too large");
-			code_limit_reached = true;
+			initialization_failed = true;
 			return false;
 		}
 
@@ -213,7 +214,7 @@ static bool InstallCodeHandler()
 						                0xFFFF0000);
 
 						ERROR_LOG(SLIPPI, "Ran out of memory applying gecko codes");
-						code_limit_reached = true;
+						initialization_failed = true;
 						return false;
 					}
 				}
