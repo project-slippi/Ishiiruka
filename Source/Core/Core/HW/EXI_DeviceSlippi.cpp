@@ -2342,7 +2342,7 @@ void CEXISlippi::prepareGctLoad(u8 *payload)
 	// This is the address where the codes will be written to
 	auto address = Common::swap32(&payload[0]);
 
-	// Overwrite 
+	// Overwrite the instructions which load address pointing to codeset
 	PowerPC::HostWrite_U32(0x3DE00000 | (address >> 16), 0x80001f58); // lis r15, 0xXXXX # top half of address
 	PowerPC::HostWrite_U32(0x61EF0000 | (address & 0xFFFF), 0x80001f5C); // ori r15, r15, 0xXXXX # bottom half of address
 	PowerPC::ppcState.iCache.Invalidate(0x80001f58); // This should invalidate both instructions
