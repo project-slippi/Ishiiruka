@@ -2345,6 +2345,10 @@ void CEXISlippi::prepareGctLoad(u8 *payload)
 	// Overwrite 
 	PowerPC::HostWrite_U32(0x3DE00000 | (address >> 16), 0x80001f58); // lis r15, 0xXXXX # top half of address
 	PowerPC::HostWrite_U32(0x61EF0000 | (address & 0xFFFF), 0x80001f5C); // ori r15, r15, 0xXXXX # bottom half of address
+	PowerPC::ppcState.iCache.Invalidate(0x80001f58); // This should invalidate both instructions
+
+	INFO_LOG(SLIPPI, "Preparing to write gecko codes at: 0x%X. %X, %X", address, 0x3DE00000 | (address >> 16),
+	          0x61EF0000 | (address & 0xFFFF));
 
 	m_read_queue.insert(m_read_queue.end(), gct.begin(), gct.end());
 }

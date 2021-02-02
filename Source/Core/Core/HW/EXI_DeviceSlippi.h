@@ -125,7 +125,7 @@ class CEXISlippi : public IEXIDevice
 	    {CMD_FILE_LENGTH, 0x40},
 	    {CMD_FILE_LOAD, 0x40},
 	    {CMD_GCT_LENGTH, 0x0},
-	    {CMD_GCT_LOAD, 0x0},
+	    {CMD_GCT_LOAD, 0x4},
 	};
 
 	struct WriteMessage
