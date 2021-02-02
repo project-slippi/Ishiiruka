@@ -41,5 +41,7 @@ public:
 void SetActiveCodes(const std::vector<GeckoCode>& gcodes);
 bool RunActiveCodes();
 void RunCodeHandler();
+u32 GetGctLength();
+std::vector<u8> GenerateGct();
 
 } // namespace Gecko
