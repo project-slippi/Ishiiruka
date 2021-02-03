@@ -42,10 +42,9 @@ jobs:
           MsiExec.exe /passive /X{1D8E6291-B0D5-35EC-8441-6616F567A0F7}
       - name: "Download DirectX SDK"
         working-directory: ${{ github.workspace }}
-        shell: bash
+        shell: powershell
         run: |
-          sudo apt install wget
-          wget https://github.com/project-slippi/Ishiiruka/releases/download/v2.2.5/DXSDK_Jun10.exe -O ./DXSDK_Jun10.exe
+          Invoke-WebRequest -Uri https://github.com/project-slippi/Ishiiruka/releases/download/v2.2.5/DXSDK_Jun10.exe -UseBasicParsing -OutFile "DXSDK_Jun10.exe"
       - name: "Install DirectX SDK"
         working-directory: ${{ github.workspace }}
         shell: cmd
