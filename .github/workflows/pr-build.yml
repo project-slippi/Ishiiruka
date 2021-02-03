@@ -40,10 +40,16 @@ jobs:
         run: |
           MsiExec.exe /passive /X{F0C3E5D1-1ADE-321E-8167-68EF0DE699A5}
           MsiExec.exe /passive /X{1D8E6291-B0D5-35EC-8441-6616F567A0F7}
-      - name: "Install DirectX SDK"
+      - name: "Download DirectX SDK"
+        working-directory: ${{ github.workspace }}
         shell: powershell
         run: |
-          choco install directx-sdk
+          Invoke-WebRequest -Uri https://github.com/project-slippi/Ishiiruka/releases/download/v2.2.5/DXSDK_Jun10.exe -UseBasicParsing -OutFile "DXSDK_Jun10.exe"
+      - name: "Install DirectX SDK"
+        working-directory: ${{ github.workspace }}
+        shell: cmd
+        run: |
+          DXSDK_Jun10.exe /U /F
       - name: "Setup MSBuild"
         uses: microsoft/setup-msbuild@v1   
       - name: "Checkout"

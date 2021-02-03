@@ -28,6 +28,10 @@
 #include "Core/HW/SystemTimers.h"
 #include "Core/State.h"
 
+#include "Core/GeckoCode.h"
+
+#include "Core/PowerPC/PowerPC.h"
+
 // Not clean but idk a better way atm
 #include "DolphinWX/Frame.h"
 #include "DolphinWX/Main.h"
@@ -2346,6 +2350,38 @@ void CEXISlippi::prepareFileLoad(u8 *payload)
 	m_read_queue.insert(m_read_queue.end(), buf.begin(), buf.end());
 }
 
+void CEXISlippi::prepareGctLength()
+{
+	m_read_queue.clear();
+
+	u32 size = Gecko::GetGctLength();
+
+	INFO_LOG(SLIPPI, "Getting gct size: %d", size);
+
+	// Write size to output
+	appendWordToBuffer(&m_read_queue, size);
+}
+
+void CEXISlippi::prepareGctLoad(u8 *payload)
+{
+	m_read_queue.clear();
+
+	auto gct = Gecko::GenerateGct();
+
+	// This is the address where the codes will be written to
+	auto address = Common::swap32(&payload[0]);
+
+	// Overwrite the instructions which load address pointing to codeset
+	PowerPC::HostWrite_U32(0x3DE00000 | (address >> 16), 0x80001f58); // lis r15, 0xXXXX # top half of address
+	PowerPC::HostWrite_U32(0x61EF0000 | (address & 0xFFFF), 0x80001f5C); // ori r15, r15, 0xXXXX # bottom half of address
+	PowerPC::ppcState.iCache.Invalidate(0x80001f58); // This should invalidate both instructions
+
+	INFO_LOG(SLIPPI, "Preparing to write gecko codes at: 0x%X. %X, %X", address, 0x3DE00000 | (address >> 16),
+	          0x61EF0000 | (address & 0xFFFF));
+
+	m_read_queue.insert(m_read_queue.end(), gct.begin(), gct.end());
+}
+
 void CEXISlippi::handleChatMessage(u8 *payload)
 {
 	if (!SConfig::GetInstance().m_slippiEnableQuickChat)
@@ -2492,6 +2528,7 @@ void CEXISlippi::prepareNewSeed()
 
 void CEXISlippi::handleReportGame(u8 *payload)
 {
+#ifndef LOCAL_TESTING
 	SlippiGameReporter::GameReport r;
 	r.durationFrames = Common::swap32(&payload[0]);
 
@@ -2512,6 +2549,7 @@ void CEXISlippi::handleReportGame(u8 *payload)
 	}
 
 	gameReporter->StartReport(r);
+#endif
 }
 
 void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
@@ -2641,6 +2679,12 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 			break;
 		case CMD_REPORT_GAME:
 			handleReportGame(&memPtr[bufLoc + 1]);
+			break;
+		case CMD_GCT_LENGTH:
+			prepareGctLength();
+			break;
+		case CMD_GCT_LOAD:
+			prepareGctLoad(&memPtr[bufLoc + 1]);
 			break;
 		default:
 			writeToFileAsync(&memPtr[bufLoc], payloadLen + 1, "");
