@@ -64,10 +64,10 @@ class SlippiPremadeText
 	};
 
 	unordered_map<u8, string> premadeTexts = {
-		{SPT_CHAT_P1, "<LEFT><KERN><COLOR, 229, 76, 76>%s-<S><COLOR, 190, 190, 190>%s<END>"},
-		{SPT_CHAT_P2, "<LEFT><KERN><COLOR, 59, 189, 255>%s-<S><COLOR, 190, 190, 190>%s<END>"},
-		{SPT_CHAT_P3, "<LEFT><KERN><COLOR, 255, 203, 4>%s-<S><COLOR, 190, 190, 190>%s<END>"},
-		{SPT_CHAT_P4, "<LEFT><KERN><COLOR, 0, 178, 2>%s-<S><COLOR, 190, 190, 190>%s<END>"},
+		{SPT_CHAT_P1, "<LEFT><KERN><COLOR, 229, 76, 76>%s-<S><COLOR, 255, 255, 255>%s<END>"},
+		{SPT_CHAT_P2, "<LEFT><KERN><COLOR, 59, 189, 255>%s-<S><COLOR, 255, 255, 255>%s<END>"},
+		{SPT_CHAT_P3, "<LEFT><KERN><COLOR, 255, 203, 4>%s-<S><COLOR, 255, 255, 255>%s<END>"},
+		{SPT_CHAT_P4, "<LEFT><KERN><COLOR, 0, 178, 2>%s-<S><COLOR, 255, 255, 255>%s<END>"},
 		{SPT_LOGOUT, "<FIT><COLOR, 243, 75, 75>Are<S>You<COLOR, 0, 175, 75><S>Sure?<END>"},
 	};
 

@@ -1981,7 +1981,7 @@ void CEXISlippi::prepareOnlineMatchState()
 
 #ifdef LOCAL_TESTING
 	localPlayerIndex = 0;
-	chatMessageId = localChatMessageId;
+    sentChatMessageId = localChatMessageId;
 	chatMessagePlayerIdx = 0;
 	localChatMessageId = 0;
 	// in CSS p1 is always current player and p2 is opponent
@@ -2190,7 +2190,7 @@ void CEXISlippi::prepareOnlineMatchState()
 	m_read_queue.insert(m_read_queue.end(), localPlayerName.begin(), localPlayerName.end());
 
 #ifdef LOCAL_TESTING
-	std::string defaultNames[] = {"Player 1", "Player 2", "Player 3", "Player 4"};
+	std::string defaultNames[] = {"Player 1", "lol u lost 2 dk", "Player 3", "Player 4"};
 #endif
 
 	for (int i = 0; i < 4; i++)
@@ -2388,7 +2388,7 @@ std::vector<u8> CEXISlippi::loadPremadeText(u8* payload){
 		if (matchmaking)
 			playerName = matchmaking->GetPlayerName(port);
 #ifdef LOCAL_TESTING
-		std::string defaultNames[] = {"Player 1", "Player 2", "Player 3", "Player 4"};
+		std::string defaultNames[] = {"Player 1", "lol u lost 2 dk", "Player 3", "Player 4"};
         playerName = defaultNames[port];
 #endif
 
