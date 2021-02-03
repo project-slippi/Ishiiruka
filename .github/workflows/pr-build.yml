@@ -45,20 +45,16 @@ jobs:
           mkdir .\Tools\DX
       - name: "Setup MSBuild"
         uses: microsoft/setup-msbuild@v1   
-      - name: Cache DXSDK_Jun10.exe
+      - name: "Cache DXSDK_Jun10.exe"
         uses: actions/cache@v2
         with:
           path: ./Tools/DX/
           key: ${{ runner.os }}
-      - name: "Download DirectX SDK"
+      - name: "Download/Install Legacy DirectX SDK for DX9"
         working-directory: ${{ github.workspace }}
         shell: powershell
         run: |
           if (!(Test-Path ".\Tools\DX\DXSDK_Jun10.exe" -PathType Leaf)) { Invoke-WebRequest -Uri https://github.com/project-slippi/Ishiiruka/releases/download/v2.2.5/DXSDK_Jun10.exe -UseBasicParsing -OutFile ".\Tools\DX\DXSDK_Jun10.exe" }
-      - name: "Install DirectX SDK"
-        working-directory: ${{ github.workspace }}
-        shell: cmd
-        run: |
           .\Tools\DX\DXSDK_Jun10.exe /U /F
       - name: 'Fetch Git Tags'
         shell: bash
