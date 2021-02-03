@@ -218,10 +218,6 @@ static bool InstallCodeHandler()
 						return false;
 					}
 				}
-				else
-				{
-					ERROR_LOG(SLIPPI, "Ran out of memory applying gecko codes");
-				}
 			}
 		}
 
