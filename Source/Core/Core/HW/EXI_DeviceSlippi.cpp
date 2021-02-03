@@ -2003,7 +2003,7 @@ void CEXISlippi::prepareOnlineMatchState()
 		sentChatMessageId = slippi_netplay->GetSlippiRemoteSentChatMessage();
 		// If connection is 1v1 set index 0 for local and 1 for remote
 		if((matchmaking && matchmaking->RemotePlayerCount() == 1) || !matchmaking){
-            chatMessagePlayerIdx = sentChatMessageId > 0 ? 0 : 1;
+            chatMessagePlayerIdx = sentChatMessageId > 0 ? localPlayerIndex : remotePlayerIndex;
         }
 		// in CSS p1 is always current player and p2 is opponent
 		localPlayerName = p1Name = userInfo.displayName;
