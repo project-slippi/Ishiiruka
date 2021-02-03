@@ -2383,7 +2383,7 @@ std::vector<u8> CEXISlippi::loadPremadeText(u8* payload){
 
 	if(textId >= SlippiPremadeText::SPT_CHAT_P1 && textId <= SlippiPremadeText::SPT_CHAT_P4)
 	{
-		auto port = textId;
+		auto port = textId-1;
 		std::string playerName;
 		if (matchmaking)
 			playerName = matchmaking->GetPlayerName(port);
