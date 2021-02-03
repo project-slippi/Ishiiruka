@@ -77,6 +77,8 @@ class CEXISlippi : public IEXIDevice
 		CMD_LOG_MESSAGE = 0xD0,
 		CMD_FILE_LENGTH = 0xD1,
 		CMD_FILE_LOAD = 0xD2,
+		CMD_GCT_LENGTH = 0xD3,
+		CMD_GCT_LOAD = 0xD4,
 		CMD_PREMADE_TEXT_LENGTH = 0xE1,
 		CMD_PREMADE_TEXT_LOAD = 0xE2,
 	};
@@ -124,8 +126,10 @@ class CEXISlippi : public IEXIDevice
 	    {CMD_LOG_MESSAGE, 0xFFFF}, // Variable size... will only work if by itself
 	    {CMD_FILE_LENGTH, 0x40},
 	    {CMD_FILE_LOAD, 0x40},
-	    {CMD_PREMADE_TEXT_LENGTH, 0x1},
-	    {CMD_PREMADE_TEXT_LOAD, 0x1},
+	    {CMD_GCT_LENGTH, 0x0},
+	    {CMD_GCT_LOAD, 0x4},
+	    {CMD_PREMADE_TEXT_LENGTH, 0x0},
+	    {CMD_PREMADE_TEXT_LOAD, 0x4},
 	};
 
 	struct WriteMessage
@@ -195,6 +199,8 @@ class CEXISlippi : public IEXIDevice
 	void logMessageFromGame(u8 *payload);
 	void prepareFileLength(u8 *payload);
 	void prepareFileLoad(u8 *payload);
+	void prepareGctLength();
+	void prepareGctLoad(u8 *payload);
 	void preparePremadeTextLength(u8 *payload);
 	void preparePremadeTextLoad(u8 *payload);
 

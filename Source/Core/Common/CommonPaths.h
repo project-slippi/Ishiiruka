@@ -131,6 +131,7 @@
 #define WII_SETTING "setting.txt"
 
 #define GECKO_CODE_HANDLER "codehandler.bin"
+#define GCT_BOOTLOADER "bootloader.gct"
 
 // Subdirs in Sys
 #define GC_SYS_DIR "GC"
