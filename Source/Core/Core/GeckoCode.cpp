@@ -253,23 +253,44 @@ void RunCodeHandler()
 			return;
 		}
 
-		if (PC == LR)
+		// Removed this condition and changed a few things with the codehandler run process. This should now only get called once
+		// at the earliest possible moment during boot. It should no longer get called on a timer.
+		// if (PC == LR)
+		//{
+		u32 oldPC = PC;
+		u32 oldLR = LR;
+
+		// Backup all registers
+		// std::vector<u32> oldRegisters(32);
+		// for (int i = 0; i < 32; i++)
+		// oldRegisters[i] = GPR(i);
+
+		PowerPC::CoreMode oldMode = PowerPC::GetMode();
+
+		PC = INSTALLER_BASE_ADDRESS + 0xA8;
+		LR = 0;
+
+		// Execute the code handler in interpreter mode to track when it exits
+		PowerPC::SetMode(PowerPC::MODE_INTERPRETER);
+
+		while (PC != 0)
 		{
-			u32 oldLR = LR;
-			PowerPC::CoreMode oldMode = PowerPC::GetMode();
-
-			PC = INSTALLER_BASE_ADDRESS + 0xA8;
-			LR = 0;
-
-			// Execute the code handler in interpreter mode to track when it exits
-			PowerPC::SetMode(PowerPC::MODE_INTERPRETER);
-
-			while (PC != 0)
-				PowerPC::SingleStep();
-
-			PowerPC::SetMode(oldMode);
-			PC = LR = oldLR;
+			// if ((PC >= 0x80001f54) && (PC <= 0x80001f94))
+			//{
+			//	INFO_LOG(ACTIONREPLAY, "pc=%08x r3=%08x r4=%08x r15=%08x", PC, GPR(3), GPR(4), GPR(15));
+			//}
+			PowerPC::SingleStep();
 		}
+
+		PowerPC::SetMode(oldMode);
+
+		//// Restore registers
+		//   for (int i = 0; i < 32; i++)
+		//    PowerPC::ppcState.gpr[i] = oldRegisters[i];
+
+		PC = oldPC;
+		LR = oldLR;
+		//}
 	}
 }
 

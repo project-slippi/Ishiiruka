@@ -29,7 +29,7 @@
 #include "Core/State.h"
 
 #include "Core/GeckoCode.h"
-
+//#include "Core/PatchEngine.h"
 #include "Core/PowerPC/PowerPC.h"
 
 // Not clean but idk a better way atm
@@ -2374,13 +2374,22 @@ void CEXISlippi::prepareGctLoad(u8 *payload)
 	// This is the address where the codes will be written to
 	auto address = Common::swap32(&payload[0]);
 
+	//for (size_t i = 0, e = gct.size(); i < e; ++i)
+	//	PowerPC::HostWrite_U8(gct[i], (u32)(address + i));
+
 	// Overwrite the instructions which load address pointing to codeset
 	PowerPC::HostWrite_U32(0x3DE00000 | (address >> 16), 0x80001f58); // lis r15, 0xXXXX # top half of address
 	PowerPC::HostWrite_U32(0x61EF0000 | (address & 0xFFFF), 0x80001f5C); // ori r15, r15, 0xXXXX # bottom half of address
 	PowerPC::ppcState.iCache.Invalidate(0x80001f58); // This should invalidate both instructions
 
+	// Invalidate the codes
+	//for (unsigned int k = address; k < address + gct.size(); k += 32)
+	//	PowerPC::ppcState.iCache.Invalidate(k);
+
 	INFO_LOG(SLIPPI, "Preparing to write gecko codes at: 0x%X. %X, %X", address, 0x3DE00000 | (address >> 16),
 	          0x61EF0000 | (address & 0xFFFF));
+
+	//PatchEngine::ApplyFramePatches();
 
 	m_read_queue.insert(m_read_queue.end(), gct.begin(), gct.end());
 }
