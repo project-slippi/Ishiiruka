@@ -2195,7 +2195,7 @@ void CEXISlippi::prepareOnlineMatchState()
 	m_read_queue.insert(m_read_queue.end(), localPlayerName.begin(), localPlayerName.end());
 
 #ifdef LOCAL_TESTING
-	std::string defaultNames[] = {"Player 1", "lol u lost 2 dk", "Player 3", "Player 4"};
+	std::string defaultNames[] = {"Player 1", "Player 2", "Player 3", "Player 4"};
 #endif
 
 	for (int i = 0; i < 4; i++)
