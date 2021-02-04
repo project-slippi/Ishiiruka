@@ -2090,7 +2090,7 @@ void CEXISlippi::prepareOnlineMatchState()
 		}
 
 		// Handle Singles/Teams specific logic
-		if (remotePlayerCount < 3)
+		if (remotePlayerCount <= 2)
 		{
 			onlineMatchBlock[0x8] = 0; // is Teams = false
 
@@ -2125,15 +2125,25 @@ void CEXISlippi::prepareOnlineMatchState()
 			}
 		}
 
-		// Overwrite stage
-		u16 stageId;
-		if (isDecider)
+		// TODO: This is annoying, ideally remotePlayerSelections would just include everyone including the local player
+		// TODO: Would also simplify some logic in the Netplay class
+		std::vector<SlippiPlayerSelections> orderedSelections(4);
+		orderedSelections[lps.playerIdx] = lps;
+		for (int i = 0; i < remotePlayerCount; i++)
 		{
-			stageId = lps.isStageSelected ? lps.stageId : rps[0].stageId;
+			orderedSelections[rps[i].playerIdx] = rps[i];
 		}
-		else
+
+		// Overwrite stage information. Make sure everyone loads the same stage
+		u16 stageId = 0x1F; // Default to battlefield if there was no selection
+		for (auto selections : orderedSelections)
 		{
-			stageId = rps[0].isStageSelected ? rps[0].stageId : lps.stageId;
+			if (!selections.isStageSelected)
+				continue;
+
+			// Stage selected by this player, use that selection
+			stageId = selections.stageId;
+			break;
 		}
 
 		u16 *stage = (u16 *)&onlineMatchBlock[0xE];
