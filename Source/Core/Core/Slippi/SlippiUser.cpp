@@ -331,9 +331,18 @@ void SlippiUser::overwriteFromServer()
 	if (!m_curl)
 		return;
 
+	// Generate URL. If this is a beta version, use the beta endpoint
+	std::string url = URL_START;
+	if (scm_slippi_semver_str.find("beta") != std::string::npos)
+	{
+		url = url + "-beta";
+	}
+
+	ERROR_LOG(SLIPPI_ONLINE, "URL: %s", url.c_str());
+
 	// Perform curl request
 	std::string resp;
-	curl_easy_setopt(m_curl, CURLOPT_URL, (URL_START + "/" + userInfo.uid).c_str());
+	curl_easy_setopt(m_curl, CURLOPT_URL, (url + "/" + userInfo.uid).c_str());
 	curl_easy_setopt(m_curl, CURLOPT_WRITEDATA, &resp);
 	CURLcode res = curl_easy_perform(m_curl);
 

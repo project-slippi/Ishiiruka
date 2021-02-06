@@ -30,7 +30,7 @@
 #include "Core/State.h"
 
 #include "Core/GeckoCode.h"
-
+//#include "Core/PatchEngine.h"
 #include "Core/PowerPC/PowerPC.h"
 
 // Not clean but idk a better way atm
@@ -2096,7 +2096,7 @@ void CEXISlippi::prepareOnlineMatchState()
 		}
 
 		// Handle Singles/Teams specific logic
-		if (remotePlayerCount < 3)
+		if (remotePlayerCount <= 2)
 		{
 			onlineMatchBlock[0x8] = 0; // is Teams = false
 
@@ -2120,26 +2120,27 @@ void CEXISlippi::prepareOnlineMatchState()
 			onlineMatchBlock[0x61 + 2 * 0x24] = 0;
 			onlineMatchBlock[0x61 + 3 * 0x24] = 0;
 
-			// Set alt color to light/dark costume for multiples of the same character on a team
-			int characterCount[26][3] = {0};
-			for (int i = 0; i < 4; i++)
-			{
-				int charId = onlineMatchBlock[0x60 + i * 0x24];
-				int teamId = onlineMatchBlock[0x69 + i * 0x24];
-				onlineMatchBlock[0x67 + i * 0x24] = characterCount[charId][teamId];
-				characterCount[charId][teamId]++;
-			}
 		}
 
-		// Overwrite stage
-		u16 stageId;
-		if (isDecider)
+		// TODO: This is annoying, ideally remotePlayerSelections would just include everyone including the local player
+		// TODO: Would also simplify some logic in the Netplay class
+		std::vector<SlippiPlayerSelections> orderedSelections(4);
+		orderedSelections[lps.playerIdx] = lps;
+		for (int i = 0; i < remotePlayerCount; i++)
 		{
-			stageId = lps.isStageSelected ? lps.stageId : rps[0].stageId;
+			orderedSelections[rps[i].playerIdx] = rps[i];
 		}
-		else
+
+		// Overwrite stage information. Make sure everyone loads the same stage
+		u16 stageId = 0x1F; // Default to battlefield if there was no selection
+		for (auto selections : orderedSelections)
 		{
-			stageId = rps[0].isStageSelected ? rps[0].stageId : lps.stageId;
+			if (!selections.isStageSelected)
+				continue;
+
+			// Stage selected by this player, use that selection
+			stageId = selections.stageId;
+			break;
 		}
 
 		u16 *stage = (u16 *)&onlineMatchBlock[0xE];
@@ -2370,13 +2371,22 @@ void CEXISlippi::prepareGctLoad(u8 *payload)
 	// This is the address where the codes will be written to
 	auto address = Common::swap32(&payload[0]);
 
+	//for (size_t i = 0, e = gct.size(); i < e; ++i)
+	//	PowerPC::HostWrite_U8(gct[i], (u32)(address + i));
+
 	// Overwrite the instructions which load address pointing to codeset
 	PowerPC::HostWrite_U32(0x3DE00000 | (address >> 16), 0x80001f58); // lis r15, 0xXXXX # top half of address
 	PowerPC::HostWrite_U32(0x61EF0000 | (address & 0xFFFF), 0x80001f5C); // ori r15, r15, 0xXXXX # bottom half of address
 	PowerPC::ppcState.iCache.Invalidate(0x80001f58); // This should invalidate both instructions
 
+	// Invalidate the codes
+	//for (unsigned int k = address; k < address + gct.size(); k += 32)
+	//	PowerPC::ppcState.iCache.Invalidate(k);
+
 	INFO_LOG(SLIPPI, "Preparing to write gecko codes at: 0x%X. %X, %X", address, 0x3DE00000 | (address >> 16),
 	          0x61EF0000 | (address & 0xFFFF));
+
+	//PatchEngine::ApplyFramePatches();
 
 	m_read_queue.insert(m_read_queue.end(), gct.begin(), gct.end());
 }

@@ -47,9 +47,7 @@
 ControllerConfigDiag::ControllerConfigDiag(wxWindow* const parent)
 	: wxDialog(parent, wxID_ANY, _("Dolphin Controller Configuration"))
 {
-	m_gc_pad_type_strs = { { _("None"), _("Standard Controller"), _("GameCube Adapter for Wii U"),
-		_("Steering Wheel"), _("Dance Mat"), _("DK Bongos"), _("GBA"),
-		_("Keyboard") } };
+	m_gc_pad_type_strs = { { _("None"), _("Standard Controller"), _("GameCube Adapter for Wii U") } };
 
 	const int space5 = FromDIP(5);
 
@@ -172,7 +170,7 @@ wxSizer* ControllerConfigDiag::CreateGamecubeSizer()
 
 		pad_type_choices[i] =
 			new wxChoice(gamecube_static_sizer->GetStaticBox(), choice_id, wxDefaultPosition,
-				wxDefaultSize, m_gc_pad_type_strs.size(), m_gc_pad_type_strs.data());
+				wxDefaultSize, m_gc_pad_type_strs.size() - 5, m_gc_pad_type_strs.data());
 
 		pad_type_choices[i]->Bind(wxEVT_CHOICE, &ControllerConfigDiag::OnGameCubePortChanged, this);
 
@@ -188,22 +186,6 @@ wxSizer* ControllerConfigDiag::CreateGamecubeSizer()
 			break;
 		case SIDEVICE_WIIU_ADAPTER:
 			pad_type_choices[i]->SetStringSelection(m_gc_pad_type_strs[2]);
-			break;
-		case SIDEVICE_GC_STEERING:
-			pad_type_choices[i]->SetStringSelection(m_gc_pad_type_strs[3]);
-			break;
-		case SIDEVICE_DANCEMAT:
-			pad_type_choices[i]->SetStringSelection(m_gc_pad_type_strs[4]);
-			break;
-		case SIDEVICE_GC_TARUKONGA:
-			pad_type_choices[i]->SetStringSelection(m_gc_pad_type_strs[5]);
-			break;
-		case SIDEVICE_GC_GBA:
-			pad_type_choices[i]->SetStringSelection(m_gc_pad_type_strs[6]);
-			m_gc_port_configure_button[i]->Disable();
-			break;
-		case SIDEVICE_GC_KEYBOARD:
-			pad_type_choices[i]->SetStringSelection(m_gc_pad_type_strs[7]);
 			break;
 		default:
 			pad_type_choices[i]->SetStringSelection(m_gc_pad_type_strs[0]);
