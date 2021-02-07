@@ -28,18 +28,24 @@
 
 #define SLIPPI_ONLINE_LOCKSTEP_INTERVAL 30 // Number of frames to wait before attempting to time-sync
 #define SLIPPI_PING_DISPLAY_INTERVAL 60
+#define SLIPPI_REMOTE_PLAYER_MAX 3
+#define SLIPPI_REMOTE_PLAYER_COUNT 3
 
 struct SlippiRemotePadOutput
 {
 	int32_t latestFrame;
+	u8 playerIdx;
 	std::vector<u8> data;
 };
 
 class SlippiPlayerSelections
 {
   public:
+	u8 playerIdx = 0;
 	u8 characterId = 0;
 	u8 characterColor = 0;
+	u8 teamId = 0;
+
 	bool isCharacterSelected = false;
 
 	u16 stageId = 0;
@@ -63,6 +69,7 @@ class SlippiPlayerSelections
 		{
 			this->characterId = s.characterId;
 			this->characterColor = s.characterColor;
+			this->teamId = s.teamId;
 			this->isCharacterSelected = true;
 		}
 	}
@@ -72,6 +79,7 @@ class SlippiPlayerSelections
 		characterId = 0;
 		characterColor = 0;
 		isCharacterSelected = false;
+		teamId = 0;
 
 		stageId = 0;
 		isStageSelected = false;
@@ -84,12 +92,15 @@ class SlippiMatchInfo
 {
   public:
 	SlippiPlayerSelections localPlayerSelections;
-	SlippiPlayerSelections remotePlayerSelections;
+	SlippiPlayerSelections remotePlayerSelections[SLIPPI_REMOTE_PLAYER_MAX];
 
 	void Reset()
 	{
 		localPlayerSelections.Reset();
-		remotePlayerSelections.Reset();
+		for (int i = 0; i < SLIPPI_REMOTE_PLAYER_MAX; i++)
+		{
+			remotePlayerSelections[i].Reset();
+		}
 	}
 };
 
@@ -100,7 +111,8 @@ class SlippiNetplayClient
 	void SendAsync(std::unique_ptr<sf::Packet> packet);
 
 	SlippiNetplayClient(bool isDecider); // Make a dummy client
-	SlippiNetplayClient(const std::string &address, const u16 remotePort, const u16 localPort, bool isDecider);
+	SlippiNetplayClient(std::vector<std::string> addrs, std::vector<u16> ports, const u8 remotePlayerCount,
+	                    const u16 localPort, bool isDecider, u8 playerIdx);
 	~SlippiNetplayClient();
 
 	// Slippi Online
@@ -115,23 +127,26 @@ class SlippiNetplayClient
 
 	bool IsDecider();
 	bool IsConnectionSelected();
+	u8 LocalPlayerPort();
 	SlippiConnectStatus GetSlippiConnectStatus();
+	std::vector<int> GetFailedConnections();
 	void StartSlippiGame();
 	void SendConnectionSelected();
 	void SendSlippiPad(std::unique_ptr<SlippiPad> pad);
 	void SetMatchSelections(SlippiPlayerSelections &s);
-	std::unique_ptr<SlippiRemotePadOutput> GetSlippiRemotePad(int32_t curFrame);
+	std::unique_ptr<SlippiRemotePadOutput> GetSlippiRemotePad(int32_t curFrame, int index);
+	void DropOldRemoteInputs(int32_t curFrame);
 	SlippiMatchInfo *GetMatchInfo();
-	u64 GetSlippiPing();
 	int32_t GetSlippiLatestRemoteFrame();
-	u8 GetSlippiRemoteChatMessage();
+	SlippiPlayerSelections GetSlippiRemoteChatMessage();
 	u8 GetSlippiRemoteSentChatMessage();
 	s32 CalcTimeOffsetUs();
 
-	void WriteChatMessageToPacket(sf::Packet &packet, int messageId);
+	void WriteChatMessageToPacket(sf::Packet &packet, int messageId, u8 playerIdx);
 	std::unique_ptr<SlippiPlayerSelections> ReadChatMessageFromPacket(sf::Packet &packet);
 
-	u8 remoteChatMessageId = 0;     // most recent chat message id from opponent
+	std::unique_ptr<SlippiPlayerSelections> remoteChatMessageSelection =
+	    nullptr;                    // most recent chat message player selection (message + player index)
 	u8 remoteSentChatMessageId = 0; // most recent chat message id that current player sent
 
   protected:
@@ -146,8 +161,9 @@ class SlippiNetplayClient
 	Common::FifoQueue<std::unique_ptr<sf::Packet>, false> m_async_queue;
 
 	ENetHost *m_client = nullptr;
-	ENetPeer *m_server = nullptr;
+	std::vector<ENetPeer *> m_server;
 	std::thread m_thread;
+	u8 m_remotePlayerCount = 0;
 
 	std::string m_selected_game;
 	Common::Flag m_is_running{false};
@@ -164,24 +180,30 @@ class SlippiNetplayClient
 		u64 timeUs;
 	};
 
-	struct
+	struct FrameOffsetData
 	{
 		// TODO: Should the buffer size be dynamic based on time sync interval or not?
 		int idx;
 		std::vector<s32> buf;
-	} frameOffsetData;
+	};
 
 	bool isConnectionSelected = false;
 	bool isDecider = false;
-	int32_t lastFrameAcked;
 	bool hasGameStarted = false;
-	FrameTiming lastFrameTiming;
-	u64 pingUs;
+	u8 playerIdx = 0;
 
-	std::deque<std::unique_ptr<SlippiPad>> localPadQueue;  // most recent inputs at start of deque
-	std::deque<std::unique_ptr<SlippiPad>> remotePadQueue; // most recent inputs at start of deque
-	Common::FifoQueue<FrameTiming, false> ackTimers;
+	std::deque<std::unique_ptr<SlippiPad>> localPadQueue; // most recent inputs at start of deque
+	std::deque<std::unique_ptr<SlippiPad>>
+	    remotePadQueue[SLIPPI_REMOTE_PLAYER_MAX]; // most recent inputs at start of deque
+
+	u64 pingUs[SLIPPI_REMOTE_PLAYER_MAX];
+	int32_t lastFrameAcked[SLIPPI_REMOTE_PLAYER_MAX];
+	FrameOffsetData frameOffsetData[SLIPPI_REMOTE_PLAYER_MAX];
+	FrameTiming lastFrameTiming[SLIPPI_REMOTE_PLAYER_MAX];
+	std::array<Common::FifoQueue<FrameTiming, false>, SLIPPI_REMOTE_PLAYER_MAX> ackTimers;
+
 	SlippiConnectStatus slippiConnectStatus = SlippiConnectStatus::NET_CONNECT_STATUS_UNSET;
+	std::vector<int> failedConnections;
 	SlippiMatchInfo matchInfo;
 
 	bool m_is_recording = false;
@@ -190,7 +212,8 @@ class SlippiNetplayClient
 	std::unique_ptr<SlippiPlayerSelections> readSelectionsFromPacket(sf::Packet &packet);
 
   private:
-	unsigned int OnData(sf::Packet &packet);
+	u8 PlayerIdxFromPort(u8 port);
+	unsigned int OnData(sf::Packet &packet, ENetPeer *peer);
 	void Send(sf::Packet &packet);
 	void Disconnect();
 
@@ -203,8 +226,9 @@ class SlippiNetplayClient
 
 	u32 m_timebase_frame = 0;
 };
-extern SlippiNetplayClient* SLIPPI_NETPLAY; // singleton static pointer
+extern SlippiNetplayClient *SLIPPI_NETPLAY; // singleton static pointer
 
-static bool IsOnline(){
-    return SLIPPI_NETPLAY != nullptr;
+static bool IsOnline()
+{
+	return SLIPPI_NETPLAY != nullptr;
 }

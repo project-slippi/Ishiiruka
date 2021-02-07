@@ -10,6 +10,7 @@
 #include "Common/FileUtil.h"
 #include "Core/HW/EXI_Device.h"
 #include "Core/Slippi/SlippiGameFileLoader.h"
+#include "Core/Slippi/SlippiGameReporter.h"
 #include "Core/Slippi/SlippiMatchmaking.h"
 #include "Core/Slippi/SlippiNetplay.h"
 #include "Core/Slippi/SlippiReplayComm.h"
@@ -71,6 +72,7 @@ class CEXISlippi : public IEXIDevice
 		CMD_CLEANUP_CONNECTION = 0xBA,
 		CMD_SEND_CHAT_MESSAGE = 0xBB,
 		CMD_GET_NEW_SEED = 0xBC,
+		CMD_REPORT_GAME = 0xBD,
 
 		CMD_NAME_ENTRY_INDEX = 0xBE,
 		CMD_NAME_ENTRY_AUTOCOMPLETE = 0xBF,
@@ -79,7 +81,8 @@ class CEXISlippi : public IEXIDevice
 		CMD_LOG_MESSAGE = 0xD0,
 		CMD_FILE_LENGTH = 0xD1,
 		CMD_FILE_LOAD = 0xD2,
-
+		CMD_GCT_LENGTH = 0xD3,
+		CMD_GCT_LOAD = 0xD4,
 	};
 
 	enum
@@ -119,6 +122,7 @@ class CEXISlippi : public IEXIDevice
 	    {CMD_GET_ONLINE_STATUS, 0},
 	    {CMD_CLEANUP_CONNECTION, 0},
 	    {CMD_GET_NEW_SEED, 0},
+	    {CMD_REPORT_GAME, 16},
 
 		{CMD_NAME_ENTRY_INDEX, 1},
 	    {CMD_NAME_ENTRY_AUTOCOMPLETE, 24},
@@ -127,6 +131,8 @@ class CEXISlippi : public IEXIDevice
 	    {CMD_LOG_MESSAGE, 0xFFFF}, // Variable size... will only work if by itself
 	    {CMD_FILE_LENGTH, 0x40},
 	    {CMD_FILE_LOAD, 0x40},
+	    {CMD_GCT_LENGTH, 0x0},
+	    {CMD_GCT_LOAD, 0x4},
 	};
 
 	struct WriteMessage
@@ -183,6 +189,7 @@ class CEXISlippi : public IEXIDevice
 	void prepareOnlineStatus();
 	void handleConnectionCleanup();
 	void prepareNewSeed();
+	void handleReportGame(u8 *payload);
 
 	// replay playback stuff
 	void prepareGameInfo(u8 *payload);
@@ -197,6 +204,10 @@ class CEXISlippi : public IEXIDevice
 	void logMessageFromGame(u8 *payload);
 	void prepareFileLength(u8 *payload);
 	void prepareFileLoad(u8 *payload);
+	void prepareGctLength();
+	void prepareGctLoad(u8 *payload);
+
+	int getCharColor(u8 charId, u8 teamId);
 
 	void FileWriteThread(void);
 
@@ -222,6 +233,7 @@ class CEXISlippi : public IEXIDevice
 	u32 frameSeqIdx = 0;
 
 	bool isEnetInitialized = false;
+	bool firstMatch = true;
 
 	std::default_random_engine generator;
 
@@ -230,6 +242,9 @@ class CEXISlippi : public IEXIDevice
 	bool isCurrentlySkipping = false;
 
 	std::string forcedError = "";
+
+	// Used to determine when to detect when a new session has started
+	bool isPlaySessionActive = false;
 
   protected:
 	void TransferByte(u8 &byte) override;
@@ -241,6 +256,7 @@ class CEXISlippi : public IEXIDevice
 	std::unique_ptr<SlippiGameFileLoader> gameFileLoader;
 	std::unique_ptr<SlippiNetplayClient> slippi_netplay;
 	std::unique_ptr<SlippiMatchmaking> matchmaking;
+	std::unique_ptr<SlippiGameReporter> gameReporter;
 	std::unique_ptr<SlippiDirectCodes> directCodes;
 
 	std::map<s32, std::unique_ptr<SlippiSavestate>> activeSavestates;

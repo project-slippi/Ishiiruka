@@ -156,6 +156,7 @@ private:
 	IniFile GameIniLocal;
 	std::string GameIniFileLocal;
 	std::string game_id;
+	u16 game_rev;
 
 	std::set<std::string> DefaultPatches;
 

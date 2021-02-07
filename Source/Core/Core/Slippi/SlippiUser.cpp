@@ -109,7 +109,7 @@ bool SlippiUser::AttemptLogin()
 {
 	std::string userFilePath = File::GetSlippiUserJSONPath();
 
-	INFO_LOG(SLIPPI_ONLINE, "Looking for file at: %s", userFilePath.c_str());
+	//INFO_LOG(SLIPPI_ONLINE, "Looking for file at: %s", userFilePath.c_str());
 
 	{
 		std::string userFilePathTxt =
@@ -149,31 +149,56 @@ bool SlippiUser::AttemptLogin()
 // macOS and Linux have modern WebKit views (in our wxWidgets build) that can pop open and enable login
 // with relative ease; Windows unfortunately requires an extra check as Edge may not be present yet.
 //
-// If it's not, they just get routed to the older method (pop them over to browser and guide 
+// If it's not, they just get routed to the older method (pop them over to browser and guide
 // them to place the file).
 void SlippiUser::OpenLogInPage()
 {
 #ifdef _WIN32
-    if (!SlippiAuthWebView::IsAvailable())
-    {
-        std::string url = "https://slippi.gg/online/enable";
-        std::string path = File::GetSlippiUserJSONPath();;
-        
-        // On windows, sometimes the path can have backslashes and slashes mixed, convert all to backslashes
-        path = ReplaceAll(path, "\\", "\\");
-        path = ReplaceAll(path, "/", "\\");
-        
-        std::string fullUrl = url + "?path=" + path;
-        INFO_LOG(SLIPPI_ONLINE, "[User] Login at path: %s", fullUrl.c_str());
+	if (!SlippiAuthWebView::IsAvailable())
+	{
+		std::string url = "https://slippi.gg/online/enable";
+		std::string path = File::GetSlippiUserJSONPath();
+		;
 
-        std::string command = "explorer \"" + fullUrl + "\"";
-        RunSystemCommand(command);
-        return;
-    }
+		// On windows, sometimes the path can have backslashes and slashes mixed, convert all to backslashes
+		path = ReplaceAll(path, "\\", "\\");
+		path = ReplaceAll(path, "/", "\\");
+
+		std::string fullUrl = url + "?path=" + path;
+		INFO_LOG(SLIPPI_ONLINE, "[User] Login at path: %s", fullUrl.c_str());
+
+		std::string command = "explorer \"" + fullUrl + "\"";
+		RunSystemCommand(command);
+		return;
+	}
+
+	// Uncomment this if Windows is in a position to try the login flow.
+	//
+	// if (!SlippiAuthWebView::IsAvailable())
+	// {
+	std::string url = "https://slippi.gg/online/enable";
+	std::string path = File::GetSlippiUserJSONPath();
+	;
+
+	// On windows, sometimes the path can have backslashes and slashes mixed, convert all to backslashes
+	path = ReplaceAll(path, "\\", "\\");
+	path = ReplaceAll(path, "/", "\\");
+
+	std::string fullUrl = url + "?path=" + path;
+	INFO_LOG(SLIPPI_ONLINE, "[User] Login at path: %s", fullUrl.c_str());
+
+	std::string command = "explorer \"" + fullUrl + "\"";
+	RunSystemCommand(command);
+	return;
+	// }
 #endif
 
-    CFrame* cframe = wxGetApp().GetCFrame();
-    cframe->OpenSlippiAuthenticationDialog();
+	// macOS and Linux have stable WebView components that we can use to
+	// enable an easier login flow for users. On macOS, this is backed by
+	// the system-integrated WebKit framework. On Linux, this is provided
+	// by linking Webkit2.
+	CFrame *cframe = wxGetApp().GetCFrame();
+	cframe->OpenSlippiAuthenticationDialog();
 }
 
 void SlippiUser::UpdateApp()
@@ -290,7 +315,8 @@ SlippiUser::UserInfo SlippiUser::parseFile(std::string fileContents)
 	info.playKey = readString(res, "playKey");
 	info.connectCode = readString(res, "connectCode");
 	info.latestVersion = readString(res, "latestVersion");
-
+	info.port = res.value("port", -1);
+	
 	return info;
 }
 
@@ -305,9 +331,18 @@ void SlippiUser::overwriteFromServer()
 	if (!m_curl)
 		return;
 
+	// Generate URL. If this is a beta version, use the beta endpoint
+	std::string url = URL_START;
+	if (scm_slippi_semver_str.find("beta") != std::string::npos)
+	{
+		url = url + "-beta";
+	}
+
+	ERROR_LOG(SLIPPI_ONLINE, "URL: %s", url.c_str());
+
 	// Perform curl request
 	std::string resp;
-	curl_easy_setopt(m_curl, CURLOPT_URL, (URL_START + "/" + userInfo.uid).c_str());
+	curl_easy_setopt(m_curl, CURLOPT_URL, (url + "/" + userInfo.uid).c_str());
 	curl_easy_setopt(m_curl, CURLOPT_WRITEDATA, &resp);
 	CURLcode res = curl_easy_perform(m_curl);
 

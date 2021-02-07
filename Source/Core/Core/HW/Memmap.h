@@ -47,7 +47,10 @@ enum
 	// what will be reported in lowmem, and thus used by emulated software.
 	// Note: Writing to lowmem is done by IPL. If using retail IPL, it will
 	// always be set to 24MB.
-	REALRAM_SIZE = 0x01800000,
+
+	// Adds 200 KB to compensate for putting Slippi's codes in the heap. Slippi doesn't actually use
+	// 200 KB atm, last measured at about 40.5 KB but this should give us room to grow
+	REALRAM_SIZE = 0x01800000 + 200000,
 	RAM_SIZE = ROUND_UP_POW2(REALRAM_SIZE),
 	RAM_MASK = RAM_SIZE - 1,
 	FAKEVMEM_SIZE = 0x02000000,

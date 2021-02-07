@@ -137,6 +137,7 @@ struct SConfig : NonCopyable
 	bool bMeleeForceWidescreen = false;
 
 	bool m_slippiSaveReplays = true;
+	bool m_slippiEnableQuickChat = true;
 	bool m_slippiReplayMonthFolders = false;
 	std::string m_strSlippiReplayDir;
 	bool m_meleeUserIniBootstrapped = false;

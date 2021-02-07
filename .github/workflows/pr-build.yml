@@ -32,6 +32,8 @@ jobs:
     name: "Windows ${{ matrix.build_type }}"
     runs-on: windows-2019
     steps:
+      - name: "Checkout"
+        uses: actions/checkout@v2.3.1
       - name: "Setup Go"
         uses: actions/setup-go@v2
         if: matrix.build_type == 'Netplay'
@@ -40,14 +42,24 @@ jobs:
         run: |
           MsiExec.exe /passive /X{F0C3E5D1-1ADE-321E-8167-68EF0DE699A5}
           MsiExec.exe /passive /X{1D8E6291-B0D5-35EC-8441-6616F567A0F7}
-      - name: "Install DirectX SDK"
-        shell: powershell
-        run: |
-          choco install directx-sdk
+          mkdir .\Tools\DX
       - name: "Setup MSBuild"
         uses: microsoft/setup-msbuild@v1   
-      - name: "Checkout"
-        uses: actions/checkout@v2.3.1
+      - name: Cache DXSDK_Jun10.exe
+        uses: actions/cache@v2
+        with:
+          path: ./Tools/DX/
+          key: ${{ runner.os }}
+      - name: "Download DirectX SDK"
+        working-directory: ${{ github.workspace }}
+        shell: powershell
+        run: |
+          if (!(Test-Path ".\Tools\DX\DXSDK_Jun10.exe" -PathType Leaf)) { Invoke-WebRequest -Uri https://github.com/project-slippi/Ishiiruka/releases/download/v2.2.5/DXSDK_Jun10.exe -UseBasicParsing -OutFile ".\Tools\DX\DXSDK_Jun10.exe" }
+      - name: "Install DirectX SDK"
+        working-directory: ${{ github.workspace }}
+        shell: cmd
+        run: |
+          .\Tools\DX\DXSDK_Jun10.exe /U /F
       - name: 'Fetch Git Tags'
         shell: bash
         if: success()
@@ -179,6 +191,7 @@ jobs:
         if: success()
         working-directory: ${{ github.workspace }}
         run: |
+          chmod +x ./build-appimage.sh
           ./build-appimage.sh ${{ matrix.build_config }}
       - name: "Package"
         if: success()
@@ -234,7 +247,8 @@ jobs:
         if: success()
         shell: bash
         run: |
-          brew update
+          rm '/usr/local/bin/2to3' || true
+          echo "HOMEBREW_NO_AUTO_UPDATE=1" >> $GITHUB_ENV
           brew upgrade cmake
           brew install \
           ffmpeg \
@@ -243,8 +257,7 @@ jobs:
           pkgconfig \
           libao \
           sound-touch \
-          hidapi \
-          create-dmg
+          hidapi
       - name: "Build ${{ matrix.build_type }} Dolphin"
         if: success()
         shell: bash
@@ -255,6 +268,8 @@ jobs:
           export LIBRARY_PATH=$LIBRARY_PATH:/usr/local/lib
           chmod +x ./build-mac.sh && ./build-mac.sh ${{ matrix.build_config }}
           mkdir artifact
+          FILE_NAME=${{ env.CURR_DATE }}-${{ env.GIT_HASH }}-${{ env.GIT_TAG }}-${{ matrix.artifact_name }}
+          echo "FILE_NAME=$FILE_NAME" >> $GITHUB_ENV
       - name: "Codesign ${{ matrix.build_type}} Dolphin"
         if: success() && env.CERTIFICATE_MACOS_APPLICATION != null
         shell: bash
@@ -264,20 +279,21 @@ jobs:
           CERTIFICATE_MACOS_PASSWORD: ${{ secrets.CERTIFICATE_MACOS_PASSWORD }}
         run: |
           chmod +x Tools/load-macos-certs-ci.sh && ./Tools/load-macos-certs-ci.sh
-
           mkdir -p ~/private_keys/
           echo '${{ secrets.APPLE_CONNECT_API_KEY }}' > ~/private_keys/AuthKey_${{ secrets.APPLE_API_KEY_ID }}.p8
-
           /usr/bin/codesign -f -s "${{ secrets.APPLE_IDENTITY_HASH }}" --deep --options runtime --entitlements Source/Core/DolphinWX/Entitlements.plist ./build/Binaries/Slippi\ Dolphin.app
-      - name: "Package Netplay"
-        if: success() && matrix.build_type == 'Netplay'
+      - name: "Package, Sign and Notarize Netplay Release DMG"
+        if: success() && matrix.build_type == 'Netplay' && env.CERTIFICATE_MACOS_APPLICATION != null
         shell: bash
         working-directory: ${{ github.workspace }}
+        env:
+          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_ISSUER_ID: ${{ secrets.APPLE_ISSUER_ID }}
+          CERTIFICATE_MACOS_APPLICATION: ${{ secrets.CERTIFICATE_MACOS_APPLICATION }}
         run: |
           rm build/Binaries/traversal_server
-          FILE_NAME=${{ env.CURR_DATE }}-${{ env.GIT_HASH }}-${{ env.GIT_TAG }}-${{ matrix.artifact_name }}.dmg
-          echo "FILE_NAME=$FILE_NAME" >> $GITHUB_ENV
-          create-dmg --no-internet-enable \
+          chmod +x Tools/create-dmg/run.sh 
+          ./Tools/create-dmg/run.sh --no-internet-enable \
             --volname "Slippi Dolphin Installer" \
             --volicon "Data/slippi_dmg_icon.icns" \
             --background "Data/slippi_dmg_background.png" \
@@ -288,29 +304,21 @@ jobs:
             --app-drop-link 440 196 \
             --icon "Slippi Dolphin.app" 140 196 \
             --hide-extension "Slippi Dolphin.app" \
-            "${FILE_NAME}" \
+            "${{ env.FILE_NAME }}.dmg" \
             "./build/Binaries/"
-          mv "${FILE_NAME}" artifact/
-      - name: "Package, Sign and Notarize Netplay DMG"
-        if: success() && matrix.build_type == 'Netplay' && env.CERTIFICATE_MACOS_APPLICATION != null
+          mv "${{ env.FILE_NAME }}.dmg" artifact/
+          /usr/bin/codesign -f -s "${{ secrets.APPLE_IDENTITY_HASH }}" --deep --options runtime ./artifact/${{ env.FILE_NAME }}.dmg
+          chmod +x Tools/notarize_netplay.sh && ./Tools/notarize_netplay.sh ./artifact/${{ env.FILE_NAME }}.dmg
+      - name: "Package ${{ matrix.build_type }}"
+        if: success() && (matrix.build_type == 'Playback' || env.CERTIFICATE_MACOS_APPLICATION == null)
         shell: bash
         working-directory: ${{ github.workspace }}
         env:
-          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY_ID }}
-          APPLE_ISSUER_ID: ${{ secrets.APPLE_ISSUER_ID }}
           CERTIFICATE_MACOS_APPLICATION: ${{ secrets.CERTIFICATE_MACOS_APPLICATION }}
         run: |
-          /usr/bin/codesign -f -s "${{ secrets.APPLE_IDENTITY_HASH }}" --deep --options runtime ./artifact/${{ env.FILE_NAME }}
-          chmod +x Tools/notarize_netplay.sh && ./Tools/notarize_netplay.sh ./artifact/${{ env.FILE_NAME }}
-      - name: "Package Playback"
-        if: success() && matrix.build_type == 'Playback'
-        shell: bash
-        working-directory: ${{ github.workspace }}
-        run: |
           cd  ./build/Binaries
-          FILE_NAME=${{ env.CURR_DATE }}-${{ env.GIT_HASH }}-${{ env.GIT_TAG }}-${{ matrix.artifact_name }}.zip
-          zip -r "${FILE_NAME}" Slippi\ Dolphin.app
-          mv "${FILE_NAME}" ../../artifact/
+          zip -r "${{ env.FILE_NAME }}.zip" Slippi\ Dolphin.app
+          mv "${{ env.FILE_NAME }}.zip" ../../artifact/
       - name: "Publish"
         if: success()
         uses: actions/upload-artifact@v2-preview
