@@ -2443,7 +2443,7 @@ void CEXISlippi::preparePremadeTextLoad(u8 *payload)
 	std::vector<u8> premadeTextData = loadPremadeText(payload);
 
 	m_read_queue.clear();
-	// Write size to output
+	// Write data to output
 	m_read_queue.insert(m_read_queue.end(), premadeTextData.begin(), premadeTextData.end());
 }
 
