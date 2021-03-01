@@ -26,8 +26,11 @@
 #include "Core/IPC_HLE/WII_IPC_HLE_Device_usb_bt_emu.h"
 #include "Core/Movie.h"
 #include "InputCommon/GCAdapter.h"
+#include "InputCommon/InputStabilizer.h"
 #include "VideoCommon/OnScreenDisplay.h"
 #include "VideoCommon/VideoConfig.h"
+
+static std::vector<InputStabilizer> stabilizers(4, InputStabilizer());
 
 static std::mutex crit_netplay_client;
 NetPlayClient* netplay_client = nullptr;
@@ -1151,7 +1154,13 @@ void NetPlayClient::SendNetPad(int pad_nb)
                     switch (SConfig::GetInstance().m_SIDevice[i])
                     {
                     case SIDEVICE_WIIU_ADAPTER:
-                        status = GCAdapter::Input(i);
+						{
+							auto now = std::chrono::high_resolution_clock::now();
+							stabilizers[i].feedPollTiming(now);
+							std::chrono::high_resolution_clock::time_point pollTiming =
+								stabilizers[i].computeNextPollTiming();
+							status = GCAdapter::Input(i, &pollTiming);
+						}
                         break;
                     case SIDEVICE_GC_CONTROLLER:
                     default:
