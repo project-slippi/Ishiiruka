@@ -1361,6 +1361,9 @@
     <ClInclude Include="Slippi\SlippiPlayback.h">
       <Filter>Slippi</Filter>
     </ClInclude>
+    <ClInclude Include="Slippi\SlippiPremadeText.h">
+      <Filter>Slippi</Filter>
+    </ClInclude>
     <ClInclude Include="Slippi\SlippiGameReporter.h">
       <Filter>Slippi</Filter>
     </ClInclude>
