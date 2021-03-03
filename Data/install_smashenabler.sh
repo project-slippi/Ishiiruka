@@ -24,34 +24,52 @@ EOF
 main() {
     downloader --check
 
+    echo "--------------------------------------------------------------------------------"
+    echo "|                                                                              |"
+    echo "| ❗ IMPORTANT: Always run this with Dolphin closed and adapter unplugged! ❗  |"
+    echo "|                                                                              |"
+    echo "| If your adapter is plugged in, unplug it now.                                |"
+    echo "|                                                                              |"
+    echo "| If you have any instance of Dolphin open, close it completely.               |"
+    echo "|                                                                              |"
+    echo "| If you ran it with the adapter plugged in or Dolphin opened, unplug and/or   |"
+    echo "| close it, and re-run this script.                                            |"
+    echo "|                                                                              |"
+    echo "--------------------------------------------------------------------------------"
+
+    say "🧹 Clearing out old versions if they exist. This may require your password (it will not look like you are typing, but you are)."
+    sudo rm -rf /Library/Extensions/SmashEnabler.kext
+    
     local _url="https://forums.dolphin-emu.org/attachment.php?aid=16637"
-    say "Downloading kext from ${_url}."
+    say "🟢 Downloading kext from ${_url}."
 
     local _file="SmashEnabler.kext.zip"
     ensure downloader "$_url" "$_file"
 
-    say "Unzipping..."
+    say "📦 Unzipping..."
     unzip "$_file"
-
-    say "Clearing out old versions if they exist. This may require your password."
-    sudo rm -rf /Library/Extensions/SmashEnabler.kext
     
-    say "Installing kext. This may require your password."
+    say "🎮 Installing kext. This may require your password (it will not look like you are typing, but you are)."
     sudo mv SmashEnabler.kext /Library/Extensions/
     sudo chown -R root:wheel /Library/Extensions/SmashEnabler.kext
-    sudo touch /Library/Extensions
+    sudo kextutil /Library/Extensions/SmashEnabler.kext
+    
+    # This was previously enough to trigger a kext cache rebuild, but in recent macOS versions it doesn't seem to kick it.
+    # The kextutil line above does well enough... but keep this here for now in case it makes sense to revert it (e.g, High Sierra).
+    # sudo touch /Library/Extensions
 
-    say "Cleaning up..."
+    say "🧹 Cleaning up..."
     rm "${_file}"
 
-    say "Kext installed. You should boot into recovery mode and re-enable SIP to be safe."
+    say "🎉 Extension installed."
+    say "❗ IMPORTANT: always make sure you have your adapter plugged in BEFORE opening Dolphin. ❗"
 
     local _retval=$?
     return "$_retval"
 }
 
 say() {
-    printf 'smashenabler-installer: %s\n' "$1"
+    printf '\n%s\n' "$1"
 }
 
 err() {
