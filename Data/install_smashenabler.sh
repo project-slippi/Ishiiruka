@@ -24,6 +24,11 @@ EOF
 main() {
     downloader --check
 
+    # Needed as an argument for downloader type determination in downloader().
+    get_architecture || return 1
+    local _arch="$RETVAL"
+    assert_nz "$_arch" "arch"
+
     echo "--------------------------------------------------------------------------------"
     echo "|                                                                              |"
     echo "| ❗ IMPORTANT: Always run this with Dolphin closed and adapter unplugged! ❗  |"
@@ -44,7 +49,7 @@ main() {
     say "🟢 Downloading kext from ${_url}."
 
     local _file="SmashEnabler.kext.zip"
-    ensure downloader "$_url" "$_file"
+    ensure downloader "$_url" "$_file" "$_arch"
 
     say "📦 Unzipping..."
     unzip "$_file"
@@ -167,7 +172,7 @@ check_help_for() {
         # fail to find these options to force fallback
         *darwin*)
         if check_cmd sw_vers; then
-            if [ "$(sw_vers -productVersion | cut -d. -f2)" -lt 13 ]; then
+            if [ "$(sw_vers -productVersion | cut -d. -f1)" -eq 10 ] && [ "$(sw_vers -productVersion | cut -d. -f2)" -lt 13 ]; then
                 # Older than 10.13
                 echo "Warning: Detected OS X platform older than 10.13"
                 return 1
@@ -271,6 +276,70 @@ get_strong_ciphersuites_for() {
         # Begin with SECURE128 (and higher) then remove/add to build cipher suites. Produces same 9 cipher suites as OpenSSL but in slightly different order.
         echo "SECURE128:-VERS-SSL3.0:-VERS-TLS1.0:-VERS-TLS1.1:-VERS-DTLS-ALL:-CIPHER-ALL:-MAC-ALL:-KX-ALL:+AEAD:+ECDHE-ECDSA:+ECDHE-RSA:+AES-128-GCM:+CHACHA20-POLY1305:+AES-256-GCM"
     fi 
+}
+
+# Load the arch type; accounts for most modern possible types (Apple Silicon, Intel, and a few oddities for possible Hackintosh types).
+# RIP PPC.
+get_architecture() {
+    local _ostype _cputype _bitness _arch
+    _ostype="$(uname -s)"
+    _cputype="$(uname -m)"
+
+    if [ "$_ostype" = Darwin ] && [ "$_cputype" = i386 ]; then
+        # Darwin `uname -m` lies
+        if sysctl hw.optional.x86_64 | grep -q ': 1'; then
+            _cputype=x86_64
+        fi
+    fi
+
+    case "$_ostype" in
+
+        Darwin)
+            _ostype=apple-darwin
+            ;;
+
+        *)
+            err "unrecognized OS type: $_ostype"
+            ;;
+
+    esac
+
+    case "$_cputype" in
+
+        i386 | i486 | i686 | i786 | x86)
+            _cputype=i686
+            ;;
+
+        xscale | arm)
+            _cputype=arm
+            ;;
+
+        armv6l)
+            _cputype=arm
+            _ostype="${_ostype}eabihf"
+            ;;
+
+        armv7l | armv8l)
+            _cputype=armv7
+            _ostype="${_ostype}eabihf"
+            ;;
+
+        aarch64 | arm64)
+            _cputype=aarch64
+            ;;
+
+        x86_64 | x86-64 | x64 | amd64)
+            _cputype=x86_64
+            ;;
+
+        *)
+            err "unknown CPU type: $_cputype"
+
+    esac
+
+    _arch="${_cputype}-${_ostype}"
+
+    RETVAL="$_arch"
 }
 
 main "$@" || exit 1
