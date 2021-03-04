@@ -79,6 +79,7 @@ class CEXISlippi : public IEXIDevice
 		CMD_FILE_LOAD = 0xD2,
 		CMD_GCT_LENGTH = 0xD3,
 		CMD_GCT_LOAD = 0xD4,
+		CMD_GET_DELAY = 0xD5,
 		CMD_PREMADE_TEXT_LENGTH = 0xE1,
 		CMD_PREMADE_TEXT_LOAD = 0xE2,
 	};
@@ -128,6 +129,7 @@ class CEXISlippi : public IEXIDevice
 	    {CMD_FILE_LOAD, 0x40},
 	    {CMD_GCT_LENGTH, 0x0},
 	    {CMD_GCT_LOAD, 0x4},
+	    {CMD_GET_DELAY, 0x0},
 	    {CMD_PREMADE_TEXT_LENGTH, 0x0},
 	    {CMD_PREMADE_TEXT_LOAD, 0x4},
 	};
@@ -201,6 +203,7 @@ class CEXISlippi : public IEXIDevice
 	void prepareFileLoad(u8 *payload);
 	void prepareGctLength();
 	void prepareGctLoad(u8 *payload);
+	void prepareDelayResponse();
 	void preparePremadeTextLength(u8 *payload);
 	void preparePremadeTextLoad(u8 *payload);
 
