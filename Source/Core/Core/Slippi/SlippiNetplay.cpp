@@ -156,6 +156,8 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet)
 			timing.timeUs = curTime;
 		}
 
+		//* L'idée est que sur la durée, temps d'obtention - ping/2 = temps d'envoi
+		//* Et que le temps d'envoi est synchro avec l'horloge du jeu - donc on peut en déduire les décalages
 		s64 opponentSendTimeUs = curTime - (pingUs / 2);
 		s64 frameDiffOffsetUs = 16683 * (timing.frame - frame);
 		s64 timeOffsetUs = opponentSendTimeUs - timing.timeUs + frameDiffOffsetUs;
@@ -163,6 +165,7 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet)
 		INFO_LOG(SLIPPI_ONLINE, "[Offset] Opp Frame: %d, My Frame: %d. Time offset: %lld", frame, timing.frame,
 		         timeOffsetUs);
 
+		//* Store the 30 last diffs in a circular buffer
 		// Add this offset to circular buffer for use later
 		if (frameOffsetData.buf.size() < SLIPPI_ONLINE_LOCKSTEP_INTERVAL)
 			frameOffsetData.buf.push_back((s32)timeOffsetUs);
@@ -178,8 +181,18 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet)
 
 			INFO_LOG(SLIPPI_ONLINE, "Receiving a packet of inputs [%d]...", frame);
 
+			//* On stocke et envoie potentiellement plusieurs pad... le plus récent devant... ou derrière ?
+			//* Frame est obtenu du packet, headFrame localement
+			//* i.e frame = la frame à laquelle ceci a été envoyé de chez l'adversaire (+ delay)
+			//* et headFrame = dernière frame pour laquelle on a un input ?
+			//* remotePadQueue jamais censé être empty je crois, seulement au début du jeu
+			//* oui donc headFrame = frame du dernier input connu
 			int32_t headFrame = remotePadQueue.empty() ? 0 : remotePadQueue.front()->frame;
+			//* On a l'input frame 63, ils nous envoient les inputs pour la frame 66 (post delay)
+			//* inputsToCopy = 3
 			int inputsToCopy = frame - headFrame;
+
+			//* Why is this commented out ?
 
 			//// Check that the packet actually contains the data it claims to
 			// if((5 + inputsToCopy * SLIPPI_PAD_DATA_SIZE) > (int)packet.getDataSize())
@@ -187,6 +200,9 @@ unsigned int SlippiNetplayClient::OnData(sf::Packet &packet)
 			//	ERROR_LOG(SLIPPI_ONLINE, "Netplay packet too small to read pad buffer");
 			//	break;
 			//}
+
+			//* And what if we didn't receive the inputs for frame 64 and 65 but receive the one for frame 66 - what then ?
+			//* Pad requests aren't ordered are they ? ... I don't get it rn
 
 			for (int i = inputsToCopy - 1; i >= 0; i--)
 			{
@@ -621,25 +637,31 @@ std::unique_ptr<SlippiRemotePadOutput> SlippiNetplayClient::GetSlippiRemotePad(i
 
 	std::unique_ptr<SlippiRemotePadOutput> padOutput = std::make_unique<SlippiRemotePadOutput>();
 
+	// Si on a aucun pad (pas censé arriver ? à voir)
 	if (remotePadQueue.empty())
 	{
 		auto emptyPad = std::make_unique<SlippiPad>(0);
 
 		padOutput->latestFrame = emptyPad->frame;
+		//* Donc... padOutput->latestFrame = 0 quoi ? rien de spécial dans le constructeur
 
 		auto emptyIt = std::begin(emptyPad->padBuf);
 		padOutput->data.insert(padOutput->data.end(), emptyIt, emptyIt + SLIPPI_PAD_FULL_SIZE);
+		//* Et un pad vide
 
 		return std::move(padOutput);
+		//* Donc on renvoie juste un SlippiPad&& avec frame 0 et pas de contenu
 	}
 
 	padOutput->latestFrame = remotePadQueue.front()->frame;
+	//* Frame du dernier pad connu, je suppose
 
 	// Copy the entire remaining remote buffer
 	for (auto it = remotePadQueue.begin(); it != remotePadQueue.end(); ++it)
 	{
 		auto padIt = std::begin((*it)->padBuf);
 		padOutput->data.insert(padOutput->data.end(), padIt, padIt + SLIPPI_PAD_FULL_SIZE);
+		//* Et contenu du dernier pad connu
 	}
 
 	// Remove pad reports that should no longer be needed

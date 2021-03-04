@@ -1181,6 +1181,8 @@ bool CEXISlippi::checkFrameFullyFetched(s32 frameIndex)
 
 void CEXISlippi::prepareFrameData(u8 *payload)
 {
+	//* Payload received from the ASM
+
 	// Since we are prepping new data, clear any existing data
 	m_read_queue.clear();
 
@@ -1191,6 +1193,7 @@ void CEXISlippi::prepareFrameData(u8 *payload)
 	}
 
 	// Parse input
+	//* First four bytes of payload = frame number
 	s32 frameIndex = payload[0] << 24 | payload[1] << 16 | payload[2] << 8 | payload[3];
 
 	// If loading from queue, move on to the next replay if we have past endFrame
@@ -1505,6 +1508,7 @@ void CEXISlippi::handleOnlineInputs(u8 *payload)
 		return;
 	}
 
+	// calls SendSlippiPad
 	handleSendInputs(payload);
 	prepareOpponentInputs(payload);
 }
@@ -1611,15 +1615,22 @@ void CEXISlippi::prepareOpponentInputs(u8 *payload)
 
 	int32_t frame = payload[0] << 24 | payload[1] << 16 | payload[2] << 8 | payload[3];
 
+	//* 1. Si aucun RemotePad enregistré, renvoie un avec frame 0 et contenu de pad nul
+	//* 2. Sinon renvoie une copie frame+pad du premier pad dans la queue
+	//* 3. Enlève les pads antérieurs à la frame actuelle sauf le dernier pad connu
 	auto result = slippi_netplay->GetSlippiRemotePad(frame);
 
 	// determine offset from which to copy data
 	int offset = (result->latestFrame - frame) * SLIPPI_PAD_FULL_SIZE;
 	offset = offset < 0 ? 0 : offset;
 
-	// add latest frame we are transfering to begining of return buf
+	//* Reminder that rollback can update multiple frames at a time
+	//* What's transferred to the Ingame rollback engine could be up to... 7? frames at a time ?
+
+	// add latest frame we are transfering to beginning of return buf
 	int32_t latestFrame = offset > 0 ? frame : result->latestFrame;
 	appendWordToBuffer(&m_read_queue, *(u32 *)&latestFrame);
+	//* Est-ce que la read queue serait la concaténation des frames qu'on passe à l'engine ?
 
 	// copy pad data over
 	auto txStart = result->data.begin() + offset;
@@ -2160,8 +2171,10 @@ void CEXISlippi::handleConnectionCleanup()
 	ERROR_LOG(SLIPPI_ONLINE, "Connection cleanup completed...");
 }
 
+//* Sounds like a read from Dolphin's perspective and a write from ASM perspective
 void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 {
+	//* Modélisation de la RAM de Gamecube
 	u8 *memPtr = Memory::GetPointer(_uAddr);
 
 	u32 bufLoc = 0;
@@ -2196,12 +2209,16 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 	         _uAddr, _uSize, memPtr[bufLoc], memPtr[bufLoc + 1], memPtr[bufLoc + 2], memPtr[bufLoc + 3],
 	         memPtr[bufLoc + 4]);
 
+	//* [one command] [another command] [etc]
+	//* one command = command id, payloadsize-1 bytes: the data
 	while (bufLoc < _uSize)
 	{
 		byte = memPtr[bufLoc];
-		if (!payloadSizes.count(byte))
+		if (!payloadSizes.count(byte)) //* check we have a payload for this command
 		{
 			// This should never happen. Do something else if it does?
+			//* Awfully sounds like me at work whenever the blocking warning for not covering enum values in a switch case that
+			//* I know aren't possible triggers and I have to put some random shit in the default case
 			WARN_LOG(EXPANSIONINTERFACE, "EXI SLIPPI: Invalid command byte: 0x%x", byte);
 			return;
 		}
@@ -2209,33 +2226,72 @@ void CEXISlippi::DMAWrite(u32 _uAddr, u32 _uSize)
 		u32 payloadLen = payloadSizes[byte];
 		switch (byte)
 		{
+			//* Switch cases were moved around to reorganise
+
+			// UNUSED = go to default - logged but doesn't do anything else ?
+
+			//* RECORDING
+			/*CMD_RECEIVE_COMMANDS = 0x35, <Treated beforehand>
+			* CMD_MENU_FRAME = 0x3E, <Treated beforehand>
+			* 
+			* CMD_RECEIVE_GAME_INFO = 0x36, //UNUSED
+			* CMD_RECEIVE_POST_FRAME_UPDATE = 0x38, // Used in updateMetadataFields but not here, TODO to investigate
+			* CMD_RECEIVE_GAME_END = 0x39,
+			* CMD_FRAME_BOOKEND = 0x3C,*/
+
 		case CMD_RECEIVE_GAME_END:
 			writeToFileAsync(&memPtr[bufLoc], payloadLen + 1, "close");
 			m_slippiserver->write(&memPtr[bufLoc], payloadLen + 1);
 			m_slippiserver->endGame();
-			break;
-		case CMD_PREPARE_REPLAY:
-			// log.open("log.txt");
-			prepareGameInfo(&memPtr[bufLoc + 1]);
-			break;
-		case CMD_READ_FRAME:
-			prepareFrameData(&memPtr[bufLoc + 1]);
 			break;
 		case CMD_FRAME_BOOKEND:
 			g_needInputForFrame = true;
 			writeToFileAsync(&memPtr[bufLoc], payloadLen + 1, "");
 			m_slippiserver->write(&memPtr[bufLoc], payloadLen + 1);
 			break;
-		case CMD_IS_STOCK_STEAL:
-			prepareIsStockSteal(&memPtr[bufLoc + 1]);
+
+			/* PLAYBACK
+			* 
+			* CMD_PREPARE_REPLAY = 0x75,
+			* CMD_READ_FRAME = 0x76,
+			* CMD_GET_LOCATION = 0x77, // UNUSED
+			* CMD_IS_FILE_READY = 0x88,
+			* CMD_IS_STOCK_STEAL = 0x89,
+			* CMD_GET_GECKO_CODES = 0x8A,*/
+
+		case CMD_PREPARE_REPLAY:
+			// log.open("log.txt");
+			prepareGameInfo(&memPtr[bufLoc + 1]);
+			break;
+		case CMD_READ_FRAME:
+			// oh boy
+			prepareFrameData(&memPtr[bufLoc + 1]);
 			break;
 		case CMD_IS_FILE_READY:
 			prepareIsFileReady();
+			break;
+		case CMD_IS_STOCK_STEAL:
+			prepareIsStockSteal(&memPtr[bufLoc + 1]);
 			break;
 		case CMD_GET_GECKO_CODES:
 			m_read_queue.clear();
 			m_read_queue.insert(m_read_queue.begin(), geckoList.begin(), geckoList.end());
 			break;
+
+			/* ONLINE
+			* 
+			* CMD_ONLINE_INPUTS = 0xB0,
+			* CMD_CAPTURE_SAVESTATE = 0xB1,
+			* CMD_LOAD_SAVESTATE = 0xB2,
+			* CMD_GET_MATCH_STATE = 0xB3,
+			* CMD_FIND_OPPONENT = 0xB4,
+			* CMD_SET_MATCH_SELECTIONS = 0xB5,
+			* CMD_OPEN_LOGIN = 0xB6,
+			* CMD_LOGOUT = 0xB7,
+			* CMD_UPDATE = 0xB8,
+			* CMD_GET_ONLINE_STATUS = 0xB9,
+			* CMD_CLEANUP_CONNECTION = 0xBA,*/
+
 		case CMD_ONLINE_INPUTS:
 			handleOnlineInputs(&memPtr[bufLoc + 1]);
 			break;

@@ -30,12 +30,22 @@ class CEXISlippi : public IEXIDevice
 	CEXISlippi();
 	virtual ~CEXISlippi();
 
-	void DMAWrite(u32 _uAddr, u32 _uSize) override;
-	void DMARead(u32 addr, u32 size) override;
+	//* Primitive de communication ASM C++
+	//* DMA = Direct memory access
 
+	//* Répond aux demandes de l'ASM
+	//* A read from the ASM, a write from the ASM's perspective
+	void DMAWrite(u32 _uAddr, u32 _uSize) override;
+
+	//* A write to the ASM, a read from the ASM's perspective
+	//* Passe des choses à l'ASM - dont les gamepads mais quoi d'autre ?
+	void DMARead(u32 addr, u32 size) override;
+	
 	bool IsPresent() const override;
 
   private:
+	//* Messages entre ASM et C++
+	//* + Payload size des messages
 	enum
 	{
 		CMD_UNKNOWN = 0x0,
@@ -152,17 +162,55 @@ class CEXISlippi : public IEXIDevice
 	std::vector<u8> m_payload;
 
 	// online play stuff
+
+	// Ensures randomly selected stage go through all 6 once then resets the pool
 	u16 getRandomStage();
+	
+	// Wrapper for (not in netplay) or (disconnected according to the slippiNetplay)
 	bool isDisconnected();
+
+	/* CMD_ONLINE_INPUTS triggered
+	 First four bits of payload = frame
+	 Cas particulier frame 1 (initialisation)
+	 Cas particulier should skip online frame
+	
+	handleSendInputs(payload);
+	prepareOpponentInputs(payload);*/
 	void handleOnlineInputs(u8 *payload);
+
+	// If we haven't disconnected
+	// Compute frame from payload - which payload ? Ours I assume ?
+	// slippi_netplay->GetSlippiRemotePad(frame)
+	// CALLS GetSlippiRemotePad o_O Why is it called prepare then
 	void prepareOpponentInputs(u8 *payload);
+	
+	/*int32_t frame = payload[0] << 24 | payload[1] << 16 | payload[2] << 8 | payload[3];
+	u8 delay = payload[4];
+	auto pad = std::make_unique<SlippiPad>(frame + delay, &payload[5]);
+	slippi_netplay->SendSlippiPad(std::move(pad));*/
+	// On envoie nous même la frame que l'autre utilisera avec LEUR delay ? Bizarre... Le payload est fourni par Melee je suppose ?
+	// Le pad aussi (pas illogique en fait)
+	// Mais ça ne nous arrange guère
 	void handleSendInputs(u8 *payload);
+
+
 	void handleCaptureSavestate(u8 *payload);
 	void handleLoadSavestate(u8 *payload);
 	void startFindMatch(u8 *payload);
 	void prepareOnlineMatchState();
 	void setMatchSelections(u8 *payload);
+
+	/*Non si connection hs
+	Si pas d'info de l'adversaire depuis 7 frames, stall une frame
+	Si on stall à cause de ça depuis 7 secondes, se déconnecter
+	Toutes les 30 frames, timesync
+	Timesync:
+	L'un des joueurs est-il devant de plus de 0.6FL ?
+	A voir comment ce offsetUs est il calculé
+	auto offsetUs = slippi_netplay->CalcTimeOffsetUs()
+	Si oui attendre 1 (ou jusqu'à 5, [n+0.6,n+1.6]=>n si dans les 120 premières frames)*/
 	bool shouldSkipOnlineFrame(s32 frame);
+
 	void handleLogInRequest();
 	void handleLogOutRequest();
 	void handleUpdateAppRequest();
@@ -193,15 +241,24 @@ class CEXISlippi : public IEXIDevice
 	std::vector<u8> playbackSavestatePayload;
 	std::vector<u8> geckoList;
 
-	u32 stallFrameCount = 0;
+	//* Décompte des frames à stall dû à un décalage de timing entre les 2 émulateurs
+	u32 stallFrameCount = 0; 
+
+	//* A-t'on attendu pendant 7 secondes des informations de gamepad de l'adversaire en vain ? Si oui, déco et
+	//isConnectionStalled=true
 	bool isConnectionStalled = false;
 
+	//* La structure contenant ce qui est passé au système de rollback ASM
+	//* ce qui se fait avec DMARead (du point de Dolphin, une write queue, donc)
+	//* "frame result" 1 = continue ; 2 = stall ; 3 = disconnect
 	std::vector<u8> m_read_queue;
+
 	std::unique_ptr<Slippi::SlippiGame> m_current_game = nullptr;
 	SlippiSpectateServer *m_slippiserver = nullptr;
 	SlippiMatchmaking::MatchSearchSettings lastSearch;
 
-	std::vector<u16> stagePool;
+	//* Utilisé pour itérer à travers tous les stages une fois
+	std::vector<u16> stagePool; 
 
 	u32 frameSeqIdx = 0;
 

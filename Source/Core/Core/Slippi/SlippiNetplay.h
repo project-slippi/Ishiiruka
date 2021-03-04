@@ -118,7 +118,12 @@ class SlippiNetplayClient
 	void SendConnectionSelected();
 	void SendSlippiPad(std::unique_ptr<SlippiPad> pad);
 	void SetMatchSelections(SlippiPlayerSelections &s);
+
+	// 1. Si aucun RemotePad enregistré, renvoie un avec frame 0 et contenu de pad nul
+	// 2. Sinon renvoie une copie frame+pad du premier pad dans la queue
+	// 3. Enlève les pads antérieurs à la frame actuelle sauf le dernier pad connu
 	std::unique_ptr<SlippiRemotePadOutput> GetSlippiRemotePad(int32_t curFrame);
+
 	SlippiMatchInfo *GetMatchInfo();
 	u64 GetSlippiPing();
 	int32_t GetSlippiLatestRemoteFrame();
